@@ -1,0 +1,3 @@
+package org.inca.core.constraints
+
+trait IPathExpressionLike extends IPathElementScopeProvider
