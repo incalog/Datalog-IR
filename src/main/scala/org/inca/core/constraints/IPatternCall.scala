@@ -4,7 +4,7 @@ import org.inca.core.content.IPattern
 import org.inca.core.values.IValue
 
 trait IPatternCall {
-  var transitive: Boolean
-  var arguments: List[IValue]
-  var pattern: IPattern
+  val transitive: Boolean
+  val arguments: Seq[IValue]
+  val pattern: IPattern
 }

@@ -1,3 +1,3 @@
 package org.inca.core
 
-case class AbstractIncaModuleImport(module: IIncaModule) extends IIncaModuleImport
+abstract class AbstractIncaModuleImport extends IIncaModuleImport

@@ -1,5 +1,3 @@
 package org.inca.mps.binaryOperations
 
-trait Expression {
-
-}
+abstract class Expression

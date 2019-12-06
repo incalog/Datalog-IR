@@ -1,7 +1,9 @@
 package org.inca.core.content
 
-trait IPattern {
-  var parameters: List[IParameter]
-  var bodies: List[IPatternBody]
-  var visibility: Option[IPatternVisibility]
+import org.inca.mps.INamedConcept
+
+trait IPattern extends INamedConcept with IPatternModuleContent with IGenNameProvider with IVariableBinder {
+  val parameters: Seq[IParameter]
+  val bodies: Seq[IPatternBody]
+  val visibility: Option[IPatternVisibility]
 }

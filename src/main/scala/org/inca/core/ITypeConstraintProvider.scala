@@ -1,5 +1,3 @@
 package org.inca.core
 
-trait ITypeConstraintProvider {
-
-}
+trait ITypeConstraintProvider

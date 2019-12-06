@@ -1,5 +1,3 @@
 package org.inca.core.content
 
-trait IPatternBodyContent {
-
-}
+trait IPatternBodyContent
