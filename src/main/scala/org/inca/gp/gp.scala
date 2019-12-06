@@ -1,7 +1,7 @@
 package org.inca
 
-import org.inca.core.{AbstractIncaModuleImport, IIncaModule, IIncaModuleImport, IPatternModule}
-import org.inca.core.content.IPatternModuleContent
+import org.inca.core_old.{AbstractIncaModuleImport, IIncaModule, IIncaModuleImport, IPatternModule}
+import org.inca.core_old.content.IPatternModuleContent
 
 package object gp {
   case class GraphPatternModuleImport(module: IIncaModule) extends AbstractIncaModuleImport

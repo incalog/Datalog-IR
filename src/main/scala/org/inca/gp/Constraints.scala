@@ -1,10 +1,10 @@
 package org.inca.gp
 
-import org.inca.core.ITypeConstraintProvider
-import org.inca.core.typ.ICompileTimeIncAType
-import org.inca.core.constraints._
-import org.inca.core.reference.VariableReference
-import org.inca.core.values.{IValue, IVariableValue}
+import org.inca.core_old.ITypeConstraintProvider
+import org.inca.core_old.typ.ICompileTimeIncAType
+import org.inca.core_old.constraints._
+import org.inca.core_old.reference.VariableReference
+import org.inca.core_old.values.{IValue, IVariableValue}
 import org.inca.gp_old.content.IGraphPatternBodyContent
 import org.inca.mps.binaryOperations.Expression
 

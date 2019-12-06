@@ -1,7 +1,7 @@
 package org.inca.gp_old.constraints
 
-import org.inca.core.ITypeConstraintProvider
-import org.inca.core.constraints.IPatternCall
+import org.inca.core_old.ITypeConstraintProvider
+import org.inca.core_old.constraints.IPatternCall
 import org.inca.gp_old.content.IGraphPatternBodyContent
 
 case class PatternCompositionConstraint(neg: Boolean,

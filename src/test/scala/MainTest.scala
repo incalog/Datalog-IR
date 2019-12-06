@@ -1,6 +1,6 @@
-import org.inca.core.typ.compileTime.{ConceptReferenceType, JoinType, PatternVisibility}
-import org.inca.core.content.JoinTypeDef
-import org.inca.core.reference.VariableReference
+import org.inca.core_old.typ.compileTime.{ConceptReferenceType, JoinType, PatternVisibility}
+import org.inca.core_old.content.JoinTypeDef
+import org.inca.core_old.reference.VariableReference
 import org.inca.gp_old.constraints.GraphPatternConceptConstraint
 import org.inca.gp_old.content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
 import org.inca.mps.ConceptDeclaration

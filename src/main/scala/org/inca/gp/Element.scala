@@ -1,7 +1,7 @@
 package org.inca.gp
 
-import org.inca.core.constraints.IPathElement
-import org.inca.core.constraints.element.virtual.IVirtualPathElement
+import org.inca.core_old.constraints.IPathElement
+import org.inca.core_old.constraints.element.virtual.IVirtualPathElement
 import org.inca.mps.InterfacePart
 
 object Element {

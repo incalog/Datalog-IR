@@ -2,10 +2,10 @@ package org.inca
 
 import java.lang.reflect.Field
 
-import org.inca.core.constraints.PatternCall
-import org.inca.core.content.TemporaryVariable
-import org.inca.core.reference.VariableReference
-import org.inca.core.typ.compileTime.ConceptReferenceType
+import org.inca.core_old.constraints.PatternCall
+import org.inca.core_old.content.TemporaryVariable
+import org.inca.core_old.reference.VariableReference
+import org.inca.core_old.typ.compileTime.ConceptReferenceType
 import org.inca.gp.Constraints.{PathExpressionConstraint, PatternCompositionConstraint}
 import org.inca.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
 import org.inca.gp.Element.PathElement

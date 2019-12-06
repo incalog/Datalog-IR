@@ -2,7 +2,7 @@ package org.inca
 
 import java.lang.reflect.Field
 
-import org.inca.core.typ.ICompileTimeIncAType
+import org.inca.core_old.typ.ICompileTimeIncAType
 import org.inca.mps.InterfacePart
 
 package object meta {

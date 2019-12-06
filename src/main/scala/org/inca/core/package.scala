@@ -1,0 +1,19 @@
+package org.inca
+
+import org.inca.core.Content.{IGenNameProvider, IPatternModuleContent}
+import org.inca.mps.INamedConcept
+
+package object core {
+  trait ITypeConstraintProvider
+  trait IIncaModule extends INamedConcept {
+    val imports: Seq[IIncaModuleImport]
+  }
+  trait IIncaModuleImport {
+    val module: IIncaModule
+  }
+  trait IPatternModule extends INamedConcept with IGenNameProvider with IIncaModule {
+    val contents: Seq[IPatternModuleContent]
+  }
+
+  abstract class AbstractIncaModuleImport extends IIncaModuleImport
+}

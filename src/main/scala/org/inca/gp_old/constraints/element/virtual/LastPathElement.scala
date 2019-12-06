@@ -1,6 +1,6 @@
 package org.inca.gp_old.constraints.element.virtual
 
-import org.inca.core.constraints.IPathElement
+import org.inca.core_old.constraints.IPathElement
 import org.inca.gp_old.constraints.element.AbstractListPathElement
 import org.inca.mps.InterfacePart
 

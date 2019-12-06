@@ -1,7 +1,7 @@
 package org.inca.gp
 
-import org.inca.core.typ.ICompileTimeIncAType
-import org.inca.core.content._
+import org.inca.core_old.typ.ICompileTimeIncAType
+import org.inca.core_old.content._
 
 object Content {
   trait IGraphPatternBodyContent extends IPatternBodyContent

@@ -1,8 +1,8 @@
 package org.inca.solution.core.util
 
 import org.inca.Node
-import org.inca.core.content.IPatternBody
-import org.inca.core.typeHint.{ITypeHintKeyProvider, UserObjectMap}
+import org.inca.core_old.content.IPatternBody
+import org.inca.core_old.typeHint.{ITypeHintKeyProvider, UserObjectMap}
 
 class CodeGenerationHelper {
 

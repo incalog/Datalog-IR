@@ -1,6 +1,6 @@
 package org.inca.gp
 
-import org.inca.core.constraints.{IGeneratorPathElement, IPathElement}
+import org.inca.core_old.constraints.{IGeneratorPathElement, IPathElement}
 import org.inca.gp.Element.AbstractPathElement
 import org.inca.mps.InterfacePart
 

@@ -1,6 +1,6 @@
 package org.inca.gp_old.content
 
-import org.inca.core.content.EmptyContent
+import org.inca.core_old.content.EmptyContent
 
 case class EmptyGraphPatternContent()
   extends EmptyContent()
