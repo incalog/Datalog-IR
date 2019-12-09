@@ -1,11 +1,44 @@
 package org.inca.diff
 
+import java.util.Base64
+
 object Tree23 {
 
-  trait Tree23
-  case class Leaf(s: String) extends Tree23
-  case class Node2(t1: Tree23, t2: Tree23) extends Tree23
-  case class Node3(t1: Tree23, t2: Tree23, t3: Tree23) extends Tree23
+  import java.nio.charset.StandardCharsets
+  import java.security.MessageDigest
+
+  val digest: MessageDigest = MessageDigest.getInstance("SHA-256")
+
+  trait WithCachedCryptoHash {
+    val hash: Array[Byte]
+    lazy val hashString = Base64.getEncoder.encodeToString(hash)
+  }
+
+  trait Tree23 extends WithCachedCryptoHash
+  case class Leaf(s: String) extends Tree23 {
+    override val hash: Array[Byte] = {
+      digest.update(0:Byte)
+      digest.update(s.getBytes(StandardCharsets.UTF_8))
+      digest.digest()
+    }
+  }
+  case class Node2(t1: Tree23, t2: Tree23) extends Tree23 {
+    override val hash: Array[Byte] = {
+      digest.update(1:Byte)
+      digest.update(t1.hash)
+      digest.update(t2.hash)
+      digest.digest()
+    }
+  }
+  case class Node3(t1: Tree23, t2: Tree23, t3: Tree23) extends Tree23 {
+    override val hash: Array[Byte] = {
+      digest.update(2:Byte)
+      digest.update(t1.hash)
+      digest.update(t2.hash)
+      digest.update(t3.hash)
+      digest.digest()
+    }
+  }
 
 
   class MetaVar(val i: Int) extends Plug {
@@ -173,43 +206,4 @@ object Tree23 {
       ) yield Node3(t1_, t2_, t3_)
     case _ => None
   }
-
-
-
-  trait Oracle23 {
-    def predict(t: Tree23): Option[MetaVar]
-  }
-  trait MkOracle23 {
-    // which common subtree
-    // must be injective:
-    // if apply(s, d).predict(x) ≡ apply(s, d).predict(y) ≡ Just v, then x ≡ y
-    def apply(src: Tree23, dest: Tree23): Oracle23
-  }
-
-  object IndexSubtreesOracle23 extends MkOracle23 {
-    // proof of concept only, as this is very, very slow
-
-    override def apply(src: Tree23, dest: Tree23): Oracle23 = {
-      val trees1 = subtrees(src)
-      val trees2 = subtrees(dest)
-      val both = trees1.intersect(trees2)
-      val commonTreeList = both.toList
-      t => {
-          val ix = commonTreeList.indexOf(t)
-          if (ix >= 0) Some(new MetaVar(ix)) else None
-      }
-    }
-
-    def subtrees(t: Tree23): Set[Tree23] = t match {
-      case Leaf(s) => Set(t)
-      case Node2(t1, t2) => subtrees(t1) ++ subtrees(t2) + t
-      case Node3(t1, t2, t3) => subtrees(t1) ++ subtrees(t2) ++ subtrees(t3) + t
-    }
-  }
-
-
-
-
-
-
 }

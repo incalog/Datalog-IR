@@ -5,15 +5,19 @@ import org.scalatest.matchers.should.Matchers
 
 import Tree23._
 
-class TestTree23 extends AnyFlatSpec with Matchers {
+
+class TestTree23IndexSubtreesOracle extends TestTree23(IndexSubtreesOracle23)
+class TestTree23CryptoHashOracle extends TestTree23(CryptoHashOracle23)
+
+class TestTree23(mkOracle: MkOracle23) extends AnyFlatSpec with Matchers {
   
   implicit def leaf(s: String): Tree23 = Leaf(s)
 
   val n2ab = Node2("a", "b")
   val n3abc = Node3("a", "b", "c")
-  
-  implicit val oracle = IndexSubtreesOracle23
 
+  implicit val implicit_mkOracle = mkOracle
+  
   "diff of identical trees" should "yield empty patch" in {
     val emptyPatch: PartialFunction[Any,_] = {
       case Hole(Change23(Hole(i1), Hole(i2))) if i1==i2 =>
