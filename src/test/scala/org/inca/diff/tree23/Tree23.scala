@@ -1,22 +1,21 @@
-package org.inca.diff
+package org.inca.diff.tree23
 
+import org.inca.diff.tree23.Tree23._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import Tree23._
 
+class TestTree23IndexSubtreesOracle extends TestTree23(Tree23IndexSubtreesOracle)
+class TestTree23CryptoHashOracle extends TestTree23(Tree23CryptoHashOracle)
 
-class TestTree23IndexSubtreesOracle extends TestTree23(IndexSubtreesOracle23)
-class TestTree23CryptoHashOracle extends TestTree23(CryptoHashOracle23)
-
-class TestTree23(mkOracle: MkOracle23) extends AnyFlatSpec with Matchers {
+class TestTree23(mkOracle: MkTree32Oracle) extends AnyFlatSpec with Matchers {
   
   implicit def leaf(s: String): Tree23 = Leaf(s)
 
-  val n2ab = Node2("a", "b")
-  val n3abc = Node3("a", "b", "c")
+  val n2ab: Node2 = Node2("a", "b")
+  val n3abc: Node3 = Node3("a", "b", "c")
 
-  implicit val implicit_mkOracle = mkOracle
+  implicit val implicit_mkOracle: MkTree32Oracle = mkOracle
   
   "diff of identical trees" should "yield empty patch" in {
     val emptyPatch: PartialFunction[Any,_] = {

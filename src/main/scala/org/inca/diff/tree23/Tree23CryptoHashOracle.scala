@@ -1,12 +1,10 @@
-package org.inca.diff
-
-import java.util.Base64
+package org.inca.diff.tree23
 
 import org.apache.commons.collections4.trie.PatriciaTrie
-import org.inca.diff.Tree23._
+import org.inca.diff.tree23.Tree23._
 
-object CryptoHashOracle23 extends MkOracle23 {
-  override def apply(src: Tree23, dest: Tree23): Oracle23 = {
+object Tree23CryptoHashOracle extends MkTree32Oracle {
+  override def apply(src: Tree23, dest: Tree23): Tree23Oracle = {
     val srcTrie = new PatriciaTrie[MetaVar]()
     val intersectTrie = new PatriciaTrie[MetaVar]()
 
@@ -39,7 +37,3 @@ object CryptoHashOracle23 extends MkOracle23 {
   }
 }
 
-trait WithCachedCryptoHash {
-  val hash: Array[Byte]
-  lazy val hashString = Base64.getEncoder.encodeToString(hash)
-}

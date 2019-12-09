@@ -1,11 +1,11 @@
-package org.inca.diff
+package org.inca.diff.tree23
 
-import org.inca.diff.Tree23._
+import Tree23._
 
-object IndexSubtreesOracle23 extends MkOracle23 {
+object Tree23IndexSubtreesOracle extends MkTree32Oracle {
     // proof of concept only, as this is very, very slow
 
-    override def apply(src: Tree23, dest: Tree23): Oracle23 = {
+    override def apply(src: Tree23, dest: Tree23): Tree23Oracle = {
       val trees1 = subtrees(src)
       val trees2 = subtrees(dest)
       val both = trees1.intersect(trees2)

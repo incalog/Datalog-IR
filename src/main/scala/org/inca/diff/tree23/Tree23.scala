@@ -1,8 +1,9 @@
-package org.inca.diff
+package org.inca.diff.tree23
 
-import java.util.Base64
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
+
+import org.inca.diff.WithCachedCryptoHash
 
 object Tree23 {
 
@@ -121,17 +122,17 @@ object Tree23 {
   }
 
 
-  def changeTree23(src: Tree23, dest: Tree23, oracle: Oracle23): Change23[MetaVar] = {
-    val change = Change23(extract(oracle, src), extract(oracle, dest))
+  def changeTree23(src: Tree23, dest: Tree23, Oracle23: Tree23Oracle): Change23[MetaVar] = {
+    val change = Change23(extract(Oracle23, src), extract(Oracle23, dest))
     postprocess(src, dest, change)
   }
 
-  def extract(oracle: Oracle23, t: Tree23): Tree23C[MetaVar] = oracle.predict(t) match {
+  def extract(Oracle23: Tree23Oracle, t: Tree23): Tree23C[MetaVar] = Oracle23.predict(t) match {
     case Some(i) => Hole(i)
     case None => t match {
       case Leaf(s) => LeafC(s)
-      case Node2(a, b) => Node2C(extract(oracle, a), extract(oracle, b))
-      case Node3(a, b, c) => Node3C(extract(oracle, a), extract(oracle, b), extract(oracle, c))
+      case Node2(a, b) => Node2C(extract(Oracle23, a), extract(Oracle23, b))
+      case Node3(a, b, c) => Node3C(extract(Oracle23, a), extract(Oracle23, b), extract(Oracle23, c))
     }
   }
 
@@ -150,41 +151,41 @@ object Tree23 {
     case _ => false
   }
 
-  def greatestCommonClosedPrefix[A <: Plug](t1: Tree23C[A], t2: Tree23C[A]): Tree23C[Change23[A]] = (t1, t2) match {
-    case (LeafC(s1), LeafC(s2)) if s1 == s2 => LeafC(s1)
+  type Prefix[A <: Plug] = Either[Tree23C[Change23[A]], Change23[A]]
+
+  def mkPrefix[A <: Plug](change: Change23[A]): Prefix[A] =
+    if (change.isClosed)
+      Left(Hole(change))
+    else
+      Right(change)
+
+  def greatestCommonClosedPrefix[A <: Plug](t1: Tree23C[A], t2: Tree23C[A]): Prefix[A] = (t1, t2) match {
+    case (LeafC(s1), LeafC(s2)) if s1 == s2 => Left(LeafC(s1))
     case (Node2C(a1, b1), Node2C(a2, b2)) =>
       val patch1 = greatestCommonClosedPrefix(a1, a2)
       val patch2 = greatestCommonClosedPrefix(b1, b2)
       (patch1, patch2) match {
-        case (Hole(change1), Hole(change2)) if !change1.isClosed || !change2.isClosed => {
-          val del = Node2C(change1.delCtx, change2.delCtx)
-          val ins = Node2C(change1.insCtx, change2.insCtx)
-          Hole(Change23(del, ins))
-        }
-        case _ => Node2C(patch1, patch2)
+        case (Left(tc1), Left(tc2)) => Left(Node2C(tc1, tc2))
+        case _ => mkPrefix(Change23(t1, t2))
       }
     case (Node3C(a1, b1, c1), Node3C(a2, b2, c2)) =>
       val patch1 = greatestCommonClosedPrefix(a1, a2)
       val patch2 = greatestCommonClosedPrefix(b1, b2)
       val patch3 = greatestCommonClosedPrefix(c1, c2)
       (patch1, patch2, patch3) match {
-        case (Hole(change1), Hole(change2), Hole(change3)) if !change1.isClosed || !change2.isClosed || !change3.isClosed => {
-          val del = Node3C(change1.delCtx, change2.delCtx, change3.delCtx)
-          val ins = Node3C(change1.insCtx, change2.insCtx, change3.insCtx)
-          Hole(Change23(del, ins))
-        }
-        case _ => Node3C(patch1, patch2, patch3)
+        case (Left(tc1), Left(tc2), Left(tc3)) => Left(Node3C(tc1, tc2, tc3))
+        case _ => mkPrefix(Change23(t1, t2))
       }
-    case _ => Hole(Change23(t1, t2))
+    case _ => mkPrefix(Change23(t1, t2))
   }
 
 
 
 
-  def diffTree23(t1: Tree23, t2: Tree23)(implicit mkOracle: MkOracle23): Patch23 = {
-    val oracle = mkOracle(t1, t2)
-    val change = changeTree23(t1, t2, oracle)
-    greatestCommonClosedPrefix(change.delCtx, change.insCtx)
+  def diffTree23(t1: Tree23, t2: Tree23)(implicit mkOracle23: MkTree32Oracle): Patch23 = {
+    val Oracle23 = mkOracle23(t1, t2)
+    val change = changeTree23(t1, t2, Oracle23)
+    greatestCommonClosedPrefix(change.delCtx, change.insCtx).left.getOrElse(sys.error(s"Unclosable change $change"))
   }
 
   def applyPatch23(p: Patch23, t: Tree23): Option[Tree23] = (p, t) match {
