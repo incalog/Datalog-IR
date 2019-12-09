@@ -5,10 +5,10 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 
-class TestTree23IndexSubtreesOracle extends TestTree23(Tree23IndexSubtreesOracle)
-class TestTree23CryptoHashOracle extends TestTree23(Tree23CryptoHashOracle)
+class TestTree23DiffIndexSubtreesOracle extends TestTree23Diff(Tree23IndexSubtreesOracle)
+class TestTree23DiffCryptoHashOracle extends TestTree23Diff(Tree23CryptoHashOracle)
 
-class TestTree23(mkOracle: MkTree32Oracle) extends AnyFlatSpec with Matchers {
+class TestTree23Diff(mkOracle: MkTree32Oracle) extends AnyFlatSpec with Matchers {
   
   implicit def leaf(s: String): Tree23 = Leaf(s)
 

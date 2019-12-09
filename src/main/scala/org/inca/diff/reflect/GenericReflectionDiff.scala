@@ -5,14 +5,15 @@ import java.security.MessageDigest
 
 import org.inca.diff.WithCachedCryptoHash
 
-object GenericReflection {
+import GenericReflectionCryptoHashOracle.digest
 
-  // marker trait for types should be structurally diffed
-  trait StructuralDiff extends WithCachedCryptoHash
+object GenericReflectionDiff {
+
+  // marker trait for types that should be structurally diffed
+  trait StructuralDiff
 
   implicit def withClassOps[A](cls: Class[A]): ClassOps[A] = new ClassOps(cls)
   class ClassOps[A](val cls: Class[A]) extends AnyVal {
-    def extendsStructuralDiff: Boolean = classOf[StructuralDiff].isAssignableFrom(cls)
     def allFields: Seq[Field] = {
       ClassOps.allFieldsCache.get(cls) match {
         case Some(fields) => fields
@@ -42,7 +43,43 @@ object GenericReflection {
   }
 
 
-  type Node = Any
+  trait Tree extends WithCachedCryptoHash
+  case class Val(v: Any) extends Tree {
+    override val $hash: Array[Byte] = {
+      digest.update(v.getClass.getCanonicalName.getBytes())
+      v match {
+        case v: Boolean => digest.update(if(v) 1:Byte else 0:Byte); digest.digest()
+        case v: Byte => digest.update(v); digest.digest()
+        case v: Short  => digest.digest(BigInt(v).toByteArray)
+        case v: Char  => digest.digest(BigInt(v).toByteArray)
+        case v: Int => digest.digest(BigInt(v).toByteArray)
+        case v: Long => digest.digest(BigInt(v).toByteArray)
+        case v: Float => digest.digest(BigInt(java.lang.Float.floatToRawIntBits(v)).toByteArray)
+        case v: Double => digest.digest(BigInt(java.lang.Double.doubleToRawLongBits(v)).toByteArray)
+        case v: String => digest.digest(v.getBytes)
+        case v: Symbol => digest.digest(v.name.getBytes)
+        case _ => throw new IllegalArgumentException(s"Cannot compute hash of $v")
+      }
+    }
+  }
+  case class Node(cls: Class[_], subs: Seq[Tree]) extends Tree {
+    override val $hash: Array[Byte] = {
+      digest.update(cls.getCanonicalName.getBytes)
+      subs.foreach(t => digest.update(t.$hash))
+      digest.digest()
+    }
+  }
+
+  def decorate(n: Any): Tree =
+    if (n == null)
+      Val(n)
+    else if (n.isInstanceOf[Seq[_]])
+      Node(classOf[Seq[_]], n.asInstanceOf[Seq[_]].map(decorate))
+    else if (n.isInstanceOf[StructuralDiff])
+      Node(n.getClass, n.getClass.allFieldVals(n).map(decorate(_)))
+    else
+      Val(n)
+
 
   class MetaVar(val i: Int) extends Plug {
     override val freevars: Set[MetaVar] = Set(this)
@@ -70,25 +107,16 @@ object GenericReflection {
     override val freevars: Set[MetaVar] = subs.foldLeft(Set[MetaVar]())(_ union _.freevars)
   }
 
-  def asCtx[A <: Plug](node: Node): TreeC[A] = {
-    val cls = node.getClass
-    if (cls.extendsStructuralDiff) {
-      val subs = cls.allFieldVals(node).map(asCtx[A](_))
-      NodeC(cls, subs)
-    }
-    else
-      ValC(node)
+  def asCtx[A <: Plug](t: Tree): TreeC[A] = t match {
+    case Val(v) => ValC(v)
+    case Node(cls, subs) => NodeC(cls, subs.map(asCtx(_)))
   }
 
-  def retainHoles[A <: Plug](tc: TreeC[A], vs: Set[A], t: Node): TreeC[A] = tc match {
+  def retainHoles[A <: Plug](tc: TreeC[A], vs: Set[A], t: Tree): TreeC[A] = tc match {
     case Hole(a) => if (vs.contains(a)) tc else asCtx(t)
     case ValC(_) => tc
     case NodeC(cls, subs) => {
-      val newsubs = (subs zip t.getClass.allFields).map { tt =>
-        val subTc = tt._1
-        val subT = tt._2.get(t)
-        retainHoles(subTc, vs, subT)
-      }
+      val newsubs = (subs zip t.asInstanceOf[Node].subs).map ( tt => retainHoles(tt._1, vs, tt._2))
       NodeC(cls, newsubs)
     }
   }
@@ -98,75 +126,25 @@ object GenericReflection {
     def isClosed: Boolean = freevars.isEmpty
   }
 
-  def applyChange(c: Change[MetaVar], t: Node): Option[Node] =
-    del(c.delCtx, t) flatMap (ins(c.insCtx, _))
-
-  def del(ctx: TreeC[MetaVar], tree: Node): Option[Map[MetaVar, Node]] =
-    go(ctx, tree, Map())
-
-  def go(ctx: TreeC[MetaVar], node: Node, m: Map[MetaVar, Node]): Option[Map[MetaVar, Node]] = ctx match {
-    case ValC(v) => if (v == node) Some(m) else None
-    case NodeC(cls, subs) =>
-      if (cls != node.getClass)
-        None
-      else {
-        var res = m
-        (subs zip cls.allFieldVals(node)).foreach { tt =>
-          go(tt._1, tt._2, res) match {
-            case Some(m_) => res = m_
-            case None => return None
-          }
-        }
-        Some(res)
-      }
-    case Hole(i) => m.get(i) match {
-      case None => Some(m + (i -> node))
-      case Some(node_) => if(node == node_) Some(m) else None
-    }
-  }
-
-
-  def ins(ctx: TreeC[MetaVar], m: Map[MetaVar, Node]): Option[Node] = ctx match {
-    case ValC(v) => Some(v)
-    case NodeC(cls, subs) =>
-      val node = cls.newInstance()
-      (subs zip cls.allFields).foreach { tt =>
-        ins(tt._1, m) match {
-          case Some(subnode) => tt._2.set(node, subnode)
-          case None => return None
-        }
-      }
-      Some(node)
-    case Hole(i) => m.get(i)
-  }
-
-
-  def changeTree(src: Node, dest: Node, oracle: GenericReflectionOracle): Change[MetaVar] = {
+  def changeTree(src: Tree, dest: Tree, oracle: GenericReflectionOracle): Change[MetaVar] = {
     val change = Change(extract(oracle, src), extract(oracle, dest))
     postprocess(src, dest, change)
   }
 
-  def extract(oracle: GenericReflectionOracle, node: Node): TreeC[MetaVar] = oracle.predict(node) match {
+  def extract(oracle: GenericReflectionOracle, t: Tree): TreeC[MetaVar] = oracle.predict(t) match {
     case Some(i) => Hole(i)
-    case None =>
-      if (node == null)
-        return ValC(null)
-      val cls = node.getClass
-      if (cls.extendsStructuralDiff) {
-        val subs = cls.allFieldVals(node).map(extract(oracle, _))
-        NodeC(cls, subs)
-      }
-      else
-        ValC(node)
+    case None => t match {
+      case Val(v) => ValC(v)
+      case Node(cls, subs) => NodeC(cls, subs.map(extract(oracle, _)))
+    }
   }
 
-  def postprocess(src: Node, dest: Node, c: Change[MetaVar]): Change[MetaVar] = {
+  def postprocess(src: Tree, dest: Tree, c: Change[MetaVar]): Change[MetaVar] = {
     val okvars = c.delCtx.freevars intersect c.insCtx.freevars
     val postDel = retainHoles(c.delCtx, okvars, src)
     val postIns = retainHoles(c.insCtx, okvars, dest)
     Change(postDel, postIns)
   }
-
 
 
   type Patch = TreeC[Change[MetaVar]]
@@ -196,25 +174,12 @@ object GenericReflection {
     case _ => mkPrefix(Change(t1, t2))
   }
 
-  def diffTree(t1: Node, t2: Node)(implicit mkOracle: MkGenericReflectionOracle): Patch = {
+  def diffTree(a1: Any, a2: Any)(implicit mkOracle: MkGenericReflectionOracle): Patch = {
+    val t1 = decorate(a1)
+    val t2 = decorate(a2)
     val oracle = mkOracle(t1, t2)
     val change = changeTree(t1, t2, oracle)
     greatestCommonClosedPrefix(change.delCtx, change.insCtx).left.getOrElse(sys.error(s"Unclosable change $change"))
   }
-
-  def applyPatch(p: Patch, node: Node): Option[Node] = p match {
-    case Hole(change) => applyChange(change, node)
-    case ValC(v) if v == node => Some(node)
-    case NodeC(cls, subs) if cls == node.getClass =>
-      val newnode = cls.newInstance()
-      (subs zip cls.allFields).foreach { tt =>
-        val fld = tt._2
-        val subnode = fld.get(node)
-        applyPatch(tt._1, subnode) match {
-          case Some(newSubnode) => fld.set(newnode, subnode)
-          case None => return None
-        }
-      }
-      Some(newnode)
-  }
 }
+

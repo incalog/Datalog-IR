@@ -1,11 +1,11 @@
 package org.inca.diff.reflect
 
-import GenericReflection._
+import GenericReflectionDiff._
 
 object GenericReflectionIndexSubtreesOracle extends MkGenericReflectionOracle {
   // proof of concept only, as this is very, very slow
 
-  override def apply(src: Node, dest: Node): GenericReflectionOracle = {
+  override def apply(src: Tree, dest: Tree): GenericReflectionOracle = {
     val trees1 = subtrees(src)
     val trees2 = subtrees(dest)
     val both = trees1.intersect(trees2)
@@ -16,16 +16,8 @@ object GenericReflectionIndexSubtreesOracle extends MkGenericReflectionOracle {
     }
   }
 
-  def subtrees(node: Node): Set[Node] = {
-    if (node == null)
-      return Set()
-    val cls = node.getClass
-    if (cls.extendsStructuralDiff) {
-      val vals = cls.allFieldVals(node)
-      val subs = vals.foldLeft(Set[Node]())(_ union subtrees(_))
-      subs + node
-    }
-    else
-      Set(node)
+  def subtrees(t: Tree): Set[Tree] = t match {
+    case Val(_) => Set(t)
+    case Node(cls, subs) => subs.foldLeft(Set[Tree]())(_ union subtrees(_)) + t
   }
 }

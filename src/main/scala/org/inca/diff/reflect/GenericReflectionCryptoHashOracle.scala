@@ -5,55 +5,38 @@ import java.util.Base64
 
 import org.apache.commons.collections4.trie.PatriciaTrie
 import org.inca.diff.WithCachedCryptoHash
-import org.inca.diff.reflect.GenericReflection._
+import org.inca.diff.reflect.GenericReflectionDiff._
 
 object GenericReflectionCryptoHashOracle extends MkGenericReflectionOracle {
   val digest: MessageDigest = MessageDigest.getInstance("SHA-256")
 
-  override def apply(src: Node, dest: Node): GenericReflectionOracle = {
+  override def apply(src: Tree, dest: Tree): GenericReflectionOracle = {
     val srcTrie = new PatriciaTrie[MetaVar]()
     val intersectTrie = new PatriciaTrie[MetaVar]()
 
     var freshCount = 0
-    def fillSrcTrie(t: Node): Unit = {
-      if (!t.isInstanceOf[StructuralDiff])
-        return
-      val key = hashString(t)
-      srcTrie.put(key, new MetaVar(freshCount))
+    def fillSrcTrie(t: Tree): Unit = {
+      srcTrie.put(t.$hashString, new MetaVar(freshCount))
       freshCount += 1
-      t.getClass.allFieldVals(t).foreach(fillSrcTrie(_))
+      t match {
+        case Node(_, subs) => subs.foreach(fillSrcTrie)
+        case _ =>
+      }
     }
     fillSrcTrie(src)
 
-    def fillIntersectTrie(t: Node): Unit = {
-      if (!t.isInstanceOf[StructuralDiff])
-        return
-      val key = hashString(t)
-      val mv = srcTrie.get(key)
+    def fillIntersectTrie(t: Tree): Unit = {
+      val mv = srcTrie.get(t.$hashString)
       if (mv != null)
-        intersectTrie.put(key, mv)
-      t.getClass.allFieldVals(t).foreach(fillIntersectTrie(_))
+        intersectTrie.put(t.$hashString, mv)
+      t match {
+        case Node(_, subs) => subs.foreach(fillIntersectTrie)
+        case _ =>
+      }
     }
     fillIntersectTrie(dest)
 
-    t => {
-      if (t.isInstanceOf[StructuralDiff])
-        Option(intersectTrie.get(hashString(t)))
-      else
-        None
-    }
-  }
-
-  def hashString(t: Node): String = t match {
-      case t: WithCachedCryptoHash => t.$hashString
-      case _ => Base64.getEncoder.encodeToString(computeHash(t))
-    }
-
-  def computeHash(t: Node): Array[Byte] = {
-    val cls = t.getClass
-    digest.update(cls.getCanonicalName.getBytes())
-    cls.allFieldVals(t).foreach (v => digest.update(computeHash(v)))
-    digest.digest()
+    t => Option(intersectTrie.get(t.$hashString))
   }
 }
 
