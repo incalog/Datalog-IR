@@ -1,4 +1,4 @@
-package org.inca.diff.reflect
+package org.inca.diff.javareflect
 
 import java.lang.reflect.Field
 import java.security.MessageDigest

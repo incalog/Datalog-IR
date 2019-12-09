@@ -1,8 +1,8 @@
-package org.inca.diff.reflect
+package org.inca.diff.javareflect
 
 import java.nio.charset.StandardCharsets
 
-import org.inca.diff.reflect.GenericReflectionDiff._
+import org.inca.diff.javareflect.GenericReflectionDiff._
 import org.inca.diff.WithCachedCryptoHash
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers

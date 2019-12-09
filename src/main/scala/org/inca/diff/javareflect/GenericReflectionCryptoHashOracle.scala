@@ -1,11 +1,11 @@
-package org.inca.diff.reflect
+package org.inca.diff.javareflect
 
 import java.security.MessageDigest
 import java.util.Base64
 
 import org.apache.commons.collections4.trie.PatriciaTrie
 import org.inca.diff.WithCachedCryptoHash
-import org.inca.diff.reflect.GenericReflectionDiff._
+import org.inca.diff.javareflect.GenericReflectionDiff._
 
 object GenericReflectionCryptoHashOracle extends MkGenericReflectionOracle {
   val digest: MessageDigest = MessageDigest.getInstance("SHA-256")

@@ -1,7 +1,7 @@
-package org.inca.diff.reflect
+package org.inca.diff.javareflect
 
-import org.inca.diff.reflect.GenericReflectionDiff._
-import org.inca.diff.reflect.GenericReflectionDiffApply._
+import org.inca.diff.javareflect.GenericReflectionDiff._
+import org.inca.diff.javareflect.GenericReflectionDiffApply._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

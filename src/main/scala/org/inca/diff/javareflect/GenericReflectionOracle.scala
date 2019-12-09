@@ -1,4 +1,4 @@
-package org.inca.diff.reflect
+package org.inca.diff.javareflect
 
 import GenericReflectionDiff._
 
