@@ -7,40 +7,41 @@ import org.inca.diff.WithCachedCryptoHash
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import GenericReflectionCryptoHashOracle.digest
 
 class TestGenericReflectionTree23IndexSubtreesOracle extends TestGenericReflectionTree23(GenericReflectionIndexSubtreesOracle)
 
-//class TestTreeCryptoHashOracle extends TestTree(TreeCryptoHashOracle)
+class TestGenericReflectionTree23CryptoHashOracle extends TestGenericReflectionTree23(GenericReflectionCryptoHashOracle)
 
 class TestGenericReflectionTree23(mkOracle: MkGenericReflectionOracle) extends AnyFlatSpec with Matchers {
 
   trait Tree extends StructuralDiff
   val cLeaf: Class[Leaf] = classOf[Leaf]
   case class Leaf(s: String) extends Tree {
-//    override val hash: Array[Byte] = {
-//      digest.update(0:Byte)
-//      digest.update(s.getBytes(StandardCharsets.UTF_8))
-//      digest.digest()
-//    }
+    override val $hash: Array[Byte] = {
+      digest.update(0:Byte)
+      digest.update(s.getBytes(StandardCharsets.UTF_8))
+      digest.digest()
+    }
   }
   val cNode2: Class[Node2] = classOf[Node2]
   case class Node2(t1: Tree, t2: Tree) extends Tree {
-//    override val hash: Array[Byte] = {
-//      digest.update(1:Byte)
-//      digest.update(t1.hash)
-//      digest.update(t2.hash)
-//      digest.digest()
-//    }
+    override val $hash: Array[Byte] = {
+      digest.update(1:Byte)
+      digest.update(t1.$hash)
+      digest.update(t2.$hash)
+      digest.digest()
+    }
   }
   val cNode3: Class[Node3] = classOf[Node3]
   case class Node3(t1: Tree, t2: Tree, t3: Tree) extends Tree {
-//    override val hash: Array[Byte] = {
-//      digest.update(2:Byte)
-//      digest.update(t1.hash)
-//      digest.update(t2.hash)
-//      digest.update(t3.hash)
-//      digest.digest()
-//    }
+    override val $hash: Array[Byte] = {
+      digest.update(2:Byte)
+      digest.update(t1.$hash)
+      digest.update(t2.$hash)
+      digest.update(t3.$hash)
+      digest.digest()
+    }
   }
   
   implicit def leaf(s: String): Tree = Leaf(s)

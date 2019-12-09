@@ -1,16 +1,20 @@
 package org.inca.diff.tree23
 
+import java.security.MessageDigest
+
 import org.apache.commons.collections4.trie.PatriciaTrie
 import org.inca.diff.tree23.Tree23._
 
 object Tree23CryptoHashOracle extends MkTree32Oracle {
+  val digest: MessageDigest = MessageDigest.getInstance("SHA-256")
+
   override def apply(src: Tree23, dest: Tree23): Tree23Oracle = {
     val srcTrie = new PatriciaTrie[MetaVar]()
     val intersectTrie = new PatriciaTrie[MetaVar]()
 
     var freshCount = 0
     def fillSrcTrie(t: Tree23): Unit = {
-      srcTrie.put(t.hashString, new MetaVar(freshCount))
+      srcTrie.put(t.$hashString, new MetaVar(freshCount))
       freshCount += 1
       t match {
         case Leaf(_) =>
@@ -21,7 +25,7 @@ object Tree23CryptoHashOracle extends MkTree32Oracle {
     fillSrcTrie(src)
 
     def fillIntersectTrie(t: Tree23): Unit = {
-      val key = t.hashString
+      val key = t.$hashString
       val mv = srcTrie.get(key)
       if (mv != null)
         intersectTrie.put(key, mv)
@@ -33,7 +37,7 @@ object Tree23CryptoHashOracle extends MkTree32Oracle {
     }
     fillIntersectTrie(dest)
 
-    t => Option(intersectTrie.get(t.hashString))
+    t => Option(intersectTrie.get(t.$hashString))
   }
 }
 

@@ -1,36 +1,34 @@
 package org.inca.diff.tree23
 
 import java.nio.charset.StandardCharsets
-import java.security.MessageDigest
 
 import org.inca.diff.WithCachedCryptoHash
+import Tree23CryptoHashOracle.digest
 
 object Tree23 {
 
-  val digest: MessageDigest = MessageDigest.getInstance("SHA-256")
-
   trait Tree23 extends WithCachedCryptoHash
   case class Leaf(s: String) extends Tree23 {
-    override val hash: Array[Byte] = {
+    override val $hash: Array[Byte] = {
       digest.update(0:Byte)
       digest.update(s.getBytes(StandardCharsets.UTF_8))
       digest.digest()
     }
   }
   case class Node2(t1: Tree23, t2: Tree23) extends Tree23 {
-    override val hash: Array[Byte] = {
+    override val $hash: Array[Byte] = {
       digest.update(1:Byte)
-      digest.update(t1.hash)
-      digest.update(t2.hash)
+      digest.update(t1.$hash)
+      digest.update(t2.$hash)
       digest.digest()
     }
   }
   case class Node3(t1: Tree23, t2: Tree23, t3: Tree23) extends Tree23 {
-    override val hash: Array[Byte] = {
+    override val $hash: Array[Byte] = {
       digest.update(2:Byte)
-      digest.update(t1.hash)
-      digest.update(t2.hash)
-      digest.update(t3.hash)
+      digest.update(t1.$hash)
+      digest.update(t2.$hash)
+      digest.update(t3.$hash)
       digest.digest()
     }
   }

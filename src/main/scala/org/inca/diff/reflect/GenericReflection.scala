@@ -3,12 +3,12 @@ package org.inca.diff.reflect
 import java.lang.reflect.Field
 import java.security.MessageDigest
 
+import org.inca.diff.WithCachedCryptoHash
+
 object GenericReflection {
 
-  val digest: MessageDigest = MessageDigest.getInstance("SHA-256")
-
   // marker trait for types should be structurally diffed
-  trait StructuralDiff
+  trait StructuralDiff extends WithCachedCryptoHash
 
   implicit def withClassOps[A](cls: Class[A]): ClassOps[A] = new ClassOps(cls)
   class ClassOps[A](val cls: Class[A]) extends AnyVal {
@@ -17,7 +17,7 @@ object GenericReflection {
       ClassOps.allFieldsCache.get(cls) match {
         case Some(fields) => fields
         case None =>
-          var fields = cls.getDeclaredFields.toSeq.filter(!_.getName.startsWith("$"))
+          var fields = cls.getDeclaredFields.toSeq.filter(!_.getName.contains('$'))
           val sup = cls.getSuperclass
           if (sup != null)
             fields ++= sup.allFields
@@ -184,9 +184,7 @@ object GenericReflection {
       Right(change)
 
   def greatestCommonClosedPrefix[A <: Plug](t1: TreeC[A], t2: TreeC[A]): Prefix[A] = (t1, t2) match {
-    case (ValC(v1), ValC(v2)) if v1 == v2 =>
-      println("foo")
-      Left(ValC(v1))
+    case (ValC(v1), ValC(v2)) if v1 == v2 => Left(ValC(v1))
     case (NodeC(cls1, subs1), NodeC(cls2, subs2)) if cls1 == cls2 =>
       val newsubs = (subs1 zip subs2).map { tt =>
         greatestCommonClosedPrefix(tt._1, tt._2) match {
