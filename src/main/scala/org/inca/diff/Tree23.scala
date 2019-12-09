@@ -1,18 +1,12 @@
 package org.inca.diff
 
 import java.util.Base64
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 
 object Tree23 {
 
-  import java.nio.charset.StandardCharsets
-  import java.security.MessageDigest
-
   val digest: MessageDigest = MessageDigest.getInstance("SHA-256")
-
-  trait WithCachedCryptoHash {
-    val hash: Array[Byte]
-    lazy val hashString = Base64.getEncoder.encodeToString(hash)
-  }
 
   trait Tree23 extends WithCachedCryptoHash
   case class Leaf(s: String) extends Tree23 {
@@ -56,36 +50,37 @@ object Tree23 {
   trait Tree23C[A] {
     val freevars: Set[MetaVar]
     def isClosed: Boolean = freevars.isEmpty
-    def retainHoles(vs: Set[A], t: Tree23): Tree23C[A]
   }
   case class Hole[A <: Plug](a: A) extends Tree23C[A] {
     override val freevars: Set[MetaVar] = a.freevars
-    override def retainHoles(vs: Set[A], t: Tree23): Tree23C[A] =
-      if (vs.contains(a)) this else asCtx(t)
   }
   case class LeafC[A <: Plug](s: String) extends Tree23C[A] {
     override val freevars: Set[MetaVar] = Set()
-    override def retainHoles(vs: Set[A], t: Tree23): Tree23C[A] = this
   }
   case class Node2C[A <: Plug](t1: Tree23C[A], t2: Tree23C[A]) extends Tree23C[A] {
     override val freevars: Set[MetaVar] = t1.freevars ++ t2.freevars
-    override def retainHoles(vs: Set[A], t: Tree23): Tree23C[A] = {
-      val tnode2 = t.asInstanceOf[Node2]
-      Node2C(t1.retainHoles(vs, tnode2.t1), t2.retainHoles(vs, tnode2.t2))
-    }
   }
   case class Node3C[A <: Plug](t1: Tree23C[A], t2: Tree23C[A], t3: Tree23C[A]) extends Tree23C[A] {
     override val freevars: Set[MetaVar] = t1.freevars ++ t2.freevars ++ t3.freevars
-    override def retainHoles(vs: Set[A], t: Tree23): Tree23C[A] = {
-      val tnode3 = t.asInstanceOf[Node3]
-      Node3C(t1.retainHoles(vs, tnode3.t1), t2.retainHoles(vs, tnode3.t2), t3.retainHoles(vs, tnode3.t3))
-    }
   }
 
   def asCtx[A <: Plug](t: Tree23): Tree23C[A] = t match {
     case Leaf(s) => LeafC(s)
     case Node2(t1, t2) => Node2C(asCtx(t1), asCtx(t2))
     case Node3(t1, t2, t3) => Node3C(asCtx(t1), asCtx(t2), asCtx(t3))
+  }
+
+  def retainHoles[A <: Plug](tc: Tree23C[A], vs: Set[A], t: Tree23): Tree23C[A] = tc match {
+    case Hole(a) => if (vs.contains(a)) tc else asCtx(t)
+    case LeafC(s) => tc
+    case Node2C(t1, t2) => {
+      val tnode2 = t.asInstanceOf[Node2]
+      Node2C(retainHoles(t1, vs, tnode2.t1), retainHoles(t2, vs, tnode2.t2))
+    }
+    case Node3C(t1, t2, t3) => {
+      val tnode3 = t.asInstanceOf[Node3]
+      Node3C(retainHoles(t1, vs, tnode3.t1), retainHoles(t2, vs, tnode3.t2), retainHoles(t3, vs, tnode3.t3))
+    }
   }
 
   case class Change23[A <: Plug](delCtx: Tree23C[A], insCtx: Tree23C[A]) extends Plug {
@@ -142,8 +137,8 @@ object Tree23 {
 
   def postprocess(src: Tree23, dest: Tree23, c: Change23[MetaVar]): Change23[MetaVar] = {
     val okvars = c.delCtx.freevars intersect c.insCtx.freevars
-    val postDel = c.delCtx.retainHoles(okvars, src)
-    val postIns = c.insCtx.retainHoles(okvars, dest)
+    val postDel = retainHoles(c.delCtx, okvars, src)
+    val postIns = retainHoles(c.insCtx, okvars, dest)
     Change23(postDel, postIns)
   }
 
