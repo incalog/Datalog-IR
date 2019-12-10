@@ -1,8 +1,8 @@
 package org.inca.diff.javareflect
 
-import GenericReflectionDiff._
+import Diff._
 
-object GenericReflectionDiffApply {
+object DiffApply {
 
   def applyPatch(p: Patch, node: Any): Option[Any] = p match {
     case Hole(change) => applyChange(change, node)

@@ -2,18 +2,18 @@ package org.inca.diff.javareflect
 
 import java.nio.charset.StandardCharsets
 
-import org.inca.diff.javareflect.GenericReflectionDiff._
+import org.inca.diff.javareflect.Diff._
 import org.inca.diff.WithCachedCryptoHash
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import GenericReflectionCryptoHashOracle.digest
+import CryptoHashOracle.digest
 
-class TestGenericReflectionTree23DiffIndexSubtreesOracle extends TestGenericReflectionTree23Diff(GenericReflectionIndexSubtreesOracle)
+class TestTree23DiffIndexSubtreesOracle extends TestTree23Diff(IndexSubtreesOracle)
 
-class TestGenericReflectionTree23DiffCryptoHashOracle extends TestGenericReflectionTree23Diff(GenericReflectionCryptoHashOracle)
+class TestTree23DiffCryptoHashOracle extends TestTree23Diff(CryptoHashOracle)
 
-class TestGenericReflectionTree23Diff(mkOracle: MkGenericReflectionOracle) extends AnyFlatSpec with Matchers {
+class TestTree23Diff(mkOracle: MkOracle) extends AnyFlatSpec with Matchers {
 
   trait Tree extends StructuralDiff
   case class Leaf(s: String) extends Tree
@@ -29,7 +29,7 @@ class TestGenericReflectionTree23Diff(mkOracle: MkGenericReflectionOracle) exten
   val n2ab: Node2 = Node2("a", "b")
   val n3abc: Node3 = Node3("a", "b", "c")
 
-  implicit val implicit_mkOracle: MkGenericReflectionOracle = mkOracle
+  implicit val implicit_mkOracle: MkOracle = mkOracle
   
   "diff of identical trees" should "yield empty patch" in {
     val emptyPatch: PartialFunction[Any,_] = {

@@ -5,9 +5,9 @@ import java.security.MessageDigest
 
 import org.inca.diff.WithCachedCryptoHash
 
-import GenericReflectionCryptoHashOracle.digest
+import CryptoHashOracle.digest
 
-object GenericReflectionDiff {
+object Diff {
 
   // marker trait for types that should be structurally diffed
   trait StructuralDiff
@@ -84,7 +84,7 @@ object GenericReflectionDiff {
   class MetaVar(val i: Int) extends Plug {
     override val freevars: Set[MetaVar] = Set(this)
 
-    override def toString: String = i.toString
+    override def toString: String = "#" + i.toString
     override def equals(obj: Any): Boolean = obj.isInstanceOf[MetaVar] && i==obj.asInstanceOf[MetaVar].i
     override def hashCode(): Int = i
   }
@@ -99,12 +99,18 @@ object GenericReflectionDiff {
   }
   case class Hole[A <: Plug](a: A) extends TreeC[A] {
     override val freevars: Set[MetaVar] = a.freevars
+    override def toString: String = a.toString
   }
   case class ValC[A <: Plug](v: Any) extends TreeC[A] {
     override val freevars: Set[MetaVar] = Set()
+    override def toString: String = v.toString
   }
   case class NodeC[A <: Plug](cls: Class[_], subs: Seq[TreeC[A]]) extends TreeC[A] {
     override val freevars: Set[MetaVar] = subs.foldLeft(Set[MetaVar]())(_ union _.freevars)
+    override def toString: String = {
+      val cname = cls.getSimpleName
+      s"$cname(${subs.mkString(",")})"
+    }
   }
 
   def asCtx[A <: Plug](t: Tree): TreeC[A] = t match {
@@ -124,14 +130,16 @@ object GenericReflectionDiff {
   case class Change[A <: Plug](delCtx: TreeC[A], insCtx: TreeC[A]) extends Plug {
     override val freevars: Set[MetaVar] = insCtx.freevars diff delCtx.freevars
     def isClosed: Boolean = freevars.isEmpty
+
+    override def toString: String = s"($delCtx -> $insCtx)"
   }
 
-  def changeTree(src: Tree, dest: Tree, oracle: GenericReflectionOracle): Change[MetaVar] = {
+  def changeTree(src: Tree, dest: Tree, oracle: Oracle): Change[MetaVar] = {
     val change = Change(extract(oracle, src), extract(oracle, dest))
     postprocess(src, dest, change)
   }
 
-  def extract(oracle: GenericReflectionOracle, t: Tree): TreeC[MetaVar] = oracle.predict(t) match {
+  def extract(oracle: Oracle, t: Tree): TreeC[MetaVar] = oracle.predict(t) match {
     case Some(i) => Hole(i)
     case None => t match {
       case Val(v) => ValC(v)
@@ -174,7 +182,7 @@ object GenericReflectionDiff {
     case _ => mkPrefix(Change(t1, t2))
   }
 
-  def diffTree(a1: Any, a2: Any)(implicit mkOracle: MkGenericReflectionOracle): Patch = {
+  def diffTree(a1: Any, a2: Any)(implicit mkOracle: MkOracle): Patch = {
     val t1 = decorate(a1)
     val t2 = decorate(a2)
     val oracle = mkOracle(t1, t2)

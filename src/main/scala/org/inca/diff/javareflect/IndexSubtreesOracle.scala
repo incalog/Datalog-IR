@@ -1,11 +1,11 @@
 package org.inca.diff.javareflect
 
-import GenericReflectionDiff._
+import Diff._
 
-object GenericReflectionIndexSubtreesOracle extends MkGenericReflectionOracle {
+object IndexSubtreesOracle extends MkOracle {
   // proof of concept only, as this is very, very slow
 
-  override def apply(src: Tree, dest: Tree): GenericReflectionOracle = {
+  override def apply(src: Tree, dest: Tree): Oracle = {
     val trees1 = subtrees(src)
     val trees2 = subtrees(dest)
     val both = trees1.intersect(trees2)

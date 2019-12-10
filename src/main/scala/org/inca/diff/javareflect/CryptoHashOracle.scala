@@ -5,12 +5,12 @@ import java.util.Base64
 
 import org.apache.commons.collections4.trie.PatriciaTrie
 import org.inca.diff.WithCachedCryptoHash
-import org.inca.diff.javareflect.GenericReflectionDiff._
+import org.inca.diff.javareflect.Diff._
 
-object GenericReflectionCryptoHashOracle extends MkGenericReflectionOracle {
+object CryptoHashOracle extends MkOracle {
   val digest: MessageDigest = MessageDigest.getInstance("SHA-256")
 
-  override def apply(src: Tree, dest: Tree): GenericReflectionOracle = {
+  override def apply(src: Tree, dest: Tree): Oracle = {
     val srcTrie = new PatriciaTrie[MetaVar]()
     val intersectTrie = new PatriciaTrie[MetaVar]()
 

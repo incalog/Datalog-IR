@@ -1,15 +1,15 @@
 package org.inca.diff.javareflect
 
-import org.inca.diff.javareflect.GenericReflectionDiff._
-import org.inca.diff.javareflect.GenericReflectionDiffApply._
+import org.inca.diff.javareflect.Diff._
+import org.inca.diff.javareflect.DiffApply._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-class TestGenericReflectionWhileLangDiffIndexSubtreesOracle extends TestGenericReflectionWhileLangDiff(GenericReflectionIndexSubtreesOracle)
+class TestWhileLangDiffIndexSubtreesOracle extends TestWhileLangDiff(IndexSubtreesOracle)
 
-class TestGenericReflectionWhileLangDiffCryptoHashOracle extends TestGenericReflectionWhileLangDiff(GenericReflectionCryptoHashOracle)
+class TestWhileLangDiffCryptoHashOracle extends TestWhileLangDiff(CryptoHashOracle)
 
-class TestGenericReflectionWhileLangDiff(mkOracle: MkGenericReflectionOracle) extends AnyFlatSpec with Matchers {
+class TestWhileLangDiff(mkOracle: MkOracle) extends AnyFlatSpec with Matchers {
 
   trait Exp extends StructuralDiff
   case class ScalarLit(d: Double) extends Exp
@@ -47,7 +47,7 @@ class TestGenericReflectionWhileLangDiff(mkOracle: MkGenericReflectionOracle) ex
   implicit def stringToVar(s: String): Exp = Var(s)
   implicit def symbolToVar(s: Symbol): Exp = Var(s)
 
-  implicit val implicit_mkOracle: MkGenericReflectionOracle = mkOracle
+  implicit val implicit_mkOracle: MkOracle = mkOracle
 
   val ex1 = Block(List(
     AssignVar("A", MatrixLit(List(List(1,2,0), List(2,5,-1), List(4,10,-1)))),
@@ -89,6 +89,7 @@ class TestGenericReflectionWhileLangDiff(mkOracle: MkGenericReflectionOracle) ex
         AssignVar("ans", "C")
       )
     ))
+    println(diffTree(ex1, renamed1_1))
     diffTree(ex1, renamed1_1) should matchPattern { case
       NodeC(`cBlock`,Seq(NodeC(`cSeq`,List(
         NodeC(`cAssignVar`,Seq(
@@ -142,5 +143,19 @@ class TestGenericReflectionWhileLangDiff(mkOracle: MkGenericReflectionOracle) ex
       ))))
       if i1==i2 && j1==j2 && k1==k2 && l1==l2 && l2==l3 && l3==l4 && m1==m2 =>
     }
+  }
+
+  "diff of swapped lines" should "yield move patch" in {
+    val moved1_1 = Block(List(
+      AssignVar("C", Mul("A", "B")),
+      AssignVar("ans", Mul("C", "C")),
+      AssignVar("B", Trans("A")),
+      IfNotZero("B",
+        AssignVar("A", MatrixLit(List(List(1,2,0), List(2,5,-1), List(4,10,-1)))),
+        AssignVar("ans", "C")
+      )
+    ))
+
+    println(diffTree(ex1, moved1_1))
   }
 }
