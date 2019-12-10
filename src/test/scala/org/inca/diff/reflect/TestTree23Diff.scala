@@ -1,12 +1,11 @@
-package org.inca.diff.javareflect
+package org.inca.diff.reflect
 
 import java.nio.charset.StandardCharsets
 
-import org.inca.diff.javareflect.Diff._
-import org.inca.diff.WithCachedCryptoHash
+import org.inca.diff.reflect.Diff._
+import org.inca.diff.{StructuralDiff, WithCachedCryptoHash}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-
 import CryptoHashOracle.digest
 
 class TestTree23DiffIndexSubtreesOracle extends TestTree23Diff(IndexSubtreesOracle)

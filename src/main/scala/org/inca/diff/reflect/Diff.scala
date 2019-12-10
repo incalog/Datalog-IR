@@ -1,16 +1,14 @@
-package org.inca.diff.javareflect
+package org.inca.diff.reflect
 
 import java.lang.reflect.Field
 import java.security.MessageDigest
 
-import org.inca.diff.WithCachedCryptoHash
-
+import org.inca.diff.{StructuralDiff, WithCachedCryptoHash}
 import CryptoHashOracle.digest
 
 object Diff {
 
   // marker trait for types that should be structurally diffed
-  trait StructuralDiff
 
   implicit def withClassOps[A](cls: Class[A]): ClassOps[A] = new ClassOps(cls)
   class ClassOps[A](val cls: Class[A]) extends AnyVal {

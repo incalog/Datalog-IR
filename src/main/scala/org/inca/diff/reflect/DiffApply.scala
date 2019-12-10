@@ -1,8 +1,12 @@
-package org.inca.diff.javareflect
+package org.inca.diff.reflect
+
+import java.lang.reflect.Method
 
 import Diff._
 
 object DiffApply {
+
+  type ConsMap = Map[Class[_], Method]
 
   def applyPatch(p: Patch, node: Any): Option[Any] = p match {
     case Hole(change) => applyChange(change, node)
@@ -46,6 +50,7 @@ object DiffApply {
       case Some(node_) => if(node == node_) Some(m) else None
     }
   }
+
 
 
   def ins(ctx: TreeC[MetaVar], m: Map[MetaVar, Any]): Option[Any] = ctx match {

@@ -1,7 +1,8 @@
-package org.inca.diff.javareflect
+package org.inca.diff.reflect
 
-import org.inca.diff.javareflect.Diff._
-import org.inca.diff.javareflect.DiffApply._
+import org.inca.diff.StructuralDiff
+import org.inca.diff.reflect.Diff._
+import org.inca.diff.reflect.DiffApply._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -89,7 +90,6 @@ class TestWhileLangDiff(mkOracle: MkOracle) extends AnyFlatSpec with Matchers {
         AssignVar("ans", "C")
       )
     ))
-    println(diffTree(ex1, renamed1_1))
     diffTree(ex1, renamed1_1) should matchPattern { case
       NodeC(`cBlock`,Seq(NodeC(`cSeq`,List(
         NodeC(`cAssignVar`,Seq(
@@ -107,6 +107,7 @@ class TestWhileLangDiff(mkOracle: MkOracle) extends AnyFlatSpec with Matchers {
         Hole(Change(Hole(m1),Hole(m2)))))))
       if i1==i2 && j1==j2 && k1==k2 && l1==l2 && m1==m2 =>
     }
+    applyPatch(diffTree(ex1, renamed1_1), ex1) should be (renamed1_1)
 
     val renamed1_2 = Block(List(
       AssignVar("A", MatrixLit(List(List(1,2,0), List(2,5,-1), List(4,10,-1)))),
@@ -117,8 +118,6 @@ class TestWhileLangDiff(mkOracle: MkOracle) extends AnyFlatSpec with Matchers {
         AssignVar("ans", "X")
       )
     ))
-
-
     diffTree(ex1, renamed1_2) should matchPattern { case
       NodeC(`cBlock`,Seq(NodeC(`cSeq`,List(
         Hole(Change(Hole(i1),Hole(i2))),

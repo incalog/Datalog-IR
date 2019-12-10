@@ -1,4 +1,4 @@
-package org.inca.diff.javareflect
+package org.inca.diff.reflect
 
 import Diff._
 
