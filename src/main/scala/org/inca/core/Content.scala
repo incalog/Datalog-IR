@@ -1,6 +1,6 @@
 package org.inca.core
 
-import org.inca.core.Typ.ICompileTimeIncAType
+import org.inca.core.Typp.Typ
 import org.inca.core.Values.IVariableValue
 import org.inca.mps.INamedConcept
 
@@ -13,13 +13,13 @@ object Content {
   trait IParameter extends IVariable with IVariableWithDeclaredType
   trait IGenNameProvider
   trait IJoinTypeDef extends INamedConcept {
-    val types: Seq[ICompileTimeIncAType]
+    val types: Seq[Typ]
   }
   trait IPatternBody {
     val contents: Seq[IPatternBodyContent]
   }
   trait IVariable extends INamedConcept with IGenNameProvider {
-    val typ: Option[ICompileTimeIncAType]
+    val typ: Option[Typ]
   }
   trait IPattern extends INamedConcept with IPatternModuleContent with IGenNameProvider with IVariableBinder {
     val parameters: Seq[IParameter]
@@ -29,8 +29,8 @@ object Content {
 
   abstract class EmptyContent extends IPatternModuleContent with IPatternBodyContent
 
-  case class JoinTypeDef(name: String, types: Seq[ICompileTimeIncAType]) extends IJoinTypeDef
-  case class TemporaryVariable(name: String, typ: Option[ICompileTimeIncAType]) extends IVariable with IVariableValue
+  case class JoinTypeDef(name: String, types: Seq[Typ]) extends IJoinTypeDef
+  case class TemporaryVariable(name: String, typ: Option[Typ]) extends IVariable with IVariableValue
   case class Comment(text: String) extends IPatternBodyContent with IPatternModuleContent
 
 

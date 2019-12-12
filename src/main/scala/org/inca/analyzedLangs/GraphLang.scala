@@ -4,8 +4,7 @@ import org.inca.mps.INamedConcept
 
 object GraphLang {
 
-  case class Graph(nodes: List[Node], edges: List[Edge])
-  case class Node(name: s
-                 ) extends INamedConcept
+  case class Node(name: String) extends INamedConcept
   case class Edge(from: Node, to: Node)
+  case class Graph(nodes: Seq[Node], edges: Seq[Edge])
 }

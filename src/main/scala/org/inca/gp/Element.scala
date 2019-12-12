@@ -1,14 +1,16 @@
 package org.inca.gp
 
-import org.inca.core_old.constraints.IPathElement
-import org.inca.core_old.constraints.element.virtual.IVirtualPathElement
-import org.inca.mps.InterfacePart
+import org.inca.core.Constraints.IPathElement
+import org.inca.core.IVirtualPathElement
+import org.inca.mps.Link
 
 object Element {
-  abstract class AbstractListPathElement(next: Option[IPathElement], interfacePart: InterfacePart)
+  abstract class AbstractListPathElement(next: Option[IPathElement], link: Link)
     extends IPathElement with IVirtualPathElement
-  abstract class AbstractPathElement(next: Option[IPathElement], interfacePart: InterfacePart) extends IPathElement
 
-  case class PathElement(next: Option[IPathElement], interfacePart: InterfacePart)
-    extends AbstractPathElement(next, interfacePart)
+  abstract class AbstractPathElement(next: Option[IPathElement], link: Link) extends IPathElement
+
+
+  case class PathElement(next: Option[IPathElement], link: Link)
+    extends AbstractPathElement(next, link)
 }

@@ -1,9 +1,5 @@
 package org.inca.solution.core.util
 
-import org.inca.Node
-import org.inca.core_old.content.IPatternBody
-import org.inca.core_old.typeHint.{ITypeHintKeyProvider, UserObjectMap}
-
 class CodeGenerationHelper {
 
 //  public static void putUserObjectType(final node<ITypeHintKeyProvider> reference) {
@@ -18,9 +14,9 @@ class CodeGenerationHelper {
 //    }
 //  }
 
-  def putUserObjectType(reference: Node[ITypeHintKeyProvider]): Unit = {
-    val body: Node[IPatternBody] = reference.getAncestor[IPatternBody](concept = true)
-    val map: Node[UserObjectMap] = ...
-    if (reference.getType)
-  }
+//  def putUserObjectType(reference: Node[ITypeHintKeyProvider]): Unit = {
+//    val body: Node[IPatternBody] = reference.getAncestor[IPatternBody](concept = true)
+//    val map: Node[UserObjectMap] = ...
+//    if (reference.getType)
+//  }
 }

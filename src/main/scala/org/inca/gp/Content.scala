@@ -1,7 +1,8 @@
 package org.inca.gp
 
-import org.inca.core_old.typ.ICompileTimeIncAType
-import org.inca.core_old.content._
+import org.inca.core.Content._
+import org.inca.core.Typp.Typ
+
 
 object Content {
   trait IGraphPatternBodyContent extends IPatternBodyContent
@@ -13,5 +14,5 @@ object Content {
                           bodies: Seq[IPatternBody],
                           visibility: Option[IPatternVisibility]) extends IPattern with IGraphPatternModuleContent
   case class GraphPatternBody(contents: Seq[IPatternBodyContent]) extends IPatternBody
-  case class GraphPatternParameter(name: String, typ: Option[ICompileTimeIncAType]) extends IParameter
+  case class GraphPatternParameter(name: String, typ: Option[Typ]) extends IParameter
 }

@@ -6,8 +6,8 @@
 [error]   Not found
 [error]   Not found
 [error]   not found: /Users/admin/.ivy2/local/ch.epfl.data/squid_2.13/0.4.0-SNAPSHOT/ivys/ivy.xml
-[error]   download error: Caught java.net.UnknownHostException: repo1.maven.org (repo1.maven.org) while downloading https://repo1.maven.org/maven2/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/squid_2.13-0.4.0-SNAPSHOT.pom
-[error]   download error: Caught java.net.UnknownHostException: oss.sonatype.org (oss.sonatype.org) while downloading https://oss.sonatype.org/content/repositories/snapshots/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/squid_2.13-0.4.0-SNAPSHOT.pom
+[error]   not found: https://repo1.maven.org/maven2/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/squid_2.13-0.4.0-SNAPSHOT.pom
+[error]   not found: https://oss.sonatype.org/content/repositories/snapshots/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/squid_2.13-0.4.0-SNAPSHOT.pom
 [error] 	at lmcoursier.CoursierDependencyResolution.unresolvedWarningOrThrow(CoursierDependencyResolution.scala:245)
 [error] 	at lmcoursier.CoursierDependencyResolution.$anonfun$update$34(CoursierDependencyResolution.scala:214)
 [error] 	at scala.util.Either$LeftProjection.map(Either.scala:573)
@@ -42,5 +42,5 @@
 [error]   Not found
 [error]   Not found
 [error]   not found: /Users/admin/.ivy2/local/ch.epfl.data/squid_2.13/0.4.0-SNAPSHOT/ivys/ivy.xml
-[error]   download error: Caught java.net.UnknownHostException: repo1.maven.org (repo1.maven.org) while downloading https://repo1.maven.org/maven2/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/squid_2.13-0.4.0-SNAPSHOT.pom
-[error]   download error: Caught java.net.UnknownHostException: oss.sonatype.org (oss.sonatype.org) while downloading https://oss.sonatype.org/content/repositories/snapshots/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/squid_2.13-0.4.0-SNAPSHOT.pom
+[error]   not found: https://repo1.maven.org/maven2/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/squid_2.13-0.4.0-SNAPSHOT.pom
+[error]   not found: https://oss.sonatype.org/content/repositories/snapshots/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/squid_2.13-0.4.0-SNAPSHOT.pom
