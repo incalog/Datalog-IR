@@ -1,6 +1,6 @@
 package org.inca.diff.tree23
 
-import org.inca.diff.tree23.Tree23._
+import org.inca.diff.tree23.Tree23Diff._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

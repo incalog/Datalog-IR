@@ -107,7 +107,6 @@ class TestWhileLangDiff(mkOracle: MkOracle) extends AnyFlatSpec with Matchers {
         Hole(Change(Hole(m1),Hole(m2)))))))
       if i1==i2 && j1==j2 && k1==k2 && l1==l2 && m1==m2 =>
     }
-    applyPatch(diffTree(ex1, renamed1_1), ex1) should be (renamed1_1)
 
     val renamed1_2 = Block(List(
       AssignVar("A", MatrixLit(List(List(1,2,0), List(2,5,-1), List(4,10,-1)))),

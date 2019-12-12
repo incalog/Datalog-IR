@@ -1,6 +1,6 @@
 package org.inca.diff.tree23
 
-import Tree23._
+import Tree23Diff._
 
 object Tree23IndexSubtreesOracle extends MkTree32Oracle {
     // proof of concept only, as this is very, very slow

@@ -4,7 +4,6 @@ import java.lang.reflect.Field
 import java.security.MessageDigest
 
 import org.inca.diff.{StructuralDiff, WithCachedCryptoHash}
-import CryptoHashOracle.digest
 
 object Diff {
 
@@ -44,24 +43,14 @@ object Diff {
   trait Tree extends WithCachedCryptoHash
   case class Val(v: Any) extends Tree {
     override val $hash: Array[Byte] = {
-      digest.update(v.getClass.getCanonicalName.getBytes())
-      v match {
-        case v: Boolean => digest.update(if(v) 1:Byte else 0:Byte); digest.digest()
-        case v: Byte => digest.update(v); digest.digest()
-        case v: Short  => digest.digest(BigInt(v).toByteArray)
-        case v: Char  => digest.digest(BigInt(v).toByteArray)
-        case v: Int => digest.digest(BigInt(v).toByteArray)
-        case v: Long => digest.digest(BigInt(v).toByteArray)
-        case v: Float => digest.digest(BigInt(java.lang.Float.floatToRawIntBits(v)).toByteArray)
-        case v: Double => digest.digest(BigInt(java.lang.Double.doubleToRawLongBits(v)).toByteArray)
-        case v: String => digest.digest(v.getBytes)
-        case v: Symbol => digest.digest(v.name.getBytes)
-        case _ => throw new IllegalArgumentException(s"Cannot compute hash of $v")
-      }
+      val digest = mkDigest
+      hashNonDiffable(v, digest)
+      digest.digest()
     }
   }
   case class Node(cls: Class[_], subs: Seq[Tree]) extends Tree {
     override val $hash: Array[Byte] = {
+      val digest = mkDigest
       digest.update(cls.getCanonicalName.getBytes)
       subs.foreach(t => digest.update(t.$hash))
       digest.digest()

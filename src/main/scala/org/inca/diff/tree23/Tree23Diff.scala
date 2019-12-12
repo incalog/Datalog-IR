@@ -3,13 +3,13 @@ package org.inca.diff.tree23
 import java.nio.charset.StandardCharsets
 
 import org.inca.diff.WithCachedCryptoHash
-import Tree23CryptoHashOracle.digest
 
-object Tree23 {
+object Tree23Diff {
 
   trait Tree23 extends WithCachedCryptoHash
   case class Leaf(s: String) extends Tree23 {
     override val $hash: Array[Byte] = {
+      val digest = mkDigest
       digest.update(0:Byte)
       digest.update(s.getBytes(StandardCharsets.UTF_8))
       digest.digest()
@@ -17,6 +17,7 @@ object Tree23 {
   }
   case class Node2(t1: Tree23, t2: Tree23) extends Tree23 {
     override val $hash: Array[Byte] = {
+      val digest = mkDigest
       digest.update(1:Byte)
       digest.update(t1.$hash)
       digest.update(t2.$hash)
@@ -25,6 +26,7 @@ object Tree23 {
   }
   case class Node3(t1: Tree23, t2: Tree23, t3: Tree23) extends Tree23 {
     override val $hash: Array[Byte] = {
+      val digest = mkDigest
       digest.update(2:Byte)
       digest.update(t1.$hash)
       digest.update(t2.$hash)
@@ -32,7 +34,6 @@ object Tree23 {
       digest.digest()
     }
   }
-
 
   class MetaVar(val i: Int) extends Plug {
     override val freevars: Set[MetaVar] = Set(this)
@@ -120,17 +121,17 @@ object Tree23 {
   }
 
 
-  def changeTree23(src: Tree23, dest: Tree23, Oracle23: Tree23Oracle): Change23[MetaVar] = {
-    val change = Change23(extract(Oracle23, src), extract(Oracle23, dest))
+  def changeTree23(src: Tree23, dest: Tree23, oracle23: Tree23Oracle): Change23[MetaVar] = {
+    val change = Change23(extract(oracle23, src), extract(oracle23, dest))
     postprocess(src, dest, change)
   }
 
-  def extract(Oracle23: Tree23Oracle, t: Tree23): Tree23C[MetaVar] = Oracle23.predict(t) match {
+  def extract(oracle23: Tree23Oracle, t: Tree23): Tree23C[MetaVar] = oracle23.predict(t) match {
     case Some(i) => Hole(i)
     case None => t match {
       case Leaf(s) => LeafC(s)
-      case Node2(a, b) => Node2C(extract(Oracle23, a), extract(Oracle23, b))
-      case Node3(a, b, c) => Node3C(extract(Oracle23, a), extract(Oracle23, b), extract(Oracle23, c))
+      case Node2(a, b) => Node2C(extract(oracle23, a), extract(oracle23, b))
+      case Node3(a, b, c) => Node3C(extract(oracle23, a), extract(oracle23, b), extract(oracle23, c))
     }
   }
 
@@ -181,8 +182,8 @@ object Tree23 {
 
 
   def diffTree23(t1: Tree23, t2: Tree23)(implicit mkOracle23: MkTree32Oracle): Patch23 = {
-    val Oracle23 = mkOracle23(t1, t2)
-    val change = changeTree23(t1, t2, Oracle23)
+    val oracle23 = mkOracle23(t1, t2)
+    val change = changeTree23(t1, t2, oracle23)
     greatestCommonClosedPrefix(change.delCtx, change.insCtx).left.getOrElse(sys.error(s"Unclosable change $change"))
   }
 

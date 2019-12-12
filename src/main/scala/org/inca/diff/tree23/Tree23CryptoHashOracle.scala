@@ -1,13 +1,9 @@
 package org.inca.diff.tree23
 
-import java.security.MessageDigest
-
 import org.apache.commons.collections4.trie.PatriciaTrie
-import org.inca.diff.tree23.Tree23._
+import org.inca.diff.tree23.Tree23Diff._
 
 object Tree23CryptoHashOracle extends MkTree32Oracle {
-  val digest: MessageDigest = MessageDigest.getInstance("SHA-256")
-
   override def apply(src: Tree23, dest: Tree23): Tree23Oracle = {
     val srcTrie = new PatriciaTrie[MetaVar]()
     val intersectTrie = new PatriciaTrie[MetaVar]()

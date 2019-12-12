@@ -1,6 +1,6 @@
 package org.inca.diff.tree23
 
-import org.inca.diff.tree23.Tree23._
+import org.inca.diff.tree23.Tree23Diff._
 
 trait Tree23Oracle {
   def predict(t: Tree23): Option[MetaVar]
