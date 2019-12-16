@@ -5,7 +5,6 @@ import org.inca.core.Misc.{IContainsJavaExpression, IJavaContext, ITransformable
 import org.inca.core.Typp.Typ
 import org.inca.core.Values.{IValue, IVariableValue}
 import org.inca.mps.Link
-import org.inca.mps.binaryOperations.Expression
 
 object Constraints {
   trait IGeneratorPathElement extends IVirtualPathElement

@@ -1,13 +1,13 @@
 package org.inca.core
 
 import org.inca.core.Content.IJoinTypeDef
-import org.inca.mps.{AbstractConceptDeclaration, BaseConcept, INamedConcept, IType}
+import org.inca.mps.{AbstractConceptDeclaration, INamedConcept}
 
 object Typp {
   // `type` folder
   // was ICompileTimeIncAType
   // todo remove IType (only usecase is the extension below
-  trait Typ extends IType
+  trait Typ
 
   case class JoinType(joinTypeDef: IJoinTypeDef) extends Typ
   case class ConceptReferenceType(concept: AbstractConceptDeclaration) extends Typ
@@ -19,7 +19,7 @@ object Typp {
   trait ITypeHintKeyProvider {
     def getTypeHintKey: String
   }
-  case class UserObjectEntry(key: String, value: BaseConcept) extends BaseConcept
-  case class UserObjectMap(entries: List[UserObjectEntry]) extends BaseConcept
+//  case class UserObjectEntry(key: String, value: BaseConcept) extends BaseConcept
+//  case class UserObjectMap(entries: List[UserObjectEntry]) extends BaseConcept
 
 }

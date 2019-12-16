@@ -6,13 +6,13 @@ import org.inca.core.Reference.VariableReference
 import org.inca.core.Typp.Typ
 import org.inca.core.Values.{IValue, IVariableValue}
 import org.inca.gp.Content.IGraphPatternBodyContent
-import org.inca.mps.binaryOperations.Expression
 
 
 // todo style guide formatting
 object Constraints {
-  case class GraphPatternCheckConstraint(expression: Expression)
-    extends CheckConstraint(expression) with IGraphPatternBodyContent
+  // todo eval func should be ` => Boolean`
+  case class GraphPatternCheckConstraint(evalFunc: Boolean)
+    extends CheckConstraint(evalFunc) with IGraphPatternBodyContent
 
   case class GraphPatternCompareConstraint(feature: CompareFeature, left: IValue, right: IValue)
     extends CompareConstraint(feature, left, right) with IGraphPatternBodyContent
