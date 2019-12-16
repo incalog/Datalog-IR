@@ -1,3 +1,3 @@
 package org.inca.mps
 
-case class AbstractConceptDeclaration()
+abstract class AbstractConceptDeclaration()

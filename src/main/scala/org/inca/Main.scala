@@ -10,6 +10,6 @@ package org.inca
   * @author Paul Hempel
   * @version 0.0.0.1-pre-alpha
   */
-object Main extends App {
+object  Main extends App {
 
 }
