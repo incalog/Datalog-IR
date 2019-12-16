@@ -1,4 +1,4 @@
-package org.inca.analyzedLangs
+package analyzedLangs
 
 import org.inca.core.Typp.{DataTypeDeclaration, Typ}
 

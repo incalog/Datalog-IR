@@ -1,13 +1,14 @@
-import org.inca.analyzedLangs.GraphLang.{Edge, Node}
+import analyzedLangs.GraphLang.{Edge, Node}
 import org.inca.core.Constraints.PatternCall
 import org.inca.core.Content.TemporaryVariable
 import org.inca.core.Reference.VariableReference
+import org.inca.generators.gp.GPGenerator
 import org.inca.gp.Constraints.{PathExpressionConstraint, PatternCompositionConstraint}
 import org.inca.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
 import org.inca.gp.Element.PathElement
-import org.inca.meta.{NodeType, NodeLink}
+import org.inca.meta.{NodeLink, NodeType}
 
-object GraphLangTest {
+object GraphLangTest extends App{
 
   val nodeType = NodeType(classOf[Node])
   val edgeType = NodeType(classOf[Edge])
@@ -16,7 +17,7 @@ object GraphLangTest {
   val trgGraphParam = GraphPatternParameter("trg", Some(nodeType))
   val intermediate = TemporaryVariable("inter", Some(nodeType))
 
-  val path = GraphPattern(
+  val path: GraphPattern = GraphPattern(
     "Path",
     Seq(
       srcGraphParam,
@@ -41,7 +42,7 @@ object GraphLangTest {
               VariableReference(srcGraphParam),
               intermediate
             ),
-            path
+            path: GraphPattern
           )
         ),
         PathExpressionConstraint(
@@ -54,4 +55,7 @@ object GraphLangTest {
       )),
     None
   )
+
+  val gpgen = new GPGenerator
+  gpgen.generate(path, "GPLang")
 }

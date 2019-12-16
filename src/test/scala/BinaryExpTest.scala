@@ -1,4 +1,4 @@
-import org.inca.analyzedLangs.BinaryExpLang._
+import analyzedLangs.BinaryExpLang._
 import org.inca.core.Constraints.PatternCall
 import org.inca.core.Content.{JoinTypeDef, TemporaryVariable}
 import org.inca.core.Reference.VariableReference
@@ -15,7 +15,7 @@ class BinaryExpTest {
 
   val plusMinusExpression = JoinType(JoinTypeDef("PlusMinusExpression", Seq(minusExpType, plusExpType)))
   // todo is `.type` correct?
-  val plusMinusExpressionType = NodeType(classOf[plusMinusExpression.type])
+  val plusMinusExpressionType = NodeType(classOf[JoinType])
   val eParam = GraphPatternParameter("e", Some(plusMinusExpressionType))
 
   val plusMinusPattern = GraphPattern(
@@ -89,8 +89,9 @@ class BinaryExpTest {
     ),
     None
   )
+  val primitiveDataTypeDeclarationType = NodeType(classOf[PrimitiveDataTypeDeclaration])
 
-  val initializerBoolean = GraphPatternParameter("initializer", Some(PrimitiveDataTypeDeclaration("boolean")))
+  val initializerBoolean = GraphPatternParameter("initializer", Some(primitiveDataTypeDeclarationType))
   val expressionTempVar = TemporaryVariable("expression", None)
 
   val variableInitializerWithFalseInitializer = GraphPattern(
