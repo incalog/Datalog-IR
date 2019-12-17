@@ -3,4 +3,5 @@ target
 project
 .idea
 /project/
-/target/
+/target/*
+/project/*
