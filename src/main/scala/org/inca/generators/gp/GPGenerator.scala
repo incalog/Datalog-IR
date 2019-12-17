@@ -1,5 +1,6 @@
 package org.inca.generators.gp
 
+import javafx.util.Pair
 import org.inca.core.Content.TemporaryVariable
 import org.inca.gp.Constraints.PatternCompositionConstraint
 import org.inca.gp.Content.GraphPattern
@@ -61,26 +62,37 @@ class GPGenerator {
       }
 
 
-      var tempVars: List[String] = List()
+      var tempVars: List[(String, String)] = List()
 
       // find temporary variables in GraphPattern Bodies
       body.contents.foreach {
         case p: PatternCompositionConstraint =>
           p.call.arguments.foreach {
             case t: TemporaryVariable =>
-              tempVars = tempVars ++ List(t.name)
+              tempVars = tempVars ++ List((t.name, t.typ.get.toString))
             case _ => null
           }
         case _ => null
       }
 
+      // create temporary vars
       for(tempVar <- tempVars) {
-        val tempVarValue = Lit.String(tempVar)
-        val tempVarName = Pat.Var(Term.Name(s"var__${tempVar}"))
+        val tempVarValue = Lit.String(tempVar._1)
+        val tempVarName = Pat.Var(Term.Name(s"var__${tempVar._1}"))
 
         val pVariable_var_list_entry = q"val $tempVarName: PVariable = body.getOrCreateVariableByName($tempVarValue)"
 
         bodyList = bodyList ++ List(pVariable_var_list_entry)
+      }
+
+      // create TypeConstraints
+      for(tempVar <- tempVars) {
+        val tempVarTyp = Lit.String(tempVar._2.substring(1))
+        val tempVarName = Term.Name(s"var__${tempVar._1}")
+
+        val typeConstraint_tempVar = q"TypeConstraint(body, Tuples.flatTupleOf($tempVarName), ConceptKey(MetaAdapterFactory.getConcept($tempVarTyp)))"
+
+        bodyList = bodyList ++ List(typeConstraint_tempVar)
       }
 
       val body_content = q"{ ..$bodyList }"

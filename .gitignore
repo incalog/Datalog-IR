@@ -5,3 +5,4 @@ project
 /project/
 /target/*
 /project/*
+/project/target/scala-2.12/
