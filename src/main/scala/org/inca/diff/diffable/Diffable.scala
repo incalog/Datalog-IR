@@ -1,93 +1,57 @@
 package org.inca.diff.diffable
 
 import org.inca.diff.WithCachedCryptoHash
-import org.inca.diff.diffable.DiffData.{DiffableContext, DiffableNoHoles, Patch, VarMap}
-import org.inca.diff.diffable.Diffable.{ApplyDiffFailed, DeletionFailedException, DiffableData, GreatestCommonPrefixFailed, InsertionFailedException}
+import org.inca.diff.diffable.DiffData.{Context, Patch, VarMap}
+import org.inca.diff.diffable.Diffable.{ApplyDiffFailed, GreatestCommonPrefixFailed}
 
-trait Diffable extends WithCachedCryptoHash {
-
+trait Diffable[T] extends WithCachedCryptoHash {
   val freevars: Set[MetaVar]
   def isClosed: Boolean = freevars.isEmpty
 
-  def visitDiffable(f: Diffable => Unit): Unit
-
-  def _extract(oracle: DiffableOracle): Diffable
-  def extract(oracle: DiffableOracle): DiffableContext =
-  _extract(oracle)
-
-  def _retainHoles(vs: Set[_], orig: Diffable): Diffable
-  final def retainHoles(vs: Set[_], orig: DiffableNoHoles): DiffableContext =
-  _retainHoles(vs, orig)
+  def visitDiffable(f: T => Unit): Unit
+  def extract(oracle: DiffableOracle[T]): Context[T]
+  def retainMetaVars(vs: Set[MetaVar], orig: Context[T]): Context[T]
 
   @throws(classOf[GreatestCommonPrefixFailed])
-  def _greatestCommonClosedPrefix(other: Diffable): Diffable
-  def greatestCommonClosedPrefix(other: Diffable): Patch =
-    try _greatestCommonClosedPrefix(other) catch {
-      case GreatestCommonPrefixFailed() => sys.error(s"Unclosable change ${Change(this, other)}")
-      case e: Throwable => throw e
-    }
-
-  def compareTo(other: DiffableNoHoles)(implicit mkOracle: MkDiffableOracle): Patch = {
-    val oracle = mkOracle(this, other)
-
-    // changeTree
-    val delCtx = this.extract(oracle)
-    val insCtx = other.extract(oracle)
-
-    // postprocess
-    val okvars = delCtx.freevars intersect insCtx.freevars
-    val postDel = delCtx.retainHoles(okvars, this)
-    val postIns = insCtx.retainHoles(okvars, other)
-
-    // diff
-    postDel.greatestCommonClosedPrefix(postIns)
-  }
+  def greatestCommonClosedPrefix(other: Context[T]): Patch[T]
 
   @throws(classOf[ApplyDiffFailed])
-  def _applyPatchToOrFail(p: Diffable): Diffable
+  def applyPatchTo(t: T): T
 
-  final def applyPatch(p: Patch): Option[DiffableNoHoles] =
-    try Some(p._applyPatchToOrFail(this)) catch {
-      case ApplyDiffFailed() => None
-      case e: Throwable => throw e
-    }
+  @throws(classOf[ApplyDiffFailed])
+  def del(other: T, m: VarMap[T]): VarMap[T]
 
-  final def applyChange(change: Change): Option[DiffableNoHoles] =
-    change.delCtx.del(this, Map()) flatMap change.insCtx.ins
-
-  @throws(classOf[DeletionFailedException])
-  def _delOrFail(other: Diffable, m: VarMap): VarMap
-
-  def del(other: DiffableNoHoles, m: VarMap): Option[VarMap] =
-    try Some(_delOrFail(other, m)) catch {
-      case DeletionFailedException() => None
-      case e: Throwable => throw e
-    }
-
-  @throws(classOf[InsertionFailedException])
-  def _insOrFail(m: VarMap): Diffable
-
-  final def ins(m: VarMap): Option[DiffableNoHoles] =
-    try Some(_insOrFail(m).asInstanceOf[DiffableNoHoles]) catch {
-      case InsertionFailedException() => None
-      case e: Throwable => throw e
-    }
-
-  @throws(classOf[GreatestCommonPrefixFailed])
-  final def mkPrefix[A](delCtx: Diffable, insCtx: Diffable, makeChangeHole: Change=>A): A = {
-    val change = Change(delCtx, insCtx)
-    if (change.isClosed)
-      makeChangeHole(change)
-    else
-      throw GreatestCommonPrefixFailed()
-  }
+  @throws(classOf[ApplyDiffFailed])
+  def ins(m: VarMap[T]): T
 }
 
-object Diffable {
-  type DiffableData[A <: Plug] = Diffable
+//trait DiffableByMacro[A] extends DiffableInternal[A] {
+//  val ops: DiffableImplByMacro[A]
+//
+//  override val freevars: Set[MetaVar] = ops.freevars
+//  override def visitDiffable(f: Diffable => Unit): Unit = ops.visitDiffable(f)
+//  override def _extract(oracle: DiffableOracle): A = ops._extract(oracle)
+//  override def _retainMetaVars(vs: Set[MetaVar], orig: Diffable): A = ops._retainHoles(vs, orig)
+//  override def _greatestCommonClosedPrefix(other: A): A = ops._greatestCommonClosedPrefix(other)
+//  override def _applyPatchToOrFail(p: A): A = ops._applyPatchToOrFail(p)
+//  override def _delOrFail(other: A, m: VarMap): VarMap = ops._delOrFail(other, m)
+//  override def _insOrFail(m: VarMap): A = ops._insOrFail(m)
+//}
+//object DiffableByMacro {
+//  case class DiffableImplByMacro[A](
+//    freevars: Set[MetaVar],
+//    visitDiffable: (Diffable => Unit) => Unit,
+//    _extract: DiffableOracle => A,
+//    _retainHoles: (Set[MetaVar], Diffable) => A,
+//    _greatestCommonClosedPrefix: A => A,
+//    _applyPatchToOrFail: A => A,
+//    _delOrFail: (A, VarMap) => VarMap,
+//    _insOrFail: VarMap => A
+//  )
+//}
 
+
+object Diffable {
   case class GreatestCommonPrefixFailed() extends Exception
   case class ApplyDiffFailed() extends Exception
-  case class InsertionFailedException() extends Exception
-  case class DeletionFailedException() extends Exception
 }
