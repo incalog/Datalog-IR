@@ -11,31 +11,21 @@ class GPGenerator {
   val filename = "test.scala"
 
   /**
-   *
+   * Generates a ast with quasiquotes of scalameta from a IncA graph pattern
    * @param pattern        GraphPattern which will be transformed into scalameta tree
    * @param collectionName Name of the file (mps) where pattern is saved
    * @return
    */
   def generate(pattern: GraphPattern, collectionName: String): Defn.Class = {
-
-    val pDoGetContainedBodies: List[Stat] = createGraphPatternBodies(pattern)
-
-    val doGetContainedBodies_body = q"{..$pDoGetContainedBodies}"
-
-    val doGetContainedBodies = q"override def doGetContainedBodies(): Set[PBody] = $doGetContainedBodies_body"
-
-    val pGeneratedPQuery = getGeneratedPQuery(pattern.parameters).toList ++ List(doGetContainedBodies)
-
-    /*
-     * GeneratedPQuery
-     */
-    val innerClass = q"class GeneratedPQuery extends AbstractPQuery { ..$pGeneratedPQuery }"
-
-    /*
-     * class
-     */
     val className = Type.Name(s"${pattern.name}_${collectionName}QuerySpecification")
-    val rootClass = q"class $className extends ScalaQuerySpecification { $innerClass }"
+
+    val pDoGetContainedBodies = createDoGetContainedBodies(pattern, collectionName)
+    val doGetContainedBodiesContent = q"{..$pDoGetContainedBodies}"
+    val doGetContainedBodies = q"override def doGetContainedBodies(): Set[PBody] = $doGetContainedBodiesContent"
+    val pGeneratedPQuery = getGeneratedPQuery(pattern.parameters).toList ++ List(doGetContainedBodies)
+    val pGeneratePQueryClass = q"class GeneratedPQuery extends AbstractPQuery { ..$pGeneratedPQuery }"
+
+    val rootClass = q"class $className extends ScalaQuerySpecification { $pGeneratePQueryClass }"
 
     println(rootClass)
 
@@ -43,16 +33,35 @@ class GPGenerator {
     rootClass
   }
 
+  private def createDoGetContainedBodies(pattern: GraphPattern, collectionName: String): List[Stat] = {
+    val pFullyQualifiedName = Lit.String(s"$collectionName.${pattern.name}")
+    val pGetFullyQualifiedName = q"override def getFullyQualifiedName(): String = $pFullyQualifiedName"
+
+    val pParamPNames = for (param <- pattern.parameters.toList) yield { Term.Name(s"p_${param.name}") }
+    val pGetParameters = q"override def getParameters(): List[PParameter] = List(..$pParamPNames)"
+
+    val pParamNamesString = for (param <- pattern.parameters.toList) yield { Lit.String(param.name) }
+    val pGetParameterNames = q"override def getParameterNames(): List[String] = List(..$pParamNamesString)"
+
+    val pReturnBodies = q"bodies"
+
+    val pBodies = q"val bodies: Set[PBody] = SetSequence.fromSet(HashSet[PBody]())"
+
+    List(pBodies) ++
+      createGraphPatternBodies(pattern) ++
+      List(pGetFullyQualifiedName, pGetParameters, pGetParameterNames, pReturnBodies)
+  }
+
   private def createGraphPatternBodies(pattern: GraphPattern) = for (body <- pattern.bodies.toList) yield {
-    val PBody_body = q"val body: PBody = PBody(this)"
+    val pPBody = q"val body: PBody = PBody(this)"
 
     val tempVars: Map[String, String] = getTemporaryVariables(body)
 
-    val qBody = List(PBody_body) ++
+    val pBody = List(pPBody) ++
       createTemporaryVariables(tempVars) ++
       createTypeConstraints(tempVars) ++
       createLocalGlobalVariables(pattern.parameters)
-    q"{ ..$qBody }"
+    q"{ ..$pBody }"
   }
 
   private def createTypeConstraints(temporaryVariables: Map[String, String]) =
@@ -62,7 +71,6 @@ class GPGenerator {
 
       q"TypeConstraint(body, Tuples.flatTupleOf($tempVarName), ConceptKey(MetaAdapterFactory.getConcept($tempVarTyp)))"
     }
-
 
   private def createTemporaryVariables(temporaryVariables: Map[String, String]) =
     for ((name, _) <- temporaryVariables) yield {
@@ -87,9 +95,9 @@ class GPGenerator {
       val pParamNameString = Lit.String(pParamString)
       val pParamFullyQualifiedName = Lit.String(graphParameter.typ.get.toString.substring(1))
 
-      val qConceptKey = q"ConceptKey()"
-      val qPParameter = q"PParameter($pParamNameString, $pParamFullyQualifiedName, $qConceptKey)"
-      val pGeneratedPQueryParameter = q"val $pParamName: PParameter = $qPParameter"
+      val pConceptKey = q"ConceptKey()"
+      val pPParameter = q"PParameter($pParamNameString, $pParamFullyQualifiedName, $pConceptKey)"
+      val pGeneratedPQueryParameter = q"val $pParamName: PParameter = $pPParameter"
       pGeneratedPQueryParameter
     }
 
