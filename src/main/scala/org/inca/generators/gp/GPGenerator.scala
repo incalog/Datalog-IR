@@ -1,7 +1,6 @@
 package org.inca.generators.gp
 
-import javafx.util.Pair
-import org.inca.core.Content.TemporaryVariable
+import org.inca.core.Content.{IParameter, IPatternBody, TemporaryVariable}
 import org.inca.gp.Constraints.PatternCompositionConstraint
 import org.inca.gp.Content.GraphPattern
 
@@ -13,109 +12,24 @@ class GPGenerator {
 
   /**
    *
-   * @param pattern GraphPattern which will be transformed into scalameta tree
+   * @param pattern        GraphPattern which will be transformed into scalameta tree
    * @param collectionName Name of the file (mps) where pattern is saved
    * @return
    */
   def generate(pattern: GraphPattern, collectionName: String): Defn.Class = {
 
-    /*
-     * !!! heads up: tree is created bottom-up !!!
-     */
+    val pDoGetContainedBodies: List[Stat] = createGraphPatternBodies(pattern)
 
-
-    /*
-     * GeneratedPQuery -> PParameter
-     */
-    var generatedPQuery_body: List[Stat] = List()
-    for (param <- pattern.parameters) {
-      val paramName = Pat.Var(Term.Name(s"p_${param.name}"))
-      val paramNameString = Lit.String(s"p_${param.name}")
-      val paramFullyQualifiedName = Lit.String(param.typ.get.toString.substring(1))
-      val paramConceptKey = q"ConceptKey()"
-      val paramValue = q"PParameter($paramNameString, $paramFullyQualifiedName, $paramConceptKey)"
-      val parVal = q"val $paramName: PParameter = $paramValue"
-
-      generatedPQuery_body = generatedPQuery_body ++ List(parVal)
-    }
-
-    /*
-     * GeneratedPQuery -> doGetContainedBodies
-     */
-    var doGetContainedBodies_bodies: List[Stat] = List()
-
-    // create GraphPattern Bodies
-    for (body <- pattern.bodies) {
-      var bodyList: List[Stat] = List()
-      val PBody_body = q"val body: PBody = PBody(this)"
-      bodyList = bodyList ++ List(PBody_body)
-
-
-      // create local global variable
-      for (param <- pattern.parameters) {
-        val paramName = Lit.String(param.name)
-        val param_var_name = Pat.Var(Term.Name(s"var_${param.name}"))
-
-        val pVariable_var_list_entry = q"val $param_var_name: PVariable = body.getOrCreateVariableByName($paramName)"
-
-        bodyList = bodyList ++ List(pVariable_var_list_entry)
-      }
-
-
-      var tempVars: List[(String, String)] = List()
-
-      // find temporary variables in GraphPattern Bodies
-      body.contents.foreach {
-        case p: PatternCompositionConstraint =>
-          p.call.arguments.foreach {
-            case t: TemporaryVariable =>
-              tempVars = tempVars ++ List((t.name, t.typ.get.toString))
-            case _ => null
-          }
-        case _ => null
-      }
-
-      // create temporary vars
-      for(tempVar <- tempVars) {
-        val tempVarValue = Lit.String(tempVar._1)
-        val tempVarName = Pat.Var(Term.Name(s"var__${tempVar._1}"))
-
-        val pVariable_var_list_entry = q"val $tempVarName: PVariable = body.getOrCreateVariableByName($tempVarValue)"
-
-        bodyList = bodyList ++ List(pVariable_var_list_entry)
-      }
-
-      // create TypeConstraints
-      for(tempVar <- tempVars) {
-        val tempVarTyp = Lit.String(tempVar._2.substring(1))
-        val tempVarName = Term.Name(s"var__${tempVar._1}")
-
-        val typeConstraint_tempVar = q"TypeConstraint(body, Tuples.flatTupleOf($tempVarName), ConceptKey(MetaAdapterFactory.getConcept($tempVarTyp)))"
-
-        bodyList = bodyList ++ List(typeConstraint_tempVar)
-      }
-
-      val body_content = q"{ ..$bodyList }"
-      doGetContainedBodies_bodies = doGetContainedBodies_bodies ++ List{body_content}
-    }
-
-    val doGetContainedBodies_body = q"{..$doGetContainedBodies_bodies}"
+    val doGetContainedBodies_body = q"{..$pDoGetContainedBodies}"
 
     val doGetContainedBodies = q"override def doGetContainedBodies(): Set[PBody] = $doGetContainedBodies_body"
 
-    generatedPQuery_body = generatedPQuery_body ++ List(doGetContainedBodies)
-
-    /*
-     * GeneratedPQuery -> INSTANCE Variable
-     */
-
-    //    val instanceValName = Type.Name(s"${pattern.name}_${collectionName}QuerySpecification.GeneratedPQuery")
-    //    val instanceVal = q"val INSTANCE: $instanceValName = ${className}.GeneratedPQuery()"
+    val pGeneratedPQuery = getGeneratedPQuery(pattern.parameters).toList ++ List(doGetContainedBodies)
 
     /*
      * GeneratedPQuery
      */
-    val innerClass = q"class GeneratedPQuery extends AbstractPQuery { ..$generatedPQuery_body }"
+    val innerClass = q"class GeneratedPQuery extends AbstractPQuery { ..$pGeneratedPQuery }"
 
     /*
      * class
@@ -128,4 +42,62 @@ class GPGenerator {
     // return ast
     rootClass
   }
+
+  private def createGraphPatternBodies(pattern: GraphPattern) = for (body <- pattern.bodies.toList) yield {
+    val PBody_body = q"val body: PBody = PBody(this)"
+
+    val tempVars: Map[String, String] = getTemporaryVariables(body)
+
+    val qBody = List(PBody_body) ++
+      createTemporaryVariables(tempVars) ++
+      createTypeConstraints(tempVars) ++
+      createLocalGlobalVariables(pattern.parameters)
+    q"{ ..$qBody }"
+  }
+
+  private def createTypeConstraints(temporaryVariables: Map[String, String]) =
+    for ((name, typ) <- temporaryVariables) yield {
+      val tempVarTyp = Lit.String(typ.substring(1))
+      val tempVarName = Term.Name(s"var__$name")
+
+      q"TypeConstraint(body, Tuples.flatTupleOf($tempVarName), ConceptKey(MetaAdapterFactory.getConcept($tempVarTyp)))"
+    }
+
+
+  private def createTemporaryVariables(temporaryVariables: Map[String, String]) =
+    for ((name, _) <- temporaryVariables) yield {
+      val tempVarValue = Lit.String(name)
+      val tempVarName = Pat.Var(Term.Name(s"var__$name"))
+
+      q"val $tempVarName: PVariable = body.getOrCreateVariableByName($tempVarValue)"
+    }
+
+  private def createLocalGlobalVariables(graphParameters: Seq[IParameter]): Seq[Defn] =
+    for (graphParameter <- graphParameters) yield {
+      val paramName = Lit.String(graphParameter.name)
+      val param_var_name = Pat.Var(Term.Name(s"var_${graphParameter.name}"))
+
+      q"val $param_var_name: PVariable = body.getOrCreateVariableByName($paramName)"
+    }
+
+  private def getGeneratedPQuery(graphParameters: Seq[IParameter]): Seq[Defn] =
+    for (graphParameter <- graphParameters) yield {
+      val pParamString = s"p_${graphParameter.name}"
+      val pParamName = Pat.Var(Term.Name(pParamString))
+      val pParamNameString = Lit.String(pParamString)
+      val pParamFullyQualifiedName = Lit.String(graphParameter.typ.get.toString.substring(1))
+
+      val qConceptKey = q"ConceptKey()"
+      val qPParameter = q"PParameter($pParamNameString, $pParamFullyQualifiedName, $qConceptKey)"
+      val pGeneratedPQueryParameter = q"val $pParamName: PParameter = $qPParameter"
+      pGeneratedPQueryParameter
+    }
+
+  private def getTemporaryVariables(body: IPatternBody): Map[String, String] = body.contents.collect {
+    case p: PatternCompositionConstraint => p.call.arguments.collect {
+      case t: TemporaryVariable => Map[String, String](t.name -> t.typ.get.toString)
+    }
+  }.flatten.flatten.toMap
 }
+
+
