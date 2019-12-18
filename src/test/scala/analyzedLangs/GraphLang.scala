@@ -1,6 +1,6 @@
 package analyzedLangs
 
-import org.inca.mps.INamedConcept
+import org.inca.lang.mps.INamedConcept
 
 object GraphLang {
 

@@ -1,7 +1,7 @@
-package org.inca.core
+package org.inca.lang.core
 
-import org.inca.core.Content.IJoinTypeDef
-import org.inca.mps.{AbstractConceptDeclaration, INamedConcept}
+import org.inca.lang.core.Content.IJoinTypeDef
+import org.inca.lang.mps.{AbstractConceptDeclaration, INamedConcept}
 
 object Typp {
   // `type` folder

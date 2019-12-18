@@ -1,8 +1,8 @@
-package org.inca.gp
+package org.inca.lang.gp
 
-import org.inca.core.Constraints.IPathElement
-import org.inca.core.IVirtualPathElement
-import org.inca.mps.Link
+import org.inca.lang.core.Constraints.IPathElement
+import org.inca.lang.core.IVirtualPathElement
+import org.inca.lang.mps.Link
 
 object Element {
   abstract class AbstractListPathElement(next: Option[IPathElement], link: Link)

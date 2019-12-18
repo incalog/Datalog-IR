@@ -1,8 +1,8 @@
-package org.inca.core
+package org.inca.lang.core
 
-import org.inca.core.Typp.Typ
-import org.inca.core.Values.IVariableValue
-import org.inca.mps.INamedConcept
+import org.inca.lang.core.Typp.Typ
+import org.inca.lang.core.Values.IVariableValue
+import org.inca.lang.mps.INamedConcept
 
 object Content {
   trait IPatternBodyContent

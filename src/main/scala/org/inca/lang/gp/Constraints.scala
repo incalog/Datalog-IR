@@ -1,11 +1,11 @@
-package org.inca.gp
+package org.inca.lang.gp
 
-import org.inca.core.Constraints._
-import org.inca.core.ITypeConstraintProvider
-import org.inca.core.Reference.VariableReference
-import org.inca.core.Typp.Typ
-import org.inca.core.Values.{IValue, IVariableValue}
-import org.inca.gp.Content.IGraphPatternBodyContent
+import org.inca.lang.core.Constraints._
+import org.inca.lang.core.ITypeConstraintProvider
+import org.inca.lang.core.Reference.VariableReference
+import org.inca.lang.core.Typp.Typ
+import org.inca.lang.core.Values.{IValue, IVariableValue}
+import org.inca.lang.gp.Content.IGraphPatternBodyContent
 
 
 // todo style guide formatting

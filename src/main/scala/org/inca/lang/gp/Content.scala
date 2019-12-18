@@ -1,7 +1,7 @@
-package org.inca.gp
+package org.inca.lang.gp
 
-import org.inca.core.Content._
-import org.inca.core.Typp.Typ
+import org.inca.lang.core.Content._
+import org.inca.lang.core.Typp.Typ
 
 
 object Content {

@@ -1,6 +1,6 @@
 package analyzedLangs
 
-import org.inca.core.Typp.{DataTypeDeclaration, Typ}
+import org.inca.lang.core.Typp.{DataTypeDeclaration, Typ}
 
 object BinaryExpLang {
   abstract class Exp

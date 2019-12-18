@@ -1,12 +1,12 @@
 import analyzedLangs.GraphLang.{Edge, Node}
-import org.inca.core.Constraints.PatternCall
-import org.inca.core.Content.TemporaryVariable
-import org.inca.core.Reference.VariableReference
+import org.inca.lang.core.Constraints.PatternCall
+import org.inca.lang.core.Content.TemporaryVariable
+import org.inca.lang.core.Reference.VariableReference
 import org.inca.generators.gp.GPGenerator
-import org.inca.gp.Constraints.{PathExpressionConstraint, PatternCompositionConstraint}
-import org.inca.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
-import org.inca.gp.Element.PathElement
-import org.inca.meta.{NodeLink, NodeType}
+import org.inca.lang.gp.Constraints.{PathExpressionConstraint, PatternCompositionConstraint}
+import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
+import org.inca.lang.gp.Element.PathElement
+import org.inca.lang.meta.{NodeLink, NodeType}
 
 object GraphLangTest extends App{
 

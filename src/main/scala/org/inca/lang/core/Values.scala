@@ -1,6 +1,6 @@
-package org.inca.core
+package org.inca.lang.core
 
-import org.inca.core.Content.IGenNameProvider
+import org.inca.lang.core.Content.IGenNameProvider
 
 object Values {
   trait IValue extends IGenNameProvider

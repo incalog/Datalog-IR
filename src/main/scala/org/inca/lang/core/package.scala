@@ -1,7 +1,7 @@
 package org.inca
 
-import org.inca.core.Content.{IGenNameProvider, IPatternModuleContent}
-import org.inca.mps.INamedConcept
+import org.inca.lang.core.Content.{IGenNameProvider, IPatternModuleContent}
+import org.inca.lang.mps.INamedConcept
 
 package object core {
   trait ITypeConstraintProvider

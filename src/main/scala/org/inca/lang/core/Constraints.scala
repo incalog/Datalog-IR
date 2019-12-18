@@ -1,10 +1,10 @@
-package org.inca.core
+package org.inca.lang.core
 
-import org.inca.core.Content.{IPattern, IPatternBodyContent}
-import org.inca.core.Misc.{IContainsJavaExpression, IJavaContext, ITransformable}
-import org.inca.core.Typp.Typ
-import org.inca.core.Values.{IValue, IVariableValue}
-import org.inca.mps.Link
+import org.inca.lang.core.Content.{IPattern, IPatternBodyContent}
+import org.inca.lang.core.Misc.{IContainsJavaExpression, IJavaContext, ITransformable}
+import org.inca.lang.core.Typp.Typ
+import org.inca.lang.core.Values.{IValue, IVariableValue}
+import org.inca.lang.mps.Link
 
 object Constraints {
   trait IGeneratorPathElement extends IVirtualPathElement

@@ -1,4 +1,4 @@
-package org.inca.core
+package org.inca.lang.core
 
 object Misc {
   trait ITransformable

@@ -1,8 +1,8 @@
 package org.inca.generators.gp
 
-import org.inca.core.Content.{IParameter, IPatternBody, TemporaryVariable}
-import org.inca.gp.Constraints.PatternCompositionConstraint
-import org.inca.gp.Content.GraphPattern
+import org.inca.lang.core.Content.{IParameter, IPatternBody, TemporaryVariable}
+import org.inca.lang.gp.Constraints.PatternCompositionConstraint
+import org.inca.lang.gp.Content.GraphPattern
 
 import scala.meta._
 

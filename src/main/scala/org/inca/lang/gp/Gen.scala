@@ -1,8 +1,8 @@
-package org.inca.gp
+package org.inca.lang.gp
 
-import org.inca.core.Constraints.{IGeneratorPathElement, IPathElement}
-import org.inca.gp.Element.AbstractPathElement
-import org.inca.mps.Link
+import org.inca.lang.core.Constraints.{IGeneratorPathElement, IPathElement}
+import org.inca.lang.gp.Element.AbstractPathElement
+import org.inca.lang.mps.Link
 
 object Gen {
   case class GenListPathElement(isFirst: Boolean, next: Option[IPathElement], link: Link)

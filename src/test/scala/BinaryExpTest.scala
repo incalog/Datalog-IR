@@ -1,12 +1,12 @@
 import analyzedLangs.BinaryExpLang._
-import org.inca.core.Constraints.PatternCall
-import org.inca.core.Content.{JoinTypeDef, TemporaryVariable}
-import org.inca.core.Reference.VariableReference
-import org.inca.core.Typp.JoinType
-import org.inca.gp.Constraints.{GraphPatternConceptConstraint, PathExpressionConstraint, PatternCompositionConstraint}
-import org.inca.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
-import org.inca.gp.Element.PathElement
-import org.inca.meta.{NodeLink, NodeType}
+import org.inca.lang.core.Constraints.PatternCall
+import org.inca.lang.core.Content.{JoinTypeDef, TemporaryVariable}
+import org.inca.lang.core.Reference.VariableReference
+import org.inca.lang.core.Typp.JoinType
+import org.inca.lang.gp.Constraints.{GraphPatternConceptConstraint, PathExpressionConstraint, PatternCompositionConstraint}
+import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
+import org.inca.lang.gp.Element.PathElement
+import org.inca.lang.meta.{NodeLink, NodeType}
 
 class BinaryExpTest {
 
