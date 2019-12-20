@@ -15,11 +15,11 @@ class TestTree23 extends AnyFlatSpec with Matchers {
 
   val differ = new Differ[Tree23]
   import differ.withDifferOps
-  implicit val implicit_mkOracle: DiffableCryptoHashOracle[Tree23] = new DiffableCryptoHashOracle[Tree23]
+  implicit val implicit_mkOracle = DiffableCryptoHashOracle
 
   def compareAndApply(src: Tree23, dest: Tree23): Assertion = {
     val patch = src.compareTo(dest)
-    src.applyPatch(patch) should be (dest)
+    src.applyPatch(patch).get should be (dest)
   }
 
   "diff of identical trees" should "yield empty patch" in {

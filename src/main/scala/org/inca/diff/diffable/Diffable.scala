@@ -1,15 +1,15 @@
 package org.inca.diff.diffable
 
-import org.inca.diff.WithCachedCryptoHash
+import org.inca.diff.HasCryptoHash
 import org.inca.diff.diffable.DiffData.{Context, Patch, VarMap}
 import org.inca.diff.diffable.Diffable.{ApplyDiffFailed, GreatestCommonPrefixFailed}
 
-trait Diffable[T] extends WithCachedCryptoHash {
+trait Diffable[T] extends HasCryptoHash {
   val freevars: Set[MetaVar]
   def isClosed: Boolean = freevars.isEmpty
 
-  def visitDiffable(f: T => Unit): Unit
-  def extract(oracle: DiffableOracle[T]): Context[T]
+  def initOracle(f: HasCryptoHash => Unit): Unit
+  def extract(oracle: DiffableOracle): Context[T]
   def retainMetaVars(vs: Set[MetaVar], orig: Context[T]): Context[T]
 
   @throws(classOf[GreatestCommonPrefixFailed])

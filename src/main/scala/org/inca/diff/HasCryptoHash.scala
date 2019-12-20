@@ -3,7 +3,7 @@ package org.inca.diff
 import java.security.MessageDigest
 import java.util.Base64
 
-trait WithCachedCryptoHash {
+trait HasCryptoHash {
   final def mkDigest: MessageDigest = MessageDigest.getInstance("SHA-256")
 
   final def hashNonDiffable(v: Any, d: MessageDigest): Unit = {

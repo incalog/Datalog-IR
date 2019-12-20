@@ -1,5 +1,6 @@
 package org.inca.diff.diffable
 
+import org.inca.diff.HasCryptoHash
 import org.inca.diff.diffable.DiffData.{Context, Patch, VarMap}
 import org.inca.diff.diffable.Diffable.ApplyDiffFailed
 
@@ -14,10 +15,10 @@ trait MetaVarHole[T] extends Diffable[T] {
   override lazy val freevars: Set[MetaVar] =
     mv.freevars
 
-  override def extract(oracle: DiffableOracle[T]): Nothing =
+  override def extract(oracle: DiffableOracle): Nothing =
     throw new IllegalStateException(s"Input trees may not contain hole $this")
 
-  override def visitDiffable(f: T => Unit): Unit =
+  override def initOracle(f: HasCryptoHash => Unit): Unit =
     f(this.lifted)
 
   def retainMetaVars(vs: Set[MetaVar], orig: Context[T]): Context[T] = {
@@ -39,4 +40,6 @@ trait MetaVarHole[T] extends Diffable[T] {
 
   override def ins(m: VarMap[T]): T =
     m.getOrElse(mv, throw ApplyDiffFailed())
+
+  override def toString: String = mv.toString
 }

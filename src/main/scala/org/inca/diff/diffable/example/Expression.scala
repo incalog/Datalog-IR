@@ -1,12 +1,13 @@
 package org.inca.diff.diffable.example
 
+import org.inca.diff.HasCryptoHash
 import org.inca.diff.diffable.DiffData.{Context, Patch, VarMap}
 import org.inca.diff.diffable.Diffable.{ApplyDiffFailed, GreatestCommonPrefixFailed}
 import org.inca.diff.diffable._
 
 trait Exp extends Diffable[Exp]
 
-case class ExpMetaVarHole(mv: MetaVar) extends Exp with MetaVarHole[Exp] {
+case class ExpVarHole(mv: MetaVar) extends Exp with MetaVarHole[Exp] {
   override def lifted: Exp = this
   override def mkChangeHole: Change[Exp] => Patch[Exp] = ExpChangeHole.apply
 }
@@ -23,10 +24,10 @@ case class Num(n: Int) extends Exp {
   }
 
   override val freevars: Set[MetaVar] = Set()
-  override def visitDiffable(f: Exp => Unit): Unit = f(this)
+  override def initOracle(f: HasCryptoHash => Unit): Unit = f(this)
 
-  override def extract(oracle: DiffableOracle[Exp]): Exp = oracle.predict(this) match {
-    case Some(mv) => ExpMetaVarHole(mv)
+  override def extract(oracle: DiffableOracle): Exp = oracle.predict(this) match {
+    case Some(mv) => ExpVarHole(mv)
     case None => this
   }
 
@@ -59,8 +60,8 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     digest.digest()
   }
 
-  override def extract(oracle: DiffableOracle[Exp]): Exp = oracle.predict(this) match {
-    case Some(mv) => ExpMetaVarHole(mv)
+  override def extract(oracle: DiffableOracle): Exp = oracle.predict(this) match {
+    case Some(mv) => ExpVarHole(mv)
     case None => Add(e1.extract(oracle), e2.extract(oracle))
   }
 
@@ -90,10 +91,10 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
 
   override val freevars: Set[MetaVar] = e1.freevars ++ e2.freevars
 
-  override def visitDiffable(f: Exp => Unit): Unit = {
+  override def initOracle(f: HasCryptoHash => Unit): Unit ={
     f(this)
-    this.e1.visitDiffable(f)
-    this.e2.visitDiffable(f)
+    this.e1.initOracle(f)
+    this.e2.initOracle(f)
   }
 
   override def del(other: Exp, m: VarMap[Exp]): VarMap[Exp] = other match {
@@ -114,8 +115,8 @@ case class Mul(e1: Exp, e2: Exp) extends Exp {
     digest.digest()
   }
 
-  override def extract(oracle: DiffableOracle[Exp]): Exp = oracle.predict(this) match {
-    case Some(mv) => ExpMetaVarHole(mv)
+  override def extract(oracle: DiffableOracle): Exp = oracle.predict(this) match {
+    case Some(mv) => ExpVarHole(mv)
     case None => Mul(e1.extract(oracle), e2.extract(oracle))
   }
 
@@ -145,10 +146,10 @@ case class Mul(e1: Exp, e2: Exp) extends Exp {
 
   override val freevars: Set[MetaVar] = e1.freevars ++ e2.freevars
 
-  override def visitDiffable(f: Exp => Unit): Unit = {
+  override def initOracle(f: HasCryptoHash => Unit): Unit = {
     f(this)
-    this.e1.visitDiffable(f)
-    this.e2.visitDiffable(f)
+    this.e1.initOracle(f)
+    this.e2.initOracle(f)
   }
 
   override def del(other: Exp, m: VarMap[Exp]): VarMap[Exp] = other match {

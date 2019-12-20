@@ -3,7 +3,7 @@ package org.inca.diff.reflect
 import java.lang.reflect.Field
 import java.security.MessageDigest
 
-import org.inca.diff.{StructuralDiff, WithCachedCryptoHash}
+import org.inca.diff.{StructuralDiff, HasCryptoHash}
 
 object Diff {
 
@@ -40,7 +40,7 @@ object Diff {
   }
 
 
-  trait Tree extends WithCachedCryptoHash
+  trait Tree extends HasCryptoHash
   case class Val(v: Any) extends Tree {
     override val $hash: Array[Byte] = {
       val digest = mkDigest

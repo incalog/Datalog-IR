@@ -1,5 +1,6 @@
 package org.inca.diff.diffable.example
 
+import org.inca.diff.HasCryptoHash
 import org.inca.diff.diffable.DiffData.{Context, Patch, VarMap}
 import org.inca.diff.diffable.Diffable.{ApplyDiffFailed, GreatestCommonPrefixFailed}
 import org.inca.diff.diffable._
@@ -26,12 +27,12 @@ case class Leaf(s: String) extends Tree23 {
   override lazy val freevars: Set[MetaVar] =
     Set()
 
-  override def extract(oracle: DiffableOracle[Tree23]): Tree23 = oracle.predict(this) match {
+  override def extract(oracle: DiffableOracle): Tree23 = oracle.predict(this) match {
     case Some(i) => example.Tree23MetaVarHole(i)
     case _ => this
   }
 
-  override def visitDiffable(f: Tree23 => Unit): Unit =
+  override def initOracle(f: HasCryptoHash => Unit): Unit =
     f(this)
 
   override def retainMetaVars(vs: Set[MetaVar], orig: Context[Tree23]): this.type =
@@ -68,13 +69,13 @@ case class Node2(t1: Tree23, t2: Tree23) extends Tree23 {
   override lazy val freevars: Set[MetaVar] =
     t1.freevars ++ t2.freevars
 
-  override def extract(oracle: DiffableOracle[Tree23]): Tree23 = oracle.predict(this) match {
+  override def extract(oracle: DiffableOracle): Tree23 = oracle.predict(this) match {
     case Some(i) => example.Tree23MetaVarHole(i)
     case _ => Node2(t1.extract(oracle), t2.extract(oracle))
   }
 
-  override def visitDiffable(f: Tree23 => Unit): Unit = {
-    f(this); t1.visitDiffable(f); t2.visitDiffable(f)
+  override def initOracle(f: HasCryptoHash => Unit): Unit = {
+    f(this); t1.initOracle(f); t2.initOracle(f)
   }
 
   override def retainMetaVars(vs: Set[MetaVar], orig: Context[Tree23]): Tree23 = orig match {
@@ -120,13 +121,13 @@ case class Node3(t1: Tree23, t2: Tree23, t3: Tree23) extends Tree23 {
   override lazy val freevars: Set[MetaVar] =
     t1.freevars ++ t2.freevars ++ t3.freevars
 
-  override def extract(oracle: DiffableOracle[Tree23]): Tree23 = oracle.predict(this) match {
+  override def extract(oracle: DiffableOracle): Tree23 = oracle.predict(this) match {
     case Some(i) => example.Tree23MetaVarHole(i)
     case _ => Node3(t1.extract(oracle), t2.extract(oracle), t3.extract(oracle))
   }
 
-  override def visitDiffable(f: Tree23 => Unit): Unit = {
-    f(this); t1.visitDiffable(f); t2.visitDiffable(f); t3.visitDiffable(f)
+  override def initOracle(f: HasCryptoHash => Unit): Unit = {
+    f(this); t1.initOracle(f); t2.initOracle(f); t3.initOracle(f)
   }
 
   override def retainMetaVars(vs: Set[MetaVar], orig: Context[Tree23]): Tree23 = orig match {

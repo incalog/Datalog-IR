@@ -2,11 +2,11 @@ package org.inca.diff.tree23
 
 import java.nio.charset.StandardCharsets
 
-import org.inca.diff.WithCachedCryptoHash
+import org.inca.diff.HasCryptoHash
 
 object Tree23Diff {
 
-  trait Tree23 extends WithCachedCryptoHash
+  trait Tree23 extends HasCryptoHash
   case class Leaf(s: String) extends Tree23 {
     override val $hash: Array[Byte] = {
       val digest = mkDigest

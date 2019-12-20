@@ -3,8 +3,8 @@ package org.inca.diff.diffable
 import org.inca.diff.diffable.DiffData.{Context, Patch}
 import org.inca.diff.diffable.Diffable.{ApplyDiffFailed, GreatestCommonPrefixFailed}
 
-class Differ[T <: Diffable[T]] {
-  def diff(t1: T, t2: T)(implicit mkOracle: MkDiffableOracle[T]): Patch[T] = {
+class Differ[T] {
+  def diff(t1: T with Diffable[T], t2: T with Diffable[T])(implicit mkOracle: MkDiffableOracle): Patch[T] = {
     val oracle = mkOracle(t1, t2)
 
     // changeTree
@@ -32,5 +32,5 @@ class Differ[T <: Diffable[T]] {
       case e: Throwable => throw e
     }
 
-  implicit def withDifferOps(t: T): DifferOps[T] = new DifferOps[T](this, t)
+  implicit def withDifferOps(t: T with Diffable[T]): DifferOps[T] = new DifferOps[T](this, t)
 }
