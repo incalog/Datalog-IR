@@ -7,7 +7,7 @@ import org.inca.diff.diffable._
 
 trait Exp extends Diffable[Exp]
 
-case class ExpVarHole(mv: MetaVar) extends Exp with MetaVarHole[Exp] {
+case class ExpVarHole(mv: MetaVar[Exp]) extends Exp with MetaVarHole[Exp] {
   override def lifted: Exp = this
   override def mkChangeHole: Change[Exp] => Patch[Exp] = ExpChangeHole.apply
 }
@@ -23,15 +23,15 @@ case class Num(n: Int) extends Exp {
     digest.digest()
   }
 
-  override val freevars: Set[MetaVar] = Set()
-  override def initOracle(f: HasCryptoHash => Unit): Unit = f(this)
+  override val freevars: Set[MetaVar[_]] = Set()
+  override def foreach(f: DiffableForeach): Unit = f(this)
 
-  override def extract(oracle: DiffableOracle): Exp = oracle.predict(this) match {
+  override def extract(oracle: DiffableOracle): Exp = oracle.predict[Exp](this) match {
     case Some(mv) => ExpVarHole(mv)
     case None => this
   }
 
-  override def retainMetaVars(vs: Set[MetaVar], orig: Context[Exp]): Exp = this
+  override def retainMetaVars(vs: Set[MetaVar[_]], orig: Context[Exp]): Exp = this
 
   override def greatestCommonClosedPrefix(other: Context[Exp]): Patch[Exp] = other match {
     case Num(n) if this.n == n => this
@@ -43,12 +43,12 @@ case class Num(n: Int) extends Exp {
     case _ => throw ApplyDiffFailed()
   }
 
-  override def del(other: Exp, m: VarMap[Exp]): VarMap[Exp] = other match {
-    case Num(n) if this.n == n => m
+  override def matchTree(other: Exp): Unit = other match {
+    case Num(n) if this.n == n =>
     case _ => throw ApplyDiffFailed()
   }
 
-  override def ins(m: VarMap[Exp]): Exp = this
+  override def buildTree(): Exp = this
 }
 
 case class Add(e1: Exp, e2: Exp) extends Exp {
@@ -60,12 +60,12 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     digest.digest()
   }
 
-  override def extract(oracle: DiffableOracle): Exp = oracle.predict(this) match {
+  override def extract(oracle: DiffableOracle): Exp = oracle.predict[Exp](this) match {
     case Some(mv) => ExpVarHole(mv)
     case None => Add(e1.extract(oracle), e2.extract(oracle))
   }
 
-  override def retainMetaVars(vs: Set[MetaVar], orig: Context[Exp]): Exp = orig match {
+  override def retainMetaVars(vs: Set[MetaVar[_]], orig: Context[Exp]): Exp = orig match {
     case Add(e1, e2) => Add(this.e1.retainMetaVars(vs, e1), this.e2.retainMetaVars(vs, e2))
   }
 
@@ -86,22 +86,19 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     case _ => throw ApplyDiffFailed()
   }
 
-  override def ins(m: VarMap[Exp]): Exp =
-    Add(this.e1.ins(m), this.e2.ins(m))
+  override def buildTree(): Exp =
+    Add(this.e1.buildTree(), this.e2.buildTree())
 
-  override val freevars: Set[MetaVar] = e1.freevars ++ e2.freevars
+  override val freevars: Set[MetaVar[_]] = e1.freevars ++ e2.freevars
 
-  override def initOracle(f: HasCryptoHash => Unit): Unit ={
+  override def foreach(f: DiffableForeach): Unit ={
     f(this)
-    this.e1.initOracle(f)
-    this.e2.initOracle(f)
+    this.e1.foreach(f)
+    this.e2.foreach(f)
   }
 
-  override def del(other: Exp, m: VarMap[Exp]): VarMap[Exp] = other match {
-    case Add(e1, e2) =>
-      val m1 = this.e1.del(e1, m)
-      val m2 = this.e2.del(e2, m1)
-      m2
+  override def matchTree(other: Exp): Unit = other match {
+    case Add(e1, e2) => this.e1.matchTree(e1); this.e2.matchTree(e2)
     case _ => throw ApplyDiffFailed()
   }
 }
@@ -115,12 +112,12 @@ case class Mul(e1: Exp, e2: Exp) extends Exp {
     digest.digest()
   }
 
-  override def extract(oracle: DiffableOracle): Exp = oracle.predict(this) match {
+  override def extract(oracle: DiffableOracle): Exp = oracle.predict[Exp](this) match {
     case Some(mv) => ExpVarHole(mv)
     case None => Mul(e1.extract(oracle), e2.extract(oracle))
   }
 
-  override def retainMetaVars(vs: Set[MetaVar], orig: Context[Exp]): Exp = orig match {
+  override def retainMetaVars(vs: Set[MetaVar[_]], orig: Context[Exp]): Exp = orig match {
     case Mul(e1, e2) => Mul(this.e1.retainMetaVars(vs, e1), this.e2.retainMetaVars(vs, e2))
   }
 
@@ -141,22 +138,19 @@ case class Mul(e1: Exp, e2: Exp) extends Exp {
     case _ => throw ApplyDiffFailed()
   }
 
-  override def ins(m: VarMap[Exp]): Exp =
-    Mul(this.e1.ins(m), this.e2.ins(m))
+  override val freevars: Set[MetaVar[_]] = e1.freevars ++ e2.freevars
 
-  override val freevars: Set[MetaVar] = e1.freevars ++ e2.freevars
-
-  override def initOracle(f: HasCryptoHash => Unit): Unit = {
+  override def foreach(f: DiffableForeach): Unit = {
     f(this)
-    this.e1.initOracle(f)
-    this.e2.initOracle(f)
+    this.e1.foreach(f)
+    this.e2.foreach(f)
   }
 
-  override def del(other: Exp, m: VarMap[Exp]): VarMap[Exp] = other match {
-    case Mul(e1, e2) =>
-      val m1 = this.e1.del(e1, m)
-      val m2 = this.e2.del(e2, m1)
-      m2
+  override def matchTree(other: Exp): Unit = other match {
+    case Mul(e1, e2) => this.e1.matchTree(e1); this.e2.matchTree(e2)
     case _ => throw ApplyDiffFailed()
   }
+
+  override def buildTree(): Exp =
+    Mul(this.e1.buildTree(), this.e2.buildTree())
 }

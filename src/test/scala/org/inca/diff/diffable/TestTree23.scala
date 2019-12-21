@@ -19,7 +19,7 @@ class TestTree23 extends AnyFlatSpec with Matchers {
 
   def compareAndApply(src: Tree23, dest: Tree23): Assertion = {
     val patch = src.compareTo(dest)
-    src.applyPatch(patch).get should be (dest)
+    src.applyPatch(patch) should be (Some(dest))
   }
 
   "diff of identical trees" should "yield empty patch" in {

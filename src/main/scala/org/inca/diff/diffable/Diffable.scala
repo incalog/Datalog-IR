@@ -5,12 +5,12 @@ import org.inca.diff.diffable.DiffData.{Context, Patch, VarMap}
 import org.inca.diff.diffable.Diffable.{ApplyDiffFailed, GreatestCommonPrefixFailed}
 
 trait Diffable[T] extends HasCryptoHash {
-  val freevars: Set[MetaVar]
+  val freevars: Set[MetaVar[_]]
   def isClosed: Boolean = freevars.isEmpty
 
-  def initOracle(f: HasCryptoHash => Unit): Unit
+  def foreach(f: DiffableForeach): Unit
   def extract(oracle: DiffableOracle): Context[T]
-  def retainMetaVars(vs: Set[MetaVar], orig: Context[T]): Context[T]
+  def retainMetaVars(vs: Set[MetaVar[_]], orig: Context[T]): Context[T]
 
   @throws(classOf[GreatestCommonPrefixFailed])
   def greatestCommonClosedPrefix(other: Context[T]): Patch[T]
@@ -19,10 +19,10 @@ trait Diffable[T] extends HasCryptoHash {
   def applyPatchTo(t: T): T
 
   @throws(classOf[ApplyDiffFailed])
-  def del(other: T, m: VarMap[T]): VarMap[T]
+  def matchTree(other: T): Unit
 
   @throws(classOf[ApplyDiffFailed])
-  def ins(m: VarMap[T]): T
+  def buildTree(): T
 }
 
 //trait DiffableByMacro[A] extends DiffableInternal[A] {
@@ -54,4 +54,8 @@ trait Diffable[T] extends HasCryptoHash {
 object Diffable {
   case class GreatestCommonPrefixFailed() extends Exception
   case class ApplyDiffFailed() extends Exception
+}
+
+trait DiffableForeach {
+  def apply[T <: Diffable[_]](t: T): Unit
 }
