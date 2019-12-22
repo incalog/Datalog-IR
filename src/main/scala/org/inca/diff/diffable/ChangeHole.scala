@@ -28,7 +28,7 @@ trait ChangeHole[T] extends Diffable[T] {
 
   override def applyPatchTo(t: T): T = {
     change.delCtx.matchTree(t)
-    change.insCtx.buildTree().asInstanceOf[T]
+    change.insCtx.buildTree()
   }
 
   override def matchTree(other: T): Unit = {

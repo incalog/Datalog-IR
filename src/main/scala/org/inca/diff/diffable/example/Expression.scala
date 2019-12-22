@@ -1,7 +1,6 @@
 package org.inca.diff.diffable.example
 
-import org.inca.diff.HasCryptoHash
-import org.inca.diff.diffable.DiffData.{Context, Patch, VarMap}
+import org.inca.diff.diffable.DiffData.{Context, Patch}
 import org.inca.diff.diffable.Diffable.{ApplyDiffFailed, GreatestCommonPrefixFailed}
 import org.inca.diff.diffable._
 
@@ -81,7 +80,7 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     case _ => ChangeHole.mkClosedChangeHole(this, other, ExpChangeHole.apply)
   }
 
-  override def applyPatchTo(p: Exp): Exp = p match {
+  override def applyPatchTo(t: Exp): Exp = t match {
     case Add(e1, e2) => Add(this.e1.applyPatchTo(e1), this.e2.applyPatchTo(e2))
     case _ => throw ApplyDiffFailed()
   }

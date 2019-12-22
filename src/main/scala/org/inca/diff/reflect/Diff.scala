@@ -3,7 +3,7 @@ package org.inca.diff.reflect
 import java.lang.reflect.Field
 import java.security.MessageDigest
 
-import org.inca.diff.{StructuralDiff, HasCryptoHash}
+import org.inca.diff.HasCryptoHash
 
 object Diff {
 

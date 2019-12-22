@@ -1,6 +1,5 @@
 package org.inca.diff.reflect
 
-import org.inca.diff.StructuralDiff
 import org.inca.diff.reflect.Diff._
 import org.inca.diff.reflect.DiffApply._
 import org.scalatest.flatspec.AnyFlatSpec

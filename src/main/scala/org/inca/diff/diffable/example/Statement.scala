@@ -1,9 +1,8 @@
 package org.inca.diff.diffable.example
 
-import org.inca.diff.HasCryptoHash
-import org.inca.diff.diffable.DiffData.{Context, Patch, VarMap}
+import org.inca.diff.diffable.DiffData.{Context, Patch}
 import org.inca.diff.diffable.Diffable.{ApplyDiffFailed, GreatestCommonPrefixFailed}
-import org.inca.diff.diffable.{Change, ChangeHole, Diffable, DiffableForeach, DiffableOracle, MetaVar, MetaVarHole}
+import org.inca.diff.diffable._
 
 trait Stm extends Diffable[Stm]
 

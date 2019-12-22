@@ -27,6 +27,8 @@ object DiffableCryptoHashOracle extends MkDiffableOracle {
       }
     })
 
+    srcTrie.clear()
+
     new DiffableOracle {
       override def predict[T <: Diffable[_]](t: T): Option[MetaVar[T]] =
         Option(intersectTrie.get(t.$hashString).asInstanceOf[MetaVar[T]])

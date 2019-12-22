@@ -12,8 +12,7 @@ trait MetaVarHole[T] extends Diffable[T] {
   override lazy val $hash: Nothing =
     throw new IllegalStateException(s"Input trees may not contain hole $this")
 
-  override lazy val freevars: Set[MetaVar[_]] =
-    mv.freevars
+  override lazy val freevars: Set[MetaVar[_]] = Set(mv)
 
   override def extract(oracle: DiffableOracle): Nothing =
     throw new IllegalStateException(s"Input trees may not contain hole $this")

@@ -25,6 +25,7 @@ trait Diffable[T] extends HasCryptoHash {
   def buildTree(): T
 }
 
+
 //trait DiffableByMacro[A] extends DiffableInternal[A] {
 //  val ops: DiffableImplByMacro[A]
 //

@@ -1,7 +1,7 @@
 package org.inca.diff.reflect
 
 import org.inca.diff.reflect.Diff._
-import org.inca.diff.{StructuralDiff, HasCryptoHash}
+import org.inca.diff.HasCryptoHash
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
