@@ -1,41 +1,106 @@
 package org.inca.incer
 
 import org.inca.incer.indices.Indices
-import org.inca.meta.MetaElements.{DataType, NodeLink, NodeType}
+import org.inca.meta.MetaElements.{DataType, NodeType}
 
 @IncrementalIndex
 trait Exp extends Incrementalizable
 
+object ExpTypes extends Incrementalizable {
+  override def insert(indices: Indices): Unit = {
+    indices.insertType(classOf[Exp])
+    indices.insertType(classOf[Num])
+    indices.insertType(classOf[BinaryExpression])
+    indices.insertType(classOf[Add])
+    indices.insertType(classOf[Mul])
+  }
+
+  override def delete(indices: Indices): Unit = {}
+}
+
 case class Num(n: Int) extends Exp {
   override def insert(indices: Indices): Unit = {
+    // NodeType instances
     indices.insertNodeTypeInstance(NodeType(this.getClass), this)
-    indices.insertDataTypeInstance(DataType(Int.getClass), this.n)
+
+    // NodeLink instances
+    indices.insertNodeLinkInstance(this, NodeType(classOf[Num])("n"), this.n)
+
+    // DataType instances
+    indices.insertDataTypeInstance(DataType(classOf[Int]), this.n)
   }
 
   override def delete(indices: Indices): Unit = {
-    indices.deleteNodeTypeInstance(NodeType(this.getClass), this)
-    indices.deleteDataTypeInstance(DataType(Int.getClass), this.n)
+    // NodeType instances
+    indices.deleteNodeTypeInstance(NodeType(classOf[Exp]), this)
+    indices.deleteNodeTypeInstance(NodeType(classOf[Num]), this)
+
+    // NodeLink instances
+    indices.deleteNodeLinkInstance(this, NodeType(classOf[Num])("n"), this.n)
+
+    // DataType instances
+    indices.deleteDataTypeInstance(DataType(classOf[Int]), this.n)
   }
 }
 
-abstract class BinaryExpression(lhs: Exp, rhs: Exp) extends Exp {
+abstract class BinaryExpression(val lhs: Exp, val rhs: Exp) extends Exp {
+
+}
+
+case class Add(l: Exp, r: Exp) extends BinaryExpression(l, r) {
   override def insert(indices: Indices): Unit = {
-    indices.insertNodeTypeInstance(NodeType(this.getClass), this)
-    indices.insertNodeLinkInstance(this, NodeType(this.getClass)("lhs"), lhs)
-    indices.insertNodeLinkInstance(this, NodeType(this.getClass)("rhs"), lhs)
+    // NodeType instances
+    indices.insertNodeTypeInstance(NodeType(classOf[Add]), this)
+
+    // NodeLink instances
+    indices.insertNodeLinkInstance(this, NodeType(classOf[BinaryExpression])("lhs"), lhs)
+    indices.insertNodeLinkInstance(this, NodeType(classOf[BinaryExpression])("rhs"), rhs)
+
+    // recursively build indices for children
     lhs.insert(indices)
     rhs.insert(indices)
   }
 
   override def delete(indices: Indices): Unit = {
-    indices.insertNodeTypeInstance(NodeType(this.getClass), this)
-    indices.deleteNodeLinkInstance(this, NodeType(this.getClass)("lhs"), lhs)
-    indices.deleteNodeLinkInstance(this, NodeType(this.getClass)("rhs"), lhs)
-    lhs.delete(indices)
-    rhs.delete(indices)
+    // NodeType instances
+    indices.deleteNodeTypeInstance(NodeType(classOf[Add]), this)
+
+    // NodeLink instances
+    indices.deleteNodeLinkInstance(this, NodeType(classOf[BinaryExpression])("lhs"), lhs)
+    indices.deleteNodeLinkInstance(this, NodeType(classOf[BinaryExpression])("rhs"), rhs)
+
+    // recursively build indices for children
+    lhs.insert(indices)
+    rhs.insert(indices)
   }
 }
 
-case class Add(e1: Exp, e2: Exp) extends BinaryExpression(e1, e2) {}
+case class Mul(e1: Exp, e2: Exp) extends BinaryExpression(e1, e2) {
 
-case class Mul(e1: Exp, e2: Exp) extends BinaryExpression(e1, e2) {}
+  override def insert(indices: Indices): Unit = {
+    // NodeType instances
+    indices.insertNodeTypeInstance(NodeType(classOf[Mul]), this)
+
+    // NodeLink instances
+    indices.insertNodeLinkInstance(this, NodeType(classOf[BinaryExpression])("lhs"), lhs)
+    indices.insertNodeLinkInstance(this, NodeType(classOf[BinaryExpression])("rhs"), rhs)
+
+    // recursively build indices for children
+    lhs.insert(indices)
+    rhs.insert(indices)
+  }
+
+  override def delete(indices: Indices): Unit = {
+    // NodeType instances
+    indices.deleteNodeTypeInstance(NodeType(classOf[Mul]), this)
+
+    // NodeLink instances
+    indices.deleteNodeLinkInstance(this, NodeType(classOf[BinaryExpression])("lhs"), lhs)
+    indices.deleteNodeLinkInstance(this, NodeType(classOf[BinaryExpression])("rhs"), rhs)
+
+    // recursively build indices for children
+    lhs.insert(indices)
+    rhs.insert(indices)
+  }
+
+}

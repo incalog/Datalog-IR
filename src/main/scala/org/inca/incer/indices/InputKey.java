@@ -35,6 +35,11 @@ public abstract class InputKey<T extends MetaElement> implements IInputKey {
     }
 
     @Override
+    public String toString() {
+        return this.getPrettyPrintableName();
+    }
+
+    @Override
     public boolean equals(final Object obj) {
         if (obj == null || obj.getClass() != this.getClass()) {
             return false;

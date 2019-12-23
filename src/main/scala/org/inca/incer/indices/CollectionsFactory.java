@@ -11,7 +11,7 @@ public abstract class CollectionsFactory {
 
     public abstract <K, V> Map<K, V> createMap();
 
-    public class JavaCollectionsFactory extends CollectionsFactory {
+    public final static CollectionsFactory JAVA = new CollectionsFactory() {
         @Override
         public <V> Set<V> createSet() {
             return new HashSet<>();
@@ -21,6 +21,6 @@ public abstract class CollectionsFactory {
         public <K, V> Map<K, V> createMap() {
             return new HashMap<>();
         }
-    }
+    };
 
 }

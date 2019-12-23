@@ -1,18 +1,14 @@
 package org.inca.incer.indices;
 
-import org.eclipse.viatra.query.runtime.matchers.context.AbstractQueryMetaContext;
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey;
-import org.eclipse.viatra.query.runtime.matchers.context.InputKeyImplication;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
 import org.inca.meta.MetaElements.DataType;
 import org.inca.meta.MetaElements.NodeLink;
 import org.inca.meta.MetaElements.NodeType;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
 
 public class Indices {
 
@@ -20,6 +16,8 @@ public class Indices {
     private final Map<NodeType, Set<Tuple>> nodeTypeInstances;
     private final Map<DataType, Set<Tuple>> dataTypeInstances;
     private final Map<NodeLink, Map<Object, Set<Object>>> nodeLinkInstances;
+    private final Map<Class<?>, Set<Class<?>>> subTypeMap;
+    private final Map<Class<?>, Set<Class<?>>> superTypeMap;
 
     /**
      * Remains null until we actually start listening to program changes.
@@ -32,6 +30,40 @@ public class Indices {
         this.nodeTypeInstances = collectionsFactory.createMap();
         this.dataTypeInstances = collectionsFactory.createMap();
         this.nodeLinkInstances = collectionsFactory.createMap();
+        this.subTypeMap = collectionsFactory.createMap();
+        this.superTypeMap = collectionsFactory.createMap();
+        this.changeStore = collectionsFactory.createSet();
+    }
+
+    public void insertType(final Class<?> clazz) {
+        final Set<Class<?>> superTypes = this.collectionsFactory.createSet();
+
+        final List<Class<?>> queue = new LinkedList<>();
+        final Function<Class<?>, Void> func = (Class<?> p) -> {
+            queue.add(p.getSuperclass());
+            queue.addAll(Arrays.asList(p.getInterfaces()));
+            return null;
+        };
+        func.apply(clazz);
+        while (!queue.isEmpty()) {
+            final Class<?> head = queue.remove(0);
+            if (head != null) {
+                superTypes.add(head);
+                func.apply(head);
+            }
+        }
+
+        this.superTypeMap.put(clazz, superTypes);
+
+        for (final Class<?> superType : superTypes) {
+            subTypeMap.compute(superType, (k, v) -> {
+                if (v == null) {
+                    v = this.collectionsFactory.createSet();
+                }
+                v.add(clazz);
+                return v;
+            });
+        }
     }
 
     public void insertNodeTypeInstance(final NodeType type, final Object instance) {
@@ -132,6 +164,11 @@ public class Indices {
                 final Change that = (Change) obj;
                 return this.isInsertion == that.isInsertion && this.key.equals(that.key) && this.tuple.equals(that.tuple);
             }
+        }
+
+        @Override
+        public String toString() {
+            return (this.isInsertion ? "+" : "-") + this.key + " -> " + this.tuple;
         }
     }
 
