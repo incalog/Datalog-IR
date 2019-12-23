@@ -57,6 +57,7 @@ case class Assign(x: String, e: Exp) extends Stm {
 
   override def matchTree(other: Stm): Unit = other match {
     case Assign(x, e) if this.x==x => this.e.matchTree(e)
+    case _ => ApplyDiffFailed()
   }
 
   override def buildTree(): Stm = Assign(x, e.buildTree())
@@ -119,7 +120,7 @@ case class Block(contents: List[Stm]) extends Stm {
   override lazy val $hash: Array[Byte] = {
     val digest = mkDigest
     digest.update(this.getClass.getCanonicalName.getBytes())
-    contents.foreach(s => digest.update(s.$hash))
+    contents.foreach(c => digest.update(c.$hash))
     digest.digest()
   }
 
@@ -157,6 +158,7 @@ case class Block(contents: List[Stm]) extends Stm {
 
   override def matchTree(other: Stm): Unit = other match {
     case Block(contents) => this.contents.zip(contents).foreach(p => p._1.matchTree(p._2))
+    case _ => ApplyDiffFailed()
   }
 
   override def buildTree(): Stm = Block(contents.map(_.buildTree()))

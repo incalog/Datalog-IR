@@ -13,10 +13,6 @@ class TestTree23 extends AnyFlatSpec with Matchers {
   val n2ab: Node2 = Node2("a", "b")
   val n3abc: Node3 = Node3("a", "b", "c")
 
-  val differ = new Differ[Tree23]
-  import differ.withDifferOps
-  implicit val implicit_mkOracle = DiffableCryptoHashOracle
-
   def compareAndApply(src: Tree23, dest: Tree23): Assertion = {
     val patch = src.compareTo(dest)
     src.applyPatch(patch) should be (Some(dest))

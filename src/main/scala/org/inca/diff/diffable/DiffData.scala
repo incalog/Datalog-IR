@@ -4,8 +4,8 @@ import org.inca.diff.diffable.DiffData.Context
 
 
 object DiffData {
-  type Context[T] = T with Diffable[T] // with MetaVarHole[T]
-  type Patch[T] = T with Diffable[T] // with ChangeHole[T with MetaVarHole[T]]
+  type Context[T <: Diffable[T]] = T // with MetaVarHole[T]
+  type Patch[T <: Diffable[T]] = T // with ChangeHole[T with MetaVarHole[T]]
   type VarMap[T] = Map[MetaVar[T], T]
 }
 
@@ -30,12 +30,13 @@ object DiffData {
 //   Node3({#3->#3}, {#4->#4}, {e->y})
 
 case class MetaVar[R](i: Int) {
+  @transient
   var tree: R = null.asInstanceOf[R]
 
   override def toString: String = s"#$i"
 }
 
-case class Change[T](delCtx: Context[T], insCtx: Context[T]) {
+case class Change[T <: Diffable[T]](delCtx: Context[T], insCtx: Context[T]) {
   lazy val freevars: Set[MetaVar[_]] = insCtx.freevars diff delCtx.freevars
   def isClosed: Boolean = freevars.isEmpty
 

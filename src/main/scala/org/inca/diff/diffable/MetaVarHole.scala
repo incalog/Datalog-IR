@@ -4,7 +4,7 @@ import org.inca.diff.HasCryptoHash
 import org.inca.diff.diffable.DiffData.{Context, Patch, VarMap}
 import org.inca.diff.diffable.Diffable.ApplyDiffFailed
 
-trait MetaVarHole[T] extends Diffable[T] {
+trait MetaVarHole[T <: Diffable[T]] extends Diffable[T] {
   val mv: MetaVar[T]
   def mkChangeHole: Change[T] => Patch[T]
   def lifted: Context[T]

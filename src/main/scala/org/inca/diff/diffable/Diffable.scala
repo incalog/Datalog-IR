@@ -4,7 +4,7 @@ import org.inca.diff.HasCryptoHash
 import org.inca.diff.diffable.DiffData.{Context, Patch, VarMap}
 import org.inca.diff.diffable.Diffable.{ApplyDiffFailed, GreatestCommonPrefixFailed}
 
-trait Diffable[T] extends HasCryptoHash {
+trait Diffable[T <: Diffable[T]] extends HasCryptoHash {
   val freevars: Set[MetaVar[_]]
   def isClosed: Boolean = freevars.isEmpty
 
@@ -23,6 +23,12 @@ trait Diffable[T] extends HasCryptoHash {
 
   @throws(classOf[ApplyDiffFailed])
   def buildTree(): T
+
+  final def compareTo(other: T): Patch[T] =
+    Differ.diff(this.asInstanceOf[T], other)
+
+  final def applyPatch(p: Patch[T]): Option[T] =
+    Differ.applyPatch(p, this.asInstanceOf[T])
 }
 
 

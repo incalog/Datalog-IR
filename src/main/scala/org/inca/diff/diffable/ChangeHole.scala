@@ -4,7 +4,7 @@ import org.inca.diff.HasCryptoHash
 import org.inca.diff.diffable.DiffData.{Context, Patch, VarMap}
 import org.inca.diff.diffable.Diffable.GreatestCommonPrefixFailed
 
-trait ChangeHole[T] extends Diffable[T] {
+trait ChangeHole[T <: Diffable[T]] extends Diffable[T] {
   val change: Change[T]
   def lifted: Patch[T]
 
@@ -43,7 +43,7 @@ trait ChangeHole[T] extends Diffable[T] {
 
 object ChangeHole {
   @throws(classOf[GreatestCommonPrefixFailed])
-  final def mkClosedChangeHole[T](delCtx: Context[T], insCtx: Context[T], makeChangeHole: Change[T]=>Patch[T]): Patch[T] = {
+  final def mkClosedChangeHole[T <: Diffable[T]](delCtx: Context[T], insCtx: Context[T], makeChangeHole: Change[T]=>Patch[T]): Patch[T] = {
     val change = Change(delCtx, insCtx)
     if (change.isClosed)
       makeChangeHole(change)

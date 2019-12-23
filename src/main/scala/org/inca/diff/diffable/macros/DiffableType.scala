@@ -2,21 +2,17 @@ package org.inca.diff.diffable.macros
 
 import org.inca.diff.diffable.{Change, ChangeHole, DiffData, Diffable, MetaVar, MetaVarHole}
 
-import scala.annotation.StaticAnnotation
+import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
 
-//@compileTimeOnly("Scala 2.13 and compiler flag -Ymacro-annotations required")
+@compileTimeOnly("Scala 2.13 and compiler flag -Ymacro-annotations required")
 class diffableType extends StaticAnnotation {
   def macroTransform(annottees: Any*): Any = macro DiffableTypeImpl.impl
 }
 object DiffableTypeImpl {
   def impl(c: whitebox.Context)(annottees: c.Tree*): c.Tree = {
     import c.universe._
-    val q"$mods trait $tpname[..$tparams] extends { ..$earlydefns } with ..$parents { $self => ..$stats }" = annottees.head
-
-    val tp = tq"$tpname[..$tparams]"
-    val obj = TermName(tpname.toString)
 
     val tDiffable = symbolOf[Diffable[_]]
     val tMetaVar = symbolOf[MetaVar[_]]
@@ -26,10 +22,13 @@ object DiffableTypeImpl {
     val tPatch = symbolOf[DiffData.Patch[_]]
     val tChange = symbolOf[Change[_]]
 
-    val parents_ = parents :+ tq"$tDiffable[$tpname]"
+    val q"$mods trait $tpname[..$tparams] extends { ..$earlydefns } with ..$parents { $self => ..$stats }" = annottees.head
+
+    val tp = tq"$tpname[..$tparams]"
+    val obj = TermName(tpname.toString)
 
     val diffableTrait =
-      q"$mods trait $tpname[..$tparams] extends { ..$earlydefns } with ..$parents_ { $self => ..$stats }"
+      q"$mods trait $tpname[..$tparams] extends { ..$earlydefns } with ..$parents with $tDiffable[$tpname] { $self => ..$stats }"
 
     val varHole =
       q"""
@@ -46,10 +45,10 @@ object DiffableTypeImpl {
        """
     val companion =
       q"""
-         object $obj {
-           $varHole
-           $changeHole
-         }
+        object $obj {
+          $varHole
+          $changeHole
+        }
        """
 
     q"{$diffableTrait; $companion}"
