@@ -4,7 +4,7 @@ import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import org.inca.diff.diffable.{Change, Diffable, Differ, MetaVar}
+import org.inca.diff.diffable.Change
 import org.inca.diff.diffable.macros.{diffableConstr, diffableType}
 
 @diffableType trait Tree23

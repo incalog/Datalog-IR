@@ -1,5 +1,6 @@
 package org.inca.diff.diffable.macros
 
+import org.inca.diff.HasCryptoHash
 import org.inca.diff.diffable.Diffable.{ApplyDiffFailed, GreatestCommonPrefixFailed}
 import org.inca.diff.diffable.{Change, ChangeHole, DiffData, Diffable, DiffableForeach, DiffableOracle, MetaVar, MetaVarHole}
 
@@ -7,6 +8,8 @@ import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.language.experimental.macros
 import scala.reflect.api.Trees
 import scala.reflect.macros.whitebox
+
+import Util._
 
 @compileTimeOnly("Scala 2.13 and compiler flag -Ymacro-annotations required")
 class diffableConstr extends StaticAnnotation {
@@ -18,6 +21,8 @@ object DiffableConstrImpl {
 
     val tDiffable = symbolOf[Diffable[_]]
     val tyDiffable = typeOf[Diffable[_]]
+    val tHasCryptoHash = symbolOf[HasCryptoHash]
+    val tyHasCryptoHash = typeOf[HasCryptoHash]
     val tMetaVar = symbolOf[MetaVar[_]]
     val tMetaVarHole = symbolOf[MetaVarHole[_]]
     val tChangeHole = symbolOf[ChangeHole[_]]
@@ -29,6 +34,7 @@ object DiffableConstrImpl {
     val oSet = symbolOf[Set.type].asClass.module
     val tArray = symbolOf[Array[_]]
     val tByte = symbolOf[Byte]
+    val oBigInt = symbolOf[BigInt.type].asClass.module
     val tDiffableOracle = symbolOf[DiffableOracle]
     val oApplyDiffFailed = symbolOf[ApplyDiffFailed.type].asClass.module
     val oGreatestCommonPrefixFailed = symbolOf[GreatestCommonPrefixFailed.type].asClass.module
@@ -41,21 +47,11 @@ object DiffableConstrImpl {
     val tParent = parents.head
     val oParent = TermName(tParent.toString)
 
-    val params = paramss.flatMap(params => params.asInstanceOf[Seq[Tree]].map{
-      case q"$_ val $name: $tp = $_" => (name, treeType(c)(tp))
-    })
-
-    def mapParams(diffable: TermName => Tree, nonDiffable: TermName => Tree): Seq[Tree] =
-      for ((p, tp) <- params)
-        yield if (tp <:< tyDiffable) diffable(p) else nonDiffable(p)
-
-    def mapDiffableParams(diffable: TermName => Tree): Seq[Tree] =
-      for ((p, tp) <- params if tp <:< tyDiffable)
-        yield diffable(p)
+    def mapDiffableParams(diffable: TermName => Tree, option: TermName => Tree, seq: TermName => Tree): Seq[Tree] =
+      mapParams(c)(paramss, tyDiffable, p=>Some(diffable(p)), _=>None, p=>Some(option(p)), p=>Some(seq(p))).flatten
 
     def mapNonDiffableParams(nonDiffable: TermName => Tree): Seq[Tree] =
-      for ((p, tp) <- params if !(tp <:< tyDiffable))
-        yield nonDiffable(p)
+      mapParams(c)(paramss, tyDiffable, _=>None, p=>Some(nonDiffable(p)), _=>None, _=>None).flatten
 
     def nondiffableCond(other: Tree) = {
       reduce(mapNonDiffableParams(p => q"this.$p == $other.$p"), "$amp$amp", q"")
@@ -74,44 +70,62 @@ object DiffableConstrImpl {
         override lazy val $$hash: $tArray[$tByte] = {
           val digest = mkDigest
           digest.update(this.getClass.getCanonicalName.getBytes)
-            ..${mapParams(
+            ..${mapParams(c)(paramss, tyHasCryptoHash,
               p => q"digest.update(this.$p.$$hash)",
-              p => q"hashNonDiffable(this.$p, digest)"
+              p => q"hashNonDiffable(this.$p, digest)",
+              p => q"{if ($p.isEmpty) digest.update(0:$tByte) else {digest.update(1:$tByte); digest.update($p.get)}}",
+              p => q"{digest.update($oBigInt($p.size).toByteArray); $p.foreach((x: $tHasCryptoHash) => digest.update(x.$$hash))}"
             )}
           digest.digest()
         }
 
         override lazy val freevars: $tSet[$tMetaVar[_]] =
-          ${reduce(mapDiffableParams(p => q"this.$p.freevars"), "$plus$plus", q"$oSet()")}
+          ${reduce(
+             mapDiffableParams(
+               p => q"this.$p.freevars",
+               p => q"this.$p.map(_.freevars).getOrElse($oSet())",
+               p => q"this.$p.foldLeft($oSet[$tMetaVar[_]]())((vs, s) => vs union (s.freevars))"
+             ),
+             "$plus$plus",
+             q"$oSet()")}
 
         override def extract(oracle: $tDiffableOracle): $tContext[$tParent] = oracle.predict[$tParent](this) match {
           case Some(i) => $oParent.VarHole(i)
           case _ =>
-            $oThis(..${mapParams(
+            $oThis(..${mapParams(c)(paramss, tyDiffable,
               p => q"this.$p.extract(oracle)",
-              p => q"this.$p"
+              p => q"this.$p",
+              p => q"this.$p.map(_.extract(oracle))",
+              p => q"this.$p.map(_.extract(oracle))"
             )})
         }
 
         override def foreach(f: $tDiffableForeach): Unit = {
           f(this)
-          ..${mapDiffableParams(p => q"this.$p.foreach(f)")}
+          ..${mapDiffableParams(
+                p => q"this.$p.foreach(f)",
+                p => q"this.$p.foreach(_.foreach(f))",
+                p => q"this.$p.foreach(_.foreach(f))")}
         }
 
-        override def retainMetaVars(vs: Set[MetaVar[_]], other: $tContext[$tParent]): $tContext[$tParent] = other match {
+        override def retainMetaVars(vs: Set[$tMetaVar[_]], other: $tContext[$tParent]): $tContext[$tParent] = other match {
           case other: $tpname if ${nondiffableCond(q"other")} =>
-            $oThis(..${mapParams(
+            $oThis(..${mapParams(c)(paramss, tyDiffable,
               p => q"this.$p.retainMetaVars(vs, other.$p)",
-              p => q"this.$p"
+              p => q"this.$p",
+              p => q"this.$p.map(_.retainMetaVars(vs, other.$p.get))",
+              p => q"this.$p.zip(other.$p).map(pp => pp._1.retainMetaVars(vs, pp._2))",
             )})
         }
 
         override def greatestCommonClosedPrefix(other: $tContext[$tParent]): $tPatch[$tParent] = other match {
           case other: $tpname if ${nondiffableCond(q"other")} =>
             try {
-              $oThis(..${mapParams(
+              $oThis(..${mapParams(c)(paramss, tyDiffable,
                 p => q"this.$p.greatestCommonClosedPrefix(other.$p)",
-                p => q"this.$p"
+                p => q"this.$p",
+                p => q"this.$p.map(_.greatestCommonClosedPrefix(other.$p.get))",
+                p => q"this.$p.zip(other.$p).map(pp => pp._1.greatestCommonClosedPrefix(pp._2))",
               )})
             } catch {
               case $oGreatestCommonPrefixFailed() => $oChangeHole.mkClosedChangeHole(this, other, $oParent.ChangeHole.apply)
@@ -121,38 +135,40 @@ object DiffableConstrImpl {
 
         override def applyPatchTo(other: $tParent): $tParent = other match {
           case other: $tpname if ${nondiffableCond(q"other")} =>
-            $oThis(..${mapParams(
+            $oThis(..${mapParams(c)(paramss, tyDiffable,
               p => q"this.$p.applyPatchTo(other.$p)",
-              p => q"this.$p"
+              p => q"this.$p",
+              p => q"this.$p.map(_.applyPatchTo(other.$p.get))",
+              p => q"this.$p.zip(other.$p).map(pp => pp._1.applyPatchTo(pp._2))",
             )})
           case _ => throw $oApplyDiffFailed()
         }
 
         override def matchTree(other: $tParent): Unit = other match {
           case other: $tpname if ${nondiffableCond(q"other")} =>
-            ..${mapDiffableParams(p => q"this.$p.matchTree(other.$p)")}
+            ..${mapDiffableParams(
+                  p => q"this.$p.matchTree(other.$p)",
+                  p => q"this.$p.map(_.matchTree(other.$p.get))",
+                  p => q"this.$p.zip(other.$p).map(pp => pp._1.matchTree(pp._2))",
+                )}
           case _ => throw $oApplyDiffFailed()
         }
 
         override def buildTree(): $tParent =
-          $oThis(..${mapParams(
+          $oThis(..${mapParams(c)(paramss, tyDiffable,
             p => q"this.$p.buildTree()",
-            p => q"this.$p"
+            p => q"this.$p",
+            p => q"this.$p.map(_.buildTree())",
+            p => q"this.$p.map(_.buildTree())",
           )})
 
       }
      """
 
-//    println(res)
+//    if (tpname.toString().contains("Block"))
+//      println(res)
 
     res
   }
 
-  def treeType(c: whitebox.Context)(tp: Any) = {
-    import c.universe._
-    val t = q"{type T = ${tp.asInstanceOf[c.Tree]}; ()}"
-    val tt = c.typecheck(t)
-    val q"{type T = $ttp; ()}" = tt
-    ttp.tpe
-  }
 }
