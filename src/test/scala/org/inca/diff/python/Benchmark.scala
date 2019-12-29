@@ -54,7 +54,7 @@ class Benchmark extends AnyFlatSpec {
   // report
   println(s"\nReport")
   println(s"  parsed files: $resultCount")
-  println(s"  average node count: ${nodeCounts.toDouble / resultCount}")
+  println(s"  average nodes in AST: ${nodeCounts.toDouble / resultCount}")
   println(s"  total parse time: ${parsingTime} ms")
   println(s"  average parse time: ${parsingTime / resultCount} ms")
   println(s"  total diff time: ${diffingTime} ms")
