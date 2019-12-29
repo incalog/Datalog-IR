@@ -3,7 +3,12 @@ package org.inca.diff.python
 import fastparse._
 import Expressions.{whitespace => _, _}
 import Lexical.kw
-object Statements extends Statements(0)
+import org.inca.diff.python.Ast.stmt
+
+object Statements extends Statements(0) {
+  def parse(s: String): Ast.file = Ast.file(fastparse.parse(s, file_input(_)).get.value)
+}
+
 /**
  * Python's statement grammar. This can only be used in statement-blocks,
  * and is sensitive to newlines and indentation to determine nesting

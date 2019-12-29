@@ -211,7 +211,8 @@ object DiffableConstrImpl {
 
           """
 
-//        println(res)
+        if (tpname.toString().contains("ImportFrom"))
+          println(res)
 
         if (annottees.tail.isEmpty)
           res

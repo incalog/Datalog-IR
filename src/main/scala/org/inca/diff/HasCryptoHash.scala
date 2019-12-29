@@ -19,7 +19,10 @@ trait HasCryptoHash {
       case v: Double => d.update(doubleToBytes(v))
       case v: String => d.update(v.getBytes)
       case v: Symbol => d.update(v.name.getBytes)
-      case _ => throw new IllegalArgumentException(s"Cannot compute hash of $v")
+      case v: BigInt => d.update(v.toByteArray)
+      case None => d.update(0.toByte)
+      case Some(v) => d.update(1.toByte); hashNonDiffable(v, d)
+      case _ => throw new IllegalArgumentException(s"Cannot compute hash of $v (class ${v.getClass})")
     }
   }
 

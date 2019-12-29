@@ -1,8 +1,11 @@
 package org.inca.diff.python.Ast
 
-import org.inca.diff.macros.diffableType
+import org.inca.diff.macros.{cryptoHash, diffableType}
 
-case class identifier(name: String)
+
+@cryptoHash case class identifier(name: String)
+
+@diffableType case class file(body: Seq[stmt])
 
 @diffableType trait mod
 object mod{
