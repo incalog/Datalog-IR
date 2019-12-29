@@ -1,5 +1,7 @@
 package org.inca.diff.macros
 
+import org.inca.diff.Diffable
+
 import scala.reflect.macros.whitebox
 
 object Util {
@@ -34,4 +36,12 @@ object Util {
           notSub(p)
   }
 
+  def isDiffableSubtype(c: whitebox.Context)(tp: c.Tree): Boolean = {
+    import c.universe._
+    tp match {
+      case q"${tq"$name[..$targs]"}(...$_)" => treeType(c)(tq"$name[..$targs]") <:< typeOf[Diffable[_]]
+      case tq"$name[..$targs]" => treeType(c)(tq"$name[..$targs]") <:< typeOf[Diffable[_]]
+      case _ => false
+    }
+  }
 }

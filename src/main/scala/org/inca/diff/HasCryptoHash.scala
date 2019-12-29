@@ -23,6 +23,6 @@ trait HasCryptoHash {
     }
   }
 
-  val $hash: Array[Byte]
+  def $hash: Array[Byte]
   lazy val $hashString = Base64.getEncoder.encodeToString($hash)
 }

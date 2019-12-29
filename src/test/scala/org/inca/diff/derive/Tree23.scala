@@ -24,10 +24,6 @@ class TestDerivedTree23 extends AnyFlatSpec with Matchers {
   }
 
   "diff of identical trees" should "yield empty patch" in {
-    val emptyPatch: PartialFunction[Any,_] = {
-      case Tree23.ChangeHole(Change(Tree23.VarHole(i1), Tree23.VarHole(i2))) if i1==i2 =>
-    }
-
     compareAndApply(
       Node2("a", "b"),
       Node2("a", "b"))
@@ -52,16 +48,6 @@ class TestDerivedTree23 extends AnyFlatSpec with Matchers {
   }
 
   "diff of swapped trees" should "yield swap patch" in {
-    val swapPatch: PartialFunction[Any,_] = {
-      case Tree23.ChangeHole(Change(Node2(Tree23.VarHole(i1), Tree23.VarHole(j1)), Node2(Tree23.VarHole(j2), Tree23.VarHole(i2)))) if i1==i2 && j1==j2 =>
-      case Tree23.ChangeHole(Change(Node3(Tree23.VarHole(i1), _, Tree23.VarHole(j1)), Node3(Tree23.VarHole(j2), _, Tree23.VarHole(i2)))) if i1==i2 && j1==j2 =>
-    }
-
-    Node2("a", "b").compareTo(Node2("b", "a")) should matchPattern (swapPatch)
-    Node2(n2ab, n3abc).compareTo(Node2(n3abc, n2ab)) should matchPattern (swapPatch)
-    Node3("a", "b", "c").compareTo(Node3("c", "b", "a")) should matchPattern (swapPatch)
-    Node3(n2ab, Node2("x1", "x2"), n3abc).compareTo(Node3(n3abc, Node3("y1", "y2", "y3"), n2ab)) should matchPattern (swapPatch)
-
     compareAndApply(
       Node2("a", "b"),
       Node2("b", "a"))
@@ -77,16 +63,6 @@ class TestDerivedTree23 extends AnyFlatSpec with Matchers {
   }
 
   "diff of changed constructor" should "yield copy patch" in {
-    val copyPatch: PartialFunction[Any,_] = {
-      case Tree23.ChangeHole(Change(Node2(Tree23.VarHole(i1), Tree23.VarHole(j1)), Node3(Tree23.VarHole(i2), _, Tree23.VarHole(j2)))) if i1==i2 && j1==j2 =>
-      case Tree23.ChangeHole(Change(Node3(Tree23.VarHole(i2), _, Tree23.VarHole(j2)), Node2(Tree23.VarHole(i1), Tree23.VarHole(j1)))) if i1==i2 && j1==j2 =>
-    }
-
-    Node2("a", "b").compareTo(Node3("a", "foo", "b")) should matchPattern (copyPatch)
-    Node2(n2ab, n3abc).compareTo(Node3(n2ab, "foo", n3abc)) should matchPattern (copyPatch)
-    Node3("a", "foo", "b").compareTo(Node2("a", "b")) should matchPattern (copyPatch)
-    Node3(n2ab, "foo", n3abc).compareTo(Node2(n2ab, n3abc)) should matchPattern (copyPatch)
-
     compareAndApply(
       Node2("a", "b"),
       Node3("a", "foo", "b"))
@@ -102,45 +78,19 @@ class TestDerivedTree23 extends AnyFlatSpec with Matchers {
   }
 
   "diff with prefix" should "yield prefixed patch" in {
-    Node2("t", Node2("a", "b")).compareTo(Node2("t", Node2("b", "a"))) should matchPattern {
-      case Node2(
-      Tree23.ChangeHole(Change(Tree23.VarHole(k1), Tree23.VarHole(k2))),
-      Tree23.ChangeHole(Change(Node2(Tree23.VarHole(i1), Tree23.VarHole(j1)), Node2(Tree23.VarHole(j2), Tree23.VarHole(i2))))
-      ) if i1==i2 && j1==j2 && k1==k2 =>
-    }
     compareAndApply(
       Node2("t", Node2("a", "b")),
       Node2("t", Node2("b", "a")))
-
-    Node3("t", Node2("u", "v"), Node2("w", "x")).compareTo(Node3("t", Node2("v", "u"), Node2("w'", "x"))) should matchPattern {
-      case Node3(
-      Tree23.ChangeHole(Change(Tree23.VarHole(k1), Tree23.VarHole(k2))),
-      Tree23.ChangeHole(Change(Node2(Tree23.VarHole(i1), Tree23.VarHole(j1)), Node2(Tree23.VarHole(j2), Tree23.VarHole(i2)))),
-      Node2(
-      Tree23.ChangeHole(Change(Leaf("w"), Leaf("w'"))),
-      Tree23.ChangeHole(Change(Tree23.VarHole(l1), Tree23.VarHole(l2))),
-      )
-      ) if i1==i2 && j1==j2 && k1==k2 && l1==l2 =>
-    }
     compareAndApply(
       Node3("t", Node2("u", "v"), Node2("w", "x")),
       Node3("t", Node2("v", "u"), Node2("w'", "x")))
   }
 
   it should "ensure closed changes" in {
-    Node2("a", "x").compareTo(Node2("a", "a")) should matchPattern {
-      case Tree23.ChangeHole(Change(Node2(Tree23.VarHole(i1), _), Node2(Tree23.VarHole(i2), Tree23.VarHole(i3)))) if i1==i2 && i2==i3 =>
-    }
     compareAndApply(
       Node2("a", "x"),
       Node2("a", "a"))
 
-    Node2("a", Node2("b", "x")).compareTo(Node2("a", Node2("b", "b"))) should matchPattern {
-      case Node2(
-      Tree23.ChangeHole(Change(Tree23.VarHole(k1), Tree23.VarHole(k2))),
-      Tree23.ChangeHole(Change(Node2(Tree23.VarHole(i1), _), Node2(Tree23.VarHole(i2), Tree23.VarHole(i3))))
-      ) if k1==k2 && i1==i2 && i2==i3 =>
-    }
     compareAndApply(
       Node2("a", Node2("b", "x")),
       Node2("a", Node2("b", "b")))

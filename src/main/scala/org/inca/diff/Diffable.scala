@@ -3,7 +3,7 @@ package org.inca.diff
 import org.inca.diff.DiffData.{Context, Patch, VarMap}
 
 trait Diffable[T <: Diffable[T]] extends HasCryptoHash {
-  val freevars: Set[MetaVar[_]]
+  def freevars: Set[MetaVar[_]]
   def isClosed: Boolean = freevars.isEmpty
 
   def foreach(f: DiffableForeach): Unit
