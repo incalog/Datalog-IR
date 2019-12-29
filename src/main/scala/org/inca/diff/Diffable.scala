@@ -22,6 +22,9 @@ trait Diffable[T <: Diffable[T]] extends HasCryptoHash {
   @throws(classOf[ApplyDiffFailed])
   def buildTree(): T
 
+  def size: Int
+  def changeSize: Int
+
   final def compareTo(other: T): Patch[T] =
     Differ.diff(this.asInstanceOf[T], other)
 

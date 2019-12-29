@@ -20,7 +20,7 @@ import org.scalatest.matchers.should.Matchers
 class TestDerivedExp extends AnyFlatSpec with Matchers {
   def compareAndApply(src: Exp, dest: Exp): Assertion = {
     val patch = src.compareTo(dest)
-    println(patch)
+    println(s"Patch of size ${patch.size}:\n  $patch")
     src.applyPatch(patch) should be (Some(dest))
   }
 

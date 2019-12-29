@@ -37,6 +37,10 @@ trait ChangeHole[T <: Diffable[T]] extends Diffable[T] {
     throw new IllegalStateException(s"Cannot apply change to a change")
 
   override def toString: String = change.toString
+
+  override def size: Int = 1 + change.delCtx.changeSize + change.insCtx.changeSize
+
+  override def changeSize: Int = throw new IllegalStateException(s"Input trees may not contain hole $this")
 }
 
 object ChangeHole {

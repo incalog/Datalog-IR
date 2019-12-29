@@ -8,11 +8,11 @@ class TestJson extends AnyFlatSpec with Matchers {
 
   def compareAndApply(src: Js, dest: Js): Assertion = {
     val patch = src.compareTo(dest)
-    println(patch)
+    println(s"Patch of size ${patch.size}:\n  $patch")
     src.applyPatch(patch) should be (Some(dest))
   }
 
-  def parse(s: String): Js = fastparse.parse(s, Parser.jsonExpr(_)).get.value
+  import Parser.parse
 
   val doc1: String = """
     |{

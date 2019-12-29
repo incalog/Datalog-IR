@@ -42,4 +42,8 @@ trait MetaVarHole[T <: Diffable[T]] extends Diffable[T] {
       throw ApplyDiffFailed()
 
   override def toString: String = mv.toString
+
+  override def size: Int = 1
+
+  override def changeSize: Int = 0
 }

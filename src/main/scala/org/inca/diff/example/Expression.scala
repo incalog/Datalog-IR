@@ -48,6 +48,10 @@ case class Num(n: Int) extends Exp {
   }
 
   override def buildTree(): Exp = this
+
+  override def size: Int = 0
+
+  override def changeSize: Int = 1
 }
 
 case class Add(e1: Exp, e2: Exp) extends Exp {
@@ -100,6 +104,10 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     case Add(e1, e2) => this.e1.matchTree(e1); this.e2.matchTree(e2)
     case _ => throw ApplyDiffFailed()
   }
+
+  override def size: Int = e1.size + e2.size
+
+  override def changeSize: Int = 1 + e1.changeSize + e2.changeSize
 }
 
 case class Mul(e1: Exp, e2: Exp) extends Exp {
@@ -152,4 +160,9 @@ case class Mul(e1: Exp, e2: Exp) extends Exp {
 
   override def buildTree(): Exp =
     Mul(this.e1.buildTree(), this.e2.buildTree())
+
+  override def size: Int = e1.size + e2.size
+
+  override def changeSize: Int = 1 + e1.changeSize + e2.changeSize
+
 }

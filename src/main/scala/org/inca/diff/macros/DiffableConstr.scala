@@ -38,6 +38,7 @@ object DiffableConstrImpl {
     val oApplyDiffFailed = symbolOf[ApplyDiffFailed.type].asClass.module
     val oGreatestCommonPrefixFailed = symbolOf[GreatestCommonPrefixFailed.type].asClass.module
     val tDiffableForeach = symbolOf[DiffableForeach]
+    val tInt = symbolOf[Int]
 
     annottees.head match {
       case q"$mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with ..$parents { $self => ..$stats }" =>
@@ -94,7 +95,7 @@ object DiffableConstrImpl {
                   ),
                   "$plus$plus",
                   q"$oSet()")
-              }
+                }
 
               override def extract(oracle: $tDiffableOracle): $tContext[$diffType] = oracle.predict[$diffType](this) match {
                 case Some(i) if $hasParent => ${if (oParent.isDefined) q"new ${oParent.get}.VarHole(i)" else q"null"}
@@ -183,7 +184,31 @@ object DiffableConstrImpl {
                 )
               })
 
+              override def size: $tInt =
+                1 + ${
+                reduce(
+                  mapDiffableParams(
+                    p => q"this.$p.size",
+                    p => q"this.$p.map(_.size).getOrElse(0)",
+                    p => q"this.$p.foldLeft(0)((sum, s) => sum + s.size)"
+                  ),
+                  "$plus",
+                  q"0")
+                }
+
+              override def changeSize: $tInt =
+                1 + ${
+                reduce(
+                  mapDiffableParams(
+                    p => q"this.$p.changeSize",
+                    p => q"this.$p.map(_.changeSize).getOrElse(0)",
+                    p => q"this.$p.foldLeft(0)((sum, s) => sum + s.changeSize)"
+                  ),
+                  "$plus",
+                  q"0")
+                }
             }
+
           """
 
 //        println(res)
@@ -247,6 +272,10 @@ object DiffableConstrImpl {
 
               override def buildTree(): $diffType =
                 this
+
+              override def size: $tInt = 1
+
+              override def changeSize: $tInt = 1
 
             }
           """

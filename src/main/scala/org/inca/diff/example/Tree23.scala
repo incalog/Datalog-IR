@@ -54,6 +54,10 @@ case class Leaf(s: String) extends Tree23 {
     case Leaf(s) if this.s == s =>
     case _ => throw ApplyDiffFailed()
   }
+
+  override def size: Int = 0
+
+  override def changeSize: Int = 1
 }
 
 case class Node2(t1: Tree23, t2: Tree23) extends Tree23 {
@@ -105,6 +109,10 @@ case class Node2(t1: Tree23, t2: Tree23) extends Tree23 {
 
   override def buildTree(): Tree23 =
     Node2(t1.buildTree(), t2.buildTree())
+
+  override def size: Int = t1.size + t2.size
+
+  override def changeSize: Int = 1 + t1.changeSize + t2.changeSize
 }
 
 case class Node3(t1: Tree23, t2: Tree23, t3: Tree23) extends Tree23 {
@@ -162,4 +170,8 @@ case class Node3(t1: Tree23, t2: Tree23, t3: Tree23) extends Tree23 {
 
   override def buildTree(): Tree23 =
     Node3(t1.buildTree(), t2.buildTree(), t3.buildTree())
+
+  override def size: Int = t1.size + t2.size + t3.size
+
+  override def changeSize: Int = 1 + t1.changeSize + t2.changeSize + t3.changeSize
 }

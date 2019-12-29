@@ -1,9 +1,15 @@
 package org.inca.diff.json
 
+import java.io.File
+
+import scala.io.Source
+
 // adapted from https://github.com/lihaoyi/fastparse/blob/master/fastparse/test/src/fastparse/JsonTests.scala
 
 object Parser {
   import fastparse._, NoWhitespace._
+
+  def parse(s: String): Js = fastparse.parse(s, Parser.jsonExpr(_)).get.value
 
   def stringChars(c: Char) = c != '\"' && c != '\\'
 

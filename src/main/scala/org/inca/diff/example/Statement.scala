@@ -61,6 +61,10 @@ case class Assign(x: String, e: Exp) extends Stm {
   }
 
   override def buildTree(): Stm = Assign(x, e.buildTree())
+
+  override def size: Int = e.size
+
+  override def changeSize: Int = 1 + e.changeSize
 }
 
 case class While(cond: Exp, body: Stm) extends Stm {
@@ -114,6 +118,10 @@ case class While(cond: Exp, body: Stm) extends Stm {
   }
 
   override def buildTree(): Stm = While(cond.buildTree(), body.buildTree())
+
+  override def size: Int = cond.size + body.size
+
+  override def changeSize: Int = 1 + cond.changeSize + body.changeSize
 }
 
 case class Block(contents: List[Stm]) extends Stm {
@@ -162,4 +170,8 @@ case class Block(contents: List[Stm]) extends Stm {
   }
 
   override def buildTree(): Stm = Block(contents.map(_.buildTree()))
+
+  override def size: Int = contents.foldLeft(0)((sum, s) => sum + s.size)
+
+  override def changeSize: Int = 1 + contents.foldLeft(0)((sum, s) => sum + s.size)
 }
