@@ -45,7 +45,7 @@ case class Assign(x: String, e: Exp) extends Stm {
         val p = this.e.greatestCommonClosedPrefix(e)
         Assign(x, p)
       } catch {
-        case GreatestCommonPrefixFailed() => ChangeHole.mkClosedChangeHole(this, other, StmChangeHole.apply)
+        case ex: GreatestCommonPrefixFailed => ChangeHole.mkClosedChangeHole(this, other, StmChangeHole.apply, ex)
       }
     case _ => ChangeHole.mkClosedChangeHole(this, other, StmChangeHole.apply)
   }
@@ -100,7 +100,7 @@ case class While(cond: Exp, body: Stm) extends Stm {
         val p2 = this.body.greatestCommonClosedPrefix(body)
         While(p1, p2)
       } catch {
-        case GreatestCommonPrefixFailed() => ChangeHole.mkClosedChangeHole(this, other, StmChangeHole.apply)
+        case ex: GreatestCommonPrefixFailed => ChangeHole.mkClosedChangeHole(this, other, StmChangeHole.apply, ex)
       }
     case _ => ChangeHole.mkClosedChangeHole(this, other, StmChangeHole.apply)
   }
@@ -154,7 +154,7 @@ case class Block(contents: List[Stm]) extends Stm {
         val ps = this.contents.zip(contents).map(p => p._1.greatestCommonClosedPrefix(p._2))
         Block(ps)
       } catch {
-        case GreatestCommonPrefixFailed() => ChangeHole.mkClosedChangeHole(this, other, StmChangeHole.apply)
+        case ex: GreatestCommonPrefixFailed => ChangeHole.mkClosedChangeHole(this, other, StmChangeHole.apply, ex)
       }
     case _ => ChangeHole.mkClosedChangeHole(this, other, StmChangeHole.apply)
   }

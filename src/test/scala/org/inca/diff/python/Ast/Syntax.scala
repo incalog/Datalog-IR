@@ -5,7 +5,10 @@ import org.inca.diff.macros.{cryptoHash, diffableType}
 
 @cryptoHash case class identifier(name: String)
 
-@diffableType case class file(body: Seq[stmt])
+@diffableType trait file
+object file {
+  case class File(body: Seq[stmt]) extends file
+}
 
 @diffableType trait mod
 object mod{

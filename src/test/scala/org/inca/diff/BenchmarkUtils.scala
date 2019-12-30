@@ -6,13 +6,6 @@ import java.nio.file.{Files, Path, Paths}
 import scala.io.Source
 
 object BenchmarkUtils {
-  def readRessourceFile(who: Any, path: String): String = {
-    val source = Source.fromURL(who.getClass.getResource(path))
-    val str = source.mkString
-    source.close()
-    str
-  }
-
   def readFile(path: String): String = {
     val source = Source.fromFile(path)
     val str = source.mkString
@@ -20,8 +13,8 @@ object BenchmarkUtils {
     str
   }
 
-  def foreachFileLine(who: Any, path: String)(f: String => Unit): Unit = {
-    val source = Source.fromURL(who.getClass.getResource(path))
+  def foreachFileLine(path: String)(f: String => Unit): Unit = {
+    val source = Source.fromFile(path)
     for (line <- source.getLines())
       f(line)
     source.close()
@@ -31,31 +24,39 @@ object BenchmarkUtils {
     val file = new File(path)
     if (file.isDirectory) {
       file.listFiles().foreach { sub =>
+        val subpath = s"$path/${sub.getName}"
         if (sub.isFile && sub.getName.matches(pattern))
-          f(sub.getAbsolutePath)
+          f(subpath)
         else if (transitive && sub.isDirectory)
-          foreachFile(sub.getAbsolutePath, transitive, pattern)(f)
+          foreachFile(subpath, transitive, pattern)(f)
       }
     }
   }
 
   def ms(l: Double): Double = l/1000/1000
 
-  def time[R](block: => R): Long = {
+  def time[R](block: => R): (R,Long) = {
     val t0 = System.nanoTime()
     val result = block    // call-by-name
     val t1 = System.nanoTime()
-    t1 - t0
+    (result, t1 - t0)
   }
 
-  def timed[R](block: => R, discard: Int = 10, repeat: Int = 10): Double = {
+  def timed[R](block: => R, discard: Int = 10, repeat: Int = 10): (R, Double) = {
+    var result = null.asInstanceOf[R]
+
     // discard first 10 runs
-    for (_ <- 1 to discard)
-      time(block)
+    for (_ <- 1 to discard) {
+      val (r,_) = time(block)
+      result = r
+    }
 
     var sum: Long = 0
-    for (_ <- 1 to repeat)
-      sum += time(block)
-    ms(sum.toDouble / repeat)
+    for (_ <- 1 to repeat) {
+      val (r, t) = time(block)
+      result = r
+      sum += t
+    }
+    (result, if (repeat == 0) 0 else ms(sum.toDouble / repeat))
   }
 }

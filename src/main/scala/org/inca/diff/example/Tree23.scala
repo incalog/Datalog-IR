@@ -92,7 +92,7 @@ case class Node2(t1: Tree23, t2: Tree23) extends Tree23 {
         val p2 = this.t2.greatestCommonClosedPrefix(t2)
         Node2(p1, p2)
       } catch {
-        case GreatestCommonPrefixFailed() => ChangeHole.mkClosedChangeHole(this, other, Tree23ChangeHole.apply)
+        case ex: GreatestCommonPrefixFailed => ChangeHole.mkClosedChangeHole(this, other, Tree23ChangeHole.apply, ex)
     }
     case _ => ChangeHole.mkClosedChangeHole(this, other, Tree23ChangeHole.apply)
   }
@@ -153,7 +153,7 @@ case class Node3(t1: Tree23, t2: Tree23, t3: Tree23) extends Tree23 {
         val p3 = this.t3.greatestCommonClosedPrefix(t3)
         Node3(p1, p2, p3)
       } catch {
-        case GreatestCommonPrefixFailed() => ChangeHole.mkClosedChangeHole(this, other, Tree23ChangeHole.apply)
+        case ex: GreatestCommonPrefixFailed => ChangeHole.mkClosedChangeHole(this, other, Tree23ChangeHole.apply, ex)
       }
     case _ => ChangeHole.mkClosedChangeHole(this, other, Tree23ChangeHole.apply)
   }

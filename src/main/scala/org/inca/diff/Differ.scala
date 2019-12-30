@@ -22,10 +22,11 @@ object Differ {
   }
 
   private def greatestCommonClosedPrefix[T <: Diffable[T]](t1: Context[T], t2: Context[T]): Patch[T] =
-    try t1.greatestCommonClosedPrefix(t2) catch {
-      case GreatestCommonPrefixFailed() => sys.error(s"Unclosable change ${Change(t1, t2)}")
-      case e: Throwable => throw e
-    }
+    t1.greatestCommonClosedPrefix(t2)
+//    try t1.greatestCommonClosedPrefix(t2) catch {
+//      case GreatestCommonPrefixFailed() => sys.error(s"Unclosable change ${Change(t1, t2)}. Unbound vars ${t2.freevars diff t1.freevars}")
+//      case e: Throwable => throw e
+//    }
 
   final def applyPatch[T <: Diffable[T]](p: Patch[T], t: T): Option[T] =
     try Some(p.applyPatchTo(t)) catch {

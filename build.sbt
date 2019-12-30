@@ -7,7 +7,7 @@ scalaVersion := "2.13.1"
 scalacOptions ++= Seq(
   "-Ymacro-annotations"
 //, "-Ymacro-debug-lite"
-  , "-J-Xss8m"
+  , "-J-Xss10m"
 )
 
 // https://mvnrepository.com/artifact/org.apache.commons/commons-collections4

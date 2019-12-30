@@ -79,7 +79,7 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
         val p2 = this.e2.greatestCommonClosedPrefix(e2)
         Add(p1, p2)
       } catch {
-        case GreatestCommonPrefixFailed() => ChangeHole.mkClosedChangeHole(this, other, ExpChangeHole.apply)
+        case ex:GreatestCommonPrefixFailed => ChangeHole.mkClosedChangeHole(this, other, ExpChangeHole.apply, ex)
       }
     case _ => ChangeHole.mkClosedChangeHole(this, other, ExpChangeHole.apply)
   }
@@ -135,7 +135,7 @@ case class Mul(e1: Exp, e2: Exp) extends Exp {
         val p2 = this.e2.greatestCommonClosedPrefix(e2)
         Mul(p1, p2)
       } catch {
-        case GreatestCommonPrefixFailed() => ChangeHole.mkClosedChangeHole(this, other, ExpChangeHole.apply)
+        case ex: GreatestCommonPrefixFailed => ChangeHole.mkClosedChangeHole(this, other, ExpChangeHole.apply, ex)
       }
     case _ => ChangeHole.mkClosedChangeHole(this, other, ExpChangeHole.apply)
   }

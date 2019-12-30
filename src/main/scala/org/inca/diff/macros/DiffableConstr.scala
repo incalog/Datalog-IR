@@ -37,6 +37,7 @@ object DiffableConstrImpl {
     val tDiffableOracle = symbolOf[DiffableOracle]
     val oApplyDiffFailed = symbolOf[ApplyDiffFailed.type].asClass.module
     val oGreatestCommonPrefixFailed = symbolOf[GreatestCommonPrefixFailed.type].asClass.module
+    val tGreatestCommonPrefixFailed = symbolOf[GreatestCommonPrefixFailed]
     val tDiffableForeach = symbolOf[DiffableForeach]
     val tInt = symbolOf[Int]
 
@@ -48,7 +49,7 @@ object DiffableConstrImpl {
         val hasParent = if (oParent.isDefined) q"true" else q"false"
         val diffType = tParent.getOrElse(tq"$tpname")
         val newparents = if (oParent.isDefined) parents else parents :+ tq"$tDiffable[$tpname]"
-        val mkChangeHole = if (oParent.isDefined) q"$oChangeHole.mkClosedChangeHole(this, other, x=>new ${oParent.get}.ChangeHole(x))" else q"throw $oGreatestCommonPrefixFailed()"
+        def mkChangeHole(ex: Tree) = if (oParent.isDefined) q"$oChangeHole.mkClosedChangeHole(this, other, x=>new ${oParent.get}.ChangeHole(x), $ex)" else q"throw $ex"
 
         def mapDiffableParams(diffable: TermName => Tree, option: TermName => Tree, seq: TermName => Tree): Seq[Tree] =
           mapParams(c)(paramss, tyDiffable, p => Some(diffable(p)), _ => None, p => Some(option(p)), p => Some(seq(p))).flatten
@@ -144,9 +145,9 @@ object DiffableConstrImpl {
                 )
               })
                   } catch {
-                    case $oGreatestCommonPrefixFailed() => $mkChangeHole
+                    case ex: $tGreatestCommonPrefixFailed => ${mkChangeHole(q"ex")}
                   }
-                case _ => $mkChangeHole
+                case _ => ${mkChangeHole(q"$oGreatestCommonPrefixFailed()")}
               }
 
               override def applyPatchTo(other: $diffType): $diffType = other match {
@@ -211,8 +212,8 @@ object DiffableConstrImpl {
 
           """
 
-        if (tpname.toString().contains("ImportFrom"))
-          println(res)
+//        if (tpname.toString().contains("file"))
+//          println(res)
 
         if (annottees.tail.isEmpty)
           res

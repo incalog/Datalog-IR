@@ -6,7 +6,7 @@ import Lexical.kw
 import org.inca.diff.python.Ast.stmt
 
 object Statements extends Statements(0) {
-  def parse(s: String): Ast.file = Ast.file(fastparse.parse(s, file_input(_)).get.value)
+  def parse(s: String): Ast.file = Ast.file.File(fastparse.parse(s, file_input(_)).get.value)
 }
 
 /**

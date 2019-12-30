@@ -1,10 +1,8 @@
 package org.inca.diff.python
 
-import org.scalatest.flatspec.AnyFlatSpec
-
 import org.inca.diff.BenchmarkUtils._
 
-class Benchmark extends AnyFlatSpec {
+object BenchmarkLatest extends App {
 
   private var warmUp = false
 
@@ -28,28 +26,29 @@ class Benchmark extends AnyFlatSpec {
       if (!warmUp) println(s"  parsing: $parse ms")
       if (!warmUp) println(s"  diffing unchanged: $diff ms")
     } catch {
-      case _: Exception => if (!warmUp) println(s"  parsing failed, skipping file")
+      case e: Exception if e.getMessage!=null && e.getMessage.startsWith("Parse Error")  =>
+        if (!warmUp) println(s"  parsing failed, skipping file")
     }
   }
 
   private def benchPython(name: String, content: String): (Int, Double, Double) = {
-    val tree = Statements.parse(content)
     val discard = if (warmUp) 10 else 0
     val repeat = if (warmUp) 0 else 10
-    val parseTime = timed(Statements.parse(content), discard, repeat)
-    val diffIdenticalTime = timed(tree.compareTo(tree))
+    val (tree,parseTime) = timed(Statements.parse(content), discard, repeat)
+    val (patch,diffIdenticalTime) = timed(tree.compareTo(tree))
     (tree.size, parseTime, diffIdenticalTime)
   }
 
   // warmup
   this.warmUp = true
   println(s"\nWarming up")
-  foreachFile("/Users/seba/projects/external/django/django/core", pattern = ".*\\.py")(benchPythonFile)
+  foreachFile("benchmark/python/django-0-9e14bc2135", pattern = ".*\\.py")(benchPythonFile)
+
 
   // benchmark
   this.warmUp = false
   println(s"\nBenchmarking")
-  foreachFile("/Users/seba/projects/external/django/django", pattern = ".*\\.py")(benchPythonFile)
+  foreachFile("benchmark/python/django-0-9e14bc2135", pattern = ".*\\.py")(benchPythonFile)
 
   // report
   println(s"\nReport")

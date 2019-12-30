@@ -45,11 +45,11 @@ trait ChangeHole[T <: Diffable[T]] extends Diffable[T] {
 
 object ChangeHole {
   @throws(classOf[GreatestCommonPrefixFailed])
-  final def mkClosedChangeHole[T <: Diffable[T]](delCtx: Context[T], insCtx: Context[T], makeChangeHole: Change[T]=>Patch[T]): Patch[T] = {
+  final def mkClosedChangeHole[T <: Diffable[T]](delCtx: Context[T], insCtx: Context[T], makeChangeHole: Change[T]=>Patch[T], ex: GreatestCommonPrefixFailed=GreatestCommonPrefixFailed()): Patch[T] = {
     val change = Change(delCtx, insCtx)
     if (change.isClosed)
       makeChangeHole(change)
     else
-      throw GreatestCommonPrefixFailed()
+      throw ex
   }
 }

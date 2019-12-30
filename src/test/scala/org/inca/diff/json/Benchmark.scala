@@ -1,16 +1,15 @@
 package org.inca.diff.json
 
-import org.scalatest.flatspec.AnyFlatSpec
 import org.inca.diff.BenchmarkUtils._
 
-class Benchmark extends AnyFlatSpec {
+object Benchmark extends App {
 
   private def benchJsonFileByLine(path: String): Unit = {
     var i = 0
     var sizes: Int = 0
     var parses: Double = 0
     var diffs: Double = 0
-    foreachFileLine(this, path) { line =>
+    foreachFileLine(s"benchmark/json/$path") { line =>
       val (size, parse, diff) = benchJson(s"line$i of $path", line)
       sizes += size
       parses += parse
@@ -25,7 +24,7 @@ class Benchmark extends AnyFlatSpec {
   }
 
   private def benchJsonFile(path: String): Unit = {
-    val (size, parse, diff) = benchJson(path, readRessourceFile(this, path))
+    val (size, parse, diff) = benchJson(path, readFile(s"benchmark/json/$path"))
     println(s"Benchmarking JSON document $path")
     println(s"  tree size: $size nodes")
     println(s"  parsing: $parse ms")
@@ -33,9 +32,8 @@ class Benchmark extends AnyFlatSpec {
   }
 
   private def benchJson(name: String, content: String): (Int, Double, Double) = {
-    val tree = Parser.parse(content)
-    val parseTime = timed(Parser.parse(content))
-    val diffIdenticalTime = timed(tree.compareTo(tree), discard = 100)
+    val (tree,parseTime) = timed(Parser.parse(content))
+    val (patch,diffIdenticalTime) = timed(tree.compareTo(tree), discard = 100, repeat = 10)
     (tree.size, parseTime, diffIdenticalTime)
   }
 
