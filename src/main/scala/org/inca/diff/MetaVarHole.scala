@@ -2,7 +2,7 @@ package org.inca.diff
 
 import org.inca.diff.DiffData.{Context, Patch}
 
-trait MetaVarHole[T <: Diffable[T]] extends Diffable[T] {
+trait MetaVarHole[T <: Diffable[T]] extends Diffable[T] { this: T =>
   val mv: MetaVar[T]
   def mkChangeHole: Change[T] => Patch[T]
   def lifted: Context[T]

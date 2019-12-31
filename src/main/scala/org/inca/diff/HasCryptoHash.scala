@@ -4,8 +4,12 @@ import java.security.MessageDigest
 import java.util.Base64
 
 trait HasCryptoHash {
+  def $hash: Array[Byte]
+  lazy val $hashString: String = Base64.getEncoder.encodeToString($hash)
+
   final def mkDigest: MessageDigest = MessageDigest.getInstance("SHA-256")
 
+  @scala.annotation.tailrec
   final def hashNonDiffable(v: Any, d: MessageDigest): Unit = {
     d.update(v.getClass.getCanonicalName.getBytes())
     v match {
@@ -56,7 +60,4 @@ trait HasCryptoHash {
     ByteBuffer.wrap(bytes).putDouble(data)
     bytes
   }
-
-  def $hash: Array[Byte]
-  lazy val $hashString = Base64.getEncoder.encodeToString($hash)
 }

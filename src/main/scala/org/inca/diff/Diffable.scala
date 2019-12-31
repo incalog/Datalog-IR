@@ -2,7 +2,7 @@ package org.inca.diff
 
 import org.inca.diff.DiffData.{Context, Patch, VarMap}
 
-trait Diffable[T <: Diffable[T]] extends HasCryptoHash {
+trait Diffable[T <: Diffable[T]] extends HasCryptoHash { this: T =>
   def freevars: Set[MetaVar[_]]
   def isClosed: Boolean = freevars.isEmpty
 
@@ -26,10 +26,13 @@ trait Diffable[T <: Diffable[T]] extends HasCryptoHash {
   def changeSize: Int
 
   final def compareTo(other: T): Patch[T] =
-    Differ.diff(this.asInstanceOf[T], other)
+    new Differ[T](this).diff(other)
 
   final def applyPatch(p: Patch[T]): Option[T] =
-    Differ.applyPatch(p, this.asInstanceOf[T])
+    try Some(p.applyPatchTo(this)) catch {
+      case ApplyDiffFailed() => None
+      case e: Throwable => throw e
+    }
 }
 
 case class GreatestCommonPrefixFailed() extends Exception

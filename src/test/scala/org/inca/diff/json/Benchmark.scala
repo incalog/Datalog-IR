@@ -38,7 +38,7 @@ object Benchmark extends App {
   }
 
   benchJsonFile("parboiled2bench.json")
-  benchJsonFile("canada.json")
+//  benchJsonFile("canada.json")
   benchJsonFile("citm_catalog.json")
   benchJsonFile("twitter.json")
   benchJsonFileByLine("one-json-per-line.jsons")

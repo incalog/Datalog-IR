@@ -2,7 +2,7 @@ package org.inca.diff
 
 import org.inca.diff.DiffData.{Context, Patch, VarMap}
 
-trait ChangeHole[T <: Diffable[T]] extends Diffable[T] {
+trait ChangeHole[T <: Diffable[T]] extends Diffable[T] { this: T =>
   val change: Change[T]
   def lifted: Patch[T]
 
@@ -47,9 +47,10 @@ object ChangeHole {
   @throws(classOf[GreatestCommonPrefixFailed])
   final def mkClosedChangeHole[T <: Diffable[T]](delCtx: Context[T], insCtx: Context[T], makeChangeHole: Change[T]=>Patch[T], ex: GreatestCommonPrefixFailed=GreatestCommonPrefixFailed()): Patch[T] = {
     val change = Change(delCtx, insCtx)
-    if (change.isClosed)
-      makeChangeHole(change)
-    else
+    if (!change.isClosed) {
       throw ex
+    }
+
+    makeChangeHole(change)
   }
 }

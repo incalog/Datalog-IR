@@ -3,9 +3,3 @@ package org.inca.diff
 trait DiffableOracle {
   def predict[T <: Diffable[_]](t: T): Option[MetaVar[T]]
 }
-trait MkDiffableOracle {
-  // which common subtree
-  // must be injective:
-  // if apply(s, d).predict(x) ≡ apply(s, d).predict(y) ≡ Just v, then x ≡ y
-  def apply(src: Diffable[_], dest: Diffable[_]): DiffableOracle
-}

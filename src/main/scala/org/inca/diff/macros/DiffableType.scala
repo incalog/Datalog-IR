@@ -63,6 +63,8 @@ object DiffableTypeImpl {
          """
           }
 
+//        println(q"{$diffableTrait; $companion}")
+
         q"{$diffableTrait; $companion}"
 
 
