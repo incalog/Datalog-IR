@@ -1,14 +1,13 @@
 package org.inca.diff.macros
 
-import org.inca.diff.HasCryptoHash
-import org.inca.diff.{ApplyDiffFailed, GreatestCommonPrefixFailed}
-import org.inca.diff.{Change, ChangeHole, DiffData, Diffable, DiffableForeach, DiffableOracle, MetaVar, MetaVarHole}
+import org.inca.diff.{ApplyDiffFailed, Change, ChangeHole, DiffData, Diffable, DiffableForeach, DiffableOracle, GreatestCommonPrefixFailed, HasCryptoHash, MetaVar, MetaVarHole}
 
 import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
-
 import Util._
+
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 //@compileTimeOnly("Scala 2.13 and compiler flag -Ymacro-annotations required")
 class diffableConstr extends StaticAnnotation {
@@ -24,11 +23,10 @@ object DiffableConstrImpl {
     val tyHasCryptoHash = typeOf[HasCryptoHash]
     val tMetaVar = symbolOf[MetaVar[_]]
     val tMetaVarHole = symbolOf[MetaVarHole[_]]
-    val tChangeHole = symbolOf[ChangeHole[_]]
+    val tChange = symbolOf[Change[_]]
     val oChangeHole = symbolOf[ChangeHole.type].asClass.module
     val tContext = symbolOf[DiffData.Context[_]]
     val tPatch = symbolOf[DiffData.Patch[_]]
-    val tChange = symbolOf[Change[_]]
     val tSet = symbolOf[Set[_]]
     val oSet = symbolOf[Set.type].asClass.module
     val tArray = symbolOf[Array[_]]
@@ -40,6 +38,7 @@ object DiffableConstrImpl {
     val tGreatestCommonPrefixFailed = symbolOf[GreatestCommonPrefixFailed]
     val tDiffableForeach = symbolOf[DiffableForeach]
     val tInt = symbolOf[Int]
+    val tArrayBuffer = symbolOf[ArrayBuffer[_]]
 
     annottees.head match {
       case q"$mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with ..$parents { $self => ..$stats }" =>
@@ -148,6 +147,26 @@ object DiffableConstrImpl {
                     case ex: $tGreatestCommonPrefixFailed => ${mkChangeHole(q"ex")}
                   }
                 case _ => ${mkChangeHole(q"$oGreatestCommonPrefixFailed()")}
+              }
+
+              override def findMinimalClosedChanges(other: $tContext[$diffType], changes: $tArrayBuffer[$tChange[_]]): Unit = other match {
+                case other: $tpname if ${nondiffableCond(q"other")} =>
+                  val changesBefore = changes.size
+                  try {
+                    ..${
+                mapParams(c)(paramss, tyDiffable,
+                  p => q"this.$p.findMinimalClosedChanges(other.$p, changes)",
+                  p => q"{}",
+                  p => q"this.$p.foreach(_.findMinimalClosedChanges(other.$p.get, changes))",
+                  p => q"this.$p.zip(other.$p).foreach(pp => pp._1.findMinimalClosedChanges(pp._2, changes))",
+                )
+              }
+                  } catch {
+                    case ex: $tGreatestCommonPrefixFailed =>
+                      changes.remove(changesBefore, changes.size - changesBefore)
+                      $oChangeHole.addClosedChange(this, other, changes, ex)
+                  }
+                case _ => $oChangeHole.addClosedChange(this, other, changes)
               }
 
               override def applyPatchTo(other: $diffType): $diffType = other match {
@@ -260,6 +279,11 @@ object DiffableConstrImpl {
               override def greatestCommonClosedPrefix(other: $tContext[$diffType]): $tPatch[$diffType] = other match {
                 case other: $tname.type => this
                 case _ => $mkChangeHole
+              }
+
+              override def findMinimalClosedChanges(other: $tContext[$diffType], changes: $tArrayBuffer[$tChange[_]]): Unit = other match {
+                case other: $tname.type =>
+                case _ => $oChangeHole.addClosedChange(this, other, changes)
               }
 
               override def applyPatchTo(other: $diffType): $diffType = other match {

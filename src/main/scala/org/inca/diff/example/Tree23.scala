@@ -4,6 +4,8 @@ import org.inca.diff.DiffData.{Context, Patch}
 import org.inca.diff.{ApplyDiffFailed, GreatestCommonPrefixFailed}
 import org.inca.diff._
 
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+
 trait Tree23 extends Diffable[Tree23]
 
 case class Tree23MetaVarHole(mv: MetaVar[Tree23]) extends Tree23 with MetaVarHole[Tree23] {
@@ -40,6 +42,11 @@ case class Leaf(s: String) extends Tree23 {
   override def greatestCommonClosedPrefix(other: Context[Tree23]): Patch[Tree23] = other match {
     case Leaf(s) if this.s == s => this
     case _ => ChangeHole.mkClosedChangeHole(this, other, Tree23ChangeHole.apply)
+  }
+
+  override def findMinimalClosedChanges(other: Context[Tree23], changes: ArrayBuffer[Change[_]]): Unit = other match {
+    case Leaf(s) if this.s == s =>
+    case _ => ChangeHole.addClosedChange(this, other, changes)
   }
 
   override def applyPatchTo(t: Tree23): Tree23 = t match {
@@ -95,6 +102,20 @@ case class Node2(t1: Tree23, t2: Tree23) extends Tree23 {
         case ex: GreatestCommonPrefixFailed => ChangeHole.mkClosedChangeHole(this, other, Tree23ChangeHole.apply, ex)
     }
     case _ => ChangeHole.mkClosedChangeHole(this, other, Tree23ChangeHole.apply)
+  }
+
+  override def findMinimalClosedChanges(other: Context[Tree23], changes: ArrayBuffer[Change[_]]): Unit = other match {
+    case Node2(t1, t2) =>
+      val changesBefore = changes.size
+      try {
+        this.t1.findMinimalClosedChanges(t1, changes)
+        this.t2.findMinimalClosedChanges(t2, changes)
+      } catch {
+        case ex: GreatestCommonPrefixFailed =>
+          changes.remove(changesBefore, changes.size - changesBefore)
+          ChangeHole.addClosedChange(this, other, changes, ex)
+      }
+    case _ => ChangeHole.addClosedChange(this, other, changes)
   }
 
   override def applyPatchTo(t: Tree23): Tree23 = t match {
@@ -156,6 +177,21 @@ case class Node3(t1: Tree23, t2: Tree23, t3: Tree23) extends Tree23 {
         case ex: GreatestCommonPrefixFailed => ChangeHole.mkClosedChangeHole(this, other, Tree23ChangeHole.apply, ex)
       }
     case _ => ChangeHole.mkClosedChangeHole(this, other, Tree23ChangeHole.apply)
+  }
+
+  override def findMinimalClosedChanges(other: Context[Tree23], changes: ArrayBuffer[Change[_]]): Unit = other match {
+    case Node3(t1, t2, t3) =>
+      val changesBefore = changes.size
+      try {
+        this.t1.findMinimalClosedChanges(t1, changes)
+        this.t2.findMinimalClosedChanges(t2, changes)
+        this.t3.findMinimalClosedChanges(t3, changes)
+      } catch {
+        case ex: GreatestCommonPrefixFailed =>
+          changes.remove(changesBefore, changes.size - changesBefore)
+          ChangeHole.addClosedChange(this, other, changes, ex)
+      }
+    case _ => ChangeHole.addClosedChange(this, other, changes)
   }
 
   override def applyPatchTo(t: Tree23): Tree23 = t match {

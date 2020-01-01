@@ -2,6 +2,8 @@ package org.inca.diff
 
 import org.inca.diff.DiffData.{Context, Patch}
 
+import scala.collection.mutable.ArrayBuffer
+
 trait MetaVarHole[T <: Diffable[T]] extends Diffable[T] { this: T =>
   val mv: MetaVar[T]
   def mkChangeHole: Change[T] => Patch[T]
@@ -25,6 +27,9 @@ trait MetaVarHole[T <: Diffable[T]] extends Diffable[T] { this: T =>
   override def greatestCommonClosedPrefix(other: Context[T]): Patch[T] =
     ChangeHole.mkClosedChangeHole(this.lifted, other, mkChangeHole)
 
+  override def findMinimalClosedChanges(other: Context[T], changes: ArrayBuffer[Change[_]]): Unit =
+    ChangeHole.addClosedChange(this.lifted, other, changes)
+
   override def applyPatchTo(t: T): T =
     throw new IllegalStateException(s"Patch may not contain MetaVar holes")
 
@@ -34,16 +39,16 @@ trait MetaVarHole[T <: Diffable[T]] extends Diffable[T] { this: T =>
     else if (mv.tree != other)
       throw ApplyDiffFailed()
   }
-
   override def buildTree(): T =
-    if (mv.tree != null)
-      mv.tree
-    else
-      throw ApplyDiffFailed()
+  if (mv.tree != null)
+  mv.tree
+  else
+  throw ApplyDiffFailed()
 
   override def toString: String = mv.toString
 
   override def size: Int = 1
 
   override def changeSize: Int = 0
+
 }

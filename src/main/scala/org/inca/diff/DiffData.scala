@@ -4,7 +4,7 @@ import org.inca.diff.DiffData.Context
 
 
 object DiffData {
-  type Context[T <: Diffable[T]] = T // with MetaVarHole[T]
+  type Context[T <: Diffable[_]] = T // with MetaVarHole[T]
   type Patch[T <: Diffable[T]] = T // with ChangeHole[T with MetaVarHole[T]]
   type VarMap[T] = Map[MetaVar[T], T]
 }
@@ -36,9 +36,36 @@ case class MetaVar[R](i: Int) {
   override def toString: String = s"#$i"
 }
 
-case class Change[T <: Diffable[T]](delCtx: Context[T], insCtx: Context[T]) {
+trait Change[T <: Diffable[_]] {
+  def size: Int
+  def freevars: Set[MetaVar[_]]
+  def isClosed: Boolean
+  def generic: Change[_] = this
+}
+object Change {
+  def makeClosed[T <: Diffable[_]](delCtx: Context[T], insCtx: Context[T]): Option[Change[T]] = {
+    val change = make(delCtx, insCtx)
+    if (change.isClosed)
+      Some(change)
+    else
+      None
+  }
+  def make[T <: Diffable[_]](delCtx: Context[T], insCtx: Context[T]): Change[T] = {
+    if (delCtx.isInstanceOf[MetaVarHole[_]] && delCtx == insCtx)
+      IdentityChange[T]()
+    else
+      RewriteChange(delCtx, insCtx)
+  }
+}
+case class IdentityChange[T <: Diffable[_]]() extends Change[T] {
+  override def size: Int = 0
+  override def freevars: Set[MetaVar[_]] = Set()
+  override def isClosed: Boolean = true
+  override def toString: String = "#id"
+}
+case class RewriteChange[T <: Diffable[_]](delCtx: Context[T], insCtx: Context[T]) extends Change[T] {
+  override def size: Int = delCtx.size + insCtx.size
   lazy val freevars: Set[MetaVar[_]] = insCtx.freevars diff delCtx.freevars
-  def isClosed: Boolean = freevars.isEmpty
-
+  override def isClosed: Boolean = freevars.isEmpty
   override def toString: String = s"($delCtx -> $insCtx)"
 }

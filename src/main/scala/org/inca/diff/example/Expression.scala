@@ -4,6 +4,9 @@ import org.inca.diff.DiffData.{Context, Patch}
 import org.inca.diff.{ApplyDiffFailed, GreatestCommonPrefixFailed}
 import org.inca.diff._
 
+import scala.collection.mutable
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+
 trait Exp extends Diffable[Exp]
 
 case class ExpVarHole(mv: MetaVar[Exp]) extends Exp with MetaVarHole[Exp] {
@@ -35,6 +38,11 @@ case class Num(n: Int) extends Exp {
   override def greatestCommonClosedPrefix(other: Context[Exp]): Patch[Exp] = other match {
     case Num(n) if this.n == n => this
     case _ => ChangeHole.mkClosedChangeHole(this, other, ExpChangeHole.apply)
+  }
+
+  override def findMinimalClosedChanges(other: Context[Exp], changes: ArrayBuffer[Change[_]]): Unit = other match {
+    case Num(n) if this.n == n =>
+    case _ => ChangeHole.addClosedChange(this, other, changes)
   }
 
   override def applyPatchTo(t: Exp): Exp = t match {
@@ -82,6 +90,20 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
         case ex:GreatestCommonPrefixFailed => ChangeHole.mkClosedChangeHole(this, other, ExpChangeHole.apply, ex)
       }
     case _ => ChangeHole.mkClosedChangeHole(this, other, ExpChangeHole.apply)
+  }
+
+  override def findMinimalClosedChanges(other: Context[Exp], changes: ArrayBuffer[Change[_]]): Unit = other match {
+    case Add(e1, e2) =>
+      val changesBefore = changes.size
+      try {
+        this.e1.findMinimalClosedChanges(e1, changes)
+        this.e2.findMinimalClosedChanges(e2, changes)
+      } catch {
+        case ex:GreatestCommonPrefixFailed =>
+          changes.remove(changesBefore, changes.size - changesBefore)
+          ChangeHole.addClosedChange(this, other, changes, ex)
+      }
+    case _ => ChangeHole.addClosedChange(this, other, changes)
   }
 
   override def applyPatchTo(t: Exp): Exp = t match {
@@ -138,6 +160,20 @@ case class Mul(e1: Exp, e2: Exp) extends Exp {
         case ex: GreatestCommonPrefixFailed => ChangeHole.mkClosedChangeHole(this, other, ExpChangeHole.apply, ex)
       }
     case _ => ChangeHole.mkClosedChangeHole(this, other, ExpChangeHole.apply)
+  }
+
+  override def findMinimalClosedChanges(other: Context[Exp], changes: ArrayBuffer[Change[_]]): Unit = other match {
+    case Mul(e1, e2) =>
+      val changesBefore = changes.size
+      try {
+        this.e1.findMinimalClosedChanges(e1, changes)
+        this.e2.findMinimalClosedChanges(e2, changes)
+      } catch {
+        case ex:GreatestCommonPrefixFailed =>
+          changes.remove(changesBefore, changes.size - changesBefore)
+          ChangeHole.addClosedChange(this, other, changes, ex)
+      }
+    case _ => ChangeHole.addClosedChange(this, other, changes)
   }
 
   override def applyPatchTo(p: Exp): Exp = p match {

@@ -1,6 +1,8 @@
 package org.inca.diff
 
-import org.inca.diff.DiffData.{Context, Patch, VarMap}
+import org.inca.diff.DiffData.{Context, Patch}
+
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
 trait ChangeHole[T <: Diffable[T]] extends Diffable[T] { this: T =>
   val change: Change[T]
@@ -24,9 +26,14 @@ trait ChangeHole[T <: Diffable[T]] extends Diffable[T] { this: T =>
   override def greatestCommonClosedPrefix(other: Context[T]): Patch[T] =
     throw new IllegalStateException(s"Cannot create patch of patches")
 
-  override def applyPatchTo(t: T): T = {
-    change.delCtx.matchTree(t)
-    change.insCtx.buildTree()
+  override def findMinimalClosedChanges(other: Context[T], changes: ArrayBuffer[Change[_]]): Unit =
+    throw new IllegalStateException(s"Cannot create patch of patches")
+
+  override def applyPatchTo(t: T): T = change match {
+    case IdentityChange() => t
+    case RewriteChange(delCtx, insCtx) =>
+      delCtx.matchTree(t)
+      insCtx.buildTree()
   }
 
   override def matchTree(other: T): Unit = {
@@ -38,19 +45,17 @@ trait ChangeHole[T <: Diffable[T]] extends Diffable[T] { this: T =>
 
   override def toString: String = change.toString
 
-  override def size: Int = 1 + change.delCtx.changeSize + change.insCtx.changeSize
+  override def size: Int = 1 + change.size
 
   override def changeSize: Int = throw new IllegalStateException(s"Input trees may not contain hole $this")
 }
 
 object ChangeHole {
   @throws(classOf[GreatestCommonPrefixFailed])
-  final def mkClosedChangeHole[T <: Diffable[T]](delCtx: Context[T], insCtx: Context[T], makeChangeHole: Change[T]=>Patch[T], ex: GreatestCommonPrefixFailed=GreatestCommonPrefixFailed()): Patch[T] = {
-    val change = Change(delCtx, insCtx)
-    if (!change.isClosed) {
-      throw ex
-    }
-
-    makeChangeHole(change)
+  final def mkClosedChangeHole[T <: Diffable[T]](delCtx: Context[T], insCtx: Context[T], makeChangeHole: Change[T] => Patch[T], ex: GreatestCommonPrefixFailed = GreatestCommonPrefixFailed()): Patch[T] = {
+    Change.makeClosed(delCtx, insCtx).map(makeChangeHole).getOrElse(throw ex)
   }
+
+  final def addClosedChange[T <: Diffable[_]](delCtx: Context[T], insCtx: Context[T], changes: ArrayBuffer[Change[_]], ex: GreatestCommonPrefixFailed = GreatestCommonPrefixFailed()): Unit =
+    Change.makeClosed(delCtx, insCtx).map(changes += _).getOrElse(throw ex)
 }

@@ -4,6 +4,8 @@ import org.inca.diff.DiffData.{Context, Patch}
 import org.inca.diff.{ApplyDiffFailed, GreatestCommonPrefixFailed}
 import org.inca.diff._
 
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+
 trait Stm extends Diffable[Stm]
 
 case class StmVarHole(mv: MetaVar[Stm]) extends Stm with MetaVarHole[Stm] {
@@ -48,6 +50,20 @@ case class Assign(x: String, e: Exp) extends Stm {
         case ex: GreatestCommonPrefixFailed => ChangeHole.mkClosedChangeHole(this, other, StmChangeHole.apply, ex)
       }
     case _ => ChangeHole.mkClosedChangeHole(this, other, StmChangeHole.apply)
+  }
+
+  override def findMinimalClosedChanges(other: Context[Stm], changes: ArrayBuffer[Change[_]]): Unit = other match {
+    case Assign(x, e) if this.x==x =>
+      val changesBefore = changes.size
+      try {
+        this.e.findMinimalClosedChanges(e, changes)
+      } catch {
+        case ex: GreatestCommonPrefixFailed =>
+          changes.remove(changesBefore, changes.size - changesBefore)
+          ChangeHole.addClosedChange(this, other, changes, ex)
+      }
+    case _ => ChangeHole.addClosedChange(this, other, changes
+    )
   }
 
   override def applyPatchTo(t: Stm): Stm = t match {
@@ -105,6 +121,20 @@ case class While(cond: Exp, body: Stm) extends Stm {
     case _ => ChangeHole.mkClosedChangeHole(this, other, StmChangeHole.apply)
   }
 
+  override def findMinimalClosedChanges(other: Context[Stm], changes: ArrayBuffer[Change[_]]): Unit = other match {
+    case While(cond, body) =>
+      val changesBefore = changes.size
+      try {
+        this.cond.findMinimalClosedChanges(cond, changes)
+        this.body.findMinimalClosedChanges(body, changes)
+      } catch {
+        case ex: GreatestCommonPrefixFailed =>
+          changes.remove(changesBefore, changes.size - changesBefore)
+          ChangeHole.addClosedChange(this, other, changes, ex)
+      }
+    case _ => ChangeHole.addClosedChange(this, other, changes)
+  }
+
   override def applyPatchTo(t: Stm): Stm = t match {
     case While(cond, body) => While(this.cond.applyPatchTo(cond), this.body.applyPatchTo(body))
     case _ => throw ApplyDiffFailed()
@@ -157,6 +187,19 @@ case class Block(contents: List[Stm]) extends Stm {
         case ex: GreatestCommonPrefixFailed => ChangeHole.mkClosedChangeHole(this, other, StmChangeHole.apply, ex)
       }
     case _ => ChangeHole.mkClosedChangeHole(this, other, StmChangeHole.apply)
+  }
+
+  override def findMinimalClosedChanges(other: Context[Stm], changes: ArrayBuffer[Change[_]]): Unit = other match {
+    case Block(contents) =>
+      val changesBefore = changes.size
+      try {
+        this.contents.zip(contents).foreach(p => p._1.findMinimalClosedChanges(p._2, changes))
+      } catch {
+        case ex: GreatestCommonPrefixFailed =>
+          changes.remove(changesBefore, changes.size - changesBefore)
+          ChangeHole.addClosedChange(this, other, changes, ex)
+      }
+    case _ => ChangeHole.addClosedChange(this, other, changes)
   }
 
   override def applyPatchTo(t: Stm): Stm = t match {

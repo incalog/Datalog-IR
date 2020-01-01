@@ -4,7 +4,7 @@ import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import org.inca.diff.Change
+import org.inca.diff.RewriteChange
 import org.inca.diff.macros.{diffableConstr, diffableType}
 
 @diffableType trait Tree23

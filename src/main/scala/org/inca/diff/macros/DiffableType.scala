@@ -1,6 +1,6 @@
 package org.inca.diff.macros
 
-import org.inca.diff.{Change, ChangeHole, DiffData, Diffable, MetaVar, MetaVarHole}
+import org.inca.diff.{Change, ChangeHole, DiffData, Diffable, MetaVar, MetaVarHole, RewriteChange}
 
 import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.language.experimental.macros
@@ -109,7 +109,7 @@ object DiffableTypeImpl {
 
     val varHole =
       q"""
-        class VarHole[..$tparams](val mv: $tMetaVar[$tp]) extends $tp with $tMetaVarHole[$tp] {
+        case class VarHole[..$tparams](mv: $tMetaVar[$tp]) extends $tp with $tMetaVarHole[$tp] {
           override def lifted: $tContext[$tp] = this
           override def mkChangeHole: $tChange[$tp] => $tPatch[$tp] = x=> new $obj.ChangeHole(x)
           ..$abstractValImpls
@@ -118,7 +118,7 @@ object DiffableTypeImpl {
        """
     val changeHole =
       q"""
-        class ChangeHole[..$tparams](val change: $tChange[$tp]) extends $tp with $tChangeHole[$tp] {
+        case class ChangeHole[..$tparams](change: $tChange[$tp]) extends $tp with $tChangeHole[$tp] {
           override def lifted: $tp = this
           ..$abstractValImpls
           ..$abstractMethodImpls

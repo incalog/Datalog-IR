@@ -20,7 +20,7 @@ class TestTree23 extends AnyFlatSpec with Matchers {
 
   "diff of identical trees" should "yield empty patch" in {
     val emptyPatch: PartialFunction[Any,_] = {
-      case Tree23ChangeHole(Change(Tree23MetaVarHole(i1), Tree23MetaVarHole(i2))) if i1==i2 =>
+      case Tree23ChangeHole(RewriteChange(Tree23MetaVarHole(i1), Tree23MetaVarHole(i2))) if i1==i2 =>
     }
 
     compareAndApply(
@@ -48,8 +48,8 @@ class TestTree23 extends AnyFlatSpec with Matchers {
 
   "diff of swapped trees" should "yield swap patch" in {
     val swapPatch: PartialFunction[Any,_] = {
-      case Tree23ChangeHole(Change(Node2(Tree23MetaVarHole(i1), Tree23MetaVarHole(j1)), Node2(Tree23MetaVarHole(j2), Tree23MetaVarHole(i2)))) if i1==i2 && j1==j2 =>
-      case Tree23ChangeHole(Change(Node3(Tree23MetaVarHole(i1), _, Tree23MetaVarHole(j1)), Node3(Tree23MetaVarHole(j2), _, Tree23MetaVarHole(i2)))) if i1==i2 && j1==j2 =>
+      case Tree23ChangeHole(RewriteChange(Node2(Tree23MetaVarHole(i1), Tree23MetaVarHole(j1)), Node2(Tree23MetaVarHole(j2), Tree23MetaVarHole(i2)))) if i1==i2 && j1==j2 =>
+      case Tree23ChangeHole(RewriteChange(Node3(Tree23MetaVarHole(i1), _, Tree23MetaVarHole(j1)), Node3(Tree23MetaVarHole(j2), _, Tree23MetaVarHole(i2)))) if i1==i2 && j1==j2 =>
     }
 
     Node2("a", "b").compareTo(Node2("b", "a")) should matchPattern (swapPatch)
@@ -73,8 +73,8 @@ class TestTree23 extends AnyFlatSpec with Matchers {
 
   "diff of changed constructor" should "yield copy patch" in {
     val copyPatch: PartialFunction[Any,_] = {
-      case Tree23ChangeHole(Change(Node2(Tree23MetaVarHole(i1), Tree23MetaVarHole(j1)), Node3(Tree23MetaVarHole(i2), _, Tree23MetaVarHole(j2)))) if i1==i2 && j1==j2 =>
-      case Tree23ChangeHole(Change(Node3(Tree23MetaVarHole(i2), _, Tree23MetaVarHole(j2)), Node2(Tree23MetaVarHole(i1), Tree23MetaVarHole(j1)))) if i1==i2 && j1==j2 =>
+      case Tree23ChangeHole(RewriteChange(Node2(Tree23MetaVarHole(i1), Tree23MetaVarHole(j1)), Node3(Tree23MetaVarHole(i2), _, Tree23MetaVarHole(j2)))) if i1==i2 && j1==j2 =>
+      case Tree23ChangeHole(RewriteChange(Node3(Tree23MetaVarHole(i2), _, Tree23MetaVarHole(j2)), Node2(Tree23MetaVarHole(i1), Tree23MetaVarHole(j1)))) if i1==i2 && j1==j2 =>
     }
 
     Node2("a", "b").compareTo(Node3("a", "foo", "b")) should matchPattern (copyPatch)
@@ -99,8 +99,8 @@ class TestTree23 extends AnyFlatSpec with Matchers {
   "diff with prefix" should "yield prefixed patch" in {
     Node2("t", Node2("a", "b")).compareTo(Node2("t", Node2("b", "a"))) should matchPattern {
       case Node2(
-        Tree23ChangeHole(Change(Tree23MetaVarHole(k1), Tree23MetaVarHole(k2))),
-        Tree23ChangeHole(Change(Node2(Tree23MetaVarHole(i1), Tree23MetaVarHole(j1)), Node2(Tree23MetaVarHole(j2), Tree23MetaVarHole(i2))))
+        Tree23ChangeHole(RewriteChange(Tree23MetaVarHole(k1), Tree23MetaVarHole(k2))),
+        Tree23ChangeHole(RewriteChange(Node2(Tree23MetaVarHole(i1), Tree23MetaVarHole(j1)), Node2(Tree23MetaVarHole(j2), Tree23MetaVarHole(i2))))
       ) if i1==i2 && j1==j2 && k1==k2 =>
     }
     compareAndApply(
@@ -109,11 +109,11 @@ class TestTree23 extends AnyFlatSpec with Matchers {
 
     Node3("t", Node2("u", "v"), Node2("w", "x")).compareTo(Node3("t", Node2("v", "u"), Node2("w'", "x"))) should matchPattern {
       case Node3(
-        Tree23ChangeHole(Change(Tree23MetaVarHole(k1), Tree23MetaVarHole(k2))),
-        Tree23ChangeHole(Change(Node2(Tree23MetaVarHole(i1), Tree23MetaVarHole(j1)), Node2(Tree23MetaVarHole(j2), Tree23MetaVarHole(i2)))),
+        Tree23ChangeHole(RewriteChange(Tree23MetaVarHole(k1), Tree23MetaVarHole(k2))),
+        Tree23ChangeHole(RewriteChange(Node2(Tree23MetaVarHole(i1), Tree23MetaVarHole(j1)), Node2(Tree23MetaVarHole(j2), Tree23MetaVarHole(i2)))),
         Node2(
-          Tree23ChangeHole(Change(Leaf("w"), Leaf("w'"))),
-          Tree23ChangeHole(Change(Tree23MetaVarHole(l1), Tree23MetaVarHole(l2))),
+          Tree23ChangeHole(RewriteChange(Leaf("w"), Leaf("w'"))),
+          Tree23ChangeHole(RewriteChange(Tree23MetaVarHole(l1), Tree23MetaVarHole(l2))),
         )
       ) if i1==i2 && j1==j2 && k1==k2 && l1==l2 =>
     }
@@ -124,7 +124,7 @@ class TestTree23 extends AnyFlatSpec with Matchers {
 
   it should "ensure closed changes" in {
     Node2("a", "x").compareTo(Node2("a", "a")) should matchPattern {
-      case Tree23ChangeHole(Change(Node2(Tree23MetaVarHole(i1), _), Node2(Tree23MetaVarHole(i2), Tree23MetaVarHole(i3)))) if i1==i2 && i2==i3 =>
+      case Tree23ChangeHole(RewriteChange(Node2(Tree23MetaVarHole(i1), _), Node2(Tree23MetaVarHole(i2), Tree23MetaVarHole(i3)))) if i1==i2 && i2==i3 =>
     }
     compareAndApply(
       Node2("a", "x"),
@@ -132,8 +132,8 @@ class TestTree23 extends AnyFlatSpec with Matchers {
 
     Node2("a", Node2("b", "x")).compareTo(Node2("a", Node2("b", "b"))) should matchPattern {
       case Node2(
-        Tree23ChangeHole(Change(Tree23MetaVarHole(k1), Tree23MetaVarHole(k2))),
-        Tree23ChangeHole(Change(Node2(Tree23MetaVarHole(i1), _), Node2(Tree23MetaVarHole(i2), Tree23MetaVarHole(i3))))
+        Tree23ChangeHole(RewriteChange(Tree23MetaVarHole(k1), Tree23MetaVarHole(k2))),
+        Tree23ChangeHole(RewriteChange(Node2(Tree23MetaVarHole(i1), _), Node2(Tree23MetaVarHole(i2), Tree23MetaVarHole(i3))))
       ) if k1==k2 && i1==i2 && i2==i3 =>
     }
     compareAndApply(
