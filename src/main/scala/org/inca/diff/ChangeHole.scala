@@ -56,6 +56,10 @@ object ChangeHole {
     Change.makeClosed(delCtx, insCtx).map(makeChangeHole).getOrElse(throw ex)
   }
 
-  final def addClosedChange[T <: Diffable[_]](delCtx: Context[T], insCtx: Context[T], changes: ArrayBuffer[Change[_]], ex: GreatestCommonPrefixFailed = GreatestCommonPrefixFailed()): Unit =
-    Change.makeClosed(delCtx, insCtx).map(changes += _).getOrElse(throw ex)
+  final def addClosedChange[T <: Diffable[_]](delCtx: Context[T], insCtx: Context[T], changes: ArrayBuffer[Change[_]], ex: GreatestCommonPrefixFailed = GreatestCommonPrefixFailed()): Unit = {
+    Change.makeClosed(delCtx, insCtx).map{
+      case IdentityChange() =>
+      case c: RewriteChange[_] => changes += c
+    }.getOrElse(throw ex)
+  }
 }
