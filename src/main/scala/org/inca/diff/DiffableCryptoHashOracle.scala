@@ -11,7 +11,7 @@ class DiffableCryptoHashOracle(src: Diffable[_]) {
     src.foreach(new DiffableForeach {
       override def apply[T <: Diffable[_]](t: T): Unit = {
         val key = t.$hashString
-        srcTrie.put(key, new MetaVar[T](freshCount))
+        srcTrie.put(key, new MetaVar[T](freshCount, t))
         freshCount += 1
       }
     })
@@ -25,7 +25,7 @@ class DiffableCryptoHashOracle(src: Diffable[_]) {
     dest.foreach(new DiffableForeach {
       override def apply[T <: Diffable[_]](t: T): Unit = {
         val key = t.$hashString
-        destTrie.put(key, new MetaVar[T](freshCount))
+        destTrie.put(key, new MetaVar[T](freshCount, t))
         freshCount += 1
         val mv = srcTrie.get(key)
         if (mv != null)

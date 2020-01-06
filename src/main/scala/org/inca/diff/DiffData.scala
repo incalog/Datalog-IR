@@ -29,10 +29,8 @@ object DiffData {
 //   {Node2(#1, #2)->Node3(#1, #2, x)}, // ChangeHole
 //   Node3({#3->#3}, {#4->#4}, {e->y})
 
-case class MetaVar[R](i: Int) {
-  @transient
-  var tree: R = null.asInstanceOf[R]
-
+case class MetaVar[R](i: Int, @transient var tree: R) {
+  var moved: Boolean = false
   override def toString: String = s"#$i"
 }
 

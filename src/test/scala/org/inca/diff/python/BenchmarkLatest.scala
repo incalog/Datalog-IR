@@ -35,7 +35,7 @@ object BenchmarkLatest extends App {
     val discard = if (warmUp) 10 else 0
     val repeat = if (warmUp) 0 else 10
     val (tree,parseTime) = timed(Statements.parse(content), discard, repeat)
-    val (patch,diffIdenticalTime) = timed(tree.compareToChanges(tree))
+    val (patch,diffIdenticalTime) = timed(tree.compareTo(tree))
     (tree.size, parseTime, diffIdenticalTime)
   }
 

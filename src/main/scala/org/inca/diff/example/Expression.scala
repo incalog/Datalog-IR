@@ -1,20 +1,44 @@
 package org.inca.diff.example
 
 import org.inca.diff.DiffData.{Context, Patch}
-import org.inca.diff.{ApplyDiffFailed, GreatestCommonPrefixFailed}
-import org.inca.diff._
+import org.inca.diff.changeset.SimpleChangesetApi._
+import org.inca.diff.{ApplyDiffFailed, GreatestCommonPrefixFailed, _}
 
-import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.mutable.ArrayBuffer
 
 trait Exp extends Diffable[Exp]
 
 case class ExpVarHole(mv: MetaVar[Exp]) extends Exp with MetaVarHole[Exp] {
   override def lifted: Exp = this
   override def mkChangeHole: Change[Exp] => Patch[Exp] = ExpChangeHole.apply
+
+  override def load(changes: ChangesetBuffer, forceClone: Boolean): NodeRef =
+    if (forceClone || mv.moved)
+      mv.tree.load(changes, forceClone = true)
+    else {
+      mv.moved = true
+      mv.tree.ref
+    }
+
+  override def unload(changes: ChangesetBuffer): Unit = {
+    changes.buf += DetachNode(mv.tree.ref)
+  }
+
+  override def computeChangeset(parent: NodeRef, link: Link, other: Context[Exp], changes: ChangesetBuffer): Unit =
+    if (this != other) {
+      this.unload(changes)
+      changes += AttachNode(parent, link, other.load(changes, false))
+    }
 }
+
 case class ExpChangeHole(change: Change[Exp]) extends Exp with ChangeHole[Exp] {
   override def lifted: Exp = this
+
+  override def computeChangeset(parent: NodeRef, link: Link, other: Context[Exp], changes: ChangesetBuffer): Unit = ???
+
+  override def unload(changes: ChangesetBuffer): Unit = ???
+
+  override def load(changes: ChangesetBuffer, forceClone: Boolean): NodeRef = ???
 }
 
 case class Num(n: Int) extends Exp {
@@ -44,6 +68,25 @@ case class Num(n: Int) extends Exp {
     case Num(n) if this.n == n =>
     case _ => ChangeHole.addClosedChange(this, other, changes)
   }
+
+  override def computeChangeset(parent: NodeRef, link: Link, other: Context[Exp], changes: ChangesetBuffer): Unit = other match {
+    case Num(n) if this.n == n =>
+    case _ =>
+      this.unload(changes)
+      changes += AttachNode(parent, link, other.load(changes, false))
+  }
+
+  override def load(changes: ChangesetBuffer, forceClone: Boolean): NodeRef = {
+    val v = changes.freshVar()
+    changes += LoadNode(v, this.getClass, Seq(
+      NamedLink("n") -> Literal(n)
+    ))
+    v
+  }
+
+
+  override def unload(changes: ChangesetBuffer): Unit =
+    changes += UnloadNode(this.ref)
 
   override def applyPatchTo(t: Exp): Exp = t match {
     case Num(n) if this.n == n => this
@@ -104,6 +147,32 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
           ChangeHole.addClosedChange(this, other, changes, ex)
       }
     case _ => ChangeHole.addClosedChange(this, other, changes)
+  }
+
+  override def computeChangeset(parent: NodeRef, link: Link, other: Context[Exp], changes: ChangesetBuffer): Unit = other match {
+    case Add(e1, e2) =>
+      this.e1.computeChangeset(this.ref, NamedLink("e1"), e1, changes)
+      this.e2.computeChangeset(this.ref, NamedLink("e2"), e2, changes)
+    case _ =>
+      this.unload(changes)
+      changes += AttachNode(parent, link, other.load(changes, false))
+  }
+
+  override def load(changes: ChangesetBuffer, forceClone: Boolean): NodeRef = {
+    val ref1 = this.e1.load(changes, forceClone)
+    val ref2 = this.e2.load(changes, forceClone)
+    val v = changes.freshVar()
+    changes += LoadNode(v, this.getClass, Seq(
+      NamedLink("e1") -> ref1,
+      NamedLink("e2") -> ref2
+    ))
+    v
+  }
+
+  override def unload(changes: ChangesetBuffer): Unit = {
+    this.e1.unload(changes)
+    this.e2.unload(changes)
+    changes += UnloadNode(this.ref)
   }
 
   override def applyPatchTo(t: Exp): Exp = t match {
@@ -174,6 +243,32 @@ case class Mul(e1: Exp, e2: Exp) extends Exp {
           ChangeHole.addClosedChange(this, other, changes, ex)
       }
     case _ => ChangeHole.addClosedChange(this, other, changes)
+  }
+
+  override def computeChangeset(parent: NodeRef, link: Link, other: Context[Exp], changes: ChangesetBuffer): Unit = other match {
+    case Mul(e1, e2) =>
+      this.e1.computeChangeset(this.ref, NamedLink("e1"), e1, changes)
+      this.e2.computeChangeset(this.ref, NamedLink("e2"), e2, changes)
+    case _ =>
+      this.unload(changes)
+      changes += AttachNode(parent, link, other.load(changes, false))
+  }
+
+  override def load(changes: ChangesetBuffer, forceClone: Boolean): NodeRef = {
+    val ref1 = this.e1.load(changes, forceClone)
+    val ref2 = this.e2.load(changes, forceClone)
+    val v = changes.freshVar()
+    changes += LoadNode(v, this.getClass, Seq(
+      NamedLink("e1") -> ref1,
+      NamedLink("e2") -> ref2
+    ))
+    v
+  }
+
+  override def unload(changes: ChangesetBuffer): Unit = {
+    this.e1.unload(changes)
+    this.e2.unload(changes)
+    changes += UnloadNode(this.ref)
   }
 
   override def applyPatchTo(p: Exp): Exp = p match {

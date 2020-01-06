@@ -40,10 +40,10 @@ trait MetaVarHole[T <: Diffable[T]] extends Diffable[T] { this: T =>
       throw ApplyDiffFailed()
   }
   override def buildTree(): T =
-  if (mv.tree != null)
-  mv.tree
-  else
-  throw ApplyDiffFailed()
+    if (mv.tree != null)
+      mv.tree
+    else
+      throw ApplyDiffFailed()
 
   override def toString: String = mv.toString
 
