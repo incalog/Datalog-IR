@@ -4,7 +4,12 @@ import org.inca.incer.indices.Indices
 import org.inca.meta.MetaElements.{DataType, NodeType}
 
 @IncrementalIndex
-trait Exp extends Incrementalizable
+class Test {
+
+}
+
+trait Exp extends Incrementalizable {
+}
 
 object ExpTypes extends Incrementalizable {
   override def insert(indices: Indices): Unit = {
