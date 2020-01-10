@@ -19,6 +19,8 @@ public class Indices {
     private final Map<Class<?>, Set<Class<?>>> subTypeMap;
     private final Map<Class<?>, Set<Class<?>>> superTypeMap;
 
+    public static Set<Tuple> registered = new HashSet<>();
+
     /**
      * Remains null until we actually start listening to program changes.
      * This usually happens after the initalization of the indices.
@@ -33,6 +35,11 @@ public class Indices {
         this.subTypeMap = collectionsFactory.createMap();
         this.superTypeMap = collectionsFactory.createMap();
         this.changeStore = collectionsFactory.createSet();
+    }
+
+    public static void registerType(final Class<?> sub, final Class<?> sup) {
+        System.out.println("Register type " + sub + " " + sup);
+        registered.add(Tuples.staticArityFlatTupleOf(sub, sup));
     }
 
     public void insertType(final Class<?> clazz) {
@@ -76,12 +83,14 @@ public class Indices {
         deleteInstance(type, tuple, Change.deletion(new InputKey.NodeTypeKey(type), tuple), this.nodeTypeInstances);
     }
 
-    public void insertDataTypeInstance(final DataType type, final Object instance) {
+    public void insertDataTypeInstance(final Object instance) {
+        DataType type = null;
         final Tuple tuple = Tuples.staticArityFlatTupleOf(instance);
         insertInstance(type, tuple, Change.insertion(new InputKey.DataTypeKey(type), tuple), this.dataTypeInstances);
     }
 
-    public void deleteDataTypeInstance(final DataType type, final Object instance) {
+    public void deleteDataTypeInstance(final Object instance) {
+        DataType type = null;
         final Tuple tuple = Tuples.staticArityFlatTupleOf(instance);
         deleteInstance(type, tuple, Change.deletion(new InputKey.DataTypeKey(type), tuple), this.dataTypeInstances);
     }

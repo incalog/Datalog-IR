@@ -3,12 +3,27 @@ package org.inca.incer
 import org.inca.incer.indices.Indices
 import org.inca.meta.MetaElements.{DataType, NodeType}
 
+
 @IncrementalIndex
-class Test {
+trait ITest {
+
+}
+@IncrementalIndex
+case class Foo() extends ITest
+@IncrementalIndex
+case class Test(val n : Int, val o : Option[Incrementalizable], val t : Incrementalizable, val s : Seq[Incrementalizable]) extends ITest{
 
 }
 
 trait Exp extends Incrementalizable {
+  override def insert(indices: Indices): Unit = {
+    super.insert(indices)
+    // NodeType instances
+    indices.insertNodeTypeInstance(NodeType(classOf[Exp]), this)
+  }
+}
+object Exp {
+  Indices.registerType(classOf[Exp], null)
 }
 
 object ExpTypes extends Incrementalizable {
@@ -23,10 +38,15 @@ object ExpTypes extends Incrementalizable {
   override def delete(indices: Indices): Unit = {}
 }
 
+// 1. report the relevant types: (sub,sup)
+// 2. build up the sub - sup type index
+
 case class Num(n: Int) extends Exp {
   override def insert(indices: Indices): Unit = {
+    super.insert(indices)
+
     // NodeType instances
-    indices.insertNodeTypeInstance(NodeType(this.getClass), this)
+    indices.insertNodeTypeInstance(NodeType(classOf[Num]), this)
 
     // NodeLink instances
     indices.insertNodeLinkInstance(this, NodeType(classOf[Num])("n"), this.n)
@@ -47,6 +67,9 @@ case class Num(n: Int) extends Exp {
     indices.deleteDataTypeInstance(DataType(classOf[Int]), this.n)
   }
 }
+object Num {
+  Indices.registerType(classOf[Num], classOf[Exp])
+}
 
 abstract class BinaryExpression(val lhs: Exp, val rhs: Exp) extends Exp {
 
@@ -54,6 +77,7 @@ abstract class BinaryExpression(val lhs: Exp, val rhs: Exp) extends Exp {
 
 case class Add(l: Exp, r: Exp) extends BinaryExpression(l, r) {
   override def insert(indices: Indices): Unit = {
+    super.insert(indices)
     // NodeType instances
     indices.insertNodeTypeInstance(NodeType(classOf[Add]), this)
 
