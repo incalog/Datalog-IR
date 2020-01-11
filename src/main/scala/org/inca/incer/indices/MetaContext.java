@@ -84,7 +84,7 @@ public class MetaContext extends AbstractQueryMetaContext {
             final Class<?> fieldType = nodeLink.fld().getType();
             IInputKey impliedTarget = null;
 
-            if (MetaElements.isDataType(fieldType)) {
+            if (MetaElements.isPrimitiveDataType(fieldType)) {
                 impliedTarget = new DataTypeKey(new DataType(fieldType));
             } else {
                 impliedTarget = new NodeTypeKey(new NodeType(fieldType));

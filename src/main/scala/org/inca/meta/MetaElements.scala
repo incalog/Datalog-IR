@@ -21,10 +21,15 @@ object MetaElements {
   }
 
   case class DataType(cls: Class[_]) extends MetaElement {
-    require(isDataType(cls), "Only primitive data types are allowed!")
+    require(isPrimitiveDataType(cls), "Only primitive data types are allowed!")
   }
 
-  def isDataType(cls: Class[_]): Boolean = cls.eq(classOf[Int]) || cls.eq(classOf[Boolean]) || cls.eq(classOf[String])
+  def isPrimitiveDataType(cls: Class[_]): Boolean = {
+    val isInteger = classOf[Int].isAssignableFrom(cls) || classOf[java.lang.Integer].isAssignableFrom(cls)
+    val isBoolean = classOf[Boolean].isAssignableFrom(cls) || classOf[java.lang.Boolean].isAssignableFrom(cls)
+    val isString = classOf[java.lang.String].isAssignableFrom(cls)
+    isInteger || isBoolean || isString
+  }
 
   case class NodeLink(nodeType: NodeType, fld: Field) extends MetaElement {
     override def toString: String = s"$nodeType:${fld.getName}"
@@ -37,6 +42,5 @@ object MetaElements {
     }
 
   }
-
 
 }

@@ -8,18 +8,14 @@ import org.inca.meta.MetaElements.NodeLink;
 import org.inca.meta.MetaElements.NodeType;
 
 import java.util.*;
-import java.util.function.Function;
 
 public class Indices {
 
-    private final CollectionsFactory collectionsFactory;
-    private final Map<NodeType, Set<Tuple>> nodeTypeInstances;
-    private final Map<DataType, Set<Tuple>> dataTypeInstances;
-    private final Map<NodeLink, Map<Object, Set<Object>>> nodeLinkInstances;
-    private final Map<Class<?>, Set<Class<?>>> subTypeMap;
-    private final Map<Class<?>, Set<Class<?>>> superTypeMap;
-
-    public static Set<Tuple> registered = new HashSet<>();
+    public final Map<NodeType, Set<Tuple>> nodeTypeInstances;
+    public final Map<DataType, Set<Tuple>> dataTypeInstances;
+    public final Map<NodeLink, Map<Object, Set<Object>>> nodeLinkInstances;
+    public static final Map<Class<?>, Set<Class<?>>> subTypeMap = new HashMap<>();
+    public static final Map<Class<?>, Set<Class<?>>> superTypeMap = new HashMap<>();
 
     /**
      * Remains null until we actually start listening to program changes.
@@ -27,49 +23,53 @@ public class Indices {
      */
     private Set<Change> changeStore;
 
-    public Indices(final CollectionsFactory collectionsFactory) {
-        this.collectionsFactory = collectionsFactory;
-        this.nodeTypeInstances = collectionsFactory.createMap();
-        this.dataTypeInstances = collectionsFactory.createMap();
-        this.nodeLinkInstances = collectionsFactory.createMap();
-        this.subTypeMap = collectionsFactory.createMap();
-        this.superTypeMap = collectionsFactory.createMap();
-        this.changeStore = collectionsFactory.createSet();
+    public Indices() {
+        this.nodeTypeInstances = new HashMap<>();
+        this.dataTypeInstances = new HashMap<>();
+        this.nodeLinkInstances = new HashMap<>();
+        this.changeStore = new HashSet<>();
+    }
+
+    private static void addType(final Class<?> key, final Class<?> value, final Map<Class<?>, Set<Class<?>>> map) {
+        if (key == null) {
+            throw new IllegalArgumentException("Key must not be null!");
+        }
+        map.compute(key, (k, v) -> {
+            if (v == null) {
+                v = new HashSet<>();
+            }
+            if (value != null) {
+                v.add(value);
+            }
+            return v;
+        });
     }
 
     public static void registerType(final Class<?> sub, final Class<?> sup) {
-        System.out.println("Register type " + sub + " " + sup);
-        registered.add(Tuples.staticArityFlatTupleOf(sub, sup));
-    }
+        // sub -> existing U {sup} into superType map
+        addType(sub, sup, superTypeMap);
 
-    public void insertType(final Class<?> clazz) {
-        final Set<Class<?>> superTypes = this.collectionsFactory.createSet();
+        if (sup != null) {
+            // sup -> existing U {sub} into subType map
+            addType(sup, sub, subTypeMap);
+        }
 
-        final List<Class<?>> queue = new LinkedList<>();
-        final Function<Class<?>, Void> func = (Class<?> p) -> {
-            queue.add(p.getSuperclass());
-            queue.addAll(Arrays.asList(p.getInterfaces()));
-            return null;
-        };
-        func.apply(clazz);
-        while (!queue.isEmpty()) {
-            final Class<?> head = queue.remove(0);
-            if (head != null) {
-                superTypes.add(head);
-                func.apply(head);
+        // add sup as supertype for all subtypes of sub
+        final Set<Class<?>> subSubs = subTypeMap.get(sub);
+        if (subSubs != null) {
+            for (final Class<?> subSub : subSubs) {
+                addType(subSub, sup, superTypeMap);
             }
         }
 
-        this.superTypeMap.put(clazz, superTypes);
-
-        for (final Class<?> superType : superTypes) {
-            subTypeMap.compute(superType, (k, v) -> {
-                if (v == null) {
-                    v = this.collectionsFactory.createSet();
+        if (sup != null) {
+            // add sub as subtype for all supertypes of sup
+            final Set<Class<?>> supSups = superTypeMap.get(sup);
+            if (supSups != null) {
+                for (final Class<?> supSup : supSups) {
+                    addType(supSup, sub, subTypeMap);
                 }
-                v.add(clazz);
-                return v;
-            });
+            }
         }
     }
 
@@ -84,13 +84,13 @@ public class Indices {
     }
 
     public void insertDataTypeInstance(final Object instance) {
-        DataType type = null;
+        final DataType type = new DataType(instance.getClass());
         final Tuple tuple = Tuples.staticArityFlatTupleOf(instance);
         insertInstance(type, tuple, Change.insertion(new InputKey.DataTypeKey(type), tuple), this.dataTypeInstances);
     }
 
     public void deleteDataTypeInstance(final Object instance) {
-        DataType type = null;
+        final DataType type = new DataType(instance.getClass());
         final Tuple tuple = Tuples.staticArityFlatTupleOf(instance);
         deleteInstance(type, tuple, Change.deletion(new InputKey.DataTypeKey(type), tuple), this.dataTypeInstances);
     }
@@ -106,7 +106,7 @@ public class Indices {
     private <T> void insertInstance(final T type, final Tuple tuple, final Change change, Map<T, Set<Tuple>> instanceMap) {
         instanceMap.compute(type, (k, v) -> {
             if (v == null) {
-                v = this.collectionsFactory.createSet();
+                v = new HashSet<>();
             }
             if (v.add(tuple)) {
                 this.registerChange(change);
