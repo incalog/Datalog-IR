@@ -1,4 +1,4 @@
-package org.inca
+package org.inca.lang
 
 import org.inca.lang.core.Content.{IGenNameProvider, IPatternModuleContent}
 import org.inca.lang.mps.INamedConcept
