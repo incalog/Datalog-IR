@@ -20,10 +20,14 @@ object sdkStuff {
     val pFullyQualifiedName = Lit.String(s"$collectionName.${pattern.name}")
     val pGetFullyQualifiedName = q"override def getFullyQualifiedName(): String = $pFullyQualifiedName"
 
-    val pParamPNames = for (param <- pattern.parameters.toList) yield { Term.Name(s"p_${param.name}") }
+    val pParamPNames = for (param <- pattern.parameters.toList) yield {
+      Term.Name(s"p_${param.name}")
+    }
     val pGetParameters = q"override def getParameters(): List[PParameter] = List(..$pParamPNames)"
 
-    val pParamNamesString = for (param <- pattern.parameters.toList) yield { Lit.String(param.name) }
+    val pParamNamesString = for (param <- pattern.parameters.toList) yield {
+      Lit.String(param.name)
+    }
     val pGetParameterNames = q"override def getParameterNames(): List[String] = List(..$pParamNamesString)"
 
     List(pGetFullyQualifiedName, pGetParameterNames, pGetParameters)
@@ -31,7 +35,7 @@ object sdkStuff {
 
 
   private def createGraphPatternBodies(pattern: GraphPattern) = for (body <- pattern.bodies.toList) yield {
-    val pPBody = q"val body: PBody = PBody(this)"
+    val pPBody = q"val body: PBody = new PBody(this)"
 
     val tempVars: Map[String, String] = getTemporaryVariables(body)
 
@@ -55,9 +59,9 @@ object sdkStuff {
       val paramName = Lit.String(graphParameter.typ.get.toString)
       val paramVarName = Term.Name(s"var_${graphParameter.name}")
 
-      val params = List(q"body", q"Tuples.flatTupleOf($paramVarName)", q"ClassKey($paramName)")
+      val params = List(q"body", q"Tuples.flatTupleOf($paramVarName)", q"new ClassKey($paramName)")
 
-      q"TypeConstraint(..$params)"
+      q"new TypeConstraint(..$params)"
     }
 
   private def createTemporaryVariables(temporaryVariables: Map[String, String]) =
@@ -84,7 +88,7 @@ object sdkStuff {
       val pParamFullyQualifiedName = Lit.String(graphParameter.typ.get.toString.substring(1))
 
       val pConceptKey = q"ConceptKey()"
-      val pPParameter = q"PParameter($pParamNameString, $pParamFullyQualifiedName, $pConceptKey)"
+      val pPParameter = q"new PParameter($pParamNameString, $pParamFullyQualifiedName, $pConceptKey)"
       val pGeneratedPQueryParameter = q"val $pParamName: PParameter = $pPParameter"
       pGeneratedPQueryParameter
     }
@@ -96,31 +100,32 @@ object sdkStuff {
   }.flatten.flatten.toMap
 
 
-  //  private def createImportStatements(): List[Stat] = {
-  //    val statementsAsStrings = List(
-  //      ImportItem("org.inca.generator", "gp", List("_")), // todo change depending on helper classes location
-  //      ImportItem("org.eclipse.viatra.query.runtime", "api", List("ViatraQueryException")),
-  //      ImportItem("org.eclipse.viatra.query.runtime", "exception", List("_")),
-  //      ImportItem("org.eclipse.viatra.query.runtime.matchers.psystem", "queries", List("PParameter")),
-  //      ImportItem("org.eclipse.viatra.query.runtime.matchers", "psystem", List("_")),
-  //      ImportItem("org.eclipse.viatra.query.runtime.matchers", "tuple", List("Tuples")),
-  //      ImportItem("org.eclipse.viatra.query.runtime.matchers.psystem", "queries", List("QueryInitializationException")),
-  //      ImportItem("org.eclipse.viatra.query.runtime.matchers.psystem", "basicdeferred", List("ExportedParameter")),
-  //      ImportItem("org.eclipse.viatra.query.runtime.matchers.psystem", "basicenumerables", List("_")),
-  //      ImportItem("org.inca.generator", "gp", List("_")),
-  //      ImportItem("org.inca.generator", "gp", List("_")),
-  //    )
-  //
-  //    val imports: List[Stat] = for(item <- statementsAsStrings) yield {
-  //      Import(List(
-  //        Importer(Term.Select(Term.Name(item.qualifier), Term.Name(item.name)),
-  //          List(
-  //
-  //          ))
-  //      ))
-  //    }
-  //    imports
-  //  }
+  def createImportStatements(): List[Stat] = {
+    val statementsAsStrings = List(
+      ImportItem("org.inca.generator.gp", "conceptKeys", List("ClassKey")), // todo change depending on helper classes location
+      ImportItem("org.eclipse.viatra.query.runtime", "api", List("ViatraQueryException")),
+      // ImportItem("org.eclipse.viatra.query.runtime", "exception", List("_")),
+      ImportItem("org.eclipse.viatra.query.runtime.matchers.psystem", "queries", List("PParameter")),
+      ImportItem("org.eclipse.viatra.query.runtime.matchers", "psystem", List("PBody", "PVariable")),
+      ImportItem("org.eclipse.viatra.query.runtime.matchers", "tuple", List("Tuples")),
+      ImportItem("org.eclipse.viatra.query.runtime.matchers.psystem", "queries", List("QueryInitializationException")),
+      ImportItem("org.eclipse.viatra.query.runtime.matchers.psystem", "basicdeferred", List("ExportedParameter")),
+      ImportItem("org.eclipse.viatra.query.runtime.matchers.psystem", "basicenumerables", List("TypeConstraint")),
+
+    )
+
+    val imports: List[Stat] = for (item <- statementsAsStrings) yield {
+      Import(List(
+        Importer(Term.Select(Term.Name(item.qualifier), Term.Name(item.name)),
+          for (imp <- item.imports) yield {
+            Importee.Name(Name.Indeterminate(imp))
+          }
+        )
+      )
+      )
+    }
+    imports
+  }
 
 }
 
