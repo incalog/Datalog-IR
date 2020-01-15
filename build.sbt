@@ -6,6 +6,7 @@ scalaVersion := "2.13.1"
 
 resolvers += Resolver.sonatypeRepo("snapshots")
 
+// todo somehow fix this
 libraryDependencies += "org.scalameta" %% "scalameta" % "4.2.3"
 //// https://mvnrepository.com/artifact/org.eclipse.viatra/viatra-query-runtime
 //libraryDependencies += "org.eclipse.viatra" % "viatra-query-runtime" % "2.3.0.M4"
