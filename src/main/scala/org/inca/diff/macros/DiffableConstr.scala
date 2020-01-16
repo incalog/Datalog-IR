@@ -6,8 +6,8 @@ import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
 import Util._
-import org.inca.diff.changeset.ChangesetApi
-import org.inca.diff.changeset.ChangesetApi._
+import org.inca.diff.changeset.Changeset
+import org.inca.diff.changeset.Changeset._
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
@@ -48,7 +48,7 @@ object DiffableConstrImpl {
 
     val tChangesetBuffer = symbolOf[ChangesetBuffer]
     val tNodeRef = symbolOf[NodeRef]
-    val oLiteral = symbolOf[ChangesetApi.Literal[_]].companion
+    val oLiteral = symbolOf[Changeset.Literal[_]].companion
     val oNoneNode = symbolOf[NoneNode.type].asClass.module
     val oSomeNode = symbolOf[SomeNode].companion
     val oListNode = symbolOf[ListNode].companion

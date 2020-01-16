@@ -1,7 +1,7 @@
 package org.inca.diff
 
 import org.inca.diff.DiffData.{Context, Patch, VarMap}
-import org.inca.diff.changeset.ChangesetApi._
+import org.inca.diff.changeset.Changeset._
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -32,7 +32,7 @@ trait Diffable[T <: Diffable[T]] extends HasCryptoHash { this: T =>
   def computeChangeset(parent: NodeRef, link: Link, other: Context[T], changes: ChangesetBuffer): Unit
   def unload(changes: ChangesetBuffer): Unit
   def load(changes: ChangesetBuffer, forceClone: Boolean): NodeRef
-  def ref: URI = URI(this.$hashString)
+  val ref: URI = new URI()
 
   final def compareTo(other: T): Patch[T] =
     new Differ[T](this).diff(other)

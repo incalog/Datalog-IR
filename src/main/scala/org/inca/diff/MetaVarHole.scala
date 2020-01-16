@@ -1,8 +1,8 @@
 package org.inca.diff
 
 import org.inca.diff.DiffData.{Context, Patch}
-import org.inca.diff.changeset.ChangesetApi
-import org.inca.diff.changeset.ChangesetApi._
+import org.inca.diff.changeset.Changeset
+import org.inca.diff.changeset.Changeset._
 
 import scala.collection.mutable.ArrayBuffer
 

@@ -1,7 +1,7 @@
 package org.inca.diff.example
 
 import org.inca.diff.DiffData.{Context, Patch}
-import org.inca.diff.changeset.ChangesetApi._
+import org.inca.diff.changeset.Changeset._
 import org.inca.diff.{ApplyDiffFailed, GreatestCommonPrefixFailed, _}
 
 import scala.collection.mutable.ArrayBuffer

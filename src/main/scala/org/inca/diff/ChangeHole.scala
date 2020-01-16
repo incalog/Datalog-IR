@@ -1,7 +1,7 @@
 package org.inca.diff
 
 import org.inca.diff.DiffData.{Context, Patch}
-import org.inca.diff.changeset.ChangesetApi
+import org.inca.diff.changeset.Changeset
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
@@ -47,13 +47,13 @@ trait ChangeHole[T <: Diffable[T]] extends Diffable[T] { this: T =>
 
   override def toString: String = change.toString
 
-  override def computeChangeset(parent: ChangesetApi.NodeRef, link: ChangesetApi.Link, other: Context[T], changes: ChangesetApi.ChangesetBuffer): Unit =
+  override def computeChangeset(parent: Changeset.NodeRef, link: Changeset.Link, other: Context[T], changes: Changeset.ChangesetBuffer): Unit =
     throw new IllegalStateException(s"Input trees may not contain hole $this")
 
-  override def unload(changes: ChangesetApi.ChangesetBuffer): Unit =
+  override def unload(changes: Changeset.ChangesetBuffer): Unit =
     throw new IllegalStateException(s"Input trees may not contain hole $this")
 
-  override def load(changes: ChangesetApi.ChangesetBuffer, forceClone: Boolean): ChangesetApi.NodeRef =
+  override def load(changes: Changeset.ChangesetBuffer, forceClone: Boolean): Changeset.NodeRef =
     throw new IllegalStateException(s"Input trees may not contain hole $this")
 }
 

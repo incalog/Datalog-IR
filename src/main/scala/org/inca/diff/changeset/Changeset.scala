@@ -6,7 +6,7 @@ import scala.collection.mutable
 
 //object SimpleChangesetApi extends ChangesetApi[Diffable[_], String, Class[_]]
 
-object ChangesetApi {
+object Changeset {
   type Changeset = Seq[ChangeCmd]
   class ChangesetBuffer(val buf: mutable.Buffer[ChangeCmd], val gensym: Gensym = new Gensym) {
     def += (elem: ChangeCmd): this.type = {buf += elem; this}
@@ -17,7 +17,12 @@ object ChangesetApi {
   type NodeTag = Class[_]
 
   sealed trait NodeRef
-  case class URI(id: String) extends NodeRef
+  class URI() extends NodeRef {
+    override def toString: String = {
+      val s = super.toString
+      s.substring(s.lastIndexOf('$') + 1)
+    }
+  }
   case class Literal[T](value: T) extends NodeRef
   case class Var(name: String) extends NodeRef {
     override def toString: String = name

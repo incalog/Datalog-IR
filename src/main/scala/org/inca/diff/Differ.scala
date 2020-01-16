@@ -1,7 +1,7 @@
 package org.inca.diff
 
 import org.inca.diff.DiffData.Patch
-import org.inca.diff.changeset.ChangesetApi._
+import org.inca.diff.changeset.Changeset._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.implicitConversions
@@ -46,7 +46,7 @@ class Differ[T <: Diffable[T]](_src: T) {
     // diff
     val buf = ArrayBuffer[ChangeCmd]()
     postDel.computeChangeset(
-      URI("<root>"),
+      new URI(),
       RootLink,
       postIns,
       new ChangesetBuffer(buf))
