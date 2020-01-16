@@ -3,6 +3,7 @@ package org.inca.diff.example
 import org.inca.diff.DiffData.{Context, Patch}
 import org.inca.diff.{ApplyDiffFailed, GreatestCommonPrefixFailed}
 import org.inca.diff._
+import org.inca.diff.changeset.ChangesetApi._
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
@@ -62,9 +63,25 @@ case class Leaf(s: String) extends Tree23 {
     case _ => throw ApplyDiffFailed()
   }
 
-  override def size: Int = 0
+  override def load(changes: ChangesetBuffer, forceClone: Boolean): NodeRef = {
+    val v = changes.freshVar()
+    changes += LoadNode(v, this.getClass, Seq(
+      NamedLink("s") -> Literal(this.s)
+    ))
+    v
+  }
 
-  override def changeSize: Int = 1
+  override def unload(changes: ChangesetBuffer): Unit = {
+    changes += UnloadNode(this.ref)
+  }
+
+  override def computeChangeset(parent: NodeRef, link: Link, other: Context[Tree23], changes: ChangesetBuffer): Unit = other match {
+    case Leaf(s) if this.s == s =>
+    case _ =>
+      this.unload(changes)
+      val newnode = other.load(changes, false)
+      changes += AttachNode(parent, link, newnode)
+  }
 }
 
 case class Node2(t1: Tree23, t2: Tree23) extends Tree23 {
@@ -131,9 +148,30 @@ case class Node2(t1: Tree23, t2: Tree23) extends Tree23 {
   override def buildTree(): Tree23 =
     Node2(t1.buildTree(), t2.buildTree())
 
-  override def size: Int = t1.size + t2.size
+  override def load(changes: ChangesetBuffer, forceClone: Boolean): NodeRef = {
+    val v = changes.freshVar()
+    changes += LoadNode(v, this.getClass, Seq(
+      NamedLink("t1") -> this.t1.load(changes, forceClone),
+      NamedLink("t2") -> this.t2.load(changes, forceClone)
+    ))
+    v
+  }
 
-  override def changeSize: Int = 1 + t1.changeSize + t2.changeSize
+  override def unload(changes: ChangesetBuffer): Unit = {
+    this.t1.unload(changes)
+    this.t2.unload(changes)
+    changes += UnloadNode(this.ref)
+  }
+
+  override def computeChangeset(parent: NodeRef, link: Link, other: Context[Tree23], changes: ChangesetBuffer): Unit = other match {
+    case Node2(t1, t2) =>
+      this.t1.computeChangeset(this.ref, NamedLink("t1"), t1, changes)
+      this.t2.computeChangeset(this.ref, NamedLink("t2"), t2, changes)
+    case _ =>
+      this.unload(changes)
+      val newnode = other.load(changes, false)
+      changes += AttachNode(parent, link, newnode)
+  }
 }
 
 case class Node3(t1: Tree23, t2: Tree23, t3: Tree23) extends Tree23 {
@@ -207,7 +245,31 @@ case class Node3(t1: Tree23, t2: Tree23, t3: Tree23) extends Tree23 {
   override def buildTree(): Tree23 =
     Node3(t1.buildTree(), t2.buildTree(), t3.buildTree())
 
-  override def size: Int = t1.size + t2.size + t3.size
+  override def load(changes: ChangesetBuffer, forceClone: Boolean): NodeRef = {
+    val v = changes.freshVar()
+    changes += LoadNode(v, this.getClass, Seq(
+      NamedLink("t1") -> this.t1.load(changes, forceClone),
+      NamedLink("t2") -> this.t2.load(changes, forceClone),
+      NamedLink("t3") -> this.t3.load(changes, forceClone)
+    ))
+    v
+  }
 
-  override def changeSize: Int = 1 + t1.changeSize + t2.changeSize + t3.changeSize
+  override def unload(changes: ChangesetBuffer): Unit = {
+    this.t1.unload(changes)
+    this.t2.unload(changes)
+    this.t3.unload(changes)
+    changes += UnloadNode(this.ref)
+  }
+
+  override def computeChangeset(parent: NodeRef, link: Link, other: Context[Tree23], changes: ChangesetBuffer): Unit = other match {
+    case Node2(t1, t2) =>
+      this.t1.computeChangeset(this.ref, NamedLink("t1"), t1, changes)
+      this.t2.computeChangeset(this.ref, NamedLink("t2"), t2, changes)
+      this.t3.computeChangeset(this.ref, NamedLink("t3"), t3, changes)
+    case _ =>
+      this.unload(changes)
+      val newnode = other.load(changes, false)
+      changes += AttachNode(parent, link, newnode)
+  }
 }

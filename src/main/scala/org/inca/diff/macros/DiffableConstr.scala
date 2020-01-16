@@ -6,6 +6,8 @@ import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.language.experimental.macros
 import scala.reflect.macros.whitebox
 import Util._
+import org.inca.diff.changeset.ChangesetApi
+import org.inca.diff.changeset.ChangesetApi._
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 
@@ -18,6 +20,7 @@ object DiffableConstrImpl {
     import c.universe._
 
     val tDiffable = symbolOf[Diffable[_]]
+    val oDiffable = tDiffable.companion
     val tyDiffable = typeOf[Diffable[_]]
     val tHasCryptoHash = symbolOf[HasCryptoHash]
     val tyHasCryptoHash = typeOf[HasCryptoHash]
@@ -39,6 +42,26 @@ object DiffableConstrImpl {
     val tDiffableForeach = symbolOf[DiffableForeach]
     val tInt = symbolOf[Int]
     val tArrayBuffer = symbolOf[ArrayBuffer[_]]
+    val tBoolean = symbolOf[Boolean]
+    val oSeq = symbolOf[Seq.type].asClass.module
+
+
+    val tChangesetBuffer = symbolOf[ChangesetBuffer]
+    val tNodeRef = symbolOf[NodeRef]
+    val oLiteral = symbolOf[ChangesetApi.Literal[_]].companion
+    val oNoneNode = symbolOf[NoneNode.type].asClass.module
+    val oSomeNode = symbolOf[SomeNode].companion
+    val oListNode = symbolOf[ListNode].companion
+
+    val tLink = symbolOf[Link]
+    val oNamedLink = symbolOf[NamedLink].companion
+    val tListIndexLink = symbolOf[ListIndexLink]
+
+    val oLoadNode = symbolOf[LoadNode].companion
+    val oUnloadNode = symbolOf[UnloadNode].companion
+    val oAttachNode = symbolOf[AttachNode].companion
+    val oDettachNode = symbolOf[DetachNode].companion
+
 
     annottees.head match {
       case q"$mods class $tpname[..$tparams] $ctorMods(...$paramss) extends { ..$earlydefns } with ..$parents { $self => ..$stats }" =>
@@ -139,8 +162,8 @@ object DiffableConstrImpl {
                 mapParams(c)(paramss, tyDiffable,
                   p => q"this.$p.greatestCommonClosedPrefix(other.$p)",
                   p => q"this.$p",
-                  p => q"this.$p.map(_.greatestCommonClosedPrefix(other.$p.get))",
-                  p => q"this.$p.zip(other.$p).map(pp => pp._1.greatestCommonClosedPrefix(pp._2))",
+                  p => q"$oDiffable.greatestCommonClosedOptionPrefix(this.$p, other.$p)",
+                  p => q"if (this.$p.size != other.$p.size) throw $oGreatestCommonPrefixFailed() else this.$p.zip(other.$p).map(pp => pp._1.greatestCommonClosedPrefix(pp._2))",
                 )
               })
                   } catch {
@@ -204,6 +227,43 @@ object DiffableConstrImpl {
                 )
               })
 
+              override def load(changes: $tChangesetBuffer, forceClone: $tBoolean): $tNodeRef = {
+                val v = changes.freshVar()
+                changes += $oLoadNode(v, this.getClass, $oSeq(
+                  ..${mapParams(c)(paramss, tyDiffable,
+                    p => q"$oNamedLink(${p.toString}) -> this.$p.load(changes, forceClone)",
+                    p => q"$oNamedLink(${p.toString}) -> $oLiteral(this.$p)",
+                    p => q"$oNamedLink(${p.toString}) -> (if (this.$p.isEmpty) $oNoneNode else $oSomeNode(this.$p.get.load(changes, forceClone)))",
+                    p => q"$oNamedLink(${p.toString}) -> $oListNode(this.$p.map(_.load(changes, forceClone)))"
+                  )}
+                ))
+                v
+              }
+
+              override def unload(changes: $tChangesetBuffer): Unit = {
+                ..${mapParams(c)(paramss, tyDiffable,
+                  p => q"this.$p.unload(changes)",
+                  p => q"{}",
+                  p => q"(if (this.$p.nonEmpty) this.$p.get.unload(changes))",
+                  p => q"this.$p.foreach(_.unload(changes))"
+                )}
+                changes += $oUnloadNode(this.ref)
+              }
+
+              override def computeChangeset(parent: $tNodeRef, link: $tLink, other: $tContext[$diffType], changes: $tChangesetBuffer): Unit = other match {
+                case other: $tpname if ${nondiffableCond(q"other")} =>
+                  ..${mapParams(c)(paramss, tyDiffable,
+                    p => q"this.$p.computeChangeset(this.ref, $oNamedLink(${p.toString}), other.$p, changes)",
+                    p => q"{}",
+                    p => q"$oDiffable.computeOptionChangeset(this.ref, $oNamedLink(${p.toString}), this.$p, other.$p, changes)",
+                    p => q"$oDiffable.computeListChangeset(this.ref, $oNamedLink(${p.toString}), this.$p, other.$p, changes)",
+                  )}
+                case _ =>
+                  this.unload(changes)
+                  val newnode = other.load(changes, false)
+                  changes += $oAttachNode(parent, link, newnode)
+              }
+
               override def size: $tInt =
                 1 + ${
                 reduce(
@@ -214,19 +274,8 @@ object DiffableConstrImpl {
                   ),
                   "$plus",
                   q"0")
-                }
+              }
 
-              override def changeSize: $tInt =
-                1 + ${
-                reduce(
-                  mapDiffableParams(
-                    p => q"this.$p.changeSize",
-                    p => q"this.$p.map(_.changeSize).getOrElse(0)",
-                    p => q"this.$p.foldLeft(0)((sum, s) => sum + s.changeSize)"
-                  ),
-                  "$plus",
-                  q"0")
-                }
             }
 
           """
@@ -299,9 +348,25 @@ object DiffableConstrImpl {
               override def buildTree(): $diffType =
                 this
 
-              override def size: $tInt = 1
+              override def load(changes: $tChangesetBuffer, forceClone: $tBoolean): $tNodeRef = {
+                val v = changes.freshVar()
+                changes += $oLoadNode(v, this.getClass, $oSeq())
+                v
+              }
 
-              override def changeSize: $tInt = 1
+              override def unload(changes: $tChangesetBuffer): Unit = {
+                changes += $oUnloadNode(this.ref)
+              }
+
+              override def computeChangeset(parent: $tNodeRef, link: $tLink, other: $tContext[$diffType], changes: $tChangesetBuffer): Unit = other match {
+                case other: $tname.type =>
+                case _ =>
+                  this.unload(changes)
+                  val newnode = other.load(changes, false)
+                  changes += $oAttachNode(parent, link, newnode)
+              }
+
+              override def size: $tInt = 1
 
             }
           """

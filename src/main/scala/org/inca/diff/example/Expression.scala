@@ -1,7 +1,7 @@
 package org.inca.diff.example
 
 import org.inca.diff.DiffData.{Context, Patch}
-import org.inca.diff.changeset.SimpleChangesetApi._
+import org.inca.diff.changeset.ChangesetApi._
 import org.inca.diff.{ApplyDiffFailed, GreatestCommonPrefixFailed, _}
 
 import scala.collection.mutable.ArrayBuffer
@@ -11,34 +11,10 @@ trait Exp extends Diffable[Exp]
 case class ExpVarHole(mv: MetaVar[Exp]) extends Exp with MetaVarHole[Exp] {
   override def lifted: Exp = this
   override def mkChangeHole: Change[Exp] => Patch[Exp] = ExpChangeHole.apply
-
-  override def load(changes: ChangesetBuffer, forceClone: Boolean): NodeRef =
-    if (forceClone || mv.moved)
-      mv.tree.load(changes, forceClone = true)
-    else {
-      mv.moved = true
-      mv.tree.ref
-    }
-
-  override def unload(changes: ChangesetBuffer): Unit = {
-    changes.buf += DetachNode(mv.tree.ref)
-  }
-
-  override def computeChangeset(parent: NodeRef, link: Link, other: Context[Exp], changes: ChangesetBuffer): Unit =
-    if (this != other) {
-      this.unload(changes)
-      changes += AttachNode(parent, link, other.load(changes, false))
-    }
 }
 
 case class ExpChangeHole(change: Change[Exp]) extends Exp with ChangeHole[Exp] {
   override def lifted: Exp = this
-
-  override def computeChangeset(parent: NodeRef, link: Link, other: Context[Exp], changes: ChangesetBuffer): Unit = ???
-
-  override def unload(changes: ChangesetBuffer): Unit = ???
-
-  override def load(changes: ChangesetBuffer, forceClone: Boolean): NodeRef = ???
 }
 
 case class Num(n: Int) extends Exp {
@@ -99,10 +75,6 @@ case class Num(n: Int) extends Exp {
   }
 
   override def buildTree(): Exp = this
-
-  override def size: Int = 0
-
-  override def changeSize: Int = 1
 }
 
 case class Add(e1: Exp, e2: Exp) extends Exp {
@@ -195,10 +167,6 @@ case class Add(e1: Exp, e2: Exp) extends Exp {
     case Add(e1, e2) => this.e1.matchTree(e1); this.e2.matchTree(e2)
     case _ => throw ApplyDiffFailed()
   }
-
-  override def size: Int = e1.size + e2.size
-
-  override def changeSize: Int = 1 + e1.changeSize + e2.changeSize
 }
 
 case class Mul(e1: Exp, e2: Exp) extends Exp {
@@ -291,9 +259,4 @@ case class Mul(e1: Exp, e2: Exp) extends Exp {
 
   override def buildTree(): Exp =
     Mul(this.e1.buildTree(), this.e2.buildTree())
-
-  override def size: Int = e1.size + e2.size
-
-  override def changeSize: Int = 1 + e1.changeSize + e2.changeSize
-
 }

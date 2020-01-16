@@ -35,7 +35,6 @@ case class MetaVar[R](i: Int, @transient var tree: R) {
 }
 
 trait Change[T <: Diffable[_]] {
-  def size: Int
   def freevars: Set[MetaVar[_]]
   def isClosed: Boolean
   def generic: Change[_] = this
@@ -56,13 +55,11 @@ object Change {
   }
 }
 case class IdentityChange[T <: Diffable[_]]() extends Change[T] {
-  override def size: Int = 0
   override def freevars: Set[MetaVar[_]] = Set()
   override def isClosed: Boolean = true
   override def toString: String = "#id"
 }
 case class RewriteChange[T <: Diffable[_]](delCtx: Context[T], insCtx: Context[T]) extends Change[T] {
-  override def size: Int = delCtx.size + insCtx.size
   lazy val freevars: Set[MetaVar[_]] = insCtx.freevars diff delCtx.freevars
   override def isClosed: Boolean = freevars.isEmpty
   override def toString: String = s"($delCtx -> $insCtx)"

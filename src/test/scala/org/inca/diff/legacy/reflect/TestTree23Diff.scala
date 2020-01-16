@@ -1,7 +1,7 @@
 package org.inca.diff.legacy.reflect
 
-import org.inca.diff.legacy.reflect.Diff._
 import org.inca.diff.HasCryptoHash
+import org.inca.diff.legacy.reflect.Diff._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 

@@ -20,7 +20,7 @@ class TestDerivedTree23 extends AnyFlatSpec with Matchers {
 
   def compareAndApply(src: Tree23, dest: Tree23): Assertion = {
     val patch = src.compareTo(dest)
-    println(s"Patch of size ${patch.size}:\n  $patch")
+    println(s"Patch:\n  $patch")
     src.applyPatch(patch) should be (Some(dest))
   }
 

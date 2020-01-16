@@ -18,7 +18,7 @@ class TestDerivedList extends AnyFlatSpec with Matchers {
 
   def compareAndApply(src: Exp, dest: Exp): Assertion = {
     val patch = src.compareTo(dest)
-    println(s"Patch of size ${patch.size}:\n  $patch")
+    println(s"Patch:\n  $patch")
     src.applyPatch(patch) should be (Some(dest))
   }
 

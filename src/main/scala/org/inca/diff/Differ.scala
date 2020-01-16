@@ -1,7 +1,7 @@
 package org.inca.diff
 
 import org.inca.diff.DiffData.Patch
-import org.inca.diff.changeset.SimpleChangesetApi
+import org.inca.diff.changeset.ChangesetApi._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.language.implicitConversions
@@ -29,7 +29,7 @@ class Differ[T <: Diffable[T]](_src: T) {
     postDel.greatestCommonClosedPrefix(postIns)
   }
 
-  def diffChangeset(dest: T)(): SimpleChangesetApi.Changeset = {
+  def diffChangeset(dest: T)(): Changeset = {
     val oracle = oracleFact.mkNextOracle(dest)
 
     // changeTree
@@ -44,12 +44,12 @@ class Differ[T <: Diffable[T]](_src: T) {
     src = dest
 
     // diff
-    val buf = ArrayBuffer[SimpleChangesetApi.ChangeCmd]()
+    val buf = ArrayBuffer[ChangeCmd]()
     postDel.computeChangeset(
-      SimpleChangesetApi.URI("<root>"),
-      SimpleChangesetApi.RootLink,
+      URI("<root>"),
+      RootLink,
       postIns,
-      new SimpleChangesetApi.ChangesetBuffer(buf))
+      new ChangesetBuffer(buf))
     buf.toList
 
   }

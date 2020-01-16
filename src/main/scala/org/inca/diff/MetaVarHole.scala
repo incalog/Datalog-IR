@@ -1,6 +1,8 @@
 package org.inca.diff
 
 import org.inca.diff.DiffData.{Context, Patch}
+import org.inca.diff.changeset.ChangesetApi
+import org.inca.diff.changeset.ChangesetApi._
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -9,8 +11,8 @@ trait MetaVarHole[T <: Diffable[T]] extends Diffable[T] { this: T =>
   def mkChangeHole: Change[T] => Patch[T]
   def lifted: Context[T]
 
-  override lazy val $hash: Nothing =
-    throw new IllegalStateException(s"Input trees may not contain hole $this")
+  override lazy val $hash: Array[Byte] =
+    mv.tree.$hash
 
   override lazy val freevars: Set[MetaVar[_]] = Set(mv)
 
@@ -47,8 +49,21 @@ trait MetaVarHole[T <: Diffable[T]] extends Diffable[T] { this: T =>
 
   override def toString: String = mv.toString
 
-  override def size: Int = 1
+  override def load(changes: ChangesetBuffer, forceClone: Boolean): NodeRef =
+    if (forceClone || mv.moved)
+      mv.tree.load(changes, forceClone = true)
+    else {
+      mv.moved = true
+      mv.tree.ref
+    }
 
-  override def changeSize: Int = 0
+  override def unload(changes: ChangesetBuffer): Unit = {
+    changes.buf += DetachNode(mv.tree.ref)
+  }
 
+  override def computeChangeset(parent: NodeRef, link: Link, other: Context[T], changes: ChangesetBuffer): Unit =
+    if (this != other) {
+      this.unload(changes)
+      changes += AttachNode(parent, link, other.load(changes, false))
+    }
 }
