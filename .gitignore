@@ -4,3 +4,4 @@ project
 src/main/.DS_Store
 src/main/scala/.DS_Store
 src/main/scala/org/inca/generators/.DS_Store
+/src/test/scala/Path_GPLangQuerySpecification.scala
