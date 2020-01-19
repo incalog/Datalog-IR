@@ -4,6 +4,7 @@ import org.inca.generators.gp.util.Util.classPathToTypeSelect
 import org.inca.lang.core.Content.{IParameter, IPatternBody, TemporaryVariable}
 import org.inca.lang.gp.Constraints.PatternCompositionConstraint
 import org.inca.lang.gp.Content.GraphPattern
+import org.inca.generators.gp.sdk.queryspecification.QuerySpecificationGenerator._
 
 import scala.meta._
 
@@ -14,7 +15,7 @@ object ParentObject {
     // {} is necessary that the above line won't be interpreted
     // as a modifier for the below line #lifehacks
     q"""
-      object ${classTermName(pattern.name, collectionName)} {
+      object ${classTermName(pattern, collectionName)} {
         final class GeneratedPQuery extends AbstractPQuery {
             private val that = this
             ..${pparams(pattern.parameters)}
@@ -43,14 +44,11 @@ object ParentObject {
 
   private def createTypeConstraints(graphParameters: Seq[IParameter]): List[Stat] =
     (for (graphParameter <- graphParameters) yield {
-      val paramVarName = Term.Name(s"var_${graphParameter.name}")
-
-      val paramTypeName = classPathToTypeSelect(graphParameter.typ.get.toString)
-      val paramType = q"classOf[$paramTypeName]"
-
-      val params = List(q"body", q"Tuples.flatTupleOf($paramVarName)", q"new ClassKey($paramType)")
-
-      q"new TypeConstraint(..$params)"
+      q"""new TypeConstraint(
+         body,
+         Tuples.flatTupleOf(${Term.Name(s"var_${graphParameter.name}")}),
+         new ClassKey(classOf[${classPathToTypeSelect(graphParameter.typ.get.toString)}])
+       )"""
     }).toList
 
   private def createTemporaryVariables(temporaryVariables: Map[String, String]): List[Stat] =
@@ -58,7 +56,7 @@ object ParentObject {
       val tempVarValue = Lit.String(name)
       val tempVarName = Pat.Var(Term.Name(s"var__$name"))
 
-      q"val $tempVarName: PVariable = body.getOrCreateVariableByName($tempVarValue)"
+      q"val ${tempVarName}: PVariable = body.getOrCreateVariableByName(${tempVarValue})"
     }).toList
 
   private def createLocalGlobalVariables(graphParameters: Seq[IParameter]): List[Stat] =
@@ -102,12 +100,8 @@ object ParentObject {
       val pParamFullyQualifiedName = Lit.String(graphParameter.typ.get.toString)
 
       val pConceptKey = q"new PlaceholderConceptKey()"
-      val pPParameter = q"new PParameter($pParamNameString, $pParamFullyQualifiedName, $pConceptKey)"
-      val pGeneratedPQueryParameter = q"private val $pParamName: PParameter = $pPParameter"
-      pGeneratedPQueryParameter
+      q"private val $pParamName: PParameter = new PParameter($pParamNameString, $pParamFullyQualifiedName, $pConceptKey)"
     }).toList
 
-  private def classTermName(patternName: String, collectionName: String) =
-    Term.Name(s"${patternName}_${collectionName}QuerySpecification")
 
 }

@@ -3,13 +3,12 @@ package org.inca.generators.gp.sdk.queryspecification
 import org.inca.generators.gp.sdk.queryspecification.ParentClass.generateParentClass
 import org.inca.generators.gp.sdk.queryspecification.ParentObject.generateParentObject
 import org.inca.generators.gp.util.ImportItem
-import org.inca.generators.gp.util.Util.{classPathToTypeSelect, importToImporter}
-import org.inca.lang.core.Content.{IParameter, IPatternBody, TemporaryVariable}
-import org.inca.lang.gp.Constraints.PatternCompositionConstraint
+import org.inca.generators.gp.util.Util.importToImporter
 import org.inca.lang.gp.Content.GraphPattern
 
 import scala.meta._
 
+// todo should this be a class?
 object QuerySpecificationGenerator {
 
   def generateQuerySpeicfication(pattern: GraphPattern, collectionName: String): Source =
@@ -19,6 +18,10 @@ object QuerySpecificationGenerator {
             ${generateParentObject(pattern, collectionName)}
           """
 
+  def classTypeName(pattern: GraphPattern, collectionName: String): Type.Name =
+    Type.Name(s"${pattern.name}_${collectionName}QuerySpecification")
+  def classTermName(pattern: GraphPattern, collectionName: String): Term.Name =
+    Term.Name(s"${pattern.name}_${collectionName}QuerySpecification")
 
 
   // todo fetch them dynamically and move this to a pipeline step maybe
@@ -41,5 +44,7 @@ object QuerySpecificationGenerator {
 
     importToImporter(importStatements)
   }
+
+
 
 }
