@@ -37,7 +37,7 @@ object GraphLangTest extends App {
    * }
    */
   val directEdge: GraphPattern = GraphPattern(
-    "Path",
+    "DirectEdge",
     Seq(
       srcGraphParam,
       trgGraphParam
