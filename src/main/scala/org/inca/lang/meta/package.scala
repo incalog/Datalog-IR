@@ -12,6 +12,6 @@ package object meta {
     override def toString: String = s"${cls.getCanonicalName}"
   }
   case class NodeLink(nodeType: NodeType, fld: Field) extends Link {
-    override def toString: String = s"$nodeType:${fld.getName}"
+    override def toString: String = s"${fld.getName}"
   }
 }

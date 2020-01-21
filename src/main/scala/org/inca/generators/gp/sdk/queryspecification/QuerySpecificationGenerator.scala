@@ -20,6 +20,7 @@ object QuerySpecificationGenerator {
 
   def classTypeName(pattern: GraphPattern, collectionName: String): Type.Name =
     Type.Name(s"${pattern.name}_${collectionName}QuerySpecification")
+
   def classTermName(pattern: GraphPattern, collectionName: String): Term.Name =
     Term.Name(s"${pattern.name}_${collectionName}QuerySpecification")
 
@@ -44,7 +45,5 @@ object QuerySpecificationGenerator {
 
     importToImporter(importStatements)
   }
-
-
 
 }

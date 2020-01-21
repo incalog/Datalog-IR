@@ -1,10 +1,11 @@
 package org.inca.generators.gp.sdk.queryspecification
 
 import org.inca.generators.gp.util.Util.classPathToTypeSelect
-import org.inca.lang.core.Content.{IParameter, IPatternBody, TemporaryVariable}
-import org.inca.lang.gp.Constraints.PatternCompositionConstraint
-import org.inca.lang.gp.Content.GraphPattern
+import org.inca.lang.core.Content.{IParameter, IPatternBody, IPatternBodyContent, TemporaryVariable}
+import org.inca.lang.gp.Constraints.{PathExpressionConstraint, PatternCompositionConstraint}
+import org.inca.lang.gp.Content.{GraphPattern, GraphPatternParameter}
 import org.inca.generators.gp.sdk.queryspecification.QuerySpecificationGenerator._
+import org.inca.lang.core.Reference.VariableReference
 
 import scala.meta._
 
@@ -35,14 +36,50 @@ object ParentObject {
     q"""{
           val body: PBody = new PBody(that)
           ..${createLocalGlobalVariables(pattern.parameters)}
-          ..${createTemporaryVariables(getTemporaryVariables(body))}
-          ..${createTypeConstraints(pattern.parameters)}
+          ..${createTemporaryVariables(getTemporaryVariables(body.contents))}
+          ..${createTypeConstraintsParameters(pattern.parameters)}
+          ..${createTypeConstraintsPathExpressions(body.contents)}
           body
         }
         """
   }
 
-  private def createTypeConstraints(graphParameters: Seq[IParameter]): List[Stat] =
+  private def createTypeConstraintsPathExpressions(pathExpressions: Seq[IPatternBodyContent]): List[Stat] =
+    pathExpressions.collect {
+      case pxc: PathExpressionConstraint => {
+        val src = pxc.src.variable match {
+          case t: TemporaryVariable =>
+            Term.Name(s"var__${t.name}")
+          case gpp: GraphPatternParameter =>
+            Term.Name(s"var_${gpp.name}")
+        }
+        val trg = pxc.trg match {
+          case vr: VariableReference =>
+            Term.Name(s"var__${vr.variable.name}")
+
+          case tv: TemporaryVariable =>
+            Term.Name(s"var__${tv.name}")
+        }
+        q"""new TypeConstraint(
+             body,
+             Tuples.staticArityFlatTupleOf($src, $trg),
+             new LinkKey(NodeType(classOf[${classPathToTypeSelect(pxc.typ.toString)}])(${Lit.String(pxc.element.link.toString)}))
+           )"""
+      }
+    }.toList
+
+  private def getTemporaryVariables(body: Seq[IPatternBodyContent]): List[String] =
+    body.collect {
+      case p: PathExpressionConstraint => {
+        val trg = p.trg match {
+          case t: TemporaryVariable => t.name
+          case r: VariableReference => r.variable.name
+        }
+        trg
+      }
+    }.toList.distinct
+
+  private def createTypeConstraintsParameters(graphParameters: Seq[IParameter]): List[Stat] =
     (for (graphParameter <- graphParameters) yield {
       q"""new TypeConstraint(
          body,
@@ -51,13 +88,12 @@ object ParentObject {
        )"""
     }).toList
 
-  private def createTemporaryVariables(temporaryVariables: Map[String, String]): List[Stat] =
-    (for ((name, _) <- temporaryVariables) yield {
-      val tempVarValue = Lit.String(name)
-      val tempVarName = Pat.Var(Term.Name(s"var__$name"))
+  private def createTemporaryVariables(names: List[String]): List[Stat] = for (name <- names) yield {
+    val tempVarValue = Lit.String(name)
+    val tempVarName = Pat.Var(Term.Name(s"var__$name"))
 
-      q"val ${tempVarName}: PVariable = body.getOrCreateVariableByName(${tempVarValue})"
-    }).toList
+    q"val ${tempVarName}: PVariable = body.getOrCreateVariableByName(${tempVarValue})"
+  }
 
   private def createLocalGlobalVariables(graphParameters: Seq[IParameter]): List[Stat] =
     (for (graphParameter <- graphParameters) yield {
@@ -67,12 +103,6 @@ object ParentObject {
       q"val $param_var_name: PVariable = body.getOrCreateVariableByName($paramName)"
     }).toList
 
-
-  private def getTemporaryVariables(body: IPatternBody): Map[String, String] = body.contents.collect {
-    case p: PatternCompositionConstraint => p.call.arguments.collect {
-      case t: TemporaryVariable => Map[String, String](t.name -> t.typ.get.toString)
-    }
-  }.flatten.flatten.toMap
 
   private def overrideFunctions(pattern: GraphPattern, collectionName: String): List[Stat] = {
 

@@ -7,7 +7,6 @@ import scala.meta._
 
 
 class GPGenerator {
-  val filename = "test.scala"
 
   /**
    * Generates a ast with quasiquotes of scalameta from a IncA graph pattern
