@@ -1,5 +1,8 @@
-target
+target/*
+/target/*
 project
+project/*
+/project/*
 .idea
 src/main/.DS_Store
 src/main/scala/.DS_Store
