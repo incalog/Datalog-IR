@@ -1,7 +1,7 @@
 package org.inca.incer
 
 import org.inca.diff.macros.Util
-import org.inca.incer.indices.Indices
+import org.inca.incer.indices.IncARuntimeContext
 import org.inca.meta.MetaElements.NodeType
 
 import scala.annotation.{StaticAnnotation, compileTimeOnly}
@@ -22,7 +22,7 @@ object IncrementalIndexMacro {
     }
 
     val symNodeType = symbolOf[NodeType].companion
-    val symIndices = symbolOf[Indices]
+    val symIndices = symbolOf[IncARuntimeContext]
     val companionIndices = symIndices.companion
     val symIncrementalizable = symbolOf[Incrementalizable]
     val tyIncrementalizable = typeOf[Incrementalizable]

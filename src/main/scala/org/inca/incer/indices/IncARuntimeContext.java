@@ -15,7 +15,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.Callable;
 
-public class Indices implements IQueryRuntimeContext {
+public class IncARuntimeContext implements IQueryRuntimeContext {
 
     public final Map<NodeType, Set<Object>> nodeTypeInstances;
     public final Map<DataType, Set<Object>> dataTypeInstances;
@@ -37,18 +37,18 @@ public class Indices implements IQueryRuntimeContext {
      */
     private Set<Change> changeStore;
 
-    public Indices() {
+    public IncARuntimeContext() {
         this(false);
     }
 
-    public Indices(final boolean isDebugMode) {
+    public IncARuntimeContext(final boolean isDebugMode) {
         this.nodeTypeInstances = new HashMap<>();
         this.dataTypeInstances = new HashMap<>();
         this.nodeLinkInstances = new HashMap<>();
         this.nodeLinkInstancesReversed = new HashMap<>();
         this.changeStore = new HashSet<>();
         this.isDebugMode = isDebugMode;
-        this.metaContext = new MetaContext();
+        this.metaContext = new IncAMetaContext();
     }
 
     public void dispose() {
@@ -106,24 +106,24 @@ public class Indices implements IQueryRuntimeContext {
     }
 
     public void insertNodeTypeInstance(final NodeType type, final Object instance) {
-        insertInstance(type, instance, Change.insertion(new InputKey.NodeTypeKey(type),
+        insertInstance(type, instance, Change.insertion(new IncAInputKey.NodeTypeKey(type),
                 Tuples.staticArityFlatTupleOf(instance)), this.nodeTypeInstances);
     }
 
     public void deleteNodeTypeInstance(final NodeType type, final Object instance) {
-        deleteInstance(type, instance, Change.deletion(new InputKey.NodeTypeKey(type),
+        deleteInstance(type, instance, Change.deletion(new IncAInputKey.NodeTypeKey(type),
                 Tuples.staticArityFlatTupleOf(instance)), this.nodeTypeInstances);
     }
 
     public void insertDataTypeInstance(final Object instance) {
         final DataType type = new DataType(instance.getClass());
-        insertInstance(type, instance, Change.insertion(new InputKey.DataTypeKey(type),
+        insertInstance(type, instance, Change.insertion(new IncAInputKey.DataTypeKey(type),
                 Tuples.staticArityFlatTupleOf(instance)), this.dataTypeInstances);
     }
 
     public void deleteDataTypeInstance(final Object instance) {
         final DataType type = new DataType(instance.getClass());
-        deleteInstance(type, instance, Change.deletion(new InputKey.DataTypeKey(type),
+        deleteInstance(type, instance, Change.deletion(new IncAInputKey.DataTypeKey(type),
                 Tuples.staticArityFlatTupleOf(instance)), this.dataTypeInstances);
     }
 
@@ -139,7 +139,7 @@ public class Indices implements IQueryRuntimeContext {
                 }
                 if (iv.add(target)) {
                     if (registerChange) {
-                        this.registerChange(Change.insertion(new InputKey.NodeLinkKey(link),
+                        this.registerChange(Change.insertion(new IncAInputKey.NodeLinkKey(link),
                                 Tuples.staticArityFlatTupleOf(source, target)));
                     }
                 } else {
@@ -168,7 +168,7 @@ public class Indices implements IQueryRuntimeContext {
                 }
                 if (iv.remove(target)) {
                     if (registerChange) {
-                        this.registerChange(Change.deletion(new InputKey.NodeLinkKey(link), Tuples.staticArityFlatTupleOf(source, target)));
+                        this.registerChange(Change.deletion(new IncAInputKey.NodeLinkKey(link), Tuples.staticArityFlatTupleOf(source, target)));
                     }
                 } else {
                     throw new RuntimeException("Unknown  " + link + " instance: " + source + " -> " + target);
@@ -309,8 +309,8 @@ public class Indices implements IQueryRuntimeContext {
     public int countTuples(final IInputKey key, final TupleMask mask, final ITuple seed) {
         int result = 0;
 
-        if (key instanceof InputKey.NodeTypeKey) {
-            final NodeType type = ((InputKey.NodeTypeKey) key).type;
+        if (key instanceof IncAInputKey.NodeTypeKey) {
+            final NodeType type = ((IncAInputKey.NodeTypeKey) key).type;
             if (mask.indices.length == 0) {
                 // unseeded
                 result = this.nodeTypeInstances.getOrDefault(type, Collections.emptySet()).size();
@@ -318,8 +318,8 @@ public class Indices implements IQueryRuntimeContext {
                 // fully seeded
                 result = ((containsTuple(key, seed)) ? 1 : 0);
             }
-        } else if (key instanceof InputKey.DataTypeKey) {
-            final DataType type = ((InputKey.DataTypeKey) key).type;
+        } else if (key instanceof IncAInputKey.DataTypeKey) {
+            final DataType type = ((IncAInputKey.DataTypeKey) key).type;
             if (mask.indices.length == 0) {
                 // unseeded
                 result = this.dataTypeInstances.getOrDefault(type, Collections.emptySet()).size();
@@ -327,8 +327,8 @@ public class Indices implements IQueryRuntimeContext {
                 // fully seeded
                 result = ((containsTuple(key, seed)) ? 1 : 0);
             }
-        } else if (key instanceof InputKey.NodeLinkKey) {
-            final NodeLink link = ((InputKey.NodeLinkKey) key).type;
+        } else if (key instanceof IncAInputKey.NodeLinkKey) {
+            final NodeLink link = ((IncAInputKey.NodeLinkKey) key).type;
 
             boolean isSourceBound = false;
             int sourceIndex = -1;
@@ -385,8 +385,8 @@ public class Indices implements IQueryRuntimeContext {
     public Iterable<Tuple> enumerateTuples(final IInputKey key, final TupleMask mask, final ITuple seed) {
         final Collection<Tuple> result = new HashSet<>();
 
-        if (key instanceof InputKey.NodeTypeKey) {
-            final NodeType type = ((InputKey.NodeTypeKey) key).type;
+        if (key instanceof IncAInputKey.NodeTypeKey) {
+            final NodeType type = ((IncAInputKey.NodeTypeKey) key).type;
             if (mask.indices.length == 0) {
                 this.nodeTypeInstances.getOrDefault(type, Collections.emptySet()).forEach(e -> result.add(Tuples.staticArityFlatTupleOf(e)));
             } else {
@@ -395,8 +395,8 @@ public class Indices implements IQueryRuntimeContext {
                     result.add(Tuples.staticArityFlatTupleOf(seedInstance));
                 }
             }
-        } else if (key instanceof InputKey.DataTypeKey) {
-            final DataType type = ((InputKey.DataTypeKey) key).type;
+        } else if (key instanceof IncAInputKey.DataTypeKey) {
+            final DataType type = ((IncAInputKey.DataTypeKey) key).type;
 
             if (mask.indices.length == 0) {
                 this.dataTypeInstances.getOrDefault(type, Collections.emptySet()).forEach(e -> result.add(Tuples.staticArityFlatTupleOf(e)));
@@ -406,8 +406,8 @@ public class Indices implements IQueryRuntimeContext {
                     result.add(Tuples.staticArityFlatTupleOf(seedInstance));
                 }
             }
-        } else if (key instanceof InputKey.NodeLinkKey) {
-            final NodeLink link = ((InputKey.NodeLinkKey) key).type;
+        } else if (key instanceof IncAInputKey.NodeLinkKey) {
+            final NodeLink link = ((IncAInputKey.NodeLinkKey) key).type;
 
             boolean isSourceBound = false;
             int sourceIndex = -1;
@@ -467,8 +467,8 @@ public class Indices implements IQueryRuntimeContext {
     public Iterable<? extends Object> enumerateValues(final IInputKey key, final TupleMask mask, final ITuple seed) {
         Collection result = null;
 
-        if (key instanceof InputKey.NodeTypeKey) {
-            final NodeType type = ((InputKey.NodeTypeKey) key).type;
+        if (key instanceof IncAInputKey.NodeTypeKey) {
+            final NodeType type = ((IncAInputKey.NodeTypeKey) key).type;
             if (mask.indices.length == 0) {
                 // unseeded
                 result = this.nodeTypeInstances.get(type);
@@ -476,8 +476,8 @@ public class Indices implements IQueryRuntimeContext {
                 // must be unseeded, this is enumerateValues after all!
                 illegalEnumerateValues(seed);
             }
-        } else if (key instanceof InputKey.DataTypeKey) {
-            final DataType type = ((InputKey.DataTypeKey) key).type;
+        } else if (key instanceof IncAInputKey.DataTypeKey) {
+            final DataType type = ((IncAInputKey.DataTypeKey) key).type;
             if (mask.indices.length == 0) {
                 // unseeded
                 result = this.dataTypeInstances.get(type);
@@ -485,8 +485,8 @@ public class Indices implements IQueryRuntimeContext {
                 // must be unseeded, this is enumerateValues after all!
                 illegalEnumerateValues(seed);
             }
-        } else if (key instanceof InputKey.NodeLinkKey) {
-            final NodeLink link = ((InputKey.NodeLinkKey) key).type;
+        } else if (key instanceof IncAInputKey.NodeLinkKey) {
+            final NodeLink link = ((IncAInputKey.NodeLinkKey) key).type;
 
             boolean isSourceBound = false;
             int sourceIndex = -1;
@@ -543,14 +543,14 @@ public class Indices implements IQueryRuntimeContext {
             } else {
                 result = false;
             }
-        } else if (key instanceof InputKey.NodeTypeKey) {
-            final NodeType type = ((InputKey.NodeTypeKey) key).type;
+        } else if (key instanceof IncAInputKey.NodeTypeKey) {
+            final NodeType type = ((IncAInputKey.NodeTypeKey) key).type;
             result = this.nodeTypeInstances.getOrDefault(type, Collections.emptySet()).contains(getFromTuple(tuple, 0));
-        } else if (key instanceof InputKey.DataTypeKey) {
-            final DataType type = ((InputKey.DataTypeKey) key).type;
+        } else if (key instanceof IncAInputKey.DataTypeKey) {
+            final DataType type = ((IncAInputKey.DataTypeKey) key).type;
             result = this.dataTypeInstances.getOrDefault(type, Collections.emptySet()).contains(getFromTuple(tuple, 0));
-        } else if (key instanceof InputKey.NodeLinkKey) {
-            final NodeLink link = ((InputKey.NodeLinkKey) key).type;
+        } else if (key instanceof IncAInputKey.NodeLinkKey) {
+            final NodeLink link = ((IncAInputKey.NodeLinkKey) key).type;
             final Map<Object, Set<Object>> linkValues = this.nodeLinkInstances.get(link);
             if (linkValues != null) {
                 final Object source = getFromTuple(tuple, 1);

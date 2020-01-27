@@ -3,15 +3,15 @@ package org.inca.incer
 import java.util
 
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, TupleMask, Tuples}
-import org.inca.incer.indices.Indices
-import org.inca.incer.indices.InputKey.{DataTypeKey, NodeLinkKey, NodeTypeKey}
+import org.inca.incer.indices.IncARuntimeContext
+import org.inca.incer.indices.IncAInputKey.{DataTypeKey, NodeLinkKey, NodeTypeKey}
 import org.inca.meta.MetaElements.{DataType, NodeType}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
 
 import scala.jdk.CollectionConverters._
 
-class IndicesTests extends AnyFunSuite {
+class RuntimeContextTests extends AnyFunSuite {
 
   val num1 = Num(1)
   val num2 = Num(2)
@@ -20,26 +20,26 @@ class IndicesTests extends AnyFunSuite {
   val add = Add(mul, num3)
 
   test("Type hierarchy check") {
-    val indices = new Indices()
+    val indices = new IncARuntimeContext()
     add.insert(indices)
 
     // superTypes
-    assert(Indices.superTypeMap.get(classOf[Num]).contains(classOf[Exp]))
-    assert(Indices.superTypeMap.get(classOf[Add]).contains(classOf[Exp]))
-    assert(Indices.superTypeMap.get(classOf[Mul]).contains(classOf[Exp]))
-    assert(isEmptyOrNull(Indices.superTypeMap.get(classOf[Exp])))
+    assert(IncARuntimeContext.superTypeMap.get(classOf[Num]).contains(classOf[Exp]))
+    assert(IncARuntimeContext.superTypeMap.get(classOf[Add]).contains(classOf[Exp]))
+    assert(IncARuntimeContext.superTypeMap.get(classOf[Mul]).contains(classOf[Exp]))
+    assert(isEmptyOrNull(IncARuntimeContext.superTypeMap.get(classOf[Exp])))
 
     // subTypes
-    assert(isEmptyOrNull(Indices.subTypeMap.get(classOf[Num])))
-    assert(isEmptyOrNull(Indices.subTypeMap.get(classOf[Add])))
-    assert(isEmptyOrNull(Indices.subTypeMap.get(classOf[Mul])))
-    assert(Indices.subTypeMap.get(classOf[Exp]).containsAll(util.Arrays.asList(classOf[Num], classOf[Add], classOf[Mul])))
+    assert(isEmptyOrNull(IncARuntimeContext.subTypeMap.get(classOf[Num])))
+    assert(isEmptyOrNull(IncARuntimeContext.subTypeMap.get(classOf[Add])))
+    assert(isEmptyOrNull(IncARuntimeContext.subTypeMap.get(classOf[Mul])))
+    assert(IncARuntimeContext.subTypeMap.get(classOf[Exp]).containsAll(util.Arrays.asList(classOf[Num], classOf[Add], classOf[Mul])))
 
     indices.dispose()
   }
 
   test("NodeType instances") {
-    val indices = new Indices()
+    val indices = new IncARuntimeContext()
     add.insert(indices)
 
     indices.enumerateTuples(new NodeTypeKey(NodeType(classOf[Exp])), emptyMask, null).
@@ -58,7 +58,7 @@ class IndicesTests extends AnyFunSuite {
   }
 
   test("DataType instances") {
-    val indices = new Indices()
+    val indices = new IncARuntimeContext()
     add.insert(indices)
 
     indices.enumerateTuples(new DataTypeKey(DataType(classOf[Integer])), emptyMask, null).
@@ -74,7 +74,7 @@ class IndicesTests extends AnyFunSuite {
   }
 
   test("NodeLink instances") {
-    val indices = new Indices()
+    val indices = new IncARuntimeContext()
     add.insert(indices)
 
     indices.enumerateTuples(new NodeLinkKey(NodeType(classOf[Num])("n")), emptyMask, null).
