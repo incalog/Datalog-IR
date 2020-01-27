@@ -29,6 +29,7 @@ public class Indices implements IQueryRuntimeContext {
     public static final Map<Class<?>, Set<Class<?>>> subTypeMap = new HashMap<>();
     public static final Map<Class<?>, Set<Class<?>>> superTypeMap = new HashMap<>();
     private final boolean isDebugMode;
+    private IQueryMetaContext metaContext;
 
     /**
      * Remains null until we actually start listening to program changes.
@@ -47,6 +48,18 @@ public class Indices implements IQueryRuntimeContext {
         this.nodeLinkInstancesReversed = new HashMap<>();
         this.changeStore = new HashSet<>();
         this.isDebugMode = isDebugMode;
+        this.metaContext = new MetaContext();
+    }
+
+    public void dispose() {
+        this.nodeTypeInstances.clear();
+        this.dataTypeInstances.clear();
+        this.nodeLinkInstances.clear();
+        this.nodeLinkInstancesReversed.clear();
+        if (this.changeStore != null) {
+            this.changeStore.clear();
+        }
+        this.metaContext = null;
     }
 
     private static void addType(final Class<?> key, final Class<?> value, final Map<Class<?>, Set<Class<?>>> map) {
@@ -265,7 +278,7 @@ public class Indices implements IQueryRuntimeContext {
 
     @Override
     public IQueryMetaContext getMetaContext() {
-        return new MetaContext();
+        return this.metaContext;
     }
 
     @Override
@@ -427,9 +440,11 @@ public class Indices implements IQueryRuntimeContext {
             } else if (!(isSourceBound) && !(isTargetBound)) {
                 // fully unseeded
                 final Map<Object, Set<Object>> linkValues = this.nodeLinkInstances.get(link);
-                for (final Map.Entry<Object, Set<Object>> entry : linkValues.entrySet()) {
-                    for (final Object target : entry.getValue()) {
-                        result.add(Tuples.staticArityFlatTupleOf(entry.getKey(), target));
+                if (linkValues != null) {
+                    for (final Map.Entry<Object, Set<Object>> entry : linkValues.entrySet()) {
+                        for (final Object target : entry.getValue()) {
+                            result.add(Tuples.staticArityFlatTupleOf(entry.getKey(), target));
+                        }
                     }
                 }
             } else if (isSourceBound && !(isTargetBound)) {

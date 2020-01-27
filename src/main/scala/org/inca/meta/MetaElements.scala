@@ -15,13 +15,22 @@ object MetaElements {
     override def hashCode(): Int = cls.hashCode()
 
     override def equals(obj: Any): Boolean = obj match {
-      case that: NodeType => cls.eq(that.cls)
+      case that: NodeType => cls.equals(that.cls)
       case _ => false
     }
   }
 
   case class DataType(cls: Class[_]) extends MetaElement {
     require(isPrimitiveDataType(cls), "Only primitive data types are allowed!")
+
+    override def toString: String = s"#${cls.getCanonicalName}"
+
+    override def hashCode(): Int = cls.hashCode()
+
+    override def equals(obj: Any): Boolean = obj match {
+      case that: DataType => cls.equals(that.cls)
+      case _ => false
+    }
   }
 
   def isPrimitiveDataType(cls: Class[_]): Boolean = {
@@ -37,7 +46,7 @@ object MetaElements {
     override def hashCode(): Int = Objects.hash(nodeType, fld)
 
     override def equals(obj: Any): Boolean = obj match {
-      case that: NodeLink => nodeType.eq(that.nodeType) && fld.eq(that.fld)
+      case that: NodeLink => nodeType.equals(that.nodeType) && fld.equals(that.fld)
       case _ => false
     }
 

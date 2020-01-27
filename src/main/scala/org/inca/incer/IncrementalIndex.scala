@@ -40,9 +40,14 @@ object IncrementalIndexMacro {
               ..$statements
 
               override def insert(indices: $symIndices): Unit = {
-                super.insert(indices)
+                this.insert(indices, false)
+              }
 
-                indices.insertNodeTypeInstance($symNodeType(classOf[$className[..$typeParameters]]), this)
+              override def insert(indices: $symIndices, recursive : Boolean): Unit = {
+                super.insert(indices, true)
+                if (!recursive) {
+                  indices.insertNodeTypeInstance($symNodeType(classOf[$className[..$typeParameters]]), this)
+                }
 
                 ..${Util.mapParams(c)(constructorParameters, tyIncrementalizable,
                   p => q"this.$p.insert(indices)",
@@ -60,9 +65,14 @@ object IncrementalIndexMacro {
               }
 
               override def delete(indices: $symIndices): Unit = {
-                super.delete(indices)
+                this.delete(indices, false)
+              }
 
-                indices.deleteNodeTypeInstance($symNodeType(classOf[$className[..$typeParameters]]), this)
+              override def delete(indices: $symIndices, recursive : Boolean): Unit = {
+                super.delete(indices, true)
+                if (!recursive) {
+                  indices.deleteNodeTypeInstance($symNodeType(classOf[$className[..$typeParameters]]), this)
+                }
 
                 ..${Util.mapParams(c)(constructorParameters, tyIncrementalizable,
                   p => q"this.$p.delete(indices)",
@@ -106,13 +116,25 @@ object IncrementalIndexMacro {
               ..$statements
 
               override def insert(indices: $symIndices): Unit = {
-                super.insert(indices)
-                indices.insertNodeTypeInstance($symNodeType(classOf[$traitName[..$typeParameters]]), this)
+                this.insert(indices, false)
+              }
+
+              override def insert(indices: $symIndices, recursive : Boolean): Unit = {
+                super.insert(indices, true)
+                if (!recursive) {
+                  indices.insertNodeTypeInstance($symNodeType(classOf[$traitName[..$typeParameters]]), this)
+                }
               }
 
               override def delete(indices: $symIndices): Unit = {
-                super.delete(indices)
-                indices.deleteNodeTypeInstance($symNodeType(classOf[$traitName[..$typeParameters]]), this)
+                this.delete(indices, false)
+              }
+
+              override def delete(indices: $symIndices, recursive : Boolean): Unit = {
+                super.delete(indices, true)
+                if (!recursive) {
+                  indices.deleteNodeTypeInstance($symNodeType(classOf[$traitName[..$typeParameters]]), this)
+                }
               }
 
               // this forces the registration of the types, but only once!
