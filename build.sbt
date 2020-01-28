@@ -19,3 +19,4 @@ libraryDependencies += "com.lihaoyi" %% "fastparse" % "2.1.3"
 
 resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases"
 libraryDependencies += "org.eclipse.viatra" % "viatra-query-runtime" % "2.3.0"
+libraryDependencies += "org.eclipse.emf" % "org.eclipse.emf.ecore" % "2.19.0"

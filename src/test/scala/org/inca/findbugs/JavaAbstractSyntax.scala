@@ -3,7 +3,7 @@ package org.inca.findbugs
 import org.inca.incer.IncrementalIndex
 
 @IncrementalIndex
-case class ClassConcept(name: String, isFinal: Boolean, members: List[ClassMember])
+case class ClassDeclaration(name: String, isFinal: Boolean, members: List[ClassMember])
 
 @IncrementalIndex
 trait ClassMember

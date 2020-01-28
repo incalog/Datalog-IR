@@ -1,14 +1,14 @@
 package org.inca.incer
 
-import org.inca.incer.indices.IncARuntimeContext
+import org.inca.incer.indices.Indices
 
 trait Incrementalizable {
 
-  def insert(indices: IncARuntimeContext): Unit = {}
+  def insert(indices: Indices): Unit = {}
 
-  def insert(indices: IncARuntimeContext, recursive: Boolean): Unit = {}
+  def insert(indices: Indices, recursive: Boolean): Unit = {}
 
-  def delete(indices: IncARuntimeContext): Unit = {}
+  def delete(indices: Indices): Unit = {}
 
-  def delete(indices: IncARuntimeContext, recursive: Boolean): Unit = {}
+  def delete(indices: Indices, recursive: Boolean): Unit = {}
 }

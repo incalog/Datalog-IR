@@ -15,8 +15,9 @@ import org.eclipse.viatra.query.runtime.matchers.psystem.queries.PParameter;
 import org.eclipse.viatra.query.runtime.matchers.psystem.queries.PVisibility;
 import org.eclipse.viatra.query.runtime.matchers.psystem.queries.QueryInitializationException;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
-import org.inca.incer.indices.IncAInputKey;
-import org.inca.incer.indices.IncAQueryScope;
+import org.inca.incer.indices.TFInputKey;
+import org.inca.incer.indices.TFQueryScope;
+import org.inca.incer.indices.TFQuerySpecification;
 import org.inca.meta.MetaElements;
 
 import java.util.*;
@@ -25,7 +26,7 @@ import java.util.*;
  * Class is final but declares protected field.
  */
 @SuppressWarnings("all")
-public final class ConfusedInheritance extends GenericQuerySpecification<GenericPatternMatcher> {
+public final class ConfusedInheritance extends TFQuerySpecification {
 
     private ConfusedInheritance() {
         super(GeneratedPQuery.INSTANCE);
@@ -42,7 +43,7 @@ public final class ConfusedInheritance extends GenericQuerySpecification<Generic
 
     @Override
     public Class<? extends QueryScope> getPreferredScopeClass() {
-        return IncAQueryScope.class;
+        return TFQueryScope.class;
     }
 
     public static ConfusedInheritance instance() {
@@ -62,7 +63,7 @@ public final class ConfusedInheritance extends GenericQuerySpecification<Generic
     private static final class GeneratedPQuery extends BasePQuery {
 
         private final PParameter p_class = new PParameter("class",
-                new MetaElements.NodeType(ClassConcept.class).toString(), new IncAInputKey.NodeTypeKey(new MetaElements.NodeType(ClassConcept.class)));
+                new MetaElements.NodeType(ClassDeclaration.class).toString(), new TFInputKey.NodeTypeKey(new MetaElements.NodeType(ClassDeclaration.class)));
 
         private static final GeneratedPQuery INSTANCE = new GeneratedPQuery();
 
@@ -90,20 +91,20 @@ public final class ConfusedInheritance extends GenericQuerySpecification<Generic
                 final PVariable var__member = body.getOrCreateVariableByName("member");
 
                 new TypeConstraint(body, Tuples.flatTupleOf(var_class),
-                        new IncAInputKey.NodeTypeKey(new MetaElements.NodeType(ClassConcept.class)));
+                        new TFInputKey.NodeTypeKey(new MetaElements.NodeType(ClassDeclaration.class)));
                 new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_class, var__tmp_1),
-                        new IncAInputKey.NodeLinkKey(new MetaElements.NodeType(ClassConcept.class).apply("isFinal")));
+                        new TFInputKey.NodeLinkKey(new MetaElements.NodeType(ClassDeclaration.class).apply("isFinal")));
                 new Equality(body, var__tmp_2, var__3909214783375021923);
                 new Equality(body, var__tmp_1, var__tmp_2);
                 new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_class, var__tmp_3),
-                        new IncAInputKey.NodeLinkKey(new MetaElements.NodeType(ClassConcept.class).apply("members")));
+                        new TFInputKey.NodeLinkKey(new MetaElements.NodeType(ClassDeclaration.class).apply("members")));
                 new Equality(body, var__member, var__tmp_3);
                 new TypeConstraint(body, Tuples.flatTupleOf(var__member),
-                        new IncAInputKey.NodeTypeKey(new MetaElements.NodeType(FieldDeclaration.class)));
+                        new TFInputKey.NodeTypeKey(new MetaElements.NodeType(FieldDeclaration.class)));
                 new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var__member, var__tmp_4),
-                        new IncAInputKey.NodeLinkKey(new MetaElements.NodeType(FieldDeclaration.class).apply("visibility")));
+                        new TFInputKey.NodeLinkKey(new MetaElements.NodeType(FieldDeclaration.class).apply("visibility")));
                 new TypeConstraint(body, Tuples.flatTupleOf(var__tmp_4),
-                        new IncAInputKey.NodeTypeKey(new MetaElements.NodeType(ProtectedVisibility.class)));
+                        new TFInputKey.NodeTypeKey(new MetaElements.NodeType(ProtectedVisibility.class)));
 
                 bodies.add(body);
             }

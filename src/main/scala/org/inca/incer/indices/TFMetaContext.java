@@ -4,9 +4,9 @@ import org.eclipse.viatra.query.runtime.matchers.context.AbstractQueryMetaContex
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey;
 import org.eclipse.viatra.query.runtime.matchers.context.InputKeyImplication;
 import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey;
-import org.inca.incer.indices.IncAInputKey.DataTypeKey;
-import org.inca.incer.indices.IncAInputKey.NodeLinkKey;
-import org.inca.incer.indices.IncAInputKey.NodeTypeKey;
+import org.inca.incer.indices.TFInputKey.DataTypeKey;
+import org.inca.incer.indices.TFInputKey.NodeLinkKey;
+import org.inca.incer.indices.TFInputKey.NodeTypeKey;
 import org.inca.meta.MetaElements;
 import org.inca.meta.MetaElements.DataType;
 import org.inca.meta.MetaElements.NodeLink;
@@ -15,7 +15,13 @@ import org.inca.meta.MetaElements.NodeType;
 import java.lang.reflect.Field;
 import java.util.*;
 
-public class IncAMetaContext extends AbstractQueryMetaContext {
+public class TFMetaContext extends AbstractQueryMetaContext {
+
+    public static final TFMetaContext INSTANCE = new TFMetaContext();
+
+    private TFMetaContext() {
+
+    }
 
     @Override
     public boolean isEnumerable(final IInputKey key) {

@@ -3,8 +3,8 @@ package org.inca.incer
 import java.util
 
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, TupleMask, Tuples}
-import org.inca.incer.indices.IncARuntimeContext
-import org.inca.incer.indices.IncAInputKey.{DataTypeKey, NodeLinkKey, NodeTypeKey}
+import org.inca.incer.indices.TFInputKey.{DataTypeKey, NodeLinkKey, NodeTypeKey}
+import org.inca.incer.indices.{TFRuntimeContext, Indices}
 import org.inca.meta.MetaElements.{DataType, NodeType}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
@@ -20,77 +20,82 @@ class RuntimeContextTests extends AnyFunSuite {
   val add = Add(mul, num3)
 
   test("Type hierarchy check") {
-    val indices = new IncARuntimeContext()
-    add.insert(indices)
+    val indices = new Indices()
+    indices.initializeWith(add)
 
     // superTypes
-    assert(IncARuntimeContext.superTypeMap.get(classOf[Num]).contains(classOf[Exp]))
-    assert(IncARuntimeContext.superTypeMap.get(classOf[Add]).contains(classOf[Exp]))
-    assert(IncARuntimeContext.superTypeMap.get(classOf[Mul]).contains(classOf[Exp]))
-    assert(isEmptyOrNull(IncARuntimeContext.superTypeMap.get(classOf[Exp])))
+    assert(Indices.superTypeMap.get(classOf[Num]).contains(classOf[Exp]))
+    assert(Indices.superTypeMap.get(classOf[Add]).contains(classOf[Exp]))
+    assert(Indices.superTypeMap.get(classOf[Mul]).contains(classOf[Exp]))
+    assert(isEmptyOrNull(Indices.superTypeMap.get(classOf[Exp])))
 
     // subTypes
-    assert(isEmptyOrNull(IncARuntimeContext.subTypeMap.get(classOf[Num])))
-    assert(isEmptyOrNull(IncARuntimeContext.subTypeMap.get(classOf[Add])))
-    assert(isEmptyOrNull(IncARuntimeContext.subTypeMap.get(classOf[Mul])))
-    assert(IncARuntimeContext.subTypeMap.get(classOf[Exp]).containsAll(util.Arrays.asList(classOf[Num], classOf[Add], classOf[Mul])))
+    assert(isEmptyOrNull(Indices.subTypeMap.get(classOf[Num])))
+    assert(isEmptyOrNull(Indices.subTypeMap.get(classOf[Add])))
+    assert(isEmptyOrNull(Indices.subTypeMap.get(classOf[Mul])))
+    assert(Indices.subTypeMap.get(classOf[Exp]).containsAll(util.Arrays.asList(classOf[Num], classOf[Add], classOf[Mul])))
 
     indices.dispose()
   }
 
   test("NodeType instances") {
-    val indices = new IncARuntimeContext()
-    add.insert(indices)
+    val indices = new Indices()
+    indices.initializeWith(add)
+    val context = new TFRuntimeContext(indices)
 
-    indices.enumerateTuples(new NodeTypeKey(NodeType(classOf[Exp])), emptyMask, null).
+    context.enumerateTuples(new NodeTypeKey(NodeType(classOf[Exp])), emptyMask, null).
       asScala should be(empty)
 
-    indices.enumerateTuples(new NodeTypeKey(NodeType(classOf[Num])), emptyMask, null).
+    context.enumerateTuples(new NodeTypeKey(NodeType(classOf[Num])), emptyMask, null).
       asScala should contain allOf(t1(num1), t1(num2), t1(num3))
 
-    indices.enumerateTuples(new NodeTypeKey(NodeType(classOf[Add])), emptyMask, null).
+    context.enumerateTuples(new NodeTypeKey(NodeType(classOf[Add])), emptyMask, null).
       asScala should contain(t1(add))
 
-    indices.enumerateTuples(new NodeTypeKey(NodeType(classOf[Mul])), emptyMask, null).
+    context.enumerateTuples(new NodeTypeKey(NodeType(classOf[Mul])), emptyMask, null).
       asScala should contain(t1(mul))
 
     indices.dispose()
   }
 
   test("DataType instances") {
-    val indices = new IncARuntimeContext()
-    add.insert(indices)
+    val indices = new Indices()
+    indices.initializeWith(add)
+    val context = new TFRuntimeContext(indices)
 
-    indices.enumerateTuples(new DataTypeKey(DataType(classOf[Integer])), emptyMask, null).
+    context.enumerateTuples(new DataTypeKey(DataType(classOf[Integer])), emptyMask, null).
       asScala should contain allOf(t1(1), t1(2), t1(3))
 
-    indices.enumerateTuples(new DataTypeKey(DataType(classOf[String])), emptyMask, null).
+    context.enumerateTuples(new DataTypeKey(DataType(classOf[String])), emptyMask, null).
       asScala should be(empty)
 
-    indices.enumerateTuples(new DataTypeKey(DataType(classOf[Boolean])), emptyMask, null).
+    context.enumerateTuples(new DataTypeKey(DataType(classOf[Boolean])), emptyMask, null).
       asScala should be(empty)
 
     indices.dispose()
   }
 
   test("NodeLink instances") {
-    val indices = new IncARuntimeContext()
-    add.insert(indices)
+    val indices = new Indices()
+    indices.initializeWith(add)
+    val context = new TFRuntimeContext(indices)
 
-    indices.enumerateTuples(new NodeLinkKey(NodeType(classOf[Num])("n")), emptyMask, null).
+    context.enumerateTuples(new NodeLinkKey(NodeType(classOf[Num])("n")), emptyMask, null).
       asScala should contain allOf(t2(num1, 1), t2(num2, 2), t2(num3, 3))
 
-    indices.enumerateTuples(new NodeLinkKey(NodeType(classOf[Mul])("l")), emptyMask, null).
+    context.enumerateTuples(new NodeLinkKey(NodeType(classOf[Mul])("l")), emptyMask, null).
       asScala should contain only (t2(mul, num1))
 
-    indices.enumerateTuples(new NodeLinkKey(NodeType(classOf[Mul])("r")), emptyMask, null).
+    context.enumerateTuples(new NodeLinkKey(NodeType(classOf[Mul])("r")), emptyMask, null).
       asScala should contain only (t2(mul, num2))
 
-    indices.enumerateTuples(new NodeLinkKey(NodeType(classOf[Add])("l")), emptyMask, null).
+    context.enumerateTuples(new NodeLinkKey(NodeType(classOf[Add])("l")), emptyMask, null).
       asScala should contain only (t2(add, mul))
 
-    indices.enumerateTuples(new NodeLinkKey(NodeType(classOf[Add])("r")), emptyMask, null).
+    context.enumerateTuples(new NodeLinkKey(NodeType(classOf[Add])("r")), emptyMask, null).
       asScala should contain only (t2(add, num3))
+
+    indices.dispose()
   }
 
   def isEmptyOrNull(coll: util.Collection[_]): Boolean = coll == null || coll.isEmpty

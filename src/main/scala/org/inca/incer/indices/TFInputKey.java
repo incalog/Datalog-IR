@@ -6,11 +6,11 @@ import org.inca.meta.MetaElements.MetaElement;
 import org.inca.meta.MetaElements.NodeLink;
 import org.inca.meta.MetaElements.NodeType;
 
-public abstract class IncAInputKey<T extends MetaElement> implements IInputKey {
+public abstract class TFInputKey<T extends MetaElement> implements IInputKey {
 
     protected final T type;
 
-    public IncAInputKey(final T type) {
+    public TFInputKey(final T type) {
         this.type = type;
     }
 
@@ -46,12 +46,12 @@ public abstract class IncAInputKey<T extends MetaElement> implements IInputKey {
         } else if (this == obj) {
             return true;
         } else {
-            final IncAInputKey that = (IncAInputKey) obj;
+            final TFInputKey that = (TFInputKey) obj;
             return this.type.equals(that.type);
         }
     }
 
-    public static class NodeTypeKey extends IncAInputKey<NodeType> {
+    public static class NodeTypeKey extends TFInputKey<NodeType> {
 
         public NodeTypeKey(final NodeType type) {
             super(type);
@@ -64,7 +64,7 @@ public abstract class IncAInputKey<T extends MetaElement> implements IInputKey {
 
     }
 
-    public static class DataTypeKey extends IncAInputKey<DataType> {
+    public static class DataTypeKey extends TFInputKey<DataType> {
 
         public DataTypeKey(final DataType type) {
             super(type);
@@ -77,7 +77,7 @@ public abstract class IncAInputKey<T extends MetaElement> implements IInputKey {
 
     }
 
-    public static class NodeLinkKey extends IncAInputKey<NodeLink> {
+    public static class NodeLinkKey extends TFInputKey<NodeLink> {
 
         public NodeLinkKey(final NodeLink link) {
             super(link);
