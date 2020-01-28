@@ -1,5 +1,6 @@
 package org.inca.incer.indices;
 
+import com.google.common.collect.Multiset;
 import org.eclipse.viatra.query.runtime.matchers.context.*;
 import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey;
 import org.eclipse.viatra.query.runtime.matchers.tuple.ITuple;
@@ -7,6 +8,9 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple;
 import org.eclipse.viatra.query.runtime.matchers.tuple.TupleMask;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
 import org.eclipse.viatra.query.runtime.matchers.util.Accuracy;
+import org.inca.incer.listeners.DataTypeInstanceAdapter;
+import org.inca.incer.listeners.NodeLinkInstanceAdapter;
+import org.inca.incer.listeners.NodeTypeInstanceAdapter;
 import org.inca.meta.MetaElements.DataType;
 import org.inca.meta.MetaElements.NodeLink;
 import org.inca.meta.MetaElements.NodeType;
@@ -71,7 +75,10 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
             final DataType type = ((TFInputKey.DataTypeKey) key).type;
             if (mask.indices.length == 0) {
                 // unseeded
-                result = this.indices.dataTypeInstances.getOrDefault(type, Collections.emptySet()).size();
+                final Multiset<Object> instances = this.indices.dataTypeInstances.get(type);
+                if (instances != null) {
+                    result = instances.elementSet().size();
+                }
             } else {
                 // fully seeded
                 result = ((containsTuple(key, seed)) ? 1 : 0);
@@ -103,13 +110,13 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
             } else if (isSourceBound && isTargetBound) {
                 // fully seeded
                 result = ((containsTuple(key, seed)) ? 1 : 0);
-            } else if (!(isSourceBound) && !(isTargetBound)) {
+            } else if (!(isSourceBound) /*&& !(isTargetBound)*/) {
                 // fully unseeded
                 final Map<Object, Set<Object>> linkValues = this.indices.nodeLinkInstances.get(link);
                 for (final Map.Entry<Object, Set<Object>> entry : linkValues.entrySet()) {
                     result += entry.getValue().size();
                 }
-            } else if (isSourceBound && !(isTargetBound)) {
+            } else /*if (isSourceBound && !(isTargetBound))*/ {
                 final Object seedSource = seed.get(sourceIndex);
                 final Map<Object, Set<Object>> linkValues = this.indices.nodeLinkInstances.get(link);
                 if (linkValues != null) {
@@ -148,7 +155,10 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
             final DataType type = ((TFInputKey.DataTypeKey) key).type;
 
             if (mask.indices.length == 0) {
-                this.indices.dataTypeInstances.getOrDefault(type, Collections.emptySet()).forEach(e -> result.add(Tuples.staticArityFlatTupleOf(e)));
+                final Multiset<Object> instances = this.indices.dataTypeInstances.get(type);
+                if (instances != null) {
+                    instances.elementSet().forEach(e -> result.add(Tuples.staticArityFlatTupleOf(e)));
+                }
             } else {
                 final Object seedInstance = mask.getValue(seed, 0);
                 if (containsTuple(key, seed)) {
@@ -186,7 +196,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 if (containsTuple(key, seed)) {
                     result.add(Tuples.staticArityFlatTupleOf(seedSource, seedTarget));
                 }
-            } else if (!(isSourceBound) && !(isTargetBound)) {
+            } else if (!(isSourceBound) /*&& !(isTargetBound)*/) {
                 // fully unseeded
                 final Map<Object, Set<Object>> linkValues = this.indices.nodeLinkInstances.get(link);
                 if (linkValues != null) {
@@ -196,7 +206,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                         }
                     }
                 }
-            } else if (isSourceBound && !(isTargetBound)) {
+            } else /*if (isSourceBound && !(isTargetBound))*/ {
                 final Object seedSource = seed.get(sourceIndex);
                 final Map<Object, Set<Object>> linkValues = this.indices.nodeLinkInstances.get(link);
                 if (linkValues != null) {
@@ -213,8 +223,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
     }
 
     @Override
-    public Iterable<? extends Object> enumerateValues(final IInputKey key, final TupleMask mask, final ITuple seed) {
-        Collection result = null;
+    public Iterable<?> enumerateValues(final IInputKey key, final TupleMask mask, final ITuple seed) {
+        Collection<?> result = null;
 
         if (key instanceof TFInputKey.NodeTypeKey) {
             final NodeType type = ((TFInputKey.NodeTypeKey) key).type;
@@ -274,7 +284,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
             System.out.println("enumerateValues key: " + key + " tuple: " + seed + " result size: " + ((result == null ? "null" : result.size())) + " result: " + result);
         }
 
-        return (Iterable<?>) result;
+        return result;
     }
 
     public void illegalEnumerateValues(final ITuple seed) {
@@ -297,7 +307,10 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
             result = this.indices.nodeTypeInstances.getOrDefault(type, Collections.emptySet()).contains(getFromTuple(tuple, 0));
         } else if (key instanceof TFInputKey.DataTypeKey) {
             final DataType type = ((TFInputKey.DataTypeKey) key).type;
-            result = this.indices.dataTypeInstances.getOrDefault(type, Collections.emptySet()).contains(getFromTuple(tuple, 0));
+            final Multiset<Object> instances = this.indices.dataTypeInstances.get(type);
+            if (instances != null) {
+                result = instances.contains(getFromTuple(tuple, 0));
+            }
         } else if (key instanceof TFInputKey.NodeLinkKey) {
             final NodeLink link = ((TFInputKey.NodeLinkKey) key).type;
             final Map<Object, Set<Object>> linkValues = this.indices.nodeLinkInstances.get(link);
@@ -320,7 +333,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
     }
 
     private Class<?> forceGetWrapperInstanceClass(final JavaTransitiveInstancesKey key) {
-        Class<?> instanceClass = null;
+        Class<?> instanceClass;
         try {
             instanceClass = key.forceGetWrapperInstanceClass();
         } catch (final ClassNotFoundException e) {
@@ -331,30 +344,34 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
 
     @Override
     public void addUpdateListener(final IInputKey key, final Tuple seed, final IQueryRuntimeContextListener listener) {
-//        if (key instanceof JavaTransitiveInstancesKey) {
-//            // stateless, so NOP
-//        } else if (key instanceof TFInputKey.NodeTypeKey) {
-//            final NodeType concept = ((TFInputKey.NodeTypeKey) key).type;
-//            this.indices.addConceptInstanceListener(Collections.singleton(concept), new ConceptInstanceAdapter(listener,
-//                    tuple.get(0)));
-//        } else if (key instanceof DataTypeKey) {
-//            final SDataType dataType = ((DataTypeKey) key).getKey();
-//            baseIndex.addDataTypeInstanceListener(Collections.singleton(dataType), new DataTypeInstanceAdapter(listener, tuple.get(0)));
-//        } else if (key instanceof ConceptFeatureKey) {
-//            final SConceptFeature conceptFeature = ((ConceptFeatureKey) key).getKey();
-//            baseIndex.addConceptFeatureListener(Collections.singleton(conceptFeature), new ConceptFeatureAdapter(listener, tuple.get(0), tuple.get(1)));
-//        } else if (key instanceof JoinTypeKey) {
-//            foreach component in ((JoinTypeKey) key).getComponents() {
-//                addUpdateListener(component, tuple, listener);
-//            }
-//        } else {
-//            illegalInputKey(key);
-//        }
+        if (key instanceof JavaTransitiveInstancesKey) {
+            // stateless, so NOP
+        } else if (key instanceof TFInputKey.NodeTypeKey) {
+            final NodeType type = ((TFInputKey.NodeTypeKey) key).type;
+            this.indices.addNodeTypeInstanceListener(type, new NodeTypeInstanceAdapter(listener, seed.get(0)));
+        } else if (key instanceof TFInputKey.DataTypeKey) {
+            final DataType type = ((TFInputKey.DataTypeKey) key).type;
+            this.indices.addDataTypeInstanceListener(type, new DataTypeInstanceAdapter(listener, seed.get(0)));
+        } else if (key instanceof TFInputKey.NodeLinkKey) {
+            final NodeLink type = ((TFInputKey.NodeLinkKey) key).type;
+            this.indices.addNodeLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
+        }
     }
 
     @Override
     public void removeUpdateListener(final IInputKey key, final Tuple seed, final IQueryRuntimeContextListener listener) {
-
+        if (key instanceof JavaTransitiveInstancesKey) {
+            // stateless, so NOP
+        } else if (key instanceof TFInputKey.NodeTypeKey) {
+            final NodeType type = ((TFInputKey.NodeTypeKey) key).type;
+            this.indices.removeNodeTypeInstanceListener(type, new NodeTypeInstanceAdapter(listener, seed.get(0)));
+        } else if (key instanceof TFInputKey.DataTypeKey) {
+            final DataType type = ((TFInputKey.DataTypeKey) key).type;
+            this.indices.removeDataTypeInstanceListener(type, new DataTypeInstanceAdapter(listener, seed.get(0)));
+        } else if (key instanceof TFInputKey.NodeLinkKey) {
+            final NodeLink type = ((TFInputKey.NodeLinkKey) key).type;
+            this.indices.removedNodeLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
+        }
     }
 
     @Override
@@ -383,7 +400,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
     }
 
     @Override
-    public void executeAfterTraversal(final Runnable runnable) throws InvocationTargetException {
+    public void executeAfterTraversal(final Runnable runnable) {
 
     }
 

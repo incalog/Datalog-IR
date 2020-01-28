@@ -1,4 +1,4 @@
-package org.inca.incer.backend;
+package org.inca.incer.listeners;
 
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
@@ -15,7 +15,7 @@ public class NodeTypeInstanceAdapter extends ListenerAdapter implements INodeTyp
     }
 
     @Override
-    public void instanceInserted(final MetaElements.NodeType type, final Object instance) {
+    public void insert(final MetaElements.NodeType type, final Object instance) {
         if (this.instance != null && !(this.instance.equals(instance))) {
             return;
         }
@@ -23,7 +23,7 @@ public class NodeTypeInstanceAdapter extends ListenerAdapter implements INodeTyp
     }
 
     @Override
-    public void instanceDeleted(final MetaElements.NodeType type, final Object instance) {
+    public void delete(final MetaElements.NodeType type, final Object instance) {
         if (this.instance != null && !(this.instance.equals(instance))) {
             return;
         }

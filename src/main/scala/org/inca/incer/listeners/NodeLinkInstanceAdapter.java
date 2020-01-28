@@ -1,4 +1,4 @@
-package org.inca.incer.backend;
+package org.inca.incer.listeners;
 
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
@@ -17,7 +17,7 @@ public class NodeLinkInstanceAdapter extends ListenerAdapter implements INodeLin
     }
 
     @Override
-    public void conceptFeatureInserted(final MetaElements.NodeLink type, final Object source, final Object target) {
+    public void insert(final MetaElements.NodeLink type, final Object source, final Object target) {
         if (this.source != null && !(this.source.equals(source))) {
             return;
         }
@@ -28,7 +28,7 @@ public class NodeLinkInstanceAdapter extends ListenerAdapter implements INodeLin
     }
 
     @Override
-    public void conceptFeatureDeleted(final MetaElements.NodeLink type, final Object source, final Object target) {
+    public void delete(final MetaElements.NodeLink type, final Object source, final Object target) {
         if (this.source != null && !(this.source.equals(source))) {
             return;
         }

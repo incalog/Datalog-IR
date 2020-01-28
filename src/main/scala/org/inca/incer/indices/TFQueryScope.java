@@ -38,6 +38,10 @@ public class TFQueryScope extends org.eclipse.viatra.query.runtime.api.scope.Que
         return "IncAQueryScope: " + this.root;
     }
 
+    public TFEngineContext getEngineContext() {
+        return this.engineContext;
+    }
+
     @Override
     protected IEngineContext createEngineContext(final ViatraQueryEngine engine, final IIndexingErrorListener listener, final Logger logger) {
         if (this.engineContext == null) {

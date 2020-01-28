@@ -1,5 +1,7 @@
 package org.inca.incer.indices;
 
+import com.google.common.collect.HashMultiset;
+import com.google.common.collect.Multiset;
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine;
 import org.eclipse.viatra.query.runtime.api.scope.IBaseIndex;
 import org.eclipse.viatra.query.runtime.api.scope.IIndexingErrorListener;
@@ -7,8 +9,12 @@ import org.eclipse.viatra.query.runtime.api.scope.IInstanceObserver;
 import org.eclipse.viatra.query.runtime.api.scope.ViatraBaseIndexChangeListener;
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple;
-import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
 import org.inca.incer.Incrementalizable;
+import org.inca.incer.listeners.IDataTypeInstanceListener;
+import org.inca.incer.listeners.IInstanceListener;
+import org.inca.incer.listeners.INodeLinkInstanceListener;
+import org.inca.incer.listeners.INodeTypeInstanceListener;
+import org.inca.meta.MetaElements;
 import org.inca.meta.MetaElements.DataType;
 import org.inca.meta.MetaElements.NodeLink;
 import org.inca.meta.MetaElements.NodeType;
@@ -20,24 +26,24 @@ import java.util.concurrent.Callable;
 public class Indices implements IBaseIndex {
 
     final Map<NodeType, Set<Object>> nodeTypeInstances;
-    final Map<DataType, Set<Object>> dataTypeInstances;
+    final Map<NodeType, Set<INodeTypeInstanceListener>> nodeTypeInstanceListeners;
+
+    final Map<DataType, Multiset<Object>> dataTypeInstances;
+    final Map<DataType, Set<IDataTypeInstanceListener>> dataTypeInstanceListeners;
 
     // source -> {targets}
     final Map<NodeLink, Map<Object, Set<Object>>> nodeLinkInstances;
-
     // target -> {sources}
     final Map<NodeLink, Map<Object, Set<Object>>> nodeLinkInstancesReversed;
+    final Map<NodeLink, Set<INodeLinkInstanceListener>> nodeLinkInstanceListeners;
 
     public static final Map<Class<?>, Set<Class<?>>> subTypeMap = new HashMap<>();
     public static final Map<Class<?>, Set<Class<?>>> superTypeMap = new HashMap<>();
 
-    /**
-     * Remains null until we actually start listening to program changes.
-     * This usually happens after the initialization of the indices.
-     */
-    private Set<Change> changeStore;
-
+    private final Set<ViatraBaseIndexChangeListener> changeListeners;
     private AdvancedViatraQueryEngine engine;
+
+    private boolean isDirty;
 
     public Indices() {
         this(null);
@@ -45,10 +51,13 @@ public class Indices implements IBaseIndex {
 
     public Indices(final AdvancedViatraQueryEngine engine) {
         this.nodeTypeInstances = new HashMap<>();
+        this.nodeTypeInstanceListeners = new HashMap<>();
         this.dataTypeInstances = new HashMap<>();
+        this.dataTypeInstanceListeners = new HashMap<>();
         this.nodeLinkInstances = new HashMap<>();
         this.nodeLinkInstancesReversed = new HashMap<>();
-        this.changeStore = new HashSet<>();
+        this.nodeLinkInstanceListeners = new HashMap<>();
+        this.changeListeners = new HashSet<>();
         this.engine = engine;
     }
 
@@ -58,13 +67,32 @@ public class Indices implements IBaseIndex {
 
     public void dispose() {
         this.nodeTypeInstances.clear();
+        this.nodeTypeInstanceListeners.clear();
         this.dataTypeInstances.clear();
+        this.dataTypeInstanceListeners.clear();
         this.nodeLinkInstances.clear();
         this.nodeLinkInstancesReversed.clear();
-        if (this.changeStore != null) {
-            this.changeStore.clear();
-        }
+        this.nodeLinkInstanceListeners.clear();
+        this.changeListeners.clear();
         this.engine = null;
+    }
+
+    public <V> V update(final Callable<V> callable) {
+        V result = null;
+        try {
+            // the engine may be null in debug scenarios
+            if (engine == null) {
+                result = callable.call();
+            } else {
+                result = engine.delayUpdatePropagation(callable);
+            }
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        notifyBaseIndexChangeListeners(this.isDirty);
+
+        return result;
     }
 
     private static void addType(final Class<?> key, final Class<?> value, final Map<Class<?>, Set<Class<?>>> map) {
@@ -111,29 +139,75 @@ public class Indices implements IBaseIndex {
     }
 
     public void insertNodeTypeInstance(final NodeType type, final Object instance) {
-        insertInstance(type, instance, Change.insertion(new TFInputKey.NodeTypeKey(type),
-                Tuples.staticArityFlatTupleOf(instance)), this.nodeTypeInstances);
+        this.nodeTypeInstances.compute(type, (k, v) -> {
+            if (v == null) {
+                v = new HashSet<>();
+            }
+            if (v.add(instance)) {
+                notifyNodeTypeInstanceListeners(type, instance, true);
+            } else {
+                throw new RuntimeException("Already known  " + type + " instance: " + instance);
+            }
+            return v;
+        });
     }
 
     public void deleteNodeTypeInstance(final NodeType type, final Object instance) {
-        deleteInstance(type, instance, Change.deletion(new TFInputKey.NodeTypeKey(type),
-                Tuples.staticArityFlatTupleOf(instance)), this.nodeTypeInstances);
+        this.nodeTypeInstances.compute(type, (k, v) -> {
+            if (v == null) {
+                throw new RuntimeException("Unknown  " + type + " instance: " + instance);
+            } else {
+                if (v.remove(instance)) {
+                    notifyNodeTypeInstanceListeners(type, instance, false);
+                } else {
+                    throw new RuntimeException("Unknown  " + type + " instance: " + instance);
+                }
+                if (v.isEmpty()) {
+                    return null;
+                } else {
+                    return v;
+                }
+            }
+        });
     }
 
     public void insertDataTypeInstance(final Object instance) {
         final DataType type = new DataType(instance.getClass());
-        insertInstance(type, instance, Change.insertion(new TFInputKey.DataTypeKey(type),
-                Tuples.staticArityFlatTupleOf(instance)), this.dataTypeInstances);
+        this.dataTypeInstances.compute(type, (k, v) -> {
+            if (v == null) {
+                v = HashMultiset.create();
+            }
+            final boolean isFirstOccurrence = !v.contains(instance);
+            v.add(instance);
+            if (isFirstOccurrence) {
+                notifyDataTypeInstanceListeners(type, instance, true);
+            }
+            return v;
+        });
     }
 
     public void deleteDataTypeInstance(final Object instance) {
         final DataType type = new DataType(instance.getClass());
-        deleteInstance(type, instance, Change.deletion(new TFInputKey.DataTypeKey(type),
-                Tuples.staticArityFlatTupleOf(instance)), this.dataTypeInstances);
+        this.dataTypeInstances.compute(type, (k, v) -> {
+            if (v == null) {
+                throw new RuntimeException("Unknown  " + type + " instance: " + instance);
+            } else {
+                final boolean isLastOccurrence = v.count(instance) == 1;
+                v.remove(instance);
+                if (isLastOccurrence) {
+                    notifyDataTypeInstanceListeners(type, instance, false);
+                }
+                if (v.isEmpty()) {
+                    return null;
+                } else {
+                    return v;
+                }
+            }
+        });
     }
 
     private void insertNodeLinkInstanceInternal(final Object source, final NodeLink link, final Object target,
-                                                final Map<NodeLink, Map<Object, Set<Object>>> map, final boolean registerChange) {
+                                                final Map<NodeLink, Map<Object, Set<Object>>> map, final boolean notifyAbout) {
         map.compute(link, (ok, ov) -> {
             if (ov == null) {
                 ov = new HashMap<>();
@@ -143,9 +217,8 @@ public class Indices implements IBaseIndex {
                     iv = new HashSet<>();
                 }
                 if (iv.add(target)) {
-                    if (registerChange) {
-                        this.registerChange(Change.insertion(new TFInputKey.NodeLinkKey(link),
-                                Tuples.staticArityFlatTupleOf(source, target)));
+                    if (notifyAbout) {
+                        notifyNodeLinkInstanceListeners(link, source, target, true);
                     }
                 } else {
                     throw new RuntimeException("Already known  " + link + " instance: " + source + " -> " + target);
@@ -162,7 +235,7 @@ public class Indices implements IBaseIndex {
     }
 
     private void deleteNodeLinkInstanceInternal(final Object source, final NodeLink link, final Object target,
-                                                final Map<NodeLink, Map<Object, Set<Object>>> map, final boolean registerChange) {
+                                                final Map<NodeLink, Map<Object, Set<Object>>> map, final boolean notifyAbout) {
         map.compute(link, (ok, ov) -> {
             if (ov == null) {
                 throw new RuntimeException("Unknown  " + link + " instance: " + source + " -> " + target);
@@ -172,8 +245,8 @@ public class Indices implements IBaseIndex {
                     throw new RuntimeException("Unknown  " + link + " instance: " + source + " -> " + target);
                 }
                 if (iv.remove(target)) {
-                    if (registerChange) {
-                        this.registerChange(Change.deletion(new TFInputKey.NodeLinkKey(link), Tuples.staticArityFlatTupleOf(source, target)));
+                    if (notifyAbout) {
+                        notifyNodeLinkInstanceListeners(link, source, target, false);
                     }
                 } else {
                     throw new RuntimeException("Unknown  " + link + " instance: " + source + " -> " + target);
@@ -197,44 +270,45 @@ public class Indices implements IBaseIndex {
         deleteNodeLinkInstanceInternal(target, link, source, this.nodeLinkInstancesReversed, false);
     }
 
-    private <T> void insertInstance(final T type, final Object instance, final Change change,
-                                    Map<T, Set<Object>> instanceMap) {
-        instanceMap.compute(type, (k, v) -> {
-            if (v == null) {
-                v = new HashSet<>();
-            }
-            if (v.add(instance)) {
-                this.registerChange(change);
+    private void notifyNodeTypeInstanceListeners(final NodeType type, final Object instance, final boolean isInsertion) {
+        final Set<INodeTypeInstanceListener> listeners =
+                this.nodeTypeInstanceListeners.getOrDefault(type,
+                        Collections.emptySet());
+        isDirty |= !listeners.isEmpty();
+        for (final INodeTypeInstanceListener listener : listeners) {
+            if (isInsertion) {
+                listener.insert(type, instance);
             } else {
-                throw new RuntimeException("Already known  " + type + " instance: " + instance);
+                listener.delete(type, instance);
             }
-            return v;
-        });
+        }
     }
 
-    private <T> void deleteInstance(final T type, final Object instance, final Change change,
-                                    Map<T, Set<Object>> instanceMap) {
-        instanceMap.compute(type, (k, v) -> {
-            if (v == null) {
-                throw new RuntimeException("Unknown  " + type + " instance: " + instance);
+    private void notifyDataTypeInstanceListeners(final DataType type, final Object instance, final boolean isInsertion) {
+        final Set<IDataTypeInstanceListener> listeners =
+                this.dataTypeInstanceListeners.getOrDefault(type,
+                        Collections.emptySet());
+        isDirty |= !listeners.isEmpty();
+        for (final IDataTypeInstanceListener listener : listeners) {
+            if (isInsertion) {
+                listener.insert(type, instance);
             } else {
-                if (v.remove(instance)) {
-                    this.registerChange(change);
-                } else {
-                    throw new RuntimeException("Unknown  " + type + " instance: " + instance);
-                }
-                if (v.isEmpty()) {
-                    return null;
-                } else {
-                    return v;
-                }
+                listener.delete(type, instance);
             }
-        });
+        }
     }
 
-    private void registerChange(final Change change) {
-        if (this.changeStore != null) {
-            this.changeStore.add(change);
+    private void notifyNodeLinkInstanceListeners(final NodeLink type, final Object source, Object target, final boolean isInsertion) {
+        final Set<INodeLinkInstanceListener> listeners =
+                this.nodeLinkInstanceListeners.getOrDefault(type,
+                        Collections.emptySet());
+        isDirty |= !listeners.isEmpty();
+        for (final INodeLinkInstanceListener listener : listeners) {
+            if (isInsertion) {
+                listener.insert(type, source, target);
+            } else {
+                listener.delete(type, source, target);
+            }
         }
     }
 
@@ -297,14 +371,22 @@ public class Indices implements IBaseIndex {
         }
     }
 
+    private void notifyBaseIndexChangeListeners(final boolean baseIndexChanged) {
+        for (ViatraBaseIndexChangeListener listener : this.changeListeners) {
+            if (!listener.onlyOnIndexChange() || baseIndexChanged) {
+                listener.notifyChanged(baseIndexChanged);
+            }
+        }
+    }
+
     @Override
     public void addBaseIndexChangeListener(final ViatraBaseIndexChangeListener listener) {
-
+        this.changeListeners.add(listener);
     }
 
     @Override
     public void removeBaseIndexChangeListener(final ViatraBaseIndexChangeListener listener) {
-
+        this.changeListeners.remove(listener);
     }
 
     @Override
@@ -330,6 +412,60 @@ public class Indices implements IBaseIndex {
     @Override
     public boolean removeInstanceObserver(final IInstanceObserver observer, final Object observedObject) {
         return false;
+    }
+
+    private <K extends MetaElements.MetaElement, V extends IInstanceListener> void addInstanceListener(
+            final K type,
+            final V listener,
+            final Map<K, Set<V>> listenerMap) {
+        listenerMap.compute(type, (k, v) -> {
+            if (v == null) {
+                v = new HashSet<>();
+            }
+            v.add(listener);
+            return v;
+        });
+    }
+
+    private <K extends MetaElements.MetaElement, V extends IInstanceListener> void removeInstanceListener(
+            final K type,
+            final V listener,
+            final Map<K, Set<V>> listenerMap) {
+        listenerMap.compute(type, (k, v) -> {
+            if (v == null) {
+                throw new RuntimeException("No listeners registered for type " + type + "!");
+            }
+            v.remove(listener);
+            if (v.isEmpty()) {
+                return null;
+            } else {
+                return v;
+            }
+        });
+    }
+
+    void addNodeTypeInstanceListener(final NodeType type, final INodeTypeInstanceListener listener) {
+        addInstanceListener(type, listener, this.nodeTypeInstanceListeners);
+    }
+
+    void removeNodeTypeInstanceListener(final NodeType type, final INodeTypeInstanceListener listener) {
+        removeInstanceListener(type, listener, this.nodeTypeInstanceListeners);
+    }
+
+    void addDataTypeInstanceListener(final DataType type, final IDataTypeInstanceListener listener) {
+        addInstanceListener(type, listener, this.dataTypeInstanceListeners);
+    }
+
+    void removeDataTypeInstanceListener(final DataType type, final IDataTypeInstanceListener listener) {
+        removeInstanceListener(type, listener, this.dataTypeInstanceListeners);
+    }
+
+    void addNodeLinkInstanceListener(final NodeLink type, final INodeLinkInstanceListener listener) {
+        addInstanceListener(type, listener, this.nodeLinkInstanceListeners);
+    }
+
+    void removedNodeLinkInstanceListener(final NodeLink type, final INodeLinkInstanceListener listener) {
+        removeInstanceListener(type, listener, this.nodeLinkInstanceListeners);
     }
 
 }
