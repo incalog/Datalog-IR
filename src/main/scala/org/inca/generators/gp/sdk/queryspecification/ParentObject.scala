@@ -48,18 +48,18 @@ object ParentObject {
   }
 
   private def createContextPointers(names: List[String]): List[Stat] = {
-    (for (name <- names) yield {
+    for (name <- names) yield {
       q"""new TypeConstraint(
          body,
          Tuples.flatTupleOf(${Term.Name(s"var__$name")}),
          new ClassKey(NodeType(classOf[org.inca.lang.core.Constraints.ContextPointer]))
        )"""
-    })
+    }
   }
 
   private def createTypeConstraintsPathExpressions(pathExpressions: Seq[IPatternBodyContent]): List[Stat] =
     pathExpressions.collect {
-      case pxc: PathExpressionConstraint => {
+      case pxc: PathExpressionConstraint =>
         val src = pxc.src.variable match {
           case t: TemporaryVariable =>
             Term.Name(s"var__${t.name}")
@@ -78,7 +78,6 @@ object ParentObject {
              Tuples.staticArityFlatTupleOf($src, $trg),
              new LinkKey(NodeType(classOf[${classPathToTypeSelect(pxc.typ.toString)}])(${Lit.String(pxc.element.link.toString)}))
            )"""
-      }
     }.toList
 
   private def getTemporaryVariables(body: Seq[IPatternBodyContent]): List[String] =
@@ -116,7 +115,7 @@ object ParentObject {
     val tempVarValue = Lit.String(name)
     val tempVarName = Pat.Var(Term.Name(s"var__$name"))
 
-    q"val ${tempVarName}: PVariable = body.getOrCreateVariableByName(${tempVarValue})"
+    q"val $tempVarName: PVariable = body.getOrCreateVariableByName($tempVarValue)"
   }
 
   private def createLocalGlobalVariables(graphParameters: Seq[IParameter]): List[Stat] =

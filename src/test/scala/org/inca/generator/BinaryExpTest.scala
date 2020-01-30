@@ -10,17 +10,18 @@ import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternPar
 import org.inca.lang.gp.Element.PathElement
 import org.inca.lang.meta.{NodeLink, NodeType}
 
-class BinaryExpTest {
+object BinaryExpTest extends App {
 
-  val minusExpType = NodeType(classOf[MinusExp])
-  val plusExpType = NodeType(classOf[PlusExp])
 
-  val plusMinusExpression = JoinType(JoinTypeDef("PlusMinusExpression", Seq(minusExpType, plusExpType)))
+  val minusExpType: NodeType = NodeType(classOf[MinusExp])
+  val plusExpType: NodeType = NodeType(classOf[PlusExp])
+
+  val plusMinusExpression: JoinType = JoinType(JoinTypeDef("PlusMinusExpression", Seq(minusExpType, plusExpType)))
   // todo is `.type` correct?
-  val plusMinusExpressionType = NodeType(classOf[JoinType])
-  val eParam = GraphPatternParameter("e", Some(plusMinusExpressionType))
+  val plusMinusExpressionType: NodeType = NodeType(classOf[JoinType])
+  val eParam: GraphPatternParameter = GraphPatternParameter("e", Some(plusMinusExpressionType))
 
-  val plusMinusPattern = GraphPattern(
+  val plusMinusPattern: GraphPattern = GraphPattern(
     "PlusMinus",
     Seq(
       eParam),

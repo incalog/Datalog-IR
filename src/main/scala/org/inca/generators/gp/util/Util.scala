@@ -40,4 +40,4 @@ object Util {
 }
 
 
-case class ImportItem(val qualifier: String, val imports: List[String])
+case class ImportItem(qualifier: String, imports: List[String])
