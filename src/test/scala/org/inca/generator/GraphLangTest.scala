@@ -14,7 +14,7 @@ import org.inca.lang.meta.{NodeLink, NodeType}
 object GraphLangTest extends App {
 
   val nodeType = NodeType(classOf[Node])
-  val edgeType = NodeType(classOf[Edge])
+  val edgeType: NodeType = NodeType(classOf[Edge])
   val graphType = NodeType(classOf[Graph])
 
   val edgeToNodeLink: NodeLink = edgeType("to")
@@ -72,15 +72,15 @@ object GraphLangTest extends App {
           )
         )
       ),
-      GraphPatternBody(
-        Seq(
-          GraphPatternCompareConstraint(
-            EqualityCompareFeature(),
-            Something("left"),
-            Something("right")
-          )
-        )
-      )
+//      GraphPatternBody(
+//        Seq(
+//          GraphPatternCompareConstraint(
+//            EqualityCompareFeature(),
+//            Something("left"),
+//            Something("right")
+//          )
+//        )
+//      )
     ),
     None
   )
@@ -145,10 +145,23 @@ object GraphLangTest extends App {
   /**
    * pattern GreatGrandPa(src : Node, trg : Node) {
    *   Node.parent.parent.parent(src, trg)
+   *   Node.parent.parent.parent(src, trg)
+   * }
+   *
+   * Shall be transformed into:
+   * pattern GreatGrandPa(src : Node, trg : Node) {
+   *   Node.parent(src, temp1)
+   *   Node.parent(temp1, temp2)
+   *   Node.parent(temp2, temp3)
+   *   Node.parent(temp3, trg)
+   *   Node.parent(src, temp4)
+   *   Node.parent(temp4, temp5)
+   *   Node.parent(temp5, temp6)
+   *   Node.parent(temp6, trg)
    * }
    */
-  val greatGrandPa: GraphPattern = GraphPattern(
-    "GreatGrandPa",
+  val greatGrandParent: GraphPattern = GraphPattern(
+    "GreatGrandParent",
     Seq(
       srcGraphParam,
       trgGraphParam
@@ -165,6 +178,17 @@ object GraphLangTest extends App {
                 nodeParentLink
               )), nodeParentLink),
             nodeType
+          ),
+
+          PathExpressionConstraint(
+            VariableReference(srcGraphParam),
+            VariableReference(trgGraphParam),
+            ParentPathElement(
+              Some(ParentPathElement(
+                Some(ParentPathElement(None, nodeParentLink)),
+                nodeParentLink
+              )), nodeParentLink),
+            nodeType
           )
         )
       )
@@ -172,54 +196,8 @@ object GraphLangTest extends App {
     None
   )
 
-  val parent_1 = TemporaryVariable("parent_3_0", Some(edgeType))
-  val parent_2 = TemporaryVariable("parent_3_1", Some(edgeType))
-
-  /**
-   * This is an example which shall show the correct transformation of the previous.
-   *
-   * pattern GreatGrandPa(src : Node, trg : Node) {
-   *   Node.parent(src, temp1)
-   *   Node.parent(temp1, temp2)
-   *   Node.parent(temp2, temp3)
-   *   Node.parent(temp3, trg)
-   * }
-   */
-  val greatGrandPa2: GraphPattern = GraphPattern(
-    "GreatGrandPa",
-    Seq(
-      srcGraphParam,
-      trgGraphParam
-    ),
-    Seq(
-      GraphPatternBody(
-        Seq(
-          PathExpressionConstraint(
-            VariableReference(srcGraphParam),
-            parent_1,
-            ParentPathElement(None, nodeParentLink),
-            nodeType
-          ),
-          PathExpressionConstraint(
-            VariableReference(parent_1),
-            parent_2,
-            ParentPathElement(None, nodeParentLink),
-            nodeType
-          ),
-          PathExpressionConstraint(
-            VariableReference(parent_2),
-            VariableReference(trgGraphParam),
-            ParentPathElement(None, nodeParentLink),
-            nodeType
-          ),
-        )
-      )
-    ),
-    None
-  )
-
   val gpgen = new GPGenerator
-  gpgen.generate(greatGrandPa, "GPLang")
-//  gpgen.generate(directEdge, "GPLang")
-//  gpgen.generate(path, "GPLang")
+  gpgen.generate(greatGrandParent, "GPLang")
+    gpgen.generate(directEdge, "GPLang")
+  //  gpgen.generate(path, "GPLang")
 }

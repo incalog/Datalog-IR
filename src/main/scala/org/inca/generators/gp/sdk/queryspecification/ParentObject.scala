@@ -6,6 +6,7 @@ import org.inca.lang.gp.Constraints.PathExpressionConstraint
 import org.inca.lang.gp.Content.{GraphPattern, GraphPatternParameter}
 import org.inca.generators.gp.sdk.queryspecification.QuerySpecificationGenerator._
 import org.inca.lang.core.Reference.VariableReference
+import org.inca.lang.gp.Element.GeneratedParameter
 
 import scala.meta._
 
@@ -16,9 +17,6 @@ object ParentObject {
     // {} is necessary that the above line won't be interpreted
     // as a modifier for the below line #lifehacks
     q"""
-      import org.inca.generators.gp.model.psystem.AbstractPQuery
-      import java.util
-
       object ${classTermName(pattern, collectionName)} {
         final class GeneratedPQuery extends AbstractPQuery {
             private val that = this
@@ -41,11 +39,22 @@ object ParentObject {
           val body: PBody = new PBody(that)
           ..${createLocalGlobalVariables(pattern.parameters)}
           ..${createTemporaryVariables(getTemporaryVariables(body.contents))}
+          ..${createContextPointers(getGeneratedTemporaryVariables(body.contents))}
           ..${createTypeConstraintsParameters(pattern.parameters)}
           ..${createTypeConstraintsPathExpressions(body.contents)}
           body
         }
         """
+  }
+
+  private def createContextPointers(names: List[String]): List[Stat] = {
+    (for (name <- names) yield {
+      q"""new TypeConstraint(
+         body,
+         Tuples.flatTupleOf(${Term.Name(s"var__$name")}),
+         new ClassKey(NodeType(classOf[org.inca.lang.core.Constraints.ContextPointer]))
+       )"""
+    })
   }
 
   private def createTypeConstraintsPathExpressions(pathExpressions: Seq[IPatternBodyContent]): List[Stat] =
@@ -83,12 +92,23 @@ object ParentObject {
 
     }.toList.distinct.filterNot(x => x.isEmpty)
 
+  private def getGeneratedTemporaryVariables(body: Seq[IPatternBodyContent]): List[String] =
+    body.collect {
+      case p: PathExpressionConstraint =>
+        p.trg match {
+          case t: TemporaryVariable with GeneratedParameter => t.name
+            // I really don't know why it does not work without it
+          case _ => ""
+        }
+
+    }.toList.distinct.filterNot(x => x.isEmpty)
+
   private def createTypeConstraintsParameters(graphParameters: Seq[IParameter]): List[Stat] =
     (for (graphParameter <- graphParameters) yield {
       q"""new TypeConstraint(
          body,
          Tuples.flatTupleOf(${Term.Name(s"var_${graphParameter.name}")}),
-         new ClassKey(classOf[${classPathToTypeSelect(graphParameter.typ.get.toString)}])
+         new ClassKey(NodeType(classOf[${classPathToTypeSelect(graphParameter.typ.get.toString)}]))
        )"""
     }).toList
 
@@ -136,6 +156,4 @@ object ParentObject {
       val pConceptKey = q"new PlaceholderConceptKey()"
       q"private val $pParamName: PParameter = new PParameter($pParamNameString, $pParamFullyQualifiedName, $pConceptKey)"
     }).toList
-
-
 }

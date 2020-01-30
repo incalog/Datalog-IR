@@ -5,6 +5,9 @@ import org.inca.lang.core.IVirtualPathElement
 import org.inca.lang.mps.Link
 
 object Element {
+  // todo keep this
+  trait GeneratedParameter
+
   abstract class AbstractListPathElement(next: Option[IPathElement], link: Link)
     extends IPathElement with IVirtualPathElement
 
