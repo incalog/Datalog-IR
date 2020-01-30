@@ -59,7 +59,7 @@ object ParentObject {
         }
         val trg = pxc.trg match {
           case vr: VariableReference =>
-            Term.Name(s"var__${vr.variable.name}")
+            Term.Name(s"var_${vr.variable.name}")
 
           case tv: TemporaryVariable =>
             Term.Name(s"var__${tv.name}")
@@ -75,12 +75,13 @@ object ParentObject {
   private def getTemporaryVariables(body: Seq[IPatternBodyContent]): List[String] =
     body.collect {
       case p: PathExpressionConstraint =>
-        val trg = p.trg match {
+        p.trg match {
           case t: TemporaryVariable => t.name
-          case r: VariableReference => r.variable.name
+            // I really don't know why it does not work without it
+          case _ => ""
         }
-        trg
-    }.toList.distinct
+
+    }.toList.distinct.filterNot(x => x.isEmpty)
 
   private def createTypeConstraintsParameters(graphParameters: Seq[IParameter]): List[Stat] =
     (for (graphParameter <- graphParameters) yield {

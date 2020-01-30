@@ -1,3 +1,5 @@
+package org.inca.generator
+
 import analyzedLangs.BinaryExpLang._
 import org.inca.lang.core.Constraints.PatternCall
 import org.inca.lang.core.Content.{JoinTypeDef, TemporaryVariable}

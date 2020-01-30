@@ -1,12 +1,22 @@
-target/*
-/target/*
-project
-project/*
-/project/*
+# sbt
+# (may want to keep parts of 'project')
+bin/
+project/
+target/
+build/
+
+# intellij idea
+*.log
+*.iml
+*.ipr
+*.iws
 .idea
-src/main/.DS_Store
-src/main/scala/.DS_Store
-src/main/scala/org/inca/generators/.DS_Store
-/src/test/scala/Path_GPLangQuerySpecification.scala
+
+# mac
 .DS_Store
-src/.DS_Store
+
+#general
+*.class
+
+/src/test/scala/Path_GPLangQuerySpecification.scala
+

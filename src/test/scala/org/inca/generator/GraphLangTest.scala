@@ -1,9 +1,10 @@
+package org.inca.generator
+
 import analyzedLangs.GraphLang.{Edge, Graph, Node}
+import org.inca.generators.gp.GPGenerator
 import org.inca.lang.core.Constraints.{EqualityCompareFeature, PatternCall, Something}
 import org.inca.lang.core.Content.TemporaryVariable
 import org.inca.lang.core.Reference.VariableReference
-import org.inca.generators.gp.GPGenerator
-import org.inca.lang.core.Typp.ConceptReferenceType
 import org.inca.lang.gp.Constraints.{GraphPatternCompareConstraint, PathExpressionConstraint, PatternCompositionConstraint}
 import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
 import org.inca.lang.gp.Element.PathElement

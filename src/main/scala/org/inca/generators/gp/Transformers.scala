@@ -35,13 +35,15 @@ object Transformers {
 
   }
 
-  // add PathExpressionConstraint p from previous method to this
+  // add second integer for differentiating between different lines in body
   private def recursiveStuff(elem: IPathElement,
                              src: IVariableValue,
                              trg: IValue,
                              typ: Typ,
                              depth: Int): Seq[IGraphPatternBodyContent] = {
+    print(trg.getClass)
     if (elem.next.isEmpty) {
+      // refector to util function
       val pec = elem match {
         case pp: ParentPathElement =>
           src match {
