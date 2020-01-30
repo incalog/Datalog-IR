@@ -1,8 +1,8 @@
 package org.inca.generators.gp.sdk.queryspecification
 
 import org.inca.generators.gp.util.Util.classPathToTypeSelect
-import org.inca.lang.core.Content.{IParameter, IPatternBody, IPatternBodyContent, TemporaryVariable}
-import org.inca.lang.gp.Constraints.{PathExpressionConstraint, PatternCompositionConstraint}
+import org.inca.lang.core.Content.{IParameter, IPatternBodyContent, TemporaryVariable}
+import org.inca.lang.gp.Constraints.PathExpressionConstraint
 import org.inca.lang.gp.Content.{GraphPattern, GraphPatternParameter}
 import org.inca.generators.gp.sdk.queryspecification.QuerySpecificationGenerator._
 import org.inca.lang.core.Reference.VariableReference
@@ -16,13 +16,16 @@ object ParentObject {
     // {} is necessary that the above line won't be interpreted
     // as a modifier for the below line #lifehacks
     q"""
+      import org.inca.generators.gp.model.psystem.AbstractPQuery
+      import java.util
+
       object ${classTermName(pattern, collectionName)} {
         final class GeneratedPQuery extends AbstractPQuery {
             private val that = this
             ..${pparams(pattern.parameters)}
             {}
-            override protected def doGetContainedBodies(): Set[PBody] = {
-              val bodies: Set[PBody] = Set.of(
+            override protected def doGetContainedBodies(): util.Set[PBody] = {
+              val bodies: util.Set[PBody] = util.Set.of(
                 ..${createGraphPatternBodies(pattern)}
               )
               bodies
@@ -30,6 +33,7 @@ object ParentObject {
             ..${overrideFunctions(pattern, collectionName)}
         }
       }"""
+
   }
 
   private def createGraphPatternBodies(pattern: GraphPattern): List[Term] = for (body <- pattern.bodies.toList) yield {
@@ -70,13 +74,12 @@ object ParentObject {
 
   private def getTemporaryVariables(body: Seq[IPatternBodyContent]): List[String] =
     body.collect {
-      case p: PathExpressionConstraint => {
+      case p: PathExpressionConstraint =>
         val trg = p.trg match {
           case t: TemporaryVariable => t.name
           case r: VariableReference => r.variable.name
         }
         trg
-      }
     }.toList.distinct
 
   private def createTypeConstraintsParameters(graphParameters: Seq[IParameter]): List[Stat] =
@@ -107,17 +110,17 @@ object ParentObject {
   private def overrideFunctions(pattern: GraphPattern, collectionName: String): List[Stat] = {
 
     val pFullyQualifiedName = Lit.String(s"$collectionName.${pattern.name}")
-    val pGetFullyQualifiedName = q"override def getFullyQualifiedName(): String = $pFullyQualifiedName"
+    val pGetFullyQualifiedName = q"override def getFullyQualifiedName: String = $pFullyQualifiedName"
 
     val pParamPNames = for (param <- pattern.parameters.toList) yield {
       Term.Name(s"p_${param.name}")
     }
-    val pGetParameters = q"override def getParameters(): List[PParameter] = List.of(..$pParamPNames)"
+    val pGetParameters = q"override def getParameters: util.List[PParameter] = util.List.of(..$pParamPNames)"
 
     val pParamNamesString = for (param <- pattern.parameters.toList) yield {
       Lit.String(param.name)
     }
-    val pGetParameterNames = q"override def getParameterNames(): List[String] = List.of(..$pParamNamesString)"
+    val pGetParameterNames = q"override def getParameterNames: util.List[String] = util.List.of(..$pParamNamesString)"
 
     List(pGetFullyQualifiedName, pGetParameterNames, pGetParameters)
   }

@@ -1,8 +1,4 @@
-[debug] downloaded https://repo1.maven.org/maven2/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/squid_2.13-0.4.0-SNAPSHOT.pom
-[debug] downloaded https://repo1.maven.org/maven2/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/squid_2.13-0.4.0-SNAPSHOT.pom.sha1
-[debug] downloaded https://repo1.maven.org/maven2/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/maven-metadata.xml
-[debug] downloaded https://repo1.maven.org/maven2/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/maven-metadata.xml.sha1
-[debug] downloaded https://oss.sonatype.org/content/repositories/snapshots/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/squid_2.13-0.4.0-SNAPSHOT.pom
-[debug] downloaded https://oss.sonatype.org/content/repositories/snapshots/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/squid_2.13-0.4.0-SNAPSHOT.pom.sha1
-[debug] downloaded https://oss.sonatype.org/content/repositories/snapshots/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/maven-metadata.xml
-[debug] downloaded https://oss.sonatype.org/content/repositories/snapshots/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/maven-metadata.xml.sha1
+[debug] downloaded https://repo1.maven.org/maven2/org/eclipse/viatra/viatra-query-runtime/2.3.0.M4/viatra-query-runtime-2.3.0.M4.pom
+[debug] downloaded https://repo1.maven.org/maven2/org/eclipse/viatra/viatra-query-runtime/2.3.0.M4/viatra-query-runtime-2.3.0.M4.pom.sha1
+[debug] downloaded https://oss.sonatype.org/content/repositories/snapshots/org/eclipse/viatra/viatra-query-runtime/2.3.0.M4/viatra-query-runtime-2.3.0.M4.pom
+[debug] downloaded https://oss.sonatype.org/content/repositories/snapshots/org/eclipse/viatra/viatra-query-runtime/2.3.0.M4/viatra-query-runtime-2.3.0.M4.pom.sha1

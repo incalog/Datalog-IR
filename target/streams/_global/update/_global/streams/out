@@ -2,12 +2,12 @@
 [debug] Updating ...
 [warn] 
 [warn] 	Note: Unresolved dependencies path:
-[error] sbt.librarymanagement.ResolveException: Error downloading ch.epfl.data:squid_2.13:0.4.0-SNAPSHOT
+[error] sbt.librarymanagement.ResolveException: Error downloading org.eclipse.viatra:viatra-query-runtime:2.3.0.M4
 [error]   Not found
 [error]   Not found
-[error]   not found: /Users/admin/.ivy2/local/ch.epfl.data/squid_2.13/0.4.0-SNAPSHOT/ivys/ivy.xml
-[error]   not found: https://repo1.maven.org/maven2/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/squid_2.13-0.4.0-SNAPSHOT.pom
-[error]   not found: https://oss.sonatype.org/content/repositories/snapshots/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/squid_2.13-0.4.0-SNAPSHOT.pom
+[error]   not found: /Users/admin/.ivy2/local/org.eclipse.viatra/viatra-query-runtime/2.3.0.M4/ivys/ivy.xml
+[error]   not found: https://repo1.maven.org/maven2/org/eclipse/viatra/viatra-query-runtime/2.3.0.M4/viatra-query-runtime-2.3.0.M4.pom
+[error]   not found: https://oss.sonatype.org/content/repositories/snapshots/org/eclipse/viatra/viatra-query-runtime/2.3.0.M4/viatra-query-runtime-2.3.0.M4.pom
 [error] 	at lmcoursier.CoursierDependencyResolution.unresolvedWarningOrThrow(CoursierDependencyResolution.scala:245)
 [error] 	at lmcoursier.CoursierDependencyResolution.$anonfun$update$34(CoursierDependencyResolution.scala:214)
 [error] 	at scala.util.Either$LeftProjection.map(Either.scala:573)
@@ -38,9 +38,9 @@
 [error] 	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1128)
 [error] 	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:628)
 [error] 	at java.base/java.lang.Thread.run(Thread.java:834)
-[error] (update) sbt.librarymanagement.ResolveException: Error downloading ch.epfl.data:squid_2.13:0.4.0-SNAPSHOT
+[error] (update) sbt.librarymanagement.ResolveException: Error downloading org.eclipse.viatra:viatra-query-runtime:2.3.0.M4
 [error]   Not found
 [error]   Not found
-[error]   not found: /Users/admin/.ivy2/local/ch.epfl.data/squid_2.13/0.4.0-SNAPSHOT/ivys/ivy.xml
-[error]   not found: https://repo1.maven.org/maven2/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/squid_2.13-0.4.0-SNAPSHOT.pom
-[error]   not found: https://oss.sonatype.org/content/repositories/snapshots/ch/epfl/data/squid_2.13/0.4.0-SNAPSHOT/squid_2.13-0.4.0-SNAPSHOT.pom
+[error]   not found: /Users/admin/.ivy2/local/org.eclipse.viatra/viatra-query-runtime/2.3.0.M4/ivys/ivy.xml
+[error]   not found: https://repo1.maven.org/maven2/org/eclipse/viatra/viatra-query-runtime/2.3.0.M4/viatra-query-runtime-2.3.0.M4.pom
+[error]   not found: https://oss.sonatype.org/content/repositories/snapshots/org/eclipse/viatra/viatra-query-runtime/2.3.0.M4/viatra-query-runtime-2.3.0.M4.pom

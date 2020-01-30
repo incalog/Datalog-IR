@@ -7,6 +7,7 @@ object Util {
   def classPathToTypeSelect(path: String): Type.Select = {
     val pathList = path.split('.')
 
+    // todo fold
     if (pathList.length > 2) {
       Type.Select(recursiveTermSelect(pathList.toList.dropRight(1)), Type.Name(pathList.last))
     } else {

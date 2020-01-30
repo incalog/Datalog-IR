@@ -20,6 +20,15 @@ object Constraints {
     val arguments: Seq[IValue]
     val pattern: IPattern
   }
+  // todo check implementation
+  trait ContextPointer {
+    val index: Integer
+    val parent: Any
+    val next: Option[Any]
+    val prev: Option[Any]
+    val first: Option[Any]
+    val last: Option[Any]
+  }
 
   abstract class CheckConstraint(evalFunc: => Boolean)
     extends IPatternBodyContent with IJavaContext with IContainsJavaExpression

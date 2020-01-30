@@ -1,10 +1,10 @@
 import analyzedLangs.GraphLang.{Edge, Graph, Node}
-import org.inca.lang.core.Constraints.PatternCall
+import org.inca.lang.core.Constraints.{EqualityCompareFeature, PatternCall, Something}
 import org.inca.lang.core.Content.TemporaryVariable
 import org.inca.lang.core.Reference.VariableReference
 import org.inca.generators.gp.GPGenerator
 import org.inca.lang.core.Typp.ConceptReferenceType
-import org.inca.lang.gp.Constraints.{PathExpressionConstraint, PatternCompositionConstraint}
+import org.inca.lang.gp.Constraints.{GraphPatternCompareConstraint, PathExpressionConstraint, PatternCompositionConstraint}
 import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
 import org.inca.lang.gp.Element.PathElement
 import org.inca.lang.gp.Virtual.ParentPathElement
@@ -25,8 +25,8 @@ object GraphLangTest extends App {
   val trgGraphParam = GraphPatternParameter("trg", Some(nodeType))
   // temp vars
   val intermediate = TemporaryVariable("inter", Some(nodeType))
-  val graph = TemporaryVariable("graph", Some(nodeType))
-  val edge = TemporaryVariable("graph", Some(nodeType))
+  val graph = TemporaryVariable("graph", Some(graphType))
+  val edge = TemporaryVariable("edge", Some(edgeType))
 
   /**
    * pattern DirectEdge(src: Node, trg: Node) {
@@ -68,6 +68,15 @@ object GraphLangTest extends App {
             VariableReference(trgGraphParam),
             PathElement(None, edgeToNodeLink),
             edgeType
+          )
+        )
+      ),
+      GraphPatternBody(
+        Seq(
+          GraphPatternCompareConstraint(
+            EqualityCompareFeature(),
+            Something("left"),
+            Something("right")
           )
         )
       )
@@ -132,7 +141,84 @@ object GraphLangTest extends App {
     None
   )
 
+  /**
+   * pattern GreatGrandPa(src : Node, trg : Node) {
+   *   Node.parent.parent.parent(src, trg)
+   * }
+   */
+  val greatGrandPa: GraphPattern = GraphPattern(
+    "GreatGrandPa",
+    Seq(
+      srcGraphParam,
+      trgGraphParam
+    ),
+    Seq(
+      GraphPatternBody(
+        Seq(
+          PathExpressionConstraint(
+            VariableReference(srcGraphParam),
+            VariableReference(trgGraphParam),
+            ParentPathElement(
+              Some(ParentPathElement(
+                Some(ParentPathElement(None, nodeParentLink)),
+                nodeParentLink
+              )), nodeParentLink),
+            nodeType
+          )
+        )
+      )
+    ),
+    None
+  )
+
+  val parent_1 = TemporaryVariable("parent_3_0", Some(edgeType))
+  val parent_2 = TemporaryVariable("parent_3_1", Some(edgeType))
+
+  /**
+   * This is an example which shall show the correct transformation of the previous.
+   *
+   * pattern GreatGrandPa(src : Node, trg : Node) {
+   *   Node.parent(src, temp1)
+   *   Node.parent(temp1, temp2)
+   *   Node.parent(temp2, temp3)
+   *   Node.parent(temp3, trg)
+   * }
+   */
+  val greatGrandPa2: GraphPattern = GraphPattern(
+    "GreatGrandPa",
+    Seq(
+      srcGraphParam,
+      trgGraphParam
+    ),
+    Seq(
+      GraphPatternBody(
+        Seq(
+          PathExpressionConstraint(
+            VariableReference(srcGraphParam),
+            parent_1,
+            ParentPathElement(None, nodeParentLink),
+            nodeType
+          ),
+          PathExpressionConstraint(
+            VariableReference(parent_1),
+            parent_2,
+            ParentPathElement(None, nodeParentLink),
+            nodeType
+          ),
+          PathExpressionConstraint(
+            VariableReference(parent_2),
+            VariableReference(trgGraphParam),
+            ParentPathElement(None, nodeParentLink),
+            nodeType
+          ),
+        )
+      )
+    ),
+    None
+  )
+
   val gpgen = new GPGenerator
-  gpgen.generate(directEdge, "GPLang")
-  gpgen.generate(path, "GPLang")
+  gpgen.generate(greatGrandPa, "GPLang")
+//  gpgen.generate(directEdge, "GPLang")
+//  gpgen.generate(path, "GPLang")
 }

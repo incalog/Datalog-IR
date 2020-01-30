@@ -1,8 +1,9 @@
-package org.inca.generators.gp.model.conceptKeys
+package org.inca.generators.gp.model.keys
 
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
+import org.inca.lang.meta.NodeType
 
-class ClassKey(val keyId: Class[_]) extends IInputKey {
+class ClassKey(keyId: NodeType) extends IInputKey {
   override def getPrettyPrintableName: String = keyId.toString
 
   override def getStringID: String = keyId.toString
