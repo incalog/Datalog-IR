@@ -1,5 +1,4 @@
-package org.inca.lang.mps
+package org.inca.lang.meta
 
 // was InterfacePart
 // todo move this to meta?
-trait Link

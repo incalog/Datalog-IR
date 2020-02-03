@@ -1,9 +1,9 @@
 package org.inca.generators.gp.model.keys
 
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
-import org.inca.lang.meta.NodeLink
+import org.inca.lang.meta.{Link, NodeLink}
 
-class LinkKey(link: NodeLink) extends IInputKey {
+class LinkKey(link: Link) extends IInputKey {
   override def getPrettyPrintableName: String = link.toString
 
   override def getStringID: String = link.toString

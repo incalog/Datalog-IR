@@ -2,7 +2,7 @@ package org.inca.lang.gp
 
 import org.inca.lang.core.Constraints.IPathElement
 import org.inca.lang.core.IVirtualPathElement
-import org.inca.lang.mps.Link
+import org.inca.lang.meta.Link
 
 object Element {
   // todo keep this

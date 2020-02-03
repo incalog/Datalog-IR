@@ -9,7 +9,7 @@ import org.inca.lang.gp.Constraints.{GraphPatternCompareConstraint, PathExpressi
 import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
 import org.inca.lang.gp.Element.PathElement
 import org.inca.lang.gp.Virtual.ParentPathElement
-import org.inca.lang.meta.{NodeLink, NodeType}
+import org.inca.lang.meta.{Link, NodeLink, NodeType}
 
 object GraphLangTest extends App {
 
@@ -17,10 +17,10 @@ object GraphLangTest extends App {
   val edgeType: NodeType = NodeType(classOf[Edge])
   val graphType = NodeType(classOf[Graph])
 
-  val edgeToNodeLink: NodeLink = edgeType("to")
-  val edgeFromNodeLink: NodeLink = edgeType("from")
-  val nodeParentLink: NodeLink = nodeType("parent")
-  val graphEdgesLink: NodeLink = graphType("edges")
+  val edgeToNodeLink: Link = edgeType("to")
+  val edgeFromNodeLink: Link = edgeType("from")
+  val nodeParentLink: Link = nodeType("parent")
+  val graphEdgesLink: Link = graphType("edges")
 
   val srcGraphParam = GraphPatternParameter("src", Some(nodeType))
   val trgGraphParam = GraphPatternParameter("trg", Some(nodeType))
@@ -144,8 +144,8 @@ object GraphLangTest extends App {
 
   /**
    * pattern GreatGrandPa(src : Node, trg : Node) {
-   *   Node.parent.parent.parent(src, trg)
-   *   Node.parent.parent.parent(src, trg)
+   *   Node.parent.parent(src, trg)
+   *   Node.parent.parent(src, trg)
    * }
    *
    * Shall be transformed into:
@@ -154,6 +154,7 @@ object GraphLangTest extends App {
    *   Node.parent(temp1, temp2)
    *   Node.parent(temp2, temp3)
    *   Node.parent(temp3, trg)
+   *
    *   Node.parent(src, temp4)
    *   Node.parent(temp4, temp5)
    *   Node.parent(temp5, temp6)
@@ -195,6 +196,12 @@ object GraphLangTest extends App {
     ),
     None
   )
+
+  /*
+
+
+
+   */
 
   val gpgen = new GPGenerator
   gpgen.generate(greatGrandParent, "GPLang")

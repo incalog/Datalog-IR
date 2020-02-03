@@ -8,7 +8,7 @@ import org.inca.lang.core.Typp.JoinType
 import org.inca.lang.gp.Constraints.{GraphPatternConceptConstraint, PathExpressionConstraint, PatternCompositionConstraint}
 import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
 import org.inca.lang.gp.Element.PathElement
-import org.inca.lang.meta.{NodeLink, NodeType}
+import org.inca.lang.meta.{Link, NodeLink, NodeType}
 
 object BinaryExpTest extends App {
 
@@ -49,7 +49,7 @@ object BinaryExpTest extends App {
   val expType = NodeType(classOf[Exp])
   // todo richtig interpretiert?
   val linkDeclarationType = NodeType(classOf[LinkDeclaration])
-  val linkDeclarationLink: NodeLink = linkDeclarationType("name")
+  val linkDeclarationLink: Link = linkDeclarationType("name")
 
   val varr = GraphPatternParameter("var", Some(variableDeclarationType))
   val initializer = GraphPatternParameter("initializer", Some(expType))

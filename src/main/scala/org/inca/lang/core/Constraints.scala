@@ -4,7 +4,7 @@ import org.inca.lang.core.Content.{IPattern, IPatternBodyContent}
 import org.inca.lang.core.Misc.{IContainsJavaExpression, IJavaContext, ITransformable}
 import org.inca.lang.core.Typp.Typ
 import org.inca.lang.core.Values.{IValue, IVariableValue}
-import org.inca.lang.mps.Link
+import org.inca.lang.meta.Link
 
 object Constraints {
   trait IGeneratorPathElement extends IVirtualPathElement
