@@ -14,9 +14,10 @@ import org.inca.incer.listeners.IDataTypeInstanceListener;
 import org.inca.incer.listeners.IInstanceListener;
 import org.inca.incer.listeners.INodeLinkInstanceListener;
 import org.inca.incer.listeners.INodeTypeInstanceListener;
-import org.inca.meta.MetaElements;
+import org.inca.meta.MetaElements.MetaElement;
 import org.inca.meta.MetaElements.DataType;
 import org.inca.meta.MetaElements.NodeLink;
+import org.inca.meta.MetaElements.Link;
 import org.inca.meta.MetaElements.NodeType;
 
 import java.lang.reflect.InvocationTargetException;
@@ -32,10 +33,10 @@ public class Indices implements IBaseIndex {
     final Map<DataType, Set<IDataTypeInstanceListener>> dataTypeInstanceListeners;
 
     // source -> {targets}
-    final Map<NodeLink, Map<Object, Set<Object>>> nodeLinkInstances;
+    final Map<Link, Map<Object, Set<Object>>> nodeLinkInstances;
     // target -> {sources}
-    final Map<NodeLink, Map<Object, Set<Object>>> nodeLinkInstancesReversed;
-    final Map<NodeLink, Set<INodeLinkInstanceListener>> nodeLinkInstanceListeners;
+    final Map<Link, Map<Object, Set<Object>>> nodeLinkInstancesReversed;
+    final Map<Link, Set<INodeLinkInstanceListener>> nodeLinkInstanceListeners;
 
     public static final Map<Class<?>, Set<Class<?>>> subTypeMap = new HashMap<>();
     public static final Map<Class<?>, Set<Class<?>>> superTypeMap = new HashMap<>();
@@ -206,8 +207,8 @@ public class Indices implements IBaseIndex {
         });
     }
 
-    private void insertNodeLinkInstanceInternal(final Object source, final NodeLink link, final Object target,
-                                                final Map<NodeLink, Map<Object, Set<Object>>> map, final boolean notifyAbout) {
+    private void insertNodeLinkInstanceInternal(final Object source, final Link link, final Object target,
+                                                final Map<Link, Map<Object, Set<Object>>> map, final boolean notifyAbout) {
         map.compute(link, (ok, ov) -> {
             if (ov == null) {
                 ov = new HashMap<>();
@@ -229,13 +230,13 @@ public class Indices implements IBaseIndex {
         });
     }
 
-    public void insertNodeLinkInstance(final Object source, final NodeLink link, final Object target) {
+    public void insertNodeLinkInstance(final Object source, final Link link, final Object target) {
         insertNodeLinkInstanceInternal(source, link, target, this.nodeLinkInstances, true);
         insertNodeLinkInstanceInternal(target, link, source, this.nodeLinkInstancesReversed, false);
     }
 
-    private void deleteNodeLinkInstanceInternal(final Object source, final NodeLink link, final Object target,
-                                                final Map<NodeLink, Map<Object, Set<Object>>> map, final boolean notifyAbout) {
+    private void deleteNodeLinkInstanceInternal(final Object source, final Link link, final Object target,
+                                                final Map<Link, Map<Object, Set<Object>>> map, final boolean notifyAbout) {
         map.compute(link, (ok, ov) -> {
             if (ov == null) {
                 throw new RuntimeException("Unknown  " + link + " instance: " + source + " -> " + target);
@@ -265,7 +266,7 @@ public class Indices implements IBaseIndex {
         });
     }
 
-    public void deleteNodeLinkInstance(final Object source, final NodeLink link, final Object target) {
+    public void deleteNodeLinkInstance(final Object source, final Link link, final Object target) {
         deleteNodeLinkInstanceInternal(source, link, target, this.nodeLinkInstances, true);
         deleteNodeLinkInstanceInternal(target, link, source, this.nodeLinkInstancesReversed, false);
     }
@@ -298,7 +299,7 @@ public class Indices implements IBaseIndex {
         }
     }
 
-    private void notifyNodeLinkInstanceListeners(final NodeLink type, final Object source, Object target, final boolean isInsertion) {
+    private void notifyNodeLinkInstanceListeners(final Link type, final Object source, Object target, final boolean isInsertion) {
         final Set<INodeLinkInstanceListener> listeners =
                 this.nodeLinkInstanceListeners.getOrDefault(type,
                         Collections.emptySet());
@@ -414,7 +415,7 @@ public class Indices implements IBaseIndex {
         return false;
     }
 
-    private <K extends MetaElements.MetaElement, V extends IInstanceListener> void addInstanceListener(
+    private <K extends MetaElement, V extends IInstanceListener> void addInstanceListener(
             final K type,
             final V listener,
             final Map<K, Set<V>> listenerMap) {
@@ -427,7 +428,7 @@ public class Indices implements IBaseIndex {
         });
     }
 
-    private <K extends MetaElements.MetaElement, V extends IInstanceListener> void removeInstanceListener(
+    private <K extends MetaElement, V extends IInstanceListener> void removeInstanceListener(
             final K type,
             final V listener,
             final Map<K, Set<V>> listenerMap) {
@@ -460,11 +461,11 @@ public class Indices implements IBaseIndex {
         removeInstanceListener(type, listener, this.dataTypeInstanceListeners);
     }
 
-    void addNodeLinkInstanceListener(final NodeLink type, final INodeLinkInstanceListener listener) {
+    void addNodeLinkInstanceListener(final Link type, final INodeLinkInstanceListener listener) {
         addInstanceListener(type, listener, this.nodeLinkInstanceListeners);
     }
 
-    void removedNodeLinkInstanceListener(final NodeLink type, final INodeLinkInstanceListener listener) {
+    void removedNodeLinkInstanceListener(final Link type, final INodeLinkInstanceListener listener) {
         removeInstanceListener(type, listener, this.nodeLinkInstanceListeners);
     }
 

@@ -85,7 +85,7 @@ public class TFMetaContext extends AbstractQueryMetaContext {
                 }
             }
         } else if (key instanceof NodeLinkKey) {
-            final NodeLink nodeLink = ((NodeLinkKey) key).type;
+            final MetaElements.Link nodeLink = ((NodeLinkKey) key).type;
             final NodeTypeKey impliedSource = new NodeTypeKey(nodeLink.nodeType());
             final Class<?> fieldType = nodeLink.fld().getType();
             IInputKey impliedTarget = null;

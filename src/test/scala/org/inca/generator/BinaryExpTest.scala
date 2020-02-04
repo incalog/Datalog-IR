@@ -8,7 +8,7 @@ import org.inca.lang.core.Typp.JoinType
 import org.inca.lang.gp.Constraints.{GraphPatternConceptConstraint, PathExpressionConstraint, PatternCompositionConstraint}
 import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
 import org.inca.lang.gp.Element.PathElement
-import org.inca.lang.meta.{Link, NodeLink, NodeType}
+import org.inca.meta.MetaElements.{Link, NodeType}
 
 object BinaryExpTest extends App {
 

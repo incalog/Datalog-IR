@@ -9,18 +9,18 @@ import org.inca.lang.gp.Constraints.{GraphPatternCompareConstraint, PathExpressi
 import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
 import org.inca.lang.gp.Element.PathElement
 import org.inca.lang.gp.Virtual.ParentPathElement
-import org.inca.lang.meta.{Link, NodeLink, NodeType}
+import org.inca.meta.MetaElements.{Link, NodeLink, NodeType}
 
 object GraphLangTest extends App {
 
-  val nodeType = NodeType(classOf[Node])
-  val edgeType: NodeType = NodeType(classOf[Edge])
+  val nodeType  = NodeType(classOf[Node])
+  val edgeType  = NodeType(classOf[Edge])
   val graphType = NodeType(classOf[Graph])
 
-  val edgeToNodeLink: Link = edgeType("to")
-  val edgeFromNodeLink: Link = edgeType("from")
-  val nodeParentLink: Link = nodeType("parent")
-  val graphEdgesLink: Link = graphType("edges")
+  val edgeToNodeLink   = edgeType("to")
+  val edgeFromNodeLink = edgeType("from")
+  val nodeParentLink   = nodeType("parent")
+  val graphEdgesLink   = graphType("edges")
 
   val srcGraphParam = GraphPatternParameter("src", Some(nodeType))
   val trgGraphParam = GraphPatternParameter("trg", Some(nodeType))

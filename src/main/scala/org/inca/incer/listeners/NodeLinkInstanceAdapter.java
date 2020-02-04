@@ -4,6 +4,7 @@ import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextLis
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
 import org.inca.incer.indices.TFInputKey;
 import org.inca.meta.MetaElements;
+import org.inca.meta.MetaElements.Link;
 
 public class NodeLinkInstanceAdapter extends ListenerAdapter implements INodeLinkInstanceListener {
 
@@ -17,7 +18,7 @@ public class NodeLinkInstanceAdapter extends ListenerAdapter implements INodeLin
     }
 
     @Override
-    public void insert(final MetaElements.NodeLink type, final Object source, final Object target) {
+    public void insert(final Link type, final Object source, final Object target) {
         if (this.source != null && !(this.source.equals(source))) {
             return;
         }
@@ -28,7 +29,7 @@ public class NodeLinkInstanceAdapter extends ListenerAdapter implements INodeLin
     }
 
     @Override
-    public void delete(final MetaElements.NodeLink type, final Object source, final Object target) {
+    public void delete(final Link type, final Object source, final Object target) {
         if (this.source != null && !(this.source.equals(source))) {
             return;
         }

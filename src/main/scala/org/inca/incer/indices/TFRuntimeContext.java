@@ -11,8 +11,10 @@ import org.eclipse.viatra.query.runtime.matchers.util.Accuracy;
 import org.inca.incer.listeners.DataTypeInstanceAdapter;
 import org.inca.incer.listeners.NodeLinkInstanceAdapter;
 import org.inca.incer.listeners.NodeTypeInstanceAdapter;
+import org.inca.meta.MetaElements;
 import org.inca.meta.MetaElements.DataType;
 import org.inca.meta.MetaElements.NodeLink;
+import org.inca.meta.MetaElements.Link;
 import org.inca.meta.MetaElements.NodeType;
 
 import java.lang.reflect.InvocationTargetException;
@@ -84,7 +86,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 result = ((containsTuple(key, seed)) ? 1 : 0);
             }
         } else if (key instanceof TFInputKey.NodeLinkKey) {
-            final NodeLink link = ((TFInputKey.NodeLinkKey) key).type;
+            final Link link = ((TFInputKey.NodeLinkKey) key).type;
 
             boolean isSourceBound = false;
             int sourceIndex = -1;
@@ -166,7 +168,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 }
             }
         } else if (key instanceof TFInputKey.NodeLinkKey) {
-            final NodeLink link = ((TFInputKey.NodeLinkKey) key).type;
+            final Link link = ((TFInputKey.NodeLinkKey) key).type;
 
             boolean isSourceBound = false;
             int sourceIndex = -1;
@@ -245,7 +247,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 illegalEnumerateValues(seed);
             }
         } else if (key instanceof TFInputKey.NodeLinkKey) {
-            final NodeLink link = ((TFInputKey.NodeLinkKey) key).type;
+            final Link link = ((TFInputKey.NodeLinkKey) key).type;
 
             boolean isSourceBound = false;
             int sourceIndex = -1;
@@ -312,7 +314,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 result = instances.contains(getFromTuple(tuple, 0));
             }
         } else if (key instanceof TFInputKey.NodeLinkKey) {
-            final NodeLink link = ((TFInputKey.NodeLinkKey) key).type;
+            final Link link = ((TFInputKey.NodeLinkKey) key).type;
             final Map<Object, Set<Object>> linkValues = this.indices.nodeLinkInstances.get(link);
             if (linkValues != null) {
                 final Object source = getFromTuple(tuple, 1);
@@ -353,7 +355,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
             final DataType type = ((TFInputKey.DataTypeKey) key).type;
             this.indices.addDataTypeInstanceListener(type, new DataTypeInstanceAdapter(listener, seed.get(0)));
         } else if (key instanceof TFInputKey.NodeLinkKey) {
-            final NodeLink type = ((TFInputKey.NodeLinkKey) key).type;
+            final Link type = ((TFInputKey.NodeLinkKey) key).type;
             this.indices.addNodeLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
         }
     }
@@ -369,7 +371,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
             final DataType type = ((TFInputKey.DataTypeKey) key).type;
             this.indices.removeDataTypeInstanceListener(type, new DataTypeInstanceAdapter(listener, seed.get(0)));
         } else if (key instanceof TFInputKey.NodeLinkKey) {
-            final NodeLink type = ((TFInputKey.NodeLinkKey) key).type;
+            final MetaElements.Link type = ((TFInputKey.NodeLinkKey) key).type;
             this.indices.removedNodeLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
         }
     }

@@ -2,9 +2,8 @@ package org.inca.lang.core
 
 import org.inca.lang.core.Content.{IPattern, IPatternBodyContent}
 import org.inca.lang.core.Misc.{IContainsJavaExpression, IJavaContext, ITransformable}
-import org.inca.lang.core.Typp.Typ
 import org.inca.lang.core.Values.{IValue, IVariableValue}
-import org.inca.lang.meta.Link
+import org.inca.meta.MetaElements.{Link, MetaElement}
 
 object Constraints {
   trait IGeneratorPathElement extends IVirtualPathElement
@@ -36,7 +35,7 @@ object Constraints {
   abstract class CompareConstraint(feature: CompareFeature,left: IValue, right: IValue)
     extends IPatternBodyContent with ITypeConstraintProvider
 
-  abstract class ConceptConstraint(vari: IVariableValue, typ: Typ)
+  abstract class ConceptConstraint(vari: IVariableValue, typ: MetaElement)
     extends IPatternBodyContent with ITypeConstraintProvider
 
   case class PatternCall(transitive: Boolean, arguments: Seq[IValue], pattern: IPattern) extends IPatternCall
@@ -47,5 +46,5 @@ object Constraints {
   case class InequalityCompareFeature() extends CompareFeature
 
   case class Something(str: String)
-    extends IValue with Typ
+    extends IValue with MetaElement
 }

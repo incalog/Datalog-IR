@@ -3,7 +3,7 @@ package org.inca.incer.indices;
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey;
 import org.inca.meta.MetaElements.DataType;
 import org.inca.meta.MetaElements.MetaElement;
-import org.inca.meta.MetaElements.NodeLink;
+import org.inca.meta.MetaElements.Link;
 import org.inca.meta.MetaElements.NodeType;
 
 public abstract class TFInputKey<T extends MetaElement> implements IInputKey {
@@ -77,9 +77,9 @@ public abstract class TFInputKey<T extends MetaElement> implements IInputKey {
 
     }
 
-    public static class NodeLinkKey extends TFInputKey<NodeLink> {
+    public static class NodeLinkKey extends TFInputKey<Link> {
 
-        public NodeLinkKey(final NodeLink link) {
+        public NodeLinkKey(final Link link) {
             super(link);
         }
 

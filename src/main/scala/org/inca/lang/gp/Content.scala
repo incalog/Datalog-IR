@@ -1,7 +1,7 @@
 package org.inca.lang.gp
 
 import org.inca.lang.core.Content._
-import org.inca.lang.core.Typp.Typ
+import org.inca.meta.MetaElements.MetaElement
 
 
 object Content {
@@ -14,5 +14,5 @@ object Content {
                           bodies: Seq[IPatternBody],
                           visibility: Option[IPatternVisibility]) extends IPattern with IGraphPatternModuleContent
   case class GraphPatternBody(contents: Seq[IPatternBodyContent]) extends IPatternBody
-  case class GraphPatternParameter(name: String, typ: Option[Typ]) extends IParameter
+  case class GraphPatternParameter(name: String, typ: Option[MetaElement]) extends IParameter
 }

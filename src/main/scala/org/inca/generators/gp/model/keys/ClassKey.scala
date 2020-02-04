@@ -1,7 +1,7 @@
 package org.inca.generators.gp.model.keys
 
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
-import org.inca.lang.meta.NodeType
+import org.inca.meta.MetaElements.NodeType
 
 class ClassKey(keyId: NodeType) extends IInputKey {
   override def getPrettyPrintableName: String = keyId.toString

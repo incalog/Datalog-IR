@@ -3,7 +3,7 @@ package org.inca.lang.gp
 import org.inca.lang.core.Constraints.IPathElement
 import org.inca.lang.core.IVirtualPathElement
 import org.inca.lang.gp.Element.AbstractListPathElement
-import org.inca.lang.meta.Link
+import org.inca.meta.MetaElements.Link
 
 object Virtual {
   case class IndexPathElement(next: Option[IPathElement], link: Link)

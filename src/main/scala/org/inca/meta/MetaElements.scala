@@ -6,9 +6,20 @@ import java.util.Objects
 object MetaElements {
 
   trait MetaElement
+  trait Link extends MetaElement {
+    val nodeType: NodeType
+    val fld: Field
+  }
 
   case class NodeType(cls: Class[_]) extends MetaElement {
-    def apply(fieldName: String): NodeLink = NodeLink(this, cls.getDeclaredField(fieldName))
+    def apply(fieldName: String): Link =
+      fieldName match {
+        case "parent" => ParentLink()
+        case "previous" => PreviousLink()
+        case "next" => NextLink()
+
+        case _ => NodeLink(this, cls.getDeclaredField(fieldName))
+      }
 
     override def toString: String = s"#${cls.getCanonicalName}"
 
@@ -40,7 +51,7 @@ object MetaElements {
     isInteger || isBoolean || isString
   }
 
-  case class NodeLink(nodeType: NodeType, fld: Field) extends MetaElement {
+  case class NodeLink(nodeType: NodeType, fld: Field) extends Link {
     override def toString: String = s"$nodeType:${fld.getName}"
 
     override def hashCode(): Int = Objects.hash(nodeType, fld)
@@ -50,6 +61,29 @@ object MetaElements {
       case _ => false
     }
 
+  }
+
+  case class Node(parent: Option[Node],
+                  previous: Option[Node],
+                  next: Option[Node])
+
+  case class ParentLink() extends Link {
+    override def toString: String = "parent"
+
+    override val nodeType: NodeType = NodeType(classOf[Node])
+    override val fld: Field = classOf[Node].getDeclaredField(toString)
+  }
+  case class PreviousLink() extends Link {
+    override def toString: String = "previous"
+
+    override val nodeType: NodeType = NodeType(classOf[Node])
+    override val fld: Field = classOf[Node].getDeclaredField(toString)
+  }
+  case class NextLink() extends Link {
+    override def toString: String = "next"
+
+    override val nodeType: NodeType = NodeType(classOf[Node])
+    override val fld: Field = classOf[Node].getDeclaredField(toString)
   }
 
 }

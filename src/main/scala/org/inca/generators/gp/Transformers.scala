@@ -3,12 +3,12 @@ package org.inca.generators.gp
 import org.inca.lang.core.Constraints.IPathElement
 import org.inca.lang.core.Content.{IPatternBody, IPatternBodyContent, TemporaryVariable}
 import org.inca.lang.core.Reference.VariableReference
-import org.inca.lang.core.Typp.Typ
 import org.inca.lang.core.Values.{IValue, IVariableValue}
 import org.inca.lang.gp.Constraints.PathExpressionConstraint
 import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, IGraphPatternBodyContent}
 import org.inca.lang.gp.Element.GeneratedParameter
 import org.inca.lang.gp.Virtual.ParentPathElement
+import org.inca.meta.MetaElements.MetaElement
 
 object Transformers {
   def transformPattern(pattern: GraphPattern): GraphPattern = {
@@ -39,7 +39,7 @@ object Transformers {
   private def splitNestedPathExpressions(elem: IPathElement,
                              src: IVariableValue,
                              trg: IValue,
-                             typ: Typ,
+                             typ: MetaElement,
                              depth: Int,
                              line: Int): Seq[IGraphPatternBodyContent] = {
     if (elem.next.isEmpty) {
@@ -50,7 +50,7 @@ object Transformers {
     }
   }
 
-  private def matcher(elem: IPathElement, value: IValue, typ: Typ, src: IVariableValue): PathExpressionConstraint = {
+  private def matcher(elem: IPathElement, value: IValue, typ: MetaElement, src: IVariableValue): PathExpressionConstraint = {
     elem match {
       case pp: ParentPathElement =>
         src match {
