@@ -15,4 +15,10 @@ object Content {
                           visibility: Option[IPatternVisibility]) extends IPattern with IGraphPatternModuleContent
   case class GraphPatternBody(contents: Seq[IPatternBodyContent]) extends IPatternBody
   case class GraphPatternParameter(name: String, typ: Option[MetaElement]) extends IParameter
+
+  case class VirtualGraphPattern(name: String) extends IPattern {
+    override val parameters: Seq[IParameter] = Seq()
+    override val bodies: Seq[IPatternBody] = Seq()
+    override val visibility: Option[IPatternVisibility] = None
+  }
 }

@@ -5,7 +5,7 @@ import org.inca.lang.gp.Content.GraphPattern
 
 import scala.meta._
 
-object ParentClass {
+object GeneratedQueryClass {
 
   def generateParentClass(pattern: GraphPattern, collectionName: String): Stat = {
 

@@ -33,6 +33,7 @@ object Transformers {
         } else {
           Seq(content)
         }
+      case _ => Seq(content)
     }
   }
 

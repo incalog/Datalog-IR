@@ -1,7 +1,7 @@
 package org.inca.generators.gp.sdk.queryspecification
 
-import org.inca.generators.gp.sdk.queryspecification.ParentClass.generateParentClass
-import org.inca.generators.gp.sdk.queryspecification.ParentObject.generateParentObject
+import org.inca.generators.gp.sdk.queryspecification.GeneratedQueryClass.generateParentClass
+import org.inca.generators.gp.sdk.queryspecification.GeneratedQueryObject.generateParentObject
 import org.inca.generators.gp.util.ImportItem
 import org.inca.generators.gp.util.Util.importToImporter
 import org.inca.lang.gp.Content.GraphPattern

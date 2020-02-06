@@ -2,14 +2,14 @@ package org.inca.generator
 
 import analyzedLangs.GraphLang.{Edge, Graph, Node}
 import org.inca.generators.gp.GPGenerator
-import org.inca.lang.core.Constraints.{EqualityCompareFeature, PatternCall, Something}
+import org.inca.lang.core.Constraints.PatternCall
 import org.inca.lang.core.Content.TemporaryVariable
 import org.inca.lang.core.Reference.VariableReference
-import org.inca.lang.gp.Constraints.{GraphPatternCompareConstraint, PathExpressionConstraint, PatternCompositionConstraint}
-import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
+import org.inca.lang.gp.Constraints.{PathExpressionConstraint, PatternCompositionConstraint}
+import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter, VirtualGraphPattern}
 import org.inca.lang.gp.Element.PathElement
 import org.inca.lang.gp.Virtual.ParentPathElement
-import org.inca.meta.MetaElements.{Link, NodeLink, NodeType}
+import org.inca.meta.MetaElements.NodeType
 
 object GraphLangTest extends App {
 
@@ -71,16 +71,7 @@ object GraphLangTest extends App {
             edgeType
           )
         )
-      ),
-//      GraphPatternBody(
-//        Seq(
-//          GraphPatternCompareConstraint(
-//            EqualityCompareFeature(),
-//            Something("left"),
-//            Something("right")
-//          )
-//        )
-//      )
+      )
     ),
     None
   )
@@ -134,7 +125,8 @@ object GraphLangTest extends App {
               intermediate,
               VariableReference(trgGraphParam)
             ),
-            path
+            // todo evaluate VirtualGraphPattern
+            VirtualGraphPattern("Path")
           )
         )
       )
@@ -197,14 +189,9 @@ object GraphLangTest extends App {
     None
   )
 
-  /*
-
-
-
-   */
 
   val gpgen = new GPGenerator
-  gpgen.generate(greatGrandParent, "GPLang")
-    gpgen.generate(directEdge, "GPLang")
-  //  gpgen.generate(path, "GPLang")
+//  gpgen.generate(greatGrandParent, "GPLang")
+//  gpgen.generate(directEdge, "GPLang")
+  gpgen.generate(path, "GPLang")
 }
