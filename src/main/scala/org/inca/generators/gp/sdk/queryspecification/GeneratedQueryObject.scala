@@ -2,12 +2,11 @@ package org.inca.generators.gp.sdk.queryspecification
 
 import org.inca.generators.gp.sdk.queryspecification.QuerySpecificationGenerator._
 import org.inca.generators.gp.sdk.queryspecification.TypeConstraints._
-import org.inca.generators.gp.sdk.queryspecification.util._
-import org.inca.lang.core.Content.{IParameter, IPatternBodyContent, TemporaryVariable}
-import org.inca.lang.gp.Constraints.PathExpressionConstraint
+import org.inca.generators.gp.sdk.queryspecification.Variables._
+import org.inca.lang.core.Content.IParameter
 import org.inca.lang.gp.Content.GraphPattern
-import org.inca.lang.gp.Element.GeneratedParameter
-import Variables._
+
+import VariableDissolver._
 
 import scala.meta._
 

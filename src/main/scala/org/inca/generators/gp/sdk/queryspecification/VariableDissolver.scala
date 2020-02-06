@@ -1,8 +1,9 @@
 package org.inca.generators.gp.sdk.queryspecification
 
 import org.inca.generators.gp.sdk.queryspecification.Primitives._
+import org.inca.generators.gp.util.Util._
 
-import scala.meta.{Lit, Pat, Term}
+import scala.meta._
 
 
 object VariableDissolver {
@@ -25,12 +26,18 @@ object VariableDissolver {
     }
   }
 
+  def asParam(s: String): String = "p_" + s
+  def asBodyVar(s: String): String = "var_" + s
+  def asVar(s: String): String = "var__" + s
 
-  def tempVarName(name: String): Term.Name = Term.Name(s"var__$name")
-  def localParamName(name: String): Term.Name = Term.Name(s"var_$name")
-  def stringToLit(s: String): Lit.String = Lit.String(s)
-  def tempVarTermName(name: String): Pat.Var = Pat.Var(Term.Name(s"var__$name"))
-  def paramVarName(name: String): Pat.Var = Pat.Var(Term.Name(s"p_$name"))
-  def pVarVarName(name: String): Pat.Var = Pat.Var(Term.Name(s"var_$name"))
-  def toTerm(s: String): Term.Name = Term.Name(s)
+  implicit def metaMagic(s: String): MagicMeta = new MagicMeta(s)
+}
+
+// wird umbenannt, kein Angst ;)
+class MagicMeta(s: String) {
+  def toTerm: Term.Name = Term.Name(s)
+  def toLit: Lit.String = Lit.String(s)
+  def toVar: Pat.Var = Pat.Var(Term.Name(s))
+  def toType: Type.Name = Type.Name(s)
+  def toClassPath: Type.Select = classPathToTypeSelect(s)
 }

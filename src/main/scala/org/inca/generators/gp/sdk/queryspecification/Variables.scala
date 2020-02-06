@@ -11,12 +11,12 @@ import org.inca.generators.gp.sdk.queryspecification.VariableDissolver._
 object Variables {
 
   def createTemporaryVariables(names: List[String]): List[Stat] = for (name <- names) yield {
-    q"val  ${tempVarTermName(name)}: PVariable = body.getOrCreateVariableByName(${stringToLit(name)})"
+    q"val  ${asVar(name).toVar}: PVariable = body.getOrCreateVariableByName(${name.toLit})"
   }
 
   def createLocalGlobalVariables(graphParameters: Seq[IParameter]): List[Stat] =
     (for (gp <- graphParameters) yield {
-      q"val ${pVarVarName(gp.name)}: PVariable = body.getOrCreateVariableByName(${stringToLit(gp.name)})"
+      q"val ${asParam(gp.name).toVar}: PVariable = body.getOrCreateVariableByName(${gp.name.toLit})"
     }).toList
 
 
@@ -30,7 +30,7 @@ object Variables {
     }.toList.distinct.filterNot(x => x.isEmpty)
 
   def primitivesToParams(primitives: List[Primitive]): List[Stat] = for (primitive <- primitives) yield {
-    q"val ${tempVarTermName(getLabel(primitive))} = body.newConstantVariable(${primitiveLit(primitive)})"
+    q"val ${asVar(getLabel(primitive)).toVar} = body.newConstantVariable(${primitiveLit(primitive)})"
   }
 
 

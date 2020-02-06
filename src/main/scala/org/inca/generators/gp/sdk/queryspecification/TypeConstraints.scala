@@ -18,8 +18,8 @@ object TypeConstraints {
     (for (graphParameter <- graphParameters) yield {
       q"""new TypeConstraint(
          body,
-         Tuples.flatTupleOf(${localParamName(graphParameter.name)}),
-         new ClassKey(NodeType(classOf[${classPathToTypeSelect(graphParameter.typ.get.toString)}]))
+         Tuples.flatTupleOf(${asBodyVar(graphParameter.name).toTerm}),
+         new ClassKey(NodeType(classOf[${graphParameter.typ.get.toString.toClassPath}]))
        )"""
     }).toList
 
@@ -47,7 +47,7 @@ object TypeConstraints {
     q"""new TypeConstraint(
              body,
              Tuples.staticArityFlatTupleOf($src, $trg),
-             new LinkKey(NodeType(classOf[${classPathToTypeSelect(pxc.typ.toString)}])(${Lit.String(pxc.element.link.toString)}))
+             new LinkKey(NodeType(classOf[${pxc.typ.toString.toClassPath}])(${pxc.element.link.fld.getName.toLit}))
            )"""
   }
 
@@ -57,21 +57,21 @@ object TypeConstraints {
         case vr: VariableReference =>
           vr.variable match {
             case gpp: GraphPatternParameter =>
-              localParamName(gpp.name)
+              asBodyVar(gpp.name).toTerm
             case tv: TemporaryVariable =>
-              tempVarName(tv.name)
+              asVar(tv.name).toTerm
           }
         case tv: TemporaryVariable =>
-          localParamName(tv.name)
+          asBodyVar(tv.name).toTerm
       }
     }).toList
     // todo change mocked file name
-    val mockClassName = toTerm("GPLang")
+    val mockClassName = "GPLang"
     q"""
        new PositivePatternCall(
           body,
           Tuples.flatTupleOf(..$args),
-          ${toTerm(s"${pcc.call.pattern.name}_${mockClassName}QuerySpecification")}.instance().getInternalQueryRepresentation()
+          new ${s"${pcc.call.pattern.name}_${mockClassName}QuerySpecification".toType}().instance().getInternalQueryRepresentation()
        )
      """
   }
@@ -93,8 +93,8 @@ object TypeConstraints {
 
   private def compareType(value: IValue): Term.Name = {
     value match {
-      case vr: VariableReference => localParamName(vr.variable.name)
-      case p: Primitive => tempVarName(getLabel(p))
+      case vr: VariableReference => asBodyVar(vr.variable.name).toTerm
+      case p: Primitive => asVar(getLabel(p)).toTerm
     }
   }
 

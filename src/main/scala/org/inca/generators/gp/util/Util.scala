@@ -5,7 +5,7 @@ import scala.meta.{Import, Importee, Importer, Name, Stat, Term, Type}
 object Util {
 
   def classPathToTypeSelect(path: String): Type.Select = {
-    val pathList = path.split('.')
+    val pathList = path.substring(1).split('.')
 
     // todo fold
     if (pathList.length > 2) {
