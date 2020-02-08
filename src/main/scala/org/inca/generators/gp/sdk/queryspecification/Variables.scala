@@ -29,16 +29,22 @@ object Variables {
         }
     }.toList.distinct.filterNot(x => x.isEmpty)
 
+
+
+
   def primitivesToParams(primitives: List[Primitive]): List[Stat] = for (primitive <- primitives) yield {
+    // todo gensym
     q"val ${asVar(getLabel(primitive)).toVar} = body.newConstantVariable(${primitiveLit(primitive)})"
   }
-
 
   def collectUniquePrimitives(body: Seq[IPatternBodyContent]): List[Primitive] =
     body.collect {
       case cc: GraphPatternCompareConstraint =>
         List(cc.left, cc.right).collect{case p: Primitive => p}
     }.toList.flatten.distinct
+
+
+
 
   def getGeneratedTemporaryVariables(body: Seq[IPatternBodyContent]): List[String] =
     body.collect {

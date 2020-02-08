@@ -84,7 +84,7 @@ object GraphLangTest extends App {
    * find Path(intermediate, trg)
    * }
    */
-  val path: GraphPattern = GraphPattern(
+  lazy val path: GraphPattern = GraphPattern(
     "Path",
     Seq(
       srcGraphParam,
@@ -126,7 +126,8 @@ object GraphLangTest extends App {
               VariableReference(trgGraphParam)
             ),
             // todo evaluate VirtualGraphPattern
-            VirtualGraphPattern("Path")
+            path
+//            VirtualGraphPattern("Path")
           )
         )
       )

@@ -15,13 +15,13 @@ import scala.meta._
 object TypeConstraints {
 
   def createTypeConstraintsParameters(graphParameters: Seq[IParameter]): List[Stat] =
-    (for (graphParameter <- graphParameters) yield {
+    graphParameters.map { param =>
       q"""new TypeConstraint(
          body,
-         Tuples.flatTupleOf(${asBodyVar(graphParameter.name).toTerm}),
-         new ClassKey(NodeType(classOf[${graphParameter.typ.get.toString.toClassPath}]))
+         Tuples.flatTupleOf(${asBodyVar(param.name).toTerm}),
+         new ClassKey(NodeType(classOf[${param.typ.get.toString.toClassPath}]))
        )"""
-    }).toList
+    }.toList
 
   def createTypeConstraints(bodyContent: Seq[IPatternBodyContent]): List[Stat] =
     bodyContent.collect {
@@ -32,68 +32,57 @@ object TypeConstraints {
 
   private def createPathExpressionConstraint(pxc: PathExpressionConstraint): Stat = {
     val src = pxc.src.variable match {
-      case t: TemporaryVariable =>
-        Term.Name(s"var__${t.name}")
-      case gpp: GraphPatternParameter =>
-        Term.Name(s"var_${gpp.name}")
+      case TemporaryVariable(name, _) => Term.Name(s"var__$name")
+      case GraphPatternParameter(name, _) => Term.Name(s"var_$name")
     }
     val trg = pxc.trg match {
-      case vr: VariableReference =>
-        Term.Name(s"var_${vr.variable.name}")
-
-      case tv: TemporaryVariable =>
-        Term.Name(s"var__${tv.name}")
+      case VariableReference(v) => Term.Name(s"var_${v.name}")
+      case TemporaryVariable(name, _) => Term.Name(s"var__$name")
     }
     q"""new TypeConstraint(
              body,
              Tuples.staticArityFlatTupleOf($src, $trg),
-             new LinkKey(NodeType(classOf[${pxc.typ.toString.toClassPath}])(${pxc.element.link.fld.getName.toLit}))
+             new LinkKey(NodeType(
+                classOf[${pxc.typ.toString.toClassPath}])
+                  (${pxc.element.link.fld.getName.toLit}))
            )"""
   }
 
   private def createPatternCompositionConstraint(pcc: PatternCompositionConstraint): Stat = {
-    val args: List[Term.Name] = (for (arg <- pcc.call.arguments) yield {
-      arg match {
-        case vr: VariableReference =>
-          vr.variable match {
-            case gpp: GraphPatternParameter =>
-              asBodyVar(gpp.name).toTerm
-            case tv: TemporaryVariable =>
-              asVar(tv.name).toTerm
-          }
-        case tv: TemporaryVariable =>
-          asBodyVar(tv.name).toTerm
-      }
-    }).toList
-    // todo change mocked file name
-    val mockClassName = "GPLang"
+    val args = getPatternCompConstrArguments(pcc.call.arguments)
+    val patternName = Type.Name(s"${pcc.call.pattern.name}_QuerySpecification")
     q"""
        new PositivePatternCall(
           body,
           Tuples.flatTupleOf(..$args),
-          new ${s"${pcc.call.pattern.name}_${mockClassName}QuerySpecification".toType}().instance().getInternalQueryRepresentation()
+          new $patternName().instance().getInternalQueryRepresentation()
        )
      """
   }
+
+  private def getPatternCompConstrArguments(args: Seq[IValue]): List[Term] =
+    args.map {
+      case VariableReference(v) => v match {
+        case GraphPatternParameter(name, _) => asBodyVar(name).toTerm
+        case TemporaryVariable(name, _) => asVar(name).toTerm
+      }
+      case TemporaryVariable(name, _) => asBodyVar(name).toTerm
+    }.toList
 
   private def createGraphPatternCompareConstraint(cc: GraphPatternCompareConstraint): Stat = {
     val left = compareType(cc.left)
     val right = compareType(cc.right)
     cc.feature match {
-      case _: EqualityCompareFeature =>
-        q"""
-          new Equality(body, $left, $right)
-        """
-      case _: InequalityCompareFeature =>
-        q"""
-          new Inequality(body, $left, $right)
-        """
+      case _: EqualityCompareFeature   => q"new Equality(body, $left, $right)"
+      case _: InequalityCompareFeature => q"new Inequality(body, $left, $right)"
     }
   }
 
+  // todo rename
   private def compareType(value: IValue): Term.Name = {
     value match {
-      case vr: VariableReference => asBodyVar(vr.variable.name).toTerm
+      case VariableReference(v) => asBodyVar(v.name).toTerm
+      // todo change when primitives are taken care of
       case p: Primitive => asVar(getLabel(p)).toTerm
     }
   }

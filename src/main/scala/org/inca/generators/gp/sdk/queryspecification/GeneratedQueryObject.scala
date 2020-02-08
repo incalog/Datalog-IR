@@ -53,7 +53,7 @@ object GeneratedQueryObject {
     for (name <- names) yield {
       q"""new TypeConstraint(
          body,
-         Tuples.flatTupleOf(${tempVarName(name)}),
+         Tuples.flatTupleOf(${asVar(name).toTerm}),
          new ClassKey(NodeType(classOf[org.inca.lang.core.Constraints.ContextPointer]))
        )"""
     }
