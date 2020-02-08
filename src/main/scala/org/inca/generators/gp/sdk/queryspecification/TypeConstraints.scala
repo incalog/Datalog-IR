@@ -1,14 +1,13 @@
 package org.inca.generators.gp.sdk.queryspecification
 
 import org.inca.generators.gp.sdk.queryspecification.Primitives.Primitive
-import org.inca.generators.gp.util.Util.classPathToTypeSelect
+import org.inca.generators.gp.sdk.queryspecification.VariableDissolver._
 import org.inca.lang.core.Constraints.{EqualityCompareFeature, InequalityCompareFeature}
 import org.inca.lang.core.Content.{IParameter, IPatternBodyContent, TemporaryVariable}
 import org.inca.lang.core.Reference.VariableReference
 import org.inca.lang.core.Values.IValue
-import org.inca.lang.gp.Constraints.{GraphPatternCompareConstraint, PathExpressionConstraint, PatternCompositionConstraint}
+import org.inca.lang.gp.Constraints._
 import org.inca.lang.gp.Content.GraphPatternParameter
-import VariableDissolver._
 
 import scala.meta._
 

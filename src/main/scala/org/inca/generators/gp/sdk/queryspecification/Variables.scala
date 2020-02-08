@@ -10,14 +10,15 @@ import org.inca.generators.gp.sdk.queryspecification.VariableDissolver._
 
 object Variables {
 
-  def createTemporaryVariables(names: List[String]): List[Stat] = for (name <- names) yield {
-    q"val  ${asVar(name).toVar}: PVariable = body.getOrCreateVariableByName(${name.toLit})"
-  }
+  def createTemporaryVariables(names: List[String]): List[Stat] =
+    names.map { name =>
+      q"val  ${asVar(name).toVar}: PVariable = body.getOrCreateVariableByName(${name.toLit})"
+    }
 
   def createLocalGlobalVariables(graphParameters: Seq[IParameter]): List[Stat] =
-    (for (gp <- graphParameters) yield {
+    graphParameters.map { gp =>
       q"val ${asParam(gp.name).toVar}: PVariable = body.getOrCreateVariableByName(${gp.name.toLit})"
-    }).toList
+    }.toList
 
 
   def getTemporaryVariables(body: Seq[IPatternBodyContent]): List[String] =
@@ -30,20 +31,17 @@ object Variables {
     }.toList.distinct.filterNot(x => x.isEmpty)
 
 
-
-
-  def primitivesToParams(primitives: List[Primitive]): List[Stat] = for (primitive <- primitives) yield {
-    // todo gensym
-    q"val ${asVar(getLabel(primitive)).toVar} = body.newConstantVariable(${primitiveLit(primitive)})"
-  }
+  def primitivesToParams(primitives: List[Primitive]): List[Stat] =
+    primitives.map { primitive =>
+      // todo gensym
+      q"val ${asVar(getLabel(primitive)).toVar} = body.newConstantVariable(${primitiveLit(primitive)})"
+    }
 
   def collectUniquePrimitives(body: Seq[IPatternBodyContent]): List[Primitive] =
     body.collect {
-      case cc: GraphPatternCompareConstraint =>
-        List(cc.left, cc.right).collect{case p: Primitive => p}
+      case GraphPatternCompareConstraint(_, left, right) =>
+        List(left, right).collect { case p: Primitive => p }
     }.toList.flatten.distinct
-
-
 
 
   def getGeneratedTemporaryVariables(body: Seq[IPatternBodyContent]): List[String] =
@@ -53,6 +51,5 @@ object Variables {
           case t: TemporaryVariable with GeneratedParameter => t.name
           case _ => ""
         }
-
     }.toList.distinct.filterNot(x => x.isEmpty)
 }

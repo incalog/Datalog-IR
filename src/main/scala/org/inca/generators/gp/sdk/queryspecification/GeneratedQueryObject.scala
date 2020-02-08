@@ -34,8 +34,9 @@ object GeneratedQueryObject {
 
   }
 
-  private def createGraphPatternBodies(pattern: GraphPattern): List[Term] = for (body <- pattern.bodies.toList) yield {
-    q"""{
+  private def createGraphPatternBodies(pattern: GraphPattern): List[Term] =
+    pattern.bodies.map { body =>
+      q"""{
           val body: PBody = new PBody(that)
           ..${createLocalGlobalVariables(pattern.parameters)}
           ..${createTemporaryVariables(getTemporaryVariables(body.contents))}
@@ -44,47 +45,44 @@ object GeneratedQueryObject {
           ..${createTypeConstraintsParameters(pattern.parameters)}
           ..${createTypeConstraints(body.contents)}
           body
-        }
-        """
-  }
+        }"""
+    }.toList
 
   // todo refactor everything below
-  private def createContextPointers(names: List[String]): List[Stat] = {
-    for (name <- names) yield {
+
+  // todo check if even necessary
+  private def createContextPointers(names: List[String]): List[Stat] =
+    names.map { name =>
       q"""new TypeConstraint(
          body,
          Tuples.flatTupleOf(${asVar(name).toTerm}),
          new ClassKey(NodeType(classOf[org.inca.lang.core.Constraints.ContextPointer]))
        )"""
     }
-  }
 
   private def overrideFunctions(pattern: GraphPattern, collectionName: String): List[Stat] = {
 
     val pFullyQualifiedName = Lit.String(s"$collectionName.${pattern.name}")
     val pGetFullyQualifiedName = q"override def getFullyQualifiedName: String = $pFullyQualifiedName"
 
-    val pParamPNames = for (param <- pattern.parameters.toList) yield {
-      Term.Name(s"p_${param.name}")
-    }
+    val pParamPNames = pattern.parameters.map { p => Term.Name(s"p_${p.name}")}
     val pGetParameters = q"override def getParameters: util.List[PParameter] = util.List.of(..$pParamPNames)"
 
-    val pParamNamesString = for (param <- pattern.parameters.toList) yield {
-      Lit.String(param.name)
-    }
+    val pParamNamesString = pattern.parameters.map { p => Lit.String(p.name)}
     val pGetParameterNames = q"override def getParameterNames: util.List[String] = util.List.of(..$pParamNamesString)"
 
     List(pGetFullyQualifiedName, pGetParameterNames, pGetParameters)
   }
 
   private def pparams(graphParameters: Seq[IParameter]): List[Stat] =
-    (for (graphParameter <- graphParameters) yield {
-      val pParamString = s"p_${graphParameter.name}"
+    graphParameters.map { gp =>
+      val pParamString = s"p_${gp.name}"
       val pParamName = Pat.Var(Term.Name(pParamString))
       val pParamNameString = Lit.String(pParamString)
-      val pParamFullyQualifiedName = Lit.String(graphParameter.typ.get.toString)
+      val pParamFullyQualifiedName = Lit.String(gp.typ.get.toString)
 
+        // todo rm PlaceholderConceptKey
       val pConceptKey = q"new PlaceholderConceptKey()"
       q"private val $pParamName: PParameter = new PParameter($pParamNameString, $pParamFullyQualifiedName, $pConceptKey)"
-    }).toList
+    }.toList
 }

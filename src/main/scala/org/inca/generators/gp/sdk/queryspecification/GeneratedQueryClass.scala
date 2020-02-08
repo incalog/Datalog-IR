@@ -16,8 +16,7 @@ object GeneratedQueryClass {
        class $name extends ScalaQuerySpecification(new ${superClassParam(nameTerm)}) {
          override def instantiate(viatraQueryEngine: ViatraQueryEngine): ScalaPatternMatcher = ???
          override def getPreferredScopeClass: Class[_ <: QueryScope] = ???
-       }
-       """
+       }"""
   }
 
   private def superClassParam(classTermName: Term.Name) = Init(

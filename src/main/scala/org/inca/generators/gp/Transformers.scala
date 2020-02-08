@@ -12,9 +12,7 @@ import org.inca.meta.MetaElements.MetaElement
 
 object Transformers {
   def transformPattern(pattern: GraphPattern): GraphPattern = {
-    val transformedBodies: Seq[IPatternBody] = for (body <- pattern.bodies) yield {
-      transformBodies(body)
-    }
+    val transformedBodies: Seq[IPatternBody] = pattern.bodies.map { body => transformBodies(body) }
     pattern.copy(bodies = transformedBodies)
   }
 
@@ -27,9 +25,9 @@ object Transformers {
 
   private def transformContent(content: IPatternBodyContent, line: Int): Seq[IPatternBodyContent] = {
     content match {
-      case p: PathExpressionConstraint =>
-        if (p.element.next.isDefined) {
-          splitNestedPathExpressions(p.element, p.src, p.trg, p.typ, 0, line)
+      case PathExpressionConstraint(src, trg, elem, typ) =>
+        if (elem.next.isDefined) {
+          splitNestedPathExpressions(elem, src, trg, typ, 0, line)
         } else {
           Seq(content)
         }
@@ -38,11 +36,11 @@ object Transformers {
   }
 
   private def splitNestedPathExpressions(elem: IPathElement,
-                             src: IVariableValue,
-                             trg: IValue,
-                             typ: MetaElement,
-                             depth: Int,
-                             line: Int): Seq[IGraphPatternBodyContent] = {
+                                         src: IVariableValue,
+                                         trg: IValue,
+                                         typ: MetaElement,
+                                         depth: Int,
+                                         line: Int): Seq[IGraphPatternBodyContent] = {
     if (elem.next.isEmpty) {
       Seq(matcher(elem, trg, typ, src))
     } else {
@@ -51,14 +49,17 @@ object Transformers {
     }
   }
 
-  private def matcher(elem: IPathElement, value: IValue, typ: MetaElement, src: IVariableValue): PathExpressionConstraint = {
+  private def matcher(elem: IPathElement,
+                      value: IValue,
+                      typ: MetaElement,
+                      src: IVariableValue): PathExpressionConstraint = {
     elem match {
-      case pp: ParentPathElement =>
-        src match {
+      case pp: ParentPathElement => src match {
           case vr: VariableReference =>
             PathExpressionConstraint(vr, value, pp.copy(next = None), typ)
           case tv: TemporaryVariable =>
-            PathExpressionConstraint(VariableReference(tv), value, pp.copy(next = None), typ)
+            PathExpressionConstraint(VariableReference(tv), value,
+              pp.copy(next = None), typ)
         }
     }
   }
