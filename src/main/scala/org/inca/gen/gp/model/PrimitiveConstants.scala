@@ -1,4 +1,4 @@
-package org.inca.gen.gp.queryspecification
+package org.inca.gen.gp.model
 
 import org.inca.lang.core.Values.IValue
 

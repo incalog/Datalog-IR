@@ -3,8 +3,10 @@ package org.inca.generator
 import analyzedLangs.BinaryExpLang.VariableDeclaration
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import org.inca.findbugs.{ClassDeclaration, ConfusedInheritance, FieldDeclaration, ProtectedVisibility}
-import org.inca.gen.gp.GPGenerator
-import org.inca.gen.gp.queryspecification.PrimitiveConstants.{BooleanConstant, Primitive}
+import org.inca.gen.gp.model.PrimitiveConstants.{BooleanConstant, Primitive}
+import org.inca.gen.gp.GeneratorGP.generate
+import org.inca.gen.gp.helper.Util._
+import org.inca.generator.generated.Boolean_PSystemQuery
 import org.inca.incer.indices.{EnginePool, TFQueryScope}
 import org.inca.lang.core.Constraints.{EqualityCompareFeature, PatternCall}
 import org.inca.lang.core.Content.TemporaryVariable
@@ -15,21 +17,26 @@ import org.inca.lang.gp.Element.PathElement
 import org.inca.meta.MetaElements.{MetaElement, NodeType}
 import org.scalatest.funsuite.AnyFunSuite
 
+
 class InEqualityConstraintsTest extends AnyFunSuite {
 
-  val variableDeclarationNT = NodeType(classOf[VariableDeclaration])
-  val metaElementNT = NodeType(classOf[MetaElement])
-  val booleanNT = NodeType(classOf[Primitive])
-  val booleanConstantNT = NodeType(classOf[BooleanConstant])
+  private val variableDeclarationNT = NodeType(classOf[VariableDeclaration])
+  private val metaElementNT = NodeType(classOf[MetaElement])
+  private val booleanNT = NodeType(classOf[Primitive])
+  private val booleanConstantNT = NodeType(classOf[BooleanConstant])
 
-  val variableDeclarationNL = variableDeclarationNT("initializer")
-  val booleanConstantNL = booleanConstantNT("value")
+  private val variableDeclarationNL = variableDeclarationNT("initializer")
+  private val booleanConstantNL = booleanConstantNT("value")
 
-  // graph pattern parameters
-  val expressionGPP = GraphPatternParameter("expression", Some(metaElementNT))
-  val booleanGPP = GraphPatternParameter("value", Some(booleanNT))
+  private val expressionGPP = GraphPatternParameter("expression", Some(metaElementNT))
+  private val booleanGPP = GraphPatternParameter("value", Some(booleanNT))
 
-  val booleanGP: GraphPattern = GraphPattern(
+  /**
+   * pattern Boolean(exp: Expression, value: boolean) {
+   *   BooleanConstant.value(expression, value)
+   * }
+   */
+  private val booleanGP: GraphPattern = GraphPattern(
     "Boolean_PSystemQuery",
     Seq(
       expressionGPP,
@@ -50,22 +57,21 @@ class InEqualityConstraintsTest extends AnyFunSuite {
     None
   )
 
-
   // graph pattern parameters
-  val varGP = GraphPatternParameter("var", Some(variableDeclarationNT))
-  val initializerGP = GraphPatternParameter("initializer", Some(booleanNT))
+  private val varGP = GraphPatternParameter("var", Some(variableDeclarationNT))
+  private val initializerGP = GraphPatternParameter("initializer", Some(booleanNT))
 
   // temporary variables
-  val expressionTV = TemporaryVariable("expression", None)
+  private val expressionTV = TemporaryVariable("expression", None)
 
   /**
    * pattern FalseInitializer(var: VariableDeclaration, initializer: boolean) {
    *   VariableDeclaration.initializer(var, expression)
-   * find Boolean(expression, initializer)
-   * initializer == false
+   *   find Boolean(expression, initializer)
+   *   initializer == false
    * }
    */
-  val falseInitializerGP = GraphPattern(
+  private val falseInitializerGP = GraphPattern(
     "FalseInitializer_PSystemQuery",
     Seq(
       varGP,
@@ -107,13 +113,13 @@ class InEqualityConstraintsTest extends AnyFunSuite {
     None
   )
 
-  test("Generate Scala Code") {
-    val gpgen = new GPGenerator
-    gpgen.generate(booleanGP)
-    gpgen.generate(falseInitializerGP)
+  test("Generate GraphLang source") {
+    writeClass(generate(booleanGP), falseInitializerGP.name)
+    generate(falseInitializerGP)
   }
 
-  val clazz = ClassDeclaration("Foo", true, List(FieldDeclaration("bar", ProtectedVisibility())))
+  // todo add real example program
+  val clazz: ClassDeclaration = ClassDeclaration("Foo", true, List(FieldDeclaration("bar", ProtectedVisibility())))
 
   test("Use generated code in PSystem") {
     val scope = new TFQueryScope(clazz)
@@ -122,8 +128,9 @@ class InEqualityConstraintsTest extends AnyFunSuite {
   }
 
   test("PSystem bool pattern") {
-//    val scope = new TFQueryScope(clazz)
-//    val matcher = EnginePool.getMatcher(Boolean_BoolLangQuerySpecification.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
-//    println(matcher.getAllMatches)
+    val scope = new TFQueryScope(clazz)
+    val matcher = EnginePool.getMatcher(Boolean_PSystemQuery.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
+    println(matcher.getAllMatches)
   }
+
 }

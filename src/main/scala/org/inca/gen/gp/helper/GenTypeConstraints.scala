@@ -1,0 +1,88 @@
+package org.inca.gen.gp.helper
+
+import org.inca.lang.core.Constraints.{EqualityCompareFeature, InequalityCompareFeature}
+import org.inca.lang.core.Content.{IParameter, IPatternBodyContent, TemporaryVariable}
+import org.inca.lang.core.Reference.VariableReference
+import org.inca.lang.core.Values.IValue
+import org.inca.lang.gp.Constraints._
+import org.inca.lang.gp.Content.GraphPatternParameter
+
+import org.inca.gen.gp.model.Gensym._
+import org.inca.gen.gp.model.Prefix._
+
+import scala.meta._
+import Util._
+
+object GenTypeConstraints {
+
+  def typeConstraintsParameters(graphParameters: Seq[IParameter]): List[Stat] =
+    graphParameters.toList map { param =>
+      q"""new TypeConstraint(body,
+         Tuples.flatTupleOf(${Term.Name(s"var_${param.name}")}),
+         new ClassKey(NodeType(classOf[${asTypeSelect(param.typ.get.toString)}]))
+       )"""
+    }
+
+  def typeConstraints(bodyContent: Seq[IPatternBodyContent]): List[Stat] =
+    bodyContent.toList collect {
+      case pxc: PathExpressionConstraint      => pathExpressionConstraint(pxc)
+      case pcc: PatternCompositionConstraint  => patternCompositionConstraint(pcc)
+      case gcc: GraphPatternCompareConstraint => graphPatternCompareConstraint(gcc)
+    }
+
+  def contextPointers(names: List[String]): List[Stat] =
+    names map { name =>
+      q"""new TypeConstraint(
+         body,
+         Tuples.flatTupleOf(${Term.Name(s"var__$name")}),
+         new ClassKey(NodeType(classOf[org.inca.lang.core.Constraints.ContextPointer]))
+       )"""
+    }
+
+  private def pathExpressionConstraint(pxc: PathExpressionConstraint): Stat = {
+    val src = pxc.src.variable match {
+      case TemporaryVariable(name, _) => Term.Name(s"var__$name")
+      case GraphPatternParameter(name, _) => Term.Name(s"var_$name")
+    }
+    val trg = pxc.trg match {
+      case VariableReference(v) => Term.Name(s"var_${v.name}")
+      case TemporaryVariable(name, _) => Term.Name(s"var__$name")
+    }
+    q"""new TypeConstraint(body,
+        Tuples.staticArityFlatTupleOf($src, $trg),
+        new LinkKey(NodeType(
+           classOf[${asTypeSelect(pxc.typ.toString)}])
+             (${Lit.String(pxc.element.link.fld.getName)}))
+      )"""
+  }
+
+  private def patternCompositionConstraint(pcc: PatternCompositionConstraint): Stat =
+    q"""new PositivePatternCall(body,
+          Tuples.flatTupleOf(..${patternCompConstrArguments(pcc.call.arguments)}),
+          new ${Type.Name(s"${pcc.call.pattern.name}_QuerySpecification")}()
+            .instance().getInternalQueryRepresentation()
+       )
+     """
+
+  private def patternCompConstrArguments(args: Seq[IValue]): List[Term] =
+    args.toList map {
+      case VariableReference(v) => v match {
+        case GraphPatternParameter(name, _) => Term.Name(s"var_$name")
+        case TemporaryVariable(name, _) => Term.Name(s"var__$name")
+      }
+      case TemporaryVariable(name, _) => Term.Name(s"var_$name")
+    }
+
+  private def graphPatternCompareConstraint(cc: GraphPatternCompareConstraint): Stat =
+    matchCompareConstraint(termNameLabel(cc.left), termNameLabel(cc.right))
+
+  private def matchCompareConstraint(left: Term.Name, right: Term.Name): Stat = {
+    case _: EqualityCompareFeature => q"new Equality(body, $left, $right)"
+    case _: InequalityCompareFeature => q"new Inequality(body, $left, $right)"
+  }
+
+  private def termNameLabel(value: Any): Term.Name = {
+    case VariableReference(v) => Term.Name(s"var_${v.name}")
+    case _ => Term.Name(generateLabel(var__, value))
+  }
+}

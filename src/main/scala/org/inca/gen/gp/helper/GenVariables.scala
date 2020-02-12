@@ -1,28 +1,28 @@
-package org.inca.gen.gp.queryspecification
+package org.inca.gen.gp.helper
 
-import PrimitiveConstants.Primitive
+import org.inca.gen.gp.model.PrimitiveConstants.Primitive
 import org.inca.lang.core.Content.{IParameter, IPatternBodyContent, TemporaryVariable}
 import org.inca.lang.gp.Constraints.{GraphPatternCompareConstraint, PathExpressionConstraint}
 import org.inca.lang.gp.Element.GeneratedParameter
 
 import scala.meta._
+import org.inca.gen.gp.model.Gensym._
+import org.inca.gen.gp.model.Prefix._
+import org.inca.gen.gp.helper.Util.asTypeSelect
 
-import Gensym._
-import Prefix._
-
-object Variables {
+object GenVariables {
 
   def createTemporaryVariables(names: List[String]): List[Stat] =
     names.map { name =>
       q"val ${Pat.Var(Term.Name(s"var__$name"))}: PVariable = body.getOrCreateVariableByName(${Lit.String(name)})"
     }
 
-  def createLocalGlobalVariables(graphParameters: Seq[IParameter]): List[Stat] =
+  def localGlobalVariables(graphParameters: Seq[IParameter]): List[Stat] =
     graphParameters.map { gp =>
       q"val ${Pat.Var(Term.Name(s"var_${gp.name}"))}: PVariable = body.getOrCreateVariableByName(${Lit.String(gp.name)})"
     }.toList
 
-  def getTemporaryVariables(body: Seq[IPatternBodyContent]): List[String] =
+  def temporaryVariables(body: Seq[IPatternBodyContent]): List[String] =
     body.collect {
       case PathExpressionConstraint(_, trg, _, _) =>
         trg match {
@@ -37,13 +37,13 @@ object Variables {
       q"val $variable = body.newConstantVariable(${primitiveLit(primitive)})"
     }
 
-  def collectUniquePrimitives(body: Seq[IPatternBodyContent]): List[Primitive] =
+  def uniquePrimitives(body: Seq[IPatternBodyContent]): List[Primitive] =
     body.collect {
       case GraphPatternCompareConstraint(_, left, right) =>
         List(left, right).collect { case p: Primitive => p }
     }.toList.flatten.distinct
 
-  def getGeneratedTemporaryVariables(body: Seq[IPatternBodyContent]): List[String] =
+  def generatedTemporaryVariables(body: Seq[IPatternBodyContent]): List[String] =
     body.collect {
       case p: PathExpressionConstraint =>
         p.trg match {
@@ -51,4 +51,16 @@ object Variables {
           case _ => ""
         }
     }.toList.distinct.filterNot(x => x.isEmpty)
+
+  def pparams(graphParameters: Seq[IParameter]): List[Stat] =
+    graphParameters.toList map { gp =>
+      val name = s"p_${gp.name}"
+      val primitiveTypeName = asTypeSelect(gp.typ.get.toString)
+      val pConceptKey = q"new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[$primitiveTypeName]))"
+
+      q"""private val ${Pat.Var(Term.Name(name))}: PParameter =
+            new PParameter(${Lit.String(name)},
+            ${Lit.String(gp.typ.get.toString.tail)},
+            $pConceptKey)"""
+    }
 }

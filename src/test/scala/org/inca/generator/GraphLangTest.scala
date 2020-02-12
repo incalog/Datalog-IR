@@ -1,33 +1,35 @@
 package org.inca.generator
 
 import analyzedLangs.GraphLang.{Edge, Graph, Node}
-import org.inca.gen.gp.GPGenerator
+import org.inca.gen.gp.GeneratorGP.generate
 import org.inca.lang.core.Constraints.PatternCall
 import org.inca.lang.core.Content.TemporaryVariable
 import org.inca.lang.core.Reference.VariableReference
 import org.inca.lang.gp.Constraints.{PathExpressionConstraint, PatternCompositionConstraint}
-import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter, VirtualGraphPattern}
+import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
 import org.inca.lang.gp.Element.PathElement
 import org.inca.lang.gp.Virtual.ParentPathElement
 import org.inca.meta.MetaElements.NodeType
+import org.scalatest.funsuite.AnyFunSuite
+import org.inca.gen.gp.helper.Util._
 
-object GraphLangTest extends App {
+class GraphLangTest extends AnyFunSuite {
 
-  val nodeType  = NodeType(classOf[Node])
-  val edgeType  = NodeType(classOf[Edge])
-  val graphType = NodeType(classOf[Graph])
+  private val nodeType  = NodeType(classOf[Node])
+  private val edgeType  = NodeType(classOf[Edge])
+  private val graphType = NodeType(classOf[Graph])
 
-  val edgeToNodeLink   = edgeType("to")
-  val edgeFromNodeLink = edgeType("from")
-  val nodeParentLink   = nodeType("parent")
-  val graphEdgesLink   = graphType("edges")
+  private val edgeToNodeLink   = edgeType("to")
+  private val edgeFromNodeLink = edgeType("from")
+  private val nodeParentLink   = nodeType("parent")
+  private val graphEdgesLink   = graphType("edges")
 
-  val srcGraphParam = GraphPatternParameter("src", Some(nodeType))
-  val trgGraphParam = GraphPatternParameter("trg", Some(nodeType))
-  // temp vars
-  val intermediate = TemporaryVariable("inter", Some(nodeType))
-  val graph = TemporaryVariable("graph", Some(graphType))
-  val edge = TemporaryVariable("edge", Some(edgeType))
+  private val srcGraphParam = GraphPatternParameter("src", Some(nodeType))
+  private val trgGraphParam = GraphPatternParameter("trg", Some(nodeType))
+
+  private val intermediate = TemporaryVariable("inter", Some(nodeType))
+  private val graph = TemporaryVariable("graph", Some(graphType))
+  private val edge = TemporaryVariable("edge", Some(edgeType))
 
   /**
    * pattern DirectEdge(src: Node, trg: Node) {
@@ -37,7 +39,7 @@ object GraphLangTest extends App {
    *   Edge.to(edge, trg)
    * }
    */
-  val directEdge: GraphPattern = GraphPattern(
+  private val directEdge: GraphPattern = GraphPattern(
     "DirectEdge",
     Seq(
       srcGraphParam,
@@ -84,7 +86,7 @@ object GraphLangTest extends App {
    * find Path(intermediate, trg)
    * }
    */
-  lazy val path: GraphPattern = GraphPattern(
+  private lazy val path: GraphPattern = GraphPattern(
     "Path",
     Seq(
       srcGraphParam,
@@ -151,7 +153,7 @@ object GraphLangTest extends App {
    *   Node.parent(temp6, trg)
    * }
    */
-  val greatGrandParent: GraphPattern = GraphPattern(
+  private val greatGrandParent: GraphPattern = GraphPattern(
     "GreatGrandParent",
     Seq(
       srcGraphParam,
@@ -188,8 +190,9 @@ object GraphLangTest extends App {
   )
 
 
-  val gpgen = new GPGenerator
-//  gpgen.generate(greatGrandParent, "GPLang")
-//  gpgen.generate(directEdge, "GPLang")
-  gpgen.generate(path)
+  test("Generate GraphLang source") {
+    //  generate(greatGrandParent, "GPLang")
+    //  generate(directEdge, "GPLang")
+    writeClass(generate(path), path.name)
+  }
 }

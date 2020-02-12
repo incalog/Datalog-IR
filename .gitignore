@@ -20,6 +20,8 @@ build/
 
 # custom
 /src/test/scala/Path_GPLangQuerySpecification.scala
-/generated
+/src/test/scala/org.inca.generator.generated
 
 /benchmark/python/*/
+/src/test/scala/org/inca/generated/
+/src/test/scala/org/inca/generator/generated/

@@ -1,28 +1,36 @@
-package org.inca.gen.gp.queryspecification
+package org.inca.gen.gp
 
-import GeneratedQueryObject.{createGraphPatternBodies, pparams}
+import org.inca.gen.gp.TransformGP.transformPattern
+import org.inca.gen.gp.helper.GenTypeConstraints._
+import org.inca.gen.gp.helper.GenVariables._
 import org.inca.lang.gp.Content.GraphPattern
 
 import scala.meta._
 
-object QuerySpecificationGenerator {
+object GeneratorGP {
 
-  def generateQuerySpecification(pattern: GraphPattern): Source = {
+  // todo show the pipe
+  def generate(pattern: GraphPattern): Source =
+    (transformPattern andThen
+      querySpecification)(pattern)
+
+  def querySpecification(pattern: GraphPattern): Source = {
 
     val fileNameType = Type.Name(pattern.name)
     val fileNameTerm = Term.Name(pattern.name)
-    val pFullyQualifiedName = Lit.String(pattern.name)
+    val fileNameLit = Lit.String(pattern.name)
 
     val superClassParam = Init(
       Type.Name("TFQuerySpecification"),
       Name.Anonymous(),
-      List(List(q"$fileNameTerm.GeneratedPQuery.INSTANCE"))
-    )
+      List(List(q"$fileNameTerm.GeneratedPQuery.INSTANCE")))
 
-    val pParamPNames = pattern.parameters.map { p => Term.Name(s"p_${p.name}")}.toList
-    val pParamNamesString = pattern.parameters.map { p => Lit.String(p.name)}.toList
+    val paramTermName = pattern.parameters.toList map { p => Term.Name(s"p_${p.name}")}
+    val paramLitName = pattern.parameters.toList map {p => Lit.String(p.name)}
 
     source"""
+            package org.inca.generator.generated
+
             import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
             import org.eclipse.viatra.query.runtime.api.scope.QueryScope
             import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables.TypeConstraint
@@ -34,7 +42,7 @@ object QuerySpecificationGenerator {
             import java.util
 
             import org.inca.gen.gp.model.keys.{ClassKey, LinkKey}
-            import org.inca.gen.gp.sdk.queryspecification.PrimitiveConstants
+            import org.inca.gen.gp.queryspecification.PrimitiveConstants
             import org.inca.incer.indices.{TFInputKey, TFQueryScope, TFQuerySpecification}
             import org.inca.meta.MetaElements
             import org.inca.meta.MetaElements.NodeType
@@ -64,20 +72,39 @@ object QuerySpecificationGenerator {
                   {}
                   override protected def doGetContainedBodies(): util.Set[PBody] = {
                     val bodies: util.Set[PBody] = util.Set.of(
-                      ..${createGraphPatternBodies(pattern)}
+                      ..${pattern.bodies.toList map { body =>
+                            q"""{
+                                val body: PBody = new PBody(that)
+                                ..${localGlobalVariables(pattern.parameters)}
+                                ()
+                                val exportedParams = new util.ArrayList[ExportedParameter]()
+                                ..${pattern.parameters.toList map { gp =>
+                                  q"""exportedParams.add(new ExportedParameter(body,
+                                    ${Term.Name(s"var_${gp.name}")},
+                                    ${Term.Name(s"p_${gp.name}")}))"""
+                                }}
+                                body.setSymbolicParameters(exportedParams)
+
+                                ..${(temporaryVariables andThen createTemporaryVariables)(body.contents)}
+                                ..${(generatedTemporaryVariables andThen contextPointers)(body.contents)}
+                                ..${(uniquePrimitives andThen primitivesToParams)(body.contents)}
+                                ..${typeConstraintsParameters(pattern.parameters)}
+                                ..${typeConstraints(body.contents)}
+                                body
+                              }"""
+                          }}
                     )
                     bodies
                   }
 
-                  override def getFullyQualifiedName: String = $pFullyQualifiedName
-                  override def getParameters: util.List[PParameter] = util.List.of(..$pParamPNames)
-                  override def getParameterNames: util.List[String] = util.List.of(..$pParamNamesString)
+                  override def getFullyQualifiedName: String = $fileNameLit
+                  override def getParameters: util.List[PParameter] = util.List.of(..$paramTermName)
+                  override def getParameterNames: util.List[String] = util.List.of(..$paramLitName)
               }
 
               final object GeneratedPQuery {
                 val INSTANCE = new GeneratedPQuery
               }
-            }
-          """
+            }"""
   }
 }

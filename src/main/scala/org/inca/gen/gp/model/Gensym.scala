@@ -1,6 +1,6 @@
-package org.inca.gen.gp.queryspecification
+package org.inca.gen.gp.model
 
-import PrimitiveConstants.Primitive
+import org.inca.gen.gp.model.PrimitiveConstants.Primitive
 
 import scala.meta.Lit
 
