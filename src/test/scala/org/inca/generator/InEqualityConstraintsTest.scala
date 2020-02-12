@@ -4,7 +4,7 @@ import analyzedLangs.BinaryExpLang.VariableDeclaration
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import org.inca.findbugs.{ClassDeclaration, ConfusedInheritance, FieldDeclaration, ProtectedVisibility}
 import org.inca.gen.gp.GPGenerator
-import org.inca.gen.gp.sdk.queryspecification.PrimitiveConstants.{BooleanConstant, Primitive}
+import org.inca.gen.gp.queryspecification.PrimitiveConstants.{BooleanConstant, Primitive}
 import org.inca.incer.indices.{EnginePool, TFQueryScope}
 import org.inca.lang.core.Constraints.{EqualityCompareFeature, PatternCall}
 import org.inca.lang.core.Content.TemporaryVariable
@@ -122,8 +122,8 @@ class InEqualityConstraintsTest extends AnyFunSuite {
   }
 
   test("PSystem bool pattern") {
-    val scope = new TFQueryScope(clazz)
-    val matcher = EnginePool.getMatcher(Boolean_BoolLangQuerySpecification.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
-    println(matcher.getAllMatches)
+//    val scope = new TFQueryScope(clazz)
+//    val matcher = EnginePool.getMatcher(Boolean_BoolLangQuerySpecification.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
+//    println(matcher.getAllMatches)
   }
 }

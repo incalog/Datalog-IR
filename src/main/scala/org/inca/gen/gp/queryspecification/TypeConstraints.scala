@@ -1,17 +1,18 @@
-package org.inca.gen.gp.sdk.queryspecification
+package org.inca.gen.gp.queryspecification
 
-import VariableDissolver._
 import org.inca.lang.core.Constraints.{EqualityCompareFeature, InequalityCompareFeature}
 import org.inca.lang.core.Content.{IParameter, IPatternBodyContent, TemporaryVariable}
 import org.inca.lang.core.Reference.VariableReference
 import org.inca.lang.core.Values.IValue
 import org.inca.lang.gp.Constraints._
 import org.inca.lang.gp.Content.GraphPatternParameter
+import Util._
 
 import Gensym._
 import Prefix._
 
 import scala.meta._
+import Util._
 
 object TypeConstraints {
 
@@ -19,8 +20,8 @@ object TypeConstraints {
     graphParameters.map { param =>
       q"""new TypeConstraint(
          body,
-         Tuples.flatTupleOf(${asBodyVar(param.name).toTerm}),
-         new ClassKey(NodeType(classOf[${param.typ.get.toString.toClassPath}]))
+         Tuples.flatTupleOf(${Term.Name(s"var_${param.name}")}),
+         new ClassKey(NodeType(classOf[${classPathToTypeSelect(param.typ.get.toString)}]))
        )"""
     }.toList
 
@@ -44,8 +45,8 @@ object TypeConstraints {
              body,
              Tuples.staticArityFlatTupleOf($src, $trg),
              new LinkKey(NodeType(
-                classOf[${pxc.typ.toString.toClassPath}])
-                  (${pxc.element.link.fld.getName.toLit}))
+                classOf[${classPathToTypeSelect(pxc.typ.toString)}])
+                  (${Lit.String(pxc.element.link.fld.getName)}))
            )"""
   }
 
@@ -64,10 +65,10 @@ object TypeConstraints {
   private def getPatternCompConstrArguments(args: Seq[IValue]): List[Term] =
     args.map {
       case VariableReference(v) => v match {
-        case GraphPatternParameter(name, _) => asBodyVar(name).toTerm
-        case TemporaryVariable(name, _) => asVar(name).toTerm
+        case GraphPatternParameter(name, _) => Term.Name(s"var_$name")
+        case TemporaryVariable(name, _) => Term.Name(s"var__$name")
       }
-      case TemporaryVariable(name, _) => asBodyVar(name).toTerm
+      case TemporaryVariable(name, _) => Term.Name(s"var_$name")
     }.toList
 
   private def createGraphPatternCompareConstraint(cc: GraphPatternCompareConstraint): Stat = {
@@ -81,7 +82,7 @@ object TypeConstraints {
 
   private def getTermNameLabel(value: Any): Term.Name = {
     value match {
-      case VariableReference(v) => asBodyVar(v.name).toTerm
+      case VariableReference(v) => Term.Name(s"var_${v.name}")
       case _ => Term.Name(generateLabel(var__, value))
     }
   }

@@ -1,4 +1,4 @@
-package org.inca.gen.gp.sdk.queryspecification
+package org.inca.gen.gp.queryspecification
 
 import org.inca.lang.core.Values.IValue
 

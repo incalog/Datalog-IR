@@ -1,4 +1,4 @@
-package org.inca.gen.gp.sdk.queryspecification
+package org.inca.gen.gp.queryspecification
 
 object Prefix extends Enumeration {
   val p_ = "p_"

@@ -2,9 +2,9 @@ package org.inca.gen.gp
 
 import java.io.{File, PrintWriter}
 
-import org.inca.gen.gp.sdk.queryspecification.QuerySpecificationGenerator._
 import org.inca.lang.gp.Content.GraphPattern
 import Transformers.transformPattern
+import org.inca.gen.gp.queryspecification.QuerySpecificationGenerator._
 
 import scala.meta._
 
@@ -21,17 +21,23 @@ class GPGenerator {
 
     // todo put pipeline here
     val transformedPattern = transformPattern(pattern)
-    val source = generateQuerySpeicfication(transformedPattern)
+    val source = generateQuerySpecification(transformedPattern)
 
     // todo remove, just simple test
     val file = new File(s"generated/${pattern.name}.scala")
-    if (!file.exists)
+    if (!file.exists) {
       if (file.createNewFile) {
         new PrintWriter(file) {
           write(source.toString())
           close()
         }
       }
+    } else {
+      new PrintWriter(file) {
+        write(source.toString())
+        close()
+      }
+    }
 
     //    println(source)
     source

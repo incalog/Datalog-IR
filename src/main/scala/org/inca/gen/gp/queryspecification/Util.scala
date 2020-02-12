@@ -1,4 +1,4 @@
-package org.inca.gen.gp.util
+package org.inca.gen.gp.queryspecification
 
 import scala.meta._
 

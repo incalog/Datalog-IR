@@ -1,4 +1,4 @@
-package org.inca.gen.gp.sdk.queryspecification
+package org.inca.gen.gp.queryspecification
 
 import PrimitiveConstants.Primitive
 import org.inca.lang.core.Content.{IParameter, IPatternBodyContent, TemporaryVariable}
@@ -6,7 +6,6 @@ import org.inca.lang.gp.Constraints.{GraphPatternCompareConstraint, PathExpressi
 import org.inca.lang.gp.Element.GeneratedParameter
 
 import scala.meta._
-import VariableDissolver._
 
 import Gensym._
 import Prefix._
@@ -15,12 +14,12 @@ object Variables {
 
   def createTemporaryVariables(names: List[String]): List[Stat] =
     names.map { name =>
-      q"val ${asVar(name).toVar}: PVariable = body.getOrCreateVariableByName(${name.toLit})"
+      q"val ${Pat.Var(Term.Name(s"var__$name"))}: PVariable = body.getOrCreateVariableByName(${Lit.String(name)})"
     }
 
   def createLocalGlobalVariables(graphParameters: Seq[IParameter]): List[Stat] =
     graphParameters.map { gp =>
-      q"val ${asBodyVar(gp.name).toVar}: PVariable = body.getOrCreateVariableByName(${gp.name.toLit})"
+      q"val ${Pat.Var(Term.Name(s"var_${gp.name}"))}: PVariable = body.getOrCreateVariableByName(${Lit.String(gp.name)})"
     }.toList
 
   def getTemporaryVariables(body: Seq[IPatternBodyContent]): List[String] =
