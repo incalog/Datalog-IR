@@ -63,7 +63,8 @@ public final class ConfusedInheritance extends TFQuerySpecification {
     private static final class GeneratedPQuery extends BasePQuery {
 
         private final PParameter p_class = new PParameter("class",
-                new MetaElements.NodeType(ClassDeclaration.class).toString(), new TFInputKey.NodeTypeKey(new MetaElements.NodeType(ClassDeclaration.class)));
+                new MetaElements.NodeType(ClassDeclaration.class).toString(),
+                new TFInputKey.NodeTypeKey(new MetaElements.NodeType(ClassDeclaration.class)));
 
         private static final GeneratedPQuery INSTANCE = new GeneratedPQuery();
 

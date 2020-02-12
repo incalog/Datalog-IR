@@ -1,29 +1,21 @@
-package org.inca.generators.gp.sdk.queryspecification
+package org.inca.gen.gp.sdk.queryspecification
 
-import org.inca.generators.gp.sdk.queryspecification.GeneratedQueryClass.generateParentClass
-import org.inca.generators.gp.sdk.queryspecification.GeneratedQueryObject.generateParentObject
-import org.inca.generators.gp.util.ImportItem
-import org.inca.generators.gp.util.Util.importToImporter
+import GeneratedQueryClass.generateParentClass
+import GeneratedQueryObject.generateParentObject
+import org.inca.gen.gp.util.ImportItem
+import org.inca.gen.gp.util.Util.importToImporter
 import org.inca.lang.gp.Content.GraphPattern
 
 import scala.meta._
 
-// todo should this be a class?
 object QuerySpecificationGenerator {
 
-  def generateQuerySpeicfication(pattern: GraphPattern, collectionName: String): Source =
+  def generateQuerySpeicfication(pattern: GraphPattern): Source =
     source"""
             ..${createImportStatements()}
-            ${generateParentClass(pattern, collectionName)}
-            ${generateParentObject(pattern, collectionName)}
+            ${generateParentClass(pattern)}
+            ${generateParentObject(pattern)}
           """
-
-  def classTypeName(pattern: GraphPattern, collectionName: String): Type.Name =
-    Type.Name(s"${pattern.name}_${collectionName}QuerySpecification")
-
-  def classTermName(pattern: GraphPattern, collectionName: String): Term.Name =
-    Term.Name(s"${pattern.name}_${collectionName}QuerySpecification")
-
 
   // todo fetch them dynamically and move this to a pipeline step maybe
   def createImportStatements(): List[Stat] = {
@@ -42,8 +34,9 @@ object QuerySpecificationGenerator {
       ImportItem("org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables", List("TypeConstraint")),
 
     )
-
     importToImporter(importStatements)
+
+    List()
   }
 
 }

@@ -17,7 +17,6 @@ object BinaryExpTest extends App {
   val plusExpType: NodeType = NodeType(classOf[PlusExp])
 
   val plusMinusExpression: JoinType = JoinType(JoinTypeDef("PlusMinusExpression", Seq(minusExpType, plusExpType)))
-  // todo is `.type` correct?
   val plusMinusExpressionType: NodeType = NodeType(classOf[JoinType])
   val eParam: GraphPatternParameter = GraphPatternParameter("e", Some(plusMinusExpressionType))
 
@@ -47,7 +46,6 @@ object BinaryExpTest extends App {
 
   val variableDeclarationType = NodeType(classOf[VariableDeclaration])
   val expType = NodeType(classOf[Exp])
-  // todo richtig interpretiert?
   val linkDeclarationType = NodeType(classOf[LinkDeclaration])
   val linkDeclarationLink: Link = linkDeclarationType("name")
 

@@ -5,7 +5,7 @@ import org.inca.lang.core.ITypeConstraintProvider
 import org.inca.lang.core.Reference.VariableReference
 import org.inca.lang.core.Values.{IValue, IVariableValue}
 import org.inca.lang.gp.Content.IGraphPatternBodyContent
-import org.inca.meta.MetaElements.MetaElement
+import org.inca.meta.MetaElements.{MetaElement, NodeType}
 
 
 // todo style guide formatting
@@ -23,10 +23,9 @@ object Constraints {
   case class PathExpressionConstraint(src: VariableReference,
                                       trg: IValue,
                                       element: IPathElement,
-                                      typ: MetaElement)
+                                      typ: NodeType)
     extends ITypeConstraintProvider with IGraphPatternBodyContent with IPathExpressionLike
 
-  // todo should `neg` be default false? - see usage in MPS `TestPatterns`
   case class PatternCompositionConstraint(neg: Boolean, call: IPatternCall)
     extends IGraphPatternBodyContent with ITypeConstraintProvider
 

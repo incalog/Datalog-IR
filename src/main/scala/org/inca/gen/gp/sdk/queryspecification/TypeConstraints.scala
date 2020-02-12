@@ -1,13 +1,15 @@
-package org.inca.generators.gp.sdk.queryspecification
+package org.inca.gen.gp.sdk.queryspecification
 
-import org.inca.generators.gp.sdk.queryspecification.Primitives.Primitive
-import org.inca.generators.gp.sdk.queryspecification.VariableDissolver._
+import VariableDissolver._
 import org.inca.lang.core.Constraints.{EqualityCompareFeature, InequalityCompareFeature}
 import org.inca.lang.core.Content.{IParameter, IPatternBodyContent, TemporaryVariable}
 import org.inca.lang.core.Reference.VariableReference
 import org.inca.lang.core.Values.IValue
 import org.inca.lang.gp.Constraints._
 import org.inca.lang.gp.Content.GraphPatternParameter
+
+import Gensym._
+import Prefix._
 
 import scala.meta._
 
@@ -69,21 +71,18 @@ object TypeConstraints {
     }.toList
 
   private def createGraphPatternCompareConstraint(cc: GraphPatternCompareConstraint): Stat = {
-    val left = compareType(cc.left)
-    val right = compareType(cc.right)
+    val left = getTermNameLabel(cc.left)
+    val right = getTermNameLabel(cc.right)
     cc.feature match {
       case _: EqualityCompareFeature   => q"new Equality(body, $left, $right)"
       case _: InequalityCompareFeature => q"new Inequality(body, $left, $right)"
     }
   }
 
-  // todo rename
-  private def compareType(value: IValue): Term.Name = {
+  private def getTermNameLabel(value: Any): Term.Name = {
     value match {
       case VariableReference(v) => asBodyVar(v.name).toTerm
-      // todo change when primitives are taken care of
-      case p: Primitive => asVar(getLabel(p)).toTerm
+      case _ => Term.Name(generateLabel(var__, value))
     }
   }
-
 }

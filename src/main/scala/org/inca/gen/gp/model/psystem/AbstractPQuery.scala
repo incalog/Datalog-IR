@@ -1,4 +1,4 @@
-package org.inca.generators.gp.model.psystem
+package org.inca.gen.gp.model.psystem
 
 import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PVisibility}
 

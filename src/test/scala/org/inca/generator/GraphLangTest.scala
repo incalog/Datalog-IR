@@ -1,7 +1,7 @@
 package org.inca.generator
 
 import analyzedLangs.GraphLang.{Edge, Graph, Node}
-import org.inca.generators.gp.GPGenerator
+import org.inca.gen.gp.GPGenerator
 import org.inca.lang.core.Constraints.PatternCall
 import org.inca.lang.core.Content.TemporaryVariable
 import org.inca.lang.core.Reference.VariableReference
@@ -105,7 +105,6 @@ object GraphLangTest extends App {
         )
       )),
       GraphPatternBody(Seq(
-        // todo `neg` should be call
         PatternCompositionConstraint(
           neg = false,
           PatternCall(
@@ -125,9 +124,7 @@ object GraphLangTest extends App {
               intermediate,
               VariableReference(trgGraphParam)
             ),
-            // todo evaluate VirtualGraphPattern
             path
-//            VirtualGraphPattern("Path")
           )
         )
       )
@@ -194,5 +191,5 @@ object GraphLangTest extends App {
   val gpgen = new GPGenerator
 //  gpgen.generate(greatGrandParent, "GPLang")
 //  gpgen.generate(directEdge, "GPLang")
-  gpgen.generate(path, "GPLang")
+  gpgen.generate(path)
 }

@@ -1,4 +1,4 @@
-package org.inca.generators.gp.model.keys
+package org.inca.gen.gp.model.keys
 
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
 
