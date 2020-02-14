@@ -59,8 +59,7 @@ object GenTypeConstraints {
   private def patternCompositionConstraint(pcc: PatternCompositionConstraint): Stat =
     q"""new PositivePatternCall(body,
           Tuples.flatTupleOf(..${patternCompConstrArguments(pcc.call.arguments)}),
-          new ${Type.Name(s"${pcc.call.pattern.name}_QuerySpecification")}()
-            .instance().getInternalQueryRepresentation()
+          ${Term.Name(s"${pcc.call.pattern.name}")}.instance().getInternalQueryRepresentation
        )
      """
 
@@ -74,14 +73,17 @@ object GenTypeConstraints {
     }
 
   private def graphPatternCompareConstraint(cc: GraphPatternCompareConstraint): Stat =
-    matchCompareConstraint(termNameLabel(cc.left), termNameLabel(cc.right))
+    matchCompareConstraint(cc, termNameLabel(cc.left), termNameLabel(cc.right))
 
-  private def matchCompareConstraint(left: Term.Name, right: Term.Name): Stat = {
+  private def matchCompareConstraint(compare: GraphPatternCompareConstraint,
+                                     left: Term.Name, right: Term.Name): Stat =
+  compare.feature match {
     case _: EqualityCompareFeature => q"new Equality(body, $left, $right)"
     case _: InequalityCompareFeature => q"new Inequality(body, $left, $right)"
   }
 
-  private def termNameLabel(value: Any): Term.Name = {
+  private def termNameLabel(value: Any): Term.Name =
+  value match {
     case VariableReference(v) => Term.Name(s"var_${v.name}")
     case _ => Term.Name(generateLabel(var__, value))
   }

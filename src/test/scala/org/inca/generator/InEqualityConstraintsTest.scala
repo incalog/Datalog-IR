@@ -113,9 +113,9 @@ class InEqualityConstraintsTest extends AnyFunSuite {
     None
   )
 
-  test("Generate GraphLang source") {
+  test("Generate and write falseInitializer graph pattern") {
     writeClass(generate(booleanGP), falseInitializerGP.name)
-    generate(falseInitializerGP)
+//    print(generate(falseInitializerGP))
   }
 
   // todo add real example program

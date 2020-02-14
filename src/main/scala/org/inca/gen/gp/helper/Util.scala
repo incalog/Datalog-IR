@@ -7,7 +7,7 @@ import scala.meta._
 object Util {
 
   def writeClass(source: Source, name: String): Unit = {
-    val file = new File(s"src/test/scala/org/inca/generatorgenerated/$name.scala")
+    val file = new File(s"src/test/scala/org/inca/generator/generated/$name.scala")
     if (!file.exists)
       if (file.createNewFile)
         new PrintWriter(file) {

@@ -10,8 +10,9 @@ import scala.meta._
 object GeneratorGP {
 
   // todo show the pipe
+  // todo extract
   def generate(pattern: GraphPattern): Source =
-    (transformPattern andThen
+    (transformPattern _ andThen
       querySpecification)(pattern)
 
   def querySpecification(pattern: GraphPattern): Source = {
@@ -42,7 +43,6 @@ object GeneratorGP {
             import java.util
 
             import org.inca.gen.gp.model.keys.{ClassKey, LinkKey}
-            import org.inca.gen.gp.queryspecification.PrimitiveConstants
             import org.inca.incer.indices.{TFInputKey, TFQueryScope, TFQuerySpecification}
             import org.inca.meta.MetaElements
             import org.inca.meta.MetaElements.NodeType
@@ -85,9 +85,9 @@ object GeneratorGP {
                                 }}
                                 body.setSymbolicParameters(exportedParams)
 
-                                ..${(temporaryVariables andThen createTemporaryVariables)(body.contents)}
-                                ..${(generatedTemporaryVariables andThen contextPointers)(body.contents)}
-                                ..${(uniquePrimitives andThen primitivesToParams)(body.contents)}
+                                ..${(temporaryVariables _ andThen createTemporaryVariables)(body.contents)}
+                                ..${(generatedTemporaryVariables _ andThen contextPointers)(body.contents)}
+                                ..${(uniquePrimitives _ andThen primitivesToParams)(body.contents)}
                                 ..${typeConstraintsParameters(pattern.parameters)}
                                 ..${typeConstraints(body.contents)}
                                 body

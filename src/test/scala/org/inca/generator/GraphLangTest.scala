@@ -1,7 +1,12 @@
 package org.inca.generator
 
-import analyzedLangs.GraphLang.{Edge, Graph, Node}
+import analyzedLangs.{Edge, Graph, Node}
+import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
+import org.inca.findbugs.ConfusedInheritance
 import org.inca.gen.gp.GeneratorGP.generate
+import org.inca.gen.gp.helper.Util._
+import org.inca.generator.generated.DirectEdge
+import org.inca.incer.indices.{EnginePool, TFQueryScope}
 import org.inca.lang.core.Constraints.PatternCall
 import org.inca.lang.core.Content.TemporaryVariable
 import org.inca.lang.core.Reference.VariableReference
@@ -11,7 +16,6 @@ import org.inca.lang.gp.Element.PathElement
 import org.inca.lang.gp.Virtual.ParentPathElement
 import org.inca.meta.MetaElements.NodeType
 import org.scalatest.funsuite.AnyFunSuite
-import org.inca.gen.gp.helper.Util._
 
 class GraphLangTest extends AnyFunSuite {
 
@@ -190,9 +194,20 @@ class GraphLangTest extends AnyFunSuite {
   )
 
 
-  test("Generate GraphLang source") {
+  test("Generate and write directEdge graph pattern") {
     //  generate(greatGrandParent, "GPLang")
-    //  generate(directEdge, "GPLang")
-    writeClass(generate(path), path.name)
+    writeClass(generate(directEdge), directEdge.name)
+//    writeClass(generate(path), path.name)
+  }
+
+  private val node0 = Node("0")
+  private val node1 = Node("1")
+  private val testGraph = Graph(Seq(node0, node1), Seq(Edge(node0, node1)))
+
+
+  test("DirectEdge program matcher") {
+    val scope = new TFQueryScope(testGraph)
+    val matcher = EnginePool.getMatcher(DirectEdge.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
+    println(matcher.getAllMatches)
   }
 }
