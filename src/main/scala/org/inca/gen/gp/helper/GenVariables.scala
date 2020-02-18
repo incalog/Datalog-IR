@@ -1,12 +1,12 @@
 package org.inca.gen.gp.helper
 
-import org.inca.gen.gp.model.PrimitiveConstants.Primitive
+import org.inca.gen.gp.model.Primitive
 import org.inca.lang.core.Content.{IParameter, IPatternBodyContent, TemporaryVariable}
 import org.inca.lang.gp.Constraints.{GraphPatternCompareConstraint, PathExpressionConstraint}
 import org.inca.lang.gp.Element.GeneratedParameter
 
 import scala.meta._
-import org.inca.gen.gp.model.Gensym._
+import org.inca.gen.Gensym._
 import org.inca.gen.gp.model.Prefix._
 import org.inca.gen.gp.helper.Util.asTypeSelect
 

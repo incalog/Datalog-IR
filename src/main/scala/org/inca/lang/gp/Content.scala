@@ -16,6 +16,8 @@ object Content {
   case class GraphPatternBody(contents: Seq[IPatternBodyContent]) extends IPatternBody
   case class GraphPatternParameter(name: String, typ: Option[MetaElement]) extends IParameter
 
+  case class GraphPatternComment(override val text: String) extends Comment(text) with IGraphPatternBodyContent with IGraphPatternModuleContent
+
   case class VirtualGraphPattern(name: String) extends IPattern {
     override val parameters: Seq[IParameter] = Seq()
     override val bodies: Seq[IPatternBody] = Seq()

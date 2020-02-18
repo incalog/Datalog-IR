@@ -1,6 +1,6 @@
 package analyzedLangs
 
-import org.inca.lang.core.Typp.DataTypeDeclaration
+import org.inca.lang.core.Typ.DataTypeDeclaration
 import org.inca.meta.MetaElements.MetaElement
 
 object BinaryExpLang {

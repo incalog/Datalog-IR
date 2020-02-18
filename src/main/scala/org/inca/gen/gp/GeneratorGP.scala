@@ -1,6 +1,5 @@
 package org.inca.gen.gp
 
-import org.inca.gen.gp.TransformGP.transformPattern
 import org.inca.gen.gp.helper.GenTypeConstraints._
 import org.inca.gen.gp.helper.GenVariables._
 import org.inca.lang.gp.Content.GraphPattern
@@ -8,12 +7,6 @@ import org.inca.lang.gp.Content.GraphPattern
 import scala.meta._
 
 object GeneratorGP {
-
-  // todo show the pipe
-  // todo extract
-  def generate(pattern: GraphPattern): Source =
-    (transformPattern _ andThen
-      querySpecification)(pattern)
 
   def querySpecification(pattern: GraphPattern): Source = {
 
@@ -42,6 +35,7 @@ object GeneratorGP {
 
             import java.util
 
+            import org.inca.gen.gp.model._
             import org.inca.gen.gp.model.keys.{ClassKey, LinkKey}
             import org.inca.incer.indices.{TFInputKey, TFQueryScope, TFQuerySpecification}
             import org.inca.meta.MetaElements

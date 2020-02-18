@@ -7,7 +7,7 @@ import org.inca.lang.core.Values.IValue
 import org.inca.lang.gp.Constraints._
 import org.inca.lang.gp.Content.GraphPatternParameter
 
-import org.inca.gen.gp.model.Gensym._
+import org.inca.gen.Gensym._
 import org.inca.gen.gp.model.Prefix._
 
 import scala.meta._

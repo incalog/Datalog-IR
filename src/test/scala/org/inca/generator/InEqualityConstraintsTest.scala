@@ -3,8 +3,8 @@ package org.inca.generator
 import analyzedLangs.BinaryExpLang.VariableDeclaration
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import org.inca.findbugs.{ClassDeclaration, ConfusedInheritance, FieldDeclaration, ProtectedVisibility}
-import org.inca.gen.gp.model.PrimitiveConstants.{BooleanConstant, Primitive}
-import org.inca.gen.gp.GeneratorGP.generate
+import org.inca.gen.gp.model.{BooleanConstant, Primitive}
+import org.inca.gen.Pipeline._
 import org.inca.gen.gp.helper.Util._
 import org.inca.generator.generated.Boolean_PSystemQuery
 import org.inca.incer.indices.{EnginePool, TFQueryScope}
@@ -114,7 +114,7 @@ class InEqualityConstraintsTest extends AnyFunSuite {
   )
 
   test("Generate and write falseInitializer graph pattern") {
-    writeClass(generate(booleanGP), falseInitializerGP.name)
+    writeClass(generateGraphPattern(booleanGP), falseInitializerGP.name)
 //    print(generate(falseInitializerGP))
   }
 

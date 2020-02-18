@@ -3,7 +3,7 @@ package org.inca.generator
 import analyzedLangs.{Edge, Graph, Node}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import org.inca.findbugs.ConfusedInheritance
-import org.inca.gen.gp.GeneratorGP.generate
+import org.inca.gen.Pipeline.generateGraphPattern
 import org.inca.gen.gp.helper.Util._
 import org.inca.generator.generated.DirectEdge
 import org.inca.incer.indices.{EnginePool, TFQueryScope}
@@ -84,10 +84,10 @@ class GraphLangTest extends AnyFunSuite {
 
   /**
    * pattern Path(src: Node, trg: Node) {
-   * find DirectEdge(src, trg)
+   *   find DirectEdge(src, trg)
    * } or {
-   * find DirectEdge(src, intermediate)
-   * find Path(intermediate, trg)
+   *   find DirectEdge(src, intermediate)
+   *   find Path(intermediate, trg)
    * }
    */
   private lazy val path: GraphPattern = GraphPattern(
@@ -196,7 +196,7 @@ class GraphLangTest extends AnyFunSuite {
 
   test("Generate and write directEdge graph pattern") {
     //  generate(greatGrandParent, "GPLang")
-    writeClass(generate(directEdge), directEdge.name)
+    writeClass(generateGraphPattern(directEdge), directEdge.name)
 //    writeClass(generate(path), path.name)
   }
 

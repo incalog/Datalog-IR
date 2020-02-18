@@ -1,7 +1,6 @@
 package org.inca.lang.core
 
 import org.inca.lang.core.Values.IVariableValue
-import org.inca.lang.mps.INamedConcept
 import org.inca.meta.MetaElements.MetaElement
 
 object Content {
@@ -18,6 +17,9 @@ object Content {
   trait IPatternBody {
     val contents: Seq[IPatternBodyContent]
   }
+  trait INamedConcept {
+    val name: String
+  }
   trait IVariable extends INamedConcept with IGenNameProvider {
     val typ: Option[MetaElement]
   }
@@ -28,10 +30,9 @@ object Content {
   }
 
   abstract class EmptyContent extends IPatternModuleContent with IPatternBodyContent
+  abstract class HorizontalLineContent
 
   case class JoinTypeDef(name: String, types: Seq[MetaElement]) extends IJoinTypeDef
   case class TemporaryVariable(name: String, typ: Option[MetaElement]) extends IVariable with IVariableValue
   case class Comment(text: String) extends IPatternBodyContent with IPatternModuleContent
-
-
 }
