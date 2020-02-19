@@ -2,7 +2,7 @@ package org.inca.lang.gp
 
 import org.inca.lang.core.Constraints._
 import org.inca.lang.core.ITypeConstraintProvider
-import org.inca.lang.core.Reference.VariableReference
+import org.inca.lang.core.Reference.CoreVariableReference
 import org.inca.lang.core.Values.{IValue, IVariableValue}
 import org.inca.lang.gp.Content.IGraphPatternBodyContent
 import org.inca.meta.MetaElements.{MetaElement, NodeType}
@@ -20,7 +20,7 @@ object Constraints {
   case class GraphPatternConceptConstraint(vari: IVariableValue, typ: MetaElement)
     extends ConceptConstraint(vari, typ) with IGraphPatternBodyContent
 
-  case class PathExpressionConstraint(src: VariableReference,
+  case class PathExpressionConstraint(src: CoreVariableReference,
                                       trg: IValue,
                                       element: IPathElement,
                                       typ: NodeType)

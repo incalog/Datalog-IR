@@ -9,8 +9,8 @@ import org.inca.gen.gp.helper.Util._
 import org.inca.generator.generated.Boolean_PSystemQuery
 import org.inca.incer.indices.{EnginePool, TFQueryScope}
 import org.inca.lang.core.Constraints.{EqualityCompareFeature, PatternCall}
-import org.inca.lang.core.Content.TemporaryVariable
-import org.inca.lang.core.Reference.VariableReference
+import org.inca.lang.core.Content.CoreTemporaryVariable
+import org.inca.lang.core.Reference.CoreVariableReference
 import org.inca.lang.gp.Constraints.{GraphPatternCompareConstraint, PathExpressionConstraint, PatternCompositionConstraint}
 import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
 import org.inca.lang.gp.Element.PathElement
@@ -46,8 +46,8 @@ class InEqualityConstraintsTest extends AnyFunSuite {
       GraphPatternBody(
         Seq(
           PathExpressionConstraint(
-            VariableReference(expressionGPP),
-            VariableReference(booleanGPP),
+            CoreVariableReference(expressionGPP),
+            CoreVariableReference(booleanGPP),
             PathElement(None, booleanConstantNL),
             booleanConstantNT
           )
@@ -62,7 +62,7 @@ class InEqualityConstraintsTest extends AnyFunSuite {
   private val initializerGP = GraphPatternParameter("initializer", Some(booleanNT))
 
   // temporary variables
-  private val expressionTV = TemporaryVariable("expression", None)
+  private val expressionTV = CoreTemporaryVariable("expression", None)
 
   /**
    * pattern FalseInitializer(var: VariableDeclaration, initializer: boolean) {
@@ -81,7 +81,7 @@ class InEqualityConstraintsTest extends AnyFunSuite {
       GraphPatternBody(
         Seq(
           PathExpressionConstraint(
-            VariableReference(varGP),
+            CoreVariableReference(varGP),
             expressionTV,
             PathElement(None, variableDeclarationNL),
             variableDeclarationNT
@@ -91,15 +91,15 @@ class InEqualityConstraintsTest extends AnyFunSuite {
             PatternCall(
               transitive = false,
               Seq(
-                VariableReference(expressionTV),
-                VariableReference(initializerGP)
+                CoreVariableReference(expressionTV),
+                CoreVariableReference(initializerGP)
               ),
               booleanGP
             )
           ),
           GraphPatternCompareConstraint(
             EqualityCompareFeature(),
-            VariableReference(initializerGP),
+            CoreVariableReference(initializerGP),
             BooleanConstant(false)
           ),
           GraphPatternCompareConstraint(

@@ -11,8 +11,6 @@ trait IInstanceOfLike {
   val expression: IExpression
 }
 
-abstract class AbstractBinary extends IBinary
-
 case class Def(expression: IExpression) extends ICondition
 case class Undef(expression: IExpression) extends ICondition
 

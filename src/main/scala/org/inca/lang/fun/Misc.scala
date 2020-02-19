@@ -1,9 +1,8 @@
 package org.inca.lang.fun
 
-import org.inca.lang.core.Content.{HorizontalLineContent, IParameter, IPattern, IPatternBody, IPatternBodyContent, IPatternModuleContent, IPatternVisibility}
+import org.inca.lang.core.Content._
 import org.inca.lang.core.{IIncaModuleImport, IPatternModule}
-import org.inca.lang.gp.Content.{EmptyGraphPatternContent, GraphPatternBody, GraphPatternComment, GraphPatternParameter}
-import org.inca.lang.gp.GraphPatternModule
+import org.inca.lang.gp.Content.{EmptyGraphPatternContent, PatternParameter}
 import org.inca.meta.MetaElements.MetaElement
 
 trait IPatternFunctionModuleContent extends IPatternModuleContent
@@ -28,26 +27,26 @@ case class PatternFunction(override val name: String,
                            outParameters: Seq[PatternFunctionAnonymousParameter])
   extends IPatternFunctionModuleContent with IPattern
 
-case class PatternFunctionAnonymousParameter(override val name: String,
-                                             override val typ: Option[MetaElement])
-  extends PatternFunctionParameter(name, typ)
+case class PatternFunctionBody(contents: Seq[IPatternBodyContent])
+  extends IPatternBody with IReturnContainer
 
-case class PatternFunctionBody(override val contents: Seq[IPatternBodyContent])
-  extends GraphPatternBody(contents) with IPatternBody with IReturnContainer
-
-case class PatternFunctionComment(override val text: String)
-  extends GraphPatternComment(text) with IStatement with IPatternFunctionModuleContent
+case class PatternFunctionComment(text: String)
+  extends Comment(text) with IStatement with IPatternFunctionModuleContent
 
 case class PatternFunctionEmptyContent()
-  extends EmptyGraphPatternContent with IStatement with IPatternFunctionModuleContent
+  extends EmptyContent with IStatement with IPatternFunctionModuleContent
 
-case class PatternFunctionModule(override val name: String,
-                                 override val imports: List[IIncaModuleImport],
-                                 override val contents: List[IPatternModuleContent])
-  extends GraphPatternModule(name, imports, contents) with IPatternModule
+case class PatternFunctionModule(name: String,
+                                 imports: List[IIncaModuleImport],
+                                 contents: List[IPatternModuleContent])
+  extends IPatternModule
 
 case class RelationAttribute()
 
-case class PatternFunctionParameter(override val name: String,
-                                    override val typ: Option[MetaElement])
-  extends GraphPatternParameter(name, typ)
+case class PatternFunctionParameter(name: String,
+                                    typ: Option[MetaElement])
+  extends PatternParameter(name, typ)
+
+case class PatternFunctionAnonymousParameter(name: String,
+                                             typ: Option[MetaElement])
+  extends PatternParameter(name, typ)

@@ -2,8 +2,8 @@ package org.inca.generator
 
 import analyzedLangs.BinaryExpLang._
 import org.inca.lang.core.Constraints.PatternCall
-import org.inca.lang.core.Content.{JoinTypeDef, TemporaryVariable}
-import org.inca.lang.core.Reference.VariableReference
+import org.inca.lang.core.Content.{JoinTypeDef, CoreTemporaryVariable}
+import org.inca.lang.core.Reference.CoreVariableReference
 import org.inca.lang.core.Typ.JoinType
 import org.inca.lang.gp.Constraints.{GraphPatternConceptConstraint, PathExpressionConstraint, PatternCompositionConstraint}
 import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
@@ -27,17 +27,17 @@ object BinaryExpTest extends App {
     Seq(
       GraphPatternBody(
         Seq(GraphPatternConceptConstraint(
-          VariableReference(eParam),
+          CoreVariableReference(eParam),
           plusMinusExpression)
         )),
       GraphPatternBody(
         Seq(GraphPatternConceptConstraint(
-          VariableReference(eParam),
+          CoreVariableReference(eParam),
           plusExpType)
         )),
       GraphPatternBody(
         Seq(GraphPatternConceptConstraint(
-          VariableReference(eParam),
+          CoreVariableReference(eParam),
           minusExpType)
         ))
     ),
@@ -62,8 +62,8 @@ object BinaryExpTest extends App {
       GraphPatternBody(
         Seq(
           PathExpressionConstraint(
-            VariableReference(varr),
-            VariableReference(initializer),
+            CoreVariableReference(varr),
+            CoreVariableReference(initializer),
             PathElement(None, linkDeclarationLink),
             linkDeclarationType
           )
@@ -93,7 +93,7 @@ object BinaryExpTest extends App {
   val primitiveDataTypeDeclarationType = NodeType(classOf[PrimitiveDataTypeDeclaration])
 
   val initializerBoolean = GraphPatternParameter("initializer", Some(primitiveDataTypeDeclarationType))
-  val expressionTempVar = TemporaryVariable("expression", None)
+  val expressionTempVar = CoreTemporaryVariable("expression", None)
 
   val variableInitializerWithFalseInitializer = GraphPattern(
     "VariableInitializerWithFalseInitializer",
@@ -105,7 +105,7 @@ object BinaryExpTest extends App {
       GraphPatternBody(
         Seq(
           PathExpressionConstraint(
-            VariableReference(varr),
+            CoreVariableReference(varr),
             expressionTempVar,
             PathElement(None, linkDeclarationLink),
             linkDeclarationType
@@ -115,7 +115,7 @@ object BinaryExpTest extends App {
             PatternCall(
               transitive = false,
               Seq(
-                VariableReference(initializerBoolean),
+                CoreVariableReference(initializerBoolean),
                 expressionTempVar
               ),
               boolean

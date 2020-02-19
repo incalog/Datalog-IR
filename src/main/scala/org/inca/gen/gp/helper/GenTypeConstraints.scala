@@ -1,8 +1,8 @@
 package org.inca.gen.gp.helper
 
 import org.inca.lang.core.Constraints.{EqualityCompareFeature, InequalityCompareFeature}
-import org.inca.lang.core.Content.{IParameter, IPatternBodyContent, TemporaryVariable}
-import org.inca.lang.core.Reference.VariableReference
+import org.inca.lang.core.Content.{IParameter, IPatternBodyContent, CoreTemporaryVariable}
+import org.inca.lang.core.Reference.CoreVariableReference
 import org.inca.lang.core.Values.IValue
 import org.inca.lang.gp.Constraints._
 import org.inca.lang.gp.Content.GraphPatternParameter
@@ -41,12 +41,12 @@ object GenTypeConstraints {
 
   private def pathExpressionConstraint(pxc: PathExpressionConstraint): Stat = {
     val src = pxc.src.variable match {
-      case TemporaryVariable(name, _) => Term.Name(s"var__$name")
+      case CoreTemporaryVariable(name, _) => Term.Name(s"var__$name")
       case GraphPatternParameter(name, _) => Term.Name(s"var_$name")
     }
     val trg = pxc.trg match {
-      case VariableReference(v) => Term.Name(s"var_${v.name}")
-      case TemporaryVariable(name, _) => Term.Name(s"var__$name")
+      case CoreVariableReference(v) => Term.Name(s"var_${v.name}")
+      case CoreTemporaryVariable(name, _) => Term.Name(s"var__$name")
     }
     q"""new TypeConstraint(body,
         Tuples.staticArityFlatTupleOf($src, $trg),
@@ -65,11 +65,11 @@ object GenTypeConstraints {
 
   private def patternCompConstrArguments(args: Seq[IValue]): List[Term] =
     args.toList map {
-      case VariableReference(v) => v match {
+      case CoreVariableReference(v) => v match {
         case GraphPatternParameter(name, _) => Term.Name(s"var_$name")
-        case TemporaryVariable(name, _) => Term.Name(s"var__$name")
+        case CoreTemporaryVariable(name, _) => Term.Name(s"var__$name")
       }
-      case TemporaryVariable(name, _) => Term.Name(s"var_$name")
+      case CoreTemporaryVariable(name, _) => Term.Name(s"var_$name")
     }
 
   private def graphPatternCompareConstraint(cc: GraphPatternCompareConstraint): Stat =
@@ -84,7 +84,7 @@ object GenTypeConstraints {
 
   private def termNameLabel(value: Any): Term.Name =
   value match {
-    case VariableReference(v) => Term.Name(s"var_${v.name}")
+    case CoreVariableReference(v) => Term.Name(s"var_${v.name}")
     case _ => Term.Name(generateLabel(var__, value))
   }
 }

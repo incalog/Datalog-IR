@@ -1,8 +1,8 @@
 package org.inca.gen.gp
 
 import org.inca.lang.core.Constraints.IPathElement
-import org.inca.lang.core.Content.{IPatternBody, IPatternBodyContent, TemporaryVariable}
-import org.inca.lang.core.Reference.VariableReference
+import org.inca.lang.core.Content.{IPatternBody, IPatternBodyContent, CoreTemporaryVariable}
+import org.inca.lang.core.Reference.CoreVariableReference
 import org.inca.lang.core.Values.{IValue, IVariableValue}
 import org.inca.lang.gp.Constraints.PathExpressionConstraint
 import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, IGraphPatternBodyContent}
@@ -34,7 +34,7 @@ object TransformGP {
                                          line: Int): Seq[IGraphPatternBodyContent] =
     if (elem.next.isEmpty) Seq(matcher(elem, trg, typ, src))
     else {
-      val temp = new TemporaryVariable(s"${elem.link.toString}_${line}_$depth", Some(typ))
+      val temp = new CoreTemporaryVariable(s"${elem.link.toString}_${line}_$depth", Some(typ))
         with GeneratedParameter
       Seq(matcher(elem, temp, typ, src)) ++
         splitExpressions(elem.next.get, temp, trg, typ, depth + 1, line)
@@ -46,10 +46,10 @@ object TransformGP {
                       src: IVariableValue): PathExpressionConstraint =
     elem match {
       case pp: ParentPathElement => src match {
-        case vr: VariableReference =>
+        case vr: CoreVariableReference =>
           PathExpressionConstraint(vr, value, pp.copy(next = None), typ)
-        case tv: TemporaryVariable =>
-          PathExpressionConstraint(VariableReference(tv), value, pp.copy(next = None), typ)
+        case tv: CoreTemporaryVariable =>
+          PathExpressionConstraint(CoreVariableReference(tv), value, pp.copy(next = None), typ)
       }
     }
 }

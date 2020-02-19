@@ -1,11 +1,12 @@
 package org.inca.lang.fun
 
 import org.inca.lang.core.Constraints.{IPathElement, IPathExpressionLike, IPatternCall}
-import org.inca.lang.core.Content.IVariable
+import org.inca.lang.core.Content.{CoreTemporaryVariable, IVariable, TemporaryVariable}
 import org.inca.lang.core.ITypeConstraintProvider
-import org.inca.lang.core.Reference.VariableReference
+import org.inca.lang.core.Reference.{CoreVariableReference, VariableReference}
 import org.inca.lang.core.Typ.ITypeHintConsumer
 import org.inca.lang.core.Values.{AbstractLiteralValue, ExpressionEvaluationValue, IValue}
+import org.inca.meta.MetaElements.MetaElement
 
 trait IExpression extends IStatement with ICondition
 
@@ -14,10 +15,12 @@ trait ITuple extends IExpression
 
 case class EvalValue(expression: ExpressionEvaluationValue) extends IExpression
 
-case class FunTemporaryVariable() extends FunTemporaryVariable with ITuple
+case class FunTemporaryVariable(name: String,
+                                typ: Option[MetaElement])
+  extends TemporaryVariable(name, typ) with ITuple
 
-case class FunVariableReference(override val variable: IVariable)
-  extends VariableReference with ITuple with ITypeHintConsumer
+case class FunVariableReference(variable: IVariable)
+  extends VariableReference(variable) with ITuple with ITypeHintConsumer
 
 case class LiteralValue(value: AbstractLiteralValue) extends IExpression with IValue
 

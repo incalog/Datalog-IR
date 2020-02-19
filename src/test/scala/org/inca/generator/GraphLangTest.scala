@@ -8,8 +8,8 @@ import org.inca.gen.gp.helper.Util._
 import org.inca.generator.generated.DirectEdge
 import org.inca.incer.indices.{EnginePool, TFQueryScope}
 import org.inca.lang.core.Constraints.PatternCall
-import org.inca.lang.core.Content.TemporaryVariable
-import org.inca.lang.core.Reference.VariableReference
+import org.inca.lang.core.Content.CoreTemporaryVariable
+import org.inca.lang.core.Reference.CoreVariableReference
 import org.inca.lang.gp.Constraints.{PathExpressionConstraint, PatternCompositionConstraint}
 import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
 import org.inca.lang.gp.Element.PathElement
@@ -31,9 +31,9 @@ class GraphLangTest extends AnyFunSuite {
   private val srcGraphParam = GraphPatternParameter("src", Some(nodeType))
   private val trgGraphParam = GraphPatternParameter("trg", Some(nodeType))
 
-  private val intermediate = TemporaryVariable("inter", Some(nodeType))
-  private val graph = TemporaryVariable("graph", Some(graphType))
-  private val edge = TemporaryVariable("edge", Some(edgeType))
+  private val intermediate = CoreTemporaryVariable("inter", Some(nodeType))
+  private val graph = CoreTemporaryVariable("graph", Some(graphType))
+  private val edge = CoreTemporaryVariable("edge", Some(edgeType))
 
   /**
    * pattern DirectEdge(src: Node, trg: Node) {
@@ -53,26 +53,26 @@ class GraphLangTest extends AnyFunSuite {
       GraphPatternBody(
         Seq(
           PathExpressionConstraint(
-            VariableReference(srcGraphParam),
+            CoreVariableReference(srcGraphParam),
             graph,
             ParentPathElement(None, nodeParentLink),
             nodeType
           ),
           PathExpressionConstraint(
-            VariableReference(graph),
+            CoreVariableReference(graph),
             edge,
             PathElement(None, graphEdgesLink),
             graphType
           ),
           PathExpressionConstraint(
-            VariableReference(edge),
-            VariableReference(srcGraphParam),
+            CoreVariableReference(edge),
+            CoreVariableReference(srcGraphParam),
             PathElement(None, edgeFromNodeLink),
             edgeType
           ),
           PathExpressionConstraint(
-            VariableReference(edge),
-            VariableReference(trgGraphParam),
+            CoreVariableReference(edge),
+            CoreVariableReference(trgGraphParam),
             PathElement(None, edgeToNodeLink),
             edgeType
           )
@@ -103,8 +103,8 @@ class GraphLangTest extends AnyFunSuite {
           PatternCall(
             transitive = false,
             Seq(
-              VariableReference(srcGraphParam),
-              VariableReference(trgGraphParam)
+              CoreVariableReference(srcGraphParam),
+              CoreVariableReference(trgGraphParam)
             ),
             directEdge
           )
@@ -116,7 +116,7 @@ class GraphLangTest extends AnyFunSuite {
           PatternCall(
             transitive = false,
             Seq(
-              VariableReference(srcGraphParam),
+              CoreVariableReference(srcGraphParam),
               intermediate
             ),
             directEdge
@@ -128,7 +128,7 @@ class GraphLangTest extends AnyFunSuite {
             transitive = false,
             Seq(
               intermediate,
-              VariableReference(trgGraphParam)
+              CoreVariableReference(trgGraphParam)
             ),
             path
           )
@@ -167,8 +167,8 @@ class GraphLangTest extends AnyFunSuite {
       GraphPatternBody(
         Seq(
           PathExpressionConstraint(
-            VariableReference(srcGraphParam),
-            VariableReference(trgGraphParam),
+            CoreVariableReference(srcGraphParam),
+            CoreVariableReference(trgGraphParam),
             ParentPathElement(
               Some(ParentPathElement(
                 Some(ParentPathElement(None, nodeParentLink)),
@@ -178,8 +178,8 @@ class GraphLangTest extends AnyFunSuite {
           ),
 
           PathExpressionConstraint(
-            VariableReference(srcGraphParam),
-            VariableReference(trgGraphParam),
+            CoreVariableReference(srcGraphParam),
+            CoreVariableReference(trgGraphParam),
             ParentPathElement(
               Some(ParentPathElement(
                 Some(ParentPathElement(None, nodeParentLink)),

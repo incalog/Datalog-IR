@@ -1,7 +1,7 @@
 package org.inca.gen.gp.helper
 
 import org.inca.gen.gp.model.Primitive
-import org.inca.lang.core.Content.{IParameter, IPatternBodyContent, TemporaryVariable}
+import org.inca.lang.core.Content.{IParameter, IPatternBodyContent, CoreTemporaryVariable}
 import org.inca.lang.gp.Constraints.{GraphPatternCompareConstraint, PathExpressionConstraint}
 import org.inca.lang.gp.Element.GeneratedParameter
 
@@ -26,7 +26,7 @@ object GenVariables {
     body.collect {
       case PathExpressionConstraint(_, trg, _, _) =>
         trg match {
-          case TemporaryVariable(name, _) => name
+          case CoreTemporaryVariable(name, _) => name
           case _ => ""
         }
     }.toList.distinct.filterNot(x => x.isEmpty)
@@ -47,7 +47,7 @@ object GenVariables {
     body.collect {
       case p: PathExpressionConstraint =>
         p.trg match {
-          case t: TemporaryVariable with GeneratedParameter => t.name
+          case t: CoreTemporaryVariable with GeneratedParameter => t.name
           case _ => ""
         }
     }.toList.distinct.filterNot(x => x.isEmpty)

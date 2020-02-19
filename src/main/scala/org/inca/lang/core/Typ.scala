@@ -1,6 +1,6 @@
 package org.inca.lang.core
 
-import org.inca.lang.core.Content.IJoinTypeDef
+import org.inca.lang.core.Content.{IJoinTypeDef, INamedConcept}
 import org.inca.meta.MetaElements.MetaElement
 
 object Typ {
