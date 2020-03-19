@@ -93,13 +93,16 @@ public final class ConfusedInheritance extends TFQuerySpecification {
 
                 new TypeConstraint(body, Tuples.flatTupleOf(var_class),
                         new TFInputKey.NodeTypeKey(new MetaElements.NodeType(ClassDeclaration.class)));
+
                 new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_class, var__tmp_1),
                         new TFInputKey.NodeLinkKey(new MetaElements.NodeType(ClassDeclaration.class).apply("isFinal")));
                 new Equality(body, var__tmp_2, var__3909214783375021923);
                 new Equality(body, var__tmp_1, var__tmp_2);
+
                 new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_class, var__tmp_3),
                         new TFInputKey.NodeLinkKey(new MetaElements.NodeType(ClassDeclaration.class).apply("members")));
                 new Equality(body, var__member, var__tmp_3);
+
                 new TypeConstraint(body, Tuples.flatTupleOf(var__member),
                         new TFInputKey.NodeTypeKey(new MetaElements.NodeType(FieldDeclaration.class)));
                 new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var__member, var__tmp_4),

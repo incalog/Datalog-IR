@@ -22,6 +22,10 @@ object Util {
     }
   }
 
+  def printClass(source: Source): Unit = {
+    println(source)
+  }
+
   def asTypeSelect(path: String): Type.Select =
     checkLength(path.substring(1).split('.').toList)
 

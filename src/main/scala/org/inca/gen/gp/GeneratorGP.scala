@@ -53,22 +53,21 @@ object GeneratorGP {
             object $fileNameTerm {
               def instance(): $fileNameType = LazyHolder.INSTANCE
 
-              private final class LazyHolder
               private final object LazyHolder {
                 val INSTANCE: $fileNameType = make()
                 def make(): $fileNameType = new $fileNameType()
               }
 
 
-              final class GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
-                  private val that = this
+              private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
+                  val INSTANCE: GeneratedPQuery.type = this
                   ..${pparams(pattern.parameters)}
                   {}
                   override protected def doGetContainedBodies(): util.Set[PBody] = {
                     val bodies: util.Set[PBody] = util.Set.of(
                       ..${pattern.bodies.toList map { body =>
                             q"""{
-                                val body: PBody = new PBody(that)
+                                val body: PBody = new PBody(this)
                                 ..${localGlobalVariables(pattern.parameters)}
                                 ()
                                 val exportedParams = new util.ArrayList[ExportedParameter]()
@@ -94,10 +93,6 @@ object GeneratorGP {
                   override def getFullyQualifiedName: String = $fileNameLit
                   override def getParameters: util.List[PParameter] = util.List.of(..$paramTermName)
                   override def getParameterNames: util.List[String] = util.List.of(..$paramLitName)
-              }
-
-              final object GeneratedPQuery {
-                val INSTANCE = new GeneratedPQuery
               }
             }"""
   }

@@ -1,7 +1,7 @@
 package org.inca.gen.gp.helper
 
 import org.inca.gen.gp.model.Primitive
-import org.inca.lang.core.Content.{IParameter, IPatternBodyContent, CoreTemporaryVariable}
+import org.inca.lang.core.Content.{CoreTemporaryVariable, IParameter, IPatternBodyContent}
 import org.inca.lang.gp.Constraints.{GraphPatternCompareConstraint, PathExpressionConstraint}
 import org.inca.lang.gp.Element.GeneratedParameter
 
@@ -9,6 +9,8 @@ import scala.meta._
 import org.inca.gen.Gensym._
 import org.inca.gen.gp.model.Prefix._
 import org.inca.gen.gp.helper.Util.asTypeSelect
+import org.inca.lang.core.Reference.CoreVariableReference
+import org.inca.lang.core.Values.IValue
 
 object GenVariables {
 
@@ -24,12 +26,19 @@ object GenVariables {
 
   def temporaryVariables(body: Seq[IPatternBodyContent]): List[String] =
     body.collect {
-      case PathExpressionConstraint(_, trg, _, _) =>
-        trg match {
-          case CoreTemporaryVariable(name, _) => name
-          case _ => ""
-        }
-    }.toList.distinct.filterNot(x => x.isEmpty)
+      case PathExpressionConstraint(src, trg, _, _) =>
+        List[String](
+          trg match {
+            case CoreTemporaryVariable(name, _) => name
+            case _ => ""
+          },
+          hasRefVar(src)
+        )
+      case GraphPatternCompareConstraint(_, left, right) =>
+        List[String](
+          hasRefVar(left),
+          hasRefVar(right))
+    }.toList.flatten.distinct.filterNot(x => x.isEmpty)
 
   def primitivesToParams(primitives: List[Primitive]): List[Stat] =
     primitives.map { primitive =>
@@ -59,8 +68,16 @@ object GenVariables {
       val pConceptKey = q"new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[$primitiveTypeName]))"
 
       q"""private val ${Pat.Var(Term.Name(name))}: PParameter =
-            new PParameter(${Lit.String(name)},
-            ${Lit.String(gp.typ.get.toString.tail)},
+            new PParameter(${Lit.String(gp.name)},
+            MetaElements.NodeType(classOf[$primitiveTypeName]).toString,
             $pConceptKey)"""
     }
+
+  private def hasRefVar(v: IValue): String = v match {
+    case CoreVariableReference(v) => v match {
+      case CoreTemporaryVariable(name, _) => name
+      case _ => ""
+    }
+    case _ => ""
+  }
 }

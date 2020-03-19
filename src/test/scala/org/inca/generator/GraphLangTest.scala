@@ -2,7 +2,7 @@ package org.inca.generator
 
 import analyzedLangs.{Edge, Graph, Node}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
-import org.inca.findbugs.ConfusedInheritance
+import org.inca.findbugs.{ClassDeclaration, ConfusedInheritance}
 import org.inca.gen.Pipeline.generateGraphPattern
 import org.inca.gen.gp.helper.Util._
 import org.inca.generator.generated.DirectEdge
@@ -196,18 +196,36 @@ class GraphLangTest extends AnyFunSuite {
 
   test("Generate and write directEdge graph pattern") {
     //  generate(greatGrandParent, "GPLang")
-    writeClass(generateGraphPattern(directEdge), directEdge.name)
+//    writeClass(generateGraphPattern(directEdge), directEdge.name)
+    println(generateGraphPattern(directEdge))
 //    writeClass(generate(path), path.name)
   }
 
+  test("Generate and write greatGrandParent graph pattern") {
+    //  generate(greatGrandParent, "GPLang")
+    writeClass(generateGraphPattern(greatGrandParent), greatGrandParent.name)
+//    writeClass(generate(path), path.name)
+  }
+
+
   private val node0 = Node("0")
   private val node1 = Node("1")
-  private val testGraph = Graph(Seq(node0, node1), Seq(Edge(node0, node1)))
+  private val testGraph = Graph(List(node0, node1), List(Edge("0", "1"), Edge("1", "0")))
+  private val testGraph1 = Graph(List(node0, node1), List(Edge("0", "1")))
+  private val testGraph2 = Graph(List(node0), List(Edge("0", "0")))
 
 
-  test("DirectEdge program matcher") {
-    val scope = new TFQueryScope(testGraph)
-    val matcher = EnginePool.getMatcher(DirectEdge.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
+  test("one direction") {
+    val scope = new TFQueryScope(testGraph1)
+    val matcher = EnginePool.getMatcher(DirectEdge.instance(),
+      scope, DifferentialReteBackendFactory.INSTANCE)
     println(matcher.getAllMatches)
+
+    val scope2 = new TFQueryScope(testGraph2)
+    val matcher2 = EnginePool.getMatcher(DirectEdge.instance(),
+      scope2, DifferentialReteBackendFactory.INSTANCE)
+    println(matcher2.getAllMatches)
+
+
   }
 }

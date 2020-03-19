@@ -113,24 +113,20 @@ class InEqualityConstraintsTest extends AnyFunSuite {
     None
   )
 
-  test("Generate and write falseInitializer graph pattern") {
+  test("Write `boolean` graph pattern to file") {
     writeClass(generateGraphPattern(booleanGP), falseInitializerGP.name)
-//    print(generate(falseInitializerGP))
+  }
+
+  test("Write `boolean` graph pattern to terminal") {
+    println(generateGraphPattern(booleanGP))
   }
 
   // todo add real example program
   val clazz: ClassDeclaration = ClassDeclaration("Foo", true, List(FieldDeclaration("bar", ProtectedVisibility())))
 
-  test("Use generated code in PSystem") {
-    val scope = new TFQueryScope(clazz)
-    val matcher = EnginePool.getMatcher(ConfusedInheritance.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
-    println(matcher.getAllMatches)
-  }
-
-  test("PSystem bool pattern") {
+  test("`Boolean` PSystem Test") {
     val scope = new TFQueryScope(clazz)
     val matcher = EnginePool.getMatcher(Boolean_PSystemQuery.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
     println(matcher.getAllMatches)
   }
-
 }

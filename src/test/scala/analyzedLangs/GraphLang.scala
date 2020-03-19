@@ -7,12 +7,12 @@ import org.inca.lang.core.Content.INamedConcept
 case class Node(name: String) extends INamedConcept
 
 @IncrementalIndex
-case class Edge(from: Node, to: Node)
+case class Edge(from: String, to: String)
 
 @IncrementalIndex
-case class Graph(nodes: Seq[Node], edges: Seq[Edge])
+case class Graph(nodes: List[Node], edges: List[Edge])
 
 @IncrementalIndex
-case class Forest(graphs: Seq[Graph])
+case class Forest(graphs: List[Graph])
 
 

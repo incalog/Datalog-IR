@@ -19,7 +19,7 @@ object GenTypeConstraints {
     graphParameters.toList map { param =>
       q"""new TypeConstraint(body,
          Tuples.flatTupleOf(${Term.Name(s"var_${param.name}")}),
-         new ClassKey(NodeType(classOf[${asTypeSelect(param.typ.get.toString)}]))
+         new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[${asTypeSelect(param.typ.get.toString)}]))
        )"""
     }
 
@@ -35,7 +35,7 @@ object GenTypeConstraints {
       q"""new TypeConstraint(
          body,
          Tuples.flatTupleOf(${Term.Name(s"var__$name")}),
-         new ClassKey(NodeType(classOf[org.inca.lang.core.Constraints.ContextPointer]))
+         new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[org.inca.lang.core.Constraints.ContextPointer]))
        )"""
     }
 
@@ -50,7 +50,7 @@ object GenTypeConstraints {
     }
     q"""new TypeConstraint(body,
         Tuples.staticArityFlatTupleOf($src, $trg),
-        new LinkKey(NodeType(
+        new TFInputKey.NodeLinkKey(MetaElements.NodeType(
            classOf[${asTypeSelect(pxc.typ.toString)}])
              (${Lit.String(pxc.element.link.fld.getName)}))
       )"""
@@ -84,7 +84,10 @@ object GenTypeConstraints {
 
   private def termNameLabel(value: Any): Term.Name =
   value match {
-    case CoreVariableReference(v) => Term.Name(s"var_${v.name}")
+    case CoreVariableReference(v) => v match {
+      case GraphPatternParameter(name, _) => Term.Name(s"var_${v.name}")
+      case CoreTemporaryVariable(name, _) => Term.Name(s"var__${v.name}")
+    }
     case _ => Term.Name(generateLabel(var__, value))
   }
 }
