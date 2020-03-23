@@ -122,10 +122,10 @@ class InEqualityConstraintsTest extends AnyFunSuite {
   }
 
   // todo add real example program
-  val clazz: ClassDeclaration = ClassDeclaration("Foo", true, List(FieldDeclaration("bar", ProtectedVisibility())))
+  private val booleanExp = BooleanConstant(true)
 
   test("`Boolean` PSystem Test") {
-    val scope = new TFQueryScope(clazz)
+    val scope = new TFQueryScope(booleanExp)
     val matcher = EnginePool.getMatcher(Boolean_PSystemQuery.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
     println(matcher.getAllMatches)
   }
