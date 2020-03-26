@@ -1,5 +1,6 @@
 package org.inca.findbugs
 
+import org.inca.analyzedLangs.{ClassDeclaration, FieldDeclaration, ProtectedVisibility}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import org.inca.incer.indices.{EnginePool, TFQueryScope}
 import org.inca.meta.MetaElements.NodeType

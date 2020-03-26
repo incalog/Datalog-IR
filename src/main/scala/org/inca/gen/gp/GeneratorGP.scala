@@ -35,11 +35,8 @@ object GeneratorGP {
 
             import java.util
 
-            import org.inca.gen.gp.model._
-            import org.inca.gen.gp.model.keys.{ClassKey, LinkKey}
             import org.inca.incer.indices.{TFInputKey, TFQueryScope, TFQuerySpecification}
             import org.inca.meta.MetaElements
-            import org.inca.meta.MetaElements.NodeType
 
             class $fileNameType extends $superClassParam {
                override def instantiate(engine: ViatraQueryEngine): GenericPatternMatcher = {

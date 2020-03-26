@@ -1,4 +1,4 @@
-package org.inca.findbugs
+package org.inca.analyzedLangs
 
 import org.inca.incer.IncrementalIndex
 

@@ -8,16 +8,16 @@ import org.inca.lang.gp.Content.IGraphPatternBodyContent
 import org.inca.meta.MetaElements.{MetaElement, NodeType}
 
 
-// todo style guide formatting
 object Constraints {
   // todo eval func should be ` => Boolean`
   case class GraphPatternCheckConstraint(evalFunc: Boolean)
     extends CheckConstraint(evalFunc) with IGraphPatternBodyContent
 
+  // todo IValue -> AnyVal?
   case class GraphPatternCompareConstraint(feature: CompareFeature, left: IValue, right: IValue)
     extends CompareConstraint(feature, left, right) with IGraphPatternBodyContent
 
-  case class GraphPatternConceptConstraint(vari: IVariableValue, typ: MetaElement)
+  case class GraphPatternConceptConstraint(vari: IVariableValue, typ: NodeType)
     extends ConceptConstraint(vari, typ) with IGraphPatternBodyContent
 
   case class PathExpressionConstraint(src: CoreVariableReference,

@@ -1,7 +1,9 @@
 package org.inca.findbugs;
 
+import org.inca.analyzedLangs.ClassDeclaration;
+import org.inca.analyzedLangs.FieldDeclaration;
+import org.inca.analyzedLangs.ProtectedVisibility;
 import org.eclipse.viatra.query.runtime.api.GenericPatternMatcher;
-import org.eclipse.viatra.query.runtime.api.GenericQuerySpecification;
 import org.eclipse.viatra.query.runtime.api.ViatraQueryEngine;
 import org.eclipse.viatra.query.runtime.api.scope.QueryScope;
 import org.eclipse.viatra.query.runtime.exception.ViatraQueryException;

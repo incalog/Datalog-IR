@@ -1,4 +1,4 @@
-package analyzedLangs
+package org.inca.analyzedLangs
 
 import org.inca.incer.IncrementalIndex
 import org.inca.lang.core.Content.INamedConcept

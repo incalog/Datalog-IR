@@ -1,8 +1,8 @@
 package org.inca.generator
 
-import analyzedLangs.{Edge, Graph, Node}
+import org.inca.analyzedLangs.{Edge, Graph, Node}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
-import org.inca.findbugs.{ClassDeclaration, ConfusedInheritance}
+import org.inca.findbugs.ConfusedInheritance
 import org.inca.gen.Pipeline.generateGraphPattern
 import org.inca.gen.gp.helper.Util._
 import org.inca.generator.generated.DirectEdge
@@ -16,6 +16,7 @@ import org.inca.lang.gp.Element.PathElement
 import org.inca.lang.gp.Virtual.ParentPathElement
 import org.inca.meta.MetaElements.NodeType
 import org.scalatest.funsuite.AnyFunSuite
+import Util._
 
 class GraphLangTest extends AnyFunSuite {
 
@@ -30,10 +31,27 @@ class GraphLangTest extends AnyFunSuite {
 
   private val srcGraphParam = GraphPatternParameter("src", Some(nodeType))
   private val trgGraphParam = GraphPatternParameter("trg", Some(nodeType))
+  private val edgeGraphParam = GraphPatternParameter("edge", Some(edgeType))
 
   private val intermediate = CoreTemporaryVariable("inter", Some(nodeType))
   private val graph = CoreTemporaryVariable("graph", Some(graphType))
   private val edge = CoreTemporaryVariable("edge", Some(edgeType))
+
+  /**
+   * pattern EdgeLoop(edge: Edge) {
+   *   edge.from == edge.to
+   * }
+   */
+  private val edgeLoop: GraphPattern = GraphPattern(
+    "EdgeLoop",
+    Seq(
+      edgeGraphParam
+    ),
+    Seq(
+
+    ),
+    None
+  );
 
   /**
    * pattern DirectEdge(src: Node, trg: Node) {

@@ -1,33 +1,28 @@
 package org.inca.gen.gp.helper
 
 import org.inca.lang.core.Constraints.{EqualityCompareFeature, InequalityCompareFeature}
-import org.inca.lang.core.Content.{IParameter, IPatternBodyContent, CoreTemporaryVariable}
+import org.inca.lang.core.Content.{CoreTemporaryVariable, IParameter, IPatternBodyContent}
 import org.inca.lang.core.Reference.CoreVariableReference
-import org.inca.lang.core.Values.IValue
+import org.inca.lang.core.Values.{IValue, IVariableValue}
 import org.inca.lang.gp.Constraints._
 import org.inca.lang.gp.Content.GraphPatternParameter
-
 import org.inca.gen.Gensym._
 import org.inca.gen.gp.model.Prefix._
 
 import scala.meta._
 import Util._
+import org.inca.gen.gp.model.{IntegerConstant, LongConstant, Primitive}
+import org.inca.meta.MetaElements.MetaElement
+
 
 object GenTypeConstraints {
 
   def typeConstraintsParameters(graphParameters: Seq[IParameter]): List[Stat] =
     graphParameters.toList map { param =>
       q"""new TypeConstraint(body,
-         Tuples.flatTupleOf(${Term.Name(s"var_${param.name}")}),
+        Tuples.flatTupleOf(${Term.Name(s"var_${param.name}")}),
          new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[${asTypeSelect(param.typ.get.toString)}]))
        )"""
-    }
-
-  def typeConstraints(bodyContent: Seq[IPatternBodyContent]): List[Stat] =
-    bodyContent.toList collect {
-      case pxc: PathExpressionConstraint      => pathExpressionConstraint(pxc)
-      case pcc: PatternCompositionConstraint  => patternCompositionConstraint(pcc)
-      case gcc: GraphPatternCompareConstraint => graphPatternCompareConstraint(gcc)
     }
 
   def contextPointers(names: List[String]): List[Stat] =
@@ -37,6 +32,15 @@ object GenTypeConstraints {
          Tuples.flatTupleOf(${Term.Name(s"var__$name")}),
          new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[org.inca.lang.core.Constraints.ContextPointer]))
        )"""
+    }
+
+  def typeConstraints(bodyContent: Seq[IPatternBodyContent]): List[Stat] =
+  bodyContent.toList collect {
+      case pxc: PathExpressionConstraint      => pathExpressionConstraint(pxc)
+      case pcc: PatternCompositionConstraint  => patternCompositionConstraint(pcc)
+      case gcc: GraphPatternCompareConstraint => graphPatternCompareConstraint(gcc)
+      case ccc: GraphPatternConceptConstraint => patternConceptConstraint(ccc)
+      // todo check constraint
     }
 
   private def pathExpressionConstraint(pxc: PathExpressionConstraint): Stat = {
@@ -58,12 +62,20 @@ object GenTypeConstraints {
 
   private def patternCompositionConstraint(pcc: PatternCompositionConstraint): Stat =
     q"""new PositivePatternCall(body,
-          Tuples.flatTupleOf(..${patternCompConstrArguments(pcc.call.arguments)}),
+          Tuples.flatTupleOf(..${getVariableReference(pcc.call.arguments)}),
           ${Term.Name(s"${pcc.call.pattern.name}")}.instance().getInternalQueryRepresentation
        )
      """
 
-  private def patternCompConstrArguments(args: Seq[IValue]): List[Term] =
+  private def patternConceptConstraint(ccc: GraphPatternConceptConstraint): Stat =
+    q"""new TypeConstraint(body,
+          Tuples.flatTupleOf(..${getVariableReference(Seq(ccc.vari))}),
+          new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[${asTypeSelect(ccc.typ.toString)}]))
+       )
+     """
+
+
+  private def getVariableReference(args: Seq[IValue]): List[Term] =
     args.toList map {
       case CoreVariableReference(v) => v match {
         case GraphPatternParameter(name, _) => Term.Name(s"var_$name")
@@ -85,8 +97,8 @@ object GenTypeConstraints {
   private def termNameLabel(value: Any): Term.Name =
   value match {
     case CoreVariableReference(v) => v match {
-      case GraphPatternParameter(name, _) => Term.Name(s"var_${v.name}")
-      case CoreTemporaryVariable(name, _) => Term.Name(s"var__${v.name}")
+      case GraphPatternParameter(_, _) => Term.Name(s"var_${v.name}")
+      case CoreTemporaryVariable(_, _) => Term.Name(s"var__${v.name}")
     }
     case _ => Term.Name(generateLabel(var__, value))
   }

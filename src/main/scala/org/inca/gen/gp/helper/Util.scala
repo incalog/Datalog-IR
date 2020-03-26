@@ -1,30 +1,10 @@
 package org.inca.gen.gp.helper
 
-import java.io.{File, PrintWriter}
-
 import scala.meta._
 
 object Util {
 
-  def writeClass(source: Source, name: String): Unit = {
-    val file = new File(s"src/test/scala/org/inca/generator/generated/$name.scala")
-    if (!file.exists)
-      if (file.createNewFile)
-        new PrintWriter(file) {
-          write(source.toString())
-          close()
-        }
-    else {
-      new PrintWriter(file) {
-        write(source.toString())
-        close()
-      }
-    }
-  }
 
-  def printClass(source: Source): Unit = {
-    println(source)
-  }
 
   def asTypeSelect(path: String): Type.Select =
     checkLength(path.substring(1).split('.').toList)

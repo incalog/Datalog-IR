@@ -1,9 +1,8 @@
 package org.inca.generator
 
+import org.inca.analyzedLangs.{ClassDeclaration, ClassMember, FieldDeclaration, ProtectedVisibility}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
-import org.inca.findbugs.{ClassDeclaration, ClassMember, FieldDeclaration, ProtectedVisibility}
 import org.inca.gen.Pipeline.generateGraphPattern
-import org.inca.gen.gp.helper.Util.writeClass
 import org.inca.gen.gp.model.BooleanConstant
 import org.inca.generator.generated.ConfusedInheritance
 import org.inca.incer.indices.{EnginePool, TFQueryScope}
@@ -16,7 +15,7 @@ import org.inca.lang.gp.Virtual.ParentPathElement
 import org.inca.meta.MetaElements.NodeType
 import org.scalatest.funsuite.AnyFunSuite
 
-class FindBugsGeneratorTest extends AnyFunSuite {
+class JavaLangTest extends AnyFunSuite {
 
   private val classDeclType = NodeType(classOf[ClassDeclaration])
   private val fieldDeclType = NodeType(classOf[FieldDeclaration])
