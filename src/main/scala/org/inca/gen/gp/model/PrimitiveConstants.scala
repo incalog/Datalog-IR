@@ -1,10 +1,10 @@
 package org.inca.gen.gp.model
 
 import org.inca.incer.IncrementalIndex
-import org.inca.lang.core.Values.IValue
+import org.inca.lang.core.Values.Value
 import org.inca.meta.MetaElements.MetaElement
 
-trait Primitive extends IValue {
+trait Primitive extends Value {
   val value: Any
 }
 

@@ -1,9 +1,9 @@
 package org.inca.gen.gp.helper
 
 import org.inca.lang.core.Constraints.{EqualityCompareFeature, InequalityCompareFeature}
-import org.inca.lang.core.Content.{CoreTemporaryVariable, IParameter, IPatternBodyContent}
+import org.inca.lang.core.Content.{CoreTemporaryVariable, Parameter, PatternBodyContent}
 import org.inca.lang.core.Reference.CoreVariableReference
-import org.inca.lang.core.Values.{IValue, IVariableValue}
+import org.inca.lang.core.Values.{Value, VariableValue}
 import org.inca.lang.gp.Constraints._
 import org.inca.lang.gp.Content.GraphPatternParameter
 import org.inca.gen.Gensym._
@@ -17,7 +17,7 @@ import org.inca.meta.MetaElements.MetaElement
 
 object GenTypeConstraints {
 
-  def typeConstraintsParameters(graphParameters: Seq[IParameter]): List[Stat] =
+  def typeConstraintsParameters(graphParameters: Seq[Parameter]): List[Stat] =
     graphParameters.toList map { param =>
       q"""new TypeConstraint(body,
         Tuples.flatTupleOf(${Term.Name(s"var_${param.name}")}),
@@ -34,7 +34,7 @@ object GenTypeConstraints {
        )"""
     }
 
-  def typeConstraints(bodyContent: Seq[IPatternBodyContent]): List[Stat] =
+  def typeConstraints(bodyContent: Seq[PatternBodyContent]): List[Stat] =
   bodyContent.toList collect {
       case pxc: PathExpressionConstraint      => pathExpressionConstraint(pxc)
       case pcc: PatternCompositionConstraint  => patternCompositionConstraint(pcc)
@@ -75,7 +75,7 @@ object GenTypeConstraints {
      """
 
 
-  private def getVariableReference(args: Seq[IValue]): List[Term] =
+  private def getVariableReference(args: Seq[Value]): List[Term] =
     args.toList map {
       case CoreVariableReference(v) => v match {
         case GraphPatternParameter(name, _) => Term.Name(s"var_$name")

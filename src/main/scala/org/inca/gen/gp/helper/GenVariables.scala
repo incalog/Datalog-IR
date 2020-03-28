@@ -1,16 +1,16 @@
 package org.inca.gen.gp.helper
 
 import org.inca.gen.gp.model.Primitive
-import org.inca.lang.core.Content.{CoreTemporaryVariable, IParameter, IPatternBodyContent}
+import org.inca.lang.core.Content.{CoreTemporaryVariable, Parameter, PatternBodyContent}
 import org.inca.lang.gp.Constraints.{GraphPatternCompareConstraint, PathExpressionConstraint}
-import org.inca.lang.gp.Element.GeneratedParameter
 
 import scala.meta._
 import org.inca.gen.Gensym._
 import org.inca.gen.gp.model.Prefix._
 import org.inca.gen.gp.helper.Util.asTypeSelect
 import org.inca.lang.core.Reference.CoreVariableReference
-import org.inca.lang.core.Values.IValue
+import org.inca.lang.core.Values.Value
+import org.inca.lang.gp.Content.GeneratedParameter
 
 object GenVariables {
 
@@ -19,12 +19,12 @@ object GenVariables {
       q"val ${Pat.Var(Term.Name(s"var__$name"))}: PVariable = body.getOrCreateVariableByName(${Lit.String(name)})"
     }
 
-  def localGlobalVariables(graphParameters: Seq[IParameter]): List[Stat] =
+  def localGlobalVariables(graphParameters: Seq[Parameter]): List[Stat] =
     graphParameters.map { gp =>
       q"val ${Pat.Var(Term.Name(s"var_${gp.name}"))}: PVariable = body.getOrCreateVariableByName(${Lit.String(gp.name)})"
     }.toList
 
-  def temporaryVariables(body: Seq[IPatternBodyContent]): List[String] =
+  def temporaryVariables(body: Seq[PatternBodyContent]): List[String] =
     body.collect {
       case PathExpressionConstraint(src, trg, _, _) =>
         List[String](
@@ -46,13 +46,13 @@ object GenVariables {
       q"val $variable = body.newConstantVariable(${primitiveLit(primitive)})"
     }
 
-  def uniquePrimitives(body: Seq[IPatternBodyContent]): List[Primitive] =
+  def uniquePrimitives(body: Seq[PatternBodyContent]): List[Primitive] =
     body.collect {
       case GraphPatternCompareConstraint(_, left, right) =>
         List(left, right).collect { case p: Primitive => p }
     }.toList.flatten.distinct
 
-  def generatedTemporaryVariables(body: Seq[IPatternBodyContent]): List[String] =
+  def generatedTemporaryVariables(body: Seq[PatternBodyContent]): List[String] =
     body.collect {
       case p: PathExpressionConstraint =>
         p.trg match {
@@ -61,7 +61,7 @@ object GenVariables {
         }
     }.toList.distinct.filterNot(x => x.isEmpty)
 
-  def pparams(graphParameters: Seq[IParameter]): List[Stat] =
+  def pparams(graphParameters: Seq[Parameter]): List[Stat] =
     graphParameters.toList map { gp =>
       val name = s"p_${gp.name}"
       val primitiveTypeName = asTypeSelect(gp.typ.get.toString)
@@ -73,7 +73,7 @@ object GenVariables {
             $pConceptKey)"""
     }
 
-  private def hasRefVar(v: IValue): String = v match {
+  private def hasRefVar(v: Value): String = v match {
     case CoreVariableReference(v) => v match {
       case CoreTemporaryVariable(name, _) => name
       case _ => ""

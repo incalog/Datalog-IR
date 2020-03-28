@@ -1,14 +1,14 @@
 package org.inca.lang.core
 
-import org.inca.lang.core.Content.{IJoinTypeDef, INamedConcept}
+import org.inca.lang.core.Content.{JoinTypeDef, NamedConcept}
 import org.inca.meta.MetaElements.MetaElement
 
 object Typ {
-  case class JoinType(joinTypeDef: IJoinTypeDef) extends MetaElement
+  case class JoinType(joinTypeDef: JoinTypeDef) extends MetaElement
   abstract class AbstractConceptDeclaration()
   case class ConceptReferenceType(concept: AbstractConceptDeclaration) extends MetaElement
   // todo `dataTypeDeclaration` is mps and is not `abstract`!
-  abstract class DataTypeDeclaration(name: String) extends INamedConcept
+  abstract class DataTypeDeclaration(name: String) extends NamedConcept
   case class DataReferenceType(dataTypeDeclaration: DataTypeDeclaration) extends MetaElement
 
   // `type hint` folder

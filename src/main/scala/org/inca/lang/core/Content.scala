@@ -1,57 +1,53 @@
 package org.inca.lang.core
 
-import org.inca.lang.core.Values.IVariableValue
+import org.inca.lang.core.Values.VariableValue
 import org.inca.meta.MetaElements.MetaElement
 
 object Content {
 
-  trait IPatternBodyContent
+  trait PatternBodyContent
 
-  trait IPatternModuleContent
+  trait PatternModuleContent
 
-  trait IPatternVisibility
+  trait PatternVisibility
 
-  trait IVariableBinder
+  trait VariableWithDeclaredType extends Variable
 
-  trait IVariableWithDeclaredType extends IVariable
+  trait Parameter extends Variable with VariableWithDeclaredType
 
-  trait IParameter extends IVariable with IVariableWithDeclaredType
+  trait GenNameProvider
 
-  trait IGenNameProvider
-
-  trait IJoinTypeDef extends INamedConcept {
+  trait JoinTypeDef extends NamedConcept {
     val types: Seq[MetaElement]
   }
 
-  trait IPatternBody {
-    val contents: Seq[IPatternBodyContent]
+  trait PatternBody {
+    val contents: Seq[PatternBodyContent]
   }
 
-  trait INamedConcept {
+  trait NamedConcept {
     val name: String
   }
 
-  trait IVariable extends INamedConcept with IGenNameProvider {
+  trait Variable extends NamedConcept with GenNameProvider {
     val typ: Option[MetaElement]
   }
 
-  trait IPattern extends INamedConcept with IPatternModuleContent with IGenNameProvider with IVariableBinder {
-    val parameters: Seq[IParameter]
-    val bodies: Seq[IPatternBody]
-    val visibility: Option[IPatternVisibility]
+  trait Pattern extends NamedConcept with PatternModuleContent with GenNameProvider {
+    val parameters: Seq[Parameter]
+    val bodies: Seq[PatternBody]
+    val visibility: Option[PatternVisibility]
   }
 
-  abstract class EmptyContent extends IPatternModuleContent with IPatternBodyContent
+  abstract class EmptyContent extends PatternModuleContent with PatternBodyContent
 
   abstract class HorizontalLineContent
 
-  abstract class Comment(text: String) extends IPatternBodyContent with IPatternModuleContent
+  abstract class Comment(text: String) extends PatternBodyContent with PatternModuleContent
 
   abstract class TemporaryVariable(name: String, typ: Option[MetaElement])
 
-  case class JoinTypeDef(name: String, types: Seq[MetaElement]) extends IJoinTypeDef
-
   case class CoreTemporaryVariable(name: String, typ: Option[MetaElement])
-    extends TemporaryVariable(name, typ) with IVariable with IVariableValue
+    extends TemporaryVariable(name, typ) with Variable with VariableValue
 
 }

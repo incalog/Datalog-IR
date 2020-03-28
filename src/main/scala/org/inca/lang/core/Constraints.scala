@@ -1,8 +1,8 @@
 package org.inca.lang.core
 
-import org.inca.lang.core.Content.{IPattern, IPatternBodyContent}
+import org.inca.lang.core.Content.{Pattern, PatternBodyContent}
 import org.inca.lang.core.Misc.{IContainsJavaExpression, IJavaContext, ITransformable}
-import org.inca.lang.core.Values.{IValue, IVariableValue}
+import org.inca.lang.core.Values.{Value, VariableValue}
 import org.inca.meta.MetaElements.{Link, MetaElement, NodeType}
 
 object Constraints {
@@ -16,8 +16,8 @@ object Constraints {
   }
   trait IPatternCall {
     val transitive: Boolean
-    val arguments: Seq[IValue]
-    val pattern: IPattern
+    val arguments: Seq[Value]
+    val pattern: Pattern
   }
   // todo check implementation
   trait ContextPointer {
@@ -29,22 +29,16 @@ object Constraints {
     val last: Option[Any]
   }
 
-  abstract class CheckConstraint(evalFunc: => Boolean)
-    extends IPatternBodyContent with IJavaContext with IContainsJavaExpression
+  abstract class CompareConstraint(feature: CompareFeature, left: Value, right: Value)
+    extends PatternBodyContent with ITypeConstraintProvider
 
-  abstract class CompareConstraint(feature: CompareFeature,left: IValue, right: IValue)
-    extends IPatternBodyContent with ITypeConstraintProvider
+  abstract class ConceptConstraint(vari: VariableValue, typ: NodeType)
+    extends PatternBodyContent with ITypeConstraintProvider
 
-  abstract class ConceptConstraint(vari: IVariableValue, typ: NodeType)
-    extends IPatternBodyContent with ITypeConstraintProvider
-
-  case class PatternCall(transitive: Boolean, arguments: Seq[IValue], pattern: IPattern) extends IPatternCall
+  case class PatternCall(transitive: Boolean, arguments: Seq[Value], pattern: Pattern) extends IPatternCall
 
   // enum
   trait CompareFeature
   case class EqualityCompareFeature() extends CompareFeature
   case class InequalityCompareFeature() extends CompareFeature
-
-  case class Something(str: String)
-    extends IValue with MetaElement
 }

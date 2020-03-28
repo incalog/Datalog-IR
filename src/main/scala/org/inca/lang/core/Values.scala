@@ -1,17 +1,17 @@
 package org.inca.lang.core
 
-import org.inca.lang.core.Content.IGenNameProvider
+import org.inca.lang.core.Content.GenNameProvider
 import org.inca.lang.core.Misc.{IContainsJavaExpression, IJavaContext}
 
 object Values {
 
-  trait IValue extends IGenNameProvider
+  trait Value extends GenNameProvider
 
-  trait IVariableValue extends IGenNameProvider with IValue
+  trait VariableValue extends GenNameProvider with Value
 
-  abstract class AbstractLiteralValue extends IValue
+  abstract class AbstractLiteralValue extends Value
 
-  abstract class ComputationValue extends IValue
+  abstract class ComputationValue extends Value
 
   case class BoolValue(value: Boolean) extends AbstractLiteralValue
 

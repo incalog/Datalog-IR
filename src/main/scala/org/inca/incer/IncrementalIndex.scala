@@ -6,6 +6,7 @@ import org.inca.meta.MetaElements.NodeType
 
 import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.language.experimental.macros
+import scala.reflect.io.NoAbstractFile
 import scala.reflect.macros.whitebox.Context
 
 @compileTimeOnly("enable macro paradise to expand macro annotations")
@@ -20,9 +21,9 @@ object IncrementalIndexMacro {
     }
 
     val inputElement = annottees.head
-    println("Input: " + inputElement)
+//    println("Input: " + inputElement)
     val outputElement = rewrite(c)(inputElement)
-    println("Output: " + outputElement)
+//    println("Output: " + outputElement)
     outputElement
   }
 
@@ -50,7 +51,7 @@ object IncrementalIndexMacro {
               }
 
               override def insert(indices: $symIndices, recursive : Boolean): Unit = {
-                super.insert(indices, true)
+                super.insert(indices, false)
                 if (!recursive) {
                   indices.insertNodeTypeInstance($symNodeType(classOf[$className[..$typeParameters]]), this)
                 }
@@ -134,7 +135,7 @@ object IncrementalIndexMacro {
               }
 
               override def insert(indices: $symIndices, recursive : Boolean): Unit = {
-                super.insert(indices, true)
+                super.insert(indices, false)
                 if (!recursive) {
                   indices.insertNodeTypeInstance($symNodeType(classOf[$traitName[..$typeParameters]]), this)
                 }
