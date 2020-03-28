@@ -1,16 +1,14 @@
 package org.inca.gen.gp.helper
 
 import org.inca.gen.gp.model.Primitive
-import org.inca.lang.core.Content.{CoreTemporaryVariable, Parameter, PatternBodyContent}
-import org.inca.lang.gp.Constraints.{GraphPatternCompareConstraint, PathExpressionConstraint}
+import org.inca.lang.Core._
+import org.inca.lang.Core.Value
+import org.inca.lang.Gp._
 
 import scala.meta._
 import org.inca.gen.Gensym._
 import org.inca.gen.gp.model.Prefix._
 import org.inca.gen.gp.helper.Util.asTypeSelect
-import org.inca.lang.core.Reference.CoreVariableReference
-import org.inca.lang.core.Values.Value
-import org.inca.lang.gp.Content.GeneratedParameter
 
 object GenVariables {
 
@@ -34,7 +32,7 @@ object GenVariables {
           },
           hasRefVar(src)
         )
-      case GraphPatternCompareConstraint(_, left, right) =>
+      case CompareConstraint(_, left, right) =>
         List[String](
           hasRefVar(left),
           hasRefVar(right))
@@ -48,7 +46,7 @@ object GenVariables {
 
   def uniquePrimitives(body: Seq[PatternBodyContent]): List[Primitive] =
     body.collect {
-      case GraphPatternCompareConstraint(_, left, right) =>
+      case CompareConstraint(_, left, right) =>
         List(left, right).collect { case p: Primitive => p }
     }.toList.flatten.distinct
 

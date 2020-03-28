@@ -2,7 +2,7 @@ package org.inca.gen.gp
 
 import org.inca.gen.gp.helper.GenTypeConstraints._
 import org.inca.gen.gp.helper.GenVariables._
-import org.inca.lang.gp.Content.GraphPattern
+import org.inca.lang.Gp._
 
 import scala.meta._
 
@@ -37,6 +37,8 @@ object GeneratorGP {
 
             import org.inca.incer.indices.{TFInputKey, TFQueryScope, TFQuerySpecification}
             import org.inca.meta.MetaElements
+            import org.inca.lang.Core._
+            import org.inca.lang.Gp._
 
             class $fileNameType extends $superClassParam {
                override def instantiate(engine: ViatraQueryEngine): GenericPatternMatcher = {

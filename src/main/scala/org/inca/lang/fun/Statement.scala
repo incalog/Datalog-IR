@@ -1,12 +1,10 @@
 package org.inca.lang.fun
 
-import org.inca.lang.core.Content.{PatternBody, PatternBodyContent}
-import org.inca.lang.core.Misc.ITransformable
-import org.inca.lang.core._
+import org.inca.lang.Core._
 
-trait IStatement extends PatternBodyContent with ITypeConstraintProvider with ITransformable
+trait IStatement extends PatternBodyContent
 
-case class ReturnStatement(expression: IExpression) extends IStatement with ITypeConstraintProvider
+case class ReturnStatement(expression: IExpression) extends IStatement
 case class AssignStatement(override val left: IExpression,
                            override val right: IExpression) extends AbstractBinary with IStatement
 case class AssertStatement(condition: ICondition) extends IStatement

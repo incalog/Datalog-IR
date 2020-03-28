@@ -6,12 +6,8 @@ import org.inca.gen.Pipeline.generateGraphPattern
 import org.inca.gen.gp.model.BooleanConstant
 import org.inca.generator.generated.ConfusedInheritance
 import org.inca.incer.indices.{EnginePool, TFQueryScope}
-import org.inca.lang.core.Constraints.EqualityCompareFeature
-import org.inca.lang.core.Content.CoreTemporaryVariable
-import org.inca.lang.core.Reference.CoreVariableReference
-import org.inca.lang.gp.Constraints.{GraphPatternCompareConstraint, PathExpressionConstraint}
-import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
-import org.inca.lang.gp.Virtual.ParentPathElement
+import org.inca.lang.Core._
+import org.inca.lang.Gp._
 import org.inca.meta.MetaElements.NodeType
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -48,12 +44,12 @@ class JavaLangTest extends AnyFunSuite {
             ParentPathElement(None, classDeclarationIsFinalLink),
             classDeclType
           ),
-          GraphPatternCompareConstraint(
+          CompareConstraint(
             EqualityCompareFeature(),
             CoreVariableReference(temp_2TV),
             BooleanConstant(true)
           ),
-          GraphPatternCompareConstraint(
+          CompareConstraint(
             EqualityCompareFeature(),
             CoreVariableReference(temp_1TV),
             CoreVariableReference(temp_2TV)
@@ -64,7 +60,7 @@ class JavaLangTest extends AnyFunSuite {
             ParentPathElement(None, classDeclarationMembersLink),
             classDeclType
           ),
-          GraphPatternCompareConstraint(
+          CompareConstraint(
             EqualityCompareFeature(),
             CoreVariableReference(memberTV),
             CoreVariableReference(temp_3TV)

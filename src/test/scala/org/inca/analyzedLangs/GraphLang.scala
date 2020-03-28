@@ -1,7 +1,7 @@
 package org.inca.analyzedLangs
 
 import org.inca.incer.IncrementalIndex
-import org.inca.lang.core.Content.NamedConcept
+import org.inca.lang.Core.NamedConcept
 
 @IncrementalIndex
 case class Node(name: String) extends NamedConcept

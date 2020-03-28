@@ -1,21 +1,15 @@
 package org.inca.generator
 
-import org.inca.analyzedLangs.{Edge, Graph, Node}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
-import org.inca.findbugs.ConfusedInheritance
+import org.inca.analyzedLangs.{Edge, Graph, Node}
 import org.inca.gen.Pipeline.generateGraphPattern
-import org.inca.gen.gp.helper.Util._
+import org.inca.generator.Util._
+import org.inca.generator.generated.DirectEdge
 import org.inca.incer.indices.{EnginePool, TFQueryScope}
-import org.inca.lang.core.Constraints.PatternCall
-import org.inca.lang.core.Content.CoreTemporaryVariable
-import org.inca.lang.core.Reference.CoreVariableReference
-import org.inca.lang.gp.Constraints.{PathExpressionConstraint, PatternCompositionConstraint}
-import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter, PathElement}
-import org.inca.lang.gp.Virtual.ParentPathElement
+import org.inca.lang.Core._
+import org.inca.lang.Gp._
 import org.inca.meta.MetaElements.NodeType
 import org.scalatest.funsuite.AnyFunSuite
-import Util._
-import org.inca.generator.generated.DirectEdge
 
 class GraphLangTest extends AnyFunSuite {
 
@@ -78,19 +72,19 @@ class GraphLangTest extends AnyFunSuite {
           PathExpressionConstraint(
             CoreVariableReference(graph),
             edge,
-            PathElement(None, graphEdgesLink),
+            PathElementImpl(None, graphEdgesLink),
             graphType
           ),
           PathExpressionConstraint(
             CoreVariableReference(edge),
             CoreVariableReference(srcGraphParam),
-            PathElement(None, edgeFromNodeLink),
+            PathElementImpl(None, edgeFromNodeLink),
             edgeType
           ),
           PathExpressionConstraint(
             CoreVariableReference(edge),
             CoreVariableReference(trgGraphParam),
-            PathElement(None, edgeToNodeLink),
+            PathElementImpl(None, edgeToNodeLink),
             edgeType
           )
         )
@@ -115,7 +109,7 @@ class GraphLangTest extends AnyFunSuite {
     ),
     Seq(
       GraphPatternBody(Seq(
-        PatternCompositionConstraint(
+        CompositionConstraint(
           neg = false,
           PatternCall(
             transitive = false,
@@ -128,7 +122,7 @@ class GraphLangTest extends AnyFunSuite {
         )
       )),
       GraphPatternBody(Seq(
-        PatternCompositionConstraint(
+        CompositionConstraint(
           neg = false,
           PatternCall(
             transitive = false,
@@ -139,7 +133,7 @@ class GraphLangTest extends AnyFunSuite {
             directEdge
           )
         ),
-        PatternCompositionConstraint(
+        CompositionConstraint(
           neg = false,
           PatternCall(
             transitive = false,
@@ -211,14 +205,6 @@ class GraphLangTest extends AnyFunSuite {
   )
 
 
-  test("Generate and write directEdge graph pattern") {
-    writeClass(generateGraphPattern(directEdge), directEdge.name)
-  }
-
-  test("Generate and write greatGrandParent graph pattern") {
-    writeClass(generateGraphPattern(greatGrandParent), greatGrandParent.name)
-  }
-
 
   private val node0 = Node("0")
   private val node1 = Node("1")
@@ -228,6 +214,8 @@ class GraphLangTest extends AnyFunSuite {
 
 
   test("one direction") {
+    writeClass(greatGrandParent)
+
     val scope = new TFQueryScope(testGraph1)
     val matcher = EnginePool.getMatcher(DirectEdge.instance(),
       scope, DifferentialReteBackendFactory.INSTANCE)

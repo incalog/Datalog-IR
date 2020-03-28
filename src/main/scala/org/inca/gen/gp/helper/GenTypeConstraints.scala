@@ -1,18 +1,13 @@
 package org.inca.gen.gp.helper
 
-import org.inca.lang.core.Constraints.{EqualityCompareFeature, InequalityCompareFeature}
-import org.inca.lang.core.Content.{CoreTemporaryVariable, Parameter, PatternBodyContent}
-import org.inca.lang.core.Reference.CoreVariableReference
-import org.inca.lang.core.Values.{Value, VariableValue}
-import org.inca.lang.gp.Constraints._
-import org.inca.lang.gp.Content.GraphPatternParameter
+import org.inca.lang.Core._
+import org.inca.lang.Core.Value
+import org.inca.lang.Gp._
 import org.inca.gen.Gensym._
 import org.inca.gen.gp.model.Prefix._
 
 import scala.meta._
 import Util._
-import org.inca.gen.gp.model.{IntegerConstant, LongConstant, Primitive}
-import org.inca.meta.MetaElements.MetaElement
 
 
 object GenTypeConstraints {
@@ -37,9 +32,9 @@ object GenTypeConstraints {
   def typeConstraints(bodyContent: Seq[PatternBodyContent]): List[Stat] =
   bodyContent.toList collect {
       case pxc: PathExpressionConstraint      => pathExpressionConstraint(pxc)
-      case pcc: PatternCompositionConstraint  => patternCompositionConstraint(pcc)
-      case gcc: GraphPatternCompareConstraint => graphPatternCompareConstraint(gcc)
-      case ccc: GraphPatternConceptConstraint => patternConceptConstraint(ccc)
+      case pcc: CompositionConstraint  => patternCompositionConstraint(pcc)
+      case gcc: CompareConstraint => graphPatternCompareConstraint(gcc)
+      case ccc: ConceptConstraint => patternConceptConstraint(ccc)
       // todo check constraint
     }
 
@@ -60,14 +55,14 @@ object GenTypeConstraints {
       )"""
   }
 
-  private def patternCompositionConstraint(pcc: PatternCompositionConstraint): Stat =
+  private def patternCompositionConstraint(pcc: CompositionConstraint): Stat =
     q"""new PositivePatternCall(body,
           Tuples.flatTupleOf(..${getVariableReference(pcc.call.arguments)}),
           ${Term.Name(s"${pcc.call.pattern.name}")}.instance().getInternalQueryRepresentation
        )
      """
 
-  private def patternConceptConstraint(ccc: GraphPatternConceptConstraint): Stat =
+  private def patternConceptConstraint(ccc: ConceptConstraint): Stat =
     q"""new TypeConstraint(body,
           Tuples.flatTupleOf(..${getVariableReference(Seq(ccc.vari))}),
           new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[${asTypeSelect(ccc.typ.toString)}]))
@@ -84,10 +79,10 @@ object GenTypeConstraints {
       case CoreTemporaryVariable(name, _) => Term.Name(s"var_$name")
     }
 
-  private def graphPatternCompareConstraint(cc: GraphPatternCompareConstraint): Stat =
+  private def graphPatternCompareConstraint(cc: CompareConstraint): Stat =
     matchCompareConstraint(cc, termNameLabel(cc.left), termNameLabel(cc.right))
 
-  private def matchCompareConstraint(compare: GraphPatternCompareConstraint,
+  private def matchCompareConstraint(compare: CompareConstraint,
                                      left: Term.Name, right: Term.Name): Stat =
   compare.feature match {
     case _: EqualityCompareFeature => q"new Equality(body, $left, $right)"

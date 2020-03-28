@@ -1,12 +1,7 @@
 package org.inca.gen.gp
 
-import org.inca.lang.core.Constraints.IPathElement
-import org.inca.lang.core.Content.{CoreTemporaryVariable, PatternBody, PatternBodyContent}
-import org.inca.lang.core.Reference.CoreVariableReference
-import org.inca.lang.core.Values.{Value, VariableValue}
-import org.inca.lang.gp.Constraints.PathExpressionConstraint
-import org.inca.lang.gp.Content.{GeneratedParameter, GraphPattern, GraphPatternBody, GraphPatternBodyContent}
-import org.inca.lang.gp.Virtual.ParentPathElement
+import org.inca.lang.Core._
+import org.inca.lang.Gp._
 import org.inca.meta.MetaElements.NodeType
 
 object TransformGP {
@@ -25,7 +20,7 @@ object TransformGP {
       case _ => Seq(content)
     }
 
-  private def splitExpressions(elem: IPathElement,
+  private def splitExpressions(elem: PathElement,
                                src: VariableValue,
                                trg: Value,
                                typ: NodeType,
@@ -39,7 +34,7 @@ object TransformGP {
         splitExpressions(elem.next.get, temp, trg, typ, depth + 1, line)
     }
 
-  private def matcher(elem: IPathElement,
+  private def matcher(elem: PathElement,
                       value: Value,
                       typ: NodeType,
                       src: VariableValue): PathExpressionConstraint =

@@ -1,11 +1,7 @@
 package org.inca.lang.fun
 
-import org.inca.lang.core.Constraints.{IPathElement, IPathExpressionLike, IPatternCall}
-import org.inca.lang.core.Content.{CoreTemporaryVariable, Variable, TemporaryVariable}
-import org.inca.lang.core.ITypeConstraintProvider
-import org.inca.lang.core.Reference.{CoreVariableReference, VariableReference}
-import org.inca.lang.core.Typ.ITypeHintConsumer
-import org.inca.lang.core.Values.{AbstractLiteralValue, ExpressionEvaluationValue, Value}
+import org.inca.lang.Core._
+import org.inca.lang.Gp._
 import org.inca.meta.MetaElements.MetaElement
 
 trait IExpression extends IStatement with ICondition
@@ -20,14 +16,14 @@ case class FunTemporaryVariable(name: String,
   extends TemporaryVariable(name, typ) with ITuple
 
 case class FunVariableReference(variable: Variable)
-  extends VariableReference(variable) with ITuple with ITypeHintConsumer
+  extends VariableReference(variable) with ITuple
 
-case class LiteralValue(value: AbstractLiteralValue) extends IExpression with Value
+//case class LiteralValue(value: AbstractLiteralValue) extends IExpression with Value
 
-case class PathExpression(src: IExpression, element: IPathElement)
-  extends IExpression with Value with IPathExpressionLike
+case class PathExpression(src: IExpression, element: PathElement)
+  extends IExpression with Value
 
 case class PatternFunctionCall(call: IPatternCall)
-  extends IExpression with IStatement with ITypeConstraintProvider
+  extends IExpression with IStatement
 
 case class Tuple(expression: Seq[IExpression]) extends ITuple

@@ -1,10 +1,8 @@
 package org.inca.lang.fun
 
-import org.inca.lang.core.ITypeConstraintProvider
-import org.inca.lang.core.Misc.ITransformable
 import org.inca.meta.MetaElements.MetaElement
 
-trait ICondition extends ITypeConstraintProvider with ITransformable
+trait ICondition
 
 trait IInstanceOfLike {
   val typ: MetaElement

@@ -2,7 +2,7 @@ package org.inca.gen
 
 import org.inca.gen.gp.TransformGP.transformPattern
 import org.inca.gen.gp.GeneratorGP.querySpecification
-import org.inca.lang.gp.Content.GraphPattern
+import org.inca.lang.Gp._
 
 import scala.meta.Source
 
