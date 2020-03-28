@@ -46,9 +46,10 @@ object MetaElements {
 
   def isPrimitiveDataType(cls: Class[_]): Boolean = {
     val isInteger = classOf[Int].isAssignableFrom(cls) || classOf[java.lang.Integer].isAssignableFrom(cls)
+    val isLong = classOf[Long].isAssignableFrom(cls) || classOf[java.lang.Long].isAssignableFrom(cls)
     val isBoolean = classOf[Boolean].isAssignableFrom(cls) || classOf[java.lang.Boolean].isAssignableFrom(cls)
     val isString = classOf[java.lang.String].isAssignableFrom(cls)
-    isInteger || isBoolean || isString
+    isInteger || isBoolean || isString || isLong
   }
 
   case class NodeLink(nodeType: NodeType, fld: Field) extends Link {
