@@ -1,10 +1,10 @@
 package org.inca.analyzedLangs
 
 import org.inca.incer.IncrementalIndex
-import org.inca.lang.core.Content.INamedConcept
+import org.inca.lang.core.Content.NamedConcept
 
 @IncrementalIndex
-case class Node(name: String) extends INamedConcept
+case class Node(name: String) extends NamedConcept
 
 @IncrementalIndex
 case class Edge(from: String, to: String)

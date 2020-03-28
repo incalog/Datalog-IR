@@ -42,7 +42,7 @@ class ExpLangTest extends AnyFunSuite {
   )
 
 
-  val testInput = Add(And(Or(BooleanLit(true), BooleanLit(false)), IntegerLit(5)), IntegerLit(10))
+  val testInput = Add(And(Or(BooleanLit(true), BooleanLit(false)), IntegerLit(5)), LongLit(10))
 
   test("Write `Number` pattern to console") {
     println(generateGraphPattern(numberPattern))

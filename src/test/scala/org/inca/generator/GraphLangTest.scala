@@ -5,18 +5,17 @@ import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFact
 import org.inca.findbugs.ConfusedInheritance
 import org.inca.gen.Pipeline.generateGraphPattern
 import org.inca.gen.gp.helper.Util._
-import org.inca.generator.generated.DirectEdge
 import org.inca.incer.indices.{EnginePool, TFQueryScope}
 import org.inca.lang.core.Constraints.PatternCall
 import org.inca.lang.core.Content.CoreTemporaryVariable
 import org.inca.lang.core.Reference.CoreVariableReference
 import org.inca.lang.gp.Constraints.{PathExpressionConstraint, PatternCompositionConstraint}
-import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter}
-import org.inca.lang.gp.Element.PathElement
+import org.inca.lang.gp.Content.{GraphPattern, GraphPatternBody, GraphPatternParameter, PathElement}
 import org.inca.lang.gp.Virtual.ParentPathElement
 import org.inca.meta.MetaElements.NodeType
 import org.scalatest.funsuite.AnyFunSuite
 import Util._
+import org.inca.generator.generated.DirectEdge
 
 class GraphLangTest extends AnyFunSuite {
 
@@ -213,16 +212,11 @@ class GraphLangTest extends AnyFunSuite {
 
 
   test("Generate and write directEdge graph pattern") {
-    //  generate(greatGrandParent, "GPLang")
-//    writeClass(generateGraphPattern(directEdge), directEdge.name)
-    println(generateGraphPattern(directEdge))
-//    writeClass(generate(path), path.name)
+    writeClass(generateGraphPattern(directEdge), directEdge.name)
   }
 
   test("Generate and write greatGrandParent graph pattern") {
-    //  generate(greatGrandParent, "GPLang")
     writeClass(generateGraphPattern(greatGrandParent), greatGrandParent.name)
-//    writeClass(generate(path), path.name)
   }
 
 
