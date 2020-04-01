@@ -27,7 +27,7 @@ object GeneratorGP {
 
             import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
             import org.eclipse.viatra.query.runtime.api.scope.QueryScope
-            import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables.TypeConstraint
+            import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables.{PositivePatternCall, TypeConstraint}
             import org.eclipse.viatra.query.runtime.matchers.psystem.{PBody, PVariable}
             import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
             import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
