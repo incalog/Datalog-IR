@@ -94,14 +94,14 @@ class ExpLangTest extends AnyFunSuite {
     None
   )
 
-  private val tempBoolVal = CoreTemporaryVariable("value", Some(boolType))
+
+  private val tempBoolVal = CoreTemporaryVariable("tempVal", Some(boolType))
   private val valueLink   = boolType("value")
-
-
   /**
    * pattern someTrue(exp : Expression) {
-   *   find Boolean(exp)
-   *   exp == BooleanLit(true)
+   *   Boolean(exp)
+   *   BooleanLit.value(exp, tempVal)
+   *   tempVal == true
    * }
    */
   private val someTruth: GraphPattern = GraphPattern(
@@ -113,8 +113,11 @@ class ExpLangTest extends AnyFunSuite {
       GraphPatternBody(
         Seq(
           CompositionConstraint(neg = false, PatternCall(transitive = false, Seq(CoreVariableReference(expGPP)), booleanPattern)),
-          PathExpressionConstraint(CoreVariableReference(expGPP), tempBoolVal, PathElementImpl(None, valueLink), boolType),
-          CompareConstraint(InequalityCompareFeature(), tempBoolVal, BooleanLiteral(true))
+          PathExpressionConstraint(
+            CoreVariableReference(expGPP),
+            tempBoolVal,
+            PathElementImpl(None, valueLink), boolType),
+          CompareConstraint(EqualityCompareFeature(), tempBoolVal, BooleanLiteral(true))
         )
       )
     ),

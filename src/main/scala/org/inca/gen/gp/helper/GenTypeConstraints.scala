@@ -74,7 +74,7 @@ object GenTypeConstraints {
         case GraphPatternParameter(name, _) => Term.Name(s"var_$name")
         case CoreTemporaryVariable(name, _) => Term.Name(s"var__$name")
       }
-      case CoreTemporaryVariable(name, _) => Term.Name(s"var_$name")
+      case CoreTemporaryVariable(name, _) => Term.Name(s"var__$name")
     }
 
   private def graphPatternCompareConstraint(cc: CompareConstraint): Stat =
