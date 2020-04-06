@@ -40,7 +40,7 @@ object GenVariables {
     val variable = Pat.Var(Term.Name("var__" + value._2))
     //    val reference = Term.Apply(asTermSelect(value._1.getClass.toString.substring(1).split(".").toList), List(Term.Name(value._1.toString)))
     val reference = value._1 match {
-      case v: BooleanLiteral => Term.Apply(asTermSelect(value._1.getClass.toString.substring(6).split('.').toList), List(Lit.Boolean(v.value)))
+      case v: BooleanLiteral => Lit.Boolean(v.value)
       case v: IntegerLiteral => Lit.Int(v.value)
       case v: LongLiteral => Lit.Long(v.value)
       case v: StringLiteral => Lit.String(v.value)

@@ -1,19 +1,18 @@
 package org.inca.analyzedLangs
 
 import org.inca.incer.IncrementalIndex
-import org.inca.lang.Values._
 
 @IncrementalIndex
 trait Expression
 
 @IncrementalIndex
-case class BooleanLit(value: Boolean) extends Expression with BooleanLiteral
+case class BooleanLit(value: Boolean) extends Expression
 
 @IncrementalIndex
-case class IntegerLit(value: Int) extends Expression with IntegerLiteral
+case class IntegerLit(value: Int) extends Expression
 
 @IncrementalIndex
-case class LongLit(value: Long) extends  Expression with LongLiteral
+case class LongLit(value: Long) extends  Expression
 
 @IncrementalIndex
 case class Mult(lhs: Expression, rhs: Expression) extends Expression

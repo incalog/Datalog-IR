@@ -80,4 +80,16 @@ object Core {
   case class CoreVariableReference(variable: Variable)
     extends VariableReference(variable) with VariableValue
 
+
+  trait LiteralValue extends Value {
+    val value: Any
+  }
+
+  case class BooleanLiteral(value: Boolean) extends LiteralValue
+
+  case class  IntegerLiteral(value: Int) extends LiteralValue
+
+  case class  LongLiteral(value: Long) extends LiteralValue
+  case class  StringLiteral(value: String) extends LiteralValue
+
 }

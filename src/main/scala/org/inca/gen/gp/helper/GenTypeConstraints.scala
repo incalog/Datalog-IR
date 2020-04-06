@@ -4,7 +4,6 @@ import org.inca.gen.Gensym
 import org.inca.gen.gp.helper.Util._
 import org.inca.lang.Core.{Value, _}
 import org.inca.lang.Gp._
-import org.inca.lang.Values.LiteralValue
 
 import scala.meta._
 
@@ -94,6 +93,7 @@ object GenTypeConstraints {
         case GraphPatternParameter(_, _) => Term.Name(s"var_${v.name}")
         case CoreTemporaryVariable(_, _) => Term.Name(s"var__${v.name}")
       }
+      case CoreTemporaryVariable(name, _) => Term.Name(s"var__$name")
       case v: LiteralValue => Term.Name("var__" + Gensym.variables(v))
     }
 }

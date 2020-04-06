@@ -1,7 +1,8 @@
 package org.inca.gen
 
 
-import org.inca.lang.Values.LiteralValue
+
+import org.inca.lang.Core.LiteralValue
 
 import scala.collection.mutable
 

@@ -94,6 +94,9 @@ class ExpLangTest extends AnyFunSuite {
     None
   )
 
+  private val tempBoolVal = CoreTemporaryVariable("value", Some(boolType))
+  private val valueLink   = boolType("value")
+
 
   /**
    * pattern someTrue(exp : Expression) {
@@ -110,7 +113,8 @@ class ExpLangTest extends AnyFunSuite {
       GraphPatternBody(
         Seq(
           CompositionConstraint(neg = false, PatternCall(transitive = false, Seq(CoreVariableReference(expGPP)), booleanPattern)),
-          CompareConstraint(InequalityCompareFeature(), CoreVariableReference(expGPP), BooleanLit(true))
+          PathExpressionConstraint(CoreVariableReference(expGPP), tempBoolVal, PathElementImpl(None, valueLink), boolType),
+          CompareConstraint(InequalityCompareFeature(), tempBoolVal, BooleanLiteral(true))
         )
       )
     ),
@@ -123,10 +127,10 @@ class ExpLangTest extends AnyFunSuite {
 
   test("Test concept and composition constraint") {
     // updates generated files
-//    writeClass(numberPattern)
-//    writeClass(booleanPattern)
-//    writeClass(primitivesPattern)
-//    writeClass(someTruth)
+    writeClass(numberPattern)
+    writeClass(booleanPattern)
+    writeClass(primitivesPattern)
+    writeClass(someTruth)
 
     val scope = new TFQueryScope(testInput)
 
