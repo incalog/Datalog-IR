@@ -3,6 +3,8 @@ package org.inca.meta
 import java.lang.reflect.Field
 import java.util.Objects
 
+import org.inca.lang.Values._
+
 object MetaElements {
 
   trait MetaElement
@@ -45,11 +47,20 @@ object MetaElements {
   }
 
   def isPrimitiveDataType(cls: Class[_]): Boolean = {
-    val isInteger = classOf[Int].isAssignableFrom(cls) || classOf[java.lang.Integer].isAssignableFrom(cls)
-    val isLong = classOf[Long].isAssignableFrom(cls) || classOf[java.lang.Long].isAssignableFrom(cls)
-    val isBoolean = classOf[Boolean].isAssignableFrom(cls) || classOf[java.lang.Boolean].isAssignableFrom(cls)
-    val isString = classOf[java.lang.String].isAssignableFrom(cls)
-    isInteger || isBoolean || isString || isLong
+    val isNumber = classOf[Int].isAssignableFrom(cls) ||
+      classOf[java.lang.Integer].isAssignableFrom(cls) ||
+      classOf[Int].isAssignableFrom(cls)
+    val isLong = classOf[Long].isAssignableFrom(cls) ||
+      classOf[java.lang.Long].isAssignableFrom(cls) ||
+      classOf[LongLiteral].isAssignableFrom(cls)
+    val isBoolean = classOf[Boolean].isAssignableFrom(cls) ||
+      classOf[java.lang.Boolean].isAssignableFrom(cls) ||
+      classOf[BooleanLiteral].isAssignableFrom(cls)
+    val isString = classOf[String].isAssignableFrom(cls) ||
+      classOf[java.lang.String].isAssignableFrom(cls) ||
+      classOf[StringLiteral].isAssignableFrom(cls)
+
+    isNumber || isBoolean || isString || isLong
   }
 
   case class NodeLink(nodeType: NodeType, fld: Field) extends Link {

@@ -1,5 +1,6 @@
 package org.inca.lang
 
+import org.inca.incer.IncrementalIndex
 import org.inca.lang.Gp.VirtualPathElement
 import org.inca.meta.MetaElements.MetaElement
 
@@ -39,7 +40,6 @@ object Core {
     extends TemporaryVariable(name, typ) with Variable with VariableValue
 
   // values
-
   trait Value
 
   trait VariableValue extends Value

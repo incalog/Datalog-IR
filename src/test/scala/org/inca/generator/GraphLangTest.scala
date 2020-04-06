@@ -4,7 +4,6 @@ import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFact
 import org.inca.analyzedLangs.{Edge, Graph, Node}
 import org.inca.gen.Pipeline.generateGraphPattern
 import org.inca.generator.Util._
-import org.inca.generator.generated.DirectEdge
 import org.inca.incer.indices.{EnginePool, TFQueryScope}
 import org.inca.lang.Core._
 import org.inca.lang.Gp._
@@ -214,18 +213,18 @@ class GraphLangTest extends AnyFunSuite {
 
 
   test("one direction") {
-    writeClass(greatGrandParent)
-
-    val scope = new TFQueryScope(testGraph1)
-    val matcher = EnginePool.getMatcher(DirectEdge.instance(),
-      scope, DifferentialReteBackendFactory.INSTANCE)
-    println(matcher.getAllMatches)
-
-    val scope2 = new TFQueryScope(testGraph2)
-    val matcher2 = EnginePool.getMatcher(DirectEdge.instance(),
-      scope2, DifferentialReteBackendFactory.INSTANCE)
-    println(matcher2.getAllMatches)
-
+//    writeClass(greatGrandParent)
+//
+//    val scope = new TFQueryScope(testGraph1)
+//    val matcher = EnginePool.getMatcher(DirectEdge.instance(),
+//      scope, DifferentialReteBackendFactory.INSTANCE)
+//    println(matcher.getAllMatches)
+//
+//    val scope2 = new TFQueryScope(testGraph2)
+//    val matcher2 = EnginePool.getMatcher(DirectEdge.instance(),
+//      scope2, DifferentialReteBackendFactory.INSTANCE)
+//    println(matcher2.getAllMatches)
+//
 
   }
 }

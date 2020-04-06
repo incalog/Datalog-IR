@@ -1,13 +1,12 @@
 package org.inca.gen.gp.helper
 
-import org.inca.lang.Core._
-import org.inca.lang.Core.Value
+import org.inca.gen.Gensym
+import org.inca.gen.gp.helper.Util._
+import org.inca.lang.Core.{Value, _}
 import org.inca.lang.Gp._
-import org.inca.gen.Gensym._
-import org.inca.gen.gp.model.Prefix._
+import org.inca.lang.Values.LiteralValue
 
 import scala.meta._
-import Util._
 
 
 object GenTypeConstraints {
@@ -30,9 +29,9 @@ object GenTypeConstraints {
     }
 
   def typeConstraints(bodyContent: Seq[PatternBodyContent]): List[Stat] =
-  bodyContent.toList collect {
-      case pxc: PathExpressionConstraint      => pathExpressionConstraint(pxc)
-      case pcc: CompositionConstraint  => patternCompositionConstraint(pcc)
+    bodyContent.toList collect {
+      case pxc: PathExpressionConstraint => pathExpressionConstraint(pxc)
+      case pcc: CompositionConstraint => patternCompositionConstraint(pcc)
       case gcc: CompareConstraint => graphPatternCompareConstraint(gcc)
       case ccc: ConceptConstraint => patternConceptConstraint(ccc)
       // todo check constraint
@@ -84,17 +83,17 @@ object GenTypeConstraints {
 
   private def matchCompareConstraint(compare: CompareConstraint,
                                      left: Term.Name, right: Term.Name): Stat =
-  compare.feature match {
-    case _: EqualityCompareFeature => q"new Equality(body, $left, $right)"
-    case _: InequalityCompareFeature => q"new Inequality(body, $left, $right)"
-  }
-
-  private def termNameLabel(value: Any): Term.Name =
-  value match {
-    case CoreVariableReference(v) => v match {
-      case GraphPatternParameter(_, _) => Term.Name(s"var_${v.name}")
-      case CoreTemporaryVariable(_, _) => Term.Name(s"var__${v.name}")
+    compare.feature match {
+      case _: EqualityCompareFeature => q"new Equality(body, $left, $right)"
+      case _: InequalityCompareFeature => q"new Inequality(body, $left, $right)"
     }
-    case _ => Term.Name(generateLabel(var__, value))
-  }
+
+  private def termNameLabel(value: Value): Term.Name =
+    value match {
+      case CoreVariableReference(v) => v match {
+        case GraphPatternParameter(_, _) => Term.Name(s"var_${v.name}")
+        case CoreTemporaryVariable(_, _) => Term.Name(s"var__${v.name}")
+      }
+      case v: LiteralValue => Term.Name("var__" + Gensym.variables(v))
+    }
 }

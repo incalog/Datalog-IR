@@ -22,6 +22,8 @@ object GeneratorGP {
     val paramTermName = pattern.parameters.toList map { p => Term.Name(s"p_${p.name}")}
     val paramLitName = pattern.parameters.toList map {p => Lit.String(p.name)}
 
+    registerValues(pattern.bodies)
+
     source"""
             package org.inca.generator.generated
 
@@ -31,14 +33,13 @@ object GeneratorGP {
             import org.eclipse.viatra.query.runtime.matchers.psystem.{PBody, PVariable}
             import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
             import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
-            import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.ExportedParameter
+            import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred._
 
             import java.util
 
             import org.inca.incer.indices.{TFInputKey, TFQueryScope, TFQuerySpecification}
             import org.inca.meta.MetaElements
-            import org.inca.lang.Core._
-            import org.inca.lang.Gp._
+
 
             class $fileNameType extends $superClassParam {
                override def instantiate(engine: ViatraQueryEngine): GenericPatternMatcher = {
@@ -79,7 +80,7 @@ object GeneratorGP {
 
                                 ..${(temporaryVariables _ andThen createTemporaryVariables)(body.contents)}
                                 ..${(generatedTemporaryVariables _ andThen contextPointers)(body.contents)}
-                                ..${(uniquePrimitives _ andThen primitivesToParams)(body.contents)}
+                                ..${generatePrimitives()}
                                 ..${typeConstraintsParameters(pattern.parameters)}
                                 ..${typeConstraints(body.contents)}
                                 body

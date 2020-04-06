@@ -2,13 +2,12 @@ package org.inca.generator
 
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import org.inca.analyzedLangs._
-import org.inca.gen.Pipeline.generateGraphPattern
+import org.inca.generator.Util._
 import org.inca.incer.indices.{EnginePool, TFQueryScope}
-import org.inca.lang.Core.{CoreVariableReference, PatternCall}
+import org.inca.lang.Core._
 import org.inca.lang.Gp._
 import org.inca.meta.MetaElements.NodeType
 import org.scalatest.funsuite.AnyFunSuite
-import Util._
 
 class ExpLangTest extends AnyFunSuite {
 
@@ -95,27 +94,46 @@ class ExpLangTest extends AnyFunSuite {
     None
   )
 
-  private val testInput = Add(And(Or(BooleanLit(true), BooleanLit(false)), IntegerLit(5)), LongLit(10))
 
   /**
-   * Do this first, if you have no pattern file, else you can skip
+   * pattern someTrue(exp : Expression) {
+   *   find Boolean(exp)
+   *   exp == BooleanLit(true)
+   * }
    */
-  test("Generate patterns") {
-    writeClass(numberPattern)
-    writeClass(booleanPattern)
-    writeClass(primitivesPattern)
-  }
+  private val someTruth: GraphPattern = GraphPattern(
+    "Truth",
+    Seq(
+      expGPP
+    ),
+    Seq(
+      GraphPatternBody(
+        Seq(
+          CompositionConstraint(neg = false, PatternCall(transitive = false, Seq(CoreVariableReference(expGPP)), booleanPattern)),
+          CompareConstraint(InequalityCompareFeature(), CoreVariableReference(expGPP), BooleanLit(true))
+        )
+      )
+    ),
+    None
+  )
+
+
+  private val testInput = Add(And(Or(BooleanLit(true), BooleanLit(false)), IntegerLit(5)), LongLit(10L))
+
 
   test("Test concept and composition constraint") {
     // updates generated files
-    writeClass(numberPattern)
-    writeClass(booleanPattern)
-    writeClass(primitivesPattern)
+//    writeClass(numberPattern)
+//    writeClass(booleanPattern)
+//    writeClass(primitivesPattern)
+//    writeClass(someTruth)
 
     val scope = new TFQueryScope(testInput)
 
     val numberMatcher = EnginePool.getMatcher(generated.Number.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
     val primitivesMatcher = EnginePool.getMatcher(generated.Primitives.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
+    val booleanMatcher = EnginePool.getMatcher(generated.Boolean.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
+    val truthMatcher = EnginePool.getMatcher(generated.Truth.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
 
     println("Concept Constraint Matches:")
     // should contain both, the LongLit with value 10 and the IntegerLit with value 5
@@ -127,6 +145,16 @@ class ExpLangTest extends AnyFunSuite {
     // the two BooleanLit's with false and true als values
     println(primitivesMatcher.getAllMatches)
     assert(!primitivesMatcher.getAllMatches.isEmpty)
+
+    println("Boolean Constraint Matches:")
+    // should contain the both BooleanLit's with the values true and false
+    println(booleanMatcher.getAllMatches)
+    assert(!booleanMatcher.getAllMatches.isEmpty)
+
+    println("Compare Constraint Matches:")
+    // should contain the one BooleanLit with the value true
+    println(truthMatcher.getAllMatches)
+    assert(!truthMatcher.getAllMatches.isEmpty)
 
   }
 }

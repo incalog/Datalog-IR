@@ -1,14 +1,12 @@
 package org.inca.gen.gp.helper
 
-import org.inca.gen.gp.model.Primitive
+import org.inca.gen.Gensym
+import org.inca.gen.gp.helper.Util._
 import org.inca.lang.Core._
-import org.inca.lang.Core.Value
 import org.inca.lang.Gp._
+import org.inca.lang.Values._
 
 import scala.meta._
-import org.inca.gen.Gensym._
-import org.inca.gen.gp.model.Prefix._
-import org.inca.gen.gp.helper.Util.asTypeSelect
 
 object GenVariables {
 
@@ -38,17 +36,42 @@ object GenVariables {
           hasRefVar(right))
     }.toList.flatten.distinct.filterNot(x => x.isEmpty)
 
-  def primitivesToParams(primitives: List[Primitive]): List[Stat] =
-    primitives.map { primitive =>
-      val variable = Pat.Var(Term.Name(generateLabel(var__, primitive)))
-      q"val $variable = body.newConstantVariable(${primitiveLit(primitive)})"
+  def generatePrimitives(): List[Stat] = Gensym.variables.map { value =>
+    val variable = Pat.Var(Term.Name("var__" + value._2))
+    //    val reference = Term.Apply(asTermSelect(value._1.getClass.toString.substring(1).split(".").toList), List(Term.Name(value._1.toString)))
+    val reference = value._1 match {
+      case v: BooleanLiteral => Term.Apply(asTermSelect(value._1.getClass.toString.substring(6).split('.').toList), List(Lit.Boolean(v.value)))
+      case v: IntegerLiteral => Lit.Int(v.value)
+      case v: LongLiteral => Lit.Long(v.value)
+      case v: StringLiteral => Lit.String(v.value)
     }
+      Term.Apply(asTermSelect2(value._1), List(Term.Name(value._1.toString)))
+    q"val $variable = body.newConstantVariable($reference)"
+  }.toList
 
-  def uniquePrimitives(body: Seq[PatternBodyContent]): List[Primitive] =
-    body.collect {
-      case CompareConstraint(_, left, right) =>
-        List(left, right).collect { case p: Primitive => p }
-    }.toList.flatten.distinct
+  private def asTermSelect2(value: Any): Term.Select = {
+    asTermSelect(value.getClass.toString.substring(6).split('.').toList)
+    //    pathList
+    //      .drop(2)
+    //      .foldLeft(Term.Select(Term.Name(pathList.head), Term.Name(pathList.tail.head)))
+    //      { (inner, outer) => Term.Select(inner, Term.Name(outer)) }
+    //    Term.Select(Term.Name("A"), Term.Name("B"))
+  }
+
+  def registerValues(bodies: Seq[PatternBody]): Unit = bodies.foreach { body =>
+      body.contents.foreach {
+        case CompareConstraint(_, left, right) =>
+          left match {
+            case v: LiteralValue => Gensym.register(v)
+            case _ => ()
+          }
+          right match {
+            case v: LiteralValue => Gensym.register(v)
+            case _ => ()
+          }
+        case _ => ()
+      }
+    }
 
   def generatedTemporaryVariables(body: Seq[PatternBodyContent]): List[String] =
     body.collect {
@@ -71,7 +94,7 @@ object GenVariables {
             $pConceptKey)"""
     }
 
-  private def hasRefVar(v: Value): String = v match {
+  private def hasRefVar(v: Any): String = v match {
     case CoreVariableReference(v) => v match {
       case CoreTemporaryVariable(name, _) => name
       case _ => ""

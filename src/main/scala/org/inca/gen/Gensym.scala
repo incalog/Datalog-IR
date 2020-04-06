@@ -1,23 +1,17 @@
 package org.inca.gen
 
-import org.inca.gen.gp.model.Primitive
 
-import scala.meta.Lit
+import org.inca.lang.Values.LiteralValue
+
+import scala.collection.mutable
+
 
 object Gensym {
-  def generateLabel(prefix: String, value: Any): String = {
-    value match {
-      case _: String => s"$prefix$value"
-      case _ => s"${prefix}_${value.hashCode().toString.replace('-', 'i')}"
-    }
-  }
+  val variables: mutable.Map[LiteralValue, String] = mutable.Map[LiteralValue, String]()
 
-  def primitiveLit(primitive: Primitive): Lit = {
-    primitive.value match {
-      case b: Boolean => Lit.Boolean(b)
-      case i: Integer => Lit.Int(i)
-      case s: String => Lit.String(s)
-      case f: Float => Lit.Float(f)
+  def register(literal: LiteralValue): Unit = {
+    if (!variables.contains(literal)) {
+      variables.addOne((literal, java.util.UUID.randomUUID.hashCode().toString.replace('-', 'i')))
     }
   }
 }

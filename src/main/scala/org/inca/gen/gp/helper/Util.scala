@@ -2,10 +2,8 @@ package org.inca.gen.gp.helper
 
 import scala.meta._
 
+// todo move this to typeconstraints or variables file
 object Util {
-
-
-
   def asTypeSelect(path: String): Type.Select =
     checkLength(path.substring(1).split('.').toList)
 
@@ -13,7 +11,7 @@ object Util {
     if (pathList.length > 2) Type.Select(asTermSelect(pathList.init), Type.Name(pathList.last))
     else Type.Select(Term.Name(pathList.head), Type.Name(pathList.last))
 
-  private def asTermSelect(pathList: List[String]): Term.Select =
+  def asTermSelect(pathList: List[String]): Term.Select =
     pathList
       .drop(2)
       .foldLeft(Term.Select(Term.Name(pathList.head), Term.Name(pathList.tail.head)))

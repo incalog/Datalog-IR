@@ -1,9 +1,8 @@
 package org.inca.generator
 
-import org.inca.analyzedLangs.{ClassDeclaration, ClassMember, FieldDeclaration, ProtectedVisibility}
+import org.inca.analyzedLangs.{BooleanConstant, ClassDeclaration, ClassMember, FieldDeclaration, ProtectedVisibility}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import org.inca.gen.Pipeline.generateGraphPattern
-import org.inca.gen.gp.model.BooleanConstant
 import org.inca.generator.generated.ConfusedInheritance
 import org.inca.incer.indices.{EnginePool, TFQueryScope}
 import org.inca.lang.Core._
