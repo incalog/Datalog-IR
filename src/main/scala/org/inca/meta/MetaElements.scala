@@ -3,8 +3,6 @@ package org.inca.meta
 import java.lang.reflect.Field
 import java.util.Objects
 
-import org.inca.lang.Values._
-
 object MetaElements {
 
   trait MetaElement

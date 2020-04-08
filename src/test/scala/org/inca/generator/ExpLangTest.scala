@@ -15,14 +15,15 @@ class ExpLangTest extends AnyFunSuite {
   private val intType = NodeType(classOf[IntegerLit])
   private val longType = NodeType(classOf[LongLit])
   private val boolType = NodeType(classOf[BooleanLit])
+  private val addType = NodeType(classOf[Add])
 
   private val expGPP = GraphPatternParameter("exp", Some(expType))
 
   /**
    * pattern Number(exp : Expression) {
-   *  IntegerLit(exp)
+   * IntegerLit(exp)
    * } or {
-   *  LongLit(exp)
+   * LongLit(exp)
    * }
    */
   private val numberPattern: GraphPattern = GraphPattern(
@@ -33,12 +34,12 @@ class ExpLangTest extends AnyFunSuite {
     Seq(
       GraphPatternBody(
         Seq(
-          ConceptConstraint(CoreVariableReference(expGPP), longType)
+          ConceptConstraint(VariableReference(expGPP), longType)
         )
       ),
       GraphPatternBody(
         Seq(
-          ConceptConstraint(CoreVariableReference(expGPP), intType)
+          ConceptConstraint(VariableReference(expGPP), intType)
         )
       )
     ),
@@ -47,9 +48,7 @@ class ExpLangTest extends AnyFunSuite {
 
   /**
    * pattern Boolean(exp : Expression) {
-   *  IntegerLit(exp)
-   * } or {
-   *  LongLit(exp)
+   * BoolLit(exp)
    * }
    */
   private val booleanPattern: GraphPattern = GraphPattern(
@@ -60,7 +59,7 @@ class ExpLangTest extends AnyFunSuite {
     Seq(
       GraphPatternBody(
         Seq(
-          ConceptConstraint(CoreVariableReference(expGPP), boolType)
+          ConceptConstraint(VariableReference(expGPP), boolType)
         )
       )
     ),
@@ -69,9 +68,9 @@ class ExpLangTest extends AnyFunSuite {
 
   /**
    * pattern Primitives(exp : Expression) {
-   *  find Number(exp)
+   * find Number(exp)
    * } or {
-   *  find Boolean(exp)
+   * find Boolean(exp)
    * } // or String or ...
    */
   private val primitivesPattern: GraphPattern = GraphPattern(
@@ -82,12 +81,12 @@ class ExpLangTest extends AnyFunSuite {
     Seq(
       GraphPatternBody(
         Seq(
-          CompositionConstraint(neg = false, PatternCall(transitive = false, Seq(CoreVariableReference(expGPP)), numberPattern))
+          CompositionConstraint(neg = false, PatternCall(transitive = false, Seq(VariableReference(expGPP)), numberPattern))
         )
       ),
       GraphPatternBody(
         Seq(
-          CompositionConstraint(neg = false, PatternCall(transitive = false, Seq(CoreVariableReference(expGPP)), booleanPattern))
+          CompositionConstraint(neg = false, PatternCall(transitive = false, Seq(VariableReference(expGPP)), booleanPattern))
         )
       )
     ),
@@ -95,8 +94,8 @@ class ExpLangTest extends AnyFunSuite {
   )
 
 
-  private val tempBoolVal = CoreTemporaryVariable("tempVal", Some(boolType))
-  private val valueLink   = boolType("value")
+  private val tempBoolVal = TemporaryVariable("tempVal", Some(boolType))
+  private val valueLink = boolType("value")
   /**
    * pattern someTrue(exp : Expression) {
    *   Boolean(exp)
@@ -112,9 +111,9 @@ class ExpLangTest extends AnyFunSuite {
     Seq(
       GraphPatternBody(
         Seq(
-          CompositionConstraint(neg = false, PatternCall(transitive = false, Seq(CoreVariableReference(expGPP)), booleanPattern)),
+          CompositionConstraint(neg = false, PatternCall(transitive = false, Seq(VariableReference(expGPP)), booleanPattern)),
           PathExpressionConstraint(
-            CoreVariableReference(expGPP),
+            VariableReference(expGPP),
             tempBoolVal,
             PathElementImpl(None, valueLink), boolType),
           CompareConstraint(EqualityCompareFeature(), tempBoolVal, BooleanLiteral(true))
@@ -124,11 +123,63 @@ class ExpLangTest extends AnyFunSuite {
     None
   )
 
+  private val addLhsLink = addType("lhs")
+  private val addRhsLink = addType("rhs")
+  private val tempNumVal1 = TemporaryVariable("tempVal1", Some(expType))
+  private val tempNumVal2 = TemporaryVariable("tempVal2", Some(expType))
+  private val valueNumericLink = intType("value")
+
+  /**
+   * pattern NumericAddition(exp : Expression) {
+   *   Add.lhs.value(exp, tempVal)
+   *   Number(tempVal)
+   *   Add.rhs.value(exp, tempVal2)
+   *   Number(tempVal2)
+   * }
+   */
+  private val numericAddition = GraphPattern(
+    "NumericAddition",
+    Seq(
+      expGPP
+    ),
+    Seq(
+      GraphPatternBody(
+        Seq(
+          PathExpressionConstraint(
+            VariableReference(expGPP),
+            tempNumVal1,
+            PathElementImpl(
+              Some(
+                PathElementImpl(
+                  None,
+                  valueNumericLink)
+              ),
+              addLhsLink
+            ),
+            addType)
+        )
+      )
+    ),
+    None
+  )
+
 
   private val testInput = Add(And(Or(BooleanLit(true), BooleanLit(false)), IntegerLit(5)), LongLit(10L))
+  private val testInputNumericAddition = Add(Add(IntegerLit(5), IntegerLit(7)), Add(LongLit(7), IntegerLit(8)))
 
 
-  test("Test concept and composition constraint") {
+  test("Test transformation") {
+    writeClass(numericAddition)
+    val scope = new TFQueryScope(testInputNumericAddition)
+    val matcher = EnginePool.getMatcher(generated.NumericAddition.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
+
+    println("Transform working Matches:")
+    // should only the Add() with IntegerLit on its lhs
+    println(matcher.getAllMatches)
+    assert(!matcher.getAllMatches.isEmpty)
+  }
+
+  test("Test constraints, generator and transformer") {
     // updates generated files
     writeClass(numberPattern)
     writeClass(booleanPattern)

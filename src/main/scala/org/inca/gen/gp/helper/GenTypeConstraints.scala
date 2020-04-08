@@ -38,12 +38,12 @@ object GenTypeConstraints {
 
   private def pathExpressionConstraint(pxc: PathExpressionConstraint): Stat = {
     val src = pxc.src.variable match {
-      case CoreTemporaryVariable(name, _) => Term.Name(s"var__$name")
+      case TemporaryVariable(name, _) => Term.Name(s"var__$name")
       case GraphPatternParameter(name, _) => Term.Name(s"var_$name")
     }
     val trg = pxc.trg match {
-      case CoreVariableReference(v) => Term.Name(s"var_${v.name}")
-      case CoreTemporaryVariable(name, _) => Term.Name(s"var__$name")
+      case VariableReference(v) => Term.Name(s"var_${v.name}")
+      case TemporaryVariable(name, _) => Term.Name(s"var__$name")
     }
     q"""new TypeConstraint(body,
         Tuples.staticArityFlatTupleOf($src, $trg),
@@ -70,11 +70,11 @@ object GenTypeConstraints {
 
   private def getVariableReference(args: Seq[Value]): List[Term] =
     args.toList map {
-      case CoreVariableReference(v) => v match {
+      case VariableReference(v) => v match {
         case GraphPatternParameter(name, _) => Term.Name(s"var_$name")
-        case CoreTemporaryVariable(name, _) => Term.Name(s"var__$name")
+        case TemporaryVariable(name, _) => Term.Name(s"var__$name")
       }
-      case CoreTemporaryVariable(name, _) => Term.Name(s"var__$name")
+      case TemporaryVariable(name, _) => Term.Name(s"var__$name")
     }
 
   private def graphPatternCompareConstraint(cc: CompareConstraint): Stat =
@@ -89,11 +89,11 @@ object GenTypeConstraints {
 
   private def termNameLabel(value: Value): Term.Name =
     value match {
-      case CoreVariableReference(v) => v match {
+      case VariableReference(v) => v match {
         case GraphPatternParameter(_, _) => Term.Name(s"var_${v.name}")
-        case CoreTemporaryVariable(_, _) => Term.Name(s"var__${v.name}")
+        case TemporaryVariable(_, _) => Term.Name(s"var__${v.name}")
       }
-      case CoreTemporaryVariable(name, _) => Term.Name(s"var__$name")
+      case TemporaryVariable(name, _) => Term.Name(s"var__$name")
       case v: LiteralValue => Term.Name("var__" + Gensym.variables(v))
     }
 }

@@ -25,9 +25,9 @@ class GraphLangTest extends AnyFunSuite {
   private val trgGraphParam = GraphPatternParameter("trg", Some(nodeType))
   private val edgeGraphParam = GraphPatternParameter("edge", Some(edgeType))
 
-  private val intermediate = CoreTemporaryVariable("inter", Some(nodeType))
-  private val graph = CoreTemporaryVariable("graph", Some(graphType))
-  private val edge = CoreTemporaryVariable("edge", Some(edgeType))
+  private val intermediate = TemporaryVariable("inter", Some(nodeType))
+  private val graph = TemporaryVariable("graph", Some(graphType))
+  private val edge = TemporaryVariable("edge", Some(edgeType))
 
   /**
    * pattern EdgeLoop(edge: Edge) {
@@ -63,26 +63,26 @@ class GraphLangTest extends AnyFunSuite {
       GraphPatternBody(
         Seq(
           PathExpressionConstraint(
-            CoreVariableReference(srcGraphParam),
+            VariableReference(srcGraphParam),
             graph,
             ParentPathElement(None, nodeParentLink),
             nodeType
           ),
           PathExpressionConstraint(
-            CoreVariableReference(graph),
+            VariableReference(graph),
             edge,
             PathElementImpl(None, graphEdgesLink),
             graphType
           ),
           PathExpressionConstraint(
-            CoreVariableReference(edge),
-            CoreVariableReference(srcGraphParam),
+            VariableReference(edge),
+            VariableReference(srcGraphParam),
             PathElementImpl(None, edgeFromNodeLink),
             edgeType
           ),
           PathExpressionConstraint(
-            CoreVariableReference(edge),
-            CoreVariableReference(trgGraphParam),
+            VariableReference(edge),
+            VariableReference(trgGraphParam),
             PathElementImpl(None, edgeToNodeLink),
             edgeType
           )
@@ -113,8 +113,8 @@ class GraphLangTest extends AnyFunSuite {
           PatternCall(
             transitive = false,
             Seq(
-              CoreVariableReference(srcGraphParam),
-              CoreVariableReference(trgGraphParam)
+              VariableReference(srcGraphParam),
+              VariableReference(trgGraphParam)
             ),
             directEdge
           )
@@ -126,7 +126,7 @@ class GraphLangTest extends AnyFunSuite {
           PatternCall(
             transitive = false,
             Seq(
-              CoreVariableReference(srcGraphParam),
+              VariableReference(srcGraphParam),
               intermediate
             ),
             directEdge
@@ -138,7 +138,7 @@ class GraphLangTest extends AnyFunSuite {
             transitive = false,
             Seq(
               intermediate,
-              CoreVariableReference(trgGraphParam)
+              VariableReference(trgGraphParam)
             ),
             path
           )
@@ -177,8 +177,8 @@ class GraphLangTest extends AnyFunSuite {
       GraphPatternBody(
         Seq(
           PathExpressionConstraint(
-            CoreVariableReference(srcGraphParam),
-            CoreVariableReference(trgGraphParam),
+            VariableReference(srcGraphParam),
+            VariableReference(trgGraphParam),
             ParentPathElement(
               Some(ParentPathElement(
                 Some(ParentPathElement(None, nodeParentLink)),
@@ -188,8 +188,8 @@ class GraphLangTest extends AnyFunSuite {
           ),
 
           PathExpressionConstraint(
-            CoreVariableReference(srcGraphParam),
-            CoreVariableReference(trgGraphParam),
+            VariableReference(srcGraphParam),
+            VariableReference(trgGraphParam),
             ParentPathElement(
               Some(ParentPathElement(
                 Some(ParentPathElement(None, nodeParentLink)),

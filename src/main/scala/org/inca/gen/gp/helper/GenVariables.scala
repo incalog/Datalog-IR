@@ -25,7 +25,7 @@ object GenVariables {
       case PathExpressionConstraint(src, trg, _, _) =>
         List[String](
           trg match {
-            case CoreTemporaryVariable(name, _) => name
+            case TemporaryVariable(name, _) => name
             case _ => ""
           },
           hasRefVar(src)
@@ -77,7 +77,7 @@ object GenVariables {
     body.collect {
       case p: PathExpressionConstraint =>
         p.trg match {
-          case t: CoreTemporaryVariable with GeneratedParameter => t.name
+          case t: TemporaryVariable with GeneratedParameter => t.name
           case _ => ""
         }
     }.toList.distinct.filterNot(x => x.isEmpty)
@@ -95,8 +95,8 @@ object GenVariables {
     }
 
   private def hasRefVar(v: Any): String = v match {
-    case CoreVariableReference(v) => v match {
-      case CoreTemporaryVariable(name, _) => name
+    case VariableReference(v) => v match {
+      case TemporaryVariable(name, _) => name
       case _ => ""
     }
     case _ => ""

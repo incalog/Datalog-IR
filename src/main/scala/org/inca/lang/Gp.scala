@@ -44,9 +44,9 @@ object Gp {
 
   case class ConceptConstraint(vari: VariableValue, typ: NodeType) extends GraphPatternBodyContent
 
-  case class CompositionConstraint(neg: Boolean, call: IPatternCall) extends GraphPatternBodyContent
+  case class CompositionConstraint(neg: Boolean, call: PatternCall) extends GraphPatternBodyContent
 
-  case class PathExpressionConstraint(src: CoreVariableReference,
+  case class PathExpressionConstraint(src: VariableReference,
                                       trg: Value,
                                       element: PathElement,
                                       typ: NodeType) extends GraphPatternBodyContent

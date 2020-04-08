@@ -22,12 +22,12 @@ class JavaLangTest extends AnyFunSuite {
 
   private val classGPP = GraphPatternParameter("class", Some(classDeclType))
 
-  private val memberTV = CoreTemporaryVariable("member", Some(classMemberType))
+  private val memberTV = TemporaryVariable("member", Some(classMemberType))
 
-  private val temp_1TV = CoreTemporaryVariable("temp_1", None)
-  private val temp_2TV = CoreTemporaryVariable("temp_2", None)
-  private val temp_3TV = CoreTemporaryVariable("temp_3", None)
-  private val temp_4TV = CoreTemporaryVariable("temp_4", None)
+  private val temp_1TV = TemporaryVariable("temp_1", None)
+  private val temp_2TV = TemporaryVariable("temp_2", None)
+  private val temp_3TV = TemporaryVariable("temp_3", None)
+  private val temp_4TV = TemporaryVariable("temp_4", None)
 
   private val confusedInheritance = GraphPattern(
     "ConfusedInheritance",
@@ -38,34 +38,34 @@ class JavaLangTest extends AnyFunSuite {
       GraphPatternBody(
         Seq(
           PathExpressionConstraint(
-            CoreVariableReference(classGPP),
+            VariableReference(classGPP),
             temp_1TV,
             ParentPathElement(None, classDeclarationIsFinalLink),
             classDeclType
           ),
           CompareConstraint(
             EqualityCompareFeature(),
-            CoreVariableReference(temp_2TV),
+            VariableReference(temp_2TV),
             BooleanConstant(true)
           ),
           CompareConstraint(
             EqualityCompareFeature(),
-            CoreVariableReference(temp_1TV),
-            CoreVariableReference(temp_2TV)
+            VariableReference(temp_1TV),
+            VariableReference(temp_2TV)
           ),
           PathExpressionConstraint(
-            CoreVariableReference(classGPP),
+            VariableReference(classGPP),
             temp_3TV,
             ParentPathElement(None, classDeclarationMembersLink),
             classDeclType
           ),
           CompareConstraint(
             EqualityCompareFeature(),
-            CoreVariableReference(memberTV),
-            CoreVariableReference(temp_3TV)
+            VariableReference(memberTV),
+            VariableReference(temp_3TV)
           ),
           PathExpressionConstraint(
-            CoreVariableReference(memberTV),
+            VariableReference(memberTV),
             temp_4TV,
             ParentPathElement(None, fieldDeclarationVisibilityLink),
             fieldDeclType

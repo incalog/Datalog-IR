@@ -28,10 +28,8 @@ object TransformGP {
                                line: Int): Seq[GraphPatternBodyContent] =
     if (elem.next.isEmpty) Seq(matcher(elem, trg, typ, src))
     else {
-      val temp = new CoreTemporaryVariable(s"${elem.link.toString}_${line}_$depth", Some(typ))
-        with GeneratedParameter
-      Seq(matcher(elem, temp, typ, src)) ++
-        splitExpressions(elem.next.get, temp, trg, typ, depth + 1, line)
+      val temp = TemporaryVariable(s"${elem.link.fld.toString.substring(elem.link.fld.toString.lastIndexOf('.') + 1)}_${line}_$depth", Some(typ))
+      Seq(matcher(elem, temp, typ, src)) ++ splitExpressions(elem.next.get, temp, trg, typ, depth + 1, line)
     }
 
   private def matcher(elem: PathElement,
@@ -39,11 +37,11 @@ object TransformGP {
                       typ: NodeType,
                       src: VariableValue): PathExpressionConstraint =
     elem match {
-      case pp: ParentPathElement => src match {
-        case vr: CoreVariableReference =>
-          PathExpressionConstraint(vr, value, pp.copy(next = None), typ)
-        case tv: CoreTemporaryVariable =>
-          PathExpressionConstraint(CoreVariableReference(tv), value, pp.copy(next = None), typ)
+      case pp: PathElementImpl => src match {
+        case vr: VariableReference =>
+          PathExpressionConstraint(vr, value, pp.copy(next = None), elem.link.nodeType)
+        case tv: TemporaryVariable =>
+          PathExpressionConstraint(VariableReference(tv), value, pp.copy(next = None), elem.link.nodeType)
       }
     }
 }
