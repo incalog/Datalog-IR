@@ -179,7 +179,7 @@ class ExpLangTest extends AnyFunSuite {
     assert(!matcher.getAllMatches.isEmpty)
   }
 
-  test("Test constraints, generator and transformer") {
+  test("Test constraints, generator") {
     // updates generated files
     writeClass(numberPattern)
     writeClass(booleanPattern)

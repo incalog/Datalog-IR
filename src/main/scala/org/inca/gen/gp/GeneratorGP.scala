@@ -79,7 +79,6 @@ object GeneratorGP {
                                 body.setSymbolicParameters(exportedParams)
 
                                 ..${(temporaryVariables _ andThen createTemporaryVariables)(body.contents)}
-                                ..${(generatedTemporaryVariables _ andThen contextPointers)(body.contents)}
                                 ..${generatePrimitives()}
                                 ..${typeConstraintsParameters(pattern.parameters)}
                                 ..${typeConstraints(body.contents)}

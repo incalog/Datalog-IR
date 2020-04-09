@@ -8,9 +8,6 @@ object Gp {
   // content
   trait GraphPatternBodyContent extends PatternBodyContent
 
-  trait GeneratedParameter
-
-
   abstract class PatternParameter(name: String, typ: Option[MetaElement])
 
   case class GraphPattern(name: String,

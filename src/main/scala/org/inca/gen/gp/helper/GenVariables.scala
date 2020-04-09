@@ -73,15 +73,6 @@ object GenVariables {
       }
     }
 
-  def generatedTemporaryVariables(body: Seq[PatternBodyContent]): List[String] =
-    body.collect {
-      case p: PathExpressionConstraint =>
-        p.trg match {
-          case t: TemporaryVariable with GeneratedParameter => t.name
-          case _ => ""
-        }
-    }.toList.distinct.filterNot(x => x.isEmpty)
-
   def pparams(graphParameters: Seq[Parameter]): List[Stat] =
     graphParameters.toList map { gp =>
       val name = s"p_${gp.name}"
