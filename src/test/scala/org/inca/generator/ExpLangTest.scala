@@ -98,7 +98,7 @@ class ExpLangTest extends AnyFunSuite {
   private val valueLink = boolType("value")
   /**
    * pattern someTrue(exp : Expression) {
-   *   Boolean(exp)
+   *   find Boolean(exp)
    *   BooleanLit.value(exp, tempVal)
    *   tempVal == true
    * }

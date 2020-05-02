@@ -55,6 +55,8 @@ object Core {
 
   case class BooleanLiteral(value: Boolean) extends LiteralValue
 
+  case class DecimalLiteral(value: Double) extends LiteralValue
+
   case class IntegerLiteral(value: Int) extends LiteralValue
 
   case class LongLiteral(value: Long) extends LiteralValue

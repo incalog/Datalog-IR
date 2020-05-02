@@ -38,6 +38,7 @@ object GenerateVariables {
     val reference = value._1 match {
       case v: BooleanLiteral => Lit.Boolean(v.value)
       case v: IntegerLiteral => Lit.Int(v.value)
+      case v: DecimalLiteral => Lit.Double(v.value)
       case v: LongLiteral => Lit.Long(v.value)
       case v: StringLiteral => Lit.String(v.value)
     }

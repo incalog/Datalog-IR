@@ -8,19 +8,22 @@ package org.inca.analyzedLangs
 import org.inca.incer.IncrementalIndex
 
 @IncrementalIndex
-abstract class Expression extends CaseClassEqualityFix
+abstract class Exp extends CaseClassEqualityFix
 
 @IncrementalIndex
-case class Number(value: Integer) extends Expression
+abstract class Number(value: AnyVal) extends Exp
 
 @IncrementalIndex
-case class Decimal(value: Double) extends Expression
+case class Integr(value: Int) extends Number
 
 @IncrementalIndex
-case class Mult(lhs: Expression, rhs: Expression) extends Expression
+case class Decimal(value: Double) extends Number
 
 @IncrementalIndex
-case class Add(lhs: Expression, rhs: Expression) extends Expression
+case class Mul(lhs: Exp, rhs: Exp) extends Exp
 
 @IncrementalIndex
-case class Div(lhs: Expression, rhs: Expression) extends Expression
+case class Addi(lhs: Exp, rhs: Exp) extends Exp
+
+@IncrementalIndex
+case class Div(lhs: Exp, rhs: Exp) extends Exp
