@@ -60,6 +60,10 @@ object GenerateVariables {
           case v: LiteralValue => Gensym.register(v)
           case _ => ()
         }
+      case CompositionConstraint(_, pc) => pc.arguments.foreach {
+          case v: LiteralValue => Gensym.register(v)
+          case _ => ()
+        }
       case _ => ()
     }
   }

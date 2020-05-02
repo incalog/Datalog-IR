@@ -2,7 +2,7 @@ package org.inca.gen.gp.helper
 
 import org.inca.gen.Gensym
 import org.inca.gen.gp.helper.Util._
-import org.inca.lang.Core.{Value, _}
+import org.inca.lang.Core._
 import org.inca.lang.Gp._
 
 import scala.meta._
@@ -62,6 +62,7 @@ object GenerateConstraints {
         case TemporaryVariable(name, _) => Term.Name(s"var__$name")
       }
       case TemporaryVariable(name, _) => Term.Name(s"var__$name")
+      case lit: LiteralValue => Term.Name(s"var__${Gensym.variables(lit)}")
     }
 
   private def matchCompareConstraint(compare: CompareConstraint,

@@ -49,7 +49,7 @@ object Core {
     extends AbstractVariableReference(variable) with VariableValue
 
   // primitives
-  trait LiteralValue extends Value {
+  sealed trait LiteralValue extends Value {
     val value: Any
   }
 
