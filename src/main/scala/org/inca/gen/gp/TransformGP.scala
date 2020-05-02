@@ -15,12 +15,12 @@ object TransformGP {
   private def transformContent(content: PatternBodyContent, line: Int): Seq[PatternBodyContent] =
     content match {
       case PathExpressionConstraint(src, trg, elem, typ) =>
-        if (elem.next.isDefined) splitExpressions(elem, src, trg, typ, 0, line)
+        if (elem.next.isDefined) splitExp(elem, src, trg, typ, 0, line)
         else Seq(content)
       case _ => Seq(content)
     }
 
-  private def splitExpressions(elem: PathElement,
+  private def splitExp(elem: PathElement,
                                src: VariableValue,
                                trg: Value,
                                typ: NodeType,
@@ -28,15 +28,15 @@ object TransformGP {
                                line: Int): Seq[GraphPatternBodyContent] =
     if (elem.next.isEmpty) Seq(matcher(elem, trg, typ, src))
     else {
-      val temp = TemporaryVariable(s"${elem.link.fld.toString.substring(elem.link.fld.toString.lastIndexOf('.') + 1)}_${line}_$depth", Some(typ))
-      Seq(matcher(elem, temp, typ, src)) ++ splitExpressions(elem.next.get, temp, trg, typ, depth + 1, line)
+      val temp = TemporaryVariable(s"${elem.link.fld.toString.substring(
+        elem.link.fld.toString.lastIndexOf('.') + 1)}_${line}_$depth", Some(typ))
+      Seq(matcher(elem, temp, typ, src)) ++ splitExp(elem.next.get, temp, trg, typ, depth + 1, line)
     }
 
   private def matcher(elem: PathElement,
                       value: Value,
                       typ: NodeType,
-                      src: VariableValue): PathExpressionConstraint =
-    elem match {
+                      src: VariableValue): PathExpressionConstraint = elem match {
       case pp: PathElementImpl => src match {
         case vr: VariableReference =>
           PathExpressionConstraint(vr, value, pp.copy(next = None), elem.link.nodeType)

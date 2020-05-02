@@ -1,23 +1,23 @@
 package org.inca.lang
 
 import org.inca.lang.Core._
-import org.inca.meta.MetaElements.{Link, MetaElement, NodeType}
+import org.inca.meta.MetaElements._
 
 object Gp {
 
   // content
   trait GraphPatternBodyContent extends PatternBodyContent
 
-  abstract class PatternParameter(name: String, typ: Option[MetaElement])
+  abstract class PatternParameter(name: String, typ: Option[NodeType]) extends Variable
 
   case class GraphPattern(name: String,
                           parameters: Seq[Parameter],
                           bodies: Seq[PatternBody],
-                          visibility: Option[PatternVisibility]) extends Pattern with PatternModuleContent
+                          visibility: Option[PatternVisibility]) extends Pattern
 
   case class GraphPatternBody(contents: Seq[PatternBodyContent]) extends PatternBody
 
-  case class GraphPatternParameter(name: String, typ: Option[MetaElement])
+  case class GraphPatternParameter(name: String, typ: Option[NodeType])
     extends PatternParameter(name, typ) with Parameter
 
   // path

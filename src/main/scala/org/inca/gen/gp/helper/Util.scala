@@ -2,9 +2,8 @@ package org.inca.gen.gp.helper
 
 import scala.meta._
 
-// todo move this to typeconstraints or variables file
 object Util {
-  def asTypeSelect(path: String): Type.Select =
+  def toImportStatement(path: String): Type.Select =
     checkLength(path.substring(1).split('.').toList)
 
   private def checkLength(pathList: List[String]): Type.Select =

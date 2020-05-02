@@ -48,7 +48,7 @@ class ExpLangTest extends AnyFunSuite {
 
   /**
    * pattern Boolean(exp : Expression) {
-   * BoolLit(exp)
+   *   BoolLit(exp)
    * }
    */
   private val booleanPattern: GraphPattern = GraphPattern(
@@ -68,9 +68,9 @@ class ExpLangTest extends AnyFunSuite {
 
   /**
    * pattern Primitives(exp : Expression) {
-   * find Number(exp)
+   *   find Number(exp)
    * } or {
-   * find Boolean(exp)
+   *   find Boolean(exp)
    * } // or String or ...
    */
   private val primitivesPattern: GraphPattern = GraphPattern(
@@ -132,9 +132,6 @@ class ExpLangTest extends AnyFunSuite {
   /**
    * pattern NumericAddition(exp : Expression) {
    *   Add.lhs.value(exp, tempVal)
-   *   Number(tempVal)
-   *   Add.rhs.value(exp, tempVal2)
-   *   Number(tempVal2)
    * }
    */
   private val numericAddition = GraphPattern(
@@ -164,7 +161,30 @@ class ExpLangTest extends AnyFunSuite {
   )
 
 
-  private val testInput = Add(And(Or(BooleanLit(true), BooleanLit(false)), IntegerLit(5)), LongLit(10L))
+  private val testInput =
+    Add(
+      And(
+        Or(BooleanLit(false), BooleanLit(false)),
+        IntegerLit(5)),
+      LongLit(10L))
+
+  // And(Or(BooleanLit(false), BooleanLit(false)), NumLit(5))
+  // remove and_or_lhs
+  // deleteNodeLinkInstance(and_lhs, Or.lhs, and_or_lhs) <- remove the edge
+//   deleteNodeTypeInstance(BooleanLit, and_or_lhs) <- remove the node being an instance of BooleanLit
+  // deleteNodeLinkInstance(and_or_lhs, BooleanLit.value, "false")
+  // deleteDataTypeInstance(false)
+
+  private val and_or_lhs: BooleanLit = BooleanLit(false)
+  private val and_or_rhs: BooleanLit = BooleanLit(false)
+  private val and_lhs: Or = Or(and_or_lhs, and_or_rhs)
+  private val and_rhs: IntegerLit = IntegerLit(5)
+  private val testInput2 =
+      And(
+        and_lhs,
+        and_rhs
+      )
+
   private val testInputNumericAddition = Add(Add(IntegerLit(5), IntegerLit(7)), Add(LongLit(7), IntegerLit(8)))
 
 
@@ -212,7 +232,25 @@ class ExpLangTest extends AnyFunSuite {
     println("Compare Constraint Matches:")
     // should contain the one BooleanLit with the value true
     println(truthMatcher.getAllMatches)
-    assert(!truthMatcher.getAllMatches.isEmpty)
+    assert(truthMatcher.getAllMatches.isEmpty)
+
+    println("\nChanging indices...")
+    val indices = scope.getEngineContext.getBaseIndex
+
+//    indices.update(() => {
+//      indices.deleteNodeLinkInstance(testInput, NodeType(classOf[Add])("lhs"),
+//        And(Or(BooleanLit(true), BooleanLit(false)),IntegerLit(5)))
+////      indices.deleteNodeLinkInstance(testInput, NodeType(classOf[Or])("rhs"), BooleanLit(false))
+//      indices.deleteDataTypeInstance(And(Or(BooleanLit(true), BooleanLit(false)),IntegerLit(5)))
+//      indices.insertNodeLinkInstance(testInput, NodeType(classOf[Add])("lhs"), IntegerLit(2))
+//      indices.insertDataTypeInstance(IntegerLit(2))
+//    })
+
+
+    println("Boolean Constraint Matches after update:")
+    // should contain the both BooleanLit's with the values true and false
+    println(booleanMatcher.getAllMatches)
+    assert(!booleanMatcher.getAllMatches.isEmpty)
 
   }
 }

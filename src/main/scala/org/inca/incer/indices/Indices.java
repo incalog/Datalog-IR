@@ -144,11 +144,11 @@ public class Indices implements IBaseIndex {
             if (v == null) {
                 v = new HashSet<>();
             }
-            if (v.add(instance)) {
-                notifyNodeTypeInstanceListeners(type, instance, true);
-            } else {
-                throw new RuntimeException("Already known  " + type + " instance: " + instance);
-            }
+            v.add(instance);
+            notifyNodeTypeInstanceListeners(type, instance, true);
+//            } else {
+//                throw new RuntimeException("Already known  " + type + " instance: " + instance);
+//            }
             return v;
         });
     }
@@ -221,7 +221,8 @@ public class Indices implements IBaseIndex {
                     if (notifyAbout) {
                         notifyNodeLinkInstanceListeners(link, source, target, true);
                     }
-                } else {
+                }
+                else {
                     throw new RuntimeException("Already known  " + link + " instance: " + source + " -> " + target);
                 }
                 return iv;

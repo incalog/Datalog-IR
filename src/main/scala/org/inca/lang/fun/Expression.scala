@@ -2,7 +2,7 @@ package org.inca.lang.fun
 
 import org.inca.lang.Core._
 import org.inca.lang.Gp._
-import org.inca.meta.MetaElements.MetaElement
+import org.inca.meta.MetaElements.{MetaElement, NodeType}
 
 trait IExpression extends IStatement with ICondition
 
@@ -11,7 +11,7 @@ trait ITuple extends IExpression
 
 
 case class FunTemporaryVariable(name: String,
-                                typ: Option[MetaElement])
+                                typ: Option[NodeType])
   extends AbstractTemporaryVariable(name, typ) with ITuple
 
 case class FunVariableReference(variable: Variable)

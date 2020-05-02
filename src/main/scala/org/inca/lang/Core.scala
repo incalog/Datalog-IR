@@ -1,19 +1,17 @@
 package org.inca.lang
 
-import org.inca.meta.MetaElements.MetaElement
+import org.inca.meta.MetaElements._
 
 object Core {
 
   // content
-  trait Pattern extends Named with PatternModuleContent {
+  trait Pattern extends Named {
     val parameters: Seq[Parameter]
     val bodies: Seq[PatternBody]
     val visibility: Option[PatternVisibility]
   }
 
   trait PatternBodyContent
-
-  trait PatternModuleContent
 
   trait PatternVisibility
 
@@ -28,9 +26,9 @@ object Core {
   }
 
   // variables
-  abstract class AbstractTemporaryVariable(name: String, typ: Option[MetaElement])
+  abstract class AbstractTemporaryVariable(name: String, typ: Option[NodeType])
 
-  case class TemporaryVariable(name: String, typ: Option[MetaElement])
+  case class TemporaryVariable(name: String, typ: Option[NodeType])
     extends AbstractTemporaryVariable(name, typ) with Variable with VariableValue
 
   // values
@@ -39,7 +37,7 @@ object Core {
   trait VariableValue extends Value
 
   trait Variable extends Named {
-    val typ: Option[MetaElement]
+    val typ: Option[NodeType]
   }
 
   // references
@@ -63,6 +61,9 @@ object Core {
 
   case class StringLiteral(value: String) extends LiteralValue
 
-  // todo enum literal!!!
+  // todo not yet implemented
+  case class EnumLiteral(value: EnumValueLiteral) extends LiteralValue
+
+  case class EnumValueLiteral(value: String) extends LiteralValue
 
 }

@@ -1,7 +1,7 @@
 package org.inca.gen.gp
 
-import org.inca.gen.gp.helper.GenTypeConstraints._
-import org.inca.gen.gp.helper.GenVariables._
+import org.inca.gen.gp.helper.GenerateConstraints._
+import org.inca.gen.gp.helper.GenerateVariables._
 import org.inca.lang.Gp._
 
 import scala.meta._
@@ -12,7 +12,7 @@ object GeneratorGP {
 
     val fileNameType = Type.Name(pattern.name)
     val fileNameTerm = Term.Name(pattern.name)
-    val fileNameLit = Lit.String(pattern.name)
+    val fileNameLit  = Lit.String(pattern.name)
 
     val superClassParam = Init(
       Type.Name("TFQuerySpecification"),
@@ -20,7 +20,7 @@ object GeneratorGP {
       List(List(q"$fileNameTerm.GeneratedPQuery.INSTANCE")))
 
     val paramTermName = pattern.parameters.toList map { p => Term.Name(s"p_${p.name}")}
-    val paramLitName = pattern.parameters.toList map {p => Lit.String(p.name)}
+    val paramLitName  = pattern.parameters.toList map { p => Lit.String(p.name)}
 
     registerValues(pattern.bodies)
 
@@ -61,14 +61,14 @@ object GeneratorGP {
 
               private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
                   val INSTANCE: GeneratedPQuery.type = this
-                  ..${pparams(pattern.parameters)}
+                  ..${createPParams(pattern.parameters)}
                   {}
                   override protected def doGetContainedBodies(): util.Set[PBody] = {
                     val bodies: util.Set[PBody] = util.Set.of(
                       ..${pattern.bodies.toList map { body =>
                             q"""{
                                 val body: PBody = new PBody(this)
-                                ..${localGlobalVariables(pattern.parameters)}
+                                ..${createBodyParameters(pattern.parameters)}
                                 ()
                                 val exportedParams = new util.ArrayList[ExportedParameter]()
                                 ..${pattern.parameters.toList map { gp =>
@@ -80,7 +80,7 @@ object GeneratorGP {
 
                                 ..${(temporaryVariables _ andThen createTemporaryVariables)(body.contents)}
                                 ..${generatePrimitives()}
-                                ..${typeConstraintsParameters(pattern.parameters)}
+                                ..${generateParameters(pattern.parameters)}
                                 ..${typeConstraints(body.contents)}
                                 body
                               }"""

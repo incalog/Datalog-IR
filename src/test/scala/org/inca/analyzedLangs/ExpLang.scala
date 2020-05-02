@@ -3,13 +3,13 @@ package org.inca.analyzedLangs
 import org.inca.incer.IncrementalIndex
 
 @IncrementalIndex
-trait Expression
+abstract class Expression extends CaseClassEqualityFix
 
 @IncrementalIndex
 case class BooleanLit(value: Boolean) extends Expression
 
 @IncrementalIndex
-case class IntegerLit(value: Int) extends Expression
+ case class IntegerLit(value: Int) extends Expression
 
 @IncrementalIndex
 case class LongLit(value: Long) extends  Expression

@@ -2,9 +2,9 @@ package org.inca.lang.fun
 
 import org.inca.lang.Core._
 import org.inca.lang.Gp._
-import org.inca.meta.MetaElements.MetaElement
+import org.inca.meta.MetaElements.{MetaElement, NodeType}
 
-trait IPatternFunctionModuleContent extends PatternModuleContent
+trait IPatternFunctionModuleContent
 
 trait IReturnContainer
 
@@ -32,9 +32,9 @@ case class PatternFunctionBody(contents: Seq[PatternBodyContent])
 case class RelationAttribute()
 
 case class PatternFunctionParameter(name: String,
-                                    typ: Option[MetaElement])
+                                    typ: Option[NodeType])
   extends PatternParameter(name, typ)
 
 case class PatternFunctionAnonymousParameter(name: String,
-                                             typ: Option[MetaElement])
+                                             typ: Option[NodeType])
   extends PatternParameter(name, typ)
