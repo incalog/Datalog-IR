@@ -5,7 +5,7 @@ import org.inca.lang.Gp._
 import org.inca.meta.MetaElements.NodeType
 
 object TransformGP {
-  def transformPattern(pattern: GraphPattern): GraphPattern =
+  def transformPattern: GraphPattern => GraphPattern = (pattern: GraphPattern) =>
     pattern.copy(bodies =  pattern.bodies map { transformBodies })
 
   private def transformBodies(body: PatternBody): PatternBody =

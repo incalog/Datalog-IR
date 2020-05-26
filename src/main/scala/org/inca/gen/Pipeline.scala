@@ -9,7 +9,7 @@ import scala.meta.Source
 object Pipeline {
 
   def generateGraphPattern(pattern: GraphPattern): Source =
-    (transformPattern _ andThen
+    (transformPattern andThen
       querySpecification)(pattern)
 
 }

@@ -26,6 +26,12 @@ object Core {
   }
 
   // variables
+  trait VariableValue extends Value
+
+  trait Variable extends Named {
+    val typ: Option[NodeType]
+  }
+
   abstract class AbstractTemporaryVariable(name: String, typ: Option[NodeType])
 
   case class TemporaryVariable(name: String, typ: Option[NodeType])
@@ -33,12 +39,6 @@ object Core {
 
   // values
   trait Value
-
-  trait VariableValue extends Value
-
-  trait Variable extends Named {
-    val typ: Option[NodeType]
-  }
 
   // references
   case class PatternCall(transitive: Boolean, arguments: Seq[Value], pattern: Pattern)

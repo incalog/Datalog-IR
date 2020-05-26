@@ -1,5 +1,6 @@
 package org.inca.analyzedLangs
 
+import org.inca.analyzedLangs.calcLang.Exp
 import org.inca.incer.IncrementalIndex
 
 @IncrementalIndex
