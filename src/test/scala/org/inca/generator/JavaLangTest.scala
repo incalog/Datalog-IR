@@ -3,6 +3,7 @@ package org.inca.generator
 import org.inca.analyzedLangs.{BooleanConstant, ClassDeclaration, ClassMember, FieldDeclaration, ProtectedVisibility}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import org.inca.gen.Pipeline.generateGraphPattern
+import org.inca.generator.Util.writeClass
 import org.inca.generator.generated.ConfusedInheritance
 import org.inca.incer.indices.{EnginePool, TFQueryScope}
 import org.inca.lang.Core._
@@ -29,6 +30,16 @@ class JavaLangTest extends AnyFunSuite {
   private val temp_3TV = TemporaryVariable("temp_3", None)
   private val temp_4TV = TemporaryVariable("temp_4", None)
 
+  /**
+   * pattern ConfusedInheritance(class: Class) {
+   *   Class.isFinal(class, temp1)
+   *   temp2 = BooleanConstant(true)
+   *   temp1 = temp2
+   *   Class.members(class, temp3)
+   *   member = temp3
+   *   FieldDeclaration.visibility(member, temp4)
+   * }
+   */
   private val confusedInheritance = GraphPattern(
     "ConfusedInheritance",
     Seq(
@@ -46,7 +57,7 @@ class JavaLangTest extends AnyFunSuite {
           CompareConstraint(
             EqualityCompareFeature(),
             VariableReference(temp_2TV),
-            BooleanConstant(true)
+            BooleanLiteral(true)
           ),
           CompareConstraint(
             EqualityCompareFeature(),
@@ -76,17 +87,13 @@ class JavaLangTest extends AnyFunSuite {
     None
   )
 
-  test("Generate and write confusedInheritance graph pattern") {
-    //  generate(greatGrandParent, "GPLang")
-//    writeClass(generateGraphPattern(confusedInheritance), confusedInheritance.name)
-    println(generateGraphPattern(confusedInheritance))
-    //    writeClass(generate(path), path.name)
-  }
 
 
   val clazz = ClassDeclaration("Foo", true, List(FieldDeclaration("bar", ProtectedVisibility())))
 
   test("Confused Inheritance") {
+    writeClass(confusedInheritance)
+
     val scope = new TFQueryScope(clazz)
     val matcher = EnginePool.getMatcher(ConfusedInheritance.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
     println(matcher.getAllMatches)
