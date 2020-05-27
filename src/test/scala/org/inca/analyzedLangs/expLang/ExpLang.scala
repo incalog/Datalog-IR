@@ -1,16 +1,16 @@
-package org.inca.analyzedLangs
+package org.inca.analyzedLangs.expLang
 
-import org.inca.analyzedLangs.calcLang.Exp
+import org.inca.analyzedLangs.CaseClassEqualityFix
 import org.inca.incer.IncrementalIndex
 
 @IncrementalIndex
-abstract class Expression extends CaseClassEqualityFix
+abstract class Exp extends CaseClassEqualityFix
 
 @IncrementalIndex
 case class BooleanLit(value: Boolean) extends Exp
 
 @IncrementalIndex
- case class IntegerLit(value: Int) extends Exp
+case class IntegerLit(value: Int) extends Exp
 
 @IncrementalIndex
 case class LongLit(value: Long) extends  Exp

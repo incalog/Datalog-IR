@@ -1,17 +1,17 @@
 package org.inca.generator
 
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
-import org.inca.analyzedLangs._
-import org.inca.generator.Util._
+import org.inca.analyzedLangs.expLang._
+import org.inca.generator.Util.writeClass
 import org.inca.incer.indices.{EnginePool, TFQueryScope}
 import org.inca.lang.Core._
 import org.inca.lang.Gp._
-import org.inca.meta.MetaElements.NodeType
+import org.inca.meta.MetaElements._
 import org.scalatest.funsuite.AnyFunSuite
 
 class ExpLangTest extends AnyFunSuite {
 
-  private val expType = NodeType(classOf[Expression])
+  private val expType = NodeType(classOf[Exp])
   private val intType = NodeType(classOf[IntegerLit])
   private val longType = NodeType(classOf[LongLit])
   private val boolType = NodeType(classOf[BooleanLit])
@@ -27,7 +27,7 @@ class ExpLangTest extends AnyFunSuite {
    * }
    */
   private val numberPattern: GraphPattern = GraphPattern(
-    "Number",
+    "NumbersOnly",
     Seq(
       expGPP
     ),
@@ -175,15 +175,15 @@ class ExpLangTest extends AnyFunSuite {
   // deleteNodeLinkInstance(and_or_lhs, BooleanLit.value, "false")
   // deleteDataTypeInstance(false)
 
-  private val and_or_lhs: BooleanLit = BooleanLit(false)
-  private val and_or_rhs: BooleanLit = BooleanLit(false)
-  private val and_lhs: Or = Or(and_or_lhs, and_or_rhs)
-  private val and_rhs: IntegerLit = IntegerLit(5)
-  private val testInput2 =
-      And(
-        and_lhs,
-        and_rhs
-      )
+//  private val and_or_lhs: BooleanLit = BooleanLit(false)
+//  private val and_or_rhs: BooleanLit = BooleanLit(false)
+//  private val and_lhs: Or = Or(and_or_lhs, and_or_rhs)
+//  private val and_rhs: IntegerLit = IntegerLit(5)
+//  private val testInput2 =
+//      And(
+//        and_lhs,
+//        and_rhs
+//      )
 
   private val testInputNumericAddition = Add(Add(IntegerLit(5), IntegerLit(7)), Add(LongLit(7), IntegerLit(8)))
 
@@ -207,16 +207,17 @@ class ExpLangTest extends AnyFunSuite {
     writeClass(someTruth)
 
     val scope = new TFQueryScope(testInput)
+    val numberScope = new TFQueryScope(IntegerLit(5))
 
-    val numberMatcher = EnginePool.getMatcher(generated.Number.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
+//    val numberMatcher = EnginePool.getMatcher(generated.Number.instance(), numberScope, DifferentialReteBackendFactory.INSTANCE)
     val primitivesMatcher = EnginePool.getMatcher(generated.Primitives.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
     val booleanMatcher = EnginePool.getMatcher(generated.Boolean.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
     val truthMatcher = EnginePool.getMatcher(generated.Truth.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
 
-    println("Concept Constraint Matches:")
-    // should contain both, the LongLit with value 10 and the IntegerLit with value 5
-    println(numberMatcher.getAllMatches)
-    assert(!numberMatcher.getAllMatches.isEmpty)
+//    println("Concept Constraint Matches:")
+//    // should contain both, the LongLit with value 10 and the IntegerLit with value 5
+//    println(numberMatcher.getAllMatches)
+//    assert(!numberMatcher.getAllMatches.isEmpty)
 
     println("Composition Constraint Matches:")
     // should contain the previous values and
@@ -234,23 +235,11 @@ class ExpLangTest extends AnyFunSuite {
     println(truthMatcher.getAllMatches)
     assert(truthMatcher.getAllMatches.isEmpty)
 
-    println("\nChanging indices...")
-    val indices = scope.getEngineContext.getBaseIndex
-
-//    indices.update(() => {
-//      indices.deleteNodeLinkInstance(testInput, NodeType(classOf[Add])("lhs"),
-//        And(Or(BooleanLit(true), BooleanLit(false)),IntegerLit(5)))
-////      indices.deleteNodeLinkInstance(testInput, NodeType(classOf[Or])("rhs"), BooleanLit(false))
-//      indices.deleteDataTypeInstance(And(Or(BooleanLit(true), BooleanLit(false)),IntegerLit(5)))
-//      indices.insertNodeLinkInstance(testInput, NodeType(classOf[Add])("lhs"), IntegerLit(2))
-//      indices.insertDataTypeInstance(IntegerLit(2))
-//    })
-
-
     println("Boolean Constraint Matches after update:")
     // should contain the both BooleanLit's with the values true and false
     println(booleanMatcher.getAllMatches)
     assert(!booleanMatcher.getAllMatches.isEmpty)
 
   }
+
 }
