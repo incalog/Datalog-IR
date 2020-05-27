@@ -116,16 +116,16 @@ class CalcLangTest extends AnyFunSuite {
   private val mulGPP = GraphPatternParameter("div", Some(mulType))
   /**
    * pattern IgnoreMultiplication(mul: Mul) {
-   *   Mul.lhs.value(div, lhs)
+   *   Mul.lhs.value(mul, lhs)
    *   lhs == 1
    * } or {
-   *   Mul.rhs.value(div, rhs)
+   *   Mul.rhs.value(mul, rhs)
    *   rhs == 1
    * } or {
-   *   Mul.lhs.value(div, lhs)
+   *   Mul.lhs.value(mul, lhs)
    *   lhs == 1.0
    * } or {
-   *   Mul.rhs.value(div, rhs)
+   *   Mul.rhs.value(mul, rhs)
    *   rhs == 1.0
    * }
    */
