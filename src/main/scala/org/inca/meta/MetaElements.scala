@@ -69,7 +69,17 @@ object MetaElements {
       case that: NodeLink => nodeType.equals(that.nodeType) && fld.equals(that.fld)
       case _ => false
     }
+  }
 
+  case class DefinedNodeLink(nodeType: NodeType, fld: Field) extends Link {
+    override def toString: String = s"$nodeType:${fld.getName}_isDefinied"
+
+    override def hashCode(): Int = Objects.hash(nodeType, fld)
+
+    override def equals(obj: Any): Boolean = obj match {
+      case that: DefinedNodeLink => nodeType.equals(that.nodeType) && fld.equals(that.fld)
+      case _ => false
+    }
   }
 
   case class Node(parent: Option[Node],

@@ -23,9 +23,7 @@ case class ProtectedVisibility() extends Visibility
 @IncrementalIndex
 case class PrivateVisibility() extends Visibility
 
-import org.inca.lang.Core.Value
-
-trait Primitive extends Value {
+trait Primitive {
   val value: Any
 }
 

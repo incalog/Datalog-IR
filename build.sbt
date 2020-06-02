@@ -1,4 +1,4 @@
-name := "IncAPP"
+name := "inca-scala"
 
 version := "0.1"
 

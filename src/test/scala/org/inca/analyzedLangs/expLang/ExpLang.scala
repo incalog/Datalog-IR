@@ -1,7 +1,7 @@
 package org.inca.analyzedLangs.expLang
 
-import org.inca.analyzedLangs.CaseClassEqualityFix
 import org.inca.incer.IncrementalIndex
+import org.inca.meta.CaseClassEqualityFix
 
 @IncrementalIndex
 abstract class Exp extends CaseClassEqualityFix

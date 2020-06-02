@@ -1,6 +1,6 @@
 package org.inca.incer
 
-import org.inca.diff.macros.Util
+import org.inca.util.Macros
 import org.inca.incer.indices.Indices
 import org.inca.meta.MetaElements.NodeType
 
@@ -57,7 +57,7 @@ object IncrementalIndexMacro {
                 }
 
                 ..${
-            Util.mapParams(c)(constructorParameters, tyIncrementalizable,
+            Macros.mapParams(c)(constructorParameters, tyIncrementalizable,
               p => q"this.$p.insert(indices)",
               p => q"indices.insertDataTypeInstance(this.$p)",
               p => q"{if (!this.$p.isEmpty) this.$p.get.insert(indices)}",
@@ -66,7 +66,7 @@ object IncrementalIndexMacro {
           }
 
                 ..${
-            Util.mapParams(c)(constructorParameters, tyIncrementalizable,
+            Macros.mapParams(c)(constructorParameters, tyIncrementalizable,
               p => q"indices.insertNodeLinkInstance(this, $symNodeType(classOf[$className[..$typeParameters]])(${p.toString}), this.$p)",
               p => q"indices.insertNodeLinkInstance(this, $symNodeType(classOf[$className[..$typeParameters]])(${p.toString}), this.$p)",
               p => q"{if (!this.$p.isEmpty) indices.insertNodeLinkInstance(this, $symNodeType(classOf[$className[..$typeParameters]])(${p.toString}), this.$p.get)}",
@@ -86,7 +86,7 @@ object IncrementalIndexMacro {
                 }
 
                 ..${
-            Util.mapParams(c)(constructorParameters, tyIncrementalizable,
+            Macros.mapParams(c)(constructorParameters, tyIncrementalizable,
               p => q"this.$p.delete(indices)",
               p => q"indices.deleteDataTypeInstance(this.$p)",
               p => q"{if (!this.$p.isEmpty) this.$p.get.delete(indices)}",
@@ -95,7 +95,7 @@ object IncrementalIndexMacro {
           }
 
                 ..${
-            Util.mapParams(c)(constructorParameters, tyIncrementalizable,
+            Macros.mapParams(c)(constructorParameters, tyIncrementalizable,
               p => q"indices.deleteNodeLinkInstance(this, $symNodeType(classOf[$className[..$typeParameters]])(${p.toString}), this.$p)",
               p => q"indices.deleteNodeLinkInstance(this, $symNodeType(classOf[$className[..$typeParameters]])(${p.toString}), this.$p)",
               p => q"{if (!this.$p.isEmpty) indices.deleteNodeLinkInstance(this, $symNodeType(classOf[$className[..$typeParameters]])(${p.toString}), this.$p.get)}",
@@ -112,7 +112,7 @@ object IncrementalIndexMacro {
           q"""
             object $obj {
               ..${
-            val filteredSuperTypes = superTypes.filter(t => Util.treeType(c)(t) <:< tyIncrementalizable)
+            val filteredSuperTypes = superTypes.filter(t => Macros.treeType(c)(t) <:< tyIncrementalizable)
             if (filteredSuperTypes.isEmpty) {
               Seq(q"$companionIndices.registerType(classOf[$className[..$typeParameters]], null)")
             } else {
@@ -160,7 +160,7 @@ object IncrementalIndexMacro {
           q"""
             object $obj {
               ..${
-            val filteredSuperTypes = superTypes.filter(t => Util.treeType(c)(t) <:< tyIncrementalizable)
+            val filteredSuperTypes = superTypes.filter(t => Macros.treeType(c)(t) <:< tyIncrementalizable)
             if (filteredSuperTypes.isEmpty) {
               Seq(q"$companionIndices.registerType(classOf[$traitName[..$typeParameters]], null)")
             } else {
