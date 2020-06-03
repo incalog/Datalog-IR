@@ -11,7 +11,7 @@ object ExpLangTestAnalyses {
     None,
     "id",
     List(Param("add", Some(addType))),
-    List(AnnoParam("out", expType)),
+    List(AnnoParam(Some("out"), expType)),
     List(
       Alternative(
         List(
@@ -23,7 +23,7 @@ object ExpLangTestAnalyses {
     None,
     "children",
     List(Param("add", Some(addType))),
-    List(AnnoParam("out", expType)),
+    List(AnnoParam(None, expType)),
     List(
       Alternative(
         List(
@@ -36,7 +36,7 @@ object ExpLangTestAnalyses {
     None,
     "lhChild",
     List(Param("add", Some(addType))),
-    List(AnnoParam("out", expType)),
+    List(AnnoParam(None, expType)),
     List(
       Alternative(
         List(
@@ -46,7 +46,7 @@ object ExpLangTestAnalyses {
     None,
     "callLhChild",
     List(Param("add", Some(addType))),
-    List(AnnoParam("out", expType)),
+    List(AnnoParam(None, expType)),
     List(
       Alternative(
         List(
@@ -57,11 +57,41 @@ object ExpLangTestAnalyses {
     None,
     "instanceAdd",
     List(Param("add", Some(addType))),
-    List(AnnoParam("out", expType)),
+    List(AnnoParam(None, expType)),
     List(
       Alternative(
         List(
           Assignment(Seq("lhschild"), PathAccess(Var("add"), Seq(lhsLink))),
           Assert(InstanceOf(Var("lhschild"), addType)),
           Return(Var("lhschild"))))))
+
+  val noParamTypeFun = PatternFunction(
+    None,
+    "noParamType",
+    List(Param("add", None)),
+    List(),
+    List(
+      Alternative(
+        List(
+          Assert(InstanceOf(Var("add"), addType))))))
+
+  private val boolType: NodeType = NodeType(classOf[BooleanLit])
+  val isBooleanFun = PatternFunction(
+    None,
+    "isBoolean",
+    List(Param("in", Some(boolType))),
+    List(AnnoParam(None, TBool)),
+    List(
+      Alternative(
+        List(
+          Return(Constant(BooleanLiteral(true)))))))
+
+  val primitiveParamFun = PatternFunction(
+    None,
+    "idBool",
+    List(Param("in", Some(TBool))),
+    List(AnnoParam(None, TBool)),
+    List(
+      Alternative(
+        List(Return(Var("in"))))))
 }

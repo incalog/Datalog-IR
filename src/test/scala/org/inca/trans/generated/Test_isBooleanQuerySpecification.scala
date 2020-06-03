@@ -10,7 +10,7 @@ import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveIn
 import java.util
 import org.inca.incer.indices.{ TFInputKey, TFQueryScope, TFQuerySpecification }
 import org.inca.meta.MetaElements
-class Test_lhChildQuerySpecification extends TFQuerySpecification(Test_lhChildQuerySpecification.GeneratedPQuery.INSTANCE) {
+class Test_isBooleanQuerySpecification extends TFQuerySpecification(Test_isBooleanQuerySpecification.GeneratedPQuery.INSTANCE) {
   override def instantiate(engine: ViatraQueryEngine): GenericPatternMatcher = {
     var matcher: GenericPatternMatcher = engine.getExistingMatcher(this)
     if (matcher == null) matcher = engine.getMatcher(this)
@@ -18,38 +18,38 @@ class Test_lhChildQuerySpecification extends TFQuerySpecification(Test_lhChildQu
   }
   override def getPreferredScopeClass: Class[_ <: QueryScope] = classOf[TFQueryScope]
 }
-object Test_lhChildQuerySpecification {
-  def instance(): Test_lhChildQuerySpecification = LazyHolder.INSTANCE
+object Test_isBooleanQuerySpecification {
+  def instance(): Test_isBooleanQuerySpecification = LazyHolder.INSTANCE
   private final object LazyHolder {
-    val INSTANCE: Test_lhChildQuerySpecification = make()
-    def make(): Test_lhChildQuerySpecification = new Test_lhChildQuerySpecification()
+    val INSTANCE: Test_isBooleanQuerySpecification = make()
+    def make(): Test_isBooleanQuerySpecification = new Test_isBooleanQuerySpecification()
   }
   private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
     val INSTANCE: GeneratedPQuery.type = this
-    private val param_add: PParameter = new PParameter("add", "org.inca.analyzedLangs.expLang.Add", new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[org.inca.analyzedLangs.expLang.Add])))
-    private val param_out: PParameter = new PParameter("out", "org.inca.analyzedLangs.expLang.Exp", new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[org.inca.analyzedLangs.expLang.Exp])))
+    private val param_in: PParameter = new PParameter("in", "org.inca.analyzedLangs.expLang.BooleanLit", new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[org.inca.analyzedLangs.expLang.BooleanLit])))
+    private val param_out: PParameter = new PParameter("out", "java.lang.Boolean", new JavaTransitiveInstancesKey(classOf[java.lang.Boolean]))
     {}
     override protected def doGetContainedBodies(): util.Set[PBody] = {
       val bodies: util.Set[PBody] = util.Set.of {
         val body: PBody = new PBody(this)
-        val var_add: PVariable = body.getOrCreateVariableByName("add")
+        val var_in: PVariable = body.getOrCreateVariableByName("in")
         val var_out: PVariable = body.getOrCreateVariableByName("out")
         ()
         val exportedParams = new util.ArrayList[ExportedParameter]()
-        exportedParams.add(new ExportedParameter(body, var_add, param_add))
+        exportedParams.add(new ExportedParameter(body, var_in, param_in))
         exportedParams.add(new ExportedParameter(body, var_out, param_out))
         body.setSymbolicParameters(exportedParams)
-        val var_trg: PVariable = body.getOrCreateVariableByName("trg")
-        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[org.inca.analyzedLangs.expLang.Add])))
-        new TypeConstraint(body, Tuples.flatTupleOf(var_out), new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[org.inca.analyzedLangs.expLang.Exp])))
-        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_add, var_trg), new TFInputKey.NodeLinkKey(new MetaElements.NodeType(classOf[org.inca.analyzedLangs.expLang.Add])("lhs")))
-        new Equality(body, var_trg, var_out)
+        val var_tmp: PVariable = body.getOrCreateVariableByName("tmp")
+        val lit_boolean1231 = body.newConstantVariable(true)
+        new TypeConstraint(body, Tuples.flatTupleOf(var_in), new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[org.inca.analyzedLangs.expLang.BooleanLit])))
+        new Equality(body, var_tmp, lit_boolean1231)
+        new Equality(body, var_tmp, var_out)
         body
       }
       bodies
     }
-    override def getFullyQualifiedName: String = "Test_lhChildQuerySpecification"
-    override def getParameters: util.List[PParameter] = util.List.of(param_add, param_out)
-    override def getParameterNames: util.List[String] = util.List.of("add", "out")
+    override def getFullyQualifiedName: String = "Test_isBooleanQuerySpecification"
+    override def getParameters: util.List[PParameter] = util.List.of(param_in, param_out)
+    override def getParameterNames: util.List[String] = util.List.of("in", "out")
   }
 }

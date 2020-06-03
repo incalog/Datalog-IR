@@ -21,16 +21,25 @@ object GraphPatternLangPrinter {
     }
     else ""
 
-  def prettyParam(param: Param): String = param.name + ": " + param.typ.get.cls.getName
+  def prettyParam(param: Param): String = param.name + (if (param.typ.isDefined) ": " + prettyType(param.typ.get) else "")
+
+  def prettyType(typ: Type): String = typ match {
+    case TNodeType(wrapped) => wrapped.cls.getName
+    case TBool => "TBool"
+    case TInt => "TInt"
+    case TLong => "TLong"
+    case TDouble => "TDouble"
+    case TString => "TString"
+  }
 
   def prettyAlternative(alt: Alternative): String = alt.constraints.map(prettyConstraint).map("\t"+_).mkString("\n")
 
   def prettyConstraint(constraint: Constraint): String = constraint match {
     case Compare(comp, lhs, rhs) => prettyValue(lhs) + " " + prettyComparator(comp) + " " + prettyValue(rhs)
-    case Concept(v, typ) => typ.cls.getName + "(" + prettyValue(v) + ")"
+    case Concept(v, typ) => prettyType(typ) + "(" + prettyValue(v) + ")"
     case Path(src, trg, link, typ) =>
       val isDefined = if (link.isInstanceOf[DefinedNodeLink]) "_isDefined" else ""
-      typ.cls.getName + "." + link.fld.getName + isDefined + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
+      prettyType(typ) + "." + link.fld.getName + isDefined + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
     case Composition(call, neg) => (if(neg) "neg " else "") + "find " + prettyPatternCall(call)
   }
 

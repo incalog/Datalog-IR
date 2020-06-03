@@ -29,41 +29,15 @@ object FunToGPTranslator {
   def collectPathInUndef(fun: Fun.PatternFunction): Seq[Fun.PathAccess] = fun.bodies.flatMap {
     case Fun.Alternative(stmts) => stmts.collect {
       case Fun.Assert(cond) => cond match {
-        case undef@Fun.Undef(cond: Fun.PathAccess) => Seq(cond)
+        case Fun.Undef(cond: Fun.PathAccess) => Seq(cond)
         case _ => Nil
       }
     }.flatten
   }
 
   def transform(fun: Fun.PatternFunction, funs: Map[String, Fun.PatternFunction]): GP.GraphPattern = {
-    // meta analysis negation in recusion
-    val flattened = flattenStatementList(fun)
-    // rewrite literals (not needed) do not have abstract literal
-    // rewrite switch statements
-    val optimized = optimizeSwitchStatements(flattened)
-    rewriteFunction(optimized, funs)
-  }
-
-  def flattenStatementList(fun: Fun.PatternFunction): Fun.PatternFunction = {
-    def transAlternative(alt: Fun.Alternative): Fun.Alternative = Fun.Alternative(alt.stmts.flatMap(transStatement))
-    def transStatement(stmt: Fun.Statement): Seq[Fun.Statement] = stmt match {
-      case Fun.Switch(alts) => Seq(Fun.Switch(alts.map(transAlternative)))
-      case Fun.StatementList(seq) => seq.flatMap(transStatement)
-      case _ => Seq(stmt)
-    }
-    Fun.PatternFunction(fun.vis, fun.name, fun.params, fun.outParams, fun.bodies.map(transAlternative))
-  }
-
-  def optimizeSwitchStatements(fun: Fun.PatternFunction): Fun.PatternFunction = {
-    // TODO do we need noOptimization anno for switch?
-    val bodiesWithTopLvlSwitch = fun.bodies.filter { _.stmts.collect { case switch@Fun.Switch(_) => switch }.nonEmpty }
-    bodiesWithTopLvlSwitch.map { body =>
-      val helperName = ""
-      val candidates = body.stmts.filter { stmt => !(stmt.isInstanceOf[Fun.Return] || stmt.isInstanceOf[Fun.Switch]) }
-      val others = body.stmts.diff(candidates)
-      val helper = Fun.PatternFunction(Some(Fun.Private), helperName, Seq(), Seq(), Seq())
-    }
-    fun
+    // TODO meta analysis negation in recusion
+    rewriteFunction(fun, funs)
   }
 
   def rewriteFunction(fun: Fun.PatternFunction, funs: Map[String, Fun.PatternFunction]): GP.GraphPattern = {
@@ -73,10 +47,25 @@ object FunToGPTranslator {
       case Fun.Public => GP.Public
     }
 
-    val params = fun.params.map { param => GP.Param(param.name, param.typ) }
+    def transType(typ: Fun.Type): GP.Type = typ match {
+      case Fun.TNodeType(wrapped) => GP.TNodeType(wrapped)
+      case Fun.TBool => GP.TBool
+      case Fun.TInt => GP.TInt
+      case Fun.TLong => GP.TLong
+      case Fun.TDouble => GP.TDouble
+      case Fun.TString => GP.TString
+    }
 
-    val outParams = fun.outParams.map { param => GP.Param(param.name, Some(param.typ)) }
-    val outVars = fun.outParams.map(_.name)
+
+    val params = fun.params.map { param => GP.Param(param.name, if (param.typ.isDefined) Some(transType(param.typ.get)) else None) }
+
+    val outParams = fun.outParams.map { param =>
+      val name =
+        if (param.name.isDefined) param.name.get
+        else gensym.fresh("out")
+      GP.Param(name, Some(transType(param.typ)))
+    }
+    val outVars = outParams.map(_.name)
 
     def generateCompareConstraints(comp: GP.Comparator)(lhs: Seq[String], rhs: Seq[String]): Seq[GP.Constraint] = {
       if (lhs.size != rhs.size) throw new IllegalStateException("Cannot create equalites for different sized variable lists")
@@ -103,10 +92,10 @@ object FunToGPTranslator {
         val eqConstraints = genEqs(names, rvars)
         (Seq(), rconstraints ++ eqConstraints)
       case Fun.Assert(cond) => transCond(cond)
-      case Fun.Switch(alts) => (Seq(), Seq())
-      case Fun.StatementList(stmts) =>
-        val res = stmts.map(transStatement)
-        (res.last._1, res.flatMap(_._2))
+//      case Fun.Switch(alts) => (Seq(), Seq())
+//      case Fun.StatementList(stmts) =>
+//        val res = stmts.map(transStatement)
+//        (res.last._1, res.flatMap(_._2))
     }
 
     def transCond(cond: Fun.Cond): Res = cond match {
@@ -123,7 +112,7 @@ object FunToGPTranslator {
       case Fun.InstanceOf(exp, typ) =>
         val (vars, constraints) = transExp(exp)
         if (vars.size != 1) throw new IllegalStateException("Number of variables of exp of instance of need to be 1")
-        (Seq(), constraints :+ GP.Concept(GP.Var(vars.head), typ))
+        (Seq(), constraints :+ GP.Concept(GP.Var(vars.head), transType(typ)))
 
       case ninst@Fun.NotInstanceOf(exp, typ) => (Seq(), Seq())
         val (vars, constraints) = transExp(exp)
@@ -143,7 +132,7 @@ object FunToGPTranslator {
             val definedConstraint = GP.Path(GP.Var(vars.head), GP.Var(trg), definedLink, definedLink.nodeType)
             val compareConstraint = GP.Compare(GP.EqComparator, GP.Var(trg), GP.Constant(trueLit))
             (Seq(), pathConstraints ++ Seq(definedConstraint, compareConstraint))
-          case _ => throw new IllegalArgumentException("Cannot support " + exp)
+          case _ => throw new IllegalArgumentException("Cannot support in Def " + exp)
         }
       case Fun.Undef(exp) =>
         exp match {
@@ -154,7 +143,7 @@ object FunToGPTranslator {
             val (vars, constraints) = transExp(exp)
             val compositionConstraint = GP.Composition(GP.PatternCall(pathHelper, Seq(GP.Var(vars.head)), transitive = false),neg = true)
             (Seq(), constraints :+ compositionConstraint)
-          case _ => throw new IllegalArgumentException("Cannot support " + exp)
+          case _ => throw new IllegalArgumentException("Cannot support in Undef " + exp)
         }
     }
 
@@ -241,7 +230,16 @@ object FunToGPTranslator {
       List(Fun.Alternative(List(Fun.Assert(Fun.Def(path))))))
   }
 
-  def nameOfNotInstanceOfHelper(ninst: Fun.NotInstanceOf): String = "generated_helper_notinstanceof_" + ninst.typ.cls.getName.replace(".", "_")
+  def nameOfNotInstanceOfHelper(ninst: Fun.NotInstanceOf): String = "generated_helper_notinstanceof_" + nameOfType(ninst.typ)
+
+  def nameOfType(typ: Fun.Type): String = typ match {
+    case Fun.TNodeType(wrapped) => wrapped.cls.getName.replace(".", "_")
+    case Fun.TBool => "TBool"
+    case Fun.TInt => "TInt"
+    case Fun.TLong => "TLong"
+    case Fun.TDouble => "TDouble"
+    case Fun.TString => "TString"
+  }
 
   def genNotInstanceOfHelper(ninst: Fun.NotInstanceOf): Fun.PatternFunction =
     Fun.PatternFunction(

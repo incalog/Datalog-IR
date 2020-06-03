@@ -3,8 +3,18 @@ package org.inca.lang
 import org.inca.meta.MetaElements.{Link, NodeType}
 
 object FunLang {
-  type Type = NodeType
+  trait Type
+  case class TNodeType(wrapped: NodeType) extends Type
+  case object TBool extends Type
+  case object TInt extends Type
+  case object TLong extends Type
+  case object TDouble extends Type
+  case object TString extends Type
+
   type Name = String
+
+  implicit def nodeTypeToType(t: NodeType): Type = TNodeType(t)
+
 
   case class Module(name: Name, imports: Seq[Name], funs: Seq[PatternFunction])
   case class PatternFunction(vis: Option[Visibility], name: Name, params: Seq[Param], outParams: Seq[AnnoParam], bodies: Seq[Alternative])
@@ -14,7 +24,7 @@ object FunLang {
   case object Public extends Visibility
 
   case class Param(name: Name, typ: Option[Type])
-  case class AnnoParam(name: Name, typ: Type)
+  case class AnnoParam(name: Option[Name], typ: Type)
 
   case class Alternative(stmts: Seq[Statement])
 
@@ -22,9 +32,6 @@ object FunLang {
   case class Assignment(names: Seq[Name], exp: Exp) extends Statement
   case class Assert(cond: Cond) extends Statement
   case class Return(exp: Exp) extends Statement
-  // TODO these are extensions
-  case class Switch(alts: Seq[Alternative]) extends Statement
-  case class StatementList(seq: Seq[Statement]) extends Statement
 
   sealed trait Cond
   case class Eq(lhs: Exp, rhs: Exp) extends Cond
@@ -38,16 +45,18 @@ object FunLang {
   case class Var(name: Name) extends Exp
   case class Constant(lit: Literal) extends Exp
   // TODO do not allow nested pathaccesses (preprocess flatten)
-  case class PathAccess(exp: Exp, path: Seq[Link]) extends Exp
+  case class PathAccess(exp: Exp, path: Seq[Link]) extends Exp {
+    assert(!exp.isInstanceOf[PathAccess], "Needs to be flattend")
+  }
   case class Call(call: PatternCall, count: Boolean) extends Exp
   case class Tuple(exps: Seq[Exp]) extends Exp
 
   case class PatternCall(name: Name, args: Seq[Exp], transitive: Boolean)
 
   sealed trait Literal
+  case class BooleanLiteral(v: Boolean) extends Literal
   case class IntLiteral(v: Int) extends Literal
   case class FloatLiteral(v: Float) extends Literal
   case class DoubleLiteral(v: Double) extends Literal
   case class StringLiteral(v: String) extends Literal
-  case class BooleanLiteral(v: Boolean) extends Literal
 }

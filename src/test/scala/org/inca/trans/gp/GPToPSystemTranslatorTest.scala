@@ -81,4 +81,24 @@ class GPToPSystemTranslatorTest extends AnyFunSuite {
       assert(matcher.getAllMatches.size == 0)
     }
   }
+
+  test("no type annotation for param") {
+    val module = Module("Test", Seq(), Seq(noParamTypeFun))
+    assertMatch(module, testInputNumericAddition, Test_noParamTypeQuerySpecification.instance()) { matcher =>
+      assert(matcher.getAllMatches.size == 3)
+    }
+    assertMatch(module, testInput, Test_noParamTypeQuerySpecification.instance()) { matcher =>
+      assert(matcher.getAllMatches.size == 1)
+    }
+  }
+
+  test("primitive datatype output") {
+    val module = Module("Test", Seq(), Seq(isBooleanFun))
+    assertMatch(module, testInputNumericAddition, Test_isBooleanQuerySpecification.instance()) { matcher =>
+      assert(matcher.getAllMatches.size == 0)
+    }
+    assertMatch(module, testInput, Test_isBooleanQuerySpecification.instance()) { matcher =>
+      assert(matcher.getAllMatches.size == 2)
+    }
+  }
 }

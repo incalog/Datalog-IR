@@ -6,7 +6,7 @@ object FunVars {
 
   def apply(fun: PatternFunction): Seq[String] = {
     val paramStrings = fun.params.map(_.name)
-    val outParamStrings = fun.outParams.map(_.name)
+    val outParamStrings = fun.outParams.flatMap(_.name)
     paramStrings ++ outParamStrings ++ fun.bodies.flatMap(transAlternative)
   }
 
@@ -16,8 +16,6 @@ object FunVars {
     case Assignment(names, exp) => names ++ transExp(exp)
     case Assert(cond) => transCond(cond)
     case Return(exp) => transExp(exp)
-    case Switch(alts) => alts.flatMap(transAlternative)
-    case StatementList(seq) => seq.flatMap(transStatement)
   }
 
   def transExp(exp: Exp): Seq[String] = exp match {

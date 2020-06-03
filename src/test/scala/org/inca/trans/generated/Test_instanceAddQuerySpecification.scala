@@ -6,6 +6,7 @@ import org.eclipse.viatra.query.runtime.matchers.psystem.{ PBody, PVariable }
 import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{ BasePQuery, PParameter, PVisibility }
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred._
+import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
 import java.util
 import org.inca.incer.indices.{ TFInputKey, TFQueryScope, TFQuerySpecification }
 import org.inca.meta.MetaElements

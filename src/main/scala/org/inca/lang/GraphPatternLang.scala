@@ -3,7 +3,16 @@ package org.inca.lang
 import org.inca.meta.MetaElements.{Link, NodeType}
 
 object GraphPatternLang {
-  type Type = NodeType
+  trait Type
+  case class TNodeType(wrapped: NodeType) extends Type
+  case object TBool extends Type
+  case object TInt extends Type
+  case object TLong extends Type
+  case object TDouble extends Type
+  case object TString extends Type
+
+  implicit def nodeTypeToType(t: NodeType): Type = TNodeType(t)
+
   type Name = String
 
   case class Module(name: Name, imports: Seq[Name], pats: Seq[GraphPattern])
@@ -24,7 +33,9 @@ object GraphPatternLang {
   case class Composition(call: PatternCall, neg: Boolean) extends Constraint
   case class Compare(comp: Comparator, lhs: Value, rhs: Value) extends Constraint
   // these concepts are inca specific to query AST information
+  // TODO Value => Var
   case class Concept(v: Value, typ: Type) extends Constraint
+  // Value => Var
   case class Path(src: Value, trg: Value, link: Link, typ: Type) extends Constraint
   // TODO how do we represent java code?
   case class Check(code: String) extends Constraint

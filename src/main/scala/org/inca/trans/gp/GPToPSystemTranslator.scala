@@ -1,5 +1,6 @@
 package org.inca.trans.gp
 
+import org.inca.lang.GraphPatternLang
 import org.inca.lang.GraphPatternLang._
 import org.inca.meta.MetaElements.NodeType
 import org.inca.util.Gensym
@@ -52,6 +53,7 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
       import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
       import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
       import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred._
+      import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
 
       import java.util
 
@@ -99,7 +101,7 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
 
                         ..${(CollectGPVars.transAlternative(body).distinct.diff(paramNames)).map(genTempVar).toList}
                         ..${CollectGPLits.transAlternative(body).distinct.map(genLiteralVar(_)(gensym)).toList}
-                        ..${pat.params.map(genParamConstraint).toList}
+                        ..${pat.params.flatMap(genParamConstraint).toList}
                         ..${body.constraints.flatMap(genConstraints).toList}
                         body
                       }"""
@@ -122,14 +124,26 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
   }
 
   def genPParam(param: Param): Stat = {
-    // TODO params without type anno: emit PParameter(param.name)
-    val qualifiedName = param.typ.get.cls.getName
-    q"""private val ${Pat.Var(Term.Name(s"$PARAMPREFIX${param.name}"))}: PParameter =
-            new PParameter(
-              ${Lit.String(param.name)},
-              ${Lit.String(qualifiedName)},
-              new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[${genType(param.typ.get)}])))"""
+    val pparam =
+      if (param.typ.isDefined) {
+        val qualifiedName = genType(param.typ.get).syntax
+        val key = genInputKey(param.typ.get)
+        q"new PParameter(${Lit.String(param.name)}, ${Lit.String(qualifiedName)}, $key)"
+      } else {
+        q"new PParameter(${Lit.String(param.name)})"
+      }
+    q"private val ${Pat.Var(Term.Name(s"$PARAMPREFIX${param.name}"))}: PParameter = $pparam"
   }
+
+  def genInputKey(typ: GraphPatternLang.Type): Term = typ match {
+    case TBool => q"new JavaTransitiveInstancesKey(classOf[java.lang.Boolean])"
+    case TInt => q"new JavaTransitiveInstancesKey(classOf[java.lang.Integer])"
+    case TLong => q"new JavaTransitiveInstancesKey(classOf[java.lang.Long])"
+    case TDouble => q"new JavaTransitiveInstancesKey(classOf[java.lang.Double])"
+    case TString => q"new JavaTransitiveInstancesKey(classOf[java.lang.String])"
+    case TNodeType(wrapped) => q"new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[${genType(wrapped)}]))"
+  }
+
 
   def genBodyParam(param: Param): Stat =
     q"""val ${Pat.Var(Term.Name(VARPREFIX + param.name))}: PVariable =
@@ -159,11 +173,14 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
     case BooleanLiteral(v) => Lit.Boolean(v)
   }
 
-  def genParamConstraint(param: Param): Stat = {
-      q"""new TypeConstraint(
+  def genParamConstraint(param: Param): Option[Stat] = {
+    // TODO only emit constraint for nodetypes?
+    if (param.typ.isDefined && param.typ.get.isInstanceOf[TNodeType])
+      Some(q"""new TypeConstraint(
             body,
             Tuples.flatTupleOf(${Term.Name(s"$VARPREFIX${param.name}")}),
-            new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[${genType(param.typ.get)}])))"""
+            new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[${genType(param.typ.get)}])))""")
+    else None
   }
 
   def genConstraints(constraint: Constraint): Seq[Stat] = constraint match {
@@ -203,15 +220,24 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
     case Constant(lit) => Term.Name(s"$LITPREFIX${genLiteralVarName(lit)}")
   }
 
-  private def genType(typ: NodeType): Type.Select = {
-    val simpleName = typ.cls.getSimpleName
-    val pkgName = typ.cls.getPackage.getName
-    val pkgElems = pkgName.split('.')
-    val pkgType = pkgElems.tail.foldLeft(Term.Name(pkgElems.head): Term.Ref){ case (acc, pkg) =>
-      Term.Select(acc, Term.Name(pkg))
-    }
-    val paramType = Type.Select(pkgType, Type.Name(simpleName))
-    paramType
+  private def genType(typ: GraphPatternLang.Type): Type.Select = typ match {
+    case TBool => genPrimitiveType("Boolean")
+    case TInt => genPrimitiveType("Integer")
+    case TLong => genPrimitiveType("Long")
+    case TDouble => genPrimitiveType("Double")
+    case TString => genPrimitiveType("String")
+    case TNodeType(wrapped) =>
+      val simpleName = wrapped.cls.getSimpleName
+      val pkgName = wrapped.cls.getPackage.getName
+      val pkgElems = pkgName.split('.')
+      val pkgType = pkgElems.tail.foldLeft(Term.Name(pkgElems.head): Term.Ref){ case (acc, pkg) =>
+        Term.Select(acc, Term.Name(pkg))
+      }
+      val paramType = Type.Select(pkgType, Type.Name(simpleName))
+      paramType
   }
+
+  private def genPrimitiveType(name: String): Type.Select =
+    Type.Select(Term.Select(Term.Name("java"), Term.Name("lang")), Type.Name(name))
 
 }

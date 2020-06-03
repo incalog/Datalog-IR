@@ -1,7 +1,7 @@
 package org.inca.trans.fun
 
 import org.inca.analyzedLangs.expLang.{Add, Exp}
-import org.inca.lang.FunLang.{Alternative, AnnoParam, Assert, Assignment, BooleanLiteral, Call, Constant, Def, Eq, InstanceOf, Module, NotInstanceOf, Param, PathAccess, PatternCall, PatternFunction, Return, Undef, Var}
+import org.inca.lang.FunLang.{Alternative, AnnoParam, Assert, Assignment, BooleanLiteral, Call, Constant, Def, Eq, InstanceOf, Module, NotInstanceOf, Param, PathAccess, PatternCall, PatternFunction, Return, TBool, Undef, Var}
 import org.inca.meta.MetaElements.NodeType
 import org.inca.print.GraphPatternLangPrinter
 import org.inca.trans.ExpLangTestAnalyses._
@@ -28,7 +28,7 @@ class FunToGPTranslatorTest extends AnyFunSuite {
       None,
       "id",
       List(Param("add", Some(addType))),
-      List(AnnoParam("out", expType)),
+      List(AnnoParam(None, expType)),
       List(
         Alternative(
           List(
@@ -46,7 +46,7 @@ class FunToGPTranslatorTest extends AnyFunSuite {
       None,
       "id",
       List(Param("add", Some(addType))),
-      List(AnnoParam("out", expType)),
+      List(AnnoParam(None, expType)),
       List(
         Alternative(
           List(
@@ -69,7 +69,7 @@ class FunToGPTranslatorTest extends AnyFunSuite {
       None,
       "test",
       List(Param("add", Some(addType))),
-      List(AnnoParam("out", expType)),
+      List(AnnoParam(None, expType)),
       List(
         Alternative(
           List(
@@ -88,7 +88,7 @@ class FunToGPTranslatorTest extends AnyFunSuite {
       None,
       "test",
       List(Param("add", Some(addType))),
-      List(AnnoParam("out", expType)),
+      List(AnnoParam(Some("out"), expType)),
       List(
         Alternative(
           List(
@@ -108,7 +108,7 @@ class FunToGPTranslatorTest extends AnyFunSuite {
       None,
       "test",
       List(Param("add", Some(addType))),
-      List(AnnoParam("out", expType)),
+      List(AnnoParam(None, expType)),
       List(
         Alternative(
           List(
@@ -116,9 +116,7 @@ class FunToGPTranslatorTest extends AnyFunSuite {
             Assert(NotInstanceOf(Var("lhschild"), addType)),
             Return(Var("lhschild"))))))
     val result = FunToGPTranslator.transformModule(Module("test", Nil, Seq(fun)))
-    val translator = new GPToPSystemTranslator(Seq(result))
     println(GraphPatternLangPrinter.prettyModule(result))
-    println(translator.transAnalysis())
   }
 
   test("function pattern def of call"){
@@ -130,7 +128,7 @@ class FunToGPTranslatorTest extends AnyFunSuite {
       None,
       "test",
       List(Param("add", Some(addType))),
-      List(AnnoParam("out", expType)),
+      List(AnnoParam(None, expType)),
       List(
         Alternative(
           List(
@@ -174,8 +172,24 @@ class FunToGPTranslatorTest extends AnyFunSuite {
           List(
             Assert(Undef(PathAccess(Var("add"), Seq(lhsLink))))))))
     val result = FunToGPTranslator.transformModule(Module("test", Nil, Seq(fun)))
-    val translator = new GPToPSystemTranslator(Seq(result))
     println(GraphPatternLangPrinter.prettyModule(result))
-    println(translator.transAnalysis())
+  }
+
+  test("parameter without type"){
+    val addType = NodeType(classOf[Add])
+    val expType = NodeType(classOf[Exp])
+    val lhsLink = addType("lhs")
+    val rhsLink = addType("rhs")
+    val result = FunToGPTranslator.transformModule(Module("test", Nil, Seq(noParamTypeFun)))
+    println(GraphPatternLangPrinter.prettyModule(result))
+  }
+
+  test("parameter with primitive type"){
+    val addType = NodeType(classOf[Add])
+    val expType = NodeType(classOf[Exp])
+    val lhsLink = addType("lhs")
+    val rhsLink = addType("rhs")
+    val result = FunToGPTranslator.transformModule(Module("test", Nil, Seq(primitiveParamFun)))
+    println(GraphPatternLangPrinter.prettyModule(result))
   }
 }
