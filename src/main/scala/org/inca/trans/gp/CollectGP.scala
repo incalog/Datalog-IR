@@ -38,7 +38,7 @@ trait CollectGP[R] {
 
   def transLit(lit: Literal): Seq[R] = lit match {
     case IntLiteral(v) => Seq()
-    case FloatLiteral(v) => Seq()
+    case LongLiteral(v) => Seq()
     case DoubleLiteral(v) => Seq()
     case StringLiteral(v) => Seq()
     case BooleanLiteral(v) => Seq()

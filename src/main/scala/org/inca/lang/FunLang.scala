@@ -11,10 +11,9 @@ object FunLang {
   case object TDouble extends Type
   case object TString extends Type
 
-  type Name = String
-
   implicit def nodeTypeToType(t: NodeType): Type = TNodeType(t)
 
+  type Name = String
 
   case class Module(name: Name, imports: Seq[Name], funs: Seq[PatternFunction])
   case class PatternFunction(vis: Option[Visibility], name: Name, params: Seq[Param], outParams: Seq[AnnoParam], bodies: Seq[Alternative])
@@ -28,12 +27,12 @@ object FunLang {
 
   case class Alternative(stmts: Seq[Statement])
 
-  sealed trait Statement
+  trait Statement
   case class Assignment(names: Seq[Name], exp: Exp) extends Statement
   case class Assert(cond: Cond) extends Statement
   case class Return(exp: Exp) extends Statement
 
-  sealed trait Cond
+  trait Cond
   case class Eq(lhs: Exp, rhs: Exp) extends Cond
   case class Neq(lhs: Exp, rhs: Exp) extends Cond
   case class InstanceOf(exp: Exp, typ: Type) extends Cond
@@ -41,7 +40,7 @@ object FunLang {
   case class Def(exp: Exp) extends Cond
   case class Undef(exp: Exp) extends Cond
 
-  sealed trait Exp
+  trait Exp
   case class Var(name: Name) extends Exp
   case class Constant(lit: Literal) extends Exp
   // TODO do not allow nested pathaccesses (preprocess flatten)
@@ -56,7 +55,7 @@ object FunLang {
   sealed trait Literal
   case class BooleanLiteral(v: Boolean) extends Literal
   case class IntLiteral(v: Int) extends Literal
-  case class FloatLiteral(v: Float) extends Literal
+  case class LongLiteral(v: Long) extends Literal
   case class DoubleLiteral(v: Double) extends Literal
   case class StringLiteral(v: String) extends Literal
 }

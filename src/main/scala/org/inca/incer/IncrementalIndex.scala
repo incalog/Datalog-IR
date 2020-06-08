@@ -21,9 +21,9 @@ object IncrementalIndexMacro {
     }
 
     val inputElement = annottees.head
-//    println("Input: " + inputElement)
+    println("Input: " + inputElement)
     val outputElement = rewrite(c)(inputElement)
-//    println("Output: " + outputElement)
+    println("Output: " + outputElement)
     outputElement
   }
 

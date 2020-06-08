@@ -11,6 +11,7 @@ import org.eclipse.viatra.query.runtime.matchers.util.Accuracy;
 import org.inca.incer.listeners.DataTypeInstanceAdapter;
 import org.inca.incer.listeners.NodeLinkInstanceAdapter;
 import org.inca.incer.listeners.NodeTypeInstanceAdapter;
+import org.inca.incer.listeners.ParentAdapter;
 import org.inca.meta.MetaElements;
 import org.inca.meta.MetaElements.DataType;
 import org.inca.meta.MetaElements.NodeLink;
@@ -215,6 +216,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                     linkValues.getOrDefault(seedSource, Collections.emptySet()).forEach(target -> result.add(Tuples.staticArityFlatTupleOf(seedSource, target)));
                 }
             }
+        } else if (key instanceof ParentKey) {
         }
 
         if (this.isDebugMode) {
@@ -357,6 +359,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
         } else if (key instanceof TFInputKey.NodeLinkKey) {
             final Link type = ((TFInputKey.NodeLinkKey) key).type;
             this.indices.addNodeLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
+        } else if (key instanceof ParentKey) {
+            this.indices.parentIndex.addParentListener(new ParentAdapter(listener, seed.get(0), seed.get(1)));
         }
     }
 
@@ -373,6 +377,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
         } else if (key instanceof TFInputKey.NodeLinkKey) {
             final MetaElements.Link type = ((TFInputKey.NodeLinkKey) key).type;
             this.indices.removedNodeLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
+        } else if (key instanceof ParentKey) {
+            this.indices.parentIndex.removeParentListener(new ParentAdapter(listener, seed.get(0), seed.get(1)));
         }
     }
 

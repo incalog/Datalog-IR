@@ -4,8 +4,10 @@ import java.util
 
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, TupleMask, Tuples}
 import org.inca.incer.indices.TFInputKey.{DataTypeKey, NodeLinkKey, NodeTypeKey}
-import org.inca.incer.indices.{TFRuntimeContext, Indices}
-import org.inca.meta.MetaElements.{DataType, NodeType}
+import org.inca.incer.indices.custom.ParentIndex
+import org.inca.incer.indices.{Indices, ParentKey, TFRuntimeContext}
+import org.inca.incer.listeners.ParentAdapter
+import org.inca.meta.MetaElements.{DataType, NodeType, ParentLink}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
 
@@ -96,6 +98,22 @@ class RuntimeContextTests extends AnyFunSuite {
       asScala should contain only (t2(add, num3))
 
     indices.dispose()
+  }
+
+  test("CustomLink parent") {
+    val indices = new Indices()
+    indices.initializeWith(add)
+    val context = new TFRuntimeContext(indices)
+    //indices.parentIndex.addParentListener(new ParentAdapter())
+    indices.update(() => {
+      indices.parentIndex.insertParent(num1, mul)
+      indices.parentIndex.insertParent(num2, mul)
+      indices.parentIndex.insertParent(mul, add)
+      indices.parentIndex.insertParent(num3, add)
+    })
+    println(indices.parentIndex.parents)
+    println(context.enumerateTuples(new NodeTypeKey(NodeType(classOf[Add])), emptyMask, null).asScala)
+
   }
 
   def isEmptyOrNull(coll: util.Collection[_]): Boolean = coll == null || coll.isEmpty

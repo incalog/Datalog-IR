@@ -2,7 +2,7 @@ package org.inca.trans.gp
 
 import org.inca.lang.GraphPatternLang
 import org.inca.lang.GraphPatternLang._
-import org.inca.meta.MetaElements.NodeType
+import org.inca.meta.MetaElements.{Link, NodeLink, NodeType, ParentLink}
 import org.inca.util.Gensym
 
 import scala.meta._
@@ -57,7 +57,7 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
 
       import java.util
 
-      import org.inca.incer.indices.{TFInputKey, TFQueryScope, TFQuerySpecification}
+      import org.inca.incer.indices.{ParentKey, TFInputKey, TFQueryScope, TFQuerySpecification}
       import org.inca.meta.MetaElements
 
 
@@ -159,7 +159,7 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
 
   def genLiteralVarName(lit: Literal): String = lit match {
     case IntLiteral(v) => "int" + v.hashCode()
-    case FloatLiteral(v) => "float" + v.hashCode()
+    case LongLiteral(v) => "long" + v.hashCode()
     case DoubleLiteral(v) => "double" + v.hashCode()
     case StringLiteral(v) => "string" + v.hashCode
     case BooleanLiteral(v) => "boolean" + v.hashCode()
@@ -167,10 +167,11 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
 
   def genLiteral(lit: Literal): Lit = lit match {
     case IntLiteral(v) => Lit.Int(v)
-    case FloatLiteral(v) => Lit.Float(v)
+    case LongLiteral(v) => Lit.Long(v)
     case DoubleLiteral(v) => Lit.Double(v)
     case StringLiteral(v) => Lit.String(v)
     case BooleanLiteral(v) => Lit.Boolean(v)
+
   }
 
   def genParamConstraint(param: Param): Option[Stat] = {
@@ -209,10 +210,18 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
       Seq(q"""new TypeConstraint(
             body,
             Tuples.staticArityFlatTupleOf(..${List(transValue(src), transValue(trg))}),
-            new TFInputKey.NodeLinkKey(new MetaElements.NodeType(classOf[${genType(typ)}])(${Lit.String(link.fld.getName)})))
+            ${genLinkKey(link)})
          """)
     // TODO
     case Check(code) => Seq()
+  }
+
+  def genLinkKey(link: Link): Term = link match {
+    case ParentLink() =>
+      q"new ParentKey(new MetaElements.ParentLink())"
+    case NodeLink(nodeType, fld)  =>
+      q"new TFInputKey.NodeLinkKey(new MetaElements.NodeType(classOf[${genType(nodeType)}])(${Lit.String(fld.getName)}))"
+    case _ => throw new IllegalArgumentException("Does not support such a link")
   }
 
   def transValue(v: Value): Term = v match {

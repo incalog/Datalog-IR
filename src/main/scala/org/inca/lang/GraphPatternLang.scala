@@ -54,7 +54,7 @@ object GraphPatternLang {
 
   sealed trait Literal
   case class IntLiteral(v: Int) extends Literal
-  case class FloatLiteral(v: Float) extends Literal
+  case class LongLiteral(v: Long) extends Literal
   case class DoubleLiteral(v: Double) extends Literal
   case class StringLiteral(v: String) extends Literal
   case class BooleanLiteral(v: Boolean) extends Literal

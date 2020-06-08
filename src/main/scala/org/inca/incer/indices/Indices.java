@@ -10,13 +10,14 @@ import org.eclipse.viatra.query.runtime.api.scope.ViatraBaseIndexChangeListener;
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple;
 import org.inca.incer.Incrementalizable;
+import org.inca.incer.indices.custom.CustomIndex;
+import org.inca.incer.indices.custom.ParentIndex;
 import org.inca.incer.listeners.IDataTypeInstanceListener;
 import org.inca.incer.listeners.IInstanceListener;
 import org.inca.incer.listeners.INodeLinkInstanceListener;
 import org.inca.incer.listeners.INodeTypeInstanceListener;
 import org.inca.meta.MetaElements.MetaElement;
 import org.inca.meta.MetaElements.DataType;
-import org.inca.meta.MetaElements.NodeLink;
 import org.inca.meta.MetaElements.Link;
 import org.inca.meta.MetaElements.NodeType;
 
@@ -41,6 +42,11 @@ public class Indices implements IBaseIndex {
     public static final Map<Class<?>, Set<Class<?>>> subTypeMap = new HashMap<>();
     public static final Map<Class<?>, Set<Class<?>>> superTypeMap = new HashMap<>();
 
+    // Custom index (e.g. virtual links like parent)
+    // public final Set<CustomIndex> customIndices;
+    public ParentIndex parentIndex;
+
+
     private final Set<ViatraBaseIndexChangeListener> changeListeners;
     private AdvancedViatraQueryEngine engine;
 
@@ -59,11 +65,22 @@ public class Indices implements IBaseIndex {
         this.nodeLinkInstancesReversed = new HashMap<>();
         this.nodeLinkInstanceListeners = new HashMap<>();
         this.changeListeners = new HashSet<>();
+        // this.customIndices = new HashSet<>();
+        this.parentIndex = new ParentIndex();
         this.engine = engine;
     }
 
     public void initializeWith(final Incrementalizable root) {
         root.insert(this);
+    }
+
+    // We separate initialization of virtual links from the other indices because to enable customiszable virtual links
+    // The reason for this is the fact that the other indices are initialaized by macro expansion
+    public void initializeCustomIndices(final Incrementalizable root, Set<CustomIndex> customIndices) {
+//        this.customIndices.addAll(customIndices);
+//        for (CustomIndex customIndex : this.customIndices) {
+//            customIndex.initialize(root);
+//        }
     }
 
     public void dispose() {
@@ -75,6 +92,8 @@ public class Indices implements IBaseIndex {
         this.nodeLinkInstancesReversed.clear();
         this.nodeLinkInstanceListeners.clear();
         this.changeListeners.clear();
+        // this.customIndices.clear();
+        this.parentIndex = null;
         this.engine = null;
     }
 

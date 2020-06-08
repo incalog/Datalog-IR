@@ -92,10 +92,6 @@ object FunToGPTranslator {
         val eqConstraints = genEqs(names, rvars)
         (Seq(), rconstraints ++ eqConstraints)
       case Fun.Assert(cond) => transCond(cond)
-//      case Fun.Switch(alts) => (Seq(), Seq())
-//      case Fun.StatementList(stmts) =>
-//        val res = stmts.map(transStatement)
-//        (res.last._1, res.flatMap(_._2))
     }
 
     def transCond(cond: Fun.Cond): Res = cond match {
@@ -208,7 +204,7 @@ object FunToGPTranslator {
 
     def transLiteral(lit: Fun.Literal): GP.Literal = lit match {
       case Fun.IntLiteral(v) => GP.IntLiteral(v)
-      case Fun.FloatLiteral(v) => GP.FloatLiteral(v)
+      case Fun.LongLiteral(v) => GP.LongLiteral(v)
       case Fun.DoubleLiteral(v) => GP.DoubleLiteral(v)
       case Fun.StringLiteral(v) => GP.StringLiteral(v)
       case Fun.BooleanLiteral(v) => GP.BooleanLiteral(v)

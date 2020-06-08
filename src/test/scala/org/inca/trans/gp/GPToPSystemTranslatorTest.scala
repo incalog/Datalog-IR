@@ -4,9 +4,10 @@ import org.eclipse.viatra.query.runtime.api.{IPatternMatch, ViatraQueryMatcher}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import org.inca.analyzedLangs.expLang._
 import org.inca.generator.generated._
-import org.inca.incer.Incrementalizable
+import org.inca.incer.{Incrementalizable, Mul}
 import org.inca.incer.indices.{EnginePool, TFQueryScope, TFQuerySpecification}
-import org.inca.lang.FunLang.Module
+import org.inca.lang.FunLang.{Alternative, AnnoParam, Module, Param, PathAccess, PatternFunction, Return, Var}
+import org.inca.meta.MetaElements.{NodeType, ParentLink}
 import org.inca.trans.ExpLangTestAnalyses._
 import org.inca.trans.fun.FunToGPTranslator
 import org.inca.util.AnalysisWriter
@@ -100,5 +101,40 @@ class GPToPSystemTranslatorTest extends AnyFunSuite {
     assertMatch(module, testInput, Test_isBooleanQuerySpecification.instance()) { matcher =>
       assert(matcher.getAllMatches.size == 2)
     }
+  }
+
+  test("virtual parent link") {
+    val num1 = IntegerLit(1)
+    val num2 = IntegerLit(2)
+    val add = Add(num1, num2)
+    val num3 = IntegerLit(3)
+    val mul = Mult(num3, add)
+    val parentFun = PatternFunction(
+      None,
+      "parent",
+      List(Param("in", None)),
+      List(AnnoParam(None, NodeType(classOf[Exp]))),
+      List(
+        Alternative(
+          List(
+            Return(PathAccess(Var("in"), Seq(ParentLink())))))))
+    val module = Module("Test", Seq(), Seq(parentFun))
+    assertMatch(module, mul, Test_parentQuerySpecification.instance()) { matcher =>
+      val indices = matcher.getEngine.getScope.asInstanceOf[TFQueryScope].getEngineContext.getBaseIndex
+      indices.update(() => {
+        indices.parentIndex.insertParent(num1, add)
+        indices.parentIndex.insertParent(num2, add)
+        indices.parentIndex.insertParent(num3, mul)
+        indices.parentIndex.insertParent(add, mul)
+      })
+      println(matcher.getAllMatches())
+      indices.update(() => {
+        indices.parentIndex.deleteParent(num3, mul)
+        indices.parentIndex.deleteParent(add, mul)
+      })
+      println(matcher.getAllMatches())
+      assert(matcher.getAllMatches.size == 2)
+    }
+
   }
 }
