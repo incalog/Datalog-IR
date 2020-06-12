@@ -221,6 +221,7 @@ object FunToGPTranslator {
     Fun.PatternFunction(
       Some(Fun.Private),
       nameOfUndefPathHelper(path),
+      // TODO figure out type of src
       List(Fun.Param("in", Some(path.path.head.nodeType))),
       List(),
       List(Fun.Alternative(List(Fun.Assert(Fun.Def(path))))))

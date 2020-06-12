@@ -1,6 +1,6 @@
 package inca.backend
 
-import truediff.diffable.Diffable
+import truediff.Diffable
 import truediff.macros.diffable
 
 @diffable

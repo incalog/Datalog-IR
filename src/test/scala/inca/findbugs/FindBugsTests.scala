@@ -1,34 +1,28 @@
 package inca.findbugs
 
 import inca.MetaElements.NodeType
-import inca.analyzedLangs.{ClassDeclaration, FieldDeclaration, ProtectedVisibility}
+import inca.analyzedLangs.{BooleanConstant, ClassDeclaration, FieldDeclaration, ProtectedVisibility}
 import inca.backend.indices.{EnginePool, TFQueryScope}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
+import truediff.Diffable
 
 class FindBugsTests extends AnyFunSuite {
 
-  val clazz = ClassDeclaration("Foo", true, List(FieldDeclaration("bar", ProtectedVisibility())))
+  val clazz = ClassDeclaration("Foo", BooleanConstant(true), List(FieldDeclaration("bar", ProtectedVisibility())))
 
   test("Confused Inheritance") {
-    val scope = new TFQueryScope(clazz)
+    // TODO support lists in the backend and adapt the analysis
+    val scope = new TFQueryScope(clazz, null)
+    val changeset = Diffable.load(clazz)
     val matcher = EnginePool.getMatcher(ConfusedInheritance.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
-    println(matcher.getAllMatches)
-
     val indices = scope.getEngineContext.getBaseIndex
-    indices.update(() => {
-      indices.deleteNodeLinkInstance(clazz, NodeType(classOf[ClassDeclaration])("isFinal"), true)
-      indices.deleteDataTypeInstance(true)
-      indices.insertNodeLinkInstance(clazz, NodeType(classOf[ClassDeclaration])("isFinal"), false)
-      indices.insertDataTypeInstance(false)
-    })
+    indices.processChangeset(changeset)
     println(matcher.getAllMatches)
-
+    val clazz2 = ClassDeclaration("Foo", BooleanConstant(false), List(FieldDeclaration("bar", ProtectedVisibility())))
+    val (diffset, _) = clazz.compareTo(clazz2)
     indices.update(() => {
-      indices.deleteNodeLinkInstance(clazz, NodeType(classOf[ClassDeclaration])("isFinal"), false)
-      indices.deleteDataTypeInstance(false)
-      indices.insertNodeLinkInstance(clazz, NodeType(classOf[ClassDeclaration])("isFinal"), true)
-      indices.insertDataTypeInstance(true)
+      indices.processChangeset(diffset)
     })
     println(matcher.getAllMatches)
 

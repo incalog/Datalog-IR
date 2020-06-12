@@ -1,7 +1,7 @@
 package inca.backend.indices;
 
 import com.google.common.collect.Multiset;
-import inca.backend.virtual.ParentKey;
+import inca.backend.virtual.VirtualIndex;
 import org.eclipse.viatra.query.runtime.matchers.context.*;
 import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey;
 import org.eclipse.viatra.query.runtime.matchers.tuple.ITuple;
@@ -12,7 +12,6 @@ import org.eclipse.viatra.query.runtime.matchers.util.Accuracy;
 import inca.backend.listeners.DataTypeInstanceAdapter;
 import inca.backend.listeners.NodeLinkInstanceAdapter;
 import inca.backend.listeners.NodeTypeInstanceAdapter;
-import inca.backend.virtual.ParentAdapter;
 import inca.MetaElements;
 import inca.MetaElements.DataType;
 import inca.MetaElements.Link;
@@ -21,6 +20,8 @@ import inca.MetaElements.NodeType;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.Callable;
+import scala.jdk.CollectionConverters.*;
+import scala.jdk.javaapi.CollectionConverters;
 
 public class TFRuntimeContext implements IQueryRuntimeContext {
 
@@ -126,6 +127,12 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                     result = linkValues.getOrDefault(seedSource, Collections.emptySet()).size();
                 }
             }
+        } else {
+            for (VirtualIndex vIndex : indices.virtualIndices) {
+                if (vIndex.isSupported(key)) {
+                    result = vIndex.countTuples(mask, seed);
+                }
+            }
         }
 
         if (this.isDebugMode) {
@@ -216,7 +223,12 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                     linkValues.getOrDefault(seedSource, Collections.emptySet()).forEach(target -> result.add(Tuples.staticArityFlatTupleOf(seedSource, target)));
                 }
             }
-        } else if (key instanceof ParentKey) {
+        } else {
+            for (VirtualIndex vIndex : indices.virtualIndices) {
+                if (vIndex.isSupported(key)) {
+                    result.addAll(CollectionConverters.asJavaCollection(vIndex.enumerateTuples(mask, seed)));
+                }
+            }
         }
 
         if (this.isDebugMode) {
@@ -282,6 +294,12 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 // must be singly unseeded, this is enumerateValues after all!
                 illegalEnumerateValues(seed);
             }
+        } else {
+            for (VirtualIndex vIndex : indices.virtualIndices) {
+                if (vIndex.isSupported(key)) {
+                    result = CollectionConverters.asJavaCollection(vIndex.enumerateValues(mask, seed));
+                }
+            }
         }
 
         if (this.isDebugMode) {
@@ -323,6 +341,12 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 final Object target = getFromTuple(tuple, 0);
                 result = linkValues.getOrDefault(source, Collections.emptySet()).contains(target);
             }
+        } else {
+            for (VirtualIndex vIndex : indices.virtualIndices) {
+                if (vIndex.isSupported(key)) {
+                    result = vIndex.containsTuple(tuple);
+                }
+            }
         }
 
         if (this.isDebugMode) {
@@ -359,8 +383,12 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
         } else if (key instanceof TFInputKey.NodeLinkKey) {
             final Link type = ((TFInputKey.NodeLinkKey) key).type;
             this.indices.addNodeLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
-        } else if (key instanceof ParentKey) {
-            this.indices.parentIndex.addParentListener(new ParentAdapter(listener, seed.get(0), seed.get(1)));
+        } else {
+            indices.virtualIndices.forEach((vIndex) -> {
+                if (vIndex.isSupported(key)) {
+                    vIndex.addListener(listener, seed);
+                }
+            });
         }
     }
 
@@ -377,8 +405,12 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
         } else if (key instanceof TFInputKey.NodeLinkKey) {
             final MetaElements.Link type = ((TFInputKey.NodeLinkKey) key).type;
             this.indices.removedNodeLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
-        } else if (key instanceof ParentKey) {
-            this.indices.parentIndex.removeParentListener(new ParentAdapter(listener, seed.get(0), seed.get(1)));
+        } else {
+            indices.virtualIndices.forEach((vIndex) -> {
+                if (vIndex.isSupported(key)) {
+                   vIndex.removeListener(listener, seed);
+                }
+            });
         }
     }
 

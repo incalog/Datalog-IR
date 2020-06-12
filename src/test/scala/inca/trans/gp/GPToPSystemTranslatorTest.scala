@@ -1,15 +1,18 @@
 package inca.trans.gp
 
-import inca.analyzedLangs.expLang.{Add, And, BooleanLit, Exp, IntegerLit, LongLit, Mult, Or}
+import java.util.Collections
+
+import inca.analyzedLangs.expLang._
 import org.eclipse.viatra.query.runtime.api.{IPatternMatch, ViatraQueryMatcher}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
-import truediff.diffable.Diffable
-import inca.backend.indices.{EnginePool, TFQueryScope, TFQuerySpecification}
+import truediff.Diffable
+import inca.backend.indices.{EnginePool, Indices, TFQueryScope, TFQuerySpecification}
 import inca.lang.FunLang.{Alternative, AnnoParam, Module, Param, PathAccess, PatternFunction, Return, Var}
 import inca.MetaElements.{NodeType, ParentLink}
+import inca.backend.TypeHierarchyCollector
 import inca.trans.fun.FunToGPTranslator
 import inca.trans.ExpLangTestAnalyses._
-import inca.trans.generated.{Test_callLhChildQuerySpecification, Test_childrenQuerySpecification, Test_idQuerySpecification, Test_instanceAddQuerySpecification, Test_isBooleanQuerySpecification, Test_lhChildQuerySpecification, Test_noParamTypeQuerySpecification, Test_parentQuerySpecification}
+import inca.trans.generated._
 import inca.util.AnalysisWriter
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
@@ -24,10 +27,22 @@ class GPToPSystemTranslatorTest extends AnyFunSuite {
       subjectProg: Diffable,
       compiledModule: TFQuerySpecification)(asserter: ViatraQueryMatcher[IPatternMatch] => Assertion): Assertion = {
     val gp = FunToGPTranslator.transformModule(module)
-//    println(GraphPatternLangPrinter.prettyModule(gp))
     AnalysisWriter.writeModule(gp)
+    val changeset = Diffable.load(subjectProg)
     val scope = new TFQueryScope(subjectProg)
+
+    // TODO this is done by hand currently (we need a generic way of extracting supertypes for all relevant types)
+    Indices.superTypeMap.put(classOf[Mult], Collections.singleton(classOf[Exp]))
+    Indices.superTypeMap.put(classOf[Add], Collections.singleton(classOf[Exp]))
+    Indices.superTypeMap.put(classOf[And], Collections.singleton(classOf[Exp]))
+    Indices.superTypeMap.put(classOf[Or], Collections.singleton(classOf[Exp]))
+    Indices.superTypeMap.put(classOf[IntegerLit], Collections.singleton(classOf[Exp]))
+    Indices.superTypeMap.put(classOf[LongLit], Collections.singleton(classOf[Exp]))
+    Indices.superTypeMap.put(classOf[BooleanLit], Collections.singleton(classOf[Exp]))
+
     val matcher = EnginePool.getMatcher(compiledModule, scope, DifferentialReteBackendFactory.INSTANCE)
+    scope.getEngineContext.getBaseIndex.processChangeset(changeset)
+
     val result = asserter(matcher)
     EnginePool.disposeAllEngines()
     result
@@ -121,20 +136,7 @@ class GPToPSystemTranslatorTest extends AnyFunSuite {
     val module = Module("Test", Seq(), Seq(parentFun))
     assertMatch(module, mul, Test_parentQuerySpecification.instance()) { matcher =>
       val indices = matcher.getEngine.getScope.asInstanceOf[TFQueryScope].getEngineContext.getBaseIndex
-      indices.update(() => {
-        indices.parentIndex.insertParent(num1, add)
-        indices.parentIndex.insertParent(num2, add)
-        indices.parentIndex.insertParent(num3, mul)
-        indices.parentIndex.insertParent(add, mul)
-      })
-      println(matcher.getAllMatches())
-      indices.update(() => {
-        indices.parentIndex.deleteParent(num3, mul)
-        indices.parentIndex.deleteParent(add, mul)
-      })
-      println(matcher.getAllMatches())
-      assert(matcher.getAllMatches.size == 2)
+      assert(matcher.getAllMatches.size == 4)
     }
-
   }
 }

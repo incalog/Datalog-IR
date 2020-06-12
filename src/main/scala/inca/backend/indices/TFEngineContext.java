@@ -1,10 +1,16 @@
 package inca.backend.indices;
 
 
+import inca.backend.virtual.ParentIndex;
+import inca.backend.virtual.VirtualIndex;
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine;
 import org.eclipse.viatra.query.runtime.api.scope.IEngineContext;
 import org.eclipse.viatra.query.runtime.exception.ViatraQueryException;
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContext;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
 public class TFEngineContext implements IEngineContext {
 
@@ -35,9 +41,9 @@ public class TFEngineContext implements IEngineContext {
 
     protected void initialize() {
         if (this.runtimeContext == null) {
-            this.indices = new Indices(this.engine);
-            // TODO
-//            this.indices.initializeWith(this.scope.root);
+            Set<VirtualIndex> virtualIndices = new HashSet<>();
+            virtualIndices.add(new ParentIndex());
+            this.indices = new Indices(this.engine, virtualIndices);
             this.runtimeContext = new TFRuntimeContext(this.indices);
         }
     }

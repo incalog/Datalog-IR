@@ -2,6 +2,8 @@ package inca.backend.indices;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
+import inca.MetaElements;
+import inca.backend.virtual.VirtualIndex;
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine;
 import org.eclipse.viatra.query.runtime.api.scope.IBaseIndex;
 import org.eclipse.viatra.query.runtime.api.scope.IIndexingErrorListener;
@@ -9,7 +11,6 @@ import org.eclipse.viatra.query.runtime.api.scope.IInstanceObserver;
 import org.eclipse.viatra.query.runtime.api.scope.ViatraBaseIndexChangeListener;
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple;
-import inca.backend.virtual.ParentIndex;
 import inca.backend.listeners.IDataTypeInstanceListener;
 import inca.backend.listeners.IInstanceListener;
 import inca.backend.listeners.INodeLinkInstanceListener;
@@ -18,7 +19,9 @@ import inca.MetaElements.MetaElement;
 import inca.MetaElements.DataType;
 import inca.MetaElements.Link;
 import inca.MetaElements.NodeType;
-import truediff.changeset.Changeset;
+import scala.Tuple2;
+import scala.collection.Iterator;
+import truechange.*;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -38,13 +41,13 @@ public class Indices implements IBaseIndex {
     final Map<Link, Map<Object, Set<Object>>> nodeLinkInstancesReversed;
     final Map<Link, Set<INodeLinkInstanceListener>> nodeLinkInstanceListeners;
 
+    // TODO we need to populate these maps somehow
     public static final Map<Class<?>, Set<Class<?>>> subTypeMap = new HashMap<>();
     public static final Map<Class<?>, Set<Class<?>>> superTypeMap = new HashMap<>();
 
-    // Custom index (e.g. virtual links like parent)
-    // public final Set<CustomIndex> customIndices;
-    public ParentIndex parentIndex;
+//    public ParentIndex parentIndex;
 
+    final Set<VirtualIndex> virtualIndices;
 
     private final Set<ViatraBaseIndexChangeListener> changeListeners;
     private AdvancedViatraQueryEngine engine;
@@ -52,10 +55,10 @@ public class Indices implements IBaseIndex {
     private boolean isDirty;
 
     public Indices() {
-        this(null);
+        this(null, Collections.emptySet());
     }
 
-    public Indices(final AdvancedViatraQueryEngine engine) {
+    public Indices(final AdvancedViatraQueryEngine engine, final Set<VirtualIndex> virtualIndices) {
         this.nodeTypeInstances = new HashMap<>();
         this.nodeTypeInstanceListeners = new HashMap<>();
         this.dataTypeInstances = new HashMap<>();
@@ -64,27 +67,109 @@ public class Indices implements IBaseIndex {
         this.nodeLinkInstancesReversed = new HashMap<>();
         this.nodeLinkInstanceListeners = new HashMap<>();
         this.changeListeners = new HashSet<>();
-        // this.customIndices = new HashSet<>();
-        this.parentIndex = new ParentIndex();
+//        this.parentIndex = new ParentIndex();
+        this.virtualIndices = virtualIndices;
         this.engine = engine;
     }
 
     public void processChangeset(Changeset changeset) {
-    	// TODO
-	}
+        Iterator<truechange.Change> changesetIterator = changeset.cmds().iterator();
+        while (changesetIterator.hasNext()) {
+            truechange.Change change = changesetIterator.next();
+            // process virtual indices
+            virtualIndices.forEach((vIndex) -> {
+                vIndex.processChange(change);
+            });
+            if (change instanceof DetachNode) {
+                // delete nodeLinkInstance
+                DetachNode detach = (DetachNode) change;
+                deleteNodeLinkInstance(detach.parent(), convertLinkToNodeLink(detach.link()), detach.node());
+            } else if (change instanceof UnloadNode) {
+                UnloadNode unload = (UnloadNode) change;
+                // insert nodeTypeInstance
+                NodeType nodeType = convertNodeTagToNodeType(unload.tag());
+                deleteNodeTypeInstance(nodeType, unload.node());
+                // delete for parent types
+                Set<Class<?>> supertypes = superTypeMap.getOrDefault(nodeType.cls(), Collections.emptySet());
+                for (Class<?> supertype : supertypes) {
+                    NodeType nodeSupertype = new NodeType(supertype);
+                    deleteNodeTypeInstance(nodeSupertype, unload.node());
+                }
+                // delete nodeLinkInstance for each kid
+                Iterator<Tuple2<String, NodeURI>> kidsIterator = unload.kids().iterator();
+                while(kidsIterator.hasNext()) {
+                    Tuple2<String, NodeURI> kid = kidsIterator.next();
+                    deleteNodeLinkInstance(unload.node(), convertNodeAndStringToNodeLink(unload.tag(), kid._1), kid._2);
+                }
+                // delete dataTypeInstance for each lit
+                // delete nodeLinkInstances for each lit
+                Iterator<Tuple2<String, Literal<?>>> litsIterator = unload.lits().iterator();
+                while(litsIterator.hasNext()) {
+                    Tuple2<String, Literal<?>> lit = litsIterator.next();
+                    // TODO do we want to pass the literal or the value that the literal wraps?
+                    deleteDataTypeInstance(lit._2.value());
+                    deleteNodeLinkInstance(unload.node(), convertNodeAndStringToNodeLink(unload.tag(), lit._1), lit._2.value());
+                }
+            } else if (change instanceof AttachNode) {
+                // insert nodeLinkInstance
+                AttachNode attach = (AttachNode) change;
+                insertNodeLinkInstance(attach.parent(), convertLinkToNodeLink(attach.link()), attach.node());
+            } else if (change instanceof LoadNode) {
+                // insert nodeTypeInstance
+                LoadNode load = (LoadNode) change;
+                NodeType nodeType = convertNodeTagToNodeType(load.tag());
+                insertNodeTypeInstance(nodeType, load.node());
+                // insert for every parent type
+                Set<Class<?>> supertypes = superTypeMap.getOrDefault(nodeType.cls(), Collections.emptySet());
+                for (Class<?> supertype : supertypes) {
+                    NodeType nodeSupertype = new NodeType(supertype);
+                    insertNodeTypeInstance(nodeSupertype, load.node());
+                }
+                Iterator<Tuple2<String, NodeURI>> kidsIterator = load.kids().iterator();
+                while(kidsIterator.hasNext()) {
+                    Tuple2<String, NodeURI> kid = kidsIterator.next();
+                    insertNodeLinkInstance(load.node(), convertNodeAndStringToNodeLink(load.tag(), kid._1), kid._2);
+                }
+                Iterator<Tuple2<String, Literal<?>>> litsIterator = load.lits().iterator();
+                while(litsIterator.hasNext()) {
+                    Tuple2<String, Literal<?>> lit = litsIterator.next();
+                    // TODO do we want to pass the literal or the value that the literal wraps?
+                    insertDataTypeInstance(lit._2.value());
+                    insertNodeLinkInstance(load.node(), convertNodeAndStringToNodeLink(load.tag(), lit._1), lit._2.value());
+                }
+            }
+        }
+    }
 
-//    public void initializeWith(final Incrementalizable root) {
-//        root.insert(this);
-//    }
-//
-//    // We separate initialization of virtual links from the other indices because to enable customiszable virtual links
-//    // The reason for this is the fact that the other indices are initialaized by macro expansion
-//    public void initializeCustomIndices(final Incrementalizable root, Set<CustomIndex> customIndices) {
-////        this.customIndices.addAll(customIndices);
-////        for (CustomIndex customIndex : this.customIndices) {
-////            customIndex.initialize(root);
-////        }
-//    }
+	private NodeType convertNodeTagToNodeType(truechange.Type type) {
+        if (type instanceof SortType) {
+            SortType stype = (SortType) type;
+            return new NodeType(stype.tag());
+        } else if (type instanceof ListType) {
+            ListType ltype = (ListType) type;
+            return convertNodeTagToNodeType(ltype.ty());
+        }
+        // TODO implement more
+        return null;
+    }
+    private MetaElements.Link convertNodeAndStringToNodeLink(truechange.Type type, String linkName) {
+       NodeType nodeType = convertNodeTagToNodeType(type);
+       return nodeType.apply(linkName);
+    }
+
+    private MetaElements.Link convertLinkToNodeLink(truechange.Link link) {
+        if (link instanceof NamedLink) {
+            NamedLink nlink = (NamedLink) link;
+            return convertNodeTagToNodeType(nlink.tag()).apply(nlink.name());
+        }
+        // TODO implement more
+        return null;
+    }
+
+    private DataType convertLiteralToDataType(Literal literal) {
+        return new DataType(literal.tag());
+    }
+
 
     public void dispose() {
         this.nodeTypeInstances.clear();
@@ -95,8 +180,7 @@ public class Indices implements IBaseIndex {
         this.nodeLinkInstancesReversed.clear();
         this.nodeLinkInstanceListeners.clear();
         this.changeListeners.clear();
-        // this.customIndices.clear();
-        this.parentIndex = null;
+        this.virtualIndices.clear();
         this.engine = null;
     }
 
@@ -113,7 +197,12 @@ public class Indices implements IBaseIndex {
             throw new RuntimeException(e);
         }
 
-        notifyBaseIndexChangeListeners(this.isDirty);
+        final boolean[] virtualIsDirty = {false};
+        virtualIndices.forEach((vIndex) -> {
+            virtualIsDirty[0] |= vIndex.isDirty();
+        });
+
+        notifyBaseIndexChangeListeners(this.isDirty || virtualIsDirty[0]);
 
         return result;
     }
@@ -491,5 +580,4 @@ public class Indices implements IBaseIndex {
     void removedNodeLinkInstanceListener(final Link type, final INodeLinkInstanceListener listener) {
         removeInstanceListener(type, listener, this.nodeLinkInstanceListeners);
     }
-
 }

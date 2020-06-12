@@ -5,9 +5,11 @@ import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine;
 import org.eclipse.viatra.query.runtime.api.ViatraQueryEngine;
 import org.eclipse.viatra.query.runtime.api.scope.IEngineContext;
 import org.eclipse.viatra.query.runtime.api.scope.IIndexingErrorListener;
+import truechange.Changeset;
 
 public class TFQueryScope extends org.eclipse.viatra.query.runtime.api.scope.QueryScope {
 
+    // TODO: delete root, add name
     protected final Object root;
     private TFEngineContext engineContext;
 

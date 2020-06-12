@@ -13,7 +13,8 @@ scalacOptions ++= Seq(
 
 javacOptions ++= Seq("-source", "11")
 
-libraryDependencies += "de.uni-mainz.informatik.pl" %% "truediff" % "0.1"
+libraryDependencies += "de.uni-mainz.informatik.pl" %% "truechange" % "0.1"
+libraryDependencies += "de.uni-mainz.informatik.pl" %% "truediff" % "0.1" % "test"
 
 // https://mvnrepository.com/artifact/org.apache.commons/commons-collections4
 libraryDependencies += "org.apache.commons" % "commons-collections4" % "4.4"

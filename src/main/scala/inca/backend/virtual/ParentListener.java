@@ -5,18 +5,17 @@ import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextLis
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
 import inca.MetaElements;
 
-public class ParentAdapter extends ListenerAdapter implements IParentListener {
-    public final Object node;
-    public final Object parent;
+public class ParentListener extends ListenerAdapter {
+    public final truechange.Node node;
+    public final truechange.Node parent;
 
-    public ParentAdapter(final IQueryRuntimeContextListener listener, final Object node, final Object parent) {
+    public ParentListener(final IQueryRuntimeContextListener listener, final truechange.Node node, final truechange.Node parent) {
          super(listener, node, parent);
          this.node = node;
          this.parent = parent;
     }
 
-    @Override
-    public void insert(Object node, Object parent) {
+    public void insert(truechange.Node node, truechange.Node parent) {
         if (this.node != null && !(this.node.equals(node))) {
             return;
         }
@@ -26,8 +25,7 @@ public class ParentAdapter extends ListenerAdapter implements IParentListener {
         this.listener.update(new ParentKey(new MetaElements.ParentLink()), Tuples.staticArityFlatTupleOf(node, parent), true);
     }
 
-    @Override
-    public void delete(Object node, Object parent) {
+    public void delete(truechange.Node node, truechange.Node parent) {
         if (this.node != null && !(this.node.equals(node))) {
             return;
         }

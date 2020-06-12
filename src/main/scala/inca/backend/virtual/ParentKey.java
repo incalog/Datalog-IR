@@ -1,9 +1,8 @@
 package inca.backend.virtual;
 
 import inca.MetaElements;
-import inca.backend.virtual.CustomKey;
 
-public class ParentKey extends CustomKey<MetaElements.ParentLink> {
+public class ParentKey extends inca.backend.indices.TFInputKey<MetaElements.ParentLink> {
     public ParentKey(MetaElements.ParentLink type) {
         super(type);
     }

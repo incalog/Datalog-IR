@@ -13,7 +13,7 @@ object AnalysisWriter {
     module.pats.foreach { pat =>
       val source = trans.transGraphPattern(pat)
       val name = getAnalysisName(source)
-      val file = new File(s"src/test/scala/org/inca/trans/generated/$name.scala")
+      val file = new File(s"src/test/scala/inca/trans/generated/$name.scala")
       val writer = new PrintWriter(file)
       writer.write(source.syntax)
       writer.close()

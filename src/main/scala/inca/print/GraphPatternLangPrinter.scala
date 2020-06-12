@@ -1,6 +1,6 @@
 package inca.print
 
-import inca.MetaElements.DefinedNodeLink
+import inca.MetaElements.{DefinedNodeLink, NodeLink}
 import inca.lang.GraphPatternLang.{Alternative, Comparator, Compare, Composition, Concept, Constant, Constraint, EqComparator, GraphPattern, Module, NeqComparator, Param, Path, PatternCall, Private, Public, TBool, TDouble, TInt, TLong, TNodeType, TString, Type, Value, Var, Visibility}
 
 object GraphPatternLangPrinter {
@@ -37,9 +37,14 @@ object GraphPatternLangPrinter {
   def prettyConstraint(constraint: Constraint): String = constraint match {
     case Compare(comp, lhs, rhs) => prettyValue(lhs) + " " + prettyComparator(comp) + " " + prettyValue(rhs)
     case Concept(v, typ) => prettyType(typ) + "(" + prettyValue(v) + ")"
-    case Path(src, trg, link, typ) =>
-      val isDefined = if (link.isInstanceOf[DefinedNodeLink]) "_isDefined" else ""
-      prettyType(typ) + "." + link.fld.getName + isDefined + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
+    case Path(src, trg, link, typ) => link match {
+      case NodeLink(nodeType, fld) =>
+        prettyType(typ) + "." + fld.getName + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
+      case DefinedNodeLink(nodeType, fld) =>
+        prettyType(typ) + "." + fld.getName + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
+      case _ =>
+        prettyType(typ) + "." + link.fld.getName + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
+    }
     case Composition(call, neg) => (if(neg) "neg " else "") + "find " + prettyPatternCall(call)
   }
 

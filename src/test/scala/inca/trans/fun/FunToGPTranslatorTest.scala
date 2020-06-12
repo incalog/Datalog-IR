@@ -1,7 +1,6 @@
 package inca.trans.fun
 
-import inca.analyzedLangs.expLang.{Add, Exp}
-import inca.analyzedLangs.expLang.Add
+import inca.analyzedLangs.expLang._
 import inca.lang.FunLang.{Alternative, AnnoParam, Assert, Assignment, BooleanLiteral, Call, Constant, Def, Eq, InstanceOf, Module, NotInstanceOf, Param, PathAccess, PatternCall, PatternFunction, Return, TBool, Undef, Var}
 import inca.MetaElements.NodeType
 import inca.print.GraphPatternLangPrinter

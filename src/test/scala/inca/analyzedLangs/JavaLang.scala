@@ -1,10 +1,11 @@
 package inca.analyzedLangs
 
-import truediff.diffable.Diffable
+import truediff.Diffable
 import truediff.macros.diffable
 
 @diffable
-case class ClassDeclaration(name: String, isFinal: Boolean, members: List[ClassMember]) extends Diffable
+case class ClassDeclaration(name: String, isFinal: BooleanConstant, members: List[ClassMember]) extends Diffable
+
 
 @diffable
 trait ClassMember extends Diffable
@@ -21,16 +22,17 @@ case class PublicVisibility() extends Visibility
 @diffable
 case class ProtectedVisibility() extends Visibility
 
-@diffable
-case class PrivateVisibility() extends Visibility
-
+@diffable case class PrivateVisibility() extends Visibility
 trait Primitive {
   val value: Any
 }
 
+@diffable
 case class BooleanConstant(value: Boolean) extends Primitive
 
+@diffable
 case class IntegerConstant(value: Int) extends Primitive
 
+@diffable
 case class LongConstant(value: Long) extends Primitive
 

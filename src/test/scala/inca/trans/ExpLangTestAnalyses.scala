@@ -1,6 +1,5 @@
 package inca.trans
 
-import inca.analyzedLangs.expLang.{Add, BooleanLit, Exp}
 import inca.analyzedLangs.expLang._
 import inca.lang.FunLang.{Exp => _, _}
 import inca.MetaElements._

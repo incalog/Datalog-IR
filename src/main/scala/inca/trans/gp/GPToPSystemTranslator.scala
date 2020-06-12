@@ -44,7 +44,7 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
 
     // TODO there is a hard coded package for the resulting class
     source"""
-      package inca.generator.generated
+      package inca.trans.generated
 
       import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
       import org.eclipse.viatra.query.runtime.api.scope.QueryScope
@@ -57,7 +57,8 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
 
       import java.util
 
-      import inca.backend.indices.{ParentKey, TFInputKey, TFQueryScope, TFQuerySpecification}
+      import inca.backend.indices.{TFInputKey, TFQueryScope, TFQuerySpecification}
+      import inca.backend.virtual.ParentKey
       import inca.MetaElements
 
 
