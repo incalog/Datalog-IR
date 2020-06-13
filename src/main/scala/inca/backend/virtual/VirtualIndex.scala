@@ -8,7 +8,6 @@ trait VirtualIndex {
 
   def isSupported(key: IInputKey): Boolean
 
-  def processChangeset(changeset: truechange.Changeset): Unit = changeset.cmds.foreach(processChange)
   def processChange(change: truechange.Change): Unit
 
   def countTuples(mask: TupleMask, seed: ITuple): Int

@@ -1,5 +1,6 @@
 package inca.backend.virtual
 
+import inca.MetaElements.ParentLink
 import org.eclipse.viatra.query.runtime.matchers.context.{IInputKey, IQueryRuntimeContextListener}
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
 
@@ -10,7 +11,10 @@ class ParentIndex extends VirtualIndex {
 
   override var isDirty: Boolean = false
 
-  override def isSupported(key: IInputKey): Boolean = key.isInstanceOf[ParentKey]
+  override def isSupported(key: IInputKey): Boolean = key match {
+    case VirtualKey(link: ParentLink) => true
+    case _ => false
+  }
 
   var parents: mutable.Map[truechange.Node, truechange.Node] = mutable.Map()
 

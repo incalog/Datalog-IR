@@ -9,7 +9,7 @@ import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred._
 import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
 import java.util
 import inca.backend.indices.{ TFInputKey, TFQueryScope, TFQuerySpecification }
-import inca.backend.virtual.ParentKey
+import inca.backend.virtual.VirtualKey
 import inca.MetaElements
 class Test_childrenQuerySpecification extends TFQuerySpecification(Test_childrenQuerySpecification.GeneratedPQuery.INSTANCE) {
   override def instantiate(engine: ViatraQueryEngine): GenericPatternMatcher = {

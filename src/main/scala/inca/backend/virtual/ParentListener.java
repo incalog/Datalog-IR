@@ -22,7 +22,7 @@ public class ParentListener extends ListenerAdapter {
         if (this.parent != null && !(this.parent.equals(parent))) {
             return;
         }
-        this.listener.update(new ParentKey(new MetaElements.ParentLink()), Tuples.staticArityFlatTupleOf(node, parent), true);
+        this.listener.update(new VirtualKey(new MetaElements.ParentLink()), Tuples.staticArityFlatTupleOf(node, parent), true);
     }
 
     public void delete(truechange.Node node, truechange.Node parent) {
@@ -32,7 +32,7 @@ public class ParentListener extends ListenerAdapter {
         if (this.parent != null && !(this.parent.equals(parent))) {
             return;
         }
-        this.listener.update(new ParentKey(new MetaElements.ParentLink()), Tuples.staticArityFlatTupleOf(node, parent), false);
+        this.listener.update(new VirtualKey(new MetaElements.ParentLink()), Tuples.staticArityFlatTupleOf(node, parent), false);
 
     }
 }
