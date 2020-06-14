@@ -15,7 +15,6 @@ import inca.backend.listeners.IDataTypeInstanceListener;
 import inca.backend.listeners.IInstanceListener;
 import inca.backend.listeners.INodeLinkInstanceListener;
 import inca.backend.listeners.INodeTypeInstanceListener;
-import inca.MetaElements.MetaElement;
 import inca.MetaElements.DataType;
 import inca.MetaElements.Link;
 import inca.MetaElements.NodeType;
@@ -527,7 +526,7 @@ public class Indices implements IBaseIndex {
         return false;
     }
 
-    private <K extends MetaElement, V extends IInstanceListener> void addInstanceListener(
+    private <K, V extends IInstanceListener> void addInstanceListener(
             final K type,
             final V listener,
             final Map<K, Set<V>> listenerMap) {
@@ -540,7 +539,7 @@ public class Indices implements IBaseIndex {
         });
     }
 
-    private <K extends MetaElement, V extends IInstanceListener> void removeInstanceListener(
+    private <K, V extends IInstanceListener> void removeInstanceListener(
             final K type,
             final V listener,
             final Map<K, Set<V>> listenerMap) {

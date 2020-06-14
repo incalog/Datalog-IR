@@ -2,11 +2,10 @@ package inca.backend.indices;
 
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey;
 import inca.MetaElements.DataType;
-import inca.MetaElements.MetaElement;
 import inca.MetaElements.Link;
 import inca.MetaElements.NodeType;
 
-public abstract class TFInputKey<T extends MetaElement> implements IInputKey {
+public abstract class TFInputKey<T> implements IInputKey {
 
     protected final T type;
 

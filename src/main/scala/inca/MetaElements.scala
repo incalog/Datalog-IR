@@ -1,17 +1,11 @@
 package inca
 
 import java.lang.reflect.Field
-import java.util.Objects
 
 object MetaElements {
 
-  trait MetaElement
-  trait Link extends MetaElement {
-    val nodeType: NodeType
-    val fld: Field
-  }
 
-  case class NodeType(cls: Class[_]) extends MetaElement {
+  case class NodeType(cls: Class[_]) {
     def apply(fieldName: String): Link =
       fieldName match {
         case "parent" => ParentLink()
@@ -20,28 +14,10 @@ object MetaElements {
 
         case _ => NodeLink(this, cls.getDeclaredField(fieldName))
       }
-
-    override def toString: String = s"#${cls.getCanonicalName}"
-
-    override def hashCode(): Int = cls.hashCode()
-
-    override def equals(obj: Any): Boolean = obj match {
-      case that: NodeType => cls.equals(that.cls)
-      case _ => false
-    }
   }
 
-  case class DataType(cls: Class[_]) extends MetaElement {
+  case class DataType(cls: Class[_]) {
     require(isPrimitiveDataType(cls), "Only primitive data types are allowed!")
-
-    override def toString: String = s"#${cls.getCanonicalName}"
-
-    override def hashCode(): Int = cls.hashCode()
-
-    override def equals(obj: Any): Boolean = obj match {
-      case that: DataType => cls.equals(that.cls)
-      case _ => false
-    }
   }
 
   def isPrimitiveDataType(cls: Class[_]): Boolean = {
@@ -60,49 +36,30 @@ object MetaElements {
     isNumber || isBoolean || isString
   }
 
-  case class NodeLink(nodeType: NodeType, fld: Field) extends Link {
-    override def toString: String = s"$nodeType:${fld.getName}"
-
-    override def hashCode(): Int = Objects.hash(nodeType, fld)
-
-    override def equals(obj: Any): Boolean = obj match {
-      case that: NodeLink => nodeType.equals(that.nodeType) && fld.equals(that.fld)
-      case _ => false
-    }
+  trait Link {
+    val nodeType: NodeType
+    val fld: Field
   }
 
-  case class DefinedNodeLink(nodeType: NodeType, fld: Field) extends Link {
-    override def toString: String = s"$nodeType:${fld.getName}_isDefinied"
+  case class NodeLink(nodeType: NodeType, fld: Field) extends Link
 
-    override def hashCode(): Int = Objects.hash(nodeType, fld)
-
-    override def equals(obj: Any): Boolean = obj match {
-      case that: DefinedNodeLink => nodeType.equals(that.nodeType) && fld.equals(that.fld)
-      case _ => false
-    }
-  }
+  case class DefinedNodeLink(nodeType: NodeType, fld: Field) extends Link
 
   case class Node(parent: Option[Node],
                   previous: Option[Node],
                   next: Option[Node])
 
   case class ParentLink() extends Link {
-    override def toString: String = "parent"
-
     override val nodeType: NodeType = NodeType(classOf[Node])
-    override val fld: Field = classOf[Node].getDeclaredField(toString)
+    override val fld: Field = classOf[Node].getDeclaredField("parent")
   }
   case class PreviousLink() extends Link {
-    override def toString: String = "previous"
-
     override val nodeType: NodeType = NodeType(classOf[Node])
-    override val fld: Field = classOf[Node].getDeclaredField(toString)
+    override val fld: Field = classOf[Node].getDeclaredField("previous")
   }
   case class NextLink() extends Link {
-    override def toString: String = "next"
-
     override val nodeType: NodeType = NodeType(classOf[Node])
-    override val fld: Field = classOf[Node].getDeclaredField(toString)
+    override val fld: Field = classOf[Node].getDeclaredField("next")
   }
 
 }
