@@ -154,10 +154,6 @@ public class Indices implements IBaseIndex {
         }
     }
 
-        }
-        // TODO implement more
-        return null;
-    }
     private MetaElements.Link convertNodeAndStringToNodeLink(truechange.Type type, String linkName) {
        NodeType nodeType = convertTagToNodeType(type);
        return nodeType.apply(linkName);
