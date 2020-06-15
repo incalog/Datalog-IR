@@ -1,7 +1,6 @@
 package inca.backend.virtual
 
-import inca.MetaElements.ParentLink
-import org.eclipse.viatra.query.runtime.matchers.context.{IInputKey, IQueryRuntimeContextListener}
+import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
 import truechange.{ListFirstLink, ListNextLink, NamedLink, RootLink}
 
@@ -18,11 +17,6 @@ class ParentIndex extends VirtualIndex {
 
   override var isDirty: Boolean = false
 
-  override def isSupported(key: IInputKey): Boolean = key match {
-    case ParentKey => true
-    case _ => false
-  }
-
   var parents: mutable.Map[truechange.Node, truechange.Node] = mutable.Map()
 
   override def processChange(change: truechange.Change): Unit = change match {
@@ -30,13 +24,10 @@ class ParentIndex extends VirtualIndex {
       case _: RootLink.type  | _: ListNextLink | _: ListFirstLink => // nothing to do
       case _: NamedLink => insertParent(node, parent)
     }
-    case truechange.DetachNode(parent, link, node, tag) =>
-      link match {
-        case RootLink => // do nothing because there is no designated root node
-        case NamedLink(_, _) => deleteParent(node, parent)
-        case ListFirstLink(ty) => // do nothing
-        case ListNextLink(ty) => // do nothing
-      }
+    case truechange.DetachNode(parent, link, node, tag) => link match {
+      case _: RootLink.type  | _: ListNextLink | _: ListFirstLink => // nothing to do
+      case _: NamedLink => insertParent(node, parent)
+    }
     case truechange.LoadNode(node, tag, kids, lits) =>
       kids.foreach { case (_, kid) =>
         insertParent(kid, node)
@@ -50,20 +41,16 @@ class ParentIndex extends VirtualIndex {
 
 
   private def insertParent(node: truechange.Node, parent: truechange.Node): Unit = {
-    if(parents.isDefinedAt(node)) {
-      throw new RuntimeException("Already defined parent of " + node)
-    } else {
-      parents(node) = parent
-      notifyParentListener(node, parent, isInsert = true)
+    parents.put(node, parent) match {
+      case Some(_) => // do nothing
+      case None => notifyParentListener(node, parent, isInsert = true)
     }
   }
 
   private def deleteParent(node: truechange.Node, parent: truechange.Node): Unit = {
-    if(!parents.isDefinedAt(node)) {
-      throw new RuntimeException("Unknown parent of " + node)
-    } else {
-      parents.remove(node)
-      notifyParentListener(node, parent, isInsert = false)
+    parents.remove(node) match {
+      case Some(_) => notifyParentListener(node, parent, isInsert = false)
+      case None => // do nothing
     }
   }
 
@@ -74,6 +61,7 @@ class ParentIndex extends VirtualIndex {
       else l.delete(node, parent)
     }
   }
+
   override def countTuples(mask: TupleMask, seed: ITuple): Int =
     if (mask.indices.length == 0) {
       parents.size
@@ -97,18 +85,15 @@ class ParentIndex extends VirtualIndex {
   }
 
   override def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[_] = {
-    if (mask.indices.length == 0) {
-      parents
-    } else throw new IllegalArgumentException("Must have exactly one unseeded element in enumerateValues() invocation, received instead: " + seed);
+    throw new IllegalArgumentException("TODO currently no support for enumerating values of parent index")
   }
 
   override def containsTuple(tuple: ITuple): Boolean = {
     val src = getFromTuple(tuple, 0).asInstanceOf[truechange.Node]
-    val trg = getFromTuple(tuple, 0).asInstanceOf[truechange.Node]
-    if (parents.isDefinedAt(src)) {
-      parents(src) == trg
-    } else {
-      false
+    val trg = getFromTuple(tuple, 1).asInstanceOf[truechange.Node]
+    parents.get(src) match {
+      case Some(storedTrg) => trg == storedTrg
+      case None => false
     }
   }
 

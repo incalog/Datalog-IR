@@ -13,8 +13,6 @@ trait VirtualKey extends IInputKey {
 trait VirtualIndex {
   var isDirty: Boolean
 
-  def isSupported(key: IInputKey): Boolean
-
   def processChange(change: truechange.Change): Unit
 
   def countTuples(mask: TupleMask, seed: ITuple): Int
