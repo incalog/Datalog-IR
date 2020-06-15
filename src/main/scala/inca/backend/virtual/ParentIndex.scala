@@ -3,6 +3,7 @@ package inca.backend.virtual
 import inca.MetaElements.ParentLink
 import org.eclipse.viatra.query.runtime.matchers.context.{IInputKey, IQueryRuntimeContextListener}
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
+import truechange.RootLink
 
 import scala.collection.mutable
 
@@ -19,8 +20,16 @@ class ParentIndex extends VirtualIndex {
   var parents: mutable.Map[truechange.Node, truechange.Node] = mutable.Map()
 
   override def processChange(change: truechange.Change): Unit = change match {
-    case truechange.AttachNode(parent, link, node) => insertParent(node, parent)
-    case truechange.DetachNode(parent, link, node, tag) => deleteParent(node, parent)
+    case truechange.AttachNode(parent, link, node) =>
+      link match {
+        case RootLink => // do nothing because there is no designated root node
+        case _ => insertParent(node, parent)
+      }
+    case truechange.DetachNode(parent, link, node, tag) =>
+      link match {
+        case RootLink => // do nothing because there is no designated root node
+        case _ => deleteParent(node, parent)
+      }
     case truechange.LoadNode(node, tag, kids, lits) =>
       kids.foreach { case (_, kid) =>
         insertParent(kid, node)

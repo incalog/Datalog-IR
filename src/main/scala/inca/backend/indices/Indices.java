@@ -44,8 +44,6 @@ public class Indices implements IBaseIndex {
     public static final Map<Class<?>, Set<Class<?>>> subTypeMap = new HashMap<>();
     public static final Map<Class<?>, Set<Class<?>>> superTypeMap = new HashMap<>();
 
-//    public ParentIndex parentIndex;
-
     final Set<VirtualIndex> virtualIndices;
 
     private final Set<ViatraBaseIndexChangeListener> changeListeners;
@@ -66,7 +64,6 @@ public class Indices implements IBaseIndex {
         this.nodeLinkInstancesReversed = new HashMap<>();
         this.nodeLinkInstanceListeners = new HashMap<>();
         this.changeListeners = new HashSet<>();
-//        this.parentIndex = new ParentIndex();
         this.virtualIndices = virtualIndices;
         this.engine = engine;
     }
@@ -82,11 +79,15 @@ public class Indices implements IBaseIndex {
             if (change instanceof DetachNode) {
                 // delete nodeLinkInstance
                 DetachNode detach = (DetachNode) change;
-                deleteNodeLinkInstance(detach.parent(), convertLinkToNodeLink(detach.link()), detach.node());
+                if (detach.link() instanceof RootLink$) {
+                    // just skip because we do not keep track of root link
+                } else {
+                    deleteNodeLinkInstance(detach.parent(), convertLinkToNodeLink(detach.link()), detach.node());
+                }
             } else if (change instanceof UnloadNode) {
                 UnloadNode unload = (UnloadNode) change;
                 // insert nodeTypeInstance
-                NodeType nodeType = convertNodeTagToNodeType(unload.tag());
+                NodeType nodeType = convertTagToNodeType(unload.tag());
                 deleteNodeTypeInstance(nodeType, unload.node());
                 // delete for parent types
                 Set<Class<?>> supertypes = superTypeMap.getOrDefault(nodeType.cls(), Collections.emptySet());
@@ -112,11 +113,15 @@ public class Indices implements IBaseIndex {
             } else if (change instanceof AttachNode) {
                 // insert nodeLinkInstance
                 AttachNode attach = (AttachNode) change;
-                insertNodeLinkInstance(attach.parent(), convertLinkToNodeLink(attach.link()), attach.node());
+                if (attach.link() instanceof RootLink$) {
+                    // just skip because we do not keep track of root link
+                } else {
+                    insertNodeLinkInstance(attach.parent(), convertLinkToNodeLink(attach.link()), attach.node());
+                }
             } else if (change instanceof LoadNode) {
                 // insert nodeTypeInstance
                 LoadNode load = (LoadNode) change;
-                NodeType nodeType = convertNodeTagToNodeType(load.tag());
+                NodeType nodeType = convertTagToNodeType(load.tag());
                 insertNodeTypeInstance(nodeType, load.node());
                 // insert for every parent type
                 Set<Class<?>> supertypes = superTypeMap.getOrDefault(nodeType.cls(), Collections.emptySet());
@@ -140,26 +145,28 @@ public class Indices implements IBaseIndex {
         }
     }
 
-	private NodeType convertNodeTagToNodeType(truechange.Type type) {
-        if (type instanceof SortType) {
-            SortType stype = (SortType) type;
-            return new NodeType(stype.tag());
-        } else if (type instanceof ListType) {
-            ListType ltype = (ListType) type;
-            return convertNodeTagToNodeType(ltype.ty());
+    private NodeType convertTagToNodeType(truechange.Type tag) {
+        if (tag instanceof SortType) {
+            SortType stype = (SortType) tag;
+            return new MetaElements.NodeType(stype.tag());
+        } else {
+            throw new IllegalArgumentException("Expected SortType but got: " + tag);
+        }
+    }
+
         }
         // TODO implement more
         return null;
     }
     private MetaElements.Link convertNodeAndStringToNodeLink(truechange.Type type, String linkName) {
-       NodeType nodeType = convertNodeTagToNodeType(type);
+       NodeType nodeType = convertTagToNodeType(type);
        return nodeType.apply(linkName);
     }
 
     private MetaElements.Link convertLinkToNodeLink(truechange.Link link) {
         if (link instanceof NamedLink) {
             NamedLink nlink = (NamedLink) link;
-            return convertNodeTagToNodeType(nlink.tag()).apply(nlink.name());
+            return convertTagToNodeType(nlink.tag()).apply(nlink.name());
         }
         // TODO implement more
         return null;
