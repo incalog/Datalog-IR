@@ -3,9 +3,15 @@ package inca.backend.virtual
 import inca.MetaElements.ParentLink
 import org.eclipse.viatra.query.runtime.matchers.context.{IInputKey, IQueryRuntimeContextListener}
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
-import truechange.RootLink
+import truechange.{ListFirstLink, ListNextLink, NamedLink, RootLink}
 
 import scala.collection.mutable
+
+case object ParentKey extends VirtualKey {
+  override val getUniqueID: String = "parent"
+  override val getArity: Int = 2
+  override val isEnumerable: Boolean = true
+}
 
 class ParentIndex extends VirtualIndex {
   private val listeners: mutable.Set[ParentListener] = mutable.Set()
@@ -13,22 +19,23 @@ class ParentIndex extends VirtualIndex {
   override var isDirty: Boolean = false
 
   override def isSupported(key: IInputKey): Boolean = key match {
-    case VirtualKey(link: ParentLink) => true
+    case ParentKey => true
     case _ => false
   }
 
   var parents: mutable.Map[truechange.Node, truechange.Node] = mutable.Map()
 
   override def processChange(change: truechange.Change): Unit = change match {
-    case truechange.AttachNode(parent, link, node) =>
-      link match {
-        case RootLink => // do nothing because there is no designated root node
-        case _ => insertParent(node, parent)
-      }
+    case truechange.AttachNode(parent, link, node) => link match {
+      case _: RootLink.type  | _: ListNextLink | _: ListFirstLink => // nothing to do
+      case _: NamedLink => insertParent(node, parent)
+    }
     case truechange.DetachNode(parent, link, node, tag) =>
       link match {
         case RootLink => // do nothing because there is no designated root node
-        case _ => deleteParent(node, parent)
+        case NamedLink(_, _) => deleteParent(node, parent)
+        case ListFirstLink(ty) => // do nothing
+        case ListNextLink(ty) => // do nothing
       }
     case truechange.LoadNode(node, tag, kids, lits) =>
       kids.foreach { case (_, kid) =>

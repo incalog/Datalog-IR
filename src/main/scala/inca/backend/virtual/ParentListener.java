@@ -3,7 +3,6 @@ package inca.backend.virtual;
 import inca.backend.listeners.ListenerAdapter;
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
-import inca.MetaElements;
 
 public class ParentListener extends ListenerAdapter {
     public final truechange.Node node;
@@ -22,7 +21,7 @@ public class ParentListener extends ListenerAdapter {
         if (this.parent != null && !(this.parent.equals(parent))) {
             return;
         }
-        this.listener.update(new VirtualKey(new MetaElements.ParentLink()), Tuples.staticArityFlatTupleOf(node, parent), true);
+        this.listener.update(ParentKey$.MODULE$, Tuples.staticArityFlatTupleOf(node, parent), true);
     }
 
     public void delete(truechange.Node node, truechange.Node parent) {
@@ -32,7 +31,7 @@ public class ParentListener extends ListenerAdapter {
         if (this.parent != null && !(this.parent.equals(parent))) {
             return;
         }
-        this.listener.update(new VirtualKey(new MetaElements.ParentLink()), Tuples.staticArityFlatTupleOf(node, parent), false);
+        this.listener.update(ParentKey$.MODULE$, Tuples.staticArityFlatTupleOf(node, parent), false);
 
     }
 }

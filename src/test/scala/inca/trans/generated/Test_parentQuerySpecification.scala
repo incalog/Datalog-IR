@@ -10,6 +10,7 @@ import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveIn
 import java.util
 import inca.backend.indices.{ TFInputKey, TFQueryScope, TFQuerySpecification }
 import inca.backend.virtual.VirtualKey
+import inca.backend.virtual.ParentKey
 import inca.MetaElements
 class Test_parentQuerySpecification extends TFQuerySpecification(Test_parentQuerySpecification.GeneratedPQuery.INSTANCE) {
   override def instantiate(engine: ViatraQueryEngine): GenericPatternMatcher = {
@@ -42,7 +43,7 @@ object Test_parentQuerySpecification {
         body.setSymbolicParameters(exportedParams)
         val var_trg: PVariable = body.getOrCreateVariableByName("trg")
         new TypeConstraint(body, Tuples.flatTupleOf(var_out), new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[inca.analyzedLangs.expLang.Exp])))
-        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_in, var_trg), new VirtualKey(new MetaElements.ParentLink()))
+        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_in, var_trg), ParentKey)
         new Equality(body, var_trg, var_out)
         body
       }

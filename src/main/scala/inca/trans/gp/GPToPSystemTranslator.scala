@@ -59,6 +59,7 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
 
       import inca.backend.indices.{TFInputKey, TFQueryScope, TFQuerySpecification}
       import inca.backend.virtual.VirtualKey
+      import inca.backend.virtual.ParentKey
       import inca.MetaElements
 
 
@@ -219,7 +220,7 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
 
   def genLinkKey(link: Link): Term = link match {
     case ParentLink() =>
-      q"new VirtualKey(new MetaElements.ParentLink())"
+      q"ParentKey"
     case NodeLink(nodeType, fld)  =>
       q"new TFInputKey.NodeLinkKey(new MetaElements.NodeType(classOf[${genType(nodeType)}])(${Lit.String(fld.getName)}))"
     case _ => throw new IllegalArgumentException("Does not support such a link")

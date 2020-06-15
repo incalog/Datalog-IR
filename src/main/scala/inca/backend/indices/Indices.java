@@ -44,7 +44,7 @@ public class Indices implements IBaseIndex {
     public static final Map<Class<?>, Set<Class<?>>> subTypeMap = new HashMap<>();
     public static final Map<Class<?>, Set<Class<?>>> superTypeMap = new HashMap<>();
 
-    final Set<VirtualIndex> virtualIndices;
+    final Map<String, VirtualIndex> virtualIndices;
 
     private final Set<ViatraBaseIndexChangeListener> changeListeners;
     private AdvancedViatraQueryEngine engine;
@@ -52,10 +52,10 @@ public class Indices implements IBaseIndex {
     private boolean isDirty;
 
     public Indices() {
-        this(null, Collections.emptySet());
+        this(null, Collections.emptyMap());
     }
 
-    public Indices(final AdvancedViatraQueryEngine engine, final Set<VirtualIndex> virtualIndices) {
+    public Indices(final AdvancedViatraQueryEngine engine, final Map<String, VirtualIndex> virtualIndices) {
         this.nodeTypeInstances = new HashMap<>();
         this.nodeTypeInstanceListeners = new HashMap<>();
         this.dataTypeInstances = new HashMap<>();
@@ -73,7 +73,7 @@ public class Indices implements IBaseIndex {
         while (changesetIterator.hasNext()) {
             truechange.Change change = changesetIterator.next();
             // process virtual indices
-            virtualIndices.forEach((vIndex) -> {
+            virtualIndices.values().forEach((vIndex) -> {
                 vIndex.processChange(change);
             });
             if (change instanceof DetachNode) {
@@ -200,7 +200,7 @@ public class Indices implements IBaseIndex {
         }
 
         final boolean[] virtualIsDirty = {false};
-        virtualIndices.forEach((vIndex) -> {
+        virtualIndices.values().forEach((vIndex) -> {
             virtualIsDirty[0] |= vIndex.isDirty();
         });
 

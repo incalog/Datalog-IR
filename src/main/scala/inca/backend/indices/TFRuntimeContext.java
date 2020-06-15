@@ -20,7 +20,7 @@ import inca.MetaElements.NodeType;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.Callable;
-import scala.jdk.CollectionConverters.*;
+
 import scala.jdk.javaapi.CollectionConverters;
 
 public class TFRuntimeContext implements IQueryRuntimeContext {
@@ -128,11 +128,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 }
             }
         } else {
-            for (VirtualIndex vIndex : indices.virtualIndices) {
-                if (vIndex.isSupported(key)) {
-                    result = vIndex.countTuples(mask, seed);
-                }
-            }
+            result = indices.virtualIndices.get(key.getStringID()).countTuples(mask, seed);
         }
 
         if (this.isDebugMode) {
@@ -224,11 +220,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 }
             }
         } else {
-            for (VirtualIndex vIndex : indices.virtualIndices) {
-                if (vIndex.isSupported(key)) {
-                    result.addAll(CollectionConverters.asJavaCollection(vIndex.enumerateTuples(mask, seed)));
-                }
-            }
+            scala.collection.Iterable<Tuple> tuples = indices.virtualIndices.get(key.getStringID()).enumerateTuples(mask, seed);
+            result.addAll(CollectionConverters.asJavaCollection(tuples));
         }
 
         if (this.isDebugMode) {
@@ -295,11 +288,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 illegalEnumerateValues(seed);
             }
         } else {
-            for (VirtualIndex vIndex : indices.virtualIndices) {
-                if (vIndex.isSupported(key)) {
-                    result = CollectionConverters.asJavaCollection(vIndex.enumerateValues(mask, seed));
-                }
-            }
+            scala.collection.Iterable<?> values = indices.virtualIndices.get(key.getStringID()).enumerateValues(mask, seed);
+            result = CollectionConverters.asJavaCollection(values);
         }
 
         if (this.isDebugMode) {
@@ -342,11 +332,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 result = linkValues.getOrDefault(source, Collections.emptySet()).contains(target);
             }
         } else {
-            for (VirtualIndex vIndex : indices.virtualIndices) {
-                if (vIndex.isSupported(key)) {
-                    result = vIndex.containsTuple(tuple);
-                }
-            }
+            result = indices.virtualIndices.get(key.getStringID()).containsTuple(tuple);
         }
 
         if (this.isDebugMode) {
@@ -384,11 +370,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
             final Link type = ((TFInputKey.NodeLinkKey) key).type;
             this.indices.addNodeLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
         } else {
-            indices.virtualIndices.forEach((vIndex) -> {
-                if (vIndex.isSupported(key)) {
-                    vIndex.addListener(listener, seed);
-                }
-            });
+            indices.virtualIndices.get(key.getStringID()).addListener(listener, seed);
         }
     }
 
@@ -406,11 +388,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
             final MetaElements.Link type = ((TFInputKey.NodeLinkKey) key).type;
             this.indices.removedNodeLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
         } else {
-            indices.virtualIndices.forEach((vIndex) -> {
-                if (vIndex.isSupported(key)) {
-                   vIndex.removeListener(listener, seed);
-                }
-            });
+            indices.virtualIndices.get(key.getStringID()).removeListener(listener, seed);
         }
     }
 

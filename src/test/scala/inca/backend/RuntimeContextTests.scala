@@ -6,7 +6,7 @@ import java.util.Collections
 import inca.MetaElements.{DataType, NodeType, ParentLink}
 import inca.backend.indices.TFInputKey.{DataTypeKey, NodeLinkKey, NodeTypeKey}
 import inca.backend.indices.{Indices, TFRuntimeContext}
-import inca.backend.virtual.{ParentIndex, VirtualKey, VirtualIndex}
+import inca.backend.virtual.{ParentIndex, ParentKey, VirtualIndex, VirtualKey}
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, TupleMask, Tuples}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
@@ -111,22 +111,22 @@ class RuntimeContextTests extends AnyFunSuite {
   }
 
   test("VirtualLink parent") {
-    val virtualIndices = new java.util.HashSet[VirtualIndex]()
-    virtualIndices.add(new ParentIndex())
+    val virtualIndices = new java.util.HashMap[String, VirtualIndex]()
+    virtualIndices.put(ParentKey.getUniqueID, new ParentIndex())
     val indices = new Indices(null, virtualIndices)
     val context = new TFRuntimeContext(indices)
 
     val changeset = Diffable.load(add)
     indices.processChangeset(changeset)
 
-    context.enumerateTuples(new VirtualKey(ParentLink()), emptyMask, null).
+    context.enumerateTuples(ParentKey, emptyMask, null).
       asScala should contain allOf(t2(mul.uri, add.uri), t2(num1.uri, mul.uri), t2(num2.uri, mul.uri), t2(num3.uri, add.uri))
 
     val newtree = Add(Mul(Num(3), Num(2)), Num(1))
     val (diffset, _) = add.compareTo(newtree)
     indices.processChangeset(diffset)
 
-    context.enumerateTuples(new VirtualKey(ParentLink()), emptyMask, null).
+    context.enumerateTuples(ParentKey, emptyMask, null).
       asScala should contain allOf(t2(mul.uri, add.uri), t2(num3.uri, mul.uri), t2(num2.uri, mul.uri), t2(num1.uri, add.uri))
 
     indices.dispose()

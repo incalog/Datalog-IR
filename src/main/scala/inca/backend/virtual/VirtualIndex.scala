@@ -3,6 +3,13 @@ package inca.backend.virtual
 import org.eclipse.viatra.query.runtime.matchers.context.{IInputKey, IQueryRuntimeContextListener}
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask}
 
+trait VirtualKey extends IInputKey {
+  def getUniqueID: String
+  override def getPrettyPrintableName: String = getUniqueID
+  override def getStringID: String = getUniqueID
+}
+
+// TODO document
 trait VirtualIndex {
   var isDirty: Boolean
 
