@@ -6,10 +6,11 @@ import inca.analyzedLangs.expLang._
 import org.eclipse.viatra.query.runtime.api.{IPatternMatch, ViatraQueryMatcher}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import truediff.Diffable
-import inca.backend.indices.{EnginePool, Indices, TFQueryScope, TFQuerySpecification}
+import inca.backend.indices.{EnginePool, Indices, QueryScope, TFQueryScope, TFQuerySpecification}
 import inca.lang.FunLang.{Alternative, AnnoParam, Module, Param, PathAccess, PatternFunction, Return, Var}
 import inca.MetaElements.{NodeType, ParentLink}
 import inca.backend.TypeHierarchyCollector
+import inca.backend.virtual.ParentIndex
 import inca.trans.fun.FunToGPTranslator
 import inca.trans.ExpLangTestAnalyses._
 import inca.trans.generated._
@@ -22,6 +23,54 @@ class GPToPSystemTranslatorTest extends AnyFunSuite {
   private val testInput = Add(And(Or(BooleanLit(false), BooleanLit(false)), IntegerLit(5)), LongLit(10L))
   private val testInputNumericAddition = Add(Add(IntegerLit(5), IntegerLit(7)), Add(LongLit(7), IntegerLit(8)))
 
+  val expName = classOf[Exp].getCanonicalName
+  val intName = classOf[IntegerLit].getCanonicalName
+  val longName = classOf[LongLit].getCanonicalName
+  val boolName = classOf[BooleanLit].getCanonicalName
+  val addName = classOf[Add].getCanonicalName
+  val multName = classOf[Mult].getCanonicalName
+  val andName = classOf[And].getCanonicalName
+  val orName = classOf[Or].getCanonicalName
+  val notName = classOf[Not].getCanonicalName
+
+  // TODO we need to derive this information but at this time we hardcode it
+  private val supertypes =
+    Map(
+      expName -> Set[String](),
+      intName -> Set(expName),
+      longName -> Set(expName),
+      boolName -> Set(expName),
+      multName -> Set(expName),
+      addName -> Set(expName),
+      andName -> Set(expName),
+      orName -> Set(expName),
+      notName -> Set(expName),
+    )
+
+  private val links =
+    Map(
+      addName -> Map(
+        "lhs" -> expName,
+        "rhs" -> expName,
+      ),
+      multName -> Map(
+        "lhs" -> expName,
+        "rhs" -> expName,
+      ),
+      andName -> Map(
+        "lhs" -> expName,
+        "rhs" -> expName,
+      ),
+      orName -> Map(
+        "lhs" -> expName,
+        "rhs" -> expName,
+      ),
+      notName -> Map("e" -> expName),
+      intName -> Map("value" -> "java.lang.Integer"),
+      longName -> Map("value" -> "java.lang.Long"),
+      boolName -> Map("value" -> "java.lang.Boolean")
+    )
+
   def assertMatch(
       module: Module,
       subjectProg: Diffable,
@@ -29,16 +78,13 @@ class GPToPSystemTranslatorTest extends AnyFunSuite {
     val gp = FunToGPTranslator.transformModule(module)
     AnalysisWriter.writeModule(gp)
     val changeset = Diffable.load(subjectProg)
-    val scope = new TFQueryScope(subjectProg)
+    val scope = new QueryScope(supertypes, links, Map("parent" -> new ParentIndex()))
 
     // TODO this is done by hand currently (we need a generic way of extracting supertypes for all relevant types)
-    Indices.superTypeMap.put(classOf[Mult], Collections.singleton(classOf[Exp]))
-    Indices.superTypeMap.put(classOf[Add], Collections.singleton(classOf[Exp]))
-    Indices.superTypeMap.put(classOf[And], Collections.singleton(classOf[Exp]))
-    Indices.superTypeMap.put(classOf[Or], Collections.singleton(classOf[Exp]))
-    Indices.superTypeMap.put(classOf[IntegerLit], Collections.singleton(classOf[Exp]))
-    Indices.superTypeMap.put(classOf[LongLit], Collections.singleton(classOf[Exp]))
-    Indices.superTypeMap.put(classOf[BooleanLit], Collections.singleton(classOf[Exp]))
+    supertypes.keys.foreach { key =>
+      if (supertypes(key).nonEmpty)
+        Indices.superTypeMap.put(key, Collections.singleton(supertypes(key).head))
+    }
 
     val matcher = EnginePool.getMatcher(compiledModule, scope, DifferentialReteBackendFactory.INSTANCE)
     scope.getEngineContext.getBaseIndex.processChangeset(changeset)
@@ -103,9 +149,6 @@ class GPToPSystemTranslatorTest extends AnyFunSuite {
     assertMatch(module, testInputNumericAddition, Test_noParamTypeQuerySpecification.instance()) { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
-    assertMatch(module, testInput, Test_noParamTypeQuerySpecification.instance()) { matcher =>
-      assert(matcher.getAllMatches.size == 1)
-    }
   }
 
   test("primitive datatype output") {
@@ -128,14 +171,13 @@ class GPToPSystemTranslatorTest extends AnyFunSuite {
       None,
       "parent",
       List(Param("in", None)),
-      List(AnnoParam(None, NodeType(classOf[Exp]))),
+      List(AnnoParam(None, NodeType(classOf[Exp].getCanonicalName))),
       List(
         Alternative(
           List(
-            Return(PathAccess(Var("in"), Seq(ParentLink())))))))
+            Return(PathAccess(Var("in"), Seq(ParentLink)))))))
     val module = Module("Test", Seq(), Seq(parentFun))
     assertMatch(module, mul, Test_parentQuerySpecification.instance()) { matcher =>
-      val indices = matcher.getEngine.getScope.asInstanceOf[TFQueryScope].getEngineContext.getBaseIndex
       assert(matcher.getAllMatches.size == 4)
     }
   }

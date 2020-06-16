@@ -28,7 +28,7 @@ object Test_isBooleanQuerySpecification {
   }
   private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
     val INSTANCE: GeneratedPQuery.type = this
-    private val param_in: PParameter = new PParameter("in", "inca.analyzedLangs.expLang.BooleanLit", new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[inca.analyzedLangs.expLang.BooleanLit])))
+    private val param_in: PParameter = new PParameter("in", "inca.analyzedLangs.expLang.BooleanLit", new TFInputKey.NodeTypeKey(MetaElements.NodeType("inca.analyzedLangs.expLang.BooleanLit")))
     private val param_out: PParameter = new PParameter("out", "java.lang.Boolean", new JavaTransitiveInstancesKey(classOf[java.lang.Boolean]))
     {}
     override protected def doGetContainedBodies(): util.Set[PBody] = {
@@ -43,7 +43,7 @@ object Test_isBooleanQuerySpecification {
         body.setSymbolicParameters(exportedParams)
         val var_tmp: PVariable = body.getOrCreateVariableByName("tmp")
         val lit_boolean1231 = body.newConstantVariable(true)
-        new TypeConstraint(body, Tuples.flatTupleOf(var_in), new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[inca.analyzedLangs.expLang.BooleanLit])))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_in), new TFInputKey.NodeTypeKey(MetaElements.NodeType("inca.analyzedLangs.expLang.BooleanLit")))
         new Equality(body, var_tmp, lit_boolean1231)
         new Equality(body, var_tmp, var_out)
         body

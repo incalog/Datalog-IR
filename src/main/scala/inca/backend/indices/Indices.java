@@ -41,8 +41,8 @@ public class Indices implements IBaseIndex {
     final Map<Link, Set<INodeLinkInstanceListener>> nodeLinkInstanceListeners;
 
     // TODO we need to populate these maps somehow
-    public static final Map<Class<?>, Set<Class<?>>> subTypeMap = new HashMap<>();
-    public static final Map<Class<?>, Set<Class<?>>> superTypeMap = new HashMap<>();
+    public static final Map<String, Set<String>> subTypeMap = new HashMap<>();
+    public static final Map<String, Set<String>> superTypeMap = new HashMap<>();
 
     final Map<String, VirtualIndex> virtualIndices;
 
@@ -90,8 +90,8 @@ public class Indices implements IBaseIndex {
                 NodeType nodeType = convertTagToNodeType(unload.tag());
                 deleteNodeTypeInstance(nodeType, unload.node());
                 // delete for parent types
-                Set<Class<?>> supertypes = superTypeMap.getOrDefault(nodeType.cls(), Collections.emptySet());
-                for (Class<?> supertype : supertypes) {
+                Set<String> supertypes = superTypeMap.getOrDefault(nodeType.name(), Collections.emptySet());
+                for (String supertype : supertypes) {
                     NodeType nodeSupertype = new NodeType(supertype);
                     deleteNodeTypeInstance(nodeSupertype, unload.node());
                 }
@@ -124,8 +124,8 @@ public class Indices implements IBaseIndex {
                 NodeType nodeType = convertTagToNodeType(load.tag());
                 insertNodeTypeInstance(nodeType, load.node());
                 // insert for every parent type
-                Set<Class<?>> supertypes = superTypeMap.getOrDefault(nodeType.cls(), Collections.emptySet());
-                for (Class<?> supertype : supertypes) {
+                Set<String> supertypes = superTypeMap.getOrDefault(nodeType.name(), Collections.emptySet());
+                for (String supertype : supertypes) {
                     NodeType nodeSupertype = new NodeType(supertype);
                     insertNodeTypeInstance(nodeSupertype, load.node());
                 }
@@ -148,7 +148,7 @@ public class Indices implements IBaseIndex {
     private NodeType convertTagToNodeType(truechange.Type tag) {
         if (tag instanceof SortType) {
             SortType stype = (SortType) tag;
-            return new MetaElements.NodeType(stype.tag());
+            return new MetaElements.NodeType(stype.tag().getCanonicalName());
         } else {
             throw new IllegalArgumentException("Expected SortType but got: " + tag);
         }
@@ -169,7 +169,7 @@ public class Indices implements IBaseIndex {
     }
 
     private DataType convertLiteralToDataType(Literal literal) {
-        return new DataType(literal.tag());
+        return new DataType(literal.tag().getCanonicalName());
     }
 
 
@@ -209,48 +209,48 @@ public class Indices implements IBaseIndex {
         return result;
     }
 
-    private static void addType(final Class<?> key, final Class<?> value, final Map<Class<?>, Set<Class<?>>> map) {
-        if (key == null) {
-            throw new IllegalArgumentException("Key must not be null!");
-        }
-        map.compute(key, (k, v) -> {
-            if (v == null) {
-                v = new HashSet<>();
-            }
-            if (value != null) {
-                v.add(value);
-            }
-            return v;
-        });
-    }
-
-    public static void registerType(final Class<?> sub, final Class<?> sup) {
-        // sub -> existing U {sup} into superType map
-        addType(sub, sup, superTypeMap);
-
-        if (sup != null) {
-            // sup -> existing U {sub} into subType map
-            addType(sup, sub, subTypeMap);
-        }
-
-        // add sup as supertype for all subtypes of sub
-        final Set<Class<?>> subSubs = subTypeMap.get(sub);
-        if (subSubs != null) {
-            for (final Class<?> subSub : subSubs) {
-                addType(subSub, sup, superTypeMap);
-            }
-        }
-
-        if (sup != null) {
-            // add sub as subtype for all supertypes of sup
-            final Set<Class<?>> supSups = superTypeMap.get(sup);
-            if (supSups != null) {
-                for (final Class<?> supSup : supSups) {
-                    addType(supSup, sub, subTypeMap);
-                }
-            }
-        }
-    }
+//    private static void addType(final Class<?> key, final Class<?> value, final Map<Class<?>, Set<Class<?>>> map) {
+//        if (key == null) {
+//            throw new IllegalArgumentException("Key must not be null!");
+//        }
+//        map.compute(key, (k, v) -> {
+//            if (v == null) {
+//                v = new HashSet<>();
+//            }
+//            if (value != null) {
+//                v.add(value);
+//            }
+//            return v;
+//        });
+//    }
+//
+//    public static void registerType(final Class<?> sub, final Class<?> sup) {
+//        // sub -> existing U {sup} into superType map
+//        addType(sub, sup, superTypeMap);
+//
+//        if (sup != null) {
+//            // sup -> existing U {sub} into subType map
+//            addType(sup, sub, subTypeMap);
+//        }
+//
+//        // add sup as supertype for all subtypes of sub
+//        final Set<Class<?>> subSubs = subTypeMap.get(sub);
+//        if (subSubs != null) {
+//            for (final Class<?> subSub : subSubs) {
+//                addType(subSub, sup, superTypeMap);
+//            }
+//        }
+//
+//        if (sup != null) {
+//            // add sub as subtype for all supertypes of sup
+//            final Set<Class<?>> supSups = superTypeMap.get(sup);
+//            if (supSups != null) {
+//                for (final Class<?> supSup : supSups) {
+//                    addType(supSup, sub, subTypeMap);
+//                }
+//            }
+//        }
+//    }
 
     public void insertNodeTypeInstance(final NodeType type, final Object instance) {
         this.nodeTypeInstances.compute(type, (k, v) -> {
@@ -286,7 +286,7 @@ public class Indices implements IBaseIndex {
     }
 
     public void insertDataTypeInstance(final Object instance) {
-        final DataType type = new DataType(instance.getClass());
+        final DataType type = new DataType(instance.getClass().getCanonicalName());
         this.dataTypeInstances.compute(type, (k, v) -> {
             if (v == null) {
                 v = HashMultiset.create();
@@ -301,7 +301,7 @@ public class Indices implements IBaseIndex {
     }
 
     public void deleteDataTypeInstance(final Object instance) {
-        final DataType type = new DataType(instance.getClass());
+        final DataType type = new DataType(instance.getClass().getCanonicalName());
         this.dataTypeInstances.compute(type, (k, v) -> {
             if (v == null) {
                 throw new RuntimeException("Unknown  " + type + " instance: " + instance);

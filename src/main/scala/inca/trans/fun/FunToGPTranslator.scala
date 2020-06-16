@@ -123,7 +123,7 @@ object FunToGPTranslator {
             // TODO is this correct?
             val (vars, pathConstraints) = genPathConstraints(exp, paths.dropRight(1))
             val trueLit = GP.BooleanLiteral(true)
-            val definedLink = DefinedNodeLink(paths.last.nodeType, paths.last.fld)
+            val definedLink = DefinedNodeLink(paths.last.nodeType, paths.last.fieldName)
             val trg = gensym.fresh("trg")
             val definedConstraint = GP.Path(GP.Var(vars.head), GP.Var(trg), definedLink, definedLink.nodeType)
             val compareConstraint = GP.Compare(GP.EqComparator, GP.Var(trg), GP.Constant(trueLit))
@@ -230,7 +230,7 @@ object FunToGPTranslator {
   def nameOfNotInstanceOfHelper(ninst: Fun.NotInstanceOf): String = "generated_helper_notinstanceof_" + nameOfType(ninst.typ)
 
   def nameOfType(typ: Fun.Type): String = typ match {
-    case Fun.TNodeType(wrapped) => wrapped.cls.getName.replace(".", "_")
+    case Fun.TNodeType(wrapped) => wrapped.name.replace(".", "_")
     case Fun.TBool => "TBool"
     case Fun.TInt => "TInt"
     case Fun.TLong => "TLong"

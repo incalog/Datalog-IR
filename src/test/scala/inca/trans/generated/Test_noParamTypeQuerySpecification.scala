@@ -38,7 +38,7 @@ object Test_noParamTypeQuerySpecification {
         val exportedParams = new util.ArrayList[ExportedParameter]()
         exportedParams.add(new ExportedParameter(body, var_add, param_add))
         body.setSymbolicParameters(exportedParams)
-        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[inca.analyzedLangs.expLang.Add])))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new TFInputKey.NodeTypeKey(MetaElements.NodeType("inca.analyzedLangs.expLang.Add")))
         body
       }
       bodies

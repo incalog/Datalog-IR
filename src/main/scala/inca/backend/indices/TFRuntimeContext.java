@@ -1,7 +1,6 @@
 package inca.backend.indices;
 
 import com.google.common.collect.Multiset;
-import inca.backend.virtual.VirtualIndex;
 import org.eclipse.viatra.query.runtime.matchers.context.*;
 import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey;
 import org.eclipse.viatra.query.runtime.matchers.tuple.ITuple;
@@ -26,20 +25,22 @@ import scala.jdk.javaapi.CollectionConverters;
 public class TFRuntimeContext implements IQueryRuntimeContext {
 
     private final Indices indices;
+    private final MetaContext metaCtx;
     private final boolean isDebugMode;
 
-    public TFRuntimeContext(final Indices indices) {
-        this(indices, false);
+    public TFRuntimeContext(final Indices indices, final MetaContext metaCtx) {
+        this(indices, metaCtx, false);
     }
 
-    public TFRuntimeContext(final Indices indices, final boolean isDebugMode) {
+    public TFRuntimeContext(final Indices indices, final MetaContext metaCtx, boolean isDebugMode) {
         this.indices = indices;
+        this.metaCtx = metaCtx;
         this.isDebugMode = isDebugMode;
     }
 
     @Override
     public IQueryMetaContext getMetaContext() {
-        return TFMetaContext.INSTANCE;
+        return this.metaCtx;
     }
 
     @Override

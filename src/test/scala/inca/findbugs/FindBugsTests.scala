@@ -2,7 +2,7 @@ package inca.findbugs
 
 import inca.MetaElements.NodeType
 import inca.analyzedLangs.{BooleanConstant, ClassDeclaration, FieldDeclaration, ProtectedVisibility}
-import inca.backend.indices.{EnginePool, TFQueryScope}
+import inca.backend.indices.{EnginePool, QueryScope}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
 import truediff.Diffable
@@ -13,7 +13,7 @@ class FindBugsTests extends AnyFunSuite {
 
   test("Confused Inheritance") {
     // TODO support lists in the backend and adapt the analysis
-    val scope = new TFQueryScope(clazz, null)
+    val scope = new QueryScope(null, null, null)
     val changeset = Diffable.load(clazz)
     val matcher = EnginePool.getMatcher(ConfusedInheritance.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
     val indices = scope.getEngineContext.getBaseIndex

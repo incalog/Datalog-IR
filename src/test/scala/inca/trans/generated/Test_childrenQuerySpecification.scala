@@ -28,8 +28,8 @@ object Test_childrenQuerySpecification {
   }
   private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
     val INSTANCE: GeneratedPQuery.type = this
-    private val param_add: PParameter = new PParameter("add", "inca.analyzedLangs.expLang.Add", new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[inca.analyzedLangs.expLang.Add])))
-    private val param_out: PParameter = new PParameter("out", "inca.analyzedLangs.expLang.Exp", new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[inca.analyzedLangs.expLang.Exp])))
+    private val param_add: PParameter = new PParameter("add", "inca.analyzedLangs.expLang.Add", new TFInputKey.NodeTypeKey(MetaElements.NodeType("inca.analyzedLangs.expLang.Add")))
+    private val param_out: PParameter = new PParameter("out", "inca.analyzedLangs.expLang.Exp", new TFInputKey.NodeTypeKey(MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
     {}
     override protected def doGetContainedBodies(): util.Set[PBody] = {
       val bodies: util.Set[PBody] = util.Set.of({
@@ -42,9 +42,9 @@ object Test_childrenQuerySpecification {
         exportedParams.add(new ExportedParameter(body, var_out, param_out))
         body.setSymbolicParameters(exportedParams)
         val var_trg: PVariable = body.getOrCreateVariableByName("trg")
-        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[inca.analyzedLangs.expLang.Add])))
-        new TypeConstraint(body, Tuples.flatTupleOf(var_out), new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[inca.analyzedLangs.expLang.Exp])))
-        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_add, var_trg), new TFInputKey.NodeLinkKey(new MetaElements.NodeType(classOf[inca.analyzedLangs.expLang.Add])("lhs")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new TFInputKey.NodeTypeKey(MetaElements.NodeType("inca.analyzedLangs.expLang.Add")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_out), new TFInputKey.NodeTypeKey(MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
+        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_add, var_trg), new TFInputKey.NodeLinkKey(MetaElements.NodeLink(MetaElements.NodeType("inca.analyzedLangs.expLang.Add"), "lhs")))
         new Equality(body, var_trg, var_out)
         body
       }, {
@@ -57,9 +57,9 @@ object Test_childrenQuerySpecification {
         exportedParams.add(new ExportedParameter(body, var_out, param_out))
         body.setSymbolicParameters(exportedParams)
         val var_trg0: PVariable = body.getOrCreateVariableByName("trg0")
-        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[inca.analyzedLangs.expLang.Add])))
-        new TypeConstraint(body, Tuples.flatTupleOf(var_out), new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[inca.analyzedLangs.expLang.Exp])))
-        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_add, var_trg0), new TFInputKey.NodeLinkKey(new MetaElements.NodeType(classOf[inca.analyzedLangs.expLang.Add])("rhs")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new TFInputKey.NodeTypeKey(MetaElements.NodeType("inca.analyzedLangs.expLang.Add")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_out), new TFInputKey.NodeTypeKey(MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
+        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_add, var_trg0), new TFInputKey.NodeLinkKey(MetaElements.NodeLink(MetaElements.NodeType("inca.analyzedLangs.expLang.Add"), "rhs")))
         new Equality(body, var_trg0, var_out)
         body
       })

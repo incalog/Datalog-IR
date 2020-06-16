@@ -23,6 +23,11 @@ class RuntimeContextTests extends AnyFunSuite {
   val mul = Mul(num1, num2)
   val add = Add(mul, num3)
 
+  val expName = classOf[Exp].getCanonicalName
+  val addName = classOf[Add].getCanonicalName
+  val mulName = classOf[Mul].getCanonicalName
+  val numName = classOf[Num].getCanonicalName
+
   test("Type hierarchy check") {
     val indices = new Indices()
     val changeset = Diffable.load(add)
@@ -49,18 +54,18 @@ class RuntimeContextTests extends AnyFunSuite {
     val changeset = Diffable.load(add)
     indices.processChangeset(changeset)
 
-    val context = new TFRuntimeContext(indices)
+    val context = new TFRuntimeContext(indices, null)
 
-    context.enumerateTuples(new NodeTypeKey(NodeType(classOf[Exp])), emptyMask, null).
+    context.enumerateTuples(new NodeTypeKey(NodeType(expName)), emptyMask, null).
       asScala should be(empty)
 
-    context.enumerateTuples(new NodeTypeKey(NodeType(classOf[Num])), emptyMask, null).
+    context.enumerateTuples(new NodeTypeKey(NodeType(numName)), emptyMask, null).
       asScala should contain allOf(t1(num1.uri), t1(num2.uri), t1(num3.uri))
 
-    context.enumerateTuples(new NodeTypeKey(NodeType(classOf[Add])), emptyMask, null).
+    context.enumerateTuples(new NodeTypeKey(NodeType(addName)), emptyMask, null).
       asScala should contain(t1(add.uri))
 
-    context.enumerateTuples(new NodeTypeKey(NodeType(classOf[Mul])), emptyMask, null).
+    context.enumerateTuples(new NodeTypeKey(NodeType(mulName)), emptyMask, null).
       asScala should contain(t1(mul.uri))
 
     indices.dispose()
@@ -71,15 +76,19 @@ class RuntimeContextTests extends AnyFunSuite {
     val changeset = Diffable.load(add)
     indices.processChangeset(changeset)
 
-    val context = new TFRuntimeContext(indices)
+    val integerName = "java.lang.Integer"
+    val stringName = "java.lang.String"
+    val boolName = "java.lang.Boolean"
 
-    context.enumerateTuples(new DataTypeKey(DataType(classOf[Integer])), emptyMask, null).
+    val context = new TFRuntimeContext(indices, null)
+
+    context.enumerateTuples(new DataTypeKey(DataType(integerName)), emptyMask, null).
       asScala should contain allOf(t1(1), t1(2), t1(3))
 
-    context.enumerateTuples(new DataTypeKey(DataType(classOf[String])), emptyMask, null).
+    context.enumerateTuples(new DataTypeKey(DataType(stringName)), emptyMask, null).
       asScala should be(empty)
 
-    context.enumerateTuples(new DataTypeKey(DataType(classOf[Boolean])), emptyMask, null).
+    context.enumerateTuples(new DataTypeKey(DataType(boolName)), emptyMask, null).
       asScala should be(empty)
 
     indices.dispose()
@@ -90,21 +99,21 @@ class RuntimeContextTests extends AnyFunSuite {
     val changeset = Diffable.load(add)
     indices.processChangeset(changeset)
 
-    val context = new TFRuntimeContext(indices)
+    val context = new TFRuntimeContext(indices, null)
 
-    context.enumerateTuples(new NodeLinkKey(NodeType(classOf[Num])("n")), emptyMask, null).
+    context.enumerateTuples(new NodeLinkKey(NodeType(numName)("n")), emptyMask, null).
       asScala should contain allOf(t2(num1.uri, 1), t2(num2.uri, 2), t2(num3.uri, 3))
 
-    context.enumerateTuples(new NodeLinkKey(NodeType(classOf[Mul])("l")), emptyMask, null).
+    context.enumerateTuples(new NodeLinkKey(NodeType(mulName)("l")), emptyMask, null).
       asScala should contain only (t2(mul.uri, num1.uri))
 
-    context.enumerateTuples(new NodeLinkKey(NodeType(classOf[Mul])("r")), emptyMask, null).
+    context.enumerateTuples(new NodeLinkKey(NodeType(mulName)("r")), emptyMask, null).
       asScala should contain only (t2(mul.uri, num2.uri))
 
-    context.enumerateTuples(new NodeLinkKey(NodeType(classOf[Add])("l")), emptyMask, null).
+    context.enumerateTuples(new NodeLinkKey(NodeType(addName)("l")), emptyMask, null).
       asScala should contain only (t2(add.uri, mul.uri))
 
-    context.enumerateTuples(new NodeLinkKey(NodeType(classOf[Add])("r")), emptyMask, null).
+    context.enumerateTuples(new NodeLinkKey(NodeType(addName)("r")), emptyMask, null).
       asScala should contain only (t2(add.uri, num3.uri))
 
     indices.dispose()
@@ -114,7 +123,7 @@ class RuntimeContextTests extends AnyFunSuite {
     val virtualIndices = new java.util.HashMap[String, VirtualIndex]()
     virtualIndices.put(ParentKey.getUniqueID, new ParentIndex())
     val indices = new Indices(null, virtualIndices)
-    val context = new TFRuntimeContext(indices)
+    val context = new TFRuntimeContext(indices, null)
 
     val changeset = Diffable.load(add)
     indices.processChangeset(changeset)

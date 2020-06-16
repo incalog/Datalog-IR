@@ -24,7 +24,7 @@ object GraphPatternLangPrinter {
   def prettyParam(param: Param): String = param.name + (if (param.typ.isDefined) ": " + prettyType(param.typ.get) else "")
 
   def prettyType(typ: Type): String = typ match {
-    case TNodeType(wrapped) => wrapped.cls.getName
+    case TNodeType(wrapped) => wrapped.name
     case TBool => "TBool"
     case TInt => "TInt"
     case TLong => "TLong"
@@ -39,11 +39,11 @@ object GraphPatternLangPrinter {
     case Concept(v, typ) => prettyType(typ) + "(" + prettyValue(v) + ")"
     case Path(src, trg, link, typ) => link match {
       case NodeLink(nodeType, fld) =>
-        prettyType(typ) + "." + fld.getName + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
+        prettyType(typ) + "." + fld + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
       case DefinedNodeLink(nodeType, fld) =>
-        prettyType(typ) + "." + fld.getName + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
+        prettyType(typ) + "." + fld + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
       case _ =>
-        prettyType(typ) + "." + link.fld.getName + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
+        prettyType(typ) + "." + link.fieldName + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
     }
     case Composition(call, neg) => (if(neg) "neg " else "") + "find " + prettyPatternCall(call)
   }

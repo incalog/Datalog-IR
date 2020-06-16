@@ -128,9 +128,9 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
   def genPParam(param: Param): Stat = {
     val pparam =
       if (param.typ.isDefined) {
-        val qualifiedName = genType(param.typ.get).syntax
+        val qualifiedName = genType(param.typ.get).value
         val key = genInputKey(param.typ.get)
-        q"new PParameter(${Lit.String(param.name)}, ${Lit.String(qualifiedName)}, $key)"
+        q"new PParameter(${Lit.String(param.name)}, ${qualifiedName}, $key)"
       } else {
         q"new PParameter(${Lit.String(param.name)})"
       }
@@ -143,7 +143,7 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
     case TLong => q"new JavaTransitiveInstancesKey(classOf[java.lang.Long])"
     case TDouble => q"new JavaTransitiveInstancesKey(classOf[java.lang.Double])"
     case TString => q"new JavaTransitiveInstancesKey(classOf[java.lang.String])"
-    case TNodeType(wrapped) => q"new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[${genType(wrapped)}]))"
+    case TNodeType(wrapped) => q"new TFInputKey.NodeTypeKey(MetaElements.NodeType(${genType(wrapped)}))"
   }
 
 
@@ -182,7 +182,7 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
       Some(q"""new TypeConstraint(
             body,
             Tuples.flatTupleOf(${Term.Name(s"$VARPREFIX${param.name}")}),
-            new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[${genType(param.typ.get)}])))""")
+            new TFInputKey.NodeTypeKey(MetaElements.NodeType(${genType(param.typ.get)})))""")
     else None
   }
 
@@ -206,9 +206,8 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
       Seq(q"""new TypeConstraint(
             body,
             Tuples.flatTupleOf(${Term.Name(s"var_${v.name}")}),
-            new TFInputKey.NodeTypeKey(MetaElements.NodeType(classOf[${genType(typ)}])))""")
+            new TFInputKey.NodeTypeKey(MetaElements.NodeType(${genType(typ)})))""")
     case Path(src, trg, link, typ) =>
-
       Seq(q"""new TypeConstraint(
             body,
             Tuples.staticArityFlatTupleOf(..${List(transValue(src), transValue(trg))}),
@@ -219,10 +218,10 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
   }
 
   def genLinkKey(link: Link): Term = link match {
-    case ParentLink() =>
+    case ParentLink =>
       q"ParentKey"
     case NodeLink(nodeType, fld)  =>
-      q"new TFInputKey.NodeLinkKey(new MetaElements.NodeType(classOf[${genType(nodeType)}])(${Lit.String(fld.getName)}))"
+      q"new TFInputKey.NodeLinkKey(MetaElements.NodeLink(MetaElements.NodeType(${nodeType.name}), ${fld}))"
     case _ => throw new IllegalArgumentException("Does not support such a link")
   }
 
@@ -231,24 +230,15 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
     case Constant(lit) => Term.Name(s"$LITPREFIX${genLiteralVarName(lit)}")
   }
 
-  private def genType(typ: GraphPatternLang.Type): Type.Select = typ match {
+  private def genType(typ: GraphPatternLang.Type): Lit.String = typ match {
     case TBool => genPrimitiveType("Boolean")
     case TInt => genPrimitiveType("Integer")
     case TLong => genPrimitiveType("Long")
     case TDouble => genPrimitiveType("Double")
     case TString => genPrimitiveType("String")
-    case TNodeType(wrapped) =>
-      val simpleName = wrapped.cls.getSimpleName
-      val pkgName = wrapped.cls.getPackage.getName
-      val pkgElems = pkgName.split('.')
-      val pkgType = pkgElems.tail.foldLeft(Term.Name(pkgElems.head): Term.Ref){ case (acc, pkg) =>
-        Term.Select(acc, Term.Name(pkg))
-      }
-      val paramType = Type.Select(pkgType, Type.Name(simpleName))
-      paramType
+    case TNodeType(wrapped) => Lit.String(wrapped.name)
   }
 
-  private def genPrimitiveType(name: String): Type.Select =
-    Type.Select(Term.Select(Term.Name("java"), Term.Name("lang")), Type.Name(name))
+  private def genPrimitiveType(name: String): Lit.String = Lit.String(s"java.lang.${name}")
 
 }
