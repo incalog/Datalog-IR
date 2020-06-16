@@ -17,44 +17,44 @@ class ParentIndex extends VirtualIndex {
 
   override var isDirty: Boolean = false
 
-  var parents: mutable.Map[truechange.Node, truechange.Node] = mutable.Map()
+  var parents: mutable.Map[truechange.NodeURI, truechange.NodeURI] = mutable.Map()
 
   override def processChange(change: truechange.Change): Unit = change match {
-    case truechange.AttachNode(parent, link, node) => link match {
+    case truechange.Attach(parent, _, link, node, _) => link match {
       case _: RootLink.type  | _: ListNextLink | _: ListFirstLink => // nothing to do
       case _: NamedLink => insertParent(node, parent)
     }
-    case truechange.DetachNode(parent, link, node, tag) => link match {
+    case truechange.Detach(parent, _, link, node, _) => link match {
       case _: RootLink.type  | _: ListNextLink | _: ListFirstLink => // nothing to do
       case _: NamedLink => insertParent(node, parent)
     }
-    case truechange.LoadNode(node, tag, kids, lits) =>
+    case truechange.Load(node, _, kids, _) =>
       kids.foreach { case (_, kid) =>
         insertParent(kid, node)
       }
       // we do not add a parent for literals because they are not unique (have no nodeuri)
-    case truechange.UnloadNode(node, tat, kids, lits) =>
+    case truechange.Unload(node, _, kids, _) =>
       kids.foreach { case (_, kid) =>
         deleteParent(kid, node)
       }
   }
 
 
-  private def insertParent(node: truechange.Node, parent: truechange.Node): Unit = {
+  private def insertParent(node: truechange.NodeURI, parent: truechange.NodeURI): Unit = {
     parents.put(node, parent) match {
       case Some(_) => // do nothing
       case None => notifyParentListener(node, parent, isInsert = true)
     }
   }
 
-  private def deleteParent(node: truechange.Node, parent: truechange.Node): Unit = {
+  private def deleteParent(node: truechange.NodeURI, parent: truechange.NodeURI): Unit = {
     parents.remove(node) match {
       case Some(_) => notifyParentListener(node, parent, isInsert = false)
       case None => // do nothing
     }
   }
 
-  def notifyParentListener(node: truechange.Node, parent: truechange.Node, isInsert: Boolean): Unit = {
+  def notifyParentListener(node: truechange.NodeURI, parent: truechange.NodeURI, isInsert: Boolean): Unit = {
     isDirty |= listeners.nonEmpty
     listeners.foreach { l =>
       if (isInsert) l.insert(node, parent)
@@ -89,8 +89,8 @@ class ParentIndex extends VirtualIndex {
   }
 
   override def containsTuple(tuple: ITuple): Boolean = {
-    val src = getFromTuple(tuple, 0).asInstanceOf[truechange.Node]
-    val trg = getFromTuple(tuple, 1).asInstanceOf[truechange.Node]
+    val src = getFromTuple(tuple, 0).asInstanceOf[truechange.NodeURI]
+    val trg = getFromTuple(tuple, 1).asInstanceOf[truechange.NodeURI]
     parents.get(src) match {
       case Some(storedTrg) => trg == storedTrg
       case None => false
@@ -102,9 +102,9 @@ class ParentIndex extends VirtualIndex {
 
 
   override def addListener(listener: IQueryRuntimeContextListener, seed: Tuple): Unit = {
-    listeners += new ParentListener(listener, seed.get(0).asInstanceOf[truechange.Node], seed.get(1).asInstanceOf[truechange.Node])
+    listeners += new ParentListener(listener, seed.get(0).asInstanceOf[truechange.NodeURI], seed.get(1).asInstanceOf[truechange.NodeURI])
   }
   override def removeListener(listener: IQueryRuntimeContextListener, seed: Tuple): Unit = {
-    listeners -= new ParentListener(listener, seed.get(0).asInstanceOf[truechange.Node], seed.get(1).asInstanceOf[truechange.Node])
+    listeners -= new ParentListener(listener, seed.get(0).asInstanceOf[truechange.NodeURI], seed.get(1).asInstanceOf[truechange.NodeURI])
   }
 }

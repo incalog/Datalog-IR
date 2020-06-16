@@ -5,16 +5,16 @@ import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextLis
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
 
 public class ParentListener extends ListenerAdapter {
-    public final truechange.Node node;
-    public final truechange.Node parent;
+    public final truechange.NodeURI node;
+    public final truechange.NodeURI parent;
 
-    public ParentListener(final IQueryRuntimeContextListener listener, final truechange.Node node, final truechange.Node parent) {
+    public ParentListener(final IQueryRuntimeContextListener listener, final truechange.NodeURI node, final truechange.NodeURI parent) {
          super(listener, node, parent);
          this.node = node;
          this.parent = parent;
     }
 
-    public void insert(truechange.Node node, truechange.Node parent) {
+    public void insert(truechange.NodeURI node, truechange.NodeURI parent) {
         if (this.node != null && !(this.node.equals(node))) {
             return;
         }
@@ -24,7 +24,7 @@ public class ParentListener extends ListenerAdapter {
         this.listener.update(ParentKey$.MODULE$, Tuples.staticArityFlatTupleOf(node, parent), true);
     }
 
-    public void delete(truechange.Node node, truechange.Node parent) {
+    public void delete(truechange.NodeURI node, truechange.NodeURI parent) {
         if (this.node != null && !(this.node.equals(node))) {
             return;
         }

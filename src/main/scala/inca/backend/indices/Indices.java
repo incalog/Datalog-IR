@@ -69,23 +69,23 @@ public class Indices implements IBaseIndex {
     }
 
     public void processChangeset(Changeset changeset) {
-        Iterator<truechange.Change> changesetIterator = changeset.cmds().iterator();
+        Iterator<truechange.Change> changesetIterator = changeset.changes().iterator();
         while (changesetIterator.hasNext()) {
             truechange.Change change = changesetIterator.next();
             // process virtual indices
             virtualIndices.values().forEach((vIndex) -> {
                 vIndex.processChange(change);
             });
-            if (change instanceof DetachNode) {
+            if (change instanceof Detach) {
                 // delete nodeLinkInstance
-                DetachNode detach = (DetachNode) change;
+                Detach detach = (Detach) change;
                 if (detach.link() instanceof RootLink$) {
                     // just skip because we do not keep track of root link
                 } else {
-                    deleteNodeLinkInstance(detach.parent(), convertLinkToNodeLink(detach.link()), detach.node());
+                    deleteNodeLinkInstance(detach.parent(), convertNodeAndLinkToNodeLink(detach.ptag(), detach.link()), detach.node());
                 }
-            } else if (change instanceof UnloadNode) {
-                UnloadNode unload = (UnloadNode) change;
+            } else if (change instanceof Unload) {
+                Unload unload = (Unload) change;
                 // insert nodeTypeInstance
                 NodeType nodeType = convertTagToNodeType(unload.tag());
                 deleteNodeTypeInstance(nodeType, unload.node());
@@ -103,24 +103,24 @@ public class Indices implements IBaseIndex {
                 }
                 // delete dataTypeInstance for each lit
                 // delete nodeLinkInstances for each lit
-                Iterator<Tuple2<String, Literal<?>>> litsIterator = unload.lits().iterator();
+                Iterator<Tuple2<String, Object>> litsIterator = unload.lits().iterator();
                 while(litsIterator.hasNext()) {
-                    Tuple2<String, Literal<?>> lit = litsIterator.next();
+                    Tuple2<String, Object> lit = litsIterator.next();
                     // TODO do we want to pass the literal or the value that the literal wraps?
-                    deleteDataTypeInstance(lit._2.value());
-                    deleteNodeLinkInstance(unload.node(), convertNodeAndStringToNodeLink(unload.tag(), lit._1), lit._2.value());
+                    deleteDataTypeInstance(lit._2);
+                    deleteNodeLinkInstance(unload.node(), convertNodeAndStringToNodeLink(unload.tag(), lit._1), lit._2);
                 }
-            } else if (change instanceof AttachNode) {
+            } else if (change instanceof Attach) {
                 // insert nodeLinkInstance
-                AttachNode attach = (AttachNode) change;
+                Attach attach = (Attach) change;
                 if (attach.link() instanceof RootLink$) {
                     // just skip because we do not keep track of root link
                 } else {
-                    insertNodeLinkInstance(attach.parent(), convertLinkToNodeLink(attach.link()), attach.node());
+                    insertNodeLinkInstance(attach.parent(), convertNodeAndLinkToNodeLink(attach.ptag(), attach.link()), attach.node());
                 }
-            } else if (change instanceof LoadNode) {
+            } else if (change instanceof Load) {
                 // insert nodeTypeInstance
-                LoadNode load = (LoadNode) change;
+                Load load = (Load) change;
                 NodeType nodeType = convertTagToNodeType(load.tag());
                 insertNodeTypeInstance(nodeType, load.node());
                 // insert for every parent type
@@ -134,44 +134,38 @@ public class Indices implements IBaseIndex {
                     Tuple2<String, NodeURI> kid = kidsIterator.next();
                     insertNodeLinkInstance(load.node(), convertNodeAndStringToNodeLink(load.tag(), kid._1), kid._2);
                 }
-                Iterator<Tuple2<String, Literal<?>>> litsIterator = load.lits().iterator();
+                Iterator<Tuple2<String, Object>> litsIterator = load.lits().iterator();
                 while(litsIterator.hasNext()) {
-                    Tuple2<String, Literal<?>> lit = litsIterator.next();
-                    // TODO do we want to pass the literal or the value that the literal wraps?
-                    insertDataTypeInstance(lit._2.value());
-                    insertNodeLinkInstance(load.node(), convertNodeAndStringToNodeLink(load.tag(), lit._1), lit._2.value());
+                    Tuple2<String, Object> lit = litsIterator.next();
+                    insertDataTypeInstance(lit._2);
+                    insertNodeLinkInstance(load.node(), convertNodeAndStringToNodeLink(load.tag(), lit._1), lit._2);
                 }
             }
         }
     }
 
-    private NodeType convertTagToNodeType(truechange.Type tag) {
-        if (tag instanceof SortType) {
-            SortType stype = (SortType) tag;
-            return new MetaElements.NodeType(stype.tag().getCanonicalName());
+    private NodeType convertTagToNodeType(truechange.NodeTag tag) {
+        if (tag instanceof ConstrTag) {
+            ConstrTag constrTag = (ConstrTag) tag;
+            return new MetaElements.NodeType(constrTag.c());
         } else {
             throw new IllegalArgumentException("Expected SortType but got: " + tag);
         }
     }
 
-    private MetaElements.Link convertNodeAndStringToNodeLink(truechange.Type type, String linkName) {
-       NodeType nodeType = convertTagToNodeType(type);
-       return nodeType.apply(linkName);
+    private Link convertNodeAndLinkToNodeLink(truechange.NodeTag tag, truechange.Link link) {
+       NodeType nodeType = convertTagToNodeType(tag);
+       if (link instanceof NamedLink) {
+           NamedLink namedLink = (NamedLink) link;
+           return nodeType.apply(namedLink.name());
+       }
+       return null;
     }
 
-    private MetaElements.Link convertLinkToNodeLink(truechange.Link link) {
-        if (link instanceof NamedLink) {
-            NamedLink nlink = (NamedLink) link;
-            return convertTagToNodeType(nlink.tag()).apply(nlink.name());
-        }
-        // TODO implement more
-        return null;
+    private Link convertNodeAndStringToNodeLink(truechange.NodeTag tag, String linkName) {
+        NodeType nodeType = convertTagToNodeType(tag);
+        return nodeType.apply(linkName);
     }
-
-    private DataType convertLiteralToDataType(Literal literal) {
-        return new DataType(literal.tag().getCanonicalName());
-    }
-
 
     public void dispose() {
         this.nodeTypeInstances.clear();
