@@ -40,9 +40,8 @@ public class Indices implements IBaseIndex {
     final Map<Link, Map<Object, Set<Object>>> nodeLinkInstancesReversed;
     final Map<Link, Set<INodeLinkInstanceListener>> nodeLinkInstanceListeners;
 
-    // TODO we need to populate these maps somehow
-    public static final Map<String, Set<String>> subTypeMap = new HashMap<>();
-    public static final Map<String, Set<String>> superTypeMap = new HashMap<>();
+    public final Map<String, Set<String>> subtypeMap = new HashMap<>();
+    public final Map<String, Set<String>> supertypeMap = new HashMap<>();
 
     final Map<String, VirtualIndex> virtualIndices;
 
@@ -52,10 +51,10 @@ public class Indices implements IBaseIndex {
     private boolean isDirty;
 
     public Indices() {
-        this(null, Collections.emptyMap());
+        this(null, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
     }
 
-    public Indices(final AdvancedViatraQueryEngine engine, final Map<String, VirtualIndex> virtualIndices) {
+    public Indices(final AdvancedViatraQueryEngine engine, final Map<String, Set<String>> subtypeMap, final Map<String, Set<String>> supertypeMap, final Map<String, VirtualIndex> virtualIndices) {
         this.nodeTypeInstances = new HashMap<>();
         this.nodeTypeInstanceListeners = new HashMap<>();
         this.dataTypeInstances = new HashMap<>();
@@ -65,6 +64,13 @@ public class Indices implements IBaseIndex {
         this.nodeLinkInstanceListeners = new HashMap<>();
         this.changeListeners = new HashSet<>();
         this.virtualIndices = virtualIndices;
+        if (subtypeMap != null) {
+            this.subtypeMap.putAll(subtypeMap);
+        }
+        if (supertypeMap != null) {
+            this.supertypeMap.putAll(supertypeMap);
+        }
+
         this.engine = engine;
     }
 
@@ -90,7 +96,7 @@ public class Indices implements IBaseIndex {
                 NodeType nodeType = convertTagToNodeType(unload.tag());
                 deleteNodeTypeInstance(nodeType, unload.node());
                 // delete for parent types
-                Set<String> supertypes = superTypeMap.getOrDefault(nodeType.name(), Collections.emptySet());
+                Set<String> supertypes = supertypeMap.getOrDefault(nodeType.name(), Collections.emptySet());
                 for (String supertype : supertypes) {
                     NodeType nodeSupertype = new NodeType(supertype);
                     deleteNodeTypeInstance(nodeSupertype, unload.node());
@@ -124,7 +130,7 @@ public class Indices implements IBaseIndex {
                 NodeType nodeType = convertTagToNodeType(load.tag());
                 insertNodeTypeInstance(nodeType, load.node());
                 // insert for every parent type
-                Set<String> supertypes = superTypeMap.getOrDefault(nodeType.name(), Collections.emptySet());
+                Set<String> supertypes = supertypeMap.getOrDefault(nodeType.name(), Collections.emptySet());
                 for (String supertype : supertypes) {
                     NodeType nodeSupertype = new NodeType(supertype);
                     insertNodeTypeInstance(nodeSupertype, load.node());
@@ -177,6 +183,8 @@ public class Indices implements IBaseIndex {
         this.nodeLinkInstanceListeners.clear();
         this.changeListeners.clear();
         this.virtualIndices.clear();
+        this.subtypeMap.clear();
+        this.supertypeMap.clear();
         this.engine = null;
     }
 

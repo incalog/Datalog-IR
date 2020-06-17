@@ -11,9 +11,18 @@ import scala.jdk.CollectionConverters._
 
 // we pass the virtualindices because we want them to be configurable
 case class EngineContext(scope: QueryScope, engine: AdvancedViatraQueryEngine, virtualIndices: Map[String, VirtualIndex]) extends IEngineContext {
-  // how do we populate the supertype map?
-  val indices: Indices = new Indices(engine, (mutable.Map() ++ virtualIndices).asJava)
-  val runtimeCtx = new TFRuntimeContext(indices, new MetaContext(scope.supertypes, scope.links))
+
+
+  private def scala2JavaNestedMap(map: Map[String, Set[String]]): java.util.Map[String, java.util.Set[String]] = {
+    val res = new java.util.HashMap[String, java.util.Set[String]]()
+    map.foreach { case (key, set) =>
+      res.put(key, set.asJava)
+    }
+    res
+  }
+
+  val indices: Indices = new Indices(engine, scala2JavaNestedMap(scope.langMetaInfo.subtypes), scala2JavaNestedMap(scope.langMetaInfo.supertypes), (mutable.Map() ++ virtualIndices).asJava)
+  val runtimeCtx = new TFRuntimeContext(indices, new MetaContext(scope.langMetaInfo))
 
   override def getBaseIndex: Indices = indices
   override def getQueryRuntimeContext: IQueryRuntimeContext = runtimeCtx

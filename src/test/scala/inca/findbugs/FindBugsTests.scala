@@ -13,7 +13,7 @@ class FindBugsTests extends AnyFunSuite {
 
   test("Confused Inheritance") {
     // TODO support lists in the backend and adapt the analysis
-    val scope = new QueryScope(null, null, null)
+    val scope = new QueryScope(null, null)
     val changeset = Diffable.load(clazz)
     val matcher = EnginePool.getMatcher(ConfusedInheritance.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
     val indices = scope.getEngineContext.getBaseIndex

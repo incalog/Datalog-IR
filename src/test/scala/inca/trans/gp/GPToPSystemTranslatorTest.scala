@@ -6,10 +6,9 @@ import inca.analyzedLangs.expLang._
 import org.eclipse.viatra.query.runtime.api.{IPatternMatch, ViatraQueryMatcher}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import truediff.Diffable
-import inca.backend.indices.{EnginePool, Indices, QueryScope, TFQueryScope, TFQuerySpecification}
+import inca.backend.indices.{EnginePool, LanguageMetaInfo, QueryScope, TFQuerySpecification}
 import inca.lang.FunLang.{Alternative, AnnoParam, Module, Param, PathAccess, PatternFunction, Return, Var}
 import inca.MetaElements.{NodeType, ParentLink}
-import inca.backend.TypeHierarchyCollector
 import inca.backend.virtual.ParentIndex
 import inca.trans.fun.FunToGPTranslator
 import inca.trans.ExpLangTestAnalyses._
@@ -34,42 +33,42 @@ class GPToPSystemTranslatorTest extends AnyFunSuite {
   val notName = classOf[Not].getCanonicalName
 
   // TODO we need to derive this information but at this time we hardcode it
-  private val supertypes =
-    Map(
-      expName -> Set[String](),
-      intName -> Set(expName),
-      longName -> Set(expName),
-      boolName -> Set(expName),
-      multName -> Set(expName),
-      addName -> Set(expName),
-      andName -> Set(expName),
-      orName -> Set(expName),
-      notName -> Set(expName),
-    )
+  private val langMetaInfo: LanguageMetaInfo =
+    new LanguageMetaInfo(
+      Map(
+        expName -> Set[String](),
+        intName -> Set(expName),
+        longName -> Set(expName),
+        boolName -> Set(expName),
+        multName -> Set(expName),
+        addName -> Set(expName),
+        andName -> Set(expName),
+        orName -> Set(expName),
+        notName -> Set(expName),
+      ),
+      Map(
+        addName -> Map(
+          "lhs" -> expName,
+          "rhs" -> expName,
+        ),
+        multName -> Map(
+          "lhs" -> expName,
+          "rhs" -> expName,
+        ),
+        andName -> Map(
+          "lhs" -> expName,
+          "rhs" -> expName,
+        ),
+        orName -> Map(
+          "lhs" -> expName,
+          "rhs" -> expName,
+        ),
+        notName -> Map("e" -> expName),
+        intName -> Map("value" -> "java.lang.Integer"),
+        longName -> Map("value" -> "java.lang.Long"),
+        boolName -> Map("value" -> "java.lang.Boolean")
+      ))
 
-  private val links =
-    Map(
-      addName -> Map(
-        "lhs" -> expName,
-        "rhs" -> expName,
-      ),
-      multName -> Map(
-        "lhs" -> expName,
-        "rhs" -> expName,
-      ),
-      andName -> Map(
-        "lhs" -> expName,
-        "rhs" -> expName,
-      ),
-      orName -> Map(
-        "lhs" -> expName,
-        "rhs" -> expName,
-      ),
-      notName -> Map("e" -> expName),
-      intName -> Map("value" -> "java.lang.Integer"),
-      longName -> Map("value" -> "java.lang.Long"),
-      boolName -> Map("value" -> "java.lang.Boolean")
-    )
 
   def assertMatch(
       module: Module,
@@ -78,13 +77,7 @@ class GPToPSystemTranslatorTest extends AnyFunSuite {
     val gp = FunToGPTranslator.transformModule(module)
     AnalysisWriter.writeModule(gp)
     val changeset = Diffable.load(subjectProg)
-    val scope = new QueryScope(supertypes, links, Map("parent" -> new ParentIndex()))
-
-    // TODO this is done by hand currently (we need a generic way of extracting supertypes for all relevant types)
-    supertypes.keys.foreach { key =>
-      if (supertypes(key).nonEmpty)
-        Indices.superTypeMap.put(key, Collections.singleton(supertypes(key).head))
-    }
+    val scope = new QueryScope(langMetaInfo, Map("parent" -> new ParentIndex()))
 
     val matcher = EnginePool.getMatcher(compiledModule, scope, DifferentialReteBackendFactory.INSTANCE)
     scope.getEngineContext.getBaseIndex.processChangeset(changeset)

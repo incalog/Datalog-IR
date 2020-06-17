@@ -3,16 +3,15 @@ package inca.backend
 import java.util
 import java.util.Collections
 
-import inca.MetaElements.{DataType, NodeType, ParentLink}
+import inca.MetaElements.{DataType, NodeType}
 import inca.backend.indices.TFInputKey.{DataTypeKey, NodeLinkKey, NodeTypeKey}
 import inca.backend.indices.{Indices, TFRuntimeContext}
-import inca.backend.virtual.{ParentIndex, ParentKey, VirtualIndex, VirtualKey}
+import inca.backend.virtual.{ParentIndex, ParentKey, VirtualIndex}
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, TupleMask, Tuples}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
 import truediff.Diffable
 
-import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
 class RuntimeContextTests extends AnyFunSuite {
@@ -122,7 +121,7 @@ class RuntimeContextTests extends AnyFunSuite {
   test("VirtualLink parent") {
     val virtualIndices = new java.util.HashMap[String, VirtualIndex]()
     virtualIndices.put(ParentKey.getUniqueID, new ParentIndex())
-    val indices = new Indices(null, virtualIndices)
+    val indices = new Indices(null, null, null, virtualIndices)
     val context = new TFRuntimeContext(indices, null)
 
     val changeset = Diffable.load(add)

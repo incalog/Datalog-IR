@@ -12,20 +12,20 @@ import org.eclipse.viatra.query.runtime.matchers.context.{AbstractQueryMetaConte
 
 import scala.jdk.CollectionConverters._
 
-class MetaContext(directSupertypes: Map[String, Set[String]], links: Map[String, Map[String, String]]) extends AbstractQueryMetaContext {
+class MetaContext(langMetaInfo: LanguageMetaInfo) extends AbstractQueryMetaContext {
   override def isEnumerable(key: IInputKey): Boolean = true
   override def isStateless(key: IInputKey): Boolean = false
 
   override def getImplications(implyingKey: IInputKey): util.Collection[InputKeyImplication] = implyingKey match {
     case key: NodeTypeKey =>
-      val supers = directSupertypes(key.`type`.name)
+      val supers = langMetaInfo.directSupertypes(key.`type`.name)
       supers.map { stype =>
         // TODO why not a nodetypekey?
         val impliedSuper = new JavaTransitiveInstancesKey(stype)
         new InputKeyImplication(key, impliedSuper, Collections.singletonList(0))
       }.asJava
     case key: JavaTransitiveInstancesKey =>
-      val supers = directSupertypes(key.getInstanceClass.getCanonicalName)
+      val supers = langMetaInfo.directSupertypes(key.getInstanceClass.getCanonicalName)
       supers.map { stype =>
         // TODO why not a nodetypekey?
         val impliedSuper = new JavaTransitiveInstancesKey(stype)
@@ -34,7 +34,7 @@ class MetaContext(directSupertypes: Map[String, Set[String]], links: Map[String,
     case key: NodeLinkKey =>
       val nodeLink = key.`type`
       val impliedSource = new NodeTypeKey(nodeLink.nodeType)
-      val linkType = links(nodeLink.nodeType.name)(nodeLink.fieldName)
+      val linkType = langMetaInfo.links(nodeLink.nodeType.name)(nodeLink.fieldName)
       val set = new util.HashSet[InputKeyImplication]()
       set.add(new InputKeyImplication(key, impliedSource, Collections.singletonList(0)))
       val implication =
