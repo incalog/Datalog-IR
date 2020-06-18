@@ -1,9 +1,9 @@
 package inca.backend.listeners;
 
-import inca.MetaElements;
+import inca.MetaElements.Linked;
 
 public interface INodeTypeInstanceListener extends IInstanceListener {
-    void insert(final MetaElements.NodeType type, final Object instance);
+    void insert(final Linked type, final Object instance);
 
-    void delete(final MetaElements.NodeType type, final Object instance);
+    void delete(final Linked type, final Object instance);
 }

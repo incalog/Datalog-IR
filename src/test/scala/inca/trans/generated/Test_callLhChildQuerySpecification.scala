@@ -1,6 +1,6 @@
 package inca.trans.generated
 import org.eclipse.viatra.query.runtime.api.{ GenericPatternMatcher, ViatraQueryEngine }
-import org.eclipse.viatra.query.runtime.api.scope.QueryScope
+import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables.{ PositivePatternCall, BinaryTransitiveClosure, TypeConstraint }
 import org.eclipse.viatra.query.runtime.matchers.psystem.{ PBody, PVariable }
 import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{ BasePQuery, PParameter, PVisibility }
@@ -8,17 +8,17 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred._
 import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
 import java.util
-import inca.backend.indices.{ TFInputKey, TFQueryScope, TFQuerySpecification }
+import inca.backend.indices.{ TFInputKey, QueryScope, TFQuerySpecification }
 import inca.backend.virtual.VirtualKey
 import inca.backend.virtual.ParentKey
-import inca.MetaElements
+import inca.MetaElements._
 class Test_callLhChildQuerySpecification extends TFQuerySpecification(Test_callLhChildQuerySpecification.GeneratedPQuery.INSTANCE) {
   override def instantiate(engine: ViatraQueryEngine): GenericPatternMatcher = {
     var matcher: GenericPatternMatcher = engine.getExistingMatcher(this)
     if (matcher == null) matcher = engine.getMatcher(this)
     matcher
   }
-  override def getPreferredScopeClass: Class[_ <: QueryScope] = classOf[TFQueryScope]
+  override def getPreferredScopeClass: Class[_ <: ViatraQueryScope] = classOf[QueryScope]
 }
 object Test_callLhChildQuerySpecification {
   def instance(): Test_callLhChildQuerySpecification = LazyHolder.INSTANCE
@@ -28,8 +28,8 @@ object Test_callLhChildQuerySpecification {
   }
   private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
     val INSTANCE: GeneratedPQuery.type = this
-    private val param_add: PParameter = new PParameter("add", "inca.analyzedLangs.expLang.Add", new TFInputKey.NodeTypeKey(MetaElements.NodeType("inca.analyzedLangs.expLang.Add")))
-    private val param_out: PParameter = new PParameter("out", "inca.analyzedLangs.expLang.Exp", new TFInputKey.NodeTypeKey(MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
+    private val param_add: PParameter = new PParameter("add", "inca.analyzedLangs.expLang.Add", new TFInputKey.NodeTypeKey(Node("inca.analyzedLangs.expLang.Add")))
+    private val param_out: PParameter = new PParameter("out", "inca.analyzedLangs.expLang.Exp", new TFInputKey.NodeTypeKey(Node("inca.analyzedLangs.expLang.Exp")))
     {}
     override protected def doGetContainedBodies(): util.Set[PBody] = {
       val bodies: util.Set[PBody] = util.Set.of {
@@ -43,8 +43,8 @@ object Test_callLhChildQuerySpecification {
         body.setSymbolicParameters(exportedParams)
         val var_arg: PVariable = body.getOrCreateVariableByName("arg")
         val var_lhschild: PVariable = body.getOrCreateVariableByName("lhschild")
-        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new TFInputKey.NodeTypeKey(MetaElements.NodeType("inca.analyzedLangs.expLang.Add")))
-        new TypeConstraint(body, Tuples.flatTupleOf(var_out), new TFInputKey.NodeTypeKey(MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new TFInputKey.NodeTypeKey(Node("inca.analyzedLangs.expLang.Add")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_out), new TFInputKey.NodeTypeKey(Node("inca.analyzedLangs.expLang.Exp")))
         new PositivePatternCall(body, Tuples.flatTupleOf(var_add, var_arg), Test_lhChildQuerySpecification.instance().getInternalQueryRepresentation())
         new Equality(body, var_lhschild, var_arg)
         new Equality(body, var_lhschild, var_out)

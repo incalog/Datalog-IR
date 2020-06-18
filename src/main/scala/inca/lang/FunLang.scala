@@ -1,17 +1,17 @@
 package inca.lang
 
-import inca.MetaElements.{Link, NodeType}
+import inca.MetaElements.{Link, Linked}
 
 object FunLang {
   trait Type
-  case class TNodeType(wrapped: NodeType) extends Type
+  case class TType(wrapped: Linked) extends Type
   case object TBool extends Type
   case object TInt extends Type
   case object TLong extends Type
   case object TDouble extends Type
   case object TString extends Type
 
-  implicit def nodeTypeToType(t: NodeType): Type = TNodeType(t)
+  implicit def linkedToTType(t: Linked): Type = TType(t)
 
   type Name = String
 

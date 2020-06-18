@@ -15,11 +15,13 @@ import inca.backend.listeners.IDataTypeInstanceListener;
 import inca.backend.listeners.IInstanceListener;
 import inca.backend.listeners.INodeLinkInstanceListener;
 import inca.backend.listeners.INodeTypeInstanceListener;
-import inca.MetaElements.DataType;
+import inca.MetaElements.Primitive;
 import inca.MetaElements.Link;
-import inca.MetaElements.NodeType;
+import inca.MetaElements.Node;
+import inca.MetaElements.Linked;
 import scala.Tuple2;
 import scala.collection.Iterator;
+import scala.tools.nsc.doc.html.HtmlTags;
 import truechange.*;
 
 import java.lang.reflect.InvocationTargetException;
@@ -28,11 +30,11 @@ import java.util.concurrent.Callable;
 
 public class Indices implements IBaseIndex {
 
-    final Map<NodeType, Set<Object>> nodeTypeInstances;
-    final Map<NodeType, Set<INodeTypeInstanceListener>> nodeTypeInstanceListeners;
+    final Map<Linked, Set<Object>> nodeTypeInstances;
+    final Map<Linked, Set<INodeTypeInstanceListener>> nodeTypeInstanceListeners;
 
-    final Map<DataType, Multiset<Object>> dataTypeInstances;
-    final Map<DataType, Set<IDataTypeInstanceListener>> dataTypeInstanceListeners;
+    final Map<Primitive, Multiset<Object>> dataTypeInstances;
+    final Map<Primitive, Set<IDataTypeInstanceListener>> dataTypeInstanceListeners;
 
     // source -> {targets}
     final Map<Link, Map<Object, Set<Object>>> nodeLinkInstances;
@@ -93,12 +95,12 @@ public class Indices implements IBaseIndex {
             } else if (change instanceof Unload) {
                 Unload unload = (Unload) change;
                 // insert nodeTypeInstance
-                NodeType nodeType = convertTagToNodeType(unload.tag());
-                deleteNodeTypeInstance(nodeType, unload.node());
+                Linked node = convertTagToNodeType(unload.tag());
+                deleteNodeTypeInstance(node, unload.node());
                 // delete for parent types
-                Set<String> supertypes = supertypeMap.getOrDefault(nodeType.name(), Collections.emptySet());
+                Set<String> supertypes = supertypeMap.getOrDefault(node.name(), Collections.emptySet());
                 for (String supertype : supertypes) {
-                    NodeType nodeSupertype = new NodeType(supertype);
+                    Node nodeSupertype = new Node(supertype);
                     deleteNodeTypeInstance(nodeSupertype, unload.node());
                 }
                 // delete nodeLinkInstance for each kid
@@ -127,12 +129,12 @@ public class Indices implements IBaseIndex {
             } else if (change instanceof Load) {
                 // insert nodeTypeInstance
                 Load load = (Load) change;
-                NodeType nodeType = convertTagToNodeType(load.tag());
-                insertNodeTypeInstance(nodeType, load.node());
+                Linked node = convertTagToNodeType(load.tag());
+                insertNodeTypeInstance(node, load.node());
                 // insert for every parent type
-                Set<String> supertypes = supertypeMap.getOrDefault(nodeType.name(), Collections.emptySet());
+                Set<String> supertypes = supertypeMap.getOrDefault(node.name(), Collections.emptySet());
                 for (String supertype : supertypes) {
-                    NodeType nodeSupertype = new NodeType(supertype);
+                    Node nodeSupertype = new Node(supertype);
                     insertNodeTypeInstance(nodeSupertype, load.node());
                 }
                 Iterator<Tuple2<String, NodeURI>> kidsIterator = load.kids().iterator();
@@ -150,27 +152,37 @@ public class Indices implements IBaseIndex {
         }
     }
 
-    private NodeType convertTagToNodeType(truechange.NodeTag tag) {
+    private Linked convertTagToNodeType(truechange.NodeTag tag) {
         if (tag instanceof ConstrTag) {
             ConstrTag constrTag = (ConstrTag) tag;
-            return new MetaElements.NodeType(constrTag.c());
+            return new MetaElements.Node(constrTag.c());
+        } else if (tag instanceof ListTag) {
+            ListTag listTag = (ListTag) tag;
+            // TODO currently asume that it wraps sorttype
+            SortType wrapped = (SortType) listTag.ty();
+            return new MetaElements.List(new MetaElements.Node(wrapped.tag().getCanonicalName()));
         } else {
-            throw new IllegalArgumentException("Expected SortType but got: " + tag);
+            throw new IllegalArgumentException("Expected ConstrTag but got: " + tag);
         }
     }
 
     private Link convertNodeAndLinkToNodeLink(truechange.NodeTag tag, truechange.Link link) {
-       NodeType nodeType = convertTagToNodeType(tag);
+       Linked node = convertTagToNodeType(tag);
        if (link instanceof NamedLink) {
            NamedLink namedLink = (NamedLink) link;
-           return nodeType.apply(namedLink.name());
+           return node.apply(namedLink.name());
+       } else if (link instanceof truechange.ListFirstLink) {
+           truechange.ListFirstLink firstLink = (truechange.ListFirstLink)  link;
+           return new MetaElements.ListFirstLink((MetaElements.List) node);
+       } else if (link instanceof truechange.ListNextLink) {
+           return new MetaElements.ListNextLink();
        }
        return null;
     }
 
     private Link convertNodeAndStringToNodeLink(truechange.NodeTag tag, String linkName) {
-        NodeType nodeType = convertTagToNodeType(tag);
-        return nodeType.apply(linkName);
+        Linked node = convertTagToNodeType(tag);
+        return node.apply(linkName);
     }
 
     public void dispose() {
@@ -254,7 +266,7 @@ public class Indices implements IBaseIndex {
 //        }
 //    }
 
-    public void insertNodeTypeInstance(final NodeType type, final Object instance) {
+    public void insertNodeTypeInstance(final Linked type, final Object instance) {
         this.nodeTypeInstances.compute(type, (k, v) -> {
             if (v == null) {
                 v = new HashSet<>();
@@ -268,7 +280,7 @@ public class Indices implements IBaseIndex {
         });
     }
 
-    public void deleteNodeTypeInstance(final NodeType type, final Object instance) {
+    public void deleteNodeTypeInstance(final Linked type, final Object instance) {
         this.nodeTypeInstances.compute(type, (k, v) -> {
             if (v == null) {
                 throw new RuntimeException("Unknown  " + type + " instance: " + instance);
@@ -288,7 +300,7 @@ public class Indices implements IBaseIndex {
     }
 
     public void insertDataTypeInstance(final Object instance) {
-        final DataType type = new DataType(instance.getClass().getCanonicalName());
+        final Primitive type = new Primitive(instance.getClass().getCanonicalName());
         this.dataTypeInstances.compute(type, (k, v) -> {
             if (v == null) {
                 v = HashMultiset.create();
@@ -303,7 +315,7 @@ public class Indices implements IBaseIndex {
     }
 
     public void deleteDataTypeInstance(final Object instance) {
-        final DataType type = new DataType(instance.getClass().getCanonicalName());
+        final Primitive type = new Primitive(instance.getClass().getCanonicalName());
         this.dataTypeInstances.compute(type, (k, v) -> {
             if (v == null) {
                 throw new RuntimeException("Unknown  " + type + " instance: " + instance);
@@ -387,7 +399,7 @@ public class Indices implements IBaseIndex {
         deleteNodeLinkInstanceInternal(target, link, source, this.nodeLinkInstancesReversed, false);
     }
 
-    private void notifyNodeTypeInstanceListeners(final NodeType type, final Object instance, final boolean isInsertion) {
+    private void notifyNodeTypeInstanceListeners(final Linked type, final Object instance, final boolean isInsertion) {
         final Set<INodeTypeInstanceListener> listeners =
                 this.nodeTypeInstanceListeners.getOrDefault(type,
                         Collections.emptySet());
@@ -401,7 +413,7 @@ public class Indices implements IBaseIndex {
         }
     }
 
-    private void notifyDataTypeInstanceListeners(final DataType type, final Object instance, final boolean isInsertion) {
+    private void notifyDataTypeInstanceListeners(final Primitive type, final Object instance, final boolean isInsertion) {
         final Set<IDataTypeInstanceListener> listeners =
                 this.dataTypeInstanceListeners.getOrDefault(type,
                         Collections.emptySet());
@@ -561,19 +573,19 @@ public class Indices implements IBaseIndex {
         });
     }
 
-    void addNodeTypeInstanceListener(final NodeType type, final INodeTypeInstanceListener listener) {
+    void addNodeTypeInstanceListener(final Linked type, final INodeTypeInstanceListener listener) {
         addInstanceListener(type, listener, this.nodeTypeInstanceListeners);
     }
 
-    void removeNodeTypeInstanceListener(final NodeType type, final INodeTypeInstanceListener listener) {
+    void removeNodeTypeInstanceListener(final Linked type, final INodeTypeInstanceListener listener) {
         removeInstanceListener(type, listener, this.nodeTypeInstanceListeners);
     }
 
-    void addDataTypeInstanceListener(final DataType type, final IDataTypeInstanceListener listener) {
+    void addDataTypeInstanceListener(final Primitive type, final IDataTypeInstanceListener listener) {
         addInstanceListener(type, listener, this.dataTypeInstanceListeners);
     }
 
-    void removeDataTypeInstanceListener(final DataType type, final IDataTypeInstanceListener listener) {
+    void removeDataTypeInstanceListener(final Primitive type, final IDataTypeInstanceListener listener) {
         removeInstanceListener(type, listener, this.dataTypeInstanceListeners);
     }
 

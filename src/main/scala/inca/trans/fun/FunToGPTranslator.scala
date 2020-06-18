@@ -48,7 +48,7 @@ object FunToGPTranslator {
     }
 
     def transType(typ: Fun.Type): GP.Type = typ match {
-      case Fun.TNodeType(wrapped) => GP.TNodeType(wrapped)
+      case Fun.TType(wrapped) => GP.TType(wrapped)
       case Fun.TBool => GP.TBool
       case Fun.TInt => GP.TInt
       case Fun.TLong => GP.TLong
@@ -123,9 +123,9 @@ object FunToGPTranslator {
             // TODO is this correct?
             val (vars, pathConstraints) = genPathConstraints(exp, paths.dropRight(1))
             val trueLit = GP.BooleanLiteral(true)
-            val definedLink = DefinedNodeLink(paths.last.nodeType, paths.last.fieldName)
+            val definedLink = DefinedNodeLink(paths.last.typ, paths.last.field)
             val trg = gensym.fresh("trg")
-            val definedConstraint = GP.Path(GP.Var(vars.head), GP.Var(trg), definedLink, definedLink.nodeType)
+            val definedConstraint = GP.Path(GP.Var(vars.head), GP.Var(trg), definedLink, definedLink.typ)
             val compareConstraint = GP.Compare(GP.EqComparator, GP.Var(trg), GP.Constant(trueLit))
             (Seq(), pathConstraints ++ Seq(definedConstraint, compareConstraint))
           case _ => throw new IllegalArgumentException("Cannot support in Def " + exp)
@@ -170,7 +170,7 @@ object FunToGPTranslator {
         val trgVar = GP.Var(trg)
         val srcVar = GP.Var(src)
         src = trg
-        GP.Path(srcVar, trgVar, path, path.nodeType)
+        GP.Path(srcVar, trgVar, path, path.typ)
       }
       (Seq(src), econstraints ++ pathConstraints)
     }
@@ -222,7 +222,7 @@ object FunToGPTranslator {
       Some(Fun.Private),
       nameOfUndefPathHelper(path),
       // TODO figure out type of src
-      List(Fun.Param("in", Some(path.path.head.nodeType))),
+      List(Fun.Param("in", Some(path.path.head.typ))),
       List(),
       List(Fun.Alternative(List(Fun.Assert(Fun.Def(path))))))
   }
@@ -230,7 +230,7 @@ object FunToGPTranslator {
   def nameOfNotInstanceOfHelper(ninst: Fun.NotInstanceOf): String = "generated_helper_notinstanceof_" + nameOfType(ninst.typ)
 
   def nameOfType(typ: Fun.Type): String = typ match {
-    case Fun.TNodeType(wrapped) => wrapped.name.replace(".", "_")
+    case Fun.TType(wrapped) => wrapped.name.replace(".", "_")
     case Fun.TBool => "TBool"
     case Fun.TInt => "TInt"
     case Fun.TLong => "TLong"

@@ -1,6 +1,6 @@
 package inca.findbugs
 
-import inca.MetaElements.NodeType
+import inca.MetaElements.Node
 import inca.analyzedLangs.{BooleanConstant, ClassDeclaration, FieldDeclaration, ProtectedVisibility}
 import inca.backend.indices.{EnginePool, QueryScope}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory

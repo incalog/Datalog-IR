@@ -1,7 +1,7 @@
 package inca.print
 
-import inca.MetaElements.{DefinedNodeLink, NodeLink}
-import inca.lang.GraphPatternLang.{Alternative, Comparator, Compare, Composition, Concept, Constant, Constraint, EqComparator, GraphPattern, Module, NeqComparator, Param, Path, PatternCall, Private, Public, TBool, TDouble, TInt, TLong, TNodeType, TString, Type, Value, Var, Visibility}
+import inca.MetaElements.{DefinedNodeLink, NamedLink}
+import inca.lang.GraphPatternLang.{Alternative, Comparator, Compare, Composition, Concept, Constant, Constraint, EqComparator, GraphPattern, Module, NeqComparator, Param, Path, PatternCall, Private, Public, TBool, TDouble, TInt, TLong, TType, TString, Type, Value, Var, Visibility}
 
 object GraphPatternLangPrinter {
 
@@ -24,7 +24,7 @@ object GraphPatternLangPrinter {
   def prettyParam(param: Param): String = param.name + (if (param.typ.isDefined) ": " + prettyType(param.typ.get) else "")
 
   def prettyType(typ: Type): String = typ match {
-    case TNodeType(wrapped) => wrapped.name
+    case TType(wrapped) => wrapped.name
     case TBool => "TBool"
     case TInt => "TInt"
     case TLong => "TLong"
@@ -38,12 +38,12 @@ object GraphPatternLangPrinter {
     case Compare(comp, lhs, rhs) => prettyValue(lhs) + " " + prettyComparator(comp) + " " + prettyValue(rhs)
     case Concept(v, typ) => prettyType(typ) + "(" + prettyValue(v) + ")"
     case Path(src, trg, link, typ) => link match {
-      case NodeLink(nodeType, fld) =>
+      case NamedLink(nodeType, fld) =>
         prettyType(typ) + "." + fld + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
       case DefinedNodeLink(nodeType, fld) =>
         prettyType(typ) + "." + fld + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
       case _ =>
-        prettyType(typ) + "." + link.fieldName + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
+        prettyType(typ) + "." + link.field + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
     }
     case Composition(call, neg) => (if(neg) "neg " else "") + "find " + prettyPatternCall(call)
   }

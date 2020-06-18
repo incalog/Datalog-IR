@@ -3,14 +3,17 @@ package inca.backend
 import java.util
 import java.util.Collections
 
-import inca.MetaElements.{DataType, NodeType}
+import inca.MetaElements
+import inca.MetaElements.{ListFirstLink, ListNextLink, Node, Primitive}
+import inca.analyzedLangs.{BooleanConstant, ClassDeclaration, ClassMember, FieldDeclaration, PrivateVisibility, PublicVisibility}
 import inca.backend.indices.TFInputKey.{DataTypeKey, NodeLinkKey, NodeTypeKey}
 import inca.backend.indices.{Indices, TFRuntimeContext}
 import inca.backend.virtual.{ParentIndex, ParentKey, VirtualIndex}
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, TupleMask, Tuples}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
-import truediff.Diffable
+import truechange.SortType
+import truediff.{Diffable, DiffableList}
 
 import scala.jdk.CollectionConverters._
 
@@ -55,16 +58,16 @@ class RuntimeContextTests extends AnyFunSuite {
 
     val context = new TFRuntimeContext(indices, null)
 
-    context.enumerateTuples(new NodeTypeKey(NodeType(expName)), emptyMask, null).
+    context.enumerateTuples(new NodeTypeKey(Node(expName)), emptyMask, null).
       asScala should be(empty)
 
-    context.enumerateTuples(new NodeTypeKey(NodeType(numName)), emptyMask, null).
+    context.enumerateTuples(new NodeTypeKey(Node(numName)), emptyMask, null).
       asScala should contain allOf(t1(num1.uri), t1(num2.uri), t1(num3.uri))
 
-    context.enumerateTuples(new NodeTypeKey(NodeType(addName)), emptyMask, null).
+    context.enumerateTuples(new NodeTypeKey(Node(addName)), emptyMask, null).
       asScala should contain(t1(add.uri))
 
-    context.enumerateTuples(new NodeTypeKey(NodeType(mulName)), emptyMask, null).
+    context.enumerateTuples(new NodeTypeKey(Node(mulName)), emptyMask, null).
       asScala should contain(t1(mul.uri))
 
     indices.dispose()
@@ -81,13 +84,13 @@ class RuntimeContextTests extends AnyFunSuite {
 
     val context = new TFRuntimeContext(indices, null)
 
-    context.enumerateTuples(new DataTypeKey(DataType(integerName)), emptyMask, null).
+    context.enumerateTuples(new DataTypeKey(Primitive(integerName)), emptyMask, null).
       asScala should contain allOf(t1(1), t1(2), t1(3))
 
-    context.enumerateTuples(new DataTypeKey(DataType(stringName)), emptyMask, null).
+    context.enumerateTuples(new DataTypeKey(Primitive(stringName)), emptyMask, null).
       asScala should be(empty)
 
-    context.enumerateTuples(new DataTypeKey(DataType(boolName)), emptyMask, null).
+    context.enumerateTuples(new DataTypeKey(Primitive(boolName)), emptyMask, null).
       asScala should be(empty)
 
     indices.dispose()
@@ -100,19 +103,19 @@ class RuntimeContextTests extends AnyFunSuite {
 
     val context = new TFRuntimeContext(indices, null)
 
-    context.enumerateTuples(new NodeLinkKey(NodeType(numName)("n")), emptyMask, null).
+    context.enumerateTuples(new NodeLinkKey(Node(numName)("n")), emptyMask, null).
       asScala should contain allOf(t2(num1.uri, 1), t2(num2.uri, 2), t2(num3.uri, 3))
 
-    context.enumerateTuples(new NodeLinkKey(NodeType(mulName)("l")), emptyMask, null).
+    context.enumerateTuples(new NodeLinkKey(Node(mulName)("l")), emptyMask, null).
       asScala should contain only (t2(mul.uri, num1.uri))
 
-    context.enumerateTuples(new NodeLinkKey(NodeType(mulName)("r")), emptyMask, null).
+    context.enumerateTuples(new NodeLinkKey(Node(mulName)("r")), emptyMask, null).
       asScala should contain only (t2(mul.uri, num2.uri))
 
-    context.enumerateTuples(new NodeLinkKey(NodeType(addName)("l")), emptyMask, null).
+    context.enumerateTuples(new NodeLinkKey(Node(addName)("l")), emptyMask, null).
       asScala should contain only (t2(add.uri, mul.uri))
 
-    context.enumerateTuples(new NodeLinkKey(NodeType(addName)("r")), emptyMask, null).
+    context.enumerateTuples(new NodeLinkKey(Node(addName)("r")), emptyMask, null).
       asScala should contain only (t2(add.uri, num3.uri))
 
     indices.dispose()
@@ -136,6 +139,54 @@ class RuntimeContextTests extends AnyFunSuite {
 
     context.enumerateTuples(ParentKey, emptyMask, null).
       asScala should contain allOf(t2(mul.uri, add.uri), t2(num3.uri, mul.uri), t2(num2.uri, mul.uri), t2(num1.uri, add.uri))
+
+    indices.dispose()
+  }
+
+  test("firstlink and nextlink of list") {
+    val virtualIndices = new java.util.HashMap[String, VirtualIndex]()
+    virtualIndices.put(ParentKey.getUniqueID, new ParentIndex())
+    val indices = new Indices(null, null, null, virtualIndices)
+    val context = new TFRuntimeContext(indices, null)
+
+    val classDeclType = Node(classOf[ClassDeclaration].getCanonicalName)
+    val classMemberType = Node(classOf[ClassMember].getCanonicalName)
+    val bool = BooleanConstant(true)
+    val fieldDecl1 = FieldDeclaration("bar", PublicVisibility())
+    val fieldDecl2 = FieldDeclaration("baz", PrivateVisibility())
+    val clazz = ClassDeclaration("Foo", bool, List(fieldDecl1, fieldDecl2))
+
+    val changeset = Diffable.load(clazz)
+    indices.processChangeset(changeset)
+
+    context.enumerateTuples(new NodeLinkKey(classDeclType("members")), emptyMask, null).
+      asScala should contain only t2(clazz.uri, clazz.members.uri)
+
+    context.enumerateTuples(new NodeTypeKey(MetaElements.List(classMemberType)), emptyMask, null).
+      asScala should contain only t1(clazz.members.uri)
+
+    context.enumerateTuples(new NodeLinkKey(ListFirstLink(MetaElements.List(classMemberType))), emptyMask, null).
+      asScala should contain only t2(clazz.members.uri, fieldDecl1.uri)
+
+    context.enumerateTuples(new NodeLinkKey(ListNextLink()), emptyMask, null).
+      asScala should contain only t2(fieldDecl1.uri, fieldDecl2.uri)
+
+    val fieldDecl3 = FieldDeclaration("baaz", PublicVisibility())
+    val clazz2 = ClassDeclaration("Foo", bool, List(fieldDecl2, fieldDecl1, fieldDecl3))
+    val diffset = clazz.compareTo(clazz2)
+    indices.processChangeset(diffset._1)
+
+    context.enumerateTuples(new NodeLinkKey(classDeclType("members")), emptyMask, null).
+      asScala should contain only t2(clazz.uri, clazz.members.uri)
+
+    context.enumerateTuples(new NodeTypeKey(MetaElements.List(classMemberType)), emptyMask, null).
+      asScala should contain only t1(clazz.members.uri)
+
+    context.enumerateTuples(new NodeLinkKey(ListFirstLink(MetaElements.List(classMemberType))), emptyMask, null).
+      asScala should contain only t2(clazz.members.uri, fieldDecl2.uri)
+
+    context.enumerateTuples(new NodeLinkKey(ListNextLink()), emptyMask, null).
+      asScala should contain allOf (t2(fieldDecl2.uri, fieldDecl1.uri), t2(fieldDecl1.uri, fieldDecl3.uri))
 
     indices.dispose()
   }

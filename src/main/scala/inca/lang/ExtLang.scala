@@ -21,7 +21,7 @@ object ExtLang {
 
   trait Pattern
 
-  case class NodePattern(c: TNodeType, bindings: Seq[PatternBinding]) extends Pattern
+  case class NodePattern(c: TType, bindings: Seq[PatternBinding]) extends Pattern
   case class PatternBinding(pattern: Pattern, link: Link)
 
   case class VarPattern(name: Name) extends Pattern

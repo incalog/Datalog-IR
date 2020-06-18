@@ -5,7 +5,6 @@ import inca.analyzedLangs.FieldDeclaration;
 import inca.analyzedLangs.ProtectedVisibility;
 import org.eclipse.viatra.query.runtime.api.GenericPatternMatcher;
 import org.eclipse.viatra.query.runtime.api.ViatraQueryEngine;
-import org.eclipse.viatra.query.runtime.api.scope.QueryScope;
 import org.eclipse.viatra.query.runtime.exception.ViatraQueryException;
 import org.eclipse.viatra.query.runtime.matchers.psystem.PBody;
 import org.eclipse.viatra.query.runtime.matchers.psystem.PVariable;
@@ -18,7 +17,7 @@ import org.eclipse.viatra.query.runtime.matchers.psystem.queries.PVisibility;
 import org.eclipse.viatra.query.runtime.matchers.psystem.queries.QueryInitializationException;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
 import inca.backend.indices.TFInputKey;
-import inca.backend.indices.TFQueryScope;
+import inca.backend.indices.QueryScope;
 import inca.backend.indices.TFQuerySpecification;
 import inca.MetaElements;
 
@@ -44,8 +43,8 @@ public final class ConfusedInheritance extends TFQuerySpecification {
     }
 
     @Override
-    public Class<? extends QueryScope> getPreferredScopeClass() {
-        return TFQueryScope.class;
+    public Class<? extends org.eclipse.viatra.query.runtime.api.scope.QueryScope> getPreferredScopeClass() {
+        return QueryScope.class;
     }
 
     public static ConfusedInheritance instance() {
@@ -65,8 +64,8 @@ public final class ConfusedInheritance extends TFQuerySpecification {
     private static final class GeneratedPQuery extends BasePQuery {
 
         private final PParameter p_class = new PParameter("class",
-                new MetaElements.NodeType(ClassDeclaration.class.getCanonicalName()).toString(),
-                new TFInputKey.NodeTypeKey(new MetaElements.NodeType(ClassDeclaration.class.getCanonicalName())));
+                new MetaElements.Node(ClassDeclaration.class.getCanonicalName()).toString(),
+                new TFInputKey.NodeTypeKey(new MetaElements.Node(ClassDeclaration.class.getCanonicalName())));
 
         private static final GeneratedPQuery INSTANCE = new GeneratedPQuery();
 
@@ -94,23 +93,23 @@ public final class ConfusedInheritance extends TFQuerySpecification {
                 final PVariable var__member = body.getOrCreateVariableByName("member");
 
                 new TypeConstraint(body, Tuples.flatTupleOf(var_class),
-                        new TFInputKey.NodeTypeKey(new MetaElements.NodeType(ClassDeclaration.class.getCanonicalName())));
+                        new TFInputKey.NodeTypeKey(new MetaElements.Node(ClassDeclaration.class.getCanonicalName())));
 
                 new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_class, var__tmp_1),
-                        new TFInputKey.NodeLinkKey(new MetaElements.NodeType(ClassDeclaration.class.getCanonicalName()).apply("isFinal")));
+                        new TFInputKey.NodeLinkKey(new MetaElements.Node(ClassDeclaration.class.getCanonicalName()).apply("isFinal")));
                 new Equality(body, var__tmp_2, var__3909214783375021923);
                 new Equality(body, var__tmp_1, var__tmp_2);
 
                 new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_class, var__tmp_3),
-                        new TFInputKey.NodeLinkKey(new MetaElements.NodeType(ClassDeclaration.class.getCanonicalName()).apply("members")));
+                        new TFInputKey.NodeLinkKey(new MetaElements.Node(ClassDeclaration.class.getCanonicalName()).apply("members")));
                 new Equality(body, var__member, var__tmp_3);
 
                 new TypeConstraint(body, Tuples.flatTupleOf(var__member),
-                        new TFInputKey.NodeTypeKey(new MetaElements.NodeType(FieldDeclaration.class.getCanonicalName())));
+                        new TFInputKey.NodeTypeKey(new MetaElements.Node(FieldDeclaration.class.getCanonicalName())));
                 new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var__member, var__tmp_4),
-                        new TFInputKey.NodeLinkKey(new MetaElements.NodeType(FieldDeclaration.class.getCanonicalName()).apply("visibility")));
+                        new TFInputKey.NodeLinkKey(new MetaElements.Node(FieldDeclaration.class.getCanonicalName()).apply("visibility")));
                 new TypeConstraint(body, Tuples.flatTupleOf(var__tmp_4),
-                        new TFInputKey.NodeTypeKey(new MetaElements.NodeType(ProtectedVisibility.class.getCanonicalName())));
+                        new TFInputKey.NodeTypeKey(new MetaElements.Node(ProtectedVisibility.class.getCanonicalName())));
 
                 bodies.add(body);
             }

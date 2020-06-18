@@ -15,7 +15,7 @@ public class DataTypeInstanceAdapter extends ListenerAdapter implements IDataTyp
     }
 
     @Override
-    public void insert(final MetaElements.DataType type, final Object value) {
+    public void insert(final MetaElements.Primitive type, final Object value) {
         if (this.value != null && !(this.value.equals(value))) {
             return;
         }
@@ -23,7 +23,7 @@ public class DataTypeInstanceAdapter extends ListenerAdapter implements IDataTyp
     }
 
     @Override
-    public void delete(final MetaElements.DataType type, final Object value) {
+    public void delete(final MetaElements.Primitive type, final Object value) {
         if (this.value != null && !(this.value.equals(value))) {
             return;
         }

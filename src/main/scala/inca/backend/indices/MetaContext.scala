@@ -4,7 +4,7 @@ import java.util
 import java.util.Collections
 
 import inca.MetaElements
-import inca.MetaElements.{DataType, NodeType}
+import inca.MetaElements.{Primitive, Node}
 import inca.backend.indices.TFInputKey.{DataTypeKey, NodeLinkKey, NodeTypeKey}
 import inca.backend.virtual.VirtualKey
 import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
@@ -33,15 +33,16 @@ class MetaContext(langMetaInfo: LanguageMetaInfo) extends AbstractQueryMetaConte
       }.asJava
     case key: NodeLinkKey =>
       val nodeLink = key.`type`
-      val impliedSource = new NodeTypeKey(nodeLink.nodeType)
-      val linkType = langMetaInfo.links(nodeLink.nodeType.name)(nodeLink.fieldName)
+      // TODO currently cast to nodetype
+      val impliedSource = new NodeTypeKey(nodeLink.typ.asInstanceOf[Node])
+      val linkType = langMetaInfo.links(nodeLink.typ.name)(nodeLink.field)
       val set = new util.HashSet[InputKeyImplication]()
       set.add(new InputKeyImplication(key, impliedSource, Collections.singletonList(0)))
       val implication =
         if (MetaElements.isPrimitiveDataType(linkType)) {
-          new InputKeyImplication(key, new DataTypeKey(DataType(linkType)), Collections.singletonList(1))
+          new InputKeyImplication(key, new DataTypeKey(Primitive(linkType)), Collections.singletonList(1))
         } else {
-          new InputKeyImplication(key, new NodeTypeKey(NodeType(linkType)), Collections.singletonList(1))
+          new InputKeyImplication(key, new NodeTypeKey(Node(linkType)), Collections.singletonList(1))
         }
       set.add(implication)
       set

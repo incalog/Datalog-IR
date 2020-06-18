@@ -1,6 +1,8 @@
 package inca.trans.gp
 
-import inca.MetaElements.{Link, NodeLink, ParentLink}
+import inca.MetaElements.{Link, NamedLink, Node, ParentLink, Primitive}
+import inca.backend.indices.TFInputKey
+import inca.backend.indices.TFInputKey.{NodeLinkKey, NodeTypeKey}
 import inca.lang.GraphPatternLang
 import inca.lang.GraphPatternLang._
 import inca.util.Gensym
@@ -11,6 +13,11 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
   val PARAMPREFIX = "param_"
   val VARPREFIX = "var_"
   val LITPREFIX = "lit_"
+
+  val tNode = Term.Name(classOf[Node].getSimpleName)
+  val tPrimitive = Term.Name(classOf[Primitive].getSimpleName)
+  val tNamedLink = Term.Name(classOf[NamedLink].getSimpleName)
+  val tParentLink = Term.Name("ParentLink")
 
   // TODO transform module
   type Analysis = Seq[Object]
@@ -47,7 +54,7 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
       package inca.trans.generated
 
       import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
-      import org.eclipse.viatra.query.runtime.api.scope.QueryScope
+      import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
       import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables.{PositivePatternCall, BinaryTransitiveClosure, TypeConstraint}
       import org.eclipse.viatra.query.runtime.matchers.psystem.{PBody, PVariable}
       import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
@@ -57,10 +64,10 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
 
       import java.util
 
-      import inca.backend.indices.{TFInputKey, TFQueryScope, TFQuerySpecification}
+      import inca.backend.indices.{TFInputKey, QueryScope, TFQuerySpecification}
       import inca.backend.virtual.VirtualKey
       import inca.backend.virtual.ParentKey
-      import inca.MetaElements
+      import inca.MetaElements._
 
 
       class $fileNameType extends $superClassParam {
@@ -69,7 +76,7 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
             if (matcher == null) matcher = engine.getMatcher(this)
             matcher
          }
-         override def getPreferredScopeClass: Class[_ <: QueryScope] = classOf[TFQueryScope]
+         override def getPreferredScopeClass: Class[_ <: ViatraQueryScope] = classOf[QueryScope]
       }
 
       object $fileNameTerm {
@@ -143,7 +150,7 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
     case TLong => q"new JavaTransitiveInstancesKey(classOf[java.lang.Long])"
     case TDouble => q"new JavaTransitiveInstancesKey(classOf[java.lang.Double])"
     case TString => q"new JavaTransitiveInstancesKey(classOf[java.lang.String])"
-    case TNodeType(wrapped) => q"new TFInputKey.NodeTypeKey(MetaElements.NodeType(${genType(wrapped)}))"
+    case TType(wrapped) => q"new TFInputKey.NodeTypeKey($tNode(${genType(wrapped)}))"
   }
 
 
@@ -178,11 +185,11 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
 
   def genParamConstraint(param: Param): Option[Stat] = {
     // TODO only emit constraint for nodetypes?
-    if (param.typ.isDefined && param.typ.get.isInstanceOf[TNodeType])
+    if (param.typ.isDefined && param.typ.get.isInstanceOf[TType])
       Some(q"""new TypeConstraint(
             body,
             Tuples.flatTupleOf(${Term.Name(s"$VARPREFIX${param.name}")}),
-            new TFInputKey.NodeTypeKey(MetaElements.NodeType(${genType(param.typ.get)})))""")
+            new TFInputKey.NodeTypeKey($tNode(${genType(param.typ.get)})))""")
     else None
   }
 
@@ -206,7 +213,7 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
       Seq(q"""new TypeConstraint(
             body,
             Tuples.flatTupleOf(${Term.Name(s"var_${v.name}")}),
-            new TFInputKey.NodeTypeKey(MetaElements.NodeType(${genType(typ)})))""")
+            new TFInputKey.NodeTypeKey($tNode(${genType(typ)})))""")
     case Path(src, trg, link, typ) =>
       Seq(q"""new TypeConstraint(
             body,
@@ -220,8 +227,8 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
   def genLinkKey(link: Link): Term = link match {
     case ParentLink =>
       q"ParentKey"
-    case NodeLink(nodeType, fld)  =>
-      q"new TFInputKey.NodeLinkKey(MetaElements.NodeLink(MetaElements.NodeType(${nodeType.name}), ${fld}))"
+    case NamedLink(nodeType, fld)  =>
+      q"new TFInputKey.NodeLinkKey($tNamedLink($tNode(${nodeType.name}), ${fld}))"
     case _ => throw new IllegalArgumentException("Does not support such a link")
   }
 
@@ -236,7 +243,7 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
     case TLong => genPrimitiveType("Long")
     case TDouble => genPrimitiveType("Double")
     case TString => genPrimitiveType("String")
-    case TNodeType(wrapped) => Lit.String(wrapped.name)
+    case TType(wrapped) => Lit.String(wrapped.name)
   }
 
   private def genPrimitiveType(name: String): Lit.String = Lit.String(s"java.lang.${name}")

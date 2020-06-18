@@ -5,16 +5,16 @@ import inca.lang.FunLang.{Exp => _, _}
 import inca.MetaElements._
 
 object ExpLangTestAnalyses {
-  private val addType: NodeType = NodeType(classOf[Add].getCanonicalName)
-  private val expType: NodeType = NodeType(classOf[Exp].getCanonicalName)
+  private val addType: Node = Node(classOf[Add].getCanonicalName)
+  private val expType: Node = Node(classOf[Exp].getCanonicalName)
   val idFun: PatternFunction = PatternFunction(
     None,
     "id",
-    List(Param("add", Some(addType))),
-    List(AnnoParam(Some("out"), expType)),
-    List(
+    Seq(Param("add", Some(addType))),
+    Seq(AnnoParam(Some("out"), expType)),
+    Seq(
       Alternative(
-        List(
+        Seq(
           Return(Var("add"))))))
 
   val lhsLink: Link = addType("lhs")
@@ -22,45 +22,45 @@ object ExpLangTestAnalyses {
   val childrenFun: PatternFunction = PatternFunction(
     None,
     "children",
-    List(Param("add", Some(addType))),
-    List(AnnoParam(None, expType)),
-    List(
+    Seq(Param("add", Some(addType))),
+    Seq(AnnoParam(None, expType)),
+    Seq(
       Alternative(
-        List(
+        Seq(
           Return(PathAccess(Var("add"), Seq(lhsLink))))),
       Alternative(
-        List(
+        Seq(
           Return(PathAccess(Var("add"), Seq(rhsLink)))))))
 
   val lhChildFun: PatternFunction = PatternFunction(
     None,
     "lhChild",
-    List(Param("add", Some(addType))),
-    List(AnnoParam(None, expType)),
-    List(
+    Seq(Param("add", Some(addType))),
+    Seq(AnnoParam(None, expType)),
+    Seq(
       Alternative(
-        List(
+        Seq(
           Return(PathAccess(Var("add"), Seq(lhsLink)))))))
 
   val callLhChildFun = PatternFunction(
     None,
     "callLhChild",
-    List(Param("add", Some(addType))),
-    List(AnnoParam(None, expType)),
-    List(
+    Seq(Param("add", Some(addType))),
+    Seq(AnnoParam(None, expType)),
+    Seq(
       Alternative(
-        List(
+        Seq(
           Assignment(Seq("lhschild"), Call(PatternCall("lhChild", Seq(Var("add")), transitive = false), count = false)),
           Return(Var("lhschild"))))))
 
   val instanceAddFun = PatternFunction(
     None,
     "instanceAdd",
-    List(Param("add", Some(addType))),
-    List(AnnoParam(None, expType)),
-    List(
+    Seq(Param("add", Some(addType))),
+    Seq(AnnoParam(None, expType)),
+    Seq(
       Alternative(
-        List(
+        Seq(
           Assignment(Seq("lhschild"), PathAccess(Var("add"), Seq(lhsLink))),
           Assert(InstanceOf(Var("lhschild"), addType)),
           Return(Var("lhschild"))))))
@@ -68,30 +68,30 @@ object ExpLangTestAnalyses {
   val noParamTypeFun = PatternFunction(
     None,
     "noParamType",
-    List(Param("add", None)),
-    List(),
-    List(
+    Seq(Param("add", None)),
+    Seq(),
+    Seq(
       Alternative(
-        List(
+        Seq(
           Assert(InstanceOf(Var("add"), addType))))))
 
-  private val boolType: NodeType = NodeType(classOf[BooleanLit].getCanonicalName)
+  private val boolType: Node = Node(classOf[BooleanLit].getCanonicalName)
   val isBooleanFun = PatternFunction(
     None,
     "isBoolean",
-    List(Param("in", Some(boolType))),
-    List(AnnoParam(None, TBool)),
-    List(
+    Seq(Param("in", Some(boolType))),
+    Seq(AnnoParam(None, TBool)),
+    Seq(
       Alternative(
-        List(
+        Seq(
           Return(Constant(BooleanLiteral(true)))))))
 
   val primitiveParamFun = PatternFunction(
     None,
     "idBool",
-    List(Param("in", Some(TBool))),
-    List(AnnoParam(None, TBool)),
-    List(
+    Seq(Param("in", Some(TBool))),
+    Seq(AnnoParam(None, TBool)),
+    Seq(
       Alternative(
-        List(Return(Var("in"))))))
+        Seq(Return(Var("in"))))))
 }

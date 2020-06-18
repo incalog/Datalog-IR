@@ -3,7 +3,7 @@ package inca.backend.listeners;
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
 import inca.backend.indices.TFInputKey;
-import inca.MetaElements;
+import inca.MetaElements.Linked;
 
 public class NodeTypeInstanceAdapter extends ListenerAdapter implements INodeTypeInstanceListener {
 
@@ -15,7 +15,7 @@ public class NodeTypeInstanceAdapter extends ListenerAdapter implements INodeTyp
     }
 
     @Override
-    public void insert(final MetaElements.NodeType type, final Object instance) {
+    public void insert(final Linked type, final Object instance) {
         if (this.instance != null && !(this.instance.equals(instance))) {
             return;
         }
@@ -23,7 +23,7 @@ public class NodeTypeInstanceAdapter extends ListenerAdapter implements INodeTyp
     }
 
     @Override
-    public void delete(final MetaElements.NodeType type, final Object instance) {
+    public void delete(final Linked type, final Object instance) {
         if (this.instance != null && !(this.instance.equals(instance))) {
             return;
         }

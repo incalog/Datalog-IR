@@ -1,9 +1,10 @@
 package inca.backend.indices;
 
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey;
-import inca.MetaElements.DataType;
+import inca.MetaElements.Primitive;
 import inca.MetaElements.Link;
-import inca.MetaElements.NodeType;
+import inca.MetaElements.Linked;
+import inca.MetaElements.Node;
 
 public abstract class TFInputKey<T> implements IInputKey {
 
@@ -50,9 +51,9 @@ public abstract class TFInputKey<T> implements IInputKey {
         }
     }
 
-    public static class NodeTypeKey extends TFInputKey<NodeType> {
+    public static class NodeTypeKey extends TFInputKey<Linked> {
 
-        public NodeTypeKey(final NodeType type) {
+        public NodeTypeKey(final Linked type) {
             super(type);
         }
 
@@ -63,9 +64,9 @@ public abstract class TFInputKey<T> implements IInputKey {
 
     }
 
-    public static class DataTypeKey extends TFInputKey<DataType> {
+    public static class DataTypeKey extends TFInputKey<Primitive> {
 
-        public DataTypeKey(final DataType type) {
+        public DataTypeKey(final Primitive type) {
             super(type);
         }
 
