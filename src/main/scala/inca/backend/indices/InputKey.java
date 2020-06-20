@@ -1,16 +1,15 @@
 package inca.backend.indices;
 
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey;
-import inca.MetaElements.Primitive;
+import inca.MetaElements.PrimitiveType;
 import inca.MetaElements.Link;
-import inca.MetaElements.Linked;
-import inca.MetaElements.Node;
+import inca.MetaElements.LinkedType;
 
-public abstract class TFInputKey<T> implements IInputKey {
+public abstract class InputKey<T> implements IInputKey {
 
     protected final T type;
 
-    public TFInputKey(final T type) {
+    public InputKey(final T type) {
         this.type = type;
     }
 
@@ -46,14 +45,14 @@ public abstract class TFInputKey<T> implements IInputKey {
         } else if (this == obj) {
             return true;
         } else {
-            final TFInputKey that = (TFInputKey) obj;
+            final InputKey that = (InputKey) obj;
             return this.type.equals(that.type);
         }
     }
 
-    public static class NodeTypeKey extends TFInputKey<Linked> {
+    public static class NodeTypeKey extends InputKey<LinkedType> {
 
-        public NodeTypeKey(final Linked type) {
+        public NodeTypeKey(final LinkedType type) {
             super(type);
         }
 
@@ -64,9 +63,9 @@ public abstract class TFInputKey<T> implements IInputKey {
 
     }
 
-    public static class DataTypeKey extends TFInputKey<Primitive> {
+    public static class PrimitiveKey extends InputKey<PrimitiveType> {
 
-        public DataTypeKey(final Primitive type) {
+        public PrimitiveKey(final PrimitiveType type) {
             super(type);
         }
 
@@ -77,9 +76,9 @@ public abstract class TFInputKey<T> implements IInputKey {
 
     }
 
-    public static class NodeLinkKey extends TFInputKey<Link> {
+    public static class LinkKey extends InputKey<Link> {
 
-        public NodeLinkKey(final Link link) {
+        public LinkKey(final Link link) {
             super(link);
         }
 

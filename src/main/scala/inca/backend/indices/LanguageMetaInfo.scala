@@ -14,6 +14,8 @@ import scala.collection.mutable
  *   case class Add(lhs: Exp, rhs: Exp) extends Exp
  * links contains ("Add" -> Map("lhs" -> "Exp", "rhs" -> "Exp"))
  */
+// TODO add what the node types and what primitives are
+// node types are the keys of directSupertypes
 class LanguageMetaInfo(_directSupertypes: Map[String, Set[String]], _links: Map[String, Map[String, String]]) {
   val directSupertypes: Map[String, Set[String]] = _directSupertypes
   val links: Map[String, Map[String, String]] = _links

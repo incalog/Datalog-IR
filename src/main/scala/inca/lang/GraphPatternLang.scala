@@ -1,17 +1,17 @@
 package inca.lang
 
-import inca.MetaElements.{Link, Linked}
+import inca.MetaElements.{Link, LinkedType}
 
 object GraphPatternLang {
-  trait Type
-  case class TType(wrapped: Linked) extends Type
+  sealed trait Type
+  case class TType(wrapped: LinkedType) extends Type
   case object TBool extends Type
   case object TInt extends Type
   case object TLong extends Type
   case object TDouble extends Type
   case object TString extends Type
 
-  implicit def linkedToTType(t: Linked): Type = TType(t)
+  implicit def linkedToTType(t: LinkedType): Type = TType(t)
 
   type Name = String
 

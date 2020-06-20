@@ -12,10 +12,9 @@ import inca.backend.listeners.DataTypeInstanceAdapter;
 import inca.backend.listeners.NodeLinkInstanceAdapter;
 import inca.backend.listeners.NodeTypeInstanceAdapter;
 import inca.MetaElements;
-import inca.MetaElements.Primitive;
+import inca.MetaElements.PrimitiveType;
 import inca.MetaElements.Link;
-import inca.MetaElements.Linked;
-import inca.MetaElements.Node;
+import inca.MetaElements.LinkedType;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -68,20 +67,20 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
     public int countTuples(final IInputKey key, final TupleMask mask, final ITuple seed) {
         int result = 0;
 
-        if (key instanceof TFInputKey.NodeTypeKey) {
-            final Linked type = ((TFInputKey.NodeTypeKey) key).type;
+        if (key instanceof InputKey.NodeTypeKey) {
+            final LinkedType type = ((InputKey.NodeTypeKey) key).type;
             if (mask.indices.length == 0) {
                 // unseeded
-                result = this.indices.nodeTypeInstances.getOrDefault(type, Collections.emptySet()).size();
+                result = this.indices.linkedTypeInstances.getOrDefault(type, Collections.emptySet()).size();
             } else {
                 // fully seeded
                 result = ((containsTuple(key, seed)) ? 1 : 0);
             }
-        } else if (key instanceof TFInputKey.DataTypeKey) {
-            final Primitive type = ((TFInputKey.DataTypeKey) key).type;
+        } else if (key instanceof InputKey.PrimitiveKey) {
+            final PrimitiveType type = ((InputKey.PrimitiveKey) key).type;
             if (mask.indices.length == 0) {
                 // unseeded
-                final Multiset<Object> instances = this.indices.dataTypeInstances.get(type);
+                final Multiset<Object> instances = this.indices.primitiveTypeInstances.get(type);
                 if (instances != null) {
                     result = instances.elementSet().size();
                 }
@@ -89,8 +88,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 // fully seeded
                 result = ((containsTuple(key, seed)) ? 1 : 0);
             }
-        } else if (key instanceof TFInputKey.NodeLinkKey) {
-            final Link link = ((TFInputKey.NodeLinkKey) key).type;
+        } else if (key instanceof InputKey.LinkKey) {
+            final Link link = ((InputKey.LinkKey) key).type;
 
             boolean isSourceBound = false;
             int sourceIndex = -1;
@@ -109,7 +108,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
 
             if (!(isSourceBound) && isTargetBound) {
                 final Object seedTarget = seed.get(targetIndex);
-                final Map<Object, Set<Object>> linkValues = this.indices.nodeLinkInstancesReversed.get(link);
+                final Map<Object, Set<Object>> linkValues = this.indices.linkInstancesReversed.get(link);
                 if (linkValues != null) {
                     result = linkValues.getOrDefault(seedTarget, Collections.emptySet()).size();
                 }
@@ -118,13 +117,13 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 result = ((containsTuple(key, seed)) ? 1 : 0);
             } else if (!(isSourceBound) /*&& !(isTargetBound)*/) {
                 // fully unseeded
-                final Map<Object, Set<Object>> linkValues = this.indices.nodeLinkInstances.get(link);
+                final Map<Object, Set<Object>> linkValues = this.indices.linkInstances.get(link);
                 for (final Map.Entry<Object, Set<Object>> entry : linkValues.entrySet()) {
                     result += entry.getValue().size();
                 }
             } else /*if (isSourceBound && !(isTargetBound))*/ {
                 final Object seedSource = seed.get(sourceIndex);
-                final Map<Object, Set<Object>> linkValues = this.indices.nodeLinkInstances.get(link);
+                final Map<Object, Set<Object>> linkValues = this.indices.linkInstances.get(link);
                 if (linkValues != null) {
                     result = linkValues.getOrDefault(seedSource, Collections.emptySet()).size();
                 }
@@ -149,21 +148,21 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
     public Iterable<Tuple> enumerateTuples(final IInputKey key, final TupleMask mask, final ITuple seed) {
         final Collection<Tuple> result = new HashSet<>();
 
-        if (key instanceof TFInputKey.NodeTypeKey) {
-            final Linked type = ((TFInputKey.NodeTypeKey) key).type;
+        if (key instanceof InputKey.NodeTypeKey) {
+            final LinkedType type = ((InputKey.NodeTypeKey) key).type;
             if (mask.indices.length == 0) {
-                this.indices.nodeTypeInstances.getOrDefault(type, Collections.emptySet()).forEach(e -> result.add(Tuples.staticArityFlatTupleOf(e)));
+                this.indices.linkedTypeInstances.getOrDefault(type, Collections.emptySet()).forEach(e -> result.add(Tuples.staticArityFlatTupleOf(e)));
             } else {
                 final Object seedInstance = mask.getValue(seed, 0);
                 if (containsTuple(key, seed)) {
                     result.add(Tuples.staticArityFlatTupleOf(seedInstance));
                 }
             }
-        } else if (key instanceof TFInputKey.DataTypeKey) {
-            final Primitive type = ((TFInputKey.DataTypeKey) key).type;
+        } else if (key instanceof InputKey.PrimitiveKey) {
+            final PrimitiveType type = ((InputKey.PrimitiveKey) key).type;
 
             if (mask.indices.length == 0) {
-                final Multiset<Object> instances = this.indices.dataTypeInstances.get(type);
+                final Multiset<Object> instances = this.indices.primitiveTypeInstances.get(type);
                 if (instances != null) {
                     instances.elementSet().forEach(e -> result.add(Tuples.staticArityFlatTupleOf(e)));
                 }
@@ -173,8 +172,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                     result.add(Tuples.staticArityFlatTupleOf(seedInstance));
                 }
             }
-        } else if (key instanceof TFInputKey.NodeLinkKey) {
-            final Link link = ((TFInputKey.NodeLinkKey) key).type;
+        } else if (key instanceof InputKey.LinkKey) {
+            final Link link = ((InputKey.LinkKey) key).type;
 
             boolean isSourceBound = false;
             int sourceIndex = -1;
@@ -193,7 +192,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
 
             if (!(isSourceBound) && isTargetBound) {
                 final Object seedTarget = seed.get(targetIndex);
-                final Map<Object, Set<Object>> linkValues = this.indices.nodeLinkInstancesReversed.get(link);
+                final Map<Object, Set<Object>> linkValues = this.indices.linkInstancesReversed.get(link);
                 if (linkValues != null) {
                     linkValues.getOrDefault(seedTarget, Collections.emptySet()).forEach(source -> result.add(Tuples.staticArityFlatTupleOf(source, seedTarget)));
                 }
@@ -206,7 +205,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 }
             } else if (!(isSourceBound) /*&& !(isTargetBound)*/) {
                 // fully unseeded
-                final Map<Object, Set<Object>> linkValues = this.indices.nodeLinkInstances.get(link);
+                final Map<Object, Set<Object>> linkValues = this.indices.linkInstances.get(link);
                 if (linkValues != null) {
                     for (final Map.Entry<Object, Set<Object>> entry : linkValues.entrySet()) {
                         for (final Object target : entry.getValue()) {
@@ -216,7 +215,7 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 }
             } else /*if (isSourceBound && !(isTargetBound))*/ {
                 final Object seedSource = seed.get(sourceIndex);
-                final Map<Object, Set<Object>> linkValues = this.indices.nodeLinkInstances.get(link);
+                final Map<Object, Set<Object>> linkValues = this.indices.linkInstances.get(link);
                 if (linkValues != null) {
                     linkValues.getOrDefault(seedSource, Collections.emptySet()).forEach(target -> result.add(Tuples.staticArityFlatTupleOf(seedSource, target)));
                 }
@@ -237,26 +236,26 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
     public Iterable<?> enumerateValues(final IInputKey key, final TupleMask mask, final ITuple seed) {
         Collection<?> result = null;
 
-        if (key instanceof TFInputKey.NodeTypeKey) {
-            final Linked type = ((TFInputKey.NodeTypeKey) key).type;
+        if (key instanceof InputKey.NodeTypeKey) {
+            final LinkedType type = ((InputKey.NodeTypeKey) key).type;
             if (mask.indices.length == 0) {
                 // unseeded
-                result = this.indices.nodeTypeInstances.get(type);
+                result = this.indices.linkedTypeInstances.get(type);
             } else {
                 // must be unseeded, this is enumerateValues after all!
                 illegalEnumerateValues(seed);
             }
-        } else if (key instanceof TFInputKey.DataTypeKey) {
-            final Primitive type = ((TFInputKey.DataTypeKey) key).type;
+        } else if (key instanceof InputKey.PrimitiveKey) {
+            final PrimitiveType type = ((InputKey.PrimitiveKey) key).type;
             if (mask.indices.length == 0) {
                 // unseeded
-                result = this.indices.dataTypeInstances.get(type);
+                result = this.indices.primitiveTypeInstances.get(type);
             } else {
                 // must be unseeded, this is enumerateValues after all!
                 illegalEnumerateValues(seed);
             }
-        } else if (key instanceof TFInputKey.NodeLinkKey) {
-            final Link link = ((TFInputKey.NodeLinkKey) key).type;
+        } else if (key instanceof InputKey.LinkKey) {
+            final Link link = ((InputKey.LinkKey) key).type;
 
             boolean isSourceBound = false;
             int sourceIndex = -1;
@@ -275,13 +274,13 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
 
             if (!(isSourceBound) && isTargetBound) {
                 final Object seedTarget = seed.get(targetIndex);
-                final Map<Object, Set<Object>> linkValues = this.indices.nodeLinkInstancesReversed.get(link);
+                final Map<Object, Set<Object>> linkValues = this.indices.linkInstancesReversed.get(link);
                 if (linkValues != null) {
                     result = linkValues.get(seedTarget);
                 }
             } else if (isSourceBound && !(isTargetBound)) {
                 final Object seedSource = seed.get(sourceIndex);
-                final Map<Object, Set<Object>> linkValues = this.indices.nodeLinkInstances.get(link);
+                final Map<Object, Set<Object>> linkValues = this.indices.linkInstances.get(link);
                 if (linkValues != null) {
                     result = linkValues.get(seedSource);
                 }
@@ -316,18 +315,18 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
             } else {
                 result = false;
             }
-        } else if (key instanceof TFInputKey.NodeTypeKey) {
-            final Linked type = ((TFInputKey.NodeTypeKey) key).type;
-            result = this.indices.nodeTypeInstances.getOrDefault(type, Collections.emptySet()).contains(getFromTuple(tuple, 0));
-        } else if (key instanceof TFInputKey.DataTypeKey) {
-            final Primitive type = ((TFInputKey.DataTypeKey) key).type;
-            final Multiset<Object> instances = this.indices.dataTypeInstances.get(type);
+        } else if (key instanceof InputKey.NodeTypeKey) {
+            final LinkedType type = ((InputKey.NodeTypeKey) key).type;
+            result = this.indices.linkedTypeInstances.getOrDefault(type, Collections.emptySet()).contains(getFromTuple(tuple, 0));
+        } else if (key instanceof InputKey.PrimitiveKey) {
+            final PrimitiveType type = ((InputKey.PrimitiveKey) key).type;
+            final Multiset<Object> instances = this.indices.primitiveTypeInstances.get(type);
             if (instances != null) {
                 result = instances.contains(getFromTuple(tuple, 0));
             }
-        } else if (key instanceof TFInputKey.NodeLinkKey) {
-            final Link link = ((TFInputKey.NodeLinkKey) key).type;
-            final Map<Object, Set<Object>> linkValues = this.indices.nodeLinkInstances.get(link);
+        } else if (key instanceof InputKey.LinkKey) {
+            final Link link = ((InputKey.LinkKey) key).type;
+            final Map<Object, Set<Object>> linkValues = this.indices.linkInstances.get(link);
             if (linkValues != null) {
                 final Object source = getFromTuple(tuple, 1);
                 final Object target = getFromTuple(tuple, 0);
@@ -362,15 +361,15 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
     public void addUpdateListener(final IInputKey key, final Tuple seed, final IQueryRuntimeContextListener listener) {
         if (key instanceof JavaTransitiveInstancesKey) {
             // stateless, so NOP
-        } else if (key instanceof TFInputKey.NodeTypeKey) {
-            final Linked type = ((TFInputKey.NodeTypeKey) key).type;
-            this.indices.addNodeTypeInstanceListener(type, new NodeTypeInstanceAdapter(listener, seed.get(0)));
-        } else if (key instanceof TFInputKey.DataTypeKey) {
-            final Primitive type = ((TFInputKey.DataTypeKey) key).type;
-            this.indices.addDataTypeInstanceListener(type, new DataTypeInstanceAdapter(listener, seed.get(0)));
-        } else if (key instanceof TFInputKey.NodeLinkKey) {
-            final Link type = ((TFInputKey.NodeLinkKey) key).type;
-            this.indices.addNodeLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
+        } else if (key instanceof InputKey.NodeTypeKey) {
+            final LinkedType type = ((InputKey.NodeTypeKey) key).type;
+            this.indices.addLinkedTypeInstanceListener(type, new NodeTypeInstanceAdapter(listener, seed.get(0)));
+        } else if (key instanceof InputKey.PrimitiveKey) {
+            final PrimitiveType type = ((InputKey.PrimitiveKey) key).type;
+            this.indices.addPrimitiveTypeInstanceListener(type, new DataTypeInstanceAdapter(listener, seed.get(0)));
+        } else if (key instanceof InputKey.LinkKey) {
+            final Link type = ((InputKey.LinkKey) key).type;
+            this.indices.addLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
         } else {
             indices.virtualIndices.get(key.getStringID()).addListener(listener, seed);
         }
@@ -380,15 +379,15 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
     public void removeUpdateListener(final IInputKey key, final Tuple seed, final IQueryRuntimeContextListener listener) {
         if (key instanceof JavaTransitiveInstancesKey) {
             // stateless, so NOP
-        } else if (key instanceof TFInputKey.NodeTypeKey) {
-            final Linked type = ((TFInputKey.NodeTypeKey) key).type;
-            this.indices.removeNodeTypeInstanceListener(type, new NodeTypeInstanceAdapter(listener, seed.get(0)));
-        } else if (key instanceof TFInputKey.DataTypeKey) {
-            final Primitive type = ((TFInputKey.DataTypeKey) key).type;
-            this.indices.removeDataTypeInstanceListener(type, new DataTypeInstanceAdapter(listener, seed.get(0)));
-        } else if (key instanceof TFInputKey.NodeLinkKey) {
-            final MetaElements.Link type = ((TFInputKey.NodeLinkKey) key).type;
-            this.indices.removedNodeLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
+        } else if (key instanceof InputKey.NodeTypeKey) {
+            final LinkedType type = ((InputKey.NodeTypeKey) key).type;
+            this.indices.removeLinkedTypeInstanceListener(type, new NodeTypeInstanceAdapter(listener, seed.get(0)));
+        } else if (key instanceof InputKey.PrimitiveKey) {
+            final PrimitiveType type = ((InputKey.PrimitiveKey) key).type;
+            this.indices.removePrimitiveTypeInstanceListener(type, new DataTypeInstanceAdapter(listener, seed.get(0)));
+        } else if (key instanceof InputKey.LinkKey) {
+            final MetaElements.Link type = ((InputKey.LinkKey) key).type;
+            this.indices.removeLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
         } else {
             indices.virtualIndices.get(key.getStringID()).removeListener(listener, seed);
         }

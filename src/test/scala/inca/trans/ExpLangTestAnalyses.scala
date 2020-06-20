@@ -5,8 +5,8 @@ import inca.lang.FunLang.{Exp => _, _}
 import inca.MetaElements._
 
 object ExpLangTestAnalyses {
-  private val addType: Node = Node(classOf[Add].getCanonicalName)
-  private val expType: Node = Node(classOf[Exp].getCanonicalName)
+  private val addType: NodeType = NodeType(classOf[Add].getCanonicalName)
+  private val expType: NodeType = NodeType(classOf[Exp].getCanonicalName)
   val idFun: PatternFunction = PatternFunction(
     None,
     "id",
@@ -75,7 +75,7 @@ object ExpLangTestAnalyses {
         Seq(
           Assert(InstanceOf(Var("add"), addType))))))
 
-  private val boolType: Node = Node(classOf[BooleanLit].getCanonicalName)
+  private val boolType: NodeType = NodeType(classOf[BooleanLit].getCanonicalName)
   val isBooleanFun = PatternFunction(
     None,
     "isBoolean",

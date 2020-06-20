@@ -8,7 +8,7 @@ import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFact
 import truediff.Diffable
 import inca.backend.indices.{EnginePool, LanguageMetaInfo, QueryScope, TFQuerySpecification}
 import inca.lang.FunLang.{Alternative, AnnoParam, Module, Param, PathAccess, PatternFunction, Return, Var}
-import inca.MetaElements.{Node, ParentLink}
+import inca.MetaElements.{NodeType, ParentLink}
 import inca.backend.virtual.ParentIndex
 import inca.trans.fun.FunToGPTranslator
 import inca.trans.ExpLangTestAnalyses._
@@ -164,7 +164,7 @@ class GPToPSystemTranslatorTest extends AnyFunSuite {
       None,
       "parent",
       Seq(Param("in", None)),
-      Seq(AnnoParam(None, Node(classOf[Exp].getCanonicalName))),
+      Seq(AnnoParam(None, NodeType(classOf[Exp].getCanonicalName))),
       Seq(
         Alternative(
           Seq(

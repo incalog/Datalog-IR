@@ -4,8 +4,8 @@ import java.util
 import java.util.Collections
 
 import inca.MetaElements
-import inca.MetaElements.{Primitive, Node}
-import inca.backend.indices.TFInputKey.{DataTypeKey, NodeLinkKey, NodeTypeKey}
+import inca.MetaElements.{PrimitiveType, NodeType}
+import InputKey.{PrimitiveKey, LinkKey, NodeTypeKey}
 import inca.backend.virtual.VirtualKey
 import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
 import org.eclipse.viatra.query.runtime.matchers.context.{AbstractQueryMetaContext, IInputKey, InputKeyImplication}
@@ -31,22 +31,22 @@ class MetaContext(langMetaInfo: LanguageMetaInfo) extends AbstractQueryMetaConte
         val impliedSuper = new JavaTransitiveInstancesKey(stype)
         new InputKeyImplication(key, impliedSuper, Collections.singletonList(0))
       }.asJava
-    case key: NodeLinkKey =>
+    case key: LinkKey =>
       val nodeLink = key.`type`
       // TODO currently cast to nodetype
-      val impliedSource = new NodeTypeKey(nodeLink.typ.asInstanceOf[Node])
+      val impliedSource = new NodeTypeKey(nodeLink.typ.asInstanceOf[NodeType])
       val linkType = langMetaInfo.links(nodeLink.typ.name)(nodeLink.field)
       val set = new util.HashSet[InputKeyImplication]()
       set.add(new InputKeyImplication(key, impliedSource, Collections.singletonList(0)))
       val implication =
-        if (MetaElements.isPrimitiveDataType(linkType)) {
-          new InputKeyImplication(key, new DataTypeKey(Primitive(linkType)), Collections.singletonList(1))
+        if (MetaElements.isIncaPrimitiveType(linkType)) {
+          new InputKeyImplication(key, new PrimitiveKey(PrimitiveType(linkType)), Collections.singletonList(1))
         } else {
-          new InputKeyImplication(key, new NodeTypeKey(Node(linkType)), Collections.singletonList(1))
+          new InputKeyImplication(key, new NodeTypeKey(NodeType(linkType)), Collections.singletonList(1))
         }
       set.add(implication)
       set
-    case key: DataTypeKey =>
+    case key: PrimitiveKey =>
       val implied = new JavaTransitiveInstancesKey(key.`type`.name)
       Collections.singleton(new InputKeyImplication(key, implied, Collections.singletonList(0)))
     case key: VirtualKey =>
@@ -56,7 +56,7 @@ class MetaContext(langMetaInfo: LanguageMetaInfo) extends AbstractQueryMetaConte
   }
 
   override def getFunctionalDependencies(key: IInputKey): util.Map[util.Set[Integer], util.Set[Integer]] = key match {
-    case _: NodeLinkKey =>
+    case _: LinkKey =>
       // TODO check whether link is pointing to ListType
       Collections.singletonMap(Collections.singleton(0), Collections.singleton(1))
     case _ => Collections.emptyMap()

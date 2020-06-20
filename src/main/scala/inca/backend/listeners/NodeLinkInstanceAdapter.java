@@ -2,7 +2,7 @@ package inca.backend.listeners;
 
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
-import inca.backend.indices.TFInputKey;
+import inca.backend.indices.InputKey;
 import inca.MetaElements.Link;
 
 public class NodeLinkInstanceAdapter extends ListenerAdapter implements INodeLinkInstanceListener {
@@ -24,7 +24,7 @@ public class NodeLinkInstanceAdapter extends ListenerAdapter implements INodeLin
         if (this.target != null && !(this.target.equals(target))) {
             return;
         }
-        this.listener.update(new TFInputKey.NodeLinkKey(type), Tuples.staticArityFlatTupleOf(source, target), true);
+        this.listener.update(new InputKey.LinkKey(type), Tuples.staticArityFlatTupleOf(source, target), true);
     }
 
     @Override
@@ -35,7 +35,7 @@ public class NodeLinkInstanceAdapter extends ListenerAdapter implements INodeLin
         if (this.target != null && !(this.target.equals(target))) {
             return;
         }
-        this.listener.update(new TFInputKey.NodeLinkKey(type), Tuples.staticArityFlatTupleOf(source, target), false);
+        this.listener.update(new InputKey.LinkKey(type), Tuples.staticArityFlatTupleOf(source, target), false);
     }
 
 }
