@@ -1,5 +1,7 @@
 package inca.backend.virtual
 
+import java.util
+
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
 import truechange.{ListFirstLink, ListNextLink, NamedLink, RootLink}
@@ -17,16 +19,43 @@ class ParentIndex extends VirtualIndex {
 
   override var isDirty: Boolean = false
 
-  var parents: mutable.Map[truechange.NodeURI, truechange.NodeURI] = mutable.Map()
+  val parents: mutable.Map[truechange.NodeURI, truechange.NodeURI] = mutable.Map()
+
+  val nexts: mutable.Map[truechange.NodeURI, truechange.NodeURI] = mutable.Map()
+
+
+  private def iterateNext(from: truechange.NodeURI)(f: truechange.NodeURI => Unit): Unit = {
+    f(from)
+    var nextNode = nexts.get(from)
+    while(nextNode.isDefined) {
+      val node = nextNode.get
+      f(node)
+      nextNode = nexts.get(node)
+    }
+  }
 
   override def processChange(change: truechange.Change): Unit = change match {
     case truechange.Attach(parent, _, link, node, _) => link match {
-      case _: RootLink.type  | _: ListNextLink | _: ListFirstLink => // nothing to do
+      case _: ListFirstLink =>
+        iterateNext(node){ next => insertParent(next, parent) }
+      case _: ListNextLink =>
+        val list = parents.get(parent)
+        if (list.isDefined)
+          iterateNext(node){ next => insertParent(next, list.get) }
+        nexts += parent -> node
       case _: NamedLink => insertParent(node, parent)
+      case _: RootLink.type  => // nothing to do
     }
     case truechange.Detach(parent, _, link, node, _) => link match {
-      case _: RootLink.type  | _: ListNextLink | _: ListFirstLink => // nothing to do
-      case _: NamedLink => insertParent(node, parent)
+      case _: ListFirstLink =>
+        iterateNext(node) { next => deleteParent(next, parent) }
+      case _: ListNextLink =>
+        val list = parents.get(parent)
+        if (list.isDefined)
+          iterateNext(node){ next => deleteParent(next, list.get) }
+        nexts -= parent
+      case _: NamedLink => deleteParent(node, parent)
+      case _: RootLink.type  => // nothing to do
     }
     case truechange.Load(node, _, kids, _) =>
       kids.foreach { case (_, kid) =>
@@ -55,7 +84,7 @@ class ParentIndex extends VirtualIndex {
   }
 
   def notifyParentListener(node: truechange.NodeURI, parent: truechange.NodeURI, isInsert: Boolean): Unit = {
-    isDirty |= listeners.nonEmpty
+    isDirty |= !listeners.isEmpty
     listeners.foreach { l =>
       if (isInsert) l.insert(node, parent)
       else l.delete(node, parent)
@@ -102,9 +131,10 @@ class ParentIndex extends VirtualIndex {
 
 
   override def addListener(listener: IQueryRuntimeContextListener, seed: Tuple): Unit = {
-    listeners += new ParentListener(listener, seed.get(0).asInstanceOf[truechange.NodeURI], seed.get(1).asInstanceOf[truechange.NodeURI])
+     listeners += new ParentListener(listener, seed.get(0).asInstanceOf[truechange.NodeURI])
   }
+
   override def removeListener(listener: IQueryRuntimeContextListener, seed: Tuple): Unit = {
-    listeners -= new ParentListener(listener, seed.get(0).asInstanceOf[truechange.NodeURI], seed.get(1).asInstanceOf[truechange.NodeURI])
+    listeners -= new ParentListener(listener, seed.get(0).asInstanceOf[truechange.NodeURI])
   }
 }

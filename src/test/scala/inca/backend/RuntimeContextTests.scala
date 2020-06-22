@@ -5,7 +5,7 @@ import java.util.Collections
 
 import inca.MetaElements
 import inca.MetaElements.{ListFirstLink, ListNextLink, NodeType, PrimitiveType}
-import inca.analyzedLangs.{BooleanConstant, ClassDeclaration, ClassMember, FieldDeclaration, PrivateVisibility, PublicVisibility}
+import inca.analyzedLangs.{ClassDeclaration, ClassMember, FieldDeclaration, PrivateVisibility, PublicVisibility}
 import inca.backend.indices.InputKey.{PrimitiveKey, LinkKey, NodeTypeKey}
 import inca.backend.indices.{Indices, TFRuntimeContext}
 import inca.backend.virtual.{ParentIndex, ParentKey, VirtualIndex}
@@ -150,10 +150,9 @@ class RuntimeContextTests extends AnyFunSuite {
 
     val classDeclType = NodeType(classOf[ClassDeclaration].getCanonicalName)
     val classMemberType = NodeType(classOf[ClassMember].getCanonicalName)
-    val bool = BooleanConstant(true)
     val fieldDecl1 = FieldDeclaration("bar", PublicVisibility())
     val fieldDecl2 = FieldDeclaration("baz", PrivateVisibility())
-    val clazz = ClassDeclaration("Foo", bool, List(fieldDecl1, fieldDecl2))
+    val clazz = ClassDeclaration("Foo", true, List(fieldDecl1, fieldDecl2))
 
     val changeset = Diffable.load(clazz)
     indices.processChangeset(changeset)
@@ -171,7 +170,7 @@ class RuntimeContextTests extends AnyFunSuite {
       asScala should contain only t2(fieldDecl1.uri, fieldDecl2.uri)
 
     val fieldDecl3 = FieldDeclaration("baaz", PublicVisibility())
-    val clazz2 = ClassDeclaration("Foo", bool, List(fieldDecl2, fieldDecl1, fieldDecl3))
+    val clazz2 = ClassDeclaration("Foo", true, List(fieldDecl2, fieldDecl1, fieldDecl3))
     val (diffset, updatedclazz) = clazz.compareTo(clazz2)
     indices.processChangeset(diffset)
 
@@ -186,6 +185,66 @@ class RuntimeContextTests extends AnyFunSuite {
 
     context.enumerateTuples(new LinkKey(ListNextLink()), emptyMask, null).
       asScala should contain allOf (t2(updatedclazz.members(0).uri, updatedclazz.members(1).uri), t2(updatedclazz.members(1).uri, updatedclazz.members(2).uri))
+
+    indices.dispose()
+  }
+
+  test("firstlink and nextlink parent of list") {
+    val virtualIndices = new java.util.HashMap[String, VirtualIndex]()
+    virtualIndices.put(ParentKey.getUniqueID, new ParentIndex())
+    val indices = new Indices(null, null, null, virtualIndices)
+    val context = new TFRuntimeContext(indices, null)
+
+    val classDeclType = NodeType(classOf[ClassDeclaration].getCanonicalName)
+    val classMemberType = NodeType(classOf[ClassMember].getCanonicalName)
+    val fieldDecl1 = FieldDeclaration("bar", PublicVisibility())
+    val fieldDecl2 = FieldDeclaration("baz", PrivateVisibility())
+    val clazz = ClassDeclaration("Foo", true, List(fieldDecl1, fieldDecl2))
+
+    val changeset = Diffable.load(clazz)
+    indices.processChangeset(changeset)
+
+    println("clazz " + clazz.uri)
+    println("members " + clazz.members.uri)
+    println("fieldjdecl1 " + clazz.members(0).uri)
+    println("fielddecl1 vis " + clazz.members(0).asInstanceOf[FieldDeclaration].visibility.uri)
+    println("fielddecl2 " + clazz.members(1).uri)
+    println("fielddecl2 vis " + clazz.members(1).asInstanceOf[FieldDeclaration].visibility.uri)
+
+    context.enumerateTuples(new LinkKey(classDeclType("members")), emptyMask, null).
+      asScala should contain only t2(clazz.uri, clazz.members.uri)
+
+    context.enumerateTuples(new NodeTypeKey(MetaElements.ListType(classMemberType)), emptyMask, null).
+      asScala should contain only t1(clazz.members.uri)
+
+    context.enumerateTuples(new LinkKey(ListFirstLink(MetaElements.ListType(classMemberType))), emptyMask, null).
+      asScala should contain only t2(clazz.members.uri, fieldDecl1.uri)
+
+    context.enumerateTuples(new LinkKey(ListNextLink()), emptyMask, null).
+      asScala should contain only t2(fieldDecl1.uri, fieldDecl2.uri)
+
+    context.enumerateTuples(ParentKey, emptyMask, null).
+      asScala should contain allOf(t2(clazz.members(0).uri, clazz.members.uri), t2(clazz.members(1).uri, clazz.members.uri))
+
+    val fieldDecl3 = FieldDeclaration("baaz", PublicVisibility())
+    val clazz2 = ClassDeclaration("Foo", true, List(fieldDecl2, fieldDecl1, fieldDecl3))
+    val (diffset, updatedclazz) = clazz.compareTo(clazz2)
+    indices.processChangeset(diffset)
+
+    context.enumerateTuples(new LinkKey(classDeclType("members")), emptyMask, null).
+      asScala should contain only t2(updatedclazz.uri, updatedclazz.members.uri)
+
+    context.enumerateTuples(new NodeTypeKey(MetaElements.ListType(classMemberType)), emptyMask, null).
+      asScala should contain only t1(updatedclazz.members.uri)
+
+    context.enumerateTuples(new LinkKey(ListFirstLink(MetaElements.ListType(classMemberType))), emptyMask, null).
+      asScala should contain only t2(updatedclazz.members.uri, updatedclazz.members(0).uri)
+
+    context.enumerateTuples(new LinkKey(ListNextLink()), emptyMask, null).
+      asScala should contain allOf (t2(updatedclazz.members(0).uri, updatedclazz.members(1).uri), t2(updatedclazz.members(1).uri, updatedclazz.members(2).uri))
+
+    context.enumerateTuples(ParentKey, emptyMask, null).
+      asScala should contain allOf(t2(updatedclazz.members(0).uri, updatedclazz.members.uri), t2(updatedclazz.members(1).uri, clazz.members.uri), t2(updatedclazz.members(2).uri, clazz.members.uri))
 
     indices.dispose()
   }
