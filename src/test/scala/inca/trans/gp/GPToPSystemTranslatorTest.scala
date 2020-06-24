@@ -7,7 +7,7 @@ import org.eclipse.viatra.query.runtime.api.{IPatternMatch, ViatraQueryMatcher}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import truediff.Diffable
 import inca.backend.indices.{EnginePool, LanguageMetaInfo, QueryScope, TFQuerySpecification}
-import inca.lang.FunLang.{Alternative, AnnoParam, Module, Param, PathAccess, PatternFunction, Return, Var}
+import inca.lang.FunLang.{Alternative, AnnoParam, Assert, Assignment, InstanceOf, Module, Param, PathAccess, PatternFunction, Return, Var}
 import inca.MetaElements.{NodeType, ParentLink}
 import inca.backend.virtual.ParentIndex
 import inca.trans.fun.FunToGPTranslator
@@ -160,15 +160,18 @@ class GPToPSystemTranslatorTest extends AnyFunSuite {
     val add = Add(num1, num2)
     val num3 = IntegerLit(3)
     val mul = Mult(num3, add)
+    val expType = NodeType(classOf[Exp].getCanonicalName)
     val parentFun = PatternFunction(
       None,
       "parent",
       Seq(Param("in", None)),
-      Seq(AnnoParam(None, NodeType(classOf[Exp].getCanonicalName))),
+      Seq(AnnoParam(None, expType)),
       Seq(
         Alternative(
           Seq(
-            Return(PathAccess(Var("in"), Seq(ParentLink)))))))
+            Assignment(Seq("p"), PathAccess(Var("in"), Seq(ParentLink))),
+            Assert(InstanceOf(Var("p"), expType)),
+            Return(Var("p"))))))
     val module = Module("Test", Seq(), Seq(parentFun))
     assertMatch(module, mul, Test_parentQuerySpecification.instance()) { matcher =>
       assert(matcher.getAllMatches.size == 4)

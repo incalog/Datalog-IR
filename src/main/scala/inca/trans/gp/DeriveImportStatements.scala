@@ -1,6 +1,6 @@
 package inca.trans.gp
 
-import inca.MetaElements.{DefinedNodeLink, ListFirstLink, ListNextLink, ListType, NamedLink, NodeType, ParentLink}
+import inca.MetaElements.{DefinedNodeLink, ListFirstLink, ListNextLink, ListType, NamedLink, NodeType, ParentLink, PrimitiveType}
 import inca.lang.GraphPatternLang._
 
 import scala.meta._
@@ -9,6 +9,7 @@ object DeriveImportStatements {
 
   val nNodeType = Name.Indeterminate(classOf[NodeType].getSimpleName)
   val nListType = Name.Indeterminate(classOf[ListType].getSimpleName)
+  val nPrimitiveType = Name.Indeterminate(classOf[PrimitiveType].getSimpleName)
   val nNamedLink = Name.Indeterminate(classOf[NamedLink].getSimpleName)
   val nListFirstLink = Name.Indeterminate(classOf[ListFirstLink].getSimpleName)
   val nListNextLink = Name.Indeterminate(classOf[ListNextLink].getSimpleName)
@@ -21,7 +22,6 @@ object DeriveImportStatements {
       import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
       import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
       import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.ExportedParameter
-      import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
 
       import java.util
 
@@ -44,7 +44,7 @@ object DeriveImportStatements {
       else p.typ.get match {
         case TType(NodeType(_)) => List(basicenumerables("TypeConstraint"), metaelements(nNodeType))
         case TType(ListType(_)) => List(basicenumerables("TypeConstraint"), metaelements(nListType))
-        case _ => List()
+        case _ => List(metaelements(nPrimitiveType))
       }
     }
   }

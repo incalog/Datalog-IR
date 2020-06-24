@@ -96,13 +96,6 @@ public class Indices implements IBaseIndex {
                 // insert nodeTypeInstance
                 LinkedType node = convertTagToNodeType(unload.tag());
                 deleteLinkedTypeInstance(node, unload.node());
-                // delete for parent types
-                Set<String> supertypes = supertypeMap.getOrDefault(node.name(), Collections.emptySet());
-                for (String supertype : supertypes) {
-                    NodeType nodeTypeSupertype = new NodeType(supertype);
-                    deleteLinkedTypeInstance(nodeTypeSupertype, unload.node());
-                }
-                // delete nodeLinkInstance for each kid
                 Iterator<Tuple2<String, NodeURI>> kidsIterator = unload.kids().iterator();
                 while(kidsIterator.hasNext()) {
                     Tuple2<String, NodeURI> kid = kidsIterator.next();
@@ -113,7 +106,6 @@ public class Indices implements IBaseIndex {
                 Iterator<Tuple2<String, Object>> litsIterator = unload.lits().iterator();
                 while(litsIterator.hasNext()) {
                     Tuple2<String, Object> lit = litsIterator.next();
-                    // TODO do we want to pass the literal or the value that the literal wraps?
                     deletePrimitiveTypeInstance(lit._2);
                     deleteLinkInstance(unload.node(), convertNodeAndStringToNodeLink(unload.tag(), lit._1), lit._2);
                 }
@@ -130,12 +122,6 @@ public class Indices implements IBaseIndex {
                 Load load = (Load) change;
                 LinkedType node = convertTagToNodeType(load.tag());
                 insertLinkedTypeInstance(node, load.node());
-                // insert for every parent type
-                Set<String> supertypes = supertypeMap.getOrDefault(node.name(), Collections.emptySet());
-                for (String supertype : supertypes) {
-                    NodeType nodeTypeSupertype = new NodeType(supertype);
-                    insertLinkedTypeInstance(nodeTypeSupertype, load.node());
-                }
                 Iterator<Tuple2<String, NodeURI>> kidsIterator = load.kids().iterator();
                 while(kidsIterator.hasNext()) {
                     Tuple2<String, NodeURI> kid = kidsIterator.next();

@@ -44,7 +44,7 @@ object MetaElements {
     val field: String
   }
 
-  case class NamedLink(typ: LinkedType, field: String) extends Link
+  case class NamedLink(typ: NodeType, field: String) extends Link
 
   case class ListFirstLink(typ: ListType) extends Link {
     val field: String = "first"

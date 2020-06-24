@@ -133,11 +133,11 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
   }
 
   def genInputKey(typ: GraphPatternLang.Type): Term = typ match {
-    case TBool => q"new JavaTransitiveInstancesKey(classOf[java.lang.Boolean])"
-    case TInt => q"new JavaTransitiveInstancesKey(classOf[java.lang.Integer])"
-    case TLong => q"new JavaTransitiveInstancesKey(classOf[java.lang.Long])"
-    case TDouble => q"new JavaTransitiveInstancesKey(classOf[java.lang.Double])"
-    case TString => q"new JavaTransitiveInstancesKey(classOf[java.lang.String])"
+    case TBool => q"new $tPrimitiveKey($tPrimitiveType(${Lit.String("java.lang.Boolean")}))"
+    case TInt => q"new $tPrimitiveKey($tPrimitiveType(${Lit.String("java.lang.Integer")}))"
+    case TLong => q"new $tPrimitiveKey($tPrimitiveType(${Lit.String("java.lang.Long")}))"
+    case TDouble => q"new $tPrimitiveKey($tPrimitiveType(${Lit.String("java.lang.Double")}))"
+    case TString => q"new $tPrimitiveKey($tPrimitiveType(${Lit.String("java.lang.String")}))"
     case TType(wrapped) => q"new $tLinkedTypeKey($tNodeType(${genType(wrapped)}))"
   }
 
