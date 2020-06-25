@@ -20,11 +20,13 @@ class MetaContext(langMetaInfo: LanguageMetaInfo) extends AbstractQueryMetaConte
     case key: NodeTypeKey =>
       key.`type` match {
         case NodeType(name) =>
-          val supers = langMetaInfo.directSupertypes(name)
-          supers.map { stype =>
-            val impliedSuper = new NodeTypeKey(NodeType(stype))
-            new InputKeyImplication(key, impliedSuper, Collections.singletonList(0))
-          }.asJava
+          if (langMetaInfo.directSubtypes.contains(name)) {
+            val supers = langMetaInfo.directSupertypes(name)
+            supers.map { stype =>
+              val impliedSuper = new NodeTypeKey(NodeType(stype))
+              new InputKeyImplication(key, impliedSuper, Collections.singletonList(0))
+            }.asJava
+          } else Seq().asJava
         case ListType(name) =>
           // TODO should lists be invariant or covariant?
           Collections.emptySet()

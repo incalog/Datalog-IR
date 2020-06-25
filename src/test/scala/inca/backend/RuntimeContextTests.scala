@@ -6,9 +6,9 @@ import java.util.Collections
 import inca.MetaElements
 import inca.MetaElements.{ListFirstLink, ListNextLink, NodeType, PrimitiveType}
 import inca.analyzedLangs.{ClassDeclaration, ClassMember, FieldDeclaration, PrivateVisibility, PublicVisibility}
-import inca.backend.indices.InputKey.{PrimitiveKey, LinkKey, NodeTypeKey}
+import inca.backend.indices.InputKey.{LinkKey, NodeTypeKey, PrimitiveKey}
 import inca.backend.indices.{Indices, TFRuntimeContext}
-import inca.backend.virtual.{ParentIndex, ParentKey, VirtualIndex}
+import inca.backend.virtual.{ListElementsIndex, ListElementsKey, ListParentIndex, ParentIndex, ParentKey, VirtualIndex}
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, TupleMask, Tuples}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
@@ -144,7 +144,7 @@ class RuntimeContextTests extends AnyFunSuite {
 
   test("firstlink and nextlink of list") {
     val virtualIndices = new java.util.HashMap[String, VirtualIndex]()
-    virtualIndices.put(ParentKey.getUniqueID, new ParentIndex())
+    virtualIndices.put(ParentKey.getUniqueID, new ListParentIndex())
     val indices = new Indices(null, null, null, virtualIndices)
     val context = new TFRuntimeContext(indices, null)
 
@@ -191,7 +191,7 @@ class RuntimeContextTests extends AnyFunSuite {
 
   test("firstlink and nextlink parent of list") {
     val virtualIndices = new java.util.HashMap[String, VirtualIndex]()
-    virtualIndices.put(ParentKey.getUniqueID, new ParentIndex())
+    virtualIndices.put(ParentKey.getUniqueID, new ListParentIndex())
     val indices = new Indices(null, null, null, virtualIndices)
     val context = new TFRuntimeContext(indices, null)
 
@@ -249,6 +249,42 @@ class RuntimeContextTests extends AnyFunSuite {
     indices.dispose()
   }
 
+  test("virtual link list elements") {
+    val virtualIndices = new java.util.HashMap[String, VirtualIndex]()
+    virtualIndices.put(ListElementsKey.getUniqueID, new ListElementsIndex())
+    val indices = new Indices(null, null, null, virtualIndices)
+    val context = new TFRuntimeContext(indices, null)
+
+    val classDeclType = NodeType(classOf[ClassDeclaration].getCanonicalName)
+    val classMemberType = NodeType(classOf[ClassMember].getCanonicalName)
+    val fieldDecl1 = FieldDeclaration("bar", PublicVisibility())
+    val fieldDecl2 = FieldDeclaration("baz", PrivateVisibility())
+    val clazz = ClassDeclaration("Foo", true, List(fieldDecl1, fieldDecl2))
+
+    val changeset = Diffable.load(clazz)
+    indices.processChangeset(changeset)
+
+    println("clazz " + clazz.uri)
+    println("members " + clazz.members.uri)
+    println("fieldjdecl1 " + clazz.members(0).uri)
+    println("fielddecl1 vis " + clazz.members(0).asInstanceOf[FieldDeclaration].visibility.uri)
+    println("fielddecl2 " + clazz.members(1).uri)
+    println("fielddecl2 vis " + clazz.members(1).asInstanceOf[FieldDeclaration].visibility.uri)
+
+    context.enumerateTuples(ListElementsKey, firstElementMask, t1(clazz.members.uri)).
+      asScala should contain allOf(t1(clazz.members(0).uri), t1(clazz.members(1).uri))
+
+    val fieldDecl3 = FieldDeclaration("baaz", PublicVisibility())
+    val clazz2 = ClassDeclaration("Foo", true, List(fieldDecl2, fieldDecl1, fieldDecl3))
+    val (diffset, updatedclazz) = clazz.compareTo(clazz2)
+    indices.processChangeset(diffset)
+
+    context.enumerateTuples(ListElementsKey, firstElementMask, t1(updatedclazz.members.uri)).
+      asScala should contain allOf(t1(updatedclazz.members(0).uri), t1(updatedclazz.members(1).uri), t1(updatedclazz.members(2).uri))
+
+    indices.dispose()
+  }
+
   def isEmptyOrNull(coll: util.Collection[_]): Boolean = coll == null || coll.isEmpty
 
   def t1(v: Any): Tuple = Tuples.staticArityFlatTupleOf(v)
@@ -256,5 +292,7 @@ class RuntimeContextTests extends AnyFunSuite {
   def t2(v1: Any, v2: Any): Tuple = Tuples.staticArityFlatTupleOf(v1, v2)
 
   def emptyMask: TupleMask = TupleMask.identity(0)
+
+  def firstElementMask: TupleMask = TupleMask.selectSingle(0, 2)
 
 }

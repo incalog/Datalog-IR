@@ -10,6 +10,7 @@ import inca.backend.indices.{EnginePool, LanguageMetaInfo, QueryScope, TFQuerySp
 import inca.lang.FunLang.{Alternative, AnnoParam, Assert, Assignment, InstanceOf, Module, Param, PathAccess, PatternFunction, Return, Var}
 import inca.MetaElements.{NodeType, ParentLink}
 import inca.backend.virtual.ParentIndex
+import inca.print.GraphPatternLangPrinter
 import inca.trans.fun.FunToGPTranslator
 import inca.trans.ExpLangTestAnalyses._
 import inca.trans.generated._

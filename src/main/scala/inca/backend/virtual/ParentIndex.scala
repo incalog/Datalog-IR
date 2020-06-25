@@ -1,7 +1,5 @@
 package inca.backend.virtual
 
-import java.util
-
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
 import truechange.{ListFirstLink, ListNextLink, NamedLink, RootLink}
@@ -21,41 +19,15 @@ class ParentIndex extends VirtualIndex {
 
   val parents: mutable.Map[truechange.NodeURI, truechange.NodeURI] = mutable.Map()
 
-  val nexts: mutable.Map[truechange.NodeURI, truechange.NodeURI] = mutable.Map()
-
-
-  private def iterateNext(from: truechange.NodeURI)(f: truechange.NodeURI => Unit): Unit = {
-    f(from)
-    var nextNode = nexts.get(from)
-    while(nextNode.isDefined) {
-      val node = nextNode.get
-      f(node)
-      nextNode = nexts.get(node)
-    }
-  }
 
   override def processChange(change: truechange.Change): Unit = change match {
     case truechange.Attach(parent, _, link, node, _) => link match {
-      case _: ListFirstLink =>
-        iterateNext(node){ next => insertParent(next, parent) }
-      case _: ListNextLink =>
-        val list = parents.get(parent)
-        if (list.isDefined)
-          iterateNext(node){ next => insertParent(next, list.get) }
-        nexts += parent -> node
       case _: NamedLink => insertParent(node, parent)
-      case _: RootLink.type  => // nothing to do
+      case _: RootLink.type | _: ListFirstLink | _: ListNextLink => // nothing to do
     }
     case truechange.Detach(parent, _, link, node, _) => link match {
-      case _: ListFirstLink =>
-        iterateNext(node) { next => deleteParent(next, parent) }
-      case _: ListNextLink =>
-        val list = parents.get(parent)
-        if (list.isDefined)
-          iterateNext(node){ next => deleteParent(next, list.get) }
-        nexts -= parent
       case _: NamedLink => deleteParent(node, parent)
-      case _: RootLink.type  => // nothing to do
+      case _: RootLink.type | _: ListFirstLink | _: ListNextLink => // nothing to do
     }
     case truechange.Load(node, _, kids, _) =>
       kids.foreach { case (_, kid) =>
@@ -69,14 +41,14 @@ class ParentIndex extends VirtualIndex {
   }
 
 
-  private def insertParent(node: truechange.NodeURI, parent: truechange.NodeURI): Unit = {
+  protected def insertParent(node: truechange.NodeURI, parent: truechange.NodeURI): Unit = {
     parents.put(node, parent) match {
       case Some(_) => // do nothing
       case None => notifyParentListener(node, parent, isInsert = true)
     }
   }
 
-  private def deleteParent(node: truechange.NodeURI, parent: truechange.NodeURI): Unit = {
+  protected def deleteParent(node: truechange.NodeURI, parent: truechange.NodeURI): Unit = {
     parents.remove(node) match {
       case Some(_) => notifyParentListener(node, parent, isInsert = false)
       case None => // do nothing
@@ -131,10 +103,58 @@ class ParentIndex extends VirtualIndex {
 
 
   override def addListener(listener: IQueryRuntimeContextListener, seed: Tuple): Unit = {
-     listeners += new ParentListener(listener, seed.get(0).asInstanceOf[truechange.NodeURI])
+     listeners += new ParentListener(listener, seed.get(0).asInstanceOf[truechange.NodeURI], seed.get(1).asInstanceOf[truechange.NodeURI])
   }
 
   override def removeListener(listener: IQueryRuntimeContextListener, seed: Tuple): Unit = {
-    listeners -= new ParentListener(listener, seed.get(0).asInstanceOf[truechange.NodeURI])
+    listeners -= new ParentListener(listener, seed.get(0).asInstanceOf[truechange.NodeURI], seed.get(1).asInstanceOf[truechange.NodeURI])
+  }
+}
+
+class ListParentIndex extends ParentIndex {
+  val nexts: mutable.Map[truechange.NodeURI, truechange.NodeURI] = mutable.Map()
+
+  private def iterateNext(from: truechange.NodeURI)(f: truechange.NodeURI => Unit): Unit = {
+    f(from)
+    var nextNode = nexts.get(from)
+    while(nextNode.isDefined) {
+      val node = nextNode.get
+      f(node)
+      nextNode = nexts.get(node)
+    }
+  }
+
+  override def processChange(change: truechange.Change): Unit = change match {
+    case truechange.Attach(parent, _, link, node, _) => link match {
+      case _: ListFirstLink =>
+        iterateNext(node){ next => insertParent(next, parent) }
+      case _: ListNextLink =>
+        val list = parents.get(parent)
+        if (list.isDefined)
+          iterateNext(node){ next => insertParent(next, list.get) }
+        nexts += parent -> node
+      case _: NamedLink => insertParent(node, parent)
+      case _: RootLink.type  => // nothing to do
+    }
+    case truechange.Detach(parent, _, link, node, _) => link match {
+      case _: ListFirstLink =>
+        iterateNext(node) { next => deleteParent(next, parent) }
+      case _: ListNextLink =>
+        val list = parents.get(parent)
+        if (list.isDefined)
+          iterateNext(node){ next => deleteParent(next, list.get) }
+        nexts -= parent
+      case _: NamedLink => deleteParent(node, parent)
+      case _: RootLink.type  => // nothing to do
+    }
+    case truechange.Load(node, _, kids, _) =>
+      kids.foreach { case (_, kid) =>
+        insertParent(kid, node)
+      }
+    // we do not add a parent for literals because they are not unique (have no nodeuri)
+    case truechange.Unload(node, _, kids, _) =>
+      kids.foreach { case (_, kid) =>
+        deleteParent(kid, node)
+      }
   }
 }

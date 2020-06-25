@@ -32,6 +32,7 @@ object MetaElements {
     def apply(field: String): Link = field match {
       case "first" => ListFirstLink(this)
       case "next" => ListNextLink()
+      case "elements" => ListElementsLink()
       case "parent" => ParentLink
       case "previous" => PreviousLink
       case _ => throw new IllegalArgumentException("Do not support link " + field)
@@ -66,5 +67,8 @@ object MetaElements {
   }
   case object PreviousLink extends VirtualLink {
     val field: String = "previous"
+  }
+  case class ListElementsLink() extends VirtualLink {
+    val field: String = "elements"
   }
 }

@@ -95,6 +95,11 @@ public class Indices implements IBaseIndex {
                 Unload unload = (Unload) change;
                 // insert nodeTypeInstance
                 LinkedType node = convertTagToNodeType(unload.tag());
+                Set<String> supertypes = supertypeMap.getOrDefault(node.name(), Collections.emptySet());
+                for (String supertype : supertypes) {
+                    NodeType nodeTypeSupertype = new NodeType(supertype);
+                    deleteLinkedTypeInstance(nodeTypeSupertype, unload.node());
+                }
                 deleteLinkedTypeInstance(node, unload.node());
                 Iterator<Tuple2<String, NodeURI>> kidsIterator = unload.kids().iterator();
                 while(kidsIterator.hasNext()) {
@@ -121,6 +126,13 @@ public class Indices implements IBaseIndex {
                 // insert nodeTypeInstance
                 Load load = (Load) change;
                 LinkedType node = convertTagToNodeType(load.tag());
+
+                Set<String> supertypes = supertypeMap.getOrDefault(node.name(), Collections.emptySet());
+                for (String supertype : supertypes) {
+                    NodeType nodeTypeSupertype = new NodeType(supertype);
+                    insertLinkedTypeInstance(nodeTypeSupertype, load.node());
+                }
+
                 insertLinkedTypeInstance(node, load.node());
                 Iterator<Tuple2<String, NodeURI>> kidsIterator = load.kids().iterator();
                 while(kidsIterator.hasNext()) {
@@ -143,7 +155,7 @@ public class Indices implements IBaseIndex {
             return new MetaElements.NodeType(constrTag.c());
         } else if (tag instanceof ListTag) {
             ListTag listTag = (ListTag) tag;
-            // TODO currently asume that it wraps sorttype
+            // TODO currently assume that it wraps sorttype
             SortType wrapped = (SortType) listTag.ty();
             return new MetaElements.ListType(new MetaElements.NodeType(wrapped.tag().getCanonicalName()));
         } else {

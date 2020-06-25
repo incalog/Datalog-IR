@@ -1,6 +1,6 @@
 package inca.trans.gp
 
-import inca.MetaElements.{DefinedNodeLink, ListFirstLink, ListNextLink, ListType, NamedLink, NodeType, ParentLink, PrimitiveType}
+import inca.MetaElements.{DefinedNodeLink, ListElementsLink, ListFirstLink, ListNextLink, ListType, NamedLink, NodeType, ParentLink, PrimitiveType}
 import inca.lang.GraphPatternLang._
 
 import scala.meta._
@@ -72,6 +72,7 @@ object DeriveImportStatements {
         case ListNextLink() => metaelements(nListNextLink)
         case DefinedNodeLink(typ, field) => throw new IllegalArgumentException("TODO support defined node link")
         case ParentLink => virtual("ParentKey")
+        case ListElementsLink() => virtual("ListElementsKey")
       }
       List(basicenumerables("TypeConstraint"), linkImport)
     case Check(code) => List()

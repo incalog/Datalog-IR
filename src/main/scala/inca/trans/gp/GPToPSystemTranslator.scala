@@ -1,8 +1,9 @@
 package inca.trans.gp
 
-import inca.MetaElements.{Link, NamedLink, NodeType, ParentLink, PrimitiveType}
+import inca.MetaElements.{Link, ListElementsLink, NamedLink, NodeType, ParentLink, PrimitiveType}
 import inca.backend.indices.InputKey
 import inca.backend.indices.InputKey.{LinkKey, NodeTypeKey, PrimitiveKey}
+import inca.backend.virtual.ListElementsKey
 import inca.lang.GraphPatternLang
 import inca.lang.GraphPatternLang._
 import inca.util.Gensym
@@ -215,6 +216,8 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
   def genLinkKey(link: Link): Term = link match {
     case ParentLink =>
       q"ParentKey"
+    case ListElementsLink() =>
+      q"ListElementsKey"
     case NamedLink(nodeType, fld)  =>
       q"new $tLinkKey($tNamedLink($tNodeType(${nodeType.name}), ${fld}))"
     case _ => throw new IllegalArgumentException("Does not support such a link")
