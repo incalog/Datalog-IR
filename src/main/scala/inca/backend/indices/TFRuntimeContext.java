@@ -108,24 +108,22 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
 
             if (!(isSourceBound) && isTargetBound) {
                 final Object seedTarget = seed.get(targetIndex);
-                final Map<Object, Set<Object>> linkValues = this.indices.linkInstancesReversed.get(link);
+                final Map<Object, Object> linkValues = this.indices.linkInstancesReversed.get(link);
                 if (linkValues != null) {
-                    result = linkValues.getOrDefault(seedTarget, Collections.emptySet()).size();
+                    result = linkValues.containsKey(seedTarget) ? 1 : 0;
                 }
             } else if (isSourceBound && isTargetBound) {
                 // fully seeded
                 result = ((containsTuple(key, seed)) ? 1 : 0);
             } else if (!(isSourceBound) /*&& !(isTargetBound)*/) {
                 // fully unseeded
-                final Map<Object, Set<Object>> linkValues = this.indices.linkInstances.get(link);
-                for (final Map.Entry<Object, Set<Object>> entry : linkValues.entrySet()) {
-                    result += entry.getValue().size();
-                }
+                final Map<Object, Object> linkValues = this.indices.linkInstances.get(link);
+                result += linkValues.size();
             } else /*if (isSourceBound && !(isTargetBound))*/ {
                 final Object seedSource = seed.get(sourceIndex);
-                final Map<Object, Set<Object>> linkValues = this.indices.linkInstances.get(link);
+                final Map<Object, Object> linkValues = this.indices.linkInstances.get(link);
                 if (linkValues != null) {
-                    result = linkValues.getOrDefault(seedSource, Collections.emptySet()).size();
+                    result = linkValues.containsKey(seedSource) ? 1 : 0;
                 }
             }
         } else {
@@ -192,9 +190,12 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
 
             if (!(isSourceBound) && isTargetBound) {
                 final Object seedTarget = seed.get(targetIndex);
-                final Map<Object, Set<Object>> linkValues = this.indices.linkInstancesReversed.get(link);
+                final Map<Object, Object> linkValues = this.indices.linkInstancesReversed.get(link);
                 if (linkValues != null) {
-                    linkValues.getOrDefault(seedTarget, Collections.emptySet()).forEach(source -> result.add(Tuples.staticArityFlatTupleOf(source, seedTarget)));
+                    Object source = linkValues.get(seedTarget);
+                    if (source != null) {
+                        result.add(Tuples.staticArityFlatTupleOf(source, seedTarget));
+                    }
                 }
             } else if (isSourceBound && isTargetBound) {
                 // fully seeded
@@ -205,19 +206,20 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 }
             } else if (!(isSourceBound) /*&& !(isTargetBound)*/) {
                 // fully unseeded
-                final Map<Object, Set<Object>> linkValues = this.indices.linkInstances.get(link);
+                final Map<Object, Object> linkValues = this.indices.linkInstances.get(link);
                 if (linkValues != null) {
-                    for (final Map.Entry<Object, Set<Object>> entry : linkValues.entrySet()) {
-                        for (final Object target : entry.getValue()) {
-                            result.add(Tuples.staticArityFlatTupleOf(entry.getKey(), target));
-                        }
+                    for (final Map.Entry<Object, Object> entry : linkValues.entrySet()) {
+                        result.add(Tuples.staticArityFlatTupleOf(entry.getKey(), entry.getValue()));
                     }
                 }
             } else /*if (isSourceBound && !(isTargetBound))*/ {
                 final Object seedSource = seed.get(sourceIndex);
-                final Map<Object, Set<Object>> linkValues = this.indices.linkInstances.get(link);
+                final Map<Object, Object> linkValues = this.indices.linkInstances.get(link);
                 if (linkValues != null) {
-                    linkValues.getOrDefault(seedSource, Collections.emptySet()).forEach(target -> result.add(Tuples.staticArityFlatTupleOf(seedSource, target)));
+                    Object target = linkValues.get(seedSource);
+                    if (target != null) {
+                        result.add(Tuples.staticArityFlatTupleOf(seedSource, target));
+                    }
                 }
             }
         } else {
@@ -274,15 +276,15 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
 
             if (!(isSourceBound) && isTargetBound) {
                 final Object seedTarget = seed.get(targetIndex);
-                final Map<Object, Set<Object>> linkValues = this.indices.linkInstancesReversed.get(link);
+                final Map<Object, Object> linkValues = this.indices.linkInstancesReversed.get(link);
                 if (linkValues != null) {
-                    result = linkValues.get(seedTarget);
+                    result = Collections.singletonList(linkValues.get(seedTarget));
                 }
             } else if (isSourceBound && !(isTargetBound)) {
                 final Object seedSource = seed.get(sourceIndex);
-                final Map<Object, Set<Object>> linkValues = this.indices.linkInstances.get(link);
+                final Map<Object, Object> linkValues = this.indices.linkInstances.get(link);
                 if (linkValues != null) {
-                    result = linkValues.get(seedSource);
+                    result = Collections.singletonList(linkValues.get(seedSource));
                 }
             } else {
                 // must be singly unseeded, this is enumerateValues after all!
@@ -326,11 +328,11 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
             }
         } else if (key instanceof InputKey.LinkKey) {
             final Link link = ((InputKey.LinkKey) key).type;
-            final Map<Object, Set<Object>> linkValues = this.indices.linkInstances.get(link);
+            final Map<Object, Object> linkValues = this.indices.linkInstances.get(link);
             if (linkValues != null) {
                 final Object source = getFromTuple(tuple, 1);
                 final Object target = getFromTuple(tuple, 0);
-                result = linkValues.getOrDefault(source, Collections.emptySet()).contains(target);
+                result = linkValues.get(source) == target;
             }
         } else {
             result = indices.virtualIndices.get(key.getStringID()).containsTuple(tuple);

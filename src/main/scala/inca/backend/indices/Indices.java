@@ -35,10 +35,10 @@ public class Indices implements IBaseIndex {
     final Map<PrimitiveType, Multiset<Object>> primitiveTypeInstances;
     final Map<PrimitiveType, Set<IDataTypeInstanceListener>> primitiveTypeInstanceListeners;
 
-    // source -> {targets}
-    final Map<Link, Map<Object, Set<Object>>> linkInstances;
-    // target -> {sources}
-    final Map<Link, Map<Object, Set<Object>>> linkInstancesReversed;
+    // source -> target
+    final Map<Link, Map<Object, Object>> linkInstances;
+    // target -> source
+    final Map<Link, Map<Object, Object>> linkInstancesReversed;
     final Map<Link, Set<INodeLinkInstanceListener>> linkInstanceListeners;
 
     public final Map<String, Set<String>> subtypeMap = new HashMap<>();
@@ -289,21 +289,18 @@ public class Indices implements IBaseIndex {
     }
 
     private void insertLinkInstanceInternal(final Object source, final Link link, final Object target,
-                                            final Map<Link, Map<Object, Set<Object>>> map, final boolean notifyAbout) {
+                                            final Map<Link, Map<Object, Object>> map, final boolean notifyAbout) {
         map.compute(link, (ok, ov) -> {
             if (ov == null) {
                 ov = new HashMap<>();
             }
             ov.compute(source, (ik, iv) -> {
-                if (iv == null) {
-                    iv = new HashSet<>();
-                }
-                if (iv.add(target)) {
+                if (iv != target) {
+                    iv = target;
                     if (notifyAbout) {
                         notifyLinkInstanceListeners(link, source, target, true);
                     }
-                }
-                else {
+                } else {
                     throw new RuntimeException("Already known  " + link + " instance: " + source + " -> " + target);
                 }
                 return iv;
@@ -318,26 +315,19 @@ public class Indices implements IBaseIndex {
     }
 
     private void deleteLinkInstanceInternal(final Object source, final Link link, final Object target,
-                                            final Map<Link, Map<Object, Set<Object>>> map, final boolean notifyAbout) {
+                                            final Map<Link, Map<Object, Object>> map, final boolean notifyAbout) {
         map.compute(link, (ok, ov) -> {
             if (ov == null) {
                 throw new RuntimeException("Unknown  " + link + " instance: " + source + " -> " + target);
             }
             ov.compute(source, (ik, iv) -> {
-                if (iv == null) {
+                if (iv != target) {
                     throw new RuntimeException("Unknown  " + link + " instance: " + source + " -> " + target);
-                }
-                if (iv.remove(target)) {
+                } else {
                     if (notifyAbout) {
                         notifyLinkInstanceListeners(link, source, target, false);
                     }
-                } else {
-                    throw new RuntimeException("Unknown  " + link + " instance: " + source + " -> " + target);
-                }
-                if (iv.isEmpty()) {
                     return null;
-                } else {
-                    return iv;
                 }
             });
             if (ov.isEmpty()) {
