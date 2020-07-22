@@ -1,22 +1,21 @@
 package inca.trans.gp
 
-import java.util.Collections
-
-import inca.analyzedLangs.expLang._
-import org.eclipse.viatra.query.runtime.api.{IPatternMatch, ViatraQueryMatcher}
-import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
-import truediff.Diffable
-import inca.backend.indices.{EnginePool, LanguageMetaInfo, QueryScope, TFQuerySpecification}
-import inca.lang.FunLang.{Alternative, AnnoParam, Assert, Assignment, InstanceOf, Module, Param, PathAccess, PatternFunction, Return, Var}
 import inca.MetaElements.{NodeType, ParentLink}
-import inca.backend.virtual.ParentIndex
-import inca.print.GraphPatternLangPrinter
-import inca.trans.fun.FunToGPTranslator
+import inca.analyzedLangs.expLang._
+import inca.backend.indices.{EnginePool, LanguageMetaInfo, QueryScope, TFQuerySpecification}
+import inca.backend.virtual._
+import inca.backend.virtual.list.ListNextIndex
+import inca.backend.virtual.tree.ParentIndex
+import inca.lang.FunLang.{Alternative, AnnoParam, Assert, Assignment, InstanceOf, Module, Param, PathAccess, PatternFunction, Return, Var}
 import inca.trans.ExpLangTestAnalyses._
+import inca.trans.fun.FunToGPTranslator
 import inca.trans.generated._
 import inca.util.AnalysisWriter
+import org.eclipse.viatra.query.runtime.api.{IPatternMatch, ViatraQueryMatcher}
+import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
+import truediff.Diffable
 
 class GPToPSystemTranslatorTest extends AnyFunSuite {
 
@@ -78,7 +77,11 @@ class GPToPSystemTranslatorTest extends AnyFunSuite {
     val gp = FunToGPTranslator.transformModule(module)
     AnalysisWriter.writeModule(gp)
     val changeset = Diffable.load(subjectProg)
-    val scope = new QueryScope(langMetaInfo, Map("parent" -> new ParentIndex()))
+    var virtualIndices = Seq[VirtualIndex]()
+    val nextIndex = new ListNextIndex
+    virtualIndices +:= nextIndex
+    virtualIndices +:= new ParentIndex(nextIndex)
+    val scope = new QueryScope(langMetaInfo, virtualIndices)
 
     val matcher = EnginePool.getMatcher(compiledModule, scope, DifferentialReteBackendFactory.INSTANCE)
     scope.getEngineContext.getBaseIndex.processChangeset(changeset)

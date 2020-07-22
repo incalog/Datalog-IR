@@ -1,16 +1,16 @@
 package inca.trans.generated
-import org.eclipse.viatra.query.runtime.api.{ GenericPatternMatcher, ViatraQueryEngine }
-import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
-import org.eclipse.viatra.query.runtime.matchers.psystem.{ PBody, PVariable }
-import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{ BasePQuery, PParameter, PVisibility }
-import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
-import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.ExportedParameter
 import java.util
-import inca.backend.indices.{ InputKey, QueryScope, TFQuerySpecification }
-import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables.TypeConstraint
+
 import inca.MetaElements.NodeType
-import inca.backend.virtual.ParentKey
-import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.Equality
+import inca.backend.indices.{InputKey, QueryScope, TFQuerySpecification}
+import inca.backend.virtual.tree.ParentKey
+import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
+import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
+import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.{Equality, ExportedParameter}
+import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables.TypeConstraint
+import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
+import org.eclipse.viatra.query.runtime.matchers.psystem.{PBody, PVariable}
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 class Test_parentQuerySpecification extends TFQuerySpecification(Test_parentQuerySpecification.GeneratedPQuery.INSTANCE) {
   override def instantiate(engine: ViatraQueryEngine): GenericPatternMatcher = {
     var matcher: GenericPatternMatcher = engine.getExistingMatcher(this)

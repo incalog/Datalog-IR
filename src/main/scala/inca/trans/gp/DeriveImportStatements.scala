@@ -1,6 +1,6 @@
 package inca.trans.gp
 
-import inca.MetaElements.{DefinedNodeLink, ListElementsLink, ListFirstLink, ListNextLink, ListType, NamedLink, NodeType, ParentLink, PrimitiveType}
+import inca.MetaElements._
 import inca.lang.GraphPatternLang._
 
 import scala.meta._
@@ -11,8 +11,8 @@ object DeriveImportStatements {
   val nListType = Name.Indeterminate(classOf[ListType].getSimpleName)
   val nPrimitiveType = Name.Indeterminate(classOf[PrimitiveType].getSimpleName)
   val nNamedLink = Name.Indeterminate(classOf[NamedLink].getSimpleName)
-  val nListFirstLink = Name.Indeterminate(classOf[ListFirstLink].getSimpleName)
-  val nListNextLink = Name.Indeterminate(classOf[ListNextLink].getSimpleName)
+  val nListFirstLink = Name.Indeterminate(classOf[FirstLink].getSimpleName)
+  val nListNextLink = Name.Indeterminate(NextLink.getClass.getSimpleName)
 
   def apply(pat: GraphPattern): List[Stat] = {
     q"""
@@ -68,11 +68,11 @@ object DeriveImportStatements {
     case Path(src, trg, link, typ) =>
       val linkImport = link match {
         case NamedLink(typ, field) => metaelements(nNamedLink)
-        case ListFirstLink(typ) => metaelements(nListFirstLink)
-        case ListNextLink() => metaelements(nListNextLink)
+        case FirstLink(typ) => metaelements(nListFirstLink)
+        case NextLink => virtual("ListNextKey")
         case DefinedNodeLink(typ, field) => throw new IllegalArgumentException("TODO support defined node link")
         case ParentLink => virtual("ParentKey")
-        case ListElementsLink() => virtual("ListElementsKey")
+        case ElementsLink(_) => virtual("ParentKey")
       }
       List(basicenumerables("TypeConstraint"), linkImport)
     case Check(code) => List()
@@ -87,6 +87,9 @@ object DeriveImportStatements {
   private def metaelements(clazz: Name.Indeterminate): Stat =
     q"import inca.MetaElements.$clazz"
 
-  private def virtual(clazz: String): Stat =
-    q"import inca.backend.virtual.${Name.Indeterminate(clazz)}"
+  private def virtual(clazz: String): Stat = clazz match {
+    case "ParentKey" => q"import inca.backend.virtual.tree.ParentKey"
+    case "ListNextKey" => q"import inca.backend.virtual.list.ListNextKey"
+  }
+
 }

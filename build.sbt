@@ -19,6 +19,7 @@ libraryDependencies += "de.uni-mainz.informatik.pl" %% "truediff" % "0.1" % "tes
 // https://mvnrepository.com/artifact/org.apache.commons/commons-collections4
 libraryDependencies += "org.apache.commons" % "commons-collections4" % "4.4"
 
+libraryDependencies += "org.scala-lang.modules" %% "scala-collection-contrib" % "0.2.1"
 libraryDependencies += "org.scalameta" %% "scalameta" % "4.2.3"
 libraryDependencies += "org.scalactic" %% "scalactic" % "3.1.0"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.1.0" % "test"

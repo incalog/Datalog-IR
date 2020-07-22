@@ -5,12 +5,11 @@ import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.api.scope.IEngineContext
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContext
 
-import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
 
 // we pass the virtualindices because we want them to be configurable
-case class EngineContext(scope: QueryScope, engine: AdvancedViatraQueryEngine, virtualIndices: Map[String, VirtualIndex]) extends IEngineContext {
+case class EngineContext(scope: QueryScope, engine: AdvancedViatraQueryEngine, virtualIndices: Seq[VirtualIndex]) extends IEngineContext {
 
 
   private def scala2JavaNestedMap(map: Map[String, Set[String]]): java.util.Map[String, java.util.Set[String]] = {
@@ -21,7 +20,7 @@ case class EngineContext(scope: QueryScope, engine: AdvancedViatraQueryEngine, v
     res
   }
 
-  val indices: Indices = new Indices(engine, scala2JavaNestedMap(scope.langMetaInfo.subtypes), scala2JavaNestedMap(scope.langMetaInfo.supertypes), (mutable.Map() ++ virtualIndices).asJava)
+  val indices: Indices = new Indices(engine, scala2JavaNestedMap(scope.langMetaInfo.subtypes), scala2JavaNestedMap(scope.langMetaInfo.supertypes), virtualIndices.asJava)
   val runtimeCtx = new TFRuntimeContext(indices, new MetaContext(scope.langMetaInfo))
 
   override def getBaseIndex: Indices = indices

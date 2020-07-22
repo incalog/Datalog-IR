@@ -17,8 +17,10 @@ trait VirtualKey extends IInputKey {
  * An implementation needs an associated virtual key implementation.
  */
 trait VirtualIndex {
+  val virtualKey: VirtualKey
+
   //
-  var isDirty: Boolean
+  var isDirty: Boolean = false
 
   // process change and updates index/notifies listeners accordingly
   def processChange(change: truechange.Change): Unit
@@ -35,3 +37,5 @@ trait VirtualIndex {
   def addListener(listener: IQueryRuntimeContextListener, seed: Tuple): Unit
   def removeListener(listener: IQueryRuntimeContextListener, seed: Tuple): Unit
 }
+
+

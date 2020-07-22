@@ -21,21 +21,21 @@ object MetaElements {
       field match {
         case "parent" => ParentLink
         case "previous" => PreviousLink
-        case "next" => ListNextLink()
+        case "next" => NextLink
         case _ => NamedLink(this, field)
       }
   }
 
-  case class ListType(contained: Type) extends LinkedType {
+  case class ListType(contained: LinkedType) extends LinkedType {
     val name: String = s"List[${contained.name}"
 
     def apply(field: String): Link = field match {
-      case "first" => ListFirstLink(this)
-      case "next" => ListNextLink()
-      case "elements" => ListElementsLink()
       case "parent" => ParentLink
+      case "next" => NextLink
       case "previous" => PreviousLink
-      case _ => throw new IllegalArgumentException("Do not support link " + field)
+      case "first" => FirstLink(contained)
+      case "elements" => ElementsLink(contained)
+      case _ => throw new IllegalArgumentException(s"$this does not support named links $field")
     }
   }
 
@@ -47,28 +47,28 @@ object MetaElements {
 
   case class NamedLink(typ: NodeType, field: String) extends Link
 
-  case class ListFirstLink(typ: ListType) extends Link {
-    val field: String = "first"
+  case class DefinedNodeLink(typ: LinkedType, field: String) extends Link
+
+  case object ParentLink extends Link {
+    val typ: LinkedType = NodeType("inca.lang.Node")
+    val field: String = "parent"
   }
 
-  case class ListNextLink() extends Link {
+  case object NextLink extends Link {
     val typ: LinkedType = NodeType("inca.lang.Node")
     val field: String = "next"
   }
 
-  case class DefinedNodeLink(typ: LinkedType, field: String) extends Link
-
-  trait VirtualLink extends Link {
+  case object PreviousLink extends Link {
     val typ: LinkedType = NodeType("inca.lang.Node")
-  }
-
-  case object ParentLink extends VirtualLink {
-    val field: String = "parent"
-  }
-  case object PreviousLink extends VirtualLink {
     val field: String = "previous"
   }
-  case class ListElementsLink() extends VirtualLink {
+
+  case class FirstLink(typ: LinkedType) extends Link {
+    val field: String = "first"
+  }
+
+  case class ElementsLink(typ: LinkedType) extends Link {
     val field: String = "elements"
   }
 }

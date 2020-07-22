@@ -1,20 +1,18 @@
 package inca.findbugs
 
-import inca.MetaElements.{ListElementsLink, ListType, NodeType, ParentLink}
-import inca.lang.FunLang._
-import inca.analyzedLangs.{ClassDeclaration, FieldDeclaration, PrivateVisibility, ProtectedVisibility, PublicVisibility}
+import inca.MetaElements.{ElementsLink, ListType, NodeType}
+import inca.analyzedLangs._
 import inca.backend.indices.{EnginePool, LanguageMetaInfo, QueryScope}
-import inca.backend.virtual.{ListElementsIndex, ParentIndex, VirtualIndex}
-import inca.lang.FunLang
-import inca.print.GraphPatternLangPrinter
+import inca.backend.virtual.VirtualIndex
+import inca.backend.virtual.list.ListNextIndex
+import inca.backend.virtual.tree.ParentIndex
+import inca.lang.FunLang._
 import inca.trans.fun.FunToGPTranslator
 import inca.trans.generated.FindBugs_confusedInheritanceQuerySpecification
 import inca.util.AnalysisWriter
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
 import truediff.Diffable
-
-import scala.collection.mutable
 
 class FindBugsTests extends AnyFunSuite {
 
@@ -54,7 +52,7 @@ class FindBugsTests extends AnyFunSuite {
           Seq(
             Assert(Eq(PathAccess(Var("class"), Seq(classDeclType("isFinal"))), Constant(BooleanLiteral(true)))),
             Assignment(Seq("members"), PathAccess(Var("class"), Seq(classDeclType("members")))),
-            Assignment(Seq("member"), PathAccess(Var("members"), Seq(ListElementsLink()))),
+            Assignment(Seq("member"), PathAccess(Var("members"), Seq(ElementsLink(classMemberType)))),
             Assert(InstanceOf(Var("member"), fieldDeclType)),
             Assert(InstanceOf(PathAccess(Var("member"), Seq(fieldDeclType("visibility"))), protectedVisType))
           ))))
@@ -63,7 +61,11 @@ class FindBugsTests extends AnyFunSuite {
     AnalysisWriter.writeModule(compiledModule)
     val clazz = ClassDeclaration("Foo", true, List(FieldDeclaration("baz", PublicVisibility()), FieldDeclaration("bar", ProtectedVisibility())))
 
-    val scope = new QueryScope(langMetaInfo, Map[String, VirtualIndex]("parent" -> new ParentIndex, "elements" -> new ListElementsIndex()))
+    var virtualIndices = Seq[VirtualIndex]()
+    val nextIndex = new ListNextIndex
+    virtualIndices +:= nextIndex
+    virtualIndices +:= new ParentIndex(nextIndex)
+    val scope = new QueryScope(langMetaInfo, virtualIndices)
     val changeset = Diffable.load(clazz)
     val matcher = EnginePool.getMatcher(FindBugs_confusedInheritanceQuerySpecification.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
     val indices = scope.getEngineContext.getBaseIndex

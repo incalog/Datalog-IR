@@ -1,6 +1,14 @@
 package inca.backend.indices;
 
 import com.google.common.collect.Multiset;
+import inca.MetaElements;
+import inca.MetaElements.Link;
+import inca.MetaElements.LinkedType;
+import inca.MetaElements.PrimitiveType;
+import inca.backend.listeners.DataTypeInstanceAdapter;
+import inca.backend.listeners.NodeLinkInstanceAdapter;
+import inca.backend.listeners.NodeTypeInstanceAdapter;
+import inca.backend.virtual.VirtualKey;
 import org.eclipse.viatra.query.runtime.matchers.context.*;
 import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey;
 import org.eclipse.viatra.query.runtime.matchers.tuple.ITuple;
@@ -8,19 +16,11 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple;
 import org.eclipse.viatra.query.runtime.matchers.tuple.TupleMask;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
 import org.eclipse.viatra.query.runtime.matchers.util.Accuracy;
-import inca.backend.listeners.DataTypeInstanceAdapter;
-import inca.backend.listeners.NodeLinkInstanceAdapter;
-import inca.backend.listeners.NodeTypeInstanceAdapter;
-import inca.MetaElements;
-import inca.MetaElements.PrimitiveType;
-import inca.MetaElements.Link;
-import inca.MetaElements.LinkedType;
+import scala.jdk.javaapi.CollectionConverters;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.Callable;
-
-import scala.jdk.javaapi.CollectionConverters;
 
 public class TFRuntimeContext implements IQueryRuntimeContext {
 
@@ -126,9 +126,11 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                     result = linkValues.containsKey(seedSource) ? 1 : 0;
                 }
             }
-        } else {
+        } else if (key instanceof VirtualKey) {
             result = indices.virtualIndices.get(key.getStringID()).countTuples(mask, seed);
-        }
+        } else {
+			throw new IllegalArgumentException("Cannot handle key " + key);
+		}
 
         if (this.isDebugMode) {
             System.out.println("countTuples key: " + key + " tuple: " + seed + " result: " + result);
@@ -222,10 +224,12 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                     }
                 }
             }
-        } else {
+        } else if (key instanceof VirtualKey) {
             scala.collection.Iterable<Tuple> tuples = indices.virtualIndices.get(key.getStringID()).enumerateTuples(mask, seed);
             result.addAll(CollectionConverters.asJavaCollection(tuples));
-        }
+        } else {
+        	throw new IllegalArgumentException("Cannot handle key " + key);
+		}
 
         if (this.isDebugMode) {
             System.out.println("enumerateTuples key: " + key + " tuple: " + seed + " result size: " + result.size());
@@ -290,10 +294,12 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 // must be singly unseeded, this is enumerateValues after all!
                 illegalEnumerateValues(seed);
             }
-        } else {
+        } else if (key instanceof VirtualKey) {
             scala.collection.Iterable<?> values = indices.virtualIndices.get(key.getStringID()).enumerateValues(mask, seed);
             result = CollectionConverters.asJavaCollection(values);
-        }
+        } else {
+			throw new IllegalArgumentException("Cannot handle key " + key);
+		}
 
         if (this.isDebugMode) {
             System.out.println("enumerateValues key: " + key + " tuple: " + seed + " result size: " + ((result == null ? "null" : result.size())) + " result: " + result);
@@ -334,9 +340,11 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 final Object target = getFromTuple(tuple, 0);
                 result = linkValues.get(source) == target;
             }
-        } else {
+        } else if (key instanceof VirtualKey) {
             result = indices.virtualIndices.get(key.getStringID()).containsTuple(tuple);
-        }
+        } else {
+			throw new IllegalArgumentException("Cannot handle key " + key);
+		}
 
         if (this.isDebugMode) {
             System.out.println("containsTuple key: " + key + " tuple: " + tuple + " result: " + result);
@@ -372,9 +380,11 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
         } else if (key instanceof InputKey.LinkKey) {
             final Link type = ((InputKey.LinkKey) key).type;
             this.indices.addLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
-        } else {
+        } else if (key instanceof VirtualKey) {
             indices.virtualIndices.get(key.getStringID()).addListener(listener, seed);
-        }
+        } else {
+			throw new IllegalArgumentException("Cannot handle key " + key);
+		}
     }
 
     @Override
@@ -390,9 +400,11 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
         } else if (key instanceof InputKey.LinkKey) {
             final MetaElements.Link type = ((InputKey.LinkKey) key).type;
             this.indices.removeLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
-        } else {
+        } else if (key instanceof VirtualKey) {
             indices.virtualIndices.get(key.getStringID()).removeListener(listener, seed);
-        }
+        } else {
+			throw new IllegalArgumentException("Cannot handle key " + key);
+		}
     }
 
     @Override

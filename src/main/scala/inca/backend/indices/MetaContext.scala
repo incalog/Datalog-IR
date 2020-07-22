@@ -4,8 +4,8 @@ import java.util
 import java.util.Collections
 
 import inca.MetaElements
-import inca.MetaElements.{DefinedNodeLink, ListFirstLink, ListNextLink, ListType, NamedLink, NodeType, PrimitiveType, VirtualLink}
-import InputKey.{LinkKey, NodeTypeKey, PrimitiveKey}
+import inca.MetaElements._
+import inca.backend.indices.InputKey.{LinkKey, NodeTypeKey, PrimitiveKey}
 import inca.backend.virtual.VirtualKey
 import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
 import org.eclipse.viatra.query.runtime.matchers.context.{AbstractQueryMetaContext, IInputKey, InputKeyImplication}
@@ -35,14 +35,13 @@ class MetaContext(langMetaInfo: LanguageMetaInfo) extends AbstractQueryMetaConte
       throw new IllegalStateException("TODO currently do not support eval nodes hence no javatranskey")
     case key: LinkKey =>
       key.`type` match {
-        case ListFirstLink(typ) =>
+        case FirstLink(typ) =>
           val firstImpl = new InputKeyImplication(key, new NodeTypeKey(typ), Collections.singletonList(0))
-          val secondImpl = typ.contained match {
+          val secondImpl = typ match {
             case MetaElements.ListType(contained) =>
               new InputKeyImplication(key, new NodeTypeKey(ListType(contained)), Collections.singletonList(1))
             case MetaElements.NodeType(name) =>
               new InputKeyImplication(key, new NodeTypeKey(NodeType(name)), Collections.singletonList(1))
-            case PrimitiveType(name) => throw new IllegalArgumentException("TODO support implication for primitive type in lists")
           }
           Seq(firstImpl, secondImpl).asJava
         case NamedLink(typ, field) =>
@@ -54,11 +53,10 @@ class MetaContext(langMetaInfo: LanguageMetaInfo) extends AbstractQueryMetaConte
             if (false) throw new IllegalArgumentException("TODO support implications for other than nodetype")
             else new InputKeyImplication(key, new NodeTypeKey(NodeType(trgType)), Collections.singletonList(1))
           Seq(firstImpl, secondImpl).asJava
-        case ListNextLink() => Seq().asJava
+        case NextLink => Seq().asJava
           // TODO
         case DefinedNodeLink(typ, field) => Seq().asJava
-          // do not know yet
-        case link: VirtualLink => Seq().asJava
+          // TODO do not know yet
       }
     case key: PrimitiveKey =>
       Collections.emptySet()

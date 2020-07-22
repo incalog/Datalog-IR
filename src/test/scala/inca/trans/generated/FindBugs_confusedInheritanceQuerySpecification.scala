@@ -1,17 +1,16 @@
 package inca.trans.generated
-import org.eclipse.viatra.query.runtime.api.{ GenericPatternMatcher, ViatraQueryEngine }
-import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
-import org.eclipse.viatra.query.runtime.matchers.psystem.{ PBody, PVariable }
-import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{ BasePQuery, PParameter, PVisibility }
-import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
-import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.ExportedParameter
 import java.util
-import inca.backend.indices.{ InputKey, QueryScope, TFQuerySpecification }
-import inca.MetaElements.NamedLink
-import inca.backend.virtual.ListElementsKey
+
+import inca.MetaElements.{NamedLink, NodeType}
+import inca.backend.indices.{InputKey, QueryScope, TFQuerySpecification}
+import inca.backend.virtual.tree.ParentKey
+import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
+import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
+import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.{Equality, ExportedParameter}
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables.TypeConstraint
-import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.Equality
-import inca.MetaElements.NodeType
+import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
+import org.eclipse.viatra.query.runtime.matchers.psystem.{PBody, PVariable}
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 class FindBugs_confusedInheritanceQuerySpecification extends TFQuerySpecification(FindBugs_confusedInheritanceQuerySpecification.GeneratedPQuery.INSTANCE) {
   override def instantiate(engine: ViatraQueryEngine): GenericPatternMatcher = {
     var matcher: GenericPatternMatcher = engine.getExistingMatcher(this)
@@ -52,7 +51,7 @@ object FindBugs_confusedInheritanceQuerySpecification {
         new Equality(body, var_trg, var_tmp)
         new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_class, var_trg0), new InputKey.LinkKey(NamedLink(NodeType("inca.analyzedLangs.ClassDeclaration"), "members")))
         new Equality(body, var_members, var_trg0)
-        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_members, var_trg1), ListElementsKey)
+        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_trg1, var_members), ParentKey)
         new Equality(body, var_member, var_trg1)
         new TypeConstraint(body, Tuples.flatTupleOf(var_member), new InputKey.NodeTypeKey(NodeType("inca.analyzedLangs.FieldDeclaration")))
         new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_member, var_trg2), new InputKey.LinkKey(NamedLink(NodeType("inca.analyzedLangs.FieldDeclaration"), "visibility")))

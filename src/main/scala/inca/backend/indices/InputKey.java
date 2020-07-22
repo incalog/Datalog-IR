@@ -1,9 +1,9 @@
 package inca.backend.indices;
 
-import org.eclipse.viatra.query.runtime.matchers.context.IInputKey;
-import inca.MetaElements.PrimitiveType;
 import inca.MetaElements.Link;
 import inca.MetaElements.LinkedType;
+import inca.MetaElements.PrimitiveType;
+import org.eclipse.viatra.query.runtime.matchers.context.IInputKey;
 
 public abstract class InputKey<T> implements IInputKey {
 

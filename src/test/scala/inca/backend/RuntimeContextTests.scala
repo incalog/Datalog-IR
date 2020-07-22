@@ -1,14 +1,15 @@
 package inca.backend
 
 import java.util
-import java.util.Collections
 
 import inca.MetaElements
-import inca.MetaElements.{ListFirstLink, ListNextLink, NodeType, PrimitiveType}
-import inca.analyzedLangs.{ClassDeclaration, ClassMember, FieldDeclaration, PrivateVisibility, PublicVisibility}
+import inca.MetaElements.{FirstLink, NextLink, NodeType, PrimitiveType}
+import inca.analyzedLangs._
 import inca.backend.indices.InputKey.{LinkKey, NodeTypeKey, PrimitiveKey}
 import inca.backend.indices.{Indices, TFRuntimeContext}
-import inca.backend.virtual.{ListElementsIndex, ListElementsKey, ListParentIndex, ParentIndex, ParentKey, VirtualIndex}
+import inca.backend.virtual.VirtualIndex
+import inca.backend.virtual.list.ListNextIndex
+import inca.backend.virtual.tree.{ParentIndex, ParentKey}
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, TupleMask, Tuples}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
@@ -121,9 +122,11 @@ class RuntimeContextTests extends AnyFunSuite {
   }
 
   test("VirtualLink parent") {
-    val virtualIndices = new java.util.HashMap[String, VirtualIndex]()
-    virtualIndices.put(ParentKey.getUniqueID, new ParentIndex())
-    val indices = new Indices(null, null, null, virtualIndices)
+    var virtualIndices = Seq[VirtualIndex]()
+    val nextIndex = new ListNextIndex
+    virtualIndices +:= nextIndex
+    virtualIndices +:= new ParentIndex(nextIndex)
+    val indices = new Indices(null, null, null, virtualIndices.asJava)
     val context = new TFRuntimeContext(indices, null)
 
     val changeset = Diffable.load(add)
@@ -143,9 +146,11 @@ class RuntimeContextTests extends AnyFunSuite {
   }
 
   test("firstlink and nextlink of list") {
-    val virtualIndices = new java.util.HashMap[String, VirtualIndex]()
-    virtualIndices.put(ParentKey.getUniqueID, new ListParentIndex())
-    val indices = new Indices(null, null, null, virtualIndices)
+    var virtualIndices = Seq[VirtualIndex]()
+    val nextIndex = new ListNextIndex
+    virtualIndices +:= nextIndex
+    virtualIndices +:= new ParentIndex(nextIndex)
+    val indices = new Indices(null, null, null, virtualIndices.asJava)
     val context = new TFRuntimeContext(indices, null)
 
     val classDeclType = NodeType(classOf[ClassDeclaration].getCanonicalName)
@@ -163,10 +168,10 @@ class RuntimeContextTests extends AnyFunSuite {
     context.enumerateTuples(new NodeTypeKey(MetaElements.ListType(classMemberType)), emptyMask, null).
       asScala should contain only t1(clazz.members.uri)
 
-    context.enumerateTuples(new LinkKey(ListFirstLink(MetaElements.ListType(classMemberType))), emptyMask, null).
+    context.enumerateTuples(new LinkKey(FirstLink(MetaElements.ListType(classMemberType))), emptyMask, null).
       asScala should contain only t2(clazz.members.uri, fieldDecl1.uri)
 
-    context.enumerateTuples(new LinkKey(ListNextLink()), emptyMask, null).
+    context.enumerateTuples(new LinkKey(NextLink), emptyMask, null).
       asScala should contain only t2(fieldDecl1.uri, fieldDecl2.uri)
 
     val fieldDecl3 = FieldDeclaration("baaz", PublicVisibility())
@@ -180,19 +185,21 @@ class RuntimeContextTests extends AnyFunSuite {
     context.enumerateTuples(new NodeTypeKey(MetaElements.ListType(classMemberType)), emptyMask, null).
       asScala should contain only t1(updatedclazz.members.uri)
 
-    context.enumerateTuples(new LinkKey(ListFirstLink(MetaElements.ListType(classMemberType))), emptyMask, null).
+    context.enumerateTuples(new LinkKey(FirstLink(MetaElements.ListType(classMemberType))), emptyMask, null).
       asScala should contain only t2(updatedclazz.members.uri, updatedclazz.members(0).uri)
 
-    context.enumerateTuples(new LinkKey(ListNextLink()), emptyMask, null).
+    context.enumerateTuples(new LinkKey(NextLink), emptyMask, null).
       asScala should contain allOf (t2(updatedclazz.members(0).uri, updatedclazz.members(1).uri), t2(updatedclazz.members(1).uri, updatedclazz.members(2).uri))
 
     indices.dispose()
   }
 
   test("firstlink and nextlink parent of list") {
-    val virtualIndices = new java.util.HashMap[String, VirtualIndex]()
-    virtualIndices.put(ParentKey.getUniqueID, new ListParentIndex())
-    val indices = new Indices(null, null, null, virtualIndices)
+    var virtualIndices = Seq[VirtualIndex]()
+    val nextIndex = new ListNextIndex
+    virtualIndices +:= nextIndex
+    virtualIndices +:= new ParentIndex(nextIndex)
+    val indices = new Indices(null, null, null, virtualIndices.asJava)
     val context = new TFRuntimeContext(indices, null)
 
     val classDeclType = NodeType(classOf[ClassDeclaration].getCanonicalName)
@@ -217,10 +224,10 @@ class RuntimeContextTests extends AnyFunSuite {
     context.enumerateTuples(new NodeTypeKey(MetaElements.ListType(classMemberType)), emptyMask, null).
       asScala should contain only t1(clazz.members.uri)
 
-    context.enumerateTuples(new LinkKey(ListFirstLink(MetaElements.ListType(classMemberType))), emptyMask, null).
+    context.enumerateTuples(new LinkKey(FirstLink(MetaElements.ListType(classMemberType))), emptyMask, null).
       asScala should contain only t2(clazz.members.uri, fieldDecl1.uri)
 
-    context.enumerateTuples(new LinkKey(ListNextLink()), emptyMask, null).
+    context.enumerateTuples(new LinkKey(NextLink), emptyMask, null).
       asScala should contain only t2(fieldDecl1.uri, fieldDecl2.uri)
 
     context.enumerateTuples(ParentKey, emptyMask, null).
@@ -237,10 +244,10 @@ class RuntimeContextTests extends AnyFunSuite {
     context.enumerateTuples(new NodeTypeKey(MetaElements.ListType(classMemberType)), emptyMask, null).
       asScala should contain only t1(updatedclazz.members.uri)
 
-    context.enumerateTuples(new LinkKey(ListFirstLink(MetaElements.ListType(classMemberType))), emptyMask, null).
+    context.enumerateTuples(new LinkKey(FirstLink(MetaElements.ListType(classMemberType))), emptyMask, null).
       asScala should contain only t2(updatedclazz.members.uri, updatedclazz.members(0).uri)
 
-    context.enumerateTuples(new LinkKey(ListNextLink()), emptyMask, null).
+    context.enumerateTuples(new LinkKey(NextLink), emptyMask, null).
       asScala should contain allOf (t2(updatedclazz.members(0).uri, updatedclazz.members(1).uri), t2(updatedclazz.members(1).uri, updatedclazz.members(2).uri))
 
     context.enumerateTuples(ParentKey, emptyMask, null).
@@ -250,9 +257,11 @@ class RuntimeContextTests extends AnyFunSuite {
   }
 
   test("virtual link list elements") {
-    val virtualIndices = new java.util.HashMap[String, VirtualIndex]()
-    virtualIndices.put(ListElementsKey.getUniqueID, new ListElementsIndex())
-    val indices = new Indices(null, null, null, virtualIndices)
+    var virtualIndices = Seq[VirtualIndex]()
+    val nextIndex = new ListNextIndex
+    virtualIndices +:= nextIndex
+    virtualIndices +:= new ParentIndex(nextIndex)
+    val indices = new Indices(null, null, null, virtualIndices.asJava)
     val context = new TFRuntimeContext(indices, null)
 
     val classDeclType = NodeType(classOf[ClassDeclaration].getCanonicalName)
@@ -271,16 +280,16 @@ class RuntimeContextTests extends AnyFunSuite {
     println("fielddecl2 " + clazz.members(1).uri)
     println("fielddecl2 vis " + clazz.members(1).asInstanceOf[FieldDeclaration].visibility.uri)
 
-    context.enumerateTuples(ListElementsKey, firstElementMask, t1(clazz.members.uri)).
-      asScala should contain allOf(t1(clazz.members(0).uri), t1(clazz.members(1).uri))
+    context.enumerateTuples(ParentKey, secondElementMask, t2(null, clazz.members.uri)).
+      asScala should contain allOf(t2(clazz.members(0).uri, clazz.members.uri), t2(clazz.members(1).uri, clazz.members.uri))
 
     val fieldDecl3 = FieldDeclaration("baaz", PublicVisibility())
     val clazz2 = ClassDeclaration("Foo", true, List(fieldDecl2, fieldDecl1, fieldDecl3))
     val (diffset, updatedclazz) = clazz.compareTo(clazz2)
     indices.processChangeset(diffset)
 
-    context.enumerateTuples(ListElementsKey, firstElementMask, t1(updatedclazz.members.uri)).
-      asScala should contain allOf(t1(updatedclazz.members(0).uri), t1(updatedclazz.members(1).uri), t1(updatedclazz.members(2).uri))
+    context.enumerateTuples(ParentKey, secondElementMask, t2(null, updatedclazz.members.uri)).
+      asScala should contain allOf(t2(updatedclazz.members(0).uri, updatedclazz.members.uri), t2(updatedclazz.members(1).uri, updatedclazz.members.uri), t2(updatedclazz.members(2).uri, updatedclazz.members.uri))
 
     indices.dispose()
   }
@@ -294,5 +303,6 @@ class RuntimeContextTests extends AnyFunSuite {
   def emptyMask: TupleMask = TupleMask.identity(0)
 
   def firstElementMask: TupleMask = TupleMask.selectSingle(0, 2)
+  def secondElementMask: TupleMask = TupleMask.selectSingle(1, 2)
 
 }

@@ -3,22 +3,20 @@ package inca.backend.indices;
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
 import inca.MetaElements;
+import inca.MetaElements.Link;
+import inca.MetaElements.LinkedType;
+import inca.MetaElements.NodeType;
+import inca.MetaElements.PrimitiveType;
+import inca.backend.listeners.IDataTypeInstanceListener;
+import inca.backend.listeners.IInstanceListener;
+import inca.backend.listeners.INodeLinkInstanceListener;
+import inca.backend.listeners.INodeTypeInstanceListener;
 import inca.backend.virtual.VirtualIndex;
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine;
 import org.eclipse.viatra.query.runtime.api.scope.IBaseIndex;
 import org.eclipse.viatra.query.runtime.api.scope.IIndexingErrorListener;
 import org.eclipse.viatra.query.runtime.api.scope.IInstanceObserver;
 import org.eclipse.viatra.query.runtime.api.scope.ViatraBaseIndexChangeListener;
-import org.eclipse.viatra.query.runtime.matchers.context.IInputKey;
-import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple;
-import inca.backend.listeners.IDataTypeInstanceListener;
-import inca.backend.listeners.IInstanceListener;
-import inca.backend.listeners.INodeLinkInstanceListener;
-import inca.backend.listeners.INodeTypeInstanceListener;
-import inca.MetaElements.PrimitiveType;
-import inca.MetaElements.Link;
-import inca.MetaElements.NodeType;
-import inca.MetaElements.LinkedType;
 import scala.Tuple2;
 import scala.collection.Iterator;
 import truechange.*;
@@ -26,6 +24,7 @@ import truechange.*;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 public class Indices implements IBaseIndex {
 
@@ -52,10 +51,10 @@ public class Indices implements IBaseIndex {
     private boolean isDirty;
 
     public Indices() {
-        this(null, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
+        this(null, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList());
     }
 
-    public Indices(final AdvancedViatraQueryEngine engine, final Map<String, Set<String>> subtypeMap, final Map<String, Set<String>> supertypeMap, final Map<String, VirtualIndex> virtualIndices) {
+    public Indices(final AdvancedViatraQueryEngine engine, final Map<String, Set<String>> subtypeMap, final Map<String, Set<String>> supertypeMap, final List<VirtualIndex> virtualIndices) {
         this.linkedTypeInstances = new HashMap<>();
         this.linkedTypeInstancesListener = new HashMap<>();
         this.primitiveTypeInstances = new HashMap<>();
@@ -64,7 +63,7 @@ public class Indices implements IBaseIndex {
         this.linkInstancesReversed = new HashMap<>();
         this.linkInstanceListeners = new HashMap<>();
         this.changeListeners = new HashSet<>();
-        this.virtualIndices = virtualIndices;
+        this.virtualIndices = virtualIndices.stream().collect(Collectors.toMap(ix -> ix.virtualKey().getUniqueID(), ix -> ix));
         if (subtypeMap != null) {
             this.subtypeMap.putAll(subtypeMap);
         }
@@ -170,9 +169,9 @@ public class Indices implements IBaseIndex {
            return node.apply(namedLink.name());
        } else if (link instanceof truechange.ListFirstLink) {
            truechange.ListFirstLink firstLink = (truechange.ListFirstLink)  link;
-           return new MetaElements.ListFirstLink((MetaElements.ListType) node);
+           return new MetaElements.FirstLink((MetaElements.ListType) node);
        } else if (link instanceof truechange.ListNextLink) {
-           return new MetaElements.ListNextLink();
+           return MetaElements.NextLink$.MODULE$;
        }
        return null;
     }
@@ -210,17 +209,19 @@ public class Indices implements IBaseIndex {
             throw new RuntimeException(e);
         }
 
-        final boolean[] virtualIsDirty = {false};
-        virtualIndices.values().forEach((vIndex) -> {
-            virtualIsDirty[0] |= vIndex.isDirty();
-        });
-
-        notifyBaseIndexChangeListeners(this.isDirty || virtualIsDirty[0]);
+		notifyBaseIndexChangeListeners(this.isDirty || hasDirtyVirtualIndex());
 
         return result;
     }
 
-    public void insertLinkedTypeInstance(final LinkedType type, final Object instance) {
+	private boolean hasDirtyVirtualIndex() {
+    	for (VirtualIndex vIndex : virtualIndices.values())
+    		if (vIndex.isDirty())
+				return true;
+		return false;
+	}
+
+	public void insertLinkedTypeInstance(final LinkedType type, final Object instance) {
         this.linkedTypeInstances.compute(type, (k, v) -> {
             if (v == null) {
                 v = new HashSet<>();

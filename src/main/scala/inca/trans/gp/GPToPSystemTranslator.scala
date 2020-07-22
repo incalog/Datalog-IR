@@ -1,9 +1,7 @@
 package inca.trans.gp
 
-import inca.MetaElements.{Link, ListElementsLink, NamedLink, NodeType, ParentLink, PrimitiveType}
-import inca.backend.indices.InputKey
+import inca.MetaElements.{Type => _, _}
 import inca.backend.indices.InputKey.{LinkKey, NodeTypeKey, PrimitiveKey}
-import inca.backend.virtual.ListElementsKey
 import inca.lang.GraphPatternLang
 import inca.lang.GraphPatternLang._
 import inca.util.Gensym
@@ -23,6 +21,7 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
   val tLinkedTypeKey = Type.Select(Term.Name("InputKey"), Type.Name(classOf[NodeTypeKey].getSimpleName))
   val tLinkKey = Type.Select(Term.Name("InputKey"), Type.Name(classOf[LinkKey].getSimpleName))
   val tPrimitiveKey = Type.Select(Term.Name("InputKey"), Type.Name(classOf[PrimitiveKey].getSimpleName))
+
   // TODO transform module
   type Analysis = Seq[Object]
   val modules = analysis.collect { case m: Module => m }
@@ -203,20 +202,32 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
             body,
             Tuples.flatTupleOf(${Term.Name(s"var_${v.name}")}),
             new $tLinkedTypeKey($tNodeType(${genType(typ)})))""")
-    case Path(src, trg, link, typ) =>
-      Seq(q"""new TypeConstraint(
-            body,
-            Tuples.staticArityFlatTupleOf(..${List(transValue(src), transValue(trg))}),
-            ${genLinkKey(link)})
-         """)
-    // TODO
-    case Check(code) => Seq()
+
+    case Path(src, trg, link, typ) => link match {
+      case NamedLink(typ, field) =>
+        val key = q"new $tLinkKey($tNamedLink($tNodeType(${typ.name}), ${field}))"
+        Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${transValue(src)}, ${transValue(trg)}), $key)")
+      case DefinedNodeLink(typ, field) =>
+        ???
+      case ParentLink =>
+        Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${transValue(src)}, ${transValue(trg)}), ParentKey)")
+      case NextLink =>
+        Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${transValue(src)}, ${transValue(trg)}), ListNextKey)")
+      case PreviousLink =>
+        Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${transValue(trg)}, ${transValue(src)}), ListNextKey)")
+      case FirstLink(typ) =>
+        ???
+      case ElementsLink(typ) =>
+        Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${transValue(trg)}, ${transValue(src)}), ParentKey)")
+    }
+
+    case Check(code) => dialects.Sbt1(code).parse[Source].get.stats
   }
 
   def genLinkKey(link: Link): Term = link match {
     case ParentLink =>
       q"ParentKey"
-    case ListElementsLink() =>
+    case ElementsLink(_) =>
       q"ListElementsKey"
     case NamedLink(nodeType, fld)  =>
       q"new $tLinkKey($tNamedLink($tNodeType(${nodeType.name}), ${fld}))"
