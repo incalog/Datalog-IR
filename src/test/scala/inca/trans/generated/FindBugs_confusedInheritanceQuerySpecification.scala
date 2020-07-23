@@ -1,7 +1,7 @@
 package inca.trans.generated
 import java.util
 
-import inca.backend.indices.{QueryScope, TFQuerySpecification}
+import inca.runtime.indices.{QueryScope, TFQuerySpecification}
 import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
 import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.{ExportedParameter, _}
@@ -25,7 +25,7 @@ object FindBugs_confusedInheritanceQuerySpecification {
   }
   private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
     val INSTANCE: GeneratedPQuery.type = this
-    private val param_class: PParameter = new PParameter("class", inca.MetaElements.NodeType("inca.analyzedLangs.ClassDeclaration").toString, new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.ClassDeclaration")))
+    private val param_class: PParameter = new PParameter("class", inca.runtime.MetaElements.NodeType("inca.analyzedLangs.ClassDeclaration").toString, new inca.runtime.indices.InputKey.NodeTypeKey(inca.runtime.MetaElements.NodeType("inca.analyzedLangs.ClassDeclaration")))
     {}
     override protected def doGetContainedBodies(): util.Set[PBody] = {
       val bodies: util.Set[PBody] = util.Set.of {
@@ -43,17 +43,17 @@ object FindBugs_confusedInheritanceQuerySpecification {
         val var_member: PVariable = body.getOrCreateVariableByName("member")
         val var_trg2: PVariable = body.getOrCreateVariableByName("trg2")
         val lit_boolean1231 = body.newConstantVariable(true)
-        new TypeConstraint(body, Tuples.flatTupleOf(var_class), new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.ClassDeclaration")))
-        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_class, var_trg), new inca.backend.indices.InputKey.LinkKey(inca.MetaElements.NamedLink(inca.MetaElements.NodeType("inca.analyzedLangs.ClassDeclaration"), "isFinal")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_class), new inca.runtime.indices.InputKey.NodeTypeKey(inca.runtime.MetaElements.NodeType("inca.analyzedLangs.ClassDeclaration")))
+        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_class, var_trg), new inca.runtime.indices.InputKey.LinkKey(inca.runtime.MetaElements.NamedLink(inca.runtime.MetaElements.NodeType("inca.analyzedLangs.ClassDeclaration"), "isFinal")))
         new Equality(body, var_tmp, lit_boolean1231)
         new Equality(body, var_trg, var_tmp)
-        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_class, var_trg0), new inca.backend.indices.InputKey.LinkKey(inca.MetaElements.NamedLink(inca.MetaElements.NodeType("inca.analyzedLangs.ClassDeclaration"), "members")))
+        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_class, var_trg0), new inca.runtime.indices.InputKey.LinkKey(inca.runtime.MetaElements.NamedLink(inca.runtime.MetaElements.NodeType("inca.analyzedLangs.ClassDeclaration"), "members")))
         new Equality(body, var_members, var_trg0)
-        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_trg1, var_members), inca.backend.virtual.tree.ParentKey)
+        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_trg1, var_members), inca.runtime.virtual.tree.ParentKey)
         new Equality(body, var_member, var_trg1)
-        new TypeConstraint(body, Tuples.flatTupleOf(var_member), new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.FieldDeclaration")))
-        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_member, var_trg2), new inca.backend.indices.InputKey.LinkKey(inca.MetaElements.NamedLink(inca.MetaElements.NodeType("inca.analyzedLangs.FieldDeclaration"), "visibility")))
-        new TypeConstraint(body, Tuples.flatTupleOf(var_trg2), new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.ProtectedVisibility")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_member), new inca.runtime.indices.InputKey.NodeTypeKey(inca.runtime.MetaElements.NodeType("inca.analyzedLangs.FieldDeclaration")))
+        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_member, var_trg2), new inca.runtime.indices.InputKey.LinkKey(inca.runtime.MetaElements.NamedLink(inca.runtime.MetaElements.NodeType("inca.analyzedLangs.FieldDeclaration"), "visibility")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_trg2), new inca.runtime.indices.InputKey.NodeTypeKey(inca.runtime.MetaElements.NodeType("inca.analyzedLangs.ProtectedVisibility")))
         body
       }
       bodies

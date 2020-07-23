@@ -1,7 +1,7 @@
 package inca.trans.generated
 import java.util
 
-import inca.backend.indices.{QueryScope, TFQuerySpecification}
+import inca.runtime.indices.{QueryScope, TFQuerySpecification}
 import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
 import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.{ExportedParameter, _}
@@ -26,7 +26,7 @@ object Test_parentQuerySpecification {
   private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
     val INSTANCE: GeneratedPQuery.type = this
     private val param_in: PParameter = new PParameter("in")
-    private val param_out: PParameter = new PParameter("out", inca.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp").toString, new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
+    private val param_out: PParameter = new PParameter("out", inca.runtime.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp").toString, new inca.runtime.indices.InputKey.NodeTypeKey(inca.runtime.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
     {}
     override protected def doGetContainedBodies(): util.Set[PBody] = {
       val bodies: util.Set[PBody] = util.Set.of {
@@ -40,10 +40,10 @@ object Test_parentQuerySpecification {
         body.setSymbolicParameters(exportedParams)
         val var_trg: PVariable = body.getOrCreateVariableByName("trg")
         val var_p: PVariable = body.getOrCreateVariableByName("p")
-        new TypeConstraint(body, Tuples.flatTupleOf(var_out), new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
-        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_in, var_trg), inca.backend.virtual.tree.ParentKey)
+        new TypeConstraint(body, Tuples.flatTupleOf(var_out), new inca.runtime.indices.InputKey.NodeTypeKey(inca.runtime.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
+        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_in, var_trg), inca.runtime.virtual.tree.ParentKey)
         new Equality(body, var_p, var_trg)
-        new TypeConstraint(body, Tuples.flatTupleOf(var_p), new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_p), new inca.runtime.indices.InputKey.NodeTypeKey(inca.runtime.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
         new Equality(body, var_p, var_out)
         body
       }

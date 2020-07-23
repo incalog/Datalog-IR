@@ -1,7 +1,7 @@
 package inca.trans
 
 import inca.analyzedLangs.expLang._
-import inca.lang.FunLang.{Exp => _, _}
+import inca.lang.fun.Fun.{Exp => _, _}
 
 object ExpLangTestAnalyses {
   private val addType: TNode = TNode(classOf[Add].getCanonicalName)

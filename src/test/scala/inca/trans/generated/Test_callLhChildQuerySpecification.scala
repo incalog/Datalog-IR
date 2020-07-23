@@ -1,7 +1,7 @@
 package inca.trans.generated
 import java.util
 
-import inca.backend.indices.{QueryScope, TFQuerySpecification}
+import inca.runtime.indices.{QueryScope, TFQuerySpecification}
 import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
 import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.{ExportedParameter, _}
@@ -25,8 +25,8 @@ object Test_callLhChildQuerySpecification {
   }
   private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
     val INSTANCE: GeneratedPQuery.type = this
-    private val param_add: PParameter = new PParameter("add", inca.MetaElements.NodeType("inca.analyzedLangs.expLang.Add").toString, new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.expLang.Add")))
-    private val param_out: PParameter = new PParameter("out", inca.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp").toString, new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
+    private val param_add: PParameter = new PParameter("add", inca.runtime.MetaElements.NodeType("inca.analyzedLangs.expLang.Add").toString, new inca.runtime.indices.InputKey.NodeTypeKey(inca.runtime.MetaElements.NodeType("inca.analyzedLangs.expLang.Add")))
+    private val param_out: PParameter = new PParameter("out", inca.runtime.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp").toString, new inca.runtime.indices.InputKey.NodeTypeKey(inca.runtime.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
     {}
     override protected def doGetContainedBodies(): util.Set[PBody] = {
       val bodies: util.Set[PBody] = util.Set.of {
@@ -40,8 +40,8 @@ object Test_callLhChildQuerySpecification {
         body.setSymbolicParameters(exportedParams)
         val var_arg: PVariable = body.getOrCreateVariableByName("arg")
         val var_lhschild: PVariable = body.getOrCreateVariableByName("lhschild")
-        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.expLang.Add")))
-        new TypeConstraint(body, Tuples.flatTupleOf(var_out), new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new inca.runtime.indices.InputKey.NodeTypeKey(inca.runtime.MetaElements.NodeType("inca.analyzedLangs.expLang.Add")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_out), new inca.runtime.indices.InputKey.NodeTypeKey(inca.runtime.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
         new PositivePatternCall(body, Tuples.flatTupleOf(var_add, var_arg), Test_lhChildQuerySpecification.instance().getInternalQueryRepresentation())
         new Equality(body, var_lhschild, var_arg)
         new Equality(body, var_lhschild, var_out)

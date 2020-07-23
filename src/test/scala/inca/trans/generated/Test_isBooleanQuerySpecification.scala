@@ -1,7 +1,7 @@
 package inca.trans.generated
 import java.util
 
-import inca.backend.indices.{QueryScope, TFQuerySpecification}
+import inca.runtime.indices.{QueryScope, TFQuerySpecification}
 import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
 import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.{ExportedParameter, _}
@@ -25,8 +25,8 @@ object Test_isBooleanQuerySpecification {
   }
   private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
     val INSTANCE: GeneratedPQuery.type = this
-    private val param_in: PParameter = new PParameter("in", inca.MetaElements.NodeType("inca.analyzedLangs.expLang.BooleanLit").toString, new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.expLang.BooleanLit")))
-    private val param_out: PParameter = new PParameter("out", inca.MetaElements.PrimitiveType("java.lang.Boolean").toString, new inca.backend.indices.InputKey.PrimitiveKey(inca.MetaElements.PrimitiveType("java.lang.Boolean")))
+    private val param_in: PParameter = new PParameter("in", inca.runtime.MetaElements.NodeType("inca.analyzedLangs.expLang.BooleanLit").toString, new inca.runtime.indices.InputKey.NodeTypeKey(inca.runtime.MetaElements.NodeType("inca.analyzedLangs.expLang.BooleanLit")))
+    private val param_out: PParameter = new PParameter("out", inca.runtime.MetaElements.PrimitiveType("java.lang.Boolean").toString, new inca.runtime.indices.InputKey.PrimitiveKey(inca.runtime.MetaElements.PrimitiveType("java.lang.Boolean")))
     {}
     override protected def doGetContainedBodies(): util.Set[PBody] = {
       val bodies: util.Set[PBody] = util.Set.of {
@@ -40,7 +40,7 @@ object Test_isBooleanQuerySpecification {
         body.setSymbolicParameters(exportedParams)
         val var_tmp: PVariable = body.getOrCreateVariableByName("tmp")
         val lit_boolean1231 = body.newConstantVariable(true)
-        new TypeConstraint(body, Tuples.flatTupleOf(var_in), new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.expLang.BooleanLit")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_in), new inca.runtime.indices.InputKey.NodeTypeKey(inca.runtime.MetaElements.NodeType("inca.analyzedLangs.expLang.BooleanLit")))
         new Equality(body, var_tmp, lit_boolean1231)
         new Equality(body, var_tmp, var_out)
         body

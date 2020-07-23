@@ -1,9 +1,9 @@
 package inca.findbugs
 
 import inca.analyzedLangs._
-import inca.backend.indices.LanguageMetaInfo
-import inca.lang.FunLang._
-import inca.trans.fun.FunToGPTranslator
+import inca.lang.fun.CompileToGP
+import inca.lang.fun.Fun._
+import inca.runtime.indices.LanguageMetaInfo
 //import inca.trans.generated.FindBugs_confusedInheritanceQuerySpecification
 import inca.util.AnalysisWriter
 import org.scalatest.funsuite.AnyFunSuite
@@ -51,7 +51,7 @@ class FindBugsTests extends AnyFunSuite {
             Assert(InstanceOf(PathAccess(Var("member"), Seq(fieldDeclType("visibility"))), protectedVisType))
           ))))
     val module = Module("FindBugs", Seq(), Seq(confusedInheritance))
-    val compiledModule = FunToGPTranslator.transformModule(module)
+    val compiledModule = CompileToGP.transformModule(module)
     AnalysisWriter.writeModule(compiledModule)
     val clazz = ClassDeclaration("Foo", true, List(FieldDeclaration("baz", PublicVisibility()), FieldDeclaration("bar", ProtectedVisibility())))
 

@@ -2,14 +2,14 @@ package inca.util
 
 import java.io.{File, PrintWriter}
 
-import inca.lang.GraphPatternLang._
-import inca.trans.gp.GPToPSystemTranslator
+import inca.lang.gp.CompileToPSystem
+import inca.lang.gp.GP._
 
 import scala.meta.{Defn, Source}
 
 object AnalysisWriter {
   def writeModule(module: Module): Unit = {
-    val trans = new GPToPSystemTranslator(Seq(module))
+    val trans = new CompileToPSystem(Seq(module))
     module.pats.foreach { pat =>
       val source = trans.transGraphPattern(pat)
       val name = getAnalysisName(source)
