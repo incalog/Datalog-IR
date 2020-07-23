@@ -1,12 +1,11 @@
 package inca.trans.gp
 
-import inca.MetaElements.{NodeType, ParentLink}
 import inca.analyzedLangs.expLang._
 import inca.backend.indices.{EnginePool, LanguageMetaInfo, QueryScope, TFQuerySpecification}
 import inca.backend.virtual._
 import inca.backend.virtual.list.ListNextIndex
 import inca.backend.virtual.tree.ParentIndex
-import inca.lang.FunLang.{Alternative, AnnoParam, Assert, Assignment, InstanceOf, Module, Param, PathAccess, PatternFunction, Return, Var}
+import inca.lang.FunLang.{AnnoParam, Assert, Assignment, Body, InstanceOf, Module, Param, ParentLink, PathAccess, PatternFunction, Return, TNode, Var}
 import inca.trans.ExpLangTestAnalyses._
 import inca.trans.fun.FunToGPTranslator
 import inca.trans.generated._
@@ -164,16 +163,16 @@ class GPToPSystemTranslatorTest extends AnyFunSuite {
     val add = Add(num1, num2)
     val num3 = IntegerLit(3)
     val mul = Mult(num3, add)
-    val expType = NodeType(classOf[Exp].getCanonicalName)
+    val expType = TNode(classOf[Exp].getCanonicalName)
     val parentFun = PatternFunction(
       None,
       "parent",
       Seq(Param("in", None)),
       Seq(AnnoParam(None, expType)),
       Seq(
-        Alternative(
+        Body(
           Seq(
-            Assignment(Seq("p"), PathAccess(Var("in"), Seq(ParentLink))),
+            Assignment(Seq("p"), PathAccess(Var("in"), ParentLink)),
             Assert(InstanceOf(Var("p"), expType)),
             Return(Var("p"))))))
     val module = Module("Test", Seq(), Seq(parentFun))

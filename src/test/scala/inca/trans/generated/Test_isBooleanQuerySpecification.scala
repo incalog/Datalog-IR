@@ -1,16 +1,14 @@
 package inca.trans.generated
-import org.eclipse.viatra.query.runtime.api.{ GenericPatternMatcher, ViatraQueryEngine }
-import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
-import org.eclipse.viatra.query.runtime.matchers.psystem.{ PBody, PVariable }
-import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{ BasePQuery, PParameter, PVisibility }
-import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
-import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.ExportedParameter
 import java.util
-import inca.backend.indices.{ InputKey, QueryScope, TFQuerySpecification }
-import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables.TypeConstraint
-import inca.MetaElements.NodeType
-import inca.MetaElements.PrimitiveType
-import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.Equality
+
+import inca.backend.indices.{QueryScope, TFQuerySpecification}
+import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
+import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
+import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.{ExportedParameter, _}
+import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables._
+import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
+import org.eclipse.viatra.query.runtime.matchers.psystem.{PBody, PVariable}
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 class Test_isBooleanQuerySpecification extends TFQuerySpecification(Test_isBooleanQuerySpecification.GeneratedPQuery.INSTANCE) {
   override def instantiate(engine: ViatraQueryEngine): GenericPatternMatcher = {
     var matcher: GenericPatternMatcher = engine.getExistingMatcher(this)
@@ -27,8 +25,8 @@ object Test_isBooleanQuerySpecification {
   }
   private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
     val INSTANCE: GeneratedPQuery.type = this
-    private val param_in: PParameter = new PParameter("in", "inca.analyzedLangs.expLang.BooleanLit", new InputKey.NodeTypeKey(NodeType("inca.analyzedLangs.expLang.BooleanLit")))
-    private val param_out: PParameter = new PParameter("out", "java.lang.Boolean", new InputKey.PrimitiveKey(PrimitiveType("java.lang.Boolean")))
+    private val param_in: PParameter = new PParameter("in", inca.MetaElements.NodeType("inca.analyzedLangs.expLang.BooleanLit").toString, new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.expLang.BooleanLit")))
+    private val param_out: PParameter = new PParameter("out", inca.MetaElements.PrimitiveType("java.lang.Boolean").toString, new inca.backend.indices.InputKey.PrimitiveKey(inca.MetaElements.PrimitiveType("java.lang.Boolean")))
     {}
     override protected def doGetContainedBodies(): util.Set[PBody] = {
       val bodies: util.Set[PBody] = util.Set.of {
@@ -42,7 +40,7 @@ object Test_isBooleanQuerySpecification {
         body.setSymbolicParameters(exportedParams)
         val var_tmp: PVariable = body.getOrCreateVariableByName("tmp")
         val lit_boolean1231 = body.newConstantVariable(true)
-        new TypeConstraint(body, Tuples.flatTupleOf(var_in), new InputKey.NodeTypeKey(NodeType("inca.analyzedLangs.expLang.BooleanLit")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_in), new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.expLang.BooleanLit")))
         new Equality(body, var_tmp, lit_boolean1231)
         new Equality(body, var_tmp, var_out)
         body

@@ -1,6 +1,6 @@
 package inca.trans.fun
 
-import inca.lang.FunLang.{Alternative, Assert, Assignment, Call, Cond, Constant, Def, Eq, Exp, InstanceOf, Neq, NotInstanceOf, PathAccess, PatternFunction, Return, Statement, Tuple, Undef, Var}
+import inca.lang.FunLang._
 
 object FunVars {
 
@@ -10,7 +10,7 @@ object FunVars {
     paramStrings ++ outParamStrings ++ fun.bodies.flatMap(transAlternative)
   }
 
-  def transAlternative(alt: Alternative): Seq[String] = alt.stmts.flatMap(transStatement)
+  def transAlternative(alt: Body): Seq[String] = alt.stmts.flatMap(transStatement)
 
   def transStatement(stmt: Statement): Seq[String] = stmt match {
     case Assignment(names, exp) => names ++ transExp(exp)
@@ -22,7 +22,7 @@ object FunVars {
     case Var(name) => Seq(name)
     case Constant(lit) => Seq()
     case PathAccess(exp, path) => transExp(exp)
-    case Call(call, count) => Seq(call.name) ++ call.args.flatMap(transExp)
+    case Call(name, args, transitive, count) => name +: args.flatMap(transExp)
     case Tuple(exps) => exps.flatMap(transExp)
   }
 

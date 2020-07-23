@@ -27,7 +27,7 @@ object MetaElements {
   }
 
   case class ListType(contained: LinkedType) extends LinkedType {
-    val name: String = s"List[${contained.name}"
+    val name: String = s"List[${contained.name}]"
 
     def apply(field: String): Link = field match {
       case "parent" => ParentLink

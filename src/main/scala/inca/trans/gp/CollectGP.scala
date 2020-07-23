@@ -12,24 +12,24 @@ object CollectGPLits extends CollectGP[Literal] {
 
 trait CollectGP[R] {
 
-  def apply(pat: GraphPattern): Seq[R] = {
+  def apply(pat: Rule): Seq[R] = {
     val paramsRes = pat.params.flatMap(transParam)
     paramsRes ++ pat.bodies.flatMap(transAlternative)
   }
 
   def transParam(param: Param): Seq[R] = Seq()
 
-  def transAlternative(alt: Alternative): Seq[R] = alt.constraints.flatMap(transConstraint)
+  def transAlternative(alt: Body): Seq[R] = alt.constraints.flatMap(transConstraint)
 
-  def transConstraint(const: Constraint): Seq[R] = const match {
-    case Composition(call, neg) => call.args.flatMap(transValue)
+  def transConstraint(const: Atom): Seq[R] = const match {
+    case Call(_, args, _, _) => args.flatMap(transValue)
     case Compare(comp, lhs, rhs) => transValue(lhs) ++ transValue(rhs)
-    case Concept(v, typ) => transValue(v)
-    case Path(src, trg, link, typ) => transValue(src) ++ transValue(trg)
-    case Check(code) => transCode(code)
+    case HasType(v, typ) => transValue(v)
+    case Path(src, trg, link) => transValue(src) ++ transValue(trg)
+    case Native(code) => transCode(code)
   }
 
-  def transValue(v: Value): Seq[R] = v match {
+  def transValue(v: Term): Seq[R] = v match {
     case vari@Var(name) => transVar(vari)
     case Constant(lit) => transLit(lit)
   }

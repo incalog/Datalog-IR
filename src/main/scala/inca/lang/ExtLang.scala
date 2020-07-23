@@ -4,9 +4,9 @@ import inca.MetaElements.Link
 import inca.lang.FunLang._
 
 object ExtLang {
-  case class Cast(src: Exp, typ: Type) extends Exp
+  case class Cast(src: Exp, targetTyp: TypeAnno) extends Exp
 
-  case class Switch(alts: Seq[Alternative]) extends Statement
+  case class Switch(alts: Seq[Body]) extends Statement
   case class StatementList(stmts: Seq[Statement]) extends Statement
 
   // if
@@ -21,7 +21,7 @@ object ExtLang {
 
   trait Pattern
 
-  case class NodePattern(c: TType, bindings: Seq[PatternBinding]) extends Pattern
+  case class NodePattern(c: TNode, bindings: Seq[PatternBinding]) extends Pattern
   case class PatternBinding(pattern: Pattern, link: Link)
 
   case class VarPattern(name: Name) extends Pattern

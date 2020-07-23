@@ -1,13 +1,11 @@
 package inca.trans.generated
 import java.util
 
-import inca.MetaElements.NodeType
-import inca.backend.indices.{InputKey, QueryScope, TFQuerySpecification}
-import inca.backend.virtual.tree.ParentKey
+import inca.backend.indices.{QueryScope, TFQuerySpecification}
 import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
 import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
-import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.{Equality, ExportedParameter}
-import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables.TypeConstraint
+import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.{ExportedParameter, _}
+import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables._
 import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
 import org.eclipse.viatra.query.runtime.matchers.psystem.{PBody, PVariable}
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
@@ -28,7 +26,7 @@ object Test_parentQuerySpecification {
   private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
     val INSTANCE: GeneratedPQuery.type = this
     private val param_in: PParameter = new PParameter("in")
-    private val param_out: PParameter = new PParameter("out", "inca.analyzedLangs.expLang.Exp", new InputKey.NodeTypeKey(NodeType("inca.analyzedLangs.expLang.Exp")))
+    private val param_out: PParameter = new PParameter("out", inca.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp").toString, new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
     {}
     override protected def doGetContainedBodies(): util.Set[PBody] = {
       val bodies: util.Set[PBody] = util.Set.of {
@@ -42,10 +40,10 @@ object Test_parentQuerySpecification {
         body.setSymbolicParameters(exportedParams)
         val var_trg: PVariable = body.getOrCreateVariableByName("trg")
         val var_p: PVariable = body.getOrCreateVariableByName("p")
-        new TypeConstraint(body, Tuples.flatTupleOf(var_out), new InputKey.NodeTypeKey(NodeType("inca.analyzedLangs.expLang.Exp")))
-        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_in, var_trg), ParentKey)
+        new TypeConstraint(body, Tuples.flatTupleOf(var_out), new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
+        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_in, var_trg), inca.backend.virtual.tree.ParentKey)
         new Equality(body, var_p, var_trg)
-        new TypeConstraint(body, Tuples.flatTupleOf(var_p), new InputKey.NodeTypeKey(NodeType("inca.analyzedLangs.expLang.Exp")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_p), new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
         new Equality(body, var_p, var_out)
         body
       }

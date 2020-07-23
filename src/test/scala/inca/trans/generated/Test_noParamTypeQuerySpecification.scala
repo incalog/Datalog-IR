@@ -1,14 +1,14 @@
 package inca.trans.generated
-import org.eclipse.viatra.query.runtime.api.{ GenericPatternMatcher, ViatraQueryEngine }
-import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
-import org.eclipse.viatra.query.runtime.matchers.psystem.{ PBody, PVariable }
-import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{ BasePQuery, PParameter, PVisibility }
-import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
-import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.ExportedParameter
 import java.util
-import inca.backend.indices.{ InputKey, QueryScope, TFQuerySpecification }
-import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables.TypeConstraint
-import inca.MetaElements.NodeType
+
+import inca.backend.indices.{QueryScope, TFQuerySpecification}
+import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
+import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
+import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.ExportedParameter
+import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables._
+import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
+import org.eclipse.viatra.query.runtime.matchers.psystem.{PBody, PVariable}
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 class Test_noParamTypeQuerySpecification extends TFQuerySpecification(Test_noParamTypeQuerySpecification.GeneratedPQuery.INSTANCE) {
   override def instantiate(engine: ViatraQueryEngine): GenericPatternMatcher = {
     var matcher: GenericPatternMatcher = engine.getExistingMatcher(this)
@@ -35,7 +35,7 @@ object Test_noParamTypeQuerySpecification {
         val exportedParams = new util.ArrayList[ExportedParameter]()
         exportedParams.add(new ExportedParameter(body, var_add, param_add))
         body.setSymbolicParameters(exportedParams)
-        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new InputKey.NodeTypeKey(NodeType("inca.analyzedLangs.expLang.Add")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new inca.backend.indices.InputKey.NodeTypeKey(inca.MetaElements.NodeType("inca.analyzedLangs.expLang.Add")))
         body
       }
       bodies

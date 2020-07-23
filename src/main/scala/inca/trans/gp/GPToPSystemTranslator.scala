@@ -1,10 +1,13 @@
 package inca.trans.gp
 
-import inca.MetaElements.{Type => _, _}
+import inca.MetaElements.{ListType, NamedLink, NodeType, PrimitiveType}
 import inca.backend.indices.InputKey.{LinkKey, NodeTypeKey, PrimitiveKey}
-import inca.lang.GraphPatternLang
+import inca.backend.virtual.list.ListNextKey
+import inca.backend.virtual.tree.ParentKey
 import inca.lang.GraphPatternLang._
+import inca.lang.{GraphPatternLang => GP}
 import inca.util.Gensym
+import inca.util.Meta._
 
 import scala.meta._
 
@@ -13,14 +16,18 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
   val VARPREFIX = "var_"
   val LITPREFIX = "lit_"
 
-  val tNodeType = Term.Name(classOf[NodeType].getSimpleName)
-  val tPrimitiveType = Term.Name(classOf[PrimitiveType].getSimpleName)
-  val tNamedLink = Term.Name(classOf[NamedLink].getSimpleName)
-  val tParentLink = Term.Name("ParentLink")
+  val tyNodeTypeKey = typeOf[NodeTypeKey]
+  val tyPrimitiveKey = typeOf[PrimitiveKey]
+  val tyLinkKey = typeOf[LinkKey]
 
-  val tLinkedTypeKey = Type.Select(Term.Name("InputKey"), Type.Name(classOf[NodeTypeKey].getSimpleName))
-  val tLinkKey = Type.Select(Term.Name("InputKey"), Type.Name(classOf[LinkKey].getSimpleName))
-  val tPrimitiveKey = Type.Select(Term.Name("InputKey"), Type.Name(classOf[PrimitiveKey].getSimpleName))
+  val oParentKey = objectOf(ParentKey)
+  val oNextKey = objectOf(ListNextKey)
+
+  val tNodeType = symbolOf[NodeType]
+  val tListType = symbolOf[ListType]
+  val tPrimitiveType = symbolOf[PrimitiveType]
+
+  val tNamedLink = symbolOf[NamedLink]
 
   // TODO transform module
   type Analysis = Seq[Object]
@@ -36,7 +43,7 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
     module.pats.map(transGraphPattern)
   }
 
-  def transGraphPattern(pat: GraphPattern): Source = {
+  def transGraphPattern(pat: Rule): Source = {
     val fileNameType = Type.Name(genQueryClassName(pat.name))
     val fileNameTerm = Term.Name(genQueryClassName(pat.name))
     val fileNameLit = Lit.String(genQueryClassName(pat.name))
@@ -56,7 +63,22 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
     source"""
       package inca.trans.generated
 
-      ..${DeriveImportStatements(pat)}
+      import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
+      import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
+      import org.eclipse.viatra.query.runtime.matchers.psystem.{PBody, PVariable}
+      import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
+      import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
+      import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.ExportedParameter
+
+      import java.util
+
+      import inca.backend.indices.{InputKey, QueryScope, TFQuerySpecification}
+      import inca.backend.virtual.tree.ParentKey
+      import inca.backend.virtual.list.ListNextKey
+
+      import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred._
+      import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables._
+      import inca.MetaElements._
 
       class $fileNameType extends $superClassParam {
          override def instantiate(engine: ViatraQueryEngine): GenericPatternMatcher = {
@@ -121,24 +143,23 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
   }
 
   def genPParam(param: Param): Stat = {
-    val pparam =
-      if (param.typ.isDefined) {
-        val qualifiedName = genType(param.typ.get).value
-        val key = genInputKey(param.typ.get)
-        q"new PParameter(${Lit.String(param.name)}, ${qualifiedName}, $key)"
-      } else {
+    val pparam = param.typ match {
+      case Some(typ) =>
+        val gentyp = genType(typ)
+        val key = genInputKey(typ)
+        q"new PParameter(${Lit.String(param.name)}, $gentyp.toString, $key)"
+      case None =>
         q"new PParameter(${Lit.String(param.name)})"
-      }
+    }
     q"private val ${Pat.Var(Term.Name(s"$PARAMPREFIX${param.name}"))}: PParameter = $pparam"
   }
 
-  def genInputKey(typ: GraphPatternLang.Type): Term = typ match {
-    case TBool => q"new $tPrimitiveKey($tPrimitiveType(${Lit.String("java.lang.Boolean")}))"
-    case TInt => q"new $tPrimitiveKey($tPrimitiveType(${Lit.String("java.lang.Integer")}))"
-    case TLong => q"new $tPrimitiveKey($tPrimitiveType(${Lit.String("java.lang.Long")}))"
-    case TDouble => q"new $tPrimitiveKey($tPrimitiveType(${Lit.String("java.lang.Double")}))"
-    case TString => q"new $tPrimitiveKey($tPrimitiveType(${Lit.String("java.lang.String")}))"
-    case TType(wrapped) => q"new $tLinkedTypeKey($tNodeType(${genType(wrapped)}))"
+  def genInputKey(typ: GP.TypeAnno): meta.Term = {
+    val gentyp = genType(typ)
+    typ match {
+      case TBool | TInt | TLong | TDouble | TString => q"new $tyPrimitiveKey($gentyp)"
+      case _:TNode | _:TList => q"new $tyNodeTypeKey($gentyp)"
+    }
   }
 
 
@@ -173,22 +194,22 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
 
   def genParamConstraint(param: Param): Option[Stat] = {
     // TODO only emit constraint for nodetypes?
-    if (param.typ.isDefined && param.typ.get.isInstanceOf[TType])
+    if (param.typ.isDefined && param.typ.get.isInstanceOf[TNode])
       Some(q"""new TypeConstraint(
             body,
             Tuples.flatTupleOf(${Term.Name(s"$VARPREFIX${param.name}")}),
-            new $tLinkedTypeKey($tNodeType(${genType(param.typ.get)})))""")
+            new $tyNodeTypeKey(${genType(param.typ.get)}))""")
     else None
   }
 
-  def genConstraints(constraint: Constraint): Seq[Stat] = constraint match {
-    case Composition(call, neg) =>
-      val patternQueryName = genQueryClassName(call.name)
-      val args = q"Tuples.flatTupleOf(..${call.args.map(transValue).toList})"
+  def genConstraints(constraint: Atom): Seq[Stat] = constraint match {
+    case Call(name, qargs, transitive, neg) =>
+      val patternQueryName = genQueryClassName(name)
+      val args = q"Tuples.flatTupleOf(..${qargs.map(transValue).toList})"
       val callQuery = q"${Term.Name(patternQueryName)}.instance().getInternalQueryRepresentation()"
       if (neg) Seq(q"new NegativePatternCall(body, $args, $callQuery)")
       else
-        if (call.transitive)
+        if (transitive)
           Seq(q"new BinaryTransitiveClosure(body, $args, $callQuery)")
         else
           Seq(q"new PositivePatternCall(body, $args, $callQuery)")
@@ -196,58 +217,43 @@ class GPToPSystemTranslator(analysis: Seq[Object]) {
       Seq(q"""new Equality(body, ${transValue(lhs)}, ${transValue(rhs)})""")
     case Compare(NeqComparator, lhs, rhs) =>
       Seq(q"""new Inequality(body, ${transValue(lhs)}, ${transValue(rhs)})""")
-    case Concept(v: Var, typ) =>
+    case HasType(v: Var, typ) =>
       // TODO if type is not enumerable emit TypeFilterConstraint (only needed when we introduce lattices)
       Seq(q"""new TypeConstraint(
             body,
             Tuples.flatTupleOf(${Term.Name(s"var_${v.name}")}),
-            new $tLinkedTypeKey($tNodeType(${genType(typ)})))""")
+            new $tyNodeTypeKey(${genType(typ)}))""")
 
-    case Path(src, trg, link, typ) => link match {
-      case NamedLink(typ, field) =>
-        val key = q"new $tLinkKey($tNamedLink($tNodeType(${typ.name}), ${field}))"
-        Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${transValue(src)}, ${transValue(trg)}), $key)")
-      case DefinedNodeLink(typ, field) =>
-        ???
-      case ParentLink =>
-        Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${transValue(src)}, ${transValue(trg)}), ParentKey)")
-      case NextLink =>
-        Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${transValue(src)}, ${transValue(trg)}), ListNextKey)")
-      case PreviousLink =>
-        Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${transValue(trg)}, ${transValue(src)}), ListNextKey)")
-      case FirstLink(typ) =>
-        ???
-      case ElementsLink(typ) =>
-        Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${transValue(trg)}, ${transValue(src)}), ParentKey)")
-    }
+    case Path(src, trg, link) =>
+      val key = genLinkKey(link)
+      Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${transValue(src)}, ${transValue(trg)}), $key)")
 
-    case Check(code) => dialects.Sbt1(code).parse[Source].get.stats
+    case Native(code) => dialects.Sbt1(code).parse[Source].get.stats
   }
 
-  def genLinkKey(link: Link): Term = link match {
-    case ParentLink =>
-      q"ParentKey"
-    case ElementsLink(_) =>
-      q"ListElementsKey"
-    case NamedLink(nodeType, fld)  =>
-      q"new $tLinkKey($tNamedLink($tNodeType(${nodeType.name}), ${fld}))"
-    case _ => throw new IllegalArgumentException("Does not support such a link")
+  def genLinkKey(link: Link): meta.Term = link match {
+    case GP.ParentLink => oParentKey
+    case GP.NextLink => oNextKey
+    case GP.NamedLink(TNode(name), field) => q"new $tyLinkKey($tNamedLink($tNodeType($name), $field))"
   }
 
-  def transValue(v: Value): Term = v match {
+  def transValue(v: GP.Term): meta.Term = v match {
     case Var(name) => Term.Name(s"$VARPREFIX$name")
     case Constant(lit) => Term.Name(s"$LITPREFIX${genLiteralVarName(lit)}")
   }
 
-  private def genType(typ: GraphPatternLang.Type): Lit.String = typ match {
+  private def genType(typ: GP.TypeAnno): meta.Term = typ match {
     case TBool => genPrimitiveType("Boolean")
     case TInt => genPrimitiveType("Integer")
     case TLong => genPrimitiveType("Long")
     case TDouble => genPrimitiveType("Double")
     case TString => genPrimitiveType("String")
-    case TType(wrapped) => Lit.String(wrapped.name)
+    case TNode(name) => q"$tNodeType($name)"
+    case TList(ty) =>
+      val tygen = genType(ty)
+      q"$tListType($tygen)"
   }
 
-  private def genPrimitiveType(name: String): Lit.String = Lit.String(s"java.lang.${name}")
+  private def genPrimitiveType(name: String): meta.Term = q"$tPrimitiveType(${Lit.String("java.lang." + name)})"
 
 }

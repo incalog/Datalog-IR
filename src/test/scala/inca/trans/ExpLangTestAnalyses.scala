@@ -2,18 +2,17 @@ package inca.trans
 
 import inca.analyzedLangs.expLang._
 import inca.lang.FunLang.{Exp => _, _}
-import inca.MetaElements._
 
 object ExpLangTestAnalyses {
-  private val addType: NodeType = NodeType(classOf[Add].getCanonicalName)
-  private val expType: NodeType = NodeType(classOf[Exp].getCanonicalName)
+  private val addType: TNode = TNode(classOf[Add].getCanonicalName)
+  private val expType: TNode = TNode(classOf[Exp].getCanonicalName)
   val idFun: PatternFunction = PatternFunction(
     None,
     "id",
     Seq(Param("add", Some(addType))),
     Seq(AnnoParam(Some("out"), expType)),
     Seq(
-      Alternative(
+      Body(
         Seq(
           Return(Var("add"))))))
 
@@ -25,10 +24,10 @@ object ExpLangTestAnalyses {
     Seq(Param("add", Some(addType))),
     Seq(AnnoParam(None, expType)),
     Seq(
-      Alternative(
+      Body(
         Seq(
           Return(PathAccess(Var("add"), Seq(lhsLink))))),
-      Alternative(
+      Body(
         Seq(
           Return(PathAccess(Var("add"), Seq(rhsLink)))))))
 
@@ -38,7 +37,7 @@ object ExpLangTestAnalyses {
     Seq(Param("add", Some(addType))),
     Seq(AnnoParam(None, expType)),
     Seq(
-      Alternative(
+      Body(
         Seq(
           Return(PathAccess(Var("add"), Seq(lhsLink)))))))
 
@@ -48,9 +47,9 @@ object ExpLangTestAnalyses {
     Seq(Param("add", Some(addType))),
     Seq(AnnoParam(None, expType)),
     Seq(
-      Alternative(
+      Body(
         Seq(
-          Assignment(Seq("lhschild"), Call(PatternCall("lhChild", Seq(Var("add")), transitive = false), count = false)),
+          Assignment(Seq("lhschild"), Call("lhChild", Seq(Var("add")), transitive = false, count = false)),
           Return(Var("lhschild"))))))
 
   val instanceAddFun = PatternFunction(
@@ -59,7 +58,7 @@ object ExpLangTestAnalyses {
     Seq(Param("add", Some(addType))),
     Seq(AnnoParam(None, expType)),
     Seq(
-      Alternative(
+      Body(
         Seq(
           Assignment(Seq("lhschild"), PathAccess(Var("add"), Seq(lhsLink))),
           Assert(InstanceOf(Var("lhschild"), addType)),
@@ -71,18 +70,18 @@ object ExpLangTestAnalyses {
     Seq(Param("add", None)),
     Seq(),
     Seq(
-      Alternative(
+      Body(
         Seq(
           Assert(InstanceOf(Var("add"), addType))))))
 
-  private val boolType: NodeType = NodeType(classOf[BooleanLit].getCanonicalName)
+  private val boolType: TNode = TNode(classOf[BooleanLit].getCanonicalName)
   val isBooleanFun = PatternFunction(
     None,
     "isBoolean",
     Seq(Param("in", Some(boolType))),
     Seq(AnnoParam(None, TBool)),
     Seq(
-      Alternative(
+      Body(
         Seq(
           Return(Constant(BooleanLiteral(true)))))))
 
@@ -92,6 +91,6 @@ object ExpLangTestAnalyses {
     Seq(Param("in", Some(TBool))),
     Seq(AnnoParam(None, TBool)),
     Seq(
-      Alternative(
+      Body(
         Seq(Return(Var("in"))))))
 }

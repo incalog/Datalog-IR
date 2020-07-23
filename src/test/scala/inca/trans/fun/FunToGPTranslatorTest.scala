@@ -1,11 +1,8 @@
 package inca.trans.fun
 
 import inca.analyzedLangs.expLang._
-import inca.lang.FunLang.{Alternative, AnnoParam, Assert, Assignment, BooleanLiteral, Call, Constant, Def, Eq, InstanceOf, Module, NotInstanceOf, Param, PathAccess, PatternCall, PatternFunction, Return, TBool, Undef, Var}
-import inca.MetaElements.NodeType
+import inca.lang.FunLang.{Exp => _, _}
 import inca.print.GraphPatternLangPrinter
-import inca.trans.fun.FunToGPTranslator
-import inca.trans.gp.GPToPSystemTranslator
 import inca.trans.ExpLangTestAnalyses._
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -22,8 +19,8 @@ class FunToGPTranslatorTest extends AnyFunSuite {
   }
 
   test("simple function pattern with equality against literal"){
-    val addType = NodeType(classOf[Add].getCanonicalName)
-    val expType = NodeType(classOf[Exp].getCanonicalName)
+    val addType = TNode(classOf[Add].getCanonicalName)
+    val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
     val fun = PatternFunction(
       None,
@@ -31,7 +28,7 @@ class FunToGPTranslatorTest extends AnyFunSuite {
       List(Param("add", Some(addType))),
       List(AnnoParam(None, expType)),
       List(
-        Alternative(
+        Body(
           List(
             Assert(Eq(PathAccess(Var("add"), Seq(lhsLink, lhsLink, lhsLink)), Constant(BooleanLiteral(true)))),
             Return(Var("add"))))))
@@ -40,8 +37,8 @@ class FunToGPTranslatorTest extends AnyFunSuite {
   }
 
   test("simple function pattern with return constraint containg path expression 2"){
-    val addType = NodeType(classOf[Add].getCanonicalName)
-    val expType = NodeType(classOf[Exp].getCanonicalName)
+    val addType = TNode(classOf[Add].getCanonicalName)
+    val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
     val fun = PatternFunction(
       None,
@@ -49,7 +46,7 @@ class FunToGPTranslatorTest extends AnyFunSuite {
       List(Param("add", Some(addType))),
       List(AnnoParam(None, expType)),
       List(
-        Alternative(
+        Body(
           List(
             Return(PathAccess(Var("add"), Seq(lhsLink, lhsLink, lhsLink)))))))
     val result = FunToGPTranslator.transformModule(Module("test", Nil, Seq(fun)))
@@ -62,8 +59,8 @@ class FunToGPTranslatorTest extends AnyFunSuite {
   }
 
   test("function pattern calling other function"){
-    val addType = NodeType(classOf[Add].getCanonicalName)
-    val expType = NodeType(classOf[Exp].getCanonicalName)
+    val addType = TNode(classOf[Add].getCanonicalName)
+    val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
     val rhsLink = addType("rhs")
     val fun = PatternFunction(
@@ -72,17 +69,17 @@ class FunToGPTranslatorTest extends AnyFunSuite {
       List(Param("add", Some(addType))),
       List(AnnoParam(None, expType)),
       List(
-        Alternative(
+        Body(
           List(
-            Assignment(Seq("lhschild"), Call(PatternCall("lhChild", Seq(Var("add")), transitive = false), count = false)),
+            Assignment(Seq("lhschild"), Call("lhChild", Seq(Var("add")), transitive = false, count = false)),
             Return(Var("lhschild"))))))
     val result = FunToGPTranslator.transformModule(Module("test", Nil, Seq(fun, lhChildFun)))
     println(GraphPatternLangPrinter.prettyModule(result))
   }
 
   test("function pattern using instance of"){
-    val addType = NodeType(classOf[Add].getCanonicalName)
-    val expType = NodeType(classOf[Exp].getCanonicalName)
+    val addType = TNode(classOf[Add].getCanonicalName)
+    val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
     val rhsLink = addType("rhs")
     val fun = PatternFunction(
@@ -91,7 +88,7 @@ class FunToGPTranslatorTest extends AnyFunSuite {
       List(Param("add", Some(addType))),
       List(AnnoParam(Some("out"), expType)),
       List(
-        Alternative(
+        Body(
           List(
             Assignment(Seq("lhschild"), PathAccess(Var("add"), Seq(lhsLink))),
             Assert(InstanceOf(Var("lhschild"), addType)),
@@ -101,8 +98,8 @@ class FunToGPTranslatorTest extends AnyFunSuite {
   }
 
   test("function pattern using notinstance of"){
-    val addType = NodeType(classOf[Add].getCanonicalName)
-    val expType = NodeType(classOf[Exp].getCanonicalName)
+    val addType = TNode(classOf[Add].getCanonicalName)
+    val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
     val rhsLink = addType("rhs")
     val fun = PatternFunction(
@@ -111,7 +108,7 @@ class FunToGPTranslatorTest extends AnyFunSuite {
       List(Param("add", Some(addType))),
       List(AnnoParam(None, expType)),
       List(
-        Alternative(
+        Body(
           List(
             Assignment(Seq("lhschild"), PathAccess(Var("add"), Seq(lhsLink))),
             Assert(NotInstanceOf(Var("lhschild"), addType)),
@@ -121,8 +118,8 @@ class FunToGPTranslatorTest extends AnyFunSuite {
   }
 
   test("function pattern def of call"){
-    val addType = NodeType(classOf[Add].getCanonicalName)
-    val expType = NodeType(classOf[Exp].getCanonicalName)
+    val addType = TNode(classOf[Add].getCanonicalName)
+    val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
     val rhsLink = addType("rhs")
     val fun = PatternFunction(
@@ -131,18 +128,18 @@ class FunToGPTranslatorTest extends AnyFunSuite {
       List(Param("add", Some(addType))),
       List(AnnoParam(None, expType)),
       List(
-        Alternative(
+        Body(
           List(
             Assignment(Seq("lhschild"), PathAccess(Var("add"), Seq(lhsLink))),
-            Assert(Def(Call(PatternCall("lhChild", Seq(Var("lhschild")), transitive = false), count = false))),
+            Assert(Def(Call("lhChild", Seq(Var("lhschild")), transitive = false, count = false))),
             Return(Var("lhschild"))))))
     val result = FunToGPTranslator.transformModule(Module("test", Nil, Seq(fun, lhChildFun)))
     println(GraphPatternLangPrinter.prettyModule(result))
   }
 
   test("function pattern def of path"){
-    val addType = NodeType(classOf[Add].getCanonicalName)
-    val expType = NodeType(classOf[Exp].getCanonicalName)
+    val addType = TNode(classOf[Add].getCanonicalName)
+    val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
     val rhsLink = addType("rhs")
     val fun = PatternFunction(
@@ -151,7 +148,7 @@ class FunToGPTranslatorTest extends AnyFunSuite {
       List(Param("add", Some(addType))),
       List(),
       List(
-        Alternative(
+        Body(
           List(
             Assert(Def(PathAccess(Var("add"), Seq(lhsLink))))))))
     val result = FunToGPTranslator.transformModule(Module("test", Nil, Seq(fun)))
@@ -159,8 +156,8 @@ class FunToGPTranslatorTest extends AnyFunSuite {
   }
 
   test("function pattern undef of path"){
-    val addType = NodeType(classOf[Add].getCanonicalName)
-    val expType = NodeType(classOf[Exp].getCanonicalName)
+    val addType = TNode(classOf[Add].getCanonicalName)
+    val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
     val rhsLink = addType("rhs")
     val fun = PatternFunction(
@@ -169,7 +166,7 @@ class FunToGPTranslatorTest extends AnyFunSuite {
       List(Param("add", Some(addType))),
       List(),
       List(
-        Alternative(
+        Body(
           List(
             Assert(Undef(PathAccess(Var("add"), Seq(lhsLink))))))))
     val result = FunToGPTranslator.transformModule(Module("test", Nil, Seq(fun)))
@@ -177,8 +174,8 @@ class FunToGPTranslatorTest extends AnyFunSuite {
   }
 
   test("parameter without type"){
-    val addType = NodeType(classOf[Add].getCanonicalName)
-    val expType = NodeType(classOf[Exp].getCanonicalName)
+    val addType = TNode(classOf[Add].getCanonicalName)
+    val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
     val rhsLink = addType("rhs")
     val result = FunToGPTranslator.transformModule(Module("test", Nil, Seq(noParamTypeFun)))
@@ -186,8 +183,8 @@ class FunToGPTranslatorTest extends AnyFunSuite {
   }
 
   test("parameter with primitive type"){
-    val addType = NodeType(classOf[Add].getCanonicalName)
-    val expType = NodeType(classOf[Exp].getCanonicalName)
+    val addType = TNode(classOf[Add].getCanonicalName)
+    val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
     val rhsLink = addType("rhs")
     val result = FunToGPTranslator.transformModule(Module("test", Nil, Seq(primitiveParamFun)))

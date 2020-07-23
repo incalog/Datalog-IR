@@ -1,14 +1,13 @@
 package inca.print
 
-import inca.MetaElements.{DefinedNodeLink, NamedLink}
-import inca.lang.GraphPatternLang.{Alternative, Comparator, Compare, Composition, Concept, Constant, Constraint, EqComparator, GraphPattern, Module, NeqComparator, Param, Path, PatternCall, Private, Public, TBool, TDouble, TInt, TLong, TType, TString, Type, Value, Var, Visibility}
+import inca.lang.GraphPatternLang.{Atom, Body, Call, Comparator, Compare, Constant, EqComparator, HasType, Module, NamedLink, NeqComparator, NextLink, Param, ParentLink, Path, Private, Public, Rule, TBool, TDouble, TInt, TList, TLong, TNode, TString, Term, TypeAnno, Var, Visibility}
 
 object GraphPatternLangPrinter {
 
   def prettyModule(module: Module): String =
     "module " + module.name + "\n" + module.imports.mkString("\n") + module.pats.map(prettyGraphPattern).mkString("\n")
 
-  def prettyGraphPattern(gp: GraphPattern): String = {
+  def prettyGraphPattern(gp: Rule): String = {
     val header = prettyVis(gp.vis) + gp.name + gp.params.map(prettyParam).mkString("(", ", ", ")")
     val bodies = gp.bodies.map(prettyAlternative).mkString(" {\n", "\n} or {\n", "\n}")
     header + bodies
@@ -23,35 +22,37 @@ object GraphPatternLangPrinter {
 
   def prettyParam(param: Param): String = param.name + (if (param.typ.isDefined) ": " + prettyType(param.typ.get) else "")
 
-  def prettyType(typ: Type): String = typ match {
-    case TType(wrapped) => wrapped.name
+  def prettyType(typ: TypeAnno): String = typ match {
     case TBool => "TBool"
     case TInt => "TInt"
     case TLong => "TLong"
     case TDouble => "TDouble"
     case TString => "TString"
+    case TNode(name) => name
+    case TList(ty) => s"List[${prettyType(ty)}]"
   }
 
-  def prettyAlternative(alt: Alternative): String = alt.constraints.map(prettyConstraint).map("\t"+_).mkString("\n")
+  def prettyAlternative(alt: Body): String = alt.constraints.map(prettyConstraint).map("\t"+_).mkString("\n")
 
-  def prettyConstraint(constraint: Constraint): String = constraint match {
+  def prettyConstraint(constraint: Atom): String = constraint match {
     case Compare(comp, lhs, rhs) => prettyValue(lhs) + " " + prettyComparator(comp) + " " + prettyValue(rhs)
-    case Concept(v, typ) => prettyType(typ) + "(" + prettyValue(v) + ")"
-    case Path(src, trg, link, typ) => link match {
-      case NamedLink(nodeType, fld) =>
-        prettyType(typ) + "." + fld + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
-      case DefinedNodeLink(nodeType, fld) =>
-        prettyType(typ) + "." + fld + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
-      case _ =>
-        prettyType(typ) + "." + link.field + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
+    case HasType(v, typ) => prettyType(typ) + "(" + prettyValue(v) + ")"
+    case Path(src, trg, link) => link match {
+      case NamedLink(node, fld) =>
+        prettyType(node) + "." + fld + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
+      case ParentLink =>
+        "parent(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
+      case NextLink =>
+        "next(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
     }
-    case Composition(call, neg) => (if(neg) "neg " else "") + "find " + prettyPatternCall(call)
+    case Call(name, args, isTransitive, isNeg) =>
+      val neg = if (isNeg) "neg " else ""
+      val trans = if (isTransitive) "+" else ""
+      val call = s"$name$trans(${args.map(prettyValue).mkString(",")})"
+      s"${neg}find $call"
   }
 
-  def prettyPatternCall(call: PatternCall): String =
-    call.name + (if (call.transitive) "+" else "") + call.args.map(prettyValue).mkString("(", ", ", ")")
-
-  def prettyValue(value: Value): String = value match {
+  def prettyValue(value: Term): String = value match {
     case Var(name) => name
     case Constant(lit) => lit.toString
   }

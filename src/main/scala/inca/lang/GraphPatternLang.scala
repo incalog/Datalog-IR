@@ -1,56 +1,47 @@
 package inca.lang
 
-import inca.MetaElements.{Link, LinkedType}
-
 object GraphPatternLang {
-  sealed trait Type
-  case class TType(wrapped: LinkedType) extends Type
-  case object TBool extends Type
-  case object TInt extends Type
-  case object TLong extends Type
-  case object TDouble extends Type
-  case object TString extends Type
+  sealed trait TypeAnno
+  case object TBool extends TypeAnno
+  case object TInt extends TypeAnno
+  case object TLong extends TypeAnno
+  case object TDouble extends TypeAnno
+  case object TString extends TypeAnno
 
-  implicit def linkedToTType(t: LinkedType): Type = TType(t)
+  sealed trait TLinked extends TypeAnno
+  case class TNode(name: String) extends TLinked
+  case class TList(contained: TLinked) extends TLinked
 
   type Name = String
-
-  case class Module(name: Name, imports: Seq[Name], pats: Seq[GraphPattern])
-  case class GraphPattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Alternative])
 
   sealed trait Visibility
   case object Private extends Visibility
   case object Public extends Visibility
 
-  case class Param(name: Name, typ: Option[Type])
+  case class Module(name: Name, imports: Seq[Name], pats: Seq[Rule])
+  case class Rule(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body])
+  case class Param(name: Name, typ: Option[TypeAnno])
+  case class Body(constraints: Seq[Atom])
 
-  // Body
-  case class Alternative(constraints: Seq[Constraint])
+  sealed trait Atom
+  case class Call(name: Name, args: Seq[Term], transitive: Boolean, neg: Boolean) extends Atom
+  case class Compare(comp: Comparator, lhs: Term, rhs: Term) extends Atom
+  case class HasType(v: Term, typ: TypeAnno) extends Atom
+  case class Path(src: Term, trg: Term, link: Link) extends Atom
+  case class Native(code: String) extends Atom
 
-  // would be atom
-  sealed trait Constraint
-  // would be Relation, maybe remove neg arguement and create negation atom
-  case class Composition(call: PatternCall, neg: Boolean) extends Constraint
-  case class Compare(comp: Comparator, lhs: Value, rhs: Value) extends Constraint
-  // these concepts are inca specific to query AST information
-  // TODO Value => Var
-  case class Concept(v: Value, typ: Type) extends Constraint
-  // Value => Var
-  case class Path(src: Value, trg: Value, link: Link, typ: Type) extends Constraint
-  // TODO how do we represent java code?
-  case class Check(code: String) extends Constraint
-
-  case class PatternCall(name: Name, args: Seq[Value], transitive: Boolean)
+  sealed trait Link
+  case object ParentLink extends Link
+  case object NextLink extends Link
+  case class NamedLink(node: TNode, field: Name) extends Link
 
   sealed trait Comparator
   case object EqComparator extends Comparator
   case object NeqComparator extends Comparator
 
-  // This would be term
-  sealed trait Value
-  case class Var(name: Name) extends Value
-  // Would be constant
-  case class Constant(lit: Literal) extends Value
+  sealed trait Term
+  case class Var(name: Name) extends Term
+  case class Constant(lit: Literal) extends Term
 
   sealed trait Literal
   case class IntLiteral(v: Int) extends Literal
