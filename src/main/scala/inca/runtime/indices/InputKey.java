@@ -1,13 +1,17 @@
 package inca.runtime.indices;
 
-import inca.runtime.MetaElements.Link;
-import inca.runtime.MetaElements.LinkedType;
-import inca.runtime.MetaElements.PrimitiveType;
+import inca.runtime.index.MetaElements.Link;
+import inca.runtime.index.MetaElements.LinkedType;
+import inca.runtime.index.MetaElements.PrimitiveType;
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey;
 
 public abstract class InputKey<T> implements IInputKey {
 
     protected final T type;
+
+    public T getType() {
+    	return type;
+	}
 
     public InputKey(final T type) {
         this.type = type;

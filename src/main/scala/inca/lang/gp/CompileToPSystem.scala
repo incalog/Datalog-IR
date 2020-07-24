@@ -1,7 +1,7 @@
 package inca.lang.gp
 
 import inca.lang.gp.GP._
-import inca.runtime.MetaElements.{ListType, NamedLink, NodeType, PrimitiveType}
+import inca.runtime.index.MetaElements.{ListType, NamedLink, NodeType, PrimitiveType}
 import inca.runtime.indices.InputKey.{LinkKey, NodeTypeKey, PrimitiveKey}
 import inca.runtime.virtual.list.ListNextKey
 import inca.runtime.virtual.tree.ParentKey
@@ -48,7 +48,7 @@ class CompileToPSystem(analysis: Seq[Object]) {
     val fileNameLit = Lit.String(genQueryClassName(pat.name))
 
     val superClassParam = Init(
-      Type.Name("TFQuerySpecification"),
+      Type.Name("IncaQuerySpecification"),
       Name.Anonymous(),
       List(List(q"$fileNameTerm.GeneratedPQuery.INSTANCE")))
 
@@ -71,13 +71,14 @@ class CompileToPSystem(analysis: Seq[Object]) {
 
       import java.util
 
-      import inca.runtime.indices.{InputKey, QueryScope, TFQuerySpecification}
+      import inca.runtime.IncaQuerySpecification
+      import inca.runtime.indices.{InputKey, QueryScope}
       import inca.runtime.virtual.tree.ParentKey
       import inca.runtime.virtual.list.ListNextKey
 
       import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred._
       import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables._
-      import inca.runtime.MetaElements._
+      import inca.runtime.index.MetaElements._
 
       class $fileNameType extends $superClassParam {
          override def instantiate(engine: ViatraQueryEngine): GenericPatternMatcher = {

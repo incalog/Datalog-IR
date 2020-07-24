@@ -1,17 +1,17 @@
-package inca.runtime.indices;
+package inca.runtime;
 
 
 import org.eclipse.viatra.query.runtime.api.GenericPatternMatcher;
 import org.eclipse.viatra.query.runtime.api.GenericQuerySpecification;
 import org.eclipse.viatra.query.runtime.matchers.psystem.queries.PQuery;
 
-public abstract class TFQuerySpecification extends GenericQuerySpecification<GenericPatternMatcher> {
+public abstract class IncaQuerySpecification extends GenericQuerySpecification<GenericPatternMatcher> {
 
-    public TFQuerySpecification(final PQuery query) {
+    public IncaQuerySpecification(final PQuery query) {
         super(query);
     }
 
-    public TFQuerySpecification() {
+    public IncaQuerySpecification() {
         this(null);
     }
 

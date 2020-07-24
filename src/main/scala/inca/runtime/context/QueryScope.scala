@@ -1,4 +1,4 @@
-package inca.runtime.indices
+package inca.runtime.context
 
 import inca.runtime.virtual.VirtualIndex
 import org.apache.log4j.Logger

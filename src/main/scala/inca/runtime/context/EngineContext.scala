@@ -1,12 +1,12 @@
-package inca.runtime.indices
+package inca.runtime.context
 
+import inca.runtime.indices.{Indices, TFRuntimeContext}
 import inca.runtime.virtual.VirtualIndex
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.api.scope.IEngineContext
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContext
 
 import scala.jdk.CollectionConverters._
-
 
 // we pass the virtualindices because we want them to be configurable
 case class EngineContext(scope: QueryScope, engine: AdvancedViatraQueryEngine, virtualIndices: Seq[VirtualIndex]) extends IEngineContext {

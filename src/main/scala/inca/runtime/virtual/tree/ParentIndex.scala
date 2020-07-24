@@ -1,7 +1,8 @@
 package inca.runtime.virtual.tree
 
+import inca.runtime.index.binary.ManyToOneIndex
+import inca.runtime.virtual.VirtualKey
 import inca.runtime.virtual.list.ListNextIndex
-import inca.runtime.virtual.{BinarySurjectiveVirtualIndex, VirtualKey}
 import truechange._
 
 case object ParentKey extends VirtualKey {
@@ -10,7 +11,7 @@ case object ParentKey extends VirtualKey {
   override val isEnumerable: Boolean = true
 }
 
-class ParentIndex(next: ListNextIndex) extends BinarySurjectiveVirtualIndex[NodeURI,NodeURI] {
+class ParentIndex(next: ListNextIndex) extends ManyToOneIndex[NodeURI,NodeURI] {
   override val virtualKey: VirtualKey = ParentKey
 
   override def processChange(change: truechange.Change): Unit = change match {

@@ -1,4 +1,4 @@
-package inca.runtime
+package inca.runtime.index
 
 object MetaElements {
   trait Type {

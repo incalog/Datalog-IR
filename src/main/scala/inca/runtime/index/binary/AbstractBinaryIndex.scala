@@ -1,11 +1,12 @@
-package inca.runtime.virtual
+package inca.runtime.index.binary
 
+import inca.runtime.virtual.VirtualIndex
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
 
 import scala.collection.mutable
 
-abstract class AbstractBinaryVirtualIndex[K,V] extends VirtualIndex {
+abstract class AbstractBinaryIndex[K,V] extends VirtualIndex {
   protected def insert(k: K, v: V): Unit
   protected def delete(k: K, v: V): Unit
 

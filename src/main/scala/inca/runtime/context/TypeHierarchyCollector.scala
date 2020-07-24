@@ -1,6 +1,6 @@
-package inca.runtime
+package inca.runtime.context
 
-import scala.collection.immutable._
+import scala.collection.immutable.{List, Map, Nil, Set}
 
 object TypeHierarchyCollector {
   // what is the entry point?

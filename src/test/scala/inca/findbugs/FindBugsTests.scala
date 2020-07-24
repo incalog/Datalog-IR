@@ -3,7 +3,7 @@ package inca.findbugs
 import inca.analyzedLangs._
 import inca.lang.fun.CompileToGP
 import inca.lang.fun.Fun._
-import inca.runtime.indices.LanguageMetaInfo
+import inca.runtime.context.LanguageMetaInfo
 //import inca.trans.generated.FindBugs_confusedInheritanceQuerySpecification
 import inca.util.AnalysisWriter
 import org.scalatest.funsuite.AnyFunSuite

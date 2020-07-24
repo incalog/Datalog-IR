@@ -1,6 +1,7 @@
 package inca.runtime.virtual.list
 
-import inca.runtime.virtual.{BinaryBijectiveVirtualIndex, VirtualKey}
+import inca.runtime.index.binary.OneToOneIndex
+import inca.runtime.virtual.VirtualKey
 import truechange._
 
 case object ListNextKey extends VirtualKey {
@@ -9,7 +10,7 @@ case object ListNextKey extends VirtualKey {
   override val isEnumerable: Boolean = true
 }
 
-class ListNextIndex extends BinaryBijectiveVirtualIndex[NodeURI, NodeURI] {
+class ListNextIndex extends OneToOneIndex[NodeURI, NodeURI] {
   override val virtualKey: VirtualKey = ListNextKey
 
   def iterateNext(from: truechange.NodeURI)(f: truechange.NodeURI => Unit): Unit = {

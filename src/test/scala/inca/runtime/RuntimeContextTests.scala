@@ -3,7 +3,8 @@ package inca.runtime
 import java.util
 
 import inca.analyzedLangs._
-import inca.runtime.MetaElements.{FirstLink, NextLink, NodeType, PrimitiveType}
+import inca.runtime.index.MetaElements
+import inca.runtime.index.MetaElements.{FirstLink, NextLink, NodeType, PrimitiveType}
 import inca.runtime.indices.InputKey.{LinkKey, NodeTypeKey, PrimitiveKey}
 import inca.runtime.indices.{Indices, TFRuntimeContext}
 import inca.runtime.virtual.VirtualIndex

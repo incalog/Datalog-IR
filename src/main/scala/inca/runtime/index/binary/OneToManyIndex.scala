@@ -1,4 +1,4 @@
-package inca.runtime.virtual
+package inca.runtime.index.binary
 
 import inca.util.TupleOps
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
@@ -6,12 +6,12 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask
 import scala.collection.mutable
 
 /*
- * In a BinarySurjectiveVirtualIndex, each key uniquely identifies the correponding value, but not vice versa.
- * Many to one.
+ * In a BinaryInjectiveVirtualIndex, each value uniquely identifies the correponding key, but not and vice versa.
+ * One to many.
  */
-abstract class BinarySurjectiveVirtualIndex[K,V] extends AbstractBinaryVirtualIndex[K,V] {
-  protected val index: mutable.Map[K, V] = mutable.Map()
-  protected val indexInverted: mutable.MultiDict[V, K] = mutable.MultiDict()
+abstract class OneToManyIndex[K,V] extends AbstractBinaryIndex[K,V] {
+  protected val index: mutable.MultiDict[K, V] = mutable.MultiDict()
+  protected val indexInverted: mutable.Map[V, K] = mutable.Map()
 
   override protected def insert(k: K, v: V): Unit = {
     index += (k -> v)
@@ -20,8 +20,8 @@ abstract class BinarySurjectiveVirtualIndex[K,V] extends AbstractBinaryVirtualIn
   }
 
   override protected def delete(k: K, v: V): Unit = {
-    index -= k
-    indexInverted -= (v -> k)
+    index -= (k -> v)
+    indexInverted -= v
     notify(k, v, isInsertion = false)
   }
 
@@ -41,10 +41,10 @@ abstract class BinarySurjectiveVirtualIndex[K,V] extends AbstractBinaryVirtualIn
       index.size
     } else if (maskLength == 1) {
       val isOrdered = mask.indices(0) == 0
-      if (isOrdered && index.contains(seed.get(0).asInstanceOf[K])) {
+      if (isOrdered) {
+        index.get(seed.get(0).asInstanceOf[K]).size
+      } else if (!isOrdered && indexInverted.contains(seed.get(1).asInstanceOf[V])) {
         1
-      } else if (!isOrdered) {
-        indexInverted.get(seed.get(1).asInstanceOf[V]).size
       } else {
         0
       }
@@ -65,7 +65,7 @@ abstract class BinarySurjectiveVirtualIndex[K,V] extends AbstractBinaryVirtualIn
   final override def enumerateTuples(mask: TupleMask, seed: ITuple): Iterable[Tuple] = {
     val maskLength = mask.indices.length
     if (maskLength == 0) {
-      index.map { case (k, v) => Tuples.staticArityFlatTupleOf(k, v) }
+      indexInverted.map { case (v, k) => Tuples.staticArityFlatTupleOf(k, v) }
     } else if (maskLength == 1) {
       val isOrdered = mask.indices(0) == 0
       if (isOrdered) {

@@ -1,4 +1,4 @@
-package inca.runtime.virtual
+package inca.runtime.index.binary
 
 import inca.util.TupleOps
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
@@ -6,12 +6,12 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask
 import scala.collection.mutable
 
 /*
- * In a BinaryBijectiveVirtualIndex, each key uniquely identifies the correponding value and vice versa.
- * One to one.
+ * In a BinarySurjectiveVirtualIndex, each key uniquely identifies the correponding value, but not vice versa.
+ * Many to one.
  */
-abstract class BinaryBijectiveVirtualIndex[K,V] extends AbstractBinaryVirtualIndex[K,V] {
+abstract class ManyToOneIndex[K,V] extends AbstractBinaryIndex[K,V] {
   protected val index: mutable.Map[K, V] = mutable.Map()
-  protected val indexInverted: mutable.Map[V, K] = mutable.Map()
+  protected val indexInverted: mutable.MultiDict[V, K] = mutable.MultiDict()
 
   override protected def insert(k: K, v: V): Unit = {
     index += (k -> v)
@@ -21,7 +21,7 @@ abstract class BinaryBijectiveVirtualIndex[K,V] extends AbstractBinaryVirtualInd
 
   override protected def delete(k: K, v: V): Unit = {
     index -= k
-    indexInverted -= v
+    indexInverted -= (v -> k)
     notify(k, v, isInsertion = false)
   }
 
@@ -43,8 +43,8 @@ abstract class BinaryBijectiveVirtualIndex[K,V] extends AbstractBinaryVirtualInd
       val isOrdered = mask.indices(0) == 0
       if (isOrdered && index.contains(seed.get(0).asInstanceOf[K])) {
         1
-      } else if (!isOrdered && indexInverted.contains(seed.get(1).asInstanceOf[V])) {
-        1
+      } else if (!isOrdered) {
+        indexInverted.get(seed.get(1).asInstanceOf[V]).size
       } else {
         0
       }

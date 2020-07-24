@@ -1,6 +1,6 @@
 package inca.runtime
 
-import inca.runtime.indices.LanguageMetaInfo
+import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
 

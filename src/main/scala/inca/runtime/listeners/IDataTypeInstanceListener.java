@@ -1,6 +1,6 @@
 package inca.runtime.listeners;
 
-import inca.runtime.MetaElements;
+import inca.runtime.index.MetaElements;
 
 public interface IDataTypeInstanceListener extends IInstanceListener {
     void insert(MetaElements.PrimitiveType type, Object value);

@@ -3,7 +3,8 @@ package inca.trans.gp
 import inca.analyzedLangs.expLang._
 import inca.lang.fun.CompileToGP
 import inca.lang.fun.Fun.{AnnoParam, Assert, Assignment, Body, InstanceOf, Module, Param, ParentLink, PathAccess, PatternFunction, Return, TNode, Var}
-import inca.runtime.indices.{EnginePool, LanguageMetaInfo, QueryScope, TFQuerySpecification}
+import inca.runtime.{EnginePool, IncaQuerySpecification}
+import inca.runtime.context.{LanguageMetaInfo, QueryScope}
 import inca.runtime.virtual.VirtualIndex
 import inca.runtime.virtual.list.ListNextIndex
 import inca.runtime.virtual.tree.ParentIndex
@@ -72,7 +73,7 @@ class CompileToPSystemTest extends AnyFunSuite {
   def assertMatch(
       module: Module,
       subjectProg: Diffable,
-      compiledModule: TFQuerySpecification)(asserter: ViatraQueryMatcher[IPatternMatch] => Assertion): Assertion = {
+      compiledModule: IncaQuerySpecification)(asserter: ViatraQueryMatcher[_ <: IPatternMatch] => Assertion): Assertion = {
     val gp = CompileToGP.transformModule(module)
     AnalysisWriter.writeModule(gp)
     val changeset = Diffable.load(subjectProg)

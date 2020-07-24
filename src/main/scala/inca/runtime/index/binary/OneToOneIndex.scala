@@ -1,4 +1,4 @@
-package inca.runtime.virtual
+package inca.runtime.index.binary
 
 import inca.util.TupleOps
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
@@ -6,11 +6,11 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask
 import scala.collection.mutable
 
 /*
- * In a BinaryInjectiveVirtualIndex, each value uniquely identifies the correponding key, but not and vice versa.
- * One to many.
+ * In a BinaryBijectiveVirtualIndex, each key uniquely identifies the correponding value and vice versa.
+ * One to one.
  */
-abstract class BinaryInjectiveVirtualIndex[K,V] extends AbstractBinaryVirtualIndex[K,V] {
-  protected val index: mutable.MultiDict[K, V] = mutable.MultiDict()
+abstract class OneToOneIndex[K,V] extends AbstractBinaryIndex[K,V] {
+  protected val index: mutable.Map[K, V] = mutable.Map()
   protected val indexInverted: mutable.Map[V, K] = mutable.Map()
 
   override protected def insert(k: K, v: V): Unit = {
@@ -20,7 +20,7 @@ abstract class BinaryInjectiveVirtualIndex[K,V] extends AbstractBinaryVirtualInd
   }
 
   override protected def delete(k: K, v: V): Unit = {
-    index -= (k -> v)
+    index -= k
     indexInverted -= v
     notify(k, v, isInsertion = false)
   }
@@ -41,8 +41,8 @@ abstract class BinaryInjectiveVirtualIndex[K,V] extends AbstractBinaryVirtualInd
       index.size
     } else if (maskLength == 1) {
       val isOrdered = mask.indices(0) == 0
-      if (isOrdered) {
-        index.get(seed.get(0).asInstanceOf[K]).size
+      if (isOrdered && index.contains(seed.get(0).asInstanceOf[K])) {
+        1
       } else if (!isOrdered && indexInverted.contains(seed.get(1).asInstanceOf[V])) {
         1
       } else {
@@ -65,7 +65,7 @@ abstract class BinaryInjectiveVirtualIndex[K,V] extends AbstractBinaryVirtualInd
   final override def enumerateTuples(mask: TupleMask, seed: ITuple): Iterable[Tuple] = {
     val maskLength = mask.indices.length
     if (maskLength == 0) {
-      indexInverted.map { case (v, k) => Tuples.staticArityFlatTupleOf(k, v) }
+      index.map { case (k, v) => Tuples.staticArityFlatTupleOf(k, v) }
     } else if (maskLength == 1) {
       val isOrdered = mask.indices(0) == 0
       if (isOrdered) {

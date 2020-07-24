@@ -1,10 +1,10 @@
-package inca.runtime.indices
+package inca.runtime.context
 
 import java.util
 import java.util.Collections
 
-import inca.runtime.MetaElements
-import inca.runtime.MetaElements._
+import inca.runtime.index.MetaElements
+import inca.runtime.index.MetaElements._
 import inca.runtime.indices.InputKey.{LinkKey, NodeTypeKey, PrimitiveKey}
 import inca.runtime.virtual.VirtualKey
 import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
@@ -18,7 +18,7 @@ class MetaContext(langMetaInfo: LanguageMetaInfo) extends AbstractQueryMetaConte
 
   override def getImplications(implyingKey: IInputKey): util.Collection[InputKeyImplication] = implyingKey match {
     case key: NodeTypeKey =>
-      key.`type` match {
+      key.getType match {
         case NodeType(name) =>
           if (langMetaInfo.directSubtypes.contains(name)) {
             val supers = langMetaInfo.directSupertypes(name)
@@ -34,7 +34,7 @@ class MetaContext(langMetaInfo: LanguageMetaInfo) extends AbstractQueryMetaConte
     case _: JavaTransitiveInstancesKey =>
       throw new IllegalStateException("TODO currently do not support eval nodes hence no javatranskey")
     case key: LinkKey =>
-      key.`type` match {
+      key.getType match {
         case FirstLink(typ) =>
           val firstImpl = new InputKeyImplication(key, new NodeTypeKey(typ), Collections.singletonList(0))
           val secondImpl = typ match {

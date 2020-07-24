@@ -1,6 +1,6 @@
 package inca.runtime.listeners;
 
-import inca.runtime.MetaElements.LinkedType;
+import inca.runtime.index.MetaElements.LinkedType;
 import inca.runtime.indices.InputKey;
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;

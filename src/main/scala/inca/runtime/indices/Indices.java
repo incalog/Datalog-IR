@@ -2,11 +2,11 @@ package inca.runtime.indices;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
-import inca.runtime.MetaElements;
-import inca.runtime.MetaElements.Link;
-import inca.runtime.MetaElements.LinkedType;
-import inca.runtime.MetaElements.NodeType;
-import inca.runtime.MetaElements.PrimitiveType;
+import inca.runtime.index.MetaElements;
+import inca.runtime.index.MetaElements.Link;
+import inca.runtime.index.MetaElements.LinkedType;
+import inca.runtime.index.MetaElements.NodeType;
+import inca.runtime.index.MetaElements.PrimitiveType;
 import inca.runtime.listeners.IDataTypeInstanceListener;
 import inca.runtime.listeners.IInstanceListener;
 import inca.runtime.listeners.INodeLinkInstanceListener;

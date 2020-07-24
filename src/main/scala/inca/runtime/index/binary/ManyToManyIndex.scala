@@ -1,4 +1,4 @@
-package inca.runtime.virtual
+package inca.runtime.index.binary
 
 import inca.util.TupleOps
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
@@ -9,7 +9,7 @@ import scala.collection.mutable
  * In a BinaryVirtualIndex, neither key nor value uniquely identify each other.
  * Many to many.
  */
-abstract class BinaryVirtualIndex[K,V] extends AbstractBinaryVirtualIndex[K,V] {
+abstract class ManyToManyIndex[K,V] extends AbstractBinaryIndex[K,V] {
   protected val index: mutable.MultiDict[K, V] = mutable.MultiDict()
   protected val indexInverted: mutable.MultiDict[V, K] = mutable.MultiDict()
 
