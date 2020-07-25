@@ -1,5 +1,7 @@
 package inca.runtime.context
 
+import inca.runtime.index.MetaElements._
+
 import scala.collection.mutable
 
 /**
@@ -16,32 +18,53 @@ import scala.collection.mutable
  */
 // TODO add what the node types and what primitives are
 // node types are the keys of directSupertypes
-class LanguageMetaInfo(_directSupertypes: Map[String, Set[String]], _links: Map[String, Map[String, String]]) {
-  val directSupertypes: Map[String, Set[String]] = _directSupertypes
-  val links: Map[String, Map[String, String]] = _links
+class LanguageMetaInfo(_directSupertypes: Map[NodeType, Set[NodeType]], _links: Map[NamedLink, Type]) {
+  def this() = this(Map(), Map())
 
-  val supertypes: Map[String, Set[String]] = transClosure(_directSupertypes)
+  val links: Map[NamedLink, Type] = _links
 
-  val directSubtypes: Map[String, Set[String]] = {
-    val res = mutable.Map[String, Set[String]]()
+  val directNodeSupertypes: Map[NodeType, Set[NodeType]] = _directSupertypes
+  val directNodeSubtypes: Map[NodeType, Set[NodeType]] = {
+    val res = mutable.Map[NodeType, Set[NodeType]]()
     // initialize
-    directSupertypes.foreach { case (ty, supers) =>
+    directNodeSupertypes.foreach { case (ty, supers) =>
       res(ty) = Set()
       supers.foreach { sty =>
         res(sty) = Set()
       }
     }
-    directSupertypes.foreach { case (ty, supers) =>
+    directNodeSupertypes.foreach { case (ty, supers) =>
       supers.foreach { sty =>
         res(sty) = res(sty) + ty
       }
     }
-    Map() ++ res
+    res.toMap
   }
 
-  val subtypes: Map[String, Set[String]] = transClosure(directSubtypes)
+  val nodeSupertypes: Map[NodeType, Set[NodeType]] = transClosure(_directSupertypes)
+  val nodeSubtypes: Map[NodeType, Set[NodeType]] = transClosure(directNodeSubtypes)
 
-  private def transClosure(rel: Map[String, Set[String]]): Map[String, Set[String]] = {
+
+  def directSupertypes(ty: LinkedType): Iterable[LinkedType] = ty match {
+    case ty: NodeType => directNodeSupertypes.getOrElse(ty, Iterable())
+    case ListType(contained) => directSupertypes(contained).map(ListType)
+  }
+  def directSubtypes(ty: LinkedType): Iterable[LinkedType] = ty match {
+    case ty: NodeType => directNodeSubtypes.getOrElse(ty, Iterable())
+    case ListType(contained) => directSubtypes(contained).map(ListType)
+  }
+
+  def supertypes(ty: LinkedType): Iterable[LinkedType] = ty match {
+    case ty: NodeType => nodeSupertypes.getOrElse(ty, Iterable())
+    case ListType(contained) => supertypes(contained).map(ListType)
+  }
+  def subtypes(ty: LinkedType): Iterable[LinkedType] = ty match {
+    case ty: NodeType => nodeSubtypes.getOrElse(ty, Iterable())
+    case ListType(contained) => subtypes(contained).map(ListType)
+  }
+
+  @scala.annotation.tailrec
+  private def transClosure(rel: Map[NodeType, Set[NodeType]]): Map[NodeType, Set[NodeType]] = {
     val newRel = rel.map { case (src, trg) =>
       src -> (trg ++ trg.flatMap { s => rel(s) })
     }

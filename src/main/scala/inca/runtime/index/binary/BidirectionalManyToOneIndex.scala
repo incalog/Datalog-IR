@@ -9,7 +9,7 @@ import scala.collection.mutable
  * In a BinarySurjectiveVirtualIndex, each key uniquely identifies the correponding value, but not vice versa.
  * Many to one.
  */
-abstract class ManyToOneIndex[K,V] extends AbstractBinaryIndex[K,V] {
+abstract class BidirectionalManyToOneIndex[K,V] extends AbstractBinaryIndex[K,V] {
   protected val index: mutable.Map[K, V] = mutable.Map()
   protected val indexInverted: mutable.MultiDict[V, K] = mutable.MultiDict()
 

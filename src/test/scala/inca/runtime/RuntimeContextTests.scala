@@ -3,11 +3,9 @@ package inca.runtime
 import java.util
 
 import inca.analyzedLangs._
-import inca.runtime.index.MetaElements
 import inca.runtime.index.MetaElements.{FirstLink, NextLink, NodeType, PrimitiveType}
-import inca.runtime.indices.InputKey.{LinkKey, NodeTypeKey, PrimitiveKey}
+import inca.runtime.index._
 import inca.runtime.indices.{Indices, TFRuntimeContext}
-import inca.runtime.virtual.VirtualIndex
 import inca.runtime.virtual.list.ListNextIndex
 import inca.runtime.virtual.tree.{ParentIndex, ParentKey}
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, TupleMask, Tuples}
@@ -84,13 +82,13 @@ class RuntimeContextTests extends AnyFunSuite {
 
     val context = new TFRuntimeContext(indices, null)
 
-    context.enumerateTuples(new PrimitiveKey(PrimitiveType(integerName)), emptyMask, null).
+    context.enumerateTuples(new PrimitiveTypeKey(PrimitiveType(integerName)), emptyMask, null).
       asScala should contain allOf(t1(1), t1(2), t1(3))
 
-    context.enumerateTuples(new PrimitiveKey(PrimitiveType(stringName)), emptyMask, null).
+    context.enumerateTuples(new PrimitiveTypeKey(PrimitiveType(stringName)), emptyMask, null).
       asScala should be(empty)
 
-    context.enumerateTuples(new PrimitiveKey(PrimitiveType(boolName)), emptyMask, null).
+    context.enumerateTuples(new PrimitiveTypeKey(PrimitiveType(boolName)), emptyMask, null).
       asScala should be(empty)
 
     indices.dispose()
@@ -126,7 +124,7 @@ class RuntimeContextTests extends AnyFunSuite {
     val nextIndex = new ListNextIndex
     virtualIndices +:= nextIndex
     virtualIndices +:= new ParentIndex(nextIndex)
-    val indices = new Indices(null, null, null, virtualIndices.asJava)
+    val indices = new Indices(null, null, virtualIndices.asJava)
     val context = new TFRuntimeContext(indices, null)
 
     val changeset = Diffable.load(add)
@@ -150,7 +148,7 @@ class RuntimeContextTests extends AnyFunSuite {
     val nextIndex = new ListNextIndex
     virtualIndices +:= nextIndex
     virtualIndices +:= new ParentIndex(nextIndex)
-    val indices = new Indices(null, null, null, virtualIndices.asJava)
+    val indices = new Indices(null, null, virtualIndices.asJava)
     val context = new TFRuntimeContext(indices, null)
 
     val classDeclType = NodeType(classOf[ClassDeclaration].getCanonicalName)
@@ -199,7 +197,7 @@ class RuntimeContextTests extends AnyFunSuite {
     val nextIndex = new ListNextIndex
     virtualIndices +:= nextIndex
     virtualIndices +:= new ParentIndex(nextIndex)
-    val indices = new Indices(null, null, null, virtualIndices.asJava)
+    val indices = new Indices(null, null, virtualIndices.asJava)
     val context = new TFRuntimeContext(indices, null)
 
     val classDeclType = NodeType(classOf[ClassDeclaration].getCanonicalName)
@@ -261,7 +259,7 @@ class RuntimeContextTests extends AnyFunSuite {
     val nextIndex = new ListNextIndex
     virtualIndices +:= nextIndex
     virtualIndices +:= new ParentIndex(nextIndex)
-    val indices = new Indices(null, null, null, virtualIndices.asJava)
+    val indices = new Indices(null, null, virtualIndices.asJava)
     val context = new TFRuntimeContext(indices, null)
 
     val classDeclType = NodeType(classOf[ClassDeclaration].getCanonicalName)

@@ -1,6 +1,6 @@
 package inca.runtime.index.binary
 
-import inca.runtime.virtual.VirtualIndex
+import inca.runtime.index.VirtualIndex
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
 
@@ -19,7 +19,7 @@ abstract class AbstractBinaryIndex[K,V] extends VirtualIndex {
   final protected def notify(k: K, v: V, isInsertion: Boolean): Unit = {
     isDirty |= this.hasListener
     val t = Tuples.staticArityFlatTupleOf(k, v)
-    val notify = (listener: IQueryRuntimeContextListener) => listener.update(virtualKey, t, isInsertion)
+    val notify = (listener: IQueryRuntimeContextListener) => listener.update(key, t, isInsertion)
     listenAll.foreach(notify)
     listenKey.get(k).foreach(notify)
     listenVal.get(v).foreach(notify)

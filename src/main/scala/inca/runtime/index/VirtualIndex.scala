@@ -1,25 +1,17 @@
-package inca.runtime.virtual
+package inca.runtime.index
 
-import org.eclipse.viatra.query.runtime.matchers.context.{IInputKey, IQueryRuntimeContextListener}
+import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask}
 
-/**
- * Generic trait representing a virtual key.
- */
-trait VirtualKey extends IInputKey {
-  def getUniqueID: String
-  override def getPrettyPrintableName: String = getUniqueID
-  override def getStringID: String = getUniqueID
-}
 
 /**
  * Generic trait to capture functionality to support virtual indices.
  * An implementation needs an associated virtual key implementation.
  */
 trait VirtualIndex {
-  val virtualKey: VirtualKey
+  def key: InputKey[_]
 
-  //
+  // ???
   var isDirty: Boolean = false
 
   // process change and updates index/notifies listeners accordingly

@@ -1,17 +1,16 @@
 package inca.runtime.virtual.list
 
-import inca.runtime.index.binary.OneToOneIndex
-import inca.runtime.virtual.VirtualKey
+import inca.runtime.index.DynamicKey
+import inca.runtime.index.binary.BidirectionalOneToOneIndex
 import truechange._
 
-case object ListNextKey extends VirtualKey {
-  override val getUniqueID: String = "next"
-  override val getArity: Int = 2
-  override val isEnumerable: Boolean = true
+case object ListNextKey extends DynamicKey {
+  override val id: String = "#next"
+  override val arity: Int = 2
 }
 
-class ListNextIndex extends OneToOneIndex[NodeURI, NodeURI] {
-  override val virtualKey: VirtualKey = ListNextKey
+class ListNextIndex extends BidirectionalOneToOneIndex[NodeURI, NodeURI] {
+  override def key: DynamicKey = ListNextKey
 
   def iterateNext(from: truechange.NodeURI)(f: truechange.NodeURI => Unit): Unit = {
     f(from)

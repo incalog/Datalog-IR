@@ -1,7 +1,7 @@
 package inca.runtime.listeners;
 
+import inca.runtime.index.LinkKey;
 import inca.runtime.index.MetaElements.Link;
-import inca.runtime.indices.InputKey;
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
 
@@ -24,7 +24,7 @@ public class NodeLinkInstanceAdapter extends ListenerAdapter implements INodeLin
         if (this.target != null && !(this.target.equals(target))) {
             return;
         }
-        this.listener.update(new InputKey.LinkKey(type), Tuples.staticArityFlatTupleOf(source, target), true);
+        this.listener.update(new LinkKey(type), Tuples.staticArityFlatTupleOf(source, target), true);
     }
 
     @Override
@@ -35,7 +35,7 @@ public class NodeLinkInstanceAdapter extends ListenerAdapter implements INodeLin
         if (this.target != null && !(this.target.equals(target))) {
             return;
         }
-        this.listener.update(new InputKey.LinkKey(type), Tuples.staticArityFlatTupleOf(source, target), false);
+        this.listener.update(new LinkKey(type), Tuples.staticArityFlatTupleOf(source, target), false);
     }
 
 }

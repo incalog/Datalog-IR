@@ -3,7 +3,6 @@ import java.util
 
 import inca.runtime.IncaQuerySpecification
 import inca.runtime.context.QueryScope
-import inca.runtime.index.MetaElements
 import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
 import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.ExportedParameter
@@ -37,7 +36,7 @@ object Test_noParamTypeQuerySpecification {
         val exportedParams = new util.ArrayList[ExportedParameter]()
         exportedParams.add(new ExportedParameter(body, var_add, param_add))
         body.setSymbolicParameters(exportedParams)
-        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new inca.runtime.indices.InputKey.NodeTypeKey(MetaElements.NodeType("inca.analyzedLangs.expLang.Add")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new inca.runtime.index.NodeTypeKey(inca.runtime.index.MetaElements.NodeType("inca.analyzedLangs.expLang.Add")))
         body
       }
       bodies

@@ -1,7 +1,7 @@
 package inca.runtime.listeners;
 
 import inca.runtime.index.MetaElements;
-import inca.runtime.indices.InputKey;
+import inca.runtime.index.PrimitiveTypeKey;
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
 
@@ -19,7 +19,7 @@ public class DataTypeInstanceAdapter extends ListenerAdapter implements IDataTyp
         if (this.value != null && !(this.value.equals(value))) {
             return;
         }
-        this.listener.update(new InputKey.PrimitiveKey(type), Tuples.staticArityFlatTupleOf(value), true);
+        this.listener.update(new PrimitiveTypeKey(type), Tuples.staticArityFlatTupleOf(value), true);
     }
 
     @Override
@@ -27,7 +27,7 @@ public class DataTypeInstanceAdapter extends ListenerAdapter implements IDataTyp
         if (this.value != null && !(this.value.equals(value))) {
             return;
         }
-        this.listener.update(new InputKey.PrimitiveKey(type), Tuples.staticArityFlatTupleOf(value), false);
+        this.listener.update(new PrimitiveTypeKey(type), Tuples.staticArityFlatTupleOf(value), false);
     }
 
 }

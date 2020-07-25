@@ -1,7 +1,7 @@
 package inca.runtime.listeners;
 
 import inca.runtime.index.MetaElements.LinkedType;
-import inca.runtime.indices.InputKey;
+import inca.runtime.index.NodeTypeKey;
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener;
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples;
 
@@ -19,7 +19,7 @@ public class NodeTypeInstanceAdapter extends ListenerAdapter implements INodeTyp
         if (this.instance != null && !(this.instance.equals(instance))) {
             return;
         }
-        this.listener.update(new InputKey.NodeTypeKey(type), Tuples.staticArityFlatTupleOf(instance), true);
+        this.listener.update(new NodeTypeKey(type), Tuples.staticArityFlatTupleOf(instance), true);
     }
 
     @Override
@@ -27,7 +27,7 @@ public class NodeTypeInstanceAdapter extends ListenerAdapter implements INodeTyp
         if (this.instance != null && !(this.instance.equals(instance))) {
             return;
         }
-        this.listener.update(new InputKey.NodeTypeKey(type), Tuples.staticArityFlatTupleOf(instance), false);
+        this.listener.update(new NodeTypeKey(type), Tuples.staticArityFlatTupleOf(instance), false);
     }
 
 }

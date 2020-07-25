@@ -1,18 +1,17 @@
 package inca.runtime.virtual.tree
 
-import inca.runtime.index.binary.ManyToOneIndex
-import inca.runtime.virtual.VirtualKey
+import inca.runtime.index.DynamicKey
+import inca.runtime.index.binary.BidirectionalManyToOneIndex
 import inca.runtime.virtual.list.ListNextIndex
 import truechange._
 
-case object ParentKey extends VirtualKey {
-  override val getUniqueID: String = "parent"
-  override val getArity: Int = 2
-  override val isEnumerable: Boolean = true
+case object ParentKey extends DynamicKey {
+  override val id: String = "#parent"
+  override val arity: Int = 2
 }
 
-class ParentIndex(next: ListNextIndex) extends ManyToOneIndex[NodeURI,NodeURI] {
-  override val virtualKey: VirtualKey = ParentKey
+class ParentIndex(next: ListNextIndex) extends BidirectionalManyToOneIndex[NodeURI,NodeURI] {
+  override def key: DynamicKey = ParentKey
 
   override def processChange(change: truechange.Change): Unit = change match {
     case truechange.Attach(parent, _, link, node, _) => link match {

@@ -4,6 +4,7 @@ import inca.analyzedLangs._
 import inca.lang.fun.CompileToGP
 import inca.lang.fun.Fun._
 import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.index.MetaElements
 //import inca.trans.generated.FindBugs_confusedInheritanceQuerySpecification
 import inca.util.AnalysisWriter
 import org.scalatest.funsuite.AnyFunSuite
@@ -11,26 +12,30 @@ import org.scalatest.funsuite.AnyFunSuite
 class FindBugsTests extends AnyFunSuite {
 
 
-  val classDeclType = TNode(classOf[ClassDeclaration].getCanonicalName)
-  val classMemberType = TNode("inca.analyzedLangs.ClassMember")
-  val fieldDeclType = TNode(classOf[FieldDeclaration].getCanonicalName)
-  val visType = TNode("inca.analyzedLangs.Visibility")
-  val privateVisType = TNode(classOf[PrivateVisibility].getCanonicalName)
-  val publicVisType = TNode(classOf[PublicVisibility].getCanonicalName)
+  val classDeclType = MetaElements.NodeType(classOf[ClassDeclaration].getCanonicalName)
+  val classMemberType = MetaElements.NodeType("inca.analyzedLangs.ClassMember")
+  val fieldDeclType = MetaElements.NodeType(classOf[FieldDeclaration].getCanonicalName)
+  val visType = MetaElements.NodeType("inca.analyzedLangs.Visibility")
+  val privateVisType = MetaElements.NodeType(classOf[PrivateVisibility].getCanonicalName)
+  val publicVisType = MetaElements.NodeType(classOf[PublicVisibility].getCanonicalName)
 
   val langMetaInfo = new LanguageMetaInfo(
     Map(
-      classDeclType.name -> Set(),
-      classMemberType.name -> Set(),
-      fieldDeclType.name -> Set(classMemberType.name),
-      visType.name -> Set(),
-      privateVisType.name -> Set(visType.name),
-      publicVisType.name -> Set(visType.name)
+      classDeclType -> Set(),
+      classMemberType -> Set(),
+      fieldDeclType -> Set(classMemberType),
+      visType -> Set(),
+      privateVisType -> Set(visType),
+      publicVisType -> Set(visType)
     ),
     Map(
-      classDeclType.name -> Map("name" -> "java.lang.String", "isFinal" -> "java.lang.Boolean", "members" -> TList(classMemberType).toString),
-      fieldDeclType.name -> Map("name" -> "java.lang.String", "visibility" -> visType.name)
-    ))
+      MetaElements.NamedLink(classDeclType, "name") -> MetaElements.PrimitiveType("java.lang.String"),
+      MetaElements.NamedLink(classDeclType, "isFinal") -> MetaElements.PrimitiveType("java.lang.Boolean"),
+      MetaElements.NamedLink(classDeclType, "members") -> MetaElements.ListType(classMemberType),
+      MetaElements.NamedLink(fieldDeclType, "name") -> MetaElements.PrimitiveType("java.lang.String"),
+      MetaElements.NamedLink(fieldDeclType, "visibility") -> visType
+    )
+  )
 
   test("Confused Inheritance") {
     val classDeclType = TNode(classOf[ClassDeclaration].getCanonicalName)

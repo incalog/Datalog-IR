@@ -17,10 +17,12 @@ case class NodeTypeKey(id: LinkedType) extends InputKey[LinkedType] {
   override val arity: Int = 1
 }
 
-case class PrimitimeTypeKey(id: PrimitiveType) extends InputKey[PrimitiveType] {
+case class PrimitiveTypeKey(id: PrimitiveType) extends InputKey[PrimitiveType] {
   override val arity: Int = 1
 }
 
 case class LinkKey(id: Link) extends InputKey[Link] {
   override val arity: Int = 2
 }
+
+trait DynamicKey extends InputKey[Any]

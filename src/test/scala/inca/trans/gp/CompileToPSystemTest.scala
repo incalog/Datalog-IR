@@ -3,11 +3,12 @@ package inca.trans.gp
 import inca.analyzedLangs.expLang._
 import inca.lang.fun.CompileToGP
 import inca.lang.fun.Fun.{AnnoParam, Assert, Assignment, Body, InstanceOf, Module, Param, ParentLink, PathAccess, PatternFunction, Return, TNode, Var}
-import inca.runtime.{EnginePool, IncaQuerySpecification}
 import inca.runtime.context.{LanguageMetaInfo, QueryScope}
-import inca.runtime.virtual.VirtualIndex
+import inca.runtime.index.MetaElements.{NamedLink, NodeType, PrimitiveType}
+import inca.runtime.index.VirtualIndex
 import inca.runtime.virtual.list.ListNextIndex
 import inca.runtime.virtual.tree.ParentIndex
+import inca.runtime.{EnginePool, IncaQuerySpecification}
 import inca.trans.ExpLangTestAnalyses._
 import inca.trans.generated._
 import inca.util.AnalysisWriter
@@ -22,21 +23,21 @@ class CompileToPSystemTest extends AnyFunSuite {
   private val testInput = Add(And(Or(BooleanLit(false), BooleanLit(false)), IntegerLit(5)), LongLit(10L))
   private val testInputNumericAddition = Add(Add(IntegerLit(5), IntegerLit(7)), Add(LongLit(7), IntegerLit(8)))
 
-  val expName = classOf[Exp].getCanonicalName
-  val intName = classOf[IntegerLit].getCanonicalName
-  val longName = classOf[LongLit].getCanonicalName
-  val boolName = classOf[BooleanLit].getCanonicalName
-  val addName = classOf[Add].getCanonicalName
-  val multName = classOf[Mult].getCanonicalName
-  val andName = classOf[And].getCanonicalName
-  val orName = classOf[Or].getCanonicalName
-  val notName = classOf[Not].getCanonicalName
+  val expName = NodeType(classOf[Exp].getCanonicalName)
+  val intName = NodeType(classOf[IntegerLit].getCanonicalName)
+  val longName = NodeType(classOf[LongLit].getCanonicalName)
+  val boolName = NodeType(classOf[BooleanLit].getCanonicalName)
+  val addName = NodeType(classOf[Add].getCanonicalName)
+  val multName = NodeType(classOf[Mult].getCanonicalName)
+  val andName = NodeType(classOf[And].getCanonicalName)
+  val orName = NodeType(classOf[Or].getCanonicalName)
+  val notName = NodeType(classOf[Not].getCanonicalName)
 
   // TODO we need to derive this information but at this time we hardcode it
   private val langMetaInfo: LanguageMetaInfo =
     new LanguageMetaInfo(
       Map(
-        expName -> Set[String](),
+        expName -> Set(),
         intName -> Set(expName),
         longName -> Set(expName),
         boolName -> Set(expName),
@@ -47,26 +48,18 @@ class CompileToPSystemTest extends AnyFunSuite {
         notName -> Set(expName),
       ),
       Map(
-        addName -> Map(
-          "lhs" -> expName,
-          "rhs" -> expName,
-        ),
-        multName -> Map(
-          "lhs" -> expName,
-          "rhs" -> expName,
-        ),
-        andName -> Map(
-          "lhs" -> expName,
-          "rhs" -> expName,
-        ),
-        orName -> Map(
-          "lhs" -> expName,
-          "rhs" -> expName,
-        ),
-        notName -> Map("e" -> expName),
-        intName -> Map("value" -> "java.lang.Integer"),
-        longName -> Map("value" -> "java.lang.Long"),
-        boolName -> Map("value" -> "java.lang.Boolean")
+        NamedLink(addName, "lhs") -> expName,
+        NamedLink(addName, "rhs") -> expName,
+        NamedLink(multName, "lhs") -> expName,
+        NamedLink(multName, "rhs") -> expName,
+        NamedLink(andName, "lhs") -> expName,
+        NamedLink(andName, "rhs") -> expName,
+        NamedLink(orName, "lhs") -> expName,
+        NamedLink(orName, "rhs") -> expName,
+        NamedLink(notName, "e") -> expName,
+        NamedLink(intName, "value") -> PrimitiveType("java.lang.Integer"),
+        NamedLink(longName, "value") -> PrimitiveType("java.lang.Long"),
+        NamedLink(boolName, "value") -> PrimitiveType("java.lang.Boolean")
       ))
 
 

@@ -1,6 +1,6 @@
 package inca.runtime.context
 
-import inca.runtime.virtual.VirtualIndex
+import inca.runtime.index.VirtualIndex
 import org.apache.log4j.Logger
 import org.eclipse.viatra.query.runtime.api.scope.{IEngineContext, IIndexingErrorListener}
 import org.eclipse.viatra.query.runtime.api.{AdvancedViatraQueryEngine, ViatraQueryEngine}

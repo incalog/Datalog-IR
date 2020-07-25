@@ -2,7 +2,7 @@ package inca.lang.gp
 
 import inca.lang.gp.GP._
 import inca.runtime.index.MetaElements.{ListType, NamedLink, NodeType, PrimitiveType}
-import inca.runtime.indices.InputKey.{LinkKey, NodeTypeKey, PrimitiveKey}
+import inca.runtime.index.{LinkKey, NodeTypeKey, PrimitiveTypeKey}
 import inca.runtime.virtual.list.ListNextKey
 import inca.runtime.virtual.tree.ParentKey
 import inca.util.Gensym
@@ -16,7 +16,7 @@ class CompileToPSystem(analysis: Seq[Object]) {
   val LITPREFIX = "lit_"
 
   val tyNodeTypeKey = typeOf[NodeTypeKey]
-  val tyPrimitiveKey = typeOf[PrimitiveKey]
+  val tyPrimitiveKey = typeOf[PrimitiveTypeKey]
   val tyLinkKey = typeOf[LinkKey]
 
   val oParentKey = objectOf(ParentKey)
@@ -72,7 +72,8 @@ class CompileToPSystem(analysis: Seq[Object]) {
       import java.util
 
       import inca.runtime.IncaQuerySpecification
-      import inca.runtime.indices.{InputKey, QueryScope}
+      import inca.runtime.context.QueryScope
+      import inca.runtime.index.InputKey
       import inca.runtime.virtual.tree.ParentKey
       import inca.runtime.virtual.list.ListNextKey
 

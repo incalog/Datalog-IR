@@ -2,14 +2,13 @@ package inca.runtime.indices;
 
 import com.google.common.collect.Multiset;
 import inca.runtime.context.MetaContext;
-import inca.runtime.index.MetaElements;
+import inca.runtime.index.*;
 import inca.runtime.index.MetaElements.Link;
 import inca.runtime.index.MetaElements.LinkedType;
 import inca.runtime.index.MetaElements.PrimitiveType;
 import inca.runtime.listeners.DataTypeInstanceAdapter;
 import inca.runtime.listeners.NodeLinkInstanceAdapter;
 import inca.runtime.listeners.NodeTypeInstanceAdapter;
-import inca.runtime.virtual.VirtualKey;
 import org.eclipse.viatra.query.runtime.matchers.context.*;
 import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey;
 import org.eclipse.viatra.query.runtime.matchers.tuple.ITuple;
@@ -68,8 +67,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
     public int countTuples(final IInputKey key, final TupleMask mask, final ITuple seed) {
         int result = 0;
 
-        if (key instanceof InputKey.NodeTypeKey) {
-            final LinkedType type = ((InputKey.NodeTypeKey) key).type;
+        if (key instanceof NodeTypeKey) {
+            final LinkedType type = ((NodeTypeKey) key).id();
             if (mask.indices.length == 0) {
                 // unseeded
                 result = this.indices.linkedTypeInstances.getOrDefault(type, Collections.emptySet()).size();
@@ -77,8 +76,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 // fully seeded
                 result = ((containsTuple(key, seed)) ? 1 : 0);
             }
-        } else if (key instanceof InputKey.PrimitiveKey) {
-            final PrimitiveType type = ((InputKey.PrimitiveKey) key).type;
+        } else if (key instanceof PrimitiveTypeKey) {
+            final PrimitiveType type = ((PrimitiveTypeKey) key).id();
             if (mask.indices.length == 0) {
                 // unseeded
                 final Multiset<Object> instances = this.indices.primitiveTypeInstances.get(type);
@@ -89,8 +88,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 // fully seeded
                 result = ((containsTuple(key, seed)) ? 1 : 0);
             }
-        } else if (key instanceof InputKey.LinkKey) {
-            final Link link = ((InputKey.LinkKey) key).type;
+        } else if (key instanceof LinkKey) {
+            final Link link = ((LinkKey) key).id();
 
             boolean isSourceBound = false;
             int sourceIndex = -1;
@@ -127,8 +126,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                     result = linkValues.containsKey(seedSource) ? 1 : 0;
                 }
             }
-        } else if (key instanceof VirtualKey) {
-            result = indices.virtualIndices.get(key.getStringID()).countTuples(mask, seed);
+        } else if (key instanceof DynamicKey) {
+            result = indices.virtualIndices.get(key).countTuples(mask, seed);
         } else {
 			throw new IllegalArgumentException("Cannot handle key " + key);
 		}
@@ -149,8 +148,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
     public Iterable<Tuple> enumerateTuples(final IInputKey key, final TupleMask mask, final ITuple seed) {
         final Collection<Tuple> result = new HashSet<>();
 
-        if (key instanceof InputKey.NodeTypeKey) {
-            final LinkedType type = ((InputKey.NodeTypeKey) key).type;
+        if (key instanceof NodeTypeKey) {
+            final LinkedType type = ((NodeTypeKey) key).id();
             if (mask.indices.length == 0) {
                 this.indices.linkedTypeInstances.getOrDefault(type, Collections.emptySet()).forEach(e -> result.add(Tuples.staticArityFlatTupleOf(e)));
             } else {
@@ -159,8 +158,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                     result.add(Tuples.staticArityFlatTupleOf(seedInstance));
                 }
             }
-        } else if (key instanceof InputKey.PrimitiveKey) {
-            final PrimitiveType type = ((InputKey.PrimitiveKey) key).type;
+        } else if (key instanceof PrimitiveTypeKey) {
+            final PrimitiveType type = ((PrimitiveTypeKey) key).id();
 
             if (mask.indices.length == 0) {
                 final Multiset<Object> instances = this.indices.primitiveTypeInstances.get(type);
@@ -173,8 +172,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                     result.add(Tuples.staticArityFlatTupleOf(seedInstance));
                 }
             }
-        } else if (key instanceof InputKey.LinkKey) {
-            final Link link = ((InputKey.LinkKey) key).type;
+        } else if (key instanceof LinkKey) {
+            final Link link = ((LinkKey) key).id();
 
             boolean isSourceBound = false;
             int sourceIndex = -1;
@@ -225,8 +224,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                     }
                 }
             }
-        } else if (key instanceof VirtualKey) {
-            scala.collection.Iterable<Tuple> tuples = indices.virtualIndices.get(key.getStringID()).enumerateTuples(mask, seed);
+        } else if (key instanceof DynamicKey) {
+            scala.collection.Iterable<Tuple> tuples = indices.virtualIndices.get(key).enumerateTuples(mask, seed);
             result.addAll(CollectionConverters.asJavaCollection(tuples));
         } else {
         	throw new IllegalArgumentException("Cannot handle key " + key);
@@ -243,8 +242,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
     public Iterable<?> enumerateValues(final IInputKey key, final TupleMask mask, final ITuple seed) {
         Collection<?> result = null;
 
-        if (key instanceof InputKey.NodeTypeKey) {
-            final LinkedType type = ((InputKey.NodeTypeKey) key).type;
+        if (key instanceof NodeTypeKey) {
+            final LinkedType type = ((NodeTypeKey) key).id();
             if (mask.indices.length == 0) {
                 // unseeded
                 result = this.indices.linkedTypeInstances.get(type);
@@ -252,8 +251,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 // must be unseeded, this is enumerateValues after all!
                 illegalEnumerateValues(seed);
             }
-        } else if (key instanceof InputKey.PrimitiveKey) {
-            final PrimitiveType type = ((InputKey.PrimitiveKey) key).type;
+        } else if (key instanceof PrimitiveTypeKey) {
+            final PrimitiveType type = ((PrimitiveTypeKey) key).id();
             if (mask.indices.length == 0) {
                 // unseeded
                 result = this.indices.primitiveTypeInstances.get(type);
@@ -261,8 +260,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 // must be unseeded, this is enumerateValues after all!
                 illegalEnumerateValues(seed);
             }
-        } else if (key instanceof InputKey.LinkKey) {
-            final Link link = ((InputKey.LinkKey) key).type;
+        } else if (key instanceof LinkKey) {
+            final Link link = ((LinkKey) key).id();
 
             boolean isSourceBound = false;
             int sourceIndex = -1;
@@ -295,8 +294,8 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
                 // must be singly unseeded, this is enumerateValues after all!
                 illegalEnumerateValues(seed);
             }
-        } else if (key instanceof VirtualKey) {
-            scala.collection.Iterable<?> values = indices.virtualIndices.get(key.getStringID()).enumerateValues(mask, seed);
+        } else if (key instanceof DynamicKey) {
+            scala.collection.Iterable<?> values = indices.virtualIndices.get(key).enumerateValues(mask, seed);
             result = CollectionConverters.asJavaCollection(values);
         } else {
 			throw new IllegalArgumentException("Cannot handle key " + key);
@@ -324,25 +323,25 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
             } else {
                 result = false;
             }
-        } else if (key instanceof InputKey.NodeTypeKey) {
-            final LinkedType type = ((InputKey.NodeTypeKey) key).type;
+        } else if (key instanceof NodeTypeKey) {
+            final LinkedType type = ((NodeTypeKey) key).id();
             result = this.indices.linkedTypeInstances.getOrDefault(type, Collections.emptySet()).contains(getFromTuple(tuple, 0));
-        } else if (key instanceof InputKey.PrimitiveKey) {
-            final PrimitiveType type = ((InputKey.PrimitiveKey) key).type;
+        } else if (key instanceof PrimitiveTypeKey) {
+            final PrimitiveType type = ((PrimitiveTypeKey) key).id();
             final Multiset<Object> instances = this.indices.primitiveTypeInstances.get(type);
             if (instances != null) {
                 result = instances.contains(getFromTuple(tuple, 0));
             }
-        } else if (key instanceof InputKey.LinkKey) {
-            final Link link = ((InputKey.LinkKey) key).type;
+        } else if (key instanceof LinkKey) {
+            final Link link = ((LinkKey) key).id();
             final Map<Object, Object> linkValues = this.indices.linkInstances.get(link);
             if (linkValues != null) {
                 final Object source = getFromTuple(tuple, 1);
                 final Object target = getFromTuple(tuple, 0);
                 result = linkValues.get(source) == target;
             }
-        } else if (key instanceof VirtualKey) {
-            result = indices.virtualIndices.get(key.getStringID()).containsTuple(tuple);
+        } else if (key instanceof DynamicKey) {
+            result = indices.virtualIndices.get(key).containsTuple(tuple);
         } else {
 			throw new IllegalArgumentException("Cannot handle key " + key);
 		}
@@ -372,17 +371,17 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
     public void addUpdateListener(final IInputKey key, final Tuple seed, final IQueryRuntimeContextListener listener) {
         if (key instanceof JavaTransitiveInstancesKey) {
             // stateless, so NOP
-        } else if (key instanceof InputKey.NodeTypeKey) {
-            final LinkedType type = ((InputKey.NodeTypeKey) key).type;
+        } else if (key instanceof NodeTypeKey) {
+            final LinkedType type = ((NodeTypeKey) key).id();
             this.indices.addLinkedTypeInstanceListener(type, new NodeTypeInstanceAdapter(listener, seed.get(0)));
-        } else if (key instanceof InputKey.PrimitiveKey) {
-            final PrimitiveType type = ((InputKey.PrimitiveKey) key).type;
+        } else if (key instanceof PrimitiveTypeKey) {
+            final PrimitiveType type = ((PrimitiveTypeKey) key).id();
             this.indices.addPrimitiveTypeInstanceListener(type, new DataTypeInstanceAdapter(listener, seed.get(0)));
-        } else if (key instanceof InputKey.LinkKey) {
-            final Link type = ((InputKey.LinkKey) key).type;
+        } else if (key instanceof LinkKey) {
+            final Link type = ((LinkKey) key).id();
             this.indices.addLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
-        } else if (key instanceof VirtualKey) {
-            indices.virtualIndices.get(key.getStringID()).addListener(listener, seed);
+        } else if (key instanceof DynamicKey) {
+            indices.virtualIndices.get(key).addListener(listener, seed);
         } else {
 			throw new IllegalArgumentException("Cannot handle key " + key);
 		}
@@ -392,17 +391,17 @@ public class TFRuntimeContext implements IQueryRuntimeContext {
     public void removeUpdateListener(final IInputKey key, final Tuple seed, final IQueryRuntimeContextListener listener) {
         if (key instanceof JavaTransitiveInstancesKey) {
             // stateless, so NOP
-        } else if (key instanceof InputKey.NodeTypeKey) {
-            final LinkedType type = ((InputKey.NodeTypeKey) key).type;
+        } else if (key instanceof NodeTypeKey) {
+            final LinkedType type = ((NodeTypeKey) key).id();
             this.indices.removeLinkedTypeInstanceListener(type, new NodeTypeInstanceAdapter(listener, seed.get(0)));
-        } else if (key instanceof InputKey.PrimitiveKey) {
-            final PrimitiveType type = ((InputKey.PrimitiveKey) key).type;
+        } else if (key instanceof PrimitiveTypeKey) {
+            final PrimitiveType type = ((PrimitiveTypeKey) key).id();
             this.indices.removePrimitiveTypeInstanceListener(type, new DataTypeInstanceAdapter(listener, seed.get(0)));
-        } else if (key instanceof InputKey.LinkKey) {
-            final MetaElements.Link type = ((InputKey.LinkKey) key).type;
+        } else if (key instanceof LinkKey) {
+            final MetaElements.Link type = ((LinkKey) key).id();
             this.indices.removeLinkInstanceListener(type, new NodeLinkInstanceAdapter(listener, seed.get(0), seed.get(1)));
-        } else if (key instanceof VirtualKey) {
-            indices.virtualIndices.get(key.getStringID()).removeListener(listener, seed);
+        } else if (key instanceof DynamicKey) {
+            indices.virtualIndices.get(key).removeListener(listener, seed);
         } else {
 			throw new IllegalArgumentException("Cannot handle key " + key);
 		}

@@ -1,7 +1,7 @@
 package inca.runtime.context
 
+import inca.runtime.index.VirtualIndex
 import inca.runtime.indices.{Indices, TFRuntimeContext}
-import inca.runtime.virtual.VirtualIndex
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.api.scope.IEngineContext
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContext
@@ -20,7 +20,7 @@ case class EngineContext(scope: QueryScope, engine: AdvancedViatraQueryEngine, v
     res
   }
 
-  val indices: Indices = new Indices(engine, scala2JavaNestedMap(scope.langMetaInfo.subtypes), scala2JavaNestedMap(scope.langMetaInfo.supertypes), virtualIndices.asJava)
+  val indices: Indices = new Indices(engine, scope.langMetaInfo, virtualIndices.asJava)
   val runtimeCtx = new TFRuntimeContext(indices, new MetaContext(scope.langMetaInfo))
 
   override def getBaseIndex: Indices = indices

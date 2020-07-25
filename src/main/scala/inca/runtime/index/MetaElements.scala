@@ -3,9 +3,12 @@ package inca.runtime.index
 object MetaElements {
   trait Type {
     def name: String
+    def mkKey: InputKey[_]
   }
 
-  case class PrimitiveType(name: String) extends Type
+  case class PrimitiveType(name: String) extends Type {
+    override def mkKey: PrimitiveTypeKey = PrimitiveTypeKey(this)
+  }
 
   def isIncaPrimitiveType(name: String): Boolean = {
     val javaPrimitives = Seq("java.lang.Integer", "java.lang.Long", "java.lang.Double", "java.lang.String", "java.lang.Boolean")
@@ -14,6 +17,8 @@ object MetaElements {
 
   trait LinkedType extends Type {
     def apply(field: String): Link
+
+    override def mkKey: NodeTypeKey = NodeTypeKey(this)
   }
 
   case class NodeType(name: String) extends LinkedType {

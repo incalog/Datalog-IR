@@ -6,12 +6,12 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask
 import scala.collection.mutable
 
 /*
- * In a BinaryBijectiveVirtualIndex, each key uniquely identifies the correponding value and vice versa.
- * One to one.
+ * In a BinaryVirtualIndex, neither key nor value uniquely identify each other.
+ * Many to many.
  */
-abstract class OneToOneIndex[K,V] extends AbstractBinaryIndex[K,V] {
-  protected val index: mutable.Map[K, V] = mutable.Map()
-  protected val indexInverted: mutable.Map[V, K] = mutable.Map()
+abstract class BidirectionalManyToManyIndex[K,V] extends AbstractBinaryIndex[K,V] {
+  protected val index: mutable.MultiDict[K, V] = mutable.MultiDict()
+  protected val indexInverted: mutable.MultiDict[V, K] = mutable.MultiDict()
 
   override protected def insert(k: K, v: V): Unit = {
     index += (k -> v)
@@ -20,8 +20,8 @@ abstract class OneToOneIndex[K,V] extends AbstractBinaryIndex[K,V] {
   }
 
   override protected def delete(k: K, v: V): Unit = {
-    index -= k
-    indexInverted -= v
+    index -= (k -> v)
+    indexInverted -= (v -> k)
     notify(k, v, isInsertion = false)
   }
 
@@ -41,10 +41,10 @@ abstract class OneToOneIndex[K,V] extends AbstractBinaryIndex[K,V] {
       index.size
     } else if (maskLength == 1) {
       val isOrdered = mask.indices(0) == 0
-      if (isOrdered && index.contains(seed.get(0).asInstanceOf[K])) {
-        1
-      } else if (!isOrdered && indexInverted.contains(seed.get(1).asInstanceOf[V])) {
-        1
+      if (isOrdered) {
+        index.get(seed.get(0).asInstanceOf[K]).size
+      } else if (!isOrdered ) {
+        indexInverted.get(seed.get(1).asInstanceOf[V]).size
       } else {
         0
       }

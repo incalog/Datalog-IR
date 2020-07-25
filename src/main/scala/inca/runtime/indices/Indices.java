@@ -2,16 +2,17 @@ package inca.runtime.indices;
 
 import com.google.common.collect.HashMultiset;
 import com.google.common.collect.Multiset;
+import inca.runtime.context.LanguageMetaInfo;
+import inca.runtime.index.DynamicKey;
 import inca.runtime.index.MetaElements;
 import inca.runtime.index.MetaElements.Link;
 import inca.runtime.index.MetaElements.LinkedType;
-import inca.runtime.index.MetaElements.NodeType;
 import inca.runtime.index.MetaElements.PrimitiveType;
+import inca.runtime.index.VirtualIndex;
 import inca.runtime.listeners.IDataTypeInstanceListener;
 import inca.runtime.listeners.IInstanceListener;
 import inca.runtime.listeners.INodeLinkInstanceListener;
 import inca.runtime.listeners.INodeTypeInstanceListener;
-import inca.runtime.virtual.VirtualIndex;
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine;
 import org.eclipse.viatra.query.runtime.api.scope.IBaseIndex;
 import org.eclipse.viatra.query.runtime.api.scope.IIndexingErrorListener;
@@ -19,6 +20,7 @@ import org.eclipse.viatra.query.runtime.api.scope.IInstanceObserver;
 import org.eclipse.viatra.query.runtime.api.scope.ViatraBaseIndexChangeListener;
 import scala.Tuple2;
 import scala.collection.Iterator;
+import scala.collection.convert.JavaCollectionWrappers;
 import truechange.*;
 
 import java.lang.reflect.InvocationTargetException;
@@ -40,10 +42,9 @@ public class Indices implements IBaseIndex {
     final Map<Link, Map<Object, Object>> linkInstancesReversed;
     final Map<Link, Set<INodeLinkInstanceListener>> linkInstanceListeners;
 
-    public final Map<String, Set<String>> subtypeMap = new HashMap<>();
-    public final Map<String, Set<String>> supertypeMap = new HashMap<>();
+    private LanguageMetaInfo languageMetaInfo;
 
-    final Map<String, VirtualIndex> virtualIndices;
+    final Map<DynamicKey, VirtualIndex> virtualIndices;
 
     private final Set<ViatraBaseIndexChangeListener> changeListeners;
     private AdvancedViatraQueryEngine engine;
@@ -51,10 +52,10 @@ public class Indices implements IBaseIndex {
     private boolean isDirty;
 
     public Indices() {
-        this(null, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList());
+        this(null, new LanguageMetaInfo(), Collections.emptyList());
     }
 
-    public Indices(final AdvancedViatraQueryEngine engine, final Map<String, Set<String>> subtypeMap, final Map<String, Set<String>> supertypeMap, final List<VirtualIndex> virtualIndices) {
+    public Indices(final AdvancedViatraQueryEngine engine, final LanguageMetaInfo languageMetaInfo, final List<VirtualIndex> virtualIndices) {
         this.linkedTypeInstances = new HashMap<>();
         this.linkedTypeInstancesListener = new HashMap<>();
         this.primitiveTypeInstances = new HashMap<>();
@@ -63,14 +64,8 @@ public class Indices implements IBaseIndex {
         this.linkInstancesReversed = new HashMap<>();
         this.linkInstanceListeners = new HashMap<>();
         this.changeListeners = new HashSet<>();
-        this.virtualIndices = virtualIndices.stream().collect(Collectors.toMap(ix -> ix.virtualKey().getUniqueID(), ix -> ix));
-        if (subtypeMap != null) {
-            this.subtypeMap.putAll(subtypeMap);
-        }
-        if (supertypeMap != null) {
-            this.supertypeMap.putAll(supertypeMap);
-        }
-
+        this.virtualIndices = virtualIndices.stream().collect(Collectors.toMap(ix -> (DynamicKey) ix.key(), ix -> ix));
+		this.languageMetaInfo = Objects.requireNonNullElseGet(languageMetaInfo, LanguageMetaInfo::new);
         this.engine = engine;
     }
 
@@ -92,14 +87,14 @@ public class Indices implements IBaseIndex {
                 }
             } else if (change instanceof Unload) {
                 Unload unload = (Unload) change;
-                // insert nodeTypeInstance
+                // delete nodeTypeInstance
                 LinkedType node = convertTagToNodeType(unload.tag());
-                Set<String> supertypes = supertypeMap.getOrDefault(node.name(), Collections.emptySet());
-                for (String supertype : supertypes) {
-                    NodeType nodeTypeSupertype = new NodeType(supertype);
-                    deleteLinkedTypeInstance(nodeTypeSupertype, unload.node());
-                }
-                deleteLinkedTypeInstance(node, unload.node());
+
+				deleteLinkedTypeInstance(node, unload.node());
+				for (LinkedType supertype : new JavaCollectionWrappers.IterableWrapper<>(languageMetaInfo.supertypes(node))) {
+					deleteLinkedTypeInstance(supertype, unload.node());
+				}
+
                 Iterator<Tuple2<String, NodeURI>> kidsIterator = unload.kids().iterator();
                 while(kidsIterator.hasNext()) {
                     Tuple2<String, NodeURI> kid = kidsIterator.next();
@@ -126,13 +121,11 @@ public class Indices implements IBaseIndex {
                 Load load = (Load) change;
                 LinkedType node = convertTagToNodeType(load.tag());
 
-                Set<String> supertypes = supertypeMap.getOrDefault(node.name(), Collections.emptySet());
-                for (String supertype : supertypes) {
-                    NodeType nodeTypeSupertype = new NodeType(supertype);
-                    insertLinkedTypeInstance(nodeTypeSupertype, load.node());
-                }
+				insertLinkedTypeInstance(node, load.node());
+				for (LinkedType supertype : new JavaCollectionWrappers.IterableWrapper<>(languageMetaInfo.supertypes(node))) {
+					insertLinkedTypeInstance(supertype, load.node());
+				}
 
-                insertLinkedTypeInstance(node, load.node());
                 Iterator<Tuple2<String, NodeURI>> kidsIterator = load.kids().iterator();
                 while(kidsIterator.hasNext()) {
                     Tuple2<String, NodeURI> kid = kidsIterator.next();
@@ -191,8 +184,7 @@ public class Indices implements IBaseIndex {
         this.linkInstanceListeners.clear();
         this.changeListeners.clear();
         this.virtualIndices.clear();
-        this.subtypeMap.clear();
-        this.supertypeMap.clear();
+        this.languageMetaInfo = new LanguageMetaInfo();
         this.engine = null;
     }
 
