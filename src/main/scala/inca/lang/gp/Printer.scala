@@ -37,13 +37,13 @@ object Printer {
   def prettyConstraint(constraint: Atom): String = constraint match {
     case Compare(comp, lhs, rhs) => prettyValue(lhs) + " " + prettyComparator(comp) + " " + prettyValue(rhs)
     case HasType(v, typ) => prettyType(typ) + "(" + prettyValue(v) + ")"
-    case Path(src, trg, link) => link match {
+    case Path(src, trg, link, ty) => link match {
       case NamedLink(node, fld) =>
-        prettyType(node) + "." + fld + "(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
+        prettyType(node) + "." + fld + "(" + prettyValue(src) + ", " + prettyValue(trg) + "):" + prettyType(ty)
       case ParentLink =>
-        "parent(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
+        "parent(" + prettyValue(src) + ", " + prettyValue(trg) + "):" + prettyType(ty)
       case NextLink =>
-        "next(" + prettyValue(src) + ", " + prettyValue(trg) + ")"
+        "next(" + prettyValue(src) + ", " + prettyValue(trg) + "):" + prettyType(ty)
     }
     case Call(name, args, isTransitive, isNeg) =>
       val neg = if (isNeg) "neg " else ""

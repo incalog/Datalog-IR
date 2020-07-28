@@ -1,11 +1,11 @@
 package inca.lang.gp
 
 import inca.lang.gp.GP._
-import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index._
+import inca.runtime.index.dynamic.ParentIndex
 import inca.util.Gensym
 import inca.util.Meta._
-import truechange.{JavaLitType, ListType, SortType}
+import truechange.{AnyType, JavaLitType, ListType, SortType}
 
 import scala.meta._
 
@@ -14,14 +14,15 @@ class CompileToPSystem(analysis: Seq[Object]) {
   val VARPREFIX = "var_"
   val LITPREFIX = "lit_"
 
-  val tyNodeTypeKey = typeOf[NodeTypeKey]
-  val tyPrimitiveKey = typeOf[PrimitiveTypeKey]
+  val oNodeTypeKey = objectOf(NodeTypeKey)
+  val oPrimitiveKey = objectOf(PrimitiveTypeKey)
   val oLinkNodeKey = objectOf(LinkNodeKey)
   val oLinkPrimitiveKey = objectOf(LinkPrimitiveKey)
   val oLinkListNextKey = objectOf(LinkListNextKey)
 
   val oParentIndex = objectOf(ParentIndex)
 
+  val tAnyType = objectOf(AnyType)
   val tNodeType = symbolOf[SortType]
   val tListType = symbolOf[ListType]
   val tPrimitiveType = symbolOf[JavaLitType]
@@ -135,8 +136,8 @@ class CompileToPSystem(analysis: Seq[Object]) {
   def genInputKey(typ: GP.TypeAnno): meta.Term = {
     val gentyp = genType(typ)
     typ match {
-      case TBool | TInt | TLong | TDouble | TString => q"new $tyPrimitiveKey($gentyp)"
-      case _:TNode | _:TList => q"new $tyNodeTypeKey($gentyp)"
+      case TBool | TInt | TLong | TDouble | TString => q"$oPrimitiveKey($gentyp)"
+      case TAnyLinked | _:TNode | _:TList => q"$oNodeTypeKey($gentyp)"
     }
   }
 
@@ -176,7 +177,7 @@ class CompileToPSystem(analysis: Seq[Object]) {
       Some(q"""new TypeConstraint(
             body,
             Tuples.flatTupleOf(${Term.Name(s"$VARPREFIX${param.name}")}),
-            new $tyNodeTypeKey(${genType(param.typ.get)}))""")
+            $oNodeTypeKey(${genType(param.typ.get)}))""")
     else None
   }
 
@@ -200,7 +201,7 @@ class CompileToPSystem(analysis: Seq[Object]) {
       Seq(q"""new TypeConstraint(
             body,
             Tuples.flatTupleOf(${transValue(t)}),
-            new $tyNodeTypeKey(${genType(typ)}))""")
+            $oNodeTypeKey(${genType(typ)}))""")
     case Path(src, trg, link, targetType) =>
       val key = genLinkKey(link, targetType)
       Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${transValue(src)}, ${transValue(trg)}), $key)")
@@ -226,11 +227,12 @@ class CompileToPSystem(analysis: Seq[Object]) {
   }
 
   private def genType(typ: GP.TypeAnno): meta.Term = typ match {
-    case TBool => q"$tPrimitiveType(classOf[Boolean])"
-    case TInt => q"$tPrimitiveType(classOf[Int])"
-    case TLong => q"$tPrimitiveType(classOf[Long])"
-    case TDouble => q"$tPrimitiveType(classOf[Double])"
-    case TString => q"$tPrimitiveType(classOf[String])"
+    case TBool => q"$tPrimitiveType(classOf[java.lang.Boolean])"
+    case TInt => q"$tPrimitiveType(classOf[java.lang.Integer])"
+    case TLong => q"$tPrimitiveType(classOf[java.lang.Long])"
+    case TDouble => q"$tPrimitiveType(classOf[java.lang.Double])"
+    case TString => q"$tPrimitiveType(classOf[java.lang.String])"
+    case TAnyLinked => tAnyType
     case TNode(name) => q"$tNodeType($name)"
     case TList(ty) =>
       val tygen = genType(ty)

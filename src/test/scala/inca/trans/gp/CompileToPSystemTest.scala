@@ -64,9 +64,9 @@ class CompileToPSystemTest extends AnyFunSuite {
         (notTag->"e") -> expType
       ),
       Map(
-        (intTag->"value") -> JavaLitType(classOf[Int]),
-        (longTag->"value") -> JavaLitType(classOf[Long]),
-        (boolTag->"value") -> JavaLitType(classOf[Boolean])
+        (intTag->"value") -> JavaLitType(classOf[java.lang.Integer]),
+        (longTag->"value") -> JavaLitType(classOf[java.lang.Long]),
+        (boolTag->"value") -> JavaLitType(classOf[java.lang.Boolean])
       ))
 
   def assertMatch(

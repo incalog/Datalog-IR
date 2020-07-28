@@ -25,7 +25,7 @@ trait Collect[R] {
     case Call(_, args, _, _) => args.flatMap(transValue)
     case Compare(comp, lhs, rhs) => transValue(lhs) ++ transValue(rhs)
     case HasType(v, typ) => transValue(v)
-    case Path(src, trg, link) => transValue(src) ++ transValue(trg)
+    case Path(src, trg, link, ty) => transValue(src) ++ transValue(trg)
     case Native(code) => transCode(code)
   }
 

@@ -54,10 +54,6 @@ object Fun {
   case class PathAccess(receiver: Exp, link: Link) extends Exp
   case class Call(name: Name, args: Seq[Exp], transitive: Boolean, count: Boolean) extends Exp
   case class Tuple(exps: Seq[Exp]) extends Exp
-  object PathAccess {
-    def apply(receiver: Exp, links: Seq[Link]): Exp =
-      links.foldRight(receiver)((link,exp) => PathAccess(exp, link))
-  }
 
   sealed trait Link
   case object ParentLink extends Link

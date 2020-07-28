@@ -1,6 +1,6 @@
 package inca.runtime
 
-import java.util
+import java.{lang, util}
 
 import inca.analyzedLangs._
 import inca.runtime.index._
@@ -70,9 +70,9 @@ class RuntimeContextTests extends AnyFunSuite {
     val editScript = Diffable.load(add)
     database.processEditScript(editScript)
 
-    val integer = JavaLitType(classOf[Int])
-    val string = JavaLitType(classOf[String])
-    val bool = JavaLitType(classOf[Boolean])
+    val integer = JavaLitType(classOf[lang.Integer])
+    val string = JavaLitType(classOf[lang.String])
+    val bool = JavaLitType(classOf[lang.Boolean])
 
     database.enumerateTuples(PrimitiveTypeKey(integer), emptyMask, null).
       asScala should contain allOf(t1(1), t1(2), t1(3))

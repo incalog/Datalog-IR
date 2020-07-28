@@ -104,7 +104,7 @@ class Database(
 
   def processEdit(edit: Edit): Unit = edit match {
     // delete link, leave rest intact
-    case Detach(parent, ptag, link, node, _) => link.getRawLink match {
+    case Detach(node, _, link, parent, ptag) => link.getRawLink match {
       case NamedLink(linkname) => ptag match {
         case NamedTag(tagname) => linkNodeInstances(tagname->linkname).delete(parent, node)
         case ListTag(_) => editError(s"Cannot detach link $linkname from list $ptag. " + edit)
@@ -114,7 +114,7 @@ class Database(
     }
 
     // add link, leave rest intact
-    case Attach(parent, ptag, link, node, _) => link.getRawLink match {
+    case Attach(node, _, link, parent, ptag) => link.getRawLink match {
       case NamedLink(linkname) => ptag match {
         case NamedTag(tagname) => linkNodeInstancesEnsure(tagname->linkname).insert(parent, node)
         case ListTag(_) => editError(s"Cannot attach link $linkname from list $ptag. " + edit)
