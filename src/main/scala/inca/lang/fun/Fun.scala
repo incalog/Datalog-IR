@@ -9,6 +9,7 @@ object Fun {
   case object TString extends TypeAnno
 
   trait TLinked extends TypeAnno
+  case object TAnyLinked extends TLinked
   case class TNode(name: String) extends TLinked {
     def apply(field: String): NamedLink = NamedLink(this, field)
   }
@@ -43,6 +44,10 @@ object Fun {
 
   trait Exp {
     var typ: TypeAnno = _
+    def typed(ty: TypeAnno): this.type = {
+      this.typ = ty
+      this
+    }
   }
   case class Var(name: Name) extends Exp
   case class Constant(lit: Literal) extends Exp

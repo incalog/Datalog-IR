@@ -1,0 +1,282 @@
+package inca.runtime
+
+import java.util.Optional
+import java.util.concurrent.Callable
+import java.{lang, util}
+
+import inca.runtime.Query.ChangeFeed
+import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.index.MetaElements.{Link, PrimitiveValue}
+import inca.runtime.index._
+import inca.runtime.index.binary.{BidirectionalOneToManyIndex, BidirectionalOneToOneIndex}
+import inca.runtime.index.dynamic.DynamicIndex
+import inca.runtime.index.unary.UnaryIndex
+import org.eclipse.viatra.query.runtime.api.scope.{IBaseIndex, IIndexingErrorListener, IInstanceObserver, ViatraBaseIndexChangeListener}
+import org.eclipse.viatra.query.runtime.matchers.context._
+import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask}
+import org.eclipse.viatra.query.runtime.matchers.util.Accuracy
+import truechange._
+
+import scala.collection.mutable
+import scala.jdk.CollectionConverters._
+
+
+class Database(
+               _languageMetaInfo: LanguageMetaInfo,
+               _dynamicIndices: Map[DynamicKey, DynamicIndex],
+               _metaContext: IQueryMetaContext
+             )
+  extends AbstractQueryRuntimeContext with IBaseIndex with ChangeFeed {
+
+  def this() = this(null, Map(), null)
+
+  val languageMetaInfo: LanguageMetaInfo = if (_languageMetaInfo != null) _languageMetaInfo else new LanguageMetaInfo()
+
+  override def getMetaContext: IQueryMetaContext = _metaContext
+
+
+
+
+  /* indices */
+
+  private val nodeInstances: mutable.Map[Type, UnaryIndex[URI]] = mutable.Map()
+  private val primitiveInstances: mutable.Map[LitType, UnaryIndex[PrimitiveValue]] = mutable.Map()
+  private val linkNodeInstances: mutable.Map[Link, BidirectionalOneToOneIndex[URI, URI]] = mutable.Map()
+  private val linkPrimitiveInstances: mutable.Map[Link, BidirectionalOneToManyIndex[URI, PrimitiveValue]] = mutable.Map()
+  private val linkListFirstInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListFirstKey)
+  private val linkListNextInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListNextKey)
+  private val dynamicIndices: Map[DynamicKey, DynamicIndex] = _dynamicIndices
+
+  dynamicIndices.values.foreach(_.setDatabase(this))
+
+  @inline
+  private def nodeInstancesEnsure(ty: Type) = nodeInstances.getOrElse(ty, {
+    val ix = new UnaryIndex[URI](NodeTypeKey(ty))
+    nodeInstances += ty -> ix
+    ix
+  })
+
+  @inline
+  private def primitiveInstancesEnsure(primitiveType: LitType) = primitiveInstances.getOrElse(primitiveType, {
+    val ix = new UnaryIndex[PrimitiveValue](PrimitiveTypeKey(primitiveType))
+    primitiveInstances += primitiveType -> ix
+    ix
+  })
+
+  @inline
+  private def linkNodeInstancesEnsure(link: Link) = linkNodeInstances.getOrElse(link, {
+    val ix = new BidirectionalOneToOneIndex[URI, URI](LinkNodeKey(link))
+    linkNodeInstances += link -> ix
+    ix
+  })
+
+  @inline
+  private def linkPrimitiveInstancesEnsure(link: Link) = linkPrimitiveInstances.getOrElse(link, {
+    val ix = new BidirectionalOneToManyIndex[URI, PrimitiveValue](LinkPrimitiveKey(link))
+    linkPrimitiveInstances += link -> ix
+    ix
+  })
+
+
+
+
+  /* BaseIndex listeners */
+
+  private val baseIndexListeners: mutable.Set[ViatraBaseIndexChangeListener] = mutable.Set()
+  override def addBaseIndexChangeListener(listener: ViatraBaseIndexChangeListener): Unit = baseIndexListeners += listener
+  override def removeBaseIndexChangeListener(listener: ViatraBaseIndexChangeListener): Unit = baseIndexListeners -= listener
+  def notifyBaseIndexListeners(): Unit = baseIndexListeners.foreach(_.notifyChanged(true))
+
+
+
+
+
+
+  /** Process edit scripts */
+
+  private def editError(msg: String) = throw new IllegalStateException("Processing edit script failed: " + msg)
+
+  override def processEditScript(edits: EditScript): Unit = edits.foreach { edit =>
+    // inform dynamic indices
+    dynamicIndices.values.foreach(_.processEdit(edit))
+    processEdit(edit)
+  }
+
+  def processEdit(edit: Edit): Unit = edit match {
+    // delete link, leave rest intact
+    case Detach(parent, ptag, link, node, _) => link.getRawLink match {
+      case NamedLink(linkname) => ptag match {
+        case NamedTag(tagname) => linkNodeInstances(tagname->linkname).delete(parent, node)
+        case ListTag(_) => editError(s"Cannot detach link $linkname from list $ptag. " + edit)
+      }
+      case ListFirstLink(_) => linkListFirstInstances.delete(parent, node)
+      case ListNextLink(_) => linkListNextInstances.delete(parent, node)
+    }
+
+    // add link, leave rest intact
+    case Attach(parent, ptag, link, node, _) => link.getRawLink match {
+      case NamedLink(linkname) => ptag match {
+        case NamedTag(tagname) => linkNodeInstancesEnsure(tagname->linkname).insert(parent, node)
+        case ListTag(_) => editError(s"Cannot attach link $linkname from list $ptag. " + edit)
+      }
+      case ListFirstLink(_) => linkListFirstInstances.insert(parent, node)
+      case ListNextLink(_) => linkListNextInstances.insert(parent, node)
+    }
+
+    case Load(node, ListTag(ty), kids, lits) =>
+      // insert node to nodeInstances (also for supertypes)
+      val lty = ListType(ty)
+      for (sup <- Iterable(lty) ++ languageMetaInfo.supertypes(lty)) {
+        nodeInstancesEnsure(sup).insert(node)
+      }
+      if (kids.nonEmpty || lits.nonEmpty)
+        editError("Lists cannot have kids or lits. " + edit)
+    case Load(node, NamedTag(tagname), kids, lits) =>
+      // insert node to nodeInstances (also for supertypes)
+      val nty = SortType(tagname)
+      for (sup <- Iterable(nty) ++ languageMetaInfo.supertypes(nty)) {
+        nodeInstancesEnsure(sup).insert(node)
+      }
+      // insert links from node to kids
+      for ((name, kid) <- kids) {
+        linkNodeInstancesEnsure(tagname->name).insert(node, kid)
+      }
+      // insert lits to primitiveInstances and links from node to lits
+      for ((name, lit) <- lits) {
+        val litTy = JavaLitType(lit.getClass)
+        primitiveInstancesEnsure(litTy).insert(lit)
+        linkPrimitiveInstancesEnsure(tagname->name).insert(node, lit)
+      }
+
+    case Unload(node, ListTag(ty), kids, lits) =>
+      // delete node from nodeInstances (also for supertypes)
+      val lty = ListType(ty)
+      for (sup <- Iterable(lty) ++ languageMetaInfo.supertypes(lty)) {
+        nodeInstances(sup).delete(node)
+      }
+      if (kids.nonEmpty || lits.nonEmpty)
+        editError("Lists cannot have kids or lits. " + edit)
+    case Unload(node, NamedTag(tagname), kids, lits) =>
+      // delete node from nodeInstances (also for supertypes)
+      val nty = SortType(tagname)
+      for (sup <- Iterable(nty) ++ languageMetaInfo.supertypes(nty)) {
+        nodeInstances(sup).delete(node)
+      }
+      // delete links from node to kids
+      for ((name, kid) <- kids) {
+        linkNodeInstances(tagname->name).delete(node, kid)
+      }
+      // delete lits from primitiveInstances and links from node to lits
+      for ((name, lit) <- lits) {
+        val litTy = JavaLitType(lit.getClass)
+        primitiveInstances(litTy).delete(lit)
+        linkPrimitiveInstances(tagname->name).delete(node, lit)
+      }
+  }
+
+  def iterateNext(from: truechange.URI)(f: truechange.URI => Unit): Unit = {
+    val index = linkListNextInstances.index
+    f(from)
+    var nextNode = index.get(from)
+    while(true) {
+      nextNode match {
+        case Some(node) =>
+          f(node)
+          nextNode = index.get(node)
+        case None => return
+      }
+    }
+  }
+
+
+
+  /* index delegation */
+
+  @inline
+  private def getIndex(key: IInputKey): Option[Index] = key match {
+    case NodeTypeKey(ty) => nodeInstances.get(ty)
+    case PrimitiveTypeKey(primitiveType) => primitiveInstances.get(primitiveType)
+    case LinkNodeKey(link) => linkNodeInstances.get(link)
+    case LinkPrimitiveKey(link) => linkPrimitiveInstances.get(link)
+    case LinkListFirstKey => Some(linkListFirstInstances)
+    case LinkListNextKey => Some(linkListNextInstances)
+    case dkey: DynamicKey => Some(dynamicIndices(dkey))
+  }
+
+
+  @inline
+  private def ensureIndex(key: IInputKey): Index = key match {
+    case NodeTypeKey(ty) => nodeInstancesEnsure(ty)
+    case PrimitiveTypeKey(primitiveType) => primitiveInstancesEnsure(primitiveType)
+    case LinkNodeKey(link) => linkNodeInstancesEnsure(link)
+    case LinkPrimitiveKey(link) => linkPrimitiveInstancesEnsure(link)
+    case LinkListFirstKey => linkListFirstInstances
+    case LinkListNextKey => linkListNextInstances
+    case dkey: DynamicKey => dynamicIndices(dkey)
+  }
+
+  override def countTuples(key: IInputKey, mask: TupleMask, seed: ITuple): Int = getIndex(key) match {
+    case Some(ix) => ix.countTuples(mask, seed)
+    case None => 0
+  }
+
+  override def enumerateTuples(key: IInputKey, mask: TupleMask, seed: ITuple): lang.Iterable[Tuple] = getIndex(key) match {
+    case Some(ix) => ix.enumerateTuples(mask, seed).asJava
+    case None => util.Collections.emptyList()
+  }
+
+  override def enumerateValues(key: IInputKey, mask: TupleMask, seed: ITuple): lang.Iterable[_] = getIndex(key) match {
+    case Some(ix) => ix.enumerateValues(mask, seed).asJava
+    case None => util.Collections.emptyList()
+  }
+
+  override def containsTuple(key: IInputKey, seed: ITuple): Boolean = getIndex(key) match {
+    case Some(ix) => ix.containsTuple(seed)
+    case None => false
+  }
+
+  override def addUpdateListener(key: IInputKey, seed: Tuple, listener: IQueryRuntimeContextListener): Unit =
+    ensureIndex(key).addListener(listener, seed)
+
+  override def removeUpdateListener(key: IInputKey, seed: Tuple, listener: IQueryRuntimeContextListener): Unit = getIndex(key) match {
+    case Some(ix) => ix.removeListener(listener, seed)
+    case None =>
+  }
+
+  override def isIndexed(key: IInputKey, service: IndexingService): Boolean =
+    getIndex(key).nonEmpty
+
+  override def ensureIndexed(key: IInputKey, service: IndexingService): Unit =
+    getIndex(key).getOrElse(throw new RuntimeException(s"Not indexed key $key"))
+
+
+
+
+
+
+  /* Unused stuff required by Viatra IQueryRuntimeContext */
+
+  override def ensureWildcardIndexing(service: IndexingService): Unit = { }
+  override def estimateCardinality(key: IInputKey, groupMask: TupleMask, requiredAccuracy: Accuracy): Optional[lang.Long] = Optional.empty()
+
+  override def wrapElement(externalElement: Any): Any = externalElement
+  override def unwrapElement(internalElement: Any): Any = internalElement
+  override def wrapTuple(externalElements: Tuple): Tuple = externalElements
+  override def unwrapTuple(internalElements: Tuple): Tuple = internalElements
+
+  override def isCoalescing: Boolean = false
+  override def coalesceTraversals[V](callable: Callable[V]): V = callable.call()
+  override def executeAfterTraversal(runnable: Runnable): Unit = runnable.run()
+
+
+
+
+
+  /* Unused stuff required by Viatra IBaseIndex */
+
+  override def resampleDerivedFeatures(): Unit = { }
+  override def addIndexingErrorListener(listener: IIndexingErrorListener): Boolean = false
+  override def removeIndexingErrorListener(listener: IIndexingErrorListener): Boolean = false
+  override def addInstanceObserver(observer: IInstanceObserver, observedObject: Any): Boolean = false
+  override def removeInstanceObserver(observer: IInstanceObserver, observedObject: Any): Boolean = false
+}

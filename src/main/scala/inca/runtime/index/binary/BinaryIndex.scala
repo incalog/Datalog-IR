@@ -1,23 +1,21 @@
 package inca.runtime.index.binary
 
-import inca.runtime.index.VirtualIndex
+import inca.runtime.index.Index
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
 
 import scala.collection.mutable
 
-abstract class AbstractBinaryIndex[K,V] extends VirtualIndex {
-  protected def insert(k: K, v: V): Unit
-  protected def delete(k: K, v: V): Unit
+abstract class BinaryIndex[K,V] extends Index {
+  def insert(k: K, v: V): Unit
+  def delete(k: K, v: V): Unit
 
-  def hasListener: Boolean = listenAll.nonEmpty || listenKey.nonEmpty || listenVal.nonEmpty || listenKeyVal.nonEmpty
   protected val listenAll: mutable.Set[IQueryRuntimeContextListener] = mutable.Set()
   protected val listenKey: mutable.MultiDict[K, IQueryRuntimeContextListener] = mutable.MultiDict()
   protected val listenVal: mutable.MultiDict[V, IQueryRuntimeContextListener] = mutable.MultiDict()
   protected val listenKeyVal: mutable.MultiDict[Tuple, IQueryRuntimeContextListener] = mutable.MultiDict()
 
   final protected def notify(k: K, v: V, isInsertion: Boolean): Unit = {
-    isDirty |= this.hasListener
     val t = Tuples.staticArityFlatTupleOf(k, v)
     val notify = (listener: IQueryRuntimeContextListener) => listener.update(key, t, isInsertion)
     listenAll.foreach(notify)

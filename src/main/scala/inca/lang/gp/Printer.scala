@@ -1,6 +1,6 @@
 package inca.lang.gp
 
-import inca.lang.gp.GP.{Atom, Body, Call, Comparator, Compare, Constant, EqComparator, HasType, Module, NamedLink, NeqComparator, NextLink, Param, ParentLink, Path, Private, Public, Rule, TBool, TDouble, TInt, TList, TLong, TNode, TString, Term, TypeAnno, Var, Visibility}
+import inca.lang.gp.GP.{Atom, Body, Call, Comparator, Compare, Constant, EqComparator, HasType, Module, NamedLink, Native, NeqComparator, NextLink, Param, ParentLink, Path, Private, Public, Rule, TBool, TDouble, TInt, TList, TLong, TNode, TString, Term, TypeAnno, Var, Visibility}
 
 object Printer {
 
@@ -50,6 +50,8 @@ object Printer {
       val trans = if (isTransitive) "+" else ""
       val call = s"$name$trans(${args.map(prettyValue).mkString(",")})"
       s"${neg}find $call"
+    case Native(code) =>
+      s"native $code"
   }
 
   def prettyValue(value: Term): String = value match {

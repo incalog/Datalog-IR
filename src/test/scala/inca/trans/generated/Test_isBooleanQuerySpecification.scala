@@ -1,33 +1,17 @@
 package inca.trans.generated
 import java.util
 
-import inca.runtime.IncaQuerySpecification
-import inca.runtime.context.QueryScope
-import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
-import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
+import inca.runtime.Query
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.{ExportedParameter, _}
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables._
 import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
 import org.eclipse.viatra.query.runtime.matchers.psystem.{PBody, PVariable}
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
-class Test_isBooleanQuerySpecification extends IncaQuerySpecification(Test_isBooleanQuerySpecification.GeneratedPQuery.INSTANCE) {
-  override def instantiate(engine: ViatraQueryEngine): GenericPatternMatcher = {
-    var matcher: GenericPatternMatcher = engine.getExistingMatcher(this)
-    if (matcher == null) matcher = engine.getMatcher(this)
-    matcher
-  }
-  override def getPreferredScopeClass: Class[_ <: ViatraQueryScope] = classOf[QueryScope]
-}
 object Test_isBooleanQuerySpecification {
-  def instance(): Test_isBooleanQuerySpecification = LazyHolder.INSTANCE
-  private final object LazyHolder {
-    val INSTANCE: Test_isBooleanQuerySpecification = make()
-    def make(): Test_isBooleanQuerySpecification = new Test_isBooleanQuerySpecification()
-  }
+  lazy val instance: Query.Specification = new Query.Specification(GeneratedPQuery)
   private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
-    val INSTANCE: GeneratedPQuery.type = this
-    private val param_in: PParameter = new PParameter("in", inca.runtime.index.MetaElements.NodeType("inca.analyzedLangs.expLang.BooleanLit").toString, new inca.runtime.index.NodeTypeKey(inca.runtime.index.MetaElements.NodeType("inca.analyzedLangs.expLang.BooleanLit")))
-    private val param_out: PParameter = new PParameter("out", inca.runtime.index.MetaElements.PrimitiveType("java.lang.Boolean").toString, new inca.runtime.index.PrimitiveTypeKey(inca.runtime.index.MetaElements.PrimitiveType("java.lang.Boolean")))
+    private val param_in: PParameter = new PParameter("in", truechange.SortType("inca.analyzedLangs.expLang.BooleanLit").toString, new inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.BooleanLit")))
+    private val param_out: PParameter = new PParameter("out", truechange.JavaLitType(classOf[Boolean]).toString, new inca.runtime.index.PrimitiveTypeKey(truechange.JavaLitType(classOf[Boolean])))
     {}
     override protected def doGetContainedBodies(): util.Set[PBody] = {
       val bodies: util.Set[PBody] = util.Set.of {
@@ -41,7 +25,7 @@ object Test_isBooleanQuerySpecification {
         body.setSymbolicParameters(exportedParams)
         val var_tmp: PVariable = body.getOrCreateVariableByName("tmp")
         val lit_boolean1231 = body.newConstantVariable(true)
-        new TypeConstraint(body, Tuples.flatTupleOf(var_in), new inca.runtime.index.NodeTypeKey(inca.runtime.index.MetaElements.NodeType("inca.analyzedLangs.expLang.BooleanLit")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_in), new inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.BooleanLit")))
         new Equality(body, var_tmp, lit_boolean1231)
         new Equality(body, var_tmp, var_out)
         body

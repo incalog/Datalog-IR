@@ -4,20 +4,25 @@ import inca.analyzedLangs._
 import inca.lang.fun.CompileToGP
 import inca.lang.fun.Fun._
 import inca.runtime.context.LanguageMetaInfo
-import inca.runtime.index.MetaElements
+import inca.{AnalysisWriter, analyzedLangs}
+import truechange.{JavaLitType, ListType, SortType}
 //import inca.trans.generated.FindBugs_confusedInheritanceQuerySpecification
-import inca.util.AnalysisWriter
 import org.scalatest.funsuite.AnyFunSuite
 
 class FindBugsTests extends AnyFunSuite {
 
 
-  val classDeclType = MetaElements.NodeType(classOf[ClassDeclaration].getCanonicalName)
-  val classMemberType = MetaElements.NodeType("inca.analyzedLangs.ClassMember")
-  val fieldDeclType = MetaElements.NodeType(classOf[FieldDeclaration].getCanonicalName)
-  val visType = MetaElements.NodeType("inca.analyzedLangs.Visibility")
-  val privateVisType = MetaElements.NodeType(classOf[PrivateVisibility].getCanonicalName)
-  val publicVisType = MetaElements.NodeType(classOf[PublicVisibility].getCanonicalName)
+  val classDeclTag = classOf[ClassDeclaration].getCanonicalName
+  val classDeclType = SortType(classDeclTag)
+  val classMemberTag = classOf[ClassMember].getCanonicalName
+  val classMemberType = SortType(classMemberTag)
+  val fieldDeclTag = classOf[FieldDeclaration].getCanonicalName
+  val fieldDeclType = SortType(fieldDeclTag)
+  val visType = SortType(classOf[analyzedLangs.Visibility].getCanonicalName)
+  val privateVisTag = classOf[PrivateVisibility].getCanonicalName
+  val privateVisType = SortType(privateVisTag)
+  val publicVisTag = classOf[PublicVisibility].getCanonicalName
+  val publicVisType = SortType(publicVisTag)
 
   val langMetaInfo = new LanguageMetaInfo(
     Map(
@@ -29,11 +34,13 @@ class FindBugsTests extends AnyFunSuite {
       publicVisType -> Set(visType)
     ),
     Map(
-      MetaElements.NamedLink(classDeclType, "name") -> MetaElements.PrimitiveType("java.lang.String"),
-      MetaElements.NamedLink(classDeclType, "isFinal") -> MetaElements.PrimitiveType("java.lang.Boolean"),
-      MetaElements.NamedLink(classDeclType, "members") -> MetaElements.ListType(classMemberType),
-      MetaElements.NamedLink(fieldDeclType, "name") -> MetaElements.PrimitiveType("java.lang.String"),
-      MetaElements.NamedLink(fieldDeclType, "visibility") -> visType
+      (classDeclTag->"members") -> ListType(classMemberType),
+      (fieldDeclTag->"visibility") -> visType
+    ),
+    Map(
+      (classDeclTag->"name") -> JavaLitType(classOf[String]),
+      (classDeclTag->"isFinal") -> JavaLitType(classOf[Boolean]),
+      (fieldDeclTag->"name") -> JavaLitType(classOf[String])
     )
   )
 
@@ -68,17 +75,17 @@ class FindBugsTests extends AnyFunSuite {
 //    val changeset = Diffable.load(clazz)
 //    val matcher = EnginePool.getMatcher(FindBugs_confusedInheritanceQuerySpecification.instance(), scope, DifferentialReteBackendFactory.INSTANCE)
 //    val indices = scope.getEngineContext.getBaseIndex
-//    indices.processChangeset(changeset)
+//    indices.processEditScript(changeset)
 //    assert(matcher.getAllValues("class").contains(clazz.uri))
 //
 //    val clazz2 = ClassDeclaration("Foo", true, List(FieldDeclaration("baz", PublicVisibility())))
 //    val (diffset, updatedclazz) = clazz.compareTo(clazz2)
-//    indices.processChangeset(diffset)
+//    indices.processEditScript(diffset)
 //    assert(matcher.getAllMatches.isEmpty)
 //
 //    val clazz3 = ClassDeclaration("Foo", false, List(FieldDeclaration("baz", PublicVisibility())))
 //    val (diffset2, updatedclazz2) = updatedclazz.compareTo(clazz3)
-//    indices.processChangeset(diffset2)
+//    indices.processEditScript(diffset2)
 //    assert(matcher.getAllMatches.isEmpty)
 //
 //    val clazz4 = ClassDeclaration("Foo", true, List(
@@ -86,7 +93,7 @@ class FindBugsTests extends AnyFunSuite {
 //      FieldDeclaration("baz", PublicVisibility()),
 //      FieldDeclaration("baaz", ProtectedVisibility())))
 //    val (diffset3, updatedclazz3) = updatedclazz2.compareTo(clazz4)
-//    indices.processChangeset(diffset3)
+//    indices.processEditScript(diffset3)
 //    assert(matcher.getAllValues("class").contains(updatedclazz3.uri))
 //
 //    EnginePool.disposeAllEngines()

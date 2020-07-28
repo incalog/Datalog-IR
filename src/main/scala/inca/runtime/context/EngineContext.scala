@@ -1,31 +1,16 @@
 package inca.runtime.context
 
-import inca.runtime.index.VirtualIndex
-import inca.runtime.indices.{Indices, TFRuntimeContext}
-import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
-import org.eclipse.viatra.query.runtime.api.scope.IEngineContext
+import inca.runtime.Database
+import org.eclipse.viatra.query.runtime.api.scope.{IBaseIndex, IEngineContext}
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContext
 
-import scala.jdk.CollectionConverters._
+class EngineContext(scope: QueryScope) extends IEngineContext {
 
-// we pass the virtualindices because we want them to be configurable
-case class EngineContext(scope: QueryScope, engine: AdvancedViatraQueryEngine, virtualIndices: Seq[VirtualIndex]) extends IEngineContext {
+  var database = new Database(scope.langMetaInfo, scope.dynamicIndices, new MetaContext(scope.langMetaInfo))
 
-
-  private def scala2JavaNestedMap(map: Map[String, Set[String]]): java.util.Map[String, java.util.Set[String]] = {
-    val res = new java.util.HashMap[String, java.util.Set[String]]()
-    map.foreach { case (key, set) =>
-      res.put(key, set.asJava)
-    }
-    res
-  }
-
-  val indices: Indices = new Indices(engine, scope.langMetaInfo, virtualIndices.asJava)
-  val runtimeCtx = new TFRuntimeContext(indices, new MetaContext(scope.langMetaInfo))
-
-  override def getBaseIndex: Indices = indices
-  override def getQueryRuntimeContext: IQueryRuntimeContext = runtimeCtx
+  override def getBaseIndex: IBaseIndex = database
+  override def getQueryRuntimeContext: IQueryRuntimeContext = database
   override def dispose(): Unit = {
-    indices.dispose()
+    database = null
   }
 }

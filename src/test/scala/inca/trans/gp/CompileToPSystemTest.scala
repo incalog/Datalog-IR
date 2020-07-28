@@ -1,21 +1,18 @@
 package inca.trans.gp
 
+import inca.AnalysisWriter
 import inca.analyzedLangs.expLang._
-import inca.lang.fun.CompileToGP
-import inca.lang.fun.Fun.{AnnoParam, Assert, Assignment, Body, InstanceOf, Module, Param, ParentLink, PathAccess, PatternFunction, Return, TNode, Var}
+import inca.lang.fun.Fun.{Exp => _, _}
 import inca.runtime.context.{LanguageMetaInfo, QueryScope}
-import inca.runtime.index.MetaElements.{NamedLink, NodeType, PrimitiveType}
-import inca.runtime.index.VirtualIndex
-import inca.runtime.virtual.list.ListNextIndex
-import inca.runtime.virtual.tree.ParentIndex
-import inca.runtime.{EnginePool, IncaQuerySpecification}
+import inca.runtime.index.DynamicKey
+import inca.runtime.index.dynamic.{DynamicIndex, ParentIndex}
+import inca.runtime.{EnginePool, Query}
 import inca.trans.ExpLangTestAnalyses._
-import inca.trans.generated._
-import inca.util.AnalysisWriter
 import org.eclipse.viatra.query.runtime.api.{IPatternMatch, ViatraQueryMatcher}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
+import truechange.{JavaLitType, SortType}
 import truediff.Diffable
 
 class CompileToPSystemTest extends AnyFunSuite {
@@ -23,130 +20,156 @@ class CompileToPSystemTest extends AnyFunSuite {
   private val testInput = Add(And(Or(BooleanLit(false), BooleanLit(false)), IntegerLit(5)), LongLit(10L))
   private val testInputNumericAddition = Add(Add(IntegerLit(5), IntegerLit(7)), Add(LongLit(7), IntegerLit(8)))
 
-  val expName = NodeType(classOf[Exp].getCanonicalName)
-  val intName = NodeType(classOf[IntegerLit].getCanonicalName)
-  val longName = NodeType(classOf[LongLit].getCanonicalName)
-  val boolName = NodeType(classOf[BooleanLit].getCanonicalName)
-  val addName = NodeType(classOf[Add].getCanonicalName)
-  val multName = NodeType(classOf[Mult].getCanonicalName)
-  val andName = NodeType(classOf[And].getCanonicalName)
-  val orName = NodeType(classOf[Or].getCanonicalName)
-  val notName = NodeType(classOf[Not].getCanonicalName)
+  val expType = SortType(classOf[Exp].getCanonicalName)
+  val intTag = classOf[IntegerLit].getCanonicalName
+  val intType = SortType(intTag)
+  val longTag = classOf[LongLit].getCanonicalName
+  val longType = SortType(longTag)
+  val boolTag = classOf[BooleanLit].getCanonicalName
+  val boolType = SortType(boolTag)
+  val addTag = classOf[Add].getCanonicalName
+  val addType = SortType(addTag)
+  val multTag = classOf[Mult].getCanonicalName
+  val multType = SortType(multTag)
+  val andTag = classOf[And].getCanonicalName
+  val andType = SortType(andTag)
+  val orTag = classOf[Or].getCanonicalName
+  val orType = SortType(orTag)
+  val notTag = classOf[Not].getCanonicalName
+  val notType = SortType(notTag)
 
   // TODO we need to derive this information but at this time we hardcode it
   private val langMetaInfo: LanguageMetaInfo =
     new LanguageMetaInfo(
-      Map(
-        expName -> Set(),
-        intName -> Set(expName),
-        longName -> Set(expName),
-        boolName -> Set(expName),
-        multName -> Set(expName),
-        addName -> Set(expName),
-        andName -> Set(expName),
-        orName -> Set(expName),
-        notName -> Set(expName),
+      Map[SortType, Set[SortType]](
+        expType -> Set(),
+        intType -> Set(expType),
+        longType -> Set(expType),
+        boolType -> Set(expType),
+        multType -> Set(expType),
+        addType -> Set(expType),
+        andType -> Set(expType),
+        orType -> Set(expType),
+        notType -> Set(expType),
       ),
       Map(
-        NamedLink(addName, "lhs") -> expName,
-        NamedLink(addName, "rhs") -> expName,
-        NamedLink(multName, "lhs") -> expName,
-        NamedLink(multName, "rhs") -> expName,
-        NamedLink(andName, "lhs") -> expName,
-        NamedLink(andName, "rhs") -> expName,
-        NamedLink(orName, "lhs") -> expName,
-        NamedLink(orName, "rhs") -> expName,
-        NamedLink(notName, "e") -> expName,
-        NamedLink(intName, "value") -> PrimitiveType("java.lang.Integer"),
-        NamedLink(longName, "value") -> PrimitiveType("java.lang.Long"),
-        NamedLink(boolName, "value") -> PrimitiveType("java.lang.Boolean")
+        (addTag->"lhs") -> expType,
+        (addTag->"rhs") -> expType,
+        (multTag->"lhs") -> expType,
+        (multTag->"rhs") -> expType,
+        (andTag->"lhs") -> expType,
+        (andTag->"rhs") -> expType,
+        (orTag->"lhs") -> expType,
+        (orTag->"rhs") -> expType,
+        (notTag->"e") -> expType
+      ),
+      Map(
+        (intTag->"value") -> JavaLitType(classOf[Int]),
+        (longTag->"value") -> JavaLitType(classOf[Long]),
+        (boolTag->"value") -> JavaLitType(classOf[Boolean])
       ))
 
-
   def assertMatch(
-      module: Module,
       subjectProg: Diffable,
-      compiledModule: IncaQuerySpecification)(asserter: ViatraQueryMatcher[_ <: IPatternMatch] => Assertion): Assertion = {
-    val gp = CompileToGP.transformModule(module)
-    AnalysisWriter.writeModule(gp)
-    val changeset = Diffable.load(subjectProg)
-    var virtualIndices = Seq[VirtualIndex]()
-    val nextIndex = new ListNextIndex
-    virtualIndices +:= nextIndex
-    virtualIndices +:= new ParentIndex(nextIndex)
+      compiledModuleClassname: String)(asserter: ViatraQueryMatcher[_ <: IPatternMatch] => Assertion): Assertion = {
+
+    val editScript = Diffable.load(subjectProg)
+    val virtualIndices = Map[DynamicKey, DynamicIndex](ParentIndex())
     val scope = new QueryScope(langMetaInfo, virtualIndices)
 
-    val matcher = EnginePool.getMatcher(compiledModule, scope, DifferentialReteBackendFactory.INSTANCE)
-    scope.getEngineContext.getBaseIndex.processChangeset(changeset)
+    val clazz = Class.forName("inca.trans.generated." + compiledModuleClassname)
+    assert(clazz != null)
 
-    val result = asserter(matcher)
-    EnginePool.disposeAllEngines()
-    result
+    val instanceMethod = clazz.getMethod("instance")
+    val querySpec = instanceMethod.invoke(null).asInstanceOf[Query.Specification]
+
+    val (feed, matcher) = EnginePool.loadQuery(querySpec, scope, DifferentialReteBackendFactory.INSTANCE)
+    feed.processEditScript(editScript)
+
+    try {
+      asserter(matcher)
+    } finally {
+      EnginePool.disposeAllEngines()
+    }
   }
 
   test("simple compare constraint") {
     val module = Module("Test", Seq(), Seq(idFun))
-    assertMatch(module, testInputNumericAddition, Test_idQuerySpecification.instance()) { matcher =>
+    AnalysisWriter.writeModule(module)
+
+    assertMatch(testInputNumericAddition, "Test_idQuerySpecification") { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
-    assertMatch(module, testInput, Test_idQuerySpecification.instance()) { matcher =>
+    assertMatch(testInput, "Test_idQuerySpecification") { matcher =>
       assert(matcher.getAllMatches.size == 1)
     }
   }
 
   test("simple path constraint") {
     val module = Module("Test", Seq(), Seq(lhChildFun))
-    assertMatch(module, testInputNumericAddition, Test_lhChildQuerySpecification.instance()) { matcher =>
+    AnalysisWriter.writeModule(module)
+
+    assertMatch(testInputNumericAddition, "Test_lhChildQuerySpecification") { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
-    assertMatch(module, testInput, Test_lhChildQuerySpecification.instance()) { matcher =>
+    assertMatch(testInput, "Test_lhChildQuerySpecification") { matcher =>
       assert(matcher.getAllMatches.size == 1)
     }
   }
 
   test("multiple bodies") {
     val module = Module("Test", Seq(), Seq(childrenFun))
-    assertMatch(module, testInputNumericAddition, Test_childrenQuerySpecification.instance()) { matcher =>
+    AnalysisWriter.writeModule(module)
+
+    assertMatch(testInputNumericAddition, "Test_childrenQuerySpecification") { matcher =>
       assert(matcher.getAllMatches.size == 6)
     }
-    assertMatch(module, testInput, Test_childrenQuerySpecification.instance()) { matcher =>
+    assertMatch(testInput, "Test_childrenQuerySpecification") { matcher =>
       assert(matcher.getAllMatches.size == 2)
     }
   }
 
   test("non negative, non transtive call") {
     val module = Module("Test", Seq(), Seq(callLhChildFun, lhChildFun))
-    assertMatch(module, testInputNumericAddition, Test_callLhChildQuerySpecification.instance()) { matcher =>
+    AnalysisWriter.writeModule(module)
+
+    assertMatch(testInputNumericAddition, "Test_callLhChildQuerySpecification") { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
-    assertMatch(module, testInput, Test_callLhChildQuerySpecification.instance()) { matcher =>
+    assertMatch(testInput, "Test_callLhChildQuerySpecification") { matcher =>
       assert(matcher.getAllMatches.size == 1)
     }
   }
 
   test("constraint concept") {
     val module = Module("Test", Seq(), Seq(instanceAddFun))
-    assertMatch(module, testInputNumericAddition, Test_instanceAddQuerySpecification.instance()) { matcher =>
+    AnalysisWriter.writeModule(module)
+
+    assertMatch(testInputNumericAddition, "Test_instanceAddQuerySpecification") { matcher =>
       assert(matcher.getAllMatches.size == 1)
     }
-    assertMatch(module, testInput, Test_instanceAddQuerySpecification.instance()) { matcher =>
+    assertMatch(testInput, "Test_instanceAddQuerySpecification") { matcher =>
       assert(matcher.getAllMatches.size == 0)
     }
   }
 
   test("no type annotation for param") {
     val module = Module("Test", Seq(), Seq(noParamTypeFun))
-    assertMatch(module, testInputNumericAddition, Test_noParamTypeQuerySpecification.instance()) { matcher =>
+    AnalysisWriter.writeModule(module)
+
+    assertMatch(testInputNumericAddition, "Test_noParamTypeQuerySpecification") { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
   }
 
   test("primitive datatype output") {
     val module = Module("Test", Seq(), Seq(isBooleanFun))
-    assertMatch(module, testInputNumericAddition, Test_isBooleanQuerySpecification.instance()) { matcher =>
+    AnalysisWriter.writeModule(module)
+
+    assertMatch(testInputNumericAddition, "Test_isBooleanQuerySpecification") { matcher =>
       assert(matcher.getAllMatches.size == 0)
     }
-    assertMatch(module, testInput, Test_isBooleanQuerySpecification.instance()) { matcher =>
+    assertMatch(testInput, "Test_isBooleanQuerySpecification") { matcher =>
       assert(matcher.getAllMatches.size == 2)
     }
   }
@@ -166,11 +189,14 @@ class CompileToPSystemTest extends AnyFunSuite {
       Seq(
         Body(
           Seq(
-            Assignment(Seq("p"), PathAccess(Var("in"), ParentLink)),
+            Assignment(Seq("p"), PathAccess(Var("in"), ParentLink).typed(TAnyLinked)),
             Assert(InstanceOf(Var("p"), expType)),
             Return(Var("p"))))))
+
     val module = Module("Test", Seq(), Seq(parentFun))
-    assertMatch(module, mul, Test_parentQuerySpecification.instance()) { matcher =>
+    AnalysisWriter.writeModule(module)
+
+    assertMatch(mul, "Test_parentQuerySpecification") { matcher =>
       assert(matcher.getAllMatches.size == 4)
     }
   }

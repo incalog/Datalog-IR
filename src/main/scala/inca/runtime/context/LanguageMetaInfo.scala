@@ -1,6 +1,7 @@
 package inca.runtime.context
 
 import inca.runtime.index.MetaElements._
+import truechange.{Link => _, _}
 
 import scala.collection.mutable
 
@@ -18,14 +19,17 @@ import scala.collection.mutable
  */
 // TODO add what the node types and what primitives are
 // node types are the keys of directSupertypes
-class LanguageMetaInfo(_directSupertypes: Map[NodeType, Set[NodeType]], _links: Map[NamedLink, Type]) {
-  def this() = this(Map(), Map())
+class LanguageMetaInfo(
+                        _directSupertypes: Map[SortType, Set[SortType]],
+                        val links: Map[Link, Type],
+                        val litLinks: Map[Link, LitType]
+                      ) {
 
-  val links: Map[NamedLink, Type] = _links
+  def this() = this(Map(), Map(), Map())
 
-  val directNodeSupertypes: Map[NodeType, Set[NodeType]] = _directSupertypes
-  val directNodeSubtypes: Map[NodeType, Set[NodeType]] = {
-    val res = mutable.Map[NodeType, Set[NodeType]]()
+  val directNodeSupertypes: Map[SortType, Set[SortType]] = _directSupertypes
+  val directNodeSubtypes: Map[SortType, Set[SortType]] = {
+    val res = mutable.Map[SortType, Set[SortType]]()
     // initialize
     directNodeSupertypes.foreach { case (ty, supers) =>
       res(ty) = Set()
@@ -41,32 +45,44 @@ class LanguageMetaInfo(_directSupertypes: Map[NodeType, Set[NodeType]], _links: 
     res.toMap
   }
 
-  val nodeSupertypes: Map[NodeType, Set[NodeType]] = transClosure(_directSupertypes)
-  val nodeSubtypes: Map[NodeType, Set[NodeType]] = transClosure(directNodeSubtypes)
+  val nodeSupertypes: Map[SortType, Set[SortType]] = transClosure(directNodeSupertypes)
+  val nodeSubtypes: Map[SortType, Set[SortType]] = transClosure(directNodeSubtypes)
 
 
-  def directSupertypes(ty: LinkedType): Iterable[LinkedType] = ty match {
-    case ty: NodeType => directNodeSupertypes.getOrElse(ty, Iterable())
-    case ListType(contained) => directSupertypes(contained).map(ListType)
+  def directSupertypes(ty: Type): Iterable[Type] = ty match {
+    case ty: SortType => directNodeSupertypes.getOrElse(ty, Iterable()) ++ Seq(AnyType)
+    case ListType(contained) => directSupertypes(contained).map(ListType) ++ Seq(AnyType)
+    case OptionType(contained) => directSupertypes(contained).map(OptionType) ++ Seq(AnyType)
+    case AnyType => Iterable()
+    case NothingType => throw new UnsupportedOperationException("The supertypes of NothingType are not enumerable")
   }
-  def directSubtypes(ty: LinkedType): Iterable[LinkedType] = ty match {
-    case ty: NodeType => directNodeSubtypes.getOrElse(ty, Iterable())
-    case ListType(contained) => directSubtypes(contained).map(ListType)
+  def directSubtypes(ty: Type): Iterable[Type] = ty match {
+    case ty: SortType => directNodeSubtypes.getOrElse(ty, Iterable()) ++ Seq(NothingType)
+    case ListType(contained) => directSubtypes(contained).map(ListType) ++ Seq(NothingType)
+    case OptionType(contained) => directSubtypes(contained).map(OptionType) ++ Seq(NothingType)
+    case AnyType => throw new UnsupportedOperationException("The supertypes of AnyType are not enumerable")
+    case NothingType => Iterable()
   }
 
-  def supertypes(ty: LinkedType): Iterable[LinkedType] = ty match {
-    case ty: NodeType => nodeSupertypes.getOrElse(ty, Iterable())
-    case ListType(contained) => supertypes(contained).map(ListType)
+  def supertypes(ty: Type): Iterable[Type] = ty match {
+    case ty: SortType => nodeSupertypes.getOrElse(ty, Iterable()) ++ Seq(AnyType)
+    case ListType(contained) => supertypes(contained).map(ListType) ++ Seq(AnyType)
+    case OptionType(contained) => supertypes(contained).map(OptionType) ++ Seq(AnyType)
+    case AnyType => Iterable()
+    case NothingType => throw new UnsupportedOperationException("The supertypes of NothingType are not enumerable")
   }
-  def subtypes(ty: LinkedType): Iterable[LinkedType] = ty match {
-    case ty: NodeType => nodeSubtypes.getOrElse(ty, Iterable())
-    case ListType(contained) => subtypes(contained).map(ListType)
+  def subtypes(ty: Type): Iterable[Type] = ty match {
+    case ty: SortType => nodeSubtypes.getOrElse(ty, Iterable()) ++ Seq(NothingType)
+    case ListType(contained) => subtypes(contained).map(ListType) ++ Seq(NothingType)
+    case OptionType(contained) => subtypes(contained).map(OptionType) ++ Seq(NothingType)
+    case AnyType => throw new UnsupportedOperationException("The supertypes of AnyType are not enumerable")
+    case NothingType => Iterable()
   }
 
   @scala.annotation.tailrec
-  private def transClosure(rel: Map[NodeType, Set[NodeType]]): Map[NodeType, Set[NodeType]] = {
+  private def transClosure(rel: Map[SortType, Set[SortType]]): Map[SortType, Set[SortType]] = {
     val newRel = rel.map { case (src, trg) =>
-      src -> (trg ++ trg.flatMap { s => rel(s) })
+      src -> (trg ++ trg.flatMap { s => rel(s) } )
     }
     if (newRel == rel) rel
     else transClosure(newRel)

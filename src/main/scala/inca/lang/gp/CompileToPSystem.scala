@@ -1,12 +1,11 @@
 package inca.lang.gp
 
 import inca.lang.gp.GP._
-import inca.runtime.index.MetaElements.{ListType, NamedLink, NodeType, PrimitiveType}
-import inca.runtime.index.{LinkKey, NodeTypeKey, PrimitiveTypeKey}
-import inca.runtime.virtual.list.ListNextKey
-import inca.runtime.virtual.tree.ParentKey
+import inca.runtime.index.dynamic.ParentIndex
+import inca.runtime.index._
 import inca.util.Gensym
 import inca.util.Meta._
+import truechange.{JavaLitType, ListType, SortType}
 
 import scala.meta._
 
@@ -17,40 +16,35 @@ class CompileToPSystem(analysis: Seq[Object]) {
 
   val tyNodeTypeKey = typeOf[NodeTypeKey]
   val tyPrimitiveKey = typeOf[PrimitiveTypeKey]
-  val tyLinkKey = typeOf[LinkKey]
+  val oLinkNodeKey = objectOf(LinkNodeKey)
+  val oLinkPrimitiveKey = objectOf(LinkPrimitiveKey)
+  val oLinkListNextKey = objectOf(LinkListNextKey)
 
-  val oParentKey = objectOf(ParentKey)
-  val oNextKey = objectOf(ListNextKey)
+  val oParentIndex = objectOf(ParentIndex)
 
-  val tNodeType = symbolOf[NodeType]
+  val tNodeType = symbolOf[SortType]
   val tListType = symbolOf[ListType]
-  val tPrimitiveType = symbolOf[PrimitiveType]
+  val tPrimitiveType = symbolOf[JavaLitType]
 
-  val tNamedLink = symbolOf[NamedLink]
 
   // TODO transform module
   type Analysis = Seq[Object]
   val modules = analysis.collect { case m: Module => m }
   val funToModule = modules.flatMap { m => m.pats.map { gp => gp.name -> m.name } }.toMap
 
-  def transAnalysis(): Seq[Source] = {
+  def transAnalysis(): Map[String,Source] = {
     //TODO What is the exact visibiltity?
-    modules.flatMap(transModule)
+    modules.flatMap(transModule).toMap
   }
 
-  def transModule(module: Module): Seq[Source] = {
-    module.pats.map(transGraphPattern)
+  def transModule(module: Module): Map[String,Source] = {
+    module.pats.map(transGraphPattern).toMap
   }
 
-  def transGraphPattern(pat: Rule): Source = {
-    val fileNameType = Type.Name(genQueryClassName(pat.name))
-    val fileNameTerm = Term.Name(genQueryClassName(pat.name))
-    val fileNameLit = Lit.String(genQueryClassName(pat.name))
-
-    val superClassParam = Init(
-      Type.Name("IncaQuerySpecification"),
-      Name.Anonymous(),
-      List(List(q"$fileNameTerm.GeneratedPQuery.INSTANCE")))
+  def transGraphPattern(pat: Rule): (String,Source) = {
+    val name = genQueryClassName(pat.name)
+    val fileNameTerm = Term.Name(name)
+    val fileNameLit = Lit.String(name)
 
     val paramNames = pat.params.map(_.name)
     val paramTermNames = paramNames.map { n => Term.Name(s"$PARAMPREFIX${n}") }
@@ -59,6 +53,7 @@ class CompileToPSystem(analysis: Seq[Object]) {
     val gensym = new Gensym(allVars)
 
     // TODO there is a hard coded package for the resulting class
+    name ->
     source"""
       package inca.trans.generated
 
@@ -71,36 +66,18 @@ class CompileToPSystem(analysis: Seq[Object]) {
 
       import java.util
 
-      import inca.runtime.IncaQuerySpecification
+      import inca.runtime.Query
       import inca.runtime.context.QueryScope
-      import inca.runtime.index.InputKey
-      import inca.runtime.virtual.tree.ParentKey
-      import inca.runtime.virtual.list.ListNextKey
+      import inca.runtime.index.dynamic.ParentIndex
 
       import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred._
       import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables._
       import inca.runtime.index.MetaElements._
 
-      class $fileNameType extends $superClassParam {
-         override def instantiate(engine: ViatraQueryEngine): GenericPatternMatcher = {
-            var matcher: GenericPatternMatcher = engine.getExistingMatcher(this)
-            if (matcher == null) matcher = engine.getMatcher(this)
-            matcher
-         }
-         override def getPreferredScopeClass: Class[_ <: ViatraQueryScope] = classOf[QueryScope]
-      }
-
       object $fileNameTerm {
-        def instance(): $fileNameType = LazyHolder.INSTANCE
-
-        private final object LazyHolder {
-          val INSTANCE: $fileNameType = make()
-          def make(): $fileNameType = new $fileNameType()
-        }
-
+        lazy val instance: Query.Specification = new Query.Specification(GeneratedPQuery)
 
         private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
-          val INSTANCE: GeneratedPQuery.type = this
           ..${pat.params.map(genPParam).toList}
           {}
           override protected def doGetContainedBodies(): util.Set[PBody] = {
@@ -207,7 +184,7 @@ class CompileToPSystem(analysis: Seq[Object]) {
     case Call(name, qargs, transitive, neg) =>
       val patternQueryName = genQueryClassName(name)
       val args = q"Tuples.flatTupleOf(..${qargs.map(transValue).toList})"
-      val callQuery = q"${Term.Name(patternQueryName)}.instance().getInternalQueryRepresentation()"
+      val callQuery = q"${Term.Name(patternQueryName)}.instance.getInternalQueryRepresentation()"
       if (neg) Seq(q"new NegativePatternCall(body, $args, $callQuery)")
       else
         if (transitive)
@@ -218,24 +195,29 @@ class CompileToPSystem(analysis: Seq[Object]) {
       Seq(q"""new Equality(body, ${transValue(lhs)}, ${transValue(rhs)})""")
     case Compare(NeqComparator, lhs, rhs) =>
       Seq(q"""new Inequality(body, ${transValue(lhs)}, ${transValue(rhs)})""")
-    case HasType(v: Var, typ) =>
+    case HasType(t, typ) =>
       // TODO if type is not enumerable emit TypeFilterConstraint (only needed when we introduce lattices)
       Seq(q"""new TypeConstraint(
             body,
-            Tuples.flatTupleOf(${Term.Name(s"var_${v.name}")}),
+            Tuples.flatTupleOf(${transValue(t)}),
             new $tyNodeTypeKey(${genType(typ)}))""")
-
-    case Path(src, trg, link) =>
-      val key = genLinkKey(link)
+    case Path(src, trg, link, targetType) =>
+      val key = genLinkKey(link, targetType)
       Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${transValue(src)}, ${transValue(trg)}), $key)")
 
     case Native(code) => dialects.Sbt1(code).parse[Source].get.stats
   }
 
-  def genLinkKey(link: Link): meta.Term = link match {
-    case GP.ParentLink => oParentKey
-    case GP.NextLink => oNextKey
-    case GP.NamedLink(TNode(name), field) => q"new $tyLinkKey($tNamedLink($tNodeType($name), $field))"
+  def genLinkKey(link: Link, targetType: GP.TypeAnno): meta.Term = link match {
+    case GP.ParentLink => q"$oParentIndex.Key"
+    case GP.NextLink => oLinkListNextKey
+    case GP.NamedLink(TNode(name), field) => targetType match {
+      case _: GP.TLinked =>
+        q"$oLinkNodeKey(($name, $field))"
+      case GP.TBool | GP.TInt | GP.TLong | GP.TDouble | GP.TString =>
+        q"$oLinkPrimitiveKey(($name, $field))"
+    }
+
   }
 
   def transValue(v: GP.Term): meta.Term = v match {
@@ -244,17 +226,15 @@ class CompileToPSystem(analysis: Seq[Object]) {
   }
 
   private def genType(typ: GP.TypeAnno): meta.Term = typ match {
-    case TBool => genPrimitiveType("Boolean")
-    case TInt => genPrimitiveType("Integer")
-    case TLong => genPrimitiveType("Long")
-    case TDouble => genPrimitiveType("Double")
-    case TString => genPrimitiveType("String")
+    case TBool => q"$tPrimitiveType(classOf[Boolean])"
+    case TInt => q"$tPrimitiveType(classOf[Int])"
+    case TLong => q"$tPrimitiveType(classOf[Long])"
+    case TDouble => q"$tPrimitiveType(classOf[Double])"
+    case TString => q"$tPrimitiveType(classOf[String])"
     case TNode(name) => q"$tNodeType($name)"
     case TList(ty) =>
       val tygen = genType(ty)
       q"$tListType($tygen)"
   }
-
-  private def genPrimitiveType(name: String): meta.Term = q"$tPrimitiveType(${Lit.String("java.lang." + name)})"
 
 }

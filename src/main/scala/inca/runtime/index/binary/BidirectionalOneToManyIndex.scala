@@ -1,5 +1,6 @@
 package inca.runtime.index.binary
 
+import inca.runtime.index.IndexKey
 import inca.util.TupleOps
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
 
@@ -9,17 +10,17 @@ import scala.collection.mutable
  * In a BinaryInjectiveVirtualIndex, each value uniquely identifies the correponding key, but not and vice versa.
  * One to many.
  */
-abstract class BidirectionalOneToManyIndex[K,V] extends AbstractBinaryIndex[K,V] {
+class BidirectionalOneToManyIndex[K,V](val key: IndexKey[_]) extends BinaryIndex[K,V] {
   protected val index: mutable.MultiDict[K, V] = mutable.MultiDict()
   protected val indexInverted: mutable.Map[V, K] = mutable.Map()
 
-  override protected def insert(k: K, v: V): Unit = {
+  override def insert(k: K, v: V): Unit = {
     index += (k -> v)
     indexInverted += (v -> k)
     notify(k, v, isInsertion = true)
   }
 
-  override protected def delete(k: K, v: V): Unit = {
+  override def delete(k: K, v: V): Unit = {
     index -= (k -> v)
     indexInverted -= v
     notify(k, v, isInsertion = false)

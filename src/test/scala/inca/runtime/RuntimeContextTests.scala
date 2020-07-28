@@ -3,14 +3,12 @@ package inca.runtime
 import java.util
 
 import inca.analyzedLangs._
-import inca.runtime.index.MetaElements.{FirstLink, NextLink, NodeType, PrimitiveType}
 import inca.runtime.index._
-import inca.runtime.indices.{Indices, TFRuntimeContext}
-import inca.runtime.virtual.list.ListNextIndex
-import inca.runtime.virtual.tree.{ParentIndex, ParentKey}
+import inca.runtime.index.dynamic.{DynamicIndex, ParentIndex}
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, TupleMask, Tuples}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
+import truechange.{JavaLitType, ListType, SortType}
 import truediff.Diffable
 
 import scala.jdk.CollectionConverters._
@@ -29,9 +27,9 @@ class RuntimeContextTests extends AnyFunSuite {
   val numName = classOf[Num].getCanonicalName
 
   test("Type hierarchy check") {
-    val indices = new Indices()
-    val changeset = Diffable.load(add)
-    indices.processChangeset(changeset)
+    val database = new Database()
+    val editScript = Diffable.load(add)
+    database.processEditScript(editScript)
 
     // TODO implement new collection of type hierarchy
     // superTypes
@@ -46,251 +44,136 @@ class RuntimeContextTests extends AnyFunSuite {
 //    assert(isEmptyOrNull(Indices.subTypeMap.get(classOf[Mul])))
 //    assert(Indices.subTypeMap.get(classOf[Exp]).containsAll(util.Arrays.asList(classOf[Num], classOf[Add], classOf[Mul])))
 
-    indices.dispose()
   }
 
   test("NodeType instances") {
-    val indices = new Indices()
-    val changeset = Diffable.load(add)
-    indices.processChangeset(changeset)
+    val database = new Database()
+    val editScript = Diffable.load(add)
+    database.processEditScript(editScript)
 
-    val context = new TFRuntimeContext(indices, null)
-
-    context.enumerateTuples(new NodeTypeKey(NodeType(expName)), emptyMask, null).
+    database.enumerateTuples(NodeTypeKey(SortType(expName)), emptyMask, null).
       asScala should be(empty)
 
-    context.enumerateTuples(new NodeTypeKey(NodeType(numName)), emptyMask, null).
+    database.enumerateTuples(new NodeTypeKey(SortType(numName)), emptyMask, null).
       asScala should contain allOf(t1(num1.uri), t1(num2.uri), t1(num3.uri))
 
-    context.enumerateTuples(new NodeTypeKey(NodeType(addName)), emptyMask, null).
+    database.enumerateTuples(new NodeTypeKey(SortType(addName)), emptyMask, null).
       asScala should contain(t1(add.uri))
 
-    context.enumerateTuples(new NodeTypeKey(NodeType(mulName)), emptyMask, null).
+    database.enumerateTuples(new NodeTypeKey(SortType(mulName)), emptyMask, null).
       asScala should contain(t1(mul.uri))
 
-    indices.dispose()
   }
 
   test("DataType instances") {
-    val indices = new Indices()
-    val changeset = Diffable.load(add)
-    indices.processChangeset(changeset)
+    val database = new Database()
+    val editScript = Diffable.load(add)
+    database.processEditScript(editScript)
 
-    val integerName = "java.lang.Integer"
-    val stringName = "java.lang.String"
-    val boolName = "java.lang.Boolean"
+    val integer = JavaLitType(classOf[Int])
+    val string = JavaLitType(classOf[String])
+    val bool = JavaLitType(classOf[Boolean])
 
-    val context = new TFRuntimeContext(indices, null)
-
-    context.enumerateTuples(new PrimitiveTypeKey(PrimitiveType(integerName)), emptyMask, null).
+    database.enumerateTuples(PrimitiveTypeKey(integer), emptyMask, null).
       asScala should contain allOf(t1(1), t1(2), t1(3))
 
-    context.enumerateTuples(new PrimitiveTypeKey(PrimitiveType(stringName)), emptyMask, null).
+    database.enumerateTuples(PrimitiveTypeKey(string), emptyMask, null).
       asScala should be(empty)
 
-    context.enumerateTuples(new PrimitiveTypeKey(PrimitiveType(boolName)), emptyMask, null).
+    database.enumerateTuples(PrimitiveTypeKey(bool), emptyMask, null).
       asScala should be(empty)
 
-    indices.dispose()
   }
 
   test("NodeLink instances") {
-    val indices = new Indices()
-    val changeset = Diffable.load(add)
-    indices.processChangeset(changeset)
+    val database = new Database()
+    val editScript = Diffable.load(add)
+    database.processEditScript(editScript)
 
-    val context = new TFRuntimeContext(indices, null)
-
-    context.enumerateTuples(new LinkKey(NodeType(numName)("n")), emptyMask, null).
+    database.enumerateTuples(LinkPrimitiveKey(numName->"n"), emptyMask, null).
       asScala should contain allOf(t2(num1.uri, 1), t2(num2.uri, 2), t2(num3.uri, 3))
 
-    context.enumerateTuples(new LinkKey(NodeType(mulName)("l")), emptyMask, null).
+    database.enumerateTuples(LinkNodeKey(mulName->"l"), emptyMask, null).
       asScala should contain only (t2(mul.uri, num1.uri))
 
-    context.enumerateTuples(new LinkKey(NodeType(mulName)("r")), emptyMask, null).
+    database.enumerateTuples(LinkNodeKey(mulName->"r"), emptyMask, null).
       asScala should contain only (t2(mul.uri, num2.uri))
 
-    context.enumerateTuples(new LinkKey(NodeType(addName)("l")), emptyMask, null).
+    database.enumerateTuples(LinkNodeKey(addName->"l"), emptyMask, null).
       asScala should contain only (t2(add.uri, mul.uri))
 
-    context.enumerateTuples(new LinkKey(NodeType(addName)("r")), emptyMask, null).
+    database.enumerateTuples(LinkNodeKey(addName->"r"), emptyMask, null).
       asScala should contain only (t2(add.uri, num3.uri))
 
-    indices.dispose()
   }
 
   test("VirtualLink parent") {
-    var virtualIndices = Seq[VirtualIndex]()
-    val nextIndex = new ListNextIndex
-    virtualIndices +:= nextIndex
-    virtualIndices +:= new ParentIndex(nextIndex)
-    val indices = new Indices(null, null, virtualIndices.asJava)
-    val context = new TFRuntimeContext(indices, null)
+    val dynamicIndices = Map[DynamicKey, DynamicIndex](ParentIndex())
+    val database = new Database(null, dynamicIndices, null)
 
-    val changeset = Diffable.load(add)
-    indices.processChangeset(changeset)
+    val editScript = Diffable.load(add)
+    database.processEditScript(editScript)
 
-    context.enumerateTuples(ParentKey, emptyMask, null).
+    database.enumerateTuples(ParentIndex.Key, emptyMask, null).
       asScala should contain allOf(t2(mul.uri, add.uri), t2(num1.uri, mul.uri), t2(num2.uri, mul.uri), t2(num3.uri, add.uri))
 
     val newtree = Add(Mul(Num(3), Num(2)), Num(1))
     val (diffset, _) = add.compareTo(newtree)
-    indices.processChangeset(diffset)
+    database.processEditScript(diffset)
 
-    context.enumerateTuples(ParentKey, emptyMask, null).
+    database.enumerateTuples(ParentIndex.Key, emptyMask, null).
       asScala should contain allOf(t2(mul.uri, add.uri), t2(num3.uri, mul.uri), t2(num2.uri, mul.uri), t2(num1.uri, add.uri))
-
-    indices.dispose()
   }
 
   test("firstlink and nextlink of list") {
-    var virtualIndices = Seq[VirtualIndex]()
-    val nextIndex = new ListNextIndex
-    virtualIndices +:= nextIndex
-    virtualIndices +:= new ParentIndex(nextIndex)
-    val indices = new Indices(null, null, virtualIndices.asJava)
-    val context = new TFRuntimeContext(indices, null)
+    val dynamicIndices = Map[DynamicKey, DynamicIndex](ParentIndex())
+    val database = new Database(null, dynamicIndices, null)
 
-    val classDeclType = NodeType(classOf[ClassDeclaration].getCanonicalName)
-    val classMemberType = NodeType(classOf[ClassMember].getCanonicalName)
+    val classDeclTag = classOf[ClassDeclaration].getCanonicalName
+    val classDeclType = SortType(classDeclTag)
+    val classMemberType = SortType(classOf[ClassMember].getCanonicalName)
     val fieldDecl1 = FieldDeclaration("bar", PublicVisibility())
     val fieldDecl2 = FieldDeclaration("baz", PrivateVisibility())
     val clazz = ClassDeclaration("Foo", true, List(fieldDecl1, fieldDecl2))
 
-    val changeset = Diffable.load(clazz)
-    indices.processChangeset(changeset)
+    val editScript = Diffable.load(clazz)
+    database.processEditScript(editScript)
 
-    context.enumerateTuples(new LinkKey(classDeclType("members")), emptyMask, null).
+    database.enumerateTuples(LinkNodeKey(classDeclTag->"members"), emptyMask, null).
       asScala should contain only t2(clazz.uri, clazz.members.uri)
 
-    context.enumerateTuples(new NodeTypeKey(MetaElements.ListType(classMemberType)), emptyMask, null).
+    database.enumerateTuples(NodeTypeKey(ListType(classMemberType)), emptyMask, null).
       asScala should contain only t1(clazz.members.uri)
 
-    context.enumerateTuples(new LinkKey(FirstLink(MetaElements.ListType(classMemberType))), emptyMask, null).
-      asScala should contain only t2(clazz.members.uri, fieldDecl1.uri)
+    database.enumerateTuples(ParentIndex.Key, secondElementMask, t2(null, clazz.members.uri)).
+      asScala should contain only (t2(fieldDecl1.uri, clazz.members.uri), t2(fieldDecl2.uri, clazz.members.uri))
 
-    context.enumerateTuples(new LinkKey(NextLink), emptyMask, null).
+    database.enumerateTuples(LinkListNextKey, emptyMask, null).
       asScala should contain only t2(fieldDecl1.uri, fieldDecl2.uri)
 
     val fieldDecl3 = FieldDeclaration("baaz", PublicVisibility())
     val clazz2 = ClassDeclaration("Foo", true, List(fieldDecl2, fieldDecl1, fieldDecl3))
-    val (diffset, updatedclazz) = clazz.compareTo(clazz2)
-    indices.processChangeset(diffset)
+    val (diffScript, updatedclazz) = clazz.compareTo(clazz2)
+    database.processEditScript(diffScript)
 
-    context.enumerateTuples(new LinkKey(classDeclType("members")), emptyMask, null).
+    database.enumerateTuples(LinkNodeKey(classDeclTag->"members"), emptyMask, null).
       asScala should contain only t2(updatedclazz.uri, updatedclazz.members.uri)
 
-    context.enumerateTuples(new NodeTypeKey(MetaElements.ListType(classMemberType)), emptyMask, null).
+    database.enumerateTuples(NodeTypeKey(ListType(classMemberType)), emptyMask, null).
       asScala should contain only t1(updatedclazz.members.uri)
 
-    context.enumerateTuples(new LinkKey(FirstLink(MetaElements.ListType(classMemberType))), emptyMask, null).
-      asScala should contain only t2(updatedclazz.members.uri, updatedclazz.members(0).uri)
+    database.enumerateTuples(ParentIndex.Key, secondElementMask, t2(null, updatedclazz.members.uri)).
+      asScala should contain only (
+        t2(updatedclazz.members(0).uri, updatedclazz.members.uri),
+        t2(updatedclazz.members(1).uri, updatedclazz.members.uri),
+        t2(updatedclazz.members(2).uri, updatedclazz.members.uri)
+      )
 
-    context.enumerateTuples(new LinkKey(NextLink), emptyMask, null).
-      asScala should contain allOf (t2(updatedclazz.members(0).uri, updatedclazz.members(1).uri), t2(updatedclazz.members(1).uri, updatedclazz.members(2).uri))
+    database.enumerateTuples(LinkListNextKey, emptyMask, null).
+      asScala should contain only (t2(updatedclazz.members(0).uri, updatedclazz.members(1).uri), t2(updatedclazz.members(1).uri, updatedclazz.members(2).uri))
 
-    indices.dispose()
   }
 
-  test("firstlink and nextlink parent of list") {
-    var virtualIndices = Seq[VirtualIndex]()
-    val nextIndex = new ListNextIndex
-    virtualIndices +:= nextIndex
-    virtualIndices +:= new ParentIndex(nextIndex)
-    val indices = new Indices(null, null, virtualIndices.asJava)
-    val context = new TFRuntimeContext(indices, null)
-
-    val classDeclType = NodeType(classOf[ClassDeclaration].getCanonicalName)
-    val classMemberType = NodeType(classOf[ClassMember].getCanonicalName)
-    val fieldDecl1 = FieldDeclaration("bar", PublicVisibility())
-    val fieldDecl2 = FieldDeclaration("baz", PrivateVisibility())
-    val clazz = ClassDeclaration("Foo", true, List(fieldDecl1, fieldDecl2))
-
-    val changeset = Diffable.load(clazz)
-    indices.processChangeset(changeset)
-
-    println("clazz " + clazz.uri)
-    println("members " + clazz.members.uri)
-    println("fieldjdecl1 " + clazz.members(0).uri)
-    println("fielddecl1 vis " + clazz.members(0).asInstanceOf[FieldDeclaration].visibility.uri)
-    println("fielddecl2 " + clazz.members(1).uri)
-    println("fielddecl2 vis " + clazz.members(1).asInstanceOf[FieldDeclaration].visibility.uri)
-
-    context.enumerateTuples(new LinkKey(classDeclType("members")), emptyMask, null).
-      asScala should contain only t2(clazz.uri, clazz.members.uri)
-
-    context.enumerateTuples(new NodeTypeKey(MetaElements.ListType(classMemberType)), emptyMask, null).
-      asScala should contain only t1(clazz.members.uri)
-
-    context.enumerateTuples(new LinkKey(FirstLink(MetaElements.ListType(classMemberType))), emptyMask, null).
-      asScala should contain only t2(clazz.members.uri, fieldDecl1.uri)
-
-    context.enumerateTuples(new LinkKey(NextLink), emptyMask, null).
-      asScala should contain only t2(fieldDecl1.uri, fieldDecl2.uri)
-
-    context.enumerateTuples(ParentKey, emptyMask, null).
-      asScala should contain allOf(t2(clazz.members(0).uri, clazz.members.uri), t2(clazz.members(1).uri, clazz.members.uri))
-
-    val fieldDecl3 = FieldDeclaration("baaz", PublicVisibility())
-    val clazz2 = ClassDeclaration("Foo", true, List(fieldDecl2, fieldDecl1, fieldDecl3))
-    val (diffset, updatedclazz) = clazz.compareTo(clazz2)
-    indices.processChangeset(diffset)
-
-    context.enumerateTuples(new LinkKey(classDeclType("members")), emptyMask, null).
-      asScala should contain only t2(updatedclazz.uri, updatedclazz.members.uri)
-
-    context.enumerateTuples(new NodeTypeKey(MetaElements.ListType(classMemberType)), emptyMask, null).
-      asScala should contain only t1(updatedclazz.members.uri)
-
-    context.enumerateTuples(new LinkKey(FirstLink(MetaElements.ListType(classMemberType))), emptyMask, null).
-      asScala should contain only t2(updatedclazz.members.uri, updatedclazz.members(0).uri)
-
-    context.enumerateTuples(new LinkKey(NextLink), emptyMask, null).
-      asScala should contain allOf (t2(updatedclazz.members(0).uri, updatedclazz.members(1).uri), t2(updatedclazz.members(1).uri, updatedclazz.members(2).uri))
-
-    context.enumerateTuples(ParentKey, emptyMask, null).
-      asScala should contain allOf(t2(updatedclazz.members(0).uri, updatedclazz.members.uri), t2(updatedclazz.members(1).uri, clazz.members.uri), t2(updatedclazz.members(2).uri, clazz.members.uri))
-
-    indices.dispose()
-  }
-
-  test("virtual link list elements") {
-    var virtualIndices = Seq[VirtualIndex]()
-    val nextIndex = new ListNextIndex
-    virtualIndices +:= nextIndex
-    virtualIndices +:= new ParentIndex(nextIndex)
-    val indices = new Indices(null, null, virtualIndices.asJava)
-    val context = new TFRuntimeContext(indices, null)
-
-    val classDeclType = NodeType(classOf[ClassDeclaration].getCanonicalName)
-    val classMemberType = NodeType(classOf[ClassMember].getCanonicalName)
-    val fieldDecl1 = FieldDeclaration("bar", PublicVisibility())
-    val fieldDecl2 = FieldDeclaration("baz", PrivateVisibility())
-    val clazz = ClassDeclaration("Foo", true, List(fieldDecl1, fieldDecl2))
-
-    val changeset = Diffable.load(clazz)
-    indices.processChangeset(changeset)
-
-    println("clazz " + clazz.uri)
-    println("members " + clazz.members.uri)
-    println("fieldjdecl1 " + clazz.members(0).uri)
-    println("fielddecl1 vis " + clazz.members(0).asInstanceOf[FieldDeclaration].visibility.uri)
-    println("fielddecl2 " + clazz.members(1).uri)
-    println("fielddecl2 vis " + clazz.members(1).asInstanceOf[FieldDeclaration].visibility.uri)
-
-    context.enumerateTuples(ParentKey, secondElementMask, t2(null, clazz.members.uri)).
-      asScala should contain allOf(t2(clazz.members(0).uri, clazz.members.uri), t2(clazz.members(1).uri, clazz.members.uri))
-
-    val fieldDecl3 = FieldDeclaration("baaz", PublicVisibility())
-    val clazz2 = ClassDeclaration("Foo", true, List(fieldDecl2, fieldDecl1, fieldDecl3))
-    val (diffset, updatedclazz) = clazz.compareTo(clazz2)
-    indices.processChangeset(diffset)
-
-    context.enumerateTuples(ParentKey, secondElementMask, t2(null, updatedclazz.members.uri)).
-      asScala should contain allOf(t2(updatedclazz.members(0).uri, updatedclazz.members.uri), t2(updatedclazz.members(1).uri, updatedclazz.members.uri), t2(updatedclazz.members(2).uri, updatedclazz.members.uri))
-
-    indices.dispose()
-  }
 
   def isEmptyOrNull(coll: util.Collection[_]): Boolean = coll == null || coll.isEmpty
 

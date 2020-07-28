@@ -1,33 +1,17 @@
 package inca.trans.generated
 import java.util
 
-import inca.runtime.IncaQuerySpecification
-import inca.runtime.context.QueryScope
-import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
-import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
+import inca.runtime.Query
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.{ExportedParameter, _}
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables._
 import org.eclipse.viatra.query.runtime.matchers.psystem.queries.{BasePQuery, PParameter, PVisibility}
 import org.eclipse.viatra.query.runtime.matchers.psystem.{PBody, PVariable}
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
-class Test_idQuerySpecification extends IncaQuerySpecification(Test_idQuerySpecification.GeneratedPQuery.INSTANCE) {
-  override def instantiate(engine: ViatraQueryEngine): GenericPatternMatcher = {
-    var matcher: GenericPatternMatcher = engine.getExistingMatcher(this)
-    if (matcher == null) matcher = engine.getMatcher(this)
-    matcher
-  }
-  override def getPreferredScopeClass: Class[_ <: ViatraQueryScope] = classOf[QueryScope]
-}
 object Test_idQuerySpecification {
-  def instance(): Test_idQuerySpecification = LazyHolder.INSTANCE
-  private final object LazyHolder {
-    val INSTANCE: Test_idQuerySpecification = make()
-    def make(): Test_idQuerySpecification = new Test_idQuerySpecification()
-  }
+  lazy val instance: Query.Specification = new Query.Specification(GeneratedPQuery)
   private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
-    val INSTANCE: GeneratedPQuery.type = this
-    private val param_add: PParameter = new PParameter("add", inca.runtime.index.MetaElements.NodeType("inca.analyzedLangs.expLang.Add").toString, new inca.runtime.index.NodeTypeKey(inca.runtime.index.MetaElements.NodeType("inca.analyzedLangs.expLang.Add")))
-    private val param_out: PParameter = new PParameter("out", inca.runtime.index.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp").toString, new inca.runtime.index.NodeTypeKey(inca.runtime.index.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
+    private val param_add: PParameter = new PParameter("add", truechange.SortType("inca.analyzedLangs.expLang.Add").toString, new inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.Add")))
+    private val param_out: PParameter = new PParameter("out", truechange.SortType("inca.analyzedLangs.expLang.Exp").toString, new inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.Exp")))
     {}
     override protected def doGetContainedBodies(): util.Set[PBody] = {
       val bodies: util.Set[PBody] = util.Set.of {
@@ -39,8 +23,8 @@ object Test_idQuerySpecification {
         exportedParams.add(new ExportedParameter(body, var_add, param_add))
         exportedParams.add(new ExportedParameter(body, var_out, param_out))
         body.setSymbolicParameters(exportedParams)
-        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new inca.runtime.index.NodeTypeKey(inca.runtime.index.MetaElements.NodeType("inca.analyzedLangs.expLang.Add")))
-        new TypeConstraint(body, Tuples.flatTupleOf(var_out), new inca.runtime.index.NodeTypeKey(inca.runtime.index.MetaElements.NodeType("inca.analyzedLangs.expLang.Exp")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_add), new inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.Add")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_out), new inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.Exp")))
         new Equality(body, var_add, var_out)
         body
       }

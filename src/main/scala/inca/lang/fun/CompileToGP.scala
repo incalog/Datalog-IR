@@ -45,6 +45,7 @@ object CompileToGP {
     case Fun.TLong => GP.TLong
     case Fun.TDouble => GP.TDouble
     case Fun.TString => GP.TString
+    case Fun.TAnyLinked => GP.TAnyLinked
     case Fun.TNode(name) => GP.TNode(name)
     case Fun.TList(ty) => GP.TList(transType(ty).asInstanceOf[GP.TLinked])
   }
@@ -186,17 +187,20 @@ object CompileToGP {
     def transPathAccess(pathAccess: Fun.PathAccess, trg: GP.Term): Seq[GP.Atom] = {
       val receiver = pathAccess.receiver
       val (Seq(src), econstraints) = transExp(receiver)
+      if (pathAccess.typ == null)
+        throw new IllegalArgumentException(s"Cannot compile untyped $pathAccess")
+      val ty = transType(pathAccess.typ)
       val path = pathAccess.link match {
         case Fun.ParentLink =>
-          GP.Path(GP.Var(src), trg, GP.ParentLink)
+          GP.Path(GP.Var(src), trg, GP.ParentLink, ty)
         case Fun.ChildrenLink =>
-          GP.Path(trg, GP.Var(src), GP.ParentLink)
+          GP.Path(trg, GP.Var(src), GP.ParentLink, ty)
         case Fun.NextLink =>
-          GP.Path(GP.Var(src), trg, GP.NextLink)
+          GP.Path(GP.Var(src), trg, GP.NextLink, ty)
         case Fun.PreviousLink =>
-          GP.Path(trg, GP.Var(src), GP.NextLink)
+          GP.Path(trg, GP.Var(src), GP.NextLink, ty)
         case Fun.NamedLink(node, field) =>
-          GP.Path(GP.Var(src), trg, GP.NamedLink(GP.TNode(node.name), field))
+          GP.Path(GP.Var(src), trg, GP.NamedLink(GP.TNode(node.name), field), ty)
       }
       econstraints :+ path
     }

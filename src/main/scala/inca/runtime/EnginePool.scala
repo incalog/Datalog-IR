@@ -3,6 +3,7 @@ package inca.runtime
 import java.lang.ref.WeakReference
 import java.util
 
+import inca.runtime.Query.ChangeFeed
 import org.eclipse.viatra.query.runtime.api._
 import org.eclipse.viatra.query.runtime.api.scope.QueryScope
 import org.eclipse.viatra.query.runtime.exception.ViatraQueryException
@@ -15,7 +16,10 @@ import scala.jdk.CollectionConverters._
 object EnginePool {
   private val engineMap: util.Map[QueryScope, WeakReference[AdvancedViatraQueryEngine]] = new util.WeakHashMap
 
-  def getMatcher[Matcher <: ViatraQueryMatcher[_]](specification: IQuerySpecification[Matcher], scope: QueryScope, backendFactory: IQueryBackendFactory): Matcher = try {
+  def loadQuery(
+                  specification: Query.Specification,
+                  scope: QueryScope,
+                  backendFactory: IQueryBackendFactory): (Query.ChangeFeed, Query.Matcher) = try {
     val engineReference = EnginePool.engineMap.get(scope)
 
     val engine =
@@ -30,11 +34,13 @@ object EnginePool {
         EnginePool.engineMap.put(scope, new WeakReference(e))
         e
       }
-    engine.getMatcher(specification, null)
+    val matcher = engine.getMatcher(specification, null)
+    val changeFeed = engine.getBaseIndex.asInstanceOf[ChangeFeed]
+    (changeFeed, matcher)
   } catch {
     case e: ViatraQueryException =>
       e.printStackTrace()
-      null.asInstanceOf[Matcher]
+      (null, null)
   }
 
   def getEngines: util.Collection[WeakReference[AdvancedViatraQueryEngine]] =

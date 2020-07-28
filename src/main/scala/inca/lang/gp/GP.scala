@@ -9,6 +9,7 @@ object GP {
   case object TString extends TypeAnno
 
   sealed trait TLinked extends TypeAnno
+  case object TAnyLinked extends TLinked
   case class TNode(name: String) extends TLinked
   case class TList(contained: TLinked) extends TLinked
 
@@ -26,8 +27,8 @@ object GP {
   sealed trait Atom
   case class Call(name: Name, args: Seq[Term], transitive: Boolean, neg: Boolean) extends Atom
   case class Compare(comp: Comparator, lhs: Term, rhs: Term) extends Atom
-  case class HasType(v: Term, typ: TypeAnno) extends Atom
-  case class Path(src: Term, trg: Term, link: Link) extends Atom
+  case class HasType(t: Term, typ: TypeAnno) extends Atom
+  case class Path(src: Term, trg: Term, link: Link, targetType: TypeAnno) extends Atom
   case class Native(code: String) extends Atom
 
   sealed trait Link
