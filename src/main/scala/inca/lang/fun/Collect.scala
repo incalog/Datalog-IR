@@ -26,9 +26,9 @@ trait Collect[R] {
   def transAssignVars(names: Seq[Name]): Seq[R] = Seq()
 
   def transStatement(stmt: Statement): Seq[R] = stmt match {
-    case Assignment(names, exp) => transAssignVars(names) ++ transExp(exp)
+    case Assign(names, exp) => transAssignVars(names) ++ transExp(exp)
     case Assert(cond) => transCond(cond)
-    case Return(exp) => transExp(exp)
+    case Yield(exp) => transExp(exp)
   }
 
   def transVar(v: Var): Seq[R] = Seq()

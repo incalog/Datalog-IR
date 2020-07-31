@@ -189,9 +189,9 @@ class CompileToPSystemTest extends AnyFunSuite {
       Seq(
         Body(
           Seq(
-            Assignment(Seq("p"), PathAccess(Var("in"), ParentLink).typed(TAnyLinked)),
+            Assign(Seq("p"), PathAccess(Var("in"), ParentLink).typed(TAnyLinked)),
             Assert(InstanceOf(Var("p"), expType)),
-            Return(Var("p"))))))
+            Yield(Var("p"))))))
 
     val module = Module("Test", Seq(), Seq(parentFun))
     AnalysisWriter.writeModule(module)

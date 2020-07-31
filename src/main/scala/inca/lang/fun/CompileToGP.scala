@@ -70,7 +70,7 @@ object CompileToGP {
     val outVars = outParams.map(_.name)
 
     def generateCompareConstraints(comp: GP.Comparator)(lhs: Seq[String], rhs: Seq[String]): Seq[GP.Atom] = {
-      if (lhs.size != rhs.size) throw new IllegalStateException("Cannot create equalites for different sized variable lists")
+      if (lhs.size != rhs.size) throw new IllegalArgumentException("Cannot create equalites for different sized variable lists")
       for (i <- lhs.indices) yield {
         GP.Compare(comp, GP.Var(lhs(i)), GP.Var(rhs(i)))
       }
@@ -84,10 +84,10 @@ object CompileToGP {
     def transAlternative(alt: Fun.Body): Res = (Seq(), alt.stmts.map(transStatement).flatMap(_._2))
 
     def transStatement(stmt: Fun.Statement): Res = stmt match {
-      case Fun.Return(exp) =>
+      case Fun.Yield(exp) =>
         val (vars, constraints) = transExp(exp)
         (Seq(), constraints ++ genEqs(vars, outVars))
-      case Fun.Assignment(names, exp) =>
+      case Fun.Assign(names, exp) =>
         // TODO difference in encoding, in the paper lhs is a list of names, actual implementation one expression (which can be a tuple thus multiple names)
 //        val (lvars, lconstraints) = transExp()
         val (rvars, rconstraints) = transExp(exp)
@@ -109,7 +109,7 @@ object CompileToGP {
         (Seq(), lconstraints ++ rconstraints ++ eqConstraints)
       case Fun.InstanceOf(exp, typ) =>
         val (vars, constraints) = transExp(exp)
-        if (vars.size != 1) throw new IllegalStateException("Number of variables of exp of instance of need to be 1")
+        if (vars.size != 1) throw new IllegalArgumentException("Number of variables of exp of instance of need to be 1")
         (Seq(), constraints :+ GP.HasType(GP.Var(vars.head), transType(typ)))
 
       case ninst@Fun.NotInstanceOf(exp, typ) => (Seq(), Seq())
@@ -145,7 +145,7 @@ object CompileToGP {
         case arg =>
           val (vars, constraints) = transExp(arg)
           if (vars.size > 1)
-            throw new IllegalStateException("More than one result variable for one argument " + arg)
+            throw new IllegalArgumentException("More than one result variable for one argument " + arg)
           (vars, constraints)
       }.unzip
 
@@ -187,9 +187,7 @@ object CompileToGP {
     def transPathAccess(pathAccess: Fun.PathAccess, trg: GP.Term): Seq[GP.Atom] = {
       val receiver = pathAccess.receiver
       val (Seq(src), econstraints) = transExp(receiver)
-      if (pathAccess.typ == null)
-        throw new IllegalArgumentException(s"Cannot compile untyped $pathAccess")
-      val ty = transType(pathAccess.typ)
+      val ty = transType(pathAccess.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped $pathAccess")))
       val path = pathAccess.link match {
         case Fun.ParentLink =>
           GP.Path(GP.Var(src), trg, GP.ParentLink, ty)
@@ -221,10 +219,13 @@ object CompileToGP {
   def nameOfUndefPathHelper(access: Fun.PathAccess): String = "generated_helper_undefpath_" + access.link
 
   def genUndefPathHelper(access: Fun.PathAccess): Fun.PatternFunction = {
+    if (access.receiver.typ.isEmpty)
+      throw new IllegalArgumentException(s"Cannot support undef condition for untyped receiver of path access $access")
+
     Fun.PatternFunction(
       Some(Fun.Private),
       nameOfUndefPathHelper(access),
-      List(Fun.Param("in", Option(access.receiver.typ))),
+      List(Fun.Param("in", access.receiver.typ)),
       List(),
       List(Fun.Body(List(Fun.Assert(Fun.Def(access))))))
   }

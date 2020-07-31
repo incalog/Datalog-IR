@@ -64,8 +64,8 @@ class FindBugsTests extends AnyFunSuite {
         Body(
           Seq(
             Assert(Eq(PathAccess(Var("class"), classDeclType("isFinal")).typed(TBool), Constant(BooleanLiteral(true)))),
-            Assignment(Seq("members"), PathAccess(Var("class"), classDeclType("members")).typed(TList(classMemberType))),
-            Assignment(Seq("member"), PathAccess(Var("members"), ChildrenLink).typed(classMemberType)),
+            Assign(Seq("members"), PathAccess(Var("class"), classDeclType("members")).typed(TList(classMemberType))),
+            Assign(Seq("member"), PathAccess(Var("members"), ChildrenLink).typed(classMemberType)),
             Assert(InstanceOf(Var("member"), fieldDeclType)),
             Assert(InstanceOf(PathAccess(Var("member"), fieldDeclType("visibility")).typed(visType), protectedVisType))
           ))))

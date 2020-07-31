@@ -14,7 +14,7 @@ object ExpLangTestAnalyses {
     Seq(
       Body(
         Seq(
-          Return(Var("add"))))))
+          Yield(Var("add"))))))
 
   val lhsLink: Link = addType("lhs")
   val rhsLink: Link = addType("rhs")
@@ -26,10 +26,10 @@ object ExpLangTestAnalyses {
     Seq(
       Body(
         Seq(
-          Return(PathAccess(Var("add"), lhsLink).typed(expType)))),
+          Yield(PathAccess(Var("add"), lhsLink).typed(expType)))),
       Body(
         Seq(
-          Return(PathAccess(Var("add"), rhsLink).typed(expType))))))
+          Yield(PathAccess(Var("add"), rhsLink).typed(expType))))))
 
   val lhChildFun: PatternFunction = PatternFunction(
     None,
@@ -39,7 +39,7 @@ object ExpLangTestAnalyses {
     Seq(
       Body(
         Seq(
-          Return(PathAccess(Var("add"), lhsLink).typed(expType))))))
+          Yield(PathAccess(Var("add"), lhsLink).typed(expType))))))
 
   val callLhChildFun = PatternFunction(
     None,
@@ -49,8 +49,8 @@ object ExpLangTestAnalyses {
     Seq(
       Body(
         Seq(
-          Assignment(Seq("lhschild"), Call("lhChild", Seq(Var("add")), transitive = false, count = false)),
-          Return(Var("lhschild"))))))
+          Assign(Seq("lhschild"), Call("lhChild", Seq(Var("add")), transitive = false, count = false)),
+          Yield(Var("lhschild"))))))
 
   val instanceAddFun = PatternFunction(
     None,
@@ -60,9 +60,9 @@ object ExpLangTestAnalyses {
     Seq(
       Body(
         Seq(
-          Assignment(Seq("lhschild"), PathAccess(Var("add"), lhsLink).typed(expType)),
+          Assign(Seq("lhschild"), PathAccess(Var("add"), lhsLink).typed(expType)),
           Assert(InstanceOf(Var("lhschild"), addType)),
-          Return(Var("lhschild"))))))
+          Yield(Var("lhschild"))))))
 
   val noParamTypeFun = PatternFunction(
     None,
@@ -83,7 +83,7 @@ object ExpLangTestAnalyses {
     Seq(
       Body(
         Seq(
-          Return(Constant(BooleanLiteral(true)))))))
+          Yield(Constant(BooleanLiteral(true)))))))
 
   val primitiveParamFun = PatternFunction(
     None,
@@ -92,5 +92,5 @@ object ExpLangTestAnalyses {
     Seq(AnnoParam(None, TBool)),
     Seq(
       Body(
-        Seq(Return(Var("in"))))))
+        Seq(Yield(Var("in"))))))
 }

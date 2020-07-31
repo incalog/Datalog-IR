@@ -40,7 +40,7 @@ class CompileToGPTest extends AnyFunSuite {
                   lhsLink).typed(expType),
                 lhsLink).typed(expType),
               Constant(BooleanLiteral(true)))),
-            Return(Var("add"))))))
+            Yield(Var("add"))))))
     val result = CompileToGP.transformModule(Module("test", Nil, Seq(fun)))
     println(Printer.prettyModule(result))
   }
@@ -57,7 +57,7 @@ class CompileToGPTest extends AnyFunSuite {
       List(
         Body(
           List(
-            Return(PathAccess(
+            Yield(PathAccess(
               PathAccess(
                 PathAccess(
                   Var("add"),
@@ -86,8 +86,8 @@ class CompileToGPTest extends AnyFunSuite {
       List(
         Body(
           List(
-            Assignment(Seq("lhschild"), Call("lhChild", Seq(Var("add")), transitive = false, count = false)),
-            Return(Var("lhschild"))))))
+            Assign(Seq("lhschild"), Call("lhChild", Seq(Var("add")), transitive = false, count = false)),
+            Yield(Var("lhschild"))))))
     val result = CompileToGP.transformModule(Module("test", Nil, Seq(fun, lhChildFun)))
     println(Printer.prettyModule(result))
   }
@@ -105,9 +105,9 @@ class CompileToGPTest extends AnyFunSuite {
       List(
         Body(
           List(
-            Assignment(Seq("lhschild"), PathAccess(Var("add"), lhsLink).typed(expType)),
+            Assign(Seq("lhschild"), PathAccess(Var("add"), lhsLink).typed(expType)),
             Assert(InstanceOf(Var("lhschild"), addType)),
-            Return(Var("lhschild"))))))
+            Yield(Var("lhschild"))))))
     val result = CompileToGP.transformModule(Module("test", Nil, Seq(fun)))
     println(Printer.prettyModule(result))
   }
@@ -125,9 +125,9 @@ class CompileToGPTest extends AnyFunSuite {
       List(
         Body(
           List(
-            Assignment(Seq("lhschild"), PathAccess(Var("add"), lhsLink).typed(expType)),
+            Assign(Seq("lhschild"), PathAccess(Var("add"), lhsLink).typed(expType)),
             Assert(NotInstanceOf(Var("lhschild"), addType)),
-            Return(Var("lhschild"))))))
+            Yield(Var("lhschild"))))))
     val result = CompileToGP.transformModule(Module("test", Nil, Seq(fun)))
     println(Printer.prettyModule(result))
   }
@@ -145,9 +145,9 @@ class CompileToGPTest extends AnyFunSuite {
       List(
         Body(
           List(
-            Assignment(Seq("lhschild"), PathAccess(Var("add"), lhsLink).typed(expType)),
+            Assign(Seq("lhschild"), PathAccess(Var("add"), lhsLink).typed(expType)),
             Assert(Def(Call("lhChild", Seq(Var("lhschild")), transitive = false, count = false))),
-            Return(Var("lhschild"))))))
+            Yield(Var("lhschild"))))))
     val result = CompileToGP.transformModule(Module("test", Nil, Seq(fun, lhChildFun)))
     println(Printer.prettyModule(result))
   }

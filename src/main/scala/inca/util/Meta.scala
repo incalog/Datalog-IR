@@ -5,6 +5,8 @@ import scala.reflect.ClassTag
 
 object Meta {
 
+  val TAB = "  "
+
   def typeOf[T:ClassTag](implicit tag: ClassTag[T]): Type =
     mkQualTypename(tag.runtimeClass.getCanonicalName)
 
