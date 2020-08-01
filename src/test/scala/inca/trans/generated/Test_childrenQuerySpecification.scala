@@ -38,11 +38,11 @@ object Test_childrenQuerySpecification {
         exportedParams.add(new ExportedParameter(body, var_add, param_add))
         exportedParams.add(new ExportedParameter(body, var_out, param_out))
         body.setSymbolicParameters(exportedParams)
-        val var_trg0: PVariable = body.getOrCreateVariableByName("trg0")
+        val var_trg_0: PVariable = body.getOrCreateVariableByName("trg_0")
         new TypeConstraint(body, Tuples.flatTupleOf(var_add), inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.Add")))
         new TypeConstraint(body, Tuples.flatTupleOf(var_out), inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.Exp")))
-        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_add, var_trg0), inca.runtime.index.LinkNodeKey(("inca.analyzedLangs.expLang.Add", "rhs")))
-        new Equality(body, var_trg0, var_out)
+        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_add, var_trg_0), inca.runtime.index.LinkNodeKey(("inca.analyzedLangs.expLang.Add", "rhs")))
+        new Equality(body, var_trg_0, var_out)
         body
       })
       bodies

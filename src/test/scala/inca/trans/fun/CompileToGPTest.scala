@@ -183,7 +183,7 @@ class CompileToGPTest extends AnyFunSuite {
       List(
         Body(
           List(
-            Assert(Undef(PathAccess(Var("add"), lhsLink).typed(expType)))))))
+            Assert(Undef(PathAccess(Var("add").typed(addType), lhsLink).typed(expType)))))))
     val result = CompileToGP.transformModule(Module("test", Nil, Seq(fun)))
     println(Printer.prettyModule(result))
   }

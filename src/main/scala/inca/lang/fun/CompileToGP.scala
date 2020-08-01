@@ -53,7 +53,7 @@ object CompileToGP {
 
 
   def rewriteFunction(fun: Fun.PatternFunction, funs: Map[String, Fun.PatternFunction]): GP.Rule = {
-    val gensym = new Gensym(CollectVars(fun).toSet)
+    val gensym = new Gensym(fun.usedvars)
     val vis = fun.vis.map {
       case Fun.Private => GP.Private
       case Fun.Public => GP.Public
@@ -81,39 +81,39 @@ object CompileToGP {
 
     type Res = (Seq[String], Seq[GP.Atom])
 
-    def transAlternative(alt: Fun.Body): Res = (Seq(), alt.stmts.map(transStatement).flatMap(_._2))
+    def transAlternative(alt: Fun.Body): Res = (Seq(), alt.stmts.map(s => transStatement(s.ensureCore)).flatMap(_._2))
 
-    def transStatement(stmt: Fun.Statement): Res = stmt match {
+    def transStatement(stmt: Fun.CoreStatement): Res = stmt match {
       case Fun.Yield(exp) =>
-        val (vars, constraints) = transExp(exp)
+        val (vars, constraints) = transExp(exp.ensureCore)
         (Seq(), constraints ++ genEqs(vars, outVars))
       case Fun.Assign(names, exp) =>
         // TODO difference in encoding, in the paper lhs is a list of names, actual implementation one expression (which can be a tuple thus multiple names)
 //        val (lvars, lconstraints) = transExp()
-        val (rvars, rconstraints) = transExp(exp)
+        val (rvars, rconstraints) = transExp(exp.ensureCore)
         val eqConstraints = genEqs(names, rvars)
         (Seq(), rconstraints ++ eqConstraints)
-      case Fun.Assert(cond) => transCond(cond)
+      case Fun.Assert(cond) => transCond(cond.ensureCore)
     }
 
-    def transCond(cond: Fun.Cond): Res = cond match {
+    def transCond(cond: Fun.CoreCond): Res = cond match {
       case Fun.Eq(lhs, rhs) =>
-        val (lvars, lconstraints) = transExp(lhs)
-        val (rvars, rconstraints) = transExp(rhs)
+        val (lvars, lconstraints) = transExp(lhs.ensureCore)
+        val (rvars, rconstraints) = transExp(rhs.ensureCore)
         val eqConstraints = genEqs(lvars, rvars)
         (Seq(), lconstraints ++ rconstraints ++ eqConstraints)
       case Fun.Neq(lhs, rhs) =>
-        val (lvars, lconstraints) = transExp(lhs)
-        val (rvars, rconstraints) = transExp(rhs)
+        val (lvars, lconstraints) = transExp(lhs.ensureCore)
+        val (rvars, rconstraints) = transExp(rhs.ensureCore)
         val eqConstraints = genNeqs(lvars, rvars)
         (Seq(), lconstraints ++ rconstraints ++ eqConstraints)
       case Fun.InstanceOf(exp, typ) =>
-        val (vars, constraints) = transExp(exp)
+        val (vars, constraints) = transExp(exp.ensureCore)
         if (vars.size != 1) throw new IllegalArgumentException("Number of variables of exp of instance of need to be 1")
         (Seq(), constraints :+ GP.HasType(GP.Var(vars.head), transType(typ)))
 
       case ninst@Fun.NotInstanceOf(exp, typ) => (Seq(), Seq())
-        val (vars, constraints) = transExp(exp)
+        val (vars, constraints) = transExp(exp.ensureCore)
         val notInstanceOfHelper = nameOfNotInstanceOfHelper(ninst)
         val composition = GP.Call(notInstanceOfHelper, Seq(GP.Var(vars.head)), transitive = false, neg = true)
         (Seq(), constraints :+ composition)
@@ -132,18 +132,23 @@ object CompileToGP {
             genDefCallConstraint(name, args, transitive, funs, neg = true)
           case path@Fun.PathAccess(exp, _) =>
             val pathHelper = nameOfUndefPathHelper(path)
-            val (vars, constraints) = transExp(exp)
+            val (vars, constraints) = transExp(exp.ensureCore)
             val compositionConstraint = GP.Call(pathHelper, Seq(GP.Var(vars.head)), transitive = false, neg = true)
             (Seq(), constraints :+ compositionConstraint)
           case _ => throw new IllegalArgumentException("Cannot support in Undef " + exp)
         }
+      case Fun.BooleanCond(v) =>
+        if (v)
+          (Seq(), Seq())
+        else
+          (Seq(), Seq(GP.Compare(GP.NeqComparator, GP.Constant(GP.IntLiteral(0)), GP.Constant(GP.IntLiteral(0)))))
     }
 
     def genDefCallConstraint(name: Fun.Name, args: Seq[Fun.Exp], transitive: Boolean, funs: Map[String, Fun.PatternFunction], neg: Boolean): Res = {
       val (vars, constraint) = args.map {
         case arg@Fun.Var(name) => (Seq(name), Seq())
         case arg =>
-          val (vars, constraints) = transExp(arg)
+          val (vars, constraints) = transExp(arg.ensureCore)
           if (vars.size > 1)
             throw new IllegalArgumentException("More than one result variable for one argument " + arg)
           (vars, constraints)
@@ -157,21 +162,21 @@ object CompileToGP {
       (Seq(), constraint.flatten :+ compositionConstraint)
     }
 
-    def transExp(exp: Fun.Exp): Res = exp match {
+    def transExp(exp: Fun.CoreExp): Res = exp match {
       case Fun.Var(name) => (Seq(name), Seq())
       case Fun.Constant(lit) =>
         val tmpVar = gensym.fresh("tmp")
         val compare = GP.Compare(GP.EqComparator, GP.Var(tmpVar), GP.Constant(transLiteral(lit)))
         (Seq(tmpVar), Seq(compare))
       case Fun.Tuple(exps) =>
-        val (vars, constraints) = exps.map(transExp).unzip
+        val (vars, constraints) = exps.map(e => transExp(e.ensureCore)).unzip
         (vars.flatten, constraints.flatten)
       case pa: Fun.PathAccess =>
         val trg = gensym.fresh("trg")
         (Seq(trg), transPathAccess(pa, GP.Var(trg)))
       case Fun.Call(name, args, transitive, count) =>
         // TODO why is there a distinction between exp and non exp args in MPS impl?
-        val (vars, constraints) = args.map(transExp).unzip
+        val (vars, constraints) = args.map(e => transExp(e.ensureCore)).unzip
         val outVars = funs(name).outParams.map { _ =>
             val argVar = gensym.fresh("arg")
             GP.Var(argVar)
@@ -186,7 +191,7 @@ object CompileToGP {
 
     def transPathAccess(pathAccess: Fun.PathAccess, trg: GP.Term): Seq[GP.Atom] = {
       val receiver = pathAccess.receiver
-      val (Seq(src), econstraints) = transExp(receiver)
+      val (Seq(src), econstraints) = transExp(receiver.ensureCore)
       val ty = transType(pathAccess.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped $pathAccess")))
       val path = pathAccess.link match {
         case Fun.ParentLink =>

@@ -100,6 +100,10 @@ object Fun {
   trait Statement {
     def usedvars: Set[Name]
     def prettyprint(implicit indent: String): String
+    def ensureCore: CoreStatement = this match {
+      case self: CoreStatement => self
+      case _ => throw new IllegalArgumentException(s"Core statement required but got $this")
+    }
   }
   sealed trait CoreStatement extends Statement
   case class Assign(names: Seq[Name], exp: Exp) extends CoreStatement {
@@ -124,6 +128,10 @@ object Fun {
   trait Cond {
     def usedvars: Set[Name]
     def prettyprint(implicit indent: String): String
+    def ensureCore: CoreCond = this match {
+      case self: CoreCond => self
+      case _ => throw new IllegalArgumentException(s"Core statement required but got $this")
+    }
   }
   sealed trait CoreCond extends Cond
   case class Eq(lhs: Exp, rhs: Exp) extends CoreCond {
@@ -173,6 +181,10 @@ object Fun {
   trait Exp extends Typeable {
     def usedvars: Set[Name]
     def prettyprint(implicit indent: String): String
+    def ensureCore: CoreExp = this match {
+      case self: CoreExp => self
+      case _ => throw new IllegalArgumentException(s"Core statement required but got $this")
+    }
   }
   sealed trait CoreExp extends Exp
   case class Var(name: Name) extends CoreExp {
