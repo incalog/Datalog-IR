@@ -38,6 +38,7 @@ object IfThenElse extends Desugarable {
   override val desugarsTo: Set[Desugarable] = Set(Switch, Not)
 
   override def trans(): DesugarTrans = new DesugarTrans {
+
     override def desugarStm(stm: Statement)(implicit gensym: Gensym): Seq[Statement] = stm match {
       case IfThenElse(cond, thn, elseIfs, els) =>
         val thnBody = Body(desugarConditional(cond, ListBuffer(), thn.flatMap(desugarStm)))

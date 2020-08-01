@@ -162,15 +162,17 @@ object Fun {
       v.toString
   }
 
-  trait Exp {
-    def usedvars: Set[Name]
-    def prettyprint(implicit indent: String): String
-
+  trait Typeable {
     var typ: Option[TypeAnno] = None
     def typed(ty: TypeAnno): this.type = {
       this.typ = Some(ty)
       this
     }
+  }
+
+  trait Exp extends Typeable {
+    def usedvars: Set[Name]
+    def prettyprint(implicit indent: String): String
   }
   sealed trait CoreExp extends Exp
   case class Var(name: Name) extends CoreExp {
@@ -237,6 +239,6 @@ object Fun {
     override def prettyprint: String = v.toString
   }
   case class StringLiteral(v: String) extends Literal {
-    override def prettyprint: String = v.toString
+    override def prettyprint: String = '\"' + v + '\"'
   }
 }
