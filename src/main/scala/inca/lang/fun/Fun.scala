@@ -5,33 +5,48 @@ import inca.util.Meta.TAB
 object Fun {
   trait TypeAnno {
     def prettyprint: String
+    def javastring: String
   }
   case object TBool extends TypeAnno {
     override def prettyprint: String = "bool"
+    override def javastring: String = "bool"
   }
   case object TInt extends TypeAnno {
     override def prettyprint: String = "int"
+    override def javastring: String = "int"
   }
   case object TLong extends TypeAnno {
     override def prettyprint: String = "long"
+    override def javastring: String = "long"
   }
   case object TDouble extends TypeAnno {
     override def prettyprint: String = "double"
+    override def javastring: String = "double"
   }
   case object TString extends TypeAnno {
     override def prettyprint: String = "string"
+    override def javastring: String = "string"
   }
 
   trait TLinked extends TypeAnno
   case object TAnyLinked extends TLinked {
     override def prettyprint: String = "node"
+    override def javastring: String = "node"
   }
   case class TNode(name: String) extends TLinked {
     override def prettyprint: String = name
+    override def javastring: String = name
     def apply(field: String): NamedLink = NamedLink(this, field)
   }
-  case class TList(contained: TLinked) extends TLinked {
+
+  trait TIterable extends TypeAnno
+  case class TList(contained: TLinked) extends TLinked with TIterable {
     override def prettyprint: String = s"List[${contained.prettyprint}]"
+    override def javastring: String = s"List_${contained.javastring}"
+  }
+  case class TEnumeration(contained: TLinked) extends TIterable {
+    override def prettyprint: String = s"Enum[${contained.prettyprint}]"
+    override def javastring: String = s"Enum_${contained.javastring}"
   }
 
   type Name = String
@@ -65,8 +80,11 @@ object Fun {
     def prettyprint(implicit indent: String): String = {
       val visS = if (vis.contains(Private)) "private " else ""
       val paramsS = params.map(_.prettyprint).mkString(", ")
-      val outS = if (outParams.isEmpty) "Unit" else
-        outParams.map(_.prettyprint)
+      val outS = if (outParams.isEmpty) "Unit"
+        else if (outParams.size == 1)
+          outParams.head.prettyprint
+        else
+          outParams.map(_.prettyprint).mkString("(", ", ", ")")
       val bodiesS = if (bodies.isEmpty) "{ }" else
         bodies.map(_.prettyprint(indent)).mkString(" union ")
       s"$indent${visS}def $name($paramsS): $outS = $bodiesS"
@@ -119,10 +137,17 @@ object Fun {
     override def prettyprint(implicit indent: String): String =
       s"${indent}assert ${cond.prettyprint}"
   }
-  case class Yield(exp: Exp) extends CoreStatement {
+
+  trait TerminatorStatement extends Statement
+  case class Yield(exp: Exp) extends CoreStatement with TerminatorStatement {
     override def usedvars: Set[Name] = exp.usedvars
     override def prettyprint(implicit indent: String): String =
       s"${indent}yield ${exp.prettyprint}"
+  }
+  case object Continue extends CoreStatement with TerminatorStatement {
+    override def usedvars: Set[Name] = Set()
+    override def prettyprint(implicit indent: String): String =
+      s"${indent}continue"
   }
 
   trait Cond {
@@ -237,6 +262,9 @@ object Fun {
 
   sealed trait Literal {
     def prettyprint: String
+  }
+  case object UnitLiteral extends Literal {
+    override def prettyprint: String = "unit"
   }
   case class BooleanLiteral(v: Boolean) extends Literal {
     override def prettyprint: String = v.toString

@@ -21,7 +21,8 @@ object Foreach extends Desugarable {
     override def desugarStm(stm: Statement)(implicit gensym: Gensym): Seq[Statement] = stm match {
       case Foreach(name, exp, body) => exp.typ match {
         case Some(TList(ty)) => changed(Assign(Seq(name), PathAccess(exp, ChildrenLink).typed(ty)) +: body.flatMap(desugarStm))
-        case Some(ty) => throw new IllegalArgumentException(s"Foreach loop expression $exp must have list type, but was type $ty")
+        case Some(TEnumeration(_)) => changed(Assign(Seq(name), exp) +: body.flatMap(desugarStm))
+        case Some(ty) => throw new IllegalArgumentException(s"Foreach loop expression $exp must have iterable type, but was type $ty")
         case None => throw new IllegalArgumentException(s"Cannot support foreach loop with untyped expression $exp")
       }
 
