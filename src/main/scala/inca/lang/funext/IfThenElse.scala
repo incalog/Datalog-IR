@@ -48,8 +48,11 @@ object IfThenElse extends Desugarable {
           notconds += Not(elseIf.cond)
           elseIfBody
         }
-        val elseBody = els.map(stms => Body(notconds.toSeq.map(Assert) ++ stms.flatMap(desugarStm)))
-        changed(Seq(Switch(thnBody +: (elseIfBodies ++ elseBody))))
+        val elseBody = els match {
+          case Some(stms) => Body(notconds.toSeq.map(Assert) ++ stms.flatMap(desugarStm))
+          case None => Body(Seq())
+        }
+        changed(Seq(Switch(thnBody +: (elseIfBodies :+ elseBody))))
 
       case _ => super.desugarStm(stm)
     }

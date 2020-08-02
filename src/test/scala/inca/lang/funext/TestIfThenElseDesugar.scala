@@ -17,18 +17,21 @@ class TestIfThenElseDesugar extends AnyFlatSpec with DesugarMatchers {
           Assign(Seq("yes"), Constant(BooleanLiteral(true)))
         ), Seq(), Some(Seq(
           Assign(Seq("yes"), Constant(BooleanLiteral(false)))
-        )))
+        ))),
+        Assign(Seq("after"), Constant(BooleanLiteral(true)))
       ))))
     ))
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Assert(Eq(one, two)),
-        Assign(Seq("yes"), Constant(BooleanLiteral(true)))
+        Assign(Seq("yes"), Constant(BooleanLiteral(true))),
+        Assign(Seq("after"), Constant(BooleanLiteral(true)))
       )),
       Body(Seq(
         Assert(Neq(one, two)),
-        Assign(Seq("yes"), Constant(BooleanLiteral(false)))
+        Assign(Seq("yes"), Constant(BooleanLiteral(false))),
+        Assign(Seq("after"), Constant(BooleanLiteral(true)))
       ))))
     ))
 
@@ -52,7 +55,8 @@ class TestIfThenElseDesugar extends AnyFlatSpec with DesugarMatchers {
           ), Seq(), Some(Seq(
             Assign(Seq("yes2"), Constant(BooleanLiteral(false)))
           )))
-        )))
+        ))),
+        Assign(Seq("after"), Constant(BooleanLiteral(true)))
       ))))
     ))
 
@@ -61,25 +65,29 @@ class TestIfThenElseDesugar extends AnyFlatSpec with DesugarMatchers {
         Assert(Eq(one, two)),
         Assign(Seq("yes"), Constant(BooleanLiteral(true))),
         Assert(Eq(three, four)),
-        Assign(Seq("yes2"), Constant(BooleanLiteral(true)))
+        Assign(Seq("yes2"), Constant(BooleanLiteral(true))),
+        Assign(Seq("after"), Constant(BooleanLiteral(true)))
       )),
       Body(Seq(
         Assert(Eq(one, two)),
         Assign(Seq("yes"), Constant(BooleanLiteral(true))),
         Assert(Neq(three, four)),
-        Assign(Seq("yes2"), Constant(BooleanLiteral(false)))
+        Assign(Seq("yes2"), Constant(BooleanLiteral(false))),
+        Assign(Seq("after"), Constant(BooleanLiteral(true)))
       )),
       Body(Seq(
         Assert(Neq(one, two)),
         Assign(Seq("yes"), Constant(BooleanLiteral(false))),
         Assert(Eq(three, four)),
-        Assign(Seq("yes2"), Constant(BooleanLiteral(true)))
+        Assign(Seq("yes2"), Constant(BooleanLiteral(true))),
+        Assign(Seq("after"), Constant(BooleanLiteral(true)))
       )),
       Body(Seq(
         Assert(Neq(one, two)),
         Assign(Seq("yes"), Constant(BooleanLiteral(false))),
         Assert(Neq(three, four)),
-        Assign(Seq("yes2"), Constant(BooleanLiteral(false)))
+        Assign(Seq("yes2"), Constant(BooleanLiteral(false))),
+        Assign(Seq("after"), Constant(BooleanLiteral(true)))
       ))))
     ))
 
@@ -95,25 +103,57 @@ class TestIfThenElseDesugar extends AnyFlatSpec with DesugarMatchers {
           Assign(Seq("yes"), Constant(IntLiteral(99)))
         ))), Some(Seq(
           Assign(Seq("yes"), Constant(BooleanLiteral(false)))
-        )))
+        ))),
+        Assign(Seq("after"), Constant(BooleanLiteral(true)))
+      ))))
+    ))
+
+    val core = Module("Test", Seq(), Seq(
+      PatternFunction(None, "foo", Seq(), Seq(), Seq(
+        Body(Seq(
+          Assert(Eq(one, two)),
+          Assign(Seq("yes"), Constant(BooleanLiteral(true))),
+          Assign(Seq("after"), Constant(BooleanLiteral(true)))
+        )),
+        Body(Seq(
+          Assert(Neq(one, two)),
+          Assert(Eq(three, four)),
+          Assign(Seq("yes"), Constant(IntLiteral(99))),
+          Assign(Seq("after"), Constant(BooleanLiteral(true)))
+        )),
+        Body(Seq(
+          Assert(Neq(one, two)),
+          Assert(Neq(three, four)),
+          Assign(Seq("yes"), Constant(BooleanLiteral(false))),
+          Assign(Seq("after"), Constant(BooleanLiteral(true)))
+        ))))
+    ))
+
+    assertDesugar(core, sugared, IfThenElse)
+  }
+
+  "desugaring" should "eliminate if" in {
+    val sugared = Module("Test", Seq(), Seq(
+      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
+        Assign(Seq("before"), Constant(BooleanLiteral(true))),
+        IfThenElse(Eq(one, two), Seq(
+          Assign(Seq("yes"), Constant(BooleanLiteral(true)))
+        ), Seq(), None),
+        Assign(Seq("after"), Constant(BooleanLiteral(true)))
       ))))
     ))
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
+        Assign(Seq("before"), Constant(BooleanLiteral(true))),
         Assert(Eq(one, two)),
-        Assign(Seq("yes"), Constant(BooleanLiteral(true)))
+        Assign(Seq("yes"), Constant(BooleanLiteral(true))),
+        Assign(Seq("after"), Constant(BooleanLiteral(true)))
       )),
-      Body(Seq(
-        Assert(Neq(one, two)),
-        Assert(Eq(three, four)),
-        Assign(Seq("yes"), Constant(IntLiteral(99)))
-      )),
-      Body(Seq(
-        Assert(Neq(one, two)),
-        Assert(Neq(three, four)),
-        Assign(Seq("yes"), Constant(BooleanLiteral(false)))
-      ))))
+        Body(Seq(
+          Assign(Seq("before"), Constant(BooleanLiteral(true))),
+          Assign(Seq("after"), Constant(BooleanLiteral(true)))
+        ))))
     ))
 
     assertDesugar(core, sugared, IfThenElse)
