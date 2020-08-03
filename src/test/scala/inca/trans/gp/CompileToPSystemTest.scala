@@ -1,11 +1,11 @@
 package inca.trans.gp
 
 import inca.AnalysisWriter
-import inca.analyzedLangs.expLang._
+import inca.analyzedLangs.Exp
+import inca.analyzedLangs.Exp._
 import inca.lang.fun.Fun.{Exp => _, _}
 import inca.runtime.context.{LanguageMetaInfo, QueryScope}
-import inca.runtime.index.DynamicKey
-import inca.runtime.index.dynamic.{DynamicIndex, ParentIndex}
+import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.{EnginePool, Query}
 import inca.trans.ExpLangTestAnalyses._
 import org.eclipse.viatra.query.runtime.api.{IPatternMatch, ViatraQueryMatcher}
@@ -74,8 +74,8 @@ class CompileToPSystemTest extends AnyFunSuite {
       compiledModuleClassname: String)(asserter: ViatraQueryMatcher[_ <: IPatternMatch] => Assertion): Assertion = {
 
     val editScript = Diffable.load(subjectProg)
-    val virtualIndices = Map[DynamicKey, DynamicIndex](ParentIndex())
-    val scope = new QueryScope(langMetaInfo, virtualIndices)
+    val additionalIndices = Seq(new ParentIndex)
+    val scope = QueryScope(langMetaInfo, additionalIndices)
 
     val clazz = Class.forName("inca.trans.generated." + compiledModuleClassname)
     assert(clazz != null)

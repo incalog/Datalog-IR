@@ -1,6 +1,6 @@
 package inca.util
 
-class Gensym(init: Set[String]) {
+class Gensym(init: Iterable[String]) {
   /** map of used symbols, each of which must end with '_' */
   private var used: Map[String, Int] = Map()
 

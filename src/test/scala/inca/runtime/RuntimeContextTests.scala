@@ -4,7 +4,7 @@ import java.{lang, util}
 
 import inca.analyzedLangs._
 import inca.runtime.index._
-import inca.runtime.index.dynamic.{DynamicIndex, ParentIndex}
+import inca.runtime.index.dynamic.ParentIndex
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, TupleMask, Tuples}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
@@ -108,8 +108,8 @@ class RuntimeContextTests extends AnyFunSuite {
   }
 
   test("VirtualLink parent") {
-    val dynamicIndices = Map[DynamicKey, DynamicIndex](ParentIndex())
-    val database = new Database(null, dynamicIndices, null)
+    val additionalIndices = Seq(new ParentIndex)
+    val database = new Database(null, additionalIndices, null)
 
     val editScript = Diffable.load(add)
     database.processEditScript(editScript)
@@ -126,8 +126,8 @@ class RuntimeContextTests extends AnyFunSuite {
   }
 
   test("firstlink and nextlink of list") {
-    val dynamicIndices = Map[DynamicKey, DynamicIndex](ParentIndex())
-    val database = new Database(null, dynamicIndices, null)
+    val additionalIndices = Seq(new ParentIndex)
+    val database = new Database(null, additionalIndices, null)
 
     val classDeclTag = classOf[ClassDeclaration].getCanonicalName
     val classDeclType = SortType(classDeclTag)

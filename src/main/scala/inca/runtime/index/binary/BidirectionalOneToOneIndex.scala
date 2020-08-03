@@ -80,6 +80,8 @@ class BidirectionalOneToOneIndex[K,V](val key: IndexKey[_]) extends BinaryIndex[
       val isOrdered = mask.indices(0) == 0
       if (isOrdered && containsTuple(seed)) {
         Seq(TupleOps.binaryTuple(seed))
+      } else if (!isOrdered && containsTuple(TupleOps.binaryFlip(seed))) {
+        Seq(TupleOps.binaryTuple(seed))
       } else {
         Seq()
       }

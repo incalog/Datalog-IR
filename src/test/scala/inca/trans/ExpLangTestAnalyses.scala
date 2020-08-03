@@ -1,6 +1,7 @@
 package inca.trans
 
-import inca.analyzedLangs.expLang._
+import inca.analyzedLangs.Exp
+import inca.analyzedLangs.Exp._
 import inca.lang.fun.Fun.{Exp => _, _}
 
 object ExpLangTestAnalyses {

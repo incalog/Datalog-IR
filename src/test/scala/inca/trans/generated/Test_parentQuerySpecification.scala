@@ -11,7 +11,7 @@ object Test_parentQuerySpecification {
   lazy val instance: Query.Specification = new Query.Specification(GeneratedPQuery)
   private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
     private val param_in: PParameter = new PParameter("in")
-    private val param_out: PParameter = new PParameter("out", truechange.SortType("inca.analyzedLangs.expLang.Exp").toString, inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.Exp")))
+    private val param_out: PParameter = new PParameter("out", truechange.SortType("inca.analyzedLangs.Exp").toString, inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.Exp")))
     {}
     override protected def doGetContainedBodies(): util.Set[PBody] = {
       val bodies: util.Set[PBody] = util.Set.of {
@@ -25,10 +25,10 @@ object Test_parentQuerySpecification {
         body.setSymbolicParameters(exportedParams)
         val var_trg: PVariable = body.getOrCreateVariableByName("trg")
         val var_p: PVariable = body.getOrCreateVariableByName("p")
-        new TypeConstraint(body, Tuples.flatTupleOf(var_out), inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.Exp")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_out), inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.Exp")))
         new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_in, var_trg), inca.runtime.index.dynamic.ParentIndex.Key)
         new Equality(body, var_p, var_trg)
-        new TypeConstraint(body, Tuples.flatTupleOf(var_p), inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.Exp")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_p), inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.Exp")))
         new Equality(body, var_p, var_out)
         body
       }

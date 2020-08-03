@@ -47,3 +47,5 @@ object LinkListNextKey extends IndexKey[String] {
 }
 
 trait DynamicKey extends IndexKey[Any]
+
+trait VirtualKey extends IndexKey[Any]

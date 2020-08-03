@@ -11,6 +11,7 @@ import inca.runtime.index._
 import inca.runtime.index.binary.{BidirectionalOneToManyIndex, BidirectionalOneToOneIndex}
 import inca.runtime.index.dynamic.DynamicIndex
 import inca.runtime.index.unary.UnaryIndex
+import inca.runtime.index.virtual.VirtualIndex
 import org.eclipse.viatra.query.runtime.api.scope.{IBaseIndex, IIndexingErrorListener, IInstanceObserver, ViatraBaseIndexChangeListener}
 import org.eclipse.viatra.query.runtime.matchers.context._
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask}
@@ -23,12 +24,12 @@ import scala.jdk.CollectionConverters._
 
 class Database(
                _languageMetaInfo: LanguageMetaInfo,
-               _dynamicIndices: Map[DynamicKey, DynamicIndex],
+               _additionalIndices: Seq[Index],
                _metaContext: IQueryMetaContext
              )
   extends AbstractQueryRuntimeContext with IBaseIndex with ChangeFeed {
 
-  def this() = this(null, Map(), null)
+  def this() = this(null, Seq(), null)
 
   val languageMetaInfo: LanguageMetaInfo = if (_languageMetaInfo != null) _languageMetaInfo else new LanguageMetaInfo()
 
@@ -39,15 +40,27 @@ class Database(
 
   /* indices */
 
-  private val nodeInstances: mutable.Map[Type, UnaryIndex[URI]] = mutable.Map()
-  private val primitiveInstances: mutable.Map[LitType, UnaryIndex[PrimitiveValue]] = mutable.Map()
-  private val linkNodeInstances: mutable.Map[Link, BidirectionalOneToOneIndex[URI, URI]] = mutable.Map()
-  private val linkPrimitiveInstances: mutable.Map[Link, BidirectionalOneToManyIndex[URI, PrimitiveValue]] = mutable.Map()
-  private val linkListFirstInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListFirstKey)
-  private val linkListNextInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListNextKey)
-  private val dynamicIndices: Map[DynamicKey, DynamicIndex] = _dynamicIndices
+  private[runtime] val nodeInstances: mutable.Map[Type, UnaryIndex[URI]] = mutable.Map()
+  private[runtime] val primitiveInstances: mutable.Map[LitType, UnaryIndex[PrimitiveValue]] = mutable.Map()
+  private[runtime] val linkNodeInstances: mutable.Map[Link, BidirectionalOneToOneIndex[URI, URI]] = mutable.Map()
+  private[runtime] val linkPrimitiveInstances: mutable.Map[Link, BidirectionalOneToManyIndex[URI, PrimitiveValue]] = mutable.Map()
+  private[runtime] val linkListFirstInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListFirstKey)
+  private[runtime] val linkListNextInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListNextKey)
 
-  dynamicIndices.values.foreach(_.setDatabase(this))
+  private[runtime] val dynamicIndices: Map[DynamicKey, DynamicIndex] = _additionalIndices.flatMap {
+    case ix: DynamicIndex => Some(ix.key.asInstanceOf[DynamicKey] -> ix)
+    case _ => None
+  }.toMap
+  private[runtime] val virtualIndices: Map[VirtualKey, VirtualIndex] = _additionalIndices.flatMap {
+    case ix: VirtualIndex => Some(ix.key.asInstanceOf[VirtualKey] -> ix)
+    case _ => None
+  }.toMap
+
+  _additionalIndices.foreach {
+    case ix: DynamicIndex => ix.setDatabase(this)
+    case ix: VirtualIndex => ix.setDatabase(this)
+    case ix => throw new IllegalArgumentException(s"Cannot register index $ix as additional index, unknown type.")
+  }
 
   @inline
   private def nodeInstancesEnsure(ty: Type) = nodeInstances.getOrElse(ty, {

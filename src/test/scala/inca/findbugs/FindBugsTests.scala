@@ -4,8 +4,7 @@ import inca.analyzedLangs._
 import inca.lang.fun.Fun._
 import inca.runtime.EnginePool
 import inca.runtime.context.{LanguageMetaInfo, QueryScope}
-import inca.runtime.index.DynamicKey
-import inca.runtime.index.dynamic.{DynamicIndex, ParentIndex}
+import inca.runtime.index.dynamic.ParentIndex
 import inca.trans.generated.FindBugs_confusedInheritanceQuerySpecification
 import inca.{AnalysisWriter, analyzedLangs}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
@@ -72,8 +71,8 @@ class FindBugsTests extends AnyFunSuite {
     val module = Module("FindBugs", Seq(), Seq(confusedInheritance))
     AnalysisWriter.writeModule(module)
 
-    val virtualIndices = Map[DynamicKey, DynamicIndex](ParentIndex())
-    val scope = QueryScope(langMetaInfo, virtualIndices)
+    val additionalIndices = Seq(new ParentIndex)
+    val scope = QueryScope(langMetaInfo, additionalIndices)
     val (feed,matcher) = EnginePool.loadQuery(FindBugs_confusedInheritanceQuerySpecification.instance, scope, DifferentialReteBackendFactory.INSTANCE)
 
     val clazz = ClassDeclaration("Foo", true, List(FieldDeclaration("baz", PublicVisibility()), FieldDeclaration("bar", ProtectedVisibility())))

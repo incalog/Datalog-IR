@@ -10,8 +10,8 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 object Test_lhChildQuerySpecification {
   lazy val instance: Query.Specification = new Query.Specification(GeneratedPQuery)
   private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
-    private val param_add: PParameter = new PParameter("add", truechange.SortType("inca.analyzedLangs.expLang.Add").toString, inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.Add")))
-    private val param_out: PParameter = new PParameter("out", truechange.SortType("inca.analyzedLangs.expLang.Exp").toString, inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.Exp")))
+    private val param_add: PParameter = new PParameter("add", truechange.SortType("inca.analyzedLangs.Add").toString, inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.Add")))
+    private val param_out: PParameter = new PParameter("out", truechange.SortType("inca.analyzedLangs.Exp").toString, inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.Exp")))
     {}
     override protected def doGetContainedBodies(): util.Set[PBody] = {
       val bodies: util.Set[PBody] = util.Set.of {
@@ -24,9 +24,9 @@ object Test_lhChildQuerySpecification {
         exportedParams.add(new ExportedParameter(body, var_out, param_out))
         body.setSymbolicParameters(exportedParams)
         val var_trg: PVariable = body.getOrCreateVariableByName("trg")
-        new TypeConstraint(body, Tuples.flatTupleOf(var_add), inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.Add")))
-        new TypeConstraint(body, Tuples.flatTupleOf(var_out), inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.Exp")))
-        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_add, var_trg), inca.runtime.index.LinkNodeKey(("inca.analyzedLangs.expLang.Add", "lhs")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_add), inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.Add")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_out), inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.Exp")))
+        new TypeConstraint(body, Tuples.staticArityFlatTupleOf(var_add, var_trg), inca.runtime.index.LinkNodeKey(("inca.analyzedLangs.Add", "lhs")))
         new Equality(body, var_trg, var_out)
         body
       }

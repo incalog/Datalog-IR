@@ -10,15 +10,19 @@ object ParentIndex {
     override val getArity: Int = 2
     override def isEnumerable: Boolean = true
   }
-
-  def apply(): (DynamicKey, ParentIndex) =
-    Key -> new ParentIndex()
 }
 
 class ParentIndex extends BidirectionalManyToOneIndex[URI,URI](ParentIndex.Key)
   with DynamicIndex {
 
+  def getParent(node: URI): Option[URI] =
+    index.get(node)
+  def getChildren(parent: URI): collection.Set[URI] =
+    indexInverted.get(parent)
+  def getEntries: collection.Iterable[(URI,collection.Set[URI])] =
+    indexInverted.sets
 
+  /** processes edit to update this index accordingly */
   override def processEdit(edit: truechange.Edit): Unit = edit match {
     case truechange.Attach(node, _, link, parent, _) => link.getRawLink match {
       case _: ListFirstLink =>

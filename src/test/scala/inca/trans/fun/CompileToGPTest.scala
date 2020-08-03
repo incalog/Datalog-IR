@@ -1,6 +1,7 @@
 package inca.trans.fun
 
-import inca.analyzedLangs.expLang._
+import inca.analyzedLangs.Exp
+import inca.analyzedLangs.Exp._
 import inca.lang.fun.CompileToGP
 import inca.lang.fun.Fun.{Exp => _, _}
 import inca.lang.gp.Printer

@@ -7,25 +7,21 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask
 import scala.collection.mutable
 
 /*
- * In a BinarySurjectiveVirtualIndex, each key uniquely identifies the correponding value, but not vice versa.
- * Many to one.
+ * In a BinaryInjectiveVirtualIndex, each value uniquely identifies the correponding key, but not and vice versa.
+ * One to many.
  */
-class BidirectionalManyToOneIndex[K,V](val key: IndexKey[_]) extends BinaryIndex[K,V] {
+class UnidirectionalManyToOneIndex[K,V](val key: IndexKey[_]) extends BinaryIndex[K,V] {
   protected val index: mutable.Map[K, V] = mutable.Map()
-  protected val indexInverted: mutable.MultiDict[V, K] = mutable.MultiDict()
 
   override def insert(k: K, v: V): Unit = {
     index += (k -> v)
-    indexInverted += (v -> k)
     notify(k, v, isInsertion = true)
   }
 
   override def delete(k: K, v: V): Unit = {
-    index -= k
-    indexInverted -= (v -> k)
+    index - k
     notify(k, v, isInsertion = false)
   }
-
 
   final override def containsTuple(tuple: ITuple): Boolean = {
     if (tuple == null)
@@ -42,12 +38,11 @@ class BidirectionalManyToOneIndex[K,V](val key: IndexKey[_]) extends BinaryIndex
       index.size
     } else if (maskLength == 1) {
       val isOrdered = mask.indices(0) == 0
-      if (isOrdered && index.contains(seed.get(0).asInstanceOf[K])) {
-        1
-      } else if (!isOrdered) {
-        indexInverted.get(seed.get(1).asInstanceOf[V]).size
+      if (isOrdered) {
+        index.get(seed.get(0).asInstanceOf[K]).size
       } else {
-        0
+        val v = seed.get(1).asInstanceOf[V]
+        index.count(kv => kv._2 == v)
       }
     } else if (maskLength == 2) {
       val isOrdered = mask.indices(0) == 0
@@ -74,7 +69,7 @@ class BidirectionalManyToOneIndex[K,V](val key: IndexKey[_]) extends BinaryIndex
         index.get(k).map(Tuples.staticArityFlatTupleOf(k, _))
       } else {
         val v = seed.get(1).asInstanceOf[V]
-        indexInverted.get(v).map(Tuples.staticArityFlatTupleOf(_, v))
+        index.flatMap(kv => if (kv._2 == v) Some(Tuples.staticArityFlatTupleOf(kv._1,  kv._2)) else None)
       }
     } else if (maskLength == 2) {
       val isOrdered = mask.indices(0) == 0
@@ -99,7 +94,7 @@ class BidirectionalManyToOneIndex[K,V](val key: IndexKey[_]) extends BinaryIndex
         index.get(k).map(Tuples.staticArityFlatTupleOf(k, _))
       } else {
         val v = seed.get(1).asInstanceOf[V]
-        indexInverted.get(v).map(Tuples.staticArityFlatTupleOf(_, v))
+        index.flatMap(kv => if (kv._2 == v) Some(Tuples.staticArityFlatTupleOf(kv._1,  kv._2)) else None)
       }
     } else {
       throw new IllegalArgumentException("Invalid tuple mask " + mask + " for enumerateValues in bijective virtual index " + this)

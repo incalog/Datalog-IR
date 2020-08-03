@@ -10,7 +10,7 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 object Test_isBooleanQuerySpecification {
   lazy val instance: Query.Specification = new Query.Specification(GeneratedPQuery)
   private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
-    private val param_in: PParameter = new PParameter("in", truechange.SortType("inca.analyzedLangs.expLang.BooleanLit").toString, inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.BooleanLit")))
+    private val param_in: PParameter = new PParameter("in", truechange.SortType("inca.analyzedLangs.BooleanLit").toString, inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.BooleanLit")))
     private val param_out: PParameter = new PParameter("out", truechange.JavaLitType(classOf[java.lang.Boolean]).toString, inca.runtime.index.PrimitiveTypeKey(truechange.JavaLitType(classOf[java.lang.Boolean])))
     {}
     override protected def doGetContainedBodies(): util.Set[PBody] = {
@@ -25,7 +25,7 @@ object Test_isBooleanQuerySpecification {
         body.setSymbolicParameters(exportedParams)
         val var_tmp: PVariable = body.getOrCreateVariableByName("tmp")
         val lit_boolean1231 = body.newConstantVariable(true)
-        new TypeConstraint(body, Tuples.flatTupleOf(var_in), inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.expLang.BooleanLit")))
+        new TypeConstraint(body, Tuples.flatTupleOf(var_in), inca.runtime.index.NodeTypeKey(truechange.SortType("inca.analyzedLangs.BooleanLit")))
         new Equality(body, var_tmp, lit_boolean1231)
         new Equality(body, var_tmp, var_out)
         body
