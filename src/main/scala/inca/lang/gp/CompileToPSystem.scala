@@ -1,6 +1,7 @@
 package inca.lang.gp
 
 import inca.lang.gp.GP._
+import inca.lang.psystem.PSystem
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.SizeIndex
@@ -10,7 +11,7 @@ import truechange.{AnyType, JavaLitType, ListType, SortType}
 
 import scala.meta._
 
-class CompileToPSystem(analysis: Seq[Object]) {
+object CompileToPSystem {
   val PARAMPREFIX = "param_"
   val VARPREFIX = "var_"
   val LITPREFIX = "lit_"
@@ -29,37 +30,28 @@ class CompileToPSystem(analysis: Seq[Object]) {
   val tListType = symbolOf[ListType]
   val tPrimitiveType = symbolOf[JavaLitType]
 
+  val tyPSystemModule = typeOf[PSystem.Module]
 
-  // TODO transform module
-  type Analysis = Seq[Object]
-  val modules = analysis.collect { case m: Module => m }
-  val funToModule = modules.flatMap { m => m.pats.map { gp => gp.name -> m.name } }.toMap
+  def genQueryName(moduleName: String, patName: String): String =
+    s"${moduleName}_${patName}"
 
-  def transAnalysis(): Map[String,Source] = {
+  /** Maps rule name to the name of the module that defines it. */
+  type RuleEnvironment = Map[String, String]
+
+  def transAnalysis(modules: Seq[Module]): Seq[Source] = {
+    val env: RuleEnvironment = modules.flatMap(m => m.pats.map(p => p.name -> m.name)).toMap
+
     //TODO What is the exact visibiltity?
-    modules.flatMap(transModule).toMap
+    modules.map(transModule(_)(env))
   }
 
-  def transModule(module: Module): Map[String,Source] = {
-    module.pats.map(transGraphPattern).toMap
-  }
 
-  def transGraphPattern(pat: Rule): (String,Source) = {
-    val name = genQueryClassName(pat.name)
-    val fileNameTerm = Term.Name(name)
-    val fileNameLit = Lit.String(name)
+  private def transModule(module: Module)(implicit env: RuleEnvironment): Source = {
+    val myenv = env ++ module.pats.map(p => p.name -> module.name) // makes sure this module's names are found first
+    val funs = module.pats.map(transGraphPattern(module.name, _)(myenv)).toList
 
-    val paramNames = pat.params.map(_.name)
-    val paramTermNames = paramNames.map { n => Term.Name(s"$PARAMPREFIX${n}") }
-    val paramLitName = paramNames.map { n => Lit.String(n) }
-    val allVars = CollectVars(pat).toSet
-    val gensym = new Gensym(allVars)
-
-    // TODO there is a hard coded package for the resulting class
-    name ->
+    val name = Term.Name(module.name)
     source"""
-      package inca.trans.generated
-
       import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
       import org.eclipse.viatra.query.runtime.api.scope.{QueryScope => ViatraQueryScope}
       import org.eclipse.viatra.query.runtime.matchers.psystem.{PBody, PVariable}
@@ -72,15 +64,43 @@ class CompileToPSystem(analysis: Seq[Object]) {
       import inca.runtime.Query
       import inca.runtime.context.QueryScope
       import inca.runtime.index.dynamic.ParentIndex
+      import inca.runtime.index.virtual.SizeIndex
 
       import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred._
       import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables._
       import inca.runtime.index.MetaElements._
 
-      object $fileNameTerm {
+      object $name extends ${Init(tyPSystemModule, Term.Name(tyPSystemModule.toString), List())} {
+        val patterns: Map[String, () => Query.Specification] = Map(..${
+          module.pats.map(p => q"${p.name} -> (() => ${Term.Name(p.name)}.instance)").toList
+        })
+
+        ..${funs}
+      }
+    """
+  }
+
+  private def transGraphPattern(moduleName: String, pat: Rule)(implicit env: RuleEnvironment): Stat = {
+    val qname = CompileToPSystem.genQueryName(moduleName, pat.name)
+
+    val paramNames = pat.params.map(_.name)
+    val paramTermNames = paramNames.map { n => Term.Name(s"$PARAMPREFIX${n}") }
+    val paramLitName = paramNames.map { n => Lit.String(n) }
+    val allVars = CollectVars(pat).toSet
+    val gensym = new Gensym(allVars)
+
+    val vis =
+      if (pat.vis.contains(GP.Private))
+        q"PVisibility.PRIVATE"
+      else
+        q"PVisibility.PUBLIC"
+
+    // TODO there is a hard coded package for the resulting class
+    q"""
+      object ${Term.Name(pat.name)} {
         lazy val instance: Query.Specification = new Query.Specification(GeneratedPQuery)
 
-        private final object GeneratedPQuery extends BasePQuery(PVisibility.PUBLIC) {
+        private final object GeneratedPQuery extends BasePQuery($vis) {
           ..${pat.params.map(genPParam).toList}
           {}
           override protected def doGetContainedBodies(): util.Set[PBody] = {
@@ -111,16 +131,11 @@ class CompileToPSystem(analysis: Seq[Object]) {
             bodies
           }
 
-          override def getFullyQualifiedName: String = $fileNameLit
+          override def getFullyQualifiedName: String = $qname
           override def getParameters: util.List[PParameter] = util.List.of(..${paramTermNames.toList})
           override def getParameterNames: util.List[String] = util.List.of(..${paramLitName.toList})
         }
     }"""
-  }
-
-  def genQueryClassName(patName: String): String = {
-    val containingModuleName = funToModule(patName)
-    containingModuleName + "_" + patName + "QuerySpecification"
   }
 
   def genPParam(param: Param): Stat = {
@@ -183,11 +198,11 @@ class CompileToPSystem(analysis: Seq[Object]) {
     else None
   }
 
-  def genConstraints(constraint: Atom): Seq[Stat] = constraint match {
+  def genConstraints(constraint: Atom)(implicit env: RuleEnvironment): Seq[Stat] = constraint match {
     case Call(name, qargs, transitive, neg) =>
-      val patternQueryName = genQueryClassName(name)
+      val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
       val args = q"Tuples.flatTupleOf(..${qargs.map(transValue).toList})"
-      val callQuery = q"${Term.Name(patternQueryName)}.instance.getInternalQueryRepresentation()"
+      val callQuery = q"${Term.Name(module)}.${Term.Name(name)}.instance.getInternalQueryRepresentation"
       if (neg) Seq(q"new NegativePatternCall(body, $args, $callQuery)")
       else
         if (transitive)

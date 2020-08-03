@@ -1,5 +1,11 @@
 package inca.util
 
+import inca.lang.fun.{CompileToGP, Fun}
+import inca.lang.funext.desugar.{Desugar, Desugarable}
+import inca.lang.gp.{CompileToPSystem, GP}
+import inca.lang.psystem.PSystem
+
+import scala.collection.mutable
 import scala.meta.{Term, Type}
 import scala.reflect.ClassTag
 
@@ -18,9 +24,9 @@ object Meta {
     mkQualName(name.substring(0, name.length - 1))
   }
 
-  def mkQualName(s: String): Term = {
+  def mkQualName(s: String): Term.Ref = {
     val ss = s.split('.')
-    var t: Term = Term.Name(ss(0))
+    var t: Term.Ref = Term.Name(ss(0))
     for (i <- 1 until ss.length)
       t = Term.Select(t, Term.Name(ss(i)))
     t
@@ -36,4 +42,31 @@ object Meta {
       qual = Term.Select(qual, Term.Name(ss(i)))
     Type.Select(qual, Type.Name(ss(ss.length-1)))
   }
+
+  def loadModule(module: Fun.Module, desugarables: Desugarable*): PSystem.Module = {
+    val desugared = Desugar(desugarables:_*)(module)
+    val gp = CompileToGP.transformModule(desugared)
+    loadModule(gp)
+  }
+
+  def loadModule(module: GP.Module): PSystem.Module = {
+    val Seq(source) = CompileToPSystem.transAnalysis(Seq(module))
+    compileModule(module.name, source.syntax)()
+  }
+
+  private val compilerCache: mutable.Map[(String, String), () => PSystem.Module] = mutable.Map()
+  def compileModule(moduleName: String, source: String): () => PSystem.Module = {
+    compilerCache.get((moduleName,source)).map(return _)
+
+    import reflect.runtime.currentMirror
+    import tools.reflect.ToolBox
+
+    val toolbox = currentMirror.mkToolBox()
+    val tree = toolbox.parse(source + "\n" + moduleName)
+    val compiled = toolbox.compile(tree)
+    val result = () => compiled().asInstanceOf[PSystem.Module]
+    compilerCache += (moduleName,source) -> result
+    result
+  }
+
 }

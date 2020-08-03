@@ -1,9 +1,10 @@
 package inca.lang.funext
 
+import inca.IncaMatchers
 import inca.lang.fun.Fun._
 import org.scalatest.flatspec.AnyFlatSpec
 
-class TestIfThenElseDesugar extends AnyFlatSpec with DesugarMatchers {
+class TestIfThenElseDesugar extends AnyFlatSpec with IncaMatchers {
 
   val one = Constant(IntLiteral(1))
   val two = Constant(IntLiteral(2))

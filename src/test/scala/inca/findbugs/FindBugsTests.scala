@@ -1,12 +1,12 @@
 package inca.findbugs
 
+import inca.analyzedLangs
 import inca.analyzedLangs._
 import inca.lang.fun.Fun._
 import inca.runtime.EnginePool
 import inca.runtime.context.{LanguageMetaInfo, QueryScope}
 import inca.runtime.index.dynamic.ParentIndex
-import inca.trans.generated.FindBugs_confusedInheritanceQuerySpecification
-import inca.{AnalysisWriter, analyzedLangs}
+import inca.util.Meta
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
 import truechange.{JavaLitType, ListType, SortType}
 import truediff.Diffable
@@ -69,11 +69,13 @@ class FindBugsTests extends AnyFunSuite {
             Assert(InstanceOf(PathAccess(Var("member"), fieldDeclType("visibility")).typed(visType), protectedVisType))
           ))))
     val module = Module("FindBugs", Seq(), Seq(confusedInheritance))
-    AnalysisWriter.writeModule(module)
+
+
 
     val additionalIndices = Seq(new ParentIndex)
-    val scope = QueryScope(langMetaInfo, additionalIndices)
-    val (feed,matcher) = EnginePool.loadQuery(FindBugs_confusedInheritanceQuerySpecification.instance, scope, DifferentialReteBackendFactory.INSTANCE)
+    val scope = new QueryScope(langMetaInfo, additionalIndices)
+    val spec = Meta.loadModule(module).patterns("confusedInheritance")
+    val (feed,matcher) = EnginePool.loadQuery(spec(), scope, DifferentialReteBackendFactory.INSTANCE)
 
     val clazz = ClassDeclaration("Foo", true, List(FieldDeclaration("baz", PublicVisibility()), FieldDeclaration("bar", ProtectedVisibility())))
     val editScript = Diffable.load(clazz)

@@ -1,21 +1,16 @@
 package inca.trans.gp
 
-import inca.AnalysisWriter
+import inca.IncaMatchers
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
 import inca.lang.fun.Fun.{Exp => _, _}
 import inca.runtime.context.{LanguageMetaInfo, QueryScope}
 import inca.runtime.index.dynamic.ParentIndex
-import inca.runtime.{EnginePool, Query}
 import inca.trans.ExpLangTestAnalyses._
-import org.eclipse.viatra.query.runtime.api.{IPatternMatch, ViatraQueryMatcher}
-import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
-import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 import truechange.{JavaLitType, SortType}
-import truediff.Diffable
 
-class CompileToPSystemTest extends AnyFunSuite {
+class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
 
   private val testInput = Add(And(Or(BooleanLit(false), BooleanLit(false)), IntegerLit(5)), LongLit(10L))
   private val testInputNumericAddition = Add(Add(IntegerLit(5), IntegerLit(7)), Add(LongLit(7), IntegerLit(8)))
@@ -69,107 +64,80 @@ class CompileToPSystemTest extends AnyFunSuite {
         (boolTag->"value") -> JavaLitType(classOf[java.lang.Boolean])
       ))
 
-  def assertMatch(
-      subjectProg: Diffable,
-      compiledModuleClassname: String)(asserter: ViatraQueryMatcher[_ <: IPatternMatch] => Assertion): Assertion = {
 
-    val editScript = Diffable.load(subjectProg)
-    val additionalIndices = Seq(new ParentIndex)
-    val scope = QueryScope(langMetaInfo, additionalIndices)
 
-    val clazz = Class.forName("inca.trans.generated." + compiledModuleClassname)
-    assert(clazz != null)
-
-    val instanceMethod = clazz.getMethod("instance")
-    val querySpec = instanceMethod.invoke(null).asInstanceOf[Query.Specification]
-
-    val (feed, matcher) = EnginePool.loadQuery(querySpec, scope, DifferentialReteBackendFactory.INSTANCE)
-    feed.processEditScript(editScript)
-
-    try {
-      asserter(matcher)
-    } finally {
-      EnginePool.disposeAllEngines()
-    }
-  }
+  val scope = new QueryScope(langMetaInfo, Seq(new ParentIndex))
 
   test("simple compare constraint") {
     val module = Module("Test", Seq(), Seq(idFun))
-    AnalysisWriter.writeModule(module)
 
-    assertMatch(testInputNumericAddition, "Test_idQuerySpecification") { matcher =>
+    assertMatch(module, "id", testInputNumericAddition, scope) { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
-    assertMatch(testInput, "Test_idQuerySpecification") { matcher =>
+    assertMatch(module, "id", testInput, scope) { matcher =>
       assert(matcher.getAllMatches.size == 1)
     }
   }
 
   test("simple path constraint") {
     val module = Module("Test", Seq(), Seq(lhChildFun))
-    AnalysisWriter.writeModule(module)
 
-    assertMatch(testInputNumericAddition, "Test_lhChildQuerySpecification") { matcher =>
+    assertMatch(module, "lhChild", testInputNumericAddition, scope) { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
-    assertMatch(testInput, "Test_lhChildQuerySpecification") { matcher =>
+    assertMatch(module, "lhChild", testInput, scope) { matcher =>
       assert(matcher.getAllMatches.size == 1)
     }
   }
 
   test("multiple bodies") {
     val module = Module("Test", Seq(), Seq(childrenFun))
-    AnalysisWriter.writeModule(module)
 
-    assertMatch(testInputNumericAddition, "Test_childrenQuerySpecification") { matcher =>
+    assertMatch(module, "children", testInputNumericAddition, scope) { matcher =>
       assert(matcher.getAllMatches.size == 6)
     }
-    assertMatch(testInput, "Test_childrenQuerySpecification") { matcher =>
+    assertMatch(module, "children", testInput, scope) { matcher =>
       assert(matcher.getAllMatches.size == 2)
     }
   }
 
   test("non negative, non transtive call") {
     val module = Module("Test", Seq(), Seq(callLhChildFun, lhChildFun))
-    AnalysisWriter.writeModule(module)
 
-    assertMatch(testInputNumericAddition, "Test_callLhChildQuerySpecification") { matcher =>
+    assertMatch(module, "callLhChild", testInputNumericAddition, scope) { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
-    assertMatch(testInput, "Test_callLhChildQuerySpecification") { matcher =>
+    assertMatch(module, "callLhChild", testInput, scope) { matcher =>
       assert(matcher.getAllMatches.size == 1)
     }
   }
 
   test("constraint concept") {
     val module = Module("Test", Seq(), Seq(instanceAddFun))
-    AnalysisWriter.writeModule(module)
 
-    assertMatch(testInputNumericAddition, "Test_instanceAddQuerySpecification") { matcher =>
+    assertMatch(module, "instanceAdd", testInputNumericAddition, scope) { matcher =>
       assert(matcher.getAllMatches.size == 1)
     }
-    assertMatch(testInput, "Test_instanceAddQuerySpecification") { matcher =>
+    assertMatch(module, "instanceAdd", testInput, scope) { matcher =>
       assert(matcher.getAllMatches.size == 0)
     }
   }
 
   test("no type annotation for param") {
     val module = Module("Test", Seq(), Seq(noParamTypeFun))
-    AnalysisWriter.writeModule(module)
 
-    assertMatch(testInputNumericAddition, "Test_noParamTypeQuerySpecification") { matcher =>
+    assertMatch(module, "noParamType", testInputNumericAddition, scope) { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
   }
 
   test("primitive datatype output") {
     val module = Module("Test", Seq(), Seq(isBooleanFun))
-    AnalysisWriter.writeModule(module)
 
-    assertMatch(testInputNumericAddition, "Test_isBooleanQuerySpecification") { matcher =>
+    assertMatch(module, "isBoolean", testInputNumericAddition, scope) { matcher =>
       assert(matcher.getAllMatches.size == 0)
     }
-    assertMatch(testInput, "Test_isBooleanQuerySpecification") { matcher =>
+    assertMatch(module, "isBoolean", testInput, scope) { matcher =>
       assert(matcher.getAllMatches.size == 2)
     }
   }
@@ -194,9 +162,8 @@ class CompileToPSystemTest extends AnyFunSuite {
             Yield(Var("p"))))))
 
     val module = Module("Test", Seq(), Seq(parentFun))
-    AnalysisWriter.writeModule(module)
 
-    assertMatch(mul, "Test_parentQuerySpecification") { matcher =>
+    assertMatch(module, "parent", mul, scope) { matcher =>
       assert(matcher.getAllMatches.size == 4)
     }
   }
