@@ -7,7 +7,7 @@ import inca.util.Gensym
 import scala.collection.mutable.ListBuffer
 
 case class Cast(src: Exp, targetTyp: TypeAnno) extends Exp {
-  override def usedvars: Set[Name] = src.usedvars
+  override def usedvars: Map[Name, Option[TypeAnno]] = src.usedvars
 
   override def prettyprint(implicit indent: String): String =
     s"${src.prettyprint}:${targetTyp.prettyprint}"
@@ -33,9 +33,9 @@ object Cast extends Desugarable {
       if (castStatements.isEmpty)
         desugared
       else {
-        val prepend = castStatements
+        val prepend = castStatements.toSeq
         castStatements = ListBuffer()
-        prepend.toSeq ++ desugared
+        prepend ++ desugared
       }
     }
   }

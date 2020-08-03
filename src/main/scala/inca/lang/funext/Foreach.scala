@@ -6,12 +6,16 @@ import inca.util.Gensym
 import inca.util.Meta.TAB
 
 case class Foreach(name: Name, exp: Exp, body: Seq[Statement]) extends Statement {
-  override def usedvars: Set[Name] = Set(name) ++ exp.usedvars ++ body.flatMap(_.usedvars)
+  val elemTyp: Option[TLinked] = exp.typ.flatMap {
+    case ty: TIterable => Some(ty.contained)
+    case _ => None
+  }
+  override def usedvars: Map[Name, Option[TypeAnno]] = Map(name -> elemTyp) ++ exp.usedvars ++ collectUsedvars(body)
 
   override def prettyprint(implicit indent: String): String = {
     val bodyS = if (body.isEmpty) "" else
       "\n" + body.map(_.prettyprint(indent+TAB)).mkString("\n")
-    s"""${indent}for $name in ${exp.prettyprint} {$bodyS
+    s"""${indent}foreach $name in ${exp.prettyprint} {$bodyS
        |${indent}}""".stripMargin
   }
 }

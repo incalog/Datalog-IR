@@ -1,6 +1,6 @@
 package inca.lang.funext.desugar
 
 trait Desugarable {
-  val desugarsTo: Set[Desugarable] = Set()
+  val desugarsTo: Seq[Desugarable] = Seq()
   def trans(): DesugarTrans
 }

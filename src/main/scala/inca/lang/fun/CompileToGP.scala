@@ -53,7 +53,7 @@ object CompileToGP {
 
 
   def rewriteFunction(fun: Fun.PatternFunction, funs: Map[String, Fun.PatternFunction]): GP.Rule = {
-    val gensym = new Gensym(fun.usedvars)
+    val gensym = new Gensym(fun.usedvars.keys)
     val vis = fun.vis.map {
       case Fun.Private => GP.Private
       case Fun.Public => GP.Public
@@ -84,16 +84,18 @@ object CompileToGP {
     def transAlternative(alt: Fun.Body): Res = (Seq(), alt.stmts.map(s => transStatement(s.ensureCore)).flatMap(_._2))
 
     def transStatement(stmt: Fun.CoreStatement): Res = stmt match {
-      case Fun.Yield(exp) =>
-        val (vars, constraints) = transExp(exp.ensureCore)
-        (Seq(), constraints ++ genEqs(vars, outVars))
+      case Fun.Assert(cond) => transCond(cond.ensureCore)
       case Fun.Assign(names, exp) =>
         // TODO difference in encoding, in the paper lhs is a list of names, actual implementation one expression (which can be a tuple thus multiple names)
 //        val (lvars, lconstraints) = transExp()
         val (rvars, rconstraints) = transExp(exp.ensureCore)
         val eqConstraints = genEqs(names, rvars)
         (Seq(), rconstraints ++ eqConstraints)
-      case Fun.Assert(cond) => transCond(cond.ensureCore)
+      case Fun.Yield(exp) =>
+        val (vars, constraints) = transExp(exp.ensureCore)
+        (Seq(), constraints ++ genEqs(vars, outVars))
+      case Fun.Continue =>
+        (Seq(), Seq(GP.Fail))
     }
 
     def transCond(cond: Fun.CoreCond): Res = cond match {
@@ -141,7 +143,7 @@ object CompileToGP {
         if (v)
           (Seq(), Seq())
         else
-          (Seq(), Seq(GP.Compare(GP.NeqComparator, GP.Constant(GP.IntLiteral(0)), GP.Constant(GP.IntLiteral(0)))))
+          (Seq(), Seq(GP.Fail))
     }
 
     def genDefCallConstraint(name: Fun.Name, args: Seq[Fun.Exp], transitive: Boolean, funs: Map[String, Fun.PatternFunction], neg: Boolean): Res = {
@@ -165,9 +167,13 @@ object CompileToGP {
     def transExp(exp: Fun.CoreExp): Res = exp match {
       case Fun.Var(name) => (Seq(name), Seq())
       case Fun.Constant(lit) =>
-        val tmpVar = gensym.fresh("tmp")
-        val compare = GP.Compare(GP.EqComparator, GP.Var(tmpVar), GP.Constant(transLiteral(lit)))
-        (Seq(tmpVar), Seq(compare))
+        transLiteral(lit) match {
+          case None => (Seq(), Seq())
+          case Some(gplit) =>
+            val tmpVar = gensym.fresh("tmp")
+            val compare = GP.Compare(GP.EqComparator, GP.Var(tmpVar), GP.Constant(gplit))
+            (Seq(tmpVar), Seq(compare))
+        }
       case Fun.Tuple(exps) =>
         val (vars, constraints) = exps.map(e => transExp(e.ensureCore)).unzip
         (vars.flatten, constraints.flatten)
@@ -202,18 +208,21 @@ object CompileToGP {
           GP.Path(GP.Var(src), trg, GP.NextLink, ty)
         case Fun.PreviousLink =>
           GP.Path(trg, GP.Var(src), GP.NextLink, ty)
+        case Fun.SizeLink =>
+          GP.Path(GP.Var(src), trg, GP.SizeLink, ty)
         case Fun.NamedLink(node, field) =>
           GP.Path(GP.Var(src), trg, GP.NamedLink(GP.TNode(node.name), field), ty)
       }
       econstraints :+ path
     }
 
-    def transLiteral(lit: Fun.Literal): GP.Literal = lit match {
-      case Fun.IntLiteral(v) => GP.IntLiteral(v)
-      case Fun.LongLiteral(v) => GP.LongLiteral(v)
-      case Fun.DoubleLiteral(v) => GP.DoubleLiteral(v)
-      case Fun.StringLiteral(v) => GP.StringLiteral(v)
-      case Fun.BooleanLiteral(v) => GP.BooleanLiteral(v)
+    def transLiteral(lit: Fun.Literal): Option[GP.Literal] = lit match {
+      case Fun.UnitLiteral => None
+      case Fun.IntLiteral(v) => Some(GP.IntLiteral(v))
+      case Fun.LongLiteral(v) => Some(GP.LongLiteral(v))
+      case Fun.DoubleLiteral(v) => Some(GP.DoubleLiteral(v))
+      case Fun.StringLiteral(v) => Some(GP.StringLiteral(v))
+      case Fun.BooleanLiteral(v) => Some(GP.BooleanLiteral(v))
     }
 
     val bodies = fun.bodies.map(transAlternative).map(c => GP.Body(c._2))

@@ -8,7 +8,7 @@ import inca.util.Meta.TAB
 import scala.collection.mutable.ListBuffer
 
 case class IfThenElse(cond: Cond, thn: Seq[Statement], elseIfs: Seq[ElseIf], els: Option[Seq[Statement]]) extends Statement {
-  override def usedvars: Set[Name] = cond.usedvars ++ thn.flatMap(_.usedvars) ++ els.toSeq.flatMap(_.flatMap(_.usedvars))
+  override def usedvars: Map[Name, Option[TypeAnno]] = cond.usedvars ++ collectUsedvars(thn) ++ els.map(collectUsedvars(_)).getOrElse(Map())
 
   override def prettyprint(implicit indent: String): String = {
     val thnS = if (thn.isEmpty) "" else
@@ -25,7 +25,7 @@ case class IfThenElse(cond: Cond, thn: Seq[Statement], elseIfs: Seq[ElseIf], els
   }
 }
 case class ElseIf(cond: Cond, body: Seq[Statement]) {
-  def usedvars: Set[Name] = cond.usedvars ++ body.flatMap(_.usedvars)
+  def usedvars: Map[Name, Option[TypeAnno]] = cond.usedvars ++ collectUsedvars(body)
   def prettyprint(implicit indent: String): String = {
     val bodyS = if (body.isEmpty) "" else
       "\n" + body.map(_.prettyprint(indent+TAB)).mkString("\n")
@@ -35,7 +35,7 @@ case class ElseIf(cond: Cond, body: Seq[Statement]) {
 }
 
 object IfThenElse extends Desugarable {
-  override val desugarsTo: Set[Desugarable] = Set(Switch, Not)
+  override val desugarsTo: Seq[Desugarable] = Seq(Switch, Not)
 
   override def trans(): DesugarTrans = new DesugarTrans {
 

@@ -2,8 +2,10 @@ package inca.lang.fun
 
 import inca.util.Meta.TAB
 
+import scala.language.reflectiveCalls
+
 object Fun {
-  trait TypeAnno {
+  sealed trait TypeAnno {
     def prettyprint: String
     def javastring: String
   }
@@ -39,7 +41,9 @@ object Fun {
     def apply(field: String): NamedLink = NamedLink(this, field)
   }
 
-  trait TIterable extends TypeAnno
+  trait TIterable extends TypeAnno {
+    val contained: TLinked
+  }
   case class TList(contained: TLinked) extends TLinked with TIterable {
     override def prettyprint: String = s"List[${contained.prettyprint}]"
     override def javastring: String = s"List_${contained.javastring}"
@@ -47,6 +51,16 @@ object Fun {
   case class TEnumeration(contained: TLinked) extends TIterable {
     override def prettyprint: String = s"Enum[${contained.prettyprint}]"
     override def javastring: String = s"Enum_${contained.javastring}"
+  }
+
+  case class TTuple(ts: Seq[TypeAnno]) extends TypeAnno {
+    override def prettyprint: String = ts.size match {
+      case 0 => "Unit"
+      case 1 => ts.head.prettyprint
+      case _ => ts.map(_.prettyprint).mkString("(", ", ", ")")
+    }
+
+    override def javastring: String = "Tuple_" + ts.map(_.javastring).mkString("_")
   }
 
   type Name = String
@@ -62,7 +76,9 @@ object Fun {
   }
 
   case class Module(name: Name, imports: Seq[Name], funs: Seq[PatternFunction]) {
-    def usedvars: Set[Name] = Set(name) ++ imports
+    def usedvars: Map[Name, Option[TypeAnno]] = collectUsedvars(funs)
+    def usedModuleNames: Seq[Name] = name +: imports
+    def usedFunNames: Seq[Name] = funs.map(_.name)
 
     override def toString: Name = prettyprint("")
 
@@ -75,7 +91,7 @@ object Fun {
     }
   }
   case class PatternFunction(vis: Option[Visibility], name: Name, params: Seq[Param], outParams: Seq[AnnoParam], bodies: Seq[Body]) {
-    def usedvars: Set[Name] = Set(name) ++ params.map(_.name) ++ outParams.flatMap(_.name) ++ bodies.flatMap(_.usedvars)
+    def usedvars: Map[Name, Option[TypeAnno]] = collectUsedvars(params) ++ collectUsedvars(outParams) ++ collectUsedvars(bodies)
 
     def prettyprint(implicit indent: String): String = {
       val visS = if (vis.contains(Private)) "private " else ""
@@ -92,12 +108,14 @@ object Fun {
   }
 
   case class Param(name: Name, typ: Option[TypeAnno]) {
+    def usedvars: Map[Name, Option[TypeAnno]] = Map(name -> typ)
     def prettyprint: String = typ match {
       case Some(ty) => s"$name: ${ty.prettyprint}"
       case None => name
     }
   }
   case class AnnoParam(name: Option[Name], typ: TypeAnno) {
+    def usedvars: Map[Name, Option[TypeAnno]] = name.map(_ -> Some(typ)).toMap
     def prettyprint: String = name match {
       case Some(nam) => s"($nam: ${typ.prettyprint})"
       case None => typ.prettyprint
@@ -106,7 +124,7 @@ object Fun {
   }
 
   case class Body(stmts: Seq[Statement]) {
-    def usedvars: Set[Name] = stmts.flatMap(_.usedvars).toSet
+    def usedvars: Map[Name, Option[TypeAnno]] = collectUsedvars(stmts)
     def prettyprint(implicit indent: String): String = {
       val stmtsS = if (stmts.isEmpty) " " else
         "\n" + stmts.map(_.prettyprint(indent+TAB)).mkString("\n")
@@ -116,7 +134,7 @@ object Fun {
   }
 
   trait Statement {
-    def usedvars: Set[Name]
+    def usedvars: Map[Name, Option[TypeAnno]]
     def prettyprint(implicit indent: String): String
     def ensureCore: CoreStatement = this match {
       case self: CoreStatement => self
@@ -125,7 +143,11 @@ object Fun {
   }
   sealed trait CoreStatement extends Statement
   case class Assign(names: Seq[Name], exp: Exp) extends CoreStatement {
-    override def usedvars: Set[Name] = names.toSet ++ exp.usedvars
+    override def usedvars: Map[Name, Option[TypeAnno]] = exp.typ match {
+      case Some(ty) if names.size == 1 => Map(names.head -> Some(ty)) ++ exp.usedvars
+      case Some(TTuple(ts)) if names.size == ts.size => (names zip ts.map(Some(_))).toMap ++ exp.usedvars
+      case _ => names.map(_ -> None).toMap ++ exp.usedvars
+    }
 
     override def prettyprint(implicit indent: String): String = {
       val namesS = if (names.size == 1) names.head else names.mkString("(", ", ", ")")
@@ -133,25 +155,25 @@ object Fun {
     }
   }
   case class Assert(cond: Cond) extends CoreStatement {
-    override def usedvars: Set[Name] = cond.usedvars
+    override def usedvars: Map[Name, Option[TypeAnno]] = cond.usedvars
     override def prettyprint(implicit indent: String): String =
       s"${indent}assert ${cond.prettyprint}"
   }
 
   trait TerminatorStatement extends Statement
   case class Yield(exp: Exp) extends CoreStatement with TerminatorStatement {
-    override def usedvars: Set[Name] = exp.usedvars
+    override def usedvars: Map[Name, Option[TypeAnno]] = exp.usedvars
     override def prettyprint(implicit indent: String): String =
       s"${indent}yield ${exp.prettyprint}"
   }
   case object Continue extends CoreStatement with TerminatorStatement {
-    override def usedvars: Set[Name] = Set()
+    override def usedvars: Map[Name, Option[TypeAnno]] = Map()
     override def prettyprint(implicit indent: String): String =
       s"${indent}continue"
   }
 
   trait Cond {
-    def usedvars: Set[Name]
+    def usedvars: Map[Name, Option[TypeAnno]]
     def prettyprint(implicit indent: String): String
     def ensureCore: CoreCond = this match {
       case self: CoreCond => self
@@ -160,37 +182,37 @@ object Fun {
   }
   sealed trait CoreCond extends Cond
   case class Eq(lhs: Exp, rhs: Exp) extends CoreCond {
-    def usedvars: Set[Name] = lhs.usedvars ++ rhs.usedvars
+    def usedvars: Map[Name, Option[TypeAnno]] = lhs.usedvars ++ rhs.usedvars
     override def prettyprint(implicit indent: String): String =
       s"${lhs.prettyprint} == ${rhs.prettyprint}"
   }
   case class Neq(lhs: Exp, rhs: Exp) extends CoreCond {
-    override def usedvars: Set[Name] = lhs.usedvars ++ rhs.usedvars
+    override def usedvars: Map[Name, Option[TypeAnno]] = lhs.usedvars ++ rhs.usedvars
     override def prettyprint(implicit indent: String): String =
       s"${lhs.prettyprint} != ${rhs.prettyprint}"
   }
   case class InstanceOf(exp: Exp, typ: TypeAnno) extends CoreCond {
-    override def usedvars: Set[Name] = exp.usedvars
+    override def usedvars: Map[Name, Option[TypeAnno]] = exp.usedvars
     override def prettyprint(implicit indent: String): String =
       s"${exp.prettyprint} instanceOf ${typ.prettyprint}"
   }
   case class NotInstanceOf(exp: Exp, typ: TypeAnno) extends CoreCond {
-    override def usedvars: Set[Name] = exp.usedvars
+    override def usedvars: Map[Name, Option[TypeAnno]] = exp.usedvars
     override def prettyprint(implicit indent: String): String =
       s"${exp.prettyprint} notInstanceOf ${typ.prettyprint}"
   }
   case class Def(exp: Exp) extends CoreCond {
-    override def usedvars: Set[Name] = exp.usedvars
+    override def usedvars: Map[Name, Option[TypeAnno]] = exp.usedvars
     override def prettyprint(implicit indent: String): String =
       s"def ${exp.prettyprint}"
   }
   case class Undef(exp: Exp) extends CoreCond {
-    override def usedvars: Set[Name] = exp.usedvars
+    override def usedvars: Map[Name, Option[TypeAnno]] = exp.usedvars
     override def prettyprint(implicit indent: String): String =
       s"undef ${exp.prettyprint}"
   }
   case class BooleanCond(v: Boolean) extends CoreCond {
-    override def usedvars: Set[Name] = Set()
+    override def usedvars: Map[Name, Option[TypeAnno]] = Map()
     override def prettyprint(implicit indent: String): String =
       v.toString
   }
@@ -204,7 +226,7 @@ object Fun {
   }
 
   trait Exp extends Typeable {
-    def usedvars: Set[Name]
+    def usedvars: Map[Name, Option[TypeAnno]]
     def prettyprint(implicit indent: String): String
     def ensureCore: CoreExp = this match {
       case self: CoreExp => self
@@ -213,20 +235,20 @@ object Fun {
   }
   sealed trait CoreExp extends Exp
   case class Var(name: Name) extends CoreExp {
-    override def usedvars: Set[Name] = Set(name)
+    override def usedvars: Map[Name, Option[TypeAnno]] = Map(name -> typ)
     override def prettyprint(implicit indent: String): String = name
   }
   case class Constant(lit: Literal) extends CoreExp {
-    override def usedvars: Set[Name] = Set()
+    override def usedvars: Map[Name, Option[TypeAnno]] = Map()
     override def prettyprint(implicit indent: String): String = lit.prettyprint
   }
   case class PathAccess(receiver: Exp, link: Link) extends CoreExp {
-    override def usedvars: Set[Name] = receiver.usedvars
+    override def usedvars: Map[Name, Option[TypeAnno]] = receiver.usedvars
     override def prettyprint(implicit indent: String): String =
       s"${receiver.prettyprint}.${link.prettyprint}"
   }
   case class Call(name: Name, args: Seq[Exp], transitive: Boolean, count: Boolean) extends CoreExp {
-    override def usedvars: Set[Name] = Set(name) ++ args.flatMap(_.usedvars)
+    override def usedvars: Map[Name, Option[TypeAnno]] = collectUsedvars(args)
     override def prettyprint(implicit indent: String): String = {
       val argsS = args.map(_.prettyprint).mkString(", ")
       val transS = if (transitive) "+" else ""
@@ -235,7 +257,7 @@ object Fun {
     }
   }
   case class Tuple(exps: Seq[Exp]) extends CoreExp {
-    override def usedvars: Set[Name] = exps.flatMap(_.usedvars).toSet
+    override def usedvars: Map[Name, Option[TypeAnno]] = collectUsedvars(exps)
     override def prettyprint(implicit indent: String): String =
       exps.map(_.prettyprint).mkString("(", ", ", ")")
   }
@@ -244,6 +266,9 @@ object Fun {
     def prettyprint: String
   }
   sealed trait CoreLink extends Link
+  case class NamedLink(node: TNode, field: Name) extends CoreLink {
+    override def prettyprint: String = field
+  }
   case object ParentLink extends CoreLink {
     override def prettyprint: String = "parent"
   }
@@ -256,8 +281,8 @@ object Fun {
   case object PreviousLink extends CoreLink {
     override def prettyprint: String = "prev"
   }
-  case class NamedLink(node: TNode, field: Name) extends CoreLink {
-    override def prettyprint: String = field
+  case object SizeLink extends CoreLink {
+    override def prettyprint: String = "size"
   }
 
   sealed trait Literal {
@@ -281,4 +306,7 @@ object Fun {
   case class StringLiteral(v: String) extends Literal {
     override def prettyprint: String = '\"' + v + '\"'
   }
+
+  def collectUsedvars(it: Iterable[{def usedvars: Map[Name, Option[TypeAnno]]}]): Map[Name, Option[TypeAnno]] =
+    it.foldLeft(Map[Name, Option[TypeAnno]]())((m,i) => m ++ i.usedvars)
 }

@@ -30,10 +30,12 @@ object GP {
   case class HasType(t: Term, typ: TypeAnno) extends Atom
   case class Path(src: Term, trg: Term, link: Link, targetType: TypeAnno) extends Atom
   case class Native(code: String) extends Atom
+  val Fail: Atom = GP.Compare(GP.NeqComparator, GP.Constant(GP.IntLiteral(0)), GP.Constant(GP.IntLiteral(0)))
 
   sealed trait Link
   case object ParentLink extends Link
   case object NextLink extends Link
+  case object SizeLink extends Link
   case class NamedLink(node: TNode, field: Name) extends Link
 
   sealed trait Comparator

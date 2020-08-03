@@ -15,7 +15,9 @@ class DesugarTrans {
     t
   }
 
-  def desugarModule(module: Module)(implicit gensym: Gensym): Module = {
+  def desugarModule(module: Module)(implicit gensym: Gensym): Module = gensym.scoped {
+    module.usedModuleNames.foreach(gensym.register)
+    module.usedFunNames.foreach(gensym.register)
     Module(module.name, module.imports.flatMap(desugarImport), module.funs.flatMap(desugarFun))
   }
 
@@ -23,7 +25,7 @@ class DesugarTrans {
     Seq(imp)
 
   def desugarFun(fun: PatternFunction)(implicit gensym: Gensym): Seq[PatternFunction] = gensym.scoped {
-    fun.usedvars.foreach(gensym.register)
+    fun.usedvars.keys.foreach(gensym.register)
     Seq(PatternFunction(fun.vis, fun.name, fun.params, fun.outParams, fun.bodies.flatMap(desugarBody)))
   }
 

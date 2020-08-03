@@ -5,7 +5,7 @@ import inca.lang.funext.desugar.{DesugarTrans, Desugarable}
 import inca.util.Gensym
 
 case class Not(cond: Cond) extends Cond {
-  override def usedvars: Set[Name] = cond.usedvars
+  override def usedvars: Map[Name, Option[TypeAnno]] = cond.usedvars
 
   override def prettyprint(implicit indent: String): String =
     s"!(${cond.prettyprint})"

@@ -5,22 +5,19 @@ import inca.util.Gensym
 
 object Desugar {
 
-  def apply(_desugarables: Desugarable*)(_module: Module): Module =
-    apply(_desugarables.toSet)(_module)
-
-  def apply(_desugarables: Set[Desugarable])(_module: Module): Module = {
-    val desugarables: Vector[Desugarable] = {
-      var allDesugarables = _desugarables
-      var newDesugarables = Set[Desugarable]()
+  def apply(_desugarables: Desugarable*)(_module: Module): Module = {
+    val desugarables: Seq[Desugarable] = {
+      var allDesugarables = _desugarables.distinct
+      var newDesugarables = Seq[Desugarable]()
       do {
         allDesugarables = allDesugarables ++ newDesugarables
-        newDesugarables = allDesugarables.flatMap(_.desugarsTo) -- allDesugarables
+        newDesugarables = allDesugarables.flatMap(_.desugarsTo) diff allDesugarables
       } while (newDesugarables.nonEmpty)
 
-      allDesugarables.toVector
+      allDesugarables
     }
 
-    implicit val gensym: Gensym = new Gensym(_module.usedvars)
+    implicit val gensym: Gensym = new Gensym(Iterable())
     var changed = false
     var module = _module
     do {

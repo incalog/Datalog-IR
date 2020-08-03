@@ -3,6 +3,7 @@ package inca.lang.gp
 import inca.lang.gp.GP._
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
+import inca.runtime.index.virtual.SizeIndex
 import inca.util.Gensym
 import inca.util.Meta._
 import truechange.{AnyType, JavaLitType, ListType, SortType}
@@ -20,7 +21,8 @@ class CompileToPSystem(analysis: Seq[Object]) {
   val oLinkPrimitiveKey = objectOf(LinkPrimitiveKey)
   val oLinkListNextKey = objectOf(LinkListNextKey)
 
-  val oParentIndex = objectOf(ParentIndex)
+  val oParentKey = objectOf(ParentIndex.Key)
+  val oSizeKey = objectOf(SizeIndex.Key)
 
   val tAnyType = objectOf(AnyType)
   val tNodeType = symbolOf[SortType]
@@ -210,8 +212,9 @@ class CompileToPSystem(analysis: Seq[Object]) {
   }
 
   def genLinkKey(link: Link, targetType: GP.TypeAnno): meta.Term = link match {
-    case GP.ParentLink => q"$oParentIndex.Key"
+    case GP.ParentLink => oParentKey
     case GP.NextLink => oLinkListNextKey
+    case GP.SizeLink => oSizeKey
     case GP.NamedLink(TNode(name), field) => targetType match {
       case _: GP.TLinked =>
         q"$oLinkNodeKey(($name, $field))"

@@ -8,6 +8,6 @@ trait DesugarMatchers extends Matchers {
   def assertDesugar(core: Module, sugared: Module, desugarables: Desugarable*): Unit = {
     println(sugared + "\n" + "-- should desugar to --" + "\n" + core)
 
-    assertResult(core)(Desugar(desugarables.toSet)(sugared))
+    assertResult(core)(Desugar(desugarables:_*)(sugared))
   }
 }

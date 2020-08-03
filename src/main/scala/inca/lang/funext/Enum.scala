@@ -8,7 +8,7 @@ import scala.collection.mutable.ListBuffer
 
 /** Enumerates the values of the given type */
 case class Enum(ty: TypeAnno) extends Exp {
-  override def usedvars: Set[Name] = Set()
+  override def usedvars: Map[Name, Option[TypeAnno]] = Map()
   override def prettyprint(implicit indent: String): String = s"enum(${ty.prettyprint})"
 }
 
@@ -30,9 +30,9 @@ object Enum extends Desugarable {
       if (enumStatements.isEmpty)
         desugared
       else {
-        val prepend = enumStatements
+        val prepend = enumStatements.toSeq
         enumStatements = ListBuffer()
-        prepend.toSeq ++ desugared
+        prepend ++ desugared
       }
     }
   }

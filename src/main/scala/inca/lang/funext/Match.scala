@@ -7,7 +7,7 @@ import inca.util.{Gensym, Meta}
 import scala.collection.mutable.ListBuffer
 
 case class Match(matchee: Exp, cases: Seq[Case]) extends Statement {
-  override def usedvars: Set[Name] = matchee.usedvars ++ cases.flatMap(_.usedvars)
+  override def usedvars: Map[Name, Option[TypeAnno]] = matchee.usedvars ++ collectUsedvars(cases)
 
   override def prettyprint(implicit indent: String): String = {
     val casesS = if (cases.isEmpty) "" else
@@ -17,7 +17,7 @@ case class Match(matchee: Exp, cases: Seq[Case]) extends Statement {
   }
 }
 case class Case(pattern: Pattern, body: Seq[Statement]) {
-  def usedvars: Set[Name] = pattern.usedvars ++ body.flatMap(_.usedvars)
+  def usedvars: Map[Name, Option[TypeAnno]] = pattern.usedvars ++ collectUsedvars(body)
 
   def prettyprint(implicit indent: String): String = {
     val bodyS = if (body.isEmpty) "" else
@@ -27,12 +27,12 @@ case class Case(pattern: Pattern, body: Seq[Statement]) {
 }
 
 sealed trait Pattern {
-  def usedvars: Set[Name]
+  def usedvars: Map[Name, Option[TypeAnno]]
   def prettyprint(implicit indent: String): String
 }
 
 case class NodePattern(c: TNode, bindings: Seq[PatternBinding]) extends Pattern {
-  override def usedvars: Set[Name] = bindings.flatMap(_.pattern.usedvars).toSet
+  override def usedvars: Map[Name, Option[TypeAnno]] = collectUsedvars(bindings.map(_.pattern))
 
   override def prettyprint(implicit indent: String): String = {
     val bindingsS = if (bindings.isEmpty) "" else
@@ -46,7 +46,7 @@ case class PatternBinding(field: Name, pattern: Pattern) extends Typeable {
 }
 
 case class TuplePattern(pats: Seq[Pattern]) extends Pattern {
-  override def usedvars: Set[Name] = pats.flatMap(_.usedvars).toSet
+  override def usedvars: Map[Name, Option[TypeAnno]] = collectUsedvars(pats)
   override def prettyprint(implicit indent: String): String =
     if (pats.isEmpty)
       "()"
@@ -57,32 +57,28 @@ case class TuplePattern(pats: Seq[Pattern]) extends Pattern {
 }
 
 case class VarPattern(name: Name) extends Pattern {
-  override def usedvars: Set[Name] = Set(name)
+  override def usedvars: Map[Name, Option[TypeAnno]] = Map(name -> None)
   override def prettyprint(implicit indent: String): String = name
 }
 case class NamedPattern(name: Name, pat: Pattern) extends Pattern {
-  override def usedvars: Set[Name] = Set(name) ++ pat.usedvars
+  override def usedvars: Map[Name, Option[TypeAnno]] = Map(name -> None) ++ pat.usedvars
   override def prettyprint(implicit indent: String): String = s"$name@${pat.prettyprint}"
 }
 
-case object DefaultPattern extends Pattern {
-  override def usedvars: Set[Name] = Set()
-  override def prettyprint(implicit indent: String): String = "default"
-}
 case object WildcardPattern extends Pattern {
-  override def usedvars: Set[Name] = Set()
+  override def usedvars: Map[Name, Option[TypeAnno]] = Map()
   override def prettyprint(implicit indent: String): String = "_"
 }
 
 case class LiteralPattern(v: Literal) extends Pattern {
-  override def usedvars: Set[Name] = Set()
+  override def usedvars: Map[Name, Option[TypeAnno]] = Map()
   override def prettyprint(implicit indent: String): String = v.prettyprint
 }
 
 
 
 object Match extends Desugarable {
-  override val desugarsTo: Set[Desugarable] = Set(Switch, Not)
+  override val desugarsTo: Seq[Desugarable] = Seq(Switch, Not)
 
   override def trans(): DesugarTrans = new DesugarTrans {
 
