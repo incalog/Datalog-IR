@@ -1,12 +1,13 @@
 package inca.trans
 
 import inca.analyzedLangs.Exp
-import inca.analyzedLangs.Exp._
 import inca.lang.fun.Fun.{Exp => _, _}
 
 object ExpLangTestAnalyses {
-  private val addType: TNode = TNode(classOf[Add].getCanonicalName)
-  private val expType: TNode = TNode(classOf[Exp].getCanonicalName)
+  private val addType: TNode = TNode(Exp.addTag)
+  private val expType: TNode = TNode(Exp.expTag)
+  private val boolType: TNode = TNode(Exp.boolTag)
+
   val idFun: PatternFunction = PatternFunction(
     None,
     "id",
@@ -75,7 +76,6 @@ object ExpLangTestAnalyses {
         Seq(
           Assert(InstanceOf(Var("add"), addType))))))
 
-  private val boolType: TNode = TNode(classOf[BooleanLit].getCanonicalName)
   val isBooleanFun = PatternFunction(
     None,
     "isBoolean",

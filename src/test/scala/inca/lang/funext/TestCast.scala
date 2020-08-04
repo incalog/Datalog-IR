@@ -1,10 +1,12 @@
 package inca.lang.funext
 
 import inca.IncaMatchers
+import inca.analyzedLangs.Exp
 import inca.lang.fun.Fun._
+import inca.runtime.context.QueryScope
 import org.scalatest.flatspec.AnyFlatSpec
 
-class TestCastDesugar extends AnyFlatSpec with IncaMatchers {
+class TestCast extends AnyFlatSpec with IncaMatchers {
 
   val one = Constant(IntLiteral(1))
   val two = Constant(IntLiteral(2))
@@ -52,5 +54,39 @@ class TestCastDesugar extends AnyFlatSpec with IncaMatchers {
 
     assertDesugar(core, sugared, Cast)
   }
+
+
+  val scope = new QueryScope(Exp.languageMetaInfo)
+
+  "desugaring" should "implement cast semantics" in {
+    val module = Module("Test_Cast", Seq(), Seq(
+      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
+        Assert(InstanceOf(Var("e"), TNode(Exp.expTag))),
+        Yield(Cast(Var("e"), TNode(Exp.intTag)))
+      ))))
+    ))
+
+    val input = {
+      import Exp._
+      Add(
+        Mul(
+          IntegerLit(1),
+          IntegerLit(2)
+        ),
+        Many(
+          List(
+            IntegerLit(3),
+            IntegerLit(4),
+            IntegerLit(5)
+          )
+        )
+      )
+    }
+
+    assertMatch(module, "integerlits", input, scope, Cast) { matcher =>
+      assert(matcher.getAllMatches.size() == 5)
+    }
+  }
+
 
 }

@@ -1,11 +1,10 @@
-package inca.analyzedLangs
+package inca.analyzedLangs.tinyJava
 
 import truediff.Diffable
 import truediff.macros.diffable
 
 @diffable
 case class ClassDeclaration(name: String, isFinal: Boolean, members: List[ClassMember]) extends Diffable
-
 
 @diffable
 trait ClassMember extends Diffable

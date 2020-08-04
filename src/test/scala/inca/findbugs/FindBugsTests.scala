@@ -1,14 +1,11 @@
 package inca.findbugs
 
-import inca.analyzedLangs
-import inca.analyzedLangs._
+import inca.analyzedLangs.tinyJava
 import inca.lang.fun.Fun._
 import inca.runtime.EnginePool
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
-import inca.runtime.index.dynamic.ParentIndex
+import inca.runtime.context.QueryScope
 import inca.util.Meta
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
-import truechange.{JavaLitType, ListType, SortType}
 import truediff.Diffable
 //import inca.trans.generated.FindBugs_confusedInheritanceQuerySpecification
 import org.scalatest.funsuite.AnyFunSuite
@@ -16,44 +13,12 @@ import org.scalatest.funsuite.AnyFunSuite
 class FindBugsTests extends AnyFunSuite {
 
 
-  val classDeclTag = classOf[ClassDeclaration].getCanonicalName
-  val classDeclType = SortType(classDeclTag)
-  val classMemberTag = classOf[ClassMember].getCanonicalName
-  val classMemberType = SortType(classMemberTag)
-  val fieldDeclTag = classOf[FieldDeclaration].getCanonicalName
-  val fieldDeclType = SortType(fieldDeclTag)
-  val visType = SortType(classOf[analyzedLangs.Visibility].getCanonicalName)
-  val privateVisTag = classOf[PrivateVisibility].getCanonicalName
-  val privateVisType = SortType(privateVisTag)
-  val publicVisTag = classOf[PublicVisibility].getCanonicalName
-  val publicVisType = SortType(publicVisTag)
-
-  val langMetaInfo = new LanguageMetaInfo(
-    Map(
-      classDeclType -> Set(),
-      classMemberType -> Set(),
-      fieldDeclType -> Set(classMemberType),
-      visType -> Set(),
-      privateVisType -> Set(visType),
-      publicVisType -> Set(visType)
-    ),
-    Map(
-      (classDeclTag->"members") -> ListType(classMemberType),
-      (fieldDeclTag->"visibility") -> visType
-    ),
-    Map(
-      (classDeclTag->"name") -> JavaLitType(classOf[java.lang.String]),
-      (classDeclTag->"isFinal") -> JavaLitType(classOf[java.lang.Boolean]),
-      (fieldDeclTag->"name") -> JavaLitType(classOf[java.lang.String])
-    )
-  )
-
   test("Confused Inheritance") {
-    val classDeclType = TNode(classDeclTag)
-    val classMemberType = TNode(classMemberTag)
-    val fieldDeclType = TNode(fieldDeclTag)
-    val visType = TNode(classOf[analyzedLangs.Visibility].getCanonicalName)
-    val protectedVisType = TNode(classOf[ProtectedVisibility].getCanonicalName)
+    val classDeclType = TNode(tinyJava.classDeclTag)
+    val classMemberType = TNode(tinyJava.classMemberTag)
+    val fieldDeclType = TNode(tinyJava.fieldDeclTag)
+    val visType = TNode(tinyJava.visTag)
+    val protectedVisType = TNode(tinyJava.protectedVisTag)
     val confusedInheritance = PatternFunction(
       None,
       "confusedInheritance",
@@ -72,11 +37,11 @@ class FindBugsTests extends AnyFunSuite {
 
 
 
-    val additionalIndices = Seq(new ParentIndex)
-    val scope = new QueryScope(langMetaInfo, additionalIndices)
+    val scope = new QueryScope(tinyJava.langMetaInfo)
     val spec = Meta.loadModule(module).patterns("confusedInheritance")
     val (feed,matcher) = EnginePool.loadQuery(spec(), scope, DifferentialReteBackendFactory.INSTANCE)
 
+    import tinyJava._
     val clazz = ClassDeclaration("Foo", true, List(FieldDeclaration("baz", PublicVisibility()), FieldDeclaration("bar", ProtectedVisibility())))
     val editScript = Diffable.load(clazz)
     feed.processEditScript(editScript)

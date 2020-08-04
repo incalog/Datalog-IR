@@ -20,10 +20,11 @@ trait IncaMatchers extends Matchers {
   def assertMatch( module: Module,
                    fun: String,
                    subjectProg: Diffable,
-                   scope: QueryScope
+                   scope: QueryScope,
+                   desugarables: Desugarable*
                  )(asserter: Query.Matcher => Assertion): Assertion = {
 
-    val psystem = Meta.loadModule(module)
+    val psystem = Meta.loadModule(module, desugarables:_*)
     val querySpec = psystem.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module ${module.name}."))
 
     val (feed, matcher) = EnginePool.loadQuery(querySpec(), scope, DifferentialReteBackendFactory.INSTANCE)

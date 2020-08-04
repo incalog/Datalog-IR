@@ -2,7 +2,8 @@ package inca.runtime
 
 import java.{lang, util}
 
-import inca.analyzedLangs._
+import inca.analyzedLangs.Exp._
+import inca.analyzedLangs.{Exp, tinyJava}
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, TupleMask, Tuples}
@@ -13,18 +14,19 @@ import truediff.Diffable
 
 import scala.jdk.CollectionConverters._
 
+
 class RuntimeContextTests extends AnyFunSuite {
 
-  val num1 = Num(1)
-  val num2 = Num(2)
-  val num3 = Num(3)
+  val num1 = IntegerLit(1)
+  val num2 = IntegerLit(2)
+  val num3 = IntegerLit(3)
   val mul = Mul(num1, num2)
   val add = Add(mul, num3)
 
   val expName = classOf[Exp].getCanonicalName
   val addName = classOf[Add].getCanonicalName
   val mulName = classOf[Mul].getCanonicalName
-  val numName = classOf[Num].getCanonicalName
+  val numName = classOf[IntegerLit].getCanonicalName
 
   test("Type hierarchy check") {
     val database = new Database()
@@ -90,19 +92,19 @@ class RuntimeContextTests extends AnyFunSuite {
     val editScript = Diffable.load(add)
     database.processEditScript(editScript)
 
-    database.enumerateTuples(LinkPrimitiveKey(numName->"n"), emptyMask, null).
+    database.enumerateTuples(LinkPrimitiveKey(numName->"value"), emptyMask, null).
       asScala should contain allOf(t2(num1.uri, 1), t2(num2.uri, 2), t2(num3.uri, 3))
 
-    database.enumerateTuples(LinkNodeKey(mulName->"l"), emptyMask, null).
+    database.enumerateTuples(LinkNodeKey(mulName->"lhs"), emptyMask, null).
       asScala should contain only (t2(mul.uri, num1.uri))
 
-    database.enumerateTuples(LinkNodeKey(mulName->"r"), emptyMask, null).
+    database.enumerateTuples(LinkNodeKey(mulName->"rhs"), emptyMask, null).
       asScala should contain only (t2(mul.uri, num2.uri))
 
-    database.enumerateTuples(LinkNodeKey(addName->"l"), emptyMask, null).
+    database.enumerateTuples(LinkNodeKey(addName->"lhs"), emptyMask, null).
       asScala should contain only (t2(add.uri, mul.uri))
 
-    database.enumerateTuples(LinkNodeKey(addName->"r"), emptyMask, null).
+    database.enumerateTuples(LinkNodeKey(addName->"rhs"), emptyMask, null).
       asScala should contain only (t2(add.uri, num3.uri))
 
   }
@@ -117,7 +119,7 @@ class RuntimeContextTests extends AnyFunSuite {
     database.enumerateTuples(ParentIndex.Key, emptyMask, null).
       asScala should contain allOf(t2(mul.uri, add.uri), t2(num1.uri, mul.uri), t2(num2.uri, mul.uri), t2(num3.uri, add.uri))
 
-    val newtree = Add(Mul(Num(3), Num(2)), Num(1))
+    val newtree = Add(Mul(IntegerLit(3), IntegerLit(2)), IntegerLit(1))
     val (diffset, _) = add.compareTo(newtree)
     database.processEditScript(diffset)
 
@@ -129,9 +131,7 @@ class RuntimeContextTests extends AnyFunSuite {
     val additionalIndices = Seq(new ParentIndex)
     val database = new Database(null, additionalIndices, null)
 
-    val classDeclTag = classOf[ClassDeclaration].getCanonicalName
-    val classDeclType = SortType(classDeclTag)
-    val classMemberType = SortType(classOf[ClassMember].getCanonicalName)
+    import tinyJava._
     val fieldDecl1 = FieldDeclaration("bar", PublicVisibility())
     val fieldDecl2 = FieldDeclaration("baz", PrivateVisibility())
     val clazz = ClassDeclaration("Foo", true, List(fieldDecl1, fieldDecl2))
