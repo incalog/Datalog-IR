@@ -1,8 +1,6 @@
 package inca.runtime.index.binary
 
 import inca.runtime.index.IndexKey
-import inca.util.TupleOps
-import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
 
 import scala.collection.mutable
 
@@ -12,6 +10,10 @@ import scala.collection.mutable
 class UnidirectionalManyToOneIndex[K,V](val key: IndexKey[_]) extends BinaryIndex[K,V] {
   protected val index: mutable.Map[K, V] = mutable.Map()
 
+  override def entries: Iterable[(K, V)] = index
+  override def index(k: K): Iterable[V] = index.get(k)
+  override def indexInverted(v: V): Seq[K] = index.toSeq.flatMap(kv => if (kv._2 == v) Some(kv._1) else None)
+
   override def insert(k: K, v: V): Unit = {
     index += (k -> v)
     notify(k, v, isInsertion = true)
@@ -20,84 +22,6 @@ class UnidirectionalManyToOneIndex[K,V](val key: IndexKey[_]) extends BinaryInde
   override def delete(k: K, v: V): Unit = {
     index - k
     notify(k, v, isInsertion = false)
-  }
-
-  final override def containsTuple(tuple: ITuple): Boolean = {
-    if (tuple == null)
-      return false
-
-    val k = tuple.get(0).asInstanceOf[K]
-    val v = tuple.get(1).asInstanceOf[V]
-    index.get(k).contains(v)
-  }
-
-  final override def countTuples(mask: TupleMask, seed: ITuple): Int = {
-    val maskLength = mask.indices.length
-    if (maskLength == 0) {
-      index.size
-    } else if (maskLength == 1) {
-      val isOrdered = mask.indices(0) == 0
-      if (isOrdered) {
-        index.get(seed.get(0).asInstanceOf[K]).size
-      } else {
-        val v = seed.get(1).asInstanceOf[V]
-        index.count(kv => kv._2 == v)
-      }
-    } else if (maskLength == 2) {
-      val isOrdered = mask.indices(0) == 0
-      if (isOrdered && containsTuple(seed)) {
-        1
-      } else if (!isOrdered && containsTuple(TupleOps.binaryFlip(seed))) {
-        1
-      } else {
-        0
-      }
-    } else {
-      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for bijective virtual index " + this)
-    }
-  }
-
-  final override def enumerateTuples(mask: TupleMask, seed: ITuple): Iterable[Tuple] = {
-    val maskLength = mask.indices.length
-    if (maskLength == 0) {
-      index.map { case (k, v) => Tuples.staticArityFlatTupleOf(k, v) }
-    } else if (maskLength == 1) {
-      val isOrdered = mask.indices(0) == 0
-      if (isOrdered) {
-        val k = seed.get(0).asInstanceOf[K]
-        index.get(k).map(Tuples.staticArityFlatTupleOf(k, _))
-      } else {
-        val v = seed.get(1).asInstanceOf[V]
-        index.flatMap(kv => if (kv._2 == v) Some(Tuples.staticArityFlatTupleOf(kv._1,  kv._2)) else None)
-      }
-    } else if (maskLength == 2) {
-      val isOrdered = mask.indices(0) == 0
-      if (isOrdered && containsTuple(seed)) {
-        Seq(TupleOps.binaryTuple(seed))
-      } else if (!isOrdered && containsTuple(TupleOps.binaryFlip(seed))) {
-        Seq(TupleOps.binaryTuple(seed))
-      } else {
-        Seq()
-      }
-    } else {
-      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for bijective virtual index " + this)
-    }
-  }
-
-  final override def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[Tuple] = {
-    val maskLength = mask.indices.length
-    if (maskLength == 1) {
-      val isOrdered = mask.indices(0) == 0
-      if (isOrdered) {
-        val k = seed.get(0).asInstanceOf[K]
-        index.get(k).map(Tuples.staticArityFlatTupleOf(k, _))
-      } else {
-        val v = seed.get(1).asInstanceOf[V]
-        index.flatMap(kv => if (kv._2 == v) Some(Tuples.staticArityFlatTupleOf(kv._1,  kv._2)) else None)
-      }
-    } else {
-      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for enumerateValues in bijective virtual index " + this)
-    }
   }
 
 }

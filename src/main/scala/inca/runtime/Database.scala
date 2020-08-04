@@ -10,7 +10,7 @@ import inca.runtime.index.MetaElements.{Link, PrimitiveValue}
 import inca.runtime.index._
 import inca.runtime.index.binary.{BidirectionalManyToOneIndex, BidirectionalOneToOneIndex}
 import inca.runtime.index.dynamic.DynamicIndex
-import inca.runtime.index.unary.UnaryIndex
+import inca.runtime.index.unary.{UnaryBagIndex, UnarySetIndex}
 import inca.runtime.index.virtual.VirtualIndex
 import org.eclipse.viatra.query.runtime.api.scope.{IBaseIndex, IIndexingErrorListener, IInstanceObserver, ViatraBaseIndexChangeListener}
 import org.eclipse.viatra.query.runtime.matchers.context._
@@ -40,8 +40,8 @@ class Database(
 
   /* indices */
 
-  private[runtime] val nodeInstances: mutable.Map[Type, UnaryIndex[URI]] = mutable.Map()
-  private[runtime] val primitiveInstances: mutable.Map[LitType, UnaryIndex[PrimitiveValue]] = mutable.Map()
+  private[runtime] val nodeInstances: mutable.Map[Type, UnarySetIndex[URI]] = mutable.Map()
+  private[runtime] val primitiveInstances: mutable.Map[LitType, UnaryBagIndex[PrimitiveValue]] = mutable.Map()
   private[runtime] val linkNodeInstances: mutable.Map[Link, BidirectionalOneToOneIndex[URI, URI]] = mutable.Map()
   private[runtime] val linkPrimitiveInstances: mutable.Map[Link, BidirectionalManyToOneIndex[URI, PrimitiveValue]] = mutable.Map()
   private[runtime] val linkListFirstInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListFirstKey)
@@ -64,14 +64,14 @@ class Database(
 
   @inline
   private def nodeInstancesEnsure(ty: Type) = nodeInstances.getOrElse(ty, {
-    val ix = new UnaryIndex[URI](NodeTypeKey(ty))
+    val ix = new UnarySetIndex[URI](NodeTypeKey(ty))
     nodeInstances += ty -> ix
     ix
   })
 
   @inline
   private def primitiveInstancesEnsure(primitiveType: LitType) = primitiveInstances.getOrElse(primitiveType, {
-    val ix = new UnaryIndex[PrimitiveValue](PrimitiveTypeKey(primitiveType))
+    val ix = new UnaryBagIndex[PrimitiveValue](PrimitiveTypeKey(primitiveType))
     primitiveInstances += primitiveType -> ix
     ix
   })
