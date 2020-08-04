@@ -7,8 +7,7 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask
 import scala.collection.mutable
 
 /*
- * In a BinarySurjectiveVirtualIndex, each key uniquely identifies the correponding value, but not vice versa.
- * Many to one.
+ * In a BidirectionalManyToOneIndex, each key uniquely identifies the correponding value, but not vice versa.
  */
 class BidirectionalManyToOneIndex[K,V](val key: IndexKey[_]) extends BinaryIndex[K,V] {
   protected val index: mutable.Map[K, V] = mutable.Map()

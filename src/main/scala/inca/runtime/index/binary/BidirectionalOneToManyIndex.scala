@@ -7,8 +7,7 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask
 import scala.collection.mutable
 
 /*
- * In a BinaryInjectiveVirtualIndex, each value uniquely identifies the correponding key, but not and vice versa.
- * One to many.
+ * In a BidirectionalOneToManyIndex, each value uniquely identifies the correponding key, but not vice versa.
  */
 class BidirectionalOneToManyIndex[K,V](val key: IndexKey[_]) extends BinaryIndex[K,V] {
   protected val index: mutable.MultiDict[K, V] = mutable.MultiDict()

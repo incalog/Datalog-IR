@@ -8,7 +8,7 @@ import inca.runtime.Query.ChangeFeed
 import inca.runtime.context.LanguageMetaInfo
 import inca.runtime.index.MetaElements.{Link, PrimitiveValue}
 import inca.runtime.index._
-import inca.runtime.index.binary.{BidirectionalOneToManyIndex, BidirectionalOneToOneIndex}
+import inca.runtime.index.binary.{BidirectionalManyToOneIndex, BidirectionalOneToOneIndex}
 import inca.runtime.index.dynamic.DynamicIndex
 import inca.runtime.index.unary.UnaryIndex
 import inca.runtime.index.virtual.VirtualIndex
@@ -43,7 +43,7 @@ class Database(
   private[runtime] val nodeInstances: mutable.Map[Type, UnaryIndex[URI]] = mutable.Map()
   private[runtime] val primitiveInstances: mutable.Map[LitType, UnaryIndex[PrimitiveValue]] = mutable.Map()
   private[runtime] val linkNodeInstances: mutable.Map[Link, BidirectionalOneToOneIndex[URI, URI]] = mutable.Map()
-  private[runtime] val linkPrimitiveInstances: mutable.Map[Link, BidirectionalOneToManyIndex[URI, PrimitiveValue]] = mutable.Map()
+  private[runtime] val linkPrimitiveInstances: mutable.Map[Link, BidirectionalManyToOneIndex[URI, PrimitiveValue]] = mutable.Map()
   private[runtime] val linkListFirstInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListFirstKey)
   private[runtime] val linkListNextInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListNextKey)
 
@@ -85,7 +85,7 @@ class Database(
 
   @inline
   private def linkPrimitiveInstancesEnsure(link: Link) = linkPrimitiveInstances.getOrElse(link, {
-    val ix = new BidirectionalOneToManyIndex[URI, PrimitiveValue](LinkPrimitiveKey(link))
+    val ix = new BidirectionalManyToOneIndex[URI, PrimitiveValue](LinkPrimitiveKey(link))
     linkPrimitiveInstances += link -> ix
     ix
   })

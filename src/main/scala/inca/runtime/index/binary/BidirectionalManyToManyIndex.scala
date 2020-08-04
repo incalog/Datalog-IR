@@ -7,8 +7,7 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask
 import scala.collection.mutable
 
 /*
- * In a BinaryVirtualIndex, neither key nor value uniquely identify each other.
- * Many to many.
+ * In a BidirectionalManyToManyIndex, neither key nor value uniquely identify each other.
  */
 class BidirectionalManyToManyIndex[K,V](val key: IndexKey[_]) extends BinaryIndex[K,V] {
   protected val index: mutable.MultiDict[K, V] = mutable.MultiDict()
