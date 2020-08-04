@@ -1,10 +1,12 @@
 package inca.lang.funext
 
 import inca.IncaMatchers
+import inca.analyzedLangs.Exp
 import inca.lang.fun.Fun._
+import inca.runtime.context.QueryScope
 import org.scalatest.flatspec.AnyFlatSpec
 
-class TestMatchDesugar extends AnyFlatSpec with IncaMatchers {
+class TestMatch extends AnyFlatSpec with IncaMatchers {
 
   val one = Constant(IntLiteral(1))
   val two = Constant(IntLiteral(2))
@@ -539,4 +541,69 @@ class TestMatchDesugar extends AnyFlatSpec with IncaMatchers {
     assertDesugar(core, sugared, Match)
   }
 
+
+  val scope = new QueryScope(Exp.languageMetaInfo)
+
+  "desugaring" should "implement match semantics" in {
+    val module = Module("Test_Cast", Seq(), Seq(
+      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
+        Assert(InstanceOf(Var("root"), TNode(Exp.expTag))),
+        Assert(Undef(PathAccess(Var("root").typed(TNode(Exp.expTag)), ParentLink).typed(TAnyLinked))),
+        Yield(
+          Call("integerlits_rec",
+            Seq(Var("root")),
+            transitive = false, count = false
+          )
+        )
+      )))),
+
+      PatternFunction(None, "integerlits_rec", Seq(Param("e", Some(TNode(Exp.expTag)))), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
+        Match(Var("e"), Seq(
+          Case(
+            NodePattern(TNode(Exp.intTag), Seq(PatternBinding("value", VarPattern("v")).typed(TInt))),
+            Seq(Yield(Var("v")))),
+          Case(
+            NodePattern(TNode(Exp.addTag), Seq(PatternBinding("lhs", VarPattern("e1")).typed(TNode(Exp.expTag)))),
+            Seq(Yield(Call("integerlits_rec",
+              Seq(Var("e1")),
+              transitive = false, count = false)))),
+          Case(
+            NodePattern(TNode(Exp.multTag), Seq(PatternBinding("rhs", VarPattern("e1")).typed(TNode(Exp.expTag)))),
+            Seq(Yield(Call("integerlits_rec",
+              Seq(Var("e1")),
+              transitive = false, count = false))))
+        ))
+      ))))
+    ))
+
+    val input = {
+      import Exp._
+      Add(
+        Mul(
+          IntegerLit(1),
+          IntegerLit(2)
+        ),
+        Many(
+          List(
+            IntegerLit(3),
+            IntegerLit(4),
+            IntegerLit(5)
+          )
+        )
+      )
+    }
+
+    assertMatch(module, "generated_helper_undefpath_ParentLink", input, scope, Match) { matcher =>
+      assert(matcher.getAllMatches.size() == 7)
+    }
+
+    assertMatch(module, "integerlits_rec", input, scope, Match) { matcher =>
+      assert(matcher.getAllMatches.size() == 7)
+    }
+
+    assertMatch(module, "integerlits", input, scope, Match) { matcher =>
+      assert(matcher.getAllMatches.size() == 1)
+      matcher.getAllMatchArrays should contain theSameElementsAs Seq(Array(2))
+    }
+  }
 }

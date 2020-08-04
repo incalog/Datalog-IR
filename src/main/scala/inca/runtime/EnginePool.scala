@@ -50,7 +50,7 @@ object EnginePool {
     for (ref <- EnginePool.engineMap.values.asScala) {
       val engine = ref.get
       if (engine != null) {
-        System.err.println("Disposing engine " + engine)
+//        System.err.println("Disposing engine " + engine)
         engine.dispose()
       }
     }
