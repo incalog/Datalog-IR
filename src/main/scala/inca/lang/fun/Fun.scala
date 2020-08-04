@@ -223,6 +223,10 @@ object Fun {
       this.typ = Some(ty)
       this
     }
+    def mtyped(ty: Option[TypeAnno]): this.type = {
+      this.typ = ty
+      this
+    }
   }
 
   trait Exp extends Typeable {

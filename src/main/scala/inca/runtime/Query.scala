@@ -9,6 +9,8 @@ import org.eclipse.viatra.query.runtime.matchers.psystem.queries.PQuery
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
 import truechange.EditScript
 
+import scala.jdk.CollectionConverters._
+
 object Query {
   trait ChangeFeed {
     def processEditScript(edits: EditScript)
@@ -42,6 +44,9 @@ object Query {
 
     protected def tupleToMatch(t: Tuple): Match =
       Match(spec, t.getElements, isMutable = false)
+
+    def getAllMatchArrays: Iterable[Array[AnyRef]] =
+      getAllMatches.asScala.map(_.toArray)
   }
 
 

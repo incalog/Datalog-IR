@@ -49,12 +49,12 @@ class DesugarTrans {
     case _ => cond
   }
 
-  def desugarExp(exp: Exp)(implicit gensym: Gensym): Exp = exp match {
+  def desugarExp(exp: Exp)(implicit gensym: Gensym): Exp = (exp match {
     case Var(name) => Var(name)
     case Constant(lit) => Constant(lit)
     case PathAccess(receiver, link) => PathAccess(desugarExp(receiver), link)
     case Call(name, args, trans, count) => Call(name, args.map(desugarExp), trans, count)
     case Tuple(exps) => Tuple(exps.map(desugarExp))
     case _ => exp
-  }
+  }).mtyped(exp.typ)
 }

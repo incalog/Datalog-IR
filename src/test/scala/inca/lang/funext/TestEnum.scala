@@ -1,10 +1,12 @@
 package inca.lang.funext
 
 import inca.IncaMatchers
+import inca.analyzedLangs.Exp
 import inca.lang.fun.Fun._
+import inca.runtime.context.QueryScope
 import org.scalatest.flatspec.AnyFlatSpec
 
-class TestEnumDesugar extends AnyFlatSpec with IncaMatchers {
+class TestEnum extends AnyFlatSpec with IncaMatchers {
 
   val one = Constant(IntLiteral(1))
   val two = Constant(IntLiteral(2))
@@ -79,4 +81,36 @@ class TestEnumDesugar extends AnyFlatSpec with IncaMatchers {
     assertDesugar(core, sugared, Enum, Foreach, IfThenElse)
   }
 
+
+  val scope = new QueryScope(Exp.languageMetaInfo)
+
+  "desugaring" should "implement enum semantics" in {
+    val module = Module("Test_Cast", Seq(), Seq(
+      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
+        Assign(Seq("i"), Enum(TNode(Exp.intTag))),
+        Yield(Var("i"))
+      ))))
+    ))
+
+    val input = {
+      import Exp._
+      Add(
+        Mul(
+          IntegerLit(1),
+          IntegerLit(2)
+        ),
+        Many(
+          List(
+            IntegerLit(3),
+            IntegerLit(4),
+            IntegerLit(5)
+          )
+        )
+      )
+    }
+
+    assertMatch(module, "integerlits", input, scope, Enum) { matcher =>
+      assert(matcher.getAllMatches.size() == 5)
+    }
+  }
 }
