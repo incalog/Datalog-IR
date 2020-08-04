@@ -32,7 +32,7 @@ object Forall extends Desugarable {
     override def desugarStm(stm: Statement)(implicit gensym: Gensym): Seq[Statement] = stm match {
       case Forall(name, exp, body) => exp.typ.getOrElse(throw new IllegalArgumentException(s"Cannot support forall loop over untyped expression $exp")) match {
         case TList(ty) =>
-          val funsym = gensym.fresh("forallFun")
+          val funsym = gensym.fresh("forallCond")
           val sizeSym = gensym.fresh("listSize")
           val successSym = gensym.fresh("successSize")
 
