@@ -19,17 +19,17 @@ object GP {
   case object Private extends Visibility
   case object Public extends Visibility
 
-  case class Module(name: Name, imports: Seq[Name], pats: Seq[Rule])
-  case class Rule(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body])
+  case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern])
+  case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body])
   case class Param(name: Name, typ: Option[TypeAnno])
-  case class Body(constraints: Seq[Atom])
+  case class Body(constraints: Seq[Constraint])
 
-  sealed trait Atom
-  case class Call(name: Name, args: Seq[Term], transitive: Boolean, neg: Boolean) extends Atom
-  case class Compare(comp: Comparator, lhs: Term, rhs: Term) extends Atom
-  case class HasType(t: Term, typ: TypeAnno) extends Atom
-  case class Path(src: Term, trg: Term, link: Link, targetType: TypeAnno) extends Atom
-  case class Native(code: String) extends Atom
+  sealed trait Constraint
+  case class Call(name: Name, args: Seq[Term], transitive: Boolean, neg: Boolean) extends Constraint
+  case class Compare(comp: Comparator, lhs: Term, rhs: Term) extends Constraint
+  case class HasType(t: Term, typ: TypeAnno) extends Constraint
+  case class Path(src: Term, trg: Term, link: Link, targetType: TypeAnno) extends Constraint
+  case class Computed(resultVar: Var, computation: Computation) extends Constraint
 
   sealed trait Link
   case object ParentLink extends Link
@@ -51,4 +51,11 @@ object GP {
   case class DoubleLiteral(v: Double) extends Literal
   case class StringLiteral(v: String) extends Literal
   case class BooleanLiteral(v: Boolean) extends Literal
+
+  sealed trait Computation
+  case class CountAggregation(patName: Name, args: Seq[Term]) extends Computation
+  // TODO
+  case class LatticeAggregation() extends Computation
+  // TODO
+  case class Evaluation(code: String) extends Computation
 }

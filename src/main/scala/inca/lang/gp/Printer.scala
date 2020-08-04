@@ -1,13 +1,13 @@
 package inca.lang.gp
 
-import inca.lang.gp.GP.{Atom, Body, Call, Comparator, Compare, Constant, EqComparator, HasType, Module, NamedLink, Native, NeqComparator, NextLink, Param, ParentLink, Path, Private, Public, Rule, TAnyLinked, TBool, TDouble, TInt, TList, TLong, TNode, TString, Term, TypeAnno, Var, Visibility}
+import inca.lang.gp.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, HasType, Module, NamedLink, NeqComparator, NextLink, Param, ParentLink, Path, Pattern, Private, Public, SizeLink, TAnyLinked, TBool, TDouble, TInt, TList, TLong, TNode, TString, Term, TypeAnno, Var, Visibility}
 
 object Printer {
 
   def prettyModule(module: Module): String =
     "module " + module.name + "\n" + module.imports.mkString("\n") + module.pats.map(prettyGraphPattern).mkString("\n")
 
-  def prettyGraphPattern(gp: Rule): String = {
+  def prettyGraphPattern(gp: Pattern): String = {
     val header = prettyVis(gp.vis) + gp.name + gp.params.map(prettyParam).mkString("(", ", ", ")")
     val bodies = gp.bodies.map(prettyAlternative).mkString(" {\n", "\n} or {\n", "\n}")
     header + bodies
@@ -35,27 +35,29 @@ object Printer {
 
   def prettyAlternative(alt: Body): String = alt.constraints.map(prettyConstraint).map("\t"+_).mkString("\n")
 
-  def prettyConstraint(constraint: Atom): String = constraint match {
-    case Compare(comp, lhs, rhs) => prettyValue(lhs) + " " + prettyComparator(comp) + " " + prettyValue(rhs)
-    case HasType(v, typ) => prettyType(typ) + "(" + prettyValue(v) + ")"
+  def prettyConstraint(constraint: Constraint): String = constraint match {
+    case Compare(comp, lhs, rhs) => prettyTerm(lhs) + " " + prettyComparator(comp) + " " + prettyTerm(rhs)
+    case HasType(v, typ) => prettyType(typ) + "(" + prettyTerm(v) + ")"
     case Path(src, trg, link, ty) => link match {
       case NamedLink(node, fld) =>
-        prettyType(node) + "." + fld + "(" + prettyValue(src) + ", " + prettyValue(trg) + "):" + prettyType(ty)
+        prettyType(node) + "." + fld + "(" + prettyTerm(src) + ", " + prettyTerm(trg) + "):" + prettyType(ty)
       case ParentLink =>
-        "parent(" + prettyValue(src) + ", " + prettyValue(trg) + "):" + prettyType(ty)
+        "parent(" + prettyTerm(src) + ", " + prettyTerm(trg) + "):" + prettyType(ty)
       case NextLink =>
-        "next(" + prettyValue(src) + ", " + prettyValue(trg) + "):" + prettyType(ty)
+        "next(" + prettyTerm(src) + ", " + prettyTerm(trg) + "):" + prettyType(ty)
+      case SizeLink =>
+        "size(" + prettyTerm(src) + ", " + prettyTerm(trg) + "):" + prettyType(ty)
     }
     case Call(name, args, isTransitive, isNeg) =>
       val neg = if (isNeg) "neg " else ""
       val trans = if (isTransitive) "+" else ""
-      val call = s"$name$trans(${args.map(prettyValue).mkString(",")})"
+      val call = s"$name$trans(${args.map(prettyTerm).mkString(",")})"
       s"${neg}find $call"
-    case Native(code) =>
-      s"native $code"
+    case Computed(resultVar, computation) =>
+      prettyComputation(resultVar, computation)
   }
 
-  def prettyValue(value: Term): String = value match {
+  def prettyTerm(value: Term): String = value match {
     case Var(name) => name
     case Constant(lit) => lit.toString
   }
@@ -63,5 +65,12 @@ object Printer {
   def prettyComparator(comp: Comparator): String = comp match {
     case EqComparator => "=="
     case NeqComparator => "!="
+  }
+
+  def prettyComputation(resultVar: Var, computation: Computation): String = computation match {
+    case GP.CountAggregation(name, args) =>
+      s"${prettyTerm(resultVar)} = count $name(${args.map(prettyTerm).mkString(",")})"
+    case GP.LatticeAggregation() => ???
+    case GP.Evaluation(code) => ???
   }
 }

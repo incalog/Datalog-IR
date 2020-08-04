@@ -80,7 +80,7 @@ object CompileToPSystem {
     """
   }
 
-  private def transGraphPattern(moduleName: String, pat: Rule)(implicit env: RuleEnvironment): Stat = {
+  private def transGraphPattern(moduleName: String, pat: Pattern)(implicit env: RuleEnvironment): Stat = {
     val qname = CompileToPSystem.genQueryName(moduleName, pat.name)
 
     val paramNames = pat.params.map(_.name)
@@ -119,8 +119,8 @@ object CompileToPSystem {
                         }
                         body.setSymbolicParameters(exportedParams)
 
-                        ..${(CollectVars.transAlternative(body).distinct.diff(paramNames)).map(genTempVar).toList}
-                        ..${CollectLits.transAlternative(body).distinct.map(genLiteralVar(_)(gensym)).toList}
+                        ..${(CollectVars.transBody(body).distinct.diff(paramNames)).map(genTempVar).toList}
+                        ..${CollectLits.transBody(body).distinct.map(genLiteralVar(_)(gensym)).toList}
                         ..${pat.params.flatMap(genParamConstraint).toList}
                         ..${body.constraints.flatMap(genConstraints).toList}
                         body
@@ -150,6 +150,17 @@ object CompileToPSystem {
     q"private val ${Pat.Var(Term.Name(s"$PARAMPREFIX${param.name}"))}: PParameter = $pparam"
   }
 
+  def genParamConstraint(param: Param): Option[Stat] = param.typ match {
+    case Some(typ) =>
+      val key = genInputKey(typ)
+      Some(q"""new TypeConstraint(
+            body,
+            Tuples.flatTupleOf(${Term.Name(s"$VARPREFIX${param.name}")}),
+            $key)""")
+    case None => None
+  }
+
+
   def genInputKey(typ: GP.TypeAnno): meta.Term = {
     val gentyp = genType(typ)
     typ match {
@@ -157,7 +168,6 @@ object CompileToPSystem {
       case TAnyLinked | _:TNode | _:TList => q"$oNodeTypeKey($gentyp)"
     }
   }
-
 
   def genBodyParam(param: Param): Stat =
     q"""val ${Pat.Var(Term.Name(VARPREFIX + param.name))}: PVariable =
@@ -168,7 +178,7 @@ object CompileToPSystem {
 
   def genLiteralVar(lit: Literal)(implicit gensym: Gensym): Stat = {
     val varName = genLiteralVarName(lit)
-    q"val ${Pat.Var(Term.Name(LITPREFIX + varName))} = body.newConstantVariable(${genLiteral(lit)})"
+    q"val ${Pat.Var(Term.Name(LITPREFIX + varName))}: PVariable = body.newConstantVariable(${genLiteral(lit)})"
   }
 
   def genLiteralVarName(lit: Literal): String = lit match {
@@ -188,42 +198,32 @@ object CompileToPSystem {
 
   }
 
-  def genParamConstraint(param: Param): Option[Stat] = {
-    // TODO only emit constraint for nodetypes?
-    if (param.typ.isDefined && param.typ.get.isInstanceOf[TNode])
-      Some(q"""new TypeConstraint(
-            body,
-            Tuples.flatTupleOf(${Term.Name(s"$VARPREFIX${param.name}")}),
-            $oNodeTypeKey(${genType(param.typ.get)}))""")
-    else None
-  }
-
-  def genConstraints(constraint: Atom)(implicit env: RuleEnvironment): Seq[Stat] = constraint match {
-    case Call(name, qargs, transitive, neg) =>
+  def genConstraints(constraint: Constraint)(implicit env: RuleEnvironment): Seq[Stat] = constraint match {
+    case Call(name, args, transitive, neg) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
-      val args = q"Tuples.flatTupleOf(..${qargs.map(transValue).toList})"
+      val argTuple = q"Tuples.flatTupleOf(..${args.map(transTerm).toList})"
       val callQuery = q"${Term.Name(module)}.${Term.Name(name)}.instance.getInternalQueryRepresentation"
-      if (neg) Seq(q"new NegativePatternCall(body, $args, $callQuery)")
+      if (neg) Seq(q"new NegativePatternCall(body, $argTuple, $callQuery)")
       else
         if (transitive)
-          Seq(q"new BinaryTransitiveClosure(body, $args, $callQuery)")
+          Seq(q"new BinaryTransitiveClosure(body, $argTuple, $callQuery)")
         else
-          Seq(q"new PositivePatternCall(body, $args, $callQuery)")
+          Seq(q"new PositivePatternCall(body, $argTuple, $callQuery)")
     case Compare(EqComparator, lhs, rhs) =>
-      Seq(q"""new Equality(body, ${transValue(lhs)}, ${transValue(rhs)})""")
+      Seq(q"""new Equality(body, ${transTerm(lhs)}, ${transTerm(rhs)})""")
     case Compare(NeqComparator, lhs, rhs) =>
-      Seq(q"""new Inequality(body, ${transValue(lhs)}, ${transValue(rhs)})""")
+      Seq(q"""new Inequality(body, ${transTerm(lhs)}, ${transTerm(rhs)})""")
     case HasType(t, typ) =>
       // TODO if type is not enumerable emit TypeFilterConstraint (only needed when we introduce lattices)
       Seq(q"""new TypeConstraint(
             body,
-            Tuples.flatTupleOf(${transValue(t)}),
+            Tuples.flatTupleOf(${transTerm(t)}),
             $oNodeTypeKey(${genType(typ)}))""")
     case Path(src, trg, link, targetType) =>
       val key = genLinkKey(link, targetType)
-      Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${transValue(src)}, ${transValue(trg)}), $key)")
+      Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${transTerm(src)}, ${transTerm(trg)}), $key)")
 
-    case Native(code) => dialects.Sbt1(code).parse[Source].get.stats
+    case Computed(resultVar, computation) => transComputation(resultVar, computation)
   }
 
   def genLinkKey(link: Link, targetType: GP.TypeAnno): meta.Term = link match {
@@ -239,9 +239,23 @@ object CompileToPSystem {
 
   }
 
-  def transValue(v: GP.Term): meta.Term = v match {
+  def transTerm(v: GP.Term): meta.Term = v match {
     case Var(name) => Term.Name(s"$VARPREFIX$name")
     case Constant(lit) => Term.Name(s"$LITPREFIX${genLiteralVarName(lit)}")
+  }
+
+  def transComputation(resultVar: GP.Var, computation: Computation)(implicit env: RuleEnvironment): Seq[Stat] = computation match {
+    case CountAggregation(name, args) =>
+      val result = transTerm(resultVar)
+      val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
+      val argTuple = q"Tuples.flatTupleOf(..${args.map(transTerm).toList})"
+      val callQuery = q"${Term.Name(module)}.${Term.Name(name)}.instance.getInternalQueryRepresentation"
+      Seq(q"new PatternMatchCounter(body, $argTuple, $callQuery, $result)")
+
+    case LatticeAggregation() => ???
+
+    case Evaluation(code) => ???
+//       dialects.Sbt1(code).parse[Source].get.stats
   }
 
   private def genType(typ: GP.TypeAnno): meta.Term = typ match {

@@ -12,24 +12,24 @@ object CollectLits extends Collect[Literal] {
 
 trait Collect[R] {
 
-  def apply(pat: Rule): Seq[R] = {
+  def apply(pat: Pattern): Seq[R] = {
     val paramsRes = pat.params.flatMap(transParam)
-    paramsRes ++ pat.bodies.flatMap(transAlternative)
+    paramsRes ++ pat.bodies.flatMap(transBody)
   }
 
   def transParam(param: Param): Seq[R] = Seq()
 
-  def transAlternative(alt: Body): Seq[R] = alt.constraints.flatMap(transConstraint)
+  def transBody(alt: Body): Seq[R] = alt.constraints.flatMap(transConstraint)
 
-  def transConstraint(const: Atom): Seq[R] = const match {
-    case Call(_, args, _, _) => args.flatMap(transValue)
-    case Compare(comp, lhs, rhs) => transValue(lhs) ++ transValue(rhs)
-    case HasType(v, typ) => transValue(v)
-    case Path(src, trg, link, ty) => transValue(src) ++ transValue(trg)
-    case Native(code) => transCode(code)
+  def transConstraint(const: Constraint): Seq[R] = const match {
+    case Call(_, args, _, _) => args.flatMap(transTerm)
+    case Compare(comp, lhs, rhs) => transTerm(lhs) ++ transTerm(rhs)
+    case HasType(v, typ) => transTerm(v)
+    case Path(src, trg, link, ty) => transTerm(src) ++ transTerm(trg)
+    case Computed(v, comp) => transVar(v) ++ transComputation(comp)
   }
 
-  def transValue(v: Term): Seq[R] = v match {
+  def transTerm(v: Term): Seq[R] = v match {
     case vari@Var(name) => transVar(vari)
     case Constant(lit) => transLit(lit)
   }
@@ -44,6 +44,9 @@ trait Collect[R] {
     case BooleanLiteral(v) => Seq()
   }
 
-  // TODO reflection to get vars?
-  def transCode(code: String): Seq[R] = Seq()
+  def transComputation(computation: Computation): Seq[R] = computation match {
+    case CountAggregation(patName, args) => args.flatMap(transTerm)
+    case LatticeAggregation() => ???
+    case Evaluation(code) => ???  // TODO reflection to get vars?
+  }
 }

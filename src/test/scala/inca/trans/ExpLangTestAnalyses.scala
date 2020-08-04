@@ -84,7 +84,7 @@ object ExpLangTestAnalyses {
     Seq(
       Body(
         Seq(
-          Yield(Constant(BooleanLiteral(true)))))))
+          Yield(Constant(BooleanLiteral(false)))))))
 
   val primitiveParamFun = PatternFunction(
     None,

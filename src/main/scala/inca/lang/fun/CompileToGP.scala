@@ -36,7 +36,7 @@ object CompileToGP {
     }.flatten
   }
 
-  def transform(fun: Fun.PatternFunction, funs: Map[String, Fun.PatternFunction]): GP.Rule = {
+  def transform(fun: Fun.PatternFunction, funs: Map[String, Fun.PatternFunction]): GP.Pattern = {
     // TODO meta analysis negation in recusion
     rewriteFunction(fun, funs)
   }
@@ -54,7 +54,7 @@ object CompileToGP {
 
 
 
-  def rewriteFunction(fun: Fun.PatternFunction, funs: Map[String, Fun.PatternFunction]): GP.Rule = {
+  def rewriteFunction(fun: Fun.PatternFunction, funs: Map[String, Fun.PatternFunction]): GP.Pattern = {
     val gensym = new Gensym(fun.usedvars.keys)
     val vis = fun.vis.map {
       case Fun.Private => GP.Private
@@ -71,17 +71,17 @@ object CompileToGP {
     }
     val outVars = outParams.map(_.name)
 
-    def generateCompareConstraints(comp: GP.Comparator)(lhs: Seq[String], rhs: Seq[String]): Seq[GP.Atom] = {
+    def generateCompareConstraints(comp: GP.Comparator)(lhs: Seq[String], rhs: Seq[String]): Seq[GP.Constraint] = {
       if (lhs.size != rhs.size) throw new IllegalArgumentException("Cannot create equalites for different sized variable lists")
       for (i <- lhs.indices) yield {
         GP.Compare(comp, GP.Var(lhs(i)), GP.Var(rhs(i)))
       }
     }
 
-    val genEqs: (Seq[String], Seq[String]) => Seq[GP.Atom] = generateCompareConstraints(GP.EqComparator)
-    val genNeqs: (Seq[String], Seq[String]) => Seq[GP.Atom] = generateCompareConstraints(GP.NeqComparator)
+    val genEqs: (Seq[String], Seq[String]) => Seq[GP.Constraint] = generateCompareConstraints(GP.EqComparator)
+    val genNeqs: (Seq[String], Seq[String]) => Seq[GP.Constraint] = generateCompareConstraints(GP.NeqComparator)
 
-    type Res = (Seq[String], Seq[GP.Atom])
+    type Res = (Seq[String], Seq[GP.Constraint])
 
     def transBody(alt: Fun.Body): Option[GP.Body] =
       try {
@@ -91,7 +91,7 @@ object CompileToGP {
         case BodyMustFail => None
       }
 
-    def transStatement(stmt: Fun.CoreStatement): Seq[GP.Atom] = stmt match {
+    def transStatement(stmt: Fun.CoreStatement): Seq[GP.Constraint] = stmt match {
       case Fun.Assert(cond) => transCond(cond.ensureCore)
       case Fun.Assign(names, exp) =>
         val (rvars, rconstraints) = transExp(exp.ensureCore)
@@ -104,7 +104,7 @@ object CompileToGP {
         throw BodyMustFail
     }
 
-    def transCond(cond: Fun.CoreCond): Seq[GP.Atom] = cond match {
+    def transCond(cond: Fun.CoreCond): Seq[GP.Constraint] = cond match {
       case Fun.Eq(lhs, rhs) =>
         val (lvars, lconstraints) = transExp(lhs.ensureCore)
         val (rvars, rconstraints) = transExp(rhs.ensureCore)
@@ -153,7 +153,7 @@ object CompileToGP {
           throw BodyMustFail
     }
 
-    def genDefCallConstraint(name: Fun.Name, args: Seq[Fun.Exp], transitive: Boolean, funs: Map[String, Fun.PatternFunction], neg: Boolean): Seq[GP.Atom] = {
+    def genDefCallConstraint(name: Fun.Name, args: Seq[Fun.Exp], transitive: Boolean, funs: Map[String, Fun.PatternFunction], neg: Boolean): Seq[GP.Constraint] = {
       val (vars, constraint) = args.map {
         case arg@Fun.Var(name) => (Seq(name), Seq())
         case arg =>
@@ -194,15 +194,20 @@ object CompileToGP {
             val argVar = gensym.fresh("arg")
             GP.Var(argVar)
         }
-        if (count) {
-          throw new IllegalArgumentException("TODO cannot support count aggregation")
+        val allvars = vars.flatten.map(GP.Var) ++ outVars
+
+        if (!count) {
+          val call = GP.Call(name, allvars, transitive, neg = false)
+          (outVars.map(_.name), constraints.flatten :+ call)
         } else {
-          val compositionConstraint = GP.Call(name, vars.flatten.map(GP.Var) ++ outVars, transitive, neg = false)
-          (outVars.map(_.name), constraints.flatten :+ compositionConstraint)
+          val countVar = gensym.fresh("count")
+          val countConstraint = GP.Computed(GP.Var(countVar), GP.CountAggregation(name, allvars))
+          (Seq(countVar), Seq(countConstraint))
         }
+
     }
 
-    def transPathAccess(pathAccess: Fun.PathAccess, trg: GP.Term): Seq[GP.Atom] = {
+    def transPathAccess(pathAccess: Fun.PathAccess, trg: GP.Term): Seq[GP.Constraint] = {
       val receiver = pathAccess.receiver
       val (Seq(src), econstraints) = transExp(receiver.ensureCore)
       val ty = transType(pathAccess.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped $pathAccess")))
@@ -233,7 +238,7 @@ object CompileToGP {
     }
 
     val bodies = fun.bodies.flatMap(transBody)
-    GP.Rule(vis, fun.name, params ++ outParams, bodies)
+    GP.Pattern(vis, fun.name, params ++ outParams, bodies)
   }
 
   // TODO fullname
