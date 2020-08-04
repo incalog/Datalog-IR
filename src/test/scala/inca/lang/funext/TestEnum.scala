@@ -53,7 +53,7 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
               Seq(Yield(Var("meth"))),
               Seq(),
               None),
-            Continue
+            Fail
           ))
         ))
       ))
@@ -68,12 +68,12 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
             PathAccess(Var("meth"), NamedLink(TNode("Method"), "name")).typed(TString),
             Constant(StringLiteral("main")))),
           Yield(Var("meth")),
-          Continue
+          Fail
         )),
         Body(Seq(
           Assert(InstanceOf(Var("enum_Method"), TNode("Method"))),
           Assign(Seq("meth"), Var("enum_Method")),
-          Continue
+          Fail
         ))
       ))
     ))

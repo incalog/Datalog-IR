@@ -37,7 +37,7 @@ object Fun {
   }
   case class TNode(name: String) extends TLinked {
     override def prettyprint: String = name
-    override def javastring: String = name
+    override def javastring: String = name.replace('.','_')
     def apply(field: String): NamedLink = NamedLink(this, field)
   }
 
@@ -166,11 +166,12 @@ object Fun {
     override def prettyprint(implicit indent: String): String =
       s"${indent}yield ${exp.prettyprint}"
   }
-  case object Continue extends CoreStatement with TerminatorStatement {
+  case object Fail extends CoreStatement with TerminatorStatement {
     override def usedvars: Map[Name, Option[TypeAnno]] = Map()
     override def prettyprint(implicit indent: String): String =
       s"${indent}continue"
   }
+  val Continue: CoreStatement = Fail
 
   trait Cond {
     def usedvars: Map[Name, Option[TypeAnno]]

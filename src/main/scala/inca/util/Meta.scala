@@ -45,7 +45,9 @@ object Meta {
 
   def loadModule(module: Fun.Module, desugarables: Desugarable*): PSystem.Module = {
     val desugared = Desugar(desugarables:_*)(module)
+//    println(desugared.prettyprint(""))
     val gp = CompileToGP.transformModule(desugared)
+//    println(Printer.prettyModule(gp))
     loadModule(gp)
   }
 

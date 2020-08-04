@@ -1,6 +1,6 @@
 package inca.lang.gp
 
-import inca.lang.gp.GP.{Atom, Body, Call, Comparator, Compare, Constant, EqComparator, HasType, Module, NamedLink, Native, NeqComparator, NextLink, Param, ParentLink, Path, Private, Public, Rule, TBool, TDouble, TInt, TList, TLong, TNode, TString, Term, TypeAnno, Var, Visibility}
+import inca.lang.gp.GP.{Atom, Body, Call, Comparator, Compare, Constant, EqComparator, HasType, Module, NamedLink, Native, NeqComparator, NextLink, Param, ParentLink, Path, Private, Public, Rule, TAnyLinked, TBool, TDouble, TInt, TList, TLong, TNode, TString, Term, TypeAnno, Var, Visibility}
 
 object Printer {
 
@@ -28,6 +28,7 @@ object Printer {
     case TLong => "TLong"
     case TDouble => "TDouble"
     case TString => "TString"
+    case TAnyLinked => "TAnyLinked"
     case TNode(name) => name
     case TList(ty) => s"List[${prettyType(ty)}]"
   }

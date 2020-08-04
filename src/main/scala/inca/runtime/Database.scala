@@ -214,6 +214,7 @@ class Database(
     case LinkListFirstKey => Some(linkListFirstInstances)
     case LinkListNextKey => Some(linkListNextInstances)
     case dkey: DynamicKey => Some(dynamicIndices(dkey))
+    case vkey: VirtualKey => Some(virtualIndices(vkey))
   }
 
 
@@ -226,6 +227,7 @@ class Database(
     case LinkListFirstKey => linkListFirstInstances
     case LinkListNextKey => linkListNextInstances
     case dkey: DynamicKey => dynamicIndices(dkey)
+    case vkey: VirtualKey => virtualIndices(vkey)
   }
 
   override def countTuples(key: IInputKey, mask: TupleMask, seed: ITuple): Int = getIndex(key) match {

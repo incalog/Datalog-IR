@@ -5,9 +5,11 @@ import inca.util.Gensym
 
 object CompileToGP {
 
+  private case object BodyMustFail extends Exception
+
   def transformModule(module: Fun.Module): GP.Module = {
-    val undefs = module.funs.flatMap(collectPathInUndef)
-    val ninsts = module.funs.flatMap(collectNotInstanceOf)
+    val undefs = module.funs.flatMap(collectPathInUndef).toSet
+    val ninsts = module.funs.flatMap(collectNotInstanceOf).toSet
     // generate helpers
     val helpers = undefs.map(genUndefPathHelper) ++ ninsts.map(genNotInstanceOfHelper)
     // construct map Name => Fun
@@ -81,51 +83,55 @@ object CompileToGP {
 
     type Res = (Seq[String], Seq[GP.Atom])
 
-    def transAlternative(alt: Fun.Body): Res = (Seq(), alt.stmts.map(s => transStatement(s.ensureCore)).flatMap(_._2))
+    def transBody(alt: Fun.Body): Option[GP.Body] =
+      try {
+        val constraints = alt.stmts.flatMap(s => transStatement(s.ensureCore))
+        Some(GP.Body(constraints))
+      } catch {
+        case BodyMustFail => None
+      }
 
-    def transStatement(stmt: Fun.CoreStatement): Res = stmt match {
+    def transStatement(stmt: Fun.CoreStatement): Seq[GP.Atom] = stmt match {
       case Fun.Assert(cond) => transCond(cond.ensureCore)
       case Fun.Assign(names, exp) =>
-        // TODO difference in encoding, in the paper lhs is a list of names, actual implementation one expression (which can be a tuple thus multiple names)
-//        val (lvars, lconstraints) = transExp()
         val (rvars, rconstraints) = transExp(exp.ensureCore)
         val eqConstraints = genEqs(names, rvars)
-        (Seq(), rconstraints ++ eqConstraints)
+        rconstraints ++ eqConstraints
       case Fun.Yield(exp) =>
         val (vars, constraints) = transExp(exp.ensureCore)
-        (Seq(), constraints ++ genEqs(vars, outVars))
-      case Fun.Continue =>
-        (Seq(), Seq(GP.Fail))
+        constraints ++ genEqs(vars, outVars)
+      case Fun.Fail =>
+        throw BodyMustFail
     }
 
-    def transCond(cond: Fun.CoreCond): Res = cond match {
+    def transCond(cond: Fun.CoreCond): Seq[GP.Atom] = cond match {
       case Fun.Eq(lhs, rhs) =>
         val (lvars, lconstraints) = transExp(lhs.ensureCore)
         val (rvars, rconstraints) = transExp(rhs.ensureCore)
         val eqConstraints = genEqs(lvars, rvars)
-        (Seq(), lconstraints ++ rconstraints ++ eqConstraints)
+        lconstraints ++ rconstraints ++ eqConstraints
       case Fun.Neq(lhs, rhs) =>
         val (lvars, lconstraints) = transExp(lhs.ensureCore)
         val (rvars, rconstraints) = transExp(rhs.ensureCore)
         val eqConstraints = genNeqs(lvars, rvars)
-        (Seq(), lconstraints ++ rconstraints ++ eqConstraints)
+        lconstraints ++ rconstraints ++ eqConstraints
       case Fun.InstanceOf(exp, typ) =>
         val (vars, constraints) = transExp(exp.ensureCore)
         if (vars.size != 1) throw new IllegalArgumentException("Number of variables of exp of instance of need to be 1")
-        (Seq(), constraints :+ GP.HasType(GP.Var(vars.head), transType(typ)))
+        constraints :+ GP.HasType(GP.Var(vars.head), transType(typ))
 
       case ninst@Fun.NotInstanceOf(exp, typ) => (Seq(), Seq())
         val (vars, constraints) = transExp(exp.ensureCore)
         val notInstanceOfHelper = nameOfNotInstanceOfHelper(ninst)
         val composition = GP.Call(notInstanceOfHelper, Seq(GP.Var(vars.head)), transitive = false, neg = true)
-        (Seq(), constraints :+ composition)
+        constraints :+ composition
       case Fun.Def(exp) =>
         exp match {
           case Fun.Call(name, args, transitive, _) =>
             genDefCallConstraint(name, args, transitive, funs, neg = false)
           case pa: Fun.PathAccess =>
             val tmp = gensym.fresh("tmp")
-            (Seq(), transPathAccess(pa, GP.Var(tmp)))
+            transPathAccess(pa, GP.Var(tmp))
           case _ => throw new IllegalArgumentException(s"Cannot support Def($exp)")
         }
       case Fun.Undef(exp) =>
@@ -135,18 +141,19 @@ object CompileToGP {
           case path@Fun.PathAccess(exp, _) =>
             val pathHelper = nameOfUndefPathHelper(path)
             val (vars, constraints) = transExp(exp.ensureCore)
-            val compositionConstraint = GP.Call(pathHelper, Seq(GP.Var(vars.head)), transitive = false, neg = true)
-            (Seq(), constraints :+ compositionConstraint)
+            val args = path.usedvars.toSeq.map(v => GP.Var(v._1))
+            val compositionConstraint = GP.Call(pathHelper, args, transitive = false, neg = true)
+            constraints :+ compositionConstraint
           case _ => throw new IllegalArgumentException("Cannot support in Undef " + exp)
         }
       case Fun.BooleanCond(v) =>
         if (v)
-          (Seq(), Seq())
+          Seq()
         else
-          (Seq(), Seq(GP.Fail))
+          throw BodyMustFail
     }
 
-    def genDefCallConstraint(name: Fun.Name, args: Seq[Fun.Exp], transitive: Boolean, funs: Map[String, Fun.PatternFunction], neg: Boolean): Res = {
+    def genDefCallConstraint(name: Fun.Name, args: Seq[Fun.Exp], transitive: Boolean, funs: Map[String, Fun.PatternFunction], neg: Boolean): Seq[GP.Atom] = {
       val (vars, constraint) = args.map {
         case arg@Fun.Var(name) => (Seq(name), Seq())
         case arg =>
@@ -161,7 +168,7 @@ object CompileToGP {
         GP.Var(gensym.fresh("arg"))
       }
       val compositionConstraint = GP.Call(name, vars.flatten.map(GP.Var) ++ tempVars, transitive, neg)
-      (Seq(), constraint.flatten :+ compositionConstraint)
+      constraint.flatten :+ compositionConstraint
     }
 
     def transExp(exp: Fun.CoreExp): Res = exp match {
@@ -225,7 +232,7 @@ object CompileToGP {
       case Fun.BooleanLiteral(v) => Some(GP.BooleanLiteral(v))
     }
 
-    val bodies = fun.bodies.map(transAlternative).map(c => GP.Body(c._2))
+    val bodies = fun.bodies.flatMap(transBody)
     GP.Rule(vis, fun.name, params ++ outParams, bodies)
   }
 
@@ -236,17 +243,17 @@ object CompileToGP {
     if (access.receiver.typ.isEmpty)
       throw new IllegalArgumentException(s"Cannot support undef condition for untyped receiver of path access $access")
 
+    val params = access.usedvars.toSeq.map{ case (v,t) => Fun.Param(v, t) }
+
     Fun.PatternFunction(
       Some(Fun.Private),
       nameOfUndefPathHelper(access),
-      List(Fun.Param("in", access.receiver.typ)),
+      params,
       List(),
       List(Fun.Body(List(Fun.Assert(Fun.Def(access))))))
   }
 
-  def nameOfNotInstanceOfHelper(ninst: Fun.NotInstanceOf): String = "generated_helper_notinstanceof_" + nameOfType(ninst.typ)
-
-  def nameOfType(typ: Fun.TypeAnno): String = typ.toString.replace(".", "_")
+  def nameOfNotInstanceOfHelper(ninst: Fun.NotInstanceOf): String = "generated_helper_notinstanceof_" + ninst.typ.javastring
 
   def genNotInstanceOfHelper(ninst: Fun.NotInstanceOf): Fun.PatternFunction =
     Fun.PatternFunction(
@@ -255,5 +262,5 @@ object CompileToGP {
       List(Fun.Param("in", Some(ninst.typ))),
       List(),
       // body is empty because relation is only applicable if c is actually of type ninst.typ
-      List())
+      List(Fun.Body(Seq())))
 }
