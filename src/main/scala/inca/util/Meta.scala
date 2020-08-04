@@ -53,6 +53,7 @@ object Meta {
 
   def loadModule(module: GP.Module): PSystem.Module = {
     val Seq(source) = CompileToPSystem.transAnalysis(Seq(module))
+//    println(source)
     compileModule(module.name, source.syntax)()
   }
 

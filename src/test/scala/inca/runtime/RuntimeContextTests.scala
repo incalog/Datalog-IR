@@ -6,6 +6,7 @@ import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.{Exp, tinyJava}
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
+import inca.runtime.index.virtual.SizeIndex
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, TupleMask, Tuples}
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
@@ -85,6 +86,48 @@ class RuntimeContextTests extends AnyFunSuite {
     database.enumerateTuples(PrimitiveTypeKey(bool), emptyMask, null).
       asScala should be(empty)
 
+    val (updateScript, newtree) = add.compareTo(Add(Mul(IntegerLit(4), IntegerLit(5)), IntegerLit(6)))
+    database.processEditScript(updateScript)
+
+    database.enumerateTuples(PrimitiveTypeKey(integer), emptyMask, null).
+      asScala should contain allOf(t1(4), t1(5), t1(6))
+
+    database.enumerateTuples(PrimitiveTypeKey(string), emptyMask, null).
+      asScala should be(empty)
+
+    database.enumerateTuples(PrimitiveTypeKey(bool), emptyMask, null).
+      asScala should be(empty)
+  }
+
+  test("DataType instances bag semantics") {
+    val database = new Database()
+    val editScript = Diffable.load(Add(Mul(IntegerLit(1), IntegerLit(1)), IntegerLit(1)))
+    database.processEditScript(editScript)
+
+    val integer = JavaLitType(classOf[lang.Integer])
+    val string = JavaLitType(classOf[lang.String])
+    val bool = JavaLitType(classOf[lang.Boolean])
+
+    database.enumerateTuples(PrimitiveTypeKey(integer), emptyMask, null).
+      asScala should contain (t1(1))
+
+    database.enumerateTuples(PrimitiveTypeKey(string), emptyMask, null).
+      asScala should be(empty)
+
+    database.enumerateTuples(PrimitiveTypeKey(bool), emptyMask, null).
+      asScala should be(empty)
+
+    val (updateScript, newtree) = add.compareTo(Add(Mul(IntegerLit(1), IntegerLit(5)), IntegerLit(6)))
+    database.processEditScript(updateScript)
+
+    database.enumerateTuples(PrimitiveTypeKey(integer), emptyMask, null).
+      asScala should contain allOf(t1(1), t1(5), t1(6))
+
+    database.enumerateTuples(PrimitiveTypeKey(string), emptyMask, null).
+      asScala should be(empty)
+
+    database.enumerateTuples(PrimitiveTypeKey(bool), emptyMask, null).
+      asScala should be(empty)
   }
 
   test("NodeLink instances") {
@@ -125,6 +168,40 @@ class RuntimeContextTests extends AnyFunSuite {
 
     database.enumerateTuples(ParentIndex.Key, emptyMask, null).
       asScala should contain allOf(t2(mul.uri, add.uri), t2(num3.uri, mul.uri), t2(num2.uri, mul.uri), t2(num1.uri, add.uri))
+  }
+
+  test("List children") {
+    val additionalIndices = Seq(new ParentIndex, new SizeIndex)
+    val database = new Database(null, additionalIndices, null)
+
+    val exp = Many(List(num1, num2))
+    val li = exp.exps
+
+    val editScript = Diffable.load(exp)
+    database.processEditScript(editScript)
+
+    database.enumerateTuples(ParentIndex.Key, emptyMask, null).
+      asScala should contain allOf(t2(li.uri, exp.uri), t2(num1.uri, li.uri), t2(num2.uri, li.uri))
+
+    database.enumerateTuples(SizeIndex.Key, emptyMask, null).
+      asScala should contain (t2(li.uri, 2))
+
+    database.enumerateTuples(NodeTypeKey(ListType(SortType(expTag))), emptyMask, null).
+      asScala should contain (t1(li.uri))
+
+    val newtree = Many(List(IntegerLit(3), IntegerLit(1)))
+    val (diffset, updatedTree) = exp.compareTo(newtree)
+    database.processEditScript(diffset)
+
+    database.enumerateTuples(ParentIndex.Key, emptyMask, null).
+      asScala should contain allOf(t2(li.uri, exp.uri), t2(updatedTree.exps(1).uri, li.uri), t2(updatedTree.exps(0).uri, li.uri))
+
+    database.enumerateTuples(SizeIndex.Key, emptyMask, null).
+      asScala should contain (t2(li.uri, 2))
+
+    database.enumerateTuples(NodeTypeKey(ListType(SortType(expTag))), emptyMask, null).
+      asScala should contain (t1(li.uri))
+
   }
 
   test("firstlink and nextlink of list") {

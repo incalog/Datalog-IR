@@ -5,6 +5,7 @@ import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
 import truechange.{LitType, Type}
 
 sealed trait IndexKey[T] extends IInputKey {
+  override def toString: String = getPrettyPrintableName
   override def getPrettyPrintableName: String = getStringID
   /** See isStateless in [[org.eclipse.viatra.query.runtime.matchers.context.IQueryMetaContext]]. */
   def isStateless: Boolean = false

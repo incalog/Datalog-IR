@@ -30,5 +30,5 @@ trait Index {
 }
 
 object Index {
-  def allAdditionalIndices = Seq(new ParentIndex, new SizeIndex)
+  def allAdditionalIndices = Seq(()=>new ParentIndex, ()=>new SizeIndex)
 }

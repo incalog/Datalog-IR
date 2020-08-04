@@ -65,6 +65,9 @@ class MetaContext(langMetaInfo: LanguageMetaInfo) extends AbstractQueryMetaConte
     case key: DynamicKey =>
       Collections.emptySet()
 
+    case key: VirtualKey =>
+      Collections.emptySet()
+
     case _ => throw new IllegalArgumentException("Cannot support implication for: " + key)
   }
 

@@ -3,7 +3,7 @@ package inca.util
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, Tuples}
 
 object TupleOps {
-  def binaryFlip(tuple: ITuple): ITuple =
+  def binaryFlip(tuple: ITuple): Tuple =
     Tuples.staticArityFlatTupleOf(tuple.get(1), tuple.get(0))
 
   def binaryTuple(tuple: ITuple): Tuple = tuple match {

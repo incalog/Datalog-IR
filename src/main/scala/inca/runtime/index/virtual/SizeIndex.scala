@@ -2,9 +2,9 @@ package inca.runtime.index.virtual
 
 import inca.runtime.index.binary.BinaryIndex
 import inca.runtime.index.dynamic.ParentIndex
-import inca.runtime.index.{IndexKey, VirtualKey}
-import inca.util.TupleOps
-import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
+import inca.runtime.index.{IndexKey, NodeTypeKey, VirtualKey}
+import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
 import truechange._
 
 object SizeIndex {
@@ -22,97 +22,38 @@ object SizeIndex {
 class SizeIndex extends BinaryIndex[URI, Int]
   with VirtualIndex {
 
-  lazy val parentIndex: ParentIndex = database.dynamicIndices.getOrElse(ParentIndex.Key, throw new IllegalStateException("Size index requires parent index to be present")).asInstanceOf[ParentIndex]
-  def sizeOf(node: URI): Int = parentIndex.getChildren(node).size
-
-  override def insert(k: URI, v: Int): Unit = throw new UnsupportedOperationException(s"Cannot insert tuple into virtual index $this")
-  override def delete(k: URI, v: Int): Unit = throw new UnsupportedOperationException(s"Cannot delete tuple from virtual index $this")
-
-
   /** The key of this index */
   override val key: IndexKey[_] = SizeIndex.Key
 
-  /** checks whether the provided tuple is contained in index */
-  override def containsTuple(tuple: ITuple): Boolean = {
-    if (tuple == null)
-      return false
+  lazy val parentIndex: ParentIndex = database.dynamicIndices.getOrElse(ParentIndex.Key, throw new IllegalStateException("Size index requires parent index to be present")).asInstanceOf[ParentIndex]
 
-    val node = tuple.get(0).asInstanceOf[URI]
-    val size = tuple.get(1).asInstanceOf[Int]
-    sizeOf(node) == size
-  }
+  override def entries: Iterable[(URI, Int)] = parentIndex.entrySets.map(kv => (kv._1, kv._2.size))
+  override def index(k: URI): Iterable[Int] = Iterable.single(parentIndex.indexInverted(k).size)
+  override def indexInverted(v: Int): Iterable[URI] = parentIndex.entrySets.flatMap(kv => if (kv._2.size == v) Some(kv._1) else None)
 
-  /** counts tuples of the associated virtual key contained in index based on provided mask and seed */
-  final override def countTuples(mask: TupleMask, seed: ITuple): Int = {
-    val maskLength = mask.indices.length
-    if (maskLength == 0) {
-      parentIndex.getEntries.size
-    } else if (maskLength == 1) {
-      val isOrdered = mask.indices(0) == 0
-      if (isOrdered) {
-        1
-      } else {
-        val size = seed.get(1).asInstanceOf[Int]
-        parentIndex.getEntries.count(kv => kv._2.size == size)
-      }
-    } else if (maskLength == 2) {
-      val isOrdered = mask.indices(0) == 0
-      if (isOrdered && containsTuple(seed)) {
-        1
-      } else if (!isOrdered && containsTuple(TupleOps.binaryFlip(seed))) {
-        1
-      } else {
-        0
-      }
-    } else {
-      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for bijective virtual index " + this)
-    }
-  }
+  override def insert(k: URI, v: Int): Unit = throw new UnsupportedOperationException
+  override def delete(k: URI, v: Int): Unit = throw new UnsupportedOperationException
 
-  /** returns all tuples maintained in index associated with virtual key based on provided mask and seed  */
-  final override def enumerateTuples(mask: TupleMask, seed: ITuple): Iterable[Tuple] = {
-    val maskLength = mask.indices.length
-    if (maskLength == 0) {
-      parentIndex.getEntries.map(kv => Tuples.staticArityFlatTupleOf(kv._1, kv._2.size))
-    } else if (maskLength == 1) {
-      val isOrdered = mask.indices(0) == 0
-      if (isOrdered) {
-        val node = seed.get(0).asInstanceOf[URI]
-        val size = sizeOf(node)
-        Iterable(Tuples.staticArityFlatTupleOf(node, size))
-      } else {
-        val size = seed.get(1).asInstanceOf[Int]
-        parentIndex.getEntries.filter(kv => kv._2.size == size).map(kv => Tuples.staticArityFlatTupleOf(kv._1, kv._2))
+  override def afterInitialization(): Unit = {
+    val anylist = ListType(AnyType)
+    // emit size 0 for loaded/unloaded lists
+    database.addUpdateListener(NodeTypeKey(anylist), null, (_: IInputKey, updateTuple: Tuple, isInsertion: Boolean) => {
+      val list = updateTuple.get(0).asInstanceOf[URI]
+      notify(list, 0, isInsertion)
+    })
+    // emit a size update when adding/removing children from a list
+    database.addUpdateListener(ParentIndex.Key, null, (_: IInputKey, updateTuple: Tuple, isInsertion: Boolean) => {
+      val container = updateTuple.get(1).asInstanceOf[URI]
+      if (database.nodeInstances(anylist).index(container) != 0) {
+        val newsize = parentIndex.indexInverted(container).size
+        if (isInsertion) {
+          notify(container, newsize - 1, isInsertion = false)
+          notify(container, newsize, isInsertion = true)
+        } else {
+          notify(container, newsize + 1, isInsertion = false)
+          notify(container, newsize, isInsertion = true)
+        }
       }
-    } else if (maskLength == 2) {
-      val isOrdered = mask.indices(0) == 0
-      if (isOrdered && containsTuple(seed)) {
-        Seq(TupleOps.binaryTuple(seed))
-      } else if (!isOrdered && containsTuple(TupleOps.binaryFlip(seed))) {
-        Seq(TupleOps.binaryTuple(seed))
-      } else {
-        Seq()
-      }
-    } else {
-      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for bijective virtual index " + this)
-    }
-  }
-
-  /** enumerate all values within index associated with virtual key based on provided mask and seed */
-  final override def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[Tuple] = {
-    val maskLength = mask.indices.length
-    if (maskLength == 1) {
-      val isOrdered = mask.indices(0) == 0
-      if (isOrdered) {
-        val node = seed.get(0).asInstanceOf[URI]
-        val size = sizeOf(node)
-        Iterable(Tuples.staticArityFlatTupleOf(node, size))
-      } else {
-        val size = seed.get(1).asInstanceOf[Int]
-        parentIndex.getEntries.filter(kv => kv._2.size == size).map(kv => Tuples.staticArityFlatTupleOf(kv._1, kv._2))
-      }
-    } else {
-      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for enumerateValues in bijective virtual index " + this)
-    }
+    })
   }
 }
