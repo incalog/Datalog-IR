@@ -1,39 +1,33 @@
 package inca.runtime.index.unary
 
-import inca.runtime.index.{Index, IndexKey}
+import inca.runtime.index.Index
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
 
 import scala.collection.mutable
 
-class UnaryIndex[V](val key: IndexKey[_]) extends Index {
-  protected val index: mutable.Set[V] = mutable.Set()
+abstract class UnaryIndex[V] extends Index {
 
-  def insert(v: V): Unit = {
-    index += v
-    notify(v, isInsertion = true)
-  }
+  def entries: Iterable[V]
+  def index(v: V): Int
 
-  def delete(v: V): Unit = {
-    index -= v
-    notify(v, isInsertion = false)
-  }
-
+  @inline
+  def contains(v: V): Boolean = index(v) != 0
 
   final override def containsTuple(tuple: ITuple): Boolean = {
     if (tuple == null)
       return false
 
     val v = tuple.get(0).asInstanceOf[V]
-    index.contains(v)
+    index(v) != 0
   }
 
   final override def countTuples(mask: TupleMask, seed: ITuple): Int = {
     val maskLength = mask.indices.length
     if (maskLength == 0) {
-      index.size
+      entries.size
     } else if (maskLength == 1) {
-      if (index.contains(seed.get(0).asInstanceOf[V])) {
+      if (index(seed.get(0).asInstanceOf[V]) != 0) {
         1
       } else {
         0
@@ -46,10 +40,10 @@ class UnaryIndex[V](val key: IndexKey[_]) extends Index {
   final override def enumerateTuples(mask: TupleMask, seed: ITuple): Iterable[Tuple] = {
     val maskLength = mask.indices.length
     if (maskLength == 0) {
-      index.map(Tuples.staticArityFlatTupleOf(_))
+      entries.map(Tuples.staticArityFlatTupleOf(_))
     } else if (maskLength == 1) {
       val v = seed.get(0).asInstanceOf[V]
-      if (index.contains(v)) {
+      if (index(v) != 0) {
         Seq(Tuples.staticArityFlatTupleOf(v))
       } else {
         Seq()
@@ -63,7 +57,7 @@ class UnaryIndex[V](val key: IndexKey[_]) extends Index {
     val maskLength = mask.indices.length
     if (maskLength == 1) {
       val v = seed.get(0).asInstanceOf[V]
-      if (index.contains(v)) {
+      if (index(v) != 0) {
         Seq(Tuples.staticArityFlatTupleOf(v))
       } else {
         Seq()
