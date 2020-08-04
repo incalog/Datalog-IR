@@ -4,7 +4,7 @@ import inca.IncaMatchers
 import inca.lang.fun.Fun._
 import org.scalatest.flatspec.AnyFlatSpec
 
-class TestNotDesugar extends AnyFlatSpec with IncaMatchers {
+class TestNot extends AnyFlatSpec with IncaMatchers {
 
   val one = Constant(IntLiteral(1))
   val two = Constant(IntLiteral(2))
