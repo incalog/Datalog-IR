@@ -1,6 +1,6 @@
 package inca.lang.gp
 
-import inca.lang.gp.GP._
+
 import inca.lang.psystem.PSystem
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
@@ -252,10 +252,20 @@ object CompileToPSystem {
       val callQuery = q"${Term.Name(module)}.${Term.Name(name)}.instance.getInternalQueryRepresentation"
       Seq(q"new PatternMatchCounter(body, $argTuple, $callQuery, $result)")
 
-    case LatticeAggregation() => ???
+    case Evaluation(usedvars, _, code) =>
+      val result = transTerm(resultVar)
+      val description = s"eval($code)"
+      val codeTerm = code.parse[Stat].get
+      Seq(
+        q"""
+        new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
+          override def getShortDescription: String = $description
+          override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList(..${usedvars.toList.map(Lit.String.apply)})
+          override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {$codeTerm}
+        }, $result)
+         """)
 
-    case Evaluation(code) => ???
-//       dialects.Sbt1(code).parse[Source].get.stats
+    case LatticeAggregation() => ???
   }
 
   private def genType(typ: GP.TypeAnno): meta.Term = typ match {

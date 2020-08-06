@@ -204,7 +204,10 @@ object CompileToGP {
           val countConstraint = GP.Computed(GP.Var(countVar), GP.CountAggregation(name, allvars))
           (Seq(countVar), Seq(countConstraint))
         }
-
+      case Fun.Eval(usedvars, ty, code) =>
+        val evalVar = gensym.fresh("eval")
+        val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(usedvars.keys, transType(ty), code))
+        (Seq(evalVar), Seq(evalConstraint))
     }
 
     def transPathAccess(pathAccess: Fun.PathAccess, trg: GP.Term): Seq[GP.Constraint] = {

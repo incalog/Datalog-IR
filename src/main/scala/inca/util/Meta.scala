@@ -53,23 +53,27 @@ object Meta {
 
   def loadModule(module: GP.Module): PSystem.Module = {
     val Seq(source) = CompileToPSystem.transAnalysis(Seq(module))
-//    println(source)
+    println(source)
     compileModule(module.name, source.syntax)()
   }
 
-  private val compilerCache: mutable.Map[(String, String), () => PSystem.Module] = mutable.Map()
   def compileModule(moduleName: String, source: String): () => PSystem.Module = {
-    compilerCache.get((moduleName,source)).map(return _)
+    compileScala(source + "\n" + moduleName)
+  }
+
+  private val compilerCache: mutable.Map[String, () => AnyRef] = mutable.Map()
+  def compileScala[A](source: String): () => A = {
+    compilerCache.get(source).map(v => return v.asInstanceOf[() => A])
 
     import reflect.runtime.currentMirror
     import tools.reflect.ToolBox
 
     val toolbox = currentMirror.mkToolBox()
-    val tree = toolbox.parse(source + "\n" + moduleName)
+    val tree = toolbox.parse(source)
     val compiled = toolbox.compile(tree)
     val result = () => compiled().asInstanceOf[PSystem.Module]
-    compilerCache += (moduleName,source) -> result
-    result
+    compilerCache += source -> result
+    result.asInstanceOf[() => A]
   }
 
 }

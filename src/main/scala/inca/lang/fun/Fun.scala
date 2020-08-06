@@ -266,6 +266,11 @@ object Fun {
     override def prettyprint(implicit indent: String): String =
       exps.map(_.prettyprint).mkString("(", ", ", ")")
   }
+  /** Eval code must be a Scala expression that can use `env: IValueProvider` and yields `resultType`. */
+  case class Eval(usedvars: Map[Name, Option[TypeAnno]], resultType: TypeAnno, code: String) extends CoreExp {
+    this.typ = Some(resultType)
+    override def prettyprint(implicit indent: String): String = s"eval($code)"
+  }
 
   sealed trait Link {
     def prettyprint: String

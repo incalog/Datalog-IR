@@ -70,7 +70,8 @@ object Printer {
   def prettyComputation(resultVar: Var, computation: Computation): String = computation match {
     case GP.CountAggregation(name, args) =>
       s"${prettyTerm(resultVar)} = count $name(${args.map(prettyTerm).mkString(",")})"
+    case GP.Evaluation(_, _, code) =>
+      s"${prettyTerm(resultVar)} = eval($code)"
     case GP.LatticeAggregation() => ???
-    case GP.Evaluation(code) => ???
   }
 }
