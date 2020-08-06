@@ -33,23 +33,19 @@ class DesugarTrans {
     Seq(Body(body.stmts.flatMap(desugarStm)))
 
   def desugarStm(stm: Statement)(implicit gensym: Gensym): Seq[Statement] = stm match {
+    case Assert(cond) => Seq(Assert(desugarExp(cond)))
     case Assign(names, exp) => Seq(Assign(names, desugarExp(exp)))
-    case Assert(cond) => Seq(Assert(desugarCond(cond)))
     case Yield(exp) => Seq(Yield(desugarExp(exp)))
     case _ => Seq(stm)
   }
 
-  def desugarCond(cond: Cond)(implicit gensym: Gensym): Cond = cond match {
+  def desugarExp(exp: Exp)(implicit gensym: Gensym): Exp = (exp match {
     case Eq(lhs, rhs) => Eq(desugarExp(lhs), desugarExp(rhs))
     case Neq(lhs, rhs) => Neq(desugarExp(lhs), desugarExp(rhs))
     case InstanceOf(exp, typ) => InstanceOf(desugarExp(exp), typ)
     case NotInstanceOf(exp, typ) => NotInstanceOf(desugarExp(exp), typ)
     case Def(exp) => Def(desugarExp(exp))
     case Undef(exp) => Undef(desugarExp(exp))
-    case _ => cond
-  }
-
-  def desugarExp(exp: Exp)(implicit gensym: Gensym): Exp = (exp match {
     case Var(name) => Var(name)
     case Constant(lit) => Constant(lit)
     case PathAccess(receiver, link) => PathAccess(desugarExp(receiver), link)

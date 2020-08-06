@@ -7,7 +7,7 @@ import inca.util.Meta.TAB
 
 import scala.collection.mutable.ListBuffer
 
-case class IfThenElse(cond: Cond, thn: Seq[Statement], elseIfs: Seq[ElseIf], els: Option[Seq[Statement]]) extends Statement {
+case class IfThenElse(cond: Exp, thn: Seq[Statement], elseIfs: Seq[ElseIf], els: Option[Seq[Statement]]) extends Statement {
   override def usedvars: Map[Name, Option[TypeAnno]] = cond.usedvars ++ collectUsedvars(thn) ++ els.map(collectUsedvars(_)).getOrElse(Map())
 
   override def prettyprint(implicit indent: String): String = {
@@ -24,7 +24,7 @@ case class IfThenElse(cond: Cond, thn: Seq[Statement], elseIfs: Seq[ElseIf], els
        |${indent}}$elseIfsS$elseS""".stripMargin
   }
 }
-case class ElseIf(cond: Cond, body: Seq[Statement]) {
+case class ElseIf(cond: Exp, body: Seq[Statement]) {
   def usedvars: Map[Name, Option[TypeAnno]] = cond.usedvars ++ collectUsedvars(body)
   def prettyprint(implicit indent: String): String = {
     val bodyS = if (body.isEmpty) "" else
@@ -57,7 +57,7 @@ object IfThenElse extends Desugarable {
       case _ => super.desugarStm(stm)
     }
 
-    def desugarConditional(cond: Cond, notconds: ListBuffer[Not], body: Seq[Statement])(implicit gensym: Gensym): Seq[Statement] =
+    def desugarConditional(cond: Exp, notconds: ListBuffer[Not], body: Seq[Statement])(implicit gensym: Gensym): Seq[Statement] =
       notconds.toSeq.map(Assert) ++ Seq(Assert(cond)) ++ body
   }
 }

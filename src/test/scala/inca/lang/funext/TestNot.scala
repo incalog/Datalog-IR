@@ -1,7 +1,9 @@
 package inca.lang.funext
 
 import inca.IncaMatchers
+import inca.analyzedLangs.Exp
 import inca.lang.fun.Fun._
+import inca.runtime.context.QueryScope
 import org.scalatest.flatspec.AnyFlatSpec
 
 class TestNot extends AnyFlatSpec with IncaMatchers {
@@ -18,8 +20,8 @@ class TestNot extends AnyFlatSpec with IncaMatchers {
         Assert(Not(NotInstanceOf(one, TNode("Num")))),
         Assert(Not(Def(one))),
         Assert(Not(Undef(one))),
-        Assert(Not(BooleanCond(true))),
-        Assert(Not(BooleanCond(false)))
+        Assert(Not(Constant(BooleanLiteral(true)))),
+        Assert(Not(Constant(BooleanLiteral(false))))
       ))))
     ))
 
@@ -31,8 +33,8 @@ class TestNot extends AnyFlatSpec with IncaMatchers {
         Assert(InstanceOf(one, TNode("Num"))),
         Assert(Undef(one)),
         Assert(Def(one)),
-        Assert(BooleanCond(false)),
-        Assert(BooleanCond(true))
+        Assert(Constant(BooleanLiteral(false))),
+        Assert(Constant(BooleanLiteral(true)))
       ))))
     ))
 
@@ -59,5 +61,45 @@ class TestNot extends AnyFlatSpec with IncaMatchers {
     ))
 
     assertDesugar(core, sugared, Not)
+  }
+
+  val scope = new QueryScope(Exp.languageMetaInfo)
+  "eval" can "be used to filter" in {
+    val module = Module("Test_Cast", Seq(), Seq(
+      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
+        Assert(InstanceOf(Var("e"), TNode(Exp.intTag))),
+        Assign(Seq("i"), PathAccess(Var("e"), NamedLink(TNode(Exp.intTag), "value")).typed(TInt)),
+        Assign(Seq("cond"),
+          // "i" is _not_ a square number
+          Not(Eval(Map("i" -> Some(TInt)), TBool,
+            s"""{ // filters square numbers
+               |  val i = env.getValue("i").asInstanceOf[Int]
+               |  Math.sqrt(i).isValidInt
+               |}""".stripMargin))),
+        Assert(Eq(Var("cond"), Constant(BooleanLiteral(true)))),
+        Yield(Var("e"))
+      ))))
+    ))
+
+    val input = {
+      import Exp._
+      Add(
+        Mul(
+          IntegerLit(1),
+          IntegerLit(2)
+        ),
+        Many(
+          List(
+            IntegerLit(3),
+            IntegerLit(4),
+            IntegerLit(5)
+          )
+        )
+      )
+    }
+
+    assertMatch(module, "integerlits", input, scope, Not) { matcher =>
+      assert(matcher.getAllMatches.size() == 3)
+    }
   }
 }

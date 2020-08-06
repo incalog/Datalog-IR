@@ -1,6 +1,7 @@
 package inca.lang.gp
 
 
+import inca.lang.gp.GP._
 import inca.lang.psystem.PSystem
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex

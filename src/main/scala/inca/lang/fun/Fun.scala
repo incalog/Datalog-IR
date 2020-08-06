@@ -154,7 +154,7 @@ object Fun {
       s"${indent}let $namesS = ${exp.prettyprint}"
     }
   }
-  case class Assert(cond: Cond) extends CoreStatement {
+  case class Assert(cond: Exp) extends CoreStatement {
     override def usedvars: Map[Name, Option[TypeAnno]] = cond.usedvars
     override def prettyprint(implicit indent: String): String =
       s"${indent}assert ${cond.prettyprint}"
@@ -173,50 +173,6 @@ object Fun {
   }
   val Continue: CoreStatement = Fail
 
-  trait Cond {
-    def usedvars: Map[Name, Option[TypeAnno]]
-    def prettyprint(implicit indent: String): String
-    def ensureCore: CoreCond = this match {
-      case self: CoreCond => self
-      case _ => throw new IllegalArgumentException(s"Core statement required but got $this")
-    }
-  }
-  sealed trait CoreCond extends Cond
-  case class Eq(lhs: Exp, rhs: Exp) extends CoreCond {
-    def usedvars: Map[Name, Option[TypeAnno]] = lhs.usedvars ++ rhs.usedvars
-    override def prettyprint(implicit indent: String): String =
-      s"${lhs.prettyprint} == ${rhs.prettyprint}"
-  }
-  case class Neq(lhs: Exp, rhs: Exp) extends CoreCond {
-    override def usedvars: Map[Name, Option[TypeAnno]] = lhs.usedvars ++ rhs.usedvars
-    override def prettyprint(implicit indent: String): String =
-      s"${lhs.prettyprint} != ${rhs.prettyprint}"
-  }
-  case class InstanceOf(exp: Exp, typ: TypeAnno) extends CoreCond {
-    override def usedvars: Map[Name, Option[TypeAnno]] = exp.usedvars
-    override def prettyprint(implicit indent: String): String =
-      s"${exp.prettyprint} instanceOf ${typ.prettyprint}"
-  }
-  case class NotInstanceOf(exp: Exp, typ: TypeAnno) extends CoreCond {
-    override def usedvars: Map[Name, Option[TypeAnno]] = exp.usedvars
-    override def prettyprint(implicit indent: String): String =
-      s"${exp.prettyprint} notInstanceOf ${typ.prettyprint}"
-  }
-  case class Def(exp: Exp) extends CoreCond {
-    override def usedvars: Map[Name, Option[TypeAnno]] = exp.usedvars
-    override def prettyprint(implicit indent: String): String =
-      s"def ${exp.prettyprint}"
-  }
-  case class Undef(exp: Exp) extends CoreCond {
-    override def usedvars: Map[Name, Option[TypeAnno]] = exp.usedvars
-    override def prettyprint(implicit indent: String): String =
-      s"undef ${exp.prettyprint}"
-  }
-  case class BooleanCond(v: Boolean) extends CoreCond {
-    override def usedvars: Map[Name, Option[TypeAnno]] = Map()
-    override def prettyprint(implicit indent: String): String =
-      v.toString
-  }
 
   trait Typeable {
     var typ: Option[TypeAnno] = None
@@ -239,6 +195,47 @@ object Fun {
     }
   }
   sealed trait CoreExp extends Exp
+
+//  trait Cond {
+//    def usedvars: Map[Name, Option[TypeAnno]]
+//    def prettyprint(implicit indent: String): String
+//    def ensureCore: CoreCond = this match {
+//      case self: CoreCond => self
+//      case _ => throw new IllegalArgumentException(s"Core statement required but got $this")
+//    }
+//  }
+//  sealed trait CoreCond extends Cond
+  case class Eq(lhs: Exp, rhs: Exp) extends CoreExp {
+    def usedvars: Map[Name, Option[TypeAnno]] = lhs.usedvars ++ rhs.usedvars
+    override def prettyprint(implicit indent: String): String =
+      s"${lhs.prettyprint} == ${rhs.prettyprint}"
+  }
+  case class Neq(lhs: Exp, rhs: Exp) extends CoreExp {
+    override def usedvars: Map[Name, Option[TypeAnno]] = lhs.usedvars ++ rhs.usedvars
+    override def prettyprint(implicit indent: String): String =
+      s"${lhs.prettyprint} != ${rhs.prettyprint}"
+  }
+  case class InstanceOf(exp: Exp, ty: TypeAnno) extends CoreExp {
+    override def usedvars: Map[Name, Option[TypeAnno]] = exp.usedvars
+    override def prettyprint(implicit indent: String): String =
+      s"${exp.prettyprint} instanceOf ${ty.prettyprint}"
+  }
+  case class NotInstanceOf(exp: Exp, ty: TypeAnno) extends CoreExp {
+    override def usedvars: Map[Name, Option[TypeAnno]] = exp.usedvars
+    override def prettyprint(implicit indent: String): String =
+      s"${exp.prettyprint} notInstanceOf ${ty.prettyprint}"
+  }
+  case class Def(exp: Exp) extends CoreExp {
+    override def usedvars: Map[Name, Option[TypeAnno]] = exp.usedvars
+    override def prettyprint(implicit indent: String): String =
+      s"def ${exp.prettyprint}"
+  }
+  case class Undef(exp: Exp) extends CoreExp {
+    override def usedvars: Map[Name, Option[TypeAnno]] = exp.usedvars
+    override def prettyprint(implicit indent: String): String =
+      s"undef ${exp.prettyprint}"
+  }
+
   case class Var(name: Name) extends CoreExp {
     override def usedvars: Map[Name, Option[TypeAnno]] = Map(name -> typ)
     override def prettyprint(implicit indent: String): String = name

@@ -92,7 +92,15 @@ object CompileToGP {
       }
 
     def transStatement(stmt: Fun.CoreStatement): Seq[GP.Constraint] = stmt match {
-      case Fun.Assert(cond) => transCond(cond.ensureCore)
+      case Fun.Assert(Fun.Constant(Fun.BooleanLiteral(v))) =>
+        if (v) Seq()
+        else throw BodyMustFail
+      case Fun.Assert(cond) => transExp(cond.ensureCore) match {
+        case (Nil, cons) =>
+          cons
+        case (Seq(v), cons) =>
+          cons :+ GP.Compare(GP.EqComparator, GP.Var(v), GP.Constant(GP.BooleanLiteral(true)))
+      }
       case Fun.Assign(names, exp) =>
         val (rvars, rconstraints) = transExp(exp.ensureCore)
         val eqConstraints = genEqs(names, rvars)
@@ -104,53 +112,95 @@ object CompileToGP {
         throw BodyMustFail
     }
 
-    def transCond(cond: Fun.CoreCond): Seq[GP.Constraint] = cond match {
+    def transExp(cond: Fun.CoreExp): Res = cond match {
       case Fun.Eq(lhs, rhs) =>
         val (lvars, lconstraints) = transExp(lhs.ensureCore)
         val (rvars, rconstraints) = transExp(rhs.ensureCore)
         val eqConstraints = genEqs(lvars, rvars)
-        lconstraints ++ rconstraints ++ eqConstraints
+        (Seq(), lconstraints ++ rconstraints ++ eqConstraints)
+
       case Fun.Neq(lhs, rhs) =>
         val (lvars, lconstraints) = transExp(lhs.ensureCore)
         val (rvars, rconstraints) = transExp(rhs.ensureCore)
         val eqConstraints = genNeqs(lvars, rvars)
-        lconstraints ++ rconstraints ++ eqConstraints
+        (Seq(), lconstraints ++ rconstraints ++ eqConstraints)
+
       case Fun.InstanceOf(exp, typ) =>
         val (vars, constraints) = transExp(exp.ensureCore)
         if (vars.size != 1) throw new IllegalArgumentException("Number of variables of exp of instance of need to be 1")
-        constraints :+ GP.HasType(GP.Var(vars.head), transType(typ))
+        (Seq(), constraints :+ GP.HasType(GP.Var(vars.head), transType(typ)))
 
       case ninst@Fun.NotInstanceOf(exp, typ) => (Seq(), Seq())
         val (vars, constraints) = transExp(exp.ensureCore)
         val notInstanceOfHelper = nameOfNotInstanceOfHelper(ninst)
         val composition = GP.Call(notInstanceOfHelper, Seq(GP.Var(vars.head)), transitive = false, neg = true)
-        constraints :+ composition
+        (Seq(), constraints :+ composition)
+
       case Fun.Def(exp) =>
         exp match {
           case Fun.Call(name, args, transitive, _) =>
-            genDefCallConstraint(name, args, transitive, funs, neg = false)
+            (Seq(), genDefCallConstraint(name, args, transitive, funs, neg = false))
           case pa: Fun.PathAccess =>
-            val tmp = gensym.fresh("tmp")
-            transPathAccess(pa, GP.Var(tmp))
+            val tmp = gensym.fresh("_")
+            (Seq(), transPathAccess(pa, GP.Var(tmp)))
           case _ => throw new IllegalArgumentException(s"Cannot support Def($exp)")
         }
+
       case Fun.Undef(exp) =>
         exp match {
           case Fun.Call(name, args, transitive, count) =>
-            genDefCallConstraint(name, args, transitive, funs, neg = true)
+            (Seq(), genDefCallConstraint(name, args, transitive, funs, neg = true))
           case path@Fun.PathAccess(exp, _) =>
             val pathHelper = nameOfUndefPathHelper(path)
-            val (vars, constraints) = transExp(exp.ensureCore)
+            val (_, constraints) = transExp(exp.ensureCore)
             val args = path.usedvars.toSeq.map(v => GP.Var(v._1))
             val compositionConstraint = GP.Call(pathHelper, args, transitive = false, neg = true)
-            constraints :+ compositionConstraint
+            (Seq(), constraints :+ compositionConstraint)
           case _ => throw new IllegalArgumentException("Cannot support in Undef " + exp)
         }
-      case Fun.BooleanCond(v) =>
-        if (v)
-          Seq()
-        else
-          throw BodyMustFail
+
+      case Fun.Var(name) =>
+        (Seq(name), Seq())
+
+      case Fun.Constant(lit) =>
+        transLiteral(lit) match {
+          case None => (Seq(), Seq())
+          case Some(gplit) =>
+            val tmpVar = gensym.fresh("tmp")
+            val compare = GP.Compare(GP.EqComparator, GP.Var(tmpVar), GP.Constant(gplit))
+            (Seq(tmpVar), Seq(compare))
+        }
+
+      case Fun.Tuple(exps) =>
+        val (vars, constraints) = exps.map(e => transExp(e.ensureCore)).unzip
+        (vars.flatten, constraints.flatten)
+
+      case pa: Fun.PathAccess =>
+        val trg = gensym.fresh("trg")
+        (Seq(trg), transPathAccess(pa, GP.Var(trg)))
+
+      case Fun.Call(name, args, transitive, count) =>
+        // TODO why is there a distinction between exp and non exp args in MPS impl?
+        val (vars, constraints) = args.map(e => transExp(e.ensureCore)).unzip
+        val outVars = funs(name).outParams.map { _ =>
+          val argVar = gensym.fresh("arg")
+          GP.Var(argVar)
+        }
+        val allvars = vars.flatten.map(GP.Var) ++ outVars
+
+        if (!count) {
+          val call = GP.Call(name, allvars, transitive, neg = false)
+          (outVars.map(_.name), constraints.flatten :+ call)
+        } else {
+          val countVar = gensym.fresh("count")
+          val countConstraint = GP.Computed(GP.Var(countVar), GP.CountAggregation(name, allvars))
+          (Seq(countVar), Seq(countConstraint))
+        }
+
+      case Fun.Eval(usedvars, ty, code) =>
+        val evalVar = gensym.fresh("eval")
+        val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(usedvars.keys, transType(ty), code))
+        (Seq(evalVar), Seq(evalConstraint))
     }
 
     def genDefCallConstraint(name: Fun.Name, args: Seq[Fun.Exp], transitive: Boolean, funs: Map[String, Fun.PatternFunction], neg: Boolean): Seq[GP.Constraint] = {
@@ -169,45 +219,6 @@ object CompileToGP {
       }
       val compositionConstraint = GP.Call(name, vars.flatten.map(GP.Var) ++ tempVars, transitive, neg)
       constraint.flatten :+ compositionConstraint
-    }
-
-    def transExp(exp: Fun.CoreExp): Res = exp match {
-      case Fun.Var(name) => (Seq(name), Seq())
-      case Fun.Constant(lit) =>
-        transLiteral(lit) match {
-          case None => (Seq(), Seq())
-          case Some(gplit) =>
-            val tmpVar = gensym.fresh("tmp")
-            val compare = GP.Compare(GP.EqComparator, GP.Var(tmpVar), GP.Constant(gplit))
-            (Seq(tmpVar), Seq(compare))
-        }
-      case Fun.Tuple(exps) =>
-        val (vars, constraints) = exps.map(e => transExp(e.ensureCore)).unzip
-        (vars.flatten, constraints.flatten)
-      case pa: Fun.PathAccess =>
-        val trg = gensym.fresh("trg")
-        (Seq(trg), transPathAccess(pa, GP.Var(trg)))
-      case Fun.Call(name, args, transitive, count) =>
-        // TODO why is there a distinction between exp and non exp args in MPS impl?
-        val (vars, constraints) = args.map(e => transExp(e.ensureCore)).unzip
-        val outVars = funs(name).outParams.map { _ =>
-            val argVar = gensym.fresh("arg")
-            GP.Var(argVar)
-        }
-        val allvars = vars.flatten.map(GP.Var) ++ outVars
-
-        if (!count) {
-          val call = GP.Call(name, allvars, transitive, neg = false)
-          (outVars.map(_.name), constraints.flatten :+ call)
-        } else {
-          val countVar = gensym.fresh("count")
-          val countConstraint = GP.Computed(GP.Var(countVar), GP.CountAggregation(name, allvars))
-          (Seq(countVar), Seq(countConstraint))
-        }
-      case Fun.Eval(usedvars, ty, code) =>
-        val evalVar = gensym.fresh("eval")
-        val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(usedvars.keys, transType(ty), code))
-        (Seq(evalVar), Seq(evalConstraint))
     }
 
     def transPathAccess(pathAccess: Fun.PathAccess, trg: GP.Term): Seq[GP.Constraint] = {
@@ -261,13 +272,13 @@ object CompileToGP {
       List(Fun.Body(List(Fun.Assert(Fun.Def(access))))))
   }
 
-  def nameOfNotInstanceOfHelper(ninst: Fun.NotInstanceOf): String = "generated_helper_notinstanceof_" + ninst.typ.javastring
+  def nameOfNotInstanceOfHelper(ninst: Fun.NotInstanceOf): String = "generated_helper_notinstanceof_" + ninst.ty.javastring
 
   def genNotInstanceOfHelper(ninst: Fun.NotInstanceOf): Fun.PatternFunction =
     Fun.PatternFunction(
       Some(Fun.Private),
       nameOfNotInstanceOfHelper(ninst),
-      List(Fun.Param("in", Some(ninst.typ))),
+      List(Fun.Param("in", Some(ninst.ty))),
       List(),
       // body is empty because relation is only applicable if c is actually of type ninst.typ
       List(Fun.Body(Seq())))
