@@ -27,9 +27,9 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Assert(InstanceOf(Var("enum_Foo"), TNode("Foo"))),
+        Values("enum_Foo", TNode("Foo")),
         Assign(Seq("x"), Var("enum_Foo")),
-        Assert(InstanceOf(Var("enum_Bar"), TNode("Bar"))),
+        Values("enum_Bar", TNode("Bar")),
         Assign(Seq("y"), Var("enum_Bar")),
         Assert(Eq(
           PathAccess(Var("x"), NamedLink(TNode("Foo"), "name")).typed(TString),
@@ -62,7 +62,7 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(AnnoParam(None, TNode("Method"))), Seq(
         Body(Seq(
-          Assert(InstanceOf(Var("enum_Method"), TNode("Method"))),
+          Values("enum_Method", TNode("Method")),
           Assign(Seq("meth"), Var("enum_Method")),
           Assert(Eq(
             PathAccess(Var("meth"), NamedLink(TNode("Method"), "name")).typed(TString),
@@ -71,7 +71,7 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
           Fail
         )),
         Body(Seq(
-          Assert(InstanceOf(Var("enum_Method"), TNode("Method"))),
+          Values("enum_Method", TNode("Method")),
           Assign(Seq("meth"), Var("enum_Method")),
           Fail
         ))

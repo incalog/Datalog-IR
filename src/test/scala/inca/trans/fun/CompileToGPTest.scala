@@ -87,7 +87,7 @@ class CompileToGPTest extends AnyFunSuite {
       List(
         Body(
           List(
-            Assign(Seq("lhschild"), Call("lhChild", Seq(Var("add")), transitive = false, count = false)),
+            Assign(Seq("lhschild"), Call("lhChild", Seq(Var("add")), transitive = false, count = false).typed(expType)),
             Yield(Var("lhschild"))))))
     val result = CompileToGP.transformModule(Module("test", Nil, Seq(fun, lhChildFun)))
     println(Printer.prettyModule(result))

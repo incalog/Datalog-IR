@@ -6,7 +6,7 @@ import inca.lang.fun.Fun._
 import inca.runtime.context.QueryScope
 import org.scalatest.flatspec.AnyFlatSpec
 
-class TestNot extends AnyFlatSpec with IncaMatchers {
+class TestBoolOps extends AnyFlatSpec with IncaMatchers {
 
   val one = Constant(IntLiteral(1))
   val two = Constant(IntLiteral(2))
@@ -38,7 +38,7 @@ class TestNot extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    assertDesugar(core, sugared, Not)
+    assertDesugar(core, sugared, BoolOps)
   }
 
   "desugaring" should "eliminate nested not conditions" in {
@@ -60,14 +60,15 @@ class TestNot extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    assertDesugar(core, sugared, Not)
+    assertDesugar(core, sugared, BoolOps)
   }
 
   val scope = new QueryScope(Exp.languageMetaInfo)
-  "eval" can "be used to filter" in {
+
+  "desugaring" should "negate eval code" in {
     val module = Module("Test_Cast", Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
-        Assert(InstanceOf(Var("e"), TNode(Exp.intTag))),
+        Values("e", TNode(Exp.intTag)),
         Assign(Seq("i"), PathAccess(Var("e"), NamedLink(TNode(Exp.intTag), "value")).typed(TInt)),
         Assign(Seq("cond"),
           // "i" is _not_ a square number
@@ -98,8 +99,110 @@ class TestNot extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatch(module, "integerlits", input, scope, Not) { matcher =>
+    assertMatch(module, "integerlits", input, scope, BoolOps) { matcher =>
       assert(matcher.getAllMatches.size() == 3)
+    }
+  }
+
+  "desugaring" should "implement `and` semantics" in {
+    val module = Module("Test_Cast", Seq(), Seq(
+      PatternFunction(None, "add_mul", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
+        Values("e", TNode(Exp.expTag)),
+        Assert(And(
+          InstanceOf(Var("e"), TNode(Exp.addTag)),
+          InstanceOf(PathAccess(Var("e"), NamedLink(TNode(Exp.addTag), "lhs")).typed(TNode(Exp.expTag)), TNode(Exp.multTag))
+        )),
+        Yield(Var("e"))
+      ))))
+    ))
+
+    val input = {
+      import Exp._
+      Add(
+        Mul(
+          IntegerLit(1),
+          IntegerLit(2)
+        ),
+        Many(
+          List(
+            IntegerLit(3),
+            IntegerLit(4),
+            IntegerLit(5)
+          )
+        )
+      )
+    }
+
+    assertMatch(module, "add_mul", input, scope, BoolOps) { matcher =>
+      assert(matcher.getAllMatches.size() == 1)
+    }
+  }
+
+  "desugaring" should "implement `not and` semantics" in {
+    val module = Module("Test_Cast", Seq(), Seq(
+      PatternFunction(None, "integerLits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
+        Values("e", TNode(Exp.expTag)),
+        Assert(Not(And(
+          InstanceOf(Var("e"), TNode(Exp.addTag)),
+          InstanceOf(Var("e"), TNode(Exp.multTag))
+        ))),
+        Yield(Var("e"))
+      ))))
+    ))
+
+    val input = {
+      import Exp._
+      Add(
+        Mul(
+          IntegerLit(1),
+          IntegerLit(2)
+        ),
+        Many(
+          List(
+            IntegerLit(3),
+            IntegerLit(4),
+            IntegerLit(5)
+          )
+        )
+      )
+    }
+
+    assertMatch(module, "integerLits", input, scope, BoolOps) { matcher =>
+      assert(matcher.getAllMatches.size() == 8)
+    }
+  }
+
+  "desugaring" should "implement `not or` semantics" in {
+    val module = Module("Test_Cast", Seq(), Seq(
+      PatternFunction(None, "integerLits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
+        Values("e", TNode(Exp.expTag)),
+        Assert(Not(Or(
+          InstanceOf(Var("e"), TNode(Exp.addTag)),
+          InstanceOf(Var("e"), TNode(Exp.multTag))
+        ))),
+        Yield(Var("e"))
+      ))))
+    ))
+
+    val input = {
+      import Exp._
+      Add(
+        Mul(
+          IntegerLit(1),
+          IntegerLit(2)
+        ),
+        Many(
+          List(
+            IntegerLit(3),
+            IntegerLit(4),
+            IntegerLit(5)
+          )
+        )
+      )
+    }
+
+    assertMatch(module, "integerLits", input, scope, BoolOps) { matcher =>
+      assert(matcher.getAllMatches.size() == 6)
     }
   }
 }

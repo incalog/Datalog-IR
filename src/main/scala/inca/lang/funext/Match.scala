@@ -78,7 +78,7 @@ case class LiteralPattern(v: Literal) extends Pattern {
 
 
 object Match extends Desugarable {
-  override val desugarsTo: Seq[Desugarable] = Seq(Switch, Not)
+  override val desugarsTo: Seq[Desugarable] = Seq(Switch, BoolOps)
 
   override def trans(): DesugarTrans = new DesugarTrans {
 

@@ -51,7 +51,7 @@ object ExpLangTestAnalyses {
     Seq(
       Body(
         Seq(
-          Assign(Seq("lhschild"), Call("lhChild", Seq(Var("add")), transitive = false, count = false)),
+          Assign(Seq("lhschild"), Call("lhChild", Seq(Var("add")), transitive = false, count = false).typed(expType)),
           Yield(Var("lhschild"))))))
 
   val instanceAddFun = PatternFunction(

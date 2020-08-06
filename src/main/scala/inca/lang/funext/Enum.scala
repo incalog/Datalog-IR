@@ -15,13 +15,13 @@ case class Enum(ty: TypeAnno) extends Exp {
 object Enum extends Desugarable {
 
   override def trans(): DesugarTrans = new DesugarTrans {
-    var enumStatements: ListBuffer[Statement] = ListBuffer()
+    val enumStatements: ListBuffer[Statement] = ListBuffer()
 
     override def desugarExp(exp: Exp)(implicit gensym: Gensym): Exp = exp match {
       case Enum(ty) =>
         val sym = gensym.fresh(s"enum_${ty.javastring}")
-        enumStatements += Assert(InstanceOf(Var(sym), ty))
-        changed(Var(sym))
+        enumStatements += Values(sym, ty)
+        changed(Var(sym).typed(ty))
       case _ => super.desugarExp(exp)
     }
 
@@ -31,7 +31,7 @@ object Enum extends Desugarable {
         desugared
       else {
         val prepend = enumStatements.toSeq
-        enumStatements = ListBuffer()
+        enumStatements.clear()
         prepend ++ desugared
       }
     }

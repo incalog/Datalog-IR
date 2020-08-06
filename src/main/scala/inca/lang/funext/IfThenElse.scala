@@ -35,8 +35,6 @@ case class ElseIf(cond: Exp, body: Seq[Statement]) {
 }
 
 object IfThenElse extends Desugarable {
-  override val desugarsTo: Seq[Desugarable] = Seq(Switch, Not)
-
   override def trans(): DesugarTrans = new DesugarTrans {
 
     override def desugarStm(stm: Statement)(implicit gensym: Gensym): Seq[Statement] = stm match {
@@ -60,4 +58,6 @@ object IfThenElse extends Desugarable {
     def desugarConditional(cond: Exp, notconds: ListBuffer[Not], body: Seq[Statement])(implicit gensym: Gensym): Seq[Statement] =
       notconds.toSeq.map(Assert) ++ Seq(Assert(cond)) ++ body
   }
+
+  override val desugarsTo: Seq[Desugarable] = Seq(Switch, BoolOps)
 }

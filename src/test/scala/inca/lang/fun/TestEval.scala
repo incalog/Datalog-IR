@@ -16,7 +16,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
   "eval" can "yield a constant" in {
     val module = Module("Test_Cast", Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
-        Assert(InstanceOf(Var("e"), TNode(Exp.expTag))),
+        Values("e", TNode(Exp.expTag)),
         Assign(Seq("pi"), Eval(Map(), TInt, "Math.PI")),
         Assert(Neq(Var("pi"), Constant(DoubleLiteral(3.14)))),
         Yield(Var("e"))
@@ -48,7 +48,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
   "eval" can "be used to filter" in {
     val module = Module("Test_Cast", Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
-        Assert(InstanceOf(Var("e"), TNode(Exp.intTag))),
+        Values("e", TNode(Exp.intTag)),
         Assign(Seq("i"), PathAccess(Var("e"), NamedLink(TNode(Exp.intTag), "value")).typed(TInt)),
         Assign(Seq("cond"),
           Eval(Map("i" -> Some(TInt)), TBool,

@@ -27,7 +27,7 @@ object Forall extends Desugarable {
   override val desugarsTo: Seq[Desugarable] = Seq(Foreach)
 
   override def trans(): DesugarTrans = new DesugarTrans {
-    var forallFuns: ListBuffer[PatternFunction] = ListBuffer()
+    val forallFuns: ListBuffer[PatternFunction] = ListBuffer()
 
     override def desugarStm(stm: Statement)(implicit gensym: Gensym): Seq[Statement] = stm match {
       case Forall(name, exp, body) => exp.typ.getOrElse(throw new IllegalArgumentException(s"Cannot support forall loop over untyped expression $exp")) match {
@@ -48,7 +48,7 @@ object Forall extends Desugarable {
 
           changed(Seq(
             Assign(Seq(sizeSym), PathAccess(exp, SizeLink).typed(TInt)),
-            Assign(Seq(successSym), Call(funsym, vars.map(v => Var(v._1)), transitive = false, count = true)),
+            Assign(Seq(successSym), Call(funsym, vars.map(v => Var(v._1)), transitive = false, count = true).typed(TInt)),
             Assert(Eq(Var(sizeSym), Var(successSym)))
           ))
         case ty => throw new IllegalArgumentException(s"Forall loop expression $exp must have iterable type, but was type $ty")
@@ -63,7 +63,7 @@ object Forall extends Desugarable {
         desugared
       else {
         val prepend = forallFuns.toSeq
-        forallFuns = ListBuffer()
+        forallFuns.clear()
         prepend ++ desugared
       }
     }

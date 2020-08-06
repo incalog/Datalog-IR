@@ -95,7 +95,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
   "desugaring" should "implement foreach list semantics" in {
     val module = Module("Test_Cast", Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
-        Assert(InstanceOf(Var("many"), TNode(Exp.manyTag))),
+        Values("many", TNode(Exp.manyTag)),
         Foreach("i", PathAccess(Var("many"), NamedLink(TNode(Exp.manyTag), "exps")).typed(TList(TNode(Exp.intTag))), Seq(
           Yield(PathAccess(Var("i"), NamedLink(TNode(Exp.intTag), "value")).typed(TInt))
         ))

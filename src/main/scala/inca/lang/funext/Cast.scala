@@ -15,7 +15,7 @@ case class Cast(src: Exp, targetTyp: TypeAnno) extends Exp {
 
 object Cast extends Desugarable {
   override def trans(): DesugarTrans = new DesugarTrans {
-    var castStatements: ListBuffer[Statement] = ListBuffer()
+    val castStatements: ListBuffer[Statement] = ListBuffer()
 
     override def desugarExp(exp: Exp)(implicit gensym: Gensym): Exp = exp match {
       case Cast(src, targetTyp) =>
@@ -34,7 +34,7 @@ object Cast extends Desugarable {
         desugared
       else {
         val prepend = castStatements.toSeq
-        castStatements = ListBuffer()
+        castStatements.clear()
         prepend ++ desugared
       }
     }

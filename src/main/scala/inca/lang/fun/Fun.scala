@@ -142,6 +142,11 @@ object Fun {
     }
   }
   sealed trait CoreStatement extends Statement
+  case class Values(name: Name, typ: TypeAnno) extends CoreStatement {
+    override def usedvars: Map[Name, Option[TypeAnno]] = Map(name -> Some(typ))
+    override def prettyprint(implicit indent: String): String =
+      s"${indent}vals $name <- $typ"
+  }
   case class Assign(names: Seq[Name], exp: Exp) extends CoreStatement {
     override def usedvars: Map[Name, Option[TypeAnno]] = exp.typ match {
       case Some(ty) if names.size == 1 => Map(names.head -> Some(ty)) ++ exp.usedvars
@@ -151,7 +156,7 @@ object Fun {
 
     override def prettyprint(implicit indent: String): String = {
       val namesS = if (names.size == 1) names.head else names.mkString("(", ", ", ")")
-      s"${indent}let $namesS = ${exp.prettyprint}"
+      s"${indent}val $namesS = ${exp.prettyprint}"
     }
   }
   case class Assert(cond: Exp) extends CoreStatement {
@@ -184,6 +189,10 @@ object Fun {
       this.typ = ty
       this
     }
+    def orTyped(ty: TypeAnno): this.type = {
+      this.typ = this.typ.orElse(Some(ty))
+      this
+    }
   }
 
   trait Exp extends Typeable {
@@ -196,15 +205,7 @@ object Fun {
   }
   sealed trait CoreExp extends Exp
 
-//  trait Cond {
-//    def usedvars: Map[Name, Option[TypeAnno]]
-//    def prettyprint(implicit indent: String): String
-//    def ensureCore: CoreCond = this match {
-//      case self: CoreCond => self
-//      case _ => throw new IllegalArgumentException(s"Core statement required but got $this")
-//    }
-//  }
-//  sealed trait CoreCond extends Cond
+
   case class Eq(lhs: Exp, rhs: Exp) extends CoreExp {
     def usedvars: Map[Name, Option[TypeAnno]] = lhs.usedvars ++ rhs.usedvars
     override def prettyprint(implicit indent: String): String =
