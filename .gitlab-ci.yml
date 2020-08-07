@@ -1,0 +1,12 @@
+image: hseeberger/scala-sbt:11.0.6_1.3.10_2.13.1
+
+stages:
+  - test
+
+before_script:
+  - sbt sbtVersion
+
+test:
+  stage: test
+  script:
+    - sbt clean coverage test coverageReport

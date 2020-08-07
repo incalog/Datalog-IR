@@ -13,6 +13,8 @@ scalacOptions ++= Seq(
 
 javacOptions ++= Seq("-source", "11")
 
+Test / parallelExecution := false
+
 libraryDependencies += "de.uni-mainz.informatik.pl" %% "truechange" % "0.1"
 libraryDependencies += "de.uni-mainz.informatik.pl" %% "truediff" % "0.1" % "test"
 

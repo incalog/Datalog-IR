@@ -1,7 +1,4 @@
 # sbt
-# (may want to keep parts of 'project')
-bin/
-project/
 target/
 build/
 
@@ -18,9 +15,4 @@ build/
 #general
 *.class
 
-# custom
-/src/test/scala/Path_GPLangQuerySpecification.scala
-/src/test/scala/org.inca.generator.generated
-
 /benchmark/python/*/
-/src/test/scala/org/inca/generator/generated/
