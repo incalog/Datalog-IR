@@ -40,7 +40,9 @@ object CompileToGP {
 
 
   def rewriteFunction(fun: Fun.PatternFunction, funs: FunEnv): GP.Pattern = {
-    val gensym = new Gensym(fun.usedvars.keys)
+    val gensym = new Gensym(fun.freeVars.keys)
+    gensym.register(fun.boundNames)
+
     val vis = fun.vis.map {
       case Fun.Private => GP.Private
       case Fun.Public => GP.Public
@@ -83,7 +85,7 @@ object CompileToGP {
   type Env = Map[Fun.Name, Binding]
 
 
-  def transBody(alt: Fun.Body, funs: FunEnv, outVars: Seq[String], env: Env)(implicit gensym: Gensym): Option[GP.Body] =
+  def transBody(alt: Fun.Body, funs: FunEnv, outVars: Seq[String], env: Env)(implicit gensym: Gensym): Option[GP.Body] = gensym.scoped {
     try {
       var currentEnv: Env = env
       val constraints = alt.stmts.flatMap { s =>
@@ -95,6 +97,7 @@ object CompileToGP {
     } catch {
       case BodyMustFail => None
     }
+  }
 
   def transStatement(stmt: Fun.CoreStatement, funs: FunEnv, outVars: Seq[String], env: Env)(implicit gensym: Gensym): (Seq[GP.Constraint], Env) = stmt match {
     case Fun.Values(name, typ) =>
@@ -111,6 +114,8 @@ object CompileToGP {
       }
       if (exp.typ.isEmpty)
         throw new IllegalArgumentException(s"Cannot compile untyped assignment $stmt")
+
+      gensym.register(names)
       val expTy = exp.typ.get
       val bindings = names match {
         case Nil => Seq()
@@ -208,7 +213,7 @@ object CompileToGP {
         case path@Fun.PathAccess(exp, _) =>
           val pathHelper = nameOfUndefPathHelper(path)
           val (_, constraints) = transExp(exp.ensureCore)
-          val args = path.usedvars.toSeq.map(v => GP.Var(v._1))
+          val args = path.freeVars.toSeq.map(v => GP.Var(v._1))
           val compositionConstraint = GP.Call(pathHelper, args, transitive = false, neg = true)
           (Seq(), constraints :+ compositionConstraint)
         case _ => throw new IllegalArgumentException("Cannot support in Undef " + exp)
@@ -249,9 +254,9 @@ object CompileToGP {
         (Seq(countVar), Seq(countConstraint))
       }
 
-    case Fun.Eval(usedvars, ty, code) =>
+    case Fun.Eval(params, ty, code) =>
       val evalVar = gensym.fresh("eval")
-      val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(usedvars.keys, transType(ty), code))
+      val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(params.keys, transType(ty), code))
       (Seq(evalVar), Seq(evalConstraint))
   }
 
@@ -310,7 +315,7 @@ object CompileToGP {
     if (access.receiver.typ.isEmpty)
       throw new IllegalArgumentException(s"Cannot support undef condition for untyped receiver of path access $access")
 
-    val params = access.usedvars.toSeq.map{ case (v,t) => Fun.Param(v, t) }
+    val params = access.freeVars.toSeq.map{ case (v,t) => Fun.Param(v, t) }
 
     Fun.PatternFunction(
       Some(Fun.Private),

@@ -7,7 +7,7 @@ import inca.util.Gensym
 import scala.collection.mutable.ListBuffer
 
 case class Cast(src: Exp, targetTyp: TypeAnno) extends Exp {
-  override def usedvars: Map[Name, Option[TypeAnno]] = src.usedvars
+  override def freeVars: Map[Name, Option[TypeAnno]] = src.freeVars
 
   override def prettyprint(implicit indent: String): String =
     s"${src.prettyprint}:${targetTyp.prettyprint}"
@@ -20,8 +20,14 @@ object Cast extends Desugarable {
     override def desugarExp(exp: Exp)(implicit gensym: Gensym): Exp = exp match {
       case Cast(src, targetTyp) =>
         val desugaredSrc = desugarExp(src)
-        val sym = gensym.fresh("cast")
-        castStatements += Assign(Seq(sym), desugaredSrc)
+        val sym = desugaredSrc match {
+          case Var(v) =>
+            v
+          case _ =>
+            val v = gensym.fresh("cast")
+            castStatements += Assign(Seq(v), desugaredSrc)
+            v
+        }
         castStatements += Assert(InstanceOf(Var(sym), targetTyp))
         changed(Var(sym).typed(targetTyp))
 

@@ -3,35 +3,24 @@ package inca.lang.funext
 import inca.lang.fun.Fun._
 import inca.lang.funext.desugar.{DesugarTrans, Desugarable}
 import inca.util.Gensym
-import inca.util.Meta.TAB
 
 import scala.collection.mutable.ListBuffer
 
-case class IfThenElse(cond: Exp, thn: Seq[Statement], elseIfs: Seq[ElseIf], els: Option[Seq[Statement]]) extends Statement {
-  override def usedvars: Map[Name, Option[TypeAnno]] = cond.usedvars ++ collectUsedvars(thn) ++ els.map(collectUsedvars(_)).getOrElse(Map())
+case class IfThenElse(cond: Exp, thn: Body, elseIfs: Seq[ElseIf], els: Option[Body]) extends Statement {
+  override def boundVars: Set[Name] = thn.boundVars ++ elseIfs.flatMap(_.boundVars) ++ els.toSeq.flatMap(_.boundVars)
+  override def allVars: Map[Name, Option[TypeAnno]] = cond.freeVars ++ thn.allVars ++ elseIfs.flatMap(_.allVars) ++ els.toSeq.flatMap(_.allVars)
 
   override def prettyprint(implicit indent: String): String = {
-    val thnS = if (thn.isEmpty) "" else
-      "\n" + thn.map(_.prettyprint(indent+TAB)).mkString("\n")
     val elseIfsS = elseIfs.map(_.prettyprint).mkString("\n")
-    val elseS = if (els.isEmpty) "" else {
-      val elsStmtsS = if (els.get.isEmpty) "" else
-        "\n" + els.get.map(_.prettyprint(indent+TAB)).mkString("\n")
-      s""" else {$elsStmtsS
-         |${indent}}""".stripMargin
-    }
-    s"""${indent}if (${cond.prettyprint}) {$thnS
-       |${indent}}$elseIfsS$elseS""".stripMargin
+    val elseS = if (els.isEmpty) "" else " " + els.get.prettyprint
+    s"${indent}if (${cond.prettyprint}) $thn$elseIfsS$elseS".stripMargin
   }
 }
-case class ElseIf(cond: Exp, body: Seq[Statement]) {
-  def usedvars: Map[Name, Option[TypeAnno]] = cond.usedvars ++ collectUsedvars(body)
-  def prettyprint(implicit indent: String): String = {
-    val bodyS = if (body.isEmpty) "" else
-      "\n" + body.map(_.prettyprint(indent+TAB)).mkString("\n")
-    s""" else if (${cond.prettyprint}) {$bodyS
-       |${indent}}""".stripMargin
-  }
+case class ElseIf(cond: Exp, body: Body) {
+  def boundVars: Set[Name] = body.boundVars
+  def allVars: Map[Name, Option[TypeAnno]] = cond.freeVars ++ body.allVars
+  def prettyprint(implicit indent: String): String =
+    s" else if (${cond.prettyprint}) ${body.prettyprint}".stripMargin
 }
 
 object IfThenElse extends Desugarable {
@@ -39,15 +28,15 @@ object IfThenElse extends Desugarable {
 
     override def desugarStm(stm: Statement)(implicit gensym: Gensym): Seq[Statement] = stm match {
       case IfThenElse(cond, thn, elseIfs, els) =>
-        val thnBody = Body(desugarConditional(cond, ListBuffer(), thn.flatMap(desugarStm)))
+        val thnBody = Body(desugarConditional(cond, ListBuffer(), thn.stmts.flatMap(desugarStm)))
         val notconds = ListBuffer(Not(cond))
         val elseIfBodies = elseIfs.map { elseIf =>
-          val elseIfBody = Body(desugarConditional(elseIf.cond, notconds, elseIf.body.flatMap(desugarStm)))
+          val elseIfBody = Body(desugarConditional(elseIf.cond, notconds, elseIf.body.stmts.flatMap(desugarStm)))
           notconds += Not(elseIf.cond)
           elseIfBody
         }
         val elseBody = els match {
-          case Some(stms) => Body(notconds.toSeq.map(Assert) ++ stms.flatMap(desugarStm))
+          case Some(body) => Body(notconds.toSeq.map(Assert) ++ body.stmts.flatMap(desugarStm))
           case None => Body(Seq())
         }
         changed(Seq(Switch(thnBody +: (elseIfBodies :+ elseBody))))

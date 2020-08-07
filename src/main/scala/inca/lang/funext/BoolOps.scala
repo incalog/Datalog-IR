@@ -8,15 +8,15 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 case class Not(cond: Exp) extends Exp {
-  override def usedvars: Map[Name, Option[TypeAnno]] = cond.usedvars
+  override def freeVars: Map[Name, Option[TypeAnno]] = cond.freeVars
   override def prettyprint(implicit indent: String): String = s"!(${cond.prettyprint})"
 }
 case class And(e1: Exp, e2: Exp) extends Exp {
-  override def usedvars: Map[Name, Option[TypeAnno]] = e1.usedvars ++ e2.usedvars
+  override def freeVars: Map[Name, Option[TypeAnno]] = e1.freeVars ++ e2.freeVars
   override def prettyprint(implicit indent: String): String = s"(${e1.prettyprint} && ${e2.prettyprint})"
 }
 case class Or(e1: Exp, e2: Exp) extends Exp {
-  override def usedvars: Map[Name, Option[TypeAnno]] = e1.usedvars ++ e2.usedvars
+  override def freeVars: Map[Name, Option[TypeAnno]] = e1.freeVars ++ e2.freeVars
   override def prettyprint(implicit indent: String): String = s"(${e1.prettyprint} || ${e2.prettyprint})"
 }
 

@@ -45,12 +45,12 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(AnnoParam(None, TNode("Method"))), Seq(
         Body(Seq(
-          Foreach("meth", Enum(TNode("Method")).typed(TEnumeration(TNode("Method"))), Seq(
+          Foreach("meth", Enum(TNode("Method")).typed(TEnumeration(TNode("Method"))), Body(
             IfThenElse(
               Eq(
                 PathAccess(Var("meth"), NamedLink(TNode("Method"), "name")).typed(TString),
                 Constant(StringLiteral("main"))),
-              Seq(Yield(Var("meth"))),
+              Body(Yield(Var("meth"))),
               Seq(),
               None),
             Fail

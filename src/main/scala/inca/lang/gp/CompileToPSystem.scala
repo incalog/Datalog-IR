@@ -253,7 +253,7 @@ object CompileToPSystem {
       val callQuery = q"${Term.Name(module)}.${Term.Name(name)}.instance.getInternalQueryRepresentation"
       Seq(q"new PatternMatchCounter(body, $argTuple, $callQuery, $result)")
 
-    case Evaluation(usedvars, _, code) =>
+    case Evaluation(freeVars, _, code) =>
       val result = transTerm(resultVar)
       val description = s"eval($code)"
       val codeTerm = code.parse[Stat].get
@@ -261,7 +261,7 @@ object CompileToPSystem {
         q"""
         new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
           override def getShortDescription: String = $description
-          override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList(..${usedvars.toList.map(Lit.String.apply)})
+          override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList(..${freeVars.toList.map(Lit.String.apply)})
           override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {$codeTerm}
         }, $result)
          """)

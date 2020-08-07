@@ -6,6 +6,9 @@ class Gensym(init: Iterable[String]) {
 
   init.foreach(register)
 
+  def register(it: Iterable[String]): Unit =
+    it.foreach(register)
+
   def register(s: String): Unit = {
     val ix = s.lastIndexOf('_')
     if (ix <= 0) {
@@ -53,9 +56,12 @@ class Gensym(init: Iterable[String]) {
       s + "_"
 
   def scoped[A](f: => A): A = {
-    val oldused = used
-    val a = f
-    used = oldused
-    a
+    val oldused = this.used
+    try {
+      val a = f
+      a
+    } finally {
+      this.used = oldused
+    }
   }
 }

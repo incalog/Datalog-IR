@@ -25,7 +25,7 @@ class DesugarTrans {
     Seq(imp)
 
   def desugarFun(fun: PatternFunction)(implicit gensym: Gensym): Seq[PatternFunction] = gensym.scoped {
-    fun.usedvars.keys.foreach(gensym.register)
+    gensym.register(fun.boundNames)
     Seq(PatternFunction(fun.vis, fun.name, fun.params, fun.outParams, fun.bodies.flatMap(desugarBody)))
   }
 

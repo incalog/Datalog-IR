@@ -5,7 +5,8 @@ import inca.lang.funext.desugar.{DesugarTrans, Desugarable}
 import inca.util.Gensym
 
 case class Switch(bodies: Seq[Body]) extends Statement {
-  override def usedvars: Map[Name, Option[TypeAnno]] = collectUsedvars(bodies)
+  override def boundVars: Set[Name] = bodies.flatMap(_.boundVars).toSet
+  override def allVars: Map[Name, Option[TypeAnno]] = bodies.flatMap(_.allVars).toMap
 
   override def prettyprint(implicit indent: String): String = {
     if (bodies.isEmpty) "switch { }" else

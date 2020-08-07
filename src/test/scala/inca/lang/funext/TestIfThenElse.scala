@@ -16,9 +16,9 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
   "desugaring" should "eliminate if-then-else" in {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        IfThenElse(Eq(one, two), Seq(
+        IfThenElse(Eq(one, two), Body(
           Assign(Seq("yes"), Constant(BooleanLiteral(true)))
-        ), Seq(), Some(Seq(
+        ), Seq(), Some(Body(
           Assign(Seq("yes"), Constant(BooleanLiteral(false)))
         ))),
         Assign(Seq("after"), Constant(BooleanLiteral(true)))
@@ -44,18 +44,18 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
   "desugaring" should "eliminate nested if-then-else" in {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        IfThenElse(Eq(one, two), Seq(
+        IfThenElse(Eq(one, two), Body(
           Assign(Seq("yes"), Constant(BooleanLiteral(true))),
-          IfThenElse(Eq(three, four), Seq(
+          IfThenElse(Eq(three, four), Body(
             Assign(Seq("yes2"), Constant(BooleanLiteral(true)))
-          ), Seq(), Some(Seq(
+          ), Seq(), Some(Body(
             Assign(Seq("yes2"), Constant(BooleanLiteral(false)))
           )))
-        ), Seq(), Some(Seq(
+        ), Seq(), Some(Body(
           Assign(Seq("yes"), Constant(BooleanLiteral(false))),
-          IfThenElse(Eq(three, four), Seq(
+          IfThenElse(Eq(three, four), Body(
             Assign(Seq("yes2"), Constant(BooleanLiteral(true)))
-          ), Seq(), Some(Seq(
+          ), Seq(), Some(Body(
             Assign(Seq("yes2"), Constant(BooleanLiteral(false)))
           )))
         ))),
@@ -100,11 +100,11 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
   "desugaring" should "eliminate if-then-else-if" in {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        IfThenElse(Eq(one, two), Seq(
+        IfThenElse(Eq(one, two), Body(
           Assign(Seq("yes"), Constant(BooleanLiteral(true)))
-        ), Seq(ElseIf(Eq(three, four), Seq(
+        ), Seq(ElseIf(Eq(three, four), Body(
           Assign(Seq("yes"), Constant(IntLiteral(99)))
-        ))), Some(Seq(
+        ))), Some(Body(
           Assign(Seq("yes"), Constant(BooleanLiteral(false)))
         ))),
         Assign(Seq("after"), Constant(BooleanLiteral(true)))
@@ -139,7 +139,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Assign(Seq("before"), Constant(BooleanLiteral(true))),
-        IfThenElse(Eq(one, two), Seq(
+        IfThenElse(Eq(one, two), Body(
           Assign(Seq("yes"), Constant(BooleanLiteral(true)))
         ), Seq(), None),
         Assign(Seq("after"), Constant(BooleanLiteral(true)))
@@ -179,21 +179,21 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
       )))),
 
       PatternFunction(None, "integerlits_rec", Seq(Param("e", Some(TNode(Exp.expTag)))), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
-        IfThenElse(InstanceOf(Var("e"), TNode(Exp.intTag)), Seq(
+        IfThenElse(InstanceOf(Var("e"), TNode(Exp.intTag)), Body(
           Yield(PathAccess(Var("e"), NamedLink(TNode(Exp.intTag), "value")).typed(TInt))
-        ), Seq(ElseIf(InstanceOf(Var("e"), TNode(Exp.addTag)), Seq(
+        ), Seq(ElseIf(InstanceOf(Var("e"), TNode(Exp.addTag)), Body(
           Yield(
             Call("integerlits_rec",
               Seq(PathAccess(Var("e"), NamedLink(TNode(Exp.addTag), "lhs")).typed(TNode(Exp.expTag))),
               transitive = false, count = false
             )
           )
-        )), ElseIf(InstanceOf(Var("e"), TNode(Exp.multTag)), Seq(
+        )), ElseIf(InstanceOf(Var("e"), TNode(Exp.multTag)), Body(
           Yield(
             Call("integerlits_rec",
               Seq(PathAccess(Var("e"), NamedLink(TNode(Exp.multTag), "rhs")).typed(TNode(Exp.expTag))),
               transitive = false, count = false))
-        ))), Some(Seq(
+        ))), Some(Body(
           Fail
         ))),
       ))))

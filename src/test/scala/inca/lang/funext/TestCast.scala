@@ -42,13 +42,11 @@ class TestCast extends AnyFlatSpec with IncaMatchers {
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Assign(Seq("cast"), one),
         Assert(InstanceOf(Var("cast"), TBool)),
-        Assign(Seq("cast_0"), Var("cast")),
-        Assert(InstanceOf(Var("cast_0"), TString)),
-        Assign(Seq("cast_1"), two),
-        Assert(InstanceOf(Var("cast_1"), TNode("Decl"))),
-        Assign(Seq("cast_2"), Var("cast_1")),
-        Assert(InstanceOf(Var("cast_2"), TNode("Method"))),
-        Assert(Eq(Var("cast_0"), Var("cast_2"))),
+        Assert(InstanceOf(Var("cast"), TString)),
+        Assign(Seq("cast_0"), two),
+        Assert(InstanceOf(Var("cast_0"), TNode("Decl"))),
+        Assert(InstanceOf(Var("cast_0"), TNode("Method"))),
+        Assert(Eq(Var("cast"), Var("cast_0"))),
       ))))
     ))
 

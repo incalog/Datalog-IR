@@ -15,7 +15,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Match(one, Seq(
-          Case(WildcardPattern, Seq(
+          Case(WildcardPattern, Body(
             Assign(Seq("case"), Constant(IntLiteral(7)))
           ))
         ))
@@ -35,7 +35,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Match(one, Seq(
-          Case(VarPattern("n"), Seq(
+          Case(VarPattern("n"), Body(
             Assign(Seq("case"), Constant(IntLiteral(1)))
           ))
         ))
@@ -56,7 +56,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Match(one, Seq(
-          Case(NodePattern(TNode("Decl"), Seq(PatternBinding("name", VarPattern("n")).typed(TString))), Seq(
+          Case(NodePattern(TNode("Decl"), Seq(PatternBinding("name", VarPattern("n")).typed(TString))), Body(
             Assign(Seq("case"), Constant(IntLiteral(2)))
           ))
         ))
@@ -79,7 +79,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Match(one, Seq(
-          Case(NodePattern(TNode("Decl"), Seq(PatternBinding("name", WildcardPattern).typed(TString))), Seq(
+          Case(NodePattern(TNode("Decl"), Seq(PatternBinding("name", WildcardPattern).typed(TString))), Body(
             Assign(Seq("case"), Constant(IntLiteral(3)))
           ))
         ))
@@ -101,7 +101,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Match(one, Seq(
-          Case(NamedPattern("node", NodePattern(TNode("Decl"), Seq(PatternBinding("name", VarPattern("n")).typed(TString)))), Seq(
+          Case(NamedPattern("node", NodePattern(TNode("Decl"), Seq(PatternBinding("name", VarPattern("n")).typed(TString)))), Body(
             Assign(Seq("case"), Constant(IntLiteral(3)))
           ))
         ))
@@ -125,7 +125,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Match(one, Seq(
-          Case(TuplePattern(Seq(VarPattern("x1"), VarPattern("x2"), VarPattern("x3"))), Seq(
+          Case(TuplePattern(Seq(VarPattern("x1"), VarPattern("x2"), VarPattern("x3"))), Body(
             Assign(Seq("case"), Constant(IntLiteral(4)))
           ))
         ))
@@ -149,7 +149,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Match(one, Seq(
-          Case(LiteralPattern(StringLiteral("abc")), Seq(
+          Case(LiteralPattern(StringLiteral("abc")), Body(
             Assign(Seq("case"), Constant(IntLiteral(5)))
           ))
         ))
@@ -170,10 +170,10 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Match(one, Seq(
-          Case(LiteralPattern(StringLiteral("abc")), Seq(
+          Case(LiteralPattern(StringLiteral("abc")), Body(
             Assign(Seq("case"), Constant(IntLiteral(1)))
           )),
-          Case(LiteralPattern(StringLiteral("def")), Seq(
+          Case(LiteralPattern(StringLiteral("def")), Body(
             Assign(Seq("case"), Constant(IntLiteral(2)))
           ))
         ))
@@ -200,13 +200,13 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Match(one, Seq(
-          Case(LiteralPattern(StringLiteral("abc")), Seq(
+          Case(LiteralPattern(StringLiteral("abc")), Body(
             Assign(Seq("case"), Constant(IntLiteral(1)))
           )),
-          Case(LiteralPattern(StringLiteral("def")), Seq(
+          Case(LiteralPattern(StringLiteral("def")), Body(
             Assign(Seq("case"), Constant(IntLiteral(2)))
           )),
-          Case(LiteralPattern(StringLiteral("ghi")), Seq(
+          Case(LiteralPattern(StringLiteral("ghi")), Body(
             Assign(Seq("case"), Constant(IntLiteral(3)))
           ))
         ))
@@ -240,10 +240,10 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Match(one, Seq(
-          Case(TuplePattern(Seq(LiteralPattern(StringLiteral("abc")), LiteralPattern(StringLiteral("abc")))), Seq(
+          Case(TuplePattern(Seq(LiteralPattern(StringLiteral("abc")), LiteralPattern(StringLiteral("abc")))), Body(
             Assign(Seq("case"), Constant(IntLiteral(1)))
           )),
-          Case(TuplePattern(Seq(LiteralPattern(StringLiteral("def")), LiteralPattern(StringLiteral("def")))), Seq(
+          Case(TuplePattern(Seq(LiteralPattern(StringLiteral("def")), LiteralPattern(StringLiteral("def")))), Body(
             Assign(Seq("case"), Constant(IntLiteral(2)))
           ))
         ))
@@ -283,13 +283,13 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Match(one, Seq(
-          Case(TuplePattern(Seq(LiteralPattern(StringLiteral("abc")), LiteralPattern(StringLiteral("abc")))), Seq(
+          Case(TuplePattern(Seq(LiteralPattern(StringLiteral("abc")), LiteralPattern(StringLiteral("abc")))), Body(
             Assign(Seq("case"), Constant(IntLiteral(1)))
           )),
-          Case(TuplePattern(Seq(LiteralPattern(StringLiteral("def")), LiteralPattern(StringLiteral("def")))), Seq(
+          Case(TuplePattern(Seq(LiteralPattern(StringLiteral("def")), LiteralPattern(StringLiteral("def")))), Body(
             Assign(Seq("case"), Constant(IntLiteral(2)))
           )),
-          Case(TuplePattern(Seq(LiteralPattern(StringLiteral("ghi")), LiteralPattern(StringLiteral("ghi")))), Seq(
+          Case(TuplePattern(Seq(LiteralPattern(StringLiteral("ghi")), LiteralPattern(StringLiteral("ghi")))), Body(
             Assign(Seq("case"), Constant(IntLiteral(3)))
           ))
         ))
@@ -370,10 +370,10 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Match(one, Seq(
-          Case(NodePattern(TNode("A"), Seq(PatternBinding("a", LiteralPattern(StringLiteral("abc"))).typed(TString))), Seq(
+          Case(NodePattern(TNode("A"), Seq(PatternBinding("a", LiteralPattern(StringLiteral("abc"))).typed(TString))), Body(
             Assign(Seq("case"), Constant(IntLiteral(1)))
           )),
-          Case(NodePattern(TNode("B"), Seq(PatternBinding("b", LiteralPattern(StringLiteral("def"))).typed(TString))), Seq(
+          Case(NodePattern(TNode("B"), Seq(PatternBinding("b", LiteralPattern(StringLiteral("def"))).typed(TString))), Body(
             Assign(Seq("case"), Constant(IntLiteral(2)))
           ))
         ))
@@ -414,13 +414,13 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Match(one, Seq(
-          Case(NodePattern(TNode("A"), Seq(PatternBinding("a", LiteralPattern(StringLiteral("abc"))).typed(TString))), Seq(
+          Case(NodePattern(TNode("A"), Seq(PatternBinding("a", LiteralPattern(StringLiteral("abc"))).typed(TString))), Body(
             Assign(Seq("case"), Constant(IntLiteral(1)))
           )),
-          Case(NodePattern(TNode("B"), Seq(PatternBinding("b", LiteralPattern(StringLiteral("def"))).typed(TString))), Seq(
+          Case(NodePattern(TNode("B"), Seq(PatternBinding("b", LiteralPattern(StringLiteral("def"))).typed(TString))), Body(
             Assign(Seq("case"), Constant(IntLiteral(2)))
           )),
-          Case(NodePattern(TNode("C"), Seq(PatternBinding("c", LiteralPattern(StringLiteral("ghi"))).typed(TString))), Seq(
+          Case(NodePattern(TNode("C"), Seq(PatternBinding("c", LiteralPattern(StringLiteral("ghi"))).typed(TString))), Body(
             Assign(Seq("case"), Constant(IntLiteral(3)))
           ))
         ))
@@ -506,25 +506,25 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Match(one, Seq(
-          Case(VarPattern("n"), Seq(
+          Case(VarPattern("n"), Body(
             Assign(Seq("case"), Constant(IntLiteral(1)))
           )),
-          Case(NodePattern(TNode("Decl"), Seq(PatternBinding("name", VarPattern("n")).typed(TString))), Seq(
+          Case(NodePattern(TNode("Decl"), Seq(PatternBinding("name", VarPattern("n")).typed(TString))), Body(
             Assign(Seq("case"), Constant(IntLiteral(2)))
           )),
-          Case(NamedPattern("node", NodePattern(TNode("Decl"), Seq(PatternBinding("name", VarPattern("n")).typed(TString)))), Seq(
+          Case(NamedPattern("node", NodePattern(TNode("Decl"), Seq(PatternBinding("name", VarPattern("n")).typed(TString)))), Body(
             Assign(Seq("case"), Constant(IntLiteral(3)))
           )),
-          Case(TuplePattern(Seq(VarPattern("x1"), VarPattern("x2"), VarPattern("x3"))), Seq(
+          Case(TuplePattern(Seq(VarPattern("x1"), VarPattern("x2"), VarPattern("x3"))), Body(
             Assign(Seq("case"), Constant(IntLiteral(4)))
           )),
-          Case(LiteralPattern(StringLiteral("abc")), Seq(
+          Case(LiteralPattern(StringLiteral("abc")), Body(
             Assign(Seq("case"), Constant(IntLiteral(5)))
           )),
-          Case(NodePattern(TNode("Decl"), Seq(PatternBinding("name", WildcardPattern).typed(TString))), Seq(
+          Case(NodePattern(TNode("Decl"), Seq(PatternBinding("name", WildcardPattern).typed(TString))), Body(
             Assign(Seq("case"), Constant(IntLiteral(6)))
           )),
-          Case(WildcardPattern, Seq(
+          Case(WildcardPattern, Body(
             Assign(Seq("case"), Constant(IntLiteral(7)))
           ))
         ))
@@ -561,15 +561,15 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
         Match(Var("e"), Seq(
           Case(
             NodePattern(TNode(Exp.intTag), Seq(PatternBinding("value", VarPattern("v")).typed(TInt))),
-            Seq(Yield(Var("v")))),
+            Body(Yield(Var("v")))),
           Case(
             NodePattern(TNode(Exp.addTag), Seq(PatternBinding("lhs", VarPattern("e1")).typed(TNode(Exp.expTag)))),
-            Seq(Yield(Call("integerlits_rec",
+            Body(Yield(Call("integerlits_rec",
               Seq(Var("e1")),
               transitive = false, count = false)))),
           Case(
             NodePattern(TNode(Exp.multTag), Seq(PatternBinding("rhs", VarPattern("e1")).typed(TNode(Exp.expTag)))),
-            Seq(Yield(Call("integerlits_rec",
+            Body(Yield(Call("integerlits_rec",
               Seq(Var("e1")),
               transitive = false, count = false))))
         ))

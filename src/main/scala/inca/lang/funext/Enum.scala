@@ -8,7 +8,7 @@ import scala.collection.mutable.ListBuffer
 
 /** Enumerates the values of the given type */
 case class Enum(ty: TypeAnno) extends Exp {
-  override def usedvars: Map[Name, Option[TypeAnno]] = Map()
+  override def freeVars: Map[Name, Option[TypeAnno]] = Map()
   override def prettyprint(implicit indent: String): String = s"enum(${ty.prettyprint})"
 }
 

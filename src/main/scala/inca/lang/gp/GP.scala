@@ -54,7 +54,7 @@ object GP {
 
   sealed trait Computation
   case class CountAggregation(patName: Name, args: Seq[Term]) extends Computation
-  case class Evaluation(usedvars: Iterable[Name], resultType: TypeAnno, code: String) extends Computation
+  case class Evaluation(freeVars: Iterable[Name], resultType: TypeAnno, code: String) extends Computation
   // TODO
   case class LatticeAggregation() extends Computation
 }

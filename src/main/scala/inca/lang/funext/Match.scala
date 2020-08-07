@@ -7,32 +7,34 @@ import inca.util.{Gensym, Meta}
 import scala.collection.mutable.ListBuffer
 
 case class Match(matchee: Exp, cases: Seq[Case]) extends Statement {
-  override def usedvars: Map[Name, Option[TypeAnno]] = matchee.usedvars ++ collectUsedvars(cases)
+  override def boundVars: Set[Name] = cases.flatMap(_.boundVars).toSet
+  override def allVars: Map[Name, Option[TypeAnno]] = matchee.freeVars ++ cases.flatMap(_.allVars)
 
   override def prettyprint(implicit indent: String): String = {
     val casesS = if (cases.isEmpty) "" else
-      "\n" + cases.map(_.prettyprint(indent+Meta.TAB)).mkString("\n")
+    "\n" + cases.map(_.prettyprint(indent+Meta.TAB)).mkString("\n")
     s"""${indent}${matchee.prettyprint} match {$casesS
        |${indent}}""".stripMargin
   }
-}
-case class Case(pattern: Pattern, body: Seq[Statement]) {
-  def usedvars: Map[Name, Option[TypeAnno]] = pattern.usedvars ++ collectUsedvars(body)
 
-  def prettyprint(implicit indent: String): String = {
-    val bodyS = if (body.isEmpty) "" else
-      "\n" + body.map(_.prettyprint(indent+Meta.TAB)).mkString("\n")
-    s"${indent}case ${pattern.prettyprint} => $bodyS"
-  }
+}
+case class Case(pattern: Pattern, body: Body) {
+  def boundVars: Set[Name] = pattern.boundVars ++ body.boundVars
+  def allVars: Map[Name, Option[TypeAnno]] = pattern.allVars ++ body.allVars
+
+  def prettyprint(implicit indent: String): String =
+    s"${indent}case ${pattern.prettyprint} => ${body.prettyprint}"
 }
 
 sealed trait Pattern {
-  def usedvars: Map[Name, Option[TypeAnno]]
+  def boundVars: Set[Name]
+  def allVars: Map[Name, Option[TypeAnno]]
   def prettyprint(implicit indent: String): String
 }
 
 case class NodePattern(c: TNode, bindings: Seq[PatternBinding]) extends Pattern {
-  override def usedvars: Map[Name, Option[TypeAnno]] = collectUsedvars(bindings.map(_.pattern))
+  def boundVars: Set[Name] = bindings.flatMap(_.pattern.boundVars).toSet
+  override def allVars: Map[Name, Option[TypeAnno]] = bindings.flatMap(_.pattern.allVars).toMap
 
   override def prettyprint(implicit indent: String): String = {
     val bindingsS = if (bindings.isEmpty) "" else
@@ -46,7 +48,8 @@ case class PatternBinding(field: Name, pattern: Pattern) extends Typeable {
 }
 
 case class TuplePattern(pats: Seq[Pattern]) extends Pattern {
-  override def usedvars: Map[Name, Option[TypeAnno]] = collectUsedvars(pats)
+  override def boundVars: Set[Name] = pats.flatMap(_.boundVars).toSet
+  override def allVars: Map[Name, Option[TypeAnno]] = pats.flatMap(_.allVars).toMap
   override def prettyprint(implicit indent: String): String =
     if (pats.isEmpty)
       "()"
@@ -57,21 +60,25 @@ case class TuplePattern(pats: Seq[Pattern]) extends Pattern {
 }
 
 case class VarPattern(name: Name) extends Pattern {
-  override def usedvars: Map[Name, Option[TypeAnno]] = Map(name -> None)
+  override def boundVars: Set[Name] = Set(name)
+  override def allVars: Map[Name, Option[TypeAnno]] = Map(name -> None)
   override def prettyprint(implicit indent: String): String = name
 }
 case class NamedPattern(name: Name, pat: Pattern) extends Pattern {
-  override def usedvars: Map[Name, Option[TypeAnno]] = Map(name -> None) ++ pat.usedvars
+  override def boundVars: Set[Name] = Set(name) ++ pat.boundVars
+  override def allVars: Map[Name, Option[TypeAnno]] = Map(name -> None) ++ pat.allVars
   override def prettyprint(implicit indent: String): String = s"$name@${pat.prettyprint}"
 }
 
 case object WildcardPattern extends Pattern {
-  override def usedvars: Map[Name, Option[TypeAnno]] = Map()
+  override def boundVars: Set[Name] = Set()
+  override def allVars: Map[Name, Option[TypeAnno]] = Map()
   override def prettyprint(implicit indent: String): String = "_"
 }
 
 case class LiteralPattern(v: Literal) extends Pattern {
-  override def usedvars: Map[Name, Option[TypeAnno]] = Map()
+  override def boundVars: Set[Name] = Set()
+  override def allVars: Map[Name, Option[TypeAnno]] = Map()
   override def prettyprint(implicit indent: String): String = v.prettyprint
 }
 
@@ -88,7 +95,7 @@ object Match extends Desugarable {
         val bodies = cases.flatMap { cas =>
           val conds = desugarPat(desugarExp(matchee), cas.pattern)
           val casebodies = notPatsAlternatives.map( notconds =>
-            Body(notconds ++ conds ++ cas.body.flatMap(desugarStm))
+            Body(notconds ++ conds ++ cas.body.stmts.flatMap(desugarStm))
           )
           val notPatAlternatives = desugarNegatedPat(matchee, cas.pattern)
           notPatsAlternatives =

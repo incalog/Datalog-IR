@@ -51,11 +51,10 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
         Values("e", TNode(Exp.intTag)),
         Assign(Seq("i"), PathAccess(Var("e"), NamedLink(TNode(Exp.intTag), "value")).typed(TInt)),
         Assign(Seq("cond"),
-          Eval(Map("i" -> Some(TInt)), TBool,
-                     s"""{ // filters square numbers
-                         |  val i = env.getValue("i").asInstanceOf[Int]
-                         |  Math.sqrt(i).isValidInt
-                         |}""".stripMargin)),
+          Eval(Map("i" -> Some(TInt)), TBool, s"""{ // filters square numbers
+                                   |  val i = env.getValue("i").asInstanceOf[Int]
+                                   |  Math.sqrt(i).isValidInt
+                                   |}""".stripMargin)),
         Assert(Eq(Var("cond"), Constant(BooleanLiteral(true)))),
         Yield(Var("e"))
       ))))
