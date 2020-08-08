@@ -7,6 +7,7 @@ version := "0.1"
 scalaVersion := "2.13.1"
 
 scalacOptions ++= Seq(
+  "-target:11",
   "-Ymacro-annotations"
   , "-J-Xss10m"
 )
@@ -15,8 +16,8 @@ javacOptions ++= Seq("-source", "11")
 
 Test / parallelExecution := false
 
-libraryDependencies += "de.uni-mainz.informatik.pl" %% "truechange" % "0.1"
-libraryDependencies += "de.uni-mainz.informatik.pl" %% "truediff" % "0.1" % "test"
+libraryDependencies += "de.uni-mainz.informatik.pl" %% "truechange" % "0.1.1"
+libraryDependencies += "de.uni-mainz.informatik.pl" %% "truediff" % "0.1.1" % "test"
 
 // https://mvnrepository.com/artifact/org.apache.commons/commons-collections4
 libraryDependencies += "org.apache.commons" % "commons-collections4" % "4.4"
