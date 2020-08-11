@@ -279,10 +279,10 @@ object Fun {
     override def prettyprint(implicit indent: String): String =
       exps.map(_.prettyprint).mkString("(", ", ", ")")
   }
-  /** Eval code must be a Scala expression that can use `env: IValueProvider` and yields `resultType`. */
-  case class Eval(params: Map[Name, Option[TypeAnno]], resultType: TypeAnno, code: String) extends CoreExp {
+  /** Eval code must be a Scala expression that can access `params` by name and must yield a `resultType`. */
+  case class Eval(params: Seq[Name], resultType: TypeAnno, code: String) extends CoreExp {
     this.typ = Some(resultType)
-    override def freeVars: Map[Name, Option[TypeAnno]] = params
+    override def freeVars: Map[Name, Option[TypeAnno]] = params.map(_ -> None).toMap
     override def prettyprint(implicit indent: String): String = s"eval($code)"
   }
 

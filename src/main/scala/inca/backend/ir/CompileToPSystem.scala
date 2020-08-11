@@ -250,20 +250,26 @@ object CompileToPSystem {
       val callQuery = q"${Term.Name(module)}.${Term.Name(name)}.instance.getInternalQueryRepresentation"
       Seq(q"new PatternMatchCounter(body, $argTuple, $callQuery, $result)")
 
-    case Evaluation(freeVars, _, code) =>
+    case Evaluation(args, _, code) =>
       val result = compileTerm(lhs)
       val description = s"eval($code)"
-      val codeTerm = code.parse[Stat].get
-      val paramNames = freeVars.toList.flatMap {
-        case Var(name) => Some(Lit.String(name))
-        case Constant(lit) => None
+      val codeTerm = code.parse[meta.Term].get
+      val paramNames = args.toList.flatMap {
+        case (Var(name),_) => Some(Lit.String(name))
+        case _ => None
+      }
+      val argTerms = args.toList.map {
+        case (v:Var, ty) => q"env.getValue(${Lit.String(v.name)}).asInstanceOf[${genCastType(ty)}]"
+        case (Constant(lit), ty) => genLiteral(lit)
       }
       Seq(
         q"""
         new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
           override def getShortDescription: String = $description
           override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList(..$paramNames)
-          override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {$codeTerm}
+          override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
+            ${codeTerm}(..$argTerms)
+          }
         }, $result)
          """)
 
@@ -281,6 +287,15 @@ object CompileToPSystem {
     case TList(ty) =>
       val tygen = genType(ty)
       q"$tListType($tygen)"
+  }
+
+  private def genCastType(typ: GP.TypeAnno): meta.Type = typ match {
+    case TBool => t"Boolean"
+    case TInt => t"Int"
+    case TLong => t"Long"
+    case TDouble => t"Double"
+    case TString => t"String"
+    case _: TLinked => typeOf[truechange.URI]
   }
 
 }

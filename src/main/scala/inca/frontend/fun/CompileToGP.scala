@@ -161,6 +161,7 @@ object CompileToGP {
       throw BodyMustFail
   }
 
+
   def transExp(cond: Fun.CoreExp)(implicit funs: FunEnv, env: Env, gensym: Gensym): Res = cond match {
     case Fun.Var(name) =>
       env.get(name) match {
@@ -256,7 +257,20 @@ object CompileToGP {
 
     case Fun.Eval(params, ty, code) =>
       val evalVar = gensym.fresh("eval")
-      val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(params.keys.map(GP.Var), transType(ty), code))
+      var argConstraints = Seq[GP.Constraint]()
+      val paramsBindings = params.map(name => name -> env.getOrElse(name, throw new IllegalArgumentException(s"Unbound variable $name")))
+      val paramsTyped = paramsBindings.map { case (name,bind) => s"$name: ${scalaAnnoString(bind.typ)}" }
+      val args = paramsBindings.map { case (name,binding) =>
+        if (binding.shouldInline) {
+          val (Seq(arg), cons) = transExp(binding.exp.get)
+          argConstraints ++= cons
+          (GP.Var(arg), transType(binding.typ))
+        } else {
+          (GP.Var(name), transType(binding.typ))
+        }
+      }
+      val funCode = s"(${paramsTyped.mkString(" ,")}) => {$code}"
+      val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(args, transType(ty), funCode))
       (Seq(evalVar), Seq(evalConstraint))
   }
 
@@ -335,4 +349,15 @@ object CompileToGP {
       List(),
       // body is empty because relation is only applicable if c is actually of type ninst.typ
       List(Fun.Body(Seq())))
+
+  def scalaAnnoString(typ: Fun.TypeAnno): String = typ match {
+    case Fun.TBool => "Boolean"
+    case Fun.TInt => "Int"
+    case Fun.TLong => "Long"
+    case Fun.TDouble => "Double"
+    case Fun.TString => "String"
+    case linked: Fun.TLinked => "truechange.URI"
+  }
+
+
 }

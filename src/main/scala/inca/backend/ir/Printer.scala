@@ -59,7 +59,13 @@ object Printer {
 
   def prettyTerm(value: Term): String = value match {
     case Var(name) => name
-    case Constant(lit) => lit.toString
+    case Constant(lit) => lit match {
+      case GP.IntLiteral(v) => v.toString
+      case GP.LongLiteral(v) => v.toString
+      case GP.DoubleLiteral(v) => v.toString
+      case GP.StringLiteral(v) => v
+      case GP.BooleanLiteral(v) => v.toString
+    }
   }
 
   def prettyComparator(comp: Comparator): String = comp match {
@@ -70,8 +76,8 @@ object Printer {
   def prettyComputation(lhs: Term, computation: Computation): String = computation match {
     case GP.CountAggregation(name, args) =>
       s"${prettyTerm(lhs)} = count $name(${args.map(prettyTerm).mkString(",")})"
-    case GP.Evaluation(_, _, code) =>
-      s"${prettyTerm(lhs)} = eval($code)"
+    case GP.Evaluation(args, _, code) =>
+      s"${prettyTerm(lhs)} = eval(($code)(${args.map(a => prettyTerm(a._1)).mkString(", ")}))"
     case GP.LatticeAggregation() => ???
   }
 }

@@ -46,7 +46,7 @@ trait Collect[R] {
 
   def transComputation(computation: Computation): Seq[R] = computation match {
     case CountAggregation(patName, args) => args.flatMap(transTerm)
-    case Evaluation(freeVars, _, _) => freeVars.flatMap(transTerm).toSeq
+    case Evaluation(args, _, _) => args.flatMap(v => transTerm(v._1)).toSeq
     case LatticeAggregation() => ???
   }
 }

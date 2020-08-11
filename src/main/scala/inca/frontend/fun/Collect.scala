@@ -56,7 +56,7 @@ trait Collect[R] {
     case PathAccess(receiver, link) => transExp(receiver.ensureCore)
     case Call(name, args, transitive, count) => args.flatMap(a => transExp(a.ensureCore))
     case Tuple(exps) => exps.flatMap(e => transExp(e.ensureCore))
-    case Eval(freeVars, resultType, code) => freeVars.keys.flatMap(transReference).toSeq
+    case Eval(freeVars, resultType, code) => freeVars.flatMap(transReference)
   }
 
   def transLit(lit: Literal): Seq[R] = lit match {

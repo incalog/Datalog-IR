@@ -68,7 +68,7 @@ object ForallExists extends Desugarable {
 
           changed(Seq(
             Assign(Seq(successSym), Call(funsym, args, transitive = false, count = true).typed(TInt)),
-            Assert(Eval(Map(successSym -> Some(TInt)), TBool, s"""env.getValue("$successSym").asInstanceOf[Int] >= 1"""))
+            Assert(Eval(Seq(successSym), TBool, s"""$successSym >= 1"""))
           ))
         case ty => throw new IllegalArgumentException(s"Forall loop expression $exp must have iterable type, but was type $ty")
       }

@@ -1,4 +1,4 @@
-package inca.backend.optimize.util
+package inca.backend.ir
 
 import inca.backend.ir.GP._
 
@@ -28,7 +28,7 @@ case class Substitute(subst: Var => Term) {
 
   def substComputation(comp: Computation): Computation = comp match {
     case CountAggregation(patName, args) => CountAggregation(patName, args.map(substTerm))
-    case Evaluation(freeVars, resultType, code) => ???
+    case Evaluation(args, resultType, code) => Evaluation(args.map(a => substTerm(a._1) -> a._2), resultType, code)
     case LatticeAggregation() => ???
   }
 }

@@ -1,7 +1,7 @@
 package inca.backend.optimize
 
 import inca.backend.ir.GP._
-import inca.backend.optimize.util.Substitute
+import inca.backend.ir.Substitute
 
 import scala.collection.immutable.MultiDict
 

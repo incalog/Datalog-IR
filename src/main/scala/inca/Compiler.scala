@@ -55,6 +55,7 @@ object Compiler {
                               optimizations: Seq[Optimizer] = defaultOptimizations): PSystem.Module = {
     val source = compileFunModule(module, pkg, desugarables, optimizations)
     val loadSource = source"..${source.stats}; ${Term.Name(module.name)}"
+    println(loadSource)
     compileAndLoadScala[PSystem.Module](loadSource.syntax)()
   }
 

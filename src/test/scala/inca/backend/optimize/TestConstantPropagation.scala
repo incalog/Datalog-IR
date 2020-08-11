@@ -74,4 +74,27 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
     assert(optimize(module3) == optimized3)
   }
 
+
+  "ConstantPropagation" must "propagate constants to Eval" in {
+    val one = Constant(IntLiteral(1))
+    val two = Constant(IntLiteral(1))
+
+    val module1 = Module("Test", Seq(), Seq(
+      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+        Body(Seq(
+          Compare(EqComparator, Var("b"), one),
+          Computed(Var("c"), Evaluation(Seq(Var("b") -> TInt), TBool, s"(x: Int) => x > 1"))
+        ))
+      ))
+    ))
+    val optimized1 = Module("Test", Seq(), Seq(
+      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+        Body(Seq(
+          Compare(EqComparator, one, one),
+          Computed(Var("c"), Evaluation(Seq(one -> TInt), TBool, s"(x: Int) => x > 1"))
+        ))
+      ))
+    ))
+    assert(optimize(module1) == optimized1)
+  }
 }
