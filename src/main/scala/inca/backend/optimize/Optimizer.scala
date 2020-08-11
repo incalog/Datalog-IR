@@ -1,6 +1,7 @@
 package inca.backend.optimize
 
 import inca.backend.ir.GP._
+import inca.frontend.fun.CompileToGP.BodyMustFail
 
 trait Optimizer {
 
@@ -11,7 +12,11 @@ trait Optimizer {
     Seq(Pattern(pat.vis, pat.name, pat.params, pat.bodies.flatMap(optimizeBody)))
 
   def optimizeBody(body: Body): Seq[Body] =
-    Seq(Body(body.constraints.flatMap(optimizeConstraint)))
+    try {
+      Seq(Body(body.constraints.flatMap(optimizeConstraint)))
+    } catch {
+      case BodyMustFail => Seq()
+    }
 
   def optimizeConstraint(con: Constraint): Seq[Constraint] = con match {
     case Call(name, args, transitive, neg) => Seq(Call(name, args.map(optimizeTerm), transitive, neg))

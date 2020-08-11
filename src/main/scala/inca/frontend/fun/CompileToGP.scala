@@ -5,7 +5,7 @@ import inca.util.Gensym
 
 object CompileToGP {
 
-  private case object BodyMustFail extends Exception
+  case object BodyMustFail extends Exception
 
 
   type FunEnv = Map[String, Fun.PatternFunction]
@@ -256,7 +256,7 @@ object CompileToGP {
 
     case Fun.Eval(params, ty, code) =>
       val evalVar = gensym.fresh("eval")
-      val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(params.keys, transType(ty), code))
+      val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(params.keys.map(GP.Var), transType(ty), code))
       (Seq(evalVar), Seq(evalConstraint))
   }
 

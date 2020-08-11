@@ -43,17 +43,17 @@ object CompileToPSystem {
   /** Maps rule name to the name of the module that defines it. */
   type RuleEnvironment = Map[String, String]
 
-  def transAnalysis(modules: Seq[Module]): Seq[Source] = {
+  def compileModules(modules: Seq[Module]): Seq[Source] = {
     val env: RuleEnvironment = modules.flatMap(m => m.pats.map(p => p.name -> m.name)).toMap
 
     //TODO What is the exact visibiltity?
-    modules.map(transModule(_)(env))
+    modules.map(compileModule(_)(env))
   }
 
 
-  private def transModule(module: Module)(implicit env: RuleEnvironment): Source = {
+  private def compileModule(module: Module)(implicit env: RuleEnvironment): Source = {
     val myenv = env ++ module.pats.map(p => p.name -> module.name) // makes sure this module's names are found first
-    val funs = module.pats.map(transGraphPattern(module.name, _)(myenv)).toList
+    val funs = module.pats.map(compilePattern(module.name, _)(myenv)).toList
 
     val name = Term.Name(module.name)
     source"""
@@ -79,7 +79,7 @@ object CompileToPSystem {
     """
   }
 
-  private def transGraphPattern(moduleName: String, pat: Pattern)(implicit env: RuleEnvironment): Stat = {
+  private def compilePattern(moduleName: String, pat: Pattern)(implicit env: RuleEnvironment): Stat = {
     val qname = CompileToPSystem.genQueryName(moduleName, pat.name)
 
     val paramNames = pat.params.map(_.name)
@@ -120,7 +120,7 @@ object CompileToPSystem {
                         ..${(CollectVars.transBody(body).distinct.diff(paramNames)).map(genTempVar).toList}
                         ..${CollectLits.transBody(body).distinct.map(genLiteralVar(_)(gensym)).toList}
                         ..${pat.params.flatMap(genParamConstraint).toList}
-                        ..${body.constraints.flatMap(genConstraints).toList}
+                        ..${body.constraints.flatMap(compileConstraint).toList}
                         body
                       }"""
                   }.toList
@@ -136,7 +136,7 @@ object CompileToPSystem {
     }"""
   }
 
-  def genPParam(param: Param): Stat = {
+  private def genPParam(param: Param): Stat = {
     val pparam = param.typ match {
       case Some(typ) =>
         val gentyp = genType(typ)
@@ -148,7 +148,7 @@ object CompileToPSystem {
     q"private val ${Pat.Var(Term.Name(s"$PARAMPREFIX${param.name}"))}: PParameter = $pparam"
   }
 
-  def genParamConstraint(param: Param): Option[Stat] = param.typ match {
+  private def genParamConstraint(param: Param): Option[Stat] = param.typ match {
     case Some(typ) =>
       val key = genInputKey(typ)
       Some(q"""new TypeConstraint(
@@ -159,7 +159,7 @@ object CompileToPSystem {
   }
 
 
-  def genInputKey(typ: GP.TypeAnno): meta.Term = {
+  private def genInputKey(typ: GP.TypeAnno): meta.Term = {
     val gentyp = genType(typ)
     typ match {
       case TBool | TInt | TLong | TDouble | TString => q"$oPrimitiveKey($gentyp)"
@@ -167,19 +167,19 @@ object CompileToPSystem {
     }
   }
 
-  def genBodyParam(param: Param): Stat =
+  private def genBodyParam(param: Param): Stat =
     q"""val ${Pat.Var(Term.Name(VARPREFIX + param.name))}: PVariable =
           body.getOrCreateVariableByName(${Lit.String(param.name)})"""
 
-  def genTempVar(name: String): Stat =
+  private def genTempVar(name: String): Stat =
     q"val ${Pat.Var(Term.Name(VARPREFIX + name))}: PVariable = body.getOrCreateVariableByName(${Lit.String(name)})"
 
-  def genLiteralVar(lit: Literal)(implicit gensym: Gensym): Stat = {
+  private def genLiteralVar(lit: Literal)(implicit gensym: Gensym): Stat = {
     val varName = genLiteralVarName(lit)
     q"val ${Pat.Var(Term.Name(LITPREFIX + varName))}: PVariable = body.newConstantVariable(${genLiteral(lit)})"
   }
 
-  def genLiteralVarName(lit: Literal): String = lit match {
+  private def genLiteralVarName(lit: Literal): String = lit match {
     case IntLiteral(v) => "int" + v.hashCode()
     case LongLiteral(v) => "long" + v.hashCode()
     case DoubleLiteral(v) => "double" + v.hashCode()
@@ -187,7 +187,7 @@ object CompileToPSystem {
     case BooleanLiteral(v) => "boolean" + v.hashCode()
   }
 
-  def genLiteral(lit: Literal): Lit = lit match {
+  private def genLiteral(lit: Literal): Lit = lit match {
     case IntLiteral(v) => Lit.Int(v)
     case LongLiteral(v) => Lit.Long(v)
     case DoubleLiteral(v) => Lit.Double(v)
@@ -196,10 +196,10 @@ object CompileToPSystem {
 
   }
 
-  def genConstraints(constraint: Constraint)(implicit env: RuleEnvironment): Seq[Stat] = constraint match {
+  private def compileConstraint(constraint: Constraint)(implicit env: RuleEnvironment): Seq[Stat] = constraint match {
     case Call(name, args, transitive, neg) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
-      val argTuple = q"Tuples.flatTupleOf(..${args.map(transTerm).toList})"
+      val argTuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
       val callQuery = q"${Term.Name(module)}.${Term.Name(name)}.instance.getInternalQueryRepresentation"
       if (neg) Seq(q"new NegativePatternCall(body, $argTuple, $callQuery)")
       else
@@ -208,23 +208,23 @@ object CompileToPSystem {
         else
           Seq(q"new PositivePatternCall(body, $argTuple, $callQuery)")
     case Compare(EqComparator, lhs, rhs) =>
-      Seq(q"""new Equality(body, ${transTerm(lhs)}, ${transTerm(rhs)})""")
+      Seq(q"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})""")
     case Compare(NeqComparator, lhs, rhs) =>
-      Seq(q"""new Inequality(body, ${transTerm(lhs)}, ${transTerm(rhs)})""")
+      Seq(q"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})""")
     case HasType(t, typ) =>
       // TODO if type is not enumerable emit TypeFilterConstraint (only needed when we introduce lattices)
       Seq(q"""new TypeConstraint(
             body,
-            Tuples.flatTupleOf(${transTerm(t)}),
+            Tuples.flatTupleOf(${compileTerm(t)}),
             $oNodeTypeKey(${genType(typ)}))""")
     case Path(src, trg, link, targetType) =>
       val key = genLinkKey(link, targetType)
-      Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${transTerm(src)}, ${transTerm(trg)}), $key)")
+      Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${compileTerm(src)}, ${compileTerm(trg)}), $key)")
 
-    case Computed(resultVar, computation) => transComputation(resultVar, computation)
+    case Computed(lhs, computation) => compileComputation(lhs, computation)
   }
 
-  def genLinkKey(link: Link, targetType: GP.TypeAnno): meta.Term = link match {
+  private def genLinkKey(link: Link, targetType: GP.TypeAnno): meta.Term = link match {
     case GP.ParentLink => oParentKey
     case GP.NextLink => oLinkListNextKey
     case GP.SizeLink => oSizeKey
@@ -237,28 +237,32 @@ object CompileToPSystem {
 
   }
 
-  def transTerm(v: GP.Term): meta.Term = v match {
+  private def compileTerm(v: GP.Term): meta.Term = v match {
     case Var(name) => Term.Name(s"$VARPREFIX$name")
     case Constant(lit) => Term.Name(s"$LITPREFIX${genLiteralVarName(lit)}")
   }
 
-  def transComputation(resultVar: GP.Var, computation: Computation)(implicit env: RuleEnvironment): Seq[Stat] = computation match {
+  private def compileComputation(lhs: GP.Term, computation: Computation)(implicit env: RuleEnvironment): Seq[Stat] = computation match {
     case CountAggregation(name, args) =>
-      val result = transTerm(resultVar)
+      val result = compileTerm(lhs)
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
-      val argTuple = q"Tuples.flatTupleOf(..${args.map(transTerm).toList})"
+      val argTuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
       val callQuery = q"${Term.Name(module)}.${Term.Name(name)}.instance.getInternalQueryRepresentation"
       Seq(q"new PatternMatchCounter(body, $argTuple, $callQuery, $result)")
 
     case Evaluation(freeVars, _, code) =>
-      val result = transTerm(resultVar)
+      val result = compileTerm(lhs)
       val description = s"eval($code)"
       val codeTerm = code.parse[Stat].get
+      val paramNames = freeVars.toList.flatMap {
+        case Var(name) => Some(Lit.String(name))
+        case Constant(lit) => None
+      }
       Seq(
         q"""
         new ExpressionEvaluation(body, new org.eclipse.viatra.query.runtime.matchers.psystem.IExpressionEvaluator {
           override def getShortDescription: String = $description
-          override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList(..${freeVars.toList.map(Lit.String.apply)})
+          override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList(..$paramNames)
           override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {$codeTerm}
         }, $result)
          """)

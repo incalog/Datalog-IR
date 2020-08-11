@@ -26,7 +26,7 @@ trait Collect[R] {
     case Compare(comp, lhs, rhs) => transTerm(lhs) ++ transTerm(rhs)
     case HasType(v, typ) => transTerm(v)
     case Path(src, trg, link, ty) => transTerm(src) ++ transTerm(trg)
-    case Computed(v, comp) => transVar(v) ++ transComputation(comp)
+    case Computed(lhs, comp) => transTerm(lhs) ++ transComputation(comp)
   }
 
   def transTerm(v: Term): Seq[R] = v match {
@@ -46,7 +46,7 @@ trait Collect[R] {
 
   def transComputation(computation: Computation): Seq[R] = computation match {
     case CountAggregation(patName, args) => args.flatMap(transTerm)
-    case Evaluation(freeVars, _, _) => freeVars.flatMap(n => transVar(Var(n))).toSeq
+    case Evaluation(freeVars, _, _) => freeVars.flatMap(transTerm).toSeq
     case LatticeAggregation() => ???
   }
 }

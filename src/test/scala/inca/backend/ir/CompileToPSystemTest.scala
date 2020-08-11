@@ -1,11 +1,11 @@
-package inca.trans.gp
+package inca.backend.ir
 
 import inca.IncaMatchers
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
+import inca.analyzedLangs.ExpLangTestAnalyses._
 import inca.frontend.fun.Fun.{Exp => _, _}
 import inca.runtime.context.QueryScope
-import inca.trans.ExpLangTestAnalyses._
 import org.scalatest.funsuite.AnyFunSuite
 
 class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {

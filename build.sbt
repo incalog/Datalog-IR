@@ -19,7 +19,6 @@ Test / parallelExecution := false
 libraryDependencies += "de.uni-mainz.informatik.pl" %% "truechange" % "0.1.1"
 libraryDependencies += "de.uni-mainz.informatik.pl" %% "truediff" % "0.1.1" % "test"
 
-// https://mvnrepository.com/artifact/org.apache.commons/commons-collections4
 libraryDependencies += "org.apache.commons" % "commons-collections4" % "4.4"
 
 libraryDependencies += "org.scala-lang.modules" %% "scala-collection-contrib" % "0.2.1"

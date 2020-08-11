@@ -1,4 +1,4 @@
-package inca.frontend.funext.desugar
+package inca.frontend.desugar
 
 import inca.frontend.fun.Fun._
 import inca.util.Gensym

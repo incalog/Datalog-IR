@@ -19,7 +19,9 @@ object GP {
   case object Private extends Visibility
   case object Public extends Visibility
 
-  case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern])
+  case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern]) {
+    override def toString: Name = Printer.prettyModule(this)
+  }
   case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body])
   case class Param(name: Name, typ: Option[TypeAnno])
   case class Body(constraints: Seq[Constraint])
@@ -29,7 +31,7 @@ object GP {
   case class Compare(comp: Comparator, lhs: Term, rhs: Term) extends Constraint
   case class HasType(t: Term, typ: TypeAnno) extends Constraint
   case class Path(src: Term, trg: Term, link: Link, targetType: TypeAnno) extends Constraint
-  case class Computed(resultVar: Var, computation: Computation) extends Constraint
+  case class Computed(lhs: Term, computation: Computation) extends Constraint
 
   sealed trait Link
   case object ParentLink extends Link
@@ -54,7 +56,7 @@ object GP {
 
   sealed trait Computation
   case class CountAggregation(patName: Name, args: Seq[Term]) extends Computation
-  case class Evaluation(freeVars: Iterable[Name], resultType: TypeAnno, code: String) extends Computation
+  case class Evaluation(freeVars: Iterable[Term], resultType: TypeAnno, code: String) extends Computation
   // TODO
   case class LatticeAggregation() extends Computation
 }

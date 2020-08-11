@@ -1,10 +1,5 @@
 package inca.util
 
-import inca.backend.ir.{CompileToPSystem, GP, PSystem, Printer}
-import inca.frontend.fun.{CompileToGP, Fun}
-import inca.frontend.funext.desugar.{Desugar, Desugarable}
-
-import scala.collection.mutable
 import scala.meta.Name.Indeterminate
 import scala.meta.{Import, Importee, Importer, Term, Type}
 import scala.reflect.ClassTag
@@ -58,38 +53,4 @@ object Meta {
       qual = Term.Select(qual, Term.Name(ss(i)))
     Type.Select(qual, Type.Name(ss(ss.length-1)))
   }
-
-  def loadModule(module: Fun.Module, desugarables: Desugarable*): PSystem.Module = {
-    val desugared = Desugar(desugarables:_*)(module)
-    println(desugared.prettyprint(""))
-    val gp = CompileToGP.transformModule(desugared)
-    println(Printer.prettyModule(gp))
-    loadModule(gp)
-  }
-
-  def loadModule(module: GP.Module): PSystem.Module = {
-    val Seq(source) = CompileToPSystem.transAnalysis(Seq(module))
-    println(source)
-    compileModule(module.name, source.syntax)()
-  }
-
-  def compileModule(moduleName: String, source: String): () => PSystem.Module = {
-    compileScala(source + "\n" + moduleName)
-  }
-
-  private val compilerCache: mutable.Map[String, () => AnyRef] = mutable.Map()
-  def compileScala[A](source: String): () => A = {
-    compilerCache.get(source).map(v => return v.asInstanceOf[() => A])
-
-    import reflect.runtime.currentMirror
-    import tools.reflect.ToolBox
-
-    val toolbox = currentMirror.mkToolBox()
-    val tree = toolbox.parse(source)
-    val compiled = toolbox.compile(tree)
-    val result = () => compiled().asInstanceOf[PSystem.Module]
-    compilerCache += source -> result
-    result.asInstanceOf[() => A]
-  }
-
 }

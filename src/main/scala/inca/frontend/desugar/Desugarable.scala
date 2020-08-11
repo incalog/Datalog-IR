@@ -1,4 +1,4 @@
-package inca.frontend.funext.desugar
+package inca.frontend.desugar
 
 trait Desugarable {
   val desugarsTo: Seq[Desugarable] = Seq()

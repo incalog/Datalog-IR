@@ -1,7 +1,7 @@
 package inca.frontend.funext
 
+import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.fun.Fun._
-import inca.frontend.funext.desugar.{DesugarTrans, Desugarable}
 import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer

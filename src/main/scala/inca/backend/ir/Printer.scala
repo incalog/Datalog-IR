@@ -53,8 +53,8 @@ object Printer {
       val trans = if (isTransitive) "+" else ""
       val call = s"$name$trans(${args.map(prettyTerm).mkString(",")})"
       s"${neg}find $call"
-    case Computed(resultVar, computation) =>
-      prettyComputation(resultVar, computation)
+    case Computed(lhs, computation) =>
+      prettyComputation(lhs, computation)
   }
 
   def prettyTerm(value: Term): String = value match {
@@ -67,11 +67,11 @@ object Printer {
     case NeqComparator => "!="
   }
 
-  def prettyComputation(resultVar: Var, computation: Computation): String = computation match {
+  def prettyComputation(lhs: Term, computation: Computation): String = computation match {
     case GP.CountAggregation(name, args) =>
-      s"${prettyTerm(resultVar)} = count $name(${args.map(prettyTerm).mkString(",")})"
+      s"${prettyTerm(lhs)} = count $name(${args.map(prettyTerm).mkString(",")})"
     case GP.Evaluation(_, _, code) =>
-      s"${prettyTerm(resultVar)} = eval($code)"
+      s"${prettyTerm(lhs)} = eval($code)"
     case GP.LatticeAggregation() => ???
   }
 }

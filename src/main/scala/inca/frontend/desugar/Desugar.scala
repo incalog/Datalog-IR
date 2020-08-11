@@ -1,4 +1,4 @@
-package inca.frontend.funext.desugar
+package inca.frontend.desugar
 
 import inca.frontend.fun.Fun.Module
 import inca.util.Gensym
@@ -17,7 +17,7 @@ object Desugar {
       allDesugarables
     }
 
-    implicit val gensym: Gensym = new Gensym(Iterable())
+    implicit val gensym: Gensym = new Gensym(Iterable.empty)
     var changed = false
     var module = _module
     do {
