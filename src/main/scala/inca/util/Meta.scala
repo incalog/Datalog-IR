@@ -1,12 +1,12 @@
 package inca.util
 
-import inca.lang.fun.{CompileToGP, Fun}
-import inca.lang.funext.desugar.{Desugar, Desugarable}
-import inca.lang.gp.{CompileToPSystem, GP, Printer}
-import inca.lang.psystem.PSystem
+import inca.backend.ir.{CompileToPSystem, GP, PSystem, Printer}
+import inca.frontend.fun.{CompileToGP, Fun}
+import inca.frontend.funext.desugar.{Desugar, Desugarable}
 
 import scala.collection.mutable
-import scala.meta.{Term, Type}
+import scala.meta.Name.Indeterminate
+import scala.meta.{Import, Importee, Importer, Term, Type}
 import scala.reflect.ClassTag
 
 object Meta {
@@ -19,7 +19,7 @@ object Meta {
   def symbolOf[T:ClassTag](implicit tag: ClassTag[T]): Term =
     mkQualName(tag.runtimeClass.getCanonicalName)
 
-  def objectOf(o: Any): Term = {
+  def symbolOf(o: Any): Term = {
     val name = o.getClass.getCanonicalName
     mkQualName(name.substring(0, name.length - 1))
   }
@@ -30,6 +30,22 @@ object Meta {
     for (i <- 1 until ss.length)
       t = Term.Select(t, Term.Name(ss(i)))
     t
+  }
+
+  def importOf[T:ClassTag](implicit tag: ClassTag[T]): Import =
+    mkImport(tag.runtimeClass.getCanonicalName)
+
+  def importOf(o: Any): Import = {
+    val name = o.getClass.getCanonicalName
+    mkImport(name.substring(0, name.length - 1))
+  }
+
+  def mkImport(s: String): Import = {
+    val ss = s.split('.')
+    var t: Term.Ref = Term.Name(ss(0))
+    for (i <- 1 until ss.length - 1)
+      t = Term.Select(t, Term.Name(ss(i)))
+    Import(List(Importer(t, List(Importee.Name(Indeterminate(ss.last))))))
   }
 
   def mkQualTypename(s: String): Type = {

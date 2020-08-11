@@ -1,7 +1,7 @@
 package inca
 
-import inca.lang.fun.Fun.Module
-import inca.lang.funext.desugar.{Desugar, Desugarable}
+import inca.frontend.fun.Fun.Module
+import inca.frontend.funext.desugar.{Desugar, Desugarable}
 import inca.runtime.context.QueryScope
 import inca.runtime.{EnginePool, Query}
 import inca.util.Meta

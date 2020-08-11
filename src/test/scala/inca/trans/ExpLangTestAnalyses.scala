@@ -1,7 +1,7 @@
 package inca.trans
 
 import inca.analyzedLangs.Exp
-import inca.lang.fun.Fun.{Exp => _, _}
+import inca.frontend.fun.Fun.{Exp => _, _}
 
 object ExpLangTestAnalyses {
   private val addType: TNode = TNode(Exp.addTag)

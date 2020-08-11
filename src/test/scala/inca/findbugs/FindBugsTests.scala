@@ -1,7 +1,7 @@
 package inca.findbugs
 
 import inca.analyzedLangs.tinyJava
-import inca.lang.fun.Fun._
+import inca.frontend.fun.Fun._
 import inca.runtime.EnginePool
 import inca.runtime.context.QueryScope
 import inca.util.Meta

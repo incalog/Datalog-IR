@@ -3,7 +3,7 @@ package inca.trans.gp
 import inca.IncaMatchers
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
-import inca.lang.fun.Fun.{Exp => _, _}
+import inca.frontend.fun.Fun.{Exp => _, _}
 import inca.runtime.context.QueryScope
 import inca.trans.ExpLangTestAnalyses._
 import org.scalatest.funsuite.AnyFunSuite

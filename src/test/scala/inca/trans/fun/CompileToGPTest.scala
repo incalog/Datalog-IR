@@ -2,9 +2,9 @@ package inca.trans.fun
 
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
-import inca.lang.fun.CompileToGP
-import inca.lang.fun.Fun.{Exp => _, _}
-import inca.lang.gp.Printer
+import inca.backend.ir.Printer
+import inca.frontend.fun.CompileToGP
+import inca.frontend.fun.Fun.{Exp => _, _}
 import inca.trans.ExpLangTestAnalyses._
 import org.scalatest.funsuite.AnyFunSuite
 

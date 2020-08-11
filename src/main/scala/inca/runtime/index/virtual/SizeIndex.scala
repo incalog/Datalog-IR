@@ -13,9 +13,6 @@ object SizeIndex {
     override val getArity: Int = 2
     override def isEnumerable: Boolean = true
   }
-
-  def apply(): (VirtualKey, SizeIndex) =
-    Key -> new SizeIndex()
 }
 
 
