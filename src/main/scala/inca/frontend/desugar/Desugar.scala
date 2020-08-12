@@ -5,7 +5,7 @@ import inca.util.Gensym
 
 object Desugar {
 
-  def apply(_desugarables: Desugarable*)(_module: Module): Module = {
+  def apply(_desugarables: Seq[Desugarable])(_module: Module): Module = {
     val desugarables: Seq[Desugarable] = {
       var allDesugarables = _desugarables.distinct
       var newDesugarables = Seq[Desugarable]()

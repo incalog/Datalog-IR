@@ -3,7 +3,7 @@ package inca.runtime.context
 import inca.runtime.index.MetaElements._
 import truechange.{Link => _, _}
 
-import scala.collection.mutable
+import scala.collection.immutable.MultiDict
 
 /**
  * This class captures meta information about a language definition.
@@ -20,44 +20,35 @@ import scala.collection.mutable
 // TODO add what the node types and what primitives are
 // node types are the keys of directSupertypes
 class LanguageMetaInfo(
-                        _directSupertypes: Map[SortType, Set[SortType]],
+                        _directSupertypes: MultiDict[SortType, SortType],
                         val links: Map[Link, Type],
                         val litLinks: Map[Link, LitType]
                       ) {
 
-  def this() = this(Map(), Map(), Map())
+  def this() = this(MultiDict(), Map(), Map())
 
-  val directNodeSupertypes: Map[SortType, Set[SortType]] = _directSupertypes
-  val directNodeSubtypes: Map[SortType, Set[SortType]] = {
-    val res = mutable.Map[SortType, Set[SortType]]()
-    // initialize
-    directNodeSupertypes.foreach { case (ty, supers) =>
-      res(ty) = Set()
-      supers.foreach { sty =>
-        res(sty) = Set()
-      }
+  val directNodeSupertypes: MultiDict[SortType, SortType] = _directSupertypes
+  val directNodeSubtypes: MultiDict[SortType, SortType] = {
+    var res = MultiDict[SortType, SortType]()
+    directNodeSupertypes.foreach { case (ty, sty) =>
+      res += sty -> ty
     }
-    directNodeSupertypes.foreach { case (ty, supers) =>
-      supers.foreach { sty =>
-        res(sty) = res(sty) + ty
-      }
-    }
-    res.toMap
+    res
   }
 
-  val nodeSupertypes: Map[SortType, Set[SortType]] = transClosure(directNodeSupertypes)
-  val nodeSubtypes: Map[SortType, Set[SortType]] = transClosure(directNodeSubtypes)
+  val nodeSupertypes: MultiDict[SortType, SortType] = transClosure(directNodeSupertypes)
+  val nodeSubtypes: MultiDict[SortType, SortType] = transClosure(directNodeSubtypes)
 
 
   def directSupertypes(ty: Type): Iterable[Type] = ty match {
-    case ty: SortType => directNodeSupertypes.getOrElse(ty, Iterable()) ++ Seq(AnyType)
+    case ty: SortType => directNodeSupertypes.get(ty) ++ Seq(AnyType)
     case ListType(contained) => directSupertypes(contained).map(ListType) ++ Seq(AnyType)
     case OptionType(contained) => directSupertypes(contained).map(OptionType) ++ Seq(AnyType)
     case AnyType => Iterable()
     case NothingType => throw new UnsupportedOperationException("The supertypes of NothingType are not enumerable")
   }
   def directSubtypes(ty: Type): Iterable[Type] = ty match {
-    case ty: SortType => directNodeSubtypes.getOrElse(ty, Iterable()) ++ Seq(NothingType)
+    case ty: SortType => directNodeSubtypes.get(ty) ++ Seq(NothingType)
     case ListType(contained) => directSubtypes(contained).map(ListType) ++ Seq(NothingType)
     case OptionType(contained) => directSubtypes(contained).map(OptionType) ++ Seq(NothingType)
     case AnyType => throw new UnsupportedOperationException("The supertypes of AnyType are not enumerable")
@@ -65,14 +56,14 @@ class LanguageMetaInfo(
   }
 
   def supertypes(ty: Type): Iterable[Type] = ty match {
-    case ty: SortType => nodeSupertypes.getOrElse(ty, Iterable()) ++ Seq(AnyType)
+    case ty: SortType => nodeSupertypes.get(ty) ++ Seq(AnyType)
     case ListType(contained) => supertypes(contained).map(ListType) ++ Seq(AnyType)
     case OptionType(contained) => supertypes(contained).map(OptionType) ++ Seq(AnyType)
     case AnyType => Iterable()
     case NothingType => throw new UnsupportedOperationException("The supertypes of NothingType are not enumerable")
   }
   def subtypes(ty: Type): Iterable[Type] = ty match {
-    case ty: SortType => nodeSubtypes.getOrElse(ty, Iterable()) ++ Seq(NothingType)
+    case ty: SortType => nodeSubtypes.get(ty) ++ Seq(NothingType)
     case ListType(contained) => subtypes(contained).map(ListType) ++ Seq(NothingType)
     case OptionType(contained) => subtypes(contained).map(OptionType) ++ Seq(NothingType)
     case AnyType => throw new UnsupportedOperationException("The supertypes of AnyType are not enumerable")
@@ -80,9 +71,9 @@ class LanguageMetaInfo(
   }
 
   @scala.annotation.tailrec
-  private def transClosure(rel: Map[SortType, Set[SortType]]): Map[SortType, Set[SortType]] = {
-    val newRel = rel.map { case (src, trg) =>
-      src -> (trg ++ trg.flatMap { s => rel(s) } )
+  private def transClosure(rel: MultiDict[SortType, SortType]): MultiDict[SortType, SortType] = {
+    val newRel = rel.mapSets { case (src, trg) =>
+      src -> (trg ++ trg.flatMap { s => rel.get(s) } )
     }
     if (newRel == rel) rel
     else transClosure(newRel)

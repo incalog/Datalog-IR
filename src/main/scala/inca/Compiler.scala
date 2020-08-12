@@ -1,47 +1,33 @@
 package inca
 
 import inca.backend.ir.{CompileToPSystem, GP, PSystem}
-import inca.backend.optimize.{ConstantConstraintFolding, ConstantPropagation, EliminateAliases, Optimizer}
-import inca.frontend.desugar.{Desugar, Desugarable}
+import inca.frontend.desugar.Desugar
 import inca.frontend.fun.{CompileToGP, Fun}
-import inca.frontend.funext.{BoolOps, Cast, Enum, ForallExists, Foreach, IfThenElse, Match, Switch}
 import inca.util.Meta
 
 import scala.collection.mutable
 import scala.meta._
 
 object Compiler {
-  val defaultDesugarables = Seq(
-    BoolOps,
-    Cast,
-    Enum,
-    ForallExists,
-    Foreach,
-    IfThenElse,
-    Match,
-    Switch)
-
-  val defaultOptimizations = Seq(
-    ConstantPropagation,
-    EliminateAliases,
-    ConstantConstraintFolding
-  )
-
   def compileFunModule(module: Fun.Module,
                        pkg: Option[String] = None,
-                       desugarables: Seq[Desugarable] = defaultDesugarables,
-                       optimizations: Seq[Optimizer] = defaultOptimizations): meta.Source = {
-    val desugared = Desugar(desugarables:_*)(module)
+                       compilerOptions: CompilerOptions): meta.Source = {
+    val desugared = Desugar(compilerOptions.desugarables)(module)
     val gp = CompileToGP.transformModule(desugared)
-    compileGPModule(gp, pkg, optimizations)
+    compileGPModule(gp, pkg, compilerOptions)
+  }
+
+  def optimize(module: GP.Module, compilerOptions: CompilerOptions): GP.Module = {
+    var optimized = module
+    for (op <- compilerOptions.optimizations)
+      optimized = op.optimizer(compilerOptions.languageMetaInfo).optimizeModule(optimized)
+    optimized
   }
 
   def compileGPModule(module: GP.Module,
                       pkg: Option[String] = None,
-                      optimizations: Seq[Optimizer] = defaultOptimizations): meta.Source = {
-    println(module)
-    val optimized = optimizations.foldLeft(module)((mod, opt) => opt.optimizeModule(mod))
-    println(optimized)
+                      compilerOptions: CompilerOptions): meta.Source = {
+    val optimized = optimize(module, compilerOptions)
     val Seq(source) = CompileToPSystem.compileModules(Seq(optimized))
     pkg match {
       case Some(name) => source"package ${Meta.mkQualName(name)};..${source.stats}"
@@ -51,18 +37,16 @@ object Compiler {
 
   def compileAndLoadFunModule(module: Fun.Module,
                               pkg: Option[String] = None,
-                              desugarables: Seq[Desugarable] = defaultDesugarables,
-                              optimizations: Seq[Optimizer] = defaultOptimizations): PSystem.Module = {
-    val source = compileFunModule(module, pkg, desugarables, optimizations)
+                              compilerOptions: CompilerOptions): PSystem.Module = {
+    val source = compileFunModule(module, pkg, compilerOptions)
     val loadSource = source"..${source.stats}; ${Term.Name(module.name)}"
-    println(loadSource)
     compileAndLoadScala[PSystem.Module](loadSource.syntax)()
   }
 
   def compileAndLoadGPModule(module: GP.Module,
                              pkg: Option[String] = None,
-                             optimizations: Seq[Optimizer] = defaultOptimizations): PSystem.Module = {
-    val source = compileGPModule(module, pkg, optimizations)
+                             compilerOptions: CompilerOptions): PSystem.Module = {
+    val source = compileGPModule(module, pkg, compilerOptions)
     val loadSource = source"..${source.stats}; ${Term.Name(module.name)}"
     compileAndLoadScala[PSystem.Module](loadSource.syntax)()
   }

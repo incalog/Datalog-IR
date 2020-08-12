@@ -47,12 +47,24 @@ object GP {
   case class Var(name: Name) extends Term
   case class Constant(lit: Literal) extends Term
 
-  sealed trait Literal
-  case class IntLiteral(v: Int) extends Literal
-  case class LongLiteral(v: Long) extends Literal
-  case class DoubleLiteral(v: Double) extends Literal
-  case class StringLiteral(v: String) extends Literal
-  case class BooleanLiteral(v: Boolean) extends Literal
+  sealed trait Literal {
+    def typ: TypeAnno
+  }
+  case class IntLiteral(v: Int) extends Literal {
+    override def typ: TypeAnno = TInt
+  }
+  case class LongLiteral(v: Long) extends Literal {
+    override def typ: TypeAnno = TLong
+  }
+  case class DoubleLiteral(v: Double) extends Literal {
+    override def typ: TypeAnno = TDouble
+  }
+  case class StringLiteral(v: String) extends Literal {
+    override def typ: TypeAnno = TString
+  }
+  case class BooleanLiteral(v: Boolean) extends Literal {
+    override def typ: TypeAnno = TBool
+  }
 
   sealed trait Computation
   case class CountAggregation(patName: Name, args: Seq[Term]) extends Computation

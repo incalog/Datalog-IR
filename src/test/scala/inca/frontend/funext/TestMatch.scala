@@ -1,15 +1,18 @@
 package inca.frontend.funext
 
-import inca.IncaMatchers
 import inca.analyzedLangs.Exp
 import inca.frontend.fun.Fun._
 import inca.runtime.context.QueryScope
+import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class TestMatch extends AnyFlatSpec with IncaMatchers {
 
   val one = Constant(IntLiteral(1))
   val two = Constant(IntLiteral(2))
+
+  val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
+  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo, desugarables = Seq(Match))
 
   "desugaring" should "eliminate wildcard pattern" in {
     val sugared = Module("Test", Seq(), Seq(
@@ -28,7 +31,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    assertDesugar(core, sugared, Match)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate var pattern" in {
@@ -49,7 +52,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    assertDesugar(core, sugared, Match)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate node pattern" in {
@@ -72,7 +75,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    assertDesugar(core, sugared, Match)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate node pattern wildcard" in {
@@ -94,7 +97,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    assertDesugar(core, sugared, Match)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate named pattern" in {
@@ -118,7 +121,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    assertDesugar(core, sugared, Match)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate tuple pattern" in {
@@ -142,7 +145,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    assertDesugar(core, sugared, Match)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate literal pattern" in {
@@ -163,7 +166,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    assertDesugar(core, sugared, Match)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate two literal cases" in {
@@ -193,7 +196,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
         ))))
     ))
 
-    assertDesugar(core, sugared, Match)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate three literal cases" in {
@@ -233,7 +236,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))
     ))
 
-    assertDesugar(core, sugared, Match)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate two tuple cases" in {
@@ -276,7 +279,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
         ))))
     ))
 
-    assertDesugar(core, sugared, Match)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate three tuple cases" in {
@@ -363,7 +366,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))
     ))
 
-    assertDesugar(core, sugared, Match)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate two node cases" in {
@@ -407,7 +410,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
         ))))
     ))
 
-    assertDesugar(core, sugared, Match)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate three node cases" in {
@@ -499,7 +502,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))
     ))
 
-    assertDesugar(core, sugared, Match)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate var pattern eliminates remaining patterns" in {
@@ -538,11 +541,9 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    assertDesugar(core, sugared, Match)
+    assertDesugar(core, sugared)
   }
 
-
-  val scope = new QueryScope(Exp.languageMetaInfo)
 
   "desugaring" should "implement match semantics" in {
     val module = Module("Test_Match", Seq(), Seq(
@@ -593,15 +594,15 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatch(module, "generated_helper_undefpath_ParentLink", input, scope, Match) { matcher =>
+    assertMatch(module, "generated_helper_undefpath_ParentLink", input) { matcher =>
       assert(matcher.getAllMatches.size() == 7)
     }
 
-    assertMatch(module, "integerlits_rec", input, scope, Match) { matcher =>
+    assertMatch(module, "integerlits_rec", input) { matcher =>
       assert(matcher.getAllMatches.size() == 7)
     }
 
-    assertMatch(module, "integerlits", input, scope, Match) { matcher =>
+    assertMatch(module, "integerlits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 1)
       matcher.getAllMatchArrays should contain theSameElementsAs Seq(Array(2))
     }

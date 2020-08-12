@@ -1,9 +1,9 @@
 package inca.frontend.funext
 
-import inca.IncaMatchers
 import inca.analyzedLangs.Exp
 import inca.frontend.fun.Fun._
 import inca.runtime.context.QueryScope
+import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class TestSwitch extends AnyFlatSpec with IncaMatchers {
@@ -12,6 +12,9 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
   val two = Constant(IntLiteral(2))
   val three = Constant(IntLiteral(3))
   val four = Constant(IntLiteral(4))
+
+  val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
+  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo, desugarables = Seq(Switch))
 
   "desugaring" should "lift switch bodies" in {
     val sugared = Module("Test", Seq(), Seq(
@@ -34,7 +37,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
       ))
     ))
 
-    assertDesugar(core, sugared, Switch)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "lift nested switch bodies" in {
@@ -62,7 +65,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
       ))
     ))
 
-    assertDesugar(core, sugared, Switch)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "multiply subsequent switch bodies" in {
@@ -88,11 +91,9 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
       ))
     ))
 
-    assertDesugar(core, sugared, Switch)
+    assertDesugar(core, sugared)
   }
 
-
-  val scope = new QueryScope(Exp.languageMetaInfo)
 
   "desugaring" should "implement switch semantics" in {
     val module = Module("Test_Cast", Seq(), Seq(
@@ -152,15 +153,15 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatch(module, "generated_helper_undefpath_ParentLink", input, scope, IfThenElse) { matcher =>
+    assertMatch(module, "generated_helper_undefpath_ParentLink", input) { matcher =>
       assert(matcher.getAllMatches.size() == 7)
     }
 
-    assertMatch(module, "integerlits_rec", input, scope, IfThenElse) { matcher =>
+    assertMatch(module, "integerlits_rec", input) { matcher =>
       assert(matcher.getAllMatches.size() == 7)
     }
 
-    assertMatch(module, "integerlits", input, scope, IfThenElse) { matcher =>
+    assertMatch(module, "integerlits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 1)
       matcher.getAllMatchArrays should contain theSameElementsAs Seq(Array(2))
     }

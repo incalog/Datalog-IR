@@ -1,6 +1,7 @@
 package inca
 
-import inca.frontend.desugar.{Desugar, Desugarable}
+import inca.backend.ir.GP
+import inca.frontend.desugar.Desugar
 import inca.frontend.fun.Fun.Module
 import inca.runtime.context.QueryScope
 import inca.runtime.{EnginePool, Query}
@@ -10,20 +11,27 @@ import org.scalatest.matchers.should.Matchers
 import truediff.Diffable
 
 trait IncaMatchers extends Matchers {
-  def assertDesugar(core: Module, sugared: Module, desugarables: Desugarable*): Unit = {
-    println(sugared + "\n" + "-- should desugar to --" + "\n" + core)
+  val scope: QueryScope
+  val options: CompilerOptions
 
-    assertResult(core)(Desugar(desugarables:_*)(sugared))
+  def assertDesugar(core: Module, sugared: Module, options: CompilerOptions = this.options): Unit = {
+//    println(sugared + "\n" + "-- should desugar to --" + "\n" + core)
+
+    assertResult(core)(Desugar(options.desugarables)(sugared))
   }
 
-  def assertMatch( module: Module,
-                   fun: String,
-                   subjectProg: Diffable,
-                   scope: QueryScope,
-                   desugarables: Desugarable*
-                 )(asserter: Query.Matcher => Assertion): Assertion = {
+  def assertOptimize(optimized: GP.Module, original: GP.Module): Unit = {
+    assertResult(optimized)(Compiler.optimize(original, options))
+  }
 
-    val psystem = Compiler.compileAndLoadFunModule(module, desugarables=desugarables)
+  def assertMatch(module: Module,
+                  fun: String,
+                  subjectProg: Diffable,
+                  scope: QueryScope = this.scope,
+                  options: CompilerOptions = this.options)
+                 (asserter: Query.Matcher => Assertion): Assertion = {
+
+    val psystem = Compiler.compileAndLoadFunModule(module, None, options)
     val querySpec = psystem.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module ${module.name}."))
 
     val (feed, matcher) = EnginePool.loadQuery(querySpec(), scope, DifferentialReteBackendFactory.INSTANCE)

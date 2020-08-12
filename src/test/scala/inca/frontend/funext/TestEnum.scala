@@ -1,15 +1,18 @@
 package inca.frontend.funext
 
-import inca.IncaMatchers
 import inca.analyzedLangs.Exp
 import inca.frontend.fun.Fun._
 import inca.runtime.context.QueryScope
+import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class TestEnum extends AnyFlatSpec with IncaMatchers {
 
   val one = Constant(IntLiteral(1))
   val two = Constant(IntLiteral(2))
+
+  val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
+  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo, desugarables = Seq(Enum))
 
   "desugaring" should "eliminate enum" in {
     val sugared = Module("Test", Seq(), Seq(
@@ -38,7 +41,7 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    assertDesugar(core, sugared, Enum)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate foreach enum" in {
@@ -78,11 +81,9 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
       ))
     ))
 
-    assertDesugar(core, sugared, Enum, Foreach, IfThenElse)
+    assertDesugar(core, sugared, CompilerOptions(scope.langMetaInfo, desugarables = Seq(Enum, Foreach, IfThenElse)))
   }
 
-
-  val scope = new QueryScope(Exp.languageMetaInfo)
 
   "desugaring" should "implement enum semantics" in {
     val module = Module("Test_Cast", Seq(), Seq(
@@ -109,7 +110,7 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatch(module, "integerlits", input, scope, Enum) { matcher =>
+    assertMatch(module, "integerlits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 5)
     }
   }

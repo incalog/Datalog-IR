@@ -1,13 +1,15 @@
 package inca.backend.optimize
 
-import inca.IncaMatchers
 import inca.backend.ir.GP._
+import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
 
-  def optimize(module: Module): Module =
-    ConstantConstraintFolding.optimizeModule(EliminateAliases.optimizeModule(module))
+  val langMeta = new LanguageMetaInfo()
+  val scope = new QueryScope(langMeta)
+  val options = CompilerOptions(langMeta, optimizations = Seq(EliminateAliases, FoldConstantConstraints))
 
   "eliminateAliases" must "find variable aliases" in {
     val module1 = Module("Test", Seq(), Seq(
@@ -82,14 +84,14 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
       ))
     ))
 
-    assert(optimize(module1) == optimized)
-    assert(optimize(module2) == optimized)
-    assert(optimize(module3) == optimized)
-    assert(optimize(module4) == optimized)
-    assert(optimize(module5) == optimized)
-    assert(optimize(module6) == optimized)
-    assert(optimize(module7) == optimized)
-    assert(optimize(module8) == optimized)
+    assertOptimize(optimized, module1)
+    assertOptimize(optimized, module2)
+    assertOptimize(optimized, module3)
+    assertOptimize(optimized, module4)
+    assertOptimize(optimized, module5)
+    assertOptimize(optimized, module6)
+    assertOptimize(optimized, module7)
+    assertOptimize(optimized, module8)
   }
 
 
@@ -113,7 +115,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
         ))
       ))
     ))
-    assert(optimize(module1) == optimized1)
+    assertOptimize(optimized1, module1)
 
     val module2 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", None)), Seq(
@@ -133,7 +135,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
         ))
       ))
     ))
-    assert(optimize(module2) == optimized2)
+    assertOptimize(optimized2, module2)
 
     val module3 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", None)), Seq(
@@ -155,7 +157,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
         ))
       ))
     ))
-    assert(optimize(module3) == optimized3)
+    assertOptimize(optimized3, module3)
   }
 
 }

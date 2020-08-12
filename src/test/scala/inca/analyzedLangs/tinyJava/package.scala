@@ -3,6 +3,8 @@ package inca.analyzedLangs
 import inca.runtime.context.LanguageMetaInfo
 import truechange.{JavaLitType, ListType, SortType}
 
+import scala.collection.immutable.MultiDict
+
 package object tinyJava {
   val classDeclTag = classOf[ClassDeclaration].getCanonicalName
   val classDeclType = SortType(classDeclTag)
@@ -20,13 +22,10 @@ package object tinyJava {
   val publicVisType = SortType(publicVisTag)
 
   val langMetaInfo = new LanguageMetaInfo(
-    Map(
-      classDeclType -> Set(),
-      classMemberType -> Set(),
-      fieldDeclType -> Set(classMemberType),
-      visType -> Set(),
-      privateVisType -> Set(visType),
-      publicVisType -> Set(visType)
+    MultiDict(
+      fieldDeclType -> classMemberType,
+      privateVisType -> visType,
+      publicVisType -> visType
     ),
     Map(
       (classDeclTag->"members") -> ListType(classMemberType),

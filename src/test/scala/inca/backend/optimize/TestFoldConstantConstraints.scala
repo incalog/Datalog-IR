@@ -1,13 +1,15 @@
 package inca.backend.optimize
 
-import inca.IncaMatchers
 import inca.backend.ir.GP._
+import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
-class TestConstantConstraintFolding extends AnyFlatSpec with IncaMatchers {
+class TestFoldConstantConstraints extends AnyFlatSpec with IncaMatchers {
 
-  def optimize(module: Module): Module =
-    ConstantConstraintFolding.optimizeModule(module)
+  val langMeta = new LanguageMetaInfo()
+  val scope = new QueryScope(langMeta)
+  val options = CompilerOptions(langMeta, optimizations = Seq(FoldConstantConstraints))
 
   "ConstantPropagation" must "propagate constants" in {
     val one = Constant(IntLiteral(1))
@@ -28,7 +30,7 @@ class TestConstantConstraintFolding extends AnyFlatSpec with IncaMatchers {
         ))
       ))
     ))
-    assert(optimize(module1) == optimized1)
+    assertOptimize(optimized1, module1)
 
     val module2 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", None)), Seq(
@@ -46,7 +48,7 @@ class TestConstantConstraintFolding extends AnyFlatSpec with IncaMatchers {
         ))
       ))
     ))
-    assert(optimize(module2) == optimized2)
+    assertOptimize(optimized2, module2)
 
     val module3 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", None)), Seq(
@@ -62,7 +64,7 @@ class TestConstantConstraintFolding extends AnyFlatSpec with IncaMatchers {
       Pattern(None, "foo", Seq(Param("p", None)), Seq(
       ))
     ))
-    assert(optimize(module3) == optimized3)
+    assertOptimize(optimized3, module3)
   }
 
 }

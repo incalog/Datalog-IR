@@ -1,9 +1,9 @@
 package inca.frontend.fun
 
-import inca.IncaMatchers
 import inca.analyzedLangs.Exp
 import inca.frontend.fun.Fun._
 import inca.runtime.context.QueryScope
+import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class TestEval extends AnyFlatSpec with IncaMatchers {
@@ -12,6 +12,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
   val two = Constant(IntLiteral(2))
 
   val scope = new QueryScope(Exp.languageMetaInfo)
+  val options = CompilerOptions(scope.langMetaInfo)
 
   "eval" can "yield a constant" in {
     val module = Module("Test_Cast", Seq(), Seq(

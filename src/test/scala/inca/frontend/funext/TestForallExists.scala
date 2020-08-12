@@ -1,15 +1,18 @@
 package inca.frontend.funext
 
-import inca.IncaMatchers
 import inca.analyzedLangs.Exp
 import inca.frontend.fun.Fun._
 import inca.runtime.context.QueryScope
+import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class TestForallExists extends AnyFlatSpec with IncaMatchers {
 
   val one = Constant(IntLiteral(1))
   val two = Constant(IntLiteral(2))
+
+  val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
+  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo, desugarables = Seq(ForallExists))
 
   "desugaring" should "eliminate forall conds" in {
     val sugared = Module("Test", Seq(), Seq(
@@ -39,10 +42,8 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    assertDesugar(core, sugared, ForallExists)
+    assertDesugar(core, sugared)
   }
-
-  val scope = new QueryScope(Exp.languageMetaInfo)
 
 
   "desugaring" should "implement forall list semantics" in {
@@ -72,11 +73,11 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatch(module, "forallCond", input, scope, ForallExists) { matcher =>
+    assertMatch(module, "forallCond", input) { matcher =>
       assert(matcher.getAllMatchArrays.size == 3)
     }
 
-    assertMatch(module, "intLists", input, scope, ForallExists) { matcher =>
+    assertMatch(module, "intLists", input) { matcher =>
       assert(matcher.getAllMatchArrays.size == 1)
     }
   }
@@ -109,11 +110,13 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatch(module, "existsCond", input, scope, ForallExists, Cast) { matcher =>
+    val options = CompilerOptions(scope.langMetaInfo, desugarables = Seq(ForallExists, Cast))
+
+    assertMatch(module, "existsCond", input, options = options) { matcher =>
       assert(matcher.getAllMatchArrays.size == 1)
     }
 
-    assertMatch(module, "listContaining4", input, scope, ForallExists, Cast) { matcher =>
+    assertMatch(module, "listContaining4", input, options = options) { matcher =>
       assert(matcher.getAllMatchArrays.size == 1)
     }
   }

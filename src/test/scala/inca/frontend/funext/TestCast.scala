@@ -1,9 +1,9 @@
 package inca.frontend.funext
 
-import inca.IncaMatchers
 import inca.analyzedLangs.Exp
 import inca.frontend.fun.Fun._
 import inca.runtime.context.QueryScope
+import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class TestCast extends AnyFlatSpec with IncaMatchers {
@@ -11,6 +11,9 @@ class TestCast extends AnyFlatSpec with IncaMatchers {
   val one = Constant(IntLiteral(1))
   val two = Constant(IntLiteral(2))
 
+  val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
+  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo, desugarables = Seq(Cast))
+  
   "desugaring" should "eliminate casts" in {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
@@ -28,7 +31,7 @@ class TestCast extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    assertDesugar(core, sugared, Cast)
+    assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate nested casts" in {
@@ -50,11 +53,9 @@ class TestCast extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    assertDesugar(core, sugared, Cast)
+    assertDesugar(core, sugared)
   }
 
-
-  val scope = new QueryScope(Exp.languageMetaInfo)
 
   "desugaring" should "implement cast semantics" in {
     val module = Module("Test_Cast", Seq(), Seq(
@@ -81,7 +82,7 @@ class TestCast extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatch(module, "integerlits", input, scope, Cast) { matcher =>
+    assertMatch(module, "integerlits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 5)
     }
   }

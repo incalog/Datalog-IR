@@ -1,11 +1,11 @@
 package inca.backend.ir
 
-import inca.IncaMatchers
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
 import inca.frontend.fun.Fun.{Exp => _, _}
 import inca.runtime.context.QueryScope
+import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.funsuite.AnyFunSuite
 
 class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
@@ -13,15 +13,16 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   private val testInput = Add(And(Or(BooleanLit(false), BooleanLit(false)), IntegerLit(5)), LongLit(10L))
   private val testInputNumericAddition = Add(Add(IntegerLit(5), IntegerLit(7)), Add(LongLit(7), IntegerLit(8)))
 
-  val scope = new QueryScope(Exp.languageMetaInfo)
+  val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
+  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo)
 
   test("simple compare constraint") {
     val module = Module("Test", Seq(), Seq(idFun))
 
-    assertMatch(module, "id", testInputNumericAddition, scope) { matcher =>
+    assertMatch(module, "id", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
-    assertMatch(module, "id", testInput, scope) { matcher =>
+    assertMatch(module, "id", testInput) { matcher =>
       assert(matcher.getAllMatches.size == 1)
     }
   }
@@ -29,10 +30,10 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   test("simple path constraint") {
     val module = Module("Test", Seq(), Seq(lhChildFun))
 
-    assertMatch(module, "lhChild", testInputNumericAddition, scope) { matcher =>
+    assertMatch(module, "lhChild", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
-    assertMatch(module, "lhChild", testInput, scope) { matcher =>
+    assertMatch(module, "lhChild", testInput) { matcher =>
       assert(matcher.getAllMatches.size == 1)
     }
   }
@@ -40,10 +41,10 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   test("multiple bodies") {
     val module = Module("Test", Seq(), Seq(childrenFun))
 
-    assertMatch(module, "children", testInputNumericAddition, scope) { matcher =>
+    assertMatch(module, "children", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 6)
     }
-    assertMatch(module, "children", testInput, scope) { matcher =>
+    assertMatch(module, "children", testInput) { matcher =>
       assert(matcher.getAllMatches.size == 2)
     }
   }
@@ -51,10 +52,10 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   test("non negative, non transtive call") {
     val module = Module("Test", Seq(), Seq(callLhChildFun, lhChildFun))
 
-    assertMatch(module, "callLhChild", testInputNumericAddition, scope) { matcher =>
+    assertMatch(module, "callLhChild", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
-    assertMatch(module, "callLhChild", testInput, scope) { matcher =>
+    assertMatch(module, "callLhChild", testInput) { matcher =>
       assert(matcher.getAllMatches.size == 1)
     }
   }
@@ -62,10 +63,10 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   test("constraint concept") {
     val module = Module("Test", Seq(), Seq(instanceAddFun))
 
-    assertMatch(module, "instanceAdd", testInputNumericAddition, scope) { matcher =>
+    assertMatch(module, "instanceAdd", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 1)
     }
-    assertMatch(module, "instanceAdd", testInput, scope) { matcher =>
+    assertMatch(module, "instanceAdd", testInput) { matcher =>
       assert(matcher.getAllMatches.size == 0)
     }
   }
@@ -73,7 +74,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   test("no type annotation for param") {
     val module = Module("Test", Seq(), Seq(noParamTypeFun))
 
-    assertMatch(module, "noParamType", testInputNumericAddition, scope) { matcher =>
+    assertMatch(module, "noParamType", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
   }
@@ -81,10 +82,10 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   test("primitive datatype output") {
     val module = Module("Test", Seq(), Seq(isBooleanFun))
 
-    assertMatch(module, "isBoolean", testInputNumericAddition, scope) { matcher =>
+    assertMatch(module, "isBoolean", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 0)
     }
-    assertMatch(module, "isBoolean", testInput, scope) { matcher =>
+    assertMatch(module, "isBoolean", testInput) { matcher =>
       assert(matcher.getAllMatches.size == 2)
     }
   }
@@ -110,7 +111,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
 
     val module = Module("Test", Seq(), Seq(parentFun))
 
-    assertMatch(module, "parent", mul, scope) { matcher =>
+    assertMatch(module, "parent", mul) { matcher =>
       assert(matcher.getAllMatches.size == 4)
     }
   }

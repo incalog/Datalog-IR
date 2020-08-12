@@ -5,6 +5,8 @@ import truechange.{JavaLitType, ListType, SortType}
 import truediff.Diffable
 import truediff.macros.diffable
 
+import scala.collection.immutable.MultiDict
+
 @diffable
 trait Exp extends Diffable
 object Exp {
@@ -40,17 +42,16 @@ object Exp {
     val notType = SortType(notTag)
     val manyType = SortType(manyTag)
     new LanguageMetaInfo(
-      Map[SortType, Set[SortType]](
-        expType -> Set(),
-        intType -> Set(expType),
-        longType -> Set(expType),
-        boolType -> Set(expType),
-        multType -> Set(expType),
-        addType -> Set(expType),
-        andType -> Set(expType),
-        orType -> Set(expType),
-        notType -> Set(expType),
-        manyType -> Set(expType)
+      MultiDict[SortType, SortType](
+        intType -> expType,
+        longType -> expType,
+        boolType -> expType,
+        multType -> expType,
+        addType -> expType,
+        andType -> expType,
+        orType -> expType,
+        notType -> expType,
+        manyType -> expType
       ),
       Map(
         (addTag->"lhs") -> expType,

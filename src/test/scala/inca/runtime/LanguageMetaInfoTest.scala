@@ -5,6 +5,8 @@ import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
 import truechange.SortType
 
+import scala.collection.immutable.MultiDict
+
 class LanguageMetaInfoTest extends AnyFunSuite {
   val exp = SortType("Exp")
   val add = SortType("Add")
@@ -15,54 +17,53 @@ class LanguageMetaInfoTest extends AnyFunSuite {
 
   test("0 step trans closure") {
     val metaInfo = new LanguageMetaInfo(
-      Map(
-        add -> Set(exp),
-        mult -> Set(exp),
-        exp -> Set())
+      MultiDict(
+        add -> exp,
+        mult -> exp)
       , null, null)
-    metaInfo.nodeSupertypes should contain allOf (add -> Set(exp), mult -> Set(exp), exp -> Set())
-    metaInfo.directNodeSubtypes should contain allOf (add -> Set(), mult -> Set(), exp -> Set(add, mult))
-    metaInfo.nodeSubtypes should contain allOf (add -> Set(), mult -> Set(), exp -> Set(add, mult))
+    metaInfo.nodeSupertypes.toSet should contain theSameElementsAs Set(add -> exp, mult -> exp)
+    metaInfo.directNodeSubtypes.toSet should contain theSameElementsAs Set(exp -> add, exp -> mult)
+    metaInfo.nodeSubtypes.toSet should contain theSameElementsAs Set(exp -> add, exp -> mult)
   }
 
   test("1 step trans closure") {
     val metaInfo = new LanguageMetaInfo(
-      Map(
-        add -> Set(iNumExp),
-        mult -> Set(iNumExp),
-        iNumExp -> Set(exp),
-        exp -> Set())
+      MultiDict(
+        add -> iNumExp,
+        mult -> iNumExp,
+        iNumExp -> exp)
       , null, null)
-    metaInfo.nodeSupertypes should contain allOf (add -> Set(iNumExp, exp), mult -> Set(iNumExp, exp), iNumExp -> Set(exp), exp -> Set())
-    metaInfo.directNodeSubtypes should contain allOf (add -> Set(), mult -> Set(), exp -> Set(iNumExp), iNumExp -> Set(add, mult))
-    metaInfo.nodeSubtypes should contain allOf (add -> Set(), mult -> Set(), exp -> Set(add, mult, iNumExp), iNumExp -> Set(add, mult))
+    metaInfo.nodeSupertypes.toSet should contain theSameElementsAs Set(add -> iNumExp, add -> exp, mult -> iNumExp, mult -> exp, iNumExp -> exp)
+    metaInfo.directNodeSubtypes.toSet should contain theSameElementsAs Set(exp -> iNumExp, iNumExp -> add, iNumExp -> mult)
+    metaInfo.nodeSubtypes.toSet should contain theSameElementsAs Set(exp -> add, exp -> mult, exp -> iNumExp, iNumExp -> add, iNumExp -> mult)
   }
 
   test("2 step trans closure") {
     val metaInfo = new LanguageMetaInfo(
-      Map(
-        add -> Set(iNumExp),
-        mult -> Set(iNumExp),
-        iNumExp -> Set(exp),
-        exp -> Set(node),
-        node -> Set())
+      MultiDict(
+        add -> iNumExp,
+        mult -> iNumExp,
+        iNumExp -> exp,
+        exp -> node)
       , null, null)
-    metaInfo.nodeSupertypes should contain allOf (add -> Set(iNumExp, exp, node), mult -> Set(iNumExp, exp, node), iNumExp -> Set(exp, node), exp -> Set(node), node -> Set())
-    metaInfo.directNodeSubtypes should contain allOf (add -> Set(), mult -> Set(), exp -> Set(iNumExp), iNumExp -> Set(add, mult), node -> Set(exp))
-    metaInfo.nodeSubtypes should contain allOf (add -> Set(), mult -> Set(), exp -> Set(add, mult, iNumExp), iNumExp -> Set(add, mult), node -> Set(exp, iNumExp, add, mult))
+    metaInfo.nodeSupertypes.toSet should contain theSameElementsAs Set(add -> iNumExp, add -> exp, add -> node, mult -> iNumExp, mult -> exp, mult -> node, iNumExp -> exp, iNumExp -> node, exp -> node)
+    metaInfo.directNodeSubtypes.toSet should contain theSameElementsAs Set(exp -> iNumExp, iNumExp -> add, iNumExp -> mult, node -> exp)
+    metaInfo.nodeSubtypes.toSet should contain theSameElementsAs Set(exp -> add, exp -> mult, exp -> iNumExp, iNumExp -> add, iNumExp -> mult, node -> exp, node -> iNumExp, node -> add, node -> mult)
   }
 
   test("inital multi inheritance trans closure") {
     val metaInfo = new LanguageMetaInfo(
-      Map(
-        and -> Set(exp, node),
-        add -> Set(exp, iNumExp, exp),
-        iNumExp -> Set(exp),
-        exp -> Set(node),
-        node -> Set())
+      MultiDict(
+        and -> exp,
+        and -> node,
+        add -> exp,
+        add -> iNumExp,
+        add -> exp,
+        iNumExp -> exp,
+        exp -> node)
       , null, null)
-    metaInfo.nodeSupertypes should contain allOf (and -> Set(exp, node), add -> Set(iNumExp, exp, node), iNumExp -> Set(exp, node), exp -> Set(node), node -> Set())
-    metaInfo.directNodeSubtypes should contain allOf (add -> Set(), exp -> Set(iNumExp, add, and), iNumExp -> Set(add), node -> Set(exp, and))
-    metaInfo.nodeSubtypes should contain allOf (add -> Set(), and -> Set(), exp -> Set(add, and, iNumExp), iNumExp -> Set(add), node -> Set(exp, iNumExp, add, and))
+    metaInfo.nodeSupertypes.toSet should contain theSameElementsAs Set(and -> exp, and -> node, add -> iNumExp, add -> exp, add -> node, iNumExp -> exp, iNumExp -> node, exp -> node)
+    metaInfo.directNodeSubtypes.toSet should contain theSameElementsAs Set(exp -> iNumExp, exp -> add, exp -> and, iNumExp -> add, node -> exp, node -> and)
+    metaInfo.nodeSubtypes.toSet should contain theSameElementsAs Set(exp -> add, exp -> and, exp -> iNumExp, iNumExp -> add, node -> exp, node -> iNumExp, node -> add, node -> and)
   }
 }

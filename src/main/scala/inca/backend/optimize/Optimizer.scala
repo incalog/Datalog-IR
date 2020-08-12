@@ -8,15 +8,19 @@ trait Optimizer {
   def optimizeModule(module: Module): Module =
     Module(module.name, module.imports, module.pats.flatMap(optimizePattern))
 
-  def optimizePattern(pat: Pattern): Seq[Pattern] =
-    Seq(Pattern(pat.vis, pat.name, pat.params, pat.bodies.flatMap(optimizeBody)))
+  def optimizePattern(pat: Pattern): Seq[Pattern] = {
+    val newbodies = pat.bodies.flatMap(body =>
+      try {
+        optimizeBody(body)
+      } catch {
+        case BodyMustFail => Seq()
+      }
+    )
+    Seq(Pattern(pat.vis, pat.name, pat.params, newbodies))
+  }
 
   def optimizeBody(body: Body): Seq[Body] =
-    try {
-      Seq(Body(body.constraints.flatMap(optimizeConstraint)))
-    } catch {
-      case BodyMustFail => Seq()
-    }
+    Seq(Body(body.constraints.flatMap(optimizeConstraint)))
 
   def optimizeConstraint(con: Constraint): Seq[Constraint] = con match {
     case Call(name, args, transitive, neg) => Seq(Call(name, args.map(optimizeTerm), transitive, neg))
