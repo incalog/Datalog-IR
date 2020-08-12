@@ -58,7 +58,7 @@ object EliminateAliases extends Optimization {
               addAlias(v1, v2)
             case _ => // nothing
           }
-        case Path(src: Var, trg: Var, link, _) =>
+        case Path(src: Var, _, link, trg: Var, _) =>
           val trgU = subst(trg)
           if (!unsubstitutable.contains(trgU.name))
             paths += (src, link) -> trgU

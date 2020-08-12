@@ -137,20 +137,17 @@ object CompileToPSystem {
   }
 
   private def genPParam(param: Param): Stat = {
-    val pparam = param.typ match {
-      case Some(typ) =>
-        val gentyp = genType(typ)
-        val key = genInputKey(typ)
-        q"new PParameter(${Lit.String(param.name)}, $gentyp.toString, $key)"
+    val pparam = genInputKeyAndType(param.typ) match {
+      case Some((key,gentyp)) =>
+          q"new PParameter(${Lit.String(param.name)}, $gentyp.toString, $key)"
       case None =>
         q"new PParameter(${Lit.String(param.name)})"
     }
     q"private val ${Pat.Var(Term.Name(s"$PARAMPREFIX${param.name}"))}: PParameter = $pparam"
   }
 
-  private def genParamConstraint(param: Param): Option[Stat] = param.typ match {
-    case Some(typ) =>
-      val key = genInputKey(typ)
+  private def genParamConstraint(param: Param): Option[Stat] = genInputKeyAndType(param.typ) match {
+    case Some((key, _)) =>
       Some(q"""new TypeConstraint(
             body,
             Tuples.flatTupleOf(${Term.Name(s"$VARPREFIX${param.name}")}),
@@ -159,13 +156,16 @@ object CompileToPSystem {
   }
 
 
-  private def genInputKey(typ: GP.TypeAnno): meta.Term = {
-    val gentyp = genType(typ)
-    typ match {
-      case TBool | TInt | TLong | TDouble | TString => q"$oPrimitiveKey($gentyp)"
-      case TAnyLinked | _:TNode | _:TList => q"$oNodeTypeKey($gentyp)"
-    }
+  private def genInputKeyAndType(typ: GP.TypeAnno): Option[(meta.Term, meta.Term)] = typ match {
+    case TAny => None
+    case TBool | TInt | TLong | TDouble | TString =>
+      val gentyp = genType(typ).get
+      Some(q"$oPrimitiveKey($gentyp)", gentyp)
+    case TAnyLinked | _: TNode | _: TList =>
+      val gentyp = genType(typ).get
+      Some(q"$oNodeTypeKey($gentyp)", gentyp)
   }
+
 
   private def genBodyParam(param: Param): Stat =
     q"""val ${Pat.Var(Term.Name(VARPREFIX + param.name))}: PVariable =
@@ -213,12 +213,17 @@ object CompileToPSystem {
       Seq(q"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})""")
     case HasType(t, typ) =>
       // TODO if type is not enumerable emit TypeFilterConstraint (only needed when we introduce lattices)
-      Seq(q"""new TypeConstraint(
+      genType(typ) match {
+        case Some(gentyp) =>
+        Seq(q"""new TypeConstraint(
             body,
             Tuples.flatTupleOf(${compileTerm(t)}),
-            $oNodeTypeKey(${genType(typ)}))""")
-    case Path(src, trg, link, targetType) =>
-      val key = genLinkKey(link, targetType)
+            $oNodeTypeKey($gentyp))""")
+        case None =>
+          Seq()
+      }
+    case Path(src, srcTy, link, trg, trgTy) =>
+      val key = genLinkKey(link, trgTy)
       Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${compileTerm(src)}, ${compileTerm(trg)}), $key)")
 
     case Computed(lhs, computation) => compileComputation(lhs, computation)
@@ -229,6 +234,7 @@ object CompileToPSystem {
     case GP.NextLink => oLinkListNextKey
     case GP.SizeLink => oSizeKey
     case GP.NamedLink(TNode(name), field) => targetType match {
+      case TAny => throw new IllegalArgumentException(s"Cannot resolve links to type $targetType")
       case _: GP.TLinked =>
         q"$oLinkNodeKey(($name, $field))"
       case GP.TBool | GP.TInt | GP.TLong | GP.TDouble | GP.TString =>
@@ -276,20 +282,20 @@ object CompileToPSystem {
     case LatticeAggregation() => ???
   }
 
-  private def genType(typ: GP.TypeAnno): meta.Term = typ match {
-    case TBool => q"$tPrimitiveType(classOf[java.lang.Boolean])"
-    case TInt => q"$tPrimitiveType(classOf[java.lang.Integer])"
-    case TLong => q"$tPrimitiveType(classOf[java.lang.Long])"
-    case TDouble => q"$tPrimitiveType(classOf[java.lang.Double])"
-    case TString => q"$tPrimitiveType(classOf[java.lang.String])"
-    case TAnyLinked => tAnyType
-    case TNode(name) => q"$tNodeType($name)"
-    case TList(ty) =>
-      val tygen = genType(ty)
-      q"$tListType($tygen)"
+  private def genType(typ: GP.TypeAnno): Option[meta.Term] = typ match {
+    case TAny => None
+    case TBool => Some(q"$tPrimitiveType(classOf[java.lang.Boolean])")
+    case TInt => Some(q"$tPrimitiveType(classOf[java.lang.Integer])")
+    case TLong => Some(q"$tPrimitiveType(classOf[java.lang.Long])")
+    case TDouble => Some(q"$tPrimitiveType(classOf[java.lang.Double])")
+    case TString => Some(q"$tPrimitiveType(classOf[java.lang.String])")
+    case TAnyLinked => Some(tAnyType)
+    case TNode(name) => Some(q"$tNodeType($name)")
+    case TList(ty) => genType(ty).map(t => q"$tListType($t)")
   }
 
   private def genCastType(typ: GP.TypeAnno): meta.Type = typ match {
+    case TAny => t"Any"
     case TBool => t"Boolean"
     case TInt => t"Int"
     case TLong => t"Long"

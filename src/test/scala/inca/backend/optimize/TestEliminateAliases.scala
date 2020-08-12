@@ -13,7 +13,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
 
   "eliminateAliases" must "find variable aliases" in {
     val module1 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), Var("b")),
           Compare(EqComparator, Var("b"), Var("c"))
@@ -21,7 +21,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
       ))
     ))
     val module2 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), Var("c")),
           Compare(EqComparator, Var("b"), Var("c"))
@@ -29,7 +29,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
       ))
     ))
     val module3 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("b"), Var("p")),
           Compare(EqComparator, Var("b"), Var("c"))
@@ -37,7 +37,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
       ))
     ))
     val module4 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("c"), Var("p")),
           Compare(EqComparator, Var("b"), Var("c"))
@@ -45,7 +45,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
       ))
     ))
     val module5 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("b"), Var("c")),
           Compare(EqComparator, Var("p"), Var("b"))
@@ -53,7 +53,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
       ))
     ))
     val module6 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("b"), Var("c")),
           Compare(EqComparator, Var("p"), Var("c"))
@@ -61,7 +61,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
       ))
     ))
     val module7 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("b"), Var("c")),
           Compare(EqComparator, Var("b"), Var("p"))
@@ -69,7 +69,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
       ))
     ))
     val module8 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("b"), Var("c")),
           Compare(EqComparator, Var("c"), Var("p"))
@@ -78,7 +78,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
     ))
 
     val optimized = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
         ))
       ))
@@ -100,37 +100,37 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
     val two = Constant(IntLiteral(1))
 
     val module1 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
-          Path(Var("p"), Var("b"), NextLink, TAnyLinked),
-          Path(Var("p"), Var("c"), NextLink, TAnyLinked),
+          Path(Var("p"), TAnyLinked, NextLink, Var("b"), TAnyLinked),
+          Path(Var("p"), TAnyLinked, NextLink, Var("c"), TAnyLinked),
           Compare(EqComparator, Var("b"), Var("c"))
         ))
       ))
     ))
     val optimized1 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
-          Path(Var("p"), Var("b"), NextLink, TAnyLinked)
+          Path(Var("p"), TAnyLinked, NextLink, Var("b"), TAnyLinked)
         ))
       ))
     ))
     assertOptimize(optimized1, module1)
 
     val module2 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
-          Path(Var("p"), Var("b"), NextLink, TAnyLinked),
-          Path(Var("p"), Var("c"), NextLink, TAnyLinked),
+          Path(Var("p"), TAnyLinked, NextLink, Var("b"), TAnyLinked),
+          Path(Var("p"), TAnyLinked, NextLink, Var("c"), TAnyLinked),
           HasType(Var("b"), TAnyLinked),
           HasType(Var("c"), TAnyLinked)
         ))
       ))
     ))
     val optimized2 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
-          Path(Var("p"), Var("b"), NextLink, TAnyLinked),
+          Path(Var("p"), TAnyLinked, NextLink, Var("b"), TAnyLinked),
           HasType(Var("b"), TAnyLinked)
         ))
       ))
@@ -138,11 +138,11 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
     assertOptimize(optimized2, module2)
 
     val module3 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
-          Path(Var("p"), Var("b"), NextLink, TAnyLinked),
-          Path(Var("p"), Var("c"), NextLink, TAnyLinked),
-          Path(Var("p"), Var("d"), NextLink, TAnyLinked),
+          Path(Var("p"), TAnyLinked, NextLink, Var("b"), TAnyLinked),
+          Path(Var("p"), TAnyLinked, NextLink, Var("c"), TAnyLinked),
+          Path(Var("p"), TAnyLinked, NextLink, Var("d"), TAnyLinked),
           HasType(Var("b"), TAnyLinked),
           HasType(Var("c"), TAnyLinked),
           HasType(Var("d"), TAnyLinked)
@@ -150,9 +150,9 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
       ))
     ))
     val optimized3 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
-          Path(Var("p"), Var("b"), NextLink, TAnyLinked),
+          Path(Var("p"), TAnyLinked, NextLink, Var("b"), TAnyLinked),
           HasType(Var("b"), TAnyLinked)
         ))
       ))

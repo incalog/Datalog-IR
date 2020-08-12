@@ -9,6 +9,10 @@ object Fun {
     def prettyprint: String
     def javastring: String
   }
+  case object TAny extends TypeAnno {
+    override def prettyprint: String = "any"
+    override def javastring: String = "any"
+  }
   case object TBool extends TypeAnno {
     override def prettyprint: String = "bool"
     override def javastring: String = "bool"
@@ -110,12 +114,9 @@ object Fun {
     }
   }
 
-  case class Param(name: Name, typ: Option[TypeAnno]) {
-    def freeVars: Map[Name, Option[TypeAnno]] = Map(name -> typ)
-    def prettyprint: String = typ match {
-      case Some(ty) => s"$name: ${ty.prettyprint}"
-      case None => name
-    }
+  case class Param(name: Name, typ: TypeAnno) {
+    def freeVars: Map[Name, Option[TypeAnno]] = Map(name -> Some(typ))
+    def prettyprint: String = s"$name: ${typ.prettyprint}"
   }
   case class AnnoParam(name: Option[Name], typ: TypeAnno) {
     def freeVars: Map[Name, Option[TypeAnno]] = name.map(_ -> Some(typ)).toMap
@@ -264,6 +265,12 @@ object Fun {
     override def freeVars: Map[Name, Option[TypeAnno]] = receiver.freeVars
     override def prettyprint(implicit indent: String): String =
       s"${receiver.prettyprint}.${link.prettyprint}"
+
+    // TODO remove this later when a type checker was implemented
+    link match {
+      case NamedLink(tnode, _) => receiver.orTyped(tnode)
+      case _ => // nothing
+    }
   }
   case class Call(name: Name, args: Seq[Exp], transitive: Boolean, count: Boolean) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = args.flatMap(_.freeVars).toMap

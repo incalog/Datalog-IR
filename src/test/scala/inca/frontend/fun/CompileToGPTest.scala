@@ -26,7 +26,7 @@ class CompileToGPTest extends AnyFunSuite {
     val fun = PatternFunction(
       None,
       "id",
-      List(Param("add", Some(addType))),
+      List(Param("add", addType)),
       List(AnnoParam(None, expType)),
       List(
         Body(
@@ -52,7 +52,7 @@ class CompileToGPTest extends AnyFunSuite {
     val fun = PatternFunction(
       None,
       "id",
-      List(Param("add", Some(addType))),
+      List(Param("add", addType)),
       List(AnnoParam(None, expType)),
       List(
         Body(
@@ -81,7 +81,7 @@ class CompileToGPTest extends AnyFunSuite {
     val fun = PatternFunction(
       None,
       "test",
-      List(Param("add", Some(addType))),
+      List(Param("add", addType)),
       List(AnnoParam(None, expType)),
       List(
         Body(
@@ -100,7 +100,7 @@ class CompileToGPTest extends AnyFunSuite {
     val fun = PatternFunction(
       None,
       "test",
-      List(Param("add", Some(addType))),
+      List(Param("add", addType)),
       List(AnnoParam(Some("out"), expType)),
       List(
         Body(
@@ -120,7 +120,7 @@ class CompileToGPTest extends AnyFunSuite {
     val fun = PatternFunction(
       None,
       "test",
-      List(Param("add", Some(addType))),
+      List(Param("add", addType)),
       List(AnnoParam(None, expType)),
       List(
         Body(
@@ -140,7 +140,7 @@ class CompileToGPTest extends AnyFunSuite {
     val fun = PatternFunction(
       None,
       "test",
-      List(Param("add", Some(addType))),
+      List(Param("add", addType)),
       List(AnnoParam(None, expType)),
       List(
         Body(
@@ -160,7 +160,7 @@ class CompileToGPTest extends AnyFunSuite {
     val fun = PatternFunction(
       None,
       "test",
-      List(Param("add", Some(addType))),
+      List(Param("add", addType)),
       List(),
       List(
         Body(
@@ -178,7 +178,7 @@ class CompileToGPTest extends AnyFunSuite {
     val fun = PatternFunction(
       None,
       "test",
-      List(Param("add", Some(addType))),
+      List(Param("add", addType)),
       List(),
       List(
         Body(

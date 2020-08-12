@@ -10,7 +10,7 @@ object ExpLangTestAnalyses {
   val idFun: PatternFunction = PatternFunction(
     None,
     "id",
-    Seq(Param("add", Some(addType))),
+    Seq(Param("add", addType)),
     Seq(AnnoParam(Some("out"), expType)),
     Seq(
       Body(
@@ -22,7 +22,7 @@ object ExpLangTestAnalyses {
   val childrenFun: PatternFunction = PatternFunction(
     None,
     "children",
-    Seq(Param("add", Some(addType))),
+    Seq(Param("add", addType)),
     Seq(AnnoParam(None, expType)),
     Seq(
       Body(
@@ -35,7 +35,7 @@ object ExpLangTestAnalyses {
   val lhChildFun: PatternFunction = PatternFunction(
     None,
     "lhChild",
-    Seq(Param("add", Some(addType))),
+    Seq(Param("add", addType)),
     Seq(AnnoParam(None, expType)),
     Seq(
       Body(
@@ -45,7 +45,7 @@ object ExpLangTestAnalyses {
   val callLhChildFun = PatternFunction(
     None,
     "callLhChild",
-    Seq(Param("add", Some(addType))),
+    Seq(Param("add", addType)),
     Seq(AnnoParam(None, expType)),
     Seq(
       Body(
@@ -56,7 +56,7 @@ object ExpLangTestAnalyses {
   val instanceAddFun = PatternFunction(
     None,
     "instanceAdd",
-    Seq(Param("add", Some(addType))),
+    Seq(Param("add", addType)),
     Seq(AnnoParam(None, expType)),
     Seq(
       Body(
@@ -68,7 +68,7 @@ object ExpLangTestAnalyses {
   val noParamTypeFun = PatternFunction(
     None,
     "noParamType",
-    Seq(Param("add", None)),
+    Seq(Param("add", TAny)),
     Seq(),
     Seq(
       Body(
@@ -78,7 +78,7 @@ object ExpLangTestAnalyses {
   val isBooleanFun = PatternFunction(
     None,
     "isBoolean",
-    Seq(Param("in", Some(boolType))),
+    Seq(Param("in", boolType)),
     Seq(AnnoParam(None, TBool)),
     Seq(
       Body(
@@ -88,7 +88,7 @@ object ExpLangTestAnalyses {
   val primitiveParamFun = PatternFunction(
     None,
     "idBool",
-    Seq(Param("in", Some(TBool))),
+    Seq(Param("in", TBool)),
     Seq(AnnoParam(None, TBool)),
     Seq(
       Body(

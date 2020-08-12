@@ -22,14 +22,14 @@ class FindBugsTests extends AnyFunSuite {
     val confusedInheritance = PatternFunction(
       None,
       "confusedInheritance",
-      Seq(Param("class", Some(classDeclType))),
+      Seq(Param("class", classDeclType)),
       Seq(),
       Seq(
         Body(
           Seq(
             Assert(Eq(PathAccess(Var("class"), classDeclType("isFinal")).typed(TBool), Constant(BooleanLiteral(true)))),
             Assign(Seq("members"), PathAccess(Var("class"), classDeclType("members")).typed(TList(classMemberType))),
-            Assign(Seq("member"), PathAccess(Var("members"), ChildrenLink).typed(classMemberType)),
+            Assign(Seq("member"), PathAccess(Var("members").typed(TList(classMemberType)), ChildrenLink).typed(classMemberType)),
             Assert(InstanceOf(Var("member"), fieldDeclType)),
             Assert(InstanceOf(PathAccess(Var("member"), fieldDeclType("visibility")).typed(visType), protectedVisType))
           ))))

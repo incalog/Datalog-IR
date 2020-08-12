@@ -83,7 +83,7 @@ object ForallExists extends Desugarable {
         )
       ))
       val vars = newbody.freeVars.toSeq
-      val params = vars.map(v => Param(v._1, v._2))
+      val params = vars.map(v => Param(v._1, v._2.getOrElse(TAny)))
       val outParam = Seq(AnnoParam(None, ty))
       forallExistsFuns += PatternFunction(None, funsym, params, outParam, Seq(newbody))
       vars

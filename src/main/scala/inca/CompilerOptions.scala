@@ -24,6 +24,7 @@ object CompilerOptions {
   val defaultOptimizations = Seq(
     ConstantPropagation,
     EliminateAliases,
+    InferVarTypes,
     FoldConstantConstraints
   )
 }

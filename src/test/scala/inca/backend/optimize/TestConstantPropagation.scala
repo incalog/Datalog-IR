@@ -19,7 +19,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
     val two = Constant(IntLiteral(1))
 
     val module1 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
           Compare(EqComparator, Var("b"), one)
@@ -27,7 +27,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
       ))
     ))
     val optimized1 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
           Compare(EqComparator, one, one)
@@ -37,7 +37,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
     assertOptimize(optimized1, module1)
 
     val module2 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
           Compare(EqComparator, Var("b"), one),
@@ -46,7 +46,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
       ))
     ))
     val optimized2 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
           Compare(EqComparator, one, one),
@@ -57,7 +57,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
     assertOptimize(optimized2, module2)
 
     val module3 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
           Compare(EqComparator, Var("b"), one),
@@ -67,7 +67,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
       ))
     ))
     val optimized3 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
           Compare(EqComparator, one, one),
@@ -85,7 +85,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
     val two = Constant(IntLiteral(1))
 
     val module1 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("b"), one),
           Computed(Var("c"), Evaluation(Seq(Var("b") -> TInt), TBool, s"(x: Int) => x > 1"))
@@ -93,7 +93,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
       ))
     ))
     val optimized1 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", None)), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, one, one),
           Computed(Var("c"), Evaluation(Seq(one -> TInt), TBool, s"(x: Int) => x > 1"))

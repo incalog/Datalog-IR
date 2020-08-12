@@ -27,6 +27,7 @@ object CompileToGP {
   }
 
   def transType(typ: Fun.TypeAnno): GP.TypeAnno = typ match {
+    case Fun.TAny => GP.TAny
     case Fun.TBool => GP.TBool
     case Fun.TInt => GP.TInt
     case Fun.TLong => GP.TLong
@@ -48,16 +49,16 @@ object CompileToGP {
       case Fun.Public => GP.Public
     }
 
-    val params = fun.params.map { param => GP.Param(param.name, param.typ.map(transType)) }
+    val params = fun.params.map { param => GP.Param(param.name, transType(param.typ)) }
     val env = fun.params.map {
-      case Fun.Param(name, ty) => name -> Binding(ty.getOrElse(Fun.TAnyLinked), None, None)
+      case Fun.Param(name, ty) => name -> Binding(ty, None, None)
     }.toMap
 
     val outParams = fun.outParams.map { param =>
       val name =
         if (param.name.isDefined) param.name.get
         else gensym.fresh("out")
-      GP.Param(name, Some(transType(param.typ)))
+      GP.Param(name, transType(param.typ))
     }
     val outVars = outParams.map(_.name)
 
@@ -295,20 +296,21 @@ object CompileToGP {
   def transPathAccess(pathAccess: Fun.PathAccess, trg: GP.Term)(implicit funs: FunEnv, env: Env, gensym: Gensym): Seq[GP.Constraint] = {
     val receiver = pathAccess.receiver
     val (Seq(src), econstraints) = transExp(receiver.ensureCore)
-    val ty = transType(pathAccess.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped $pathAccess")))
+    val srcTy = transType(receiver.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile path access with untyped receiver $receiver")))
+    val trgTy = transType(pathAccess.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped $pathAccess")))
     val path = pathAccess.link match {
       case Fun.ParentLink =>
-        GP.Path(GP.Var(src), trg, GP.ParentLink, ty)
+        GP.Path(GP.Var(src), srcTy, GP.ParentLink, trg, trgTy)
       case Fun.ChildrenLink =>
-        GP.Path(trg, GP.Var(src), GP.ParentLink, ty)
+        GP.Path(trg, trgTy, GP.ParentLink, GP.Var(src), srcTy)
       case Fun.NextLink =>
-        GP.Path(GP.Var(src), trg, GP.NextLink, ty)
+        GP.Path(GP.Var(src), srcTy, GP.NextLink, trg, trgTy)
       case Fun.PreviousLink =>
-        GP.Path(trg, GP.Var(src), GP.NextLink, ty)
+        GP.Path(trg, trgTy, GP.NextLink, GP.Var(src), srcTy)
       case Fun.SizeLink =>
-        GP.Path(GP.Var(src), trg, GP.SizeLink, ty)
+        GP.Path(GP.Var(src), srcTy, GP.SizeLink, trg, trgTy)
       case Fun.NamedLink(node, field) =>
-        GP.Path(GP.Var(src), trg, GP.NamedLink(GP.TNode(node.name), field), ty)
+        GP.Path(GP.Var(src), srcTy, GP.NamedLink(GP.TNode(node.name), field), trg, trgTy)
     }
     econstraints :+ path
   }
@@ -329,7 +331,7 @@ object CompileToGP {
     if (access.receiver.typ.isEmpty)
       throw new IllegalArgumentException(s"Cannot support undef condition for untyped receiver of path access $access")
 
-    val params = access.freeVars.toSeq.map{ case (v,t) => Fun.Param(v, t) }
+    val params = access.freeVars.toSeq.map{ case (v,t) => Fun.Param(v, t.getOrElse(Fun.TAny)) }
 
     Fun.PatternFunction(
       Some(Fun.Private),
@@ -345,18 +347,19 @@ object CompileToGP {
     Fun.PatternFunction(
       Some(Fun.Private),
       nameOfNotInstanceOfHelper(ty),
-      List(Fun.Param("in", Some(ty))),
+      List(Fun.Param("in", ty)),
       List(),
       // body is empty because relation is only applicable if c is actually of type ninst.typ
       List(Fun.Body(Seq())))
 
   def scalaAnnoString(typ: Fun.TypeAnno): String = typ match {
+    case Fun.TAny => "Any"
     case Fun.TBool => "Boolean"
     case Fun.TInt => "Int"
     case Fun.TLong => "Long"
     case Fun.TDouble => "Double"
     case Fun.TString => "String"
-    case linked: Fun.TLinked => "truechange.URI"
+    case _: Fun.TLinked => "truechange.URI"
   }
 
 

@@ -1,13 +1,16 @@
 package inca.backend.optimize
 
 import inca.backend.ir.GP._
-import inca.backend.ir.{GP, TypeOps}
+import inca.backend.ir.TypeOps
 import inca.frontend.fun.CompileToGP.BodyMustFail
 import inca.runtime.context.LanguageMetaInfo
 
 import scala.collection.immutable.MultiDict
 
-object FoldTypeConstraints extends Optimization {
+/**
+ * Should run after `EliminateAliases` and before `FoldContantConstraints`
+ */
+object InferVarTypes extends Optimization {
 
   override def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer = new Optimizer {
 
@@ -18,10 +21,9 @@ object FoldTypeConstraints extends Optimization {
       super.optimizeModule(module)
     }
 
-    override def optimizeBody(body: Body): Seq[Body] = {
+    private var mostSpecificVarTypes: Map[Var, TypeAnno] = _
+    override def optimizeBody(body: Body, pat: Pattern): Seq[Body] = {
       var vars: MultiDict[Var, TypeAnno] = MultiDict()
-
-      return Seq(body)
 
       def types(t: Term): collection.Set[TypeAnno] = t match {
         case v: Var => vars.get(v)
@@ -41,9 +43,11 @@ object FoldTypeConstraints extends Optimization {
         if (params.size != args.size)
           throw new IllegalArgumentException(s"Pattern call of $name has wrong number of arguments $args")
         params.zip(args).foreach { case (param, arg) =>
-          param.typ.map(addType(arg, _))
+          addType(arg, param.typ)
         }
       }
+
+      pat.params.foreach(param => addType(Var(param.name), param.typ))
 
       body.constraints.foreach {
         case Compare(_, t1, t2) =>
@@ -51,16 +55,12 @@ object FoldTypeConstraints extends Optimization {
           types(t2).foreach(ty => addType(t1, ty))
         case HasType(t, typ) =>
           addType(t, typ)
-        case Path(src, trg, link, targetType) =>
-          link match {
-            case GP.ParentLink => addType(src, TAnyLinked)
-            case GP.NextLink => addType(src, TAnyLinked)
-            case GP.SizeLink => addType(src, TInt)
-            case NamedLink(nodeType, _) => addType(src, nodeType)
-          }
-          addType(trg, targetType)
+        case Path(src, srcTy,link, trg, trgTy) =>
+          addType(src, srcTy)
+          addType(trg, trgTy)
         case Call(name, args, transitive, neg) =>
-          addPatArgTypes(name, args)
+          if (!neg)
+            addPatArgTypes(name, args)
         case Computed(lhs, computation) =>
           computation match {
             case CountAggregation(patName, args) =>
@@ -74,15 +74,28 @@ object FoldTypeConstraints extends Optimization {
           }
       }
 
-      var bestVarType: Map[Var, TypeAnno] = Map()
-      vars.sets.foreach { case (v, tys) =>
-        TypeOps.meet(tys, languageMetaInfo) match {
-          case Some(ty) => bestVarType += v -> ty
-          case None => throw BodyMustFail
+      try {
+        mostSpecificVarTypes = Map()
+        vars.sets.foreach { case (v, tys) =>
+          TypeOps.meet(tys, languageMetaInfo) match {
+            case Some(ty) => mostSpecificVarTypes += v -> ty
+            case None => throw BodyMustFail
+          }
         }
+        super.optimizeBody(body, pat)
+      } finally {
+        mostSpecificVarTypes = null
       }
+    }
 
-      Seq(body)
+    override def optimizeTerm(term: Term): Term = term match {
+      case v: Var => mostSpecificVarTypes.get(v) match {
+        case Some(typ) =>
+          v.typ = Some(typ)
+          v
+        case None => v
+      }
+      case c: Constant => c
     }
   }
 }

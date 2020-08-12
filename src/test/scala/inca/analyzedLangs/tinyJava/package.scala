@@ -25,6 +25,7 @@ package object tinyJava {
     MultiDict(
       fieldDeclType -> classMemberType,
       privateVisType -> visType,
+      protectedVisType -> visType,
       publicVisType -> visType
     ),
     Map(

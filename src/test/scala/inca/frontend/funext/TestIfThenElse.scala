@@ -179,7 +179,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
         )
       )))),
 
-      PatternFunction(None, "integerlits_rec", Seq(Param("e", Some(TNode(Exp.expTag)))), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
+      PatternFunction(None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
         IfThenElse(InstanceOf(Var("e"), TNode(Exp.intTag)), Body(
           Yield(PathAccess(Var("e"), NamedLink(TNode(Exp.intTag), "value")).typed(TInt))
         ), Seq(ElseIf(InstanceOf(Var("e"), TNode(Exp.addTag)), Body(

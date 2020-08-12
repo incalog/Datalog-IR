@@ -100,12 +100,12 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
     val parentFun = PatternFunction(
       None,
       "parent",
-      Seq(Param("in", None)),
+      Seq(Param("in", TAny)),
       Seq(AnnoParam(None, expType)),
       Seq(
         Body(
           Seq(
-            Assign(Seq("p"), PathAccess(Var("in"), ParentLink).typed(TAnyLinked)),
+            Assign(Seq("p"), PathAccess(Var("in").typed(TAny), ParentLink).typed(TAnyLinked)),
             Assert(InstanceOf(Var("p"), expType)),
             Yield(Var("p"))))))
 

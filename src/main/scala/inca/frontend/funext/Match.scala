@@ -112,7 +112,7 @@ object Match extends Desugarable {
       case NodePattern(c, bindings) =>
         val result = ListBuffer[Statement]()
         val matchee: Var = exp match {
-          case v: Var => v
+          case v: Var => Var(v.name)
           case _ =>
             val sym = gensym.fresh("matchee")
             result += Assign(Seq(sym), exp)

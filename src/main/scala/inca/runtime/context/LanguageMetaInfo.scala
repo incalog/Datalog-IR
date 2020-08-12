@@ -36,7 +36,9 @@ class LanguageMetaInfo(
     res
   }
 
+  /** maps subtype to supertypes */
   val nodeSupertypes: MultiDict[SortType, SortType] = transClosure(directNodeSupertypes)
+  /** maps supertype to subtypes */
   val nodeSubtypes: MultiDict[SortType, SortType] = transClosure(directNodeSubtypes)
 
 

@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, HasType, Module, NamedLink, NeqComparator, NextLink, Param, ParentLink, Path, Pattern, Private, Public, SizeLink, TAnyLinked, TBool, TDouble, TInt, TList, TLong, TNode, TString, Term, TypeAnno, Var, Visibility}
+import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, HasType, Link, Module, NamedLink, NeqComparator, Param, Path, Pattern, Private, Public, TAny, TAnyLinked, TBool, TDouble, TInt, TList, TLong, TNode, TString, Term, TypeAnno, Var, Visibility}
 
 object Printer {
 
@@ -20,9 +20,10 @@ object Printer {
     }
     else ""
 
-  def prettyParam(param: Param): String = param.name + (if (param.typ.isDefined) ": " + prettyType(param.typ.get) else "")
+  def prettyParam(param: Param): String = s"${param.name}: ${prettyType(param.typ)}"
 
   def prettyType(typ: TypeAnno): String = typ match {
+    case TAny => "TAny"
     case TBool => "TBool"
     case TInt => "TInt"
     case TLong => "TLong"
@@ -38,16 +39,8 @@ object Printer {
   def prettyConstraint(constraint: Constraint): String = constraint match {
     case Compare(comp, lhs, rhs) => prettyTerm(lhs) + " " + prettyComparator(comp) + " " + prettyTerm(rhs)
     case HasType(v, typ) => prettyType(typ) + "(" + prettyTerm(v) + ")"
-    case Path(src, trg, link, ty) => link match {
-      case NamedLink(node, fld) =>
-        prettyType(node) + "." + fld + "(" + prettyTerm(src) + ", " + prettyTerm(trg) + "):" + prettyType(ty)
-      case ParentLink =>
-        "parent(" + prettyTerm(src) + ", " + prettyTerm(trg) + "):" + prettyType(ty)
-      case NextLink =>
-        "next(" + prettyTerm(src) + ", " + prettyTerm(trg) + "):" + prettyType(ty)
-      case SizeLink =>
-        "size(" + prettyTerm(src) + ", " + prettyTerm(trg) + "):" + prettyType(ty)
-    }
+    case Path(src, srcTy, link, trg, trgTy) =>
+      s"${prettyLink(link)}(${prettyTerm(src)}:${prettyType(srcTy)}, ${prettyTerm(trg)}:${prettyType(trgTy)})"
     case Call(name, args, isTransitive, isNeg) =>
       val neg = if (isNeg) "neg " else ""
       val trans = if (isTransitive) "+" else ""
@@ -55,6 +48,13 @@ object Printer {
       s"${neg}find $call"
     case Computed(lhs, computation) =>
       prettyComputation(lhs, computation)
+  }
+
+  def prettyLink(link: Link): String = link match {
+    case GP.ParentLink => "parent"
+    case GP.NextLink => "next"
+    case GP.SizeLink => "size"
+    case NamedLink(node, field) => s"${prettyType(node)}.$field"
   }
 
   def prettyTerm(value: Term): String = value match {

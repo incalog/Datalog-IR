@@ -2,6 +2,7 @@ package inca.backend.ir
 
 object GP {
   sealed trait TypeAnno
+  case object TAny extends TypeAnno
   case object TBool extends TypeAnno
   case object TInt extends TypeAnno
   case object TLong extends TypeAnno
@@ -23,14 +24,14 @@ object GP {
     override def toString: Name = Printer.prettyModule(this)
   }
   case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body])
-  case class Param(name: Name, typ: Option[TypeAnno])
+  case class Param(name: Name, typ: TypeAnno)
   case class Body(constraints: Seq[Constraint])
 
   sealed trait Constraint
   case class Call(name: Name, args: Seq[Term], transitive: Boolean, neg: Boolean) extends Constraint
   case class Compare(comp: Comparator, lhs: Term, rhs: Term) extends Constraint
   case class HasType(t: Term, typ: TypeAnno) extends Constraint
-  case class Path(src: Term, trg: Term, link: Link, targetType: TypeAnno) extends Constraint
+  case class Path(src: Term, srcTy: TypeAnno, link: Link, trg: Term, trgTy: TypeAnno) extends Constraint
   case class Computed(lhs: Term, computation: Computation) extends Constraint
 
   sealed trait Link
@@ -44,7 +45,9 @@ object GP {
   case object NeqComparator extends Comparator
 
   sealed trait Term
-  case class Var(name: Name) extends Term
+  case class Var(name: Name) extends Term {
+    private[backend] var typ: Option[TypeAnno] = None
+  }
   case class Constant(lit: Literal) extends Term
 
   sealed trait Literal {

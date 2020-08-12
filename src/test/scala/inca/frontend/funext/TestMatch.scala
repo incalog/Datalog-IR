@@ -558,7 +558,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
         )
       )))),
 
-      PatternFunction(None, "integerlits_rec", Seq(Param("e", Some(TNode(Exp.expTag)))), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
+      PatternFunction(None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
         Match(Var("e"), Seq(
           Case(
             NodePattern(TNode(Exp.intTag), Seq(PatternBinding("value", VarPattern("v")).typed(TInt))),

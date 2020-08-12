@@ -21,6 +21,7 @@ object Compiler {
     var optimized = module
     for (op <- compilerOptions.optimizations)
       optimized = op.optimizer(compilerOptions.languageMetaInfo).optimizeModule(optimized)
+    println(optimized)
     optimized
   }
 

@@ -17,7 +17,7 @@ case class Substitute(subst: Var => Term) {
     case Call(name, args, transitive, neg) => Call(name, args.map(substTerm), transitive, neg)
     case Compare(comp, lhs, rhs) => Compare(comp, substTerm(lhs), substTerm(rhs))
     case HasType(t, typ) => HasType(substTerm(t), typ)
-    case Path(src, trg, link, targetType) => Path(substTerm(src), substTerm(trg), link, targetType)
+    case Path(src, srcTy, link, trg, trgTy) => Path(substTerm(src), srcTy, link, substTerm(trg), trgTy)
     case Computed(lhs, computation) => Computed(substTerm(lhs), substComputation(computation))
   }
 

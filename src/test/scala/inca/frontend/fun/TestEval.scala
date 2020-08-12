@@ -18,7 +18,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
     val module = Module("Test_Cast", Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
         Values("e", TNode(Exp.expTag)),
-        Assign(Seq("pi"), Eval(Seq(), TInt, "Math.PI")),
+        Assign(Seq("pi"), Eval(Seq(), TDouble, "Math.PI")),
         Assert(Neq(Var("pi"), Constant(DoubleLiteral(3.14)))),
         Yield(Var("e"))
       ))))
