@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, HasType, Link, Module, NamedLink, NeqComparator, NotHasType, Param, Path, Pattern, Private, Public, TAny, TAnyLinked, TBool, TDouble, TInt, TList, TLong, TNode, TString, Term, TypeAnno, Var, Visibility}
+import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, Public, TAny, TAnyLinked, TBool, TDouble, TInt, TList, TLong, TNode, TString, Term, TypeAnno, Var, Visibility}
 
 object Printer {
 
@@ -42,6 +42,11 @@ object Printer {
     case NotHasType(v, typ) => "not " + prettyType(typ) + "(" + prettyTerm(v) + ")"
     case Path(src, srcTy, link, trg, trgTy) =>
       s"${prettyLink(link)}(${prettyTerm(src)}:${prettyType(srcTy)}, ${prettyTerm(trg)}:${prettyType(trgTy)})"
+    case NoPath(t, ty, link, termIsSource) =>
+      if (termIsSource)
+        s"not ${prettyLink(link)}(${prettyTerm(t)}:${prettyType(ty)}, _:_)"
+      else
+        s"not ${prettyLink(link)}(_:_, ${prettyTerm(t)}:${prettyType(ty)})"
     case Call(name, args, isTransitive, isNeg) =>
       val neg = if (isNeg) "neg " else ""
       val trans = if (isTransitive) "+" else ""

@@ -34,6 +34,11 @@ object FoldConstantConstraints extends Optimization {
             throw BodyMustFail
           }
         }
+
+      case NotHasType(t, typ) =>
+        // TODO
+        Seq(con)
+
       case _ => Seq(con)
     }
   }

@@ -1,5 +1,6 @@
 package inca.runtime.index.dynamic
 
+import inca.runtime.Database
 import inca.runtime.index.DynamicKey
 import inca.runtime.index.binary.BidirectionalManyToOneIndex
 import truechange._
@@ -47,5 +48,13 @@ class ParentIndex extends BidirectionalManyToOneIndex[URI,URI](ParentIndex.Key)
       kids.foreach { case (_, kid) =>
         delete(kid, node)
       }
+  }
+}
+
+object ParentIndexFactory extends DynamicIndexFactory {
+  override def makeIndex(database: Database): DynamicIndex = {
+    val ix = new ParentIndex
+    ix.setDatabase(database)
+    ix
   }
 }

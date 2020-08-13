@@ -57,9 +57,11 @@ object InferVarTypes extends Optimization {
           addType(t, typ)
         case NotHasType(t, typ) =>
           // nothing (FoldConstantConstraints will eliminate the constraint if possible)
-        case Path(src, srcTy,link, trg, trgTy) =>
+        case Path(src, srcTy, link, trg, trgTy) =>
           addType(src, srcTy)
           addType(trg, trgTy)
+        case NoPath(t, ty, link, termIsSource) =>
+          addType(t, ty)
         case Call(name, args, transitive, neg) =>
           if (!neg)
             addPatArgTypes(name, args)

@@ -1,5 +1,6 @@
 package inca.runtime.index.virtual
 
+import inca.runtime.Database
 import inca.runtime.index.binary.BinaryIndex
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.{IndexKey, NodeTypeKey, VirtualKey}
@@ -12,6 +13,7 @@ object SizeIndex {
     override val getStringID: String = "#size"
     override val getArity: Int = 2
     override def isEnumerable: Boolean = true
+    override def factory: VirtualIndexFactory = SizeIndexFactory
   }
 }
 
@@ -33,24 +35,33 @@ class SizeIndex extends BinaryIndex[URI, Int]
 
   override def afterInitialization(): Unit = {
     val anylist = ListType(AnyType)
+
     // emit size 0 for loaded/unloaded lists
     database.addUpdateListener(NodeTypeKey(anylist), null, (_: IInputKey, updateTuple: Tuple, isInsertion: Boolean) => {
       val list = updateTuple.get(0).asInstanceOf[URI]
       notify(list, 0, isInsertion)
     })
+
     // emit a size update when adding/removing children from a list
     database.addUpdateListener(ParentIndex.Key, null, (_: IInputKey, updateTuple: Tuple, isInsertion: Boolean) => {
       val container = updateTuple.get(1).asInstanceOf[URI]
       if (database.nodeInstances(anylist).index(container) != 0) {
         val newsize = parentIndex.indexInverted(container).size
-        if (isInsertion) {
-          notify(container, newsize - 1, isInsertion = false)
-          notify(container, newsize, isInsertion = true)
-        } else {
-          notify(container, newsize + 1, isInsertion = false)
-          notify(container, newsize, isInsertion = true)
-        }
+        val oldsize = if (isInsertion) newsize - 1 else newsize + 1
+        notify(container, oldsize, isInsertion = false)
+        notify(container, newsize, isInsertion = true)
       }
     })
+  }
+}
+
+object SizeIndexFactory extends VirtualIndexFactory {
+  override def makeIndex(key: VirtualKey, database: Database): VirtualIndex = key match {
+    case SizeIndex.Key => {
+      val ix = new SizeIndex
+      ix.setDatabase(database)
+      ix
+    }
+    case _ => throw new IllegalArgumentException(s"Cannot create index for $key")
   }
 }

@@ -5,7 +5,7 @@ import inca.backend.ir.GP._
 import inca.runtime.Query
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
-import inca.runtime.index.virtual.SizeIndex
+import inca.runtime.index.virtual.{NodeNotLinkedIndex, SizeIndex}
 import inca.util.Gensym
 import inca.util.Meta._
 import truechange.{AnyType, JavaLitType, ListType, SortType}
@@ -26,6 +26,7 @@ object CompileToPSystem {
 
   val oParentKey = symbolOf(ParentIndex.Key)
   val oSizeKey = symbolOf(SizeIndex.Key)
+  val oNotLinkNodeKey = symbolOf(NodeNotLinkedIndex.Key)
 
   val tAnyType = symbolOf(AnyType)
   val tNodeType = symbolOf[SortType]
@@ -208,10 +209,13 @@ object CompileToPSystem {
           Seq(q"new BinaryTransitiveClosure(body, $argTuple, $callQuery)")
         else
           Seq(q"new PositivePatternCall(body, $argTuple, $callQuery)")
+
     case Compare(EqComparator, lhs, rhs) =>
       Seq(q"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})""")
+
     case Compare(NeqComparator, lhs, rhs) =>
       Seq(q"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})""")
+
     case HasType(t, typ) =>
       // TODO if type is not enumerable emit TypeFilterConstraint (only needed when we introduce lattices)
       if (typ == TAny)
@@ -223,6 +227,7 @@ object CompileToPSystem {
             Tuples.flatTupleOf(${compileTerm(t)}),
             $oNodeTypeKey($gentyp))""")
       }
+
     case NotHasType(t, typ) =>
       if (typ == TAny)
         throw new IllegalArgumentException(s"Cannot compile $constraint")
@@ -233,9 +238,16 @@ object CompileToPSystem {
             Tuples.flatTupleOf(${compileTerm(t)}),
             $oNotNodeTypeKey($gentyp))""")
       }
+
     case Path(src, srcTy, link, trg, trgTy) =>
       val key = genLinkKey(link, trgTy)
       Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${compileTerm(src)}, ${compileTerm(trg)}), $key)")
+
+    case NoPath(t, ty, link, termIsSource) =>
+      val nodeKey = q"$oNodeTypeKey(${genNodeType(ty)})"
+      val linkKey = genLinkKey(link, GP.TAnyLinked)
+      val key = q"$oNotLinkNodeKey($nodeKey, $linkKey, $termIsSource)"
+      Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${compileTerm(t)}), $key)")
 
     case Computed(lhs, computation) => compileComputation(lhs, computation)
   }

@@ -5,7 +5,7 @@ import java.{lang, util}
 import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.{Exp, tinyJava}
 import inca.runtime.index._
-import inca.runtime.index.dynamic.ParentIndex
+import inca.runtime.index.dynamic.{ParentIndex, ParentIndexFactory}
 import inca.runtime.index.virtual.SizeIndex
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, TupleMask, Tuples}
 import org.scalatest.funsuite.AnyFunSuite
@@ -153,7 +153,7 @@ class RuntimeContextTests extends AnyFunSuite {
   }
 
   test("VirtualLink parent") {
-    val additionalIndices = Seq(new ParentIndex)
+    val additionalIndices = Seq(ParentIndexFactory)
     val database = new Database(null, additionalIndices, null)
 
     val editScript = Diffable.load(add)
@@ -171,7 +171,7 @@ class RuntimeContextTests extends AnyFunSuite {
   }
 
   test("List children") {
-    val additionalIndices = Seq(new ParentIndex, new SizeIndex)
+    val additionalIndices = Seq(ParentIndexFactory)
     val database = new Database(null, additionalIndices, null)
 
     val exp = Many(List(num1, num2))
@@ -205,7 +205,7 @@ class RuntimeContextTests extends AnyFunSuite {
   }
 
   test("firstlink and nextlink of list") {
-    val additionalIndices = Seq(new ParentIndex)
+    val additionalIndices = Seq(ParentIndexFactory)
     val database = new Database(null, additionalIndices, null)
 
     import tinyJava._

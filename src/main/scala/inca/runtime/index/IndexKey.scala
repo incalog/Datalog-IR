@@ -1,6 +1,7 @@
 package inca.runtime.index
 
 import inca.runtime.index.MetaElements.Link
+import inca.runtime.index.virtual.VirtualIndexFactory
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
 import truechange.{LitType, Type}
 
@@ -62,4 +63,6 @@ object LinkListNextKey extends IndexKey[String] {
 
 trait DynamicKey extends IndexKey[Any]
 
-trait VirtualKey extends IndexKey[Any]
+trait VirtualKey extends IndexKey[Any] {
+  def factory: VirtualIndexFactory
+}

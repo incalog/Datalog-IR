@@ -9,7 +9,7 @@ import inca.runtime.context.LanguageMetaInfo
 import inca.runtime.index.MetaElements.{Link, PrimitiveValue}
 import inca.runtime.index._
 import inca.runtime.index.binary.{BidirectionalManyToOneIndex, BidirectionalOneToOneIndex}
-import inca.runtime.index.dynamic.DynamicIndex
+import inca.runtime.index.dynamic.{DynamicIndex, DynamicIndexFactory}
 import inca.runtime.index.unary.{UnaryBagIndex, UnarySetIndex}
 import inca.runtime.index.virtual.VirtualIndex
 import org.eclipse.viatra.query.runtime.api.scope.{IBaseIndex, IIndexingErrorListener, IInstanceObserver, ViatraBaseIndexChangeListener}
@@ -23,9 +23,9 @@ import scala.jdk.CollectionConverters._
 
 
 class Database(
-               _languageMetaInfo: LanguageMetaInfo,
-               _additionalIndices: Seq[Index],
-               _metaContext: IQueryMetaContext
+                _languageMetaInfo: LanguageMetaInfo,
+                _dynamicIndices: Seq[DynamicIndexFactory],
+                _metaContext: IQueryMetaContext
              )
   extends AbstractQueryRuntimeContext with IBaseIndex with ChangeFeed {
 
@@ -47,50 +47,47 @@ class Database(
   private[runtime] val linkListFirstInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListFirstKey)
   private[runtime] val linkListNextInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListNextKey)
 
-  private[runtime] val dynamicIndices: Map[DynamicKey, DynamicIndex] = _additionalIndices.flatMap {
-    case ix: DynamicIndex => Some(ix.key.asInstanceOf[DynamicKey] -> ix)
-    case _ => None
-  }.toMap
-  private[runtime] val virtualIndices: Map[VirtualKey, VirtualIndex] = _additionalIndices.flatMap {
-    case ix: VirtualIndex => Some(ix.key.asInstanceOf[VirtualKey] -> ix)
-    case _ => None
+  private[runtime] val dynamicIndices: Map[DynamicKey, DynamicIndex] = _dynamicIndices.map { fact =>
+    val ix = fact.makeIndex(this)
+    ix.key.asInstanceOf[DynamicKey] -> ix
   }.toMap
 
-  _additionalIndices.foreach {
-    case ix: DynamicIndex => ix.setDatabase(this)
-    case ix: VirtualIndex => ix.setDatabase(this)
-    case ix => throw new IllegalArgumentException(s"Cannot register index $ix as additional index, unknown type.")
-  }
+  /** virtual indexes are added on demand */
+  private[runtime] var virtualIndices: Map[VirtualKey, VirtualIndex] = Map()
 
   @inline
-  private def nodeInstancesEnsure(ty: Type) = nodeInstances.getOrElse(ty, {
+  private[runtime] def nodeInstancesEnsure(ty: Type) = nodeInstances.getOrElse(ty, {
     val ix = new UnarySetIndex[URI](NodeTypeKey(ty))
     nodeInstances += ty -> ix
     ix
   })
 
   @inline
-  private def primitiveInstancesEnsure(primitiveType: LitType) = primitiveInstances.getOrElse(primitiveType, {
+  private[runtime] def primitiveInstancesEnsure(primitiveType: LitType) = primitiveInstances.getOrElse(primitiveType, {
     val ix = new UnaryBagIndex[PrimitiveValue](PrimitiveTypeKey(primitiveType))
     primitiveInstances += primitiveType -> ix
     ix
   })
 
   @inline
-  private def linkNodeInstancesEnsure(link: Link) = linkNodeInstances.getOrElse(link, {
+  private[runtime] def linkNodeInstancesEnsure(link: Link) = linkNodeInstances.getOrElse(link, {
     val ix = new BidirectionalOneToOneIndex[URI, URI](LinkNodeKey(link))
     linkNodeInstances += link -> ix
     ix
   })
 
   @inline
-  private def linkPrimitiveInstancesEnsure(link: Link) = linkPrimitiveInstances.getOrElse(link, {
+  private[runtime] def linkPrimitiveInstancesEnsure(link: Link) = linkPrimitiveInstances.getOrElse(link, {
     val ix = new BidirectionalManyToOneIndex[URI, PrimitiveValue](LinkPrimitiveKey(link))
     linkPrimitiveInstances += link -> ix
     ix
   })
 
-
+  private[runtime] def virtualIndexEnsure(key: VirtualKey) = virtualIndices.getOrElse(key, {
+    val ix = key.factory.makeIndex(key, this)
+    virtualIndices += key -> ix
+    ix
+  })
 
 
   /* BaseIndex listeners */
@@ -206,7 +203,7 @@ class Database(
   /* index delegation */
 
   @inline
-  private def getIndex(key: IInputKey): Option[Index] = key match {
+  private[runtime] def getIndex(key: IInputKey): Option[Index] = key match {
     case NodeTypeKey(ty) => nodeInstances.get(ty)
     case PrimitiveTypeKey(primitiveType) => primitiveInstances.get(primitiveType)
     case LinkNodeKey(link) => linkNodeInstances.get(link)
@@ -214,13 +211,13 @@ class Database(
     case LinkListFirstKey => Some(linkListFirstInstances)
     case LinkListNextKey => Some(linkListNextInstances)
     case dkey: DynamicKey => Some(dynamicIndices(dkey))
-    case vkey: VirtualKey => Some(virtualIndices(vkey))
+    case vkey: VirtualKey => Some(virtualIndexEnsure(vkey))
     case _ => throw new IllegalArgumentException(s"Unknown input key $key")
   }
 
 
   @inline
-  private def ensureIndex(key: IInputKey): Index = key match {
+  private[runtime] def ensureIndex(key: IInputKey): Index = key match {
     case NodeTypeKey(ty) => nodeInstancesEnsure(ty)
     case PrimitiveTypeKey(primitiveType) => primitiveInstancesEnsure(primitiveType)
     case LinkNodeKey(link) => linkNodeInstancesEnsure(link)
@@ -228,7 +225,7 @@ class Database(
     case LinkListFirstKey => linkListFirstInstances
     case LinkListNextKey => linkListNextInstances
     case dkey: DynamicKey => dynamicIndices(dkey)
-    case vkey: VirtualKey => virtualIndices(vkey)
+    case vkey: VirtualKey => virtualIndexEnsure(vkey)
     case _ => throw new IllegalArgumentException(s"Unknown input key $key")
   }
 

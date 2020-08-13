@@ -1,7 +1,6 @@
 package inca.runtime.index
 
-import inca.runtime.index.dynamic.ParentIndex
-import inca.runtime.index.virtual.SizeIndex
+import inca.runtime.index.dynamic.ParentIndexFactory
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask}
 
@@ -30,5 +29,5 @@ trait Index {
 }
 
 object Index {
-  def allAdditionalIndices = Seq(()=>new ParentIndex, ()=>new SizeIndex)
+  val allAdditionalIndices = Seq(ParentIndexFactory)
 }

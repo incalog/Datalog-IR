@@ -27,6 +27,7 @@ trait Collect[R] {
     case HasType(v, typ) => transTerm(v)
     case NotHasType(v, typ) => transTerm(v)
     case Path(src, srcTy, link, trg, trgTy) => transTerm(src) ++ transTerm(trg)
+    case NoPath(t, ty, link, termIsSource) => transTerm(t)
     case Computed(lhs, comp) => transTerm(lhs) ++ transComputation(comp)
   }
 

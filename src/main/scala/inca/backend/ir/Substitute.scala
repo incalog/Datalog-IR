@@ -19,6 +19,7 @@ case class Substitute(subst: Var => Term) {
     case HasType(t, typ) => HasType(substTerm(t), typ)
     case NotHasType(t, typ) => NotHasType(substTerm(t), typ)
     case Path(src, srcTy, link, trg, trgTy) => Path(substTerm(src), srcTy, link, substTerm(trg), trgTy)
+    case NoPath(t, ty, link, termIsSource) => NoPath(substTerm(t), ty, link, termIsSource)
     case Computed(lhs, computation) => Computed(substTerm(lhs), substComputation(computation))
   }
 

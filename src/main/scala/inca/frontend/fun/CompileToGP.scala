@@ -12,11 +12,9 @@ object CompileToGP {
 
   def transformModule(module: Fun.Module): GP.Module = {
     val undefs = CollectUndefPaths.transModule(module).toSet
-    // generate helpers
-    val helpers = undefs.map(genUndefPathHelper)
     // construct map Name => Fun
     val funs = module.funs.map { fun => fun.name -> fun}.toMap
-    val patterns = (module.funs ++ helpers).map { fun => transform(fun, funs) }
+    val patterns = module.funs.map { fun => transform(fun, funs) }
     GP.Module(module.name, module.imports, patterns)
   }
 
@@ -210,12 +208,25 @@ object CompileToGP {
       exp match {
         case Fun.Call(name, args, transitive, count) =>
           (Seq(), genDefCallConstraint(name, args, transitive, neg = true))
-        case path@Fun.PathAccess(exp, _) =>
-          val pathHelper = nameOfUndefPathHelper(path)
-          val (_, constraints) = transExp(exp.ensureCore)
-          val args = path.freeVars.toSeq.map(v => GP.Var(v._1))
-          val compositionConstraint = GP.Call(pathHelper, args, transitive = false, neg = true)
-          (Seq(), constraints :+ compositionConstraint)
+        case pathAccess@Fun.PathAccess(receiver, _) =>
+          val (Seq(src), econstraints) = transExp(receiver.ensureCore)
+          val srcTy = transType(receiver.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile path access with untyped receiver $receiver")))
+          val path = pathAccess.link match {
+            case Fun.ParentLink =>
+              GP.NoPath(GP.Var(src), srcTy, GP.ParentLink, termIsSource = true)
+            case Fun.ChildrenLink =>
+              GP.NoPath(GP.Var(src), srcTy, GP.ParentLink, termIsSource = false)
+            case Fun.NextLink =>
+              GP.NoPath(GP.Var(src), srcTy, GP.NextLink, termIsSource = true)
+            case Fun.PreviousLink =>
+              GP.NoPath(GP.Var(src), srcTy, GP.NextLink, termIsSource = false)
+            case Fun.SizeLink =>
+              GP.NoPath(GP.Var(src), srcTy, GP.SizeLink, termIsSource = true)
+            case Fun.NamedLink(node, field) =>
+              GP.NoPath(GP.Var(src), srcTy, GP.NamedLink(GP.TNode(node.name), field), termIsSource = true)
+          }
+          (Seq(), econstraints :+ path)
+
         case _ => throw new IllegalArgumentException("Cannot support in Undef " + exp)
       }
 
@@ -320,23 +331,6 @@ object CompileToGP {
     case Fun.DoubleLiteral(v) => Some(GP.DoubleLiteral(v))
     case Fun.StringLiteral(v) => Some(GP.StringLiteral(v))
     case Fun.BooleanLiteral(v) => Some(GP.BooleanLiteral(v))
-  }
-
-  // TODO fullname
-  def nameOfUndefPathHelper(access: Fun.PathAccess): String = "generated_helper_undefpath_" + access.link
-
-  def genUndefPathHelper(access: Fun.PathAccess): Fun.PatternFunction = {
-    if (access.receiver.typ.isEmpty)
-      throw new IllegalArgumentException(s"Cannot support undef condition for untyped receiver of path access $access")
-
-    val params = access.freeVars.toSeq.map{ case (v,t) => Fun.Param(v, t.getOrElse(Fun.TAny)) }
-
-    Fun.PatternFunction(
-      Some(Fun.Private),
-      nameOfUndefPathHelper(access),
-      params,
-      List(),
-      List(Fun.Body(List(Fun.Assert(Fun.Def(access))))))
   }
 
   def scalaAnnoString(typ: Fun.TypeAnno): String = typ match {

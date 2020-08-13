@@ -33,6 +33,7 @@ object GP {
   case class HasType(t: Term, typ: TypeAnno) extends Constraint
   case class NotHasType(t: Term, typ: TypeAnno) extends Constraint
   case class Path(src: Term, srcTy: TypeAnno, link: Link, trg: Term, trgTy: TypeAnno) extends Constraint
+  case class NoPath(t: Term, ty: TypeAnno, link: Link, termIsSource: Boolean) extends Constraint
   case class Computed(lhs: Term, computation: Computation) extends Constraint
 
   sealed trait Link
