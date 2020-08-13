@@ -36,8 +36,21 @@ object FoldConstantConstraints extends Optimization {
         }
 
       case NotHasType(t, typ) =>
-        // TODO
-        Seq(con)
+        val termTyp = t match {
+          case v:Var => v.typ.getOrElse(TAny)
+          case c:Constant => c.lit.typ
+        }
+        val meet = TypeOps.meet(termTyp, typ, languageMetaInfo)
+        if (meet.contains(termTyp)) {
+          // termTyp <: typ, hence NotHasType must fail
+          throw BodyMustFail
+        } else if (meet.contains(typ)) {
+          // termTyp :> typ, hence NotHasType makes sense
+          Seq(con)
+        } else {
+          // termTyp and typ are unrelated, NotHasType always succeeds
+          Seq()
+        }
 
       case _ => Seq(con)
     }
