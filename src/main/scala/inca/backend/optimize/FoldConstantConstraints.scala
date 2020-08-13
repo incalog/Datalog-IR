@@ -29,9 +29,11 @@ object FoldConstantConstraints extends Optimization {
           } else if (meet.contains(typ)) {
             // downcast, makes sense
             Seq(con)
-          } else {
+          } else if (meet.isEmpty) {
             // cast to unrelated type, cannot succeed
             throw BodyMustFail
+          } else {
+            throw new IllegalArgumentException
           }
         }
 
@@ -47,9 +49,11 @@ object FoldConstantConstraints extends Optimization {
         } else if (meet.contains(typ)) {
           // termTyp :> typ, hence NotHasType makes sense
           Seq(con)
-        } else {
+        } else if (meet.isEmpty) {
           // termTyp and typ are unrelated, NotHasType always succeeds
           Seq()
+        } else {
+          throw new IllegalArgumentException
         }
 
       case _ => Seq(con)
