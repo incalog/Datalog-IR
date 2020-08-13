@@ -31,6 +31,7 @@ object GP {
   case class Call(name: Name, args: Seq[Term], transitive: Boolean, neg: Boolean) extends Constraint
   case class Compare(comp: Comparator, lhs: Term, rhs: Term) extends Constraint
   case class HasType(t: Term, typ: TypeAnno) extends Constraint
+  case class NotHasType(t: Term, typ: TypeAnno) extends Constraint
   case class Path(src: Term, srcTy: TypeAnno, link: Link, trg: Term, trgTy: TypeAnno) extends Constraint
   case class Computed(lhs: Term, computation: Computation) extends Constraint
 

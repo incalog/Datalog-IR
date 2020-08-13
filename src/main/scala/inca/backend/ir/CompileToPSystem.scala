@@ -18,6 +18,7 @@ object CompileToPSystem {
   val LITPREFIX = "lit_"
 
   val oNodeTypeKey = symbolOf(NodeTypeKey)
+  val oNotNodeTypeKey = symbolOf(NotNodeTypeKey)
   val oPrimitiveKey = symbolOf(PrimitiveTypeKey)
   val oLinkNodeKey = symbolOf(LinkNodeKey)
   val oLinkPrimitiveKey = symbolOf(LinkPrimitiveKey)
@@ -159,10 +160,10 @@ object CompileToPSystem {
   private def genInputKeyAndType(typ: GP.TypeAnno): Option[(meta.Term, meta.Term)] = typ match {
     case TAny => None
     case TBool | TInt | TLong | TDouble | TString =>
-      val gentyp = genType(typ).get
+      val gentyp = genLitType(typ)
       Some(q"$oPrimitiveKey($gentyp)", gentyp)
     case TAnyLinked | _: TNode | _: TList =>
-      val gentyp = genType(typ).get
+      val gentyp = genNodeType(typ)
       Some(q"$oNodeTypeKey($gentyp)", gentyp)
   }
 
@@ -213,14 +214,24 @@ object CompileToPSystem {
       Seq(q"""new Inequality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})""")
     case HasType(t, typ) =>
       // TODO if type is not enumerable emit TypeFilterConstraint (only needed when we introduce lattices)
-      genType(typ) match {
-        case Some(gentyp) =>
+      if (typ == TAny)
+        Seq()
+      else {
+        val gentyp = genNodeType(typ)
         Seq(q"""new TypeConstraint(
             body,
             Tuples.flatTupleOf(${compileTerm(t)}),
             $oNodeTypeKey($gentyp))""")
-        case None =>
-          Seq()
+      }
+    case NotHasType(t, typ) =>
+      if (typ == TAny)
+        throw new IllegalArgumentException(s"Cannot compile $constraint")
+      else {
+        val gentyp = genNodeType(typ)
+        Seq(q"""new TypeFilterConstraint(
+            body,
+            Tuples.flatTupleOf(${compileTerm(t)}),
+            $oNotNodeTypeKey($gentyp))""")
       }
     case Path(src, srcTy, link, trg, trgTy) =>
       val key = genLinkKey(link, trgTy)
@@ -282,16 +293,20 @@ object CompileToPSystem {
     case LatticeAggregation() => ???
   }
 
-  private def genType(typ: GP.TypeAnno): Option[meta.Term] = typ match {
-    case TAny => None
-    case TBool => Some(q"$tPrimitiveType(classOf[java.lang.Boolean])")
-    case TInt => Some(q"$tPrimitiveType(classOf[java.lang.Integer])")
-    case TLong => Some(q"$tPrimitiveType(classOf[java.lang.Long])")
-    case TDouble => Some(q"$tPrimitiveType(classOf[java.lang.Double])")
-    case TString => Some(q"$tPrimitiveType(classOf[java.lang.String])")
-    case TAnyLinked => Some(tAnyType)
-    case TNode(name) => Some(q"$tNodeType($name)")
-    case TList(ty) => genType(ty).map(t => q"$tListType($t)")
+  private def genLitType(typ: GP.TypeAnno): meta.Term = typ match {
+    case TBool => q"$tPrimitiveType(classOf[java.lang.Boolean])"
+    case TInt => q"$tPrimitiveType(classOf[java.lang.Integer])"
+    case TLong => q"$tPrimitiveType(classOf[java.lang.Long])"
+    case TDouble => q"$tPrimitiveType(classOf[java.lang.Double])"
+    case TString => q"$tPrimitiveType(classOf[java.lang.String])"
+    case _ => throw new IllegalArgumentException(s"Cannot compile $typ as literal type")
+  }
+
+  private def genNodeType(typ: GP.TypeAnno): meta.Term = typ match {
+    case TAnyLinked => tAnyType
+    case TNode(name) => q"$tNodeType($name)"
+    case TList(ty) => q"$tListType(${genNodeType(ty)})"
+    case _ => throw new IllegalArgumentException(s"Cannot compile $typ as node type")
   }
 
   private def genCastType(typ: GP.TypeAnno): meta.Type = typ match {

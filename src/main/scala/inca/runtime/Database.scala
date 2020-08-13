@@ -215,6 +215,7 @@ class Database(
     case LinkListNextKey => Some(linkListNextInstances)
     case dkey: DynamicKey => Some(dynamicIndices(dkey))
     case vkey: VirtualKey => Some(virtualIndices(vkey))
+    case _ => throw new IllegalArgumentException(s"Unknown input key $key")
   }
 
 
@@ -228,6 +229,7 @@ class Database(
     case LinkListNextKey => linkListNextInstances
     case dkey: DynamicKey => dynamicIndices(dkey)
     case vkey: VirtualKey => virtualIndices(vkey)
+    case _ => throw new IllegalArgumentException(s"Unknown input key $key")
   }
 
   override def countTuples(key: IInputKey, mask: TupleMask, seed: ITuple): Int = getIndex(key) match {
@@ -245,11 +247,16 @@ class Database(
     case None => util.Collections.emptyList()
   }
 
-  override def containsTuple(key: IInputKey, seed: ITuple): Boolean = getIndex(key) match {
-    case Some(ix) => ix.containsTuple(seed)
-    case None => false
+  override def containsTuple(key: IInputKey, seed: ITuple): Boolean = key match {
+    case NotNodeTypeKey(ty) => nodeInstances.get(ty) match {
+      case Some(ix) =>  !ix.containsTuple(seed)
+      case None => true // tuple does not have type ty
+    }
+    case _ => getIndex(key) match {
+      case Some(ix) => ix.containsTuple(seed)
+      case None => false
+    }
   }
-
   override def addUpdateListener(key: IInputKey, seed: Tuple, listener: IQueryRuntimeContextListener): Unit =
     ensureIndex(key).addListener(listener, seed)
 

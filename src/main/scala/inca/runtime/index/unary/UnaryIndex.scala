@@ -11,9 +11,6 @@ abstract class UnaryIndex[V] extends Index {
   def entries: Iterable[V]
   def index(v: V): Int
 
-  @inline
-  def contains(v: V): Boolean = index(v) != 0
-
   final override def containsTuple(tuple: ITuple): Boolean = {
     if (tuple == null)
       return false

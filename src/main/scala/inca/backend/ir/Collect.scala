@@ -25,6 +25,7 @@ trait Collect[R] {
     case Call(_, args, _, _) => args.flatMap(transTerm)
     case Compare(comp, lhs, rhs) => transTerm(lhs) ++ transTerm(rhs)
     case HasType(v, typ) => transTerm(v)
+    case NotHasType(v, typ) => transTerm(v)
     case Path(src, srcTy, link, trg, trgTy) => transTerm(src) ++ transTerm(trg)
     case Computed(lhs, comp) => transTerm(lhs) ++ transComputation(comp)
   }

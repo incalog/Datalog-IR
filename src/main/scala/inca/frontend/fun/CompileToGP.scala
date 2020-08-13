@@ -12,9 +12,8 @@ object CompileToGP {
 
   def transformModule(module: Fun.Module): GP.Module = {
     val undefs = CollectUndefPaths.transModule(module).toSet
-    val ninsts = CollectNotInstanceOfTypes.transModule(module).toSet
     // generate helpers
-    val helpers = undefs.map(genUndefPathHelper) ++ ninsts.map(genNotInstanceOfHelper)
+    val helpers = undefs.map(genUndefPathHelper)
     // construct map Name => Fun
     val funs = module.funs.map { fun => fun.name -> fun}.toMap
     val patterns = (module.funs ++ helpers).map { fun => transform(fun, funs) }
@@ -192,11 +191,10 @@ object CompileToGP {
       if (vars.size != 1) throw new IllegalArgumentException("Number of variables of exp of instance of need to be 1")
       (Seq(), constraints :+ GP.HasType(GP.Var(vars.head), transType(typ)))
 
-    case ninst@Fun.NotInstanceOf(exp, typ) => (Seq(), Seq())
+    case Fun.NotInstanceOf(exp, typ) =>
       val (vars, constraints) = transExp(exp.ensureCore)
-      val notInstanceOfHelper = nameOfNotInstanceOfHelper(typ)
-      val composition = GP.Call(notInstanceOfHelper, Seq(GP.Var(vars.head)), transitive = false, neg = true)
-      (Seq(), constraints :+ composition)
+      if (vars.size != 1) throw new IllegalArgumentException("Number of variables of exp of instance of need to be 1")
+      (Seq(), constraints :+ GP.NotHasType(GP.Var(vars.head), transType(typ)))
 
     case Fun.Def(exp) =>
       exp match {
@@ -340,17 +338,6 @@ object CompileToGP {
       List(),
       List(Fun.Body(List(Fun.Assert(Fun.Def(access))))))
   }
-
-  def nameOfNotInstanceOfHelper(ty: Fun.TypeAnno): String = "generated_helper_notinstanceof_" + ty.javastring
-
-  def genNotInstanceOfHelper(ty: Fun.TypeAnno): Fun.PatternFunction =
-    Fun.PatternFunction(
-      Some(Fun.Private),
-      nameOfNotInstanceOfHelper(ty),
-      List(Fun.Param("in", ty)),
-      List(),
-      // body is empty because relation is only applicable if c is actually of type ninst.typ
-      List(Fun.Body(Seq())))
 
   def scalaAnnoString(typ: Fun.TypeAnno): String = typ match {
     case Fun.TAny => "Any"

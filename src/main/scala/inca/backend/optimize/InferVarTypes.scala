@@ -55,6 +55,8 @@ object InferVarTypes extends Optimization {
           types(t2).foreach(ty => addType(t1, ty))
         case HasType(t, typ) =>
           addType(t, typ)
+        case NotHasType(t, typ) =>
+          // nothing (FoldConstantConstraints will eliminate the constraint if possible)
         case Path(src, srcTy,link, trg, trgTy) =>
           addType(src, srcTy)
           addType(trg, trgTy)

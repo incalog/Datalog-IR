@@ -25,6 +25,9 @@ class MetaContext(langMetaInfo: LanguageMetaInfo) extends AbstractQueryMetaConte
         new InputKeyImplication(key, impliedSuper, Collections.singletonList(0))
       }.toSeq.asJava
 
+    case NotNodeTypeKey(ty) =>
+      Collections.emptySet()
+
     case _: JavaTransitiveInstancesKey =>
       throw new IllegalStateException("TODO currently do not support eval nodes hence no javatranskey")
 
