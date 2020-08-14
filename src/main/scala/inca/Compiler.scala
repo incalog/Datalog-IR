@@ -20,9 +20,10 @@ object Compiler {
   def optimize(module: GP.Module, compilerOptions: CompilerOptions): GP.Module = {
     var optimized = module
     // println(optimized)
-    for (op <- compilerOptions.optimizations)
+    for (op <- compilerOptions.optimizations) {
       optimized = op.optimizer(compilerOptions.languageMetaInfo).optimizeModule(optimized)
-    // println(optimized)
+      // println(optimized)
+    }
     optimized
   }
 

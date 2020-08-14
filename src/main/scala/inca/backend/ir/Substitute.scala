@@ -24,7 +24,14 @@ case class Substitute(subst: Var => Term) {
   }
 
   def substTerm(term: Term): Term = term match {
-    case v: Var => subst(v)
+    case v: Var => subst(v) match {
+      case newVar: Var =>
+        if (newVar.typ == null)
+          newVar.typ = v.typ
+        newVar
+      case c: Constant =>
+        c
+    }
     case c: Constant => c
   }
 
