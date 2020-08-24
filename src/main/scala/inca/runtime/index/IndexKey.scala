@@ -18,19 +18,6 @@ case class NodeTypeKey(id: Type) extends IndexKey[Type] {
   override def isEnumerable: Boolean = true
 }
 
-case class NotNodeTypeKey(id: Type) extends IndexKey[Type] {
-  override val getStringID: String = "not#nodeType#" + id.toString
-  override val getArity: Int = 1
-  override def isEnumerable: Boolean = false
-  /**
-   *  We assert statelessness, which is not strictly true. However:
-   *   - we only use NotNodeTypeKey in TypeFilterConstraint
-   *   - TypeFilterConstraint defers checking until the tuple is grounded
-   *   - the membership of a grounded tuple in NotNodeTypeKey is stable, because the type of URIs cannot change
-   */
-  override def isStateless: Boolean = true
-}
-
 case class PrimitiveTypeKey(id: LitType) extends IndexKey[LitType] {
   override val getStringID: String = "primitiveType#" + id.toString
   override val getArity: Int = 1

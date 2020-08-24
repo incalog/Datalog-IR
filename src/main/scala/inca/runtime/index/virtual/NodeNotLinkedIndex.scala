@@ -15,7 +15,18 @@ object NodeNotLinkedIndex {
     override val getStringID: String = s"NodeNotLinked(${nodeKey.getStringID}, ${linkKey.getStringID}, nodeIsSource=$nodeIsSource)"
     override val getArity: Int = 1
     override def isEnumerable: Boolean = true
-    override def factory: VirtualIndexFactory = NotLinkNodeIndexFactory
+    override def factory: VirtualIndexFactory = NodeNotLinkedIndex.Factory
+  }
+
+  object Factory extends VirtualIndexFactory {
+    override def makeIndex(key: VirtualKey, database: Database): VirtualIndex = key match {
+      case NodeNotLinkedIndex.Key(nodeKey, linkKey, nodeIsSource) =>
+        val ix = new NodeNotLinkedIndex(nodeKey, linkKey, nodeIsSource)
+        ix.setDatabase(database)
+        ix
+      case _ =>
+        throw new IllegalArgumentException(s"Cannot create index for $key")
+    }
   }
 }
 
@@ -76,15 +87,3 @@ class NodeNotLinkedIndex(nodeKey: IndexKey[_], linkKey: IndexKey[_], nodeIsSourc
     })
   }
 }
-
-object NotLinkNodeIndexFactory extends VirtualIndexFactory {
-  override def makeIndex(key: VirtualKey, database: Database): VirtualIndex = key match {
-    case NodeNotLinkedIndex.Key(nodeKey, linkKey, nodeIsSource) =>
-      val ix = new NodeNotLinkedIndex(nodeKey, linkKey, nodeIsSource)
-      ix.setDatabase(database)
-      ix
-    case _ =>
-      throw new IllegalArgumentException(s"Cannot create index for $key")
-  }
-}
-

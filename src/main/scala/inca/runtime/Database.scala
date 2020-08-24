@@ -244,16 +244,11 @@ class Database(
     case None => util.Collections.emptyList()
   }
 
-  override def containsTuple(key: IInputKey, seed: ITuple): Boolean = key match {
-    case NotNodeTypeKey(ty) => nodeInstances.get(ty) match {
-      case Some(ix) =>  !ix.containsTuple(seed)
-      case None => true // tuple does not have type ty
-    }
-    case _ => getIndex(key) match {
-      case Some(ix) => ix.containsTuple(seed)
-      case None => false
-    }
+  override def containsTuple(key: IInputKey, seed: ITuple): Boolean = getIndex(key) match {
+    case Some(ix) => ix.containsTuple(seed)
+    case None => false
   }
+
   override def addUpdateListener(key: IInputKey, seed: Tuple, listener: IQueryRuntimeContextListener): Unit =
     ensureIndex(key).addListener(listener, seed)
 

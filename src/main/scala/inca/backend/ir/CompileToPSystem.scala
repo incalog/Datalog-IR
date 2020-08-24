@@ -5,7 +5,7 @@ import inca.backend.ir.GP._
 import inca.runtime.Query
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
-import inca.runtime.index.virtual.{NodeNotLinkedIndex, SizeIndex}
+import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
 import inca.util.Gensym
 import inca.util.Meta._
 import truechange.{AnyType, JavaLitType, ListType, SortType}
@@ -18,7 +18,7 @@ object CompileToPSystem {
   val LITPREFIX = "lit_"
 
   val oNodeTypeKey = symbolOf(NodeTypeKey)
-  val oNotNodeTypeKey = symbolOf(NotNodeTypeKey)
+  val oNotNodeTypeKey = symbolOf(NotNodeTypeIndex.Key)
   val oPrimitiveKey = symbolOf(PrimitiveTypeKey)
   val oLinkNodeKey = symbolOf(LinkNodeKey)
   val oLinkPrimitiveKey = symbolOf(LinkPrimitiveKey)

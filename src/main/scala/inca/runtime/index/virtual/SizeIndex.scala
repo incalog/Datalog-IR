@@ -13,7 +13,17 @@ object SizeIndex {
     override val getStringID: String = "#size"
     override val getArity: Int = 2
     override def isEnumerable: Boolean = true
-    override def factory: VirtualIndexFactory = SizeIndexFactory
+    override def factory: VirtualIndexFactory = SizeIndex.Factory
+  }
+
+  object Factory extends VirtualIndexFactory {
+    override def makeIndex(key: VirtualKey, database: Database): VirtualIndex = key match {
+      case SizeIndex.Key =>
+        val ix = new SizeIndex
+        ix.setDatabase(database)
+        ix
+      case _ => throw new IllegalArgumentException(s"Cannot create index for $key")
+    }
   }
 }
 
@@ -52,16 +62,5 @@ class SizeIndex extends BinaryIndex[URI, Int]
         notify(container, newsize, isInsertion = true)
       }
     })
-  }
-}
-
-object SizeIndexFactory extends VirtualIndexFactory {
-  override def makeIndex(key: VirtualKey, database: Database): VirtualIndex = key match {
-    case SizeIndex.Key => {
-      val ix = new SizeIndex
-      ix.setDatabase(database)
-      ix
-    }
-    case _ => throw new IllegalArgumentException(s"Cannot create index for $key")
   }
 }
