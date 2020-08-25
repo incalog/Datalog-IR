@@ -8,7 +8,7 @@ import org.eclipse.viatra.query.runtime.api.scope.{IEngineContext, IIndexingErro
 
 class QueryScope(val langMetaInfo: LanguageMetaInfo, val dynamicIndices: Seq[DynamicIndexFactory]) extends org.eclipse.viatra.query.runtime.api.scope.QueryScope {
   def this(languageMetaInfo: LanguageMetaInfo) =
-    this(languageMetaInfo, Index.allAdditionalIndices)
+    this(languageMetaInfo, Index.allDynamicIndices)
 
   override def createEngineContext(engine: ViatraQueryEngine, errorListener: IIndexingErrorListener, logger: Logger): IEngineContext = {
     new EngineContext(this)

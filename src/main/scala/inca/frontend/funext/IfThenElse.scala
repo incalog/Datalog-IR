@@ -28,7 +28,7 @@ object IfThenElse extends Desugarable {
 
     override def desugarStm(stm: Statement)(implicit gensym: Gensym): Seq[Statement] = stm match {
       case IfThenElse(cond, thn, elseIfs, els) =>
-        val thnBody = Body(desugarConditional(cond, ListBuffer(), thn.stmts.flatMap(desugarStm)))
+        val thnBody = Body(desugarConditional(cond, Seq(), thn.stmts.flatMap(desugarStm)))
         val notconds = ListBuffer(Not(cond))
         val elseIfBodies = elseIfs.map { elseIf =>
           val elseIfBody = Body(desugarConditional(elseIf.cond, notconds, elseIf.body.stmts.flatMap(desugarStm)))
@@ -44,7 +44,7 @@ object IfThenElse extends Desugarable {
       case _ => super.desugarStm(stm)
     }
 
-    def desugarConditional(cond: Exp, notconds: ListBuffer[Not], body: Seq[Statement])(implicit gensym: Gensym): Seq[Statement] =
+    def desugarConditional(cond: Exp, notconds: Iterable[Not], body: Seq[Statement])(implicit gensym: Gensym): Seq[Statement] =
       notconds.toSeq.map(Assert) ++ Seq(Assert(cond)) ++ body
   }
 

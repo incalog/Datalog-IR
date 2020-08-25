@@ -8,7 +8,7 @@ import inca.runtime.context.LanguageMetaInfo
 import scala.collection.immutable.MultiDict
 
 /**
- * Should run after `EliminateAliases` and before `FoldContantConstraints`
+ * Should run after `EliminateAliases` and before `FoldConstantConstraints`
  */
 object InferVarTypes extends Optimization {
 

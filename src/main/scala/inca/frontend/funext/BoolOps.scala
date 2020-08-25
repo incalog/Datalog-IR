@@ -26,13 +26,13 @@ object BoolOps extends Desugarable {
   override val desugarsTo: Seq[Desugarable] = Seq(Switch)
 
   override def trans(): DesugarTrans = new DesugarTrans {
-    val booltatements: ListBuffer[Statement] = ListBuffer()
+    val boolStatements: ListBuffer[Statement] = ListBuffer()
     val orAlternatives: mutable.MultiDict[String, Exp] = mutable.MultiDict()
 
     override def desugarExp(cond: Exp)(implicit gensym: Gensym): Exp = cond match {
       case Not(cond) => desugarNot(cond).orTyped(TBool)
       case And(e1, e2) =>
-        booltatements += Assert(desugarExp(e1).orTyped(TBool))
+        boolStatements += Assert(desugarExp(e1).orTyped(TBool))
         changed(desugarExp(e2).orTyped(TBool))
       case Or(e1, e2) =>
         val sym = gensym.fresh("or")
@@ -62,11 +62,11 @@ object BoolOps extends Desugarable {
     override def desugarStm(stm: Statement)(implicit gensym: Gensym): Seq[Statement] = {
       val desugared = super.desugarStm(stm)
       val stms =
-        if (booltatements.isEmpty)
+        if (boolStatements.isEmpty)
           desugared
         else {
-          val prepend = booltatements.toSeq
-          booltatements.clear()
+          val prepend = boolStatements.toSeq
+          boolStatements.clear()
           prepend ++ desugared
         }
       if (orAlternatives.isEmpty)

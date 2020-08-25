@@ -11,6 +11,14 @@ object ParentIndex {
     override val getArity: Int = 2
     override def isEnumerable: Boolean = true
   }
+
+  object Factory extends DynamicIndexFactory {
+    override def makeIndex(database: Database): DynamicIndex = {
+      val ix = new ParentIndex
+      ix.setDatabase(database)
+      ix
+    }
+  }
 }
 
 class ParentIndex extends BidirectionalManyToOneIndex[URI,URI](ParentIndex.Key)
@@ -48,13 +56,5 @@ class ParentIndex extends BidirectionalManyToOneIndex[URI,URI](ParentIndex.Key)
       kids.foreach { case (_, kid) =>
         delete(kid, node)
       }
-  }
-}
-
-object ParentIndexFactory extends DynamicIndexFactory {
-  override def makeIndex(database: Database): DynamicIndex = {
-    val ix = new ParentIndex
-    ix.setDatabase(database)
-    ix
   }
 }

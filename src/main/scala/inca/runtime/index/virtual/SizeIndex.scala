@@ -36,16 +36,30 @@ class SizeIndex extends BinaryIndex[URI, Int]
 
   lazy val parentIndex: ParentIndex = database.dynamicIndices.getOrElse(ParentIndex.Key, throw new IllegalStateException("Size index requires parent index to be present")).asInstanceOf[ParentIndex]
 
-  override def entries: Iterable[(URI, Int)] = parentIndex.entrySets.map(kv => (kv._1, kv._2.size))
-  override def index(k: URI): Iterable[Int] = Iterable.single(parentIndex.indexInverted(k).size)
+  private val anylist = ListType(AnyType)
+  private def isList(k: URI): Boolean = database.nodeInstances(anylist).index(k) != 0
+
+  override def entries: Iterable[(URI, Int)] = parentIndex.entrySets.flatMap { case (k,v) =>
+    if (isList(k)) {
+      Some(k -> v.size)
+    } else {
+      None
+    }
+  }
+
+  override def index(k: URI): Iterable[Int] =
+    if (isList(k)) {
+      Iterable.single(parentIndex.indexInverted(k).size)
+    } else {
+      Iterable.empty
+    }
+
   override def indexInverted(v: Int): Iterable[URI] = parentIndex.entrySets.flatMap(kv => if (kv._2.size == v) Some(kv._1) else None)
 
   override def insert(k: URI, v: Int): Unit = throw new UnsupportedOperationException
   override def delete(k: URI, v: Int): Unit = throw new UnsupportedOperationException
 
   override def afterInitialization(): Unit = {
-    val anylist = ListType(AnyType)
-
     // emit size 0 for loaded/unloaded lists
     database.addUpdateListener(NodeTypeKey(anylist), null, (_: IInputKey, updateTuple: Tuple, isInsertion: Boolean) => {
       val list = updateTuple.get(0).asInstanceOf[URI]
@@ -55,7 +69,7 @@ class SizeIndex extends BinaryIndex[URI, Int]
     // emit a size update when adding/removing children from a list
     database.addUpdateListener(ParentIndex.Key, null, (_: IInputKey, updateTuple: Tuple, isInsertion: Boolean) => {
       val container = updateTuple.get(1).asInstanceOf[URI]
-      if (database.nodeInstances(anylist).index(container) != 0) {
+      if (isList(container)) {
         val newsize = parentIndex.indexInverted(container).size
         val oldsize = if (isInsertion) newsize - 1 else newsize + 1
         notify(container, oldsize, isInsertion = false)

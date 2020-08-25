@@ -12,8 +12,11 @@ object Compiler {
   def compileFunModule(module: Fun.Module,
                        pkg: Option[String] = None,
                        compilerOptions: CompilerOptions): meta.Source = {
+//    println(module)
     val desugared = Desugar(compilerOptions.desugarables)(module)
+//    println(desugared)
     val gp = CompileToGP.transformModule(desugared)
+//    println(gp)
     compileGPModule(gp, pkg, compilerOptions)
   }
 
@@ -61,6 +64,8 @@ object Compiler {
 
     import reflect.runtime.currentMirror
     import tools.reflect.ToolBox
+
+    println(source)
 
     val toolbox = currentMirror.mkToolBox()
     val tree = toolbox.parse(source)
