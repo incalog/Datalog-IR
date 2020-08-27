@@ -1,7 +1,7 @@
-package inca.frontend.funext
+package inca.frontend.extensions
 
 import inca.analyzedLangs.Exp
-import inca.frontend.fun.Fun._
+import inca.frontend.core.Core._
 import inca.runtime.context.QueryScope
 import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec

@@ -2,7 +2,7 @@ package inca.backend.optimize
 
 import inca.backend.ir.GP._
 import inca.backend.ir.TypeOps
-import inca.frontend.fun.CompileToGP.BodyMustFail
+import inca.frontend.core.CompileToGP.BodyMustFail
 import inca.runtime.context.LanguageMetaInfo
 
 import scala.collection.immutable.MultiDict
@@ -73,8 +73,9 @@ object InferVarTypes extends Optimization {
             case Evaluation(args, resultType, _) =>
               args.foreach(a => addType(a._1, a._2))
               addType(lhs, resultType)
-            case LatticeAggregation() =>
-              ???
+            case CustomAggregation(typ, initOp, joinOp, inverseOp, patName, args, aggregatedColumn) =>
+              addPatArgTypes(patName, args)
+              addType(lhs, typ)
           }
       }
 

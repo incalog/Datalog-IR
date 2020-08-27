@@ -1,7 +1,7 @@
-package inca.frontend.funext
+package inca.frontend.extensions
 
 import inca.analyzedLangs.Exp
-import inca.frontend.fun.Fun._
+import inca.frontend.core.Core._
 import inca.runtime.context.QueryScope
 import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -171,12 +171,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
         Values("root", TNode(Exp.expTag)),
         Assert(Undef(PathAccess(Var("root").typed(TNode(Exp.expTag)), ParentLink).typed(TAnyLinked))),
-        Yield(
-          Call("integerlits_rec",
-            Seq(Var("root")),
-            transitive = false, count = false
-          )
-        )
+        Yield(Call("integerlits_rec",Seq(Var("root"))))
       )))),
 
       PatternFunction(None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
@@ -185,15 +180,15 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
         ), Seq(ElseIf(InstanceOf(Var("e"), TNode(Exp.addTag)), Body(
           Yield(
             Call("integerlits_rec",
-              Seq(PathAccess(Var("e"), NamedLink(TNode(Exp.addTag), "lhs")).typed(TNode(Exp.expTag))),
-              transitive = false, count = false
+              Seq(PathAccess(Var("e"), NamedLink(TNode(Exp.addTag), "lhs")).typed(TNode(Exp.expTag)))
             )
           )
         )), ElseIf(InstanceOf(Var("e"), TNode(Exp.multTag)), Body(
           Yield(
             Call("integerlits_rec",
-              Seq(PathAccess(Var("e"), NamedLink(TNode(Exp.multTag), "rhs")).typed(TNode(Exp.expTag))),
-              transitive = false, count = false))
+              Seq(PathAccess(Var("e"), NamedLink(TNode(Exp.multTag), "rhs")).typed(TNode(Exp.expTag)))
+            )
+          )
         ))), Some(Body(
           Fail
         ))),

@@ -1,8 +1,8 @@
 package inca
 
 import inca.backend.ir.GP
+import inca.frontend.core.Core.Module
 import inca.frontend.desugar.Desugar
-import inca.frontend.fun.Fun.Module
 import inca.runtime.context.QueryScope
 import inca.runtime.{EnginePool, Query}
 import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory

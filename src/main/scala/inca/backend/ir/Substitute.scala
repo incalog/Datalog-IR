@@ -38,7 +38,8 @@ case class Substitute(subst: Var => Term) {
   def substComputation(comp: Computation): Computation = comp match {
     case CountAggregation(patName, args) => CountAggregation(patName, args.map(substTerm))
     case Evaluation(args, resultType, code) => Evaluation(args.map(a => substTerm(a._1) -> a._2), resultType, code)
-    case LatticeAggregation() => ???
+    case CustomAggregation(typ, initOp, joinOp, inverseOp, patName, args, aggregatedColumn) =>
+      CustomAggregation(typ, initOp, joinOp, inverseOp, patName, args.map(substTerm), aggregatedColumn)
   }
 }
 

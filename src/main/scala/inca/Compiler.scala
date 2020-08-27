@@ -1,15 +1,15 @@
 package inca
 
 import inca.backend.ir.{CompileToPSystem, GP, PSystem}
+import inca.frontend.core.{CompileToGP, Core}
 import inca.frontend.desugar.Desugar
-import inca.frontend.fun.{CompileToGP, Fun}
 import inca.util.Meta
 
 import scala.collection.mutable
 import scala.meta._
 
 object Compiler {
-  def compileFunModule(module: Fun.Module,
+  def compileFunModule(module: Core.Module,
                        pkg: Option[String] = None,
                        compilerOptions: CompilerOptions): meta.Source = {
 //    println(module)
@@ -41,7 +41,7 @@ object Compiler {
     }
   }
 
-  def compileAndLoadFunModule(module: Fun.Module,
+  def compileAndLoadFunModule(module: Core.Module,
                               pkg: Option[String] = None,
                               compilerOptions: CompilerOptions): PSystem.Module = {
     val source = compileFunModule(module, pkg, compilerOptions)

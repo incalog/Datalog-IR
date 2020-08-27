@@ -1,7 +1,7 @@
-package inca.frontend.funext
+package inca.frontend.extensions
 
+import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
-import inca.frontend.fun.Fun._
 import inca.util.Gensym
 
 case class Foreach(name: Name, exp: Exp, body: Body) extends Statement {

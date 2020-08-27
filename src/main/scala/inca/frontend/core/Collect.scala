@@ -1,6 +1,6 @@
-package inca.frontend.fun
+package inca.frontend.core
 
-import inca.frontend.fun.Fun._
+import inca.frontend.core.Core._
 
 object CollectUndefPaths extends Collect[PathAccess] {
   override def transExp(exp: CoreExp): Seq[PathAccess] = exp match {
@@ -38,7 +38,7 @@ trait Collect[R] {
     case Assign(names, exp) => names.flatMap(transBinding) ++ transExp(exp.ensureCore)
     case Assert(cond) => transExp(cond.ensureCore)
     case Yield(exp) => transExp(exp.ensureCore)
-    case Fun.Fail => Seq()
+    case Core.Fail => Seq()
   }
 
   def transBinding(name: Name): Seq[R] = Seq()
@@ -54,9 +54,11 @@ trait Collect[R] {
     case Var(name) => transReference(name)
     case Constant(lit) => transLit(lit)
     case PathAccess(receiver, link) => transExp(receiver.ensureCore)
-    case Call(name, args, transitive, count) => args.flatMap(a => transExp(a.ensureCore))
+    case Call(name, args, transitive) => args.flatMap(a => transExp(a.ensureCore))
+    case Count(Call(name, args, transitive)) => args.flatMap(a => transExp(a.ensureCore))
     case Tuple(exps) => exps.flatMap(e => transExp(e.ensureCore))
     case Eval(freeVars, resultType, code) => freeVars.flatMap(transReference)
+    case Aggregate(_, _, _, Call(name, args, transitive)) => args.flatMap(a => transExp(a.ensureCore))
   }
 
   def transLit(lit: Literal): Seq[R] = lit match {
@@ -65,6 +67,6 @@ trait Collect[R] {
     case DoubleLiteral(v) => Seq()
     case StringLiteral(v) => Seq()
     case BooleanLiteral(v) => Seq()
-    case Fun.UnitLiteral => Seq()
+    case Core.UnitLiteral => Seq()
   }
 }

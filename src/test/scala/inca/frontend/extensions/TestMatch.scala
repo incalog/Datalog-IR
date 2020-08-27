@@ -1,7 +1,7 @@
-package inca.frontend.funext
+package inca.frontend.extensions
 
 import inca.analyzedLangs.Exp
-import inca.frontend.fun.Fun._
+import inca.frontend.core.Core._
 import inca.runtime.context.QueryScope
 import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -552,8 +552,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
         Assert(Undef(PathAccess(Var("root").typed(TNode(Exp.expTag)), ParentLink).typed(TAnyLinked))),
         Yield(
           Call("integerlits_rec",
-            Seq(Var("root")),
-            transitive = false, count = false
+            Seq(Var("root"))
           )
         )
       )))),
@@ -566,13 +565,11 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           Case(
             NodePattern(TNode(Exp.addTag), Seq(PatternBinding("lhs", VarPattern("e1")).typed(TNode(Exp.expTag)))),
             Body(Yield(Call("integerlits_rec",
-              Seq(Var("e1")),
-              transitive = false, count = false)))),
+              Seq(Var("e1")))))),
           Case(
             NodePattern(TNode(Exp.multTag), Seq(PatternBinding("rhs", VarPattern("e1")).typed(TNode(Exp.expTag)))),
             Body(Yield(Call("integerlits_rec",
-              Seq(Var("e1")),
-              transitive = false, count = false))))
+              Seq(Var("e1"))))))
         ))
       ))))
     ))

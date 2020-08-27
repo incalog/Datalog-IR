@@ -1,10 +1,10 @@
-package inca.frontend.fun
+package inca.frontend.core
 
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
 import inca.backend.ir.Printer
-import inca.frontend.fun.Fun.{Exp => _, _}
+import inca.frontend.core.Core.{Exp => _, _}
 import org.scalatest.funsuite.AnyFunSuite
 
 class CompileToGPTest extends AnyFunSuite {
@@ -86,7 +86,7 @@ class CompileToGPTest extends AnyFunSuite {
       List(
         Body(
           List(
-            Assign(Seq("lhschild"), Call("lhChild", Seq(Var("add")), transitive = false, count = false).typed(expType)),
+            Assign(Seq("lhschild"), Call("lhChild", Seq(Var("add"))).typed(expType)),
             Yield(Var("lhschild"))))))
     val result = CompileToGP.transformModule(Module("test", Nil, Seq(fun, lhChildFun)))
     println(Printer.prettyModule(result))
@@ -146,7 +146,7 @@ class CompileToGPTest extends AnyFunSuite {
         Body(
           List(
             Assign(Seq("lhschild"), PathAccess(Var("add"), lhsLink).typed(expType)),
-            Assert(Def(Call("lhChild", Seq(Var("lhschild")), transitive = false, count = false))),
+            Assert(Def(Call("lhChild", Seq(Var("lhschild"))))),
             Yield(Var("lhschild"))))))
     val result = CompileToGP.transformModule(Module("test", Nil, Seq(fun, lhChildFun)))
     println(Printer.prettyModule(result))

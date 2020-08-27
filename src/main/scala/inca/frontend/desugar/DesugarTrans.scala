@@ -1,6 +1,6 @@
 package inca.frontend.desugar
 
-import inca.frontend.fun.Fun._
+import inca.frontend.core.Core._
 import inca.util.Gensym
 
 /**
@@ -49,8 +49,10 @@ class DesugarTrans {
     case Var(name) => Var(name)
     case Constant(lit) => Constant(lit)
     case PathAccess(receiver, link) => PathAccess(desugarExp(receiver), link)
-    case Call(name, args, trans, count) => Call(name, args.map(desugarExp), trans, count)
+    case Call(name, args, trans) => Call(name, args.map(desugarExp), trans)
+    case Count(call@Call(name, args, trans)) => Count(Call(name, args.map(desugarExp), trans).mtyped(call.typ))
     case Tuple(exps) => Tuple(exps.map(desugarExp))
+    case Aggregate(init, join, unjoin, call@Call(name, args, trans)) => Aggregate(init, join, unjoin, Call(name, args.map(desugarExp), trans).mtyped(call.typ))
     case _ => exp
   }).mtyped(exp.typ)
 }

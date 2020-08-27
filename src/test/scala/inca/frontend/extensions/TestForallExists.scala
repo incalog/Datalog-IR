@@ -1,7 +1,7 @@
-package inca.frontend.funext
+package inca.frontend.extensions
 
 import inca.analyzedLangs.Exp
-import inca.frontend.fun.Fun._
+import inca.frontend.core.Core._
 import inca.runtime.context.QueryScope
 import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -36,7 +36,7 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
       )))),
       PatternFunction(None, "foo", Seq(Param("many", TNode("Many"))), Seq(), Seq(Body(Seq(
         Assign(Seq("listSize"), PathAccess(PathAccess(Var("many"), NamedLink(TNode("Many"), "exps")).typed(TList(TNode("Exp"))), SizeLink).typed(TInt)),
-        Assign(Seq("successSize"), Call("forallCond", Seq(Var("many")), transitive = false, count = true)),
+        Assign(Seq("successSize"), Count(Call("forallCond", Seq(Var("many"))))),
         Assert(Eq(Var("listSize"), Var("successSize"))),
         Yield(Constant(UnitLiteral))
       ))))

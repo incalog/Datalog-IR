@@ -1,6 +1,6 @@
 package inca.analyzedLangs
 
-import inca.frontend.fun.Fun._
+import inca.frontend.core.Core._
 
 object ExpLangTestAnalyses {
   private val addType: TNode = TNode(Exp.addTag)
@@ -50,7 +50,7 @@ object ExpLangTestAnalyses {
     Seq(
       Body(
         Seq(
-          Assign(Seq("lhschild"), Call("lhChild", Seq(Var("add")), transitive = false, count = false).typed(expType)),
+          Assign(Seq("lhschild"), Call("lhChild", Seq(Var("add"))).typed(expType)),
           Yield(Var("lhschild"))))))
 
   val instanceAddFun = PatternFunction(

@@ -1,7 +1,7 @@
-package inca.frontend.funext
+package inca.frontend.extensions
 
+import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
-import inca.frontend.fun.Fun._
 import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
@@ -52,7 +52,7 @@ object ForallExists extends Desugarable {
 
           changed(Seq(
             Assign(Seq(sizeSym), PathAccess(exp, SizeLink).typed(TInt)),
-            Assign(Seq(successSym), Call(funsym, args, transitive = false, count = true).typed(TInt)),
+            Assign(Seq(successSym), Count(Call(funsym, args)).typed(TInt)),
             Assert(Eq(Var(sizeSym), Var(successSym)))
           ))
         case ty => throw new IllegalArgumentException(s"Forall loop expression $exp must have iterable type, but was type $ty")
@@ -67,7 +67,7 @@ object ForallExists extends Desugarable {
           val args = vars.map(v => Var(v._1))
 
           changed(Seq(
-            Assign(Seq(successSym), Call(funsym, args, transitive = false, count = true).typed(TInt)),
+            Assign(Seq(successSym), Count(Call(funsym, args)).typed(TInt)),
             Assert(Eval(Seq(successSym), TBool, s"""$successSym >= 1"""))
           ))
         case ty => throw new IllegalArgumentException(s"Forall loop expression $exp must have iterable type, but was type $ty")

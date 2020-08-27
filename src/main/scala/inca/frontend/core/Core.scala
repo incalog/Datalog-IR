@@ -1,10 +1,10 @@
-package inca.frontend.fun
+package inca.frontend.core
 
 import inca.util.Meta.TAB
 
 import scala.language.reflectiveCalls
 
-object Fun {
+object Core {
   sealed trait TypeAnno {
     def prettyprint: String
     def javastring: String
@@ -219,8 +219,8 @@ object Fun {
       case _ => throw new IllegalArgumentException(s"Core statement required but got $this")
     }
   }
-  sealed trait CoreExp extends Exp
 
+  sealed trait CoreExp extends Exp
 
   case class Eq(lhs: Exp, rhs: Exp) extends CoreExp {
     def freeVars: Map[Name, Option[TypeAnno]] = lhs.freeVars ++ rhs.freeVars
@@ -272,14 +272,17 @@ object Fun {
       case _ => // nothing
     }
   }
-  case class Call(name: Name, args: Seq[Exp], transitive: Boolean, count: Boolean) extends CoreExp {
+  case class Call(name: Name, args: Seq[Exp], transitive: Boolean = false) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = args.flatMap(_.freeVars).toMap
     override def prettyprint(implicit indent: String): String = {
       val argsS = args.map(_.prettyprint).mkString(", ")
       val transS = if (transitive) "+" else ""
-      val countS = if (count) "count " else ""
-      s"$countS$name$transS($argsS)"
+      s"$name$transS($argsS)"
     }
+  }
+  case class Count(call: Call) extends CoreExp {
+    override def freeVars: Map[Name, Option[TypeAnno]] = call.freeVars
+    override def prettyprint(implicit indent: String): String = s"count ${call.prettyprint}"
   }
   case class Tuple(exps: Seq[Exp]) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = exps.flatMap(_.freeVars).toMap
@@ -336,5 +339,38 @@ object Fun {
   }
   case class StringLiteral(v: String) extends Literal {
     override def prettyprint: String = '\"' + v + '\"'
+  }
+
+
+
+
+  /*
+   * data language constructs
+   */
+
+  case class DataType(qualifier: Option[String], name: String) extends TypeAnno {
+    def prettyprint: String = qualifier match {
+      case Some(q) => q + "." + name
+      case None => name
+    }
+
+    override def javastring: String = prettyprint.replace('.', '_')
+  }
+
+  case class DataOp(qualifier: Option[String],
+                    operation: String,
+                    isAssociative: Boolean = false,
+                    isCommutative: Boolean = false) {
+    def prettyprint: String = qualifier match {
+      case Some(q) => q + "." + operation
+      case None => operation
+    }
+  }
+
+  case class Aggregate(init: DataOp, join: DataOp, unjoin: Option[DataOp], call: Call) extends CoreExp {
+    override def freeVars: Map[Name, Option[TypeAnno]] = call.freeVars
+
+    override def prettyprint(implicit indent: String): String =
+      s"aggregate(${init.prettyprint}, ${join.prettyprint}) ${call.prettyprint}"
   }
 }

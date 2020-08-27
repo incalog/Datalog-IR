@@ -1,7 +1,7 @@
 package inca.backend.optimize
 import inca.backend.ir.GP._
 import inca.backend.ir.TypeOps
-import inca.frontend.fun.CompileToGP.BodyMustFail
+import inca.frontend.core.CompileToGP.BodyMustFail
 import inca.runtime.context.LanguageMetaInfo
 
 object FoldConstantConstraints extends Optimization {

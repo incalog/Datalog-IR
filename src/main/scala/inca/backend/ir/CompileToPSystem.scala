@@ -3,11 +3,14 @@ package inca.backend.ir
 
 import inca.backend.ir.GP._
 import inca.runtime.Query
+import inca.runtime.aggregate.{AggregatorAssocComm, AggregatorAssocCommInv}
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
-import inca.util.Gensym
 import inca.util.Meta._
+import inca.util.{Gensym, Meta}
+import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations.BoundAggregator
+import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.AggregatorConstraint
 import truechange.{AnyType, JavaLitType, ListType, SortType}
 
 import scala.meta._
@@ -17,26 +20,30 @@ object CompileToPSystem {
   val VARPREFIX = "var_"
   val LITPREFIX = "lit_"
 
-  val oNodeTypeKey = symbolOf(NodeTypeKey)
-  val oNotNodeTypeKey = symbolOf(NotNodeTypeIndex.Key)
-  val oPrimitiveKey = symbolOf(PrimitiveTypeKey)
-  val oLinkNodeKey = symbolOf(LinkNodeKey)
-  val oLinkPrimitiveKey = symbolOf(LinkPrimitiveKey)
-  val oLinkListNextKey = symbolOf(LinkListNextKey)
+  private val oNodeTypeKey = symbolOf(NodeTypeKey)
+  private val oNotNodeTypeKey = symbolOf(NotNodeTypeIndex.Key)
+  private val oPrimitiveKey = symbolOf(PrimitiveTypeKey)
+  private val oLinkNodeKey = symbolOf(LinkNodeKey)
+  private val oLinkPrimitiveKey = symbolOf(LinkPrimitiveKey)
+  private val oLinkListNextKey = symbolOf(LinkListNextKey)
 
-  val oParentKey = symbolOf(ParentIndex.Key)
-  val oSizeKey = symbolOf(SizeIndex.Key)
-  val oNotLinkNodeKey = symbolOf(NodeNotLinkedIndex.Key)
+  private val oParentKey = symbolOf(ParentIndex.Key)
+  private val oSizeKey = symbolOf(SizeIndex.Key)
+  private val oNotLinkNodeKey = symbolOf(NodeNotLinkedIndex.Key)
 
-  val tAnyType = symbolOf(AnyType)
-  val tNodeType = symbolOf[SortType]
-  val tListType = symbolOf[ListType]
-  val tPrimitiveType = symbolOf[JavaLitType]
+  private val tAnyType = symbolOf(AnyType)
+  private val tNodeType = symbolOf[SortType]
+  private val tListType = symbolOf[ListType]
+  private val tPrimitiveType = symbolOf[JavaLitType]
 
-  val tyPSystemModule = typeOf[PSystem.Module]
+  private val tyPSystemModule = typeOf[PSystem.Module]
 
-  val tyQuerySpecification = typeOf[Query.Specification]
+  private val tyQuerySpecification = typeOf[Query.Specification]
 
+  private val tAggregatorAssocCommInv = typeOf[AggregatorAssocCommInv[_]]
+  private val tAggregatorAssocComm = typeOf[AggregatorAssocComm[_]]
+  private val tBoundAggregator = typeOf[BoundAggregator]
+  private val tAggregatorConstraint = typeOf[AggregatorConstraint]
 
 
   def genQueryName(moduleName: String, patName: String): String =
@@ -160,6 +167,7 @@ object CompileToPSystem {
 
   private def genInputKeyAndType(typ: GP.TypeAnno): Option[(meta.Term, meta.Term)] = typ match {
     case TAny => None
+    case TDataType(_) => None
     case TBool | TInt | TLong | TDouble | TString =>
       val gentyp = genLitType(typ)
       Some(q"$oPrimitiveKey($gentyp)", gentyp)
@@ -272,11 +280,11 @@ object CompileToPSystem {
   }
 
   private def compileComputation(lhs: GP.Term, computation: Computation)(implicit env: RuleEnvironment): Seq[Stat] = computation match {
-    case CountAggregation(name, args) =>
+    case CountAggregation(patName, args) =>
       val result = compileTerm(lhs)
-      val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
+      val module = env.getOrElse(patName, throw new IllegalArgumentException(s"Unknown rule $patName"))
       val argTuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
-      val callQuery = q"${Term.Name(module)}.${Term.Name(name)}.instance.getInternalQueryRepresentation"
+      val callQuery = q"${Term.Name(module)}.${Term.Name(patName)}.instance.getInternalQueryRepresentation"
       Seq(q"new PatternMatchCounter(body, $argTuple, $callQuery, $result)")
 
     case Evaluation(args, _, code) =>
@@ -288,7 +296,7 @@ object CompileToPSystem {
         case _ => None
       }
       val argTerms = args.toList.map {
-        case (v:Var, ty) => q"env.getValue(${Lit.String(v.name)}).asInstanceOf[${genCastType(ty)}]"
+        case (v:Var, ty) => q"env.getValue(${Lit.String(v.name)}).asInstanceOf[${genScalaType(ty)}]"
         case (Constant(lit), ty) => genLiteral(lit)
       }
       Seq(
@@ -302,7 +310,25 @@ object CompileToPSystem {
         }, $result)
          """)
 
-    case LatticeAggregation() => ???
+    case CustomAggregation(typ, initOpName, joinOpName, unjoinOpName, patName, args, aggregatedColumn) =>
+      val result = compileTerm(lhs)
+      val module = env.getOrElse(patName, throw new IllegalArgumentException(s"Unknown rule $patName"))
+      val argTuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
+      val callQuery = q"${Term.Name(module)}.${Term.Name(patName)}.instance.getInternalQueryRepresentation"
+
+      val scalaTyp = genScalaType(typ)
+      val initOp = Meta.mkQualName(initOpName)
+      val joinOp = Meta.mkQualName(joinOpName)
+      val aggOp = unjoinOpName match {
+        case Some(unjoin) =>
+          val tagg = t"$tAggregatorAssocCommInv[$scalaTyp]"
+          q"new $tagg($joinOpName, $initOp, $joinOp, ${Meta.mkQualName(unjoin)})"
+        case None =>
+          val tagg = t"$tAggregatorAssocComm[$scalaTyp]"
+          q"new $tagg($joinOpName, $initOp, $joinOp)"
+      }
+      val boundAggOp = q"new $tBoundAggregator($aggOp, classOf[$scalaTyp], classOf[$scalaTyp])"
+      Seq(q"new $tAggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)")
   }
 
   private def genLitType(typ: GP.TypeAnno): meta.Term = typ match {
@@ -321,13 +347,14 @@ object CompileToPSystem {
     case _ => throw new IllegalArgumentException(s"Cannot compile $typ as node type")
   }
 
-  private def genCastType(typ: GP.TypeAnno): meta.Type = typ match {
+  private def genScalaType(typ: GP.TypeAnno): meta.Type = typ match {
     case TAny => t"Any"
     case TBool => t"Boolean"
     case TInt => t"Int"
     case TLong => t"Long"
     case TDouble => t"Double"
     case TString => t"String"
+    case TDataType(qname) => Meta.mkQualTypename(qname)
     case _: TLinked => typeOf[truechange.URI]
   }
 

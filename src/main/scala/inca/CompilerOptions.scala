@@ -3,7 +3,7 @@ package inca
 import inca.CompilerOptions._
 import inca.backend.optimize._
 import inca.frontend.desugar.Desugarable
-import inca.frontend.funext.{BoolOps, Cast, Enum, ForallExists, Foreach, IfThenElse, Match, Switch}
+import inca.frontend.extensions.{BoolOps, Cast, DataOpCall, Enum, ForallExists, Foreach, IfThenElse, Match, Switch}
 import inca.runtime.context.LanguageMetaInfo
 
 case class CompilerOptions(languageMetaInfo: LanguageMetaInfo,
@@ -12,6 +12,7 @@ case class CompilerOptions(languageMetaInfo: LanguageMetaInfo,
 
 object CompilerOptions {
   val defaultDesugarables = Seq(
+    DataOpCall,
     BoolOps,
     Cast,
     Enum,

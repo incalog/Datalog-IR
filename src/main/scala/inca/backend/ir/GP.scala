@@ -9,6 +9,8 @@ object GP {
   case object TDouble extends TypeAnno
   case object TString extends TypeAnno
 
+  case class TDataType(qname: String) extends TypeAnno
+
   sealed trait TLinked extends TypeAnno
   case object TAnyLinked extends TLinked
   case class TNode(name: String) extends TLinked
@@ -72,8 +74,7 @@ object GP {
   }
 
   sealed trait Computation
-  case class CountAggregation(patName: Name, args: Seq[Term]) extends Computation
   case class Evaluation(args: Seq[(Term,TypeAnno)], resultType: TypeAnno, code: String) extends Computation
-  // TODO
-  case class LatticeAggregation() extends Computation
+  case class CountAggregation(patName: Name, args: Seq[Term]) extends Computation
+  case class CustomAggregation(typ: TypeAnno, initOp: String, joinOp: String, unjoinOp: Option[String], patName: Name, args: Seq[Term], aggregatedColumn: Int) extends Computation
 }

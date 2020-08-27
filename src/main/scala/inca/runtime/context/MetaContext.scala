@@ -8,6 +8,7 @@ import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveIn
 import org.eclipse.viatra.query.runtime.matchers.context.{AbstractQueryMetaContext, IInputKey, InputKeyImplication}
 import truechange.SortType
 
+import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 
 class MetaContext(langMetaInfo: LanguageMetaInfo) extends AbstractQueryMetaContext {
@@ -25,8 +26,28 @@ class MetaContext(langMetaInfo: LanguageMetaInfo) extends AbstractQueryMetaConte
         new InputKeyImplication(key, impliedSuper, Collections.singletonList(0))
       }.toSeq.asJava
 
-    case _: JavaTransitiveInstancesKey =>
-      throw new IllegalStateException("TODO currently do not support eval nodes hence no javatranskey")
+    case jkey: JavaTransitiveInstancesKey =>
+      val instanceClass = jkey.getInstanceClass
+      if (instanceClass != null) { // resolution successful
+        // direct Java superClass
+        val superClass = instanceClass.getSuperclass
+        val result: ListBuffer[InputKeyImplication] = ListBuffer()
+        if (superClass != null) {
+          val impliedSuper = new JavaTransitiveInstancesKey(superClass)
+          result += new InputKeyImplication(key, impliedSuper, util.Arrays.asList(0))
+        }
+        // direct Java superInterfaces
+        for (superInterface <- instanceClass.getInterfaces) {
+          if (superInterface != null) {
+            val impliedInterface = new JavaTransitiveInstancesKey(superInterface)
+            result += new InputKeyImplication(key, impliedInterface, util.Arrays.asList(0))
+          }
+        }
+        result.asJavaCollection
+      } else {
+        Collections.emptySet()
+      }
+
 
     case LinkNodeKey(link@(tagname, _)) =>
       val impliedSource = NodeTypeKey(SortType(tagname))

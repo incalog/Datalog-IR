@@ -80,10 +80,12 @@ object Printer {
   }
 
   def prettyComputation(lhs: Term, computation: Computation): String = computation match {
-    case GP.CountAggregation(name, args) =>
-      s"${prettyTerm(lhs)} = count $name(${args.map(prettyTerm).mkString(",")})"
+    case GP.CountAggregation(patName, args) =>
+      s"${prettyTerm(lhs)} = count $patName(${args.map(prettyTerm).mkString(",")})"
     case GP.Evaluation(args, _, code) =>
       s"${prettyTerm(lhs)} = eval(($code)(${args.map(a => prettyTerm(a._1)).mkString(", ")}))"
-    case GP.LatticeAggregation() => ???
+    case GP.CustomAggregation(typ, initOp, joinOp, inverseOp, patName, args, aggregatedColumn) =>
+      val sargs = args.map(prettyTerm).updated(aggregatedColumn, "#").mkString(", ")
+      s"${prettyTerm(lhs)} = aggregate $patName($sargs) with $initOp, $joinOp, $inverseOp"
   }
 }
