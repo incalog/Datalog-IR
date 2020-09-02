@@ -1,4 +1,4 @@
-package inca.findbugs
+package inca.caseStudies.findbugs
 
 import inca.analyzedLangs.tinyJava
 import inca.frontend.core.Core._
