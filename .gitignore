@@ -1,6 +1,22 @@
 # sbt
+dist/*
 target/
-build/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+.history
+.cache
+.lib/
+
+# vs code
+.vscode/*
+*.code-workspace
+
+# metals 
+.metals/
+.bloop/
+project/
 
 # intellij idea
 *.log
@@ -11,6 +27,44 @@ build/
 
 # mac
 .DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
 
 #general
 *.class
