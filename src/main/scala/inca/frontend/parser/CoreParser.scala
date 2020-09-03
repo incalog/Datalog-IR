@@ -31,4 +31,14 @@ object CoreParser {
     P((P(" ").rep() ~ P(Private.prettyprint(""))).map(_ => Private)) |
     P((P(" ").rep() ~ P(Public.prettyprint(""))).map(_ => Public))
   )
+
+  /**
+   * TTuple parser
+   * @todo should single element tuples with parens be allowed?
+   */
+  def typetuple[_: P]: P[TTuple] = P(
+        "Unit".!.map(_ => TTuple(Seq.empty))
+      | typeanno.map(typ => TTuple(Seq(typ)))
+      | ("(" ~ typeanno.rep(min = 2, sep = ",") ~ ")").map(TTuple)
+  )
 }
