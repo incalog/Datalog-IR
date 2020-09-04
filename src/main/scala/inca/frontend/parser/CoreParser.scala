@@ -18,7 +18,7 @@ object CoreParser {
   def tanylinked[_: P]: P[TLinked] =
     P(P(TAnyLinked.prettyprint).map(_ => TAnyLinked))
 
-  def tnode[_: P]: P[TLinked] = P(P(ParserUtils.identifier).!.map(TNode(_)))
+  def tnode[_: P]: P[TLinked] = P(P(ParserUtils.identifier).!.map(TNode))
 
   /** Helper for the basic TypeAnno like TAny. */
   private def typeanno_helper[_: P](t: TypeAnno): P[TypeAnno] = 
@@ -54,12 +54,12 @@ object CoreParser {
 
   /** TList parser */
   def tlist[_:P]:P[TList] = P(
-    P("List[" ~ tlinked ~ "]").map(TList(_))
+    P("List[" ~ tlinked ~ "]").map(TList)
   )
 
   /** TEnumeration parser */
   def tenumeration[_:P]:P[TEnumeration] = P(
-    P("Enum[" ~ tlinked ~ "]").map(TEnumeration(_))
+    P("Enum[" ~ tlinked ~ "]").map(TEnumeration)
   )
 
   /** TIterable parser */
@@ -74,8 +74,15 @@ object CoreParser {
   /** BooleanLiteral parser */
   def booleanliteral[_: P]: P[BooleanLiteral] = P("true".! | "false".!).map(s => BooleanLiteral(s.toBoolean))
 
+  /** Param parser */
+  def param[_: P]: P[Param] = P(ParserUtils.identifier ~ ":" ~ typeanno).map {
+    case (name, typeAnno) => Param(name, typeAnno)
+  }
 
-  def param[_: P]: P[Param] = P(ParserUtils.identifier ~ ":" ~ typeanno).map(t => Param(t._1, t._2))
+  /** AnnoParam parser */
+  def annoparam[_: P]: P[AnnoParam] = P("(" ~ param ~ ")" | typeanno).map {
+    case Param(name, typeAnno) => AnnoParam(Some(name), typeAnno)
+    case typeAnno: TypeAnno => AnnoParam(None, typeAnno)
+  }
 
-  def annoparam[_: P] = P(ParserUtils.identifier.? ~ ":")
 }

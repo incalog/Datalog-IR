@@ -25,7 +25,7 @@ class CoreParserTest extends AnyFunSuite {
       }
       parse(s" ${t.prettyprint}", CoreParser.typeanno(_)) match {
         case Success(value, index) => fail()
-        case _: Failure            => {}
+        case _: Failure            =>
       }
     }
 
@@ -51,64 +51,99 @@ class CoreParserTest extends AnyFunSuite {
       }
     def negative(v: String) =
       parse(v, CoreParser.visibility(_)) match {
-        case Failure(label, index, extra) => {}
+        case Failure(label, index, extra) =>
         case Success(value, index)        => fail()
       }
 
     Seq("public", "   public", " public").map(positive(Public)(_))
     Seq("private", "   private", " private").map(positive(Private)(_))
-    Seq("provate", "  prbplic", "   plsplapic", "bluplic").map(negative(_))
+    Seq("provate", "  prbplic", "   plsplapic", "bluplic").map(negative)
   }
 
   test("test TIterable") {
     parse("List[node]", CoreParser.titerable(_)) match {
-      case Success(value, index) => {
+      case Success(value, index) =>
         value match {
           case TEnumeration(contained) => fail()
           case TList(contained)        => assert(contained === TAnyLinked)
         }
-      }
       case _: Failure => fail()
     }
 
     parse("List[apf3l]", CoreParser.titerable(_)) match {
-      case Success(value, index) => {
+      case Success(value, index) =>
         value match {
           case TEnumeration(contained) => fail()
           case TList(contained)        => assert(contained === TNode("apf3l"))
         }
-      }
       case _: Failure => fail()
     }
 
     parse("Enum[node]", CoreParser.titerable(_)) match {
-      case Success(value, index) => {
+      case Success(value, index) =>
         value match {
           case TEnumeration(contained) => assert(contained === TAnyLinked)
           case TList(contained)        => fail()
         }
-      }
       case _: Failure => fail()
     }
 
     parse("Enum[br0t]", CoreParser.titerable(_)) match {
-      case Success(value, index) => {
+      case Success(value, index) =>
         value match {
           case TEnumeration(contained) => assert(contained === TNode("br0t"))
           case TList(contained)        => fail()
         }
-      }
       case _: Failure => fail()
     }
 
     parse("Enum[999]", CoreParser.titerable(_)) match {
       case Success(value, index) => fail()
-      case _: Failure            => {}
+      case _: Failure            =>
     }
 
     parse("List[666]", CoreParser.titerable(_)) match {
       case Success(value, index) => fail()
-      case _: Failure            => {}
+      case _: Failure            =>
+    }
+  }
+
+  test("test IntLiteral") {
+    parse("1", CoreParser.intliteral(_)) match {
+      case Success(IntLiteral(1), _) =>
+      case _                         => fail()
+    }
+  }
+
+  test("test BooleanLiteral") {
+    def check(b: Boolean): Unit = {
+      parse(b.toString, CoreParser.booleanliteral(_)) match {
+        case Success(BooleanLiteral(bool), _) if bool == b =>
+        case _                                             => fail()
+      }
+    }
+    check(true)
+    check(false)
+  }
+
+  test("test Param") {
+    parse(s"param:${TBool.prettyprint}", CoreParser.param(_)) match {
+      case Success(Param("param", TBool), _) =>
+      case _                                 => fail()
+    }
+  }
+
+  test("test AnnoParam with name") {
+    parse(s"(param:${TBool.prettyprint})", CoreParser.annoparam(_)) match {
+      case Success(AnnoParam(Some("param"), TBool), _) =>
+      case _                                           => fail()
+    }
+  }
+
+  test("test AnnoParam without name") {
+    parse(s"${TBool.prettyprint}", CoreParser.annoparam(_)) match {
+      case Success(AnnoParam(None, TBool), _) =>
+      case _                                  => fail()
     }
   }
 }
