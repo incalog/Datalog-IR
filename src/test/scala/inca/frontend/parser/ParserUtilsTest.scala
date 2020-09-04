@@ -47,9 +47,23 @@ class ParserUtilsTest extends AnyFunSuite {
   test("test integer leading zeroes") {
     parse("01", integer(_)) match {
       case Parsed.Failure(_, _, _) => ()
-      case Parsed.Success(v, _) =>
+      case Parsed.Success(v, _)    =>
         println(v)
         fail()
+    }
+  }
+
+  test("test integer minus sign") {
+    parse("-1", integer(_)) match {
+      case Parsed.Success(-1, _) => ()
+      case _                     => fail()
+    }
+  }
+
+  test("test integer plus sign") {
+    parse("+1", integer(_)) match {
+      case Parsed.Success(1, _) => ()
+      case _                    => fail()
     }
   }
 

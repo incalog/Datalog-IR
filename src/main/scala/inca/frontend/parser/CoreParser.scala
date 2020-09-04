@@ -43,26 +43,39 @@ object CoreParser {
 
   /**
     * TTuple parser
-    * @todo  should single element tuples with parens be allowed?
     * @todo  test missing
     */
   def ttuple[_: P]: P[TTuple] =
     P(
       "Unit".!.map(_ => TTuple(Seq.empty))
         | typeanno.map(typ => TTuple(Seq(typ)))
-        | ("(" ~ typeanno.rep(min = 2, sep = ",") ~ ")").map(TTuple)
+        | ("(" ~ typeanno.rep(min = 1, sep = ",") ~ ")").map(TTuple)
     )
 
   /** TList parser */
   def tlist[_:P]:P[TList] = P(
-    P("List[" ~ tlinked ~ "]").map(TList(_))
+    P("List[" ~ tlinked ~ "]").map(TList)
   )
 
   /** TEnumeration parser */
   def tenumeration[_:P]:P[TEnumeration] = P(
-    P("Enum[" ~ tlinked ~ "]").map(TEnumeration(_))
+    P("Enum[" ~ tlinked ~ "]").map(TEnumeration)
   )
 
   /** TIterable parser */
   def titerable[_:P]:P[TIterable] = P(tlist | tenumeration)
+
+  /** IntLiteral parser */
+  def intliteral[_: P]: P[IntLiteral] = P(ParserUtils.integer).map(IntLiteral)
+
+  /** LongLiteral parser */
+  def longliteral[_: P]: P[LongLiteral] = P(ParserUtils.integer ~ "l").map(i => LongLiteral(i))
+
+  /** BooleanLiteral parser */
+  def booleanliteral[_: P]: P[BooleanLiteral] = P("true".! | "false".!).map(s => BooleanLiteral(s.toBoolean))
+
+
+  def param[_: P]: P[Param] = P(ParserUtils.identifier ~ ":" ~ typeanno).map(t => Param(t._1, t._2))
+
+  def annoparam[_: P] = P(ParserUtils.identifier.? ~ ":")
 }

@@ -18,15 +18,24 @@ object ParserUtils {
   // def identifier[_: P]: P[String] = P((CharIn("a-z").! | CharIn("A-Z").!) ~ (CharIn("a-z").! | CharIn("A-Z").! | digit).rep)
   //   .map(t => t._1 + t._2.mkString)
 
-  /** Parse a variable identifier */
+  /** Parse a variable identifier.
+   *  The first character must be an alphabetical one. After that digits and underscores are also allowed*/
   def identifier[_: P]: P[String] =
-    P(P(CharIn("a-z", "A-Z")) ~ P(CharIn("a-z", "A-Z", "0-9", "_").rep(0))).!
+    P(CharIn("a-z", "A-Z") ~ CharIn("a-z", "A-Z", "0-9", "_").rep(0)).!
 
   /**
    * A parser for integer literals in base 10. It does not allow leading zeroes
    */
-  def integer[_: P]: P[Int] = P("0 ".! | (CharIn("1-9").! ~ digit.rep).map(t => t._1 + t._2.mkString)).map(_.toInt)
+  def integer[_: P]: P[Int] = P(rawInteger).map(_.toInt)
+
+  def long[_: P]: P[Long] = P(rawInteger).map(_.toLong)
 
   private def digit[_: P] = P(CharIn("0-9").!)
 
+  //todo fix leading zeroes issue
+  private def rawInteger[_: P] = P(
+    "0" |
+      (("+".! | "-".!).?
+      ~ (CharIn("1-9") ~ digit.rep))
+  ).!
 }
