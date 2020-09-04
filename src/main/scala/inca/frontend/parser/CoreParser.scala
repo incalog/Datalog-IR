@@ -3,6 +3,7 @@ package inca.frontend.parser
 import inca.frontend.core.Core._
 import fastparse._
 import NoWhitespace._
+import ParserUtils._
 
 /**
   * Parser for the IncA Core language.
@@ -18,7 +19,7 @@ object CoreParser {
   def tanylinked[_: P]: P[TLinked] =
     P(P(TAnyLinked.prettyprint).map(_ => TAnyLinked))
 
-  def tnode[_: P]: P[TLinked] = P(P(ParserUtils.identifier).!.map(TNode(_)))
+  def tnode[_: P]: P[TLinked] = P(P(identifier).!.map(TNode(_)))
 
   /** Helper for the basic TypeAnno like TAny. */
   private def typeanno_helper[_: P](t: TypeAnno): P[TypeAnno] =
@@ -37,8 +38,8 @@ object CoreParser {
   /** Visibility parser */
   def visibility[_: P]: P[Visibility] =
     P(
-      P((P(" ").rep() ~ P(Private.prettyprint(""))).map(_ => Private)) |
-        P((P(" ").rep() ~ P(Public.prettyprint(""))).map(_ => Public))
+      P((s_i ~ P(Private.prettyprint(""))).map(_ => Private)) |
+        P((s_i ~ P(Public.prettyprint(""))).map(_ => Public))
     )
 
   /**
@@ -56,13 +57,13 @@ object CoreParser {
   /** TList parser */
   def tlist[_: P]: P[TList] =
     P(
-      P("List[" ~ tlinked ~ "]").map(TList(_))
+      P("List" ~ s_i ~ "[" ~ s_i ~ tlinked ~ s_i ~ "]").map(TList(_))
     )
 
   /** TEnumeration parser */
   def tenumeration[_: P]: P[TEnumeration] =
     P(
-      P("Enum[" ~ tlinked ~ "]").map(TEnumeration(_))
+      P("Enum" ~ s_i ~ "[" ~ s_i ~ tlinked ~ s_i ~ "]").map(TEnumeration(_))
     )
 
   /** TIterable parser */

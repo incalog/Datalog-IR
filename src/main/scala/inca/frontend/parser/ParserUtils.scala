@@ -10,22 +10,20 @@ import ScalaWhitespace._
   */
 object ParserUtils {
 
-  // I don't know if this version works, as I already wrote the test cases for the other one.
-  // /**
-  //  * A parser for identifiers typically used in programming languages. They might only contain non-special
-  //  * ASCII characters and not start with a digit.
-  //  */
-  // def identifier[_: P]: P[String] = P((CharIn("a-z").! | CharIn("A-Z").!) ~ (CharIn("a-z").! | CharIn("A-Z").! | digit).rep)
-  //   .map(t => t._1 + t._2.mkString)
-
   /** Parse a variable identifier */
   def identifier[_: P]: P[String] =
     P(P(CharIn("a-z", "A-Z")) ~ P(CharIn("a-z", "A-Z", "0-9", "_").rep(0))).!
 
-  /**
-    * A parser for integer literals in base 10. It does not allow leading zeroes
-    */
-  def integer[_: P]: P[Any] =
+  /** A parser for integer literals in base 10. It does not allow leading zeroes */
+  def integer[_: P]: P[Int] =
     P(P(CharIn("1-9") ~ CharsWhileIn("0-9").?).! | P("0" ~ End).!).map(_.toInt)
-    // P("0 ".! | (CharIn("1-9").! ~ digit.rep).map(t => t._1 + t._2.mkString)).map(_.toInt)
+
+  /** Parser consuming all whitespaces by ignoring them. */
+  def w_i[_:P]:P[Unit] = CharsWhileIn("\n \t").?
+  /** Parser consuming all spaces by ignoring them. */
+  def s_i[_:P]:P[Unit] = CharsWhileIn(" ").?
+  /** Parser consuming all tabulators by ignoring them. */
+  def t_i[_:P]:P[Unit] = CharsWhileIn("\t").?
+  /** Parser consuming all newline characters by ignoring them. */
+  def n_i[_:P]:P[Unit] = CharsWhileIn("\n").?
 }

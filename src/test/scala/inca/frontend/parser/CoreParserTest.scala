@@ -91,7 +91,7 @@ class CoreParserTest extends AnyFunSuite {
       case _: Failure => fail()
     }
 
-    parse("Enum[br0t]", CoreParser.titerable(_)) match {
+    parse("Enum [br0t]", CoreParser.titerable(_)) match {
       case Success(value, index) => {
         value match {
           case TEnumeration(contained) => assert(contained === TNode("br0t"))
