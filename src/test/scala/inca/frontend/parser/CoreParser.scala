@@ -1,65 +1,78 @@
 package inca.frontend.parser
 
 import org.scalatest.funsuite.AnyFunSuite
-import fastparse._ 
+import fastparse._
 import NoWhitespace._
 import inca.frontend.core.Core._
 import fastparse.Parsed.Success
 import fastparse.Parsed.Failure
+import inca.frontend.core.Core
 
 /**
   * Test class for the IncA core language parser @see CoreParser.
-  * 
+  *
   * @todo    unfinished
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
-class CoreParserTest extends AnyFunSuite
-{
-    test("Test TypeAnno"){
-        def test_helper(t : TypeAnno) = {
-            parse(t.prettyprint, CoreParser.typeanno(_)) match  {
-                case Success(value, index) => assert(value === t)
-                case _: Failure => fail()
-            }
-            parse(s" ${t.prettyprint}", CoreParser.typeanno(_)) match  {
-                case Success(value, index) => fail()
-                case _: Failure => {}
-            }
-        }
+class CoreParserTest extends AnyFunSuite {
 
-        test_helper(TAny)
-        test_helper(TInt)
-        test_helper(TBool)
-        test_helper(TDouble)
-        test_helper(TLong)
-        test_helper(TString)
+  test("Test TypeAnno") {
+    def test_helper(t: TypeAnno) = {
+      parse(t.prettyprint, CoreParser.typeanno(_)) match {
+        case Success(value, index) => assert(value === t)
+        case _: Failure            => fail()
+      }
+      parse(s" ${t.prettyprint}", CoreParser.typeanno(_)) match {
+        case Success(value, index) => fail()
+        case _: Failure            => {}
+      }
     }
 
-    test("Test Visibility") {
-        parse("public", CoreParser.visibility(_)) match {
-            case _: Failure => fail()
-            case Success(value, index) => assert(value === Public)
-        }
-        parse("    public", CoreParser.visibility(_)) match {
-            case _: Failure => fail()
-            case Success(value, index) => assert(value === Public)
-        }
-        parse("private", CoreParser.visibility(_)) match {
-            case _: Failure => fail()
-            case Success(value, index) => assert(value === Private)
-        }
-        parse("   private", CoreParser.visibility(_)) match {
-            case _: Failure => fail()
-            case Success(value, index) => assert(value === Private)
-        }
-        parse("provate", CoreParser.visibility(_)) match {
-            case _: Failure => {}
-            case Success(value, index) => fail()
-        }
-        parse("prpublic", CoreParser.visibility(_)) match {
-            case _: Failure => {}
-            case Success(value, index) => fail()
-        }
-    }
+    Seq(
+      TAny,
+      TInt,
+      TBool,
+      TDouble,
+      TLong,
+      TString,
+      TAnyLinked,
+      TNode("t0mat3"),
+      TNode("apf3l"),
+      TNode("k1r5ch3")
+    ).map(test_helper(_))
+  }
+
+  test("Test Visibility") {
+    def positive(v: Visibility)(t: String) =
+      parse(t, CoreParser.visibility(_)) match {
+        case _: Failure            => fail()
+        case Success(value, index) => assert(value === v)
+      }
+    def negative(v: String) =
+      parse(v, CoreParser.visibility(_)) match {
+        case Failure(label, index, extra) => {}
+        case Success(value, index)        => fail()
+      }
+
+    Seq("public", "   public", " public").map(positive(Public)(_))
+    Seq("private", "   private", " private").map(positive(Private)(_))
+    Seq("provate", "  prbplic", "   plsplapic", "bluplic").map(negative(_))
+  }
+
+  test("Test Identifier") {
+    def positive(v: String) =
+      parse(v, CoreParser.identifier(_)) match {
+        case Failure(label, index, extra) => fail()
+        case Success(value, index)        => assert(value === v)
+      }
+    def negative(v: String) =
+      parse(v, CoreParser.identifier(_)) match {
+        case Failure(label, index, extra) => {}
+        case Success(value, index)        => fail()
+      }
+      
+    Seq("kuch3n", "k3k53", "t33", "kl33", "br0t", "s0nn3nblum3").map(positive(_))
+    Seq("3553n", "71nux", " ", "53h3n").map(negative(_))
+  }
 }
