@@ -59,4 +59,56 @@ class CoreParserTest extends AnyFunSuite {
     Seq("private", "   private", " private").map(positive(Private)(_))
     Seq("provate", "  prbplic", "   plsplapic", "bluplic").map(negative(_))
   }
+
+  test("test TIterable") {
+    parse("List[node]", CoreParser.titerable(_)) match {
+      case Success(value, index) => {
+        value match {
+          case TEnumeration(contained) => fail()
+          case TList(contained)        => assert(contained === TAnyLinked)
+        }
+      }
+      case _: Failure => fail()
+    }
+
+    parse("List[apf3l]", CoreParser.titerable(_)) match {
+      case Success(value, index) => {
+        value match {
+          case TEnumeration(contained) => fail()
+          case TList(contained)        => assert(contained === TNode("apf3l"))
+        }
+      }
+      case _: Failure => fail()
+    }
+
+    parse("Enum[node]", CoreParser.titerable(_)) match {
+      case Success(value, index) => {
+        value match {
+          case TEnumeration(contained) => assert(contained === TAnyLinked)
+          case TList(contained)        => fail()
+        }
+      }
+      case _: Failure => fail()
+    }
+
+    parse("Enum[br0t]", CoreParser.titerable(_)) match {
+      case Success(value, index) => {
+        value match {
+          case TEnumeration(contained) => assert(contained === TNode("br0t"))
+          case TList(contained)        => fail()
+        }
+      }
+      case _: Failure => fail()
+    }
+
+    parse("Enum[999]", CoreParser.titerable(_)) match {
+      case Success(value, index) => fail()
+      case _: Failure => {}
+    }
+
+    parse("List[666]", CoreParser.titerable(_)) match {
+      case Success(value, index) => fail()
+      case _: Failure => {}
+    }
+  }
 }

@@ -26,7 +26,7 @@ object CoreParser {
 
   def tlinked[_: P]: P[TLinked] = P(tanylinked | tnode | tlist)
 
-  /** TypeAnno base parser */
+  /** TypeAnno parser */
   def typeanno[_: P]: P[TypeAnno] =
     P(
       typeanno_helper(TAny) | typeanno_helper(TBool) | typeanno_helper(TLong) |
@@ -34,7 +34,7 @@ object CoreParser {
         tlinked
     )
 
-  /** Visibility base parser */
+  /** Visibility parser */
   def visibility[_: P]: P[Visibility] =
     P(
       P((P(" ").rep() ~ P(Private.prettyprint(""))).map(_ => Private)) |
@@ -53,7 +53,16 @@ object CoreParser {
         | ("(" ~ typeanno.rep(min = 2, sep = ",") ~ ")").map(TTuple)
     )
 
+  /** TList parser */
   def tlist[_:P]:P[TList] = P(
     P("List[" ~ tlinked ~ "]").map(TList(_))
   )
+
+  /** TEnumeration parser */
+  def tenumeration[_:P]:P[TEnumeration] = P(
+    P("Enum[" ~ tlinked ~ "]").map(TEnumeration(_))
+  )
+
+  /** TIterable parser */
+  def titerable[_:P]:P[TIterable] = P(tlist | tenumeration)
 }
