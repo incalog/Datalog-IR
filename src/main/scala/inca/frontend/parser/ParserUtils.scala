@@ -15,10 +15,6 @@ object ParserUtils {
   def identifier[_: P]: P[String] =
     P(CharIn("a-z", "A-Z") ~ CharIn("a-z", "A-Z", "0-9", "_").rep(0)).!
 
-  /** A parser for integer literals in base 10. It does not allow leading zeroes */
-  def integer[_: P]: P[Int] =
-    P(P(CharIn("1-9") ~ CharsWhileIn("0-9").?).! | P("0" ~ End).!).map(_.toInt)
-
   /** Parser consuming all whitespaces by ignoring them. */
   def w_i[_:P]:P[Unit] = CharsWhileIn("\n \t").?
   /** Parser consuming all spaces by ignoring them. */
@@ -27,13 +23,14 @@ object ParserUtils {
   def t_i[_:P]:P[Unit] = CharsWhileIn("\t").?
   /** Parser consuming all newline characters by ignoring them. */
   def n_i[_:P]:P[Unit] = CharsWhileIn("\n").?
-  /**
-   * A parser for integer literals in base 10. It does not allow leading zeroes
-   */
+  
+  /** A parser for integer literals in base 10. It does not allow leading zeroes */
   def integer[_: P]: P[Int] = P(rawInteger).map(_.toInt)
-
+  
+  /** A parser for long literals in base 10. It does not allow leading zeroes */
   def long[_: P]: P[Long] = P(rawInteger).map(_.toLong)
-
+  
+  /** A parser for number literals in base 10. It does not allow leading zeroes */
   private def rawInteger[_: P] = P(
     (("+" | "-").? ~ CharIn("1-9") ~ CharsWhileIn("0-9").?).! | P("0" ~ End).!
   )
