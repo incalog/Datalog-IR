@@ -15,23 +15,23 @@ import NoWhitespace._
   */
 object CoreParser {
 
-  def tanylinked_typeanno[_: P]: P[TLinked] =
+  def tanylinked[_: P]: P[TLinked] =
     P(P(TAnyLinked.prettyprint).map(_ => TAnyLinked))
 
-  def tnode_typeanno[_: P]: P[TLinked] = P(P(ParserUtils.identifier).!.map(TNode(_)))
+  def tnode[_: P]: P[TLinked] = P(P(ParserUtils.identifier).!.map(TNode(_)))
 
   /** Helper for the basic TypeAnno like TAny. */
-  private def typeanno_helper[_: P](t: TypeAnno): P[TypeAnno] =
+  private def typeanno_helper[_: P](t: TypeAnno): P[TypeAnno] = 
     P(P(t.prettyprint).map(_ => t))
 
-  def tlinked_typeanno[_: P]: P[TLinked] = P(tanylinked_typeanno | tnode_typeanno)
+  def tlinked[_: P]: P[TLinked] = P(tanylinked | tnode | tlist)
 
   /** TypeAnno base parser */
   def typeanno[_: P]: P[TypeAnno] =
     P(
       typeanno_helper(TAny) | typeanno_helper(TBool) | typeanno_helper(TLong) |
         typeanno_helper(TInt) | typeanno_helper(TDouble) | typeanno_helper(TString) |
-        tlinked_typeanno
+        tlinked
     )
 
   /** Visibility base parser */
@@ -46,10 +46,14 @@ object CoreParser {
     * @todo  should single element tuples with parens be allowed?
     * @todo  test missing
     */
-  def ttuple_typeanno[_: P]: P[TTuple] =
+  def ttuple[_: P]: P[TTuple] =
     P(
       "Unit".!.map(_ => TTuple(Seq.empty))
         | typeanno.map(typ => TTuple(Seq(typ)))
         | ("(" ~ typeanno.rep(min = 2, sep = ",") ~ ")").map(TTuple)
     )
+
+  def tlist[_:P]:P[TList] = P(
+    P("List[" ~ tlinked ~ "]").map(TList(_))
+  )
 }
