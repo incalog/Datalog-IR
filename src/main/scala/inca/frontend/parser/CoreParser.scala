@@ -3,6 +3,7 @@ package inca.frontend.parser
 import inca.frontend.core.Core._
 import fastparse._
 import NoWhitespace._
+import ParserUtils._
 
 /**
   * Parser for the IncA Core language.
@@ -21,7 +22,7 @@ object CoreParser {
   def tnode[_: P]: P[TLinked] = P(P(ParserUtils.identifier).!.map(TNode))
 
   /** Helper for the basic TypeAnno like TAny. */
-  private def typeanno_helper[_: P](t: TypeAnno): P[TypeAnno] = 
+  private def typeanno_helper[_: P](t: TypeAnno): P[TypeAnno] =
     P(P(t.prettyprint).map(_ => t))
 
   def tlinked[_: P]: P[TLinked] = P(tanylinked | tnode | tlist)
