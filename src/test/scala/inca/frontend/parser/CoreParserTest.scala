@@ -103,12 +103,12 @@ class CoreParserTest extends AnyFunSuite {
 
     parse("Enum[999]", CoreParser.titerable(_)) match {
       case Success(value, index) => fail()
-      case _: Failure => {}
+      case _: Failure            => {}
     }
 
     parse("List[666]", CoreParser.titerable(_)) match {
       case Success(value, index) => fail()
-      case _: Failure => {}
+      case _: Failure            => {}
     }
   }
 }

@@ -30,12 +30,7 @@ object ParserUtils {
 
   def long[_: P]: P[Long] = P(rawInteger).map(_.toLong)
 
-  private def digit[_: P] = P(CharIn("0-9").!)
-
-  //todo fix leading zeroes issue
   private def rawInteger[_: P] = P(
-    "0" |
-      (("+".! | "-".!).?
-      ~ (CharIn("1-9") ~ digit.rep))
-  ).!
+    (CharIn("1-9") ~ CharsWhileIn("0-9").?).! | P("0" ~ End).!
+  )
 }

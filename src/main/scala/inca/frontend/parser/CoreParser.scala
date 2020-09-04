@@ -31,7 +31,7 @@ object CoreParser {
     P(
       typeanno_helper(TAny) | typeanno_helper(TBool) | typeanno_helper(TLong) |
         typeanno_helper(TInt) | typeanno_helper(TDouble) | typeanno_helper(TString) |
-        tlinked
+        tlinked | titerable
     )
 
   /** Visibility parser */
@@ -54,12 +54,12 @@ object CoreParser {
 
   /** TList parser */
   def tlist[_:P]:P[TList] = P(
-    P("List[" ~ tlinked ~ "]").map(TList)
+    P("List[" ~ tlinked ~ "]").map(TList(_))
   )
 
   /** TEnumeration parser */
   def tenumeration[_:P]:P[TEnumeration] = P(
-    P("Enum[" ~ tlinked ~ "]").map(TEnumeration)
+    P("Enum[" ~ tlinked ~ "]").map(TEnumeration(_))
   )
 
   /** TIterable parser */
