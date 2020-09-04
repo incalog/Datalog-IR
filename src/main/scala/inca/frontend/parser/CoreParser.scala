@@ -8,26 +8,23 @@ import NoWhitespace._
   * Parser for the IncA Core language.
   *
   * @todo    unfinished
+  * @todo    whitspacing
   * @version 0.0.1
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
 object CoreParser {
-  
-  /** Parse a variable identifier */
-  def identifier[_: P]: P[String] =
-    P(P(CharIn("a-z", "A-Z")) ~ P(CharIn("a-z", "A-Z", "0-9", "_").rep(0))).!
 
   def tanylinked_typeanno[_: P]: P[TLinked] =
     P(P(TAnyLinked.prettyprint).map(_ => TAnyLinked))
 
-  def tnode_typeanno[_: P]: P[TLinked] = P(P(identifier).!.map(TNode(_)))
+  def tnode_typeanno[_: P]: P[TLinked] = P(P(ParserUtils.identifier).!.map(TNode(_)))
 
   /** Helper for the basic TypeAnno like TAny. */
   private def typeanno_helper[_: P](t: TypeAnno): P[TypeAnno] =
     P(P(t.prettyprint).map(_ => t))
 
-  def tlinked_typeanno[_:P]: P[TLinked] = P(tanylinked_typeanno | tnode_typeanno)
+  def tlinked_typeanno[_: P]: P[TLinked] = P(tanylinked_typeanno | tnode_typeanno)
 
   /** TypeAnno base parser */
   def typeanno[_: P]: P[TypeAnno] =
@@ -42,5 +39,17 @@ object CoreParser {
     P(
       P((P(" ").rep() ~ P(Private.prettyprint(""))).map(_ => Private)) |
         P((P(" ").rep() ~ P(Public.prettyprint(""))).map(_ => Public))
+    )
+
+  /**
+    * TTuple parser
+    * @todo  should single element tuples with parens be allowed?
+    * @todo  test missing
+    */
+  def ttuple_typeanno[_: P]: P[TTuple] =
+    P(
+      "Unit".!.map(_ => TTuple(Seq.empty))
+        | typeanno.map(typ => TTuple(Seq(typ)))
+        | ("(" ~ typeanno.rep(min = 2, sep = ",") ~ ")").map(TTuple)
     )
 }

@@ -17,7 +17,7 @@ import inca.frontend.core.Core
   */
 class CoreParserTest extends AnyFunSuite {
 
-  test("Test TypeAnno") {
+  test("test TypeAnno") {
     def test_helper(t: TypeAnno) = {
       parse(t.prettyprint, CoreParser.typeanno(_)) match {
         case Success(value, index) => assert(value === t)
@@ -43,7 +43,7 @@ class CoreParserTest extends AnyFunSuite {
     ).map(test_helper(_))
   }
 
-  test("Test Visibility") {
+  test("test Visibility") {
     def positive(v: Visibility)(t: String) =
       parse(t, CoreParser.visibility(_)) match {
         case _: Failure            => fail()
@@ -58,21 +58,5 @@ class CoreParserTest extends AnyFunSuite {
     Seq("public", "   public", " public").map(positive(Public)(_))
     Seq("private", "   private", " private").map(positive(Private)(_))
     Seq("provate", "  prbplic", "   plsplapic", "bluplic").map(negative(_))
-  }
-
-  test("Test Identifier") {
-    def positive(v: String) =
-      parse(v, CoreParser.identifier(_)) match {
-        case Failure(label, index, extra) => fail()
-        case Success(value, index)        => assert(value === v)
-      }
-    def negative(v: String) =
-      parse(v, CoreParser.identifier(_)) match {
-        case Failure(label, index, extra) => {}
-        case Success(value, index)        => fail()
-      }
-      
-    Seq("kuch3n", "k3k53", "t33", "kl33", "br0t", "s0nn3nblum3").map(positive(_))
-    Seq("3553n", "71nux", " ", "53h3n").map(negative(_))
   }
 }
