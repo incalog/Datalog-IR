@@ -28,11 +28,4 @@ object ParserUtils {
   def integer[_: P]: P[Any] =
     P(P(CharIn("1-9") ~ CharsWhileIn("0-9").?).! | P("0" ~ End).!).map(_.toInt)
     // P("0 ".! | (CharIn("1-9").! ~ digit.rep).map(t => t._1 + t._2.mkString)).map(_.toInt)
-
-  private def digit[_: P] = P(CharIn("0-9").!)
-
-  def main(args: Array[String]) {
-    println(parse("1", integer(_)))
-  }
-
 }
