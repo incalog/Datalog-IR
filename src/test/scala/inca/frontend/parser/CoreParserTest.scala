@@ -132,10 +132,40 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test DoubleLiteral") {
-    parse("1.0", CoreParser.doubleLiteral(_)) match {
-      case Success(DoubleLiteral(1d), _) =>
-      case _                             => fail()
+    def test_helper(input: String, r: Double) = {
+      parse(input, CoreParser.doubleLiteral(_)) match {
+        case Success(DoubleLiteral(result), _) => assert(result == r)
+        case Failure(label, index, extra) => println(label, index, extra)
+      }
     }
+    test_helper("1.", 1d)
+    test_helper("1d", 1d)
+    test_helper("1.0", 1d)
+    test_helper("1.0d", 1d)
+    test_helper("12.", 12d)
+    test_helper("12d", 12d)
+    test_helper("12.0", 12d)
+    test_helper("12.0d", 12d)
+    test_helper("0d", 0d)
+    test_helper("0.", 0d)
+    test_helper("0.0", 0d)
+    test_helper("0.0d", 0d)
+    test_helper("-1d", -1d)
+    test_helper("-1.", -1d)
+    test_helper("-1.0", -1d)
+    test_helper("-1.0d", -1d)
+    test_helper("-12d", -12d)
+    test_helper("-12.", -12d)
+    test_helper("-12.0", -12d)
+    test_helper("-12.0d", -12d)
+    test_helper("-1.1d", -1.1d)
+    test_helper("-1.1", -1.1d)
+    test_helper("-1.12", -1.12d)
+    test_helper("-1.12d", -1.12d)
+    test_helper("-12.1d", -12.1d)
+    test_helper("-12.1", -12.1d)
+    test_helper("-12.12", -12.12d)
+    test_helper("-12.12d", -12.12d)
   }
 
   test("test UnitLiteral") {
@@ -190,11 +220,12 @@ class CoreParserTest extends AnyFunSuite {
   test("test Constant") {
     def check(lit: String, expected: Literal): Unit = {
       parse(lit, CoreParser.constantCoreExp(_)) match {
-        case Success(Constant(literal), _) => if(literal != expected) {
-          println(literal)
-          fail()
-        }
-        case _                                                    => fail()
+        case Success(Constant(literal), _) =>
+          if (literal != expected) {
+            println(literal)
+            fail()
+          }
+        case _ => fail()
       }
     }
     check("1", IntLiteral(1))
@@ -236,6 +267,7 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test CoreExp") {
+    // @todo More test cases
     def test_helper(code: String, ast: CoreExp) {
       parse(code, CoreParser.coreExp(_)) match {
         case Failure(label, index, extra) => {}
@@ -294,14 +326,30 @@ class CoreParserTest extends AnyFunSuite {
         )
       )
     )
+    test_helper(
+      "\"String\" instanceOf string",
+      InstanceOf(
+        Constant(StringLiteral("String")),
+        TString
+      )
+    )
+    test_helper(
+      "9.7d notInstanceOf int",
+      NotInstanceOf(Constant(DoubleLiteral(9.7)), TInt)
+    )
+    test_helper(
+      "8.7 instanceOf Float",
+      InstanceOf(
+        Constant(DoubleLiteral(8.7)),
+        TNode("Float")
+      )
+    )
   }
 
   private def checkExp(ex: Exp): Unit = {
     val input = ex.prettyprint("")
-    println(input)
     parse(input, CoreParser.exp(_)) match {
       case Success(expr, _) => {
-        println(expr, ex)
         assert(expr == ex)
       }
       case Failure(label, index, extra) => fail(s"${label}, ${index}, ${extra}")

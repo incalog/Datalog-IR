@@ -50,6 +50,6 @@ object ParserUtils {
 
   private def rawDouble[_: P] =
     P(
-      rawInteger ~ "d" | (("0" | rawInteger) ~ "." ~ CharsWhileIn("0-9", 1).?)
+      rawInteger ~ "d" | (("0" | rawInteger) ~ "." ~ CharsWhileIn("0-9", 1).? ~ "d".?)
     ).!
 }

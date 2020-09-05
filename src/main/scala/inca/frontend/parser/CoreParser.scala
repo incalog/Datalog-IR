@@ -147,14 +147,10 @@ object CoreParser {
   /** NamedLink parser */
   def namedLink[_: P](node: TNode): P[NamedLink] = P(identifier).map(NamedLink(node, _))
 
-
   /** Exp parser */
   def exp[_: P]: P[Exp] = P(coreExp | bracketExp)
 
-  /**
-    * CoreExp parser
-    * @todo fix stack overflow on Def and Undef parsing
-    */
+  /** CoreExp parser */
   def coreExp[_: P]: P[CoreExp] =
     P(
       defCoreExp
