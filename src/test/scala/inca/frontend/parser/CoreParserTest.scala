@@ -107,35 +107,51 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test IntLiteral") {
-    parse("1", CoreParser.intLiteral(_)) match {
-      case Success(IntLiteral(1), _) =>
-      case _                         => fail()
-    }
+    def test_helper(input: String, cmp: Int) =
+      parse(input, CoreParser.intLiteral(_)) match {
+        case Success(IntLiteral(x), _) => assert(x === cmp)
+        case _                         => fail()
+      }
+
+    test_helper("0", 0)
+    test_helper("1", 1)
+    test_helper("12", 12)
+    test_helper("-1", -1)
+    test_helper("-12", -12)
   }
 
   test("test BooleanLiteral") {
-    def check(b: Boolean): Unit = {
+    def test_helper(b: Boolean): Unit = {
       parse(b.toString, CoreParser.booleanLiteral(_)) match {
-        case Success(BooleanLiteral(bool), _) if bool == b =>
-        case _                                             => fail()
+        case Success(BooleanLiteral(bool), _) => assert(bool === b)
+        case _                                => fail()
       }
     }
-    check(true)
-    check(false)
+    test_helper(true)
+    test_helper(false)
   }
 
   test("test LongLiteral") {
-    parse("1L", CoreParser.longLiteral(_)) match {
-      case Success(LongLiteral(1), _) =>
-      case _                          => fail()
+    def test_helper(input: String, r: Long) = {
+      parse(input, CoreParser.longLiteral(_)) match {
+        case Success(LongLiteral(result), _) => assert(result == r)
+        case _                               => fail()
+      }
     }
+    test_helper("1L", 1L)
+    test_helper("-1L", -1L)
+    test_helper("11L", 11L)
+    test_helper("-11L", -11L)
   }
 
   test("test DoubleLiteral") {
     def test_helper(input: String, r: Double) = {
       parse(input, CoreParser.doubleLiteral(_)) match {
         case Success(DoubleLiteral(result), _) => assert(result == r)
-        case Failure(label, index, extra) => println(label, index, extra)
+        case Failure(label, index, extra) => {
+          println(Failure(label, index, extra))
+          fail()
+        }
       }
     }
     test_helper("1.", 1d)
@@ -183,17 +199,23 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test AnnoParam with name") {
-    parse(s"(param:${TBool.prettyprint})", CoreParser.annoParam(_)) match {
-      case Success(AnnoParam(Some("param"), TBool), _) =>
-      case _                                           => fail()
-    }
+    def test_helper(t: TypeAnno) =
+      parse(s"(param:${t.prettyprint})", CoreParser.annoParam(_)) match {
+        case Success(AnnoParam(Some("param"), t), _) =>
+        case _                                       => fail()
+      }
+
+    Seq(TBool, TDouble, TString, TInt, TLong, TAnyLinked, TNode("br0t")).map(test_helper)
   }
 
   test("test AnnoParam without name") {
-    parse(s"${TBool.prettyprint}", CoreParser.annoParam(_)) match {
-      case Success(AnnoParam(None, TBool), _) =>
-      case _                                  => fail()
-    }
+    def test_helper(t: TypeAnno) =
+      parse(TBool.prettyprint, CoreParser.annoParam(_)) match {
+        case Success(AnnoParam(None, TBool), _) =>
+        case _                                  => fail()
+      }
+
+    Seq(TBool, TDouble, TString, TInt, TLong, TAnyLinked, TNode("br0t")).map(test_helper)
   }
 
   test("test Link core-links") {
@@ -211,6 +233,7 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test Var") {
+    // see: identifier
     parse("variable", CoreParser.varCoreExp(_)) match {
       case Success(Var("variable"), _) =>
       case _                           => fail()
@@ -267,7 +290,7 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test CoreExp") {
-    // @todo More test cases
+    // @todo TODO: Add more test cases. 
     def test_helper(code: String, ast: CoreExp) {
       parse(code, CoreParser.coreExp(_)) match {
         case Failure(label, index, extra) => {}
@@ -344,10 +367,70 @@ class CoreParserTest extends AnyFunSuite {
         TNode("Float")
       )
     )
+    test_helper(
+      "x instanceOf (bool,br0t)",
+      InstanceOf(
+        Var("x"),
+        TTuple(Seq(TBool, TNode("br0t")))
+      )
+    )
+
+    test_helper(
+      "undef x notInstanceOf (double)",
+      Undef(
+        NotInstanceOf(
+          Var("x"),
+          TTuple(Seq(TDouble))
+        )
+      )
+    )
+    test_helper(
+      "x instanceOf bool != x notInstanceOf double", // fails
+      Neq(
+        InstanceOf(
+          Var("x"),
+          TBool
+        ),
+        NotInstanceOf(
+          Var("x"),
+          TDouble
+        )
+      )
+    )
+    test_helper(
+      "x instanceOf (bool, br0t) != undef x notInstanceOf (double)", // fails
+      Neq(
+        InstanceOf(
+          Var("x"),
+          TTuple(Seq(TBool, TNode("br0t")))
+        ),
+        Undef(
+          NotInstanceOf(
+            Var("x"),
+            TTuple(Seq(TDouble))
+          )
+        )
+      )
+    )
+  }
+
+  test("test TTuple") {
+    def test_helper(input: String, cmp: TTuple) =
+      parse(input, CoreParser.tTuple(_)) match {
+        case Success(value, _) =>
+        case _                 => fail()
+      }
+
+    test_helper("(int,string)", TTuple(Seq(TInt, TString)))
+    test_helper("(int, string)", TTuple(Seq(TInt, TString)))
+    test_helper("(int string)", TTuple(Seq(TInt, TString)))
+    test_helper(" ( int , string ) ", TTuple(Seq(TInt, TString)))
+    test_helper("(double)", TTuple(Seq(TDouble)))
+    test_helper("Unit", TTuple(Seq.empty))
   }
 
   private def checkExp(ex: Exp): Unit = {
-    val input = ex.prettyprint("")
+    val input = ex.prettyprint("") // @todo prettyprint != AST @bug
     parse(input, CoreParser.exp(_)) match {
       case Success(expr, _) => {
         assert(expr == ex)

@@ -4,6 +4,7 @@ import inca.frontend.core.Core._
 import fastparse._
 import NoWhitespace._
 import ParserUtils._
+import inca.frontend.core.Core
 
 /**
   * Parser for the IncA Core language.
@@ -32,7 +33,7 @@ object CoreParser {
     P(
       typeAnnoHelper(TAny) | typeAnnoHelper(TBool) | typeAnnoHelper(TLong) |
         typeAnnoHelper(TInt) | typeAnnoHelper(TDouble) | typeAnnoHelper(TString) |
-        tLinked | tIterable
+        tLinked | tIterable | tTuple
     )
 
   /** Visibility parser */
@@ -42,15 +43,13 @@ object CoreParser {
         P(" ".rep() ~ P(Public.prettyprint(""))).map(_ => Public)
     )
 
-  /**
-    * TTuple parser
-    * @todo  test missing
-    */
+  /** TTuple parser */
   def tTuple[_: P]: P[TTuple] =
     P(
       "Unit".!.map(_ => TTuple(Seq.empty))
-        | typeAnno.map(typ => TTuple(Seq(typ)))
-        | ("(" ~ typeAnno.rep(min = 1, sep = ",") ~ ")").map(TTuple)
+        | (s_i ~ "(" ~ s_i ~ P(typeAnno ~ s_i ~ ",".? ~ s_i).rep(1) ~ ")" ~ s_i)
+          .map(TTuple)
+      // | typeAnno.map(typ => TTuple(Seq(typ))) // @todo uniqueness TBool == TTuple(TBool)
     )
 
   /** TList parser */
@@ -67,7 +66,6 @@ object CoreParser {
 
   /** TIterable parser */
   def tIterable[_: P]: P[TIterable] = P(tList | tEnumeration)
-
 
   /** Literal parser */
   def literal[_: P]: P[Literal] =
@@ -155,18 +153,34 @@ object CoreParser {
     P(
       defCoreExp
         | undefCoreExp
-        | instanceOfCoreExp
         | eqCoreExp
         | neqCoreExp
+        | instanceOfCoreExp
         | notInstanceOfCoreExp
         | varCoreExp
         | constantCoreExp
     )
 
-  def terminateExp[_: P]: P[Exp] = P(constantCoreExp | varCoreExp | bracketExp | exp)
+  def terminateExpEquality[_: P]: P[Exp] =
+    P(
+      instanceOfCoreExp
+        | notInstanceOfCoreExp
+        | varCoreExp
+        | constantCoreExp
+        | bracketExp
+        | exp
+    )
+
+  def terminateExpInstance[_: P]: P[Exp] =
+    P(
+      constantCoreExp
+        | varCoreExp
+        | bracketExp
+        | exp
+    )
 
   /** Bracket parser */
-  def bracketExp[_: P]: P[Exp] = P("(" ~ w_i ~ exp ~ w_i ~ ")")
+  def bracketExp[_: P]: P[Exp] = P("(" ~ s_i ~ exp ~ s_i ~ ")")
 
   /** Var parser */
   def varCoreExp[_: P]: P[Var] = P(identifier).map(Var)
@@ -176,29 +190,27 @@ object CoreParser {
 
   /** Eq parser */
   def eqCoreExp[_: P]: P[Eq] =
-    P(terminateExp ~ w_i ~ "==" ~ w_i ~ exp).map { case (l, r) => Eq(l, r) }
+    P(terminateExpEquality ~ s_i ~ "==" ~ s_i ~ exp).map { case (l, r) => Eq(l, r) }
 
   /** Neq parser */
   def neqCoreExp[_: P]: P[Neq] =
-    P(terminateExp ~ w_i ~ "!=" ~ w_i ~ exp).map {
-      case (e1, e2) => Neq(e1, e2)
-    }
+    P(terminateExpEquality ~ s_i ~ "!=" ~ s_i ~ exp).map { case (e1, e2) => Neq(e1, e2) }
 
   /** Def parser */
-  def defCoreExp[_: P]: P[Def] = P("def " ~ exp).map(Def)
+  def defCoreExp[_: P]: P[CoreExp] = P("def " ~ exp).map(Def)
 
   /** Undef parser */
   def undefCoreExp[_: P]: P[Undef] = P("undef " ~ exp).map(Undef)
 
   /** InstanceOf parser */
   def instanceOfCoreExp[_: P]: P[InstanceOf] =
-    P(terminateExp ~ " " ~ w_i ~ "instanceOf " ~ w_i ~ typeAnno).map {
+    P(terminateExpInstance ~ " " ~ w_i ~ "instanceOf " ~ w_i ~ typeAnno).map {
       case (e, typ) => InstanceOf(e, typ)
     }
 
   /** NotInstanceOf parser */
   def notInstanceOfCoreExp[_: P]: P[NotInstanceOf] =
-    P(terminateExp ~ " " ~ w_i ~ "notInstanceOf " ~ w_i ~ typeAnno).map {
+    P(terminateExpInstance ~ " " ~ w_i ~ "notInstanceOf " ~ w_i ~ typeAnno).map {
       case (e, typ) => NotInstanceOf(e, typ)
     }
 }
