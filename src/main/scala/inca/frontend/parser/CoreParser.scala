@@ -154,10 +154,6 @@ object CoreParser {
 
   def terminateExp[_: P]: P[Exp] = P(constantCoreExp | varCoreExp | bracketExp | exp)
 
-  def main(args: Array[String]) {
-    println(parse("(x == (5 != y)) instanceOf int", coreExp(_)))
-  }
-
   /** Bracket parser */
   def bracketExp[_: P]: P[Exp] = P("(" ~ w_i ~ exp ~ w_i ~ ")")
 
