@@ -3,9 +3,7 @@ package inca.frontend.parser
 import org.scalatest.funsuite.AnyFunSuite
 import fastparse._
 import ParserUtils._
-import fastparse.Parsed.Success
-import fastparse.Parsed.Failure
-import inca.frontend.core.Core
+import fastparse.Parsed._
 
 /**
   * Tests for the parser utilities
@@ -18,36 +16,36 @@ class ParserUtilsTest extends AnyFunSuite {
 
   test("test integer single digit") {
     parse("1", integer(_)) match {
-      case Parsed.Success(1, _) => ()
+      case Success(1, _) => ()
       case _                    => fail()
     }
   }
 
   test("test integer zero") {
     parse("0", integer(_)) match {
-      case Parsed.Success(0, _) => ()
+      case Success(0, _) => ()
       case _                    => fail()
     }
   }
 
   test("test integer multiple digits") {
     parse("123", integer(_)) match {
-      case Parsed.Success(123, _) => ()
+      case Success(123, _) => ()
       case _                      => fail()
     }
   }
 
   test("test integer non digits input") {
     parse("f", integer(_)) match {
-      case Parsed.Failure(_, 0, _) => ()
+      case Failure(_, 0, _) => ()
       case _                       => fail()
     }
   }
 
   test("test integer leading zeroes") {
     parse("01", integer(_)) match {
-      case Parsed.Failure(_, _, _) => ()
-      case Parsed.Success(v, _)    =>
+      case Failure(_, _, _) => ()
+      case Success(v, _)    =>
         println(v)
         fail()
     }
@@ -55,15 +53,43 @@ class ParserUtilsTest extends AnyFunSuite {
 
   test("test integer minus sign") {
     parse("-1", integer(_)) match {
-      case Parsed.Success(-1, _) => ()
+      case Success(-1, _) => ()
       case _                     => fail()
     }
   }
 
   test("test integer plus sign") {
     parse("+1", integer(_)) match {
-      case Parsed.Success(1, _) => ()
+      case Success(1, _) => ()
       case _                    => fail()
+    }
+  }
+
+  test("test double simple") {
+    parse("1.0", double(_)) match {
+      case Success(1.0, _) =>
+      case _                      => fail()
+    }
+  }
+
+  test("test double start zero") {
+    parse("0.2", double(_)) match {
+      case Success(0.2, _) =>
+      case _                      => fail()
+    }
+  }
+
+  test("test double integer with d") {
+    parse("2d", double(_)) match {
+      case Success(2d, _) =>
+      case _                     => fail()
+    }
+  }
+
+  test("test double multiple post-dot digits") {
+    parse("0.128", double(_)) match {
+      case Success(0.128, _) =>
+      case _                        => fail()
     }
   }
 
@@ -79,8 +105,35 @@ class ParserUtilsTest extends AnyFunSuite {
         case Success(value, index)        => fail()
       }
 
-    Seq("kuch3n", "k3k53", "t33", "kl33", "br0t", "s0nn3nblum3").map(positive(_))
-    Seq("3553n", "71nux", " ", "53h3n").map(negative(_))
+    Seq("kuch3n", "k3k53", "t33", "kl33", "br0t", "s0nn3nblum3").map(positive)
+    Seq("3553n", "71nux", " ", "53h3n").map(negative)
   }
 
+  test("test string empty") {
+    parse("\"\"", ParserUtils.string(_)) match {
+      case Success("", _) =>
+      case _              => fail()
+    }
+  }
+
+  test("test string containing single character ") {
+    parse("\"a\"", ParserUtils.string(_)) match {
+      case Success("a", _) =>
+      case _               => fail()
+    }
+  }
+
+  test("test string containing multiple characters") {
+    parse("\"abc\"", ParserUtils.string(_)) match{
+      case Success("abc", _) =>
+      case _                 => fail()
+    }
+  }
+
+  test("test string containing whitespace") {
+    parse("\"  \"", ParserUtils.string(_)) match {
+      case Success("  ", _) =>
+      case _                => fail()
+    }
+  }
 }

@@ -34,9 +34,22 @@ object ParserUtils {
   /** A parser for long literals in base 10. It does not allow leading zeroes */
   def long[_: P]: P[Long] = P(rawInteger).map(_.toLong)
 
-  /** A parser for number literals in base 10. It does not allow leading zeroes */
+  /** A parser for double literals in base 10 */
+  def double[_: P]: P[Double] = P(rawDouble).map(_.toDouble)
+
+  /**
+   * A parser for string literals
+   * @todo implement character escaping
+   */
+  def string[_: P]: P[String] = P("\"\"".!.map(_ => "") | "\"" ~ CharsWhile(_ != '\"').! ~ "\"")
+
   private def rawInteger[_: P] =
     P(
-      (("+" | "-").? ~ CharIn("1-9") ~ CharsWhileIn("0-9").?).! | P("0" ~ End).!
+      (("+" | "-").? ~ CharIn("1-9") ~ CharsWhileIn("0-9").?).! | P("0" ~ CharsWhile(_.isSpaceChar, 1) | "0" ~ End).!
     )
+
+  private def rawDouble[_: P] =
+    P(
+      rawInteger ~ "d" | (("0" | rawInteger) ~ "." ~ CharsWhileIn("0-9", 1).?)
+    ).!
 }

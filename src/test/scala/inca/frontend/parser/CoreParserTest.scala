@@ -131,6 +131,13 @@ class CoreParserTest extends AnyFunSuite {
     }
   }
 
+  test("test DoubleLiteral") {
+    parse("1.0", CoreParser.doubleLiteral(_)) match {
+      case Success(DoubleLiteral(1d), _) =>
+      case _                             => fail()
+    }
+  }
+
   test("test UnitLiteral") {
     parse("unit", CoreParser.unitLiteral(_)) match {
       case Success(UnitLiteral, _) =>
@@ -183,7 +190,10 @@ class CoreParserTest extends AnyFunSuite {
   test("test Constant") {
     def check(lit: String, expected: Literal): Unit = {
       parse(lit, CoreParser.constantCoreExp(_)) match {
-        case Success(Constant(literal), _) if literal == expected =>
+        case Success(Constant(literal), _) => if(literal != expected) {
+          println(literal)
+          fail()
+        }
         case _                                                    => fail()
       }
     }
@@ -191,6 +201,8 @@ class CoreParserTest extends AnyFunSuite {
     check("true", BooleanLiteral(true))
     check("1L", LongLiteral(1))
     check("unit", UnitLiteral)
+    check("42d", DoubleLiteral(42d))
+    check("\"hello world\"", StringLiteral("hello world"))
   }
 
   test("test Eq") {

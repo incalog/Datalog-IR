@@ -68,9 +68,17 @@ object CoreParser {
   /** TIterable parser */
   def tIterable[_: P]: P[TIterable] = P(tList | tEnumeration)
 
+
   /** Literal parser */
   def literal[_: P]: P[Literal] =
-    P(unitLiteral | longLiteral | intLiteral | booleanLiteral)
+    P(
+      stringLiteral
+        | unitLiteral
+        | doubleLiteral
+        | longLiteral
+        | intLiteral
+        | booleanLiteral
+    )
 
   /** UnitLiteral parser */
   def unitLiteral[_: P]: P[UnitLiteral.type] = P("unit").map(_ => UnitLiteral)
@@ -80,6 +88,12 @@ object CoreParser {
 
   /** LongLiteral parser */
   def longLiteral[_: P]: P[LongLiteral] = P(ParserUtils.long ~ "L").map(LongLiteral)
+
+  /** DoubleLiteral parser */
+  def doubleLiteral[_: P]: P[DoubleLiteral] = P(ParserUtils.double).map(DoubleLiteral)
+
+  /** StringLiteral parser */
+  def stringLiteral[_: P]: P[StringLiteral] = P(ParserUtils.string).map(StringLiteral)
 
   /** BooleanLiteral parser */
   def booleanLiteral[_: P]: P[BooleanLiteral] =
@@ -132,6 +146,7 @@ object CoreParser {
 
   /** NamedLink parser */
   def namedLink[_: P](node: TNode): P[NamedLink] = P(identifier).map(NamedLink(node, _))
+
 
   /** Exp parser */
   def exp[_: P]: P[Exp] = P(coreExp | bracketExp)
