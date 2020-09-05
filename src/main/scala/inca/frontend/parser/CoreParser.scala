@@ -16,74 +16,162 @@ import ParserUtils._
   */
 object CoreParser {
 
-  def tanylinked[_: P]: P[TLinked] =
+  def tAnyLinked[_: P]: P[TLinked] =
     P(P(TAnyLinked.prettyprint).map(_ => TAnyLinked))
 
-  def tnode[_: P]: P[TLinked] = P(P(ParserUtils.identifier).!.map(TNode))
+  def tNode[_: P]: P[TNode] = P(P(ParserUtils.identifier).!.map(TNode))
 
   /** Helper for the basic TypeAnno like TAny. */
-  private def typeanno_helper[_: P](t: TypeAnno): P[TypeAnno] =
+  private def typeAnnoHelper[_: P](t: TypeAnno): P[TypeAnno] =
     P(P(t.prettyprint).map(_ => t))
 
-  def tlinked[_: P]: P[TLinked] = P(tanylinked | tnode | tlist)
+  def tLinked[_: P]: P[TLinked] = P(tAnyLinked | tNode | tList)
 
   /** TypeAnno parser */
-  def typeanno[_: P]: P[TypeAnno] =
+  def typeAnno[_: P]: P[TypeAnno] =
     P(
-      typeanno_helper(TAny) | typeanno_helper(TBool) | typeanno_helper(TLong) |
-        typeanno_helper(TInt) | typeanno_helper(TDouble) | typeanno_helper(TString) |
-        tlinked | titerable
+      typeAnnoHelper(TAny) | typeAnnoHelper(TBool) | typeAnnoHelper(TLong) |
+        typeAnnoHelper(TInt) | typeAnnoHelper(TDouble) | typeAnnoHelper(TString) |
+        tLinked | tIterable
     )
 
   /** Visibility parser */
   def visibility[_: P]: P[Visibility] =
     P(
-      P((P(" ").rep() ~ P(Private.prettyprint(""))).map(_ => Private)) |
-        P((P(" ").rep() ~ P(Public.prettyprint(""))).map(_ => Public))
+      P(" ".rep() ~ P(Private.prettyprint(""))).map(_ => Private) |
+        P(" ".rep() ~ P(Public.prettyprint(""))).map(_ => Public)
     )
 
   /**
     * TTuple parser
     * @todo  test missing
     */
-  def ttuple[_: P]: P[TTuple] =
+  def tTuple[_: P]: P[TTuple] =
     P(
       "Unit".!.map(_ => TTuple(Seq.empty))
-        | typeanno.map(typ => TTuple(Seq(typ)))
-        | ("(" ~ typeanno.rep(min = 1, sep = ",") ~ ")").map(TTuple)
+        | typeAnno.map(typ => TTuple(Seq(typ)))
+        | ("(" ~ typeAnno.rep(min = 1, sep = ",") ~ ")").map(TTuple)
     )
 
   /** TList parser */
-  def tlist[_:P]:P[TList] = P(
-    P("List[" ~ tlinked ~ "]").map(TList)
+  def tList[_:P]:P[TList] = P(
+    P("List[" ~ tLinked ~ "]").map(TList)
   )
 
   /** TEnumeration parser */
-  def tenumeration[_:P]:P[TEnumeration] = P(
-    P("Enum[" ~ tlinked ~ "]").map(TEnumeration)
+  def tEnumeration[_:P]:P[TEnumeration] = P(
+    P("Enum[" ~ tLinked ~ "]").map(TEnumeration)
   )
 
   /** TIterable parser */
-  def titerable[_:P]:P[TIterable] = P(tlist | tenumeration)
+  def tIterable[_:P]:P[TIterable] = P(tList | tEnumeration)
+
+
+  /** Literal parser */
+  def literal[_: P]: P[Literal] = P(unitLiteral | longLiteral | intLiteral | booleanLiteral)
+
+  /** UnitLiteral parser */
+  def unitLiteral[_: P]: P[UnitLiteral.type] = P("unit").map(_ => UnitLiteral)
 
   /** IntLiteral parser */
-  def intliteral[_: P]: P[IntLiteral] = P(ParserUtils.integer).map(IntLiteral)
+  def intLiteral[_: P]: P[IntLiteral] = P(ParserUtils.integer).map(IntLiteral)
 
   /** LongLiteral parser */
-  def longliteral[_: P]: P[LongLiteral] = P(ParserUtils.integer ~ "l").map(i => LongLiteral(i))
+  def longLiteral[_: P]: P[LongLiteral] = P(ParserUtils.long ~ "L").map(LongLiteral)
 
   /** BooleanLiteral parser */
-  def booleanliteral[_: P]: P[BooleanLiteral] = P("true".! | "false".!).map(s => BooleanLiteral(s.toBoolean))
+  def booleanLiteral[_: P]: P[BooleanLiteral] = P("true" | "false").!.map(s => BooleanLiteral(s.toBoolean))
 
   /** Param parser */
-  def param[_: P]: P[Param] = P(ParserUtils.identifier ~ ":" ~ typeanno).map {
+  def param[_: P]: P[Param] = P(ParserUtils.identifier ~ ":" ~ typeAnno).map {
     case (name, typeAnno) => Param(name, typeAnno)
   }
 
   /** AnnoParam parser */
-  def annoparam[_: P]: P[AnnoParam] = P("(" ~ param ~ ")" | typeanno).map {
+  def annoParam[_: P]: P[AnnoParam] = P("(" ~ param ~ ")" | typeAnno).map {
     case Param(name, typeAnno) => AnnoParam(Some(name), typeAnno)
     case typeAnno: TypeAnno => AnnoParam(None, typeAnno)
   }
 
+  /** Link parser */
+  def link[_: P]: P[Link] = P(tNode ~ ".").flatMap(coreLink)
+
+  /** CoreLink parser */
+  def coreLink[_: P](node: TNode): P[CoreLink] = P(
+    parentLink
+      | childrenLink
+      | prevLink
+      | sizeLink
+      | nextLink
+      | namedLink(node)
+  )
+
+  /** ParentLink parser */
+  def parentLink[_: P]: P[ParentLink.type] = P(ParentLink.prettyprint).map(_ => ParentLink)
+
+  /** ChildrenLink parser */
+  def childrenLink[_: P]: P[ChildrenLink.type] = P(ChildrenLink.prettyprint).map(_ => ChildrenLink)
+
+  /** NextLink parser */
+  def nextLink[_: P]: P[NextLink.type] = P(NextLink.prettyprint).map(_ => NextLink)
+
+  /** PreviousLink parser */
+  def prevLink[_: P]: P[PreviousLink.type] = P(PreviousLink.prettyprint).map(_ => PreviousLink)
+
+  /** SizeLink parser */
+  def sizeLink[_: P]: P[SizeLink.type] = P(SizeLink.prettyprint).map(_ => SizeLink)
+
+  /** NamedLink parser */
+  def namedLink[_: P](node: TNode): P[NamedLink] = P(identifier).map(NamedLink(node, _))
+
+
+  /** Exp parser */
+  def expr[_: P]: P[Exp] = P(coreExpr)
+
+  /**
+   *CoreExp parser
+   * @todo fix stack overflow on Def and Undef parsing
+   */
+  def coreExpr[_: P]: P[CoreExp] = P(
+    constantExpr
+    | defExpr
+    | undefExpr
+    | varExpr
+    | eqExpr
+    | neqExpr
+    | instanceOfExpr
+    | notInstanceOfExpr
+  )
+
+  /** Var parser  */
+  def varExpr[_: P]: P[Var] = P(identifier).map(Var)
+
+  /** Constant parser */
+  def constantExpr[_: P]: P[Constant] = P(literal).map(Constant)
+
+  /** Eq parser */
+  def eqExpr[_: P]: P[Eq] = P(expr ~ "==" ~ expr).map {
+    case (e1, e2) => Eq(e1, e2)
+  }
+
+  /** Neq parser */
+  def neqExpr[_: P]: P[Neq] = P(expr ~ "!=" ~ expr).map {
+    case (e1, e2) => Neq(e1, e2)
+  }
+
+  /** Def parser */
+  def defExpr[_: P]: P[Def] = P("def" ~ expr).map(Def)
+
+  /** Undef parser */
+  def undefExpr[_: P]: P[Undef] = P("undef" ~ expr).map(Undef)
+
+  /** InstanceOf parser */
+  def instanceOfExpr[_: P]: P[InstanceOf] = P(expr ~ "instanceOf" ~ typeAnno).map {
+    case (e, typ) => InstanceOf(e, typ)
+  }
+
+  /** NotInstanceOf parser */
+  def notInstanceOfExpr[_: P]: P[NotInstanceOf] = P(expr ~ "notInstanceOf" ~ typeAnno).map {
+    case (e, typ) => NotInstanceOf(e, typ)
+  }
 }
