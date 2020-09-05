@@ -1,6 +1,6 @@
 package inca.frontend.parser
 import fastparse._
-import ScalaWhitespace._
+import NoWhitespace._
 
 /**
   * @todo implement parsers for names and primitive literals

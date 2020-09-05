@@ -133,15 +133,20 @@ object CoreParser {
    * @todo fix stack overflow on Def and Undef parsing
    */
   def coreExp[_: P]: P[CoreExp] = P(
-    constantCoreExp
-    | varCoreExp
-    | defCoreExp
+    defCoreExp
     | undefCoreExp
+    | instanceOfCoreExp
     | eqCoreExp
     | neqCoreExp
-    | instanceOfCoreExp
     | notInstanceOfCoreExp
+    | varCoreExp
+    | constantCoreExp
   )
+
+  def terminateExp[_:P] : P[Exp] = P(constantCoreExp | varCoreExp | bracketExp | exp)
+
+  /** Bracket parser */
+  def bracketExp[_:P] :P[Exp] = P("(" ~ w_i ~ exp ~ w_i ~ ")")
 
   /** Var parser  */
   def varCoreExp[_: P]: P[Var] = P(identifier).map(Var)
@@ -150,12 +155,10 @@ object CoreParser {
   def constantCoreExp[_: P]: P[Constant] = P(literal).map(Constant)
 
   /** Eq parser */
-  def eqCoreExp[_: P]: P[Eq] = P(exp ~ w_i ~ "==" ~ w_i ~ exp).map {
-    case (e1, e2) => Eq(e1, e2)
-  }
+  def eqCoreExp[_: P]: P[Eq] = P(terminateExp ~ w_i ~ "==" ~ w_i ~ exp).map{case (l, r) => Eq(l, r)}
 
   /** Neq parser */
-  def neqCoreExp[_: P]: P[Neq] = P(exp ~ w_i ~ "!=" ~ w_i ~ exp).map {
+  def neqCoreExp[_: P]: P[Neq] = P(terminateExp ~ w_i ~ "!=" ~ w_i ~ exp).map {
     case (e1, e2) => Neq(e1, e2)
   }
 
@@ -166,14 +169,12 @@ object CoreParser {
   def undefCoreExp[_: P]: P[Undef] = P("undef " ~ exp).map(Undef)
 
   /** InstanceOf parser */
-  def instanceOfCoreExp[_: P]: P[InstanceOf] = P(exp ~ " instanceOf " ~ typeAnno).map {
+  def instanceOfCoreExp[_: P]: P[InstanceOf] = P(terminateExp ~ " " ~ w_i ~ "instanceOf " ~ w_i ~ typeAnno).map {
     case (e, typ) => InstanceOf(e, typ)
   }
 
   /** NotInstanceOf parser */
-  def notInstanceOfCoreExp[_: P]: P[NotInstanceOf] = P(exp ~ " notInstanceOf " ~ typeAnno).map {
+  def notInstanceOfCoreExp[_: P]: P[NotInstanceOf] = P(terminateExp ~ " " ~ w_i ~ "notInstanceOf " ~ w_i ~ typeAnno).map {
     case (e, typ) => NotInstanceOf(e, typ)
   }
-
-  
 }
