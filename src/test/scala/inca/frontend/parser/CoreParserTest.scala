@@ -223,12 +223,72 @@ class CoreParserTest extends AnyFunSuite {
     checkExp(expr)
   }
 
+  test("test CoreExp") {
+    def test_helper(code: String, ast: CoreExp) {
+      parse(code, CoreParser.coreExp(_)) match {
+        case Failure(label, index, extra) => {}
+        case Success(value, index)        => assert(value === ast)
+      }
+    }
+
+    // Note: right to left input due to recusion
+    test_helper(
+      "(x == 5) instanceOf bool",
+      InstanceOf(Eq(Var("x"), Constant(IntLiteral(5))), TBool)
+    )
+    test_helper(
+      "x == 5 instanceOf bool",
+      Eq(Var("x"), InstanceOf(Constant(IntLiteral(5)), TBool))
+    )
+    test_helper(
+      "(x == (5 != y)) instanceOf int",
+      InstanceOf(
+        Eq(
+          Var("x"),
+          Neq(
+            Constant(IntLiteral(5)),
+            Var("y")
+          )
+        ),
+        TInt
+      )
+    )
+    test_helper(
+      "def (x == 9) instanceOf long",
+      Def(
+        InstanceOf(
+          Eq(
+            Var("x"),
+            Constant(IntLiteral(9))
+          ),
+          TLong
+        )
+      )
+    )
+    test_helper(
+      "undef (q != def 17 instanceOf int) notInstanceOf string",
+      Undef(
+        NotInstanceOf(
+          Neq(
+            Var("q"),
+            Def(
+              InstanceOf(
+                Constant(IntLiteral(17)),
+                TInt
+              )
+            )
+          ),
+          TString
+        )
+      )
+    )
+  }
 
   private def checkExp(ex: Exp): Unit = {
     val input = ex.prettyprint("")
     println(input)
     parse(input, CoreParser.exp(_)) match {
-      case Success(expr, _)  => {
+      case Success(expr, _) => {
         println(expr, ex)
         assert(expr == ex)
       }
