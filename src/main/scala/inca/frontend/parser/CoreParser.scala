@@ -86,4 +86,26 @@ object CoreParser {
     case typeAnno: TypeAnno => AnnoParam(None, typeAnno)
   }
 
+  /** Typeable parser */
+  def typeable[_:P]:P[Typeable] = P(typeable)
+  
+  /** Exp parser */
+  def exp[_:P] :P[Exp] = P(coreexp)
+  
+  /** CoreExp parser */
+  def coreexp[_:P] :P[CoreExp] = P(eq | neq | instanceof | notinstanceof)
+
+  /** Eq parser */
+  def eq[_:P] :P[Eq] = P(exp ~ w_i ~ "==" ~ w_i ~ exp).map({case (l, r) => Eq(l, r)})
+  
+  /** Neq parser */
+  def neq[_:P] :P[Neq] = P(exp ~ w_i ~ "!=" ~ w_i ~ exp).map({case (l, r) => Neq(l, r)})
+
+  def instanceof[_:P] : P[InstanceOf] = P(exp ~ " instanceOf " ~ typeanno).map({case (l, r) => InstanceOf(l, r)})
+
+  def notinstanceof[_:P] :P[NotInstanceOf] = P(exp ~ " notInstanceOf " ~ exp).map({case(l, r) => NotInstanceOf(l, r)})
+
+  def define[_:P] :P[Def] = P("def " ~ exp).map(Def(_))
+
+  def undef[_:P]:P[Undef] = P("undef " ~ exp).map(Undef(_))
 }
