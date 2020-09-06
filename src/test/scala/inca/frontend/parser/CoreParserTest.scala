@@ -296,6 +296,30 @@ class CoreParserTest extends AnyFunSuite {
     )
   }
 
+  test("test Values statement") {
+    val expected = Values("x", TBool)
+    checkStatement(expected)
+  }
+
+  test("test Assign statement single var") {
+    val expected = Assign(Seq("x"), Var("y"))
+    checkStatement(expected)
+  }
+
+  test("test Assign statement multiple vars") {
+    val expected = Assign(Seq("x", "y", "abc"), Var("zs"))
+    checkStatement(expected)
+  }
+
+  private def checkStatement(stat: Statement): Unit = {
+    val input = stat.prettyprint("  ")
+    println(input)
+    parse(input, CoreParser.statement(_)) match {
+      case Success(out, _)              => assert(out == stat)
+      case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+    }
+  }
+
   private def checkExp(ex: Exp): Unit = {
     val input = ex.prettyprint("")
     println(input)

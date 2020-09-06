@@ -205,4 +205,34 @@ object CoreParser {
     P(terminateExp ~ " " ~ w_i ~ "notInstanceOf " ~ w_i ~ typeAnno).map {
       case (e, typ) => NotInstanceOf(e, typ)
     }
+
+
+  def statement[_: P]: P[Statement] = P(coreStatement)
+
+  def coreStatement[_: P]: P[CoreStatement] =
+    P(
+      s_i ~ (
+        valuesStatement
+        | assignStatement
+        | assertStatement
+        )
+    )
+
+  def valuesStatement[_: P]: P[Values] = P("vals " ~ s_i ~ identifier ~ s_i ~ "<-" ~ s_i ~ typeAnno).map {
+    case (name, typeAnno) => Values(name, typeAnno)
+  }
+
+  def assignStatement[_: P]: P[Assign] =
+    P(
+      ("val " ~ s_i ~ identifier ~ s_i ~ "=" ~ s_i ~ exp).map {
+        case (name, expr) => Assign(Seq(name), expr)
+      }
+      | ("val " ~ s_i ~ "(" ~ (s_i ~ identifier ~ s_i).rep(min = 2, sep = ",") ~ s_i ~ ")" ~ s_i ~ "=" ~ s_i ~ exp).map {
+        case (names, expr) => Assign(names, expr)
+      }
+    )
+
+  def assertStatement[_: P]: P[Assert] = P("assert " ~ s_i ~ exp).map(Assert)
+
+
 }
