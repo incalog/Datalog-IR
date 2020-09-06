@@ -290,7 +290,7 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test CoreExp") {
-    // @todo TODO: Add more test cases. 
+    // @todo TODO: Add more test cases.
     def test_helper(code: String, ast: CoreExp) {
       parse(code, CoreParser.coreExp(_)) match {
         case Failure(label, index, extra) => {}
@@ -410,6 +410,21 @@ class CoreParserTest extends AnyFunSuite {
             TTuple(Seq(TDouble))
           )
         )
+      )
+    )
+    test_helper(
+      "(x instanceOf (bool, br0t) != undef x) notInstanceOf (double)", // fails
+      NotInstanceOf(
+        Neq(
+          InstanceOf(
+            Var("x"),
+            TTuple(
+              Seq(TBool, TNode("br0t"))
+            )
+          ),
+          Undef(Var("x"))
+        ),
+        TTuple(Seq(TDouble))
       )
     )
   }

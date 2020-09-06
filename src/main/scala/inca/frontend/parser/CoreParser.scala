@@ -146,10 +146,21 @@ object CoreParser {
   def namedLink[_: P](node: TNode): P[NamedLink] = P(identifier).map(NamedLink(node, _))
 
   /** Exp parser */
-  def exp[_: P]: P[Exp] = P(coreExp | bracketExp)
+  def exp[_: P]: P[Exp] = P(coreExp)
 
-  /** CoreExp parser */
-  def coreExp[_: P]: P[CoreExp] =
+  /** CoreExp parser
+    *
+    * The recursion is ordered in a loop sequence such that every testet subexpression is
+    * continuing the next subexpression thus avoiding endless loop aka stackoverflow.
+    * As fasparse has no better option to handle this lefthand recursion there is a parser
+    * for continuing the loop sequence for each individual subexpression needed.
+    * In the sequence expressions with preset keywords such as 'def' are placed in the beginning
+    * reducing the recusion depth; expressions with infix operators in the center avoiding an early stop
+    * from the constant expression which do no recursive call at all at the end.
+    *
+    * This might make it impossible to do language extentions in a seperate class or object.
+    */
+  def coreExp[_: P]: P[Exp] =
     P(
       defCoreExp
         | undefCoreExp
@@ -159,9 +170,50 @@ object CoreParser {
         | notInstanceOfCoreExp
         | varCoreExp
         | constantCoreExp
+        | bracketExp
     )
 
-  def terminateExpEquality[_: P]: P[Exp] =
+  /** See CoreExp parser @see coreExp */
+  def terminateDef[_: P]: P[Exp] =
+    P(
+      undefCoreExp
+        | eqCoreExp
+        | neqCoreExp
+        | instanceOfCoreExp
+        | notInstanceOfCoreExp
+        | varCoreExp
+        | constantCoreExp
+        | bracketExp
+        | exp
+    )
+
+  /** See CoreExp parser @see coreExp */
+  def terminateUndef[_: P]: P[Exp] =
+    P(
+      eqCoreExp
+        | neqCoreExp
+        | instanceOfCoreExp
+        | notInstanceOfCoreExp
+        | varCoreExp
+        | constantCoreExp
+        | bracketExp
+        | exp
+    )
+
+  /** See CoreExp parser @see coreExp */
+  def terminateEq[_: P]: P[Exp] =
+    P(
+      neqCoreExp
+        | instanceOfCoreExp
+        | notInstanceOfCoreExp
+        | varCoreExp
+        | constantCoreExp
+        | bracketExp
+        | exp
+    )
+
+  /** See CoreExp parser @see coreExp */
+  def terminateNeq[_: P]: P[Exp] =
     P(
       instanceOfCoreExp
         | notInstanceOfCoreExp
@@ -171,10 +223,21 @@ object CoreParser {
         | exp
     )
 
-  def terminateExpInstance[_: P]: P[Exp] =
+  /** See CoreExp parser @see coreExp */
+  def terminateInstanceOf[_: P]: P[Exp] =
     P(
-      constantCoreExp
+      notInstanceOfCoreExp
         | varCoreExp
+        | constantCoreExp
+        | bracketExp
+        | exp
+    )
+
+  /** See CoreExp parser @see coreExp */
+  def terminateNotInstanceOf[_: P]: P[Exp] =
+    P(
+      varCoreExp
+        | constantCoreExp
         | bracketExp
         | exp
     )
@@ -190,27 +253,27 @@ object CoreParser {
 
   /** Eq parser */
   def eqCoreExp[_: P]: P[Eq] =
-    P(terminateExpEquality ~ s_i ~ "==" ~ s_i ~ exp).map { case (l, r) => Eq(l, r) }
+    P(terminateEq ~ s_i ~ "==" ~ s_i ~ exp).map { case (l, r) => Eq(l, r) }
 
   /** Neq parser */
   def neqCoreExp[_: P]: P[Neq] =
-    P(terminateExpEquality ~ s_i ~ "!=" ~ s_i ~ exp).map { case (e1, e2) => Neq(e1, e2) }
+    P(terminateNeq ~ s_i ~ "!=" ~ s_i ~ exp).map { case (e1, e2) => Neq(e1, e2) }
 
   /** Def parser */
-  def defCoreExp[_: P]: P[CoreExp] = P("def " ~ exp).map(Def)
+  def defCoreExp[_: P]: P[CoreExp] = P("def " ~ terminateDef).map(Def)
 
   /** Undef parser */
-  def undefCoreExp[_: P]: P[Undef] = P("undef " ~ exp).map(Undef)
+  def undefCoreExp[_: P]: P[Undef] = P("undef " ~ terminateUndef).map(Undef)
 
   /** InstanceOf parser */
   def instanceOfCoreExp[_: P]: P[InstanceOf] =
-    P(terminateExpInstance ~ " " ~ w_i ~ "instanceOf " ~ w_i ~ typeAnno).map {
+    P(terminateInstanceOf ~ " " ~ w_i ~ "instanceOf " ~ w_i ~ typeAnno).map {
       case (e, typ) => InstanceOf(e, typ)
     }
 
   /** NotInstanceOf parser */
   def notInstanceOfCoreExp[_: P]: P[NotInstanceOf] =
-    P(terminateExpInstance ~ " " ~ w_i ~ "notInstanceOf " ~ w_i ~ typeAnno).map {
+    P(terminateNotInstanceOf ~ " " ~ w_i ~ "notInstanceOf " ~ w_i ~ typeAnno).map {
       case (e, typ) => NotInstanceOf(e, typ)
     }
 }
