@@ -20,7 +20,7 @@ class CoreParserTest extends AnyFunSuite {
   test("test TypeAnno") {
     def test_helper(t: TypeAnno) = {
       parse(t.prettyprint, CoreParser.typeAnno(_)) match {
-        case Success(value, index) => assert(value === t)
+        case Success(value, index)        => assert(value === t)
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
       }
       parse(s" ${t.prettyprint}", CoreParser.typeAnno(_)) match {
@@ -47,12 +47,12 @@ class CoreParserTest extends AnyFunSuite {
     def positive(v: Visibility)(t: String) =
       parse(t, CoreParser.visibility(_)) match {
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
-        case Success(value, index) => assert(value === v)
+        case Success(value, index)        => assert(value === v)
       }
     def negative(v: String) =
       parse(v, CoreParser.visibility(_)) match {
-        case Failure(label, index, extra) => 
-        case Success(value, index) => fail(s"$value, $index")
+        case Failure(label, index, extra) =>
+        case Success(value, index)        => fail(s"$value, $index")
       }
 
     Seq("public", "   public", " public").map(positive(Public)(_))
@@ -109,7 +109,8 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test IntLiteral") {
-    def test_run(input: String, cmp: Int) = test_helper(CoreParser.intLiteral(_))(input, IntLiteral(cmp))
+    def test_run(input: String, cmp: Int) =
+      test_helper(CoreParser.intLiteral(_))(input, IntLiteral(cmp))
 
     test_run("0", 0)
     test_run("1", 1)
@@ -122,7 +123,7 @@ class CoreParserTest extends AnyFunSuite {
     def test_helper(b: Boolean): Unit = {
       parse(b.toString, CoreParser.booleanLiteral(_)) match {
         case Success(BooleanLiteral(bool), _) => assert(bool === b)
-        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+        case Failure(label, index, extra)     => fail(s"$label, $index, $extra")
       }
     }
     test_helper(true)
@@ -130,7 +131,8 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test LongLiteral") {
-    def test_run(input: String, r: Long) = test_helper(CoreParser.longLiteral(_))(input, LongLiteral(r))
+    def test_run(input: String, r: Long) =
+      test_helper(CoreParser.longLiteral(_))(input, LongLiteral(r))
     test_run("1L", 1L)
     test_run("-1L", -1L)
     test_run("11L", 11L)
@@ -138,7 +140,8 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test DoubleLiteral") {
-    def test_run(input: String, r: Double) = test_helper(CoreParser.doubleLiteral(_))(input, DoubleLiteral(r))
+    def test_run(input: String, r: Double) =
+      test_helper(CoreParser.doubleLiteral(_))(input, DoubleLiteral(r))
     test_run("1.", 1d)
     test_run("1d", 1d)
     test_run("1.0", 1d)
@@ -171,7 +174,7 @@ class CoreParserTest extends AnyFunSuite {
 
   test("test UnitLiteral") {
     parse("unit", CoreParser.unitLiteral(_)) match {
-      case Success(UnitLiteral, _) =>
+      case Success(UnitLiteral, _)      =>
       case Failure(label, index, extra) => fail(s"$label, $index, $extra")
     }
   }
@@ -179,8 +182,8 @@ class CoreParserTest extends AnyFunSuite {
   test("test Param") {
     parse(s"param:${TBool.prettyprint}", CoreParser.param(_)) match {
       case Success(Param("param", TBool), _) =>
-      case Success(value, index) => fail(s"$value, $index")
-      case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+      case Success(value, index)             => fail(s"$value, $index")
+      case Failure(label, index, extra)      => fail(s"$label, $index, $extra")
     }
   }
 
@@ -188,8 +191,8 @@ class CoreParserTest extends AnyFunSuite {
     def test_helper(t: TypeAnno) =
       parse(s"(param:${t.prettyprint})", CoreParser.annoParam(_)) match {
         case Success(AnnoParam(Some("param"), t), _) =>
-        case Success(value, index) => fail(s"$value, $index")
-        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+        case Success(value, index)                   => fail(s"$value, $index")
+        case Failure(label, index, extra)            => fail(s"$label, $index, $extra")
       }
 
     Seq(TBool, TDouble, TString, TInt, TLong, TAnyLinked, TNode("br0t")).map(test_helper)
@@ -199,8 +202,8 @@ class CoreParserTest extends AnyFunSuite {
     def test_helper(t: TypeAnno) =
       parse(TBool.prettyprint, CoreParser.annoParam(_)) match {
         case Success(AnnoParam(None, TBool), _) =>
-        case Success(value, index) => fail(s"$value, $index")
-        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+        case Success(value, index)              => fail(s"$value, $index")
+        case Failure(label, index, extra)       => fail(s"$label, $index, $extra")
       }
 
     Seq(TBool, TDouble, TString, TInt, TLong, TAnyLinked, TNode("br0t")).map(test_helper)
@@ -223,7 +226,7 @@ class CoreParserTest extends AnyFunSuite {
   test("test Var") {
     // see: identifier
     parse("variable", CoreParser.varCoreExp(_)) match {
-      case Success(value, _) => assert(value === Var("variable"))
+      case Success(value, _)            => assert(value === Var("variable"))
       case Failure(label, index, extra) => fail(s"$label, $index, $extra")
     }
   }
@@ -431,6 +434,66 @@ class CoreParserTest extends AnyFunSuite {
         TTuple(Seq(TDouble))
       )
     )
+    // test_run(
+    //   "x.parent",
+    //   PathAccess(Var("x"), ParentLink)
+    // )
+    // test_run(
+    //   "x.children",
+    //   PathAccess(Var("x"), ChildrenLink)
+    // )
+    // test_run(
+    //   "x.next",
+    //   PathAccess(Var("x"), NextLink)
+    // )
+    // test_run(
+    //   "x.prev",
+    //   PathAccess(Var("x"), PreviousLink)
+    // )
+    // test_run(
+    //   "x.size",
+    //   PathAccess(Var("x"), SizeLink)
+    // )
+    test_run("foo()", Call("foo", Seq(), false))
+    test_run("foo+()", Call("foo", Seq(), true))
+    test_run("foo(x)", Call("foo", Seq(Var("x")), false))
+    test_run("foo+(x)", Call("foo", Seq(Var("x")), true))
+    test_run("foo(x, y)", Call("foo", Seq(Var("x"), Var("y")), false))
+    test_run("foo+(x, y)", Call("foo", Seq(Var("x"), Var("y")), true))
+
+    test_run("count foo()", Count(Call("foo", Seq(), false)))
+    test_run("count foo+()", Count(Call("foo", Seq(), true)))
+    test_run("count foo(x)", Count(Call("foo", Seq(Var("x")), false)))
+    test_run("count foo+(x)", Count(Call("foo", Seq(Var("x")), true)))
+    test_run("count foo(x, y)", Count(Call("foo", Seq(Var("x"), Var("y")), false)))
+    test_run("count foo+(x, y)", Count(Call("foo", Seq(Var("x"), Var("y")), true)))
+
+    test_run("(x, y)", Tuple(Seq(Var("x"), Var("y"))))
+    test_run("(x, 5)", Tuple(Seq(Var("x"), Constant(IntLiteral(5)))))
+    test_run(
+      "(x, y, true)",
+      Tuple(Seq(Var("x"), Var("y"), Constant(BooleanLiteral(true))))
+    )
+
+    test_run(
+      "def (x, y) == (9, count foo+())",
+      Def(
+        Eq(
+          Tuple(
+            Seq(
+              Var("x"),
+              Var("y")
+            )
+          ),
+          Tuple(
+            Seq(
+              Constant(IntLiteral(9)),
+              Count(Call("foo", Seq.empty, true))
+            )
+          )
+        )
+      )
+    )
   }
 
   test("test TTuple") {
@@ -481,7 +544,8 @@ class CoreParserTest extends AnyFunSuite {
         Seq(
           Assign(
             Seq(
-              "x", "y"
+              "x",
+              "y"
             ),
             Constant(IntLiteral(7))
           )
@@ -497,7 +561,8 @@ class CoreParserTest extends AnyFunSuite {
         Seq(
           Assign(
             Seq(
-              "x", "y"
+              "x",
+              "y"
             ),
             Constant(IntLiteral(7))
           ),
@@ -523,7 +588,8 @@ class CoreParserTest extends AnyFunSuite {
         Seq(
           Assign(
             Seq(
-              "x", "y"
+              "x",
+              "y"
             ),
             Constant(IntLiteral(7))
           ),
@@ -543,7 +609,8 @@ class CoreParserTest extends AnyFunSuite {
         Seq(
           Assign(
             Seq(
-              "x", "y"
+              "x",
+              "y"
             ),
             Constant(IntLiteral(7))
           )
@@ -576,30 +643,36 @@ class CoreParserTest extends AnyFunSuite {
     // @todo requires more tests
     def test_run(input: String, cmp: PatternFunction) = {
       test_helper[PatternFunction](CoreParser.patternFunction(_))(input, cmp)
-      test_helper[PatternFunction](CoreParser.patternFunction(_))(input.replaceAll("\n", "\r\n"), cmp)
+      test_helper[PatternFunction](CoreParser.patternFunction(_))(
+        input.replaceAll("\n", "\r\n"),
+        cmp
+      )
     }
 
-    test_run(s"""def foo (bar: int) : unit = { 
+    test_run(
+      s"""def foo (bar: int) : unit = {
                 |    assert x== 7 
                 |} union { 
                 |  val q = 9  
                 |}""".stripMargin,
-            PatternFunction(
-              Option(Public),
-              "foo",
-              Seq(Param("bar", TInt)),
-              Seq.empty,
-              Seq(
-                Body(
-                  Assert(Eq(Var("x"), Constant(IntLiteral(7))))
-                ),
-                Body(
-                  Assign(Seq("q"), Constant(IntLiteral(9)))
-                )
-              )
-            ))
+      PatternFunction(
+        Option(Public),
+        "foo",
+        Seq(Param("bar", TInt)),
+        Seq.empty,
+        Seq(
+          Body(
+            Assert(Eq(Var("x"), Constant(IntLiteral(7))))
+          ),
+          Body(
+            Assign(Seq("q"), Constant(IntLiteral(9)))
+          )
+        )
+      )
+    )
 
-    test_run(s"""   def    foo    ( bar : int ) : unit = 
+    test_run(
+      s"""   def    foo    ( bar : int ) : unit =
                 |{ 
                 |    assert x  == 7 
                 |}
@@ -607,22 +680,24 @@ class CoreParserTest extends AnyFunSuite {
                 |{ 
                 |  val q = 9  
                 |}""".stripMargin,
-            PatternFunction(
-              Option(Public),
-              "foo",
-              Seq(Param("bar", TInt)),
-              Seq.empty,
-              Seq(
-                Body(
-                  Assert(Eq(Var("x"), Constant(IntLiteral(7))))
-                ),
-                Body(
-                  Assign(Seq("q"), Constant(IntLiteral(9)))
-                )
-              )
-            ))
-            
-    test_run(s"""private   def    foo    ( bar : int ) : (int) = 
+      PatternFunction(
+        Option(Public),
+        "foo",
+        Seq(Param("bar", TInt)),
+        Seq.empty,
+        Seq(
+          Body(
+            Assert(Eq(Var("x"), Constant(IntLiteral(7))))
+          ),
+          Body(
+            Assign(Seq("q"), Constant(IntLiteral(9)))
+          )
+        )
+      )
+    )
+
+    test_run(
+      s"""private   def    foo    ( bar : int ) : (int) =
                 |{ 
                 |    assert x  == 7 
                 |}
@@ -630,66 +705,92 @@ class CoreParserTest extends AnyFunSuite {
                 |{ 
                 |  val q = 9  
                 |}""".stripMargin,
-            PatternFunction(
-              Option(Private),
-              "foo",
-              Seq(Param("bar", TInt)),
-              Seq(AnnoParam(Option(null), TInt)),
-              Seq(
-                Body(
-                  Assert(Eq(Var("x"), Constant(IntLiteral(7))))
-                ),
-                Body(
-                  Assign(Seq("q"), Constant(IntLiteral(9)))
-                )
-              )
-            ))
+      PatternFunction(
+        Option(Private),
+        "foo",
+        Seq(Param("bar", TInt)),
+        Seq(AnnoParam(Option(null), TInt)),
+        Seq(
+          Body(
+            Assert(Eq(Var("x"), Constant(IntLiteral(7))))
+          ),
+          Body(
+            Assign(Seq("q"), Constant(IntLiteral(9)))
+          )
+        )
+      )
+    )
 
-    test_run(s"""def foo(bar : int, foobar: (bool, (bool, string))) : ((string, bool)) = {
+    test_run(
+      s"""def foo(bar : int, foobar: (bool, (bool, string))) : ((string, bool)) = {
                 |   val x = y
-                |}""".stripMargin, 
-                PatternFunction(
-                  Option(Public),
-                  "foo",
-                  Seq(Param("bar", TInt), Param("foobar", TTuple(Seq(TBool, TTuple(Seq(TBool, TString)))))),
-                  Seq(AnnoParam(Option(null), TTuple(Seq(TString, TBool)))), 
-                  Seq(Body(
-                    Assign(Seq("x"), Var("y"))
-                  ))
-                ))
+                |}""".stripMargin,
+      PatternFunction(
+        Option(Public),
+        "foo",
+        Seq(
+          Param("bar", TInt),
+          Param("foobar", TTuple(Seq(TBool, TTuple(Seq(TBool, TString)))))
+        ),
+        Seq(AnnoParam(Option(null), TTuple(Seq(TString, TBool)))),
+        Seq(
+          Body(
+            Assign(Seq("x"), Var("y"))
+          )
+        )
+      )
+    )
 
-    test_run(s"""def foo(bar : int, foobar: (bool, (bool, string))) : (value : (string, bool)) = {
+    test_run(
+      s"""def foo(bar : int, foobar: (bool, (bool, string))) : (value : (string, bool)) = {
                 |   val x = y
-                |}""".stripMargin, 
-                PatternFunction(
-                  Option(Public),
-                  "foo",
-                  Seq(Param("bar", TInt), Param("foobar", TTuple(Seq(TBool, TTuple(Seq(TBool, TString)))))),
-                  Seq(AnnoParam(Option("value"), TTuple(Seq(TString, TBool)))), 
-                  Seq(Body(
-                    Assign(Seq("x"), Var("y"))
-                  ))
-                ))
+                |}""".stripMargin,
+      PatternFunction(
+        Option(Public),
+        "foo",
+        Seq(
+          Param("bar", TInt),
+          Param("foobar", TTuple(Seq(TBool, TTuple(Seq(TBool, TString)))))
+        ),
+        Seq(AnnoParam(Option("value"), TTuple(Seq(TString, TBool)))),
+        Seq(
+          Body(
+            Assign(Seq("x"), Var("y"))
+          )
+        )
+      )
+    )
 
-    test_run(s"""def foo(bar : int, foobar: (bool, (bool, string))) : ((value : (string, bool)), bool) = {
+    test_run(
+      s"""def foo(bar : int, foobar: (bool, (bool, string))) : ((value : (string, bool)), bool) = {
                 |   val x = y
-                |}""".stripMargin, 
-                PatternFunction(
-                  Option(Public),
-                  "foo",
-                  Seq(Param("bar", TInt), Param("foobar", TTuple(Seq(TBool, TTuple(Seq(TBool, TString)))))),
-                  Seq(AnnoParam(Option("value"), TTuple(Seq(TString, TBool))), AnnoParam(Option(null), TBool)), 
-                  Seq(Body(
-                    Assign(Seq("x"), Var("y"))
-                  ))
-                ))
+                |}""".stripMargin,
+      PatternFunction(
+        Option(Public),
+        "foo",
+        Seq(
+          Param("bar", TInt),
+          Param("foobar", TTuple(Seq(TBool, TTuple(Seq(TBool, TString)))))
+        ),
+        Seq(
+          AnnoParam(Option("value"), TTuple(Seq(TString, TBool))),
+          AnnoParam(Option(null), TBool)
+        ),
+        Seq(
+          Body(
+            Assign(Seq("x"), Var("y"))
+          )
+        )
+      )
+    )
   }
 
   test("test Module") {
     def test_run = test_helper[Module](CoreParser.module(_))
 
     // Note the import keyword is optional
-    test_run(s"""module my
+    test_run(
+      s"""module my
                 |math
                 |import cuda_runtime
                 |def foo(bar: bool): unit = {
@@ -697,7 +798,8 @@ class CoreParserTest extends AnyFunSuite {
                 |}
                 |def bar(foo: bool): unit = {
                 |  val x = y
-                |}""".stripMargin, Module(
+                |}""".stripMargin,
+      Module(
         "my",
         Seq("math", "cuda_runtime"),
         Seq(
@@ -724,9 +826,11 @@ class CoreParserTest extends AnyFunSuite {
             )
           )
         )
-      ))
+      )
+    )
 
-    test_run(s"""module my
+    test_run(
+      s"""module my
                 |
                 |math
                 |import cuda_runtime
@@ -736,7 +840,8 @@ class CoreParserTest extends AnyFunSuite {
                 |  val x = y
                 |}
                 |
-                |""".stripMargin, Module(
+                |""".stripMargin,
+      Module(
         "my",
         Seq("math", "cuda_runtime"),
         Seq(
@@ -752,8 +857,10 @@ class CoreParserTest extends AnyFunSuite {
             )
           )
         )
-      ))
-    test_run(s"""module my
+      )
+    )
+    test_run(
+      s"""module my
                 |
                 |import math
                 |
@@ -762,7 +869,8 @@ class CoreParserTest extends AnyFunSuite {
                 |  val x = y
                 |}
                 |
-                |""".stripMargin, Module(
+                |""".stripMargin,
+      Module(
         "my",
         Seq("math"),
         Seq(
@@ -778,14 +886,17 @@ class CoreParserTest extends AnyFunSuite {
             )
           )
         )
-      ))
-    test_run(s"""module my
+      )
+    )
+    test_run(
+      s"""module my
                 |
                 |def foo(bar: bool): unit = {
                 |  val x = y
                 |}
                 |
-                |""".stripMargin, Module(
+                |""".stripMargin,
+      Module(
         "my",
         Seq(),
         Seq(
@@ -801,21 +912,26 @@ class CoreParserTest extends AnyFunSuite {
             )
           )
         )
-      ))
-    test_run(s"""module my
-                |""".stripMargin, Module(
+      )
+    )
+    test_run(
+      s"""module my
+                |""".stripMargin,
+      Module(
         "my",
         Seq(),
         Seq()
-      ))
+      )
+    )
   }
 
-  private def test_helper[T](parser : P[_] => P[Any]) = (input: String, cmp : T) => {
-    parse(input, parser) match {
-      case Success(value, index) => assert(cmp === value)
-      case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+  private def test_helper[T](parser: P[_] => P[Any]) =
+    (input: String, cmp: T) => {
+      parse(input, parser) match {
+        case Success(value, index)        => assert(cmp === value)
+        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+      }
     }
-  }
 
   private def checkStatement(stat: Statement): Unit = {
     val input = stat.prettyprint("  ")
