@@ -20,6 +20,7 @@ object ParserUtils {
         case "undef" => return fastparse.Fail
         case "true" => return fastparse.Fail 
         case "false" => return fastparse.Fail
+        case "eval" => return fastparse.Fail
         case s : String => s
       }
     )

@@ -6,7 +6,8 @@ import NoWhitespace._
 import ParserUtils._
 import inca.frontend.core.Core
 import fastparse.Parsed.Success
-import inca.backend.ir.GP.Pattern
+import scala.util.control.Breaks._
+import scala.meta._
 
 /**
   * Parser for the IncA Core language.
@@ -170,7 +171,7 @@ object CoreParser {
         | defCoreExp
         | undefCoreExp
 
-        | eqCoreExp
+        | eqCoreExp // 
         | neqCoreExp
 
       // | pathAccessCoreExp
@@ -243,6 +244,56 @@ object CoreParser {
         | exp
     )
 
+  def eval[_: P]: P[Any] = {
+    var code: String = ""
+    var c: Int = 0
+
+    P(
+      "eval" ~ s_i ~ "(" ~
+        P(
+          AnyChar.rep.!.map(raw_str => {
+            var stack = scala.collection.mutable.Stack[Char]()
+
+            breakable {
+              for (ch <- raw_str) {
+                if (stack.isEmpty && ch == ')')
+                  break
+                else if (ch == '(')
+                  stack.push(ch)
+                else if (ch == ')')
+                  stack.pop()
+                code += ch
+              }
+            }
+            c = code.size
+
+            try {
+              val res_tree = code.parse[Term].get
+              println(res_tree.structure)
+              
+              // val res_type = code.parse[Type].get.stats
+              // println(res_type)
+
+              // res_tree match {
+              //   case _: Term => 
+              //   case
+              // }
+
+              println(code)
+            } catch {
+              case e: Exception => {
+                println(e)
+                return fastparse.Fail 
+              }
+            }
+          }) ~
+            fastparse.Fail
+        ).? ~
+        AnyChar.rep(max = c) ~ ")"
+    ).map(_ => "NOT IMPLEMENTED YET")
+  }
+  //def eval_test[_: P]: P[Any] = P(eval ~ AnyChar.rep.!)
+
   /** See CoreExp parser @see coreExp */
   def pathAccessCoreExp[_: P]: P[PathAccess] =
     P(
@@ -284,7 +335,7 @@ object CoreParser {
 
   /** Eq parser */
   def eqCoreExp[_: P]: P[Eq] =
-    P(terminateEq ~ s_i ~ "==" ~ s_i ~ exp).map { case (l, r) => Eq(l, r) }
+    P(terminateEq ~ s_i ~ "==" ~ s_i ~ exp).map { case (l, r) => Eq(l, r) } 
 
   /** Neq parser */
   def neqCoreExp[_: P]: P[Neq] =
