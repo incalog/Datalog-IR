@@ -6,8 +6,6 @@ import NoWhitespace._
 import ParserUtils._
 import inca.frontend.core.Core
 import fastparse.Parsed.Success
-import inca.frontend.parser.CoreParser.link
-
 import scala.util.control.Breaks._
 import scala.meta._
 
@@ -20,7 +18,10 @@ import scala.meta._
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
-object CoreParser {
+case class CoreParser(
+    val recursionCallExpExtentions: Seq[Exp => P[Exp]] = Seq.empty,
+    val recursionAnchorExpExtentions: Seq[P[Exp]] = Seq.empty
+) {
 
   def tAnyLinked[_: P]: P[TLinked] =
     P(P(TAnyLinked.prettyprint).map(_ => TAnyLinked))
@@ -156,15 +157,27 @@ object CoreParser {
   /** CoreExp parser */
   def coreExp[_: P]: P[Exp] =
     P(
-      recursionAnchorExp.flatMap { e: Exp => {P(recursionCallExp(e))}}
-      | recursionAnchorExp
+      recursionAnchorExpExtention(recursionAnchorExpExtentions).flatMap { e: Exp =>
+        { P(recursionCallExpExtention(recursionCallExpExtentions, e)) }
+      }
+        | recursionAnchorExpExtention(recursionAnchorExpExtentions)
     )
 
   /** Recalls the resulting expression on expression as left hand.
     * Ensures left to right binding.
     */
   def decorateRecursionExp[_: P, T](p: => P[Exp]) =
-    P(p.flatMap(t => recursionCallExp(t)) | p)
+    P(p.flatMap(t => recursionCallExpExtention(recursionCallExpExtentions, t)) | p)
+
+  /** Higher order extension call combination parser that require a left side expression. */
+  def recursionCallExpExtention[_: P, T](p: Seq[Exp => P[Exp]], e: Exp): P[Exp] =
+  if (p.isEmpty) P(recursionCallExp(e))
+  else P(decorateRecursionExp(p.head(e)) | recursionCallExpExtention(p.tail, e))
+  
+  /** Higher order extension call combination parser that function as recursion anchor. */
+  def recursionAnchorExpExtention[_: P, T](p: Seq[P[Exp]]): P[Exp] =
+    if (p.isEmpty) P(recursionAnchorExp)
+    else P(decorateRecursionExp(p.head) | recursionAnchorExpExtention(p.tail))
 
   /** Parser for expressions that require a left side expression. */
   def recursionCallExp[_: P](e: Exp): P[Exp] =
@@ -281,15 +294,15 @@ object CoreParser {
   def constantCoreExp[_: P]: P[Constant] = P(literal).map(Constant)
 
   /** Eq parser */
-  def eqCoreExp[_: P](e: Exp): P[Eq] =
+  def eqCoreExp[_: P](e: Exp): P[Exp] =
     P(s_i ~ "==" ~ s_i ~ exp).map(Eq(e, _))
 
   /** Neq parser */
-  def neqCoreExp[_: P](e: Exp): P[Neq] =
+  def neqCoreExp[_: P](e: Exp): P[Exp] =
     P(s_i ~ "!=" ~ s_i ~ exp).map(Neq(e, _))
 
   /** Def parser */
-  def defCoreExp[_: P]: P[CoreExp] = P("def " ~ exp).map(Def)
+  def defCoreExp[_: P]: P[Def] = P("def " ~ exp).map(Def)
 
   /** Undef parser */
   def undefCoreExp[_: P]: P[Undef] = P("undef " ~ exp).map(Undef)
