@@ -5,7 +5,6 @@ import fastparse._
 import NoWhitespace._
 import ParserUtils._
 import inca.frontend.core.Core
-import fastparse.Parsed.Success
 
 /**
   * Parser for the IncA Core language.
@@ -279,15 +278,21 @@ object CoreParser {
     }
 
 
-  def statement[_: P]: P[Statement] = P(coreStatement)
-
-  def coreStatement[_: P]: P[CoreStatement] =
+  /** Statement parser */
+  def statement[_: P]: P[Statement] =
     P(
       s_i ~ (
-        valuesStatement
+        terminatorStatement
+          | coreStatement
+      ) ~ s_i
+    )
+
+  /** CoreStatement parser */
+  def coreStatement[_: P]: P[CoreStatement] =
+    P(
+      valuesStatement
         | assignStatement
         | assertStatement
-        )
     )
 
   def valuesStatement[_: P]: P[Values] = P("vals " ~ s_i ~ identifier ~ s_i ~ "<-" ~ s_i ~ typeAnno).map {
@@ -306,22 +311,28 @@ object CoreParser {
 
   def assertStatement[_: P]: P[Assert] = P("assert " ~ s_i ~ exp).map(Assert)
 
-  def body[_:P]:P[Body] = 
+  def body[_:P]:P[Body] =
       P(
         sn_i ~ "{" ~ s_i ~ P(("\n" | "\r\n" ).rep(1) ~ sn_i ~ statement ~ s_i).rep() ~ sn_i ~ "}"
       ).map(Body(_))
 
   def annoParamUnit[_:P] :P[Seq[AnnoParam]] = P("unit").map(_ => Seq.empty[AnnoParam])
+  /** TerminatorStatement parser */
+  def terminatorStatement[_: P]: P[TerminatorStatement] =
+    P(
+      failStatement
+        | yieldStatement
+    )
 
   def annoParamSingle[_:P]:P[Seq[AnnoParam]] = P(annoParam).map(Seq(_))
 
   def patternFunctionVisibility[_:P] :P[Visibility] = P("def " | "private def").!.map{_ match {
-    case "private def " => Private 
+    case "private def " => Private
     case "def " => Public
   }}
 
   def patternfunction[_:P] :P[Any] = P(
-    sn_i ~ 
+    sn_i ~
     patternFunctionVisibility ~ s_i ~ identifier ~ s_i ~
     "(" ~ s_i ~ P(s_i ~ param ~ s_i).rep(0, sep=",") ~ s_i ~ ")" ~ s_i ~ ":" ~ s_i ~
     P(
@@ -329,4 +340,9 @@ object CoreParser {
     )
     ~ s_i ~ "=" ~ sn_i ~ P(sn_i ~ body ~ sn_i).rep(1, sep = "union")
   ).map{case(visib, name, params, ret_params, bodies) => PatternFunction(Option(visib), name, params, ret_params, bodies)}
+  /** Yield parser */
+  def yieldStatement[_: P]: P[Yield] = P("yield" ~ s_i ~ exp).map(Yield)
+
+  /** Fail parser */
+  def failStatement[_: P]: P[inca.frontend.core.Core.Fail.type] = P("continue").map(_ => inca.frontend.core.Core.Fail)
 }
