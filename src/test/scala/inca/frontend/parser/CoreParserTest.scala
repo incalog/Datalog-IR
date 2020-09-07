@@ -672,8 +672,9 @@ class CoreParserTest extends AnyFunSuite {
   test("test Module") {
     def test_run = test_helper[Module](CoreParser.module(_))
 
+    // Note the import keyword is optional
     test_run(s"""module my
-                |import math
+                |math
                 |import cuda_runtime
                 |def foo(bar: bool): unit = {
                 |  val x = y
@@ -707,6 +708,89 @@ class CoreParserTest extends AnyFunSuite {
             )
           )
         )
+      ))
+
+    test_run(s"""module my
+                |
+                |math
+                |import cuda_runtime
+                |
+                |
+                |def foo(bar: bool): unit = {
+                |  val x = y
+                |}
+                |
+                |""".stripMargin, Module(
+        "my",
+        Seq("math", "cuda_runtime"),
+        Seq(
+          PatternFunction(
+            Option(Public),
+            "foo",
+            Seq(Param("bar", TBool)),
+            Seq.empty,
+            Seq(
+              Body(
+                Assign(Seq("x"), Var("y"))
+              )
+            )
+          )
+        )
+      ))
+    test_run(s"""module my
+                |
+                |import math
+                |
+                |
+                |def foo(bar: bool): unit = {
+                |  val x = y
+                |}
+                |
+                |""".stripMargin, Module(
+        "my",
+        Seq("math"),
+        Seq(
+          PatternFunction(
+            Option(Public),
+            "foo",
+            Seq(Param("bar", TBool)),
+            Seq.empty,
+            Seq(
+              Body(
+                Assign(Seq("x"), Var("y"))
+              )
+            )
+          )
+        )
+      ))
+    test_run(s"""module my
+                |
+                |def foo(bar: bool): unit = {
+                |  val x = y
+                |}
+                |
+                |""".stripMargin, Module(
+        "my",
+        Seq(),
+        Seq(
+          PatternFunction(
+            Option(Public),
+            "foo",
+            Seq(Param("bar", TBool)),
+            Seq.empty,
+            Seq(
+              Body(
+                Assign(Seq("x"), Var("y"))
+              )
+            )
+          )
+        )
+      ))
+    test_run(s"""module my
+                |""".stripMargin, Module(
+        "my",
+        Seq(),
+        Seq()
       ))
   }
 
