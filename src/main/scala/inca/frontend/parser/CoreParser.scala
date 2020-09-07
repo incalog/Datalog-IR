@@ -156,7 +156,8 @@ object CoreParser {
     * continuing the next subexpression thus avoiding endless loop aka stackoverflow.
     * As fasparse has no better option to handle this lefthand recursion there is a parser
     * for continuing the loop sequence for each individual subexpression needed.
-    * In the sequence expressions with preset keywords such as 'def' are placed in the beginning
+    * In the sequence expressions with preset keywords such as 'def' are placed in the beginning (these do not
+    * require a seperate terminate function as they don't do left recusion.)
     * reducing the recusion depth; expressions with infix operators in the center avoiding an early stop
     * from the constant expression which do no recursive call at all at the end.
     *
@@ -164,52 +165,34 @@ object CoreParser {
     */
   def coreExp[_: P]: P[Exp] =
     P(
-      defCoreExp
+      callCoreExp
+        | countCoreExp
+        | defCoreExp
         | undefCoreExp
+
         | eqCoreExp
         | neqCoreExp
-        | instanceOfCoreExp
-        | notInstanceOfCoreExp
-        | varCoreExp
-        | constantCoreExp
-        | bracketExp
-    )
 
-  /** See CoreExp parser @see coreExp */
-  def terminateDef[_: P]: P[Exp] =
-    P(
-      undefCoreExp
-        | eqCoreExp
-        | neqCoreExp
+      // | pathAccessCoreExp
         | instanceOfCoreExp
         | notInstanceOfCoreExp
-        | varCoreExp
-        | constantCoreExp
-        | bracketExp
-        | exp
-    )
 
-  /** See CoreExp parser @see coreExp */
-  def terminateUndef[_: P]: P[Exp] =
-    P(
-      eqCoreExp
-        | neqCoreExp
-        | instanceOfCoreExp
-        | notInstanceOfCoreExp
         | varCoreExp
         | constantCoreExp
+        | tupleCoreExp
         | bracketExp
-        | exp
     )
 
   /** See CoreExp parser @see coreExp */
   def terminateEq[_: P]: P[Exp] =
     P(
       neqCoreExp
+      // | pathAccessCoreExp
         | instanceOfCoreExp
         | notInstanceOfCoreExp
         | varCoreExp
         | constantCoreExp
+        | tupleCoreExp
         | bracketExp
         | exp
     )
@@ -217,10 +200,24 @@ object CoreParser {
   /** See CoreExp parser @see coreExp */
   def terminateNeq[_: P]: P[Exp] =
     P(
+      // pathAccessCoreExp
+      // |
       instanceOfCoreExp
         | notInstanceOfCoreExp
         | varCoreExp
         | constantCoreExp
+        | tupleCoreExp
+        | bracketExp
+        | exp
+    )
+
+  def terminatePathAccess[_: P]: P[Exp] =
+    P(
+      instanceOfCoreExp
+        | notInstanceOfCoreExp
+        | varCoreExp
+        | constantCoreExp
+        | tupleCoreExp
         | bracketExp
         | exp
     )
@@ -231,6 +228,7 @@ object CoreParser {
       notInstanceOfCoreExp
         | varCoreExp
         | constantCoreExp
+        | tupleCoreExp
         | bracketExp
         | exp
     )
@@ -240,9 +238,40 @@ object CoreParser {
     P(
       varCoreExp
         | constantCoreExp
+        | tupleCoreExp
         | bracketExp
         | exp
     )
+
+  /** See CoreExp parser @see coreExp */
+  def pathAccessCoreExp[_: P]: P[PathAccess] =
+    P(
+      terminatePathAccess ~ "." ~ link
+    ).map { case (exp, lnk) => PathAccess(exp, lnk) }
+
+  /** See CoreExp parser @see coreExp */
+  def callCoreExp[_: P]: P[Call] =
+    P(
+      identifier ~ s_i ~ "+".?.! ~ s_i ~ P(
+        P("()")
+          .map(_ => Seq.empty[Exp]) | "(" ~ P(s_i ~ exp ~ s_i).rep(1, sep = ",") ~ ")"
+      )
+    ).map {
+      case (name, transitive_str, exp) =>
+        Call(name, exp, if (transitive_str == "+") true else false)
+    }
+
+  /** See CoreExp parser @see coreExp */
+  def countCoreExp[_: P]: P[Count] =
+    P(
+      "count " ~ s_i ~ callCoreExp
+    ).map(Count)
+
+  /** See CoreExp parser @see coreExp */
+  def tupleCoreExp[_: P]: P[Tuple] =
+    P(
+      "(" ~ P(s_i ~ exp ~ s_i).rep(2, sep = ",") ~ ")"
+    ).map(Tuple)
 
   /** Bracket parser */
   def bracketExp[_: P]: P[Exp] = P("(" ~ s_i ~ exp ~ s_i ~ ")")
@@ -262,10 +291,10 @@ object CoreParser {
     P(terminateNeq ~ s_i ~ "!=" ~ s_i ~ exp).map { case (e1, e2) => Neq(e1, e2) }
 
   /** Def parser */
-  def defCoreExp[_: P]: P[CoreExp] = P("def " ~ terminateDef).map(Def)
+  def defCoreExp[_: P]: P[CoreExp] = P("def " ~ exp).map(Def)
 
   /** Undef parser */
-  def undefCoreExp[_: P]: P[Undef] = P("undef " ~ terminateUndef).map(Undef)
+  def undefCoreExp[_: P]: P[Undef] = P("undef " ~ exp).map(Undef)
 
   /** InstanceOf parser */
   def instanceOfCoreExp[_: P]: P[InstanceOf] =
@@ -353,16 +382,16 @@ object CoreParser {
         Module(name, imports.toSeq, patternfunctions.toSeq)
     }
 
-  def yieldStatement[_:P]:P[Yield] = 
-  P(
-    s_i ~ "yield " ~ exp
-  ).map(Yield)
+  def yieldStatement[_: P]: P[Yield] =
+    P(
+      s_i ~ "yield " ~ exp
+    ).map(Yield)
 
-  def failStatement[_:P]: P[TerminatorStatement] = 
-   P(
-     s_i ~ "continue" ~ s_i
-   ).map(_ => Core.Fail)
+  def failStatement[_: P]: P[TerminatorStatement] =
+    P(
+      s_i ~ "continue" ~ s_i
+    ).map(_ => Core.Fail)
 
-  def terminatorStatement[_:P] :P[TerminatorStatement] = 
+  def terminatorStatement[_: P]: P[TerminatorStatement] =
     P(yieldStatement | failStatement)
 }
