@@ -155,14 +155,10 @@ object CoreParser {
 
   /** CoreExp parser */
   def coreExp[_: P]: P[Exp] =
-    P(recursionAnchorExp.flatMap { e: Exp =>
-      {
-        P(
-          recursionCallExp(e)
-            | recursionLHSCallExp(e)
-        )
-      }
-    } | recursionAnchorExp)
+    P(
+      recursionAnchorExp.flatMap { e: Exp => {P(recursionCallExp(e))}}
+      | recursionAnchorExp
+    )
 
   /** Recalls the resulting expression on expression as left hand.
     * Ensures left to right binding.
@@ -170,21 +166,16 @@ object CoreParser {
   def decorateRecursionExp[_: P, T](p: => P[Exp]) =
     P(p.flatMap(t => recursionCallExp(t)) | p)
 
-  /** Parser for exoressions that have left hand and other expression recursion. */
+  /** Parser for expressions that require a left side expression. */
   def recursionCallExp[_: P](e: Exp): P[Exp] =
     decorateRecursionExp(
       P(
         eqCoreExp(e)
           | neqCoreExp(e)
+          | notInstanceOfCoreExp(e)
+          | instanceOfCoreExp(e)
+          | pathAccessCoreExp(e)
       )
-    )
-
-  /** Parser for expressions that have only left hand expression recursion. */
-  def recursionLHSCallExp[_: P](e: Exp): P[Exp] =
-    decorateRecursionExp(
-      notInstanceOfCoreExp(e)
-        | instanceOfCoreExp(e)
-        | pathAccessCoreExp(e)
     )
 
   /** These parsers ensure a monotone decrease in the argument before a possible recursion call.
