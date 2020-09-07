@@ -5,6 +5,7 @@ import fastparse._
 import NoWhitespace._
 import ParserUtils._
 import inca.frontend.core.Core
+import fastparse.Parsed.Success
 
 /**
   * Parser for the IncA Core language.
@@ -305,5 +306,8 @@ object CoreParser {
 
   def assertStatement[_: P]: P[Assert] = P("assert " ~ s_i ~ exp).map(Assert)
 
-
+  def body[_:P]:P[Body] = 
+      P(
+        sn_i ~ "{" ~ s_i ~ P(("\n" | "\r\n" ).rep(1) ~ sn_i ~ statement ~ s_i).rep() ~ sn_i ~ "}"
+      ).map(Body(_))
 }
