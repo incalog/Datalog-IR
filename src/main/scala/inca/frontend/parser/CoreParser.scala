@@ -100,7 +100,7 @@ object CoreParser {
 
   /** Param parser */
   def param[_: P]: P[Param] =
-    P(ParserUtils.identifier ~ ":" ~ typeAnno).map {
+    P(ParserUtils.identifier ~ s_i ~ ":" ~ s_i ~ typeAnno).map {
       case (name, typeAnno) => Param(name, typeAnno)
     }
 
@@ -310,4 +310,23 @@ object CoreParser {
       P(
         sn_i ~ "{" ~ s_i ~ P(("\n" | "\r\n" ).rep(1) ~ sn_i ~ statement ~ s_i).rep() ~ sn_i ~ "}"
       ).map(Body(_))
+
+  def annoParamUnit[_:P] :P[Seq[AnnoParam]] = P("unit").map(_ => Seq.empty[AnnoParam])
+
+  def annoParamSingle[_:P]:P[Seq[AnnoParam]] = P(annoParam).map(Seq(_))
+
+  def patternFunctionVisibility[_:P] :P[Visibility] = P("def " | "private def").!.map{_ match {
+    case "private def " => Private 
+    case "def " => Public
+  }}
+
+  def patternfunction[_:P] :P[Any] = P(
+    sn_i ~ 
+    patternFunctionVisibility ~ s_i ~ identifier ~ s_i ~
+    "(" ~ s_i ~ P(s_i ~ param ~ s_i).rep(0, sep=",") ~ s_i ~ ")" ~ s_i ~ ":" ~ s_i ~
+    P(
+      annoParamUnit | P("(" ~ s_i ~ P(s_i ~ annoParam ~ s_i).rep(sep=",") ~ s_i ~ ")" ) |  annoParamSingle
+    )
+    ~ s_i ~ "=" ~ sn_i ~ P(sn_i ~ body ~ sn_i).rep(1, sep = "union")
+  ).map{case(visib, name, params, ret_params, bodies) => PatternFunction(Option(visib), name, params, ret_params, bodies)}
 }
