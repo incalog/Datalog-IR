@@ -157,7 +157,7 @@ object Core {
     override def boundVars: Set[Name] = Set(name)
     override def allVars: Map[Name, Option[TypeAnno]] = Map(name -> Some(typ))
     override def prettyprint(implicit indent: String): String =
-      s"${indent}vals $name <- $typ"
+      s"${indent}vals $name <- ${typ.prettyprint}"
   }
   case class Assign(names: Seq[Name], exp: Exp) extends CoreStatement {
     override def boundVars: Set[Name] = names.toSet
