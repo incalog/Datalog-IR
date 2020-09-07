@@ -279,11 +279,11 @@ object CoreParser {
       case (e, typ) => NotInstanceOf(e, typ)
     }
 
-  def statement[_: P]: P[Statement] = P(coreStatement)
+  def statement[_: P]: P[Statement] = P(coreStatement | terminatorStatement)
 
   def coreStatement[_: P]: P[CoreStatement] =
     P(
-      s_i ~ (
+      s_i ~ P(
         valuesStatement
           | assignStatement
           | assertStatement
@@ -352,4 +352,17 @@ object CoreParser {
       case (name, imports, patternfunctions) =>
         Module(name, imports.toSeq, patternfunctions.toSeq)
     }
+
+  def yieldStatement[_:P]:P[Yield] = 
+  P(
+    s_i ~ "yield " ~ exp
+  ).map(Yield)
+
+  def failStatement[_:P]: P[TerminatorStatement] = 
+   P(
+     s_i ~ "continue" ~ s_i
+   ).map(_ => Core.Fail)
+
+  def terminatorStatement[_:P] :P[TerminatorStatement] = 
+    P(yieldStatement | failStatement)
 }

@@ -2,6 +2,7 @@ package inca.frontend.parser
 
 import org.scalatest.funsuite.AnyFunSuite
 import fastparse._
+import inca.frontend.core.Core
 import inca.frontend.core.Core._
 import fastparse.Parsed.Success
 import fastparse.Parsed.Failure
@@ -421,19 +422,12 @@ class CoreParserTest extends AnyFunSuite {
     test_run("Unit", TTuple(Seq.empty))
   }
 
-  test("test Values statement") {
-    val expected = Values("x", TBool)
-    checkStatement(expected)
-  }
-
-  test("test Assign statement single var") {
-    val expected = Assign(Seq("x"), Var("y"))
-    checkStatement(expected)
-  }
-
-  test("test Assign statement multiple vars") {
-    val expected = Assign(Seq("x", "y", "abc"), Var("zs"))
-    checkStatement(expected)
+  test("test Statement") {
+    checkStatement(Yield(Var("x")))
+    checkStatement(Core.Fail)
+    checkStatement(Values("x", TBool))
+    checkStatement(Assign(Seq("x"), Var("y")))
+    checkStatement(Assign(Seq("x", "y", "abc"), Var("zs")))
   }
 
   test("test Body") {
