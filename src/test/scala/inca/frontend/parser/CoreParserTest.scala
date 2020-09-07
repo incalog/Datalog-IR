@@ -669,6 +669,47 @@ class CoreParserTest extends AnyFunSuite {
                 ))
   }
 
+  test("test Module") {
+    def test_run = test_helper[Module](CoreParser.module(_))
+
+    test_run(s"""module my
+                |import math
+                |import cuda_runtime
+                |def foo(bar: bool): unit = {
+                |  val x = y
+                |}
+                |def bar(foo: bool): unit = {
+                |  val x = y
+                |}""".stripMargin, Module(
+        "my",
+        Seq("math", "cuda_runtime"),
+        Seq(
+          PatternFunction(
+            Option(Public),
+            "foo",
+            Seq(Param("bar", TBool)),
+            Seq.empty,
+            Seq(
+              Body(
+                Assign(Seq("x"), Var("y"))
+              )
+            )
+          ),
+          PatternFunction(
+            Option(Public),
+            "bar",
+            Seq(Param("foo", TBool)),
+            Seq.empty,
+            Seq(
+              Body(
+                Assign(Seq("x"), Var("y"))
+              )
+            )
+          )
+        )
+      ))
+  }
+
   private def test_helper[T](parser : P[_] => P[Any]) = (input: String, cmp : T) => {
     parse(input, parser) match {
       case Success(value, index) => assert(cmp === value)

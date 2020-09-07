@@ -14,7 +14,12 @@ object ParserUtils {
     * The first character must be an alphabetical one. After that digits and underscores are also allowed
     */
   def identifier[_: P]: P[String] =
-    P(CharIn("a-z", "A-Z") ~ CharIn("a-z", "A-Z", "0-9", "_").rep(0)).!
+    P(CharIn("a-z", "A-Z") ~ CharIn("a-z", "A-Z", "0-9", "_").rep(0)).!.map(
+      _ match {
+        case "def" => return fastparse.Fail
+        case s : String => s
+      }
+    )
 
   /** Parser consuming all whitespaces by ignoring them. */
   def w_i[_: P]: P[Unit] = CharsWhileIn("\n \t\r").?
@@ -29,6 +34,8 @@ object ParserUtils {
 
   /** Parser consuming all newline characters by ignoring them. */
   def n_i[_: P]: P[Unit] = CharsWhileIn("\r\n").?
+
+  def n_[_:P]:P[Unit] = P("\n" | "\r\n")
 
   /** A parser for integer literals in base 10. It does not allow leading zeroes */
   def integer[_: P]: P[Int] = P(rawInteger).map(_.toInt)
