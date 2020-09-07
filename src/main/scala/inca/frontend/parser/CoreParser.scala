@@ -5,6 +5,8 @@ import fastparse._
 import NoWhitespace._
 import ParserUtils._
 import inca.frontend.core.Core
+import fastparse.Parsed.Success
+import inca.backend.ir.GP.Pattern
 
 /**
   * Parser for the IncA Core language.
@@ -279,70 +281,91 @@ object CoreParser {
 
 
   /** Statement parser */
-  def statement[_: P]: P[Statement] =
-    P(
-      s_i ~ (
-        terminatorStatement
-          | coreStatement
-      ) ~ s_i
-    )
+  def statement[_: P]: P[Statement] = P(coreStatement | terminatorStatement)
 
   /** CoreStatement parser */
   def coreStatement[_: P]: P[CoreStatement] =
     P(
-      valuesStatement
-        | assignStatement
-        | assertStatement
+      s_i ~ P(
+        valuesStatement
+          | assignStatement
+          | assertStatement
+      )
     )
 
-  def valuesStatement[_: P]: P[Values] = P("vals " ~ s_i ~ identifier ~ s_i ~ "<-" ~ s_i ~ typeAnno).map {
-    case (name, typeAnno) => Values(name, typeAnno)
-  }
+  def valuesStatement[_: P]: P[Values] =
+    P("vals " ~ s_i ~ identifier ~ s_i ~ "<-" ~ s_i ~ typeAnno).map {
+      case (name, typeAnno) => Values(name, typeAnno)
+    }
 
   def assignStatement[_: P]: P[Assign] =
     P(
       ("val " ~ s_i ~ identifier ~ s_i ~ "=" ~ s_i ~ exp).map {
         case (name, expr) => Assign(Seq(name), expr)
       }
-      | ("val " ~ s_i ~ "(" ~ (s_i ~ identifier ~ s_i).rep(min = 2, sep = ",") ~ s_i ~ ")" ~ s_i ~ "=" ~ s_i ~ exp).map {
-        case (names, expr) => Assign(names, expr)
-      }
+        | ("val " ~ s_i ~ "(" ~ (s_i ~ identifier ~ s_i)
+          .rep(min = 2, sep = ",") ~ s_i ~ ")" ~ s_i ~ "=" ~ s_i ~ exp).map {
+          case (names, expr) => Assign(names, expr)
+        }
     )
 
   def assertStatement[_: P]: P[Assert] = P("assert " ~ s_i ~ exp).map(Assert)
 
-  def body[_:P]:P[Body] =
-      P(
-        sn_i ~ "{" ~ s_i ~ P(("\n" | "\r\n" ).rep(1) ~ sn_i ~ statement ~ s_i).rep() ~ sn_i ~ "}"
-      ).map(Body(_))
-
-  def annoParamUnit[_:P] :P[Seq[AnnoParam]] = P("unit").map(_ => Seq.empty[AnnoParam])
-  /** TerminatorStatement parser */
-  def terminatorStatement[_: P]: P[TerminatorStatement] =
+  def body[_: P]: P[Body] =
     P(
-      failStatement
-        | yieldStatement
-    )
+      sn_i ~ "{" ~ s_i ~ P(("\n" | "\r\n").rep(1) ~ sn_i ~ statement ~ s_i)
+        .rep() ~ sn_i ~ "}"
+    ).map(Body(_))
 
-  def annoParamSingle[_:P]:P[Seq[AnnoParam]] = P(annoParam).map(Seq(_))
+  def annoParamUnit[_: P]: P[Seq[AnnoParam]] =
+    P("unit" | "Unit").map(_ => Seq.empty[AnnoParam])
 
-  def patternFunctionVisibility[_:P] :P[Visibility] = P("def " | "private def").!.map{_ match {
-    case "private def " => Private
-    case "def " => Public
-  }}
+  def annoParamSingle[_: P]: P[Seq[AnnoParam]] = P(annoParam).map(Seq(_))
 
-  def patternfunction[_:P] :P[Any] = P(
-    sn_i ~
-    patternFunctionVisibility ~ s_i ~ identifier ~ s_i ~
-    "(" ~ s_i ~ P(s_i ~ param ~ s_i).rep(0, sep=",") ~ s_i ~ ")" ~ s_i ~ ":" ~ s_i ~
+  def patternFunctionVisibility[_: P]: P[Visibility] =
+    P("def " | P("private " ~ s_i ~ "def ")).!.map {
+      _ match {
+        case "def " => Public
+        case _      => Private
+      }
+    }
+
+  def patternFunction[_: P]: P[PatternFunction] =
     P(
-      annoParamUnit | P("(" ~ s_i ~ P(s_i ~ annoParam ~ s_i).rep(sep=",") ~ s_i ~ ")" ) |  annoParamSingle
-    )
-    ~ s_i ~ "=" ~ sn_i ~ P(sn_i ~ body ~ sn_i).rep(1, sep = "union")
-  ).map{case(visib, name, params, ret_params, bodies) => PatternFunction(Option(visib), name, params, ret_params, bodies)}
-  /** Yield parser */
-  def yieldStatement[_: P]: P[Yield] = P("yield" ~ s_i ~ exp).map(Yield)
+      sn_i ~
+        patternFunctionVisibility ~ s_i ~ identifier ~ s_i ~
+        "(" ~ s_i ~ P(s_i ~ param ~ s_i).rep(0, sep = ",") ~ s_i ~ ")" ~ s_i ~ ":" ~ s_i ~
+        P(
+          annoParamUnit | P(
+            "(" ~ s_i ~ P(s_i ~ annoParam ~ s_i).rep(sep = ",") ~ s_i ~ ")"
+          ) | annoParamSingle
+        )
+        ~ s_i ~ "=" ~ sn_i ~ P(sn_i ~ body ~ sn_i).rep(1, sep = "union")
+    ).map {
+      case (visib, name, params, ret_params, bodies) =>
+        PatternFunction(Option(visib), name, params.toSeq, ret_params.toSeq, bodies.toSeq)
+    }
 
-  /** Fail parser */
-  def failStatement[_: P]: P[inca.frontend.core.Core.Fail.type] = P("continue").map(_ => inca.frontend.core.Core.Fail)
+  def module[_: P]: P[Module] =
+    P(
+      sn_i ~ "module " ~ identifier ~ s_i ~ n_ ~ sn_i ~
+        P(P("import" ~ s_i).? ~ identifier ~ s_i ~ sn_i).rep ~
+        P(patternFunction ~ sn_i).rep ~ End
+    ).map {
+      case (name, imports, patternfunctions) =>
+        Module(name, imports.toSeq, patternfunctions.toSeq)
+    }
+
+  def yieldStatement[_:P]:P[Yield] =
+  P(
+    s_i ~ "yield " ~ exp
+  ).map(Yield)
+
+  def failStatement[_:P]: P[TerminatorStatement] =
+   P(
+     s_i ~ "continue" ~ s_i
+   ).map(_ => Core.Fail)
+
+  def terminatorStatement[_:P] :P[TerminatorStatement] =
+    P(yieldStatement | failStatement)
 }
