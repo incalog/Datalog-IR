@@ -153,97 +153,35 @@ object CoreParser {
   /** Exp parser */
   def exp[_: P]: P[Exp] = P(coreExp)
 
-  /** CoreExp parser
-    *
-    * The recursion is ordered in a loop sequence such that every testet subexpression is
-    * continuing the next subexpression thus avoiding endless loop aka stackoverflow.
-    * As fasparse has no better option to handle this lefthand recursion there is a parser
-    * for continuing the loop sequence for each individual subexpression needed.
-    * In the sequence expressions with preset keywords such as 'def' are placed in the beginning (these do not
-    * require a seperate terminate function as they don't do left recusion.)
-    * reducing the recusion depth; expressions with infix operators in the center avoiding an early stop
-    * from the constant expression which do no recursive call at all at the end.
-    *
-    * This might make it impossible to do language extentions in a seperate class or object.
-    */
+  /** CoreExp parser */
   def coreExp[_: P]: P[Exp] =
+    P(recursionAnchorExp.flatMap { e: Exp =>
+      {
+        P(
+          recursionCallExp(e)
+            | notInstanceOfCoreExp(e)
+            | instanceOfCoreExp(e)
+            | pathAccessCoreExp(e)
+        )
+      }
+    } | recursionAnchorExp)
+
+  def recursionCallExp[_: P](e: Exp): P[Exp] =
+    P(
+      eqCoreExp(e)
+        | neqCoreExp(e)
+    )
+
+  def recursionAnchorExp[_: P]: P[Exp] =
     P(
       callCoreExp
         | countCoreExp
         | defCoreExp
         | undefCoreExp
-
-        | eqCoreExp //
-        | neqCoreExp
-
-      // | pathAccessCoreExp
-        | instanceOfCoreExp
-        | notInstanceOfCoreExp
-
         | varCoreExp
         | constantCoreExp
         | tupleCoreExp
         | bracketExp
-    )
-
-  /** See CoreExp parser @see coreExp */
-  def terminateEq[_: P]: P[Exp] =
-    P(
-      neqCoreExp
-      // | pathAccessCoreExp
-        | instanceOfCoreExp
-        | notInstanceOfCoreExp
-        | varCoreExp
-        | constantCoreExp
-        | tupleCoreExp
-        | bracketExp
-        | exp
-    )
-
-  /** See CoreExp parser @see coreExp */
-  def terminateNeq[_: P]: P[Exp] =
-    P(
-      // pathAccessCoreExp
-      // |
-      instanceOfCoreExp
-        | notInstanceOfCoreExp
-        | varCoreExp
-        | constantCoreExp
-        | tupleCoreExp
-        | bracketExp
-        | exp
-    )
-
-  def terminatePathAccess[_: P]: P[Exp] =
-    P(
-      instanceOfCoreExp
-        | notInstanceOfCoreExp
-        | varCoreExp
-        | constantCoreExp
-        | tupleCoreExp
-        | bracketExp
-        | exp
-    )
-
-  /** See CoreExp parser @see coreExp */
-  def terminateInstanceOf[_: P]: P[Exp] =
-    P(
-      notInstanceOfCoreExp
-        | varCoreExp
-        | constantCoreExp
-        | tupleCoreExp
-        | bracketExp
-        | exp
-    )
-
-  /** See CoreExp parser @see coreExp */
-  def terminateNotInstanceOf[_: P]: P[Exp] =
-    P(
-      varCoreExp
-        | constantCoreExp
-        | tupleCoreExp
-        | bracketExp
-        | exp
     )
 
   def eval[_: P]: P[Any] = {
@@ -296,11 +234,12 @@ object CoreParser {
   }
   //def eval_test[_: P]: P[Any] = P(eval ~ AnyChar.rep.!)
 
+  def decorateRecursionExp[_: P, T](p: => P[Exp]) =
+    P(p.flatMap(t => recursionCallExp(t)) | p)
+
   /** See CoreExp parser @see coreExp */
-  def pathAccessCoreExp[_: P]: P[PathAccess] =
-    P(
-      terminatePathAccess ~ "." ~ link(TNode("dummy"))
-    ).map { case (exp, lnk) => PathAccess(exp, lnk) }
+  def pathAccessCoreExp[_: P](e: Exp): P[Exp] =
+    decorateRecursionExp(P("." ~ link(TNode("dummy"))).map(PathAccess(e, _)))
 
   /** See CoreExp parser @see coreExp */
   def callCoreExp[_: P]: P[Call] =
@@ -336,12 +275,12 @@ object CoreParser {
   def constantCoreExp[_: P]: P[Constant] = P(literal).map(Constant)
 
   /** Eq parser */
-  def eqCoreExp[_: P]: P[Eq] =
-    P(terminateEq ~ s_i ~ "==" ~ s_i ~ exp).map { case (l, r) => Eq(l, r) }
+  def eqCoreExp[_: P](e: Exp): P[Eq] =
+    P(s_i ~ "==" ~ s_i ~ exp).map(Eq(e, _))
 
   /** Neq parser */
-  def neqCoreExp[_: P]: P[Neq] =
-    P(terminateNeq ~ s_i ~ "!=" ~ s_i ~ exp).map { case (e1, e2) => Neq(e1, e2) }
+  def neqCoreExp[_: P](e: Exp): P[Neq] =
+    P(s_i ~ "!=" ~ s_i ~ exp).map(Neq(e, _))
 
   /** Def parser */
   def defCoreExp[_: P]: P[CoreExp] = P("def " ~ exp).map(Def)
@@ -350,16 +289,12 @@ object CoreParser {
   def undefCoreExp[_: P]: P[Undef] = P("undef " ~ exp).map(Undef)
 
   /** InstanceOf parser */
-  def instanceOfCoreExp[_: P]: P[InstanceOf] =
-    P(terminateInstanceOf ~ " " ~ w_i ~ "instanceOf " ~ w_i ~ typeAnno).map {
-      case (e, typ) => InstanceOf(e, typ)
-    }
+  def instanceOfCoreExp[_: P](e: Exp): P[Exp] =
+    decorateRecursionExp(P(" " ~ s_i ~ "instanceOf " ~ s_i ~ typeAnno).map(InstanceOf(e, _)))
 
   /** NotInstanceOf parser */
-  def notInstanceOfCoreExp[_: P]: P[NotInstanceOf] =
-    P(terminateNotInstanceOf ~ " " ~ w_i ~ "notInstanceOf " ~ w_i ~ typeAnno).map {
-      case (e, typ) => NotInstanceOf(e, typ)
-    }
+  def notInstanceOfCoreExp[_: P](e: Exp): P[Exp] =
+    decorateRecursionExp(P(" " ~ s_i ~ "notInstanceOf " ~ s_i ~ typeAnno).map(NotInstanceOf(e, _)))
 
   /** Statement parser */
   def statement[_: P]: P[Statement] = P(coreStatement | terminatorStatement)

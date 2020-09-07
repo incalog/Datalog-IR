@@ -282,7 +282,7 @@ class CoreParserTest extends AnyFunSuite {
   test("test PathAccess ParentLink") {
     val expr = PathAccess(Var("xyz"), ParentLink)
     val input = expr.prettyprint("")
-    parse(input, CoreParser.pathAccessCoreExp(_)) match {
+    parse(input, CoreParser.exp(_)) match {
       case Success(value, _)            =>
         print(value)
         assert(value == expr)
@@ -293,7 +293,7 @@ class CoreParserTest extends AnyFunSuite {
   test("test PathAccess NamedLink") {
     val expr = PathAccess(Var("test"), NamedLink(TNode("dummy"), "property"))
     val input = expr.prettyprint("")
-    parse(input, CoreParser.pathAccessCoreExp(_)) match {
+    parse(input, CoreParser.exp(_)) match {
       case Success(value, _)            =>
         print(value)
         assert(value == expr)
