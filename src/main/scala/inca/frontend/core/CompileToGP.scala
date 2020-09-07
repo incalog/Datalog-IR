@@ -240,6 +240,10 @@ object CompileToGP {
           (Seq(tmpVar), Seq(compare))
       }
 
+    case Core.Wildcard =>
+      val dummyVar = gensym.fresh("wildcard")
+      (Seq(dummyVar), Seq())
+
     case Core.Tuple(exps) =>
       val (vars, constraints) = exps.map(e => transExp(e.ensureCore)).unzip
       (vars.flatten, constraints.flatten)

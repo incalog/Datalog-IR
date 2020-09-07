@@ -253,6 +253,10 @@ object Core {
       s"undef ${exp.prettyprint}"
   }
 
+  case object Wildcard extends CoreExp {
+    override def freeVars: Map[Name, Option[TypeAnno]] = Map()
+    override def prettyprint(implicit indent: String): String = "_"
+  }
   case class Var(name: Name) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = Map(name -> typ)
     override def prettyprint(implicit indent: String): String = name
