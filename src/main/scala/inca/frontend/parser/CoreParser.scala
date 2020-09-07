@@ -315,12 +315,12 @@ object CoreParser {
 
   def annoParamSingle[_:P]:P[Seq[AnnoParam]] = P(annoParam).map(Seq(_))
 
-  def patternFunctionVisibility[_:P] :P[Visibility] = P("def " | "private def").!.map{_ match {
-    case "private def " => Private 
+  def patternFunctionVisibility[_:P] :P[Visibility] = P("def " | P("private " ~ s_i ~ "def ")).!.map{_ match {
     case "def " => Public
+    case _ => Private 
   }}
 
-  def patternfunction[_:P] :P[Any] = P(
+  def patternFunction[_:P] :P[Any] = P(
     sn_i ~ 
     patternFunctionVisibility ~ s_i ~ identifier ~ s_i ~
     "(" ~ s_i ~ P(s_i ~ param ~ s_i).rep(0, sep=",") ~ s_i ~ ")" ~ s_i ~ ":" ~ s_i ~
@@ -329,4 +329,5 @@ object CoreParser {
     )
     ~ s_i ~ "=" ~ sn_i ~ P(sn_i ~ body ~ sn_i).rep(1, sep = "union")
   ).map{case(visib, name, params, ret_params, bodies) => PatternFunction(Option(visib), name, params, ret_params, bodies)}
+
 }
