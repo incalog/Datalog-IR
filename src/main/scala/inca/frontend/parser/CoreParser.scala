@@ -159,19 +159,37 @@ object CoreParser {
       {
         P(
           recursionCallExp(e)
-            | notInstanceOfCoreExp(e)
-            | instanceOfCoreExp(e)
-            | pathAccessCoreExp(e)
+            | recursionLHSCallExp(e)
         )
       }
     } | recursionAnchorExp)
 
+  /** Recalls the resulting expression on expression as left hand.
+    * Ensures left to right binding.
+    */
+  def decorateRecursionExp[_: P, T](p: => P[Exp]) =
+    P(p.flatMap(t => recursionCallExp(t)) | p)
+
+  /** Parser for exoressions that have left hand and other expression recursion. */
   def recursionCallExp[_: P](e: Exp): P[Exp] =
-    P(
-      eqCoreExp(e)
-        | neqCoreExp(e)
+    decorateRecursionExp(
+      P(
+        eqCoreExp(e)
+          | neqCoreExp(e)
+      )
     )
 
+  /** Parser for expressions that have only left hand expression recursion. */
+  def recursionLHSCallExp[_: P](e: Exp): P[Exp] =
+    decorateRecursionExp(
+      notInstanceOfCoreExp(e)
+        | instanceOfCoreExp(e)
+        | pathAccessCoreExp(e)
+    )
+
+  /** These parsers ensure a monotone decrease in the argument before a possible recursion call.
+    * Which means they're safe to call.
+    */
   def recursionAnchorExp[_: P]: P[Exp] =
     P(
       callCoreExp
@@ -234,12 +252,9 @@ object CoreParser {
   }
   //def eval_test[_: P]: P[Any] = P(eval ~ AnyChar.rep.!)
 
-  def decorateRecursionExp[_: P, T](p: => P[Exp]) =
-    P(p.flatMap(t => recursionCallExp(t)) | p)
-
   /** See CoreExp parser @see coreExp */
   def pathAccessCoreExp[_: P](e: Exp): P[Exp] =
-    decorateRecursionExp(P("." ~ link(TNode("dummy"))).map(PathAccess(e, _)))
+    P("." ~ link(TNode("dummy"))).map(PathAccess(e, _))
 
   /** See CoreExp parser @see coreExp */
   def callCoreExp[_: P]: P[Call] =
@@ -290,11 +305,11 @@ object CoreParser {
 
   /** InstanceOf parser */
   def instanceOfCoreExp[_: P](e: Exp): P[Exp] =
-    decorateRecursionExp(P(" " ~ s_i ~ "instanceOf " ~ s_i ~ typeAnno).map(InstanceOf(e, _)))
+    P(" " ~ s_i ~ "instanceOf " ~ s_i ~ typeAnno).map(InstanceOf(e, _))
 
   /** NotInstanceOf parser */
   def notInstanceOfCoreExp[_: P](e: Exp): P[Exp] =
-    decorateRecursionExp(P(" " ~ s_i ~ "notInstanceOf " ~ s_i ~ typeAnno).map(NotInstanceOf(e, _)))
+    P(" " ~ s_i ~ "notInstanceOf " ~ s_i ~ typeAnno).map(NotInstanceOf(e, _))
 
   /** Statement parser */
   def statement[_: P]: P[Statement] = P(coreStatement | terminatorStatement)
