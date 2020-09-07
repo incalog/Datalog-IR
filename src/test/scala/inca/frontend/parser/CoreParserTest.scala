@@ -208,7 +208,7 @@ class CoreParserTest extends AnyFunSuite {
 
   test("test Link core-links") {
     def checkLink(link: String, expected: Link): Unit = {
-      parse(s"node.$link", CoreParser.link(_)) match {
+      parse(s"$link", CoreParser.link(TNode("node"))(_)) match {
         case Success(l, _) => assert(l === expected)
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
       }
@@ -274,6 +274,28 @@ class CoreParserTest extends AnyFunSuite {
   test("test NotInstanceOf") {
     val expr = NotInstanceOf(Var("x"), TBool)
     checkExp(expr)
+  }
+
+  test("test PathAccess ParentLink") {
+    val expr = PathAccess(Var("xyz"), ParentLink)
+    val input = expr.prettyprint("")
+    parse(input, CoreParser.pathAccessCoreExp(_)) match {
+      case Success(value, _)            =>
+        print(value)
+        assert(value == expr)
+      case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+    }
+  }
+
+  test("test PathAccess NamedLink") {
+    val expr = PathAccess(Var("test"), NamedLink(TNode("intermediate"), "property"))
+    val input = expr.prettyprint("")
+    parse(input, CoreParser.pathAccessCoreExp(_)) match {
+      case Success(value, _)            =>
+        print(value)
+        assert(value == expr)
+      case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+    }
   }
 
   test("test CoreExp") {

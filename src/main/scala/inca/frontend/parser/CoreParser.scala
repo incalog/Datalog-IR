@@ -113,7 +113,7 @@ object CoreParser {
     }
 
   /** Link parser */
-  def link[_: P]: P[Link] = P(tNode ~ ".").flatMap(coreLink)
+  def link[_: P](node: TNode): P[Link] = P(coreLink(node))
 
   /** CoreLink parser */
   def coreLink[_: P](node: TNode): P[CoreLink] =
@@ -279,6 +279,24 @@ object CoreParser {
       case (e, typ) => NotInstanceOf(e, typ)
     }
 
+  /** PathAccess parser.
+   * @todo remove TNodes
+   */
+  def pathAccessCoreExp[_: P]: P[PathAccess] = P(exp ~ w_i ~ "." ~ w_i ~ link(TNode("intermediate"))).map {
+    case (expr, link) => PathAccess(expr, link)
+  }
+
+  def callCoreExp[_: P]: P[Call] = {
+    def transitive = P("+".!.?).map(_.fold(false)(_ => true))
+    P(identifier ~ w_i ~transitive ~ w_i ~ "(" ~ w_i ~ exp.rep(sep = ",") ~ w_i ~ ")").map {
+      case (name, trans, args) => Call(name, args, trans)
+    }
+  }
+
+  def countCoreExp[_: P]: P[Count] = P("count " ~ w_i ~ callCoreExp).map(Count)
+
+  def tupleCoreExp[_: P]: P[Tuple] = P("(" ~ w_i ~ exp.rep(sep = ",") ~ w_i ~ ")").map(Tuple)
+
 
   /** Statement parser */
   def statement[_: P]: P[Statement] = P(coreStatement | terminatorStatement)
@@ -313,7 +331,7 @@ object CoreParser {
 
   def body[_: P]: P[Body] =
     P(
-      sn_i ~ "{" ~ s_i ~ P(("\n" | "\r\n").rep(1) ~ sn_i ~ statement ~ s_i)
+      sn_i ~ "{" ~ s_i ~/ P(("\n" | "\r\n").rep(1) ~ sn_i ~ statement ~ s_i)
         .rep() ~ sn_i ~ "}"
     ).map(Body(_))
 
