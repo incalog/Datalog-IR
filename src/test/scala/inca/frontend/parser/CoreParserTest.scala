@@ -181,9 +181,7 @@ class CoreParserTest extends AnyFunSuite {
     test_run(NotInstanceOf(Var("x"), TBool))
     test_run(PathAccess(Var("xyz"), ParentLink))
     test_run(PathAccess(Var("test"), NamedLink(TNode("dummy"), "property")))
-    val op = Aggregate(DataOp(Some("br0t"), "with"), DataOp(Some("cheese"), "and"), None, Call("butter", Seq.empty, false))
-    println(op.prettyprint(""))
-    test_run(op)
+    test_run(Aggregate(DataOp(Some("br0t"), "with"), DataOp(Some("cheese"), "and"), None, Call("butter", Seq.empty, false)))
   }
 
   test("test identifier") {

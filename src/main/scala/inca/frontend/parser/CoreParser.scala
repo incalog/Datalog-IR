@@ -7,6 +7,7 @@ import ParserUtils._
 import inca.frontend.core.Core
 import scala.util.control.Breaks._
 import scala.meta._
+import inca.frontend.parser.extensions._
 
 /**
   * Parser for the IncA Core language.

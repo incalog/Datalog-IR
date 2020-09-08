@@ -34,6 +34,15 @@ class ExtensionsTest extends AnyFunSuite {
     test_run("enum(int)", Enum(TInt))
   }
 
+  test("test ForallExists") {
+    def test_run = test_helper(CoreParser(Seq(ForallExistsParser)).statement(_))
+
+    test_run(s"""forall v in (x, y) {
+                |    assert x
+                |}""".stripMargin,
+                Forall("v", Tuple(Seq(Var("x"), Var("y"))), Body(Seq(Assert(Var("x"))))))
+  }
+
   private def test_helper[T](parser: P[_] => P[Any]) =
     (input: String, cmp: T) => {
       parse(input, parser) match {
