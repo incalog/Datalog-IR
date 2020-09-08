@@ -13,7 +13,6 @@ import inca.frontend.parser.extensions._
   * Parser for the IncA Core language.
   *
   * @todo    unfinished
-  * @version 0.0.1
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */

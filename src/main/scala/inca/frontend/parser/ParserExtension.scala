@@ -13,6 +13,11 @@ trait StatementParser {
   def parse[_: P]: P[Statement]
 }
 
+/** Interface for parsing language extentions in CoreParser
+  * 
+  * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
+  *          Julian Cichorius (jcichori@students.uni-mainz.de)
+  */
 trait ParserExtension {
   private[parser] var coreparser: CoreParser = null // Will be set from CoreParser
 
