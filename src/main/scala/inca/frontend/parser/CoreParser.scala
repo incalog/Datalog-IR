@@ -173,11 +173,11 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
   /** Recalls the resulting expression on expression as left hand.
     * Ensures left to right binding.
     */
-  def decorateRecursionExp[_: P, T](p: => P[Exp]): P[Exp] =
+  private def decorateRecursionExp[_: P, T](p: => P[Exp]): P[Exp] =
     P(p.flatMap(t => recursionCallExp(recursiveExpExtensions, t)) | p)
 
   /** Higher order extension call combination parser that require a left side expression. */
-  def recursionCallExp[_: P, T](p: Seq[RecursiveExpressionParser], e: Exp): P[Exp] =
+  private def recursionCallExp[_: P, T](p: Seq[RecursiveExpressionParser], e: Exp): P[Exp] =
     if (p.isEmpty) {
       decorateRecursionExp(
         P(
@@ -191,7 +191,7 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
     } else P(decorateRecursionExp(p.head.parse(e)) | recursionCallExp(p.tail, e))
 
   /** Higher order extension call combination parser that function as recursion anchor. */
-  def recursionAnchorExp[_: P, T](p: Seq[AnchorExpressionParser]): P[Exp] =
+  private def recursionAnchorExp[_: P, T](p: Seq[AnchorExpressionParser]): P[Exp] =
     if (p.isEmpty) {
       decorateRecursionExp(
         P(
@@ -305,8 +305,12 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
   def notInstanceOfCoreExp[_: P](e: Exp): P[Exp] =
     P(" " ~ s_i ~ "notInstanceOf " ~ s_i ~ typeAnno).map(NotInstanceOf(e, _))
 
-  /** Statement parser */
-  def statement[_: P]: P[Statement] = P(coreStatement | terminatorStatement)
+    /** Statement parser */
+  def statement[_:P]:P[Statement] = statementRecursive(statementExtensions)
+  
+  private def statementRecursive[_: P](ss : Seq[StatementParser]): P[Statement] = 
+    if (ss.isEmpty) P(coreStatement | terminatorStatement)
+    else P(ss.head.parse | statementRecursive(ss.tail))
 
   /** CoreStatement parser */
   def coreStatement[_: P]: P[CoreStatement] =
