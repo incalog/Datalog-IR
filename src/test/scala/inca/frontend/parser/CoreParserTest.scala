@@ -818,7 +818,7 @@ class CoreParserTest extends AnyFunSuite {
       }
     }
 
-  private def test_helper_negative[T](parser: P[_] => P[Any]) =
+  private[parser] def test_helper_negative[T](parser: P[_] => P[Any]) =
     (input: String) => {
       parse(input, parser) match {
         case Success(value, index)        => fail(s"$value, $index")

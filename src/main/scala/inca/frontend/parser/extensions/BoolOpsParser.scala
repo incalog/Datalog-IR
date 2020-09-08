@@ -15,7 +15,7 @@ object BoolOpsParser extends ParserExtension {
 
   object NotParser extends AnchorExpressionParser {
     override def parse[_: P]: P[Exp] = P(
-      "!" ~ s_i ~ "(" ~ coreparser.exp ~ ")"
+      "!" ~ s_i ~ coreparser.exp
     ).map(Not)
   }
 
