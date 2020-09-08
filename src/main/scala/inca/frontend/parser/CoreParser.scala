@@ -18,10 +18,10 @@ import scala.meta._
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
-case class CoreParser(
-    val recursionCallExpExtentions: Seq[Exp => P[Exp]] = Seq.empty,
-    val recursionAnchorExpExtentions: Seq[P[Exp]] = Seq.empty
-) {
+case class CoreParser(val extentions : Seq[ParserExtention])
+{
+  val recursionCallExpExtentions: Seq[Exp => P[Exp]] = Seq.empty
+  val recursionAnchorExpExtentions: Seq[P[Exp]] = Seq.empty
 
   def tAnyLinked[_: P]: P[TLinked] =
     P(P(TAnyLinked.prettyprint).map(_ => TAnyLinked))
