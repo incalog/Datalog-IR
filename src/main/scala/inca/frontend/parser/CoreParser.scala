@@ -5,7 +5,6 @@ import fastparse._
 import NoWhitespace._
 import ParserUtils._
 import inca.frontend.core.Core
-import fastparse.Parsed.Success
 import scala.util.control.Breaks._
 import scala.meta._
 
@@ -13,17 +12,26 @@ import scala.meta._
   * Parser for the IncA Core language.
   *
   * @todo    unfinished
-  * @todo    whitspacing
   * @version 0.0.1
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
-case class CoreParser(val extensions : Seq[ParserExtension] = Seq.empty)
-{
-  val recursiveExpExtensions: Seq[Exp => P[Exp]] = extensions.foldLeft(Seq.empty[Exp => P[Exp]]){case (s, ext) => s ++ ext.recursiveExpressions}
-  val anchorExpExtensions: Seq[P[Exp]] = extensions.foldLeft(Seq.empty[P[Exp]]){case (s, ext) => s ++ ext.anchorExpressions}
-  val statementExtensions: Seq[P[Statement]] = extensions.foldLeft(Seq.empty[P[Statement]]){case (s, ext) => s ++ ext.statement}
+case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
 
+  // Data initialization //
+  val recursiveExpExtensions: Seq[Exp => P[Exp]] =
+    extensions.foldLeft(Seq.empty[Exp => P[Exp]]) {
+      case (s, ext) => s ++ ext.recursiveExpressions
+    }
+
+  val anchorExpExtensions: Seq[P[Exp]] = extensions.foldLeft(Seq.empty[P[Exp]]) {
+    case (s, ext) => s ++ ext.anchorExpressions
+  }
+
+  val statementExtensions: Seq[P[Statement]] =
+    extensions.foldLeft(Seq.empty[P[Statement]]) { case (s, ext) => s ++ ext.statement }
+
+  // Parser //
   def tAnyLinked[_: P]: P[TLinked] =
     P(P(TAnyLinked.prettyprint).map(_ => TAnyLinked))
 
@@ -155,56 +163,50 @@ case class CoreParser(val extensions : Seq[ParserExtension] = Seq.empty)
   /** Exp parser */
   def exp[_: P]: P[Exp] =
     P(
-      recursionAnchorExpExtention(anchorExpExtensions).flatMap { e: Exp =>
-        { P(recursionCallExpExtention(recursiveExpExtensions, e)) }
+      recursionAnchorExp(anchorExpExtensions).flatMap { e: Exp =>
+        { P(recursionCallExp(recursiveExpExtensions, e)) }
       }
-        | recursionAnchorExpExtention(anchorExpExtensions)
+        | recursionAnchorExp(anchorExpExtensions)
     )
 
   /** Recalls the resulting expression on expression as left hand.
     * Ensures left to right binding.
     */
-  def decorateRecursionExp[_: P, T](p: => P[Exp]) =
-    P(p.flatMap(t => recursionCallExpExtention(recursiveExpExtensions, t)) | p)
+  def decorateRecursionExp[_: P, T](p: => P[Exp]): P[Exp] =
+    P(p.flatMap(t => recursionCallExp(recursiveExpExtensions, t)) | p)
 
   /** Higher order extension call combination parser that require a left side expression. */
-  def recursionCallExpExtention[_: P, T](p: Seq[Exp => P[Exp]], e: Exp): P[Exp] =
-  if (p.isEmpty) P(recursionCallExp(e))
-  else P(decorateRecursionExp(p.head(e)) | recursionCallExpExtention(p.tail, e))
-  
-  /** Higher order extension call combination parser that function as recursion anchor. */
-  def recursionAnchorExpExtention[_: P, T](p: Seq[P[Exp]]): P[Exp] =
-    if (p.isEmpty) P(recursionAnchorExp)
-    else P(decorateRecursionExp(p.head) | recursionAnchorExpExtention(p.tail))
-
-  /** Parser for expressions that require a left side expression. */
-  def recursionCallExp[_: P](e: Exp): P[Exp] =
-    decorateRecursionExp(
-      P(
-        eqCoreExp(e)
-          | neqCoreExp(e)
-          | notInstanceOfCoreExp(e)
-          | instanceOfCoreExp(e)
-          | pathAccessCoreExp(e)
+  def recursionCallExp[_: P, T](p: Seq[Exp => P[Exp]], e: Exp): P[Exp] =
+    if (p.isEmpty) {
+      decorateRecursionExp(
+        P(
+          eqExp(e)
+            | neqExp(e)
+            | notInstanceOfCoreExp(e)
+            | instanceOfCoreExp(e)
+            | pathAccessExp(e)
+        )
       )
-    )
+    } else P(decorateRecursionExp(p.head(e)) | recursionCallExp(p.tail, e))
 
-  /** These parsers ensure a monotone decrease in the argument before a possible recursion call.
-    * Which means they're safe to call.
-    */
-  def recursionAnchorExp[_: P]: P[Exp] =
-    P(
-      callCoreExp
-        | countCoreExp
-        | defCoreExp
-        | undefCoreExp
-        | varCoreExp
-        | constantCoreExp
-        | tupleCoreExp
-        | bracketExp
-    )
+  /** Higher order extension call combination parser that function as recursion anchor. */
+  def recursionAnchorExp[_: P, T](p: Seq[P[Exp]]): P[Exp] =
+    if (p.isEmpty) {
+      decorateRecursionExp(
+        P(
+          callExp
+            | countExp
+            | defExp
+            | undefExp
+            | varExp
+            | constantExp
+            | tupleExp
+            | bracketExp
+        )
+      )
+    } else P(decorateRecursionExp(p.head) | recursionAnchorExp(p.tail))
 
-  def eval[_: P]: P[Any] = {
+  def evalExp[_: P]: P[Any] = {
     var code: String = ""
     var c: Int = 0
 
@@ -212,7 +214,7 @@ case class CoreParser(val extensions : Seq[ParserExtension] = Seq.empty)
       "eval" ~ s_i ~ "(" ~
         P(
           AnyChar.rep.!.map(raw_str => {
-            var stack = scala.collection.mutable.Stack[Char]()
+            val stack = scala.collection.mutable.Stack[Char]()
 
             breakable {
               for (ch <- raw_str) {
@@ -225,26 +227,15 @@ case class CoreParser(val extensions : Seq[ParserExtension] = Seq.empty)
                 code += ch
               }
             }
-            c = code.size
+            c = code.length
 
             try {
               val res_tree = code.parse[Term].get
-              println(res_tree.structure)
-
-              // val res_type = code.parse[Type].get.stats
-              // println(res_type)
-
-              // res_tree match {
-              //   case _: Term =>
-              //   case
-              // }
-
-              println(code)
+              // @todo Scala type checker and unbound variables checker
             } catch {
-              case e: Exception => {
+              case e: Exception =>
                 println(e)
                 return fastparse.Fail
-              }
             }
           }) ~
             fastparse.Fail
@@ -255,11 +246,11 @@ case class CoreParser(val extensions : Seq[ParserExtension] = Seq.empty)
   //def eval_test[_: P]: P[Any] = P(eval ~ AnyChar.rep.!)
 
   /** See CoreExp parser @see coreExp */
-  def pathAccessCoreExp[_: P](e: Exp): P[Exp] =
-    P("." ~ link(TNode("dummy"))).map(PathAccess(e, _))
+  def pathAccessExp[_: P](e: Exp): P[Exp] =
+    P("." ~ link(TNode("dummy"))).map(PathAccess(e, _)) // @todo Wait for fix commit in Core language
 
   /** See CoreExp parser @see coreExp */
-  def callCoreExp[_: P]: P[Call] =
+  def callExp[_: P]: P[Call] =
     P(
       identifier ~ s_i ~ "+".?.! ~ s_i ~ P(
         P("()")
@@ -271,13 +262,13 @@ case class CoreParser(val extensions : Seq[ParserExtension] = Seq.empty)
     }
 
   /** See CoreExp parser @see coreExp */
-  def countCoreExp[_: P]: P[Count] =
+  def countExp[_: P]: P[Count] =
     P(
-      "count " ~ s_i ~ callCoreExp
+      "count " ~ s_i ~ callExp
     ).map(Count)
 
   /** See CoreExp parser @see coreExp */
-  def tupleCoreExp[_: P]: P[Tuple] =
+  def tupleExp[_: P]: P[Tuple] =
     P(
       "(" ~ P(s_i ~ exp ~ s_i).rep(2, sep = ",") ~ ")"
     ).map(Tuple)
@@ -286,24 +277,24 @@ case class CoreParser(val extensions : Seq[ParserExtension] = Seq.empty)
   def bracketExp[_: P]: P[Exp] = P("(" ~ s_i ~ exp ~ s_i ~ ")")
 
   /** Var parser */
-  def varCoreExp[_: P]: P[Var] = P(identifier).map(Var)
+  def varExp[_: P]: P[Var] = P(identifier).map(Var)
 
   /** Constant parser */
-  def constantCoreExp[_: P]: P[Constant] = P(literal).map(Constant)
+  def constantExp[_: P]: P[Constant] = P(literal).map(Constant)
 
   /** Eq parser */
-  def eqCoreExp[_: P](e: Exp): P[Exp] =
+  def eqExp[_: P](e: Exp): P[Exp] =
     P(s_i ~ "==" ~ s_i ~ exp).map(Eq(e, _))
 
   /** Neq parser */
-  def neqCoreExp[_: P](e: Exp): P[Exp] =
+  def neqExp[_: P](e: Exp): P[Exp] =
     P(s_i ~ "!=" ~ s_i ~ exp).map(Neq(e, _))
 
   /** Def parser */
-  def defCoreExp[_: P]: P[Def] = P("def " ~ exp).map(Def)
+  def defExp[_: P]: P[Def] = P("def " ~ exp).map(Def)
 
   /** Undef parser */
-  def undefCoreExp[_: P]: P[Undef] = P("undef " ~ exp).map(Undef)
+  def undefExp[_: P]: P[Undef] = P("undef " ~ exp).map(Undef)
 
   /** InstanceOf parser */
   def instanceOfCoreExp[_: P](e: Exp): P[Exp] =
@@ -326,11 +317,13 @@ case class CoreParser(val extensions : Seq[ParserExtension] = Seq.empty)
       )
     )
 
+  /** Values parser */
   def valuesStatement[_: P]: P[Values] =
     P("vals " ~ s_i ~ identifier ~ s_i ~ "<-" ~ s_i ~ typeAnno).map {
       case (name, typeAnno) => Values(name, typeAnno)
     }
 
+  /** Assign parser */
   def assignStatement[_: P]: P[Assign] =
     P(
       ("val " ~ s_i ~ identifier ~ s_i ~ "=" ~ s_i ~ exp).map {
@@ -342,27 +335,31 @@ case class CoreParser(val extensions : Seq[ParserExtension] = Seq.empty)
         }
     )
 
+  /** Assert parser */
   def assertStatement[_: P]: P[Assert] = P("assert " ~ s_i ~ exp).map(Assert)
 
+  /** Body parser */
   def body[_: P]: P[Body] =
     P(
       sn_i ~ "{" ~ s_i ~ P(("\n" | "\r\n").rep(1) ~ sn_i ~ statement ~ s_i)
         .rep() ~ sn_i ~ "}"
     ).map(Body(_))
 
-  def annoParamUnit[_: P]: P[Seq[AnnoParam]] =
+  /** Parses only the AnnoParam unit or Unit. */
+  private def annoParamUnit[_: P]: P[Seq[AnnoParam]] =
     P("unit" | "Unit").map(_ => Seq.empty[AnnoParam])
 
-  def annoParamSingle[_: P]: P[Seq[AnnoParam]] = P(annoParam).map(Seq(_))
+  /** Parses an AnnoParam which has only one member. */
+  private def annoParamSingle[_: P]: P[Seq[AnnoParam]] = P(annoParam).map(Seq(_))
 
-  def patternFunctionVisibility[_: P]: P[Visibility] =
+  /** Parses the beginning aka visibility of a PatternFunction */
+  private def patternFunctionVisibility[_: P]: P[Visibility] =
     P("def " | P("private " ~ s_i ~ "def ")).!.map {
-      _ match {
-        case "def " => Public
-        case _      => Private
-      }
+      case "def " => Public
+      case _      => Private
     }
 
+  /** PatternFunction parser */
   def patternFunction[_: P]: P[PatternFunction] =
     P(
       sn_i ~
@@ -375,30 +372,34 @@ case class CoreParser(val extensions : Seq[ParserExtension] = Seq.empty)
         )
         ~ s_i ~ "=" ~ sn_i ~ P(sn_i ~ body ~ sn_i).rep(1, sep = "union")
     ).map {
-      case (visib, name, params, ret_params, bodies) =>
-        PatternFunction(Option(visib), name, params.toSeq, ret_params.toSeq, bodies.toSeq)
+      case (v, name, params, ret_params, bodies) =>
+        PatternFunction(Option(v), name, params, ret_params, bodies)
     }
 
+  /** Module parser */
   def module[_: P]: P[Module] =
     P(
       sn_i ~ "module " ~ identifier ~ s_i ~ n_ ~ sn_i ~
         P(P("import" ~ s_i).? ~ identifier ~ s_i ~ sn_i).rep ~
         P(patternFunction ~ sn_i).rep ~ End
     ).map {
-      case (name, imports, patternfunctions) =>
-        Module(name, imports.toSeq, patternfunctions.toSeq)
+      case (name, imports, patternFunctions) =>
+        Module(name, imports, patternFunctions)
     }
 
+  /** Yield parser */
   def yieldStatement[_: P]: P[Yield] =
     P(
       s_i ~ "yield " ~ exp
     ).map(Yield)
 
+  /** Fail/Continue parser */
   def failStatement[_: P]: P[TerminatorStatement] =
     P(
       s_i ~ "continue" ~ s_i
     ).map(_ => Core.Fail)
 
+  /** Terminator parser. */
   def terminatorStatement[_: P]: P[TerminatorStatement] =
     P(yieldStatement | failStatement)
 }

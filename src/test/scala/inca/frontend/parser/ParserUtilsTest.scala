@@ -8,7 +8,6 @@ import fastparse.Parsed._
 /**
   * Tests for the parser utilities
   *
-  * @todo implement identifier tests
   * @author Ronja Schnur (rschnur@students.uni-mainz.de)
   *         Julian Cichorius (jcichori@students.uni-mainz.de)
   */

@@ -2,9 +2,8 @@ package inca.frontend.parser
 import fastparse._
 import NoWhitespace._
 
-/**
-  * @todo implement parsers for names and primitive literals
-  * @version 0.0.1
+/** Utils for the CoreParser.
+  *
   * @author Ronja Schnur (rschnur@students.uni-mainz.de)
   *         Julian Cichorius (jcichori@students.uni-mainz.de)
   */
@@ -12,18 +11,17 @@ object ParserUtils {
 
   /** Parse a variable identifier.
     * The first character must be an alphabetical one. After that digits and underscores are also allowed
+    * @todo Check against every possible keyword. Probably issue when using extension with keyword?
     */
   def identifier[_: P]: P[String] =
-    P(CharIn("a-z", "A-Z") ~ CharIn("a-z", "A-Z", "0-9", "_").rep(0)).!.map(
-      _ match {
-        case "def" => return fastparse.Fail
-        case "undef" => return fastparse.Fail
-        case "true" => return fastparse.Fail 
-        case "false" => return fastparse.Fail
-        case "eval" => return fastparse.Fail
-        case s : String => s
-      }
-    )
+    P(CharIn("a-z", "A-Z") ~ CharIn("a-z", "A-Z", "0-9", "_").rep(0)).!.map {
+      case "def" => return fastparse.Fail
+      case "undef" => return fastparse.Fail
+      case "true" => return fastparse.Fail
+      case "false" => return fastparse.Fail
+      case "eval" => return fastparse.Fail
+      case s: String => s
+    }
 
   /** Parser consuming all whitespaces by ignoring them. */
   def w_i[_: P]: P[Unit] = CharsWhileIn("\n \t\r").?
@@ -50,10 +48,9 @@ object ParserUtils {
   /** A parser for double literals in base 10 */
   def double[_: P]: P[Double] = P(rawDouble).map(_.toDouble)
 
-  /**
-   * A parser for string literals
-   * @todo implement character escaping
-   */
+  /** A parser for string literals
+    * @todo implement character escaping
+    */
   def string[_: P]: P[String] = P("\"\"".!.map(_ => "") | "\"" ~ CharsWhile(_ != '\"').! ~ "\"")
 
   private def rawInteger[_: P] =

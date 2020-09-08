@@ -11,22 +11,15 @@ import inca.backend.ir.GP.Pattern
 /**
   * Test class for the IncA core language parser @see CoreParser.
   *
-  * @todo    unfinished
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
 class CoreParserTest extends AnyFunSuite {
 
   test("test TypeAnno") {
-    def test_helper(t: TypeAnno) = {
-      parse(t.prettyprint, CoreParser().typeAnno(_)) match {
-        case Success(value, index)        => assert(value === t)
-        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
-      }
-      parse(s" ${t.prettyprint}", CoreParser().typeAnno(_)) match {
-        case Success(value, index) => fail(s"$value, $index")
-        case _: Failure            =>
-      }
+    def test_run(t: TypeAnno) = {
+      test_helper(CoreParser().typeAnno(_))(t.prettyprint, t)
+      test_helper_negative(CoreParser().typeAnno(_))(s"   ${t.prettyprint}")
     }
 
     Seq(
@@ -40,20 +33,12 @@ class CoreParserTest extends AnyFunSuite {
       TNode("t0mat3"),
       TNode("apf3l"),
       TNode("k1r5ch3")
-    ).map(test_helper(_))
+    ).map(test_run(_))
   }
 
   test("test Visibility") {
-    def positive(v: Visibility)(t: String) =
-      parse(t, CoreParser().visibility(_)) match {
-        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
-        case Success(value, index)        => assert(value === v)
-      }
-    def negative(v: String) =
-      parse(v, CoreParser().visibility(_)) match {
-        case Failure(label, index, extra) =>
-        case Success(value, index)        => fail(s"$value, $index")
-      }
+    def positive(v: Visibility)(t: String) = test_helper(CoreParser().visibility(_))(t, v)
+    def negative(v: String) = test_helper_negative(CoreParser().visibility(_))(v)
 
     Seq("public", "   public", " public").map(positive(Public)(_))
     Seq("private", "   private", " private").map(positive(Private)(_))
@@ -61,51 +46,12 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test TIterable") {
-    parse("List[node]", CoreParser().tIterable(_)) match {
-      case Success(value, index) =>
-        value match {
-          case TEnumeration(contained) => fail(s"Enum found instead of list.")
-          case TList(contained)        => assert(contained === TAnyLinked)
-        }
-      case Failure(label, index, extra) => fail(s"$label, $index, $extra")
-    }
+    def test_run = test_helper(CoreParser().tIterable(_))
 
-    parse("List[apf3l]", CoreParser().tIterable(_)) match {
-      case Success(value, index) =>
-        value match {
-          case TEnumeration(contained) => fail(s"Enum found instead of list.")
-          case TList(contained)        => assert(contained === TNode("apf3l"))
-        }
-      case Failure(label, index, extra) => fail(s"$label, $index, $extra")
-    }
-
-    parse("Enum[node]", CoreParser().tIterable(_)) match {
-      case Success(value, index) =>
-        value match {
-          case TEnumeration(contained) => assert(contained === TAnyLinked)
-          case TList(contained)        => fail(s"List found instead of enum.")
-        }
-      case Failure(label, index, extra) => fail(s"$label, $index, $extra")
-    }
-
-    parse("Enum[br0t]", CoreParser().tIterable(_)) match {
-      case Success(value, index) =>
-        value match {
-          case TEnumeration(contained) => assert(contained === TNode("br0t"))
-          case TList(contained)        => fail(s"List found instead of enum.")
-        }
-      case Failure(label, index, extra) => fail(s"$label, $index, $extra")
-    }
-
-    parse("Enum[999]", CoreParser().tIterable(_)) match {
-      case Success(value, index) => fail(s"$value, $index")
-      case _: Failure            =>
-    }
-
-    parse("List[666]", CoreParser().tIterable(_)) match {
-      case Success(value, index) => fail(s"$value, $index")
-      case _: Failure            =>
-    }
+    test_run("List[node]", TList(TAnyLinked))
+    test_run("List[apf3l]", TList(TNode("apf3l")))
+    test_run("Enum[node]", TEnumeration(TAnyLinked))
+    test_run("Enum[br0t]", TEnumeration(TNode("br0t")))
   }
 
   test("test IntLiteral") {
@@ -120,14 +66,9 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test BooleanLiteral") {
-    def test_helper(b: Boolean): Unit = {
-      parse(b.toString, CoreParser().booleanLiteral(_)) match {
-        case Success(BooleanLiteral(bool), _) => assert(bool === b)
-        case Failure(label, index, extra)     => fail(s"$label, $index, $extra")
-      }
-    }
-    test_helper(true)
-    test_helper(false)
+    def test_run(b: Boolean): Unit = test_helper(CoreParser().booleanLiteral(_))(b.toString, BooleanLiteral(b))
+    test_run(true)
+    test_run(false)
   }
 
   test("test LongLiteral") {
@@ -188,121 +129,63 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test AnnoParam with name") {
-    def test_helper(t: TypeAnno) =
-      parse(s"(param:${t.prettyprint})", CoreParser().annoParam(_)) match {
-        case Success(AnnoParam(Some("param"), t), _) =>
-        case Success(value, index)                   => fail(s"$value, $index")
-        case Failure(label, index, extra)            => fail(s"$label, $index, $extra")
-      }
+    def test_run(t: TypeAnno) =
+      test_helper(CoreParser().annoParam(_))(s"(param:${t.prettyprint})", AnnoParam(Some("param"), t))
 
-    Seq(TBool, TDouble, TString, TInt, TLong, TAnyLinked, TNode("br0t")).map(test_helper)
+    Seq(TBool, TDouble, TString, TInt, TLong, TAnyLinked, TNode("br0t")).map(test_run)
   }
 
   test("test AnnoParam without name") {
-    def test_helper(t: TypeAnno) =
-      parse(TBool.prettyprint, CoreParser().annoParam(_)) match {
-        case Success(AnnoParam(None, TBool), _) =>
-        case Success(value, index)              => fail(s"$value, $index")
-        case Failure(label, index, extra)       => fail(s"$label, $index, $extra")
-      }
+    def test_run(t: TypeAnno) =
+      test_helper(CoreParser().annoParam(_))(s"${t.prettyprint}", AnnoParam(None, t))
 
-    Seq(TBool, TDouble, TString, TInt, TLong, TAnyLinked, TNode("br0t")).map(test_helper)
+    Seq(TBool, TDouble, TString, TInt, TLong, TAnyLinked, TNode("br0t")).map(test_run)
   }
 
   test("test Link core-links") {
-    def checkLink(link: String, expected: Link): Unit = {
-      parse(s"$link", CoreParser().link(TNode("node"))(_)) match {
-        case Success(l, _) => assert(l === expected)
-        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
-      }
-    }
-    checkLink("parent", ParentLink)
-    checkLink("children", ChildrenLink)
-    checkLink("next", NextLink)
-    checkLink("prev", PreviousLink)
-    checkLink("name", NamedLink(TNode("node"), "name"))
+    def test_run = test_helper(CoreParser().link(TNode("node"))(_))
+
+    test_run("parent", ParentLink)
+    test_run("children", ChildrenLink)
+    test_run("next", NextLink)
+    test_run("prev", PreviousLink)
+    test_run("name", NamedLink(TNode("node"), "name"))
   }
 
   test("test Var") {
-    // see: identifier
-    parse("variable", CoreParser().varCoreExp(_)) match {
-      case Success(value, _)            => assert(value === Var("variable"))
-      case Failure(label, index, extra) => fail(s"$label, $index, $extra")
-    }
+    def test_run(input : String) = test_helper(CoreParser().varExp(_))(input, Var(input))
+
+    Seq("variable", "br0t").map(test_run(_))
   }
 
   test("test Constant") {
-    def check(lit: String, expected: Literal): Unit = {
-      parse(lit, CoreParser().constantCoreExp(_)) match {
-        case Success(Constant(literal), _) =>
-          if (literal != expected) {
-            fail(s"${literal} != ${expected}")
-          }
-        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
-      }
-    }
-    check("1", IntLiteral(1))
-    check("true", BooleanLiteral(true))
-    check("1L", LongLiteral(1))
-    check("unit", UnitLiteral)
-    check("42d", DoubleLiteral(42d))
-    check("\"hello world\"", StringLiteral("hello world"))
+
+    def test_run(inp: String, cmp : Literal) = test_helper(CoreParser().constantExp(_))(inp, Constant(cmp))
+    
+    test_run("1", IntLiteral(1))
+    test_run("true", BooleanLiteral(true))
+    test_run("1L", LongLiteral(1))
+    test_run("unit", UnitLiteral)
+    test_run("42d", DoubleLiteral(42d))
+    test_run("\"hello world\"", StringLiteral("hello world"))
   }
 
-  test("test Eq") {
-    val expr = Eq(Var("x"), Var("y"))
-    checkExp(expr)
+  test("test Exp single") {
+    def test_run(tree: Exp) =
+      test_helper(CoreParser().exp(_))(tree.prettyprint("  "), tree)
+
+    test_run(Eq(Var("x"), Var("y")))
+    test_run(Neq(Var("x"), Var("y")))
+    test_run(Def(Var("x")))
+    test_run(Undef(Var("x")))
+    test_run(InstanceOf(Var("x"), TBool))
+    test_run(NotInstanceOf(Var("x"), TBool))
+    test_run(PathAccess(Var("xyz"), ParentLink))
+    test_run(PathAccess(Var("test"), NamedLink(TNode("dummy"), "property")))
   }
 
-  test("test Neq") {
-    val expr = Neq(Var("x"), Var("y"))
-    checkExp(expr)
-  }
-
-  test("test Def") {
-    val expr = Def(Var("x"))
-    checkExp(expr)
-  }
-
-  test("test Undef") {
-    val expr = Undef(Var("x"))
-    checkExp(expr)
-  }
-
-  test("test InstanceOf") {
-    val expr = InstanceOf(Var("x"), TBool)
-    checkExp(expr)
-  }
-
-  test("test NotInstanceOf") {
-    val expr = NotInstanceOf(Var("x"), TBool)
-    checkExp(expr)
-  }
-
-  test("test PathAccess ParentLink") {
-    val expr = PathAccess(Var("xyz"), ParentLink)
-    val input = expr.prettyprint("")
-    parse(input, CoreParser().exp(_)) match {
-      case Success(value, _)            =>
-        print(value)
-        assert(value == expr)
-      case Failure(label, index, extra) => fail(s"$label, $index, $extra")
-    }
-  }
-
-  test("test PathAccess NamedLink") {
-    val expr = PathAccess(Var("test"), NamedLink(TNode("dummy"), "property"))
-    val input = expr.prettyprint("")
-    parse(input, CoreParser().exp(_)) match {
-      case Success(value, _)            =>
-        print(value)
-        assert(value == expr)
-      case Failure(label, index, extra) => fail(s"$label, $index, $extra")
-    }
-  }
-
-  test("test CoreExp") {
-    // @todo TODO: Add more test cases.
+  test("test Exp combined") {
+    // @todo Add more test cases.
     def test_run = test_helper[CoreExp](CoreParser().exp(_))
 
     // Note: right to left input due to recusion
@@ -434,26 +317,26 @@ class CoreParserTest extends AnyFunSuite {
         TTuple(Seq(TDouble))
       )
     )
-    // test_run(
-    //   "x.parent",
-    //   PathAccess(Var("x"), ParentLink)
-    // )
-    // test_run(
-    //   "x.children",
-    //   PathAccess(Var("x"), ChildrenLink)
-    // )
-    // test_run(
-    //   "x.next",
-    //   PathAccess(Var("x"), NextLink)
-    // )
-    // test_run(
-    //   "x.prev",
-    //   PathAccess(Var("x"), PreviousLink)
-    // )
-    // test_run(
-    //   "x.size",
-    //   PathAccess(Var("x"), SizeLink)
-    // )
+    test_run(
+      "x.parent",
+      PathAccess(Var("x"), ParentLink)
+    )
+    test_run(
+      "x.children",
+      PathAccess(Var("x"), ChildrenLink)
+    )
+    test_run(
+      "x.next",
+      PathAccess(Var("x"), NextLink)
+    )
+    test_run(
+      "x.prev",
+      PathAccess(Var("x"), PreviousLink)
+    )
+    test_run(
+      "x.size",
+      PathAccess(Var("x"), SizeLink)
+    )
     test_run("foo()", Call("foo", Seq(), false))
     test_run("foo+()", Call("foo", Seq(), true))
     test_run("foo(x)", Call("foo", Seq(Var("x")), false))
@@ -508,11 +391,14 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test Statement") {
-    checkStatement(Yield(Var("x")))
-    checkStatement(Core.Fail)
-    checkStatement(Values("x", TBool))
-    checkStatement(Assign(Seq("x"), Var("y")))
-    checkStatement(Assign(Seq("x", "y", "abc"), Var("zs")))
+    def test_run(tree: Statement) =
+      test_helper(CoreParser().statement(_))(tree.prettyprint("  "), tree)
+
+    test_run(Yield(Var("x")))
+    test_run(Core.Fail)
+    test_run(Values("x", TBool))
+    test_run(Assign(Seq("x"), Var("y")))
+    test_run(Assign(Seq("x", "y", "abc"), Var("zs")))
   }
 
   test("test Body") {
@@ -640,7 +526,7 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test PatternFunction") {
-    // @todo requires more tests
+    // @todo Add more test cases.
     def test_run(input: String, cmp: PatternFunction) = {
       test_helper[PatternFunction](CoreParser().patternFunction(_))(input, cmp)
       test_helper[PatternFunction](CoreParser().patternFunction(_))(
@@ -933,13 +819,11 @@ class CoreParserTest extends AnyFunSuite {
       }
     }
 
-  private def checkStatement(stat: Statement): Unit = {
-    val input = stat.prettyprint("  ")
-    test_helper[Statement](CoreParser().statement(_))(input, stat)
-  }
-
-  private def checkExp(ex: Exp): Unit = {
-    val input = ex.prettyprint("") // @todo prettyprint != AST @bug
-    test_helper[Exp](CoreParser().exp(_))(input, ex)
-  }
+  private def test_helper_negative[T](parser: P[_] => P[Any]) =
+    (input: String) => {
+      parse(input, parser) match {
+        case Success(value, index)        => fail(s"$value, $index")
+        case Failure(label, index, extra) =>
+      }
+    }
 }
