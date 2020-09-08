@@ -6,7 +6,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import fastparse._
 import fastparse.Parsed.Success
 import fastparse.Parsed.Failure
-import inca.frontend.parser.extensions.BoolOpsParser
+import inca.frontend.parser.extensions._
 import inca.frontend.extensions._
 
 class ExtensionsTest extends AnyFunSuite {
@@ -18,6 +18,14 @@ class ExtensionsTest extends AnyFunSuite {
     test_run("x || y", Or(Var("x"), Var("y")))
     test_run("!x", Not(Var("x")))
     test_run("!(x && (y || z))", Not(And(Var("x"), Or(Var("y"), Var("z")))))
+  }
+
+  test("test Cast") {
+    def test_run = test_helper(CoreParser(Seq(CastParser)).exp(_))
+
+    test_run("x:int", Cast(Var("x"), TInt))
+    test_run("x :int", Cast(Var("x"), TInt))
+    test_run("x : int", Cast(Var("x"), TInt))
   }
 
   private def test_helper[T](parser: P[_] => P[Any]) =
