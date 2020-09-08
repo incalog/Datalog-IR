@@ -8,7 +8,7 @@ import inca.frontend.parser.ParserUtils._
 import inca.frontend.parser._
 import inca.frontend.core.Core
 
-/** Extention adding "forallexists" statements to @see CoreParser.
+/** Extention adding "ifthenelse" statements to @see CoreParser.
   *
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)

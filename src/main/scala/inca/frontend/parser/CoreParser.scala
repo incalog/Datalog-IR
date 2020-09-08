@@ -380,8 +380,7 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
   /** Body parser */
   def body[_: P]: P[Body] =
     P(
-      sn_i ~ "{" ~ s_i ~ P(("\n" | "\r\n").rep(1) ~ sn_i ~ statement ~ s_i)
-        .rep() ~ sn_i ~ "}"
+      sn_i ~ "{" ~  P(sn_i ~ statement ~ s_i).rep(sep=n_) ~ sn_i ~ "}"
     ).map(Body(_))
 
   /** Parses only the AnnoParam unit or Unit. */

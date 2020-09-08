@@ -74,7 +74,65 @@ class ExtensionsTest extends AnyFunSuite {
         Some(Body(Seq(Assert(Var("y")))))
       )
     )
+  }
+  
+  test("test Match") {
+    def test_run = test_helper(CoreParser(Seq(MatchParser)).statement(_))
 
+    test_run(
+      s"""|x match {
+          |    case br0t(topping = cheese) => {}
+          |    case x => { assert x == 5 }
+          |    case (v, w) => {}
+          |    case 5 => {}
+          |    case x@y => {}
+          |    case "Hello World" => {}
+          |    case _ => {}
+          |}""".stripMargin,
+      Match(
+        Var("x"),
+        Seq(
+          Case(
+            NodePattern(
+              TNode("br0t"),
+              Seq(
+                PatternBinding("topping", VarPattern("cheese"))
+              )
+            ),
+            Body(Seq.empty[Statement])
+          ),
+          Case(
+            VarPattern("x"),
+            Body(Assert(Eq(Var("x"), Constant(IntLiteral(5)))))
+          ),
+          Case(
+            TuplePattern(
+              Seq(
+                VarPattern("v"),
+                VarPattern("w")
+              )
+            ),
+            Body(Seq.empty)
+          ),
+          Case(
+            LiteralPattern(IntLiteral(5)),
+            Body(Seq.empty)
+          ),
+          Case(
+            NamedPattern("x", VarPattern("y")),
+            Body(Seq.empty)
+          ),
+          Case(
+            LiteralPattern(StringLiteral("Hello World")),
+            Body(Seq.empty)
+          ),
+          Case(
+            WildcardPattern,
+            Body(Seq.empty)
+          )
+        )
+      )
+    )
   }
 
   private def test_helper[T](parser: P[_] => P[Any]) =
