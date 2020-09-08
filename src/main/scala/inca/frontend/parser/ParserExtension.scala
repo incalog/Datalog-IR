@@ -1,38 +1,41 @@
 package inca.frontend.parser
 
 import fastparse._
-import NoWhitespace._ 
 import inca.frontend.core.Core._
 
-trait ParserExtension
-{
-    /** This function should return a Sequence of expression parsers,
-      * which don't require left hand recursion.
-      * 
-      * An example would be: def parser[_:P]: P[Exp] = P(ConstantParser ~ ...)
-      * The constant parser is a example parser not calling any recursion on exp.
-      * 
-      * @return Sequence of parsers with type P[Exp]
-      */
-    def anchorExpressions : Seq[P[Exp]] = Seq.empty
+trait AnchorExpressionParser {
+  def parse[_: P]: P[Exp]
+}
+trait RecursiveExpressionParser {
+  def parse[_: P](e : Exp): P[Exp]
+}
+trait StatementParser {
+  def parse[_: P]: P[Statement]
+}
 
-    /**
-      * This function should return a sequence of expressions parsers that would
-      * require left hand recursion. 
-      * Therefore these parsers must accept a @see Exp as function argument.
-      * 
-      * An example would be: def parser[_:P](e: Exp) : P[Exp] = P(ConstantParser ~ ...)
-      * The constant parser is a example parser not calling any recursion on exp.
-      *
-      * @return Sequence of parser functions with type Exp => P[Exp]
-      */
-    def recursiveExpressions : Seq[Exp => P[Exp]] = Seq.empty
+trait ParserExtension {
+  private[parser] var coreparser: CoreParser = null // Will be set from CoreParser
 
+  /** This function should return a Sequence of expression parsers,
+    * which don't require left hand recursion.
+    * 
+    * @return Sequence of parsers
+    */
+  def anchorExpression: Seq[AnchorExpressionParser] = Seq.empty
 
-    /**
-      * This function should return a sequence of statement parsers.
-      *
-      * @return Sequence of parser functions with type P[Statement]
-      */
-    def statement : Seq[P[Statement]] = Seq.empty
+  /**
+    * This function should return a sequence of expressions parsers that would
+    * require left hand recursion.
+    * Therefore these parsers must accept a @see Exp as function argument.
+    * 
+    * @return Sequence of parser functions
+    */
+  def recursiveExpression: Seq[RecursiveExpressionParser] = Seq.empty
+
+  /**
+    * This function should return a sequence of statement parsers.
+    *
+    * @return Sequence of parser functions with type P[Statement]
+    */
+  def statement: Seq[StatementParser] = Seq.empty
 }

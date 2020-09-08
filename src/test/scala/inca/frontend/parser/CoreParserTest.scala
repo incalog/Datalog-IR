@@ -1,12 +1,11 @@
 package inca.frontend.parser
 
-import org.scalatest.funsuite.AnyFunSuite
-import fastparse._
 import inca.frontend.core.Core
 import inca.frontend.core.Core._
+import org.scalatest.funsuite.AnyFunSuite
+import fastparse._
 import fastparse.Parsed.Success
 import fastparse.Parsed.Failure
-import inca.backend.ir.GP.Pattern
 
 /**
   * Test class for the IncA core language parser @see CoreParser.

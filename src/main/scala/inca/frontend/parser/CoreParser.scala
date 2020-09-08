@@ -16,20 +16,21 @@ import scala.meta._
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
-case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
-
+case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
   // Data initialization //
-  val recursiveExpExtensions: Seq[Exp => P[Exp]] =
-    extensions.foldLeft(Seq.empty[Exp => P[Exp]]) {
-      case (s, ext) => s ++ ext.recursiveExpressions
+  extensions.map(_.coreparser = this)
+
+  val recursiveExpExtensions: Seq[RecursiveExpressionParser] =
+    extensions.foldLeft(Seq.empty[RecursiveExpressionParser]) {
+      case (s, ext) => s ++ ext.recursiveExpression
     }
 
-  val anchorExpExtensions: Seq[P[Exp]] = extensions.foldLeft(Seq.empty[P[Exp]]) {
-    case (s, ext) => s ++ ext.anchorExpressions
+  val anchorExpExtensions: Seq[AnchorExpressionParser] = extensions.foldLeft(Seq.empty[AnchorExpressionParser]) {
+    case (s, ext) => s ++ ext.anchorExpression
   }
 
-  val statementExtensions: Seq[P[Statement]] =
-    extensions.foldLeft(Seq.empty[P[Statement]]) { case (s, ext) => s ++ ext.statement }
+  val statementExtensions: Seq[StatementParser] =
+    extensions.foldLeft(Seq.empty[StatementParser]) { case (s, ext) => s ++ ext.statement }
 
   // Parser //
   def tAnyLinked[_: P]: P[TLinked] =
@@ -176,7 +177,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
     P(p.flatMap(t => recursionCallExp(recursiveExpExtensions, t)) | p)
 
   /** Higher order extension call combination parser that require a left side expression. */
-  def recursionCallExp[_: P, T](p: Seq[Exp => P[Exp]], e: Exp): P[Exp] =
+  def recursionCallExp[_: P, T](p: Seq[RecursiveExpressionParser], e: Exp): P[Exp] =
     if (p.isEmpty) {
       decorateRecursionExp(
         P(
@@ -187,10 +188,10 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
             | pathAccessExp(e)
         )
       )
-    } else P(decorateRecursionExp(p.head(e)) | recursionCallExp(p.tail, e))
+    } else P(decorateRecursionExp(p.head.parse(e)) | recursionCallExp(p.tail, e))
 
   /** Higher order extension call combination parser that function as recursion anchor. */
-  def recursionAnchorExp[_: P, T](p: Seq[P[Exp]]): P[Exp] =
+  def recursionAnchorExp[_: P, T](p: Seq[AnchorExpressionParser]): P[Exp] =
     if (p.isEmpty) {
       decorateRecursionExp(
         P(
@@ -204,7 +205,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
             | bracketExp
         )
       )
-    } else P(decorateRecursionExp(p.head) | recursionAnchorExp(p.tail))
+    } else P(decorateRecursionExp(p.head.parse) | recursionAnchorExp(p.tail))
 
   def evalExp[_: P]: P[Any] = {
     var code: String = ""
