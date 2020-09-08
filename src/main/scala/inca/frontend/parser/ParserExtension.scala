@@ -38,4 +38,11 @@ trait ParserExtension {
     * @return Sequence of parser functions with type P[Statement]
     */
   def statement: Seq[StatementParser] = Seq.empty
+
+  /**
+    * This function should return a list of used keywords only in this extension.
+    *
+    * @return Sequence of keywords.
+    */
+  def keywords : Seq[String] = Seq.empty
 }

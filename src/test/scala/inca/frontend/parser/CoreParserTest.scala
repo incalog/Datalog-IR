@@ -181,6 +181,25 @@ class CoreParserTest extends AnyFunSuite {
     test_run(NotInstanceOf(Var("x"), TBool))
     test_run(PathAccess(Var("xyz"), ParentLink))
     test_run(PathAccess(Var("test"), NamedLink(TNode("dummy"), "property")))
+    val op = Aggregate(DataOp(Some("br0t"), "with"), DataOp(Some("cheese"), "and"), None, Call("butter", Seq.empty, false))
+    println(op.prettyprint(""))
+    test_run(op)
+  }
+
+  test("test identifier") {
+    def positive(v: String) =
+      parse(v, CoreParser().identifier(_)) match {
+        case Failure(label, index, extra) => fail()
+        case Success(value, index)        => assert(value === v)
+      }
+    def negative(v: String) =
+      parse(v, CoreParser().identifier(_)) match {
+        case Failure(label, index, extra) => {}
+        case Success(value, index)        => fail()
+      }
+
+    Seq("kuch3n", "k3k53", "t33", "kl33", "br0t", "s0nn3nblum3").map(positive)
+    Seq("3553n", "71nux", " ", "53h3n").map(negative)
   }
 
   test("test Exp combined") {
@@ -808,6 +827,13 @@ class CoreParserTest extends AnyFunSuite {
         Seq()
       )
     )
+  }
+
+  test("test DataOp") {
+    def test_run = test_helper(CoreParser().dataOp(_))
+
+    test_run("br0t.br0t", DataOp(Some("br0t"), "br0t"))
+    test_run("br0t", DataOp(None, "br0t"))
   }
 
   private def test_helper[T](parser: P[_] => P[Any]) =

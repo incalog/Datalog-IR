@@ -92,22 +92,6 @@ class ParserUtilsTest extends AnyFunSuite {
     }
   }
 
-  test("test identifier") {
-    def positive(v: String) =
-      parse(v, ParserUtils.identifier(_)) match {
-        case Failure(label, index, extra) => fail()
-        case Success(value, index)        => assert(value === v)
-      }
-    def negative(v: String) =
-      parse(v, ParserUtils.identifier(_)) match {
-        case Failure(label, index, extra) => {}
-        case Success(value, index)        => fail()
-      }
-
-    Seq("kuch3n", "k3k53", "t33", "kl33", "br0t", "s0nn3nblum3").map(positive)
-    Seq("3553n", "71nux", " ", "53h3n").map(negative)
-  }
-
   test("test string empty") {
     parse("\"\"", ParserUtils.string(_)) match {
       case Success("", _) =>

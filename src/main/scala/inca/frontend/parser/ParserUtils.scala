@@ -9,20 +9,6 @@ import NoWhitespace._
   */
 object ParserUtils {
 
-  /** Parse a variable identifier.
-    * The first character must be an alphabetical one. After that digits and underscores are also allowed
-    * @todo Check against every possible keyword. Probably issue when using extension with keyword?
-    */
-  def identifier[_: P]: P[String] =
-    P(CharIn("a-z", "A-Z") ~ CharIn("a-z", "A-Z", "0-9", "_").rep(0)).!.map {
-      case "def" => return fastparse.Fail
-      case "undef" => return fastparse.Fail
-      case "true" => return fastparse.Fail
-      case "false" => return fastparse.Fail
-      case "eval" => return fastparse.Fail
-      case s: String => s
-    }
-
   /** Parser consuming all whitespaces by ignoring them. */
   def w_i[_: P]: P[Unit] = CharsWhileIn("\n \t\r").?
 

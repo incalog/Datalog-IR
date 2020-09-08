@@ -17,7 +17,8 @@ import scala.meta._
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
 case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
-  // Data initialization //
+
+  // Data initialization ///////////////////////////////////////////////////////////////////////////////////////////////
   extensions.map(_.coreparser = this)
 
   val recursiveExpExtensions: Seq[RecursiveExpressionParser] =
@@ -25,31 +26,59 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
       case (s, ext) => s ++ ext.recursiveExpression
     }
 
-  val anchorExpExtensions: Seq[AnchorExpressionParser] = extensions.foldLeft(Seq.empty[AnchorExpressionParser]) {
-    case (s, ext) => s ++ ext.anchorExpression
-  }
+  val anchorExpExtensions: Seq[AnchorExpressionParser] =
+    extensions.foldLeft(Seq.empty[AnchorExpressionParser]) {
+      case (s, ext) => s ++ ext.anchorExpression
+    }
 
   val statementExtensions: Seq[StatementParser] =
-    extensions.foldLeft(Seq.empty[StatementParser]) { case (s, ext) => s ++ ext.statement }
+    extensions.foldLeft(Seq.empty[StatementParser]) {
+      case (s, ext) => s ++ ext.statement
+    }
 
-  // Parser //
+  val keywords =
+    extensions.foldLeft(Set("def", "undef", "true", "false", "eval", "aggregate")) {
+      case (s, ext) => s ++ ext.keywords
+    }
+
+  // Parser ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  /** Parse a variable identifier.
+    * The first character must be an alphabetical one. After that digits and underscores are also allowed
+    * @todo Check against every possible keyword. Probably issue when using extension with keyword?
+    */
+  def identifier[_: P]: P[String] =
+    P(CharIn("a-z", "A-Z") ~ CharIn("a-z", "A-Z", "0-9", "_").rep(0)).!.map { s =>
+      if (keywords.contains(s)) return fastparse.Fail
+      else s
+    }
+
+  /** TAnyLinked parser */
   def tAnyLinked[_: P]: P[TLinked] =
     P(P(TAnyLinked.prettyprint).map(_ => TAnyLinked))
 
-  def tNode[_: P]: P[TNode] = P(P(ParserUtils.identifier).!.map(TNode))
+  /** TNode parser */
+  def tNode[_: P]: P[TNode] = P(P(identifier).!.map(TNode))
 
   /** Helper for the basic TypeAnno like TAny. */
   private def typeAnnoHelper[_: P](t: TypeAnno): P[TypeAnno] =
     P(P(t.prettyprint).map(_ => t))
 
+  /** TLinked parser */
   def tLinked[_: P]: P[TLinked] = P(tAnyLinked | tNode | tList)
 
   /** TypeAnno parser */
   def typeAnno[_: P]: P[TypeAnno] =
     P(
-      typeAnnoHelper(TAny) | typeAnnoHelper(TBool) | typeAnnoHelper(TLong) |
-        typeAnnoHelper(TInt) | typeAnnoHelper(TDouble) | typeAnnoHelper(TString) |
-        tLinked | tIterable | tTuple
+      typeAnnoHelper(TAny)
+        | typeAnnoHelper(TBool)
+        | typeAnnoHelper(TLong)
+        | typeAnnoHelper(TInt)
+        | typeAnnoHelper(TDouble)
+        | typeAnnoHelper(TString)
+        | tLinked
+        | tIterable
+        | tTuple
+        | dataType
     )
 
   /** Visibility parser */
@@ -115,7 +144,7 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
 
   /** Param parser */
   def param[_: P]: P[Param] =
-    P(ParserUtils.identifier ~ s_i ~ ":" ~ s_i ~ typeAnno).map {
+    P(identifier ~ s_i ~ ":" ~ s_i ~ typeAnno).map {
       case (name, typeAnno) => Param(name, typeAnno)
     }
 
@@ -177,7 +206,10 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
     P(p.flatMap(t => recursionCallExp(recursiveExpExtensions, t)) | p)
 
   /** Higher order extension call combination parser that require a left side expression. */
-  private def recursionCallExp[_: P, T](p: Seq[RecursiveExpressionParser], e: Exp): P[Exp] =
+  private def recursionCallExp[_: P, T](
+      p: Seq[RecursiveExpressionParser],
+      e: Exp
+  ): P[Exp] =
     if (p.isEmpty) {
       decorateRecursionExp(
         P(
@@ -202,6 +234,7 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
             | varExp
             | constantExp
             | tupleExp
+            | aggregateExp
             | bracketExp
         )
       )
@@ -248,14 +281,15 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
 
   /** See CoreExp parser @see coreExp */
   def pathAccessExp[_: P](e: Exp): P[Exp] =
-    P("." ~ link(TNode("dummy"))).map(PathAccess(e, _)) // @todo Wait for fix commit in Core language
+    P("." ~ link(TNode("dummy")))
+      .map(PathAccess(e, _)) // @todo Wait for fix commit in Core language
 
   /** See CoreExp parser @see coreExp */
   def callExp[_: P]: P[Call] =
     P(
       identifier ~ s_i ~ "+".?.! ~ s_i ~ P(
-        P("()")
-          .map(_ => Seq.empty[Exp]) | "(" ~ P(s_i ~ exp ~ s_i).rep(1, sep = ",") ~ ")"
+        P("()").map(_ => Seq.empty[Exp])
+          | "(" ~ P(s_i ~ exp ~ s_i).rep(1, sep = ",") ~ ")"
       )
     ).map {
       case (name, transitive_str, exp) =>
@@ -305,10 +339,10 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
   def notInstanceOfCoreExp[_: P](e: Exp): P[Exp] =
     P(" " ~ s_i ~ "notInstanceOf " ~ s_i ~ typeAnno).map(NotInstanceOf(e, _))
 
-    /** Statement parser */
-  def statement[_:P]:P[Statement] = statementRecursive(statementExtensions)
-  
-  private def statementRecursive[_: P](ss : Seq[StatementParser]): P[Statement] = 
+  /** Statement parser */
+  def statement[_: P]: P[Statement] = statementRecursive(statementExtensions)
+
+  private def statementRecursive[_: P](ss: Seq[StatementParser]): P[Statement] =
     if (ss.isEmpty) P(coreStatement | terminatorStatement)
     else P(ss.head.parse | statementRecursive(ss.tail))
 
@@ -407,4 +441,34 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
   /** Terminator parser. */
   def terminatorStatement[_: P]: P[TerminatorStatement] =
     P(yieldStatement | failStatement)
+
+  /** DataType parser */
+  def dataType[_: P]: P[TypeAnno] =
+    P(
+      P(
+        identifier ~ "." ~ identifier
+      ).map { case (qual, name) => Core.DataType(Option(qual), name) }
+        | P(
+          identifier
+        ).map(s => Core.DataType(None, s))
+    )
+
+  /** DataOp parser */
+  def dataOp[_: P]: P[DataOp] =
+    P(
+      P(
+        identifier ~ "." ~ identifier
+      ).map { case (qual, name) => Core.DataOp(Option(qual), name) }
+        | P(
+          identifier
+        ).map(s => Core.DataOp(None, s))
+    )
+
+  /** Aggregate parser */
+  def aggregateExp[_: P]: P[Exp] =
+    P(
+      "aggregate" ~ s_i ~ "(" ~ dataOp ~ s_i ~ "," ~ s_i ~ dataOp ~ s_i ~ ")" ~ s_i ~ callExp
+    ).map {
+      case (init, join, call) => Aggregate(init, join, None, call)
+    }
 }
