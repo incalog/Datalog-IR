@@ -43,6 +43,15 @@ class ExtensionsTest extends AnyFunSuite {
                 Forall("v", Tuple(Seq(Var("x"), Var("y"))), Body(Seq(Assert(Var("x"))))))
   }
 
+  test("test Foreach") {
+    def test_run = test_helper(CoreParser(Seq(ForeachParser)).statement(_))
+
+    test_run(s"""foreach v in (x, y) {
+                |    assert x
+                |}""".stripMargin,
+                Foreach("v", Tuple(Seq(Var("x"), Var("y"))), Body(Seq(Assert(Var("x"))))))
+  }
+
   private def test_helper[T](parser: P[_] => P[Any]) =
     (input: String, cmp: T) => {
       parse(input, parser) match {
