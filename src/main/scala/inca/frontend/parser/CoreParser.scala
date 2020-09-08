@@ -18,10 +18,11 @@ import scala.meta._
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
-case class CoreParser(val extentions : Seq[ParserExtention])
+case class CoreParser(val extensions : Seq[ParserExtension])
 {
-  val recursionCallExpExtentions: Seq[Exp => P[Exp]] = Seq.empty
-  val recursionAnchorExpExtentions: Seq[P[Exp]] = Seq.empty
+  val recursiveExpExtensions: Seq[Exp => P[Exp]] = extensions.foldLeft(Seq.empty[Exp => P[Exp]]){case (s, ext) => s ++ ext.recursiveExpressions}
+  val anchorExpExtensions: Seq[P[Exp]] = extensions.foldLeft(Seq.empty[P[Exp]]){case (s, ext) => s ++ ext.anchorExpressions}
+  val statementExtensions: Seq[P[Statement]] = extensions.foldLeft(Seq.empty[P[Statement]]){case (s, ext) => s ++ ext.statement}
 
   def tAnyLinked[_: P]: P[TLinked] =
     P(P(TAnyLinked.prettyprint).map(_ => TAnyLinked))
@@ -157,17 +158,17 @@ case class CoreParser(val extentions : Seq[ParserExtention])
   /** CoreExp parser */
   def coreExp[_: P]: P[Exp] =
     P(
-      recursionAnchorExpExtention(recursionAnchorExpExtentions).flatMap { e: Exp =>
-        { P(recursionCallExpExtention(recursionCallExpExtentions, e)) }
+      recursionAnchorExpExtention(anchorExpExtensions).flatMap { e: Exp =>
+        { P(recursionCallExpExtention(recursiveExpExtensions, e)) }
       }
-        | recursionAnchorExpExtention(recursionAnchorExpExtentions)
+        | recursionAnchorExpExtention(anchorExpExtensions)
     )
 
   /** Recalls the resulting expression on expression as left hand.
     * Ensures left to right binding.
     */
   def decorateRecursionExp[_: P, T](p: => P[Exp]) =
-    P(p.flatMap(t => recursionCallExpExtention(recursionCallExpExtentions, t)) | p)
+    P(p.flatMap(t => recursionCallExpExtention(recursiveExpExtensions, t)) | p)
 
   /** Higher order extension call combination parser that require a left side expression. */
   def recursionCallExpExtention[_: P, T](p: Seq[Exp => P[Exp]], e: Exp): P[Exp] =

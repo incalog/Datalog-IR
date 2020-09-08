@@ -4,7 +4,7 @@ import fastparse._
 import NoWhitespace._ 
 import inca.frontend.core.Core._
 
-trait ParserExtention
+trait ParserExtension
 {
     /** This function should return a Sequence of expression parsers,
       * which don't require left hand recursion.
