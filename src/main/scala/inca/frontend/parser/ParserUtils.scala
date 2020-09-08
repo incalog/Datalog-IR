@@ -23,6 +23,7 @@ object ParserUtils {
   /** Parser consuming all newline characters by ignoring them. */
   def n_i[_: P]: P[Unit] = CharsWhileIn("\r\n").?
 
+  /** Parser for line endings */
   def n_[_:P]:P[Unit] = P("\n" | "\r\n")
 
   /** A parser for integer literals in base 10. It does not allow leading zeroes */

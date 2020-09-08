@@ -830,6 +830,7 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test DataOp") {
+    // @todo Add more tests.
     def test_run = test_helper(CoreParser().dataOp(_))
 
     test_run("br0t.br0t", DataOp(Some("br0t"), "br0t"))

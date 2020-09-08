@@ -44,7 +44,6 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
   // Parser ////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /** Parse a variable identifier.
     * The first character must be an alphabetical one. After that digits and underscores are also allowed
-    * @todo Check against every possible keyword. Probably issue when using extension with keyword?
     */
   def identifier[_: P]: P[String] =
     P(CharIn("a-z", "A-Z") ~ CharIn("a-z", "A-Z", "0-9", "_").rep(0)).!.map { s =>
@@ -240,6 +239,7 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
       )
     } else P(decorateRecursionExp(p.head.parse) | recursionAnchorExp(p.tail))
 
+  /** Eval parser */
   def evalExp[_: P]: P[Any] = {
     var code: String = ""
     var c: Int = 0
@@ -279,12 +279,12 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
   }
   //def eval_test[_: P]: P[Any] = P(eval ~ AnyChar.rep.!)
 
-  /** See CoreExp parser @see coreExp */
+  /** PathAccess parser */
   def pathAccessExp[_: P](e: Exp): P[Exp] =
     P("." ~ link(TNode("dummy")))
       .map(PathAccess(e, _)) // @todo Wait for fix commit in Core language
 
-  /** See CoreExp parser @see coreExp */
+  /** Call parser */
   def callExp[_: P]: P[Call] =
     P(
       identifier ~ s_i ~ "+".?.! ~ s_i ~ P(
@@ -296,13 +296,13 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
         Call(name, exp, if (transitive_str == "+") true else false)
     }
 
-  /** See CoreExp parser @see coreExp */
+  /** Count parser */
   def countExp[_: P]: P[Count] =
     P(
       "count " ~ s_i ~ callExp
     ).map(Count)
 
-  /** See CoreExp parser @see coreExp */
+  /** Tuple parser */
   def tupleExp[_: P]: P[Tuple] =
     P(
       "(" ~ P(s_i ~ exp ~ s_i).rep(2, sep = ",") ~ ")"
