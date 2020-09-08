@@ -8,6 +8,8 @@ import fastparse.Parsed.Success
 import fastparse.Parsed.Failure
 import inca.frontend.parser.extensions._
 import inca.frontend.extensions._
+import scala.annotation.switch
+import scala.tools.nsc.interactive.Lexer.IntLit
 
 class ExtensionsTest extends AnyFunSuite {
 
@@ -75,7 +77,7 @@ class ExtensionsTest extends AnyFunSuite {
       )
     )
   }
-  
+
   test("test Match") {
     def test_run = test_helper(CoreParser(Seq(MatchParser)).statement(_))
 
@@ -133,6 +135,33 @@ class ExtensionsTest extends AnyFunSuite {
         )
       )
     )
+  }
+
+  test("test Switch") {
+    def test_run = test_helper(CoreParser(Seq(SwitchParser)).statement(_))
+
+    test_run(s"""|switch {}""".stripMargin, Switch(Seq.empty))
+    test_run(s"""switch {} union {}""", Switch(Seq(Body(Seq.empty), Body(Seq.empty))))
+    test_run(s"""|switch{
+                 |    assert x
+                 |} union {}""".stripMargin, 
+                 Switch(
+                   Seq(
+                     Body(Seq(Assert(Var("x")))),
+                     Body(Seq.empty)
+                   )
+                 )
+                 )
+    test_run(s"""|switch{
+                 |    val x = 5
+                 |} union {}""".stripMargin, 
+                 Switch(
+                   Seq(
+                     Body(Seq(Assign(Seq("x"), Constant(IntLiteral(5))))),
+                     Body(Seq.empty)
+                   )
+                 )
+                 )
   }
 
   private def test_helper[T](parser: P[_] => P[Any]) =
