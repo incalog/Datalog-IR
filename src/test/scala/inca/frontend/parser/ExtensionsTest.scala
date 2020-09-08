@@ -37,19 +37,44 @@ class ExtensionsTest extends AnyFunSuite {
   test("test ForallExists") {
     def test_run = test_helper(CoreParser(Seq(ForallExistsParser)).statement(_))
 
-    test_run(s"""forall v in (x, y) {
+    test_run(
+      s"""forall v in (x, y) {
                 |    assert x
                 |}""".stripMargin,
-                Forall("v", Tuple(Seq(Var("x"), Var("y"))), Body(Seq(Assert(Var("x"))))))
+      Forall("v", Tuple(Seq(Var("x"), Var("y"))), Body(Seq(Assert(Var("x")))))
+    )
   }
 
   test("test Foreach") {
     def test_run = test_helper(CoreParser(Seq(ForeachParser)).statement(_))
 
-    test_run(s"""foreach v in (x, y) {
+    test_run(
+      s"""foreach v in (x, y) {
                 |    assert x
                 |}""".stripMargin,
-                Foreach("v", Tuple(Seq(Var("x"), Var("y"))), Body(Seq(Assert(Var("x"))))))
+      Foreach("v", Tuple(Seq(Var("x"), Var("y"))), Body(Seq(Assert(Var("x")))))
+    )
+  }
+
+  test("test IfThenElse") {
+    def test_run = test_helper(CoreParser(Seq(IfThenElseParser)).statement(_))
+
+    test_run(
+      s"""if (v) {
+                |    assert x
+                |} else if (q) {
+                | val z = 7
+                |} else {
+                | assert y 
+                |}""".stripMargin,
+      IfThenElse(
+        Var("v"),
+        Body(Seq(Assert(Var("x")))),
+        Seq(ElseIf(Var("q"), Body(Seq(Assign(Seq("z"), Constant(IntLiteral(7))))))),
+        Some(Body(Seq(Assert(Var("y")))))
+      )
+    )
+
   }
 
   private def test_helper[T](parser: P[_] => P[Any]) =
