@@ -18,7 +18,7 @@ import scala.meta._
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
-case class CoreParser(val extensions : Seq[ParserExtension])
+case class CoreParser(val extensions : Seq[ParserExtension] = Seq.empty)
 {
   val recursiveExpExtensions: Seq[Exp => P[Exp]] = extensions.foldLeft(Seq.empty[Exp => P[Exp]]){case (s, ext) => s ++ ext.recursiveExpressions}
   val anchorExpExtensions: Seq[P[Exp]] = extensions.foldLeft(Seq.empty[P[Exp]]){case (s, ext) => s ++ ext.anchorExpressions}
@@ -153,10 +153,7 @@ case class CoreParser(val extensions : Seq[ParserExtension])
   def namedLink[_: P](node: TNode): P[NamedLink] = P(identifier).map(NamedLink(node, _))
 
   /** Exp parser */
-  def exp[_: P]: P[Exp] = P(coreExp)
-
-  /** CoreExp parser */
-  def coreExp[_: P]: P[Exp] =
+  def exp[_: P]: P[Exp] =
     P(
       recursionAnchorExpExtention(anchorExpExtensions).flatMap { e: Exp =>
         { P(recursionCallExpExtention(recursiveExpExtensions, e)) }

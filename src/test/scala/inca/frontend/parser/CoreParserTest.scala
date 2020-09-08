@@ -303,7 +303,7 @@ class CoreParserTest extends AnyFunSuite {
 
   test("test CoreExp") {
     // @todo TODO: Add more test cases.
-    def test_run = test_helper[CoreExp](CoreParser().coreExp(_))
+    def test_run = test_helper[CoreExp](CoreParser().exp(_))
 
     // Note: right to left input due to recusion
     test_run(
