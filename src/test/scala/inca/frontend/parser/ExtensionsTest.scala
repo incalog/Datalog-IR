@@ -28,6 +28,12 @@ class ExtensionsTest extends AnyFunSuite {
     test_run("x : int", Cast(Var("x"), TInt))
   }
 
+  test("test Enum") {
+    def test_run = test_helper(CoreParser(Seq(EnumParser)).exp(_))
+
+    test_run("enum(int)", Enum(TInt))
+  }
+
   private def test_helper[T](parser: P[_] => P[Any]) =
     (input: String, cmp: T) => {
       parse(input, parser) match {

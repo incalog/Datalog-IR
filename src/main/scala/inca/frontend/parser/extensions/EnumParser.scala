@@ -8,20 +8,21 @@ import inca.frontend.parser.ParserUtils._
 import inca.frontend.parser._
 import inca.frontend.core.Core
 
-/** Extention adding cast expressions to @see CoreParser.
+/** Extention adding enum expressions to @see CoreParser.
   * 
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
-object CastParser extends ParserExtension {
+object EnumParser extends ParserExtension {
 
-  override def recursiveExpression: Seq[RecursiveExpressionParser] = Seq(CastParser_)
+  override def anchorExpression: Seq[AnchorExpressionParser] = Seq(EnumParser_)
 
-  object CastParser_ extends RecursiveExpressionParser {
-    override def parse[_: P](e: Core.Exp): P[Core.Exp] =
+  override def keywords: Seq[String] = Seq("enum")
+
+  object EnumParser_ extends AnchorExpressionParser {
+    override def parse[_: P]: P[Core.Exp] =
       P(
-        s_i ~ ":" ~ s_i ~ coreparser.typeAnno
-      ).map(Cast(e, _))
+        "enum" ~ s_i ~ "(" ~ coreparser.typeAnno ~ ")"
+      ).map(Enum(_))
   }
-
 }
