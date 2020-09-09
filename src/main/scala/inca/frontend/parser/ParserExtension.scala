@@ -13,6 +13,11 @@ trait StatementParser {
   def parse[_: P]: P[Statement]
 }
 
+/** Interface for parsing language extentions in CoreParser
+  * 
+  * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
+  *          Julian Cichorius (jcichori@students.uni-mainz.de)
+  */
 trait ParserExtension {
   private[parser] var coreparser: CoreParser = null // Will be set from CoreParser
 
@@ -38,4 +43,11 @@ trait ParserExtension {
     * @return Sequence of parser functions with type P[Statement]
     */
   def statement: Seq[StatementParser] = Seq.empty
+
+  /**
+    * This function should return a list of used keywords only in this extension.
+    *
+    * @return Sequence of keywords.
+    */
+  def keywords : Seq[String] = Seq.empty
 }
