@@ -6,84 +6,170 @@ import inca.frontend.core.Core.Name
 
 object EvalHelper {
 
+  /**
+   * Computes the set of free(unbound) variables in this AST
+   * @param term the AST
+   * @return the set of free variables
+   */
   def freeVars(term: Tree): scala.collection.immutable.Set[Name] = {
-    _freeVars(term, new Scope(mutable.Set(), mutable.Set())).free.toSet
+    loadVars(term, new Scope(mutable.Set(), mutable.Set())).free.toSet
   }
 
-  private def _freeVars(term: Tree, scope: Scope): Scope = term match {
+  /**
+   * Loads the free variables of the whole AST and the variables bound at the level of the node
+   * into the scope
+   * @param term the AST
+   * @param scope the scope of the AST node into which the variables are loaded
+   * @return
+   */
+  private def loadVars(term: Tree, scope: Scope): Scope = term match {
+    // definitions
     case Defn.Val(_, pats, _, rhs) =>
-      val patVars = extractVars(pats)
+      val patVars = extractVars(pats, scope)
+      // every pattern variable is a bound variable except for constants that might not be defined in the term
+      // todo implement constants
       patVars.foreach(scope.newBound)
-      _freeVars(rhs, scope)
+      loadVars(rhs, scope)
     case Defn.Var(_, pats, _, rhs) =>
-      val patVars = extractVars(pats)
+      val patVars = extractVars(pats, scope)
       patVars.foreach(scope.newBound)
       if(rhs.isDefined) {
-        _freeVars(rhs.get, scope)
+        loadVars(rhs.get, scope)
       } else {
         scope
       }
-    case Term.ApplyType(fun, _) => _freeVars(fun, scope)
-    case Term.Name(name) => if(scope.isBound(name)) scope else scope.newFree(name)
-    case Term.Select(qual, _) => _freeVars(qual, scope)
-    case Term.ApplyUnary(_, arg) => _freeVars(arg, scope)
+
+    // terms
+    case Term.Name(name) =>
+      if(scope.isBound(name) || scope.isFree(name)) {
+        //we have already encountered this variable
+        scope
+      } else {
+        // variable not already known => must be free
+        scope.newFree(name)
+      }
+
+    case Term.ApplyType(fun, _) => loadVars(fun, scope)
+    case Term.Select(qual, _) => loadVars(qual, scope)
+    case Term.ApplyUnary(_, arg) => loadVars(arg, scope)
+    case Term.Return(expr) => loadVars(expr, scope)
+    case Term.Annotate(expr, _) => loadVars(expr, scope)
+    case Term.Ascribe(expr, _) => loadVars(expr, scope)
+    case Term.Throw(expr) => loadVars(expr, scope)
+    case Term.Repeated(expr) => loadVars(expr, scope)
+
+    case Term.Interpolate(_, _, args) => foldFreeVars(args, scope)
+    case Term.Tuple(args) => foldFreeVars(args, scope)
+
     case Term.Block(stats) =>
+      // a block defines a new scope nested in the current one
       foldFreeVars(stats, scope.nestedScope())
       scope
-    case Term.ApplyInfix(lhs, _, _, args) =>
-      foldFreeVars(args, _freeVars(lhs, scope))
-    case Term.Apply(fun, args) => foldFreeVars(args, _freeVars(fun, scope))
+
+    case Term.ApplyInfix(lhs, _, _, args) => foldFreeVars(args, loadVars(lhs, scope))
+    case Term.Apply(fun, args) => foldFreeVars(args, loadVars(fun, scope))
+
     case Term.Function(params, body) =>
       params.foreach(p => scope.newBound(p.name.value))
-      _freeVars(body, scope)
+      loadVars(body, scope)
+
     case Term.Assign(lhs, rhs) =>
-      lhs match {
-        case Term.Name(name) =>
-          if(scope.isBound(name) || scope.isFree(name))
-            _freeVars(rhs, scope)
-          else
-            _freeVars(rhs, scope.newFree(name))
-        case _ => _freeVars(rhs, _freeVars(lhs, scope))
-      }
+      loadVars(rhs, loadVars(lhs, scope))
+
     case Term.Match(expr, cases) =>
-      val scope1 = _freeVars(expr, scope)
+      val scope1 = loadVars(expr, scope)
       cases.foreach(c => fromCase(c, scope1))
       scope1
+
     case Term.If(cond, thenp, elsep) =>
-      _freeVars(elsep, _freeVars(thenp, _freeVars(cond, scope)))
+      loadVars(elsep, loadVars(thenp, loadVars(cond, scope)))
+
     case Term.New(init) =>
       init.argss.foreach(foldFreeVars(_, scope))
       scope
-    case Term.Return(expr) => _freeVars(expr, scope)
+
+    case Term.PartialFunction(cases) =>
+      cases.foreach(c => fromCase(c, scope))
+      scope
+
+    case Term.Try(expr, catchp, finallyp) =>
+      loadVars(expr, scope)
+      catchp.foreach(c => fromCase(c, scope))
+      if(finallyp.isDefined) {
+        loadVars(finallyp.get, scope)
+      }
+      scope
+
+    case Term.TryWithHandler(expr, catchp, finallyp) =>
+      loadVars(expr, scope)
+      loadVars(catchp, scope)
+      if(finallyp.isDefined){
+        loadVars(finallyp.get, scope)
+      }
+      scope
+
+    case Term.NewAnonymous(templ) =>
+      val nested = scope.nestedScope()
+      foldFreeVars(templ.early, nested)
+      foldFreeVars(templ.stats, nested)
+      templ.inits.foreach(init => init.argss.foreach(foldFreeVars(_, nested)))
+      scope
+
+    case Term.Do(body, expr) =>
+      loadVars(body, scope)
+      loadVars(expr, scope)
+
+    case Term.For(enums, body) =>
+      val nested = scope.nestedScope()
+      foldFreeVars(enums, nested)
+      loadVars(body, nested)
+
+    case Term.ForYield(enums, body) =>
+      val nested = scope.nestedScope()
+      foldFreeVars(enums, nested)
+      loadVars(body, nested)
+
+    case Term.While(expr, body) =>
+      loadVars(expr, scope)
+      loadVars(body, scope)
+
     case _ => scope
   }
 
-  private def foldFreeVars(terms: List[Tree], scope: Scope): Scope = terms match {
-    case Nil => scope
-    case t :: ts => ts.foldLeft(_freeVars(t, scope)) {
-      case (scope1, t) => _freeVars(t, scope1)
-    }
+  private def foldFreeVars(terms: List[Tree], scope: Scope): Scope = {
+    terms.foreach(t => loadVars(t, scope))
+    scope
   }
 
-  private def extractVars(pats: List[Pat]): mutable.Set[Name] = {
-    pats.flatMap(definedVars).to(mutable.Set)
+  private def extractVars(pats: List[Pat], scope: Scope): mutable.Set[Name] = {
+    pats.flatMap(definedVars(_, scope)).to(mutable.Set)
   }
 
-  private def definedVars(pat: Pat): mutable.Set[Name] = pat match {
+  /**
+   * extracts the free variables defined in a pattern
+   * @param pat the pattern
+   * @return the set of free variables in the pattern
+   */
+  private def definedVars(pat: Pat, scope: Scope): mutable.Set[Name] = pat match {
     case Pat.Var(Term.Name(name)) => mutable.Set(name)
-    case Pat.Bind(lhs, rhs) => definedVars(lhs) ++ definedVars(rhs)
+    case Pat.Bind(lhs, rhs) => definedVars(lhs, scope) ++ definedVars(rhs, scope)
     case Pat.Tuple(args) => args.foldLeft(mutable.Set[Name]()) {
-      case (found, p) => found ++ definedVars(p)
+      case (found, p) => found ++ definedVars(p, scope)
     }
+    case Pat.Alternative(lhs, rhs) => definedVars(lhs, scope) ++ definedVars(rhs, scope)
+    case Pat.Extract(fun, args) =>
+      loadVars(fun, scope)
+      extractVars(args, scope)
+    case Pat.Typed(p, _) => definedVars(p, scope)
   }
 
   private def fromCase(cas: Case, scope: Scope): Unit = {
-    val patVars = definedVars(cas.pat)
+    val patVars = definedVars(cas.pat, scope)
     if(cas.cond.isDefined) {
       patVars.foreach(scope.newBound)
-      _freeVars(cas.cond.get, scope).free
+      loadVars(cas.cond.get, scope).free
     }
-    _freeVars(cas.body, scope.nestedScope())
+    loadVars(cas.body, scope.nestedScope())
   }
 
   private class Scope(val free: mutable.Set[Name], val bound: mutable.Set[Name]) {
