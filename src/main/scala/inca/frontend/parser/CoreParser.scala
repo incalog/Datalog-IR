@@ -243,6 +243,7 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
   def evalExp[_: P]: P[Eval] = {
     var code: String = ""
     var c: Int = 0
+    var error = false
     var free = Set[String]()
     val node = TNode("dummy")
 
@@ -264,11 +265,15 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
               }
             }
             if(stack.nonEmpty) {
+              error = true
               return fastparse.Fail
             }
             c = code.length
             code.parse[Term] match {
-              case scala.meta.parsers.Parsed.Error(_, _, _) => return fastparse.Fail
+              case scala.meta.parsers.Parsed.Error(_, _, _) => {
+                error = true
+                return fastparse.Fail
+              }
               case scala.meta.parsers.Parsed.Success(t) =>
                 println(t.structure)
                 free = EvalHelper.freeVars(t)
@@ -276,7 +281,8 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
           }) ~
             fastparse.Fail
         ).? ~
-        AnyChar.rep(max = c) ~ ")"
+        (if (error) fastparse.Fail 
+         else AnyChar.rep(max = c)) ~ ")"
     ).map(_ => Eval(free.toSeq, node, code))
   }
   //def eval_test[_: P]: P[Any] = P(eval ~ AnyChar.rep.!)
