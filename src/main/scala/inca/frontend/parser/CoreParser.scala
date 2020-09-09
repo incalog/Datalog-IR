@@ -207,9 +207,12 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
       )
     } else P(decorateRecursionExp(p.head.parse) | recursionAnchorExp(p.tail))
 
-  def evalExp[_: P]: P[Any] = {
+  def evalExp[_: P]: P[Eval] = {
+
     var code: String = ""
     var c: Int = 0
+    var free = Set[String]()
+    val node = TNode("dummy")
 
     P(
       "eval" ~ s_i ~ "(" ~
@@ -228,21 +231,21 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
                 code += ch
               }
             }
+            if(stack.nonEmpty) {
+              return fastparse.Fail
+            }
             c = code.length
-
-            try {
-              val res_tree = code.parse[Term].get
-              // @todo Scala type checker and unbound variables checker
-            } catch {
-              case e: Exception =>
-                println(e)
-                return fastparse.Fail
+            code.parse[Term] match {
+              case scala.meta.parsers.Parsed.Error(_, _, _) => return fastparse.Fail
+              case scala.meta.parsers.Parsed.Success(t) =>
+                println(t.structure)
+                free = EvalHelper.freeVars(t)
             }
           }) ~
             fastparse.Fail
         ).? ~
         AnyChar.rep(max = c) ~ ")"
-    ).map(_ => "NOT IMPLEMENTED YET")
+    ).map(_ => Eval(free.toSeq, node, code))
   }
   //def eval_test[_: P]: P[Any] = P(eval ~ AnyChar.rep.!)
 

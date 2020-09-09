@@ -183,6 +183,41 @@ class CoreParserTest extends AnyFunSuite {
     test_run(PathAccess(Var("test"), NamedLink(TNode("dummy"), "property")))
   }
 
+  test("test Eval params") {
+    def test_run(code: String, vars: Seq[Name]) = {
+      val parsed = parse(s"eval($code)", CoreParser().evalExp(_))
+      parsed match {
+        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+        case Success(eval, _) =>
+          val params = eval.params
+          assert(params.size == vars.size && params.forall(vars.contains) && vars.forall(params.contains))
+      }
+    }
+
+    val code =
+      """{
+        | x.fun(-y - (z.point))
+        | val exp = inf
+        | val fun: Int => Int = n => code + 1
+        | ten
+        | }""".stripMargin
+    test_run(code, Seq("x", "y", "z", "inf", "code", "ten"))
+
+    val code1 =
+      s"""{
+         | val x = 5
+         | val y = some
+         | val abc = {
+         |  val i = 10
+         |  var obj = pen
+         |  obj
+         |  }
+         | obj
+         |}
+         |""".stripMargin
+    test_run(code1, Seq("some", "pen", "obj"))
+  }
+
   test("test Exp combined") {
     // @todo Add more test cases.
     def test_run = test_helper[CoreExp](CoreParser().exp(_))
