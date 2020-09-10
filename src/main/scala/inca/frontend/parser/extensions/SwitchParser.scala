@@ -23,12 +23,13 @@ object SwitchParser extends ParserExtension {
 
     override def parse[_: P]: P[Core.Statement] =
       P(
-         P(
-            s_i ~ "switch" ~ P(sn_i ~ coreparser.body ~ sn_i).rep(sep = P(s_i ~ "union" ~ s_i))
-          ).map(v => {
-              if (v.size == 1 && v(0).stmts.isEmpty) Switch(Seq.empty)
-              else Switch(v)
-          })
+        P(
+          s_i ~ "switch" ~ P(sn_i ~ coreparser.body ~ sn_i)
+            .rep(sep = P(s_i ~ "union" ~ s_i))
+        ).map(v => {
+          if (v.size == 1 && v(0).stmts.isEmpty) Switch(Seq.empty)
+          else Switch(v)
+        })
       )
   }
 }

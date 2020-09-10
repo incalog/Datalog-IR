@@ -9,7 +9,7 @@ import inca.frontend.parser._
 import inca.frontend.core.Core
 
 /** Extention adding cast expressions to @see CoreParser.
-  * 
+  *
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
