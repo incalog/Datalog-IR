@@ -7,7 +7,10 @@ import inca.frontend.core.Core.Name
 object EvalHelper {
 
   /**
-   * Computes the set of free(unbound) variables in this AST
+   * Computes the set of free(unbound) variables in this AST.
+   * Important note:
+   * using variables with backtickets in patterns does not work properly with the computation of free vars.
+   * The variable will be counted as bound even if it's meant to reference an undefined constant
    * @param term the AST
    * @param initBound an optional initial set of bound variables
    * @return the set of free variables
@@ -33,12 +36,11 @@ object EvalHelper {
     case Defn.Val(_, pats, _, rhs) =>
       val patVars = extractVars(pats, scope)
       // every pattern variable is a bound variable except for constants that might not be defined in the term
-      // todo implement constants
-      patVars.foreach(scope.newBound)
+      loadPatVars(patVars, scope)
       loadVars(rhs, scope)
     case Defn.Var(_, pats, _, rhs) =>
       val patVars = extractVars(pats, scope)
-      patVars.foreach(scope.newBound)
+      loadPatVars(patVars, scope)
       if(rhs.isDefined) {
         loadVars(rhs.get, scope)
       }
@@ -146,9 +148,10 @@ object EvalHelper {
     case Term.Xml(_, args) => loadAllVars(args, scope)
 
     case Term.Super(_, _)
-         | Term.This(_) =>
+         | Term.This(_)
+         | Term.Placeholder() =>
 
-    case ex => throw new UnsupportedOperationException(s"not yet implemented: ${ex.structure}")
+    case ex => throw new UnsupportedOperationException(s"not yet implemented: ${ex.getClass}")
   }
 
   private def loadAllVars(terms: List[Tree], scope: Scope): Unit = {
@@ -223,7 +226,7 @@ object EvalHelper {
       throw new UnsupportedOperationException("Pat.XML is not supported")
 
     case _                               =>
-      throw new UnsupportedOperationException(s"not yet implemented: ${pat.structure}")
+      throw new UnsupportedOperationException(s"not yet implemented: ${pat.getClass}")
   }
 
   private def loadPatVars(vars: mutable.Set[String], scope: Scope): Unit = {
