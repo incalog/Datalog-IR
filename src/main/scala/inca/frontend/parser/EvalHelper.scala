@@ -148,7 +148,7 @@ object EvalHelper {
     case Term.Super(_, _)
          | Term.This(_) =>
 
-    case ex => throw new UnsupportedOperationException(s"not yet implemented: $ex")
+    case ex => throw new UnsupportedOperationException(s"not yet implemented: ${ex.structure}")
   }
 
   private def loadAllVars(terms: List[Tree], scope: Scope): Unit = {
@@ -190,6 +190,7 @@ object EvalHelper {
     case _: Lit                          => mutable.Set()
     case Pat.Var(Term.Name(name))        => mutable.Set(name)
     case Term.Select(Term.Name(name), _) => mutable.Set(name)
+    case Term.Name(name)                 => mutable.Set(name)
     case Pat.Bind(lhs, rhs)              =>
       definedVars(lhs, scope) ++ definedVars(rhs, scope)
 
@@ -205,6 +206,13 @@ object EvalHelper {
       loadVars(fun, scope)
       extractVars(args, scope)
 
+    case Pat.ExtractInfix(lhs, op, rhs)  =>
+      val lvars = definedVars(lhs, scope)
+      loadVars(op, scope)
+      rhs.foldLeft(lvars) {
+        case (vars, p) => vars ++ definedVars(p, scope)
+      }
+
     case Pat.Typed(p, _)                 =>
       definedVars(p, scope)
 
@@ -215,7 +223,7 @@ object EvalHelper {
       throw new UnsupportedOperationException("Pat.XML is not supported")
 
     case _                               =>
-      throw new UnsupportedOperationException(s"not yet implemented: $pat")
+      throw new UnsupportedOperationException(s"not yet implemented: ${pat.structure}")
   }
 
   private def loadPatVars(vars: mutable.Set[String], scope: Scope): Unit = {
@@ -233,7 +241,7 @@ object EvalHelper {
 
   private def loadFromCase(cas: Case, scope: Scope): Unit = {
     val patVars = definedVars(cas.pat, scope)
-    patVars.foreach(scope.newBound)
+    loadPatVars(patVars, scope)
     if(cas.cond.isDefined) {
       loadVars(cas.cond.get, scope)
     }

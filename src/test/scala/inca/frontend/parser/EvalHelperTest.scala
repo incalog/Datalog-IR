@@ -381,6 +381,42 @@ class EvalHelperTest extends AnyFunSuite {
         |""".stripMargin
     val tree2 = code2.parse[Term].get
     checkVars(tree2, Set("num", "factorial"))
+
+    val code3 =
+      """
+        |{
+        |  var option: Option[Int] = None
+        |  if(true){
+        |    option = Some(42)
+        |    do_smth(option)
+        |  }
+        |  else {
+        |    option = None
+        |  }
+        |  val seq = for(init <- newAnon.inits; args <- init.argss; arg <- args if arg.isMandatory) yield {
+        |    println(arg.desc)
+        |    val data = {
+        |      process(arg)
+        |      arg.ctx.value
+        |    }
+        |    data
+        |  }
+        |}
+        |""".stripMargin
+
+    val tree3 = code3.parse[Term].get
+    checkVars(tree3, Set("do_smth", "newAnon", "process", "println", "Some", "None"))
+
+    val code4 =
+      """
+        |list match {
+        |  case Nil => Nil
+        |  case Some(x :: ys) :: xs => x
+        |}
+        |""".stripMargin
+
+    val tree4 = code4.parse[Term].get
+    checkVars(tree4, Set("list", "Nil", "Some", "::"))
   }
 
   private def checkVars(code: Tree, expectedFree: Set[Name]): Unit = {
