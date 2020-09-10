@@ -165,13 +165,17 @@ object EvalHelper {
         val patVars = definedVars(pat, scope)
         loadPatVars(patVars, scope)
         loadVars(rhs, scope)
-      case Enumerator.Val(pat, rhs) =>
+
+      case Enumerator.Val(pat, rhs)       =>
         val patVars = definedVars(pat, scope)
         patVars.foreach(scope.newBound)
         loadVars(rhs, scope)
-      case Enumerator.Guard(cond) =>
+
+      case Enumerator.Guard(cond)         =>
         loadVars(cond, scope)
-      case Enumerator.Quasi(_, _) => throw new UnsupportedOperationException("Enumerator.Quasi not currently supported")
+
+      case Enumerator.Quasi(_, _)         =>
+        throw new UnsupportedOperationException("Enumerator.Quasi not currently supported")
     }
   }
 
@@ -181,24 +185,37 @@ object EvalHelper {
    * @return the set of free variables in the pattern
    */
   private def definedVars(pat: Pat, scope: Scope): mutable.Set[Name] = pat match {
-    case _: Lit => mutable.Set()
-    case Pat.Var(Term.Name(name)) => mutable.Set(name)
-    case Pat.Bind(lhs, rhs) => definedVars(lhs, scope) ++ definedVars(rhs, scope)
-    case Pat.Tuple(args) => args.foldLeft(mutable.Set[Name]()) {
-      case (found, p) => found ++ definedVars(p, scope)
-    }
-    case Pat.Alternative(lhs, rhs) => definedVars(lhs, scope) ++ definedVars(rhs, scope)
-    case Pat.Extract(fun, args) =>
+    case Pat.Wildcard()                  => mutable.Set()
+    case Pat.SeqWildcard()               => mutable.Set()
+    case _: Lit                          => mutable.Set()
+    case Pat.Var(Term.Name(name))        => mutable.Set(name)
+    case Term.Select(Term.Name(name), _) => mutable.Set(name)
+    case Pat.Bind(lhs, rhs)              =>
+      definedVars(lhs, scope) ++ definedVars(rhs, scope)
+
+    case Pat.Tuple(args)                 =>
+      args.foldLeft(mutable.Set[Name]()) {
+        case (found, p) => found ++ definedVars(p, scope)
+      }
+
+    case Pat.Alternative(lhs, rhs)       =>
+      definedVars(lhs, scope) ++ definedVars(rhs, scope)
+
+    case Pat.Extract(fun, args)          =>
       loadVars(fun, scope)
       extractVars(args, scope)
-    case Pat.Typed(p, _) => definedVars(p, scope)
-    case Pat.Wildcard() => mutable.Set()
-    case Pat.SeqWildcard() => mutable.Set()
-    case Pat.Quasi(_, _) => throw new UnsupportedOperationException("Pat.Quasi is currently not supported")
-    case Pat.Xml(_, _) => throw new UnsupportedOperationException("Pat.XML is not supported")
-    case Term.Select(Term.Name(name), _) =>
-      mutable.Set(name)
-    case _ => throw new UnsupportedOperationException(s"not yet implemented: $pat")
+
+    case Pat.Typed(p, _)                 =>
+      definedVars(p, scope)
+
+    case Pat.Quasi(_, _)                 =>
+      throw new UnsupportedOperationException("Pat.Quasi is currently not supported")
+
+    case Pat.Xml(_, _)                   =>
+      throw new UnsupportedOperationException("Pat.XML is not supported")
+
+    case _                               =>
+      throw new UnsupportedOperationException(s"not yet implemented: $pat")
   }
 
   private def loadPatVars(vars: mutable.Set[String], scope: Scope): Unit = {

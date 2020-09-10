@@ -264,7 +264,7 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
                 code += ch
               }
             }
-            if(stack.nonEmpty) {
+            if (stack.nonEmpty) {
               error = true
               return fastparse.Fail
             }
@@ -281,7 +281,7 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
           }) ~
             fastparse.Fail
         ).? ~
-        (if (error) fastparse.Fail 
+        (if (error) fastparse.Fail
          else AnyChar.rep(max = c)) ~ ")"
     ).map(_ => Eval(free.toSeq, node, code))
   }
@@ -388,7 +388,7 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
   /** Body parser */
   def body[_: P]: P[Body] =
     P(
-      sn_i ~ "{" ~  P(sn_i ~ statement ~ s_i).rep(sep=n_) ~ sn_i ~ "}"
+      sn_i ~ "{" ~ P(sn_i ~ statement ~ s_i).rep(sep = n_) ~ sn_i ~ "}"
     ).map(Body(_))
 
   /** Parses only the AnnoParam unit or Unit. */

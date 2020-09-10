@@ -28,10 +28,10 @@ object IfThenElseParser extends ParserExtension {
 
     override def parse[_: P]: P[Core.Statement] =
       P(
-        "if" ~ s_i ~ "(" ~ s_i ~ coreparser.exp ~ s_i ~ ")" ~ s_i ~ coreparser.body ~ 
-        P( s_i ~ elseif ~ s_i).rep.? ~
-        P( s_i ~ "else" ~ coreparser.body).?
-      ).map{case (e, b, eifs, el) => IfThenElse(e, b, eifs.getOrElse(Seq.empty), el)}
+        "if" ~ s_i ~ "(" ~ s_i ~ coreparser.exp ~ s_i ~ ")" ~ s_i ~ coreparser.body ~
+          P(s_i ~ elseif ~ s_i).rep.? ~
+          P(s_i ~ "else" ~ coreparser.body).?
+      ).map { case (e, b, eifs, el) => IfThenElse(e, b, eifs.getOrElse(Seq.empty), el) }
   }
 
 }
