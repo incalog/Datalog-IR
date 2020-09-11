@@ -39,7 +39,7 @@ object ParserUtils {
     * @todo implement character escaping
     */
   def string[_: P]: P[String] =
-    P("\"\"".!.map(_ => "") | "\"" ~ CharsWhile(_ != '\"').! ~ "\"")
+    P("\"\"".!.map(_ => "") | "\"" ~~ CharsWhile(_ != '\"').! ~~ "\"")
 
   private def rawInteger[_: P] =
     P(
