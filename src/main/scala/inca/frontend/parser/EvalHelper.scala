@@ -4,7 +4,14 @@ import scala.collection.mutable
 import scala.meta.{Case, Defn, Enumerator, Lit, Pat, Term, Tree}
 import inca.frontend.core.Core.Name
 
+import scala.meta.transversers.Traverser
+
 object EvalHelper {
+
+  class FreeVarsTraverser extends Traverser {
+
+    override def apply(tree: Tree): Unit = super.apply(tree)
+  }
 
   /**
    * Computes the set of free(unbound) variables in this AST.
@@ -35,7 +42,6 @@ object EvalHelper {
     // definitions
     case Defn.Val(_, pats, _, rhs) =>
       val patVars = extractVars(pats, scope)
-      // every pattern variable is a bound variable except for constants that might not be defined in the term
       loadPatVars(patVars, scope)
       loadVars(rhs, scope)
     case Defn.Var(_, pats, _, rhs) =>
@@ -159,7 +165,13 @@ object EvalHelper {
   }
 
   private def extractVars(pats: List[Pat], scope: Scope): mutable.Set[Name] = {
-    pats.flatMap(definedVars(_, scope)).to(mutable.Set)
+    val vars = mutable.Set[Name]()
+    loadFromPatterns(pats, scope, vars)
+    vars
+  }
+
+  private def loadFromPatterns(pats: List[Pat], scope: Scope, found: mutable.Set[Name]): Unit = {
+    pats.foreach(loadDefinedVars(_, scope, found))
   }
 
   private def loadFromEnumerator(enum: Enumerator, scope: Scope): Unit = {
@@ -185,39 +197,44 @@ object EvalHelper {
   /**
    * extracts the free variables defined in a pattern
    * @param pat the pattern
+   * @param scope the scope the pattern is defined in
    * @return the set of free variables in the pattern
    */
-  private def definedVars(pat: Pat, scope: Scope): mutable.Set[Name] = pat match {
-    case Pat.Wildcard()                  => mutable.Set()
-    case Pat.SeqWildcard()               => mutable.Set()
-    case _: Lit                          => mutable.Set()
-    case Pat.Var(Term.Name(name))        => mutable.Set(name)
-    case Term.Select(Term.Name(name), _) => mutable.Set(name)
-    case Term.Name(name)                 => mutable.Set(name)
+  private def definedVars(pat: Pat, scope: Scope) = {
+    val vars = mutable.Set[Name]()
+    loadDefinedVars(pat, scope, vars)
+    vars
+  }
+
+  private def loadDefinedVars(pat: Pat, scope: Scope, found: mutable.Set[Name]): Unit = pat match {
+    case Pat.Wildcard()                  =>
+    case Pat.SeqWildcard()               =>
+    case _: Lit                          =>
+    case Pat.Var(Term.Name(name))        => found += name
+    case Term.Select(Term.Name(name), _) => found += name
+    case Term.Name(name)                 => found += name
     case Pat.Bind(lhs, rhs)              =>
-      definedVars(lhs, scope) ++ definedVars(rhs, scope)
+      loadDefinedVars(lhs, scope, found)
+      loadDefinedVars(rhs, scope, found)
 
     case Pat.Tuple(args)                 =>
-      args.foldLeft(mutable.Set[Name]()) {
-        case (found, p) => found ++ definedVars(p, scope)
-      }
+      args.foreach(loadDefinedVars(_, scope, found))
 
     case Pat.Alternative(lhs, rhs)       =>
-      definedVars(lhs, scope) ++ definedVars(rhs, scope)
+      loadDefinedVars(lhs, scope, found)
+      loadDefinedVars(rhs, scope, found)
 
     case Pat.Extract(fun, args)          =>
       loadVars(fun, scope)
-      extractVars(args, scope)
+      loadFromPatterns(args, scope, found)
 
     case Pat.ExtractInfix(lhs, op, rhs)  =>
-      val lvars = definedVars(lhs, scope)
+      loadDefinedVars(lhs, scope, found)
       loadVars(op, scope)
-      rhs.foldLeft(lvars) {
-        case (vars, p) => vars ++ definedVars(p, scope)
-      }
+      rhs.foreach(loadDefinedVars(_, scope, found))
 
     case Pat.Typed(p, _)                 =>
-      definedVars(p, scope)
+      loadDefinedVars(p, scope, found)
 
     case Pat.Quasi(_, _)                 =>
       throw new UnsupportedOperationException("Pat.Quasi is currently not supported")

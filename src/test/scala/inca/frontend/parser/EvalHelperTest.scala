@@ -1,9 +1,10 @@
 package inca.frontend.parser
 
-import inca.frontend.core.Core.{Continue, Name}
+import inca.frontend.core.Core.Name
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.Term._
+import scala.meta.transversers.Traverser
 import scala.meta.{Case, Defn, Enumerator, Init, Lit, Mod, Pat, Term, Tree, Type, XtensionParseInputLike}
 
 class EvalHelperTest extends AnyFunSuite {
@@ -407,6 +408,19 @@ class EvalHelperTest extends AnyFunSuite {
     val tree3 = code3.parse[Term].get
     checkVars(tree3, Set("do_smth", "newAnon", "process", "println", "Some", "None"))
 
+
+    val traverser = new Traverser {
+      override def apply(tree: Tree): Unit = tree match {
+        case Term.Block(children) =>
+          println("Block encountered")
+          super.apply(children)
+        case node => super.apply(node)
+      }
+    }
+    traverser(tree2)
+  }
+
+  test("test freeVars pattern extract infix nested") {
     val code4 =
       """
         |list match {
@@ -417,6 +431,18 @@ class EvalHelperTest extends AnyFunSuite {
 
     val tree4 = code4.parse[Term].get
     checkVars(tree4, Set("list", "Nil", "Some", "::"))
+  }
+
+  test("test freeVars pattern nested complex") {
+    val code =
+      """
+        |matchee match {
+        |  case Some(Some(x :: ys) :: Some(z :: (Some(w :: ws))) :: tail) => x + z + w + ws
+        |}
+        |""".stripMargin
+
+    val tree = code.parse[Term].get
+    checkVars(tree, Set("::", "Some", "matchee"))
   }
 
   private def checkVars(code: Tree, expectedFree: Set[Name]): Unit = {
