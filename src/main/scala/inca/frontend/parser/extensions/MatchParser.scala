@@ -8,7 +8,7 @@ import inca.frontend.parser.ParserUtils._
 import inca.frontend.parser._
 import inca.frontend.core.Core
 
-/** Extention adding pattern matching statements to @see CoreParser.
+/** Extension adding pattern matching statements to @see CoreParser.
   *
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
@@ -23,28 +23,28 @@ object MatchParser extends ParserExtension {
 
     def patternBinding[_: P]: P[PatternBinding] =
       P(
-        coreparser.identifier ~ s_i ~ "=" ~ pattern
+        coreparser.identifier ~ sp ~ "=" ~ pattern
       ).map { case (s, p) => PatternBinding(s, p) }
 
     def nodePattern[_: P]: P[Pattern] =
       P(
-        coreparser.tNode ~ s_i ~ "(" ~ P(s_i ~ patternBinding ~ s_i).rep(sep = ",") ~ ")"
+        coreparser.tNode ~ sp ~ "(" ~ P(sp ~ patternBinding ~ sp).rep(sep = ",") ~ ")"
       ).map { case (tn, pbs) => NodePattern(tn, pbs) }
 
     def tuplePattern[_: P]: P[Pattern] =
-      P(s_i ~ "(" ~ s_i ~ P(s_i ~ pattern ~ s_i).rep(sep = ",") ~ ")" ~ s_i)
+      P(sp ~ "(" ~ sp ~ P(sp ~ pattern ~ sp).rep(sep = ",") ~ ")" ~ sp)
         .map(TuplePattern(_))
 
     def varPattern[_: P]: P[Pattern] =
-      P(s_i ~ coreparser.identifier ~ s_i).map(VarPattern(_))
+      P(sp ~ coreparser.identifier ~ sp).map(VarPattern(_))
 
     def namedPattern[_: P]: P[Pattern] =
-      P(s_i ~ coreparser.identifier ~ "@" ~ pattern).map {
+      P(sp ~ coreparser.identifier ~ "@" ~ pattern).map {
         case (n, p) => NamedPattern(n, p)
       }
 
     def wildcardPattern[_: P]: P[Pattern] =
-      P(s_i ~ "_").!.map(_ => WildcardPattern)
+      P(sp ~ "_").!.map(_ => WildcardPattern)
 
     def literalPattern[_: P]: P[Pattern] =
       P(coreparser.literal).map(LiteralPattern(_))
@@ -60,14 +60,14 @@ object MatchParser extends ParserExtension {
       )
 
     def case_[_: P]: P[Case] =
-      P(s_i ~ "case " ~ s_i ~ pattern ~ s_i ~ "=>" ~ s_i ~ coreparser.body).map {
+      P(sp ~ "case " ~ sp ~ pattern ~ sp ~ "=>" ~ sp ~ coreparser.body).map {
         case (p, b) => Case(p, b)
       }
 
     override def parse[_: P]: P[Statement] =
       P(
-        coreparser.exp ~ " " ~ s_i ~ "match" ~ s_i ~ "{" ~ sn_i ~ P(s_i ~ case_ ~ s_i)
-          .rep(sep = n_) ~ sn_i ~ "}"
+        coreparser.exp ~ " " ~ sp ~ "match" ~ sp ~ "{" ~ sp_nl ~ P(sp ~ case_ ~ sp)
+          .rep(sep = nl_!) ~ sp_nl ~ "}"
       ).map { case (e, cs) => Match(e, cs) }
   }
 }

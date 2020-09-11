@@ -8,7 +8,7 @@ import inca.frontend.parser.ParserUtils._
 import inca.frontend.parser._
 import inca.frontend.core.Core
 
-/** Extention adding "switch" statements to @see CoreParser.
+/** Extension adding "switch" statements to @see CoreParser.
   *
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
@@ -24,8 +24,8 @@ object SwitchParser extends ParserExtension {
     override def parse[_: P]: P[Core.Statement] =
       P(
         P(
-          s_i ~ "switch" ~ P(sn_i ~ coreparser.body ~ sn_i)
-            .rep(sep = P(s_i ~ "union" ~ s_i))
+          sp ~ "switch" ~ P(sp_nl ~ coreparser.body ~ sp_nl)
+            .rep(sep = P(sp ~ "union" ~ sp))
         ).map(v => {
           if (v.size == 1 && v(0).stmts.isEmpty) Switch(Seq.empty)
           else Switch(v)

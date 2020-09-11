@@ -13,7 +13,7 @@ trait StatementParser {
   def parse[_: P]: P[Statement]
 }
 
-/** Interface for parsing language extentions in CoreParser
+/** Interface for parsing language extensions in CoreParser
   *
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)

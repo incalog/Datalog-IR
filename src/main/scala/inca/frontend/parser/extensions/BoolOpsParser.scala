@@ -7,7 +7,7 @@ import inca.frontend.extensions._
 import inca.frontend.parser.ParserUtils._
 import inca.frontend.parser._
 
-/** Extention adding boolean expressions to @see CoreParser.
+/** Extension adding boolean expressions to @see CoreParser.
   *
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
@@ -22,21 +22,21 @@ object BoolOpsParser extends ParserExtension {
   object NotParser extends AnchorExpressionParser {
     override def parse[_: P]: P[Exp] =
       P(
-        "!" ~ s_i ~ coreparser.exp
+        "!" ~ sp ~ coreparser.exp
       ).map(Not)
   }
 
   object AndParser extends RecursiveExpressionParser {
     override def parse[_: P](e: Exp): P[Exp] =
       P(
-        s_i ~ "&&" ~ s_i ~ coreparser.exp
+        sp ~ "&&" ~ sp ~ coreparser.exp
       ).map(And(e, _))
   }
 
   object OrParser extends RecursiveExpressionParser {
     override def parse[_: P](e: Exp): P[Exp] =
       P(
-        s_i ~ "||" ~ s_i ~ coreparser.exp
+        sp ~ "||" ~ sp ~ coreparser.exp
       ).map(Or(e, _))
   }
 

@@ -8,7 +8,7 @@ import inca.frontend.parser.ParserUtils._
 import inca.frontend.parser._
 import inca.frontend.core.Core
 
-/** Extention adding enum expressions to @see CoreParser.
+/** Extension adding enum expressions to @see CoreParser.
   *
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
@@ -22,7 +22,7 @@ object EnumParser extends ParserExtension {
   object EnumParser_ extends AnchorExpressionParser {
     override def parse[_: P]: P[Core.Exp] =
       P(
-        "enum" ~ s_i ~ "(" ~ coreparser.typeAnno ~ ")"
+        "enum" ~ sp ~ "(" ~ coreparser.typeAnno ~ ")"
       ).map(Enum(_))
   }
 }
