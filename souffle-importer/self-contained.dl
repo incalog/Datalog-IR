@@ -111,7 +111,7 @@
 .decl ComponentType(?arrayType:ArrayType, ?componentType:Type)
 .input ComponentType(IO="file", filename="ComponentType.facts", delimiter="\t")
 .decl LoadArrayIndex_Base(?insn:LoadArrayIndex_Insn, ?var:Var)
-.decl LoadArrayIndex_To(?insn:LoadArrayIndex_Insn, var:Var)
+.decl LoadArrayIndex_To(?insn:LoadArrayIndex_Insn, ?var:Var)
 .decl StoreArrayIndex_From(?insn:StoreArrayIndex_Insn, ?var:Var)
 .decl StoreArrayIndex_Base(?insn:StoreArrayIndex_Insn, ?var:Var)
 .decl AssignInstruction_To(?insn:AssignInstruction, ?to:Var)
@@ -209,9 +209,11 @@ AssignInstruction_To(?instruction, ?to) :-
 .input _Field(IO="file", filename="Field.facts", delimiter="\t")
 Field_DeclaringType(?signature, ?declaringType) :-
   _Field(?signature, ?declaringType, _, _).
+// Split because we do not have Or statements
 MethodInvocation_Base(?invocation, ?base) :-
-  VirtualMethodInvocation_Base(?invocation, ?base) ;
   SpecialMethodInvocation_Base(?invocation, ?base).
+MethodInvocation_Base(?invocation, ?base) :-
+  VirtualMethodInvocation_Base(?invocation, ?base).
 .decl _StaticMethodInvocation(?instruction:symbol, ?index:number, ?signature:symbol, ?method:symbol)
 .input _StaticMethodInvocation(IO="file", filename="StaticMethodInvocation.facts", delimiter="\t")
 Instruction_Method(?instruction, ?method),
@@ -366,9 +368,13 @@ VirtualMethodInvocation_Descriptor(?invocation, ?descriptor) :-
 .decl MainMethodDeclaration(?method:Method)
 MethodLookup(?simplename, ?descriptor, ?type, ?method) :-
   MethodImplemented(?simplename, ?descriptor, ?type, ?method).
+// TODO split because we do not support Or
 MethodLookup(?simplename, ?descriptor, ?type, ?method) :-
-  (DirectSuperclass(?type, ?supertype) ;
-   DirectSuperinterface(?type, ?supertype)),
+  DirectSuperinterface(?type, ?supertype),
+  MethodLookup(?simplename, ?descriptor, ?supertype, ?method),
+  ! MethodImplemented(?simplename, ?descriptor, ?type, _).
+MethodLookup(?simplename, ?descriptor, ?type, ?method) :-
+  DirectSuperclass(?type, ?supertype),
   MethodLookup(?simplename, ?descriptor, ?supertype, ?method),
   ! MethodImplemented(?simplename, ?descriptor, ?type, _).
 MethodImplemented(?simplename, ?descriptor, ?type, ?method) :-

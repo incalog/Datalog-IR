@@ -4,12 +4,17 @@ object Parser {
   import fastparse._
   import JavaWhitespace._
 
+  def apply(file: String): Syntax.Analysis = parse(file, Analysis(_)) match {
+      case Parsed.Success(value, index) => Syntax.Analysis(value)
+      case f@Parsed.Failure(label, index, extra) => throw new IllegalArgumentException(s"Parsing failed at index $index: ${f.msg}")
+    }
+
   def Analysis[_: P]: P[Seq[Syntax.AnalysisContent]] =
-    P(AnalysisContent.rep)
+    P(Start ~ AnalysisContent.rep ~ End)
 
   def AnalysisContent[_: P]: P[Syntax.AnalysisContent] =
     P(ComponentInitialization | ComponentDefinition | TypeDeclaration |
-      RuleSignature | Input | RuleDefinition
+      RuleSignature | Input | RuleDefinition | Output | PrintSize
     )
 
   def ComponentInitialization[_: P]: P[Syntax.ComponentInitialization] =
@@ -22,40 +27,51 @@ object Parser {
     P(".type" ~ identifier ~ ("=" ~ DeclaredType).?).map(Syntax.TypeDeclaration.tupled)
 
   def RuleSignature[_: P]: P[Syntax.RuleSignature] =
-    P(".decl" ~ identifier ~ "(" ~ RuleParameter.rep(1) ~ ")" ~ "output".!.?).map {
+    P(".decl" ~ identifier ~ "(" ~ RuleParameter.rep(1, sep = ",") ~ ")" ~ "output".!.?).map {
       case (rule, params, output) => Syntax.RuleSignature(rule, params, output.isDefined)
     }
   def RuleParameter[_: P]: P[Syntax.RuleParameter] =
-    P("?" ~ identifier ~ ":" ~ Type).map(Syntax.RuleParameter.tupled)
+    P(identifier ~ ":" ~ Type).map(Syntax.RuleParameter.tupled)
+
+  def Output[_: P]: P[Syntax.Output] =
+    P(".output" ~ identifier).map(Syntax.Output)
+
+  def PrintSize[_: P]: P[Syntax.PrintSize] =
+    P(".printsize" ~ identifier).map(Syntax.PrintSize)
 
   def Input[_: P]: P[Syntax.Input] =
     P(".input" ~ identifier ~ "(" ~
       "IO" ~ "=" ~ "\"file\"" ~
+      "," ~
       "filename" ~ "=" ~ string ~
+      "," ~
       "delimiter" ~ "=" ~ string ~
     ")").map(Syntax.Input.tupled)
 
   def RuleDefinition[_: P]: P[Syntax.RuleDefinition] =
-    P(RuleHead.rep(1) ~ ":-" ~ Statement.rep(1) ~ ".").map(Syntax.RuleDefinition.tupled)
+    P(RuleHead.rep(min = 1, sep = ",") ~ ":-" ~ Statement.rep(min = 1, sep = ",") ~ ".").map(Syntax.RuleDefinition.tupled)
+
   def RuleHead[_: P]: P[Syntax.RuleHead] =
-    P(identifier ~ "(" ~ Expression.rep(1) ~ ")").map(Syntax.RuleHead.tupled)
+    P(identifier ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").map(Syntax.RuleHead.tupled)
 
   def Statement[_: P]: P[Syntax.Statement] =
-    P(RuleApplication | Equality)
+    P(RuleApplication | Equality | Parens )
   def RuleApplication[_: P]: P[Syntax.RuleApplication] =
-    P("!".!.? ~ (identifier ~ ".").? ~ identifier ~ Expression.rep(1)).map {
+    P("!".!.? ~ (identifier ~ ".").? ~ identifier ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").map {
       case (neg, comp, ruleName, args) => Syntax.RuleApplication(neg.isDefined, comp, ruleName, args)
     }
   def Equality[_: P]: P[Syntax.Equality] =
     P(Expression ~ ("!=" | "=").! ~ Expression).map {
       case (left, compare, right) => Syntax.Equality(left, compare == "!=", right)
     }
+  def Parens[_: P]: P[Syntax.Statement] =
+    P("(" ~ Statement ~ ")")
 
 
   def Expression[_: P]: P[Syntax.Expression] =
-    P(Variable | StringValue | NumberValue | Any | BuiltInFunctionCall)
+    P(BuiltInFunctionCall | Any | Variable | StringValue | NumberValue)
   def Variable[_: P]: P[Syntax.Variable] =
-    P("?" ~ identifier).map(Syntax.Variable)
+    P(identifier).map(Syntax.Variable)
   def StringValue[_: P]: P[Syntax.StringValue] =
     P(string).map(Syntax.StringValue)
   def NumberValue[_: P]: P[Syntax.NumberValue] =
@@ -63,7 +79,7 @@ object Parser {
   def Any[_: P]: P[Syntax.Any.type] =
     P("_").map(_ => Syntax.Any)
   def BuiltInFunctionCall[_: P]: P[Syntax.BuiltInFunctionCall] =
-    P(BuiltInFunction ~ "(" ~ Expression.rep(1) ~ ")").map(Syntax.BuiltInFunctionCall.tupled)
+    P(BuiltInFunction ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").map(Syntax.BuiltInFunctionCall.tupled)
 
 
   def BuiltInFunction[_: P]: P[Syntax.BuiltInFunction] = CatBuiltInFunction
@@ -81,7 +97,7 @@ object Parser {
   def FloatType[_: P]: P[Syntax.FloatType.type] = P("float").map(_ => Syntax.FloatType)
 
 
-  def identifier[_: P]: P[String] = P( (letter|"_") ~ (letter | digit | "_").rep ).!
+  def identifier[_: P]: P[String] = P( (letter | "_" | "?") ~ (letter | digit | "_").repX ).!
   def letter[_: P]: P[Unit] = P( lowercase | uppercase )
   def lowercase[_: P]: P[Unit] = P( CharIn("a-z") )
   def uppercase[_: P]: P[Unit] = P( CharIn("A-Z") )

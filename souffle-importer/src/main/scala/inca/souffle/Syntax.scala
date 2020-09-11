@@ -12,6 +12,9 @@ object Syntax {
   case class RuleSignature(name: String, parameters: Seq[RuleParameter], output: Boolean) extends AnalysisContent
   case class RuleParameter(name: String, typ: Type)
 
+  case class Output(name: String) extends AnalysisContent
+  case class PrintSize(name: String) extends AnalysisContent
+
   case class Input(rule: String, filename: String, delimiter: String) extends AnalysisContent
 
   case class RuleDefinition(heads: Seq[RuleHead], body: Seq[Statement]) extends AnalysisContent
@@ -20,6 +23,8 @@ object Syntax {
   sealed trait Statement
   case class RuleApplication(negated: Boolean, component: Option[String], rule: String, arguments: Seq[Expression]) extends Statement
   case class Equality(left: Expression, not: Boolean, right: Expression) extends Statement
+  case class Or(left: Statement, right: Statement) extends Statement
+  case class Parens(stm: Statement) extends Statement
 
   sealed trait Expression
   case class Variable(name: String) extends Expression
