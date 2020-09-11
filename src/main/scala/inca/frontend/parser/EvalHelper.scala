@@ -4,14 +4,15 @@ import scala.collection.mutable
 import scala.meta.{Case, Defn, Enumerator, Lit, Pat, Term, Tree}
 import inca.frontend.core.Core.Name
 
-import scala.meta.transversers.Traverser
 
+/**
+ * The EvalHelper contains methods to analyze the Scala code in Eval constructs
+ *
+ * @author Ronja Schnur (rschnur@students.uni-mainz.de)
+ *         Julian Cichorius (jcichori@students.uni-mainz.de)
+ * @version 0.0.1
+ */
 object EvalHelper {
-
-  class FreeVarsTraverser extends Traverser {
-
-    override def apply(tree: Tree): Unit = super.apply(tree)
-  }
 
   /**
    * Computes the set of free(unbound) variables in this AST.
