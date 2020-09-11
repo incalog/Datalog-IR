@@ -1,7 +1,7 @@
 package inca.frontend.parser.extensions
 
 import fastparse._
-import NoWhitespace._
+import ScalaWhitespace._
 import inca.frontend.core.Core._
 import inca.frontend.extensions._
 import inca.frontend.parser.ParserUtils._
@@ -23,28 +23,28 @@ object MatchParser extends ParserExtension {
 
     def patternBinding[_: P]: P[PatternBinding] =
       P(
-        coreparser.identifier ~ sp ~ "=" ~ pattern
+        coreparser.identifier ~ "=" ~ pattern
       ).map { case (s, p) => PatternBinding(s, p) }
 
     def nodePattern[_: P]: P[Pattern] =
       P(
-        coreparser.tNode ~ sp ~ "(" ~ P(sp ~ patternBinding ~ sp).rep(sep = ",") ~ ")"
+        coreparser.tNode ~ "(" ~ P(patternBinding).rep(sep = ",") ~ ")"
       ).map { case (tn, pbs) => NodePattern(tn, pbs) }
 
     def tuplePattern[_: P]: P[Pattern] =
-      P(sp ~ "(" ~ sp ~ P(sp ~ pattern ~ sp).rep(sep = ",") ~ ")" ~ sp)
+      P("(" ~ P(pattern).rep(sep = ",") ~ ")")
         .map(TuplePattern(_))
 
     def varPattern[_: P]: P[Pattern] =
-      P(sp ~ coreparser.identifier ~ sp).map(VarPattern(_))
+      P(coreparser.identifier).map(VarPattern(_))
 
     def namedPattern[_: P]: P[Pattern] =
-      P(sp ~ coreparser.identifier ~ "@" ~ pattern).map {
+      P(coreparser.identifier ~ "@" ~ pattern).map {
         case (n, p) => NamedPattern(n, p)
       }
 
     def wildcardPattern[_: P]: P[Pattern] =
-      P(sp ~ "_").!.map(_ => WildcardPattern)
+      P("_").!.map(_ => WildcardPattern)
 
     def literalPattern[_: P]: P[Pattern] =
       P(coreparser.literal).map(LiteralPattern(_))
@@ -60,14 +60,13 @@ object MatchParser extends ParserExtension {
       )
 
     def case_[_: P]: P[Case] =
-      P(sp ~ "case " ~ sp ~ pattern ~ sp ~ "=>" ~ sp ~ coreparser.body).map {
+      P("case " ~ pattern ~ "=>" ~ coreparser.body).map {
         case (p, b) => Case(p, b)
       }
 
     override def parse[_: P]: P[Statement] =
       P(
-        coreparser.exp ~ " " ~ sp ~ "match" ~ sp ~ "{" ~ sp_nl ~ P(sp ~ case_ ~ sp)
-          .rep(sep = nl_!) ~ sp_nl ~ "}"
+        coreparser.exp ~~ " " ~ "match" ~ "{" ~ P(sp ~~ case_ ~~ sp).repX(sep = nl_!) ~ "}"
       ).map { case (e, cs) => Match(e, cs) }
   }
 }

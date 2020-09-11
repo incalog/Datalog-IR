@@ -1,7 +1,7 @@
 package inca.frontend.parser.extensions
 
 import fastparse._
-import NoWhitespace._
+import ScalaWhitespace._
 import inca.frontend.core.Core._
 import inca.frontend.extensions._
 import inca.frontend.parser.ParserUtils._
@@ -22,7 +22,7 @@ object ForeachParser extends ParserExtension {
   object ForeachParser_ extends StatementParser {
     override def parse[_: P]: P[Core.Statement] =
       P(
-        "foreach " ~ sp ~ coreparser.identifier ~ " " ~ sp ~ "in" ~ sp ~ coreparser.exp ~ sp ~ coreparser.body
+        "foreach " ~ coreparser.identifier ~~ " " ~ "in" ~ coreparser.exp ~ coreparser.body
       ).map { case (s, e, b) => Foreach(s, e, b) }
   }
 

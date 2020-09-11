@@ -1,7 +1,7 @@
 package inca.frontend.parser.extensions
 
 import fastparse._
-import NoWhitespace._
+import ScalaWhitespace._
 import inca.frontend.core.Core._
 import inca.frontend.extensions._
 import inca.frontend.parser.ParserUtils._
@@ -22,7 +22,7 @@ object EnumParser extends ParserExtension {
   object EnumParser_ extends AnchorExpressionParser {
     override def parse[_: P]: P[Core.Exp] =
       P(
-        "enum" ~ sp ~ "(" ~ coreparser.typeAnno ~ ")"
+        "enum" ~ "(" ~ coreparser.typeAnno ~ ")"
       ).map(Enum(_))
   }
 }

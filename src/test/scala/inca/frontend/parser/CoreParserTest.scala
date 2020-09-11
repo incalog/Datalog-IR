@@ -182,6 +182,7 @@ class CoreParserTest extends AnyFunSuite {
       test_helper(CoreParser().exp(_))(tree.prettyprint("  "), tree)
 
     test_run(Eq(Var("x"), Var("y")))
+    test_run(Var("x"))
     test_run(Neq(Var("x"), Var("y")))
     test_run(Def(Var("x")))
     test_run(Undef(Var("x")))
@@ -345,7 +346,7 @@ class CoreParserTest extends AnyFunSuite {
       )
     )
     test_run(
-      "x instanceOf bool != x notInstanceOf double", // fails
+      "x instanceOf bool != x notInstanceOf double", 
       Neq(
         InstanceOf(
           Var("x"),
@@ -358,7 +359,7 @@ class CoreParserTest extends AnyFunSuite {
       )
     )
     test_run(
-      "x instanceOf (bool, br0t) != undef x notInstanceOf (double)", // fails
+      "x instanceOf (bool, br0t) != undef x notInstanceOf (double)", 
       Neq(
         InstanceOf(
           Var("x"),
@@ -373,7 +374,7 @@ class CoreParserTest extends AnyFunSuite {
       )
     )
     test_run(
-      "(x instanceOf (bool, br0t) != undef x) notInstanceOf (double)", // fails
+      "(x instanceOf (bool, br0t) != undef x) notInstanceOf (double)", 
       NotInstanceOf(
         Neq(
           InstanceOf(
@@ -927,7 +928,7 @@ class CoreParserTest extends AnyFunSuite {
       }
     }
 
-  private[parser] def test_helper_negative[T](parser: P[_] => P[Any]) =
+  private def test_helper_negative[T](parser: P[_] => P[Any]) =
     (input: String) => {
       parse(input, parser) match {
         case Success(value, index)        => fail(s"$value, $index")

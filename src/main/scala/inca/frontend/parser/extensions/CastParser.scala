@@ -1,7 +1,7 @@
 package inca.frontend.parser.extensions
 
 import fastparse._
-import NoWhitespace._
+import ScalaWhitespace._
 import inca.frontend.core.Core._
 import inca.frontend.extensions._
 import inca.frontend.parser.ParserUtils._
@@ -20,7 +20,7 @@ object CastParser extends ParserExtension {
   object CastParser_ extends RecursiveExpressionParser {
     override def parse[_: P](e: Core.Exp): P[Core.Exp] =
       P(
-        sp ~ ":" ~ sp ~ coreparser.typeAnno
+        ":" ~ coreparser.typeAnno
       ).map(Cast(e, _))
   }
 

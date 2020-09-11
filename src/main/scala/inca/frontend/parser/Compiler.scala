@@ -5,7 +5,6 @@ import scala.io.Source
 import inca.frontend.parser.CoreParser
 import inca.frontend.core.Core
 import fastparse._
-import NoWhitespace._
 import fastparse.Parsed.Failure
 import fastparse.Parsed.Success
 import scala.collection.mutable
@@ -26,6 +25,7 @@ case class Programm(modules: Seq[Core.Module]) {
   }
 }
 
+
 /**
   * Compiler frontend for the IncA language.
   *
@@ -35,6 +35,7 @@ case class Programm(modules: Seq[Core.Module]) {
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
 object Compiler {
+
   val USAGE = s"""|IncAC
                   |Usage:
                   |sbt run file1.inca file2.inca ...

@@ -1,6 +1,6 @@
 package inca.frontend.parser
 import fastparse._
-import NoWhitespace._
+import ScalaWhitespace._
 
 /** Utils for the CoreParser.
   *

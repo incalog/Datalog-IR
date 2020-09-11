@@ -84,7 +84,7 @@ object Core {
     def usedModuleNames: Seq[Name] = name +: imports
     def usedFunNames: Seq[Name] = funs.map(_.name)
 
-    override def toString: Name = prettyprint("")
+    // override def toString: Name = prettyprint("")
 
     def prettyprint(implicit indent: String): String = {
       val importsS = if (imports.isEmpty) "" else

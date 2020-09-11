@@ -1,7 +1,7 @@
 package inca.frontend.parser.extensions
 
 import fastparse._
-import NoWhitespace._
+import ScalaWhitespace._
 import inca.frontend.core.Core._
 import inca.frontend.extensions._
 import inca.frontend.parser.ParserUtils._
@@ -23,14 +23,13 @@ object IfThenElseParser extends ParserExtension {
 
     private def elseif[_: P]: P[ElseIf] =
       P(
-        "else" ~ sp ~ "if" ~ sp ~ "(" ~ sp ~ coreparser.exp ~ sp ~ ")" ~ sp ~ coreparser.body
+        "else" ~ "if" ~ "(" ~ coreparser.exp ~ ")" ~ coreparser.body
       ).map { case (e, b) => ElseIf(e, b) }
 
     override def parse[_: P]: P[Core.Statement] =
       P(
-        "if" ~ sp ~ "(" ~ sp ~ coreparser.exp ~ sp ~ ")" ~ sp ~ coreparser.body ~
-          P(sp ~ elseif ~ sp).rep.? ~
-          P(sp ~ "else" ~ coreparser.body).?
+        "if" ~ "(" ~ coreparser.exp ~ ")" ~ coreparser.body ~
+          elseif.rep.? ~ P("else" ~ coreparser.body).?
       ).map { case (e, b, eifs, el) => IfThenElse(e, b, eifs.getOrElse(Seq.empty), el) }
   }
 

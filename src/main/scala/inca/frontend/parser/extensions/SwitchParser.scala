@@ -1,7 +1,7 @@
 package inca.frontend.parser.extensions
 
 import fastparse._
-import NoWhitespace._
+import ScalaWhitespace._
 import inca.frontend.core.Core._
 import inca.frontend.extensions._
 import inca.frontend.parser.ParserUtils._
@@ -24,8 +24,7 @@ object SwitchParser extends ParserExtension {
     override def parse[_: P]: P[Core.Statement] =
       P(
         P(
-          sp ~ "switch" ~ P(sp_nl ~ coreparser.body ~ sp_nl)
-            .rep(sep = P(sp ~ "union" ~ sp))
+          "switch" ~ coreparser.body.rep(sep = "union")
         ).map(v => {
           if (v.size == 1 && v(0).stmts.isEmpty) Switch(Seq.empty)
           else Switch(v)
