@@ -45,8 +45,7 @@ class ParserUtilsTest extends AnyFunSuite {
     parse("01", integer(_)) match {
       case Failure(_, _, _) => ()
       case Success(v, _)    =>
-        println(v)
-        fail()
+        fail(s"$v")
     }
   }
 

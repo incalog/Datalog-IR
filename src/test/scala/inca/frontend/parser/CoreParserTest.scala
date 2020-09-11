@@ -45,7 +45,10 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test TIterable") {
-    def test_run = test_helper(CoreParser().tIterable(_))
+    def test_run(inp : String, cmp : TIterable) = {
+      test_helper(CoreParser().tIterable(_))(inp, cmp)
+      test_helper_negative(CoreParser().tIterable(_))(s"Q$inp")
+    }
 
     test_run("List[node]", TList(TAnyLinked))
     test_run("List[apf3l]", TList(TNode("apf3l")))
@@ -65,7 +68,8 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test BooleanLiteral") {
-    def test_run(b: Boolean): Unit = test_helper(CoreParser().booleanLiteral(_))(b.toString, BooleanLiteral(b))
+    def test_run(b: Boolean): Unit =
+      test_helper(CoreParser().booleanLiteral(_))(b.toString, BooleanLiteral(b))
     test_run(true)
     test_run(false)
   }
@@ -129,7 +133,10 @@ class CoreParserTest extends AnyFunSuite {
 
   test("test AnnoParam with name") {
     def test_run(t: TypeAnno) =
-      test_helper(CoreParser().annoParam(_))(s"(param:${t.prettyprint})", AnnoParam(Some("param"), t))
+      test_helper(CoreParser().annoParam(_))(
+        s"(param:${t.prettyprint})",
+        AnnoParam(Some("param"), t)
+      )
 
     Seq(TBool, TDouble, TString, TInt, TLong, TAnyLinked, TNode("br0t")).map(test_run)
   }
@@ -152,15 +159,16 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test Var") {
-    def test_run(input : String) = test_helper(CoreParser().varExp(_))(input, Var(input))
+    def test_run(input: String) = test_helper(CoreParser().varExp(_))(input, Var(input))
 
     Seq("variable", "br0t").map(test_run(_))
   }
 
   test("test Constant") {
 
-    def test_run(inp: String, cmp : Literal) = test_helper(CoreParser().constantExp(_))(inp, Constant(cmp))
-    
+    def test_run(inp: String, cmp: Literal) =
+      test_helper(CoreParser().constantExp(_))(inp, Constant(cmp))
+
     test_run("1", IntLiteral(1))
     test_run("true", BooleanLiteral(true))
     test_run("1L", LongLiteral(1))
@@ -181,7 +189,14 @@ class CoreParserTest extends AnyFunSuite {
     test_run(NotInstanceOf(Var("x"), TBool))
     test_run(PathAccess(Var("xyz"), ParentLink))
     test_run(PathAccess(Var("test"), NamedLink(TNode("dummy"), "property")))
-    test_run(Aggregate(DataOp(Some("br0t"), "with"), DataOp(Some("cheese"), "and"), None, Call("butter", Seq.empty, false)))
+    test_run(
+      Aggregate(
+        DataOp(Some("br0t"), "with"),
+        DataOp(Some("cheese"), "and"),
+        None,
+        Call("butter", Seq.empty, false)
+      )
+    )
   }
 
   test("test identifier") {
@@ -207,7 +222,11 @@ class CoreParserTest extends AnyFunSuite {
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
         case Success(eval, _) =>
           val params = eval.params
-          assert(params.size == vars.size && params.forall(vars.contains) && vars.forall(params.contains))
+          assert(
+            params.size == vars.size && params.forall(vars.contains) && vars.forall(
+              params.contains
+            )
+          )
       }
     }
 
@@ -868,6 +887,36 @@ class CoreParserTest extends AnyFunSuite {
 
     test_run("br0t.br0t", DataOp(Some("br0t"), "br0t"))
     test_run("br0t", DataOp(None, "br0t"))
+  }
+
+  test("test Eval") {
+    def test_run(input: String, vars: Set[String], cmp_code : String) =
+      parse(input, CoreParser().evalExp(_)) match {
+        case Success(Eval(ss, rt, code), index) => {
+          assert(cmp_code === code)
+          assert((Set.empty[String] ++ ss) === vars)
+          assert(rt === TNode("dummy"))
+        }
+        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+      }
+
+    test_run("eval(x + 2)", Set("x"), "x + 2")
+    test_run("eval(x + y + p)", Set("x", "y", "p"), "x + y + p")
+    // test_run(
+    //   s"""|eval( x match {
+    //              |   case 1 => 2 
+    //              |   case 2 => 4 
+    //              |   case 3 => y
+    //              |   case _ => 42
+    //              |})""".stripMargin,
+    //   Set("x", "y"),
+    //   s"""| x match {
+    //       |   case 1 => 2 
+    //       |   case 2 => 4 
+    //       |   case 3 => y
+    //       |   case _ => 42
+    //       |}""".stripMargin
+    // )
   }
 
   private def test_helper[T](parser: P[_] => P[Any]) =

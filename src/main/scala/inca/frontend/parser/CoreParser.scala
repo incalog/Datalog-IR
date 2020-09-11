@@ -275,7 +275,7 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
                 return fastparse.Fail
               }
               case scala.meta.parsers.Parsed.Success(t) =>
-                println(t.structure)
+                // println(t.structure)
                 free = EvalHelper.freeVars(t)
             }
           }) ~
@@ -436,7 +436,7 @@ case class CoreParser(val extensions: Seq[ParserExtension] = Seq.empty) {
   /** Yield parser */
   def yieldStatement[_: P]: P[Yield] =
     P(
-      s_i ~ "yield " ~ exp
+      s_i ~ "yield " ~ s_i ~ exp
     ).map(Yield)
 
   /** Fail/Continue parser */
