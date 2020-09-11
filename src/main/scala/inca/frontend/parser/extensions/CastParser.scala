@@ -8,7 +8,7 @@ import inca.frontend.parser.ParserUtils._
 import inca.frontend.parser._
 import inca.frontend.core.Core
 
-/** Extention adding cast expressions to @see CoreParser.
+/** Extension adding cast expressions to @see CoreParser.
   *
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
@@ -20,7 +20,7 @@ object CastParser extends ParserExtension {
   object CastParser_ extends RecursiveExpressionParser {
     override def parse[_: P](e: Core.Exp): P[Core.Exp] =
       P(
-        s_i ~ ":" ~ s_i ~ coreparser.typeAnno
+        sp ~ ":" ~ sp ~ coreparser.typeAnno
       ).map(Cast(e, _))
   }
 

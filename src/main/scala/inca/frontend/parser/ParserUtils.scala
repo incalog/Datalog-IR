@@ -10,21 +10,21 @@ import NoWhitespace._
 object ParserUtils {
 
   /** Parser consuming all whitespaces by ignoring them. */
-  def w_i[_: P]: P[Unit] = CharsWhileIn("\n \t\r").?
+  def ws[_: P]: P[Unit] = CharsWhileIn("\n \t\r").?
 
   /** Parser consuming all spaces by ignoring them. */
-  def s_i[_: P]: P[Unit] = CharsWhileIn(" ").?
+  def sp[_: P]: P[Unit] = CharsWhileIn(" ").?
 
-  def sn_i[_: P]: P[Unit] = CharsWhileIn(" \n\r").?
+  def sp_nl[_: P]: P[Unit] = CharsWhileIn(" \n\r").?
 
   /** Parser consuming all tabulators by ignoring them. */
-  def t_i[_: P]: P[Unit] = CharsWhileIn("\t").?
+  def tb[_: P]: P[Unit] = CharsWhileIn("\t").?
 
   /** Parser consuming all newline characters by ignoring them. */
-  def n_i[_: P]: P[Unit] = CharsWhileIn("\r\n").?
+  def nl[_: P]: P[Unit] = CharsWhileIn("\r\n").?
 
   /** Parser for line endings */
-  def n_[_: P]: P[Unit] = P("\n" | "\r\n")
+  def nl_![_: P]: P[Unit] = P("\n" | "\r\n")
 
   /** A parser for integer literals in base 10. It does not allow leading zeroes */
   def integer[_: P]: P[Int] = P(rawInteger).map(_.toInt)
