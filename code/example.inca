@@ -1,0 +1,7 @@
+module example
+
+def name(x : Exp) : Add = {
+    assert x instanceOf Add
+    assert ((def 5 instanceOf bool) != (true != undef 7 notInstanceOf dummy)) instanceOf int
+    yield x 
+}

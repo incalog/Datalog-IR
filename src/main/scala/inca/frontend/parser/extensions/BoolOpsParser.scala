@@ -1,7 +1,7 @@
 package inca.frontend.parser.extensions
 
 import fastparse._
-import NoWhitespace._
+import ScalaWhitespace._
 import inca.frontend.core.Core._
 import inca.frontend.extensions._
 import inca.frontend.parser.ParserUtils._
@@ -22,21 +22,21 @@ object BoolOpsParser extends ParserExtension {
   object NotParser extends AnchorExpressionParser {
     override def parse[_: P]: P[Exp] =
       P(
-        "!" ~ sp ~ coreparser.exp
+        "!" ~ coreparser.exp
       ).map(Not)
   }
 
   object AndParser extends RecursiveExpressionParser {
     override def parse[_: P](e: Exp): P[Exp] =
       P(
-        sp ~ "&&" ~ sp ~ coreparser.exp
+        "&&" ~ coreparser.exp
       ).map(And(e, _))
   }
 
   object OrParser extends RecursiveExpressionParser {
     override def parse[_: P](e: Exp): P[Exp] =
       P(
-        sp ~ "||" ~ sp ~ coreparser.exp
+        "||" ~ coreparser.exp
       ).map(Or(e, _))
   }
 

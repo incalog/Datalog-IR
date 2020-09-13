@@ -1,16 +1,17 @@
 package inca.frontend.parser
 
-import java.io.FileNotFoundException
-
-import fastparse.Parsed.{Failure, Success}
-import fastparse._
-import inca.frontend.core.Core
-
-import scala.collection.mutable
 import scala.io.Source
 
+import inca.frontend.parser.CoreParser
+import inca.frontend.core.Core
+import fastparse._
+import fastparse.Parsed.Failure
+import fastparse.Parsed.Success
+import scala.collection.mutable
+import java.io.FileNotFoundException
+
 case class Programm(modules: Seq[Core.Module]) {
-  def prettyprint: String = {
+  def prettyprint = {
     modules.map(_.prettyprint("")).mkString("", "\n\n", "")
   }
 
@@ -24,6 +25,7 @@ case class Programm(modules: Seq[Core.Module]) {
   }
 }
 
+
 /**
   * Compiler frontend for the IncA language.
   *
@@ -33,6 +35,7 @@ case class Programm(modules: Seq[Core.Module]) {
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
 object Compiler {
+
   val USAGE = s"""|IncAC
                   |Usage:
                   |sbt run file1.inca file2.inca ...
@@ -51,7 +54,7 @@ object Compiler {
         val code = Source.fromFile(f).mkString
         val res = parse(code, CoreParser().module(_))
         res match {
-          case Failure(_, _, extra) => {
+          case Failure(label, index, extra) => {
             println(s"Syntax Error: $extra")
             sys.exit()
           }
