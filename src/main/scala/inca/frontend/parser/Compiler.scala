@@ -1,18 +1,16 @@
 package inca.frontend.parser
 
-import scala.io.Source
-
-import inca.frontend.parser.CoreParser
-import inca.frontend.core.Core
-import fastparse._
-import NoWhitespace._
-import fastparse.Parsed.Failure
-import fastparse.Parsed.Success
-import scala.collection.mutable
 import java.io.FileNotFoundException
 
+import fastparse.Parsed.{Failure, Success}
+import fastparse._
+import inca.frontend.core.Core
+
+import scala.collection.mutable
+import scala.io.Source
+
 case class Programm(modules: Seq[Core.Module]) {
-  def prettyprint = {
+  def prettyprint: String = {
     modules.map(_.prettyprint("")).mkString("", "\n\n", "")
   }
 
@@ -53,7 +51,7 @@ object Compiler {
         val code = Source.fromFile(f).mkString
         val res = parse(code, CoreParser().module(_))
         res match {
-          case Failure(label, index, extra) => {
+          case Failure(_, _, extra) => {
             println(s"Syntax Error: $extra")
             sys.exit()
           }

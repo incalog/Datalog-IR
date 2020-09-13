@@ -1,13 +1,13 @@
 package inca.frontend.parser
 
-import inca.frontend.core.Core._
+import fastparse.NoWhitespace._
 import fastparse._
-import NoWhitespace._
-import ParserUtils._
 import inca.frontend.core.Core
-import scala.util.control.Breaks._
+import inca.frontend.core.Core.{Name, _}
+import inca.frontend.parser.ParserUtils._
+
 import scala.meta._
-import inca.frontend.parser.extensions._
+import scala.util.control.Breaks._
 
 /**
   * Parser for the IncA Core language.
@@ -19,7 +19,7 @@ import inca.frontend.parser.extensions._
 case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
 
   // Data initialization ///////////////////////////////////////////////////////////////////////////////////////////////
-  extensions.map(_.coreparser = this)
+  extensions.foreach(_.coreparser = this)
 
   val recursiveExpExtensions: Seq[RecursiveExpressionParser] =
     extensions.flatMap(_.recursiveExpression)
@@ -30,7 +30,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   val statementExtensions: Seq[StatementParser] =
     extensions.flatMap(_.statement)
 
-  val keywords =
+  val keywords: Set[Name] =
     Set("def", "undef", "true", "false", "eval", "aggregate") ++ extensions.flatMap(
       _.keywords
     )

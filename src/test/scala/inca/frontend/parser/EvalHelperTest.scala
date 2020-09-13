@@ -5,7 +5,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.Term._
 import scala.meta.transversers.Traverser
-import scala.meta.{Case, Defn, Enumerator, Init, Lit, Mod, Pat, Term, Tree, Type, XtensionParseInputLike}
+import scala.meta.{Case, Defn, Enumerator, Init, Lit, Mod, Pat, Term, Tree, Type, XtensionParseInputLike, XtensionQuasiquoteTerm}
 
 class EvalHelperTest extends AnyFunSuite {
 
@@ -18,27 +18,33 @@ class EvalHelperTest extends AnyFunSuite {
   private val paramN = Param(Nil, Name("n"), Some(tInt), None)
 
   test("test freeVars Name") {
-    checkVars(Term.Name("x"), Set("x"))
+    val code = q"x"
+    checkVars(code, Set("x"))
   }
 
   test("test freeVars select") {
-    checkVars(Term.Select(Name("x"), Name("prop")), Set("x"))
+    val code = q"x.prop"
+    checkVars(code, Set("x"))
   }
 
   test("test freeVars apply unary") {
-    checkVars(ApplyUnary(Name("!"), Name("ten")), Set("ten"))
+    val code = q"!ten"
+    checkVars(code, Set("ten"))
   }
 
   test("test freeVars apply infix") {
-    checkVars(ApplyInfix(Name("x"), Name("-"), Nil, List(Name("y"))), Set("x", "y"))
+    val code = q"x - y"
+    checkVars(code, Set("x", "y"))
   }
 
   test("test freeVars return") {
-    checkVars(Return(Name("value")), Set("value"))
+    val code = q"return value"
+    checkVars(code, Set("value"))
   }
 
   test("test freeVars ascribe") {
-    checkVars(Ascribe(Name("value"), tInt), Set("value"))
+    val code = q"value: Int"
+    checkVars(code, Set("value"))
   }
 
   test("test freeVars throw") {
@@ -293,7 +299,17 @@ class EvalHelperTest extends AnyFunSuite {
         List(
           List(
             Name("arg1"),
-            Name("arg2")
+            New(
+              Init(
+                tInt,
+                Name("Double"),
+                List(
+                  List(
+                    Name("arg2")
+                  )
+                )
+              )
+            )
           ),
           List(
             Name("arg3"),
@@ -302,7 +318,8 @@ class EvalHelperTest extends AnyFunSuite {
         )
       )
     )
-    checkVars(code, Set("arg1", "arg2", "arg3", "arg4"))
+    val code1 = q"new Int(arg1, new Int(arg2))(arg3, arg4)"
+    checkVars(code1, Set("arg1", "arg2", "arg3", "arg4"))
   }
 
   test("test freeVars interpolate") {

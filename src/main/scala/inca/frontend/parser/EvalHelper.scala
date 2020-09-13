@@ -4,6 +4,9 @@ import scala.collection.mutable
 import scala.meta.{Case, Defn, Enumerator, Lit, Pat, Term, Tree}
 import inca.frontend.core.Core.Name
 
+import scala.meta.Type
+import scala.meta.Type.Param
+
 
 /**
  * The EvalHelper contains methods to analyze the Scala code in Eval constructs
@@ -11,6 +14,7 @@ import inca.frontend.core.Core.Name
  * @author Ronja Schnur (rschnur@students.uni-mainz.de)
  *         Julian Cichorius (jcichori@students.uni-mainz.de)
  * @version 0.0.1
+ * @todo unfinished
  */
 object EvalHelper {
 
@@ -45,18 +49,15 @@ object EvalHelper {
       val patVars = extractVars(pats, scope)
       loadPatVars(patVars, scope)
       loadVars(rhs, scope)
+
     case Defn.Var(_, pats, _, rhs) =>
       val patVars = extractVars(pats, scope)
       loadPatVars(patVars, scope)
       if(rhs.isDefined) {
         loadVars(rhs.get, scope)
       }
-    case _: Defn.Macro
-         | _: Defn.Class
-         | _: Defn.Object
-         | _: Defn.Def
-         | _: Defn.Trait
-         | _: Defn.Type => throw new UnsupportedOperationException("only val and var are supported definitions")
+
+    case _: Defn => throw new UnsupportedOperationException("only val and var are supported definitions")
 
     // terms
     case Term.Name(name) =>
@@ -69,10 +70,12 @@ object EvalHelper {
     case Term.Select(qual, _) => loadVars(qual, scope)
     case Term.ApplyUnary(_, arg) => loadVars(arg, scope)
     case Term.Return(expr) => loadVars(expr, scope)
+
     case Term.Annotate(expr, annots) =>
       loadVars(expr, scope)
       annots.foreach(_.init.argss.foreach(loadAllVars(_, scope)))
-    case Term.Ascribe(expr, _) => loadVars(expr, scope)
+
+    case Term.Ascribe(expr, typ) => loadVars(expr, scope)
     case Term.Throw(expr) => loadVars(expr, scope)
     case Term.Repeated(expr) => loadVars(expr, scope)
 
@@ -81,6 +84,7 @@ object EvalHelper {
       if(!scope.isBound(prefix.value)) {
         scope.newFree(prefix.value)
       }
+
     case Term.Tuple(args) => loadAllVars(args, scope)
 
     case Term.Block(stats) =>
@@ -90,6 +94,7 @@ object EvalHelper {
     case Term.ApplyInfix(lhs, _, _, args) =>
       loadVars(lhs, scope)
       loadAllVars(args, scope)
+
     case Term.Apply(fun, args) =>
       loadVars(fun, scope)
       loadAllVars(args, scope)
@@ -161,6 +166,77 @@ object EvalHelper {
     case ex => throw new UnsupportedOperationException(s"not yet implemented: ${ex.getClass}")
   }
 
+  private def loadFromType(typ: Type, scope: Scope): Unit = typ match {
+
+    case Type.Name(name) =>
+      scope.newFreeIfUnbound(name)
+
+    case Type.Var(name) =>
+      loadFromType(name, scope)
+
+    case p: Type.Param =>
+      loadFromTypeParam(p, scope)
+
+    case Type.Select(qual, _) =>
+      loadVars(qual, scope)
+
+    case Type.And(lhs, rhs) =>
+      loadFromType(lhs, scope)
+      loadFromType(rhs, scope)
+
+    case Type.Or(lhs, rhs) =>
+      loadFromType(lhs, scope)
+      loadFromType(rhs, scope)
+
+    case Type.With(lhs, rhs) =>
+      loadFromType(lhs, scope)
+      loadFromType(rhs, scope)
+
+    case Type.Tuple(args) =>
+      args.foreach(loadFromType(_, scope))
+
+    case Type.Apply(ty, args) =>
+      loadFromType(ty, scope)
+      args.foreach(loadFromType(_, scope))
+
+    case Type.ApplyInfix(lhs, op, rhs) =>
+      loadFromType(op, scope)
+      loadFromType(lhs, scope)
+      loadFromType(rhs, scope)
+
+    case bounds : Type.Bounds =>
+      loadTBounds(bounds, scope)
+
+    case Type.Function(params, res) =>
+      params.foreach(loadFromType(_, scope))
+      loadFromType(res, scope)
+
+    case Type.ImplicitFunction(params, res) =>
+      params.foreach(loadFromType(_, scope))
+      loadFromType(res, scope)
+
+    case Type.Lambda(tparsms, typ) =>
+      loadFromType(typ, scope)
+      tparsms.foreach(loadFromTypeParam(_, scope))
+
+    case Type.ByName(typ) =>
+      loadFromType(typ, scope)
+  }
+
+  private def loadFromTypeParam(param: Param, scope: Scope): Unit = {
+    val name = param.name.value
+    loadTBounds(param.tbounds, scope)
+    scope.newFreeIfUnbound(name)
+    param.cbounds.foreach(loadFromType(_, scope))
+    param.vbounds.foreach(loadFromType(_, scope))
+  }
+
+  private def loadTBounds(bounds: Type.Bounds, scope: Scope): Unit = {
+    val (lo, hi) = (bounds.lo, bounds.hi)
+    lo.foreach(loadFromType(_, scope))
+    hi.foreach(loadFromType(_, scope))
+  }
+
   private def loadAllVars(terms: List[Tree], scope: Scope): Unit = {
     terms.foreach(t => loadVars(t, scope))
   }
@@ -175,24 +251,23 @@ object EvalHelper {
     pats.foreach(loadDefinedVars(_, scope, found))
   }
 
-  private def loadFromEnumerator(enum: Enumerator, scope: Scope): Unit = {
-    enum match {
-      case Enumerator.Generator(pat, rhs) =>
-        val patVars = definedVars(pat, scope)
-        loadPatVars(patVars, scope)
-        loadVars(rhs, scope)
+  private def loadFromEnumerator(enum: Enumerator, scope: Scope): Unit = enum match {
 
-      case Enumerator.Val(pat, rhs)       =>
-        val patVars = definedVars(pat, scope)
-        patVars.foreach(scope.newBound)
-        loadVars(rhs, scope)
+    case Enumerator.Generator(pat, rhs) =>
+      val patVars = definedVars(pat, scope)
+      loadPatVars(patVars, scope)
+      loadVars(rhs, scope)
 
-      case Enumerator.Guard(cond)         =>
-        loadVars(cond, scope)
+    case Enumerator.Val(pat, rhs)       =>
+      val patVars = definedVars(pat, scope)
+      patVars.foreach(scope.newBound)
+      loadVars(rhs, scope)
 
-      case Enumerator.Quasi(_, _)         =>
-        throw new UnsupportedOperationException("Enumerator.Quasi not currently supported")
-    }
+    case Enumerator.Guard(cond)         =>
+      loadVars(cond, scope)
+
+    case Enumerator.Quasi(_, _)         =>
+      throw new UnsupportedOperationException("Enumerator.Quasi not currently supported")
   }
 
   /**
@@ -201,19 +276,21 @@ object EvalHelper {
    * @param scope the scope the pattern is defined in
    * @return the set of free variables in the pattern
    */
-  private def definedVars(pat: Pat, scope: Scope) = {
+  private def definedVars(pat: Pat, scope: Scope): mutable.Set[Name] = {
     val vars = mutable.Set[Name]()
     loadDefinedVars(pat, scope, vars)
     vars
   }
 
   private def loadDefinedVars(pat: Pat, scope: Scope, found: mutable.Set[Name]): Unit = pat match {
+
     case Pat.Wildcard()                  =>
     case Pat.SeqWildcard()               =>
     case _: Lit                          =>
     case Pat.Var(Term.Name(name))        => found += name
     case Term.Select(Term.Name(name), _) => found += name
     case Term.Name(name)                 => found += name
+
     case Pat.Bind(lhs, rhs)              =>
       loadDefinedVars(lhs, scope, found)
       loadDefinedVars(rhs, scope, found)
@@ -305,6 +382,12 @@ object EvalHelper {
 
     def nestedScope(): Scope = {
       new Scope(free, bound.clone())
+    }
+
+    def newFreeIfUnbound(name: Name): Unit = {
+      if(!isBound(name)) {
+        newFree(name)
+      }
     }
   }
 }

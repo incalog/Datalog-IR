@@ -922,7 +922,7 @@ class CoreParserTest extends AnyFunSuite {
   private def test_helper[T](parser: P[_] => P[Any]) =
     (input: String, cmp: T) => {
       parse(input, parser) match {
-        case Success(value, index)        => assert(cmp === value)
+        case Success(value, index)        => assert(value === cmp)
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
       }
     }
