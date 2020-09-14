@@ -455,6 +455,9 @@ MainMethodDeclaration(?method) :-
 }
 .init basic = Basic
 
+.decl Reachable(?method:Method)
+.output Reachable
+.printsize Reachable
 // class initialization
 .decl ClassInitializer(?type:Type, ?method:Method)
 .decl InitializedClass(?classOrInterface:Type)
@@ -510,9 +513,6 @@ Reachable(?clinit) :-
 .decl ArrayIndexPointsTo(?baseheap:HeapAllocation, ?heap:HeapAllocation)
 .output ArrayIndexPointsTo
 .printsize ArrayIndexPointsTo
-.decl Reachable(?method:Method)
-.output Reachable
-.printsize Reachable
 Assign(?actual, ?formal) :-
   CallGraphEdge(?invocation, ?method),
   FormalParam(?index, ?method, ?formal),

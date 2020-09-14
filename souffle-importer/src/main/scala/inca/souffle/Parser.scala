@@ -1,5 +1,6 @@
 package inca.souffle
 
+// TODO currently only supports a subset of souffle which is needed to load a specific file
 object Parser {
   import fastparse._
   import JavaWhitespace._
@@ -34,10 +35,10 @@ object Parser {
     P(identifier ~ ":" ~ Type).map(Syntax.RuleParameter.tupled)
 
   def Output[_: P]: P[Syntax.Output] =
-    P(".output" ~ identifier).map(Syntax.Output)
+    P(".output" ~ identifier ~ End).map(Syntax.Output)
 
   def PrintSize[_: P]: P[Syntax.PrintSize] =
-    P(".printsize" ~ identifier).map(Syntax.PrintSize)
+    P(".printsize" ~ identifier ~ End).map(Syntax.PrintSize)
 
   def Input[_: P]: P[Syntax.Input] =
     P(".input" ~ identifier ~ "(" ~
@@ -65,11 +66,11 @@ object Parser {
       case (left, compare, right) => Syntax.Equality(left, compare == "!=", right)
     }
   def Parens[_: P]: P[Syntax.Statement] =
-    P("(" ~ Statement ~ ")")
+    P("(" ~ Statement ~ ")").map(Syntax.Parens)
 
 
   def Expression[_: P]: P[Syntax.Expression] =
-    P(BuiltInFunctionCall | Any | Variable | StringValue | NumberValue)
+    P(Any | BuiltInFunctionCall | Variable | StringValue | NumberValue)
   def Variable[_: P]: P[Syntax.Variable] =
     P(identifier).map(Syntax.Variable)
   def StringValue[_: P]: P[Syntax.StringValue] =
@@ -87,7 +88,7 @@ object Parser {
 
 
   def Type[_: P]: P[Syntax.Type] =
-    P(DeclaredType | SymbolType | NumberType | UnsignedType | FloatType)
+    P(SymbolType | NumberType | UnsignedType | FloatType | DeclaredType)
 
   def DeclaredType[_: P]: P[Syntax.DeclaredType] = P(identifier).map(Syntax.DeclaredType)
 
@@ -97,19 +98,19 @@ object Parser {
   def FloatType[_: P]: P[Syntax.FloatType.type] = P("float").map(_ => Syntax.FloatType)
 
 
-  def identifier[_: P]: P[String] = P( (letter | "_" | "?") ~ (letter | digit | "_").repX ).!
+  def identifier[_: P]: P[String] = P( (letter | "_" | "?")  ~~ (letter | digit | "_").repX).!.filter(_ != "_")
   def letter[_: P]: P[Unit] = P( lowercase | uppercase )
   def lowercase[_: P]: P[Unit] = P( CharIn("a-z") )
   def uppercase[_: P]: P[Unit] = P( CharIn("A-Z") )
   def digit[_: P]: P[Unit] = P( CharIn("0-9") )
 
-  def decimalinteger[_: P]: P[Int] = P( nonzerodigit ~ digit.rep | "0" ).!.map(_.toInt)
+  def decimalinteger[_: P]: P[Int] = P( nonzerodigit ~~ digit.rep | "0" ~~ End).!.map(_.toInt)
   def nonzerodigit[_: P]: P[Unit] = P( CharIn("1-9") )
 
   def stringChars(c: Char) = c != '\"' && c != '\\'
   def strChars[_: P]       = P( CharsWhile(stringChars) )
   def hexDigit[_: P]       = P( CharIn("0-9a-fA-F") )
-  def unicodeEscape[_: P]  = P( "u" ~ hexDigit ~ hexDigit ~ hexDigit ~ hexDigit )
-  def escape[_: P]         = P( "\\" ~ (CharIn("\"/\\\\bfnrt") | unicodeEscape) )
-  def string[_: P]         = P( "\"" ~/ (strChars | escape).rep.! ~ "\"")
+  def unicodeEscape[_: P]  = P( "u" ~~ hexDigit ~~ hexDigit ~~ hexDigit ~~ hexDigit )
+  def escape[_: P]         = P( "\\" ~~ (CharIn("\"/\\\\bfnrt") | unicodeEscape) )
+  def string[_: P]         = P( "\"" ~~/ (strChars | escape).repX.! ~~ "\"")
 }
