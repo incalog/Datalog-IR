@@ -238,7 +238,7 @@ class CoreParserTest extends AnyFunSuite {
         | val fun: Int => Int = n => code + 1
         | ten
         | }""".stripMargin
-    test_run(code, Seq("x", "y", "z", "inf", "code", "ten"))
+    test_run(code, Seq("x", "y", "z", "inf", "code", "ten", "Int"))
 
     val code1 =
       s"""{
