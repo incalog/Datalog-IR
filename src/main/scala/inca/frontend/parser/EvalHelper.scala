@@ -42,172 +42,202 @@ object EvalHelper {
   private def loadVars(term: Tree, scope: Scope): Unit = term match {
 
     //literals don't contain variables
-    case _: Lit =>
+    case _: Lit                                      =>
 
     // definitions
-    case Defn.Val(_, pats, _, rhs) =>
+    case Defn.Val(_, pats, typ, rhs)                 =>
       val patVars = extractVars(pats, scope)
       loadPatVars(patVars, scope)
+      typ.foreach(loadFromType(_, scope))
       loadVars(rhs, scope)
 
-    case Defn.Var(_, pats, _, rhs) =>
+    case Defn.Var(_, pats, typ, rhs)                 =>
       val patVars = extractVars(pats, scope)
       loadPatVars(patVars, scope)
-      if(rhs.isDefined) {
-        loadVars(rhs.get, scope)
-      }
+      typ.foreach(loadFromType(_, scope))
+      rhs.foreach(loadVars(_, scope))
 
-    case _: Defn => throw new UnsupportedOperationException("only val and var are supported definitions")
+    case Defn.Type(_, name, tparams, body)           =>
+      val nested = scope.nestedScope()
+      tparams.foreach(param => {
+        nested.newBound(param.name.value)
+        loadTBounds(param.tbounds, nested)
+      })
+      loadFromType(body, nested)
+      scope.newBound(name.value)
+
+    case _: Defn                                     =>
+      throw new UnsupportedOperationException("only val, var and type definitions are supported definitions")
 
     // terms
-    case Term.Name(name) =>
+    case Term.Name(name)                             =>
       if(!scope.isBound(name) && !scope.isFree(name)) {
         // variable not already known => must be free
         scope.newFree(name)
       }
 
-    case Term.ApplyType(fun, _) => loadVars(fun, scope)
-    case Term.Select(qual, _) => loadVars(qual, scope)
-    case Term.ApplyUnary(_, arg) => loadVars(arg, scope)
-    case Term.Return(expr) => loadVars(expr, scope)
+    case Term.ApplyType(fun, args)                   =>
+      loadVars(fun, scope)
+      args.foreach(loadFromType(_, scope))
 
-    case Term.Annotate(expr, annots) =>
+    case Term.Select(qual, _)                        =>
+      loadVars(qual, scope)
+
+    case Term.ApplyUnary(_, arg)                     =>
+      loadVars(arg, scope)
+
+    case Term.Return(expr)                           =>
       loadVars(expr, scope)
-      annots.foreach(_.init.argss.foreach(loadAllVars(_, scope)))
 
-    case Term.Ascribe(expr, typ) => loadVars(expr, scope)
-    case Term.Throw(expr) => loadVars(expr, scope)
-    case Term.Repeated(expr) => loadVars(expr, scope)
-
-    case Term.Interpolate(prefix, _, args) =>
-      loadAllVars(args, scope)
-      if(!scope.isBound(prefix.value)) {
-        scope.newFree(prefix.value)
+    case Term.Annotate(expr, annots)                 =>
+      loadVars(expr, scope)
+      annots.foreach(anno => {
+        loadFromType(anno.init.tpe, scope)
+        anno.init.argss.foreach(loadAllVars(_, scope))
       }
+      )
+
+    case Term.Ascribe(expr, typ)                     =>
+      loadVars(expr, scope)
+      loadFromType(typ, scope)
+
+    case Term.Throw(expr)                            =>
+      loadVars(expr, scope)
+
+    case Term.Repeated(expr)                         =>
+      loadVars(expr, scope)
+
+    case Term.Interpolate(prefix, _, args)           =>
+      loadAllVars(args, scope)
+      scope.newFreeIfUnbound(prefix.value)
 
     case Term.Tuple(args) => loadAllVars(args, scope)
 
-    case Term.Block(stats) =>
+    case Term.Block(stats)                           =>
       // a block defines a new scope nested in the current one
       loadAllVars(stats, scope.nestedScope())
 
-    case Term.ApplyInfix(lhs, _, _, args) =>
+    case Term.ApplyInfix(lhs, _, types, args)        =>
       loadVars(lhs, scope)
+      types.foreach(loadFromType(_, scope))
       loadAllVars(args, scope)
 
-    case Term.Apply(fun, args) =>
+    case Term.Apply(fun, args)                       =>
       loadVars(fun, scope)
       loadAllVars(args, scope)
 
-    case Term.Function(params, body) =>
+    case Term.Function(params, body)                 =>
       val scope1 = scope.nestedScope()
       params.foreach(p => scope1.newBound(p.name.value))
       loadVars(body, scope1)
 
-    case Term.Assign(lhs, rhs) =>
+    case Term.Assign(lhs, rhs)                       =>
       loadVars(lhs, scope)
       loadVars(rhs, scope)
 
-    case Term.Match(expr, cases) =>
+    case Term.Match(expr, cases)                     =>
       loadVars(expr, scope)
       cases.foreach(c => loadFromCase(c, scope))
 
-    case Term.If(cond, thenp, elsep) =>
+    case Term.If(cond, thenp, elsep)                 =>
       loadVars(cond, scope)
       loadVars(thenp, scope)
       loadVars(elsep, scope)
 
-    case Term.New(init) =>
+    case Term.New(init)                              =>
+      loadFromType(init.tpe, scope)
       init.argss.foreach(loadAllVars(_, scope))
 
-    case Term.PartialFunction(cases) =>
+    case Term.PartialFunction(cases)                 =>
       cases.foreach(c => loadFromCase(c, scope))
 
-    case Term.Try(expr, catchp, finallyp) =>
+    case Term.Try(expr, catchp, finallyp)            =>
       loadVars(expr, scope)
       catchp.foreach(c => loadFromCase(c, scope))
-      if(finallyp.isDefined) {
-        loadVars(finallyp.get, scope)
-      }
+      finallyp.foreach(loadVars(_, scope))
 
     case Term.TryWithHandler(expr, catchp, finallyp) =>
       loadVars(expr, scope)
       loadVars(catchp, scope)
-      if(finallyp.isDefined){
-        loadVars(finallyp.get, scope)
-      }
+      finallyp.foreach(loadVars(_, scope))
 
-    case Term.NewAnonymous(_) => throw new UnsupportedOperationException("NewAnonymous currently not supported")
+    case Term.NewAnonymous(_)                        =>
+      throw new UnsupportedOperationException("NewAnonymous currently not supported")
 
-    case Term.Do(body, expr) =>
+    case Term.Do(body, expr)                         =>
       loadVars(body, scope)
       loadVars(expr, scope)
 
-    case Term.For(enums, body) =>
+    case Term.For(enums, body)                       =>
       val nested = scope.nestedScope()
       enums.foreach(loadFromEnumerator(_, nested))
       loadVars(body, nested)
 
-    case Term.ForYield(enums, body) =>
+    case Term.ForYield(enums, body)                  =>
       val nested = scope.nestedScope()
       enums.foreach(loadFromEnumerator(_, nested))
       loadVars(body, nested)
 
-    case Term.While(expr, body) =>
+    case Term.While(expr, body)                      =>
       loadVars(expr, scope)
       loadVars(body, scope)
 
-    case Term.Xml(_, args) => loadAllVars(args, scope)
+    case Term.Xml(_, args)                           =>
+      loadAllVars(args, scope)
 
     case Term.Super(_, _)
          | Term.This(_)
-         | Term.Placeholder() =>
+         | Term.Placeholder()                        =>
 
-    case ex => throw new UnsupportedOperationException(s"not yet implemented: ${ex.getClass}")
+    case Term.Eta(expr) =>
+      loadVars(expr, scope)
+
+    case tree                                        =>
+      throw new UnsupportedOperationException(s"not yet implemented: ${tree.productPrefix}")
   }
 
   private def loadFromType(typ: Type, scope: Scope): Unit = typ match {
 
-    case Type.Name(name) =>
+    case Type.Name(name)                    =>
       scope.newFreeIfUnbound(name)
 
-    case Type.Var(name) =>
+    case Type.Var(name)                     =>
       loadFromType(name, scope)
 
-    case p: Type.Param =>
+    case p: Type.Param                      =>
       loadFromTypeParam(p, scope)
 
-    case Type.Select(qual, _) =>
+    case Type.Select(qual, _)               =>
       loadVars(qual, scope)
 
-    case Type.And(lhs, rhs) =>
+    case Type.And(lhs, rhs)                 =>
       loadFromType(lhs, scope)
       loadFromType(rhs, scope)
 
-    case Type.Or(lhs, rhs) =>
+    case Type.Or(lhs, rhs)                  =>
       loadFromType(lhs, scope)
       loadFromType(rhs, scope)
 
-    case Type.With(lhs, rhs) =>
+    case Type.With(lhs, rhs)                =>
       loadFromType(lhs, scope)
       loadFromType(rhs, scope)
 
-    case Type.Tuple(args) =>
+    case Type.Tuple(args)                   =>
       args.foreach(loadFromType(_, scope))
 
-    case Type.Apply(ty, args) =>
+    case Type.Apply(ty, args)               =>
       loadFromType(ty, scope)
       args.foreach(loadFromType(_, scope))
 
-    case Type.ApplyInfix(lhs, op, rhs) =>
+    case Type.ApplyInfix(lhs, op, rhs)      =>
       loadFromType(op, scope)
       loadFromType(lhs, scope)
       loadFromType(rhs, scope)
 
-    case bounds : Type.Bounds =>
+    case bounds : Type.Bounds               =>
       loadTBounds(bounds, scope)
 
-    case Type.Function(params, res) =>
+    case Type.Function(params, res)         =>
       params.foreach(loadFromType(_, scope))
       loadFromType(res, scope)
 
@@ -215,12 +245,24 @@ object EvalHelper {
       params.foreach(loadFromType(_, scope))
       loadFromType(res, scope)
 
-    case Type.Lambda(tparsms, typ) =>
+    case Type.Lambda(tparsms, typ)          =>
       loadFromType(typ, scope)
       tparsms.foreach(loadFromTypeParam(_, scope))
 
-    case Type.ByName(typ) =>
+    case Type.ByName(typ)                   =>
       loadFromType(typ, scope)
+
+    case Type.Placeholder(bounds)           =>
+      loadTBounds(bounds, scope)
+
+    case Type.Project(qual, _)              =>
+      loadFromType(qual, scope)
+
+    case Type.Repeated(typ)                 =>
+      loadFromType(typ, scope)
+
+    case _                                  =>
+      throw new UnsupportedOperationException(s"type ${typ.productPrefix} is not supported")
   }
 
   private def loadFromTypeParam(param: Param, scope: Scope): Unit = {
@@ -284,9 +326,9 @@ object EvalHelper {
 
   private def loadDefinedVars(pat: Pat, scope: Scope, found: mutable.Set[Name]): Unit = pat match {
 
-    case Pat.Wildcard()                  =>
-    case Pat.SeqWildcard()               =>
-    case _: Lit                          =>
+    case Pat.Wildcard()
+         | Pat.SeqWildcard()
+         | _: Lit                        =>
     case Pat.Var(Term.Name(name))        => found += name
     case Term.Select(Term.Name(name), _) => found += name
     case Term.Name(name)                 => found += name
@@ -311,8 +353,9 @@ object EvalHelper {
       loadVars(op, scope)
       rhs.foreach(loadDefinedVars(_, scope, found))
 
-    case Pat.Typed(p, _)                 =>
+    case Pat.Typed(p, typ)               =>
       loadDefinedVars(p, scope, found)
+      loadFromType(typ, scope)
 
     case Pat.Quasi(_, _)                 =>
       throw new UnsupportedOperationException("Pat.Quasi is currently not supported")
@@ -321,7 +364,7 @@ object EvalHelper {
       throw new UnsupportedOperationException("Pat.XML is not supported")
 
     case _                               =>
-      throw new UnsupportedOperationException(s"not yet implemented: ${pat.getClass}")
+      throw new UnsupportedOperationException(s"not yet implemented: ${pat.productPrefix}")
   }
 
   private def loadPatVars(vars: mutable.Set[String], scope: Scope): Unit = {
@@ -340,9 +383,7 @@ object EvalHelper {
   private def loadFromCase(cas: Case, scope: Scope): Unit = {
     val patVars = definedVars(cas.pat, scope)
     loadPatVars(patVars, scope)
-    if(cas.cond.isDefined) {
-      loadVars(cas.cond.get, scope)
-    }
+    cas.cond.foreach(loadVars(_, scope))
     loadVars(cas.body, scope.nestedScope())
   }
 
