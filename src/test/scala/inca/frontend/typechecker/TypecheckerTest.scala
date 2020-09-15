@@ -50,6 +50,17 @@ class TypecheckerTest extends AnyFunSuite {
           |    yield x
           |} union {
           |    yield 10
+          |}""".stripMargin,
+      s"""|
+          |module test
+          |
+          |def name() : int = {
+          |    val x = 5
+          |    yield x
+          |} 
+          |
+          |def another() : int {
+          |    yield name()
           |}""".stripMargin
     )
 

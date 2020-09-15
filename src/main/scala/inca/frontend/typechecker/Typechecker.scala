@@ -68,17 +68,18 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
       typecheck(_)(TypeContext(fun.name, functions, module, init_map))
     }
     val out = fun.outParams.map(ap => ap.typ)
+    val w = where(TypeContext(fun.name, null, module, null))
 
     if (res.contains(null)) {
       if (out.length != 0)
         throw new TypeError(
-          s"Patternfunction ${fun.name} in ${module.name} does not return the annotated type. 0x00"
+          s"Annotated return type does not match ($w, Code: 0x01)"
         )
     } else {
       // check if all blocks have the same return type // @todo type hierachy
       if (res.filter(res.head == _).length != res.length)
         throw new TypeError(
-          s"Patternfunction ${fun.name} in ${module.name} does not return the same type in all blocks."
+          s"Patternfunction does not have the same return type in all blocks ($w)."
         )
 
       // match return type with given annotation
@@ -88,13 +89,13 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
             ts.length != out.length || ts.zip(out).filter(r => r._1 != r._2).length != 0
           )
             throw new TypeError(
-              s"Patternfunction ${fun.name} in ${module.name} does not return the annotated type. 0x01"
+              s"Annotated return type does not match ($w, Code: 0x02)"
             )
         }
         case t => {
           if ((out.length != 1 || out.head != t) && out.length != 0)
             throw new TypeError(
-              s"Patternfunction ${fun.name} in ${module.name} does not return the annotated type. 0x02"
+              s"Annotated return type does not match ($w, Code: 0x03)"
             )
         }
       }
@@ -111,7 +112,7 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
       stm match {
         case Assert(cond) =>
           if (typecheck(cond) != TBool)
-            throw new TypeError("Assert condition does not evaluate to bool.")
+            throw new TypeError(s"Assert condition does not evaluate to bool (${where}).")
         case Assign(names, exp) => {
           if (names.length == 1) // simple assign
             context.variable_map += names.head -> typecheck(exp)
@@ -120,13 +121,13 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
               case TTuple(ts) => {
                 if (names.length != ts.length) // sizes need to match
                   throw new TypeError(
-                    s"Cannot unpack tuple with ${ts.length} to tuple with ${names.length} members."
+                    s"Cannot unpack tuple with ${ts.length} to tuple with ${names.length} members (${where})."
                   )
                 context.variable_map ++= names.zip(ts).map(p => p._1 -> p._2).toMap
               }
               case t =>
                 throw new TypeError(
-                  s"Cannot unpack type ${t.prettyprint} to tuple with ${names.length} members."
+                  s"Cannot unpack type ${t.prettyprint} to tuple with ${names.length} members (${where})."
                 )
             }
           }
@@ -136,7 +137,7 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
           // A terminator statement should be the last statement in a block
           if (i < body.stmts.length - 1)
             warnings.addOne(
-              TypeWarning("Terminator statement is not last statement in body.")
+              TypeWarning(s"Terminator statement is not last statement in body (${where}).")
             )
           e match {
             case Yield(exp) => return_types += typecheck(exp)
@@ -151,7 +152,7 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
     // check if all return values are the same // @todo type hierachy
     if (return_types.filter(_ != return_types.head).length != 0)
       throw new TypeError(
-        s"Body has multiple return values in function ${context.fname} in module ${context.module.name}"
+        s"Body has multiple return values (${where})."
       )
 
     if (return_types.length > 0) return_types.head
@@ -161,11 +162,30 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
   private def typecheck(exp: Exp)(implicit context: TypeContext): TypeAnno = {
     exp match {
       case Aggregate(init, join, unjoin, call) => ???
-      case Call(name, args, transitive)        => ???
+      case Call(name, args, transitive)        => {
+        if (context.functions.contains(name)) {
+          val fun = context.functions(name)
+          val ret = fun.outParams.map(_.typ)
+          if (ret.isEmpty)
+            null 
+          else if (ret.length == 1)
+            ret.head
+          else 
+            TTuple(ret)
+        }
+        else 
+          throw new TypeError(s"Function $name is not defined (${where}).")
+      }
       case Constant(lit)                       => typecheck(lit)
       case Count(call)                         => ???
-      case Def(exp)                            => ???
-      case Undef(exp)                          => ???
+      case Def(exp)                            => {
+        typecheck(exp) // @todo Restrictions ?
+        TBool
+      }
+      case Undef(exp)                          => {
+        typecheck(exp) // @todo Restrictions ?
+        TBool
+      }
       case Eq(lhs, rhs)                        => ???
       case Neq(lhs, rhs)                       => ???
       case InstanceOf(exp, ty)                 => ???
@@ -174,7 +194,7 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
       case Var(name) => {
         if (!context.variable_map.contains(name))
           throw new TypeError(
-            s"Variable $name is not defined in Patternfunction ${context.fname} in Module ${context.module.name}"
+            s"Variable $name is not defined ${where}"
           )
         context.variable_map(name)
       }
@@ -193,5 +213,9 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
       case DoubleLiteral(v)  => TDouble
       case StringLiteral(v)  => TString
     }
+  }
+
+  private def where(implicit context : TypeContext) : String = {
+    s"Function: ${context.fname}, Module: ${context.module.name}"
   }
 }
