@@ -294,34 +294,8 @@ class EvalHelperTest extends AnyFunSuite {
   }
 
   test("test freeVars new") {
-    val code = New(
-      Init(
-        tInt,
-        Name("Int"),
-        List(
-          List(
-            Name("arg1"),
-            New(
-              Init(
-                tInt,
-                Name("Double"),
-                List(
-                  List(
-                    Name("arg2")
-                  )
-                )
-              )
-            )
-          ),
-          List(
-            Name("arg3"),
-            Name("arg4")
-          )
-        )
-      )
-    )
-    val code1 = q"new Int(arg1, new Int(arg2))(arg3, arg4)"
-    checkVars(code1, Set("arg1", "arg2", "arg3", "arg4", "Int"))
+    val code = q"new Int(arg1, new Int(arg2))(arg3, arg4)"
+    checkVars(code, Set("arg1", "arg2", "arg3", "arg4", "Int"))
   }
 
   test("test freeVars interpolate") {
