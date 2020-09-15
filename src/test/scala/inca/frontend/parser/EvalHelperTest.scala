@@ -4,8 +4,7 @@ import inca.frontend.core.Core.Name
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.Term._
-import scala.meta.transversers.Traverser
-import scala.meta.{Case, Defn, Enumerator, Init, Lit, Mod, Pat, Term, Tree, Type, XtensionParseInputLike}
+import scala.meta.{Case, Defn, Enumerator, Init, Lit, Mod, Pat, Term, Tree, Type, XtensionParseInputLike, XtensionQuasiquoteTerm}
 
 class EvalHelperTest extends AnyFunSuite {
 
@@ -18,39 +17,48 @@ class EvalHelperTest extends AnyFunSuite {
   private val paramN = Param(Nil, Name("n"), Some(tInt), None)
 
   test("test freeVars Name") {
-    checkVars(Term.Name("x"), Set("x"))
+    val code = q"x"
+    checkVars(code, Set("x"))
   }
 
   test("test freeVars select") {
-    checkVars(Term.Select(Name("x"), Name("prop")), Set("x"))
+    val code = q"x.prop"
+    checkVars(code, Set("x"))
   }
 
   test("test freeVars apply unary") {
-    checkVars(ApplyUnary(Name("!"), Name("ten")), Set("ten"))
+    val code = q"!ten"
+    checkVars(code, Set("ten"))
   }
 
   test("test freeVars apply infix") {
-    checkVars(ApplyInfix(Name("x"), Name("-"), Nil, List(Name("y"))), Set("x", "y"))
+    val code = q"x - y"
+    checkVars(code, Set("x", "y"))
   }
 
   test("test freeVars return") {
-    checkVars(Return(Name("value")), Set("value"))
+    val code = q"return value"
+    checkVars(code, Set("value"))
   }
 
   test("test freeVars ascribe") {
-    checkVars(Ascribe(Name("value"), tInt), Set("value"))
+    val code = q"value: Int"
+    checkVars(code, Set("value", "Int"))
   }
 
   test("test freeVars throw") {
-    checkVars(Throw(Name("value")), Set("value"))
+    val code = q"throw value"
+    checkVars(code, Set("value"))
   }
 
   test("test freeVars apply") {
-    checkVars(Apply(Name("fun"), List(Name("arg"))), Set("fun", "arg"))
+    val code = q"fun(arg)"
+    checkVars(code, Set("fun", "arg"))
   }
 
   test("test freeVars tuple") {
-    checkVars(Tuple(List(Name("val1"), Name("val2"), Name("val3"))), Set("val1", "val2", "val3"))
+    val code = q"(val1, val2, val3)"
+    checkVars(code, Set("val1", "val2", "val3"))
   }
 
   test("test freeVars definition val") {
@@ -58,7 +66,7 @@ class EvalHelperTest extends AnyFunSuite {
   }
 
   test("test freeVars definition var no rhs") {
-    checkVars(undefinedVar, Set())
+    checkVars(undefinedVar, Set("Int"))
   }
 
   test("test freeVars definition var with rhs") {
@@ -70,7 +78,7 @@ class EvalHelperTest extends AnyFunSuite {
   }
 
   test("test freeVars assign free var") {
-    val code = Assign(Name("free"), Name("free1"))
+    val code = q"free = free1"
     checkVars(code, Set("free", "free1"))
   }
 
@@ -122,7 +130,7 @@ class EvalHelperTest extends AnyFunSuite {
         Assign(Name("value"), Name("free"))
       )
     )
-    checkVars(code, Set("free"))
+    checkVars(code, Set("Int", "free"))
   }
 
   test("test freeVars if") {
@@ -264,7 +272,7 @@ class EvalHelperTest extends AnyFunSuite {
         )
       )
     )
-    checkVars(code, Set("free", "cond"))
+    checkVars(code, Set("free", "cond", "Int"))
   }
 
   test("test freeVars partial function") {
@@ -282,7 +290,7 @@ class EvalHelperTest extends AnyFunSuite {
         )
       )
     )
-    checkVars(code, Set("cond", "x"))
+    checkVars(code, Set("cond", "x", "Int"))
   }
 
   test("test freeVars new") {
@@ -293,7 +301,17 @@ class EvalHelperTest extends AnyFunSuite {
         List(
           List(
             Name("arg1"),
-            Name("arg2")
+            New(
+              Init(
+                tInt,
+                Name("Double"),
+                List(
+                  List(
+                    Name("arg2")
+                  )
+                )
+              )
+            )
           ),
           List(
             Name("arg3"),
@@ -302,7 +320,8 @@ class EvalHelperTest extends AnyFunSuite {
         )
       )
     )
-    checkVars(code, Set("arg1", "arg2", "arg3", "arg4"))
+    val code1 = q"new Int(arg1, new Int(arg2))(arg3, arg4)"
+    checkVars(code1, Set("arg1", "arg2", "arg3", "arg4", "Int"))
   }
 
   test("test freeVars interpolate") {
@@ -338,7 +357,7 @@ class EvalHelperTest extends AnyFunSuite {
         )
       )
     )
-    checkVars(code, Set("free", "arg"))
+    checkVars(code, Set("free", "arg", "Int"))
   }
 
   test("test freeVars repeated") {
@@ -346,78 +365,6 @@ class EvalHelperTest extends AnyFunSuite {
       Name("x")
     )
     checkVars(code, Set("x"))
-  }
-
-  test("test freeVars complex") {
-    val code1 =
-      """
-        |{
-        |  val (a, b) = x
-        |  var Set(str1, str2) = a
-        |  val fun: Any => Any = _ => b
-        |  var bar = "fun"
-        |  {
-        |    var foo = 10
-        |    foo match {
-        |      case 0 => 0
-        |      case num => num + 1
-        |    }
-        |    bar = i
-        |  }
-        |  foo = 42
-        |  this.anno = 12
-        |}
-        |""".stripMargin
-    val tree1 = code1.parse[Term].get
-    checkVars(tree1, Set("x", "i", "foo", "Set"))
-
-    val code2 =
-      """
-        |{
-        |  val fac = num match {
-        |    case 0 => 1
-        |    case _ => num * factorial(num -1)
-        |  }
-        |}
-        |""".stripMargin
-    val tree2 = code2.parse[Term].get
-    checkVars(tree2, Set("num", "factorial"))
-
-    val code3 =
-      """
-        |{
-        |  var option: Option[Int] = None
-        |  if(true){
-        |    option = Some(42)
-        |    do_smth(option)
-        |  }
-        |  else {
-        |    option = None
-        |  }
-        |  val seq = for(init <- newAnon.inits; args <- init.argss; arg <- args if arg.isMandatory) yield {
-        |    println(arg.desc)
-        |    val data = {
-        |      process(arg)
-        |      arg.ctx.value
-        |    }
-        |    data
-        |  }
-        |}
-        |""".stripMargin
-
-    val tree3 = code3.parse[Term].get
-    checkVars(tree3, Set("do_smth", "newAnon", "process", "println", "Some", "None"))
-
-
-    val traverser = new Traverser {
-      override def apply(tree: Tree): Unit = tree match {
-        case Term.Block(children) =>
-          println("Block encountered")
-          super.apply(children)
-        case node => super.apply(node)
-      }
-    }
-    traverser(tree2)
   }
 
   test("test freeVars pattern extract infix nested") {
@@ -444,6 +391,170 @@ class EvalHelperTest extends AnyFunSuite {
     val tree = code.parse[Term].get
     checkVars(tree, Set("::", "Some", "matchee"))
   }
+
+  test("test freeVars types nested") {
+    val code = q"val x: Option[List[Map[String, Int]]] = None"
+    checkVars(code, Set("Option", "List", "Map", "String", "Int", "None"))
+  }
+
+  test("test freeVars types select") {
+    val code = q"val x: List.Empty = Nil"
+    checkVars(code, Set("List", "Nil"))
+  }
+
+  test("test freeVars types definition simple") {
+    val code = q"{type T = Int; val x: T = 1}"
+    checkVars(code, Set("Int"))
+  }
+
+  test("test freeVars types definition generic") {
+    val code = q"type T[E] = List[E]"
+    checkVars(code, Set("List"))
+  }
+
+  test("test freeVars types definition generic 2") {
+    val code = q"{type T[E] = List[E]; val x: E = 10}"
+    checkVars(code, Set("List", "E"))
+  }
+
+  test("test freeVars types type bounds simple") {
+    val code = q"type T[E >: Int, F <: Int] = List[E]"
+    checkVars(code, Set("List", "Int"))
+  }
+
+  test("test freeVars types type bounds both bounds") {
+    val code = q"type T[E >: Int <: Any] = List[E]"
+    checkVars(code, Set("Int", "Any", "List"))
+  }
+
+  test("test freeVars types type bounds complex") {
+    val code = q"type T[E <: List[E]] = List[E]"
+    checkVars(code, Set("List"))
+  }
+
+  test("test freeVars types type bounds complex 2") {
+    val code = q"type T[E <: List[Any]] = List[E]"
+    checkVars(code, Set("List", "Any"))
+  }
+
+  test("test freeVars types with") {
+    val code = q"type T = Int with Any"
+    checkVars(code, Set("Int", "Any"))
+  }
+
+  // Type.And and Type.Or are not tested here because the default dialect does not support these types
+
+  test("test freeVars types apply infix") {
+    val code = q"type T = Int Map String"
+    checkVars(code, Set("Int", "Map", "String"))
+  }
+
+  test("test freeVars complex 1") {
+    val code =
+      q"""
+        {
+          val (a, b) = x
+          var Set(str1, str2) = a
+          val fun: Any => Any = _ => b
+          var bar = "fun"
+          {
+            var foo = 10
+            foo match {
+              case 0 => 0
+              case num => num + 1
+            }
+            bar = i
+          }
+          foo = 42
+          this.anno = 12
+        }
+        """
+    checkVars(code, Set("x", "i", "foo", "Set", "Any"))
+  }
+
+  test("test freeVars complex 2") {
+    val code =
+      q"""
+          {
+            type Indexed[E] = Map[Int, E]
+            val mapper: Indexed[String] = Map()
+            val personMultimap = {
+              type MultiIndexed[E] = Map[Int, List[E]]
+              type PersonOrder = Ordering[Person]
+              val multimap: MultiIndexed[PersonOrder] = mutable.Map()
+              var unused: Indexed[Int] = Map()
+              loadInto(multimap)
+              multimap
+            }
+          }
+       """
+
+    checkVars(code, Set("Map", "Int", "String", "List", "Person", "mutable", "Ordering", "loadInto"))
+  }
+
+  test("test freeVars complex 3") {
+    val code =
+      q"""
+        {
+          val fac = num match {
+            case 0 => 1
+            case _ => num * factorial(num -1)
+          }
+        }
+        """
+    checkVars(code, Set("num", "factorial"))
+  }
+
+  test("test freeVars complex 4") {
+    val code =
+      q"""
+        {
+          var option: Option[Int] = None
+          if(true){
+            option = Some(42)
+            do_smth(option)
+          }
+          else {
+            option = None
+          }
+          val seq = for(init <- newAnon.inits; args <- init.argss; arg <- args if arg.isMandatory) yield {
+            println(arg.desc)
+            val data = {
+              process(arg)
+              arg.ctx.value
+            }
+            data
+          }
+        }
+        """
+
+    checkVars(code, Set("do_smth", "newAnon", "process", "println", "Some", "None", "Int", "Option"))
+  }
+
+  test("test freeVars complex 5") {
+    val code =
+      q"""
+        {
+          val heap: Heap[Node] = Heap(start)
+          val seen: Set[Node] = Set()
+          while(!heap.isEmpty) {
+            val min = heap.extractMin()
+            for(edge <- min.edges; if !seen(edge.end)) {
+              val end = edge.end
+              if(min.distance + edge.weight < end.distance) {
+                end.distance = min.distance + edge.weight
+                heap.push(end, edge.distance)
+              }
+            }
+            seen.add(min)
+          }
+          seen
+        }
+       """
+
+    checkVars(code, Set("Node", "Heap", "Set", "start"))
+  }
+
 
   private def checkVars(code: Tree, expectedFree: Set[Name]): Unit = {
     val free = EvalHelper.freeVars(code)

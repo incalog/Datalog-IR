@@ -238,7 +238,7 @@ class CoreParserTest extends AnyFunSuite {
         | val fun: Int => Int = n => code + 1
         | ten
         | }""".stripMargin
-    test_run(code, Seq("x", "y", "z", "inf", "code", "ten"))
+    test_run(code, Seq("x", "y", "z", "inf", "code", "ten", "Int"))
 
     val code1 =
       s"""{
@@ -923,7 +923,7 @@ class CoreParserTest extends AnyFunSuite {
   private def test_helper[T](parser: P[_] => P[Any]) =
     (input: String, cmp: T) => {
       parse(input, parser) match {
-        case Success(value, index)        => assert(cmp === value)
+        case Success(value, index)        => assert(value === cmp)
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
       }
     }
