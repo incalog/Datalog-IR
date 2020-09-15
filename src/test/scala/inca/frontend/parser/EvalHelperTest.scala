@@ -482,6 +482,7 @@ class EvalHelperTest extends AnyFunSuite {
               type MultiIndexed[E] = Map[Int, List[E]]
               type PersonOrder = Ordering[Person]
               val multimap: MultiIndexed[PersonOrder] = mutable.Map()
+              var unused: Indexed[Int] = Map()
               loadInto(multimap)
               multimap
             }
@@ -528,6 +529,30 @@ class EvalHelperTest extends AnyFunSuite {
         """
 
     checkVars(code, Set("do_smth", "newAnon", "process", "println", "Some", "None", "Int", "Option"))
+  }
+
+  test("test freeVars complex 5") {
+    val code =
+      q"""
+        {
+          val heap: Heap[Node] = Heap(start)
+          val seen: Set[Node] = Set()
+          while(!heap.isEmpty) {
+            val min = heap.extractMin()
+            for(edge <- min.edges; if !seen(edge.end)) {
+              val end = edge.end
+              if(min.distance + edge.weight < end.distance) {
+                end.distance = min.distance + edge.weight
+                heap.push(end, edge.distance)
+              }
+            }
+            seen.add(min)
+          }
+          seen
+        }
+       """
+
+    checkVars(code, Set("Node", "Heap", "Set", "start"))
   }
 
 

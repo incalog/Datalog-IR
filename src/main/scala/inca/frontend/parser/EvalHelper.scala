@@ -329,9 +329,15 @@ object EvalHelper {
     case Pat.Wildcard()
          | Pat.SeqWildcard()
          | _: Lit                        =>
-    case Pat.Var(Term.Name(name))        => found += name
-    case Term.Select(Term.Name(name), _) => found += name
-    case Term.Name(name)                 => found += name
+
+    case Pat.Var(Term.Name(name))        =>
+      found += name
+
+    case Term.Select(Term.Name(name), _) =>
+      found += name
+
+    case Term.Name(name)                 =>
+      found += name
 
     case Pat.Bind(lhs, rhs)              =>
       loadDefinedVars(lhs, scope, found)
