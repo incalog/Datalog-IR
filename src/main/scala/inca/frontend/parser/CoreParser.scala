@@ -400,7 +400,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   /** Module parser */
   def module[_: P]: P[Module] =
     P(
-      "module " ~ identifier ~ P("import".? ~ identifier).rep ~ patternFunction.rep
+      sp_nl ~ "module " ~ identifier ~ P("import".? ~ identifier).rep ~ patternFunction.rep
     ).map {
       case (name, imports, patternFunctions) =>
         Module(name, imports, patternFunctions)

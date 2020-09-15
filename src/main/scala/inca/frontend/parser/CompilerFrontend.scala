@@ -10,6 +10,8 @@ import fastparse.Parsed.Success
 import scala.collection.mutable
 import java.io.FileNotFoundException
 
+import inca.frontend.typechecker.Typechecker
+
 case class Programm(modules: Seq[Core.Module]) {
   def prettyprint = {
     modules.map(_.prettyprint("")).mkString("", "\n\n", "")
@@ -34,7 +36,7 @@ case class Programm(modules: Seq[Core.Module]) {
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
-object Compiler {
+object CompilerFrontend {
 
   val USAGE = s"""|IncAC
                   |Usage:
@@ -78,5 +80,7 @@ object Compiler {
     }
 
     println(programm.prettyprint)
+    println(programm)
+    println(new Typechecker(null, programm).typecheck())
   }
 }
