@@ -84,7 +84,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   /** TTuple parser */
   def tTuple[_: P]: P[TTuple] =
     P(
-      P("Unit" | "unit").!.map(_ => TTuple(Seq.empty))
+      P("Unit").map(_ => TTuple(Seq.empty))
         | (sp ~ "(" ~ typeAnno.rep(1, sep = ",") ~ ")")
           .map(TTuple)
     )

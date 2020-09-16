@@ -33,19 +33,19 @@ class TypecheckerTest extends AnyFunSuite {
     val code = Seq(
       s"""|module test
           |
-          |def name() : int = {
+          |def name() : Int = {
           |    val x = 5
           |    yield x 
           |}""".stripMargin,
       s"""|module test
           |
-          |def name() : unit = {
+          |def name() : Unit = {
           |    val x = 5
           |}""".stripMargin,
       s"""|
           |module test
           |
-          |def name() : int = {
+          |def name() : Int = {
           |    val x = 5
           |    yield x
           |} union {
@@ -54,12 +54,12 @@ class TypecheckerTest extends AnyFunSuite {
       s"""|
           |module test
           |
-          |def name() : int = {
+          |def name() : Int = {
           |    val x = 5
           |    yield x
           |} 
           |
-          |def another() : int {
+          |def another() : Int {
           |    yield name()
           |}""".stripMargin
     )
