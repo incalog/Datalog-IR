@@ -21,7 +21,7 @@ class TypecheckerTest extends AnyFunSuite {
     def test_run(cd: String) = {
       parse(cd, CoreParser().module(_)) match {
         case Success(value, index) => {
-          new Typechecker(null, Programm(Seq(value))).typecheck() match {
+          new Typechecker(null, Program(Seq(value))).typecheck() match {
             case SuccessTypecheck(warnings)     =>
             case FailTypecheck(error, warnings) => fail(s"$error, $warnings")
           }

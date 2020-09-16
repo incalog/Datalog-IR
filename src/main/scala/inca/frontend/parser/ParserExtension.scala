@@ -19,7 +19,7 @@ trait StatementParser {
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
 trait ParserExtension {
-  private[parser] var coreparser: CoreParser = null // Will be set from CoreParser
+  private[parser] var coreparser: CoreParser = _ // Will be set from CoreParser
 
   /** This function should return a Sequence of expression parsers,
     * which don't require left hand recursion.
