@@ -235,20 +235,22 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
     var error = false
     var free = Set[String]()
     val node = TNode("dummy")
+    var closing = ')'
 
     P(
-      "eval" ~ "(" ~~
-        P(
+      "eval" ~ ("(" | "{").! flatMapX
+        (openStr => P(
           AnyChar.repX.!.map(raw_str => {
             val stack = scala.collection.mutable.Stack[Char]()
-
+            val opening = openStr(0)
+            closing = if(opening == '(') ')' else '}'
             breakable {
               for (ch <- raw_str) {
-                if (stack.isEmpty && ch == ')')
+                if (stack.isEmpty && ch == closing)
                   break
-                else if (ch == '(')
+                else if (ch == opening)
                   stack.push(ch)
-                else if (ch == ')')
+                else if (ch == closing)
                   stack.pop()
                 code += ch
               }
@@ -271,10 +273,10 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
             fastparse.Fail
         ).? ~~
         (if (error) fastparse.Fail
-         else AnyChar.repX(max = c)) ~~ ")"
+         else AnyChar.repX(max = c)) ~~ s"$closing")
     ).map(_ => Eval(free.toSeq, node, code))
   }
-  //def eval_test[_: P]: P[Any] = P(eval ~ AnyChar.rep.!)
+
 
   /** PathAccess parser */
   // @todo Wait for fix commit in Core language

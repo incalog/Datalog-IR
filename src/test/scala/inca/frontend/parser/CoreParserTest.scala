@@ -217,8 +217,10 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test Eval params") {
-    def test_run(code: String, vars: Seq[Name]) = {
-      val parsed = parse(s"eval($code)", CoreParser().evalExp(_))
+    def test_run(code: String, vars: Seq[Name], useBrackets: Boolean = false) = {
+      val (open, close) = if(useBrackets) ("{", "}") else (("(", ")"))
+      val input = s"eval$open $code $close"
+      val parsed = parse(input, CoreParser().evalExp(_))
       parsed match {
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
         case Success(eval, _) =>
@@ -238,7 +240,9 @@ class CoreParserTest extends AnyFunSuite {
         | val fun: Int => Int = n => code + 1
         | ten
         | }""".stripMargin
-    test_run(code, Seq("x", "y", "z", "inf", "code", "ten", "Int"))
+    for(b <- Set(true, false)) {
+      test_run(code, Seq("x", "y", "z", "inf", "code", "ten", "Int"), b)
+    }
 
     val code1 =
       s"""{
@@ -252,7 +256,9 @@ class CoreParserTest extends AnyFunSuite {
          | obj
          |}
          |""".stripMargin
-    test_run(code1, Seq("some", "pen", "obj"))
+    for(b <- Set(true, false)) {
+      test_run(code1, Seq("some", "pen", "obj"), b)
+    }
   }
 
   test("test Exp combined") {
