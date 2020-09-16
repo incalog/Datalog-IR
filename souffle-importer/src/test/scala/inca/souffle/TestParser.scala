@@ -345,4 +345,27 @@ class TestParser extends AnyFlatSpec {
     assertResult(false)(parse(".init Comp != Other", Parser.ComponentInitialization(_)).isSuccess)
     assertResult(false)(parse(".init Comp ! Other", Parser.ComponentInitialization(_)).isSuccess)
   }
+
+  "parsing" should " analysis" in {
+    assertResult(
+      Seq(
+        Syntax.TypeDeclaration("T", None),
+        Syntax.RuleSignature("R", Seq(Syntax.RuleParameter("x", Syntax.SymbolType)), false),
+        Syntax.ComponentInitialization("Comp", "Other")
+      )
+    )(parse(".type T\n.decl R(x: symbol)\n .init Comp = Other", Parser.Analysis(_)).get.value)
+
+    assertResult(
+      Seq(
+        Syntax.TypeDeclaration("T", None),
+        Syntax.ComponentDefinition("R", Seq(
+          Syntax.TypeDeclaration("X", None),
+          Syntax.TypeDeclaration("Y", None)
+        )),
+      )
+    )(parse(".type T\n.comp R {\n.type X\n.type Y \n}", Parser.Analysis(_)).get.value)
+
+    assertResult(false)(parse(".type Comp\n.decl R(x: symbol)\nj", Parser.Analysis(_)).isSuccess)
+    assertResult(false)(parse(".type Comp\n.decl R(x: symbol", Parser.Analysis(_)).isSuccess)
+  }
 }
