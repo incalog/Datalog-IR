@@ -613,7 +613,7 @@ class CoreParserTest extends AnyFunSuite {
     }
 
     test_run(
-      s"""def foo (bar: Int) : unit = {
+      s"""def foo (bar: Int) : Unit = {
                 |    assert x== 7 
                 |} union { 
                 |  val q = 9  
@@ -635,7 +635,7 @@ class CoreParserTest extends AnyFunSuite {
     )
 
     test_run(
-      s"""   def    foo    ( bar : Int ) : unit =
+      s"""   def    foo    ( bar : Int ) : Unit =
                 |{ 
                 |    assert x  == 7 
                 |}
@@ -756,10 +756,10 @@ class CoreParserTest extends AnyFunSuite {
       s"""module my
                 |math
                 |import cuda_runtime
-                |def foo(bar: Boolean): unit = {
+                |def foo(bar: Boolean): Unit = {
                 |  val x = y
                 |}
-                |def bar(foo: Boolean): unit = {
+                |def bar(foo: Boolean): Unit = {
                 |  val x = y
                 |}""".stripMargin,
       Module(
@@ -799,7 +799,7 @@ class CoreParserTest extends AnyFunSuite {
                 |import cuda_runtime
                 |
                 |
-                |def foo(bar: Boolean): unit = {
+                |def foo(bar: Boolean): Unit = {
                 |  val x = y
                 |}
                 |
@@ -828,7 +828,7 @@ class CoreParserTest extends AnyFunSuite {
                 |import math
                 |
                 |
-                |def foo(bar: Boolean): unit = {
+                |def foo(bar: Boolean): Unit = {
                 |  val x = y
                 |}
                 |
@@ -854,7 +854,7 @@ class CoreParserTest extends AnyFunSuite {
     test_run(
       s"""module my
                 |
-                |def foo(bar: Boolean): unit = {
+                |def foo(bar: Boolean): Unit = {
                 |  val x = y
                 |}
                 |
