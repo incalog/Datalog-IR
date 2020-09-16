@@ -12,7 +12,7 @@ import java.io.FileNotFoundException
 
 import inca.frontend.typechecker.Typechecker
 
-case class Programm(modules: Seq[Core.Module]) {
+case class Program(modules: Seq[Core.Module]) {
   def prettyprint = {
     modules.map(_.prettyprint("")).mkString("", "\n\n", "")
   }
@@ -71,7 +71,7 @@ object CompilerFrontend {
       }
     }
 
-    val programm = Programm(modules.toSeq)
+    val programm = Program(modules.toSeq)
     programm.unique match {
       case "" =>
       case m => {
