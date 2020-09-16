@@ -15,10 +15,10 @@ case class TypeWarning(msg: String)
 class TypeError(msg: String) extends Exception(msg)
 
 case class TypeContext(
-    fname: String,
-    functions: Map[Name, PatternFunction],
-    module: Module,
-    var variable_map: Map[String, TypeAnno] = Map()
+    fname: String, // Name of the function (For error messages)
+    functions: Map[Name, PatternFunction], // Functions accessable from the module
+    module: Module, // The module the function is in
+    var variable_map: Map[String, TypeAnno] = Map() // The variable type context
 )
 
 /** IncA Typechecker
@@ -64,22 +64,42 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
 
     val init_map = fun.params.map(v => v.name -> v.typ).toMap
 
-    val res = fun.bodies.map { typecheck(_)(TypeContext(fun.name, functions, module, init_map)) }
-
-    // check if all blocks have the same return type // @todo type hierachy
-    if (res.filter(res.head == _).length != res.length)
-      throw new TypeError(s"Patternfunction ${fun.name} in ${module.name} does not return the same type in all blocks.")
-
-    // match return type with given annotation
+    val res = fun.bodies.map {
+      typecheck(_)(TypeContext(fun.name, functions, module, init_map))
+    }
     val out = fun.outParams.map(ap => ap.typ)
-    res.head match {
-      case TTuple(ts) => {
-        if (ts.length != out.length || ts.zip(out).filter(r => r._1 != r._2).length != 0)
-          throw new TypeError(s"Patternfunction ${fun.name} in ${module.name} does not return the annotated type.")
-      }
-      case t => {
-        if (out.length != 1 || out.head == t)
-          throw new TypeError(s"Patternfunction ${fun.name} in ${module.name} does not return the annotated type.")
+    val w = where(TypeContext(fun.name, null, module, null))
+
+    if (res.contains(null)) {
+      if (out.length != 0)
+        throw new TypeError(
+          s"Annotated return type does not match ($w, Code: 0x01)"
+        )
+    } else {
+      // check if all blocks have the same return type // @todo type hierachy
+      if (res.filter(res.head == _).length != res.length)
+        throw new TypeError(
+          s"Patternfunction does not have the same return type in all blocks ($w)."
+        )
+
+      // match return type with given annotation
+      res.head match {
+        case TTuple(ts) => {
+          if (
+            ts.length != out.length || ts.zip(out).filter(r => r._1 != r._2).length != 0
+          )
+            throw new TypeError(
+              s"Annotated return type does not match ($w, Code: 0x02)"
+            )
+        }
+        case t => {
+          if ((out.length != 1 || out.head != t) && out.length != 0) {
+            println(t, out)
+            throw new TypeError(
+              s"Annotated return type does not match ($w, Code: 0x03)"
+            )
+          }
+        }
       }
     }
 
@@ -94,7 +114,7 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
       stm match {
         case Assert(cond) =>
           if (typecheck(cond) != TBool)
-            throw new TypeError("Assert condition does not evaluate to bool.")
+            throw new TypeError(s"Assert condition does not evaluate to bool (${where}).")
         case Assign(names, exp) => {
           if (names.length == 1) // simple assign
             context.variable_map += names.head -> typecheck(exp)
@@ -102,19 +122,25 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
             typecheck(exp) match {
               case TTuple(ts) => {
                 if (names.length != ts.length) // sizes need to match
-                  throw new TypeError(s"Cannot unpack tuple with ${ts.length} to tuple with ${names.length} members.")
+                  throw new TypeError(
+                    s"Cannot unpack tuple with ${ts.length} to tuple with ${names.length} members (${where})."
+                  )
                 context.variable_map ++= names.zip(ts).map(p => p._1 -> p._2).toMap
               }
               case t =>
-                throw new TypeError(s"Cannot unpack type ${t.prettyprint} to tuple with ${names.length} members.")
+                throw new TypeError(
+                  s"Cannot unpack type ${t.prettyprint} to tuple with ${names.length} members (${where})."
+                )
             }
           }
         }
         case Values(name, typ) => context.variable_map += name -> typ
-        case e: TerminatorStatement => { 
+        case e: TerminatorStatement => {
           // A terminator statement should be the last statement in a block
           if (i < body.stmts.length - 1)
-            warnings.addOne(TypeWarning("Terminator statement is not last statement in body."))
+            warnings.addOne(
+              TypeWarning(s"Terminator statement is not last statement in body (${where}).")
+            )
           e match {
             case Yield(exp) => return_types += typecheck(exp)
             case Fail       => return_types += null
@@ -127,13 +153,112 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
 
     // check if all return values are the same // @todo type hierachy
     if (return_types.filter(_ != return_types.head).length != 0)
-      throw new TypeError(s"Body has multiple return values in function ${context.fname} in module ${context.module.name}")
+      throw new TypeError(
+        s"Body has multiple return values (${where})."
+      )
 
-    return_types.head
+    if (return_types.length > 0) return_types.head
+    else null
   }
 
   private def typecheck(exp: Exp)(implicit context: TypeContext): TypeAnno = {
-    ???
+    exp match {
+      case Aggregate(init, join, unjoin, call) => ???
+      case Call(name, args, transitive)        => {
+        if (context.functions.contains(name)) {
+          val fun = context.functions(name)
+          val ret = fun.outParams.map(_.typ)
+          if (ret.isEmpty)
+            null 
+          else if (ret.length == 1)
+            ret.head
+          else 
+            TTuple(ret)
+        }
+        else 
+          throw new TypeError(s"Function $name is not defined (${where}).")
+      }
+      case Constant(lit)                       => typecheck(lit)
+      case Count(call)                         => {
+        typecheck(call)
+        TInt
+      }
+      case Def(exp)                            => {
+        typecheck(exp) // @todo Restrictions ?
+        TBool
+      }
+      case Undef(exp)                          => {
+        typecheck(exp) // @todo Restrictions ?
+        TBool
+      }
+      case Eq(lhs, rhs)                        => {
+        val r, l = (typecheck(lhs), typecheck(rhs))
+        if (r != l)
+          throw new TypeError(s"Equality operands do not match $where.")
+        TBool
+      }
+      case Neq(lhs, rhs)                       => {
+        val r, l = (typecheck(lhs), typecheck(rhs))
+        if (r != l)
+          throw new TypeError(s"Inequality operands do not match $where.")
+        TBool
+      }
+      case InstanceOf(exp, ty)                 => {
+        val ety = typecheck(exp)
+        exp match {
+          case Var(name) => {
+            // @todo type hierachy and compile time evaluation?
+            context.variable_map = context.variable_map.updated(name, ty)
+            TBool
+          }
+          case _ => {
+            if (ety != ty) 
+              throw new TypeError(s"InstanceOf type does not match ($where, Code: 0x01)")
+            TBool
+          }
+        }
+      }
+      case NotInstanceOf(exp, ty)              => {
+        val ety = typecheck(exp)
+        exp match {
+          case Var(name) => {
+            // @todo type hierachy and compile time evaluation?
+            context.variable_map = context.variable_map.updated(name, ty)
+            TBool
+          }
+          case _ => {
+            if (ety != ty) 
+              throw new TypeError(s"InstanceOf type does not match ($where, Code: 0x01)")
+            TBool
+          }
+        }
+      }
+      case Tuple(exps)                         => TTuple(exps.map(typecheck))
+      case Var(name) => {
+        if (!context.variable_map.contains(name))
+          throw new TypeError(
+            s"Variable $name is not defined ${where}"
+          )
+        context.variable_map(name)
+      }
+      case PathAccess(receiver, link)     => ???
+      case Eval(params, resultType, code) => ???
+      case e: Exp                         => ??? // @todo extensions
+    }
   }
 
+  private def typecheck(lit: Literal)(implicit context: TypeContext): TypeAnno = {
+    lit match {
+      case UnitLiteral       => null
+      case BooleanLiteral(v) => TBool
+      case IntLiteral(v)     => TInt
+      case LongLiteral(v)    => TLong
+      case DoubleLiteral(v)  => TDouble
+      case StringLiteral(v)  => TString
+    }
+  }
+
+  private def where(implicit context : TypeContext) : String = {
+    s"Function: ${context.fname}, Module: ${context.module.name}"
+  }
 }
