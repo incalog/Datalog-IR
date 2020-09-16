@@ -6,14 +6,18 @@ import inca.frontend.typechecker.Typechecker.TypeEnvironment
 import inca.runtime.context._
 import scala.collection.mutable.ArrayBuffer
 
+/* The Typechecker results */
 sealed trait TypecheckResult
 case class SuccessTypecheck(warnings: Seq[TypeWarning]) extends TypecheckResult
-case class FailTypecheck(error: TypeError, warnings: Seq[TypeWarning])
+case class FailTypecheck(errors: Seq[TypeError], warnings: Seq[TypeWarning])
     extends TypecheckResult
 
+/* Errors that can occur in typechecking */
 case class TypeWarning(msg: String)
-class TypeError(msg: String) extends Exception(msg)
+case class TypeError(msg: String)
+class FatalError(msg: String) extends Exception(msg)
 
+/** TypeContext */
 class TypeContext(
     val fname: String, // Name of the function (For error messages)
     val functions: Map[Name, PatternFunction], // Functions accessable from the module
@@ -25,9 +29,8 @@ class TypeContext(
   }
 }
 
-object Typechecker {
-  type TypeEnvironment = Map[String, TypeAnno]
-}
+/* Companion object to Typechecker */
+object Typechecker { type TypeEnvironment = Map[String, TypeAnno] }
 
 /** IncA Typechecker
   *
@@ -43,6 +46,7 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Program) {
 
   // Data //
   val warnings: ArrayBuffer[TypeWarning] = ArrayBuffer()
+  val errors: ArrayBuffer[TypeError] = ArrayBuffer()
 
   val function_env: Map[Name, Map[Name, PatternFunction]] =
     prog.modules.map(m => m.name -> m.funs.map(f => f.name -> f).toMap).toMap
@@ -51,9 +55,14 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Program) {
   def typecheck(): TypecheckResult = {
     try {
       prog.modules.foreach(typecheck(_))
-      SuccessTypecheck(warnings.toSeq)
+
+      if (errors.isEmpty)
+        SuccessTypecheck(warnings.toSeq)
+      else
+        FailTypecheck(errors.toSeq, warnings.toSeq)
     } catch {
-      case e: TypeError => FailTypecheck(e, warnings.toSeq)
+      case e: FatalError =>
+        FailTypecheck(errors.addOne(TypeError(e.getMessage)).toSeq, warnings.toSeq)
     }
   }
 
@@ -82,30 +91,34 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Program) {
 
     if (res.contains(TUnit)) {
       if (out.nonEmpty)
-        throw new TypeError(
-          s"Annotated return type does not match ($w, Code: 0x01)"
-        )
+        errors.addOne(TypeError(s"Annotated return type does not match ($w, Code: 0x01)"))
     } else {
       // check if all blocks have the same return type // @todo type hierarchy
       if (res.count(res.head == _) != res.length)
-        throw new TypeError(
-          s"Patternfunction does not have the same return type in all blocks ($w)."
+        errors.addOne(
+          TypeError(
+            s"Patternfunction does not have the same return type in all blocks ($w)."
+          )
         )
 
       // match return type with given annotation
       res.head match {
         case TTuple(ts) =>
-          if ( // @todo type hierachy
+          if ( // @todo type hierarchy
             ts.length != out.length || ts.zip(out).exists(r => r._1 != r._2)
           )
-            throw new TypeError(
-              s"Annotated return type does not match ($w, Code: 0x02)"
+            errors.addOne(
+              TypeError(
+                s"Annotated return type does not match ($w, Code: 0x02)"
+              )
             )
         case t =>
           if ((out.length != 1 || out.head != t) && out.nonEmpty) { // @todo type hierarchy
             println(t, out)
-            throw new TypeError(
-              s"Annotated return type does not match ($w, Code: 0x03)"
+            errors.addOne(
+              TypeError(
+                s"Annotated return type does not match ($w, Code: 0x03)"
+              )
             )
           }
       }
@@ -129,8 +142,10 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Program) {
 
     // check if all return values are the same
     if (return_types.exists(_ != return_types.head)) // @todo type hierarchy
-      throw new TypeError(
-        s"Body has multiple return values (${where})."
+      errors.addOne(
+        TypeError(
+          s"Body has multiple return values (${where})."
+        )
       )
 
     if (return_types.nonEmpty) return_types.head
@@ -143,24 +158,33 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Program) {
     stm match {
       case Assert(cond) =>
         val (t, te) = typecheck(cond)
-        if (t != TBool) // @todo
-          throw new TypeError(s"Assert condition does not evaluate to bool ($where).")
-        (None, context.tenv ++ te) // @todo
-      case Assign(names, exp) =>
+        if (t != TBool) // @todo hierarchy
+          errors.addOne(
+            TypeError(s"Assert condition does not evaluate to bool ($where).")
+          )
+        (None, context.tenv ++ te) // @todo hierarchy
+      case Assign(names, exp) => // @todo check for already in use
         if (names.length == 1) { // simple assign
           (None, context.tenv + (names.head -> typecheck(exp)._1))
         } else { // tuple unpack
           typecheck(exp)._1 match {
             case TTuple(ts) =>
-              if (names.length != ts.length) // sizes need to match
-                throw new TypeError(
-                  s"Cannot unpack tuple with ${ts.length} to tuple with ${names.length} members ($where)."
+              if (names.length != ts.length) { // sizes need to match
+                errors.addOne(
+                  TypeError(
+                    s"Cannot unpack tuple with ${ts.length} to tuple with ${names.length} members ($where)."
+                  )
                 )
+                (None, context.tenv)
+              }
               (None, context.tenv ++ names.zip(ts).map(p => p._1 -> p._2).toMap)
             case t =>
-              throw new TypeError(
-                s"Cannot unpack type ${t.prettyprint} to tuple with ${names.length} members ($where)."
+              errors.addOne(
+                TypeError(
+                  s"Cannot unpack type ${t.prettyprint} to tuple with ${names.length} members ($where)."
+                )
               )
+              (None, context.tenv)
           }
         }
       case Values(name, typ) =>
@@ -198,7 +222,7 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Program) {
             else
               (TTuple(ret), context.tenv)
           case None =>
-            throw new TypeError(s"Function $name is not defined ($where).")
+            throw new FatalError(s"Function $name is not defined ($where).")
         }
       case Constant(lit) => (typecheck(lit), context.tenv)
       case Count(call) =>
@@ -213,12 +237,12 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Program) {
       case Eq(lhs, rhs) =>
         val r, l = (typecheck(lhs), typecheck(rhs))
         if (r != l) // @todo
-          throw new TypeError(s"Equality operands do not match ($where).")
+          throw new FatalError(s"Equality operands do not match ($where).")
         (TBool, context.tenv)
       case Neq(lhs, rhs) =>
         val r, l = (typecheck(lhs), typecheck(rhs))
         if (r != l) // @todo
-          throw new TypeError(s"Inequality operands do not match ($where).")
+          throw new FatalError(s"Inequality operands do not match ($where).")
         (TBool, context.tenv)
       case InstanceOf(exp, ty) =>
         val (t, te) = typecheck(exp)
@@ -228,7 +252,7 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Program) {
             (TBool, context.tenv.updated(name, ty) ++ te)
           case _ =>
             if (t != ty)
-              throw new TypeError(s"InstanceOf type does not match ($where, Code: 0x01)")
+              throw new FatalError(s"InstanceOf type does not match ($where, Code: 0x01)")
             (TBool, context.tenv ++ te)
         }
       case NotInstanceOf(exp, ty) =>
@@ -239,7 +263,7 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Program) {
             (TBool, context.tenv.updated(name, ty) ++ te)
           case _ =>
             if (t != ty)
-              throw new TypeError(
+              throw new FatalError(
                 s"NotInstanceOf type does not match ($where, Code: 0x01)"
               )
             (TBool, context.tenv ++ te)
@@ -252,7 +276,7 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Program) {
         ) // @todo type hierachy
       case Var(name) =>
         if (!context.tenv.contains(name))
-          throw new TypeError(
+          throw new FatalError(
             s"Variable $name is not defined ${where}"
           )
         (context.tenv(name), context.tenv)
