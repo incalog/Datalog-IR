@@ -177,7 +177,10 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
           throw new TypeError(s"Function $name is not defined (${where}).")
       }
       case Constant(lit)                       => typecheck(lit)
-      case Count(call)                         => ???
+      case Count(call)                         => {
+        typecheck(call)
+        TInt
+      }
       case Def(exp)                            => {
         typecheck(exp) // @todo Restrictions ?
         TBool
@@ -186,10 +189,48 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
         typecheck(exp) // @todo Restrictions ?
         TBool
       }
-      case Eq(lhs, rhs)                        => ???
-      case Neq(lhs, rhs)                       => ???
-      case InstanceOf(exp, ty)                 => ???
-      case NotInstanceOf(exp, ty)              => ???
+      case Eq(lhs, rhs)                        => {
+        val r, l = (typecheck(lhs), typecheck(rhs))
+        if (r != l)
+          throw new TypeError(s"Equality operands do not match $where.")
+        TBool
+      }
+      case Neq(lhs, rhs)                       => {
+        val r, l = (typecheck(lhs), typecheck(rhs))
+        if (r != l)
+          throw new TypeError(s"Inequality operands do not match $where.")
+        TBool
+      }
+      case InstanceOf(exp, ty)                 => {
+        val ety = typecheck(exp)
+        exp match {
+          case Var(name) => {
+            // @todo type hierachy and compile time evaluation?
+            context.variable_map = context.variable_map.updated(name, ety)
+            ty
+          }
+          case _ => {
+            if (ety != ty) 
+              throw new TypeError(s"InstanceOf type does not match ($where, Code: 0x01)")
+            ty
+          }
+        }
+      }
+      case NotInstanceOf(exp, ty)              => {
+        val ety = typecheck(exp)
+        exp match {
+          case Var(name) => {
+            // @todo type hierachy and compile time evaluation?
+            context.variable_map = context.variable_map.updated(name, ety)
+            ty
+          }
+          case _ => {
+            if (ety != ty) 
+              throw new TypeError(s"NotInstanceOf type does not match ($where, Code: 0x01)")
+            ty
+          }
+        }
+      }
       case Tuple(exps)                         => TTuple(exps.map(typecheck))
       case Var(name) => {
         if (!context.variable_map.contains(name))
