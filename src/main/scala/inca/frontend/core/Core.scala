@@ -10,33 +10,33 @@ object Core {
     def javastring: String
   }
   case object TAny extends TypeAnno {
-    override def prettyprint: String = "any"
+    override def prettyprint: String = "Any"
     override def javastring: String = "any"
   }
   case object TBool extends TypeAnno {
-    override def prettyprint: String = "bool"
+    override def prettyprint: String = "Boolean"
     override def javastring: String = "bool"
   }
   case object TInt extends TypeAnno {
-    override def prettyprint: String = "int"
+    override def prettyprint: String = "Int"
     override def javastring: String = "int"
   }
   case object TLong extends TypeAnno {
-    override def prettyprint: String = "long"
+    override def prettyprint: String = "Long"
     override def javastring: String = "long"
   }
   case object TDouble extends TypeAnno {
-    override def prettyprint: String = "double"
+    override def prettyprint: String = "Double"
     override def javastring: String = "double"
   }
   case object TString extends TypeAnno {
-    override def prettyprint: String = "string"
+    override def prettyprint: String = "String"
     override def javastring: String = "string"
   }
 
   trait TLinked extends TypeAnno
   case object TAnyLinked extends TLinked {
-    override def prettyprint: String = "node"
+    override def prettyprint: String = "Node"
     override def javastring: String = "node"
   }
   case class TNode(name: String) extends TLinked {
@@ -66,6 +66,8 @@ object Core {
 
     override def javastring: String = "Tuple_" + ts.map(_.javastring).mkString("_")
   }
+
+  val TUnit = TTuple(Seq.empty)
 
   type Name = String
 

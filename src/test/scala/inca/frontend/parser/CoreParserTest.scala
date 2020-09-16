@@ -50,9 +50,9 @@ class CoreParserTest extends AnyFunSuite {
       test_helper_negative(CoreParser().tIterable(_))(s"Q$inp")
     }
 
-    test_run("List[node]", TList(TAnyLinked))
+    test_run("List[Node]", TList(TAnyLinked))
     test_run("List[apf3l]", TList(TNode("apf3l")))
-    test_run("Enum[node]", TEnumeration(TAnyLinked))
+    test_run("Enum[Node]", TEnumeration(TAnyLinked))
     test_run("Enum[br0t]", TEnumeration(TNode("br0t")))
   }
 
@@ -261,15 +261,15 @@ class CoreParserTest extends AnyFunSuite {
 
     // Note: right to left input due to recusion
     test_run(
-      "(x == 5) instanceOf bool",
+      "(x == 5) instanceOf Boolean",
       InstanceOf(Eq(Var("x"), Constant(IntLiteral(5))), TBool)
     )
     test_run(
-      "x == 5 instanceOf bool",
+      "x == 5 instanceOf Boolean",
       Eq(Var("x"), InstanceOf(Constant(IntLiteral(5)), TBool))
     )
     test_run(
-      "(x == (5 != y)) instanceOf int",
+      "(x == (5 != y)) instanceOf Int",
       InstanceOf(
         Eq(
           Var("x"),
@@ -282,7 +282,7 @@ class CoreParserTest extends AnyFunSuite {
       )
     )
     test_run(
-      "def (x == 9) instanceOf long",
+      "def (x == 9) instanceOf Long",
       Def(
         InstanceOf(
           Eq(
@@ -294,7 +294,7 @@ class CoreParserTest extends AnyFunSuite {
       )
     )
     test_run(
-      "undef (q != def 17 instanceOf int) notInstanceOf string",
+      "undef (q != def 17 instanceOf Int) notInstanceOf String",
       Undef(
         NotInstanceOf(
           Neq(
@@ -311,14 +311,14 @@ class CoreParserTest extends AnyFunSuite {
       )
     )
     test_run(
-      "\"String\" instanceOf string",
+      "\"String\" instanceOf String",
       InstanceOf(
         Constant(StringLiteral("String")),
         TString
       )
     )
     test_run(
-      "9.7d notInstanceOf int",
+      "9.7d notInstanceOf Int",
       NotInstanceOf(Constant(DoubleLiteral(9.7)), TInt)
     )
     test_run(
@@ -329,7 +329,7 @@ class CoreParserTest extends AnyFunSuite {
       )
     )
     test_run(
-      "x instanceOf (bool,br0t)",
+      "x instanceOf (Boolean,br0t)",
       InstanceOf(
         Var("x"),
         TTuple(Seq(TBool, TNode("br0t")))
@@ -337,7 +337,7 @@ class CoreParserTest extends AnyFunSuite {
     )
 
     test_run(
-      "undef x notInstanceOf (double)",
+      "undef x notInstanceOf (Double)",
       Undef(
         NotInstanceOf(
           Var("x"),
@@ -346,7 +346,7 @@ class CoreParserTest extends AnyFunSuite {
       )
     )
     test_run(
-      "x instanceOf bool != x notInstanceOf double", 
+      "x instanceOf Boolean != x notInstanceOf Double",
       Neq(
         InstanceOf(
           Var("x"),
@@ -359,7 +359,7 @@ class CoreParserTest extends AnyFunSuite {
       )
     )
     test_run(
-      "x instanceOf (bool, br0t) != undef x notInstanceOf (double)", 
+      "x instanceOf (Boolean, br0t) != undef x notInstanceOf (Double)",
       Neq(
         InstanceOf(
           Var("x"),
@@ -374,7 +374,7 @@ class CoreParserTest extends AnyFunSuite {
       )
     )
     test_run(
-      "(x instanceOf (bool, br0t) != undef x) notInstanceOf (double)", 
+      "(x instanceOf (Boolean, br0t) != undef x) notInstanceOf (Double)",
       NotInstanceOf(
         Neq(
           InstanceOf(
@@ -453,11 +453,11 @@ class CoreParserTest extends AnyFunSuite {
   test("test TTuple") {
     def test_run(input: String, cmp: TTuple) = test_helper[TTuple](CoreParser().tTuple(_))
 
-    test_run("(int,string)", TTuple(Seq(TInt, TString)))
-    test_run("(int, string)", TTuple(Seq(TInt, TString)))
-    test_run("(int string)", TTuple(Seq(TInt, TString)))
-    test_run(" ( int , string ) ", TTuple(Seq(TInt, TString)))
-    test_run("(double)", TTuple(Seq(TDouble)))
+    test_run("(Int,String)", TTuple(Seq(TInt, TString)))
+    test_run("(Int, String)", TTuple(Seq(TInt, TString)))
+    test_run("(Int String)", TTuple(Seq(TInt, TString)))
+    test_run(" ( Int , String ) ", TTuple(Seq(TInt, TString)))
+    test_run("(Double)", TTuple(Seq(TDouble)))
     test_run("Unit", TTuple(Seq.empty))
   }
 
@@ -586,7 +586,7 @@ class CoreParserTest extends AnyFunSuite {
     )
     test_run(
       s"""{
-         |    vals br0t <- (int, string)
+         |    vals br0t <- (Int, String)
          |}""".stripMargin,
       Body(
         Seq(
@@ -607,7 +607,7 @@ class CoreParserTest extends AnyFunSuite {
     }
 
     test_run(
-      s"""def foo (bar: int) : unit = {
+      s"""def foo (bar: Int) : unit = {
                 |    assert x== 7 
                 |} union { 
                 |  val q = 9  
@@ -629,7 +629,7 @@ class CoreParserTest extends AnyFunSuite {
     )
 
     test_run(
-      s"""   def    foo    ( bar : int ) : unit =
+      s"""   def    foo    ( bar : Int ) : unit =
                 |{ 
                 |    assert x  == 7 
                 |}
@@ -654,7 +654,7 @@ class CoreParserTest extends AnyFunSuite {
     )
 
     test_run(
-      s"""private   def    foo    ( bar : int ) : (int) =
+      s"""private   def    foo    ( bar : Int ) : (Int) =
                 |{ 
                 |    assert x  == 7 
                 |}
@@ -679,7 +679,7 @@ class CoreParserTest extends AnyFunSuite {
     )
 
     test_run(
-      s"""def foo(bar : int, foobar: (bool, (bool, string))) : ((string, bool)) = {
+      s"""def foo(bar : Int, foobar: (Boolean, (Boolean, String))) : ((String, Boolean)) = {
                 |   val x = y
                 |}""".stripMargin,
       PatternFunction(
@@ -699,7 +699,7 @@ class CoreParserTest extends AnyFunSuite {
     )
 
     test_run(
-      s"""def foo(bar : int, foobar: (bool, (bool, string))) : (value : (string, bool)) = {
+      s"""def foo(bar : Int, foobar: (Boolean, (Boolean, String))) : (value : (String, Boolean)) = {
                 |   val x = y
                 |}""".stripMargin,
       PatternFunction(
@@ -719,7 +719,7 @@ class CoreParserTest extends AnyFunSuite {
     )
 
     test_run(
-      s"""def foo(bar : int, foobar: (bool, (bool, string))) : ((value : (string, bool)), bool) = {
+      s"""def foo(bar : Int, foobar: (Boolean, (Boolean, String))) : ((value : (String, Boolean)), Boolean) = {
                 |   val x = y
                 |}""".stripMargin,
       PatternFunction(
@@ -750,10 +750,10 @@ class CoreParserTest extends AnyFunSuite {
       s"""module my
                 |math
                 |import cuda_runtime
-                |def foo(bar: bool): unit = {
+                |def foo(bar: Boolean): unit = {
                 |  val x = y
                 |}
-                |def bar(foo: bool): unit = {
+                |def bar(foo: Boolean): unit = {
                 |  val x = y
                 |}""".stripMargin,
       Module(
@@ -793,7 +793,7 @@ class CoreParserTest extends AnyFunSuite {
                 |import cuda_runtime
                 |
                 |
-                |def foo(bar: bool): unit = {
+                |def foo(bar: Boolean): unit = {
                 |  val x = y
                 |}
                 |
@@ -822,7 +822,7 @@ class CoreParserTest extends AnyFunSuite {
                 |import math
                 |
                 |
-                |def foo(bar: bool): unit = {
+                |def foo(bar: Boolean): unit = {
                 |  val x = y
                 |}
                 |
@@ -848,7 +848,7 @@ class CoreParserTest extends AnyFunSuite {
     test_run(
       s"""module my
                 |
-                |def foo(bar: bool): unit = {
+                |def foo(bar: Boolean): unit = {
                 |  val x = y
                 |}
                 |

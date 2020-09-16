@@ -25,15 +25,15 @@ class ExtensionsTest extends AnyFunSuite {
   test("test Cast") {
     def test_run = test_helper(CoreParser(Seq(CastParser)).exp(_))
 
-    test_run("x:int", Cast(Var("x"), TInt))
-    test_run("x :int", Cast(Var("x"), TInt))
-    test_run("x : int", Cast(Var("x"), TInt))
+    test_run("x:Int", Cast(Var("x"), TInt))
+    test_run("x :Int", Cast(Var("x"), TInt))
+    test_run("x : Int", Cast(Var("x"), TInt))
   }
 
   test("test Enum") {
     def test_run = test_helper(CoreParser(Seq(EnumParser)).exp(_))
 
-    test_run("enum(int)", Enum(TInt))
+    test_run("enum(Int)", Enum(TInt))
   }
 
   test("test ForallExists") {
