@@ -93,10 +93,12 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
             )
         }
         case t => {
-          if ((out.length != 1 || out.head != t) && out.length != 0)
+          if ((out.length != 1 || out.head != t) && out.length != 0) {
+            println(t, out)
             throw new TypeError(
               s"Annotated return type does not match ($w, Code: 0x03)"
             )
+          }
         }
       }
     }
@@ -206,13 +208,13 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
         exp match {
           case Var(name) => {
             // @todo type hierachy and compile time evaluation?
-            context.variable_map = context.variable_map.updated(name, ety)
-            ty
+            context.variable_map = context.variable_map.updated(name, ty)
+            TBool
           }
           case _ => {
             if (ety != ty) 
               throw new TypeError(s"InstanceOf type does not match ($where, Code: 0x01)")
-            ty
+            TBool
           }
         }
       }
@@ -221,13 +223,13 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Programm) {
         exp match {
           case Var(name) => {
             // @todo type hierachy and compile time evaluation?
-            context.variable_map = context.variable_map.updated(name, ety)
-            ty
+            context.variable_map = context.variable_map.updated(name, ty)
+            TBool
           }
           case _ => {
             if (ety != ty) 
-              throw new TypeError(s"NotInstanceOf type does not match ($where, Code: 0x01)")
-            ty
+              throw new TypeError(s"InstanceOf type does not match ($where, Code: 0x01)")
+            TBool
           }
         }
       }
