@@ -289,12 +289,14 @@ object Core {
   }
   case class Tuple(exps: Seq[Exp]) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = exps.flatMap(_.freeVars).toMap
+    `exps`
     override def prettyprint(implicit indent: String): String =
       exps.map(_.prettyprint).mkString("(", ", ", ")")
   }
   /** Eval code must be a Scala expression that can access `params` by name and must yield a `resultType`. */
   case class Eval(params: Seq[Name], code: Term) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = params.map(_ -> None).toMap
+    `params`
     override def prettyprint(implicit indent: String): String = s"eval($code)"
   }
 

@@ -5,7 +5,7 @@ import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
-import scala.meta.XtensionQuasiquoteTerm
+import scala.meta.{Term, XtensionQuasiquoteTerm}
 
 case class Forall(name: Name, exp: Exp, body: Body) extends Statement {
   val elemTyp: Option[TLinked] = exp.typ.flatMap {
@@ -69,7 +69,7 @@ object ForallExists extends Desugarable {
 
           changed(Seq(
             Assign(Seq(successSym), Count(Call(funsym, args)).typed(TInt)),
-            Assert(Eval(Seq(successSym), q"""$successSym >= 1""").typed(TBool))
+            Assert(Eval(Seq(successSym), q"""${Term.Name(successSym)} >= 1""").typed(TBool))
           ))
         case ty => throw new IllegalArgumentException(s"Forall loop expression $exp must have iterable type, but was type $ty")
       }

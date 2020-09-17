@@ -3,7 +3,7 @@ package inca.frontend.extensions
 import inca.frontend.core.CompileToGP.resolveDataOp
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
-import inca.util.Gensym
+import inca.util.{Gensym, Meta}
 
 import scala.collection.mutable.ListBuffer
 import scala.meta.Term
@@ -31,8 +31,8 @@ object DataOpCall extends Desugarable {
         val resultType = call.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped data op call $call"))
         val argString = if (syms.isEmpty) "" else s"(${syms.mkString(", ")})"
         val qop = resolveDataOp(op)
-        val fun = decodeName(qop)
-        val code: Term = if(syms.isEmpty) fun else Term.Apply(fun, syms.map(decodeName).toList)
+        val fun = Meta.mkQualName(qop)
+        val code: Term = if(syms.isEmpty) fun else Term.Apply(fun, syms.map(Meta.mkQualName).toList)
         s"$qop$argString"
         changed(Eval(syms, code).typed(resultType))
       case _ => super.desugarExp(exp)
@@ -46,20 +46,6 @@ object DataOpCall extends Desugarable {
         val prepend = dataOpAssigns.toSeq
         dataOpAssigns.clear()
         prepend ++ desugared
-      }
-    }
-
-    private def decodeName(name: Name) = {
-      val parts = name.split(".")
-      if(parts.size <= 1) {
-        Term.Name(name)
-      }
-      else {
-        val first = parts(0)
-        val rest = parts.slice(1, parts.size)
-        rest.foldLeft[Term](Term.Name(first)) {
-          case (select, name) => Term.Select(select, Term.Name(name))
-        }
       }
     }
   }
