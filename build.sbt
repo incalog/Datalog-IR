@@ -27,9 +27,13 @@ lazy val inca = (project in file(".")).settings(
 
 lazy val souffle_importer = (project in file("souffle-importer")).dependsOn(inca).settings(
   name := "souffle-importer",
+
+  resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
+
   libraryDependencies ++= Seq(
     "com.lihaoyi" %% "fastparse" % "2.1.3",
-    "org.scalatest" %% "scalatest" % "3.1.0" % "test"
+    "org.scalatest" %% "scalatest" % "3.1.0" % "test",
+    "de.uni-mainz.informatik.pl" %% "truechange" % "0.1.1",
   )
 )
 

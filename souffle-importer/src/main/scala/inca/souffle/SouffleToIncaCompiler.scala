@@ -4,19 +4,15 @@ import inca.frontend.core.Core
 import inca.frontend.core.Core._
 import inca.souffle.Syntax._
 
-import scala.collection.mutable
-import scala.io.Source
-import scala.meta.{Defn, Lit, Term, Type}
-import scala.meta.quasiquotes._
+import inca.souffle.Util._
 
-// Important: Legacy souffle code .type Type will translate to .type Type <: symbol
+import scala.collection.mutable
+
 class SouffleToIncaCompiler {
 
   val patFuns: mutable.Map[String, PatternFunction] = mutable.Map()
   val decls: mutable.Map[String, RuleSignature] = mutable.Map()
-  val types: mutable.ListBuffer[Defn.Type] = mutable.ListBuffer()
-  val caseClasses: mutable.ListBuffer[Defn.Class] = mutable.ListBuffer()
-  val objects: mutable.Map[String, mutable.ListBuffer[Term.Apply]] = mutable.Map()
+  val inputs: mutable.Map[String, Input] = mutable.Map()
 
   val componentDefinitions: mutable.Map[String, ComponentDefinition] = mutable.Map()
 
@@ -41,29 +37,19 @@ class SouffleToIncaCompiler {
     case RuleDefinition(heads, rulebody) =>
       for (RuleHead(name, args) <- heads) {
         val fun = patFuns.getOrElse(funPrefix + name, throw new IllegalArgumentException(s"Unknown relation ${funPrefix + name}"))
-        // rename all occurrences of the fun params in the Souffle rule
-        val subst = fun.params.map(p => p.name -> ("$$" + p.name)).toMap
-        val stmts = rulebody.map(compile(_, subst, funPrefix))
         val headEqs = (fun.params zip args).map {
-          case (Param(name, _), arg) => Assert(Eq(Var(name), compile(arg, subst)))
+          case (Param(name, _), arg) => Assert(Eq(Var(name), compile(arg)))
         }
+        val stmts = rulebody.map(compile(_, funPrefix))
         val funbody = Body(headEqs ++ stmts)
         patFuns += (funPrefix + name) -> PatternFunction(fun.vis, fun.name, fun.params, fun.outParams, fun.bodies :+ funbody)
       }
 
-    case TypeDeclaration(name, superType) => superType match {
-      case None => types += q"type ${Type.Name(name)} = String"
-      case Some(stype) => types += q"type ${Type.Name(name)} = ${genScalaType(stype)}"
-    }
+    case TypeDeclaration(name, superType) =>
 
-
-    case Input(rule, filename, delimiter) =>
+    case in@Input(rule, filename, delimiter) =>
       val decl = decls(rule)
-      // generate case class representing signature
-      val tyName = Type.Name(rule)
-      caseClasses += q"@diffable case class $tyName(..${decl.parameters.map(genCaseClassParam).toList})"
-//      println(caseClasses.last)
-
+      inputs(rule) = in
       // generate pattern that enumerates all node instances of AST node class
       val fun = patFuns.getOrElse(rule, throw new IllegalArgumentException("Rule signature has to come before input declaration"))
       val body = Core.Body(
@@ -74,51 +60,33 @@ class SouffleToIncaCompiler {
         }
       )
       patFuns(rule) = PatternFunction(fun.vis, fun.name, fun.params, fun.outParams, Seq(body))
-
-    // read file
-    val lines = Source.fromFile(s"souffle-importer/minijavac/$filename").getLines
-    objects(rule) = mutable.ListBuffer()
-    val paramTypes = decl.parameters.map(_.typ)
-    // TODO need to know that specific type is type alias for string
-    lines.foreach { line =>
-      val elems = line.split(delimiter)
-      objects(rule) += q"${Term.Name(rule)}(..${elems.zip(paramTypes).map { case (x, y) => compileScalaTerm(x, y) }.toList})"
-    }
+      println(patFuns(rule).prettyprint(""))
 
     case Output(rule) =>
 
     case PrintSize(rule) =>
   }
 
-  def compileScalaTerm(elem: String, typ: Syntax.Type): Term = typ match {
-    case DeclaredType(name) => Lit.String(elem)
-    case SymbolType => Lit.String(elem)
-    case NumberType => Lit.Int(elem.toInt)
-    case UnsignedType => Lit.Long(elem.toLong)
-    case FloatType => Lit.Double(elem.toDouble)
-  }
-
-
   def compile(param: RuleParameter): Param =
     Param(cleanSouffleName(param.name), compile(param.typ))
 
   def compile(typ: Syntax.Type): TypeAnno = typ match {
-    case DeclaredType(name) => TNode(name)
+    case DeclaredType(name) => TString
     case SymbolType => TString
     case NumberType => TInt
     case UnsignedType => TLong
     case FloatType => TDouble
   }
 
-  def compile(stm: Syntax.Statement, subst: Map[String, String], funPrefix: String): Core.Statement = stm match {
+  def compile(stm: Syntax.Statement, funPrefix: String): Core.Statement = stm match {
     case Equality(left, not, right) if !not =>
-      Assert(Eq(compile(left, subst), compile(right, subst)))
+      Assert(Eq(compile(left), compile(right)))
     case Equality(left, not, right) if not =>
-      Assert(Neq(compile(left, subst), compile(right, subst)))
+      Assert(Neq(compile(left), compile(right)))
     case RuleApplication(negated, component, rule, arguments) =>
       val call = component match {
-        case Some(c) => Call(s"${c}_$rule", arguments.map(compile(_, subst)))
-        case None => Call(funPrefix + rule, arguments.map(compile(_, subst)))
+        case Some(c) => Call(s"${c}_$rule", arguments.map(compile))
+        case None => Call(funPrefix + rule, arguments.map(compile))
       }
       if (negated)
         Assert(Undef(call))
@@ -126,7 +94,7 @@ class SouffleToIncaCompiler {
         Assert(Def(call))
   }
 
-  def compile(exp: Syntax.Expression, subst: Map[String, String]): Core.Exp = exp match {
+  def compile(exp: Syntax.Expression): Core.Exp = exp match {
     case Variable(name) =>  Core.Var(cleanSouffleName(name))
     case StringValue(value) => Core.Constant(StringLiteral(value))
     case NumberValue(value) => Core.Constant(IntLiteral(value))
@@ -155,37 +123,4 @@ class SouffleToIncaCompiler {
       s"($lhs + $rhs)"
     case Syntax.Any => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
   }
-
-  def  cleanSouffleName(s: String): String = s match {
-    //    case "class" => "clazz"
-    //    case "var" => "vari"
-    //    case "type" => "ty"
-    case s if (s.startsWith("?")) => s.tail
-    case s => s
-  }
-
-  private def genCaseClassParam(param: Syntax.RuleParameter): Term.Param = {
-    val name = Term.Name(cleanSouffleName(param.name))
-    val ty = genScalaType(param.typ)
-    param"$name: $ty"
-  }
-
-  private def genScalaType(typ: Syntax.Type): Type = typ match {
-    case DeclaredType(name) => Type.Name(name)
-    case SymbolType => Type.Name("String")
-    case NumberType => Type.Name("Int")
-    case UnsignedType => Type.Name("Long")
-    case FloatType => Type.Name("Double")
-  }
-
-  def compileScalaFile: scala.meta.Source =
-    source"""
-      package inca.souffle
-
-      object Facts {
-        ..${types.toList}
-        ..${caseClasses.toList}
-        ..${objects.values.flatten.toList}
-      }
-    """
 }
