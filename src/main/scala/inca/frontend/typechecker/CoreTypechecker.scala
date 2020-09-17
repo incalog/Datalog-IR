@@ -293,7 +293,7 @@ class CoreTypechecker(
           )
         (context.tenv(name), context.tenv)
       case PathAccess(receiver, link)     => ???
-      case Eval(params, resultType, code) => ???
+      case Eval(params, code) => ???
       case _: Exp =>
         for (e <- extensions) {
           val (ot, et, is) = e.typecheck(exp)
