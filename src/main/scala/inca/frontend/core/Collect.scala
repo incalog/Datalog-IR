@@ -57,7 +57,7 @@ trait Collect[R] {
     case Call(name, args, transitive) => args.flatMap(a => transExp(a.ensureCore))
     case Count(Call(name, args, transitive)) => args.flatMap(a => transExp(a.ensureCore))
     case Tuple(exps) => exps.flatMap(e => transExp(e.ensureCore))
-    case Eval(freeVars, resultType, code) => freeVars.flatMap(transReference)
+    case Eval(freeVars, _) => freeVars.flatMap(transReference)
     case Aggregate(_, _, _, Call(name, args, transitive)) => args.flatMap(a => transExp(a.ensureCore))
   }
 

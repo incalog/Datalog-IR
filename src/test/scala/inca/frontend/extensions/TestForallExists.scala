@@ -6,6 +6,8 @@ import inca.runtime.context.QueryScope
 import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
+import scala.meta.XtensionQuasiquoteTerm
+
 class TestForallExists extends AnyFlatSpec with IncaMatchers {
 
   val one = Constant(IntLiteral(1))
@@ -87,7 +89,7 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
       PatternFunction(None, "listContaining4", Seq(Param("l", TList(TNode(Exp.expTag)))), Seq(), Seq(Body(Seq(
         Exists("e", Var("l").typed(TList(TNode(Exp.expTag))), Body(
           Assign(Seq("i"), PathAccess(Cast(Var("e").typed(TNode(Exp.expTag)), TNode(Exp.intTag)), NamedLink(TNode(Exp.intTag), "value")).typed(TInt)),
-          Assert(Eval(Seq("i"), TBool, """i == 4"""))
+          Assert(Eval(Seq("i"), q"""i == 4""").typed(TBool))
         )),
         Yield(Constant(UnitLiteral))
       ))))

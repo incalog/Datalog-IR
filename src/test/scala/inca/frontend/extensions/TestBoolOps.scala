@@ -6,6 +6,8 @@ import inca.runtime.context.QueryScope
 import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
+import scala.meta.XtensionQuasiquoteTerm
+
 class TestBoolOps extends AnyFlatSpec with IncaMatchers {
 
   val one = Constant(IntLiteral(1))
@@ -73,7 +75,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
         Assign(Seq("i"), PathAccess(Var("e"), NamedLink(TNode(Exp.intTag), "value")).typed(TInt)),
         Assign(Seq("cond"),
           // "i" is _not_ a square number
-          Not(Eval(Seq("i"), TBool, s"Math.sqrt(i).isValidInt"))),
+          Not(Eval(Seq("i"), q"Math.sqrt(i).isValidInt").typed(TBool))),
         Assert(Eq(Var("cond"), Constant(BooleanLiteral(true)))),
         Yield(Var("e"))
       ))))

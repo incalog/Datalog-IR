@@ -5,6 +5,7 @@ import fastparse._
 import inca.frontend.core.Core
 import inca.frontend.core.Core._
 import inca.frontend.parser.ParserUtils._
+import inca.frontend.util.EvalHelper
 
 import scala.meta._
 import scala.util.control.Breaks._
@@ -68,6 +69,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
         | typeAnnoHelper(TInt)
         | typeAnnoHelper(TDouble)
         | typeAnnoHelper(TString)
+        | typeAnnoHelper(TUnit)
         | tLinked
         | tIterable
         | tTuple
@@ -81,12 +83,10 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
         | P(sp ~ P(Public.prettyprint(""))).map(_ => Public)
     )
 
-  /** TTuple parser */
+  /** TTuple parser without Unit*/
   def tTuple[_: P]: P[TTuple] =
     P(
-      P("Unit").map(_ => TTuple(Seq.empty))
-        | (sp ~ "(" ~ typeAnno.rep(1, sep = ",") ~ ")")
-          .map(TTuple)
+      (sp ~ "(" ~ typeAnno.rep(1, sep = ",") ~ ")").map(TTuple)
     )
 
   /** TList parser */
@@ -232,12 +232,12 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
 
   /** Eval parser */
   def evalExp[_: P]: P[Eval] = {
-    var code: String = ""
+    var codeStr: String = ""
     var c: Int = 0
     var error = false
     var free = Set[String]()
-    val node = TNode("dummy")
     var closing = ')'
+    var code: Term = Term.Name("unused")
 
     P(
       "eval" ~ ("(" | "{").! flatMapX
@@ -255,22 +255,22 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
                     stack.push(ch)
                   else if (ch == closing)
                     stack.pop()
-                  code += ch
+                  codeStr += ch
                 }
               }
               if (stack.nonEmpty) {
                 error = true
                 return fastparse.Fail
               }
-              c = code.length
-              code.parse[Term] match {
+              c = codeStr.length
+              code = codeStr.parse[Term] match {
                 case scala.meta.parsers.Parsed.Error(_, _, _) => {
                   error = true
                   return fastparse.Fail
                 }
                 case scala.meta.parsers.Parsed.Success(t) =>
-                  // println(t.structure)
-                 free = EvalHelper.freeVars(t)
+                  free = EvalHelper.freeVars(t)
+                  t
               }
             }) ~~
               fastparse.Fail
@@ -283,7 +283,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
               ) ~~
             s"$closing"
           )
-    ).map(_ => Eval(free.toSeq, node, code))
+    ).map(_ => Eval(free.toSeq, code))
   }
 
 

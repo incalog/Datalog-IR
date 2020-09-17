@@ -3,6 +3,7 @@ package inca.frontend.core
 import inca.util.Meta.TAB
 
 import scala.language.reflectiveCalls
+import scala.meta.Term
 
 object Core {
   sealed trait TypeAnno {
@@ -288,13 +289,14 @@ object Core {
   }
   case class Tuple(exps: Seq[Exp]) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = exps.flatMap(_.freeVars).toMap
+    `exps`
     override def prettyprint(implicit indent: String): String =
       exps.map(_.prettyprint).mkString("(", ", ", ")")
   }
   /** Eval code must be a Scala expression that can access `params` by name and must yield a `resultType`. */
-  case class Eval(params: Seq[Name], resultType: TypeAnno, code: String) extends CoreExp {
-    this.typ = Some(resultType)
+  case class Eval(params: Seq[Name], code: Term) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = params.map(_ -> None).toMap
+    `params`
     override def prettyprint(implicit indent: String): String = s"eval($code)"
   }
 
