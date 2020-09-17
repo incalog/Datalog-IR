@@ -31,9 +31,10 @@ object DataOpCall extends Desugarable {
         val resultType = call.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped data op call $call"))
         val argString = if (syms.isEmpty) "" else s"(${syms.mkString(", ")})"
         val qop = resolveDataOp(op)
-        val code: Term = if(syms.isEmpty) Term.Name(qop) else Term.Apply(Term.Name(qop), syms.map(Term.Name(_)).toList)
+        val fun = decodeName(qop)
+        val code: Term = if(syms.isEmpty) fun else Term.Apply(fun, syms.map(decodeName).toList)
         s"$qop$argString"
-        changed(Eval(syms, code))
+        changed(Eval(syms, code).typed(resultType))
       case _ => super.desugarExp(exp)
     }
 
@@ -45,6 +46,20 @@ object DataOpCall extends Desugarable {
         val prepend = dataOpAssigns.toSeq
         dataOpAssigns.clear()
         prepend ++ desugared
+      }
+    }
+
+    private def decodeName(name: Name) = {
+      val parts = name.split(".")
+      if(parts.size <= 1) {
+        Term.Name(name)
+      }
+      else {
+        val first = parts(0)
+        val rest = parts.slice(1, parts.size)
+        rest.foldLeft[Term](Term.Name(first)) {
+          case (select, name) => Term.Select(select, Term.Name(name))
+        }
       }
     }
   }
