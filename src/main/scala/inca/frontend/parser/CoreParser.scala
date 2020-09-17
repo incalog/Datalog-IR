@@ -5,6 +5,7 @@ import fastparse._
 import inca.frontend.core.Core
 import inca.frontend.core.Core._
 import inca.frontend.parser.ParserUtils._
+import inca.frontend.util.EvalHelper
 
 import scala.meta._
 import scala.util.control.Breaks._

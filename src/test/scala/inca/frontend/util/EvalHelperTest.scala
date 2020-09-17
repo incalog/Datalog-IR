@@ -1,6 +1,7 @@
-package inca.frontend.parser
+package inca.frontend.util
 
-import inca.frontend.core.Core.Name
+import inca.frontend.core.Core.{Eval, Module, Name, TBool, TDouble, TInt, TList, TNode, TString, TTuple, TUnit, TypeAnno}
+import inca.frontend.typechecker.TypeContext
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.Term._
@@ -15,6 +16,19 @@ class EvalHelperTest extends AnyFunSuite {
   private val undefinedVar = Defn.Var(Nil, List(Pat.Var(Name("value"))),Some(Type.Name("Int")), None)
 
   private val paramN = Param(Nil, Name("n"), Some(tInt), None)
+
+  private val emptyModule = Module("unused", Seq.empty, Seq.empty)
+
+  implicit val env: TypeContext = new TypeContext(
+    "",
+    Map(),
+    emptyModule,
+    Map(
+      "x" -> TInt,
+      "y" -> TInt,
+      "num" -> TNode("inca.analyzedData.Nat.Nat")
+    )
+  )
 
   test("test freeVars Name") {
     val code = q"x"
@@ -529,6 +543,45 @@ class EvalHelperTest extends AnyFunSuite {
     checkVars(code, Set("Node", "Heap", "Set", "start"))
   }
 
+  test("test typecheck simple") {
+
+    def check(eval: Eval, expected: TypeAnno): Unit = {
+      val actual = EvalHelper.typecheck(eval)
+      assert(actual == expected)
+    }
+
+    check(Eval(Seq("x", "y"), q"x + y"), TInt)
+    check(Eval(Seq.empty, q"Math.PI"), TDouble)
+    check(Eval(Seq("x", "y"), q"x == y"), TBool)
+    check(Eval(Seq.empty, q""" "hello world" """), TString)
+    check(Eval(Seq.empty, q"{val s: Short = 1; s}"), TInt)
+    check(Eval(Seq.empty, q"println()"), TUnit)
+  }
+
+  test("test typecheck tuple") {
+    val eval = Eval(Seq.empty, q"(1, 1.0, true)")
+    val typ = EvalHelper.typecheck(eval)
+    assert(typ == TTuple(Seq(TInt, TDouble, TBool)))
+  }
+
+  test("test typecheck extern types") {
+    val eval = Eval(Seq.empty, q"inca.analyzedData.Nat.Zero")
+    val typ = EvalHelper.typecheck(eval)
+    assert(typ == TNode("inca.analyzedData.Nat.Zero.type"))
+  }
+
+  test("test typecheck extern types 2") {
+    val code =
+      q"""num match {
+            case inca.analyzedData.Nat.Zero => inca.analyzedData.Nat.Zero
+            case inca.analyzedData.Nat.Succ(n) => n
+          }
+       """
+
+    val eval = Eval(Seq("num"), code)
+    val typ = EvalHelper.typecheck(eval)
+    assert(typ == TNode("inca.analyzedData.Nat.Nat"))
+  }
 
   private def checkVars(code: Tree, expectedFree: Set[Name]): Unit = {
     val free = EvalHelper.freeVars(code)
