@@ -1,10 +1,11 @@
 package inca.frontend.util
 
-import inca.frontend.core.Core.{Eval, Name, TBool, TDouble, TInt, TNode, TString, TTuple, TUnit, TypeAnno}
+import inca.frontend.core.Core.{Eval, Name, Private, Public, TAny, TAnyLinked, TBool, TDouble, TEnumeration, TInt, TIterable, TLinked, TList, TLong, TNode, TString, TTuple, TUnit, TypeAnno, Visibility}
+import inca.frontend.parser.CoreParser
+import inca.frontend.parser.ParserUtils.sp
 import inca.frontend.typechecker.TypeContext
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 import scala.meta.Type.Param
 import scala.meta.{Case, Defn, Enumerator, Lit, Pat, Term, Tree, Type}
 import scala.reflect.runtime.currentMirror
@@ -452,43 +453,8 @@ object EvalHelper {
   }
 
   def typecheck(eval: Eval)(implicit ctx: TypeContext): TypeAnno = {
-    val toolbox = currentMirror.mkToolBox()
-
-    def convertType(typ: toolbox.u.Type): TypeAnno = {
-      // i know thisis ugly,
-      // but so far i couldn't find a suitable method in the reflect API to convert the reflect types to TypeAnno
-      def decode(typName: String): TypeAnno = typName.trim match {
-        case "Int" => TInt
-        case "Double" => TDouble
-        case "Boolean" => TBool
-        case "Unit" => TUnit
-        case "String" => TString
-        case "Float" => TDouble
-        case "Short" | "Byte" | "Char" => TInt
-        case name =>
-          if(name.startsWith("(")){
-            // we have a tuple
-            TTuple(name.substring(1, name.length -1).split(",").map(decode))
-          }
-          else if(name.contains('"')) {
-            // if typ is a String literal it carries the literal with it
-            val trueName = name.slice(0, name.indexOf('"' - 1))
-            if(trueName == "String") {
-              TString
-            }
-            else {
-              throw new IllegalArgumentException("expected String literal")
-            }
-          }
-          else {
-            TNode(name)
-          }
-      }
-      decode(typ.toString)
-    }
-
     val params = eval.params
-    // if we didn't find the free variable it might be a package so we can safely ignore it
+    // if we didn't find the free variable it might be a package so we ignore it and let the compiler figure it out
     val env = params.filter(ctx.tenv.contains).map(p => p -> ctx.tenv(p))
     // here we use a little hack. We create one big block that defines all the params with their type
     // but because they need to be initialized as well we simply throw an exception everytime
@@ -497,10 +463,72 @@ object EvalHelper {
       case (name, typ) => s"val $name : ${typ.prettyprint} = throw new Exception()"
     }.mkString("; ")
     val codeSource = s"{$paramString; ${eval.code.syntax}}"
+    val toolbox = currentMirror.mkToolBox()
     val tree = toolbox.parse(codeSource)
     val typechecked = toolbox.typecheck(tree)
     val typ = typechecked.tpe
-    convertType(typ)
+    decode(typ.toString)
+  }
+
+  import fastparse._
+  import ScalaWhitespace._
+
+  // TODO avoid code duplication
+
+  private def identifier[_: P]: P[String] =
+    P(CharIn("a-z", "A-Z") ~~ CharIn("a-z", "A-Z", "0-9", "_", ".").repX(0)).!
+
+  private def tNode[_: P]: P[TNode] = P(P(identifier).!.map(TNode))
+
+  private def typeAnnoHelper[_: P](t: TypeAnno): P[TypeAnno] =
+    P(P(t.prettyprint).map(_ => t))
+
+  private def tLinked[_: P]: P[TLinked] = P(CoreParser().tAnyLinked | tNode | tList)
+
+  private def tGenList[_: P]: P[TList] = P("List[" ~ tLinked ~ "]").map(TList)
+
+  private def typeAnno[_: P]: P[TypeAnno] =
+    P(
+      typeAnnoHelper(TAny)
+        | typeAnnoHelper(TBool)
+        | typeAnnoHelper(TLong)
+        | typeAnnoHelper(TInt)
+        | typeAnnoHelper(TDouble)
+        | typeAnnoHelper(TString)
+        | typeAnnoHelper(TUnit)
+        | tGenList
+        | tLinked
+        | tIterable
+        | tTuple
+    )
+
+  def tTuple[_: P]: P[TTuple] =
+    P(
+      (sp ~ "(" ~ typeAnno.rep(1, sep = ",") ~ ")").map(TTuple)
+    )
+
+  def tList[_: P]: P[TList] =
+    P("List[" ~ tLinked ~ "]").map(TList)
+
+  def tEnumeration[_: P]: P[TEnumeration] =
+    P("Enum[" ~ tLinked ~ "]").map(TEnumeration)
+
+  def tIterable[_: P]: P[TIterable] = P(tList | tEnumeration)
+
+  private def decode(typName: String): TypeAnno = {
+    // in case the result type of an expression is a string literal scala.reflect actually places this literal in the type
+    // this means "hello world" results in the type String("hello world"
+    // to get around this we have to remove all such occurrences
+    val name = typName.trim.replaceAll("""\(".*"\)""", "")
+    val rawAnno = fastparse.parse(name, typeAnno(_)).get.value
+    refineTypeAnno(rawAnno)
+  }
+
+  private def refineTypeAnno(raw: TypeAnno): TypeAnno = raw match {
+    case TNode("Char") | TNode("Short") | TNode("Byte") => TInt
+    case TNode("Float") => TDouble
+    case TTuple(ts) => TTuple(ts.map(refineTypeAnno))
+    case anno => anno
   }
 
 }

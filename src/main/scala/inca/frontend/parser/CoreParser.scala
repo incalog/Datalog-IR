@@ -69,6 +69,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
         | typeAnnoHelper(TInt)
         | typeAnnoHelper(TDouble)
         | typeAnnoHelper(TString)
+        | typeAnnoHelper(TUnit)
         | tLinked
         | tIterable
         | tTuple
@@ -82,12 +83,10 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
         | P(sp ~ P(Public.prettyprint(""))).map(_ => Public)
     )
 
-  /** TTuple parser */
+  /** TTuple parser without Unit*/
   def tTuple[_: P]: P[TTuple] =
     P(
-      P("Unit").map(_ => TTuple(Seq.empty))
-        | (sp ~ "(" ~ typeAnno.rep(1, sep = ",") ~ ")")
-          .map(TTuple)
+      (sp ~ "(" ~ typeAnno.rep(1, sep = ",") ~ ")").map(TTuple)
     )
 
   /** TList parser */
