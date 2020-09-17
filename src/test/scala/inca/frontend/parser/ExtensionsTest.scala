@@ -1,15 +1,11 @@
 package inca.frontend.parser
 
-import inca.frontend.core.Core
-import inca.frontend.core.Core._
-import org.scalatest.funsuite.AnyFunSuite
+import fastparse.Parsed.{Failure, Success}
 import fastparse._
-import fastparse.Parsed.Success
-import fastparse.Parsed.Failure
-import inca.frontend.parser.extensions._
+import inca.frontend.core.Core._
 import inca.frontend.extensions._
-import scala.annotation.switch
-import scala.tools.nsc.interactive.Lexer.IntLit
+import inca.frontend.parser.extensions._
+import org.scalatest.funsuite.AnyFunSuite
 
 class ExtensionsTest extends AnyFunSuite {
 
