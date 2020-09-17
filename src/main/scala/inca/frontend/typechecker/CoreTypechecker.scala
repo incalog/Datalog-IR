@@ -158,7 +158,7 @@ class CoreTypechecker(
     else TUnit
   }
 
-  private def typecheck(stm: Statement, last_in_body: Boolean)(implicit
+  def typecheck(stm: Statement, last_in_body: Boolean)(implicit
       context: TypeContext
   ): (Option[TypeAnno], TypeEnvironment) = {
     stm match {
@@ -218,7 +218,7 @@ class CoreTypechecker(
     }
   }
 
-  private def typecheck(
+  def typecheck(
       exp: Exp
   )(implicit context: TypeContext): (TypeAnno, CoreTypechecker.TypeEnvironment) = {
     exp match {
@@ -315,7 +315,7 @@ class CoreTypechecker(
     }
   }
 
-  private def where(implicit context: TypeContext): String = {
+  def where(implicit context: TypeContext): String = {
     s"Function: ${context.fname}, Module: ${context.module.name}"
   }
 }
