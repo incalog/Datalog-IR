@@ -5,6 +5,7 @@ import inca.frontend.core.Core._
 import inca.frontend.typechecker.Typechecker.TypeEnvironment
 import inca.runtime.context._
 import scala.collection.mutable.ArrayBuffer
+import scala.util.control.Breaks._
 
 /* The Typechecker results */
 sealed trait TypecheckResult
@@ -39,10 +40,15 @@ object Typechecker { type TypeEnvironment = Map[String, TypeAnno] }
   *
   * @version 0.0.0
   *
-  * @param   lmi    LanguageMetaInfo (Depends on the language used).
-  * @param   prog   The actual IncA program.
+  * @param   lmi        LanguageMetaInfo (Depends on the language used).
+  * @param   prog       The actual IncA program.
+  * @param   extensions List of extensions in use.
   */
-class Typechecker(lmi: LanguageMetaInfo, prog: Program) {
+class Typechecker(
+    lmi: LanguageMetaInfo,
+    prog: Program,
+    extensions: Seq[TypecheckerExtension]
+) {
 
   // Data //
   val warnings: ArrayBuffer[TypeWarning] = ArrayBuffer()
@@ -202,7 +208,13 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Program) {
           case Fail => (None, context.tenv)
         }
       case _: Statement =>
-        ??? // @todo Extensions // @note Might be a terminator statement (or contain one); flag maybe?
+        for (e <- extensions) {
+          val (ot, et, is) = e.typecheck(stm, last_in_body)
+          if (is)
+            return (ot, et)
+        }
+        throw new FatalError(s"Unexpected statement ${stm.prettyprint("")} found ($where).")
+      // @todo Extensions // @note Might be a terminator statement (or contain one); flag maybe?
     }
   }
 
@@ -282,7 +294,13 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Program) {
         (context.tenv(name), context.tenv)
       case PathAccess(receiver, link)     => ???
       case Eval(params, resultType, code) => ???
-      case e: Exp                         => ??? // @todo extensions
+      case _: Exp =>
+        for (e <- extensions) {
+          val (ot, et, is) = e.typecheck(exp)
+          if (is)
+            return (ot, et)
+        }
+        throw new FatalError(s"Unexpected expression ${exp.prettyprint("")} found ($where).")
     }
   }
 
