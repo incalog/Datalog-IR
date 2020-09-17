@@ -3,8 +3,9 @@ package inca.souffle
 import inca.frontend.core.Core
 import inca.frontend.core.Core._
 import inca.souffle.Syntax._
-
 import inca.souffle.Util._
+import truechange.{JavaLitType, LitType}
+import inca.runtime.index.MetaElements.{Link => MLink}
 
 import scala.collection.mutable
 
@@ -52,15 +53,14 @@ class SouffleToIncaCompiler {
       inputs(rule) = in
       // generate pattern that enumerates all node instances of AST node class
       val fun = patFuns.getOrElse(rule, throw new IllegalArgumentException("Rule signature has to come before input declaration"))
-      val body = Core.Body(
+      val body = Body(
         Values("node", TNode(rule)) +:
         decl.parameters.map { param =>
-          val strippedName = cleanSouffleName(param.name)
-          Assert(Eq(PathAccess(Var("node"), NamedLink(TNode(rule), strippedName)), Var(strippedName)))
+          val cleanName = cleanSouffleName(param.name)
+          Assert(Eq(PathAccess(Var("node").typed(TNode(rule)), NamedLink(TNode(rule), cleanName)).typed(compile(param.typ)), Var(cleanName)))
         }
       )
       patFuns(rule) = PatternFunction(fun.vis, fun.name, fun.params, fun.outParams, Seq(body))
-      println(patFuns(rule).prettyprint(""))
 
     case Output(rule) =>
 
@@ -76,6 +76,14 @@ class SouffleToIncaCompiler {
     case NumberType => TInt
     case UnsignedType => TLong
     case FloatType => TDouble
+  }
+
+  def getJavaClassForType(typ: Syntax.Type): Class[_] = typ match {
+    case DeclaredType(name) => classOf[String]
+    case SymbolType => classOf[String]
+    case NumberType => classOf[Int]
+    case UnsignedType => classOf[Long]
+    case FloatType => classOf[Double]
   }
 
   def compile(stm: Syntax.Statement, funPrefix: String): Core.Statement = stm match {
@@ -95,13 +103,15 @@ class SouffleToIncaCompiler {
   }
 
   def compile(exp: Syntax.Expression): Core.Exp = exp match {
-    case Variable(name) =>  Core.Var(cleanSouffleName(name))
-    case StringValue(value) => Core.Constant(StringLiteral(value))
-    case NumberValue(value) => Core.Constant(IntLiteral(value))
-    case Syntax.Any => Core.Wildcard
+      // TODO variable that was previously will be a variable
+      // TODO variable that was not previously bound will translate to Wildcard
+    case Variable(name) => Var(cleanSouffleName(name))
+    case StringValue(value) => Constant(StringLiteral(value))
+    case NumberValue(value) => Constant(IntLiteral(value))
+    case Syntax.Any => Wildcard
     case BuiltInFunctionCall(CatBuiltInFunction, arguments) =>
       val params = collectParams(exp)
-      Core.Eval(params, TString, compileEvalString(exp))
+      Eval(params, TString, compileEvalString(exp))
     case _ => throw new IllegalArgumentException(s"TODO $exp not supported")
   }
 
@@ -123,4 +133,12 @@ class SouffleToIncaCompiler {
       s"($lhs + $rhs)"
     case Syntax.Any => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
   }
+
+  def genLitLinks: Map[MLink, LitType] =
+    decls.values.flatMap { decl =>
+      decl.parameters.map { param =>
+        val link = decl.name -> cleanSouffleName(param.name)
+        link -> JavaLitType(getJavaClassForType(param.typ))
+      }
+    }.toMap
 }
