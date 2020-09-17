@@ -6,6 +6,7 @@ import inca.util.Gensym
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.meta.XtensionQuasiquoteTerm
 
 case class Not(cond: Exp) extends Exp {
   override def freeVars: Map[Name, Option[TypeAnno]] = cond.freeVars
@@ -54,7 +55,7 @@ object BoolOps extends Desugarable {
       case Def(exp) => changed(Undef(desugarExp(exp)))
       case Undef(exp) => changed(Def(desugarExp(exp)))
       case Constant(BooleanLiteral(v)) => changed(Constant(BooleanLiteral(!v)))
-      case Eval(vars, ty, code) => changed(Eval(vars, ty, s"!{$code}"))
+      case Eval(vars, code) => changed(Eval(vars, q"!{$code}"))
 
       case _ => Not(cond)
     }

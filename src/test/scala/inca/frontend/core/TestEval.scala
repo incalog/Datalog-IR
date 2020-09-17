@@ -6,6 +6,8 @@ import inca.runtime.context.QueryScope
 import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
+import scala.meta.XtensionQuasiquoteTerm
+
 class TestEval extends AnyFlatSpec with IncaMatchers {
 
   val one = Constant(IntLiteral(1))
@@ -18,7 +20,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
     val module = Module("Test_Cast", Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
         Values("e", TNode(Exp.expTag)),
-        Assign(Seq("pi"), Eval(Seq(), TDouble, "Math.PI")),
+        Assign(Seq("pi"), Eval(Seq(), q"Math.PI").typed(TDouble)),
         Assert(Neq(Var("pi"), Constant(DoubleLiteral(3.14)))),
         Yield(Var("e"))
       ))))
@@ -52,7 +54,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
         Values("e", TNode(Exp.intTag)),
         Assign(Seq("i"), PathAccess(Var("e"), NamedLink(TNode(Exp.intTag), "value")).typed(TInt)),
         Assign(Seq("cond"),
-          Eval(Seq("i"), TBool, "Math.sqrt(i).isValidInt")),
+          Eval(Seq("i"), q"Math.sqrt(i).isValidInt").typed(TBool)),
         Assert(Eq(Var("cond"), Constant(BooleanLiteral(true)))),
         Yield(Var("e"))
       ))))

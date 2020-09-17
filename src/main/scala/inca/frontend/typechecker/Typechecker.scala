@@ -281,7 +281,7 @@ class Typechecker(lmi: LanguageMetaInfo, prog: Program) {
           )
         (context.tenv(name), context.tenv)
       case PathAccess(receiver, link)     => ???
-      case Eval(params, resultType, code) => ???
+      case Eval(params, code) => ???
       case e: Exp                         => ??? // @todo extensions
     }
   }

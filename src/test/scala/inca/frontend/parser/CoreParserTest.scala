@@ -899,10 +899,9 @@ class CoreParserTest extends AnyFunSuite {
   test("test Eval") {
     def test_run(input: String, vars: Set[String], cmp_code : String) =
       parse(input, CoreParser().evalExp(_)) match {
-        case Success(Eval(ss, rt, code), index) => {
+        case Success(Eval(ss, code), index) => {
           assert(cmp_code === code)
           assert((Set.empty[String] ++ ss) === vars)
-          assert(rt === TNode("dummy"))
         }
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
       }
