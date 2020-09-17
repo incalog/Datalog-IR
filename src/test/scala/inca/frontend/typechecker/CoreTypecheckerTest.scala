@@ -11,12 +11,12 @@ import org.scalatest.funsuite.AnyFunSuite
   * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
-class TypecheckerTest extends AnyFunSuite {
+class CoreTypecheckerTest extends AnyFunSuite {
   test("test Typechecker") {
     def test_run(cd: String) = {
       parse(cd, CoreParser().module(_)) match {
         case Success(value, index) => {
-          new Typechecker(null, Program(Seq(value))).typecheck() match {
+          new CoreTypechecker(null, Program(Seq(value)), Seq()).typecheck() match {
             case SuccessTypecheck(warnings)     =>
             case FailTypecheck(error, warnings) => fail(s"$error, $warnings")
           }

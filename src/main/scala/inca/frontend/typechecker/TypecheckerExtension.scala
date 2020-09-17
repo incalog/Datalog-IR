@@ -9,13 +9,13 @@ import scala.collection.mutable.ArrayBuffer
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
 trait TypecheckerExtension {
-  private[typechecker] var typechecker : Typechecker = _ // Set by Typechecker instance.
+  private[typechecker] var typechecker : CoreTypechecker = _ // Set by Typechecker instance.
 
   def typecheck(e: Exp)(implicit
       context: TypeContext
-  ): (TypeAnno, Typechecker.TypeEnvironment, Boolean)
+  ): (TypeAnno, CoreTypechecker.TypeEnvironment, Boolean)
 
   def typecheck(s: Statement, last_in_body: Boolean)(implicit
       context: TypeContext
-  ): (Option[TypeAnno], Typechecker.TypeEnvironment, Boolean)
+  ): (Option[TypeAnno], CoreTypechecker.TypeEnvironment, Boolean)
 }

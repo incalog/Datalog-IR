@@ -2,7 +2,7 @@ package inca.frontend.typechecker;
 
 import inca.frontend.parser.Program
 import inca.frontend.core.Core._
-import inca.frontend.typechecker.Typechecker.TypeEnvironment
+import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
 import inca.runtime.context._
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.Breaks._
@@ -20,10 +20,10 @@ class FatalError(msg: String) extends Exception(msg)
 
 /** TypeContext */
 class TypeContext(
-    val fname: String, // Name of the function (For error messages)
-    val functions: Map[Name, PatternFunction], // Functions accessable from the module
-    val module: Module, // The module the function is in
-    val tenv: Typechecker.TypeEnvironment = Map() // The variable type context
+                   val fname: String, // Name of the function (For error messages)
+                   val functions: Map[Name, PatternFunction], // Functions accessable from the module
+                   val module: Module, // The module the function is in
+                   val tenv: CoreTypechecker.TypeEnvironment = Map() // The variable type context
 ) {
   def this(tc: TypeContext, tenv: TypeEnvironment) {
     this(tc.fname, tc.functions, tc.module, tenv)
@@ -31,7 +31,7 @@ class TypeContext(
 }
 
 /* Companion object to Typechecker */
-object Typechecker { type TypeEnvironment = Map[String, TypeAnno] }
+object CoreTypechecker { type TypeEnvironment = Map[String, TypeAnno] }
 
 /** IncA Typechecker
   *
@@ -44,7 +44,7 @@ object Typechecker { type TypeEnvironment = Map[String, TypeAnno] }
   * @param   prog       The actual IncA program.
   * @param   extensions List of extensions in use.
   */
-class Typechecker(
+class CoreTypechecker(
     lmi: LanguageMetaInfo,
     prog: Program,
     extensions: Seq[TypecheckerExtension]
@@ -220,7 +220,7 @@ class Typechecker(
 
   private def typecheck(
       exp: Exp
-  )(implicit context: TypeContext): (TypeAnno, Typechecker.TypeEnvironment) = {
+  )(implicit context: TypeContext): (TypeAnno, CoreTypechecker.TypeEnvironment) = {
     exp match {
       case Aggregate(init, join, unjoin, call) => ???
       case Call(name, args, transitive) =>
@@ -261,7 +261,7 @@ class Typechecker(
         exp match {
           case Var(name) =>
             // @todo type hierachy and compile time evaluation?
-            (TBool, context.tenv.updated(name, ty) ++ te)
+            (TBool, te ++ context.tenv.updated(name, ty))
           case _ =>
             if (t != ty)
               throw new FatalError(s"InstanceOf type does not match ($where, Code: 0x01)")
@@ -272,7 +272,7 @@ class Typechecker(
         exp match {
           case Var(name) =>
             // @todo type hierachy and compile time evaluation?
-            (TBool, context.tenv.updated(name, ty) ++ te)
+            (TBool, te ++ context.tenv.updated(name, ty))
           case _ =>
             if (t != ty)
               throw new FatalError(

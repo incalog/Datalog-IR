@@ -10,7 +10,7 @@ import fastparse.Parsed.Success
 import scala.collection.mutable
 import java.io.FileNotFoundException
 
-import inca.frontend.typechecker.Typechecker
+import inca.frontend.typechecker.CoreTypechecker
 
 case class Program(modules: Seq[Core.Module]) {
   def prettyprint = {
@@ -54,7 +54,7 @@ object CompilerFrontend {
     for (f <- args) {
       try {
         val code = Source.fromFile(f).mkString
-        val res = parse(code, CoreParser().module(_))
+        val res = Parser.parseModule(code)
         res match {
           case Failure(label, index, extra) => {
             println(s"Syntax Error: $extra")
@@ -81,6 +81,6 @@ object CompilerFrontend {
 
     println(programm.prettyprint)
     println(programm)
-    println(new Typechecker(null, programm).typecheck())
+    println(new CoreTypechecker(null, programm, Seq()).typecheck())
   }
 }
