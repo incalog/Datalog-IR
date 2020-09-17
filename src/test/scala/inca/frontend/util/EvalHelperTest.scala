@@ -591,7 +591,7 @@ class EvalHelperTest extends AnyFunSuite {
     val code = q"List(1, 3, 5)"
     val eval = Eval(Seq.empty, code)
     val typ = EvalHelper.typecheck(eval)
-    println(typ)
+    assert(typ == TList(TNode("Int")))
   }
 
   test("test typecheck extern types") {
