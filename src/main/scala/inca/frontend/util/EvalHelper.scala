@@ -466,7 +466,7 @@ object EvalHelper {
     val toolbox = currentMirror.mkToolBox()
     val tree = toolbox.parse(codeSource)
     val typechecked = toolbox.typecheck(tree)
-    val typ = typechecked.tpe
+    val typ = typechecked.tpe.dealias
     decode(typ.toString)
   }
 
@@ -478,14 +478,12 @@ object EvalHelper {
   private def identifier[_: P]: P[String] =
     P(CharIn("a-z", "A-Z") ~~ CharIn("a-z", "A-Z", "0-9", "_", ".").repX(0)).!
 
-  private def tNode[_: P]: P[TNode] = P(P(identifier).!.map(TNode))
+  private def tNode[_: P]: P[TNode] = P(identifier).!.map(TNode)
 
   private def typeAnnoHelper[_: P](t: TypeAnno): P[TypeAnno] =
-    P(P(t.prettyprint).map(_ => t))
+    P(t.prettyprint).map(_ => t)
 
-  private def tLinked[_: P]: P[TLinked] = P(CoreParser().tAnyLinked | tNode | tList)
-
-  private def tGenList[_: P]: P[TList] = P("List[" ~ tLinked ~ "]").map(TList)
+  private def tLinked[_: P]: P[TLinked] = P(CoreParser().tAnyLinked | tList | tNode)
 
   private def typeAnno[_: P]: P[TypeAnno] =
     P(
@@ -496,7 +494,6 @@ object EvalHelper {
         | typeAnnoHelper(TDouble)
         | typeAnnoHelper(TString)
         | typeAnnoHelper(TUnit)
-        | tGenList
         | tLinked
         | tIterable
         | tTuple
@@ -508,10 +505,16 @@ object EvalHelper {
     )
 
   def tList[_: P]: P[TList] =
-    P("List[" ~ tLinked ~ "]").map(TList)
+    P("List[" ~ typeAnno ~ "]").map {
+      case linked: TLinked => TList(linked)
+      case anno => TList(TNode(anno.prettyprint))
+    }
 
   def tEnumeration[_: P]: P[TEnumeration] =
-    P("Enum[" ~ tLinked ~ "]").map(TEnumeration)
+    P("Enum[" ~ typeAnno ~ "]").map {
+      case linked: TLinked => TEnumeration(linked)
+      case anno => TEnumeration(TNode(anno.prettyprint))
+    }
 
   def tIterable[_: P]: P[TIterable] = P(tList | tEnumeration)
 
