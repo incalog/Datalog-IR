@@ -6,6 +6,7 @@ import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
 import inca.runtime.context._
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.Breaks._
+import truechange.SortType
 
 /* The Typechecker results */
 sealed trait TypecheckResult
@@ -20,10 +21,10 @@ class FatalError(msg: String) extends Exception(msg)
 
 /** TypeContext */
 class TypeContext(
-                   val fname: String, // Name of the function (For error messages)
-                   val functions: Map[Name, PatternFunction], // Functions accessable from the module
-                   val module: Module, // The module the function is in
-                   val tenv: CoreTypechecker.TypeEnvironment = Map() // The variable type context
+    val fname: String, // Name of the function (For error messages)
+    val functions: Map[Name, PatternFunction], // Functions accessable from the module
+    val module: Module, // The module the function is in
+    val tenv: CoreTypechecker.TypeEnvironment = Map() // The variable type context
 ) {
   def this(tc: TypeContext, tenv: TypeEnvironment) {
     this(tc.fname, tc.functions, tc.module, tenv)
@@ -56,6 +57,8 @@ class CoreTypechecker(
 
   val function_env: Map[Name, Map[Name, PatternFunction]] =
     prog.modules.map(m => m.name -> m.funs.map(f => f.name -> f).toMap).toMap
+
+  extensions.foreach(_.typechecker = this)
 
   // Methods //
   def typecheck(): TypecheckResult = {
@@ -213,7 +216,9 @@ class CoreTypechecker(
           if (is)
             return (ot, et)
         }
-        throw new FatalError(s"Unexpected statement ${stm.prettyprint("")} found ($where).")
+        throw new FatalError(
+          s"Unexpected statement ${stm.prettyprint("")} found ($where)."
+        )
       // @todo Extensions // @note Might be a terminator statement (or contain one); flag maybe?
     }
   }
@@ -292,15 +297,17 @@ class CoreTypechecker(
             s"Variable $name is not defined ${where}"
           )
         (context.tenv(name), context.tenv)
-      case PathAccess(receiver, link)     => ???
-      case Eval(params, code) => ???
+      case PathAccess(receiver, link) => ???
+      case Eval(params, code)         => ???
       case _: Exp =>
         for (e <- extensions) {
           val (ot, et, is) = e.typecheck(exp)
           if (is)
             return (ot, et)
         }
-        throw new FatalError(s"Unexpected expression ${exp.prettyprint("")} found ($where).")
+        throw new FatalError(
+          s"Unexpected expression ${exp.prettyprint("")} found ($where)."
+        )
     }
   }
 
@@ -318,4 +325,27 @@ class CoreTypechecker(
   def where(implicit context: TypeContext): String = {
     s"Function: ${context.fname}, Module: ${context.module.name}"
   }
+
+  def subtype(tc: TypeAnno, tp: TypeAnno): Boolean = (tc, tp) match {
+    case (_, _) if tc == tp     => true
+    case (_, TAny)                => true
+    case (_: TLinked, TAnyLinked) => true
+    case (TNode(name1), TNode(name2)) =>
+        lmi.nodeSupertypes.containsEntry(SortType(name1) -> SortType(name2))
+    case (TList(s1), TList(s2)) =>
+      subtype(s1, s2)
+    case (TEnumeration(s1), TEnumeration(s2)) =>
+      subtype(s1, s2)
+    case (TTuple(s1), TTuple(s2)) =>
+      if (s1.length == s2.length) 
+        return s1.zip(s2).forall{case (t1_, t2_) => subtype(t1_, t2_)}
+      false
+    case _ => false
+  }
+
+  def meet(t1: TypeAnno, t2: TypeAnno): Option[TypeAnno] =
+    if (t1 == t2) Some(t1)
+    else if (subtype(t1, t2)) Some(t1)
+    else if (subtype(t2, t1)) Some(t2)
+    else None
 }

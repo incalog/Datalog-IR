@@ -8,6 +8,11 @@ import inca.frontend.core.Core
 import inca.frontend.typechecker.TypeContext
 import inca.frontend.typechecker.TypeError
 
+/** BoolOps Typechecker Extension
+  *
+  * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
+  *          Julian Cichorius (jcichori@students.uni-mainz.de)
+  */
 object BoolOpsTypechecker extends TypecheckerExtension
 {
     override def typecheck(e: Core.Exp)(implicit context: TypeContext): (Core.TypeAnno, CoreTypechecker.TypeEnvironment, Boolean) = {
@@ -18,7 +23,8 @@ object BoolOpsTypechecker extends TypecheckerExtension
 
                 if (e1t != TBool || e2t != TBool) // @todo subtyping
                     typechecker.errors.addOne(TypeError(s"Cannot combine types $e1t and $e2t in an and operation (${typechecker.where})."))
-                (TBool, e1te ++ e2te ++ context.tenv, true)
+                println(e1te, e2te, context.tenv)
+                (TBool, context.tenv ++ e1te ++ e2te, true) // @todo subtyping
             }
             case Not(cond) => {
                 val (condt, condte) = typechecker.typecheck(cond)
@@ -26,7 +32,7 @@ object BoolOpsTypechecker extends TypecheckerExtension
                 if (condt != TBool) // @todo subtyping 
                     typechecker.errors.addOne(TypeError(s"Cannot negate type $condt (${typechecker.where})."))
                 
-                (TBool, condte ++ context.tenv, true)
+                (TBool, context.tenv ++ condte, true) // @todo subtyping
             }
             case Or(e1, e2) => {
                 val (e1t, e1te) = typechecker.typecheck(e1)
@@ -34,7 +40,7 @@ object BoolOpsTypechecker extends TypecheckerExtension
 
                 if (e1t != TBool || e2t != TBool) // @todo subtyping
                     typechecker.errors.addOne(TypeError(s"Cannot combine types $e1t and $e2t in an or operation (${typechecker.where})."))
-                (TBool, e1te ++ e2te ++ context.tenv, true)
+                (TBool, context.tenv ++ e1te ++ e2te, true) // @todo subtyping
             }
             case _ => (null, context.tenv, false)
         }
