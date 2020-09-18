@@ -60,9 +60,8 @@ class CoreTypecheckerTest extends AnyFunSuite {
       s"""|
           |module test
           |
-          |def name() : Boolean = {
+          |def name() : Any = {
           |    val x = 5
-          |    assert x instanceOf Boolean
           |    yield x
           |} """.stripMargin
     )
