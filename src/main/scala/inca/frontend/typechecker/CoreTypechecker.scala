@@ -358,6 +358,7 @@ class CoreTypechecker(
       case eval@Eval(params, code)    =>
         try {
           val resType = EvalHelper.typecheck(eval)
+          eval.typed(resType)
           (resType, context.tenv)
         } catch {
           case ScalaTypeError(msg) =>
