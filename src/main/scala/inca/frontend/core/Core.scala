@@ -68,7 +68,7 @@ object Core {
     override def javastring: String = "Tuple_" + ts.map(_.javastring).mkString("_")
   }
 
-  val TUnit = TTuple(Seq.empty)
+  val TUnit: TTuple = TTuple(Seq.empty)
 
   type Name = String
 
@@ -296,7 +296,6 @@ object Core {
   /** Eval code must be a Scala expression that can access `params` by name and must yield a `resultType`. */
   case class Eval(params: Seq[Name], code: Term) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = params.map(_ -> None).toMap
-    `params`
     override def prettyprint(implicit indent: String): String = s"eval($code)"
   }
 

@@ -29,11 +29,9 @@ object DataOpCall extends Desugarable {
         }
 
         val resultType = call.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped data op call $call"))
-        val argString = if (syms.isEmpty) "" else s"(${syms.mkString(", ")})"
         val qop = resolveDataOp(op)
         val fun = Meta.mkQualName(qop)
         val code: Term = if(syms.isEmpty) fun else Term.Apply(fun, syms.map(Meta.mkQualName).toList)
-        s"$qop$argString"
         changed(Eval(syms, code).typed(resultType))
       case _ => super.desugarExp(exp)
     }
