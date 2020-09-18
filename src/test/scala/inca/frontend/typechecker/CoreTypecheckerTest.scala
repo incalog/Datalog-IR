@@ -4,6 +4,7 @@ import fastparse.Parsed.{Failure, Success}
 import fastparse._
 import inca.frontend.parser.{CoreParser, _}
 import org.scalatest.funsuite.AnyFunSuite
+import inca.frontend.core.Core._
 
 /**
   * Test class for the IncA core language typechecker.
@@ -12,6 +13,15 @@ import org.scalatest.funsuite.AnyFunSuite
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
 class CoreTypecheckerTest extends AnyFunSuite {
+  test("test subtype") {
+    def test_run(t1 : TypeAnno, t2 : TypeAnno) = new CoreTypechecker(null, Program(Seq.empty), Seq()).subtype(t1, t2)
+
+    test_run(TBool, TBool)
+    test_run(TBool, TAny)
+    test_run(TString, TAny)
+    test_run(TNode("apf3l"), TAnyLinked)
+  }
+
   test("test Typechecker") {
     def test_run(cd: String) = {
       parse(cd, CoreParser().module(_)) match {
@@ -62,6 +72,14 @@ class CoreTypecheckerTest extends AnyFunSuite {
           |
           |def name() : Any = {
           |    val x = 5
+          |    yield x
+          |} """.stripMargin,
+      s"""|
+          |module test
+          |
+          |def name() : Any = {
+          |    val x = true 
+          |    assert x instanceOf Any
           |    yield x
           |} """.stripMargin
     )

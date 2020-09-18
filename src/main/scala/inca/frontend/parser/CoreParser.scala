@@ -222,6 +222,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
             | defExp
             | undefExp
             | varExp
+            | evalExp
             | constantExp
             | tupleExp
             | aggregateExp
@@ -413,7 +414,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   /** Module parser */
   def module[_: P]: P[Module] =
     P(
-      sp_nl ~ "module " ~ identifier ~ P("import".? ~ identifier).rep ~ patternFunction.rep
+      sp_nl ~ "module " ~ identifier ~ P("import".? ~ identifier).rep ~ patternFunction.rep ~ End
     ).map {
       case (name, imports, patternFunctions) =>
         Module(name, imports, patternFunctions)
