@@ -11,6 +11,7 @@ import scala.collection.mutable
 import java.io.FileNotFoundException
 
 import inca.frontend.typechecker.CoreTypechecker
+import inca.frontend.typechecker.Typechecker
 
 case class Program(modules: Seq[Core.Module]) {
   def prettyprint = {
@@ -71,16 +72,16 @@ object CompilerFrontend {
       }
     }
 
-    val programm = Program(modules.toSeq)
-    programm.unique match {
+    val program = Program(modules.toSeq)
+    program.unique match {
       case "" =>
       case m => {
         println(s"Module '$m' is defined multiple times.")
       }
     }
 
-    println(programm.prettyprint)
-    println(programm)
-    println(new CoreTypechecker(null, programm, Seq()).typecheck())
+    println(program.prettyprint)
+    println(program)
+    println(Typechecker.typecheck(null, program))
   }
 }

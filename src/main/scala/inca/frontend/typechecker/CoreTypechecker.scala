@@ -6,6 +6,8 @@ import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
 import inca.runtime.context._
 import scala.collection.mutable.ArrayBuffer
 import scala.util.control.Breaks._
+import truechange.SortType
+import com.google.common.graph.ElementOrder.Type
 
 /* The Typechecker results */
 sealed trait TypecheckResult
@@ -20,10 +22,10 @@ class FatalError(msg: String) extends Exception(msg)
 
 /** TypeContext */
 class TypeContext(
-                   val fname: String, // Name of the function (For error messages)
-                   val functions: Map[Name, PatternFunction], // Functions accessable from the module
-                   val module: Module, // The module the function is in
-                   val tenv: CoreTypechecker.TypeEnvironment = Map() // The variable type context
+    val fname: String, // Name of the function (For error messages)
+    val functions: Map[Name, PatternFunction], // Functions accessable from the module
+    val module: Module, // The module the function is in
+    val tenv: CoreTypechecker.TypeEnvironment = Map() // The variable type context
 ) {
   def this(tc: TypeContext, tenv: TypeEnvironment) {
     this(tc.fname, tc.functions, tc.module, tenv)
@@ -59,6 +61,8 @@ class CoreTypechecker(
 
   val function_env: Map[Name, Map[Name, PatternFunction]] =
     prog.modules.map(m => m.name -> m.funs.map(f => f.name -> f).toMap).toMap
+
+  extensions.foreach(_.typechecker = this)
 
   // Methods //
   def typecheck(): TypecheckResult = {
@@ -103,7 +107,7 @@ class CoreTypechecker(
         errors.addOne(TypeError(s"Annotated return type does not match ($w, Code: 0x01)"))
     } else {
       // check if all blocks have the same return type // @todo type hierarchy
-      if (res.count(res.head == _) != res.length)
+      if (res.count(x => subtype(res.head, x) && subtype(x, res.head)) != res.length)
         errors.addOne(
           TypeError(
             s"Patternfunction does not have the same return type in all blocks ($w)."
@@ -113,8 +117,8 @@ class CoreTypechecker(
       // match return type with given annotation
       res.head match {
         case TTuple(ts) =>
-          if ( // @todo type hierarchy
-            ts.length != out.length || ts.zip(out).exists(r => r._1 != r._2)
+          if (
+            ts.length != out.length || ts.zip(out).exists(r => !subtype(r._1, r._2))
           )
             errors.addOne(
               TypeError(
@@ -122,7 +126,7 @@ class CoreTypechecker(
               )
             )
         case t =>
-          if ((out.length != 1 || out.head != t) && out.nonEmpty) { // @todo type hierarchy
+          if ((out.length != 1 || !subtype(t, out.head)) && out.nonEmpty) { // @todo type hierarchy
             println(t, out)
             errors.addOne(
               TypeError(
@@ -161,18 +165,21 @@ class CoreTypechecker(
     else TUnit
   }
 
-  private def typecheck(stm: Statement, last_in_body: Boolean)(implicit
+  def typecheck(stm: Statement, last_in_body: Boolean)(implicit
       context: TypeContext
   ): (Option[TypeAnno], TypeEnvironment) = {
     stm match {
       case Assert(cond) =>
         val (t, te) = typecheck(cond)
-        if (t != TBool) // @todo hierarchy
+        if (subtype(t, TBool))
           errors.addOne(
             TypeError(s"Assert condition does not evaluate to bool ($where).")
           )
-        (None, context.tenv ++ te) // @todo hierarchy
+        (None, te) // @todo hierarchy
       case Assign(names, exp) => // @todo check for already in use
+        if (!names.forall(!context.tenv.contains(_)))
+          throw new FatalError(s"Variable is already in use ($where).")
+
         if (names.length == 1) { // simple assign
           (None, context.tenv + (names.head -> typecheck(exp)._1))
         } else { // tuple unpack
@@ -197,6 +204,8 @@ class CoreTypechecker(
           }
         }
       case Values(name, typ) =>
+        if (context.tenv.contains(name))
+          throw new FatalError(s"Variable '$name' already in use ($where).")
         (None, context.tenv + (name -> typ))
       case e: TerminatorStatement =>
         // A terminator statement should be the last statement in a block
@@ -216,22 +225,23 @@ class CoreTypechecker(
           if (is)
             return (ot, et)
         }
-        throw new FatalError(s"Unexpected statement ${stm.prettyprint("")} found ($where).")
-      // @todo Extensions // @note Might be a terminator statement (or contain one); flag maybe?
+        throw new FatalError(
+          s"Unexpected statement ${stm.prettyprint("")} found ($where)."
+        )
     }
   }
 
-  private def typecheck(
+  def typecheck(
       exp: Exp
   )(implicit context: TypeContext): (TypeAnno, CoreTypechecker.TypeEnvironment) = {
     exp match {
-      case Aggregate(init, join, unjoin, call) => ???
+      case Aggregate(init, join, unjoin, call) => throw new NotImplementedError("Aggregate is not supported in typechecker.")
       case Call(name, args, transitive) =>
         context.functions.get(name) match {
           case Some(fun) =>
             val ret = fun.outParams.map(_.typ)
             if (ret.isEmpty)
-              null
+              (TUnit, context.tenv)
             else if (ret.length == 1)
               (ret.head, context.tenv)
             else
@@ -242,68 +252,84 @@ class CoreTypechecker(
       case Constant(lit) => (typecheck(lit), context.tenv)
       case Count(call) =>
         val (_, te) = typecheck(call)
-        (TInt, context.tenv ++ te)
+        (TBool, te)
       case Def(exp) =>
-        val (_, te) = typecheck(exp) // @todo Restrictions ?
-        (TBool, context.tenv ++ te)
+        exp match {
+          case Call(name, args, transitive) => 
+          case PathAccess(receiver, link) => 
+          case _ => errors.addOne(TypeError(s"Def requires a Call or PathAccess Expression ($where)."))
+        }
+        val (_, te) = typecheck(exp)
+        (TBool, te)
       case Undef(exp) =>
-        val (_, te) = typecheck(exp) // @todo Restrictions ?
-        (TBool, context.tenv ++ te)
+        exp match {
+          case Call(name, args, transitive) => 
+          case PathAccess(receiver, link) => 
+          case _ => errors.addOne(TypeError(s"Undef requires a Call or PathAccess Expression ($where)."))
+        }
+        val (_, te) = typecheck(exp)
+        (TBool, te)
       case Eq(lhs, rhs) =>
-        val r, l = (typecheck(lhs), typecheck(rhs))
-        if (r != l) // @todo
-          throw new FatalError(s"Equality operands do not match ($where).")
-        (TBool, context.tenv)
+        val (r, l) = (typecheck(lhs), typecheck(rhs))
+        if (subtype(r._1, l._1) && subtype(l._1, r._1)) 
+          throw new FatalError(s"Equality operand types do not match ($where).")
+        (TBool, union(r._2, l._2))
       case Neq(lhs, rhs) =>
-        val r, l = (typecheck(lhs), typecheck(rhs))
-        if (r != l) // @todo
-          throw new FatalError(s"Inequality operands do not match ($where).")
-        (TBool, context.tenv)
+        val (r, l) = (typecheck(lhs), typecheck(rhs))
+        if (subtype(r._1, l._1) && subtype(l._1, r._1)) 
+          throw new FatalError(s"Inequality operand types do not match ($where).")
+        (TBool, union(r._2, l._2))
       case InstanceOf(exp, ty) =>
         val (t, te) = typecheck(exp)
         exp match {
           case Var(name) =>
-            // @todo type hierachy and compile time evaluation?
-            (TBool, te ++ context.tenv.updated(name, ty))
+            if (subtype(ty, t))
+              return (TBool, union(context.tenv.updated(name, ty), te))
+            else if (!subtype(t, ty))
+              errors.addOne(TypeError(s"InstanceOf operands doesn't share a typing relation ($where)."))
+            (TBool, context.tenv)
           case _ =>
             if (t != ty)
               throw new FatalError(s"InstanceOf type does not match ($where, Code: 0x01)")
-            (TBool, context.tenv ++ te)
+            (TBool, te)
         }
       case NotInstanceOf(exp, ty) =>
         val (t, te) = typecheck(exp)
         exp match {
           case Var(name) =>
-            // @todo type hierachy and compile time evaluation?
-            (TBool, te ++ context.tenv.updated(name, ty))
+            if (subtype(ty, t))
+              return (TBool, union(context.tenv.updated(name, ty), te))
+            else if (!subtype(t, ty))
+              errors.addOne(TypeError(s"NotInstanceOf operands doesn't share a typing relation ($where)."))
+            (TBool, context.tenv)
           case _ =>
             if (t != ty)
-              throw new FatalError(
-                s"NotInstanceOf type does not match ($where, Code: 0x01)"
-              )
-            (TBool, context.tenv ++ te)
+              throw new FatalError(s"NotInstanceOf type does not match ($where, Code: 0x01)")
+            (TBool, te)
         }
       case Tuple(exps) =>
         val (rt, re) = exps.map(typecheck(_)).unzip
         (
           TTuple(rt),
-          re.fold(context.tenv) { case (a, b) => a ++ b }
-        ) // @todo type hierachy
+          re.fold(context.tenv) { case (a, b) => union(a, b) }
+        )
       case Var(name) =>
         if (!context.tenv.contains(name))
           throw new FatalError(
             s"Variable $name is not defined ${where}"
           )
         (context.tenv(name), context.tenv)
-      case PathAccess(receiver, link)     => ???
-      case Eval(params, code) => ???
+      case PathAccess(receiver, link) => ???
+      case Eval(params, code)         => ???
       case _: Exp =>
         for (e <- extensions) {
           val (ot, et, is) = e.typecheck(exp)
           if (is)
             return (ot, et)
         }
-        throw new FatalError(s"Unexpected expression ${exp.prettyprint("")} found ($where).")
+        throw new FatalError(
+          s"Unexpected expression ${exp.prettyprint("")} found ($where)."
+        )
     }
   }
 
@@ -318,7 +344,53 @@ class CoreTypechecker(
     }
   }
 
-  private def where(implicit context: TypeContext): String = {
+  def where(implicit context: TypeContext): String = {
     s"Function: ${context.fname}, Module: ${context.module.name}"
   }
+
+  def union(env1: TypeEnvironment, env2: TypeEnvironment)(implicit
+      context: TypeContext
+  ): TypeEnvironment = {
+    var res = env1
+    for (t <- env2.keys) {
+      if (res.contains(t)) {
+        val m = meet(env2(t), env1(t))
+        m match {
+          case Some(value) => res += (t -> value)
+          case None =>
+            errors.addOne(
+              TypeError(
+                s"${env2(t)} and ${env1(t)} do not share a type relationship ($where)."
+              )
+            )
+        }
+      } else
+        res += (t -> env2(t))
+    }
+    res
+  }
+
+  def subtype(tc: TypeAnno, tp: TypeAnno): Boolean =
+    (tc, tp) match {
+      case (_, _) if tc == tp       => true
+      case (_, TAny)                => true
+      case (_: TLinked, TAnyLinked) => true
+      case (TNode(name1), TNode(name2)) =>
+        lmi.nodeSupertypes.containsEntry(SortType(name1) -> SortType(name2))
+      case (TList(s1), TList(s2)) =>
+        subtype(s1, s2)
+      case (TEnumeration(s1), TEnumeration(s2)) =>
+        subtype(s1, s2)
+      case (TTuple(s1), TTuple(s2)) =>
+        if (s1.length == s2.length)
+          return s1.zip(s2).forall { case (t1_, t2_) => subtype(t1_, t2_) }
+        false
+      case _ => false
+    }
+
+  def meet(t1: TypeAnno, t2: TypeAnno): Option[TypeAnno] =
+    if (t1 == t2) Some(t1)
+    else if (subtype(t1, t2)) Some(t1)
+    else if (subtype(t2, t1)) Some(t2)
+    else None
 }
