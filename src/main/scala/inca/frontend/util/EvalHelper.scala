@@ -1,6 +1,6 @@
 package inca.frontend.util
 
-import inca.frontend.core.Core.{Eval, Name, Private, Public, TAny, TAnyLinked, TBool, TDouble, TEnumeration, TInt, TIterable, TLinked, TList, TLong, TNode, TString, TTuple, TUnit, TypeAnno, Visibility}
+import inca.frontend.core.Core._
 import inca.frontend.parser.CoreParser
 import inca.frontend.parser.ParserUtils.sp
 import inca.frontend.typechecker.TypeContext
@@ -9,7 +9,7 @@ import scala.collection.mutable
 import scala.meta.Type.Param
 import scala.meta.{Case, Defn, Enumerator, Lit, Pat, Term, Tree, Type}
 import scala.reflect.runtime.currentMirror
-import scala.tools.reflect.ToolBox
+import scala.tools.reflect.{ToolBox, ToolBoxError}
 
 /**
  * The EvalHelper contains methods to analyze the Scala code in Eval constructs
@@ -452,6 +452,13 @@ object EvalHelper {
     }
   }
 
+  /**
+   * Computes the result type of an Eval expression and validates the contained Scala code for type correctness
+   * However it does not set the type of the eval expression. This is up to the caller
+   * @param eval the eval expression
+   * @param ctx the type context of the type check run
+   * @return the type annotation of the result type
+   */
   def typecheck(eval: Eval)(implicit ctx: TypeContext): TypeAnno = {
     val params = eval.params
     // if we didn't find the free variable it might be a package so we ignore it and let the compiler figure it out
@@ -465,9 +472,14 @@ object EvalHelper {
     val codeSource = s"{$paramString; ${eval.code.syntax}}"
     val toolbox = currentMirror.mkToolBox()
     val tree = toolbox.parse(codeSource)
-    val typechecked = toolbox.typecheck(tree)
-    val typ = typechecked.tpe.dealias
-    decode(typ.toString)
+    try {
+      val typechecked = toolbox.typecheck(tree)
+      val typ = typechecked.tpe.dealias
+      decode(typ.toString)
+    } catch {
+      // throw a different exception to hide impl details
+      case ToolBoxError(msg, _) => throw ScalaTypeError(msg)
+    }
   }
 
   import fastparse._
@@ -483,9 +495,9 @@ object EvalHelper {
   private def typeAnnoHelper[_: P](t: TypeAnno): P[TypeAnno] =
     P(t.prettyprint).map(_ => t)
 
-  private def tLinked[_: P]: P[TLinked] = P(CoreParser().tAnyLinked | tList | tNode)
+  private def tLinked[_: P](implicit ctx: TypeContext): P[TLinked] = P(CoreParser().tAnyLinked | tNode)
 
-  private def typeAnno[_: P]: P[TypeAnno] =
+  private def typeAnno[_: P](implicit ctx: TypeContext): P[TypeAnno] =
     P(
       typeAnnoHelper(TAny)
         | typeAnnoHelper(TBool)
@@ -494,36 +506,26 @@ object EvalHelper {
         | typeAnnoHelper(TDouble)
         | typeAnnoHelper(TString)
         | typeAnnoHelper(TUnit)
+        | tList
         | tLinked
-        | tIterable
         | tTuple
     )
 
-  def tTuple[_: P]: P[TTuple] =
+  private def tTuple[_: P](implicit ctx: TypeContext): P[TTuple] =
     P(
       (sp ~ "(" ~ typeAnno.rep(1, sep = ",") ~ ")").map(TTuple)
     )
 
-  def tList[_: P]: P[TList] =
-    P("List[" ~ typeAnno ~ "]").map {
-      case linked: TLinked => TList(linked)
-      case anno => TList(TNode(anno.prettyprint))
-    }
+  private def tList[_: P](implicit ctx: TypeContext): P[TList] =
+    P("List[" ~ tLinked ~ "]").map(TList)
 
-  def tEnumeration[_: P]: P[TEnumeration] =
-    P("Enum[" ~ typeAnno ~ "]").map {
-      case linked: TLinked => TEnumeration(linked)
-      case anno => TEnumeration(TNode(anno.prettyprint))
-    }
 
-  def tIterable[_: P]: P[TIterable] = P(tList | tEnumeration)
-
-  private def decode(typName: String): TypeAnno = {
+  private def decode(typName: String)(implicit ctx: TypeContext): TypeAnno = {
     // in case the result type of an expression is a string literal scala.reflect actually places this literal in the type
-    // this means "hello world" results in the type String("hello world"
+    // this means "hello world" results in the type String("hello world")
     // to get around this we have to remove all such occurrences
     val name = typName.trim.replaceAll("""\(".*"\)""", "")
-    val rawAnno = fastparse.parse(name, typeAnno(_)).get.value
+    val rawAnno = fastparse.parse(name, typeAnno(_, ctx)).get.value
     refineTypeAnno(rawAnno)
   }
 
@@ -535,3 +537,5 @@ object EvalHelper {
   }
 
 }
+
+case class ScalaTypeError(msg: String) extends Exception(msg)

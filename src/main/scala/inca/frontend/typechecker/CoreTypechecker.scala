@@ -33,7 +33,10 @@ class TypeContext(
 }
 
 /* Companion object to Typechecker */
-object CoreTypechecker { type TypeEnvironment = Map[String, TypeAnno] }
+object CoreTypechecker {
+  type TypeEnvironment = Map[String, TypeAnno]
+  type DataOpEnv = Map[(Option[String], String), DataType]
+}
 
 /** IncA Typechecker
   *
