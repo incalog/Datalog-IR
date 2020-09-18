@@ -517,10 +517,7 @@ object EvalHelper {
     )
 
   private def tList[_: P](implicit ctx: TypeContext): P[TList] =
-    P("List[" ~ typeAnno ~ "]").map {
-      case linked: TLinked => TList(linked)
-      case anno => TList(TNode(anno.prettyprint))
-    }
+    P("List[" ~ tLinked ~ "]").map(TList)
 
 
   private def decode(typName: String)(implicit ctx: TypeContext): TypeAnno = {

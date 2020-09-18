@@ -588,7 +588,7 @@ class EvalHelperTest extends AnyFunSuite {
   }
 
   test("test typecheck list") {
-    val code = q"List(1, 3, 5)"
+    val code = q"List(1, 2, 3)"
     val eval = Eval(Seq.empty, code)
     val typ = EvalHelper.typecheck(eval)
     assert(typ == TList(TNode("Int")))
