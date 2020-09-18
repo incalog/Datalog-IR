@@ -1,25 +1,32 @@
 package inca.souffle
 
-import inca.frontend.core.Core
-import inca.frontend.core.Core._
+import inca.backend.ir.GP._
+import inca.runtime.context.LanguageMetaInfo
 import inca.souffle.Syntax._
 import inca.souffle.Util._
 import truechange.{JavaLitType, LitType}
 import inca.runtime.index.MetaElements.{Link => MLink}
+import inca.util.Gensym
 
+import scala.collection.immutable.MultiDict
 import scala.collection.mutable
 
 class SouffleToIncaCompiler {
 
-  val patFuns: mutable.Map[String, PatternFunction] = mutable.Map()
-  val decls: mutable.Map[String, RuleSignature] = mutable.Map()
-  val inputs: mutable.Map[String, Input] = mutable.Map()
+  private val patFuns: mutable.Map[String, Pattern] = mutable.Map()
+  private val decls: mutable.Map[String, RuleSignature] = mutable.Map()
+  private val inputs: mutable.Map[String, Input] = mutable.Map()
 
   val componentDefinitions: mutable.Map[String, ComponentDefinition] = mutable.Map()
 
-  def compile(name: String, analysis: Analysis): Module = {
+  def compile(name: String, analysis: Analysis): (Module, Seq[(RuleSignature, Input)], LanguageMetaInfo) = {
     analysis.contents.foreach(compile(_, ""))
-    Module(name, Seq(), patFuns.values.toSeq.sortBy(_.name))
+
+    (
+      Module(name, Seq(), patFuns.values.toSeq.sortBy(_.name)),
+      Seq(),
+      new LanguageMetaInfo(MultiDict(), Map(), genLitLinks)
+    )
   }
 
   def compile(content: AnalysisContent, funPrefix: String): Unit = content match {
@@ -31,19 +38,23 @@ class SouffleToIncaCompiler {
       cdef.contents.foreach(compile(_, name + "_"))
 
     case s@RuleSignature(name, parameters, _) =>
-      val fun = PatternFunction(None, name, parameters.map(compile), Seq(), Seq())
+      val fun = Pattern(None, name, parameters.map(compile), Seq())
       patFuns += (funPrefix + name) -> fun
       decls += name -> s
 
-    case RuleDefinition(heads, rulebody) =>
+    case ruleDef@RuleDefinition(heads, rulebody) =>
       for (RuleHead(name, args) <- heads) {
         val fun = patFuns.getOrElse(funPrefix + name, throw new IllegalArgumentException(s"Unknown relation ${funPrefix + name}"))
-        val headEqs = (fun.params zip args).map {
-          case (Param(name, _), arg) => Assert(Eq(Var(name), compile(arg)))
+        val usedVars = collect(ruleDef)
+        implicit val gensym: Gensym = new Gensym(usedVars)
+        val headEqs = (fun.params zip args).flatMap {
+          case (Param(name, _), arg) =>
+            val (term, constraints) = compile(arg)
+            constraints :+ Compare(EqComparator, Var(name), term)
         }
-        val stmts = rulebody.map(compile(_, funPrefix))
+        val stmts = rulebody.flatMap(compile(_, funPrefix))
         val funbody = Body(headEqs ++ stmts)
-        patFuns += (funPrefix + name) -> PatternFunction(fun.vis, fun.name, fun.params, fun.outParams, fun.bodies :+ funbody)
+        patFuns += (funPrefix + name) -> Pattern(fun.vis, fun.name, fun.params, fun.bodies :+ funbody)
       }
 
     case TypeDeclaration(name, superType) =>
@@ -54,13 +65,13 @@ class SouffleToIncaCompiler {
       // generate pattern that enumerates all node instances of AST node class
       val fun = patFuns.getOrElse(rule, throw new IllegalArgumentException("Rule signature has to come before input declaration"))
       val body = Body(
-        Values("node", TNode(rule)) +:
+        HasType(Var("node"), TNode(rule)) +:
         decl.parameters.map { param =>
           val cleanName = cleanSouffleName(param.name)
-          Assert(Eq(PathAccess(Var("node").typed(TNode(rule)), NamedLink(TNode(rule), cleanName)).typed(compile(param.typ)), Var(cleanName)))
+          Path(Var("node"), TNode(rule), NamedLink(TNode(rule), cleanName), Var(cleanName), compile(param.typ))
         }
       )
-      patFuns(rule) = PatternFunction(fun.vis, fun.name, fun.params, fun.outParams, Seq(body))
+      patFuns(rule) = Pattern(fun.vis, fun.name, fun.params, Seq(body))
 
     case Output(rule) =>
 
@@ -71,7 +82,7 @@ class SouffleToIncaCompiler {
     Param(cleanSouffleName(param.name), compile(param.typ))
 
   def compile(typ: Syntax.Type): TypeAnno = typ match {
-    case DeclaredType(name) => TString
+    case DeclaredType(_) => TString
     case SymbolType => TString
     case NumberType => TInt
     case UnsignedType => TLong
@@ -86,37 +97,45 @@ class SouffleToIncaCompiler {
     case FloatType => classOf[Double]
   }
 
-  def compile(stm: Syntax.Statement, funPrefix: String): Core.Statement = stm match {
+  def compile(stm: Syntax.Statement, funPrefix: String)(implicit gensym: Gensym): Seq[Constraint] = stm match {
     case Equality(left, not, right) if !not =>
-      Assert(Eq(compile(left), compile(right)))
+      val (lhterm, lhConstraints) = compile(left)
+      val (rhterm, rhConstraints) = compile(right)
+      lhConstraints ++ rhConstraints :+ Compare(EqComparator, lhterm, rhterm)
     case Equality(left, not, right) if not =>
-      Assert(Neq(compile(left), compile(right)))
-    case RuleApplication(negated, component, rule, arguments) =>
+      val (lhterm, lhConstraints) = compile(left)
+      val (rhterm, rhConstraints) = compile(right)
+      lhConstraints ++ rhConstraints :+ Compare(NeqComparator, lhterm, rhterm)
+    case RuleApplication(negated, component, rule, args) =>
+      val (terms, constraints) = args.map(compile).unzip
       val call = component match {
-        case Some(c) => Call(s"${c}_$rule", arguments.map(compile))
-        case None => Call(funPrefix + rule, arguments.map(compile))
+        case Some(c) => Call(s"${c}_$rule", terms, transitive = false, neg = negated)
+        case None => Call(funPrefix + rule, terms, transitive = false, neg = negated)
       }
-      if (negated)
-        Assert(Undef(call))
-      else
-        Assert(Def(call))
+      constraints.flatten :+ call
   }
 
-  def compile(exp: Syntax.Expression): Core.Exp = exp match {
-      // TODO variable that was previously will be a variable
-      // TODO variable that was not previously bound will translate to Wildcard
-    case Variable(name) => Var(cleanSouffleName(name))
-    case StringValue(value) => Constant(StringLiteral(value))
-    case NumberValue(value) => Constant(IntLiteral(value))
-    case Syntax.Any => Wildcard
+  def compile(exp: Syntax.Expression)(implicit gensym: Gensym): (Term, Seq[Constraint]) = exp match {
+    case Variable(name) => (Var(cleanSouffleName(name)), Seq())
+    case StringValue(value) => (Constant(StringLiteral(value)), Seq())
+    case NumberValue(value) => (Constant(IntLiteral(value)), Seq())
+    case Syntax.Any =>
+      val fresh = gensym.fresh("wildcard")
+      (Var(fresh), Seq())
     case BuiltInFunctionCall(CatBuiltInFunction, arguments) =>
       val params = collectParams(exp)
-      Eval(params, TString, compileEvalString(exp))
+      val trgVar = Var("trg")
+      val typedParams = params.map {
+        case Var(name) => s"${name}: String"
+      }
+      val funString = s"(${typedParams.mkString(", ")}) => ${compileEvalString(exp)}"
+      val computed = Computed(trgVar, Evaluation(params.map((_, TString)), TString, funString))
+      (trgVar, Seq(computed))
     case _ => throw new IllegalArgumentException(s"TODO $exp not supported")
   }
 
-  def collectParams(exp: Syntax.Expression): Seq[String] = exp match {
-    case Variable(name) => Seq(cleanSouffleName(name))
+  def collectParams(exp: Syntax.Expression): Seq[Term] = exp match {
+    case Variable(name) => Seq(Var(cleanSouffleName(name)))
     case StringValue(value) => Seq()
     case NumberValue(value) => Seq()
     case BuiltInFunctionCall(fun, args) => args.flatMap(collectParams)
@@ -141,4 +160,28 @@ class SouffleToIncaCompiler {
         link -> JavaLitType(getJavaClassForType(param.typ))
       }
     }.toMap
+
+  def collect(rule: RuleDefinition): Set[String] = {
+    rule.heads.flatMap(collect).toSet ++ rule.body.flatMap(collect)
+  }
+
+  def collect(head: RuleHead): Set[String] = head.arguments.flatMap(collect).toSet
+
+  def collect(exp: Expression): Set[String] = exp match {
+    case Variable(name) => Set(name)
+    case StringValue(_) => Set()
+    case NumberValue(_) => Set()
+    case Syntax.Any => Set()
+    case BuiltInFunctionCall(_, arguments) =>
+      // TODO only cat function supported
+      Set("cat") ++ arguments.flatMap(collect)
+  }
+
+  def collect(stm: Statement): Set[String] = stm match {
+    case RuleApplication(negated, component, rule, arguments) =>
+      Set(rule) ++ arguments.flatMap(collect)
+    case Equality(left, _, right) => collect(left) ++ collect(right)
+    case Parens(stm) => collect(stm)
+  }
 }
+
