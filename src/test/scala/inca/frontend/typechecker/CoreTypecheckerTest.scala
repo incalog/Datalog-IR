@@ -56,7 +56,14 @@ class CoreTypecheckerTest extends AnyFunSuite {
           |
           |def another() : Int {
           |    yield name()
-          |}""".stripMargin,
+          |} """.stripMargin,
+      s"""|
+          |module test
+          |
+          |def name() : Int = {
+          |    val x = 4
+          |    yield eval(x + 38)
+          |} """.stripMargin,
       s"""|
           |module test
           |
@@ -68,4 +75,5 @@ class CoreTypecheckerTest extends AnyFunSuite {
 
     code.map(test_run)
   }
+
 }

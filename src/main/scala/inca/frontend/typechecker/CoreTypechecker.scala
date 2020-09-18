@@ -1,13 +1,13 @@
 package inca.frontend.typechecker;
 
-import inca.frontend.parser.Program
 import inca.frontend.core.Core._
+import inca.frontend.parser.Program
 import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
+import inca.frontend.util.{EvalHelper, ScalaTypeError}
 import inca.runtime.context._
-import scala.collection.mutable.ArrayBuffer
-import scala.util.control.Breaks._
 import truechange.SortType
-import com.google.common.graph.ElementOrder.Type
+
+import scala.collection.mutable.ArrayBuffer
 
 /* The Typechecker results */
 sealed trait TypecheckResult
@@ -177,7 +177,7 @@ class CoreTypechecker(
           )
         (None, te) // @todo hierarchy
       case Assign(names, exp) => // @todo check for already in use
-        if (!names.forall(!context.tenv.contains(_)))
+        if (names.exists(context.tenv.contains))
           throw new FatalError(s"Variable is already in use ($where).")
 
         if (names.length == 1) { // simple assign
@@ -320,7 +320,16 @@ class CoreTypechecker(
           )
         (context.tenv(name), context.tenv)
       case PathAccess(receiver, link) => ???
-      case Eval(params, code)         => ???
+      case eval@Eval(params, code)    =>
+        try {
+          val resType = EvalHelper.typecheck(eval)
+          (resType, context.tenv)
+        } catch {
+          case ScalaTypeError(msg) =>
+            errors.addOne(TypeError(msg))
+            (TAny, context.tenv)
+        }
+
       case _: Exp =>
         for (e <- extensions) {
           val (ot, et, is) = e.typecheck(exp)

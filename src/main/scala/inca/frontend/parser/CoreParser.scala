@@ -223,6 +223,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
             | undefExp
             | varExp
             | constantExp
+            | evalExp
             | tupleExp
             | aggregateExp
             | bracketExp
@@ -464,4 +465,5 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
     ).map {
       case (init, join, call) => Aggregate(init, join, None, call)
     }
+
 }
