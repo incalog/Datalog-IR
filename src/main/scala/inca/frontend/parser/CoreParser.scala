@@ -222,6 +222,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
             | defExp
             | undefExp
             | varExp
+            | evalExp
             | constantExp
             | evalExp
             | tupleExp
