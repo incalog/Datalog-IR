@@ -1,9 +1,8 @@
 package inca.frontend.typechecker;
 
 import inca.frontend.core.Core._
-import inca.frontend.parser.Program
 import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
-import inca.frontend.util.{EvalHelper, ScalaTypeError}
+import inca.frontend.util.{EvalHelper, Program, ScalaTypeError}
 import inca.runtime.context._
 import truechange.SortType
 
@@ -137,7 +136,7 @@ class CoreTypechecker(
 
   }
 
-  private def typecheck(body: Body)(implicit context: TypeContext): TypeAnno = {
+  def typecheck(body: Body)(implicit context: TypeContext): TypeAnno = {
 
     val return_types: ArrayBuffer[TypeAnno] = ArrayBuffer()
     var my_context = context.tenv
@@ -380,7 +379,7 @@ class CoreTypechecker(
     }
   }
 
-  private def typecheck(lit: Literal)(implicit context: TypeContext): TypeAnno = {
+  def typecheck(lit: Literal)(implicit context: TypeContext): TypeAnno = {
     lit match {
       case UnitLiteral       => null
       case BooleanLiteral(v) => TBool
