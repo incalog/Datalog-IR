@@ -11,13 +11,13 @@ object IfThenElseTypechecker extends TypecheckerExtension{
   override def typecheck(e: Core.Statement, last: Boolean)(implicit context: TypeContext):
   (Option[Core.TypeAnno], TypeEnvironment, Boolean) = e match {
     case IfThenElse(cond, thn, elseIfs, els) =>
-      val (condTyp, _) = typechecker.typecheck(cond)
+      val (condTyp, cte) = typechecker.typecheck(cond)
       checkCond(condTyp)
-      val thnType = typechecker.typecheck(thn)
+      val thnType = typechecker.typecheck(thn)(new TypeContext(context, cte))
       val elifTypes = elseIfs.map {elif =>
-        val (condTyp, _) = typechecker.typecheck(elif.cond)
+        val (condTyp, cte) = typechecker.typecheck(elif.cond)
         checkCond(condTyp)
-        typechecker.typecheck(elif.body)
+        typechecker.typecheck(elif.body)(new TypeContext(context, cte))
       }
       val elsType = els.fold[TypeAnno](TUnit)(typechecker.typecheck)
       if(!last) {
@@ -28,13 +28,13 @@ object IfThenElseTypechecker extends TypecheckerExtension{
         val finalType = branchTypes.reduce[TypeAnno] {
           case (t1, t2) =>
             val commonType = typechecker.meet(t1, t2)
-          commonType match {
-            case None =>
-              typechecker.errors.addOne(TypeError(s"IfThenElse needs a result type at the end of a body"))
-              return (None, context.tenv, true)
-            case Some(t) =>
-              t
-          }
+            commonType match {
+              case None =>
+                typechecker.errors.addOne(TypeError(s"IfThenElse needs a result type at the end of a body"))
+                return (None, context.tenv, true)
+              case Some(t) =>
+                t
+            }
         }
         (Some(finalType), context.tenv, true)
       }

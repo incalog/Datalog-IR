@@ -1,6 +1,8 @@
 package inca.frontend.parser
 
 import fastparse.parse 
+import fastparse.P
+import fastparse.End
 import fastparse.ScalaWhitespace._
 import inca.frontend.core.Core._
 import inca.frontend.parser._
@@ -12,8 +14,8 @@ import inca.frontend.parser.extensions._
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
 object Parser {
-    def parseModule(code : String) : fastparse.Parsed[Module] = {
-        parse(code, CoreParser(Seq(
+    private def file_wrapper[_:P]:P[Module] = P(
+        CoreParser(Seq(
             BoolOpsParser,
             CastParser,
             DataOpCallParser, // not implemented 
@@ -23,6 +25,10 @@ object Parser {
             IfThenElseParser,
             MatchParser,
             SwitchParser
-        )).module(_))
+        )).module ~ End
+    )
+
+    def parseModule(code : String) : fastparse.Parsed[Module] = {
+        parse(code, file_wrapper(_))
     }
 }

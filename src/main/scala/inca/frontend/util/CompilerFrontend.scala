@@ -25,7 +25,6 @@ case class Program(modules: Seq[Core.Module]) {
   }
 }
 
-
 /**
   * Compiler frontend for the IncA language.
   *
