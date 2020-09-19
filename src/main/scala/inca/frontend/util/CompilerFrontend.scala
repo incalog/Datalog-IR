@@ -1,17 +1,14 @@
-package inca.frontend.parser
+package inca.frontend.util
 
-import scala.io.Source
-
-import inca.frontend.parser.CoreParser
-import inca.frontend.core.Core
-import fastparse._
-import fastparse.Parsed.Failure
-import fastparse.Parsed.Success
-import scala.collection.mutable
 import java.io.FileNotFoundException
 
-import inca.frontend.typechecker.CoreTypechecker
+import fastparse.Parsed.{Failure, Success}
+import inca.frontend.core.Core
+import inca.frontend.parser.Parser
 import inca.frontend.typechecker.Typechecker
+
+import scala.collection.mutable
+import scala.io.Source
 
 case class Program(modules: Seq[Core.Module]) {
   def prettyprint = {

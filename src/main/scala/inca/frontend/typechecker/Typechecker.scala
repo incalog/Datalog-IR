@@ -1,8 +1,9 @@
 package inca.frontend.typechecker
 
-import inca.frontend.typechecker.extensions._ 
+import inca.frontend.typechecker.extensions._
 import inca.runtime.context.LanguageMetaInfo
 import inca.frontend.parser._
+import inca.frontend.util.Program
 
 /** Typechecker Frontend 
   *
@@ -12,7 +13,7 @@ import inca.frontend.parser._
 object Typechecker 
 {
     def typecheck(smi : LanguageMetaInfo, prog : Program) = {
-        val tc = new CoreTypechecker(smi, prog, Seq(BoolOpsTypechecker))
+        val tc = new CoreTypechecker(smi, prog, Seq(BoolOpsTypechecker, MatchTypechecker))
         tc.typecheck()
     }
 }

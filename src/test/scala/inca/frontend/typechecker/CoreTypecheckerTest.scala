@@ -5,6 +5,7 @@ import fastparse._
 import inca.frontend.parser.{CoreParser, _}
 import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.core.Core._
+import inca.frontend.util.Program
 
 /**
   * Test class for the IncA core language typechecker.
