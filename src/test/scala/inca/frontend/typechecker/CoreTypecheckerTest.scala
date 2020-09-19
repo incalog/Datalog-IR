@@ -31,7 +31,9 @@ class CoreTypecheckerTest extends AnyFunSuite {
             case FailTypecheck(error, warnings) => fail(s"$error, $warnings")
           }
         }
-        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+        case Failure(label, index, extra) =>
+          println(cd.slice(index - 3, index + 3))
+          fail(s"$label, $index, $extra")
       }
     }
 

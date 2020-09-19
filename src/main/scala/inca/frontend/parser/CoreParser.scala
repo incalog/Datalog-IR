@@ -288,7 +288,6 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
     ).map(_ => Eval(free.toSeq, code))
   }
 
-
   /** PathAccess parser */
   // @todo Wait for fix commit in Core language
   def pathAccessExp[_: P](e: Exp): P[Exp] =

@@ -1,11 +1,11 @@
 package inca.frontend.typechecker;
 
 import inca.frontend.core.Core._
-import inca.frontend.parser.Program
+import inca.frontend.parser.{CoreParser, Program}
 import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
 import inca.frontend.util.{EvalHelper, ScalaTypeError}
 import inca.runtime.context._
-import truechange.SortType
+import truechange.{AnyType, ListType, SortType, Type}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -35,7 +35,6 @@ class TypeContext(
 /* Companion object to Typechecker */
 object CoreTypechecker {
   type TypeEnvironment = Map[String, TypeAnno]
-  type DataOpEnv = Map[(Option[String], String), DataType]
 }
 
 /** IncA Typechecker
@@ -137,7 +136,7 @@ class CoreTypechecker(
 
   }
 
-  private def typecheck(body: Body)(implicit context: TypeContext): TypeAnno = {
+  def typecheck(body: Body)(implicit context: TypeContext): TypeAnno = {
 
     val return_types: ArrayBuffer[TypeAnno] = ArrayBuffer()
     var my_context = context.tenv
@@ -239,15 +238,27 @@ class CoreTypechecker(
         context.functions.get(name) match {
           case Some(fun) =>
             val ret = fun.outParams.map(_.typ)
+            if(fun.params.size != args.size) {
+              errors.addOne(TypeError(s"function $name takes ${fun.params.size} arguments, but got ${args.size}"))
+            }
+            val paramTypes = fun.params.map(_.typ)
+            val (argTypes, envs) = args.map(typecheck).unzip
+            val newEnv = envs.fold(context.tenv)(union)
+            paramTypes.zip(argTypes).foreach {
+              case (pTyp, aTyp) =>
+                if(!subtype(aTyp, pTyp)) {
+                  errors.addOne(TypeError(s"expected $pTyp, but got $aTyp which is not a subtype of the first"))
+                }
+            }
             if (ret.isEmpty) {
               exp.typed(TUnit)
-              (TUnit, context.tenv)
+              (TUnit, newEnv)
             } else if (ret.length == 1) {
               exp.typed(ret.head)
-              (ret.head, context.tenv)
+              (ret.head, newEnv)
             } else {
               exp.typed(TTuple(ret))
-              (TTuple(ret), context.tenv)
+              (TTuple(ret), newEnv)
             }
           case None =>
             throw new FatalError(s"Function $name is not defined ($where).")
@@ -354,7 +365,10 @@ class CoreTypechecker(
           )
         exp.typed(context.tenv(name))
         (context.tenv(name), context.tenv)
-      case PathAccess(receiver, link) => ???
+      case PathAccess(receiver, link) =>
+        val (typ, te) = typecheck(receiver)
+        val linkType = lmi.links((typ.prettyprint, link.prettyprint))
+        (convertType(linkType), union(context.tenv, te))
       case eval@Eval(params, code)    =>
         try {
           val resType = EvalHelper.typecheck(eval)
@@ -415,6 +429,18 @@ class CoreTypechecker(
         res += (t -> env2(t))
     }
     res
+  }
+
+  private def convertType(typ: Type): TypeAnno = typ match {
+    case AnyType => TAny
+    case ListType(ty) =>
+      val inner = convertType(ty)
+      inner match {
+        case linked: TLinked => TList(linked)
+        case anno => TList(TNode(anno.prettyprint))
+      }
+    case SortType(name) =>
+      fastparse.parse(name, CoreParser().typeAnno(_)).get.value
   }
 
   def subtype(tc: TypeAnno, tp: TypeAnno): Boolean =

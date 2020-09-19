@@ -11,6 +11,12 @@ import scala.collection.mutable.ArrayBuffer
 trait TypecheckerExtension {
   protected[typechecker] var typechecker : CoreTypechecker = _ // Set by Typechecker instance.
 
+  /**
+   *
+   * @param e the expression to be typechecked
+   * @param context the type context
+   * @return a triple of the computed type, the new type environment and a flag signalizing whether to use this type
+   */
   def typecheck(e: Exp)(implicit
       context: TypeContext
   ): (TypeAnno, CoreTypechecker.TypeEnvironment, Boolean) = {
