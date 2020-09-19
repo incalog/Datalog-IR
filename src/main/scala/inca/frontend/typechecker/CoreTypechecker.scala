@@ -1,6 +1,7 @@
 package inca.frontend.typechecker;
 
 import inca.frontend.core.Core._
+import inca.frontend.parser.CoreParser
 import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
 import inca.frontend.util.{EvalHelper, Program, ScalaTypeError}
 import inca.runtime.context._
@@ -102,7 +103,7 @@ class CoreTypechecker(
 
     if (res.contains(TUnit)) {
       if (out.nonEmpty)
-        errors.addOne(TypeError(s"Annotated return type does not match ($w, Code: 0x01)"))
+        errors.addOne(TypeError(s"Annotated return type does not match ($w, Code: 0x01). Expected $out, but got $res"))
     } else {
       // check if all blocks have the same return type 
       if (res.count(x => subtype(res.head, x) && subtype(x, res.head)) != res.length)
@@ -462,7 +463,11 @@ class CoreTypechecker(
 
   def meet(t1: TypeAnno, t2: TypeAnno): Option[TypeAnno] =
     if (t1 == t2) Some(t1)
-    else if (subtype(t1, t2)) Some(t1)
-    else if (subtype(t2, t1)) Some(t2)
-    else None
+    else if (subtype(t1, t2)) Some(t2)
+    else if (subtype(t2, t1)) Some(t1)
+    else (t1, t2) match {
+      case (_: TLinked, _: TLinked) => Some(TAnyLinked)
+      case (_: TLinked, _) | (_, _: TLinked) => None
+      case (_, _) => Some(TAny)
+    }
 }
