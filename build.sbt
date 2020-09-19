@@ -34,6 +34,8 @@ lazy val souffle_importer = (project in file("souffle-importer")).dependsOn(inca
     "com.lihaoyi" %% "fastparse" % "2.1.3",
     "org.scalatest" %% "scalatest" % "3.1.0" % "test",
     "de.uni-mainz.informatik.pl" %% "truechange" % "0.1.1",
+
+    "de.uni-mainz.informatik.pl" %% "truediff" % "0.1.1" % "test",
   )
 )
 

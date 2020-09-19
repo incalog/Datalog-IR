@@ -591,11 +591,11 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatch(module, "integerlits_rec", input) { matcher =>
+    assertMatchCoreProg(module, "integerlits_rec", input) { matcher =>
       assert(matcher.getAllMatches.size() == 7)
     }
 
-    assertMatch(module, "integerlits", input) { matcher =>
+    assertMatchCoreProg(module, "integerlits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 1)
       matcher.getAllMatchArrays should contain theSameElementsAs Seq(Array(2))
     }

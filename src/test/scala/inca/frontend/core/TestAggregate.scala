@@ -39,7 +39,7 @@ class TestAggregate extends AnyFlatSpec with IncaMatchers {
 
     val input = Exp.BooleanLit(true)
 
-    assertMatch(module, "sum_1_to_10", input, scope) { matcher =>
+    assertMatchCoreProg(module, "sum_1_to_10", input, scope) { matcher =>
       assert(matcher.getAllMatches.size() == 1)
       assert(matcher.getAllMatchArrays.head.head.asInstanceOf[Nat].toInt == (1 to 10).sum)
     }
@@ -67,7 +67,7 @@ class TestAggregate extends AnyFlatSpec with IncaMatchers {
 
     val input = Exp.BooleanLit(true)
 
-    assertMatch(module, "sum_1_to_10", input, scope) { matcher =>
+    assertMatchCoreProg(module, "sum_1_to_10", input, scope) { matcher =>
       assert(matcher.getAllMatches.size() == 1)
       assert(matcher.getAllMatchArrays.head.head.asInstanceOf[Nat].toInt == (1 to 10).sum)
     }

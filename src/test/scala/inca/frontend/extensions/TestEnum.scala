@@ -110,7 +110,7 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatch(module, "integerlits", input) { matcher =>
+    assertMatchCoreProg(module, "integerlits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 5)
     }
   }

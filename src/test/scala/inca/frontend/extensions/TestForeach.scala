@@ -88,7 +88,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatch(module, "integerlits", input, options = CompilerOptions(scope.langMetaInfo, Seq(Foreach, Enum))) { matcher =>
+    assertMatchCoreProg(module, "integerlits", input, options = CompilerOptions(scope.langMetaInfo, Seq(Foreach, Enum))) { matcher =>
       assert(matcher.getAllMatches.size() == 5)
     }
   }
@@ -120,7 +120,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatch(module, "integerlits", input, options = CompilerOptions(scope.langMetaInfo, Seq(Foreach, Enum))) { matcher =>
+    assertMatchCoreProg(module, "integerlits", input, options = CompilerOptions(scope.langMetaInfo, Seq(Foreach, Enum))) { matcher =>
       assert(matcher.getAllMatches.size() == 3)
       matcher.getAllMatchArrays should contain theSameElementsAs Seq(Array(3), Array(4), Array(5))
     }

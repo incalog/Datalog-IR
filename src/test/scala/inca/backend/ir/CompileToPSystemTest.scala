@@ -19,10 +19,10 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   test("simple compare constraint") {
     val module = Module("Test", Seq(), Seq(idFun))
 
-    assertMatch(module, "id", testInputNumericAddition) { matcher =>
+    assertMatchCoreProg(module, "id", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
-    assertMatch(module, "id", testInput) { matcher =>
+    assertMatchCoreProg(module, "id", testInput) { matcher =>
       assert(matcher.getAllMatches.size == 1)
     }
   }
@@ -30,10 +30,10 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   test("simple path constraint") {
     val module = Module("Test", Seq(), Seq(lhChildFun))
 
-    assertMatch(module, "lhChild", testInputNumericAddition) { matcher =>
+    assertMatchCoreProg(module, "lhChild", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
-    assertMatch(module, "lhChild", testInput) { matcher =>
+    assertMatchCoreProg(module, "lhChild", testInput) { matcher =>
       assert(matcher.getAllMatches.size == 1)
     }
   }
@@ -41,10 +41,10 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   test("multiple bodies") {
     val module = Module("Test", Seq(), Seq(childrenFun))
 
-    assertMatch(module, "children", testInputNumericAddition) { matcher =>
+    assertMatchCoreProg(module, "children", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 6)
     }
-    assertMatch(module, "children", testInput) { matcher =>
+    assertMatchCoreProg(module, "children", testInput) { matcher =>
       assert(matcher.getAllMatches.size == 2)
     }
   }
@@ -52,10 +52,10 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   test("non negative, non transtive call") {
     val module = Module("Test", Seq(), Seq(callLhChildFun, lhChildFun))
 
-    assertMatch(module, "callLhChild", testInputNumericAddition) { matcher =>
+    assertMatchCoreProg(module, "callLhChild", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
-    assertMatch(module, "callLhChild", testInput) { matcher =>
+    assertMatchCoreProg(module, "callLhChild", testInput) { matcher =>
       assert(matcher.getAllMatches.size == 1)
     }
   }
@@ -63,10 +63,10 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   test("constraint concept") {
     val module = Module("Test", Seq(), Seq(instanceAddFun))
 
-    assertMatch(module, "instanceAdd", testInputNumericAddition) { matcher =>
+    assertMatchCoreProg(module, "instanceAdd", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 1)
     }
-    assertMatch(module, "instanceAdd", testInput) { matcher =>
+    assertMatchCoreProg(module, "instanceAdd", testInput) { matcher =>
       assert(matcher.getAllMatches.size == 0)
     }
   }
@@ -74,7 +74,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   test("no type annotation for param") {
     val module = Module("Test", Seq(), Seq(noParamTypeFun))
 
-    assertMatch(module, "noParamType", testInputNumericAddition) { matcher =>
+    assertMatchCoreProg(module, "noParamType", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
   }
@@ -82,10 +82,10 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   test("primitive datatype output") {
     val module = Module("Test", Seq(), Seq(isBooleanFun))
 
-    assertMatch(module, "isBoolean", testInputNumericAddition) { matcher =>
+    assertMatchCoreProg(module, "isBoolean", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 0)
     }
-    assertMatch(module, "isBoolean", testInput) { matcher =>
+    assertMatchCoreProg(module, "isBoolean", testInput) { matcher =>
       assert(matcher.getAllMatches.size == 2)
     }
   }
@@ -111,7 +111,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
 
     val module = Module("Test", Seq(), Seq(parentFun))
 
-    assertMatch(module, "parent", mul) { matcher =>
+    assertMatchCoreProg(module, "parent", mul) { matcher =>
       assert(matcher.getAllMatches.size == 4)
     }
   }
