@@ -285,13 +285,14 @@ class CoreTypechecker(
         (TBool, te)
       case Eq(lhs, rhs) =>
         val (r, l) = (typecheck(lhs), typecheck(rhs))
-        if (subtype(r._1, l._1) && subtype(l._1, r._1))
+        if (!(subtype(r._1, l._1) && subtype(l._1, r._1))) {
           throw new FatalError(s"Equality operand types do not match ($where).")
+        }
         exp.typed(TBool)
         (TBool, union(r._2, l._2))
       case Neq(lhs, rhs) =>
         val (r, l) = (typecheck(lhs), typecheck(rhs))
-        if (subtype(r._1, l._1) && subtype(l._1, r._1))
+        if (!(subtype(r._1, l._1) && subtype(l._1, r._1)))
           throw new FatalError(s"Inequality operand types do not match ($where).")
         exp.typed(TBool)
         (TBool, union(r._2, l._2))
