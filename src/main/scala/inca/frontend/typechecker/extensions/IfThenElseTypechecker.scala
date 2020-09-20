@@ -4,7 +4,7 @@ import inca.frontend.core.Core
 import inca.frontend.core.Core._
 import inca.frontend.extensions.IfThenElse
 import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
-import inca.frontend.typechecker.{TypeContext, TypeError, TypecheckerExtension}
+import inca.frontend.typechecker.{TypeContext, TypeError, TypeWarning, TypecheckerExtension}
 
 object IfThenElseTypechecker extends TypecheckerExtension{
 
@@ -19,29 +19,37 @@ object IfThenElseTypechecker extends TypecheckerExtension{
         checkCond(condTyp)
         typechecker.typecheck(elif.body)(new TypeContext(context, cte))
       }
-      // TODO lift this restriction later when the typechecker becomes more advanced
-      if(els.isEmpty && (thnType +: elifTypes).exists(_ != TUnit)) {
-        typechecker.errors.addOne(TypeError(s"attempt to yield value of type $thnType from If statement without else block"))
-        return (None, context.tenv, true)
+      val branchTypes = thnType +: elifTypes
+      val intermediate = branchTypes.reduce[TypeAnno] {
+        case (t1, t2) =>
+          val commonType = typechecker.meet(t1, t2)
+          commonType match {
+            case None =>
+              typechecker.errors.addOne(TypeError(s"The types $t1 and $t2 don't have a common type"))
+              return (None, context.tenv, true)
+            case Some(t) =>
+              t
+          }
       }
-      val elsType = els.fold[TypeAnno](TUnit)(typechecker.typecheck)
-      if(!last) {
-        (None, context.tenv, true)
-      }
-      else {
-        val branchTypes = thnType +: elsType +: elifTypes
-        val finalType = branchTypes.reduce[TypeAnno] {
-          case (t1, t2) =>
-            val commonType = typechecker.meet(t1, t2)
-            commonType match {
-              case None =>
-                typechecker.errors.addOne(TypeError(s"The types $t1 and $t2 don't have a common type which is required at the end of a body"))
-                return (None, context.tenv, true)
-              case Some(t) =>
-                t
-            }
-        }
-        (Some(finalType), context.tenv, true)
+      els match {
+        case None =>
+          if(last) {
+            typechecker.errors.addOne(TypeError("incomplete IfThenElse at the end of the function"))
+            (None, context.tenv, true)
+          }
+          else {
+            val finalType = if(intermediate == TUnit) None else Some(intermediate)
+            (finalType, context.tenv, true)
+          }
+        case Some(elsBody) =>
+          val elsType = typechecker.typecheck(elsBody)
+          val finalType = typechecker.meet(intermediate, elsType) match {
+            case None =>
+              typechecker.errors.addOne(TypeError(s"The types $intermediate and $elsType don't have a common type"))
+              return (Some(TUnit), context.tenv, true)
+            case Some(t) => t
+          }
+          (Some(finalType), context.tenv, true)
       }
 
     case _ => (None, context.tenv, false)
