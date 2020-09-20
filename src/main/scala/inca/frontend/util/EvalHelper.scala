@@ -490,7 +490,7 @@ object EvalHelper {
   private def identifier[_: P]: P[String] =
     P(CharIn("a-z", "A-Z") ~~ CharIn("a-z", "A-Z", "0-9", "_", ".").repX(0)).!
 
-  private def tNode[_: P]: P[TNode] = P(identifier).!.map(TNode)
+  private def tNode[_: P]: P[TNode] = P(identifier ~~ ( " with " ~~ identifier).repX).!.map(TNode)
 
   private def typeAnnoHelper[_: P](t: TypeAnno): P[TypeAnno] =
     P(t.prettyprint).map(_ => t)

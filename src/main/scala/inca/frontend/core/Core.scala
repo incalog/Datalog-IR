@@ -9,6 +9,8 @@ object Core {
   sealed trait TypeAnno {
     def prettyprint: String
     def javastring: String
+
+    override def toString: Name = prettyprint
   }
   case object TAny extends TypeAnno {
     override def prettyprint: String = "Any"

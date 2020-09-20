@@ -1,17 +1,14 @@
 package inca.frontend.typechecker.extensions
 
+import inca.frontend.core.Core
 import inca.frontend.core.Core.{AnnoParam, Assert, Body, BooleanLiteral, Constant, DoubleLiteral, IntLiteral, Module, Param, PatternFunction, TAny, TInt, TypeAnno, UnitLiteral, Var, Yield}
 import inca.frontend.extensions.{ElseIf, IfThenElse}
 import inca.frontend.typechecker.{CoreTypechecker, FailTypecheck, SuccessTypecheck}
 import inca.frontend.util.Program
-import org.apache.log4j.ConsoleAppender
 import org.scalatest.funsuite.AnyFunSuite
+import inca.frontend.typechecker.TestingUtils._
 
 class IfThenElseTypecheckerTest extends AnyFunSuite{
-
-  def buildFun(body: Body, expected: TypeAnno) = PatternFunction(None, "default", Seq(Param("x", TInt)), Seq(AnnoParam(None, expected)), Seq(body))
-
-  def buildMod(body: Body, expected: TypeAnno) = Module("default", Seq.empty, Seq(buildFun(body, expected)))
 
   test("test typecheck only If statement") {
     val code = Body(
@@ -26,7 +23,7 @@ class IfThenElseTypecheckerTest extends AnyFunSuite{
       Yield(Var("x"))
     )
     val typechecker = new CoreTypechecker(null, Program(Seq(buildMod(code, TInt))), Seq(IfThenElseTypechecker))
-    checkTypecheck(typechecker)
+    checkTypecheck(typechecker, this)
   }
 
   test("test typecheck if-else") {
@@ -45,7 +42,7 @@ class IfThenElseTypecheckerTest extends AnyFunSuite{
       )
     )
     val typechecker = new CoreTypechecker(null, Program(Seq(buildMod(code, TAny))), Seq(IfThenElseTypechecker))
-    checkTypecheck(typechecker)
+    checkTypecheck(typechecker, this)
   }
 
   test("test typecheck if-elseif-else") {
@@ -77,7 +74,7 @@ class IfThenElseTypecheckerTest extends AnyFunSuite{
       )
     )
     val typechecker = new CoreTypechecker(null, Program(Seq(buildMod(code, TAny))), Seq(IfThenElseTypechecker))
-    checkTypecheck(typechecker)
+    checkTypecheck(typechecker, this)
   }
 
   test("test nested IfThenElse") {
@@ -88,10 +85,15 @@ class IfThenElseTypecheckerTest extends AnyFunSuite{
           IfThenElse(
             Constant(BooleanLiteral(false)),
             Body(
-              Assert(Constant(BooleanLiteral(true)))
+              Assert(Constant(BooleanLiteral(true))),
+              Yield(Var("x"))
             ),
             Seq.empty,
-            None
+            Some(
+              Body(
+                Yield(Constant(IntLiteral(1)))
+              )
+            )
           )
         ),
         Seq.empty,
@@ -100,16 +102,7 @@ class IfThenElseTypecheckerTest extends AnyFunSuite{
       Yield(Var("x"))
     )
     val typechecker = new CoreTypechecker(null, Program(Seq(buildMod(code, TInt))), Seq(IfThenElseTypechecker))
-    checkTypecheck(typechecker)
+    checkTypecheck(typechecker, this)
   }
 
-  def checkTypecheck(typechecker: CoreTypechecker): Unit = {
-    val result = typechecker.typecheck()
-    result match {
-      case FailTypecheck(errors, warnings) =>
-        println(errors)
-        fail()
-      case SuccessTypecheck(warnings) =>
-    }
-  }
 }

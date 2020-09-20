@@ -30,7 +30,7 @@ object IfThenElseTypechecker extends TypecheckerExtension{
             val commonType = typechecker.meet(t1, t2)
             commonType match {
               case None =>
-                typechecker.errors.addOne(TypeError(s"IfThenElse needs a result type at the end of a body"))
+                typechecker.errors.addOne(TypeError(s"The types $t1 and $t2 don't have a common type which is required at the end of a body"))
                 return (None, context.tenv, true)
               case Some(t) =>
                 t

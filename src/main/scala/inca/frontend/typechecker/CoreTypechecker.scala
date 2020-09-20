@@ -469,6 +469,7 @@ class CoreTypechecker(
     else (t1, t2) match {
       case (_: TLinked, _: TLinked) => Some(TAnyLinked)
       case (_: TLinked, _) | (_, _: TLinked) => None
+      case (TUnit, _ ) | (_, TUnit) => None
       case (_, _) => Some(TAny)
     }
 }
