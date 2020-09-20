@@ -97,9 +97,12 @@ class IfThenElseTypecheckerTest extends AnyFunSuite{
           )
         ),
         Seq.empty,
-        None
-      ),
-      Yield(Var("x"))
+        Some(
+          Body(
+            Yield(Var("x"))
+          )
+        )
+      )
     )
     val typechecker = new CoreTypechecker(null, Program(Seq(buildMod(code, TInt))), Seq(IfThenElseTypechecker))
     checkTypecheck(typechecker, this)

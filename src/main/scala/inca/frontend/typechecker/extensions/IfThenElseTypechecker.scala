@@ -19,6 +19,11 @@ object IfThenElseTypechecker extends TypecheckerExtension{
         checkCond(condTyp)
         typechecker.typecheck(elif.body)(new TypeContext(context, cte))
       }
+      // TODO lift this restriction later when the typechecker becomes more advanced
+      if(els.isEmpty && (thnType +: elifTypes).exists(_ != TUnit)) {
+        typechecker.errors.addOne(TypeError(s"attempt to yield value of type $thnType from If statement without else block"))
+        return (None, context.tenv, true)
+      }
       val elsType = els.fold[TypeAnno](TUnit)(typechecker.typecheck)
       if(!last) {
         (None, context.tenv, true)
