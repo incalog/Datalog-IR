@@ -10,6 +10,7 @@ import inca.frontend.util.EvalHelper
 import inca.frontend.parser.extensions._
 
 import scala.meta._
+import scala.meta.parsers.Parsed
 import scala.util.control.Breaks._
 
 object CoreParser {
@@ -19,6 +20,8 @@ object CoreParser {
       s"""|{
           | val x = eval(List(inca.analyzedData.Nat.Zero))
           |}""".stripMargin
+
+    val c2 = "eval(List(inca.analyzedData.Nat.Zero))"
     /*Body(
       Forall(
         "x",
@@ -30,13 +33,13 @@ object CoreParser {
       )
     ).prettyprint("") */
 
-    println(c)
-    println(parse(c
+    println(c2)
+    println(parse(c2
 
 
 
 
-      , CoreParser(Seq(ForallExistsParser)).body(_)))
+      , CoreParser(Seq(ForallExistsParser)).eval2Exp(_)))
   }
 }
 
@@ -250,10 +253,9 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
             | countExp
             | defExp
             | undefExp
+            | eval2Exp
             | varExp
-            | evalExp
             | constantExp
-            | evalExp
             | tupleExp
             | aggregateExp
             | bracketExp
@@ -267,21 +269,39 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
     var closing = ')'
     var code: Term = Term.Name("unused")
 
-    P("eval" ~ ("(" | "{").!.map(openStr => {
+    (P("eval" ~ ("(" | "{").!.flatMap(openStr => {
+      println(s"OPEN STRING => \n $openStr")
       closing = if (openStr(0) == '(') ')' else '}'
       P(scalaparse.Scala.Exprs.!.map(raw_str => {
-        println(raw_str)
+        println("RAW STRING =>")
+        println(s"this is it \n $raw_str")
         code = raw_str.parse[Term] match {
-          case scala.meta.parsers.Parsed.Error(_, _, _) => return fastparse.Fail
+          case scala.meta.parsers.Parsed.Error(_, _, _) =>
+            println("hä ?!")
+            return fastparse.Fail
           case scala.meta.parsers.Parsed.Success(t) =>
             free = EvalHelper.freeVars(t)
             t
         }
-      }))  ~ s"$closing"
-    })).map(_ => {
+      }))
+    }) ~ s"$closing")).map(_ => {
       Eval(free.toSeq, code)
     })
   }
+
+  def evalCore[_: P]: P[Eval] = P(scalaparse.Scala.Exprs.!).flatMap {raw_code =>
+    raw_code.parse[Term] match {
+      case Parsed.Error(pos, msg, details) =>
+        println(s"$pos, $msg, $details")
+        fastparse.Fail
+      case Parsed.Success(code) =>
+        val params = EvalHelper.freeVars(code)
+        val eval = Eval(params.toSeq, code)
+        fastparse.Pass(eval)
+    }
+  }
+
+  def eval2Exp[_: P]: P[Eval] = P("eval" ~ (("(" ~ evalCore ~ ")") | ("{" ~ evalCore ~ "}"))).log
 
   /** PathAccess parser */
   // @todo Wait for fix commit in Core language
