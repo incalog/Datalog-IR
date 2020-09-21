@@ -29,7 +29,6 @@ object BoolOpsTypechecker extends TypecheckerExtension {
             )
           )
         println(e1te, e2te, context.tenv)
-        e.typed(TBool)
         (TBool, typechecker.union(e1te, e2te), true) // @todo subtyping
       }
       case Not(cond) => {
@@ -40,14 +39,12 @@ object BoolOpsTypechecker extends TypecheckerExtension {
             TypeError(s"Cannot negate type $condt (${typechecker.where}).")
           )
 
-        e.typed(TBool)
         (TBool, condte, true) // @todo subtyping
       }
       case Or(e1, e2) => {
         val (e1t, e1te) = typechecker.typecheck(e1)
         val (e2t, e2te) = typechecker.typecheck(e2)
 
-        e.typed(TBool)
         if (e1t != TBool || e2t != TBool) // @todo subtyping
           typechecker.errors.addOne(
             TypeError(

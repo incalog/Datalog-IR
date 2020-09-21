@@ -4,11 +4,41 @@ import fastparse.ScalaWhitespace._
 import fastparse._
 import inca.frontend.core.Core
 import inca.frontend.core.Core._
+import inca.frontend.extensions.Forall
 import inca.frontend.parser.ParserUtils._
 import inca.frontend.util.EvalHelper
+import inca.frontend.parser.extensions._
 
 import scala.meta._
 import scala.util.control.Breaks._
+
+object CoreParser {
+  def main(args: Array[String]) = {
+
+    val c =
+      s"""|{
+          | val x = eval(List(inca.analyzedData.Nat.Zero))
+          |}""".stripMargin
+    /*Body(
+      Forall(
+        "x",
+        Eval(Seq.empty, q"List(inca.analyzedData.Nat.Zero, inca.analyzedData.Nat.Succ(inca.analyzedData.Nat.Zero))"),
+        Body(
+          Core.Assert(Constant(BooleanLiteral(true))),
+          Yield(Constant(BooleanLiteral(true)))
+        )
+      )
+    ).prettyprint("") */
+
+    println(c)
+    println(parse(c
+
+
+
+
+      , CoreParser(Seq(ForallExistsParser)).body(_)))
+  }
+}
 
 /**
   * Parser for the IncA Core language.
@@ -83,7 +113,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
         | P(sp ~ P(Public.prettyprint(""))).map(_ => Public)
     )
 
-  /** TTuple parser without Unit*/
+  /** TTuple parser without Unit */
   def tTuple[_: P]: P[TTuple] =
     P(
       (sp ~ "(" ~ typeAnno.rep(1, sep = ",") ~ ")").map(TTuple)
@@ -208,8 +238,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
             | pathAccessExp(e)
         )
       )
-    }
-    else
+    } else
       P(decorateRecursionExp(p.head.parse(e)) | recursionCallExp(p.tail, e))
 
   /** Higher order extension call combination parser that function as recursion anchor. */
@@ -234,58 +263,24 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
 
   /** Eval parser */
   def evalExp[_: P]: P[Eval] = {
-    var codeStr: String = ""
-    var c: Int = 0
-    var error = false
     var free = Set[String]()
     var closing = ')'
     var code: Term = Term.Name("unused")
 
-    P(
-      "eval" ~ ("(" | "{").! flatMapX
-        (openStr =>
-          P(
-            AnyChar.repX.!.map(raw_str => {
-              val stack = scala.collection.mutable.Stack[Char]()
-              val opening = openStr(0)
-              closing = if(opening == '(') ')' else '}'
-              breakable {
-                for (ch <- raw_str) {
-                  if (stack.isEmpty && ch == closing)
-                    break
-                  else if (ch == opening)
-                    stack.push(ch)
-                  else if (ch == closing)
-                    stack.pop()
-                  codeStr += ch
-                }
-              }
-              if (stack.nonEmpty) {
-                error = true
-                return fastparse.Fail
-              }
-              c = codeStr.length
-              code = codeStr.parse[Term] match {
-                case scala.meta.parsers.Parsed.Error(_, _, _) => {
-                  error = true
-                  return fastparse.Fail
-                }
-                case scala.meta.parsers.Parsed.Success(t) =>
-                  free = EvalHelper.freeVars(t)
-                  t
-              }
-            }) ~~
-              fastparse.Fail
-          ).? ~~
-            (
-              if (error)
-                fastparse.Fail
-              else
-                AnyChar.repX(max = c)
-              ) ~~
-            s"$closing"
-          )
-    ).map(_ => Eval(free.toSeq, code))
+    P("eval" ~ ("(" | "{").!.map(openStr => {
+      closing = if (openStr(0) == '(') ')' else '}'
+      P(scalaparse.Scala.Exprs.!.map(raw_str => {
+        println(raw_str)
+        code = raw_str.parse[Term] match {
+          case scala.meta.parsers.Parsed.Error(_, _, _) => return fastparse.Fail
+          case scala.meta.parsers.Parsed.Success(t) =>
+            free = EvalHelper.freeVars(t)
+            t
+        }
+      }))  ~ s"$closing"
+    })).map(_ => {
+      Eval(free.toSeq, code)
+    })
   }
 
   /** PathAccess parser */
@@ -382,7 +377,12 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
 
   /** Body parser */
   def body[_: P]: P[Body] =
-    P("{" ~ P(sp_nl ~~ statement ~~ sp).repX(sep = nl_!) ~ "}").map(Body(_))
+  P(
+    P(AnyChar.rep.!.map(x => {
+      println(x)
+    }) ~ fastparse.Fail)
+    | P("{" ~ P(sp_nl ~ statement ~~ sp).repX(sep = nl_!) ~ "}").map(Body(_))
+  )
 
   /** Parses only the AnnoParam Unit. */
   private def annoParamUnit[_: P]: P[Seq[AnnoParam]] =
@@ -414,7 +414,9 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   /** Module parser */
   def module[_: P]: P[Module] =
     P(
-      sp_nl ~ "module " ~ identifier ~ P("import".? ~ identifier).rep ~ patternFunction.rep
+      sp_nl ~ "module " ~ identifier ~ P(
+        "import".? ~ identifier
+      ).rep ~ patternFunction.rep
     ).map {
       case (name, imports, patternFunctions) =>
         Module(name, imports, patternFunctions)
