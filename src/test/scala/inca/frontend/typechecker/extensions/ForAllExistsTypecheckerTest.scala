@@ -20,7 +20,7 @@ class ForAllExistsTypecheckerTest extends AnyFunSuite{
       )
     )
 
-    val typechecker = getTypechecker(code, TBool, Seq(ForAllExistsTypechecker))
+    val typechecker = getTypechecker(code, TUnit, Seq(ForAllExistsTypechecker))
     checkTypecheck(typechecker)
   }
 
@@ -36,7 +36,7 @@ class ForAllExistsTypecheckerTest extends AnyFunSuite{
       )
     )
 
-    val typechecker = getTypechecker(code, TBool, Seq(ForAllExistsTypechecker))
+    val typechecker = getTypechecker(code, TUnit, Seq(ForAllExistsTypechecker))
     checkTypecheck(typechecker)
   }
 
@@ -44,9 +44,10 @@ class ForAllExistsTypecheckerTest extends AnyFunSuite{
     val result = typechecker.typecheck()
     result match {
       case FailTypecheck(errors, warnings) =>
-        println(errors)
+        println(errors.mkString("\n"))
         fail()
       case SuccessTypecheck(warnings) =>
+        println(warnings.mkString("\n"))
     }
   }
 }

@@ -102,7 +102,8 @@ class CoreTypechecker(
     val w = where(new TypeContext(fun.name, null, module, null))
 
     if (res.contains(TUnit)) {
-      if (out.nonEmpty)
+      // accept explicit Unit result type annotation
+      if (out.nonEmpty && (out.size > 1 || out.head != TUnit))
         errors.addOne(TypeError(s"Annotated return type does not match ($w, Code: 0x01). Expected $out, but got $res"))
     } else {
       // check if all blocks have the same return type 

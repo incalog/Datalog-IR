@@ -1,10 +1,10 @@
 package inca.frontend.typechecker.extensions
 
 import inca.frontend.core.Core
-import inca.frontend.core.Core.{TIterable, TList, TUnit}
+import inca.frontend.core.Core.{TList, TUnit}
 import inca.frontend.extensions.Foreach
 import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
-import inca.frontend.typechecker.{TypeContext, TypeError, TypecheckerExtension}
+import inca.frontend.typechecker.{TypeContext, TypeError, TypeWarning, TypecheckerExtension}
 
 object ForeachTypechecker extends TypecheckerExtension{
 
@@ -13,7 +13,10 @@ object ForeachTypechecker extends TypecheckerExtension{
       val (expType, ete) = typechecker.typecheck(exp)
       expType match {
         case iterable: TList =>
-          typechecker.typecheck(body)(new TypeContext(context, ete + (name -> iterable.contained)))
+          val bodyType = typechecker.typecheck(body)(new TypeContext(context, ete + (name -> iterable.contained)))
+          if(bodyType != TUnit) {
+            typechecker.warnings.addOne(TypeWarning(s"(${typechecker.where})body has result type $bodyType which gets ignored"))
+          }
         case _ =>
           typechecker.errors.addOne(TypeError(s"expected TList, but got $expType"))
       }
