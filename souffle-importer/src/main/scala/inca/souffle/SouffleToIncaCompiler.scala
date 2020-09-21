@@ -14,6 +14,8 @@ import scala.collection.mutable
 class SouffleToIncaCompiler {
 
   private val patFuns: mutable.Map[String, Pattern] = mutable.Map()
+  // top-level rules
+  private val topLevelRules: mutable.ListBuffer[String] = mutable.ListBuffer()
   private val decls: mutable.Map[String, RuleSignature] = mutable.Map()
   private val inputs: mutable.Map[String, Input] = mutable.Map()
 
@@ -29,6 +31,7 @@ class SouffleToIncaCompiler {
     )
   }
 
+  // if funPrefix != "" we are within a compontent definition that got initialized
   def compile(content: AnalysisContent, funPrefix: String): Unit = content match {
     case cdef@ComponentDefinition(name, contents) =>
       componentDefinitions += name -> cdef
@@ -38,7 +41,11 @@ class SouffleToIncaCompiler {
       cdef.contents.foreach(compile(_, name + "_"))
 
     case s@RuleSignature(name, parameters, _) =>
-      val fun = Pattern(None, name, parameters.map(compile), Seq())
+      val fun = Pattern(None, funPrefix + name, parameters.map(compile), Seq())
+      // this is a top-level rule
+      if (funPrefix == "") {
+        topLevelRules += name
+      }
       patFuns += (funPrefix + name) -> fun
       decls += name -> s
 
@@ -90,11 +97,11 @@ class SouffleToIncaCompiler {
   }
 
   def getJavaClassForType(typ: Syntax.Type): Class[_] = typ match {
-    case DeclaredType(name) => classOf[String]
-    case SymbolType => classOf[String]
-    case NumberType => classOf[Int]
-    case UnsignedType => classOf[Long]
-    case FloatType => classOf[Double]
+    case DeclaredType(name) => classOf[java.lang.String]
+    case SymbolType => classOf[java.lang.String]
+    case NumberType => classOf[java.lang.Integer]
+    case UnsignedType => classOf[java.lang.Long]
+    case FloatType => classOf[java.lang.Double]
   }
 
   def compile(stm: Syntax.Statement, funPrefix: String)(implicit gensym: Gensym): Seq[Constraint] = stm match {
@@ -110,7 +117,9 @@ class SouffleToIncaCompiler {
       val (terms, constraints) = args.map(compile).unzip
       val call = component match {
         case Some(c) => Call(s"${c}_$rule", terms, transitive = false, neg = negated)
-        case None => Call(funPrefix + rule, terms, transitive = false, neg = negated)
+        case None =>
+          val ruleName = if (topLevelRules.contains(rule)) rule else funPrefix + rule
+          Call(ruleName, terms, transitive = false, neg = negated)
       }
       constraints.flatten :+ call
   }
