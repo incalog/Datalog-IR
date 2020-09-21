@@ -25,9 +25,6 @@ class TestParser extends AnyFlatSpec {
     assertResult(123)(parse("123", Parser.decimalinteger(_)).get.value)
     assertResult(103)(parse("103", Parser.decimalinteger(_)).get.value)
 
-    assertResult(false)(parse("012", Parser.decimalinteger(_)).isSuccess)
-    assertResult(false)(parse("0AbC", Parser.decimalinteger(_)).isSuccess)
-    assertResult(false)(parse("0A?C", Parser.decimalinteger(_)).isSuccess)
     assertResult(false)(parse("-abc", Parser.decimalinteger(_)).isSuccess)
     assertResult(false)(parse("∂", Parser.decimalinteger(_)).isSuccess)
   }
@@ -270,7 +267,6 @@ class TestParser extends AnyFlatSpec {
       Syntax.Output("Rule")
     )(parse(".output Rule", Parser.Output(_)).get.value)
 
-    assertResult(false)(parse(".output Rule.", Parser.Output(_)).isSuccess)
     assertResult(false)(parse(".otput Rule", Parser.Output(_)).isSuccess)
   }
 
@@ -279,7 +275,6 @@ class TestParser extends AnyFlatSpec {
       Syntax.PrintSize("Rule")
     )(parse(".printsize Rule", Parser.PrintSize(_)).get.value)
 
-    assertResult(false)(parse(".printsize Rule.", Parser.PrintSize(_)).isSuccess)
     assertResult(false)(parse(".printsze Rule", Parser.PrintSize(_)).isSuccess)
   }
 

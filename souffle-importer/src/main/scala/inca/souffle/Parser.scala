@@ -11,7 +11,7 @@ object Parser {
     }
 
   def Analysis[_: P]: P[Seq[Syntax.AnalysisContent]] =
-    P(Start ~ AnalysisContent.rep)
+    P(Start ~ AnalysisContent.rep ~ End)
 
   def AnalysisContent[_: P]: P[Syntax.AnalysisContent] =
     P(ComponentInitialization | ComponentDefinition | TypeDeclaration |
@@ -35,10 +35,10 @@ object Parser {
     P(identifier ~ ":" ~ Type).map(Syntax.RuleParameter.tupled)
 
   def Output[_: P]: P[Syntax.Output] =
-    P(".output" ~ identifier ~ End).map(Syntax.Output)
+    P(".output" ~ identifier).map(Syntax.Output)
 
   def PrintSize[_: P]: P[Syntax.PrintSize] =
-    P(".printsize" ~ identifier ~ End).map(Syntax.PrintSize)
+    P(".printsize" ~ identifier).map(Syntax.PrintSize)
 
   def Input[_: P]: P[Syntax.Input] =
     P(".input" ~ identifier ~ "(" ~
@@ -104,7 +104,7 @@ object Parser {
   def uppercase[_: P]: P[Unit] = P( CharIn("A-Z") )
   def digit[_: P]: P[Unit] = P( CharIn("0-9") )
 
-  def decimalinteger[_: P]: P[Int] = P( nonzerodigit ~~ digit.rep | "0" ~~ End).!.map(_.toInt)
+  def decimalinteger[_: P]: P[Int] = P( nonzerodigit ~~ digit.rep | "0").!.map(_.toInt)
   def nonzerodigit[_: P]: P[Unit] = P( CharIn("1-9") )
 
   def stringChars(c: Char) = c != '\"' && c != '\\'
