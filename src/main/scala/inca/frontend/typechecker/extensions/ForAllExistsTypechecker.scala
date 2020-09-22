@@ -20,13 +20,14 @@ object ForAllExistsTypechecker extends TypecheckerExtension {
 
   private def typecheck(name: Name, exp: Exp, body: Body, last: Boolean)(implicit context: TypeContext) = {
     val (expType, ete) = typechecker.typecheck(exp)
+    var resType : Option[inca.frontend.core.Core.TypeAnno] = None
     expType match {
       case iterable: TList =>
-        typechecker.typecheck(body)(new TypeContext(context, ete + (name -> iterable.contained)))
+        val t = typechecker.typecheck(body)(new TypeContext(context, ete + (name -> iterable.contained)))
+        resType = if (last) Some(t) else None
       case _ =>
-        typechecker.errors.addOne(TypeError(s"expected TList, bot got $expType"))
+        typechecker.errors.addOne(TypeError(s"Expected TList, bot got $expType (${typechecker.where})."))
     }
-    val resType = if(last) Some(TUnit) else None
     (resType, context.tenv, true)
   }
 }

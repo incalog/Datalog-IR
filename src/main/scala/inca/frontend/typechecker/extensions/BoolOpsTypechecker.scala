@@ -28,7 +28,6 @@ object BoolOpsTypechecker extends TypecheckerExtension {
               s"Cannot combine types $e1t and $e2t in an and operation (${typechecker.where})."
             )
           )
-        println(e1te, e2te, context.tenv)
         (TBool, typechecker.union(e1te, e2te), true) // @todo subtyping
       }
       case Not(cond) => {

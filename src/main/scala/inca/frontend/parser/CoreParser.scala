@@ -12,34 +12,6 @@ import inca.frontend.parser.extensions._
 import scala.meta._
 import scala.util.control.Breaks._
 
-object CoreParser {
-  def main(args: Array[String]) = {
-
-    val c =
-      s"""|{
-          | val x = eval(List(inca.analyzedData.Nat.Zero))
-          |}""".stripMargin
-    /*Body(
-      Forall(
-        "x",
-        Eval(Seq.empty, q"List(inca.analyzedData.Nat.Zero, inca.analyzedData.Nat.Succ(inca.analyzedData.Nat.Zero))"),
-        Body(
-          Core.Assert(Constant(BooleanLiteral(true))),
-          Yield(Constant(BooleanLiteral(true)))
-        )
-      )
-    ).prettyprint("") */
-
-    println(c)
-    println(parse(c
-
-
-
-
-      , CoreParser(Seq(ForallExistsParser)).body(_)))
-  }
-}
-
 /**
   * Parser for the IncA Core language.
   *
@@ -212,10 +184,11 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   def exp[_: P]: P[Exp] =
     P(
       recursionAnchorExp(anchorExpExtensions).flatMap { e =>
-        P(recursionCallExp(recursiveExpExtensions, e))
+          P(
+            recursionCallExp(recursiveExpExtensions, e).?.map(op => op.getOrElse(e))
+          )
       }
-        | recursionAnchorExp(anchorExpExtensions)
-    )
+    ) 
 
   /** Recalls the resulting expression on expression as left hand.
     * Ensures left to right binding.
@@ -244,22 +217,19 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   /** Higher order extension call combination parser that function as recursion anchor. */
   private def recursionAnchorExp[_: P, T](p: Seq[AnchorExpressionParser]): P[Exp] =
     if (p.isEmpty) {
-      decorateRecursionExp(
-        P(
-          callExp
-            | countExp
-            | defExp
-            | undefExp
-            | varExp
-            | evalExp
-            | constantExp
-            | evalExp
-            | tupleExp
-            | aggregateExp
-            | bracketExp
-        )
+      P(
+        callExp
+          | evalExp
+          | countExp
+          | defExp
+          | undefExp
+          | varExp
+          | constantExp
+          | tupleExp
+          | aggregateExp
+          | bracketExp
       )
-    } else P(decorateRecursionExp(p.head.parse) | recursionAnchorExp(p.tail))
+    } else P(p.head.parse | recursionAnchorExp(p.tail))
 
   /** Eval parser */
   def evalExp[_: P]: P[Eval] = {
@@ -270,14 +240,13 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
     P("eval" ~ ("(" | "{").!.map(openStr => {
       closing = if (openStr(0) == '(') ')' else '}'
       P(scalaparse.Scala.Exprs.!.map(raw_str => {
-        println(raw_str)
         code = raw_str.parse[Term] match {
           case scala.meta.parsers.Parsed.Error(_, _, _) => return fastparse.Fail
           case scala.meta.parsers.Parsed.Success(t) =>
             free = EvalHelper.freeVars(t)
             t
         }
-      }))  ~ s"$closing"
+      })) ~ s"$closing"
     })).map(_ => {
       Eval(free.toSeq, code)
     })
@@ -364,12 +333,12 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   /** Assign parser */
   def assignStatement[_: P]: P[Assign] =
     P(
-      ("val " ~ identifier ~ "=" ~ exp).map {
+      P(P("val " ~ identifier ~ "=" ~ exp).map {
         case (name, expr) => Assign(Seq(name), expr)
-      }
-        | ("val " ~ "(" ~ identifier.rep(min = 2, sep = ",") ~ ")" ~ "=" ~ exp).map {
+      })
+        | P(P("val " ~ "(" ~ identifier.rep(min = 2, sep = ",") ~ ")" ~ "=" ~ exp).map {
           case (names, expr) => Assign(names, expr)
-        }
+        })
     )
 
   /** Assert parser */
@@ -377,12 +346,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
 
   /** Body parser */
   def body[_: P]: P[Body] =
-  P(
-    P(AnyChar.rep.!.map(x => {
-      println(x)
-    }) ~ fastparse.Fail)
-    | P("{" ~ P(sp_nl ~ statement ~~ sp).repX(sep = nl_!) ~ "}").map(Body(_))
-  )
+    P("{" ~ P(sp_nl ~ statement ~~ sp).rep ~ "}").map({ Body(_) })
 
   /** Parses only the AnnoParam Unit. */
   private def annoParamUnit[_: P]: P[Seq[AnnoParam]] =

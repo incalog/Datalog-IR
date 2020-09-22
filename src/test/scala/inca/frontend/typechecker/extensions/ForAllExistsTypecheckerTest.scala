@@ -44,8 +44,7 @@ class ForAllExistsTypecheckerTest extends AnyFunSuite{
     val result = typechecker.typecheck()
     result match {
       case FailTypecheck(errors, warnings) =>
-        println(errors)
-        fail()
+        fail(errors.toString() + typechecker.prog.prettyprint)
       case SuccessTypecheck(warnings) =>
     }
   }
