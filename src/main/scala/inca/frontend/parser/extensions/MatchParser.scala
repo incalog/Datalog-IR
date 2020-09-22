@@ -66,7 +66,7 @@ object MatchParser extends ParserExtension {
 
     override def parse[_: P]: P[Statement] =
       P(
-        coreparser.exp ~~ " " ~ "match" ~ "{" ~ P(sp ~~ case_ ~~ sp).repX(sep = nl_!) ~ "}"
+        coreparser.exp ~ "match" ~ "{" ~ P(sp ~~ case_ ~~ sp).repX(sep = nl_!) ~ "}"
       ).map { case (e, cs) => Match(e, cs) }
   }
 }

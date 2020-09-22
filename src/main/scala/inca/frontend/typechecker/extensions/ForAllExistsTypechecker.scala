@@ -27,9 +27,8 @@ object ForAllExistsTypechecker extends TypecheckerExtension {
           typechecker.warnings.addOne(TypeWarning(s"(${typechecker.where})body has result type $bodyType which gets ignored"))
         }
       case _ =>
-        typechecker.errors.addOne(TypeError(s"expected TList, bot got $expType"))
+        typechecker.errors.addOne(TypeError(s"Expected TList, bot got $expType (${typechecker.where})."))
     }
-    val resType = if(last) Some(TUnit) else None
-    (resType, context.tenv, true)
+    (Some(TUnit), context.tenv, true)
   }
 }

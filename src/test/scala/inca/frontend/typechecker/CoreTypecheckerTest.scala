@@ -33,8 +33,7 @@ class CoreTypecheckerTest extends AnyFunSuite {
           }
         }
         case Failure(label, index, extra) =>
-          println(cd.slice(index - 3, index + 3))
-          fail(s"$label, $index, $extra")
+          fail(s" ${cd.slice(index - 3, index + 3)} $label, $index, $extra")
       }
     }
 

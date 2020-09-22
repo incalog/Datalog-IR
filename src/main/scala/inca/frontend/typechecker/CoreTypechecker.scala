@@ -50,7 +50,7 @@ object CoreTypechecker {
   */
 class CoreTypechecker(
     lmi: LanguageMetaInfo,
-    prog: Program,
+    val prog: Program,
     extensions: Seq[TypecheckerExtension]
 ) {
 
@@ -125,7 +125,6 @@ class CoreTypechecker(
             )
         case t =>
           if ((out.length != 1 || !subtype(t, out.head)) && out.nonEmpty) { 
-            println(t, out)
             errors.addOne(
               TypeError(
                 s"Annotated return type does not match ($w, Code: 0x03)"
