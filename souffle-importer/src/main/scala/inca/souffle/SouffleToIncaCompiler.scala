@@ -14,7 +14,7 @@ import scala.collection.mutable
 class SouffleToIncaCompiler {
 
   private val patFuns: mutable.Map[String, Pattern] = mutable.Map()
-  // top-level rules
+
   private val topLevelRules: mutable.ListBuffer[String] = mutable.ListBuffer()
   private val decls: mutable.Map[String, RuleSignature] = mutable.Map()
   private val inputs: mutable.Map[String, Input] = mutable.Map()
@@ -26,7 +26,7 @@ class SouffleToIncaCompiler {
 
     (
       Module(name, Seq(), patFuns.values.toSeq.sortBy(_.name)),
-      Seq(),
+      inputs.values.toSeq.map { input => (decls(input.rule), input) },
       new LanguageMetaInfo(MultiDict(), Map(), genLitLinks)
     )
   }
@@ -158,7 +158,7 @@ class SouffleToIncaCompiler {
     case BuiltInFunctionCall(fun, args) =>
       val lhs = compileEvalString(args.head)
       val rhs = compileEvalString((args(1)))
-      s"($lhs + $rhs)"
+      s"$lhs + $rhs"
     case Syntax.Any => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
   }
 
