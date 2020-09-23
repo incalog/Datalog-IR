@@ -10,6 +10,7 @@ import scala.collection.immutable.MultiDict
 /**
  * Should run after `EliminateAliases` and before `FoldConstantConstraints`
  */
+// TODO Unbounded Type was added, need to check if this algorithm needs to be adapted
 object InferVarTypes extends Optimization {
 
   override def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer = new Optimizer {

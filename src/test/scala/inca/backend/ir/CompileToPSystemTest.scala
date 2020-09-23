@@ -115,4 +115,30 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
       assert(matcher.getAllMatches.size == 4)
     }
   }
+
+  test("unbounded literal parameter determined by eval") {
+    val module = GP.Module("test_eval", Seq(),
+      Seq(GP.Pattern(None, "intToString", Seq(GP.Param("exp", GP.TNode(Exp.intTag)), GP.Param("str", GP.TUnbounded(GP.TString))),
+        Seq(GP.Body(Seq(
+          GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TInt),
+          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TInt)), GP.TUnbounded(GP.TString), "(value: Int) => value.toString")))
+        )))))
+    assertMatchGPProg(module, "intToString", testInputNumericAddition) { matcher =>
+      assert(matcher.getAllMatches.size == 3)
+    }
+  }
+
+  test("unbounded argument of second eval") {
+    val module = GP.Module("test_eval", Seq(),
+      Seq(GP.Pattern(None, "intToString", Seq(GP.Param("exp", GP.TNode(Exp.intTag)), GP.Param("str2", GP.TUnbounded(GP.TString))),
+        Seq(GP.Body(Seq(
+          GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TInt),
+          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TInt)), GP.TUnbounded(GP.TString), "(value: Int) => value.toString")),
+          GP.Computed(GP.Var("str2"), GP.Evaluation(Seq((GP.Var("str"), GP.TUnbounded(GP.TString))), GP.TUnbounded(GP.TString), "(str: String) => str + \"_appended\"")))
+        )))))
+    assertMatchGPProg(module, "intToString", testInputNumericAddition) { matcher =>
+      println(matcher.getAllMatches)
+      assert(matcher.getAllMatches.size == 3)
+    }
+  }
 }

@@ -73,6 +73,8 @@ object CompileToPSystem {
       import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
       import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.ExportedParameter
 
+      import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
+
       import java.util
 
       import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred._
@@ -155,19 +157,31 @@ object CompileToPSystem {
     q"private val ${Pat.Var(Term.Name(s"$PARAMPREFIX${param.name}"))}: PParameter = $pparam"
   }
 
-  private def genParamConstraint(param: Param): Option[Stat] = genInputKeyAndType(param.typ) match {
-    case Some((key, _)) =>
-      Some(q"""new TypeConstraint(
-            body,
-            Tuples.flatTupleOf(${Term.Name(s"$VARPREFIX${param.name}")}),
-            $key)""")
-    case None => None
+  private def genParamConstraint(param: Param): Option[Stat] = {
+    param.typ match {
+      case TUnbounded(_) => return None
+      case _ => // continue
+    }
+
+    genInputKeyAndType(param.typ) match {
+      case Some((key, _)) =>
+        Some(
+          q"""new TypeConstraint(
+                body,
+                Tuples.flatTupleOf(${Term.Name (s"$VARPREFIX${param.name}")}),
+                $key)""")
+      case None => None
+    }
   }
+
 
 
   private def genInputKeyAndType(typ: GP.TypeAnno): Option[(meta.Term, meta.Term)] = typ match {
     case TAny => None
     case TDataType(_) => None
+    case TUnbounded(ty) =>
+      val gentyp = genProperLitType(ty)
+      Some(q"new JavaTransitiveInstancesKey($gentyp)", genProperLitType(ty))
     case TBool | TInt | TLong | TDouble | TString =>
       val gentyp = genLitType(typ)
       Some(q"$oPrimitiveKey($gentyp)", gentyp)
@@ -332,13 +346,19 @@ object CompileToPSystem {
   }
 
   private def genLitType(typ: GP.TypeAnno): meta.Term = typ match {
-    case TBool => q"$tPrimitiveType(classOf[java.lang.Boolean])"
-    case TInt => q"$tPrimitiveType(classOf[java.lang.Integer])"
-    case TLong => q"$tPrimitiveType(classOf[java.lang.Long])"
-    case TDouble => q"$tPrimitiveType(classOf[java.lang.Double])"
-    case TString => q"$tPrimitiveType(classOf[java.lang.String])"
+    case TUnbounded(ty) => genProperLitType(ty)
+    case ty => q"$tPrimitiveType(${genProperLitType(ty)})"
+  }
+
+  private def genProperLitType(typ: GP.TypeAnno): meta.Term = typ match {
+    case TBool => q"classOf[java.lang.Boolean]"
+    case TInt => q"classOf[java.lang.Integer]"
+    case TLong => q"classOf[java.lang.Long]"
+    case TDouble => q"classOf[java.lang.Double]"
+    case TString => q"classOf[java.lang.String]"
     case _ => throw new IllegalArgumentException(s"Cannot compile $typ as literal type")
   }
+
 
   private def genNodeType(typ: GP.TypeAnno): meta.Term = typ match {
     case TAnyLinked => tAnyType
@@ -348,6 +368,7 @@ object CompileToPSystem {
   }
 
   private def genScalaType(typ: GP.TypeAnno): meta.Type = typ match {
+    case TUnbounded(ty) => genScalaType(ty)
     case TAny => t"Any"
     case TBool => t"Boolean"
     case TInt => t"Int"

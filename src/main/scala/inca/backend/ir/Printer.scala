@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, Public, TAny, TAnyLinked, TBool, TDouble, TInt, TList, TLong, TNode, TString, Term, TypeAnno, Var, Visibility}
+import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, Public, TAny, TAnyLinked, TBool, TDouble, TInt, TList, TLong, TNode, TString, TUnbounded, Term, TypeAnno, Var, Visibility}
 
 object Printer {
 
@@ -30,6 +30,7 @@ object Printer {
     case TDouble => "TDouble"
     case TString => "TString"
     case TAnyLinked => "TAnyLinked"
+    case TUnbounded(ty) => s"Unbounded[${prettyType(ty)}]"
     case TNode(name) => name
     case TList(ty) => s"List[${prettyType(ty)}]"
   }

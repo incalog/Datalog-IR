@@ -2,6 +2,7 @@ package inca.backend.ir
 
 object GP {
   sealed trait TypeAnno
+  case class TUnbounded(ty: TypeAnno) extends TypeAnno
   case object TAny extends TypeAnno
   case object TBool extends TypeAnno
   case object TInt extends TypeAnno
