@@ -13,7 +13,10 @@ import inca.frontend.util.Program
 object Typechecker 
 {
     def typecheck(smi : LanguageMetaInfo, prog : Program) = {
-        val tc = new CoreTypechecker(smi, prog, Seq(BoolOpsTypechecker, MatchTypechecker, IfThenElseTypechecker))
+        val tc = new CoreTypechecker(smi, prog, Seq(BoolOpsTypechecker,
+                                                    MatchTypechecker,
+                                                    IfThenElseTypechecker,
+                                                    SwitchTypechecker))
         tc.typecheck()
     }
 }

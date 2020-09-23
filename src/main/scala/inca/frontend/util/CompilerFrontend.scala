@@ -77,7 +77,7 @@ object CompilerFrontend {
     }
 
     println(program.prettyprint)
-    println(program)
+    // println(program)
     println(Typechecker.typecheck(null, program))
   }
 }

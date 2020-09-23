@@ -90,7 +90,19 @@ class CoreTypecheckerTest extends AnyFunSuite {
           |    val x = true 
           |    assert x instanceOf Any
           |    yield x
-          |} """.stripMargin
+          |} """.stripMargin,
+      s"""|
+          |module test
+          |
+          |def name2() : Int = {
+          |  switch {
+          |    val y = 7
+          |  } union {
+          |    val x = 9
+          |  }
+          |
+          |  yield 2
+          |}""".stripMargin
     )
 
     code.map(test_run)

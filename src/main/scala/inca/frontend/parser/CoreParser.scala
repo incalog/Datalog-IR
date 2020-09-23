@@ -245,7 +245,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
     }
   }
 
-  def evalExp[_: P]: P[Eval] = P("eval" ~ (("(" ~ evalCore ~ ")") | ("{" ~ evalCore ~ "}"))).log
+  def evalExp[_: P]: P[Eval] = P("eval" ~ (("(" ~ evalCore ~ ")") | ("{" ~ evalCore ~ "}")))
 
   /** PathAccess parser */
   // @todo Wait for fix commit in Core language
