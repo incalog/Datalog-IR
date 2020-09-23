@@ -6,7 +6,7 @@ import inca.frontend.core.Core.Module
 import inca.frontend.desugar.Desugar
 import inca.runtime.context.QueryScope
 import inca.runtime.{EnginePool, Query}
-import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import truechange.EditScript
@@ -47,7 +47,7 @@ trait IncaMatchers extends Matchers {
     val psystem = Compiler.compileAndLoadFunModule(module, None, options)
     val querySpec = psystem.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module ${module.name}."))
 
-    val (feed, matcher) = EnginePool.loadQuery(querySpec(), scope, DifferentialReteBackendFactory.INSTANCE)
+    val (feed, matcher) = EnginePool.loadQuery(querySpec(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
     feed.processEditScript(editScript)
 
@@ -79,8 +79,8 @@ trait IncaMatchers extends Matchers {
     val psystem = Compiler.compileAndLoadGPModule(module, None, options)
     val querySpec = psystem.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module ${module.name}."))
 
-    val (feed, matcher) = EnginePool.loadQuery(querySpec(), scope, DifferentialReteBackendFactory.INSTANCE)
 
+    val (feed, matcher) = EnginePool.loadQuery(querySpec(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     feed.processEditScript(editScript)
 
     try {

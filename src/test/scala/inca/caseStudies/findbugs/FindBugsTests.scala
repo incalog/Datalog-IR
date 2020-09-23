@@ -5,7 +5,7 @@ import inca.frontend.core.Core._
 import inca.runtime.EnginePool
 import inca.runtime.context.QueryScope
 import inca.{Compiler, CompilerOptions}
-import org.eclipse.viatra.query.runtime.rete.matcher.DifferentialReteBackendFactory
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truediff.Diffable
 //import inca.trans.generated.FindBugs_confusedInheritanceQuerySpecification
 import org.scalatest.funsuite.AnyFunSuite
@@ -40,7 +40,7 @@ class FindBugsTests extends AnyFunSuite {
     val scope = new QueryScope(tinyJava.langMetaInfo)
     val options = CompilerOptions(tinyJava.langMetaInfo)
     val spec = Compiler.compileAndLoadFunModule(module, compilerOptions = options).patterns("confusedInheritance")
-    val (feed,matcher) = EnginePool.loadQuery(spec(), scope, DifferentialReteBackendFactory.INSTANCE)
+    val (feed,matcher) = EnginePool.loadQuery(spec(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
     import tinyJava._
     val clazz = ClassDeclaration("Foo", true, List(FieldDeclaration("baz", PublicVisibility()), FieldDeclaration("bar", ProtectedVisibility())))
