@@ -56,15 +56,29 @@ class SouffleToIncaCompiler {
         implicit val gensym: Gensym = new Gensym(usedVars)
         val headEqs = (fun.params zip args).flatMap {
           case (Param(name, _), arg) =>
-            val (term, constraints) = compile(arg)
+            val (term, constraints, unbounded) = compile(arg)
             constraints :+ Compare(EqComparator, Var(name), term)
         }
-        val stmts = rulebody.flatMap(compile(_, funPrefix))
-        val funbody = Body(headEqs ++ stmts)
-        patFuns += (funPrefix + name) -> Pattern(fun.vis, fun.name, fun.params, fun.bodies :+ funbody)
+
+        val (constraints, unbounded) = rulebody.map(compile(_, funPrefix)).unzip
+        val funbody = Body(headEqs ++ constraints.flatten)
+
+        val unboundedVars = unbounded.flatten.collect { case v: Var => v.name }
+        val updatedParams = fun.params.map { p =>
+          if (unboundedVars.contains(p.name)) {
+            // avoid nesting TUnbounded
+            val ty = p.typ match {
+              case TUnbounded(_) => p.typ
+              case _ => TUnbounded(p.typ)
+            }
+            Param(p.name, ty)
+          } else p
+        }
+
+        patFuns += (funPrefix + name) -> Pattern(fun.vis, fun.name, updatedParams, fun.bodies :+ funbody)
       }
 
-    case TypeDeclaration(name, superType) =>
+    case TypeDeclaration(name, superType) => // do nothing
 
     case in@Input(rule, filename, delimiter) =>
       val decl = decls(rule)
@@ -80,9 +94,9 @@ class SouffleToIncaCompiler {
       )
       patFuns(rule) = Pattern(fun.vis, fun.name, fun.params, Seq(body))
 
-    case Output(rule) =>
+    case Output(rule) => // do nothing
 
-    case PrintSize(rule) =>
+    case PrintSize(rule) => // do nothing
   }
 
   def compile(param: RuleParameter): Param =
@@ -104,42 +118,50 @@ class SouffleToIncaCompiler {
     case FloatType => classOf[java.lang.Double]
   }
 
-  def compile(stm: Syntax.Statement, funPrefix: String)(implicit gensym: Gensym): Seq[Constraint] = stm match {
+  def compile(stm: Syntax.Statement, funPrefix: String)(implicit gensym: Gensym): (Seq[Constraint], Seq[Term]) = stm match {
     case Equality(left, not, right) if !not =>
-      val (lhterm, lhConstraints) = compile(left)
-      val (rhterm, rhConstraints) = compile(right)
-      lhConstraints ++ rhConstraints :+ Compare(EqComparator, lhterm, rhterm)
+      val (lhterm, lhConstraints, lhUnbounded) = compile(left)
+      val (rhterm, rhConstraints, rhUnbounded) = compile(right)
+      val newRhUnbounded = if (rhUnbounded.nonEmpty) Seq(lhterm) else Seq()
+      val newLhUnbounded = if (lhUnbounded.nonEmpty) Seq(rhterm) else Seq()
+      val unbounded = lhUnbounded ++ rhUnbounded ++ newRhUnbounded ++ newLhUnbounded
+      (lhConstraints ++ rhConstraints :+ Compare(EqComparator, lhterm, rhterm), unbounded)
     case Equality(left, not, right) if not =>
-      val (lhterm, lhConstraints) = compile(left)
-      val (rhterm, rhConstraints) = compile(right)
-      lhConstraints ++ rhConstraints :+ Compare(NeqComparator, lhterm, rhterm)
+      val (lhterm, lhConstraints, lhUnbounded) = compile(left)
+      val (rhterm, rhConstraints, rhUnbounded) = compile(right)
+      val newRhUnbounded = if (rhUnbounded.nonEmpty) Seq(lhterm) else Seq()
+      val newLhUnbounded = if (lhUnbounded.nonEmpty) Seq(rhterm) else Seq()
+      val unbounded = lhUnbounded ++ rhUnbounded ++ newRhUnbounded ++ newLhUnbounded
+      (lhConstraints ++ rhConstraints :+ Compare(NeqComparator, lhterm, rhterm), unbounded)
     case RuleApplication(negated, component, rule, args) =>
-      val (terms, constraints) = args.map(compile).unzip
+      val (terms, constraints, unbounded) = args.map(compile).unzip3
       val call = component match {
         case Some(c) => Call(s"${c}_$rule", terms, transitive = false, neg = negated)
         case None =>
           val ruleName = if (topLevelRules.contains(rule)) rule else funPrefix + rule
           Call(ruleName, terms, transitive = false, neg = negated)
       }
-      constraints.flatten :+ call
+      (constraints.flatten :+ call, unbounded.flatten)
   }
 
-  def compile(exp: Syntax.Expression)(implicit gensym: Gensym): (Term, Seq[Constraint]) = exp match {
-    case Variable(name) => (Var(cleanSouffleName(name)), Seq())
-    case StringValue(value) => (Constant(StringLiteral(value)), Seq())
-    case NumberValue(value) => (Constant(IntLiteral(value)), Seq())
+  // third element of tuple indicates transtively unbounded terms (vars)
+  def compile(exp: Syntax.Expression)(implicit gensym: Gensym): (Term, Seq[Constraint], Seq[Term]) = exp match {
+    case Variable(name) => (Var(cleanSouffleName(name)), Seq(), Seq())
+    case StringValue(value) => (Constant(StringLiteral(value)), Seq(), Seq())
+    case NumberValue(value) => (Constant(IntLiteral(value)), Seq(), Seq())
     case Syntax.Any =>
       val fresh = gensym.fresh("wildcard")
-      (Var(fresh), Seq())
+      (Var(fresh), Seq(), Seq())
     case BuiltInFunctionCall(CatBuiltInFunction, arguments) =>
       val params = collectParams(exp)
-      val trgVar = Var("trg")
+      val trgVar = Var(gensym.fresh("trg"))
       val typedParams = params.map {
         case Var(name) => s"${name}: String"
       }
       val funString = s"(${typedParams.mkString(", ")}) => ${compileEvalString(exp)}"
-      val computed = Computed(trgVar, Evaluation(params.map((_, TString)), TString, funString))
-      (trgVar, Seq(computed))
+      val computed = Computed(trgVar, Evaluation(params.map((_, TString)), TUnbounded(TString), funString))
+      // trgVar is unbounded variable
+      (trgVar, Seq(computed), Seq(trgVar))
     case _ => throw new IllegalArgumentException(s"TODO $exp not supported")
   }
 

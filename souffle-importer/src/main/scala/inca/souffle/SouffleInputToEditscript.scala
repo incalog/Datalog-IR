@@ -17,6 +17,7 @@ class SouffleInputToEditscript(dir: String) {
     val tag = NamedTag(sig.name)
     val edits = rows.map { tuple =>
       val columns = tuple.split(delimiter)
+      if (columns.size != sig.parameters.size) throw new IllegalArgumentException(s"Number of entries ${columns.size} does not match number of parameters ${sig.parameters.size} of signature ${sig.name}")
       val sigTypes = sig.parameters.map(_.typ)
       val compiledColumns = columns.zip(sigTypes).map { case (c, t) => compileColumn(c, t) }
       val cleanedNames = sig.parameters.map(p => Util.cleanSouffleName(p.name))
