@@ -25,7 +25,7 @@ class TypeContext(
     val fname: String, // Name of the function (For error messages)
     val functions: Map[Name, PatternFunction], // Functions accessable from the module
     val module: Module, // The module the function is in
-    val tenv: CoreTypechecker.TypeEnvironment = Map() // The variable type context
+    val tenv: CoreTypechecker.TypeEnvironment = Map(), // The variable type context
 ) {
   def this(tc: TypeContext, tenv: TypeEnvironment) {
     this(tc.fname, tc.functions, tc.module, tenv)
@@ -49,7 +49,7 @@ object CoreTypechecker {
   * @param   extensions List of extensions in use.
   */
 class CoreTypechecker(
-    lmi: LanguageMetaInfo,
+    val lmi: LanguageMetaInfo,
     val prog: Program,
     extensions: Seq[TypecheckerExtension]
 ) {
