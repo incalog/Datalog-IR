@@ -2,11 +2,9 @@ package inca.frontend.typechecker.extensions
 
 import inca.frontend.core.Core._
 import inca.frontend.extensions._
-import inca.frontend.typechecker.CoreTypechecker
-import inca.frontend.typechecker.TypecheckerExtension
+import inca.frontend.typechecker.{CoreTypechecker, TypeContext, TypeError, TypeWarning, TypecheckerExtension}
 import inca.frontend.core.Core
-import inca.frontend.typechecker.TypeContext
-import inca.frontend.typechecker.TypeError
+import inca.frontend.util.TypeHelper
 
 /** Match Typechecker Extension
   *
@@ -32,7 +30,25 @@ object MatchTypechecker extends TypecheckerExtension
 
   private def typecheck(pat : Pattern)(implicit context: TypeContext) : (TypeAnno, CoreTypechecker.TypeEnvironment) = {
     pat match {
-      case NodePattern(c, bindings) if (typechecker.subtype(matchee_t, TAnyLinked)) => ???
+      case NodePattern(c, bindings)  =>
+        if (!typechecker.subtype(matchee_t, TAnyLinked)) {
+          typechecker.warnings.addOne(TypeWarning(s"NodePattern will never be matched because $matchee_t is not a TLinked"))
+        }
+        val (names, pats) = bindings.map(pb => (pb.field, pb.pattern)).unzip
+        val fieldTypes = names.map { name =>
+          typechecker.lmi.links.get((c.prettyprint, name)) match {
+            case None =>
+              typechecker.errors.addOne(TypeError(s"TNode ${c.prettyprint} has no field $name"))
+              TUnit
+            case Some(typ) =>
+              TypeHelper.decode(typ.toString)
+          }
+        }
+        val env = pats.zip(fieldTypes).foldLeft(context.tenv) {
+          case (e, (p, t)) => typecheck(t, p)(new TypeContext(context, e))._2
+        }
+        (matchee_t, env)
+
       case TuplePattern(pats) => matchee_t match {
         case TTuple(ts) if (pats.length == ts.length) => 
           val ne = ts.zip(pats).map(x => {
