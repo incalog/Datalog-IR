@@ -16,21 +16,21 @@ import inca.frontend.typechecker.TypeError
 object MatchTypechecker extends TypecheckerExtension 
 {
 
-  def typecheck(pb : PatternBinding)(implicit context: TypeContext) : CoreTypechecker.TypeEnvironment = {
+  def typecheck(c : TNode, pb : PatternBinding)(implicit context: TypeContext) : CoreTypechecker.TypeEnvironment = {
     val PatternBinding(field, pattern) = pb 
-    if (context.tenv.contains(field))
-      {
-        typechecker.errors.addOne(TypeError(s"'$field' is already taken (${typechecker.where})."))
-        context.tenv
-      }
-      else 
-      {
-        ???
-      }
+    
+    typechecker.lmi.links.get((c.prettyprint, field)) match {
+      case None => 
+      case Some(value) => 
+    }
+    pb.typed(???)
+
+    typecheck(pb)._2
+
     ???
   }
 
-  private def typecheck(matchee_t: TypeAnno, pat : Pattern)(implicit context: TypeContext) : (TypeAnno, CoreTypechecker.TypeEnvironment) = {
+  private def typecheck(pat : Pattern)(implicit context: TypeContext) : (TypeAnno, CoreTypechecker.TypeEnvironment) = {
     pat match {
       case NodePattern(c, bindings) if (typechecker.subtype(matchee_t, TAnyLinked)) => ???
       case TuplePattern(pats) => matchee_t match {

@@ -49,7 +49,7 @@ object CoreTypechecker {
   * @param   extensions List of extensions in use.
   */
 class CoreTypechecker(
-    lmi: LanguageMetaInfo,
+    val lmi: LanguageMetaInfo,
     val prog: Program,
     extensions: Seq[TypecheckerExtension]
 ) {
