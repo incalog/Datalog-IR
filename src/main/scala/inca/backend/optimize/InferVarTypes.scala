@@ -35,7 +35,7 @@ object InferVarTypes extends Optimization {
         case v: Var =>
           vars += v -> ty
         case Constant(lit) =>
-          if (lit.typ != ty)
+          if (!TypeOps.subtype(lit.typ, ty, languageMetaInfo))
             throw BodyMustFail
       }
 
@@ -83,7 +83,8 @@ object InferVarTypes extends Optimization {
       try {
         mostSpecificVarTypes = Map()
         vars.sets.foreach { case (v, tys) =>
-          TypeOps.meet(tys, languageMetaInfo) match {
+          val meet = TypeOps.meet(tys, languageMetaInfo)
+          meet match {
             case Some(ty) => mostSpecificVarTypes += v -> ty
             case None => throw BodyMustFail
           }

@@ -7,7 +7,6 @@ import inca.runtime.context.QueryScope
 import inca.{Compiler, CompilerOptions}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truediff.Diffable
-//import inca.trans.generated.FindBugs_confusedInheritanceQuerySpecification
 import org.scalatest.funsuite.AnyFunSuite
 
 class FindBugsTests extends AnyFunSuite {
