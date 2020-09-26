@@ -4,7 +4,7 @@ import inca.frontend.core.Core
 import inca.frontend.core.Core._
 import inca.frontend.extensions.{Exists, Forall}
 import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
-import inca.frontend.typechecker.{TypeContext, TypeError, TypeWarning, TypecheckerExtension}
+import inca.frontend.typechecker.{TypeContext, TypecheckerExtension}
 
 object ForAllExistsTypechecker extends TypecheckerExtension {
 
@@ -24,10 +24,10 @@ object ForAllExistsTypechecker extends TypecheckerExtension {
       case iterable: TList =>
         val bodyType = typechecker.typecheck(body)(new TypeContext(context, ete + (name -> iterable.contained)))
         if(bodyType != TUnit) {
-          typechecker.warnings.addOne(TypeWarning(s"(${typechecker.where})body has result type $bodyType which gets ignored"))
+          typechecker.addWarning(s"body has result type $bodyType which gets ignored")
         }
       case _ =>
-        typechecker.errors.addOne(TypeError(s"Expected TList, bot got $expType (${typechecker.where})."))
+        typechecker.addError(s"Expected TList, bot got $expType.")
     }
     (Some(TUnit), context.tenv, true)
   }

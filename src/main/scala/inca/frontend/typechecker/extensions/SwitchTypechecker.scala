@@ -20,7 +20,7 @@ object SwitchTypechecker extends TypecheckerExtension
       case Switch(bodies) => {
         val res = bodies.map(typechecker.typecheck(_))
         if (last_in_body) {
-          val rest = res.foldLeft(Option[Core.TypeAnno](res(0)))({case (a, b) => typechecker.meet(a.getOrElse(TAny), b)})
+          val rest = res.foldLeft(Option[Core.TypeAnno](res.head))({case (a, b) => typechecker.meet(a.getOrElse(TAny), b)})
           (rest, context.tenv, true)
         }
         else 

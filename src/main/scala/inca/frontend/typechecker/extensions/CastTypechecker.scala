@@ -18,7 +18,7 @@ object CastTypechecker extends TypecheckerExtension{
         (targetTyp, context.tenv, true)
       }
       else {
-        typechecker.errors.addOne(TypeError(s"attempt to cast $srcType to unrelated type $targetTyp"))
+        typechecker.addError(s"attempt to cast $srcType to unrelated type $targetTyp")
         (Core.TUnit, context.tenv, false)
       }
 

@@ -15,10 +15,10 @@ object ForeachTypechecker extends TypecheckerExtension{
         case iterable: TList =>
           val bodyType = typechecker.typecheck(body)(new TypeContext(context, ete + (name -> iterable.contained)))
           if(bodyType != TUnit) {
-            typechecker.warnings.addOne(TypeWarning(s"(${typechecker.where})body has result type $bodyType which gets ignored"))
+            typechecker.addWarning(s"body has result type $bodyType which gets ignored")
           }
         case _ =>
-          typechecker.errors.addOne(TypeError(s"expected TList, but got $expType"))
+          typechecker.addError(s"expected TList, but got $expType")
       }
       val resType = if(last_in_body) Some(TUnit) else None
       (resType, context.tenv, true)

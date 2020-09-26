@@ -140,7 +140,7 @@ object Core {
       val stmtsS = if (stmts.isEmpty) " " else
         "\n" + stmts.map(_.prettyprint(indent+TAB)).mkString("\n")
       s"""{$stmtsS
-         |${indent}}""".stripMargin
+         |$indent}""".stripMargin
     }
   }
   object Body {
