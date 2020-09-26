@@ -343,7 +343,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
 
   /** Body parser */
   def body[_: P]: P[Body] =
-    P("{" ~ P(sp_nl ~ statement ~~ sp).rep ~ "}").map({ Body(_) })
+    P("{" ~/ P(sp_nl ~ statement ~~ sp).rep ~ "}").map({ Body(_) })
 
   /** Parses only the AnnoParam Unit. */
   private def annoParamUnit[_: P]: P[Seq[AnnoParam]] =
@@ -362,11 +362,11 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   /** PatternFunction parser */
   def patternFunction[_: P]: P[PatternFunction] =
     P(
-      sp_nl ~ patternFunctionVisibility ~ identifier ~ "(" ~
+      sp_nl ~ patternFunctionVisibility ~/ identifier ~ "(" ~/
         param.rep(0, sep = ",") ~ ")" ~ ":" ~ P(
         annoParamUnit | P("(" ~ annoParam.rep(sep = ",") ~ ")") | annoParamSingle
       )
-        ~ "=" ~ body.rep(1, sep = "union")
+        ~/ "=" ~/ body.rep(1, sep = "union")
     ).map {
       case (v, name, params, ret_params, bodies) =>
         PatternFunction(Option(v), name, params, ret_params, bodies)
@@ -375,7 +375,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   /** Module parser */
   def module[_: P]: P[Module] =
     P(
-      sp_nl ~ "module " ~ identifier ~ P(
+      sp_nl ~ "module " ~/ identifier ~ P(
         "import".? ~ identifier
       ).rep ~ patternFunction.rep
     ).map {

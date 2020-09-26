@@ -10,6 +10,8 @@ import inca.runtime.context.LanguageMetaInfo
 
 import scala.collection.mutable
 import scala.io.Source
+import inca.frontend.typechecker.FailTypecheck
+import inca.frontend.typechecker.SuccessTypecheck
 
 case class Program(modules: Seq[Core.Module]) {
   def prettyprint: String = {
@@ -36,16 +38,17 @@ case class Program(modules: Seq[Core.Module]) {
   */
 object CompilerFrontend {
 
-  val USAGE: String = s"""|IncAC
-                          |Usage:
+  val USAGE: String = s"""|Usage:
                           |sbt run file1.inca file2.inca ...
                           |""".stripMargin
 
   def main(args: Array[String]) {
-
+    println("\nIncAC\n")
     if (args.length == 0) {
       println(USAGE)
       sys.exit(0)
+    } else {
+      println(s"> Processing files: ${args.mkString(", ")}")
     }
 
     val modules = mutable.ArrayBuffer.empty[Core.Module]
@@ -56,8 +59,26 @@ object CompilerFrontend {
         val code = file.mkString
         val res = Parser.parseModule(code)
         res match {
-          case Failure(label, index, extra) =>
-            println(s"Syntax Error: $extra")
+          case Failure(_, _, extra) =>
+            println(s"> Syntax error in file '$f':\n'''")
+
+            val index = extra.index
+
+            var count = 0
+            for (l <- code.split("\n")) {
+              if (l.length() + count < index || count < 0) {
+                println(l)
+                count += l.length() + 1
+              } else {
+                println(l)
+                val buffer = new StringBuilder
+                for (i <- 0 until (index - count - 1))
+                  buffer.append(" ")
+                println(buffer + "^ arround here !!!")
+                count = -1
+              }
+            }
+            println("'''")
             sys.exit()
           case Success(value, index) => modules.addOne(value)
         }
@@ -66,9 +87,8 @@ object CompilerFrontend {
           println(e)
           sys.exit()
         case _: Throwable => sys.exit(-1)
-      }
-      finally {
-        if(file != null)
+      } finally {
+        if (file != null)
           file.close()
       }
     }
@@ -77,12 +97,26 @@ object CompilerFrontend {
     program.unique match {
       case "" =>
       case m =>
-        println(s"Module '$m' is defined multiple times.")
+        println(s"> Module '$m' is defined multiple times.")
+        sys.exit()
     }
 
-    println(program.prettyprint)
-    // println(program)
-    val emptyLMI = new LanguageMetaInfo()
-    println(Typechecker.typecheck(emptyLMI, program))
+    println("> Parsed Code:\n'''\n" + program.prettyprint + "\n'''")
+    val emptyLMI = new LanguageMetaInfo() // @todo
+    Typechecker.typecheck(emptyLMI, program) match {
+      case FailTypecheck(errors, warnings) =>
+        println(
+          "> Typecheck failed.\n> Errors found:\n" + errors
+            .mkString("\n") + "\n" + (if (warnings.nonEmpty)
+                                        s"> Warnings found:\n${warnings.mkString("\n")}"
+                                      else "")
+        )
+      case SuccessTypecheck(warnings) =>
+        println(
+          "> Typecheck succeeded.\n" + (if (warnings.nonEmpty)
+                                          s"> Warnings found:\n${warnings.mkString("\n")}"
+                                        else "")
+        )
+    }
   }
 }
