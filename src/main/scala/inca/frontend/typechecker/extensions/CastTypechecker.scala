@@ -10,7 +10,7 @@ object CastTypechecker extends TypecheckerExtension{
   override def typecheck(e: Core.Exp)(implicit context: TypeContext): (Core.TypeAnno, TypeEnvironment, Boolean) = e match {
 
     case Cast(src, targetTyp) =>
-      val (srcType, te) = typechecker.typecheck(src)
+      val (srcType, _) = typechecker.typecheck(src)
       if(typechecker.subtype(srcType, targetTyp)) {
         (targetTyp, context.tenv, true)
       }

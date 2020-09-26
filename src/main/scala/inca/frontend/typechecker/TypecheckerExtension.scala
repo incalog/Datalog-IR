@@ -1,7 +1,6 @@
 package inca.frontend.typechecker
 
 import inca.frontend.core.Core._
-import scala.collection.mutable.ArrayBuffer
 
 /** Interface for Typechecker extensions
   *

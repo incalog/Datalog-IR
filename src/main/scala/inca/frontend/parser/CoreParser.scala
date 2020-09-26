@@ -3,15 +3,12 @@ package inca.frontend.parser
 import fastparse.ScalaWhitespace._
 import fastparse._
 import inca.frontend.core.Core
-import inca.frontend.core.Core._
-import inca.frontend.extensions.Forall
+import inca.frontend.core.Core.{Name, _}
 import inca.frontend.parser.ParserUtils._
 import inca.frontend.util.EvalHelper
-import inca.frontend.parser.extensions._
 
 import scala.meta._
 import scala.meta.parsers.Parsed
-import scala.util.control.Breaks._
 
 /**
   * Parser for the IncA Core language.
@@ -34,7 +31,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   val statementExtensions: Seq[StatementParser] =
     extensions.flatMap(_.statement)
 
-  val keywords =
+  val keywords: Set[Name] =
     Set("def", "undef", "true", "false", "eval", "aggregate") ++ extensions.flatMap(
       _.keywords
     )
@@ -44,7 +41,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
     * The first character must be an alphabetical one. After that digits and underscores are also allowed
     */
   def identifier[_: P]: P[String] =
-    P(CharIn("a-z", "A-Z") ~~ CharIn("a-z", "A-Z", "0-9", "_").repX(0)).!.map { s =>
+    P(CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_").repX).!.map { s =>
       if (keywords.contains(s)) return fastparse.Fail
       else s
     }
@@ -53,8 +50,13 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   def tAnyLinked[_: P]: P[TLinked] =
     P(P(TAnyLinked.prettyprint).map(_ => TAnyLinked))
 
+  /** A parser for type identifier. Allows '.' in the name */
+  def typeIdentifier[_: P]: P[String] = P(CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_", ".").repX).!.map {
+    s => if(keywords.contains(s)) return fastparse.Fail else s
+  }
+
   /** TNode parser */
-  def tNode[_: P]: P[TNode] = P(P(identifier).!.map(TNode))
+  def tNode[_: P]: P[TNode] = P(P(typeIdentifier).!.map(TNode))
 
   /** Helper for the basic TypeAnno like TAny. */
   private def typeAnnoHelper[_: P](t: TypeAnno): P[TypeAnno] =
@@ -235,7 +237,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   /** Eval parser */
   def evalCore[_: P]: P[Eval] = P(scalaparse.Scala.Exprs.!).flatMap {raw_code =>
     raw_code.parse[Term] match {
-      case Parsed.Error(pos, msg, details) =>
+      case Parsed.Error(_, _, _) =>
         // println(s"$pos, $msg, $details")
         fastparse.Fail
       case Parsed.Success(code) =>

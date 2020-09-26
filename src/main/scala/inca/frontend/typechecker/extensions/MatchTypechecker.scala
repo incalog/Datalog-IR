@@ -61,7 +61,7 @@ object MatchTypechecker extends TypecheckerExtension {
               s"Variable name is already in use (${typechecker.where}, Code: 0x01)."
             )
           )
-          (estm, context.tenv)
+          (estm, context.tenv + (name -> estm))
         } else
           (estm, context.tenv + (name -> estm))
       case NamedPattern(name, pat) => // ???

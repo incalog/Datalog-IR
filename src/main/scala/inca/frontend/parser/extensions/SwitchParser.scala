@@ -1,12 +1,10 @@
 package inca.frontend.parser.extensions
 
+import fastparse.ScalaWhitespace._
 import fastparse._
-import ScalaWhitespace._
-import inca.frontend.core.Core._
-import inca.frontend.extensions._
-import inca.frontend.parser.ParserUtils._
-import inca.frontend.parser._
 import inca.frontend.core.Core
+import inca.frontend.extensions._
+import inca.frontend.parser._
 
 /** Extension adding "switch" statements to @see CoreParser.
   *
@@ -26,7 +24,7 @@ object SwitchParser extends ParserExtension {
         P(
           "switch" ~ coreparser.body.rep(sep = "union")
         ).map(v => {
-          if (v.size == 1 && v(0).stmts.isEmpty) Switch(Seq.empty)
+          if (v.size == 1 && v.head.stmts.isEmpty) Switch(Seq.empty)
           else Switch(v)
         })
       )

@@ -1,8 +1,6 @@
 package inca.frontend.util
 
 import inca.frontend.core.Core._
-import inca.frontend.parser.CoreParser
-import inca.frontend.parser.ParserUtils.sp
 import inca.frontend.typechecker.TypeContext
 
 import scala.collection.mutable

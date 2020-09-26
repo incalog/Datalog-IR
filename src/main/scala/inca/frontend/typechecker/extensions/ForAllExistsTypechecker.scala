@@ -10,15 +10,15 @@ object ForAllExistsTypechecker extends TypecheckerExtension {
 
   override def typecheck(s: Core.Statement, last_in_body: Boolean)(implicit context: TypeContext): (Option[Core.TypeAnno], TypeEnvironment, Boolean) = s match {
     case Forall(name, exp, body) =>
-      typecheck(name, exp, body, last_in_body)
+      typecheck(name, exp, body)
 
     case Exists(name, exp, body) =>
-      typecheck(name, exp, body, last_in_body)
+      typecheck(name, exp, body)
 
     case _ => (None, context.tenv, false)
   }
 
-  private def typecheck(name: Name, exp: Exp, body: Body, last: Boolean)(implicit context: TypeContext) = {
+  private def typecheck(name: Name, exp: Exp, body: Body)(implicit context: TypeContext) = {
     val (expType, ete) = typechecker.typecheck(exp)
     expType match {
       case iterable: TList =>

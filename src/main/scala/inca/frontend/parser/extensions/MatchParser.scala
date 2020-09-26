@@ -1,12 +1,11 @@
 package inca.frontend.parser.extensions
 
+import fastparse.ScalaWhitespace._
 import fastparse._
-import ScalaWhitespace._
 import inca.frontend.core.Core._
 import inca.frontend.extensions._
 import inca.frontend.parser.ParserUtils._
 import inca.frontend.parser._
-import inca.frontend.core.Core
 
 /** Extension adding pattern matching statements to @see CoreParser.
   *
@@ -33,10 +32,10 @@ object MatchParser extends ParserExtension {
 
     def tuplePattern[_: P]: P[Pattern] =
       P("(" ~ P(pattern).rep(sep = ",") ~ ")")
-        .map(TuplePattern(_))
+        .map(TuplePattern)
 
     def varPattern[_: P]: P[Pattern] =
-      P(coreparser.identifier).map(VarPattern(_))
+      P(coreparser.identifier).map(VarPattern)
 
     def namedPattern[_: P]: P[Pattern] =
       P(coreparser.identifier ~ "@" ~ pattern).map {
@@ -47,15 +46,15 @@ object MatchParser extends ParserExtension {
       P("_").!.map(_ => WildcardPattern)
 
     def literalPattern[_: P]: P[Pattern] =
-      P(coreparser.literal).map(LiteralPattern(_))
+      P(coreparser.literal).map(LiteralPattern)
 
     def pattern[_: P]: P[Pattern] =
       P(
         tuplePattern
           | namedPattern
           | nodePattern
-          | varPattern
           | wildcardPattern
+          | varPattern
           | literalPattern
       )
 

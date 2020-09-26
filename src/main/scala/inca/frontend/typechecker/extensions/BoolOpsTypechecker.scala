@@ -18,7 +18,7 @@ object BoolOpsTypechecker extends TypecheckerExtension {
       context: TypeContext
   ): (Core.TypeAnno, CoreTypechecker.TypeEnvironment, Boolean) = {
     e match {
-      case And(e1, e2) => {
+      case And(e1, e2) =>
         val (e1t, e1te) = typechecker.typecheck(e1)
         val (e2t, e2te) = typechecker.typecheck(e2)
 
@@ -29,8 +29,7 @@ object BoolOpsTypechecker extends TypecheckerExtension {
             )
           )
         (TBool, typechecker.union(e1te, e2te), true) // @todo subtyping
-      }
-      case Not(cond) => {
+      case Not(cond) =>
         val (condt, condte) = typechecker.typecheck(cond)
 
         if (condt != TBool) // @todo subtyping
@@ -39,8 +38,7 @@ object BoolOpsTypechecker extends TypecheckerExtension {
           )
 
         (TBool, condte, true) // @todo subtyping
-      }
-      case Or(e1, e2) => {
+      case Or(e1, e2) =>
         val (e1t, e1te) = typechecker.typecheck(e1)
         val (e2t, e2te) = typechecker.typecheck(e2)
 
@@ -51,7 +49,6 @@ object BoolOpsTypechecker extends TypecheckerExtension {
             )
           )
         (TBool, typechecker.union(e1te, e2te), true) // @todo subtyping
-      }
       case _ => (null, context.tenv, false)
     }
   }

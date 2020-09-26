@@ -2,6 +2,7 @@ package inca.frontend.typechecker
 
 import inca.frontend.parser.Parser
 import fastparse.Parsed.{Failure, Success}
+import inca.analyzedLangs.Exp
 import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.core.Core._
 import inca.frontend.util.Program
@@ -13,17 +14,23 @@ import inca.frontend.util.Program
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
 class TypecheckerTest extends AnyFunSuite {
+
+  val lmi = Exp.languageMetaInfo
+
   test("test Typechecker") {
+    println(lmi.links)
     def test_run(cd: String) = {
       Parser.parseModule(cd) match {
         case Success(value, index) => {
           val prog = Program(Seq(value))
-          Typechecker.typecheck(null, prog) match {
+          Typechecker.typecheck(lmi, prog) match {
             case SuccessTypecheck(warnings)     =>
             case FailTypecheck(error, warnings) => fail(s"$error, $warnings")
           }
         }
-        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+        case Failure(label, index, extra) =>
+          println(s" CODE AROUND FAILURE: ${cd.slice(index - 5, index + 5)}")
+          fail(s"$label, $index, $extra")
       }
     }
 
@@ -99,9 +106,30 @@ class TypecheckerTest extends AnyFunSuite {
           |  } else {
           |    yield 2
           |  }
-          |}""".stripMargin
+          |}""".stripMargin,
+      s"""
+         |module test
+         |
+         |def isEven(x: Int): Boolean = {
+         |  yield eval(x % 2 == 0)
+         |}
+         |
+         |def check(t: Any): Int = {
+         |  t match {
+         |    case inca.analyzedLangs.Exp.Add(lhs=lhs, rhs=rhs) => {
+         |      val l = check(lhs)
+         |      val r = check(rhs)
+         |      yield eval(l + r)
+         |    }
+         |    case exp@inca.analyzedLangs.Exp() => {
+         |      yield 5
+         |    }
+         |    case somethingElse => {
+         |      yield 1
+         |    }
+         |  }
+         |} """.stripMargin
     )
-
     code.map(test_run)
   }
 

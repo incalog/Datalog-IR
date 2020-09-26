@@ -42,7 +42,9 @@ class ParserUtilsTest extends AnyFunSuite {
   }
 
   test("test integer leading zeroes") {
-    parse("01", integer(_)) match {
+    import NoWhitespace._
+    def integerWithEnd[_: P] = P(integer ~ End)
+    parse("01", integerWithEnd(_)) match {
       case Failure(_, _, _) => ()
       case Success(v, _)    =>
         fail(s"$v")

@@ -1,4 +1,4 @@
-package inca.frontend.typechecker;
+package inca.frontend.typechecker
 
 import inca.frontend.core.Core._
 import inca.frontend.parser.CoreParser
@@ -154,7 +154,7 @@ class CoreTypechecker(
     if (return_types.exists(x => !subtype(return_types.head, x)))
       errors.addOne(
         TypeError(
-          s"Body has multiple return values (${where})."
+          s"Body has multiple return values ($where)."
         )
       )
 
@@ -218,9 +218,9 @@ class CoreTypechecker(
         }
       case _: Statement =>
         for (e <- extensions) {
-          val (ot, et, is) = e.typecheck(stm, last_in_body)
-          if (is)
-            return (ot, et)
+          val (outType, env, consumed) = e.typecheck(stm, last_in_body)
+          if (consumed)
+            return (outType, env)
         }
         throw new FatalError(
           s"Unexpected statement ${stm.prettyprint("")} found ($where)."
@@ -232,9 +232,9 @@ class CoreTypechecker(
       exp: Exp
   )(implicit context: TypeContext): (TypeAnno, CoreTypechecker.TypeEnvironment) = {
     exp match {
-      case Aggregate(init, join, unjoin, call) =>
+      case Aggregate(_, _, _, _) =>
         throw new NotImplementedError("Aggregate is not supported in typechecker.")
-      case Call(name, args, transitive) =>
+      case Call(name, args, _) =>
         context.functions.get(name) match {
           case Some(fun) =>
             val ret = fun.outParams.map(_.typ)
@@ -273,8 +273,8 @@ class CoreTypechecker(
         (TBool, te)
       case Def(exp) =>
         exp match {
-          case Call(name, args, transitive) =>
-          case PathAccess(receiver, link)   =>
+          case Call(_, _, _) =>
+          case PathAccess(_, _)   =>
           case _ =>
             errors.addOne(
               TypeError(s"Def requires a Call or PathAccess Expression ($where).")
@@ -285,8 +285,8 @@ class CoreTypechecker(
         (TBool, te)
       case Undef(exp) =>
         exp match {
-          case Call(name, args, transitive) =>
-          case PathAccess(receiver, link)   =>
+          case Call(_, _, _) =>
+          case PathAccess(_, _)   =>
           case _ =>
             errors.addOne(
               TypeError(s"Undef requires a Call or PathAccess Expression ($where).")
@@ -362,7 +362,7 @@ class CoreTypechecker(
       case Var(name) =>
         if (!context.tenv.contains(name))
           throw new FatalError(
-            s"Variable $name is not defined ${where}"
+            s"Variable $name is not defined $where"
           )
         exp.typed(context.tenv(name))
         (context.tenv(name), context.tenv)
@@ -370,7 +370,7 @@ class CoreTypechecker(
         val (typ, te) = typecheck(receiver)
         val linkType = lmi.links((typ.prettyprint, link.prettyprint))
         (convertType(linkType), union(context.tenv, te))
-      case eval@Eval(params, code)    =>
+      case eval@Eval(_, _)    =>
         try {
           val resType = EvalHelper.typecheck(eval)
           eval.typed(resType)
@@ -398,11 +398,11 @@ class CoreTypechecker(
   def typecheck(lit: Literal)(implicit context: TypeContext): TypeAnno = {
     lit match {
       case UnitLiteral       => null
-      case BooleanLiteral(v) => TBool
-      case IntLiteral(v)     => TInt
-      case LongLiteral(v)    => TLong
-      case DoubleLiteral(v)  => TDouble
-      case StringLiteral(v)  => TString
+      case BooleanLiteral(_) => TBool
+      case IntLiteral(_)     => TInt
+      case LongLiteral(_)    => TLong
+      case DoubleLiteral(_)  => TDouble
+      case StringLiteral(_)  => TString
     }
   }
 

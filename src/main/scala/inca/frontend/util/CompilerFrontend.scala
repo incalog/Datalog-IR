@@ -6,12 +6,13 @@ import fastparse.Parsed.{Failure, Success}
 import inca.frontend.core.Core
 import inca.frontend.parser.Parser
 import inca.frontend.typechecker.Typechecker
+import inca.runtime.context.LanguageMetaInfo
 
 import scala.collection.mutable
 import scala.io.Source
 
 case class Program(modules: Seq[Core.Module]) {
-  def prettyprint = {
+  def prettyprint: String = {
     modules.map(_.prettyprint("")).mkString("", "\n\n", "")
   }
 
@@ -35,10 +36,10 @@ case class Program(modules: Seq[Core.Module]) {
   */
 object CompilerFrontend {
 
-  val USAGE = s"""|IncAC
-                  |Usage:
-                  |sbt run file1.inca file2.inca ...
-                  |""".stripMargin
+  val USAGE: String = s"""|IncAC
+                          |Usage:
+                          |sbt run file1.inca file2.inca ...
+                          |""".stripMargin
 
   def main(args: Array[String]) {
 
@@ -49,35 +50,39 @@ object CompilerFrontend {
 
     val modules = mutable.ArrayBuffer.empty[Core.Module]
     for (f <- args) {
+      var file: Source = null
       try {
-        val code = Source.fromFile(f).mkString
+        file = Source.fromFile(f)
+        val code = file.mkString
         val res = Parser.parseModule(code)
         res match {
-          case Failure(label, index, extra) => {
+          case Failure(label, index, extra) =>
             println(s"Syntax Error: $extra")
             sys.exit()
-          }
           case Success(value, index) => modules.addOne(value)
         }
       } catch {
-        case e: FileNotFoundException => {
+        case e: FileNotFoundException =>
           println(e)
           sys.exit()
-        }
-        case _: Throwable => { sys.exit(-1) }
+        case _: Throwable => sys.exit(-1)
+      }
+      finally {
+        if(file != null)
+          file.close()
       }
     }
 
     val program = Program(modules.toSeq)
     program.unique match {
       case "" =>
-      case m => {
+      case m =>
         println(s"Module '$m' is defined multiple times.")
-      }
     }
 
     println(program.prettyprint)
     // println(program)
-    println(Typechecker.typecheck(null, program))
+    val emptyLMI = new LanguageMetaInfo()
+    println(Typechecker.typecheck(emptyLMI, program))
   }
 }

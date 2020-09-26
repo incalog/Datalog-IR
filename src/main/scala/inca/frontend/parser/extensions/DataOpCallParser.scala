@@ -1,12 +1,6 @@
 package inca.frontend.parser.extensions
 
-import fastparse._
-import ScalaWhitespace._
-import inca.frontend.core.Core._
-import inca.frontend.extensions._
-import inca.frontend.parser.ParserUtils._
 import inca.frontend.parser._
-import inca.frontend.core.Core
 
 /** Extension adding dataop operations to @see CoreParser.
   *

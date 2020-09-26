@@ -43,9 +43,7 @@ object ParserUtils {
 
   private def rawInteger[_: P] =
     P(
-      (("+" | "-").? ~ CharIn("1-9") ~ CharsWhileIn("0-9").?).! | P(
-        "0" ~ CharsWhile(_.isSpaceChar, 1) | "0" ~ End
-      ).!
+      (("+" | "-").? ~ CharIn("1-9") ~ CharsWhileIn("0-9").?).! | P("0").!
     )
 
   private def rawDouble[_: P] =

@@ -38,6 +38,7 @@ object IfThenElseTypechecker extends TypecheckerExtension{
             (None, context.tenv, true)
           }
           else {
+            // if the If statement would result in a type
             val finalType = if(intermediate == TUnit) None else Some(intermediate)
             (finalType, context.tenv, true)
           }

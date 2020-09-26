@@ -1,11 +1,8 @@
 package inca.frontend.parser
 
-import fastparse.parse 
-import fastparse.P
-import fastparse.End
 import fastparse.ScalaWhitespace._
+import fastparse.{End, P, parse}
 import inca.frontend.core.Core._
-import inca.frontend.parser._
 import inca.frontend.parser.extensions._
 
 /** Parser Frontend

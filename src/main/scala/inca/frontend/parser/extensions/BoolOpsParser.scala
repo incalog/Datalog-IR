@@ -1,10 +1,9 @@
 package inca.frontend.parser.extensions
 
+import fastparse.ScalaWhitespace._
 import fastparse._
-import ScalaWhitespace._
 import inca.frontend.core.Core._
 import inca.frontend.extensions._
-import inca.frontend.parser.ParserUtils._
 import inca.frontend.parser._
 
 /** Extension adding boolean expressions to @see CoreParser.
