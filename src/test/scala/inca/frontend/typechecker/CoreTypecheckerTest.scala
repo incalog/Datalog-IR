@@ -66,7 +66,7 @@ class CoreTypecheckerTest extends AnyFunSuite {
           |    yield x
           |} 
           |
-          |def another() : Int {
+          |def another() : Int = {
           |    yield name()
           |} """.stripMargin,
       s"""|
@@ -90,19 +90,7 @@ class CoreTypecheckerTest extends AnyFunSuite {
           |    val x = true 
           |    assert x instanceOf Any
           |    yield x
-          |} """.stripMargin,
-      s"""|
-          |module test
-          |
-          |def name2() : Int = {
-          |  switch {
-          |    val y = 7
-          |  } union {
-          |    val x = 9
-          |  }
-          |
-          |  yield 2
-          |}""".stripMargin
+          |} """.stripMargin
     )
 
     code.map(test_run)
