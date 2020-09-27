@@ -4,8 +4,14 @@ import inca.frontend.core.Core
 import inca.frontend.core.Core._
 import inca.frontend.extensions.IfThenElse
 import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
-import inca.frontend.typechecker.{TypeContext, TypeError, TypeWarning, TypecheckerExtension}
+import inca.frontend.typechecker.{TypeContext, TypeError, TypecheckerExtension}
 
+/**
+ * IfThenElse typechecker extension
+ *
+ * @author Ronja Schnur (rschnur@students.uni-mainz.de)
+ *         Julian Cichorius (jcichori@students.uni-mainz.de)
+ */
 object IfThenElseTypechecker extends TypecheckerExtension{
 
   override def typecheck(e: Core.Statement, last: Boolean)(implicit context: TypeContext):
@@ -22,22 +28,12 @@ object IfThenElseTypechecker extends TypecheckerExtension{
         typechecker.typecheck(elif.body)(new TypeContext(context, cte))
       }
       val branchTypes = thnType +: elifTypes
-      val intermediate = branchTypes.reduce[TypeAnno] {
-        case (t1, t2) =>
-          val commonType = typechecker.meet(t1, t2)
-          commonType match {
-            case None =>
-              typechecker.addError(s"The types $t1 and $t2 don't have a common type")
-              return (None, context.tenv, true)
-            case Some(t) =>
-              t
-          }
-      }
+      val intermediate = typechecker.meet(branchTypes).fold[TypeAnno](TUnit)(t => t)
       //Else
       els match {
         case None =>
           if(last) {
-            typechecker.addError("incomplete IfThenElse at the end of the function")
+            typechecker.addError(TypeError.incompleteStatement(e, "IfThenElse"))
             (None, context.tenv, true)
           }
           else {
@@ -49,7 +45,7 @@ object IfThenElseTypechecker extends TypecheckerExtension{
           val elsType = typechecker.typecheck(elsBody)
           val finalType = typechecker.meet(intermediate, elsType) match {
             case None =>
-              typechecker.addError(s"The types $intermediate and $elsType don't have a common type")
+              typechecker.addError(TypeError.incompatibleReturnTypes("IfThenElse"))
               return (Some(TUnit), context.tenv, true)
             case Some(t) => t
           }
@@ -61,7 +57,7 @@ object IfThenElseTypechecker extends TypecheckerExtension{
 
   private def checkCond(found: TypeAnno)(implicit ctx: TypeContext): Unit = {
     if(!typechecker.subtype(found, TBool)) {
-      typechecker.addError(s"expected TBool, found $found")
+      typechecker.addError(TypeError.expected(TBool, found, "IfThenElse"))
     }
   }
 }

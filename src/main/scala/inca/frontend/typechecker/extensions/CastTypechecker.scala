@@ -5,6 +5,12 @@ import inca.frontend.extensions.Cast
 import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
 import inca.frontend.typechecker.{TypeContext, TypeError, TypecheckerExtension}
 
+/**
+ * Cast typechecker extension
+ *
+ * @author Ronja Schnur (rschnur@students.uni-mainz.de)
+ *         Julian Cichorius (jcichori@students.uni-mainz.de)
+ */
 object CastTypechecker extends TypecheckerExtension{
 
   override def typecheck(e: Core.Exp)(implicit context: TypeContext): (Core.TypeAnno, TypeEnvironment, Boolean) = e match {
@@ -18,7 +24,7 @@ object CastTypechecker extends TypecheckerExtension{
         (targetTyp, context.tenv, true)
       }
       else {
-        typechecker.addError(s"attempt to cast $srcType to unrelated type $targetTyp")
+        typechecker.addError(TypeError.unrelated(srcType, targetTyp))
         (Core.TUnit, context.tenv, false)
       }
 

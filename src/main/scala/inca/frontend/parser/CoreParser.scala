@@ -50,13 +50,13 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   def tAnyLinked[_: P]: P[TLinked] =
     P(P(TAnyLinked.prettyprint).map(_ => TAnyLinked))
 
-  /** A parser for type identifier. Allows '.' in the name */
-  def typeIdentifier[_: P]: P[String] = P(CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_", ".").repX).!.map {
+  /** A parser for fully qualified identifier. Allows '.' in the name */
+  def fullyQualifiedIdentifier[_: P]: P[String] = P(CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_", ".").repX).!.map {
     s => if(keywords.contains(s)) return fastparse.Fail else s
   }
 
   /** TNode parser */
-  def tNode[_: P]: P[TNode] = P(P(typeIdentifier).!.map(TNode))
+  def tNode[_: P]: P[TNode] = P(P(fullyQualifiedIdentifier).!.map(TNode))
 
   /** Helper for the basic TypeAnno like TAny. */
   private def typeAnnoHelper[_: P](t: TypeAnno): P[TypeAnno] =
@@ -238,7 +238,6 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   def evalCore[_: P]: P[Eval] = P(scalaparse.Scala.Exprs.!).flatMap {raw_code =>
     raw_code.parse[Term] match {
       case Parsed.Error(_, _, _) =>
-        // println(s"$pos, $msg, $details")
         fastparse.Fail
       case Parsed.Success(code) =>
         val params = EvalHelper.freeVars(code)
@@ -256,9 +255,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
 
   /** Call parser */
   def callExp[_: P]: P[Call] =
-    P(
-      identifier ~ "+".?.! ~ P("(" ~ exp.rep(sep = ",") ~ ")")
-    ).map {
+    P(fullyQualifiedIdentifier ~ "+".?.! ~ P("(" ~ exp.rep(sep = ",") ~ ")")).map {
       case (name, transitive_str, exp) =>
         Call(name, exp, transitive_str == "+")
     }

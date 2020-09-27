@@ -1,11 +1,17 @@
 package inca.frontend.typechecker.extensions
 
 import inca.frontend.core.Core
-import inca.frontend.core.Core.{TList, TUnit}
+import inca.frontend.core.Core.{TAnyLinked, TList, TUnit}
 import inca.frontend.extensions.Foreach
 import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
-import inca.frontend.typechecker.{TypeContext, TypeError, TypeWarning, TypecheckerExtension}
+import inca.frontend.typechecker.{TypeContext, TypeError, TypecheckerExtension}
 
+/**
+ * Foreach typechecker extension
+ *
+ * @author Ronja Schnur (rschnur@students.uni-mainz.de)
+ *         Julian Cichorius (jcichori@students.uni-mainz.de)
+ */
 object ForeachTypechecker extends TypecheckerExtension{
 
   override def typecheck(s: Core.Statement, last_in_body: Boolean)(implicit context: TypeContext): (Option[Core.TypeAnno], TypeEnvironment, Boolean) = s match {
@@ -18,7 +24,7 @@ object ForeachTypechecker extends TypecheckerExtension{
             typechecker.addWarning(s"body has result type $bodyType which gets ignored")
           }
         case _ =>
-          typechecker.addError(s"expected TList, but got $expType")
+          typechecker.addError(TypeError.expected(TList(TAnyLinked), expType, s"Foreach $name <- ${exp.getClass.getName}"))
       }
       val resType = if(last_in_body) Some(TUnit) else None
       (resType, context.tenv, true)

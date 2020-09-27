@@ -3,7 +3,7 @@ package inca.frontend.typechecker
 import inca.frontend.core.Core._
 import inca.frontend.parser.CoreParser
 import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
-import inca.frontend.util.{EvalHelper, Program, ScalaTypeError}
+import inca.frontend.util.{EvalHelper, Program, ScalaTypeError, TypeHelper}
 import inca.runtime.context._
 import truechange.{AnyType, ListType, SortType, Type}
 
@@ -18,7 +18,40 @@ case class FailTypecheck(errors: Seq[TypeError], warnings: Seq[TypeWarning])
 /* Errors that can occur in typechecking */
 case class TypeWarning(msg: String)
 case class TypeError(msg: String)
-class FatalError(msg: String) extends Exception(msg)
+class FatalError(err: TypeError) extends Exception(err.msg)
+
+object TypeError {
+
+  def expected(exp: TypeAnno, actual: TypeAnno, prefix: String = "")(implicit ctx: TypeContext): TypeError =
+    template(prefix, s"Expected ${exp.prettyprint}, but got ${actual.prettyprint}")
+
+  def incompatibleReturnTypes(prefix: String = "")(implicit ctx: TypeContext): TypeError =
+    template(prefix, "The bodies have incompatible return types")
+
+  def tupleUnpack(lhs: TTuple, rhsLen: Int, prefix: String = "")(implicit ctx: TypeContext): TypeError =
+    template(prefix, s"Cannot unpack tuple with ${lhs.ts.length} to tuple with $rhsLen members.")
+
+  def sizeMismatch(exp: Int, act: Int, prefix: String = "")(implicit ctx: TypeContext): TypeError =
+    template(prefix, s"Size mismatch. Expected $exp arguments, but got $act")
+
+  def undefined(typ: String, name: String, prefix: String = "")(implicit ctx: TypeContext): TypeError =
+    template(prefix, s"$typ $name does not exist")
+
+  def expectedExp(exp: Seq[String], act: Exp, prefix: String = "")(implicit ctx: TypeContext): TypeError =
+    template(prefix, s"Expected ${exp.mkString("(", " or ", ")")}, but found $act")
+
+  def unrelated(t1: TypeAnno, t2: TypeAnno, prefix: String = "")(implicit ctx: TypeContext): TypeError =
+    template(prefix, s"types $t1 and $t2 are unrelated")
+
+  def incompleteStatement(stm: Statement, prefix: String = "")(implicit ctx: TypeContext): TypeError =
+    template(prefix, s"Incomplete ${stm.getClass.getName} at the end of a function")
+
+  def alreadyUsed(name: String, prefix: String = "")(implicit ctx: TypeContext): TypeError =
+    template(prefix, s"Variable $name already used")
+
+  private def template(prefix: String, msg: String)(implicit ctx: TypeContext) =
+    TypeError(s"(${ctx.where}, $prefix):\n $msg")
+}
 
 /** TypeContext */
 class TypeContext(
@@ -30,6 +63,8 @@ class TypeContext(
   def this(tc: TypeContext, tenv: TypeEnvironment) {
     this(tc.fname, tc.functions, tc.module, tenv)
   }
+
+  def where: String = s"Function: $fname, Module: ${module.name}"
 }
 
 /* Companion object to Typechecker */
@@ -63,8 +98,8 @@ class CoreTypechecker(
 
   extensions.foreach(_.typechecker = this)
 
-  def addError(msg: String)(implicit ctx: TypeContext): Unit = {
-    errors.addOne(TypeError(s"$where\n$msg"))
+  def addError(err: TypeError)(implicit ctx: TypeContext): Unit = {
+    errors.addOne(err)
   }
 
   def addWarning(msg: String)(implicit ctx: TypeContext): Unit = {
@@ -108,25 +143,24 @@ class CoreTypechecker(
     }
     val out = fun.outParams.map(ap => ap.typ)
     implicit val ctx: TypeContext = new TypeContext(fun.name, null, module, null)
-    //val w = where(new TypeContext(fun.name, null, module, null))
-
     if (res.contains(TUnit)) {
       // accept explicit Unit result type annotation
       if (out.nonEmpty && (out.size > 1 || out.head != TUnit))
-        addError(s"Annotated return type does not match (Code: 0x01). Expected $out, but got $res")
+        addError(TypeError.expected(TTuple(out), TTuple(res)))
     } else {
-      // check if all blocks have the same return type 
-      if (res.count(x => subtype(res.head, x) && subtype(x, res.head)) != res.length)
-        addError(s"Patternfunction does not have the same return type in all blocks.")
-
+      val resType = meet(res).getOrElse {
+        addError(TypeError.incompatibleReturnTypes("PatternFunction"))
+        TUnit
+      }
       // match return type with given annotation
-      res.head match {
+      resType match {
         case TTuple(ts) =>
-          if (ts.length != out.length || ts.zip(out).exists(r => !subtype(r._1, r._2)))
-            addError(s"Annotated return type does not match (Code: 0x02)")
+          if (ts.length != out.length || ts.zip(out).exists(r => !subtype(r._1, r._2))) {
+            addError(TypeError.expected(TTuple(out), resType))
+          }
         case t =>
-          if ((out.length != 1 || !subtype(t, out.head)) && out.nonEmpty) { 
-            addError(s"Annotated return type does not match (Code: 0x03)")
+          if ((out.length != 1 || !subtype(t, out.head)) && out.nonEmpty) {
+            addError(TypeError.expected(TTuple(out), resType))
           }
       }
     }
@@ -147,12 +181,18 @@ class CoreTypechecker(
         return_types.addOne(t.get)
     }
 
-    // check if all return values are the same
-    if (return_types.exists(x => !subtype(return_types.head, x)))
-      addError(s"Body has multiple return values.")
-
-    if (return_types.nonEmpty) return_types.head
-    else TUnit
+    // check if all return values are compatible
+    val resType =
+      if(return_types.isEmpty) {
+        TUnit
+      }
+      else {
+        meet(return_types).fold[TypeAnno] {
+          addError(TypeError.incompatibleReturnTypes())
+          TUnit
+        }(t => t)
+      }
+    resType
   }
 
   def typecheck(stm: Statement, last_in_body: Boolean)(implicit
@@ -162,30 +202,26 @@ class CoreTypechecker(
       case Assert(cond) =>
         val (t, te) = typecheck(cond)
         if (!subtype(t, TBool))
-          addError(s"Assert condition does not evaluate to bool. Got $t")
+          addError(TypeError.expected(TBool, t, "Assert"))
         (None, te) 
-      case Assign(names, exp) => // @todo check for already in use
-        if (names.exists(context.tenv.contains))
-          throw new FatalError(s"Variable is already in use ($where).")
+      case Assign(names, exp) =>
 
         if (names.length == 1) { // simple assign
           (None, context.tenv + (names.head -> typecheck(exp)._1))
         } else { // tuple unpack
           typecheck(exp)._1 match {
-            case TTuple(ts) =>
+            case tuple@TTuple(ts) =>
               if (names.length != ts.length) { // sizes need to match
-                addError(s"Cannot unpack tuple with ${ts.length} to tuple with ${names.length} members.")
+                addError(TypeError.tupleUnpack(tuple, names.length))
                 (None, context.tenv)
               }
               (None, context.tenv ++ names.zip(ts).map(p => p._1 -> p._2).toMap)
             case t =>
-              addError(s"Cannot unpack type ${t.prettyprint} to tuple with ${names.length} members.")
+              addError(TypeError.expected(TTuple(names.map(TypeHelper.decode)), t, "Assign"))
               (None, context.tenv)
           }
         }
       case Values(name, typ) =>
-        if (context.tenv.contains(name))
-          throw new FatalError(s"Variable '$name' already in use ($where).")
         (None, context.tenv + (name -> typ))
       case e: TerminatorStatement =>
         // A terminator statement should be the last statement in a block
@@ -205,9 +241,7 @@ class CoreTypechecker(
           if (consumed)
             return (outType, env)
         }
-        throw new FatalError(
-          s"Unexpected statement ${stm.prettyprint("")} found ($where)."
-        )
+        throw new FatalError(TypeError(s"Unexpected statement ${stm.prettyprint("")} found ($where)."))
     }
   }
 
@@ -222,7 +256,7 @@ class CoreTypechecker(
           case Some(fun) =>
             val ret = fun.outParams.map(_.typ)
             if(fun.params.size != args.size) {
-              addError(s"function $name takes ${fun.params.size} arguments, but got ${args.size}")
+              addError(TypeError.sizeMismatch(fun.params.size, args.size, s"Call $name"))
             }
             val paramTypes = fun.params.map(_.typ)
             val (argTypes, envs) = args.map(typecheck).unzip
@@ -230,7 +264,7 @@ class CoreTypechecker(
             paramTypes.zip(argTypes).foreach {
               case (pTyp, aTyp) =>
                 if(!subtype(aTyp, pTyp)) {
-                  addError(s"expected $pTyp, but got $aTyp which is not a subtype of the first")
+                  addError(TypeError.expected(pTyp, aTyp))
                 }
             }
             if (ret.isEmpty) {
@@ -244,7 +278,8 @@ class CoreTypechecker(
               (TTuple(ret), newEnv)
             }
           case None =>
-            throw new FatalError(s"Function $name is not defined ($where).")
+            addError(TypeError.undefined("Function", name, s"Call $name"))
+            (TUnit, context.tenv)
         }
       case Constant(lit) =>
         val t = typecheck(lit)
@@ -259,7 +294,7 @@ class CoreTypechecker(
           case Call(_, _, _) =>
           case PathAccess(_, _)   =>
           case _ =>
-            addError(s"Def requires a Call or PathAccess Expression.")
+            addError(TypeError.expectedExp(Seq("Call", "PathAccess"), exp, s"Def ${exp.getClass.getName}"))
         }
         val (_, te) = typecheck(exp)
         exp.typed(TBool)
@@ -269,24 +304,15 @@ class CoreTypechecker(
           case Call(_, _, _) =>
           case PathAccess(_, _)   =>
           case _ =>
-            addError(s"Undef requires a Call or PathAccess Expression.")
+            addError(TypeError.expectedExp(Seq("Call", "PathAccess"), exp, s"Undef ${exp.getClass.getName}"))
         }
         val (_, te) = typecheck(exp)
         exp.typed(TBool)
         (TBool, te)
-      case Eq(lhs, rhs) =>
-        val (r, l) = (typecheck(lhs), typecheck(rhs))
-        if (!(subtype(r._1, l._1) && subtype(l._1, r._1))) {
-          throw new FatalError(s"Equality operand types do not match ($where).")
-        }
-        exp.typed(TBool)
-        (TBool, union(r._2, l._2))
-      case Neq(lhs, rhs) =>
-        val (r, l) = (typecheck(lhs), typecheck(rhs))
-        if (!(subtype(r._1, l._1) && subtype(l._1, r._1)))
-          throw new FatalError(s"Inequality operand types do not match ($where).")
-        exp.typed(TBool)
-        (TBool, union(r._2, l._2))
+      case eq@Eq(lhs, rhs) =>
+        checkEq(lhs, rhs, eq)
+      case neq@Neq(lhs, rhs) =>
+        checkEq(lhs, rhs, neq)
       case InstanceOf(exp, ty) =>
         val (t, te) = typecheck(exp)
         exp match {
@@ -296,12 +322,12 @@ class CoreTypechecker(
               return (TBool, union(context.tenv.updated(name, ty), te))
             }
             else if (!subtype(t, ty))
-              addError(s"InstanceOf operands $ty and $t do not share a typing relation.")
+              addError(TypeError.unrelated(ty, t, s"${exp.getClass.getName} InstanceOf ${ty.prettyprint}"))
             exp.typed(TBool)
             (TBool, context.tenv)
           case _ =>
             if (t != ty)
-              throw new FatalError(s"InstanceOf type does not match ($where, Code: 0x01)")
+              throw new FatalError(TypeError(s"InstanceOf type does not match ($where)"))
             exp.typed(TBool)
             (TBool, te)
         }
@@ -314,12 +340,12 @@ class CoreTypechecker(
               return (TBool, union(context.tenv.updated(name, ty), te))
             }
             else if (!subtype(t, ty))
-              addError(s"NotInstanceOf operands $ty and $t do not share a typing relation.")
+              addError(TypeError.unrelated(ty, t, s"${exp.getClass.getName} NotInstanceOf ${ty.prettyprint}"))
             exp.typed(TBool)
             (TBool, context.tenv)
           case _ =>
             if (t != ty)
-              throw new FatalError(s"NotInstanceOf type does not match ($where, Code: 0x01)")
+              throw new FatalError(TypeError(s"NotInstanceOf type does not match ($where)"))
             exp.typed(TBool)
             (TBool, te)
         }
@@ -331,11 +357,12 @@ class CoreTypechecker(
           re.fold(context.tenv) { case (a, b) => union(a, b) }
         )
       case Var(name) =>
-        if (!context.tenv.contains(name))
-          throw new FatalError(
-            s"Variable $name is not defined ($where)"
-          )
-        exp.typed(context.tenv(name))
+        if (!context.tenv.contains(name)) {
+          addError(TypeError.undefined("Variable", name))
+          exp.typed(TUnit)
+        } else {
+          exp.typed(context.tenv(name))
+        }
         (context.tenv(name), context.tenv)
       case PathAccess(receiver, link) =>
         val (typ, te) = typecheck(receiver)
@@ -360,15 +387,13 @@ class CoreTypechecker(
             return (ot, et)
           }
         }
-        throw new FatalError(
-          s"Unexpected expression ${exp.prettyprint("")} found ($where)."
-        )
+        throw new FatalError(TypeError(s"Unexpected expression ${exp.prettyprint("")} found ($where)."))
     }
   }
 
   def typecheck(lit: Literal)(implicit context: TypeContext): TypeAnno = {
     lit match {
-      case UnitLiteral       => null
+      case UnitLiteral       => TUnit
       case BooleanLiteral(_) => TBool
       case IntLiteral(_)     => TInt
       case LongLiteral(_)    => TLong
@@ -378,7 +403,7 @@ class CoreTypechecker(
   }
 
   def where(implicit context: TypeContext): String = {
-    s"Function: ${context.fname}, Module: ${context.module.name}"
+    context.where
   }
 
   def union(env1: TypeEnvironment, env2: TypeEnvironment)(implicit
@@ -391,12 +416,21 @@ class CoreTypechecker(
         m match {
           case Some(value) => res += (t -> value)
           case None =>
-            addError(s"${env2(t)} and ${env1(t)} do not share a type relationship.")
+            addError(TypeError.unrelated(env2(t), env1(t)))
         }
       } else
         res += (t -> env2(t))
     }
     res
+  }
+
+  private def checkEq(lhs: Exp, rhs: Exp, exp: Exp)(implicit ctx: TypeContext) = {
+    val (r, l) = (typecheck(lhs), typecheck(rhs))
+    if (!(subtype(r._1, l._1) && subtype(l._1, r._1))) {
+      addError(TypeError.expected(l._1, r._1, "Equality"))
+    }
+    exp.typed(TBool)
+    (TBool, union(r._2, l._2))
   }
 
   private def convertType(typ: Type): TypeAnno = typ match {
@@ -438,5 +472,16 @@ class CoreTypechecker(
       case (_: TLinked, _) | (_, _: TLinked) => None
       case (TUnit, _ ) | (_, TUnit) => None
       case (_, _) => Some(TAny)
+    }
+
+  def meet(types: Iterable[TypeAnno], ifEmpty: TypeAnno = TUnit): Option[TypeAnno] =
+    if(types.isEmpty) {
+      Some(ifEmpty)
+    }
+    else {
+      val (first, rest) = (types.head, types.tail)
+      rest.foldLeft[Option[TypeAnno]](Some(first)) {
+        case (res, t) => res.fold[Option[TypeAnno]](None)(meet(_, t))
+      }
     }
 }

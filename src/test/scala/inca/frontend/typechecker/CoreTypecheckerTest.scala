@@ -92,8 +92,39 @@ class CoreTypecheckerTest extends AnyFunSuite {
           |    yield x
           |} """.stripMargin
     )
-
     code.map(test_run)
+  }
+
+  test("test imports") {
+    val mod1Src =
+      """
+        |module test1
+        |
+        |def hello(): String = {
+        |  yield "Hello World"
+        |}
+        |""".stripMargin
+    val mod1 = parse(mod1Src, CoreParser().module(_)).get.value
+    val src =
+      """
+        |module main
+        |import test1
+        |
+        |def main(): Unit = {
+        |  val x = hello()
+        |}
+        |""".stripMargin
+
+    val code = parse(src, CoreParser().module(_)).get.value
+    val prog = Program(Seq(mod1, code))
+    val typechecker = new CoreTypechecker(null, prog, Seq.empty)
+    typechecker.typecheck() match {
+      case SuccessTypecheck(warnings) =>
+        println(warnings)
+      case FailTypecheck(errors, warnings) =>
+        println(errors)
+        fail()
+    }
   }
 
 }

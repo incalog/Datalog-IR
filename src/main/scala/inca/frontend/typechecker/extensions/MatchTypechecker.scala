@@ -1,14 +1,9 @@
 package inca.frontend.typechecker.extensions
 
+import inca.frontend.core.Core
 import inca.frontend.core.Core._
 import inca.frontend.extensions._
-import inca.frontend.typechecker.{
-  CoreTypechecker,
-  TypeContext,
-  TypeError,
-  TypecheckerExtension
-}
-import inca.frontend.core.Core
+import inca.frontend.typechecker.{CoreTypechecker, TypeContext, TypeError, TypecheckerExtension}
 import inca.frontend.util.TypeHelper
 
 /** Match Typechecker Extension
@@ -25,7 +20,7 @@ object MatchTypechecker extends TypecheckerExtension {
 
     typechecker.lmi.links.get((c.prettyprint, field)) match {
       case None =>
-        typechecker.addError(s"TNode ${c.prettyprint} has no field $field")
+        typechecker.addError(TypeError.undefined(s"${c.prettyprint}.$field", "", "Match"))
       case Some(typ) =>
         pb.typed(TypeHelper.decode(typ.toString))
     }
@@ -50,13 +45,13 @@ object MatchTypechecker extends TypecheckerExtension {
         )
       case VarPattern(name) =>
         if (context.tenv.contains(name)) {
-          typechecker.addError(s"Variable $name is already in use (Code: 0x01)")
+          typechecker.addError(TypeError.alreadyUsed(name, "Match"))
           (estm, context.tenv + (name -> estm))
         } else
           (estm, context.tenv + (name -> estm))
       case NamedPattern(name, pat) => // ???
         if (context.tenv.contains(name)) {
-          typechecker.addError(s"Variable $name is already in use (Code: 0x02)")
+          typechecker.addError(TypeError.alreadyUsed(name, "Match"))
           (estm, context.tenv)
         } else {
           val (t, ne) = typecheck(pat, estm)
@@ -65,11 +60,11 @@ object MatchTypechecker extends TypecheckerExtension {
       case LiteralPattern(v) =>
         val t = typechecker.typecheck(v)
         if (t != estm)
-          typechecker.addError(s"Unable to match type $estm with $t")
+          typechecker.addError(TypeError.expected(estm, t, "Match"))
         (t, context.tenv)
       case WildcardPattern => (estm, context.tenv)
       case _ =>
-        typechecker.addError(s"Error occured ${pat.prettyprint("")}")
+        typechecker.addError(TypeError.undefined("Pattern", s"${pat.prettyprint("")}", "Match"))
         (estm, context.tenv)
     }
   }
@@ -81,7 +76,7 @@ object MatchTypechecker extends TypecheckerExtension {
     val (t, te) = typecheck(pattern, matchee_t)
 
     if (!typechecker.subtype(t, matchee_t))
-      typechecker.addError(s"Match error")
+      typechecker.addError(TypeError.expected(matchee_t, t, "Match"))
     
     typechecker.typecheck(body)(new TypeContext(context, te))
   }
@@ -96,14 +91,15 @@ object MatchTypechecker extends TypecheckerExtension {
 
         if (last_in_body) {
           // check if all return values are the same
-          if (return_types.exists(x => !typechecker.subtype(return_types.head, x)))
-            typechecker.addError(s"Body has multiple return values")
+          val resType = typechecker.meet(return_types) match {
+            case None =>
+              typechecker.addError(TypeError.incompatibleReturnTypes("Match"))
+              TUnit
+            case Some(t) =>
+              t
+          }
 
-          val rt =
-            if (return_types.nonEmpty) return_types.head
-            else TUnit
-
-          (Some(rt), te, true)
+          (Some(resType), te, true)
         } else
           (None, te, true)
       }
