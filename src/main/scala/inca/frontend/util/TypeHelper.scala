@@ -10,7 +10,9 @@ object TypeHelper {
 
   private val cp = CoreParser()
 
-  private def tNode[_: P]: P[TNode] = P(cp.fullyQualifiedIdentifier ~~ ( " with " ~~ cp.fullyQualifiedIdentifier).repX).!.map(TNode)
+  private def tNode[_: P]: P[TNode] = P(cp.fullyQualifiedIdentifier.! ~~ ( " with " ~~ cp.fullyQualifiedIdentifier).repX).map {
+    case (name, _) => TNode(name)
+  }
 
   private def typeAnnoHelper[_: P](t: TypeAnno): P[TypeAnno] =
     P(t.prettyprint).map(_ => t)

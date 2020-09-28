@@ -50,6 +50,11 @@ class TypeHelperTest extends AnyFunSuite{
     }
   }
 
+  test("test decode strip traits") {
+    checkEq("Hello with Product", TNode("Hello"))
+    checkEq("inca.Nat with Product with SuperProduct", TNode("inca.Nat"))
+  }
+
   private def checkEq(name: String, exp: TypeAnno): Unit = {
     val typ = TypeHelper.decode(name)
     assert(typ == exp)
