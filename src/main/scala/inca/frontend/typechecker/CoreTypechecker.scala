@@ -16,8 +16,12 @@ case class FailTypecheck(errors: Seq[TypeError], warnings: Seq[TypeWarning])
     extends TypecheckResult
 
 /* Errors that can occur in typechecking */
-case class TypeWarning(msg: String)
-case class TypeError(msg: String)
+case class TypeWarning(msg: String) {
+  override def toString = msg
+}
+case class TypeError(msg: String) {
+  override def toString = msg
+}
 class FatalError(err: TypeError) extends Exception(err.msg)
 
 object TypeError {
@@ -50,7 +54,7 @@ object TypeError {
     template(prefix, s"Variable $name already used")
 
   private def template(prefix: String, msg: String)(implicit ctx: TypeContext) =
-    TypeError(s"(${ctx.where}, $prefix):\n $msg")
+    TypeError(s"  * ${ctx.where}${if (prefix != "") s", $prefix" else ""}\n    $msg")
 }
 
 /** TypeContext */
@@ -103,7 +107,7 @@ class CoreTypechecker(
   }
 
   def addWarning(msg: String)(implicit ctx: TypeContext): Unit = {
-    warnings.addOne(TypeWarning(s"$where\n$msg"))
+    warnings.addOne(TypeWarning(s"  * $where\n    $msg"))
   }
 
   // Methods //
@@ -226,9 +230,7 @@ class CoreTypechecker(
       case e: TerminatorStatement =>
         // A terminator statement should be the last statement in a block
         if (!last_in_body)
-          warnings.addOne(
-            TypeWarning(s"Terminator statement is not last statement in body ($where).")
-          )
+          addWarning(s"Terminator statement is not last statement in body.")
         e match {
           case Yield(exp) =>
             val (t, te) = typecheck(exp)
