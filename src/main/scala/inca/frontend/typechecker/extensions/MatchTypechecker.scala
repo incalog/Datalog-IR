@@ -21,12 +21,12 @@ object MatchTypechecker extends TypecheckerExtension {
     typechecker.lmi.links.get((c.prettyprint, field)) match {
       case None =>
         typechecker.addError(TypeError.undefined(s"${c.prettyprint}.$field", "", "Match"))
+        typecheck(pattern)._2
       case Some(typ) =>
-        pb.typed(TypeHelper.decode(typ.toString))
+        val patternType = TypeHelper.decode(typ.toString)
+        pb.typed(patternType)
+        typecheck(pattern, patternType)._2
     }
-
-    val (_, env) = typecheck(pattern)
-    env
   }
 
   private def typecheck(pat: Pattern, estm: TypeAnno = TAny)(implicit
@@ -49,7 +49,7 @@ object MatchTypechecker extends TypecheckerExtension {
           (estm, context.tenv + (name -> estm))
         } else
           (estm, context.tenv + (name -> estm))
-      case NamedPattern(name, pat) => // ???
+      case NamedPattern(name, pat) =>
         if (context.tenv.contains(name)) {
           typechecker.addError(TypeError.alreadyUsed(name, "Match"))
           (estm, context.tenv)
@@ -59,7 +59,7 @@ object MatchTypechecker extends TypecheckerExtension {
         }
       case LiteralPattern(v) =>
         val t = typechecker.typecheck(v)
-        if (t != estm)
+        if (!typechecker.subtype(t, estm))
           typechecker.addError(TypeError.expected(estm, t, "Match"))
         (t, context.tenv)
       case WildcardPattern => (estm, context.tenv)
@@ -69,9 +69,7 @@ object MatchTypechecker extends TypecheckerExtension {
     }
   }
 
-  private def typecheck(matchee_t: TypeAnno, cs: Case)(implicit
-      context: TypeContext
-  ): TypeAnno = {
+  private def typecheck(matchee_t: TypeAnno, cs: Case)(implicit context: TypeContext): TypeAnno = {
     val Case(pattern, body) = cs
     val (t, te) = typecheck(pattern, matchee_t)
 
@@ -81,11 +79,10 @@ object MatchTypechecker extends TypecheckerExtension {
     typechecker.typecheck(body)(new TypeContext(context, te))
   }
 
-  override def typecheck(s: Core.Statement, last_in_body: Boolean)(implicit
-      context: TypeContext
-  ): (Option[Core.TypeAnno], CoreTypechecker.TypeEnvironment, Boolean) = {
+  override def typecheck(s: Core.Statement, last_in_body: Boolean)(implicit context: TypeContext):
+  (Option[Core.TypeAnno], CoreTypechecker.TypeEnvironment, Boolean) = {
     s match {
-      case Match(matchee, cases) => {
+      case Match(matchee, cases) =>
         val (t, te) = typechecker.typecheck(matchee)
         val return_types = cases.map(typecheck(t, _))
 
@@ -102,7 +99,6 @@ object MatchTypechecker extends TypecheckerExtension {
           (Some(resType), te, true)
         } else
           (None, te, true)
-      }
       case _ => (None, context.tenv, false)
     }
   }
