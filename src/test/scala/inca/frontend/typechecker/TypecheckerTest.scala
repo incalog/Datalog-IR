@@ -19,7 +19,7 @@ class TypecheckerTest extends AnyFunSuite {
   val lmi = Exp.languageMetaInfo
 
   test("test Typechecker") {
-    println(lmi.links)
+    // println(lmi.links)
     def test_run(cd: String) = {
       Parser.parseModule(cd) match {
         case Success(value, index) => {
@@ -30,8 +30,7 @@ class TypecheckerTest extends AnyFunSuite {
           }
         }
         case Failure(label, index, extra) =>
-          println(s" CODE AROUND FAILURE: ${cd.slice(index - 5, index + 5)}")
-          fail(s"$label, $index, $extra")
+          fail(s" CODE AROUND FAILURE: ${cd.slice(index - 5, index + 5)}")
       }
     }
 
@@ -180,13 +179,20 @@ class TypecheckerTest extends AnyFunSuite {
          }
          """
 
-    println(code)
+    // println(code)
     Typechecker.typecheck(lmi, Program(Seq(code))) match {
       case SuccessTypecheck(warnings) =>
         println(warnings)
       case FailTypecheck(errors, warnings) =>
-        println(errors)
-        fail()
+        // println(errors)
+        fail(errors.mkString("\n"))
     }
+  }
+
+  test("test leastCommonType") {
+    val checker = new CoreTypechecker(lmi, Program(Seq.empty), Seq.empty)
+    assert(checker.leastCommonType(truechange.SortType("inca.analyzedLangs.Exp.BooleanLit"), truechange.SortType("inca.analyzedLangs.Exp.BooleanLit")) === Some(truechange.SortType("inca.analyzedLangs.Exp.BooleanLit")))
+    assert(checker.leastCommonType(truechange.SortType("inca.analyzedLangs.Exp.And"), truechange.SortType("inca.analyzedLangs.Exp.BooleanLit")) === Some(truechange.SortType("inca.analyzedLangs.Exp")))
+    assert(checker.leastCommonType(truechange.SortType("inca.analyzedLangs.Exp.Or"), truechange.SortType("inca.analyzedLangs.Exp.And")) === Some(truechange.SortType("inca.analyzedLangs.Exp")))
   }
 }
