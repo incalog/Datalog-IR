@@ -6,6 +6,7 @@ import inca.analyzedLangs.Exp
 import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.core.Core._
 import inca.frontend.util.Program
+import inca.frontend.parser.Conversions._
 
 /**
   * Test class for the IncA core language typechecker.
@@ -133,4 +134,59 @@ class TypecheckerTest extends AnyFunSuite {
     code.map(test_run)
   }
 
+  test("test typchecker complex") {
+    val lmi = Exp.languageMetaInfo
+    val code =
+      mod"""module test
+        def countNodes(exp: inca.analyzedLangs.Exp): Int = {
+          exp match {
+            case inca.analyzedLangs.Exp.BooleanLit() => {
+              yield 1
+            }
+            case inca.analyzedLangs.Exp.IntegerLit() => {
+              yield 1
+            }
+            case inca.analyzedLangs.Exp.LongLit() => {
+              yield 1
+            }
+            case inca.analyzedLangs.Exp.Mul(lhs=lhs, rhs=rhs) => {
+               val l = countNodes(lhs)
+               val r = countNodes(rhs)
+               yield eval(l + r)
+             }
+            case inca.analyzedLangs.Exp.Add(lhs=lhs, rhs=rhs) => {
+              val l = countNodes(lhs)
+              val r = countNodes(rhs)
+              yield eval(l + r)
+            }
+            case inca.analyzedLangs.Exp.Not(e=e) => {
+              yield countNodes(e)
+            }
+            case inca.analyzedLangs.Exp.And(lhs=lhs, rhs=rhs) => {
+              val l = countNodes(lhs)
+               val r = countNodes(rhs)
+               yield eval(l + r)
+             }
+             case inca.analyzedLangs.Exp.Or(lhs=lhs, rhs=rhs) => {
+               val l = countNodes(lhs)
+               val r = countNodes(rhs)
+               yield eval(l + r)
+             }
+             case many@inca.analyzedLangs.Exp.Many(exps=exps) => {
+               // no idea how to implement it
+               yield many.children.size
+             }
+           }
+         }
+         """
+
+    println(code)
+    Typechecker.typecheck(lmi, Program(Seq(code))) match {
+      case SuccessTypecheck(warnings) =>
+        println(warnings)
+      case FailTypecheck(errors, warnings) =>
+        println(errors)
+        fail()
+    }
+  }
 }

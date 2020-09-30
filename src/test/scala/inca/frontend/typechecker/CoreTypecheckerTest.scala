@@ -92,7 +92,17 @@ class CoreTypecheckerTest extends AnyFunSuite {
           |    yield x
           |} """.stripMargin
     )
-    code.map(test_run)
+    //code.foreach(test_run)
+
+    val code1 = s"""
+                   |module test
+                   |
+                   |def name(x: Any): Any = {
+                   |  assert x instanceOf Node
+                   |  yield x.parent
+                   |}
+                   |""".stripMargin
+    test_run(code1)
   }
 
   test("test imports") {

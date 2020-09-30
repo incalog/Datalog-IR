@@ -48,29 +48,20 @@ object EvalHelper {
     case _: Lit =>
 
     // definitions
-    case Defn.Val(_, pats, typ, rhs) =>
+    case Defn.Val(_, pats, _, rhs) =>
       val patVars = extractVars(pats, scope)
       loadPatVars(patVars, scope)
-      typ.foreach(loadFromType(_, scope))
       loadVars(rhs, scope)
 
-    case Defn.Var(_, pats, typ, rhs) =>
+    case Defn.Var(_, pats, _, rhs) =>
       val patVars = extractVars(pats, scope)
       loadPatVars(patVars, scope)
-      typ.foreach(loadFromType(_, scope))
       rhs.foreach(loadVars(_, scope))
 
-    case Defn.Type(_, name, tparams, body) =>
-      val nested = scope.nestedScope()
-      tparams.foreach(param => {
-        nested.newBound(param.name.value)
-        loadTBounds(param.tbounds, nested)
-      })
-      loadFromType(body, nested)
-      scope.newBound(name.value)
+    case _: Defn.Type =>
 
     case _: Defn =>
-      throw new UnsupportedOperationException("only val, var and type definitions are supported definitions")
+      throw new UnsupportedOperationException("only val, var anf type definitions are supported definitions")
 
     // terms
     case Term.Name(name) =>
@@ -79,9 +70,8 @@ object EvalHelper {
         scope.newFree(name)
       }
 
-    case Term.ApplyType(fun, args) =>
+    case Term.ApplyType(fun, _) =>
       loadVars(fun, scope)
-      args.foreach(loadFromType(_, scope))
 
     case Term.Select(qual, _) =>
       loadVars(qual, scope)
@@ -92,17 +82,12 @@ object EvalHelper {
     case Term.Return(expr) =>
       loadVars(expr, scope)
 
-    case Term.Annotate(expr, annots) =>
+    case Term.Annotate(expr, anno) =>
+      anno.foreach(a => a.init.argss.foreach(loadAllVars(_, scope)))
       loadVars(expr, scope)
-      annots.foreach(anno => {
-        loadFromType(anno.init.tpe, scope)
-        anno.init.argss.foreach(loadAllVars(_, scope))
-      }
-      )
 
-    case Term.Ascribe(expr, typ) =>
+    case Term.Ascribe(expr, _) =>
       loadVars(expr, scope)
-      loadFromType(typ, scope)
 
     case Term.Throw(expr) =>
       loadVars(expr, scope)
@@ -120,9 +105,8 @@ object EvalHelper {
       // a block defines a new scope nested in the current one
       loadAllVars(stats, scope.nestedScope())
 
-    case Term.ApplyInfix(lhs, _, types, args) =>
+    case Term.ApplyInfix(lhs, _, _, args) =>
       loadVars(lhs, scope)
-      types.foreach(loadFromType(_, scope))
       loadAllVars(args, scope)
 
     case Term.Apply(fun, args) =>
@@ -148,7 +132,6 @@ object EvalHelper {
       loadVars(elsep, scope)
 
     case Term.New(init) =>
-      loadFromType(init.tpe, scope)
       init.argss.foreach(loadAllVars(_, scope))
 
     case Term.PartialFunction(cases) =>
@@ -197,89 +180,6 @@ object EvalHelper {
 
     case tree =>
       throw new UnsupportedOperationException(s"not yet implemented: ${tree.productPrefix}")
-  }
-
-  private def loadFromType(typ: Type, scope: Scope): Unit = typ match {
-
-    case Type.Name(name) =>
-      scope.newFreeIfUnbound(name)
-
-    case Type.Var(name) =>
-      loadFromType(name, scope)
-
-    case p: Type.Param =>
-      loadFromTypeParam(p, scope)
-
-    case Type.Select(qual, _) =>
-      loadVars(qual, scope)
-
-    case Type.And(lhs, rhs) =>
-      loadFromType(lhs, scope)
-      loadFromType(rhs, scope)
-
-    case Type.Or(lhs, rhs) =>
-      loadFromType(lhs, scope)
-      loadFromType(rhs, scope)
-
-    case Type.With(lhs, rhs) =>
-      loadFromType(lhs, scope)
-      loadFromType(rhs, scope)
-
-    case Type.Tuple(args) =>
-      args.foreach(loadFromType(_, scope))
-
-    case Type.Apply(ty, args) =>
-      loadFromType(ty, scope)
-      args.foreach(loadFromType(_, scope))
-
-    case Type.ApplyInfix(lhs, op, rhs) =>
-      loadFromType(op, scope)
-      loadFromType(lhs, scope)
-      loadFromType(rhs, scope)
-
-    case bounds: Type.Bounds =>
-      loadTBounds(bounds, scope)
-
-    case Type.Function(params, res) =>
-      params.foreach(loadFromType(_, scope))
-      loadFromType(res, scope)
-
-    case Type.ImplicitFunction(params, res) =>
-      params.foreach(loadFromType(_, scope))
-      loadFromType(res, scope)
-
-    case Type.Lambda(tparsms, typ) =>
-      loadFromType(typ, scope)
-      tparsms.foreach(loadFromTypeParam(_, scope))
-
-    case Type.ByName(typ) =>
-      loadFromType(typ, scope)
-
-    case Type.Placeholder(bounds) =>
-      loadTBounds(bounds, scope)
-
-    case Type.Project(qual, _) =>
-      loadFromType(qual, scope)
-
-    case Type.Repeated(typ) =>
-      loadFromType(typ, scope)
-
-    case _ =>
-      throw new UnsupportedOperationException(s"type ${typ.productPrefix} is not supported")
-  }
-
-  private def loadFromTypeParam(param: Param, scope: Scope): Unit = {
-    val name = param.name.value
-    loadTBounds(param.tbounds, scope)
-    scope.newFreeIfUnbound(name)
-    param.cbounds.foreach(loadFromType(_, scope))
-    param.vbounds.foreach(loadFromType(_, scope))
-  }
-
-  private def loadTBounds(bounds: Type.Bounds, scope: Scope): Unit = {
-    val (lo, hi) = (bounds.lo, bounds.hi)
-    lo.foreach(loadFromType(_, scope))
-    hi.foreach(loadFromType(_, scope))
   }
 
   private def loadAllVars(terms: List[Tree], scope: Scope): Unit = {
@@ -368,9 +268,8 @@ object EvalHelper {
       loadVars(op, scope)
       rhs.foreach(loadDefinedVars(_, scope, found))
 
-    case Pat.Typed(p, typ) =>
+    case Pat.Typed(p, _) =>
       loadDefinedVars(p, scope, found)
-      loadFromType(typ, scope)
 
     case Pat.Quasi(_, _) =>
       throw new UnsupportedOperationException("Pat.Quasi is currently not supported")

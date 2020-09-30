@@ -58,7 +58,7 @@ class EvalHelperTest extends AnyFunSuite {
 
   test("test freeVars ascribe") {
     val code = q"value: Int"
-    checkVars(code, Set("value", "Int"))
+    checkVars(code, Set("value"))
   }
 
   test("test freeVars throw") {
@@ -81,7 +81,7 @@ class EvalHelperTest extends AnyFunSuite {
   }
 
   test("test freeVars definition var no rhs") {
-    checkVars(undefinedVar, Set("Int"))
+    checkVars(undefinedVar, Set())
   }
 
   test("test freeVars definition var with rhs") {
@@ -145,7 +145,7 @@ class EvalHelperTest extends AnyFunSuite {
         Assign(Name("value"), Name("free"))
       )
     )
-    checkVars(code, Set("Int", "free"))
+    checkVars(code, Set("free"))
   }
 
   test("test freeVars if") {
@@ -287,7 +287,7 @@ class EvalHelperTest extends AnyFunSuite {
         )
       )
     )
-    checkVars(code, Set("free", "cond", "Int"))
+    checkVars(code, Set("free", "cond"))
   }
 
   test("test freeVars partial function") {
@@ -305,12 +305,12 @@ class EvalHelperTest extends AnyFunSuite {
         )
       )
     )
-    checkVars(code, Set("cond", "x", "Int"))
+    checkVars(code, Set("cond", "x"))
   }
 
   test("test freeVars new") {
     val code = q"new Int(arg1, new Int(arg2))(arg3, arg4)"
-    checkVars(code, Set("arg1", "arg2", "arg3", "arg4", "Int"))
+    checkVars(code, Set("arg1", "arg2", "arg3", "arg4"))
   }
 
   test("test freeVars interpolate") {
@@ -346,7 +346,7 @@ class EvalHelperTest extends AnyFunSuite {
         )
       )
     )
-    checkVars(code, Set("free", "arg", "Int"))
+    checkVars(code, Set("free", "arg"))
   }
 
   test("test freeVars repeated") {
@@ -381,63 +381,6 @@ class EvalHelperTest extends AnyFunSuite {
     checkVars(tree, Set("::", "Some", "matchee"))
   }
 
-  test("test freeVars types nested") {
-    val code = q"val x: Option[List[Map[String, Int]]] = None"
-    checkVars(code, Set("Option", "List", "Map", "String", "Int", "None"))
-  }
-
-  test("test freeVars types select") {
-    val code = q"val x: List.Empty = Nil"
-    checkVars(code, Set("List", "Nil"))
-  }
-
-  test("test freeVars types definition simple") {
-    val code = q"{type T = Int; val x: T = 1}"
-    checkVars(code, Set("Int"))
-  }
-
-  test("test freeVars types definition generic") {
-    val code = q"type T[E] = List[E]"
-    checkVars(code, Set("List"))
-  }
-
-  test("test freeVars types definition generic 2") {
-    val code = q"{type T[E] = List[E]; val x: E = 10}"
-    checkVars(code, Set("List", "E"))
-  }
-
-  test("test freeVars types type bounds simple") {
-    val code = q"type T[E >: Int, F <: Int] = List[E]"
-    checkVars(code, Set("List", "Int"))
-  }
-
-  test("test freeVars types type bounds both bounds") {
-    val code = q"type T[E >: Int <: Any] = List[E]"
-    checkVars(code, Set("Int", "Any", "List"))
-  }
-
-  test("test freeVars types type bounds complex") {
-    val code = q"type T[E <: List[E]] = List[E]"
-    checkVars(code, Set("List"))
-  }
-
-  test("test freeVars types type bounds complex 2") {
-    val code = q"type T[E <: List[Any]] = List[E]"
-    checkVars(code, Set("List", "Any"))
-  }
-
-  test("test freeVars types with") {
-    val code = q"type T = Int with Any"
-    checkVars(code, Set("Int", "Any"))
-  }
-
-  // Type.And and Type.Or are not tested here because the default dialect does not support these types
-
-  test("test freeVars types apply infix") {
-    val code = q"type T = Int Map String"
-    checkVars(code, Set("Int", "Map", "String"))
-  }
-
   test("test freeVars complex 1") {
     val code =
       q"""
@@ -458,7 +401,7 @@ class EvalHelperTest extends AnyFunSuite {
           this.anno = 12
         }
         """
-    checkVars(code, Set("x", "i", "foo", "Set", "Any"))
+    checkVars(code, Set("x", "i", "foo", "Set"))
   }
 
   test("test freeVars complex 2") {
@@ -478,7 +421,7 @@ class EvalHelperTest extends AnyFunSuite {
           }
        """
 
-    checkVars(code, Set("Map", "Int", "String", "List", "Person", "mutable", "Ordering", "loadInto"))
+    checkVars(code, Set("mutable", "loadInto", "Map"))
   }
 
   test("test freeVars complex 3") {
@@ -517,7 +460,7 @@ class EvalHelperTest extends AnyFunSuite {
         }
         """
 
-    checkVars(code, Set("do_smth", "newAnon", "process", "println", "Some", "None", "Int", "Option"))
+    checkVars(code, Set("do_smth", "newAnon", "process", "println", "Some", "None"))
   }
 
   test("test freeVars complex 5") {
@@ -541,7 +484,7 @@ class EvalHelperTest extends AnyFunSuite {
         }
        """
 
-    checkVars(code, Set("Node", "Heap", "Set", "start"))
+    checkVars(code, Set("start", "Heap", "Set"))
   }
 
   test("test typecheck simple") {

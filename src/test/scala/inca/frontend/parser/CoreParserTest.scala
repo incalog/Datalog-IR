@@ -241,7 +241,7 @@ class CoreParserTest extends AnyFunSuite {
         | ten
         | }""".stripMargin
     for(b <- Set(true, false)) {
-      test_run(code, Seq("x", "y", "z", "inf", "code", "ten", "Int"), b)
+      test_run(code, Seq("x", "y", "z", "inf", "code", "ten"), b)
     }
 
     val code1 =

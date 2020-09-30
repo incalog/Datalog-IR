@@ -320,12 +320,14 @@ class CoreTypechecker(
         exp match {
           case Var(name) =>
             if (subtype(ty, t)) {
-              exp.typed(TBool)
-              return (TBool, union(context.tenv.updated(name, ty), te))
+              exp.typed(ty)
+              val newEnv = unionSubtype(context.tenv.updated(name, ty), te, true)
+              return (TBool, newEnv)
             }
-            else if (!subtype(t, ty))
+            else if(!subtype(t, ty)) {
               addError(TypeError.unrelated(ty, t, s"${exp.getClass.getName} InstanceOf ${ty.prettyprint}"))
-            exp.typed(TBool)
+            }
+            exp.typed(t)
             (TBool, context.tenv)
           case _ =>
             if (t != ty)
@@ -337,13 +339,12 @@ class CoreTypechecker(
         val (t, te) = typecheck(exp)
         exp match {
           case Var(name) =>
-            if (subtype(ty, t)) {
-              exp.typed(TBool)
-              return (TBool, union(context.tenv.updated(name, ty), te))
+            if (subtype(t, ty)) {
+              addError(TypeError(s"the expression is of type $t which is a subtype of $ty so this expression always returns false"))
             }
-            else if (!subtype(t, ty))
+            else if (!subtype(ty, t))
               addError(TypeError.unrelated(ty, t, s"${exp.getClass.getName} NotInstanceOf ${ty.prettyprint}"))
-            exp.typed(TBool)
+            exp.typed(t)
             (TBool, context.tenv)
           case _ =>
             if (t != ty)
@@ -368,8 +369,8 @@ class CoreTypechecker(
         (context.tenv(name), context.tenv)
       case PathAccess(receiver, link) =>
         val (typ, te) = typecheck(receiver)
-        val linkType = lmi.links((typ.prettyprint, link.prettyprint))
-        (convertType(linkType), union(context.tenv, te))
+        val linkType = typecheck(typ, link)
+        (linkType, union(context.tenv, te))
       case eval@Eval(_, _)    =>
         try {
           val resType = EvalHelper.typecheck(eval)
@@ -378,7 +379,7 @@ class CoreTypechecker(
         } catch {
           case ScalaTypeError(msg) =>
             errors.addOne(TypeError(msg))
-            (TAny, context.tenv)
+            (TUnit, context.tenv)
         }
 
       case _: Exp =>
@@ -411,19 +412,78 @@ class CoreTypechecker(
   def union(env1: TypeEnvironment, env2: TypeEnvironment)(implicit
       context: TypeContext
   ): TypeEnvironment = {
+    unionSubtype(env1, env2, false)
+  }
+
+  def unionSubtype(env1: TypeEnvironment, env2: TypeEnvironment, useSubtype: Boolean)
+                  (implicit context: TypeContext): TypeEnvironment = {
     var res = env1
     for (t <- env2.keys) {
       if (res.contains(t)) {
-        val m = meet(env2(t), env1(t))
-        m match {
-          case Some(value) => res += (t -> value)
-          case None =>
-            addError(TypeError.unrelated(env2(t), env1(t)))
+        if(useSubtype){
+          val (t1, t2) = (env1(t), env2(t))
+          if(subtype(t1, t2)) {
+            res += (t -> t1)
+          }
+          else if(subtype(t2, t1)) {
+            res += (t -> t2)
+          }
+          else {
+            addError(TypeError.unrelated(t1, t2))
+          }
+        }
+        else {
+          val m = meet(env2(t), env1(t))
+          m match {
+            case Some(value) => res += (t -> value)
+            case None =>
+              addError(TypeError.unrelated(env2(t), env1(t)))
+          }
         }
       } else
         res += (t -> env2(t))
     }
     res
+  }
+
+  private def typecheck(typ: TypeAnno, link: Link)(implicit ctx: TypeContext): TypeAnno = link match {
+    case ParentLink =>
+      typ match {
+        case _: TLinked => TAnyLinked
+        case _ =>
+          addError(TypeError.expected(TAnyLinked, typ, "ParentLink"))
+          TUnit
+      }
+    case NextLink | PreviousLink =>
+      typ match {
+        case TList(inner) => inner
+        case _ =>
+          addError(TypeError.expected(TList(TAnyLinked), typ, "NextLink | PreviousLink"))
+          TUnit
+      }
+    case SizeLink =>
+      typ match {
+        case TList(_) => TInt
+        case _ =>
+          addError(TypeError.expected(TList(TAnyLinked), typ, "SizeLink"))
+          TUnit
+      }
+    case NamedLink(_, name) =>
+      lmi.links.get((typ.prettyprint, name)) match {
+        case None =>
+          addError(TypeError.undefined("Field", name, s"NamedLink($name)"))
+          TUnit
+        case Some(rawType) =>
+          TypeHelper.decode(rawType.toString)
+      }
+    case ChildrenLink =>
+      typ match {
+        case _: TLinked =>
+          TList(TAnyLinked)
+        case _ =>
+          addError(TypeError.expected(TAnyLinked, typ, "ChildrenLink"))
+          TUnit
+      }
   }
 
   private def checkEq(lhs: Exp, rhs: Exp, exp: Exp)(implicit ctx: TypeContext) = {
@@ -433,18 +493,6 @@ class CoreTypechecker(
     }
     exp.typed(TBool)
     (TBool, union(r._2, l._2))
-  }
-
-  private def convertType(typ: Type): TypeAnno = typ match {
-    case AnyType => TAny
-    case ListType(ty) =>
-      val inner = convertType(ty)
-      inner match {
-        case linked: TLinked => TList(linked)
-        case anno => TList(TNode(anno.prettyprint))
-      }
-    case SortType(name) =>
-      fastparse.parse(name, CoreParser().typeAnno(_)).get.value
   }
 
   def subtype(tc: TypeAnno, tp: TypeAnno): Boolean =
@@ -470,9 +518,11 @@ class CoreTypechecker(
     else if (subtype(t1, t2)) Some(t2)
     else if (subtype(t2, t1)) Some(t1)
     else (t1, t2) match {
+      case (TNode(name1), TNode(name2)) => leastCommonType(SortType(name1), SortType(name2)).map(t => TypeHelper.decode(t.toString))
+      case (TList(inner1), TList(inner2)) => meet(inner1, inner2).map(t => TList(t.asInstanceOf[TLinked]))
       case (_: TLinked, _: TLinked) => Some(TAnyLinked)
-      case (_: TLinked, _) | (_, _: TLinked) => None
-      case (TUnit, _ ) | (_, TUnit) => None
+      case (_: TLinked, _) | (_, _: TLinked) => Some(TAny)
+      case (TUnit, _ ) | (_, TUnit) => Some(TAny)
       case (_, _) => Some(TAny)
     }
 
@@ -486,4 +536,14 @@ class CoreTypechecker(
         case (res, t) => res.fold[Option[TypeAnno]](None)(meet(_, t))
       }
     }
+
+  def leastCommonType(t1: SortType, t2: SortType): Option[SortType] = {
+    if(t1 == t2) {
+      Some(t1)
+    } else {
+      val sType1 = lmi.directNodeSupertypes.get(t1)
+      // TODO this is highly recursive and will result in StackOverflows for larger type hierarchies
+      sType1.find(leastCommonType(_, t2).isDefined).fold(lmi.directNodeSupertypes.get(t2).find(leastCommonType(t1, _).isDefined))(Some(_))
+    }
+  }
 }

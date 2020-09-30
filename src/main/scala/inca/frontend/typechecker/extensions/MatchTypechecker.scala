@@ -70,6 +70,7 @@ object MatchTypechecker extends TypecheckerExtension {
   }
 
   private def typecheck(matchee_t: TypeAnno, cs: Case)(implicit context: TypeContext): TypeAnno = {
+    val lmi = typechecker.lmi
     val Case(pattern, body) = cs
     val (t, te) = typecheck(pattern, matchee_t)
 

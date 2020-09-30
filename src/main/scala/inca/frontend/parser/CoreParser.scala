@@ -32,7 +32,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
     extensions.flatMap(_.statement)
 
   val keywords: Set[Name] =
-    Set("def", "undef", "true", "false", "eval", "aggregate") ++ extensions.flatMap(
+    Set("def", "undef", "true", "false", "eval", "aggregate", "count") ++ extensions.flatMap(
       _.keywords
     )
 
