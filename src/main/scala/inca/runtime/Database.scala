@@ -153,8 +153,8 @@ class Database(
       }
       // insert lits to primitiveInstances and links from node to lits
       for ((name, lit) <- lits) {
-        val litTy = JavaLitType(lit.getClass)
-        primitiveInstancesEnsure(litTy).insert(lit)
+//        val litTy = JavaLitType(lit.getClass)
+//        primitiveInstancesEnsure(litTy).insert(lit)
         linkPrimitiveInstancesEnsure(tagname->name).insert(node, lit)
       }
 

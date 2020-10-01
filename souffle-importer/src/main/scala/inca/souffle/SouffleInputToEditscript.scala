@@ -14,7 +14,7 @@ class SouffleInputToEditscript(dir: String) {
   }
 
   def compile(rows: Iterable[String], sig: Syntax.RuleSignature, delimiter: String): EditScript = {
-    val tag = NamedTag(sig.name)
+    val tag = NamedTag(sig.name.intern)
     val edits = rows.map { tuple =>
       val columns = tuple.split(delimiter)
       if (columns.size != sig.parameters.size) throw new IllegalArgumentException(s"Number of entries ${columns.size} does not match number of parameters ${sig.parameters.size} of signature ${sig.name}")
@@ -35,8 +35,8 @@ class SouffleInputToEditscript(dir: String) {
 
   // TODO: For this specific file DeclaredType are always an alias of symbol hence we translate DeclaredType always to String
   def compileColumn(elem: String, typ: Syntax.Type): Any = typ match {
-    case Syntax.DeclaredType(name) => elem
-    case Syntax.SymbolType => elem
+    case Syntax.DeclaredType(_) => elem.intern
+    case Syntax.SymbolType => elem.intern
     case Syntax.NumberType => elem.toInt
     case Syntax.UnsignedType => elem.toLong
     case Syntax.FloatType => elem.toDouble

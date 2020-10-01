@@ -103,6 +103,7 @@ class SouffleToIncaCompiler {
     Param(cleanSouffleName(param.name), compile(param.typ))
 
   def compile(typ: Syntax.Type): TypeAnno = typ match {
+      // Using StringInterner
     case DeclaredType(_) => TString
     case SymbolType => TString
     case NumberType => TInt
@@ -158,7 +159,7 @@ class SouffleToIncaCompiler {
       val typedParams = params.map {
         case Var(name) => s"${name}: String"
       }
-      val funString = s"(${typedParams.mkString(", ")}) => ${compileEvalString(exp)}"
+      val funString = s"(${typedParams.mkString(", ")}) => (${compileEvalString(exp)}).intern"
       val computed = Computed(trgVar, Evaluation(params.map((_, TString)), TUnbounded(TString), funString))
       // trgVar is unbounded variable
       (trgVar, Seq(computed), Seq(trgVar))
