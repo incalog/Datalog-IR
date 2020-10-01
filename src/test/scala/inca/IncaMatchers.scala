@@ -47,7 +47,8 @@ trait IncaMatchers extends Matchers {
     val psystem = Compiler.compileAndLoadFunModule(module, None, options)
     val querySpec = psystem.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module ${module.name}."))
 
-    val (feed, matcher) = EnginePool.loadQuery(querySpec(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    val feed = EnginePool.loadEngine(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    val matcher = EnginePool.loadQuery(querySpec(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
     feed.processEditScript(editScript)
 
@@ -80,7 +81,9 @@ trait IncaMatchers extends Matchers {
     val querySpec = psystem.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module ${module.name}."))
 
 
-    val (feed, matcher) = EnginePool.loadQuery(querySpec(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    val feed = EnginePool.loadEngine(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    val matcher = EnginePool.loadQuery(querySpec(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+
     feed.processEditScript(editScript)
 
     try {

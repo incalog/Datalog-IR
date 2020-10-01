@@ -6,7 +6,6 @@ import java.util
 import inca.runtime.Query.ChangeFeed
 import org.eclipse.viatra.query.runtime.api._
 import org.eclipse.viatra.query.runtime.api.scope.QueryScope
-import org.eclipse.viatra.query.runtime.exception.ViatraQueryException
 import org.eclipse.viatra.query.runtime.matchers.backend.{IQueryBackendFactory, QueryEvaluationHint}
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryBackendContext
 import org.eclipse.viatra.query.runtime.matchers.psystem.queries.PQuery
@@ -16,12 +15,8 @@ import scala.jdk.CollectionConverters._
 object EnginePool {
   private val engineMap: util.Map[QueryScope, WeakReference[AdvancedViatraQueryEngine]] = new util.WeakHashMap
 
-  def loadQuery(
-                  specification: Query.Specification,
-                  scope: QueryScope,
-                  backendFactory: IQueryBackendFactory): (Query.ChangeFeed, Query.Matcher) = try {
+  private def loadEngineInternal(scope: QueryScope, backendFactory: IQueryBackendFactory): AdvancedViatraQueryEngine = {
     val engineReference = EnginePool.engineMap.get(scope)
-
     val engine =
       if (engineReference != null && engineReference.get != null) {
         engineReference.get
@@ -34,17 +29,18 @@ object EnginePool {
         EnginePool.engineMap.put(scope, new WeakReference(e))
         e
       }
-    val matcher = engine.getMatcher(specification, null)
-    val changeFeed = engine.getBaseIndex.asInstanceOf[ChangeFeed]
-    (changeFeed, matcher)
-  } catch {
-    case e: ViatraQueryException =>
-      e.printStackTrace()
-      (null, null)
+    engine
   }
 
-  def getEngines: util.Collection[WeakReference[AdvancedViatraQueryEngine]] =
-    EnginePool.engineMap.values
+  def loadEngine(scope: QueryScope, backendFactory: IQueryBackendFactory): Query.ChangeFeed =
+    loadEngineInternal(scope, backendFactory).getBaseIndex.asInstanceOf[ChangeFeed]
+
+  def loadQuery(specification: Query.Specification,
+                scope: QueryScope,
+                backendFactory: IQueryBackendFactory): Query.Matcher = try {
+    val engine = loadEngineInternal(scope, backendFactory)
+    engine.getMatcher(specification, null)
+  }
 
   def disposeAllEngines(): Unit = {
     for (ref <- EnginePool.engineMap.values.asScala) {
