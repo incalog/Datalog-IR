@@ -17,9 +17,9 @@ class BidirectionalManyToOneIndex[K,V](val key: IndexKey[_]) extends BinaryIndex
   override def indexInverted(v: V): collection.Set[K] = indexInverted.get(v)
 
   override def insert(k: K, v: V): Unit = {
-    index += (k -> v)
-    indexInverted += (v -> k)
-    notify(k, v, isInsertion = true)
+//    index += (k -> v)
+//    indexInverted += (v -> k)
+//    notify(k, v, isInsertion = true)
   }
 
   override def delete(k: K, v: V): Unit = {

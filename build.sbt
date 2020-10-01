@@ -19,6 +19,7 @@ lazy val inca = (project in file(".")).settings(
     "org.scalameta" %% "scalameta" % "4.2.3",
     "org.eclipse.viatra" % "viatra-query-runtime" % "2.4.0",
     "org.eclipse.emf" % "org.eclipse.emf.ecore" % "2.23.0",
+    "org.eclipse.collections" % "eclipse-collections" % "10.4.0",
 
     "de.uni-mainz.informatik.pl" %% "truediff" % "0.1.1" % "test",
     "org.scalatest" %% "scalatest" % "3.1.0" % "test",

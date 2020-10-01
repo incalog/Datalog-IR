@@ -9,12 +9,15 @@ class SouffleInputToEditscript(dir: String) {
 
   def compile(input: Syntax.Input, sig: Syntax.RuleSignature): EditScript = {
     val absolutePath = s"$dir/${input.filename}"
-    val rows = loadFile(absolutePath)
-    compile(rows, sig, input.delimiter)
+    val src = Source.fromFile(absolutePath)
+    val edits = compile(src.getLines(), sig, input.delimiter)
+    src.close()
+    edits
   }
 
-  def compile(rows: Iterable[String], sig: Syntax.RuleSignature, delimiter: String): EditScript = {
+  def compile(rows: Iterator[String], sig: Syntax.RuleSignature, delimiter: String): EditScript = {
     val tag = NamedTag(sig.name.intern)
+
     val edits = rows.map { tuple =>
       val columns = tuple.split(delimiter)
       if (columns.size != sig.parameters.size) throw new IllegalArgumentException(s"Number of entries ${columns.size} does not match number of parameters ${sig.parameters.size} of signature ${sig.name}")
@@ -25,12 +28,6 @@ class SouffleInputToEditscript(dir: String) {
       Load(new JVMURI, tag, Seq(), lits)
     }.toSeq
     EditScript(edits)
-  }
-
-  private def loadFile(path: String): Iterable[String] = {
-    val src = Source.fromFile(path)
-    val lines = src.getLines()
-    lines.toIterable
   }
 
   // TODO: For this specific file DeclaredType are always an alias of symbol hence we translate DeclaredType always to String

@@ -1,12 +1,8 @@
 package inca.souffle
 
-import inca.runtime.EnginePool
 import inca.runtime.context.QueryScope
 import inca.{CompilerOptions, IncaMatchers}
-import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.flatspec.AnyFlatSpec
-import truechange.EditScript
-import truediff.Diffable
 
 class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaMatchers {
 
@@ -60,7 +56,7 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaMatchers {
     val superclasses =
       "<sun.security.provider.MD4: int FF(int,int,int,int,int,int)>;FF;int,int,int,int,int,int;sun.security.provider.MD4;int;(IIIIII)I;6"
     val factsCompiler = new SouffleInputToEditscript("EMPTY")
-    val edit = factsCompiler.compile(superclasses.split("\n"), _MethodSig, ";")
+    val edit = factsCompiler.compile(superclasses.split("\n").iterator, _MethodSig, ";")
     println(catModule)
     assertMatchGPEdit(catModule, "Method_Descriptor", edit) { matcher =>
       println(matcher.getAllMatches)
