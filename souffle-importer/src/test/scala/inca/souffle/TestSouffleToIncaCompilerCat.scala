@@ -32,7 +32,7 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaMatchers {
       |  ?descriptor = cat(?returnType, cat("(", cat(?params, ")"))).
       |""".stripMargin
 
-  lazy val (catModule, catInputs, catLangInfo) = {
+  lazy val (catModule, catInputs, _, catLangInfo) = {
     val ast = Parser(catProgram)
     val compiler = new SouffleToIncaCompiler
     compiler.compile("catanalysis", ast)

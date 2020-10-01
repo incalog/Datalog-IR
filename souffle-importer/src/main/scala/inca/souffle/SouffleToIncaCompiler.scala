@@ -19,14 +19,17 @@ class SouffleToIncaCompiler {
   private val decls: mutable.Map[String, RuleSignature] = mutable.Map()
   private val inputs: mutable.Map[String, Input] = mutable.Map()
 
+  private val printSizes: mutable.ListBuffer[PrintSize] = mutable.ListBuffer()
+
   val componentDefinitions: mutable.Map[String, ComponentDefinition] = mutable.Map()
 
-  def compile(name: String, analysis: Analysis): (Module, Seq[(RuleSignature, Input)], LanguageMetaInfo) = {
+  def compile(name: String, analysis: Analysis): (Module, Seq[(RuleSignature, Input)], Seq[PrintSize], LanguageMetaInfo) = {
     analysis.contents.foreach(compile(_, ""))
 
     (
       Module(name, Seq(), patFuns.values.toSeq.sortBy(_.name)),
       inputs.values.toSeq.map { input => (decls(input.rule), input) },
+      printSizes.toSeq,
       new LanguageMetaInfo(MultiDict(), Map(), genLitLinks)
     )
   }
@@ -97,23 +100,24 @@ class SouffleToIncaCompiler {
     case Output(rule) => // do nothing
 
     case PrintSize(rule) => // do nothing
+      printSizes += PrintSize(funPrefix + rule)
   }
 
   def compile(param: RuleParameter): Param =
     Param(cleanSouffleName(param.name), compile(param.typ))
 
   def compile(typ: Syntax.Type): TypeAnno = typ match {
-      // Using StringInterner
-    case DeclaredType(_) => TString
-    case SymbolType => TString
+      // TODO we represent strings as unique ints (StringInterner)
+    case DeclaredType(_) => TInt
+    case SymbolType => TInt
     case NumberType => TInt
     case UnsignedType => TLong
     case FloatType => TDouble
   }
 
   def getJavaClassForType(typ: Syntax.Type): Class[_] = typ match {
-    case DeclaredType(name) => classOf[java.lang.String]
-    case SymbolType => classOf[java.lang.String]
+    case DeclaredType(name) => classOf[java.lang.Integer]
+    case SymbolType => classOf[java.lang.Integer]
     case NumberType => classOf[java.lang.Integer]
     case UnsignedType => classOf[java.lang.Long]
     case FloatType => classOf[java.lang.Double]
@@ -148,7 +152,7 @@ class SouffleToIncaCompiler {
   // third element of tuple indicates transtively unbounded terms (vars)
   def compile(exp: Syntax.Expression)(implicit gensym: Gensym): (Term, Seq[Constraint], Seq[Term]) = exp match {
     case Variable(name) => (Var(cleanSouffleName(name)), Seq(), Seq())
-    case StringValue(value) => (Constant(StringLiteral(value)), Seq(), Seq())
+    case StringValue(value) => (Constant(IntLiteral(StringInterner.intern(value.intern))), Seq(), Seq())
     case NumberValue(value) => (Constant(IntLiteral(value)), Seq(), Seq())
     case Syntax.Any =>
       val fresh = gensym.fresh("wildcard")
@@ -157,10 +161,11 @@ class SouffleToIncaCompiler {
       val params = collectParams(exp)
       val trgVar = Var(gensym.fresh("trg"))
       val typedParams = params.map {
-        case Var(name) => s"${name}: String"
+        case Var(name) => s"${name}: Int"
       }
-      val funString = s"(${typedParams.mkString(", ")}) => (${compileEvalString(exp)}).intern"
-      val computed = Computed(trgVar, Evaluation(params.map((_, TString)), TUnbounded(TString), funString))
+//      val funString = s"(${typedParams.mkString(", ")}) => (${compileEvalString(exp)}).intern"
+      val funString = s"(${typedParams.mkString(", ")}) => 1"
+      val computed = Computed(trgVar, Evaluation(params.map((_, TInt)), TUnbounded(TInt), funString))
       // trgVar is unbounded variable
       (trgVar, Seq(computed), Seq(trgVar))
     case _ => throw new IllegalArgumentException(s"TODO $exp not supported")
@@ -176,7 +181,7 @@ class SouffleToIncaCompiler {
 
   def compileEvalString(exp: Syntax.Expression): String = exp match {
     case Variable(name) => cleanSouffleName(name)
-    case StringValue(value) => "\"" + value + "\""
+    case StringValue(value) => "StringInterner.intern(\"" + value + "\".intern)" // "\"" + value + "\""
     case NumberValue(value) => value.toString
     case BuiltInFunctionCall(fun, args) =>
       val lhs = compileEvalString(args.head)

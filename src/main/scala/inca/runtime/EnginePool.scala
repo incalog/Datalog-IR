@@ -15,7 +15,7 @@ import scala.jdk.CollectionConverters._
 object EnginePool {
   private val engineMap: util.Map[QueryScope, WeakReference[AdvancedViatraQueryEngine]] = new util.WeakHashMap
 
-  private def loadEngineInternal(scope: QueryScope, backendFactory: IQueryBackendFactory): AdvancedViatraQueryEngine = {
+  def loadEngine(scope: QueryScope, backendFactory: IQueryBackendFactory): AdvancedViatraQueryEngine = {
     val engineReference = EnginePool.engineMap.get(scope)
     val engine =
       if (engineReference != null && engineReference.get != null) {
@@ -32,13 +32,19 @@ object EnginePool {
     engine
   }
 
-  def loadEngine(scope: QueryScope, backendFactory: IQueryBackendFactory): Query.ChangeFeed =
-    loadEngineInternal(scope, backendFactory).getBaseIndex.asInstanceOf[ChangeFeed]
+  def loadDatabase(scope: QueryScope, backendFactory: IQueryBackendFactory): Database =
+    loadEngine(scope, backendFactory).getBaseIndex.asInstanceOf[Database]
+
+  def loadEngineAndDatabase(scope: QueryScope, backendFactory: IQueryBackendFactory): (AdvancedViatraQueryEngine, Database) = {
+    val engine = loadEngine(scope, backendFactory)
+    val database = engine.getBaseIndex.asInstanceOf[Database]
+    (engine, database)
+  }
 
   def loadQuery(specification: Query.Specification,
                 scope: QueryScope,
                 backendFactory: IQueryBackendFactory): Query.Matcher = try {
-    val engine = loadEngineInternal(scope, backendFactory)
+    val engine = loadEngine(scope, backendFactory)
     engine.getMatcher(specification, null)
   }
 

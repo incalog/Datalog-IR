@@ -1,5 +1,6 @@
 package inca.souffle
 
+
 import inca.CompilerOptions
 import inca.runtime.EnginePool
 import inca.runtime.Query.Matcher
@@ -17,7 +18,7 @@ object Main {
     src.close()
     val analysis = Parser(doopText)
     val compiler = new SouffleToIncaCompiler
-    val (gpModule, inputs, languageMetaInfo) = compiler.compile("selfcontained", analysis)
+    val (gpModule, inputs, printSizes, languageMetaInfo) = compiler.compile("selfcontained", analysis)
 //    println(gpModule)
 
     val psModule = inca.Compiler.compileAndLoadGPModule(gpModule, None, CompilerOptions(languageMetaInfo))
@@ -28,21 +29,20 @@ object Main {
       EnginePool.loadQuery(querySpec(), queryScope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     }
 
-    val feed = EnginePool.loadEngine(queryScope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-    val varPointsToMatcher = getMatcher("VarPointsTo")
-    val initializedClassMatcher = getMatcher("InitializedClass")
-    val assignMatcher = getMatcher("Assign")
-    val instanceFieldPointsToMatcher = getMatcher("InstanceFieldPointsTo")
-    val staticFieldPointsToMatcher = getMatcher("StaticFieldPointsTo")
-    val reachableMatcher = getMatcher("Reachable")
-    val callGraphEdgeMatcher = getMatcher("CallGraphEdge")
-    val arrayIndexPointsToMatcher = getMatcher("ArrayIndexPointsTo")
+
+    val (engine, database) = EnginePool.loadEngineAndDatabase(queryScope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+//    val varPointsToMatcher = getMatcher("VarPointsTo")
+//    val initializedClassMatcher = getMatcher("InitializedClass")
+//    val assignMatcher = getMatcher("Assign")
+//    val instanceFieldPointsToMatcher = getMatcher("InstanceFieldPointsTo")
+//    val staticFieldPointsToMatcher = getMatcher("StaticFieldPointsTo")
+//    val reachableMatcher = getMatcher("Reachable")
+//    val callGraphEdgeMatcher = getMatcher("CallGraphEdge")
+//    val arrayIndexPointsToMatcher = getMatcher("ArrayIndexPointsTo")
     // varpointsto_rel is varpointsto
     // varpointsto0 factors out one specific case of varpointsto
     // assign0 factors out callgraphedge and formalparam of first assign rule (avoid join of formal and actual param)
     // interproc0, interproc1, interproc2 are the different cases of CallGraphEdge
-
-    val database = feed
 
     val startLoadFactFiles = System.currentTimeMillis()
     val edits = inputs.flatMap { case (sig, input) =>
@@ -56,20 +56,30 @@ object Main {
     val editScript = EditScript(edits)
     println(editScript.size)
 
-    val start = System.currentTimeMillis()
-    database.processEditScript(editScript)
-    val end = System.currentTimeMillis()
-    //    println("Used memory: " + MeasurementUtils.usedMemoryInMBytes())
-    val duration = end - start
-    println(s"Time to fill database: ${duration}ms")
+    val matchers = printSizes.map(ps => getMatcher(ps.name))
 
-    println(varPointsToMatcher.countMatches())
-    println(initializedClassMatcher.countMatches())
-    println(assignMatcher.countMatches())
-    println(instanceFieldPointsToMatcher.countMatches())
-    println(staticFieldPointsToMatcher.countMatches())
-    println(reachableMatcher.countMatches())
-    println(callGraphEdgeMatcher.countMatches())
-    println(arrayIndexPointsToMatcher.countMatches())
+    engine.delayUpdatePropagation {() =>
+      val startLoadDb = System.currentTimeMillis()
+      database.processEditScript(editScript)
+      val endLoadDB = System.currentTimeMillis()
+      println(s"Time to fill database: ${endLoadDB - startLoadDb}ms")
+    }
+    //    println("Used memory: " + MeasurementUtils.usedMemoryInMBytes())
+
+    val startQuery = System.currentTimeMillis()
+    matchers.foreach { m =>
+      println(s"${m.getPatternName}: ${m.countMatches()}")
+    }
+    val endQuery = System.currentTimeMillis()
+    println(s"Time to process query: ${endQuery - startQuery}ms")
+
+//    println(varPointsToMatcher.countMatches())
+//    println(initializedClassMatcher.countMatches())
+//    println(assignMatcher.countMatches())
+//    println(instanceFieldPointsToMatcher.countMatches())
+//    println(staticFieldPointsToMatcher.countMatches())
+//    println(reachableMatcher.countMatches())
+//    println(callGraphEdgeMatcher.countMatches())
+//    println(arrayIndexPointsToMatcher.countMatches())
   }
 }
