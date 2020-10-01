@@ -2,10 +2,13 @@ package inca.runtime.index.binary
 
 import inca.runtime.index.Index
 import inca.util.TupleOps
+import org.eclipse.collections.api.multimap.set.MutableSetMultimap
+import org.eclipse.collections.impl.factory.Multimaps
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
 
 import scala.collection.mutable
+import scala.jdk.FunctionWrappers.AsJavaConsumer
 
 abstract class BinaryIndex[K,V] extends Index {
   def entries: Iterable[(K,V)]
@@ -96,17 +99,18 @@ abstract class BinaryIndex[K,V] extends Index {
   def delete(k: K, v: V): Unit
 
   protected val listenAll: mutable.Set[IQueryRuntimeContextListener] = mutable.Set()
-  protected val listenKey: mutable.MultiDict[K, IQueryRuntimeContextListener] = mutable.MultiDict()
-  protected val listenVal: mutable.MultiDict[V, IQueryRuntimeContextListener] = mutable.MultiDict()
-  protected val listenKeyVal: mutable.MultiDict[Tuple, IQueryRuntimeContextListener] = mutable.MultiDict()
+  protected val listenKey: MutableSetMultimap[K, IQueryRuntimeContextListener] = Multimaps.mutable.set.empty()
+  protected val listenVal: MutableSetMultimap[V, IQueryRuntimeContextListener] = Multimaps.mutable.set.empty()
+  protected val listenKeyVal: MutableSetMultimap[Tuple, IQueryRuntimeContextListener] = Multimaps.mutable.set.empty()
 
   final protected def notify(k: K, v: V, isInsertion: Boolean): Unit = {
     val t = Tuples.staticArityFlatTupleOf(k, v)
     val notify = (listener: IQueryRuntimeContextListener) => listener.update(key, t, isInsertion)
+    val notifyConsumer = AsJavaConsumer(notify)
     listenAll.foreach(notify)
-    listenKey.get(k).foreach(notify)
-    listenVal.get(v).foreach(notify)
-    listenKeyVal.get(t).foreach(notify)
+    listenKey.get(k).stream().forEach(notifyConsumer)
+    listenVal.get(v).stream().forEach(notifyConsumer)
+    listenKeyVal.get(t).stream().forEach(notifyConsumer)
   }
 
   override def addListener(listener: IQueryRuntimeContextListener, seed: Tuple): Unit = {
@@ -118,11 +122,11 @@ abstract class BinaryIndex[K,V] extends Index {
       if (k == null && v == null) {
         listenAll += listener
       } else if (k == null && v != null) {
-        listenVal += (v -> listener)
+        listenVal.put(v, listener)
       } else if (k != null && v == null) {
-        listenKey += (k -> listener)
+        listenKey.put(k, listener)
       } else {
-        listenKeyVal += (seed -> listener)
+        listenKeyVal.put(seed, listener)
       }
     }
   }
@@ -136,11 +140,11 @@ abstract class BinaryIndex[K,V] extends Index {
       if (k == null && v == null) {
         listenAll -= listener
       } else if (k == null && v != null) {
-        listenVal -= (v -> listener)
+        listenVal.remove(v, listener)
       } else if (k != null && v == null) {
-        listenKey -= (k -> listener)
+        listenKey.remove(k, listener)
       } else {
-        listenKeyVal -= (seed -> listener)
+        listenKeyVal.remove(seed, listener)
       }
     }
   }

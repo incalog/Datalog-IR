@@ -191,13 +191,9 @@ class Database(
     val index = linkListNextInstances.index
     f(from)
     var nextNode = index.get(from)
-    while(true) {
-      nextNode match {
-        case Some(node) =>
-          f(node)
-          nextNode = index.get(node)
-        case None => return
-      }
+    while (nextNode != null) {
+        f(nextNode)
+        nextNode = index.get(nextNode)
     }
   }
 

@@ -1,10 +1,13 @@
 package inca.runtime.index.unary
 
 import inca.runtime.index.Index
+import org.eclipse.collections.api.multimap.set.MutableSetMultimap
+import org.eclipse.collections.impl.factory.Multimaps
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
 
 import scala.collection.mutable
+import scala.jdk.FunctionWrappers.AsJavaConsumer
 
 abstract class UnaryIndex[V] extends Index {
 
@@ -65,13 +68,14 @@ abstract class UnaryIndex[V] extends Index {
   }
 
   protected val listenAll: mutable.Set[IQueryRuntimeContextListener] = mutable.Set()
-  protected val listenVal: mutable.MultiDict[V, IQueryRuntimeContextListener] = mutable.MultiDict()
+  protected val listenVal: MutableSetMultimap[V, IQueryRuntimeContextListener] = Multimaps.mutable.set.empty()
 
   final protected def notify(v: V, isInsertion: Boolean): Unit = {
     val t = Tuples.staticArityFlatTupleOf(v)
     val notify = (listener: IQueryRuntimeContextListener) => listener.update(key, t, isInsertion)
+    val notifyConsumer = AsJavaConsumer(notify)
     listenAll.foreach(notify)
-    listenVal.get(v).foreach(notify)
+    listenVal.get(v).stream.forEach(notifyConsumer)
   }
 
   final override def addListener(listener: IQueryRuntimeContextListener, seed: Tuple): Unit = {
@@ -82,7 +86,7 @@ abstract class UnaryIndex[V] extends Index {
       if (v == null) {
         listenAll += listener
       } else  {
-        listenVal += (v -> listener)
+        listenVal.put(v, listener)
       }
     }
   }
@@ -95,7 +99,7 @@ abstract class UnaryIndex[V] extends Index {
       if (v == null) {
         listenAll -= listener
       } else if (v != null) {
-        listenVal -= (v -> listener)
+        listenVal.remove(v, listener)
       }
     }
   }

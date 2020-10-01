@@ -18,7 +18,7 @@ class BidirectionalManyToOneIndex[K,V](val key: IndexKey[_]) extends BinaryIndex
   override def entries: Iterable[(K, V)] = index.entrySet().asScala.map(e => (e.getKey, e.getValue))
   def entrySets: Iterable[(V, Iterable[K])] = indexInverted.keyMultiValuePairsView.asScala.map(p => p.getOne -> p.getTwo.asScala)
   override def index(k: K): Iterable[V] = Option(index.get(k))
-  override def indexInverted(v: V): collection.Set[K] = indexInverted.get(v).asScala
+  override def indexInverted(v: V): Iterable[K] = indexInverted.get(v).asScala
 
   override def insert(k: K, v: V): Unit = {
     index.put(k, v)
