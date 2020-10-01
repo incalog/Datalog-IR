@@ -30,7 +30,7 @@ class ParentIndex extends BidirectionalManyToOneIndex[URI,URI](ParentIndex.Key)
       case _: ListFirstLink =>
         database.iterateNext(node)(insert(_, parent))
       case _: ListNextLink =>
-        index.get(parent) match {
+        Option(index.get(parent)) match {
           case Some(containingList) => database.iterateNext(node)(insert(_, containingList))
           case None =>
         }
@@ -41,7 +41,7 @@ class ParentIndex extends BidirectionalManyToOneIndex[URI,URI](ParentIndex.Key)
       case _: ListFirstLink =>
         database.iterateNext(node)(delete(_, parent))
       case _: ListNextLink =>
-        index.get(parent) match {
+        Option(index.get(parent)) match {
           case Some(containingList) => database.iterateNext(node)(delete(_, containingList))
           case None =>
         }

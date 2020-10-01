@@ -39,10 +39,8 @@ object Main {
 
     val database = new Database(languageMetaInfo, Seq(), null)
 
-    val lessInputs = inputs.take(10)
-
     val startLoadFactFiles = System.currentTimeMillis()
-    val edits = lessInputs.flatMap { case (sig, input) =>
+    val edits = inputs.flatMap { case (sig, input) =>
       val inputCompiler = new SouffleInputToEditscript("souffle-importer/minijavac")
       val editScript = inputCompiler.compile(input, sig)
       editScript.edits

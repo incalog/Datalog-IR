@@ -7,40 +7,29 @@ import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps
 import scala.jdk.CollectionConverters._
 
 class UnaryBagIndex[V](val key: IndexKey[_]) extends UnaryIndex[V] {
-//  protected val index: mutable.Map[V, Int] = mutable.Map()
   protected val index: MutableObjectIntMap[V] = ObjectIntMaps.mutable.empty()
 
   override def entries: Iterable[V] = index.keySet().asScala
   override def index(v: V): Int = Option(index.get(v)).getOrElse(0)
 
   def insert(v: V): Unit = {
-    index.put(v, index.getIfAbsent(v, -1) + 1)
-//    var changed = false
-//    index.updateWith(v) {
-//      case None =>
-//        changed = true
-//        Some(1)
-//      case Some(n) =>
-//        Some(n+1)
-//    }
-//    if (changed)
-//      notify(v, isInsertion = true)
+    val old = index.get(v)
+    if (old == 0) {
+      index.put(v, 1)
+      notify(v, isInsertion = true)
+    } else {
+      index.put(v, old + 1)
+    }
   }
 
   def delete(v: V): Unit = {
-//    var changed = false
-//    index.updateWith(v) {
-//      case None => None
-//      case Some(n) =>
-//        if (n == 1) {
-//          changed = true
-//          None
-//        } else {
-//          Some(n-1)
-//        }
-//    }
-//    if (changed)
-//      notify(v, isInsertion = false)
+    val old = index.getIfAbsent(v, -1)
+    if (old == 1) {
+      index.remove(v)
+      notify(v, isInsertion = false)
+    } else {
+      index.put(v, old - 1)
+    }
   }
 
 }
