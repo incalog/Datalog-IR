@@ -6,6 +6,20 @@ object CollectVars extends Collect[String] {
   override def transVar(v: Var): Seq[String] = Seq(v.name)
 }
 
+object CollectComputedConstantEvals extends Collect[(Term, ConstantEvaluation)] {
+  override def transConstraint(const: Constraint): Seq[(Term, ConstantEvaluation)] = const match {
+    case Computed(lhs, e@ConstantEvaluation(_, _)) => Seq((lhs, e))
+    case _ => Seq()
+  }
+}
+
+object CollectConstantEvaluationLhs extends Collect[String] {
+  override def transConstraint(const: Constraint): Seq[String] = const match {
+    case Computed(Var(name), ConstantEvaluation(_, _)) => Seq(name)
+    case _ => Seq()
+  }
+}
+
 object CollectLits extends Collect[Literal] {
   override def transLit(lit: Literal): Seq[Literal] = Seq(lit)
 }
@@ -48,6 +62,7 @@ trait Collect[R] {
 
   def transComputation(computation: Computation): Seq[R] = computation match {
     case CountAggregation(_, args) => args.flatMap(transTerm)
+    case ConstantEvaluation(_, _) => Seq()
     case Evaluation(args, _, _) => args.flatMap(v => transTerm(v._1)).toSeq
     case CustomAggregation(_, _, _, _, _, args, _) => args.flatMap(transTerm)
   }

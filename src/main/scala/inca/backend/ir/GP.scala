@@ -75,6 +75,7 @@ object GP {
   }
 
   sealed trait Computation
+  case class ConstantEvaluation(resultType: TypeAnno, code: String) extends Computation
   case class Evaluation(args: Seq[(Term,TypeAnno)], resultType: TypeAnno, code: String) extends Computation
   case class CountAggregation(patName: Name, args: Seq[Term]) extends Computation
   case class CustomAggregation(typ: TypeAnno, initOp: String, joinOp: String, unjoinOp: Option[String], patName: Name, args: Seq[Term], aggregatedColumn: Int) extends Computation

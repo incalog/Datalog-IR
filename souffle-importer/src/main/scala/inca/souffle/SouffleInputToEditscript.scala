@@ -33,8 +33,8 @@ class SouffleInputToEditscript(dir: String) {
 
   // TODO: For this specific file DeclaredType are always an alias of symbol hence we translate DeclaredType always to String
   def compileColumn(elem: String, typ: Syntax.Type): Any = typ match {
-    case Syntax.DeclaredType(_) => StringInterner.intern(elem.intern)
-    case Syntax.SymbolType => StringInterner.intern(elem.intern)
+    case Syntax.DeclaredType(_) => elem.intern
+    case Syntax.SymbolType => elem.intern
     case Syntax.NumberType => elem.toInt
     case Syntax.UnsignedType => elem.toLong
     case Syntax.FloatType => elem.toDouble

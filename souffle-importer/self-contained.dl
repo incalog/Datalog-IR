@@ -111,7 +111,7 @@
 .decl ComponentType(?arrayType:ArrayType, ?componentType:Type)
 .input ComponentType(IO="file", filename="ComponentType.facts", delimiter="\t")
 .decl LoadArrayIndex_Base(?insn:LoadArrayIndex_Insn, ?var:Var)
-.decl LoadArrayIndex_To(?insn:LoadArrayIndex_Insn, ?var:Var)
+.decl LoadArrayIndex_To(?insn:LoadArrayIndex_Insn, var:Var)
 .decl StoreArrayIndex_From(?insn:StoreArrayIndex_Insn, ?var:Var)
 .decl StoreArrayIndex_Base(?insn:StoreArrayIndex_Insn, ?var:Var)
 .decl AssignInstruction_To(?insn:AssignInstruction, ?to:Var)
@@ -132,17 +132,17 @@
 .decl MethodInvocation_Base(?invocation:MethodInvocation, ?base:Var)
 
 // Fat schema
-.decl LoadInstanceField(?base:Var, ?sig:Field, ?to:Var, ?inmethod:Method) 
-.decl StoreInstanceField(?from:Var, ?base:Var, ?signature:Field, ?inmethod:Method) 
-.decl LoadStaticField(?sig:Field, ?to:Var, ?inmethod:Method) 
-.decl StoreStaticField(?from:Var, ?signature:Field, ?inmethod:Method) 
-.decl LoadArrayIndex(?base:Var, ?to:Var, ?inmethod:Method) 
-.decl StoreArrayIndex(?from:Var, ?base:Var, ?inmethod:Method) 
-.decl AssignCast(?type:Type, ?from:Var, ?to:Var, ?inmethod:Method) 
-.decl AssignLocal(?from:Var, ?to:Var, ?inmethod:Method) 
-.decl AssignHeapAllocation(?heap:HeapAllocation, ?to:Var, ?inmethod:Method) 
-.decl ReturnVar(?var:Var, ?method:Method) 
-.decl StaticMethodInvocation(?invocation:MethodInvocation, ?signature:Method, ?inmethod:Method) 
+.decl LoadInstanceField(?base:Var, ?sig:Field, ?to:Var, ?inmethod:Method)
+.decl StoreInstanceField(?from:Var, ?base:Var, ?signature:Field, ?inmethod:Method)
+.decl LoadStaticField(?sig:Field, ?to:Var, ?inmethod:Method)
+.decl StoreStaticField(?from:Var, ?signature:Field, ?inmethod:Method)
+.decl LoadArrayIndex(?base:Var, ?to:Var, ?inmethod:Method)
+.decl StoreArrayIndex(?from:Var, ?base:Var, ?inmethod:Method)
+.decl AssignCast(?type:Type, ?from:Var, ?to:Var, ?inmethod:Method)
+.decl AssignLocal(?from:Var, ?to:Var, ?inmethod:Method)
+.decl AssignHeapAllocation(?heap:HeapAllocation, ?to:Var, ?inmethod:Method)
+.decl ReturnVar(?var:Var, ?method:Method)
+.decl StaticMethodInvocation(?invocation:MethodInvocation, ?signature:Method, ?inmethod:Method)
 
 // imports
 .decl _ClassType(?class:symbol)
@@ -209,11 +209,10 @@ AssignInstruction_To(?instruction, ?to) :-
 .input _Field(IO="file", filename="Field.facts", delimiter="\t")
 Field_DeclaringType(?signature, ?declaringType) :-
   _Field(?signature, ?declaringType, _, _).
-// Split because we do not have Or statements
-MethodInvocation_Base(?invocation, ?base) :-
-  SpecialMethodInvocation_Base(?invocation, ?base).
 MethodInvocation_Base(?invocation, ?base) :-
   VirtualMethodInvocation_Base(?invocation, ?base).
+MethodInvocation_Base(?invocation, ?base) :-
+  SpecialMethodInvocation_Base(?invocation, ?base).
 .decl _StaticMethodInvocation(?instruction:symbol, ?index:number, ?signature:symbol, ?method:symbol)
 .input _StaticMethodInvocation(IO="file", filename="StaticMethodInvocation.facts", delimiter="\t")
 Instruction_Method(?instruction, ?method),
@@ -368,13 +367,12 @@ VirtualMethodInvocation_Descriptor(?invocation, ?descriptor) :-
 .decl MainMethodDeclaration(?method:Method)
 MethodLookup(?simplename, ?descriptor, ?type, ?method) :-
   MethodImplemented(?simplename, ?descriptor, ?type, ?method).
-// TODO split because we do not support Or
 MethodLookup(?simplename, ?descriptor, ?type, ?method) :-
-  DirectSuperinterface(?type, ?supertype),
+  DirectSuperclass(?type, ?supertype),
   MethodLookup(?simplename, ?descriptor, ?supertype, ?method),
   ! MethodImplemented(?simplename, ?descriptor, ?type, _).
 MethodLookup(?simplename, ?descriptor, ?type, ?method) :-
-  DirectSuperclass(?type, ?supertype),
+  DirectSuperinterface(?type, ?supertype),
   MethodLookup(?simplename, ?descriptor, ?supertype, ?method),
   ! MethodImplemented(?simplename, ?descriptor, ?type, _).
 MethodImplemented(?simplename, ?descriptor, ?type, ?method) :-
@@ -455,12 +453,12 @@ MainMethodDeclaration(?method) :-
 }
 .init basic = Basic
 
-.decl Reachable(?method:Method)
-.output Reachable
-.printsize Reachable
 // class initialization
 .decl ClassInitializer(?type:Type, ?method:Method)
 .decl InitializedClass(?classOrInterface:Type)
+.decl Reachable(?method:Method)
+.output Reachable
+.printsize Reachable
 ClassInitializer(?type, ?method) :-
    basic.MethodImplemented("<clinit>", "void()", ?type, ?method).
 InitializedClass(?superclass) :-
@@ -513,14 +511,27 @@ Reachable(?clinit) :-
 .decl ArrayIndexPointsTo(?baseheap:HeapAllocation, ?heap:HeapAllocation)
 .output ArrayIndexPointsTo
 .printsize ArrayIndexPointsTo
-Assign(?actual, ?formal) :-
+
+.decl Assign0(?invocation:MethodInvocation, ?index:number, ?to:Var)
+.printsize Assign0
+Assign0(?invocation, ?index, ?to) :-
   CallGraphEdge(?invocation, ?method),
-  FormalParam(?index, ?method, ?formal),
+  FormalParam(?index, ?method, ?to).
+
+Assign(?actual, ?formal) :-
+  Assign0(?invocation, ?index, ?formal),
   ActualParam(?index, ?invocation, ?actual).
 Assign(?return, ?local) :-
   CallGraphEdge(?invocation, ?method),
   ReturnVar(?return, ?method),
   AssignReturnValue(?invocation, ?local).
+
+.decl VarPointsTo0(?var:Var, ?fld:Field, ?baseheap:HeapAllocation)
+.printsize VarPointsTo0
+VarPointsTo0(?var, ?fld, ?baseheap) :-
+  Reachable(?inmethod),
+  LoadInstanceField(?base, ?fld, ?var, ?inmethod),
+  VarPointsTo(?baseheap, ?base).
 VarPointsTo(?heap, ?var) :-
   AssignHeapAllocation(?heap, ?var, ?inMethod),
   Reachable(?inMethod).
@@ -559,9 +570,7 @@ VarPointsTo(?heap, ?to) :-
   basic.SupertypeOf(?type, ?basecomponenttype).
 // .plan 1:(3,2,1,4,5,6,7,8), 2:(4,3,2,1,5,6,7,8)
 VarPointsTo(?heap, ?to) :-
-  Reachable(?inmethod),
-  LoadInstanceField(?base, ?signature, ?to, ?inmethod),
-  VarPointsTo(?baseheap, ?base),
+  VarPointsTo0(?to, ?signature, ?baseheap),
   InstanceFieldPointsTo(?heap, ?signature, ?baseheap).
 // .plan 1:(3,2,1,4), 2:(4,2,1,3)
 InstanceFieldPointsTo(?heap, ?fld, ?baseheap) :-
@@ -579,18 +588,27 @@ StaticFieldPointsTo(?heap, ?fld) :-
   StoreStaticField(?from, ?fld, ?inmethod),
   VarPointsTo(?heap, ?from).
 VarPointsTo(?heap, ?this) :-
-  Reachable(?inMethod),
-  Instruction_Method(?invocation, ?inMethod),
-  VirtualMethodInvocation_Base(?invocation, ?base),
-  VarPointsTo(?heap, ?base),
-  HeapAllocation_Type(?heap, ?heaptype),
-  VirtualMethodInvocation_SimpleName(?invocation, ?simplename),
-  VirtualMethodInvocation_Descriptor(?invocation, ?descriptor),
-  basic.MethodLookup(?simplename, ?descriptor, ?heaptype, ?toMethod),
+  InterProc0(_, ?heap, ?toMethod),
   ThisVar(?toMethod, ?this).
 // .plan 1:(4,3,2,1,5,6,7,8,9)
 Reachable(?toMethod),
 CallGraphEdge(?invocation, ?toMethod) :-
+  InterProc0(?invocation, _, ?toMethod).
+// .plan 1:(4,3,2,1,5,6,7,8)
+Reachable(?tomethod),
+CallGraphEdge(?invocation, ?tomethod) :-
+  InterProc1(?invocation, ?tomethod).
+Reachable(?tomethod),
+CallGraphEdge(?invocation, ?tomethod),
+VarPointsTo(?heap, ?this) :-
+  InterProc2(?invocation, ?tomethod, ?heap, ?this).
+// .plan 1:(4,3,2,1,5,6)
+Reachable(?method) :-
+  basic.MainMethodDeclaration(?method).
+
+.decl InterProc0(?invocation: symbol, ?heap: symbol, ?toMethod: symbol)
+.printsize InterProc0
+InterProc0(?invocation, ?heap, ?toMethod) :-
   Reachable(?inMethod),
   Instruction_Method(?invocation, ?inMethod),
   VirtualMethodInvocation_Base(?invocation, ?base),
@@ -599,20 +617,19 @@ CallGraphEdge(?invocation, ?toMethod) :-
   VirtualMethodInvocation_SimpleName(?invocation, ?simplename),
   VirtualMethodInvocation_Descriptor(?invocation, ?descriptor),
   basic.MethodLookup(?simplename, ?descriptor, ?heaptype, ?toMethod).
-// .plan 1:(4,3,2,1,5,6,7,8)
-Reachable(?tomethod),
-CallGraphEdge(?invocation, ?tomethod) :-
-  Reachable(?inmethod),
-  StaticMethodInvocation(?invocation, ?tomethod, ?inmethod).
-Reachable(?tomethod),
-CallGraphEdge(?invocation, ?tomethod),
-VarPointsTo(?heap, ?this) :-
-  Reachable(?inmethod),
-  Instruction_Method(?invocation, ?inmethod),
+
+.decl InterProc1(?invocation: symbol, ?toMethod: symbol)
+.printsize InterProc1
+InterProc1(?invocation, ?toMethod) :-
+  Reachable(?inMethod),
+  StaticMethodInvocation(?invocation, ?toMethod, ?inMethod).
+
+.decl InterProc2(?invocation: symbol, ?toMethod: symbol, ?heap: symbol, ?var: symbol)
+.printsize InterProc2
+InterProc2(?invocation, ?toMethod, ?heap, ?var) :-
+  Reachable(?inMethod),
+  Instruction_Method(?invocation, ?inMethod),
   SpecialMethodInvocation_Base(?invocation, ?base),
   VarPointsTo(?heap, ?base),
-  MethodInvocation_Method(?invocation, ?tomethod),
-  ThisVar(?tomethod, ?this).
-// .plan 1:(4,3,2,1,5,6)
-Reachable(?method) :-
-  basic.MainMethodDeclaration(?method).
+  MethodInvocation_Method(?invocation, ?toMethod),
+  ThisVar(?toMethod, ?var).

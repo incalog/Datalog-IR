@@ -83,6 +83,8 @@ object Printer {
   def prettyComputation(lhs: Term, computation: Computation): String = computation match {
     case GP.CountAggregation(patName, args) =>
       s"${prettyTerm(lhs)} = count $patName(${args.map(prettyTerm).mkString(",")})"
+    case GP.ConstantEvaluation(returnType, code) =>
+      s"${prettyTerm(lhs)} = const eval($code):$returnType"
     case GP.Evaluation(args, returnType, code) =>
       s"${prettyTerm(lhs)} = eval($code):$returnType"
     case GP.CustomAggregation(typ, initOp, joinOp, inverseOp, patName, args, aggregatedColumn) =>

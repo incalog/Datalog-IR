@@ -2,10 +2,11 @@ package inca.souffle
 
 
 import inca.CompilerOptions
+import inca.backend.transform.PropagateUnbounded
 import inca.runtime.EnginePool
 import inca.runtime.Query.Matcher
 import inca.runtime.context.QueryScope
-import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
+import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
 import truechange.EditScript
 
 import scala.io.Source
@@ -19,30 +20,17 @@ object Main {
     val analysis = Parser(doopText)
     val compiler = new SouffleToIncaCompiler
     val (gpModule, inputs, printSizes, languageMetaInfo) = compiler.compile("selfcontained", analysis)
-//    println(gpModule)
+    println(gpModule)
 
     val psModule = inca.Compiler.compileAndLoadGPModule(gpModule, None, CompilerOptions(languageMetaInfo))
     val queryScope = new QueryScope(languageMetaInfo, Seq())
 
     def getMatcher(fun: String): Matcher = {
       val querySpec = psModule.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module."))
-      EnginePool.loadQuery(querySpec(), queryScope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+      EnginePool.loadQuery(querySpec(), queryScope, DRedReteBackendFactory.INSTANCE)
     }
 
-
-    val (engine, database) = EnginePool.loadEngineAndDatabase(queryScope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-//    val varPointsToMatcher = getMatcher("VarPointsTo")
-//    val initializedClassMatcher = getMatcher("InitializedClass")
-//    val assignMatcher = getMatcher("Assign")
-//    val instanceFieldPointsToMatcher = getMatcher("InstanceFieldPointsTo")
-//    val staticFieldPointsToMatcher = getMatcher("StaticFieldPointsTo")
-//    val reachableMatcher = getMatcher("Reachable")
-//    val callGraphEdgeMatcher = getMatcher("CallGraphEdge")
-//    val arrayIndexPointsToMatcher = getMatcher("ArrayIndexPointsTo")
-    // varpointsto_rel is varpointsto
-    // varpointsto0 factors out one specific case of varpointsto
-    // assign0 factors out callgraphedge and formalparam of first assign rule (avoid join of formal and actual param)
-    // interproc0, interproc1, interproc2 are the different cases of CallGraphEdge
+    val (engine, database) = EnginePool.loadEngineAndDatabase(queryScope, DRedReteBackendFactory.INSTANCE)
 
     val startLoadFactFiles = System.currentTimeMillis()
     val edits = inputs.flatMap { case (sig, input) =>
@@ -58,28 +46,21 @@ object Main {
 
     val matchers = printSizes.map(ps => getMatcher(ps.name))
 
+    val startQuery = System.currentTimeMillis()
+    var loadingTime: Long = 0
     engine.delayUpdatePropagation {() =>
-      val startLoadDb = System.currentTimeMillis()
+      val startLoadDB = System.currentTimeMillis()
       database.processEditScript(editScript)
       val endLoadDB = System.currentTimeMillis()
-      println(s"Time to fill database: ${endLoadDB - startLoadDb}ms")
+      loadingTime = endLoadDB - startLoadDB
     }
-    //    println("Used memory: " + MeasurementUtils.usedMemoryInMBytes())
+    val endQuery = System.currentTimeMillis()
+    println(s"Time to fill database: ${loadingTime}ms")
+    println("Used memory: " + MeasurementUtils.usedMemoryInMBytes())
+    println(s"Time to process query: ${endQuery - startQuery}ms")
 
-    val startQuery = System.currentTimeMillis()
     matchers.foreach { m =>
       println(s"${m.getPatternName}: ${m.countMatches()}")
     }
-    val endQuery = System.currentTimeMillis()
-    println(s"Time to process query: ${endQuery - startQuery}ms")
-
-//    println(varPointsToMatcher.countMatches())
-//    println(initializedClassMatcher.countMatches())
-//    println(assignMatcher.countMatches())
-//    println(instanceFieldPointsToMatcher.countMatches())
-//    println(staticFieldPointsToMatcher.countMatches())
-//    println(reachableMatcher.countMatches())
-//    println(callGraphEdgeMatcher.countMatches())
-//    println(arrayIndexPointsToMatcher.countMatches())
   }
 }
