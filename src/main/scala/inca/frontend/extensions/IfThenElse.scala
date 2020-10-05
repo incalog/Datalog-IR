@@ -13,7 +13,7 @@ case class IfThenElse(cond: Exp, thn: Body, elseIfs: Seq[ElseIf], els: Option[Bo
   override def prettyprint(implicit indent: String): String = {
     val elseIfsS = elseIfs.map(_.prettyprint).mkString("\n")
     val elseS = if (els.isEmpty) "" else " " + els.get.prettyprint
-    s"${indent}if (${cond.prettyprint}) $thn$elseIfsS$elseS".stripMargin
+    s"${indent}if (${cond.prettyprint}) ${thn.prettyprint}$elseIfsS$elseS".stripMargin
   }
 }
 case class ElseIf(cond: Exp, body: Body) {

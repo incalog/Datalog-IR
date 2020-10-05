@@ -8,6 +8,8 @@ import inca.runtime.context.QueryScope
 import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
+import scala.meta.XtensionQuasiquoteTerm
+
 object TestAggregate {
 
 }
@@ -24,7 +26,7 @@ class TestAggregate extends AnyFlatSpec with IncaMatchers {
         Body(
           Seq(
             Assign(Seq("pred"), Call("1_to_10", Seq()).typed(NatTyp)),
-            Assert(Eval(Seq("pred"), TBool, "pred.toInt < 10")),
+            Assert(Eval(Seq("pred"), q"pred.toInt < 10").typed(TBool)),
             Yield(DataOpCall(succOp, Seq(Var("pred").typed(NatTyp))).typed(NatTyp))
           )
         )
@@ -52,7 +54,7 @@ class TestAggregate extends AnyFlatSpec with IncaMatchers {
         Body(
           Seq(
             Assign(Seq("pred"), Call("1_to_10", Seq()).typed(NatTyp)),
-            Assert(Eval(Seq("pred"), TBool, "pred.toInt < 10")),
+            Assert(Eval(Seq("pred"), q"pred.toInt < 10").typed(TBool)),
             Yield(DataOpCall(succOp, Seq(Var("pred").typed(NatTyp))).typed(NatTyp))
           )
         )

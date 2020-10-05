@@ -1,7 +1,6 @@
 package inca.souffle
 
 import inca.backend.ir.GP._
-import inca.backend.transform.PropagateUnbounded
 import inca.runtime.context.LanguageMetaInfo
 import inca.souffle.Syntax._
 import inca.souffle.Util._

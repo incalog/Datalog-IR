@@ -3,9 +3,10 @@ package inca.frontend.extensions
 import inca.frontend.core.CompileToGP.resolveDataOp
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
-import inca.util.Gensym
+import inca.util.{Gensym, Meta}
 
 import scala.collection.mutable.ListBuffer
+import scala.meta.Term
 
 case class DataOpCall(op: DataOp, args: Seq[Exp]) extends Exp {
   override def freeVars: Map[Name, Option[TypeAnno]] = args.flatMap(_.freeVars).toMap
@@ -28,9 +29,10 @@ object DataOpCall extends Desugarable {
         }
 
         val resultType = call.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped data op call $call"))
-        val argString = if (syms.isEmpty) "" else s"(${syms.mkString(", ")})"
         val qop = resolveDataOp(op)
-        changed(Eval(syms, resultType, s"$qop$argString"))
+        val fun = Meta.mkQualName(qop)
+        val code: Term = if(syms.isEmpty) fun else Term.Apply(fun, syms.map(Meta.mkQualName).toList)
+        changed(Eval(syms, code).typed(resultType))
       case _ => super.desugarExp(exp)
     }
 

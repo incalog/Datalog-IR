@@ -53,7 +53,7 @@ class LanguageMetaInfo(
     case ty: SortType => directNodeSubtypes.get(ty) ++ Seq(NothingType)
     case ListType(contained) => directSubtypes(contained).map(ListType) ++ Seq(NothingType)
     case OptionType(contained) => directSubtypes(contained).map(OptionType) ++ Seq(NothingType)
-    case AnyType => throw new UnsupportedOperationException("The supertypes of AnyType are not enumerable")
+    case AnyType => throw new UnsupportedOperationException("The subtypes of AnyType are not enumerable")
     case NothingType => Iterable()
   }
 
@@ -68,7 +68,7 @@ class LanguageMetaInfo(
     case ty: SortType => nodeSubtypes.get(ty) ++ Seq(NothingType)
     case ListType(contained) => subtypes(contained).map(ListType) ++ Seq(NothingType)
     case OptionType(contained) => subtypes(contained).map(OptionType) ++ Seq(NothingType)
-    case AnyType => throw new UnsupportedOperationException("The supertypes of AnyType are not enumerable")
+    case AnyType => throw new UnsupportedOperationException("The subtypes of AnyType are not enumerable")
     case NothingType => Iterable()
   }
 

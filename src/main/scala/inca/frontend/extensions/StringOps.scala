@@ -3,6 +3,7 @@ package inca.frontend.extensions
 import inca.frontend.core.Core.{Assign, Eval, Exp, Name, Statement, TString, TypeAnno, Var}
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.util.Gensym
+import scala.meta._
 
 import scala.collection.mutable.ListBuffer
 
@@ -29,7 +30,7 @@ object StringOps extends Desugarable {
         val ressym = gensym.fresh("res")
         concatStatements += Assign(Seq(lhssym), desugarExp(lhs))
         concatStatements += Assign(Seq(rhssym), desugarExp(rhs))
-        concatStatements += Assign(Seq(ressym), Eval(Seq(lhssym, rhssym), TString, s"$lhssym ++ $rhssym"))
+        concatStatements += Assign(Seq(ressym), Eval(Seq(lhssym, rhssym), q"$lhssym ++ $rhssym").typed(TString))
         changed(Var(ressym).typed(TString))
       case _ => super.desugarExp(exp)
     }

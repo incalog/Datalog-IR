@@ -5,6 +5,7 @@ import inca.frontend.core.Core._
 import inca.runtime.context.QueryScope
 import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
+import scala.meta.quasiquotes._
 
 class TestStringOps extends AnyFlatSpec with IncaMatchers {
 
@@ -26,14 +27,14 @@ class TestStringOps extends AnyFlatSpec with IncaMatchers {
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Assign(Seq("lhs"), Constant(StringLiteral("s1"))),
         Assign(Seq("rhs"), Constant(StringLiteral("s2"))),
-        Assign(Seq("res"), Eval(Seq("lhs", "rhs"), TString, "lhs ++ rhs")),
+        Assign(Seq("res"), Eval(Seq("lhs", "rhs"), q"lhs ++ rhs")),
         Assign(Seq("con"), Var("res")),
         Assign(Seq("lhs_1"), Constant(StringLiteral("s1"))),
         Assign(Seq("rhs_1"), Constant(StringLiteral("s2"))),
-        Assign(Seq("res_1"), Eval(Seq("lhs_1", "rhs_1"), TString, "lhs_1 ++ rhs_1")),
+        Assign(Seq("res_1"), Eval(Seq("lhs_1", "rhs_1"), q"lhs_1 ++ rhs_1")),
         Assign(Seq("lhs_0"), Var("res_1")),
         Assign(Seq("rhs_0"), Var("param")),
-        Assign(Seq("res_0"), Eval(Seq("lhs_0", "rhs_0"), TString, "lhs_0 ++ rhs_0")),
+        Assign(Seq("res_0"), Eval(Seq("lhs_0", "rhs_0"), q"lhs_0 ++ rhs_0")),
         Assign(Seq("con2"), Var("res_0"))
       ))))
     ))

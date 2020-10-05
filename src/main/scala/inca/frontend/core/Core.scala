@@ -3,40 +3,43 @@ package inca.frontend.core
 import inca.util.Meta.TAB
 
 import scala.language.reflectiveCalls
+import scala.meta.Term
 
 object Core {
   sealed trait TypeAnno {
     def prettyprint: String
     def javastring: String
+
+    override def toString: Name = prettyprint
   }
   case object TAny extends TypeAnno {
-    override def prettyprint: String = "any"
+    override def prettyprint: String = "Any"
     override def javastring: String = "any"
   }
   case object TBool extends TypeAnno {
-    override def prettyprint: String = "bool"
+    override def prettyprint: String = "Boolean"
     override def javastring: String = "bool"
   }
   case object TInt extends TypeAnno {
-    override def prettyprint: String = "int"
+    override def prettyprint: String = "Int"
     override def javastring: String = "int"
   }
   case object TLong extends TypeAnno {
-    override def prettyprint: String = "long"
+    override def prettyprint: String = "Long"
     override def javastring: String = "long"
   }
   case object TDouble extends TypeAnno {
-    override def prettyprint: String = "double"
+    override def prettyprint: String = "Double"
     override def javastring: String = "double"
   }
   case object TString extends TypeAnno {
-    override def prettyprint: String = "string"
+    override def prettyprint: String = "String"
     override def javastring: String = "string"
   }
 
   trait TLinked extends TypeAnno
   case object TAnyLinked extends TLinked {
-    override def prettyprint: String = "node"
+    override def prettyprint: String = "Node"
     override def javastring: String = "node"
   }
   case class TNode(name: String) extends TLinked {
@@ -67,6 +70,8 @@ object Core {
     override def javastring: String = "Tuple_" + ts.map(_.javastring).mkString("_")
   }
 
+  val TUnit: TTuple = TTuple(Seq.empty)
+
   type Name = String
 
   sealed trait Visibility {
@@ -84,7 +89,7 @@ object Core {
     def usedModuleNames: Seq[Name] = name +: imports
     def usedFunNames: Seq[Name] = funs.map(_.name)
 
-    override def toString: Name = prettyprint("")
+    // override def toString: Name = prettyprint("")
 
     def prettyprint(implicit indent: String): String = {
       val importsS = if (imports.isEmpty) "" else
@@ -135,7 +140,7 @@ object Core {
       val stmtsS = if (stmts.isEmpty) " " else
         "\n" + stmts.map(_.prettyprint(indent+TAB)).mkString("\n")
       s"""{$stmtsS
-         |${indent}}""".stripMargin
+         |$indent}""".stripMargin
     }
   }
   object Body {
@@ -157,7 +162,7 @@ object Core {
     override def boundVars: Set[Name] = Set(name)
     override def allVars: Map[Name, Option[TypeAnno]] = Map(name -> Some(typ))
     override def prettyprint(implicit indent: String): String =
-      s"${indent}vals $name <- $typ"
+      s"${indent}vals $name <- ${typ.prettyprint}"
   }
   case class Assign(names: Seq[Name], exp: Exp) extends CoreStatement {
     override def boundVars: Set[Name] = names.toSet
@@ -290,12 +295,12 @@ object Core {
   }
   case class Tuple(exps: Seq[Exp]) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = exps.flatMap(_.freeVars).toMap
+    `exps`
     override def prettyprint(implicit indent: String): String =
       exps.map(_.prettyprint).mkString("(", ", ", ")")
   }
   /** Eval code must be a Scala expression that can access `params` by name and must yield a `resultType`. */
-  case class Eval(params: Seq[Name], resultType: TypeAnno, code: String) extends CoreExp {
-    this.typ = Some(resultType)
+  case class Eval(params: Seq[Name], code: Term) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = params.map(_ -> None).toMap
     override def prettyprint(implicit indent: String): String = s"eval($code)"
   }

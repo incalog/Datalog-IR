@@ -266,7 +266,7 @@ object CompileToGP {
       val countConstraint = GP.Computed(GP.Var(countVar), GP.CountAggregation(call.name, allvars))
       (Seq(countVar), constraints :+ countConstraint)
 
-    case Core.Eval(params, ty, code) =>
+    case eval@Core.Eval(params, code) =>
       val evalVar = gensym.fresh("eval")
       var argConstraints = Seq[GP.Constraint]()
       val paramsBindings = params.map(name => name -> env.getOrElse(name, throw new IllegalArgumentException(s"Unbound variable $name")))
@@ -280,8 +280,9 @@ object CompileToGP {
           (GP.Var(name), transType(binding.typ))
         }
       }
-      val funCode = s"(${paramsTyped.mkString(" ,")}) => {$code}"
-      val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(args, transType(ty), funCode))
+      val funCode = s"(${paramsTyped.mkString(" ,")}) => {${code.syntax}}"
+      val resType = eval.typ.getOrElse(throw new IllegalStateException("untyped Eval"))
+      val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(args, transType(resType), funCode))
       (Seq(evalVar), Seq(evalConstraint))
 
     case Core.Aggregate(init, join, unjoin, call) =>
