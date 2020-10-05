@@ -36,13 +36,8 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaMatchers {
       Syntax.RuleParameter("?class", Syntax.DeclaredType("ClassType")),
       Syntax.RuleParameter("?superclass", Syntax.DeclaredType("ClassType"))), false)
 
-//  val directsuperinterfaceSig =
-//    Syntax.RuleSignature("DirectSuperinterface", Seq(
-//      Syntax.RuleParameter("?ref", Syntax.DeclaredType("ReferenceType")),
-//      Syntax.RuleParameter("?interface", Syntax.DeclaredType("InterfaceType"))), false)
-
   lazy val (subclassModule, subclassInputs, _, subclassLangInfo) = {
-    val ast = Parser(subclassTransitiveClosure)
+    val ast = Parser(subclassTransitiveClosure.linesIterator)
     val compiler = new SouffleToIncaCompiler
     compiler.compile("transitiveclosure", ast)
   }

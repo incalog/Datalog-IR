@@ -19,6 +19,4 @@ object MeasurementUtils {
     }
     usedMemoryInBytes() / (1024 * 1024)
   }
-
-
 }

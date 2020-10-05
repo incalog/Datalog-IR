@@ -5,10 +5,15 @@ object Parser {
   import fastparse._
   import JavaWhitespace._
 
-  def apply(file: String): Syntax.Analysis = parse(file, Analysis(_)) match {
+  def apply(file: Iterator[String]): Syntax.Analysis = parse(file, Analysis(_)) match {
       case Parsed.Success(value, index) => Syntax.Analysis(value)
       case f@Parsed.Failure(label, index, extra) => throw new IllegalArgumentException(s"Parsing failed at index $index: ${f.trace().longMsg}")
     }
+
+  def apply(file: String): Syntax.Analysis = parse(file, Analysis(_)) match {
+    case Parsed.Success(value, index) => Syntax.Analysis(value)
+    case f@Parsed.Failure(label, index, extra) => throw new IllegalArgumentException(s"Parsing failed at index $index: ${f.trace().longMsg}")
+  }
 
   def Analysis[_: P]: P[Seq[Syntax.AnalysisContent]] =
     P(Start ~ AnalysisContent.rep ~ End)
