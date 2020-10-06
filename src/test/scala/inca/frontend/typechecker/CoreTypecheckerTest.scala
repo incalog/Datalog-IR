@@ -38,19 +38,18 @@ class CoreTypecheckerTest extends AnyFunSuite {
     }
 
     val code = Seq(
-      s"""|module test
+      s"""module test
           |
           |def name() : Int = {
           |    val x = 5
           |    yield x 
           |}""".stripMargin,
-      s"""|module test
+      s"""module test
           |
           |def name() : Unit = {
           |    val x = 5
           |}""".stripMargin,
-      s"""|
-          |module test
+      s"""module test
           |
           |def name() : Int = {
           |    val x = 5
@@ -58,8 +57,7 @@ class CoreTypecheckerTest extends AnyFunSuite {
           |} union {
           |    yield 10
           |}""".stripMargin,
-      s"""|
-          |module test
+      s"""module test
           |
           |def name() : Int = {
           |    val x = 5
@@ -69,22 +67,19 @@ class CoreTypecheckerTest extends AnyFunSuite {
           |def another() : Int = {
           |    yield name()
           |} """.stripMargin,
-      s"""|
-          |module test
+      s"""module test
           |
           |def name() : Int = {
           |    val x = 4
           |    yield eval(x + 38)
           |} """.stripMargin,
-      s"""|
-          |module test
+      s"""module test
           |
           |def name() : Any = {
           |    val x = 5
           |    yield x
           |} """.stripMargin,
-      s"""|
-          |module test
+      s"""module test
           |
           |def name() : Any = {
           |    val x = true 
@@ -94,8 +89,7 @@ class CoreTypecheckerTest extends AnyFunSuite {
     )
     //code.foreach(test_run)
 
-    val code1 = s"""
-                   |module test
+    val code1 = s"""module test
                    |
                    |def name(x: Any): Any = {
                    |  assert x instanceOf Node
@@ -107,8 +101,7 @@ class CoreTypecheckerTest extends AnyFunSuite {
 
   test("test imports") {
     val mod1Src =
-      """
-        |module test1
+      """module test1
         |
         |def hello(): String = {
         |  yield "Hello World"
@@ -116,8 +109,7 @@ class CoreTypecheckerTest extends AnyFunSuite {
         |""".stripMargin
     val mod1 = parse(mod1Src, CoreParser().module(_)).get.value
     val src =
-      """
-        |module main
+      """module main
         |import test1
         |
         |def main(): Unit = {

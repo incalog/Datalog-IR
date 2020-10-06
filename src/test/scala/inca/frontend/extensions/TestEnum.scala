@@ -21,8 +21,8 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
           Assign(Seq("x"), Enum(TNode("Foo"))),
           Assign(Seq("y"), Enum(TNode("Bar"))),
           Assert(Eq(
-            PathAccess(Var("x"), NamedLink(TNode("Foo"), "name")).typed(TString),
-            PathAccess(Var("y"), NamedLink(TNode("Bar"), "name")).typed(TString))),
+            PathAccess(Var("x").typed(TNode("Foo")), NamedLink("name")).typed(TString),
+            PathAccess(Var("y").typed(TNode("Bar")), NamedLink("name")).typed(TString))),
           Yield(Tuple(Seq(Var("x"), Var("y"))))
         ))
       ))
@@ -35,8 +35,8 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
         Values("enum_Bar", TNode("Bar")),
         Assign(Seq("y"), Var("enum_Bar")),
         Assert(Eq(
-          PathAccess(Var("x"), NamedLink(TNode("Foo"), "name")).typed(TString),
-          PathAccess(Var("y"), NamedLink(TNode("Bar"), "name")).typed(TString))),
+          PathAccess(Var("x").typed(TNode("Foo")), NamedLink("name")).typed(TString),
+          PathAccess(Var("y").typed(TNode("Bar")), NamedLink("name")).typed(TString))),
         Yield(Tuple(Seq(Var("x"), Var("y"))))
       ))))
     ))
@@ -51,7 +51,7 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
           Foreach("meth", Enum(TNode("Method")).typed(TEnumeration(TNode("Method"))), Body(
             IfThenElse(
               Eq(
-                PathAccess(Var("meth"), NamedLink(TNode("Method"), "name")).typed(TString),
+                PathAccess(Var("meth").typed(TNode("Method")), NamedLink("name")).typed(TString),
                 Constant(StringLiteral("main"))),
               Body(Yield(Var("meth"))),
               Seq(),
@@ -68,7 +68,7 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
           Values("enum_Method", TNode("Method")),
           Assign(Seq("meth"), Var("enum_Method")),
           Assert(Eq(
-            PathAccess(Var("meth"), NamedLink(TNode("Method"), "name")).typed(TString),
+            PathAccess(Var("meth").typed(TNode("Method")), NamedLink("name")).typed(TString),
             Constant(StringLiteral("main")))),
           Yield(Var("meth")),
           Fail

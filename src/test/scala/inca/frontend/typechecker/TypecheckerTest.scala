@@ -35,19 +35,18 @@ class TypecheckerTest extends AnyFunSuite {
     }
 
     val code = Seq(
-      s"""|module test
+      s"""module test
           |
           |def name() : Int = {
           |    val x = 5
           |    yield x 
           |}""".stripMargin,
-      s"""|module test
+      s"""module test
           |
           |def name() : Unit = {
           |    val x = 5
           |}""".stripMargin,
-      s"""|
-          |module test
+      s"""module test
           |
           |def name() : Int = {
           |    val x = 5
@@ -55,30 +54,26 @@ class TypecheckerTest extends AnyFunSuite {
           |} union {
           |    yield 10
           |}""".stripMargin,
-      s"""|
-          |module test
+      s"""module test
           |
           |def name() : Int = {
           |    val x = 4
           |    yield eval(x + 38)
           |} """.stripMargin,
-      s"""|
-          |module test
+      s"""module test
           |
           |def name() : Any = {
           |    val x = 5
           |    yield x
           |} """.stripMargin,
-      s"""|
-          |module test
+      s"""module test
           |
           |def name() : Any = {
           |    val x = true 
           |    assert x instanceOf Any
           |    yield x
           |} """.stripMargin,
-      s"""|
-          |module test
+      s"""module test
           |
           |def name() : Int = {
           |  val x = 9
@@ -107,8 +102,7 @@ class TypecheckerTest extends AnyFunSuite {
           |    yield 2
           |  }
           |}""".stripMargin,
-      s"""
-         |module test
+      s"""module test
          |
          |def isEven(x: Int): Boolean = {
          |  yield eval(x % 2 == 0)

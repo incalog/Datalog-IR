@@ -52,7 +52,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
     val module = Module("Test_Cast", Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
         Values("e", TNode(Exp.intTag)),
-        Assign(Seq("i"), PathAccess(Var("e"), NamedLink(TNode(Exp.intTag), "value")).typed(TInt)),
+        Assign(Seq("i"), PathAccess(Var("e").typed(TNode(Exp.intTag)), NamedLink("value")).typed(TInt)),
         Assign(Seq("cond"),
           Eval(Seq("i"), q"Math.sqrt(i).isValidInt").typed(TBool)),
         Assert(Eq(Var("cond"), Constant(BooleanLiteral(true)))),

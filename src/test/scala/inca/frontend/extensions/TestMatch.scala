@@ -70,7 +70,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Assign(Seq("matchee"), one),
         Assert(InstanceOf(Var("matchee"), TNode("Decl"))),
-        Assign(Seq("n"), PathAccess(Var("matchee"), NamedLink(TNode("Decl"), "name")).typed(TString)),
+        Assign(Seq("n"), PathAccess(Var("matchee"), NamedLink("name")).typed(TString)),
         Assign(Seq("case"), Constant(IntLiteral(2)))
       ))))
     ))
@@ -116,7 +116,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
         Assign(Seq("node"), one),
         Assign(Seq("matchee"), one),
         Assert(InstanceOf(Var("matchee"), TNode("Decl"))),
-        Assign(Seq("n"), PathAccess(Var("matchee"), NamedLink(TNode("Decl"), "name")).typed(TString)),
+        Assign(Seq("n"), PathAccess(Var("matchee"), NamedLink("name")).typed(TString)),
         Assign(Seq("case"), Constant(IntLiteral(3)))
       ))))
     ))
@@ -388,7 +388,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
         Body(Seq(
           Assign(Seq("matchee"), one),
           Assert(InstanceOf(Var("matchee"), TNode("A"))),
-          Assert(Eq(PathAccess(Var("matchee"), NamedLink(TNode("A"), "a")).typed(TString), Constant(StringLiteral("abc")))),
+          Assert(Eq(PathAccess(Var("matchee"), NamedLink("a")).typed(TString), Constant(StringLiteral("abc")))),
           Assign(Seq("case"), Constant(IntLiteral(1)))
         )),
         Body(Seq(
@@ -396,16 +396,16 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           Assert(NotInstanceOf(Var("matchee_0"), TNode("A"))),
           Assign(Seq("matchee_1"), one),
           Assert(InstanceOf(Var("matchee_1"), TNode("B"))),
-          Assert(Eq(PathAccess(Var("matchee_1"), NamedLink(TNode("B"), "b")).typed(TString), Constant(StringLiteral("def")))),
+          Assert(Eq(PathAccess(Var("matchee_1"), NamedLink("b")).typed(TString), Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
         )),
         Body(Seq(
           Assign(Seq("matchee_0"), one),
           Assert(InstanceOf(Var("matchee_0"), TNode("A"))),
-          Assert(Neq(PathAccess(Var("matchee_0"), NamedLink(TNode("A"), "a")).typed(TString), Constant(StringLiteral("abc")))),
+          Assert(Neq(PathAccess(Var("matchee_0"), NamedLink("a")).typed(TString), Constant(StringLiteral("abc")))),
           Assign(Seq("matchee_1"), one),
           Assert(InstanceOf(Var("matchee_1"), TNode("B"))),
-          Assert(Eq(PathAccess(Var("matchee_1"), NamedLink(TNode("B"), "b")).typed(TString), Constant(StringLiteral("def")))),
+          Assert(Eq(PathAccess(Var("matchee_1"), NamedLink("b")).typed(TString), Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
         ))))
     ))
@@ -435,7 +435,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
         Body(Seq(
           Assign(Seq("matchee"), one),
           Assert(InstanceOf(Var("matchee"), TNode("A"))),
-          Assert(Eq(PathAccess(Var("matchee"), NamedLink(TNode("A"), "a")).typed(TString), Constant(StringLiteral("abc")))),
+          Assert(Eq(PathAccess(Var("matchee"), NamedLink("a")).typed(TString), Constant(StringLiteral("abc")))),
           Assign(Seq("case"), Constant(IntLiteral(1)))
         )),
         Body(Seq(
@@ -443,16 +443,16 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           Assert(NotInstanceOf(Var("matchee_0"), TNode("A"))),
           Assign(Seq("matchee_1"), one),
           Assert(InstanceOf(Var("matchee_1"), TNode("B"))),
-          Assert(Eq(PathAccess(Var("matchee_1"), NamedLink(TNode("B"), "b")).typed(TString), Constant(StringLiteral("def")))),
+          Assert(Eq(PathAccess(Var("matchee_1"), NamedLink("b")).typed(TString), Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
         )),
         Body(Seq(
           Assign(Seq("matchee_0"), one),
           Assert(InstanceOf(Var("matchee_0"), TNode("A"))),
-          Assert(Neq(PathAccess(Var("matchee_0"), NamedLink(TNode("A"), "a")).typed(TString), Constant(StringLiteral("abc")))),
+          Assert(Neq(PathAccess(Var("matchee_0"), NamedLink("a")).typed(TString), Constant(StringLiteral("abc")))),
           Assign(Seq("matchee_1"), one),
           Assert(InstanceOf(Var("matchee_1"), TNode("B"))),
-          Assert(Eq(PathAccess(Var("matchee_1"), NamedLink(TNode("B"), "b")).typed(TString), Constant(StringLiteral("def")))),
+          Assert(Eq(PathAccess(Var("matchee_1"), NamedLink("b")).typed(TString), Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
         )),
         Body(Seq(
@@ -462,7 +462,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           Assert(NotInstanceOf(Var("matchee_2"), TNode("B"))),
           Assign(Seq("matchee_3"), one),
           Assert(InstanceOf(Var("matchee_3"), TNode("C"))),
-          Assert(Eq(PathAccess(Var("matchee_3"), NamedLink(TNode("C"), "c")).typed(TString), Constant(StringLiteral("ghi")))),
+          Assert(Eq(PathAccess(Var("matchee_3"), NamedLink("c")).typed(TString), Constant(StringLiteral("ghi")))),
           Assign(Seq("case"), Constant(IntLiteral(3)))
         )),
         Body(Seq(
@@ -470,33 +470,33 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           Assert(NotInstanceOf(Var("matchee_0"), TNode("A"))),
           Assign(Seq("matchee_2"), one),
           Assert(InstanceOf(Var("matchee_2"), TNode("B"))),
-          Assert(Neq(PathAccess(Var("matchee_2"), NamedLink(TNode("B"), "b")).typed(TString), Constant(StringLiteral("def")))),
+          Assert(Neq(PathAccess(Var("matchee_2"), NamedLink("b")).typed(TString), Constant(StringLiteral("def")))),
           Assign(Seq("matchee_3"), one),
           Assert(InstanceOf(Var("matchee_3"), TNode("C"))),
-          Assert(Eq(PathAccess(Var("matchee_3"), NamedLink(TNode("C"), "c")).typed(TString), Constant(StringLiteral("ghi")))),
+          Assert(Eq(PathAccess(Var("matchee_3"), NamedLink("c")).typed(TString), Constant(StringLiteral("ghi")))),
           Assign(Seq("case"), Constant(IntLiteral(3)))
         )),
         Body(Seq(
           Assign(Seq("matchee_0"), one),
           Assert(InstanceOf(Var("matchee_0"), TNode("A"))),
-          Assert(Neq(PathAccess(Var("matchee_0"), NamedLink(TNode("A"), "a")).typed(TString), Constant(StringLiteral("abc")))),
+          Assert(Neq(PathAccess(Var("matchee_0"), NamedLink("a")).typed(TString), Constant(StringLiteral("abc")))),
           Assign(Seq("matchee_2"), one),
           Assert(NotInstanceOf(Var("matchee_2"), TNode("B"))),
           Assign(Seq("matchee_3"), one),
           Assert(InstanceOf(Var("matchee_3"), TNode("C"))),
-          Assert(Eq(PathAccess(Var("matchee_3"), NamedLink(TNode("C"), "c")).typed(TString), Constant(StringLiteral("ghi")))),
+          Assert(Eq(PathAccess(Var("matchee_3"), NamedLink("c")).typed(TString), Constant(StringLiteral("ghi")))),
           Assign(Seq("case"), Constant(IntLiteral(3)))
         )),
         Body(Seq(
           Assign(Seq("matchee_0"), one),
           Assert(InstanceOf(Var("matchee_0"), TNode("A"))),
-          Assert(Neq(PathAccess(Var("matchee_0"), NamedLink(TNode("A"), "a")).typed(TString), Constant(StringLiteral("abc")))),
+          Assert(Neq(PathAccess(Var("matchee_0"), NamedLink("a")).typed(TString), Constant(StringLiteral("abc")))),
           Assign(Seq("matchee_2"), one),
           Assert(InstanceOf(Var("matchee_2"), TNode("B"))),
-          Assert(Neq(PathAccess(Var("matchee_2"), NamedLink(TNode("B"), "b")).typed(TString), Constant(StringLiteral("def")))),
+          Assert(Neq(PathAccess(Var("matchee_2"), NamedLink("b")).typed(TString), Constant(StringLiteral("def")))),
           Assign(Seq("matchee_3"), one),
           Assert(InstanceOf(Var("matchee_3"), TNode("C"))),
-          Assert(Eq(PathAccess(Var("matchee_3"), NamedLink(TNode("C"), "c")).typed(TString), Constant(StringLiteral("ghi")))),
+          Assert(Eq(PathAccess(Var("matchee_3"), NamedLink("c")).typed(TString), Constant(StringLiteral("ghi")))),
           Assign(Seq("case"), Constant(IntLiteral(3)))
         ))
       ))

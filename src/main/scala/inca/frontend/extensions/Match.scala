@@ -121,7 +121,7 @@ object Match extends Desugarable {
         result += Assert(InstanceOf(matchee, c))
         bindings.foreach { case binding@PatternBinding(field, subpat) =>
           val typ = binding.typ.getOrElse(throw new IllegalArgumentException(s"Cannot desugar untyped pattern binding $binding"))
-          result ++= desugarPat(PathAccess(matchee, NamedLink(c, field)).typed(typ), subpat)
+          result ++= desugarPat(PathAccess(matchee.typed(c), NamedLink(field)).typed(typ), subpat)
         }
         result.toSeq
       case TuplePattern(pats) =>
@@ -156,7 +156,7 @@ object Match extends Desugarable {
         val prefix = ensureVar :+ Assert(InstanceOf(matchee, c))
         val alts = bindings.flatMap { case binding@PatternBinding(field, subpat) =>
           val typ = binding.typ.getOrElse(throw new IllegalArgumentException(s"Cannot desugar untyped pattern binding $binding"))
-          val patAlts = desugarNegatedPat(PathAccess(matchee, NamedLink(c, field)).typed(typ), subpat)
+          val patAlts = desugarNegatedPat(PathAccess(matchee.typed(c), NamedLink(field)).typed(typ), subpat)
           patAlts.map(prefix ++ _)
         }
         wrongType +: alts

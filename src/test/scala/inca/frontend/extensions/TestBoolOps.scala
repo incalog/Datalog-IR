@@ -72,7 +72,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
     val module = Module("Test_Cast", Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
         Values("e", TNode(Exp.intTag)),
-        Assign(Seq("i"), PathAccess(Var("e"), NamedLink(TNode(Exp.intTag), "value")).typed(TInt)),
+        Assign(Seq("i"), PathAccess(Var("e").typed(TNode(Exp.intTag)), NamedLink("value")).typed(TInt)),
         Assign(Seq("cond"),
           // "i" is _not_ a square number
           Not(Eval(Seq("i"), q"Math.sqrt(i).isValidInt").typed(TBool))),
@@ -109,7 +109,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
         Values("e", TNode(Exp.expTag)),
         Assert(And(
           InstanceOf(Var("e"), TNode(Exp.addTag)),
-          InstanceOf(PathAccess(Var("e"), NamedLink(TNode(Exp.addTag), "lhs")).typed(TNode(Exp.expTag)), TNode(Exp.multTag))
+          InstanceOf(PathAccess(Var("e").typed(TNode(Exp.addTag)), NamedLink("lhs")).typed(TNode(Exp.expTag)), TNode(Exp.multTag))
         )),
         Yield(Var("e"))
       ))))

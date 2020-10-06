@@ -161,7 +161,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   def sizeLink[_: P]: P[SizeLink.type] = P(SizeLink.prettyprint).map(_ => SizeLink)
 
   /** NamedLink parser */
-  def namedLink[_: P](node: TNode): P[NamedLink] = P(identifier).map(NamedLink(node, _))
+  def namedLink[_: P](node: TNode): P[NamedLink] = P(identifier).map(NamedLink)
 
   /** Exp parser */
   def exp[_: P]: P[Exp] =
@@ -322,12 +322,15 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
 
   /** Module parser */
   def module[_: P]: P[Module] =
+//    P(
+//      sp_nl ~ "module " ~/ identifier ~ P(
+//        "import".? ~ identifier
+//      ).rep ~ patternFunction.rep
+//    ).map(Module.tupled)
     P("module " ~/ identifier ~
       ("import" ~ identifier).rep ~
       patternFunction.rep ~ End
-    ).map { case (name, imports, patternFunctions) =>
-      Module(name, imports, patternFunctions)
-    }
+    ).map(Module.tupled)
 
   /** Yield parser */
   def yieldStatement[_: P]: P[Yield] =

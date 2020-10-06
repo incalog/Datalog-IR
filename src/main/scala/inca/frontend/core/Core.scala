@@ -45,7 +45,7 @@ object Core {
   case class TNode(name: String) extends TLinked {
     override def prettyprint: String = name
     override def javastring: String = name.replace('.','_')
-    def apply(field: String): NamedLink = NamedLink(this, field)
+    def apply(field: String): NamedLink = NamedLink(field)
   }
 
   trait TIterable extends TypeAnno {
@@ -274,13 +274,8 @@ object Core {
     override def freeVars: Map[Name, Option[TypeAnno]] = receiver.freeVars
     override def prettyprint(implicit indent: String): String =
       s"${receiver.prettyprint}.${link.prettyprint}"
-
-    // TODO remove this later when a type checker was implemented
-    link match {
-      case NamedLink(tnode, _) => receiver.orTyped(tnode)
-      case _ => // nothing
-    }
   }
+
   case class Call(name: Name, args: Seq[Exp], transitive: Boolean = false) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = args.flatMap(_.freeVars).toMap
     override def prettyprint(implicit indent: String): String = {
@@ -309,7 +304,7 @@ object Core {
     def prettyprint: String
   }
   sealed trait CoreLink extends Link
-  case class NamedLink(node: TNode, field: Name) extends CoreLink {
+  case class NamedLink(field: Name) extends CoreLink {
     override def prettyprint: String = field
   }
   case object ParentLink extends CoreLink {

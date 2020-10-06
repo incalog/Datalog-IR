@@ -156,7 +156,7 @@ class CoreParserTest extends AnyFunSuite {
     testLink("children", ChildrenLink)
     testLink("next", NextLink)
     testLink("prev", PreviousLink)
-    testLink("name", NamedLink(TNode("node"), "name"))
+    testLink("name", NamedLink("name"))
   }
 
   test("test Var") {
@@ -189,7 +189,7 @@ class CoreParserTest extends AnyFunSuite {
     testExp(InstanceOf(Var("x"), TBool))
     testExp(NotInstanceOf(Var("x"), TBool))
     testExp(PathAccess(Var("xyz"), ParentLink))
-    testExp(PathAccess(Var("test"), NamedLink(TNode("dummy"), "property")))
+    testExp(PathAccess(Var("test"), NamedLink("property")))
     testExp(
       Aggregate(
         DataOp(Some("br0t"), "with"),

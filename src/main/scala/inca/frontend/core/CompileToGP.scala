@@ -223,8 +223,12 @@ object CompileToGP {
               GP.NoPath(GP.Var(src), srcTy, GP.NextLink, termIsSource = false)
             case Core.SizeLink =>
               GP.NoPath(GP.Var(src), srcTy, GP.SizeLink, termIsSource = true)
-            case Core.NamedLink(node, field) =>
-              GP.NoPath(GP.Var(src), srcTy, GP.NamedLink(GP.TNode(node.name), field), termIsSource = true)
+            case Core.NamedLink(field) =>
+              val nodeType = receiver.typ match {
+                case Some(Core.TNode(name)) => GP.TNode(name)
+                case _ => throw new IllegalArgumentException(s"$receiver should have node type, but has ${receiver.typ}")
+              }
+              GP.NoPath(GP.Var(src), srcTy, GP.NamedLink(nodeType, field), termIsSource = true)
           }
           (Seq(), econstraints :+ path)
 
@@ -351,8 +355,12 @@ object CompileToGP {
         GP.Path(trg, trgTy, GP.NextLink, GP.Var(src), srcTy)
       case Core.SizeLink =>
         GP.Path(GP.Var(src), srcTy, GP.SizeLink, trg, trgTy)
-      case Core.NamedLink(node, field) =>
-        GP.Path(GP.Var(src), srcTy, GP.NamedLink(GP.TNode(node.name), field), trg, trgTy)
+      case Core.NamedLink(field) =>
+        val nodeType = receiver.typ match {
+          case Some(Core.TNode(name)) => GP.TNode(name)
+          case _ => throw new IllegalArgumentException(s"$receiver should have node type, but has ${receiver.typ}")
+        }
+        GP.Path(GP.Var(src), srcTy, GP.NamedLink(nodeType, field), trg, trgTy)
     }
     econstraints :+ path
   }

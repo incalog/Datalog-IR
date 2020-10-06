@@ -111,13 +111,13 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
         Switch(Seq(
           Body(Seq(
             Assert(InstanceOf(Var("e"), TNode(Exp.intTag))),
-              Yield(PathAccess(Var("e"), NamedLink(TNode(Exp.intTag), "value")).typed(TInt))
+              Yield(PathAccess(Var("e").typed(TNode(Exp.intTag)), NamedLink("value")).typed(TInt))
           )),
           Body(Seq(
             Assert(InstanceOf(Var("e"), TNode(Exp.addTag))),
             Yield(
               Call("integerlits_rec",
-                Seq(PathAccess(Var("e"), NamedLink(TNode(Exp.addTag), "lhs")).typed(TNode(Exp.expTag)))
+                Seq(PathAccess(Var("e").typed(TNode(Exp.addTag)), NamedLink("lhs")).typed(TNode(Exp.expTag)))
               )
             )
           )),
@@ -125,7 +125,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
             Assert(InstanceOf(Var("e"), TNode(Exp.multTag))),
             Yield(
               Call("integerlits_rec",
-                Seq(PathAccess(Var("e"), NamedLink(TNode(Exp.multTag), "rhs")).typed(TNode(Exp.expTag)))
+                Seq(PathAccess(Var("e").typed(TNode(Exp.multTag)), NamedLink("rhs")).typed(TNode(Exp.expTag)))
               )
             )
           ))

@@ -97,8 +97,8 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
     val module = Module("Test_Cast", Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
         Values("many", TNode(Exp.manyTag)),
-        Foreach("i", PathAccess(Var("many"), NamedLink(TNode(Exp.manyTag), "exps")).typed(TList(TNode(Exp.intTag))), Body(
-          Yield(PathAccess(Var("i"), NamedLink(TNode(Exp.intTag), "value")).typed(TInt))
+        Foreach("i", PathAccess(Var("many").typed(TNode(Exp.manyTag)), NamedLink("exps")).typed(TList(TNode(Exp.intTag))), Body(
+          Yield(PathAccess(Var("i").typed(TNode(Exp.intTag)), NamedLink("value")).typed(TInt))
         ))
       ))))
     ))
