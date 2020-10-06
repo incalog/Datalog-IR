@@ -468,7 +468,7 @@ class CoreTypechecker(
           addError(TypeError.expected(TList(TAnyLinked), typ, "SizeLink"))
           TUnit
       }
-    case NamedLink(_, name) =>
+    case NamedLink(name) =>
       lmi.links.get((typ.prettyprint, name)) match {
         case None =>
           addError(TypeError.undefined("Field", name, s"NamedLink($name)"))
