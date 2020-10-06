@@ -24,32 +24,28 @@ object Parser {
     SwitchParser
   ))
 
-    private def file_wrapper[_:P]:P[Module] = P(
-        parser.module ~ End
-    )
-
-    def parseModule(code : String) : fastparse.Parsed[Module] = {
-        parse(code, file_wrapper(_))
-    }
+  def parseModule(code : String) : fastparse.Parsed[Module] = {
+      parse(code, parser.module(_))
+  }
 }
 
 object Conversions{
-    implicit class IncaParsed(val sc: StringContext) extends AnyVal {
-      def mod(args: Any*): Module = {
-        val code = buildCode(sc, args)
-        Parser.parseModule(code).get.value
-      }
-
-      def exp(args: Any*): Exp = {
-        val code = buildCode(sc, args)
-        parse(code, Parser.parser.exp(_)).get.value
-      }
-
-      def stm(args: Any*): Statement = {
-        val code = buildCode(sc, args)
-        parse(code, Parser.parser.statement(_)).get.value
-      }
+  implicit class IncaParsed(val sc: StringContext) extends AnyVal {
+    def mod(args: Any*): Module = {
+      val code = buildCode(sc, args)
+      Parser.parseModule(code).get.value
     }
+
+    def exp(args: Any*): Exp = {
+      val code = buildCode(sc, args)
+      parse(code, Parser.parser.exp(_)).get.value
+    }
+
+    def stm(args: Any*): Statement = {
+      val code = buildCode(sc, args)
+      parse(code, Parser.parser.statement(_)).get.value
+    }
+  }
 
   private def buildCode(sc: StringContext, args: Any*): String = {
     val argStrings = args.map {

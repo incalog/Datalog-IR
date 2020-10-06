@@ -20,7 +20,7 @@ object ForeachParser extends ParserExtension {
   object ForeachParser_ extends StatementParser {
     override def parse[_: P]: P[Core.Statement] =
       P(
-        "foreach " ~ coreparser.identifier ~~ " " ~ "in" ~ coreparser.exp ~ coreparser.body
+        "foreach " ~ coreparser.identifier ~~ " " ~ "in " ~ coreparser.exp ~ coreparser.body
       ).map { case (s, e, b) => Foreach(s, e, b) }
   }
 

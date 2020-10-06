@@ -19,8 +19,6 @@ object EnumParser extends ParserExtension {
 
   object EnumParser_ extends AnchorExpressionParser {
     override def parse[_: P]: P[Core.Exp] =
-      P(
-        "enum" ~ "(" ~ coreparser.typeAnno ~ ")"
-      ).map(Enum(_))
+      P("enum" ~ "(" ~ coreparser.typeAnno ~ ")").map(Enum(_))
   }
 }

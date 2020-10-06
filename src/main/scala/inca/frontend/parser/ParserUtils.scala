@@ -9,19 +9,8 @@ import ScalaWhitespace._
   */
 object ParserUtils {
 
-  /** Parser consuming all whitespaces by ignoring them. */
-  def ws[_: P]: P[Unit] = CharsWhileIn("\n \t\r").?
-
   /** Parser consuming all spaces by ignoring them. */
   def sp[_: P]: P[Unit] = CharsWhileIn(" ").?
-
-  def sp_nl[_: P]: P[Unit] = CharsWhileIn(" \n\r").?
-
-  /** Parser consuming all tabulators by ignoring them. */
-  def tb[_: P]: P[Unit] = CharsWhileIn("\t").?
-
-  /** Parser consuming all newline characters by ignoring them. */
-  def nl[_: P]: P[Unit] = CharsWhileIn("\r\n").?
 
   /** Parser for line endings */
   def nl_![_: P]: P[Unit] = P("\n" | "\r\n")

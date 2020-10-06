@@ -19,16 +19,12 @@ object ForallExistsParser extends ParserExtension {
 
   object ForallParser extends StatementParser {
     override def parse[_: P]: P[Core.Statement] =
-      P(
-        "forall " ~ coreparser.identifier ~~ " " ~ "in " ~ coreparser.exp ~ coreparser.body
-      ).map { case (s, e, b) => Forall(s, e, b) }
+      P("forall " ~ coreparser.identifier ~~ " " ~ "in " ~ coreparser.exp ~ coreparser.body).map(Forall.tupled)
   }
 
   object ExistsParser extends StatementParser {
     override def parse[_: P]: P[Core.Statement] =
-      P(
-        "exists " ~ coreparser.identifier ~~ " " ~ "in" ~ coreparser.exp ~ coreparser.body
-      ).map { case (s, e, b) => Exists(s, e, b) }
+      P("exists " ~ coreparser.identifier ~~ " " ~ "in " ~ coreparser.exp ~ coreparser.body).map(Exists.tupled)
   }
 
 }

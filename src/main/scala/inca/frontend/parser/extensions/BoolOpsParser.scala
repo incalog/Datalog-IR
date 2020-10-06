@@ -19,24 +19,17 @@ object BoolOpsParser extends ParserExtension {
     Seq(AndParser, OrParser)
 
   object NotParser extends AnchorExpressionParser {
-    override def parse[_: P]: P[Exp] =
-      P(
-        "!" ~ coreparser.exp
-      ).map(Not)
+    override def parse[_: P]: P[Exp] = P("!" ~ coreparser.exp).map(Not)
   }
 
   object AndParser extends RecursiveExpressionParser {
     override def parse[_: P](e: Exp): P[Exp] =
-      P(
-        "&&" ~ coreparser.exp
-      ).map(And(e, _))
+      P("&&" ~ coreparser.exp).map(And(e, _))
   }
 
   object OrParser extends RecursiveExpressionParser {
     override def parse[_: P](e: Exp): P[Exp] =
-      P(
-        "||" ~ coreparser.exp
-      ).map(Or(e, _))
+      P("||" ~ coreparser.exp).map(Or(e, _))
   }
 
 }

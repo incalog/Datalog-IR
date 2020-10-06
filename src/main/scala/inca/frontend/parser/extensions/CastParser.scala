@@ -17,9 +17,7 @@ object CastParser extends ParserExtension {
 
   object CastParser_ extends RecursiveExpressionParser {
     override def parse[_: P](e: Core.Exp): P[Core.Exp] =
-      P(
-        ":" ~ coreparser.typeAnno
-      ).map(Cast(e, _))
+      P(":" ~ coreparser.typeAnno).map(Cast(e, _))
   }
 
 }
