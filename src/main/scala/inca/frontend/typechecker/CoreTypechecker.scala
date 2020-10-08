@@ -1,11 +1,10 @@
 package inca.frontend.typechecker
 
-import inca.frontend.core.Core._
-import inca.frontend.parser.CoreParser
+import inca.frontend.core.Core.{Fail, _}
 import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
 import inca.frontend.util.{EvalHelper, Program, ScalaTypeError, TypeHelper}
 import inca.runtime.context._
-import truechange.{AnyType, ListType, SortType, Type}
+import truechange.SortType
 
 import scala.collection.mutable.ArrayBuffer
 

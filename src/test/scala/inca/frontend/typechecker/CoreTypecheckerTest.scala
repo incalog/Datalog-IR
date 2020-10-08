@@ -15,7 +15,7 @@ import inca.frontend.util.Program
   */
 class CoreTypecheckerTest extends AnyFunSuite {
   test("test subtype") {
-    def test_run(t1 : TypeAnno, t2 : TypeAnno) = new CoreTypechecker(null, Program(Seq.empty), Seq()).subtype(t1, t2)
+    def test_run(t1 : TypeAnno, t2 : TypeAnno) = assert(new CoreTypechecker(null, Program(Seq.empty), Seq()).subtype(t1, t2))
 
     test_run(TBool, TBool)
     test_run(TBool, TAny)
