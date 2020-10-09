@@ -160,9 +160,17 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test Var") {
-    def testVar(input: String) = testSuccess(CoreParser().varExp(_))(input, Var(input))
+    def testVarSuccess(input: String) = testSuccess(CoreParser().varExp(_))(input, Var(input))
+    def testVarFailure(input: String) = testFailure(CoreParser().varExp(_))
 
-    Seq("variable", "br0t").map(testVar(_))
+    Seq("variable", "br0t").map(testVarSuccess)
+    testVarFailure("_")
+  }
+
+  test("test Wildcard") {
+    def testWildcard(input: String) = testSuccess(CoreParser().wildcardExp(_))(input, Wildcard)
+
+    testWildcard("_")
   }
 
   test("test Constant") {

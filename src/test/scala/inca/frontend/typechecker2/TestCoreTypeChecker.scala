@@ -14,16 +14,28 @@ class TestCoreTypeChecker extends AnyFlatSpec{
     parse(str, parser.exp(_)).get.value
   }
 
+  def parseStatement(str: String): Statement = {
+    val parser = CoreParser(Seq())
+    // programs are always syntactically correct
+    parse(str, parser.statement(_)).get.value
+  }
+
+  def parseBody(str: String): Body = {
+    val parser = CoreParser(Seq())
+    // programs are always syntactically correct
+    parse(str, parser.body(_)).get.value
+  }
+
+  val typer = new TypeChecker(Nil)(analyzedLangs.Exp.languageMetaInfo)
+
   "checkExp" should "type var correctly" in {
-    val typer = new TypeChecker(Nil)(analyzedLangs.Exp.languageMetaInfo)
     val varExp = parseExp("x")
 
-    assertResult(typer.checkExp(typer.TypeContext(Map("x" -> TBool), Map(), null))(varExp))(TBool)
-    assertThrows[IllegalArgumentException](typer.checkExp(typer.TypeContext(Map(), Map(), null))(varExp))
+    assertResult(TBool)(typer.checkExp(typer.TypeContext(Map("x" -> TBool), Map(), null))(varExp))
+    assertThrows[TypeError](typer.checkExp(typer.TypeContext(Map(), Map(), null))(varExp))
   }
 
   "checkExp" should "type constant literals correctly" in {
-    val typer = new TypeChecker(Nil)(analyzedLangs.Exp.languageMetaInfo)
     val boolConst = parseExp("true")
     val intConst = parseExp("12")
     val longConst = parseExp("12L")
@@ -31,15 +43,14 @@ class TestCoreTypeChecker extends AnyFlatSpec{
     val stringConst = parseExp("\"str\"")
 
     val ctx = typer.TypeContext(Map(), Map(), null)
-    assertResult(typer.checkExp(ctx)(boolConst))(TBool)
-    assertResult(typer.checkExp(ctx)(intConst))(TInt)
-    assertResult(typer.checkExp(ctx)(longConst))(TLong)
-    assertResult(typer.checkExp(ctx)(doubleConst))(TDouble)
-    assertResult(typer.checkExp(ctx)(stringConst))(TString)
+    assertResult(TBool)(typer.checkExp(ctx)(boolConst))
+    assertResult(TInt)(typer.checkExp(ctx)(intConst))
+    assertResult(TLong)(typer.checkExp(ctx)(longConst))
+    assertResult(TDouble)(typer.checkExp(ctx)(doubleConst))
+    assertResult(TString)(typer.checkExp(ctx)(stringConst))
   }
 
   "checkExp" should "type wildcard correctly" in {
-    val typer = new TypeChecker(Nil)(analyzedLangs.Exp.languageMetaInfo)
     val wildcard = parseExp("_")
 
     val ctx = typer.TypeContext(Map(), Map(), null)
@@ -47,125 +58,186 @@ class TestCoreTypeChecker extends AnyFlatSpec{
   }
 
   "checkExp" should "type path access named link correctly" in {
-    val typer = new TypeChecker(Nil)(analyzedLangs.Exp.languageMetaInfo)
-
     val pathAccess = parseExp("add.lhs")
     val ctx = typer.TypeContext(Map("add" -> TNode(analyzedLangs.Exp.addTag)), Map(), null)
-    assertResult(typer.checkExp(ctx)(pathAccess))(TNode(analyzedLangs.Exp.expTag))
+    assertResult(TNode(analyzedLangs.Exp.expTag))(typer.checkExp(ctx)(pathAccess))
 
     val emptyCtx = typer.TypeContext(Map(), Map(), null)
-    assertThrows[IllegalArgumentException](typer.checkExp(emptyCtx)(pathAccess))
+    assertThrows[TypeError](typer.checkExp(emptyCtx)(pathAccess))
 
     val invalidPathAccess = parseExp("add.vl")
-    assertThrows[IllegalArgumentException](typer.checkExp(ctx)(invalidPathAccess))
+    assertThrows[TypeError](typer.checkExp(ctx)(invalidPathAccess))
 
     val listPathAccess = parseExp("many.exps")
     val listCtx = typer.TypeContext(Map("many" -> TNode(analyzedLangs.Exp.manyTag)), Map(), null)
-    assertResult(typer.checkExp(listCtx)(listPathAccess))(TList(TNode(analyzedLangs.Exp.expTag)))
+    assertResult(TList(TNode(analyzedLangs.Exp.expTag)))(typer.checkExp(listCtx)(listPathAccess))
     val listSize = parseExp("many.exps.size")
-    assertResult(typer.checkExp(listCtx)(listSize))(TInt)
+    assertResult(TInt)(typer.checkExp(listCtx)(listSize))
 
     val listChilds = parseExp("many.exps.children")
-    assertResult(typer.checkExp(listCtx)(listChilds))(TNode(analyzedLangs.Exp.expTag))
+    assertResult(TNode(analyzedLangs.Exp.expTag))(typer.checkExp(listCtx)(listChilds))
   }
 
   "checkExp" should "type path access parent link correctly" in {
-    val typer = new TypeChecker(Nil)(analyzedLangs.Exp.languageMetaInfo)
-
     val parent = parseExp("many.parent")
     val ctx = typer.TypeContext(Map("many" -> TNode(analyzedLangs.Exp.manyTag)), Map(), null)
-    assertResult(typer.checkExp(ctx)(parent))(TAny)
+    assertResult(TAny)(typer.checkExp(ctx)(parent))
   }
 
   "checkExp" should "type path access size link correctly" in {
-    val typer = new TypeChecker(Nil)(analyzedLangs.Exp.languageMetaInfo)
-
     val listSize = parseExp("many.exps.size")
     val ctx = typer.TypeContext(Map("many" -> TNode(analyzedLangs.Exp.manyTag)), Map(), null)
-    assertResult(typer.checkExp(ctx)(listSize))(TInt)
+    assertResult(TInt)(typer.checkExp(ctx)(listSize))
   }
 
   "checkExp" should "type path access children link correctly" in {
-    val typer = new TypeChecker(Nil)(analyzedLangs.Exp.languageMetaInfo)
-
     val listChilds = parseExp("many.exps.children")
     val ctx = typer.TypeContext(Map("many" -> TNode(analyzedLangs.Exp.manyTag)), Map(), null)
-    assertResult(typer.checkExp(ctx)(listChilds))(TNode(analyzedLangs.Exp.expTag))
+    assertResult(TNode(analyzedLangs.Exp.expTag))(typer.checkExp(ctx)(listChilds))
   }
 
   "checkExp" should "type path access next link correctly" in {
-    val typer = new TypeChecker(Nil)(analyzedLangs.Exp.languageMetaInfo)
-
     val listChildsNext = parseExp("many.exps.children.next")
     val ctx = typer.TypeContext(Map("many" -> TNode(analyzedLangs.Exp.manyTag)), Map(), null)
-    assertResult(typer.checkExp(ctx)(listChildsNext))(TNode(analyzedLangs.Exp.expTag))
+    assertResult(TNode(analyzedLangs.Exp.expTag))(typer.checkExp(ctx)(listChildsNext))
   }
 
   "checkExp" should "type path access previous link correctly" in {
-    val typer = new TypeChecker(Nil)(analyzedLangs.Exp.languageMetaInfo)
-
     val ctx = typer.TypeContext(Map("many" -> TNode(analyzedLangs.Exp.manyTag)), Map(), null)
     val listChildsPrev = parseExp("many.exps.children.previous")
-    assertResult(typer.checkExp(ctx)(listChildsPrev))(TNode(analyzedLangs.Exp.expTag))
+    assertResult(TNode(analyzedLangs.Exp.expTag))(typer.checkExp(ctx)(listChildsPrev))
   }
 
   "checkExp" should "type tuple correctly" in {
-    val typer = new TypeChecker(Nil)(analyzedLangs.Exp.languageMetaInfo)
+    val ctx = typer.TypeContext(Map("x" -> TString), Map(), null)
 
     val tuple = parseExp("(1, x)")
-    val ctx = typer.TypeContext(Map("x" -> TString), Map(), null)
-    assertResult(typer.checkExp(ctx)(tuple))(TTuple(Seq(TInt, TString)))
+    assertResult(TTuple(Seq(TInt, TString)))(typer.checkExp(ctx)(tuple))
 
     val tuple2 = parseExp("(1, x, 2L, true)")
-    assertResult(typer.checkExp(ctx)(tuple2))(TTuple(Seq(TInt, TString, TLong, TBool)))
+    assertResult(TTuple(Seq(TInt, TString, TLong, TBool)))(typer.checkExp(ctx)(tuple2))
 
     val tuple3 = parseExp("(1, x, 2L, y)")
-    assertThrows[IllegalArgumentException](typer.checkExp(ctx)(tuple3))
+    assertThrows[TypeError](typer.checkExp(ctx)(tuple3))
   }
 
-  "checkExp" should "type call correctly" in {
-    val typer = new TypeChecker(Nil)(analyzedLangs.Exp.languageMetaInfo)
+  "checkExp" should "type eq correctly" in {
+    val ctx = typer.TypeContext(Map("x" -> TInt), Map(), null)
 
+    val eq = parseExp("1 == x")
+    assertResult(TBool)(typer.checkExp(ctx)(eq))
+
+    val neq = parseExp("x != 1")
+    assertResult(TBool)(typer.checkExp(ctx)(neq))
+
+    val notCompatibleEq = parseExp("true == x")
+    assertThrows[TypeError](typer.checkExp(ctx)(notCompatibleEq))
+
+    val notCompatibleNeq = parseExp("true != x")
+    assertThrows[TypeError](typer.checkExp(ctx)(notCompatibleNeq))
+  }
+
+  "checkExp" should "type def correctly" in {
+    val funEnv = Map("f" -> PatternFunction(None, "f", Seq(Param("x", TInt)), Seq(), Seq()))
+    val ctx = typer.TypeContext(Map("x" -> TNode(analyzedLangs.Exp.addTag)), funEnv, null)
+
+    val defPathAccess = parseExp("def x.lhs")
+    assertResult(TBool)(typer.checkExp(ctx)(defPathAccess))
+
+    val defCall = parseExp("def f(1)")
+    assertResult(TBool)(typer.checkExp(ctx)(defCall))
+
+    val defInvalid = parseExp("def x")
+    assertThrows[TypeError](typer.checkExp(ctx)(defInvalid))
+  }
+
+  "checkExp" should "type instanceOf correctly" in {
+    val ctx = typer.TypeContext(Map("x" -> TNode(analyzedLangs.Exp.expTag)), Map(), null)
+
+    val instanceOf = parseExp(s"x instanceOf ${TNode(analyzedLangs.Exp.addTag).prettyprint}")
+    assertResult(TBool)(typer.checkExp(ctx)(instanceOf))
+
+    val notInstanceOf = parseExp(s"x notInstanceOf ${TNode(analyzedLangs.Exp.addTag).prettyprint}")
+    assertResult(TBool)(typer.checkExp(ctx)(notInstanceOf))
+
+    val invalidInstanceOf = parseExp("x instanceOf TBool")
+    assertThrows[TypeError](typer.checkExp(ctx)(invalidInstanceOf))
+
+    val tupleInstanceOf = parseExp("(x, 1) instanceOf TBool")
+    assertThrows[TypeError](typer.checkExp(ctx)(tupleInstanceOf))
+  }
+
+
+  "checkExp" should "type call correctly" in {
     val funEnv = Map("fun" -> PatternFunction(None, "fun", Seq(Param("x", TInt), Param("y", TInt)), Seq(AnnoParam(None, TBool)), Seq()))
     val ctx = typer.TypeContext(Map(), funEnv, null)
 
     val call = parseExp("fun(1, 2)")
-    assertResult(typer.checkExp(ctx)(call))(TBool)
+    assertResult(TBool)(typer.checkExp(ctx)(call))
 
     val wrongNumArgs = parseExp("fun(1, 2, 2)")
-    assertThrows[IllegalArgumentException](typer.checkExp(ctx)(wrongNumArgs))
+    assertThrows[TypeError](typer.checkExp(ctx)(wrongNumArgs))
 
     val wrongArgType = parseExp("fun(1, true)")
-    assertThrows[IllegalArgumentException](typer.checkExp(ctx)(wrongArgType))
+    assertThrows[TypeError](typer.checkExp(ctx)(wrongArgType))
 
     val undefinedCall = parseExp("other(1, x, 2L, y)")
-    assertThrows[IllegalArgumentException](typer.checkExp(ctx)(undefinedCall))
+    assertThrows[TypeError](typer.checkExp(ctx)(undefinedCall))
 
     val funEnv2 = Map("fun" -> PatternFunction(None, "fun", Seq(Param("x", TNode(analyzedLangs.Exp.expTag))), Seq(), Seq()))
     val ctx2 = typer.TypeContext(Map("x" -> TNode(analyzedLangs.Exp.addTag)), funEnv2, null)
     val callWithNodeArgs = parseExp("fun(x)")
-    assertResult(typer.checkExp(ctx2)(callWithNodeArgs))(TUnit)
+    assertResult(TUnit)(typer.checkExp(ctx2)(callWithNodeArgs))
 
     val callWithNodeArgWrongType = parseExp("fun(1)")
-    assertThrows[IllegalArgumentException](typer.checkExp(ctx2)(callWithNodeArgWrongType))
+    assertThrows[TypeError](typer.checkExp(ctx2)(callWithNodeArgWrongType))
 
     val funEnv3 = Map("fun" -> PatternFunction(None, "fun", Seq(Param("x", TNode(analyzedLangs.Exp.addTag))), Seq(AnnoParam(None, TNode(analyzedLangs.Exp.expTag)), AnnoParam(None, TNode(analyzedLangs.Exp.expTag))), Seq()))
     val ctx3 = typer.TypeContext(Map("x" -> TNode(analyzedLangs.Exp.intTag), "y" -> TNode(analyzedLangs.Exp.addTag)), funEnv3, null)
 
     val callWithNodeArgWrongType2 = parseExp("fun(x)")
-    assertThrows[IllegalArgumentException](typer.checkExp(ctx3)(callWithNodeArgWrongType2))
+    assertThrows[TypeError](typer.checkExp(ctx3)(callWithNodeArgWrongType2))
 
     val callMultipleOutputTypes = parseExp("fun(y)")
-    assertResult(typer.checkExp(ctx3)(callMultipleOutputTypes))(TTuple(Seq(TNode(analyzedLangs.Exp.expTag), TNode(analyzedLangs.Exp.expTag))))
+    assertResult(TTuple(Seq(TNode(analyzedLangs.Exp.expTag), TNode(analyzedLangs.Exp.expTag))))(typer.checkExp(ctx3)(callMultipleOutputTypes))
   }
 
   "checkExp" should "type count correctly" in {
-    val typer = new TypeChecker(Nil)(analyzedLangs.Exp.languageMetaInfo)
-
     val funEnv = Map("fun" -> PatternFunction(None, "fun", Seq(Param("x", TInt), Param("y", TInt)), Seq(AnnoParam(None, TBool)), Seq()))
     val ctx = typer.TypeContext(Map(), funEnv, null)
 
     val count = parseExp("count fun(1, 2)")
-    assertResult(typer.checkExp(ctx)(count))(TInt)
+    assertResult(TInt)(typer.checkExp(ctx)(count))
+  }
+
+  "checkStatement" should "type assign correctly" in {
+    val ctx = typer.TypeContext(Map(), Map(), null)
+
+    val assign = parseStatement("val x = 1")
+    assertResult(typer.TypeContext(Map("x" -> TInt), Map(), null))(typer.checkStatement(ctx)(assign))
+
+    val tupleAssign = parseStatement("val (x, y) = (1, true)")
+    assertResult(typer.TypeContext(Map("x" -> TInt, "y" -> TBool), Map(), null))(typer.checkStatement(ctx)(tupleAssign))
+
+    val differentSized = parseStatement("val (x, y) = 1")
+    assertThrows[TypeError](typer.checkStatement(ctx)(differentSized))
+
+    val differentSized2 = parseStatement("val (x, y) = (1)")
+    assertThrows[TypeError](typer.checkStatement(ctx)(differentSized2))
+
+    val reassignCtx = typer.TypeContext(Map("x" -> TInt), Map(), null)
+    val reassign = parseStatement("val x = true")
+    assertThrows[TypeError](typer.checkStatement(reassignCtx)(reassign))
+  }
+
+  "checkStatement" should "type values correctly" in {
+    val ctx = typer.TypeContext(Map(), Map(), null)
+
+    val single = parseStatement("vals x <- Int")
+    assertResult(typer.TypeContext(Map("x" -> TInt), Map(), null))(typer.checkStatement(ctx)(single))
+
+    val reassignCtx = typer.TypeContext(Map("x" -> TInt), Map(), null)
+    val reassign = parseStatement("vals x <- Bool")
+    assertThrows[TypeError](typer.checkStatement(reassignCtx)(reassign))
   }
 }
