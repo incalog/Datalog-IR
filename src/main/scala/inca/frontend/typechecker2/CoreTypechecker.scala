@@ -11,6 +11,37 @@ object TypeError {
   def apply(msg: String): TypeError = new TypeError(msg)
 }
 
+case class TypeContext(ctx: VarCtx, funEnv: FunEnv, fun: PatternFunction) {
+
+  // stmt is used for better error reporting
+  def addBinding(name: Name, ty: TypeAnno, stmt: Statement): TypeContext = {
+    if (ctx.contains(name))
+      throw TypeError(s"$name is rebound in ${stmt.prettyprint("")}")
+    TypeContext(ctx + (name -> ty), funEnv, fun)
+  }
+
+  // stmt is used for better error reporting
+  def addBindings(bindings: Seq[(Name, TypeAnno)], stmt: Statement): TypeContext = {
+    val binding = bindings.map(_._1).filter(ctx.keySet.contains)
+    binding.foreach { name =>
+      throw TypeError(s"$name is rebound in ${stmt.prettyprint("")}")
+    }
+    TypeContext(ctx ++ bindings, funEnv, fun)
+  }
+
+  // TODO need to think about binding refinement
+  // look at type refinement type systems
+  def refineBinding(name: Name, ty: TypeAnno): TypeContext = {
+    val prevTy = ctx.get(name)
+    prevTy match {
+      case Some(value) =>
+        TypeContext(ctx + (name -> ty), funEnv, fun)
+      case None =>
+        TypeContext(ctx + (name -> ty), funEnv, fun)
+    }
+  }
+}
+
 
 trait TypeCheckerExtension {
   def checkExp()(exp: Exp): TypeAnno
@@ -19,16 +50,13 @@ trait TypeCheckerExtension {
 
 class TypeChecker(extensions: Seq[TypeCheckerExtension])(languageMetaInfo: LanguageMetaInfo) {
 
-  type FunEnv = Map[Name, PatternFunction]
-  type ModuleEnv = Map[Name, Module]
-
-  def checkProgram(prog: Program): Unit = {
-    val moduleEnv = deriveModuleEnv(prog)
-    prog.modules.foreach(checkModule(moduleEnv, _))
+  def checkModules(mods: Seq[Module]): Unit = {
+    val moduleEnv = deriveModuleEnv(mods)
+    mods.foreach(checkModule(moduleEnv, _))
   }
 
-  private def deriveModuleEnv(prog: Program): ModuleEnv = {
-    val moduleEnv = prog.modules.map { m => m.name -> m }
+  private def deriveModuleEnv(mods: Seq[Module]): ModuleEnv = {
+    val moduleEnv = mods.map { m => m.name -> m }
     val moduleNames = moduleEnv.map(_._1)
     moduleNames.groupBy(identity).collect { case (x, List(_,_,_*)) =>
       throw TypeError(s"Module name $x is not unique")
@@ -50,42 +78,14 @@ class TypeChecker(extensions: Seq[TypeCheckerExtension])(languageMetaInfo: Langu
     val importedModules = module.imports.map(moduleEnv)
     val funEnv = deriveFunEnv(importedModules)
     val localFunEnv = module.funs.map(f => f.name -> f).toMap
+    val overlapping = localFunEnv.keySet.find(funEnv.keySet.contains)
+    if (overlapping.isDefined)
+      throw TypeError(s"Function name ${overlapping.get} is not unique")
     val finalFunEnv = funEnv ++ localFunEnv
     module.funs.foreach(checkFun(finalFunEnv))
   }
 
-  type Ctx = Map[Name, TypeAnno]
 
-  case class TypeContext(ctx: Ctx, funEnv: FunEnv, fun: PatternFunction) {
-
-    // stmt is used for better error reporting
-    def addBinding(name: Name, ty: TypeAnno, stmt: Statement): TypeContext = {
-      if (ctx.contains(name))
-        throw TypeError(s"$name is rebound in ${stmt.prettyprint("")}")
-      TypeContext(ctx + (name -> ty), funEnv, fun)
-    }
-
-    // stmt is used for better error reporting
-    def addBindings(bindings: Seq[(Name, TypeAnno)], stmt: Statement): TypeContext = {
-      val binding = bindings.map(_._1).filter(ctx.keySet.contains)
-      binding.foreach { name =>
-        throw TypeError(s"$name is rebound in ${stmt.prettyprint("")}")
-      }
-      TypeContext(ctx ++ bindings, funEnv, fun)
-    }
-
-    // TODO need to think about binding refinement
-    // look at type refinement type systems
-    def refineBinding(name: Name, ty: TypeAnno): TypeContext = {
-      val prevTy = ctx.get(name)
-      prevTy match {
-        case Some(value) =>
-          TypeContext(ctx + (name -> ty), funEnv, fun)
-        case None =>
-          TypeContext(ctx + (name -> ty), funEnv, fun)
-      }
-    }
-  }
 
   def checkFun(funEnv: FunEnv)(fun: PatternFunction): Unit = {
     // create initial context
@@ -94,10 +94,12 @@ class TypeChecker(extensions: Seq[TypeCheckerExtension])(languageMetaInfo: Langu
     fun.bodies.foreach(checkBody(typeCtx))
   }
 
-  def checkBody(ctx: TypeContext)(body: Body): Unit =
-    body.stmts.foldLeft(ctx) { case (newCtx, stmt) =>
+  def checkBody(ctx: TypeContext)(body: Body): Unit = {
+    val newCtx = body.stmts.init.foldLeft(ctx) { case (newCtx, stmt) =>
       checkStatement(newCtx)(stmt)
     }
+    checkYield(newCtx)(body.stmts.last)
+  }
 
   def checkStatement(ctx: TypeContext)(stmt: Statement): TypeContext = stmt match {
     case Assign(names, exp) =>
@@ -117,16 +119,31 @@ class TypeChecker(extensions: Seq[TypeCheckerExtension])(languageMetaInfo: Langu
           case _ => throw TypeError(s"Cannot assign non-tuple $ty to variables $names in ${stmt.prettyprint("")}")
         }
       }
+
     case Assert(exp) =>
-      // TODO assert only works for eq, neq, inst, ninst, def, undef and or not (conditions)
-      def isCondition(exp: Exp): Boolean = true
-      if (!isCondition(exp))
-        throw new IllegalArgumentException()
       val ty = checkExp(ctx)(exp)
-      // TODO implement
-      ctx
+      if (ty != TBool)
+        throw TypeError(s"Cannot pass expression of type ${ty} to assert in ${stmt}, expected boolean typed expression")
+      // TODO this is so hacky, is there a better way? this is the only case where we change a binding in the context
+      // I want to avoid having an output context for expressions
+
+      // refine ctx for variable
+      exp match {
+        case InstanceOf(Var(name), tyAnno) =>
+          ctx.refineBinding(name, tyAnno)
+        case InstanceOf(_, _) =>
+          throw TypeError("TODO what should happen in this case?")
+        case _ => ctx
+      }
+
+    case Fail => ctx
+
     case Values(name, ty) =>
       ctx.addBinding(name, ty, stmt)
+    case Yield(_) => throw TypeError(s"Yield cannot be the non-last statement of a body")
+  }
+
+  def checkYield(ctx: TypeContext)(stmt: Statement): Unit = stmt match {
     case Yield(exp) =>
       val ty = checkExp(ctx)(exp)
       val paramTys = ctx.fun.outParams.map(_.typ)
@@ -139,7 +156,6 @@ class TypeChecker(extensions: Seq[TypeCheckerExtension])(languageMetaInfo: Langu
             if (!isSubtype)
               throw TypeError(s"Cannot yield value of type ${ity.prettyprint} when function ${ctx.fun.name} expects ${pty.prettyprint}")
           }
-          ctx
         case _ =>
           if (paramTys.size != 1) {
             throw TypeError(s"Cannot yield single value within function ${ctx.fun.name} which has ${paramTys.size} output parameters")
@@ -147,9 +163,9 @@ class TypeChecker(extensions: Seq[TypeCheckerExtension])(languageMetaInfo: Langu
           val isSubtype = TypeOps.subtype(ty, paramTys.head, languageMetaInfo)
           if (!isSubtype)
             throw TypeError(s"Cannot yield type ${ty.prettyprint} when function ${ctx.fun.name} expects ${paramTys.head.prettyprint}")
-          ctx
       }
-    case Fail => ctx
+    // TODO Is this true?
+    case _ => throw TypeError(s"Every body has to end with a yield statement, but got ${stmt.prettyprint("")}")
   }
 
   def typed(exp: Exp, ty: TypeAnno): TypeAnno = {
@@ -211,6 +227,7 @@ class TypeChecker(extensions: Seq[TypeCheckerExtension])(languageMetaInfo: Langu
 
     case eval@Eval(params, code) =>
       // TODO Do we want to annotate the return type of an eval or let the scala compiler figure it out?
+      // I think we should anotate it and then let the scala compiler infer to check if correctly annotated
       throw new IllegalArgumentException("TODO implement")
 
     case Aggregate(init, join, unjoin, call) =>
@@ -243,7 +260,7 @@ class TypeChecker(extensions: Seq[TypeCheckerExtension])(languageMetaInfo: Langu
   def validDefUndefArg(exp: Exp): Unit = exp match {
     case PathAccess(_, _) => // do nothing
     case Call(_, _, _) => // do nothing
-    case _ => throw TypeError(s"Cannot pass ${exp.prettyprint("")} to def, expects path access or call")
+    case _ => throw TypeError(s"Cannot pass ${exp.prettyprint("")} to def/undef, expects path access or call")
   }
 
   def checkInstanceOf(ctx: TypeContext)(outer: Exp, e: Exp, ty: TypeAnno): TypeAnno = {
@@ -255,7 +272,7 @@ class TypeChecker(extensions: Seq[TypeCheckerExtension])(languageMetaInfo: Langu
   }
 
   def validInstanceOfArg(exp: Exp, ty: TypeAnno): Unit = ty match {
-    case TTuple(_) => throw TypeError(s"Cannot pass ${exp.prettyprint("")} of tuple type to instanceOf")
+    case TTuple(_) => throw TypeError(s"Cannot pass ${exp.prettyprint("")} of tuple type to instanceOf/notInstanceOf")
     case _ => // do nothing and continue
   }
 

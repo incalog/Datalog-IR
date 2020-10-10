@@ -32,7 +32,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
     extensions.flatMap(_.statement)
 
   val keywords: Set[Name] =
-    Set("def", "undef", "true", "false", "eval", "aggregate", "count") ++
+    Set("def", "undef", "true", "false", "eval", "aggregate", "count", "_", "unit") ++
       extensions.flatMap(_.keywords)
 
   // Parser ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -191,7 +191,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   /** Higher order extension call combination parser that function as recursion anchor. */
   private def recursionAnchorExp[_: P, T](p: Seq[AnchorExpressionParser]): P[Exp] =
     if (p.isEmpty) {
-      P(callExp | evalExp | countExp | defExp | undefExp | wildcardExp | varExp | constantExp
+      P(callExp | evalExp | countExp | defExp | undefExp | wildcardExp | constantExp | varExp
           | tupleExp | aggregateExp | bracketExp)
     } else {
       P(p.head.parse | recursionAnchorExp(p.tail))
@@ -235,7 +235,7 @@ case class CoreParser(extensions: Seq[ParserExtension] = Seq.empty) {
   def bracketExp[_: P]: P[Exp] = P("(" ~ exp ~ ")")
 
   /** Var parser */
-  def varExp[_: P]: P[Var] = P(identifier).filter(_ != "_").map(Var)
+  def varExp[_: P]: P[Var] = P(identifier).map(Var)
 
   def wildcardExp[_: P]: P[Wildcard.type] = P("_").map(_ => Wildcard)
 
