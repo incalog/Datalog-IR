@@ -9,31 +9,31 @@ import org.scalatest.flatspec.AnyFlatSpec
 class TestCoreTypeChecker extends AnyFlatSpec{
 
   def parseExp(str: String): Exp = {
-    val parser = CoreParser(Seq())
+    val parser = new CoreParser()
     // exp are always syntactically correct
     parse(str, parser.exp(_)).get.value
   }
 
   def parseStatement(str: String): Statement = {
-    val parser = CoreParser(Seq())
+    val parser = new CoreParser()
     // statements are always syntactically correct
     parse(str, parser.statement(_)).get.value
   }
 
   def parseBody(str: String): Body = {
-    val parser = CoreParser(Seq())
+    val parser = new CoreParser()
     // bodies are always syntactically correct
     parse(str, parser.body(_)).get.value
   }
 
   def parsePatternFunction(str: String): PatternFunction = {
-    val parser = CoreParser(Seq())
+    val parser = new CoreParser()
     // bodies are always syntactically correct
     parse(str, parser.patternFunction(_)).get.value
   }
 
   def parseModule(str: String): Module = {
-    val parser = CoreParser(Seq())
+    val parser = new CoreParser()
     // bodies are always syntactically correct
     parse(str, parser.module(_)).get.value
   }

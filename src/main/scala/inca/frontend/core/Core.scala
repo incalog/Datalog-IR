@@ -240,12 +240,12 @@ object Core {
   case class InstanceOf(exp: Exp, ty: TypeAnno) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = exp.freeVars
     override def prettyprint(implicit indent: String): String =
-      s"${exp.prettyprint} instanceOf ${ty.prettyprint}"
+      s"${exp.prettyprint}.isInstanceOf[${ty.prettyprint}]"
   }
   case class NotInstanceOf(exp: Exp, ty: TypeAnno) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = exp.freeVars
     override def prettyprint(implicit indent: String): String =
-      s"${exp.prettyprint} notInstanceOf ${ty.prettyprint}"
+      s"${exp.prettyprint}.notInstanceOf[${ty.prettyprint}]"
   }
   case class Def(exp: Exp) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = exp.freeVars
@@ -290,7 +290,7 @@ object Core {
   }
   case class Tuple(exps: Seq[Exp]) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = exps.flatMap(_.freeVars).toMap
-    `exps`
+
     override def prettyprint(implicit indent: String): String =
       exps.map(_.prettyprint).mkString("(", ", ", ")")
   }

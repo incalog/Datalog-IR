@@ -1,8 +1,8 @@
 package inca.frontend.parser
+import fastparse.ScalaWhitespace._
 import fastparse._
-import ScalaWhitespace._
 
-/** Utils for the CoreParser.
+/** Utils for the Parser.
   *
   * @author Ronja Schnur (rschnur@students.uni-mainz.de)
   *         Julian Cichorius (jcichori@students.uni-mainz.de)

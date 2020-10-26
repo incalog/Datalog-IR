@@ -4,46 +4,57 @@ import fastparse.Parsed.{Failure, Success}
 import fastparse._
 import inca.frontend.core.Core._
 import inca.frontend.extensions._
-import inca.frontend.parser.extensions._
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
 class ExtensionParsersTest extends AnyFunSuite {
 
   test("test BoolOps") {
-    val testBoolOpsSuccess = testSuccess(CoreParser(Seq(BoolOpsParser)).exp(_))
-    val testBoolOpsFailure = testFailure(CoreParser(Seq(BoolOpsParser)).exp(_))
+    val parser = new CoreParser with BoolOpsParser
+    val testBoolOpsSuccess = testSuccess(parser.exp(_))
+    val testBoolOpsFailure = testFailure(parser.exp(_))
 
     testBoolOpsSuccess("x && y", And(Var("x"), Var("y")))
+    testBoolOpsSuccess("x && y && z", And(And(Var("x"), Var("y")), Var("z")))
     testBoolOpsSuccess("x &&y", And(Var("x"), Var("y")))
     testBoolOpsSuccess("x || y", Or(Var("x"), Var("y")))
+    testBoolOpsSuccess("x || y || z", Or(Or(Var("x"), Var("y")), Var("z")))
     testBoolOpsSuccess("x|| y", Or(Var("x"), Var("y")))
     testBoolOpsSuccess("!x", Not(Var("x")))
     testBoolOpsSuccess("!(x && (y || z))", Not(And(Var("x"), Or(Var("y"), Var("z")))))
+    testBoolOpsSuccess("!(x || (y && z))", Not(Or(Var("x"), And(Var("y"), Var("z")))))
+    testBoolOpsSuccess("x || y && z", Or(Var("x"), And(Var("y"), Var("z"))))
+    testBoolOpsSuccess("z && x || y", Or(And(Var("z"), Var("x")), Var("y")))
+    testBoolOpsSuccess("z && x || y && z2", Or(And(Var("z"), Var("x")), And(Var("y"), Var("z2"))))
+    testBoolOpsSuccess("!x && x", And(Not(Var("x")), Var("x")))
 
     testBoolOpsFailure("&& x")
     testBoolOpsFailure("|| y")
   }
 
   test("test Cast") {
-    val testCastSuccess = testSuccess(CoreParser(Seq(CastParser)).exp(_))
+    val parser = new CoreParser with CastParser
+    val testCastSuccess = testSuccess(parser.exp(_))
 
     testCastSuccess("x:Int", Cast(Var("x"), TInt))
     testCastSuccess("x :Int", Cast(Var("x"), TInt))
     testCastSuccess("x : Int", Cast(Var("x"), TInt))
+    testCastSuccess("x:Int:Int", Cast(Cast(Var("x"), TInt), TInt))
   }
 
   test("test Enum") {
-    val testEnumSuccess = testSuccess(CoreParser(Seq(EnumParser)).exp(_))
-    val testEnumFailure = testFailure(CoreParser(Seq(EnumParser)).exp(_))
+    val parser = new CoreParser with EnumParser
+    val testEnumSuccess = testSuccess(parser.exp(_))
+    val testEnumFailure = testFailure(parser.exp(_))
 
     testEnumSuccess("enum(Int)", Enum(TInt))
     testEnumSuccess("enum(    Int)", Enum(TInt))
   }
 
   test("test ForallExists") {
-    val testForallExistsSuccess = testSuccess(CoreParser(Seq(ForallExistsParser)).statement(_))
-    val testForallExistsFailure = testFailure(CoreParser(Seq(ForallExistsParser)).statement(_))
+    val parser = new CoreParser with ForallExistsParser
+    val testForallExistsSuccess = testSuccess(parser.statement(_))
+    val testForallExistsFailure = testFailure(parser.statement(_))
 
     testForallExistsSuccess(
       s"""forall v in (x, y) {
@@ -91,8 +102,9 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test Foreach") {
-    val testForeachSuccess = testSuccess(CoreParser(Seq(ForeachParser)).statement(_))
-    val testForeachFailure = testFailure(CoreParser(Seq(ForeachParser)).statement(_))
+    val parser = new CoreParser with ForeachParser
+    val testForeachSuccess = testSuccess(parser.statement(_))
+    val testForeachFailure = testFailure(parser.statement(_))
 
     testForeachSuccess(
       s"""foreach v in (x, y) {
@@ -121,7 +133,8 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test IfThenElse") {
-    def testIfThenElse = testSuccess(CoreParser(Seq(IfThenElseParser)).statement(_))
+    val parser = new CoreParser with IfThenElseParser
+    def testIfThenElse = testSuccess(parser.statement(_))
 
     testIfThenElse(
       s"""if (v) {
@@ -129,7 +142,7 @@ class ExtensionParsersTest extends AnyFunSuite {
                 |} else if (q) {
                 | val z = 7
                 |} else {
-                | assert y 
+                | assert y
                 |}""".stripMargin,
       IfThenElse(
         Var("v"),
@@ -141,7 +154,8 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test Match") {
-    def testMatch = testSuccess(CoreParser(Seq(MatchParser)).statement(_))
+    val parser = new CoreParser with MatchParser
+    def testMatch = testSuccess(parser.statement(_))
 
     testMatch(
       s"""|x match {
@@ -200,7 +214,8 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test Switch") {
-    def testSwitch = testSuccess(CoreParser(Seq(SwitchParser)).statement(_))
+    val parser = new CoreParser with SwitchParser
+    def testSwitch = testSuccess(parser.statement(_))
 
     testSwitch(s"""|switch {}""".stripMargin, Switch(Seq.empty))
     testSwitch(s"""switch {} union {}""", Switch(Seq(Body(Seq.empty), Body(Seq.empty))))
@@ -227,7 +242,9 @@ class ExtensionParsersTest extends AnyFunSuite {
   private def testSuccess[T](parser: P[_] => P[Any]): (String, T) => Assertion =
     (input: String, cmp: T) => {
       parse(input, parser) match {
-        case Success(value, index)        => assert(cmp === value)
+        case Success(value, index)        =>
+          assertResult(cmp)(value)
+          assertResult(input.length)(index)
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
       }
     }

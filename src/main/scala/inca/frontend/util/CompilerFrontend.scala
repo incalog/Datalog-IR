@@ -5,13 +5,11 @@ import java.io.FileNotFoundException
 import fastparse.Parsed.{Failure, Success}
 import inca.frontend.core.Core
 import inca.frontend.parser.Parser
-import inca.frontend.typechecker.Typechecker
+import inca.frontend.typechecker.{FailTypecheck, SuccessTypecheck, Typechecker}
 import inca.runtime.context.LanguageMetaInfo
 
 import scala.collection.mutable
 import scala.io.Source
-import inca.frontend.typechecker.FailTypecheck
-import inca.frontend.typechecker.SuccessTypecheck
 
 case class Program(modules: Seq[Core.Module]) {
   def prettyprint: String = {

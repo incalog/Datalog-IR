@@ -1,14 +1,14 @@
 package inca.frontend.util
 
 import inca.frontend.core.Core._
-import inca.frontend.parser.CoreParser
+import inca.frontend.parser.Parser
 
 object TypeHelper {
 
   import fastparse._
   import ScalaWhitespace._
 
-  private val cp = CoreParser()
+  private val cp = Parser.full
 
   private def tNode[_: P]: P[TNode] = P(cp.fullyQualifiedIdentifier.! ~~ ( " with " ~~ cp.fullyQualifiedIdentifier).repX).map {
     case (name, _) => TNode(name)
@@ -17,7 +17,7 @@ object TypeHelper {
   private def typeAnnoHelper[_: P](t: TypeAnno): P[TypeAnno] =
     P(t.prettyprint).map(_ => t)
 
-  private def tLinked[_: P]: P[TLinked] = P(CoreParser().tAnyLinked | tNode)
+  private def tLinked[_: P]: P[TLinked] = P(cp.tAnyLinked | tNode)
 
   private def typeAnno[_: P]: P[TypeAnno] =
     Start ~ P(

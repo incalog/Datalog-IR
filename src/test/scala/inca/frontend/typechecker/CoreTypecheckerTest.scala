@@ -2,10 +2,10 @@ package inca.frontend.typechecker
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
-import inca.frontend.parser.{CoreParser, _}
-import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.core.Core._
+import inca.frontend.parser.CoreParser
 import inca.frontend.util.Program
+import org.scalatest.funsuite.AnyFunSuite
 
 /**
   * Test class for the IncA core language typechecker.
@@ -14,6 +14,8 @@ import inca.frontend.util.Program
   *          Julian Cichorius (jcichori@students.uni-mainz.de)
   */
 class CoreTypecheckerTest extends AnyFunSuite {
+  val parser = new CoreParser
+  
   test("test subtype") {
     def test_run(t1 : TypeAnno, t2 : TypeAnno) = assert(new CoreTypechecker(null, Program(Seq.empty), Seq()).subtype(t1, t2))
 
@@ -25,7 +27,7 @@ class CoreTypecheckerTest extends AnyFunSuite {
 
   test("test Typechecker") {
     def test_run(cd: String) = {
-      parse(cd, CoreParser().module(_)) match {
+      parse(cd, parser.module(_)) match {
         case Success(value, index) => {
           new CoreTypechecker(null, Program(Seq(value)), Seq()).typecheck() match {
             case SuccessTypecheck(warnings)     =>
@@ -107,7 +109,7 @@ class CoreTypecheckerTest extends AnyFunSuite {
         |  yield "Hello World"
         |}
         |""".stripMargin
-    val mod1 = parse(mod1Src, CoreParser().module(_)).get.value
+    val mod1 = parse(mod1Src, parser.module(_)).get.value
     val src =
       """module main
         |import test1
@@ -117,7 +119,7 @@ class CoreTypecheckerTest extends AnyFunSuite {
         |}
         |""".stripMargin
 
-    val code = parse(src, CoreParser().module(_)).get.value
+    val code = parse(src, parser.module(_)).get.value
     val prog = Program(Seq(mod1, code))
     val typechecker = new CoreTypechecker(null, prog, Seq.empty)
     typechecker.typecheck() match {

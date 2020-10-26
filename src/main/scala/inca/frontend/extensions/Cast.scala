@@ -13,7 +13,7 @@ case class Cast(src: Exp, targetTyp: TypeAnno) extends Exp {
     s"${src.prettyprint}:${targetTyp.prettyprint}"
 }
 
-object Cast extends Desugarable {
+object Cast extends Desugarable with Function2[Exp, TypeAnno, Exp] {
   override def trans(): DesugarTrans = new DesugarTrans {
     val castStatements: ListBuffer[Statement] = ListBuffer()
 

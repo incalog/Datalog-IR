@@ -1,12 +1,11 @@
 package inca.frontend.typechecker
 
-import inca.frontend.parser.Parser
 import fastparse.Parsed.{Failure, Success}
 import inca.analyzedLangs.Exp
-import org.scalatest.funsuite.AnyFunSuite
-import inca.frontend.core.Core._
-import inca.frontend.util.Program
 import inca.frontend.parser.Conversions._
+import inca.frontend.parser.Parser
+import inca.frontend.util.Program
+import org.scalatest.funsuite.AnyFunSuite
 
 /**
   * Test class for the IncA core language typechecker.
