@@ -1,5 +1,6 @@
 package inca.frontend.extensions
 
+import inca.frontend.Frontend
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.util.Gensym
@@ -16,6 +17,24 @@ case class Foreach(name: Name, exp: Exp, body: Body) extends Statement {
   override def prettyprint(implicit indent: String): String = {
     s"${indent}foreach $name in ${exp.prettyprint} ${body.prettyprint}"
   }
+}
+
+/**
+ * Extension adding "forallexists" statements to @see Parser.
+ */
+trait ForeachFrontend extends Frontend {
+  import fastparse.ScalaWhitespace._
+  import fastparse._
+
+  override protected def desugarables: Seq[Desugarable] = Foreach +: super.desugarables
+
+  override protected[frontend] def statement[_: P]: P[Statement] =
+    P(
+      "foreach " ~ identifier ~~ " " ~ "in " ~ exp ~ body
+    ).map { case (s, e, b) => Foreach(s, e, b) } |
+      super.statement
+
+  override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("foreach", "in")
 }
 
 object Foreach extends Desugarable {

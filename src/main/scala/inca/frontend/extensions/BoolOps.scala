@@ -1,5 +1,6 @@
 package inca.frontend.extensions
 
+import inca.frontend.Frontend
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.util.Gensym
@@ -21,6 +22,19 @@ case class Or(e1: Exp, e2: Exp) extends Exp {
   override def prettyprint(implicit indent: String): String = s"(${e1.prettyprint} || ${e2.prettyprint})"
 }
 
+/**
+ * Extension adding boolean expressions to CoreParser.
+ */
+trait BoolOpsFrontend extends Frontend {
+  import fastparse.ScalaWhitespace._
+  import fastparse._
+
+  override protected def desugarables: Seq[Desugarable] = BoolOps +: super.desugarables
+
+  override protected[frontend] def infixExp[_: P]: P[Exp] = Chain(andExp, "||", andExp, Or)
+  protected[frontend] def andExp[_: P]: P[Exp] = Chain(notExp, "&&", notExp, And)
+  protected[frontend] def notExp[_: P]: P[Exp] = P(("!" ~ super.infixExp).map(Not) | super.infixExp)
+}
 
 object BoolOps extends Desugarable {
 
@@ -82,3 +96,4 @@ object BoolOps extends Desugarable {
     }
   }
 }
+

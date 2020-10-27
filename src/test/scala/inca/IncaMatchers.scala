@@ -19,7 +19,7 @@ trait IncaMatchers extends Matchers {
   def assertDesugar(core: Module, sugared: Module, options: CompilerOptions = this.options): Unit = {
 //    println(sugared + "\n" + "-- should desugar to --" + "\n" + core)
 
-    assertResult(core)(Desugar(options.desugarables)(sugared))
+    assertResult(core)(Desugar(options.frontend.allDesugarables)(sugared))
   }
 
   def assertOptimize(optimized: GP.Module, original: GP.Module): Unit = {

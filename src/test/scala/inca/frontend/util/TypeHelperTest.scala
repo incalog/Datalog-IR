@@ -1,6 +1,7 @@
 package inca.frontend.util
 
-import inca.frontend.core.Core.{TAny, TBool, TDouble, TInt, TList, TLong, TNode, TString, TTuple, TypeAnno}
+import inca.frontend.core.Core._
+import inca.frontend.typechecker.ScalaTypeError
 import org.scalatest.funsuite.AnyFunSuite
 
 class TypeHelperTest extends AnyFunSuite{

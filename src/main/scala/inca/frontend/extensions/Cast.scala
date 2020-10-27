@@ -1,5 +1,6 @@
 package inca.frontend.extensions
 
+import inca.frontend.Frontend
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.util.Gensym
@@ -13,7 +14,21 @@ case class Cast(src: Exp, targetTyp: TypeAnno) extends Exp {
     s"${src.prettyprint}:${targetTyp.prettyprint}"
 }
 
-object Cast extends Desugarable with Function2[Exp, TypeAnno, Exp] {
+/**
+ * Extension adding cast expressions to @see Parser.
+ */
+trait CastFrontend extends Frontend {
+  import fastparse.ScalaWhitespace._
+  import fastparse._
+
+  override protected def desugarables: Seq[Desugarable] = Cast +: super.desugarables
+
+  override protected[frontend] def trailExp[_: P]: P[Exp => Exp] =
+    P(":" ~ typeAnno).map(ty => Cast(_, ty)) |
+      super.trailExp
+}
+
+object Cast extends Desugarable {
   override def trans(): DesugarTrans = new DesugarTrans {
     val castStatements: ListBuffer[Statement] = ListBuffer()
 

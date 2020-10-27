@@ -1,7 +1,9 @@
 package inca.frontend.extensions
 
+import inca.frontend.Frontend
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
+import inca.frontend.parser.ParserUtils.{nl_!, sp}
 import inca.util.{Gensym, Meta}
 
 import scala.collection.mutable.ListBuffer
@@ -82,6 +84,56 @@ case class LiteralPattern(v: Literal) extends Pattern {
   override def prettyprint(implicit indent: String): String = v.prettyprint
 }
 
+
+/**
+ * Extension adding pattern matching statements to @see CoreParser.
+ */
+trait MatchFrontend extends Frontend {
+  import fastparse.ScalaWhitespace._
+  import fastparse._
+
+  override protected def desugarables: Seq[Desugarable] = Match +: super.desugarables
+
+  override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("match", "case")
+
+  /**
+   * Statement parser
+   */
+  override protected[frontend] def statement[_: P]: P[Statement] =
+    matchStatement | super.statement
+
+  protected[frontend] def matchStatement[_: P]: P[Statement] =
+    P(exp ~ "match" ~ "{" ~ P(sp ~~ case_ ~~ sp).repX(sep = nl_!) ~ "}").map { case (e, cs) => Match(e, cs) }
+
+  protected[frontend] def case_[_: P]: P[Case] =
+    P("case " ~ pattern ~ "=>" ~ body).map(Case.tupled)
+
+  protected[frontend] def pattern[_: P]: P[Pattern] =
+    P(tuplePattern | namedPattern | nodePattern | wildcardPattern | varPattern
+      | literalPattern)
+
+  protected[frontend] def patternBinding[_: P]: P[PatternBinding] =
+    P(identifier ~ "=" ~ pattern).map(PatternBinding.tupled)
+
+  protected[frontend] def nodePattern[_: P]: P[Pattern] =
+    P(tNode ~ "(" ~ P(patternBinding).rep(sep = ",") ~ ")").map(NodePattern.tupled)
+
+  protected[frontend] def tuplePattern[_: P]: P[Pattern] =
+    P("(" ~ P(pattern).rep(sep = ",") ~ ")").map(TuplePattern)
+
+  protected[frontend] def varPattern[_: P]: P[Pattern] =
+    P(identifier).map(VarPattern)
+
+  protected[frontend] def namedPattern[_: P]: P[Pattern] =
+    P(identifier ~ "@" ~ pattern).map(NamedPattern.tupled)
+
+  protected[frontend] def wildcardPattern[_: P]: P[Pattern] =
+    P("_").!.map(_ => WildcardPattern)
+
+  protected[frontend] def literalPattern[_: P]: P[Pattern] =
+    P(literal).map(LiteralPattern)
+
+}
 
 
 object Match extends Desugarable {

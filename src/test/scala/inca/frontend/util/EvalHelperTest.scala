@@ -1,7 +1,8 @@
 package inca.frontend.util
 
-import inca.frontend.core.Core.{Eval, Module, Name, TAny, TBool, TDouble, TInt, TList, TNode, TString, TTuple, TUnit, TypeAnno}
-import inca.frontend.typechecker.TypeContext
+import inca.frontend.core.Core.{Name => _, _}
+import inca.frontend.parser.EvalHelper
+import inca.frontend.typechecker.{EvalChecker, TypeContext}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.Term._
@@ -490,7 +491,7 @@ class EvalHelperTest extends AnyFunSuite {
   test("test typecheck simple") {
 
     def check(eval: Eval, expected: TypeAnno): Unit = {
-      val actual = EvalHelper.typecheck(eval)
+      val actual = EvalChecker.typecheck(eval)
       assert(actual == expected)
     }
 
@@ -505,41 +506,41 @@ class EvalHelperTest extends AnyFunSuite {
 
   test("test typecheck tuple") {
     val eval = Eval(Seq.empty, q"(1, 1.0, true)")
-    val typ = EvalHelper.typecheck(eval)
+    val typ = EvalChecker.typecheck(eval)
     assert(typ == TTuple(Seq(TInt, TDouble, TBool)))
   }
 
   test("test typecheck tuple nested") {
     val code = q"(1, 3.4, (true, 'h'))"
     val eval = Eval(Seq.empty, code)
-    val typ = EvalHelper.typecheck(eval)
+    val typ = EvalChecker.typecheck(eval)
     assert(typ == TTuple(Seq(TInt, TDouble, TTuple(Seq(TBool, TInt)))))
   }
 
   test("test typecheck tuple nested with string literals") {
     val code = q"""(42, 6.9, true, ("hello", 2), "world") """
     val eval = Eval(Seq.empty, code)
-    val typ = EvalHelper.typecheck(eval)
+    val typ = EvalChecker.typecheck(eval)
     assert(typ == TTuple(Seq(TInt, TDouble, TBool, TTuple(Seq(TString, TInt)), TString)))
   }
 
   test("test typecheck subtyping") {
     val code = q"""if(true) 42 else new Object()"""
     val eval = Eval(Seq.empty, code)
-    val typ = EvalHelper.typecheck(eval)
+    val typ = EvalChecker.typecheck(eval)
     assert(typ == TAny)
   }
 
   test("test typecheck list") {
     val code = q"List(inca.analyzedData.Nat.Zero)"
     val eval = Eval(Seq.empty, code)
-    val typ = EvalHelper.typecheck(eval)
+    val typ = EvalChecker.typecheck(eval)
     assert(typ == TList(TNode("inca.analyzedData.Nat.Zero.type")))
   }
 
   test("test typecheck extern types") {
     val eval = Eval(Seq.empty, q"inca.analyzedData.Nat.Zero")
-    val typ = EvalHelper.typecheck(eval)
+    val typ = EvalChecker.typecheck(eval)
     assert(typ == TNode("inca.analyzedData.Nat.Zero.type"))
   }
 
@@ -552,7 +553,7 @@ class EvalHelperTest extends AnyFunSuite {
        """
 
     val eval = Eval(Seq("num"), code)
-    val typ = EvalHelper.typecheck(eval)
+    val typ = EvalChecker.typecheck(eval)
     assert(typ == TNode("inca.analyzedData.Nat.Nat"))
   }
 
@@ -566,7 +567,7 @@ class EvalHelperTest extends AnyFunSuite {
        """
 
     val eval = Eval(Seq("num"), code)
-    val typ = EvalHelper.typecheck(eval)
+    val typ = EvalChecker.typecheck(eval)
     assert(typ == TTuple(Seq(TInt, TNode("inca.analyzedData.Nat.Nat"))))
   }
 

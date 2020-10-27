@@ -1,14 +1,15 @@
 package inca.frontend.util
 
+import inca.frontend.Frontend
 import inca.frontend.core.Core._
-import inca.frontend.parser.Parser
+import inca.frontend.typechecker.ScalaTypeError
 
 object TypeHelper {
 
   import fastparse._
   import ScalaWhitespace._
 
-  private val cp = Parser.full
+  private val cp = Frontend.Inca
 
   private def tNode[_: P]: P[TNode] = P(cp.fullyQualifiedIdentifier.! ~~ ( " with " ~~ cp.fullyQualifiedIdentifier).repX).map {
     case (name, _) => TNode(name)

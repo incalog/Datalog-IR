@@ -1,5 +1,6 @@
 package inca.frontend.extensions
 
+import inca.frontend.Frontend
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.util.Gensym
@@ -12,6 +13,25 @@ case class Switch(bodies: Seq[Body]) extends Statement {
     if (bodies.isEmpty) "switch { }" else
       s"${indent}switch " + bodies.map(_.prettyprint(indent)).mkString(" union ")
   }
+}
+
+/**
+ * Extension adding "switch" statements to @see Parser.
+ */
+trait SwitchFrontend extends Frontend {
+  import fastparse.ScalaWhitespace._
+  import fastparse._
+
+  override protected def desugarables: Seq[Desugarable] = Switch +: super.desugarables
+
+  override protected[frontend] def keywords: Set[String] = super.keywords + "switch"
+
+  override protected[frontend] def statement[_: P]: P[Statement] =
+    P("switch" ~ body.rep(sep = "union")).map { bodies =>
+      if (bodies.size == 1 && bodies.head.stmts.isEmpty) Switch(Seq.empty)
+      else Switch(bodies)
+    } |
+      super.statement
 }
 
 object Switch extends Desugarable {

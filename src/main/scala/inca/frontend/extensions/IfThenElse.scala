@@ -1,5 +1,6 @@
 package inca.frontend.extensions
 
+import inca.frontend.Frontend
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.util.Gensym
@@ -21,6 +22,39 @@ case class ElseIf(cond: Exp, body: Body) {
   def allVars: Map[Name, Option[TypeAnno]] = cond.freeVars ++ body.allVars
   def prettyprint(implicit indent: String): String =
     s" else if (${cond.prettyprint}) ${body.prettyprint}".stripMargin
+}
+
+/**
+ * Extension adding "ifthenelse" statements to @see Parser.
+ */
+trait IfThenElseFrontend extends Frontend {
+  import fastparse.ScalaWhitespace._
+  import fastparse._
+
+  override protected def desugarables: Seq[Desugarable] = IfThenElse +: super.desugarables
+
+  /**
+   * Statement parser
+   */
+  override protected[frontend] def statement[_: P]: P[Statement] = {
+    ifThenElse |
+      super.statement
+  }
+
+  protected[frontend] def ifThenElse[_: P]: P[Statement] =
+    P(
+      "if" ~ "(" ~ exp ~ ")" ~ body ~
+        elseif.rep.? ~ P("else" ~ body).?
+    ).map { case (e, b, eifs, el) => IfThenElse(e, b, eifs.getOrElse(Seq.empty), el) }
+
+  protected[frontend] def elseif[_: P]: P[ElseIf] =
+    P(
+      "else" ~ "if" ~ "(" ~ exp ~ ")" ~ body
+    ).map { case (e, b) => ElseIf(e, b) }
+
+
+  override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("if", "else")
+
 }
 
 object IfThenElse extends Desugarable {

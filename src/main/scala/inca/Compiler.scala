@@ -13,7 +13,7 @@ object Compiler {
                        pkg: Option[String] = None,
                        compilerOptions: CompilerOptions): meta.Source = {
 //    println(module)
-    val desugared = Desugar(compilerOptions.desugarables)(module)
+    val desugared = Desugar(compilerOptions.frontend.allDesugarables)(module)
 //    println(desugared)
     val gp = CompileToGP.transformModule(desugared)
 //    println(gp)

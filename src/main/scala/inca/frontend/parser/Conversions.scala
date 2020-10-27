@@ -1,6 +1,7 @@
 package inca.frontend.parser
 
 import fastparse.parse
+import inca.frontend.Frontend
 import inca.frontend.core.Core._
 
 
@@ -8,17 +9,17 @@ object Conversions{
   implicit class IncaParsed(val sc: StringContext) extends AnyVal {
     def mod(args: Any*): Module = {
       val code = buildCode(sc, args)
-      Parser.parseModule(code).get.value
+      parse(code, Frontend.Inca.module(_)).get.value
     }
 
     def exp(args: Any*): Exp = {
       val code = buildCode(sc, args)
-      parse(code, Parser.full.exp(_)).get.value
+      parse(code, Frontend.Inca.exp(_)).get.value
     }
 
     def stm(args: Any*): Statement = {
       val code = buildCode(sc, args)
-      parse(code, Parser.full.statement(_)).get.value
+      parse(code, Frontend.Inca.statement(_)).get.value
     }
   }
 

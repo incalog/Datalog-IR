@@ -12,7 +12,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
   val two = Constant(IntLiteral(2))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo, desugarables = Seq(Foreach))
+  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo, frontend = new ForeachFrontend {})
 
   "desugaring" should "eliminate foreach loops" in {
     val sugared = Module("Test", Seq(), Seq(
@@ -88,7 +88,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchCoreProg(module, "integerlits", input, options = CompilerOptions(scope.langMetaInfo, Seq(Foreach, Enum))) { matcher =>
+    assertMatchCoreProg(module, "integerlits", input, options = CompilerOptions(scope.langMetaInfo, new ForeachFrontend with EnumFrontend {})) { matcher =>
       assert(matcher.getAllMatches.size() == 5)
     }
   }
@@ -120,7 +120,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchCoreProg(module, "integerlits", input, options = CompilerOptions(scope.langMetaInfo, Seq(Foreach, Enum))) { matcher =>
+    assertMatchCoreProg(module, "integerlits", input, options = CompilerOptions(scope.langMetaInfo, new ForeachFrontend with EnumFrontend {})) { matcher =>
       assert(matcher.getAllMatches.size() == 3)
       matcher.getAllMatchArrays should contain theSameElementsAs Seq(Array(3), Array(4), Array(5))
     }

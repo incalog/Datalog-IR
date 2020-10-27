@@ -1,5 +1,6 @@
 package inca.frontend.extensions
 
+import inca.frontend.Frontend
 import inca.frontend.core.CompileToGP.resolveDataOp
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
@@ -15,6 +16,13 @@ case class DataOpCall(op: DataOp, args: Seq[Exp]) extends Exp {
     s"${op.prettyprint}(${args.map(_.prettyprint).mkString(", ")})"
 }
 
+/** Extension adding dataop operations to @see Parser.
+ *
+ * @todo Ambiguous Syntax => Same as Call
+ */
+trait DataOpCallFrontentd extends Frontend {
+  override protected def desugarables: Seq[Desugarable] = DataOpCall +: super.desugarables
+}
 
 object DataOpCall extends Desugarable {
   override def trans(): DesugarTrans = new DesugarTrans {

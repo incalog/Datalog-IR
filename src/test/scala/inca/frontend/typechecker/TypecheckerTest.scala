@@ -2,8 +2,8 @@ package inca.frontend.typechecker
 
 import fastparse.Parsed.{Failure, Success}
 import inca.analyzedLangs.Exp
+import inca.frontend.Frontend
 import inca.frontend.parser.Conversions._
-import inca.frontend.parser.Parser
 import inca.frontend.util.Program
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -20,7 +20,7 @@ class TypecheckerTest extends AnyFunSuite {
   test("test Typechecker") {
     // println(lmi.links)
     def test_run(cd: String) = {
-      Parser.parseModule(cd) match {
+      Frontend.Inca.parseModule(cd) match {
         case Success(value, index) => {
           val prog = Program(Seq(value))
           Typechecker.typecheck(lmi, prog) match {

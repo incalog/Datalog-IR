@@ -4,7 +4,7 @@ import inca.frontend.core.Core._
 import inca.util.Gensym
 
 /**
- * Desugaring adapter that makes no changed by default.
+ * Desugaring adapter that makes no changes by default.
  * Acutal desugarings should extend this class and must set `changesMade` when making a change.
  */
 class DesugarTrans {

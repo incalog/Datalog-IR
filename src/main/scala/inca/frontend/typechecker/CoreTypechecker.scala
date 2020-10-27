@@ -2,7 +2,7 @@ package inca.frontend.typechecker
 
 import inca.frontend.core.Core.{Fail, _}
 import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
-import inca.frontend.util.{EvalHelper, Program, ScalaTypeError, TypeHelper}
+import inca.frontend.util.{Program, TypeHelper}
 import inca.runtime.context._
 import truechange.SortType
 
@@ -372,7 +372,7 @@ class CoreTypechecker(
         (linkType, union(context.tenv, te))
       case eval@Eval(_, _)    =>
         try {
-          val resType = EvalHelper.typecheck(eval)
+          val resType = EvalChecker.typecheck(eval)
           eval.typed(resType)
           (resType, context.tenv)
         } catch {

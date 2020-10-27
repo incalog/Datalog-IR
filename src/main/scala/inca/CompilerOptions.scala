@@ -2,27 +2,17 @@ package inca
 
 import inca.CompilerOptions._
 import inca.backend.optimize._
-import inca.frontend.desugar.Desugarable
-import inca.frontend.extensions.{BoolOps, Cast, DataOpCall, Enum, ForallExists, Foreach, IfThenElse, Match, Switch}
+import inca.frontend.Frontend
 import inca.runtime.context.LanguageMetaInfo
 
 case class CompilerOptions(languageMetaInfo: LanguageMetaInfo,
-                           desugarables: Seq[Desugarable] = defaultDesugarables,
+                           frontend: Frontend = defaultFrontend,
                            optimizations: Seq[Optimization] = defaultOptimizations)
 
 object CompilerOptions {
-  val defaultDesugarables = Seq(
-    DataOpCall,
-    BoolOps,
-    Cast,
-    Enum,
-    ForallExists,
-    Foreach,
-    IfThenElse,
-    Match,
-    Switch)
+  val defaultFrontend: Frontend = Frontend.Inca
 
-  val defaultOptimizations = Seq(
+  val defaultOptimizations: Seq[Optimization] = Seq(
     ConstantPropagation,
     EliminateAliases,
     InferVarTypes,

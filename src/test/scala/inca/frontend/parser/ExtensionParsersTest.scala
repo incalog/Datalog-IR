@@ -10,7 +10,7 @@ import org.scalatest.funsuite.AnyFunSuite
 class ExtensionParsersTest extends AnyFunSuite {
 
   test("test BoolOps") {
-    val parser = new CoreParser with BoolOpsParser
+    val parser = new CoreParser with BoolOpsFrontend
     val testBoolOpsSuccess = testSuccess(parser.exp(_))
     val testBoolOpsFailure = testFailure(parser.exp(_))
 
@@ -33,7 +33,7 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test Cast") {
-    val parser = new CoreParser with CastParser
+    val parser = new CoreParser with CastFrontend
     val testCastSuccess = testSuccess(parser.exp(_))
 
     testCastSuccess("x:Int", Cast(Var("x"), TInt))
@@ -43,7 +43,7 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test Enum") {
-    val parser = new CoreParser with EnumParser
+    val parser = new CoreParser with EnumFrontend
     val testEnumSuccess = testSuccess(parser.exp(_))
     val testEnumFailure = testFailure(parser.exp(_))
 
@@ -52,7 +52,7 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test ForallExists") {
-    val parser = new CoreParser with ForallExistsParser
+    val parser = new CoreParser with ForallExistsFrontend
     val testForallExistsSuccess = testSuccess(parser.statement(_))
     val testForallExistsFailure = testFailure(parser.statement(_))
 
@@ -102,7 +102,7 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test Foreach") {
-    val parser = new CoreParser with ForeachParser
+    val parser = new CoreParser with ForeachFrontend
     val testForeachSuccess = testSuccess(parser.statement(_))
     val testForeachFailure = testFailure(parser.statement(_))
 
@@ -133,7 +133,7 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test IfThenElse") {
-    val parser = new CoreParser with IfThenElseParser
+    val parser = new CoreParser with IfThenElseFrontend
     def testIfThenElse = testSuccess(parser.statement(_))
 
     testIfThenElse(
@@ -154,7 +154,7 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test Match") {
-    val parser = new CoreParser with MatchParser
+    val parser = new CoreParser with MatchFrontend
     def testMatch = testSuccess(parser.statement(_))
 
     testMatch(
@@ -214,7 +214,7 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test Switch") {
-    val parser = new CoreParser with SwitchParser
+    val parser = new CoreParser with SwitchFrontend
     def testSwitch = testSuccess(parser.statement(_))
 
     testSwitch(s"""|switch {}""".stripMargin, Switch(Seq.empty))

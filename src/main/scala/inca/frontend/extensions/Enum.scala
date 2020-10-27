@@ -1,5 +1,6 @@
 package inca.frontend.extensions
 
+import inca.frontend.Frontend
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.util.Gensym
@@ -10,6 +11,22 @@ import scala.collection.mutable.ListBuffer
 case class Enum(ty: TypeAnno) extends Exp {
   override def freeVars: Map[Name, Option[TypeAnno]] = Map()
   override def prettyprint(implicit indent: String): String = s"enum(${ty.prettyprint})"
+}
+
+/**
+ * Extension adding enum expressions to @see Parser.
+ */
+trait EnumFrontend extends Frontend {
+  import fastparse.ScalaWhitespace._
+  import fastparse._
+
+  override protected def desugarables: Seq[Desugarable] = Enum +: super.desugarables
+
+  override protected[frontend] def atomicExp[_: P]: P[Exp] =
+    P("enum" ~ "(" ~ typeAnno ~ ")").map(Enum.apply) |
+      super.atomicExp
+
+  override protected[frontend] def keywords: Set[String] = super.keywords + "enum"
 }
 
 object Enum extends Desugarable {

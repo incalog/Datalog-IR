@@ -3,8 +3,8 @@ package inca.frontend.util
 import java.io.FileNotFoundException
 
 import fastparse.Parsed.{Failure, Success}
+import inca.frontend.Frontend
 import inca.frontend.core.Core
-import inca.frontend.parser.Parser
 import inca.frontend.typechecker.{FailTypecheck, SuccessTypecheck, Typechecker}
 import inca.runtime.context.LanguageMetaInfo
 
@@ -55,7 +55,7 @@ object CompilerFrontend {
       try {
         file = Source.fromFile(f)
         val code = file.mkString
-        val res = Parser.parseModule(code)
+        val res = Frontend.Inca.parseModule(code)
         res match {
           case Failure(_, _, extra) =>
             println(s"> Syntax error in file '$f':\n'''")

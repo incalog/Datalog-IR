@@ -14,7 +14,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
   val four = Constant(IntLiteral(4))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo, desugarables = Seq(IfThenElse))
+  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo, frontend = new IfThenElseFrontend {})
 
   "desugaring" should "eliminate if-then-else" in {
     val sugared = Module("Test", Seq(), Seq(
