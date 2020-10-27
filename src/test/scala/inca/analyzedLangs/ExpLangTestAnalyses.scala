@@ -2,10 +2,14 @@ package inca.analyzedLangs
 
 import inca.frontend.core.Core._
 
+import scala.language.implicitConversions
+
 object ExpLangTestAnalyses {
   private val addType: TNode = TNode(Exp.addTag)
   private val expType: TNode = TNode(Exp.expTag)
   private val boolType: TNode = TNode(Exp.boolTag)
+
+  implicit def name(s: String): Name = Name(s)
 
   val idFun: PatternFunction = PatternFunction(
     None,

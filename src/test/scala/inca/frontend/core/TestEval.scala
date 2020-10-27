@@ -6,9 +6,12 @@ import inca.runtime.context.QueryScope
 import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
+import scala.language.implicitConversions
 import scala.meta.XtensionQuasiquoteTerm
 
 class TestEval extends AnyFlatSpec with IncaMatchers {
+
+  implicit def name(s: String): Name = Name(s)
 
   val one = Constant(IntLiteral(1))
   val two = Constant(IntLiteral(2))

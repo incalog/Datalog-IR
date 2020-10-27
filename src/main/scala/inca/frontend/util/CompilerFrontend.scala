@@ -20,7 +20,7 @@ case class Program(modules: Seq[Core.Module]) {
     val names = modules.map(_.name)
     for (n <- names) {
       if (names.count(_ == n) > 1)
-        return n
+        return n.name
     }
     ""
   }

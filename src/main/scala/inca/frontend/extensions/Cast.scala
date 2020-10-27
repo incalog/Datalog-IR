@@ -39,7 +39,7 @@ object Cast extends Desugarable {
           case Var(v) =>
             v
           case _ =>
-            val v = gensym.fresh("cast")
+            val v = Name(gensym.fresh("cast"))
             castStatements += Assign(Seq(v), desugaredSrc)
             v
         }

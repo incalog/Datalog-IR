@@ -9,8 +9,11 @@ import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
 import truediff.Diffable
 
+import scala.language.implicitConversions
+
 class FindBugsTests extends AnyFunSuite {
 
+  implicit def name(s: String): Name = Name(s)
 
   test("Confused Inheritance") {
     val classDeclType = TNode(tinyJava.classDeclTag)

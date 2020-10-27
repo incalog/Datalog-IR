@@ -1,6 +1,6 @@
 package inca.analyzedData
 
-import inca.frontend.core.Core.{DataOp, DataType}
+import inca.frontend.core.Core.{DataOp, DataType, Name}
 
 object Nat {
   sealed trait Nat {
@@ -25,13 +25,13 @@ object Nat {
     }
   }
 
-  val NatTyp = DataType(Some("inca.analyzedData.Nat"), "Nat")
-  val zeroOp = DataOp(Some("inca.analyzedData.Nat"), "Zero")
-  val succOp = DataOp(Some("inca.analyzedData.Nat"), "Succ")
+  val NatTyp = DataType(Some(Name("inca.analyzedData.Nat")), Name("Nat"))
+  val zeroOp = DataOp(Some(Name("inca.analyzedData.Nat")), Name("Zero"))
+  val succOp = DataOp(Some(Name("inca.analyzedData.Nat")), Name("Succ"))
 
   def add(m: Nat, n: Nat): Nat = m.add(n)
   def sub(m: Nat, n: Nat): Nat = m.sub(n)
 
-  val addOp = DataOp(Some("inca.analyzedData.Nat"), "add", isAssociative = true, isCommutative = true)
-  val subOp = DataOp(Some("inca.analyzedData.Nat"), "sub", isAssociative = true)
+  val addOp = DataOp(Some(Name("inca.analyzedData.Nat")), Name("add"), isAssociative = true, isCommutative = true)
+  val subOp = DataOp(Some(Name("inca.analyzedData.Nat")), Name("sub"), isAssociative = true)
 }

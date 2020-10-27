@@ -31,7 +31,7 @@ object DataOpCall extends Desugarable {
     override def desugarExp(exp: Exp)(implicit gensym: Gensym): Exp = exp match {
       case call@DataOpCall(op, args) =>
         val syms = args.map { arg =>
-          val sym = gensym.fresh("dataOpArg")
+          val sym = Name(gensym.fresh("dataOpArg"))
           dataOpAssigns += Assign(Seq(sym), arg)
           sym
         }
@@ -39,7 +39,7 @@ object DataOpCall extends Desugarable {
         val resultType = call.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped data op call $call"))
         val qop = resolveDataOp(op)
         val fun = Meta.mkQualName(qop)
-        val code: Term = if(syms.isEmpty) fun else Term.Apply(fun, syms.map(Meta.mkQualName).toList)
+        val code: Term = if(syms.isEmpty) fun else Term.Apply(fun, syms.map(n => Meta.mkQualName(n.name)).toList)
         changed(Eval(syms, code).typed(resultType))
       case _ => super.desugarExp(exp)
     }

@@ -42,7 +42,7 @@ object BoolOps extends Desugarable {
 
   override def trans(): DesugarTrans = new DesugarTrans {
     val boolStatements: ListBuffer[Statement] = ListBuffer()
-    val orAlternatives: mutable.MultiDict[String, Exp] = mutable.MultiDict()
+    val orAlternatives: mutable.MultiDict[Name, Exp] = mutable.MultiDict()
 
     override def desugarExp(cond: Exp)(implicit gensym: Gensym): Exp = cond match {
       case Not(cond) => desugarNot(cond).orTyped(TBool)
@@ -50,7 +50,7 @@ object BoolOps extends Desugarable {
         boolStatements += Assert(desugarExp(e1).orTyped(TBool))
         changed(desugarExp(e2).orTyped(TBool))
       case Or(e1, e2) =>
-        val sym = gensym.fresh("or")
+        val sym = Name(gensym.fresh("or"))
         orAlternatives += sym -> e1.orTyped(TBool)
         orAlternatives += sym -> e2.orTyped(TBool)
         changed(Var(sym))

@@ -9,6 +9,40 @@ import fastparse._
   */
 object ParserUtils {
 
+  implicit class Ploc[T](p: => P[T])(implicit ctx: P[_]) {
+    def mapWithLoc[U <: SourceLocation](f: T => U): P[U] =
+      (Index ~ p ~ Index).map {
+        case (start, t, end) =>
+          val u = f(t)
+          u.startIndex = start
+          u.endIndex = end
+          u
+      }
+
+    def mapWithLocFun[U <: SourceLocation, V <: SourceLocation](f: T => (U => V)): P[U => V] =
+      (Index ~ p ~ Index).map {
+        case (start, t, end) =>
+          val uv = f(t)
+          u => {
+            val v = uv(u)
+            v.startIndex = u.startIndex
+            v.endIndex = end
+            v
+          }
+      }
+
+    def flatMapWithLoc[U <: SourceLocation](f: T => P[U]): P[U] =
+      (Index ~ p ~ Index).flatMap {
+        case (start, t, end) =>
+          val up = f(t)
+          up.map { u =>
+            u.startIndex = start
+            u.endIndex = end
+            u
+          }
+      }
+  }
+
   /** Parser consuming all spaces by ignoring them. */
   def sp[_: P]: P[Unit] = CharsWhileIn(" ").?
 

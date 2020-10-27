@@ -8,6 +8,8 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 class TestEnum extends AnyFlatSpec with IncaMatchers {
 
+  implicit def name(s: String): Name = Name(s)
+
   val one = Constant(IntLiteral(1))
   val two = Constant(IntLiteral(2))
 

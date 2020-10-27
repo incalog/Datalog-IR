@@ -63,9 +63,9 @@ object ForallExists extends Desugarable {
     override def desugarStm(stm: Statement)(implicit gensym: Gensym): Seq[Statement] = stm match {
       case Forall(name, exp, body) => exp.typ.getOrElse(throw new IllegalArgumentException(s"Cannot support forall over untyped expression $exp")) match {
         case TList(ty) =>
-          val funsym = gensym.fresh("forallCond")
-          val sizeSym = gensym.fresh("listSize")
-          val successSym = gensym.fresh("successSize")
+          val funsym = Name(gensym.fresh("forallCond"))
+          val sizeSym = Name(gensym.fresh("listSize"))
+          val successSym = Name(gensym.fresh("successSize"))
 
           val vars = makeCondFun(name, exp, body, ty, funsym)
           val args = vars.map(v => Var(v._1))
@@ -80,15 +80,15 @@ object ForallExists extends Desugarable {
 
       case Exists(name, exp, body) => exp.typ.getOrElse(throw new IllegalArgumentException(s"Cannot support exists over untyped expression $exp")) match {
         case TList(ty) =>
-          val funsym = gensym.fresh("existsCond")
-          val successSym = gensym.fresh("successSize")
+          val funsym = Name(gensym.fresh("existsCond"))
+          val successSym = Name(gensym.fresh("successSize"))
 
           val vars = makeCondFun(name, exp, body, ty, funsym)
           val args = vars.map(v => Var(v._1))
 
           changed(Seq(
             Assign(Seq(successSym), Count(Call(funsym, args)).typed(TInt)),
-            Assert(Eval(Seq(successSym), q"""${Term.Name(successSym)} >= 1""").typed(TBool))
+            Assert(Eval(Seq(successSym), q"""${Term.Name(successSym.name)} >= 1""").typed(TBool))
           ))
         case ty => throw new IllegalArgumentException(s"Forall loop expression $exp must have iterable type, but was type $ty")
       }
@@ -96,7 +96,7 @@ object ForallExists extends Desugarable {
       case _ => super.desugarStm(stm)
     }
 
-    private def makeCondFun(name: Name, exp: Exp, body: Body, ty: TLinked, funsym: String)(implicit gensym: Gensym): Seq[(Name, Option[TypeAnno])] = {
+    private def makeCondFun(name: Name, exp: Exp, body: Body, ty: TLinked, funsym: Name)(implicit gensym: Gensym): Seq[(Name, Option[TypeAnno])] = {
       val newbody = Body(Seq(
         Foreach(name, exp,
           Body(body.stmts.flatMap(desugarStm) :+ Yield(Var(name)))

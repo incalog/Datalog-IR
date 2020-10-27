@@ -36,7 +36,7 @@ object Enum extends Desugarable {
 
     override def desugarExp(exp: Exp)(implicit gensym: Gensym): Exp = exp match {
       case Enum(ty) =>
-        val sym = gensym.fresh(s"enum_${ty.javastring}")
+        val sym = Name(gensym.fresh(s"enum_${ty.javastring}"))
         enumStatements += Values(sym, ty)
         changed(Var(sym).typed(ty))
       case _ => super.desugarExp(exp)

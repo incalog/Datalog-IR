@@ -11,10 +11,10 @@ class ForAllExistsTypecheckerTest extends AnyFunSuite{
   test("test forall") {
     val code = Body(
       Forall(
-        "x",
+        Name("x"),
         evalIterable,
         Body(
-          Assign(Seq("y"), Var("x")),
+          Assign(Seq(Name("y")), Var("x")),
           Yield(Constant(BooleanLiteral(true)))
         )
       )
@@ -27,10 +27,10 @@ class ForAllExistsTypecheckerTest extends AnyFunSuite{
   test("test exists") {
     val code = Body(
       Exists(
-        "x",
+        Name("x"),
         evalIterable,
         Body(
-          Assign(Seq("y"), Var("x")),
+          Assign(Seq(Name("y")), Var("x")),
           Yield(Constant(BooleanLiteral(true)))
         )
       )

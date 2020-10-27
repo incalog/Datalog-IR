@@ -25,7 +25,7 @@ object EvalHelper {
    * @param initBound an optional initial set of bound variables
    * @return the set of free variables
    */
-  def freeVars(term: Tree, initBound: Set[String] = Set()): scala.collection.immutable.Set[Name] = {
+  def freeVars(term: Tree, initBound: Set[Name] = Set()): scala.collection.immutable.Set[Name] = {
     val scope = new Scope(mutable.Set(), initBound.to(mutable.Set))
     loadVars(term, scope)
     scope.free.toSet
@@ -60,7 +60,8 @@ object EvalHelper {
       throw new UnsupportedOperationException("only val, var anf type definitions are supported definitions")
 
     // terms
-    case Term.Name(name) =>
+    case tn: Term.Name =>
+      val name = makeName(tn)
       if (!scope.isBound(name) && !scope.isFree(name)) {
         // variable not already known => must be free
         scope.newFree(name)
@@ -93,7 +94,7 @@ object EvalHelper {
 
     case Term.Interpolate(prefix, _, args) =>
       loadAllVars(args, scope)
-      scope.newFreeIfUnbound(prefix.value)
+      scope.newFreeIfUnbound(makeName(prefix))
 
     case Term.Tuple(args) => loadAllVars(args, scope)
 
@@ -111,7 +112,7 @@ object EvalHelper {
 
     case Term.Function(params, body) =>
       val scope1 = scope.nestedScope()
-      params.foreach(p => scope1.newBound(p.name.value))
+      params.foreach(p => scope1.newBound(makeName(p.name)))
       loadVars(body, scope1)
 
     case Term.Assign(lhs, rhs) =>
@@ -224,25 +225,32 @@ object EvalHelper {
     vars
   }
 
+  def makeName(tn: meta.Name): Name = {
+    val n = Name(tn.value)
+    n.startIndex = tn.pos.start
+    n.endIndex = tn.pos.end
+    n
+  }
+
   private def loadDefinedVars(pat: Pat, scope: Scope, found: mutable.Set[Name]): Unit = pat match {
 
     case Pat.Wildcard()
          | Pat.SeqWildcard()
          | _: Lit =>
 
-    case Pat.Var(Term.Name(name)) =>
-      found += name
+    case Pat.Var(tn) =>
+      found += makeName(tn)
 
     case Term.Select(qual, _) =>
       qual match {
-        case Term.Name(name) =>
-          found += name
+        case tn: Term.Name =>
+          found += makeName(tn)
         case inner: Term.Select =>
           loadDefinedVars(inner, scope, found)
       }
 
-    case Term.Name(name) =>
-      found += name
+    case tn: Term.Name =>
+      found += makeName(tn)
 
     case Pat.Bind(lhs, rhs) =>
       loadDefinedVars(lhs, scope, found)
@@ -277,18 +285,16 @@ object EvalHelper {
       throw new UnsupportedOperationException(s"not yet implemented: ${pat.productPrefix}")
   }
 
-  private def loadPatVars(vars: mutable.Set[String], scope: Scope): Unit = {
-    vars.foreach(
-      v =>
-        if (v.charAt(0).isUpper && !scope.isBound(v)) {
-          // pattern variables with the first char in upper case are assumed to be constants defined somewhere else
-          scope.newFree(v)
-        }
-        else {
-          scope.newBound(v)
-        }
-    )
-  }
+  private def loadPatVars(vars: mutable.Set[Name], scope: Scope): Unit =
+    vars.foreach { v =>
+      if (v.name.charAt(0).isUpper && !scope.isBound(v)) {
+        // pattern variables with the first char in upper case are assumed to be constants defined somewhere else
+        scope.newFree(v)
+      }
+      else {
+        scope.newBound(v)
+      }
+    }
 
   private def loadFromCase(cas: Case, scope: Scope): Unit = {
     val patVars = definedVars(cas.pat, scope)

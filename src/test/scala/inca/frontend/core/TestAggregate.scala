@@ -8,16 +8,14 @@ import inca.runtime.context.QueryScope
 import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
+import scala.language.implicitConversions
 import scala.meta.XtensionQuasiquoteTerm
-
-object TestAggregate {
-
-}
 
 class TestAggregate extends AnyFlatSpec with IncaMatchers {
   val scope = new QueryScope(Exp.languageMetaInfo)
   val options = CompilerOptions(scope.langMetaInfo)
 
+  implicit def name(s: String): Name = Name(s)
 
   "aggregate" should "support non-invertible joins" in {
     val module = Module("Test_Cast", Seq(), Seq(

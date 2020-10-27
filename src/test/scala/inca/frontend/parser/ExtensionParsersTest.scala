@@ -60,14 +60,14 @@ class ExtensionParsersTest extends AnyFunSuite {
       s"""forall v in (x, y) {
                 |    assert x
                 |}""".stripMargin,
-      Forall("v", Tuple(Seq(Var("x"), Var("y"))), Body(Seq(Assert(Var("x")))))
+      Forall(Name("v"), Tuple(Seq(Var("x"), Var("y"))), Body(Seq(Assert(Var("x")))))
     )
 
     testForallExistsSuccess(
       s"""exists v in list {
          |    assert v
          |}""".stripMargin,
-      Exists("v", Var("list"), Body(Seq(Assert(Var("v")))))
+      Exists(Name("v"), Var("list"), Body(Seq(Assert(Var("v")))))
     )
 
     testForallExistsFailure(
@@ -110,7 +110,7 @@ class ExtensionParsersTest extends AnyFunSuite {
       s"""foreach v in (x, y) {
                 |    assert x
                 |}""".stripMargin,
-      Foreach("v", Tuple(Seq(Var("x"), Var("y"))), Body(Seq(Assert(Var("x")))))
+      Foreach(Name("v"), Tuple(Seq(Var("x"), Var("y"))), Body(Seq(Assert(Var("x")))))
     )
 
     testForeachFailure(
@@ -147,7 +147,7 @@ class ExtensionParsersTest extends AnyFunSuite {
       IfThenElse(
         Var("v"),
         Body(Seq(Assert(Var("x")))),
-        Seq(ElseIf(Var("q"), Body(Seq(Assign(Seq("z"), Constant(IntLiteral(7))))))),
+        Seq(ElseIf(Var("q"), Body(Seq(Assign(Seq(Name("z")), Constant(IntLiteral(7))))))),
         Some(Body(Seq(Assert(Var("y")))))
       )
     )
@@ -174,20 +174,20 @@ class ExtensionParsersTest extends AnyFunSuite {
             NodePattern(
               TNode("br0t"),
               Seq(
-                PatternBinding("topping", VarPattern("cheese"))
+                PatternBinding(Name("topping"), VarPattern(Name("cheese")))
               )
             ),
             Body(Seq.empty[Statement])
           ),
           Case(
-            VarPattern("x"),
+            VarPattern(Name("x")),
             Body(Assert(Eq(Var("x"), Constant(IntLiteral(5)))))
           ),
           Case(
             TuplePattern(
               Seq(
-                VarPattern("v"),
-                VarPattern("w")
+                VarPattern(Name("v")),
+                VarPattern(Name("w"))
               )
             ),
             Body(Seq.empty)
@@ -197,7 +197,7 @@ class ExtensionParsersTest extends AnyFunSuite {
             Body(Seq.empty)
           ),
           Case(
-            NamedPattern("x", VarPattern("y")),
+            NamedPattern(Name("x"), VarPattern(Name("y"))),
             Body(Seq.empty)
           ),
           Case(
@@ -233,7 +233,7 @@ class ExtensionParsersTest extends AnyFunSuite {
           |    val x = 5
           |} union {}""".stripMargin,
       Switch(Seq(
-        Body(Seq(Assign(Seq("x"), Constant(IntLiteral(5))))),
+        Body(Seq(Assign(Seq(Name("x")), Constant(IntLiteral(5))))),
         Body(Seq.empty))
       )
     )

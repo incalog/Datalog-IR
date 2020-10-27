@@ -13,10 +13,10 @@ class ForeachTypecheckerTest extends AnyFunSuite {
 
     val code = Body(
       Foreach(
-        "x",
+        Name("x"),
         evalIterable,
         Body(
-          Assign(Seq("y"), Eval(Seq.empty, q"inca.analyzedData.Nat.Zero"))
+          Assign(Seq(Name("y")), Eval(Seq.empty, q"inca.analyzedData.Nat.Zero"))
         )
       ),
       Yield(Var("x"))

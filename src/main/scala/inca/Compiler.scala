@@ -45,7 +45,7 @@ object Compiler {
                               pkg: Option[String] = None,
                               compilerOptions: CompilerOptions): PSystem.Module = {
     val source = compileFunModule(module, pkg, compilerOptions)
-    val loadSource = source"..${source.stats}; ${Term.Name(module.name)}"
+    val loadSource = source"..${source.stats}; ${Term.Name(module.name.name)}"
     compileAndLoadScala[PSystem.Module](loadSource.syntax)()
   }
 

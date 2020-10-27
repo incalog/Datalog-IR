@@ -18,9 +18,9 @@ object MatchTypechecker extends TypecheckerExtension {
   ): CoreTypechecker.TypeEnvironment = {
     val PatternBinding(field, pattern) = pb
 
-    typechecker.lmi.links.get((c.prettyprint, field)) match {
+    typechecker.lmi.links.get((c.prettyprint, field.name)) match {
       case None =>
-        typechecker.addError(TypeError.undefined(s"${c.prettyprint}.$field", "", "Match"))
+        typechecker.addError(TypeError.undefined(s"${c.prettyprint}.$field", field, "Match"))
         typecheck(pattern)._2
       case Some(typ) =>
         val patternType = TypeHelper.decode(typ.toString)
@@ -64,7 +64,7 @@ object MatchTypechecker extends TypecheckerExtension {
         (t, context.tenv)
       case WildcardPattern => (estm, context.tenv)
       case _ =>
-        typechecker.addError(TypeError.undefined("Pattern", s"${pat.prettyprint("")}", "Match"))
+        typechecker.addError(TypeError.undefined("Pattern", Name(s"${pat.prettyprint("")}"), "Match"))
         (estm, context.tenv)
     }
   }

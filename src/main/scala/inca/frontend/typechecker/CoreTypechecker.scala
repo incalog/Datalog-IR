@@ -37,7 +37,7 @@ object TypeError {
   def sizeMismatch(exp: Int, act: Int, prefix: String = "")(implicit ctx: TypeContext): TypeError =
     template(prefix, s"Size mismatch. Expected $exp arguments, but got $act")
 
-  def undefined(typ: String, name: String, prefix: String = "")(implicit ctx: TypeContext): TypeError =
+  def undefined(typ: String, name: Name, prefix: String = "")(implicit ctx: TypeContext): TypeError =
     template(prefix, s"$typ $name does not exist")
 
   def expectedExp(exp: Seq[String], act: Exp, prefix: String = "")(implicit ctx: TypeContext): TypeError =
@@ -49,7 +49,7 @@ object TypeError {
   def incompleteStatement(stm: Statement, prefix: String = "")(implicit ctx: TypeContext): TypeError =
     template(prefix, s"Incomplete ${stm.getClass.getName} at the end of a function")
 
-  def alreadyUsed(name: String, prefix: String = "")(implicit ctx: TypeContext): TypeError =
+  def alreadyUsed(name: Name, prefix: String = "")(implicit ctx: TypeContext): TypeError =
     template(prefix, s"Variable $name already used")
 
   private def template(prefix: String, msg: String)(implicit ctx: TypeContext) =
@@ -58,7 +58,7 @@ object TypeError {
 
 /** TypeContext */
 class TypeContext(
-    val fname: String, // Name of the function (For error messages)
+    val fname: Name, // Name of the function (For error messages)
     val functions: Map[Name, PatternFunction], // Functions accessable from the module
     val module: Module, // The module the function is in
     val tenv: CoreTypechecker.TypeEnvironment = Map(), // The variable type context
@@ -72,7 +72,7 @@ class TypeContext(
 
 /* Companion object to Typechecker */
 object CoreTypechecker {
-  type TypeEnvironment = Map[String, TypeAnno]
+  type TypeEnvironment = Map[Name, TypeAnno]
 }
 
 /** IncA Typechecker
@@ -139,7 +139,7 @@ class CoreTypechecker(
       module: Module
   ): Unit = {
 
-    val module_function_map = fun.params.map(v => v.name -> v.typ).toMap
+    val module_function_map: Map[Name, TypeAnno] = fun.params.map(v => v.name -> v.typ).toMap
 
     val res = fun.bodies.map {
       typecheck(_)(new TypeContext(fun.name, functions, module, module_function_map))
@@ -220,7 +220,7 @@ class CoreTypechecker(
               }
               (None, context.tenv ++ names.zip(ts).map(p => p._1 -> p._2).toMap)
             case t =>
-              addError(TypeError.expected(TTuple(names.map(TypeHelper.decode)), t, "Assign"))
+              addError(TypeError.expected(TTuple(names.map(n => TypeHelper.decode(n.toString))), t, "Assign"))
               (None, context.tenv)
           }
         }
@@ -468,7 +468,7 @@ class CoreTypechecker(
           TUnit
       }
     case NamedLink(name) =>
-      lmi.links.get((typ.prettyprint, name)) match {
+      lmi.links.get((typ.prettyprint, name.name)) match {
         case None =>
           addError(TypeError.undefined("Field", name, s"NamedLink($name)"))
           TUnit

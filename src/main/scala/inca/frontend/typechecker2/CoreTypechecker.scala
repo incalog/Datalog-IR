@@ -1,7 +1,6 @@
 package inca.frontend.typechecker2
 
 import inca.frontend.core.Core._
-import inca.frontend.util.Program
 import inca.runtime.context._
 
 
@@ -290,12 +289,12 @@ class TypeChecker(extensions: Seq[TypeCheckerExtension])(languageMetaInfo: Langu
     case NamedLink(field: Name) =>
       ty match {
         case TNode(node) =>
-          languageMetaInfo.links.get(node, field) match {
+          languageMetaInfo.links.get(node, field.name) match {
             case Some(ty) => return TypeOps.truechangeTypeToTypeAnno(ty)
             case _ => // do nothing
           }
 
-          languageMetaInfo.litLinks.get(node, field) match {
+          languageMetaInfo.litLinks.get(node, field.name) match {
             case Some(ty) => return TypeOps.truechangeLitTypeToTypeAnno(ty)
             case _ => // do nothing
           }

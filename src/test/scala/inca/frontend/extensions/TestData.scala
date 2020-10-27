@@ -14,6 +14,7 @@ class TestData extends AnyFlatSpec with IncaMatchers {
   val scope = new QueryScope(Exp.languageMetaInfo)
   val options = CompilerOptions(scope.langMetaInfo)
 
+  implicit def name(s: String): Name = Name(s)
 
   "data op" should "support zero-arg data op" in {
     val module = Module("Test_Cast", Seq(), Seq(

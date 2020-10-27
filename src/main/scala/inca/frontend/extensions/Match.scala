@@ -64,7 +64,7 @@ case class TuplePattern(pats: Seq[Pattern]) extends Pattern {
 case class VarPattern(name: Name) extends Pattern {
   override def boundVars: Set[Name] = Set(name)
   override def allVars: Map[Name, Option[TypeAnno]] = Map(name -> None)
-  override def prettyprint(implicit indent: String): String = name
+  override def prettyprint(implicit indent: String): String = name.name
 }
 case class NamedPattern(name: Name, pat: Pattern) extends Pattern {
   override def boundVars: Set[Name] = Set(name) ++ pat.boundVars
@@ -166,7 +166,7 @@ object Match extends Desugarable {
         val matchee: Var = exp match {
           case v: Var => Var(v.name)
           case _ =>
-            val sym = gensym.fresh("matchee")
+            val sym = Name(gensym.fresh("matchee"))
             result += Assign(Seq(sym), exp)
             Var(sym)
         }
@@ -178,7 +178,7 @@ object Match extends Desugarable {
         result.toSeq
       case TuplePattern(pats) =>
         val result = ListBuffer[Statement]()
-        val syms = pats.indices.map(i => gensym.fresh(s"matchee_tuple$i"))
+        val syms = pats.indices.map(i => Name(gensym.fresh(s"matchee_tuple$i")))
         result += Assign(syms, exp)
         (syms zip pats).foreach { case (sym,pat) =>
           result ++= desugarPat(Var(sym), pat)
@@ -200,7 +200,7 @@ object Match extends Desugarable {
         val matchee: Var = exp match {
           case v: Var => v
           case _ =>
-            val sym = gensym.fresh("matchee")
+            val sym = Name(gensym.fresh("matchee"))
             ensureVar = Seq(Assign(Seq(sym), exp))
             Var(sym)
         }
@@ -213,7 +213,7 @@ object Match extends Desugarable {
         }
         wrongType +: alts
       case TuplePattern(pats) =>
-        val syms = pats.indices.map(i => gensym.fresh(s"matchee_tuple$i"))
+        val syms = pats.indices.map(i => Name(gensym.fresh(s"matchee_tuple$i")))
         val bind = Assign(syms, exp)
         val alts = (syms zip pats).flatMap { case (sym,pat) =>
           desugarNegatedPat(Var(sym), pat)

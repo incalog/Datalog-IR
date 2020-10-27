@@ -1,16 +1,17 @@
 package inca.frontend.core
 
+import inca.frontend.parser.SourceLocation
 import inca.util.Meta.TAB
 
 import scala.language.reflectiveCalls
 import scala.meta.Term
 
 object Core {
-  sealed trait TypeAnno {
+  sealed trait TypeAnno extends SourceLocation {
     def prettyprint: String
     def javastring: String
 
-    override def toString: Name = prettyprint
+    override def toString: String = prettyprint
   }
   case object TAny extends TypeAnno {
     override def prettyprint: String = "Any"
@@ -45,7 +46,7 @@ object Core {
   case class TNode(name: String) extends TLinked {
     override def prettyprint: String = name
     override def javastring: String = name.replace('.','_')
-    def apply(field: String): NamedLink = NamedLink(field)
+    def apply(field: String): NamedLink = NamedLink(Name(field))
   }
 
   trait TIterable extends TypeAnno {
@@ -72,9 +73,11 @@ object Core {
 
   val TUnit: TTuple = TTuple(Seq.empty)
 
-  type Name = String
+  case class Name(name: String) extends SourceLocation {
+    override def toString: String = name
+  }
 
-  sealed trait Visibility {
+  sealed trait Visibility extends SourceLocation {
     def prettyprint(implicit indent: String): String
   }
   case object Private extends Visibility {
@@ -84,7 +87,7 @@ object Core {
     def prettyprint(implicit indent: String): String = "public"
   }
 
-  case class Module(name: Name, imports: Seq[Name], funs: Seq[PatternFunction]) {
+  case class Module(name: Name, imports: Seq[Name], funs: Seq[PatternFunction]) extends SourceLocation {
     def allVars: Map[Name, Option[TypeAnno]] = funs.flatMap(_.allVars).toMap
     def usedModuleNames: Seq[Name] = name +: imports
     def usedFunNames: Seq[Name] = funs.map(_.name)
@@ -100,7 +103,7 @@ object Core {
     }
   }
 
-  case class PatternFunction(vis: Option[Visibility], name: Name, params: Seq[Param], outParams: Seq[AnnoParam], bodies: Seq[Body]) {
+  case class PatternFunction(vis: Option[Visibility], name: Name, params: Seq[Param], outParams: Seq[AnnoParam], bodies: Seq[Body]) extends SourceLocation {
     def boundNames: Seq[Name] = params.map(_.name) ++ outParams.flatMap(_.name)
     def freeVars: Map[Name, Option[TypeAnno]] = allVars -- boundNames
     def allVars: Map[Name, Option[TypeAnno]] = bodies.flatMap(_.allVars).toMap ++ params.flatMap(_.freeVars) ++ outParams.flatMap(_.freeVars)
@@ -119,11 +122,11 @@ object Core {
     }
   }
 
-  case class Param(name: Name, typ: TypeAnno) {
+  case class Param(name: Name, typ: TypeAnno) extends SourceLocation {
     def freeVars: Map[Name, Option[TypeAnno]] = Map(name -> Some(typ))
     def prettyprint: String = s"$name: ${typ.prettyprint}"
   }
-  case class AnnoParam(name: Option[Name], typ: TypeAnno) {
+  case class AnnoParam(name: Option[Name], typ: TypeAnno) extends SourceLocation {
     def freeVars: Map[Name, Option[TypeAnno]] = name.map(_ -> Some(typ)).toMap
     def prettyprint: String = name match {
       case Some(nam) => s"($nam: ${typ.prettyprint})"
@@ -132,7 +135,7 @@ object Core {
 
   }
 
-  case class Body(stmts: Seq[Statement]) {
+  case class Body(stmts: Seq[Statement]) extends SourceLocation {
     def boundVars: Set[Name] = stmts.flatMap(_.boundVars).toSet
     def allVars: Map[Name, Option[TypeAnno]] = stmts.flatMap(_.allVars).toMap
     def freeVars: Map[Name, Option[TypeAnno]] = allVars -- boundVars
@@ -148,7 +151,7 @@ object Core {
     def apply(stmt: Statement, stmts: Statement*): Body = new Body(stmt +: stmts)
   }
 
-  trait Statement {
+  trait Statement extends SourceLocation {
     def boundVars: Set[Name]
     def allVars: Map[Name, Option[TypeAnno]]
     def prettyprint(implicit indent: String): String
@@ -216,7 +219,7 @@ object Core {
     }
   }
 
-  trait Exp extends Typeable {
+  trait Exp extends Typeable with SourceLocation {
     def freeVars: Map[Name, Option[TypeAnno]]
     def prettyprint(implicit indent: String): String
     def ensureCore: CoreExp = this match {
@@ -264,7 +267,10 @@ object Core {
   }
   case class Var(name: Name) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = Map(name -> typ)
-    override def prettyprint(implicit indent: String): String = name
+    override def prettyprint(implicit indent: String): String = name.name
+  }
+  object Var {
+    def apply(name: String): Var = new Var(Name(name))
   }
   case class Constant(lit: Literal) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = Map()
@@ -300,12 +306,15 @@ object Core {
     override def prettyprint(implicit indent: String): String = s"eval($code)"
   }
 
-  sealed trait Link {
+  sealed trait Link extends SourceLocation {
     def prettyprint: String
   }
   sealed trait CoreLink extends Link
   case class NamedLink(field: Name) extends CoreLink {
-    override def prettyprint: String = field
+    override def prettyprint: String = field.name
+  }
+  object NamedLink {
+    def apply(field: String): NamedLink = new NamedLink(Name(field))
   }
   case object ParentLink extends CoreLink {
     override def prettyprint: String = "parent"
@@ -323,7 +332,7 @@ object Core {
     override def prettyprint: String = "size"
   }
 
-  sealed trait Literal {
+  sealed trait Literal extends SourceLocation {
     def prettyprint: String
   }
   case object UnitLiteral extends Literal {
@@ -352,22 +361,22 @@ object Core {
    * data language constructs
    */
 
-  case class DataType(qualifier: Option[String], name: String) extends TypeAnno {
+  case class DataType(qualifier: Option[Name], name: Name) extends TypeAnno {
     def prettyprint: String = qualifier match {
       case Some(q) => q + "." + name
-      case None => name
+      case None => name.name
     }
 
     override def javastring: String = prettyprint.replace('.', '_')
   }
 
-  case class DataOp(qualifier: Option[String],
-                    operation: String,
+  case class DataOp(qualifier: Option[Name],
+                    operation: Name,
                     isAssociative: Boolean = false,
-                    isCommutative: Boolean = false) {
+                    isCommutative: Boolean = false) extends SourceLocation {
     def prettyprint: String = qualifier match {
       case Some(q) => q + "." + operation
-      case None => operation
+      case None => operation.name
     }
   }
 

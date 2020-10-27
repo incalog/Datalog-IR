@@ -10,6 +10,8 @@ import scala.meta.XtensionQuasiquoteTerm
 
 class TestBoolOps extends AnyFlatSpec with IncaMatchers {
 
+  implicit def name(s: String): Name = Name(s)
+
   val one = Constant(IntLiteral(1))
   val two = Constant(IntLiteral(2))
 
