@@ -3,6 +3,7 @@ package inca.frontend.extensions
 import inca.frontend.Frontend
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
+import inca.frontend.typechecker.{NoTerminator, StmType}
 import inca.util.Gensym
 
 case class Switch(bodies: Seq[Body]) extends Statement {
@@ -27,11 +28,18 @@ trait SwitchFrontend extends Frontend {
   override protected[frontend] def keywords: Set[String] = super.keywords + "switch"
 
   override protected[frontend] def statement[_: P]: P[Statement] =
-    P("switch" ~ body.rep(sep = "union")).map { bodies =>
+    P("switch" ~ body.rep(sep = "union")).mapWithLoc { bodies =>
       if (bodies.size == 1 && bodies.head.stmts.isEmpty) Switch(Seq.empty)
       else Switch(bodies)
     } |
-      super.statement
+    super.statement
+
+  override protected def typecheckInternal(stm: Statement, requireTerminator: Boolean): StmType = stm match {
+    case Switch(bodies) =>
+      bodies.map(typecheck(_, requireTerminator)).foldLeft(NoTerminator:StmType)(_.meet(_, lang))
+
+    case _ => super.typecheckInternal(stm, requireTerminator)
+  }
 }
 
 object Switch extends Desugarable {

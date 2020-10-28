@@ -2,14 +2,14 @@ package inca.frontend.util
 
 import inca.frontend.Frontend
 import inca.frontend.core.Core._
-import inca.frontend.typechecker1.ScalaTypeError
+import inca.runtime.context.LanguageMetaInfo
 
 object TypeHelper {
 
   import fastparse._
   import ScalaWhitespace._
 
-  private val cp = Frontend.Inca
+  private val cp = Frontend.Inca(new LanguageMetaInfo())
 
   private def tNode[_: P]: P[TNode] = P(cp.fullyQualifiedIdentifier.! ~~ ( " with " ~~ cp.fullyQualifiedIdentifier).repX).map {
     case (name, _) => TNode(name)
@@ -49,16 +49,16 @@ object TypeHelper {
       case inner => fastparse.Pass(TList(inner))
     }
 
-  def decode(typName: String): TypeAnno = {
+  def decode(typName: String): Option[TypeAnno] = {
     // in case the result type of an expression is a string literal scala.reflect actually places this literal in the type
     // this means "hello world" results in the type String("hello world")
     // to get around this we have to remove all such occurrences
     val name = typName.trim.replaceAll("""\(".*"\)""", "")
     val rawAnno = fastparse.parse(name, typeAnno(_)) match {
-      case Parsed.Failure(_, _, _) => throw ScalaTypeError(s"Unsupported Scala type $name")
-      case Parsed.Success(anno, _) => anno
+      case Parsed.Failure(_, _, _) => None
+      case Parsed.Success(anno, _) => Some(anno)
     }
-    refineTypeAnno(rawAnno)
+    rawAnno.map(refineTypeAnno)
   }
 
   private def refineTypeAnno(raw: TypeAnno): TypeAnno = raw match {

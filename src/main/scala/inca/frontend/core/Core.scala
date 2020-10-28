@@ -53,14 +53,14 @@ object Core {
     def apply(field: String): NamedLink = NamedLink(Name(field))
   }
 
-  trait TIterable extends TypeAnno {
-    val contained: TLinked
+  sealed trait TIterable extends TypeAnno {
+    val contained: TypeAnno
   }
   case class TList(contained: TLinked) extends TLinked with TIterable {
     override def prettyprint: String = s"List[${contained.prettyprint}]"
     override def javastring: String = s"List_${contained.javastring}"
   }
-  case class TEnumeration(contained: TLinked) extends TIterable {
+  case class TEnumeration(contained: TypeAnno) extends TIterable {
     override def prettyprint: String = s"Enum[${contained.prettyprint}]"
     override def javastring: String = s"Enum_${contained.javastring}"
   }

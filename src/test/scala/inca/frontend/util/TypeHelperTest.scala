@@ -1,7 +1,6 @@
 package inca.frontend.util
 
 import inca.frontend.core.Core._
-import inca.frontend.typechecker1.ScalaTypeError
 import org.scalatest.funsuite.AnyFunSuite
 
 class TypeHelperTest extends AnyFunSuite{
@@ -38,15 +37,15 @@ class TypeHelperTest extends AnyFunSuite{
   }
 
   test("test decode TList no primitive") {
-    intercept[ScalaTypeError] {
+    assertResult(None) {
       TypeHelper.decode("List[Int]")
     }
 
-    intercept[ScalaTypeError] {
+    assertResult(None) {
       TypeHelper.decode("List[String]")
     }
 
-    intercept[ScalaTypeError] {
+    assertResult(None) {
       TypeHelper.decode("List[(Int, Double)]")
     }
   }
@@ -58,6 +57,6 @@ class TypeHelperTest extends AnyFunSuite{
 
   private def checkEq(name: String, exp: TypeAnno): Unit = {
     val typ = TypeHelper.decode(name)
-    assert(typ == exp)
+    assert(typ.get == exp)
   }
 }

@@ -2,15 +2,17 @@ package inca.frontend.parser
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
+import inca.frontend.BaseFrontend
 import inca.frontend.core.Core._
 import inca.frontend.extensions._
+import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
 class ExtensionParsersTest extends AnyFunSuite {
 
   test("test BoolOps") {
-    val parser = new CoreParser with BoolOpsFrontend
+    val parser = new BaseFrontend(new LanguageMetaInfo()) with BoolOpsFrontend
     val testBoolOpsSuccess = testSuccess(parser.exp(_))
     val testBoolOpsFailure = testFailure(parser.exp(_))
 
@@ -33,7 +35,7 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test Cast") {
-    val parser = new CoreParser with CastFrontend
+    val parser = new BaseFrontend(new LanguageMetaInfo()) with CastFrontend
     val testCastSuccess = testSuccess(parser.exp(_))
 
     testCastSuccess("x:Int", Cast(Var("x"), TInt))
@@ -43,7 +45,7 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test Enum") {
-    val parser = new CoreParser with EnumFrontend
+    val parser = new BaseFrontend(new LanguageMetaInfo()) with EnumFrontend
     val testEnumSuccess = testSuccess(parser.exp(_))
     val testEnumFailure = testFailure(parser.exp(_))
 
@@ -52,7 +54,7 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test ForallExists") {
-    val parser = new CoreParser with ForallExistsFrontend
+    val parser = new BaseFrontend(new LanguageMetaInfo()) with ForallExistsFrontend
     val testForallExistsSuccess = testSuccess(parser.statement(_))
     val testForallExistsFailure = testFailure(parser.statement(_))
 
@@ -102,7 +104,7 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test Foreach") {
-    val parser = new CoreParser with ForeachFrontend
+    val parser = new BaseFrontend(new LanguageMetaInfo()) with ForeachFrontend
     val testForeachSuccess = testSuccess(parser.statement(_))
     val testForeachFailure = testFailure(parser.statement(_))
 
@@ -133,7 +135,7 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test IfThenElse") {
-    val parser = new CoreParser with IfThenElseFrontend
+    val parser = new BaseFrontend(new LanguageMetaInfo()) with IfThenElseFrontend
     def testIfThenElse = testSuccess(parser.statement(_))
 
     testIfThenElse(
@@ -154,7 +156,7 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test Match") {
-    val parser = new CoreParser with MatchFrontend
+    val parser = new BaseFrontend(new LanguageMetaInfo()) with MatchFrontend
     def testMatch = testSuccess(parser.statement(_))
 
     testMatch(
@@ -214,7 +216,7 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test Switch") {
-    val parser = new CoreParser with SwitchFrontend
+    val parser = new BaseFrontend(new LanguageMetaInfo()) with SwitchFrontend
     def testSwitch = testSuccess(parser.statement(_))
 
     testSwitch(s"""|switch {}""".stripMargin, Switch(Seq.empty))

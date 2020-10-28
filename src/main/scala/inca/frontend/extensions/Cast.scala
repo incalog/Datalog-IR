@@ -3,6 +3,7 @@ package inca.frontend.extensions
 import inca.frontend.Frontend
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
+import inca.frontend.typechecker.TypeOps
 import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
@@ -24,8 +25,18 @@ trait CastFrontend extends Frontend {
   override protected def desugarables: Seq[Desugarable] = Cast +: super.desugarables
 
   override protected[frontend] def trailExp[_: P]: P[Exp => Exp] =
-    P(":" ~ typeAnno).map(ty => Cast(_, ty)) |
+    P(":" ~ typeAnno).mapWithLocFun[Exp, Exp](ty => Cast(_, ty)) |
       super.trailExp
+
+  override def typecheckInternal(exp: Exp, anno: Option[TypeAnno]): TypeAnno = exp match {
+    case Cast(src, targetTyp) =>
+      val ety = typecheck(src)
+      if (TypeOps.meet(ety, targetTyp, lang) == TNothing) {
+        warn(s"Cast of type $ety to unrelated type $targetTyp will always fail", exp)
+      }
+      targetTyp
+    case _ => super.typecheckInternal(exp, anno)
+  }
 }
 
 object Cast extends Desugarable {

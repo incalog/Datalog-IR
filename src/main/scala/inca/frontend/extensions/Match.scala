@@ -4,6 +4,8 @@ import inca.frontend.Frontend
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.parser.ParserUtils.{nl_!, sp}
+import inca.frontend.parser.SourceLocation
+import inca.frontend.typechecker.{NoTerminator, StmType, TypeOps}
 import inca.util.{Gensym, Meta}
 
 import scala.collection.mutable.ListBuffer
@@ -20,7 +22,7 @@ case class Match(matchee: Exp, cases: Seq[Case]) extends Statement {
   }
 
 }
-case class Case(pattern: Pattern, body: Body) {
+case class Case(pattern: Pattern, body: Body) extends SourceLocation {
   def boundVars: Set[Name] = pattern.boundVars ++ body.boundVars
   def allVars: Map[Name, Option[TypeAnno]] = pattern.allVars ++ body.allVars
 
@@ -28,7 +30,7 @@ case class Case(pattern: Pattern, body: Body) {
     s"${indent}case ${pattern.prettyprint} => ${body.prettyprint}"
 }
 
-sealed trait Pattern {
+sealed trait Pattern extends SourceLocation {
   def boundVars: Set[Name]
   def allVars: Map[Name, Option[TypeAnno]]
   def prettyprint(implicit indent: String): String
@@ -44,7 +46,7 @@ case class NodePattern(c: TNode, bindings: Seq[PatternBinding]) extends Pattern 
     s"${c.prettyprint}($bindingsS)"
   }
 }
-case class PatternBinding(field: Name, pattern: Pattern) extends Typeable {
+case class PatternBinding(field: Name, pattern: Pattern) extends Typeable with SourceLocation {
   def prettyprint(implicit indent: String): String =
     s"$field = ${pattern.prettyprint}"
 }
@@ -103,36 +105,111 @@ trait MatchFrontend extends Frontend {
     matchStatement | super.statement
 
   protected[frontend] def matchStatement[_: P]: P[Statement] =
-    P(exp ~ "match" ~ "{" ~ P(sp ~~ case_ ~~ sp).repX(sep = nl_!) ~ "}").map { case (e, cs) => Match(e, cs) }
+    P(exp ~ "match" ~ "{" ~ P(sp ~~ case_ ~~ sp).repX(sep = nl_!) ~ "}").mapWithLoc { case (e, cs) => Match(e, cs) }
 
   protected[frontend] def case_[_: P]: P[Case] =
-    P("case " ~ pattern ~ "=>" ~ body).map(Case.tupled)
+    P("case " ~ pattern ~ "=>" ~ body).mapWithLoc(Case.tupled)
 
   protected[frontend] def pattern[_: P]: P[Pattern] =
     P(tuplePattern | namedPattern | nodePattern | wildcardPattern | varPattern
       | literalPattern)
 
   protected[frontend] def patternBinding[_: P]: P[PatternBinding] =
-    P(identifier ~ "=" ~ pattern).map(PatternBinding.tupled)
+    P(identifier ~ "=" ~ pattern).mapWithLoc(PatternBinding.tupled)
 
   protected[frontend] def nodePattern[_: P]: P[Pattern] =
-    P(tNode ~ "(" ~ P(patternBinding).rep(sep = ",") ~ ")").map(NodePattern.tupled)
+    P(tNode ~ "(" ~ P(patternBinding).rep(sep = ",") ~ ")").mapWithLoc(NodePattern.tupled)
 
   protected[frontend] def tuplePattern[_: P]: P[Pattern] =
-    P("(" ~ P(pattern).rep(sep = ",") ~ ")").map(TuplePattern)
+    P("(" ~ P(pattern).rep(sep = ",") ~ ")").mapWithLoc(TuplePattern)
 
   protected[frontend] def varPattern[_: P]: P[Pattern] =
-    P(identifier).map(VarPattern)
+    P(identifier).mapWithLoc(VarPattern)
 
   protected[frontend] def namedPattern[_: P]: P[Pattern] =
-    P(identifier ~ "@" ~ pattern).map(NamedPattern.tupled)
+    P(identifier ~ "@" ~ pattern).mapWithLoc(NamedPattern.tupled)
 
   protected[frontend] def wildcardPattern[_: P]: P[Pattern] =
-    P("_").!.map(_ => WildcardPattern)
+    P("_").!.mapWithLoc(_ => WildcardPattern)
 
   protected[frontend] def literalPattern[_: P]: P[Pattern] =
-    P(literal).map(LiteralPattern)
+    P(literal).mapWithLoc(LiteralPattern)
 
+  override protected def typecheckInternal(stm: Statement, requireTerminator: Boolean): StmType = stm match {
+    case Match(matchee, cases) =>
+      val mty = typecheck(matchee)
+      val ctys = cases.map { c =>
+        scopedTypeContext {
+          typecheckPattern(c.pattern, mty)
+          typecheck(c.body, requireTerminator)
+        }
+      }
+      ctys.foldLeft(NoTerminator:StmType)(_.meet(_, lang))
+
+    case _ => super.typecheckInternal(stm, requireTerminator)
+  }
+
+  def typecheckPattern(pattern: Pattern, matchee: TypeAnno): Unit = pattern match {
+    case NodePattern(node, bindings) =>
+      if (TypeOps.meet(node, matchee, lang) == TNothing)
+        warn(s"Type of pattern $node unrelated type to matchee type $matchee", pattern)
+
+      bindings.foreach { case b@PatternBinding(field, pattern) =>
+        assignType(b) {
+          lang.links.get(node.name, field.name) match {
+            case Some(trueType) =>
+              val ty = TypeOps.truechangeTypeToTypeAnno(trueType)
+              typecheckPattern(pattern, ty)
+              ty
+            case None => lang.litLinks.get(node.name, field.name) match {
+              case Some(trueLitType) =>
+                val ty = TypeOps.truechangeLitTypeToTypeAnno(trueLitType)
+                typecheckPattern(pattern, ty)
+                ty
+              case None =>
+                error(s"Cannot access field `$field` of node $node", field)
+                typecheckPattern(pattern, TAny)
+                TAny
+            }
+          }
+        }
+      }
+
+    case TuplePattern(pats) =>
+      matchee match {
+        case TUnit =>
+          if (pats.nonEmpty)
+            error(s"Cannot match expression of type $TUnit against ${pats.size}-ary tuple pattern", pattern)
+        case TTuple(tys) =>
+          if (pats.size != tys.size)
+            error(s"Cannot match ${tys.size}-ary tuple against ${pats.size}-ary tuple pattern", pattern)
+          pats.zipAll(tys, null, null).foreach {
+            case (pat, null) => typecheckPattern(pat, TAny)
+            case (null, ty) => // nothing
+            case (pat, ty) => typecheckPattern(pat, ty)
+          }
+        case ty =>
+          if (pats.size != 1)
+            error(s"Cannot match expression of type $ty against ${pats.size}-ary tuple pattern", pattern)
+          pats.zipAll(Seq(ty), null, null).foreach {
+            case (pat, null) => typecheckPattern(pat, TAny)
+            case (null, ty) => // nothing
+            case (pat, ty) => typecheckPattern(pat, ty)
+          }
+      }
+
+    case VarPattern(name) =>
+      bindVar(name, matchee)
+    case NamedPattern(name, pat) =>
+      bindVar(name, matchee)
+      typecheckPattern(pat, matchee)
+    case WildcardPattern =>
+      // nothing
+    case LiteralPattern(v) =>
+      val ty = typecheckLiteral(v)
+      if (TypeOps.meet(ty, matchee, lang) == TNothing)
+        warn(s"Type of pattern $ty unrelated type to matchee type $matchee", pattern)
+  }
 }
 
 

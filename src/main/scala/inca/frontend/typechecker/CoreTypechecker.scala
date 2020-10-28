@@ -7,9 +7,10 @@ import inca.runtime.context.LanguageMetaInfo
 
 import scala.meta.Term
 
-class CoreTypechecker(lang: LanguageMetaInfo)
+trait CoreTypechecker
   extends TypeContext with TypeIO {
 
+  val lang: LanguageMetaInfo
 
   def typecheck(program: Seq[Module]): Unit = scopedTypeContext {
     program.foreach(bindModule)
@@ -42,29 +43,25 @@ class CoreTypechecker(lang: LanguageMetaInfo)
     fun.params.foreach(p => bindVar(p.name, p.typ))
     fun.bodies.foreach { body =>
       val ty = typecheck(body, requireTerminator = true)
-      if (!TypeOps.subtype(ty, fun.outType, lang))
+      if (!TypeOps.subtype(ty.asTypeAnno, fun.outType, lang))
         error(s"Found body of type $ty, but expected function result type ${fun.outType}", body)
     }
   }
 
-  def typecheck(body: Body, requireTerminator: Boolean): TypeAnno = scopedTypeContext {
-    if (body.stmts.isEmpty)
-      TUnit
+  def typecheck(body: Body, requireTerminator: Boolean): StmType = scopedTypeContext {
+    if (body.stmts.isEmpty) {
+      if (requireTerminator) {
+        warn(s"Block should end with a terminator statement", body)
+        Terminator(TAny)
+      } else {
+        NoTerminator
+      }
+    }
     else {
       body.stmts.init.foreach { stm =>
-        typecheck(stm) match {
-          case NoTerminator => // fine, do nothing
-          case Terminator(ty) =>
-            warn(s"Found terminator statement in the middle of a block; subsequent statements are dead code.", stm)
-        }
+        typecheck(stm, requireTerminator = false)
       }
-      typecheck(body.stmts.last) match {
-        case NoTerminator =>
-          if (requireTerminator)
-            warn(s"Block should end with a terminator statement", body)
-          TUnit
-        case Terminator(ty) => ty
-      }
+      typecheck(body.stmts.last, requireTerminator)
     }
   }
 
@@ -72,11 +69,24 @@ class CoreTypechecker(lang: LanguageMetaInfo)
    * Statements
    */
 
-  sealed trait StmType
-  case object NoTerminator extends StmType
-  case class Terminator(ty: TypeAnno) extends StmType
+  final def typecheck(stm: Statement, requireTerminator: Boolean): StmType = typecheckInternal(stm, requireTerminator) match {
+    case ty: NoTerminator.type =>
+      if (requireTerminator) {
+        warn(s"Block should end with a terminator statement", stm)
+        Terminator(TAny)
+      } else {
+        ty
+      }
+    case ty: Terminator =>
+      if (!requireTerminator) {
+        warn(s"Unexpected terminator statement", stm)
+        NoTerminator
+      } else  {
+        ty
+      }
+  }
 
-  def typecheck(stm: Statement): StmType = stm match {
+  protected def typecheckInternal(stm: Statement, requireTerminator: Boolean): StmType = stm match {
     case core: CoreStatement => typecheckCore(core)
     case _ => throw new UnsupportedOperationException(s"No type rule for $stm found.")
   }
@@ -92,7 +102,7 @@ class CoreTypechecker(lang: LanguageMetaInfo)
     case Assert(cond) =>
       val condTy = typecheck(cond)
       if (condTy != TBool)
-      error(s"Found condition of type $condTy, but expected $TBool", cond)
+        error(s"Found condition of type $condTy, but expected $TBool", cond)
       NoTerminator
 
     case Values(name, typ) =>
@@ -133,9 +143,9 @@ class CoreTypechecker(lang: LanguageMetaInfo)
    * Expressions
    */
 
-  final def typecheck(exp: Exp): TypeAnno = assignType(exp)(typecheck(exp, exp.typ))
+  final def typecheck(exp: Exp): TypeAnno = assignType(exp)(typecheckInternal(exp, exp.typ))
 
-  def typecheck(exp: Exp, anno: Option[TypeAnno]): TypeAnno = exp match {
+  protected def typecheckInternal(exp: Exp, anno: Option[TypeAnno]): TypeAnno = exp match {
     case core: CoreExp => typecheckCore(core, anno)
     case _ => throw new UnsupportedOperationException(s"No type rule for $exp found.")
   }
@@ -190,14 +200,7 @@ class CoreTypechecker(lang: LanguageMetaInfo)
       TAny
 
     case Constant(lit) =>
-      lit match {
-        case UnitLiteral => TUnit
-        case BooleanLiteral(_) => TBool
-        case IntLiteral(_) => TInt
-        case LongLiteral(_) => TLong
-        case DoubleLiteral(_) => TDouble
-        case StringLiteral(_) => TString
-      }
+      typecheckLiteral(lit)
 
     case PathAccess(receiver, link) =>
       val rty = typecheck(receiver)
@@ -228,11 +231,19 @@ class CoreTypechecker(lang: LanguageMetaInfo)
   }
 
 
-
   def isValidDefUndefExp(exp: Exp): Boolean = exp match {
     case _: PathAccess => true
     case _: Call => true
     case _ => false
+  }
+
+  def typecheckLiteral(lit: Literal): TypeAnno = lit match {
+    case UnitLiteral => TUnit
+    case BooleanLiteral(_) => TBool
+    case IntLiteral(_) => TInt
+    case LongLiteral(_) => TLong
+    case DoubleLiteral(_) => TDouble
+    case StringLiteral(_) => TString
   }
 
   final def typecheckLink(link: Link, receiverTy: TypeAnno, exp: Exp): TypeAnno = link match {
@@ -282,7 +293,7 @@ class CoreTypechecker(lang: LanguageMetaInfo)
       case (null, arg) =>
         typecheck(arg)
       case (param, null) =>
-        // nothing
+      // nothing
       case (param, arg) =>
         val argTy = typecheck(arg)
         if (TypeOps.meet(param.typ, argTy, lang) == TNothing) {
@@ -323,7 +334,12 @@ class CoreTypechecker(lang: LanguageMetaInfo)
     try {
       val typechecked = toolbox.typecheck(tree)
       val typ = typechecked.tpe.dealias
-      TypeHelper.decode(typ.toString)
+      TypeHelper.decode(typ.toString) match {
+        case Some(ty) => ty
+        case None =>
+          error(s"Unable to decode Scala type $typ", exp)
+          TAny
+      }
     } catch {
       case ToolBoxError(msg, _) =>
         error(msg, exp)

@@ -22,7 +22,7 @@ trait TypeContext extends TypeIO {
 
   def bindVar(name: Name, ty: TypeAnno): Unit = {
     vars.get(name) foreach { case (bound, _) =>
-      warn(s"Variable $name shadows previously defined variable $bound", name, bound)
+      error(s"Variable $name shadows previously defined variable $bound", name, bound)
     }
     vars += (name -> (name, ty))
   }
@@ -34,6 +34,9 @@ trait TypeContext extends TypeIO {
         error(s"Unbound variable $name", name)
         None
     }
+
+  def getBindings: Map[Name, TypeAnno] =
+    vars.view.mapValues(_._2).toMap
 
 
   def bindFun(fun: PatternFunction, module: Module): Unit = {

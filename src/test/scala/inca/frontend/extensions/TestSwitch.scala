@@ -1,6 +1,7 @@
 package inca.frontend.extensions
 
 import inca.analyzedLangs.Exp
+import inca.frontend.BaseFrontend
 import inca.frontend.core.Core._
 import inca.runtime.context.QueryScope
 import inca.{CompilerOptions, IncaMatchers}
@@ -16,7 +17,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
   val four = Constant(IntLiteral(4))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo, frontend = new SwitchFrontend {})
+  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo, new BaseFrontend(_) with SwitchFrontend)
   "desugaring" should "lift switch bodies" in {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(

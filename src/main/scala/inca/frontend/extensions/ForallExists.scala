@@ -3,13 +3,14 @@ package inca.frontend.extensions
 import inca.frontend.Frontend
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
+import inca.frontend.typechecker.{NoTerminator, StmType}
 import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
 import scala.meta.{Term, XtensionQuasiquoteTerm}
 
 case class Forall(name: Name, exp: Exp, body: Body) extends Statement {
-  val elemTyp: Option[TLinked] = exp.typ.flatMap {
+  val elemTyp: Option[TypeAnno] = exp.typ.flatMap {
     case ty: TIterable => Some(ty.contained)
     case _ => None
   }
@@ -22,7 +23,7 @@ case class Forall(name: Name, exp: Exp, body: Body) extends Statement {
 }
 
 case class Exists(name: Name, exp: Exp, body: Body) extends Statement {
-  val elemTyp: Option[TLinked] = exp.typ.flatMap {
+  val elemTyp: Option[TypeAnno] = exp.typ.flatMap {
     case ty: TIterable => Some(ty.contained)
     case _ => None
   }
@@ -45,11 +46,43 @@ trait ForallExistsFrontend extends Frontend {
   override protected def desugarables: Seq[Desugarable] = ForallExists +: super.desugarables
 
   override protected[frontend] def statement[_: P]: P[Statement] =
-    P("forall " ~ identifier ~~ " " ~ "in " ~ exp ~ body).map(Forall.tupled) |
-      P("exists " ~ identifier ~~ " " ~ "in " ~ exp ~ body).map(Exists.tupled) |
+    P("forall " ~ identifier ~~ " " ~ "in " ~ exp ~ body).mapWithLoc(Forall.tupled) |
+      P("exists " ~ identifier ~~ " " ~ "in " ~ exp ~ body).mapWithLoc(Exists.tupled) |
       super.statement
 
   override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("forall", "exists", "in")
+
+  override protected def typecheckInternal(stm: Statement, requireTerminator: Boolean): StmType = stm match {
+    case Forall(name, exp, body) =>
+      val ety = typecheck(exp)
+      val elemType = ety match {
+        case it: TIterable => it.contained
+        case _ =>
+          error(s"Found $ety, but expected iterable type", exp)
+          TAny
+      }
+      scopedTypeContext {
+        bindVar(name, elemType)
+        typecheck(body, requireTerminator = false)
+      }
+      NoTerminator
+
+    case Exists(name, exp, body) =>
+      val ety = typecheck(exp)
+      val elemType = ety match {
+        case it: TIterable => it.contained
+        case _ =>
+          error(s"Found $ety, but expected iterable type", exp)
+          TAny
+      }
+      scopedTypeContext {
+        bindVar(name, elemType)
+        typecheck(body, requireTerminator = false)
+      }
+      NoTerminator
+
+    case _ => super.typecheckInternal(stm, requireTerminator)
+  }
 }
 
 

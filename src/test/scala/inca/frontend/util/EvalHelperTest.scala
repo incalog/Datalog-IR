@@ -1,9 +1,10 @@
 package inca.frontend.util
 
+import inca.frontend.BaseFrontend
 import inca.frontend.core.Core
 import inca.frontend.core.Core.{Assign => _, Name => _, Param => _, _}
 import inca.frontend.parser.EvalHelper
-import inca.frontend.typechecker1.{EvalChecker, TypeContext}
+import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.Term._
@@ -20,18 +21,6 @@ class EvalHelperTest extends AnyFunSuite {
   private val paramN = Param(Nil, Name("n"), Some(tInt), None)
 
   private val emptyModule = Module(Core.Name("unused"), Seq.empty, Seq.empty)
-
-  implicit val env: TypeContext = new TypeContext(
-    Core.Name(""),
-    Map(),
-    emptyModule,
-    Map(
-      Core.Name("x") -> TInt,
-      Core.Name("y") -> TInt,
-      Core.Name("num") -> TNode("inca.analyzedData.Nat.Nat"),
-      Core.Name("s") -> TString
-    )
-  )
 
   test("test freeVars Name") {
     val code = q"x"
@@ -489,59 +478,66 @@ class EvalHelperTest extends AnyFunSuite {
     checkVars(code, Set("start", "Heap", "Set"))
   }
 
+  private def checkEval(eval: Eval, vars: Map[String, TypeAnno] = Map()): TypeAnno = {
+    val typer = new BaseFrontend(new LanguageMetaInfo()) {}
+    vars.foreach(vt => typer.bindVar(Core.Name(vt._1), vt._2))
+    typer.typecheck(eval)
+  }
+  
   test("test typecheck simple") {
 
-    def check(eval: Eval, expected: TypeAnno): Unit = {
-      val actual = EvalChecker.typecheck(eval)
+
+    def check(eval: Eval, expected: TypeAnno, vars: Map[String, TypeAnno] = Map()): Unit = {
+      val actual = checkEval(eval, vars)
       assert(actual == expected)
     }
-
-    check(Eval(Seq(Core.Name("x"), Core.Name("y")), q"x + y"), TInt)
+    check(Eval(Seq(Core.Name("x"), Core.Name("y")), q"x + y"), TInt, Map("x" -> TInt, "y" -> TInt))
     check(Eval(Seq.empty, q"Math.PI"), TDouble)
-    check(Eval(Seq(Core.Name("x"), Core.Name("y")), q"x == y"), TBool)
+    check(Eval(Seq(Core.Name("x"), Core.Name("y")), q"x == y"), TBool, Map("x" -> TBool, "y" -> TBool))
     check(Eval(Seq.empty, q""" "hello world" """), TString)
     check(Eval(Seq.empty, q"{val s: Short = 1; s}"), TInt)
     check(Eval(Seq.empty, q"println()"), TUnit)
-    check(Eval(Seq(Core.Name("s")), q"s"), TString)
+    check(Eval(Seq(Core.Name("s")), q"s"), TString, Map("s" -> TString))
   }
+
 
   test("test typecheck tuple") {
     val eval = Eval(Seq.empty, q"(1, 1.0, true)")
-    val typ = EvalChecker.typecheck(eval)
+    val typ = checkEval(eval)
     assert(typ == TTuple(Seq(TInt, TDouble, TBool)))
   }
 
   test("test typecheck tuple nested") {
     val code = q"(1, 3.4, (true, 'h'))"
     val eval = Eval(Seq.empty, code)
-    val typ = EvalChecker.typecheck(eval)
+    val typ = checkEval(eval)
     assert(typ == TTuple(Seq(TInt, TDouble, TTuple(Seq(TBool, TInt)))))
   }
 
   test("test typecheck tuple nested with string literals") {
     val code = q"""(42, 6.9, true, ("hello", 2), "world") """
     val eval = Eval(Seq.empty, code)
-    val typ = EvalChecker.typecheck(eval)
+    val typ = checkEval(eval)
     assert(typ == TTuple(Seq(TInt, TDouble, TBool, TTuple(Seq(TString, TInt)), TString)))
   }
 
   test("test typecheck subtyping") {
     val code = q"""if(true) 42 else new Object()"""
     val eval = Eval(Seq.empty, code)
-    val typ = EvalChecker.typecheck(eval)
+    val typ = checkEval(eval)
     assert(typ == TAny)
   }
 
   test("test typecheck list") {
     val code = q"List(inca.analyzedData.Nat.Zero)"
     val eval = Eval(Seq.empty, code)
-    val typ = EvalChecker.typecheck(eval)
+    val typ = checkEval(eval)
     assert(typ == TList(TNode("inca.analyzedData.Nat.Zero.type")))
   }
 
   test("test typecheck extern types") {
     val eval = Eval(Seq.empty, q"inca.analyzedData.Nat.Zero")
-    val typ = EvalChecker.typecheck(eval)
+    val typ = checkEval(eval)
     assert(typ == TNode("inca.analyzedData.Nat.Zero.type"))
   }
 
@@ -554,7 +550,7 @@ class EvalHelperTest extends AnyFunSuite {
        """
 
     val eval = Eval(Seq(Core.Name("num")), code)
-    val typ = EvalChecker.typecheck(eval)
+    val typ = checkEval(eval, Map("num" -> TNode("inca.analyzedData.Nat.Nat")))
     assert(typ == TNode("inca.analyzedData.Nat.Nat"))
   }
 
@@ -568,7 +564,7 @@ class EvalHelperTest extends AnyFunSuite {
        """
 
     val eval = Eval(Seq(Core.Name("num")), code)
-    val typ = EvalChecker.typecheck(eval)
+    val typ = checkEval(eval, Map("num" -> TNode("inca.analyzedData.Nat.Nat")))
     assert(typ == TTuple(Seq(TInt, TNode("inca.analyzedData.Nat.Nat"))))
   }
 

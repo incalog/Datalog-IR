@@ -4,7 +4,6 @@ import fastparse.ScalaWhitespace._
 import fastparse._
 import inca.frontend.core.Core
 import inca.frontend.core.Core.{Name, _}
-import inca.frontend.parser.ParserUtils.Ploc
 
 import scala.meta._
 import scala.meta.parsers.Parsed
@@ -13,7 +12,6 @@ import scala.meta.parsers.Parsed
   * Parser for the IncA Core language.
   */
 class CoreParser {
-
   final lazy val allKeywords: Set[String] = this.keywords
 
   protected[frontend] def keywords: Set[String] =
@@ -184,7 +182,7 @@ class CoreParser {
 
 
   protected[frontend] def Chain[_: P, A <: SourceLocation, B <: SourceLocation](p: => P[A], op: String, q: => P[B], opNode: (A, B) => A, min: Int = 0): P[A] =
-    P( p ~ (op ~ q).rep(min) ).map {
+    P( p ~ (op ~ q).rep(min) ).mapWithLoc {
       case (lhs, chunks) =>
         chunks.foldLeft(lhs){case (lhs, rhs) =>
           val node = opNode(lhs, rhs)
@@ -318,4 +316,39 @@ class CoreParser {
     P("aggregate" ~ "(" ~ dataOp ~ "," ~ dataOp ~ ")" ~ callExp).mapWithLoc { case (init, join, call) =>
       Aggregate(init, join, None, call)
     }
+
+
+  implicit class Ploc[T](p: => P[T])(implicit ctx: P[_]) {
+    def mapWithLoc[U <: SourceLocation](f: T => U): P[U] =
+      (Index ~ p ~ Index).map {
+        case (start, t, end) =>
+          val u = f(t)
+          u.startIndex = start
+          u.endIndex = end
+          u
+      }
+
+    def mapWithLocFun[U <: SourceLocation, V <: SourceLocation](f: T => (U => V)): P[U => V] =
+      (Index ~ p ~ Index).map {
+        case (start, t, end) =>
+          val uv = f(t)
+          u => {
+            val v = uv(u)
+            v.startIndex = u.startIndex
+            v.endIndex = end
+            v
+          }
+      }
+
+    def flatMapWithLoc[U <: SourceLocation](f: T => P[U]): P[U] =
+      (Index ~ p ~ Index).flatMap {
+        case (start, t, end) =>
+          val up = f(t)
+          up.map { u =>
+            u.startIndex = start
+            u.endIndex = end
+            u
+          }
+      }
+  }
 }

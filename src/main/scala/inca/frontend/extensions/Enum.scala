@@ -23,10 +23,16 @@ trait EnumFrontend extends Frontend {
   override protected def desugarables: Seq[Desugarable] = Enum +: super.desugarables
 
   override protected[frontend] def atomicExp[_: P]: P[Exp] =
-    P("enum" ~ "(" ~ typeAnno ~ ")").map(Enum.apply) |
+    P("enum" ~ "(" ~ typeAnno ~ ")").mapWithLoc(Enum.apply) |
       super.atomicExp
 
   override protected[frontend] def keywords: Set[String] = super.keywords + "enum"
+
+  override def typecheckInternal(exp: Exp, anno: Option[TypeAnno]): TypeAnno = exp match {
+    case Enum(ty) =>
+      TEnumeration(ty)
+    case _ => super.typecheckInternal(exp, anno)
+  }
 }
 
 object Enum extends Desugarable {

@@ -3,6 +3,8 @@ package inca.frontend.extensions
 import inca.frontend.Frontend
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
+import inca.frontend.parser.SourceLocation
+import inca.frontend.typechecker.{NoTerminator, StmType}
 import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
@@ -17,7 +19,7 @@ case class IfThenElse(cond: Exp, thn: Body, elseIfs: Seq[ElseIf], els: Option[Bo
     s"${indent}if (${cond.prettyprint}) ${thn.prettyprint}$elseIfsS$elseS".stripMargin
   }
 }
-case class ElseIf(cond: Exp, body: Body) {
+case class ElseIf(cond: Exp, body: Body) extends SourceLocation {
   def boundVars: Set[Name] = body.boundVars
   def allVars: Map[Name, Option[TypeAnno]] = cond.freeVars ++ body.allVars
   def prettyprint(implicit indent: String): String =
@@ -45,16 +47,35 @@ trait IfThenElseFrontend extends Frontend {
     P(
       "if" ~ "(" ~ exp ~ ")" ~ body ~
         elseif.rep.? ~ P("else" ~ body).?
-    ).map { case (e, b, eifs, el) => IfThenElse(e, b, eifs.getOrElse(Seq.empty), el) }
+    ).mapWithLoc { case (e, b, eifs, el) => IfThenElse(e, b, eifs.getOrElse(Seq.empty), el) }
 
   protected[frontend] def elseif[_: P]: P[ElseIf] =
     P(
       "else" ~ "if" ~ "(" ~ exp ~ ")" ~ body
-    ).map { case (e, b) => ElseIf(e, b) }
+    ).mapWithLoc { case (e, b) => ElseIf(e, b) }
 
 
   override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("if", "else")
 
+  override protected def typecheckInternal(stm: Statement, requireTerminator: Boolean): StmType = stm match {
+    case IfThenElse(cond, thn, elseIfs, els) =>
+      val conds = cond +: elseIfs.map(_.cond)
+      conds.foreach { c =>
+        val ty = typecheck(c)
+        if (ty != TBool)
+          error(s"Expected condition of type $TBool, but found $ty", c)
+      }
+
+      val bodies = thn +: elseIfs.map(_.body)
+      val bodyTypes = bodies.map { b =>
+        typecheck(b, requireTerminator)
+      }
+
+      val elsTy = els.map(typecheck(_, requireTerminator)).getOrElse(NoTerminator)
+      bodyTypes.foldLeft(elsTy)(_.meet(_, lang))
+
+    case _ => super.typecheckInternal(stm, requireTerminator)
+  }
 }
 
 object IfThenElse extends Desugarable {

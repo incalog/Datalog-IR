@@ -1,6 +1,7 @@
 package inca.frontend.extensions
 
 import inca.analyzedLangs.Exp
+import inca.frontend.BaseFrontend
 import inca.frontend.core.Core._
 import inca.runtime.context.QueryScope
 import inca.{CompilerOptions, IncaMatchers}
@@ -16,7 +17,7 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
   val two = Constant(IntLiteral(2))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo, frontend = new ForallExistsFrontend {})
+  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo, new BaseFrontend(_) with ForallExistsFrontend)
 
   "desugaring" should "eliminate forall conds" in {
     val sugared = Module("Test", Seq(), Seq(
@@ -114,7 +115,7 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    val options = CompilerOptions(scope.langMetaInfo, frontend = new ForallExistsFrontend with CastFrontend {})
+    val options = CompilerOptions(scope.langMetaInfo, new BaseFrontend(_) with ForallExistsFrontend with CastFrontend)
 
     assertMatchCoreProg(module, "existsCond", input, options = options) { matcher =>
       assert(matcher.getAllMatchArrays.size == 1)

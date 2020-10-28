@@ -3,10 +3,11 @@ package inca.frontend.extensions
 import inca.frontend.Frontend
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
+import inca.frontend.typechecker.StmType
 import inca.util.Gensym
 
 case class Foreach(name: Name, exp: Exp, body: Body) extends Statement {
-  val elemTyp: Option[TLinked] = exp.typ.flatMap {
+  val elemTyp: Option[TypeAnno] = exp.typ.flatMap {
     case ty: TIterable => Some(ty.contained)
     case _ => None
   }
@@ -31,10 +32,28 @@ trait ForeachFrontend extends Frontend {
   override protected[frontend] def statement[_: P]: P[Statement] =
     P(
       "foreach " ~ identifier ~~ " " ~ "in " ~ exp ~ body
-    ).map { case (s, e, b) => Foreach(s, e, b) } |
+    ).mapWithLoc { case (s, e, b) => Foreach(s, e, b) } |
       super.statement
 
   override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("foreach", "in")
+
+  override protected def typecheckInternal(stm: Statement, requireTerminator: Boolean): StmType = stm match {
+    case Foreach(name, exp, body) =>
+      val ety = typecheck(exp)
+      val elemType = ety match {
+        case it: TIterable => it.contained
+        case _ =>
+          error(s"Found $ety, but expected iterable type", exp)
+          TAny
+      }
+
+      scopedTypeContext {
+        bindVar(name, elemType)
+        typecheck(body, requireTerminator)
+      }
+
+    case _ => super.typecheckInternal(stm, requireTerminator)
+  }
 }
 
 object Foreach extends Desugarable {

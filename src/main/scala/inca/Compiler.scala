@@ -65,7 +65,7 @@ object Compiler {
     import reflect.runtime.currentMirror
     import tools.reflect.ToolBox
 
-    println(source)
+//    println(source)
 
     val toolbox = currentMirror.mkToolBox()
     val tree = toolbox.parse(source)

@@ -33,7 +33,32 @@ trait BoolOpsFrontend extends Frontend {
 
   override protected[frontend] def infixExp[_: P]: P[Exp] = Chain(andExp, "||", andExp, Or)
   protected[frontend] def andExp[_: P]: P[Exp] = Chain(notExp, "&&", notExp, And)
-  protected[frontend] def notExp[_: P]: P[Exp] = P(("!" ~ super.infixExp).map(Not) | super.infixExp)
+  protected[frontend] def notExp[_: P]: P[Exp] = P(("!" ~ super.infixExp).mapWithLoc(Not) | super.infixExp)
+
+  override def typecheckInternal(exp: Exp, anno: Option[TypeAnno]): TypeAnno = exp match {
+    case Not(cond) =>
+      val ty = typecheck(cond)
+      if (ty != TBool)
+        error(s"Found expression of type $ty, but expected $TBool", cond)
+      TBool
+    case And(e1, e2) =>
+      val ty1 = typecheck(e1)
+      val ty2 = typecheck(e2)
+      if (ty1 != TBool)
+        error(s"Found expression of type $ty1, but expected $TBool", e1)
+      if (ty2 != TBool)
+        error(s"Found expression of type $ty2, but expected $TBool", e2)
+      TBool
+    case Or(e1, e2) =>
+      val ty1 = typecheck(e1)
+      val ty2 = typecheck(e2)
+      if (ty1 != TBool)
+        error(s"Found expression of type $ty1, but expected $TBool", e1)
+      if (ty2 != TBool)
+        error(s"Found condition of type $ty2, but expected $TBool", e2)
+      TBool
+    case _ => super.typecheckInternal(exp, anno)
+  }
 }
 
 object BoolOps extends Desugarable {
