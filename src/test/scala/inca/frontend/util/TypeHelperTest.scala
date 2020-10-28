@@ -1,7 +1,7 @@
 package inca.frontend.util
 
 import inca.frontend.core.Core._
-import inca.frontend.typechecker.ScalaTypeError
+import inca.frontend.typechecker1.ScalaTypeError
 import org.scalatest.funsuite.AnyFunSuite
 
 class TypeHelperTest extends AnyFunSuite{

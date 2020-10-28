@@ -1,9 +1,10 @@
-package inca.frontend.typechecker
+package inca.frontend.typechecker1
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
 import inca.frontend.core.Core._
 import inca.frontend.parser.CoreParser
+import inca.frontend.util.Program
 import org.scalatest.funsuite.AnyFunSuite
 
 /**
@@ -16,7 +17,7 @@ class CoreTypecheckerTest extends AnyFunSuite {
   val parser = new CoreParser
   
   test("test subtype") {
-    def test_run(t1 : TypeAnno, t2 : TypeAnno) = assert(TypeOps.subtype(t1, t2, null))
+    def test_run(t1 : TypeAnno, t2 : TypeAnno) = assert(new CoreTypechecker(null, Program(Seq.empty), Seq()).subtype(t1, t2))
 
     test_run(TBool, TBool)
     test_run(TBool, TAny)
@@ -28,29 +29,28 @@ class CoreTypecheckerTest extends AnyFunSuite {
     def test_run(cd: String) = {
       parse(cd, parser.module(_)) match {
         case Success(value, index) => {
-          val typer = new CoreTypechecker(null)
-          typer.typecheck(Seq(value))
-          assert(typer.getErrors.isEmpty)
+          new CoreTypechecker(null, Program(Seq(value)), Seq()).typecheck() match {
+            case SuccessTypecheck(warnings)     =>
+            case FailTypecheck(error, warnings) => fail(s"$error, $warnings")
+          }
         }
         case Failure(label, index, extra) =>
           fail(s" ${cd.slice(index - 3, index + 3)} $label, $index, $extra")
       }
     }
 
-    test_run{
+    val code = Seq(
       s"""module test
           |
           |def name() : Int = {
           |    val x = 5
           |    yield x 
-          |}""".stripMargin}
-    test_run{
+          |}""".stripMargin,
       s"""module test
           |
           |def name() : Unit = {
           |    val x = 5
-          |}""".stripMargin}
-    test_run{
+          |}""".stripMargin,
       s"""module test
           |
           |def name() : Int = {
@@ -58,8 +58,7 @@ class CoreTypecheckerTest extends AnyFunSuite {
           |    yield x
           |} union {
           |    yield 10
-          |}""".stripMargin}
-    test_run{
+          |}""".stripMargin,
       s"""module test
           |
           |def name() : Int = {
@@ -69,29 +68,28 @@ class CoreTypecheckerTest extends AnyFunSuite {
           |
           |def another() : Int = {
           |    yield name()
-          |} """.stripMargin}
-    test_run{
+          |} """.stripMargin,
       s"""module test
           |
           |def name() : Int = {
           |    val x = 4
           |    yield eval(x + 38)
-          |} """.stripMargin}
-    test_run{
+          |} """.stripMargin,
       s"""module test
           |
           |def name() : Any = {
           |    val x = 5
           |    yield x
-          |} """.stripMargin}
-    test_run{
+          |} """.stripMargin,
       s"""module test
           |
           |def name() : Any = {
           |    val x = true 
           |    assert x.isInstanceOf[Any]
           |    yield x
-          |} """.stripMargin}
+          |} """.stripMargin
+    )
+    //code.foreach(test_run)
 
     val code1 = s"""module test
                    |
@@ -122,10 +120,15 @@ class CoreTypecheckerTest extends AnyFunSuite {
         |""".stripMargin
 
     val code = parse(src, parser.module(_)).get.value
-    val prog = Seq(mod1, code)
-    val typechecker = new CoreTypechecker(null)
-    typechecker.typecheck(prog)
-    assert(typechecker.getErrors.isEmpty)
+    val prog = Program(Seq(mod1, code))
+    val typechecker = new CoreTypechecker(null, prog, Seq.empty)
+    typechecker.typecheck() match {
+      case SuccessTypecheck(warnings) =>
+        println(warnings)
+      case FailTypecheck(errors, warnings) =>
+        println(errors)
+        fail()
+    }
   }
 
 }

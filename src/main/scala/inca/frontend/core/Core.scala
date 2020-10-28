@@ -17,6 +17,10 @@ object Core {
     override def prettyprint: String = "Any"
     override def javastring: String = "any"
   }
+  case object TNothing extends TypeAnno {
+    override def prettyprint: String = "Nothing"
+    override def javastring: String = "nothing"
+  }
   case object TBool extends TypeAnno {
     override def prettyprint: String = "Boolean"
     override def javastring: String = "bool"
@@ -108,14 +112,18 @@ object Core {
     def freeVars: Map[Name, Option[TypeAnno]] = allVars -- boundNames
     def allVars: Map[Name, Option[TypeAnno]] = bodies.flatMap(_.allVars).toMap ++ params.flatMap(_.freeVars) ++ outParams.flatMap(_.freeVars)
 
+    lazy val outType: TypeAnno =
+      if (outParams.isEmpty)
+        TUnit
+      else if (outParams.size == 1)
+        outParams.head.typ
+      else
+        TTuple(outParams.map(_.typ))
+
     def prettyprint(implicit indent: String): String = {
       val visS = if (vis.contains(Private)) "private " else ""
       val paramsS = params.map(_.prettyprint).mkString(", ")
-      val outS = if (outParams.isEmpty) "Unit"
-        else if (outParams.size == 1)
-          outParams.head.prettyprint
-        else
-          outParams.map(_.prettyprint).mkString("(", ", ", ")")
+      val outS = outType.prettyprint
       val bodiesS = if (bodies.isEmpty) "{ }" else
         bodies.map(_.prettyprint(indent)).mkString(" union ")
       s"$indent${visS}def $name($paramsS): $outS = $bodiesS"

@@ -563,6 +563,16 @@ class CoreParserTest extends AnyFunSuite {
     )
     testBody(
       s"""{
+         |    assert x.isInstanceOf[Foo]
+         |}""".stripMargin,
+      Body(
+        Seq(
+          Assert(InstanceOf(Var("x"), TNode("Foo")))
+        )
+      )
+    )
+    testBody(
+      s"""{
          |    vals br0t <- (Int, String)
          |}""".stripMargin,
       Body(

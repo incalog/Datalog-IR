@@ -1,10 +1,10 @@
-package inca.frontend.typechecker.extensions
+package inca.frontend.typechecker1.extensions
 
 import inca.frontend.core.Core
 import inca.frontend.core.Core._
 import inca.frontend.extensions.IfThenElse
-import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
-import inca.frontend.typechecker.{TypeContext, TypeError, TypecheckerExtension}
+import inca.frontend.typechecker1.CoreTypechecker.TypeEnvironment
+import inca.frontend.typechecker1.{TypeContext, TypeError, TypecheckerExtension}
 
 /**
  * IfThenElse typechecker extension

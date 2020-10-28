@@ -1,4 +1,4 @@
-package inca.frontend.typechecker3
+package inca.frontend.typechecker
 
 import inca.frontend.core.Core.{Module, Name, PatternFunction, TypeAnno}
 
@@ -9,16 +9,22 @@ trait TypeContext extends TypeIO {
   private var funs: MultiDict[Name, (Module, PatternFunction)] = MultiDict()
   private var modules: Map[Name, Module] = Map()
 
+  def scopedTypeContext[T](f: => T): T = {
+    val varsSaved = vars
+    val funsSaved = funs
+    val modulesSaved = modules
+    val t = f
+    vars = varsSaved
+    funs = funsSaved
+    modules = modulesSaved
+    t
+  }
 
   def bindVar(name: Name, ty: TypeAnno): Unit = {
     vars.get(name) foreach { case (bound, _) =>
       warn(s"Variable $name shadows previously defined variable $bound", name, bound)
     }
     vars += (name -> (name, ty))
-  }
-
-  def bindVars(bindings: Seq[(Name, TypeAnno)]): Unit = {
-    bindings.foreach(b => bindVar(b._1, b._2))
   }
 
   def lookupVar(name: Name): Option[TypeAnno] =
@@ -32,10 +38,6 @@ trait TypeContext extends TypeIO {
 
   def bindFun(fun: PatternFunction, module: Module): Unit = {
     funs += fun.name -> (module, fun)
-  }
-
-  def bindFuns(bindings: Seq[(PatternFunction, Module)]): Unit = {
-    bindings.foreach(b => bindFun(b._1, b._2))
   }
 
   def lookupFun(name: Name): Option[PatternFunction] =
@@ -52,6 +54,22 @@ trait TypeContext extends TypeIO {
         None
     }
 
+
+  def bindModule(module: Module): Unit = {
+    val name = module.name
+    modules.get(name) foreach { bound =>
+      error(s"Found multiple modules with same name $name", name, bound.name)
+    }
+    modules += (name -> module)
+  }
+
+  def lookupModule(name: Name): Option[Module] =
+    modules.get(name) match {
+      case Some(module) => Some(module)
+      case None =>
+        error(s"Unknown module $name", name)
+        None
+    }
 
   //  // TODO need to think about binding refinement
 //  // look at type refinement type systems

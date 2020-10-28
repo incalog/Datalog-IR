@@ -1,4 +1,4 @@
-package inca.frontend.typechecker
+package inca.frontend.typechecker1
 
 import inca.frontend.core.Core.{Eval, TypeAnno}
 import inca.frontend.util.TypeHelper

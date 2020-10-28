@@ -166,16 +166,16 @@ class TestCoreTypeChecker extends AnyFlatSpec{
   "checkExp" should "type instanceOf correctly" in {
     val ctx = TypeContext(Map(Name("x") -> TNode(analyzedLangs.Exp.expTag)), Map(), null)
 
-    val instanceOf = parseExp(s"x instanceOf ${TNode(analyzedLangs.Exp.addTag).prettyprint}")
+    val instanceOf = parseExp(s"x.isInstanceOf[${TNode(analyzedLangs.Exp.addTag).prettyprint}]")
     assertResult(TBool)(typer.checkExp(ctx)(instanceOf))
 
-    val notInstanceOf = parseExp(s"x notInstanceOf ${TNode(analyzedLangs.Exp.addTag).prettyprint}")
+    val notInstanceOf = parseExp(s"x.notInstanceOf[${TNode(analyzedLangs.Exp.addTag).prettyprint}]")
     assertResult(TBool)(typer.checkExp(ctx)(notInstanceOf))
 
-    val invalidInstanceOf = parseExp("x instanceOf TBool")
+    val invalidInstanceOf = parseExp("x.isInstanceOf[TBool]")
     assertThrows[TypeError](typer.checkExp(ctx)(invalidInstanceOf))
 
-    val tupleInstanceOf = parseExp("(x, 1) instanceOf TBool")
+    val tupleInstanceOf = parseExp("(x, 1).isInstanceOf[TBool]")
     assertThrows[TypeError](typer.checkExp(ctx)(tupleInstanceOf))
   }
 
@@ -259,7 +259,7 @@ class TestCoreTypeChecker extends AnyFlatSpec{
     val assertBool = parseStatement("assert true")
     assertResult(ctx)(typer.checkStatement(ctx)(assertBool))
 
-    val assertInstanceOf = parseStatement(s"assert x instanceOf ${TNode(analyzedLangs.Exp.addTag).prettyprint}")
+    val assertInstanceOf = parseStatement(s"assert x.isInstanceOf[${TNode(analyzedLangs.Exp.addTag).prettyprint}]")
     assertResult(ctx.refineBinding(Name("x"), TNode(analyzedLangs.Exp.addTag)))(typer.checkStatement(ctx)(assertInstanceOf))
 
     val assertNotBool = parseStatement("assert 1")
@@ -300,9 +300,9 @@ class TestCoreTypeChecker extends AnyFlatSpec{
 
     val body = parseBody(
       s"""{
-        |assert x instanceOf ${TNode(analyzedLangs.Exp.addTag)}
+        |assert x.isInstanceOf[${TNode(analyzedLangs.Exp.addTag)}]
         |val lhs = x.lhs
-        |assert lhs instanceOf ${TNode(analyzedLangs.Exp.multTag)}
+        |assert lhs.isInstanceOf[${TNode(analyzedLangs.Exp.multTag)}]
         |yield (false, 2L)
         |}
         |
@@ -325,11 +325,11 @@ class TestCoreTypeChecker extends AnyFlatSpec{
     val fun = parsePatternFunction(
       s"""
         |def lhs(x: ${expNode.prettyprint}): ${expNode.prettyprint} = {
-        |  assert x instanceOf ${addNode.prettyprint}
+        |  assert x.isInstanceOf[${addNode.prettyprint}]
         |  val lhs = x.lhs
         |  yield lhs
         |} union {
-        |  assert x instanceOf ${multNode.prettyprint}
+        |  assert x.isInstanceOf[${multNode.prettyprint}]
         |  val lhs = x.lhs
         |  yield lhs
         |}
@@ -338,7 +338,7 @@ class TestCoreTypeChecker extends AnyFlatSpec{
     val funSubtypeYield = parsePatternFunction(
       s"""
          |def lhs(x: ${expNode.prettyprint}): ${expNode.prettyprint} = {
-         |  assert x instanceOf ${addNode.prettyprint}
+         |  assert x.isInstanceOf[${addNode.prettyprint}]
          |  val lhs = x.lhs
          |  yield x
          |}
@@ -349,7 +349,7 @@ class TestCoreTypeChecker extends AnyFlatSpec{
     val funFailUnbound = parsePatternFunction(
       s"""
          |def lhs(y: ${expNode.prettyprint}): ${expNode.prettyprint} = {
-         |  assert x instanceOf ${addNode.prettyprint}
+         |  assert x.isInstanceOf[${addNode.prettyprint}]
          |  val lhs = x.lhs
          |  yield lhs
          |}
@@ -359,7 +359,7 @@ class TestCoreTypeChecker extends AnyFlatSpec{
     val funFailWrongYield = parsePatternFunction(
       s"""
          |def lhs(x: ${expNode.prettyprint}): ${expNode.prettyprint} = {
-         |  assert x instanceOf ${addNode.prettyprint}
+         |  assert x.isInstanceOf[${addNode.prettyprint}]
          |  val lhs = x.lhs
          |  yield 1
          |}

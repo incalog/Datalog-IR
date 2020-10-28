@@ -1,7 +1,7 @@
-package inca.frontend.typechecker3
+package inca.frontend.typechecker
 
 import inca.frontend.parser.SourceLocation
-import inca.frontend.typechecker3.TypeIO._
+import inca.frontend.typechecker.TypeIO._
 
 import scala.collection.mutable.ListBuffer
 

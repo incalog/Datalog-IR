@@ -5,7 +5,7 @@ import java.io.FileNotFoundException
 import fastparse.Parsed.{Failure, Success}
 import inca.frontend.Frontend
 import inca.frontend.core.Core
-import inca.frontend.typechecker.{FailTypecheck, SuccessTypecheck, Typechecker}
+import inca.frontend.typechecker1.{FailTypecheck, SuccessTypecheck, Typechecker}
 import inca.runtime.context.LanguageMetaInfo
 
 import scala.collection.mutable

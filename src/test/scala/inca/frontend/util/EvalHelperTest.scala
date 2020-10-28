@@ -3,7 +3,7 @@ package inca.frontend.util
 import inca.frontend.core.Core
 import inca.frontend.core.Core.{Assign => _, Name => _, Param => _, _}
 import inca.frontend.parser.EvalHelper
-import inca.frontend.typechecker.{EvalChecker, TypeContext}
+import inca.frontend.typechecker1.{EvalChecker, TypeContext}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.Term._

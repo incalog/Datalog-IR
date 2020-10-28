@@ -2,7 +2,7 @@ package inca.frontend.util
 
 import inca.frontend.Frontend
 import inca.frontend.core.Core._
-import inca.frontend.typechecker.ScalaTypeError
+import inca.frontend.typechecker1.ScalaTypeError
 
 object TypeHelper {
 

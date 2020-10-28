@@ -1,10 +1,10 @@
-package inca.frontend.typechecker.extensions
+package inca.frontend.typechecker1.extensions
 
 import inca.frontend.core.Core
 import inca.frontend.core.Core.{TAnyLinked, TList, TUnit}
 import inca.frontend.extensions.Foreach
-import inca.frontend.typechecker.CoreTypechecker.TypeEnvironment
-import inca.frontend.typechecker.{TypeContext, TypeError, TypecheckerExtension}
+import inca.frontend.typechecker1.CoreTypechecker.TypeEnvironment
+import inca.frontend.typechecker1.{TypeContext, TypeError, TypecheckerExtension}
 
 /**
  * Foreach typechecker extension

@@ -1,12 +1,11 @@
-package inca.frontend.typechecker.extensions
+package inca.frontend.typechecker1.extensions
 
-import inca.frontend.core.Core
-import inca.frontend.core.Core.{AnnoParam, Assert, Body, BooleanLiteral, Constant, DoubleLiteral, IntLiteral, Module, Param, PatternFunction, TAny, TInt, TypeAnno, UnitLiteral, Var, Yield}
+import inca.frontend.core.Core._
 import inca.frontend.extensions.{ElseIf, IfThenElse}
-import inca.frontend.typechecker.{CoreTypechecker, FailTypecheck, SuccessTypecheck}
+import inca.frontend.typechecker1.CoreTypechecker
+import inca.frontend.typechecker1.TestingUtils._
 import inca.frontend.util.Program
 import org.scalatest.funsuite.AnyFunSuite
-import inca.frontend.typechecker.TestingUtils._
 
 class IfThenElseTypecheckerTest extends AnyFunSuite{
 

@@ -1,4 +1,4 @@
-package inca.frontend.typechecker.extensions
+package inca.frontend.typechecker1.extensions
 
 import org.scalatest.funsuite.AnyFunSuite
 

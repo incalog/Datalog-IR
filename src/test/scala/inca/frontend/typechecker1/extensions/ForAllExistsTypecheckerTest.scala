@@ -1,9 +1,9 @@
-package inca.frontend.typechecker.extensions
+package inca.frontend.typechecker1.extensions
 
 import inca.frontend.core.Core._
 import inca.frontend.extensions.{Exists, Forall}
-import inca.frontend.typechecker.TestingUtils._
-import inca.frontend.typechecker.{CoreTypechecker, FailTypecheck, SuccessTypecheck}
+import inca.frontend.typechecker1.TestingUtils._
+import inca.frontend.typechecker1.{CoreTypechecker, FailTypecheck, SuccessTypecheck}
 import org.scalatest.funsuite.AnyFunSuite
 
 class ForAllExistsTypecheckerTest extends AnyFunSuite{
