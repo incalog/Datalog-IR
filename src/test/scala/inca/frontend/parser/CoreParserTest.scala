@@ -151,7 +151,7 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test Link core-links") {
-    val testLink = testSuccess(parser.link(TNode("node"))(_))
+    val testLink = testSuccess(parser.link(_))
 
     testLink("parent", ParentLink)
     testLink("children", ChildrenLink)

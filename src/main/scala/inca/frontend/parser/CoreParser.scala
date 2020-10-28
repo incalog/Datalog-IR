@@ -122,11 +122,11 @@ class CoreParser {
     }
 
   /** Link parser */
-  protected[frontend] def link[_: P](node: TNode): P[Link] = P(coreLink(node))
+  protected[frontend] def link[_: P]: P[Link] = coreLink
 
   /** CoreLink parser */
-  protected[frontend] def coreLink[_: P](node: TNode): P[CoreLink] =
-    P(parentLink | childrenLink | prevLink | sizeLink | nextLink | namedLink(node))
+  protected[frontend] def coreLink[_: P]: P[CoreLink] =
+    P(parentLink | childrenLink | prevLink | sizeLink | nextLink | namedLink)
 
   /** ParentLink parser */
   protected[frontend] def parentLink[_: P]: P[ParentLink.type] =
@@ -149,7 +149,7 @@ class CoreParser {
     P(SizeLink.prettyprint).mapWithLoc(_ => SizeLink)
 
   /** NamedLink parser */
-  protected[frontend] def namedLink[_: P](node: TNode): P[NamedLink] =
+  protected[frontend] def namedLink[_: P]: P[NamedLink] =
     P(identifier).mapWithLoc(NamedLink.apply)
 
 
@@ -174,7 +174,7 @@ class CoreParser {
   }
 
   protected[frontend] def trailExp[_: P]: P[Exp => Exp] =
-    P("." ~ link(TNode("dummy"))).mapWithLocFun[Exp, Exp](l => PathAccess(_, l)) |
+    P("." ~ link).mapWithLocFun[Exp, Exp](l => PathAccess(_, l)) |
     P("." ~ "isInstanceOf" ~ bracketedTypeAnno).mapWithLocFun[Exp, Exp](ty => InstanceOf(_, ty)) |
     P("." ~ "notInstanceOf" ~ bracketedTypeAnno).mapWithLocFun[Exp, Exp](ty => NotInstanceOf(_, ty))
 
