@@ -5,6 +5,8 @@ import inca.runtime.context.{LanguageMetaInfo, QueryScope}
 import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
+import scala.meta._
+
 class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
 
   val langMeta = new LanguageMetaInfo()
@@ -84,11 +86,12 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
     val one = Constant(IntLiteral(1))
     val two = Constant(IntLiteral(1))
 
+    val code = q"(x: Int) => x > 1"
     val module1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("b"), one),
-          Computed(Var("c"), Evaluation(Seq(Var("b") -> TInt), TBool, s"(x: Int) => x > 1"))
+          Computed(Var("c"), Evaluation(Seq(Var("b") -> TInt), TBool, code))
         ))
       ))
     ))
@@ -96,7 +99,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, one, one),
-          Computed(Var("c"), Evaluation(Seq(one -> TInt), TBool, s"(x: Int) => x > 1"))
+          Computed(Var("c"), Evaluation(Seq(one -> TInt), TBool, code))
         ))
       ))
     ))

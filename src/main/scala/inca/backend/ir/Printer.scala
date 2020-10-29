@@ -86,7 +86,9 @@ object Printer {
     case GP.ConstantEvaluation(returnType, code) =>
       s"${prettyTerm(lhs)} = const eval($code):$returnType"
     case GP.Evaluation(args, returnType, code) =>
-      s"${prettyTerm(lhs)} = eval($code):$returnType"
+      val syntax = code.syntax
+      val indented = syntax.replace("\n", "\n\t\t")
+      s"${prettyTerm(lhs)} = eval($indented):$returnType"
     case GP.CustomAggregation(typ, initOp, joinOp, inverseOp, patName, args, aggregatedColumn) =>
       val sargs = args.map(prettyTerm).updated(aggregatedColumn, "#").mkString(", ")
       s"${prettyTerm(lhs)} = aggregate $patName($sargs) with $initOp, $joinOp, $inverseOp"

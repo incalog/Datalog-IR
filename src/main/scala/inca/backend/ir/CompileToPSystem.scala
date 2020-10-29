@@ -320,8 +320,7 @@ object CompileToPSystem {
 
     case Evaluation(args, _, code) =>
       val result = compileTerm(lhs)
-      val description = s"eval($code)"
-      val codeTerm = code.parse[meta.Term].get
+      val description = s"eval(${code.syntax})"
       val paramNames = args.toList.flatMap {
         case (Var(name),_) => Some(Lit.String(name))
         case _ => None
@@ -336,7 +335,7 @@ object CompileToPSystem {
           override def getShortDescription: String = $description
           override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList(..$paramNames)
           override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
-            ${codeTerm}(..$argTerms)
+            $code(..$argTerms)
           }
         }, $result)
          """)

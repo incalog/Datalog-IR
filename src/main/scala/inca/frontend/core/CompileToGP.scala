@@ -4,6 +4,8 @@ import inca.backend.ir.GP
 import inca.frontend.core.Core.{Name, TTuple}
 import inca.util.Gensym
 
+import scala.meta._
+
 object CompileToGP {
 
   case object BodyMustFail extends Exception
@@ -277,10 +279,14 @@ object CompileToGP {
       (Seq(countVar), constraints :+ countConstraint)
 
     case eval@Core.Eval(params, code) =>
+      import scala.meta._
+
       val evalVar = gensym.fresh("eval")
       var argConstraints = Seq[GP.Constraint]()
       val paramsBindings = params.map(name => name -> env.getOrElse(name, throw new IllegalArgumentException(s"Unbound variable $name")))
-      val paramsTyped = paramsBindings.map { case (name, bind) => s"$name: ${scalaAnnoString(bind.typ)}" }
+      val paramsTyped = paramsBindings.map { case (name, bind) =>
+        param"${Term.Name(name.name)}: ${scalaTypeAnno(bind.typ)}"
+      }.toList
       val args = paramsBindings.map { case (name, binding) =>
         if (binding.shouldInline) {
           val (Seq(arg), cons) = transExp(binding.exp.get)
@@ -290,7 +296,7 @@ object CompileToGP {
           (GP.Var(name.name), transType(binding.typ))
         }
       }
-      val funCode = s"(${paramsTyped.mkString(" ,")}) => {${code.syntax}}"
+      val funCode = q"(..$paramsTyped) => {$code}"
       val resType = eval.typ.getOrElse(throw new IllegalStateException("untyped Eval"))
       val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(args, transType(resType), funCode))
       (Seq(evalVar), Seq(evalConstraint))
@@ -389,6 +395,17 @@ object CompileToGP {
     case Core.TString => "String"
     case dt: Core.DataType => resolveDataType(dt)
     case _: Core.TLinked => "truechange.URI"
+  }
+
+  def scalaTypeAnno(typ: Core.TypeAnno): meta.Type = typ match {
+    case Core.TAny => t"Any"
+    case Core.TBool => t"Boolean"
+    case Core.TInt => t"Int"
+    case Core.TLong => t"Long"
+    case Core.TDouble => t"Double"
+    case Core.TString => t"String"
+    case dt: Core.DataType => t"${resolveDataType(dt)}"
+    case _: Core.TLinked => t"truechange.URI"
   }
 
   def resolveDataOp(op: Core.DataOp): String = op.qualifier match {

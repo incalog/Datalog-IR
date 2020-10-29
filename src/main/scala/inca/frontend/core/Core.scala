@@ -101,6 +101,10 @@ object Core {
     def prettyprint(implicit indent: String): String = "public"
   }
 
+
+
+
+
   case class Module(name: Name, imports: Seq[Name], funs: Seq[PatternFunction]) extends SourceLocation {
     def allVars: Map[Name, Option[TypeAnno]] = funs.flatMap(_.allVars).toMap
     def usedModuleNames: Seq[Name] = name +: imports
@@ -332,6 +336,7 @@ object Core {
     override def freeVars: Map[Name, Option[TypeAnno]] = params.map(_ -> None).toMap
     override def prettyprint(implicit indent: String): String = s"eval($code)"
   }
+
 
   sealed trait Link extends SourceLocation {
     def prettyprint: String

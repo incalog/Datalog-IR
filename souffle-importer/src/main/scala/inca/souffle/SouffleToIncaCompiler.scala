@@ -2,14 +2,15 @@ package inca.souffle
 
 import inca.backend.ir.GP._
 import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.index.MetaElements.{Link => MLink}
 import inca.souffle.Syntax._
 import inca.souffle.Util._
-import truechange.{JavaLitType, LitType}
-import inca.runtime.index.MetaElements.{Link => MLink}
 import inca.util.Gensym
+import truechange.{JavaLitType, LitType}
 
 import scala.collection.immutable.MultiDict
 import scala.collection.mutable
+import scala.meta.{Input => _, Term => _, _}
 
 class SouffleToIncaCompiler {
 
@@ -147,9 +148,9 @@ class SouffleToIncaCompiler {
       val params = collectParams(exp)
       val trgVar = Var(gensym.fresh("trg"))
       val typedParams = params.map {
-        case Var(name) => s"${name}: String"
-      }
-      val funString = s"(${typedParams.mkString(", ")}) => (${compileEvalString(exp)}).intern"
+        case Var(name) => param"${scala.meta.Term.Name(name)}: String"
+      }.toList
+      val funString = q"(..$typedParams) => (${compileEval(exp)}).intern"
       val computed = Computed(trgVar, Evaluation(params.map((_, TString)), TUnbounded(TString), funString))
       (trgVar, Seq(computed))
     case _ => throw new IllegalArgumentException(s"TODO $exp not supported")
@@ -163,14 +164,14 @@ class SouffleToIncaCompiler {
     case Syntax.Any => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
   }
 
-  def compileEvalString(exp: Syntax.Expression): String = exp match {
-    case Variable(name) => cleanSouffleName(name)
-    case StringValue(value) =>  "\"" + value + "\""
-    case NumberValue(value) => value.toString
-    case BuiltInFunctionCall(fun, args) =>
-      val lhs = compileEvalString(args.head)
-      val rhs = compileEvalString((args(1)))
-      s"$lhs + $rhs"
+  def compileEval(exp: Syntax.Expression): meta.Term = exp match {
+    case Variable(name) => scala.meta.Term.Name(cleanSouffleName(name))
+    case StringValue(value) =>  scala.meta.Lit.String(value)
+    case NumberValue(value) => scala.meta.Lit.String(value.toString)
+    case BuiltInFunctionCall(CatBuiltInFunction, args) =>
+      val lhs = compileEval(args.head)
+      val rhs = compileEval((args(1)))
+      q"$lhs + $rhs"
     case Syntax.Any => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
   }
 

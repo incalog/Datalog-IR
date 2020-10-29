@@ -8,6 +8,8 @@ import inca.runtime.context.QueryScope
 import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.funsuite.AnyFunSuite
 
+import scala.meta._
+
 class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
 
   private val testInput = Add(And(Or(BooleanLit(false), BooleanLit(false)), IntegerLit(5)), LongLit(10L))
@@ -121,7 +123,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
       Seq(GP.Pattern(None, "intToString", Seq(GP.Param("exp", GP.TNode(Exp.intTag)), GP.Param("str", GP.TUnbounded(GP.TString))),
         Seq(GP.Body(Seq(
           GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TInt),
-          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TInt)), GP.TUnbounded(GP.TString), "(value: Int) => value.toString")))
+          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TInt)), GP.TUnbounded(GP.TString), q"(value: Int) => value.toString")))
         )))))
     assertMatchGPProg(module, "intToString", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
@@ -133,8 +135,8 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
       Seq(GP.Pattern(None, "intToString", Seq(GP.Param("exp", GP.TNode(Exp.intTag)), GP.Param("str2", GP.TUnbounded(GP.TString))),
         Seq(GP.Body(Seq(
           GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TInt),
-          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TInt)), GP.TUnbounded(GP.TString), "(value: Int) => value.toString")),
-          GP.Computed(GP.Var("str2"), GP.Evaluation(Seq((GP.Var("str"), GP.TUnbounded(GP.TString))), GP.TUnbounded(GP.TString), "(str: String) => str + \"_appended\"")))
+          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TInt)), GP.TUnbounded(GP.TString), q"(value: Int) => value.toString")),
+          GP.Computed(GP.Var("str2"), GP.Evaluation(Seq((GP.Var("str"), GP.TUnbounded(GP.TString))), GP.TUnbounded(GP.TString), q"""(str: String) => str + "_appended" """)))
         )))))
     assertMatchGPProg(module, "intToString", testInputNumericAddition) { matcher =>
       println(matcher.getAllMatches)
