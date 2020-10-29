@@ -5,7 +5,10 @@ import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Compute
 object Printer {
 
   def prettyModule(module: Module): String =
-    "module " + module.name + "\n" + module.imports.mkString("\n") + module.pats.map(prettyGraphPattern).mkString("\n")
+    "module " +
+      module.name + "\n" +
+      module.imports.mkString("\n") + module.pats.map(prettyGraphPattern).mkString("\n") + "\n" +
+      module.stats.map(_.syntax).mkString("\n")
 
   def prettyGraphPattern(gp: Pattern): String = {
     val header = prettyVis(gp.vis) + gp.name + gp.params.map(prettyParam).mkString("(", ", ", ")")

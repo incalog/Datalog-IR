@@ -18,7 +18,7 @@ class DesugarTrans {
   def desugarModule(module: Module)(implicit gensym: Gensym): Module = gensym.scoped {
     gensym.register(module.usedModuleNames.map(_.name))
     gensym.register(module.usedFunNames.map(_.name))
-    Module(module.name, module.imports.flatMap(desugarImport), module.funs.flatMap(desugarFun))
+    Module(module.name, module.imports.flatMap(desugarImport), module.funs.flatMap(desugarFun), module.stats)
   }
 
   def desugarImport(imp: Name)(implicit gensym: Gensym): Seq[Name] =

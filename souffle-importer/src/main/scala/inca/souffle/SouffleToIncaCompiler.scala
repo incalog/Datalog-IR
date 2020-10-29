@@ -26,7 +26,7 @@ class SouffleToIncaCompiler {
 
   def compile(name: String, analysis: Analysis): (Module, Seq[(RuleSignature, Input)], Seq[PrintSize], LanguageMetaInfo) = {
     analysis.contents.foreach(compile(_, ""))
-    val module = Module(name, Seq(), patFuns.values.toSeq)
+    val module = Module(name, Seq(), patFuns.values.toSeq, Seq())
 
     (
       PropagateUnbounded.transformModule(module),

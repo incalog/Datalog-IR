@@ -29,7 +29,7 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
           Yield(Tuple(Seq(Var("x"), Var("y"))))
         ))
       ))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(AnnoParam(None, TTuple(Seq(TNode(Exp.expTag), TNode(Exp.expTag))))), Seq(Body(Seq(
@@ -42,7 +42,7 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
           PathAccess(Var("y"), NamedLink("rhs")))),
         Yield(Tuple(Seq(Var("x"), Var("y"))))
       ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -63,7 +63,7 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
           ))
         ))
       ))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(AnnoParam(None, TNode("Method"))), Seq(
@@ -82,7 +82,7 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
           Fail
         ))
       ))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared, CompilerOptions(scope.langMetaInfo, new BaseFrontend(_) with EnumFrontend with ForeachFrontend with IfThenElseFrontend))
   }
@@ -94,7 +94,7 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
         Assign(Seq("i"), Enum(TNode(Exp.intTag))),
         Yield(Var("i"))
       ))))
-    ))
+    ), Seq())
 
     val input = {
       import Exp._

@@ -771,7 +771,7 @@ class CoreParserTest extends AnyFunSuite {
               )
             )
           )
-        )
+        ), Seq()
       )
     )
 
@@ -801,7 +801,7 @@ class CoreParserTest extends AnyFunSuite {
               )
             )
           )
-        )
+        ), Seq()
       )
     )
     testModule(
@@ -830,7 +830,7 @@ class CoreParserTest extends AnyFunSuite {
               )
             )
           )
-        )
+        ), Seq()
       )
     )
     testModule(
@@ -856,7 +856,7 @@ class CoreParserTest extends AnyFunSuite {
               )
             )
           )
-        )
+        ), Seq()
       )
     )
     testModule(
@@ -864,6 +864,7 @@ class CoreParserTest extends AnyFunSuite {
                 |""".stripMargin,
       Module(
         Name("my"),
+        Seq(),
         Seq(),
         Seq()
       )

@@ -19,7 +19,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, Var("b"), Var("c"))
         ))
       ))
-    ))
+    ), Seq())
     val module2 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -27,7 +27,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, Var("b"), Var("c"))
         ))
       ))
-    ))
+    ), Seq())
     val module3 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -35,7 +35,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, Var("b"), Var("c"))
         ))
       ))
-    ))
+    ), Seq())
     val module4 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -43,7 +43,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, Var("b"), Var("c"))
         ))
       ))
-    ))
+    ), Seq())
     val module5 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -51,7 +51,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, Var("p"), Var("b"))
         ))
       ))
-    ))
+    ), Seq())
     val module6 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -59,7 +59,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, Var("p"), Var("c"))
         ))
       ))
-    ))
+    ), Seq())
     val module7 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -67,7 +67,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, Var("b"), Var("p"))
         ))
       ))
-    ))
+    ), Seq())
     val module8 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -75,14 +75,14 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, Var("c"), Var("p"))
         ))
       ))
-    ))
+    ), Seq())
 
     val optimized = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
         ))
       ))
-    ))
+    ), Seq())
 
     assertOptimize(optimized, module1)
     assertOptimize(optimized, module2)
@@ -107,14 +107,14 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, Var("b"), Var("c"))
         ))
       ))
-    ))
+    ), Seq())
     val optimized1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Path(Var("p"), TAnyLinked, NextLink, Var("b"), TAnyLinked)
         ))
       ))
-    ))
+    ), Seq())
     assertOptimize(optimized1, module1)
 
     val module2 = Module("Test", Seq(), Seq(
@@ -126,7 +126,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
           HasType(Var("c"), TAnyLinked)
         ))
       ))
-    ))
+    ), Seq())
     val optimized2 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -134,7 +134,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
           HasType(Var("b"), TAnyLinked)
         ))
       ))
-    ))
+    ), Seq())
     assertOptimize(optimized2, module2)
 
     val module3 = Module("Test", Seq(), Seq(
@@ -148,7 +148,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
           HasType(Var("d"), TAnyLinked)
         ))
       ))
-    ))
+    ), Seq())
     val optimized3 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -156,7 +156,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
           HasType(Var("b"), TAnyLinked)
         ))
       ))
-    ))
+    ), Seq())
     assertOptimize(optimized3, module3)
   }
 

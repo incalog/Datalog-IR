@@ -86,6 +86,8 @@ object CompileToPSystem {
         })
 
         ..${funs}
+
+        ..${module.stats.toList}
       }
     """
   }

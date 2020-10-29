@@ -17,7 +17,7 @@ object CompileToGP {
     // construct map Name => Fun
     val funs = module.funs.map { fun => fun.name.name -> fun }.toMap
     val patterns = module.funs.map { fun => transform(fun, funs) }
-    GP.Module(module.name.name, module.imports.map(_.name), patterns)
+    GP.Module(module.name.name, module.imports.map(_.name), patterns, module.stats)
   }
 
   def transform(fun: Core.PatternFunction, funs: FunEnv): GP.Pattern = {

@@ -25,7 +25,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
           Assert(Neq(Var("x"), Var("x")))
         )),
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("Elem")))), Seq(), Seq(Body(Seq(
@@ -33,7 +33,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
         Assert(Eq(Var("x"), Var("x"))),
         Assert(Neq(Var("x"), Var("x"))),
       ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -49,7 +49,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
           Assert(Neq(Var("x"), Var("x")))
         )),
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("Elem"))), Param(Name("list2"), TList(TNode("Elem")))), Seq(), Seq(Body(Seq(
@@ -59,7 +59,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
         Assert(Eq(Var("x"), Var("y"))),
         Assert(Neq(Var("x"), Var("x"))),
       ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -72,7 +72,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
           Yield(Var("i"))
         ))
       ))))
-    ))
+    ), Seq())
 
     val input = {
       import Exp._
@@ -104,7 +104,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
           Yield(PathAccess(Cast(Var("i"), TNode(Exp.intTag)), NamedLink("value")))
         ))
       ))))
-    ))
+    ), Seq())
 
     val input = {
       import Exp._

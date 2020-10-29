@@ -27,7 +27,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
         Assert(Neq(Var("pi"), Constant(DoubleLiteral(3.14)))),
         Yield(Var("e"))
       ))))
-    ))
+    ), Seq())
 
     val input = {
       import Exp._
@@ -61,7 +61,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
         Assert(Eq(Var("cond"), Constant(BooleanLiteral(true)))),
         Yield(Var("e"))
       ))))
-    ))
+    ), Seq())
 
     val input = {
       import Exp._

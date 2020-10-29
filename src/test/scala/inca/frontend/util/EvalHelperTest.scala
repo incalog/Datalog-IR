@@ -20,7 +20,7 @@ class EvalHelperTest extends AnyFunSuite {
 
   private val paramN = Param(Nil, Name("n"), Some(tInt), None)
 
-  private val emptyModule = Module(Core.Name("unused"), Seq.empty, Seq.empty)
+  private val emptyModule = Module(Core.Name("unused"), Seq.empty, Seq.empty, Seq.empty)
 
   test("test freeVars Name") {
     val code = q"x"

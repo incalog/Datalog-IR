@@ -105,7 +105,7 @@ object Core {
 
 
 
-  case class Module(name: Name, imports: Seq[Name], funs: Seq[PatternFunction]) extends SourceLocation {
+  case class Module(name: Name, imports: Seq[Name], funs: Seq[PatternFunction], stats: Seq[meta.Stat]) extends SourceLocation {
     def allVars: Map[Name, Option[TypeAnno]] = funs.flatMap(_.allVars).toMap
     def usedModuleNames: Seq[Name] = name +: imports
     def usedFunNames: Seq[Name] = funs.map(_.name)
@@ -114,13 +114,23 @@ object Core {
 
     def prettyprint(implicit indent: String): String = {
       val importsS = if (imports.isEmpty) "" else
-        "\n" + indent + imports.mkString("\n"+indent)
+        "\n" + indent + imports.map("import " + _).mkString("\n"+indent)
       val funsS = if (funs.isEmpty) "" else
         "\n" + funs.map(_.prettyprint).mkString("\n")
-      s"${indent}module $name$importsS$funsS".stripMargin
+      val statsS = if (stats.isEmpty) "" else
+        "\n" + indent + stats.map("scala " + _.syntax).mkString("\n"+indent)
+      s"${indent}module $name$importsS$funsS$statsS".stripMargin
     }
 
     override def toString: String = prettyprint("")
+
+    override def equals(obj: Any): Boolean = obj match {
+      case that: Module =>
+        this.name == that.name && this.imports == that.imports && this.funs == that.funs && this.stats.map(_.structure) == that.stats.map(_.structure)
+      case _ => false
+    }
+
+    override def hashCode(): Int = name.hashCode() * imports.hashCode() * funs.hashCode() * stats.map(_.structure).hashCode()
   }
 
   case class PatternFunction(vis: Option[Visibility], name: Name, params: Seq[Param], outParams: Seq[AnnoParam], bodies: Seq[Body]) extends SourceLocation {

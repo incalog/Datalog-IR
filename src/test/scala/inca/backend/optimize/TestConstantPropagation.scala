@@ -27,7 +27,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, Var("b"), one)
         ))
       ))
-    ))
+    ), Seq())
     val optimized1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -35,7 +35,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, one, one)
         ))
       ))
-    ))
+    ), Seq())
     assertOptimize(optimized1, module1)
 
     val module2 = Module("Test", Seq(), Seq(
@@ -46,7 +46,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, Var("c"), two)
         ))
       ))
-    ))
+    ), Seq())
     val optimized2 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -55,7 +55,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, two, two)
         ))
       ))
-    ))
+    ), Seq())
     assertOptimize(optimized2, module2)
 
     val module3 = Module("Test", Seq(), Seq(
@@ -67,7 +67,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, Var("b"), Var("c"))
         ))
       ))
-    ))
+    ), Seq())
     val optimized3 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -77,7 +77,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, one, two)
         ))
       ))
-    ))
+    ), Seq())
     assertOptimize(optimized3, module3)
   }
 
@@ -94,7 +94,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
           Computed(Var("c"), Evaluation(Seq(Var("b") -> TInt), TBool, code))
         ))
       ))
-    ))
+    ), Seq())
     val optimized1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -102,7 +102,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
           Computed(Var("c"), Evaluation(Seq(one -> TInt), TBool, code))
         ))
       ))
-    ))
+    ), Seq())
     assertOptimize(optimized1, module1)
   }
 }

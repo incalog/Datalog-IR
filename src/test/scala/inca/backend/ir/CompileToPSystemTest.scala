@@ -19,7 +19,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   val options: CompilerOptions = CompilerOptions(scope.langMetaInfo)
 
   test("simple compare constraint") {
-    val module = Module("Test", Seq(), Seq(idFun))
+    val module = Module("Test", Seq(), Seq(idFun), Seq())
 
     assertMatchCoreProg(module, "id", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
@@ -30,7 +30,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   }
 
   test("simple path constraint") {
-    val module = Module("Test", Seq(), Seq(lhChildFun))
+    val module = Module("Test", Seq(), Seq(lhChildFun), Seq())
 
     assertMatchCoreProg(module, "lhChild", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
@@ -41,7 +41,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   }
 
   test("multiple bodies") {
-    val module = Module("Test", Seq(), Seq(childrenFun))
+    val module = Module("Test", Seq(), Seq(childrenFun), Seq())
 
     assertMatchCoreProg(module, "children", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 6)
@@ -52,7 +52,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   }
 
   test("non negative, non transtive call") {
-    val module = Module("Test", Seq(), Seq(callLhChildFun, lhChildFun))
+    val module = Module("Test", Seq(), Seq(callLhChildFun, lhChildFun), Seq())
 
     assertMatchCoreProg(module, "callLhChild", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
@@ -63,7 +63,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   }
 
   test("constraint concept") {
-    val module = Module("Test", Seq(), Seq(instanceAddFun))
+    val module = Module("Test", Seq(), Seq(instanceAddFun), Seq())
 
     assertMatchCoreProg(module, "instanceAdd", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 1)
@@ -74,7 +74,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   }
 
   test("no type annotation for param") {
-    val module = Module("Test", Seq(), Seq(noParamTypeFun))
+    val module = Module("Test", Seq(), Seq(noParamTypeFun), Seq())
 
     assertMatchCoreProg(module, "noParamType", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
@@ -82,7 +82,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   }
 
   test("primitive datatype output") {
-    val module = Module("Test", Seq(), Seq(isBooleanFun))
+    val module = Module("Test", Seq(), Seq(isBooleanFun), Seq())
 
     assertMatchCoreProg(module, "isBoolean", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 0)
@@ -111,7 +111,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
             Assert(InstanceOf(Var("p"), expType)),
             Yield(Cast(Var("p"), expType))))))
 
-    val module = Module("Test", Seq(), Seq(parentFun))
+    val module = Module("Test", Seq(), Seq(parentFun), Seq())
 
     assertMatchCoreProg(module, "parent", mul) { matcher =>
       assert(matcher.getAllMatches.size == 4)
@@ -124,7 +124,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
         Seq(GP.Body(Seq(
           GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TInt),
           GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TInt)), GP.TUnbounded(GP.TString), q"(value: Int) => value.toString")))
-        )))))
+        )))), Seq())
     assertMatchGPProg(module, "intToString", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
@@ -137,7 +137,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
           GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TInt),
           GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TInt)), GP.TUnbounded(GP.TString), q"(value: Int) => value.toString")),
           GP.Computed(GP.Var("str2"), GP.Evaluation(Seq((GP.Var("str"), GP.TUnbounded(GP.TString))), GP.TUnbounded(GP.TString), q"""(str: String) => str + "_appended" """)))
-        )))))
+        )))), Seq())
     assertMatchGPProg(module, "intToString", testInputNumericAddition) { matcher =>
       println(matcher.getAllMatches)
       assert(matcher.getAllMatches.size == 3)

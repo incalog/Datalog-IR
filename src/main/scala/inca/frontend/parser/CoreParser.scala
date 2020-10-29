@@ -287,8 +287,47 @@ class CoreParser {
   def module[_: P]: P[Module] =
     P("module " ~/ identifier ~
       ("import" ~ identifier).rep ~
-      patternFunction.rep ~ End
-    ).mapWithLoc(Module.tupled)
+      moduleContent.rep ~
+      End
+    ).mapWithLoc { case (name, imports, contents) =>
+      val funs = contents.collect { case Left(fun) => fun }
+      val stats = contents.collect { case Right(stat) => stat }
+      Module(name, imports, funs, stats)
+    }
+
+  def moduleContent[_: P]: P[Either[PatternFunction, meta.Stat]] =
+    P(patternFunction.map(Left(_)) | nativeStat.map(Right(_)))
+
+
+  def nativeStat[_: P]: P[meta.Stat] =
+    P("scala " ~ nativeStatHelper(scalaparse.Scala.Import) |
+      "scala " ~ nativeStatHelper(scalaparse.Scala.BlockDef)
+    )
+
+  private def nativeStatHelper[_: P](statParser: => P[_]): P[meta.Stat] =
+    P(statParser.!).flatMap { raw_code =>
+      raw_code.parse[Stat] match {
+        case _: Parsed.Error => fastparse.Fail
+        case Parsed.Success(code) =>
+          fastparse.Pass(code)
+      }
+    }
+
+//
+//  {
+//
+//    P(scalaparse.Scala.TmplBody.!).flatMap { raw_code =>
+//      raw_code.parse[Term] match {
+//        case Parsed.Error(_, _, _) =>
+//          fastparse.Fail
+//        case Parsed.Success(code) =>
+//          val params = EvalHelper.freeVars(code)
+//          val eval = Eval(params.toSeq, code)
+//          fastparse.Pass(eval)
+//      }
+//    }
+//  }
+
 
   /** Yield parser */
   protected[frontend] def yieldStatement[_: P]: P[Yield] =

@@ -26,13 +26,13 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           ))
         ))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Assign(Seq("case"), Constant(IntLiteral(7)))
       ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -46,14 +46,14 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           ))
         ))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Assign(Seq("n"), one),
         Assign(Seq("case"), Constant(IntLiteral(1)))
       ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -68,7 +68,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           ))
         ))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
@@ -78,7 +78,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
         Assign(Seq("case"), Constant(IntLiteral(2))),
         Yield(Constant(UnitLiteral))
       ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -92,7 +92,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           ))
         ))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
@@ -100,7 +100,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
         Assert(InstanceOf(Var("matchee"), TNode(Exp.letTag))),
         Assign(Seq("case"), Constant(IntLiteral(3)))
       ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -114,7 +114,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           ))
         ))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
@@ -124,7 +124,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
         Assign(Seq("n"), PathAccess(Var("matchee"), NamedLink("name"))),
         Assign(Seq("case"), Constant(IntLiteral(3)))
       ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -138,7 +138,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           ))
         ))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
@@ -148,7 +148,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
         Assign(Seq("x3"), Var("matchee_tuple2")),
         Assign(Seq("case"), Constant(IntLiteral(4)))
       ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -162,14 +162,14 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           ))
         ))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Assert(Eq(one, Constant(StringLiteral("abc")))),
         Assign(Seq("case"), Constant(IntLiteral(5)))
       ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -186,7 +186,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           ))
         ))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(
@@ -199,7 +199,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           Assert(Eq(one, Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
         ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -219,7 +219,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           ))
         ))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(
@@ -239,7 +239,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           Assign(Seq("case"), Constant(IntLiteral(3)))
         ))
       ))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -256,7 +256,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           ))
         ))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(
@@ -282,7 +282,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           Assert(Eq(Var("matchee_tuple1_1"), Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
         ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -302,7 +302,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           ))
         ))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(
@@ -369,7 +369,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           Assign(Seq("case"), Constant(IntLiteral(3)))
         ))
       ))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -386,7 +386,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           ))
         ))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(
@@ -413,7 +413,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           Assert(Eq(PathAccess(Var("matchee_1"), NamedLink("rhs")), Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
         ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -433,7 +433,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           ))
         ))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(
@@ -505,7 +505,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           Assign(Seq("case"), Constant(IntLiteral(3)))
         ))
       ))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -537,14 +537,14 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
           ))
         ))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Assign(Seq("n"), one),
         Assign(Seq("case"), Constant(IntLiteral(1)))
       ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -577,7 +577,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
               Seq(Var("e1"))))))
         ))
       ))))
-    ))
+    ), Seq())
 
     val input = {
       import Exp._

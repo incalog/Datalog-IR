@@ -23,8 +23,17 @@ object GP {
   case object Private extends Visibility
   case object Public extends Visibility
 
-  case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern]) {
+  case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern], stats: Seq[meta.Stat]) {
     override def toString: Name = Printer.prettyModule(this)
+
+    override def equals(obj: Any): Boolean = obj match {
+      case that: Module =>
+        this.name == that.name && this.imports == that.imports && this.pats == that.pats && this.stats.map(_.structure) == that.stats.map(_.structure)
+      case _ => false
+    }
+
+    override def hashCode(): Int = name.hashCode() * imports.hashCode() * pats.hashCode() * stats.map(_.structure).hashCode()
+
   }
   case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body])
   case class Param(name: Name, typ: TypeAnno)

@@ -29,7 +29,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
         ))),
         Assign(Seq("after"), Constant(BooleanLiteral(true)))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
@@ -42,7 +42,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
         Assign(Seq("yes"), Constant(BooleanLiteral(false))),
         Assign(Seq("after"), Constant(BooleanLiteral(true)))
       ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -67,7 +67,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
         ))),
         Assign(Seq("after"), Constant(BooleanLiteral(true)))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
@@ -98,7 +98,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
         Assign(Seq("yes2"), Constant(BooleanLiteral(false))),
         Assign(Seq("after"), Constant(BooleanLiteral(true)))
       ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -115,7 +115,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
         ))),
         Assign(Seq("after"), Constant(BooleanLiteral(true)))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(
@@ -136,7 +136,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
           Assign(Seq("yes"), Constant(BooleanLiteral(false))),
           Assign(Seq("after"), Constant(BooleanLiteral(true)))
         ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -150,7 +150,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
         ), Seq(), None),
         Assign(Seq("after"), Constant(BooleanLiteral(true)))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
@@ -163,7 +163,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
           Assign(Seq("before"), Constant(BooleanLiteral(true))),
           Assign(Seq("after"), Constant(BooleanLiteral(true)))
         ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -196,7 +196,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
           Fail
         ))),
       ))))
-    ))
+    ), Seq())
 
     val input = {
       import Exp._

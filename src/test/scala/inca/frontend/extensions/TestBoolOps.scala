@@ -31,7 +31,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
         Assert(Not(Constant(BooleanLiteral(true)))),
         Assert(Not(Constant(BooleanLiteral(false))))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
@@ -44,7 +44,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
         Assert(Constant(BooleanLiteral(false))),
         Assert(Constant(BooleanLiteral(true)))
       ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -57,7 +57,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
         Assert(Not(Not(Not(Not(Eq(one, two)))))),
         Assert(Not(Not(Not(Not(Not(Eq(one, two)))))))
       ))))
-    ))
+    ), Seq())
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
@@ -66,7 +66,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
         Assert(Eq(one, two)),
         Assert(Neq(one, two))
       ))))
-    ))
+    ), Seq())
 
     assertDesugar(core, sugared)
   }
@@ -82,7 +82,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
         Assert(Eq(Var("cond"), Constant(BooleanLiteral(true)))),
         Yield(Var("e"))
       ))))
-    ))
+    ), Seq())
 
     val input = {
       import Exp._
@@ -116,7 +116,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
         )),
         Yield(Var("e"))
       ))))
-    ))
+    ), Seq())
 
     val input = {
       import Exp._
@@ -150,7 +150,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
         ))),
         Yield(Var("e"))
       ))))
-    ))
+    ), Seq())
 
     val input = {
       import Exp._
@@ -184,7 +184,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
         ))),
         Yield(Var("e"))
       ))))
-    ))
+    ), Seq())
 
     val input = {
       import Exp._
