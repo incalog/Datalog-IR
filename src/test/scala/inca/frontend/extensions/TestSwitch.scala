@@ -101,7 +101,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
     val module = Module("Test_Cast", Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
         Values("root", TNode(Exp.expTag)),
-        Assert(Undef(PathAccess(Var("root").typed(TNode(Exp.expTag)), ParentLink).typed(TAnyLinked))),
+        Assert(Undef(PathAccess(Var("root"), ParentLink))),
         Yield(
           Call("integerlits_rec",
             Seq(Var("root"))
@@ -113,13 +113,13 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
         Switch(Seq(
           Body(Seq(
             Assert(InstanceOf(Var("e"), TNode(Exp.intTag))),
-              Yield(PathAccess(Var("e").typed(TNode(Exp.intTag)), NamedLink("value")).typed(TInt))
+              Yield(PathAccess(Cast(Var("e"), TNode(Exp.intTag)), NamedLink("value")))
           )),
           Body(Seq(
             Assert(InstanceOf(Var("e"), TNode(Exp.addTag))),
             Yield(
               Call("integerlits_rec",
-                Seq(PathAccess(Var("e").typed(TNode(Exp.addTag)), NamedLink("lhs")).typed(TNode(Exp.expTag)))
+                Seq(PathAccess(Cast(Var("e"), TNode(Exp.addTag)), NamedLink("lhs")))
               )
             )
           )),
@@ -127,7 +127,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
             Assert(InstanceOf(Var("e"), TNode(Exp.multTag))),
             Yield(
               Call("integerlits_rec",
-                Seq(PathAccess(Var("e").typed(TNode(Exp.multTag)), NamedLink("rhs")).typed(TNode(Exp.expTag)))
+                Seq(PathAccess(Cast(Var("e"), TNode(Exp.multTag)), NamedLink("rhs")))
               )
             )
           ))

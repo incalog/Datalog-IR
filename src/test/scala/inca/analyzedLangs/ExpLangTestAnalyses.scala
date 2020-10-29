@@ -31,10 +31,10 @@ object ExpLangTestAnalyses {
     Seq(
       Body(
         Seq(
-          Yield(PathAccess(Var("add").typed(addType), lhsLink).typed(expType)))),
+          Yield(PathAccess(Var("add"), lhsLink)))),
       Body(
         Seq(
-          Yield(PathAccess(Var("add").typed(addType), rhsLink).typed(expType))))))
+          Yield(PathAccess(Var("add"), rhsLink))))))
 
   val lhChildFun: PatternFunction = PatternFunction(
     None,
@@ -44,7 +44,7 @@ object ExpLangTestAnalyses {
     Seq(
       Body(
         Seq(
-          Yield(PathAccess(Var("add").typed(addType), lhsLink).typed(expType))))))
+          Yield(PathAccess(Var("add"), lhsLink))))))
 
   val callLhChildFun = PatternFunction(
     None,
@@ -54,7 +54,7 @@ object ExpLangTestAnalyses {
     Seq(
       Body(
         Seq(
-          Assign(Seq("lhschild"), Call("lhChild", Seq(Var("add"))).typed(expType)),
+          Assign(Seq("lhschild"), Call("lhChild", Seq(Var("add")))),
           Yield(Var("lhschild"))))))
 
   val instanceAddFun = PatternFunction(
@@ -65,7 +65,7 @@ object ExpLangTestAnalyses {
     Seq(
       Body(
         Seq(
-          Assign(Seq("lhschild"), PathAccess(Var("add").typed(addType), lhsLink).typed(expType)),
+          Assign(Seq("lhschild"), PathAccess(Var("add"), lhsLink)),
           Assert(InstanceOf(Var("lhschild"), addType)),
           Yield(Var("lhschild"))))))
 

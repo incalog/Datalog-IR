@@ -9,15 +9,22 @@ import scala.collection.mutable
 import scala.meta._
 
 object Compiler {
+
+  case class CompilationFailed(msg: String) extends Exception
+
   def compileFunModule(module: Core.Module,
                        pkg: Option[String] = None,
-                       compilerOptions: CompilerOptions): meta.Source = {
+                       compilerOptions: CompilerOptions): GP.Module = {
 //    println(module)
-    val desugared = Desugar(compilerOptions.frontend.allDesugarables)(module)
+    val frontend = compilerOptions.frontend
+    frontend.typecheck(module)
+    frontend.printTypeIO()
+    if (frontend.hasTypeErrors || compilerOptions.stopOnWarning && frontend.hasTypeWarnings)
+      throw CompilationFailed("Program has type errors")
+
+    val desugared = Desugar(frontend.allDesugarables)(module)
 //    println(desugared)
-    val gp = CompileToGP.transformModule(desugared)
-//    println(gp)
-    compileGPModule(gp, pkg, compilerOptions)
+    CompileToGP.transformModule(desugared)
   }
 
   def optimize(module: GP.Module, compilerOptions: CompilerOptions): GP.Module = {
@@ -25,8 +32,8 @@ object Compiler {
     // println(optimized)
     for (op <- compilerOptions.optimizations) {
       optimized = op.optimizer(compilerOptions.languageMetaInfo).optimizeModule(optimized)
-      // println(optimized)
     }
+    // println(optimized)
     optimized
   }
 
@@ -44,7 +51,8 @@ object Compiler {
   def compileAndLoadFunModule(module: Core.Module,
                               pkg: Option[String] = None,
                               compilerOptions: CompilerOptions): PSystem.Module = {
-    val source = compileFunModule(module, pkg, compilerOptions)
+    val gp = compileFunModule(module, pkg, compilerOptions)
+    val source = compileGPModule(gp, pkg, compilerOptions)
     val loadSource = source"..${source.stats}; ${Term.Name(module.name.name)}"
     compileAndLoadScala[PSystem.Module](loadSource.syntax)()
   }

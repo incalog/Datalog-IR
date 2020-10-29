@@ -43,8 +43,19 @@ object TypeOps {
   }
 
   def truechangeLitTypeToTypeAnno(ty: truechange.LitType): TypeAnno = ty match {
-      // TODO distinguish between cl
-    case JavaLitType(cl) => throw new IllegalArgumentException()
-    case _ => throw new IllegalArgumentException("")
+    case JavaLitType(cl) =>
+      if (cl == classOf[java.lang.Integer])
+        TInt
+      else if (cl == classOf[java.lang.Long])
+        TLong
+      else if (cl == classOf[java.lang.Double])
+        TDouble
+      else if (cl == classOf[java.lang.Boolean])
+        TBool
+      else if (cl == classOf[java.lang.String])
+        TString
+      else
+        throw new UnsupportedOperationException
+    case _ => throw new UnsupportedOperationException
   }
 }

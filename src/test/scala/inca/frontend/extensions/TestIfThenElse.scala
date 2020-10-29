@@ -173,23 +173,23 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
     val module = Module("Test_Cast", Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
         Values("root", TNode(Exp.expTag)),
-        Assert(Undef(PathAccess(Var("root").typed(TNode(Exp.expTag)), ParentLink).typed(TAnyLinked))),
+        Assert(Undef(PathAccess(Var("root"), ParentLink))),
         Yield(Call("integerlits_rec",Seq(Var("root"))))
       )))),
 
       PatternFunction(None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
         IfThenElse(InstanceOf(Var("e"), TNode(Exp.intTag)), Body(
-          Yield(PathAccess(Var("e").typed(TNode(Exp.intTag)), NamedLink("value")).typed(TInt))
+          Yield(PathAccess(Cast(Var("e"), TNode(Exp.intTag)), NamedLink("value")))
         ), Seq(ElseIf(InstanceOf(Var("e"), TNode(Exp.addTag)), Body(
           Yield(
             Call("integerlits_rec",
-              Seq(PathAccess(Var("e").typed(TNode(Exp.addTag)), NamedLink("lhs")).typed(TNode(Exp.expTag)))
+              Seq(PathAccess(Cast(Var("e"), TNode(Exp.addTag)), NamedLink("lhs")))
             )
           )
         )), ElseIf(InstanceOf(Var("e"), TNode(Exp.multTag)), Body(
           Yield(
             Call("integerlits_rec",
-              Seq(PathAccess(Var("e").typed(TNode(Exp.multTag)), NamedLink("rhs")).typed(TNode(Exp.expTag)))
+              Seq(PathAccess(Cast(Var("e"), TNode(Exp.multTag)), NamedLink("rhs")))
             )
           )
         ))), Some(Body(

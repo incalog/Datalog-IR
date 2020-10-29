@@ -135,18 +135,21 @@ trait MatchFrontend extends Frontend {
   protected[frontend] def literalPattern[_: P]: P[Pattern] =
     P(literal).mapWithLoc(LiteralPattern)
 
-  override protected def typecheckInternal(stm: Statement, requireTerminator: Boolean): StmType = stm match {
+  override protected def typecheckInternal(stm: Statement, mustTerminate: Boolean): StmType = stm match {
     case Match(matchee, cases) =>
       val mty = typecheck(matchee)
       val ctys = cases.map { c =>
         scopedTypeContext {
           typecheckPattern(c.pattern, mty)
-          typecheck(c.body, requireTerminator)
+          typecheck(c.body, mustTerminate)
         }
       }
-      ctys.foldLeft(NoTerminator:StmType)(_.meet(_, lang))
+      if (cases.isEmpty)
+        NoTerminator
+      else
+        ctys.reduce(_.meet(_, lang))
 
-    case _ => super.typecheckInternal(stm, requireTerminator)
+    case _ => super.typecheckInternal(stm, mustTerminate)
   }
 
   def typecheckPattern(pattern: Pattern, matchee: TypeAnno): Unit = pattern match {
@@ -179,10 +182,10 @@ trait MatchFrontend extends Frontend {
       matchee match {
         case TUnit =>
           if (pats.nonEmpty)
-            error(s"Cannot match expression of type $TUnit against ${pats.size}-ary tuple pattern", pattern)
+            warn(s"Cannot match expression of type $TUnit against ${pats.size}-ary tuple pattern", pattern)
         case TTuple(tys) =>
           if (pats.size != tys.size)
-            error(s"Cannot match ${tys.size}-ary tuple against ${pats.size}-ary tuple pattern", pattern)
+            warn(s"Cannot match ${tys.size}-ary tuple against ${pats.size}-ary tuple pattern", pattern)
           pats.zipAll(tys, null, null).foreach {
             case (pat, null) => typecheckPattern(pat, TAny)
             case (null, ty) => // nothing
@@ -190,7 +193,7 @@ trait MatchFrontend extends Frontend {
           }
         case ty =>
           if (pats.size != 1)
-            error(s"Cannot match expression of type $ty against ${pats.size}-ary tuple pattern", pattern)
+            warn(s"Cannot match expression of type $ty against ${pats.size}-ary tuple pattern", pattern)
           pats.zipAll(Seq(ty), null, null).foreach {
             case (pat, null) => typecheckPattern(pat, TAny)
             case (null, ty) => // nothing
@@ -275,7 +278,7 @@ object Match extends Desugarable {
       case NodePattern(c, bindings) =>
         var ensureVar = Seq[Statement]()
         val matchee: Var = exp match {
-          case v: Var => v
+          case v: Var => Var(v.name)
           case _ =>
             val sym = Name(gensym.fresh("matchee"))
             ensureVar = Seq(Assign(Seq(sym), exp))

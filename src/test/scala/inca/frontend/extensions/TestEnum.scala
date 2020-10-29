@@ -19,27 +19,27 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "eliminate enum" in {
     val sugared = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(
+      PatternFunction(None, "foo", Seq(), Seq(AnnoParam(None, TTuple(Seq(TNode(Exp.expTag), TNode(Exp.expTag))))), Seq(
         Body(Seq(
-          Assign(Seq("x"), Enum(TNode("Foo"))),
-          Assign(Seq("y"), Enum(TNode("Bar"))),
+          Assign(Seq("x"), Enum(TNode(Exp.addTag))),
+          Assign(Seq("y"), Enum(TNode(Exp.addTag))),
           Assert(Eq(
-            PathAccess(Var("x").typed(TNode("Foo")), NamedLink("name")).typed(TString),
-            PathAccess(Var("y").typed(TNode("Bar")), NamedLink("name")).typed(TString))),
+            PathAccess(Var("x"), NamedLink("lhs")),
+            PathAccess(Var("y"), NamedLink("rhs")))),
           Yield(Tuple(Seq(Var("x"), Var("y"))))
         ))
       ))
     ))
 
     val core = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Values("enum_Foo", TNode("Foo")),
-        Assign(Seq("x"), Var("enum_Foo")),
-        Values("enum_Bar", TNode("Bar")),
-        Assign(Seq("y"), Var("enum_Bar")),
+      PatternFunction(None, "foo", Seq(), Seq(AnnoParam(None, TTuple(Seq(TNode(Exp.expTag), TNode(Exp.expTag))))), Seq(Body(Seq(
+        Values("enum_inca_analyzedLangs_Exp_Add", TNode(Exp.addTag)),
+        Assign(Seq("x"), Var("enum_inca_analyzedLangs_Exp_Add")),
+        Values("enum_inca_analyzedLangs_Exp_Add_0", TNode(Exp.addTag)),
+        Assign(Seq("y"), Var("enum_inca_analyzedLangs_Exp_Add_0")),
         Assert(Eq(
-          PathAccess(Var("x").typed(TNode("Foo")), NamedLink("name")).typed(TString),
-          PathAccess(Var("y").typed(TNode("Bar")), NamedLink("name")).typed(TString))),
+          PathAccess(Var("x"), NamedLink("lhs")),
+          PathAccess(Var("y"), NamedLink("rhs")))),
         Yield(Tuple(Seq(Var("x"), Var("y"))))
       ))))
     ))
@@ -51,10 +51,10 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(AnnoParam(None, TNode("Method"))), Seq(
         Body(Seq(
-          Foreach("meth", Enum(TNode("Method")).typed(TEnumeration(TNode("Method"))), Body(
+          Foreach("meth", Enum(TNode(Exp.letTag)), Body(
             IfThenElse(
               Eq(
-                PathAccess(Var("meth").typed(TNode("Method")), NamedLink("name")).typed(TString),
+                PathAccess(Var("meth"), NamedLink("name")),
                 Constant(StringLiteral("main"))),
               Body(Yield(Var("meth"))),
               Seq(),
@@ -68,17 +68,17 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(AnnoParam(None, TNode("Method"))), Seq(
         Body(Seq(
-          Values("enum_Method", TNode("Method")),
-          Assign(Seq("meth"), Var("enum_Method")),
+          Values("enum_inca_analyzedLangs_Exp_Let", TNode(Exp.letTag)),
+          Assign(Seq("meth"), Var("enum_inca_analyzedLangs_Exp_Let")),
           Assert(Eq(
-            PathAccess(Var("meth").typed(TNode("Method")), NamedLink("name")).typed(TString),
+            PathAccess(Var("meth"), NamedLink("name")),
             Constant(StringLiteral("main")))),
           Yield(Var("meth")),
           Fail
         )),
         Body(Seq(
-          Values("enum_Method", TNode("Method")),
-          Assign(Seq("meth"), Var("enum_Method")),
+          Values("enum_inca_analyzedLangs_Exp_Let", TNode(Exp.letTag)),
+          Assign(Seq("meth"), Var("enum_inca_analyzedLangs_Exp_Let")),
           Fail
         ))
       ))

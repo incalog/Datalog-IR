@@ -37,7 +37,7 @@ trait ForeachFrontend extends Frontend {
 
   override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("foreach", "in")
 
-  override protected def typecheckInternal(stm: Statement, requireTerminator: Boolean): StmType = stm match {
+  override protected def typecheckInternal(stm: Statement, mustTerminate: Boolean): StmType = stm match {
     case Foreach(name, exp, body) =>
       val ety = typecheck(exp)
       val elemType = ety match {
@@ -49,10 +49,10 @@ trait ForeachFrontend extends Frontend {
 
       scopedTypeContext {
         bindVar(name, elemType)
-        typecheck(body, requireTerminator)
+        typecheck(body, mustTerminate)
       }
 
-    case _ => super.typecheckInternal(stm, requireTerminator)
+    case _ => super.typecheckInternal(stm, mustTerminate)
   }
 }
 

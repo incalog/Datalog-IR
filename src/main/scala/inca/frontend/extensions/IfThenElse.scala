@@ -57,7 +57,7 @@ trait IfThenElseFrontend extends Frontend {
 
   override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("if", "else")
 
-  override protected def typecheckInternal(stm: Statement, requireTerminator: Boolean): StmType = stm match {
+  override protected def typecheckInternal(stm: Statement, mustTerminate: Boolean): StmType = stm match {
     case IfThenElse(cond, thn, elseIfs, els) =>
       val conds = cond +: elseIfs.map(_.cond)
       conds.foreach { c =>
@@ -68,13 +68,13 @@ trait IfThenElseFrontend extends Frontend {
 
       val bodies = thn +: elseIfs.map(_.body)
       val bodyTypes = bodies.map { b =>
-        typecheck(b, requireTerminator)
+        typecheck(b, mustTerminate)
       }
 
-      val elsTy = els.map(typecheck(_, requireTerminator)).getOrElse(NoTerminator)
+      val elsTy = els.map(typecheck(_, mustTerminate)).getOrElse(NoTerminator)
       bodyTypes.foldLeft(elsTy)(_.meet(_, lang))
 
-    case _ => super.typecheckInternal(stm, requireTerminator)
+    case _ => super.typecheckInternal(stm, mustTerminate)
   }
 }
 

@@ -3,6 +3,7 @@ package inca.frontend.core
 import inca.frontend.parser.SourceLocation
 import inca.util.Meta.TAB
 
+import scala.annotation.tailrec
 import scala.language.reflectiveCalls
 import scala.meta.Term
 
@@ -12,6 +13,12 @@ object Core {
     def javastring: String
 
     override def toString: String = prettyprint
+
+    @tailrec
+    final def unroll: TypeAnno = this match {
+      case ty: TEnumeration => ty.contained.unroll
+      case ty => ty
+    }
   }
   case object TAny extends TypeAnno {
     override def prettyprint: String = "Any"
@@ -66,6 +73,9 @@ object Core {
   }
 
   case class TTuple(ts: Seq[TypeAnno]) extends TypeAnno {
+    if (ts.size == 1)
+      throw new IllegalArgumentException(s"Avoid creating 1-ary tuples.")
+
     override def prettyprint: String = ts.size match {
       case 0 => "Unit"
       case 1 => ts.head.prettyprint
@@ -105,6 +115,8 @@ object Core {
         "\n" + funs.map(_.prettyprint).mkString("\n")
       s"${indent}module $name$importsS$funsS".stripMargin
     }
+
+    override def toString: String = prettyprint("")
   }
 
   case class PatternFunction(vis: Option[Visibility], name: Name, params: Seq[Param], outParams: Seq[AnnoParam], bodies: Seq[Body]) extends SourceLocation {
@@ -214,11 +226,13 @@ object Core {
   trait Typeable {
     var typ: Option[TypeAnno] = None
     def typed(ty: TypeAnno): this.type = {
+      if (this.typ.nonEmpty)
+        throw new IllegalArgumentException(s"May not overwrite annotated type.")
       this.typ = Some(ty)
       this
     }
     def mtyped(ty: Option[TypeAnno]): this.type = {
-      this.typ = ty
+      this.typ = this.typ.orElse(ty)
       this
     }
     def orTyped(ty: TypeAnno): this.type = {
@@ -257,6 +271,11 @@ object Core {
     override def freeVars: Map[Name, Option[TypeAnno]] = exp.freeVars
     override def prettyprint(implicit indent: String): String =
       s"${exp.prettyprint}.notInstanceOf[${ty.prettyprint}]"
+  }
+  case class Cast(src: Exp, targetTyp: TypeAnno) extends CoreExp {
+    override def freeVars: Map[Name, Option[TypeAnno]] = src.freeVars
+    override def prettyprint(implicit indent: String): String =
+      s"${src.prettyprint}:${targetTyp.prettyprint}"
   }
   case class Def(exp: Exp) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = exp.freeVars

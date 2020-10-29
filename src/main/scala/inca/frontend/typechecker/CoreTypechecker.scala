@@ -42,26 +42,26 @@ trait CoreTypechecker
   def typecheck(fun: PatternFunction): Unit = scopedTypeContext {
     fun.params.foreach(p => bindVar(p.name, p.typ))
     fun.bodies.foreach { body =>
-      val ty = typecheck(body, requireTerminator = true)
+      val ty = typecheck(body, mustTerminate = true)
       if (!TypeOps.subtype(ty.asTypeAnno, fun.outType, lang))
         error(s"Found body of type $ty, but expected function result type ${fun.outType}", body)
     }
   }
 
-  def typecheck(body: Body, requireTerminator: Boolean): StmType = scopedTypeContext {
+  def typecheck(body: Body, mustTerminate: Boolean): StmType = scopedTypeContext {
     if (body.stmts.isEmpty) {
-      if (requireTerminator) {
+      if (mustTerminate) {
         warn(s"Block should end with a terminator statement", body)
-        Terminator(TAny)
+        Terminator(TUnit)
       } else {
         NoTerminator
       }
     }
     else {
       body.stmts.init.foreach { stm =>
-        typecheck(stm, requireTerminator = false)
+        typecheck(stm, mustTerminate = false, mayTerminate = false)
       }
-      typecheck(body.stmts.last, requireTerminator)
+      typecheck(body.stmts.last, mustTerminate, mayTerminate = true)
     }
   }
 
@@ -69,16 +69,16 @@ trait CoreTypechecker
    * Statements
    */
 
-  final def typecheck(stm: Statement, requireTerminator: Boolean): StmType = typecheckInternal(stm, requireTerminator) match {
+  final def typecheck(stm: Statement, mustTerminate: Boolean, mayTerminate: Boolean): StmType = typecheckInternal(stm, mustTerminate) match {
     case ty: NoTerminator.type =>
-      if (requireTerminator) {
+      if (mustTerminate) {
         warn(s"Block should end with a terminator statement", stm)
-        Terminator(TAny)
+        Terminator(TUnit)
       } else {
         ty
       }
     case ty: Terminator =>
-      if (!requireTerminator) {
+      if (!mayTerminate) {
         warn(s"Unexpected terminator statement", stm)
         NoTerminator
       } else  {
@@ -86,7 +86,7 @@ trait CoreTypechecker
       }
   }
 
-  protected def typecheckInternal(stm: Statement, requireTerminator: Boolean): StmType = stm match {
+  protected def typecheckInternal(stm: Statement, mustTerminate: Boolean): StmType = stm match {
     case core: CoreStatement => typecheckCore(core)
     case _ => throw new UnsupportedOperationException(s"No type rule for $stm found.")
   }
@@ -124,7 +124,7 @@ trait CoreTypechecker
           names.zipAll(tys, null, null).foreach {
             case (name, null) => bindVar(name, TAny)
             case (null, ty) => // nothing
-            case (name, ty) => bindVar(name, ty)
+            case (name, ty) => bindVar(name, ty.unroll)
           }
         case ty =>
           if (names.size != 1)
@@ -132,7 +132,7 @@ trait CoreTypechecker
           names.zipAll(Seq(ty), null, null).foreach {
             case (name, null) => bindVar(name, TAny)
             case (null, ty) => // nothing
-            case (name, ty) => bindVar(name, ty)
+            case (name, ty) => bindVar(name, ty.unroll)
           }
       }
       NoTerminator
@@ -173,24 +173,33 @@ trait CoreTypechecker
     case InstanceOf(e, ty) =>
       val ety = typecheck(e)
       if (TypeOps.meet(ety, ty, lang) == TNothing) {
-        warn(s"Cast of type $ety to unrelated type $ty will always fail", exp)
+        warn(s"Test of type $ety to unrelated type $ty will always fail", exp)
       }
       TBool
 
     case NotInstanceOf(e, ty) =>
       val ety = typecheck(e)
       if (TypeOps.meet(ety, ty, lang) == TNothing) {
-        warn(s"Cast of type $ety to unrelated type $ty will always succeed", exp)
+        warn(s"Test of type $ety to unrelated type $ty will always succeed", exp)
       }
       TBool
 
+    case Cast(src, targetTyp) =>
+      val ety = typecheck(src)
+      if (TypeOps.meet(ety, targetTyp, lang) == TNothing) {
+        warn(s"Cast of type $ety to unrelated type $targetTyp will always fail", exp)
+      }
+      targetTyp
+
     case Def(e) =>
+      typecheck(e)
       if (!isValidDefUndefExp(e)) {
         error(s"Cannot test definedness of ${e.getClass.getName} expression", exp)
       }
       TBool
 
     case Undef(e) =>
+      typecheck(e)
       if (!isValidDefUndefExp(e)) {
         error(s"Cannot test definedness of ${e.getClass.getName} expression", exp)
       }
@@ -208,7 +217,9 @@ trait CoreTypechecker
 
     case Call(name, args, transitive) =>
       lookupFun(name) match {
-        case None => TAny
+        case None =>
+          args.foreach(typecheck)
+          TAny
         case Some(fun) => typecheckCall(fun, args, transitive, exp)
       }
 
@@ -354,9 +365,10 @@ trait CoreTypechecker
       case Some(annotated) =>
         if (!TypeOps.subtype(inferred, annotated, lang))
           error(s"Inferred type $inferred, but expected annotated type $annotated", term)
-      case None => // nothing
+        annotated
+      case None =>
+        term.typed(inferred)
+        inferred
     }
-    term.typed(inferred)
-    inferred
   }
 }

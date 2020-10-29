@@ -191,22 +191,22 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     val typer = new BaseFrontend(analyzedLangs.Exp.languageMetaInfo) {}
     vars.foreach { case (name, ty) => typer.bindVar(name, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
-    typer.typecheck(stm, requireTerminator = false)
+    typer.typecheck(stm, mustTerminate = false, mayTerminate = true)
     typer.getBindings
   }
 
-  def typecheckStm(stm: Statement, vars: Map[Name, TypeAnno] = Map(), funs: Seq[PatternFunction] = Seq(), requireTerminator: Boolean = false): StmType = {
+  def typecheckStm(stm: Statement, vars: Map[Name, TypeAnno] = Map(), funs: Seq[PatternFunction] = Seq(), mustTerminate: Boolean = false): StmType = {
     val typer = new BaseFrontend(analyzedLangs.Exp.languageMetaInfo) {}
     vars.foreach { case (name, ty) => typer.bindVar(name, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
-    typer.typecheck(stm, requireTerminator)
+    typer.typecheck(stm, mustTerminate, mayTerminate = true)
   }
 
   def assertTypecheckStmFail(stm: Statement, vars: Map[Name, TypeAnno] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
     val typer = new BaseFrontend(analyzedLangs.Exp.languageMetaInfo) {}
     vars.foreach { case (name, ty) => typer.bindVar(name, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
-    typer.typecheck(stm, requireTerminator = false)
+    typer.typecheck(stm, mustTerminate = false, mayTerminate = true)
     assert(typer.getErrors.nonEmpty)
   }
 
@@ -214,7 +214,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     val typer = new BaseFrontend(analyzedLangs.Exp.languageMetaInfo) {}
     vars.foreach { case (name, ty) => typer.bindVar(name, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
-    typer.typecheck(stm, requireTerminator = false)
+    typer.typecheck(stm, mustTerminate = false, mayTerminate = true)
     assert(typer.getErrors.isEmpty)
     assert(typer.getWarnings.nonEmpty)
   }
@@ -475,7 +475,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
 
   "checkStatement" should "type yield correctly" in {
     val yieldStmt = parseStatement("yield true")
-    assertResult(Terminator(TBool))(typecheckStm(yieldStmt, requireTerminator = true))
+    assertResult(Terminator(TBool))(typecheckStm(yieldStmt, mustTerminate = true))
   }
 
   "checkYield" should "type yield correctly" in {

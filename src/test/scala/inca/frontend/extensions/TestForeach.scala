@@ -19,19 +19,19 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "eliminate foreach loops" in {
     val sugared = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Foreach("x", Var("list").typed(TList(TNode("Elem"))), Body(
-          Assert(Eq(one, Var("x"))),
-          Assert(Neq(Var("x"), two))
+      PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("Elem")))), Seq(), Seq(Body(Seq(
+        Foreach("x", Var("list"), Body(
+          Assert(Eq(Var("x"), Var("x"))),
+          Assert(Neq(Var("x"), Var("x")))
         )),
       ))))
     ))
 
     val core = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
+      PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("Elem")))), Seq(), Seq(Body(Seq(
         Assign(Seq("x"), PathAccess(Var("list"), ChildrenLink)),
-        Assert(Eq(one, Var("x"))),
-        Assert(Neq(Var("x"), two)),
+        Assert(Eq(Var("x"), Var("x"))),
+        Assert(Neq(Var("x"), Var("x"))),
       ))))
     ))
 
@@ -40,24 +40,24 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "eliminate nested foreach loops" in {
     val sugared = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Foreach("x", Var("list").typed(TList(TNode("Elem"))), Body(
-          Assert(Eq(one, Var("x"))),
-          Foreach("y", Var("list2").typed(TList(TNode("Elem"))), Body(
+      PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("Elem"))), Param(Name("list2"), TList(TNode("Elem")))), Seq(), Seq(Body(Seq(
+        Foreach("x", Var("list"), Body(
+          Assert(Eq(Var("x"), Var("x"))),
+          Foreach("y", Var("list2"), Body(
             Assert(Eq(Var("x"), Var("y")))
           )),
-          Assert(Neq(Var("x"), two))
+          Assert(Neq(Var("x"), Var("x")))
         )),
       ))))
     ))
 
     val core = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
+      PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("Elem"))), Param(Name("list2"), TList(TNode("Elem")))), Seq(), Seq(Body(Seq(
         Assign(Seq("x"), PathAccess(Var("list"), ChildrenLink)),
-        Assert(Eq(one, Var("x"))),
+        Assert(Eq(Var("x"), Var("x"))),
         Assign(Seq("y"), PathAccess(Var("list2"), ChildrenLink)),
         Assert(Eq(Var("x"), Var("y"))),
-        Assert(Neq(Var("x"), two)),
+        Assert(Neq(Var("x"), Var("x"))),
       ))))
     ))
 
@@ -68,7 +68,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
   "desugaring" should "implement foreach enum semantics" in {
     val module = Module("Test_Cast", Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
-        Foreach("i", Enum(TNode(Exp.intTag)).typed(TEnumeration(TNode(Exp.intTag))), Body(
+        Foreach("i", Enum(TNode(Exp.intTag)), Body(
           Yield(Var("i"))
         ))
       ))))
@@ -100,8 +100,8 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
     val module = Module("Test_Cast", Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
         Values("many", TNode(Exp.manyTag)),
-        Foreach("i", PathAccess(Var("many").typed(TNode(Exp.manyTag)), NamedLink("exps")).typed(TList(TNode(Exp.intTag))), Body(
-          Yield(PathAccess(Var("i").typed(TNode(Exp.intTag)), NamedLink("value")).typed(TInt))
+        Foreach("i", PathAccess(Var("many"), NamedLink("exps")), Body(
+          Yield(PathAccess(Cast(Var("i"), TNode(Exp.intTag)), NamedLink("value")))
         ))
       ))))
     ))

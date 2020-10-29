@@ -34,16 +34,6 @@ class ExtensionParsersTest extends AnyFunSuite {
     testBoolOpsFailure("|| y")
   }
 
-  test("test Cast") {
-    val parser = new BaseFrontend(new LanguageMetaInfo()) with CastFrontend
-    val testCastSuccess = testSuccess(parser.exp(_))
-
-    testCastSuccess("x:Int", Cast(Var("x"), TInt))
-    testCastSuccess("x :Int", Cast(Var("x"), TInt))
-    testCastSuccess("x : Int", Cast(Var("x"), TInt))
-    testCastSuccess("x:Int:Int", Cast(Cast(Var("x"), TInt), TInt))
-  }
-
   test("test Enum") {
     val parser = new BaseFrontend(new LanguageMetaInfo()) with EnumFrontend
     val testEnumSuccess = testSuccess(parser.exp(_))

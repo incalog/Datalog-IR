@@ -22,6 +22,15 @@ case class DataOpCall(op: DataOp, args: Seq[Exp]) extends Exp {
  */
 trait DataOpCallFrontentd extends Frontend {
   override protected def desugarables: Seq[Desugarable] = DataOpCall +: super.desugarables
+
+//  override protected def typecheckInternal(exp: Exp, anno: Option[TypeAnno]): TypeAnno = exp match {
+//    case Call(name, args, isTransitive) if lookupFun(name).isEmpty =>
+//      // try to type call as data op call
+//      val qop = resolveDataOp(op)
+//      val fun = Meta.mkQualName(qop)
+//
+//    case _ => super.typecheckInternal(exp, anno)
+//  }
 }
 
 object DataOpCall extends Desugarable {

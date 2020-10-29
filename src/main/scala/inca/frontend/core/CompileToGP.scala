@@ -195,6 +195,12 @@ object CompileToGP {
       if (vars.size != 1) throw new IllegalArgumentException("Number of variables of exp of instance of need to be 1")
       (Seq(), constraints :+ GP.NotHasType(GP.Var(vars.head), transType(typ)))
 
+    case Core.Cast(exp, typ) =>
+      val (vars, constraints) = transExp(exp.ensureCore)
+      if (vars.size != 1) throw new IllegalArgumentException("Number of variables of exp of instance of need to be 1")
+      val v = vars.head
+      (Seq(v), constraints :+ GP.HasType(GP.Var(v), transType(typ)))
+
     case Core.Def(exp) =>
       exp match {
         case Core.Call(name, args, transitive) =>

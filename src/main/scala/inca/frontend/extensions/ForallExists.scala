@@ -52,7 +52,7 @@ trait ForallExistsFrontend extends Frontend {
 
   override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("forall", "exists", "in")
 
-  override protected def typecheckInternal(stm: Statement, requireTerminator: Boolean): StmType = stm match {
+  override protected def typecheckInternal(stm: Statement, mustTerminate: Boolean): StmType = stm match {
     case Forall(name, exp, body) =>
       val ety = typecheck(exp)
       val elemType = ety match {
@@ -63,7 +63,7 @@ trait ForallExistsFrontend extends Frontend {
       }
       scopedTypeContext {
         bindVar(name, elemType)
-        typecheck(body, requireTerminator = false)
+        typecheck(body, mustTerminate = false)
       }
       NoTerminator
 
@@ -77,11 +77,11 @@ trait ForallExistsFrontend extends Frontend {
       }
       scopedTypeContext {
         bindVar(name, elemType)
-        typecheck(body, requireTerminator = false)
+        typecheck(body, mustTerminate = false)
       }
       NoTerminator
 
-    case _ => super.typecheckInternal(stm, requireTerminator)
+    case _ => super.typecheckInternal(stm, mustTerminate)
   }
 }
 

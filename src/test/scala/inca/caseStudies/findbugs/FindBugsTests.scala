@@ -29,11 +29,12 @@ class FindBugsTests extends AnyFunSuite {
       Seq(
         Body(
           Seq(
-            Assert(Eq(PathAccess(Var("class").typed(classDeclType), classDeclType("isFinal")).typed(TBool), Constant(BooleanLiteral(true)))),
-            Assign(Seq("members"), PathAccess(Var("class").typed(classDeclType), classDeclType("members")).typed(TList(classMemberType))),
-            Assign(Seq("member"), PathAccess(Var("members").typed(TList(classMemberType)), ChildrenLink).typed(classMemberType)),
+            Assert(Eq(PathAccess(Var("class"), classDeclType("isFinal")), Constant(BooleanLiteral(true)))),
+            Assign(Seq("members"), PathAccess(Var("class"), classDeclType("members"))),
+            Assign(Seq("member"), PathAccess(Var("members"), ChildrenLink)),
             Assert(InstanceOf(Var("member"), fieldDeclType)),
-            Assert(InstanceOf(PathAccess(Var("member").typed(fieldDeclType), fieldDeclType("visibility")).typed(visType), protectedVisType))
+            Assert(InstanceOf(PathAccess(Cast(Var("member"), fieldDeclType), fieldDeclType("visibility")), protectedVisType)),
+            Yield(Constant(UnitLiteral))
           ))))
     val module = Module("FindBugs", Seq(), Seq(confusedInheritance))
 

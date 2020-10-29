@@ -105,9 +105,9 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
       Seq(
         Body(
           Seq(
-            Assign(Seq("p"), PathAccess(Var("in").typed(TAny), ParentLink).typed(TAnyLinked)),
+            Assign(Seq("p"), PathAccess(Var("in"), ParentLink)),
             Assert(InstanceOf(Var("p"), expType)),
-            Yield(Var("p"))))))
+            Yield(Cast(Var("p"), expType))))))
 
     val module = Module("Test", Seq(), Seq(parentFun))
 

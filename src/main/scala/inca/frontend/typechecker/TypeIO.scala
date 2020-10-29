@@ -18,6 +18,13 @@ trait TypeIO {
 
   def getErrors: List[TypeError] = errors.toList
   def getWarnings: List[TypeWarning] = warnings.toList
+
+  def hasTypeErrors: Boolean = errors.nonEmpty
+  def hasTypeWarnings: Boolean = warnings.nonEmpty
+  def printTypeIO(): Unit = {
+    errors.foreach(println)
+    warnings.foreach(println)
+  }
 }
 
 object TypeIO {

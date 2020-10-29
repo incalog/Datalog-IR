@@ -19,6 +19,7 @@ object Exp {
   case class And(lhs: Exp, rhs: Exp) extends Exp
   case class Or(lhs: Exp, rhs: Exp) extends Exp
   case class Many(exps: List[Exp]) extends Exp
+  case class Let(name: String, bound: Exp, body: Exp) extends Exp
 
   val expTag = classOf[Exp].getCanonicalName
   val intTag = classOf[IntegerLit].getCanonicalName
@@ -30,6 +31,7 @@ object Exp {
   val orTag = classOf[Or].getCanonicalName
   val notTag = classOf[Not].getCanonicalName
   val manyTag = classOf[Many].getCanonicalName
+  val letTag = classOf[Let].getCanonicalName
   val languageMetaInfo: LanguageMetaInfo = {
     val expType = SortType(expTag)
     val intType = SortType(intTag)
@@ -41,6 +43,7 @@ object Exp {
     val orType = SortType(orTag)
     val notType = SortType(notTag)
     val manyType = SortType(manyTag)
+    val letType = SortType(letTag)
     new LanguageMetaInfo(
       MultiDict[SortType, SortType](
         intType -> expType,
@@ -51,7 +54,8 @@ object Exp {
         andType -> expType,
         orType -> expType,
         notType -> expType,
-        manyType -> expType
+        manyType -> expType,
+        letType -> expType
       ),
       Map(
         (addTag->"lhs") -> expType,
@@ -63,12 +67,15 @@ object Exp {
         (orTag->"lhs") -> expType,
         (orTag->"rhs") -> expType,
         (notTag->"e") -> expType,
-        (manyTag->"exps") -> ListType(expType)
+        (manyTag->"exps") -> ListType(expType),
+        (letTag -> "bound") -> expType,
+        (letTag -> "body") -> expType
       ),
       Map(
         (intTag->"value") -> JavaLitType(classOf[java.lang.Integer]),
         (longTag->"value") -> JavaLitType(classOf[java.lang.Long]),
-        (boolTag->"value") -> JavaLitType(classOf[java.lang.Boolean])
+        (boolTag->"value") -> JavaLitType(classOf[java.lang.Boolean]),
+        (letTag -> "name") -> JavaLitType(classOf[java.lang.String])
       )
     )
   }

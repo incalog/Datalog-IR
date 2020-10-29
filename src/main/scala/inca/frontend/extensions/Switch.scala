@@ -34,11 +34,14 @@ trait SwitchFrontend extends Frontend {
     } |
     super.statement
 
-  override protected def typecheckInternal(stm: Statement, requireTerminator: Boolean): StmType = stm match {
+  override protected def typecheckInternal(stm: Statement, mustTerminate: Boolean): StmType = stm match {
     case Switch(bodies) =>
-      bodies.map(typecheck(_, requireTerminator)).foldLeft(NoTerminator:StmType)(_.meet(_, lang))
+      if (bodies.isEmpty)
+        NoTerminator
+      else
+        bodies.map(typecheck(_, mustTerminate)).reduce(_.meet(_, lang))
 
-    case _ => super.typecheckInternal(stm, requireTerminator)
+    case _ => super.typecheckInternal(stm, mustTerminate)
   }
 }
 

@@ -174,7 +174,8 @@ class CoreParser {
   protected[frontend] def trailExp[_: P]: P[Exp => Exp] =
     P("." ~ link).mapWithLocFun[Exp, Exp](l => PathAccess(_, l)) |
     P("." ~ "isInstanceOf" ~ bracketedTypeAnno).mapWithLocFun[Exp, Exp](ty => InstanceOf(_, ty)) |
-    P("." ~ "notInstanceOf" ~ bracketedTypeAnno).mapWithLocFun[Exp, Exp](ty => NotInstanceOf(_, ty))
+    P("." ~ "notInstanceOf" ~ bracketedTypeAnno).mapWithLocFun[Exp, Exp](ty => NotInstanceOf(_, ty)) |
+    P(":" ~ typeAnno).mapWithLocFun[Exp, Exp](ty => Cast(_, ty))
 
   protected[frontend] def atomicExp[_: P]: P[Exp] =
     P(callExp | evalExp | wildcardExp | constantExp | varExp

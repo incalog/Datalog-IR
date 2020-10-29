@@ -2,8 +2,10 @@ package inca.frontend.parser
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
+import inca.frontend.BaseFrontend
 import inca.frontend.core.Core
 import inca.frontend.core.Core._
+import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -428,13 +430,13 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test TTuple") {
-    def testTTuple(input: String, cmp: TTuple): (String, TTuple) => Assertion = testSuccess[TTuple](parser.tTuple(_))
+    def testTTuple(input: String, cmp: TypeAnno): (String, TTuple) => Assertion = testSuccess[TTuple](parser.tTuple(_))
 
     testTTuple("(Int,String)", TTuple(Seq(TInt, TString)))
     testTTuple("(Int, String)", TTuple(Seq(TInt, TString)))
     testTTuple("(Int String)", TTuple(Seq(TInt, TString)))
     testTTuple(" ( Int , String ) ", TTuple(Seq(TInt, TString)))
-    testTTuple("(Double)", TTuple(Seq(TDouble)))
+    testTTuple("(Double)", TDouble)
     testTTuple("Unit", TTuple(Seq.empty))
   }
 
@@ -903,6 +905,16 @@ class CoreParserTest extends AnyFunSuite {
     //       |   case _ => 42
     //       |}""".stripMargin
     // )
+  }
+
+  test("test Cast") {
+    val parser = new BaseFrontend(new LanguageMetaInfo()) {}
+    val testCastSuccess = testSuccess(parser.exp(_))
+
+    testCastSuccess("x:Int", Cast(Var("x"), TInt))
+    testCastSuccess("x :Int", Cast(Var("x"), TInt))
+    testCastSuccess("x : Int", Cast(Var("x"), TInt))
+    testCastSuccess("x:Int:Int", Cast(Cast(Var("x"), TInt), TInt))
   }
 
   private def testSuccess[T](parser: P[_] => P[Any]): (String, T) => Assertion =
