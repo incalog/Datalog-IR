@@ -4,6 +4,7 @@ import inca.frontend.Frontend
 import inca.frontend.core.CompileToGP.resolveDataOp
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
+import inca.util.Meta.Scala
 import inca.util.{Gensym, Meta}
 
 import scala.collection.mutable.ListBuffer
@@ -49,7 +50,7 @@ object DataOpCall extends Desugarable {
         val qop = resolveDataOp(op)
         val fun = Meta.mkQualName(qop)
         val code: Term = if(syms.isEmpty) fun else Term.Apply(fun, syms.map(n => Meta.mkQualName(n.name)).toList)
-        changed(Eval(syms, code).typed(resultType))
+        changed(Eval(syms,  Scala(code)))
       case _ => super.desugarExp(exp)
     }
 

@@ -21,7 +21,7 @@ class TestCast extends AnyFlatSpec with IncaMatchers {
     val module = Module("Test_Cast", Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
         Values("e", TNode(Exp.expTag)),
-        Yield(Cast(Var("e").typed(TNode(Exp.expTag)), TNode(Exp.intTag)))
+        Yield(Cast(Var("e"), TNode(Exp.intTag)))
       ))))
     ), Seq())
 

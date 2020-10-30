@@ -5,6 +5,7 @@ import inca.frontend.core.Core
 import inca.frontend.core.Core.{Assign => _, Name => _, Param => _, _}
 import inca.frontend.parser.EvalHelper
 import inca.runtime.context.LanguageMetaInfo
+import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.Term._
@@ -491,52 +492,52 @@ class EvalHelperTest extends AnyFunSuite {
       val actual = checkEval(eval, vars)
       assert(actual == expected)
     }
-    check(Eval(Seq(Core.Name("x"), Core.Name("y")), q"x + y"), TInt, Map("x" -> TInt, "y" -> TInt))
-    check(Eval(Seq.empty, q"Math.PI"), TDouble)
-    check(Eval(Seq(Core.Name("x"), Core.Name("y")), q"x == y"), TBool, Map("x" -> TBool, "y" -> TBool))
-    check(Eval(Seq.empty, q""" "hello world" """), TString)
-    check(Eval(Seq.empty, q"{val s: Short = 1; s}"), TInt)
-    check(Eval(Seq.empty, q"println()"), TUnit)
-    check(Eval(Seq(Core.Name("s")), q"s"), TString, Map("s" -> TString))
+    check(Eval(Seq(Core.Name("x"), Core.Name("y")), Scala(q"x + y")), TInt, Map("x" -> TInt, "y" -> TInt))
+    check(Eval(Seq.empty, Scala(q"Math.PI")), TDouble)
+    check(Eval(Seq(Core.Name("x"), Core.Name("y")), Scala(q"x == y")), TBool, Map("x" -> TBool, "y" -> TBool))
+    check(Eval(Seq.empty, Scala(q""" "hello world" """)), TString)
+    check(Eval(Seq.empty, Scala(q"{val s: Short = 1; s}")), TInt)
+    check(Eval(Seq.empty, Scala(q"println()")), TUnit)
+    check(Eval(Seq(Core.Name("s")), Scala(q"s")), TString, Map("s" -> TString))
   }
 
 
   test("test typecheck tuple") {
-    val eval = Eval(Seq.empty, q"(1, 1.0, true)")
+    val eval = Eval(Seq.empty, Scala(q"(1, 1.0, true)"))
     val typ = checkEval(eval)
     assert(typ == TTuple(Seq(TInt, TDouble, TBool)))
   }
 
   test("test typecheck tuple nested") {
     val code = q"(1, 3.4, (true, 'h'))"
-    val eval = Eval(Seq.empty, code)
+    val eval = Eval(Seq.empty, Scala(code))
     val typ = checkEval(eval)
     assert(typ == TTuple(Seq(TInt, TDouble, TTuple(Seq(TBool, TInt)))))
   }
 
   test("test typecheck tuple nested with string literals") {
     val code = q"""(42, 6.9, true, ("hello", 2), "world") """
-    val eval = Eval(Seq.empty, code)
+    val eval = Eval(Seq.empty, Scala(code))
     val typ = checkEval(eval)
     assert(typ == TTuple(Seq(TInt, TDouble, TBool, TTuple(Seq(TString, TInt)), TString)))
   }
 
   test("test typecheck subtyping") {
     val code = q"""if(true) 42 else new Object()"""
-    val eval = Eval(Seq.empty, code)
+    val eval = Eval(Seq.empty, Scala(code))
     val typ = checkEval(eval)
     assert(typ == TAny)
   }
 
   test("test typecheck list") {
     val code = q"List(inca.analyzedData.Nat.Zero)"
-    val eval = Eval(Seq.empty, code)
+    val eval = Eval(Seq.empty, Scala(code))
     val typ = checkEval(eval)
     assert(typ == TList(TNode("inca.analyzedData.Nat.Zero.type")))
   }
 
   test("test typecheck extern types") {
-    val eval = Eval(Seq.empty, q"inca.analyzedData.Nat.Zero")
+    val eval = Eval(Seq.empty, Scala(q"inca.analyzedData.Nat.Zero"))
     val typ = checkEval(eval)
     assert(typ == TNode("inca.analyzedData.Nat.Zero.type"))
   }
@@ -549,7 +550,7 @@ class EvalHelperTest extends AnyFunSuite {
           }
        """
 
-    val eval = Eval(Seq(Core.Name("num")), code)
+    val eval = Eval(Seq(Core.Name("num")), Scala(code))
     val typ = checkEval(eval, Map("num" -> TNode("inca.analyzedData.Nat.Nat")))
     assert(typ == TNode("inca.analyzedData.Nat.Nat"))
   }
@@ -563,7 +564,7 @@ class EvalHelperTest extends AnyFunSuite {
         }
        """
 
-    val eval = Eval(Seq(Core.Name("num")), code)
+    val eval = Eval(Seq(Core.Name("num")), Scala(code))
     val typ = checkEval(eval, Map("num" -> TNode("inca.analyzedData.Nat.Nat")))
     assert(typ == TTuple(Seq(TInt, TNode("inca.analyzedData.Nat.Nat"))))
   }

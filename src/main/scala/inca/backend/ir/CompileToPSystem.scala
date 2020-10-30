@@ -87,7 +87,7 @@ object CompileToPSystem {
 
         ..${funs}
 
-        ..${module.stats.toList}
+        ..${module.stats.map(_.tree).toList}
       }
     """
   }

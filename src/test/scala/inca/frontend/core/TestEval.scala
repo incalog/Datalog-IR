@@ -3,6 +3,7 @@ package inca.frontend.core
 import inca.analyzedLangs.Exp
 import inca.frontend.core.Core._
 import inca.runtime.context.QueryScope
+import inca.util.Meta.Scala
 import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -23,7 +24,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
     val module = Module("Test_Cast", Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
         Values("e", TNode(Exp.expTag)),
-        Assign(Seq("pi"), Eval(Seq(), q"Math.PI").typed(TDouble)),
+        Assign(Seq("pi"), Eval(Seq(), Scala(q"Math.PI"))),
         Assert(Neq(Var("pi"), Constant(DoubleLiteral(3.14)))),
         Yield(Var("e"))
       ))))
@@ -55,9 +56,9 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
     val module = Module("Test_Cast", Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
         Values("e", TNode(Exp.intTag)),
-        Assign(Seq("i"), PathAccess(Var("e").typed(TNode(Exp.intTag)), NamedLink("value")).typed(TInt)),
+        Assign(Seq("i"), PathAccess(Var("e"), NamedLink("value"))),
         Assign(Seq("cond"),
-          Eval(Seq("i"), q"Math.sqrt(i).isValidInt").typed(TBool)),
+          Eval(Seq("i"), Scala(q"Math.sqrt(i).isValidInt"))),
         Assert(Eq(Var("cond"), Constant(BooleanLiteral(true)))),
         Yield(Var("e"))
       ))))

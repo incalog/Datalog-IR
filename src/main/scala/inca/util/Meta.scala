@@ -53,4 +53,22 @@ object Meta {
       qual = Term.Select(qual, Term.Name(ss(i)))
     Type.Select(qual, Type.Name(ss(ss.length-1)))
   }
+
+  class Scala[T <: meta.Tree](val tree: T) {
+    lazy val structure: String = this.tree.structure
+
+    def syntax: String = tree.syntax
+
+    override def hashCode(): Int =
+      structure.hashCode
+
+    override def equals(obj: Any): Boolean = obj match {
+      case that: Scala[_] => this.structure == that.structure
+    }
+
+    override def toString: String = tree.syntax
+  }
+  object Scala {
+    def apply[T <: meta.Tree](tree: T): Scala[T] = new Scala(tree)
+  }
 }

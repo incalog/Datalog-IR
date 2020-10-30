@@ -1,11 +1,10 @@
 package inca.frontend.core
 
 import inca.frontend.parser.SourceLocation
-import inca.util.Meta.TAB
+import inca.util.Meta.{Scala, TAB}
 
 import scala.annotation.tailrec
 import scala.language.reflectiveCalls
-import scala.meta.Term
 
 object Core {
   sealed trait TypeAnno extends SourceLocation {
@@ -87,6 +86,12 @@ object Core {
 
   val TUnit: TTuple = TTuple(Seq.empty)
 
+
+
+
+
+
+
   case class Name(name: String) extends SourceLocation {
     override def toString: String = name
   }
@@ -105,12 +110,10 @@ object Core {
 
 
 
-  case class Module(name: Name, imports: Seq[Name], funs: Seq[PatternFunction], stats: Seq[meta.Stat]) extends SourceLocation {
+  case class Module(name: Name, imports: Seq[Name], funs: Seq[PatternFunction], stats: Seq[Scala[meta.Stat]]) extends SourceLocation {
     def allVars: Map[Name, Option[TypeAnno]] = funs.flatMap(_.allVars).toMap
     def usedModuleNames: Seq[Name] = name +: imports
     def usedFunNames: Seq[Name] = funs.map(_.name)
-
-    // override def toString: Name = prettyprint("")
 
     def prettyprint(implicit indent: String): String = {
       val importsS = if (imports.isEmpty) "" else
@@ -118,19 +121,11 @@ object Core {
       val funsS = if (funs.isEmpty) "" else
         "\n" + funs.map(_.prettyprint).mkString("\n")
       val statsS = if (stats.isEmpty) "" else
-        "\n" + indent + stats.map("scala " + _.syntax).mkString("\n"+indent)
+        "\n" + indent + stats.map("scala " + _.tree.syntax).mkString("\n"+indent)
       s"${indent}module $name$importsS$funsS$statsS".stripMargin
     }
 
     override def toString: String = prettyprint("")
-
-    override def equals(obj: Any): Boolean = obj match {
-      case that: Module =>
-        this.name == that.name && this.imports == that.imports && this.funs == that.funs && this.stats.map(_.structure) == that.stats.map(_.structure)
-      case _ => false
-    }
-
-    override def hashCode(): Int = name.hashCode() * imports.hashCode() * funs.hashCode() * stats.map(_.structure).hashCode()
   }
 
   case class PatternFunction(vis: Option[Visibility], name: Name, params: Seq[Param], outParams: Seq[AnnoParam], bodies: Seq[Body]) extends SourceLocation {
@@ -342,7 +337,7 @@ object Core {
       exps.map(_.prettyprint).mkString("(", ", ", ")")
   }
   /** Eval code must be a Scala expression that can access `params` by name and must yield a `resultType`. */
-  case class Eval(params: Seq[Name], code: Term) extends CoreExp {
+  case class Eval(params: Seq[Name], code: Scala[meta.Term]) extends CoreExp {
     override def freeVars: Map[Name, Option[TypeAnno]] = params.map(_ -> None).toMap
     override def prettyprint(implicit indent: String): String = s"eval($code)"
   }

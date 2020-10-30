@@ -296,7 +296,7 @@ object CompileToGP {
           (GP.Var(name.name), transType(binding.typ))
         }
       }
-      val funCode = q"(..$paramsTyped) => {$code}"
+      val funCode = q"(..$paramsTyped) => {${code.tree}}"
       val resType = eval.typ.getOrElse(throw new IllegalStateException("untyped Eval"))
       val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(args, transType(resType), funCode))
       (Seq(evalVar), Seq(evalConstraint))

@@ -5,6 +5,7 @@ import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.typechecker.{NoTerminator, StmType}
 import inca.util.Gensym
+import inca.util.Meta.Scala
 
 import scala.collection.mutable.ListBuffer
 import scala.meta.{Term, XtensionQuasiquoteTerm}
@@ -105,7 +106,7 @@ object ForallExists extends Desugarable {
 
           changed(Seq(
             Assign(Seq(sizeSym), PathAccess(exp, SizeLink).typed(TInt)),
-            Assign(Seq(successSym), Count(Call(funsym, args)).typed(TInt)),
+            Assign(Seq(successSym), Count(Call(funsym, args).typed(ty)).typed(TInt)),
             Assert(Eq(Var(sizeSym), Var(successSym)))
           ))
         case ty => throw new IllegalArgumentException(s"Forall loop expression $exp must have iterable type, but was type $ty")
@@ -120,8 +121,8 @@ object ForallExists extends Desugarable {
           val args = vars.map(v => Var(v._1))
 
           changed(Seq(
-            Assign(Seq(successSym), Count(Call(funsym, args)).typed(TInt)),
-            Assert(Eval(Seq(successSym), q"""${Term.Name(successSym.name)} >= 1""").typed(TBool))
+            Assign(Seq(successSym), Count(Call(funsym, args).typed(ty)).typed(TInt)),
+            Assert(Eval(Seq(successSym), Scala(q"${Term.Name(successSym.name)} >= 1")).typed(TBool))
           ))
         case ty => throw new IllegalArgumentException(s"Forall loop expression $exp must have iterable type, but was type $ty")
       }

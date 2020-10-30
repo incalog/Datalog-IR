@@ -4,6 +4,7 @@ import fastparse.ScalaWhitespace._
 import fastparse._
 import inca.frontend.core.Core
 import inca.frontend.core.Core.{Name, _}
+import inca.util.Meta.Scala
 
 import scala.meta._
 import scala.meta.parsers.Parsed
@@ -200,7 +201,7 @@ class CoreParser {
         fastparse.Fail
       case Parsed.Success(code) =>
         val params = EvalHelper.freeVars(code)
-        val eval = Eval(params.toSeq, code)
+        val eval = Eval(params.toSeq, Scala(code))
         fastparse.Pass(eval)
     }
   }
@@ -291,7 +292,7 @@ class CoreParser {
       End
     ).mapWithLoc { case (name, imports, contents) =>
       val funs = contents.collect { case Left(fun) => fun }
-      val stats = contents.collect { case Right(stat) => stat }
+      val stats = contents.collect { case Right(stat) => Scala(stat) }
       Module(name, imports, funs, stats)
     }
 

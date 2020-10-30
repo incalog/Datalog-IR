@@ -3,6 +3,7 @@ package inca.frontend.parser
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
 import inca.frontend.core.Core._
+import inca.util.Meta.Scala
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -32,7 +33,7 @@ class CoreNativeParserTest extends AnyFunSuite {
         Name("my"),
         Seq(Name("math"), Name("cuda_runtime")),
         Seq(),
-        Seq(q"import java.lang", q"import inca.Compiler")
+        Seq(Scala(q"import java.lang"), Scala(q"import inca.Compiler"))
       )
     )
 
@@ -56,7 +57,7 @@ class CoreNativeParserTest extends AnyFunSuite {
           q"import inca.Compiler",
           q"val i = 0",
           q"var v: Int = 0",
-          q"def f() = { Compiler.invoke() }")
+          q"def f() = { Compiler.invoke() }").map(Scala.apply)
       )
     )
 

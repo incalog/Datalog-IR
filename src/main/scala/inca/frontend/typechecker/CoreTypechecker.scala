@@ -4,6 +4,7 @@ import inca.frontend.core.Core._
 import inca.frontend.parser.SourceLocation
 import inca.frontend.util.TypeHelper
 import inca.runtime.context.LanguageMetaInfo
+import inca.util.Meta.Scala
 
 import scala.meta.Term
 
@@ -326,7 +327,7 @@ trait CoreTypechecker
   /**
    * Computes the result type of an Eval expression and validates the contained Scala code for type correctness
    */
-  def typecheckEval(params: Seq[Name], code: Term, exp: Exp): TypeAnno = {
+  def typecheckEval(params: Seq[Name], code: Scala[Term], exp: Exp): TypeAnno = {
     import scala.reflect.runtime.currentMirror
     import scala.tools.reflect.{ToolBox, ToolBoxError}
 

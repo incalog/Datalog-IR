@@ -4,6 +4,7 @@ import inca.analyzedLangs.Exp
 import inca.frontend.BaseFrontend
 import inca.frontend.core.Core._
 import inca.runtime.context.QueryScope
+import inca.util.Meta.Scala
 import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -78,7 +79,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
         Assign(Seq("i"), PathAccess(Var("e"), NamedLink("value"))),
         Assign(Seq("cond"),
           // "i" is _not_ a square number
-          Not(Eval(Seq("i"), q"Math.sqrt(i).isValidInt"))),
+          Not(Eval(Seq("i"), Scala(q"Math.sqrt(i).isValidInt")))),
         Assert(Eq(Var("cond"), Constant(BooleanLiteral(true)))),
         Yield(Var("e"))
       ))))

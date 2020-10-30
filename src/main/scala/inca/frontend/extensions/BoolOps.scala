@@ -4,6 +4,7 @@ import inca.frontend.Frontend
 import inca.frontend.core.Core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.util.Gensym
+import inca.util.Meta.Scala
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -94,7 +95,7 @@ object BoolOps extends Desugarable {
       case Def(exp) => changed(Undef(desugarExp(exp)))
       case Undef(exp) => changed(Def(desugarExp(exp)))
       case Constant(BooleanLiteral(v)) => changed(Constant(BooleanLiteral(!v)))
-      case Eval(vars, code) => changed(Eval(vars, q"!{$code}"))
+      case Eval(vars, code) => changed(Eval(vars, Scala(q"!{${code.tree}}")))
 
       case _ => Not(cond)
     }
