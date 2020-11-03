@@ -20,8 +20,14 @@ case class CompiledFunModule(fun: Module, compilerOptions: Options) extends Comp
     fun
   }
 
-  lazy val desugared: Core.Module =
-    Desugar(compilerOptions.frontend.allDesugarables)(typed)
+  lazy val desugared: Core.Module = {
+    val frontend = compilerOptions.frontend
+    val module = Desugar(frontend.allDesugarables)(typed)
+    frontend.typecheck(module)
+    messages ++= frontend.getErrors
+    messages ++= frontend.getWarnings
+    module
+  }
 
   lazy val ir: GP.Module =
     CompileToGP.transformModule(desugared)

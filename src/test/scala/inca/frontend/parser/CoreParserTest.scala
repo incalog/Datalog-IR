@@ -236,10 +236,9 @@ class CoreParserTest extends AnyFunSuite {
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
         case Success(eval, _) =>
           val params = eval.params
+          val paramNames = params.map(_.name)
           assert(
-            params.size == vars.size && params.forall(vars.contains) && vars.forall(
-              params.contains
-            )
+            params.size == vars.size && paramNames.toSet == vars.toSet
           )
       }
     }
@@ -747,7 +746,7 @@ class CoreParserTest extends AnyFunSuite {
                 |}""".stripMargin,
       Module(
         Name("my"),
-        Seq(Name("math"), Name("cuda_runtime")),
+        Seq(Import(Name("math")), Import(Name("cuda_runtime"))),
         Seq(
           PatternFunction(
             Option(Public),
@@ -788,7 +787,7 @@ class CoreParserTest extends AnyFunSuite {
                 |""".stripMargin,
       Module(
         Name("my"),
-        Seq(Name("cuda_runtime")),
+        Seq(Import(Name("cuda_runtime"))),
         Seq(
           PatternFunction(
             None,
@@ -817,7 +816,7 @@ class CoreParserTest extends AnyFunSuite {
                 |""".stripMargin,
       Module(
         Name("my"),
-        Seq(Name("math")),
+        Seq(Import(Name("math"))),
         Seq(
           PatternFunction(
             None,
@@ -884,7 +883,7 @@ class CoreParserTest extends AnyFunSuite {
       parse(input, parser.evalExp(_)) match {
         case Success(Eval(ss, code), index) => {
           assert(cmp_code === code.syntax)
-          assert(ss.toSet === vars)
+          assert(ss.map(_.name).toSet === vars)
         }
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
       }

@@ -7,7 +7,7 @@ import inca.util.Meta.Scala
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
-import scala.meta.{Name => _, _}
+import scala.meta.{Name => _, Import => _, _}
 
 /**
   * Test class for the IncA core language parser @see Parser.
@@ -31,7 +31,7 @@ class CoreNativeParserTest extends AnyFunSuite {
                 |""".stripMargin,
       Module(
         Name("my"),
-        Seq(Name("math"), Name("cuda_runtime")),
+        Seq(Import(Name("math")), Import(Name("cuda_runtime"))),
         Seq(),
         Seq(Scala(q"import java.lang"), Scala(q"import inca.Compiler"))
       )
@@ -51,7 +51,7 @@ class CoreNativeParserTest extends AnyFunSuite {
          |""".stripMargin,
       Module(
         Name("my"),
-        Seq(Name("math"), Name("cuda_runtime")),
+        Seq(Import(Name("math")), Import(Name("cuda_runtime"))),
         Seq(),
         Seq(
           q"import inca.Compiler",

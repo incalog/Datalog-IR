@@ -28,17 +28,14 @@ trait SwitchFrontend extends Frontend {
   override protected[frontend] def keywords: Set[String] = super.keywords + "switch"
 
   override protected[frontend] def statement[_: P]: P[Statement] =
-    P("switch" ~ body.rep(sep = "union")).mapWithLoc { bodies =>
-      if (bodies.size == 1 && bodies.head.stmts.isEmpty) Switch(Seq.empty)
-      else Switch(bodies)
-    } |
-    super.statement
+    P("switch" ~ body.rep(sep = "union")).mapWithLoc(Switch.apply) | super.statement
 
   override protected def typecheckInternal(stm: Statement, mustTerminate: Boolean): StmType = stm match {
     case Switch(bodies) =>
-      if (bodies.isEmpty)
+      if (bodies.isEmpty) {
+        error("empty switch statements are not allowed", stm)
         NoTerminator
-      else
+      } else
         bodies.map(typecheck(_, mustTerminate)).reduce(_.meet(_, lang))
 
     case _ => super.typecheckInternal(stm, mustTerminate)

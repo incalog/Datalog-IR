@@ -2,7 +2,7 @@ package inca.frontend.core
 
 import inca.frontend.core.Core.DataOp
 import inca.frontend.parser.SourceLocation
-import inca.frontend.typechecker.Typeable
+import inca.frontend.typechecker.{Resolvable, Typeable}
 import inca.util.Meta.Scala
 
 trait Expression extends Typeable with SourceLocation {
@@ -15,6 +15,15 @@ trait Expression extends Typeable with SourceLocation {
 }
 
 sealed trait CoreExpression extends Expression
+
+case class Var(name: Name) extends CoreExpression with Resolvable[Var.Target] {
+  override def freeVars: Map[Name, Option[Type]] = Map(name -> typ)
+  override def prettyprint(implicit indent: String): String = name.name
+}
+object Var {
+  def apply(name: String): Var = new Var(Name(name))
+  trait Target extends SourceLocation
+}
 
 case class Eq(lhs: Expression, rhs: Expression) extends CoreExpression {
   def freeVars: Map[Name, Option[Type]] = lhs.freeVars ++ rhs.freeVars
@@ -56,13 +65,6 @@ case object Wildcard extends CoreExpression {
   override def freeVars: Map[Name, Option[Type]] = Map()
   override def prettyprint(implicit indent: String): String = "_"
 }
-case class Var(name: Name) extends CoreExpression {
-  override def freeVars: Map[Name, Option[Type]] = Map(name -> typ)
-  override def prettyprint(implicit indent: String): String = name.name
-}
-object Var {
-  def apply(name: String): Var = new Var(Name(name))
-}
 case class Constant(lit: Literal) extends CoreExpression {
   override def freeVars: Map[Name, Option[Type]] = Map()
   override def prettyprint(implicit indent: String): String = lit.prettyprint
@@ -73,7 +75,8 @@ case class PathAccess(receiver: Expression, link: Link) extends CoreExpression {
     s"${receiver.prettyprint}.${link.prettyprint}"
 }
 
-case class Call(name: Name, args: Seq[Expression], transitive: Boolean = false) extends CoreExpression {
+case class Call(name: Name, args: Seq[Expression], transitive: Boolean = false)
+    extends CoreExpression with Resolvable[Call.Target] {
   override def freeVars: Map[Name, Option[Type]] = args.flatMap(_.freeVars).toMap
   override def prettyprint(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
@@ -81,6 +84,10 @@ case class Call(name: Name, args: Seq[Expression], transitive: Boolean = false) 
     s"$name$transS($argsS)"
   }
 }
+object Call {
+  trait Target
+}
+
 case class Count(call: Call) extends CoreExpression {
   override def freeVars: Map[Name, Option[Type]] = call.freeVars
   override def prettyprint(implicit indent: String): String = s"count ${call.prettyprint}"
@@ -92,11 +99,14 @@ case class Tuple(exps: Seq[Expression]) extends CoreExpression {
     exps.map(_.prettyprint).mkString("(", ", ", ")")
 }
 /** Eval code must be a Scala expression that can access `params` by name and must yield a `resultType`. */
-case class Eval(params: Seq[Name], code: Scala[meta.Term]) extends CoreExpression {
-  override def freeVars: Map[Name, Option[Type]] = params.map(_ -> None).toMap
+case class Eval(params: Seq[EvalParam], code: Scala[meta.Term]) extends CoreExpression {
+  override def freeVars: Map[Name, Option[Type]] = params.map(p => p.name -> p.typ).toMap
   override def prettyprint(implicit indent: String): String = s"eval($code)"
 }
 
+case class EvalParam(name: Name) extends SourceLocation with Typeable with Resolvable[Var.Target] {
+  override def toString: String = name.toString
+}
 
 case class Aggregate(init: DataOp, join: DataOp, unjoin: Option[DataOp], call: Call) extends CoreExpression {
   override def freeVars: Map[Name, Option[Type]] = call.freeVars

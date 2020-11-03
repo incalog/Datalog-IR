@@ -10,7 +10,7 @@ import inca.util.Meta.Scala
 import scala.collection.mutable.ListBuffer
 import scala.meta.{Term, XtensionQuasiquoteTerm}
 
-case class Forall(name: Name, exp: Expression, body: Body) extends Statement {
+case class Forall(name: Name, exp: Expression, body: Body) extends Statement with Var.Target {
   val elemTyp: Option[Type] = exp.typ.flatMap {
     case ty: TIterable => Some(ty.contained)
     case _ => None
@@ -23,7 +23,7 @@ case class Forall(name: Name, exp: Expression, body: Body) extends Statement {
     s"${indent}forall $name in ${exp.prettyprint} ${body.prettyprint}"
 }
 
-case class Exists(name: Name, exp: Expression, body: Body) extends Statement {
+case class Exists(name: Name, exp: Expression, body: Body) extends Statement with Var.Target {
   val elemTyp: Option[Type] = exp.typ.flatMap {
     case ty: TIterable => Some(ty.contained)
     case _ => None
@@ -54,7 +54,7 @@ trait ForallExistsFrontend extends Frontend {
   override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("forall", "exists", "in")
 
   override protected def typecheckInternal(stm: Statement, mustTerminate: Boolean): StmType = stm match {
-    case Forall(name, exp, body) =>
+    case forall@Forall(name, exp, body) =>
       val ety = typecheck(exp)
       val elemType = ety match {
         case it: TIterable => it.contained
@@ -63,12 +63,12 @@ trait ForallExistsFrontend extends Frontend {
           TAny
       }
       scopedTypeContext {
-        bindVar(name, elemType)
+        bindVar(name, forall, elemType)
         typecheck(body, mustTerminate = false)
       }
       NoTerminator
 
-    case Exists(name, exp, body) =>
+    case ex@Exists(name, exp, body) =>
       val ety = typecheck(exp)
       val elemType = ety match {
         case it: TIterable => it.contained
@@ -77,7 +77,7 @@ trait ForallExistsFrontend extends Frontend {
           TAny
       }
       scopedTypeContext {
-        bindVar(name, elemType)
+        bindVar(name, ex, elemType)
         typecheck(body, mustTerminate = false)
       }
       NoTerminator
@@ -120,10 +120,14 @@ object ForallExists extends Desugarable {
           val vars = makeCondFun(name, exp, body, ty, funsym)
           val args = vars.map(v => Var(v._1))
 
-          changed(Seq(
-            Assign(Seq(successSym), Count(Call(funsym, args).typed(ty)).typed(TInt)),
-            Assert(Eval(Seq(successSym), Scala(q"${Term.Name(successSym.name)} >= 1")).typed(TBool))
-          ))
+          val assign = Assign(Seq(successSym), Count(Call(funsym, args).typed(ty)).typed(TInt))
+
+          val evalParam = EvalParam(successSym).resolved(assign).typed(TInt)
+          val code = Scala[Term](q"${Term.Name(successSym.name)} >= 1")
+          val eval = Assert(Eval(Seq(evalParam), code).typed(TBool))
+
+          changed(Seq(assign, eval))
+
         case ty => throw new IllegalArgumentException(s"Forall loop expression $exp must have iterable type, but was type $ty")
       }
 

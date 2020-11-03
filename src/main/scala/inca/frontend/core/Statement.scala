@@ -12,13 +12,13 @@ trait Statement extends SourceLocation {
   }
 }
 sealed trait CoreStatement extends Statement
-case class Values(name: Name, typ: Type) extends CoreStatement {
+case class Values(name: Name, typ: Type) extends CoreStatement with Var.Target {
   override def boundVars: Set[Name] = Set(name)
   override def allVars: Map[Name, Option[Type]] = Map(name -> Some(typ))
   override def prettyprint(implicit indent: String): String =
     s"${indent}vals $name <- ${typ.prettyprint}"
 }
-case class Assign(names: Seq[Name], exp: Expression) extends CoreStatement {
+case class Assign(names: Seq[Name], exp: Expression) extends CoreStatement with Var.Target {
   override def boundVars: Set[Name] = names.toSet
   override def allVars: Map[Name, Option[Type]] = exp.freeVars ++ (exp.typ match {
     case Some(ty) if names.size == 1 => Map(names.head -> Some(ty))

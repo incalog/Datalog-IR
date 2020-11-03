@@ -16,17 +16,19 @@ class DesugarTrans {
   }
 
   def desugarModule(module: Module)(implicit gensym: Gensym): Module = gensym.scoped {
+    val Module(name, imports, funs, stats) = module
     gensym.register(module.usedModuleNames.map(_.name))
     gensym.register(module.usedFunNames.map(_.name))
-    Module(module.name, module.imports.flatMap(desugarImport), module.funs.flatMap(desugarFun), module.stats)
+    Module(name, imports.flatMap(desugarImport), funs.flatMap(desugarFun), stats)
   }
 
-  def desugarImport(imp: Name)(implicit gensym: Gensym): Seq[Name] =
-    Seq(imp)
+  def desugarImport(imp: Import)(implicit gensym: Gensym): Seq[Import] =
+    Seq(Import(imp.name))
 
   def desugarFun(fun: PatternFunction)(implicit gensym: Gensym): Seq[PatternFunction] = gensym.scoped {
     gensym.register(fun.boundNames.map(_.name))
-    Seq(PatternFunction(fun.vis, fun.name, fun.params, fun.outParams, fun.bodies.flatMap(desugarBody)))
+    val newfun = PatternFunction(fun.vis, fun.name, fun.params, fun.outParams, fun.bodies.flatMap(desugarBody))
+    Seq(newfun)
   }
 
   def desugarBody(body: Body)(implicit gensym: Gensym): Seq[Body] =
@@ -34,9 +36,11 @@ class DesugarTrans {
 
   def desugarStm(stm: Statement)(implicit gensym: Gensym): Seq[Statement] = stm match {
     case Assert(cond) => Seq(Assert(desugarExp(cond)))
+    case Values(_, _) => Seq(stm)
     case Assign(names, exp) => Seq(Assign(names, desugarExp(exp)))
     case Yield(exp) => Seq(Yield(desugarExp(exp)))
-    case _ => Seq(stm)
+    case _ =>
+      Seq(stm)
   }
 
   def desugarExp(exp: Expression)(implicit gensym: Gensym): Expression = (exp match {
@@ -44,6 +48,7 @@ class DesugarTrans {
     case Neq(lhs, rhs) => Neq(desugarExp(lhs), desugarExp(rhs))
     case InstanceOf(exp, typ) => InstanceOf(desugarExp(exp), typ)
     case NotInstanceOf(exp, typ) => NotInstanceOf(desugarExp(exp), typ)
+    case Cast(e, ty) => Cast(desugarExp(e), ty)
     case Def(exp) => Def(desugarExp(exp))
     case Undef(exp) => Undef(desugarExp(exp))
     case Var(name) => Var(name)
@@ -53,6 +58,7 @@ class DesugarTrans {
     case Count(call@Call(name, args, trans)) => Count(Call(name, args.map(desugarExp), trans).mtyped(call.typ))
     case Tuple(exps) => Tuple(exps.map(desugarExp))
     case Aggregate(init, join, unjoin, call@Call(name, args, trans)) => Aggregate(init, join, unjoin, Call(name, args.map(desugarExp), trans).mtyped(call.typ))
+    case Eval(params, code) => Eval(params.map(p => EvalParam(p.name)), code)
     case _ => exp
   }).mtyped(exp.typ)
 }

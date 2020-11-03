@@ -480,7 +480,7 @@ class EvalHelperTest extends AnyFunSuite {
 
   private def checkEval(eval: Eval, vars: Map[String, core.Type] = Map()): core.Type = {
     val typer = new BaseFrontend(new LanguageMetaInfo()) {}
-    vars.foreach(vt => typer.bindVar(core.Name(vt._1), vt._2))
+    vars.foreach(vt => typer.bindVar(core.Name(vt._1), new Var.Target {}, vt._2))
     typer.typecheck(eval)
   }
   
@@ -491,13 +491,13 @@ class EvalHelperTest extends AnyFunSuite {
       val actual = checkEval(eval, vars)
       assert(actual == expected)
     }
-    check(Eval(Seq(core.Name("x"), core.Name("y")), Scala(q"x + y")), TInt, Map("x" -> TInt, "y" -> TInt))
+    check(Eval(Seq(EvalParam(core.Name("x")), EvalParam(core.Name("y"))), Scala(q"x + y")), TInt, Map("x" -> TInt, "y" -> TInt))
     check(Eval(Seq.empty, Scala(q"Math.PI")), TDouble)
-    check(Eval(Seq(core.Name("x"), core.Name("y")), Scala(q"x == y")), TBool, Map("x" -> TBool, "y" -> TBool))
+    check(Eval(Seq(EvalParam(core.Name("x")), EvalParam(core.Name("y"))), Scala(q"x == y")), TBool, Map("x" -> TBool, "y" -> TBool))
     check(Eval(Seq.empty, Scala(q""" "hello world" """)), TString)
     check(Eval(Seq.empty, Scala(q"{val s: Short = 1; s}")), TInt)
     check(Eval(Seq.empty, Scala(q"println()")), TUnit)
-    check(Eval(Seq(core.Name("s")), Scala(q"s")), TString, Map("s" -> TString))
+    check(Eval(Seq(EvalParam(core.Name("s"))), Scala(q"s")), TString, Map("s" -> TString))
   }
 
 
@@ -549,7 +549,7 @@ class EvalHelperTest extends AnyFunSuite {
           }
        """
 
-    val eval = Eval(Seq(core.Name("num")), Scala(code))
+    val eval = Eval(Seq(EvalParam(core.Name("num"))), Scala(code))
     val typ = checkEval(eval, Map("num" -> TNode("inca.analyzedData.Nat.Nat")))
     assert(typ == TNode("inca.analyzedData.Nat.Nat"))
   }
@@ -563,7 +563,7 @@ class EvalHelperTest extends AnyFunSuite {
         }
        """
 
-    val eval = Eval(Seq(core.Name("num")), Scala(code))
+    val eval = Eval(Seq(EvalParam(core.Name("num"))), Scala(code))
     val typ = checkEval(eval, Map("num" -> TNode("inca.analyzedData.Nat.Nat")))
     assert(typ == TTuple(Seq(TInt, TNode("inca.analyzedData.Nat.Nat"))))
   }

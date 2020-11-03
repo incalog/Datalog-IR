@@ -24,12 +24,8 @@ object Desugar {
       changed = desugarables.exists { desugarable =>
         val trans = desugarable.trans()
         val transModule = trans.desugarModule(module)
-        if (trans.changesMade) {
-          module = transModule
-          true
-        } else {
-          false
-        }
+        module = transModule
+        trans.changesMade
       }
     } while (changed)
     module

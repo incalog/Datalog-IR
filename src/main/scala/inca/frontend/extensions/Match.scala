@@ -63,12 +63,12 @@ case class TuplePattern(pats: Seq[Pattern]) extends Pattern {
       pats.map(_.prettyprint).mkString("(", ", ", ")")
 }
 
-case class VarPattern(name: Name) extends Pattern {
+case class VarPattern(name: Name) extends Pattern with Var.Target {
   override def boundVars: Set[Name] = Set(name)
   override def allVars: Map[Name, Option[Type]] = Map(name -> None)
   override def prettyprint(implicit indent: String): String = name.name
 }
-case class NamedPattern(name: Name, pat: Pattern) extends Pattern {
+case class NamedPattern(name: Name, pat: Pattern) extends Pattern with Var.Target {
   override def boundVars: Set[Name] = Set(name) ++ pat.boundVars
   override def allVars: Map[Name, Option[Type]] = Map(name -> None) ++ pat.allVars
   override def prettyprint(implicit indent: String): String = s"$name@${pat.prettyprint}"
@@ -201,10 +201,10 @@ trait MatchFrontend extends Frontend {
           }
       }
 
-    case VarPattern(name) =>
-      bindVar(name, matchee)
-    case NamedPattern(name, pat) =>
-      bindVar(name, matchee)
+    case vp@VarPattern(name) =>
+      bindVar(name, vp, matchee)
+    case np@NamedPattern(name, pat) =>
+      bindVar(name, np, matchee)
       typecheckPattern(pat, matchee)
     case WildcardPattern =>
       // nothing

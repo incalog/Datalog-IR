@@ -80,7 +80,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
         Assign(Seq("i"), PathAccess(Var("e"), NamedLink("value"))),
         Assign(Seq("cond"),
           // "i" is _not_ a square number
-          Not(Eval(Seq("i"), Scala(q"Math.sqrt(i).isValidInt")))),
+          Not(Eval(Seq(EvalParam("i")), Scala(q"Math.sqrt(i).isValidInt")))),
         Assert(Eq(Var("cond"), Constant(BooleanLiteral(true)))),
         Yield(Var("e"))
       ))))

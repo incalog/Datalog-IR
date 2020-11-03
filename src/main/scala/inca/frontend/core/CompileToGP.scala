@@ -4,6 +4,7 @@ import inca.backend.ir.GP
 import inca.frontend.core.Core.DataOp
 import inca.util.Gensym
 
+import scala.collection.mutable.ListBuffer
 import scala.meta.{Name => _, Type => _, _}
 
 object CompileToGP {
@@ -11,18 +12,15 @@ object CompileToGP {
   case object BodyMustFail extends Exception
 
 
-  type FunEnv = Map[String, PatternFunction]
-
   def transformModule(module: Module): GP.Module = {
     // construct map Name => Fun
-    val funs = module.funs.map { fun => fun.name.name -> fun }.toMap
-    val patterns = module.funs.map { fun => transform(fun, funs) }
-    GP.Module(module.name.name, module.imports.map(_.name), patterns, module.stats)
+    val patterns = module.funs.map { fun => transform(fun) }
+    GP.Module(module.name.name, module.imports.map(_.name.name), patterns, module.stats)
   }
 
-  def transform(fun: PatternFunction, funs: FunEnv): GP.Pattern = {
+  def transform(fun: PatternFunction): GP.Pattern = {
     // TODO meta analysis negation in recusion
-    rewriteFunction(fun, funs)
+    rewriteFunction(fun)
   }
 
   def transType(typ: Type): GP.Type = typ match {
@@ -39,7 +37,7 @@ object CompileToGP {
   }
 
 
-  def rewriteFunction(fun: PatternFunction, funs: FunEnv): GP.Pattern = {
+  def rewriteFunction(fun: PatternFunction): GP.Pattern = {
     val gensym = new Gensym(fun.freeVars.keys.map(_.name))
     gensym.register(fun.boundNames.map(_.name))
 
@@ -49,10 +47,6 @@ object CompileToGP {
     }
 
     val params = fun.params.map { param => GP.Param(param.name.name, transType(param.typ)) }
-    val env = fun.params.map {
-      case Param(name, ty) => name -> Binding(ty, None, None)
-    }.toMap
-
     val outParams = fun.outParams.map { param =>
       val name =
         if (param.name.isDefined) param.name.get.name
@@ -61,7 +55,7 @@ object CompileToGP {
     }
     val outVars = outParams.map(_.name)
 
-    val bodies = fun.bodies.flatMap(b => transBody(b, funs, outVars, env)(gensym))
+    val bodies = fun.bodies.flatMap(b => transBody(b, outVars)(gensym))
     GP.Pattern(vis, fun.name.name, params ++ outParams, bodies)
   }
 
@@ -83,16 +77,10 @@ object CompileToGP {
     }
   }
 
-  type Env = Map[Name, Binding]
-
-
-  def transBody(alt: Body, funs: FunEnv, outVars: Seq[String], env: Env)(implicit gensym: Gensym): Option[GP.Body] = gensym.scoped {
+  def transBody(alt: Body, outVars: Seq[String])(implicit gensym: Gensym): Option[GP.Body] = gensym.scoped {
     try {
-      var currentEnv: Env = env
       val constraints = alt.stmts.flatMap { s =>
-        val (cons, newenv) = transStatement(s.ensureCore, funs, outVars, currentEnv)
-        currentEnv = newenv
-        cons
+        transStatement(s.ensureCore, outVars)
       }
       Some(GP.Body(constraints))
     } catch {
@@ -100,19 +88,11 @@ object CompileToGP {
     }
   }
 
-  def transStatement(stmt: CoreStatement, funs: FunEnv, outVars: Seq[String], env: Env)(implicit gensym: Gensym): (Seq[GP.Constraint], Env) = stmt match {
+  def transStatement(stmt: CoreStatement, outVars: Seq[String])(implicit gensym: Gensym): Seq[GP.Constraint] = stmt match {
     case Values(name, typ) =>
-      if (env.contains(name))
-        throw new IllegalArgumentException(s"Program tries to rebind $name in $stmt")
-      val binding = Binding(typ, None, None)
-      val newenv = env + (name -> binding)
-      (Seq(GP.HasType(GP.Var(name.name), transType(typ))), newenv)
+      (Seq(GP.HasType(GP.Var(name.name), transType(typ))))
 
     case Assign(names, exp) =>
-      names.foreach { n =>
-        if (env.contains(n))
-          throw new IllegalArgumentException(s"Program tries to rebind $n in $stmt")
-      }
       if (exp.typ.isEmpty)
         throw new IllegalArgumentException(s"Cannot compile untyped assignment $stmt")
 
@@ -135,44 +115,41 @@ object CompileToGP {
       }
 
       val shouldInline = bindings.forall(_.shouldInline)
-      val newenv = env ++ names.zip(bindings)
       if (shouldInline) {
-        (Seq(), newenv)
+        Seq()
       } else {
-        val (rvars, rconstraints) = transExp(exp.ensureCore)(funs, env, gensym)
+        val (rvars, rconstraints) = transExp(exp.ensureCore)
         val eqConstraints = genEqs(names.map(_.name), rvars)
-        (rconstraints ++ eqConstraints, newenv)
+        rconstraints ++ eqConstraints
       }
 
     case Assert(Constant(BooleanLiteral(v))) =>
-      if (v) (Seq(), env)
+      if (v) Seq()
       else throw BodyMustFail
-    case Assert(cond) => transExp(cond.ensureCore)(funs, env, gensym) match {
+    case Assert(cond) => transExp(cond.ensureCore) match {
       case (Nil, cons) =>
-        (cons, env)
+        cons
       case (Seq(v), cons) =>
-        (cons :+ GP.Compare(GP.EqComparator, GP.Var(v), GP.Constant(GP.BooleanLiteral(true))), env)
+        cons :+ GP.Compare(GP.EqComparator, GP.Var(v), GP.Constant(GP.BooleanLiteral(true)))
     }
 
     case Yield(exp) =>
-      val (vars, constraints) = transExp(exp.ensureCore)(funs, env, gensym)
-      (constraints ++ genEqs(vars, outVars), env)
+      val (vars, constraints) = transExp(exp.ensureCore)
+      constraints ++ genEqs(vars, outVars)
 
     case FailStatement =>
       throw BodyMustFail
   }
 
 
-  def transExp(cond: CoreExpression)(implicit funs: FunEnv, env: Env, gensym: Gensym): Res = cond match {
-    case Var(name) =>
-      env.get(name) match {
-        case Some(binding) =>
-          if (binding.shouldInline)
-            transExp(binding.exp.get)
-          else
-            (Seq(name.name), Seq())
-        case None =>
-          throw new IllegalArgumentException(s"Unbound variable $name")
+  def transExp(cond: CoreExpression)(implicit gensym: Gensym): Res = cond match {
+    case v@Var(name) =>
+      v.target.getOrElse(throw new IllegalArgumentException(s"Unbound variable $name")) match {
+        case assign@Assign(Seq(_), exp) if shouldInlineAssign(assign) =>
+          // inline exp
+          transExp(exp.ensureCore)
+        case _: Param | _: Values | _: Assign => (Seq(name.name), Seq())
+        case target => throw new IllegalArgumentException(s"Unknown variable target $target for $v")
       }
 
     case Eq(lhs, rhs) =>
@@ -205,8 +182,8 @@ object CompileToGP {
 
     case Def(exp) =>
       exp match {
-        case Call(name, args, transitive) =>
-          (Seq(), genDefCallConstraint(name, args, transitive, neg = false))
+        case call@Call(name, args, transitive) =>
+          (Seq(), genDefCallConstraint(call, args, transitive, neg = false))
         case pa: PathAccess =>
           val tmp = gensym.fresh("_")
           (Seq(), transPathAccess(pa, GP.Var(tmp)))
@@ -215,8 +192,8 @@ object CompileToGP {
 
     case Undef(exp) =>
       exp match {
-        case Call(name, args, transitive) =>
-          (Seq(), genDefCallConstraint(name, args, transitive, neg = true))
+        case call@Call(name, args, transitive) =>
+          (Seq(), genDefCallConstraint(call, args, transitive, neg = true))
         case pathAccess@PathAccess(receiver, _) =>
           val (Seq(src), econstraints) = transExp(receiver.ensureCore)
           val srcTy = transType(receiver.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile path access with untyped receiver $receiver")))
@@ -264,94 +241,90 @@ object CompileToGP {
       val trg = gensym.fresh("trg")
       (Seq(trg), transPathAccess(pa, GP.Var(trg)))
 
-    case Call(name, args, transitive) =>
+    case funcall@Call(name, args, transitive) =>
       // TODO why is there a distinction between exp and non exp args in MPS impl?
-      val (inVars, outVars, constraints) = transCallArgs(name.name, args)
+      val (inVars, outVars, constraints) = transCallArgs(funcall, args)
       val allvars = (inVars ++ outVars).map(GP.Var)
       val call = GP.Call(name.name, allvars, transitive, neg = false)
       (outVars, constraints :+ call)
 
-    case Count(call) =>
-      val (inVars, outVars, constraints) = transCallArgs(call.name.name, call.args)
+    case Count(funcall) =>
+      val (inVars, outVars, constraints) = transCallArgs(funcall, funcall.args)
       val countVar = gensym.fresh("count")
       val allvars = (inVars ++ outVars).map(GP.Var)
-      val countConstraint = GP.Computed(GP.Var(countVar), GP.CountAggregation(call.name.name, allvars))
+      val countConstraint = GP.Computed(GP.Var(countVar), GP.CountAggregation(funcall.name.name, allvars))
       (Seq(countVar), constraints :+ countConstraint)
 
     case eval@Eval(params, code) =>
       import scala.meta._
 
       val evalVar = gensym.fresh("eval")
-      var argConstraints = Seq[GP.Constraint]()
-      val paramsBindings = params.map(name => name -> env.getOrElse(name, throw new IllegalArgumentException(s"Unbound variable $name")))
-      val paramsTyped = paramsBindings.map { case (name, bind) =>
-        param"${Term.Name(name.name)}: ${scalaType(bind.typ)}"
+      val argConstraints = ListBuffer[GP.Constraint]()
+      val paramsTyped = params.map { param =>
+        param"${Term.Name(param.name.name)}: ${scalaType(param.typ.get)}"
       }.toList
-      val args = paramsBindings.map { case (name, binding) =>
-        if (binding.shouldInline) {
-          val (Seq(arg), cons) = transExp(binding.exp.get)
-          argConstraints ++= cons
-          (GP.Var(arg), transType(binding.typ))
-        } else {
-          (GP.Var(name.name), transType(binding.typ))
+      val args = params.map { param =>
+        param.target.getOrElse(throw new IllegalArgumentException(s"Unbound eval parameter $param")) match {
+          case assign@Assign(Seq(_), exp) if shouldInlineAssign(assign) =>
+            // inline exp
+            val (Seq(arg), cons) = transExp(exp.ensureCore)
+            argConstraints ++= cons
+            (GP.Var(arg), transType(exp.typ.get))
+          case _: Param | _: Values | _: Assign => (GP.Var(param.name.name), transType(param.typ.get))
+          case target => throw new IllegalArgumentException(s"Unknown eval param target $target for $param")
         }
       }
       val funCode = q"(..$paramsTyped) => {${code.tree}}"
       val resType = eval.typ.getOrElse(throw new IllegalStateException("untyped Eval"))
       val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(args, transType(resType), funCode))
-      (Seq(evalVar), Seq(evalConstraint))
+      (Seq(evalVar), (argConstraints :+ evalConstraint).toSeq)
 
-    case Aggregate(init, join, unjoin, call) =>
+    case Aggregate(init, join, unjoin, funcall) =>
       if (!join.isAssociative || !join.isCommutative)
         throw new IllegalArgumentException(s"Can only compile aggregations with join operators that are associative and commutative")
 
-      val resultType = call.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile aggregation over untyped $call"))
+      val resultType = funcall.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile aggregation over untyped $funcall"))
       resultType match {
         case TTuple(ts) if ts.isEmpty => throw new IllegalArgumentException(s"Cannot aggregate over functions with Unit result type")
         case TTuple(ts) if ts.size > 1 => throw new IllegalArgumentException(s"Cannot aggregate over functions with multiple results $ts")
         case _ => // nothing
       }
 
-      val (inVars, Seq(outVar), constraints) = transCallArgs(call.name.name, call.args)
+      val (inVars, Seq(outVar), constraints) = transCallArgs(funcall, funcall.args)
       val allvars = (inVars :+ outVar).map(GP.Var)
       val initOp = resolveDataOp(init)
       val joinOp = resolveDataOp(join)
       val invOp = unjoin.map(resolveDataOp)
-      val aggregation = GP.CustomAggregation(transType(resultType), initOp, joinOp, invOp, call.name.name, allvars, allvars.size - 1)
+      val aggregation = GP.CustomAggregation(transType(resultType), initOp, joinOp, invOp, funcall.name.name, allvars, allvars.size - 1)
 
       val resultVar = gensym.fresh("tmp")
       val compare = GP.Computed(GP.Var(resultVar), aggregation)
       (Seq(resultVar), constraints :+ compare)
   }
 
-  def transCallArgs(name: String, args: Seq[Expression])(implicit funs: FunEnv, env: Env, gensym: Gensym): (Seq[String], Seq[String], Seq[GP.Constraint]) = {
+  private def shouldInlineAssign(assign: Assign): Boolean =
+    assign.names.size == 1 && assign.exp.typ.contains(TBool)
+
+  def transCallArgs(call: Call, args: Seq[Expression])(implicit gensym: Gensym): (Seq[String], Seq[String], Seq[GP.Constraint]) = {
     val (vars, constraints) = args.map(e => transExp(e.ensureCore)).unzip
-    val outVars = funs(name).outParams.map { _ =>
-      val argVar = gensym.fresh("arg")
-      argVar
+    val outVars = call.target match {
+      case Some(PatternFunction(_, _, _, outParams, _)) => outParams.map { _ =>
+        val argVar = gensym.fresh("arg")
+        argVar
+      }
+      case target => throw new IllegalArgumentException(s"Unknown call target $target for $call")
     }
     (vars.flatten, outVars, constraints.flatten)
   }
 
-  def genDefCallConstraint(name: Name, args: Seq[Expression], transitive: Boolean, neg: Boolean)(implicit funs: FunEnv, env: Env, gensym: Gensym): Seq[GP.Constraint] = {
-    val (vars, constraint) = args.map {
-      case Var(name) => (Seq(name.name), Seq())
-      case arg =>
-        val (vars, constraints) = transExp(arg.ensureCore)
-        if (vars.size > 1)
-          throw new IllegalArgumentException("More than one result variable for one argument " + arg)
-        (vars, constraints)
-    }.unzip
-
-    val stillReq = (funs(name.name).params ++ funs(name.name).outParams).size - vars.flatten.size
-    val tempVars = for (i <- 0 until stillReq) yield {
-      GP.Var(gensym.fresh("arg"))
-    }
-    val compositionConstraint = GP.Call(name.name, vars.flatten.map(GP.Var) ++ tempVars, transitive, neg)
-    constraint.flatten :+ compositionConstraint
+  def genDefCallConstraint(funcall: Call, args: Seq[Expression], transitive: Boolean, neg: Boolean)(implicit gensym: Gensym): Seq[GP.Constraint] = {
+    val (inVars, outVars, constraints) = transCallArgs(funcall, args)
+    val allvars = (inVars ++ outVars).map(GP.Var)
+    val call = GP.Call(funcall.name.name, allvars, transitive, neg)
+    constraints :+ call
   }
 
-  def transPathAccess(pathAccess: PathAccess, trg: GP.Term)(implicit funs: FunEnv, env: Env, gensym: Gensym): Seq[GP.Constraint] = {
+  def transPathAccess(pathAccess: PathAccess, trg: GP.Term)(implicit gensym: Gensym): Seq[GP.Constraint] = {
     val receiver = pathAccess.receiver
     val (Seq(src), econstraints) = transExp(receiver.ensureCore)
     val srcTy = transType(receiver.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile path access with untyped receiver $receiver")))

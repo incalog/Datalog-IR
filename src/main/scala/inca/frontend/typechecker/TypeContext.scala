@@ -5,7 +5,7 @@ import inca.frontend.core._
 import scala.collection.immutable.MultiDict
 
 trait TypeContext extends TypeIO {
-  private var vars: Map[Name, (Name, Type)] = Map()
+  private var vars: Map[Name, (Var.Target, Type)] = Map()
   private var funs: MultiDict[Name, (Module, PatternFunction)] = MultiDict()
   private var modules: Map[Name, Module] = Map()
 
@@ -20,16 +20,16 @@ trait TypeContext extends TypeIO {
     t
   }
 
-  def bindVar(name: Name, ty: Type): Unit = {
-    vars.get(name) foreach { case (bound, _) =>
-      error(s"Variable $name shadows previously defined variable $bound", name, bound)
+  def bindVar(name: Name, decl: Var.Target, ty: Type): Unit = {
+    vars.get(name) foreach { case (previousDecl, _) =>
+      error(s"Variable $name shadows previously defined variable $previousDecl", name, previousDecl)
     }
-    vars += (name -> (name, ty))
+    vars += (name -> (decl, ty))
   }
 
-  def lookupVar(name: Name): Option[Type] =
+  def lookupVar(name: Name): Option[(Var.Target,Type)] =
     vars.get(name) match {
-      case Some((_, ty)) => Some(ty)
+      case Some(entry) => Some(entry)
       case None =>
         error(s"Unbound variable $name", name)
         None

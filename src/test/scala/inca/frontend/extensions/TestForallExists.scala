@@ -94,7 +94,7 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
       PatternFunction(None, "listContaining4", Seq(Param("l", TList(TNode(Exp.expTag)))), Seq(), Seq(Body(Seq(
         Exists("e", Var("l"), Body(
           Assign(Seq("i"), PathAccess(Cast(Var("e"), TNode(Exp.intTag)), NamedLink("value"))),
-          Assert(Eval(Seq("i"), Scala(q"""i == 4""")))
+          Assert(Eval(Seq(EvalParam("i")), Scala(q"""i == 4""")))
         )),
         Yield(Constant(UnitLiteral))
       ))))

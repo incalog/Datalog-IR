@@ -23,10 +23,12 @@ trait CoreTypechecker
    */
 
   def typecheck(module: Module): Unit = scopedTypeContext {
-    for (name <- module.imports;
-         imported <- lookupModule(name);
-         fun <- imported.funs if !fun.vis.contains(Private)) {
-      bindFun(fun, imported)
+    for (imp <- module.imports;
+         importedModule <- lookupModule(imp.name)) {
+      resolveTarget(imp)(importedModule)
+      for (fun <- importedModule.funs if !fun.vis.contains(Private)) {
+        bindFun(fun, importedModule)
+      }
     }
 
     for (fun <- module.funs)
@@ -41,7 +43,7 @@ trait CoreTypechecker
    */
 
   def typecheck(fun: PatternFunction): Unit = scopedTypeContext {
-    fun.params.foreach(p => bindVar(p.name, p.typ))
+    fun.params.foreach(p => bindVar(p.name, p, p.typ))
     fun.bodies.foreach { body =>
       val ty = typecheck(body, mustTerminate = true)
       if (!TypeOps.subtype(ty.asType, fun.outType, lang))
@@ -106,11 +108,11 @@ trait CoreTypechecker
         error(s"Found condition of type $condTy, but expected $TBool", cond)
       NoTerminator
 
-    case Values(name, typ) =>
-      bindVar(name, typ)
+    case vals@Values(name, typ) =>
+      bindVar(name, vals, typ)
       NoTerminator
 
-    case Assign(names, exp) =>
+    case as@Assign(names, exp) =>
       val ty = typecheck(exp)
 
       val namesStr = names.mkString("(", ", ", ")")
@@ -118,22 +120,22 @@ trait CoreTypechecker
         case TUnit =>
           if (names.nonEmpty)
             error(s"Cannot assign expression of type $TUnit to $namesStr", stm)
-          names.foreach(bindVar(_, TAny))
+          names.foreach(bindVar(_, as, TAny))
         case TTuple(tys) =>
           if (names.size != tys.size)
             error(s"Cannot assign ${tys.size}-ary tuple to $namesStr", stm)
           names.zipAll(tys, null, null).foreach {
-            case (name, null) => bindVar(name, TAny)
+            case (name, null) => bindVar(name, as, TAny)
             case (null, ty) => // nothing
-            case (name, ty) => bindVar(name, ty.unroll)
+            case (name, ty) => bindVar(name, as, ty.unroll)
           }
         case ty =>
           if (names.size != 1)
             error(s"Cannot assign expression of type $ty to $namesStr", stm)
           names.zipAll(Seq(ty), null, null).foreach {
-            case (name, null) => bindVar(name, TAny)
+            case (name, null) => bindVar(name, as, TAny)
             case (null, ty) => // nothing
-            case (name, ty) => bindVar(name, ty.unroll)
+            case (name, ty) => bindVar(name, as, ty.unroll)
           }
       }
       NoTerminator
@@ -152,8 +154,14 @@ trait CoreTypechecker
   }
 
   final def typecheckCore(exp: CoreExpression, anno: Option[Type]): Type = exp match {
-    case Var(name) =>
-      lookupVar(name).getOrElse(TAny)
+    case v@Var(name) =>
+      lookupVar(name) match {
+        case Some((decl, ty)) =>
+          resolveTarget(v)(decl)
+          ty
+        case None =>
+          TAny
+      }
 
     case Eq(lhs, rhs) =>
       val lty = typecheck(lhs)
@@ -216,12 +224,14 @@ trait CoreTypechecker
       val rty = typecheck(receiver)
       typecheckLink(link, rty, exp)
 
-    case Call(name, args, transitive) =>
+    case call@Call(name, args, transitive) =>
       lookupFun(name) match {
         case None =>
           args.foreach(typecheck)
           TAny
-        case Some(fun) => typecheckCall(fun, args, transitive, exp)
+        case Some(fun) =>
+          resolveTarget(call)(fun)
+          typecheckCall(fun, args, transitive, exp)
       }
 
     case Count(call) =>
@@ -327,15 +337,18 @@ trait CoreTypechecker
   /**
    * Computes the result type of an Eval expression and validates the contained Scala code for type correctness
    */
-  def typecheckEval(params: Seq[Name], code: Scala[Term], exp: Expression): Type = {
+  def typecheckEval(params: Seq[EvalParam], code: Scala[Term], exp: Expression): Type = {
     import scala.reflect.runtime.currentMirror
     import scala.tools.reflect.{ToolBox, ToolBoxError}
 
     // here we use a little hack. We create one big block that defines all the params with their type.
     // The initializing value is irrelevant.
     val paramString = params.flatMap { param =>
-      lookupVar(param) match {
-        case Some(ty) => Some(s"val $param: $ty = Predef.???")
+      lookupVar(param.name) match {
+        case Some((decl,ty)) =>
+          resolveTarget(param)(decl)
+          assignType(param)(ty)
+          Some(s"val ${param.name}: $ty = Predef.???")
         case None => None
       }
     }.mkString("; ")
@@ -359,8 +372,7 @@ trait CoreTypechecker
     }
   }
 
-
-  def assignType[T <: Typeable with SourceLocation](term: T)(computeType: => Type): Type = {
+  def assignType(term: Typeable with SourceLocation)(computeType: => Type): Type = {
     val inferred = computeType
     term.typ match {
       case Some(annotated) =>
@@ -370,6 +382,19 @@ trait CoreTypechecker
       case None =>
         term.typed(inferred)
         inferred
+    }
+  }
+
+  def resolveTarget[T](term: Resolvable[T] with SourceLocation)(computeTarget: => T): T = {
+    val newTarget = computeTarget
+    term.target match {
+      case Some(oldTarget) =>
+        if (oldTarget != newTarget)
+          error(s"Resolved $term to new target $newTarget, which differs from previously computed target $oldTarget", term)
+        oldTarget
+      case None =>
+        term.resolved(newTarget)
+        newTarget
     }
   }
 }

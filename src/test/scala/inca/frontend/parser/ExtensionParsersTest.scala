@@ -209,7 +209,7 @@ class ExtensionParsersTest extends AnyFunSuite {
     val parser = new BaseFrontend(new LanguageMetaInfo()) with SwitchFrontend
     def testSwitch = testSuccess(parser.statement(_))
 
-    testSwitch(s"""|switch {}""".stripMargin, Switch(Seq.empty))
+    testSwitch(s"""|switch {}""".stripMargin, Switch(Seq(Body(Seq()))))
     testSwitch(s"""switch {} union {}""", Switch(Seq(Body(Seq.empty), Body(Seq.empty))))
     testSwitch(
       s"""|switch{

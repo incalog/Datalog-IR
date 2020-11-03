@@ -58,7 +58,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
         Values("e", TNode(Exp.intTag)),
         Assign(Seq("i"), PathAccess(Var("e"), NamedLink("value"))),
         Assign(Seq("cond"),
-          Eval(Seq("i"), Scala(q"Math.sqrt(i).isValidInt"))),
+          Eval(Seq(EvalParam("i")), Scala(q"Math.sqrt(i).isValidInt"))),
         Assert(Eq(Var("cond"), Constant(BooleanLiteral(true)))),
         Yield(Var("e"))
       ))))

@@ -6,7 +6,7 @@ import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.typechecker.StmType
 import inca.util.Gensym
 
-case class Foreach(name: Name, exp: Expression, body: Body) extends Statement {
+case class Foreach(name: Name, exp: Expression, body: Body) extends Statement with Var.Target {
   val elemTyp: Option[Type] = exp.typ.flatMap {
     case ty: TIterable => Some(ty.contained)
     case _ => None
@@ -38,7 +38,7 @@ trait ForeachFrontend extends Frontend {
   override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("foreach", "in")
 
   override protected def typecheckInternal(stm: Statement, mustTerminate: Boolean): StmType = stm match {
-    case Foreach(name, exp, body) =>
+    case foreach@Foreach(name, exp, body) =>
       val ety = typecheck(exp)
       val elemType = ety match {
         case it: TIterable => it.contained
@@ -48,7 +48,7 @@ trait ForeachFrontend extends Frontend {
       }
 
       scopedTypeContext {
-        bindVar(name, elemType)
+        bindVar(name, foreach, elemType)
         typecheck(body, mustTerminate)
       }
 

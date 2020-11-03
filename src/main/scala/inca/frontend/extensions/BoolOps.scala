@@ -71,7 +71,8 @@ object BoolOps extends Desugarable {
     val orAlternatives: mutable.MultiDict[Name, Expression] = mutable.MultiDict()
 
     override def desugarExp(cond: Expression)(implicit gensym: Gensym): Expression = cond match {
-      case Not(cond) => desugarNot(cond).orTyped(TBool)
+      case Not(cond) =>
+        desugarNot(cond).orTyped(TBool)
       case And(e1, e2) =>
         boolStatements += Assert(desugarExp(e1).orTyped(TBool))
         changed(desugarExp(e2).orTyped(TBool))

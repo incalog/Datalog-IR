@@ -202,7 +202,7 @@ class CoreParser {
         fastparse.Fail
       case Parsed.Success(code) =>
         val params = EvalHelper.freeVars(code)
-        val eval = Eval(params.toSeq, Scala(code))
+        val eval = Eval(params.map(EvalParam).toSeq, Scala(code))
         fastparse.Pass(eval)
     }
   }
@@ -288,7 +288,7 @@ class CoreParser {
   /** Module parser */
   def module[_: P]: P[Module] =
     P("module " ~/ identifier ~
-      ("import" ~ identifier).rep ~
+      import_.rep ~
       moduleContent.rep ~
       End
     ).mapWithLoc { case (name, imports, contents) =>
@@ -296,6 +296,9 @@ class CoreParser {
       val stats = contents.collect { case Right(stat) => Scala(stat) }
       Module(name, imports, funs, stats)
     }
+
+  def import_[_: P]: P[Import] =
+    P("import" ~ identifier).mapWithLoc(Import.apply)
 
   def moduleContent[_: P]: P[Either[PatternFunction, meta.Stat]] =
     P(patternFunction.map(Left(_)) | nativeStat.map(Right(_)))

@@ -2,7 +2,8 @@ package inca.frontend.core
 
 import inca.frontend.parser.SourceLocation
 
-case class PatternFunction(vis: Option[Visibility], name: Name, params: Seq[Param], outParams: Seq[AnnoParam], bodies: Seq[Body]) extends SourceLocation {
+case class PatternFunction(vis: Option[Visibility], name: Name, params: Seq[Param], outParams: Seq[AnnoParam], bodies: Seq[Body])
+  extends SourceLocation with Call.Target {
   def boundNames: Seq[Name] = params.map(_.name) ++ outParams.flatMap(_.name)
 
   def freeVars: Map[Name, Option[Type]] = allVars -- boundNames
@@ -27,7 +28,7 @@ case class PatternFunction(vis: Option[Visibility], name: Name, params: Seq[Para
   }
 }
 
-case class Param(name: Name, typ: Type) extends SourceLocation {
+case class Param(name: Name, typ: Type) extends SourceLocation with Var.Target {
   def freeVars: Map[Name, Option[Type]] = Map(name -> Some(typ))
 
   def prettyprint: String = s"$name: ${typ.prettyprint}"
