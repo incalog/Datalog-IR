@@ -27,7 +27,7 @@ object Frontend {
   def Inca(lang: LanguageMetaInfo): Frontend =
     new BaseFrontend(lang)
       with BoolOpsFrontend
-      with DataOpCallFrontentd
+      with EvalCallFrontend
       with EnumFrontend
       with ForallExistsFrontend
       with ForeachFrontend

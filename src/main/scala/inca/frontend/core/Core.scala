@@ -1,6 +1,10 @@
 package inca.frontend.core
 
 import inca.frontend.parser.SourceLocation
+import inca.util.Meta
+import inca.util.Meta.Scala
+
+import scala.meta.Term
 
 object Core {
   type Module = inca.frontend.core.Module
@@ -17,6 +21,8 @@ object Core {
       case Some(q) => q + "." + operation
       case None => operation.name
     }
+
+    def asScala: Scala[Term] = Scala(Meta.mkQualName(prettyprint))
   }
 
 

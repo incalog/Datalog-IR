@@ -1,6 +1,7 @@
 package inca.frontend.core
 
 import inca.frontend.parser.SourceLocation
+import inca.util.Meta.Scala
 
 import scala.annotation.tailrec
 
@@ -79,4 +80,9 @@ case class TTuple(ts: Seq[Type]) extends Type {
   }
 
   override def javastring: String = "Tuple_" + ts.map(_.javastring).mkString("_")
+}
+
+case class ScalaType(ty: Scala[meta.Type]) extends Type {
+  override def prettyprint: String = ty.syntax
+  override def javastring: String = ???
 }

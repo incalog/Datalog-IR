@@ -350,9 +350,6 @@ trait CoreTypechecker
    * Computes the result type of an Eval expression and validates the contained Scala code for type correctness
    */
   def typecheckEval(params: Seq[EvalParam], code: Scala[Term], exp: Expression): Type = {
-    import scala.reflect.runtime.currentMirror
-    import scala.tools.reflect.{ToolBox, ToolBoxError}
-
     // here we use a little hack. We create one big block that defines all the params with their type.
     // The initializing value is irrelevant.
     val paramString = params.flatMap { param =>
@@ -366,21 +363,37 @@ trait CoreTypechecker
     }.mkString("; ")
 
     val codeSource = s"{$paramString; ${code.syntax}}"
+
+    typecheckScala(codeSource) match {
+      case Left(typ) =>
+        TypeHelper.decode(typ) match {
+          case Some(ty) => ty
+          case None =>
+            error(s"Unable to decode Scala type $typ", exp)
+            TAny
+        }
+      case Right(err) =>
+        error(err.getMessage, exp)
+        TAny
+    }
+  }
+
+  def typecheckScala(codeSource: String): Either[String, Throwable] = {
+    import scala.reflect.runtime.currentMirror
+    import scala.tools.reflect.{ToolBox, ToolBoxError}
+
+    // TODO: consider imports
+
     val toolbox = currentMirror.mkToolBox()
     val tree = toolbox.parse(codeSource)
+
     try {
       val typechecked = toolbox.typecheck(tree)
       val typ = typechecked.tpe.dealias
-      TypeHelper.decode(typ.toString) match {
-        case Some(ty) => ty
-        case None =>
-          error(s"Unable to decode Scala type $typ", exp)
-          TAny
-      }
+      Left(typ.toString)
     } catch {
-      case ToolBoxError(msg, _) =>
-        error(msg, exp)
-        TAny
+      case err@ToolBoxError(msg, _) =>
+        Right(err)
     }
   }
 

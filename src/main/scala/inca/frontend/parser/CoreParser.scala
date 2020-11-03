@@ -53,7 +53,7 @@ class CoreParser {
   protected[frontend] def typeAnno[_: P]: P[Type] =
     P(simpleType(TAny) | simpleType(TBool) | simpleType(TLong) |
         simpleType(TInt) | simpleType(TDouble) | simpleType(TString) |
-        simpleType(TUnit) | tLinked | tIterable | tTuple // | dataType
+        simpleType(TUnit) | tLinked | tIterable | tTuple | scalaType
     )
 
   protected[frontend] def bracketedType[_: P]: P[Type] =
@@ -208,7 +208,7 @@ class CoreParser {
   }
 
   protected[frontend] def evalExp[_: P]: P[Eval] =
-    P("eval" ~ (("(" ~ evalCore ~ ")") | ("{" ~ evalCore ~ "}"))).mapWithLoc(t => t)
+    P("`" ~ evalCore ~ "`").mapWithLoc(t => t)
 
   /** Call parser */
   protected[frontend] def callExp[_: P]: P[Call] =
@@ -316,20 +316,6 @@ class CoreParser {
       }
     }
 
-//
-//  {
-//
-//    P(scalaparse.Scala.TmplBody.!).flatMap { raw_code =>
-//      raw_code.parse[Term] match {
-//        case Parsed.Error(_, _, _) =>
-//          fastparse.Fail
-//        case Parsed.Success(code) =>
-//          val params = EvalHelper.freeVars(code)
-//          val eval = Eval(params.toSeq, code)
-//          fastparse.Pass(eval)
-//      }
-//    }
-//  }
 
 
   /** Yield parser */
@@ -344,9 +330,18 @@ class CoreParser {
   protected[frontend] def terminatorStatement[_: P]: P[TerminatorStatement] =
     P(yieldStatement | failStatement)
 
-  /** DataType parser */
-//  protected[frontend] def dataType[_: P]: P[Type] =
-//    P((identifier ~ ".").? ~ identifier).mapWithLoc(Core.DataType.tupled)
+  protected[frontend] def scalaType[_: P]: P[ScalaType] =
+    P("`" ~ scalaTypeCore ~ "`")
+
+  protected[frontend] def scalaTypeCore[_: P]: P[ScalaType] =
+    P(scalaparse.Scala.Type.!).flatMap { raw_code =>
+      raw_code.parse[meta.Type] match {
+        case Parsed.Error(_, _, _) =>
+          fastparse.Fail
+        case Parsed.Success(ty) =>
+          fastparse.Pass(ScalaType(Scala(ty)))
+      }
+    }
 
   /** DataOp parser */
   protected[frontend] def dataOp[_: P]: P[DataOp] =

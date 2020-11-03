@@ -3,6 +3,7 @@ package inca.frontend.util
 import inca.frontend.Frontend
 import inca.frontend.core._
 import inca.runtime.context.LanguageMetaInfo
+import inca.util.Meta.Scala
 
 object TypeHelper {
 
@@ -59,6 +60,11 @@ object TypeHelper {
       case Parsed.Success(anno, _) => Some(anno)
     }
     rawAnno.map(refineType)
+  }
+
+  def decode(typ: meta.Type): Either[Type, String] = typ match {
+    case meta.Type.Function(_, _) => Right("Inca does not support higher-order functions")
+    case _ => Left(ScalaType(Scala(typ)))
   }
 
   private def refineType(raw: Type): Type = raw match {

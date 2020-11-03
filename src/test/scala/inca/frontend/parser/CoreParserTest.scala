@@ -229,8 +229,7 @@ class CoreParserTest extends AnyFunSuite {
 
   test("test Eval params") {
     def testEvalParams(code: String, vars: Seq[Name], useBrackets: Boolean = false): Assertion = {
-      val (open, close) = if(useBrackets) ("{", "}") else (("(", ")"))
-      val input = s"eval$open $code $close"
+      val input = s"`$code`"
       val parsed = parse(input, parser.evalExp(_))
       parsed match {
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
@@ -887,8 +886,8 @@ class CoreParserTest extends AnyFunSuite {
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
       }
 
-    testEval("eval(x + 2)", Set(Name("x")), "x + 2")
-    testEval("eval(x + y + p)", Set(Name("x"), Name("y"), Name("p")), "x + y + p")
+    testEval("`x + 2`", Set(Name("x")), "x + 2")
+    testEval("`x + y + p`", Set(Name("x"), Name("y"), Name("p")), "x + y + p")
     // testEval(
     //   s"""|eval( x match {
     //              |   case 1 => 2 
