@@ -13,12 +13,12 @@ class CompileToGPTest extends AnyFunSuite {
     Compiler.compileFun(module, Options(Exp.languageMetaInfo)).ir
   
   test("simple function pattern with return constraint"){
-    val result = compileToGP(Module("test", Nil, Seq(idFun), Seq()))
+    val result = compileToGP(Module("test", Nil, Seq(idFun)))
     println(Printer.prettyModule(result))
   }
 
   test("simple function pattern with return constraint containg path expression"){
-    val result = compileToGP(Module("test", Nil, Seq(lhChildFun), Seq()))
+    val result = compileToGP(Module("test", Nil, Seq(lhChildFun)))
     println(Printer.prettyModule(result))
   }
 
@@ -44,7 +44,7 @@ class CompileToGPTest extends AnyFunSuite {
                 lhsLink),
               Var("add"))),
             Yield(Var("add"))))))
-    val result = compileToGP(Module("test", Nil, Seq(fun), Seq()))
+    val result = compileToGP(Module("test", Nil, Seq(fun)))
     println(Printer.prettyModule(result))
   }
 
@@ -67,12 +67,12 @@ class CompileToGPTest extends AnyFunSuite {
                   lhsLink), addType),
                 lhsLink), addType),
               lhsLink))))))
-    val result = compileToGP(Module("test", Nil, Seq(fun), Seq()))
+    val result = compileToGP(Module("test", Nil, Seq(fun)))
     println(Printer.prettyModule(result))
   }
 
   test("multiple bodies function pattern with return constraint containg path expression"){
-    val result = compileToGP(Module("test", Nil, Seq(childrenFun), Seq()))
+    val result = compileToGP(Module("test", Nil, Seq(childrenFun)))
     println(Printer.prettyModule(result))
   }
 
@@ -91,7 +91,7 @@ class CompileToGPTest extends AnyFunSuite {
           List(
             Assign(Seq("lhschild"), Call("lhChild", Seq(Var("add")))),
             Yield(Var("lhschild"))))))
-    val result = compileToGP(Module("test", Nil, Seq(fun, lhChildFun), Seq()))
+    val result = compileToGP(Module("test", Nil, Seq(fun, lhChildFun)))
     println(Printer.prettyModule(result))
   }
 
@@ -111,7 +111,7 @@ class CompileToGPTest extends AnyFunSuite {
             Assign(Seq("lhschild"), PathAccess(Var("add"), lhsLink)),
             Assert(InstanceOf(Var("lhschild"), addType)),
             Yield(Var("lhschild"))))))
-    val result = compileToGP(Module("test", Nil, Seq(fun), Seq()))
+    val result = compileToGP(Module("test", Nil, Seq(fun)))
     println(Printer.prettyModule(result))
   }
 
@@ -131,7 +131,7 @@ class CompileToGPTest extends AnyFunSuite {
             Assign(Seq("lhschild"), PathAccess(Var("add"), lhsLink)),
             Assert(NotInstanceOf(Var("lhschild"), addType)),
             Yield(Var("lhschild"))))))
-    val result = compileToGP(Module("test", Nil, Seq(fun), Seq()))
+    val result = compileToGP(Module("test", Nil, Seq(fun)))
     println(Printer.prettyModule(result))
   }
 
@@ -151,7 +151,7 @@ class CompileToGPTest extends AnyFunSuite {
             Assign(Seq("lhschild"), PathAccess(Var("add"), lhsLink)),
             Assert(Def(Call("lhChild", Seq(Var("lhschild"))))),
             Yield(Var("lhschild"))))))
-    val result = compileToGP(Module("test", Nil, Seq(fun, lhChildFun), Seq()))
+    val result = compileToGP(Module("test", Nil, Seq(fun, lhChildFun)))
     println(Printer.prettyModule(result))
   }
 
@@ -169,7 +169,7 @@ class CompileToGPTest extends AnyFunSuite {
         Body(
           List(
             Assert(Def(PathAccess(Var("add"), lhsLink)))))))
-    val result = compileToGP(Module("test", Nil, Seq(fun), Seq()))
+    val result = compileToGP(Module("test", Nil, Seq(fun)))
     println(Printer.prettyModule(result))
   }
 
@@ -187,19 +187,19 @@ class CompileToGPTest extends AnyFunSuite {
         Body(
           List(
             Assert(Undef(PathAccess(Var("add"), lhsLink)))))))
-    val result = compileToGP(Module("test", Nil, Seq(fun), Seq()))
+    val result = compileToGP(Module("test", Nil, Seq(fun)))
     println(Printer.prettyModule(result))
   }
 
   test("parameter without type"){
     val addType = TNode(classOf[Add].getCanonicalName)
-    val result = compileToGP(Module("test", Nil, Seq(noParamTypeFun), Seq()))
+    val result = compileToGP(Module("test", Nil, Seq(noParamTypeFun)))
     println(Printer.prettyModule(result))
   }
 
   test("parameter with primitive type"){
     val addType = TNode(classOf[Add].getCanonicalName)
-    val result = compileToGP(Module("test", Nil, Seq(primitiveParamFun), Seq()))
+    val result = compileToGP(Module("test", Nil, Seq(primitiveParamFun)))
     println(Printer.prettyModule(result))
   }
 }

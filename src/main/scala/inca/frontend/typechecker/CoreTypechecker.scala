@@ -6,6 +6,7 @@ import inca.frontend.util.TypeHelper
 import inca.runtime.context.LanguageMetaInfo
 import inca.util.Meta.Scala
 
+import scala.collection.mutable.ListBuffer
 import scala.meta.Term
 
 trait CoreTypechecker
@@ -26,15 +27,26 @@ trait CoreTypechecker
     for (imp <- module.imports;
          importedModule <- lookupModule(imp.name)) {
       resolveTarget(imp)(importedModule)
-      for (fun <- importedModule.funs if !fun.vis.contains(Private)) {
-        bindFun(fun, importedModule)
+
+      for (content <- importedModule.content if !content.vis.contains(Private)) {
+        content match {
+          case fun: PatternFunction => bindFun(fun, importedModule)
+          case _: ScalaStatement => // nothing
+        }
       }
     }
 
-    for (fun <- module.funs)
-      bindFun(fun, module)
+    val funs = ListBuffer[PatternFunction]()
+    for (content <- module.content) {
+      content match {
+        case fun: PatternFunction =>
+          bindFun(fun, module)
+          funs += fun
+        case _: ScalaStatement => // nothing
+      }
+    }
 
-    module.funs.foreach(typecheck)
+    funs.foreach(typecheck)
   }
 
 

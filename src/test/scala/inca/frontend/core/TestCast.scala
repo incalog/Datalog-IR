@@ -23,7 +23,7 @@ class TestCast extends AnyFlatSpec with IncaMatchers {
         Values("e", TNode(Exp.expTag)),
         Yield(Cast(Var("e"), TNode(Exp.intTag)))
       ))))
-    ), Seq())
+    ))
 
     val input = {
       import Exp._

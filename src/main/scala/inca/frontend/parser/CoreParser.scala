@@ -292,16 +292,14 @@ class CoreParser {
       moduleContent.rep ~
       End
     ).mapWithLoc { case (name, imports, contents) =>
-      val funs = contents.collect { case Left(fun) => fun }
-      val stats = contents.collect { case Right(stat) => Scala(stat) }
-      Module(name, imports, funs, stats)
+      Module(name, imports, contents)
     }
 
   def import_[_: P]: P[Import] =
     P("import" ~ identifier).mapWithLoc(Import.apply)
 
-  def moduleContent[_: P]: P[Either[PatternFunction, meta.Stat]] =
-    P(patternFunction.map(Left(_)) | nativeStat.map(Right(_)))
+  def moduleContent[_: P]: P[ModuleContent] =
+    P(patternFunction | nativeStat.map(new ScalaStatement(_)))
 
 
   def nativeStat[_: P]: P[meta.Stat] =

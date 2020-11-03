@@ -3,7 +3,7 @@ package inca.frontend.core
 import inca.frontend.parser.SourceLocation
 
 case class PatternFunction(vis: Option[Visibility], name: Name, params: Seq[Param], outParams: Seq[AnnoParam], bodies: Seq[Body])
-  extends SourceLocation with Call.Target {
+  extends ModuleContent with SourceLocation with Call.Target {
   def boundNames: Seq[Name] = params.map(_.name) ++ outParams.flatMap(_.name)
 
   def freeVars: Map[Name, Option[Type]] = allVars -- boundNames

@@ -3,11 +3,10 @@ package inca.frontend.parser
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
 import inca.frontend.core._
-import inca.util.Meta.Scala
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
-import scala.meta.{Name => _, Import => _, _}
+import scala.meta.{Import => _, Name => _, _}
 
 /**
   * Test class for the IncA core language parser @see Parser.
@@ -32,8 +31,7 @@ class CoreNativeParserTest extends AnyFunSuite {
       Module(
         Name("my"),
         Seq(Import(Name("math")), Import(Name("cuda_runtime"))),
-        Seq(),
-        Seq(Scala(q"import java.lang"), Scala(q"import inca.Compiler"))
+        Seq(ScalaStatement(q"import java.lang"), ScalaStatement(q"import inca.Compiler"))
       )
     )
 
@@ -52,12 +50,11 @@ class CoreNativeParserTest extends AnyFunSuite {
       Module(
         Name("my"),
         Seq(Import(Name("math")), Import(Name("cuda_runtime"))),
-        Seq(),
         Seq(
           q"import inca.Compiler",
           q"val i = 0",
           q"var v: Int = 0",
-          q"def f() = { Compiler.invoke() }").map(Scala.apply)
+          q"def f() = { Compiler.invoke() }").map(ScalaStatement.apply)
       )
     )
 

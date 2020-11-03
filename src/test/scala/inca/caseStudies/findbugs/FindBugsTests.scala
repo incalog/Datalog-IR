@@ -36,7 +36,7 @@ class FindBugsTests extends AnyFunSuite {
             Assert(InstanceOf(PathAccess(Cast(Var("member"), fieldDeclType), fieldDeclType("visibility")), protectedVisType)),
             Yield(Constant(UnitLiteral))
           ))))
-    val module = Module("FindBugs", Seq(), Seq(confusedInheritance), Seq())
+    val module = Module("FindBugs", Seq(), Seq(confusedInheritance))
 
 
 

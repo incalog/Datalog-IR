@@ -5,14 +5,6 @@ import inca.frontend.parser.SourceLocation
 object Core {
   type Module = inca.frontend.core.Module
 
-
-
-
-
-
-
-
-
   /*
    * data language constructs
    */

@@ -29,7 +29,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
           Body(Seq(Assert(Neq(three, four))))
         ))
       ))))
-    ), Seq())
+    ))
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(
@@ -38,7 +38,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
         Body(Seq(Assert(Eq(three, four)))),
         Body(Seq(Assert(Neq(three, four))))
       ))
-    ), Seq())
+    ))
 
     assertDesugar(core, sugared)
   }
@@ -57,7 +57,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
           ))))
         ))
       ))))
-    ), Seq())
+    ))
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(
@@ -66,7 +66,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
         Body(Seq(Assert(Eq(three, four)))),
         Body(Seq(Assert(Neq(three, four))))
       ))
-    ), Seq())
+    ))
 
     assertDesugar(core, sugared)
   }
@@ -83,7 +83,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
           Body(Seq(Assert(Neq(three, four))))
         ))
       ))))
-    ), Seq())
+    ))
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(
@@ -92,7 +92,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
         Body(Seq(Assert(Neq(one, two)), Assert(Eq(three, four)))),
         Body(Seq(Assert(Neq(one, two)), Assert(Neq(three, four))))
       ))
-    ), Seq())
+    ))
 
     assertDesugar(core, sugared)
   }
@@ -134,7 +134,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
           ))
         ))
       ))
-    ))), Seq())
+    ))))
 
     val input = {
       import Exp._

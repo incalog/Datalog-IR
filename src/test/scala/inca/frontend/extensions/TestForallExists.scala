@@ -29,7 +29,7 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
         )),
         Yield(Constant(UnitLiteral))
       ))))
-    ), Seq())
+    ))
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "forallCond", Seq(Param("many", TNode(Exp.manyTag))), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
@@ -47,7 +47,7 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
         Assert(Eq(Var("listSize"), Var("successSize"))),
         Yield(Constant(UnitLiteral))
       ))))
-    ), Seq())
+    ))
 
     assertDesugar(core, sugared)
   }
@@ -61,7 +61,7 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
         )),
         Yield(Constant(UnitLiteral))
       ))))
-    ), Seq())
+    ))
 
     val input = {
       import Exp._
@@ -98,7 +98,7 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
         )),
         Yield(Constant(UnitLiteral))
       ))))
-    ), Seq())
+    ))
 
     val input = {
       import Exp._

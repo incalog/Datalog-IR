@@ -18,8 +18,9 @@ object CollectNotInstanceOfTypes extends Collect[Type] {
 
 trait Collect[R] {
 
-  def transModule(module: Module): Seq[R] = {
-    module.funs.flatMap(transFun)
+  def transModule(module: Module): Seq[R] = module.content.flatMap {
+    case fun: PatternFunction => transFun(fun)
+    case _: ScalaStatement => Seq()
   }
 
   def transFun(fun: PatternFunction): Seq[R] = {

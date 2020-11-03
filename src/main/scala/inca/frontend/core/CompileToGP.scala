@@ -3,6 +3,7 @@ package inca.frontend.core
 import inca.backend.ir.GP
 import inca.frontend.core.Core.DataOp
 import inca.util.Gensym
+import inca.util.Meta.Scala
 
 import scala.collection.mutable.ListBuffer
 import scala.meta.{Name => _, Type => _, _}
@@ -14,8 +15,16 @@ object CompileToGP {
 
   def transformModule(module: Module): GP.Module = {
     // construct map Name => Fun
-    val patterns = module.funs.map { fun => transform(fun) }
-    GP.Module(module.name.name, module.imports.map(_.name.name), patterns, module.stats)
+    val Module(name, imports, contents) = module
+
+    val patterns = ListBuffer[GP.Pattern]()
+    val stats = ListBuffer[Scala[meta.Stat]]()
+    contents.foreach {
+      case fun: PatternFunction => patterns += transform(fun)
+      case stat: ScalaStatement => stats += stat
+    }
+
+    GP.Module(name.name, imports.map(_.name.name), patterns.toList, stats.toList)
   }
 
   def transform(fun: PatternFunction): GP.Pattern = {
