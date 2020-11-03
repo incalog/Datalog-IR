@@ -1,10 +1,8 @@
 package inca
 
-import inca.Compiler.CompilationFailed
 import inca.backend.ir.GP
 import inca.frontend.core.Core
 import inca.frontend.core.Core.Module
-import inca.frontend.desugar.Desugar
 import inca.runtime.context.QueryScope
 import inca.runtime.{EnginePool, Query}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
@@ -20,16 +18,12 @@ trait IncaMatchers extends Matchers {
   def assertDesugar(core: Module, sugared: Module, options: CompilerOptions = this.options): Unit = {
 //    println(sugared + "\n" + "-- should desugar to --" + "\n" + core)
 
-    val frontend = options.frontend
-    frontend.typecheck(sugared)
-    frontend.printTypeIO()
-    if (frontend.hasTypeErrors || options.stopOnWarning && frontend.hasTypeWarnings)
-      throw CompilationFailed("Program has type errors")
-    assertResult(core)(Desugar(frontend.allDesugarables)(sugared))
+    val desugared = Compiler.compileFun(sugared, options).desugared
+    assertResult(core)(desugared)
   }
 
   def assertOptimize(optimized: GP.Module, original: GP.Module): Unit = {
-    assertResult(optimized)(Compiler.optimize(original, options))
+    assertResult(optimized)(Compiler.compileGP(original, options).optimized)
   }
 
   def assertMatchCoreProg(module: Core.Module,
@@ -50,7 +44,7 @@ trait IncaMatchers extends Matchers {
                           options: CompilerOptions = this.options)
                          (asserter: Query.Matcher => Assertion): Assertion = {
 
-    val psystem = Compiler.compileAndLoadFunModule(module, None, options)
+    val psystem = Compiler.compileFun(module, options).psystemModule
     val querySpec = psystem.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module ${module.name}."))
 
     val feed = EnginePool.loadDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
@@ -83,7 +77,7 @@ trait IncaMatchers extends Matchers {
                         options: CompilerOptions = this.options)
                        (asserter: Query.Matcher => Assertion): Assertion = {
 
-    val psystem = Compiler.compileAndLoadGPModule(module, None, options)
+    val psystem = Compiler.compileGP(module, options).psystemModule
     val querySpec = psystem.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module ${module.name}."))
 
 

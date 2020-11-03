@@ -42,7 +42,7 @@ class FindBugsTests extends AnyFunSuite {
 
     val scope = new QueryScope(tinyJava.langMetaInfo)
     val options = CompilerOptions(tinyJava.langMetaInfo)
-    val spec = Compiler.compileAndLoadFunModule(module, compilerOptions = options).patterns("confusedInheritance")
+    val spec = Compiler.compileFun(module, options).psystemModule.patterns("confusedInheritance")
 
     val feed = EnginePool.loadDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     val matcher = EnginePool.loadQuery(spec(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)

@@ -1,6 +1,6 @@
 package inca.souffle
 
-import inca.runtime.context.QueryScope
+import inca.runtime.context.{LanguageMetaInfo, QueryScope}
 import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -32,14 +32,15 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaMatchers {
       |  ?descriptor = cat(?returnType, cat("(", cat(?params, ")"))).
       |""".stripMargin
 
-  lazy val (catModule, catInputs, _, catLangInfo) = {
+  lazy val compiledModule = {
     val ast = Parser(catProgram.linesIterator)
     val compiler = new SouffleToIncaCompiler
     compiler.compile("catanalysis", ast)
   }
 
-  val scope: QueryScope = new QueryScope(catLangInfo)
-  val options: CompilerOptions = CompilerOptions(catLangInfo, CompilerOptions.defaultFrontend, Seq())
+  private val lang: LanguageMetaInfo = compiledModule.compilerOptions.languageMetaInfo
+  val scope: QueryScope = new QueryScope(lang)
+  val options: CompilerOptions = compiledModule.compilerOptions
 
 
   val _MethodSig = Syntax.RuleSignature("_Method", Seq(
@@ -57,8 +58,8 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaMatchers {
       "<sun.security.provider.MD4: int FF(int,int,int,int,int,int)>;FF;int,int,int,int,int,int;sun.security.provider.MD4;int;(IIIIII)I;6"
     val factsCompiler = new SouffleInputToEditscript("EMPTY")
     val edit = factsCompiler.compile(superclasses.split("\n").iterator, _MethodSig, ";")
-    println(catModule)
-    assertMatchGPEdit(catModule, "Method_Descriptor", edit) { matcher =>
+    println(compiledModule.ir)
+    assertMatchGPEdit(compiledModule.ir, "Method_Descriptor", edit) { matcher =>
       println(matcher.getAllMatches)
       assert(matcher.getAllMatches.size == 1)
     }

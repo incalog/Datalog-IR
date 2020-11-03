@@ -1,5 +1,6 @@
 package inca.souffle
 
+import inca.CompilerOptions
 import inca.backend.ir.GP._
 import inca.runtime.context.LanguageMetaInfo
 import inca.runtime.index.MetaElements.{Link => MLink}
@@ -24,15 +25,19 @@ class SouffleToIncaCompiler {
 
   val componentDefinitions: mutable.Map[String, ComponentDefinition] = mutable.Map()
 
-  def compile(name: String, analysis: Analysis): (Module, Seq[(RuleSignature, Input)], Seq[PrintSize], LanguageMetaInfo) = {
+  def compile(name: String, analysis: Analysis): CompiledSouffleModule = {
     analysis.contents.foreach(compile(_, ""))
-    val module = Module(name, Seq(), patFuns.values.toSeq, Seq())
 
-    (
-      PropagateUnbounded.transformModule(module),
+    val module = Module(name, Seq(), patFuns.values.toSeq, Seq())
+    val transformedModule = PropagateUnbounded.transformModule(module)
+
+    val lang = new LanguageMetaInfo(MultiDict(), Map(), genLitLinks)
+
+    CompiledSouffleModule(
+      transformedModule,
       inputs.values.toSeq.map { input => (decls(input.rule), input) },
       printSizes.toSeq,
-      new LanguageMetaInfo(MultiDict(), Map(), genLitLinks)
+      CompilerOptions(lang)
     )
   }
 

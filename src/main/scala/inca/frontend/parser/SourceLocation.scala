@@ -6,4 +6,5 @@ trait SourceLocation {
 }
 object SourceLocation {
   val NoIndex: Int = -1
+  object NoSourceLocation extends SourceLocation
 }

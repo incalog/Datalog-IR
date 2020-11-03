@@ -59,8 +59,7 @@ object CompileToPSystem {
     modules.map(compileModule(_)(env))
   }
 
-
-  private def compileModule(module: Module)(implicit env: RuleEnvironment): Source = {
+  def compileModule(module: Module)(implicit env: RuleEnvironment): Source = {
     val myenv = env ++ module.pats.map(p => p.name -> module.name) // makes sure this module's names are found first
     val funs = module.pats.map(compilePattern(module.name, _)(myenv)).toList
 

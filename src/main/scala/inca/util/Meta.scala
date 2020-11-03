@@ -1,5 +1,6 @@
 package inca.util
 
+import scala.collection.mutable
 import scala.meta.Name.Indeterminate
 import scala.meta.{Import, Importee, Importer, Term, Type}
 import scala.reflect.ClassTag
@@ -70,5 +71,23 @@ object Meta {
   }
   object Scala {
     def apply[T <: meta.Tree](tree: T): Scala[T] = new Scala(tree)
+  }
+
+
+  private val compilerCache: mutable.Map[String, () => Any] = mutable.Map()
+  def compileAndLoadScala[A](source: String): () => A = {
+    compilerCache.get(source).map(v => return v.asInstanceOf[() => A])
+
+    import reflect.runtime.currentMirror
+    import tools.reflect.ToolBox
+
+    //    println(source)
+
+    val toolbox = currentMirror.mkToolBox()
+    val tree = toolbox.parse(source)
+    val compiled = toolbox.compile(tree)
+    val result = () => compiled()
+    compilerCache += source -> result
+    result.asInstanceOf[() => A]
   }
 }

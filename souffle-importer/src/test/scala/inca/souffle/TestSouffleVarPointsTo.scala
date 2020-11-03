@@ -1,17 +1,13 @@
 package inca.souffle
 
-import java.util.{Collections, Random}
-
-import inca.CompilerOptions
 import inca.runtime.EnginePool
 import inca.runtime.Query.Matcher
 import inca.runtime.context.QueryScope
-import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
+import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import org.scalatest.flatspec.AnyFlatSpec
-import truechange.{Edit, EditScript, Load, NamedTag, Unload}
+import truechange.EditScript
 
 import scala.io.Source
-import scala.jdk.CollectionConverters._
 
 class TestSouffleVarPointsTo extends AnyFlatSpec {
   "var points to souffle analysis" should "derive correct number of tuples" in {
@@ -23,10 +19,10 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
     val analysis = Parser(doopText)
     src.close()
     val compiler = new SouffleToIncaCompiler
-    val (gpModule, inputs, printSizes, languageMetaInfo) = compiler.compile("selfcontained", analysis)
+    val compiledModule = compiler.compile("selfcontained", analysis)
 
-    val psModule = inca.Compiler.compileAndLoadGPModule(gpModule, None, CompilerOptions(languageMetaInfo))
-    val queryScope = new QueryScope(languageMetaInfo, Seq())
+    val psModule = compiledModule.psystemModule
+    val queryScope = new QueryScope(compiledModule.compilerOptions.languageMetaInfo, Seq())
 
     def getMatcher(fun: String): Matcher = {
       val querySpec = psModule.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module."))
@@ -37,7 +33,7 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
     val (engine, database) = EnginePool.loadEngineAndDatabase(queryScope, DRedReteBackendFactory.INSTANCE)
 
     val startLoadFactFiles = System.currentTimeMillis()
-    val edits = inputs.flatMap { case (sig, input) =>
+    val edits = compiledModule.inputs.flatMap { case (sig, input) =>
       val inputCompiler = new SouffleInputToEditscript(s"$benchmarkPath/minijavac")
       val editScript = inputCompiler.compile(input, sig)
       editScript.edits
@@ -48,7 +44,7 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
     val editScript = EditScript(edits)
     println(editScript.size)
 
-    val matchers = printSizes.map(ps => getMatcher(ps.name))
+    val matchers = compiledModule.printSizes.map(ps => getMatcher(ps.name))
 
     val startQuery = System.currentTimeMillis()
     var loadingTime: Long = 0
