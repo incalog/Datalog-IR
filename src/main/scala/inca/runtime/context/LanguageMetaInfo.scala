@@ -14,7 +14,7 @@ import scala.collection.immutable.MultiDict
  * - subtypes represents the transitive closure of directSubtypes.
  *
  * For the case class representing the abstract syntax of Add:
- *   case class Add(lhs: Exp, rhs: Exp) extends Exp
+ *   case class Add(lhs: Expression, rhs: Expression) extends Exp
  * links contains ("Add" -> Map("lhs" -> "Exp", "rhs" -> "Exp"))
  */
 // TODO add what the node types and what primitives are

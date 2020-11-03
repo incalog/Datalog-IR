@@ -1,11 +1,11 @@
 package inca.frontend.typechecker
 
-import inca.frontend.core.Core.{Module, Name, PatternFunction, TypeAnno}
+import inca.frontend.core._
 
 import scala.collection.immutable.MultiDict
 
 trait TypeContext extends TypeIO {
-  private var vars: Map[Name, (Name, TypeAnno)] = Map()
+  private var vars: Map[Name, (Name, Type)] = Map()
   private var funs: MultiDict[Name, (Module, PatternFunction)] = MultiDict()
   private var modules: Map[Name, Module] = Map()
 
@@ -20,14 +20,14 @@ trait TypeContext extends TypeIO {
     t
   }
 
-  def bindVar(name: Name, ty: TypeAnno): Unit = {
+  def bindVar(name: Name, ty: Type): Unit = {
     vars.get(name) foreach { case (bound, _) =>
       error(s"Variable $name shadows previously defined variable $bound", name, bound)
     }
     vars += (name -> (name, ty))
   }
 
-  def lookupVar(name: Name): Option[TypeAnno] =
+  def lookupVar(name: Name): Option[Type] =
     vars.get(name) match {
       case Some((_, ty)) => Some(ty)
       case None =>
@@ -35,7 +35,7 @@ trait TypeContext extends TypeIO {
         None
     }
 
-  def getBindings: Map[Name, TypeAnno] =
+  def getBindings: Map[Name, Type] =
     vars.view.mapValues(_._2).toMap
 
 
@@ -76,7 +76,7 @@ trait TypeContext extends TypeIO {
 
   //  // TODO need to think about binding refinement
 //  // look at type refinement type systems
-//  def refineBinding(name: Name, ty: TypeAnno): TypeContext = {
+//  def refineBinding(name: Name, ty: Type): TypeContext = {
 //    val prevTy = vars.get(name)
 //    prevTy match {
 //      case Some(value) =>

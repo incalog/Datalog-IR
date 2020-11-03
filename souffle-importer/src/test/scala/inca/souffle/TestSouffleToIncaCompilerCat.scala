@@ -1,7 +1,8 @@
 package inca.souffle
 
+import inca.IncaMatchers
+import inca.compiler.Options
 import inca.runtime.context.{LanguageMetaInfo, QueryScope}
-import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaMatchers {
@@ -40,7 +41,7 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaMatchers {
 
   private val lang: LanguageMetaInfo = compiledModule.compilerOptions.languageMetaInfo
   val scope: QueryScope = new QueryScope(lang)
-  val options: CompilerOptions = compiledModule.compilerOptions
+  val options: Options = compiledModule.compilerOptions
 
 
   val _MethodSig = Syntax.RuleSignature("_Method", Seq(

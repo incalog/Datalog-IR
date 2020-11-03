@@ -1,15 +1,15 @@
 package inca.frontend.typechecker
 
-import inca.frontend.core.Core._
+import inca.frontend.core._
 import inca.runtime.context.LanguageMetaInfo
 import truechange.{AnyType, JavaLitType, ListType, SortType}
 
 object TypeOps {
 
-  def subtype(ty1: TypeAnno, ty2: TypeAnno, languageMetaInfo: LanguageMetaInfo): Boolean =
+  def subtype(ty1: Type, ty2: Type, languageMetaInfo: LanguageMetaInfo): Boolean =
     meet(ty1, ty2, languageMetaInfo) == ty1
 
-  def meet(ty1: TypeAnno, ty2: TypeAnno, languageMetaInfo: LanguageMetaInfo): TypeAnno = (ty1, ty2) match {
+  def meet(ty1: Type, ty2: Type, languageMetaInfo: LanguageMetaInfo): Type = (ty1, ty2) match {
     case (_, _) if ty1 == ty2 => ty1
     case (TAny, _) => ty2
     case (_, TAny) => ty1
@@ -30,11 +30,11 @@ object TypeOps {
   }
 
 
-  def truechangeTypeToTypeAnno(ty: truechange.Type): TypeAnno = ty match {
+  def truechangeTypeToType(ty: truechange.Type): Type = ty match {
     case AnyType => TAny
     case SortType(name) => TNode(name)
     case ListType(ty) =>
-      val convertedTy = truechangeTypeToTypeAnno(ty)
+      val convertedTy = truechangeTypeToType(ty)
       convertedTy match {
         case linked: TLinked => TList(linked)
         case _ => throw new IllegalArgumentException()
@@ -42,7 +42,7 @@ object TypeOps {
     case _ => throw new UnsupportedOperationException(s"conversion of $ty from truechange to inca not supported")
   }
 
-  def truechangeLitTypeToTypeAnno(ty: truechange.LitType): TypeAnno = ty match {
+  def truechangeLitTypeToType(ty: truechange.LitType): Type = ty match {
     case JavaLitType(cl) =>
       if (cl == classOf[java.lang.Integer])
         TInt

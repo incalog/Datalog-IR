@@ -1,11 +1,12 @@
 package inca.frontend.extensions
 
+import inca.IncaMatchers
 import inca.analyzedLangs.Exp
+import inca.compiler.Options
 import inca.frontend.BaseFrontend
-import inca.frontend.core.Core._
+import inca.frontend.core._
 import inca.runtime.context.QueryScope
 import inca.util.Meta.Scala
-import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.meta.XtensionQuasiquoteTerm
@@ -18,7 +19,7 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
   val two = Constant(IntLiteral(2))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo, new BaseFrontend(_) with ForallExistsFrontend)
+  val options: Options = Options(scope.langMetaInfo, new BaseFrontend(_) with ForallExistsFrontend)
 
   "desugaring" should "eliminate forall conds" in {
     val sugared = Module("Test", Seq(), Seq(
@@ -116,7 +117,7 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    val options = CompilerOptions(scope.langMetaInfo, new BaseFrontend(_) with ForallExistsFrontend)
+    val options = Options(scope.langMetaInfo, new BaseFrontend(_) with ForallExistsFrontend)
 
     assertMatchCoreProg(module, "existsCond", input, options = options) { matcher =>
       assert(matcher.getAllMatchArrays.size == 1)

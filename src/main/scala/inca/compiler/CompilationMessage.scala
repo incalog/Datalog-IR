@@ -1,6 +1,6 @@
-package inca
+package inca.compiler
 
-import inca.CompilationMessage.Severity
+import inca.compiler.CompilationMessage.Severity
 import inca.frontend.parser.SourceLocation
 
 case class CompilationMessage(msg: String, sourceLocations: Seq[SourceLocation], severity: Severity)

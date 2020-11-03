@@ -1,7 +1,7 @@
 package inca.frontend.extensions
 
 import inca.frontend.Frontend
-import inca.frontend.core.Core._
+import inca.frontend.core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.typechecker.{NoTerminator, StmType}
 import inca.util.Gensym
@@ -10,27 +10,27 @@ import inca.util.Meta.Scala
 import scala.collection.mutable.ListBuffer
 import scala.meta.{Term, XtensionQuasiquoteTerm}
 
-case class Forall(name: Name, exp: Exp, body: Body) extends Statement {
-  val elemTyp: Option[TypeAnno] = exp.typ.flatMap {
+case class Forall(name: Name, exp: Expression, body: Body) extends Statement {
+  val elemTyp: Option[Type] = exp.typ.flatMap {
     case ty: TIterable => Some(ty.contained)
     case _ => None
   }
 
   override def boundVars: Set[Name] = Set(name) ++ body.boundVars
-  override def allVars: Map[Name, Option[TypeAnno]] = Map(name -> elemTyp) ++ exp.freeVars ++ body.allVars
+  override def allVars: Map[Name, Option[Type]] = Map(name -> elemTyp) ++ exp.freeVars ++ body.allVars
 
   override def prettyprint(implicit indent: String): String =
     s"${indent}forall $name in ${exp.prettyprint} ${body.prettyprint}"
 }
 
-case class Exists(name: Name, exp: Exp, body: Body) extends Statement {
-  val elemTyp: Option[TypeAnno] = exp.typ.flatMap {
+case class Exists(name: Name, exp: Expression, body: Body) extends Statement {
+  val elemTyp: Option[Type] = exp.typ.flatMap {
     case ty: TIterable => Some(ty.contained)
     case _ => None
   }
 
   override def boundVars: Set[Name] = Set(name) ++ body.boundVars
-  override def allVars: Map[Name, Option[TypeAnno]] = Map(name -> elemTyp) ++ exp.freeVars ++ body.allVars
+  override def allVars: Map[Name, Option[Type]] = Map(name -> elemTyp) ++ exp.freeVars ++ body.allVars
 
   override def prettyprint(implicit indent: String): String =
     s"${indent}exists $name in ${exp.prettyprint} ${body.prettyprint}"
@@ -130,7 +130,7 @@ object ForallExists extends Desugarable {
       case _ => super.desugarStm(stm)
     }
 
-    private def makeCondFun(name: Name, exp: Exp, body: Body, ty: TLinked, funsym: Name)(implicit gensym: Gensym): Seq[(Name, Option[TypeAnno])] = {
+    private def makeCondFun(name: Name, exp: Expression, body: Body, ty: TLinked, funsym: Name)(implicit gensym: Gensym): Seq[(Name, Option[Type])] = {
       val newbody = Body(Seq(
         Foreach(name, exp,
           Body(body.stmts.flatMap(desugarStm) :+ Yield(Var(name)))

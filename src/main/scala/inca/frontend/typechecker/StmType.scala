@@ -1,10 +1,10 @@
 package inca.frontend.typechecker
 
-import inca.frontend.core.Core.{TUnit, TypeAnno}
+import inca.frontend.core._
 import inca.runtime.context.LanguageMetaInfo
 
 sealed trait StmType {
-  def asTypeAnno: TypeAnno = this match {
+  def asType: Type = this match {
     case NoTerminator => TUnit
     case Terminator(ty) => ty
   }
@@ -16,5 +16,5 @@ sealed trait StmType {
   }
 }
 case object NoTerminator extends StmType
-case class Terminator(ty: TypeAnno) extends StmType
+case class Terminator(ty: Type) extends StmType
 

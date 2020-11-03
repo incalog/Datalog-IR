@@ -1,19 +1,18 @@
-package inca
+package inca.compiler
 
-import inca.CompilerOptions._
 import inca.backend.optimize._
+import inca.compiler.Options.{defaultFrontend, defaultOptimizations}
 import inca.frontend.Frontend
 import inca.runtime.context.LanguageMetaInfo
 
-case class CompilerOptions(languageMetaInfo: LanguageMetaInfo,
-                           frontendFactory: LanguageMetaInfo => Frontend = defaultFrontend,
-                           optimizations: Seq[Optimization] = defaultOptimizations,
-                           stopOnWarning: Boolean = false
-                          ) {
+case class Options(languageMetaInfo: LanguageMetaInfo,
+                   frontendFactory: LanguageMetaInfo => Frontend = defaultFrontend,
+                   optimizations: Seq[Optimization] = defaultOptimizations,
+                   stopOnWarning: Boolean = false) {
   def frontend: Frontend = frontendFactory(languageMetaInfo)
 }
 
-object CompilerOptions {
+object Options {
   val defaultFrontend: LanguageMetaInfo => Frontend =
     Frontend.Inca
 

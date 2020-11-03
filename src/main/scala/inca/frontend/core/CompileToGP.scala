@@ -1,56 +1,56 @@
 package inca.frontend.core
 
 import inca.backend.ir.GP
-import inca.frontend.core.Core.{Name, TTuple}
+import inca.frontend.core.Core.DataOp
 import inca.util.Gensym
 
-import scala.meta._
+import scala.meta.{Name => _, Type => _, _}
 
 object CompileToGP {
 
   case object BodyMustFail extends Exception
 
 
-  type FunEnv = Map[String, Core.PatternFunction]
+  type FunEnv = Map[String, PatternFunction]
 
-  def transformModule(module: Core.Module): GP.Module = {
+  def transformModule(module: Module): GP.Module = {
     // construct map Name => Fun
     val funs = module.funs.map { fun => fun.name.name -> fun }.toMap
     val patterns = module.funs.map { fun => transform(fun, funs) }
     GP.Module(module.name.name, module.imports.map(_.name), patterns, module.stats)
   }
 
-  def transform(fun: Core.PatternFunction, funs: FunEnv): GP.Pattern = {
+  def transform(fun: PatternFunction, funs: FunEnv): GP.Pattern = {
     // TODO meta analysis negation in recusion
     rewriteFunction(fun, funs)
   }
 
-  def transType(typ: Core.TypeAnno): GP.TypeAnno = typ match {
-    case Core.TAny => GP.TAny
-    case Core.TBool => GP.TBool
-    case Core.TInt => GP.TInt
-    case Core.TLong => GP.TLong
-    case Core.TDouble => GP.TDouble
-    case Core.TString => GP.TString
-    case Core.TAnyLinked => GP.TAnyLinked
-    case Core.TNode(name) => GP.TNode(name)
-    case Core.TList(ty) => GP.TList(transType(ty).asInstanceOf[GP.TLinked])
-    case dt: Core.DataType => GP.TDataType(resolveDataType(dt))
+  def transType(typ: Type): GP.Type = typ match {
+    case TAny => GP.TAny
+    case TBool => GP.TBool
+    case TInt => GP.TInt
+    case TLong => GP.TLong
+    case TDouble => GP.TDouble
+    case TString => GP.TString
+    case TAnyLinked => GP.TAnyLinked
+    case TNode(name) => GP.TNode(name)
+    case TList(ty) => GP.TList(transType(ty).asInstanceOf[GP.TLinked])
+//    case dt: DataType => GP.TDataType(resolveDataType(dt))
   }
 
 
-  def rewriteFunction(fun: Core.PatternFunction, funs: FunEnv): GP.Pattern = {
+  def rewriteFunction(fun: PatternFunction, funs: FunEnv): GP.Pattern = {
     val gensym = new Gensym(fun.freeVars.keys.map(_.name))
     gensym.register(fun.boundNames.map(_.name))
 
     val vis = fun.vis.map {
-      case Core.Private => GP.Private
-      case Core.Public => GP.Public
+      case Private => GP.Private
+      case Public => GP.Public
     }
 
     val params = fun.params.map { param => GP.Param(param.name.name, transType(param.typ)) }
     val env = fun.params.map {
-      case Core.Param(name, ty) => name -> Binding(ty, None, None)
+      case Param(name, ty) => name -> Binding(ty, None, None)
     }.toMap
 
     val outParams = fun.outParams.map { param =>
@@ -76,17 +76,17 @@ object CompileToGP {
 
   type Res = (Seq[String], Seq[GP.Constraint])
 
-  case class Binding(typ: Core.TypeAnno, exp: Option[Core.CoreExp], index: Option[Int]) {
+  case class Binding(typ: Type, exp: Option[CoreExpression], index: Option[Int]) {
     def shouldInline: Boolean = typ match {
-      case Core.TBool => exp.nonEmpty && index.isEmpty
+      case TBool => exp.nonEmpty && index.isEmpty
       case _ => false
     }
   }
 
-  type Env = Map[Core.Name, Binding]
+  type Env = Map[Name, Binding]
 
 
-  def transBody(alt: Core.Body, funs: FunEnv, outVars: Seq[String], env: Env)(implicit gensym: Gensym): Option[GP.Body] = gensym.scoped {
+  def transBody(alt: Body, funs: FunEnv, outVars: Seq[String], env: Env)(implicit gensym: Gensym): Option[GP.Body] = gensym.scoped {
     try {
       var currentEnv: Env = env
       val constraints = alt.stmts.flatMap { s =>
@@ -100,15 +100,15 @@ object CompileToGP {
     }
   }
 
-  def transStatement(stmt: Core.CoreStatement, funs: FunEnv, outVars: Seq[String], env: Env)(implicit gensym: Gensym): (Seq[GP.Constraint], Env) = stmt match {
-    case Core.Values(name, typ) =>
+  def transStatement(stmt: CoreStatement, funs: FunEnv, outVars: Seq[String], env: Env)(implicit gensym: Gensym): (Seq[GP.Constraint], Env) = stmt match {
+    case Values(name, typ) =>
       if (env.contains(name))
         throw new IllegalArgumentException(s"Program tries to rebind $name in $stmt")
       val binding = Binding(typ, None, None)
       val newenv = env + (name -> binding)
       (Seq(GP.HasType(GP.Var(name.name), transType(typ))), newenv)
 
-    case Core.Assign(names, exp) =>
+    case Assign(names, exp) =>
       names.foreach { n =>
         if (env.contains(n))
           throw new IllegalArgumentException(s"Program tries to rebind $n in $stmt")
@@ -123,7 +123,7 @@ object CompileToGP {
         case Seq(_) => Seq(Binding(expTy, Some(exp.ensureCore), None))
         case ns => ns.zipWithIndex.map { case (n, i) =>
           val ty = expTy match {
-            case tup@Core.TTuple(ts) =>
+            case tup@TTuple(ts) =>
               if (i < ts.size)
                 ts(i)
               else
@@ -144,27 +144,27 @@ object CompileToGP {
         (rconstraints ++ eqConstraints, newenv)
       }
 
-    case Core.Assert(Core.Constant(Core.BooleanLiteral(v))) =>
+    case Assert(Constant(BooleanLiteral(v))) =>
       if (v) (Seq(), env)
       else throw BodyMustFail
-    case Core.Assert(cond) => transExp(cond.ensureCore)(funs, env, gensym) match {
+    case Assert(cond) => transExp(cond.ensureCore)(funs, env, gensym) match {
       case (Nil, cons) =>
         (cons, env)
       case (Seq(v), cons) =>
         (cons :+ GP.Compare(GP.EqComparator, GP.Var(v), GP.Constant(GP.BooleanLiteral(true))), env)
     }
 
-    case Core.Yield(exp) =>
+    case Yield(exp) =>
       val (vars, constraints) = transExp(exp.ensureCore)(funs, env, gensym)
       (constraints ++ genEqs(vars, outVars), env)
 
-    case Core.Fail =>
+    case FailStatement =>
       throw BodyMustFail
   }
 
 
-  def transExp(cond: Core.CoreExp)(implicit funs: FunEnv, env: Env, gensym: Gensym): Res = cond match {
-    case Core.Var(name) =>
+  def transExp(cond: CoreExpression)(implicit funs: FunEnv, env: Env, gensym: Gensym): Res = cond match {
+    case Var(name) =>
       env.get(name) match {
         case Some(binding) =>
           if (binding.shouldInline)
@@ -175,65 +175,65 @@ object CompileToGP {
           throw new IllegalArgumentException(s"Unbound variable $name")
       }
 
-    case Core.Eq(lhs, rhs) =>
+    case Eq(lhs, rhs) =>
       val (lvars, lconstraints) = transExp(lhs.ensureCore)
       val (rvars, rconstraints) = transExp(rhs.ensureCore)
       val eqConstraints = genEqs(lvars, rvars)
       (Seq(), lconstraints ++ rconstraints ++ eqConstraints)
 
-    case Core.Neq(lhs, rhs) =>
+    case Neq(lhs, rhs) =>
       val (lvars, lconstraints) = transExp(lhs.ensureCore)
       val (rvars, rconstraints) = transExp(rhs.ensureCore)
       val eqConstraints = genNeqs(lvars, rvars)
       (Seq(), lconstraints ++ rconstraints ++ eqConstraints)
 
-    case Core.InstanceOf(exp, typ) =>
+    case InstanceOf(exp, typ) =>
       val (vars, constraints) = transExp(exp.ensureCore)
       if (vars.size != 1) throw new IllegalArgumentException("Number of variables of exp of instance of need to be 1")
       (Seq(), constraints :+ GP.HasType(GP.Var(vars.head), transType(typ)))
 
-    case Core.NotInstanceOf(exp, typ) =>
+    case NotInstanceOf(exp, typ) =>
       val (vars, constraints) = transExp(exp.ensureCore)
       if (vars.size != 1) throw new IllegalArgumentException("Number of variables of exp of instance of need to be 1")
       (Seq(), constraints :+ GP.NotHasType(GP.Var(vars.head), transType(typ)))
 
-    case Core.Cast(exp, typ) =>
+    case Cast(exp, typ) =>
       val (vars, constraints) = transExp(exp.ensureCore)
       if (vars.size != 1) throw new IllegalArgumentException("Number of variables of exp of instance of need to be 1")
       val v = vars.head
       (Seq(v), constraints :+ GP.HasType(GP.Var(v), transType(typ)))
 
-    case Core.Def(exp) =>
+    case Def(exp) =>
       exp match {
-        case Core.Call(name, args, transitive) =>
+        case Call(name, args, transitive) =>
           (Seq(), genDefCallConstraint(name, args, transitive, neg = false))
-        case pa: Core.PathAccess =>
+        case pa: PathAccess =>
           val tmp = gensym.fresh("_")
           (Seq(), transPathAccess(pa, GP.Var(tmp)))
         case _ => throw new IllegalArgumentException(s"Cannot support Def($exp)")
       }
 
-    case Core.Undef(exp) =>
+    case Undef(exp) =>
       exp match {
-        case Core.Call(name, args, transitive) =>
+        case Call(name, args, transitive) =>
           (Seq(), genDefCallConstraint(name, args, transitive, neg = true))
-        case pathAccess@Core.PathAccess(receiver, _) =>
+        case pathAccess@PathAccess(receiver, _) =>
           val (Seq(src), econstraints) = transExp(receiver.ensureCore)
           val srcTy = transType(receiver.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile path access with untyped receiver $receiver")))
           val path = pathAccess.link match {
-            case Core.ParentLink =>
+            case ParentLink =>
               GP.NoPath(GP.Var(src), srcTy, GP.ParentLink, termIsSource = true)
-            case Core.ChildrenLink =>
+            case ChildrenLink =>
               GP.NoPath(GP.Var(src), srcTy, GP.ParentLink, termIsSource = false)
-            case Core.NextLink =>
+            case NextLink =>
               GP.NoPath(GP.Var(src), srcTy, GP.NextLink, termIsSource = true)
-            case Core.PreviousLink =>
+            case PreviousLink =>
               GP.NoPath(GP.Var(src), srcTy, GP.NextLink, termIsSource = false)
-            case Core.SizeLink =>
+            case SizeLink =>
               GP.NoPath(GP.Var(src), srcTy, GP.SizeLink, termIsSource = true)
-            case Core.NamedLink(field) =>
+            case NamedLink(field) =>
               val nodeType = receiver.typ match {
-                case Some(Core.TNode(name)) => GP.TNode(name)
+                case Some(TNode(name)) => GP.TNode(name)
                 case _ => throw new IllegalArgumentException(s"$receiver should have node type, but has ${receiver.typ}")
               }
               GP.NoPath(GP.Var(src), srcTy, GP.NamedLink(nodeType, field.name), termIsSource = true)
@@ -243,7 +243,7 @@ object CompileToGP {
         case _ => throw new IllegalArgumentException("Cannot support in Undef " + exp)
       }
 
-    case Core.Constant(lit) =>
+    case Constant(lit) =>
       transLiteral(lit) match {
         case None => (Seq(), Seq())
         case Some(gplit) =>
@@ -252,40 +252,40 @@ object CompileToGP {
           (Seq(tmpVar), Seq(compare))
       }
 
-    case Core.Wildcard =>
+    case Wildcard =>
       val dummyVar = gensym.fresh("wildcard")
       (Seq(dummyVar), Seq())
 
-    case Core.Tuple(exps) =>
+    case Tuple(exps) =>
       val (vars, constraints) = exps.map(e => transExp(e.ensureCore)).unzip
       (vars.flatten, constraints.flatten)
 
-    case pa: Core.PathAccess =>
+    case pa: PathAccess =>
       val trg = gensym.fresh("trg")
       (Seq(trg), transPathAccess(pa, GP.Var(trg)))
 
-    case Core.Call(name, args, transitive) =>
+    case Call(name, args, transitive) =>
       // TODO why is there a distinction between exp and non exp args in MPS impl?
       val (inVars, outVars, constraints) = transCallArgs(name.name, args)
       val allvars = (inVars ++ outVars).map(GP.Var)
       val call = GP.Call(name.name, allvars, transitive, neg = false)
       (outVars, constraints :+ call)
 
-    case Core.Count(call) =>
+    case Count(call) =>
       val (inVars, outVars, constraints) = transCallArgs(call.name.name, call.args)
       val countVar = gensym.fresh("count")
       val allvars = (inVars ++ outVars).map(GP.Var)
       val countConstraint = GP.Computed(GP.Var(countVar), GP.CountAggregation(call.name.name, allvars))
       (Seq(countVar), constraints :+ countConstraint)
 
-    case eval@Core.Eval(params, code) =>
+    case eval@Eval(params, code) =>
       import scala.meta._
 
       val evalVar = gensym.fresh("eval")
       var argConstraints = Seq[GP.Constraint]()
       val paramsBindings = params.map(name => name -> env.getOrElse(name, throw new IllegalArgumentException(s"Unbound variable $name")))
       val paramsTyped = paramsBindings.map { case (name, bind) =>
-        param"${Term.Name(name.name)}: ${scalaTypeAnno(bind.typ)}"
+        param"${Term.Name(name.name)}: ${scalaType(bind.typ)}"
       }.toList
       val args = paramsBindings.map { case (name, binding) =>
         if (binding.shouldInline) {
@@ -301,7 +301,7 @@ object CompileToGP {
       val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(args, transType(resType), funCode))
       (Seq(evalVar), Seq(evalConstraint))
 
-    case Core.Aggregate(init, join, unjoin, call) =>
+    case Aggregate(init, join, unjoin, call) =>
       if (!join.isAssociative || !join.isCommutative)
         throw new IllegalArgumentException(s"Can only compile aggregations with join operators that are associative and commutative")
 
@@ -324,7 +324,7 @@ object CompileToGP {
       (Seq(resultVar), constraints :+ compare)
   }
 
-  def transCallArgs(name: String, args: Seq[Core.Exp])(implicit funs: FunEnv, env: Env, gensym: Gensym): (Seq[String], Seq[String], Seq[GP.Constraint]) = {
+  def transCallArgs(name: String, args: Seq[Expression])(implicit funs: FunEnv, env: Env, gensym: Gensym): (Seq[String], Seq[String], Seq[GP.Constraint]) = {
     val (vars, constraints) = args.map(e => transExp(e.ensureCore)).unzip
     val outVars = funs(name).outParams.map { _ =>
       val argVar = gensym.fresh("arg")
@@ -333,9 +333,9 @@ object CompileToGP {
     (vars.flatten, outVars, constraints.flatten)
   }
 
-  def genDefCallConstraint(name: Core.Name, args: Seq[Core.Exp], transitive: Boolean, neg: Boolean)(implicit funs: FunEnv, env: Env, gensym: Gensym): Seq[GP.Constraint] = {
+  def genDefCallConstraint(name: Name, args: Seq[Expression], transitive: Boolean, neg: Boolean)(implicit funs: FunEnv, env: Env, gensym: Gensym): Seq[GP.Constraint] = {
     val (vars, constraint) = args.map {
-      case Core.Var(name) => (Seq(name.name), Seq())
+      case Var(name) => (Seq(name.name), Seq())
       case arg =>
         val (vars, constraints) = transExp(arg.ensureCore)
         if (vars.size > 1)
@@ -351,25 +351,25 @@ object CompileToGP {
     constraint.flatten :+ compositionConstraint
   }
 
-  def transPathAccess(pathAccess: Core.PathAccess, trg: GP.Term)(implicit funs: FunEnv, env: Env, gensym: Gensym): Seq[GP.Constraint] = {
+  def transPathAccess(pathAccess: PathAccess, trg: GP.Term)(implicit funs: FunEnv, env: Env, gensym: Gensym): Seq[GP.Constraint] = {
     val receiver = pathAccess.receiver
     val (Seq(src), econstraints) = transExp(receiver.ensureCore)
     val srcTy = transType(receiver.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile path access with untyped receiver $receiver")))
     val trgTy = transType(pathAccess.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped $pathAccess")))
     val path = pathAccess.link match {
-      case Core.ParentLink =>
+      case ParentLink =>
         GP.Path(GP.Var(src), srcTy, GP.ParentLink, trg, trgTy)
-      case Core.ChildrenLink =>
+      case ChildrenLink =>
         GP.Path(trg, trgTy, GP.ParentLink, GP.Var(src), srcTy)
-      case Core.NextLink =>
+      case NextLink =>
         GP.Path(GP.Var(src), srcTy, GP.NextLink, trg, trgTy)
-      case Core.PreviousLink =>
+      case PreviousLink =>
         GP.Path(trg, trgTy, GP.NextLink, GP.Var(src), srcTy)
-      case Core.SizeLink =>
+      case SizeLink =>
         GP.Path(GP.Var(src), srcTy, GP.SizeLink, trg, trgTy)
-      case Core.NamedLink(field) =>
+      case NamedLink(field) =>
         val nodeType = receiver.typ match {
-          case Some(Core.TNode(name)) => GP.TNode(name)
+          case Some(TNode(name)) => GP.TNode(name)
           case _ => throw new IllegalArgumentException(s"$receiver should have node type, but has ${receiver.typ}")
         }
         GP.Path(GP.Var(src), srcTy, GP.NamedLink(nodeType, field.name), trg, trgTy)
@@ -377,46 +377,46 @@ object CompileToGP {
     econstraints :+ path
   }
 
-  def transLiteral(lit: Core.Literal): Option[GP.Literal] = lit match {
-    case Core.UnitLiteral => None
-    case Core.IntLiteral(v) => Some(GP.IntLiteral(v))
-    case Core.LongLiteral(v) => Some(GP.LongLiteral(v))
-    case Core.DoubleLiteral(v) => Some(GP.DoubleLiteral(v))
-    case Core.StringLiteral(v) => Some(GP.StringLiteral(v))
-    case Core.BooleanLiteral(v) => Some(GP.BooleanLiteral(v))
+  def transLiteral(lit: Literal): Option[GP.Literal] = lit match {
+    case UnitLiteral => None
+    case IntLiteral(v) => Some(GP.IntLiteral(v))
+    case LongLiteral(v) => Some(GP.LongLiteral(v))
+    case DoubleLiteral(v) => Some(GP.DoubleLiteral(v))
+    case StringLiteral(v) => Some(GP.StringLiteral(v))
+    case BooleanLiteral(v) => Some(GP.BooleanLiteral(v))
   }
 
-  def scalaAnnoString(typ: Core.TypeAnno): String = typ match {
-    case Core.TAny => "Any"
-    case Core.TBool => "Boolean"
-    case Core.TInt => "Int"
-    case Core.TLong => "Long"
-    case Core.TDouble => "Double"
-    case Core.TString => "String"
-    case dt: Core.DataType => resolveDataType(dt)
-    case _: Core.TLinked => "truechange.URI"
+  def scalaAnnoString(typ: Type): String = typ match {
+    case TAny => "Any"
+    case TBool => "Boolean"
+    case TInt => "Int"
+    case TLong => "Long"
+    case TDouble => "Double"
+    case TString => "String"
+//    case dt: DataType => resolveDataType(dt)
+    case _: TLinked => "truechange.URI"
   }
 
-  def scalaTypeAnno(typ: Core.TypeAnno): meta.Type = typ match {
-    case Core.TAny => t"Any"
-    case Core.TBool => t"Boolean"
-    case Core.TInt => t"Int"
-    case Core.TLong => t"Long"
-    case Core.TDouble => t"Double"
-    case Core.TString => t"String"
-    case dt: Core.DataType => t"${resolveDataType(dt)}"
-    case _: Core.TLinked => t"truechange.URI"
+  def scalaType(typ: Type): meta.Type = typ match {
+    case TAny => t"Any"
+    case TBool => t"Boolean"
+    case TInt => t"Int"
+    case TLong => t"Long"
+    case TDouble => t"Double"
+    case TString => t"String"
+//    case dt: DataType => t"${resolveDataType(dt)}"
+    case _: TLinked => t"truechange.URI"
   }
 
-  def resolveDataOp(op: Core.DataOp): String = op.qualifier match {
+  def resolveDataOp(op: DataOp): String = op.qualifier match {
     case Some(Name(q)) if q.isEmpty => op.operation.name
     case Some(q) => s"$q.${op.operation}"
     case None => throw new IllegalArgumentException(s"TODO resolve unqualified data op calls")
   }
 
-  def resolveDataType(dt: Core.DataType): String = dt.qualifier match {
-    case Some(Name(q)) if q.isEmpty => dt.name.name
-    case Some(q) => s"$q.${dt.name}"
-    case None => throw new IllegalArgumentException(s"TODO resolve unqualified data types")
-  }
+//  def resolveDataType(dt: DataType): String = dt.qualifier match {
+//    case Some(Name(q)) if q.isEmpty => dt.name.name
+//    case Some(q) => s"$q.${dt.name}"
+//    case None => throw new IllegalArgumentException(s"TODO resolve unqualified data types")
+//  }
 }

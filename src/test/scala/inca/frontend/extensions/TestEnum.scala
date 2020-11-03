@@ -1,10 +1,11 @@
 package inca.frontend.extensions
 
+import inca.IncaMatchers
 import inca.analyzedLangs.Exp
+import inca.compiler.Options
 import inca.frontend.BaseFrontend
-import inca.frontend.core.Core._
+import inca.frontend.core._
 import inca.runtime.context.QueryScope
-import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class TestEnum extends AnyFlatSpec with IncaMatchers {
@@ -15,7 +16,7 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
   val two = Constant(IntLiteral(2))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo, new BaseFrontend(_) with EnumFrontend)
+  val options: Options = Options(scope.langMetaInfo, new BaseFrontend(_) with EnumFrontend)
 
   "desugaring" should "eliminate enum" in {
     val sugared = Module("Test", Seq(), Seq(
@@ -59,7 +60,7 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
               Body(Yield(Var("meth"))),
               Seq(),
               None),
-            Fail
+            FailStatement
           ))
         ))
       ))
@@ -74,17 +75,17 @@ class TestEnum extends AnyFlatSpec with IncaMatchers {
             PathAccess(Var("meth"), NamedLink("name")),
             Constant(StringLiteral("main")))),
           Yield(Var("meth")),
-          Fail
+          FailStatement
         )),
         Body(Seq(
           Values("enum_inca_analyzedLangs_Exp_Let", TNode(Exp.letTag)),
           Assign(Seq("meth"), Var("enum_inca_analyzedLangs_Exp_Let")),
-          Fail
+          FailStatement
         ))
       ))
     ), Seq())
 
-    assertDesugar(core, sugared, CompilerOptions(scope.langMetaInfo, new BaseFrontend(_) with EnumFrontend with ForeachFrontend with IfThenElseFrontend))
+    assertDesugar(core, sugared, Options(scope.langMetaInfo, new BaseFrontend(_) with EnumFrontend with ForeachFrontend with IfThenElseFrontend))
   }
 
 

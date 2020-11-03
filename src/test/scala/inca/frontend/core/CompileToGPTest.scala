@@ -4,14 +4,13 @@ import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
 import inca.backend.ir.{GP, Printer}
-import inca.frontend.core.Core.{Exp => _, _}
-import inca.{Compiler, CompilerOptions}
+import inca.compiler.{Compiler, Options}
 import org.scalatest.funsuite.AnyFunSuite
 
 class CompileToGPTest extends AnyFunSuite {
 
   def compileToGP(module: Core.Module): GP.Module = 
-    Compiler.compileFun(module, CompilerOptions(Exp.languageMetaInfo)).ir
+    Compiler.compileFun(module, Options(Exp.languageMetaInfo)).ir
   
   test("simple function pattern with return constraint"){
     val result = compileToGP(Module("test", Nil, Seq(idFun), Seq()))

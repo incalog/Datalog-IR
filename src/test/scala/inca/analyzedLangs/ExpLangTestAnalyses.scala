@@ -1,6 +1,6 @@
 package inca.analyzedLangs
 
-import inca.frontend.core.Core._
+import inca.frontend.core._
 
 import scala.language.implicitConversions
 

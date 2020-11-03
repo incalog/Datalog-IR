@@ -1,7 +1,7 @@
 package inca.frontend.util
 
 import inca.frontend.Frontend
-import inca.frontend.core.Core._
+import inca.frontend.core._
 import inca.runtime.context.LanguageMetaInfo
 
 object TypeHelper {
@@ -15,12 +15,12 @@ object TypeHelper {
     case (name, _) => TNode(name)
   }
 
-  private def typeAnnoHelper[_: P](t: TypeAnno): P[TypeAnno] =
+  private def typeAnnoHelper[_: P](t: Type): P[Type] =
     P(t.prettyprint).map(_ => t)
 
   private def tLinked[_: P]: P[TLinked] = P(cp.tAnyLinked | tNode)
 
-  private def typeAnno[_: P]: P[TypeAnno] =
+  private def typeAnno[_: P]: P[Type] =
     Start ~ P(
       typeAnnoHelper(TAny)
         | typeAnnoHelper(TBool)
@@ -49,7 +49,7 @@ object TypeHelper {
       case inner => fastparse.Pass(TList(inner))
     }
 
-  def decode(typName: String): Option[TypeAnno] = {
+  def decode(typName: String): Option[Type] = {
     // in case the result type of an expression is a string literal scala.reflect actually places this literal in the type
     // this means "hello world" results in the type String("hello world")
     // to get around this we have to remove all such occurrences
@@ -58,13 +58,13 @@ object TypeHelper {
       case Parsed.Failure(_, _, _) => None
       case Parsed.Success(anno, _) => Some(anno)
     }
-    rawAnno.map(refineTypeAnno)
+    rawAnno.map(refineType)
   }
 
-  private def refineTypeAnno(raw: TypeAnno): TypeAnno = raw match {
+  private def refineType(raw: Type): Type = raw match {
     case TNode("Char") | TNode("Short") | TNode("Byte") => TInt
     case TNode("Float") => TDouble
-    case TTuple(ts) => TTuple(ts.map(refineTypeAnno))
+    case TTuple(ts) => TTuple(ts.map(refineType))
     case anno => anno
   }
 

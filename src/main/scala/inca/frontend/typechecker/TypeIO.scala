@@ -1,6 +1,7 @@
 package inca.frontend.typechecker
 
-import inca.CompilationMessage
+import inca.compiler
+import inca.compiler.CompilationMessage
 import inca.frontend.parser.SourceLocation
 
 import scala.collection.mutable.ListBuffer
@@ -12,9 +13,9 @@ trait TypeIO {
   private val warnings: ListBuffer[CompilationMessage] = ListBuffer()
 
   protected def error(msg: String, sourceLocations: SourceLocation*): Unit =
-    errors += CompilationMessage(msg, sourceLocations, CompilationMessage.ERROR)
+    errors += compiler.CompilationMessage(msg, sourceLocations, CompilationMessage.ERROR)
   protected def warn(msg: String, sourceLocations: SourceLocation*): Unit =
-    warnings += CompilationMessage(msg, sourceLocations, CompilationMessage.WARNING)
+    warnings += compiler.CompilationMessage(msg, sourceLocations, CompilationMessage.WARNING)
 
   def getErrors: List[CompilationMessage] = errors.toList
   def getWarnings: List[CompilationMessage] = warnings.toList

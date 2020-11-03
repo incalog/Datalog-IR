@@ -1,17 +1,17 @@
 package inca.souffle
 
-import inca.CompilerOptions
 import inca.backend.ir.GP._
+import inca.compiler.Options
 import inca.runtime.context.LanguageMetaInfo
 import inca.runtime.index.MetaElements.{Link => MLink}
-import inca.souffle.Syntax._
+import inca.souffle.Syntax.{Type => _, _}
 import inca.souffle.Util._
 import inca.util.Gensym
 import truechange.{JavaLitType, LitType}
 
 import scala.collection.immutable.MultiDict
 import scala.collection.mutable
-import scala.meta.{Input => _, Term => _, _}
+import scala.meta.{Input => _, Term => _, Type => _, _}
 
 class SouffleToIncaCompiler {
 
@@ -37,7 +37,7 @@ class SouffleToIncaCompiler {
       transformedModule,
       inputs.values.toSeq.map { input => (decls(input.rule), input) },
       printSizes.toSeq,
-      CompilerOptions(lang)
+      Options(lang)
     )
   }
 
@@ -101,7 +101,7 @@ class SouffleToIncaCompiler {
   def compile(param: RuleParameter): Param =
     Param(cleanSouffleName(param.name), compile(param.typ))
 
-  def compile(typ: Syntax.Type): TypeAnno = typ match {
+  def compile(typ: Syntax.Type): Type = typ match {
     case DeclaredType(_) => TString
     case SymbolType => TString
     case NumberType => TInt

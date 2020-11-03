@@ -1,6 +1,7 @@
 package inca
 
 import inca.backend.ir.GP
+import inca.compiler.Options
 import inca.frontend.core.Core
 import inca.frontend.core.Core.Module
 import inca.runtime.context.QueryScope
@@ -13,24 +14,24 @@ import truediff.Diffable
 
 trait IncaMatchers extends Matchers {
   val scope: QueryScope
-  val options: CompilerOptions
+  val options: Options
 
-  def assertDesugar(core: Module, sugared: Module, options: CompilerOptions = this.options): Unit = {
+  def assertDesugar(core: Module, sugared: Module, options: Options = this.options): Unit = {
 //    println(sugared + "\n" + "-- should desugar to --" + "\n" + core)
 
-    val desugared = Compiler.compileFun(sugared, options).desugared
+    val desugared = compiler.Compiler.compileFun(sugared, options).desugared
     assertResult(core)(desugared)
   }
 
   def assertOptimize(optimized: GP.Module, original: GP.Module): Unit = {
-    assertResult(optimized)(Compiler.compileGP(original, options).optimized)
+    assertResult(optimized)(compiler.Compiler.compileGP(original, options).optimized)
   }
 
   def assertMatchCoreProg(module: Core.Module,
                           fun: String,
                           subjectProg: Diffable,
                           scope: QueryScope = this.scope,
-                          options: CompilerOptions = this.options)
+                          options: Options = this.options)
                          (asserter: Query.Matcher => Assertion): Assertion = {
 
     val editScript = Diffable.load(subjectProg)
@@ -41,10 +42,10 @@ trait IncaMatchers extends Matchers {
                           fun: String,
                           editScript: EditScript,
                           scope: QueryScope = this.scope,
-                          options: CompilerOptions = this.options)
+                          options: Options = this.options)
                          (asserter: Query.Matcher => Assertion): Assertion = {
 
-    val psystem = Compiler.compileFun(module, options).psystemModule
+    val psystem = compiler.Compiler.compileFun(module, options).psystemModule
     val querySpec = psystem.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module ${module.name}."))
 
     val feed = EnginePool.loadDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
@@ -63,7 +64,7 @@ trait IncaMatchers extends Matchers {
                         fun: String,
                         subjectProg: Diffable,
                         scope: QueryScope = this.scope,
-                        options: CompilerOptions = this.options)
+                        options: Options = this.options)
                        (asserter: Query.Matcher => Assertion): Assertion = {
 
     val editScript = Diffable.load(subjectProg)
@@ -74,10 +75,10 @@ trait IncaMatchers extends Matchers {
                         fun: String,
                         editScript: EditScript,
                         scope: QueryScope = this.scope,
-                        options: CompilerOptions = this.options)
+                        options: Options = this.options)
                        (asserter: Query.Matcher => Assertion): Assertion = {
 
-    val psystem = Compiler.compileGP(module, options).psystemModule
+    val psystem = compiler.Compiler.compileGP(module, options).psystemModule
     val querySpec = psystem.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module ${module.name}."))
 
 

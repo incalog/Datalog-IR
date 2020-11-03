@@ -1,6 +1,6 @@
 package inca.frontend.parser
 
-import inca.frontend.core.Core._
+import inca.frontend.core._
 
 import scala.collection.mutable
 import scala.meta.{Case, Defn, Enumerator, Lit, Pat, Term, Tree}

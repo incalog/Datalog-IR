@@ -1,9 +1,8 @@
 package inca.frontend.util
 
-import inca.frontend.BaseFrontend
-import inca.frontend.core.Core
-import inca.frontend.core.Core.{Assign => _, Name => _, Param => _, _}
+import inca.frontend.core.{Name => _, Param => _, _}
 import inca.frontend.parser.EvalHelper
+import inca.frontend.{BaseFrontend, core}
 import inca.runtime.context.LanguageMetaInfo
 import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
@@ -21,7 +20,7 @@ class EvalHelperTest extends AnyFunSuite {
 
   private val paramN = Param(Nil, Name("n"), Some(tInt), None)
 
-  private val emptyModule = Module(Core.Name("unused"), Seq.empty, Seq.empty, Seq.empty)
+  private val emptyModule = Module(core.Name("unused"), Seq.empty, Seq.empty, Seq.empty)
 
   test("test freeVars Name") {
     val code = q"x"
@@ -134,7 +133,7 @@ class EvalHelperTest extends AnyFunSuite {
     val code = Block(
       List(
         undefinedVar,
-        Assign(Name("value"), Name("free"))
+        Term.Assign(Name("value"), Name("free"))
       )
     )
     checkVars(code, Set("free"))
@@ -479,26 +478,26 @@ class EvalHelperTest extends AnyFunSuite {
     checkVars(code, Set("start", "Heap", "Set"))
   }
 
-  private def checkEval(eval: Eval, vars: Map[String, TypeAnno] = Map()): TypeAnno = {
+  private def checkEval(eval: Eval, vars: Map[String, core.Type] = Map()): core.Type = {
     val typer = new BaseFrontend(new LanguageMetaInfo()) {}
-    vars.foreach(vt => typer.bindVar(Core.Name(vt._1), vt._2))
+    vars.foreach(vt => typer.bindVar(core.Name(vt._1), vt._2))
     typer.typecheck(eval)
   }
   
   test("test typecheck simple") {
 
 
-    def check(eval: Eval, expected: TypeAnno, vars: Map[String, TypeAnno] = Map()): Unit = {
+    def check(eval: Eval, expected: core.Type, vars: Map[String, core.Type] = Map()): Unit = {
       val actual = checkEval(eval, vars)
       assert(actual == expected)
     }
-    check(Eval(Seq(Core.Name("x"), Core.Name("y")), Scala(q"x + y")), TInt, Map("x" -> TInt, "y" -> TInt))
+    check(Eval(Seq(core.Name("x"), core.Name("y")), Scala(q"x + y")), TInt, Map("x" -> TInt, "y" -> TInt))
     check(Eval(Seq.empty, Scala(q"Math.PI")), TDouble)
-    check(Eval(Seq(Core.Name("x"), Core.Name("y")), Scala(q"x == y")), TBool, Map("x" -> TBool, "y" -> TBool))
+    check(Eval(Seq(core.Name("x"), core.Name("y")), Scala(q"x == y")), TBool, Map("x" -> TBool, "y" -> TBool))
     check(Eval(Seq.empty, Scala(q""" "hello world" """)), TString)
     check(Eval(Seq.empty, Scala(q"{val s: Short = 1; s}")), TInt)
     check(Eval(Seq.empty, Scala(q"println()")), TUnit)
-    check(Eval(Seq(Core.Name("s")), Scala(q"s")), TString, Map("s" -> TString))
+    check(Eval(Seq(core.Name("s")), Scala(q"s")), TString, Map("s" -> TString))
   }
 
 
@@ -550,7 +549,7 @@ class EvalHelperTest extends AnyFunSuite {
           }
        """
 
-    val eval = Eval(Seq(Core.Name("num")), Scala(code))
+    val eval = Eval(Seq(core.Name("num")), Scala(code))
     val typ = checkEval(eval, Map("num" -> TNode("inca.analyzedData.Nat.Nat")))
     assert(typ == TNode("inca.analyzedData.Nat.Nat"))
   }
@@ -564,7 +563,7 @@ class EvalHelperTest extends AnyFunSuite {
         }
        """
 
-    val eval = Eval(Seq(Core.Name("num")), Scala(code))
+    val eval = Eval(Seq(core.Name("num")), Scala(code))
     val typ = checkEval(eval, Map("num" -> TNode("inca.analyzedData.Nat.Nat")))
     assert(typ == TTuple(Seq(TInt, TNode("inca.analyzedData.Nat.Nat"))))
   }

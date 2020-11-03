@@ -1,6 +1,6 @@
 package inca.frontend.desugar
 
-import inca.frontend.core.Core._
+import inca.frontend.core._
 import inca.util.Gensym
 
 /**
@@ -39,7 +39,7 @@ class DesugarTrans {
     case _ => Seq(stm)
   }
 
-  def desugarExp(exp: Exp)(implicit gensym: Gensym): Exp = (exp match {
+  def desugarExp(exp: Expression)(implicit gensym: Gensym): Expression = (exp match {
     case Eq(lhs, rhs) => Eq(desugarExp(lhs), desugarExp(rhs))
     case Neq(lhs, rhs) => Neq(desugarExp(lhs), desugarExp(rhs))
     case InstanceOf(exp, typ) => InstanceOf(desugarExp(exp), typ)

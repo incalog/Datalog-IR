@@ -6,10 +6,10 @@ import truechange.SortType
 
 object TypeOps {
 
-  def subtype(ty1: TypeAnno, ty2: TypeAnno, languageMetaInfo: LanguageMetaInfo): Boolean =
+  def subtype(ty1: Type, ty2: Type, languageMetaInfo: LanguageMetaInfo): Boolean =
     meet(ty1, ty2, languageMetaInfo).contains(ty1)
 
-  def meet(ty1: TypeAnno, ty2: TypeAnno, languageMetaInfo: LanguageMetaInfo): Option[TypeAnno] = (ty1, ty2) match {
+  def meet(ty1: Type, ty2: Type, languageMetaInfo: LanguageMetaInfo): Option[Type] = (ty1, ty2) match {
     case (_, _) if ty1 == ty2 => Some(ty1)
     case (TAny, _) => Some(ty2)
     case (_, TAny) => Some(ty1)
@@ -28,7 +28,7 @@ object TypeOps {
     case _ => None
   }
 
-  def meet(tys: Iterable[TypeAnno], languageMetaInfo: LanguageMetaInfo): Option[TypeAnno] = {
+  def meet(tys: Iterable[Type], languageMetaInfo: LanguageMetaInfo): Option[Type] = {
     if (tys.isEmpty)
       None
     else {

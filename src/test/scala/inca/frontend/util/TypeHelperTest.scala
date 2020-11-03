@@ -1,6 +1,6 @@
 package inca.frontend.util
 
-import inca.frontend.core.Core._
+import inca.frontend.core._
 import org.scalatest.funsuite.AnyFunSuite
 
 class TypeHelperTest extends AnyFunSuite{
@@ -55,7 +55,7 @@ class TypeHelperTest extends AnyFunSuite{
     checkEq("inca.Nat with Product with SuperProduct", TNode("inca.Nat"))
   }
 
-  private def checkEq(name: String, exp: TypeAnno): Unit = {
+  private def checkEq(name: String, exp: Type): Unit = {
     val typ = TypeHelper.decode(name)
     assert(typ.get == exp)
   }

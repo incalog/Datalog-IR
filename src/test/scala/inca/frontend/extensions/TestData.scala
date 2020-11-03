@@ -2,7 +2,7 @@
 //
 //import inca.analyzedData.Nat._
 //import inca.analyzedLangs.Exp
-//import inca.frontend.core.Core._
+//import inca.frontend.core._
 //import inca.runtime.context.QueryScope
 //import inca.{CompilerOptions, IncaMatchers}
 //import org.scalatest.flatspec.AnyFlatSpec

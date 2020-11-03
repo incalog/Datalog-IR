@@ -1,14 +1,14 @@
 package inca.frontend.extensions
 
 import inca.frontend.Frontend
-import inca.frontend.core.Core._
+import inca.frontend.core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.typechecker.{NoTerminator, StmType}
 import inca.util.Gensym
 
 case class Switch(bodies: Seq[Body]) extends Statement {
   override def boundVars: Set[Name] = bodies.flatMap(_.boundVars).toSet
-  override def allVars: Map[Name, Option[TypeAnno]] = bodies.flatMap(_.allVars).toMap
+  override def allVars: Map[Name, Option[Type]] = bodies.flatMap(_.allVars).toMap
 
   override def prettyprint(implicit indent: String): String = {
     if (bodies.isEmpty) "switch { }" else

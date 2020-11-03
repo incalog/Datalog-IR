@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, Public, TAny, TAnyLinked, TBool, TDouble, TInt, TList, TLong, TNode, TString, TUnbounded, Term, TypeAnno, Var, Visibility}
+import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, Public, TAny, TAnyLinked, TBool, TDouble, TInt, TList, TLong, TNode, TString, TUnbounded, Term, Type, Var, Visibility}
 
 object Printer {
 
@@ -25,7 +25,7 @@ object Printer {
 
   def prettyParam(param: Param): String = s"${param.name}: ${prettyType(param.typ)}"
 
-  def prettyType(typ: TypeAnno): String = typ match {
+  def prettyType(typ: Type): String = typ match {
     case TAny => "TAny"
     case TBool => "TBool"
     case TInt => "TInt"

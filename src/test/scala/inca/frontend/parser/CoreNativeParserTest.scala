@@ -2,7 +2,7 @@ package inca.frontend.parser
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
-import inca.frontend.core.Core._
+import inca.frontend.core._
 import inca.util.Meta.Scala
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite

@@ -1,6 +1,6 @@
 package inca.frontend.typechecker
 
-import inca.frontend.core.Core._
+import inca.frontend.core._
 import inca.frontend.parser.SourceLocation
 import inca.frontend.util.TypeHelper
 import inca.runtime.context.LanguageMetaInfo
@@ -44,7 +44,7 @@ trait CoreTypechecker
     fun.params.foreach(p => bindVar(p.name, p.typ))
     fun.bodies.foreach { body =>
       val ty = typecheck(body, mustTerminate = true)
-      if (!TypeOps.subtype(ty.asTypeAnno, fun.outType, lang))
+      if (!TypeOps.subtype(ty.asType, fun.outType, lang))
         error(s"Found body of type $ty, but expected function result type ${fun.outType}", body)
     }
   }
@@ -93,7 +93,7 @@ trait CoreTypechecker
   }
 
   final def typecheckCore(stm: CoreStatement): StmType = stm match {
-    case Fail =>
+    case FailStatement =>
       Terminator(TNothing)
 
     case Yield(exp) =>
@@ -144,14 +144,14 @@ trait CoreTypechecker
    * Expressions
    */
 
-  final def typecheck(exp: Exp): TypeAnno = assignType(exp)(typecheckInternal(exp, exp.typ))
+  final def typecheck(exp: Expression): Type = assignType(exp)(typecheckInternal(exp, exp.typ))
 
-  protected def typecheckInternal(exp: Exp, anno: Option[TypeAnno]): TypeAnno = exp match {
-    case core: CoreExp => typecheckCore(core, anno)
+  protected def typecheckInternal(exp: Expression, anno: Option[Type]): Type = exp match {
+    case core: CoreExpression => typecheckCore(core, anno)
     case _ => throw new UnsupportedOperationException(s"No type rule for $exp found.")
   }
 
-  final def typecheckCore(exp: CoreExp, anno: Option[TypeAnno]): TypeAnno = exp match {
+  final def typecheckCore(exp: CoreExpression, anno: Option[Type]): Type = exp match {
     case Var(name) =>
       lookupVar(name).getOrElse(TAny)
 
@@ -243,13 +243,13 @@ trait CoreTypechecker
   }
 
 
-  def isValidDefUndefExp(exp: Exp): Boolean = exp match {
+  def isValidDefUndefExp(exp: Expression): Boolean = exp match {
     case _: PathAccess => true
     case _: Call => true
     case _ => false
   }
 
-  def typecheckLiteral(lit: Literal): TypeAnno = lit match {
+  def typecheckLiteral(lit: Literal): Type = lit match {
     case UnitLiteral => TUnit
     case BooleanLiteral(_) => TBool
     case IntLiteral(_) => TInt
@@ -258,13 +258,13 @@ trait CoreTypechecker
     case StringLiteral(_) => TString
   }
 
-  final def typecheckLink(link: Link, receiverTy: TypeAnno, exp: Exp): TypeAnno = link match {
+  final def typecheckLink(link: Link, receiverTy: Type, exp: Expression): Type = link match {
     case NamedLink(field: Name) => receiverTy match {
       case TNode(node) =>
         lang.links.get(node, field.name) match {
-          case Some(ty) => TypeOps.truechangeTypeToTypeAnno(ty)
+          case Some(ty) => TypeOps.truechangeTypeToType(ty)
           case _ => lang.litLinks.get(node, field.name) match {
-            case Some(ty) => TypeOps.truechangeLitTypeToTypeAnno(ty)
+            case Some(ty) => TypeOps.truechangeLitTypeToType(ty)
             case _ =>
               error(s"Cannot access field `$field` of node $node", exp)
               TAny
@@ -294,7 +294,7 @@ trait CoreTypechecker
       }
   }
 
-  def typecheckCall(fun: PatternFunction, args: Seq[Exp], transitive: Boolean, exp: Exp): TypeAnno = {
+  def typecheckCall(fun: PatternFunction, args: Seq[Expression], transitive: Boolean, exp: Expression): Type = {
     val name = fun.name
 
     if (fun.params.size != args.size) {
@@ -327,7 +327,7 @@ trait CoreTypechecker
   /**
    * Computes the result type of an Eval expression and validates the contained Scala code for type correctness
    */
-  def typecheckEval(params: Seq[Name], code: Scala[Term], exp: Exp): TypeAnno = {
+  def typecheckEval(params: Seq[Name], code: Scala[Term], exp: Expression): Type = {
     import scala.reflect.runtime.currentMirror
     import scala.tools.reflect.{ToolBox, ToolBoxError}
 
@@ -360,7 +360,7 @@ trait CoreTypechecker
   }
 
 
-  def assignType[T <: Typeable with SourceLocation](term: T)(computeType: => TypeAnno): TypeAnno = {
+  def assignType[T <: Typeable with SourceLocation](term: T)(computeType: => Type): Type = {
     val inferred = computeType
     term.typ match {
       case Some(annotated) =>

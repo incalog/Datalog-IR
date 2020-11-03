@@ -1,15 +1,15 @@
 package inca.frontend.extensions
 
 import inca.frontend.Frontend
-import inca.frontend.core.Core._
+import inca.frontend.core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
 
 /** Enumerates the values of the given type */
-case class Enum(ty: TypeAnno) extends Exp {
-  override def freeVars: Map[Name, Option[TypeAnno]] = Map()
+case class Enum(ty: Type) extends Expression {
+  override def freeVars: Map[Name, Option[Type]] = Map()
   override def prettyprint(implicit indent: String): String = s"enum(${ty.prettyprint})"
 }
 
@@ -22,13 +22,13 @@ trait EnumFrontend extends Frontend {
 
   override protected def desugarables: Seq[Desugarable] = Enum +: super.desugarables
 
-  override protected[frontend] def atomicExp[_: P]: P[Exp] =
+  override protected[frontend] def atomicExp[_: P]: P[Expression] =
     P("enum" ~ "(" ~ typeAnno ~ ")").mapWithLoc(Enum.apply) |
       super.atomicExp
 
   override protected[frontend] def keywords: Set[String] = super.keywords + "enum"
 
-  override def typecheckInternal(exp: Exp, anno: Option[TypeAnno]): TypeAnno = exp match {
+  override def typecheckInternal(exp: Expression, anno: Option[Type]): Type = exp match {
     case Enum(ty) =>
       TEnumeration(ty)
     case _ => super.typecheckInternal(exp, anno)
@@ -40,7 +40,7 @@ object Enum extends Desugarable {
   override def trans(): DesugarTrans = new DesugarTrans {
     val enumStatements: ListBuffer[Statement] = ListBuffer()
 
-    override def desugarExp(exp: Exp)(implicit gensym: Gensym): Exp = exp match {
+    override def desugarExp(exp: Expression)(implicit gensym: Gensym): Expression = exp match {
       case Enum(ty) =>
         val sym = Name(gensym.fresh(s"enum_${ty.javastring}"))
         enumStatements += Values(sym, ty)

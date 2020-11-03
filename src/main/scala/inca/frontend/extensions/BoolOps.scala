@@ -1,7 +1,7 @@
 package inca.frontend.extensions
 
 import inca.frontend.Frontend
-import inca.frontend.core.Core._
+import inca.frontend.core.{Expression, _}
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.util.Gensym
 import inca.util.Meta.Scala
@@ -10,16 +10,16 @@ import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.meta.XtensionQuasiquoteTerm
 
-case class Not(cond: Exp) extends Exp {
-  override def freeVars: Map[Name, Option[TypeAnno]] = cond.freeVars
+case class Not(cond: Expression) extends Expression {
+  override def freeVars: Map[Name, Option[Type]] = cond.freeVars
   override def prettyprint(implicit indent: String): String = s"!(${cond.prettyprint})"
 }
-case class And(e1: Exp, e2: Exp) extends Exp {
-  override def freeVars: Map[Name, Option[TypeAnno]] = e1.freeVars ++ e2.freeVars
+case class And(e1: Expression, e2: Expression) extends Expression {
+  override def freeVars: Map[Name, Option[Type]] = e1.freeVars ++ e2.freeVars
   override def prettyprint(implicit indent: String): String = s"(${e1.prettyprint} && ${e2.prettyprint})"
 }
-case class Or(e1: Exp, e2: Exp) extends Exp {
-  override def freeVars: Map[Name, Option[TypeAnno]] = e1.freeVars ++ e2.freeVars
+case class Or(e1: Expression, e2: Expression) extends Expression {
+  override def freeVars: Map[Name, Option[Type]] = e1.freeVars ++ e2.freeVars
   override def prettyprint(implicit indent: String): String = s"(${e1.prettyprint} || ${e2.prettyprint})"
 }
 
@@ -32,11 +32,11 @@ trait BoolOpsFrontend extends Frontend {
 
   override protected def desugarables: Seq[Desugarable] = BoolOps +: super.desugarables
 
-  override protected[frontend] def infixExp[_: P]: P[Exp] = Chain(andExp, "||", andExp, Or)
-  protected[frontend] def andExp[_: P]: P[Exp] = Chain(notExp, "&&", notExp, And)
-  protected[frontend] def notExp[_: P]: P[Exp] = P(("!" ~ super.infixExp).mapWithLoc(Not) | super.infixExp)
+  override protected[frontend] def infixExp[_: P]: P[Expression] = Chain(andExp, "||", andExp, Or)
+  protected[frontend] def andExp[_: P]: P[Expression] = Chain(notExp, "&&", notExp, And)
+  protected[frontend] def notExp[_: P]: P[Expression] = P(("!" ~ super.infixExp).mapWithLoc(Not) | super.infixExp)
 
-  override def typecheckInternal(exp: Exp, anno: Option[TypeAnno]): TypeAnno = exp match {
+  override def typecheckInternal(exp: Expression, anno: Option[Type]): Type = exp match {
     case Not(cond) =>
       val ty = typecheck(cond)
       if (ty != TBool)
@@ -68,9 +68,9 @@ object BoolOps extends Desugarable {
 
   override def trans(): DesugarTrans = new DesugarTrans {
     val boolStatements: ListBuffer[Statement] = ListBuffer()
-    val orAlternatives: mutable.MultiDict[Name, Exp] = mutable.MultiDict()
+    val orAlternatives: mutable.MultiDict[Name, Expression] = mutable.MultiDict()
 
-    override def desugarExp(cond: Exp)(implicit gensym: Gensym): Exp = cond match {
+    override def desugarExp(cond: Expression)(implicit gensym: Gensym): Expression = cond match {
       case Not(cond) => desugarNot(cond).orTyped(TBool)
       case And(e1, e2) =>
         boolStatements += Assert(desugarExp(e1).orTyped(TBool))
@@ -83,7 +83,7 @@ object BoolOps extends Desugarable {
       case _ => super.desugarExp(cond)
     }
 
-    def desugarNot(cond: Exp)(implicit gensym: Gensym): Exp = cond match {
+    def desugarNot(cond: Expression)(implicit gensym: Gensym): Expression = cond match {
       case Not(cond) => changed(desugarExp(cond))
       case And(e1, e2) => changed(desugarExp(Or(Not(e1), Not(e2))))
       case Or(e1, e2) => changed(desugarExp(And(Not(e1), Not(e2))))

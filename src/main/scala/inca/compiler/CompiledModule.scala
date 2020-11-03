@@ -1,4 +1,4 @@
-package inca
+package inca.compiler
 
 import inca.backend.ir.{CompileToPSystem, GP, PSystem}
 import inca.frontend.parser.SourceLocation
@@ -7,15 +7,18 @@ import inca.util.Meta
 import scala.collection.mutable.ListBuffer
 
 trait CompiledModule {
-  val compilerOptions: CompilerOptions
+  val compilerOptions: Options
 
   def name: GP.Name
+
   def sourceLocation: SourceLocation
 
   def ir: GP.Module
 
   protected val messages: ListBuffer[CompilationMessage] = ListBuffer()
+
   def getMessages: List[CompilationMessage] = messages.toList
+
   def hasErrors: Boolean = messages.exists(_.severity == CompilationMessage.ERROR)
 
   lazy val optimized: GP.Module = {
@@ -37,5 +40,3 @@ trait CompiledModule {
     Meta.compileAndLoadScala[PSystem.Module](loadSource.syntax)()
   }
 }
-
-

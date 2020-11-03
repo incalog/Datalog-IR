@@ -3,8 +3,8 @@ package inca.frontend.parser
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
 import inca.frontend.BaseFrontend
-import inca.frontend.core.Core
-import inca.frontend.core.Core._
+import inca.frontend.core.Core.DataOp
+import inca.frontend.core._
 import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
@@ -19,8 +19,8 @@ class CoreParserTest extends AnyFunSuite {
 
   val parser = new CoreParser
   
-  test("test TypeAnno") {
-    def testTypeAnno(t: TypeAnno) = {
+  test("test Type") {
+    def testType(t: Type) = {
       testSuccess(parser.typeAnno(_))(t.prettyprint, t)
 //      testFailure(parser.typeAnno(_))(s"   ${t.prettyprint}")
     }
@@ -36,7 +36,7 @@ class CoreParserTest extends AnyFunSuite {
       TNode("t0mat3"),
       TNode("apf3l"),
       TNode("k1r5ch3")
-    ).map(testTypeAnno(_))
+    ).map(testType(_))
   }
 
   test("test Visibility") {
@@ -136,7 +136,7 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test AnnoParam with name") {
-    def testAnnoParam(t: TypeAnno): Assertion =
+    def testAnnoParam(t: Type): Assertion =
       testSuccess(parser.annoParam(_))(
         s"(param:${t.prettyprint})",
         AnnoParam(Some(Name("param")), t)
@@ -146,7 +146,7 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test AnnoParam without name") {
-    def testAnnoParam(t: TypeAnno): Assertion =
+    def testAnnoParam(t: Type): Assertion =
       testSuccess(parser.annoParam(_))(s"${t.prettyprint}", AnnoParam(None, t))
 
     Seq(TBool, TDouble, TString, TInt, TLong, TAnyLinked, TNode("br0t")).map(testAnnoParam)
@@ -189,7 +189,7 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test Exp single") {
-    def testExp(tree: Exp): Assertion =
+    def testExp(tree: Expression): Assertion =
       testSuccess(parser.exp(_))(tree.prettyprint("  "), tree)
 
     testExp(Eq(Var("x"), Var("y")))
@@ -274,7 +274,7 @@ class CoreParserTest extends AnyFunSuite {
 
   test("test Exp combined") {
     // @todo Add more test cases.
-    def testExp: (String, CoreExp) => Assertion = testSuccess[CoreExp](parser.exp(_))
+    def testExp: (String, CoreExpression) => Assertion = testSuccess[CoreExpression](parser.exp(_))
     def testExpFail: String => Unit = testFailure(parser.exp(_))
 
     // Note: right to left input due to recusion
@@ -430,7 +430,7 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test TTuple") {
-    def testTTuple(input: String, cmp: TypeAnno): (String, TTuple) => Assertion = testSuccess[TTuple](parser.tTuple(_))
+    def testTTuple(input: String, cmp: Type): (String, TTuple) => Assertion = testSuccess[TTuple](parser.tTuple(_))
 
     testTTuple("(Int,String)", TTuple(Seq(TInt, TString)))
     testTTuple("(Int, String)", TTuple(Seq(TInt, TString)))
@@ -445,7 +445,7 @@ class CoreParserTest extends AnyFunSuite {
       testSuccess(parser.statement(_))(tree.prettyprint(""), tree)
 
     testStatement(Yield(Var("x")))
-    testStatement(Core.Fail)
+    testStatement(FailStatement)
     testStatement(Values(Name("x"), TBool))
     testStatement(Assign(Seq(Name("x")), Var("y")))
     testStatement(Assign(Seq(Name("x"), Name("y"), Name("abc")), Var("zs")))

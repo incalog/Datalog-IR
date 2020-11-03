@@ -22,16 +22,16 @@ object InferVarTypes extends Optimization {
       super.optimizeModule(module)
     }
 
-    private var mostSpecificVarTypes: Map[Var, TypeAnno] = _
+    private var mostSpecificVarTypes: Map[Var, Type] = _
     override def optimizeBody(body: Body, pat: Pattern): Seq[Body] = {
-      var vars: MultiDict[Var, TypeAnno] = MultiDict()
+      var vars: MultiDict[Var, Type] = MultiDict()
 
-      def types(t: Term): collection.Set[TypeAnno] = t match {
+      def types(t: Term): collection.Set[Type] = t match {
         case v: Var => vars.get(v)
         case c: Constant => Set(c.lit.typ)
       }
 
-      def addType(t: Term, ty: TypeAnno): Unit = t match {
+      def addType(t: Term, ty: Type): Unit = t match {
         case v: Var =>
           vars += v -> ty
         case Constant(lit) =>

@@ -3,7 +3,7 @@ package inca.frontend.parser
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
 import inca.frontend.BaseFrontend
-import inca.frontend.core.Core._
+import inca.frontend.core._
 import inca.frontend.extensions._
 import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.Assertion

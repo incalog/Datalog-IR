@@ -2,12 +2,13 @@ package inca.frontend.parser
 
 import fastparse.ScalaWhitespace._
 import fastparse._
-import inca.frontend.core.Core
-import inca.frontend.core.Core.{Name, _}
+import inca.frontend.core
+import inca.frontend.core.Core.DataOp
+import inca.frontend.core._
 import inca.util.Meta.Scala
 
-import scala.meta._
-import scala.meta.parsers.Parsed
+import scala.meta.parsers.{Parsed, _}
+import scala.meta.{Stat, Term}
 
 /**
   * Parser for the IncA Core language.
@@ -41,21 +42,21 @@ class CoreParser {
   /** TNode parser */
   protected[frontend] def tNode[_: P]: P[TNode] = P(fullyQualifiedIdentifier.!).mapWithLoc(TNode)
 
-  /** Helper for the TypeAnno like TAny. */
-  protected[frontend] def simpleTypeAnno[_: P](t: TypeAnno): P[TypeAnno] =
+  /** Helper for the Type like TAny. */
+  protected[frontend] def simpleType[_: P](t: Type): P[Type] =
     P(t.prettyprint).mapWithLoc(_ => t)
 
   /** TLinked parser */
   protected[frontend] def tLinked[_: P]: P[TLinked] = P(tAnyLinked | tNode | tList)
 
-  /** TypeAnno parser */
-  protected[frontend] def typeAnno[_: P]: P[TypeAnno] =
-    P(simpleTypeAnno(TAny) | simpleTypeAnno(TBool) | simpleTypeAnno(TLong) |
-        simpleTypeAnno(TInt) | simpleTypeAnno(TDouble) | simpleTypeAnno(TString) |
-        simpleTypeAnno(TUnit) | tLinked | tIterable | tTuple | dataType
+  /** Type parser */
+  protected[frontend] def typeAnno[_: P]: P[Type] =
+    P(simpleType(TAny) | simpleType(TBool) | simpleType(TLong) |
+        simpleType(TInt) | simpleType(TDouble) | simpleType(TString) |
+        simpleType(TUnit) | tLinked | tIterable | tTuple // | dataType
     )
 
-  protected[frontend] def bracketedTypeAnno[_: P]: P[TypeAnno] =
+  protected[frontend] def bracketedType[_: P]: P[Type] =
     P("[" ~ typeAnno ~ "]")
 
   /** Visibility parser */
@@ -67,7 +68,7 @@ class CoreParser {
     P(Public.prettyprint("")).mapWithLoc(_ => Public)
 
   /** TTuple parser without Unit */
-  protected[frontend] def tTuple[_: P]: P[TypeAnno] = {
+  protected[frontend] def tTuple[_: P]: P[Type] = {
     P("(" ~ typeAnno ~ ")") |
     P("(" ~ typeAnno.rep(2, sep = ",") ~ ")").mapWithLoc(TTuple)
   }
@@ -117,7 +118,7 @@ class CoreParser {
   protected[frontend] def annoParam[_: P]: P[AnnoParam] =
     P("(" ~ param ~ ")" | typeAnno).mapWithLoc {
       case Param(name, typeAnno) => AnnoParam(Some(name), typeAnno)
-      case typeAnno: TypeAnno    => AnnoParam(None, typeAnno)
+      case typeAnno: Type    => AnnoParam(None, typeAnno)
     }
 
   /** Link parser */
@@ -153,9 +154,9 @@ class CoreParser {
 
 
   /** Exp parser */
-  protected[frontend] def exp[_: P]: P[Exp] = wideExp
+  protected[frontend] def exp[_: P]: P[Expression] = wideExp
 
-  protected[frontend] def wideExp[_: P]: P[Exp] =
+  protected[frontend] def wideExp[_: P]: P[Expression] =
     P(("def " ~ exp).mapWithLoc(Def) |
       ("undef " ~ exp).mapWithLoc(Undef) |
       ("count " ~ callExp).mapWithLoc(Count) |
@@ -163,22 +164,22 @@ class CoreParser {
       Chain(infixExp, "!=", infixExp, Neq, min = 1) |
       infixExp)
 
-  protected[frontend] def infixExp[_: P]: P[Exp] = dotExp
+  protected[frontend] def infixExp[_: P]: P[Expression] = dotExp
 
-  protected[frontend] def dotExp[_: P]: P[Exp] = {
+  protected[frontend] def dotExp[_: P]: P[Expression] = {
     (atomicExp ~ trailExp.rep).map {
       case (e, trails) =>
         trails.foldLeft(e)((left, trailer) => trailer(left))
     }
   }
 
-  protected[frontend] def trailExp[_: P]: P[Exp => Exp] =
-    P("." ~ link).mapWithLocFun[Exp, Exp](l => PathAccess(_, l)) |
-    P("." ~ "isInstanceOf" ~ bracketedTypeAnno).mapWithLocFun[Exp, Exp](ty => InstanceOf(_, ty)) |
-    P("." ~ "notInstanceOf" ~ bracketedTypeAnno).mapWithLocFun[Exp, Exp](ty => NotInstanceOf(_, ty)) |
-    P(":" ~ typeAnno).mapWithLocFun[Exp, Exp](ty => Cast(_, ty))
+  protected[frontend] def trailExp[_: P]: P[Expression => Expression] =
+    P("." ~ link).mapWithLocFun[Expression, Expression](l => PathAccess(_, l)) |
+    P("." ~ "isInstanceOf" ~ bracketedType).mapWithLocFun[Expression, Expression](ty => InstanceOf(_, ty)) |
+    P("." ~ "notInstanceOf" ~ bracketedType).mapWithLocFun[Expression, Expression](ty => NotInstanceOf(_, ty)) |
+    P(":" ~ typeAnno).mapWithLocFun[Expression, Expression](ty => Cast(_, ty))
 
-  protected[frontend] def atomicExp[_: P]: P[Exp] =
+  protected[frontend] def atomicExp[_: P]: P[Expression] =
     P(callExp | evalExp | wildcardExp | constantExp | varExp
      | tupleExp | aggregateExp | parensExp)
 
@@ -221,7 +222,7 @@ class CoreParser {
     P("(" ~ exp.rep(2, sep = ",") ~ ")").mapWithLoc(Tuple)
 
   /** Parens parser */
-  protected[frontend] def parensExp[_: P]: P[Exp] = P("(" ~ exp ~ ")")
+  protected[frontend] def parensExp[_: P]: P[Expression] = P("(" ~ exp ~ ")")
 
   /** Var parser */
   protected[frontend] def varExp[_: P]: P[Var] = P(identifier).mapWithLoc(Var.apply)
@@ -276,7 +277,7 @@ class CoreParser {
 
   /** PatternFunction parser */
   protected[frontend] def patternFunction[_: P]: P[PatternFunction] = {
-    P(visibility.? ~ "def" ~ identifier ~ "(" ~ paramList ~ ")" ~ ":" ~ outParamList ~/ "=" ~/ bodyList).mapWithLoc(Core.PatternFunction.tupled)
+    P(visibility.? ~ "def" ~ identifier ~ "(" ~ paramList ~ ")" ~ ":" ~ outParamList ~/ "=" ~/ bodyList).mapWithLoc(PatternFunction.tupled)
   }
 
   protected[frontend] def paramList[_: P]: P[Seq[Param]] = P(param.rep(sep = ","))
@@ -336,15 +337,15 @@ class CoreParser {
 
   /** Fail/Continue parser */
   protected[frontend] def failStatement[_: P]: P[TerminatorStatement] =
-    P("continue" /* assert false*/).mapWithLoc(_ => Core.Fail)
+    P("continue" /* assert false*/).mapWithLoc(_ => core.FailStatement)
 
   /** Terminator parser. */
   protected[frontend] def terminatorStatement[_: P]: P[TerminatorStatement] =
     P(yieldStatement | failStatement)
 
   /** DataType parser */
-  protected[frontend] def dataType[_: P]: P[TypeAnno] =
-    P((identifier ~ ".").? ~ identifier).mapWithLoc(Core.DataType.tupled)
+//  protected[frontend] def dataType[_: P]: P[Type] =
+//    P((identifier ~ ".").? ~ identifier).mapWithLoc(Core.DataType.tupled)
 
   /** DataOp parser */
   protected[frontend] def dataOp[_: P]: P[DataOp] =
@@ -353,7 +354,7 @@ class CoreParser {
     }
 
   /** Aggregate parser */
-  protected[frontend] def aggregateExp[_: P]: P[Exp] =
+  protected[frontend] def aggregateExp[_: P]: P[Expression] =
     P("aggregate" ~ "(" ~ dataOp ~ "," ~ dataOp ~ ")" ~ callExp).mapWithLoc { case (init, join, call) =>
       Aggregate(init, join, None, call)
     }

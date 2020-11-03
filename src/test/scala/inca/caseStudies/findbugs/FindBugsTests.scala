@@ -1,10 +1,10 @@
 package inca.caseStudies.findbugs
 
 import inca.analyzedLangs.tinyJava
-import inca.frontend.core.Core._
+import inca.compiler.{Compiler, Options}
+import inca.frontend.core._
 import inca.runtime.EnginePool
 import inca.runtime.context.QueryScope
-import inca.{Compiler, CompilerOptions}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
 import truediff.Diffable
@@ -41,7 +41,7 @@ class FindBugsTests extends AnyFunSuite {
 
 
     val scope = new QueryScope(tinyJava.langMetaInfo)
-    val options = CompilerOptions(tinyJava.langMetaInfo)
+    val options = Options(tinyJava.langMetaInfo)
     val spec = Compiler.compileFun(module, options).psystemModule.patterns("confusedInheritance")
 
     val feed = EnginePool.loadDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)

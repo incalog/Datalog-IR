@@ -1,7 +1,5 @@
 package inca.analyzedData
 
-import inca.frontend.core.Core.{DataOp, DataType, Name}
-
 object Nat {
   sealed trait Nat {
     def toInt: Int
@@ -25,13 +23,13 @@ object Nat {
     }
   }
 
-  val NatTyp = DataType(Some(Name("inca.analyzedData.Nat")), Name("Nat"))
-  val zeroOp = DataOp(Some(Name("inca.analyzedData.Nat")), Name("Zero"))
-  val succOp = DataOp(Some(Name("inca.analyzedData.Nat")), Name("Succ"))
-
-  def add(m: Nat, n: Nat): Nat = m.add(n)
-  def sub(m: Nat, n: Nat): Nat = m.sub(n)
-
-  val addOp = DataOp(Some(Name("inca.analyzedData.Nat")), Name("add"), isAssociative = true, isCommutative = true)
-  val subOp = DataOp(Some(Name("inca.analyzedData.Nat")), Name("sub"), isAssociative = true)
+//  val NatTyp = DataType(Some(Name("inca.analyzedData.Nat")), Name("Nat"))
+//  val zeroOp = DataOp(Some(Name("inca.analyzedData.Nat")), Name("Zero"))
+//  val succOp = DataOp(Some(Name("inca.analyzedData.Nat")), Name("Succ"))
+//
+//  def add(m: Nat, n: Nat): Nat = m.add(n)
+//  def sub(m: Nat, n: Nat): Nat = m.sub(n)
+//
+//  val addOp = DataOp(Some(Name("inca.analyzedData.Nat")), Name("add"), isAssociative = true, isCommutative = true)
+//  val subOp = DataOp(Some(Name("inca.analyzedData.Nat")), Name("sub"), isAssociative = true)
 }

@@ -3,14 +3,14 @@ package inca.frontend.core
 import inca.frontend.core.Core._
 
 object CollectUndefPaths extends Collect[PathAccess] {
-  override def transExp(exp: CoreExp): Seq[PathAccess] = exp match {
+  override def transExp(exp: CoreExpression): Seq[PathAccess] = exp match {
     case Undef(acc: PathAccess) => acc +: super.transExp(acc)
     case _ => super.transExp(exp)
   }
 }
 
-object CollectNotInstanceOfTypes extends Collect[TypeAnno] {
-  override def transExp(exp: CoreExp): Seq[TypeAnno] = exp match {
+object CollectNotInstanceOfTypes extends Collect[Type] {
+  override def transExp(exp: CoreExpression): Seq[Type] = exp match {
     case NotInstanceOf(e, ty) => ty +: super.transExp(e.ensureCore)
     case _ => super.transExp(exp)
   }
@@ -38,13 +38,13 @@ trait Collect[R] {
     case Assign(names, exp) => names.flatMap(transBinding) ++ transExp(exp.ensureCore)
     case Assert(cond) => transExp(cond.ensureCore)
     case Yield(exp) => transExp(exp.ensureCore)
-    case Core.Fail => Seq()
+    case FailStatement => Seq()
   }
 
   def transBinding(name: Name): Seq[R] = Seq()
   def transReference(name: Name): Seq[R] = Seq()
 
-  def transExp(exp: CoreExp): Seq[R] = exp match {
+  def transExp(exp: CoreExpression): Seq[R] = exp match {
     case Eq(lhs, rhs) => transExp(lhs.ensureCore) ++ transExp(rhs.ensureCore)
     case Neq(lhs, rhs) => transExp(lhs.ensureCore) ++ transExp(rhs.ensureCore)
     case InstanceOf(exp, ty) => transExp(exp.ensureCore)
@@ -67,6 +67,6 @@ trait Collect[R] {
     case DoubleLiteral(v) => Seq()
     case StringLiteral(v) => Seq()
     case BooleanLiteral(v) => Seq()
-    case Core.UnitLiteral => Seq()
+    case UnitLiteral => Seq()
   }
 }

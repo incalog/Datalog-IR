@@ -1,11 +1,12 @@
 package inca.backend.ir
 
+import inca.IncaMatchers
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
-import inca.frontend.core.Core.{Exp => _, _}
+import inca.compiler.Options
+import inca.frontend.core._
 import inca.runtime.context.QueryScope
-import inca.{CompilerOptions, IncaMatchers}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta._
@@ -16,7 +17,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   private val testInputNumericAddition = Add(Add(IntegerLit(5), IntegerLit(7)), Add(LongLit(7), IntegerLit(8)))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: CompilerOptions = CompilerOptions(scope.langMetaInfo)
+  val options: Options = Options(scope.langMetaInfo)
 
   test("simple compare constraint") {
     val module = Module("Test", Seq(), Seq(idFun), Seq())

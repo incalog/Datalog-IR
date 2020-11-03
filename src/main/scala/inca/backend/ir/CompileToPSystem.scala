@@ -180,7 +180,7 @@ object CompileToPSystem {
 
 
 
-  private def genInputKeyAndType(typ: GP.TypeAnno): Option[(meta.Term, meta.Term)] = typ match {
+  private def genInputKeyAndType(typ: GP.Type): Option[(meta.Term, meta.Term)] = typ match {
     case TAny => None
     case TDataType(_) => None
     case TUnbounded(ty) =>
@@ -288,7 +288,7 @@ object CompileToPSystem {
     case Computed(lhs, computation) => compileComputation(lhs, computation)
   }
 
-  private def genLinkKey(link: Link, targetType: GP.TypeAnno): meta.Term = link match {
+  private def genLinkKey(link: Link, targetType: GP.Type): meta.Term = link match {
     case GP.ParentLink => oParentKey
     case GP.NextLink => oLinkListNextKey
     case GP.SizeLink => oSizeKey
@@ -362,12 +362,12 @@ object CompileToPSystem {
       Seq(q"new $tAggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)")
   }
 
-  private def genLitType(typ: GP.TypeAnno): meta.Term = typ match {
+  private def genLitType(typ: GP.Type): meta.Term = typ match {
     case TUnbounded(ty) => genProperLitType(ty)
     case ty => q"$tPrimitiveType(${genProperLitType(ty)})"
   }
 
-  private def genProperLitType(typ: GP.TypeAnno): meta.Term = typ match {
+  private def genProperLitType(typ: GP.Type): meta.Term = typ match {
     case TBool => q"classOf[java.lang.Boolean]"
     case TInt => q"classOf[java.lang.Integer]"
     case TLong => q"classOf[java.lang.Long]"
@@ -377,14 +377,14 @@ object CompileToPSystem {
   }
 
 
-  private def genNodeType(typ: GP.TypeAnno): meta.Term = typ match {
+  private def genNodeType(typ: GP.Type): meta.Term = typ match {
     case TAnyLinked => tAnyType
     case TNode(name) => q"$tNodeType($name)"
     case TList(ty) => q"$tListType(${genNodeType(ty)})"
     case _ => throw new IllegalArgumentException(s"Cannot compile $typ as node type")
   }
 
-  private def genScalaType(typ: GP.TypeAnno): meta.Type = typ match {
+  private def genScalaType(typ: GP.Type): meta.Type = typ match {
     case TUnbounded(ty) => genScalaType(ty)
     case TAny => t"Any"
     case TBool => t"Boolean"

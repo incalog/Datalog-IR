@@ -1,18 +1,18 @@
 package inca.frontend.extensions
 
 import inca.frontend.Frontend
-import inca.frontend.core.Core._
+import inca.frontend.core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.parser.ParserUtils.{nl_!, sp}
 import inca.frontend.parser.SourceLocation
-import inca.frontend.typechecker.{NoTerminator, StmType, TypeOps}
+import inca.frontend.typechecker.{NoTerminator, StmType, TypeOps, Typeable}
 import inca.util.{Gensym, Meta}
 
 import scala.collection.mutable.ListBuffer
 
-case class Match(matchee: Exp, cases: Seq[Case]) extends Statement {
+case class Match(matchee: Expression, cases: Seq[Case]) extends Statement {
   override def boundVars: Set[Name] = cases.flatMap(_.boundVars).toSet
-  override def allVars: Map[Name, Option[TypeAnno]] = matchee.freeVars ++ cases.flatMap(_.allVars)
+  override def allVars: Map[Name, Option[Type]] = matchee.freeVars ++ cases.flatMap(_.allVars)
 
   override def prettyprint(implicit indent: String): String = {
     val casesS = if (cases.isEmpty) "" else
@@ -24,7 +24,7 @@ case class Match(matchee: Exp, cases: Seq[Case]) extends Statement {
 }
 case class Case(pattern: Pattern, body: Body) extends SourceLocation {
   def boundVars: Set[Name] = pattern.boundVars ++ body.boundVars
-  def allVars: Map[Name, Option[TypeAnno]] = pattern.allVars ++ body.allVars
+  def allVars: Map[Name, Option[Type]] = pattern.allVars ++ body.allVars
 
   def prettyprint(implicit indent: String): String =
     s"${indent}case ${pattern.prettyprint} => ${body.prettyprint}"
@@ -32,13 +32,13 @@ case class Case(pattern: Pattern, body: Body) extends SourceLocation {
 
 sealed trait Pattern extends SourceLocation {
   def boundVars: Set[Name]
-  def allVars: Map[Name, Option[TypeAnno]]
+  def allVars: Map[Name, Option[Type]]
   def prettyprint(implicit indent: String): String
 }
 
 case class NodePattern(c: TNode, bindings: Seq[PatternBinding]) extends Pattern {
   def boundVars: Set[Name] = bindings.flatMap(_.pattern.boundVars).toSet
-  override def allVars: Map[Name, Option[TypeAnno]] = bindings.flatMap(_.pattern.allVars).toMap
+  override def allVars: Map[Name, Option[Type]] = bindings.flatMap(_.pattern.allVars).toMap
 
   override def prettyprint(implicit indent: String): String = {
     val bindingsS = if (bindings.isEmpty) "" else
@@ -53,7 +53,7 @@ case class PatternBinding(field: Name, pattern: Pattern) extends Typeable with S
 
 case class TuplePattern(pats: Seq[Pattern]) extends Pattern {
   override def boundVars: Set[Name] = pats.flatMap(_.boundVars).toSet
-  override def allVars: Map[Name, Option[TypeAnno]] = pats.flatMap(_.allVars).toMap
+  override def allVars: Map[Name, Option[Type]] = pats.flatMap(_.allVars).toMap
   override def prettyprint(implicit indent: String): String =
     if (pats.isEmpty)
       "()"
@@ -65,24 +65,24 @@ case class TuplePattern(pats: Seq[Pattern]) extends Pattern {
 
 case class VarPattern(name: Name) extends Pattern {
   override def boundVars: Set[Name] = Set(name)
-  override def allVars: Map[Name, Option[TypeAnno]] = Map(name -> None)
+  override def allVars: Map[Name, Option[Type]] = Map(name -> None)
   override def prettyprint(implicit indent: String): String = name.name
 }
 case class NamedPattern(name: Name, pat: Pattern) extends Pattern {
   override def boundVars: Set[Name] = Set(name) ++ pat.boundVars
-  override def allVars: Map[Name, Option[TypeAnno]] = Map(name -> None) ++ pat.allVars
+  override def allVars: Map[Name, Option[Type]] = Map(name -> None) ++ pat.allVars
   override def prettyprint(implicit indent: String): String = s"$name@${pat.prettyprint}"
 }
 
 case object WildcardPattern extends Pattern {
   override def boundVars: Set[Name] = Set()
-  override def allVars: Map[Name, Option[TypeAnno]] = Map()
+  override def allVars: Map[Name, Option[Type]] = Map()
   override def prettyprint(implicit indent: String): String = "_"
 }
 
 case class LiteralPattern(v: Literal) extends Pattern {
   override def boundVars: Set[Name] = Set()
-  override def allVars: Map[Name, Option[TypeAnno]] = Map()
+  override def allVars: Map[Name, Option[Type]] = Map()
   override def prettyprint(implicit indent: String): String = v.prettyprint
 }
 
@@ -152,7 +152,7 @@ trait MatchFrontend extends Frontend {
     case _ => super.typecheckInternal(stm, mustTerminate)
   }
 
-  def typecheckPattern(pattern: Pattern, matchee: TypeAnno): Unit = pattern match {
+  def typecheckPattern(pattern: Pattern, matchee: Type): Unit = pattern match {
     case NodePattern(node, bindings) =>
       if (TypeOps.meet(node, matchee, lang) == TNothing)
         warn(s"Type of pattern $node unrelated type to matchee type $matchee", pattern)
@@ -161,12 +161,12 @@ trait MatchFrontend extends Frontend {
         assignType(b) {
           lang.links.get(node.name, field.name) match {
             case Some(trueType) =>
-              val ty = TypeOps.truechangeTypeToTypeAnno(trueType)
+              val ty = TypeOps.truechangeTypeToType(trueType)
               typecheckPattern(pattern, ty)
               ty
             case None => lang.litLinks.get(node.name, field.name) match {
               case Some(trueLitType) =>
-                val ty = TypeOps.truechangeLitTypeToTypeAnno(trueLitType)
+                val ty = TypeOps.truechangeLitTypeToType(trueLitType)
                 typecheckPattern(pattern, ty)
                 ty
               case None =>
@@ -240,7 +240,7 @@ object Match extends Desugarable {
       case _ => super.desugarStm(stm)
     }
 
-    def desugarPat(exp: Exp, pat: Pattern)(implicit gensym: Gensym): Seq[Statement] = pat match {
+    def desugarPat(exp: Expression, pat: Pattern)(implicit gensym: Gensym): Seq[Statement] = pat match {
       case NodePattern(c, bindings) =>
         val result = ListBuffer[Statement]()
         val matchee: Var = exp match {
@@ -274,7 +274,7 @@ object Match extends Desugarable {
         Seq(Assert(Eq(exp, Constant(v))))
     }
 
-    def desugarNegatedPat(exp: Exp, pat: Pattern)(implicit gensym: Gensym): Seq[Seq[Statement]] = pat match {
+    def desugarNegatedPat(exp: Expression, pat: Pattern)(implicit gensym: Gensym): Seq[Seq[Statement]] = pat match {
       case NodePattern(c, bindings) =>
         var ensureVar = Seq[Statement]()
         val matchee: Var = exp match {

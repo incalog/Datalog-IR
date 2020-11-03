@@ -1,19 +1,19 @@
 package inca.frontend.extensions
 
 import inca.frontend.Frontend
-import inca.frontend.core.Core._
+import inca.frontend.core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.typechecker.StmType
 import inca.util.Gensym
 
-case class Foreach(name: Name, exp: Exp, body: Body) extends Statement {
-  val elemTyp: Option[TypeAnno] = exp.typ.flatMap {
+case class Foreach(name: Name, exp: Expression, body: Body) extends Statement {
+  val elemTyp: Option[Type] = exp.typ.flatMap {
     case ty: TIterable => Some(ty.contained)
     case _ => None
   }
 
   override def boundVars: Set[Name] = Set(name) ++ body.boundVars
-  override def allVars: Map[Name, Option[TypeAnno]] = Map(name -> elemTyp) ++ exp.freeVars ++ body.allVars
+  override def allVars: Map[Name, Option[Type]] = Map(name -> elemTyp) ++ exp.freeVars ++ body.allVars
 
   override def prettyprint(implicit indent: String): String = {
     s"${indent}foreach $name in ${exp.prettyprint} ${body.prettyprint}"
