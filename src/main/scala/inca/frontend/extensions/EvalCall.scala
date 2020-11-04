@@ -9,6 +9,7 @@ import inca.frontend.parser.SourceLocation
 import inca.frontend.typechecker.TypeOps
 import inca.frontend.util.TypeHelper
 import inca.util.Meta.Scala
+import inca.util.{Gensym, Meta}
 
 import scala.collection.mutable.ListBuffer
 import scala.meta.parsers._
@@ -37,7 +38,14 @@ trait EvalCallFrontend extends Frontend {
 
   override protected def typecheckInternal(exp: Expression, anno: Option[Type]): Type = exp match {
     case EvalCall(fun, args) =>
-      val typString = typecheckScala(fun.tree.syntax) match {
+      val typString = Meta.typecheckScala(fun.tree.syntax) match {
+        case Left(typ) if typ.endsWith(".type") =>
+          Meta.typecheckScala(s"${fun.tree.syntax}.apply _") match {
+            case Left(applyTyp) => applyTyp
+            case Right(err) =>
+              error(err.getMessage, exp)
+              "Any"
+          }
         case Left(typ) =>
           typ
         case Right(err) =>
@@ -64,21 +72,16 @@ trait EvalCallFrontend extends Frontend {
         case (param, arg) =>
           val argTy = typecheck(arg)
           TypeHelper.decode(param) match {
-            case Left(paramTy) =>
-              if (TypeOps.meet(paramTy, argTy, lang) == TNothing) {
-                warn(s"Cast of argument type $argTy to unrelated parameter type ${paramTy} will always fail", arg)
+            case Right(paramTy) =>
+              if (!TypeOps.subtype(argTy, paramTy, lang)) {
+                error(s"Cannot pass argument of type $argTy to $param of type $paramTy", arg)
               }
-            case Right(msg) =>
+            case Left(msg) =>
               error(msg, exp)
           }
       }
 
-      TypeHelper.decode(result) match {
-        case Left(ty) => ty
-        case Right(msg) =>
-          error(msg, exp)
-          TAny
-      }
+      TScala(Scala(result))
 
     case _ => super.typecheckInternal(exp, anno)
   }
@@ -86,33 +89,31 @@ trait EvalCallFrontend extends Frontend {
 
 object EvalCall extends Desugarable {
   override def trans(): DesugarTrans = new DesugarTrans {
-    private val dataOpAssigns: ListBuffer[Assign] = ListBuffer()
+    private val evalCallAssigns: ListBuffer[Assign] = ListBuffer()
 
-//    override def desugarExp(exp: Expression)(implicit gensym: Gensym): Expression = exp match {
-//      case call@Call(op, args, false) =>
-//        val syms = args.map { arg =>
-//          val sym = Name(gensym.fresh("dataOpArg"))
-//          dataOpAssigns += Assign(Seq(sym), arg)
-//          sym
-//        }
-//
-//        val resultType = call.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped data op call $call"))
-//        val qop = resolveDataOp(op)
-//        val fun = Meta.mkQualName(qop)
-//        val code: Term = if(syms.isEmpty) fun else Term.Apply(fun, syms.map(n => Meta.mkQualName(n.name)).toList)
-//        changed(Eval(syms,  Scala(code)).typed(resultType))
-//      case _ => super.desugarExp(exp)
-//    }
-//
-//    override def desugarStm(stm: Statement)(implicit gensym: Gensym): Seq[Statement] = {
-//      val desugared = super.desugarStm(stm)
-//      if (dataOpAssigns.isEmpty)
-//        desugared
-//      else {
-//        val prepend = dataOpAssigns.toSeq
-//        dataOpAssigns.clear()
-//        prepend ++ desugared
-//      }
-//    }
+    override def desugarExp(exp: Expression)(implicit gensym: Gensym): Expression = exp match {
+      case call@EvalCall(fun, args) =>
+        val params = args.map { arg =>
+          val sym = Name(gensym.fresh("evalCallArg"))
+          val assign = Assign(Seq(sym), arg)
+          evalCallAssigns += assign
+          EvalParam(sym).resolved(assign).mtyped(arg.typ)
+        }
+
+        val code = meta.Term.Apply(fun.tree, params.map(n => meta.Term.Name(n.name.name)).toList)
+        changed(Eval(params,  Scala(code)).mtyped(call.typ))
+      case _ => super.desugarExp(exp)
+    }
+
+    override def desugarStm(stm: Statement)(implicit gensym: Gensym): Seq[Statement] = {
+      val desugared = super.desugarStm(stm)
+      if (evalCallAssigns.isEmpty)
+        desugared
+      else {
+        val prepend = evalCallAssigns.toSeq
+        evalCallAssigns.clear()
+        prepend ++ desugared
+      }
+    }
   }
 }

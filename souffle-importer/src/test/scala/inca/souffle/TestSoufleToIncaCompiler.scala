@@ -43,9 +43,9 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaMatchers {
     compiler.compile("transitiveclosure", ast)
   }
 
-  val lang = compiledModule.compilerOptions.languageMetaInfo
+  val lang = compiledModule.options.languageMetaInfo
   val scope: QueryScope = new QueryScope(lang)
-  val options: Options = compiledModule.compilerOptions
+  val options: Options = compiledModule.options
 
   "compiled souffle" should "trivial transitive closure" in {
     val superclasses =

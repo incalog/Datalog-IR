@@ -4,7 +4,7 @@ import inca.frontend.Frontend
 import inca.frontend.core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.parser.SourceLocation
-import inca.frontend.typechecker.{NoTerminator, StmType}
+import inca.frontend.typechecker.{NoTerminator, StmType, TypeOps}
 import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
@@ -62,8 +62,8 @@ trait IfThenElseFrontend extends Frontend {
       val conds = cond +: elseIfs.map(_.cond)
       conds.foreach { c =>
         val ty = typecheck(c)
-        if (ty != TBool)
-          error(s"Expected condition of type $TBool, but found $ty", c)
+        if (!TypeOps.subtype(ty, TScalaBoolean, lang))
+          error(s"Expected Boolean condition, but got $ty", c)
       }
 
       val bodies = thn +: elseIfs.map(_.body)

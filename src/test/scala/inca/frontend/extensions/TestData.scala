@@ -6,8 +6,10 @@ import inca.analyzedLangs.Exp
 import inca.compiler.Options
 import inca.frontend.core._
 import inca.runtime.context.QueryScope
+import inca.util.Meta.Scala
 import org.scalatest.flatspec.AnyFlatSpec
 
+import scala.meta.quasiquotes._
 
 class TestData extends AnyFlatSpec with IncaMatchers {
   val scope = new QueryScope(Exp.languageMetaInfo)
@@ -17,8 +19,8 @@ class TestData extends AnyFlatSpec with IncaMatchers {
 
   "data op" should "support zero-arg data op" in {
     val module = Module("Test_Cast", Seq(), Seq(
-      PatternFunction(None, "zero", Seq(), Seq(AnnoParam(None, TBool)), Seq(
-        Body(Seq(Yield(EvalCall(zeroOp.asScala, Seq()))))
+      PatternFunction(None, "zero", Seq(), Seq(AnnoParam(None, NatTyp)), Seq(
+        Body(Seq(Yield(Eval(Seq(), zeroOp))))
       ))
     ))
 
@@ -31,8 +33,8 @@ class TestData extends AnyFlatSpec with IncaMatchers {
 
   "data op" should "support non-zero-arg data op" in {
     val module = Module("Test_Cast", Seq(), Seq(
-      PatternFunction(None, "one", Seq(), Seq(AnnoParam(None, TBool)), Seq(
-        Body(Seq(Yield(EvalCall(succOp.asScala, Seq(EvalCall(zeroOp.asScala, Seq()))))))
+      PatternFunction(None, "one", Seq(), Seq(AnnoParam(None, NatTyp)), Seq(
+        Body(Seq(Yield(EvalCall(succOp, Seq(Eval(Seq(), zeroOp))))))
       ))
     ))
 
@@ -43,24 +45,24 @@ class TestData extends AnyFlatSpec with IncaMatchers {
     }
   }
 
-//  "data op" should "support finite enumerations" in {
-//    val module = Module("Test_Cast", Seq(), Seq(
-//      PatternFunction(None, "1_to_10", Seq(), Seq(AnnoParam(None, NatTyp)), Seq(
-//        Body(Seq(Yield(DataOpCall(succOp, Seq(DataOpCall(zeroOp, Seq()).typed(NatTyp))).typed(NatTyp)))),
-//        Body(
-//          Seq(
-//            Assign(Seq("pred"), Call("1_to_10", Seq()).typed(NatTyp)),
-//            Assert(Eval(Seq("pred"), q"pred.toInt < 10").typed(TBool)),
-//            Yield(DataOpCall(succOp, Seq(Var("pred").typed(NatTyp))).typed(NatTyp))
-//          )
-//        )
-//      ))
-//    ))
-//
-//    val input = Exp.BooleanLit(true)
-//
-//    assertMatchCoreProg(module, "1_to_10", input, scope) { matcher =>
-//      assert(matcher.getAllMatches.size() == 10)
-//    }
-//  }
+  "data op" should "support finite enumerations" in {
+    val module = Module("Test_Cast", Seq(), Seq(
+      PatternFunction(None, "1_to_10", Seq(), Seq(AnnoParam(None, NatTyp)), Seq(
+        Body(Seq(Yield(EvalCall(succOp, Seq(Eval(Seq(), zeroOp)))))),
+        Body(
+          Seq(
+            Assign(Seq("pred"), Call("1_to_10", Seq())),
+            Assert(Eval(Seq(EvalParam("pred")), Scala(q"pred.toInt < 10"))),
+            Yield(EvalCall(succOp, Seq(Var("pred"))))
+          )
+        )
+      ))
+    ))
+
+    val input = Exp.BooleanLit(true)
+
+    assertMatchCoreProg(module, "1_to_10", input, scope) { matcher =>
+      assert(matcher.getAllMatches.size() == 10)
+    }
+  }
 }

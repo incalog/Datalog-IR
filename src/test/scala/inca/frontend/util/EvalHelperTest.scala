@@ -489,54 +489,54 @@ class EvalHelperTest extends AnyFunSuite {
       val actual = checkEval(eval, vars)
       assert(actual == expected)
     }
-    check(Eval(Seq(EvalParam(core.Name("x")), EvalParam(core.Name("y"))), Scala(q"x + y")), TInt, Map("x" -> TInt, "y" -> TInt))
-    check(Eval(Seq.empty, Scala(q"Math.PI")), TDouble)
-    check(Eval(Seq(EvalParam(core.Name("x")), EvalParam(core.Name("y"))), Scala(q"x == y")), TBool, Map("x" -> TBool, "y" -> TBool))
-    check(Eval(Seq.empty, Scala(q""" "hello world" """)), TString)
-    check(Eval(Seq.empty, Scala(q"{val s: Short = 1; s}")), TInt)
+    check(Eval(Seq(EvalParam(core.Name("x")), EvalParam(core.Name("y"))), Scala(q"x + y")), TScalaInt, Map("x" -> TInt, "y" -> TInt))
+    check(Eval(Seq.empty, Scala(q"Math.PI")), TScalaDouble)
+    check(Eval(Seq(EvalParam(core.Name("x")), EvalParam(core.Name("y"))), Scala(q"x == y")), TScalaBoolean, Map("x" -> TBool, "y" -> TBool))
+    check(Eval(Seq.empty, Scala(q""" "hello world" """)), TScalaString)
+    check(Eval(Seq.empty, Scala(q"{val s: Short = 1; s}")), TScala("Short"))
     check(Eval(Seq.empty, Scala(q"println()")), TUnit)
-    check(Eval(Seq(EvalParam(core.Name("s"))), Scala(q"s")), TString, Map("s" -> TString))
+    check(Eval(Seq(EvalParam(core.Name("s"))), Scala(q"s")), TScalaString, Map("s" -> TString))
   }
 
 
   test("test typecheck tuple") {
     val eval = Eval(Seq.empty, Scala(q"(1, 1.0, true)"))
     val typ = checkEval(eval)
-    assert(typ == TTuple(Seq(TInt, TDouble, TBool)))
+    assert(typ == TTuple(Seq(TScalaInt, TScalaDouble, TScalaBoolean)))
   }
 
   test("test typecheck tuple nested") {
     val code = q"(1, 3.4, (true, 'h'))"
     val eval = Eval(Seq.empty, Scala(code))
     val typ = checkEval(eval)
-    assert(typ == TTuple(Seq(TInt, TDouble, TTuple(Seq(TBool, TInt)))))
+    assert(typ == TTuple(Seq(TScalaInt, TScalaDouble, TTuple(Seq(TScalaBoolean, TScala("Char"))))))
   }
 
   test("test typecheck tuple nested with string literals") {
     val code = q"""(42, 6.9, true, ("hello", 2), "world") """
     val eval = Eval(Seq.empty, Scala(code))
     val typ = checkEval(eval)
-    assert(typ == TTuple(Seq(TInt, TDouble, TBool, TTuple(Seq(TString, TInt)), TString)))
+    assert(typ == TTuple(Seq(TScalaInt, TScalaDouble, TScalaBoolean, TTuple(Seq(TScalaString, TScalaInt)), TScalaString)))
   }
 
   test("test typecheck subtyping") {
     val code = q"""if(true) 42 else new Object()"""
     val eval = Eval(Seq.empty, Scala(code))
     val typ = checkEval(eval)
-    assert(typ == TAny)
+    assert(typ == TScala("Any"))
   }
 
   test("test typecheck list") {
     val code = q"List(inca.analyzedData.Nat.Zero)"
     val eval = Eval(Seq.empty, Scala(code))
     val typ = checkEval(eval)
-    assert(typ == TList(TNode("inca.analyzedData.Nat.Zero.type")))
+    assert(typ == TScala("List[inca.analyzedData.Nat.Zero.type]"))
   }
 
   test("test typecheck extern types") {
     val eval = Eval(Seq.empty, Scala(q"inca.analyzedData.Nat.Zero"))
     val typ = checkEval(eval)
-    assert(typ == TNode("inca.analyzedData.Nat.Zero.type"))
+    assert(typ == TScala("inca.analyzedData.Nat.Zero.type"))
   }
 
   test("test typecheck extern types 2") {
@@ -548,8 +548,8 @@ class EvalHelperTest extends AnyFunSuite {
        """
 
     val eval = Eval(Seq(EvalParam(core.Name("num"))), Scala(code))
-    val typ = checkEval(eval, Map("num" -> TNode("inca.analyzedData.Nat.Nat")))
-    assert(typ == TNode("inca.analyzedData.Nat.Nat"))
+    val typ = checkEval(eval, Map("num" -> TScala("inca.analyzedData.Nat.Nat")))
+    assert(typ == TScala("inca.analyzedData.Nat.Nat"))
   }
 
   test("test typecheck complex") {
@@ -562,8 +562,8 @@ class EvalHelperTest extends AnyFunSuite {
        """
 
     val eval = Eval(Seq(EvalParam(core.Name("num"))), Scala(code))
-    val typ = checkEval(eval, Map("num" -> TNode("inca.analyzedData.Nat.Nat")))
-    assert(typ == TTuple(Seq(TInt, TNode("inca.analyzedData.Nat.Nat"))))
+    val typ = checkEval(eval, Map("num" -> TScala("inca.analyzedData.Nat.Nat")))
+    assert(typ == TTuple(Seq(TScalaInt, TScala("inca.analyzedData.Nat.Nat"))))
   }
 
   private def checkVars(code: Tree, expectedFree: Set[String]): Unit = {

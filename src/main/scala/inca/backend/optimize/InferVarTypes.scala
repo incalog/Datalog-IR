@@ -35,7 +35,8 @@ object InferVarTypes extends Optimization {
         case v: Var =>
           vars += v -> ty
         case Constant(lit) =>
-          if (!TypeOps.subtype(lit.typ, ty, languageMetaInfo))
+          val meet = TypeOps.meet(lit.typ, ty, languageMetaInfo)
+          if (meet.isEmpty)
             throw BodyMustFail
       }
 
@@ -70,7 +71,7 @@ object InferVarTypes extends Optimization {
           computation match {
             case CountAggregation(patName, args) =>
               addPatArgTypes(patName, args)
-              addType(lhs, TInt)
+              addType(lhs, TScalaInt)
             case ConstantEvaluation(resultType, _) =>
               addType(lhs, resultType)
             case Evaluation(args, resultType, _) =>

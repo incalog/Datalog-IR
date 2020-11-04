@@ -105,8 +105,8 @@ object ForallExists extends Desugarable {
           val args = vars.map(v => Var(v._1))
 
           changed(Seq(
-            Assign(Seq(sizeSym), PathAccess(exp, SizeLink).typed(TInt)),
-            Assign(Seq(successSym), Count(Call(funsym, args).typed(ty)).typed(TInt)),
+            Assign(Seq(sizeSym), PathAccess(exp, SizeLink).typed(TScalaInt)),
+            Assign(Seq(successSym), Count(Call(funsym, args).typed(ty)).typed(TScalaInt)),
             Assert(Eq(Var(sizeSym), Var(successSym)))
           ))
         case ty => throw new IllegalArgumentException(s"Forall loop expression $exp must have iterable type, but was type $ty")
@@ -120,11 +120,11 @@ object ForallExists extends Desugarable {
           val vars = makeCondFun(name, exp, body, ty, funsym)
           val args = vars.map(v => Var(v._1))
 
-          val assign = Assign(Seq(successSym), Count(Call(funsym, args).typed(ty)).typed(TInt))
+          val assign = Assign(Seq(successSym), Count(Call(funsym, args).typed(ty)).typed(TScalaInt))
 
-          val evalParam = EvalParam(successSym).resolved(assign).typed(TInt)
+          val evalParam = EvalParam(successSym).resolved(assign).typed(TScalaInt)
           val code = Scala[Term](q"${Term.Name(successSym.name)} >= 1")
-          val eval = Assert(Eval(Seq(evalParam), code).typed(TBool))
+          val eval = Assert(Eval(Seq(evalParam), code).typed(TScalaBoolean))
 
           changed(Seq(assign, eval))
 

@@ -39,9 +39,9 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaMatchers {
     compiler.compile("catanalysis", ast)
   }
 
-  private val lang: LanguageMetaInfo = compiledModule.compilerOptions.languageMetaInfo
+  private val lang: LanguageMetaInfo = compiledModule.options.languageMetaInfo
   val scope: QueryScope = new QueryScope(lang)
-  val options: Options = compiledModule.compilerOptions
+  val options: Options = compiledModule.options
 
 
   val _MethodSig = Syntax.RuleSignature("_Method", Seq(

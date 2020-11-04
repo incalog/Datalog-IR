@@ -61,8 +61,8 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "eliminate node pattern" in {
     val sugared = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Match(one, Seq(
+      PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), Seq(), Seq(Body(Seq(
+        Match(Var("e"), Seq(
           Case(NodePattern(TNode(Exp.letTag), Seq(PatternBinding("name", VarPattern("n")))), Body(
             Assign(Seq("case"), Constant(IntLiteral(2))),
             Yield(Constant(UnitLiteral))
@@ -72,9 +72,8 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     ))
 
     val core = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Assign(Seq("matchee"), one),
-        Assert(InstanceOf(Var("matchee"), TNode(Exp.letTag))),
+      PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), Seq(), Seq(Body(Seq(
+        Assign(Seq("matchee"), Cast(Var("e"), TNode(Exp.letTag))),
         Assign(Seq("n"), PathAccess(Var("matchee"), NamedLink("name"))),
         Assign(Seq("case"), Constant(IntLiteral(2))),
         Yield(Constant(UnitLiteral))
@@ -86,8 +85,8 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "eliminate node pattern wildcard" in {
     val sugared = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Match(one, Seq(
+      PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), Seq(), Seq(Body(Seq(
+        Match(Var("e"), Seq(
           Case(NodePattern(TNode(Exp.letTag), Seq(PatternBinding("name", WildcardPattern))), Body(
             Assign(Seq("case"), Constant(IntLiteral(3)))
           ))
@@ -96,9 +95,8 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     ))
 
     val core = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Assign(Seq("matchee"), one),
-        Assert(InstanceOf(Var("matchee"), TNode(Exp.letTag))),
+      PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), Seq(), Seq(Body(Seq(
+        Assign(Seq("matchee"), Cast(Var("e"), TNode(Exp.letTag))),
         Assign(Seq("case"), Constant(IntLiteral(3)))
       ))))
     ))
@@ -108,8 +106,8 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "eliminate named pattern" in {
     val sugared = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Match(one, Seq(
+      PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), Seq(), Seq(Body(Seq(
+        Match(Var("e"), Seq(
           Case(NamedPattern("node", NodePattern(TNode(Exp.letTag), Seq(PatternBinding("name", VarPattern("n"))))), Body(
             Assign(Seq("case"), Constant(IntLiteral(3)))
           ))
@@ -118,10 +116,9 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     ))
 
     val core = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Assign(Seq("node"), one),
-        Assign(Seq("matchee"), one),
-        Assert(InstanceOf(Var("matchee"), TNode(Exp.letTag))),
+      PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), Seq(), Seq(Body(Seq(
+        Assign(Seq("node"), Var("e")),
+        Assign(Seq("matchee"), Cast(Var("e"), TNode(Exp.letTag))),
         Assign(Seq("n"), PathAccess(Var("matchee"), NamedLink("name"))),
         Assign(Seq("case"), Constant(IntLiteral(3)))
       ))))
@@ -132,8 +129,8 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "eliminate tuple pattern" in {
     val sugared = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Match(one, Seq(
+      PatternFunction(None, "foo", Seq(Param("e", TTuple(Seq(TNode(Exp.expTag), TNode(Exp.expTag), TNode(Exp.expTag))))), Seq(), Seq(Body(Seq(
+        Match(Var("e"), Seq(
           Case(TuplePattern(Seq(VarPattern("x1"), VarPattern("x2"), VarPattern("x3"))), Body(
             Assign(Seq("case"), Constant(IntLiteral(4)))
           ))
@@ -142,8 +139,8 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     ))
 
     val core = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Assign(Seq("matchee_tuple0", "matchee_tuple1", "matchee_tuple2"), one),
+      PatternFunction(None, "foo", Seq(Param("e", TTuple(Seq(TNode(Exp.expTag), TNode(Exp.expTag), TNode(Exp.expTag))))), Seq(), Seq(Body(Seq(
+        Assign(Seq("matchee_tuple0", "matchee_tuple1", "matchee_tuple2"), Var("e")),
         Assign(Seq("x1"), Var("matchee_tuple0")),
         Assign(Seq("x2"), Var("matchee_tuple1")),
         Assign(Seq("x3"), Var("matchee_tuple2")),
@@ -158,7 +155,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
         Match(one, Seq(
-          Case(LiteralPattern(StringLiteral("abc")), Body(
+          Case(LiteralPattern(IntLiteral(123)), Body(
             Assign(Seq("case"), Constant(IntLiteral(5)))
           ))
         ))
@@ -167,7 +164,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
 
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Assert(Eq(one, Constant(StringLiteral("abc")))),
+        Assert(Eq(one, Constant(IntLiteral(123)))),
         Assign(Seq("case"), Constant(IntLiteral(5)))
       ))))
     ))
@@ -178,7 +175,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   "desugaring" should "eliminate two literal cases" in {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Match(one, Seq(
+        Match(Constant(StringLiteral("0")), Seq(
           Case(LiteralPattern(StringLiteral("abc")), Body(
             Assign(Seq("case"), Constant(IntLiteral(1)))
           )),
@@ -192,12 +189,12 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(
         Body(Seq(
-          Assert(Eq(one, Constant(StringLiteral("abc")))),
+          Assert(Eq(Constant(StringLiteral("0")), Constant(StringLiteral("abc")))),
           Assign(Seq("case"), Constant(IntLiteral(1)))
         )),
         Body(Seq(
-          Assert(Neq(one, Constant(StringLiteral("abc")))),
-          Assert(Eq(one, Constant(StringLiteral("def")))),
+          Assert(Neq(Constant(StringLiteral("0")), Constant(StringLiteral("abc")))),
+          Assert(Eq(Constant(StringLiteral("0")), Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
         ))))
     ))
@@ -208,7 +205,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   "desugaring" should "eliminate three literal cases" in {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Match(one, Seq(
+        Match(Constant(StringLiteral("0")), Seq(
           Case(LiteralPattern(StringLiteral("abc")), Body(
             Assign(Seq("case"), Constant(IntLiteral(1)))
           )),
@@ -225,18 +222,18 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(
         Body(Seq(
-          Assert(Eq(one, Constant(StringLiteral("abc")))),
+          Assert(Eq(Constant(StringLiteral("0")), Constant(StringLiteral("abc")))),
           Assign(Seq("case"), Constant(IntLiteral(1)))
         )),
         Body(Seq(
-          Assert(Neq(one, Constant(StringLiteral("abc")))),
-          Assert(Eq(one, Constant(StringLiteral("def")))),
+          Assert(Neq(Constant(StringLiteral("0")), Constant(StringLiteral("abc")))),
+          Assert(Eq(Constant(StringLiteral("0")), Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
         )),
         Body(Seq(
-          Assert(Neq(one, Constant(StringLiteral("abc")))),
-          Assert(Neq(one, Constant(StringLiteral("def")))),
-          Assert(Eq(one, Constant(StringLiteral("ghi")))),
+          Assert(Neq(Constant(StringLiteral("0")), Constant(StringLiteral("abc")))),
+          Assert(Neq(Constant(StringLiteral("0")), Constant(StringLiteral("def")))),
+          Assert(Eq(Constant(StringLiteral("0")), Constant(StringLiteral("ghi")))),
           Assign(Seq("case"), Constant(IntLiteral(3)))
         ))
       ))
@@ -248,7 +245,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   "desugaring" should "eliminate two tuple cases" in {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Match(one, Seq(
+        Match(Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0")))), Seq(
           Case(TuplePattern(Seq(LiteralPattern(StringLiteral("abc")), LiteralPattern(StringLiteral("abc")))), Body(
             Assign(Seq("case"), Constant(IntLiteral(1)))
           )),
@@ -262,23 +259,23 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(
         Body(Seq(
-          Assign(Seq("matchee_tuple0", "matchee_tuple1"), one),
+          Assign(Seq("matchee_tuple0", "matchee_tuple1"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Eq(Var("matchee_tuple0"), Constant(StringLiteral("abc")))),
           Assert(Eq(Var("matchee_tuple1"), Constant(StringLiteral("abc")))),
           Assign(Seq("case"), Constant(IntLiteral(1)))
         )),
         Body(Seq(
-          Assign(Seq("matchee_tuple0_0", "matchee_tuple1_0"), one),
+          Assign(Seq("matchee_tuple0_0", "matchee_tuple1_0"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Neq(Var("matchee_tuple0_0"), Constant(StringLiteral("abc")))),
-          Assign(Seq("matchee_tuple0_1", "matchee_tuple1_1"), one),
+          Assign(Seq("matchee_tuple0_1", "matchee_tuple1_1"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Eq(Var("matchee_tuple0_1"), Constant(StringLiteral("def")))),
           Assert(Eq(Var("matchee_tuple1_1"), Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
         )),
         Body(Seq(
-          Assign(Seq("matchee_tuple0_0", "matchee_tuple1_0"), one),
+          Assign(Seq("matchee_tuple0_0", "matchee_tuple1_0"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Neq(Var("matchee_tuple1_0"), Constant(StringLiteral("abc")))),
-          Assign(Seq("matchee_tuple0_1", "matchee_tuple1_1"), one),
+          Assign(Seq("matchee_tuple0_1", "matchee_tuple1_1"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Eq(Var("matchee_tuple0_1"), Constant(StringLiteral("def")))),
           Assert(Eq(Var("matchee_tuple1_1"), Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
@@ -291,7 +288,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   "desugaring" should "eliminate three tuple cases" in {
     val sugared = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Match(one, Seq(
+        Match(Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0")))), Seq(
           Case(TuplePattern(Seq(LiteralPattern(StringLiteral("abc")), LiteralPattern(StringLiteral("abc")))), Body(
             Assign(Seq("case"), Constant(IntLiteral(1)))
           )),
@@ -308,63 +305,63 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     val core = Module("Test", Seq(), Seq(
       PatternFunction(None, "foo", Seq(), Seq(), Seq(
         Body(Seq(
-          Assign(Seq("matchee_tuple0", "matchee_tuple1"), one),
+          Assign(Seq("matchee_tuple0", "matchee_tuple1"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Eq(Var("matchee_tuple0"), Constant(StringLiteral("abc")))),
           Assert(Eq(Var("matchee_tuple1"), Constant(StringLiteral("abc")))),
           Assign(Seq("case"), Constant(IntLiteral(1)))
         )),
         Body(Seq(
-          Assign(Seq("matchee_tuple0_0", "matchee_tuple1_0"), one),
+          Assign(Seq("matchee_tuple0_0", "matchee_tuple1_0"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Neq(Var("matchee_tuple0_0"), Constant(StringLiteral("abc")))),
-          Assign(Seq("matchee_tuple0_1", "matchee_tuple1_1"), one),
+          Assign(Seq("matchee_tuple0_1", "matchee_tuple1_1"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Eq(Var("matchee_tuple0_1"), Constant(StringLiteral("def")))),
           Assert(Eq(Var("matchee_tuple1_1"), Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
         )),
         Body(Seq(
-          Assign(Seq("matchee_tuple0_0", "matchee_tuple1_0"), one),
+          Assign(Seq("matchee_tuple0_0", "matchee_tuple1_0"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Neq(Var("matchee_tuple1_0"), Constant(StringLiteral("abc")))),
-          Assign(Seq("matchee_tuple0_1", "matchee_tuple1_1"), one),
+          Assign(Seq("matchee_tuple0_1", "matchee_tuple1_1"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Eq(Var("matchee_tuple0_1"), Constant(StringLiteral("def")))),
           Assert(Eq(Var("matchee_tuple1_1"), Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
         )),
         Body(Seq(
-          Assign(Seq("matchee_tuple0_0", "matchee_tuple1_0"), one),
+          Assign(Seq("matchee_tuple0_0", "matchee_tuple1_0"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Neq(Var("matchee_tuple0_0"), Constant(StringLiteral("abc")))),
-          Assign(Seq("matchee_tuple0_2", "matchee_tuple1_2"), one),
+          Assign(Seq("matchee_tuple0_2", "matchee_tuple1_2"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Neq(Var("matchee_tuple0_2"), Constant(StringLiteral("def")))),
-          Assign(Seq("matchee_tuple0_3", "matchee_tuple1_3"), one),
+          Assign(Seq("matchee_tuple0_3", "matchee_tuple1_3"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Eq(Var("matchee_tuple0_3"), Constant(StringLiteral("ghi")))),
           Assert(Eq(Var("matchee_tuple1_3"), Constant(StringLiteral("ghi")))),
           Assign(Seq("case"), Constant(IntLiteral(3)))
         )),
         Body(Seq(
-          Assign(Seq("matchee_tuple0_0", "matchee_tuple1_0"), one),
+          Assign(Seq("matchee_tuple0_0", "matchee_tuple1_0"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Neq(Var("matchee_tuple0_0"), Constant(StringLiteral("abc")))),
-          Assign(Seq("matchee_tuple0_2", "matchee_tuple1_2"), one),
+          Assign(Seq("matchee_tuple0_2", "matchee_tuple1_2"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Neq(Var("matchee_tuple1_2"), Constant(StringLiteral("def")))),
-          Assign(Seq("matchee_tuple0_3", "matchee_tuple1_3"), one),
+          Assign(Seq("matchee_tuple0_3", "matchee_tuple1_3"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Eq(Var("matchee_tuple0_3"), Constant(StringLiteral("ghi")))),
           Assert(Eq(Var("matchee_tuple1_3"), Constant(StringLiteral("ghi")))),
           Assign(Seq("case"), Constant(IntLiteral(3)))
         )),
         Body(Seq(
-          Assign(Seq("matchee_tuple0_0", "matchee_tuple1_0"), one),
+          Assign(Seq("matchee_tuple0_0", "matchee_tuple1_0"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Neq(Var("matchee_tuple1_0"), Constant(StringLiteral("abc")))),
-          Assign(Seq("matchee_tuple0_2", "matchee_tuple1_2"), one),
+          Assign(Seq("matchee_tuple0_2", "matchee_tuple1_2"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Neq(Var("matchee_tuple0_2"), Constant(StringLiteral("def")))),
-          Assign(Seq("matchee_tuple0_3", "matchee_tuple1_3"), one),
+          Assign(Seq("matchee_tuple0_3", "matchee_tuple1_3"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Eq(Var("matchee_tuple0_3"), Constant(StringLiteral("ghi")))),
           Assert(Eq(Var("matchee_tuple1_3"), Constant(StringLiteral("ghi")))),
           Assign(Seq("case"), Constant(IntLiteral(3)))
         )),
         Body(Seq(
-          Assign(Seq("matchee_tuple0_0", "matchee_tuple1_0"), one),
+          Assign(Seq("matchee_tuple0_0", "matchee_tuple1_0"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Neq(Var("matchee_tuple1_0"), Constant(StringLiteral("abc")))),
-          Assign(Seq("matchee_tuple0_2", "matchee_tuple1_2"), one),
+          Assign(Seq("matchee_tuple0_2", "matchee_tuple1_2"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Neq(Var("matchee_tuple1_2"), Constant(StringLiteral("def")))),
-          Assign(Seq("matchee_tuple0_3", "matchee_tuple1_3"), one),
+          Assign(Seq("matchee_tuple0_3", "matchee_tuple1_3"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
           Assert(Eq(Var("matchee_tuple0_3"), Constant(StringLiteral("ghi")))),
           Assert(Eq(Var("matchee_tuple1_3"), Constant(StringLiteral("ghi")))),
           Assign(Seq("case"), Constant(IntLiteral(3)))
@@ -377,8 +374,8 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "eliminate two node cases" in {
     val sugared = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Match(one, Seq(
+      PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), Seq(), Seq(Body(Seq(
+        Match(Var("e"), Seq(
           Case(NodePattern(TNode(Exp.addTag), Seq(PatternBinding("lhs", LiteralPattern(StringLiteral("abc"))))), Body(
             Assign(Seq("case"), Constant(IntLiteral(1)))
           )),
@@ -390,39 +387,34 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     ))
 
     val core = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(
+      PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), Seq(), Seq(
         Body(Seq(
-          Assign(Seq("matchee"), one),
-          Assert(InstanceOf(Var("matchee"), TNode(Exp.addTag))),
+          Assign(Seq("matchee"), Cast(Var("e"), TNode(Exp.addTag))),
           Assert(Eq(PathAccess(Var("matchee"), NamedLink("lhs")), Constant(StringLiteral("abc")))),
           Assign(Seq("case"), Constant(IntLiteral(1)))
         )),
         Body(Seq(
-          Assign(Seq("matchee_0"), one),
-          Assert(NotInstanceOf(Var("matchee_0"), TNode(Exp.addTag))),
-          Assign(Seq("matchee_1"), one),
-          Assert(InstanceOf(Var("matchee_1"), TNode(Exp.multTag))),
+          Assert(NotInstanceOf(Var("e"), TNode(Exp.addTag))),
+          Assign(Seq("matchee_1"), Cast(Var("e"), TNode(Exp.multTag))),
           Assert(Eq(PathAccess(Var("matchee_1"), NamedLink("rhs")), Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
         )),
         Body(Seq(
-          Assign(Seq("matchee_0"), one),
-          Assert(InstanceOf(Var("matchee_0"), TNode(Exp.addTag))),
+          Assign(Seq("matchee_0"), Cast(Var("e"), TNode(Exp.addTag))),
           Assert(Neq(PathAccess(Var("matchee_0"), NamedLink("lhs")), Constant(StringLiteral("abc")))),
-          Assign(Seq("matchee_1"), one),
-          Assert(InstanceOf(Var("matchee_1"), TNode(Exp.multTag))),
+          Assign(Seq("matchee_1"), Cast(Var("e"), TNode(Exp.multTag))),
           Assert(Eq(PathAccess(Var("matchee_1"), NamedLink("rhs")), Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
         ))))
     ))
 
-    assertDesugar(core, sugared)
+    assertDesugar(core, sugared, options.copy(stopOnError = false))
   }
 
   "desugaring" should "eliminate three node cases" in {
     val sugared = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
-        Match(one, Seq(
+      PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), Seq(), Seq(Body(Seq(
+        Match(Var("e"), Seq(
           Case(NodePattern(TNode(Exp.addTag), Seq(PatternBinding("lhs", LiteralPattern(StringLiteral("abc"))))), Body(
             Assign(Seq("case"), Constant(IntLiteral(1)))
           )),
@@ -437,78 +429,61 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
     ))
 
     val core = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(
+      PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), Seq(), Seq(
         Body(Seq(
-          Assign(Seq("matchee"), one),
-          Assert(InstanceOf(Var("matchee"), TNode(Exp.addTag))),
+          Assign(Seq("matchee"), Cast(Var("e"), TNode(Exp.addTag))),
           Assert(Eq(PathAccess(Var("matchee"), NamedLink("lhs")), Constant(StringLiteral("abc")))),
           Assign(Seq("case"), Constant(IntLiteral(1)))
         )),
         Body(Seq(
-          Assign(Seq("matchee_0"), one),
-          Assert(NotInstanceOf(Var("matchee_0"), TNode(Exp.addTag))),
-          Assign(Seq("matchee_1"), one),
-          Assert(InstanceOf(Var("matchee_1"), TNode(Exp.multTag))),
+          Assert(NotInstanceOf(Var("e"), TNode(Exp.addTag))),
+          Assign(Seq("matchee_1"), Cast(Var("e"), TNode(Exp.multTag))),
           Assert(Eq(PathAccess(Var("matchee_1"), NamedLink("rhs")), Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
         )),
         Body(Seq(
-          Assign(Seq("matchee_0"), one),
-          Assert(InstanceOf(Var("matchee_0"), TNode(Exp.addTag))),
+          Assign(Seq("matchee_0"), Cast(Var("e"), TNode(Exp.addTag))),
           Assert(Neq(PathAccess(Var("matchee_0"), NamedLink("lhs")), Constant(StringLiteral("abc")))),
-          Assign(Seq("matchee_1"), one),
-          Assert(InstanceOf(Var("matchee_1"), TNode(Exp.multTag))),
+          Assign(Seq("matchee_1"), Cast(Var("e"), TNode(Exp.multTag))),
           Assert(Eq(PathAccess(Var("matchee_1"), NamedLink("rhs")), Constant(StringLiteral("def")))),
           Assign(Seq("case"), Constant(IntLiteral(2)))
         )),
         Body(Seq(
-          Assign(Seq("matchee_0"), one),
-          Assert(NotInstanceOf(Var("matchee_0"), TNode(Exp.addTag))),
-          Assign(Seq("matchee_2"), one),
-          Assert(NotInstanceOf(Var("matchee_2"), TNode(Exp.multTag))),
-          Assign(Seq("matchee_3"), one),
-          Assert(InstanceOf(Var("matchee_3"), TNode(Exp.notTag))),
+          Assert(NotInstanceOf(Var("e"), TNode(Exp.addTag))),
+          Assert(NotInstanceOf(Var("e"), TNode(Exp.multTag))),
+          Assign(Seq("matchee_3"), Cast(Var("e"), TNode(Exp.notTag))),
           Assert(Eq(PathAccess(Var("matchee_3"), NamedLink("e")), Constant(StringLiteral("ghi")))),
           Assign(Seq("case"), Constant(IntLiteral(3)))
         )),
         Body(Seq(
-          Assign(Seq("matchee_0"), one),
-          Assert(NotInstanceOf(Var("matchee_0"), TNode(Exp.addTag))),
-          Assign(Seq("matchee_2"), one),
-          Assert(InstanceOf(Var("matchee_2"), TNode(Exp.multTag))),
+          Assert(NotInstanceOf(Var("e"), TNode(Exp.addTag))),
+          Assign(Seq("matchee_2"), Cast(Var("e"), TNode(Exp.multTag))),
           Assert(Neq(PathAccess(Var("matchee_2"), NamedLink("rhs")), Constant(StringLiteral("def")))),
-          Assign(Seq("matchee_3"), one),
-          Assert(InstanceOf(Var("matchee_3"), TNode(Exp.notTag))),
+          Assign(Seq("matchee_3"), Cast(Var("e"), TNode(Exp.notTag))),
           Assert(Eq(PathAccess(Var("matchee_3"), NamedLink("e")), Constant(StringLiteral("ghi")))),
           Assign(Seq("case"), Constant(IntLiteral(3)))
         )),
         Body(Seq(
-          Assign(Seq("matchee_0"), one),
-          Assert(InstanceOf(Var("matchee_0"), TNode(Exp.addTag))),
+          Assign(Seq("matchee_0"), Cast(Var("e"), TNode(Exp.addTag))),
           Assert(Neq(PathAccess(Var("matchee_0"), NamedLink("lhs")), Constant(StringLiteral("abc")))),
-          Assign(Seq("matchee_2"), one),
-          Assert(NotInstanceOf(Var("matchee_2"), TNode(Exp.multTag))),
-          Assign(Seq("matchee_3"), one),
-          Assert(InstanceOf(Var("matchee_3"), TNode(Exp.notTag))),
+          Assert(NotInstanceOf(Var("e"), TNode(Exp.multTag))),
+          Assign(Seq("matchee_3"), Cast(Var("e"), TNode(Exp.notTag))),
           Assert(Eq(PathAccess(Var("matchee_3"), NamedLink("e")), Constant(StringLiteral("ghi")))),
           Assign(Seq("case"), Constant(IntLiteral(3)))
         )),
         Body(Seq(
-          Assign(Seq("matchee_0"), one),
-          Assert(InstanceOf(Var("matchee_0"), TNode(Exp.addTag))),
+          Assign(Seq("matchee_0"), Cast(Var("e"), TNode(Exp.addTag))),
           Assert(Neq(PathAccess(Var("matchee_0"), NamedLink("lhs")), Constant(StringLiteral("abc")))),
-          Assign(Seq("matchee_2"), one),
-          Assert(InstanceOf(Var("matchee_2"), TNode(Exp.multTag))),
+          Assign(Seq("matchee_2"), Cast(Var("e"), TNode(Exp.multTag))),
           Assert(Neq(PathAccess(Var("matchee_2"), NamedLink("rhs")), Constant(StringLiteral("def")))),
-          Assign(Seq("matchee_3"), one),
-          Assert(InstanceOf(Var("matchee_3"), TNode(Exp.notTag))),
+          Assign(Seq("matchee_3"), Cast(Var("e"), TNode(Exp.notTag))),
           Assert(Eq(PathAccess(Var("matchee_3"), NamedLink("e")), Constant(StringLiteral("ghi")))),
           Assign(Seq("case"), Constant(IntLiteral(3)))
         ))
       ))
     ))
 
-    assertDesugar(core, sugared)
+    assertDesugar(core, sugared, options.copy(stopOnError = false))
   }
 
   "desugaring" should "eliminate var pattern eliminates remaining patterns" in {

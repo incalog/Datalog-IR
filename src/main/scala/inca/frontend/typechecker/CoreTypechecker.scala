@@ -4,6 +4,7 @@ import inca.frontend.core._
 import inca.frontend.parser.SourceLocation
 import inca.frontend.util.TypeHelper
 import inca.runtime.context.LanguageMetaInfo
+import inca.util.Meta
 import inca.util.Meta.Scala
 
 import scala.collection.mutable.ListBuffer
@@ -116,8 +117,8 @@ trait CoreTypechecker
 
     case Assert(cond) =>
       val condTy = typecheck(cond)
-      if (condTy != TBool)
-        error(s"Found condition of type $condTy, but expected $TBool", cond)
+      if (!TypeOps.subtype(condTy, TScalaBoolean, lang))
+        error(s"Expected Boolean condition, but got $condTy", cond)
       NoTerminator
 
     case vals@Values(name, typ) =>
@@ -181,7 +182,7 @@ trait CoreTypechecker
       if (TypeOps.meet(lty, rty, lang) == TNothing) {
         error(s"Cannot compare left-hand $lty with right-hand $rty", exp)
       }
-      TBool
+      TScalaBoolean
 
     case Neq(lhs, rhs) =>
       val lty = typecheck(lhs)
@@ -189,21 +190,21 @@ trait CoreTypechecker
       if (TypeOps.meet(lty, rty, lang) == TNothing) {
         error(s"Cannot compare left-hand $lty with right-hand $rty", exp)
       }
-      TBool
+      TScalaBoolean
 
     case InstanceOf(e, ty) =>
       val ety = typecheck(e)
       if (TypeOps.meet(ety, ty, lang) == TNothing) {
         warn(s"Test of type $ety to unrelated type $ty will always fail", exp)
       }
-      TBool
+      TScalaBoolean
 
     case NotInstanceOf(e, ty) =>
       val ety = typecheck(e)
       if (TypeOps.meet(ety, ty, lang) == TNothing) {
         warn(s"Test of type $ety to unrelated type $ty will always succeed", exp)
       }
-      TBool
+      TScalaBoolean
 
     case Cast(src, targetTyp) =>
       val ety = typecheck(src)
@@ -217,14 +218,14 @@ trait CoreTypechecker
       if (!isValidDefUndefExp(e)) {
         error(s"Cannot test definedness of ${e.getClass.getName} expression", exp)
       }
-      TBool
+      TScalaBoolean
 
     case Undef(e) =>
       typecheck(e)
       if (!isValidDefUndefExp(e)) {
         error(s"Cannot test definedness of ${e.getClass.getName} expression", exp)
       }
-      TBool
+      TScalaBoolean
 
     case Wildcard =>
       TAny
@@ -248,7 +249,7 @@ trait CoreTypechecker
 
     case Count(call) =>
       typecheck(call)
-      TInt
+      TScalaInt
 
     case Tuple(exps) =>
       exps.map(typecheck) match {
@@ -273,11 +274,11 @@ trait CoreTypechecker
 
   def typecheckLiteral(lit: Literal): Type = lit match {
     case UnitLiteral => TUnit
-    case BooleanLiteral(_) => TBool
-    case IntLiteral(_) => TInt
-    case LongLiteral(_) => TLong
-    case DoubleLiteral(_) => TDouble
-    case StringLiteral(_) => TString
+    case BooleanLiteral(_) => TScalaBoolean
+    case IntLiteral(_) => TScalaInt
+    case LongLiteral(_) => TScalaLong
+    case DoubleLiteral(_) => TScalaDouble
+    case StringLiteral(_) => TScalaString
   }
 
   final def typecheckLink(link: Link, receiverTy: Type, exp: Expression): Type = link match {
@@ -309,10 +310,10 @@ trait CoreTypechecker
     case PreviousLink => TAny
     case SizeLink =>
       receiverTy match {
-        case TList(_) => TInt
+        case TList(_) => TScalaInt
         case _ =>
           error(s"Cannot access field `size` of non-list type in $receiverTy", exp)
-          TInt
+          TScalaInt
       }
   }
 
@@ -357,19 +358,20 @@ trait CoreTypechecker
         case Some((decl,ty)) =>
           resolveTarget(param)(decl)
           assignType(param)(ty)
-          Some(s"val ${param.name}: $ty = Predef.???")
+          import meta._
+          Some(q"val ${Pat.Var(Term.Name(param.name.name))}: ${ty.asScala} = Predef.???".syntax)
         case None => None
       }
-    }.mkString("; ")
+    }.mkString(";\n")
 
-    val codeSource = s"{$paramString; ${code.syntax}}"
+    val codeSource = s"{$paramString;\n${code.syntax}}"
 
-    typecheckScala(codeSource) match {
+    Meta.typecheckScala(codeSource) match {
       case Left(typ) =>
         TypeHelper.decode(typ) match {
-          case Some(ty) => ty
-          case None =>
-            error(s"Unable to decode Scala type $typ", exp)
+          case Right(ty) => ty
+          case Left(msg) =>
+            error(msg, exp)
             TAny
         }
       case Right(err) =>
@@ -378,24 +380,6 @@ trait CoreTypechecker
     }
   }
 
-  def typecheckScala(codeSource: String): Either[String, Throwable] = {
-    import scala.reflect.runtime.currentMirror
-    import scala.tools.reflect.{ToolBox, ToolBoxError}
-
-    // TODO: consider imports
-
-    val toolbox = currentMirror.mkToolBox()
-    val tree = toolbox.parse(codeSource)
-
-    try {
-      val typechecked = toolbox.typecheck(tree)
-      val typ = typechecked.tpe.dealias
-      Left(typ.toString)
-    } catch {
-      case err@ToolBoxError(msg, _) =>
-        Right(err)
-    }
-  }
 
   def assignType(term: Typeable with SourceLocation)(computeType: => Type): Type = {
     val inferred = computeType

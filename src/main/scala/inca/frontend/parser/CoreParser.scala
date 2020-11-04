@@ -330,16 +330,16 @@ class CoreParser {
   protected[frontend] def terminatorStatement[_: P]: P[TerminatorStatement] =
     P(yieldStatement | failStatement)
 
-  protected[frontend] def scalaType[_: P]: P[ScalaType] =
-    P("`" ~ scalaTypeCore ~ "`")
+  protected[frontend] def scalaType[_: P]: P[TScala] =
+    P("`" ~~ scalaTypeCore ~~ "`")
 
-  protected[frontend] def scalaTypeCore[_: P]: P[ScalaType] =
-    P(scalaparse.Scala.Type.!).flatMap { raw_code =>
+  protected[frontend] def scalaTypeCore[_: P]: P[TScala] =
+    P(CharsWhile(_ != '`').!).flatMap { raw_code =>
       raw_code.parse[meta.Type] match {
         case Parsed.Error(_, _, _) =>
           fastparse.Fail
         case Parsed.Success(ty) =>
-          fastparse.Pass(ScalaType(Scala(ty)))
+          fastparse.Pass(TScala(Scala(ty)))
       }
     }
 

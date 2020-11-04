@@ -1,7 +1,6 @@
 package inca.frontend.core
 
 import inca.backend.ir.GP
-import inca.frontend.core.Core.DataOp
 import inca.util.Gensym
 import inca.util.Meta.Scala
 
@@ -42,7 +41,7 @@ object CompileToGP {
     case TAnyLinked => GP.TAnyLinked
     case TNode(name) => GP.TNode(name)
     case TList(ty) => GP.TList(transType(ty).asInstanceOf[GP.TLinked])
-//    case dt: DataType => GP.TDataType(resolveDataType(dt))
+    case TScala(ty) => GP.TScala(ty)
   }
 
 
@@ -101,7 +100,7 @@ object CompileToGP {
     case Values(name, typ) =>
       (Seq(GP.HasType(GP.Var(name.name), transType(typ))))
 
-    case Assign(names, exp) =>
+    case assign@Assign(names, exp) =>
       if (exp.typ.isEmpty)
         throw new IllegalArgumentException(s"Cannot compile untyped assignment $stmt")
 
@@ -123,8 +122,7 @@ object CompileToGP {
         }
       }
 
-      val shouldInline = bindings.forall(_.shouldInline)
-      if (shouldInline) {
+      if (shouldInlineAssign(assign)) {
         Seq()
       } else {
         val (rvars, rconstraints) = transExp(exp.ensureCore)
@@ -288,31 +286,31 @@ object CompileToGP {
       val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(args, transType(resType), funCode))
       (Seq(evalVar), (argConstraints :+ evalConstraint).toSeq)
 
-    case Aggregate(init, join, unjoin, funcall) =>
-      if (!join.isAssociative || !join.isCommutative)
-        throw new IllegalArgumentException(s"Can only compile aggregations with join operators that are associative and commutative")
-
-      val resultType = funcall.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile aggregation over untyped $funcall"))
-      resultType match {
-        case TTuple(ts) if ts.isEmpty => throw new IllegalArgumentException(s"Cannot aggregate over functions with Unit result type")
-        case TTuple(ts) if ts.size > 1 => throw new IllegalArgumentException(s"Cannot aggregate over functions with multiple results $ts")
-        case _ => // nothing
-      }
-
-      val (inVars, Seq(outVar), constraints) = transCallArgs(funcall, funcall.args)
-      val allvars = (inVars :+ outVar).map(GP.Var)
-      val initOp = resolveDataOp(init)
-      val joinOp = resolveDataOp(join)
-      val invOp = unjoin.map(resolveDataOp)
-      val aggregation = GP.CustomAggregation(transType(resultType), initOp, joinOp, invOp, funcall.name.name, allvars, allvars.size - 1)
-
-      val resultVar = gensym.fresh("tmp")
-      val compare = GP.Computed(GP.Var(resultVar), aggregation)
-      (Seq(resultVar), constraints :+ compare)
+//    case Aggregate(init, join, unjoin, funcall) =>
+//      if (!join.isAssociative || !join.isCommutative)
+//        throw new IllegalArgumentException(s"Can only compile aggregations with join operators that are associative and commutative")
+//
+//      val resultType = funcall.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile aggregation over untyped $funcall"))
+//      resultType match {
+//        case TTuple(ts) if ts.isEmpty => throw new IllegalArgumentException(s"Cannot aggregate over functions with Unit result type")
+//        case TTuple(ts) if ts.size > 1 => throw new IllegalArgumentException(s"Cannot aggregate over functions with multiple results $ts")
+//        case _ => // nothing
+//      }
+//
+//      val (inVars, Seq(outVar), constraints) = transCallArgs(funcall, funcall.args)
+//      val allvars = (inVars :+ outVar).map(GP.Var)
+//      val initOp = resolveDataOp(init)
+//      val joinOp = resolveDataOp(join)
+//      val invOp = unjoin.map(resolveDataOp)
+//      val aggregation = GP.CustomAggregation(transType(resultType), initOp, joinOp, invOp, funcall.name.name, allvars, allvars.size - 1)
+//
+//      val resultVar = gensym.fresh("tmp")
+//      val compare = GP.Computed(GP.Var(resultVar), aggregation)
+//      (Seq(resultVar), constraints :+ compare)
   }
 
   private def shouldInlineAssign(assign: Assign): Boolean =
-    assign.names.size == 1 && assign.exp.typ.contains(TBool)
+    assign.names.size == 1 && (assign.exp.typ.contains(TScalaBoolean) || assign.exp.typ.contains(TBool))
 
   def transCallArgs(call: Call, args: Seq[Expression])(implicit gensym: Gensym): (Seq[String], Seq[String], Seq[GP.Constraint]) = {
     val (vars, constraints) = args.map(e => transExp(e.ensureCore)).unzip
@@ -368,17 +366,6 @@ object CompileToGP {
     case BooleanLiteral(v) => Some(GP.BooleanLiteral(v))
   }
 
-  def scalaAnnoString(typ: Type): String = typ match {
-    case TAny => "Any"
-    case TBool => "Boolean"
-    case TInt => "Int"
-    case TLong => "Long"
-    case TDouble => "Double"
-    case TString => "String"
-//    case dt: DataType => resolveDataType(dt)
-    case _: TLinked => "truechange.URI"
-  }
-
   def scalaType(typ: Type): meta.Type = typ match {
     case TAny => t"Any"
     case TBool => t"Boolean"
@@ -386,19 +373,7 @@ object CompileToGP {
     case TLong => t"Long"
     case TDouble => t"Double"
     case TString => t"String"
-//    case dt: DataType => t"${resolveDataType(dt)}"
+    case TScala(ty) => ty.tree
     case _: TLinked => t"truechange.URI"
   }
-
-  def resolveDataOp(op: DataOp): String = op.qualifier match {
-    case Some(Name(q)) if q.isEmpty => op.operation.name
-    case Some(q) => s"$q.${op.operation}"
-    case None => throw new IllegalArgumentException(s"TODO resolve unqualified data op calls")
-  }
-
-//  def resolveDataType(dt: DataType): String = dt.qualifier match {
-//    case Some(Name(q)) if q.isEmpty => dt.name.name
-//    case Some(q) => s"$q.${dt.name}"
-//    case None => throw new IllegalArgumentException(s"TODO resolve unqualified data types")
-//  }
 }

@@ -22,7 +22,7 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
     val compiledModule = compiler.compile("selfcontained", analysis)
 
     val psModule = compiledModule.psystemModule
-    val queryScope = new QueryScope(compiledModule.compilerOptions.languageMetaInfo, Seq())
+    val queryScope = new QueryScope(compiledModule.options.languageMetaInfo, Seq())
 
     def getMatcher(fun: String): Matcher = {
       val querySpec = psModule.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module."))

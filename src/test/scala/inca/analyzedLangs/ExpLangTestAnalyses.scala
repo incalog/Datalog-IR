@@ -83,7 +83,7 @@ object ExpLangTestAnalyses {
     None,
     "isBoolean",
     Seq(Param("in", boolType)),
-    Seq(AnnoParam(None, TBool)),
+    Seq(AnnoParam(None, TScalaBoolean)),
     Seq(
       Body(
         Seq(

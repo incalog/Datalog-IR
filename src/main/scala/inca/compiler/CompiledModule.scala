@@ -7,7 +7,7 @@ import inca.util.Meta
 import scala.collection.mutable.ListBuffer
 
 trait CompiledModule {
-  val compilerOptions: Options
+  val options: Options
 
   def name: GP.Name
 
@@ -16,27 +16,42 @@ trait CompiledModule {
   def ir: GP.Module
 
   protected val messages: ListBuffer[CompilationMessage] = ListBuffer()
+  def allMessages: List[CompilationMessage] = messages.toList
+  def errors: List[CompilationMessage] = messages.filter(_.severity == CompilationMessage.ERROR).toList
+  def warnings: List[CompilationMessage] = messages.filter(_.severity == CompilationMessage.WARNING).toList
 
-  def getMessages: List[CompilationMessage] = messages.toList
-
-  def hasErrors: Boolean = messages.exists(_.severity == CompilationMessage.ERROR)
+  protected def stopIfNeeded(): Unit = {
+    val es = errors
+    val ws = es ++ warnings
+    if (options.stopOnWarning && warnings.nonEmpty)
+      throw CompiledModule.Failed(this, ws)
+    if (options.stopOnError && errors.nonEmpty)
+      throw CompiledModule.Failed(this, es)
+  }
 
   lazy val optimized: GP.Module = {
     var module = ir
     // println(module)
-    for (op <- compilerOptions.optimizations) {
-      module = op.optimizer(compilerOptions.languageMetaInfo).optimizeModule(module)
+    for (op <- options.optimizations) {
+      module = op.optimizer(options.languageMetaInfo).optimizeModule(module)
     }
-    // println(module)
+//    println(module)
     module
   }
 
-  lazy val psystemSource: meta.Source =
-    CompileToPSystem.compileModule(optimized)(Map())
+  lazy val psystemSource: meta.Source = {
+    val source = CompileToPSystem.compileModule(optimized)(Map())
+    println(source)
+    source
+  }
 
   lazy val psystemModule: PSystem.Module = {
     import scala.meta._
     val loadSource = source"..${psystemSource.stats}; ${Term.Name(name)}"
     Meta.compileAndLoadScala[PSystem.Module](loadSource.syntax)()
   }
+}
+
+object CompiledModule {
+  case class Failed(module: CompiledModule, messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
 }

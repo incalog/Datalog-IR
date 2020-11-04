@@ -243,17 +243,14 @@ object Match extends Desugarable {
     def desugarPat(exp: Expression, pat: Pattern)(implicit gensym: Gensym): Seq[Statement] = pat match {
       case NodePattern(c, bindings) =>
         val result = ListBuffer[Statement]()
-        val matchee: Var = exp match {
-          case v: Var => Var(v.name)
-          case _ =>
-            val sym = Name(gensym.fresh("matchee"))
-            result += Assign(Seq(sym), exp)
-            Var(sym)
+        val matchee: Var = {
+          val sym = Name(gensym.fresh("matchee"))
+          result += Assign(Seq(sym), Cast(exp, c))
+          Var(sym).typed(c)
         }
-        result += Assert(InstanceOf(matchee, c))
         bindings.foreach { case binding@PatternBinding(field, subpat) =>
           val typ = binding.typ.getOrElse(throw new IllegalArgumentException(s"Cannot desugar untyped pattern binding $binding"))
-          result ++= desugarPat(PathAccess(matchee.typed(c), NamedLink(field)).typed(typ), subpat)
+          result ++= desugarPat(PathAccess(matchee, NamedLink(field)).typed(typ), subpat)
         }
         result.toSeq
       case TuplePattern(pats) =>
@@ -276,20 +273,20 @@ object Match extends Desugarable {
 
     def desugarNegatedPat(exp: Expression, pat: Pattern)(implicit gensym: Gensym): Seq[Seq[Statement]] = pat match {
       case NodePattern(c, bindings) =>
-        var ensureVar = Seq[Statement]()
-        val matchee: Var = exp match {
-          case v: Var => Var(v.name)
+        val (ensureVar, ensureVarCasted, matchee, matcheeCasted) = exp match {
+          case v: Var =>
+            val sym = Name(gensym.fresh("matchee"))
+            (Seq(), Seq(Assign(Seq(sym), Cast(exp, c))), v, Var(sym))
           case _ =>
             val sym = Name(gensym.fresh("matchee"))
-            ensureVar = Seq(Assign(Seq(sym), exp))
-            Var(sym)
+            (Seq(Assign(Seq(sym), exp)), Seq(Assign(Seq(sym), Cast(exp, c))), Var(sym), Var(sym))
         }
+
         val wrongType = ensureVar :+ Assert(NotInstanceOf(matchee, c))
-        val prefix = ensureVar :+ Assert(InstanceOf(matchee, c))
         val alts = bindings.flatMap { case binding@PatternBinding(field, subpat) =>
           val typ = binding.typ.getOrElse(throw new IllegalArgumentException(s"Cannot desugar untyped pattern binding $binding"))
-          val patAlts = desugarNegatedPat(PathAccess(matchee.typed(c), NamedLink(field)).typed(typ), subpat)
-          patAlts.map(prefix ++ _)
+          val patAlts = desugarNegatedPat(PathAccess(matcheeCasted, NamedLink(field)).typed(typ), subpat)
+          patAlts.map(ensureVarCasted ++ _)
         }
         wrongType +: alts
       case TuplePattern(pats) =>

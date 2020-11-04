@@ -106,6 +106,9 @@ object CompileToPSystem {
       else
         q"PVisibility.PUBLIC"
 
+    val bodies = if (pat.bodies.nonEmpty) pat.bodies else
+      Seq(Body(Seq(Compare(EqComparator, Constant(IntLiteral(0)), Constant(IntLiteral(1))))))
+
     q"""
       object ${Term.Name(pat.name)} {
         lazy val instance: $tyQuerySpecification = new $tyQuerySpecification(generatedPQuery)
@@ -115,7 +118,7 @@ object CompileToPSystem {
           {}
           override protected def doGetContainedBodies(): util.Set[PBody] = {
             val bodies: util.Set[PBody] = util.Set.of(
-              ..${pat.bodies.map { body =>
+              ..${bodies.map { body =>
                     val constantEvals = CollectComputedConstantEvals.transBody(body)
                     val lhsOfConstantEvaluation = CollectConstantEvaluationLhs.transBody(body)
                     q"""{
@@ -182,7 +185,7 @@ object CompileToPSystem {
 
   private def genInputKeyAndType(typ: GP.Type): Option[(meta.Term, meta.Term)] = typ match {
     case TAny => None
-    case TDataType(_) => None
+    case TScala(_) => None
     case TUnbounded(ty) =>
       val gentyp = genProperLitType(ty)
       Some(q"new JavaTransitiveInstancesKey($gentyp)", genProperLitType(ty))
@@ -392,7 +395,7 @@ object CompileToPSystem {
     case TLong => t"Long"
     case TDouble => t"Double"
     case TString => t"String"
-    case TDataType(qname) => Meta.mkQualTypename(qname)
+    case TScala(ty) => ty.tree
     case _: TLinked => typeOf[truechange.URI]
   }
 

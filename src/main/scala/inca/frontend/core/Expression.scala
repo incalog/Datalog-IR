@@ -101,7 +101,7 @@ case class Tuple(exps: Seq[Expression]) extends CoreExpression {
 /** Eval code must be a Scala expression that can access `params` by name and must yield a `resultType`. */
 case class Eval(params: Seq[EvalParam], code: Scala[meta.Term]) extends CoreExpression {
   override def freeVars: Map[Name, Option[Type]] = params.map(p => p.name -> p.typ).toMap
-  override def prettyprint(implicit indent: String): String = s"eval($code)"
+  override def prettyprint(implicit indent: String): String = s"`$code``"
 }
 
 case class EvalParam(name: Name) extends SourceLocation with Typeable with Resolvable[Var.Target] {

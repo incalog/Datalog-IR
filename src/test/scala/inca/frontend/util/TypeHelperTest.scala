@@ -7,56 +7,37 @@ class TypeHelperTest extends AnyFunSuite{
 
   test("test decode primitive types") {
 
-    checkEq("Int", TInt)
-    checkEq("Double", TDouble)
-    checkEq("Long", TLong)
-    checkEq("Boolean", TBool)
-    checkEq("String", TString)
-    checkEq("Any", TAny)
-  }
-
-  test("test decode refined types") {
-    checkEq("Float", TDouble)
-    checkEq("Short", TInt)
-    checkEq("Byte", TInt)
-    checkEq("Char", TInt)
+    checkEq("Int", TScalaInt)
+    checkEq("Double", TScalaDouble)
+    checkEq("Long", TScalaLong)
+    checkEq("Boolean", TScalaBoolean)
+    checkEq("String", TScalaString)
+    checkEq("Any", TScala("Any"))
   }
 
   test("test decode TTuple") {
-    checkEq("(Int, Double)", TTuple(Seq(TInt, TDouble)))
-    checkEq("(String, Boolean, (Int, Double))", TTuple(Seq(TString, TBool, TTuple(Seq(TInt, TDouble)))))
+    checkEq("(Int, Double)", TTuple(Seq(TScalaInt, TScalaDouble)))
+    checkEq("(String, Boolean, (Int, Double))", TTuple(Seq(TScalaString, TScalaBoolean, TTuple(Seq(TScalaInt, TScalaDouble)))))
   }
 
   test("test decode TNodes") {
-    checkEq("Hello", TNode("Hello"))
-    checkEq("inca.analyzedLangs.Nat.Nat", TNode("inca.analyzedLangs.Nat.Nat"))
+    checkEq("Hello", TScala("Hello"))
+    checkEq("inca.analyzedLangs.Nat.Nat", TScala("inca.analyzedLangs.Nat.Nat"))
   }
 
   test("test decode TList") {
-    checkEq("List[Hello]", TList(TNode("Hello")))
-  }
-
-  test("test decode TList no primitive") {
-    assertResult(None) {
-      TypeHelper.decode("List[Int]")
-    }
-
-    assertResult(None) {
-      TypeHelper.decode("List[String]")
-    }
-
-    assertResult(None) {
-      TypeHelper.decode("List[(Int, Double)]")
-    }
+    checkEq("List[Hello]", TScala("List[Hello]"))
+    checkEq("List[Int]", TScala("List[Int]"))
+    checkEq("List[String]", TScala("List[String]"))
   }
 
   test("test decode strip traits") {
-    checkEq("Hello with Product", TNode("Hello"))
-    checkEq("inca.Nat with Product with SuperProduct", TNode("inca.Nat"))
+    checkEq("Hello with Product", TScala("Hello with Product"))
+    checkEq("inca.Nat with Product with SuperProduct", TScala("inca.Nat with Product with SuperProduct"))
   }
 
   private def checkEq(name: String, exp: Type): Unit = {
     val typ = TypeHelper.decode(name)
-    assert(typ.get == exp)
+    assert(typ.right.get == exp)
   }
 }

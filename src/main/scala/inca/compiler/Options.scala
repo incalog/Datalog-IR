@@ -8,6 +8,7 @@ import inca.runtime.context.LanguageMetaInfo
 case class Options(languageMetaInfo: LanguageMetaInfo,
                    frontendFactory: LanguageMetaInfo => Frontend = defaultFrontend,
                    optimizations: Seq[Optimization] = defaultOptimizations,
+                   stopOnError: Boolean = true,
                    stopOnWarning: Boolean = false) {
   def frontend: Frontend = frontendFactory(languageMetaInfo)
 }

@@ -905,6 +905,16 @@ class CoreParserTest extends AnyFunSuite {
     // )
   }
 
+  test("test scala types") {
+    val parser = new BaseFrontend(new LanguageMetaInfo()) {}
+    val testTypeSuccess = testSuccess(parser.typeAnno(_))
+    testTypeSuccess("`Int`", TScalaInt)
+    testTypeSuccess("`Boolean`", TScalaBoolean)
+    testTypeSuccess("`String`", TScalaString)
+    testTypeSuccess("`Any`", TScala("Any"))
+    testTypeSuccess("`inca.util.Meta`", TScala("inca.util.Meta"))
+  }
+
   test("test Cast") {
     val parser = new BaseFrontend(new LanguageMetaInfo()) {}
     val testCastSuccess = testSuccess(parser.exp(_))

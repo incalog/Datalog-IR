@@ -3,6 +3,7 @@ package inca.frontend.extensions
 import inca.frontend.Frontend
 import inca.frontend.core.{Expression, _}
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
+import inca.frontend.typechecker.TypeOps
 import inca.util.Gensym
 import inca.util.Meta.Scala
 
@@ -39,25 +40,25 @@ trait BoolOpsFrontend extends Frontend {
   override def typecheckInternal(exp: Expression, anno: Option[Type]): Type = exp match {
     case Not(cond) =>
       val ty = typecheck(cond)
-      if (ty != TBool)
-        error(s"Found expression of type $ty, but expected $TBool", cond)
-      TBool
+      if (!TypeOps.subtype(ty, TScalaBoolean, lang))
+        error(s"Expected Boolean expression, but got $ty", cond)
+      TScalaBoolean
     case And(e1, e2) =>
       val ty1 = typecheck(e1)
       val ty2 = typecheck(e2)
-      if (ty1 != TBool)
-        error(s"Found expression of type $ty1, but expected $TBool", e1)
-      if (ty2 != TBool)
-        error(s"Found expression of type $ty2, but expected $TBool", e2)
-      TBool
+      if (!TypeOps.subtype(ty1, TScalaBoolean, lang))
+        error(s"Expected Boolean expression, but got $ty1", e1)
+      if (!TypeOps.subtype(ty2, TScalaBoolean, lang))
+        error(s"Expected Boolean expression, but got $ty2", e2)
+      TScalaBoolean
     case Or(e1, e2) =>
       val ty1 = typecheck(e1)
       val ty2 = typecheck(e2)
-      if (ty1 != TBool)
-        error(s"Found expression of type $ty1, but expected $TBool", e1)
-      if (ty2 != TBool)
-        error(s"Found condition of type $ty2, but expected $TBool", e2)
-      TBool
+      if (!TypeOps.subtype(ty1, TScalaBoolean, lang))
+        error(s"Expected Boolean expression, but got $ty1", e1)
+      if (!TypeOps.subtype(ty2, TScalaBoolean, lang))
+        error(s"Expected Boolean expression, but got $ty2", e2)
+      TScalaBoolean
     case _ => super.typecheckInternal(exp, anno)
   }
 }
@@ -72,14 +73,14 @@ object BoolOps extends Desugarable {
 
     override def desugarExp(cond: Expression)(implicit gensym: Gensym): Expression = cond match {
       case Not(cond) =>
-        desugarNot(cond).orTyped(TBool)
+        desugarNot(cond).orTyped(TScalaBoolean)
       case And(e1, e2) =>
-        boolStatements += Assert(desugarExp(e1).orTyped(TBool))
-        changed(desugarExp(e2).orTyped(TBool))
+        boolStatements += Assert(desugarExp(e1).orTyped(TScalaBoolean))
+        changed(desugarExp(e2).orTyped(TScalaBoolean))
       case Or(e1, e2) =>
         val sym = Name(gensym.fresh("or"))
-        orAlternatives += sym -> e1.orTyped(TBool)
-        orAlternatives += sym -> e2.orTyped(TBool)
+        orAlternatives += sym -> e1.orTyped(TScalaBoolean)
+        orAlternatives += sym -> e2.orTyped(TScalaBoolean)
         changed(Var(sym))
       case _ => super.desugarExp(cond)
     }

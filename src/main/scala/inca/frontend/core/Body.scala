@@ -10,6 +10,9 @@ case class Body(stmts: Seq[Statement]) extends SourceLocation {
 
   def freeVars: Map[Name, Option[Type]] = allVars -- boundVars
 
+
+  override def toString: String = prettyprint("")
+
   def prettyprint(implicit indent: String): String = {
     val stmtsS = if (stmts.isEmpty) " " else
       "\n" + stmts.map(_.prettyprint(indent + Meta.TAB)).mkString("\n")

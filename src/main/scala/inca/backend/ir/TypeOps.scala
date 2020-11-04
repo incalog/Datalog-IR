@@ -2,6 +2,8 @@ package inca.backend.ir
 
 import inca.backend.ir.GP._
 import inca.runtime.context.LanguageMetaInfo
+import inca.util.Meta
+import inca.util.Meta.Scala
 import truechange.SortType
 
 object TypeOps {
@@ -25,6 +27,15 @@ object TypeOps {
       else
         None
     case (TList(s1), TList(s2)) => meet(s1, s2, languageMetaInfo).map(t => TList(t.asInstanceOf[TLinked]))
+    case (TScala(s1), TScala(s2)) =>
+      if (Meta.subtypeScala(s1.tree, s2.tree))
+        Some(ty1)
+      else if (Meta.subtypeScala(s2.tree, s1.tree))
+        Some(ty2)
+      else
+        None
+    case (_, TScala(_)) => meet(TScala(Scala(ty1.asScala)), ty2, languageMetaInfo)
+    case (TScala(_), _) => meet(ty1, TScala(Scala(ty2.asScala)), languageMetaInfo)
     case _ => None
   }
 

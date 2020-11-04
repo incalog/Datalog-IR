@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, Public, TAny, TAnyLinked, TBool, TDouble, TInt, TList, TLong, TNode, TString, TUnbounded, Term, Type, Var, Visibility}
+import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, Public, TAny, TAnyLinked, TBool, TDouble, TInt, TList, TLong, TNode, TScala, TString, TUnbounded, Term, Type, Var, Visibility}
 
 object Printer {
 
@@ -35,6 +35,7 @@ object Printer {
     case TAnyLinked => "TAnyLinked"
     case TUnbounded(ty) => s"Unbounded[${prettyType(ty)}]"
     case TNode(name) => name
+    case TScala(ty) => s"`${ty.syntax}`"
     case TList(ty) => s"List[${prettyType(ty)}]"
   }
 
@@ -85,15 +86,15 @@ object Printer {
 
   def prettyComputation(lhs: Term, computation: Computation): String = computation match {
     case GP.CountAggregation(patName, args) =>
-      s"${prettyTerm(lhs)} = count $patName(${args.map(prettyTerm).mkString(",")})"
+      s"${prettyTerm(lhs)} == count $patName(${args.map(prettyTerm).mkString(",")})"
     case GP.ConstantEvaluation(returnType, code) =>
-      s"${prettyTerm(lhs)} = const eval($code):$returnType"
+      s"${prettyTerm(lhs)} == const `$code`: ${prettyType(returnType)}"
     case GP.Evaluation(args, returnType, code) =>
       val syntax = code.syntax
       val indented = syntax.replace("\n", "\n\t\t")
-      s"${prettyTerm(lhs)} = eval($indented):$returnType"
+      s"${prettyTerm(lhs)} == `$indented`: ${prettyType(returnType)}"
     case GP.CustomAggregation(typ, initOp, joinOp, inverseOp, patName, args, aggregatedColumn) =>
       val sargs = args.map(prettyTerm).updated(aggregatedColumn, "#").mkString(", ")
-      s"${prettyTerm(lhs)} = aggregate $patName($sargs) with $initOp, $joinOp, $inverseOp"
+      s"${prettyTerm(lhs)} == aggregate $patName($sargs) with $initOp, $joinOp, $inverseOp"
   }
 }

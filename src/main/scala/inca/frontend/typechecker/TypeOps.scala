@@ -2,6 +2,8 @@ package inca.frontend.typechecker
 
 import inca.frontend.core._
 import inca.runtime.context.LanguageMetaInfo
+import inca.util.Meta
+import inca.util.Meta.Scala
 import truechange.{AnyType, JavaLitType, ListType, SortType}
 
 object TypeOps {
@@ -26,6 +28,15 @@ object TypeOps {
         TNothing
     case (TList(s1), TList(s2)) => TList(meet(s1, s2, languageMetaInfo).asInstanceOf[TLinked])
     case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size => TTuple(tys1.zip(tys2).map(tt => meet(tt._1, tt._2, languageMetaInfo)))
+    case (TScala(s1), TScala(s2)) =>
+      if (Meta.subtypeScala(s1.tree, s2.tree))
+        ty1
+      else if (Meta.subtypeScala(s2.tree, s1.tree))
+        ty2
+      else
+        TNothing
+    case (_, TScala(_)) => meet(TScala(Scala(ty1.asScala)), ty2, languageMetaInfo)
+    case (TScala(_), _) => meet(ty1, TScala(Scala(ty2.asScala)), languageMetaInfo)
     case _ => TNothing
   }
 

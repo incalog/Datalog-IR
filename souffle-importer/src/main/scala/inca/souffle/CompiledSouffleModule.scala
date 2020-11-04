@@ -10,7 +10,7 @@ import inca.souffle.Syntax.{Input, PrintSize, RuleSignature}
 case class CompiledSouffleModule(ir: GP.Module,
                                  inputs: Seq[(RuleSignature, Input)],
                                  printSizes: Seq[PrintSize],
-                                 compilerOptions: Options) extends CompiledModule {
+                                 options: Options) extends CompiledModule {
   override def name: Name = ir.name
 
   override def sourceLocation: SourceLocation = NoSourceLocation
