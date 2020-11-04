@@ -121,10 +121,10 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
 
   test("unbounded literal parameter determined by eval") {
     val module = GP.Module("test_eval", Seq(),
-      Seq(GP.Pattern(None, "intToString", Seq(GP.Param("exp", GP.TNode(Exp.intTag)), GP.Param("str", GP.TUnbounded(GP.TString))),
+      Seq(GP.Pattern(None, "intToString", Seq(GP.Param("exp", GP.TNode(Exp.intTag)), GP.Param("str", GP.TScalaString)),
         Seq(GP.Body(Seq(
           GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TInt),
-          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TInt)), GP.TUnbounded(GP.TString), q"(value: Int) => value.toString")))
+          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TInt)), GP.TScalaString, q"(value: Int) => value.toString")))
         )))), Seq())
     assertMatchGPProg(module, "intToString", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
@@ -133,11 +133,11 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
 
   test("unbounded argument of second eval") {
     val module = GP.Module("test_eval", Seq(),
-      Seq(GP.Pattern(None, "intToString", Seq(GP.Param("exp", GP.TNode(Exp.intTag)), GP.Param("str2", GP.TUnbounded(GP.TString))),
+      Seq(GP.Pattern(None, "intToString", Seq(GP.Param("exp", GP.TNode(Exp.intTag)), GP.Param("str2", GP.TScalaString)),
         Seq(GP.Body(Seq(
           GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TInt),
-          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TInt)), GP.TUnbounded(GP.TString), q"(value: Int) => value.toString")),
-          GP.Computed(GP.Var("str2"), GP.Evaluation(Seq((GP.Var("str"), GP.TUnbounded(GP.TString))), GP.TUnbounded(GP.TString), q"""(str: String) => str + "_appended" """)))
+          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TInt)), GP.TScalaString, q"(value: Int) => value.toString")),
+          GP.Computed(GP.Var("str2"), GP.Evaluation(Seq((GP.Var("str"), GP.TScalaString)), GP.TScalaString, q"""(str: String) => str + "_appended" """)))
         )))), Seq())
     assertMatchGPProg(module, "intToString", testInputNumericAddition) { matcher =>
       println(matcher.getAllMatches)

@@ -29,12 +29,12 @@ class SouffleToIncaCompiler {
     analysis.contents.foreach(compile(_, ""))
 
     val module = Module(name, Seq(), patFuns.values.toSeq, Seq())
-    val transformedModule = PropagateUnbounded.transformModule(module)
+    val moduleWithUnbounded = PropagateUnbounded.transformModule(module)
 
     val lang = new LanguageMetaInfo(MultiDict(), Map(), genLitLinks)
 
     CompiledSouffleModule(
-      transformedModule,
+      moduleWithUnbounded,
       inputs.values.toSeq.map { input => (decls(input.rule), input) },
       printSizes.toSeq,
       Options(lang)
@@ -156,7 +156,7 @@ class SouffleToIncaCompiler {
         case Var(name) => param"${scala.meta.Term.Name(name)}: String"
       }.toList
       val funString = q"(..$typedParams) => (${compileEval(exp)}).intern"
-      val computed = Computed(trgVar, Evaluation(params.map((_, TString)), TUnbounded(TString), funString))
+      val computed = Computed(trgVar, Evaluation(params.map((_, TString)), TScalaString, funString))
       (trgVar, Seq(computed))
     case _ => throw new IllegalArgumentException(s"TODO $exp not supported")
   }

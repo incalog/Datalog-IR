@@ -15,8 +15,6 @@ object TypeOps {
     case (_, _) if ty1 == ty2 => Some(ty1)
     case (TAny, _) => Some(ty2)
     case (_, TAny) => Some(ty1)
-    case (TUnbounded(wrappedTy), _) if wrappedTy == ty2 => Some(wrappedTy)
-    case (_, TUnbounded(wrappedTy)) if ty1 == wrappedTy => Some(wrappedTy)
     case (TAnyLinked, _:TLinked) => Some(ty2)
     case (_:TLinked,TAnyLinked) => Some(ty1)
     case (TNode(name1), TNode(name2)) =>

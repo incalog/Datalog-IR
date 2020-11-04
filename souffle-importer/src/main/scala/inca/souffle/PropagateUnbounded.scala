@@ -1,6 +1,7 @@
 package inca.souffle
 
 import inca.backend.ir.GP._
+import inca.util.Meta.Scala
 
 object PropagateUnbounded {
 
@@ -25,7 +26,7 @@ object PropagateUnbounded {
 object TrackCallUnbounded extends TrackUnbounded {
   override def transformCall(call: Call, seen: Set[Term])(implicit pats: PatEnv): Set[Term] = {
     val pat = pats(call.name)
-    val unboundedIndices = pat.params.zipWithIndex.collect { case (Param(_, TUnbounded(_)), i) => i }
+    val unboundedIndices = pat.params.zipWithIndex.collect { case (Param(_, TScala(_)), i) => i }
     seen ++ unboundedIndices.map(call.args)
   }
 }
@@ -46,7 +47,7 @@ object TrackComputedUnbounded extends TrackUnbounded {
   }
 
   def isUnboundType(typeAnno: Type): Boolean = typeAnno match {
-    case TUnbounded(_) => true
+    case TScala(_) => true
     case _ => false
   }
 }
@@ -64,8 +65,8 @@ trait TrackUnbounded {
       if (unboundedNames.contains(p.name)) {
         // avoid nesting TUnbounded
         val ty = p.typ match {
-          case TUnbounded(_) => p.typ
-          case _ => TUnbounded(p.typ)
+          case TScala(_) => p.typ
+          case _ => TScala(Scala(p.typ.asScala))
         }
         Param(p.name, ty)
       } else p

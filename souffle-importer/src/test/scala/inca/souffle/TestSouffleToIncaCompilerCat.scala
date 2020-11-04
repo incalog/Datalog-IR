@@ -54,12 +54,12 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaMatchers {
     Syntax.RuleParameter("?arity", Syntax.NumberType)),
     false)
 
-  "compiled souffle" should "derive method descripter correctly" in {
+  "compiled souffle" should "derive method descriptor correctly" in {
     val superclasses =
       "<sun.security.provider.MD4: int FF(int,int,int,int,int,int)>;FF;int,int,int,int,int,int;sun.security.provider.MD4;int;(IIIIII)I;6"
     val factsCompiler = new SouffleInputToEditscript("EMPTY")
     val edit = factsCompiler.compile(superclasses.split("\n").iterator, _MethodSig, ";")
-    println(compiledModule.ir)
+//    println(compiledModule.ir)
     assertMatchGPEdit(compiledModule.ir, "Method_Descriptor", edit) { matcher =>
       println(matcher.getAllMatches)
       assert(matcher.getAllMatches.size == 1)

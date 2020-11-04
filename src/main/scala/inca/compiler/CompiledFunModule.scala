@@ -27,14 +27,14 @@ case class CompiledFunModule(fun: Module, options: Options) extends CompiledModu
     frontend.typecheck(module)
     messages ++= frontend.getErrors
     messages ++= frontend.getWarnings
-    println(module)
+//    println(module)
     stopIfNeeded()
     module
   }
 
   lazy val ir: GP.Module = {
     val module = CompileToGP.transformModule(desugared)
-    println(module)
+//    println(module)
     module
   }
 }

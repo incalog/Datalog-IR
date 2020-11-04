@@ -165,11 +165,6 @@ object CompileToPSystem {
   }
 
   private def genParamConstraint(param: Param): Option[Stat] = {
-    param.typ match {
-      case TUnbounded(_) => return None
-      case _ => // continue
-    }
-
     genInputKeyAndType(param.typ) match {
       case Some((key, _)) =>
         Some(
@@ -186,11 +181,8 @@ object CompileToPSystem {
   private def genInputKeyAndType(typ: GP.Type): Option[(meta.Term, meta.Term)] = typ match {
     case TAny => None
     case TScala(_) => None
-    case TUnbounded(ty) =>
-      val gentyp = genProperLitType(ty)
-      Some(q"new JavaTransitiveInstancesKey($gentyp)", genProperLitType(ty))
     case TBool | TInt | TLong | TDouble | TString =>
-      val gentyp = genLitType(typ)
+      val gentyp = q"$tPrimitiveType(${genProperLitType(typ)})"
       Some(q"$oPrimitiveKey($gentyp)", gentyp)
     case TAnyLinked | _: TNode | _: TList =>
       val gentyp = genNodeType(typ)
@@ -365,11 +357,6 @@ object CompileToPSystem {
       Seq(q"new $tAggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)")
   }
 
-  private def genLitType(typ: GP.Type): meta.Term = typ match {
-    case TUnbounded(ty) => genProperLitType(ty)
-    case ty => q"$tPrimitiveType(${genProperLitType(ty)})"
-  }
-
   private def genProperLitType(typ: GP.Type): meta.Term = typ match {
     case TBool => q"classOf[java.lang.Boolean]"
     case TInt => q"classOf[java.lang.Integer]"
@@ -388,7 +375,6 @@ object CompileToPSystem {
   }
 
   private def genScalaType(typ: GP.Type): meta.Type = typ match {
-    case TUnbounded(ty) => genScalaType(ty)
     case TAny => t"Any"
     case TBool => t"Boolean"
     case TInt => t"Int"

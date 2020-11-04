@@ -8,9 +8,6 @@ object GP {
   sealed trait Type {
     def asScala: meta.Type
   }
-  case class TUnbounded(ty: Type) extends Type {
-    override def asScala: meta.Type = ???
-  }
   case object TAny extends Type {
     override def asScala: meta.Type = t"Any"
   }

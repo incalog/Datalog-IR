@@ -2,6 +2,11 @@ package inca.souffle
 
 object Util {
 
-  def  cleanSouffleName(s: String): String =
-    "$$" + s.replace("?", "$")
+  def cleanSouffleName(s: String): String = {
+    val trimmed = if (s.startsWith("?"))
+      s.substring(1)
+    else
+      s
+    trimmed.replace("?", "")
+  }
 }
