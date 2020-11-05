@@ -658,4 +658,64 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     )
     assertTypecheckModulesFail(Seq(mod4, mod6))
   }
+
+  "checkModules" should "type modules with val defs correctly" in {
+    def testModule(mod: Module) = assertResult(())(typecheckModules(Seq(mod)))
+    def testModuleFail(mod: Module) = assertTypecheckModulesFail(Seq(mod))
+
+    testModule(
+      Module(
+        Name("my"),
+        Seq(),
+        Seq(ValDef(None, Name("x"), None, Constant(IntLiteral(1))))
+      )
+    )
+    testModule(
+      Module(
+        Name("my"),
+        Seq(),
+        Seq(ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))))
+      )
+    )
+    testModule(
+      Module(
+        Name("my"),
+        Seq(),
+        Seq(
+          ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))),
+          ValDef(None, Name("y"), None, Var(Name("x")))
+        )
+      )
+    )
+    testModule(
+      Module(
+        Name("my"),
+        Seq(),
+        Seq(
+          ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))),
+          ValDef(None, Name("y"), Some(TScalaInt), Var(Name("x")))
+        )
+      )
+    )
+    testModuleFail(
+      Module(
+        Name("my"),
+        Seq(),
+        Seq(
+          ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))),
+          ValDef(None, Name("y"), Some(TScalaBoolean), Var(Name("x")))
+        )
+      )
+    )
+    testModuleFail(
+      Module(
+        Name("my"),
+        Seq(),
+        Seq(
+          ValDef(None, Name("y"), None, Var(Name("x"))),
+          ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1)))
+        )
+      )
+    )
+  }
 }

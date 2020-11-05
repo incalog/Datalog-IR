@@ -175,9 +175,7 @@ class CompileToGPTest extends AnyFunSuite {
 
   test("function pattern undef of path"){
     val addType = TNode(classOf[Add].getCanonicalName)
-    val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
-    val rhsLink = addType("rhs")
     val fun = PatternFunction(
       None,
       "test",
@@ -192,14 +190,53 @@ class CompileToGPTest extends AnyFunSuite {
   }
 
   test("parameter without type"){
-    val addType = TNode(classOf[Add].getCanonicalName)
     val result = compileToGP(Module("test", Nil, Seq(noParamTypeFun)))
     println(Printer.prettyModule(result))
   }
 
   test("parameter with primitive type"){
-    val addType = TNode(classOf[Add].getCanonicalName)
     val result = compileToGP(Module("test", Nil, Seq(primitiveParamFun)))
     println(Printer.prettyModule(result))
+  }
+
+  test("modules with val defs") {
+    def testModule(mod: Module) = println(compileToGP(mod))
+
+    testModule(
+      Module(
+        Name("my"),
+        Seq(),
+        Seq(ValDef(None, Name("x"), None, Constant(IntLiteral(1))))
+      )
+    )
+    testModule(
+      Module(
+        Name("my"),
+        Seq(),
+        Seq(ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))))
+      )
+    )
+    testModule(
+      Module(
+        Name("my"),
+        Seq(),
+        Seq(
+          ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))),
+          ValDef(None, Name("y"), None, Var(Name("x")))
+        )
+      )
+    )
+    testModule(
+      Module(
+        Name("my"),
+        Seq(),
+        Seq(
+          ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))),
+          PatternFunction(None, Name("foo"), Seq(), Seq(AnnoParam(None, TScalaInt)), Seq(
+            Body(Seq(Yield(Var("x"))))
+          ))
+        )
+      )
+    )
   }
 }

@@ -86,20 +86,40 @@ class CoreParser {
 
   /** Literal parser */
   protected[frontend] def literal[_: P]: P[Literal] =
-    P(stringLiteral | unitLiteral /* tuple*/ | doubleLiteral | longLiteral |
-        intLiteral | booleanLiteral)
+    P(stringLiteral | unitLiteral | numericLiteral | booleanLiteral)
 
   /** UnitLiteral parser */
   protected[frontend] def unitLiteral[_: P]: P[UnitLiteral.type] = P("unit").mapWithLoc(_ => UnitLiteral)
 
-  /** IntLiteral parser */
-  protected[frontend] def intLiteral[_: P]: P[IntLiteral] = P(ParserUtils.integer).mapWithLoc(IntLiteral)
-
-  /** LongLiteral parser */
-  def longLiteral[_: P]: P[LongLiteral] = P(ParserUtils.long ~ "L").mapWithLoc(LongLiteral)
-
-  /** DoubleLiteral parser */
-  protected[frontend] def doubleLiteral[_: P]: P[DoubleLiteral] = P(ParserUtils.double).mapWithLoc(DoubleLiteral)
+  /** Whole number parser */
+  protected[frontend] def numericLiteral[_: P]: P[Literal] =
+    P("-".!.? ~~ ParserUtils.rawInteger ~~
+      (("L" | "l").map(_=>"long") |
+        "d".!.map(_=>"double") |
+        "." ~~ (ParserUtils.rawInteger | "".!) ~~ "d".?
+      ).?
+    ).flatMapWithLoc { case (sign, whole, suffix) =>
+      val integral = sign.getOrElse("") + whole
+      suffix match {
+        case None => integral.toIntOption match {
+          case Some(i) => Pass(IntLiteral(i))
+          case None => Fail
+        }
+        case Some("long") => integral.toLongOption match {
+          case Some(l) => Pass(LongLiteral(l))
+          case None => Fail
+        }
+        case Some("double") => integral.toDoubleOption match {
+          case Some(d) => Pass(DoubleLiteral(d))
+          case None => Fail
+        }
+        case Some(fraction) =>
+          s"$integral.$fraction".toDoubleOption match {
+            case Some(d) => Pass(DoubleLiteral(d))
+            case None => Fail
+          }
+      }
+    }
 
   /** StringLiteral parser */
   def stringLiteral[_: P]: P[StringLiteral] = P(ParserUtils.string).mapWithLoc(StringLiteral)
@@ -299,7 +319,7 @@ class CoreParser {
     P("import" ~ identifier).mapWithLoc(Import.apply)
 
   def moduleContent[_: P]: P[ModuleContent] =
-    P(patternFunction | nativeStat.map(new ScalaStatement(_)))
+    P(patternFunction | valDef | nativeStat.mapWithLoc(new ScalaModuleContent(_)))
 
 
   def nativeStat[_: P]: P[meta.Stat] =
@@ -316,6 +336,8 @@ class CoreParser {
       }
     }
 
+  protected[frontend] def valDef[_: P]: P[ValDef] =
+    P(visibility.? ~ "val" ~/ identifier ~ (":" ~ typeAnno).? ~ "=" ~ exp).mapWithLoc(ValDef.tupled)
 
 
   /** Yield parser */

@@ -20,7 +20,8 @@ object CompileToGP {
     val stats = ListBuffer[Scala[meta.Stat]]()
     contents.foreach {
       case fun: PatternFunction => patterns += transform(fun)
-      case stat: ScalaStatement => stats += stat
+      case _: ValDef => // will be inlined
+      case stat: ScalaModuleContent => stats += stat
     }
 
     GP.Module(name.name, imports.map(_.name.name), patterns.toList, stats.toList)
@@ -154,6 +155,8 @@ object CompileToGP {
       v.target.getOrElse(throw new IllegalArgumentException(s"Unbound variable $name")) match {
         case assign@Assign(Seq(_), exp) if shouldInlineAssign(assign) =>
           // inline exp
+          transExp(exp.ensureCore)
+        case ValDef(_, _, _, exp) =>
           transExp(exp.ensureCore)
         case _: Param | _: Values | _: Assign => (Seq(name.name), Seq())
         case target => throw new IllegalArgumentException(s"Unknown variable target $target for $v")

@@ -9,14 +9,16 @@ case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
 
   def allVars: Map[Name, Option[Type]] = content.flatMap {
     case fun: PatternFunction => fun.allVars
-    case _: ScalaStatement => Map()
+    case v: ValDef => v.exp.freeVars + (v.name -> v.getType)
+    case _: ScalaModuleContent => Map()
   }.toMap
 
   def usedModuleNames: Seq[Name] = name +: imports.map(_.name)
 
-  def usedFunNames: Seq[Name] = content.flatMap {
+  def usedDefNames: Seq[Name] = content.flatMap {
     case fun: PatternFunction => Some(fun.name)
-    case _: ScalaStatement => None
+    case valDef: ValDef => Some(valDef.name)
+    case _: ScalaModuleContent => None
   }
 
   def prettyprint(implicit indent: String): String = {
@@ -43,10 +45,23 @@ trait ModuleContent {
   def prettyprint(implicit indent: String): String
 }
 
-class ScalaStatement(stat: meta.Stat) extends Scala[meta.Stat](stat) with ModuleContent {
+case class ValDef(vis: Option[Visibility], name: Name, typ: Option[Type], exp: Expression) extends ModuleContent with Var.Target with SourceLocation {
+  override def prettyprint(implicit indent: String): String = {
+    val visS = if (vis.contains(Private)) "private " else ""
+    val typS = typ match {
+      case Some(ty) => s": ${ty.prettyprint}"
+      case None => ""
+    }
+    s"$indent${visS}val $name$typS = ${exp.prettyprint}"
+  }
+
+  def getType: Option[Type] = typ.orElse(exp.typ)
+}
+
+class ScalaModuleContent(stat: meta.Stat) extends Scala[meta.Stat](stat) with ModuleContent with SourceLocation {
   override def vis: Option[Visibility] = None // todo: analyze scala code to retrieve its visibility
   override def prettyprint(implicit indent: String): String = indent + this.toString
 }
-object ScalaStatement {
-  def apply(stat: meta.Stat): ScalaStatement = new ScalaStatement(stat)
+object ScalaModuleContent {
+  def apply(stat: meta.Stat): ScalaModuleContent = new ScalaModuleContent(stat)
 }

@@ -9,6 +9,9 @@ sealed trait StmType {
     case Terminator(ty) => ty
   }
 
+
+  override def toString: String = asType.prettyprint
+
   def meet(other: StmType, lang: LanguageMetaInfo): StmType = (this, other) match {
     case (NoTerminator, _) => NoTerminator
     case (_, NoTerminator) => NoTerminator

@@ -62,7 +62,7 @@ class CoreParserTest extends AnyFunSuite {
 
   test("test IntLiteral") {
     def testIntLit(input: String, cmp: Int): Assertion =
-      testSuccess(parser.intLiteral(_))(input, IntLiteral(cmp))
+      testSuccess(parser.numericLiteral(_))(input, IntLiteral(cmp))
 
     testIntLit("0", 0)
     testIntLit("1", 1)
@@ -80,16 +80,17 @@ class CoreParserTest extends AnyFunSuite {
 
   test("test LongLiteral") {
     def testLongLit(input: String, r: Long): Assertion =
-      testSuccess(parser.longLiteral(_))(input, LongLiteral(r))
+      testSuccess(parser.numericLiteral(_))(input, LongLiteral(r))
     testLongLit("1L", 1L)
     testLongLit("-1L", -1L)
-    testLongLit("11L", 11L)
+    testLongLit("11L", 11l)
     testLongLit("-11L", -11L)
+    testLongLit("-111111111111111L", -111111111111111L)
   }
 
   test("test DoubleLiteral") {
     def testDoubleLit(input: String, r: Double): Assertion =
-      testSuccess(parser.doubleLiteral(_))(input, DoubleLiteral(r))
+      testSuccess(parser.numericLiteral(_))(input, DoubleLiteral(r))
     testDoubleLit("1.", 1d)
     testDoubleLit("1d", 1d)
     testDoubleLit("1.0", 1d)
@@ -103,7 +104,6 @@ class CoreParserTest extends AnyFunSuite {
     testDoubleLit("0.0", 0d)
     testDoubleLit("0.0d", 0d)
     testDoubleLit("-1d", -1d)
-    testDoubleLit("-1.", -1d)
     testDoubleLit("-1.0", -1d)
     testDoubleLit("-1.0d", -1d)
     testDoubleLit("-12d", -12d)
@@ -732,17 +732,16 @@ class CoreParserTest extends AnyFunSuite {
   test("test Module") {
     def testModule = testSuccess[Module](parser.module(_))
 
-    // Note the import keyword is optional
     testModule(
       s"""module my
-                |import math
-                |import cuda_runtime
-                |public def foo(bar: Boolean): Unit = {
-                |  val x = y
-                |}
-                |def bar(foo: Boolean): Unit = {
-                |  val x = y
-                |}""".stripMargin,
+         |import math
+         |import cuda_runtime
+         |public def foo(bar: Boolean): Unit = {
+         |  val x = y
+         |}
+         |def bar(foo: Boolean): Unit = {
+         |  val x = y
+         |}""".stripMargin,
       Module(
         Name("my"),
         Seq(Import(Name("math")), Import(Name("cuda_runtime"))),
@@ -775,15 +774,15 @@ class CoreParserTest extends AnyFunSuite {
 
     testModule(
       s"""module my
-                |
-                |import cuda_runtime
-                |
-                |
-                |def foo(bar: Boolean): Unit = {
-                |  val x = y
-                |}
-                |
-                |""".stripMargin,
+         |
+         |import cuda_runtime
+         |
+         |
+         |def foo(bar: Boolean): Unit = {
+         |  val x = y
+         |}
+         |
+         |""".stripMargin,
       Module(
         Name("my"),
         Seq(Import(Name("cuda_runtime"))),
@@ -804,15 +803,15 @@ class CoreParserTest extends AnyFunSuite {
     )
     testModule(
       s"""module my
-                |
-                |import math
-                |
-                |
-                |def foo(bar: Boolean): Unit = {
-                |  val x = y
-                |}
-                |
-                |""".stripMargin,
+         |
+         |import math
+         |
+         |
+         |def foo(bar: Boolean): Unit = {
+         |  val x = y
+         |}
+         |
+         |""".stripMargin,
       Module(
         Name("my"),
         Seq(Import(Name("math"))),
@@ -833,12 +832,12 @@ class CoreParserTest extends AnyFunSuite {
     )
     testModule(
       s"""module my
-                |
-                |def foo(bar: Boolean): Unit = {
-                |  val x = y
-                |}
-                |
-                |""".stripMargin,
+         |
+         |def foo(bar: Boolean): Unit = {
+         |  val x = y
+         |}
+         |
+         |""".stripMargin,
       Module(
         Name("my"),
         Seq(),
@@ -859,11 +858,50 @@ class CoreParserTest extends AnyFunSuite {
     )
     testModule(
       s"""module my
-                |""".stripMargin,
+         |""".stripMargin,
       Module(
         Name("my"),
         Seq(),
         Seq()
+      )
+    )
+  }
+
+  test("test Module with val defs") {
+    def testModule = testSuccess[Module](parser.module(_))
+
+    testModule(
+      s"""module my
+         |val x = 1
+         |""".stripMargin,
+      Module(
+        Name("my"),
+        Seq(),
+        Seq(ValDef(None, Name("x"), None, Constant(IntLiteral(1))))
+      )
+    )
+    testModule(
+      s"""module my
+         |val x: `Int` = 1
+         |""".stripMargin,
+      Module(
+        Name("my"),
+        Seq(),
+        Seq(ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))))
+      )
+    )
+    testModule(
+      s"""module my
+         |val x: `Int` = 1
+         |val y = x
+         |""".stripMargin,
+      Module(
+        Name("my"),
+        Seq(),
+        Seq(
+          ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))),
+          ValDef(None, Name("y"), None, Var(Name("x")))
+        )
       )
     )
   }

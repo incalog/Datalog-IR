@@ -7,7 +7,6 @@ import inca.runtime.context.LanguageMetaInfo
 import inca.util.Meta
 import inca.util.Meta.Scala
 
-import scala.collection.mutable.ListBuffer
 import scala.meta.Term
 
 trait CoreTypechecker
@@ -32,22 +31,24 @@ trait CoreTypechecker
       for (content <- importedModule.content if !content.vis.contains(Private)) {
         content match {
           case fun: PatternFunction => bindFun(fun, importedModule)
-          case _: ScalaStatement => // nothing
+          case valDef: ValDef => bindVar(valDef.name, valDef, valDef.getType.get)
+          case _: ScalaModuleContent => // nothing
         }
       }
     }
 
-    val funs = ListBuffer[PatternFunction]()
-    for (content <- module.content) {
-      content match {
-        case fun: PatternFunction =>
-          bindFun(fun, module)
-          funs += fun
-        case _: ScalaStatement => // nothing
-      }
+    // bind symbols first
+    module.content.foreach {
+      case fun: PatternFunction => bindFun(fun, module)
+      case _: ValDef => // scoped to remainder of module, hence bind later
+      case _: ScalaModuleContent => // nothing
     }
 
-    funs.foreach(typecheck)
+    module.content.foreach {
+      case fun: PatternFunction => typecheck(fun)
+      case vd: ValDef => typecheck(vd)
+      case _: ScalaModuleContent => // nothing
+    }
   }
 
 
@@ -78,6 +79,22 @@ trait CoreTypechecker
         typecheck(stm, mustTerminate = false, mayTerminate = false)
       }
       typecheck(body.stmts.last, mustTerminate, mayTerminate = true)
+    }
+  }
+
+  /*
+   * ValDef
+   */
+
+  def typecheck(valDef: ValDef): Unit = {
+    val inferred = typecheck(valDef.exp)
+    valDef.typ match {
+      case Some(annotated) =>
+        if (!TypeOps.subtype(inferred, annotated, lang))
+          error(s"Inferred type $inferred, but expected annotated type $annotated", valDef)
+        bindVar(valDef.name, valDef, annotated)
+      case None =>
+        bindVar(valDef.name, valDef, inferred)
     }
   }
 

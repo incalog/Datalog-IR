@@ -31,7 +31,7 @@ class CoreNativeParserTest extends AnyFunSuite {
       Module(
         Name("my"),
         Seq(Import(Name("math")), Import(Name("cuda_runtime"))),
-        Seq(ScalaStatement(q"import java.lang"), ScalaStatement(q"import inca.Compiler"))
+        Seq(ScalaModuleContent(q"import java.lang"), ScalaModuleContent(q"import inca.Compiler"))
       )
     )
 
@@ -54,7 +54,7 @@ class CoreNativeParserTest extends AnyFunSuite {
           q"import inca.Compiler",
           q"val i = 0",
           q"var v: Int = 0",
-          q"def f() = { Compiler.invoke() }").map(ScalaStatement.apply)
+          q"def f() = { Compiler.invoke() }").map(ScalaModuleContent.apply)
       )
     )
 

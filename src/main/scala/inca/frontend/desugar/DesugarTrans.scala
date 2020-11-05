@@ -18,7 +18,7 @@ class DesugarTrans {
   def desugarModule(module: Module)(implicit gensym: Gensym): Module = gensym.scoped {
     val Module(name, imports, content) = module
     gensym.register(module.usedModuleNames.map(_.name))
-    gensym.register(module.usedFunNames.map(_.name))
+    gensym.register(module.usedDefNames.map(_.name))
     Module(name, imports.flatMap(desugarImport), content.flatMap(desugarModuleContent))
   }
 
@@ -27,6 +27,7 @@ class DesugarTrans {
 
   def desugarModuleContent(content: ModuleContent)(implicit gensym: Gensym): Seq[ModuleContent] = content match {
     case fun: PatternFunction => desugarFun(fun)
+    case ValDef(vis, name, typ, exp) => Seq(ValDef(vis, name, typ, desugarExp(exp)))
     case con => Seq(con)
   }
 
