@@ -138,6 +138,11 @@ trait CoreTypechecker
       NoYield
 
     case vals@Values(name, typ) =>
+      typ match {
+        case TNothing => warn(s"$typ contains no values, enumeration will fail", typ)
+        case TScala(_) => error(s"Cannot enumerate Scala values of type $typ", typ)
+        case _ => // fine
+      }
       bindVar(name, vals, typ)
       NoYield
 
@@ -316,7 +321,7 @@ trait CoreTypechecker
         lang.links.get(node, field.name) match {
           case Some(ty) => TypeOps.truechangeTypeToType(ty)
           case _ => lang.litLinks.get(node, field.name) match {
-            case Some(ty) => TypeOps.truechangeLitTypeToType(ty)
+            case Some(litType) => TLiteral(litType)
             case _ =>
               error(s"Cannot access field `$field` of node $node", exp)
               TAny

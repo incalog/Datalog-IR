@@ -166,7 +166,7 @@ trait MatchFrontend extends Frontend {
               ty
             case None => lang.litLinks.get(node.name, field.name) match {
               case Some(trueLitType) =>
-                val ty = TypeOps.truechangeLitTypeToType(trueLitType)
+                val ty = TLiteral(trueLitType)
                 typecheckPattern(pattern, ty)
                 ty
               case None =>

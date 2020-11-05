@@ -21,20 +21,6 @@ object TypeHelper {
 
   private def tLinked[_: P]: P[TLinked] = P(cp.tAnyLinked | tNode)
 
-  private def typeAnno[_: P]: P[Type] =
-    Start ~ P(
-      typeAnnoHelper(TAny)
-        | typeAnnoHelper(TBool)
-        | typeAnnoHelper(TLong)
-        | typeAnnoHelper(TInt)
-        | typeAnnoHelper(TDouble)
-        | typeAnnoHelper(TString)
-        | typeAnnoHelper(TUnit)
-        | tList
-        | tLinked
-        | cp.tTuple
-    ) ~ End
-
   private def tList[_: P]: P[TList] =
     P("List[" ~ tLinked ~ "]").flatMap {
       case inner@TNode(name) => name match {

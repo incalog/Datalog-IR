@@ -102,11 +102,11 @@ class SouffleToIncaCompiler {
     Param(cleanSouffleName(param.name), compile(param.typ))
 
   def compile(typ: Syntax.Type): Type = typ match {
-    case DeclaredType(_) => TString
-    case SymbolType => TString
-    case NumberType => TInt
-    case UnsignedType => TLong
-    case FloatType => TDouble
+    case DeclaredType(_) => TLiteral.String
+    case SymbolType => TLiteral.String
+    case NumberType => TLiteral.Int
+    case UnsignedType => TLiteral.Long
+    case FloatType => TLiteral.Double
   }
 
   def getJavaClassForType(typ: Syntax.Type): Class[_] = typ match {
@@ -156,7 +156,7 @@ class SouffleToIncaCompiler {
         case Var(name) => param"${scala.meta.Term.Name(name)}: String"
       }.toList
       val funString = q"(..$typedParams) => (${compileEval(exp)}).intern"
-      val computed = Computed(trgVar, Evaluation(params.map((_, TString)), TScalaString, funString))
+      val computed = Computed(trgVar, Evaluation(params.map((_, TLiteral.String)), TScalaString, funString))
       (trgVar, Seq(computed))
     case _ => throw new IllegalArgumentException(s"TODO $exp not supported")
   }

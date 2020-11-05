@@ -6,7 +6,7 @@ import inca.util.Gensym
 import inca.util.Meta.Scala
 
 import scala.collection.mutable.ListBuffer
-import scala.meta.{Name => _, Type => _, _}
+import scala.meta.{Name => _, Type => _}
 
 object CompileToGP {
   case object BodyMustFail extends Exception
@@ -40,11 +40,7 @@ class CompileToGP {
 
   def transType(typ: Type): GP.Type = typ match {
     case TAny => GP.TAny
-    case TBool => GP.TBool
-    case TInt => GP.TInt
-    case TLong => GP.TLong
-    case TDouble => GP.TDouble
-    case TString => GP.TString
+    case TLiteral(lit) => GP.TLiteral(lit)
     case TAnyLinked => GP.TAnyLinked
     case TNode(name) => GP.TNode(name)
     case TList(ty) => GP.TList(transType(ty).asInstanceOf[GP.TLinked])
@@ -85,13 +81,6 @@ class CompileToGP {
 
   type Res = (Seq[String], Seq[GP.Constraint])
 
-  case class Binding(typ: Type, exp: Option[CoreExpression], index: Option[Int]) {
-    def shouldInline: Boolean = typ match {
-      case TBool => exp.nonEmpty && index.isEmpty
-      case _ => false
-    }
-  }
-
   def transBody(alt: Body, outVars: Seq[String])(implicit gensym: Gensym): Option[GP.Body] = {
     try {
       val constraints = alt.stmts.flatMap { s =>
@@ -113,21 +102,6 @@ class CompileToGP {
 
       gensym.register(names.map(_.name))
       val expTy = exp.typ.get
-      val bindings = names match {
-        case Nil => Seq()
-        case Seq(_) => Seq(Binding(expTy, Some(exp.ensureCore), None))
-        case ns => ns.zipWithIndex.map { case (n, i) =>
-          val ty = expTy match {
-            case tup@TTuple(ts) =>
-              if (i < ts.size)
-                ts(i)
-              else
-                throw new IllegalArgumentException(s"Cannot assign ${ts.size}-ary tuple $tup to ${ns.size} variables $ns")
-            case _ => throw new IllegalArgumentException(s"Cannot assign non-tuple $expTy to variables $ns")
-          }
-          Binding(ty, Some(exp.ensureCore), Some(i))
-        }
-      }
 
       if (shouldInlineAssign(assign)) {
         Seq()
@@ -285,7 +259,7 @@ class CompileToGP {
       val evalVar = gensym.fresh("eval")
       val argConstraints = ListBuffer[GP.Constraint]()
       val paramsTyped = params.map { param =>
-        param"${Term.Name(param.name.name)}: ${scalaType(param.typ.get)}"
+        param"${Term.Name(param.name.name)}: ${param.typ.get.asScala}"
       }.toList
       val args = params.map { param =>
         param.target.getOrElse(throw new IllegalArgumentException(s"Unbound eval parameter $param")) match {
@@ -327,7 +301,7 @@ class CompileToGP {
   }
 
   private def shouldInlineAssign(assign: Assign): Boolean =
-    assign.names.size == 1 && (assign.exp.typ.contains(TScalaBoolean) || assign.exp.typ.contains(TBool))
+    assign.names.size == 1 && (assign.exp.typ.contains(TScalaBoolean) || assign.exp.typ.contains(TLiteral.Bool))
 
   def transCallArgs(call: Call, args: Seq[Expression])(implicit gensym: Gensym): (Seq[String], Seq[String], Seq[GP.Constraint]) = {
     val (vars, constraints) = args.map(e => transExp(e.ensureCore)).unzip
@@ -381,16 +355,5 @@ class CompileToGP {
     case DoubleLiteral(v) => Some(GP.DoubleLiteral(v))
     case StringLiteral(v) => Some(GP.StringLiteral(v))
     case BooleanLiteral(v) => Some(GP.BooleanLiteral(v))
-  }
-
-  def scalaType(typ: Type): meta.Type = typ match {
-    case TAny => t"Any"
-    case TBool => t"Boolean"
-    case TInt => t"Int"
-    case TLong => t"Long"
-    case TDouble => t"Double"
-    case TString => t"String"
-    case TScala(ty) => ty.tree
-    case _: TLinked => t"truechange.URI"
   }
 }

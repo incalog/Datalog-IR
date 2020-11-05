@@ -1,6 +1,7 @@
 package inca.backend.ir
 
-import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, Public, TAny, TAnyLinked, TBool, TDouble, TInt, TList, TLong, TNode, TScala, TString, Term, Type, Var, Visibility}
+import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, Public, TAny, TAnyLinked, TList, TLiteral, TNode, TScala, Term, Type, Var, Visibility}
+import truechange.JavaLitType
 
 object Printer {
 
@@ -27,11 +28,10 @@ object Printer {
 
   def prettyType(typ: Type): String = typ match {
     case TAny => "TAny"
-    case TBool => "TBool"
-    case TInt => "TInt"
-    case TLong => "TLong"
-    case TDouble => "TDouble"
-    case TString => "TString"
+    case TLiteral(litType) => litType match {
+      case JavaLitType(cl) =>  cl.getName
+      case _ => throw new UnsupportedOperationException
+    }
     case TAnyLinked => "TAnyLinked"
     case TNode(name) => name
     case TScala(ty) => s"`${ty.syntax}`"

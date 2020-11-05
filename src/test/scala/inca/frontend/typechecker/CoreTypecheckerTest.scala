@@ -19,9 +19,9 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   "subtype" should "work" in {
     def test_run(t1 : Type, t2 : Type) = assert(TypeOps.subtype(t1, t2, null))
 
-    test_run(TBool, TBool)
-    test_run(TBool, TAny)
-    test_run(TString, TAny)
+    test_run(TLiteral.Bool, TLiteral.Bool)
+    test_run(TLiteral.Bool, TAny)
+    test_run(TLiteral.String, TAny)
     test_run(TNode("apf3l"), TAnyLinked)
   }
 
@@ -261,7 +261,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
 
   "checkExp" should "type var correctly" in {
     val varExp = parseExp("x")
-    assertResult(TBool)(typecheckExp(varExp, Map(Name("x") -> TBool)))
+    assertResult(TLiteral.Bool)(typecheckExp(varExp, Map(Name("x") -> TLiteral.Bool)))
     assertTypecheckExpFail(varExp, Map())
   }
 
@@ -334,20 +334,20 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   "checkExp" should "type tuple correctly" in {
-    val vars = Map(Name("x") -> TString)
+    val vars = Map(Name("x") -> TLiteral.String)
 
     val tuple = parseExp("(1, x)")
-    assertResult(TTuple(Seq(TScalaInt, TString)))(typecheckExp(tuple, vars))
+    assertResult(TTuple(Seq(TScalaInt, TLiteral.String)))(typecheckExp(tuple, vars))
 
     val tuple2 = parseExp("(1, x, 2L, true)")
-    assertResult(TTuple(Seq(TScalaInt, TString, TScalaLong, TScalaBoolean)))(typecheckExp(tuple2, vars))
+    assertResult(TTuple(Seq(TScalaInt, TLiteral.String, TScalaLong, TScalaBoolean)))(typecheckExp(tuple2, vars))
 
     val tuple3 = parseExp("(1, x, 2L, y)")
     assertTypecheckExpFail(tuple3, vars)
   }
 
   "checkExp" should "type eq correctly" in {
-    val vars = Map(Name("x") -> TInt)
+    val vars = Map(Name("x") -> TLiteral.Int)
 
     val eq = parseExp("1 == x")
     assertResult(TScalaBoolean)(typecheckExp(eq, vars))
@@ -363,7 +363,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   "checkExp" should "type def correctly" in {
-    val funs = Seq(PatternFunction(None, Name("f"), Seq(Param(Name("x"), TInt)), Seq(), Seq()))
+    val funs = Seq(PatternFunction(None, Name("f"), Seq(Param(Name("x"), TLiteral.Int)), Seq(), Seq()))
     val vars = Map(Name("x") -> TNode(analyzedLangs.Exp.addTag))
 
     val defPathAccess = parseExp("def x.lhs")
@@ -394,10 +394,10 @@ class CoreTypecheckerTest extends AnyFlatSpec {
 
 
   "checkExp" should "type call correctly" in {
-    val funs = Seq(PatternFunction(None, Name("fun"), Seq(Param(Name("x"), TInt), Param(Name("y"), TInt)), Seq(AnnoParam(None, TBool)), Seq()))
+    val funs = Seq(PatternFunction(None, Name("fun"), Seq(Param(Name("x"), TLiteral.Int), Param(Name("y"), TLiteral.Int)), Seq(AnnoParam(None, TLiteral.Bool)), Seq()))
 
     val call = parseExp("fun(1, 2)")
-    assertResult(TBool)(typecheckExp(call, Map(), funs))
+    assertResult(TLiteral.Bool)(typecheckExp(call, Map(), funs))
 
     val wrongNumArgs = parseExp("fun(1, 2, 2)")
     assertTypecheckExpFail(wrongNumArgs, Map(), funs)
@@ -427,7 +427,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   "checkExp" should "type count correctly" in {
-    val funs = Seq(PatternFunction(None, Name("fun"), Seq(Param(Name("x"), TInt), Param(Name("y"), TInt)), Seq(AnnoParam(None, TBool)), Seq()))
+    val funs = Seq(PatternFunction(None, Name("fun"), Seq(Param(Name("x"), TLiteral.Int), Param(Name("y"), TLiteral.Int)), Seq(AnnoParam(None, TLiteral.Bool)), Seq()))
 
     val count = parseExp("count fun(1, 2)")
     assertResult(TScalaInt)(typecheckExp(count, Map(), funs))
@@ -446,16 +446,16 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     val differentSized2 = parseStatement("val (x, y) = (1)")
     assertTypecheckStmFail(differentSized2)
 
-    val vars = Map(Name("x") -> TInt)
+    val vars = Map(Name("x") -> TLiteral.Int)
     val reassign = parseStatement("val x = true")
     assertTypecheckStmFail(reassign, vars)
   }
 
   "checkStatement" should "type values correctly" in {
     val single = parseStatement("vals x <- Int")
-    assertResult(Map(Name("x") -> TInt))(typecheckStmBindings(single))
+    assertResult(Map(Name("x") -> TLiteral.Int))(typecheckStmBindings(single))
 
-    val vars = Map(Name("x") -> TInt)
+    val vars = Map(Name("x") -> TLiteral.Int)
     val reassign = parseStatement("vals x <- Bool")
     assertTypecheckStmFail(reassign, vars)
   }
@@ -479,7 +479,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   "checkYield" should "type yield correctly" in {
-    val fun = (y: Statement) => PatternFunction(None, Name("fun"), Seq(Param(Name("y"), TInt)), Seq(AnnoParam(None, TDouble)), Seq(Body(y)))
+    val fun = (y: Statement) => PatternFunction(None, Name("fun"), Seq(Param(Name("y"), TLiteral.Int)), Seq(AnnoParam(None, TLiteral.Double)), Seq(Body(y)))
 
     val yieldStmt = parseStatement("yield 1.0")
     assertResult(())(typecheckFun(fun(yieldStmt)))
@@ -488,16 +488,16 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     assertTypecheckFunFail(fun(yieldInt))
 
     val yieldUnit = parseStatement("yield unit")
-    val fun2 = (y: Statement) => PatternFunction(None, Name("fun"), Seq(Param(Name("y"), TInt)), Seq(), Seq(Body(y)))
+    val fun2 = (y: Statement) => PatternFunction(None, Name("fun"), Seq(Param(Name("y"), TLiteral.Int)), Seq(), Seq(Body(y)))
     assertResult(())(typecheckFun(fun2(yieldUnit)))
 
     val yieldTuple = parseStatement("yield (true, 1L)")
-    val fun3 = (y: Statement) => PatternFunction(None, Name("fun"), Seq(Param(Name("y"), TInt)), Seq(AnnoParam(None, TBool), AnnoParam(None, TLong)), Seq(Body(y)))
+    val fun3 = (y: Statement) => PatternFunction(None, Name("fun"), Seq(Param(Name("y"), TLiteral.Int)), Seq(AnnoParam(None, TLiteral.Bool), AnnoParam(None, TLiteral.Long)), Seq(Body(y)))
     assertResult(())(typecheckFun(fun3(yieldTuple)))
   }
 
   "checkBody" should "type body correctly" in {
-    val fun = (body: Body) => PatternFunction(None, Name("fun"), Seq(Param(Name("y"), TInt)), Seq(AnnoParam(None, TBool), AnnoParam(None, TLong)), Seq(body))
+    val fun = (body: Body) => PatternFunction(None, Name("fun"), Seq(Param(Name("y"), TLiteral.Int)), Seq(AnnoParam(None, TLiteral.Bool), AnnoParam(None, TLiteral.Long)), Seq(body))
     val vars = Map(Name("x") -> TNode(analyzedLangs.Exp.expTag))
 
     val body = parseBody(

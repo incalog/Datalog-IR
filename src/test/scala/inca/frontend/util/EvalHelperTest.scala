@@ -489,13 +489,13 @@ class EvalHelperTest extends AnyFunSuite {
       val actual = checkEval(eval, vars)
       assert(actual == expected)
     }
-    check(Eval(Seq(EvalParam(core.Name("x")), EvalParam(core.Name("y"))), Scala(q"x + y")), TScalaInt, Map("x" -> TInt, "y" -> TInt))
+    check(Eval(Seq(EvalParam(core.Name("x")), EvalParam(core.Name("y"))), Scala(q"x + y")), TScalaInt, Map("x" -> TLiteral.Int, "y" -> TLiteral.Int))
     check(Eval(Seq.empty, Scala(q"Math.PI")), TScalaDouble)
-    check(Eval(Seq(EvalParam(core.Name("x")), EvalParam(core.Name("y"))), Scala(q"x == y")), TScalaBoolean, Map("x" -> TBool, "y" -> TBool))
+    check(Eval(Seq(EvalParam(core.Name("x")), EvalParam(core.Name("y"))), Scala(q"x == y")), TScalaBoolean, Map("x" -> TLiteral.Bool, "y" -> TLiteral.Bool))
     check(Eval(Seq.empty, Scala(q""" "hello world" """)), TScalaString)
     check(Eval(Seq.empty, Scala(q"{val s: Short = 1; s}")), TScala("Short"))
     check(Eval(Seq.empty, Scala(q"println()")), TUnit)
-    check(Eval(Seq(EvalParam(core.Name("s"))), Scala(q"s")), TScalaString, Map("s" -> TString))
+    check(Eval(Seq(EvalParam(core.Name("s"))), Scala(q"s")), TScalaString, Map("s" -> TLiteral.String))
   }
 
 

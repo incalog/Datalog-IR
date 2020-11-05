@@ -100,7 +100,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "implement switch semantics" in {
     val module = Module("Test_Cast", Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
+      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TLiteral.Int)), Seq(Body(Seq(
         Values("root", TNode(Exp.expTag)),
         Assert(Undef(PathAccess(Var("root"), ParentLink))),
         Yield(
@@ -110,7 +110,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
         )
       )))),
 
-      PatternFunction(None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
+      PatternFunction(None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), Seq(AnnoParam(None, TLiteral.Int)), Seq(Body(Seq(
         Switch(Seq(
           Body(Seq(
             Assert(InstanceOf(Var("e"), TNode(Exp.intTag))),

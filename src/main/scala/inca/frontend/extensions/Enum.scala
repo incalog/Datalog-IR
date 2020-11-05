@@ -30,6 +30,11 @@ trait EnumFrontend extends Frontend {
 
   override def typecheckInternal(exp: Expression, anno: Option[Type]): Type = exp match {
     case Enum(ty) =>
+      ty match {
+        case TNothing => warn(s"$ty contains no values, enumeration will fail", ty)
+        case TScala(_) => error(s"Cannot enumerate Scala values of type $ty", ty)
+        case _ => // fine
+      }
       TEnumeration(ty)
     case _ => super.typecheckInternal(exp, anno)
   }

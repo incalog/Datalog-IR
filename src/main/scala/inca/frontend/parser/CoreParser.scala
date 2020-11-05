@@ -51,8 +51,8 @@ class CoreParser {
 
   /** Type parser */
   protected[frontend] def typeAnno[_: P]: P[Type] =
-    P(simpleType(TAny) | simpleType(TBool) | simpleType(TLong) |
-        simpleType(TInt) | simpleType(TDouble) | simpleType(TString) |
+    P(simpleType(TAny) | simpleType(TLiteral.Bool) | simpleType(TLiteral.Long) |
+        simpleType(TLiteral.Int) | simpleType(TLiteral.Double) | simpleType(TLiteral.String) |
         simpleType(TUnit) | tLinked | tIterable | tTuple | scalaType
     )
 

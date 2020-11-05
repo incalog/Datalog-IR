@@ -528,7 +528,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "implement match semantics" in {
     val module = Module("Test_Match", Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
+      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TLiteral.Int)), Seq(Body(Seq(
         Values("root", TNode(Exp.expTag)),
         Assert(Undef(PathAccess(Var("root"), ParentLink))),
         Yield(
@@ -538,7 +538,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
         )
       )))),
 
-      PatternFunction(None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
+      PatternFunction(None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), Seq(AnnoParam(None, TLiteral.Int)), Seq(Body(Seq(
         Match(Var("e"), Seq(
           Case(
             NodePattern(TNode(Exp.intTag), Seq(PatternBinding("value", VarPattern("v")))),

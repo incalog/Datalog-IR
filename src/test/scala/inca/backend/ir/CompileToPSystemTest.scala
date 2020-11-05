@@ -123,8 +123,8 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
     val module = GP.Module("test_eval", Seq(),
       Seq(GP.Pattern(None, "intToString", Seq(GP.Param("exp", GP.TNode(Exp.intTag)), GP.Param("str", GP.TScalaString)),
         Seq(GP.Body(Seq(
-          GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TInt),
-          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TInt)), GP.TScalaString, q"(value: Int) => value.toString")))
+          GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TLiteral.Int),
+          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TLiteral.Int)), GP.TScalaString, q"(value: Int) => value.toString")))
         )))), Seq())
     assertMatchGPProg(module, "intToString", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
@@ -135,8 +135,8 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
     val module = GP.Module("test_eval", Seq(),
       Seq(GP.Pattern(None, "intToString", Seq(GP.Param("exp", GP.TNode(Exp.intTag)), GP.Param("str2", GP.TScalaString)),
         Seq(GP.Body(Seq(
-          GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TInt),
-          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TInt)), GP.TScalaString, q"(value: Int) => value.toString")),
+          GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TLiteral.Int),
+          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TLiteral.Int)), GP.TScalaString, q"(value: Int) => value.toString")),
           GP.Computed(GP.Var("str2"), GP.Evaluation(Seq((GP.Var("str"), GP.TScalaString)), GP.TScalaString, q"""(str: String) => str + "_appended" """)))
         )))), Seq())
     assertMatchGPProg(module, "intToString", testInputNumericAddition) { matcher =>

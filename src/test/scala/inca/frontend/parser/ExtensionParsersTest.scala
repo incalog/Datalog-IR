@@ -39,8 +39,8 @@ class ExtensionParsersTest extends AnyFunSuite {
     val testEnumSuccess = testSuccess(parser.exp(_))
     val testEnumFailure = testFailure(parser.exp(_))
 
-    testEnumSuccess("enum(Int)", Enum(TInt))
-    testEnumSuccess("enum(    Int)", Enum(TInt))
+    testEnumSuccess("enum(Int)", Enum(TLiteral.Int))
+    testEnumSuccess("enum(    Int)", Enum(TLiteral.Int))
   }
 
   test("test ForallExists") {

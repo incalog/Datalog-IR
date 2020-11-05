@@ -181,9 +181,13 @@ object CompileToPSystem {
   private def genInputKeyAndType(typ: GP.Type): Option[(meta.Term, meta.Term)] = typ match {
     case TAny => None
     case TScala(_) => None
-    case TBool | TInt | TLong | TDouble | TString =>
-      val gentyp = q"$tPrimitiveType(${genProperLitType(typ)})"
-      Some(q"$oPrimitiveKey($gentyp)", gentyp)
+    case tlit@TLiteral(litType) =>
+      litType match {
+        case JavaLitType(cl) =>
+          val gentyp = q"$tPrimitiveType(classOf[${tlit.asScala}])"
+          Some(q"$oPrimitiveKey($gentyp)", gentyp)
+        case _ => throw new UnsupportedOperationException
+      }
     case TAnyLinked | _: TNode | _: TList =>
       val gentyp = genNodeType(typ)
       Some(q"$oNodeTypeKey($gentyp)", gentyp)
@@ -291,7 +295,7 @@ object CompileToPSystem {
       case TAny => throw new IllegalArgumentException(s"Cannot resolve links to type $targetType")
       case _: GP.TLinked =>
         q"$oLinkNodeKey(($name, $field))"
-      case GP.TBool | GP.TInt | GP.TLong | GP.TDouble | GP.TString =>
+      case _: GP.TLiteral =>
         q"$oLinkPrimitiveKey(($name, $field))"
     }
 
@@ -322,7 +326,7 @@ object CompileToPSystem {
         case _ => None
       }
       val argTerms = args.toList.map {
-        case (v:Var, ty) => q"env.getValue(${Lit.String(v.name)}).asInstanceOf[${genScalaType(ty)}]"
+        case (v:Var, ty) => q"env.getValue(${Lit.String(v.name)}).asInstanceOf[${ty.asScala}]"
         case (Constant(lit), ty) => genLiteral(lit)
       }
       Seq(
@@ -342,37 +346,16 @@ object CompileToPSystem {
       val argTuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
       val callQuery = q"${Term.Name(module)}.${Term.Name(patName)}.instance.getInternalQueryRepresentation"
 
-      val scalaTyp = genScalaType(typ)
+      val scalaTyp = typ.asScala
       val boundAggOp = q"new $tBoundAggregator(${agg.tree}.aggregator, classOf[$scalaTyp], classOf[$scalaTyp])"
       Seq(q"new $tAggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)")
   }
-
-  private def genProperLitType(typ: GP.Type): meta.Term = typ match {
-    case TBool => q"classOf[java.lang.Boolean]"
-    case TInt => q"classOf[java.lang.Integer]"
-    case TLong => q"classOf[java.lang.Long]"
-    case TDouble => q"classOf[java.lang.Double]"
-    case TString => q"classOf[java.lang.String]"
-    case _ => throw new IllegalArgumentException(s"Cannot compile $typ as literal type")
-  }
-
 
   private def genNodeType(typ: GP.Type): meta.Term = typ match {
     case TAnyLinked => tAnyType
     case TNode(name) => q"$tNodeType($name)"
     case TList(ty) => q"$tListType(${genNodeType(ty)})"
     case _ => throw new IllegalArgumentException(s"Cannot compile $typ as node type")
-  }
-
-  private def genScalaType(typ: GP.Type): meta.Type = typ match {
-    case TAny => t"Any"
-    case TBool => t"Boolean"
-    case TInt => t"Int"
-    case TLong => t"Long"
-    case TDouble => t"Double"
-    case TString => t"String"
-    case TScala(ty) => ty.tree
-    case _: TLinked => typeOf[truechange.URI]
   }
 
 }

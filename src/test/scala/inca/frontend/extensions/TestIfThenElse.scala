@@ -172,13 +172,13 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "implement if-then-else semantics" in {
     val module = Module("Test_Cast", Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
+      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TLiteral.Int)), Seq(Body(Seq(
         Values("root", TNode(Exp.expTag)),
         Assert(Undef(PathAccess(Var("root"), ParentLink))),
         Yield(Call("integerlits_rec",Seq(Var("root"))))
       )))),
 
-      PatternFunction(None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), Seq(AnnoParam(None, TInt)), Seq(Body(Seq(
+      PatternFunction(None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), Seq(AnnoParam(None, TLiteral.Int)), Seq(Body(Seq(
         IfThenElse(InstanceOf(Var("e"), TNode(Exp.intTag)), Body(
           Yield(PathAccess(Cast(Var("e"), TNode(Exp.intTag)), NamedLink("value")))
         ), Seq(ElseIf(InstanceOf(Var("e"), TNode(Exp.addTag)), Body(

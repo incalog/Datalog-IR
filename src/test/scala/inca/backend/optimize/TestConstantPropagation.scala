@@ -92,7 +92,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("b"), one),
-          Computed(Var("c"), Evaluation(Seq(Var("b") -> TInt), TBool, code))
+          Computed(Var("c"), Evaluation(Seq(Var("b") -> TScalaInt), TScalaBoolean, code))
         ))
       ))
     ), Seq())
@@ -100,7 +100,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, one, one),
-          Computed(Var("c"), Evaluation(Seq(one -> TInt), TBool, code))
+          Computed(Var("c"), Evaluation(Seq(one -> TScalaInt), TScalaBoolean, code))
         ))
       ))
     ), Seq())

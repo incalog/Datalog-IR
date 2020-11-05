@@ -92,8 +92,8 @@ object ExpLangTestAnalyses {
   val primitiveParamFun = PatternFunction(
     None,
     "idBool",
-    Seq(Param("in", TBool)),
-    Seq(AnnoParam(None, TBool)),
+    Seq(Param("in", TLiteral.Bool)),
+    Seq(AnnoParam(None, TLiteral.Bool)),
     Seq(
       Body(
         Seq(Yield(Var("in"))))))

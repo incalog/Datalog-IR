@@ -1,6 +1,8 @@
 package inca.backend.ir
 
+import inca.util.Meta
 import inca.util.Meta.Scala
+import truechange.{JavaLitType, LitType}
 
 import scala.meta.quasiquotes._
 
@@ -11,20 +13,19 @@ object GP {
   case object TAny extends Type {
     override def asScala: meta.Type = t"Any"
   }
-  case object TBool extends Type {
-    override def asScala: meta.Type = t"Boolean"
+
+  case class TLiteral(litType: LitType) extends Type {
+    override def asScala: meta.Type = litType match {
+      case JavaLitType(cl) =>  Meta.mkQualTypename(cl.getCanonicalName)
+      case _ => throw new UnsupportedOperationException
+    }
   }
-  case object TInt extends Type {
-    override def asScala: meta.Type = t"Int"
-  }
-  case object TLong extends Type {
-    override def asScala: meta.Type = t"Long"
-  }
-  case object TDouble extends Type {
-    override def asScala: meta.Type = t"Double"
-  }
-  case object TString extends Type {
-    override def asScala: meta.Type = t"String"
+  object TLiteral {
+    val Bool: TLiteral = TLiteral(JavaLitType(classOf[java.lang.Boolean]))
+    val Int: TLiteral = TLiteral(JavaLitType(classOf[java.lang.Integer]))
+    val Long: TLiteral = TLiteral(JavaLitType(classOf[java.lang.Long]))
+    val Double: TLiteral = TLiteral(JavaLitType(classOf[java.lang.Double]))
+    val String: TLiteral = TLiteral(JavaLitType(classOf[java.lang.String]))
   }
 
   case class TScala(ty: Scala[meta.Type]) extends Type {

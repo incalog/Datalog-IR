@@ -1,7 +1,9 @@
 package inca.frontend.core
 
 import inca.frontend.parser.SourceLocation
+import inca.util.Meta
 import inca.util.Meta.Scala
+import truechange.{JavaLitType, LitType}
 
 import scala.annotation.tailrec
 import scala.meta.quasiquotes._
@@ -30,30 +32,30 @@ case object TNothing extends Type {
   override def javastring: String = "nothing"
   override def asScala: meta.Type = t"Nothing"
 }
-case object TBool extends Type {
-  override def prettyprint: String = "Boolean"
-  override def javastring: String = "bool"
-  override def asScala: meta.Type = t"Boolean"
+
+case class TLiteral(litType: LitType) extends Type {
+  override def prettyprint: String = litType match {
+    case JavaLitType(cl) if cl == classOf[java.lang.Integer] => "Int"
+    case JavaLitType(cl) => cl.getSimpleName
+    case _ => throw new UnsupportedOperationException
+  }
+
+  override def javastring: String = litType match {
+    case JavaLitType(cl) => cl.getCanonicalName.replace(".", "$$")
+    case _ => throw new UnsupportedOperationException
+  }
+
+  override def asScala: meta.Type = litType match {
+    case JavaLitType(cl) =>  Meta.mkQualTypename(cl.getCanonicalName)
+    case _ => throw new UnsupportedOperationException
+  }
 }
-case object TInt extends Type {
-  override def prettyprint: String = "Int"
-  override def javastring: String = "int"
-  override def asScala: meta.Type = t"Int"
-}
-case object TLong extends Type {
-  override def prettyprint: String = "Long"
-  override def javastring: String = "long"
-  override def asScala: meta.Type = t"Long"
-}
-case object TDouble extends Type {
-  override def prettyprint: String = "Double"
-  override def javastring: String = "double"
-  override def asScala: meta.Type = t"Double"
-}
-case object TString extends Type {
-  override def prettyprint: String = "String"
-  override def javastring: String = "string"
-  override def asScala: meta.Type = t"String"
+object TLiteral {
+  val Bool: TLiteral = TLiteral(JavaLitType(classOf[java.lang.Boolean]))
+  val Int: TLiteral = TLiteral(JavaLitType(classOf[java.lang.Integer]))
+  val Long: TLiteral = TLiteral(JavaLitType(classOf[java.lang.Long]))
+  val Double: TLiteral = TLiteral(JavaLitType(classOf[java.lang.Double]))
+  val String: TLiteral = TLiteral(JavaLitType(classOf[java.lang.String]))
 }
 
 trait TLinked extends Type {
@@ -114,3 +116,4 @@ object TScalaInt extends TScala(Scala(t"Int"))
 object TScalaLong extends TScala(Scala(t"Long"))
 object TScalaDouble extends TScala(Scala(t"Double"))
 object TScalaString extends TScala(Scala(t"String"))
+object TScalaAny extends TScala(Scala(t"Any"))

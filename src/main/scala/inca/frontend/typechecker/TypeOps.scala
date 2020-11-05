@@ -4,7 +4,7 @@ import inca.frontend.core._
 import inca.runtime.context.LanguageMetaInfo
 import inca.util.Meta
 import inca.util.Meta.Scala
-import truechange.{AnyType, JavaLitType, ListType, SortType}
+import truechange.{AnyType, ListType, SortType}
 
 object TypeOps {
 
@@ -53,20 +53,4 @@ object TypeOps {
     case _ => throw new UnsupportedOperationException(s"conversion of $ty from truechange to inca not supported")
   }
 
-  def truechangeLitTypeToType(ty: truechange.LitType): Type = ty match {
-    case JavaLitType(cl) =>
-      if (cl == classOf[java.lang.Integer])
-        TInt
-      else if (cl == classOf[java.lang.Long])
-        TLong
-      else if (cl == classOf[java.lang.Double])
-        TDouble
-      else if (cl == classOf[java.lang.Boolean])
-        TBool
-      else if (cl == classOf[java.lang.String])
-        TString
-      else
-        throw new UnsupportedOperationException
-    case _ => throw new UnsupportedOperationException
-  }
 }
