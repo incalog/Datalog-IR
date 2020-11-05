@@ -43,7 +43,7 @@ object TrackComputedUnbounded extends TrackUnbounded {
     case ConstantEvaluation(resultType, _) => isUnboundType(resultType)
     case Evaluation(_, resultType, _) => isUnboundType(resultType)
     case CountAggregation(_, _) => true
-    case CustomAggregation(typ, _, _, _, _, _, _) => isUnboundType(typ)
+    case CustomAggregation(typ, _, _, _, _) => isUnboundType(typ)
   }
 
   def isUnboundType(typeAnno: Type): Boolean = typeAnno match {

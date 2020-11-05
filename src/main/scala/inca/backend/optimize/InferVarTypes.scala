@@ -77,7 +77,7 @@ object InferVarTypes extends Optimization {
             case Evaluation(args, resultType, _) =>
               args.foreach(a => addType(a._1, a._2))
               addType(lhs, resultType)
-            case CustomAggregation(typ, initOp, joinOp, inverseOp, patName, args, aggregatedColumn) =>
+            case CustomAggregation(typ, agg, patName, args, aggregatedColumn) =>
               addPatArgTypes(patName, args)
               addType(lhs, typ)
           }

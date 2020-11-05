@@ -64,6 +64,6 @@ trait Collect[R] {
     case CountAggregation(_, args) => args.flatMap(transTerm)
     case ConstantEvaluation(_, _) => Seq()
     case Evaluation(args, _, _) => args.flatMap(v => transTerm(v._1)).toSeq
-    case CustomAggregation(_, _, _, _, _, args, _) => args.flatMap(transTerm)
+    case CustomAggregation(_, agg, _, args, _) => args.flatMap(transTerm)
   }
 }
