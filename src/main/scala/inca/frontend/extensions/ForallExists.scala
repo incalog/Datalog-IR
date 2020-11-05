@@ -3,7 +3,7 @@ package inca.frontend.extensions
 import inca.frontend.Frontend
 import inca.frontend.core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
-import inca.frontend.typechecker.{NoTerminator, StmType}
+import inca.frontend.typechecker.{NoYield, StmType}
 import inca.util.Gensym
 import inca.util.Meta.Scala
 
@@ -53,7 +53,7 @@ trait ForallExistsFrontend extends Frontend {
 
   override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("forall", "exists", "in")
 
-  override protected def typecheckInternal(stm: Statement, mustTerminate: Boolean): StmType = stm match {
+  override protected def typecheckInternal(stm: Statement, mustYield: Boolean): StmType = stm match {
     case forall@Forall(name, exp, body) =>
       val ety = typecheck(exp)
       val elemType = ety match {
@@ -64,9 +64,9 @@ trait ForallExistsFrontend extends Frontend {
       }
       scopedTypeContext {
         bindVar(name, forall, elemType)
-        typecheck(body, mustTerminate = false)
+        typecheck(body, mustYield = false)
       }
-      NoTerminator
+      NoYield
 
     case ex@Exists(name, exp, body) =>
       val ety = typecheck(exp)
@@ -78,11 +78,11 @@ trait ForallExistsFrontend extends Frontend {
       }
       scopedTypeContext {
         bindVar(name, ex, elemType)
-        typecheck(body, mustTerminate = false)
+        typecheck(body, mustYield = false)
       }
-      NoTerminator
+      NoYield
 
-    case _ => super.typecheckInternal(stm, mustTerminate)
+    case _ => super.typecheckInternal(stm, mustYield)
   }
 }
 

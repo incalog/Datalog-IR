@@ -3,7 +3,7 @@ package inca.frontend.extensions
 import inca.frontend.Frontend
 import inca.frontend.core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
-import inca.frontend.typechecker.{NoTerminator, StmType}
+import inca.frontend.typechecker.{NoYield, StmType}
 import inca.util.Gensym
 
 case class Switch(bodies: Seq[Body]) extends Statement {
@@ -30,15 +30,15 @@ trait SwitchFrontend extends Frontend {
   override protected[frontend] def statement[_: P]: P[Statement] =
     P("switch" ~ body.rep(sep = "union")).mapWithLoc(Switch.apply) | super.statement
 
-  override protected def typecheckInternal(stm: Statement, mustTerminate: Boolean): StmType = stm match {
+  override protected def typecheckInternal(stm: Statement, mustYield: Boolean): StmType = stm match {
     case Switch(bodies) =>
       if (bodies.isEmpty) {
         error("empty switch statements are not allowed", stm)
-        NoTerminator
+        NoYield
       } else
-        bodies.map(typecheck(_, mustTerminate)).reduce(_.meet(_, lang))
+        bodies.map(typecheck(_, mustYield)).reduce(_.meet(_, lang))
 
-    case _ => super.typecheckInternal(stm, mustTerminate)
+    case _ => super.typecheckInternal(stm, mustYield)
   }
 }
 

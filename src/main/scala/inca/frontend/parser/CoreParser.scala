@@ -286,7 +286,7 @@ class CoreParser {
 
   /** Body parser */
   protected[frontend] def body[_: P]: P[Body] =
-    P("{" ~/ statement.rep ~ "}").mapWithLoc(Body.apply)
+    P("{" ~ statement.rep ~ "}").mapWithLoc(Body.apply)
 
   /** Parses only the AnnoParam Unit. */
   protected[frontend] def annoParamUnit[_: P]: P[Seq[AnnoParam]] =
@@ -373,8 +373,8 @@ class CoreParser {
 
   /** Aggregate parser */
   protected[frontend] def aggregateExp[_: P]: P[Expression] =
-    P("aggregate" ~ "(" ~ dataOp ~ "," ~ dataOp ~ ")" ~ callExp).mapWithLoc { case (init, join, call) =>
-      Aggregate(init, join, None, call)
+    P("aggregate" ~ "(" ~ exp ~ ")" ~ bodyList).mapWithLoc { case (agg, bodies) =>
+      Aggregate(agg, bodies)
     }
 
 

@@ -33,7 +33,7 @@ case class CompiledFunModule(fun: Module, options: Options) extends CompiledModu
   }
 
   lazy val ir: GP.Module = {
-    val module = CompileToGP.transformModule(desugared)
+    val module = new CompileToGP().transformModule(desugared)
 //    println(module)
     module
   }

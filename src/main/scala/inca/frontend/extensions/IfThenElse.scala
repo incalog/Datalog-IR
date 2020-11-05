@@ -4,7 +4,7 @@ import inca.frontend.Frontend
 import inca.frontend.core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.parser.SourceLocation
-import inca.frontend.typechecker.{NoTerminator, StmType, TypeOps}
+import inca.frontend.typechecker.{NoYield, StmType, TypeOps}
 import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
@@ -57,7 +57,7 @@ trait IfThenElseFrontend extends Frontend {
 
   override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("if", "else")
 
-  override protected def typecheckInternal(stm: Statement, mustTerminate: Boolean): StmType = stm match {
+  override protected def typecheckInternal(stm: Statement, mustYield: Boolean): StmType = stm match {
     case IfThenElse(cond, thn, elseIfs, els) =>
       val conds = cond +: elseIfs.map(_.cond)
       conds.foreach { c =>
@@ -68,13 +68,13 @@ trait IfThenElseFrontend extends Frontend {
 
       val bodies = thn +: elseIfs.map(_.body)
       val bodyTypes = bodies.map { b =>
-        typecheck(b, mustTerminate)
+        typecheck(b, mustYield)
       }
 
-      val elsTy = els.map(typecheck(_, mustTerminate)).getOrElse(NoTerminator)
+      val elsTy = els.map(typecheck(_, mustYield)).getOrElse(NoYield)
       bodyTypes.foldLeft(elsTy)(_.meet(_, lang))
 
-    case _ => super.typecheckInternal(stm, mustTerminate)
+    case _ => super.typecheckInternal(stm, mustYield)
   }
 }
 

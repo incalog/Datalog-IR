@@ -5,19 +5,18 @@ import inca.runtime.context.LanguageMetaInfo
 
 sealed trait StmType {
   def asType: Type = this match {
-    case NoTerminator => TUnit
-    case Terminator(ty) => ty
+    case NoYield => TUnit
+    case Yields(ty) => ty
   }
-
 
   override def toString: String = asType.prettyprint
 
   def meet(other: StmType, lang: LanguageMetaInfo): StmType = (this, other) match {
-    case (NoTerminator, _) => NoTerminator
-    case (_, NoTerminator) => NoTerminator
-    case (Terminator(ty1), Terminator(ty2)) => Terminator(TypeOps.meet(ty1, ty2, lang))
+    case (NoYield, _) => NoYield
+    case (_, NoYield) => NoYield
+    case (Yields(ty1), Yields(ty2)) => Yields(TypeOps.meet(ty1, ty2, lang))
   }
 }
-case object NoTerminator extends StmType
-case class Terminator(ty: Type) extends StmType
+case object NoYield extends StmType
+case class Yields(ty: Type) extends StmType
 

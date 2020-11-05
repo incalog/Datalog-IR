@@ -203,10 +203,9 @@ class CoreParserTest extends AnyFunSuite {
     testExp(PathAccess(Var("test"), NamedLink("property")))
     testExp(
       Aggregate(
-        DataOp(Some(Name("br0t")), Name("with")),
-        DataOp(Some(Name("cheese")), Name("and")),
-        None,
-        Call(Name("butter"), Seq.empty, false)
+        Var("and"),
+        Seq(Body(Seq(Yield(Constant(BooleanLiteral(true))))),
+            Body(Seq(Yield(Constant(BooleanLiteral(false))))))
       )
     )
   }

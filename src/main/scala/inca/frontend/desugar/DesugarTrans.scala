@@ -63,7 +63,7 @@ class DesugarTrans {
     case Call(name, args, trans) => Call(name, args.map(desugarExp), trans)
     case Count(call@Call(name, args, trans)) => Count(Call(name, args.map(desugarExp), trans).mtyped(call.typ))
     case Tuple(exps) => Tuple(exps.map(desugarExp))
-    case Aggregate(init, join, unjoin, call@Call(name, args, trans)) => Aggregate(init, join, unjoin, Call(name, args.map(desugarExp), trans).mtyped(call.typ))
+    case Aggregate(agg, bodies) => Aggregate(desugarExp(agg), bodies.flatMap(desugarBody))
     case Eval(params, code) => Eval(params.map(p => EvalParam(p.name)), code)
     case _ => exp
   }).mtyped(exp.typ)

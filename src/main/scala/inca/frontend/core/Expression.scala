@@ -1,6 +1,5 @@
 package inca.frontend.core
 
-import inca.frontend.core.Core.DataOp
 import inca.frontend.parser.SourceLocation
 import inca.frontend.typechecker.{Resolvable, Typeable}
 import inca.util.Meta.Scala
@@ -8,6 +7,8 @@ import inca.util.Meta.Scala
 trait Expression extends Typeable with SourceLocation {
   def freeVars: Map[Name, Option[Type]]
   def prettyprint(implicit indent: String): String
+  override def toString: String = prettyprint("")
+
   def ensureCore: CoreExpression = this match {
     case self: CoreExpression => self
     case _ => throw new IllegalArgumentException(s"Core statement required but got $this")
@@ -101,16 +102,25 @@ case class Tuple(exps: Seq[Expression]) extends CoreExpression {
 /** Eval code must be a Scala expression that can access `params` by name and must yield a `resultType`. */
 case class Eval(params: Seq[EvalParam], code: Scala[meta.Term]) extends CoreExpression {
   override def freeVars: Map[Name, Option[Type]] = params.map(p => p.name -> p.typ).toMap
-  override def prettyprint(implicit indent: String): String = s"`$code``"
+  override def prettyprint(implicit indent: String): String = s"`$code`"
+}
+object Eval {
+  def apply(code: Scala[meta.Term]): Eval = new Eval(Seq(), code)
 }
 
 case class EvalParam(name: Name) extends SourceLocation with Typeable with Resolvable[Var.Target] {
   override def toString: String = name.toString
 }
 
-case class Aggregate(init: DataOp, join: DataOp, unjoin: Option[DataOp], call: Call) extends CoreExpression {
-  override def freeVars: Map[Name, Option[Type]] = call.freeVars
+case class Aggregate(agg: Expression, bodies: Seq[Body]) extends CoreExpression {
+  override def freeVars: Map[Name, Option[Type]] = agg.freeVars ++ bodies.flatMap(_.freeVars)
 
-  override def prettyprint(implicit indent: String): String =
-    s"aggregate(${init.prettyprint}, ${join.prettyprint}) ${call.prettyprint}"
+  override def prettyprint(implicit indent: String): String = {
+    val bodiesS = if (bodies.isEmpty) "{ }" else
+      bodies.map(_.prettyprint).mkString(" union ")
+    s"${indent}aggregate($agg) $bodiesS"
+  }
+}
+object Aggregate {
+  def apply(agg: Expression, call: Call): Aggregate = new Aggregate(agg, Seq(Body(Yield(call))))
 }

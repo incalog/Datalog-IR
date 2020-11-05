@@ -92,8 +92,8 @@ object Printer {
       val syntax = code.syntax
       val indented = syntax.replace("\n", "\n\t\t")
       s"${prettyTerm(lhs)} == `$indented`: ${prettyType(returnType)}"
-    case GP.CustomAggregation(typ, initOp, joinOp, inverseOp, patName, args, aggregatedColumn) =>
+    case GP.CustomAggregation(typ, agg, patName, args, aggregatedColumn) =>
       val sargs = args.map(prettyTerm).updated(aggregatedColumn, "#").mkString(", ")
-      s"${prettyTerm(lhs)} == aggregate $patName($sargs) with $initOp, $joinOp, $inverseOp"
+      s"${prettyTerm(lhs)} == aggregate $patName($sargs):$typ with $agg"
   }
 }

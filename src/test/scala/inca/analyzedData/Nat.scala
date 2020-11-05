@@ -1,9 +1,11 @@
 package inca.analyzedData
 
 import inca.frontend.core._
+import inca.runtime.aggregate.Aggregation
+import inca.util.Meta
 import inca.util.Meta.Scala
 
-import scala.meta.quasiquotes._
+import scala.meta._
 
 object Nat {
   sealed trait Nat {
@@ -32,9 +34,25 @@ object Nat {
   val zeroOp = Scala(q"inca.analyzedData.Nat.Zero")
   val succOp = Scala(q"inca.analyzedData.Nat.Succ")
 
-  def add(m: Nat, n: Nat): Nat = m.add(n)
-  def sub(m: Nat, n: Nat): Nat = m.sub(n)
+  val sumAgg = new Aggregation[Nat] {
+    override val name: String = "sum"
+    override def init: Nat = Zero
+    override def join(v1: Nat, v2: Nat): Nat = v1.add(v2)
+    override val isAssociative: Boolean = true
+    override val isCommutative: Boolean = true
+  }
+  val sumAggregation = Scala(Meta.mkQualName("inca.analyzedData.Nat.sumAgg"))
 
-//  val addOp = DataOp(Some(Name("inca.analyzedData.Nat")), Name("add"), isAssociative = true, isCommutative = true)
-//  val subOp = DataOp(Some(Name("inca.analyzedData.Nat")), Name("sub"), isAssociative = true)
+  val fastSumAggregation = Scala(
+    q"""{import inca.analyzedData.Nat._
+        new inca.runtime.aggregate.Aggregation[Nat] {
+          override val name: String = "sum"
+          override def init: Nat = Zero
+          override def join(v1: Nat, v2: Nat): Nat = v1.add(v2)
+          override def unjoin(v1: Nat, v2: Nat): Nat = v1.sub(v2)
+          override val isAssociative: Boolean = true
+          override val isCommutative: Boolean = true
+          override val hasUnjoin: Boolean = true
+        }}
+      """)
 }

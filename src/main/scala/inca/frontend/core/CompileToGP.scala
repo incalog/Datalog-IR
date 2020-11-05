@@ -1,6 +1,7 @@
 package inca.frontend.core
 
 import inca.backend.ir.GP
+import inca.frontend.core.CompileToGP.BodyMustFail
 import inca.util.Gensym
 import inca.util.Meta.Scala
 
@@ -8,23 +9,28 @@ import scala.collection.mutable.ListBuffer
 import scala.meta.{Name => _, Type => _, _}
 
 object CompileToGP {
-
   case object BodyMustFail extends Exception
+}
 
+class CompileToGP {
+  val gensym = new Gensym(Iterable.empty)
+
+  private val generatedPatterns = ListBuffer[GP.Pattern]()
 
   def transformModule(module: Module): GP.Module = {
     // construct map Name => Fun
     val Module(name, imports, contents) = module
+    gensym.register(module.usedModuleNames.map(_.name))
+    gensym.register(module.usedDefNames.map(_.name))
 
-    val patterns = ListBuffer[GP.Pattern]()
     val stats = ListBuffer[Scala[meta.Stat]]()
     contents.foreach {
-      case fun: PatternFunction => patterns += transform(fun)
+      case fun: PatternFunction => generatedPatterns += transform(fun)
       case _: ValDef => // will be inlined
       case stat: ScalaModuleContent => stats += stat
     }
 
-    GP.Module(name.name, imports.map(_.name.name), patterns.toList, stats.toList)
+    GP.Module(name.name, imports.map(_.name.name), generatedPatterns.toList, stats.toList)
   }
 
   def transform(fun: PatternFunction): GP.Pattern = {
@@ -47,7 +53,7 @@ object CompileToGP {
 
 
   def rewriteFunction(fun: PatternFunction): GP.Pattern = {
-    val gensym = new Gensym(fun.freeVars.keys.map(_.name))
+    gensym.register(fun.freeVars.keys.map(_.name))
     gensym.register(fun.boundNames.map(_.name))
 
     val vis = fun.vis.map {
@@ -86,7 +92,7 @@ object CompileToGP {
     }
   }
 
-  def transBody(alt: Body, outVars: Seq[String])(implicit gensym: Gensym): Option[GP.Body] = gensym.scoped {
+  def transBody(alt: Body, outVars: Seq[String])(implicit gensym: Gensym): Option[GP.Body] = {
     try {
       val constraints = alt.stmts.flatMap { s =>
         transStatement(s.ensureCore, outVars)
@@ -149,17 +155,25 @@ object CompileToGP {
       throw BodyMustFail
   }
 
+  def tryInlineVar(exp: Expression): Expression = exp match {
+    case v: Var => v.target.getOrElse(throw new IllegalArgumentException(s"Unbound variable $v")) match {
+      case assign@Assign(Seq(_), exp) if shouldInlineAssign(assign) =>
+        tryInlineVar(exp)
+      case ValDef(_, _, _, exp) =>
+        tryInlineVar(exp)
+      case _: Param | _: Values | _: Assign => v
+      case target => throw new IllegalArgumentException(s"Unknown variable target $target for $v")
+    }
+    case _ => exp
+  }
 
-  def transExp(cond: CoreExpression)(implicit gensym: Gensym): Res = cond match {
-    case v@Var(name) =>
-      v.target.getOrElse(throw new IllegalArgumentException(s"Unbound variable $name")) match {
-        case assign@Assign(Seq(_), exp) if shouldInlineAssign(assign) =>
-          // inline exp
-          transExp(exp.ensureCore)
-        case ValDef(_, _, _, exp) =>
-          transExp(exp.ensureCore)
-        case _: Param | _: Values | _: Assign => (Seq(name.name), Seq())
-        case target => throw new IllegalArgumentException(s"Unknown variable target $target for $v")
+
+
+  def transExp(exp: CoreExpression)(implicit gensym: Gensym): Res = exp match {
+    case v@Var(_) =>
+      tryInlineVar(v) match {
+        case Var(name) => (Seq(name.name), Seq())
+        case other => transExp(other.ensureCore)
       }
 
     case Eq(lhs, rhs) =>
@@ -289,27 +303,27 @@ object CompileToGP {
       val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(args, transType(resType), funCode))
       (Seq(evalVar), (argConstraints :+ evalConstraint).toSeq)
 
-//    case Aggregate(init, join, unjoin, funcall) =>
-//      if (!join.isAssociative || !join.isCommutative)
-//        throw new IllegalArgumentException(s"Can only compile aggregations with join operators that are associative and commutative")
-//
-//      val resultType = funcall.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile aggregation over untyped $funcall"))
-//      resultType match {
-//        case TTuple(ts) if ts.isEmpty => throw new IllegalArgumentException(s"Cannot aggregate over functions with Unit result type")
-//        case TTuple(ts) if ts.size > 1 => throw new IllegalArgumentException(s"Cannot aggregate over functions with multiple results $ts")
-//        case _ => // nothing
-//      }
-//
-//      val (inVars, Seq(outVar), constraints) = transCallArgs(funcall, funcall.args)
-//      val allvars = (inVars :+ outVar).map(GP.Var)
-//      val initOp = resolveDataOp(init)
-//      val joinOp = resolveDataOp(join)
-//      val invOp = unjoin.map(resolveDataOp)
-//      val aggregation = GP.CustomAggregation(transType(resultType), initOp, joinOp, invOp, funcall.name.name, allvars, allvars.size - 1)
-//
-//      val resultVar = gensym.fresh("tmp")
-//      val compare = GP.Computed(GP.Var(resultVar), aggregation)
-//      (Seq(resultVar), constraints :+ compare)
+    case Aggregate(agg, bodies) =>
+      val aggCode = tryInlineVar(agg) match {
+        case Eval(_, code) => code
+        case _ => throw new IllegalArgumentException(s"Requires aggregation code, but got $agg")
+      }
+
+      val funname = gensym.fresh("AggregateCollection")
+
+      val inVars = bodies.flatMap(_.freeVars).toMap
+      val params = inVars.map(kv => Param(kv._1, kv._2.getOrElse(throw new IllegalArgumentException(s"untyped var ${kv._1} in $exp")))).toSeq
+      val outVar = gensym.fresh("aggregand")
+      val allvars = (params.map(_.name.name) :+ outVar).map(GP.Var)
+
+      val resultType = exp.typ.getOrElse(throw new IllegalArgumentException("untyped aggregate"))
+      val fun = PatternFunction(None, Name(funname), params, Seq(AnnoParam(Some(Name(outVar)), resultType)), bodies)
+      generatedPatterns += transform(fun)
+
+      val aggregation = GP.CustomAggregation(transType(resultType), aggCode, funname, allvars, allvars.size - 1)
+      val resultVar = gensym.fresh("tmp")
+      val compare = GP.Computed(GP.Var(resultVar), aggregation)
+      (Seq(resultVar), Seq(compare))
   }
 
   private def shouldInlineAssign(assign: Assign): Boolean =

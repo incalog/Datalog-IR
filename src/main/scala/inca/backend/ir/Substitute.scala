@@ -39,8 +39,8 @@ case class Substitute(subst: Var => Term) {
     case CountAggregation(patName, args) => CountAggregation(patName, args.map(substTerm))
     case ConstantEvaluation(resultType, code) => ConstantEvaluation(resultType, code)
     case Evaluation(args, resultType, code) => Evaluation(args.map(a => substTerm(a._1) -> a._2), resultType, code)
-    case CustomAggregation(typ, initOp, joinOp, inverseOp, patName, args, aggregatedColumn) =>
-      CustomAggregation(typ, initOp, joinOp, inverseOp, patName, args.map(substTerm), aggregatedColumn)
+    case CustomAggregation(typ, agg, patName, args, aggregatedColumn) =>
+      CustomAggregation(typ, agg, patName, args.map(substTerm), aggregatedColumn)
   }
 }
 

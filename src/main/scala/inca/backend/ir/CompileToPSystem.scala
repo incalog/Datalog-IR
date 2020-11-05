@@ -7,8 +7,8 @@ import inca.runtime.aggregate.{AggregatorAssocComm, AggregatorAssocCommInv}
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
+import inca.util.Gensym
 import inca.util.Meta._
-import inca.util.{Gensym, Meta}
 import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations.BoundAggregator
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.AggregatorConstraint
 import truechange.{AnyType, JavaLitType, ListType, SortType}
@@ -336,24 +336,14 @@ object CompileToPSystem {
         }, $result)
          """)
 
-    case CustomAggregation(typ, initOpName, joinOpName, unjoinOpName, patName, args, aggregatedColumn) =>
+    case CustomAggregation(typ, agg, patName, args, aggregatedColumn) =>
       val result = compileTerm(lhs)
       val module = env.getOrElse(patName, throw new IllegalArgumentException(s"Unknown rule $patName"))
       val argTuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
       val callQuery = q"${Term.Name(module)}.${Term.Name(patName)}.instance.getInternalQueryRepresentation"
 
       val scalaTyp = genScalaType(typ)
-      val initOp = Meta.mkQualName(initOpName)
-      val joinOp = Meta.mkQualName(joinOpName)
-      val aggOp = unjoinOpName match {
-        case Some(unjoin) =>
-          val tagg = t"$tAggregatorAssocCommInv[$scalaTyp]"
-          q"new $tagg($joinOpName, $initOp, $joinOp, ${Meta.mkQualName(unjoin)})"
-        case None =>
-          val tagg = t"$tAggregatorAssocComm[$scalaTyp]"
-          q"new $tagg($joinOpName, $initOp, $joinOp)"
-      }
-      val boundAggOp = q"new $tBoundAggregator($aggOp, classOf[$scalaTyp], classOf[$scalaTyp])"
+      val boundAggOp = q"new $tBoundAggregator(${agg.tree}.aggregator, classOf[$scalaTyp], classOf[$scalaTyp])"
       Seq(q"new $tAggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)")
   }
 

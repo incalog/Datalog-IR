@@ -5,7 +5,7 @@ import inca.frontend.core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.parser.ParserUtils.{nl_!, sp}
 import inca.frontend.parser.SourceLocation
-import inca.frontend.typechecker.{NoTerminator, StmType, TypeOps, Typeable}
+import inca.frontend.typechecker.{NoYield, StmType, TypeOps, Typeable}
 import inca.util.{Gensym, Meta}
 
 import scala.collection.mutable.ListBuffer
@@ -135,21 +135,21 @@ trait MatchFrontend extends Frontend {
   protected[frontend] def literalPattern[_: P]: P[Pattern] =
     P(literal).mapWithLoc(LiteralPattern)
 
-  override protected def typecheckInternal(stm: Statement, mustTerminate: Boolean): StmType = stm match {
+  override protected def typecheckInternal(stm: Statement, mustYield: Boolean): StmType = stm match {
     case Match(matchee, cases) =>
       val mty = typecheck(matchee)
       val ctys = cases.map { c =>
         scopedTypeContext {
           typecheckPattern(c.pattern, mty)
-          typecheck(c.body, mustTerminate)
+          typecheck(c.body, mustYield)
         }
       }
       if (cases.isEmpty)
-        NoTerminator
+        NoYield
       else
         ctys.reduce(_.meet(_, lang))
 
-    case _ => super.typecheckInternal(stm, mustTerminate)
+    case _ => super.typecheckInternal(stm, mustYield)
   }
 
   def typecheckPattern(pattern: Pattern, matchee: Type): Unit = pattern match {

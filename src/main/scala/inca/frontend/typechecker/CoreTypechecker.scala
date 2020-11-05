@@ -3,11 +3,10 @@ package inca.frontend.typechecker
 import inca.frontend.core._
 import inca.frontend.parser.SourceLocation
 import inca.frontend.util.TypeHelper
+import inca.runtime.aggregate.Aggregation
 import inca.runtime.context.LanguageMetaInfo
 import inca.util.Meta
 import inca.util.Meta.Scala
-
-import scala.meta.Term
 
 trait CoreTypechecker
   extends TypeContext with TypeIO {
@@ -59,26 +58,26 @@ trait CoreTypechecker
   def typecheck(fun: PatternFunction): Unit = scopedTypeContext {
     fun.params.foreach(p => bindVar(p.name, p, p.typ))
     fun.bodies.foreach { body =>
-      val ty = typecheck(body, mustTerminate = true)
+      val ty = typecheck(body, mustYield = true)
       if (!TypeOps.subtype(ty.asType, fun.outType, lang))
         error(s"Found body of type $ty, but expected function result type ${fun.outType}", body)
     }
   }
 
-  def typecheck(body: Body, mustTerminate: Boolean): StmType = scopedTypeContext {
+  def typecheck(body: Body, mustYield: Boolean): StmType = scopedTypeContext {
     if (body.stmts.isEmpty) {
-      if (mustTerminate) {
+      if (mustYield) {
         warn(s"Block should end with a terminator statement", body)
-        Terminator(TUnit)
+        Yields(TUnit)
       } else {
-        NoTerminator
+        NoYield
       }
     }
     else {
       body.stmts.init.foreach { stm =>
-        typecheck(stm, mustTerminate = false, mayTerminate = false)
+        typecheck(stm, mustYield = false, mayYield = false)
       }
-      typecheck(body.stmts.last, mustTerminate, mayTerminate = true)
+      typecheck(body.stmts.last, mustYield, mayYield = true)
     }
   }
 
@@ -102,45 +101,45 @@ trait CoreTypechecker
    * Statements
    */
 
-  final def typecheck(stm: Statement, mustTerminate: Boolean, mayTerminate: Boolean): StmType = typecheckInternal(stm, mustTerminate) match {
-    case ty: NoTerminator.type =>
-      if (mustTerminate) {
+  final def typecheck(stm: Statement, mustYield: Boolean, mayYield: Boolean): StmType = typecheckInternal(stm, mustYield) match {
+    case ty: NoYield.type =>
+      if (mustYield) {
         warn(s"Block should end with a terminator statement", stm)
-        Terminator(TUnit)
+        Yields(TUnit)
       } else {
         ty
       }
-    case ty: Terminator =>
-      if (!mayTerminate) {
+    case ty: Yields =>
+      if (!mayYield) {
         warn(s"Unexpected terminator statement", stm)
-        NoTerminator
+        NoYield
       } else  {
         ty
       }
   }
 
-  protected def typecheckInternal(stm: Statement, mustTerminate: Boolean): StmType = stm match {
+  protected def typecheckInternal(stm: Statement, mustYield: Boolean): StmType = stm match {
     case core: CoreStatement => typecheckCore(core)
     case _ => throw new UnsupportedOperationException(s"No type rule for $stm found.")
   }
 
   final def typecheckCore(stm: CoreStatement): StmType = stm match {
     case FailStatement =>
-      Terminator(TNothing)
+      Yields(TNothing)
 
     case Yield(exp) =>
       val ty = typecheck(exp)
-      Terminator(ty)
+      Yields(ty)
 
     case Assert(cond) =>
       val condTy = typecheck(cond)
       if (!TypeOps.subtype(condTy, TScalaBoolean, lang))
         error(s"Expected Boolean condition, but got $condTy", cond)
-      NoTerminator
+      NoYield
 
     case vals@Values(name, typ) =>
       bindVar(name, vals, typ)
-      NoTerminator
+      NoYield
 
     case as@Assign(names, exp) =>
       val ty = typecheck(exp)
@@ -168,7 +167,7 @@ trait CoreTypechecker
             case (name, ty) => bindVar(name, as, ty.unroll)
           }
       }
-      NoTerminator
+      NoYield
   }
 
 
@@ -278,8 +277,21 @@ trait CoreTypechecker
     case Eval(params, code) =>
       typecheckEval(params, code, exp)
 
-    case Aggregate(init, join, unjoin, call) =>
-      throw new UnsupportedOperationException(exp.toString)
+    case Aggregate(agg, bodies) =>
+      val aggTy = typecheck(agg)
+
+      val bodiesTy = bodies.foldLeft[Type](TAny) { (bodiesTy, body) =>
+        val Yields(ty) = typecheck(body, mustYield = true)
+        TypeOps.meet(bodiesTy, ty, lang)
+      }
+
+      val bodiesScalaTy = bodiesTy.asScala
+      val requiredAggTy = TScala(Scala(meta.Type.Apply(Meta.typeOf[Aggregation[_]], List(bodiesScalaTy))))
+
+      if (!TypeOps.subtype(aggTy, requiredAggTy, lang))
+        error(s"Expected $requiredAggTy, but got $aggTy", agg)
+
+      TScala(Scala(bodiesScalaTy))
   }
 
 
@@ -367,7 +379,7 @@ trait CoreTypechecker
   /**
    * Computes the result type of an Eval expression and validates the contained Scala code for type correctness
    */
-  def typecheckEval(params: Seq[EvalParam], code: Scala[Term], exp: Expression): Type = {
+  def typecheckEval(params: Seq[EvalParam], code: Scala[meta.Term], exp: Expression): Type = {
     // here we use a little hack. We create one big block that defines all the params with their type.
     // The initializing value is irrelevant.
     val paramString = params.flatMap { param =>

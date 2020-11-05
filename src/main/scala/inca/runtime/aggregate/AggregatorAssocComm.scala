@@ -19,11 +19,11 @@ object AggregatorAssocComm {
 }
 
 /** An aggregator for operations that are associative and commutative */
-class AggregatorAssocComm[V](val name: String, init: V, join: (V, V) => V) extends IMultisetAggregationOperator[V, Acc[V], V] {
+class AggregatorAssocComm[V](val agg: Aggregation[V]) extends IMultisetAggregationOperator[V, Acc[V], V] {
 
 
-  override def getShortDescription: String = name
-  override def getName: String = name
+  override def getShortDescription: String = agg.name
+  override def getName: String = agg.name
 
   override def createNeutral(): Acc[V] = new Acc()
   override def isNeutral(acc: Acc[V]): Boolean = acc.vals.isEmpty
@@ -31,7 +31,7 @@ class AggregatorAssocComm[V](val name: String, init: V, join: (V, V) => V) exten
   override def update(acc: Acc[V], v: V, isInsertion: Boolean): Acc[V] = {
     if (isInsertion) {
       acc.vals += v
-      acc.res = acc.res.map(join(_, v))
+      acc.res = acc.res.map(agg.join(_, v))
     } else {
       acc.vals -= v
       acc.res = None
@@ -42,11 +42,11 @@ class AggregatorAssocComm[V](val name: String, init: V, join: (V, V) => V) exten
   override def getAggregate(acc: Acc[V]): V = acc.res match {
     case Some(value) => value
     case None =>
-      val v = acc.vals.foldLeft(init)(join)
+      val v = acc.vals.foldLeft(agg.init)(agg.join)
       acc.res = Some(v)
       v
   }
 
   override def aggregateStream(str: stream.Stream[V]): V =
-    str.iterator().asScala.foldLeft(init)(join)
+    str.iterator().asScala.foldLeft(agg.init)(agg.join)
 }

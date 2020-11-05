@@ -108,5 +108,5 @@ object GP {
   case class ConstantEvaluation(resultType: Type, code: String) extends Computation
   case class Evaluation(args: Seq[(Term,Type)], resultType: Type, code: meta.Term) extends Computation
   case class CountAggregation(patName: Name, args: Seq[Term]) extends Computation
-  case class CustomAggregation(typ: Type, initOp: String, joinOp: String, unjoinOp: Option[String], patName: Name, args: Seq[Term], aggregatedColumn: Int) extends Computation
+  case class CustomAggregation(typ: Type, agg: Scala[meta.Term], patName: Name, args: Seq[Term], aggregatedColumn: Int) extends Computation
 }
