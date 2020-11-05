@@ -119,12 +119,9 @@ object CompileToPSystem {
           override protected def doGetContainedBodies(): util.Set[PBody] = {
             val bodies: util.Set[PBody] = util.Set.of(
               ..${bodies.map { body =>
-                    val constantEvals = CollectComputedConstantEvals.transBody(body)
-                    val lhsOfConstantEvaluation = CollectConstantEvaluationLhs.transBody(body)
                     q"""{
                         val body: PBody = new PBody(this)
-                        ..${pat.params.filter{ p => !lhsOfConstantEvaluation.contains(p.name) }.map(genBodyParam).toList}
-                        ..${constantEvals.map { case (lhs, e) => genConstantEvaluationVar(lhs, e) }.toList}
+                        ..${pat.params.map(genBodyParam).toList}
                         ()
                         val exportedParams = new util.ArrayList[ExportedParameter]()
                         ..${pat.params.map { param =>
@@ -135,7 +132,7 @@ object CompileToPSystem {
                         }
                         body.setSymbolicParameters(exportedParams)
 
-                        ..${(CollectVars.transBody(body).distinct.diff(paramNames ++ CollectConstantEvaluationLhs.transBody(body))).map(genTempVar).toList}
+                        ..${CollectVars.transBody(body).distinct.diff(paramNames).map(genTempVar).toList}
                         ..${CollectLits.transBody(body).distinct.map(genLiteralVar(_)(gensym)).toList}
                         ..${pat.params.flatMap(genParamConstraint).toList}
                         ..${body.constraints.flatMap(compileConstraint).toList}
@@ -200,16 +197,6 @@ object CompileToPSystem {
 
   private def genTempVar(name: String): Stat =
     q"val ${Pat.Var(Term.Name(VARPREFIX + name))}: PVariable = body.getOrCreateVariableByName(${Lit.String(name)})"
-
-  private def genConstantEvaluationVar(lhs: GP.Term, eval: ConstantEvaluation): Stat = {
-    val result = compileTerm(lhs)
-    val codeTerm = eval.code.parse[meta.Term].get
-    val resultName = result match {
-      case n@Term.Name(_) => n
-      case _ => throw new IllegalArgumentException(s"Expected Term.Name, but got $result")
-    }
-    q"val ${Pat.Var(resultName)}: PVariable = body.newConstantVariable($codeTerm)"
-  }
 
   private def genLiteralVar(lit: Literal)(implicit gensym: Gensym): Stat = {
     val varName = genLiteralVarName(lit)
@@ -313,10 +300,6 @@ object CompileToPSystem {
       val argTuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
       val callQuery = q"${Term.Name(module)}.${Term.Name(patName)}.instance.getInternalQueryRepresentation"
       Seq(q"new PatternMatchCounter(body, $argTuple, $callQuery, $result)")
-
-    case ConstantEvaluation(_, _) =>
-      // we already emit code earlier to avoid forward references
-      Seq()
 
     case Evaluation(args, _, code) =>
       val result = compileTerm(lhs)

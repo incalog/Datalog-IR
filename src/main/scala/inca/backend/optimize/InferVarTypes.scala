@@ -72,8 +72,6 @@ object InferVarTypes extends Optimization {
             case CountAggregation(patName, args) =>
               addPatArgTypes(patName, args)
               addType(lhs, TScalaInt)
-            case ConstantEvaluation(resultType, _) =>
-              addType(lhs, resultType)
             case Evaluation(args, resultType, _) =>
               args.foreach(a => addType(a._1, a._2))
               addType(lhs, resultType)

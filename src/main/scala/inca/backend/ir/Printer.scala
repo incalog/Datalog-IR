@@ -86,8 +86,6 @@ object Printer {
   def prettyComputation(lhs: Term, computation: Computation): String = computation match {
     case GP.CountAggregation(patName, args) =>
       s"${prettyTerm(lhs)} == count $patName(${args.map(prettyTerm).mkString(",")})"
-    case GP.ConstantEvaluation(returnType, code) =>
-      s"${prettyTerm(lhs)} == const `$code`: ${prettyType(returnType)}"
     case GP.Evaluation(args, returnType, code) =>
       val syntax = code.syntax
       val indented = syntax.replace("\n", "\n\t\t")
