@@ -10,6 +10,13 @@ object CollectLits extends Collect[Literal] {
   override def transLit(lit: Literal): Seq[Literal] = Seq(lit)
 }
 
+object CollectConstantEvaluation extends Collect[Evaluation] {
+  override def transComputation(computation: Computation): Seq[Evaluation] = computation match {
+    case eval: Evaluation if eval.args.isEmpty => Seq(eval)
+    case _ => super.transComputation(computation)
+  }
+}
+
 trait Collect[R] {
 
   def apply(pat: Pattern): Seq[R] = {

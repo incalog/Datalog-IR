@@ -19,6 +19,7 @@ object CompileToPSystem {
   val PARAMPREFIX = "param_"
   val VARPREFIX = "var_"
   val LITPREFIX = "lit_"
+  val EVALPREFIX = "eval_"
 
   private val oNodeTypeKey = symbolOf(NodeTypeKey)
   private val oNotNodeTypeKey = symbolOf(NotNodeTypeIndex.Key)
@@ -134,6 +135,7 @@ object CompileToPSystem {
 
                         ..${CollectVars.transBody(body).distinct.diff(paramNames).map(genTempVar).toList}
                         ..${CollectLits.transBody(body).distinct.map(genLiteralVar(_)(gensym)).toList}
+                        ..${CollectConstantEvaluation.transBody(body).distinct.map(genConstantEval(_)(gensym)).toList}
                         ..${pat.params.flatMap(genParamConstraint).toList}
                         ..${body.constraints.flatMap(compileConstraint).toList}
                         body
@@ -203,6 +205,11 @@ object CompileToPSystem {
     q"val ${Pat.Var(Term.Name(LITPREFIX + varName))}: PVariable = body.newConstantVariable(${genLiteral(lit)})"
   }
 
+  private def genConstantEval(eval: Evaluation)(implicit gensym: Gensym): Stat = {
+    val varName = genConstantEvalVarName(eval)
+    q"val ${Pat.Var(Term.Name(EVALPREFIX + varName))}: PVariable = body.newConstantVariable((${eval.code})())"
+  }
+
   private def genLiteralVarName(lit: Literal): String = lit match {
     case IntLiteral(v) => "int" + v.hashCode()
     case LongLiteral(v) => "long" + v.hashCode()
@@ -210,6 +217,8 @@ object CompileToPSystem {
     case StringLiteral(v) => "string" + v.hashCode
     case BooleanLiteral(v) => "boolean" + v.hashCode()
   }
+
+  private def genConstantEvalVarName(eval: Evaluation): String = eval.code.hashCode().toString
 
   private def genLiteral(lit: Literal): Lit = lit match {
     case IntLiteral(v) => Lit.Int(v)
@@ -300,6 +309,11 @@ object CompileToPSystem {
       val argTuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
       val callQuery = q"${Term.Name(module)}.${Term.Name(patName)}.instance.getInternalQueryRepresentation"
       Seq(q"new PatternMatchCounter(body, $argTuple, $callQuery, $result)")
+
+    case eval@Evaluation(args, _, _) if args.isEmpty =>
+      val varName = genConstantEvalVarName(eval)
+      val rhs = Term.Name(EVALPREFIX + varName)
+      Seq(q"""new Equality(body, ${compileTerm(lhs)}, $rhs)""")
 
     case Evaluation(args, _, code) =>
       val result = compileTerm(lhs)
