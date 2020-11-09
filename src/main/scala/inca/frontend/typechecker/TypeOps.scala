@@ -3,7 +3,6 @@ package inca.frontend.typechecker
 import inca.frontend.core._
 import inca.runtime.context.LanguageMetaInfo
 import inca.util.Meta
-import inca.util.Meta.Scala
 import truechange.{AnyType, ListType, SortType}
 
 object TypeOps {
@@ -35,8 +34,16 @@ object TypeOps {
         ty2
       else
         TNothing
-    case (_, TScala(_)) => meet(TScala(Scala(ty1.asScala)), ty2, languageMetaInfo)
-    case (TScala(_), _) => meet(ty1, TScala(Scala(ty2.asScala)), languageMetaInfo)
+    case (_, TScala(s2)) =>
+      if (Meta.subtypeScala(ty1.asScala, s2.tree))
+        ty1
+      else
+        TNothing
+    case (TScala(s1), _) =>
+      if (Meta.subtypeScala(s1.tree, ty2.asScala))
+        ty2
+      else
+        TNothing
     case _ => TNothing
   }
 

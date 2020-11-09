@@ -118,7 +118,7 @@ case class Aggregate(agg: Expression, bodies: Seq[Body]) extends CoreExpression 
   override def prettyprint(implicit indent: String): String = {
     val bodiesS = if (bodies.isEmpty) "{ }" else
       bodies.map(_.prettyprint).mkString(" union ")
-    s"${indent}aggregate($agg) $bodiesS"
+    s"aggregate($agg) $bodiesS"
   }
 }
 object Aggregate {

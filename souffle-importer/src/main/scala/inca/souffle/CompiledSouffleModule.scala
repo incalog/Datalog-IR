@@ -7,6 +7,7 @@ import inca.frontend.parser.SourceLocation
 import inca.frontend.parser.SourceLocation.NoSourceLocation
 import inca.souffle.Syntax.{Input, PrintSize, RuleSignature}
 
+// TODO generate ir on demand, provide souffle module as input
 case class CompiledSouffleModule(ir: GP.Module,
                                  inputs: Seq[(RuleSignature, Input)],
                                  printSizes: Seq[PrintSize],

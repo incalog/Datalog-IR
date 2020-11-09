@@ -18,14 +18,13 @@ case class EvalCall(fun: Scala[meta.Term], args: Seq[Expression]) extends Expres
   override def freeVars: Map[Name, Option[Type]] = args.flatMap(_.freeVars).toMap
 
   override def prettyprint(implicit indent: String): String =
-    s"${fun.syntax}(${args.map(_.prettyprint).mkString(", ")})"
+    s"`${fun.syntax}`(${args.map(_.prettyprint).mkString(", ")})"
 }
 
 /** Extension adding dataop operations to @see Parser.
  */
 trait EvalCallFrontend extends Frontend {
   override protected def desugarables: Seq[Desugarable] = EvalCall +: super.desugarables
-
 
   override protected[frontend] def atomicExp[_: P]: P[Expression] =
     P("`" ~ evalCore ~ "`" ~ "(" ~ exp.rep(sep = ",") ~ ")").flatMapWithLoc { case (eval, args) =>

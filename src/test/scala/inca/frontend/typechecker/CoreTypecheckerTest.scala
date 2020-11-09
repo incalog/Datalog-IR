@@ -38,29 +38,29 @@ class CoreTypecheckerTest extends AnyFlatSpec {
       }
     }
 
-//    test_run{
-//      s"""module test
-//          |
-//          |def name() : `Int` = {
-//          |    val x = 5
-//          |    yield x
-//          |}""".stripMargin}
-//    test_run{
-//      s"""module test
-//          |
-//          |def name() : Unit = {
-//          |    val x = 5
-//          |    yield unit
-//          |}""".stripMargin}
-//    test_run{
-//      s"""module test
-//          |
-//          |def name() : `Int` = {
-//          |    val x = 5
-//          |    yield x
-//          |} union {
-//          |    yield 10
-//          |}""".stripMargin}
+    test_run{
+      s"""module test
+          |
+          |def name() : `Int` = {
+          |    val x = 5
+          |    yield x
+          |}""".stripMargin}
+    test_run{
+      s"""module test
+          |
+          |def name() : Unit = {
+          |    val x = 5
+          |    yield unit
+          |}""".stripMargin}
+    test_run{
+      s"""module test
+          |
+          |def name() : `Int` = {
+          |    val x = 5
+          |    yield x
+          |} union {
+          |    yield 10
+          |}""".stripMargin}
     test_run{
       s"""module test
           |
@@ -72,37 +72,37 @@ class CoreTypecheckerTest extends AnyFlatSpec {
           |def another() : `Int` = {
           |    yield name()
           |} """.stripMargin}
-//    test_run{
-//      s"""module test
-//          |
-//          |def name() : `Int` = {
-//          |    val x = 4
-//          |    yield eval(x + 38)
-//          |} """.stripMargin}
-//    test_run{
-//      s"""module test
-//          |
-//          |def name() : Any = {
-//          |    val x = 5
-//          |    yield x
-//          |} """.stripMargin}
-//    test_run{
-//      s"""module test
-//          |
-//          |def name() : Any = {
-//          |    val x = true
-//          |    assert x.isInstanceOf[Any]
-//          |    yield x
-//          |} """.stripMargin}
-//
-//    val code1 = s"""module test
-//                   |
-//                   |def name(x: Any): Any = {
-//                   |  assert x.isInstanceOf[Node]
-//                   |  yield x.parent
-//                   |}
-//                   |""".stripMargin
-//    test_run(code1)
+    test_run{
+      s"""module test
+          |
+          |def name() : `Int` = {
+          |    val x = 4
+          |    yield `x + 38`
+          |} """.stripMargin}
+    test_run{
+      s"""module test
+          |
+          |def name() : Any = {
+          |    val x = 5
+          |    yield x
+          |} """.stripMargin}
+    test_run{
+      s"""module test
+          |
+          |def name() : Any = {
+          |    val x = true
+          |    assert x.isInstanceOf[Any]
+          |    yield x
+          |} """.stripMargin}
+
+    val code1 = s"""module test
+                   |
+                   |def name(x: Any): Any = {
+                   |  assert x.isInstanceOf[Node]
+                   |  yield x.parent
+                   |}
+                   |""".stripMargin
+    test_run(code1)
   }
 
 
