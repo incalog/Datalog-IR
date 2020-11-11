@@ -3,6 +3,7 @@ package inca.frontend.parser
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
 import inca.frontend.core._
+import inca.util.Meta.Scala
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -55,6 +56,28 @@ class CoreNativeParserTest extends AnyFunSuite {
           q"val i = 0",
           q"var v: Int = 0",
           q"def f() = { Compiler.invoke() }").map(ScalaModuleContent.apply)
+      )
+    )
+
+    testModule(
+      s"""module Test
+         |scala trait Nat
+         |scala case object Zero extends Nat
+         |scala case class Succ(pred: Nat) extends Nat
+         |def testTwo(): `Nat` = {
+         |  yield `Succ(Zero)`
+         |}
+         |""".stripMargin,
+      Module(
+        Name("Test"),
+        Seq(),
+        Seq(
+          q"trait Nat",
+          q"case object Zero extends Nat",
+          q"case class Succ(pred: Nat) extends Nat"
+        ).map(ScalaModuleContent.apply)
+        :+ PatternFunction(None, Name("testTwo"), Seq(), Seq(AnnoParam(None, TScala("Nat"))),
+             Seq(Body(Seq(Yield(Eval(Seq(), Scala(q"Succ(Zero)")))))))
       )
     )
 

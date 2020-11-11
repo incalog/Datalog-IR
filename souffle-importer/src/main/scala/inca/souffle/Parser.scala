@@ -117,5 +117,5 @@ object Parser {
   def hexDigit[_: P]       = P( CharIn("0-9a-fA-F") )
   def unicodeEscape[_: P]  = P( "u" ~~ hexDigit ~~ hexDigit ~~ hexDigit ~~ hexDigit )
   def escape[_: P]         = P( "\\" ~~ (CharIn("\"/\\\\bfnrt") | unicodeEscape) )
-  def string[_: P]         = P( "\"" ~~/ (strChars | escape).repX.! ~~ "\"")
+  def string[_: P]         = P( "\"" ~~ (strChars | escape).repX.! ~~ "\"")
 }

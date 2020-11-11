@@ -60,7 +60,7 @@ case class ValDef(vis: Option[Visibility], name: Name, typ: Option[Type], exp: E
 
 class ScalaModuleContent(stat: meta.Stat) extends Scala[meta.Stat](stat) with ModuleContent with SourceLocation {
   override def vis: Option[Visibility] = None // todo: analyze scala code to retrieve its visibility
-  override def prettyprint(implicit indent: String): String = indent + this.toString
+  override def prettyprint(implicit indent: String): String = indent + "scala " + this.toString
 }
 object ScalaModuleContent {
   def apply(stat: meta.Stat): ScalaModuleContent = new ScalaModuleContent(stat)

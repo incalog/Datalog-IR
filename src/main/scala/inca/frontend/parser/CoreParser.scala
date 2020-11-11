@@ -17,7 +17,7 @@ class CoreParser {
   final lazy val allKeywords: Set[String] = this.keywords
 
   protected[frontend] def keywords: Set[String] =
-    Set("def", "undef", "true", "false", "eval", "aggregate", "count", "_", "unit", "isInstanceOf", "notInstanceOf")
+    Set("def", "undef", "true", "false", "aggregate", "count", "_", "unit", "isInstanceOf", "notInstanceOf")
 
   // Parser ////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /** Parse a variable identifier.
@@ -180,8 +180,8 @@ class CoreParser {
     P(("def " ~ exp).mapWithLoc(Def) |
       ("undef " ~ exp).mapWithLoc(Undef) |
       ("count " ~ callExp).mapWithLoc(Count) |
-      Chain(infixExp, "==", infixExp, Eq, min = 1) |
-      Chain(infixExp, "!=", infixExp, Neq, min = 1) |
+      (infixExp ~ "==" ~ infixExp).mapWithLoc(Eq.tupled) |
+      (infixExp ~ "!=" ~ infixExp).mapWithLoc(Neq.tupled) |
       infixExp)
 
   protected[frontend] def infixExp[_: P]: P[Expression] = dotExp
@@ -216,19 +216,20 @@ class CoreParser {
     }
 
   /** Eval parser */
-  protected[frontend] def evalCore[_: P]: P[Eval] = P(scalaparse.Scala.Exprs.!).flatMap { raw_code =>
-    raw_code.parse[Term] match {
-      case Parsed.Error(_, _, _) =>
-        fastparse.Fail
-      case Parsed.Success(code) =>
-        val params = EvalHelper.freeVars(code)
-        val eval = Eval(params.map(EvalParam).toSeq, Scala(code))
-        fastparse.Pass(eval)
+  protected[frontend] def evalCore[_: P]: P[Eval] =
+    P(NoCut(scalaparse.Scala.Exprs).!).flatMap { raw_code =>
+      raw_code.parse[Term] match {
+        case Parsed.Error(_, _, _) =>
+          fastparse.Fail
+        case Parsed.Success(code) =>
+          val params = EvalHelper.freeVars(code)
+          val eval = Eval(params.map(EvalParam).toSeq, Scala(code))
+          fastparse.Pass(eval)
+      }
     }
-  }
 
   protected[frontend] def evalExp[_: P]: P[Eval] =
-    P("`" ~ evalCore ~ "`").mapWithLoc(t => t)
+    P("`" ~~ evalCore ~~ "`").mapWithLoc(t => t)
 
   /** Call parser */
   protected[frontend] def callExp[_: P]: P[Call] =
@@ -297,7 +298,7 @@ class CoreParser {
 
   /** PatternFunction parser */
   protected[frontend] def patternFunction[_: P]: P[PatternFunction] = {
-    P(visibility.? ~ "def" ~ identifier ~ "(" ~ paramList ~ ")" ~ ":" ~ outParamList ~/ "=" ~/ bodyList).mapWithLoc(PatternFunction.tupled)
+    P(visibility.? ~ "def" ~ identifier ~ "(" ~ paramList ~ ")" ~ ":" ~ outParamList ~ "=" ~ bodyList).mapWithLoc(PatternFunction.tupled)
   }
 
   protected[frontend] def paramList[_: P]: P[Seq[Param]] = P(param.rep(sep = ","))
@@ -307,7 +308,7 @@ class CoreParser {
 
   /** Module parser */
   def module[_: P]: P[Module] =
-    P("module " ~/ identifier ~
+    P("module " ~ identifier ~
       import_.rep ~
       moduleContent.rep ~
       End
@@ -323,8 +324,8 @@ class CoreParser {
 
 
   def nativeStat[_: P]: P[meta.Stat] =
-    P("scala " ~ nativeStatHelper(scalaparse.Scala.Import) |
-      "scala " ~ nativeStatHelper(scalaparse.Scala.BlockDef)
+    P("scala " ~ nativeStatHelper(NoCut(scalaparse.Scala.Import)) |
+      "scala " ~ nativeStatHelper(NoCut(scalaparse.Scala.BlockDef))
     )
 
   private def nativeStatHelper[_: P](statParser: => P[_]): P[meta.Stat] =
@@ -337,7 +338,7 @@ class CoreParser {
     }
 
   protected[frontend] def valDef[_: P]: P[ValDef] =
-    P(visibility.? ~ "val" ~/ identifier ~ (":" ~ typeAnno).? ~ "=" ~ exp).mapWithLoc(ValDef.tupled)
+    P(visibility.? ~ "val" ~ identifier ~ (":" ~ typeAnno).? ~ "=" ~ exp).mapWithLoc(ValDef.tupled)
 
 
   /** Yield parser */
