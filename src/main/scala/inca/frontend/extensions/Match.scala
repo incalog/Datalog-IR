@@ -147,21 +147,21 @@ trait MatchFrontend extends Frontend {
       if (cases.isEmpty)
         NoYield
       else
-        ctys.reduce(_.meet(_, lang))
+        ctys.reduce(stmMeet(_, _, lang))
 
     case _ => super.typecheckInternal(stm, mustYield)
   }
 
   def typecheckPattern(pattern: Pattern, matchee: Type): Unit = pattern match {
     case NodePattern(node, bindings) =>
-      if (TypeOps.meet(node, matchee, lang) == TNothing)
+      if (meet(node, matchee, lang) == TNothing)
         warn(s"Type of pattern $node unrelated type to matchee type $matchee", pattern)
 
       bindings.foreach { case b@PatternBinding(field, pattern) =>
         assignType(b) {
           lang.links.get(node.name, field.name) match {
             case Some(trueType) =>
-              val ty = TypeOps.truechangeTypeToType(trueType)
+              val ty = truechangeTypeToType(trueType)
               typecheckPattern(pattern, ty)
               ty
             case None => lang.litLinks.get(node.name, field.name) match {
@@ -210,7 +210,7 @@ trait MatchFrontend extends Frontend {
       // nothing
     case LiteralPattern(v) =>
       val ty = typecheckLiteral(v)
-      if (TypeOps.meet(ty, matchee, lang) == TNothing)
+      if (meet(ty, matchee, lang) == TNothing)
         warn(s"Type of pattern $ty unrelated type to matchee type $matchee", pattern)
   }
 }

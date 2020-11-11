@@ -27,7 +27,7 @@ class CompileToGP {
     contents.foreach {
       case fun: PatternFunction => generatedPatterns += transform(fun)
       case _: ValDef => // will be inlined
-      case stat: ScalaModuleContent => stats += stat
+//      case stat: ScalaModuleContent => stats += stat
     }
 
     GP.Module(name.name, imports.map(_.name.name), generatedPatterns.toList, stats.toList)
@@ -253,8 +253,9 @@ class CompileToGP {
       val countConstraint = GP.Computed(GP.Var(countVar), GP.CountAggregation(funcall.name.name, allvars))
       (Seq(countVar), constraints :+ countConstraint)
 
-    case eval@Eval(params, code) =>
+    case eval@Eval(code) =>
       import scala.meta._
+      val params = eval.params.getOrElse(Seq())
 
       val evalVar = gensym.fresh("eval")
       val argConstraints = ListBuffer[GP.Constraint]()
@@ -279,7 +280,7 @@ class CompileToGP {
 
     case Aggregate(agg, bodies) =>
       val aggCode = tryInlineVar(agg) match {
-        case Eval(_, code) => code
+        case Eval(code) => code
         case _ => throw new IllegalArgumentException(s"Requires aggregation code, but got $agg")
       }
 

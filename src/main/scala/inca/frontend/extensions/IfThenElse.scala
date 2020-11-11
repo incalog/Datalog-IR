@@ -62,7 +62,7 @@ trait IfThenElseFrontend extends Frontend {
       val conds = cond +: elseIfs.map(_.cond)
       conds.foreach { c =>
         val ty = typecheck(c)
-        if (!TypeOps.subtype(ty, TScalaBoolean, lang))
+        if (!subtype(ty, TScalaBoolean, lang))
           error(s"Expected Boolean condition, but got $ty", c)
       }
 
@@ -72,7 +72,7 @@ trait IfThenElseFrontend extends Frontend {
       }
 
       val elsTy = els.map(typecheck(_, mustYield)).getOrElse(NoYield)
-      bodyTypes.foldLeft(elsTy)(_.meet(_, lang))
+      bodyTypes.foldLeft(elsTy)(stmMeet(_, _, lang))
 
     case _ => super.typecheckInternal(stm, mustYield)
   }

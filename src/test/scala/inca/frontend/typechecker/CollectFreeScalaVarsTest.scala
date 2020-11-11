@@ -1,16 +1,15 @@
-package inca.frontend.util
+package inca.frontend.typechecker
 
 import inca.frontend.core.{Name => _, Param => _, _}
-import inca.frontend.parser.EvalHelper
 import inca.frontend.{BaseFrontend, core}
 import inca.runtime.context.LanguageMetaInfo
 import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.Term._
-import scala.meta.{Case, Defn, Enumerator, Init, Lit, Mod, Pat, Term, Tree, Type, XtensionParseInputLike, XtensionQuasiquoteTerm}
+import scala.meta.{Case, Defn, Enumerator, Init, Lit, Mod, Pat, Term, Type, XtensionParseInputLike, XtensionQuasiquoteTerm}
 
-class EvalHelperTest extends AnyFunSuite {
+class CollectFreeScalaVarsTest extends AnyFunSuite {
 
   private val tInt = Type.Name("Int")
 
@@ -65,17 +64,17 @@ class EvalHelperTest extends AnyFunSuite {
     checkVars(code, Set("val1", "val2", "val3"))
   }
 
-  test("test freeVars definition val") {
-    checkVars(defValue, Set("free"))
-  }
-
-  test("test freeVars definition var no rhs") {
-    checkVars(undefinedVar, Set())
-  }
-
-  test("test freeVars definition var with rhs") {
-    checkVars(defVar, Set("free"))
-  }
+//  test("test freeVars definition val") {
+//    checkVars(defValue, Set("free"))
+//  }
+//
+//  test("test freeVars definition var no rhs") {
+//    checkVars(undefinedVar, Set())
+//  }
+//
+//  test("test freeVars definition var with rhs") {
+//    checkVars(defVar, Set("free"))
+//  }
 
   test("test freeVars function") {
     checkVars(Function(List(paramN), Name("n")), Set())
@@ -315,7 +314,7 @@ class EvalHelperTest extends AnyFunSuite {
         Name("y")
       )
     )
-    checkVars(code, Set("s", "x", "y"))
+    checkVars(code, Set("x", "y"))
   }
 
   test("test freeVars annotate") {
@@ -355,7 +354,7 @@ class EvalHelperTest extends AnyFunSuite {
         |""".stripMargin
 
     val tree4 = code4.parse[Term].get
-    checkVars(tree4, Set("list", "Nil", "Some", "::"))
+    checkVars(tree4, Set("list"))
   }
 
   test("test freeVars pattern nested complex") {
@@ -367,7 +366,7 @@ class EvalHelperTest extends AnyFunSuite {
         |""".stripMargin
 
     val tree = code.parse[Term].get
-    checkVars(tree, Set("::", "Some", "matchee"))
+    checkVars(tree, Set("matchee"))
   }
 
   test("test freeVars complex 1") {
@@ -390,7 +389,7 @@ class EvalHelperTest extends AnyFunSuite {
           this.anno = 12
         }
         """
-    checkVars(code, Set("x", "i", "foo", "Set"))
+    checkVars(code, Set("x", "i", "foo"))
   }
 
   test("test freeVars complex 2") {
@@ -410,7 +409,7 @@ class EvalHelperTest extends AnyFunSuite {
           }
        """
 
-    checkVars(code, Set("mutable", "loadInto", "Map"))
+    checkVars(code, Set("loadInto"))
   }
 
   test("test freeVars complex 3") {
@@ -449,7 +448,7 @@ class EvalHelperTest extends AnyFunSuite {
         }
         """
 
-    checkVars(code, Set("do_smth", "newAnon", "process", "println", "Some", "None"))
+    checkVars(code, Set("do_smth", "newAnon", "process"))
   }
 
   test("test freeVars complex 5") {
@@ -473,7 +472,7 @@ class EvalHelperTest extends AnyFunSuite {
         }
        """
 
-    checkVars(code, Set("start", "Heap", "Set"))
+    checkVars(code, Set("start", "Heap"))
   }
 
   private def checkEval(eval: Eval, vars: Map[String, core.Type] = Map()): core.Type = {
@@ -566,8 +565,8 @@ class EvalHelperTest extends AnyFunSuite {
     assert(typ == TTuple(Seq(TScalaInt, TScala("inca.analyzedData.Nat.Nat"))))
   }
 
-  private def checkVars(code: Tree, expectedFree: Set[String]): Unit = {
-    val free = EvalHelper.freeVars(code).map(_.name)
+  private def checkVars(code: Term, expectedFree: Set[String]): Unit = {
+    val free = CollectFreeScalaVars.freeVars(code).map(_.name)
     assert(free == expectedFree)
   }
 

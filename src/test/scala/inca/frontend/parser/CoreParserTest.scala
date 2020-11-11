@@ -6,6 +6,7 @@ import inca.frontend.BaseFrontend
 import inca.frontend.core.Core.DataOp
 import inca.frontend.core._
 import inca.runtime.context.LanguageMetaInfo
+import inca.util.Meta.Scala
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -226,48 +227,48 @@ class CoreParserTest extends AnyFunSuite {
     Seq("3553n", "71nux", " ", "53h3n").map(negative)
   }
 
-  test("test Eval params") {
-    def testEvalParams(code: String, vars: Seq[Name], useBrackets: Boolean = false): Assertion = {
-      val input = s"`$code`"
-      val parsed = parse(input, parser.evalExp(_))
-      parsed match {
-        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
-        case Success(eval, _) =>
-          val params = eval.params
-          val paramNames = params.map(_.name)
-          assert(
-            params.size == vars.size && paramNames.toSet == vars.toSet
-          )
-      }
-    }
-
-    val code =
-      """{
-        | x.fun(-y - (z.point))
-        | val exp = inf
-        | val fun: Int => Int = n => code + 1
-        | ten
-        | }""".stripMargin
-    for(b <- Set(true, false)) {
-      testEvalParams(code, Seq("x", "y", "z", "inf", "code", "ten").map(Name.apply), b)
-    }
-
-    val code1 =
-      s"""{
-         | val x = 5
-         | val y = some
-         | val abc = {
-         |  val i = 10
-         |  var obj = pen
-         |  obj
-         |  }
-         | obj
-         |}
-         |""".stripMargin
-    for(b <- Set(true, false)) {
-      testEvalParams(code1, Seq("some", "pen", "obj").map(Name.apply), b)
-    }
-  }
+//  test("test Eval params") {
+//    def testEvalParams(code: String, vars: Seq[Name], useBrackets: Boolean = false): Assertion = {
+//      val input = s"`$code`"
+//      val parsed = parse(input, parser.evalExp(_))
+//      parsed match {
+//        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+//        case Success(eval, _) =>
+//          val params = eval.params
+//          val paramNames = params.map(_.name)
+//          assert(
+//            params.size == vars.size && paramNames.toSet == vars.toSet
+//          )
+//      }
+//    }
+//
+//    val code =
+//      """{
+//        | x.fun(-y - (z.point))
+//        | val exp = inf
+//        | val fun: Int => Int = n => code + 1
+//        | ten
+//        | }""".stripMargin
+//    for(b <- Set(true, false)) {
+//      testEvalParams(code, Seq("x", "y", "z", "inf", "code", "ten").map(Name.apply), b)
+//    }
+//
+//    val code1 =
+//      s"""{
+//         | val x = 5
+//         | val y = some
+//         | val abc = {
+//         |  val i = 10
+//         |  var obj = pen
+//         |  obj
+//         |  }
+//         | obj
+//         |}
+//         |""".stripMargin
+//    for(b <- Set(true, false)) {
+//      testEvalParams(code1, Seq("some", "pen", "obj").map(Name.apply), b)
+//    }
+//  }
 
   test("test Exp combined") {
     // @todo Add more test cases.
@@ -914,17 +915,18 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test Eval") {
-    def testEval(input: String, vars: Set[Name], cmp_code : String): Assertion =
+    def testEval(input: String, cmp_code : String): Assertion =
       parse(input, parser.evalExp(_)) match {
-        case Success(Eval(ss, code), index) => {
+        case Success(Eval(code), index) => {
           assert(cmp_code === code.syntax)
-          assert(ss.map(_.name).toSet === vars)
+//          assert(ss.map(_.name).toSet === vars)
         }
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
       }
 
-    testEval("`x + 2`", Set(Name("x")), "x + 2")
-    testEval("`x + y + p`", Set(Name("x"), Name("y"), Name("p")), "x + y + p")
+    testEval("`x + 2`", "x + 2")
+    testEval("`x + y + p`", "x + y + p")
+    testEval("`if (x) { import inca._;inca.one } else { 1 }`", "if (x) { import inca._;inca.one } else { 1 }")
     // testEval(
     //   s"""|eval( x match {
     //              |   case 1 => 2 
@@ -966,6 +968,7 @@ class CoreParserTest extends AnyFunSuite {
     (input: String, cmp: T) => {
       parse(input, parser) match {
         case Success(value, index)        =>
+          println(value)
           assert(value === cmp)
           assertResult(input.length)(index)
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")

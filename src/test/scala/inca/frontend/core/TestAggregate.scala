@@ -33,7 +33,7 @@ class TestAggregate extends AnyFlatSpec with IncaMatchers {
 
       PatternFunction(None, "sum_1_to_10", Seq(), Seq(AnnoParam(None, NatTyp)), Seq(
         Body(Seq(
-          Yield(Aggregate(Eval(sumAggregation), Call("1_to_10", Seq()).typed(NatTyp)))
+          Yield(Aggregate(Eval(Seq(), sumAggregation), Call("1_to_10", Seq()).typed(NatTyp)))
         ))
       ))
     ))

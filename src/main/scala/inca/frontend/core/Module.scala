@@ -58,10 +58,20 @@ case class ValDef(vis: Option[Visibility], name: Name, typ: Option[Type], exp: E
   def getType: Option[Type] = typ.orElse(exp.typ)
 }
 
-class ScalaModuleContent(stat: meta.Stat) extends Scala[meta.Stat](stat) with ModuleContent with SourceLocation {
+trait ScalaModuleContent extends ModuleContent
+
+class ScalaImport(imp: meta.Import) extends Scala[meta.Import](imp) with ScalaModuleContent with SourceLocation {
+  override def vis: Option[Visibility] = None // todo: analyze scala code to retrieve its visibility
+  override def prettyprint(implicit indent: String): String = indent + this.toString
+}
+object ScalaImport {
+  def apply(imp: meta.Import): ScalaImport = new ScalaImport(imp)
+}
+
+class ScalaBlockDef(stat: meta.Stat) extends Scala[meta.Stat](stat) with ScalaModuleContent with SourceLocation {
   override def vis: Option[Visibility] = None // todo: analyze scala code to retrieve its visibility
   override def prettyprint(implicit indent: String): String = indent + "scala " + this.toString
 }
-object ScalaModuleContent {
-  def apply(stat: meta.Stat): ScalaModuleContent = new ScalaModuleContent(stat)
+object ScalaBlockDef {
+  def apply(stat: meta.Stat): ScalaBlockDef = new ScalaBlockDef(stat)
 }

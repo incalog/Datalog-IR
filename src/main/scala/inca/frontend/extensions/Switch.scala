@@ -36,7 +36,7 @@ trait SwitchFrontend extends Frontend {
         error("empty switch statements are not allowed", stm)
         NoYield
       } else
-        bodies.map(typecheck(_, mustYield)).reduce(_.meet(_, lang))
+        bodies.map(typecheck(_, mustYield)).reduce(stmMeet(_, _, lang))
 
     case _ => super.typecheckInternal(stm, mustYield)
   }

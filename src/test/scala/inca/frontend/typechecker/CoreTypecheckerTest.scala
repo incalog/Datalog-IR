@@ -7,6 +7,7 @@ import inca.frontend.BaseFrontend
 import inca.frontend.core._
 import inca.frontend.parser.CoreParser
 import inca.runtime.context.LanguageMetaInfo
+import inca.util.Meta.Scala
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -17,7 +18,8 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   val parser = new CoreParser
 
   "subtype" should "work" in {
-    def test_run(t1 : Type, t2 : Type) = assert(TypeOps.subtype(t1, t2, null))
+    val typer = new BaseFrontend(new LanguageMetaInfo()) {}
+    def test_run(t1 : Type, t2 : Type) = assert(typer.subtype(t1, t2, null))
 
     test_run(TLiteral.Bool, TLiteral.Bool)
     test_run(TLiteral.Bool, TAny)
@@ -159,7 +161,11 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   def parseModule(str: String): Module = {
     val parser = new CoreParser()
     // bodies are always syntactically correct
-    parse(str, parser.module(_)).get.value
+    parse(str, parser.module(_), verboseFailures = true) match {
+      case Success(value, index) => value
+      case Failure(label, index, extra) =>
+        throw new IllegalArgumentException(extra.trace(true).longMsg)
+    }
   }
 
   def typecheckExp(exp: Expression, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Type = {
@@ -243,11 +249,12 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     assert(typer.getWarnings.nonEmpty)
   }
 
-  def typecheckModules(modules: Seq[Module], vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Unit = {
+  def assertTypecheckModulesSucceed(modules: Seq[Module], vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
     val typer = new BaseFrontend(analyzedLangs.Exp.languageMetaInfo) {}
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
     typer.typecheck(modules)
+    assert(typer.getErrors.isEmpty)
   }
 
   def assertTypecheckModulesFail(modules: Seq[Module], vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
@@ -575,7 +582,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     val mod1 = parseModule(
       """module mod1
         |
-        |def hello(): String = {
+        |def hello(): `String` = {
         |  yield "Hello World"
         |}
         |""".stripMargin
@@ -591,7 +598,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
         |}
         |""".stripMargin
     )
-    assertResult(())(typecheckModules(Seq(mod1, mod2)))
+    assertTypecheckModulesSucceed(Seq(mod1, mod2))
 
     val secondMod1 = parseModule(
       """module mod1
@@ -659,8 +666,94 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     assertTypecheckModulesFail(Seq(mod4, mod6))
   }
 
+  "checkModules" should "type modules with scala metas correctly" in {
+    def testModuleSucceeds(mod: Module) = assertTypecheckModulesSucceed(Seq(mod))
+    def testModuleFail(mod: Module) = assertTypecheckModulesFail(Seq(mod))
+
+    import meta.quasiquotes._
+    val module1 = Module(Name("Test"), Seq(),
+      Seq(
+        ScalaImport(q"import inca.analyzedData.Nat.{Nat, Zero}"),
+        PatternFunction(None, Name("test"), Seq(), Seq(AnnoParam(None, TScala("Nat"))),
+          Seq(Body(
+            Yield(Eval(Scala(q"Zero")))
+          ))
+        )
+      )
+    )
+    testModuleSucceeds(module1)
+
+    val module2 = Module(Name("Test"), Seq(),
+      Seq(
+        ScalaBlockDef(q"trait Nat"),
+        ScalaBlockDef(q"case object Zero extends Nat"),
+        ScalaBlockDef(q"case class Succ(pred: Nat) extends Nat"),
+        PatternFunction(None, Name("testTwo"), Seq(), Seq(AnnoParam(None, TScala("Nat"))),
+          Seq(Body(
+            Yield(Eval(Scala(q"Succ(Zero)")))
+          ))
+        )
+      )
+    )
+    testModuleSucceeds(module2)
+
+    // TODO currently not supported because CollectFreeScalaVars cannot distinguish between package paths and object paths
+    // inca.x.y.z inca is seen as free variable even though it is a package name
+//    val module3 = Module(Name("Test"), Seq(),
+//      Seq(
+//        PatternFunction(None, Name("testTwo"), Seq(), Seq(AnnoParam(None, TScala("inca.analyzedData.Nat.Nat"))),
+//          Seq(Body(
+//            Yield(Eval(Scala(q"inca.analyzedData.Nat.Succ(inca.analyzedData.Nat.Zero)")))
+//          ))
+//        )
+//      )
+//    )
+//    testModuleSucceeds(module3)
+
+    val module4 = Module(Name("Test"), Seq(),
+      Seq(
+        ScalaBlockDef(q"trait Nat"),
+        ScalaBlockDef(q"case object Zero extends Nat"),
+        ScalaBlockDef(q"case class Succ(pred: Nat) extends Nat"),
+        ScalaBlockDef(q"val succ: Nat = Succ(Zero)"),
+        PatternFunction(None, Name("testTwo"), Seq(), Seq(AnnoParam(None, TScala("Nat"))),
+          Seq(Body(
+            Yield(Eval(Scala(q"succ")))
+          ))
+        )
+      )
+    )
+    testModuleSucceeds(module4)
+
+    val module5 = Module(Name("Test"), Seq(),
+      Seq(
+        ScalaBlockDef(q"trait Nat"),
+        ScalaBlockDef(q"case object Zero extends Nat"),
+        ScalaBlockDef(q"case class Succ(pred: Nat) extends Nat"),
+        ScalaBlockDef(q"val (succ, succsucc) = (Succ(Zero), Succ(Succ(Zero)))"),
+        PatternFunction(None, Name("testTwo"), Seq(), Seq(AnnoParam(None, TScala("Succ"))),
+          Seq(Body(
+            Yield(Eval(Scala(q"succsucc")))
+          ))
+        )
+      )
+    )
+    testModuleSucceeds(module5)
+
+    val moduleFail = Module(Name("Test"), Seq(),
+      Seq(
+        PatternFunction(None, Name("test"), Seq(), Seq(AnnoParam(None, TScala("Nat"))),
+          Seq(Body(
+            Yield(Eval(Scala(q"Zero")))
+          ))
+        )
+      )
+    )
+    testModuleFail(moduleFail)
+  }
+
   "checkModules" should "type modules with val defs correctly" in {
-    def testModule(mod: Module) = assertResult(())(typecheckModules(Seq(mod)))
+    def testModule(mod: Module) = assertTypecheckModulesSucceed(Seq(mod))
     def testModuleFail(mod: Module) = assertTypecheckModulesFail(Seq(mod))
 
     testModule(

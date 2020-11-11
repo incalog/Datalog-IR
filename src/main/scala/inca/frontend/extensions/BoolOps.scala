@@ -40,23 +40,23 @@ trait BoolOpsFrontend extends Frontend {
   override def typecheckInternal(exp: Expression, anno: Option[Type]): Type = exp match {
     case Not(cond) =>
       val ty = typecheck(cond)
-      if (!TypeOps.subtype(ty, TScalaBoolean, lang))
+      if (!subtype(ty, TScalaBoolean, lang))
         error(s"Expected Boolean expression, but got $ty", cond)
       TScalaBoolean
     case And(e1, e2) =>
       val ty1 = typecheck(e1)
       val ty2 = typecheck(e2)
-      if (!TypeOps.subtype(ty1, TScalaBoolean, lang))
+      if (!subtype(ty1, TScalaBoolean, lang))
         error(s"Expected Boolean expression, but got $ty1", e1)
-      if (!TypeOps.subtype(ty2, TScalaBoolean, lang))
+      if (!subtype(ty2, TScalaBoolean, lang))
         error(s"Expected Boolean expression, but got $ty2", e2)
       TScalaBoolean
     case Or(e1, e2) =>
       val ty1 = typecheck(e1)
       val ty2 = typecheck(e2)
-      if (!TypeOps.subtype(ty1, TScalaBoolean, lang))
+      if (!subtype(ty1, TScalaBoolean, lang))
         error(s"Expected Boolean expression, but got $ty1", e1)
-      if (!TypeOps.subtype(ty2, TScalaBoolean, lang))
+      if (!subtype(ty2, TScalaBoolean, lang))
         error(s"Expected Boolean expression, but got $ty2", e2)
       TScalaBoolean
     case _ => super.typecheckInternal(exp, anno)
@@ -97,8 +97,10 @@ object BoolOps extends Desugarable {
       case Def(exp) => changed(Undef(desugarExp(exp)))
       case Undef(exp) => changed(Def(desugarExp(exp)))
       case Constant(BooleanLiteral(v)) => changed(Constant(BooleanLiteral(!v)))
-      case Eval(vars, code) => changed(Eval(vars, Scala(q"!{${code.tree}}")))
-
+      case eval@Eval(code) =>
+        val desugaredEval = Eval(Scala(q"!{${code.tree}}"))
+        desugaredEval.params = eval.params
+        changed(desugaredEval)
       case _ => Not(cond)
     }
 

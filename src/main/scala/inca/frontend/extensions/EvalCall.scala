@@ -37,9 +37,9 @@ trait EvalCallFrontend extends Frontend {
 
   override protected def typecheckInternal(exp: Expression, anno: Option[Type]): Type = exp match {
     case EvalCall(fun, args) =>
-      val typString = Meta.typecheckScala(fun.tree.syntax) match {
+      val typString = typecheckScala(fun.tree.syntax) match {
         case Left(typ) if typ.endsWith(".type") =>
-          Meta.typecheckScala(s"${fun.tree.syntax}.apply _") match {
+          typecheckScala(s"${fun.tree.syntax}.apply _") match {
             case Left(applyTyp) => applyTyp
             case Right(err) =>
               error(err.getMessage, exp)
@@ -72,7 +72,7 @@ trait EvalCallFrontend extends Frontend {
           val argTy = typecheck(arg)
           TypeHelper.decode(param) match {
             case Right(paramTy) =>
-              if (!TypeOps.subtype(argTy, paramTy, lang)) {
+              if (!subtype(argTy, paramTy, lang)) {
                 error(s"Cannot pass argument of type $argTy to $param of type $paramTy", arg)
               }
             case Left(msg) =>

@@ -44,7 +44,7 @@ object Nat {
   val sumAggregation = Scala(Meta.mkQualName("inca.analyzedData.Nat.sumAgg"))
 
   val fastSumAggregation = Scala(
-    q"""{import inca.analyzedData.Nat._
+    q"""{import inca.analyzedData.Nat.{Nat, Zero, Succ}
         new inca.runtime.aggregate.Aggregation[Nat] {
           override val name: String = "sum"
           override def init: Nat = Zero

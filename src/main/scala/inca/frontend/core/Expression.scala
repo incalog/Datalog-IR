@@ -4,6 +4,8 @@ import inca.frontend.parser.SourceLocation
 import inca.frontend.typechecker.{Resolvable, Typeable}
 import inca.util.Meta.Scala
 
+import scala.meta.Term
+
 trait Expression extends Typeable with SourceLocation {
   def freeVars: Map[Name, Option[Type]]
   def prettyprint(implicit indent: String): String
@@ -100,12 +102,23 @@ case class Tuple(exps: Seq[Expression]) extends CoreExpression {
     exps.map(_.prettyprint).mkString("(", ", ", ")")
 }
 /** Eval code must be a Scala expression that can access `params` by name and must yield a `resultType`. */
-case class Eval(params: Seq[EvalParam], code: Scala[meta.Term]) extends CoreExpression {
-  override def freeVars: Map[Name, Option[Type]] = params.map(p => p.name -> p.typ).toMap
+case class Eval(code: Scala[meta.Term]) extends CoreExpression {
+  var params: Option[Seq[EvalParam]] = None
+
+  override def freeVars: Map[Name, Option[Type]] = params match {
+    case Some(ps) => ps.map(p => p.name -> p.typ).toMap
+    case None => Map()
+  }
   override def prettyprint(implicit indent: String): String = s"`$code`"
 }
+
 object Eval {
-  def apply(code: Scala[meta.Term]): Eval = new Eval(Seq(), code)
+  def apply(params: Seq[EvalParam], code: Scala[meta.Term]): Eval = {
+    val eval = new Eval(code)
+    eval.params = Some(params)
+    eval
+  }
+
 }
 
 case class EvalParam(name: Name) extends SourceLocation with Typeable with Resolvable[Var.Target] {

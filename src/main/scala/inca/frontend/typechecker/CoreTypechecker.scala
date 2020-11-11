@@ -7,9 +7,10 @@ import inca.runtime.aggregate.Aggregation
 import inca.runtime.context.LanguageMetaInfo
 import inca.util.Meta
 import inca.util.Meta.Scala
+import truechange.{AnyType, ListType, SortType}
 
 trait CoreTypechecker
-  extends TypeContext with TypeIO {
+  extends TypeContext with TypeIO with ScalaTypeContext {
 
   val lang: LanguageMetaInfo
 
@@ -31,7 +32,8 @@ trait CoreTypechecker
         content match {
           case fun: PatternFunction => bindFun(fun, importedModule)
           case valDef: ValDef => bindVar(valDef.name, valDef, valDef.getType.get)
-          case _: ScalaModuleContent => // nothing
+          case simp: ScalaImport => // nothing
+          case sbd: ScalaBlockDef => // nothing
         }
       }
     }
@@ -40,7 +42,13 @@ trait CoreTypechecker
     module.content.foreach {
       case fun: PatternFunction => bindFun(fun, module)
       case _: ValDef => // scoped to remainder of module, hence bind later
-      case _: ScalaModuleContent => // nothing
+      case simp: ScalaImport => registerImport(simp)
+      case bd: ScalaBlockDef =>
+        typecheckScala(bd.tree.syntax) match {
+          case Left(_) => // nothing
+          case Right(err) => error(err.getMessage)
+        }
+        registerBlockDef(bd)
     }
 
     module.content.foreach {
@@ -54,12 +62,11 @@ trait CoreTypechecker
   /*
    * Function
    */
-
   def typecheck(fun: PatternFunction): Unit = scopedTypeContext {
     fun.params.foreach(p => bindVar(p.name, p, p.typ))
     fun.bodies.foreach { body =>
       val ty = typecheck(body, mustYield = true)
-      if (!TypeOps.subtype(ty.asType, fun.outType, lang))
+      if (!subtype(ty.asType, fun.outType, lang))
         error(s"Found body of type $ty, but expected function result type ${fun.outType}", body)
     }
   }
@@ -89,7 +96,7 @@ trait CoreTypechecker
     val inferred = typecheck(valDef.exp)
     valDef.typ match {
       case Some(annotated) =>
-        if (!TypeOps.subtype(inferred, annotated, lang))
+        if (!subtype(inferred, annotated, lang))
           error(s"Inferred type $inferred, but expected annotated type $annotated", valDef)
         bindVar(valDef.name, valDef, annotated)
       case None =>
@@ -133,7 +140,7 @@ trait CoreTypechecker
 
     case Assert(cond) =>
       val condTy = typecheck(cond)
-      if (!TypeOps.subtype(condTy, TScalaBoolean, lang))
+      if (!subtype(condTy, TScalaBoolean, lang))
         error(s"Expected Boolean condition, but got $condTy", cond)
       NoYield
 
@@ -200,7 +207,7 @@ trait CoreTypechecker
     case Eq(lhs, rhs) =>
       val lty = typecheck(lhs)
       val rty = typecheck(rhs)
-      if (TypeOps.meet(lty, rty, lang) == TNothing) {
+      if (meet(lty, rty, lang) == TNothing) {
         error(s"Cannot compare left-hand $lty with right-hand $rty", exp)
       }
       TScalaBoolean
@@ -208,28 +215,28 @@ trait CoreTypechecker
     case Neq(lhs, rhs) =>
       val lty = typecheck(lhs)
       val rty = typecheck(rhs)
-      if (TypeOps.meet(lty, rty, lang) == TNothing) {
+      if (meet(lty, rty, lang) == TNothing) {
         error(s"Cannot compare left-hand $lty with right-hand $rty", exp)
       }
       TScalaBoolean
 
     case InstanceOf(e, ty) =>
       val ety = typecheck(e)
-      if (TypeOps.meet(ety, ty, lang) == TNothing) {
+      if (meet(ety, ty, lang) == TNothing) {
         warn(s"Test of type $ety to unrelated type $ty will always fail", exp)
       }
       TScalaBoolean
 
     case NotInstanceOf(e, ty) =>
       val ety = typecheck(e)
-      if (TypeOps.meet(ety, ty, lang) == TNothing) {
+      if (meet(ety, ty, lang) == TNothing) {
         warn(s"Test of type $ety to unrelated type $ty will always succeed", exp)
       }
       TScalaBoolean
 
     case Cast(src, targetTyp) =>
       val ety = typecheck(src)
-      if (TypeOps.meet(ety, targetTyp, lang) == TNothing) {
+      if (meet(ety, targetTyp, lang) == TNothing) {
         warn(s"Cast of type $ety to unrelated type $targetTyp will always fail", exp)
       }
       targetTyp
@@ -279,21 +286,21 @@ trait CoreTypechecker
         case tys => TTuple(tys)
       }
 
-    case Eval(params, code) =>
-      typecheckEval(params, code, exp)
+    case eval@Eval(code) =>
+      typecheckEval(code, eval)
 
     case Aggregate(agg, bodies) =>
       val aggTy = typecheck(agg)
 
       val bodiesTy = bodies.foldLeft[Type](TAny) { (bodiesTy, body) =>
         val Yields(ty) = typecheck(body, mustYield = true)
-        TypeOps.meet(bodiesTy, ty, lang)
+        meet(bodiesTy, ty, lang)
       }
 
       val bodiesScalaTy = bodiesTy.asScala
       val requiredAggTy = TScala(Scala(meta.Type.Apply(Meta.typeOf[Aggregation[_]], List(bodiesScalaTy))))
 
-      if (!TypeOps.subtype(aggTy, requiredAggTy, lang))
+      if (!subtype(aggTy, requiredAggTy, lang))
         error(s"Expected $requiredAggTy, but got $aggTy", agg)
 
       TScala(Scala(bodiesScalaTy))
@@ -319,7 +326,7 @@ trait CoreTypechecker
     case NamedLink(field: Name) => receiverTy match {
       case TNode(node) =>
         lang.links.get(node, field.name) match {
-          case Some(ty) => TypeOps.truechangeTypeToType(ty)
+          case Some(ty) => truechangeTypeToType(ty)
           case _ => lang.litLinks.get(node, field.name) match {
             case Some(litType) => TLiteral(litType)
             case _ =>
@@ -365,7 +372,7 @@ trait CoreTypechecker
       // nothing
       case (param, arg) =>
         val argTy = typecheck(arg)
-        if (TypeOps.meet(param.typ, argTy, lang) == TNothing) {
+        if (meet(param.typ, argTy, lang) == TNothing) {
           warn(s"Cast of argument type $argTy to unrelated parameter type ${param.typ} will always fail", arg)
         }
     }
@@ -384,7 +391,17 @@ trait CoreTypechecker
   /**
    * Computes the result type of an Eval expression and validates the contained Scala code for type correctness
    */
-  def typecheckEval(params: Seq[EvalParam], code: Scala[meta.Term], exp: Expression): Type = {
+  def typecheckEval(code: Scala[meta.Term], exp: Eval): Type = {
+    // collect bound name and set free vars (params) of eval expression if not already set
+    val params = exp.params match {
+      case Some(params) => params
+      case None =>
+        val convertedBoundNames = (boundNames).map(Name).toSet
+        val params: Seq[EvalParam] = CollectFreeScalaVars.freeVars(code.tree, convertedBoundNames).map(EvalParam).toSeq
+        exp.params = Some(params)
+        params
+    }
+
     // here we use a little hack. We create one big block that defines all the params with their type.
     // The initializing value is irrelevant.
     val paramString = params.flatMap { param =>
@@ -398,9 +415,9 @@ trait CoreTypechecker
       }
     }.mkString(";\n")
 
-    val codeSource = s"{$paramString;\n${code.syntax}}"
+    val codeSource = s"$paramString;\n${code.syntax}"
 
-    Meta.typecheckScala(codeSource) match {
+    typecheckScala(codeSource) match {
       case Left(typ) =>
         TypeHelper.decode(typ) match {
           case Right(ty) => ty
@@ -419,7 +436,7 @@ trait CoreTypechecker
     val inferred = computeType
     term.typ match {
       case Some(annotated) =>
-        if (!TypeOps.subtype(inferred, annotated, lang))
+        if (!subtype(inferred, annotated, lang))
           error(s"Inferred type $inferred, but expected annotated type $annotated", term)
         annotated
       case None =>
@@ -439,5 +456,63 @@ trait CoreTypechecker
         term.resolved(newTarget)
         newTarget
     }
+  }
+
+  // type operations
+
+  def subtype(ty1: Type, ty2: Type, languageMetaInfo: LanguageMetaInfo): Boolean =
+    meet(ty1, ty2, languageMetaInfo) == ty1
+
+  protected def meet(ty1: Type, ty2: Type, languageMetaInfo: LanguageMetaInfo): Type = (ty1, ty2) match {
+    case (_, _) if ty1 == ty2 => ty1
+    case (TAny, _) => ty2
+    case (_, TAny) => ty1
+    case (TAnyLinked, _:TLinked) => ty2
+    case (_:TLinked,TAnyLinked) => ty1
+    case (TNode(name1), TNode(name2)) =>
+      if (languageMetaInfo.nodeSupertypes.containsEntry(SortType(name1) -> SortType(name2)))
+        ty1
+      else if (languageMetaInfo.nodeSupertypes.containsEntry(SortType(name2) -> SortType(name1)))
+        ty2
+      else
+        TNothing
+    case (TList(s1), TList(s2)) => TList(meet(s1, s2, languageMetaInfo).asInstanceOf[TLinked])
+    case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size => TTuple(tys1.zip(tys2).map(tt => meet(tt._1, tt._2, languageMetaInfo)))
+    case (TScala(s1), TScala(s2)) =>
+      if (subtypeScala(s1.tree, s2.tree))
+        ty1
+      else if (Meta.subtypeScala(s2.tree, s1.tree))
+        ty2
+      else
+        TNothing
+    case (_, TScala(s2)) =>
+      if (subtypeScala(ty1.asScala, s2.tree))
+        ty1
+      else
+        TNothing
+    case (TScala(s1), _) =>
+      if (Meta.subtypeScala(s1.tree, ty2.asScala))
+        ty2
+      else
+        TNothing
+    case _ => TNothing
+  }
+
+  protected def truechangeTypeToType(ty: truechange.Type): Type = ty match {
+    case AnyType => TAny
+    case SortType(name) => TNode(name)
+    case ListType(ty) =>
+      val convertedTy = truechangeTypeToType(ty)
+      convertedTy match {
+        case linked: TLinked => TList(linked)
+        case _ => throw new IllegalArgumentException()
+      }
+    case _ => throw new UnsupportedOperationException(s"conversion of $ty from truechange to inca not supported")
+  }
+
+  protected def stmMeet(stmTy1: StmType, stmTy2: StmType, lang: LanguageMetaInfo): StmType = (stmTy1, stmTy2) match {
+    case (NoYield, _) => NoYield
+    case (_, NoYield) => NoYield
+    case (Yields(ty1), Yields(ty2)) => Yields(meet(ty1, ty2, lang))
   }
 }

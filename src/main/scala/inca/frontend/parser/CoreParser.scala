@@ -200,7 +200,7 @@ class CoreParser {
     P(":" ~ typeAnno).mapWithLocFun[Expression, Expression](ty => Cast(_, ty))
 
   protected[frontend] def atomicExp[_: P]: P[Expression] =
-    P(callExp | evalExp | wildcardExp | constantExp | varExp
+    P(evalExp | callExp | wildcardExp | constantExp | varExp
      | tupleExp | aggregateExp | parensExp)
 
 
@@ -222,8 +222,7 @@ class CoreParser {
         case Parsed.Error(_, _, _) =>
           fastparse.Fail
         case Parsed.Success(code) =>
-          val params = EvalHelper.freeVars(code)
-          val eval = Eval(params.map(EvalParam).toSeq, Scala(code))
+          val eval = Eval(Scala(code))
           fastparse.Pass(eval)
       }
     }
@@ -320,13 +319,19 @@ class CoreParser {
     P("import" ~ identifier).mapWithLoc(Import.apply)
 
   def moduleContent[_: P]: P[ModuleContent] =
-    P(patternFunction | valDef | nativeStat.mapWithLoc(new ScalaModuleContent(_)))
+    P(patternFunction | valDef | scalaModuleContent)
 
 
-  def nativeStat[_: P]: P[meta.Stat] =
-    P("scala " ~ nativeStatHelper(NoCut(scalaparse.Scala.Import)) |
-      "scala " ~ nativeStatHelper(NoCut(scalaparse.Scala.BlockDef))
-    )
+  def scalaModuleContent[_: P]: P[ScalaModuleContent] =
+    P("scala " ~ (scalaImport | scalaBlockDef))
+
+  def scalaImport[_: P]: P[ScalaImport] =
+    nativeStatHelper(NoCut(scalaparse.Scala.Import))
+      .filter(_.isInstanceOf[meta.Import])
+      .mapWithLoc(s => ScalaImport(s.asInstanceOf[meta.Import]))
+
+  def scalaBlockDef[_: P]: P[ScalaBlockDef] =
+    nativeStatHelper(NoCut(scalaparse.Scala.BlockDef)).mapWithLoc(ScalaBlockDef.apply)
 
   private def nativeStatHelper[_: P](statParser: => P[_]): P[meta.Stat] =
     P(statParser.!).flatMap { raw_code =>

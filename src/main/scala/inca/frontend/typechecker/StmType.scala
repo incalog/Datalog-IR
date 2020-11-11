@@ -11,11 +11,12 @@ sealed trait StmType {
 
   override def toString: String = asType.prettyprint
 
-  def meet(other: StmType, lang: LanguageMetaInfo): StmType = (this, other) match {
-    case (NoYield, _) => NoYield
-    case (_, NoYield) => NoYield
-    case (Yields(ty1), Yields(ty2)) => Yields(TypeOps.meet(ty1, ty2, lang))
-  }
+//  def meet(other: StmType, lang: LanguageMetaInfo): StmType = (this, other) match {
+//    case (NoYield, _) => NoYield
+//    case (_, NoYield) => NoYield
+//    case (Yields(ty1), Yields(ty2)) => Yields(meet(ty1, ty2, lang))
+//  }
+
 }
 case object NoYield extends StmType
 case class Yields(ty: Type) extends StmType
