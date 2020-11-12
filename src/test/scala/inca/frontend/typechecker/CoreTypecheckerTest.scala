@@ -697,18 +697,16 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     )
     testModuleSucceeds(module2)
 
-    // TODO currently not supported because CollectFreeScalaVars cannot distinguish between package paths and object paths
-    // inca.x.y.z inca is seen as free variable even though it is a package name
-//    val module3 = Module(Name("Test"), Seq(),
-//      Seq(
-//        PatternFunction(None, Name("testTwo"), Seq(), Seq(AnnoParam(None, TScala("inca.analyzedData.Nat.Nat"))),
-//          Seq(Body(
-//            Yield(Eval(Scala(q"inca.analyzedData.Nat.Succ(inca.analyzedData.Nat.Zero)")))
-//          ))
-//        )
-//      )
-//    )
-//    testModuleSucceeds(module3)
+    val module3 = Module(Name("Test"), Seq(),
+      Seq(
+        PatternFunction(None, Name("testTwo"), Seq(), Seq(AnnoParam(None, TScala("inca.analyzedData.Nat.Nat"))),
+          Seq(Body(
+            Yield(Eval(Scala(q"inca.analyzedData.Nat.Succ(inca.analyzedData.Nat.Zero)")))
+          ))
+        )
+      )
+    )
+    testModuleSucceeds(module3)
 
     val module4 = Module(Name("Test"), Seq(),
       Seq(

@@ -354,7 +354,7 @@ class CollectFreeScalaVarsTest extends AnyFunSuite {
         |""".stripMargin
 
     val tree4 = code4.parse[Term].get
-    checkVars(tree4, Set("list"))
+    checkVars(tree4, Set("list", "Some"))
   }
 
   test("test freeVars pattern nested complex") {
@@ -366,7 +366,7 @@ class CollectFreeScalaVarsTest extends AnyFunSuite {
         |""".stripMargin
 
     val tree = code.parse[Term].get
-    checkVars(tree, Set("matchee"))
+    checkVars(tree, Set("matchee", "Some"))
   }
 
   test("test freeVars complex 1") {
@@ -389,7 +389,7 @@ class CollectFreeScalaVarsTest extends AnyFunSuite {
           this.anno = 12
         }
         """
-    checkVars(code, Set("x", "i", "foo"))
+    checkVars(code, Set("x", "i", "foo", "Set"))
   }
 
   test("test freeVars complex 2") {
@@ -409,7 +409,7 @@ class CollectFreeScalaVarsTest extends AnyFunSuite {
           }
        """
 
-    checkVars(code, Set("loadInto"))
+    checkVars(code, Set("loadInto", "Map", "mutable"))
   }
 
   test("test freeVars complex 3") {
@@ -448,7 +448,7 @@ class CollectFreeScalaVarsTest extends AnyFunSuite {
         }
         """
 
-    checkVars(code, Set("do_smth", "newAnon", "process"))
+    checkVars(code, Set("do_smth", "newAnon", "process", "println", "Some", "None"))
   }
 
   test("test freeVars complex 5") {
@@ -472,7 +472,7 @@ class CollectFreeScalaVarsTest extends AnyFunSuite {
         }
        """
 
-    checkVars(code, Set("start", "Heap"))
+    checkVars(code, Set("start", "Heap", "Set"))
   }
 
   private def checkEval(eval: Eval, vars: Map[String, core.Type] = Map()): core.Type = {

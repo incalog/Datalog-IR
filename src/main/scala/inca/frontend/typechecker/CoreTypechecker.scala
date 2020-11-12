@@ -394,10 +394,11 @@ trait CoreTypechecker
     val params = exp.params match {
       case Some(params) => params
       case None =>
-        val convertedBoundNames = (boundNames).map(Name).toSet
-        val params: Seq[EvalParam] = CollectFreeScalaVars.freeVars(code.tree, convertedBoundNames).map(EvalParam).toSeq
-        exp.params = Some(params)
-        params
+        val params = (CollectFreeScalaVars.freeVars(code.tree)
+          .diff(boundNames.map(Name).toSet))
+          .intersect(getBindings.keySet)
+        exp.params = Some(params.map(EvalParam).toSeq)
+        exp.params.get
     }
 
     // here we use a little hack. We create one big block that defines all the params with their type.

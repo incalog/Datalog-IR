@@ -7,7 +7,6 @@ import scala.meta.{Case, Decl, Defn, Enumerator, Import, Importee, Lit, Pat, Sta
 
 /**
  * The CollectFreeScalaVars contains methods to analyze the Scala code in Eval constructs
- * TODO currently cannot use fully quantified names because I do not know how to distinguish between package path and just object path
  *
  * @author Ronja Schnur (rschnur@students.uni-mainz.de)
  *         Julian Cichorius (jcichori@students.uni-mainz.de)
@@ -44,8 +43,8 @@ object CollectFreeScalaVars {
    * @return the set of free variables
    */
   def freeVars(term: Term, bound: Set[Name] = Set()): Set[Name] = {
-    val extendedBound = mutable.Set[Name]()
-    extendedBound ++= (bound ++ predefinedNames.map(Name))
+    val extendedBound = mutable.Set[Name]() ++ bound
+//    extendedBound ++= (bound ++ predefinedNames.map(Name))
     val scope = new Scope(mutable.Set(), extendedBound)
     freeVars(term, scope)
     scope.free.toSet
