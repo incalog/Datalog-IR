@@ -84,7 +84,7 @@ class TestAggregate extends AnyFlatSpec with IncaMatchers {
         Body(
           Seq(
             Assign(Seq("pred"), Call("1_to_10", Seq())),
-            Assert(Eval(Scala(q"pred.toInt < (nine + One.one)"))),
+            Assert(Eval(Scala(q"pred.toInt < (nine + One.num)"))),
             Yield(EvalCall(succOp, Seq(Var("pred"))))
           )
         )
