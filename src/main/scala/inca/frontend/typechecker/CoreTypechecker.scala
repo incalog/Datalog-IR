@@ -32,8 +32,8 @@ trait CoreTypechecker
         content match {
           case fun: PatternFunction => bindFun(fun, importedModule)
           case valDef: ValDef => bindVar(valDef.name, valDef, valDef.getType.get)
-          case simp: ScalaImport => // nothing
-          case sbd: ScalaBlockDef => // nothing
+          case _: ScalaImport => // nothing
+          case _: ScalaBlockDef => // nothing
         }
       }
     }
@@ -44,6 +44,11 @@ trait CoreTypechecker
       case _: ValDef => // scoped to remainder of module, hence bind later
       case simp: ScalaImport => registerImport(simp)
       case bd: ScalaBlockDef =>
+        /* TODO The type check should occur below, after binding symbols.
+           TODO Otherwise mutually recursive function defs or classes won't be possible.
+           TODO Probably we can check all scala code of the module together, calling typecheckScala only once.
+           TODO If we then wrap all this code in an object, can't we use ToolBox.define if we redirect scala references in the Inca code?
+         */
         typecheckScala(bd.tree.syntax) match {
           case Left(_) => // nothing
           case Right(err) => error(err.getMessage)

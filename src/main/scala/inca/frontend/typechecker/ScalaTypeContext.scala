@@ -1,12 +1,10 @@
 package inca.frontend.typechecker
 
-import inca.frontend.core.{Name, ScalaBlockDef, ScalaImport}
+import inca.frontend.core.{ScalaBlockDef, ScalaImport}
 import inca.util.Meta.Scala
 
 import scala.collection.mutable
-import scala.meta.parsers._
-import scala.meta.quasiquotes._
-import scala.meta.{Defn, Importee, Lit, Pat, Term, Tree}
+import scala.meta.{Defn, Importee, Lit, Pat, Term}
 
 trait ScalaTypeContext extends TypeContext {
   import scala.reflect.runtime.{currentMirror, universe}
@@ -23,6 +21,7 @@ trait ScalaTypeContext extends TypeContext {
 
   // remember which name are bound
   // TODO name with sourcelocation
+  // TODO make private
   protected var boundNames: mutable.ListBuffer[String] = mutable.ListBuffer()
 
 
@@ -68,6 +67,7 @@ trait ScalaTypeContext extends TypeContext {
         boundNames = boundNames :+ name.value
       case _: Defn.Var =>
         // vars have no meaning in IncA
+        // TODO vars could be used by Scala code and in eval blocks. We should allow this.
         error("Top-level variable definition is not supported", bd)
     }
 
