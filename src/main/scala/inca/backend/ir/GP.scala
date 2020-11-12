@@ -54,7 +54,7 @@ object GP {
   case object Private extends Visibility
   case object Public extends Visibility
 
-  case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern], stats: Seq[Scala[meta.Stat]]) {
+  case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern], scalaImports: Seq[Scala[meta.Import]], scalaBlockDefs: Seq[Scala[meta.Stat]]) {
     override def toString: Name = Printer.prettyModule(this)
   }
   case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body])

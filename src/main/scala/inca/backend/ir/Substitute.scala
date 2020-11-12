@@ -5,7 +5,7 @@ import inca.backend.ir.GP._
 case class Substitute(subst: Var => Term) {
 
   def substModule(module: Module): Module =
-    Module(module.name, module.imports, module.pats.map(substPattern), module.stats)
+    Module(module.name, module.imports, module.pats.map(substPattern), module.scalaImports, module.scalaBlockDefs)
 
   def substPattern(pat: Pattern): Pattern =
     Pattern(pat.vis, pat.name, pat.params, pat.bodies.map(substBody))

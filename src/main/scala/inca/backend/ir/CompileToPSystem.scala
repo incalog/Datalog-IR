@@ -79,15 +79,17 @@ object CompileToPSystem {
 
       import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred._
       import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables._
+      ..${module.scalaImports.map(_.tree).toList}
+
 
       object $name extends ${Init(tyPSystemModule, Term.Name(tyPSystemModule.toString), List())} {
         val patterns: Map[String, () => $tyQuerySpecification] = Map(..${
           module.pats.map(p => q"${p.name} -> (() => ${Term.Name(p.name)}.instance)").toList
         })
 
-        ..${funs}
+        ..${module.scalaBlockDefs.map(_.tree).toList}
 
-        ..${module.stats.map(_.tree).toList}
+        ..${funs}
       }
     """
   }

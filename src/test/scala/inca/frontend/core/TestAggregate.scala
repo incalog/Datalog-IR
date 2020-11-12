@@ -73,4 +73,36 @@ class TestAggregate extends AnyFlatSpec with IncaMatchers {
       assert(matcher.getAllMatchArrays.head.head.asInstanceOf[Nat].toInt == (1 to 10).sum)
     }
   }
+
+  "aggregate" should "support non-invertible joins 2" in {
+    val module = Module("Test_Cast", Seq(), Seq(
+      ScalaImport(q"import inca.analyzedData.Nat.sumAgg"),
+      ScalaBlockDef(q"val nine = 9"),
+      ScalaBlockDef(q"object One { val num = 1 }"),
+      PatternFunction(None, "1_to_10", Seq(), Seq(AnnoParam(None, NatTyp)), Seq(
+        Body(Seq(Yield(EvalCall(succOp, Seq(Eval(Seq(), zeroOp)))))),
+        Body(
+          Seq(
+            Assign(Seq("pred"), Call("1_to_10", Seq())),
+            Assert(Eval(Scala(q"pred.toInt < (nine + One.one)"))),
+            Yield(EvalCall(succOp, Seq(Var("pred"))))
+          )
+        )
+      )),
+
+      PatternFunction(None, "sum_1_to_10", Seq(), Seq(AnnoParam(None, NatTyp)), Seq(
+        Body(Seq(
+          Yield(Aggregate(Eval(Scala(q"sumAgg")), Call("1_to_10", Seq()).typed(NatTyp)))
+        ))
+      ))
+    ))
+
+    val input = Exp.BooleanLit(true)
+
+    assertMatchCoreProg(module, "sum_1_to_10", input, scope) { matcher =>
+      assert(matcher.getAllMatches.size() == 1)
+      assert(matcher.getAllMatchArrays.head.head.asInstanceOf[Nat].toInt == (1 to 10).sum)
+    }
+  }
+
 }

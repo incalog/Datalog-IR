@@ -133,8 +133,9 @@ trait ScalaTypeContext extends TypeContext {
         typ.toString.replace(s"${topLevelObject.fullName}.ScalaObject$$", "")
       Left(normalizedType)
     } catch {
-      case err@ToolBoxError(msg, _) =>
-        Right(err)
+      case err@ToolBoxError(msg, throwable) =>
+        val cleanMsg = msg.replace(s"${topLevelObject.fullName}.", "")
+        Right(ToolBoxError(cleanMsg, throwable))
     }
   }
 

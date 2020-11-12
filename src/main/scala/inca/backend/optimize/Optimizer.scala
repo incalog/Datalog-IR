@@ -6,7 +6,7 @@ import inca.frontend.core.CompileToGP.BodyMustFail
 trait Optimizer {
 
   def optimizeModule(module: Module): Module =
-    Module(module.name, module.imports, module.pats.flatMap(optimizePattern), module.stats)
+    Module(module.name, module.imports, module.pats.flatMap(optimizePattern), module.scalaImports, module.scalaBlockDefs)
 
   def optimizePattern(pat: Pattern): Seq[Pattern] = {
     val newbodies = pat.bodies.flatMap(body =>

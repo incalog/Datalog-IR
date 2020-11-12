@@ -8,8 +8,10 @@ object Printer {
   def prettyModule(module: Module): String =
     "module " +
       module.name + "\n" +
-      module.imports.mkString("\n") + module.pats.map(prettyGraphPattern).mkString("\n") + "\n" +
-      module.stats.map(_.syntax).mkString("\n")
+      module.imports.mkString("\n") +
+      module.scalaImports.map(_.syntax).mkString("\n") +
+      module.scalaBlockDefs.map(_.syntax).mkString("\n") +
+      module.pats.map(prettyGraphPattern).mkString("\n")
 
   def prettyGraphPattern(gp: Pattern): String = {
     val header = prettyVis(gp.vis) + gp.name + gp.params.map(prettyParam).mkString("(", ", ", ")")
