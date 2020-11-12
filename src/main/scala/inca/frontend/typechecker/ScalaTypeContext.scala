@@ -19,27 +19,33 @@ trait ScalaTypeContext extends TypeContext {
   // wanted to use ToolBox.define but it only allows toplevel declarations such as objects and classes
   private var seenCode: mutable.ListBuffer[Scala[meta.Stat]] = mutable.ListBuffer()
 
-  // remember which name are bound
+  // remember which name are bound by importing
   // TODO name with sourcelocation
-  // TODO make private
-  protected var boundNames: mutable.ListBuffer[String] = mutable.ListBuffer()
+  private var importBoundNames: mutable.ListBuffer[String] = mutable.ListBuffer()
+
+  // remember which names are top-level definitions
+  private var toplevelBoundNames: mutable.ListBuffer[String] = mutable.ListBuffer()
+
+  def boundNames: Seq[String] = importBoundNames.toSeq ++ toplevelBoundNames
 
 
   override def scopedTypeContext[T](f: => T): T = {
     val prevSeenCode = seenCode
     val prevImports = imports
-    val prevBoundNames = boundNames
+    val prevBoundNames = importBoundNames
+    val prevToplevelBoundNames = toplevelBoundNames
     val t = super.scopedTypeContext(f)
     seenCode = prevSeenCode
     imports = prevImports
-    boundNames = prevBoundNames
+    importBoundNames = prevBoundNames
+    toplevelBoundNames = prevToplevelBoundNames
     t
   }
 
   def registerImport(imp: ScalaImport): Unit = {
     imp.tree.importers.head.importees.foreach {
-      case Importee.Name(n) => boundNames += n.value
-      case Importee.Rename(_, n) => boundNames += n.value
+      case Importee.Name(n) => importBoundNames += n.value
+      case Importee.Rename(_, n) => importBoundNames += n.value
       case _: Importee.Unimport => // nothing
       case _: Importee.Wildcard =>
         // wildcards are not allowed
@@ -50,25 +56,41 @@ trait ScalaTypeContext extends TypeContext {
     imports += imp
   }
 
+
+  private var topLevelObject: universe.Symbol = _
+
+  protected def typecheckTopLevelObject(): Unit = {
+    if (topLevelObject == null) {
+      val scalaObject =
+        s"""
+           |object ScalaObject {
+           |${imports.mkString("\n")}
+           |${seenCode.mkString("\n")}
+           |}
+           |""".stripMargin
+      val tree = toolbox.parse(scalaObject)
+      topLevelObject = toolbox.define(tree.asInstanceOf[universe.ImplDef])
+    }
+  }
+
   def registerBlockDef(bd: ScalaBlockDef): Unit = {
     bd.tree match {
       case Defn.Trait(_, name, _, _, _) =>
-        boundNames = boundNames :+ name.value
+        toplevelBoundNames += name.value
       case Defn.Class(_, name, _, _, _) =>
-        boundNames = boundNames :+ name.value
+        toplevelBoundNames += name.value
       case Defn.Object(_, name, _) =>
-        boundNames = boundNames :+ name.value
+        toplevelBoundNames += name.value
       case Defn.Val(_, pats, _, _) =>
         val bound = pats.flatMap(collectVars)
-        boundNames = boundNames ++ bound
+        toplevelBoundNames ++= bound
+      case Defn.Var(_, pats, _, _) =>
+        val bound = pats.flatMap(collectVars)
+        toplevelBoundNames ++= bound
       case Defn.Def(_, name, _, _, _, _) =>
-        boundNames = boundNames :+ name.value
+        toplevelBoundNames += name.value
       case Defn.Type(_, name, _, _) =>
-        boundNames = boundNames :+ name.value
-      case _: Defn.Var =>
-        // vars have no meaning in IncA
-        // TODO vars could be used by Scala code and in eval blocks. We should allow this.
-        error("Top-level variable definition is not supported", bd)
+        toplevelBoundNames += name.value
     }
 
     seenCode += bd
@@ -92,18 +114,24 @@ trait ScalaTypeContext extends TypeContext {
       collectVars(lhs) ++ collectVars(rhs)
     case Pat.ExtractInfix(pat, _, value) =>
       collectVars(pat) ++ value.flatMap(collectVars)
-
   }
 
   def typecheckScala(code: String): Either[String, Throwable] = {
-    val completeCode = (imports.toList ++ seenCode.toSeq).mkString("\n") + s"\n$code"
-
+    typecheckTopLevelObject()
+    val completeCode =
+      s"""{
+         |  import ${topLevelObject.fullName}._
+         |  ${imports.mkString("\n")}
+         |  $code
+         |}
+         |""".stripMargin
     val tree = toolbox.parse(completeCode)
     try {
       val typechecked = toolbox.typecheck(tree)
-
       val typ = typechecked.tpe.dealias
-      Left(typ.toString)
+      val normalizedType =
+        typ.toString.replace(s"${topLevelObject.fullName}.ScalaObject$$", "")
+      Left(normalizedType)
     } catch {
       case err@ToolBoxError(msg, _) =>
         Right(err)
@@ -113,7 +141,6 @@ trait ScalaTypeContext extends TypeContext {
   def subtypeScala(ty1: meta.Type, ty2: meta.Type): Boolean = {
     val code =
       s"""{
-         |  ${imports.mkString("\n")}
          |  val v1: ${ty1.syntax} = ???
          |  val v2: ${ty2.syntax} = v1
          |}""".stripMargin
@@ -121,7 +148,7 @@ trait ScalaTypeContext extends TypeContext {
     typecheckScala(code) match {
       case Left(str) =>
         str == "Unit"
-      case Right(_) =>
+      case Right(err) =>
         false
     }
   }

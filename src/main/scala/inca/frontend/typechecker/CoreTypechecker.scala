@@ -43,20 +43,11 @@ trait CoreTypechecker
       case fun: PatternFunction => bindFun(fun, module)
       case _: ValDef => // scoped to remainder of module, hence bind later
       case simp: ScalaImport => registerImport(simp)
-
-      case bd: ScalaBlockDef =>
-        /* TODO The type check should occur below, after binding symbols.
-           TODO Otherwise mutually recursive function defs or classes won't be possible.
-           TODO Probably we can check all scala code of the module together, calling typecheckScala only once.
-           TODO If we then wrap all this code in an object, can't we use ToolBox.define if we redirect scala references in the Inca code?
-         */
-        typecheckScala(bd.tree.syntax) match {
-          case Left(_) => // nothing
-          case Right(err) => error(err.getMessage)
-        }
-
-        registerBlockDef(bd)
+      case bd: ScalaBlockDef => registerBlockDef(bd)
     }
+
+    // type scala top-level definitions
+    typecheckTopLevelObject()
 
     module.content.foreach {
       case fun: PatternFunction => typecheck(fun)
@@ -422,7 +413,7 @@ trait CoreTypechecker
       }
     }.mkString(";\n")
 
-    val codeSource = s"$paramString;\n${code.syntax}"
+    val codeSource = s"{$paramString;\n${code.syntax}}"
 
     typecheckScala(codeSource) match {
       case Left(typ) =>
