@@ -6,10 +6,9 @@ import inca.frontend.Frontend
 import inca.frontend.core.{Expression, _}
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.parser.SourceLocation
-import inca.frontend.typechecker.TypeOps
 import inca.frontend.util.TypeHelper
+import inca.util.Gensym
 import inca.util.Meta.Scala
-import inca.util.{Gensym, Meta}
 
 import scala.collection.mutable.ListBuffer
 import scala.meta.parsers._

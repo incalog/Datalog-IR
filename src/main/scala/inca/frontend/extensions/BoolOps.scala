@@ -3,7 +3,6 @@ package inca.frontend.extensions
 import inca.frontend.Frontend
 import inca.frontend.core.{Expression, _}
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
-import inca.frontend.typechecker.TypeOps
 import inca.util.Gensym
 import inca.util.Meta.Scala
 

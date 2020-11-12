@@ -43,6 +43,7 @@ trait CoreTypechecker
       case fun: PatternFunction => bindFun(fun, module)
       case _: ValDef => // scoped to remainder of module, hence bind later
       case simp: ScalaImport => registerImport(simp)
+
       case bd: ScalaBlockDef =>
         /* TODO The type check should occur below, after binding symbols.
            TODO Otherwise mutually recursive function defs or classes won't be possible.
@@ -53,6 +54,7 @@ trait CoreTypechecker
           case Left(_) => // nothing
           case Right(err) => error(err.getMessage)
         }
+
         registerBlockDef(bd)
     }
 
@@ -486,7 +488,7 @@ trait CoreTypechecker
     case (TScala(s1), TScala(s2)) =>
       if (subtypeScala(s1.tree, s2.tree))
         ty1
-      else if (Meta.subtypeScala(s2.tree, s1.tree))
+      else if (subtypeScala(s2.tree, s1.tree))
         ty2
       else
         TNothing
@@ -496,7 +498,7 @@ trait CoreTypechecker
       else
         TNothing
     case (TScala(s1), _) =>
-      if (Meta.subtypeScala(s1.tree, ty2.asScala))
+      if (subtypeScala(s1.tree, ty2.asScala))
         ty2
       else
         TNothing

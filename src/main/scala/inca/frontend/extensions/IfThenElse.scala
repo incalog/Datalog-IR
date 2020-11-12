@@ -4,7 +4,7 @@ import inca.frontend.Frontend
 import inca.frontend.core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.parser.SourceLocation
-import inca.frontend.typechecker.{NoYield, StmType, TypeOps}
+import inca.frontend.typechecker.{NoYield, StmType}
 import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
