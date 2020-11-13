@@ -11,13 +11,14 @@ import scala.collection.immutable.MultiDict
  * Should run after `EliminateAliases` and before `FoldConstantConstraints`
  */
 // TODO Unbounded Type was added, need to check if this algorithm needs to be adapted
-object InferVarTypes extends Optimization {
+object InferVarTypes extends Optimization with TypeOps {
 
   override def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer = new Optimizer {
 
     private var funs: Map[Name, Seq[Param]] = _
 
     override def optimizeModule(module: Module): Module = {
+      initializeScala(module)
       funs = module.pats.map(p => p.name -> p.params).toMap
       super.optimizeModule(module)
     }
@@ -35,8 +36,8 @@ object InferVarTypes extends Optimization {
         case v: Var =>
           vars += v -> ty
         case Constant(lit) =>
-          val meet = TypeOps.meet(lit.typ, ty, languageMetaInfo)
-          if (meet.isEmpty)
+          val meetType = meet(lit.typ, ty, languageMetaInfo)
+          if (meetType.isEmpty)
             throw BodyMustFail
       }
 
@@ -84,8 +85,8 @@ object InferVarTypes extends Optimization {
       try {
         mostSpecificVarTypes = Map()
         vars.sets.foreach { case (v, tys) =>
-          val meet = TypeOps.meet(tys, languageMetaInfo)
-          meet match {
+          val meetType = meet(tys, languageMetaInfo)
+          meetType match {
             case Some(ty) => mostSpecificVarTypes += v -> ty
             case None => throw BodyMustFail
           }

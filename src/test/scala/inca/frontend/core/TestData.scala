@@ -49,18 +49,20 @@ class TestData extends AnyFlatSpec with IncaMatchers {
       """module Test
         |scala import inca.analyzedData.Nat
         |def range(): `Nat.Nat` = {
-        |  yield `Nat.Succ`(`Nat.Zero`)
+        |  yield `Nat.Zero`
         |} union {
         |  val pred = range()
-        |  if (`pred.toInt < 10`)
+        |  if (`pred.toInt < 10`) {
         |    yield `Nat.Succ`(pred)
+        |  } else {
+        |    continue
+        |  }
         |}
         |""".stripMargin
-
     val input = Exp.BooleanLit(true)
 
     assertMatchFunCode(code, "range", input, scope) { matcher =>
-      assert(matcher.getAllMatches.size() == 10)
+      assert(matcher.getAllMatches.size() == 11)
     }
   }
 }

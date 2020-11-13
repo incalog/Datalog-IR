@@ -92,9 +92,8 @@ object CollectFreeScalaVars {
       freeVars(thn, scope.nestedScope())
       freeVars(els, scope.nestedScope())
     case Term.ApplyType(fun, _) => freeVars(fun, scope)
-    case Term.Select(qual, name) =>
+    case Term.Select(qual, _) =>
       freeVars(qual, scope)
-    // TODO implement
     case Term.ApplyUnary(_, arg) => freeVars(arg, scope)
     case Term.Return(expr) => freeVars(expr, scope)
     case Term.Annotate(expr, anno) =>

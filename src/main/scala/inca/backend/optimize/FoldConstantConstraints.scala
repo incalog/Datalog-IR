@@ -2,11 +2,19 @@ package inca.backend.optimize
 import inca.backend.ir.GP._
 import inca.backend.ir.TypeOps
 import inca.frontend.core.CompileToGP.BodyMustFail
+import inca.frontend.typechecker.ScalaTypeContext
 import inca.runtime.context.LanguageMetaInfo
 
-object FoldConstantConstraints extends Optimization {
+object FoldConstantConstraints extends Optimization with TypeOps {
+
 
   override def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer = new Optimizer {
+
+    override def optimizeModule(module: Module): Module = {
+      initializeScala(module)
+      super.optimizeModule(module)
+    }
+
     override def optimizeConstraint(con: Constraint): Seq[Constraint] = con match {
 
       case Compare(EqComparator, t1, t2) if t1 == t2 => Seq()
@@ -24,14 +32,14 @@ object FoldConstantConstraints extends Optimization {
           // this constraint was responsible for the inferrence of termTyp, must keep it
           Seq(con)
         } else {
-          val meet = TypeOps.meet(termTyp, typ, languageMetaInfo)
-          if (meet.contains(termTyp)) {
+          val meetType = meet(termTyp, typ, languageMetaInfo)
+          if (meetType.contains(termTyp)) {
             // upcast, always succeeds
             Seq()
-          } else if (meet.contains(typ)) {
+          } else if (meetType.contains(typ)) {
             // downcast, makes sense
             Seq(con)
-          } else if (meet.isEmpty) {
+          } else if (meetType.isEmpty) {
             // cast to unrelated type, cannot succeed
             throw BodyMustFail
           } else {
@@ -44,14 +52,14 @@ object FoldConstantConstraints extends Optimization {
           case v:Var => v.typ.getOrElse(TAny)
           case c:Constant => c.lit.typ
         }
-        val meet = TypeOps.meet(termTyp, typ, languageMetaInfo)
-        if (meet.contains(termTyp)) {
+        val meetType = meet(termTyp, typ, languageMetaInfo)
+        if (meetType.contains(termTyp)) {
           // termTyp <: typ, hence NotHasType must fail
           throw BodyMustFail
-        } else if (meet.contains(typ)) {
+        } else if (meetType.contains(typ)) {
           // termTyp :> typ, hence NotHasType makes sense
           Seq(con)
-        } else if (meet.isEmpty) {
+        } else if (meetType.isEmpty) {
           // termTyp and typ are unrelated, NotHasType always succeeds
           Seq()
         } else {

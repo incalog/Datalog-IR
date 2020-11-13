@@ -91,40 +91,4 @@ object Meta {
     compilerCache += source -> result
     result.asInstanceOf[() => A]
   }
-
-
-  def subtypeScala(ty1: meta.Type, ty2: meta.Type): Boolean = {
-    val code =
-      s"""{
-         |  val v1: ${ty1.syntax} = ???
-         |  val v2: ${ty2.syntax} = v1
-         |}""".stripMargin
-
-    typecheckScala(code) match {
-      case Left(str) =>
-        str == "Unit"
-      case Right(_) =>
-        false
-    }
-  }
-
-
-  def typecheckScala(codeSource: String): Either[String, Throwable] = {
-    import scala.reflect.runtime.currentMirror
-    import scala.tools.reflect.{ToolBox, ToolBoxError}
-
-    // TODO: consider imports
-
-    val toolbox = currentMirror.mkToolBox()
-    val tree = toolbox.parse(codeSource)
-
-    try {
-      val typechecked = toolbox.typecheck(tree)
-      val typ = typechecked.tpe.dealias
-      Left(typ.toString)
-    } catch {
-      case err@ToolBoxError(msg, _) =>
-        Right(err)
-    }
-  }
 }

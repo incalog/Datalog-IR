@@ -64,6 +64,8 @@ object CompileToPSystem {
     val myenv = env ++ module.pats.map(p => p.name -> module.name) // makes sure this module's names are found first
     val funs = module.pats.map(compilePattern(module.name, _)(myenv)).toList
 
+    val scalaContent = (module.scalaImports ++ module.scalaBlockDefs).map(_.tree).toList
+
     val name = Term.Name(module.name)
     source"""
       import org.eclipse.viatra.query.runtime.api.{GenericPatternMatcher, ViatraQueryEngine}
@@ -79,15 +81,15 @@ object CompileToPSystem {
 
       import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred._
       import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables._
-      ..${module.scalaImports.map(_.tree).toList}
-
 
       object $name extends ${Init(tyPSystemModule, Term.Name(tyPSystemModule.toString), List())} {
+
+
         val patterns: Map[String, () => $tyQuerySpecification] = Map(..${
           module.pats.map(p => q"${p.name} -> (() => ${Term.Name(p.name)}.instance)").toList
         })
 
-        ..${module.scalaBlockDefs.map(_.tree).toList}
+        ..${scalaContent}
 
         ..${funs}
       }
