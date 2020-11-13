@@ -217,7 +217,7 @@ class CoreParser {
 
   /** Eval parser */
   protected[frontend] def evalCore[_: P]: P[Eval] =
-    P(NoCut(scalaparse.Scala.Exprs).!).flatMap { raw_code =>
+    P(CharsWhile(_ != '`').!).flatMap { raw_code =>
       raw_code.parse[Term] match {
         case Parsed.Error(_, _, _) =>
           fastparse.Fail
@@ -336,7 +336,8 @@ class CoreParser {
   private def nativeStatHelper[_: P](statParser: => P[_]): P[meta.Stat] =
     P(statParser.!).flatMap { raw_code =>
       raw_code.parse[Stat] match {
-        case _: Parsed.Error => fastparse.Fail
+        case _: Parsed.Error =>
+          fastparse.Fail
         case Parsed.Success(code) =>
           fastparse.Pass(code)
       }

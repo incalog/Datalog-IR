@@ -5,6 +5,13 @@ import inca.frontend.core.Core
 
 object Compiler {
 
+  def compileFun(module: String,
+                 compilerOptions: Options): CompiledFunModule = {
+    val parsed = compilerOptions.frontend.parseModule(module).get.value
+//    println(parsed)
+    CompiledFunModule(parsed, compilerOptions)
+  }
+
   def compileFun(module: Core.Module,
                  compilerOptions: Options): CompiledFunModule = {
     CompiledFunModule(module, compilerOptions)

@@ -103,7 +103,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchCoreProg(module, "integerlits", input) { matcher =>
+    assertMatchFunModule(module, "integerlits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 3)
     }
   }
@@ -137,7 +137,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchCoreProg(module, "add_mul", input) { matcher =>
+    assertMatchFunModule(module, "add_mul", input) { matcher =>
       assert(matcher.getAllMatches.size() == 1)
     }
   }
@@ -171,7 +171,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchCoreProg(module, "integerLits", input) { matcher =>
+    assertMatchFunModule(module, "integerLits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 8)
     }
   }
@@ -205,7 +205,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchCoreProg(module, "integerLits", input) { matcher =>
+    assertMatchFunModule(module, "integerLits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 6)
     }
   }

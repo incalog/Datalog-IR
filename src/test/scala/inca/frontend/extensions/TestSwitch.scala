@@ -153,11 +153,11 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchCoreProg(module, "integerlits_rec", input) { matcher =>
+    assertMatchFunModule(module, "integerlits_rec", input) { matcher =>
       assert(matcher.getAllMatches.size() == 7)
     }
 
-    assertMatchCoreProg(module, "integerlits", input) { matcher =>
+    assertMatchFunModule(module, "integerlits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 1)
       matcher.getAllMatchArrays should contain theSameElementsAs Seq(Array(2))
     }

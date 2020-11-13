@@ -1,7 +1,7 @@
 package inca
 
 import inca.backend.ir.GP
-import inca.compiler.Options
+import inca.compiler.{CompiledModule, Options}
 import inca.frontend.core.Core
 import inca.frontend.core.Core.Module
 import inca.runtime.context.QueryScope
@@ -27,7 +27,7 @@ trait IncaMatchers extends Matchers {
     assertResult(optimized)(compiler.Compiler.compileGP(original, options).optimized)
   }
 
-  def assertMatchCoreProg(module: Core.Module,
+  def assertMatchFunCode (module: String,
                           fun: String,
                           subjectProg: Diffable,
                           scope: QueryScope = this.scope,
@@ -35,17 +35,29 @@ trait IncaMatchers extends Matchers {
                          (asserter: Query.Matcher => Assertion): Assertion = {
 
     val editScript = Diffable.load(subjectProg)
-    assertMatchCoreEdit(module, fun, editScript, scope, options)(asserter)
+    val compiled = compiler.Compiler.compileFun(module, options)
+    assertMatchCoreEdit(compiled, fun, editScript, scope)(asserter)
   }
 
-  def assertMatchCoreEdit(module: Core.Module,
+  def assertMatchFunModule(module: Core.Module,
+                           fun: String,
+                           subjectProg: Diffable,
+                           scope: QueryScope = this.scope,
+                           options: Options = this.options)
+                          (asserter: Query.Matcher => Assertion): Assertion = {
+
+    val editScript = Diffable.load(subjectProg)
+    val compiled = compiler.Compiler.compileFun(module, options)
+    assertMatchCoreEdit(compiled, fun, editScript, scope)(asserter)
+  }
+
+  def assertMatchCoreEdit(module: CompiledModule,
                           fun: String,
                           editScript: EditScript,
-                          scope: QueryScope = this.scope,
-                          options: Options = this.options)
+                          scope: QueryScope = this.scope)
                          (asserter: Query.Matcher => Assertion): Assertion = {
 
-    val psystem = compiler.Compiler.compileFun(module, options).psystemModule
+    val psystem = module.psystemModule
     val querySpec = psystem.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module ${module.name}."))
 
     val feed = EnginePool.loadDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)

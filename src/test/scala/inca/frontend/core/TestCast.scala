@@ -42,7 +42,7 @@ class TestCast extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchCoreProg(module, "integerlits", input) { matcher =>
+    assertMatchFunModule(module, "integerlits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 5)
     }
   }

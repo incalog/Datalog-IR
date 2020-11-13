@@ -47,7 +47,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchCoreProg(module, "integerlits", input, scope) { matcher =>
+    assertMatchFunModule(module, "integerlits", input, scope) { matcher =>
       assert(matcher.getAllMatches.size() == 8)
     }
   }
@@ -81,7 +81,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchCoreProg(module, "integerlits", input, scope) { matcher =>
+    assertMatchFunModule(module, "integerlits", input, scope) { matcher =>
       assert(matcher.getAllMatches.size() == 2)
     }
   }

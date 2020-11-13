@@ -80,11 +80,11 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchCoreProg(module, "forallCond", input) { matcher =>
+    assertMatchFunModule(module, "forallCond", input) { matcher =>
       assert(matcher.getAllMatchArrays.size == 3)
     }
 
-    assertMatchCoreProg(module, "intLists", input) { matcher =>
+    assertMatchFunModule(module, "intLists", input) { matcher =>
       assert(matcher.getAllMatchArrays.size == 1)
     }
   }
@@ -119,11 +119,11 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
 
     val options = Options(scope.langMetaInfo, new BaseFrontend(_) with ForallExistsFrontend)
 
-    assertMatchCoreProg(module, "existsCond", input, options = options) { matcher =>
+    assertMatchFunModule(module, "existsCond", input, options = options) { matcher =>
       assert(matcher.getAllMatchArrays.size == 1)
     }
 
-    assertMatchCoreProg(module, "listContaining4", input, options = options) { matcher =>
+    assertMatchFunModule(module, "listContaining4", input, options = options) { matcher =>
       assert(matcher.getAllMatchArrays.size == 1)
     }
   }
