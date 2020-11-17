@@ -9,16 +9,11 @@ import scala.collection.immutable.MultiDict
  * This class captures meta information about a language definition.
  * - directSupertypes maps a type name to all names of types that are the direct supertypes.
  * - supertypes represents the transitive closure of directSupertypes.
- * - links maps a type name to a map that has an entry for each link name indicating what the target type name is.
+ * - links maps a link to its target type
+ * - litLinks maps a link to its target lit type
  * - directSubtypes maps a type name to all names of types that are the direct subtypes.
  * - subtypes represents the transitive closure of directSubtypes.
- *
- * For the case class representing the abstract syntax of Add:
- *   case class Add(lhs: Expression, rhs: Expression) extends Exp
- * links contains ("Add" -> Map("lhs" -> "Exp", "rhs" -> "Exp"))
  */
-// TODO add what the node types and what primitives are
-// node types are the keys of directSupertypes
 class LanguageMetaInfo(
                         _directSupertypes: MultiDict[SortType, SortType],
                         val links: Map[Link, Type],

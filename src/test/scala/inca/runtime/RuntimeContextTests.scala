@@ -29,26 +29,6 @@ class RuntimeContextTests extends AnyFunSuite {
   val mulName = classOf[Mul].getCanonicalName
   val numName = classOf[IntegerLit].getCanonicalName
 
-  test("Type hierarchy check") {
-    val database = new Database()
-    val editScript = Diffable.load(add)
-    database.processEditScript(editScript)
-
-    // TODO implement new collection of type hierarchy
-    // superTypes
-//    assert(Indices.superTypeMap.get(classOf[Num]).contains(classOf[Exp]))
-//    assert(Indices.superTypeMap.get(classOf[Add]).contains(classOf[Exp]))
-//    assert(Indices.superTypeMap.get(classOf[Mul]).contains(classOf[Exp]))
-//    assert(isEmptyOrNull(Indices.superTypeMap.get(classOf[Exp])))
-//
-//    // subTypes
-//    assert(isEmptyOrNull(Indices.subTypeMap.get(classOf[Num])))
-//    assert(isEmptyOrNull(Indices.subTypeMap.get(classOf[Add])))
-//    assert(isEmptyOrNull(Indices.subTypeMap.get(classOf[Mul])))
-//    assert(Indices.subTypeMap.get(classOf[Exp]).containsAll(util.Arrays.asList(classOf[Num], classOf[Add], classOf[Mul])))
-
-  }
-
   test("NodeType instances") {
     val database = new Database()
     val editScript = Diffable.load(add)
