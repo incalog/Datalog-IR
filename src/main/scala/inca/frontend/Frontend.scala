@@ -14,7 +14,7 @@ trait Frontend extends CoreParser with CoreTypechecker {
   protected def desugarables: Seq[Desugarable] = Seq()
 
   def parseModule(code: String): fastparse.Parsed[Module] = {
-    fastparse.parse(code, module(_))
+    fastparse.parse(code, module(_), verboseFailures = true)
   }
 }
 

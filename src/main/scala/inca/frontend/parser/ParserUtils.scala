@@ -23,4 +23,9 @@ object ParserUtils {
   def rawInteger[_: P]: P[String] =
     P(CharsWhileIn("0-9").!)
 
+  def fail[_: P](msg: String)(implicit ctx: P[_]): P[Nothing] = {
+    val res = ctx.freshFailure()
+    if (ctx.verboseFailures) ctx.setMsg(ctx.index, () => msg)
+    res
+  }
 }

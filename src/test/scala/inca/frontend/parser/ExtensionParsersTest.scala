@@ -151,6 +151,7 @@ class ExtensionParsersTest extends AnyFunSuite {
 
     testMatch(
       s"""|x match {
+          |    case Node() => {}
           |    case br0t(topping = cheese) => {}
           |    case x => { assert x == 5 }
           |    case (v, w) => {}
@@ -162,6 +163,14 @@ class ExtensionParsersTest extends AnyFunSuite {
       Match(
         Var("x"),
         Seq(
+          Case(
+            NodePattern(
+              TNode("Node"),
+              Seq(
+              )
+            ),
+            Body(Seq.empty[Statement])
+          ),
           Case(
             NodePattern(
               TNode("br0t"),

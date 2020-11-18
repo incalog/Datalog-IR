@@ -180,11 +180,14 @@ class CoreParser {
     P(("def " ~ exp).mapWithLoc(Def) |
       ("undef " ~ exp).mapWithLoc(Undef) |
       ("count " ~ callExp).mapWithLoc(Count) |
-      (infixExp ~ "==" ~ infixExp).mapWithLoc(Eq.tupled) |
-      (infixExp ~ "!=" ~ infixExp).mapWithLoc(Neq.tupled) |
       infixExp)
 
-  protected[frontend] def infixExp[_: P]: P[Expression] = dotExp
+  protected[frontend] def infixExp[_: P]: P[Expression] =
+    P(
+      (dotExp ~ "==" ~ dotExp).mapWithLoc(Eq.tupled) |
+      (dotExp ~ "!=" ~ dotExp).mapWithLoc(Neq.tupled) |
+      dotExp
+    )
 
   protected[frontend] def dotExp[_: P]: P[Expression] = {
     (atomicExp ~ trailExp.rep).map {
@@ -219,8 +222,8 @@ class CoreParser {
   protected[frontend] def evalCore[_: P]: P[Eval] =
     P(CharsWhile(_ != '`').!).flatMap { raw_code =>
       raw_code.parse[Term] match {
-        case Parsed.Error(_, _, _) =>
-          fastparse.Fail
+        case err: Parsed.Error =>
+          ParserUtils.fail(err.message)
         case Parsed.Success(code) =>
           val eval = Eval(Scala(code))
           fastparse.Pass(eval)
@@ -286,7 +289,8 @@ class CoreParser {
 
   /** Body parser */
   protected[frontend] def body[_: P]: P[Body] =
-    P("{" ~ statement.rep ~ "}").mapWithLoc(Body.apply)
+    P("{" ~ statement.rep ~ "}").mapWithLoc(Body.apply) |
+    P(statement).mapWithLoc(s => Body(Seq(s)))
 
   /** Parses only the AnnoParam Unit. */
   protected[frontend] def annoParamUnit[_: P]: P[Seq[AnnoParam]] =
@@ -327,8 +331,7 @@ class CoreParser {
 
   def scalaImport[_: P]: P[ScalaImport] =
     nativeStatHelper(NoCut(scalaparse.Scala.Import))
-      .filter(_.isInstanceOf[meta.Import])
-      .mapWithLoc(s => ScalaImport(s.asInstanceOf[meta.Import]))
+      .mapWithLoc { case s: meta.Import => ScalaImport(s.asInstanceOf[meta.Import]) }
 
   def scalaBlockDef[_: P]: P[ScalaBlockDef] =
     nativeStatHelper(NoCut(scalaparse.Scala.BlockDef)).mapWithLoc(ScalaBlockDef.apply)
@@ -336,8 +339,8 @@ class CoreParser {
   private def nativeStatHelper[_: P](statParser: => P[_]): P[meta.Stat] =
     P(statParser.!).flatMap { raw_code =>
       raw_code.parse[Stat] match {
-        case _: Parsed.Error =>
-          fastparse.Fail
+        case err: Parsed.Error =>
+          ParserUtils.fail(err.message)
         case Parsed.Success(code) =>
           fastparse.Pass(code)
       }
@@ -353,7 +356,7 @@ class CoreParser {
 
   /** Fail/Continue parser */
   protected[frontend] def failStatement[_: P]: P[TerminatorStatement] =
-    P("continue" /* assert false*/).mapWithLoc(_ => core.FailStatement)
+    P("continue" | "fail").mapWithLoc(_ => core.FailStatement)
 
   /** Terminator parser. */
   protected[frontend] def terminatorStatement[_: P]: P[TerminatorStatement] =
@@ -365,8 +368,8 @@ class CoreParser {
   protected[frontend] def scalaTypeCore[_: P]: P[TScala] =
     P(CharsWhile(_ != '`').!).flatMap { raw_code =>
       raw_code.parse[meta.Type] match {
-        case Parsed.Error(_, _, _) =>
-          fastparse.Fail
+        case err: Parsed.Error =>
+          ParserUtils.fail(err.message)
         case Parsed.Success(ty) =>
           fastparse.Pass(TScala(Scala(ty)))
       }

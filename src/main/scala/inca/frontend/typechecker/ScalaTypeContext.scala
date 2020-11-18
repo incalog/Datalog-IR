@@ -10,7 +10,7 @@ trait ScalaTypeContext extends TypeContext {
   import scala.reflect.runtime.{currentMirror, universe}
   import scala.tools.reflect.{ToolBox, ToolBoxError}
 
-  private val toolbox: ToolBox[universe.type] = currentMirror.mkToolBox()
+  private lazy val toolbox: ToolBox[universe.type] = currentMirror.mkToolBox()
 
   // remember the imports
   private var imports: mutable.ListBuffer[Scala[meta.Import]] = mutable.ListBuffer()

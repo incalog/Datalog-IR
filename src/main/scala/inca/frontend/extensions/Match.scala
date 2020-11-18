@@ -115,7 +115,8 @@ trait MatchFrontend extends Frontend {
       | literalPattern)
 
   protected[frontend] def patternBinding[_: P]: P[PatternBinding] =
-    P(identifier ~ "=" ~ pattern).mapWithLoc(PatternBinding.tupled)
+    P(identifier ~ "=" ~ pattern).mapWithLoc(PatternBinding.tupled) |
+    P(identifier).mapWithLoc(name => PatternBinding(name, VarPattern(name)))
 
   protected[frontend] def nodePattern[_: P]: P[Pattern] =
     P(tNode ~ "(" ~ P(patternBinding).rep(sep = ",") ~ ")").mapWithLoc(NodePattern.tupled)

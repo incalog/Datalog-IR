@@ -49,5 +49,5 @@ case object FailStatement extends CoreStatement with TerminatorStatement {
   override def boundVars: Set[Name] = Set()
   override def allVars: Map[Name, Option[Type]] = Map()
   override def prettyprint(implicit indent: String): String =
-    s"${indent}continue"
+    s"${indent}fail"
 }
