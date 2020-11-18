@@ -61,7 +61,7 @@ case class ValDef(vis: Option[Visibility], name: Name, typ: Option[Type], exp: E
 trait ScalaModuleContent extends ModuleContent
 
 class ScalaImport(imp: meta.Import) extends Scala[meta.Import](imp) with ScalaModuleContent with SourceLocation {
-  override def vis: Option[Visibility] = None // todo: analyze scala code to retrieve its visibility
+  override def vis: Option[Visibility] = None
   override def prettyprint(implicit indent: String): String = indent + this.toString
 }
 object ScalaImport {
@@ -69,7 +69,26 @@ object ScalaImport {
 }
 
 class ScalaBlockDef(stat: meta.Stat) extends Scala[meta.Stat](stat) with ScalaModuleContent with SourceLocation {
-  override def vis: Option[Visibility] = None // todo: analyze scala code to retrieve its visibility
+  override def vis: Option[Visibility] = {
+
+    def detVis(mods: List[meta.Mod]): Option[Visibility] = {
+      if (mods.contains(meta.Mod.Protected))
+        throw new IllegalArgumentException("Scala block definition cannot have protected visibility")
+
+      if (mods.contains(meta.Mod.Private)) Some(Private)
+      else None
+    }
+
+    stat match {
+      case valu: meta.Decl.Val => detVis(valu.mods)
+      case vari: meta.Decl.Var => detVis(vari.mods)
+      case defn: meta.Decl.Def => detVis(defn.mods)
+      case typ: meta.Decl.Type => detVis(typ.mods)
+      case tr: meta.Defn.Trait => detVis(tr.mods)
+      case obj: meta.Defn.Object => detVis(obj.mods)
+      case clazz: meta.Defn.Class => detVis(clazz.mods)
+    }
+  }
   override def prettyprint(implicit indent: String): String = indent + "scala " + this.toString
 }
 object ScalaBlockDef {

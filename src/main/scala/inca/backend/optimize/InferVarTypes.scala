@@ -10,7 +10,6 @@ import scala.collection.immutable.MultiDict
 /**
  * Should run after `EliminateAliases` and before `FoldConstantConstraints`
  */
-// TODO Unbounded Type was added, need to check if this algorithm needs to be adapted
 object InferVarTypes extends Optimization with TypeOps {
 
   override def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer = new Optimizer {
@@ -18,7 +17,8 @@ object InferVarTypes extends Optimization with TypeOps {
     private var funs: Map[Name, Seq[Param]] = _
 
     override def optimizeModule(module: Module): Module = {
-      initializeScala(module)
+      module.scalaImports.foreach(registerImport)
+      module.scalaBlockDefs.foreach(registerBlockDef)
       funs = module.pats.map(p => p.name -> p.params).toMap
       super.optimizeModule(module)
     }

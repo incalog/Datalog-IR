@@ -73,16 +73,4 @@ trait TypeContext extends TypeIO {
         error(s"Unknown module $name", name)
         None
     }
-
-  //  // TODO need to think about binding refinement
-//  // look at type refinement type systems
-//  def refineBinding(name: Name, ty: Type): TypeContext = {
-//    val prevTy = vars.get(name)
-//    prevTy match {
-//      case Some(value) =>
-//        TypeContext(vars + (name -> ty), funs, fun)
-//      case None =>
-//        TypeContext(vars + (name -> ty), funs, fun)
-//    }
-//  }
 }

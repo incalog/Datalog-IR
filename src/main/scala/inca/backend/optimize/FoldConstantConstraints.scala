@@ -11,7 +11,8 @@ object FoldConstantConstraints extends Optimization with TypeOps {
   override def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer = new Optimizer {
 
     override def optimizeModule(module: Module): Module = {
-      initializeScala(module)
+      module.scalaImports.foreach(registerImport)
+      module.scalaBlockDefs.foreach(registerBlockDef)
       super.optimizeModule(module)
     }
 

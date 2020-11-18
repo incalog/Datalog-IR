@@ -242,7 +242,6 @@ class CompileToGP {
       (Seq(trg), transPathAccess(pa, GP.Var(trg)))
 
     case funcall@Call(name, args, transitive) =>
-      // TODO why is there a distinction between exp and non exp args in MPS impl?
       val (inVars, outVars, constraints) = transCallArgs(funcall, args)
       val allvars = (inVars ++ outVars).map(GP.Var)
       val call = GP.Call(name.name, allvars, transitive, neg = false)

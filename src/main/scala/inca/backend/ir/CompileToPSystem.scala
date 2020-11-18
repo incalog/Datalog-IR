@@ -56,7 +56,6 @@ object CompileToPSystem {
   def compileModules(modules: Seq[Module]): Seq[Source] = {
     val env: RuleEnvironment = modules.flatMap(m => m.pats.map(p => p.name -> m.name)).toMap
 
-    //TODO What is the exact visibiltity?
     modules.map(compileModule(_)(env))
   }
 

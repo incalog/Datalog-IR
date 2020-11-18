@@ -271,7 +271,6 @@ class CoreParserTest extends AnyFunSuite {
 //  }
 
   test("test Exp combined") {
-    // @todo Add more test cases.
     def testExp: (String, CoreExpression) => Assertion = testSuccess[CoreExpression](parser.exp(_))
     def testExpFail: String => Unit = testFailure(parser.exp(_))
 
@@ -584,7 +583,6 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test PatternFunction") {
-    // @todo Add more test cases.
     def testPatternFunction(input: String, cmp: PatternFunction): Assertion = {
       testSuccess[PatternFunction](parser.patternFunction(_))(input, cmp)
       testSuccess[PatternFunction](parser.patternFunction(_))(
@@ -907,7 +905,6 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test DataOp") {
-    // @todo Add more tests.
     val testDataOp: (String, Any) => Assertion = testSuccess(parser.dataOp(_))
 
     testDataOp("br0t.br0t", DataOp(Some(Name("br0t")), Name("br0t")))

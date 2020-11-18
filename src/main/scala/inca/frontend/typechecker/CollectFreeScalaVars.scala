@@ -11,18 +11,17 @@ import scala.meta.{Case, Decl, Defn, Enumerator, Import, Importee, Lit, Pat, Sta
  * @author Ronja Schnur (rschnur@students.uni-mainz.de)
  *         Julian Cichorius (jcichori@students.uni-mainz.de)
  * @version 0.0.1
- * @todo unfinished
  */
 object CollectFreeScalaVars {
 
-  val javaLang = Seq(
+  val javaLang: Seq[String] = Seq(
     "Boolean", "Character", "ClassLoader", "Double", "Enum", "Float", "Integer",
     "Long", "Number", "Math", "Object", "Package", "Process", "ProcessBuilder",
     "Runtime", "RuntimePremission", "SecurityManager", "Short",
     "StackTraceElement", "StrictMath", "String", "StringBuffer", "StringBuilder",
     "System", "Thread", "ThreadGroup", "ThreadLocal", "Throwable", "Void")
 
-  val scalaPredef = Seq(
+  val scalaPredef: Seq[String] = Seq(
     "classOf", "valueOf", "String", "Class", "Function", "Map", "Set", "Seq",
     "List", "Nil", "::", "Manifest", "NoManifest", "manifest", "optManifest",
     "Option", "Some", "None",
@@ -30,7 +29,7 @@ object CollectFreeScalaVars {
     "ArrowAssoc", "Ensuring", "StringFormat", "any2stringadd", "SeqCharSequence",
     "ArrayCharSequence", "augmentString", "print", "println", "printf", "mutable")
 
-  val predefinedNames = javaLang ++ scalaPredef
+  val predefinedNames: Seq[String] = javaLang ++ scalaPredef
 
   /**
    * Computes the set of free(unbound) variables in this AST.
@@ -70,7 +69,7 @@ object CollectFreeScalaVars {
     case Term.Apply(fun, args) =>
       freeVars(fun, scope)
       args.foreach(freeVars(_, scope))
-    case Term.ApplyInfix(lhs, op, _, args) =>
+    case Term.ApplyInfix(lhs, _, _, args) =>
       freeVars(lhs, scope)
       args.foreach(freeVars(_, scope))
     case Term.Tuple(terms) => terms.foreach(freeVars(_, scope))
@@ -154,15 +153,22 @@ object CollectFreeScalaVars {
         params.foreach { p => newScope.newBound(makeName(p.name)) }
       }
       freeVars(body, newScope)
-    case Defn.Type(_, lhs, _, rhs) => // nothing
+    case Defn.Type(_, _, _, _) => // nothing
     case Defn.Trait(_, name, _, ctor, tmpl) =>
       scope.newBound(makeName(name))
-      // TODO prorcess ctor
-      freeVars(tmpl, scope)
+      val newScope = scope.nestedScope()
+      ctor.paramss.foreach { params =>
+        params.foreach(p => newScope.newBound(makeName(p.name)))
+      }
+      freeVars(tmpl, newScope)
     case Defn.Class(_, name, _, ctor, tmpl) =>
       scope.newBound(makeName(name))
-      // TODO prorcess ctor
-      freeVars(tmpl, scope)
+      val newScope = scope.nestedScope()
+      ctor.paramss.foreach { params =>
+        params.foreach(p => newScope.newBound(makeName(p.name)))
+      }
+//      params.foreach(p => newScope.newBound(makeName(p.name)))
+      freeVars(tmpl, newScope)
     case Defn.Object(_, name, tmpl) =>
       scope.newBound(makeName(name))
       freeVars(tmpl, scope)
@@ -173,7 +179,10 @@ object CollectFreeScalaVars {
       init.argss.flatten.foreach(freeVars(_, scope))
     }
     val newScope = scope.nestedScope()
-    // TODO self and early
+    newScope.newBound(makeName(tmpl.self.name))
+    tmpl.early.foreach { stat =>
+      freeVars(stat, newScope)
+    }
     tmpl.stats.foreach(freeVars(_, newScope))
   }
 
