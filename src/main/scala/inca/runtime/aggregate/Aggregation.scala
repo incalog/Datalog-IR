@@ -8,6 +8,13 @@ trait Aggregation[V] {
   def init: V
   def join(v1: V, v2: V): V
 
+  // induce ordering based on join operation
+  // can be redefined for better efficiency
+  val ord: Ordering[V] = (x: V, y: V) =>
+    if (x == y) 0
+    else if (join(x, y) == x) -1
+    else 1
+
   val isAssociative: Boolean = false
   val isCommutative: Boolean = false
 
