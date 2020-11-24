@@ -422,21 +422,23 @@ trait CoreTypechecker
     }.mkString(";\n")
 
     val codeSource = s"{$paramString;\n${code.syntax}}"
+    typecheckDecodeScala(codeSource, exp)
+  }
 
+  def typecheckDecodeScala(codeSource: String, loc: SourceLocation): Type = {
     typecheckScala(codeSource) match {
       case Left(typ) =>
         TypeHelper.decode(typ) match {
           case Right(ty) => ty
           case Left(msg) =>
-            error(msg, exp)
+            error(msg, loc)
             TAny
         }
       case Right(err) =>
-        error(err.getMessage, exp)
+        error(err.getMessage, loc)
         TAny
     }
   }
-
 
   def assignType(term: Typeable with SourceLocation)(computeType: => Type): Type = {
     val inferred = computeType

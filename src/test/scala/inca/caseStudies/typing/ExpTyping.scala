@@ -12,7 +12,7 @@ object ExpTyping extends App {
   val Var = Exp.varTag
   val Lam = Exp.lamTag
   val App = Exp.appTag
-
+  val Let = Exp.letTag
 
 
   val code =
@@ -21,6 +21,16 @@ object ExpTyping extends App {
        |
        |scala import inca.caseStudies.typing.Type
        |scala import inca.caseStudies.typing.Context
+       |
+       |def checkSimple(e: $ExpT): `Type` = e match {
+       |  case $Int() => yield `Type.Int`
+       |  case $Add(e1, e2) =>
+       |    if (checkSimple(e1) == `Type.Int` &&
+       |        checkSimple(e2) == `Type.Int`)
+       |      yield `Type.Int`
+       |    else
+       |      fail
+       |}
        |
        |def check(ctx: `Context`, e: $ExpT): `Type` = e match {
        |  case $Int() => yield `Type.Int`
@@ -39,32 +49,33 @@ object ExpTyping extends App {
        |  case $App(e1, e2) => {
        |    val funTy = check(ctx, e1)
        |    val argTy = check(ctx, e2)
-       |    if (`funTy.isInstanceOf[Type.Fun]`) {
-       |      val paramTy = `funTy.asInstanceOf[Type.Fun].t1`
-       |      if (paramTy == argTy)
-       |        yield `funTy.asInstanceOf[Type.Fun].t2`
-       |      else
-       |        fail
-       |    } else {
-       |      fail
+       |    funTy match {
+       |      case `Type.Fun`(paramTy, bodyTy) =>
+       |        if (paramTy == argTy)
+       |          yield bodyTy
+       |        else
+       |          fail
+       |      case _ => fail
        |    }
+       |  }
+       |  case $Let(name, bound, body) => {
+       |    val boundTy = check(ctx, bound)
+       |    val bodyCtx = `Context.Bind`(name, boundTy, ctx)
+       |    yield check(bodyCtx, body)
        |  }
        |}
        |
-       |
-       |def lookup(ctx: `Context`, v: $Var): `Type` =
-       |  if (ctx == `Context.Empty`)
-       |    fail
-       |  else {
-       |    val bind = `ctx.asInstanceOf[Context.Bind]`
-       |    if (`bind.name` == v.name)
-       |      yield `bind.ty`
+       |def lookup(ctx: `Context`, v: $Var): `Type` = ctx match {
+       |  case `Context.Empty` => fail
+       |  case `Context.Bind`(name, ty, rest) =>
+       |    if (name == v.name)
+       |      yield ty
        |    else
-       |      yield lookup(`bind.rest`, v)
-       |  }
+       |      yield lookup(rest, v)
+       |}
        |""".stripMargin
 
   val compiled = Compiler.compileFun(code, options)
-  println(compiled.typed)
+  println(compiled.optimized)
 
 }

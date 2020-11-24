@@ -7,6 +7,7 @@ import inca.analyzedLangs.ExpLangTestAnalyses._
 import inca.compiler.Options
 import inca.frontend.core._
 import inca.runtime.context.QueryScope
+import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta._
@@ -124,7 +125,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
       Seq(GP.Pattern(None, "intToString", Seq(GP.Param("exp", GP.TNode(Exp.intTag)), GP.Param("str", GP.TScalaString)),
         Seq(GP.Body(Seq(
           GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TLiteral.Int),
-          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TLiteral.Int)), GP.TScalaString, q"(value: Int) => value.toString")))
+          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TLiteral.Int)), GP.TScalaString, Scala(q"(value: Int) => value.toString"))))
         )))), Seq(), Seq())
     assertMatchGPProg(module, "intToString", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
@@ -136,8 +137,8 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
       Seq(GP.Pattern(None, "intToString", Seq(GP.Param("exp", GP.TNode(Exp.intTag)), GP.Param("str2", GP.TScalaString)),
         Seq(GP.Body(Seq(
           GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TLiteral.Int),
-          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TLiteral.Int)), GP.TScalaString, q"(value: Int) => value.toString")),
-          GP.Computed(GP.Var("str2"), GP.Evaluation(Seq((GP.Var("str"), GP.TScalaString)), GP.TScalaString, q"""(str: String) => str + "_appended" """)))
+          GP.Computed(GP.Var("str"), GP.Evaluation(Seq((GP.Var("value"), GP.TLiteral.Int)), GP.TScalaString, Scala(q"(value: Int) => value.toString"))),
+          GP.Computed(GP.Var("str2"), GP.Evaluation(Seq((GP.Var("str"), GP.TScalaString)), GP.TScalaString, Scala(q"""(str: String) => str + "_appended" """))))
         )))), Seq(), Seq())
     assertMatchGPProg(module, "intToString", testInputNumericAddition) { matcher =>
       println(matcher.getAllMatches)

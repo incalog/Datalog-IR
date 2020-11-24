@@ -27,6 +27,7 @@ object Exp {
   case class Var(name: String) extends Exp
   case class Lam(name: String, ty: Type, body: Exp) extends Exp
   case class App(e1: Exp, e2: Exp) extends Exp
+  case class Let(name: String, bound: Exp, body: Exp) extends Exp
 
   val expTag = classOf[Exp].getCanonicalName
   val intTag = classOf[Int].getCanonicalName
@@ -34,6 +35,7 @@ object Exp {
   val varTag = classOf[Var].getCanonicalName
   val lamTag = classOf[Lam].getCanonicalName
   val appTag = classOf[App].getCanonicalName
+  val letTag = classOf[Let].getCanonicalName
   val languageMetaInfo: LanguageMetaInfo = {
     val expType = SortType(expTag)
     val intType = SortType(intTag)
@@ -41,6 +43,7 @@ object Exp {
     val varType = SortType(varTag)
     val lamType = SortType(lamTag)
     val appType = SortType(appTag)
+    val letType = SortType(letTag)
     new LanguageMetaInfo(
       MultiDict[SortType, SortType](
         intType -> expType,
@@ -48,6 +51,7 @@ object Exp {
         addType -> expType,
         lamType -> expType,
         appType -> expType,
+        letType -> expType
       ),
       Map(
         (addTag->"e1") -> expType,
@@ -55,12 +59,15 @@ object Exp {
         (lamTag->"body") -> expType,
         (appTag->"e1") -> expType,
         (appTag->"e2") -> expType,
+        (letTag->"bound") -> expType,
+        (letTag->"body") -> expType,
       ),
       Map(
         (intTag->"value") -> JavaLitType(classOf[java.lang.Integer]),
         (varTag -> "name") -> JavaLitType(classOf[java.lang.String]),
         (lamTag -> "name") -> JavaLitType(classOf[java.lang.String]),
-        (lamTag -> "ty") -> JavaLitType(classOf[Type])
+        (lamTag -> "ty") -> JavaLitType(classOf[Type]),
+        (letTag -> "name") -> JavaLitType(classOf[java.lang.String]),
       )
     )
   }

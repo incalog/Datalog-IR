@@ -4,6 +4,7 @@ import inca.IncaMatchers
 import inca.backend.ir.GP._
 import inca.compiler.Options
 import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.util.Meta.Scala
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.meta._
@@ -87,7 +88,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
     val one = Constant(IntLiteral(1))
     val two = Constant(IntLiteral(1))
 
-    val code = q"(x: Int) => x > 1"
+    val code = Scala(q"(x: Int) => x > 1")
     val module1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(

@@ -210,7 +210,7 @@ object CompileToPSystem {
 
   private def genConstantEval(eval: Evaluation)(implicit gensym: Gensym): Stat = {
     val varName = genConstantEvalVarName(eval)
-    q"val ${Pat.Var(Term.Name(EVALPREFIX + varName))}: PVariable = body.newConstantVariable((${eval.code})())"
+    q"val ${Pat.Var(Term.Name(EVALPREFIX + varName))}: PVariable = body.newConstantVariable((${eval.code.tree})())"
   }
 
   private def genLiteralVarName(lit: Literal): String = lit match {
@@ -335,7 +335,7 @@ object CompileToPSystem {
           override def getShortDescription: String = $description
           override def getInputParameterNames: java.lang.Iterable[String] = java.util.Arrays.asList(..$paramNames)
           override def evaluateExpression(env: org.eclipse.viatra.query.runtime.matchers.psystem.IValueProvider): Any = {
-            $code(..$argTerms)
+            ${code.tree}(..$argTerms)
           }
         }, $result)
          """)

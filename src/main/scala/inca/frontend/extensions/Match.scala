@@ -4,8 +4,10 @@ import inca.frontend.Frontend
 import inca.frontend.core._
 import inca.frontend.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.parser.ParserUtils.{nl_!, sp}
-import inca.frontend.parser.SourceLocation
+import inca.frontend.parser.{ParserUtils, SourceLocation}
 import inca.frontend.typechecker.{NoYield, StmType, Typeable}
+import inca.frontend.util.TypeHelper
+import inca.util.Meta.Scala
 import inca.util.{Gensym, Meta}
 
 import scala.collection.mutable.ListBuffer
@@ -30,7 +32,7 @@ case class Case(pattern: Pattern, body: Body) extends SourceLocation {
     s"${indent}case ${pattern.prettyprint} => ${body.prettyprint}"
 }
 
-sealed trait Pattern extends SourceLocation {
+sealed trait Pattern extends SourceLocation with Typeable {
   def boundVars: Set[Name]
   def allVars: Map[Name, Option[Type]]
   def prettyprint(implicit indent: String): String
@@ -49,6 +51,18 @@ case class NodePattern(c: TNode, bindings: Seq[PatternBinding]) extends Pattern 
 case class PatternBinding(field: Name, pattern: Pattern) extends Typeable with SourceLocation {
   def prettyprint(implicit indent: String): String =
     s"$field = ${pattern.prettyprint}"
+}
+
+case class ScalaPattern(fun: Scala[meta.Term], noArgs: Boolean, args: Seq[Pattern]) extends Pattern {
+
+  def boundVars: Set[Name] = args.flatMap(_.boundVars).toSet
+  override def allVars: Map[Name, Option[Type]] = args.flatMap(_.allVars).toMap
+
+  override def prettyprint(implicit indent: String): String = {
+    val argsS = if (args.isEmpty) "" else
+      args.map(_.prettyprint).mkString(", ")
+    s"${fun.syntax}($argsS)"
+  }
 }
 
 case class TuplePattern(pats: Seq[Pattern]) extends Pattern {
@@ -112,7 +126,7 @@ trait MatchFrontend extends Frontend {
 
   protected[frontend] def pattern[_: P]: P[Pattern] =
     P(tuplePattern | namedPattern | nodePattern | wildcardPattern | varPattern
-      | literalPattern)
+      | literalPattern | scalaPattern)
 
   protected[frontend] def patternBinding[_: P]: P[PatternBinding] =
     P(identifier ~ "=" ~ pattern).mapWithLoc(PatternBinding.tupled) |
@@ -120,6 +134,15 @@ trait MatchFrontend extends Frontend {
 
   protected[frontend] def nodePattern[_: P]: P[Pattern] =
     P(tNode ~ "(" ~ P(patternBinding).rep(sep = ",") ~ ")").mapWithLoc(NodePattern.tupled)
+
+  protected[frontend] def scalaPattern[_: P]: P[Pattern] =
+    P("`" ~~ evalCore ~~ "`" ~
+      ("(" ~ pattern.rep(sep = ",") ~ ")").?).flatMapWithLoc { case (Eval(t), ps) =>
+      if (t.tree.isExtractor)
+        Pass(ScalaPattern(t, ps.isEmpty, ps.getOrElse(Seq())))
+      else
+        ParserUtils.fail(s"Expected Scala extractor, but got $t")
+    }
 
   protected[frontend] def tuplePattern[_: P]: P[Pattern] =
     P("(" ~ P(pattern).rep(sep = ",") ~ ")").mapWithLoc(TuplePattern)
@@ -178,6 +201,61 @@ trait MatchFrontend extends Frontend {
           }
         }
       }
+
+    case ScalaPattern(fun, noArgs, args) =>
+      def decode(t: meta.Type): Type =
+        TypeHelper.decode(t) match {
+          case Left(err) => error(err, pattern); TAny
+          case Right(ty) => ty
+        }
+
+      if (noArgs) {
+        val tyString = typecheckScala(fun.syntax) match {
+          case Left(ty) => ty
+          case Right(err) =>
+            error(err.getMessage, pattern)
+            "Any"
+        }
+
+        import scala.meta.parsers._
+        val expected = decode(tyString.parse[meta.Type].get)
+        if (meet(expected, matchee, lang) == TNothing)
+          warn(s"Type of pattern $fun unrelated type to matchee type $matchee", pattern)
+      } else {
+        val funTyString = typecheckScala(s"$fun.unapply _") match {
+          case Left(ty) => ty
+          case Right(err) =>
+            error(err.getMessage, pattern)
+            "Any"
+        }
+
+        import scala.meta.parsers._
+        val (expected, params) = funTyString.parse[meta.Type].get match {
+          case meta.Type.Function(Seq(expected), meta.Type.Apply(_, Seq(result))) =>
+            result match {
+            case meta.Type.Tuple(ts) => (decode(expected), ts.map(decode))
+            case _ => (decode(expected), Seq(decode(result)))
+          }
+          case ty =>
+            error(s"Unexpected unapply signature $funTyString for pattern $fun", pattern)
+            (matchee, Seq(decode(ty)))
+        }
+
+        if (meet(expected, matchee, lang) == TNothing)
+          warn(s"Type of pattern $fun unrelated type to matchee type $matchee", pattern)
+        if (params.size != args.size)
+          error(s"Function $fun expects ${params.size} arguments, but found ${args.size} arguments in pattern", pattern)
+
+        params.zipAll(args, null, null) foreach {
+          case (null, arg) =>
+            // typecheck(arg)
+          case (param, null) =>
+          // nothing
+          case (param, arg) =>
+            typecheckPattern(arg, param)
+        }
+      }
+
 
     case TuplePattern(pats) =>
       matchee match {
@@ -254,6 +332,38 @@ object Match extends Desugarable {
           result ++= desugarPat(PathAccess(matchee, NamedLink(field)).typed(typ), subpat)
         }
         result.toSeq
+
+      case ScalaPattern(Scala(fun), noArgs, args) =>
+        val result = ListBuffer[Statement]()
+        val matchee: Name = exp match {
+          case v: Var => v.name
+          case _ =>
+            val sym = Name(gensym.fresh("matchee"))
+            result += Assign(Seq(sym), exp)
+            Var(sym).name
+        }
+        val matcheeTerm = meta.Term.Name(matchee.name)
+
+        import meta.quasiquotes._
+        if (noArgs) {
+          result += Assert(Eval(Seq(EvalParam(matchee)), Scala(q"$matcheeTerm == $fun")).typed(TScalaBoolean))
+        } else {
+          val vars = args.map(_ => meta.Term.Name(gensym.fresh("scalaPatArg"))).toList
+          val matchCode = meta.Term.Match(matcheeTerm, List(
+            meta.Case(meta.Pat.Extract(fun, vars.map(_ => meta.Pat.Wildcard())), None, q"true"),
+            meta.Case(meta.Pat.Wildcard(), None, q"false")
+          ))
+          result += Assert(Eval(Seq(EvalParam(matchee)), Scala(matchCode)).typed(TScalaBoolean))
+          args.zip(vars).foreach { case (arg, v) =>
+            val code = meta.Term.Match(matcheeTerm, List(
+              meta.Case(meta.Pat.Extract(fun, vars.map(meta.Pat.Var.apply)), None, v),
+              meta.Case(meta.Pat.Wildcard(), None, meta.Lit.Null())))
+            val subMatchee = Eval(Seq(EvalParam(matchee)), Scala(code)).mtyped(pat.typ)
+            result ++= desugarPat(subMatchee, arg)
+          }
+        }
+        result.toSeq
+
       case TuplePattern(pats) =>
         val result = ListBuffer[Statement]()
         val syms = pats.indices.map(i => Name(gensym.fresh(s"matchee_tuple$i")))
@@ -290,6 +400,38 @@ object Match extends Desugarable {
           patAlts.map(ensureVarCasted ++ _)
         }
         wrongType +: alts
+
+      case ScalaPattern(Scala(fun), noArgs, args) =>
+        val (ensureVar, matchee) = exp match {
+          case v: Var => (Seq(), v.name)
+          case _ =>
+            val sym = Name(gensym.fresh("matchee"))
+            (Seq(Assign(Seq(sym), exp)), Var(sym).name)
+        }
+        val matcheeTerm = meta.Term.Name(matchee.name)
+
+        import meta.quasiquotes._
+        if (noArgs) {
+          val mismatch = ensureVar :+ Assert(Eval(Seq(EvalParam(matchee)), Scala(q"$matcheeTerm != $fun")).typed(TScalaBoolean))
+          Seq(mismatch)
+        } else {
+          val vars = args.map(_ => meta.Term.Name(gensym.fresh("scalaPatArg"))).toList
+          val mistmatchCode = meta.Term.Match(matcheeTerm, List(
+            meta.Case(meta.Pat.Extract(fun, vars.map(_ => meta.Pat.Wildcard())), None, q"false"),
+            meta.Case(meta.Pat.Wildcard(), None, q"true")
+          ))
+          val mismatch = ensureVar :+ Assert(Eval(Seq(EvalParam(matchee)), Scala(mistmatchCode)).typed(TScalaBoolean))
+          val alts = args.zip(vars).flatMap { case (arg, v) =>
+            val code = meta.Term.Match(matcheeTerm, List(
+              meta.Case(meta.Pat.Extract(fun, vars.map(meta.Pat.Var.apply)), None, v),
+              meta.Case(meta.Pat.Wildcard(), None, meta.Lit.Null())
+            ))
+            val subMatchee = Eval(Seq(EvalParam(matchee)), Scala(code)).mtyped(pat.typ)
+            desugarNegatedPat(subMatchee, arg).map(ensureVar ++ _)
+          }
+          mismatch +: alts
+        }
+
       case TuplePattern(pats) =>
         val syms = pats.indices.map(i => Name(gensym.fresh(s"matchee_tuple$i")))
         val bind = Assign(syms, exp)

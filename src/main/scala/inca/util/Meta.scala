@@ -72,6 +72,7 @@ object Meta {
   }
   object Scala {
     def apply[T <: meta.Tree](tree: T): Scala[T] = new Scala(tree)
+    def unapply[T <: meta.Tree](s: Scala[T]): Option[T] = Some(s.tree)
   }
 
 

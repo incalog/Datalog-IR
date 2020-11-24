@@ -19,7 +19,7 @@ object PropagateUnbounded {
       pats = newPats
       newPats = fixStep(pats)
     }
-    Module(module.name, module.imports, pats, Seq())
+    Module(module.name, module.imports, pats, module.scalaImports, module.scalaBlockDefs)
   }
 }
 

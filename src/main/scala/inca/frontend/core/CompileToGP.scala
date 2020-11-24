@@ -276,7 +276,7 @@ class CompileToGP {
       }
       val funCode = q"(..$paramsTyped) => {${code.tree}}"
       val resType = eval.typ.getOrElse(throw new IllegalStateException("untyped Eval"))
-      val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(args, transType(resType), funCode))
+      val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(args, transType(resType), Scala(funCode)))
       (Seq(evalVar), (argConstraints :+ evalConstraint).toSeq)
 
     case Aggregate(agg, bodies) =>

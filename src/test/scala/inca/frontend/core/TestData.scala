@@ -48,6 +48,7 @@ class TestData extends AnyFlatSpec with IncaMatchers {
     val code =
       """module Test
         |scala import inca.analyzedData.Nat
+        |
         |def range(): `Nat.Nat` = {
         |  yield `Nat.Zero`
         |} union {

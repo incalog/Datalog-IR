@@ -106,7 +106,7 @@ object GP {
   }
 
   sealed trait Computation
-  case class Evaluation(args: Seq[(Term,Type)], resultType: Type, code: meta.Term) extends Computation
+  case class Evaluation(args: Seq[(Term,Type)], resultType: Type, code: Scala[meta.Term.Function]) extends Computation
   case class CountAggregation(patName: Name, args: Seq[Term]) extends Computation
   case class CustomAggregation(typ: Type, agg: Scala[meta.Term], patName: Name, args: Seq[Term], aggregatedColumn: Int) extends Computation
 }
