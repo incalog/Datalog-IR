@@ -61,6 +61,13 @@ trait CoreTypechecker
    * Function
    */
   def typecheck(fun: PatternFunction): Unit = scopedTypeContext {
+    // currently we do not support scala types as inputs of pattern functions
+    // Q 1: How can we detect if it is OK to have a scala type as input
+    // Q 2: How do we translate such pattern functions to IR?
+    val inputScalaParams = fun.params.collect{ case p@Param(_, TScala(_)) => p }
+    inputScalaParams.foreach { param =>
+      error(s"Pattern functions do not allow input parameter of Scala type ${param.typ}", fun)
+    }
     fun.params.foreach(p => bindVar(p.name, p, p.typ))
     fun.bodies.foreach { body =>
       val ty = typecheck(body, mustYield = true)
