@@ -1,6 +1,6 @@
 package inca.analyzedLangs
 
-import inca.frontend.core._
+import inca.frontend.core.tree._
 
 import scala.language.implicitConversions
 
@@ -15,7 +15,7 @@ object ExpLangTestAnalyses {
     None,
     "id",
     Seq(Param("add", addType)),
-    Seq(AnnoParam(Some("out"), expType)),
+    expType,
     Seq(
       Body(
         Seq(
@@ -27,7 +27,7 @@ object ExpLangTestAnalyses {
     None,
     "children",
     Seq(Param("add", addType)),
-    Seq(AnnoParam(None, expType)),
+    expType,
     Seq(
       Body(
         Seq(
@@ -40,7 +40,7 @@ object ExpLangTestAnalyses {
     None,
     "lhChild",
     Seq(Param("add", addType)),
-    Seq(AnnoParam(None, expType)),
+    expType,
     Seq(
       Body(
         Seq(
@@ -50,7 +50,7 @@ object ExpLangTestAnalyses {
     None,
     "callLhChild",
     Seq(Param("add", addType)),
-    Seq(AnnoParam(None, expType)),
+    expType,
     Seq(
       Body(
         Seq(
@@ -61,7 +61,7 @@ object ExpLangTestAnalyses {
     None,
     "instanceAdd",
     Seq(Param("add", addType)),
-    Seq(AnnoParam(None, expType)),
+    expType,
     Seq(
       Body(
         Seq(
@@ -73,7 +73,7 @@ object ExpLangTestAnalyses {
     None,
     "noParamType",
     Seq(Param("add", TAny)),
-    Seq(),
+    TUnit,
     Seq(
       Body(
         Seq(
@@ -83,7 +83,7 @@ object ExpLangTestAnalyses {
     None,
     "isBoolean",
     Seq(Param("in", boolType)),
-    Seq(AnnoParam(None, TScalaBoolean)),
+    TScalaBoolean,
     Seq(
       Body(
         Seq(
@@ -93,7 +93,7 @@ object ExpLangTestAnalyses {
     None,
     "idBool",
     Seq(Param("in", TLiteral.Bool)),
-    Seq(AnnoParam(None, TLiteral.Bool)),
+    TLiteral.Bool,
     Seq(
       Body(
         Seq(Yield(Var("in"))))))

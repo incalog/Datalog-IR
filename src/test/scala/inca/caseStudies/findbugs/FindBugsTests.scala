@@ -2,7 +2,7 @@ package inca.caseStudies.findbugs
 
 import inca.analyzedLangs.tinyJava
 import inca.compiler.{Compiler, Options}
-import inca.frontend.core._
+import inca.frontend.core.tree._
 import inca.runtime.EnginePool
 import inca.runtime.context.QueryScope
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
@@ -25,7 +25,7 @@ class FindBugsTests extends AnyFunSuite {
       None,
       "confusedInheritance",
       Seq(Param("class", classDeclType)),
-      Seq(),
+      TUnit,
       Seq(
         Body(
           Seq(

@@ -1,6 +1,6 @@
 package inca.frontend.desugar
 
-import inca.frontend.core.Core.Module
+import inca.frontend.core.tree.Module
 import inca.util.Gensym
 
 object Desugar {

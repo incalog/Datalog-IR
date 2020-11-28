@@ -2,11 +2,14 @@ package inca.frontend.extensions
 
 import inca.IncaMatchers
 import inca.analyzedLangs.Exp
-import inca.compiler.Options
-import inca.frontend.BaseFrontend
-import inca.frontend.core._
-import inca.runtime.context.QueryScope
+import inca.compiler.{CompilerFrontend, Options}
+import inca.frontend.core.Trees
+import inca.frontend.core.tree._
+import inca.frontend.extensions.foreach.Trees._
+import inca.runtime.context.{LanguageMetaInfo, QueryScope}
 import org.scalatest.flatspec.AnyFlatSpec
+
+import scala.language.implicitConversions
 
 class TestForeach extends AnyFlatSpec with IncaMatchers {
 
@@ -16,11 +19,14 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
   val two = Constant(IntLiteral(2))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo, new BaseFrontend(_) with ForeachFrontend)
+  val options: Options = Options(scope.langMetaInfo, info => new CompilerFrontend with foreach.Frontend {
+    override val lang: LanguageMetaInfo = info
+    override val syntax = new Trees with foreach.Trees
+  })
 
   "desugaring" should "eliminate foreach loops" in {
     val sugared = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("Elem")))), Seq(), Seq(Body(Seq(
+      PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("Elem")))), TUnit, Seq(Body(Seq(
         Foreach("x", Var("list"), Body(
           Assert(Eq(Var("x"), Var("x"))),
           Assert(Neq(Var("x"), Var("x")))
@@ -29,7 +35,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
     ))
 
     val core = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("Elem")))), Seq(), Seq(Body(Seq(
+      PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("Elem")))), TUnit, Seq(Body(Seq(
         Assign(Seq("x"), PathAccess(Var("list"), ChildrenLink)),
         Assert(Eq(Var("x"), Var("x"))),
         Assert(Neq(Var("x"), Var("x"))),
@@ -41,7 +47,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "eliminate nested foreach loops" in {
     val sugared = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("Elem"))), Param(Name("list2"), TList(TNode("Elem")))), Seq(), Seq(Body(Seq(
+      PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("Elem"))), Param(Name("list2"), TList(TNode("Elem")))), TUnit, Seq(Body(Seq(
         Foreach("x", Var("list"), Body(
           Assert(Eq(Var("x"), Var("x"))),
           Foreach("y", Var("list2"), Body(
@@ -53,7 +59,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
     ))
 
     val core = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("Elem"))), Param(Name("list2"), TList(TNode("Elem")))), Seq(), Seq(Body(Seq(
+      PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("Elem"))), Param(Name("list2"), TList(TNode("Elem")))), TUnit, Seq(Body(Seq(
         Assign(Seq("x"), PathAccess(Var("list"), ChildrenLink)),
         Assert(Eq(Var("x"), Var("x"))),
         Assign(Seq("y"), PathAccess(Var("list2"), ChildrenLink)),
@@ -66,40 +72,40 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
   }
 
 
-  "desugaring" should "implement foreach enum semantics" in {
-    val module = Module("Test_Cast", Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
-        Foreach("i", Enum(TNode(Exp.intTag)), Body(
-          Yield(Var("i"))
-        ))
-      ))))
-    ))
-
-    val input = {
-      import Exp._
-      Add(
-        Mul(
-          IntegerLit(1),
-          IntegerLit(2)
-        ),
-        Many(
-          List(
-            IntegerLit(3),
-            IntegerLit(4),
-            IntegerLit(5)
-          )
-        )
-      )
-    }
-
-    assertMatchFunModule(module, "integerlits", input, options = Options(scope.langMetaInfo, new BaseFrontend(_) with ForeachFrontend with EnumFrontend)) { matcher =>
-      assert(matcher.getAllMatches.size() == 5)
-    }
-  }
+//  "desugaring" should "implement foreach enum semantics" in {
+//    val module = Module("Test_Cast", Seq(), Seq(
+//      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
+//        Foreach("i", Enum(TNode(Exp.intTag)), Body(
+//          Yield(Var("i"))
+//        ))
+//      ))))
+//    ))
+//
+//    val input = {
+//      import Exp._
+//      Add(
+//        Mul(
+//          IntegerLit(1),
+//          IntegerLit(2)
+//        ),
+//        Many(
+//          List(
+//            IntegerLit(3),
+//            IntegerLit(4),
+//            IntegerLit(5)
+//          )
+//        )
+//      )
+//    }
+//
+//    assertMatchFunModule(module, "integerlits", input, options = Options(scope.langMetaInfo, new BaseFrontend(_) with ForeachFrontend with EnumFrontend)) { matcher =>
+//      assert(matcher.getAllMatches.size() == 5)
+//    }
+//  }
 
   "desugaring" should "implement foreach list semantics" in {
     val module = Module("Test_Cast", Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TLiteral.Int)), Seq(Body(Seq(
+      PatternFunction(None, "integerlits", Seq(), TLiteral.Int, Seq(Body(Seq(
         Values("many", TNode(Exp.manyTag)),
         Foreach("i", PathAccess(Var("many"), NamedLink("exps")), Body(
           Yield(PathAccess(Cast(Var("i"), TNode(Exp.intTag)), NamedLink("value")))
@@ -124,7 +130,7 @@ class TestForeach extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchFunModule(module, "integerlits", input, options = Options(scope.langMetaInfo, new BaseFrontend(_) with ForeachFrontend with EnumFrontend)) { matcher =>
+    assertMatchFunModule(module, "integerlits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 3)
       matcher.getAllMatchArrays should contain theSameElementsAs Seq(Array(3), Array(4), Array(5))
     }

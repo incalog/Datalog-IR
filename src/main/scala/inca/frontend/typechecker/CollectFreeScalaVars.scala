@@ -1,6 +1,6 @@
 package inca.frontend.typechecker
 
-import inca.frontend.core.Name
+import inca.frontend.core.tree.Name
 
 import scala.collection.mutable
 import scala.meta.{Case, Decl, Defn, Enumerator, Import, Importee, Lit, Pat, Stat, Template, Term}

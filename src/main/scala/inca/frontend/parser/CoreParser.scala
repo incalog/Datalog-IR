@@ -2,18 +2,20 @@ package inca.frontend.parser
 
 import fastparse.ScalaWhitespace._
 import fastparse._
-import inca.frontend.core
-import inca.frontend.core.Core.DataOp
 import inca.frontend.core._
 import inca.util.Meta.Scala
 
+import scala.language.reflectiveCalls
 import scala.meta.parsers.{Parsed, _}
 import scala.meta.{Stat, Term}
 
 /**
   * Parser for the IncA Core language.
   */
-class CoreParser {
+trait CoreParser {
+  val syntax: Syntax
+  import syntax._
+
   final lazy val allKeywords: Set[String] = this.keywords
 
   protected[frontend] def keywords: Set[String] =
@@ -29,10 +31,6 @@ class CoreParser {
       else Name(s)
     }
 
-  /** TAnyLinked parser */
-  protected[frontend] def tAnyLinked[_: P]: P[TLinked] =
-    P(TAnyLinked.prettyprint).mapWithLoc(_ => TAnyLinked)
-
   /** A parser for fully qualified identifier. Allows '.' in the name */
   protected[frontend] def fullyQualifiedIdentifier[_: P]: P[Name] =
     P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_", ".").repX).!).mapWithLoc { s =>
@@ -43,17 +41,19 @@ class CoreParser {
   protected[frontend] def tNode[_: P]: P[TNode] = P(fullyQualifiedIdentifier.!).mapWithLoc(TNode)
 
   /** Helper for the Type like TAny. */
-  protected[frontend] def simpleType[_: P](t: Type): P[Type] =
-    P(t.prettyprint).mapWithLoc(_ => t)
+  protected[frontend] def simpleType[_: P, Ty <: Type](s: String, t: Ty): P[Ty] =
+    P(s).mapWithLoc(_ => t)
+
+  protected[frontend] def tAnyLinked[_: P]: P[TLinked] = simpleType("AnyNode", TAnyLinked)
 
   /** TLinked parser */
   protected[frontend] def tLinked[_: P]: P[TLinked] = P(tAnyLinked | tNode | tList)
 
   /** Type parser */
   protected[frontend] def typeAnno[_: P]: P[Type] =
-    P(simpleType(TAny) | simpleType(TLiteral.Bool) | simpleType(TLiteral.Long) |
-        simpleType(TLiteral.Int) | simpleType(TLiteral.Double) | simpleType(TLiteral.String) |
-        simpleType(TUnit) | tLinked | tIterable | tTuple | scalaType
+    P(tAnyLinked | simpleType("Any", TAny) | simpleType("Boolean", TLiteral.Bool) | simpleType("Long", TLiteral.Long) |
+        simpleType("Int", TLiteral.Int) | simpleType("Double", TLiteral.Double) | simpleType("String", TLiteral.String) |
+        simpleType("Unit", TTuple(Seq())) | tLinked | tIterable | tTuple | scalaType
     )
 
   protected[frontend] def bracketedType[_: P]: P[Type] =
@@ -62,10 +62,10 @@ class CoreParser {
   /** Visibility parser */
   protected[frontend] def visibility[_: P]: P[Visibility] = P(privateVisibility | publicVisivility)
 
-  protected[frontend] def privateVisibility[_: P]: P[Private.type] =
-    P(Private.prettyprint("")).mapWithLoc(_ => Private)
-  protected[frontend] def publicVisivility[_: P]: P[Public.type] =
-    P(Public.prettyprint("")).mapWithLoc(_ => Public)
+  protected[frontend] def privateVisibility[_: P]: P[Visibility] =
+    P("private").mapWithLoc(_ => Private)
+  protected[frontend] def publicVisivility[_: P]: P[Visibility] =
+    P("public").mapWithLoc(_ => Public)
 
   /** TTuple parser without Unit */
   protected[frontend] def tTuple[_: P]: P[Type] = {
@@ -74,11 +74,11 @@ class CoreParser {
   }
 
   /** TList parser */
-  protected[frontend] def tList[_: P]: P[TList] =
+  protected[frontend] def tList[_: P]: P[TLinked with TIterable] =
     P("List[" ~ tLinked ~ "]").mapWithLoc(TList)
 
   /** TEnumeration parser */
-  protected[frontend] def tEnumeration[_: P]: P[TEnumeration] =
+  protected[frontend] def tEnumeration[_: P]: P[TIterable] =
     P("Enum[" ~ tLinked ~ "]").mapWithLoc(TEnumeration)
 
   /** TIterable parser */
@@ -89,7 +89,7 @@ class CoreParser {
     P(stringLiteral | unitLiteral | numericLiteral | booleanLiteral)
 
   /** UnitLiteral parser */
-  protected[frontend] def unitLiteral[_: P]: P[UnitLiteral.type] = P("unit").mapWithLoc(_ => UnitLiteral)
+  protected[frontend] def unitLiteral[_: P]: P[Literal] = P("unit").mapWithLoc(_ => UnitLiteral)
 
   /** Whole number parser */
   protected[frontend] def numericLiteral[_: P]: P[Literal] =
@@ -122,23 +122,16 @@ class CoreParser {
     }
 
   /** StringLiteral parser */
-  def stringLiteral[_: P]: P[StringLiteral] = P(ParserUtils.string).mapWithLoc(StringLiteral)
+  def stringLiteral[_: P]: P[Literal] = P(ParserUtils.string).mapWithLoc(StringLiteral)
 
   /** BooleanLiteral parser */
-  protected[frontend] def booleanLiteral[_: P]: P[BooleanLiteral] =
+  protected[frontend] def booleanLiteral[_: P]: P[Literal] =
     P(("true" | "false").!).mapWithLoc(s => BooleanLiteral(s.toBoolean))
 
   /** Param parser */
   protected[frontend] def param[_: P]: P[Param] =
     P(identifier ~ ":" ~ typeAnno).mapWithLoc {
       case (name, typeAnno) => Param(name, typeAnno)
-    }
-
-  /** AnnoParam parser */
-  protected[frontend] def annoParam[_: P]: P[AnnoParam] =
-    P("(" ~ param ~ ")" | typeAnno).mapWithLoc {
-      case Param(name, typeAnno) => AnnoParam(Some(name), typeAnno)
-      case typeAnno: Type    => AnnoParam(None, typeAnno)
     }
 
   /** Link parser */
@@ -149,28 +142,28 @@ class CoreParser {
     P(parentLink | childrenLink | prevLink | sizeLink | nextLink | namedLink)
 
   /** ParentLink parser */
-  protected[frontend] def parentLink[_: P]: P[ParentLink.type] =
-    P(ParentLink.prettyprint).mapWithLoc(_ => ParentLink)
+  protected[frontend] def parentLink[_: P]: P[CoreLink] =
+    P("parent").mapWithLoc(_ => ParentLink)
 
   /** ChildrenLink parser */
-  protected[frontend] def childrenLink[_: P]: P[ChildrenLink.type] =
-    P(ChildrenLink.prettyprint).mapWithLoc(_ => ChildrenLink)
+  protected[frontend] def childrenLink[_: P]: P[CoreLink] =
+    P("children").mapWithLoc(_ => ChildrenLink)
 
   /** NextLink parser */
-  protected[frontend] def nextLink[_: P]: P[NextLink.type] =
-    P(NextLink.prettyprint).mapWithLoc(_ => NextLink)
+  protected[frontend] def nextLink[_: P]: P[CoreLink] =
+    P("next").mapWithLoc(_ => NextLink)
 
   /** PreviousLink parser */
-  protected[frontend] def prevLink[_: P]: P[PreviousLink.type] =
-    P(PreviousLink.prettyprint).mapWithLoc(_ => PreviousLink)
+  protected[frontend] def prevLink[_: P]: P[CoreLink] =
+    P("prev").mapWithLoc(_ => PreviousLink)
 
   /** SizeLink parser */
-  protected[frontend] def sizeLink[_: P]: P[SizeLink.type] =
-    P(SizeLink.prettyprint).mapWithLoc(_ => SizeLink)
+  protected[frontend] def sizeLink[_: P]: P[CoreLink] =
+    P("size").mapWithLoc(_ => SizeLink)
 
   /** NamedLink parser */
-  protected[frontend] def namedLink[_: P]: P[NamedLink] =
-    P(identifier).mapWithLoc(NamedLink.apply)
+  protected[frontend] def namedLink[_: P]: P[CoreLink] =
+    P(identifier).mapWithLoc(NamedLink)
 
 
   /** Exp parser */
@@ -184,8 +177,8 @@ class CoreParser {
 
   protected[frontend] def infixExp[_: P]: P[Expression] =
     P(
-      (dotExp ~ "==" ~ dotExp).mapWithLoc(Eq.tupled) |
-      (dotExp ~ "!=" ~ dotExp).mapWithLoc(Neq.tupled) |
+      (dotExp ~ "==" ~ dotExp).mapWithLoc{ case (l,r) => Eq(l,r) } |
+      (dotExp ~ "!=" ~ dotExp).mapWithLoc{ case (l,r) => Neq(l,r) } |
       dotExp
     )
 
@@ -230,7 +223,7 @@ class CoreParser {
       }
     }
 
-  protected[frontend] def evalExp[_: P]: P[Eval] =
+  protected[frontend] def evalExp[_: P]: P[CoreExpression] =
     P("`" ~~ evalCore ~~ "`").mapWithLoc(t => t)
 
   /** Call parser */
@@ -241,19 +234,19 @@ class CoreParser {
     }
 
   /** Tuple parser */
-  protected[frontend] def tupleExp[_: P]: P[Tuple] =
+  protected[frontend] def tupleExp[_: P]: P[CoreExpression] =
     P("(" ~ exp.rep(2, sep = ",") ~ ")").mapWithLoc(Tuple)
 
   /** Parens parser */
   protected[frontend] def parensExp[_: P]: P[Expression] = P("(" ~ exp ~ ")")
 
   /** Var parser */
-  protected[frontend] def varExp[_: P]: P[Var] = P(identifier).mapWithLoc(Var.apply)
+  protected[frontend] def varExp[_: P]: P[CoreExpression] = P(identifier).mapWithLoc(Var)
 
-  protected[frontend] def wildcardExp[_: P]: P[Wildcard.type] = P("_").mapWithLoc(_ => Wildcard)
+  protected[frontend] def wildcardExp[_: P]: P[CoreExpression] = P("_").mapWithLoc(_ => Wildcard)
 
   /** Constant parser */
-  protected[frontend] def constantExp[_: P]: P[Constant] = P(literal).mapWithLoc(Constant)
+  protected[frontend] def constantExp[_: P]: P[CoreExpression] = P(literal).mapWithLoc(Constant)
 
   /** Statement parser */
   protected[frontend] def statement[_: P]: P[Statement] =
@@ -264,49 +257,46 @@ class CoreParser {
     P(valuesStatement | assignStatement | assertStatement)
 
   /** Values parser */
-  final protected[frontend] def valuesStatement[_: P]: P[Values] =
+  final protected[frontend] def valuesStatement[_: P]: P[CoreStatement] =
     P("vals " ~ identifier ~ "<-" ~ typeAnno).mapWithLoc {
       case (name, typeAnno) => Values(name, typeAnno)
     }
 
   /** Assign parser */
-  final protected[frontend] def assignStatement[_: P]: P[Assign] =
+  final protected[frontend] def assignStatement[_: P]: P[CoreStatement] =
     P(singleAssignStatement | multipleAssignStatement)
 
-  final protected[frontend] def singleAssignStatement[_: P]: P[Assign] =
+  final protected[frontend] def singleAssignStatement[_: P]: P[CoreStatement] =
     P("val " ~ identifier ~ "=" ~ exp).mapWithLoc {
       case (name, expr) => Assign(Seq(name), expr)
     }
 
-  final protected[frontend] def multipleAssignStatement[_: P]: P[Assign] =
+  final protected[frontend] def multipleAssignStatement[_: P]: P[CoreStatement] =
     P("val " ~ "(" ~ identifier.rep(min = 2, sep = ",") ~ ")" ~ "=" ~ exp).mapWithLoc {
       case (names, expr) => Assign(names, expr)
     }
 
   /** Assert parser */
-  final protected[frontend] def assertStatement[_: P]: P[Assert] =
+  final protected[frontend] def assertStatement[_: P]: P[CoreStatement] =
     P("assert " ~ exp).mapWithLoc(Assert)
 
   /** Body parser */
   protected[frontend] def body[_: P]: P[Body] =
-    P("{" ~ statement.rep ~ "}").mapWithLoc(Body.apply) |
+    P("{" ~ statement.rep ~ "}").mapWithLoc(Body) |
     P(statement).mapWithLoc(s => Body(Seq(s)))
 
   /** Parses only the AnnoParam Unit. */
   protected[frontend] def annoParamUnit[_: P]: P[Seq[AnnoParam]] =
     P("Unit").map(_ => Seq.empty[AnnoParam])
 
-  /** Parses an AnnoParam which has only one member. */
-  protected[frontend] def annoParamSingle[_: P]: P[Seq[AnnoParam]] = P(annoParam).map(Seq(_))
-
   /** PatternFunction parser */
-  protected[frontend] def patternFunction[_: P]: P[PatternFunction] = {
-    P(visibility.? ~ "def" ~ identifier ~ "(" ~ paramList ~ ")" ~ ":" ~ outParamList ~ "=" ~ bodyList).mapWithLoc(PatternFunction.tupled)
+  protected[frontend] def patternFunction[_: P]: P[ModuleContent] = {
+    P(visibility.? ~ "def" ~ identifier ~ "(" ~ paramList ~ ")" ~ ":" ~ typeAnno ~ "=" ~ bodyList).mapWithLoc{
+      case (vis, name, params, ty, bodies) => PatternFunction(vis, name, params, ty, bodies)
+    }
   }
 
   protected[frontend] def paramList[_: P]: P[Seq[Param]] = P(param.rep(sep = ","))
-  protected[frontend] def outParamList[_: P]: P[Seq[AnnoParam]] =
-    P(annoParamUnit | P("(" ~ annoParam.rep(sep = ",") ~ ")") | annoParamSingle)
   protected[frontend] def bodyList[_: P]: P[Seq[Body]] = P(body.rep(min = 1, sep = "union"))
 
   /** Module parser */
@@ -320,7 +310,7 @@ class CoreParser {
     }
 
   def import_[_: P]: P[Import] =
-    P("import" ~ identifier).mapWithLoc(Import.apply)
+    P("import" ~ identifier).mapWithLoc(Import)
 
   def moduleContent[_: P]: P[ModuleContent] =
     P(patternFunction | valDef | scalaModuleContent)
@@ -329,12 +319,12 @@ class CoreParser {
   def scalaModuleContent[_: P]: P[ScalaModuleContent] =
     P("scala " ~ (scalaImport | scalaBlockDef))
 
-  def scalaImport[_: P]: P[ScalaImport] =
+  def scalaImport[_: P]: P[ScalaModuleContent] =
     nativeStatHelper(NoCut(scalaparse.Scala.Import))
-      .mapWithLoc { case s: meta.Import => ScalaImport(s.asInstanceOf[meta.Import]) }
+      .mapWithLoc { case s: meta.Import => ScalaImport(Scala(s.asInstanceOf[meta.Import])) }
 
-  def scalaBlockDef[_: P]: P[ScalaBlockDef] =
-    nativeStatHelper(NoCut(scalaparse.Scala.BlockDef)).mapWithLoc(ScalaBlockDef.apply)
+  def scalaBlockDef[_: P]: P[ScalaModuleContent] =
+    nativeStatHelper(NoCut(scalaparse.Scala.BlockDef)).mapWithLoc(s => ScalaBlockDef(Scala(s)))
 
   private def nativeStatHelper[_: P](statParser: => P[_]): P[meta.Stat] =
     P(statParser.!).flatMap { raw_code =>
@@ -346,26 +336,28 @@ class CoreParser {
       }
     }
 
-  protected[frontend] def valDef[_: P]: P[ValDef] =
-    P(visibility.? ~ "val" ~ identifier ~ (":" ~ typeAnno).? ~ "=" ~ exp).mapWithLoc(ValDef.tupled)
+  protected[frontend] def valDef[_: P]: P[ModuleContent] =
+    P(visibility.? ~ "val" ~ identifier ~ (":" ~ typeAnno).? ~ "=" ~ exp).mapWithLoc {
+      case (vis, name, ty, expression) => ValDef(vis, name, ty, expression)
+    }
 
 
   /** Yield parser */
-  protected[frontend] def yieldStatement[_: P]: P[Yield] =
+  protected[frontend] def yieldStatement[_: P]: P[Statement] =
     P("yield " ~ exp).mapWithLoc(Yield)
 
   /** Fail/Continue parser */
-  protected[frontend] def failStatement[_: P]: P[TerminatorStatement] =
-    P("continue" | "fail").mapWithLoc(_ => core.FailStatement)
+  protected[frontend] def failStatement[_: P]: P[Statement] =
+    P("continue" | "fail").mapWithLoc(_ => FailStatement)
 
   /** Terminator parser. */
-  protected[frontend] def terminatorStatement[_: P]: P[TerminatorStatement] =
+  protected[frontend] def terminatorStatement[_: P]: P[Statement] =
     P(yieldStatement | failStatement)
 
-  protected[frontend] def scalaType[_: P]: P[TScala] =
+  protected[frontend] def scalaType[_: P]: P[Type] =
     P("`" ~~ scalaTypeCore ~~ "`")
 
-  protected[frontend] def scalaTypeCore[_: P]: P[TScala] =
+  protected[frontend] def scalaTypeCore[_: P]: P[Type] =
     P(CharsWhile(_ != '`').!).flatMap { raw_code =>
       raw_code.parse[meta.Type] match {
         case err: Parsed.Error =>
@@ -373,12 +365,6 @@ class CoreParser {
         case Parsed.Success(ty) =>
           fastparse.Pass(TScala(Scala(ty)))
       }
-    }
-
-  /** DataOp parser */
-  protected[frontend] def dataOp[_: P]: P[DataOp] =
-    P((identifier ~ ".").? ~ identifier).mapWithLoc { case (qual, name) =>
-      Core.DataOp(qual, name, isAssociative = false, isCommutative = false)
     }
 
   /** Aggregate parser */

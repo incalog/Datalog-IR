@@ -2,11 +2,14 @@ package inca.frontend.extensions
 
 import inca.IncaMatchers
 import inca.analyzedLangs.Exp
-import inca.compiler.Options
-import inca.frontend.BaseFrontend
-import inca.frontend.core._
-import inca.runtime.context.QueryScope
+import inca.compiler.{CompilerFrontend, Options}
+import inca.frontend.core.Trees
+import inca.frontend.core.tree._
+import inca.frontend.extensions.switch_.Trees._
+import inca.runtime.context.{LanguageMetaInfo, QueryScope}
 import org.scalatest.flatspec.AnyFlatSpec
+
+import scala.language.implicitConversions
 
 class TestSwitch extends AnyFlatSpec with IncaMatchers {
 
@@ -18,10 +21,13 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
   val four = Constant(IntLiteral(4))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo, new BaseFrontend(_) with SwitchFrontend)
+  val options: Options = Options(scope.langMetaInfo, info => new CompilerFrontend with switch_.Frontend {
+    override val lang: LanguageMetaInfo = info
+    override val syntax = new Trees with switch_.Trees
+  })
   "desugaring" should "lift switch bodies" in {
     val sugared = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
+      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Switch(Seq(
           Body(Seq(Assert(Eq(one, two)))),
           Body(Seq(Assert(Neq(one, two)))),
@@ -32,7 +38,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
     ))
 
     val core = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(
+      PatternFunction(None, "foo", Seq(), TUnit, Seq(
         Body(Seq(Assert(Eq(one, two)))),
         Body(Seq(Assert(Neq(one, two)))),
         Body(Seq(Assert(Eq(three, four)))),
@@ -45,7 +51,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "lift nested switch bodies" in {
     val sugared = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
+      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Switch(Seq(
           Body(Seq(Switch(Seq(
             Body(Seq(Assert(Eq(one, two)))),
@@ -60,7 +66,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
     ))
 
     val core = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(
+      PatternFunction(None, "foo", Seq(), TUnit, Seq(
         Body(Seq(Assert(Eq(one, two)))),
         Body(Seq(Assert(Neq(one, two)))),
         Body(Seq(Assert(Eq(three, four)))),
@@ -73,7 +79,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "multiply subsequent switch bodies" in {
     val sugared = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
+      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Switch(Seq(
           Body(Seq(Assert(Eq(one, two)))),
           Body(Seq(Assert(Neq(one, two))))
@@ -86,7 +92,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
     ))
 
     val core = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(
+      PatternFunction(None, "foo", Seq(), TUnit, Seq(
         Body(Seq(Assert(Eq(one, two)), Assert(Eq(three, four)))),
         Body(Seq(Assert(Eq(one, two)), Assert(Neq(three, four)))),
         Body(Seq(Assert(Neq(one, two)), Assert(Eq(three, four)))),
@@ -100,7 +106,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "implement switch semantics" in {
     val module = Module("Test_Cast", Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TLiteral.Int)), Seq(Body(Seq(
+      PatternFunction(None, "integerlits", Seq(), TLiteral.Int, Seq(Body(Seq(
         Values("root", TNode(Exp.expTag)),
         Assert(Undef(PathAccess(Var("root"), ParentLink))),
         Yield(
@@ -110,7 +116,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
         )
       )))),
 
-      PatternFunction(None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), Seq(AnnoParam(None, TLiteral.Int)), Seq(Body(Seq(
+      PatternFunction(None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), TLiteral.Int, Seq(Body(Seq(
         Switch(Seq(
           Body(Seq(
             Assert(InstanceOf(Var("e"), TNode(Exp.intTag))),

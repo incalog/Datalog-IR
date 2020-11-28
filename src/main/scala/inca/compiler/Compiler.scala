@@ -1,7 +1,7 @@
 package inca.compiler
 
 import inca.backend.ir.GP
-import inca.frontend.core.Core
+import inca.frontend.core
 
 object Compiler {
 
@@ -12,7 +12,7 @@ object Compiler {
     CompiledFunModule(parsed, compilerOptions)
   }
 
-  def compileFun(module: Core.Module,
+  def compileFun(module: core.tree.Module,
                  compilerOptions: Options): CompiledFunModule = {
     CompiledFunModule(module, compilerOptions)
   }

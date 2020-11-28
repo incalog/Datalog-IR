@@ -1,6 +1,6 @@
 package inca.frontend.core
 
-import inca.frontend.core.Core._
+import inca.frontend.core.tree._
 
 object CollectUndefPaths extends Collect[PathAccess] {
   override def transExp(exp: CoreExpression): Seq[PathAccess] = exp match {
@@ -24,13 +24,11 @@ trait Collect[R] {
   }
 
   def transFun(fun: PatternFunction): Seq[R] = {
-    val paramsRes = fun.params.flatMap(transParam) ++ fun.outParams.flatMap(transAnnoParam)
+    val paramsRes = fun.params.flatMap(transParam)
     paramsRes ++ fun.bodies.flatMap(transBody)
   }
 
   def transParam(param: Param): Seq[R] = Seq()
-
-  def transAnnoParam(annoParam: AnnoParam): Seq[R] = Seq()
 
   def transBody(body: Body): Seq[R] = body.stmts.flatMap(s => transStatement(s.ensureCore))
 

@@ -2,17 +2,18 @@ package inca.frontend.parser
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
-import inca.frontend.BaseFrontend
-import inca.frontend.core._
-import inca.frontend.extensions._
+import inca.compiler.CompilerFrontend
+import inca.frontend.core.tree._
 import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
 class ExtensionParsersTest extends AnyFunSuite {
+  val parser = CompilerFrontend.Inca(new LanguageMetaInfo())
 
   test("test BoolOps") {
-    val parser = new BaseFrontend(new LanguageMetaInfo()) with BoolOpsFrontend
+    import inca.frontend.extensions.boolOps.Trees._
+
     val testBoolOpsSuccess = testSuccess(parser.exp(_))
     val testBoolOpsFailure = testFailure(parser.exp(_))
 
@@ -34,17 +35,19 @@ class ExtensionParsersTest extends AnyFunSuite {
     testBoolOpsFailure("|| y")
   }
 
-  test("test Enum") {
-    val parser = new BaseFrontend(new LanguageMetaInfo()) with EnumFrontend
-    val testEnumSuccess = testSuccess(parser.exp(_))
-    val testEnumFailure = testFailure(parser.exp(_))
-
-    testEnumSuccess("enum(Int)", Enum(TLiteral.Int))
-    testEnumSuccess("enum(    Int)", Enum(TLiteral.Int))
-  }
+//  test("test Enum") {
+//    import inca.frontend.extensions.enum.Trees._
+//
+//    val testEnumSuccess = testSuccess(parser.exp(_))
+//    val testEnumFailure = testFailure(parser.exp(_))
+//
+//    testEnumSuccess("enum(Int)", Enum(TLiteral.Int))
+//    testEnumSuccess("enum(    Int)", Enum(TLiteral.Int))
+//  }
 
   test("test ForallExists") {
-    val parser = new BaseFrontend(new LanguageMetaInfo()) with ForallExistsFrontend
+    import inca.frontend.extensions.forallExists.Trees._
+
     val testForallExistsSuccess = testSuccess(parser.statement(_))
     val testForallExistsFailure = testFailure(parser.statement(_))
 
@@ -94,7 +97,8 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test Foreach") {
-    val parser = new BaseFrontend(new LanguageMetaInfo()) with ForeachFrontend
+    import inca.frontend.extensions.foreach.Trees._
+
     val testForeachSuccess = testSuccess(parser.statement(_))
     val testForeachFailure = testFailure(parser.statement(_))
 
@@ -125,7 +129,8 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test IfThenElse") {
-    val parser = new BaseFrontend(new LanguageMetaInfo()) with IfThenElseFrontend
+    import inca.frontend.extensions.ifThenElse.Trees._
+
     def testIfThenElse = testSuccess(parser.statement(_))
 
     testIfThenElse(
@@ -146,7 +151,8 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test Match") {
-    val parser = new BaseFrontend(new LanguageMetaInfo()) with MatchFrontend
+    import inca.frontend.extensions.match_.Trees._
+
     def testMatch = testSuccess(parser.statement(_))
 
     testMatch(
@@ -215,7 +221,8 @@ class ExtensionParsersTest extends AnyFunSuite {
   }
 
   test("test Switch") {
-    val parser = new BaseFrontend(new LanguageMetaInfo()) with SwitchFrontend
+    import inca.frontend.extensions.switch_.Trees._
+
     def testSwitch = testSuccess(parser.statement(_))
 
     testSwitch(s"""|switch {}""".stripMargin, Switch(Seq(Body(Seq()))))

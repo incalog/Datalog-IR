@@ -1,6 +1,6 @@
 package inca.frontend.typechecker
 
-import inca.frontend.core._
+import inca.frontend.core.tree._
 import inca.frontend.parser.SourceLocation
 import inca.frontend.util.TypeHelper
 import inca.runtime.aggregate.Aggregation
@@ -42,8 +42,8 @@ trait CoreTypechecker
     module.content.foreach {
       case fun: PatternFunction => bindFun(fun, module)
       case _: ValDef => // scoped to remainder of module, hence bind later
-      case simp: ScalaImport => registerImport(simp)
-      case bd: ScalaBlockDef => registerBlockDef(bd)
+      case simp: ScalaImport => registerImport(simp.imp)
+      case bd: ScalaBlockDef => registerBlockDef(bd.stat)
     }
 
     // type scala top-level definitions
@@ -388,8 +388,8 @@ trait CoreTypechecker
 
     fun.outParams match {
       case Seq() => TUnit
-      case Seq(out) => out.typ
-      case outs => TTuple(outs.map(_.typ))
+      case Seq(out) => out
+      case outs => TTuple(outs)
     }
   }
 

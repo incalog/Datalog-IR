@@ -5,7 +5,7 @@ import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
 import inca.compiler.Options
-import inca.frontend.core._
+import inca.frontend.core.tree._
 import inca.runtime.context.QueryScope
 import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
@@ -105,7 +105,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
       None,
       "parent",
       Seq(Param("in", TAny)),
-      Seq(AnnoParam(None, expType)),
+      expType,
       Seq(
         Body(
           Seq(

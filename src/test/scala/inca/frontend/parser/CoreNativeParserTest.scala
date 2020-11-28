@@ -2,7 +2,8 @@ package inca.frontend.parser
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
-import inca.frontend.core._
+import inca.compiler.CompilerFrontend
+import inca.runtime.context.LanguageMetaInfo
 import inca.util.Meta.Scala
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
@@ -17,7 +18,8 @@ import scala.meta.{Import => _, Name => _, _}
   */
 class CoreNativeParserTest extends AnyFunSuite {
 
-  val parser = new CoreParser
+  val parser = CompilerFrontend.Inca(new LanguageMetaInfo())
+  import inca.frontend.core.tree._
   
   test("test Module") {
     def testModule = testSuccess[Module](parser.module(_))
@@ -51,8 +53,7 @@ class CoreNativeParserTest extends AnyFunSuite {
       Module(
         Name("my"),
         Seq(Import(Name("math")), Import(Name("cuda_runtime"))),
-        Seq(
-          q"import inca.Compiler",
+        ScalaImport(q"import inca.Compiler") +: Seq(
           q"val i = 0",
           q"var v: Int = 0",
           q"def f() = { Compiler.invoke() }").map(ScalaBlockDef.apply)
@@ -76,7 +77,7 @@ class CoreNativeParserTest extends AnyFunSuite {
           q"case object Zero extends Nat",
           q"case class Succ(pred: Nat) extends Nat"
         ).map(ScalaBlockDef.apply)
-        :+ PatternFunction(None, Name("testTwo"), Seq(), Seq(AnnoParam(None, TScala("Nat"))),
+        :+ PatternFunction(None, Name("testTwo"), Seq(), TScala("Nat"),
              Seq(Body(Seq(Yield(Eval(Scala(q"Succ(Zero)")))))))
       )
     )

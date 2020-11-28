@@ -2,13 +2,15 @@ package inca.frontend.extensions
 
 import inca.IncaMatchers
 import inca.analyzedLangs.Exp
-import inca.compiler.Options
-import inca.frontend.BaseFrontend
-import inca.frontend.core._
-import inca.runtime.context.QueryScope
+import inca.compiler.{CompilerFrontend, Options}
+import inca.frontend.core.Trees
+import inca.frontend.core.tree._
+import inca.frontend.extensions.boolOps.Trees._
+import inca.runtime.context.{LanguageMetaInfo, QueryScope}
 import inca.util.Meta.Scala
 import org.scalatest.flatspec.AnyFlatSpec
 
+import scala.language.implicitConversions
 import scala.meta.XtensionQuasiquoteTerm
 
 class TestBoolOps extends AnyFlatSpec with IncaMatchers {
@@ -19,11 +21,14 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
   val two = Constant(IntLiteral(2))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo, new BaseFrontend(_) with BoolOpsFrontend)
+  val options: Options = Options(scope.langMetaInfo, info => new CompilerFrontend with boolOps.Frontend {
+    override val lang: LanguageMetaInfo = info
+    override val syntax = new Trees with boolOps.Trees
+  })
 
   "desugaring" should "eliminate not conditions" in {
     val sugared = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
+      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assert(Not(Eq(one, two))),
         Assert(Not(Neq(one, two))),
         Assert(Not(InstanceOf(one, TNode("Num")))),
@@ -36,7 +41,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
     ))
 
     val core = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
+      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assert(Neq(one, two)),
         Assert(Eq(one, two)),
         Assert(NotInstanceOf(one, TNode("Num"))),
@@ -53,7 +58,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "eliminate nested not conditions" in {
     val sugared = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
+      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assert(Not(Not(Eq(one, two)))),
         Assert(Not(Not(Not(Eq(one, two))))),
         Assert(Not(Not(Not(Not(Eq(one, two)))))),
@@ -62,7 +67,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
     ))
 
     val core = Module("Test", Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), Seq(), Seq(Body(Seq(
+      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assert(Eq(one, two)),
         Assert(Neq(one, two)),
         Assert(Eq(one, two)),
@@ -75,7 +80,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "negate eval code" in {
     val module = Module("Test_Cast", Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
+      PatternFunction(None, "integerlits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
         Values("e", TNode(Exp.intTag)),
         Assign(Seq("i"), PathAccess(Var("e"), NamedLink("value"))),
         Assign(Seq("cond"),
@@ -110,7 +115,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "implement `and` semantics" in {
     val module = Module("Test_Cast", Seq(), Seq(
-      PatternFunction(None, "add_mul", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
+      PatternFunction(None, "add_mul", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
         Values("e", TNode(Exp.expTag)),
         Assert(And(
           InstanceOf(Var("e"), TNode(Exp.addTag)),
@@ -144,7 +149,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "implement `not and` semantics" in {
     val module = Module("Test_Cast", Seq(), Seq(
-      PatternFunction(None, "integerLits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
+      PatternFunction(None, "integerLits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
         Values("e", TNode(Exp.expTag)),
         Assert(Not(And(
           InstanceOf(Var("e"), TNode(Exp.addTag)),
@@ -178,7 +183,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
 
   "desugaring" should "implement `not or` semantics" in {
     val module = Module("Test_Cast", Seq(), Seq(
-      PatternFunction(None, "integerLits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
+      PatternFunction(None, "integerLits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
         Values("e", TNode(Exp.expTag)),
         Assert(Not(Or(
           InstanceOf(Var("e"), TNode(Exp.addTag)),

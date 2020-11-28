@@ -2,11 +2,8 @@ package inca.frontend.parser
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
-import inca.frontend.BaseFrontend
-import inca.frontend.core.Core.DataOp
-import inca.frontend.core._
+import inca.compiler.CompilerFrontend
 import inca.runtime.context.LanguageMetaInfo
-import inca.util.Meta.Scala
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -18,7 +15,8 @@ import org.scalatest.funsuite.AnyFunSuite
   */
 class CoreParserTest extends AnyFunSuite {
 
-  val parser = new CoreParser
+  val parser = CompilerFrontend.Inca(new LanguageMetaInfo())
+  import inca.frontend.core.tree._
   
   test("test Type") {
     def testType(t: Type) = {
@@ -55,9 +53,9 @@ class CoreParserTest extends AnyFunSuite {
       testFailure(parser.tIterable(_))(s"Q$inp")
     }
 
-    testTIterable("List[Node]", TList(TAnyLinked))
+    testTIterable("List[AnyNode]", TList(TAnyLinked))
     testTIterable("List[apf3l]", TList(TNode("apf3l")))
-    testTIterable("Enum[Node]", TEnumeration(TAnyLinked))
+    testTIterable("Enum[AnyNode]", TEnumeration(TAnyLinked))
     testTIterable("Enum[br0t]", TEnumeration(TNode("br0t")))
   }
 
@@ -136,22 +134,6 @@ class CoreParserTest extends AnyFunSuite {
     }
   }
 
-  test("test AnnoParam with name") {
-    def testAnnoParam(t: Type): Assertion =
-      testSuccess(parser.annoParam(_))(
-        s"(param:${t.prettyprint})",
-        AnnoParam(Some(Name("param")), t)
-      )
-
-    Seq(TLiteral.Bool, TLiteral.Double, TLiteral.String, TLiteral.Int, TLiteral.Long, TAnyLinked, TNode("br0t")).map(testAnnoParam)
-  }
-
-  test("test AnnoParam without name") {
-    def testAnnoParam(t: Type): Assertion =
-      testSuccess(parser.annoParam(_))(s"${t.prettyprint}", AnnoParam(None, t))
-
-    Seq(TLiteral.Bool, TLiteral.Double, TLiteral.String, TLiteral.Int, TLiteral.Long, TAnyLinked, TNode("br0t")).map(testAnnoParam)
-  }
 
   test("test Link core-links") {
     val testLink = testSuccess(parser.link(_))
@@ -601,7 +583,7 @@ class CoreParserTest extends AnyFunSuite {
         None,
         Name("foo"),
         Seq(Param(Name("bar"), TLiteral.Int)),
-        Seq.empty,
+        TUnit,
         Seq(
           Body(
             Assert(Eq(Var("x"), Constant(IntLiteral(7))))
@@ -626,7 +608,7 @@ class CoreParserTest extends AnyFunSuite {
         None,
         Name("foo"),
         Seq(Param(Name("bar"), TLiteral.Int)),
-        Seq.empty,
+        TUnit,
         Seq(
           Body(
             Assert(Eq(Var("x"), Constant(IntLiteral(7))))
@@ -651,7 +633,7 @@ class CoreParserTest extends AnyFunSuite {
         Option(Private),
         Name("foo"),
         Seq(Param(Name("bar"), TLiteral.Int)),
-        Seq(AnnoParam(Option(null), TLiteral.Int)),
+        TLiteral.Int,
         Seq(
           Body(
             Assert(Eq(Var("x"), Constant(IntLiteral(7))))
@@ -664,7 +646,7 @@ class CoreParserTest extends AnyFunSuite {
     )
 
     testPatternFunction(
-      s"""def foo(bar : Int, foobar: (Boolean, (Boolean, String))) : ((String, Boolean)) = {
+      s"""def foo(bar : Int, foobar: (Boolean, (Boolean, String))) : (String, Boolean) = {
                 |   val x = y
                 |}""".stripMargin,
       PatternFunction(
@@ -674,7 +656,7 @@ class CoreParserTest extends AnyFunSuite {
           Param(Name("bar"), TLiteral.Int),
           Param(Name("foobar"), TTuple(Seq(TLiteral.Bool, TTuple(Seq(TLiteral.Bool, TLiteral.String)))))
         ),
-        Seq(AnnoParam(Option(null), TTuple(Seq(TLiteral.String, TLiteral.Bool)))),
+        TTuple(Seq(TLiteral.String, TLiteral.Bool)),
         Seq(
           Body(
             Assign(Seq(Name("x")), Var("y"))
@@ -684,7 +666,7 @@ class CoreParserTest extends AnyFunSuite {
     )
 
     testPatternFunction(
-      s"""public def foo(bar : Int, foobar: (Boolean, (Boolean, String))) : (value : (String, Boolean)) = {
+      s"""public def foo(bar : Int, foobar: (Boolean, (Boolean, String))) : (String, Boolean) = {
                 |   val x = y
                 |}""".stripMargin,
       PatternFunction(
@@ -694,7 +676,7 @@ class CoreParserTest extends AnyFunSuite {
           Param(Name("bar"), TLiteral.Int),
           Param(Name("foobar"), TTuple(Seq(TLiteral.Bool, TTuple(Seq(TLiteral.Bool, TLiteral.String)))))
         ),
-        Seq(AnnoParam(Option(Name("value")), TTuple(Seq(TLiteral.String, TLiteral.Bool)))),
+        TTuple(Seq(TLiteral.String, TLiteral.Bool)),
         Seq(
           Body(
             Assign(Seq(Name("x")), Var("y"))
@@ -704,7 +686,7 @@ class CoreParserTest extends AnyFunSuite {
     )
 
     testPatternFunction(
-      s"""def foo(bar : Int, foobar: (Boolean, (Boolean, String))) : ((value : (String, Boolean)), Boolean) = {
+      s"""def foo(bar : Int, foobar: (Boolean, (Boolean, String))) : ((String, Boolean), Boolean) = {
                 |   val x = y
                 |}""".stripMargin,
       PatternFunction(
@@ -714,9 +696,9 @@ class CoreParserTest extends AnyFunSuite {
           Param(Name("bar"), TLiteral.Int),
           Param(Name("foobar"), TTuple(Seq(TLiteral.Bool, TTuple(Seq(TLiteral.Bool, TLiteral.String)))))
         ),
-        Seq(
-          AnnoParam(Option(Name("value")), TTuple(Seq(TLiteral.String, TLiteral.Bool))),
-          AnnoParam(Option(null), TLiteral.Bool)
+        TTuple(Seq(
+          TTuple(Seq(TLiteral.String, TLiteral.Bool)),
+          TLiteral.Bool)
         ),
         Seq(
           Body(
@@ -748,7 +730,7 @@ class CoreParserTest extends AnyFunSuite {
             Option(Public),
             Name("foo"),
             Seq(Param(Name("bar"), TLiteral.Bool)),
-            Seq.empty,
+            TUnit,
             Seq(
               Body(
                 Assign(Seq(Name("x")), Var("y"))
@@ -759,7 +741,7 @@ class CoreParserTest extends AnyFunSuite {
             None,
             Name("bar"),
             Seq(Param(Name("foo"), TLiteral.Bool)),
-            Seq.empty,
+            TUnit,
             Seq(
               Body(
                 Assign(Seq(Name("x")), Var("y"))
@@ -789,7 +771,7 @@ class CoreParserTest extends AnyFunSuite {
             None,
             Name("foo"),
             Seq(Param(Name("bar"), TLiteral.Bool)),
-            Seq.empty,
+            TUnit,
             Seq(
               Body(
                 Assign(Seq(Name("x")), Var("y"))
@@ -818,7 +800,7 @@ class CoreParserTest extends AnyFunSuite {
             None,
             Name("foo"),
             Seq(Param(Name("bar"), TLiteral.Bool)),
-            Seq.empty,
+            TUnit,
             Seq(
               Body(
                 Assign(Seq(Name("x")), Var("y"))
@@ -844,7 +826,7 @@ class CoreParserTest extends AnyFunSuite {
             None,
             Name("foo"),
             Seq(Param(Name("bar"), TLiteral.Bool)),
-            Seq.empty,
+            TUnit,
             Seq(
               Body(
                 Assign(Seq(Name("x")), Var("y"))
@@ -904,13 +886,6 @@ class CoreParserTest extends AnyFunSuite {
     )
   }
 
-  test("test DataOp") {
-    val testDataOp: (String, Any) => Assertion = testSuccess(parser.dataOp(_))
-
-    testDataOp("br0t.br0t", DataOp(Some(Name("br0t")), Name("br0t")))
-    testDataOp("br0t", DataOp(None, Name("br0t")))
-  }
-
   test("test Eval") {
     def testEval(input: String, cmp_code : String): Assertion =
       parse(input, parser.evalExp(_)) match {
@@ -942,7 +917,6 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test scala types") {
-    val parser = new BaseFrontend(new LanguageMetaInfo()) {}
     val testTypeSuccess = testSuccess(parser.typeAnno(_))
     testTypeSuccess("`Int`", TScalaInt)
     testTypeSuccess("`Boolean`", TScalaBoolean)
@@ -952,7 +926,6 @@ class CoreParserTest extends AnyFunSuite {
   }
 
   test("test Cast") {
-    val parser = new BaseFrontend(new LanguageMetaInfo()) {}
     val testCastSuccess = testSuccess(parser.exp(_))
 
     testCastSuccess("x:Int", Cast(Var("x"), TLiteral.Int))

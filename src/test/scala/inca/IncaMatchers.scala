@@ -2,8 +2,7 @@ package inca
 
 import inca.backend.ir.GP
 import inca.compiler.{CompiledModule, Options}
-import inca.frontend.core.Core
-import inca.frontend.core.Core.Module
+import inca.frontend.core.tree.Module
 import inca.runtime.context.QueryScope
 import inca.runtime.{EnginePool, Query}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
@@ -39,7 +38,7 @@ trait IncaMatchers extends Matchers {
     assertMatchCoreEdit(compiled, fun, editScript, scope)(asserter)
   }
 
-  def assertMatchFunModule(module: Core.Module,
+  def assertMatchFunModule(module: Module,
                            fun: String,
                            subjectProg: Diffable,
                            scope: QueryScope = this.scope,

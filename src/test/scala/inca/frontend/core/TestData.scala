@@ -3,8 +3,11 @@ package inca.frontend.core
 import inca.IncaMatchers
 import inca.analyzedLangs.Exp
 import inca.compiler.Options
+import inca.frontend.core.tree._
 import inca.runtime.context.QueryScope
 import org.scalatest.flatspec.AnyFlatSpec
+
+import scala.language.implicitConversions
 
 class TestData extends AnyFlatSpec with IncaMatchers {
   val scope = new QueryScope(Exp.languageMetaInfo)

@@ -3,6 +3,7 @@ package inca.frontend.core
 import inca.IncaMatchers
 import inca.analyzedLangs.Exp
 import inca.compiler.Options
+import inca.frontend.core.tree._
 import inca.runtime.context.QueryScope
 import inca.util.Meta.Scala
 import org.scalatest.flatspec.AnyFlatSpec
@@ -22,7 +23,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
 
   "eval" can "yield a constant" in {
     val module = Module("Test_Cast", Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
+      PatternFunction(None, "integerlits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
         Values("e", TNode(Exp.expTag)),
         Assign(Seq("pi"), Eval(Seq(), Scala(q"Math.PI"))),
         Assert(Neq(Var("pi"), Constant(DoubleLiteral(3.14)))),
@@ -54,7 +55,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
 
   "eval" can "be used to filter" in {
     val module = Module("Test_Cast", Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
+      PatternFunction(None, "integerlits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
         Values("e", TNode(Exp.intTag)),
         Assign(Seq("i"), PathAccess(Var("e"), NamedLink("value"))),
         Assign(Seq("cond"),

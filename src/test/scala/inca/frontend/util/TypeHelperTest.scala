@@ -1,6 +1,6 @@
 package inca.frontend.util
 
-import inca.frontend.core._
+import inca.frontend.core.tree._
 import org.scalatest.funsuite.AnyFunSuite
 
 class TypeHelperTest extends AnyFunSuite{

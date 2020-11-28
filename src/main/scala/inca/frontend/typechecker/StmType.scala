@@ -1,7 +1,6 @@
 package inca.frontend.typechecker
 
-import inca.frontend.core._
-import inca.runtime.context.LanguageMetaInfo
+import inca.frontend.core.tree._
 
 sealed trait StmType {
   def asType: Type = this match {

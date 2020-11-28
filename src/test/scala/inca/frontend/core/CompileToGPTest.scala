@@ -5,11 +5,12 @@ import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
 import inca.backend.ir.{GP, Printer}
 import inca.compiler.{Compiler, Options}
+import inca.frontend.core.tree._
 import org.scalatest.funsuite.AnyFunSuite
 
 class CompileToGPTest extends AnyFunSuite {
 
-  def compileToGP(module: Core.Module): GP.Module = 
+  def compileToGP(module: Module): GP.Module =
     Compiler.compileFun(module, Options(Exp.languageMetaInfo)).ir
   
   test("simple function pattern with return constraint"){
@@ -30,7 +31,7 @@ class CompileToGPTest extends AnyFunSuite {
       None,
       "id",
       List(Param("add", addType)),
-      List(AnnoParam(None, expType)),
+      expType,
       List(
         Body(
           List(
@@ -56,7 +57,7 @@ class CompileToGPTest extends AnyFunSuite {
       None,
       "id",
       List(Param("add", addType)),
-      List(AnnoParam(None, expType)),
+      expType,
       List(
         Body(
           List(
@@ -85,7 +86,7 @@ class CompileToGPTest extends AnyFunSuite {
       None,
       "test",
       List(Param("add", addType)),
-      List(AnnoParam(None, expType)),
+      expType,
       List(
         Body(
           List(
@@ -104,7 +105,7 @@ class CompileToGPTest extends AnyFunSuite {
       None,
       "test",
       List(Param("add", addType)),
-      List(AnnoParam(Some("out"), expType)),
+      expType,
       List(
         Body(
           List(
@@ -124,7 +125,7 @@ class CompileToGPTest extends AnyFunSuite {
       None,
       "test",
       List(Param("add", addType)),
-      List(AnnoParam(None, expType)),
+      expType,
       List(
         Body(
           List(
@@ -144,7 +145,7 @@ class CompileToGPTest extends AnyFunSuite {
       None,
       "test",
       List(Param("add", addType)),
-      List(AnnoParam(None, expType)),
+      expType,
       List(
         Body(
           List(
@@ -164,7 +165,7 @@ class CompileToGPTest extends AnyFunSuite {
       None,
       "test",
       List(Param("add", addType)),
-      List(),
+      TUnit,
       List(
         Body(
           List(
@@ -180,7 +181,7 @@ class CompileToGPTest extends AnyFunSuite {
       None,
       "test",
       List(Param("add", addType)),
-      List(),
+      TUnit,
       List(
         Body(
           List(
@@ -232,7 +233,7 @@ class CompileToGPTest extends AnyFunSuite {
         Seq(),
         Seq(
           ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))),
-          PatternFunction(None, Name("foo"), Seq(), Seq(AnnoParam(None, TScalaInt)), Seq(
+          PatternFunction(None, Name("foo"), Seq(), TScalaInt, Seq(
             Body(Seq(Yield(Var("x"))))
           ))
         )

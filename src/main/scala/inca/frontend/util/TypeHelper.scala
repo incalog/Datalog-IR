@@ -1,7 +1,7 @@
 package inca.frontend.util
 
-import inca.frontend.Frontend
-import inca.frontend.core._
+import inca.compiler.CompilerFrontend
+import inca.frontend.core.tree._
 import inca.runtime.context.LanguageMetaInfo
 import inca.util.Meta.Scala
 
@@ -10,7 +10,7 @@ object TypeHelper {
   import fastparse._
   import ScalaWhitespace._
 
-  private val cp = Frontend.Inca(new LanguageMetaInfo())
+  private val cp = CompilerFrontend.Inca(new LanguageMetaInfo())
 
   private def tNode[_: P]: P[TNode] = P(cp.fullyQualifiedIdentifier.! ~~ ( " with " ~~ cp.fullyQualifiedIdentifier).repX).map {
     case (name, _) => TNode(name)
@@ -19,7 +19,7 @@ object TypeHelper {
   private def typeAnnoHelper[_: P](t: Type): P[Type] =
     P(t.prettyprint).map(_ => t)
 
-  private def tLinked[_: P]: P[TLinked] = P(cp.tAnyLinked | tNode)
+  private def tLinked[_: P]: P[TLinked] = P(cp.tLinked | tNode)
 
   private def tList[_: P]: P[TList] =
     P("List[" ~ tLinked ~ "]").flatMap {

@@ -7,6 +7,7 @@ import inca.runtime.index.MetaElements.{Link => MLink}
 import inca.souffle.Syntax.{Type => _, _}
 import inca.souffle.Util._
 import inca.util.Gensym
+import inca.util.Meta.Scala
 import truechange.{JavaLitType, LitType}
 
 import scala.collection.immutable.MultiDict
@@ -156,7 +157,7 @@ class SouffleToIncaCompiler {
         case Var(name) => param"${scala.meta.Term.Name(name)}: String"
       }.toList
       val funString = q"(..$typedParams) => (${compileEval(exp)}).intern"
-      val computed = Computed(trgVar, Evaluation(params.map((_, TLiteral.String)), TScalaString, funString))
+      val computed = Computed(trgVar, Evaluation(params.map((_, TLiteral.String)), TScalaString, Scala(funString)))
       (trgVar, Seq(computed))
     case _ => throw new IllegalArgumentException(s"TODO $exp not supported")
   }

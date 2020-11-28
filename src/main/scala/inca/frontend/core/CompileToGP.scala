@@ -2,6 +2,7 @@ package inca.frontend.core
 
 import inca.backend.ir.GP
 import inca.frontend.core.CompileToGP.BodyMustFail
+import inca.frontend.core.tree._
 import inca.util.Gensym
 import inca.util.Meta.Scala
 
@@ -28,8 +29,8 @@ class CompileToGP {
     contents.foreach {
       case fun: PatternFunction => generatedPatterns += transform(fun)
       case _: ValDef => // will be inlined
-      case imp: ScalaImport => scalaImports += imp
-      case bd: ScalaBlockDef => blockDefs += bd
+      case imp: ScalaImport => scalaImports += imp.imp
+      case bd: ScalaBlockDef => blockDefs += bd.stat
     }
 
     GP.Module(name.name, imports.map(_.name.name), generatedPatterns.toList, scalaImports.toList, blockDefs.toList)
@@ -60,11 +61,9 @@ class CompileToGP {
     }
 
     val params = fun.params.map { param => GP.Param(param.name.name, transType(param.typ)) }
-    val outParams = fun.outParams.map { param =>
-      val name =
-        if (param.name.isDefined) param.name.get.name
-        else gensym.fresh("out")
-      GP.Param(name, transType(param.typ))
+    val outParams = fun.outParams.map { out =>
+      val name = gensym.fresh("out")
+      GP.Param(name, transType(out))
     }
     val outVars = outParams.map(_.name)
 
@@ -289,11 +288,10 @@ class CompileToGP {
 
       val inVars = bodies.flatMap(_.freeVars).toMap
       val params = inVars.map(kv => Param(kv._1, kv._2.getOrElse(throw new IllegalArgumentException(s"untyped var ${kv._1} in $exp")))).toSeq
-      val outVar = gensym.fresh("aggregand")
-      val allvars = (params.map(_.name.name) :+ outVar).map(GP.Var)
+      val allvars = params.map(p => GP.Var(p.name.name)) :+ GP.Var(gensym.fresh("aggregand"))
 
       val resultType = exp.typ.getOrElse(throw new IllegalArgumentException("untyped aggregate"))
-      val fun = PatternFunction(None, Name(funname), params, Seq(AnnoParam(Some(Name(outVar)), resultType)), bodies)
+      val fun = PatternFunction(None, Name(funname), params, resultType, bodies)
       generatedPatterns += transform(fun)
 
       val aggregation = GP.CustomAggregation(transType(resultType), aggCode, funname, allvars, allvars.size - 1)
@@ -308,7 +306,7 @@ class CompileToGP {
   def transCallArgs(call: Call, args: Seq[Expression])(implicit gensym: Gensym): (Seq[String], Seq[String], Seq[GP.Constraint]) = {
     val (vars, constraints) = args.map(e => transExp(e.ensureCore)).unzip
     val outVars = call.target match {
-      case Some(PatternFunction(_, _, _, outParams, _)) => outParams.map { _ =>
+      case Some(fun@PatternFunction(_, _, _, _, _)) => fun.outParams.map { _ =>
         val argVar = gensym.fresh("arg")
         argVar
       }

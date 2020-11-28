@@ -2,10 +2,12 @@ package inca.frontend.core
 
 import inca.IncaMatchers
 import inca.analyzedLangs.Exp
-import inca.compiler.Options
-import inca.frontend.BaseFrontend
+import inca.compiler.{CompilerFrontend, Options}
+import inca.frontend.core.tree._
 import inca.runtime.context.QueryScope
 import org.scalatest.flatspec.AnyFlatSpec
+
+import scala.language.implicitConversions
 
 class TestCast extends AnyFlatSpec with IncaMatchers {
 
@@ -15,11 +17,11 @@ class TestCast extends AnyFlatSpec with IncaMatchers {
   val two = Constant(IntLiteral(2))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo, new BaseFrontend(_){})
+  val options: Options = Options(scope.langMetaInfo, CompilerFrontend.Core)
   
   "compiler" should "implement cast semantics" in {
     val module = Module("Test_Cast", Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), Seq(AnnoParam(None, TNode(Exp.expTag))), Seq(Body(Seq(
+      PatternFunction(None, "integerlits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
         Values("e", TNode(Exp.expTag)),
         Yield(Cast(Var("e"), TNode(Exp.intTag)))
       ))))

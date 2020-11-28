@@ -2,7 +2,8 @@ package inca.compiler
 
 import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
-import inca.frontend.core._
+import inca.frontend.core.CompileToGP
+import inca.frontend.core.tree._
 import inca.frontend.desugar.Desugar
 import inca.frontend.parser.SourceLocation
 
@@ -12,7 +13,7 @@ case class CompiledFunModule(fun: Module, options: Options) extends CompiledModu
 
   override def sourceLocation: SourceLocation = fun.name
 
-  lazy val typed: Core.Module = {
+  lazy val typed: Module = {
     val frontend = options.frontend
     frontend.typecheck(fun)
     messages ++= frontend.getErrors
@@ -21,7 +22,7 @@ case class CompiledFunModule(fun: Module, options: Options) extends CompiledModu
     fun
   }
 
-  lazy val desugared: Core.Module = {
+  lazy val desugared: Module = {
     val frontend = options.frontend
     val module = Desugar(frontend.allDesugarables)(typed)
     frontend.typecheck(module)

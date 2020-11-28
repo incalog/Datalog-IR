@@ -1,6 +1,6 @@
 package inca.frontend.typechecker
 
-import inca.frontend.core._
+import inca.frontend.core.tree._
 
 import scala.collection.immutable.MultiDict
 
