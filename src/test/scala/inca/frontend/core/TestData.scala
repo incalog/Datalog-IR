@@ -18,7 +18,7 @@ class TestData extends AnyFlatSpec with IncaMatchers {
   "data op" should "support zero-arg data op" in {
     val code =
       """module Test
-        |scala import inca.analyzedData.Nat
+        |`import inca.analyzedData.Nat`
         |def zero(): `Nat.Nat` = {
         |  yield `Nat.Zero`
         |}
@@ -34,7 +34,7 @@ class TestData extends AnyFlatSpec with IncaMatchers {
   "data op" should "support non-zero-arg data op" in {
     val code =
       """module Test
-        |scala import inca.analyzedData.Nat
+        |`import inca.analyzedData.Nat`
         |def one(): `Nat.Nat` = {
         |  yield `Nat.Succ`(`Nat.Zero`)
         |}
@@ -50,7 +50,7 @@ class TestData extends AnyFlatSpec with IncaMatchers {
   "data op" should "support finite enumerations" in {
     val code =
       """module Test
-        |scala import inca.analyzedData.Nat
+        |`import inca.analyzedData.Nat`
         |
         |def range(): `Nat.Nat` = {
         |  yield `Nat.Zero`

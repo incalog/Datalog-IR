@@ -19,8 +19,8 @@ object ExpTyping extends App {
     s"""
        |module ExpTyping
        |
-       |scala import inca.caseStudies.typing.Type
-       |scala import inca.caseStudies.typing.Context
+       |`import inca.caseStudies.typing.Type`
+       |`import inca.caseStudies.typing.Context`
        |
        |def checkSimple(e: $ExpT): `Type` = e match {
        |  case $Int() => yield `Type.Int`

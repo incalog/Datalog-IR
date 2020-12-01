@@ -63,7 +63,7 @@ object CompileToPSystem {
     val myenv = env ++ module.pats.map(p => p.name -> module.name) // makes sure this module's names are found first
     val funs = module.pats.map(compilePattern(module.name, _)(myenv)).toList
 
-    val scalaContent = (module.scalaImports ++ module.scalaBlockDefs).map(_.tree).toList
+    val scalaContent = module.scalaContent.map(_.tree).toList
 
     val name = Term.Name(module.name)
     source"""

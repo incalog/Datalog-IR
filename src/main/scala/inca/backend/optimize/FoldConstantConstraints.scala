@@ -2,8 +2,8 @@ package inca.backend.optimize
 import inca.backend.ir.GP._
 import inca.backend.ir.TypeOps
 import inca.frontend.core.CompileToGP.BodyMustFail
-import inca.frontend.typechecker.ScalaTypeContext
 import inca.runtime.context.LanguageMetaInfo
+import inca.util.Meta.Scala
 
 object FoldConstantConstraints extends Optimization with TypeOps {
 
@@ -11,8 +11,10 @@ object FoldConstantConstraints extends Optimization with TypeOps {
   override def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer = new Optimizer {
 
     override def optimizeModule(module: Module): Module = {
-      module.scalaImports.foreach(registerImport)
-      module.scalaBlockDefs.foreach(registerBlockDef)
+      module.scalaContent.foreach {
+        case Scala(imp: meta.Import) => registerImport(imp)
+        case Scala(stat) => registerBlockDef(stat)
+      }
       super.optimizeModule(module)
     }
 

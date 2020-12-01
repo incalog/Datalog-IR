@@ -77,9 +77,9 @@ class TestAggregate extends AnyFlatSpec with IncaMatchers {
 
   "aggregate" should "support non-invertible joins 2" in {
     val module = Module("Test_Cast", Seq(), Seq(
-      ScalaImport(q"import inca.analyzedData.Nat.sumAgg"),
-      ScalaBlockDef(q"val nine = 9"),
-      ScalaBlockDef(q"object One { val num = 1 }"),
+      ScalaModuleContent(Scala(q"import inca.analyzedData.Nat.sumAgg")),
+      ScalaModuleContent(Scala(q"val nine = 9")),
+      ScalaModuleContent(Scala(q"object One { val num = 1 }")),
       PatternFunction(None, "1_to_10", Seq(), NatTyp, Seq(
         Body(Seq(Yield(EvalCall(succOp, Seq(Eval(Seq(), zeroOp)))))),
         Body(

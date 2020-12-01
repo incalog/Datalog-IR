@@ -1,7 +1,5 @@
 package inca.util
 
-import inca.util.Meta.Scala
-
 import scala.collection.mutable
 import scala.meta.{Defn, Importee, Lit, Pat, Term}
 
@@ -12,11 +10,11 @@ trait ScalaTyper {
   private lazy val toolbox: ToolBox[universe.type] = currentMirror.mkToolBox()
 
   // remember the imports
-  protected var imports: mutable.ListBuffer[Scala[meta.Import]] = mutable.ListBuffer()
+  protected var imports: mutable.ListBuffer[meta.Import] = mutable.ListBuffer()
 
   // remember the code that has already been seen to consider blockdefs and values when typing scala code
   // wanted to use ToolBox.define but it only allows toplevel declarations such as objects and classes
-  protected var seenCode: mutable.ListBuffer[Scala[meta.Stat]] = mutable.ListBuffer()
+  protected var seenCode: mutable.ListBuffer[meta.Stat] = mutable.ListBuffer()
 
   // remember which name are bound by importing
   // TODO name with sourcelocation
@@ -27,8 +25,8 @@ trait ScalaTyper {
 
   def boundNames: Seq[String] = importBoundNames.toSeq ++ toplevelBoundNames
 
-  def registerImport(imp: Scala[meta.Import]): Either[Unit, Throwable] = {
-    imp.tree.importers.head.importees.foreach {
+  def registerImport(imp: meta.Import): Either[Unit, Throwable] = {
+    imp.importers.head.importees.foreach {
       case Importee.Name(n) => importBoundNames += n.value
       case Importee.Rename(_, n) => importBoundNames += n.value
       case _: Importee.Unimport => // nothing
@@ -59,8 +57,8 @@ trait ScalaTyper {
     }
   }
 
-  def registerBlockDef(bd: Scala[meta.Stat]): Unit = {
-    bd.tree match {
+  def registerBlockDef(stat: meta.Stat): Unit = {
+    stat match {
       case Defn.Trait(_, name, _, _, _) =>
         toplevelBoundNames += name.value
       case Defn.Class(_, name, _, _, _) =>
@@ -79,7 +77,7 @@ trait ScalaTyper {
         toplevelBoundNames += name.value
     }
 
-    seenCode += bd
+    seenCode += stat
   }
 
   private def collectVars(pat: meta.Pat): Set[String] = pat match {

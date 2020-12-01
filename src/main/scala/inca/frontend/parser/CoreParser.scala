@@ -6,8 +6,8 @@ import inca.frontend.core._
 import inca.util.Meta.Scala
 
 import scala.language.reflectiveCalls
+import scala.meta.Term
 import scala.meta.parsers.{Parsed, _}
-import scala.meta.{Stat, Term}
 
 /**
   * Parser for the IncA Core language.
@@ -62,7 +62,7 @@ trait CoreParser {
     P("[" ~ typeAnno ~ "]")
 
   /** Visibility parser */
-  protected[frontend] def visibility[_: P]: P[Visibility] = P(privateVisibility | Pass(Public))
+  protected[frontend] def visibility[_: P]: P[Visibility] = P(privateVisibility)
 
   protected[frontend] def privateVisibility[_: P]: P[Visibility] =
     P("private").mapWithLoc(_ => Private)
@@ -190,9 +190,9 @@ trait CoreParser {
   }
 
   protected[frontend] def trailExp[_: P]: P[Expression => Expression] =
-    P("." ~ link).mapWithLocFun[Expression, Expression](l => PathAccess(_, l)) |
     P("." ~ "isInstanceOf" ~ bracketedType).mapWithLocFun[Expression, Expression](ty => InstanceOf(_, ty)) |
     P("." ~ "notInstanceOf" ~ bracketedType).mapWithLocFun[Expression, Expression](ty => NotInstanceOf(_, ty)) |
+    P("." ~ link).mapWithLocFun[Expression, Expression](l => PathAccess(_, l)) |
     P(":" ~ typeAnno).mapWithLocFun[Expression, Expression](ty => Cast(_, ty))
 
   protected[frontend] def atomicExp[_: P]: P[Expression] =
@@ -306,35 +306,35 @@ trait CoreParser {
       moduleContent.rep ~
       End
     ).mapWithLoc { case (name, imports, contents) =>
-      Module(name, imports, contents)
+      Module(name, imports, contents.flatten)
     }
 
   def import_[_: P]: P[Import] =
     P("import" ~ identifier).mapWithLoc(Import)
 
-  def moduleContent[_: P]: P[ModuleContent] =
-    P(patternFunction | valDef | scalaModuleContent)
+  def moduleContent[_: P]: P[Seq[ModuleContent]] =
+    P(patternFunction.map(Seq(_)) | valDef.map(Seq(_)) | scalaModuleContent)
 
 
-  def scalaModuleContent[_: P]: P[ScalaModuleContent] =
-    P("scala " ~ (scalaImport | scalaBlockDef))
+  def scalaModuleContent[_: P]: P[Seq[ModuleContent]] =
+    P("```" ~/ takeCharsUntil("```")).flatMap(s => nativeStatHelper(s, multiple = true)) |
+    P("`" ~ takeCharsUntil("`")).flatMap(s => nativeStatHelper(s, multiple = false))
 
-  def scalaImport[_: P]: P[ScalaModuleContent] =
-    nativeStatHelper(NoCut(scalaparse.Scala.Import))
-      .mapWithLoc { case s: meta.Import => ScalaImport(Scala(s.asInstanceOf[meta.Import])) }
+  def takeCharsUntil[_: P](p: => P[_]): P[String] =
+    p.map(_ => "") | P(SingleChar ~~ takeCharsUntil(p)).map { case (c, str) => c +: str }
 
-  def scalaBlockDef[_: P]: P[ScalaModuleContent] =
-    nativeStatHelper(NoCut(scalaparse.Scala.BlockDef)).mapWithLoc(s => ScalaBlockDef(Scala(s)))
-
-  private def nativeStatHelper[_: P](statParser: => P[_]): P[meta.Stat] =
-    P(statParser.!).flatMap { raw_code =>
-      raw_code.parse[Stat] match {
-        case err: Parsed.Error =>
-          ParserUtils.fail(err.message)
-        case Parsed.Success(code) =>
-          fastparse.Pass(code)
-      }
+  private def nativeStatHelper[_: P](raw_code: String, multiple: Boolean): P[Seq[ModuleContent]] = {
+    meta.dialects.Sbt1(raw_code).parse[meta.Source] match {
+      case err: Parsed.Error =>
+        ParserUtils.fail(err.message)
+      case Parsed.Success(code) =>
+        val stats = code.stats
+        if (!multiple && stats.size != 1)
+          fastparse.Fail(s"Required exactly one statement, but got ${stats.size} in ${code.syntax}")
+        else
+          fastparse.Pass(stats.map(stat => ScalaModuleContent(Scala(stat))))
     }
+  }
 
   protected[frontend] def valDef[_: P]: P[ModuleContent] =
     P(visibility.? ~ "val" ~ identifier ~ (":" ~ typeAnno).? ~ "=" ~ exp).mapWithLoc {

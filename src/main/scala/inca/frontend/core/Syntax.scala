@@ -10,7 +10,6 @@ trait Syntax {
   type Module <: SourceLocation
   type Import <: SourceLocation
   type ModuleContent <: SourceLocation
-  type ScalaModuleContent <: ModuleContent
   type Visibility <: SourceLocation
   type Param <: SourceLocation
   type AnnoParam <: SourceLocation
@@ -39,10 +38,8 @@ trait Syntax {
   def Import(name: Name): Import
 
   def Private: Visibility
-  def Public: Visibility
 
-  def ScalaImport(imp: Scala[meta.Import]): ScalaModuleContent
-  def ScalaBlockDef(stat: Scala[meta.Stat]): ScalaModuleContent
+  def ScalaModuleContent[T <: meta.Stat](imp: Scala[T]): ModuleContent
 
   def ValDef(vis: Option[Visibility], name: Name, typ: Option[Type], exp: Expression): ModuleContent
   def PatternFunction(vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, bodies: Seq[Body]): ModuleContent

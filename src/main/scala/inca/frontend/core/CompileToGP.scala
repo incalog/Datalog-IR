@@ -24,16 +24,17 @@ class CompileToGP {
     gensym.register(module.usedModuleNames.map(_.name))
     gensym.register(module.usedDefNames.map(_.name))
 
-    val scalaImports = ListBuffer[Scala[meta.Import]]()
-    val blockDefs = ListBuffer[Scala[meta.Stat]]()
+    val ScalaModuleContents = ListBuffer[meta.Import]()
+    val blockDefs = ListBuffer[meta.Stat]()
     contents.foreach {
       case fun: PatternFunction => generatedPatterns += transform(fun)
       case _: ValDef => // will be inlined
-      case imp: ScalaImport => scalaImports += imp.imp
-      case bd: ScalaBlockDef => blockDefs += bd.stat
+      case ScalaModuleContent(Scala(imp: meta.Import)) => ScalaModuleContents += imp
+      case ScalaModuleContent(Scala(stat: meta.Stat)) => blockDefs += stat
     }
 
-    GP.Module(name.name, imports.map(_.name.name), generatedPatterns.toList, scalaImports.toList, blockDefs.toList)
+    val scalaContent = ScalaModuleContents.toList ++ blockDefs.toList
+    GP.Module(name.name, imports.map(_.name.name), generatedPatterns.toList, scalaContent.map(Scala.apply))
   }
 
   def transform(fun: PatternFunction): GP.Pattern = {
@@ -57,7 +58,6 @@ class CompileToGP {
 
     val vis = fun.vis.map {
       case Private => GP.Private
-      case Public => GP.Public
     }
 
     val params = fun.params.map { param => GP.Param(param.name.name, transType(param.typ)) }

@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, Public, TAny, TAnyLinked, TList, TLiteral, TNode, TScala, Term, Type, Var, Visibility}
+import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TList, TLiteral, TNode, TScala, Term, Type, Var, Visibility}
 import truechange.JavaLitType
 
 object Printer {
@@ -9,8 +9,7 @@ object Printer {
     "module " +
       module.name + "\n" +
       module.imports.mkString("\n") + "\n" +
-      module.scalaImports.map("scala " + _.syntax).mkString("\n") + "\n" +
-      module.scalaBlockDefs.map("scala " + _.syntax).mkString("\n") + "\n" +
+      module.scalaContent.map(t => "`" + t.syntax + "`").mkString("\n") + "\n" +
       module.pats.map(prettyGraphPattern).mkString("\n")
 
   def prettyGraphPattern(gp: Pattern): String = {
@@ -19,12 +18,10 @@ object Printer {
     header + bodies
   }
 
-  def prettyVis(vis: Option[Visibility]): String =
-    if (vis.isDefined) vis.get match {
-      case Private => "private "
-      case Public => "public "
-    }
-    else ""
+  def prettyVis(vis: Option[Visibility]): String = vis match {
+    case Some(Private) => "private"
+    case None => "public"
+  }
 
   def prettyParam(param: Param): String = s"${param.name}: ${prettyType(param.typ)}"
 

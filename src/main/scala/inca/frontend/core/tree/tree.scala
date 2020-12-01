@@ -18,8 +18,4 @@ package object tree {
     def prettyprint(implicit indent: String): String = "private"
   }
 
-  case object Public extends Visibility {
-    def prettyprint(implicit indent: String): String = "public"
-  }
-
 }

@@ -4,6 +4,7 @@ import inca.backend.ir.GP._
 import inca.backend.ir.TypeOps
 import inca.frontend.core.CompileToGP.BodyMustFail
 import inca.runtime.context.LanguageMetaInfo
+import inca.util.Meta.Scala
 
 import scala.collection.immutable.MultiDict
 
@@ -17,8 +18,10 @@ object InferVarTypes extends Optimization with TypeOps {
     private var funs: Map[Name, Seq[Param]] = _
 
     override def optimizeModule(module: Module): Module = {
-      module.scalaImports.foreach(registerImport)
-      module.scalaBlockDefs.foreach(registerBlockDef)
+      module.scalaContent.foreach {
+        case Scala(imp: meta.Import) => registerImport(imp)
+        case Scala(stat) => registerBlockDef(stat)
+      }
       funs = module.pats.map(p => p.name -> p.params).toMap
       super.optimizeModule(module)
     }

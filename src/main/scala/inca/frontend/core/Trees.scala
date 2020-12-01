@@ -1,9 +1,10 @@
 package inca.frontend.core
 
 import inca.util.Meta
+import inca.util.Meta.Scala
 import truechange.LitType
 
-import scala.meta.{Stat, Term}
+import scala.meta.Term
 
 trait Trees extends Syntax {
   override type Name = tree.Name
@@ -11,7 +12,6 @@ trait Trees extends Syntax {
   override type Module = tree.Module
   override type Import = tree.Import
   override type ModuleContent = tree.ModuleContent
-  override type ScalaModuleContent = tree.ScalaModuleContent
   override type Visibility = tree.Visibility
   override type Param = tree.Param
 
@@ -40,9 +40,7 @@ trait Trees extends Syntax {
 
   override def Import(name: Name): Import = tree.Import(name)
 
-  override def ScalaImport(imp: Meta.Scala[meta.Import]): ScalaModuleContent = tree.ScalaImport(imp)
-
-  override def ScalaBlockDef(stat: Meta.Scala[Stat]): ScalaModuleContent = tree.ScalaBlockDef(stat)
+  override def ScalaModuleContent[T <: meta.Stat](t: Scala[T]): ModuleContent = tree.ScalaModuleContent(t)
 
   override def ValDef(vis: Option[Visibility], name: Name, typ: Option[Type], exp: Expression): ModuleContent =
     tree.ValDef(vis, name, typ, exp)
@@ -71,8 +69,6 @@ trait Trees extends Syntax {
   override def TScala(ty: Meta.Scala[meta.Type]): Type = tree.TScala(ty)
 
   override def Private: tree.Visibility = tree.Private
-
-  override def Public: tree.Visibility = tree.Public
 
   override def Var(name: tree.Name): CoreExpression = tree.Var(name)
 

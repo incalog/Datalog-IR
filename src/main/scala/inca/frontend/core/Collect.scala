@@ -20,7 +20,7 @@ trait Collect[R] {
 
   def transModule(module: Module): Seq[R] = module.content.flatMap {
     case fun: PatternFunction => transFun(fun)
-    case _: ScalaModuleContent => Seq()
+    case _: ScalaModuleContent[_] => Seq()
   }
 
   def transFun(fun: PatternFunction): Seq[R] = {

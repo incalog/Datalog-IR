@@ -23,14 +23,14 @@ class TestFoldConstantConstraints extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, one, one)
         ))
       ))
-    ), Seq(), Seq())
+    ), Seq())
     val optimized1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TScala("Any"))), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one)
         ))
       ))
-    ), Seq(), Seq())
+    ), Seq())
     assertOptimize(optimized1, module1)
 
     val module2 = Module("Test", Seq(), Seq(
@@ -41,14 +41,14 @@ class TestFoldConstantConstraints extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, two, two)
         ))
       ))
-    ), Seq(), Seq())
+    ), Seq())
     val optimized2 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TScala("Any"))), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one)
         ))
       ))
-    ), Seq(), Seq())
+    ), Seq())
     assertOptimize(optimized2, module2)
 
     val module3 = Module("Test", Seq(), Seq(
@@ -60,11 +60,11 @@ class TestFoldConstantConstraints extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, one, two)
         ))
       ))
-    ), Seq(), Seq())
+    ), Seq())
     val optimized3 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TScala("Any"))), Seq(
       ))
-    ), Seq(), Seq())
+    ), Seq())
     assertOptimize(optimized3, module3)
   }
 

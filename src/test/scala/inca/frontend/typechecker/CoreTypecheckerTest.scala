@@ -375,8 +375,10 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   "checkExp" should "type instanceOf correctly" in {
     val vars = Map(Name("x") -> TNode(analyzedLangs.Exp.expTag))
 
-    val instanceOf = parseExp(s"x.isInstanceOf[${TNode(analyzedLangs.Exp.addTag).prettyprint}]")
-    assertResult(TScalaBoolean)(typecheckExp(instanceOf, vars))
+    val str = s"x.isInstanceOf[${TNode(analyzedLangs.Exp.addTag).prettyprint}]"
+    val instanceOf = parseExp(str)
+    val t = typecheckExp(instanceOf, vars)
+    assertResult(TScalaBoolean)(t)
 
     val notInstanceOf = parseExp(s"x.notInstanceOf[${TNode(analyzedLangs.Exp.addTag).prettyprint}]")
     assertResult(TScalaBoolean)(typecheckExp(notInstanceOf, vars))
@@ -462,7 +464,8 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     val assertBool = parseStatement("assert true")
     assertResult(vars)(typecheckStmBindings(assertBool, vars))
 
-    val assertInstanceOf = parseStatement(s"assert x.isInstanceOf[${TNode(analyzedLangs.Exp.addTag).prettyprint}]")
+    val str = s"x.isInstanceOf[${TNode(analyzedLangs.Exp.addTag).prettyprint}]"
+    val assertInstanceOf = parseStatement(s"assert $str")
     assertResult(vars)(typecheckStmBindings(assertInstanceOf, vars))
 
     val assertNotBool = parseStatement("assert 1")
@@ -662,7 +665,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     import meta.quasiquotes._
     val module1 = Module(Name("Test"), Seq(),
       Seq(
-        ScalaImport(q"import inca.analyzedData.Nat.{Nat, Zero}"),
+        ScalaModuleContent(Scala(q"import inca.analyzedData.Nat.{Nat, Zero}")),
         PatternFunction(None, Name("test"), Seq(), TScala("Nat"),
           Seq(Body(
             Yield(Eval(Scala(q"Zero")))
@@ -674,9 +677,9 @@ class CoreTypecheckerTest extends AnyFlatSpec {
 
     val module2 = Module(Name("Test"), Seq(),
       Seq(
-        ScalaBlockDef(q"trait Nat"),
-        ScalaBlockDef(q"case object Zero extends Nat"),
-        ScalaBlockDef(q"case class Succ(pred: Nat) extends Nat"),
+        ScalaModuleContent(Scala(q"trait Nat")),
+        ScalaModuleContent(Scala(q"case object Zero extends Nat")),
+        ScalaModuleContent(Scala(q"case class Succ(pred: Nat) extends Nat")),
         PatternFunction(None, Name("testTwo"), Seq(), TScala("Nat"),
           Seq(Body(
             Yield(Eval(Scala(q"Succ(Zero)")))
@@ -699,10 +702,10 @@ class CoreTypecheckerTest extends AnyFlatSpec {
 
     val module4 = Module(Name("Test"), Seq(),
       Seq(
-        ScalaBlockDef(q"trait Nat"),
-        ScalaBlockDef(q"case object Zero extends Nat"),
-        ScalaBlockDef(q"case class Succ(pred: Nat) extends Nat"),
-        ScalaBlockDef(q"val succ: Nat = Succ(Zero)"),
+        ScalaModuleContent(Scala(q"trait Nat")),
+        ScalaModuleContent(Scala(q"case object Zero extends Nat")),
+        ScalaModuleContent(Scala(q"case class Succ(pred: Nat) extends Nat")),
+        ScalaModuleContent(Scala(q"val succ: Nat = Succ(Zero)")),
         PatternFunction(None, Name("testTwo"), Seq(), TScala("Nat"),
           Seq(Body(
             Yield(Eval(Scala(q"succ")))
@@ -714,10 +717,10 @@ class CoreTypecheckerTest extends AnyFlatSpec {
 
     val module5 = Module(Name("Test"), Seq(),
       Seq(
-        ScalaBlockDef(q"trait Nat"),
-        ScalaBlockDef(q"case object Zero extends Nat"),
-        ScalaBlockDef(q"case class Succ(pred: Nat) extends Nat"),
-        ScalaBlockDef(q"val (succ, succsucc) = (Succ(Zero), Succ(Succ(Zero)))"),
+        ScalaModuleContent(Scala(q"trait Nat")),
+        ScalaModuleContent(Scala(q"case object Zero extends Nat")),
+        ScalaModuleContent(Scala(q"case class Succ(pred: Nat) extends Nat")),
+        ScalaModuleContent(Scala(q"val (succ, succsucc) = (Succ(Zero), Succ(Succ(Zero)))")),
         PatternFunction(None, Name("testTwo"), Seq(), TScala("Succ"),
           Seq(Body(
             Yield(Eval(Scala(q"succsucc")))

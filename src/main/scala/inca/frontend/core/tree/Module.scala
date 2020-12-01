@@ -10,7 +10,7 @@ case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
   def allVars: Map[Name, Option[Type]] = content.flatMap {
     case fun: PatternFunction => fun.allVars
     case v: ValDef => v.exp.freeVars + (v.name -> v.getType)
-    case _: ScalaModuleContent => Map()
+    case _: ScalaModuleContent[_] => Map()
   }.toMap
 
   def usedModuleNames: Seq[Name] = name +: imports.map(_.name)
@@ -18,7 +18,7 @@ case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
   def usedDefNames: Seq[Name] = content.flatMap {
     case fun: PatternFunction => Some(fun.name)
     case valDef: ValDef => Some(valDef.name)
-    case _: ScalaModuleContent => None
+    case _: ScalaModuleContent[_] => None
   }
 
   def prettyprint(implicit indent: String): String = {
@@ -58,19 +58,8 @@ case class ValDef(vis: Option[Visibility], name: Name, typ: Option[Type], exp: E
   def getType: Option[Type] = typ.orElse(exp.typ)
 }
 
-trait ScalaModuleContent extends ModuleContent
-
-case class ScalaImport(imp: Scala[meta.Import]) extends ScalaModuleContent {
-  override def vis: Option[Visibility] = None
-  override def prettyprint(implicit indent: String): String = indent + this.toString
-}
-object ScalaImport {
-  def apply(imp: meta.Import): ScalaImport = new ScalaImport(Scala(imp))
-}
-
-case class ScalaBlockDef(stat: Scala[meta.Stat]) extends ScalaModuleContent {
-  override def vis: Option[Visibility] = {
-
+case class ScalaModuleContent[T <: meta.Stat](t: Scala[T]) extends ModuleContent {
+  def vis: Option[Visibility] = {
     def detVis(mods: List[meta.Mod]): Option[Visibility] = {
       if (mods.contains(meta.Mod.Protected))
         throw new IllegalArgumentException("Scala block definition cannot have protected visibility")
@@ -79,7 +68,7 @@ case class ScalaBlockDef(stat: Scala[meta.Stat]) extends ScalaModuleContent {
       else None
     }
 
-    stat match {
+    t match {
       case valu: meta.Decl.Val => detVis(valu.mods)
       case vari: meta.Decl.Var => detVis(vari.mods)
       case defn: meta.Decl.Def => detVis(defn.mods)
@@ -87,10 +76,9 @@ case class ScalaBlockDef(stat: Scala[meta.Stat]) extends ScalaModuleContent {
       case tr: meta.Defn.Trait => detVis(tr.mods)
       case obj: meta.Defn.Object => detVis(obj.mods)
       case clazz: meta.Defn.Class => detVis(clazz.mods)
+      case _ => None
     }
   }
-  override def prettyprint(implicit indent: String): String = indent + "scala " + this.toString
-}
-object ScalaBlockDef {
-  def apply(stat: meta.Stat): ScalaBlockDef = new ScalaBlockDef(Scala(stat))
+
+  override def prettyprint(implicit indent: String): String = s"$indent`${t.syntax}`"
 }

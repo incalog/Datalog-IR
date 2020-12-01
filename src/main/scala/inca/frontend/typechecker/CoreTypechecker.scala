@@ -32,8 +32,7 @@ trait CoreTypechecker
         content match {
           case fun: PatternFunction => bindFun(fun, importedModule)
           case valDef: ValDef => bindVar(valDef.name, valDef, valDef.getType.get)
-          case _: ScalaImport => // nothing
-          case _: ScalaBlockDef => // nothing
+          case _: ScalaModuleContent[_] => // nothing
         }
       }
     }
@@ -42,8 +41,8 @@ trait CoreTypechecker
     module.content.foreach {
       case fun: PatternFunction => bindFun(fun, module)
       case _: ValDef => // scoped to remainder of module, hence bind later
-      case simp: ScalaImport => registerImport(simp.imp)
-      case bd: ScalaBlockDef => registerBlockDef(bd.stat)
+      case ScalaModuleContent(Scala(imp: meta.Import)) => registerImport(imp)
+      case ScalaModuleContent(Scala(stat: meta.Stat)) => registerBlockDef(stat)
     }
 
     // type scala top-level definitions
@@ -52,7 +51,7 @@ trait CoreTypechecker
     module.content.foreach {
       case fun: PatternFunction => typecheck(fun)
       case vd: ValDef => typecheck(vd)
-      case _: ScalaModuleContent => // nothing
+      case _: ScalaModuleContent[_] => // nothing
     }
   }
 

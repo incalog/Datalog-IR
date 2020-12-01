@@ -28,13 +28,29 @@ class CoreNativeParserTest extends AnyFunSuite {
       s"""module my
                 |import math
                 |import cuda_runtime
-                |scala import java.lang
-                |scala import inca.Compiler
+                |`import java.lang`
+                |`import inca.Compiler`
                 |""".stripMargin,
       Module(
         Name("my"),
         Seq(Import(Name("math")), Import(Name("cuda_runtime"))),
-        Seq(ScalaImport(q"import java.lang"), ScalaImport(q"import inca.Compiler"))
+        Seq(ScalaModuleContent(Scala(q"import java.lang")), ScalaModuleContent(Scala(q"import inca.Compiler")))
+      )
+    )
+
+    testModule(
+      s"""module my
+         |import math
+         |import cuda_runtime
+         |```
+         |import java.lang
+         |import inca.Compiler
+         |```
+         |""".stripMargin,
+      Module(
+        Name("my"),
+        Seq(Import(Name("math")), Import(Name("cuda_runtime"))),
+        Seq(ScalaModuleContent(Scala(q"import java.lang")), ScalaModuleContent(Scala(q"import inca.Compiler")))
       )
     )
 
@@ -44,27 +60,30 @@ class CoreNativeParserTest extends AnyFunSuite {
          |import math
          |import cuda_runtime
          |
-         |scala import inca.Compiler
+         |`import inca.Compiler`
          |
-         |scala val i = 0
-         |scala var v: Int = 0
-         |scala def f() = { Compiler.invoke() }
+         |`val i = 0`
+         |`var v: Int = 0`
+         |`def f() = { Compiler.invoke() }`
          |""".stripMargin,
       Module(
         Name("my"),
         Seq(Import(Name("math")), Import(Name("cuda_runtime"))),
-        ScalaImport(q"import inca.Compiler") +: Seq(
+        Seq(
+          q"import inca.Compiler",
           q"val i = 0",
           q"var v: Int = 0",
-          q"def f() = { Compiler.invoke() }").map(ScalaBlockDef.apply)
+          q"def f() = { Compiler.invoke() }").map(s => ScalaModuleContent(Scala(s)))
       )
     )
 
     testModule(
       s"""module Test
-         |scala trait Nat
-         |scala case object Zero extends Nat
-         |scala case class Succ(pred: Nat) extends Nat
+         |```
+         |trait Nat
+         |case object Zero extends Nat
+         |case class Succ(pred: Nat) extends Nat
+         |```
          |def testTwo(): `Nat` = {
          |  yield `Succ(Zero)`
          |}
@@ -76,7 +95,7 @@ class CoreNativeParserTest extends AnyFunSuite {
           q"trait Nat",
           q"case object Zero extends Nat",
           q"case class Succ(pred: Nat) extends Nat"
-        ).map(ScalaBlockDef.apply)
+        ).map(s => ScalaModuleContent(Scala(s)))
         :+ PatternFunction(None, Name("testTwo"), Seq(), TScala("Nat"),
              Seq(Body(Seq(Yield(Eval(Scala(q"Succ(Zero)")))))))
       )

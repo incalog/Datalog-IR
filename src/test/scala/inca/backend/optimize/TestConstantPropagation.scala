@@ -29,7 +29,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, Var("b"), one)
         ))
       ))
-    ), Seq(), Seq())
+    ), Seq())
     val optimized1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -37,7 +37,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, one, one)
         ))
       ))
-    ), Seq(), Seq())
+    ), Seq())
     assertOptimize(optimized1, module1)
 
     val module2 = Module("Test", Seq(), Seq(
@@ -48,7 +48,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, Var("c"), two)
         ))
       ))
-    ), Seq(), Seq())
+    ), Seq())
     val optimized2 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -57,7 +57,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, two, two)
         ))
       ))
-    ), Seq(), Seq())
+    ), Seq())
     assertOptimize(optimized2, module2)
 
     val module3 = Module("Test", Seq(), Seq(
@@ -69,7 +69,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, Var("b"), Var("c"))
         ))
       ))
-    ), Seq(), Seq())
+    ), Seq())
     val optimized3 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -79,7 +79,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
           Compare(EqComparator, one, two)
         ))
       ))
-    ), Seq(), Seq())
+    ), Seq())
     assertOptimize(optimized3, module3)
   }
 
@@ -96,7 +96,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
           Computed(Var("c"), Evaluation(Seq(Var("b") -> TScalaInt), TScalaBoolean, code))
         ))
       ))
-    ), Seq(), Seq())
+    ), Seq())
     val optimized1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
@@ -104,7 +104,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
           Computed(Var("c"), Evaluation(Seq(one -> TScalaInt), TScalaBoolean, code))
         ))
       ))
-    ), Seq(), Seq())
+    ), Seq())
     assertOptimize(optimized1, module1)
   }
 }

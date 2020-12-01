@@ -42,9 +42,8 @@ class CoreParserTest extends AnyFunSuite {
     def positive(v: Visibility)(t: String): Assertion = testSuccess(parser.visibility(_))(t, v)
     def negative(v: String): Unit = testFailure(parser.visibility(_))(v)
 
-    positive(Public)("public")
     positive(Private)("private")
-    Seq("provate", "  prbplic", "   plsplapic", "bluplic").map(negative)
+    Seq("public", "provate", "  prbplic", "   plsplapic", "bluplic").map(negative)
   }
 
   test("test TIterable") {
@@ -666,11 +665,11 @@ class CoreParserTest extends AnyFunSuite {
     )
 
     testPatternFunction(
-      s"""public def foo(bar : Int, foobar: (Boolean, (Boolean, String))) : (String, Boolean) = {
+      s"""def foo(bar : Int, foobar: (Boolean, (Boolean, String))) : (String, Boolean) = {
                 |   val x = y
                 |}""".stripMargin,
       PatternFunction(
-        Option(Public),
+        None,
         Name("foo"),
         Seq(
           Param(Name("bar"), TLiteral.Int),
@@ -716,7 +715,7 @@ class CoreParserTest extends AnyFunSuite {
       s"""module my
          |import math
          |import cuda_runtime
-         |public def foo(bar: Boolean): Unit = {
+         |def foo(bar: Boolean): Unit = {
          |  val x = y
          |}
          |def bar(foo: Boolean): Unit = {
@@ -727,7 +726,7 @@ class CoreParserTest extends AnyFunSuite {
         Seq(Import(Name("math")), Import(Name("cuda_runtime"))),
         Seq(
           PatternFunction(
-            Option(Public),
+            None,
             Name("foo"),
             Seq(Param(Name("bar"), TLiteral.Bool)),
             TUnit,
