@@ -19,7 +19,9 @@ trait CoreParser {
   final lazy val allKeywords: Set[String] = this.keywords
 
   protected[frontend] def keywords: Set[String] =
-    Set("def", "undef", "true", "false", "aggregate", "count", "_", "unit", "isInstanceOf", "notInstanceOf")
+    Set("module", "import","def", "undef", "true",
+      "false", "aggregate", "count", "_", "unit", "yield",
+      "union", "private", "assert", "fail", "continue")
 
   // Parser ////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /** Parse a variable identifier.
@@ -60,12 +62,10 @@ trait CoreParser {
     P("[" ~ typeAnno ~ "]")
 
   /** Visibility parser */
-  protected[frontend] def visibility[_: P]: P[Visibility] = P(privateVisibility | publicVisivility)
+  protected[frontend] def visibility[_: P]: P[Visibility] = P(privateVisibility | Pass(Public))
 
   protected[frontend] def privateVisibility[_: P]: P[Visibility] =
     P("private").mapWithLoc(_ => Private)
-  protected[frontend] def publicVisivility[_: P]: P[Visibility] =
-    P("public").mapWithLoc(_ => Public)
 
   /** TTuple parser without Unit */
   protected[frontend] def tTuple[_: P]: P[Type] = {

@@ -3,7 +3,6 @@ package inca.runtime
 import java.lang.ref.WeakReference
 import java.util
 
-import inca.runtime.Query.ChangeFeed
 import org.eclipse.viatra.query.runtime.api._
 import org.eclipse.viatra.query.runtime.api.scope.QueryScope
 import org.eclipse.viatra.query.runtime.matchers.backend.{IQueryBackendFactory, QueryEvaluationHint}
@@ -43,7 +42,7 @@ object EnginePool {
 
   def loadQuery(specification: Query.Specification,
                 scope: QueryScope,
-                backendFactory: IQueryBackendFactory): Query.Matcher = try {
+                backendFactory: IQueryBackendFactory): Query.Matcher = {
     val engine = loadEngine(scope, backendFactory)
     engine.getMatcher(specification, null)
   }
