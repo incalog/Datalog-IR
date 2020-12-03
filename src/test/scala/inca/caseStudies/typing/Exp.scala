@@ -22,7 +22,7 @@ object Context {
 @diffable
 sealed trait Exp extends Diffable
 object Exp {
-  case class Int(value: Int) extends Exp
+  case class IntLit(value: Int) extends Exp
   case class Add(e1: Exp, e2: Exp) extends Exp
   case class Var(name: String) extends Exp
   case class Lam(name: String, ty: Type, body: Exp) extends Exp
@@ -30,7 +30,7 @@ object Exp {
   case class Let(name: String, bound: Exp, body: Exp) extends Exp
 
   val expTag = classOf[Exp].getCanonicalName
-  val intTag = classOf[Int].getCanonicalName
+  val intLitTag = classOf[IntLit].getCanonicalName
   val addTag = classOf[Add].getCanonicalName
   val varTag = classOf[Var].getCanonicalName
   val lamTag = classOf[Lam].getCanonicalName
@@ -38,7 +38,7 @@ object Exp {
   val letTag = classOf[Let].getCanonicalName
   val languageMetaInfo: LanguageMetaInfo = {
     val expType = SortType(expTag)
-    val intType = SortType(intTag)
+    val intLitType = SortType(intLitTag)
     val addType = SortType(addTag)
     val varType = SortType(varTag)
     val lamType = SortType(lamTag)
@@ -46,7 +46,7 @@ object Exp {
     val letType = SortType(letTag)
     new LanguageMetaInfo(
       MultiDict[SortType, SortType](
-        intType -> expType,
+        intLitType -> expType,
         varType -> expType,
         addType -> expType,
         lamType -> expType,
@@ -63,7 +63,7 @@ object Exp {
         (letTag->"body") -> expType,
       ),
       Map(
-        (intTag->"value") -> JavaLitType(classOf[java.lang.Integer]),
+        (intLitTag->"value") -> JavaLitType(classOf[java.lang.Integer]),
         (varTag -> "name") -> JavaLitType(classOf[java.lang.String]),
         (lamTag -> "name") -> JavaLitType(classOf[java.lang.String]),
         (lamTag -> "ty") -> JavaLitType(classOf[Type]),

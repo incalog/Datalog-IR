@@ -7,7 +7,7 @@ object ExpTyping extends App {
   val options = Options(Exp.languageMetaInfo)
 
   val ExpT = Exp.expTag
-  val Int = Exp.intTag
+  val IntLit = Exp.intLitTag
   val Add = Exp.addTag
   val Var = Exp.varTag
   val Lam = Exp.lamTag
@@ -23,7 +23,7 @@ object ExpTyping extends App {
        |`import inca.caseStudies.typing.Context`
        |
        |def checkSimple(e: $ExpT): `Type` = e match {
-       |  case $Int() => yield `Type.Int`
+       |  case $IntLit() => yield `Type.Int`
        |  case $Add(e1, e2) =>
        |    if (checkSimple(e1) == `Type.Int` &&
        |        checkSimple(e2) == `Type.Int`)
@@ -33,7 +33,7 @@ object ExpTyping extends App {
        |}
        |
        |def check(ctx: `Context`, e: $ExpT): `Type` = e match {
-       |  case $Int() => yield `Type.Int`
+       |  case $IntLit() => yield `Type.Int`
        |  case $Add(e1, e2) =>
        |    if (check(ctx, e1) == `Type.Int` &&
        |        check(ctx, e2) == `Type.Int`)

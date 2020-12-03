@@ -72,7 +72,7 @@ trait Typechecker extends CoreTypechecker {
         if (meet(expected, matchee, lang) == TNothing)
           warn(s"Type of pattern $fun unrelated type to matchee type $matchee", pattern)
       } else {
-        val funTyString = typecheckScala(s"$fun.unapply _") match {
+        val funTyString = typecheckScala(s"${fun.code.tree}.unapply _") match {
           case Left(ty) => ty
           case Right(err) =>
             error(err.getMessage, pattern)
