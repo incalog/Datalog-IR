@@ -2,8 +2,8 @@ package inca.frontend.extensions
 
 import inca.IncaMatchers
 import inca.analyzedLangs.Exp
-import inca.compiler.{CompilerFrontend, Options}
-import inca.frontend.core.Trees
+import inca.compiler.Options
+import inca.frontend.core
 import inca.frontend.core.tree._
 import inca.frontend.extensions.boolOps.Trees._
 import inca.runtime.context.{LanguageMetaInfo, QueryScope}
@@ -21,9 +21,8 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
   val two = Constant(IntLiteral(2))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo, info => new CompilerFrontend with boolOps.Frontend {
+  val options: Options = Options(scope.langMetaInfo, info => new core.Frontend with boolOps.Frontend {
     override val lang: LanguageMetaInfo = info
-    override val syntax = new Trees with boolOps.Trees
   })
 
   "desugaring" should "eliminate not conditions" in {

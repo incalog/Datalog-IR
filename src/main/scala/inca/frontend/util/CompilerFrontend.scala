@@ -33,7 +33,7 @@
 //  * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
 //  *          Julian Cichorius (jcichori@students.uni-mainz.de)
 //  */
-//object CompilerFrontend {
+//object Frontend {
 //
 //  val USAGE: String = s"""|Usage:
 //                          |sbt run file1.inca file2.inca ...

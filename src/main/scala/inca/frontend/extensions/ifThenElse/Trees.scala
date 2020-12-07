@@ -1,15 +1,7 @@
 package inca.frontend.extensions.ifThenElse
 
-import inca.frontend.core
 import inca.frontend.core.tree._
 import inca.frontend.parser.SourceLocation
-
-trait Trees extends core.Trees with Syntax {
-  override type ElseIf = Trees.ElseIf
-
-  override def IfThenElse(cond: Expression, thn: Body, elseIfs: Seq[ElseIf], els: Option[Body]): Statement = Trees.IfThenElse(cond, thn, elseIfs, els)
-  override def ElseIf(cond: Expression, body: Body): ElseIf = Trees.ElseIf(cond, body)
-}
 
 object Trees {
   case class IfThenElse(cond: Expression, thn: Body, elseIfs: Seq[ElseIf], els: Option[Body]) extends Statement {
