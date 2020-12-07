@@ -1,12 +1,6 @@
 package inca.frontend.extensions.foreach
 
-import inca.frontend.core
-import inca.frontend.core.tree
 import inca.frontend.core.tree._
-
-trait Trees extends core.Trees with Syntax {
-  override def Foreach(name: tree.Name, exp: Expression, body: Body): Statement = Trees.Foreach(name, exp, body)
-}
 
 object Trees {
   case class Foreach(name: Name, exp: Expression, body: Body) extends Statement with Var.Target {

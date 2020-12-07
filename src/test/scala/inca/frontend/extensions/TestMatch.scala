@@ -2,8 +2,8 @@ package inca.frontend.extensions
 
 import inca.IncaMatchers
 import inca.analyzedLangs.Exp
-import inca.compiler.{CompilerFrontend, Options}
-import inca.frontend.core.Trees
+import inca.compiler.Options
+import inca.frontend.core
 import inca.frontend.core.tree._
 import inca.frontend.extensions.match_.Trees._
 import inca.runtime.context.{LanguageMetaInfo, QueryScope}
@@ -19,9 +19,8 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   val two = Constant(IntLiteral(2))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo, info => new CompilerFrontend with match_.Frontend {
+  val options: Options = Options(scope.langMetaInfo, info => new core.Frontend with match_.Frontend {
     override val lang: LanguageMetaInfo = info
-    override val syntax = new Trees with match_.Trees
   })
 
   "desugaring" should "eliminate wildcard pattern" in {

@@ -2,14 +2,14 @@ package inca.frontend.parser
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
-import inca.compiler.CompilerFrontend
+import inca.frontend.core
 import inca.frontend.core.tree._
 import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
 class ExtensionParsersTest extends AnyFunSuite {
-  val parser = CompilerFrontend.Inca(new LanguageMetaInfo())
+  val parser = core.Frontend.Inca(new LanguageMetaInfo())
 
   test("test BoolOps") {
     import inca.frontend.extensions.boolOps.Trees._

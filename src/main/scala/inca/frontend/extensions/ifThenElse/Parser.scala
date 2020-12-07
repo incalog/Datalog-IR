@@ -1,13 +1,12 @@
 package inca.frontend.extensions.ifThenElse
 
+import inca.frontend.core.tree._
+import inca.frontend.extensions.ifThenElse.Trees._
 import inca.frontend.parser.CoreParser
 
 trait Parser extends CoreParser {
   import fastparse.ScalaWhitespace._
   import fastparse._
-
-  override val syntax: Syntax
-  import syntax._
 
   override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("if", "else")
 

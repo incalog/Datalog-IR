@@ -2,7 +2,7 @@ package inca.frontend.parser
 
 import fastparse.ScalaWhitespace._
 import fastparse._
-import inca.frontend.core._
+import inca.frontend.core.tree._
 import inca.util.Meta.Scala
 
 import scala.language.reflectiveCalls
@@ -13,8 +13,6 @@ import scala.meta.parsers.{Parsed, _}
   * Parser for the IncA Core language.
   */
 trait CoreParser {
-  val syntax: Syntax
-  import syntax._
 
   final lazy val allKeywords: Set[String] = this.keywords
 
@@ -163,7 +161,7 @@ trait CoreParser {
 
   /** NamedLink parser */
   protected[frontend] def namedLink[_: P]: P[CoreLink] =
-    P(identifier).mapWithLoc(NamedLink)
+    P(identifier).mapWithLoc(NamedLink.apply)
 
 
   /** Exp parser */
@@ -241,7 +239,7 @@ trait CoreParser {
   protected[frontend] def parensExp[_: P]: P[Expression] = P("(" ~ exp ~ ")")
 
   /** Var parser */
-  protected[frontend] def varExp[_: P]: P[CoreExpression] = P(identifier).mapWithLoc(Var)
+  protected[frontend] def varExp[_: P]: P[CoreExpression] = P(identifier).mapWithLoc(Var.apply)
 
   protected[frontend] def wildcardExp[_: P]: P[CoreExpression] = P("_").mapWithLoc(_ => Wildcard)
 
@@ -282,12 +280,8 @@ trait CoreParser {
 
   /** Body parser */
   protected[frontend] def body[_: P]: P[Body] =
-    P("{" ~ statement.rep ~ "}").mapWithLoc(Body) |
+    P("{" ~ statement.rep ~ "}").mapWithLoc(Body.apply) |
     P(statement).mapWithLoc(s => Body(Seq(s)))
-
-  /** Parses only the AnnoParam Unit. */
-  protected[frontend] def annoParamUnit[_: P]: P[Seq[AnnoParam]] =
-    P("Unit").map(_ => Seq.empty[AnnoParam])
 
   /** PatternFunction parser */
   protected[frontend] def patternFunction[_: P]: P[ModuleContent] = {
@@ -310,7 +304,7 @@ trait CoreParser {
     }
 
   def import_[_: P]: P[Import] =
-    P("import" ~ identifier).mapWithLoc(Import)
+    P("import" ~ identifier).mapWithLoc(Import.apply)
 
   def moduleContent[_: P]: P[Seq[ModuleContent]] =
     P(patternFunction.map(Seq(_)) | valDef.map(Seq(_)) | scalaModuleContent)

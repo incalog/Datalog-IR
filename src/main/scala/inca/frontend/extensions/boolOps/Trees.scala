@@ -1,13 +1,6 @@
 package inca.frontend.extensions.boolOps
 
-import inca.frontend.core
 import inca.frontend.core.tree._
-
-trait Trees extends core.Trees with Syntax {
-  override def Not(cond: Expression): Expression = Trees.Not(cond)
-  override def Or(e1: Expression, e2: Expression): Expression = Trees.Or(e1, e2)
-  override def And(e1: Expression, e2: Expression): Expression = Trees.And(e1, e2)
-}
 
 object Trees {
   case class Not(cond: Expression) extends Expression {
