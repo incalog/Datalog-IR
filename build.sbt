@@ -28,6 +28,8 @@ lazy val inca = (project in file(".")).settings(
     "org.scalatest" %% "scalatest" % "3.1.0" % "test",
 
     "io.circe" %% "circe-parser" % "0.13.0",
+    "io.circe" %% "circe-optics" % "0.13.0"
+
 
   )
 )
