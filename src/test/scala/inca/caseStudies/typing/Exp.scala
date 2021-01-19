@@ -36,6 +36,7 @@ object Exp {
   val lamTag = classOf[Lam].getCanonicalName
   val appTag = classOf[App].getCanonicalName
   val letTag = classOf[Let].getCanonicalName
+
   val languageMetaInfo: LanguageMetaInfo = {
     val expType = SortType(expTag)
     val intLitType = SortType(intLitTag)
@@ -44,6 +45,7 @@ object Exp {
     val lamType = SortType(lamTag)
     val appType = SortType(appTag)
     val letType = SortType(letTag)
+
     new LanguageMetaInfo(
       MultiDict[SortType, SortType](
         intLitType -> expType,
