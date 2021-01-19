@@ -26,6 +26,9 @@ lazy val inca = (project in file(".")).settings(
 
     "de.uni-mainz.informatik.pl" %% "truediff" % "0.1.1" % "test",
     "org.scalatest" %% "scalatest" % "3.1.0" % "test",
+
+    "io.circe" %% "circe-parser" % "0.13.0",
+
   )
 )
 
