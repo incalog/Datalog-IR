@@ -83,7 +83,7 @@ class LanguageMetaInfoTest extends AnyFunSuite {
     var directSupertypes = MultiDict[SortType, SortType]()
 
     val typeCursor : HCursor = types.hcursor
-    val typesList: Vector[Json] = typeCursor.downField("types").focus.flatMap(_.asArray).getOrElse(Vector.empty)
+    val typesList: Vector[Json] = typeCursor.focus.flatMap(_.asArray).getOrElse(Vector.empty)
 
     for(typeDef: Json <- typesList) {
 
