@@ -1,11 +1,10 @@
 package inca.runtime
 
+import inca.analyzedLangs.Exp
 import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
 import truechange.SortType
-
-
 
 import scala.collection.immutable.MultiDict
 
@@ -72,12 +71,9 @@ class LanguageMetaInfoTest extends AnyFunSuite {
   import io.circe._, io.circe.parser._
   import io.circe.optics.JsonPath._
 
-  val rawJson: String = """
-  {
-  "foo": "bar",
-  "baz": 123,
-  "list of stuff": [ 4, 5, 6 ]
-  }"""
+  def extractTypes(types: Vector[Json]): Vector[SortType] =
+  //Todo(mschmi): Handle this case. It should never occur as long as jsons are in the right shape.
+  for(tpe: Json <- types) yield tpe.hcursor.downField("type").as[String] match {case Right(a) => SortType(a) case _ => SortType("Error") }
 
   def getSupertypeMap(types: Json): MultiDict[SortType, SortType] = {
     var directSupertypes = MultiDict[SortType, SortType]()
@@ -107,6 +103,34 @@ class LanguageMetaInfoTest extends AnyFunSuite {
     directSupertypes
   }
 
+  import inca.runtime.index.MetaElements._
+  import truechange.{Link => _, _}
+
+  def getLinks(nodeTypes: Json): Map[Link, Type] = {
+    var linksMap = scala.collection.mutable.Map[Link, Type]()
+
+    val typeCursor : HCursor = nodeTypes.hcursor
+    val nodeTypesList: Vector[Json] = typeCursor.focus.flatMap(_.asArray).getOrElse(Vector.empty)
+
+    for(typedef: Json <- nodeTypesList) {
+      val typeName: String = typedef.hcursor.downField("type").as[String] match {
+        case Right(a) => a
+        //Todo(mschmi): Handle this case. It should never occur as long as jsons are in the right shape.
+        case _ => "Error" }
+
+      val fieldNames: Iterable[String] = typedef.hcursor.downField("fields").keys.getOrElse(Vector.empty)
+
+      for(fieldName: String <- fieldNames) {
+        val fieldTypes: Vector[Json] = typedef.hcursor.downField("fields").downField(fieldName).downField("types").focus.flatMap(_.asArray).getOrElse(Vector.empty)
+        val types: Vector[SortType] = extractTypes(fieldTypes )
+        for (tpe: SortType <- types)
+          linksMap += (typeName, fieldName) -> types(0)
+      }
+    }
+
+    linksMap.toMap
+  }
+
   test("test") {
 
     val source = scala.io.Source.fromFile("/home/moritz/Repos/inca-scala/src/test/scala/inca/analyzedLangs/GoLang.json")
@@ -118,7 +142,8 @@ class LanguageMetaInfoTest extends AnyFunSuite {
 
 
     val directSupertypes = getSupertypeMap(types)
-    print(directSupertypes.sets)
+    println(getLinks(types))
+    println(directSupertypes.sets)
 
     val metaInfo = new LanguageMetaInfo(
       MultiDict(
