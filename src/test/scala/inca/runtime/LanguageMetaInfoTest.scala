@@ -72,8 +72,8 @@ class LanguageMetaInfoTest extends AnyFunSuite {
   import io.circe.optics.JsonPath._
 
   def extractTypes(types: Vector[Json]): Vector[SortType] =
-  //Todo(mschmi): Handle this case. It should never occur as long as jsons are in the right shape.
-  for(tpe: Json <- types) yield tpe.hcursor.downField("type").as[String] match {case Right(a) => SortType(a) case _ => SortType("Error") }
+  for { tpe: Json <- types
+        if tpe.hcursor.downField("named").as[Boolean].getOrElse(false) } yield SortType(tpe.hcursor.downField("type").as[String].getOrElse("Error"))
 
   def getSupertypeMap(types: Json): MultiDict[SortType, SortType] = {
     var directSupertypes = MultiDict[SortType, SortType]()
@@ -106,6 +106,13 @@ class LanguageMetaInfoTest extends AnyFunSuite {
   import inca.runtime.index.MetaElements._
   import truechange.{Link => _, _}
 
+  def getLinkType(multiple: Boolean, required: Boolean, tpe: SortType): Type = (multiple, required) match {
+    case (true, true) => ListType(tpe)
+    case (true, false) => OptionType(ListType(tpe))
+    case (false, true) => tpe
+    case (false, false) => OptionType(tpe)
+  }
+
   def getLinks(nodeTypes: Json): Map[Link, Type] = {
     var linksMap = scala.collection.mutable.Map[Link, Type]()
 
@@ -113,18 +120,20 @@ class LanguageMetaInfoTest extends AnyFunSuite {
     val nodeTypesList: Vector[Json] = typeCursor.focus.flatMap(_.asArray).getOrElse(Vector.empty)
 
     for(typedef: Json <- nodeTypesList) {
-      val typeName: String = typedef.hcursor.downField("type").as[String] match {
-        case Right(a) => a
-        //Todo(mschmi): Handle this case. It should never occur as long as jsons are in the right shape.
-        case _ => "Error" }
+      val typeName: String = typedef.hcursor.downField("type").as[String].getOrElse("Error")
+
 
       val fieldNames: Iterable[String] = typedef.hcursor.downField("fields").keys.getOrElse(Vector.empty)
 
       for(fieldName: String <- fieldNames) {
         val fieldTypes: Vector[Json] = typedef.hcursor.downField("fields").downField(fieldName).downField("types").focus.flatMap(_.asArray).getOrElse(Vector.empty)
-        val types: Vector[SortType] = extractTypes(fieldTypes )
-        for (tpe: SortType <- types)
-          linksMap += (typeName, fieldName) -> types(0)
+        val fieldMultiple = typedef.hcursor.downField("fields").downField(fieldName).downField("multiple").as[Boolean].getOrElse(false)
+        val fieldRequired = typedef.hcursor.downField("fields").downField(fieldName).downField("required").as[Boolean].getOrElse(true)
+        val types: Vector[SortType] = extractTypes(fieldTypes)
+        for (tpe: SortType <- types) {
+          val linkType: Type = getLinkType(fieldMultiple, fieldRequired, tpe)
+          linksMap += (typeName, fieldName) -> linkType
+        }
       }
     }
 
