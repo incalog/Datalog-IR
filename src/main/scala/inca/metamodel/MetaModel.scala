@@ -20,7 +20,11 @@ class MetaModel(typedefs: Json) {
 
   def getLanguageMetaInfo: LanguageMetaInfo = {
     val supertypes: MultiDict[SortType, SortType] = getSupertypeMap(typedefs)
-    val links: (Map[Link, Type], Map[Link, LitType]) = getLinks(typedefs, supertypes)
+
+    val metaInfo = new LanguageMetaInfo(supertypes, null, null)
+
+    val links: (Map[Link, Type], Map[Link, LitType]) = getLinks(typedefs, metaInfo.directNodeSubtypes)
+
 
     new LanguageMetaInfo(supertypes, links._1, links._2)
   }
@@ -83,7 +87,6 @@ class MetaModel(typedefs: Json) {
         }
       }
     }
-
     (linksMap.toMap, litLinksMap.toMap)
   }
 

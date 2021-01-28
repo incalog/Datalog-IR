@@ -7,18 +7,45 @@ import io.circe._
 import org.scalatest.matchers.should.Matchers._
 import io.circe.parser._
 import io.circe.optics.JsonPath._
-import truechange.SortType
+import truechange.{JavaLitType, ListType, OptionType, SortType}
 
 class MetaModelTest extends AnyFunSuite {
 
-  test("parsing subtypes") {
+  test("parsing subtypes 1") {
     val lanMetaModel = new MetaModel("./src/test/scala/inca/metamodel/PartialGoLang.json")
 
     val metaInfo = lanMetaModel.getLanguageMetaInfo
 
     metaInfo.nodeSupertypes.toSet should contain theSameElementsAs Set(SortType("binary_expression") -> SortType("_expression"),
       SortType("call_expression") -> SortType("_expression"))
+  }
 
+  test("parsing subtypes 2") {
+    val lanMetaModel = new MetaModel("./src/test/scala/inca/metamodel/PartialGoLang2.json")
+
+    val metaInfo = lanMetaModel.getLanguageMetaInfo
+    println(metaInfo.directNodeSupertypes.toSet)
+    print(Set(SortType("binary_expression") -> SortType("_expression"),
+      SortType("call_expression") -> SortType("_expression"), SortType("_expression") -> SortType("_simple_statement"),
+      SortType("assignment_statement") -> SortType("_simple_statement")))
+
+    metaInfo.nodeSupertypes.toSet should contain theSameElementsAs Set(SortType("binary_expression") -> SortType("_expression"),
+      SortType("call_expression") -> SortType("_expression"), SortType("_expression") -> SortType("_simple_statement"),
+      SortType("assignment_statement") -> SortType("_simple_statement"))
+  }
+
+  test("parsing links") {
+    val lanMetaModel = new MetaModel("./src/test/scala/inca/metamodel/PartialGoLang.json")
+
+    val metaInfo = lanMetaModel.getLanguageMetaInfo
+
+    print(metaInfo.litLinks)
+
+    metaInfo.litLinks.toSet should contain theSameElementsAs Set(("function_declaration","body") -> JavaLitType(classOf[java.lang.String]))
+    metaInfo.links.toSet should contain theSameElementsAs Set(
+      ("function_declaration", "optionalarg") -> OptionType(SortType("_expression")),
+      ("function_declaration", "optlistarg") -> OptionType(ListType(SortType("_expression"))),
+      ("function_declaration", "listarg") -> ListType(SortType("_expression")))
 
   }
 }
