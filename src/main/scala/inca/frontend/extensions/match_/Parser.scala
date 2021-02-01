@@ -1,14 +1,13 @@
 package inca.frontend.extensions.match_
 
+import inca.frontend.core.tree._
+import inca.frontend.extensions.match_.Trees._
 import inca.frontend.parser.CoreParser
 import inca.frontend.parser.ParserUtils.{nl_!, sp}
 
 trait Parser extends CoreParser {
   import fastparse.ScalaWhitespace._
   import fastparse._
-
-  override val syntax: Syntax
-  import syntax._
 
   override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("match", "case")
 

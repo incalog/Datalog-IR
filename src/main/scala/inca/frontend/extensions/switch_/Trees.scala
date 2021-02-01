@@ -1,11 +1,6 @@
 package inca.frontend.extensions.switch_
 
-import inca.frontend.core
 import inca.frontend.core.tree._
-
-trait Trees extends core.Trees with Syntax {
-  override def Switch(bodies: Seq[Body]): Statement = Trees.Switch(bodies)
-}
 
 object Trees {
   case class Switch(bodies: Seq[Body]) extends Statement {
