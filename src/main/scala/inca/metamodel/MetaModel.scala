@@ -10,31 +10,23 @@ import io.circe._
 import io.circe.parser._
 
 
-class MetaModel(typedefs: Json) {
+class MetaModel(nodeTypes: Json, literalIdentifiers: Vector[String]) {
 
-  def this(path: String) = this({
-    val source = scala.io.Source.fromFile(path)
+  def this(metaModelPath: String, literalIdentifiersPath: String) = this({
+    val source = scala.io.Source.fromFile(metaModelPath)
     val lines = try source.getLines mkString "\n" finally source.close()
-    parse(lines).getOrElse(Json.Null)})
+    parse(lines).getOrElse(Json.Null)}, {
+    val source = scala.io.Source.fromFile(literalIdentifiersPath)
+    try source.getLines.toVector finally source.close()})
 
 
-  def getLanguageMetaInfo: LanguageMetaInfo = {
-
-    val supertypes: MultiDict[SortType, SortType] = getSupertypeMap(typedefs)
-
-    val metaInfo = new LanguageMetaInfo(supertypes, null, null)
-
-    val links: (Map[Link, Type], Map[Link, LitType]) = getLinks(typedefs, metaInfo.directNodeSubtypes)
+  def getLanguageMetaInfo: LanguageMetaInfo = new LanguageMetaInfo(getSupertypeMap, getLinks._1, getLinks._2)
 
 
-    new LanguageMetaInfo(supertypes, links._1, links._2)
-  }
-
-
-  private def getSupertypeMap(types: Json): MultiDict[SortType, SortType] = {
+  private def getSupertypeMap: MultiDict[SortType, SortType] = {
     var directSupertypes = MultiDict[SortType, SortType]()
 
-    val typeCursor : HCursor = types.hcursor
+    val typeCursor : HCursor = nodeTypes.hcursor
 
     val typesList: Vector[Json] = typeCursor.focus.flatMap(_.asArray).getOrElse(Vector.empty)
 
@@ -54,9 +46,10 @@ class MetaModel(typedefs: Json) {
     directSupertypes
   }
 
-  private def getLinks(nodeTypes: Json, supertypeMap: MultiDict[SortType, SortType]): (Map[Link, Type], Map[Link, LitType]) = {
+  private def getLinks: (Map[Link, Type], Map[Link, LitType]) = {
     var linksMap = scala.collection.mutable.Map[Link, Type]()
     var litLinksMap = scala.collection.mutable.Map[Link, LitType]()
+
 
     val typeCursor : HCursor = nodeTypes.hcursor
     val nodeTypesList: Vector[Json] = typeCursor.focus.flatMap(_.asArray).getOrElse(Vector.empty)
@@ -71,7 +64,7 @@ class MetaModel(typedefs: Json) {
         val fieldTypes: Vector[Json] = typedef.hcursor.downField("fields").downField(fieldName).downField("types").focus.flatMap(_.asArray).getOrElse(Vector.empty)
         val fieldMultiple = typedef.hcursor.downField("fields").downField(fieldName).downField("multiple").as[Boolean].getOrElse(false)
         val fieldRequired = typedef.hcursor.downField("fields").downField(fieldName).downField("required").as[Boolean].getOrElse(true)
-        val types: Vector[Either[String, SortType]] = extractTypes(fieldTypes, supertypeMap)
+        val types: Vector[Either[String, SortType]] = extractTypes(fieldTypes)
         for (tpe: Either[String, SortType] <- types) {
           getNewLink(nodeTypeName, tpe, fieldName, fieldMultiple, fieldRequired) match {
             case Left(litLink) => litLinksMap += litLink
@@ -87,7 +80,7 @@ class MetaModel(typedefs: Json) {
         val childRequired = typedef.hcursor.downField("children").downField("required").as[Boolean].getOrElse(true)
         val childTypes: Vector[Json] = typedef.hcursor.downField("children").downField("types").focus.flatMap(_.asArray).getOrElse(Vector.empty)
 
-        val types: Vector[Either[String, SortType]] = extractTypes(childTypes, supertypeMap)
+        val types: Vector[Either[String, SortType]] = extractTypes(childTypes)
         val childNames: Vector[String] = types.indices.map(_.toString).toVector
 
         for ((tpe: Either[String, SortType], fieldName: String) <- types.zip(childNames)) {
@@ -103,23 +96,21 @@ class MetaModel(typedefs: Json) {
 
   private def getNewLink(nodeTypeName: String, fieldType: Either[String, SortType], fieldName: String, multiple: Boolean, required: Boolean): Either[(Link, JavaLitType), (Link, Type)] = {
     fieldType match {
-      case Right(sortType) => {
+      case Right(sortType) =>
         val linkType: Type = getLinkType(multiple, required, sortType)
         Right((nodeTypeName, fieldName) -> linkType)
-      }
-      case Left(_) => {
+      case Left(_) =>
         //todo: need to annotate with 'optional' flags here?
         //val linkType: LitType = getLinkType(fieldMultiple, fieldRequired, SortType(lit))
         Left((nodeTypeName, fieldName) -> JavaLitType(classOf[java.lang.String]))
-      }
     }
   }
 
-  private def extractTypes(types: Vector[Json], supertypes: MultiDict[SortType, SortType]): Vector[Either[String, SortType]] =
+  private def extractTypes(types: Vector[Json]): Vector[Either[String, SortType]] =
     for { tpe: Json <- types
           if tpe.hcursor.downField("named").as[Boolean].getOrElse(false) } yield {
       val typeName: String = tpe.hcursor.downField("type").as[String].getOrElse("Error")
-      if(supertypes.sets.get(SortType(typeName)).isEmpty)
+      if(literalIdentifiers.contains(typeName))
       //todo: use JavaLitType?
       Left(typeName)
       else
