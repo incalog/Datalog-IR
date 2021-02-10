@@ -76,20 +76,13 @@ class MetaModel(typedefs: Json) {
         val fieldRequired = typedef.hcursor.downField("fields").downField(fieldName).downField("required").as[Boolean].getOrElse(true)
         val types: Vector[Either[String, SortType]] = extractTypes(fieldTypes, supertypeMap)
         for (tpe: Either[String, SortType] <- types) {
-          tpe match {
-            case Right(sort) => {
-              val linkType: Type = getLinkType(fieldMultiple, fieldRequired, sort)
-              linksMap += (nodeTypeName, fieldName) -> linkType
-            }
-            case Left(lit) => {
-              //todo: use right representation for literals
-              //val linkType: LitType = getLinkType(fieldMultiple, fieldRequired, SortType(lit))
-              litLinksMap += (nodeTypeName, fieldName) -> JavaLitType(classOf[java.lang.String])
-            }
+          getNewLink(nodeTypeName, tpe, fieldName, fieldMultiple, fieldRequired) match {
+            case Left(litLink) => litLinksMap += litLink
+            case Right(sortTypeLink) => linksMap += sortTypeLink
+          }
           }
 
         }
-      }
 
 
       if (typedef.hcursor.downField("children").keys.getOrElse(Vector.empty).nonEmpty) {
@@ -100,8 +93,8 @@ class MetaModel(typedefs: Json) {
         val types: Vector[Either[String, SortType]] = extractTypes(childTypes, supertypeMap)
         val childNames: Vector[String] = types.indices.map(_.toString).toVector
 
-        for ((tpe: Either[String, SortType], name: String) <- types.zip(childNames)) {
-           getNewLink(nodeTypeName, tpe, name, childMultiple, childRequired) match {
+        for ((tpe: Either[String, SortType], fieldName: String) <- types.zip(childNames)) {
+           getNewLink(nodeTypeName, tpe, fieldName, childMultiple, childRequired) match {
              case Left(litLink) => litLinksMap += litLink
              case Right(sortTypeLink) => linksMap += sortTypeLink
            }
