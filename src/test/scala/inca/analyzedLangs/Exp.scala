@@ -32,6 +32,7 @@ object Exp {
   val notTag = classOf[Not].getCanonicalName
   val manyTag = classOf[Many].getCanonicalName
   val letTag = classOf[Let].getCanonicalName
+
   val languageMetaInfo: LanguageMetaInfo = {
     val expType = SortType(expTag)
     val intType = SortType(intTag)

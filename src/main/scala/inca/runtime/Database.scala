@@ -47,9 +47,6 @@ class Database(
   private[runtime] val linkListFirstInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListFirstKey)
   private[runtime] val linkListNextInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListNextKey)
 
-  // URI -> Map[Link, PrimitiveValue]
-
-
   private[runtime] val dynamicIndices: Map[DynamicKey, DynamicIndex] = _dynamicIndices.map { fact =>
     val ix = fact.makeIndex(this)
     ix.key.asInstanceOf[DynamicKey] -> ix
