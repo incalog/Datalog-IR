@@ -1,7 +1,5 @@
 package inca.metamodel
 
-import fastparse.Parsed
-import fastparse.Parsed.Success
 import inca.runtime.context.LanguageMetaInfo
 import inca.runtime.index.MetaElements.Link
 import io.circe.Json
@@ -10,7 +8,6 @@ import truechange.{JavaLitType, ListType, LitType, OptionType, SortType, Type}
 import scala.collection.immutable.MultiDict
 import io.circe._
 import io.circe.parser._
-import io.circe.optics.JsonPath._
 
 
 class MetaModel(typedefs: Json) {
