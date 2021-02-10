@@ -24,12 +24,8 @@ class MetaModelTest extends AnyFunSuite {
     val lanMetaModel = new MetaModel("./src/test/scala/inca/metamodel/PartialGoLang2.json")
 
     val metaInfo = lanMetaModel.getLanguageMetaInfo
-    println(metaInfo.directNodeSupertypes.toSet)
-    print(Set(SortType("binary_expression") -> SortType("_expression"),
-      SortType("call_expression") -> SortType("_expression"), SortType("_expression") -> SortType("_simple_statement"),
-      SortType("assignment_statement") -> SortType("_simple_statement")))
 
-    metaInfo.nodeSupertypes.toSet should contain theSameElementsAs Set(SortType("binary_expression") -> SortType("_expression"),
+    metaInfo.directNodeSupertypes.toSet should contain theSameElementsAs Set(SortType("binary_expression") -> SortType("_expression"),
       SortType("call_expression") -> SortType("_expression"), SortType("_expression") -> SortType("_simple_statement"),
       SortType("assignment_statement") -> SortType("_simple_statement"))
   }
@@ -38,8 +34,6 @@ class MetaModelTest extends AnyFunSuite {
     val lanMetaModel = new MetaModel("./src/test/scala/inca/metamodel/PartialGoLang.json")
 
     val metaInfo = lanMetaModel.getLanguageMetaInfo
-
-    print(metaInfo.litLinks)
 
     metaInfo.litLinks.toSet should contain theSameElementsAs Set(("function_declaration","body") -> JavaLitType(classOf[java.lang.String]))
     metaInfo.links.toSet should contain theSameElementsAs Set(

@@ -45,7 +45,7 @@ lazy val souffle_importer = (project in file("souffle-importer")).dependsOn(inca
     "de.uni-mainz.informatik.pl" %% "truechange" % "0.1.1",
     "org.eclipse.collections" % "eclipse-collections" % "10.4.0",
 
-    "de.uni-mainz.informatik.pl" %% "truediff" % "0.1.1" % "test",
+    "de.uni-mainz.informatik.pl" %% "\n    val digest = Hashable.mkDigest" % "0.1.1" % "test",
     "org.eclipse.emf" % "org.eclipse.emf.ecore" % "2.23.0" % "test",
   )
 )

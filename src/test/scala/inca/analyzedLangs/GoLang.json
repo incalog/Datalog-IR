@@ -1066,7 +1066,7 @@
           "required": false,
           "types": [
             {
-              "type": "block",
+              "type": "block"
               "named": true
             }
           ]
