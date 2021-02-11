@@ -71,7 +71,6 @@ class MetaModel(nodeTypes: Json, literalIdentifiers: Vector[String]) {
             case Right(sortTypeLink) => linksMap += sortTypeLink
           }
           }
-
         }
 
 
@@ -97,12 +96,9 @@ class MetaModel(nodeTypes: Json, literalIdentifiers: Vector[String]) {
   private def getNewLink(nodeTypeName: String, fieldType: Either[String, SortType], fieldName: String, multiple: Boolean, required: Boolean): Either[(Link, JavaLitType), (Link, Type)] = {
     fieldType match {
       case Right(sortType) =>
-        val linkType: Type = getLinkType(multiple, required, sortType)
-        Right((nodeTypeName, fieldName) -> linkType)
+        Right((nodeTypeName, fieldName) -> getLinkType(multiple, required, sortType))
       case Left(_) =>
-        //todo: need to annotate with 'optional' flags here?
-        //val linkType: LitType = getLinkType(fieldMultiple, fieldRequired, SortType(lit))
-        Left((nodeTypeName, fieldName) -> JavaLitType(classOf[java.lang.String]))
+        Left((nodeTypeName, fieldName) -> getLitLinkType(multiple, required))
     }
   }
 
@@ -111,7 +107,6 @@ class MetaModel(nodeTypes: Json, literalIdentifiers: Vector[String]) {
           if tpe.hcursor.downField("named").as[Boolean].getOrElse(false) } yield {
       val typeName: String = tpe.hcursor.downField("type").as[String].getOrElse("Error")
       if(literalIdentifiers.contains(typeName))
-      //todo: use JavaLitType?
       Left(typeName)
       else
       Right(SortType(typeName))
@@ -122,6 +117,13 @@ class MetaModel(nodeTypes: Json, literalIdentifiers: Vector[String]) {
     case (true, false) => OptionType(ListType(tpe))
     case (false, true) => tpe
     case (false, false) => OptionType(tpe)
+  }
+
+  private def getLitLinkType(multiple: Boolean, required: Boolean): JavaLitType = (multiple, required) match {
+    case (true, true) => JavaLitType(classOf[Option[String]])
+    case (true, false) => JavaLitType(classOf[Option[List[String]]])
+    case (false, true) => JavaLitType(classOf[String])
+    case (false, false) => JavaLitType(classOf[Option[String]])
   }
 }
 
