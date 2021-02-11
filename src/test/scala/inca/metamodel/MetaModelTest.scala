@@ -52,7 +52,7 @@ class MetaModelTest extends AnyFunSuite {
     metaInfo.litLinks.toSet should contain theSameElementsAs Set(
       ("function_declaration","name")       -> JavaLitType(classOf[String]),
       ("function_declaration","parameters") -> JavaLitType(classOf[String]),
-      ("otherNode","litarg")                -> JavaLitType(classOf[String]))
+      ("otherNode","litarg")                -> JavaLitType(classOf[Option[String]]))
 
     metaInfo.links.toSet should contain theSameElementsAs Set(
       ("otherNode","body") -> OptionType(SortType("block")), ("function_declaration","body") -> OptionType(ListType(SortType("block"))), ("function_declaration","result") -> OptionType(SortType("parameter_list")))
@@ -76,7 +76,10 @@ class MetaModelTest extends AnyFunSuite {
 
     val metaInfo = lanMetaModel.getLanguageMetaInfo
 
-    metaInfo.litLinks.toSet should contain theSameElementsAs Set(("import_spec_list","0") -> JavaLitType(classOf[String]),
+    print(metaInfo.litLinks)
+
+
+    metaInfo.litLinks.toSet should contain theSameElementsAs Set(("import_spec_list","0") -> JavaLitType(classOf[Option[List[String]]]),
       ("import_declaration","2") -> JavaLitType(classOf[String]))
 
 
