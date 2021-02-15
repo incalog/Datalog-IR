@@ -1,7 +1,7 @@
 package inca.compiler
 
-import inca.frontend.core.Frontend
-import inca.frontend.{core, extensions}
+import inca.frontend_old.core.Frontend
+import inca.frontend_old.{core, extensions}
 import inca.runtime.context.LanguageMetaInfo
 
 trait CompilerFrontend extends Frontend {

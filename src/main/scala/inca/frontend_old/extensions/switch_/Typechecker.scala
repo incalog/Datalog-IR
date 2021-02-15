@@ -1,0 +1,18 @@
+package inca.frontend_old.extensions.switch_
+
+import inca.frontend_old.core.tree._
+import inca.frontend_old.extensions.switch_.Trees._
+import inca.frontend_old.typechecker.{CoreTypechecker, NoYield, StmType}
+
+trait Typechecker extends CoreTypechecker {
+  override protected def typecheckInternal(stm: Statement, mustYield: Boolean): StmType = stm match {
+    case Switch(bodies) =>
+      if (bodies.isEmpty) {
+        error("empty switch statements are not allowed", stm)
+        NoYield
+      } else
+        bodies.map(typecheck(_, mustYield)).reduce(stmMeet(_, _, lang))
+
+    case _ => super.typecheckInternal(stm, mustYield)
+  }
+}

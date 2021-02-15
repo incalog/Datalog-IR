@@ -1,0 +1,60 @@
+package inca.frontend_old.extensions.evalCall
+
+import inca.frontend_old.core.tree._
+import inca.frontend_old.extensions.evalCall.Trees._
+import inca.frontend_old.typechecker.CoreTypechecker
+import inca.frontend_old.util.TypeHelper
+import inca.util.Meta.Scala
+
+trait Typechecker extends CoreTypechecker {
+  override protected def typecheckInternal(exp: Expression, anno: Option[Type]): Type = exp match {
+    case EvalCall(fun, args) =>
+      val typString = typecheckScala(fun.code.syntax) match {
+        case Left(typ) if typ.endsWith(".type") =>
+          typecheckScala(s"${fun.code.syntax}.apply _") match {
+            case Left(applyTyp) => applyTyp
+            case Right(err) =>
+              error(err.getMessage, exp)
+              "Any"
+          }
+        case Left(typ) =>
+          typ
+        case Right(err) =>
+          error(err.getMessage, exp)
+          "Any"
+      }
+
+      import scala.meta.parsers._
+      val (params, result) = typString.parse[meta.Type].get match {
+        case meta.Type.Function(params, result) =>
+          (params, result)
+        case ty =>
+          (Seq(), ty)
+      }
+
+      if (params.size != args.size) {
+        error(s"Function $fun expects ${params.size} arguments, but found ${args.size} arguments in call", exp)
+      }
+
+      params.zipAll(args, null, null) foreach {
+        case (null, arg) =>
+          typecheck(arg)
+        case (param, null) =>
+        // nothing
+        case (param, arg) =>
+          val argTy = typecheck(arg)
+          TypeHelper.decode(param) match {
+            case Right(paramTy) =>
+              if (!subtype(argTy, paramTy, lang)) {
+                error(s"Cannot pass argument of type $argTy to $param of type $paramTy", arg)
+              }
+            case Left(msg) =>
+              error(msg, exp)
+          }
+      }
+
+      TScala(Scala(result))
+
+    case _ => super.typecheckInternal(exp, anno)
+  }
+}

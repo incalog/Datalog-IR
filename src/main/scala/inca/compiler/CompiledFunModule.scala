@@ -2,10 +2,10 @@ package inca.compiler
 
 import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
-import inca.frontend.core.CompileToGP
-import inca.frontend.core.tree._
-import inca.frontend.desugar.Desugar
-import inca.frontend.parser.SourceLocation
+import inca.frontend_old.core.CompileToGP
+import inca.frontend_old.core.tree._
+import inca.frontend_old.desugar.Desugar
+import inca.frontend_old.parser.SourceLocation
 
 case class CompiledFunModule(fun: Module, options: Options) extends CompiledModule {
 

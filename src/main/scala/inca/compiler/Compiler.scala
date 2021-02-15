@@ -1,7 +1,7 @@
 package inca.compiler
 
 import inca.backend.ir.GP
-import inca.frontend.core
+import inca.frontend_old.core
 
 object Compiler {
 

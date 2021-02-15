@@ -2,7 +2,7 @@ package inca
 
 import inca.backend.ir.GP
 import inca.compiler.{CompiledModule, Options}
-import inca.frontend.core.tree.Module
+import inca.frontend_old.core.tree.Module
 import inca.runtime.context.QueryScope
 import inca.runtime.{EnginePool, Query}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
