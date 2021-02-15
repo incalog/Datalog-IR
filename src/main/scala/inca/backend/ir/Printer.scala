@@ -13,7 +13,7 @@ object Printer {
       module.pats.map(prettyGraphPattern).mkString("\n")
 
   def prettyGraphPattern(gp: Pattern): String = {
-    val header = prettyVis(gp.vis) + gp.name + gp.params.map(prettyParam).mkString("(", ", ", ")")
+    val header = prettyVis(gp.vis) + " " + gp.name + gp.params.map(prettyParam).mkString("(", ", ", ")")
     val bodies = gp.bodies.map(prettyAlternative).mkString(" {\n", "\n} or {\n", "\n}")
     header + bodies
   }

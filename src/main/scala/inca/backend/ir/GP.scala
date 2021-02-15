@@ -79,6 +79,9 @@ object GP {
   case object EqComparator extends Comparator
   case object NeqComparator extends Comparator
 
+  def Eq(lhs: Term, rhs: Term): Compare = Compare(EqComparator, lhs, rhs)
+  def Neq(lhs: Term, rhs: Term): Compare = Compare(NeqComparator, lhs, rhs)
+
   sealed trait Term
   case class Var(name: Name) extends Term {
     private[backend] var typ: Option[Type] = None
@@ -103,6 +106,8 @@ object GP {
   case class BooleanLiteral(v: Boolean) extends Literal {
     override def typ: Type = TScalaBoolean
   }
+  def True: Constant = Constant(BooleanLiteral(true))
+  def False: Constant = Constant(BooleanLiteral(false))
 
   sealed trait Computation
   case class Evaluation(args: Seq[(Term,Type)], resultType: Type, code: Scala[meta.Term.Function]) extends Computation
