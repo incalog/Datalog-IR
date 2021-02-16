@@ -2,10 +2,9 @@ package inca.frontend_old.extensions
 
 import inca.IncaMatchers
 import inca.analyzedLangs.Exp
-import inca.compiler.{CompilerFrontend, Options}
-import inca.frontend_old.core.Trees
+import inca.compiler.Options
+import inca.frontend_old.core
 import inca.frontend_old.core.tree._
-import inca.frontend_old.extensions
 import inca.frontend_old.extensions.ifThenElse.Trees._
 import inca.runtime.context.{LanguageMetaInfo, QueryScope}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -20,9 +19,8 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
   val four = Constant(IntLiteral(4))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo, info => new CompilerFrontend with ifThenElse.Frontend {
+  val options: Options = Options(scope.langMetaInfo, info => new core.Frontend with ifThenElse.Frontend {
     override val lang: LanguageMetaInfo = info
-    override val syntax = new Trees with extensions.ifThenElse.Trees
   })
 
   "desugaring" should "eliminate if-then-else" in {

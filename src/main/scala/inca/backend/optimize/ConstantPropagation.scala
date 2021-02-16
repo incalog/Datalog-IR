@@ -7,6 +7,7 @@ import inca.runtime.context.LanguageMetaInfo
 object ConstantPropagation extends Optimization {
 
   override def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer = new Optimizer {
+
     override def optimizePattern(pat: Pattern): Seq[Pattern] = {
       val unsubstitutable = pat.params.map(_.name).toSet
       val newbodies = pat.bodies.map(propagateConstants(_, unsubstitutable))

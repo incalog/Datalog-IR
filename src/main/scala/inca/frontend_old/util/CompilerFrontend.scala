@@ -1,10 +1,10 @@
-//package inca.frontend.util
+//package inca.frontend_old.util
 //
 //import java.io.FileNotFoundException
 //
 //import fastparse.Parsed.{Failure, Success}
-//import inca.frontend.Frontend
-//import inca.frontend.core.Core
+//import inca.frontend_old.Frontend
+//import inca.frontend_old.core.Core
 //import inca.runtime.context.LanguageMetaInfo
 //
 //import scala.collection.mutable
@@ -33,7 +33,7 @@
 //  * @author  Ronja Schnur (rschnur@students.uni-mainz.de)
 //  *          Julian Cichorius (jcichori@students.uni-mainz.de)
 //  */
-//object CompilerFrontend {
+//object Frontend {
 //
 //  val USAGE: String = s"""|Usage:
 //                          |sbt run file1.inca file2.inca ...

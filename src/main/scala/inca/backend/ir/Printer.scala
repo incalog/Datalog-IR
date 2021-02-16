@@ -86,7 +86,8 @@ object Printer {
     case GP.CountAggregation(patName, args) =>
       s"${prettyTerm(lhs)} == count $patName(${args.map(prettyTerm).mkString(",")})"
     case GP.Evaluation(args, returnType, code) =>
-      val syntax = code.syntax
+      val prettyArgs = args.map { case (t, ty) => s"${prettyTerm(t)}: ${prettyType(ty)}"}.mkString(", ")
+      val syntax = s"(${code.syntax})($prettyArgs)"
       val indented = syntax.replace("\n", "\n\t\t")
       s"${prettyTerm(lhs)} == `$indented`: ${prettyType(returnType)}"
     case GP.CustomAggregation(typ, agg, patName, args, aggregatedColumn) =>

@@ -1,29 +1,9 @@
 package inca.frontend_old.extensions.match_
 
-import inca.frontend_old.core
-import inca.frontend_old.core.tree
 import inca.frontend_old.core.tree._
 import inca.frontend_old.parser.SourceLocation
 import inca.frontend_old.typechecker.Typeable
 import inca.util.Meta
-
-trait Trees extends core.Trees with Syntax {
-  override type Case = Trees.Case
-  override type Pattern = Trees.Pattern
-  override type PatternBinding = Trees.PatternBinding
-
-  override def Match(matchee: Expression, cases: Seq[Case]): Statement = Trees.Match(matchee, cases)
-  override def Case(pattern: Pattern, body: Body): Case = Trees.Case(pattern, body)
-  override def PatternBinding(field: tree.Name, pattern: Pattern): PatternBinding = Trees.PatternBinding(field, pattern)
-
-  override def NodePattern(c: TNode, bindings: Seq[PatternBinding]): Pattern = Trees.NodePattern(c, bindings)
-  override def ScalaPattern(fun: Eval, noArgs: Boolean, args: Seq[Pattern]): Pattern = Trees.ScalaPattern(fun, noArgs, args)
-  override def TuplePattern(pats: Seq[Pattern]): Pattern = Trees.TuplePattern(pats)
-  override def VarPattern(name: tree.Name): Pattern = Trees.VarPattern(name)
-  override def NamedPattern(name: tree.Name, pat: Pattern): Pattern = Trees.NamedPattern(name, pat)
-  override def WildcardPattern: Pattern = Trees.WildcardPattern
-  override def LiteralPattern(v: Literal): Pattern = Trees.LiteralPattern(v)
-}
 
 object Trees {
   case class Match(matchee: Expression, cases: Seq[Case]) extends Statement {

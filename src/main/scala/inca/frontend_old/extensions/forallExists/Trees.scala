@@ -1,12 +1,6 @@
 package inca.frontend_old.extensions.forallExists
 
-import inca.frontend_old.core
 import inca.frontend_old.core.tree._
-
-trait Trees extends core.Trees with Syntax {
-  override def Forall(name: Name, exp: Expression, body: Body): Statement = Trees.Forall(name, exp, body)
-  override def Exists(name: Name, exp: Expression, body: Body): Statement = Trees.Exists(name, exp, body)
-}
 
 object Trees {
   case class Forall(name: Name, exp: Expression, body: Body) extends Statement with Var.Target {

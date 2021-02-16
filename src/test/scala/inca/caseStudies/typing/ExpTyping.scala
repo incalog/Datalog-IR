@@ -4,7 +4,7 @@ import inca.compiler.{Compiler, Options}
 
 object ExpTyping extends App {
 
-  val options = Options(Exp.languageMetaInfo)
+  val options = Options(Prog.languageMetaInfo)
 
   val ExpT = Exp.expTag
   val IntLit = Exp.intLitTag

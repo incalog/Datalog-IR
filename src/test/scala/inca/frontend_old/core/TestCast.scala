@@ -2,7 +2,7 @@ package inca.frontend_old.core
 
 import inca.IncaMatchers
 import inca.analyzedLangs.Exp
-import inca.compiler.{CompilerFrontend, Options}
+import inca.compiler.Options
 import inca.frontend_old.core.tree._
 import inca.runtime.context.QueryScope
 import org.scalatest.flatspec.AnyFlatSpec
@@ -17,7 +17,7 @@ class TestCast extends AnyFlatSpec with IncaMatchers {
   val two = Constant(IntLiteral(2))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo, CompilerFrontend.Core)
+  val options: Options = Options(scope.langMetaInfo, Frontend.Core)
   
   "compiler" should "implement cast semantics" in {
     val module = Module("Test_Cast", Seq(), Seq(

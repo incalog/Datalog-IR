@@ -1,6 +1,6 @@
 package inca.frontend_old.util
 
-import inca.compiler.CompilerFrontend
+import inca.frontend_old.core.Frontend
 import inca.frontend_old.core.tree._
 import inca.runtime.context.LanguageMetaInfo
 import inca.util.Meta.Scala
@@ -10,7 +10,7 @@ object TypeHelper {
   import fastparse._
   import ScalaWhitespace._
 
-  private val cp = CompilerFrontend.Inca(new LanguageMetaInfo())
+  private val cp = Frontend.Inca(new LanguageMetaInfo())
 
   private def tNode[_: P]: P[TNode] = P(cp.fullyQualifiedIdentifier.! ~~ ( " with " ~~ cp.fullyQualifiedIdentifier).repX).map {
     case (name, _) => TNode(name)

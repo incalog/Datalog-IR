@@ -3,7 +3,7 @@ package inca.frontend_old.typechecker
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
 import inca.analyzedLangs
-import inca.compiler.CompilerFrontend
+import inca.frontend_old.core.Frontend
 import inca.frontend_old.core.tree._
 import inca.runtime.context.LanguageMetaInfo
 import inca.util.Meta.Scala
@@ -14,10 +14,10 @@ import org.scalatest.flatspec.AnyFlatSpec
   * Test class for the IncA core language typechecker.
   */
 class CoreTypecheckerTest extends AnyFlatSpec {
-  val parser = CompilerFrontend.Core(new LanguageMetaInfo())
+  val parser = Frontend.Core(new LanguageMetaInfo())
 
   "subtype" should "work" in {
-    val typer = CompilerFrontend.Core(new LanguageMetaInfo())
+    val typer = Frontend.Core(new LanguageMetaInfo())
     def test_run(t1 : Type, t2 : Type) = assert(typer.subtype(t1, t2, null))
 
     test_run(TLiteral.Bool, TLiteral.Bool)
@@ -30,7 +30,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     def test_run(cd: String) = {
       parse(cd, parser.module(_)) match {
         case Success(value, index) => {
-          val typer = CompilerFrontend.Core(new LanguageMetaInfo())
+          val typer = Frontend.Core(new LanguageMetaInfo())
           typer.typecheck(Seq(value))
           assert(typer.getErrors.isEmpty)
         }
@@ -128,7 +128,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
 
     val code = parse(src, parser.module(_)).get.value
     val prog = Seq(mod1, code)
-    val typechecker = CompilerFrontend.Core(new LanguageMetaInfo())
+    val typechecker = Frontend.Core(new LanguageMetaInfo())
     typechecker.typecheck(prog)
     assert(typechecker.getErrors.isEmpty)
   }
@@ -158,14 +158,14 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   def typecheckExp(exp: Expression, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Type = {
-    val typer = CompilerFrontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
     typer.typecheck(exp)
   }
 
   def assertTypecheckExpFail(exp: Expression, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
-    val typer = CompilerFrontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
     typer.typecheck(exp)
@@ -173,7 +173,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   def assertTypecheckExpWarn(exp: Expression, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
-    val typer = CompilerFrontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
     typer.typecheck(exp)
@@ -183,7 +183,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
 
 
   def typecheckStmBindings(stm: Statement, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Map[Name, Type] = {
-    val typer = CompilerFrontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
     typer.typecheck(stm, mustYield = false, mayYield = true)
@@ -191,14 +191,14 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   def typecheckStm(stm: Statement, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq(), mustTerminate: Boolean = false): StmType = {
-    val typer = CompilerFrontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
     typer.typecheck(stm, mustTerminate, mayYield = true)
   }
 
   def assertTypecheckStmFail(stm: Statement, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
-    val typer = CompilerFrontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
     typer.typecheck(stm, mustYield = false, mayYield = true)
@@ -206,7 +206,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   def assertTypecheckStmWarn(stm: Statement, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
-    val typer = CompilerFrontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
     typer.typecheck(stm, mustYield = false, mayYield = true)
@@ -215,14 +215,14 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   def typecheckFun(fun: PatternFunction, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Unit = {
-    val typer = CompilerFrontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
     typer.typecheck(fun)
   }
 
   def assertTypecheckFunFail(fun: PatternFunction, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
-    val typer = CompilerFrontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
     typer.typecheck(fun)
@@ -230,7 +230,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   def assertTypecheckFunWarn(fun: PatternFunction, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
-    val typer = CompilerFrontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
     typer.typecheck(fun)
@@ -239,7 +239,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   def assertTypecheckModulesSucceed(modules: Seq[Module], vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
-    val typer = CompilerFrontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
     typer.typecheck(modules)
@@ -247,7 +247,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   def assertTypecheckModulesFail(modules: Seq[Module], vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
-    val typer = CompilerFrontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
     funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
     typer.typecheck(modules)

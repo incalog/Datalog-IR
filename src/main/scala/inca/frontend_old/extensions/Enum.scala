@@ -1,8 +1,8 @@
-//package inca.frontend.extensions
+//package inca.frontend_old.extensions
 //
-//import inca.frontend.Frontend
-//import inca.frontend.core._
-//import inca.frontend.desugar.{DesugarTrans, Desugarable}
+//import inca.frontend_old.Frontend
+//import inca.frontend_old.core._
+//import inca.frontend_old.desugar.{DesugarTrans, Desugarable}
 //import inca.util.Gensym
 //
 //import scala.collection.mutable.ListBuffer

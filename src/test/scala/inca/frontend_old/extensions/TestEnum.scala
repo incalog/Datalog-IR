@@ -1,10 +1,10 @@
-//package inca.frontend.extensions
+//package inca.frontend_old.extensions
 //
 //import inca.IncaMatchers
 //import inca.analyzedLangs.Exp
 //import inca.compiler.Options
-//import inca.frontend.BaseFrontend
-//import inca.frontend.core._
+//import inca.frontend_old.BaseFrontend
+//import inca.frontend_old.core._
 //import inca.runtime.context.QueryScope
 //import org.scalatest.flatspec.AnyFlatSpec
 //

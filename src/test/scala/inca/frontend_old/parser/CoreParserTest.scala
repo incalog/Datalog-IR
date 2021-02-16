@@ -2,7 +2,7 @@ package inca.frontend_old.parser
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
-import inca.compiler.CompilerFrontend
+import inca.frontend_old.core
 import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
@@ -15,7 +15,7 @@ import org.scalatest.funsuite.AnyFunSuite
   */
 class CoreParserTest extends AnyFunSuite {
 
-  val parser = CompilerFrontend.Inca(new LanguageMetaInfo())
+  val parser = core.Frontend.Inca(new LanguageMetaInfo())
   import inca.frontend_old.core.tree._
   
   test("test Type") {
