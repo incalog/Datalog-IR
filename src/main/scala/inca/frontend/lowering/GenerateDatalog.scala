@@ -78,14 +78,16 @@ class GenerateDatalog(module: Module) {
         }
 
     case If(cnd, thn, els) =>
-      val condRes = transExp(cnd.ensureCore)
+      val condTrans = transExp(cnd.ensureCore)
+      val thnTrans = transExp(thn.ensureCore)
+      val elsTrans = transExp(els.ensureCore)
       val thnRes: ExpRes =
-        for ((Seq(cndTerm), cndCons) <- condRes;
-             (thnTerm, thnCons) <- transExp(thn.ensureCore))
+        for ((Seq(cndTerm), cndCons) <- condTrans;
+             (thnTerm, thnCons) <- thnTrans)
           yield (thnTerm, cndCons ++ Seq(GP.Eq(cndTerm, GP.True)) ++ thnCons)
       val elsRes: ExpRes =
-        for ((Seq(cndTerm), cndCons) <- condRes;
-             (elsTerm, elsCons) <- transExp(els.ensureCore))
+        for ((Seq(cndTerm), cndCons) <- condTrans;
+             (elsTerm, elsCons) <- elsTrans)
           yield (elsTerm, cndCons ++ Seq(GP.Eq(cndTerm, GP.False)) ++ elsCons)
       thnRes ++ elsRes
 
@@ -108,19 +110,62 @@ class GenerateDatalog(module: Module) {
         (terms.flatten, cons.flatten)
       }
 
-    case eval@Eval(code) =>
+    case BaseLit(code) =>
       import scala.meta._
-      val evalOut = GP.Var(gensym.fresh("eval"))
-      val params = eval.params.getOrElse(Seq())
-      val paramsTyped = params.map { param =>
-        val paramTyp = param.typ.getOrElse(throw new IllegalStateException(s"Cannot compile eval with untyped param $param"))
-        param"${Term.Name(param.name.name)}: ${paramTyp.asScala}"
-      }.toList
-      val funCode = q"(..$paramsTyped) => ${code.tree}"
-      val args = params.map { param => (GP.Var(param.name.name), transType(param.typ.get)) }
-      val resType = eval.typ.getOrElse(throw new IllegalStateException("cannot compile untyped Eval"))
-      val evalConstraint = GP.Computed(evalOut, GP.Evaluation(args, transType(resType), Scala(funCode)))
+      val evalOut = GP.Var(gensym.fresh("lit"))
+      val resType = exp.typ.getOrElse(throw new IllegalStateException("cannot compile untyped Eval"))
+      val funCode = q"() => ${code.tree}"
+      val evalConstraint = GP.Computed(evalOut, GP.Evaluation(Seq(), transType(resType), Scala(funCode)))
       Seq((Seq(evalOut), Seq(evalConstraint)))
+
+    case BaseApply(fun, args) =>
+      import scala.meta._
+      val paramsTyped = args.zipWithIndex.map { case (arg, ix) =>
+        val argTyp = arg.typ.getOrElse(throw new IllegalStateException(s"Cannot compile call to $fun with untyped argument $arg"))
+        val paramName =  gensym.fresh(s"arg$ix")
+        param"${Term.Name(paramName)}: ${argTyp.asScala}"
+      }.toList
+      val scalaArgs: List[meta.Term] = paramsTyped.map(p => Term.Name(p.name.value))
+      val funCode = q"(..$paramsTyped) => ${fun.tree}(..$scalaArgs)"
+      val resType = exp.typ.getOrElse(throw new IllegalStateException("cannot compile untyped Eval"))
+
+      val argRes = args.map(e => transExp(e.ensureCore))
+      val evalOut = GP.Var(gensym.fresh("eval"))
+      for (tups <- TupleOps.cartesianProduct(argRes)) yield {
+        val (argTermss, argCons) = tups.unzip
+        val flatArgTerms = argTermss.zip(args).map {
+          case (Nil, arg) => throw new IllegalArgumentException(s"Cannot pass empty argument $arg to $fun")
+          case (t::Nil, arg) => (t, transType(arg.typ.get))
+          case (_, arg) => throw new IllegalArgumentException(s"Cannot pass tuple argument $arg to $fun")
+        }
+        val evalConstraint = GP.Computed(evalOut, GP.Evaluation(flatArgTerms, transType(resType), Scala(funCode)))
+        (Seq(evalOut), argCons.flatten :+ evalConstraint)
+      }
+
+    case BaseApplyInfix(left, op, right) =>
+      import scala.meta._
+      val leftParam = {
+        val typ = left.typ.getOrElse(throw new IllegalStateException(s"Cannot compile call to $op with untyped argument $left"))
+        param"left: ${typ.asScala}"
+      }
+      val rightParam = {
+        val typ = right.typ.getOrElse(throw new IllegalStateException(s"Cannot compile call to $op with untyped argument $right"))
+        param"right: ${typ.asScala}"
+      }
+      val funCode = q"($leftParam, $rightParam) => left ${op.tree} right"
+      val resType = exp.typ.getOrElse(throw new IllegalStateException("cannot compile untyped Eval"))
+
+      val leftRes = transExp(left.ensureCore)
+      val rightRes = transExp(right.ensureCore)
+      val evalOut = GP.Var(gensym.fresh("eval"))
+      for ((Seq(leftTerm), leftCons) <- leftRes;
+           (Seq(rightTerm), rightCons) <- rightRes) yield {
+        val evalConstraint = GP.Computed(evalOut,
+          GP.Evaluation(Seq(leftTerm -> transType(left.typ.get), rightTerm -> transType(right.typ.get)),
+            transType(resType), Scala(funCode)))
+        (Seq(evalOut), leftCons ++ rightCons ++ Seq(evalConstraint))
+      }
+
   }
 
   private def transType(typ: Type): GP.Type = typ match {

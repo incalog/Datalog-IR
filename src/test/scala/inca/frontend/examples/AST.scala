@@ -1,0 +1,82 @@
+package inca.frontend.examples
+
+import inca.frontend.core._
+
+import scala.meta.XtensionQuasiquoteTerm
+
+object AST {
+  def module(content: ModuleContent*): Module =
+    Module(Name("Main"), Seq(), content)
+
+  val baseExample: Module = module(FunctionDef(None, Name("main"), Seq(), TScalaInt,
+    BaseLit(q"7 + (12 * 3)", TScalaInt)
+  ))
+  val baseExample2: Module = module(FunctionDef(None, Name("main"), Seq(), TScalaInt,
+    BaseApplyInfix(BaseLit(q"7", TScalaInt), "+",
+      BaseApplyInfix(BaseLit(q"12", TScalaInt), "*", BaseLit(q"3", TScalaInt), TScalaInt),
+      TScalaInt
+    )
+  ))
+
+  val varExample: Module = module(FunctionDef(None, Name("main"), Seq(), TScalaInt,
+    Let(Seq(Name("x")), None, BaseLit(q"7", TScalaInt),
+      Let(Seq(Name("y")), None, BaseLit(q"3", TScalaInt),
+        BaseApplyInfix(Var("x").typed(TScalaInt), "+",
+          BaseApplyInfix(BaseLit(q"12", TScalaInt), "*", Var("y").typed(TScalaInt), TScalaInt),
+          TScalaInt
+        )
+      )
+    )
+  ))
+
+  val ifExample: Module = module(FunctionDef(None, Name("main"), Seq(), TScalaInt,
+    Let(Seq(Name("x")), None, BaseLit(q"7", TScalaInt),
+      If(BaseApplyInfix(Var("x").typed(TScalaInt), ">", BaseLit(q"0", TScalaInt), TScalaBoolean),
+        Var("x"),
+        BaseApplyInfix(Var("x").typed(TScalaInt), "*", BaseLit(q"-1", TScalaInt), TScalaInt)
+      )
+    )
+  ))
+
+  val ifExample2: Module = module(FunctionDef(None, Name("main"), Seq(), TScalaInt,
+    Let(Seq(Name("x")), None, BaseLit(q"7", TScalaInt),
+      Let(Seq(Name("y")), None, BaseLit(q"-3", TScalaInt),
+        BaseApplyInfix(
+          If(BaseApplyInfix(Var("x").typed(TScalaInt), ">", BaseLit(q"0", TScalaInt), TScalaBoolean),
+            Var("x"),
+            BaseApplyInfix(Var("x").typed(TScalaInt), "*", BaseLit(q"-1", TScalaInt), TScalaInt)
+          ).typed(TScalaInt),
+          "+",
+          If(BaseApplyInfix(Var("y").typed(TScalaInt), ">", BaseLit(q"0", TScalaInt), TScalaBoolean),
+            Var("y"),
+            BaseApplyInfix(Var("y").typed(TScalaInt), "*", BaseLit(q"-1", TScalaInt), TScalaInt)
+          ).typed(TScalaInt),
+          TScalaInt
+        )
+      )
+    )
+  ))
+
+
+  val incFun: FunctionDef = FunctionDef(None, Name("inc"), Seq(Param(Name("n"), TScalaInt)), TScalaInt,
+    BaseApplyInfix(Var("n").typed(TScalaInt), "+", BaseLit(q"1", TScalaInt), TScalaInt)
+  )
+  val incMain: FunctionDef = FunctionDef(None, Name("main"), Seq(), TScalaInt,
+    Call(Name("inc"), Seq(BaseLit(q"0", TScalaInt))).resolved(incFun)
+  )
+  val incModule: Module = module(incFun, incMain)
+
+
+  val factRecCall: Call = Call(Name("fact"), Seq(BaseApplyInfix(Var("n").typed(TScalaInt), "-", BaseLit(q"1", TScalaInt), TScalaInt))).typed(TScalaInt)
+  val factFun: FunctionDef = FunctionDef(None, Name("fact"), Seq(Param(Name("n"), TScalaInt)), TScalaInt,
+    If(BaseApplyInfix(Var("n").typed(TScalaInt), "==", BaseLit(q"1", TScalaInt), TScalaBoolean),
+      BaseLit(q"1", TScalaInt),
+      BaseApplyInfix(Var("n").typed(TScalaInt), "*", factRecCall, TScalaInt)
+    )
+  )
+  factRecCall.resolved(factFun)
+  val factMain: FunctionDef = FunctionDef(None, Name("main"), Seq(), TScalaInt,
+    Call(Name("fact"), Seq(BaseLit(q"3", TScalaInt))).resolved(factFun)
+  )
+  val factModule: Module = module(factFun, factMain)
+}
