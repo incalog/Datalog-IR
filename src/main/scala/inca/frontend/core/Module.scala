@@ -2,6 +2,7 @@ package inca.frontend.core
 
 import inca.frontend.parser.SourceLocation
 import inca.frontend.typechecker.Resolvable
+import inca.util.Meta.Scala
 
 case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
   extends SourceLocation with Import.Target {
@@ -77,4 +78,29 @@ case class Param(name: Name, typ: Type) extends SourceLocation with Var.Target {
   def vars: Map[Name, Option[Type]] = Map(name -> Some(typ))
 
   def prettyprint: String = s"$name: ${typ.prettyprint}"
+}
+
+case class ScalaModuleContent[T <: meta.Stat](t: Scala[T]) extends ModuleContent {
+  def vis: Option[Visibility] = {
+    def detVis(mods: List[meta.Mod]): Option[Visibility] = {
+      if (mods.contains(meta.Mod.Protected))
+        throw new IllegalArgumentException("Scala block definition cannot have protected visibility")
+
+      if (mods.contains(meta.Mod.Private)) Some(Private)
+      else None
+    }
+
+    t match {
+      case valu: meta.Decl.Val => detVis(valu.mods)
+      case vari: meta.Decl.Var => detVis(vari.mods)
+      case defn: meta.Decl.Def => detVis(defn.mods)
+      case typ: meta.Decl.Type => detVis(typ.mods)
+      case tr: meta.Defn.Trait => detVis(tr.mods)
+      case obj: meta.Defn.Object => detVis(obj.mods)
+      case clazz: meta.Defn.Class => detVis(clazz.mods)
+      case _ => None
+    }
+  }
+
+  override def prettyprint(implicit indent: String): String = s"$indent`${t.syntax}`"
 }

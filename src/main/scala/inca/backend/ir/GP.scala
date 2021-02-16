@@ -61,7 +61,7 @@ object GP {
   case class Body(constraints: Seq[Constraint])
 
   sealed trait Constraint
-  case class Call(name: Name, args: Seq[Term], transitive: Boolean, neg: Boolean) extends Constraint
+  case class Call(name: Name, args: Seq[Term], transitive: Boolean = false, neg: Boolean = false) extends Constraint
   case class Compare(comp: Comparator, lhs: Term, rhs: Term) extends Constraint
   case class HasType(t: Term, typ: Type) extends Constraint
   case class NotHasType(t: Term, typ: Type) extends Constraint

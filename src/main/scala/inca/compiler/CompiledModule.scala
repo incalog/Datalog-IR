@@ -41,7 +41,7 @@ trait CompiledModule {
 
   lazy val psystemSource: meta.Source = {
     val source = CompileToPSystem.compileModule(optimized)(Map())
-    println(source)
+//    println(source)
     source
   }
 
