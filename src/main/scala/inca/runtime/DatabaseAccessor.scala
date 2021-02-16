@@ -5,31 +5,41 @@ import inca.runtime.index.binary.{BidirectionalManyToOneIndex, BidirectionalOneT
 import inca.runtime.index.unary.{UnaryBagIndex, UnarySetIndex}
 import truechange.{LitType, Type, URI}
 
-import scala.collection.mutable
-
 class DatabaseAccessor(feed: Database) {
 
-  def nodeInstances: mutable.Map[Type, UnarySetIndex[URI]] = feed.nodeInstances
-  def nodeInstancesByValue(v: Any): mutable.Map[Type, UnarySetIndex[URI]] = {
-    feed.nodeInstances.filter(_._2.entries.exists(_.equals(v)))
+  def nodeInstances: Map[Type, UnarySetIndex[URI]] = feed.nodeInstances.toMap
+  def nodeInstancesByValue(v: URI): Map[Type, UnarySetIndex[URI]] = {
+    nodeInstances.filter {
+      case (_, value) => value.index(v) > 0
+    }
   }
 
-  def primitiveInstances: mutable.Map[LitType, UnaryBagIndex[PrimitiveValue]] = feed.primitiveInstances
-  def primitiveInstancesByValue(v: Any): mutable.Map[LitType, UnaryBagIndex[PrimitiveValue]] = {
-    feed.primitiveInstances.filter(_._2.entries.exists(_.equals(v)))
+  def primitiveInstances: Map[LitType, UnaryBagIndex[PrimitiveValue]] = feed.primitiveInstances.toMap
+  def primitiveInstancesByValue(v: PrimitiveValue): Map[LitType, UnaryBagIndex[PrimitiveValue]] = {
+    primitiveInstances.filter {
+      case (_, value) => value.index(v) > 0
+    }
   }
 
-  def linkNodeInstances: mutable.Map[(String, String), BidirectionalOneToOneIndex[URI, URI]] = feed.linkNodeInstances
-  def linkNodeInstancesByValue1(k: Any): mutable.Map[(String, String), BidirectionalOneToOneIndex[URI, URI]] = {
-    feed.linkNodeInstances.filter(_._2.index.containsKey(k))
+  def linkNodeInstances: Map[(String, String), BidirectionalOneToOneIndex[URI, URI]] = feed.linkNodeInstances.toMap
+  def linkNodeInstancesByValue1(k: URI): Map[(String, String), BidirectionalOneToOneIndex[URI, URI]] = {
+    linkNodeInstances.filter {
+      case (_, value) => value.index.containsKey(k)
+    }
   }
-  def linkNodeInstancesByValue2(v: Any): mutable.Map[(String, String), BidirectionalOneToOneIndex[URI, URI]] = {
-    feed.linkNodeInstances.filter(_._2.index.containsValue(v))
+  def linkNodeInstancesByValue2(v: URI): Map[(String, String), BidirectionalOneToOneIndex[URI, URI]] = {
+    linkNodeInstances.filter {
+      case (_, value) => value.index.containsValue(v)
+    }
   }
 
-  def linkPrimitiveInstances: mutable.Map[(String, String), BidirectionalManyToOneIndex[URI, PrimitiveValue]] = feed.linkPrimitiveInstances
-  def linkPrimitiveInstancesByValue1(k: Any): mutable.Map[(String, String), BidirectionalManyToOneIndex[URI, PrimitiveValue]] = {
-    feed.linkPrimitiveInstances.filter(_._2.entries.exists(_._1.equals(k)))
+  def linkPrimitiveInstances: Map[(String, String), BidirectionalManyToOneIndex[URI, PrimitiveValue]] = feed.linkPrimitiveInstances.toMap
+  def linkPrimitiveInstancesByValue1(k: URI): Map[(String, String), BidirectionalManyToOneIndex[URI, PrimitiveValue]] = {
+    linkPrimitiveInstances.filter {
+      case (_, value) => value.entries.exists {
+        case (uri, _) => uri.equals(k)
+      }
+    }
   }
 
   def linkListFirstInstances: BidirectionalOneToOneIndex[URI, URI] = feed.linkListFirstInstances
