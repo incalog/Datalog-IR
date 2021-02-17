@@ -48,7 +48,7 @@ object AdornProgram extends Transformation {
                 case call: Call =>
                   val (adornedCall, adornmentTags) = deriveAdornment(i, currentTags, pat.params, body)
                   todo += call -> adornmentTags
-                  adornedCall
+                  adornedCall.withHints(call)
                 case _ =>
                   constr
               }

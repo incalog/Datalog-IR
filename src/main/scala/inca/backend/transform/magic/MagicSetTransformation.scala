@@ -94,7 +94,7 @@ object MagicSetTransformation extends Transformation {
       val inputBodies = p.bodies.flatMap { body =>
         body.constraints.zipWithIndex.flatMap { case (constr, constrix) =>
           constr match {
-            case Call(name, args, _, _) if name == pat.name =>
+            case Call(name, args, _, _) if name == pat.name && !constr.hints.contains(MagicSetHints.IgnoreCallkey) =>
               val boundParams = boundIndices.map { i =>
                 Eq(args(i), Var(params(i).name))
               }
