@@ -98,6 +98,11 @@ class GenerateDatalog(module: Module) {
         case None => throw new IllegalArgumentException(s"Unresolved call $call")
       }
       val argRes = args.map(e => transExp(e.ensureCore))
+
+      // create single call constraint when no arguments passed
+      if (argRes.isEmpty)
+        return Seq((outvars, Seq(GP.Call(name.name, outvars, transitive, neg = false))))
+
       for (tups <- TupleOps.cartesianProduct(argRes)) yield {
         val (argTerms, argCons) = tups.unzip
         (outvars, argCons.flatten ++ Seq(GP.Call(name.name, argTerms.flatten ++ outvars, transitive, neg = false)))
