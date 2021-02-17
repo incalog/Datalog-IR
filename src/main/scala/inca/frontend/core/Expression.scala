@@ -102,6 +102,24 @@ case class Tuple(exps: Seq[Expression]) extends CoreExpression {
     exps.map(_.prettyprint).mkString("(", ", ", ")")
 }
 
+case class Match(matchee: Expression, cases: Seq[(Pattern, Expression)]) extends CoreExpression {
+  override def vars: Map[Name, Option[Type]] = matchee.vars ++ cases.flatMap(pe => pe._1.vars ++ pe._2.vars)
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = infix(infixParens) {
+    val casesS = cases.map { case (pat, exp) =>
+      s"${indent}  case ${pat.prettyprint} => ${exp.prettyprint(indent + "  ")}"
+    }.mkString("\n")
+    s"${matchee.prettyprint} match {\n$casesS\n$indent}"
+  }
+}
+trait Pattern {
+  def vars: Map[Name, Option[Type]]
+  def prettyprint: String
+}
+case class ConstructorPattern(constr: Name, args: Seq[Name]) extends Pattern with Resolvable[DataConstructor.Target] {
+  override def vars: Map[Name, Option[Type]] = args.map(_ -> None).toMap
+  override def prettyprint: String = s"$constr(${args.mkString(", ")})"
+}
+
 
 case class BaseLit(code: Scala[meta.Term]) extends CoreExpression {
   override def vars: Map[Name, Option[Type]] = Map()
@@ -133,27 +151,4 @@ case class BaseApplyInfix(left: Expression, op: Scala[meta.Term.Name], right: Ex
 object BaseApplyInfix {
   def apply(left: Expression, op: String, right: Expression, typ: Type): BaseApplyInfix =
     new BaseApplyInfix(left, Scala(meta.Term.Name(op)), right).typed(typ)
-}
-
-case class BaseMatch(matchee: Expression, cases: Seq[(BaseMatchPattern, Expression)]) extends CoreExpression {
-  override def vars: Map[Name, Option[Type]] = matchee.vars ++ cases.flatMap(pe => pe._1.vars ++ pe._2.vars)
-  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = infix(infixParens) {
-    val casesS = cases.map { case (pat, exp) =>
-      s"${indent}  case ${pat.prettyprint} => ${exp.prettyprint(indent + "  ")}"
-    }.mkString("\n")
-    s"${matchee.prettyprint} match {\n$casesS}"
-  }
-}
-
-trait BaseMatchPattern {
-  def vars: Map[Name, Option[Type]]
-  def prettyprint: String
-}
-case class VarPattern(name: Name) extends BaseMatchPattern {
-  override def vars: Map[Name, Option[Type]] = Map(name -> None)
-  override def prettyprint: String = name.name
-}
-case class ConstructorPattern(constr: String, args: Seq[BaseMatchPattern]) extends BaseMatchPattern {
-  override def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
-  override def prettyprint: String = s"$constr(${args.map(_.prettyprint).mkString(", ")})"
 }

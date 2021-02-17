@@ -15,29 +15,21 @@ object Plus extends App {
 //  case class Zero() extends Nat
 //  case class Succ(pred: Nat) extends Nat
 
-  val Nat = TNode("Nat")
-
   // Zero_f(out) :- ...
-  val Zero_f = Pattern(None, "Zero_f", Seq(Param("out", TScalaInt)), Seq(Body(Seq(
+  val Zero_f = Pattern(None, "Zero_f", Seq(Param("out", TScalaString)), Seq(Body(Seq(
 //    Computed(Var("out"), Evaluation(Seq(), Nat, Scala(q"() => new truechange.JVMURI()")))
-    Eq(Var("out"), Constant(IntLiteral(0)))
-  ))))
-
-  // input_unZero_b(m) :- input_plus_bbf(m, _).
-  val input_unZero_b = Pattern(None, "input_unZero_b", Seq(Param("m", TScalaInt)), Seq(Body(Seq(
-    Call("input_plus_bbf", Seq(Var("m"), Var("_")))
+    Eq(Var("out"), Constant(StringLiteral("Zero()")))
   ))))
 
   // unZero_b(n) :- input_unZero_b(n), ... .
-  val unZero_b = Pattern(None, "unZero_b", Seq(Param("n", TScalaInt)), Seq(Body(Seq(
-    Call("input_unZero_b", Seq(Var("n"))),
-    Eq(Constant(IntLiteral(0)), Var("n"))
+  val unZero_b = Pattern(None, "unZero_b", Seq(Param("n", TScalaString)), Seq(Body(Seq(
+    Call("Zero_f", Seq(Var("n")))
   ))))
 
   // input_Succ_bf(x0) :- Zero_f(x0).
   // input_Succ_bf(x1) :- Zero_f(x0), Succ_bf(x0, x1).
   // input_Succ_bf(out1) :- input_plus_bbf(m, n), unSucc_bf(m, pred), plus_bbf(pred, n, out1).
-  val input_Succ_bf = Pattern(None, "input_Succ_bf", Seq(Param("out", TScalaInt)), Seq(
+  val input_Succ_bf = Pattern(None, "input_Succ_bf", Seq(Param("out", TScalaString)), Seq(
     Body(Seq(
       Call("Zero_f", Seq(Var("out")))
     )),
@@ -53,26 +45,19 @@ object Plus extends App {
   ))
 
   // (0_a,1_b), (0_c,1_d), (1_b,2_e)
-  val Succ_bf = Pattern(None, "Succ_bf", Seq(Param("pred", TScalaInt), Param("out", TScalaInt)), Seq(Body(Seq(
+  val Succ_bf = Pattern(None, "Succ_bf", Seq(Param("pred", TScalaString), Param("out", TScalaString)), Seq(Body(Seq(
     Call("input_Succ_bf", Seq(Var("pred"))),
-    Computed(Var("out"), Evaluation(Seq(Var("pred") -> TScalaInt), TScalaInt, Scala(q"(n: Int) => n+1")))
-  ))))
-
-  // input_unSucc_bf(m) :- input_plus_bbf(m, _).
-  val input_unSucc_bf = Pattern(None, "input_unSucc_bf", Seq(Param("m", TScalaInt)), Seq(Body(Seq(
-    Call("input_plus_bbf", Seq(Var("m"), Var("_")))
+    Computed(Var("out"), Evaluation(Seq(Var("pred") -> TScalaString), TScalaString, Scala(q"""(pred: String) => "Succ(" + pred + ")" """)))
   ))))
 
   // unSucc_bf(n, pred) :- input_unSucc_bf(n), ... .
-  val unSucc_bf = Pattern(None, "unSucc_bf", Seq(Param("n", TScalaInt), Param("pred", TScalaInt)), Seq(Body(Seq(
-    Call("input_unSucc_bf", Seq(Var("n"))),
-    Computed(True, Evaluation(Seq(Var("n") -> TScalaInt), TScalaBoolean, Scala(q"(n: Int) => n > 0"))),
-    Computed(Var("pred"), Evaluation(Seq(Var("n") -> TScalaInt), TScalaInt, Scala(q"(n: Int) => n - 1")))
+  val unSucc_bf = Pattern(None, "unSucc_bf", Seq(Param("n", TScalaString), Param("pred", TScalaString)), Seq(Body(Seq(
+    Call("Succ_bf", Seq(Var("pred"), Var("n")))
   ))))
 
   // input_plus_bbf(x2, y1) :- Zero_f(x0), Succ_bf(x0, x1), Succ_bf(x1, x2), Zero_f(y0), Succ_bf(y0, y1).
   // input_plus_bbf(pred, n) :- input_plus_bbf(m, n), unSucc_bf(m, pred).
-  val input_plus_bbf = Pattern(None, "input_plus_bbf", Seq(Param("m", TScalaInt), Param("n", TScalaInt)), Seq(
+  val input_plus_bbf = Pattern(None, "input_plus_bbf", Seq(Param("m", TScalaString), Param("n", TScalaString)), Seq(
     Body(Seq(
       Call("Zero_f", Seq(Var("x0"))),
       Call("Succ_bf", Seq(Var("x0"), Var("x1"))),
@@ -98,7 +83,7 @@ object Plus extends App {
     Succ_bf(out1, out2),
     out == out2.
    */
-  val plus_bbf = Pattern(None, "plus_bbf", Seq(Param("m", TScalaInt), Param("n", TScalaInt), Param("out", TScalaInt)), Seq(
+  val plus_bbf = Pattern(None, "plus_bbf", Seq(Param("m", TScalaString), Param("n", TScalaString), Param("out", TScalaString)), Seq(
     Body(Seq(
       Call("input_plus_bbf", Seq(Var("m"), Var("n"))),
       Call("unZero_b", Seq(Var("m"))),
@@ -112,7 +97,7 @@ object Plus extends App {
     ))
   ))
 
-  val main = Pattern(None, "main", Seq(Param("out", TScalaInt)), Seq(Body(Seq(
+  val main = Pattern(None, "main", Seq(Param("out", TScalaString)), Seq(Body(Seq(
     Call("Zero_f", Seq(Var("x0"))),
     Call("Succ_bf", Seq(Var("x0"), Var("x1"))),
     Call("Succ_bf", Seq(Var("x1"), Var("x2"))),
@@ -123,9 +108,9 @@ object Plus extends App {
 
   val module = Module("Main", Seq(), Seq(
     Zero_f,
-    unZero_b, input_unZero_b,
+    unZero_b,
     Succ_bf, input_Succ_bf,
-    unSucc_bf, input_unSucc_bf,
+    unSucc_bf,
     plus_bbf, input_plus_bbf,
     main
   ), Seq())

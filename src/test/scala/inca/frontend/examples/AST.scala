@@ -1,6 +1,7 @@
 package inca.frontend.examples
 
 import inca.frontend.core._
+import inca.frontend.examples.ADT._
 
 import scala.meta.XtensionQuasiquoteTerm
 
@@ -79,4 +80,24 @@ object AST {
     Call(Name("fact"), Seq(BaseLit(q"3", TScalaInt))).resolved(factFun)
   )
   val factModule: Module = module(factFun, factMain)
+
+
+  val recPlusCall: Call = Call(Name("plus"), Seq(Var(Name("pred")), Var(Name("n"))))
+  val plusFun: FunctionDef = FunctionDef(None, Name("plus"), Seq(Param(Name("m"), TNat), Param(Name("n"), TNat)), TNat,
+    Match(Var(Name("m")), Seq(
+      ConstructorPattern(Name("Zero"), Seq()).resolved(Zero) ->
+        Var("n"),
+      ConstructorPattern(Name("Succ"), Seq(Name("pred"))).resolved(Succ) ->
+        CallSucc(recPlusCall)
+    ))
+  )
+  recPlusCall.resolved(plusFun)
+  val plusMain: FunctionDef = FunctionDef(None, Name("main"), Seq(), TNat,
+    Call(Name("plus"), Seq(
+      CallSucc(CallSucc(CallSucc(CallZero))),
+      CallSucc(CallSucc(CallZero))
+    )).resolved(plusFun)
+  )
+  val plusModule: Module = module(Nat, plusFun, plusMain)
+
 }

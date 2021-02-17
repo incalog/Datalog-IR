@@ -223,4 +223,9 @@ class GenerateDatalogTest extends AnyFunSuite {
     val result = GenerateDatalog.transformModule(AST.factModule)
     assert(result == factModuleGP)
   }
+
+  test("plus example") {
+    val result = GenerateDatalog.transformModule(AST.plusModule)
+    println(result)
+  }
 }

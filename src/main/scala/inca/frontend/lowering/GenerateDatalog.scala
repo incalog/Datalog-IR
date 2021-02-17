@@ -29,7 +29,7 @@ class GenerateDatalog(module: Module) {
     val blockDefs = ListBuffer[meta.Stat]()
     contents.foreach {
       case fun: FunctionDef => generatedPatterns += transFun(fun)
-      case _: ValDef => ??? // will be inlined
+      case data: DataDef => generatedPatterns ++= transData(data)
     }
 
     val scalaContent = ScalaModuleContents.toList ++ blockDefs.toList
@@ -58,8 +58,6 @@ class GenerateDatalog(module: Module) {
       val v = if (genFresh) gensym.fresh(name) else name
       Seq(GP.Param(v, transType(typ)))
   }
-
-
 
   type ExpRes = Seq[(Seq[GP.Term], Seq[GP.Constraint])]
 
@@ -94,6 +92,7 @@ class GenerateDatalog(module: Module) {
     case call@Call(name, args, transitive) =>
       val outvars = call.target match {
         case Some(fun: FunctionDef) => fun.outParams.map(_ => GP.Var(gensym.fresh("out")))
+        case Some(ctr: DataConstructor) => Seq(GP.Var(gensym.fresh("out_" + ctr.name.name)))
         case Some(target) => throw new IllegalArgumentException(s"Unknown call target $target")
         case None => throw new IllegalArgumentException(s"Unresolved call $call")
       }
@@ -108,6 +107,24 @@ class GenerateDatalog(module: Module) {
       for (tups <- TupleOps.cartesianProduct(expRes)) yield {
         val (terms, cons) = tups.unzip
         (terms.flatten, cons.flatten)
+      }
+
+    case Match(matchee, cases) =>
+      val matcheeRes = transExp(matchee.ensureCore)
+      for ((pat, body) <- cases;
+           (bodyTerms, bodyCons) <- transExp(body.ensureCore);
+           (Seq(matcheeTerm), matcheeCons) <- matcheeRes) yield {
+        val patCons = pat match {
+          case pat: ConstructorPattern =>
+            val selector = pat.target match {
+              case Some(constr: DataConstructor) => constr.selectorName
+              case Some(target) => throw new IllegalStateException(s"Unknown constructor target $target")
+              case None => throw new IllegalArgumentException(s"Cannot compile unresolved constructor pattern $pat")
+            }
+            GP.Call(selector, matcheeTerm +: pat.args.map(a => GP.Var(a.name)))
+          case _ => throw new IllegalStateException(s"Unknown pattern $pat")
+        }
+        (bodyTerms, matcheeCons ++ (patCons +: bodyCons))
       }
 
     case BaseLit(code) =>
@@ -165,11 +182,40 @@ class GenerateDatalog(module: Module) {
             transType(resType), Scala(funCode)))
         (Seq(evalOut), leftCons ++ rightCons ++ Seq(evalConstraint))
       }
-
   }
+
+  private def transData(data: DataDef): Seq[GP.Pattern] = {
+    val vis = data.vis.map { case Private => GP.Private }
+    val typ = transType(TData(data.name).resolved(data))
+    data.constrs.flatMap(transDataConstructor(_, vis, typ))
+  }
+
+  private def transDataConstructor(constr: DataConstructor, vis: Option[GP.Visibility], typ: GP.Type): Seq[GP.Pattern] = {
+    import scala.meta._
+
+    val params = constr.paramTypes.zipWithIndex.map { case (typ, ix) =>
+      GP.Param(s"_$ix", transType(typ))
+    }
+    val outParam = GP.Param("out", typ)
+
+    val constrScalaFun = Term.Function(
+      params.map(p => Term.Param(Nil, Term.Name(p.name), Some(p.typ.asScala), None)).toList,
+      q"""${constr.name.name} + Seq(..${params.map(p => Term.Name(p.name)).toList}).mkString("(", ", ", ")")"""
+    )
+    val constrCons = GP.Computed(GP.Var(outParam.name),
+      GP.Evaluation(params.map(p => GP.Var(p.name) -> p.typ), GP.TScalaString, Scala(constrScalaFun)))
+    val constrPat = GP.Pattern(vis, constr.name.name, params :+ outParam, Seq(GP.Body(Seq(constrCons))))
+
+    val selectorCons = GP.Call(constr.name.name, (params :+ outParam).map(p => GP.Var(p.name)))
+    val selectorPat = GP.Pattern(vis, constr.selectorName, outParam +: params, Seq(GP.Body(Seq(selectorCons))))
+
+    Seq(constrPat, selectorPat)
+  }
+
 
   private def transType(typ: Type): GP.Type = typ match {
     case TAny => GP.TAny
+    case TData(_) => GP.TScalaString
     case TScala(ty) => GP.TScala(ty)
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
   }

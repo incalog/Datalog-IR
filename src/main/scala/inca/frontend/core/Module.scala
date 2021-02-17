@@ -2,7 +2,6 @@ package inca.frontend.core
 
 import inca.frontend.parser.SourceLocation
 import inca.frontend.typechecker.Resolvable
-import inca.util.Meta.Scala
 
 case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
   extends SourceLocation with Import.Target {
@@ -10,8 +9,8 @@ case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
   def usedModuleNames: Seq[Name] = name +: imports.map(_.name)
 
   def usedDefNames: Seq[Name] = content.flatMap {
-    case fun: FunctionDef => Some(fun.name)
-    case valDef: ValDef => Some(valDef.name)
+    case fun: FunctionDef => Seq(fun.name)
+    case data: DataDef => data.name +: data.constrs.map(_.name)
   }
 
   def prettyprint(implicit indent: String): String = {
@@ -38,19 +37,6 @@ object Import {
 trait ModuleContent extends SourceLocation {
   def vis: Option[Visibility]
   def prettyprint(implicit indent: String): String
-}
-
-case class ValDef(vis: Option[Visibility], name: Name, typ: Option[Type], exp: Expression) extends ModuleContent with Var.Target {
-  override def prettyprint(implicit indent: String): String = {
-    val visS = if (vis.contains(Private)) "private " else ""
-    val typS = typ match {
-      case Some(ty) => s": ${ty.prettyprint}"
-      case None => ""
-    }
-    s"$indent${visS}val $name$typS = ${exp.prettyprint}"
-  }
-
-  def getType: Option[Type] = typ.orElse(exp.typ)
 }
 
 case class FunctionDef(vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Expression)
@@ -80,27 +66,31 @@ case class Param(name: Name, typ: Type) extends SourceLocation with Var.Target {
   def prettyprint: String = s"$name: ${typ.prettyprint}"
 }
 
-case class ScalaModuleContent[T <: meta.Stat](t: Scala[T]) extends ModuleContent {
-  def vis: Option[Visibility] = {
-    def detVis(mods: List[meta.Mod]): Option[Visibility] = {
-      if (mods.contains(meta.Mod.Protected))
-        throw new IllegalArgumentException("Scala block definition cannot have protected visibility")
+case class DataDef(vis: Option[Visibility], name: Name, constrs: Seq[DataConstructor])
+  extends ModuleContent with TData.Target {
 
-      if (mods.contains(meta.Mod.Private)) Some(Private)
-      else None
-    }
-
-    t match {
-      case valu: meta.Decl.Val => detVis(valu.mods)
-      case vari: meta.Decl.Var => detVis(vari.mods)
-      case defn: meta.Decl.Def => detVis(defn.mods)
-      case typ: meta.Decl.Type => detVis(typ.mods)
-      case tr: meta.Defn.Trait => detVis(tr.mods)
-      case obj: meta.Defn.Object => detVis(obj.mods)
-      case clazz: meta.Defn.Class => detVis(clazz.mods)
-      case _ => None
+  override def prettyprint(implicit indent: String): String = {
+    val visS = if (vis.contains(Private)) "private " else ""
+    if (constrs.isEmpty)
+      s"$indent${visS}data $name"
+    else {
+      val constrS = constrs.map(_.prettyprint(indent + "  "))
+      s"""$indent${visS}data $name =
+         |${constrS.mkString(" |\n")}
+         |""".stripMargin
     }
   }
+}
 
-  override def prettyprint(implicit indent: String): String = s"$indent`${t.syntax}`"
+case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends DataConstructor.Target {
+
+  def selectorName: String = "un$_" + name.name
+
+  def prettyprint(implicit indent: String): String = {
+    val paramTypesS = paramTypes.map(_.prettyprint).mkString(", ")
+    s"$indent$name($paramTypesS)"
+  }
+}
+object DataConstructor {
+  trait Target extends Call.Target
 }
