@@ -25,7 +25,7 @@ object MagicSetHints {
    * use the given adornment instead of computing it
    */
   case class FixedAdornment(adorn: Seq[Boolean]) extends Hint {
-    val key = IgnoreCallkey
+    val key = FixedAdornmentKey
   }
 
   /**

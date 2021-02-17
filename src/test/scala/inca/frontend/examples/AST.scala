@@ -1,5 +1,6 @@
 package inca.frontend.examples
 
+import inca.backend.hints.MagicSetHints
 import inca.frontend.core._
 import inca.frontend.examples.ADT._
 
@@ -98,6 +99,7 @@ object AST {
       CallSucc(CallSucc(CallZero))
     )).resolved(plusFun)
   )
+  plusMain.addHint(MagicSetHints.Main(Seq(false)))
   val plusModule: Module = module(Nat, plusFun, plusMain)
 
 }

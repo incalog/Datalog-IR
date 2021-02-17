@@ -1,5 +1,6 @@
 package inca.frontend.core
 
+import inca.backend.hints.Hints
 import inca.frontend.parser.SourceLocation
 import inca.frontend.typechecker.Resolvable
 
@@ -40,7 +41,7 @@ trait ModuleContent extends SourceLocation {
 }
 
 case class FunctionDef(vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Expression)
-  extends ModuleContent with Call.Target {
+  extends ModuleContent with Call.Target with Hints {
   def boundNames: Seq[Name] = params.map(_.name)
 
   def vars: Map[Name, Option[Type]] = body.vars ++ params.flatMap(_.vars)

@@ -10,6 +10,7 @@ sealed trait AdornmentTag
 case object Bound extends AdornmentTag
 case object Free extends AdornmentTag
 
+// This transformation consumes MagicSetHints.Main and MagicSetHints.FixedAdornment
 object AdornProgram extends Transformation {
 
   override def transformer: Transformer = new Transformer {
@@ -45,15 +46,7 @@ object AdornProgram extends Transformation {
             val adornedConstraints = body.constraints.zipWithIndex.map { case (constr, i) =>
               constr match {
                 case call: Call =>
-                  val prevConstrs = body.constraints.take(i)
-                  val boundIndices = currentTags.zipWithIndex.filter( _._1 == Bound).map(_._2)
-                  val boundParams = boundIndices.map(pat.params).map(p => Var(p.name))
-                  val fv = freeVars(prevConstrs, constr).diff(boundParams)
-                  val adornmentTags: Seq[AdornmentTag] = call.args.map { arg =>
-                    if (fv.contains(arg)) Free
-                    else Bound
-                  }
-                  val adornedCall = Call(adornmentName(call.name, adornmentTags), call.args, call.transitive, call.neg)
+                  val (adornedCall, adornmentTags) = deriveAdornment(i, currentTags, pat.params, body)
                   todo += call -> adornmentTags
                   adornedCall
                 case _ =>
@@ -77,6 +70,31 @@ object AdornProgram extends Transformation {
 
   object CollectVars extends Collect[Var] {
     override def transVar(v: Var): Seq[Var] = Seq(v)
+  }
+
+  def fixedAdornment(call: Call): Option[Seq[Boolean]] =
+    call.hints.get(MagicSetHints.FixedAdornmentKey).flatMap { case MagicSetHints.FixedAdornment(adorn) =>
+      Some(adorn)
+    }
+
+  def deriveAdornment(index: Int, tags: Seq[AdornmentTag], params: Seq[Param], body: Body): (Call, Seq[AdornmentTag]) = {
+    val call = body.constraints(index).asInstanceOf[Call]
+    val prevConstrs = body.constraints.take(index)
+    // generate adornment based on fixed adornment hint or on the already bound inputs
+    fixedAdornment(call) match {
+      case Some(adorn) =>
+        val adornmentTags = adorn.map(a => if (a) Bound else Free)
+        (Call(adornmentName(call.name, adornmentTags), call.args, call.transitive, call.neg), adornmentTags)
+      case None =>
+        val boundIndices = tags.zipWithIndex.filter( _._1 == Bound).map(_._2)
+        val boundParams = boundIndices.map(params).map(p => Var(p.name))
+        val fv = freeVars(prevConstrs, call).diff(boundParams)
+        val adornmentTags: Seq[AdornmentTag] = call.args.map { arg =>
+          if (fv.contains(arg)) Free
+          else Bound
+        }
+        (Call(adornmentName(call.name, adornmentTags), call.args, call.transitive, call.neg), adornmentTags)
+    }
   }
 
   def freeVars(prev: Seq[Constraint], constraint: Constraint): Seq[Var] = {

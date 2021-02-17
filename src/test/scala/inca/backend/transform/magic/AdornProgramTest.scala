@@ -2,6 +2,8 @@ package inca.backend.transform.magic
 
 import inca.backend.ir.GP
 import inca.backend.transform.magic.Examples._
+import inca.frontend.examples.AST
+import inca.frontend.lowering.GenerateDatalog
 import org.scalatest.funsuite.AnyFunSuite
 
 class AdornProgramTest extends AnyFunSuite {
@@ -28,5 +30,14 @@ class AdornProgramTest extends AnyFunSuite {
 
     val adorned = trans.transformModule(unreachableModuleGP)
     assert(moduleEqual(adorned, adornedUnreachableModuleGP))
+  }
+
+  test("Adornment with fixed adornment") {
+    val moduleGP = GenerateDatalog.transformModule(AST.plusModule)
+    println(moduleGP)
+    val trans = AdornProgram.transformer
+
+    val adorned = trans.transformModule(moduleGP)
+    println(adorned)
   }
 }

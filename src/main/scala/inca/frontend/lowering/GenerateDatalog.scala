@@ -47,7 +47,7 @@ class GenerateDatalog(module: Module) {
     val bodies = for ((terms, cons) <- transExp(fun.body.ensureCore))
       yield GP.Body(cons ++ outParams.zip(terms).map(pt => GP.Eq(GP.Var(pt._1.name), pt._2)))
 
-    GP.Pattern(vis, fun.name.name, params ++ outParams, bodies)
+    GP.Pattern(vis, fun.name.name, params ++ outParams, bodies).withHints(fun)
   }
 
   private def flattenParam(name: String, typ: Type, genFresh: Boolean): Seq[GP.Param] = typ match {
