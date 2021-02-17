@@ -34,10 +34,12 @@ class AdornProgramTest extends AnyFunSuite {
 
   test("Adornment with fixed adornment") {
     val moduleGP = GenerateDatalog.transformModule(AST.plusModule)
-    println(moduleGP)
+//    println(moduleGP)
     val trans = AdornProgram.transformer
 
     val adorned = trans.transformModule(moduleGP)
-    println(adorned)
+//    println(adorned)
+    val magicSet = MagicSetTransformation.transformer.transformModule(adorned)
+    println(magicSet)
   }
 }

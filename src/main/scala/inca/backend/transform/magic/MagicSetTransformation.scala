@@ -1,5 +1,6 @@
 package inca.backend.transform.magic
 
+import inca.backend.hints.MagicSetHints
 import inca.backend.ir.CollectVars
 import inca.backend.ir.GP._
 import inca.backend.transform.{Transformation, Transformer}
@@ -19,10 +20,18 @@ object MagicSetTransformation extends Transformation {
       Module(mod.name, mod.imports, insertedInputCallPats ++ inputPatterns, mod.scalaContent)
     }
 
-    override def transformPattern(pat: Pattern): Seq[Pattern] = {
-      val extendedPattern = insertInputCall(pat)
-      Seq(extendedPattern)
-    }
+    override def transformPattern(pat: Pattern): Seq[Pattern] =
+      if (shouldDeriveInput(pat)) {
+        val extendedPattern = insertInputCall(pat)
+        Seq(extendedPattern)
+      } else {
+        Seq(pat)
+      }
+  }
+
+  private def shouldDeriveInput(pat: Pattern): Boolean = {
+    val res = pat.hints.contains(MagicSetHints.NoInputRelationKey)
+    !res
   }
 
   private def insertInputCall(pat: Pattern): Pattern = {
@@ -58,6 +67,9 @@ object MagicSetTransformation extends Transformation {
   }
 
   private def deriveInputPattern(pat: Pattern, modulePats: Seq[Pattern]): Seq[Pattern] = {
+    if (!shouldDeriveInput(pat))
+      return Seq()
+
     // collect every pattern that calls pat
     val patterns = modulePats.flatMap { p =>
       val bodiesCallingPat = collectBodiesCallingPat(p, pat)
