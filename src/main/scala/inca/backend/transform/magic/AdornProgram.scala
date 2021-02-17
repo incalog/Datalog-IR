@@ -1,5 +1,6 @@
 package inca.backend.transform.magic
 
+import inca.backend.hints.{Hint, Hints, MagicSetHints}
 import inca.backend.ir.Collect
 import inca.backend.ir.GP._
 import inca.backend.transform.Transformation
@@ -9,23 +10,30 @@ sealed trait AdornmentTag
 case object Bound extends AdornmentTag
 case object Free extends AdornmentTag
 
-trait Adornment extends Transformation {
-
-  def query: Call
-  def adornmentTags: Seq[AdornmentTag]
+object AdornProgram extends Transformation {
 
   override def transformer: Transformer = new Transformer {
+
     override def transformModule(module: Module): Module = {
       var adornedPatterns: Set[(Pattern, Seq[AdornmentTag])] = Set()
-      var todo: Set[(Call, Seq[AdornmentTag])] = Set((query, adornmentTags))
+
+
+      val mainHints = collectMainPattern(module)
+      val mains = mainHints.map { p =>
+        val params = p.params.map(p => Var(p.name))
+        val mainHint = p.hints(MagicSetHints.MainKey).asInstanceOf[MagicSetHints.Main]
+        val adornment = mainHint.adorn.map(a => if(a) Bound else Free)
+        (Call(p.name, params, transitive = false, neg = false), adornment)
+      }
+      var todo: Set[(Call, Seq[AdornmentTag])] = mains.toSet
 
       def visited(call: Call, callTags: Seq[AdornmentTag]): Boolean =
         adornedPatterns.exists { case (pat, _) =>
           pat.name == adornmentName(call.name, callTags)
         }
 
-      // We already ignore base relations because we do not call them
       // TODO currently we only consider single module without imports
+      // We already ignore base relations because we do not call them
       // We assume that every variable that is used is introduced beforehand
       while(todo.nonEmpty) {
         val (current, currentTags) = todo.head
@@ -63,6 +71,9 @@ trait Adornment extends Transformation {
       Module(module.name, module.imports, patterns, module.scalaContent)
     }
   }
+
+  private def collectMainPattern(module: Module): Seq[Pattern]=
+    module.pats.filter { p => p.hints.contains(MagicSetHints.MainKey) }
 
   object CollectVars extends Collect[Var] {
     override def transVar(v: Var): Seq[Var] = Seq(v)

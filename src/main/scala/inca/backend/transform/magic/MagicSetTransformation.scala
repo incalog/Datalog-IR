@@ -5,9 +5,7 @@ import inca.backend.ir.GP._
 import inca.backend.transform.{Transformation, Transformer}
 import inca.util.Gensym
 
-trait SidewayInformationPassing
-
-trait MagicSetTransformation extends Transformation {
+object MagicSetTransformation extends Transformation {
 
   def inputPatternName(name: Name): String = "input_" + name
 
