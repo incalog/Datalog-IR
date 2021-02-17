@@ -1,5 +1,6 @@
 package inca.backend.ir
 
+import inca.backend.hints.Hints
 import inca.util.Meta
 import inca.util.Meta.Scala
 import truechange.{JavaLitType, LitType}
@@ -56,11 +57,11 @@ object GP {
   case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern], scalaContent: Seq[Scala[meta.Stat]]) {
     override def toString: Name = Printer.prettyModule(this)
   }
-  case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body])
+  case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body]) extends Hints
   case class Param(name: Name, typ: Type)
   case class Body(constraints: Seq[Constraint])
 
-  sealed trait Constraint
+  sealed trait Constraint extends Hints
   case class Call(name: Name, args: Seq[Term], transitive: Boolean = false, neg: Boolean = false) extends Constraint
   case class Compare(comp: Comparator, lhs: Term, rhs: Term) extends Constraint
   case class HasType(t: Term, typ: Type) extends Constraint

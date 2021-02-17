@@ -1,5 +1,6 @@
 package inca.frontend.lowering
 
+import inca.backend.hints.MagicSetHints
 import inca.backend.ir.GP
 import inca.frontend.core._
 import inca.util.Meta.Scala
@@ -207,7 +208,10 @@ class GenerateDatalog(module: Module) {
     val constrPat = GP.Pattern(vis, constr.name.name, params :+ outParam, Seq(GP.Body(Seq(constrCons))))
 
     val selectorCons = GP.Call(constr.name.name, (params :+ outParam).map(p => GP.Var(p.name)))
+    selectorCons.addHint(MagicSetHints.IgnoreCall)
+    selectorCons.addHint(MagicSetHints.FixedAdornment(params.map(_ => true) :+ false))
     val selectorPat = GP.Pattern(vis, constr.selectorName, outParam +: params, Seq(GP.Body(Seq(selectorCons))))
+    selectorPat.addHint(MagicSetHints.NoInputRelation)
 
     Seq(constrPat, selectorPat)
   }

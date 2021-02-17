@@ -8,12 +8,12 @@ case class Substitute(subst: Var => Term) {
     Module(module.name, module.imports, module.pats.map(substPattern), module.scalaContent)
 
   def substPattern(pat: Pattern): Pattern =
-    Pattern(pat.vis, pat.name, pat.params, pat.bodies.map(substBody))
+    Pattern(pat.vis, pat.name, pat.params, pat.bodies.map(substBody)).withHints(pat)
 
   def substBody(body: Body): Body =
     Body(body.constraints.map(substConstraint))
 
-  def substConstraint(con: Constraint): Constraint = con match {
+  def substConstraint(con: Constraint): Constraint = (con match {
     case Call(name, args, transitive, neg) => Call(name, args.map(substTerm), transitive, neg)
     case Compare(comp, lhs, rhs) => Compare(comp, substTerm(lhs), substTerm(rhs))
     case HasType(t, typ) => HasType(substTerm(t), typ)
@@ -21,7 +21,7 @@ case class Substitute(subst: Var => Term) {
     case Path(src, srcTy, link, trg, trgTy) => Path(substTerm(src), srcTy, link, substTerm(trg), trgTy)
     case NoPath(t, ty, link, termIsSource) => NoPath(substTerm(t), ty, link, termIsSource)
     case Computed(lhs, computation) => Computed(substTerm(lhs), substComputation(computation))
-  }
+  }).withHints(con)
 
   def substTerm(term: Term): Term = term match {
     case v: Var => subst(v) match {

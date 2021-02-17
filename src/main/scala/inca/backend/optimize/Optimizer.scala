@@ -16,13 +16,13 @@ trait Optimizer {
         case BodyMustFail => Seq()
       }
     )
-    Seq(Pattern(pat.vis, pat.name, pat.params, newbodies))
+    Seq(Pattern(pat.vis, pat.name, pat.params, newbodies).withHints(pat))
   }
 
   def optimizeBody(body: Body, pat: Pattern): Seq[Body] =
     Seq(Body(body.constraints.flatMap(optimizeConstraint)))
 
-  def optimizeConstraint(con: Constraint): Seq[Constraint] = con match {
+  def optimizeConstraint(con: Constraint): Seq[Constraint] = (con match {
     case Call(name, args, transitive, neg) => Seq(Call(name, args.map(optimizeTerm), transitive, neg))
     case Compare(comp, lhs, rhs) => Seq(Compare(comp, optimizeTerm(lhs), optimizeTerm(rhs)))
     case HasType(t, typ) => Seq(HasType(optimizeTerm(t), typ))
@@ -30,7 +30,7 @@ trait Optimizer {
     case Path(src, srcTy, link, trg, trgTy) => Seq(Path(optimizeTerm(src), srcTy, link, optimizeTerm(trg), trgTy))
     case NoPath(t, ty, link, termIsSource) => Seq(NoPath(optimizeTerm(t), ty, link, termIsSource))
     case Computed(resultVar, computation) => Seq(Computed(resultVar, computation))
-  }
+  }).map(_.withHints(con))
 
   def optimizeTerm(term: Term): Term = term
 }
