@@ -1,9 +1,5 @@
 package inca.runtime
 
-import java.util.Optional
-import java.util.concurrent.Callable
-import java.{lang, util}
-
 import inca.runtime.Query.ChangeFeed
 import inca.runtime.context.LanguageMetaInfo
 import inca.runtime.index.MetaElements.{Link, PrimitiveValue}
@@ -18,6 +14,9 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask
 import org.eclipse.viatra.query.runtime.matchers.util.Accuracy
 import truechange._
 
+import java.util.Optional
+import java.util.concurrent.Callable
+import java.{lang, util}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
@@ -46,6 +45,8 @@ class Database(
   private[runtime] val linkPrimitiveInstances: mutable.Map[Link, BidirectionalManyToOneIndex[URI, PrimitiveValue]] = mutable.Map()
   private[runtime] val linkListFirstInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListFirstKey)
   private[runtime] val linkListNextInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListNextKey)
+  private[runtime] val namedRelationInstances: mutable.Map[(String, Int), UnaryBagIndex[Tuple]] = mutable.Map()
+
 
   // URI -> Map[Link, PrimitiveValue]
 
@@ -62,6 +63,13 @@ class Database(
   private[runtime] def nodeInstancesEnsure(ty: Type) = nodeInstances.getOrElse(ty, {
     val ix = new UnarySetIndex[URI](NodeTypeKey(ty))
     nodeInstances += ty -> ix
+    ix
+  })
+
+  @inline
+  private[runtime] def namedRelationInstancesEnsure(name: String, arity: Int) = namedRelationInstances.getOrElse((name, arity), {
+    val ix = new UnaryBagIndex[Tuple](NamedRelationKey(name, arity))
+    namedRelationInstances += (name, arity) -> ix
     ix
   })
 
@@ -209,6 +217,7 @@ class Database(
     case LinkPrimitiveKey(link) => linkPrimitiveInstances.get(link)
     case LinkListFirstKey => Some(linkListFirstInstances)
     case LinkListNextKey => Some(linkListNextInstances)
+    case NamedRelationKey(name, arity) => namedRelationInstances.get((name, arity))
     case dkey: DynamicKey => Some(dynamicIndices(dkey))
     case vkey: VirtualKey => Some(virtualIndexEnsure(vkey))
     case _ => throw new IllegalArgumentException(s"Unknown input key $key")
@@ -223,6 +232,7 @@ class Database(
     case LinkPrimitiveKey(link) => linkPrimitiveInstancesEnsure(link)
     case LinkListFirstKey => linkListFirstInstances
     case LinkListNextKey => linkListNextInstances
+    case NamedRelationKey(name, arity) => namedRelationInstancesEnsure(name, arity)
     case dkey: DynamicKey => dynamicIndices(dkey)
     case vkey: VirtualKey => virtualIndexEnsure(vkey)
     case _ => throw new IllegalArgumentException(s"Unknown input key $key")

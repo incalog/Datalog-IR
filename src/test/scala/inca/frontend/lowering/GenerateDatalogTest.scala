@@ -228,4 +228,9 @@ class GenerateDatalogTest extends AnyFunSuite {
     val result = GenerateDatalog.transformModule(AST.plusModule)
     println(result)
   }
+
+  test("plus real example") {
+    val result = GenerateDatalog.transformModule(AST.plusRealModule)
+    println(result)
+  }
 }

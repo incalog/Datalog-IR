@@ -21,6 +21,7 @@ object CompileToPSystem {
   val LITPREFIX = "lit_"
   val EVALPREFIX = "eval_"
 
+  private val oNamedRelationKey = symbolOf(NamedRelationKey)
   private val oNodeTypeKey = symbolOf(NodeTypeKey)
   private val oNotNodeTypeKey = symbolOf(NotNodeTypeIndex.Key)
   private val oPrimitiveKey = symbolOf(PrimitiveTypeKey)
@@ -243,6 +244,16 @@ object CompileToPSystem {
           Seq(q"new BinaryTransitiveClosure(body, $argTuple, $callQuery)")
         else
           Seq(q"new PositivePatternCall(body, $argTuple, $callQuery)")
+
+    case ExtensionalCall(name, args, neg) =>
+      val key = q"$oNamedRelationKey($name, ${args.size})"
+      val tuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
+      if (neg) {
+        // use a type filter
+        ???
+      } else {
+        Seq(q"new TypeConstraint(body, $tuple, $key)")
+      }
 
     case Compare(EqComparator, lhs, rhs) =>
       Seq(q"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})""")

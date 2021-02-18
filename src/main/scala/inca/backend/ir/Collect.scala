@@ -30,6 +30,7 @@ trait Collect[R] {
 
   def transConstraint(const: Constraint): Seq[R] = const match {
     case Call(_, args, _, _) => args.flatMap(transTerm)
+    case ExtensionalCall(_, args, _) => args.flatMap(transTerm)
     case Compare(comp, lhs, rhs) => transTerm(lhs) ++ transTerm(rhs)
     case HasType(v, typ) => transTerm(v)
     case NotHasType(v, typ) => transTerm(v)

@@ -24,6 +24,7 @@ trait Transformer {
 
   def transformConstraint(con: Constraint): Seq[Constraint] = con match {
     case Call(name, args, transitive, neg) => Seq(Call(name, args.map(transformTerm), transitive, neg))
+    case ExtensionalCall(name, args, neg) => Seq(ExtensionalCall(name, args, neg))
     case Compare(comp, lhs, rhs) => Seq(Compare(comp, transformTerm(lhs), transformTerm(rhs)))
     case HasType(t, typ) => Seq(HasType(transformTerm(t), typ))
     case NotHasType(t, typ) => Seq(NotHasType(transformTerm(t), typ))

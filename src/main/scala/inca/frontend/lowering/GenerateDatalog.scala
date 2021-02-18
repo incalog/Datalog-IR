@@ -1,9 +1,10 @@
 package inca.frontend.lowering
 
-import inca.backend.hints.MagicSetHints
+import inca.backend.hints.{DataHints, MagicSetHints}
 import inca.backend.ir.GP
 import inca.frontend.core._
-import inca.util.Meta.Scala
+import inca.runtime.data.JVMURI_Repr
+import inca.util.Meta.{Scala, typeOf}
 import inca.util.{Gensym, TupleOps}
 
 import scala.collection.mutable.ListBuffer
@@ -198,8 +199,23 @@ class GenerateDatalog(module: Module) {
   private def transData(data: DataDef): Seq[GP.Pattern] = {
     val vis = data.vis.map { case Private => GP.Private }
     val typ = transType(TData(data.name).resolved(data))
-    data.constrs.flatMap(transDataConstructor(_, vis, typ))
+
+    val constrBodies = data.constrs.map { case DataConstructor(name, paramTypes) =>
+      GP.Body(Seq(
+        GP.Call(name.name, paramTypes.zipWithIndex.map(pix => GP.Var(s"_${pix._2}")) :+ GP.Var("out"))
+      ))
+    }
+    val edbDataBody = GP.Body(Seq(
+      GP.HasType(GP.Var("out"), GP.TNode(data.name.name))
+    ))
+    val dataPat = GP.Pattern(None, data.name.name, Seq(GP.Param("out", typ)),
+      constrBodies :+ edbDataBody
+    )
+
+    dataPat +: data.constrs.flatMap(transDataConstructor(_, vis, typ))
   }
+
+  val tyJVMURI_Repr: meta.Type = typeOf[JVMURI_Repr]
 
   private def transDataConstructor(constr: DataConstructor, vis: Option[GP.Visibility], typ: GP.Type): Seq[GP.Pattern] = {
     import scala.meta._
@@ -211,26 +227,44 @@ class GenerateDatalog(module: Module) {
 
     val constrScalaFun = Term.Function(
       params.map(p => Term.Param(Nil, Term.Name(p.name), Some(p.typ.asScala), None)).toList,
-      q"""${constr.name.name} + Seq(..${params.map(p => Term.Name(p.name)).toList}).mkString("(", ", ", ")")"""
+      q"""new $tyJVMURI_Repr(${constr.name.name} + Seq(..${params.map(p => Term.Select(Term.Name(p.name), Term.Name("repr"))).toList}).mkString("(", ", ", ")"))"""
     )
-    val constrCons = GP.Computed(GP.Var(outParam.name),
-      GP.Evaluation(params.map(p => GP.Var(p.name) -> p.typ), GP.TScalaString, Scala(constrScalaFun)))
-    val constrPat = GP.Pattern(vis, constr.name.name, params :+ outParam, Seq(GP.Body(Seq(constrCons))))
+    val outVar = GP.Var(outParam.name)
+    val constrIDBBody = GP.Body(Seq(GP.Computed(outVar,
+      GP.Evaluation(params.map(p => GP.Var(p.name) -> p.typ), typ, Scala(constrScalaFun)))))
+
+    val constrType = GP.TNode(constr.name.name)
+    val constrEDBBody = GP.Body(
+      GP.HasType(outVar, constrType) +:
+        constr.paramTypes.zipWithIndex.map { case (typ, ix) =>
+          GP.Path(outVar, constrType, GP.NamedLink(constrType, s"_$ix"), GP.Var(s"_$ix"), transRuntimeType(typ))
+        }
+    )
+    val constrPat = GP.Pattern(vis, constr.name.name, params :+ outParam, Seq(constrIDBBody, constrEDBBody))
+      .addHint(DataHints.Constructor)
 
     val selectorCons = GP.Call(constr.name.name, (params :+ outParam).map(p => GP.Var(p.name)))
       .addHint(MagicSetHints.IgnoreCall)
       .addHint(MagicSetHints.FixedAdornment(params.map(_ => true) :+ false))
     val selectorPat = GP.Pattern(vis, constr.selectorName, outParam +: params, Seq(GP.Body(Seq(selectorCons))))
       .addHint(MagicSetHints.NoInputRelation)
+      .addHint(DataHints.Selector)
 
     Seq(constrPat, selectorPat)
   }
 
 
+  private val tyURI = typeOf[truechange.URI]
   private def transType(typ: Type): GP.Type = typ match {
     case TAny => GP.TAny
-    case TData(_) => GP.TScalaString
+    case TData(_) => GP.TScala(Scala(tyJVMURI_Repr))
     case TScala(ty) => GP.TScala(ty)
+    case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
+  }
+
+  private def transRuntimeType(typ: Type): GP.Type = typ match {
+    case TAny => GP.TAny
+    case TData(name) => GP.TNode(name.name)
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
   }
 }

@@ -24,6 +24,7 @@ trait Optimizer {
 
   def optimizeConstraint(con: Constraint): Seq[Constraint] = (con match {
     case Call(name, args, transitive, neg) => Seq(Call(name, args.map(optimizeTerm), transitive, neg))
+    case ExtensionalCall(name, args, neg) => Seq(ExtensionalCall(name, args, neg))
     case Compare(comp, lhs, rhs) => Seq(Compare(comp, optimizeTerm(lhs), optimizeTerm(rhs)))
     case HasType(t, typ) => Seq(HasType(optimizeTerm(t), typ))
     case NotHasType(t, typ) => Seq(NotHasType(optimizeTerm(t), typ))

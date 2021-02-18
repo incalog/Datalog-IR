@@ -15,6 +15,7 @@ case class Substitute(subst: Var => Term) {
 
   def substConstraint(con: Constraint): Constraint = (con match {
     case Call(name, args, transitive, neg) => Call(name, args.map(substTerm), transitive, neg)
+    case ExtensionalCall(name, args, neg) => ExtensionalCall(name, args.map(substTerm), neg)
     case Compare(comp, lhs, rhs) => Compare(comp, substTerm(lhs), substTerm(rhs))
     case HasType(t, typ) => HasType(substTerm(t), typ)
     case NotHasType(t, typ) => NotHasType(substTerm(t), typ)

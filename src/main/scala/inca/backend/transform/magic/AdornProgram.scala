@@ -1,10 +1,9 @@
 package inca.backend.transform.magic
 
-import inca.backend.hints.{Hint, Hints, MagicSetHints}
+import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Collect
 import inca.backend.ir.GP._
-import inca.backend.transform.Transformation
-import inca.backend.transform.Transformer
+import inca.backend.transform.{Transformation, Transformer}
 
 sealed trait AdornmentTag
 case object Bound extends AdornmentTag
@@ -18,6 +17,7 @@ object AdornProgram extends Transformation {
     override def transformModule(module: Module): Module = {
       var adornedPatterns: Set[(Pattern, Seq[AdornmentTag])] = Set()
 
+      var unvisitedPatterns: Set[Pattern] = module.pats.toSet
 
       val mainHints = collectMainPattern(module)
       val mains = mainHints.map { p =>
@@ -42,6 +42,7 @@ object AdornProgram extends Transformation {
 
         if (!visited(current, currentTags)) {
           val pat = module.pats.find(_.name == current.name).getOrElse(sys.error(s"Pattern ${current.name} not found during adornment"))
+          unvisitedPatterns -= pat
           val adornedBody = pat.bodies.map { body =>
             val adornedConstraints = body.constraints.zipWithIndex.map { case (constr, i) =>
               constr match {
@@ -61,6 +62,7 @@ object AdornProgram extends Transformation {
       }
 
       val patterns = adornedPatterns.toSeq.map { case (pat, tags) => pat }
+      // TODO: also yield unvisitedPatterns
       Module(module.name, module.imports, patterns, module.scalaContent)
     }
   }

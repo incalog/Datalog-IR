@@ -44,11 +44,29 @@ object Plus extends App {
     ))
   ))
 
+  val Nat = Pattern(None, "Nat", Seq(Param("out", TScalaString)), Seq(
+    Body(Seq(
+      Call("Zero_f", Seq(Var("out")))
+    )),
+    Body(Seq(
+      Call("Succ_bf", Seq(Var("pred"), Var("out")))
+    )),
+    Body(Seq(
+      HasType(Var("out"), TNode("Nat"))
+    ))
+  ))
+
   // (0_a,1_b), (0_c,1_d), (1_b,2_e)
-  val Succ_bf = Pattern(None, "Succ_bf", Seq(Param("pred", TScalaString), Param("out", TScalaString)), Seq(Body(Seq(
-    Call("input_Succ_bf", Seq(Var("pred"))),
-    Computed(Var("out"), Evaluation(Seq(Var("pred") -> TScalaString), TScalaString, Scala(q"""(pred: String) => "Succ(" + pred + ")" """)))
-  ))))
+  val Succ_bf = Pattern(None, "Succ_bf", Seq(Param("pred", TScalaString), Param("out", TScalaString)), Seq(
+    Body(Seq(
+      Call("input_Succ_bf", Seq(Var("pred"))),
+      Computed(Var("out"), Evaluation(Seq(Var("pred") -> TScalaString), TScalaString, Scala(q"""(pred: String) => "Succ(" + pred + ")" """)))
+    )),
+    Body(Seq(
+      HasType(Var("out"), TNode("Succ")),
+      Path(Var("out"), TNode("Succ"), NamedLink(TNode("Succ"), "pred"), Var("pred"), TNode("Nat"))
+    ))
+  ))
 
   // unSucc_bf(n, pred) :- input_unSucc_bf(n), ... .
   val unSucc_bf = Pattern(None, "unSucc_bf", Seq(Param("n", TScalaString), Param("pred", TScalaString)), Seq(Body(Seq(
@@ -111,6 +129,7 @@ object Plus extends App {
     unZero_b,
     Succ_bf, input_Succ_bf,
     unSucc_bf,
+    Nat,
     plus_bbf, input_plus_bbf,
     main
   ), Seq())

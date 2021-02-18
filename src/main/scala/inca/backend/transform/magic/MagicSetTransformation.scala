@@ -58,6 +58,7 @@ object MagicSetTransformation extends Transformation {
   }
 
   private def deriveBoundIndices(name: Name): Seq[Int] = {
+    // TODO: use hints instead of name mangling
     val index = name.lastIndexOf("_")
     if (index == -1) {
       throw new IllegalArgumentException("Cannot derive input pattern of non-adorned pattern")
