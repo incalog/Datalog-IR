@@ -9,6 +9,7 @@ import inca.frontend.examples.AST.plusFun
 import inca.frontend.lowering.GenerateDatalog
 import inca.runtime.EnginePool
 import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.runtime.data.DataURI
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
@@ -64,19 +65,19 @@ class FunctionalTests extends AnyFunSuite {
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
     // first argument of main
-    val zero0 = new JVMURI
-    val succ1 = new JVMURI
-    val succ2 = new JVMURI
-    val succ3 = new JVMURI
+    val zero0 = new DataURI("Zero")
+    val succ1 = new DataURI("Succ(Zero)")
+    val succ2 = new DataURI("Succ(Succ(Zero))")
+    val succ3 = new DataURI("Succ(Succ(Succ(Zero)))")
     feed.processEdit(Load(zero0, NamedTag("Zero"), Seq(), Seq()))
     feed.processEdit(Load(succ1, NamedTag("Succ"), Seq(("_0", zero0)), Seq()))
     feed.processEdit(Load(succ2, NamedTag("Succ"), Seq(("_0", succ1)), Seq()))
     feed.processEdit(Load(succ3, NamedTag("Succ"), Seq(("_0", succ2)), Seq()))
 
     // second argument of main
-    val zero1 = new JVMURI
-    val succ4 = new JVMURI
-    val succ5 = new JVMURI
+    val zero1 = new DataURI("Zero")
+    val succ4 = new DataURI("Succ(Zero)")
+    val succ5 = new DataURI("Succ(Succ(Zero))")
     feed.processEdit(Load(zero1, NamedTag("Zero"), Seq(), Seq()))
     feed.processEdit(Load(succ4, NamedTag("Succ"), Seq(("_0", zero1)), Seq()))
     feed.processEdit(Load(succ5, NamedTag("Succ"), Seq(("_0", succ4)), Seq()))
@@ -102,19 +103,19 @@ class FunctionalTests extends AnyFunSuite {
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
     // first argument of plus
-    val zero0 = new JVMURI
-    val succ1 = new JVMURI
-    val succ2 = new JVMURI
-    val succ3 = new JVMURI
+    val zero0 = new DataURI("Zero")
+    val succ1 = new DataURI("Succ(Zero)")
+    val succ2 = new DataURI("Succ(Succ(Zero))")
+    val succ3 = new DataURI("Succ(Succ(Succ(Zero)))")
     feed.processEdit(Load(zero0, NamedTag("Zero"), Seq(), Seq()))
     feed.processEdit(Load(succ1, NamedTag("Succ"), Seq(("_0", zero0)), Seq()))
     feed.processEdit(Load(succ2, NamedTag("Succ"), Seq(("_0", succ1)), Seq()))
     feed.processEdit(Load(succ3, NamedTag("Succ"), Seq(("_0", succ2)), Seq()))
 
     // second argument of plus
-    val zero1 = new JVMURI
-    val succ4 = new JVMURI
-    val succ5 = new JVMURI
+    val zero1 = new DataURI("Zero")
+    val succ4 = new DataURI("Succ(Zero)")
+    val succ5 = new DataURI("Succ(Succ(Zero))")
     feed.processEdit(Load(zero1, NamedTag("Zero"), Seq(), Seq()))
     feed.processEdit(Load(succ4, NamedTag("Succ"), Seq(("_0", zero1)), Seq()))
     feed.processEdit(Load(succ5, NamedTag("Succ"), Seq(("_0", succ4)), Seq()))
