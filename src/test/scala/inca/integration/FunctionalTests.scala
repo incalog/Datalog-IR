@@ -63,6 +63,26 @@ class FunctionalTests extends AnyFunSuite {
     val scope = new QueryScope(lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
+    // first argument of main
+    val zero0 = new JVMURI
+    val succ1 = new JVMURI
+    val succ2 = new JVMURI
+    val succ3 = new JVMURI
+    feed.processEdit(Load(zero0, NamedTag("Zero"), Seq(), Seq()))
+    feed.processEdit(Load(succ1, NamedTag("Succ"), Seq(("_0", zero0)), Seq()))
+    feed.processEdit(Load(succ2, NamedTag("Succ"), Seq(("_0", succ1)), Seq()))
+    feed.processEdit(Load(succ3, NamedTag("Succ"), Seq(("_0", succ2)), Seq()))
+
+    // second argument of main
+    val zero1 = new JVMURI
+    val succ4 = new JVMURI
+    val succ5 = new JVMURI
+    feed.processEdit(Load(zero1, NamedTag("Zero"), Seq(), Seq()))
+    feed.processEdit(Load(succ4, NamedTag("Succ"), Seq(("_0", zero1)), Seq()))
+    feed.processEdit(Load(succ5, NamedTag("Succ"), Seq(("_0", succ4)), Seq()))
+
+    feed.insert("ext_input_main_bbf", Tuples.flatTupleOf(succ3, succ5))
+
     def printMatches(name: String): Unit = {
       val matcher = EnginePool.loadQuery(compiled.psystemModule.patterns(name)(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
       println(s"matches of $name:   ${matcher.getAllMatches}")
@@ -81,16 +101,25 @@ class FunctionalTests extends AnyFunSuite {
     val scope = new QueryScope(lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
-    // TODO: load data -> edit script
-//    val three: truechange.URI = ???
-//    val two: truechange.URI = ???
+    // first argument of plus
     val zero0 = new JVMURI
+    val succ1 = new JVMURI
+    val succ2 = new JVMURI
+    val succ3 = new JVMURI
     feed.processEdit(Load(zero0, NamedTag("Zero"), Seq(), Seq()))
-    val zero1 = new JVMURI
-    feed.processEdit(Load(zero1, NamedTag("Zero"), Seq(), Seq()))
+    feed.processEdit(Load(succ1, NamedTag("Succ"), Seq(("_0", zero0)), Seq()))
+    feed.processEdit(Load(succ2, NamedTag("Succ"), Seq(("_0", succ1)), Seq()))
+    feed.processEdit(Load(succ3, NamedTag("Succ"), Seq(("_0", succ2)), Seq()))
 
-    // TODO: insert input tuple
-    feed.insert("ext_input_plus_bbf", Tuples.flatTupleOf(zero0, zero1))
+    // second argument of plus
+    val zero1 = new JVMURI
+    val succ4 = new JVMURI
+    val succ5 = new JVMURI
+    feed.processEdit(Load(zero1, NamedTag("Zero"), Seq(), Seq()))
+    feed.processEdit(Load(succ4, NamedTag("Succ"), Seq(("_0", zero1)), Seq()))
+    feed.processEdit(Load(succ5, NamedTag("Succ"), Seq(("_0", succ4)), Seq()))
+
+    feed.insert("ext_input_plus_bbf", Tuples.flatTupleOf(succ3, succ5))
 
     def printMatches(name: String): Unit = {
       val matcher = EnginePool.loadQuery(compiled.psystemModule.patterns(name)(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)

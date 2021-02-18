@@ -46,11 +46,8 @@ class Database(
   private[runtime] val linkListFirstInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListFirstKey)
   private[runtime] val linkListNextInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListNextKey)
 
+  private[runtime] val namedRelationInstances: mutable.Map[String, BagIndex] = mutable.Map()
 
-  private[runtime] val namedRelationInstances: mutable.Map[String, UnaryBagIndex[Tuple]] = mutable.Map()
-
-
-  // URI -> Map[Link, PrimitiveValue]
 
 
   private[runtime] val dynamicIndices: Map[DynamicKey, DynamicIndex] = _dynamicIndices.map { fact =>
@@ -70,7 +67,7 @@ class Database(
 
   @inline
   private[runtime] def namedRelationInstancesEnsure(name: String, arity: Int) = namedRelationInstances.getOrElse(name, {
-    val ix = new UnaryBagIndex[Tuple](NamedRelationKey(name, arity))
+    val ix = new BagIndex(NamedRelationKey(name, arity))
     namedRelationInstances += name -> ix
     ix
   })
