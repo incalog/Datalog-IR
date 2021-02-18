@@ -296,12 +296,12 @@ trait CoreParser {
   /** Module parser */
   def module[_: P]: P[Module] =
     P("module " ~ identifier ~
-      using_ ~
+      using_.? ~
       import_.rep ~
       moduleContent.rep ~
       End
     ).mapWithLoc { case (name, using, imports, contents) =>
-      Module(name, imports, contents.flatten, using)
+      Module(name, imports, contents.flatten, using.getOrElse(UsingMetamodel(Name(""))))
     }
 
   def import_[_: P]: P[Import] =
