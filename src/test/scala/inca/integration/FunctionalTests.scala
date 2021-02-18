@@ -33,8 +33,8 @@ class FunctionalTests extends AnyFunSuite {
     val scope = new QueryScope(lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
-    println(compiled.ir)
-    println(compiled.psystemSource)
+//    println(compiled.ir)
+//    println(compiled.psystemSource)
 
     def printMatches(name: String): Unit = {
       val matcher = EnginePool.loadQuery(compiled.psystemModule.patterns(name)(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
@@ -43,6 +43,10 @@ class FunctionalTests extends AnyFunSuite {
 
     // TODO actual test
     compiled.psystemModule.patterns.keys.foreach(printMatches)
+
+    val mainMatcher = EnginePool.loadQuery(compiled.psystemModule.patterns("main_f")(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    assert(mainMatcher.getAllMatches.size == 1)
+    assert(mainMatcher.getOneArbitraryMatch.get().get("out").toString.startsWith("Succ(Succ(Succ(Succ(Succ(Zero())))))"))
   }
 
   test("Adornment with fixed adornment (real plus)") {
