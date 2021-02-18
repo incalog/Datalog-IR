@@ -31,7 +31,7 @@ object MagicSetTransformation extends Transformation {
   }
 
   private def shouldDeriveInput(pat: Hints): Boolean = {
-    !pat.hasHint(MagicSetHints.NoInputRelationKey) && hasAdornment(pat)
+    !pat.hasHint(MagicSetHints.NoInputRelationKey) || hasAdornment(pat)
   }
 
   private def insertInputCall(pat: Pattern): Pattern = {
