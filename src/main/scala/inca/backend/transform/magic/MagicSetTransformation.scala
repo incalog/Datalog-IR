@@ -31,7 +31,7 @@ object MagicSetTransformation extends Transformation {
   }
 
   private def shouldDeriveInput(pat: Hints): Boolean = {
-    !pat.hasHint(MagicSetHints.NoInputRelationKey)
+    !pat.hasHint(MagicSetHints.NoInputRelationKey) && hasAdornment(pat)
   }
 
   private def insertInputCall(pat: Pattern): Pattern = {
@@ -56,19 +56,24 @@ object MagicSetTransformation extends Transformation {
     }
   }
 
+  private def hasAdornment(hints: Hints): Boolean = hints.hasHint(MagicSetHints.AdornmentKey)
+
   private def deriveBoundParams(pat: Pattern): Seq[Param] = {
-    val indexBoundParams = deriveBoundIndices(pat.name)
+    val indexBoundParams = deriveBoundIndices(pat)
     indexBoundParams.map(pat.params)
   }
 
-  private def deriveBoundIndices(name: Name): Seq[Int] = {
-    // TODO: use hints instead of name mangling
-    val index = name.lastIndexOf("_")
-    if (index == -1) {
-      throw new IllegalArgumentException("Cannot derive input pattern of non-adorned pattern")
+  private def deriveBoundIndices(pat: Pattern): Seq[Int] = {
+    if (!hasAdornment(pat)) {
+      throw new IllegalArgumentException(s"Cannot derive input pattern of non-adorned pattern ${pat.name}")
     }
-    val adornmentTag = name.substring(index + 1)
-    adornmentTag.zipWithIndex.filter(_._1 == 'b').map(_._2)
+
+    val adornment = pat.hints(MagicSetHints.AdornmentKey) match {
+      case MagicSetHints.Adornment(adorn) => adorn
+      case _ => throw new IllegalStateException("This cannot happen")
+    }
+
+    adornment.zipWithIndex.filter(_._1).map(_._2)
   }
 
   private def deriveInputPattern(pat: Pattern, modulePats: Seq[Pattern]): Seq[Pattern] = {
@@ -91,7 +96,7 @@ object MagicSetTransformation extends Transformation {
       val name = gensym.fresh(p.name)
       Param(name, p.typ)
     }
-    val boundIndices = deriveBoundIndices(pat.name)
+    val boundIndices = deriveBoundIndices(pat)
     // for each body there can be multiple input bodies (due to multiple pattern calls)
     val inputPatterns = patterns.map { p =>
       p.bodies.flatMap { body =>
