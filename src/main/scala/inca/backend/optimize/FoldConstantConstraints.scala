@@ -28,7 +28,11 @@ object FoldConstantConstraints extends Optimization with TypeOps {
 
       case HasType(t, typ) =>
         val termTyp = t match {
-          case v:Var => v.typ.getOrElse(TAny)
+          case v:Var => v.typ match {
+            case Some(ty: TLiteral) => ty
+            case Some(ty: TLinked) => ty
+            case _ => TAny
+          }
           case c:Constant => c.lit.typ
         }
         if (termTyp == typ) {
@@ -52,7 +56,11 @@ object FoldConstantConstraints extends Optimization with TypeOps {
 
       case NotHasType(t, typ) =>
         val termTyp = t match {
-          case v:Var => v.typ.getOrElse(TAny)
+          case v:Var => v.typ match {
+            case Some(ty: TLiteral) => ty
+            case Some(ty: TLinked) => ty
+            case _ => TAny
+          }
           case c:Constant => c.lit.typ
         }
         val meetType = meet(termTyp, typ, languageMetaInfo)
