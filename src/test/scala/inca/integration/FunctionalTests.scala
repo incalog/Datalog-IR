@@ -109,9 +109,9 @@ class FunctionalTests extends AnyFunSuite {
     assert(mainMatcher.getAllMatches.size == 1)
     assert(mainMatcher.getOneArbitraryMatch.get().get("out").toString.startsWith("Succ(Succ(Succ(Succ(Succ(Zero)))))"))
 
-    println()
 
-    // insert new main input
+    println()
+    println("insert new main input")
     val succ6 = new DataURI("Succ(Succ(Succ(Zero)))")
     feed.processEdit(Load(succ6, NamedTag("Succ"), Seq(("_0", succ3)), Seq()))
     feed.insert("ext_input_main_bbf", Tuples.flatTupleOf(succ6, succ5))
@@ -122,8 +122,8 @@ class FunctionalTests extends AnyFunSuite {
     assert(matches.count(_.startsWith("Succ(Succ(Succ(Succ(Succ(Zero)))))@")) == 1)
     assert(matches.count(_.startsWith("Succ(Succ(Succ(Succ(Succ(Succ(Zero))))))@")) == 1)
 
-    // remove old main input
     println()
+    println("delete old main input")
     feed.delete("ext_input_main_bbf", Tuples.flatTupleOf(succ3, succ5))
     compiled.psystemModule.patterns.keys.foreach(printMatches)
     assert(mainMatcher.getAllMatches.size == 1)
