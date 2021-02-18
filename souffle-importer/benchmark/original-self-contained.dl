@@ -1,46 +1,5 @@
-// FACT GENERATION
-
-// ./doop --platform java_7 --Xignore-factgen-errors --Xstop-at-facts ~/git/doop.experiments/facts/minijavac --main Main -i ~/git/doop.experiments/benchmarks/minijavac.jar
-// ./doop --platform java_7 --Xignore-factgen-errors --Xstop-at-facts ~/git/doop.experiments/facts/minijavac-reduced --main Main -i ~/git/doop.experiments/benchmarks/minijavac.jar
-
-// ./doop --platform java_7 --Xignore-factgen-errors --Xstop-at-facts ~/git/doop.experiments/facts/jedit --main org.gjt.sp.jedit.jEdit -i ~/git/doop.experiments/benchmarks/jedit.zip
-// ./doop --platform java_7 --Xignore-factgen-errors --Xstop-at-facts ~/git/doop.experiments/facts/jedit-reduced --main org.gjt.sp.jedit.jEdit -i ~/git/doop.experiments/benchmarks/jedit.zip
-
-// ./doop --platform java_7 --Xignore-factgen-errors --Xstop-at-facts ~/git/doop.experiments/facts/ant --main org.apache.tools.ant.Main -i ~/git/doop.experiments/benchmarks/ant-1.8.4.jar
-// ./doop --platform java_7 --Xignore-factgen-errors --Xstop-at-facts ~/git/doop.experiments/facts/ant-reduced --main org.apache.tools.ant.Main -i ~/git/doop.experiments/benchmarks/ant-1.8.4.jar
-
-// ./doop --platform java_7 --Xignore-factgen-errors --Xstop-at-facts ~/git/doop.experiments/facts/pmd --main net.sourceforge.pmd.PMD -i ~/git/doop.experiments/benchmarks/pmd-4.2.5.jar
-// ./doop --platform java_7 --Xignore-factgen-errors --Xstop-at-facts ~/git/doop.experiments/facts/pmd-reduced --main net.sourceforge.pmd.PMD -i ~/git/doop.experiments/benchmarks/pmd-4.2.5.jar
-
-// ./doop --platform java_7 --Xignore-factgen-errors --Xstop-at-facts ~/git/doop.experiments/facts/emma --main emma -i ~/git/doop.experiments/benchmarks/emma-2.0.5312.jar
-// ./doop --platform java_7 --Xignore-factgen-errors --Xstop-at-facts ~/git/doop.experiments/facts/emma-reduced --main emma -i ~/git/doop.experiments/benchmarks/emma-2.0.5312.jar
-
-// ./doop --platform java_7 --Xignore-factgen-errors --Xstop-at-facts ~/git/doop.experiments/facts/antlr --main org.antlr.v4.Tool -i ~/git/doop.experiments/benchmarks/antlr4-4.0.jar
-// ./doop --platform java_7 --Xignore-factgen-errors --Xstop-at-facts ~/git/doop.experiments/facts/antlr-reduced --main org.antlr.v4.Tool -i ~/git/doop.experiments/benchmarks/antlr4-4.0.jar
-
-// SOUFFLE
-// souffle -o ~/git/doop.experiments/minijavac -F ~/git/doop.experiments/facts/minijavac -D ~/git/doop.experiments/output ~/git/doop.experiments/self-contained.dl
-// souffle -o ~/git/doop.experiments/minijavac-reduced -F ~/git/doop.experiments/facts/minijavac-reduced -D ~/git/doop.experiments/output ~/git/doop.experiments/self-contained.dl
-
-// souffle -o ~/git/doop.experiments/jedit -F ~/git/doop.experiments/facts/jedit -D ~/git/doop.experiments/output ~/git/doop.experiments/self-contained.dl
-// souffle -o ~/git/doop.experiments/jedit-reduced -F ~/git/doop.experiments/facts/jedit-reduced -D ~/git/doop.experiments/output ~/git/doop.experiments/self-contained.dl
-
-// souffle -o ~/git/doop.experiments/ant -F ~/git/doop.experiments/facts/ant -D ~/git/doop.experiments/output ~/git/doop.experiments/self-contained.dl
-// souffle -o ~/git/doop.experiments/ant-reduced -F ~/git/doop.experiments/facts/ant-reduced -D ~/git/doop.experiments/output ~/git/doop.experiments/self-contained.dl
-
-// souffle -o ~/git/doop.experiments/pmd -F ~/git/doop.experiments/facts/pmd -D ~/git/doop.experiments/output ~/git/doop.experiments/self-contained.dl
-// souffle -o ~/git/doop.experiments/pmd-reduced -F ~/git/doop.experiments/facts/pmd-reduced -D ~/git/doop.experiments/output ~/git/doop.experiments/self-contained.dl
-
-// souffle -o ~/git/doop.experiments/emma -F ~/git/doop.experiments/facts/emma -D ~/git/doop.experiments/output ~/git/doop.experiments/self-contained.dl
-// souffle -o ~/git/doop.experiments/emma-reduced -F ~/git/doop.experiments/facts/emma-reduced -D ~/git/doop.experiments/output ~/git/doop.experiments/self-contained.dl
-
-// souffle -o ~/git/doop.experiments/antlr -F ~/git/doop.experiments/facts/antlr -D ~/git/doop.experiments/output ~/git/doop.experiments/self-contained.dl
-// souffle -o ~/git/doop.experiments/antlr-reduced -F ~/git/doop.experiments/facts/antlr-reduced -D ~/git/doop.experiments/output ~/git/doop.experiments/self-contained.dl
-
-
-// Main schema
-.type Modifier
-.type Type
+.type Modifier = symbol
+.type Type = symbol
 .type PrimitiveType = Type
 .type ReferenceType = Type
 .type ArrayType = ReferenceType
@@ -58,10 +17,10 @@
 .decl ApplicationClass(?ref:ReferenceType)
 .decl MainClass(?class:ClassType)
 .input MainClass(IO="file", filename="MainClass.facts", delimiter="\t")
-.type Field
+.type Field = symbol
 .decl Field_DeclaringType(?field:Field, ?declaringClass:ReferenceType)
-.type MethodDescriptor
-.type Method
+.type MethodDescriptor = symbol
+.type Method = symbol
 .decl Method_DeclaringType(?method:Method, ?declaringType:ReferenceType)
 .decl Method_ReturnType(?method:Method, ?returnType:Type)
 .decl Method_SimpleName(?method:Method, ?simpleName:symbol)
@@ -72,15 +31,15 @@
 .decl FormalParam(?index:number, ?method:Method, ?var:Var)
 .input FormalParam(IO="file", filename="FormalParam.facts", delimiter="\t")
 .decl ThisVar(?method:Method, ?var:Var)
-.type Var
+.type Var = symbol
 .decl Var_Type(?var:Var, ?type:Type)
 .input Var_Type(IO="file", filename="Var-Type.facts", delimiter="\t")
 .decl Var_DeclaringMethod(?var:Var, ?method:Method)
-.type HeapAllocation
+.type HeapAllocation = symbol
 .decl HeapAllocation_Type(?heap:HeapAllocation, ?type:Type)
 .decl MainMethodArgArray(?heap:HeapAllocation)
 .decl MainMethodArgArrayContent(?heap:HeapAllocation)
-.type Instruction
+.type Instruction = symbol
 .decl Instruction_Method(?insn:Instruction, ?inMethod:Method)
 .type FieldInstruction = Instruction
 .type LoadInstanceField_Insn = FieldInstruction
@@ -210,8 +169,7 @@ AssignInstruction_To(?instruction, ?to) :-
 Field_DeclaringType(?signature, ?declaringType) :-
     _Field(?signature, ?declaringType, _, _).
 MethodInvocation_Base(?invocation, ?base) :-
-    VirtualMethodInvocation_Base(?invocation, ?base).
-MethodInvocation_Base(?invocation, ?base) :-
+    VirtualMethodInvocation_Base(?invocation, ?base) ;
     SpecialMethodInvocation_Base(?invocation, ?base).
 .decl _StaticMethodInvocation(?instruction:symbol, ?index:number, ?signature:symbol, ?method:symbol)
 .input _StaticMethodInvocation(IO="file", filename="StaticMethodInvocation.facts", delimiter="\t")
@@ -358,21 +316,14 @@ VirtualMethodInvocation_Descriptor(?invocation, ?descriptor) :-
     .decl Superclass(?c:Type, ?a:Type)
     .decl Superinterface(?k:Type, ?c:Type)
     .decl SubtypeOf(?subtype:Type, ?type:Type)
-    .output SubtypeOf
-    .printsize SubtypeOf
     .decl SupertypeOf(?supertype:Type, ?type:Type)
-    .output SupertypeOf
-    .printsize SupertypeOf
     .decl SubtypeOfDifferent(?subtype:Type, ?type:Type)
     .decl MainMethodDeclaration(?method:Method)
     MethodLookup(?simplename, ?descriptor, ?type, ?method) :-
         MethodImplemented(?simplename, ?descriptor, ?type, ?method).
     MethodLookup(?simplename, ?descriptor, ?type, ?method) :-
-        DirectSuperclass(?type, ?supertype),
-        MethodLookup(?simplename, ?descriptor, ?supertype, ?method),
-        ! MethodImplemented(?simplename, ?descriptor, ?type, _).
-    MethodLookup(?simplename, ?descriptor, ?type, ?method) :-
-        DirectSuperinterface(?type, ?supertype),
+        (DirectSuperclass(?type, ?supertype) ;
+         DirectSuperinterface(?type, ?supertype)),
         MethodLookup(?simplename, ?descriptor, ?supertype, ?method),
         ! MethodImplemented(?simplename, ?descriptor, ?type, _).
     MethodImplemented(?simplename, ?descriptor, ?type, ?method) :-
@@ -456,9 +407,6 @@ VirtualMethodInvocation_Descriptor(?invocation, ?descriptor) :-
 // class initialization
 .decl ClassInitializer(?type:Type, ?method:Method)
 .decl InitializedClass(?classOrInterface:Type)
-.decl Reachable(?method:Method)
-.output Reachable
-.printsize Reachable
 ClassInitializer(?type, ?method) :-
     basic.MethodImplemented("<clinit>", "void()", ?type, ?method).
 InitializedClass(?superclass) :-
@@ -495,43 +443,26 @@ Reachable(?clinit) :-
 // Main (value-based) analysis
 .decl Assign(?to:Var, ?from:Var)
 .output Assign
-.printsize Assign
 .decl VarPointsTo(?heap:HeapAllocation, ?var:Var)
 .output VarPointsTo
-.printsize VarPointsTo
 .decl InstanceFieldPointsTo(?heap:HeapAllocation , ?fld:Field, ?baseheap:HeapAllocation)
 .output InstanceFieldPointsTo
-.printsize InstanceFieldPointsTo
 .decl StaticFieldPointsTo(?heap:HeapAllocation, ?fld:Field)
 .output StaticFieldPointsTo
-.printsize StaticFieldPointsTo
 .decl CallGraphEdge(?invocation:MethodInvocation, ?meth:Method)
 .output CallGraphEdge
-.printsize CallGraphEdge
 .decl ArrayIndexPointsTo(?baseheap:HeapAllocation, ?heap:HeapAllocation)
 .output ArrayIndexPointsTo
-.printsize ArrayIndexPointsTo
-
-.decl Assign0(?invocation:MethodInvocation, ?index:number, ?to:Var)
-.printsize Assign0
-Assign0(?invocation, ?index, ?to) :-
-    CallGraphEdge(?invocation, ?method),
-    FormalParam(?index, ?method, ?to).
-
+.decl Reachable(?method:Method)
+.output Reachable
 Assign(?actual, ?formal) :-
-    Assign0(?invocation, ?index, ?formal),
+    CallGraphEdge(?invocation, ?method),
+    FormalParam(?index, ?method, ?formal),
     ActualParam(?index, ?invocation, ?actual).
 Assign(?return, ?local) :-
     CallGraphEdge(?invocation, ?method),
     ReturnVar(?return, ?method),
     AssignReturnValue(?invocation, ?local).
-
-.decl VarPointsTo0(?var:Var, ?fld:Field, ?baseheap:HeapAllocation)
-.printsize VarPointsTo0
-VarPointsTo0(?var, ?fld, ?baseheap) :-
-    Reachable(?inmethod),
-    LoadInstanceField(?base, ?fld, ?var, ?inmethod),
-    VarPointsTo(?baseheap, ?base).
 VarPointsTo(?heap, ?var) :-
     AssignHeapAllocation(?heap, ?var, ?inMethod),
     Reachable(?inMethod).
@@ -542,14 +473,14 @@ VarPointsTo(?heap, ?to) :-
     Reachable(?inmethod),
     AssignLocal(?from, ?to, ?inmethod),
     VarPointsTo(?heap, ?from).
-// .plan 1:(3,2,1)
+.plan 1:(3,2,1)
 VarPointsTo(?heap, ?to) :-
     Reachable(?method),
     AssignCast(?type, ?from, ?to, ?method),
     basic.SupertypeOf(?type, ?heaptype),
     HeapAllocation_Type(?heap, ?heaptype),
     VarPointsTo(?heap, ?from).
-// .plan 1:(5,2,1,4,3)
+.plan 1:(5,2,1,4,3)
 ArrayIndexPointsTo(?baseheap, ?heap) :-
     Reachable(?inmethod),
     StoreArrayIndex(?from, ?base, ?inmethod),
@@ -568,17 +499,19 @@ VarPointsTo(?heap, ?to) :-
     HeapAllocation_Type(?baseheap, ?baseheaptype),
     ComponentType(?baseheaptype, ?basecomponenttype),
     basic.SupertypeOf(?type, ?basecomponenttype).
-// .plan 1:(3,2,1,4,5,6,7,8), 2:(4,3,2,1,5,6,7,8)
+.plan 1:(3,2,1,4,5,6,7,8), 2:(4,3,2,1,5,6,7,8)
 VarPointsTo(?heap, ?to) :-
-    VarPointsTo0(?to, ?signature, ?baseheap),
+    Reachable(?inmethod),
+    LoadInstanceField(?base, ?signature, ?to, ?inmethod),
+    VarPointsTo(?baseheap, ?base),
     InstanceFieldPointsTo(?heap, ?signature, ?baseheap).
-// .plan 1:(3,2,1,4), 2:(4,2,1,3)
+.plan 1:(3,2,1,4), 2:(4,2,1,3)
 InstanceFieldPointsTo(?heap, ?fld, ?baseheap) :-
     Reachable(?inmethod),
     StoreInstanceField(?from, ?base, ?fld, ?inmethod),
     VarPointsTo(?heap, ?from),
     VarPointsTo(?baseheap, ?base).
-// .plan 1:(3,2,1,4), 2:(4,2,1,3)
+.plan 1:(3,2,1,4), 2:(4,2,1,3)
 VarPointsTo(?heap, ?to) :-
     Reachable(?inmethod),
     LoadStaticField(?fld, ?to, ?inmethod),
@@ -588,27 +521,18 @@ StaticFieldPointsTo(?heap, ?fld) :-
     StoreStaticField(?from, ?fld, ?inmethod),
     VarPointsTo(?heap, ?from).
 VarPointsTo(?heap, ?this) :-
-    InterProc0(_, ?heap, ?toMethod),
+    Reachable(?inMethod),
+    Instruction_Method(?invocation, ?inMethod),
+    VirtualMethodInvocation_Base(?invocation, ?base),
+    VarPointsTo(?heap, ?base),
+    HeapAllocation_Type(?heap, ?heaptype),
+    VirtualMethodInvocation_SimpleName(?invocation, ?simplename),
+    VirtualMethodInvocation_Descriptor(?invocation, ?descriptor),
+    basic.MethodLookup(?simplename, ?descriptor, ?heaptype, ?toMethod),
     ThisVar(?toMethod, ?this).
-// .plan 1:(4,3,2,1,5,6,7,8,9)
+.plan 1:(4,3,2,1,5,6,7,8,9)
 Reachable(?toMethod),
 CallGraphEdge(?invocation, ?toMethod) :-
-    InterProc0(?invocation, _, ?toMethod).
-// .plan 1:(4,3,2,1,5,6,7,8)
-Reachable(?tomethod),
-CallGraphEdge(?invocation, ?tomethod) :-
-    InterProc1(?invocation, ?tomethod).
-Reachable(?tomethod),
-CallGraphEdge(?invocation, ?tomethod),
-VarPointsTo(?heap, ?this) :-
-    InterProc2(?invocation, ?tomethod, ?heap, ?this).
-// .plan 1:(4,3,2,1,5,6)
-Reachable(?method) :-
-    basic.MainMethodDeclaration(?method).
-
-.decl InterProc0(?invocation: symbol, ?heap: symbol, ?toMethod: symbol)
-.printsize InterProc0
-InterProc0(?invocation, ?heap, ?toMethod) :-
     Reachable(?inMethod),
     Instruction_Method(?invocation, ?inMethod),
     VirtualMethodInvocation_Base(?invocation, ?base),
@@ -617,19 +541,20 @@ InterProc0(?invocation, ?heap, ?toMethod) :-
     VirtualMethodInvocation_SimpleName(?invocation, ?simplename),
     VirtualMethodInvocation_Descriptor(?invocation, ?descriptor),
     basic.MethodLookup(?simplename, ?descriptor, ?heaptype, ?toMethod).
-
-.decl InterProc1(?invocation: symbol, ?toMethod: symbol)
-.printsize InterProc1
-InterProc1(?invocation, ?toMethod) :-
-    Reachable(?inMethod),
-    StaticMethodInvocation(?invocation, ?toMethod, ?inMethod).
-
-.decl InterProc2(?invocation: symbol, ?toMethod: symbol, ?heap: symbol, ?var: symbol)
-.printsize InterProc2
-InterProc2(?invocation, ?toMethod, ?heap, ?var) :-
-    Reachable(?inMethod),
-    Instruction_Method(?invocation, ?inMethod),
+.plan 1:(4,3,2,1,5,6,7,8)
+Reachable(?tomethod),
+CallGraphEdge(?invocation, ?tomethod) :-
+    Reachable(?inmethod),
+    StaticMethodInvocation(?invocation, ?tomethod, ?inmethod).
+Reachable(?tomethod),
+CallGraphEdge(?invocation, ?tomethod),
+VarPointsTo(?heap, ?this) :-
+    Reachable(?inmethod),
+    Instruction_Method(?invocation, ?inmethod),
     SpecialMethodInvocation_Base(?invocation, ?base),
     VarPointsTo(?heap, ?base),
-    MethodInvocation_Method(?invocation, ?toMethod),
-    ThisVar(?toMethod, ?var).
+    MethodInvocation_Method(?invocation, ?tomethod),
+    ThisVar(?tomethod, ?this).
+.plan 1:(4,3,2,1,5,6)
+Reachable(?method) :-
+    basic.MainMethodDeclaration(?method).

@@ -16,18 +16,18 @@ object Parser {
   }
 
   def Analysis[_: P]: P[Seq[Syntax.AnalysisContent]] =
-    P(Start ~ AnalysisContent.rep ~ End)
+    P(Start ~ AnalysisContent.rep ~ End).map(_.flatten)
 
-  def AnalysisContent[_: P]: P[Syntax.AnalysisContent] =
-    P(ComponentInitialization | ComponentDefinition | TypeDeclaration |
+  def AnalysisContent[_: P]: P[Option[Syntax.AnalysisContent]] =
+    P(Plan).map(_ => None) | P(ComponentInitialization | ComponentDefinition | TypeDeclaration |
       RuleSignature | Input | RuleDefinition | Output | PrintSize
-    )
+    ).map(Some.apply)
 
   def ComponentInitialization[_: P]: P[Syntax.ComponentInitialization] =
     P(".init" ~ identifier ~ "=" ~ identifier).map(Syntax.ComponentInitialization.tupled)
 
   def ComponentDefinition[_: P]: P[Syntax.ComponentDefinition] =
-    P(".comp" ~ identifier ~ "{" ~ AnalysisContent.rep ~ "}").map(Syntax.ComponentDefinition.tupled)
+    P(".comp" ~ identifier ~ "{" ~ AnalysisContent.rep.map(_.flatten) ~ "}").map(Syntax.ComponentDefinition.tupled)
 
   def TypeDeclaration[_: P]: P[Syntax.TypeDeclaration] =
     P(".type" ~ identifier ~ ("=" ~ DeclaredType).?).map(Syntax.TypeDeclaration.tupled)
@@ -53,6 +53,9 @@ object Parser {
       "," ~
       "delimiter" ~ "=" ~ string ~
     ")").map(Syntax.Input.tupled)
+
+  def Plan[_: P]: P[Unit] =
+    P(".plan" ~ decimalinteger ~ "(" ~ decimalinteger.rep(sep = ",") ~ ")")
 
   def RuleDefinition[_: P]: P[Syntax.RuleDefinition] =
     P(RuleHead.rep(min = 1, sep = ",") ~ ":-" ~ Statement.rep(min = 1, sep = ",") ~ ".").map(Syntax.RuleDefinition.tupled)
