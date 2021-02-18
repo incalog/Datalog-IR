@@ -4,8 +4,9 @@ import scala.collection.mutable
 
 trait Hints {
   val hints: mutable.Map[Hint.Key, Hint] = mutable.Map()
-  def addHint(hint: Hint): Unit = {
+  def addHint(hint: Hint): this.type = {
     hints += hint.key -> hint
+    this
   }
   def withHints(h: Hints): this.type = {
     this.hints.clear()

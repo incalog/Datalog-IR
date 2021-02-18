@@ -1,6 +1,5 @@
 package inca.frontend.examples
 
-import inca.backend.hints.MagicSetHints
 import inca.frontend.core._
 import inca.frontend.examples.ADT._
 
@@ -12,13 +11,13 @@ object AST {
 
   val baseExample: Module = module(FunctionDef(None, Name("main"), Seq(), TScalaInt,
     BaseLit(q"7 + (12 * 3)", TScalaInt)
-  ))
+  ).addAnnotation(MainFunctionAnno))
   val baseExample2: Module = module(FunctionDef(None, Name("main"), Seq(), TScalaInt,
     BaseApplyInfix(BaseLit(q"7", TScalaInt), "+",
       BaseApplyInfix(BaseLit(q"12", TScalaInt), "*", BaseLit(q"3", TScalaInt), TScalaInt),
       TScalaInt
     )
-  ))
+  ).addAnnotation(MainFunctionAnno))
 
   val varExample: Module = module(FunctionDef(None, Name("main"), Seq(), TScalaInt,
     Let(Seq(Name("x")), None, BaseLit(q"7", TScalaInt),
@@ -29,7 +28,7 @@ object AST {
         )
       )
     )
-  ))
+  ).addAnnotation(MainFunctionAnno))
 
   val ifExample: Module = module(FunctionDef(None, Name("main"), Seq(), TScalaInt,
     Let(Seq(Name("x")), None, BaseLit(q"7", TScalaInt),
@@ -38,7 +37,7 @@ object AST {
         BaseApplyInfix(Var("x").typed(TScalaInt), "*", BaseLit(q"-1", TScalaInt), TScalaInt)
       )
     )
-  ))
+  ).addAnnotation(MainFunctionAnno))
 
   val ifExample2: Module = module(FunctionDef(None, Name("main"), Seq(), TScalaInt,
     Let(Seq(Name("x")), None, BaseLit(q"7", TScalaInt),
@@ -57,7 +56,7 @@ object AST {
         )
       )
     )
-  ))
+  ).addAnnotation(MainFunctionAnno))
 
 
   val incFun: FunctionDef = FunctionDef(None, Name("inc"), Seq(Param(Name("n"), TScalaInt)), TScalaInt,
@@ -65,7 +64,7 @@ object AST {
   )
   val incMain: FunctionDef = FunctionDef(None, Name("main"), Seq(), TScalaInt,
     Call(Name("inc"), Seq(BaseLit(q"0", TScalaInt))).resolved(incFun)
-  )
+  ).addAnnotation(MainFunctionAnno)
   val incModule: Module = module(incFun, incMain)
 
 
@@ -79,7 +78,7 @@ object AST {
   factRecCall.resolved(factFun)
   val factMain: FunctionDef = FunctionDef(None, Name("main"), Seq(), TScalaInt,
     Call(Name("fact"), Seq(BaseLit(q"3", TScalaInt))).resolved(factFun)
-  )
+  ).addAnnotation(MainFunctionAnno)
   val factModule: Module = module(factFun, factMain)
 
 
@@ -98,8 +97,11 @@ object AST {
       CallSucc(CallSucc(CallSucc(CallZero))),
       CallSucc(CallSucc(CallZero))
     )).resolved(plusFun)
-  )
-  plusMain.addHint(MagicSetHints.Main(Seq(false)))
+  ).addAnnotation(MainFunctionAnno)
   val plusModule: Module = module(Nat, plusFun, plusMain)
 
+  val plusRealMain: FunctionDef = FunctionDef(None, Name("main"), Seq(Param(Name("m"), TNat), Param(Name("n"), TNat)), TNat,
+    Call(Name("plus"), Seq(Var(Name("m")), Var(Name("n")))).resolved(plusFun)
+  ).addAnnotation(MainFunctionAnno)
+  val plusRealModule: Module = module(Nat, plusFun, plusRealMain)
 }

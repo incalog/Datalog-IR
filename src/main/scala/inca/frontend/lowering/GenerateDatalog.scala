@@ -47,7 +47,12 @@ class GenerateDatalog(module: Module) {
     val bodies = for ((terms, cons) <- transExp(fun.body.ensureCore))
       yield GP.Body(cons ++ outParams.zip(terms).map(pt => GP.Eq(GP.Var(pt._1.name), pt._2)))
 
-    GP.Pattern(vis, fun.name.name, params ++ outParams, bodies).withHints(fun)
+    val pat = GP.Pattern(vis, fun.name.name, params ++ outParams, bodies)
+    fun.getAnnotation(MainFunctionAnno.key) match {
+      case None => // nothing
+      case Some(_) => pat.addHint(MagicSetHints.Main(params.map(_ => true) :+ false))
+    }
+    pat
   }
 
   private def flattenParam(name: String, typ: Type, genFresh: Boolean): Seq[GP.Param] = typ match {
@@ -213,10 +218,10 @@ class GenerateDatalog(module: Module) {
     val constrPat = GP.Pattern(vis, constr.name.name, params :+ outParam, Seq(GP.Body(Seq(constrCons))))
 
     val selectorCons = GP.Call(constr.name.name, (params :+ outParam).map(p => GP.Var(p.name)))
-    selectorCons.addHint(MagicSetHints.IgnoreCall)
-    selectorCons.addHint(MagicSetHints.FixedAdornment(params.map(_ => true) :+ false))
+      .addHint(MagicSetHints.IgnoreCall)
+      .addHint(MagicSetHints.FixedAdornment(params.map(_ => true) :+ false))
     val selectorPat = GP.Pattern(vis, constr.selectorName, outParam +: params, Seq(GP.Body(Seq(selectorCons))))
-    selectorPat.addHint(MagicSetHints.NoInputRelation)
+      .addHint(MagicSetHints.NoInputRelation)
 
     Seq(constrPat, selectorPat)
   }

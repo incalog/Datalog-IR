@@ -1,6 +1,5 @@
 package inca.frontend.core
 
-import inca.backend.hints.Hints
 import inca.frontend.parser.SourceLocation
 import inca.frontend.typechecker.Resolvable
 
@@ -35,13 +34,13 @@ object Import {
 
 
 
-trait ModuleContent extends SourceLocation {
+trait ModuleContent extends SourceLocation with Annotations {
   def vis: Option[Visibility]
   def prettyprint(implicit indent: String): String
 }
 
 case class FunctionDef(vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Expression)
-  extends ModuleContent with Call.Target with Hints {
+  extends ModuleContent with Call.Target {
   def boundNames: Seq[Name] = params.map(_.name)
 
   def vars: Map[Name, Option[Type]] = body.vars ++ params.flatMap(_.vars)
