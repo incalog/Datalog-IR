@@ -19,6 +19,7 @@ object ExpTyping extends App {
     s"""
        |module ExpTyping
        |
+       |using GoLang
        |`import inca.caseStudies.typing.Type`
        |`import inca.caseStudies.typing.Context`
        |
