@@ -3,8 +3,8 @@ package inca.frontend.lowering
 import inca.backend.hints.{DataHints, MagicSetHints}
 import inca.backend.ir.GP
 import inca.frontend.core._
-import inca.runtime.data.JVMURI_Repr
-import inca.util.Meta.{Scala, typeOf}
+import inca.runtime.data.DataURI
+import inca.util.Meta.{Scala, symbolOf, typeOf}
 import inca.util.{Gensym, TupleOps}
 
 import scala.collection.mutable.ListBuffer
@@ -215,7 +215,8 @@ class GenerateDatalog(module: Module) {
     dataPat +: data.constrs.flatMap(transDataConstructor(_, vis, typ))
   }
 
-  val tyJVMURI_Repr: meta.Type = typeOf[JVMURI_Repr]
+  val tyURI: meta.Type = typeOf[truechange.URI]
+  val tDataURI: meta.Term = symbolOf(DataURI)
 
   private def transDataConstructor(constr: DataConstructor, vis: Option[GP.Visibility], typ: GP.Type): Seq[GP.Pattern] = {
     import scala.meta._
@@ -227,7 +228,7 @@ class GenerateDatalog(module: Module) {
 
     val constrScalaFun = Term.Function(
       params.map(p => Term.Param(Nil, Term.Name(p.name), Some(p.typ.asScala), None)).toList,
-      q"""new $tyJVMURI_Repr(${constr.name.name} + Seq(..${params.map(p => Term.Select(Term.Name(p.name), Term.Name("repr"))).toList}).mkString("(", ", ", ")"))"""
+      q"""$tDataURI(${constr.name.name}, ..${params.map(p => Term.Name(p.name)).toList})"""
     )
     val outVar = GP.Var(outParam.name)
     val constrIDBBody = GP.Body(Seq(GP.Computed(outVar,
@@ -239,7 +240,7 @@ class GenerateDatalog(module: Module) {
         constr.paramTypes.zipWithIndex.map { case (typ, ix) =>
           GP.Path(outVar, constrType, GP.NamedLink(constrType, s"_$ix"), GP.Var(s"_$ix"), transRuntimeType(typ))
         }
-    )
+    ).addHint(MagicSetHints.NoInputRelation)
     val constrPat = GP.Pattern(vis, constr.name.name, params :+ outParam, Seq(constrIDBBody, constrEDBBody))
       .addHint(DataHints.Constructor)
 
@@ -254,10 +255,9 @@ class GenerateDatalog(module: Module) {
   }
 
 
-  private val tyURI = typeOf[truechange.URI]
   private def transType(typ: Type): GP.Type = typ match {
     case TAny => GP.TAny
-    case TData(_) => GP.TScala(Scala(tyJVMURI_Repr))
+    case TData(_) => GP.TScala(Scala(tyURI))
     case TScala(ty) => GP.TScala(ty)
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
   }

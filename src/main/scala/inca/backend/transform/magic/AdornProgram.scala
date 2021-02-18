@@ -54,7 +54,7 @@ object AdornProgram extends Transformation {
                   constr
               }
             }
-            Body(adornedConstraints)
+            Body(adornedConstraints).withHints(body)
           }
           // now we can construct the adorned pattern for this specific adornment
           adornedPatterns += Pattern(pat.vis, adornmentName(pat.name, currentTags), pat.params, adornedBody).withHints(pat) -> currentTags

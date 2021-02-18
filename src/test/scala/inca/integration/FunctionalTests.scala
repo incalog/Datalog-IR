@@ -34,6 +34,7 @@ class FunctionalTests extends AnyFunSuite {
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
     println(compiled.ir)
+    println(compiled.psystemSource)
 
     def printMatches(name: String): Unit = {
       val matcher = EnginePool.loadQuery(compiled.psystemModule.patterns(name)(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)

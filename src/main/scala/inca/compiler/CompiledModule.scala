@@ -34,8 +34,8 @@ trait CompiledModule {
     // println(module)
     for (op <- options.optimizations) {
       module = op.optimizer(options.languageMetaInfo).optimizeModule(module)
+//      println(op + "\n" + module.toString)
     }
-//    println(module)
     module
   }
 

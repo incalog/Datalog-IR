@@ -59,7 +59,7 @@ object GP {
   }
   case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body]) extends Hints
   case class Param(name: Name, typ: Type)
-  case class Body(constraints: Seq[Constraint])
+  case class Body(constraints: Seq[Constraint]) extends Hints
 
   sealed trait Constraint extends Hints
   case class Call(name: Name, args: Seq[Term], transitive: Boolean = false, neg: Boolean = false) extends Constraint

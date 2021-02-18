@@ -20,7 +20,7 @@ trait Optimizer {
   }
 
   def optimizeBody(body: Body, pat: Pattern): Seq[Body] =
-    Seq(Body(body.constraints.flatMap(optimizeConstraint)))
+    Seq(Body(body.constraints.flatMap(optimizeConstraint)).withHints(body))
 
   def optimizeConstraint(con: Constraint): Seq[Constraint] = (con match {
     case Call(name, args, transitive, neg) => Seq(Call(name, args.map(optimizeTerm), transitive, neg))

@@ -31,7 +31,7 @@ object MagicSetHints {
   }
 
   /**
-   * do not derive input relation for this pattern
+   * do not derive input relation for this pattern or body
    */
   object NoInputRelation extends Hint {
     val key: Key = NoInputRelationKey

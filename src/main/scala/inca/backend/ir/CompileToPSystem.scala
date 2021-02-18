@@ -191,7 +191,7 @@ object CompileToPSystem {
           Some(q"$oPrimitiveKey($gentyp)", gentyp)
         case _ => throw new UnsupportedOperationException
       }
-    case TAnyLinked | _: TNode | _: TList =>
+    case _: TLinked =>
       val gentyp = genNodeType(typ)
       Some(q"$oNodeTypeKey($gentyp)", gentyp)
   }

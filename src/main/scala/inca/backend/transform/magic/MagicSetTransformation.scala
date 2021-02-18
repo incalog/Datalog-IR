@@ -1,6 +1,6 @@
 package inca.backend.transform.magic
 
-import inca.backend.hints.MagicSetHints
+import inca.backend.hints.{Hints, MagicSetHints}
 import inca.backend.ir.CollectVars
 import inca.backend.ir.GP._
 import inca.backend.transform.{Transformation, Transformer}
@@ -29,17 +29,21 @@ object MagicSetTransformation extends Transformation {
       }
   }
 
-  private def shouldDeriveInput(pat: Pattern): Boolean = {
+  private def shouldDeriveInput(pat: Hints): Boolean = {
     val res = pat.hints.contains(MagicSetHints.NoInputRelationKey)
     !res
   }
 
   private def insertInputCall(pat: Pattern): Pattern = {
     val bodies = pat.bodies.map { b =>
-      val inputCall = deriveInputCall(pat)
-      Body(inputCall.toSeq ++ b.constraints)
+      if (shouldDeriveInput(b)) {
+        val inputCall = deriveInputCall(pat)
+        Body(inputCall.toSeq ++ b.constraints).withHints(b)
+      } else {
+        b
+      }
     }
-    Pattern(pat.vis, pat.name, pat.params, bodies)
+    Pattern(pat.vis, pat.name, pat.params, bodies).withHints(pat)
   }
 
   private def deriveInputCall(pat: Pattern): Option[Call] = {
@@ -100,12 +104,12 @@ object MagicSetTransformation extends Transformation {
                 Eq(args(i), Var(params(i).name))
               }
               if (boundParams.isEmpty) Seq()
-              else Seq(Body(body.constraints.take(constrix) ++ boundParams))
+              else Seq(Body(body.constraints.take(constrix) ++ boundParams).withHints(body))
             case _ => Seq()
           }
         }
       }
-      Pattern(p.vis, p.name, p.params, inputBodies)
+      Pattern(p.vis, p.name, p.params, inputBodies).withHints(pat)
     }
 
     // if the bodies are empty we do not create new pattern

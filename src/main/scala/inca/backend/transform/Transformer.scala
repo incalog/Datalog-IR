@@ -20,7 +20,7 @@ trait Transformer {
   }
 
   def transformBody(body: Body, pat: Pattern): Seq[Body] =
-    Seq(Body(body.constraints.flatMap(transformConstraint)))
+    Seq(Body(body.constraints.flatMap(transformConstraint)).withHints(body))
 
   def transformConstraint(con: Constraint): Seq[Constraint] = con match {
     case Call(name, args, transitive, neg) => Seq(Call(name, args.map(transformTerm), transitive, neg))

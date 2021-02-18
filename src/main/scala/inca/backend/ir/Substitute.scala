@@ -11,7 +11,7 @@ case class Substitute(subst: Var => Term) {
     Pattern(pat.vis, pat.name, pat.params, pat.bodies.map(substBody)).withHints(pat)
 
   def substBody(body: Body): Body =
-    Body(body.constraints.map(substConstraint))
+    Body(body.constraints.map(substConstraint)).withHints(body)
 
   def substConstraint(con: Constraint): Constraint = (con match {
     case Call(name, args, transitive, neg) => Call(name, args.map(substTerm), transitive, neg)

@@ -77,7 +77,7 @@ object EliminateAliases extends Optimization {
 
       val substBody = Substitute(subst).substBody(body)
       val dedup = substBody.constraints.distinct
-      Body(dedup)
+      Body(dedup).withHints(body)
     }
   }
 }
