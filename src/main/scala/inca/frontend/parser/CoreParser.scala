@@ -17,7 +17,7 @@ trait CoreParser {
   final lazy val allKeywords: Set[String] = this.keywords
 
   protected[frontend] def keywords: Set[String] =
-    Set("module", "import","def", "undef", "true",
+    Set("module", "using", "import","def", "undef", "true",
       "false", "aggregate", "count", "_", "unit", "yield",
       "union", "private", "assert", "fail", "continue")
 
@@ -296,15 +296,19 @@ trait CoreParser {
   /** Module parser */
   def module[_: P]: P[Module] =
     P("module " ~ identifier ~
+      using_ ~
       import_.rep ~
       moduleContent.rep ~
       End
-    ).mapWithLoc { case (name, imports, contents) =>
-      Module(name, imports, contents.flatten)
+    ).mapWithLoc { case (name, using, imports, contents) =>
+      Module(name, imports, contents.flatten, using)
     }
 
   def import_[_: P]: P[Import] =
     P("import" ~ identifier).mapWithLoc(Import.apply)
+
+  def using_[_:P]: P[UsingMetamodel] =
+    P("using" ~ identifier).mapWithLoc(UsingMetamodel.apply)
 
   def moduleContent[_: P]: P[Seq[ModuleContent]] =
     P(patternFunction.map(Seq(_)) | valDef.map(Seq(_)) | scalaModuleContent)

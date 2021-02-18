@@ -16,10 +16,10 @@ class DesugarTrans {
   }
 
   def desugarModule(module: Module)(implicit gensym: Gensym): Module = gensym.scoped {
-    val Module(name, imports, content) = module
+    val Module(name, imports, content, metamodel) = module
     gensym.register(module.usedModuleNames.map(_.name))
     gensym.register(module.usedDefNames.map(_.name))
-    Module(name, imports.flatMap(desugarImport), content.flatMap(desugarModuleContent))
+    Module(name, imports.flatMap(desugarImport), content.flatMap(desugarModuleContent), metamodel)
   }
 
   def desugarImport(imp: Import)(implicit gensym: Gensym): Seq[Import] =

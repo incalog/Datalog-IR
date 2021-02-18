@@ -4,7 +4,7 @@ import inca.frontend.parser.SourceLocation
 import inca.frontend.typechecker.Resolvable
 import inca.util.Meta.Scala
 
-case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
+case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent], usingMetaModel: UsingMetamodel = UsingMetamodel(Name("GoLang")))
   extends SourceLocation with Import.Target {
 
   def allVars: Map[Name, Option[Type]] = content.flatMap {
@@ -37,6 +37,14 @@ case class Import(name: Name) extends SourceLocation with Resolvable[Import.Targ
 }
 object Import {
   trait Target
+}
+
+object UsingMetamodel {
+  trait Target
+}
+
+case class UsingMetamodel(name: Name) extends SourceLocation with Resolvable[UsingMetamodel.Target] {
+  def prettyprint(implicit indent: String): String = s"${indent}using $name"
 }
 
 
