@@ -1,7 +1,5 @@
 package inca.runtime
 
-import java.util
-
 import org.eclipse.viatra.query.runtime.api.ViatraQueryEngine
 import org.eclipse.viatra.query.runtime.api.impl.{BaseMatcher, BasePatternMatch, BaseQuerySpecification}
 import org.eclipse.viatra.query.runtime.api.scope.QueryScope
@@ -9,11 +7,14 @@ import org.eclipse.viatra.query.runtime.matchers.psystem.queries.PQuery
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
 import truechange.EditScript
 
+import java.util
 import scala.jdk.CollectionConverters._
 
 object Query {
   trait ChangeFeed {
     def processEditScript(edits: EditScript)
+    def insert(relName: String, tuple: Tuple)
+    def delete(relName: String, tuple: Tuple)
   }
 
   class Specification(query: PQuery) extends BaseQuerySpecification[Matcher](query) {

@@ -13,6 +13,7 @@ trait Hints {
     this.hints ++= h.hints
     this
   }
+  def hasHint(key: Hint.Key): Boolean = this.hints.contains(key)
 }
 
 trait Hint {

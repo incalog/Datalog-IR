@@ -45,7 +45,9 @@ class Database(
   private[runtime] val linkPrimitiveInstances: mutable.Map[Link, BidirectionalManyToOneIndex[URI, PrimitiveValue]] = mutable.Map()
   private[runtime] val linkListFirstInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListFirstKey)
   private[runtime] val linkListNextInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListNextKey)
-  private[runtime] val namedRelationInstances: mutable.Map[(String, Int), UnaryBagIndex[Tuple]] = mutable.Map()
+
+
+  private[runtime] val namedRelationInstances: mutable.Map[String, UnaryBagIndex[Tuple]] = mutable.Map()
 
 
   // URI -> Map[Link, PrimitiveValue]
@@ -67,9 +69,9 @@ class Database(
   })
 
   @inline
-  private[runtime] def namedRelationInstancesEnsure(name: String, arity: Int) = namedRelationInstances.getOrElse((name, arity), {
+  private[runtime] def namedRelationInstancesEnsure(name: String, arity: Int) = namedRelationInstances.getOrElse(name, {
     val ix = new UnaryBagIndex[Tuple](NamedRelationKey(name, arity))
-    namedRelationInstances += (name, arity) -> ix
+    namedRelationInstances += name -> ix
     ix
   })
 
@@ -195,6 +197,12 @@ class Database(
       }
   }
 
+  override def insert(relName: String, tuple: Tuple): Unit =
+    namedRelationInstancesEnsure(relName, tuple.getSize).insert(tuple)
+
+  override def delete(relName: String, tuple: Tuple): Unit =
+    namedRelationInstancesEnsure(relName, tuple.getSize).delete(tuple)
+
   def iterateNext(from: truechange.URI)(f: truechange.URI => Unit): Unit = {
     val index = linkListNextInstances.index
     f(from)
@@ -217,7 +225,7 @@ class Database(
     case LinkPrimitiveKey(link) => linkPrimitiveInstances.get(link)
     case LinkListFirstKey => Some(linkListFirstInstances)
     case LinkListNextKey => Some(linkListNextInstances)
-    case NamedRelationKey(name, arity) => namedRelationInstances.get((name, arity))
+    case NamedRelationKey(name, _) => namedRelationInstances.get(name)
     case dkey: DynamicKey => Some(dynamicIndices(dkey))
     case vkey: VirtualKey => Some(virtualIndexEnsure(vkey))
     case _ => throw new IllegalArgumentException(s"Unknown input key $key")

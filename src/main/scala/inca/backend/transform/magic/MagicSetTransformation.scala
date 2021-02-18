@@ -11,6 +11,7 @@ import inca.util.Gensym
 object MagicSetTransformation extends Transformation {
 
   def inputPatternName(name: Name): String = "input_" + name
+  def extensionalInputPatternName(name: Name): String = "ext_input_" + name
 
   override def transformer: Transformer = new Transformer {
 
@@ -30,8 +31,7 @@ object MagicSetTransformation extends Transformation {
   }
 
   private def shouldDeriveInput(pat: Hints): Boolean = {
-    val res = pat.hints.contains(MagicSetHints.NoInputRelationKey)
-    !res
+    !pat.hasHint(MagicSetHints.NoInputRelationKey)
   }
 
   private def insertInputCall(pat: Pattern): Pattern = {
@@ -83,8 +83,6 @@ object MagicSetTransformation extends Transformation {
       else
         None
     }
-    if (patterns.isEmpty)
-      return Seq()
 
     // generate new names for pattern params to avoid name collision
     val usedVars = patterns.flatMap(CollectVars.apply).toSet
@@ -96,7 +94,7 @@ object MagicSetTransformation extends Transformation {
     val boundIndices = deriveBoundIndices(pat.name)
     // for each body there can be multiple input bodies (due to multiple pattern calls)
     val inputPatterns = patterns.map { p =>
-      val inputBodies = p.bodies.flatMap { body =>
+      p.bodies.flatMap { body =>
         body.constraints.zipWithIndex.flatMap { case (constr, constrix) =>
           constr match {
             case Call(name, args, _, _) if name == pat.name && !constr.hints.contains(MagicSetHints.IgnoreCallkey) =>
@@ -109,17 +107,25 @@ object MagicSetTransformation extends Transformation {
           }
         }
       }
-      Pattern(p.vis, p.name, p.params, inputBodies).withHints(pat)
     }
 
-    // if the bodies are empty we do not create new pattern
-    if (inputPatterns.isEmpty || inputPatterns.forall(_.bodies.isEmpty))
-      return Seq()
-
     // rename so that params are the args of the call
-    val renamedBodies = inputPatterns.flatMap(_.bodies)
+    val renamedBodies = inputPatterns.flatten
     val boundParams = boundIndices.map(params)
-    Seq(Pattern(None, inputPatternName(pat.name), boundParams, renamedBodies))
+
+    val extensionalBody = if (pat.hasHint(MagicSetHints.MainKey)) {
+      Some(Body(Seq(
+        ExtensionalCall(extensionalInputPatternName(pat.name), boundParams.map(p => Var(p.name)))
+      )))
+    } else {
+      None
+    }
+
+    val inputPat = Pattern(None, inputPatternName(pat.name), boundParams, renamedBodies ++ extensionalBody)
+    if (inputPat.bodies.nonEmpty)
+      Seq(inputPat)
+    else
+      Seq()
   }
 
   private def collectBodiesCallingPat(caller: Pattern, callee: Pattern): Seq[Body] =

@@ -43,6 +43,7 @@ object FoldConstantConstraints extends Optimization with TypeOps {
           if (meetType.contains(termTyp)) {
             // upcast, always succeeds
             Seq()
+            //
           } else if (meetType.contains(typ)) {
             // downcast, makes sense
             Seq(con)
