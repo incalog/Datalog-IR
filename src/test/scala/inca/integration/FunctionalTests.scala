@@ -13,7 +13,7 @@ import inca.runtime.data.DataURI
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
-import truechange.{JVMURI, Load, NamedTag, SortType}
+import truechange.{Load, NamedTag, SortType}
 
 import scala.collection.immutable.MultiDict
 
@@ -59,10 +59,15 @@ class FunctionalTests extends AnyFunSuite {
     val adorned = AdornProgram.transformer.transformModule(moduleGP)
     val magicSet = MagicSetTransformation.transformer.transformModule(adorned)
     println(magicSet)
-
     val compiled = Compiler.compileGP(magicSet, Options(lmi))
+
     val scope = new QueryScope(lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+
+    def printMatches(name: String): Unit = {
+      val matcher = EnginePool.loadQuery(compiled.psystemModule.patterns(name)(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+      println(s"${matcher.getAllMatches.size()} matches of $name:   ${matcher.getAllMatches}")
+    }
 
     // first argument of main
     val zero0 = new DataURI("Zero")
@@ -84,12 +89,30 @@ class FunctionalTests extends AnyFunSuite {
 
     feed.insert("ext_input_main_bbf", Tuples.flatTupleOf(succ3, succ5))
 
-    def printMatches(name: String): Unit = {
-      val matcher = EnginePool.loadQuery(compiled.psystemModule.patterns(name)(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-      println(s"matches of $name:   ${matcher.getAllMatches}")
-    }
-
     compiled.psystemModule.patterns.keys.foreach(printMatches)
+    val mainMatcher = EnginePool.loadQuery(compiled.psystemModule.patterns("main_bbf")(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    assert(mainMatcher.getAllMatches.size == 1)
+    assert(mainMatcher.getOneArbitraryMatch.get().get("out").toString.startsWith("Succ(Succ(Succ(Succ(Succ(Zero)))))"))
+
+    println()
+
+    // insert new main input
+    val succ6 = new DataURI("Succ(Succ(Succ(Zero)))")
+    feed.processEdit(Load(succ6, NamedTag("Succ"), Seq(("_0", succ3)), Seq()))
+    feed.insert("ext_input_main_bbf", Tuples.flatTupleOf(succ6, succ5))
+    compiled.psystemModule.patterns.keys.foreach(printMatches)
+    import scala.jdk.CollectionConverters._
+    assert(mainMatcher.getAllMatches.size == 2)
+    val matches = mainMatcher.getAllMatches().asScala.map(_.get("out").toString)
+    assert(matches.count(_.startsWith("Succ(Succ(Succ(Succ(Succ(Zero)))))@")) == 1)
+    assert(matches.count(_.startsWith("Succ(Succ(Succ(Succ(Succ(Succ(Zero))))))@")) == 1)
+
+    // remove old main input
+    println()
+    feed.delete("ext_input_main_bbf", Tuples.flatTupleOf(succ3, succ5))
+    compiled.psystemModule.patterns.keys.foreach(printMatches)
+    assert(mainMatcher.getAllMatches.size == 1)
+    assert(mainMatcher.getOneArbitraryMatch.get().get("out").toString.startsWith("Succ(Succ(Succ(Succ(Succ(Succ(Zero))))))@"))
   }
 
   test("Adornment with fixed adornment (real plus, no main)") {
@@ -124,7 +147,7 @@ class FunctionalTests extends AnyFunSuite {
 
     def printMatches(name: String): Unit = {
       val matcher = EnginePool.loadQuery(compiled.psystemModule.patterns(name)(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-      println(s"matches of $name:   ${matcher.getAllMatches}")
+      println(s"${matcher.getAllMatches.size()} matches of $name:   ${matcher.getAllMatches}")
     }
 
     compiled.psystemModule.patterns.keys.foreach(printMatches)

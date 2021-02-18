@@ -1,14 +1,11 @@
 package inca.runtime.index
 import org.eclipse.collections.api.map.primitive.MutableObjectIntMap
-import org.eclipse.collections.api.multimap.set.MutableSetMultimap
-import org.eclipse.collections.impl.factory.Multimaps
 import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener
-import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
+import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask}
 
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
-import scala.jdk.FunctionWrappers.AsJavaConsumer
 
 class BagIndex(val key: IndexKey[_]) extends Index {
 
@@ -89,32 +86,20 @@ class BagIndex(val key: IndexKey[_]) extends Index {
   }
 
   val listenAll: mutable.Set[IQueryRuntimeContextListener] = mutable.Set()
-  val listenTuple: MutableSetMultimap[Tuple, IQueryRuntimeContextListener] = Multimaps.mutable.set.empty()
 
-  final protected def notify(v: Tuple, isInsertion: Boolean): Unit = {
-    val t = Tuples.staticArityFlatTupleOf(v)
+  final protected def notify(t: Tuple, isInsertion: Boolean): Unit = {
     val notify = (listener: IQueryRuntimeContextListener) => listener.update(key, t, isInsertion)
-    val notifyConsumer = AsJavaConsumer(notify)
     listenAll.foreach(notify)
-    listenTuple.get(v).stream.forEach(notifyConsumer)
   }
 
 
   /** Adds a listener for changes to this index */
   override def addListener(listener: IQueryRuntimeContextListener, seed: Tuple): Unit = {
-    if (seed == null) {
-      listenAll += listener
-    } else {
-      listenTuple.put(seed, listener)
-    }
+    listenAll += listener
   }
 
   /** Removes a listener for changes to this index */
   override def removeListener(listener: IQueryRuntimeContextListener, seed: Tuple): Unit = {
-    if (seed == null) {
-      listenAll -= listener
-    } else {
-      listenTuple.remove(seed, listener)
-    }
+    listenAll -= listener
   }
 }
