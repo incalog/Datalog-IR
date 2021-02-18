@@ -39,21 +39,8 @@ class AdornProgramTest extends AnyFunSuite {
   test("Adornment with fixed adornment") {
     val moduleGP = GenerateDatalog.transformModule(AST.plusModule)
     val trans = AdornProgram.transformer
-
     val adorned = trans.transformModule(moduleGP)
-    val magicSet = MagicSetTransformation.transformer.transformModule(adorned)
-    println(magicSet)
-
-    val compiled = Compiler.compileGP(magicSet, Options(new LanguageMetaInfo(), optimizations = Seq()))
-    val scope = new QueryScope(new LanguageMetaInfo())
-    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-
-    def printMatches(name: String): Unit = {
-      val matcher = EnginePool.loadQuery(compiled.psystemModule.patterns(name)(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-      println(s"matches of $name:   ${matcher.getAllMatches}")
-    }
-
-    compiled.psystemModule.patterns.keys.foreach(printMatches)
+    println(adorned)
   }
 
   test("Adornment with fixed adornment (real plus)") {
@@ -61,18 +48,6 @@ class AdornProgramTest extends AnyFunSuite {
     val trans = AdornProgram.transformer
 
     val adorned = trans.transformModule(moduleGP)
-    val magicSet = MagicSetTransformation.transformer.transformModule(adorned)
-    println(magicSet)
-
-    val compiled = Compiler.compileGP(magicSet, Options(new LanguageMetaInfo(), optimizations = Seq()))
-    val scope = new QueryScope(new LanguageMetaInfo())
-    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-
-    def printMatches(name: String): Unit = {
-      val matcher = EnginePool.loadQuery(compiled.psystemModule.patterns(name)(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-      println(s"matches of $name:   ${matcher.getAllMatches}")
-    }
-
-    compiled.psystemModule.patterns.keys.foreach(printMatches)
+    println(adorned)
   }
 }
