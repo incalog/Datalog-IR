@@ -4,7 +4,7 @@ import inca.frontend.parser.SourceLocation
 import inca.frontend.typechecker.Resolvable
 import inca.util.Meta.Scala
 
-case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent], usingMetaModel: UsingMetamodel = UsingMetamodel(Name("GoLang")))
+case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent], usingMetaModel: UsingMetamodel = UsingMetamodel(Name("")))
   extends SourceLocation with Import.Target {
 
   def allVars: Map[Name, Option[Type]] = content.flatMap {
