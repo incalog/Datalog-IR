@@ -145,7 +145,7 @@ object BaseApply {
 case class BaseApplyInfix(left: Expression, op: Scala[meta.Term.Name], right: Expression) extends CoreExpression {
   override def vars: Map[Name, Option[Type]] = left.vars ++ right.vars
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = infix(infixParens) {
-    s"${left.prettyprint(infixParens = true)} `$op` ${right.prettyprint(infixParens = true)}"
+    s"${left.prettyprint(infixParens = true)} $op ${right.prettyprint(infixParens = true)}"
   }
 }
 object BaseApplyInfix {

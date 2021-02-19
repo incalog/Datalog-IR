@@ -28,8 +28,17 @@ trait CompiledModule {
       throw CompiledModule.Failed(this, es)
   }
 
-  lazy val optimized: GP.Module = {
+  lazy val transformed: GP.Module = {
     var module = ir
+    for (trans <- options.transformations) {
+      module = trans.transformer.transformModule(module)
+    }
+    module
+
+  }
+
+  lazy val optimized: GP.Module = {
+    var module = transformed
     // println(module)
     for (op <- options.optimizations) {
       module = op.optimizer(options.languageMetaInfo).optimizeModule(module)

@@ -9,9 +9,9 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.quasiquotes._
 
-class CoreParserTest extends AnyFunSuite {
+class ParserTest extends AnyFunSuite {
 
-  val parser = new CoreParser {}
+  val parser = new Parser {}
 
   test("Module test") {
     val boolDef = DataDef(None, Name("Bool"), Seq(DataConstructor(Name("True"), Seq()), DataConstructor(Name("False"), Seq())))
@@ -36,6 +36,15 @@ class CoreParserTest extends AnyFunSuite {
   test("FunctionDef test") {
     val funDef = FunctionDef(None, Name("foo"), Seq(Param(Name("x"), TScala("Int"))), TScala("Int"), If(Var("x"), BaseLit(Scala(q"1")), BaseLit(Scala(q"2"))))
     testSuccess(parser.functionDef(_))("def foo(x: `Int`): `Int` = if (x) `1` else `2`", funDef)
+
+    val annoFunDef = FunctionDef(None, Name("foo"), Seq(Param(Name("x"), TScala("Int"))), TScala("Int"), If(Var("x"), BaseLit(Scala(q"1")), BaseLit(Scala(q"2"))))
+    val annoFunString = "@main def foo(x: `Int`): `Int` = if (x) `1` else `2`"
+    parse(annoFunString, parser.functionDef(_)) match {
+      case Success(value, _) =>
+        assert(value == annoFunDef)
+        assert(value.hasAnnotation(MainFunctionAnno.key))
+      case Failure(_, _, _) => assert(false)
+    }
   }
 
   test("DataDef test") {
@@ -74,7 +83,7 @@ class CoreParserTest extends AnyFunSuite {
     testSuccess(parser.exp(_))("""`"ABC"`""", BaseLit(Scala(q""""ABC"""")))
     println(BaseApplyInfix(Var("x"), Scala(meta.Term.Name("+")), Var("y")))
 
-    testSuccess(parser.exp(_))("x `+` y", BaseApplyInfix(Var("x"), Scala(meta.Term.Name("+")), Var("y")))
+    testSuccess(parser.baseApplyInfixExp(_))("x + y", BaseApplyInfix(Var("x"), Scala(meta.Term.Name("+")), Var("y")))
 
 
     val matchString =

@@ -13,10 +13,9 @@ import scala.meta.parsers.{Parsed, _}
 /**
  * Parser for the IncA Core language.
  */
-trait CoreParser {
+trait Parser {
 
   final lazy val allKeywords: Set[String] = Set("if", "let", "in")
-
 
   def identifier[_: P]: P[Name] =
     P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_").repX).!).mapWithLoc { s =>
@@ -41,12 +40,19 @@ trait CoreParser {
   def moduleContent[_: P]: P[Seq[ModuleContent]] =
     P(functionDef.map(Seq(_)) | dataDef.map(Seq(_)))
 
+
   /** PatternFunction parser */
   protected[frontend] def functionDef[_: P]: P[ModuleContent] = {
-    P(visibility.? ~ "def" ~ identifier ~ "(" ~ paramList ~ ")" ~ ":" ~ typeAnno ~ "=" ~ exp).mapWithLoc{
-      case (vis, name, params, ty, exp) => FunctionDef(vis, name, params, ty, exp)
+    P(annotation.rep(sep = " ") ~ visibility.? ~ "def" ~ identifier ~ "(" ~ paramList ~ ")" ~ ":" ~ typeAnno ~ "=" ~ exp).mapWithLoc{
+      case (annos, vis, name, params, ty, exp) =>
+        annos.foldLeft(FunctionDef(vis, name, params, ty, exp)) { case (res, anno) =>
+          res.addAnnotation(anno)
+        }
     }
   }
+
+  protected[frontend]  def annotation[_: P]: P[Annotation] = mainFuncAnno
+  protected[frontend]  def mainFuncAnno[_: P]: P[MainFunctionAnno.type] = P("@main").map(_ => MainFunctionAnno)
 
   protected[frontend] def exp[_: P]: P[Expression] = wideExp
 
@@ -116,10 +122,13 @@ trait CoreParser {
       case (funTerm, args) => BaseApply(funTerm, args)
     }
 
+
+  // FIXME hack, but it works for now
   protected[frontend] def baseApplyInfixExp[_: P]: P[BaseApplyInfix] =
-    P(atomicExp ~ "`" ~~ scalaTermName ~~ "`" ~ atomicExp).mapWithLoc {
-      case (lhs, op, rhs) => BaseApplyInfix(lhs, op, rhs)
+    P(atomicExp ~ ("+" | "-" | "*" | "/" | "==" | "!=" | "&&" | "||").! ~ atomicExp).mapWithLoc {
+      case (lhs, op, rhs) => BaseApplyInfix(lhs, Scala(meta.Term.Name(op)), rhs)
     }
+
 
   protected[frontend] def scalaTerm[_: P]: P[Scala[meta.Term]] =
     P(CharsWhile(_ != '`').!).flatMap { raw_code =>
@@ -128,14 +137,6 @@ trait CoreParser {
           ParserUtils.fail(err.message)
         case Parsed.Success(code) =>
           fastparse.Pass(Scala(code))
-      }
-    }
-
-  protected[frontend] def scalaTermName[_: P]: P[Scala[meta.Term.Name]] =
-    P(scalaTerm).flatMap { term =>
-      term.tree match {
-        case name: meta.Term.Name => fastparse.Pass(Scala(name))
-        case _ => ParserUtils.fail("Not a scala name")
       }
     }
 

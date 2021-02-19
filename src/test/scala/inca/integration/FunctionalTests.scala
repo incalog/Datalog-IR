@@ -2,13 +2,14 @@ package inca.integration
 
 import inca.backend.transform.magic.{AdornProgram, MagicSetTransformation}
 import inca.compiler.{Compiler, Options}
+import inca.frontend.Frontend
 import inca.frontend.core.{Call, MainFunctionAnno, Name}
 import inca.frontend.examples.ADT.{NAT_lmi, Nat}
 import inca.frontend.examples.AST
 import inca.frontend.examples.AST.plusFun
 import inca.frontend.lowering.GenerateDatalog
 import inca.runtime.EnginePool
-import inca.runtime.context.QueryScope
+import inca.runtime.context.{LanguageMetaInfo, QueryScope}
 import inca.runtime.data.DataURI
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
@@ -169,5 +170,29 @@ class FunctionalTests extends AnyFunSuite {
       m.get("out").toString.startsWith("Succ(Succ(Succ(Succ(Succ(Zero())))))")
     }
     assert(resultExists)
+  }
+
+  test("Factorial Example)") {
+    val factCode =
+      """module Fact
+        |
+        |@main def main(): `Int` = fact(`4`)
+        |def fact(n: `Int`): `Int` = if (n == `1`) `1` else n * fact(n - `1`)
+        |""".stripMargin
+
+    val langInfo = new LanguageMetaInfo()
+    val options = Options(langInfo)
+    val compiled = Compiler.compileFun(factCode, options)
+
+    val scope = new QueryScope(langInfo)
+    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+
+
+    def printMatches(name: String): Unit = {
+      val matcher = EnginePool.loadQuery(compiled.psystemModule.patterns(name)(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+      println(s"${matcher.getAllMatches.size()} matches of $name:   ${matcher.getAllMatches}")
+    }
+
+    compiled.psystemModule.patterns.keys.foreach(printMatches)
   }
 }
