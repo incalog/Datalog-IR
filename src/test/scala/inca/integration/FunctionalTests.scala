@@ -13,9 +13,8 @@ import inca.runtime.data.DataURI
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
-import truechange.{Edit, EditScript, Load, NamedTag, SortType}
+import truechange._
 
-import scala.:+
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.collection.immutable.MultiDict
 
@@ -157,6 +156,23 @@ class FunctionalTests extends AnyFunSuite {
     }
 
     compiled.psystemModule.patterns.keys.foreach(printMatches)
+
+// TODO: support easier testing
+//    import scala.meta._
+//    val ast = Meta.compileAndLoadScala[Diffable](q"Succ(Succ(Succ(Zero())))".syntax)()
+//    val oldinput = ast
+//    println(ast.toStringWithURI)
+//    val edits1 = Diffable.load(ast)
+//    val ast2 = Meta.compileAndLoadScala[Diffable](q"Succ(Succ(Succ(Succ(Zero()))))".syntax)()
+//    val (edits2, ast2_) = ast.compareTo(ast2)
+//    val newinput = ast2_
+//    feed.processEditScript(edits1)
+//    feed.processEditScript(edits2)
+//    if (oldinput.uri != newinput.uri) {
+//      feed.insert("ext_input_plus_bbf", Tuples.flatTupleOf(newinput))
+//      feed.delete("ext_input_plus_bbf", Tuples.flatTupleOf(oldinput))
+//    }
+
 
     val plusMatcher = EnginePool.loadQuery(compiled.psystemModule.patterns("plus_bbf")(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     assert(plusMatcher.getAllMatches.size == 4)
