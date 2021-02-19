@@ -12,7 +12,7 @@ case class Options(languageMetaInfo: LanguageMetaInfo,
                    frontendFactory: LanguageMetaInfo => Frontend = defaultFrontend,
                    frontendFactory_old: LanguageMetaInfo => frontend_old.core.Frontend = defaultFrontend_old,
                    optimizations: Seq[Optimization] = defaultOptimizations,
-                   transformations: Seq[Transformation] = defaultTransformations,
+                   transformations: Seq[Transformation] = Seq(),
                    stopOnError: Boolean = true,
                    stopOnWarning: Boolean = false) {
   def frontend: Frontend = frontendFactory(languageMetaInfo)

@@ -181,7 +181,7 @@ class FunctionalTests extends AnyFunSuite {
         |""".stripMargin
 
     val langInfo = new LanguageMetaInfo()
-    val options = Options(langInfo)
+    val options = Options(langInfo, transformations = Options.defaultTransformations)
     val compiled = Compiler.compileFun(factCode, options)
 
     val scope = new QueryScope(langInfo)
