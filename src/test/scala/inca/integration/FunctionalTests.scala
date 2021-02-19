@@ -2,7 +2,7 @@ package inca.integration
 
 import inca.backend.transform.magic.{AdornProgram, MagicSetTransformation}
 import inca.compiler.{Compiler, Options}
-import inca.frontend.core.MainFunctionAnno
+import inca.frontend.core.{Call, MainFunctionAnno, Name}
 import inca.frontend.examples.ADT.Nat
 import inca.frontend.examples.AST
 import inca.frontend.examples.AST.plusFun
@@ -13,11 +13,30 @@ import inca.runtime.data.DataURI
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
-import truechange.{Load, NamedTag, SortType}
+import truechange.{Edit, EditScript, Load, NamedTag, SortType}
 
+import scala.:+
+import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.collection.immutable.MultiDict
 
 class FunctionalTests extends AnyFunSuite {
+
+
+  def deriveInput(call: Call): (Seq[Edit], DataURI) = {
+
+    def deriveStringRep(call: Call): String = {
+      // we only allow calls
+      val argsStringRep = call.args.map(a => deriveStringRep(a.asInstanceOf[Call]))
+      call.name + argsStringRep.mkString("(", ", ", ")")
+    }
+
+    val newURI = new DataURI(deriveStringRep(call))
+    val (subes, subURI) = call.args.map(a => deriveInput(a.asInstanceOf[Call])).unzip
+
+    val kids = subURI.zipWithIndex.map { case (uri, ix) => s"_$ix" -> uri }
+
+    (subes.flatten :+ Load(newURI, NamedTag(call.name.name), kids, Seq()), newURI)
+  }
 
   private val lmi = new LanguageMetaInfo(
     MultiDict(
@@ -38,15 +57,11 @@ class FunctionalTests extends AnyFunSuite {
     val scope = new QueryScope(lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
-//    println(compiled.ir)
-//    println(compiled.psystemSource)
-
     def printMatches(name: String): Unit = {
       val matcher = EnginePool.loadQuery(compiled.psystemModule.patterns(name)(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
       println(s"matches of $name:   ${matcher.getAllMatches}")
     }
 
-    // TODO actual test
     compiled.psystemModule.patterns.keys.foreach(printMatches)
 
     val mainMatcher = EnginePool.loadQuery(compiled.psystemModule.patterns("main_f")(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
@@ -125,25 +140,16 @@ class FunctionalTests extends AnyFunSuite {
     val scope = new QueryScope(lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
-    // first argument of plus
-    val zero0 = new DataURI("Zero")
-    val succ1 = new DataURI("Succ(Zero)")
-    val succ2 = new DataURI("Succ(Succ(Zero))")
-    val succ3 = new DataURI("Succ(Succ(Succ(Zero)))")
-    feed.processEdit(Load(zero0, NamedTag("Zero"), Seq(), Seq()))
-    feed.processEdit(Load(succ1, NamedTag("Succ"), Seq(("_0", zero0)), Seq()))
-    feed.processEdit(Load(succ2, NamedTag("Succ"), Seq(("_0", succ1)), Seq()))
-    feed.processEdit(Load(succ3, NamedTag("Succ"), Seq(("_0", succ2)), Seq()))
+    def zero: Call = Call(Name("Zero"), Nil)
+    def succ(arg: Call): Call = {
+      Call(Name("Succ"), Seq(arg))
+    }
 
-    // second argument of plus
-    val zero1 = new DataURI("Zero")
-    val succ4 = new DataURI("Succ(Zero)")
-    val succ5 = new DataURI("Succ(Succ(Zero))")
-    feed.processEdit(Load(zero1, NamedTag("Zero"), Seq(), Seq()))
-    feed.processEdit(Load(succ4, NamedTag("Succ"), Seq(("_0", zero1)), Seq()))
-    feed.processEdit(Load(succ5, NamedTag("Succ"), Seq(("_0", succ4)), Seq()))
-
-    feed.insert("ext_input_plus_bbf", Tuples.flatTupleOf(succ3, succ5))
+    val (arg1es, arg1uri) = deriveInput(succ(succ(succ(zero))))
+    val (arg2es, arg2uri) = deriveInput(succ(succ(zero)))
+    feed.processEditScript(EditScript(arg1es))
+    feed.processEditScript(EditScript(arg2es))
+    feed.insert("ext_input_plus_bbf", Tuples.flatTupleOf(arg1uri, arg2uri))
 
     def printMatches(name: String): Unit = {
       val matcher = EnginePool.loadQuery(compiled.psystemModule.patterns(name)(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
@@ -151,5 +157,12 @@ class FunctionalTests extends AnyFunSuite {
     }
 
     compiled.psystemModule.patterns.keys.foreach(printMatches)
+
+    val plusMatcher = EnginePool.loadQuery(compiled.psystemModule.patterns("plus_bbf")(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    assert(plusMatcher.getAllMatches.size == 4)
+    val resultExists = plusMatcher.getAllMatches.exists { m =>
+      m.get("out").toString.startsWith("Succ(Succ(Succ(Succ(Succ(Zero())))))")
+    }
+    assert(resultExists)
   }
 }
