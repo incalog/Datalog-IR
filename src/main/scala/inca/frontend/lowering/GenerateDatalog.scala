@@ -22,6 +22,8 @@ class GenerateDatalog(module: Module) {
 
   private val generatedPatterns = ListBuffer[GP.Pattern]()
 
+  private val unsatConstraint =
+    GP.Eq(GP.Constant(GP.BooleanLiteral(true)), GP.Constant(GP.BooleanLiteral(false)))
   def transModule(): GP.Module = {
     val Module(name, imports, contents) = module
     gensym.register(module.usedModuleNames.map(_.name))
@@ -45,7 +47,7 @@ class GenerateDatalog(module: Module) {
     val params = fun.params.flatMap(p => flattenParam(p.name.name, p.typ, genFresh = false))
     val outParams = flattenParam("out", fun.outType, genFresh = true)
 
-    val bodies = for ((terms, cons) <- transExp(fun.body.ensureCore))
+    val bodies = for ((terms, cons) <- transExp(fun.body.ensureCore); if !cons.contains(unsatConstraint))
       yield GP.Body(cons ++ outParams.zip(terms).map(pt => GP.Eq(GP.Var(pt._1.name), pt._2)))
 
     val pat = GP.Pattern(vis, fun.name.name, params ++ outParams, bodies)
@@ -72,6 +74,13 @@ class GenerateDatalog(module: Module) {
     case Var(name) =>
       val v = GP.Var(name.name)
       Seq((Seq(v), Seq()))
+
+    case Fail =>
+      // emit unsatisfiable constraint
+      Seq((
+        Seq(),
+        Seq(unsatConstraint))
+      )
 
     case Let(names, _, bound, body) =>
       val vars  = names.map(name => GP.Var(name.name))
@@ -265,6 +274,7 @@ class GenerateDatalog(module: Module) {
   private def transRuntimeType(typ: Type): GP.Type = typ match {
     case TAny => GP.TAny
     case TData(name) => GP.TNode(name.name)
+    case TScala(ty) => GP.TScala(ty)
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
   }
 }

@@ -241,7 +241,7 @@ class FunctionalTests extends AnyFunSuite {
     )
 
     val typeOfCode =
-      """module Fib
+      """module Typing
         |data Type = TInt() | TFun(Type, Type)
         |data Exp = Num(`Int`) | Lam(`String`, Type, Exp) | App(Exp, Exp) | Var(`String`)
         |data Ctx = Empty() | Bind(`String`, Type, Ctx)
