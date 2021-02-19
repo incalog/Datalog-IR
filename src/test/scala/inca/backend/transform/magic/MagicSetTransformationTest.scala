@@ -26,24 +26,24 @@ class MagicSetTransformationTest extends AnyFunSuite {
     assert(moduleEqual(magicSet, magicUnreachableModuleGP))
   }
 
-  test("MagicSet with ignorecall and noinputrelation hints") {
-    val moduleGP = GenerateDatalog.transformModule(AST.plusModule)
-    val trans = AdornProgram.transformer
-
-    val adorned = trans.transformModule(moduleGP)
-    val magic = MagicSetTransformation.transformer.transformModule(adorned)
-    println(magic)
-  }
-
-  test("MagicSet with ignorecall and noinputrelation hints (real plus)") {
-    val moduleGP = GenerateDatalog.transformModule(AST.plusRealModule)
-    val trans = AdornProgram.transformer
-
-    val adorned = trans.transformModule(moduleGP)
-    val magic = MagicSetTransformation.transformer.transformModule(adorned)
-    println(magic)
-  }
-
+//  test("MagicSet with ignorecall and noinputrelation hints") {
+//    val moduleGP = GenerateDatalog.transformModule(AST.plusModule)
+//    val trans = AdornProgram.transformer
+//
+//    val adorned = trans.transformModule(moduleGP)
+//    val magic = MagicSetTransformation.transformer.transformModule(adorned)
+//    println(magic)
+//  }
+//
+//  test("MagicSet with ignorecall and noinputrelation hints (real plus)") {
+//    val moduleGP = GenerateDatalog.transformModule(AST.plusRealModule)
+//    val trans = AdornProgram.transformer
+//
+//    val adorned = trans.transformModule(moduleGP)
+//    val magic = MagicSetTransformation.transformer.transformModule(adorned)
+//    println(magic)
+//  }
+//
   // trait Env
   // object Env {
   //   case class Empty() extends Env

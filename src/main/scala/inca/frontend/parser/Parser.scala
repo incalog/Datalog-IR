@@ -3,7 +3,8 @@ package inca.frontend.parser
 import fastparse.ScalaWhitespace._
 import fastparse._
 import inca.compiler.SourceLocation
-import inca.frontend.core._
+import inca.frontend.core.{Fail => _, _}
+import inca.frontend.core.{Fail => FailExp}
 import inca.util.Meta.Scala
 
 import scala.language.reflectiveCalls
@@ -15,7 +16,7 @@ import scala.meta.parsers.{Parsed, _}
  */
 trait Parser {
 
-  final lazy val allKeywords: Set[String] = Set("if", "let", "in")
+  final lazy val allKeywords: Set[String] = Set("if", "let", "in", "match", "fail")
 
   def identifier[_: P]: P[Name] =
     P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_").repX).!).mapWithLoc { s =>
@@ -58,7 +59,7 @@ trait Parser {
 
   protected[frontend] def wideExp[_: P]: P[Expression] = P(ifExp | letExp | infixExp)
   protected[frontend] def infixExp[_: P]: P[Expression] = P(baseApplyInfixExp | matchExp | atomicExp)
-  protected[frontend] def atomicExp[_: P]: P[Expression] = P(tupleExp | callExp | baseLitExp| baseApplyExp | variable | parensExp)
+  protected[frontend] def atomicExp[_: P]: P[Expression] = P(tupleExp | callExp | baseLitExp| baseApplyExp | variable | parensExp | failExp)
 
   /** Let parser */
   final protected[frontend] def parensExp[_: P]: P[Expression] = P("(" ~ exp ~ ")")
@@ -81,6 +82,8 @@ trait Parser {
     P("if" ~ "(" ~ exp ~ ")" ~ exp ~ "else" ~ exp).mapWithLoc {
       case (cond, thn, els) => If(cond, thn, els)
     }
+
+  protected[frontend] def failExp[_: P]: P[FailExp.type] = P("fail").mapWithLoc(_ => FailExp)
 
   protected[frontend] def callExp[_: P]: P[Call] =
     P(identifier ~ "(" ~ exp.rep(sep = ",") ~ ")").mapWithLoc {

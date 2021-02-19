@@ -30,15 +30,15 @@ class AdornProgramTest extends AnyFunSuite {
     assert(moduleEqual(adorned, adornedUnreachableModuleGP))
   }
 
-  test("Adornment with fixed adornment") {
-    val moduleGP = GenerateDatalog.transformModule(AST.plusModule)
-    val adorned = AdornProgram.transformer.transformModule(moduleGP)
-    println(adorned)
-  }
-
-  test("Adornment with fixed adornment (real plus)") {
-    val moduleGP = GenerateDatalog.transformModule(AST.plusRealModule)
-    val adorned = AdornProgram.transformer.transformModule(moduleGP)
-    println(adorned)
-  }
+//  test("Adornment with fixed adornment") {
+//    val moduleGP = GenerateDatalog.transformModule(AST.plusModule)
+//    val adorned = AdornProgram.transformer.transformModule(moduleGP)
+//    println(adorned)
+//  }
+//
+//  test("Adornment with fixed adornment (real plus)") {
+//    val moduleGP = GenerateDatalog.transformModule(AST.plusRealModule)
+//    val adorned = AdornProgram.transformer.transformModule(moduleGP)
+//    println(adorned)
+//  }
 }

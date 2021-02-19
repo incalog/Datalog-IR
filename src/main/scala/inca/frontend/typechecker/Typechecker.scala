@@ -87,6 +87,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         case None =>
           TAny
       }
+    case Fail => TAny
     case let@Let(names, anno, bound, body) =>
       val ty = typecheck(bound)
       val namesStr = names.mkString("(", ", ", ")")
@@ -316,8 +317,20 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           error(s"Inferred type $inferred, but expected annotated type $annotated", term)
         annotated
       case None =>
-        term.typed(inferred)
-        inferred
+        val resolved = inferred match {
+          case td@TData(name) =>
+            lookupData(name) match {
+              case Some(data) =>
+                resolveTarget(td)(data)
+                inferred
+              case None =>
+                error(s"Could not find Data type $name", term)
+                TAny
+            }
+          case _ => inferred
+        }
+        term.typed(resolved)
+        resolved
     }
   }
 

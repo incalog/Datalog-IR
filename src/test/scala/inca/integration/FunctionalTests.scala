@@ -2,7 +2,6 @@ package inca.integration
 
 import inca.backend.transform.magic.{AdornProgram, MagicSetTransformation}
 import inca.compiler.{Compiler, Options}
-import inca.frontend.Frontend
 import inca.frontend.core.{Call, MainFunctionAnno, Name}
 import inca.frontend.examples.ADT.{NAT_lmi, Nat}
 import inca.frontend.examples.AST
@@ -17,6 +16,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import truechange._
 
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
+import scala.collection.immutable.MultiDict
 
 class FunctionalTests extends AnyFunSuite {
 
@@ -172,19 +172,11 @@ class FunctionalTests extends AnyFunSuite {
     assert(resultExists)
   }
 
-  test("Factorial Example)") {
-    val factCode =
-      """module Fact
-        |
-        |@main def main(): `Int` = fact(`4`)
-        |def fact(n: `Int`): `Int` = if (n == `1`) `1` else n * fact(n - `1`)
-        |""".stripMargin
+  def executeFunction(code: String, lmi: LanguageMetaInfo = new LanguageMetaInfo()): Unit = {
+    val options = Options(lmi, transformations = Options.defaultTransformations)
+    val compiled = Compiler.compileFun(code, options)
 
-    val langInfo = new LanguageMetaInfo()
-    val options = Options(langInfo, transformations = Options.defaultTransformations)
-    val compiled = Compiler.compileFun(factCode, options)
-
-    val scope = new QueryScope(langInfo)
+    val scope = new QueryScope(lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
 
@@ -194,5 +186,94 @@ class FunctionalTests extends AnyFunSuite {
     }
 
     compiled.psystemModule.patterns.keys.foreach(printMatches)
+  }
+
+  test("Factorial Example)") {
+    val factCode =
+      """module Fact
+        |
+        |@main def main(): `Int` = fact(`4`)
+        |def fact(n: `Int`): `Int` = if (n == `1`) `1` else n * fact(n - `1`)
+        |""".stripMargin
+
+    executeFunction(factCode)
+  }
+
+  test("Fibonacci Example)") {
+    val fibCode =
+      """module Fib
+        |
+        |@main def main(): `Int` = fib(`11`)
+        |def fib(n: `Int`): `Int` = if (n == `0`) `0` else (if (n == `1`) `1` else fib(n - `1`) + fib(n - `2`))
+        |""".stripMargin
+
+    executeFunction(fibCode)
+  }
+
+  test("TypeChecker Example)") {
+    val lmi: LanguageMetaInfo = new LanguageMetaInfo(
+      MultiDict(
+        SortType("TInt") -> SortType("Type"),
+        SortType("TFun") -> SortType("Type"),
+        SortType("Num") -> SortType("Exp"),
+        SortType("Lam") -> SortType("Exp"),
+        SortType("App") -> SortType("Exp"),
+        SortType("Var") -> SortType("Exp"),
+        SortType("Empty") -> SortType("Ctx"),
+        SortType("Bind") -> SortType("Ctx")
+      ),
+      Map(
+        ("TFun", "_0") -> SortType("Type"),
+        ("TFun", "_1") -> SortType("Type"),
+        ("Lam", "_1") -> SortType("Type"),
+        ("Lam", "_2") -> SortType("Exp"),
+        ("App", "_0") -> SortType("Exp"),
+        ("App", "_1") -> SortType("Exp"),
+        ("Bind", "_1") -> SortType("Exp"),
+        ("Bind", "_2") -> SortType("Ctx")
+      ),
+      Map(
+        ("Num", "_0") -> JavaLitType(classOf[Int]),
+        ("Lam", "_0") -> JavaLitType(classOf[String]),
+        ("Var", "_0") -> JavaLitType(classOf[String]),
+        ("Bind", "_0") -> JavaLitType(classOf[String])
+      )
+    )
+
+    val typeOfCode =
+      """module Fib
+        |data Type = TInt() | TFun(Type, Type)
+        |data Exp = Num(`Int`) | Lam(`String`, Type, Exp) | App(Exp, Exp) | Var(`String`)
+        |data Ctx = Empty() | Bind(`String`, Type, Ctx)
+        |
+        |@main def main(): Type = let exp = Num(`1`) in typeOf(Empty(), exp)
+        |
+        |def typeOf(ctx: Ctx, exp: Exp): Type = exp match {
+        |  case Num(v) => TInt()
+        |  case Lam(n, ty, b) =>
+        |    let extCtx = Bind(n, ty, ctx) in
+        |      let ty2 = typeOf(extCtx, b) in
+        |        TFun(ty, ty2)
+        |  case App(fun, arg) =>
+        |    let funty = typeOf(ctx, fun) in
+        |      funty match {
+        |        case TInt() => fail
+        |        case TFun(ty1, ty2) =>
+        |          let argty = typeOf(ctx, arg) in
+        |            if (ty1 == argty) ty2
+        |            else fail
+        |      }
+        |  case Var(n) => lookup(ctx, n)
+        |}
+        |
+        |def lookup(ctx: Ctx, n: `String`): Type = ctx match {
+        |  case Empty() => fail
+        |  case Bind(n1, ty, rest) =>
+        |    if (n1 == n) ty
+        |    else lookup(rest, n)
+        |}
+        |""".stripMargin
+
+    executeFunction(typeOfCode, lmi)
   }
 }
