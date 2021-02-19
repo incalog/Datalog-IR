@@ -14,17 +14,15 @@ object AST {
   ).addAnnotation(MainFunctionAnno))
   val baseExample2: Module = module(FunctionDef(None, Name("main"), Seq(), TScalaInt,
     BaseApplyInfix(BaseLit(q"7", TScalaInt), "+",
-      BaseApplyInfix(BaseLit(q"12", TScalaInt), "*", BaseLit(q"3", TScalaInt), TScalaInt),
-      TScalaInt
+      BaseApplyInfix(BaseLit(q"12", TScalaInt), "*", BaseLit(q"3", TScalaInt))
     )
   ).addAnnotation(MainFunctionAnno))
 
   val varExample: Module = module(FunctionDef(None, Name("main"), Seq(), TScalaInt,
     Let(Seq(Name("x")), None, BaseLit(q"7", TScalaInt),
       Let(Seq(Name("y")), None, BaseLit(q"3", TScalaInt),
-        BaseApplyInfix(Var("x").typed(TScalaInt), "+",
-          BaseApplyInfix(BaseLit(q"12", TScalaInt), "*", Var("y").typed(TScalaInt), TScalaInt),
-          TScalaInt
+        BaseApplyInfix(Var("x"), "+",
+          BaseApplyInfix(BaseLit(q"12", TScalaInt), "*", Var("y"))
         )
       )
     )
@@ -32,9 +30,9 @@ object AST {
 
   val ifExample: Module = module(FunctionDef(None, Name("main"), Seq(), TScalaInt,
     Let(Seq(Name("x")), None, BaseLit(q"7", TScalaInt),
-      If(BaseApplyInfix(Var("x").typed(TScalaInt), ">", BaseLit(q"0", TScalaInt), TScalaBoolean),
+      If(BaseApplyInfix(Var("x"), ">", BaseLit(q"0", TScalaInt)),
         Var("x"),
-        BaseApplyInfix(Var("x").typed(TScalaInt), "*", BaseLit(q"-1", TScalaInt), TScalaInt)
+        BaseApplyInfix(Var("x"), "*", BaseLit(q"-1", TScalaInt))
       )
     )
   ).addAnnotation(MainFunctionAnno))
@@ -43,16 +41,15 @@ object AST {
     Let(Seq(Name("x")), None, BaseLit(q"7", TScalaInt),
       Let(Seq(Name("y")), None, BaseLit(q"-3", TScalaInt),
         BaseApplyInfix(
-          If(BaseApplyInfix(Var("x").typed(TScalaInt), ">", BaseLit(q"0", TScalaInt), TScalaBoolean),
+          If(BaseApplyInfix(Var("x"), ">", BaseLit(q"0", TScalaInt)),
             Var("x"),
-            BaseApplyInfix(Var("x").typed(TScalaInt), "*", BaseLit(q"-1", TScalaInt), TScalaInt)
-          ).typed(TScalaInt),
+            BaseApplyInfix(Var("x"), "*", BaseLit(q"-1", TScalaInt))
+          ),
           "+",
-          If(BaseApplyInfix(Var("y").typed(TScalaInt), ">", BaseLit(q"0", TScalaInt), TScalaBoolean),
+          If(BaseApplyInfix(Var("y"), ">", BaseLit(q"0", TScalaInt)),
             Var("y"),
-            BaseApplyInfix(Var("y").typed(TScalaInt), "*", BaseLit(q"-1", TScalaInt), TScalaInt)
-          ).typed(TScalaInt),
-          TScalaInt
+            BaseApplyInfix(Var("y"), "*", BaseLit(q"-1", TScalaInt))
+          )
         )
       )
     )
@@ -60,48 +57,45 @@ object AST {
 
 
   val incFun: FunctionDef = FunctionDef(None, Name("inc"), Seq(Param(Name("n"), TScalaInt)), TScalaInt,
-    BaseApplyInfix(Var("n").typed(TScalaInt), "+", BaseLit(q"1", TScalaInt), TScalaInt)
+    BaseApplyInfix(Var("n"), "+", BaseLit(q"1", TScalaInt))
   )
   val incMain: FunctionDef = FunctionDef(None, Name("main"), Seq(), TScalaInt,
-    Call(Name("inc"), Seq(BaseLit(q"0", TScalaInt))).resolved(incFun)
+    Call(Name("inc"), Seq(BaseLit(q"0", TScalaInt)))
   ).addAnnotation(MainFunctionAnno)
   val incModule: Module = module(incFun, incMain)
 
 
-  val factRecCall: Call = Call(Name("fact"), Seq(BaseApplyInfix(Var("n").typed(TScalaInt), "-", BaseLit(q"1", TScalaInt), TScalaInt))).typed(TScalaInt)
   val factFun: FunctionDef = FunctionDef(None, Name("fact"), Seq(Param(Name("n"), TScalaInt)), TScalaInt,
-    If(BaseApplyInfix(Var("n").typed(TScalaInt), "==", BaseLit(q"1", TScalaInt), TScalaBoolean),
+    If(BaseApplyInfix(Var("n"), "==", BaseLit(q"1", TScalaInt)),
       BaseLit(q"1", TScalaInt),
-      BaseApplyInfix(Var("n").typed(TScalaInt), "*", factRecCall, TScalaInt)
+      BaseApplyInfix(Var("n"), "*",
+        Call(Name("fact"), Seq(BaseApplyInfix(Var("n"), "-", BaseLit(q"1", TScalaInt)))))
     )
   )
-  factRecCall.resolved(factFun)
   val factMain: FunctionDef = FunctionDef(None, Name("main"), Seq(), TScalaInt,
-    Call(Name("fact"), Seq(BaseLit(q"3", TScalaInt))).resolved(factFun)
+    Call(Name("fact"), Seq(BaseLit(q"3", TScalaInt)))
   ).addAnnotation(MainFunctionAnno)
   val factModule: Module = module(factFun, factMain)
 
 
-  val recPlusCall: Call = Call(Name("plus"), Seq(Var(Name("pred")), Var(Name("n"))))
   val plusFun: FunctionDef = FunctionDef(None, Name("plus"), Seq(Param(Name("m"), TNat), Param(Name("n"), TNat)), TNat,
     Match(Var(Name("m")), Seq(
-      ConstructorPattern(Name("Zero"), Seq()).resolved(Zero) ->
+      ConstructorPattern(Name("Zero"), Seq()) ->
         Var("n"),
-      ConstructorPattern(Name("Succ"), Seq(Name("pred"))).resolved(Succ) ->
-        CallSucc(recPlusCall)
+      ConstructorPattern(Name("Succ"), Seq(Name("pred"))) ->
+        Call(Name("Succ"), Seq(Call(Name("plus"), Seq(Var(Name("pred")), Var(Name("n"))))))
     ))
   )
-  recPlusCall.resolved(plusFun)
   val plusMain: FunctionDef = FunctionDef(None, Name("main"), Seq(), TNat,
     Call(Name("plus"), Seq(
-      CallSucc(CallSucc(CallSucc(CallZero))),
-      CallSucc(CallSucc(CallZero))
-    )).resolved(plusFun)
+      Call(Name("Succ"), Seq(Call(Name("Succ"), Seq(Call(Name("Succ"), Seq(Call(Name("Zero"), Seq()))))))),
+      Call(Name("Succ"), Seq(Call(Name("Succ"), Seq(Call(Name("Zero"), Seq())))))
+    ))
   ).addAnnotation(MainFunctionAnno)
   val plusModule: Module = module(Nat, plusFun, plusMain)
 
   val plusRealMain: FunctionDef = FunctionDef(None, Name("main"), Seq(Param(Name("m"), TNat), Param(Name("n"), TNat)), TNat,
-    Call(Name("plus"), Seq(Var(Name("m")), Var(Name("n")))).resolved(plusFun)
+    Call(Name("plus"), Seq(Var(Name("m")), Var(Name("n"))))
   ).addAnnotation(MainFunctionAnno)
   val plusRealModule: Module = module(Nat, plusFun, plusRealMain)
 }

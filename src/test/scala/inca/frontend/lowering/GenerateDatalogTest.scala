@@ -1,6 +1,8 @@
 package inca.frontend.lowering
 
 import inca.backend.ir.GP
+import inca.compiler.{Compiler, Options}
+import inca.frontend.examples.ADT.NAT_lmi
 import inca.frontend.examples.AST
 import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
@@ -189,48 +191,50 @@ class GenerateDatalogTest extends AnyFunSuite {
 
 
 
+  val options = Options(NAT_lmi)
+
   test("base example") {
-    val result = GenerateDatalog.transformModule(AST.baseExample)
+    val result = Compiler.compileFun(AST.baseExample, options).ir
     assert(result == baseExampleGP)
   }
 
   test("base example 2") {
-    val result = GenerateDatalog.transformModule(AST.baseExample2)
+    val result = Compiler.compileFun(AST.baseExample2, options).ir
     assert(result == baseExampleGP2)
   }
 
   test("var example") {
-    val result = GenerateDatalog.transformModule(AST.varExample)
+    val result = Compiler.compileFun(AST.varExample, options).ir
     assert(result == varExampleGP)
   }
 
   test("if example") {
-    val result = GenerateDatalog.transformModule(AST.ifExample)
+    val result = Compiler.compileFun(AST.ifExample, options).ir
     assert(result == ifExampleGP)
   }
 
   test("if example 2") {
-    val result = GenerateDatalog.transformModule(AST.ifExample2)
+    val result = Compiler.compileFun(AST.ifExample2, options).ir
     assert(result == ifExample2GP)
   }
 
   test("inc example") {
-    val result = GenerateDatalog.transformModule(AST.incModule)
+    val result = Compiler.compileFun(AST.incModule, options).ir
     assert(result == incModuleGP)
   }
 
   test("fact example") {
-    val result = GenerateDatalog.transformModule(AST.factModule)
+    val result = Compiler.compileFun(AST.factModule, options).ir
     assert(result == factModuleGP)
   }
 
   test("plus example") {
-    val result = GenerateDatalog.transformModule(AST.plusModule)
+    val result = Compiler.compileFun(AST.plusModule, options).ir
     println(result)
   }
 
   test("plus real example") {
-    val result = GenerateDatalog.transformModule(AST.plusRealModule)
+    val result = Compiler.compileFun(AST.plusRealModule, options).ir
     println(result)
   }
 }

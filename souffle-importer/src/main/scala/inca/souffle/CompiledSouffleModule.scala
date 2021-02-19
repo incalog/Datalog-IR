@@ -2,9 +2,8 @@ package inca.souffle
 
 import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
-import inca.compiler.{CompiledModule, Options}
-import inca.frontend_old.parser.SourceLocation
-import inca.frontend_old.parser.SourceLocation.NoSourceLocation
+import inca.compiler.SourceLocation.NoSourceLocation
+import inca.compiler.{CompiledModule, Options, SourceLocation}
 import inca.souffle.Syntax.{Input, PrintSize, RuleSignature}
 
 // TODO generate ir on demand, provide souffle module as input

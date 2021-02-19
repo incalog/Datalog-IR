@@ -1,6 +1,6 @@
 package inca.frontend_old.core.tree
 
-import inca.frontend_old.parser.SourceLocation
+import inca.compiler.SourceLocation
 
 case class PatternFunction(vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, bodies: Seq[Body])
   extends ModuleContent with Call.Target {

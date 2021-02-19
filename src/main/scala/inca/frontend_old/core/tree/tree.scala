@@ -1,6 +1,6 @@
 package inca.frontend_old.core
 
-import inca.frontend_old.parser.SourceLocation
+import inca.compiler.SourceLocation
 
 package object tree {
   val Continue: CoreStatement = FailStatement

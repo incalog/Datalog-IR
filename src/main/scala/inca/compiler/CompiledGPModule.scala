@@ -2,8 +2,7 @@ package inca.compiler
 
 import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
-import inca.frontend_old.parser.SourceLocation
-import inca.frontend_old.parser.SourceLocation.NoSourceLocation
+import inca.compiler.SourceLocation.NoSourceLocation
 
 case class CompiledGPModule(ir: GP.Module, options: Options) extends CompiledModule {
   override def name: Name = ir.name

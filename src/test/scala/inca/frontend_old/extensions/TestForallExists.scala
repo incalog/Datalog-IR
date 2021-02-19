@@ -20,7 +20,7 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
   val two = Constant(IntLiteral(2))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo, info => new core.Frontend with forallExists.Frontend {
+  val options: Options = Options(scope.langMetaInfo, frontendFactory_old = info => new core.Frontend with forallExists.Frontend {
     override val lang: LanguageMetaInfo = info
   })
 

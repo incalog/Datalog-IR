@@ -1,7 +1,7 @@
 package inca.frontend_old.typechecker
 
+import inca.compiler.SourceLocation
 import inca.frontend_old.core.tree._
-import inca.frontend_old.parser.SourceLocation
 import inca.frontend_old.util.TypeHelper
 import inca.runtime.aggregate.Aggregation
 import inca.runtime.context.LanguageMetaInfo

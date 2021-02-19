@@ -1,6 +1,6 @@
 package inca.frontend
 
-import inca.frontend_old.parser.SourceLocation
+import inca.compiler.SourceLocation
 
 package object core {
   val TUnit: TTuple = TTuple(Seq.empty)

@@ -1,7 +1,6 @@
 package inca.compiler
 
 import inca.backend.ir.{CompileToPSystem, GP, PSystem}
-import inca.frontend_old.parser.SourceLocation
 import inca.util.Meta
 
 import scala.collection.mutable.ListBuffer

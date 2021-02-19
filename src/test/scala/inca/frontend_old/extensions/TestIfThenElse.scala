@@ -19,7 +19,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
   val four = Constant(IntLiteral(4))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo, info => new core.Frontend with ifThenElse.Frontend {
+  val options: Options = Options(scope.langMetaInfo, frontendFactory_old = info => new core.Frontend with ifThenElse.Frontend {
     override val lang: LanguageMetaInfo = info
   })
 

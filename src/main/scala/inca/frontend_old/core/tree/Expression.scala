@@ -1,6 +1,6 @@
 package inca.frontend_old.core.tree
 
-import inca.frontend_old.parser.SourceLocation
+import inca.compiler.SourceLocation
 import inca.frontend_old.typechecker.{Resolvable, Typeable}
 import inca.util.Meta.Scala
 

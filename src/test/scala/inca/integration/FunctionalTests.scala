@@ -3,12 +3,12 @@ package inca.integration
 import inca.backend.transform.magic.{AdornProgram, MagicSetTransformation}
 import inca.compiler.{Compiler, Options}
 import inca.frontend.core.{Call, MainFunctionAnno, Name}
-import inca.frontend.examples.ADT.Nat
+import inca.frontend.examples.ADT.{NAT_lmi, Nat}
 import inca.frontend.examples.AST
 import inca.frontend.examples.AST.plusFun
 import inca.frontend.lowering.GenerateDatalog
 import inca.runtime.EnginePool
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.runtime.context.QueryScope
 import inca.runtime.data.DataURI
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
@@ -16,7 +16,6 @@ import org.scalatest.funsuite.AnyFunSuite
 import truechange._
 
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
-import scala.collection.immutable.MultiDict
 
 class FunctionalTests extends AnyFunSuite {
 
@@ -37,23 +36,13 @@ class FunctionalTests extends AnyFunSuite {
     (subes.flatten :+ Load(newURI, NamedTag(call.name.name), kids, Seq()), newURI)
   }
 
-  private val lmi = new LanguageMetaInfo(
-    MultiDict(
-      SortType("Zero") -> SortType("Nat"),
-      SortType("Succ") -> SortType("Nat")),
-    Map(
-      ("Succ", "_0") -> SortType("Nat")
-    ),
-    Map()
-  )
-
   test("Adornment with fixed adornment") {
     val moduleGP = GenerateDatalog.transformModule(AST.plusModule)
     val adorned = AdornProgram.transformer.transformModule(moduleGP)
 
     val magicSet = MagicSetTransformation.transformer.transformModule(adorned)
-    val compiled = Compiler.compileGP(magicSet, Options(lmi))
-    val scope = new QueryScope(lmi)
+    val compiled = Compiler.compileGP(magicSet, Options(NAT_lmi))
+    val scope = new QueryScope(NAT_lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
     def printMatches(name: String): Unit = {
@@ -73,9 +62,9 @@ class FunctionalTests extends AnyFunSuite {
     val adorned = AdornProgram.transformer.transformModule(moduleGP)
     val magicSet = MagicSetTransformation.transformer.transformModule(adorned)
     println(magicSet)
-    val compiled = Compiler.compileGP(magicSet, Options(lmi))
+    val compiled = Compiler.compileGP(magicSet, Options(NAT_lmi))
 
-    val scope = new QueryScope(lmi)
+    val scope = new QueryScope(NAT_lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
     def printMatches(name: String): Unit = {
@@ -135,8 +124,8 @@ class FunctionalTests extends AnyFunSuite {
     val magicSet = MagicSetTransformation.transformer.transformModule(adorned)
     println(magicSet)
 
-    val compiled = Compiler.compileGP(magicSet, Options(lmi))
-    val scope = new QueryScope(lmi)
+    val compiled = Compiler.compileGP(magicSet, Options(NAT_lmi))
+    val scope = new QueryScope(NAT_lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
     def zero: Call = Call(Name("Zero"), Nil)

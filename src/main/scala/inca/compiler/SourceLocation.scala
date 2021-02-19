@@ -1,4 +1,4 @@
-package inca.frontend.parser
+package inca.compiler
 
 trait SourceLocation {
   var startIndex: Int = SourceLocation.NoIndex

@@ -17,7 +17,7 @@ class TestCast extends AnyFlatSpec with IncaMatchers {
   val two = Constant(IntLiteral(2))
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo, Frontend.Core)
+  val options: Options = Options(scope.langMetaInfo, frontendFactory_old = Frontend.Core)
   
   "compiler" should "implement cast semantics" in {
     val module = Module("Test_Cast", Seq(), Seq(

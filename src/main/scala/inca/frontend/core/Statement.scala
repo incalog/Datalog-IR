@@ -1,6 +1,6 @@
 //package inca.frontend.core
 //
-//import inca.frontend.parser.SourceLocation
+//import inca.compiler.SourceLocation
 //import inca.frontend.typechecker.Typeable
 //
 //trait Statement extends Typeable with SourceLocation {

@@ -1,6 +1,6 @@
 package inca.frontend.core
 
-import inca.frontend.parser.SourceLocation
+import inca.compiler.SourceLocation
 import inca.frontend.typechecker.{Resolvable, Typeable}
 import inca.util.Meta.Scala
 
@@ -111,11 +111,11 @@ case class Match(matchee: Expression, cases: Seq[(Pattern, Expression)]) extends
     s"${matchee.prettyprint} match {\n$casesS\n$indent}"
   }
 }
-trait Pattern {
+trait Pattern extends SourceLocation {
   def vars: Map[Name, Option[Type]]
   def prettyprint: String
 }
-case class ConstructorPattern(constr: Name, args: Seq[Name]) extends Pattern with Resolvable[DataConstructor.Target] {
+case class ConstructorPattern(constr: Name, args: Seq[Name]) extends Pattern with Resolvable[DataConstructor.Target] with Var.Target {
   override def vars: Map[Name, Option[Type]] = args.map(_ -> None).toMap
   override def prettyprint: String = s"$constr(${args.mkString(", ")})"
 }
@@ -149,6 +149,6 @@ case class BaseApplyInfix(left: Expression, op: Scala[meta.Term.Name], right: Ex
   }
 }
 object BaseApplyInfix {
-  def apply(left: Expression, op: String, right: Expression, typ: Type): BaseApplyInfix =
-    new BaseApplyInfix(left, Scala(meta.Term.Name(op)), right).typed(typ)
+  def apply(left: Expression, op: String, right: Expression): BaseApplyInfix =
+    new BaseApplyInfix(left, Scala(meta.Term.Name(op)), right)
 }

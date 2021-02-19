@@ -1,4 +1,4 @@
-package inca.frontend_old.typechecker
+package inca.frontend.typechecker
 
 import inca.compiler
 import inca.compiler.{CompilationMessage, SourceLocation}

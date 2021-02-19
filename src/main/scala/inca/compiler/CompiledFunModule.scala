@@ -2,10 +2,8 @@ package inca.compiler
 
 import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
-import inca.frontend_old.core.CompileToGP
-import inca.frontend_old.core.tree._
-import inca.frontend_old.desugar.Desugar
-import inca.frontend_old.parser.SourceLocation
+import inca.frontend.core.Module
+import inca.frontend.lowering.GenerateDatalog
 
 case class CompiledFunModule(fun: Module, options: Options) extends CompiledModule {
 
@@ -22,19 +20,20 @@ case class CompiledFunModule(fun: Module, options: Options) extends CompiledModu
     fun
   }
 
-  lazy val desugared: Module = {
-    val frontend = options.frontend
-    val module = Desugar(frontend.allDesugarables)(typed)
-    frontend.typecheck(module)
-    messages ++= frontend.getErrors
-    messages ++= frontend.getWarnings
-//    println(module)
-    stopIfNeeded()
-    module
-  }
+  lazy val desugared: Module = typed
+//  {
+//    val frontend = options.frontend
+//    val module = Desugar(frontend.allDesugarables)(typed)
+//    frontend.typecheck(module)
+//    messages ++= frontend.getErrors
+//    messages ++= frontend.getWarnings
+////    println(module)
+//    stopIfNeeded()
+//    module
+//  }
 
   lazy val ir: GP.Module = {
-    val module = new CompileToGP().transformModule(desugared)
+    val module = new GenerateDatalog(desugared).transModule()
 //    println(module)
     module
   }

@@ -1,7 +1,7 @@
 package inca.frontend_old.extensions.evalCall
 
+import inca.compiler.SourceLocation
 import inca.frontend_old.core.tree._
-import inca.frontend_old.parser.SourceLocation
 import inca.util.Meta.Scala
 
 object Trees {
