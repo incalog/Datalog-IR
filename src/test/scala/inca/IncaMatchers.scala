@@ -38,6 +38,18 @@ trait IncaMatchers extends Matchers {
     assertMatchCoreEdit(compiled, fun, editScript, scope)(asserter)
   }
 
+  def assertMatchFunCode_old (module: String,
+                          fun: String,
+                          subjectProg: Diffable,
+                          scope: QueryScope = this.scope,
+                          options: Options = this.options)
+                         (asserter: Query.Matcher => Assertion): Assertion = {
+
+    val editScript = Diffable.load(subjectProg)
+    val compiled = compiler.Compiler.compileFun_old(module, options)
+    assertMatchCoreEdit(compiled, fun, editScript, scope)(asserter)
+  }
+
   def assertMatchFunModule(module: Module,
                            fun: String,
                            subjectProg: Diffable,

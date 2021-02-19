@@ -26,7 +26,7 @@ class TestData extends AnyFlatSpec with IncaMatchers {
 
     val input = Exp.BooleanLit(true)
 
-    assertMatchFunCode(code, "zero", input, scope) { matcher =>
+    assertMatchFunCode_old(code, "zero", input, scope) { matcher =>
       assert(matcher.getAllMatches.size() == 1)
     }
   }
@@ -42,7 +42,7 @@ class TestData extends AnyFlatSpec with IncaMatchers {
 
     val input = Exp.BooleanLit(true)
 
-    assertMatchFunCode(code, "one", input, scope) { matcher =>
+    assertMatchFunCode_old(code, "one", input, scope) { matcher =>
       assert(matcher.getAllMatches.size() == 1)
     }
   }
@@ -65,7 +65,7 @@ class TestData extends AnyFlatSpec with IncaMatchers {
         |""".stripMargin
     val input = Exp.BooleanLit(true)
 
-    assertMatchFunCode(code, "range", input, scope) { matcher =>
+    assertMatchFunCode_old(code, "range", input, scope) { matcher =>
       assert(matcher.getAllMatches.size() == 11)
     }
   }

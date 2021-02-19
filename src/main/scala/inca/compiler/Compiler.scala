@@ -13,6 +13,13 @@ object Compiler {
     CompiledFunModule(parsed, compilerOptions)
   }
 
+  def compileFun_old(module: String,
+                 compilerOptions: Options): CompiledFunModule_old = {
+    val parsed = compilerOptions.frontendOld.parseModule(module).get.value
+    //    println(parsed)
+    CompiledFunModule_old(parsed, compilerOptions)
+  }
+
   def compileFun(module: core.Module,
                  compilerOptions: Options): CompiledFunModule = {
     CompiledFunModule(module, compilerOptions)
