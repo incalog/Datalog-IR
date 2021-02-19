@@ -82,7 +82,7 @@ case class DataDef(vis: Option[Visibility], name: Name, constrs: Seq[DataConstru
   }
 }
 
-case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends DataConstructor.Target {
+case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends SourceLocation with DataConstructor.Target {
 
   def selectorName: String = "un$_" + name.name
 

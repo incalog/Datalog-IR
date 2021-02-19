@@ -1,0 +1,111 @@
+package inca.frontend.parser
+
+import fastparse.Parsed.{Failure, Success}
+import fastparse.{P, parse}
+import inca.frontend.core._
+import inca.util.Meta.Scala
+import org.scalatest.Assertion
+import org.scalatest.funsuite.AnyFunSuite
+
+import scala.meta.quasiquotes._
+
+class CoreParserTest extends AnyFunSuite {
+
+  val parser = new CoreParser {}
+
+  test("Module test") {
+    val boolDef = DataDef(None, Name("Bool"), Seq(DataConstructor(Name("True"), Seq()), DataConstructor(Name("False"), Seq())))
+    val funDef = FunctionDef(None, Name("neg"), Seq(Param(Name("b"), TData(Name("Bool")))), TData(Name("Bool")),
+      Match(Var("b"), Seq(
+        (ConstructorPattern(Name("True"), Seq()), Call(Name("False"), Seq())),
+        (ConstructorPattern(Name("False"), Seq()), Call(Name("True"), Seq())))))
+    val moduleDef = Module(Name("Main"), Seq(), Seq(boolDef, funDef))
+    val moduleString =
+      """module Main
+        |data Bool = True() | False()
+        |def neg(b: Bool): Bool = b match {
+        |  case True() => False()
+        |  case False() => True()
+        |}
+        |""".stripMargin
+
+    testSuccess(parser.module(_))(moduleString, moduleDef)
+
+  }
+
+  test("FunctionDef test") {
+    val funDef = FunctionDef(None, Name("foo"), Seq(Param(Name("x"), TScala("Int"))), TScala("Int"), If(Var("x"), BaseLit(Scala(q"1")), BaseLit(Scala(q"2"))))
+    testSuccess(parser.functionDef(_))("def foo(x: `Int`): `Int` = if (x) `1` else `2`", funDef)
+  }
+
+  test("DataDef test") {
+    val peanoDef = DataDef(None, Name("Nat"),
+      Seq(
+        DataConstructor(Name("Zero"), Seq()),
+        DataConstructor(Name("Succ"), Seq(TData(Name("Nat"))))))
+    testSuccess(parser.dataDef(_))("data Nat = Zero() | Succ(Nat)", peanoDef)
+
+    val expDef = DataDef(None, Name("Exp"),
+      Seq(
+        DataConstructor(Name("Num"), Seq(TScala("Int"))),
+        DataConstructor(Name("Add"), Seq(TData(Name("Exp")), TData(Name("Exp"))))))
+    testSuccess(parser.dataDef(_))("data Exp = Num(`Int`) | Add(Exp, Exp)", expDef)
+  }
+
+  test("Expression test") {
+    testSuccess(parser.exp(_))("test", Var("test"))
+    testSuccess(parser.exp(_))("if (test) x else y", If(Var("test"), Var("x"), Var("y")))
+
+    testSuccess(parser.exp(_))("(x, z)", Tuple(Seq(Var("x"), Var("z"))))
+
+    testSuccess(parser.exp(_))("let x = y in x", Let(Seq(Name("x")), None, Var("y"), Var("x")))
+    testSuccess(parser.exp(_))("let x: Any = y in x", Let(Seq(Name("x")), Some(TAny), Var("y"), Var("x")))
+    testSuccess(parser.exp(_))("let (x, y) = tuple in (y, x)", Let(Seq(Name("x"), Name("y")), None, Var("tuple"), Tuple(Seq(Var("y"), Var("x")))))
+
+    val letExp = Let(Seq(Name("x"), Name("y")), Some(TTuple(Seq(TAny, TNothing))), Var("tuple"), Tuple(Seq(Var("y"), Var("x"))))
+    testSuccess(parser.exp(_))("let (x, y): (Any, Nothing) = tuple in (y, x)", letExp)
+
+    testSuccess(parser.exp(_))("foo(x)", Call(Name("foo"), Seq(Var("x"))))
+    testSuccess(parser.exp(_))("foo(x, (y, z))", Call(Name("foo"), Seq(Var("x"), Tuple(Seq(Var("y"), Var("z"))))))
+
+    testSuccess(parser.exp(_))("((x, y))", Tuple(Seq(Var("x"), Var("y"))))
+
+    testSuccess(parser.exp(_))("`1`", BaseLit(Scala(q"1")))
+    testSuccess(parser.exp(_))("""`"ABC"`""", BaseLit(Scala(q""""ABC"""")))
+    println(BaseApplyInfix(Var("x"), Scala(meta.Term.Name("+")), Var("y")))
+
+    testSuccess(parser.exp(_))("x `+` y", BaseApplyInfix(Var("x"), Scala(meta.Term.Name("+")), Var("y")))
+
+
+    val matchString =
+      """b match {
+        |  case True() => False()
+        |  case False() => True()
+        |}
+        |""".stripMargin
+    val matchExp = Match(Var("b"), Seq(
+      (ConstructorPattern(Name("True"), Seq()), Call(Name("False"), Seq())),
+      (ConstructorPattern(Name("False"), Seq()), Call(Name("True"), Seq()))))
+    testSuccess(parser.exp(_))(matchString, matchExp)
+  }
+
+  private def testSuccess[T](parser: P[_] => P[Any]): (String, T) => Assertion =
+    (input: String, cmp: T) => {
+      parse(input, parser) match {
+        case Success(value, index)        =>
+          println(value)
+          assert(value === cmp)
+          assertResult(input.length)(index)
+        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+      }
+    }
+
+  private def testFailure[T](parser: P[_] => P[Any]): String => Unit =
+    (input: String) => {
+      parse(input, parser) match {
+        case Success(value, index) if input.length == index => fail(s"Expected failed parsing, but got $value")
+        case Success(value, index) if input.length != index =>
+        case Failure(label, index, extra) =>
+      }
+    }
+}
