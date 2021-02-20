@@ -22,7 +22,7 @@ object MagicSetTransformation extends Transformation {
     }
 
     override def transformPattern(pat: Pattern): Seq[Pattern] =
-      if (shouldDeriveInput(pat)) {
+      if (hasAdornment(pat)) {
         val extendedPattern = insertInputCall(pat)
         Seq(extendedPattern)
       } else {
@@ -30,13 +30,15 @@ object MagicSetTransformation extends Transformation {
       }
   }
 
-  private def shouldDeriveInput(pat: Hints): Boolean = {
-    !pat.hasHint(MagicSetHints.NoInputRelationKey) || hasAdornment(pat)
-  }
+  private def shouldDeriveInput(pat: Pattern): Boolean =
+    hasAdornment(pat)
+
+  private def shouldInsertInput(body: Body): Boolean =
+    !body.hasHint(MagicSetHints.NoInputRelationKey)
 
   private def insertInputCall(pat: Pattern): Pattern = {
     val bodies = pat.bodies.map { b =>
-      if (shouldDeriveInput(b)) {
+      if (shouldInsertInput(b)) {
         val inputCall = deriveInputCall(pat)
         Body(inputCall.toSeq ++ b.constraints).withHints(b)
       } else {
