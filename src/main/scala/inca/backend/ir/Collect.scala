@@ -19,7 +19,11 @@ object CollectConstantEvaluation extends Collect[Evaluation] {
 
 trait Collect[R] {
 
-  def apply(pat: Pattern): Seq[R] = {
+  def apply(mod: Module): Seq[R] = {
+    mod.pats.flatMap(transPattern)
+  }
+
+  def transPattern(pat: Pattern): Seq[R] = {
     val paramsRes = pat.params.flatMap(transParam)
     paramsRes ++ pat.bodies.flatMap(transBody)
   }

@@ -102,7 +102,7 @@ object CompileToPSystem {
     val paramNames = pat.params.map(_.name)
     val paramTermNames = paramNames.map { n => Term.Name(s"$PARAMPREFIX${n}") }
     val paramLitName = paramNames.map { n => Lit.String(n) }
-    val allVars = CollectVars(pat).toSet
+    val allVars = CollectVars.transPattern(pat).toSet
     val gensym = new Gensym(allVars)
 
     val vis =

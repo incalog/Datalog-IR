@@ -90,7 +90,7 @@ object MagicSetTransformation extends Transformation {
     }
 
     // generate new names for pattern params to avoid name collision
-    val usedVars = patterns.flatMap(CollectVars.apply).toSet
+    val usedVars = patterns.flatMap(CollectVars.transPattern).toSet
     val gensym = new Gensym(usedVars)
     val params = pat.params.map { p =>
       val name = gensym.fresh(p.name)
@@ -114,8 +114,6 @@ object MagicSetTransformation extends Transformation {
       }
     }
 
-    // rename so that params are the args of the call
-    val renamedBodies = inputPatterns.flatten
     val boundParams = boundIndices.map(params)
 
     val extensionalBody = if (pat.hasHint(MagicSetHints.MainKey)) {
@@ -126,7 +124,7 @@ object MagicSetTransformation extends Transformation {
       None
     }
 
-    val inputPat = Pattern(None, inputPatternName(pat.name), boundParams, renamedBodies ++ extensionalBody)
+    val inputPat = Pattern(None, inputPatternName(pat.name), boundParams, inputPatterns.flatten ++ extensionalBody)
     if (inputPat.bodies.nonEmpty)
       Seq(inputPat)
     else

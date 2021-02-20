@@ -5,6 +5,8 @@ object DataHints {
 
   val ConstructorKey = "DATA_CONSTRUCTOR"
   val SelectorKey = "DATA_SELECTOR"
+  val DataTypeKey = "DATA_TYPE"
+  val IDBConstructorKey = "IDB_DATA_CONSTRUCTOR"
 
   /**
    * The annotated pattern represents a constructor.
@@ -18,5 +20,19 @@ object DataHints {
    */
   object Selector extends Hint {
     override def key: Key = SelectorKey
+  }
+
+  /**
+   * The annotated pattern represents a data type.
+   */
+  object DataType extends Hint {
+    override def key: Key = DataTypeKey
+  }
+
+  /**
+   * The annotated body represents a rule to construct a value during run time
+   */
+  object IDBConstructor extends Hint {
+    override def key: Key = IDBConstructorKey
   }
 }

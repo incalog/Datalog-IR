@@ -6,6 +6,7 @@ import inca.frontend.core._
 import inca.runtime.data.DataURI
 import inca.util.Meta.{Scala, symbolOf, typeOf}
 import inca.util.{Gensym, TupleOps}
+import truechange.JavaLitType
 
 import scala.collection.mutable.ListBuffer
 
@@ -219,7 +220,7 @@ class GenerateDatalog(module: Module) {
     ))
     val dataPat = GP.Pattern(None, data.name.name, Seq(GP.Param("out", typ)),
       constrBodies :+ edbDataBody
-    )
+    ).addHint(DataHints.DataType)
 
     dataPat +: data.constrs.flatMap(transDataConstructor(_, vis, typ))
   }
@@ -241,7 +242,7 @@ class GenerateDatalog(module: Module) {
     )
     val outVar = GP.Var(outParam.name)
     val constrIDBBody = GP.Body(Seq(GP.Computed(outVar,
-      GP.Evaluation(params.map(p => GP.Var(p.name) -> p.typ), typ, Scala(constrScalaFun)))))
+      GP.Evaluation(params.map(p => GP.Var(p.name) -> p.typ), typ, Scala(constrScalaFun))))).addHint(DataHints.IDBConstructor)
 
     val constrType = GP.TNode(constr.name.name)
     val constrEDBBody = GP.Body(
@@ -274,7 +275,15 @@ class GenerateDatalog(module: Module) {
   private def transRuntimeType(typ: Type): GP.Type = typ match {
     case TAny => GP.TAny
     case TData(name) => GP.TNode(name.name)
-    case TScala(ty) => GP.TScala(ty)
+    case TScala(Scala(meta.Type.Name(ty))) =>
+      ty match {
+        case "String" => GP.TLiteral.String
+        case "Int" => GP.TLiteral.Int
+        case "Boolean" => GP.TLiteral.Bool
+        case "Long" => GP.TLiteral.Long
+        case "Double" => GP.TLiteral.Double
+        case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
+      }
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
   }
 }

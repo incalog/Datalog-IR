@@ -188,7 +188,7 @@ class FunctionalTests extends AnyFunSuite {
     compiled.psystemModule.patterns.keys.foreach(printMatches)
   }
 
-  test("Factorial Example)") {
+  test("Factorial Example") {
     val factCode =
       """module Fact
         |
@@ -199,7 +199,7 @@ class FunctionalTests extends AnyFunSuite {
     executeFunction(factCode)
   }
 
-  test("Fibonacci Example)") {
+  test("Fibonacci Example") {
     val fibCode =
       """module Fib
         |
@@ -210,7 +210,7 @@ class FunctionalTests extends AnyFunSuite {
     executeFunction(fibCode)
   }
 
-  test("TypeChecker Example)") {
+  test("TypeChecker Example") {
     val lmi: LanguageMetaInfo = new LanguageMetaInfo(
       MultiDict(
         SortType("TInt") -> SortType("Type"),
@@ -271,6 +271,65 @@ class FunctionalTests extends AnyFunSuite {
         |  case Bind(n1, ty, rest) =>
         |    if (n1 == n) ty
         |    else lookup(rest, n)
+        |}
+        |""".stripMargin
+
+    executeFunction(typeOfCode, lmi)
+  }
+
+  test("TypeErasure Example") {
+    val lmi: LanguageMetaInfo = new LanguageMetaInfo(
+      MultiDict(
+        SortType("TInt") -> SortType("Type"),
+        SortType("TFun") -> SortType("Type"),
+        SortType("TNum") -> SortType("TExp"),
+        SortType("TLam") -> SortType("TExp"),
+        SortType("TApp") -> SortType("TExp"),
+        SortType("TVar") -> SortType("TExp"),
+        SortType("Num") -> SortType("Exp"),
+        SortType("Lam") -> SortType("Exp"),
+        SortType("App") -> SortType("Exp"),
+        SortType("Var") -> SortType("Exp"),
+      ),
+      Map(
+        ("TFun", "_0") -> SortType("Type"),
+        ("TFun", "_1") -> SortType("Type"),
+        ("TLam", "_1") -> SortType("Type"),
+        ("TLam", "_2") -> SortType("TExp"),
+        ("TApp", "_0") -> SortType("TExp"),
+        ("TApp", "_1") -> SortType("TExp"),
+        ("Lam", "_1") -> SortType("Exp"),
+        ("App", "_0") -> SortType("Exp"),
+        ("App", "_1") -> SortType("Exp"),
+      ),
+      Map(
+        ("TNum", "_0") -> JavaLitType(classOf[Int]),
+        ("TLam", "_0") -> JavaLitType(classOf[String]),
+        ("TVar", "_0") -> JavaLitType(classOf[String]),
+        ("Num", "_0") -> JavaLitType(classOf[Int]),
+        ("Lam", "_0") -> JavaLitType(classOf[String]),
+        ("Var", "_0") -> JavaLitType(classOf[String]),
+      )
+    )
+
+    val typeOfCode =
+      """module TypeErasure
+        |data Type = TInt() | TFun(Type, Type)
+        |data TExp = TNum(`Int`) | TLam(`String`, Type, TExp) | TApp(TExp, TExp) | TVar(`String`)
+        |data Exp = Num(`Int`) | Lam(`String`, Exp) | App(Exp, Exp) | Var(`String`)
+        |
+        |@main def main(): Exp = let exp = TApp(TLam(`"x"`, TInt(), TVar(`"x"`)), TNum(`1`)) in erase(exp)
+        |
+        |def erase(texp: TExp): Exp = texp match {
+        |  case TNum(v) => Num(v)
+        |  case TLam(n, ty, b) =>
+        |    let eb = erase(b) in
+        |      Lam(n, eb)
+        |  case TApp(fun, arg) =>
+        |    let efun = erase(fun) in
+        |      let earg = erase(arg) in
+        |        App(efun, earg)
+        |  case TVar(n) => Var(n)
         |}
         |""".stripMargin
 
