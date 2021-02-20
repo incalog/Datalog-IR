@@ -3,6 +3,7 @@ package inca.frontend.parser
 import fastparse.Parsed.{Failure, Success}
 import fastparse.{P, parse}
 import inca.frontend.core._
+import inca.frontend.examples.{AST, Code}
 import inca.util.Meta.Scala
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
@@ -11,11 +12,51 @@ import scala.meta.quasiquotes._
 
 class ParserTest extends AnyFunSuite {
 
-  val parser = new Parser {}
+  val parser: Parser = new Parser {}
+
+  test("base example") {
+    testSuccess(parser.module(_))(Code.baseExample, AST.baseExample)
+  }
+
+  test("base example 2a") {
+    testSuccess(parser.module(_))(Code.baseExample2a, AST.baseExample2)
+  }
+
+  test("base example 2b") {
+    testSuccess(parser.module(_))(Code.baseExample2b, AST.baseExample2)
+  }
+
+  test("var example") {
+    testSuccess(parser.module(_))(Code.varExample, AST.varExample)
+  }
+
+  test("if example") {
+    testSuccess(parser.module(_))(Code.ifExample, AST.ifExample)
+  }
+
+  test("if example 2") {
+    testSuccess(parser.module(_))(Code.ifExample2, AST.ifExample2)
+  }
+
+  test("inc example") {
+    testSuccess(parser.module(_))(Code.incModule, AST.incModule)
+  }
+
+  test("fact example") {
+    testSuccess(parser.module(_))(Code.factModule, AST.factModule)
+  }
+
+  test("plus example") {
+    testSuccess(parser.module(_))(Code.plusModule, AST.plusModule)
+  }
+
+  test("plus real example") {
+    testSuccess(parser.module(_))(Code.plusRealModule, AST.plusRealModule)
+  }
 
   test("Module test") {
-    val boolDef = DataDef(None, Name("Bool"), Seq(DataConstructor(Name("True"), Seq()), DataConstructor(Name("False"), Seq())))
-    val funDef = FunctionDef(None, Name("neg"), Seq(Param(Name("b"), TData(Name("Bool")))), TData(Name("Bool")),
+    val boolDef = DataDef(Seq(), None, Name("Bool"), Seq(DataConstructor(Name("True"), Seq()), DataConstructor(Name("False"), Seq())))
+    val funDef = FunctionDef(Seq(), None, Name("neg"), Seq(Param(Name("b"), TData(Name("Bool")))), TData(Name("Bool")),
       Match(Var("b"), Seq(
         (ConstructorPattern(Name("True"), Seq()), Call(Name("False"), Seq())),
         (ConstructorPattern(Name("False"), Seq()), Call(Name("True"), Seq())))))
@@ -34,10 +75,10 @@ class ParserTest extends AnyFunSuite {
   }
 
   test("FunctionDef test") {
-    val funDef = FunctionDef(None, Name("foo"), Seq(Param(Name("x"), TScala("Int"))), TScala("Int"), If(Var("x"), BaseLit(Scala(q"1")), BaseLit(Scala(q"2"))))
+    val funDef = FunctionDef(Seq(), None, Name("foo"), Seq(Param(Name("x"), TScala("Int"))), TScala("Int"), If(Var("x"), BaseLit(Scala(q"1")), BaseLit(Scala(q"2"))))
     testSuccess(parser.functionDef(_))("def foo(x: `Int`): `Int` = if (x) `1` else `2`", funDef)
 
-    val annoFunDef = FunctionDef(None, Name("foo"), Seq(Param(Name("x"), TScala("Int"))), TScala("Int"), If(Var("x"), BaseLit(Scala(q"1")), BaseLit(Scala(q"2"))))
+    val annoFunDef = FunctionDef(Seq(MainFunctionAnno), None, Name("foo"), Seq(Param(Name("x"), TScala("Int"))), TScala("Int"), If(Var("x"), BaseLit(Scala(q"1")), BaseLit(Scala(q"2"))))
     val annoFunString = "@main def foo(x: `Int`): `Int` = if (x) `1` else `2`"
     parse(annoFunString, parser.functionDef(_)) match {
       case Success(value, _) =>
@@ -48,13 +89,13 @@ class ParserTest extends AnyFunSuite {
   }
 
   test("DataDef test") {
-    val peanoDef = DataDef(None, Name("Nat"),
+    val peanoDef = DataDef(Seq(), None, Name("Nat"),
       Seq(
         DataConstructor(Name("Zero"), Seq()),
         DataConstructor(Name("Succ"), Seq(TData(Name("Nat"))))))
     testSuccess(parser.dataDef(_))("data Nat = Zero() | Succ(Nat)", peanoDef)
 
-    val expDef = DataDef(None, Name("Exp"),
+    val expDef = DataDef(Seq(), None, Name("Exp"),
       Seq(
         DataConstructor(Name("Num"), Seq(TScala("Int"))),
         DataConstructor(Name("Add"), Seq(TData(Name("Exp")), TData(Name("Exp"))))))

@@ -4,8 +4,8 @@ import inca.backend.transform.magic.{AdornProgram, MagicSetTransformation}
 import inca.compiler.{Compiler, Options}
 import inca.frontend.core.{Call, MainFunctionAnno, Name}
 import inca.frontend.examples.ADT.{NAT_lmi, Nat}
-import inca.frontend.examples.AST
 import inca.frontend.examples.AST.plusFun
+import inca.frontend.examples.{AST, Code}
 import inca.frontend.lowering.GenerateDatalog
 import inca.runtime.EnginePool
 import inca.runtime.context.{LanguageMetaInfo, QueryScope}
@@ -120,7 +120,7 @@ class FunctionalTests extends AnyFunSuite {
   }
 
   test("Adornment with fixed adornment (real plus, no main)") {
-    val moduleGP = GenerateDatalog.transformModule(AST.module(Nat, plusFun.addAnnotation(MainFunctionAnno)))
+    val moduleGP = GenerateDatalog.transformModule(AST.module(Nat, plusFun.copy(annos = Seq(MainFunctionAnno))))
     val adorned = AdornProgram.transformer.transformModule(moduleGP)
     val magicSet = MagicSetTransformation.transformer.transformModule(adorned)
     println(magicSet)
@@ -189,25 +189,11 @@ class FunctionalTests extends AnyFunSuite {
   }
 
   test("Factorial Example") {
-    val factCode =
-      """module Fact
-        |
-        |@main def main(): `Int` = fact(`4`)
-        |def fact(n: `Int`): `Int` = if (n == `1`) `1` else n * fact(n - `1`)
-        |""".stripMargin
-
-    executeFunction(factCode)
+    executeFunction(Code.factModule)
   }
 
   test("Fibonacci Example") {
-    val fibCode =
-      """module Fib
-        |
-        |@main def main(): `Int` = fib(`11`)
-        |def fib(n: `Int`): `Int` = if (n == `0`) `0` else (if (n == `1`) `1` else fib(n - `1`) + fib(n - `2`))
-        |""".stripMargin
-
-    executeFunction(fibCode)
+    executeFunction(Code.fibModule)
   }
 
   test("TypeChecker Example") {

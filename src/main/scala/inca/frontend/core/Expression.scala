@@ -123,7 +123,16 @@ case class ConstructorPattern(constr: Name, args: Seq[Name]) extends Pattern wit
 
 case class BaseLit(code: Scala[meta.Term]) extends CoreExpression {
   override def vars: Map[Name, Option[Type]] = Map()
-  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = s"`$code`"
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = code.tree match {
+    case meta.Lit.Int(i) => i.toString
+    case meta.Lit.Long(l) => l.toString
+    case meta.Lit.Float(f) => f
+    case meta.Lit.Double(d) => d
+    case meta.Lit.String(s) => s
+    case meta.Lit.Boolean(b) => b.toString
+    case meta.Lit.Char(c) => c.toString
+    case t => s"`${t.syntax}`"
+  }
 }
 object BaseLit {
   def apply(code: meta.Term, typ: Type): BaseLit =

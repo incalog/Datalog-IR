@@ -39,7 +39,7 @@ trait ModuleContent extends SourceLocation with Annotations {
   def prettyprint(implicit indent: String): String
 }
 
-case class FunctionDef(vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Expression)
+case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Expression)
   extends ModuleContent with Call.Target {
   def boundNames: Seq[Name] = params.map(_.name)
 
@@ -55,7 +55,7 @@ case class FunctionDef(vis: Option[Visibility], name: Name, params: Seq[Param], 
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")
     val outS = outType.prettyprint
-    s"""$indent${visS}def $name($paramsS): $outS =
+    s"""$annoPrefix$indent${visS}def $name($paramsS): $outS =
        |$indent  ${body.prettyprint(indent + "  ")}""".stripMargin
   }
 }
@@ -66,16 +66,16 @@ case class Param(name: Name, typ: Type) extends SourceLocation with Var.Target {
   def prettyprint: String = s"$name: ${typ.prettyprint}"
 }
 
-case class DataDef(vis: Option[Visibility], name: Name, constrs: Seq[DataConstructor])
+case class DataDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, constrs: Seq[DataConstructor])
   extends ModuleContent with TData.Target {
 
   override def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     if (constrs.isEmpty)
-      s"$indent${visS}data $name"
+      s"$annoPrefix$indent${visS}data $name"
     else {
       val constrS = constrs.map(_.prettyprint(indent + "  "))
-      s"""$indent${visS}data $name =
+      s"""$annoPrefix$indent${visS}data $name =
          |${constrS.mkString(" |\n")}
          |""".stripMargin
     }
