@@ -229,6 +229,7 @@ class FunctionalTests extends AnyFunSuite {
       )
     )
 
+    // TODO would like to use == to compare adt values
     val typeOfCode =
       """module Typing
         |data Type = TInt() | TFun(Type, Type)
@@ -236,7 +237,7 @@ class FunctionalTests extends AnyFunSuite {
         |data Exp = Num(`Int`) | Lam(`String`, Type, Exp) | App(Exp, Exp) | Var(`String`)
         |data Ctx = Empty() | Bind(`String`, Type, Ctx)
         |
-        |@main def main(): MaybeType = let exp = Num(`1`) in typeOf(Empty(), exp)
+        |@main def main(): MaybeType = let exp = App(Lam(`"x"`, TInt(), Var(`"x"`)), Num(`12`)) in typeOf(Empty(), exp)
         |
         |def typeOf(ctx: Ctx, exp: Exp): MaybeType = exp match {
         |  case Num(v) => Some(TInt())
@@ -257,14 +258,28 @@ class FunctionalTests extends AnyFunSuite {
         |              let mbargty = typeOf(ctx, arg) in
         |                mbargty match {
         |                  case Some(argty) =>
-        |                    if (ty1 == argty) Some(ty2)
-        |                     else None()
+        |                    if (eqType(argty, ty1)) Some(ty2)
+        |                    else None()
         |                  case None() => None()
         |                }
         |          }
         |        case None() => None()
         |      }
         |  case Var(n) => lookup(ctx, n)
+        |}
+        |
+        |def eqType(ty1: Type, ty2: Type): `Boolean` = ty1 match {
+        |  case TInt() =>
+        |    ty2 match {
+        |      case TInt() => `true`
+        |      case TFun(fty1, fty2) => `false`
+        |    }
+        |  case TFun(fty1, fty2) =>
+        |    ty2 match {
+        |      case TInt() => `false`
+        |      case TFun(oty1, oty2) =>
+        |        eqType(fty1, oty1) && eqType(fty2, oty2)
+        |    }
         |}
         |
         |def lookup(ctx: Ctx, n: `String`): MaybeType = ctx match {
