@@ -39,7 +39,7 @@ case class TTuple(ts: Seq[Type]) extends Type {
 case class TData(name: Name) extends Type with Resolvable[TData.Target] {
   override def prettyprint: String = name.name
   override def javastring: String = name.name
-  override def asScala: meta.Type = t"String"
+  override def asScala: meta.Type = t"truechange.URI"
 }
 object TData {
   trait Target

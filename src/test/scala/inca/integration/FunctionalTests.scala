@@ -2,7 +2,8 @@ package inca.integration
 
 import inca.backend.transform.magic.{AdornProgram, MagicSetTransformation}
 import inca.compiler.{Compiler, Options}
-import inca.frontend.core.{Call, MainFunctionAnno, Name}
+import inca.frontend.core
+import inca.frontend.core.{Call, MainFunctionAnno, Name, TData, TScala}
 import inca.frontend.examples.ADT.{NAT_lmi, Nat}
 import inca.frontend.examples.AST.plusFun
 import inca.frontend.examples.{AST, Code}
@@ -10,10 +11,12 @@ import inca.frontend.lowering.GenerateDatalog
 import inca.runtime.EnginePool
 import inca.runtime.context.{LanguageMetaInfo, QueryScope}
 import inca.runtime.data.DataURI
+import inca.runtime.index.MetaElements.Link
+import inca.util.Meta.Scala
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
-import truechange._
+import truechange.{Edit, EditScript, JavaLitType, LitType, Load, NamedTag, SortType, Type}
 
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.collection.immutable.MultiDict
@@ -179,7 +182,6 @@ class FunctionalTests extends AnyFunSuite {
     val scope = new QueryScope(lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
-
     def printMatches(name: String): Unit = {
       val matcher = EnginePool.loadQuery(compiled.psystemModule.patterns(name)(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
       println(s"${matcher.getAllMatches.size()} matches of $name:   ${matcher.getAllMatches}")
@@ -229,7 +231,6 @@ class FunctionalTests extends AnyFunSuite {
       )
     )
 
-    // TODO would like to use == to compare adt values
     val typeOfCode =
       """module Typing
         |data Type = TInt() | TFun(Type, Type)
@@ -258,7 +259,7 @@ class FunctionalTests extends AnyFunSuite {
         |              let mbargty = typeOf(ctx, arg) in
         |                mbargty match {
         |                  case Some(argty) =>
-        |                    if (eqType(argty, ty1)) Some(ty2)
+        |                    if (argty == ty1) Some(ty2)
         |                    else None()
         |                  case None() => None()
         |                }
@@ -268,19 +269,6 @@ class FunctionalTests extends AnyFunSuite {
         |  case Var(n) => lookup(ctx, n)
         |}
         |
-        |def eqType(ty1: Type, ty2: Type): `Boolean` = ty1 match {
-        |  case TInt() =>
-        |    ty2 match {
-        |      case TInt() => `true`
-        |      case TFun(fty1, fty2) => `false`
-        |    }
-        |  case TFun(fty1, fty2) =>
-        |    ty2 match {
-        |      case TInt() => `false`
-        |      case TFun(oty1, oty2) =>
-        |        eqType(fty1, oty1) && eqType(fty2, oty2)
-        |    }
-        |}
         |
         |def lookup(ctx: Ctx, n: `String`): MaybeType = ctx match {
         |  case Empty() => None()
