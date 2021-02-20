@@ -336,4 +336,81 @@ class FunctionalTests extends AnyFunSuite {
 
     executeFunction(typeOfCode, lmi)
   }
+
+  test("Interpreter Example") {
+    val lmi: LanguageMetaInfo = new LanguageMetaInfo(
+      MultiDict(
+        SortType("Num") -> SortType("Exp"),
+        SortType("Lam") -> SortType("Exp"),
+        SortType("App") -> SortType("Exp"),
+        SortType("Var") -> SortType("Exp"),
+        SortType("VNum") -> SortType("Val"),
+        SortType("VClosure") -> SortType("Val"),
+        SortType("None") -> SortType("MaybeVal"),
+        SortType("Some") -> SortType("MaybeVal"),
+        SortType("Empty") -> SortType("Env"),
+        SortType("Bind") -> SortType("Env")
+      ),
+      Map(
+        ("Lam", "_1") -> SortType("Exp"),
+        ("App", "_0") -> SortType("Exp"),
+        ("App", "_1") -> SortType("Exp"),
+        ("VClosure", "_1") -> SortType("Exp"),
+        ("VClosure", "_2") -> SortType("Env"),
+        ("Some", "_0") -> SortType("Val"),
+        ("Bind", "_1") -> SortType("Val"),
+        ("Bind", "_2") -> SortType("Env")
+      ),
+      Map(
+        ("VClosure", "_0") -> JavaLitType(classOf[String]),
+        ("VNum", "_0") -> JavaLitType(classOf[Int]),
+        ("Num", "_0") -> JavaLitType(classOf[Int]),
+        ("Lam", "_0") -> JavaLitType(classOf[String]),
+        ("Var", "_0") -> JavaLitType(classOf[String]),
+        ("Bind", "_0") -> JavaLitType(classOf[String]),
+      )
+    )
+
+    val typeOfCode =
+      """module Interpreter
+        |data Exp = Num(`Int`) | Lam(`String`, Exp) | App(Exp, Exp) | Var(`String`)
+        |data Env = Empty() | Bind(`String`, Val, Env)
+        |data Val = VNum(`Int`) | VClosure(`String`, Exp, Env)
+        |data MaybeVal = None() | Some(Val)
+        |
+        |@main def main(): MaybeVal = let exp = App(Lam(`"x"`, Var(`"x"`)), Num(`1`)) in interp(Empty(), exp)
+        |
+        |def interp(env: Env, exp: Exp): MaybeVal = exp match {
+        |  case Num(v) => Some(VNum(v))
+        |  case Lam(n, b) => Some(VClosure(n, b, env))
+        |  case App(fun, arg) =>
+        |    let mbfunv = interp(env, fun) in
+        |      mbfunv match {
+        |        case Some(funv) =>
+        |          funv match {
+        |            case VClosure(param, body, fenv) =>
+        |              let mbargv = interp(env, arg) in
+        |                mbargv match {
+        |                  case Some(argv) =>
+        |                    let extEnv = Bind(param, argv, fenv) in
+        |                      interp(extEnv, body)
+        |                  case None() => None()
+        |                }
+        |            case VNum(v) => None()
+        |          }
+        |        case None() => None()
+        |      }
+        |  case Var(n) => lookup(env, n)
+        |}
+        |
+        |def lookup(env: Env, n: `String`): MaybeVal = env match {
+        |  case Empty() => None()
+        |  case Bind(n1, v, rest) =>
+        |    if (n1 == n) Some(v)
+        |    else lookup(rest, n)
+        |}
+        |""".stripMargin
+
+    executeFunction(typeOfCode, lmi)
+  }
 }
