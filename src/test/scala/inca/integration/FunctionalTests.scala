@@ -215,6 +215,8 @@ class FunctionalTests extends AnyFunSuite {
       MultiDict(
         SortType("TInt") -> SortType("Type"),
         SortType("TFun") -> SortType("Type"),
+        SortType("None") -> SortType("MaybeType"),
+        SortType("Some") -> SortType("MaybeType"),
         SortType("Num") -> SortType("Exp"),
         SortType("Lam") -> SortType("Exp"),
         SortType("App") -> SortType("Exp"),
@@ -225,6 +227,7 @@ class FunctionalTests extends AnyFunSuite {
       Map(
         ("TFun", "_0") -> SortType("Type"),
         ("TFun", "_1") -> SortType("Type"),
+        ("Some", "_0") -> SortType("Type"),
         ("Lam", "_1") -> SortType("Type"),
         ("Lam", "_2") -> SortType("Exp"),
         ("App", "_0") -> SortType("Exp"),
@@ -243,33 +246,45 @@ class FunctionalTests extends AnyFunSuite {
     val typeOfCode =
       """module Typing
         |data Type = TInt() | TFun(Type, Type)
+        |data MaybeType = None() | Some(Type)
         |data Exp = Num(`Int`) | Lam(`String`, Type, Exp) | App(Exp, Exp) | Var(`String`)
         |data Ctx = Empty() | Bind(`String`, Type, Ctx)
         |
-        |@main def main(): Type = let exp = Num(`1`) in typeOf(Empty(), exp)
+        |@main def main(): MaybeType = let exp = Num(`1`) in typeOf(Empty(), exp)
         |
-        |def typeOf(ctx: Ctx, exp: Exp): Type = exp match {
-        |  case Num(v) => TInt()
+        |def typeOf(ctx: Ctx, exp: Exp): MaybeType = exp match {
+        |  case Num(v) => Some(TInt())
         |  case Lam(n, ty, b) =>
         |    let extCtx = Bind(n, ty, ctx) in
-        |      let ty2 = typeOf(extCtx, b) in
-        |        TFun(ty, ty2)
+        |      let mbty2 = typeOf(extCtx, b) in
+        |        mbty2 match {
+        |          case Some(ty2) => Some(TFun(ty, ty2))
+        |          case None() => None()
+        |        }
         |  case App(fun, arg) =>
-        |    let funty = typeOf(ctx, fun) in
-        |      funty match {
-        |        case TInt() => fail
-        |        case TFun(ty1, ty2) =>
-        |          let argty = typeOf(ctx, arg) in
-        |            if (ty1 == argty) ty2
-        |            else fail
+        |    let mbfunty = typeOf(ctx, fun) in
+        |      mbfunty match {
+        |        case Some(funty) =>
+        |          funty match {
+        |            case TInt() => None()
+        |            case TFun(ty1, ty2) =>
+        |              let mbargty = typeOf(ctx, arg) in
+        |                mbargty match {
+        |                  case Some(argty) =>
+        |                    if (ty1 == argty) Some(ty2)
+        |                     else None()
+        |                  case None() => None()
+        |                }
+        |          }
+        |        case None() => None()
         |      }
         |  case Var(n) => lookup(ctx, n)
         |}
         |
-        |def lookup(ctx: Ctx, n: `String`): Type = ctx match {
-        |  case Empty() => fail
+        |def lookup(ctx: Ctx, n: `String`): MaybeType = ctx match {
+        |  case Empty() => None()
         |  case Bind(n1, ty, rest) =>
-        |    if (n1 == n) ty
+        |    if (n1 == n) Some(ty)
         |    else lookup(rest, n)
         |}
         |""".stripMargin

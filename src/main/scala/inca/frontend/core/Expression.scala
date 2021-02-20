@@ -25,12 +25,6 @@ trait Expression extends Typeable with SourceLocation {
 
 sealed trait CoreExpression extends Expression
 
-case object Fail extends CoreExpression {
-  override def vars: Map[Name, Option[Type]] = Map()
-
-  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = s"${indent}fail"
-}
-
 case class Let(names: Seq[Name], anno: Option[Type], bound: Expression, body: Expression) extends CoreExpression with Var.Target {
   override def vars: Map[Name, Option[Type]] = bound.vars ++ body.vars ++ (bound.typ match {
     case Some(ty) if names.size == 1 => Map(names.head -> Some(ty))

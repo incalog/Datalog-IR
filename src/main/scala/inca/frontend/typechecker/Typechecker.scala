@@ -87,7 +87,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         case None =>
           TAny
       }
-    case Fail => TAny
     case let@Let(names, anno, bound, body) =>
       val ty = typecheck(bound)
       val namesStr = names.mkString("(", ", ", ")")
