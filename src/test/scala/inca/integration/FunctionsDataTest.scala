@@ -2,26 +2,23 @@ package inca.integration
 
 import inca.backend.transform.magic.{AdornProgram, MagicSetTransformation}
 import inca.compiler.{Compiler, Options}
-import inca.frontend.core
-import inca.frontend.core.{Call, MainFunctionAnno, Name, TData, TScala}
-import inca.frontend.examples.ADT.{NAT_lmi, Nat}
-import inca.frontend.examples.AST.plusFun
-import inca.frontend.examples.{AST, Code}
+import inca.examples.ADT.{NAT_lmi, Nat}
+import inca.examples.AST.plusFun
+import inca.examples.{AST, Code}
+import inca.frontend.core.{Call, MainFunctionAnno, Name}
 import inca.frontend.lowering.GenerateDatalog
 import inca.runtime.EnginePool
 import inca.runtime.context.{LanguageMetaInfo, QueryScope}
 import inca.runtime.data.DataURI
-import inca.runtime.index.MetaElements.Link
-import inca.util.Meta.Scala
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
-import truechange.{Edit, EditScript, JavaLitType, LitType, Load, NamedTag, SortType, Type}
+import truechange._
 
-import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 import scala.collection.immutable.MultiDict
+import scala.jdk.CollectionConverters._
 
-class FunctionalTests extends AnyFunSuite {
+class FunctionsDataTest extends AnyFunSuite {
 
 
   def deriveInput(call: Call): (Seq[Edit], DataURI) = {
@@ -108,7 +105,6 @@ class FunctionalTests extends AnyFunSuite {
     feed.processEdit(Load(succ6, NamedTag("Succ"), Seq(("_0", succ3)), Seq()))
     feed.insert("ext_input_main_bbf", Tuples.flatTupleOf(succ6, succ5))
     compiled.psystemModule.patterns.keys.foreach(printMatches)
-    import scala.jdk.CollectionConverters._
     assert(mainMatcher.getAllMatches.size == 2)
     val matches = mainMatcher.getAllMatches().asScala.map(_.get("out").toString)
     assert(matches.count(_.startsWith("Succ(Succ(Succ(Succ(Succ(Zero)))))@")) == 1)
@@ -169,7 +165,7 @@ class FunctionalTests extends AnyFunSuite {
 
     val plusMatcher = EnginePool.loadQuery(compiled.psystemModule.patterns("plus_bbf")(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     assert(plusMatcher.getAllMatches.size == 4)
-    val resultExists = plusMatcher.getAllMatches.exists { m =>
+    val resultExists = plusMatcher.getAllMatches.asScala.exists { m =>
       m.get("out").toString.startsWith("Succ(Succ(Succ(Succ(Succ(Zero())))))")
     }
     assert(resultExists)

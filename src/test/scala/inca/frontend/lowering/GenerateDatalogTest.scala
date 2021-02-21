@@ -2,8 +2,8 @@ package inca.frontend.lowering
 
 import inca.backend.ir.GP
 import inca.compiler.{Compiler, Options}
-import inca.frontend.examples.ADT.NAT_lmi
-import inca.frontend.examples.AST
+import inca.examples.ADT.NAT_lmi
+import inca.examples.AST
 import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
 

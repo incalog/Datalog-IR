@@ -2,12 +2,6 @@ package inca.backend.transform.magic
 
 import inca.backend.ir.GP
 import inca.backend.transform.magic.Examples._
-import inca.compiler.{Compiler, Options}
-import inca.frontend.examples.AST
-import inca.frontend.lowering.GenerateDatalog
-import inca.runtime.EnginePool
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
-import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
 
 class AdornProgramTest extends AnyFunSuite {

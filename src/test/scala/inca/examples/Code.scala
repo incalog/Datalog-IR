@@ -1,6 +1,6 @@
-package inca.frontend.examples
+package inca.examples
 
-import inca.frontend.examples.ADT.Nat_code
+import inca.examples.ADT.Nat_code
 
 object Code {
   def module(content: String*): String =
@@ -61,8 +61,8 @@ object Code {
        |  else
        |    n * fact(n - 1)
        |""".stripMargin,
-    s"""@main def main(): `Int` =
-       |  fact(3)
+    s"""@main def main(n: `Int`): `Int` =
+       |  fact(n)
        |""".stripMargin
   )
 
@@ -92,8 +92,8 @@ object Code {
 
   val fibModule: String =
     """module Fib
-      |@main def main(): `Int` =
-      |  fib(11)
+      |@main def main(n: `Int`): `Int` =
+      |  fib(n)
       |def fib(n: `Int`): `Int` =
       |  if (n == 0)
       |    0

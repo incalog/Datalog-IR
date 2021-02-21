@@ -1,8 +1,8 @@
 package inca.frontend.typecheck
 
+import inca.examples.ADT.NAT_lmi
+import inca.examples.AST
 import inca.frontend.core.Module
-import inca.frontend.examples.ADT.NAT_lmi
-import inca.frontend.examples.AST
 import inca.frontend.typechecker.Typechecker
 import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.funsuite.AnyFunSuite

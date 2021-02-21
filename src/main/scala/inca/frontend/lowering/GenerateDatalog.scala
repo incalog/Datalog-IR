@@ -6,7 +6,6 @@ import inca.frontend.core._
 import inca.runtime.data.DataURI
 import inca.util.Meta.{Scala, symbolOf, typeOf}
 import inca.util.{Gensym, TupleOps}
-import truechange.JavaLitType
 
 import scala.collection.mutable.ListBuffer
 
@@ -50,10 +49,8 @@ class GenerateDatalog(module: Module) {
       yield GP.Body(cons ++ outParams.zip(terms).map(pt => GP.Eq(GP.Var(pt._1.name), pt._2)))
 
     val pat = GP.Pattern(vis, fun.name.name, params ++ outParams, bodies)
-    fun.getAnnotation(MainFunctionAnno.key) match {
-      case None => // nothing
-      case Some(_) => pat.addHint(MagicSetHints.Main(params.map(_ => true) :+ false))
-    }
+    if (fun.hasAnnotation(MainFunctionAnno.key))
+      pat.addHint(MagicSetHints.Main(params.map(_ => true) :+ false))
     pat
   }
 

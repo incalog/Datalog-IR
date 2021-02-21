@@ -2,8 +2,6 @@ package inca.backend.transform.magic
 
 import inca.backend.ir.GP
 import inca.backend.transform.magic.Examples._
-import inca.frontend.examples.AST
-import inca.frontend.lowering.GenerateDatalog
 import org.scalatest.funsuite.AnyFunSuite
 
 class MagicSetTransformationTest extends AnyFunSuite {

@@ -2,8 +2,8 @@ package inca.frontend.parser
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse.{P, parse}
+import inca.examples.{AST, Code}
 import inca.frontend.core._
-import inca.frontend.examples.{AST, Code}
 import inca.util.Meta.Scala
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
