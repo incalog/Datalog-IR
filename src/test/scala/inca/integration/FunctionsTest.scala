@@ -36,7 +36,7 @@ class FunctionsTest extends AnyFunSuite {
     Loaded(engine, feed, compiled)
   }
 
-  def executeFunction(loaded: Loaded, main: String, args: Seq[meta.Term]): Seq[Seq[AnyRef]] = {
+  def executeFunction(loaded: Loaded, main: String, args: Seq[meta.Term], deleteInput: Boolean = false): Seq[Seq[AnyRef]] = {
     val Loaded(engine, feed, compiled) = loaded
 
     val cargs = args.map(a => Meta.compileAndLoadScala[AnyRef](a.syntax)())
@@ -57,6 +57,10 @@ class FunctionsTest extends AnyFunSuite {
     val outputMatches = mainMatcher.getAllMatches(inputMatch).asScala.map { m =>
       m.toArray.slice(cargs.size, arity).toSeq
     }.toSeq
+
+    if (deleteInput)
+      feed.delete(s"ext_input_$main", tuple)
+
     outputMatches
   }
 
@@ -64,6 +68,7 @@ class FunctionsTest extends AnyFunSuite {
     val fun = loadFunction(Code.factModule, new LanguageMetaInfo())
     assert(executeFunction(fun, "main_bf", Seq(q"5")) == Seq(Seq(120)))
     assert(executeFunction(fun, "main_bf", Seq(q"10")) == Seq(Seq(3628800)))
+    fun.printAllMatches()
   }
 
   test("Fibonacci Example") {
@@ -71,5 +76,6 @@ class FunctionsTest extends AnyFunSuite {
     assert(executeFunction(fun, "main_bf", Seq(q"10")) == Seq(Seq(55)))
     assert(executeFunction(fun, "main_bf", Seq(q"11")) == Seq(Seq(89)))
     assert(executeFunction(fun, "main_bf", Seq(q"20")) == Seq(Seq(6765)))
+    fun.printAllMatches()
   }
 }
