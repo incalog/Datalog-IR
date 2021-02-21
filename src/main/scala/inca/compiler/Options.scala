@@ -24,7 +24,7 @@ object Options {
     Frontend.Core
 
   val defaultFrontend_old: LanguageMetaInfo => frontend_old.core.Frontend =
-    frontend_old.core.Frontend.Core
+    frontend_old.core.Frontend.Inca
 
   val defaultOptimizations: Seq[Optimization] = Seq(
     ConstantPropagation,
