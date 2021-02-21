@@ -90,7 +90,7 @@ object Code {
        |""".stripMargin
   )
 
-  val fibModule =
+  val fibModule: String =
     """module Fib
       |@main def main(): `Int` =
       |  fib(11)

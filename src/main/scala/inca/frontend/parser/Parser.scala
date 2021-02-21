@@ -3,9 +3,9 @@ package inca.frontend.parser
 import fastparse.ScalaWhitespace._
 import fastparse._
 import inca.compiler.SourceLocation
-import inca.frontend.core.{Fail => _, _}
-import inca.frontend.core.{Fail => FailExp}
+import inca.frontend.core._
 import inca.util.Meta.Scala
+import scalaparse.syntax.Identifiers.OpCharNotSlash
 
 import scala.language.reflectiveCalls
 import scala.meta.Term
@@ -48,6 +48,7 @@ trait Parser {
       case (annos, vis, name, params, ty, exp) =>
         FunctionDef(annos, vis, name, params, ty, exp)
     }
+
   }
 
   protected[frontend]  def annotation[_: P]: P[Annotation] = mainFuncAnno
@@ -57,7 +58,7 @@ trait Parser {
 
   protected[frontend] def wideExp[_: P]: P[Expression] = P(ifExp | letExp | infixExp)
   protected[frontend] def infixExp[_: P]: P[Expression] = P(baseApplyInfixExp | matchExp | atomicExp)
-  protected[frontend] def atomicExp[_: P]: P[Expression] = P(tupleExp | callExp | baseLitExp| baseApplyExp | variable | parensExp | failExp)
+  protected[frontend] def atomicExp[_: P]: P[Expression] = P(tupleExp | callExp | baseLitExp| baseApplyExp | variable | parensExp)
 
   /** Let parser */
   final protected[frontend] def parensExp[_: P]: P[Expression] = P("(" ~ exp ~ ")")
@@ -80,8 +81,6 @@ trait Parser {
     P("if" ~ "(" ~ exp ~ ")" ~ exp ~ "else" ~ exp).mapWithLoc {
       case (cond, thn, els) => If(cond, thn, els)
     }
-
-  protected[frontend] def failExp[_: P]: P[FailExp.type] = P("fail").mapWithLoc(_ => FailExp)
 
   protected[frontend] def callExp[_: P]: P[Call] =
     P(identifier ~ "(" ~ exp.rep(sep = ",") ~ ")").mapWithLoc {
@@ -116,17 +115,56 @@ trait Parser {
 
   /** base parser */
   protected[frontend] def baseLitExp[_: P]: P[BaseLit] =
-    P("`" ~~ scalaTerm ~~ "`").mapWithLoc(t => BaseLit(t))
+    P("`" ~~ scalaTerm ~~ "`").mapWithLoc(t => BaseLit(t)) |
+      numericLiteral |
+      stringLiteral |
+      booleanLiteral
+
+  protected[frontend] def numericLiteral[_: P]: P[BaseLit] =
+    P("-".!.? ~~ ParserUtils.rawInteger ~~
+      (("L" | "l").map(_=>"long") |
+        "d".!.map(_=>"double") |
+        "." ~~ (ParserUtils.rawInteger | "".!) ~~ "d".?
+        ).?
+    ).flatMapWithLoc { case (sign, whole, suffix) =>
+      val integral = sign.getOrElse("") + whole
+      suffix match {
+        case None => integral.toIntOption match {
+          case Some(i) => Pass(BaseLit(Scala(meta.Lit.Int(i))))
+          case None => Fail
+        }
+        case Some("long") => integral.toLongOption match {
+          case Some(l) => Pass(BaseLit(Scala(meta.Lit.Long(l))))
+          case None => Fail
+        }
+        case Some("double") => integral.toDoubleOption match {
+          case Some(d) => Pass(BaseLit(Scala(meta.Lit.Double(d))))
+          case None => Fail
+        }
+        case Some(fraction) =>
+          s"$integral.$fraction".toDoubleOption match {
+            case Some(d) => Pass(BaseLit(Scala(meta.Lit.Double(d))))
+            case None => Fail
+          }
+      }
+    }
+
+  /** StringLiteral parser */
+  protected[frontend] def stringLiteral[_: P]: P[BaseLit] =
+    P(ParserUtils.string).mapWithLoc(s => BaseLit(Scala(meta.Lit.String(s))))
+
+  /** BooleanLiteral parser */
+  protected[frontend] def booleanLiteral[_: P]: P[BaseLit] =
+    P(("true" | "false").!).mapWithLoc(s => BaseLit(Scala(meta.Lit.Boolean(s.toBoolean))))
+
 
   protected[frontend] def baseApplyExp[_: P]: P[BaseApply] =
     P("`" ~~ scalaTerm ~~ "`" ~ "(" ~ exp.rep(sep = ",") ~ ")").mapWithLoc {
       case (funTerm, args) => BaseApply(funTerm, args)
     }
 
-
-  // FIXME hack, but it works for now
   protected[frontend] def baseApplyInfixExp[_: P]: P[BaseApplyInfix] =
-    P(atomicExp ~ ("+" | "-" | "*" | "/" | "==" | "!=" | "&&" | "||").! ~ atomicExp).mapWithLoc {
+    P(atomicExp ~ CharsWhile(OpCharNotSlash).! ~ atomicExp).mapWithLoc {
       case (lhs, op, rhs) => BaseApplyInfix(lhs, Scala(meta.Term.Name(op)), rhs)
     }
 
@@ -186,8 +224,8 @@ trait Parser {
 
   /** DataDef parser */
   protected[frontend] def dataDef[_: P]: P[ModuleContent] = {
-    P(visibility.? ~ "data" ~ identifier ~ "=" ~ dataConstructor.rep(min = 1, sep = "|")).mapWithLoc {
-      case (vis, name, dataConstructors) => DataDef(vis, name, dataConstructors)
+    P(annotation.rep ~ visibility.? ~ "data" ~ identifier ~ "=" ~ dataConstructor.rep(min = 1, sep = "|")).mapWithLoc {
+      case (annos, vis, name, dataConstructors) => DataDef(annos, vis, name, dataConstructors)
     }
   }
 
