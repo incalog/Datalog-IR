@@ -1,6 +1,6 @@
 package inca.frontend.typecheck
 
-import inca.examples.ADT.NAT_lmi
+import inca.examples.ADT.Nat_lmi
 import inca.examples.AST
 import inca.frontend.core.Module
 import inca.frontend.typechecker.Typechecker
@@ -10,7 +10,7 @@ import org.scalatest.funsuite.AnyFunSuite
 class TypecheckerTest extends AnyFunSuite {
 
   def newTypechecker(): Typechecker = new Typechecker {
-    override val lang: LanguageMetaInfo = NAT_lmi
+    override val lang: LanguageMetaInfo = Nat_lmi
   }
 
   def checkModule(mod: Module): Unit = {

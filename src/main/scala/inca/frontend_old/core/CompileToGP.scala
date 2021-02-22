@@ -34,7 +34,7 @@ class CompileToGP {
     }
 
     val scalaContent = ScalaModuleContents.toList ++ blockDefs.toList
-    GP.Module(name.name, imports.map(_.name.name), generatedPatterns.toList, scalaContent.map(Scala.apply))
+    GP.Module(name.name, imports.map(_.name.name), Seq(), generatedPatterns.toList, scalaContent.map(Scala.apply))
   }
 
   def transform(fun: PatternFunction): GP.Pattern = {

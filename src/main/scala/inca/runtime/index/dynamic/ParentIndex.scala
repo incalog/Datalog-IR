@@ -26,6 +26,17 @@ class ParentIndex extends BidirectionalManyToOneIndex[URI,URI](ParentIndex.Key)
 
   /** processes edit to update this index accordingly */
   override def processEdit(edit: truechange.Edit): Unit = edit match {
+    case DetachUnload(node, tag, kids, lits, link, parent, ptag) =>
+      processEdit(Detach(node, tag, link, parent, ptag))
+      processEdit(Unload(node, tag, kids, lits))
+
+    case LoadAttach(node, tag, kids, lits, link, parent, ptag) =>
+      processEdit(Load(node, tag, kids, lits))
+      processEdit(Attach(node, tag, link, parent, ptag))
+
+    case Update(_, _, _, _) =>
+      // nothing
+
     case truechange.Attach(node, _, link, parent, _) => link.getRawLink match {
       case _: ListFirstLink =>
         database.iterateNext(node)(insert(_, parent))

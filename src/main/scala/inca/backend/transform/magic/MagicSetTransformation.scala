@@ -18,7 +18,7 @@ object MagicSetTransformation extends Transformation {
     override def transformModule(mod: Module): Module = {
       val insertedInputCallPats = mod.pats.flatMap(transformPattern)
       val inputPatterns = mod.pats.flatMap(deriveInputPattern(_, insertedInputCallPats))
-      Module(mod.name, mod.imports, insertedInputCallPats ++ inputPatterns, mod.scalaContent)
+      Module(mod.name, mod.imports, mod.data, insertedInputCallPats ++ inputPatterns, mod.scalaContent)
     }
 
     override def transformPattern(pat: Pattern): Seq[Pattern] =

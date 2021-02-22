@@ -20,7 +20,7 @@ object RemoveBodyOfUnusedDataConstructor extends Transformation  {
         Pattern(pat.vis, pat.name, pat.params, bodies).withHints(pat)
       }
 
-      Module(mod.name, mod.imports, nonCotrPats ++ modifiedCotrPats, mod.scalaContent)
+      Module(mod.name, mod.imports, mod.data, nonCotrPats ++ modifiedCotrPats, mod.scalaContent)
     }
   }
 

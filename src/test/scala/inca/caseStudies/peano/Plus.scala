@@ -124,7 +124,7 @@ object Plus extends App {
     Call("plus_bbf", Seq(Var("x2"), Var("y1"), Var("out")))
   ))))
 
-  val module = Module("Main", Seq(), Seq(
+  val module = Module("Main", Seq(), Seq(), Seq(
     Zero_f,
     unZero_b,
     Succ_bf, input_Succ_bf,

@@ -4,6 +4,7 @@ package inca.backend.ir
 import inca.backend.ir.GP._
 import inca.runtime.Query
 import inca.runtime.aggregate.{AggregatorAssocComm, AggregatorAssocCommInv}
+import inca.runtime.data.DataURI
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
@@ -46,6 +47,7 @@ object CompileToPSystem {
   private val tAggregatorAssocComm = typeOf[AggregatorAssocComm[_]]
   private val tBoundAggregator = typeOf[BoundAggregator]
   private val tAggregatorConstraint = typeOf[AggregatorConstraint]
+  private val oDataURI = symbolOf(DataURI)
 
 
   def genQueryName(moduleName: String, patName: String): String =
@@ -63,6 +65,7 @@ object CompileToPSystem {
   def compileModule(module: Module)(implicit env: RuleEnvironment): Source = {
     val myenv = env ++ module.pats.map(p => p.name -> module.name) // makes sure this module's names are found first
     val funs = module.pats.map(compilePattern(module.name, _)(myenv)).toList
+    val datas = module.data.flatMap(compileData).toList
 
     val scalaContent = module.scalaContent.map(_.tree).toList
 
@@ -92,8 +95,40 @@ object CompileToPSystem {
         ..${scalaContent}
 
         ..${funs}
+
       }
+
+      ..${datas}
     """
+  }
+
+  private def compileData(data: DataDef): Seq[Stat] = {
+    val dataTyp = Type.Name(data.name)
+    val typ = q"sealed trait $dataTyp"
+    val constrs = data.constrs.map {
+      case DataConstructor(name, paramTypes) =>
+        val params = paramTypes.zipWithIndex.map { case (pt, ix) =>
+          param"val ${Term.Name("_" + ix)}: ${pt.asScala}"
+        }.toList
+        val children = paramTypes.zipWithIndex.map { case (pt, ix) =>
+          q"${Lit.String("_" + ix)} -> ${Term.Name("_" + ix)}"
+        }.toList
+        val terms = paramTypes.zipWithIndex.map { case (pt, ix) =>
+          Term.Name("_" + ix)
+        }.toList
+        val makeChildren = paramTypes.zipWithIndex.map { case (pt, ix) =>
+          q"children($ix).asInstanceOf[${pt.asScala}]"
+        }.toList
+        q"""case class ${Type.Name(name)}(..$params) extends {} with $dataTyp() with truediff.GenericDiffable() { this =>
+              this.withURI($oDataURI($name, ..$terms))
+
+              override def name: String = $name
+              override def children: Seq[(String, Any)] = Seq(..$children)
+              override def make(children: Seq[Any]): ${Type.Name(name)} = ${Term.Name(name)}(..$makeChildren)
+            }
+           """
+    }
+    typ +: constrs
   }
 
   private def compilePattern(moduleName: String, pat: Pattern)(implicit env: RuleEnvironment): Stat = {

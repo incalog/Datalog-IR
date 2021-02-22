@@ -54,7 +54,7 @@ object GP {
   sealed trait Visibility
   case object Private extends Visibility
 
-  case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern], scalaContent: Seq[Scala[meta.Stat]]) {
+  case class Module(name: Name, imports: Seq[Name], data: Seq[DataDef], pats: Seq[Pattern], scalaContent: Seq[Scala[meta.Stat]]) {
     override def toString: Name = Printer.prettyModule(this)
   }
   case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body]) extends Hints
@@ -115,4 +115,7 @@ object GP {
   case class Evaluation(args: Seq[(Term,Type)], resultType: Type, code: Scala[meta.Term.Function]) extends Computation
   case class CountAggregation(patName: Name, args: Seq[Term]) extends Computation
   case class CustomAggregation(typ: Type, agg: Scala[meta.Term], patName: Name, args: Seq[Term], aggregatedColumn: Int) extends Computation
+
+  case class DataDef(vis: Option[Visibility], name: Name, constrs: Seq[DataConstructor])
+  case class DataConstructor(name: Name, paramTypes: Seq[Type])
 }

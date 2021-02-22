@@ -121,7 +121,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   }
 
   test("unbounded literal parameter determined by eval") {
-    val module = GP.Module("test_eval", Seq(),
+    val module = GP.Module("test_eval", Seq(), Seq(),
       Seq(GP.Pattern(None, "intToString", Seq(GP.Param("exp", GP.TNode(Exp.intTag)), GP.Param("str", GP.TScalaString)),
         Seq(GP.Body(Seq(
           GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TLiteral.Int),
@@ -133,7 +133,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   }
 
   test("unbounded argument of second eval") {
-    val module = GP.Module("test_eval", Seq(),
+    val module = GP.Module("test_eval", Seq(), Seq(),
       Seq(GP.Pattern(None, "intToString", Seq(GP.Param("exp", GP.TNode(Exp.intTag)), GP.Param("str2", GP.TScalaString)),
         Seq(GP.Body(Seq(
           GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TLiteral.Int),

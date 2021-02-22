@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TList, TLiteral, TNode, TScala, Term, Type, Var, Visibility}
+import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, DataConstructor, DataDef, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TList, TLiteral, TNode, TScala, Term, Type, Var, Visibility}
 import truechange.JavaLitType
 
 object Printer {
@@ -96,5 +96,22 @@ object Printer {
     case GP.CustomAggregation(typ, agg, patName, args, aggregatedColumn) =>
       val sargs = args.map(prettyTerm).updated(aggregatedColumn, "#").mkString(", ")
       s"${prettyTerm(lhs)} == aggregate $patName($sargs):$typ with $agg"
+  }
+
+  def prettyDataDef(data: DataDef): String = {
+    val visS = if (data.vis.contains(Private)) "private " else ""
+    if (data.constrs.isEmpty)
+      s"${visS}data ${data.name}"
+    else {
+      val constrS = data.constrs.map(prettyDataConstr)
+      s"""${visS}data ${data.name} =
+         |${constrS.mkString(" |\n")}
+         |""".stripMargin
+    }
+  }
+
+  def prettyDataConstr(constr: DataConstructor): String = {
+    val paramTypesS = constr.paramTypes.map(prettyType).mkString(", ")
+    s"${constr.name}($paramTypesS)"
   }
 }

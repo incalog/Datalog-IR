@@ -8,7 +8,7 @@ import scala.collection.immutable.MultiDict
 
 object ADT {
 
-  val NAT_lmi: LanguageMetaInfo = new LanguageMetaInfo(
+  val Nat_lmi: LanguageMetaInfo = new LanguageMetaInfo(
     MultiDict(
       SortType("Zero") -> SortType("Nat"),
       SortType("Succ") -> SortType("Nat")),

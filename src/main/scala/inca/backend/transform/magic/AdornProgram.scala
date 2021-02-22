@@ -70,7 +70,7 @@ object AdornProgram extends Transformation {
       }
 
       val patterns = adornedPatterns.toSeq.map(_._1)// ++ unvisitedPatterns
-      Module(module.name, module.imports, patterns, module.scalaContent)
+      Module(module.name, module.imports, module.data, patterns, module.scalaContent)
     }
   }
 

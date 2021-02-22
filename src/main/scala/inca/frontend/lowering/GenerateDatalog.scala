@@ -27,21 +27,28 @@ class GenerateDatalog(module: Module) {
     gensym.register(module.usedModuleNames.map(_.name))
     gensym.register(module.usedDefNames.map(_.name))
 
-    val ScalaModuleContents = ListBuffer[meta.Import]()
-    val blockDefs = ListBuffer[meta.Stat]()
+    val scalaModuleContents = ListBuffer[meta.Import]()
+    val dataContents = ListBuffer[GP.DataDef]()
     contents.foreach {
       case fun: FunctionDef => generatedPatterns += transFun(fun)
-      case data: DataDef => generatedPatterns ++= transData(data)
+      case data: DataDef =>
+        generatedPatterns ++= transData(data)
+        dataContents += lowerData(data)
     }
 
-    val scalaContent = ScalaModuleContents.toList ++ blockDefs.toList
-    GP.Module(name.name, imports.map(_.name.name), generatedPatterns.toList, scalaContent.map(Scala.apply))
+    val scalaContent = scalaModuleContents.toList
+    GP.Module(
+      name.name,
+      imports.map(_.name.name),
+      dataContents.toList,
+      generatedPatterns.toList,
+      scalaContent.map(Scala.apply))
   }
 
   private def transFun(fun: FunctionDef): GP.Pattern = gensym.scoped {
     gensym.register(fun.vars.keys.map(_.name))
 
-    val vis = fun.vis.map { case Private => GP.Private }
+    val vis = transVis(fun.vis)
     val params = fun.params.flatMap(p => flattenParam(p.name.name, p.typ, genFresh = false))
     val outParams = flattenParam("out", fun.outType, genFresh = true)
 
@@ -195,7 +202,7 @@ class GenerateDatalog(module: Module) {
   }
 
   private def transData(data: DataDef): Seq[GP.Pattern] = {
-    val vis = data.vis.map { case Private => GP.Private }
+    val vis = transVis(data.vis)
     val typ = transType(TData(data.name).resolved(data))
 
     val constrBodies = data.constrs.map { case DataConstructor(name, paramTypes) =>
@@ -212,6 +219,11 @@ class GenerateDatalog(module: Module) {
 
     dataPat +: data.constrs.flatMap(transDataConstructor(_, vis, typ))
   }
+
+  def lowerData(data: DataDef): GP.DataDef =
+    GP.DataDef(transVis(data.vis), data.name.name, data.constrs.map {
+      case DataConstructor(cname, paramTypes) => GP.DataConstructor(cname.name, paramTypes.map(lowerType))
+    })
 
   val tyURI: meta.Type = typeOf[truechange.URI]
   val tDataURI: meta.Term = symbolOf(DataURI)
@@ -252,10 +264,19 @@ class GenerateDatalog(module: Module) {
     Seq(constrPat, selectorPat)
   }
 
+  private def transVis(vis: Option[Visibility]): Option[GP.Visibility] =
+    vis.map { case Private => GP.Private }
 
   private def transType(typ: Type): GP.Type = typ match {
     case TAny => GP.TAny
     case TData(_) => GP.TScala(Scala(tyURI))
+    case TScala(ty) => GP.TScala(ty)
+    case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
+  }
+
+  private def lowerType(typ: Type): GP.Type = typ match {
+    case TAny => GP.TAny
+    case TData(name) => GP.TScala(Scala(meta.Type.Name(name.name)))
     case TScala(ty) => GP.TScala(ty)
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
   }

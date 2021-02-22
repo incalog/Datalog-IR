@@ -1,11 +1,11 @@
 package inca.caseStudies.typing
 
+import inca.backend.ir.GP._
+import inca.backend.ir.Printer
 import inca.compiler.{Compiler, Options}
 import inca.runtime.EnginePool
 import inca.runtime.context.QueryScope
 import inca.util.Meta.Scala
-import inca.backend.ir.GP._
-import inca.backend.ir.Printer
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truediff.Diffable
 
@@ -81,7 +81,7 @@ object ExpTypingMagicSets extends App {
   val tyContext = TScala(Scala(t"inca.caseStudies.typing.Context"))
   val tyType = TScala(Scala(t"inca.caseStudies.typing.Type"))
 
-  val gp = Module("Typing", Seq(),
+  val gp = Module("Typing", Seq(), Seq(),
     Seq(
       Pattern(
         None,

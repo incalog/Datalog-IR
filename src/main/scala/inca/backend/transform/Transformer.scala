@@ -6,7 +6,7 @@ import inca.frontend_old.core.CompileToGP.BodyMustFail
 trait Transformer {
 
   def transformModule(module: Module): Module =
-    Module(module.name, module.imports, module.pats.flatMap(transformPattern), module.scalaContent)
+    Module(module.name, module.imports, module.data, module.pats.flatMap(transformPattern), module.scalaContent)
 
   def transformPattern(pat: Pattern): Seq[Pattern] = {
     val newbodies = pat.bodies.flatMap(body =>
