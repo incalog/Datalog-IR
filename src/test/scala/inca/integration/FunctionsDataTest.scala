@@ -20,15 +20,15 @@ class FunctionsDataTest extends AnyFunSuite {
   test("Type Checker Example") {
     val fun = loadFunction(Code.typeOfModule)
     assert(fun.execute("main_bf", Seq(q"TNum(1)"), deleteInput = true)
-      == fun.result(q"Some(TInt())"))
+      == fun.result(q"SomeType(TInt())"))
     assert(fun.execute("main_bf", Seq(q"""TLam("x", TInt(), TVar("x"))"""), deleteInput = true)
-      == fun.result(q"Some(TFun(TInt(), TInt()))"))
+      == fun.result(q"SomeType(TFun(TInt(), TInt()))"))
     assert(fun.execute("main_bf", Seq(q"""TLam("x", TInt(), TVar("y"))"""), deleteInput = true)
-      == fun.result(q"None()"))
+      == fun.result(q"NoType()"))
     assert(fun.execute("main_bf", Seq(q"""TApp(TLam("x", TInt(), TVar("x")), TNum(1337))"""), deleteInput = true)
-      == fun.result(q"Some(TInt())"))
+      == fun.result(q"SomeType(TInt())"))
     assert(fun.execute("main_bf", Seq(q"""TApp(TNum(12), TNum(11))"""), deleteInput = true)
-      == fun.result(q"None()"))
+      == fun.result(q"NoType()"))
     fun.printAllMatches()
   }
 
@@ -50,20 +50,58 @@ class FunctionsDataTest extends AnyFunSuite {
   test("Interpreter Example") {
     val fun = loadFunction(Code.interpModule)
     assert(fun.execute("main_bf", Seq(q"Num(1)"), deleteInput = true)
-      == fun.result(q"Some(VNum(1))"))
+      == fun.result(q"SomeVal(VNum(1))"))
     assert(fun.execute("main_bf", Seq(q"""Lam("x", Var("x"))"""), deleteInput = true)
-      == fun.result(q"""Some(VClosure("x", Var("x"), Empty()))"""))
+      == fun.result(q"""SomeVal(VClosure("x", Var("x"), EmptyEnv()))"""))
     assert(fun.execute("main_bf", Seq(q"""Lam("x", Var("y"))"""), deleteInput = true)
-      == fun.result(q"""Some(VClosure("x", Var("y"), Empty()))"""))
+      == fun.result(q"""SomeVal(VClosure("x", Var("y"), EmptyEnv()))"""))
     assert(fun.execute("main_bf", Seq(q"""App(Lam("y", Lam("x", Var("y"))), Num(1))"""), deleteInput = true)
-      == fun.result(q"""Some(VClosure("x", Var("y"), Bind("y", VNum(1), Empty())))"""))
+      == fun.result(q"""SomeVal(VClosure("x", Var("y"), BindEnv("y", VNum(1), EmptyEnv())))"""))
     assert(fun.execute("main_bf", Seq(q"""App(Lam("x", Var("y")), Num(1))"""), deleteInput = true)
-      == fun.result(q"""None()"""))
+      == fun.result(q"""NoVal()"""))
     assert(fun.execute("main_bf", Seq(q"""App(Lam("x", Var("x")), Num(1337))"""), deleteInput = true)
-      == fun.result(q"""Some(VNum(1337))"""))
+      == fun.result(q"""SomeVal(VNum(1337))"""))
     assert(fun.execute("main_bf", Seq(q"""App(Num(12), Num(11))"""), deleteInput = true)
-      == fun.result(q"None()"))
+      == fun.result(q"NoVal()"))
     fun.printAllMatches()
+  }
+
+  test("Checking+Erasure+Interpreting Example") {
+    val fun = loadFunction(Code.completeLCModule)
+    // type of peano = (a -> a) -> (a -> a)
+    val zero = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TVar("x")))"""
+    val one = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TVar("x"))))"""
+    val two = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TApp(TVar("f"), TVar("x")))))"""
+    val three = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TApp(TVar("f"), TApp(TVar("f"), TVar("x"))))))"""
+
+    val succ =
+      q"""
+          TLam("n", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),
+            TLam("f", TFun(TInt(), TInt()),
+              TLam("x", TInt(),
+                TApp(TVar("f"), TApp(TApp(TVar("n"), TVar("f")), TVar("x"))))))
+        """
+
+    val plus =
+      q"""
+          TLam("m", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),
+            TLam("n", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),
+              TLam("f", TFun(TInt(), TInt()),
+                TLam("x", TInt(),
+                  TApp(
+                    TApp(TVar("m"), TVar("f")),
+                    TApp(TApp(TVar("n"), TVar("f")), TVar("x"))
+                  )))))
+
+       """
+    assert(fun.execute("main_bf", Seq(three))
+      == fun.result(q"""SomeVal(VClosure("f", Lam("x", App(Var("f"), App(Var("f"), App(Var("f"), Var("x"))))), EmptyEnv()))"""))
+
+    // TODO how to assert result?
+    fun.execute("main_bf", Seq(q"TApp($succ, $three)"))
+    fun.printMatches("main_bf")
+    fun.execute("main_bf", Seq(q"TApp(TApp($plus, TApp($succ, $three)), $one)"))
+    fun.printMatches("main_bf")
   }
 
 

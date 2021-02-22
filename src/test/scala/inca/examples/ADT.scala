@@ -32,13 +32,13 @@ object ADT {
     s"""data Type = TInt() | TFun(Type, Type)
        |""".stripMargin
   val MaybeType_code =
-    s"""data MaybeType = None() | Some(Type)
+    s"""data MaybeType = NoType() | SomeType(Type)
        |""".stripMargin
   val TExp_code =
     s"""data TExp = TNum(`Int`) | TLam(`String`, Type, TExp) | TApp(TExp, TExp) | TVar(`String`)
        |""".stripMargin
   val Ctx_code =
-    s"""data Ctx = Empty() | Bind(`String`, Type, Ctx)
+    s"""data Ctx = EmptyCtx() | BindCtx(`String`, Type, Ctx)
        |""".stripMargin
 
   val Exp_code =
@@ -46,12 +46,12 @@ object ADT {
        |""".stripMargin
 
   val Env_code =
-    s"""data Env = Empty() | Bind(`String`, Val, Env)
+    s"""data Env = EmptyEnv() | BindEnv(`String`, Val, Env)
        |""".stripMargin
   val Val_code =
     s"""data Val = VNum(`Int`) | VClosure(`String`, Exp, Env)
        |""".stripMargin
   val MaybeVal_code =
-    s"""data MaybeVal = None() | Some(Val)
+    s"""data MaybeVal = NoVal() | SomeVal(Val)
        |""".stripMargin
 }
