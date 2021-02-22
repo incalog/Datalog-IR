@@ -100,83 +100,93 @@ object Code {
   )
 
   val fibModule: String =
-    """module Fib
-      |@main def main(n: `Int`): `Int` =
-      |  fib(n)
-      |def fib(n: `Int`): `Int` =
-      |  if (n == 0)
-      |    0
-      |  else if (n == 1)
-      |    1
-      |  else
-      |    fib(n - 1) + fib(n - 2)
-      |""".stripMargin
+    s"""module Fib
+       |@main def main(n: `Int`): `Int` =
+       |  fib(n)
+       |def fib(n: `Int`): `Int` =
+       |  if (n == 0)
+       |    0
+       |  else if (n == 1)
+       |    1
+       |  else
+       |    fib(n - 1) + fib(n - 2)
+       |""".stripMargin
 
   val typeOfModule: String = module(
     TExp_code,
     Type_code,
     MaybeType_code,
     Ctx_code,
-    """@main def main(exp: TExp): MaybeType = typeOf(Empty(), exp)
+    s"""@main def main(exp: TExp): MaybeType = typeOf(Empty(), exp)
       |""".stripMargin,
-
-    """def typeOf(ctx: Ctx, exp: TExp): MaybeType = exp match {
-      |  case TNum(v) => Some(TInt())
-      |  case TLam(n, ty, b) =>
-      |    let extCtx = Bind(n, ty, ctx) in
-      |      let mbty2 = typeOf(extCtx, b) in
-      |        mbty2 match {
-      |          case Some(ty2) => Some(TFun(ty, ty2))
-      |          case None() => None()
-      |        }
-      |  case TApp(fun, arg) =>
-      |    let mbfunty = typeOf(ctx, fun) in
-      |      mbfunty match {
-      |        case Some(funty) =>
-      |          funty match {
-      |            case TInt() => None()
-      |            case TFun(ty1, ty2) =>
-      |              let mbargty = typeOf(ctx, arg) in
-      |                mbargty match {
-      |                  case Some(argty) =>
-      |                    if (argty == ty1) Some(ty2)
-      |                    else None()
-      |                  case None() => None()
-      |                }
-      |          }
-      |        case None() => None()
-      |      }
-      |  case TVar(n) => lookup(ctx, n)
-      |}
-      |""".stripMargin,
-    """def lookup(ctx: Ctx, n: `String`): MaybeType = ctx match {
-      |  case Empty() => None()
-      |  case Bind(n1, ty, rest) =>
-      |    if (n1 == n) Some(ty)
-      |    else lookup(rest, n)
-      |}
-      |""".stripMargin,
+    s"""def typeOf(ctx: Ctx, exp: TExp): MaybeType = exp match {
+       |  case TNum(v) => Some(TInt())
+       |  case TLam(n, ty, b) =>
+       |    let extCtx = Bind(n, ty, ctx) in
+       |      let mbty2 = typeOf(extCtx, b) in
+       |        mbty2 match {
+       |          case Some(ty2) => Some(TFun(ty, ty2))
+       |          case None() => None()
+       |        }
+       |  case TApp(fun, arg) =>
+       |    let mbfunty = typeOf(ctx, fun) in
+       |      mbfunty match {
+       |        case Some(funty) =>
+       |          funty match {
+       |            case TInt() => None()
+       |            case TFun(ty1, ty2) =>
+       |              let mbargty = typeOf(ctx, arg) in
+       |                mbargty match {
+       |                  case Some(argty) =>
+       |                    if (eqType(argty, ty1)) Some(ty2)
+       |                    else None()
+       |                  case None() => None()
+       |                }
+       |          }
+       |        case None() => None()
+       |      }
+       |  case TVar(n) => lookup(ctx, n)
+       |}
+       |""".stripMargin,
+    s"""def lookup(ctx: Ctx, n: `String`): MaybeType = ctx match {
+       |  case Empty() => None()
+       |  case Bind(n1, ty, rest) =>
+       |    if (n1 == n) Some(ty)
+       |    else lookup(rest, n)
+       |}
+       |""".stripMargin,
+    s"""def eqType(ty1: Type, ty2: Type): `Boolean` = ty1 match {
+       |  case TInt() => ty2 match {
+       |    case TInt() => true
+       |    case TFun(ofty1, ofty2) => false
+       |  }
+       |  case TFun(fty1, fty2) => ty2 match {
+       |    case TInt() => false
+       |    case TFun(ofty1, ofty2) =>
+       |     eqType(fty1, ofty1) && eqType(fty2, ofty2)
+       |  }
+       |}
+       |""".stripMargin,
   )
 
   val eraseModule: String = module(
     TExp_code,
     Type_code,
     Exp_code,
-    """@main def main(exp: TExp): Exp = erase(exp)
-      |""".stripMargin,
-
-    """def erase(texp: TExp): Exp = texp match {
-      |  case TNum(v) => Num(v)
-      |  case TLam(n, ty, b) =>
-      |    let eb = erase(b) in
-      |      Lam(n, eb)
-      |  case TApp(fun, arg) =>
-      |    let efun = erase(fun) in
-      |      let earg = erase(arg) in
-      |        App(efun, earg)
-      |  case TVar(n) => Var(n)
-      |}
-      |""".stripMargin,
+    s"""@main def main(exp: TExp): Exp = erase(exp)
+       |""".stripMargin,
+    s"""def erase(texp: TExp): Exp = texp match {
+       |  case TNum(v) => Num(v)
+       |  case TLam(n, ty, b) =>
+       |    let eb = erase(b) in
+       |      Lam(n, eb)
+       |  case TApp(fun, arg) =>
+       |    let efun = erase(fun) in
+       |      let earg = erase(arg) in
+       |        App(efun, earg)
+       |  case TVar(n) => Var(n)
+       |}
+       |""".stripMargin,
   )
 
 
@@ -185,38 +195,38 @@ object Code {
     Env_code,
     Val_code,
     MaybeVal_code,
-    """@main def main(exp: Exp): MaybeVal = interp(Empty(), exp)
-      |""".stripMargin,
-    """def interp(env: Env, exp: Exp): MaybeVal = exp match {
-      |  case Num(v) => Some(VNum(v))
-      |  case Lam(n, b) => Some(VClosure(n, b, env))
-      |  case App(fun, arg) =>
-      |    let mbfunv = interp(env, fun) in
-      |      mbfunv match {
-      |        case Some(funv) =>
-      |          funv match {
-      |            case VClosure(param, body, fenv) =>
-      |              let mbargv = interp(env, arg) in
-      |                mbargv match {
-      |                  case Some(argv) =>
-      |                    let extEnv = Bind(param, argv, fenv) in
-      |                      interp(extEnv, body)
-      |                  case None() => None()
-      |                }
-      |            case VNum(v) => None()
-      |          }
-      |        case None() => None()
-      |      }
-      |  case Var(n) => lookup(env, n)
-      |}
-      |
-      |""".stripMargin,
-    """def lookup(env: Env, n: `String`): MaybeVal = env match {
-      |  case Empty() => None()
-      |  case Bind(n1, v, rest) =>
-      |    if (n1 == n) Some(v)
-      |    else lookup(rest, n)
-      |}
-      |""".stripMargin,
+    s"""@main def main(exp: Exp): MaybeVal = interp(Empty(), exp)
+       |""".stripMargin,
+    s"""def interp(env: Env, exp: Exp): MaybeVal = exp match {
+       |  case Num(v) => Some(VNum(v))
+       |  case Lam(n, b) => Some(VClosure(n, b, env))
+       |  case App(fun, arg) =>
+       |    let mbfunv = interp(env, fun) in
+       |      mbfunv match {
+       |        case Some(funv) =>
+       |          funv match {
+       |            case VClosure(param, body, fenv) =>
+       |              let mbargv = interp(env, arg) in
+       |                mbargv match {
+       |                  case Some(argv) =>
+       |                    let extEnv = Bind(param, argv, fenv) in
+       |                      interp(extEnv, body)
+       |                  case None() => None()
+       |                }
+       |            case VNum(v) => None()
+       |          }
+       |        case None() => None()
+       |      }
+       |  case Var(n) => lookup(env, n)
+       |}
+       |
+       |""".stripMargin,
+    s"""def lookup(env: Env, n: `String`): MaybeVal = env match {
+       |  case Empty() => None()
+       |  case Bind(n1, v, rest) =>
+       |    if (n1 == n) Some(v)
+       |    else lookup(rest, n)
+       |}
+       |""".stripMargin,
   )
 }

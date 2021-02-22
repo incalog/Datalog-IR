@@ -12,6 +12,7 @@ object TypeHelper {
     val typStrCleaned = typStr.trim
       .replaceAll("""String\(".*"\)""", "String")
       .replaceAll("""Int\(.*\)""", "Int")
+      .replaceAll("""Boolean\(.*\)""", "Boolean")
 //    val rawAnno = fastparse.parse(name, typeAnno(_)) match {
 //      case Parsed.Failure(_, _, _) => None
 //      case Parsed.Success(anno, _) => Some(anno)

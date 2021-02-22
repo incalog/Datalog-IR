@@ -19,7 +19,6 @@ class FunctionsDataTest extends AnyFunSuite {
 
   test("Type Checker Example") {
     val fun = loadFunction(Code.typeOfModule)
-    println("######################################################")
     assert(fun.execute("main_bf", Seq(q"TNum(1)"), deleteInput = true)
       == fun.result(q"Some(TInt())"))
     assert(fun.execute("main_bf", Seq(q"""TLam("x", TInt(), TVar("x"))"""), deleteInput = true)
