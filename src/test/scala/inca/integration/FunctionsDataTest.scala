@@ -1,10 +1,12 @@
 package inca.integration
 
 import inca.Executor._
-import inca.examples.ADT.Nat_lmi
+import inca.examples.ADT.{Ctx_lmi, Env_lmi, Exp_lmi, MaybeType_lmi, MaybeVal_lmi, Nat_lmi, TExp_lmi, Type_lmi, Val_lmi}
 import inca.examples.Code
+import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.funsuite.AnyFunSuite
 
+import scala.collection.immutable.MultiDict
 import scala.meta.XtensionQuasiquoteTerm
 
 class FunctionsDataTest extends AnyFunSuite {
@@ -18,21 +20,74 @@ class FunctionsDataTest extends AnyFunSuite {
     fun.printAllMatches()
   }
 
-//  def deriveInput(call: Call): (Seq[Edit], DataURI) = {
-//
-//    def deriveStringRep(call: Call): String = {
-//      // we only allow calls
-//      val argsStringRep = call.args.map(a => deriveStringRep(a.asInstanceOf[Call]))
-//      call.name + argsStringRep.mkString("(", ", ", ")")
-//    }
-//
-//    val newURI = new DataURI(deriveStringRep(call))
-//    val (subes, subURI) = call.args.map(a => deriveInput(a.asInstanceOf[Call])).unzip
-//
-//    val kids = subURI.zipWithIndex.map { case (uri, ix) => s"_$ix" -> uri }
-//
-//    (subes.flatten :+ Load(newURI, NamedTag(call.name.name), kids, Seq()), newURI)
-//  }
+  def combineLanguageMetaInfos(infos: LanguageMetaInfo*): LanguageMetaInfo = {
+    import truechange.{SortType, Type, LitType}
+    import inca.runtime.index.MetaElements.Link
+    var supertypes: MultiDict[SortType, SortType] = MultiDict()
+    var links: Map[Link, Type] = Map()
+    var litLinks: Map[Link, LitType] = Map()
+
+    infos.foreach { info =>
+      info.directNodeSupertypes.foreach { case (sub, sup) =>
+        supertypes = supertypes + (sub -> sup)
+      }
+      links ++= info.links
+      litLinks ++= info.litLinks
+    }
+    new LanguageMetaInfo(supertypes, links, litLinks)
+  }
+
+  test("Type Checker Example") {
+    val fun = loadFunction(Code.typeOfModule, combineLanguageMetaInfos(TExp_lmi, Type_lmi, MaybeType_lmi, Ctx_lmi))
+    assert(fun.execute("main_bf", Seq(q"TNum(1)"), deleteInput = true)
+      == fun.result(q"Some(TInt())"))
+    assert(fun.execute("main_bf", Seq(q"""TLam("x", TInt(), TVar("x"))"""), deleteInput = true)
+      == fun.result(q"Some(TFun(TInt(), TInt()))"))
+    assert(fun.execute("main_bf", Seq(q"""TLam("x", TInt(), TVar("y"))"""), deleteInput = true)
+      == fun.result(q"None()"))
+    assert(fun.execute("main_bf", Seq(q"""TApp(TLam("x", TInt(), TVar("x")), TNum(1337))"""), deleteInput = true)
+      == fun.result(q"Some(TInt())"))
+    assert(fun.execute("main_bf", Seq(q"""TApp(TNum(12), TNum(11))"""), deleteInput = true)
+      == fun.result(q"None()"))
+    fun.printAllMatches()
+  }
+
+  test("Type Erasure Example") {
+    val fun = loadFunction(Code.eraseModule, combineLanguageMetaInfos(TExp_lmi, Type_lmi, Exp_lmi))
+    assert(fun.execute("main_bf", Seq(q"TNum(1)"), deleteInput = true)
+      == fun.result(q"Num(1)"))
+    assert(fun.execute("main_bf", Seq(q"""TLam("x", TInt(), TVar("x"))"""), deleteInput = true)
+      == fun.result(q"""Lam("x", Var("x"))"""))
+    assert(fun.execute("main_bf", Seq(q"""TLam("x", TInt(), TVar("y"))"""), deleteInput = true)
+      == fun.result(q"""Lam("x", Var("y"))"""))
+    assert(fun.execute("main_bf", Seq(q"""TApp(TLam("x", TInt(), TVar("x")), TNum(1337))"""), deleteInput = true)
+      == fun.result(q"""App(Lam("x", Var("x")), Num(1337))"""))
+    assert(fun.execute("main_bf", Seq(q"""TApp(TNum(12), TNum(11))"""), deleteInput = true)
+      == fun.result(q"App(Num(12), Num(11))"))
+    fun.printAllMatches()
+  }
+
+  test("Interpreter Example") {
+    val fun = loadFunction(Code.interpModule, combineLanguageMetaInfos(Exp_lmi, Env_lmi, Val_lmi, MaybeVal_lmi))
+    assert(fun.execute("main_bf", Seq(q"Num(1)"), deleteInput = true)
+      == fun.result(q"Some(VNum(1))"))
+    assert(fun.execute("main_bf", Seq(q"""Lam("x", Var("x"))"""), deleteInput = true)
+      == fun.result(q"""Some(VClosure("x", Var("x"), Empty()))"""))
+    assert(fun.execute("main_bf", Seq(q"""Lam("x", Var("y"))"""), deleteInput = true)
+      == fun.result(q"""Some(VClosure("x", Var("y"), Empty()))"""))
+    assert(fun.execute("main_bf", Seq(q"""App(Lam("y", Lam("x", Var("y"))), Num(1))"""), deleteInput = true)
+      == fun.result(q"""Some(VClosure("x", Var("y"), Bind("y", VNum(1), Empty())))"""))
+    assert(fun.execute("main_bf", Seq(q"""App(Lam("x", Var("y")), Num(1))"""), deleteInput = true)
+      == fun.result(q"""None()"""))
+    assert(fun.execute("main_bf", Seq(q"""App(Lam("x", Var("x")), Num(1337))"""), deleteInput = true)
+      == fun.result(q"""Some(VNum(1337))"""))
+    assert(fun.execute("main_bf", Seq(q"""App(Num(12), Num(11))"""), deleteInput = true)
+      == fun.result(q"None()"))
+    fun.printAllMatches()
+  }
+
+
+
 
 //  test("Adornment with fixed adornment") {
 //    val moduleGP = GenerateDatalog.transformModule(AST.plusModule)
@@ -166,224 +221,5 @@ class FunctionsDataTest extends AnyFunSuite {
 //      m.get("out").toString.startsWith("Succ(Succ(Succ(Succ(Succ(Zero())))))")
 //    }
 //    assert(resultExists)
-//  }
-
-//  test("TypeChecker Example") {
-//    val lmi: LanguageMetaInfo = new LanguageMetaInfo(
-//      MultiDict(
-//        SortType("TInt") -> SortType("Type"),
-//        SortType("TFun") -> SortType("Type"),
-//        SortType("None") -> SortType("MaybeType"),
-//        SortType("Some") -> SortType("MaybeType"),
-//        SortType("Num") -> SortType("Exp"),
-//        SortType("Lam") -> SortType("Exp"),
-//        SortType("App") -> SortType("Exp"),
-//        SortType("Var") -> SortType("Exp"),
-//        SortType("Empty") -> SortType("Ctx"),
-//        SortType("Bind") -> SortType("Ctx")
-//      ),
-//      Map(
-//        ("TFun", "_0") -> SortType("Type"),
-//        ("TFun", "_1") -> SortType("Type"),
-//        ("Some", "_0") -> SortType("Type"),
-//        ("Lam", "_1") -> SortType("Type"),
-//        ("Lam", "_2") -> SortType("Exp"),
-//        ("App", "_0") -> SortType("Exp"),
-//        ("App", "_1") -> SortType("Exp"),
-//        ("Bind", "_1") -> SortType("Exp"),
-//        ("Bind", "_2") -> SortType("Ctx")
-//      ),
-//      Map(
-//        ("Num", "_0") -> JavaLitType(classOf[Int]),
-//        ("Lam", "_0") -> JavaLitType(classOf[String]),
-//        ("Var", "_0") -> JavaLitType(classOf[String]),
-//        ("Bind", "_0") -> JavaLitType(classOf[String])
-//      )
-//    )
-//
-//    val typeOfCode =
-//      """module Typing
-//        |data Type = TInt() | TFun(Type, Type)
-//        |data MaybeType = None() | Some(Type)
-//        |data Exp = Num(`Int`) | Lam(`String`, Type, Exp) | App(Exp, Exp) | Var(`String`)
-//        |data Ctx = Empty() | Bind(`String`, Type, Ctx)
-//        |
-//        |@main def main(): MaybeType = let exp = App(Lam(`"x"`, TInt(), Var(`"x"`)), Num(`12`)) in typeOf(Empty(), exp)
-//        |
-//        |def typeOf(ctx: Ctx, exp: Exp): MaybeType = exp match {
-//        |  case Num(v) => Some(TInt())
-//        |  case Lam(n, ty, b) =>
-//        |    let extCtx = Bind(n, ty, ctx) in
-//        |      let mbty2 = typeOf(extCtx, b) in
-//        |        mbty2 match {
-//        |          case Some(ty2) => Some(TFun(ty, ty2))
-//        |          case None() => None()
-//        |        }
-//        |  case App(fun, arg) =>
-//        |    let mbfunty = typeOf(ctx, fun) in
-//        |      mbfunty match {
-//        |        case Some(funty) =>
-//        |          funty match {
-//        |            case TInt() => None()
-//        |            case TFun(ty1, ty2) =>
-//        |              let mbargty = typeOf(ctx, arg) in
-//        |                mbargty match {
-//        |                  case Some(argty) =>
-//        |                    if (argty == ty1) Some(ty2)
-//        |                    else None()
-//        |                  case None() => None()
-//        |                }
-//        |          }
-//        |        case None() => None()
-//        |      }
-//        |  case Var(n) => lookup(ctx, n)
-//        |}
-//        |
-//        |
-//        |def lookup(ctx: Ctx, n: `String`): MaybeType = ctx match {
-//        |  case Empty() => None()
-//        |  case Bind(n1, ty, rest) =>
-//        |    if (n1 == n) Some(ty)
-//        |    else lookup(rest, n)
-//        |}
-//        |""".stripMargin
-//
-//    executeFunction(typeOfCode, lmi)
-//  }
-//
-//  test("TypeErasure Example") {
-//    val lmi: LanguageMetaInfo = new LanguageMetaInfo(
-//      MultiDict(
-//        SortType("TInt") -> SortType("Type"),
-//        SortType("TFun") -> SortType("Type"),
-//        SortType("TNum") -> SortType("TExp"),
-//        SortType("TLam") -> SortType("TExp"),
-//        SortType("TApp") -> SortType("TExp"),
-//        SortType("TVar") -> SortType("TExp"),
-//        SortType("Num") -> SortType("Exp"),
-//        SortType("Lam") -> SortType("Exp"),
-//        SortType("App") -> SortType("Exp"),
-//        SortType("Var") -> SortType("Exp"),
-//      ),
-//      Map(
-//        ("TFun", "_0") -> SortType("Type"),
-//        ("TFun", "_1") -> SortType("Type"),
-//        ("TLam", "_1") -> SortType("Type"),
-//        ("TLam", "_2") -> SortType("TExp"),
-//        ("TApp", "_0") -> SortType("TExp"),
-//        ("TApp", "_1") -> SortType("TExp"),
-//        ("Lam", "_1") -> SortType("Exp"),
-//        ("App", "_0") -> SortType("Exp"),
-//        ("App", "_1") -> SortType("Exp"),
-//      ),
-//      Map(
-//        ("TNum", "_0") -> JavaLitType(classOf[Int]),
-//        ("TLam", "_0") -> JavaLitType(classOf[String]),
-//        ("TVar", "_0") -> JavaLitType(classOf[String]),
-//        ("Num", "_0") -> JavaLitType(classOf[Int]),
-//        ("Lam", "_0") -> JavaLitType(classOf[String]),
-//        ("Var", "_0") -> JavaLitType(classOf[String]),
-//      )
-//    )
-//
-//    val typeOfCode =
-//      """module TypeErasure
-//        |data Type = TInt() | TFun(Type, Type)
-//        |data TExp = TNum(`Int`) | TLam(`String`, Type, TExp) | TApp(TExp, TExp) | TVar(`String`)
-//        |data Exp = Num(`Int`) | Lam(`String`, Exp) | App(Exp, Exp) | Var(`String`)
-//        |
-//        |@main def main(): Exp = let exp = TApp(TLam(`"x"`, TInt(), TVar(`"x"`)), TNum(`1`)) in erase(exp)
-//        |
-//        |def erase(texp: TExp): Exp = texp match {
-//        |  case TNum(v) => Num(v)
-//        |  case TLam(n, ty, b) =>
-//        |    let eb = erase(b) in
-//        |      Lam(n, eb)
-//        |  case TApp(fun, arg) =>
-//        |    let efun = erase(fun) in
-//        |      let earg = erase(arg) in
-//        |        App(efun, earg)
-//        |  case TVar(n) => Var(n)
-//        |}
-//        |""".stripMargin
-//
-//    executeFunction(typeOfCode, lmi)
-//  }
-//
-//  test("Interpreter Example") {
-//    val lmi: LanguageMetaInfo = new LanguageMetaInfo(
-//      MultiDict(
-//        SortType("Num") -> SortType("Exp"),
-//        SortType("Lam") -> SortType("Exp"),
-//        SortType("App") -> SortType("Exp"),
-//        SortType("Var") -> SortType("Exp"),
-//        SortType("VNum") -> SortType("Val"),
-//        SortType("VClosure") -> SortType("Val"),
-//        SortType("None") -> SortType("MaybeVal"),
-//        SortType("Some") -> SortType("MaybeVal"),
-//        SortType("Empty") -> SortType("Env"),
-//        SortType("Bind") -> SortType("Env")
-//      ),
-//      Map(
-//        ("Lam", "_1") -> SortType("Exp"),
-//        ("App", "_0") -> SortType("Exp"),
-//        ("App", "_1") -> SortType("Exp"),
-//        ("VClosure", "_1") -> SortType("Exp"),
-//        ("VClosure", "_2") -> SortType("Env"),
-//        ("Some", "_0") -> SortType("Val"),
-//        ("Bind", "_1") -> SortType("Val"),
-//        ("Bind", "_2") -> SortType("Env")
-//      ),
-//      Map(
-//        ("VClosure", "_0") -> JavaLitType(classOf[String]),
-//        ("VNum", "_0") -> JavaLitType(classOf[Int]),
-//        ("Num", "_0") -> JavaLitType(classOf[Int]),
-//        ("Lam", "_0") -> JavaLitType(classOf[String]),
-//        ("Var", "_0") -> JavaLitType(classOf[String]),
-//        ("Bind", "_0") -> JavaLitType(classOf[String]),
-//      )
-//    )
-//
-//    val typeOfCode =
-//      """module Interpreter
-//        |data Exp = Num(`Int`) | Lam(`String`, Exp) | App(Exp, Exp) | Var(`String`)
-//        |data Env = Empty() | Bind(`String`, Val, Env)
-//        |data Val = VNum(`Int`) | VClosure(`String`, Exp, Env)
-//        |data MaybeVal = None() | Some(Val)
-//        |
-//        |@main def main(): MaybeVal = let exp = App(Lam(`"x"`, Var(`"x"`)), Num(`1`)) in interp(Empty(), exp)
-//        |
-//        |def interp(env: Env, exp: Exp): MaybeVal = exp match {
-//        |  case Num(v) => Some(VNum(v))
-//        |  case Lam(n, b) => Some(VClosure(n, b, env))
-//        |  case App(fun, arg) =>
-//        |    let mbfunv = interp(env, fun) in
-//        |      mbfunv match {
-//        |        case Some(funv) =>
-//        |          funv match {
-//        |            case VClosure(param, body, fenv) =>
-//        |              let mbargv = interp(env, arg) in
-//        |                mbargv match {
-//        |                  case Some(argv) =>
-//        |                    let extEnv = Bind(param, argv, fenv) in
-//        |                      interp(extEnv, body)
-//        |                  case None() => None()
-//        |                }
-//        |            case VNum(v) => None()
-//        |          }
-//        |        case None() => None()
-//        |      }
-//        |  case Var(n) => lookup(env, n)
-//        |}
-//        |
-//        |def lookup(env: Env, n: `String`): MaybeVal = env match {
-//        |  case Empty() => None()
-//        |  case Bind(n1, v, rest) =>
-//        |    if (n1 == n) Some(v)
-//        |    else lookup(rest, n)
-//        |}
-//        |""".stripMargin
-//
-//    executeFunction(typeOfCode, lmi)
 //  }
 }
