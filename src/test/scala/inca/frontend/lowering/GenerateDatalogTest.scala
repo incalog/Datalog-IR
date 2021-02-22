@@ -182,9 +182,8 @@ class GenerateDatalogTest extends AnyFunSuite {
       GP.TScalaInt, Scala(q"(left: Int, right: Int) => left * right"))),
     GP.Eq(GP.Var("out"), GP.Var("eval_1"))
   ))))
-  val factMainGP = GP.Pattern(None, "main", Seq(GP.Param("out", GP.TScalaInt)), Seq(GP.Body(Seq(
-    GP.Computed(GP.Var("lit"), GP.Evaluation(Seq(), GP.TScalaInt, Scala(q"() => 3"))),
-    GP.Call("fact", Seq(GP.Var("lit"), GP.Var("out_0")), transitive = false, neg = false),
+  val factMainGP = GP.Pattern(None, "main", Seq(GP.Param("n", GP.TScalaInt), GP.Param("out", GP.TScalaInt)), Seq(GP.Body(Seq(
+    GP.Call("fact", Seq(GP.Var("n"), GP.Var("out_0")), transitive = false, neg = false),
     GP.Eq(GP.Var("out"), GP.Var("out_0"))
   ))))
   val factModuleGP = gpmodule(factFunGP, factMainGP)

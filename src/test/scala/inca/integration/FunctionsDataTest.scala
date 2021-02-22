@@ -38,11 +38,7 @@ class FunctionsDataTest extends AnyFunSuite {
   }
 
   test("Adornment with fixed adornment") {
-    val moduleGP = GenerateDatalog.transformModule(AST.plusModule)
-    val adorned = AdornProgram.transformer.transformModule(moduleGP)
-
-    val magicSet = MagicSetTransformation.transformer.transformModule(adorned)
-    val compiled = Compiler.compileGP(magicSet, Options(NAT_lmi))
+    val compiled = Compiler.compileFun(Code.plusModule, Options(NAT_lmi, transformations = Options.defaultTransformations))
     val scope = new QueryScope(NAT_lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
@@ -59,11 +55,7 @@ class FunctionsDataTest extends AnyFunSuite {
   }
 
   test("Adornment with fixed adornment (real plus)") {
-    val moduleGP = GenerateDatalog.transformModule(AST.plusRealModule)
-    val adorned = AdornProgram.transformer.transformModule(moduleGP)
-    val magicSet = MagicSetTransformation.transformer.transformModule(adorned)
-    println(magicSet)
-    val compiled = Compiler.compileGP(magicSet, Options(NAT_lmi))
+    val compiled = Compiler.compileFun(Code.plusRealModule, Options(NAT_lmi, transformations = Options.defaultTransformations))
 
     val scope = new QueryScope(NAT_lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
@@ -119,12 +111,7 @@ class FunctionsDataTest extends AnyFunSuite {
   }
 
   test("Adornment with fixed adornment (real plus, no main)") {
-    val moduleGP = GenerateDatalog.transformModule(AST.module(Nat, plusFun.copy(annos = Seq(MainFunctionAnno))))
-    val adorned = AdornProgram.transformer.transformModule(moduleGP)
-    val magicSet = MagicSetTransformation.transformer.transformModule(adorned)
-    println(magicSet)
-
-    val compiled = Compiler.compileGP(magicSet, Options(NAT_lmi))
+    val compiled = Compiler.compileFun(Code.plusNoMainModule, Options(NAT_lmi, transformations = Options.defaultTransformations))
     val scope = new QueryScope(NAT_lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
@@ -184,14 +171,6 @@ class FunctionsDataTest extends AnyFunSuite {
     }
 
     compiled.psystemModule.patterns.keys.foreach(printMatches)
-  }
-
-  test("Factorial Example") {
-    executeFunction(Code.factModule)
-  }
-
-  test("Fibonacci Example") {
-    executeFunction(Code.fibModule)
   }
 
   test("TypeChecker Example") {

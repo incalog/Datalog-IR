@@ -78,6 +78,15 @@ object Code {
        |""".stripMargin
   )
 
+  val plusNoMainModule: String = module(
+    Nat_code,
+    s"""@main def plus(m: Nat, n: Nat): Nat = m match {
+       |  case Zero() => n
+       |  case Succ(pred) => Succ(plus(pred, n))
+       |}
+       |""".stripMargin,
+  )
+
   val plusRealModule: String = module(
     Nat_code,
     s"""def plus(m: Nat, n: Nat): Nat = m match {

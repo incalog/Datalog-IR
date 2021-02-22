@@ -72,8 +72,8 @@ object AST {
         Call(Name("fact"), Seq(BaseApplyInfix(Var("n"), "-", BaseLit(q"1", TScalaInt)))))
     )
   )
-  val factMain: FunctionDef = FunctionDef(Seq(MainFunctionAnno), None, Name("main"), Seq(), TScalaInt,
-    Call(Name("fact"), Seq(BaseLit(q"3", TScalaInt)))
+  val factMain: FunctionDef = FunctionDef(Seq(MainFunctionAnno), None, Name("main"), Seq(Param(Name("n"), TScalaInt)), TScalaInt,
+    Call(Name("fact"), Seq(Var("n")))
   )
   val factModule: Module = module(factFun, factMain)
 
