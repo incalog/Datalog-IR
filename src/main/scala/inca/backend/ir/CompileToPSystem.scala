@@ -4,6 +4,7 @@ package inca.backend.ir
 import inca.backend.ir.GP._
 import inca.runtime.Query
 import inca.runtime.aggregate.{AggregatorAssocComm, AggregatorAssocCommInv}
+import inca.runtime.context.LanguageMetaInfo
 import inca.runtime.data.DataURI
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
@@ -14,6 +15,7 @@ import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations.BoundAggre
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.AggregatorConstraint
 import truechange.{AnyType, JavaLitType, ListType, SortType}
 
+import scala.collection.immutable.MultiDict
 import scala.meta._
 
 object CompileToPSystem {
@@ -34,10 +36,10 @@ object CompileToPSystem {
   private val oSizeKey = symbolOf(SizeIndex.Key)
   private val oNotLinkNodeKey = symbolOf(NodeNotLinkedIndex.Key)
 
-  private val tAnyType = symbolOf(AnyType)
-  private val tNodeType = symbolOf[SortType]
-  private val tListType = symbolOf[ListType]
-  private val tPrimitiveType = symbolOf[JavaLitType]
+  private val oAnyType = symbolOf(AnyType)
+  private val oNodeType = symbolOf[SortType]
+  private val oListType = symbolOf[ListType]
+  private val oPrimitiveType = symbolOf[JavaLitType]
 
   private val tyPSystemModule = typeOf[PSystem.Module]
 
@@ -48,6 +50,11 @@ object CompileToPSystem {
   private val tBoundAggregator = typeOf[BoundAggregator]
   private val tAggregatorConstraint = typeOf[AggregatorConstraint]
   private val oDataURI = symbolOf(DataURI)
+
+  private val tLMI = typeOf[LanguageMetaInfo]
+  private val oMultiDict = symbolOf(MultiDict)
+  private val tMap = typeOf[Map[_,_]]
+  private val oMap = symbolOf(Map)
 
 
   def genQueryName(moduleName: String, patName: String): String =
@@ -63,9 +70,12 @@ object CompileToPSystem {
   }
 
   def compileModule(module: Module)(implicit env: RuleEnvironment): Source = {
+    // TODO: handle module.imports
+
     val myenv = env ++ module.pats.map(p => p.name -> module.name) // makes sure this module's names are found first
     val funs = module.pats.map(compilePattern(module.name, _)(myenv)).toList
     val datas = module.data.flatMap(compileData).toList
+    val lmi = generateLMI(module.data)
 
     val scalaContent = module.scalaContent.map(_.tree).toList
 
@@ -88,14 +98,14 @@ object CompileToPSystem {
       object $name extends ${Init(tyPSystemModule, Term.Name(tyPSystemModule.toString), List())} {
 
 
-        val patterns: Map[String, () => $tyQuerySpecification] = Map(..${
+        override val patterns: $tMap[String, () => $tyQuerySpecification] = $oMap(..${
           module.pats.map(p => q"${p.name} -> (() => ${Term.Name(p.name)}.instance)").toList
         })
 
-        ..${scalaContent}
+        override val lmi: $tLMI = $lmi
 
-        ..${funs}
-
+        ..$scalaContent
+        ..$funs
       }
 
       ..${datas}
@@ -130,6 +140,47 @@ object CompileToPSystem {
     }
     typ +: constrs
   }
+
+  private def generateLMI(datas: Seq[DataDef]): meta.Term = {
+    val subtyps = for (DataDef(_, name, constrs) <- datas.toList;
+                       DataConstructor(cname, _) <- constrs)
+      yield q"$oNodeType($cname) -> $oNodeType($name)"
+    val kidLinks = for (DataDef(_, _, constrs) <- datas.toList;
+                        DataConstructor(cname, paramTypes) <- constrs;
+                        (ty,ix) <- paramTypes.zipWithIndex if ty.isInstanceOf[TData])
+      yield q"($cname, ${Lit.String("_" + ix)}) -> $oNodeType(${ty.asInstanceOf[TData].name})"
+    val litLinks = for (DataDef(_, _, constrs) <- datas.toList;
+                        DataConstructor(cname, paramTypes) <- constrs;
+                        (ty,ix) <- paramTypes.zipWithIndex if !ty.isInstanceOf[TData])
+      yield q"($cname, ${Lit.String("_" + ix)}) -> $oPrimitiveType(classOf[${ty.asScala}])"
+
+    q"""new $tLMI(
+          $oMultiDict(..$subtyps),
+          $oMap(..$kidLinks),
+          $oMap(..$litLinks)
+        )
+       """
+  }
+
+  // val TExp_lmi: LanguageMetaInfo = new LanguageMetaInfo(
+    //    MultiDict(
+    //      SortType("TNum") -> SortType("TExp"),
+    //      SortType("TLam") -> SortType("TExp"),
+    //      SortType("TApp") -> SortType("TExp"),
+    //      SortType("TVar") -> SortType("TExp"),
+    //    ),
+    //    Map(
+    //      ("TLam", "_1") -> SortType("Type"),
+    //      ("TLam", "_2") -> SortType("TExp"),
+    //      ("TApp", "_0") -> SortType("TExp"),
+    //      ("TApp", "_1") -> SortType("TExp"),
+    //    ),
+    //    Map(
+    //      ("TNum", "_0") -> JavaLitType(classOf[Int]),
+    //      ("TLam", "_0") -> JavaLitType(classOf[String]),
+    //      ("TVar", "_0") -> JavaLitType(classOf[String]),
+    //    )
+    //  )
 
   private def compilePattern(moduleName: String, pat: Pattern)(implicit env: RuleEnvironment): Stat = {
     val qname = CompileToPSystem.genQueryName(moduleName, pat.name)
@@ -222,7 +273,7 @@ object CompileToPSystem {
     case tlit@TLiteral(litType) =>
       litType match {
         case JavaLitType(cl) =>
-          val gentyp = q"$tPrimitiveType(classOf[${tlit.asScala}])"
+          val gentyp = q"$oPrimitiveType(classOf[${tlit.asScala}])"
           Some(q"$oPrimitiveKey($gentyp)", gentyp)
         case _ => throw new UnsupportedOperationException
       }
@@ -398,9 +449,9 @@ object CompileToPSystem {
   }
 
   private def genNodeType(typ: GP.Type): meta.Term = typ match {
-    case TAnyLinked => tAnyType
-    case TNode(name) => q"$tNodeType($name)"
-    case TList(ty) => q"$tListType(${genNodeType(ty)})"
+    case TAnyLinked => oAnyType
+    case TNode(name) => q"$oNodeType($name)"
+    case TList(ty) => q"$oListType(${genNodeType(ty)})"
     case _ => throw new IllegalArgumentException(s"Cannot compile $typ as node type")
   }
 

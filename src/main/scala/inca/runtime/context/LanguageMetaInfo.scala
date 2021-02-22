@@ -32,9 +32,9 @@ class LanguageMetaInfo(
   }
 
   /** maps subtype to supertypes */
-  val nodeSupertypes: MultiDict[SortType, SortType] = transClosure(directNodeSupertypes)
+  lazy val nodeSupertypes: MultiDict[SortType, SortType] = transClosure(directNodeSupertypes)
   /** maps supertype to subtypes */
-  val nodeSubtypes: MultiDict[SortType, SortType] = transClosure(directNodeSubtypes)
+  lazy val nodeSubtypes: MultiDict[SortType, SortType] = transClosure(directNodeSubtypes)
 
 
   def directSupertypes(ty: Type): Iterable[Type] = ty match {
@@ -74,5 +74,24 @@ class LanguageMetaInfo(
     }
     if (newRel == rel) rel
     else transClosure(newRel)
+  }
+}
+
+object LanguageMetaInfo {
+  def combineLanguageMetaInfos(infos: LanguageMetaInfo*): LanguageMetaInfo = {
+    import inca.runtime.index.MetaElements.Link
+    import truechange.{LitType, SortType, Type}
+    var supertypes: MultiDict[SortType, SortType] = MultiDict()
+    var links: Map[Link, Type] = Map()
+    var litLinks: Map[Link, LitType] = Map()
+
+    infos.foreach { info =>
+      info.directNodeSupertypes.foreach { case (sub, sup) =>
+        supertypes = supertypes + (sub -> sup)
+      }
+      links ++= info.links
+      litLinks ++= info.litLinks
+    }
+    new LanguageMetaInfo(supertypes, links, litLinks)
   }
 }

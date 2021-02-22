@@ -1,18 +1,15 @@
 package inca.integration
 
 import inca.Executor._
-import inca.examples.ADT.{Ctx_lmi, Env_lmi, Exp_lmi, MaybeType_lmi, MaybeVal_lmi, Nat_lmi, TExp_lmi, Type_lmi, Val_lmi}
 import inca.examples.Code
-import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.funsuite.AnyFunSuite
 
-import scala.collection.immutable.MultiDict
 import scala.meta.XtensionQuasiquoteTerm
 
 class FunctionsDataTest extends AnyFunSuite {
 
   test("Plus Example") {
-    val fun = loadFunction(Code.plusRealModule, Nat_lmi)
+    val fun = loadFunction(Code.plusRealModule)
     assert(fun.execute("main_bbf", Seq(q"Succ(Succ(Zero()))", q"Succ(Zero())"))
       == fun.result(q"Succ(Succ(Succ(Zero())))"))
     assert(fun.execute("main_bbf", Seq(q"Succ(Succ(Succ(Succ(Zero()))))", q"Succ(Succ(Zero()))"))
@@ -20,25 +17,9 @@ class FunctionsDataTest extends AnyFunSuite {
     fun.printAllMatches()
   }
 
-  def combineLanguageMetaInfos(infos: LanguageMetaInfo*): LanguageMetaInfo = {
-    import truechange.{SortType, Type, LitType}
-    import inca.runtime.index.MetaElements.Link
-    var supertypes: MultiDict[SortType, SortType] = MultiDict()
-    var links: Map[Link, Type] = Map()
-    var litLinks: Map[Link, LitType] = Map()
-
-    infos.foreach { info =>
-      info.directNodeSupertypes.foreach { case (sub, sup) =>
-        supertypes = supertypes + (sub -> sup)
-      }
-      links ++= info.links
-      litLinks ++= info.litLinks
-    }
-    new LanguageMetaInfo(supertypes, links, litLinks)
-  }
-
   test("Type Checker Example") {
-    val fun = loadFunction(Code.typeOfModule, combineLanguageMetaInfos(TExp_lmi, Type_lmi, MaybeType_lmi, Ctx_lmi))
+    val fun = loadFunction(Code.typeOfModule)
+    println("######################################################")
     assert(fun.execute("main_bf", Seq(q"TNum(1)"), deleteInput = true)
       == fun.result(q"Some(TInt())"))
     assert(fun.execute("main_bf", Seq(q"""TLam("x", TInt(), TVar("x"))"""), deleteInput = true)
@@ -53,7 +34,7 @@ class FunctionsDataTest extends AnyFunSuite {
   }
 
   test("Type Erasure Example") {
-    val fun = loadFunction(Code.eraseModule, combineLanguageMetaInfos(TExp_lmi, Type_lmi, Exp_lmi))
+    val fun = loadFunction(Code.eraseModule)
     assert(fun.execute("main_bf", Seq(q"TNum(1)"), deleteInput = true)
       == fun.result(q"Num(1)"))
     assert(fun.execute("main_bf", Seq(q"""TLam("x", TInt(), TVar("x"))"""), deleteInput = true)
@@ -68,7 +49,7 @@ class FunctionsDataTest extends AnyFunSuite {
   }
 
   test("Interpreter Example") {
-    val fun = loadFunction(Code.interpModule, combineLanguageMetaInfos(Exp_lmi, Env_lmi, Val_lmi, MaybeVal_lmi))
+    val fun = loadFunction(Code.interpModule)
     assert(fun.execute("main_bf", Seq(q"Num(1)"), deleteInput = true)
       == fun.result(q"Some(VNum(1))"))
     assert(fun.execute("main_bf", Seq(q"""Lam("x", Var("x"))"""), deleteInput = true)

@@ -2,12 +2,8 @@ package inca.frontend.typechecker
 
 import inca.compiler.SourceLocation
 import inca.frontend.core._
-import inca.runtime.context.LanguageMetaInfo
 
 trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
-
-  val lang: LanguageMetaInfo
-
 
   def typecheck(program: Seq[Module]): Unit = scopedTypeContext {
     program.foreach(bindModule)
@@ -52,7 +48,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       bindVar(p.name, p, p.typ)
     }
     val ty = typecheck(fun.body)
-    if (!subtype(ty, fun.outType, lang))
+    if (!subtype(ty, fun.outType))
       error(s"Found body of type $ty, but expected function result type ${fun.outType}", fun.body)
   }
 
@@ -118,11 +114,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
     case If(cnd, thn, els) =>
       val cty = typecheck(cnd)
-      if (!subtype(cty, TScalaBoolean, lang))
+      if (!subtype(cty, TScalaBoolean))
         error(s"Expected Boolean condition, but got $cty", cnd)
       val tty = typecheck(thn)
       val ety = typecheck(els)
-      meet(tty, ety, lang)
+      meet(tty, ety)
 
     case Tuple(exps) =>
       TTuple(exps.map(typecheck))
@@ -174,12 +170,12 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           val missingConstrs = data.constrs.map(_.name).toSet -- seenConstrs
           if (missingConstrs.nonEmpty)
             error(s"Pattern match must be complete but missed the following constructors: ${missingConstrs.mkString(", ")}", exp)
-          ctys.foldLeft[Type](TAny)((t1, t2) => meet(t1, t2, lang))
+          ctys.foldLeft[Type](TAny)((t1, t2) => meet(t1, t2))
 
         case ty =>
           error(s"Can only match on data types, but matchee has type $ty", matchee)
           val ctys = cases.map(c => typecheck(c._2))
-          ctys.foldLeft[Type](TAny)((t1, t2) => meet(t1, t2, lang))
+          ctys.foldLeft[Type](TAny)((t1, t2) => meet(t1, t2))
       }
 
 
@@ -224,7 +220,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       // nothing
       case (param, arg) =>
         val argTy = typecheck(arg)
-        if (meet(param.typ, argTy, lang) == TNothing) {
+        if (meet(param.typ, argTy) == TNothing) {
           warn(s"Cast of argument type $argTy to unrelated parameter type ${param.typ} will always fail", arg)
         }
     }
@@ -254,7 +250,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       // nothing
       case (paramTy, arg) =>
         val argTy = typecheck(arg)
-        if (meet(paramTy, argTy, lang) == TNothing) {
+        if (meet(paramTy, argTy) == TNothing) {
           warn(s"Cast of argument type $argTy to unrelated parameter type $paramTy will always fail", arg)
         }
     }
@@ -280,14 +276,14 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         TAny
     }
   }
-  def subtype(ty1: Type, ty2: Type, languageMetaInfo: LanguageMetaInfo): Boolean =
-    meet(ty1, ty2, languageMetaInfo) == ty1
+  def subtype(ty1: Type, ty2: Type): Boolean =
+    meet(ty1, ty2) == ty1
 
-  protected def meet(ty1: Type, ty2: Type, languageMetaInfo: LanguageMetaInfo): Type = (ty1, ty2) match {
+  protected def meet(ty1: Type, ty2: Type): Type = (ty1, ty2) match {
     case (_, _) if ty1 == ty2 => ty1
     case (TAny, _) => ty2
     case (_, TAny) => ty1
-    case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size => TTuple(tys1.zip(tys2).map(tt => meet(tt._1, tt._2, languageMetaInfo)))
+    case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size => TTuple(tys1.zip(tys2).map(tt => meet(tt._1, tt._2)))
     case (TScala(s1), TScala(s2)) =>
       if (subtypeScala(s1.tree, s2.tree))
         ty1
@@ -312,7 +308,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     val inferred = computeType
     term.typ match {
       case Some(annotated) =>
-        if (!subtype(inferred, annotated, lang))
+        if (!subtype(inferred, annotated))
           error(s"Inferred type $inferred, but expected annotated type $annotated", term)
         annotated
       case None =>

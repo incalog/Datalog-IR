@@ -276,7 +276,7 @@ class GenerateDatalog(module: Module) {
 
   private def lowerType(typ: Type): GP.Type = typ match {
     case TAny => GP.TAny
-    case TData(name) => GP.TScala(Scala(meta.Type.Name(name.name)))
+    case TData(name) => GP.TData(name.name)
     case TScala(ty) => GP.TScala(ty)
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
   }

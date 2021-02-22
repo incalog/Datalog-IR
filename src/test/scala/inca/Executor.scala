@@ -1,7 +1,7 @@
 package inca
 
 import inca.compiler.{CompiledModule, Compiler, Options}
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.runtime.context.QueryScope
 import inca.runtime.data.DataURI
 import inca.runtime.{Database, EnginePool, Query}
 import inca.util.Meta.ScalaCompiler
@@ -87,10 +87,10 @@ object Executor {
     override def toString: String = s"Results(${res.mkString(", ")})"
   }
 
-  def loadFunction(code: String, lmi: LanguageMetaInfo): Loaded = {
-    val options = Options(lmi, transformations = Options.defaultTransformations)
+  def loadFunction(code: String): Loaded = {
+    val options = Options(transformations = Options.defaultTransformations)
     val compiled = Compiler.compileFun(code, options)
-    val scope = new QueryScope(lmi)
+    val scope = new QueryScope(compiled.psystemModule.lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     Loaded(engine, feed, compiled)
   }

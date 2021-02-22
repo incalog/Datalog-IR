@@ -14,6 +14,9 @@ object GP {
   case object TAny extends Type {
     override def asScala: meta.Type = t"Any"
   }
+  case class TData(name: Name) extends Type {
+    override def asScala: meta.Type = meta.Type.Name(name)
+  }
 
   case class TLiteral(litType: LitType) extends Type {
     override def asScala: meta.Type = litType match {
