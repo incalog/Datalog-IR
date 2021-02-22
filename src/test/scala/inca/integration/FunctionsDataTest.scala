@@ -12,9 +12,9 @@ class FunctionsDataTest extends AnyFunSuite {
   test("Plus Example") {
     val fun = loadFunction(Code.plusRealModule, Nat_lmi)
     assert(fun.execute("main_bbf", Seq(q"Succ(Succ(Zero()))", q"Succ(Zero())"))
-      == fun.result(q"Succ(Succ(Succ(Zero()))).uri"))
+      == fun.result(q"Succ(Succ(Succ(Zero())))"))
     assert(fun.execute("main_bbf", Seq(q"Succ(Succ(Succ(Succ(Zero()))))", q"Succ(Succ(Zero()))"))
-      == fun.result(q"Succ(Succ(Succ(Succ(Succ(Succ(Zero())))))).uri"))
+      == fun.result(q"Succ(Succ(Succ(Succ(Succ(Succ(Zero()))))))"))
     fun.printAllMatches()
   }
 
