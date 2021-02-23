@@ -2,16 +2,15 @@ package inca.debugger
 
 import inca.runtime.Query
 
-case class Match(mat: Query.Match, params: Seq[Parameter]) { // TODO ASK out only 1? mat unneeded
+case class Match(mat: Query.Match, cols: Seq[Column]) {
+  override def toString: String = prettyPrint()
 
-  override def toString: String = toString(true)
-
-  def toString(withTag: Boolean): String = params.map {
-    p: Parameter => "\"" + p.name + /*"[" + p.io + "]" + */ "\"=" + p.value.toString(withTag)
+  def prettyPrint(withTag: Boolean = true): String = cols.map {
+    c: Column => "\"" + c.name + "[" + c.ty + "]" +  "\"=" + c.value.prettyPrint(withTag)
   }.mkString("Match { ", ", ", " }")
 
-  def inputs: Seq[Parameter] = params.filter(p => p.io == InputParam)
+  def inputs: Seq[Column] = cols.filter(c => c.ty == Input)
 
-  def outputs: Seq[Parameter] = params.filter(p => p.io == OutputParam)
+  def outputs: Seq[Column] = cols.filter(c => c.ty == Output)
 
 }
