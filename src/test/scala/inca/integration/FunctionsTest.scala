@@ -9,6 +9,7 @@ import scala.meta.XtensionQuasiquoteTerm
 class FunctionsTest extends AnyFunSuite {
   test("Factorial Example") {
     val fun = loadFunction(Code.factModule)
+    println(fun.compiled.optimized)
     assert(fun.execute("main_bf", Seq(q"5")) == fun.resultVal(120))
     assert(fun.execute("main_bf", Seq(q"10")) == fun.resultVal(3628800))
     fun.printAllMatches()

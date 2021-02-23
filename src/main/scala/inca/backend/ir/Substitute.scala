@@ -22,6 +22,7 @@ case class Substitute(subst: Var => Term) {
     case Path(src, srcTy, link, trg, trgTy) => Path(substTerm(src), srcTy, link, substTerm(trg), trgTy)
     case NoPath(t, ty, link, termIsSource) => NoPath(substTerm(t), ty, link, termIsSource)
     case Computed(lhs, computation) => Computed(substTerm(lhs), substComputation(computation))
+    case Undef(t) => Undef(substTerm(t))
   }).withHints(con)
 
   def substTerm(term: Term): Term = term match {

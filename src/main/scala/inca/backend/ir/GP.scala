@@ -115,8 +115,12 @@ object GP {
   def True: Constant = Constant(BooleanLiteral(true))
   def False: Constant = Constant(BooleanLiteral(false))
 
-  sealed trait Computation
-  case class Evaluation(args: Seq[(Term,Type)], resultType: Type, code: Scala[meta.Term.Function]) extends Computation
+  sealed trait Computation {
+    val args: Seq[Term]
+  }
+  case class Evaluation(evalArgs: Seq[(Term,Type)], resultType: Type, code: Scala[meta.Term.Function]) extends Computation {
+    val args: Seq[Term] = evalArgs.map(_._1)
+  }
   case class CountAggregation(patName: Name, args: Seq[Term]) extends Computation
   case class CustomAggregation(typ: Type, agg: Scala[meta.Term], patName: Name, args: Seq[Term], aggregatedColumn: Int) extends Computation
 

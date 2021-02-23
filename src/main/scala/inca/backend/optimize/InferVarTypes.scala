@@ -73,6 +73,8 @@ object InferVarTypes extends Optimization with TypeOps {
             addPatArgTypes(name, args)
         case ExtensionalCall(name, args, neg) =>
           // nothing
+        case Undef(t) =>
+          // nothing
         case Computed(lhs, computation) =>
           computation match {
             case CountAggregation(patName, args) =>

@@ -22,7 +22,7 @@ trait Transformer {
   def transformBody(body: Body, pat: Pattern): Seq[Body] =
     Seq(Body(body.constraints.flatMap(transformConstraint)).withHints(body))
 
-  def transformConstraint(con: Constraint): Seq[Constraint] = con match {
+  def transformConstraint(con: Constraint): Seq[Constraint] = (con match {
     case Call(name, args, transitive, neg) => Seq(Call(name, args.map(transformTerm), transitive, neg))
     case ExtensionalCall(name, args, neg) => Seq(ExtensionalCall(name, args, neg))
     case Compare(comp, lhs, rhs) => Seq(Compare(comp, transformTerm(lhs), transformTerm(rhs)))
@@ -31,7 +31,8 @@ trait Transformer {
     case Path(src, srcTy, link, trg, trgTy) => Seq(Path(transformTerm(src), srcTy, link, transformTerm(trg), trgTy))
     case NoPath(t, ty, link, termIsSource) => Seq(NoPath(transformTerm(t), ty, link, termIsSource))
     case Computed(resultVar, computation) => Seq(Computed(resultVar, computation))
-  }
+    case Undef(t) => Seq(Undef(transformTerm(t)))
+  }).map(_.withHints(con))
 
   def transformTerm(term: Term): Term = term
 }

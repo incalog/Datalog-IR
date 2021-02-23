@@ -31,6 +31,7 @@ trait Optimizer {
     case Path(src, srcTy, link, trg, trgTy) => Seq(Path(optimizeTerm(src), srcTy, link, optimizeTerm(trg), trgTy))
     case NoPath(t, ty, link, termIsSource) => Seq(NoPath(optimizeTerm(t), ty, link, termIsSource))
     case Computed(resultVar, computation) => Seq(Computed(resultVar, computation))
+    case Undef(t) => Seq(Undef(optimizeTerm(t)))
   }).map(_.withHints(con))
 
   def optimizeTerm(term: Term): Term = term

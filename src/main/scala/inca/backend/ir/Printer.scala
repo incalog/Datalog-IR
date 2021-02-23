@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, DataConstructor, DataDef, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TList, TLiteral, TNode, TScala, Term, Type, Var, Visibility}
+import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, DataConstructor, DataDef, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
 import truechange.JavaLitType
 
 object Printer {
@@ -61,6 +61,8 @@ object Printer {
       val neg = if (isNeg) "neg " else ""
       val call = s"$name(${args.map(prettyTerm).mkString(",")})"
       s"${neg}extensional find $call"
+    case Undef(t) =>
+      s"undef ${prettyTerm(t)}"
   }
 
   def prettyLink(link: Link): String = link match {

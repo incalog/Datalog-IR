@@ -320,6 +320,9 @@ object CompileToPSystem {
   }
 
   private def compileConstraint(constraint: Constraint)(implicit env: RuleEnvironment): Seq[Stat] = constraint match {
+    case Undef(t) =>
+      throw new IllegalArgumentException(s"Cannot compile undef constraint. Use undef elimination transformation first.")
+
     case Call(name, args, transitive, neg) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
       val argTuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
