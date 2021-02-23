@@ -14,7 +14,7 @@ case class CompiledFunModule(fun: Module, options: Options) extends CompiledModu
 
   def usingMetaModel: Option[UsingMetamodel] = fun.usingMetaModel
 
-  val frontend: Frontend = if(usingMetaModel.isDefined) options.frontend else {
+  val frontend: Frontend = if(usingMetaModel.isEmpty) options.frontend else {
     val metaModel = new MetaModel(usingMetaModel.get.jsonPath, usingMetaModel.get.literalsPath)
     options.frontendFactory(metaModel.getLanguageMetaInfo)
   }
