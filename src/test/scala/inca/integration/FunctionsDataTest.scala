@@ -1,7 +1,7 @@
 package inca.integration
 
 import inca.Executor._
-import inca.examples.Code
+import inca.examples.{Code, LambdaCalculus}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.XtensionQuasiquoteTerm
@@ -18,7 +18,7 @@ class FunctionsDataTest extends AnyFunSuite {
   }
 
   test("Type Checker Example") {
-    val fun = loadFunction(Code.typeOfModule)
+    val fun = loadFunction(LambdaCalculus.typeOfModule)
     assert(fun.execute("main_bf", Seq(q"TNum(1)"), deleteInput = true)
       == fun.result(q"SomeType(TInt())"))
     assert(fun.execute("main_bf", Seq(q"""TLam("x", TInt(), TVar("x"))"""), deleteInput = true)
@@ -33,7 +33,7 @@ class FunctionsDataTest extends AnyFunSuite {
   }
 
   test("Type Erasure Example") {
-    val fun = loadFunction(Code.eraseModule)
+    val fun = loadFunction(LambdaCalculus.eraseModule)
     assert(fun.execute("main_bf", Seq(q"TNum(1)"), deleteInput = true)
       == fun.result(q"Num(1)"))
     assert(fun.execute("main_bf", Seq(q"""TLam("x", TInt(), TVar("x"))"""), deleteInput = true)
@@ -48,7 +48,7 @@ class FunctionsDataTest extends AnyFunSuite {
   }
 
   test("Interpreter Example") {
-    val fun = loadFunction(Code.interpModule)
+    val fun = loadFunction(LambdaCalculus.interpModule)
     assert(fun.execute("main_bf", Seq(q"Num(1)"), deleteInput = true)
       == fun.result(q"SomeVal(VNum(1))"))
     assert(fun.execute("main_bf", Seq(q"""Lam("x", Var("x"))"""), deleteInput = true)
@@ -67,7 +67,7 @@ class FunctionsDataTest extends AnyFunSuite {
   }
 
   test("Checking+Erasure+Interpreting Example") {
-    val fun = loadFunction(Code.completeLCModule)
+    val fun = loadFunction(LambdaCalculus.completeLCModule)
     // type of peano = (a -> a) -> (a -> a)
     val zero = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TVar("x")))"""
     val one = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TVar("x"))))"""
