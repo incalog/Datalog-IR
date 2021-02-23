@@ -12,17 +12,16 @@ case class CompiledFunModule(fun: Module, options: Options) extends CompiledModu
 
   override def name: Name = fun.name.name
 
-  def metaModelName = fun.usingMetaModel.name.name
+  def usingMetaModel: Option[UsingMetamodel] = fun.usingMetaModel
 
-  val frontend: Frontend = if(metaModelName.isEmpty) options.frontend else {
-    val metaModel = new MetaModel("./src/test/scala/inca/analyzedLangs/GoLang.json", "./src/test/scala/inca/analyzedLangs/tokenNodes" + metaModelName)
+  val frontend: Frontend = if(usingMetaModel.isDefined) options.frontend else {
+    val metaModel = new MetaModel(usingMetaModel.get.jsonPath, usingMetaModel.get.literalsPath)
     options.frontendFactory(metaModel.getLanguageMetaInfo)
   }
 
   override def sourceLocation: SourceLocation = fun.name
 
   lazy val typed: Module = {
-    val frontend = options.frontend
     frontend.typecheck(fun)
     messages ++= frontend.getErrors
     messages ++= frontend.getWarnings
@@ -31,7 +30,6 @@ case class CompiledFunModule(fun: Module, options: Options) extends CompiledModu
   }
 
   lazy val desugared: Module = {
-    val frontend = options.frontend
     val module = Desugar(frontend.allDesugarables)(typed)
     frontend.typecheck(module)
     messages ++= frontend.getErrors

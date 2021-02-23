@@ -41,6 +41,9 @@ object Import {
 
 case class UsingMetamodel(path: Name, name: Name) extends SourceLocation {
   def prettyprint(implicit indent: String): String = s"${indent}using metamodel $name at folder $path"
+
+  def jsonPath: String = path.name + name.name + ".json"
+  def literalsPath: String = path.name + "tokenNodes" + name.name
 }
 
 
