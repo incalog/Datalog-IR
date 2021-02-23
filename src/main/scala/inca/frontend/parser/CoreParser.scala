@@ -31,6 +31,12 @@ trait CoreParser {
       else Name(s)
     }
 
+  def path[_: P]: P[Name] =
+    P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_", "/", "\\").repX).!).mapWithLoc { s =>
+      if (allKeywords.contains(s)) return fastparse.Fail
+      else Name(s)
+    }
+
   /** A parser for fully qualified identifier. Allows '.' in the name */
   protected[frontend] def fullyQualifiedIdentifier[_: P]: P[Name] =
     P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_", ".").repX).!).mapWithLoc { s =>
@@ -296,19 +302,19 @@ trait CoreParser {
   /** Module parser */
   def module[_: P]: P[Module] =
     P("module " ~ identifier ~
-      using_.? ~
+      metamodel_.? ~
       import_.rep ~
       moduleContent.rep ~
       End
-    ).mapWithLoc { case (name, using, imports, contents) =>
-      Module(name, imports, contents.flatten, using.getOrElse(UsingMetamodel(Name(""))))
+    ).mapWithLoc { case (name, metamodel, imports, contents) =>
+      Module(name, imports, contents.flatten, metamodel)
     }
 
   def import_[_: P]: P[Import] =
     P("import" ~ identifier).mapWithLoc(Import.apply)
 
-  def using_[_:P]: P[UsingMetamodel] =
-    P("using" ~ identifier).mapWithLoc(UsingMetamodel.apply)
+  def metamodel_[_:P]: P[UsingMetamodel] =
+    P("metamodelpath" ~ path ~ "metamodel" ~ identifier).mapWithLoc { case (path, name) => UsingMetamodel(path, name) }
 
   def moduleContent[_: P]: P[Seq[ModuleContent]] =
     P(patternFunction.map(Seq(_)) | valDef.map(Seq(_)) | scalaModuleContent)
