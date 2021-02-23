@@ -66,6 +66,34 @@ object LambdaCalculus {
        |}
        |""".stripMargin
 
+  val typeOfRelation =
+    s"""def typeOf(ctx: Ctx, exp: TExp): Option[Type] = exp match {
+       |  case TNum(v) => Some(TInt())
+       |  case TLam(n, ty, b) =>
+       |    let extCtx = BindCtx(n, ty, ctx) in
+       |      let mt = typeOf(extCtx, b) in mt match {
+       |        case None => None
+       |        case Some(ty2) => Some(TFun(ty, ty2))
+       |      }
+       |  case TApp(fun, arg) => typeOf(ctx, fun) match {
+       |    case None => None
+       |    case Some(funty) => funty match {
+       |      case TInt() => None
+       |      case TFun(ty1, ty2) =>
+       |        typeOf(ctx, arg) match {
+       |          case None => None
+       |          case Some(argty) =>
+       |            if (eqType(argty, ty1))
+       |              Some(ty2)
+       |            else
+       |              None
+       |        }
+       |    }
+       |  }
+       |  case TVar(n) => ctxLookup(ctx, n)
+       |}
+       |""".stripMargin
+
   val eqTypeFunction =
     s"""def eqType(ty1: Type, ty2: Type): `Boolean` = ty1 match {
        |  case TInt() => ty2 match {
@@ -89,6 +117,15 @@ object LambdaCalculus {
        |}
        |""".stripMargin
 
+  val ctxLookupRelation =
+    s"""def ctxLookup(ctx: Ctx, n: `String`): Option[Type] = ctx match {
+       |  case EmptyCtx() => None
+       |  case BindCtx(n1, ty, rest) =>
+       |    if (n1 == n) Some(ty)
+       |    else ctxLookup(rest, n)
+       |}
+       |""".stripMargin
+
   val typeOfModule: String = module(
     TExp_code,
     Type_code,
@@ -99,6 +136,17 @@ object LambdaCalculus {
     typeOfFunction,
     eqTypeFunction,
     ctxLookupFunction
+  )
+
+  val typeOfRelModule: String = module(
+    TExp_code,
+    Type_code,
+    Ctx_code,
+    s"""@main def main(exp: TExp): Option[Type] = typeOf(EmptyCtx(), exp)
+       |""".stripMargin,
+    typeOfRelation,
+    eqTypeFunction,
+    ctxLookupRelation
   )
 
   val eraseFunciton =

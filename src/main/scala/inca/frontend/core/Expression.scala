@@ -94,7 +94,6 @@ object Call {
   trait Target
 }
 
-
 case class Tuple(exps: Seq[Expression]) extends CoreExpression {
   override def vars: Map[Name, Option[Type]] = exps.flatMap(_.vars).toMap
 
@@ -118,6 +117,15 @@ trait Pattern extends SourceLocation {
 case class ConstructorPattern(constr: Name, args: Seq[Name]) extends Pattern with Resolvable[DataConstructor.Target] with Var.Target {
   override def vars: Map[Name, Option[Type]] = args.map(_ -> None).toMap
   override def prettyprint: String = s"$constr(${args.mkString(", ")})"
+}
+
+case class NonePattern() extends Pattern {
+  override def vars: Map[Name, Option[Type]] = Map()
+  override def prettyprint: String = "None"
+}
+case class SomePattern(arg: Name) extends Pattern with Var.Target {
+  override def vars: Map[Name, Option[Type]] = Map(arg -> None)
+  override def prettyprint: String = s"Some($arg)"
 }
 
 
@@ -160,4 +168,13 @@ case class BaseApplyInfix(left: Expression, op: Scala[meta.Term.Name], right: Ex
 object BaseApplyInfix {
   def apply(left: Expression, op: String, right: Expression): BaseApplyInfix =
     new BaseApplyInfix(left, Scala(meta.Term.Name(op)), right)
+}
+
+case class NoneExp() extends CoreExpression {
+  override def vars: Map[Name, Option[Type]] = Map()
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = "None"
+}
+case class SomeExp(e: Expression) extends CoreExpression {
+  override def vars: Map[Name, Option[Type]] = e.vars
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = s"Some(${e.prettyprint})"
 }

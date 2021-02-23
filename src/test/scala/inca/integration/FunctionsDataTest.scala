@@ -32,6 +32,21 @@ class FunctionsDataTest extends AnyFunSuite {
     fun.printAllMatches()
   }
 
+  test("Type Checker Relation Example") {
+    val fun = loadFunction(LambdaCalculus.typeOfRelModule)
+    assert(fun.execute("main_bf", Seq(q"TNum(1)"), deleteInput = true)
+      == fun.result(q"TInt()"))
+    assert(fun.execute("main_bf", Seq(q"""TLam("x", TInt(), TVar("x"))"""), deleteInput = true)
+      == fun.result(q"TFun(TInt(), TInt())"))
+    assert(fun.execute("main_bf", Seq(q"""TLam("x", TInt(), TVar("y"))"""), deleteInput = true)
+      == fun.results(Seq()))
+    assert(fun.execute("main_bf", Seq(q"""TApp(TLam("x", TInt(), TVar("x")), TNum(1337))"""), deleteInput = true)
+      == fun.result(q"TInt()"))
+    assert(fun.execute("main_bf", Seq(q"""TApp(TNum(12), TNum(11))"""), deleteInput = true)
+      == fun.results(Seq()))
+    fun.printAllMatches()
+  }
+
   test("Type Erasure Example") {
     val fun = loadFunction(LambdaCalculus.eraseModule)
     assert(fun.execute("main_bf", Seq(q"TNum(1)"), deleteInput = true)

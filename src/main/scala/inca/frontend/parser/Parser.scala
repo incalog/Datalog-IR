@@ -16,7 +16,9 @@ import scala.meta.parsers.{Parsed, _}
  */
 trait Parser {
 
-  final lazy val allKeywords: Set[String] = Set("if", "let", "in", "match", "fail")
+  final lazy val allKeywords: Set[String] =
+    Set("if", "let", "in", "match", "fail") ++
+      Set("Option", "None", "Some", "Set")
 
   def identifier[_: P]: P[Name] =
     P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_").repX).!).mapWithLoc { s =>
@@ -58,7 +60,7 @@ trait Parser {
 
   protected[frontend] def wideExp[_: P]: P[Expression] = P(ifExp | letExp | infixExp)
   protected[frontend] def infixExp[_: P]: P[Expression] = P(baseApplyInfixExp | matchExp | atomicExp)
-  protected[frontend] def atomicExp[_: P]: P[Expression] = P(tupleExp | callExp | baseLitExp| baseApplyExp | variable | parensExp)
+  protected[frontend] def atomicExp[_: P]: P[Expression] = P(optionExp | tupleExp | callExp | baseLitExp| baseApplyExp | variable | parensExp)
 
   /** Let parser */
   final protected[frontend] def parensExp[_: P]: P[Expression] = P("(" ~ exp ~ ")")
@@ -104,13 +106,29 @@ trait Parser {
       case (pat, body) => (pat, body)
     }
 
-  protected[frontend] def pattern[_: P]: P[Pattern] = P(constructorPattern)
+  protected[frontend] def optionExp[_: P]: P[Expression] = {
+    P("None").mapWithLoc(_ => NoneExp()) |
+    P("Some" ~ "(" ~ exp.rep(sep = ",") ~ ")").mapWithLoc {
+      case Seq(arg) => SomeExp(arg)
+      case args => Call(Name("Some"), args)
+    }
+  }
 
-  protected[frontend] def constructorPattern[_: P]: P[ConstructorPattern] =
-    P(identifier ~ "(" ~ identifier.rep(sep = ",") ~")").map {
+  protected[frontend] def pattern[_: P]: P[Pattern] =
+    P(optionPattern | constructorPattern)
+
+  protected[frontend] def constructorPattern[_: P]: P[ConstructorPattern] = {
+    P(identifier ~ "(" ~ identifier.rep(sep = ",") ~")").mapWithLoc {
       case (name, args) => ConstructorPattern(name, args)
     }
+  }
 
+  protected[frontend] def optionPattern[_: P]: P[Pattern] =
+    P("None").mapWithLoc(_ => NonePattern()) |
+    P("Some" ~ "(" ~ identifier.rep(sep = ",") ~")").mapWithLoc {
+      case Seq(arg) => SomePattern(arg)
+      case args => ConstructorPattern(Name("Some"), args)
+    }
 
 
   /** base parser */
@@ -196,6 +214,7 @@ trait Parser {
 
   protected[frontend] def typeAnno[_: P]: P[Type] =
     P(simpleType("Any", TAny) | simpleType("Nothing", TNothing) |
+      tOption | tSet |
       simpleType("Unit", TTuple(Seq())) | tTuple | tData | scalaType)
 
   /** Helper for the Type like TAny. */
@@ -211,6 +230,12 @@ trait Parser {
 
   protected[frontend] def scalaType[_: P]: P[Type] =
     P("`" ~~ scalaTypeCore ~~ "`")
+
+  protected[frontend] def tOption[_: P]: P[Type] =
+    P("Option" ~ "[" ~ typeAnno ~ "]").mapWithLoc(TOption)
+
+  protected[frontend] def tSet[_: P]: P[Type] =
+    P("Set" ~ "[" ~ typeAnno ~ "]").mapWithLoc(TSet)
 
   protected[frontend] def scalaTypeCore[_: P]: P[Type] =
     P(CharsWhile(_ != '`').!).flatMap { raw_code =>

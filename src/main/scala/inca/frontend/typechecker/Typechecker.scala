@@ -118,7 +118,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         error(s"Expected Boolean condition, but got $cty", cnd)
       val tty = typecheck(thn)
       val ety = typecheck(els)
-      meet(tty, ety)
+      join(tty, ety)
 
     case Tuple(exps) =>
       TTuple(exps.map(typecheck))
@@ -137,47 +137,16 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case Match(matchee, cases) =>
       typecheck(matchee) match {
         case td: TData if td.target.isDefined =>
-          val data = td.target.get.asInstanceOf[DataDef]
-          var seenConstrs = Set[Name]()
+          typecheckTDataMatch(exp, cases, td)
 
-          val ctys = cases.map { case (pat@ConstructorPattern(constr, vars), e) =>
-            if (seenConstrs.contains(constr))
-              error(s"Duplicate constructor pattern $constr", constr)
-            else
-              seenConstrs += constr
-
-            data.constrs.find(_.name == constr) match {
-              case Some(dcon@DataConstructor(_, paramTypes)) =>
-                resolveTarget(pat)(dcon)
-                if (paramTypes.size != vars.size)
-                  error(s"Wrong number of constructor arguments, expected ${paramTypes.size} but got ${vars.size}", pat)
-                scopedTypeContext {
-                  vars.zipAll(paramTypes, null, null).foreach {
-                    case (null, ty) => // nothing
-                    case (v, null) => bindVar(v, pat, TAny)
-                    case (v, ty) => bindVar(v, pat, ty)
-                  }
-                  typecheck(e)
-                }
-              case None =>
-                error(s"Cannot match constructor $constr against matchee of type $td", constr)
-                scopedTypeContext {
-                  vars.foreach(v => bindVar(v, pat, TAny))
-                  typecheck(e)
-                }
-            }
-          }
-          val missingConstrs = data.constrs.map(_.name).toSet -- seenConstrs
-          if (missingConstrs.nonEmpty)
-            error(s"Pattern match must be complete but missed the following constructors: ${missingConstrs.mkString(", ")}", exp)
-          ctys.foldLeft[Type](TAny)((t1, t2) => meet(t1, t2))
+        case topt: TOption =>
+          typecheckTOptionMatch(exp, cases, topt)
 
         case ty =>
-          error(s"Can only match on data types, but matchee has type $ty", matchee)
+          error(s"Cannot match on type $ty", matchee)
           val ctys = cases.map(c => typecheck(c._2))
-          ctys.foldLeft[Type](TAny)((t1, t2) => meet(t1, t2))
+          join(ctys)
       }
-
 
     case BaseLit(code) =>
       typecheckDecodeScala(code.syntax, exp)
@@ -204,6 +173,94 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
       val codeSource = s"{$paramString;\n$leftName ${op.tree} $rightName}"
       typecheckDecodeScala(codeSource, exp)
+
+    case NoneExp() =>
+      TOption(TNothing)
+
+    case SomeExp(e) =>
+      val ty = typecheck(e)
+      TOption(ty)
+  }
+
+  private def typecheckTDataMatch(exp: CoreExpression, cases: Seq[(Pattern, Expression)], td: TData) = {
+    val data = td.target.get.asInstanceOf[DataDef]
+    var seenConstrs = Set[Name]()
+
+    val ctys = cases.map {
+      case (pat@ConstructorPattern(constr, vars), e) =>
+        if (seenConstrs.contains(constr))
+          error(s"Duplicate constructor pattern $constr", constr)
+        else
+          seenConstrs += constr
+
+        data.constrs.find(_.name == constr) match {
+          case Some(dcon@DataConstructor(_, paramTypes)) =>
+            resolveTarget(pat)(dcon)
+            if (paramTypes.size != vars.size)
+              error(s"Wrong number of constructor arguments, expected ${paramTypes.size} but got ${vars.size}", pat)
+            scopedTypeContext {
+              vars.zipAll(paramTypes, null, null).foreach {
+                case (null, ty) => // nothing
+                case (v, null) => bindVar(v, pat, TAny)
+                case (v, ty) => bindVar(v, pat, ty)
+              }
+              typecheck(e)
+            }
+          case None =>
+            error(s"Cannot match constructor $constr against matchee of type $td", constr)
+            scopedTypeContext {
+              vars.foreach(v => bindVar(v, pat, TAny))
+              typecheck(e)
+            }
+        }
+      case (pat, e) =>
+        error(s"Cannot match pattern $pat against matchee of type $td", pat)
+        scopedTypeContext {
+          val dummy = ConstructorPattern(Name("?"), Seq())
+          pat.vars.foreach(v => bindVar(v._1, dummy, TAny))
+          typecheck(e)
+        }
+    }
+    val missingConstrs = data.constrs.map(_.name).toSet -- seenConstrs
+    if (missingConstrs.nonEmpty)
+      error(s"Pattern match must be complete but missed the following constructors: ${missingConstrs.mkString(", ")}", exp)
+    join(ctys)
+  }
+
+  private def typecheckTOptionMatch(exp: CoreExpression, cases: Seq[(Pattern, Expression)], topt: TOption) = {
+    var seenConstrs = Set[String]()
+    val ctys = cases.map {
+      case (pat@NonePattern(), e) =>
+        if (seenConstrs.contains("None"))
+          error(s"Duplicate constructor pattern None", pat)
+        else
+          seenConstrs += "None"
+        typecheck(e)
+
+      case (pat@SomePattern(v), e) =>
+        if (seenConstrs.contains("Some"))
+          error(s"Duplicate constructor pattern Some", pat)
+        else
+          seenConstrs += "Some"
+
+        scopedTypeContext {
+          bindVar(v, pat, topt.ty)
+          typecheck(e)
+        }
+
+      case (pat@ConstructorPattern(constr, vars), e) =>
+        error(s"Cannot match pattern $pat against matchee of type $topt", pat)
+        scopedTypeContext {
+          val dummy = ConstructorPattern(Name("?"), Seq())
+          pat.vars.foreach(v => bindVar(v._1, dummy, TAny))
+          typecheck(e)
+        }
+    }
+
+    val missingConstrs = Set("None", "Some") -- seenConstrs
+    if (missingConstrs.nonEmpty)
+      error(s"Pattern match must be complete but missed the following constructors: ${missingConstrs.mkString(", ")}", exp)
+    join(ctys)
   }
 
   def typecheckFunCall(fun: FunctionDef, args: Seq[Expression], transitive: Boolean, exp: Expression): Type = {
@@ -279,6 +336,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   def subtype(ty1: Type, ty2: Type): Boolean =
     meet(ty1, ty2) == ty1
 
+  protected def meet(tys: Iterable[Type]): Type =
+    tys.foldLeft[Type](TAny)(meet)
+
   protected def meet(ty1: Type, ty2: Type): Type = (ty1, ty2) match {
     case (_, _) if ty1 == ty2 => ty1
     case (TAny, _) => ty2
@@ -301,7 +361,39 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         ty2
       else
         TNothing
+    case (TOption(s1), TOption(s2)) => TOption(meet(s1, s2))
+    case (TSet(s1), TSet(s2)) => TSet(meet(s1, s2))
     case _ => TNothing
+  }
+
+  protected def join(tys: Iterable[Type]): Type =
+    tys.foldLeft[Type](TNothing)(join)
+
+  protected def join(ty1: Type, ty2: Type): Type = (ty1, ty2) match {
+    case (_, _) if ty1 == ty2 => ty1
+    case (TNothing, _) => ty2
+    case (_, TNothing) => ty1
+    case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size => TTuple(tys1.zip(tys2).map(tt => join(tt._1, tt._2)))
+    case (TScala(s1), TScala(s2)) =>
+      if (subtypeScala(s1.tree, s2.tree))
+        ty2
+      else if (subtypeScala(s2.tree, s1.tree))
+        ty1
+      else
+        TAny
+    case (_, TScala(s2)) =>
+      if (subtypeScala(ty1.asScala, s2.tree))
+        ty2
+      else
+        TAny
+    case (TScala(s1), _) =>
+      if (subtypeScala(s1.tree, ty2.asScala))
+        ty1
+      else
+        TAny
+    case (TOption(s1), TOption(s2)) => TOption(join(s1, s2))
+    case (TSet(s1), TSet(s2)) => TSet(join(s1, s2))
+    case _ => TAny
   }
 
   def assignType(term: Typeable with SourceLocation)(computeType: => Type): Type = {

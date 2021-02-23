@@ -7,6 +7,7 @@ import inca.runtime.data.DataURI
 import inca.util.Meta.{Scala, symbolOf, typeOf}
 import inca.util.{Gensym, TupleOps}
 
+import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
 object GenerateDatalog {
@@ -139,6 +140,13 @@ class GenerateDatalog(module: Module) {
               case None => throw new IllegalArgumentException(s"Cannot compile unresolved constructor pattern $pat")
             }
             GP.Call(selector, matcheeTerm +: pat.args.map(a => GP.Var(a.name)))
+
+          case SomePattern(v) =>
+            GP.Eq(GP.Var(v.name), matcheeTerm)
+
+          case NonePattern() =>
+            GP.Undef(matcheeTerm)
+
           case _ => throw new IllegalStateException(s"Unknown pattern $pat")
         }
         (bodyTerms, matcheeCons ++ (patCons +: bodyCons))
@@ -199,6 +207,12 @@ class GenerateDatalog(module: Module) {
             transType(resType), Scala(funCode)))
         (Seq(evalOut), leftCons ++ rightCons ++ Seq(evalConstraint))
       }
+
+    case NoneExp() =>
+      Seq() // yields no results
+
+    case SomeExp(e) =>
+      transExp(e.ensureCore) // yields the results of e
   }
 
   private def transData(data: DataDef): Seq[GP.Pattern] = {
@@ -267,17 +281,23 @@ class GenerateDatalog(module: Module) {
   private def transVis(vis: Option[Visibility]): Option[GP.Visibility] =
     vis.map { case Private => GP.Private }
 
+  @tailrec
   private def transType(typ: Type): GP.Type = typ match {
     case TAny => GP.TAny
     case TData(_) => GP.TScala(Scala(tyURI))
     case TScala(ty) => GP.TScala(ty)
+    case TOption(ty) => transType(ty)
+    case TSet(ty) => transType(ty)
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
   }
 
+  @tailrec
   private def lowerType(typ: Type): GP.Type = typ match {
     case TAny => GP.TAny
     case TData(name) => GP.TData(name.name)
     case TScala(ty) => GP.TScala(ty)
+    case TOption(ty) => lowerType(ty)
+    case TSet(ty) => lowerType(ty)
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
   }
 

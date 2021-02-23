@@ -73,6 +73,7 @@ object GP {
   case class Path(src: Term, srcTy: Type, link: Link, trg: Term, trgTy: Type) extends Constraint
   case class NoPath(t: Term, ty: Type, link: Link, termIsSource: Boolean) extends Constraint
   case class Computed(lhs: Term, computation: Computation) extends Constraint
+  case class Undef(t: Term) extends Constraint
 
   sealed trait Link
   case object ParentLink extends Link
