@@ -3,7 +3,7 @@ package inca.frontend.lowering
 import inca.backend.ir.GP
 import inca.compiler.{Compiler, Options}
 import inca.examples.ADT.Nat_lmi
-import inca.examples.AST
+import inca.examples.{AST, Code}
 import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -234,6 +234,16 @@ class GenerateDatalogTest extends AnyFunSuite {
 
   test("plus real example") {
     val result = Compiler.compileFun(AST.plusRealModule, options).ir
+    println(result)
+  }
+
+  test("set constants") {
+    val result = Compiler.compileFun(Code.setConstModule, options).ir
+    println(result)
+  }
+
+  test("set operations") {
+    val result = Compiler.compileFun(Code.setOperationsModule, options).ir
     println(result)
   }
 }

@@ -130,10 +130,10 @@ object Code {
        |def member: `Boolean` = "1.0" in grades()
        |def union: Set[`Int`] = flip() ++ flip()
        |
-       |def const: Set[`Int`] = {0 | true}
-       |def enum: Set[`String`] = {g | g in grades()}
-       |def project: Set[`String`] = { (g + " grade") | g in grades()}
-       |def filter: Set[`String`] = { g | g in grades(), g < "3.0" }
-       |def cross: Set[(`Int`, `String`)] = { (i,g) | i in flip(), g in grades() }
+//       |def const: Set[`Int`] = {0 | true}
+//       |def enum: Set[`String`] = {g | g in grades()}
+//       |def project: Set[`String`] = { (g + " grade") | g in grades()}
+//       |def filter: Set[`String`] = { g | g in grades(), g < "3.0" }
+//       |def cross: Set[(`Int`, `String`)] = { (i,g) | i in flip(), g in grades() }
        |""".stripMargin
 }

@@ -184,6 +184,10 @@ class GenerateDatalog(module: Module) {
         (Seq(evalOut), argCons.flatten :+ evalConstraint)
       }
 
+    case BaseApplyInfix(left, op,  right)
+      if op.tree.value == "++" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
+      transExp(left.ensureCore) ++ transExp(right.ensureCore)
+
     case BaseApplyInfix(left, op, right) =>
       import scala.meta._
       val leftParam = {
@@ -213,6 +217,24 @@ class GenerateDatalog(module: Module) {
 
     case SomeExp(e) =>
       transExp(e.ensureCore) // yields the results of e
+
+    case SetExp(es) =>
+      es.flatMap(e => transExp(e.ensureCore))
+
+    case SetMember(tup, set) =>
+      val tupRes = tup.map(t => transExp(t.ensureCore))
+      for (tups <- TupleOps.cartesianProduct(tupRes);
+           (tupTerms, tupCons) <- tups;
+           (setTerms, setCons) <- transExp(set.ensureCore))
+        yield {
+          val eqs = tupTerms.zip(setTerms).map(vt => GP.Eq(vt._1, vt._2))
+          import scala.meta._
+          val evalOut = GP.Var(gensym.fresh("lit"))
+          val funCode = q"() => ${Lit.Boolean(true)}"
+          val evalConstraint = GP.Computed(evalOut, GP.Evaluation(Seq(), GP.TScalaBoolean, Scala(funCode)))
+          (Seq(evalOut), setCons ++ tupCons ++ eqs :+ evalConstraint)
+        }
+
   }
 
   private def transData(data: DataDef): Seq[GP.Pattern] = {
