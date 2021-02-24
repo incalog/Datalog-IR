@@ -66,6 +66,8 @@ class GenerateDatalog(module: Module) {
     case TTuple(tys) => tys.zipWithIndex.flatMap { case (ty, ix) =>
       flattenParam(name + "_" + ix, ty, genFresh = true)
     }
+    case TOption(ty) => flattenParam(name, ty, genFresh)
+    case TSet(ty) => flattenParam(name, ty, genFresh)
     case TNothing => Seq()
     case _ =>
       val v = if (genFresh) gensym.fresh(name) else name
@@ -224,17 +226,21 @@ class GenerateDatalog(module: Module) {
     case SetMember(tup, set) =>
       val tupRes = tup.map(t => transExp(t.ensureCore))
       for (tups <- TupleOps.cartesianProduct(tupRes);
-           (tupTerms, tupCons) <- tups;
            (setTerms, setCons) <- transExp(set.ensureCore))
         yield {
-          val eqs = tupTerms.zip(setTerms).map(vt => GP.Eq(vt._1, vt._2))
-          import scala.meta._
-          val evalOut = GP.Var(gensym.fresh("lit"))
-          val funCode = q"() => ${Lit.Boolean(true)}"
-          val evalConstraint = GP.Computed(evalOut, GP.Evaluation(Seq(), GP.TScalaBoolean, Scala(funCode)))
-          (Seq(evalOut), setCons ++ tupCons ++ eqs :+ evalConstraint)
+          val (tupTerms, tupCons) = tups.unzip
+          val eqs = tupTerms.flatten.zip(setTerms).map(vt => GP.Eq(vt._1, vt._2))
+          (Seq(GP.True), setCons ++ tupCons.flatten ++ eqs)
         }
 
+    case SetComprehension(build, predicates) =>
+      val predRes = predicates.map(e => transExp(e.ensureCore))
+      for (ps <- TupleOps.cartesianProduct(predRes);
+           (buildTerms, buildCons) <- transExp(build.ensureCore)) yield {
+        val (predBools, predCons) = ps.unzip
+        val predTrue = predBools.flatten.map(b => GP.Eq(b, GP.True))
+        (buildTerms, predCons.flatten ++ predTrue ++ buildCons)
+      }
   }
 
   private def transData(data: DataDef): Seq[GP.Pattern] = {

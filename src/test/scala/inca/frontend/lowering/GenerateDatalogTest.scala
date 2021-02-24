@@ -3,7 +3,7 @@ package inca.frontend.lowering
 import inca.backend.ir.GP
 import inca.compiler.{Compiler, Options}
 import inca.examples.ADT.Nat_lmi
-import inca.examples.{AST, Code}
+import inca.examples.{AST, CFlow, Code}
 import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -244,6 +244,11 @@ class GenerateDatalogTest extends AnyFunSuite {
 
   test("set operations") {
     val result = Compiler.compileFun(Code.setOperationsModule, options).ir
+    println(result)
+  }
+
+  test("cflow") {
+    val result = Compiler.compileFun(CFlow.flowModule, options).ir
     println(result)
   }
 }

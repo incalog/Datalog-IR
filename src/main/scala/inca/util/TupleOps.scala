@@ -33,7 +33,7 @@ object TupleOps {
         case x :: xs => pel(e, xs, (e +: x) +: a )
       }
 
-    lst.toList match {
+    val res = lst.toList match {
       case Nil => Nil
       case x :: Nil => Seq(x)
       case x :: _ =>
@@ -45,5 +45,6 @@ object TupleOps {
             ).map(_.dropRight(x.size))
         }
     }
+    res
   }
 }
