@@ -44,16 +44,16 @@ class Gensym(init: Iterable[String]) {
         used += base_ -> (count + 1)
         v
       case None =>
-        used += base_ -> 0
-        base
+        used += base_ -> 1
+        base_ + 0
     }
   }
 
   private def ensureUnder(s: String): String =
-    if (s.endsWith("_") && s != "_")
+    if (s.endsWith("$") && s != "$")
       s
     else
-      s + "_"
+      s + "$"
 
   def scoped[A](f: => A): A = {
     val oldused = this.used

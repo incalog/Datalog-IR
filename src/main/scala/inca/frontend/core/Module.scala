@@ -48,12 +48,6 @@ case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Na
 
   lazy val calls: Set[Call] = body.calls
 
-  def outParams: Seq[Type] = outType match {
-    case TUnit => Seq()
-    case TTuple(ts) => ts
-    case ty => Seq(ty)
-  }
-
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")

@@ -58,7 +58,7 @@ class GenerateDatalog(module: Module) {
 
     val pat = GP.Pattern(vis, fun.name.name, params ++ outParams, bodies)
     if (fun.hasAnnotation(MainFunctionAnno.key))
-      pat.addHint(MagicSetHints.Main(params.map(_ => true) :+ false))
+      pat.addHint(MagicSetHints.Main(params.map(_ => true) ++ outParams.map(_ => false)))
     pat
   }
 
@@ -106,8 +106,8 @@ class GenerateDatalog(module: Module) {
 
     case call@Call(name, args, transitive) =>
       val outvars = call.target match {
-        case Some(fun: FunctionDef) => fun.outParams.map(_ => GP.Var(gensym.fresh("out")))
-        case Some(ctr: DataConstructor) => Seq(GP.Var(gensym.fresh("out_" + ctr.name.name)))
+        case Some(fun: FunctionDef) => fun.outType.flatten.map(_ => GP.Var(gensym.fresh("call")))
+        case Some(ctr: DataConstructor) => Seq(GP.Var(gensym.fresh("call_" + ctr.name.name)))
         case Some(target) => throw new IllegalArgumentException(s"Unknown call target $target")
         case None => throw new IllegalArgumentException(s"Unresolved call $call")
       }

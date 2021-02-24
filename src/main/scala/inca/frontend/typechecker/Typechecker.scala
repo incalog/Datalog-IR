@@ -424,11 +424,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       // TODO
     }
 
-    fun.outParams match {
-      case Seq() => TypeOrigin(TUnit, ors)
-      case Seq(out) => TypeOrigin(out, ors)
-      case outs => TypeOrigin(TTuple(outs), ors)
-    }
+    TypeOrigin(fun.outType, ors)
   }
 
   def typecheckConstrCall(constr: DataConstructor, data: DataDef, args: Seq[Expression], transitive: Boolean, exp: Expression): TypeOrigin = {
