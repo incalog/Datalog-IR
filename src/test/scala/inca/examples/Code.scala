@@ -1,6 +1,6 @@
 package inca.examples
 
-import inca.examples.ADT.{Ctx_code, Env_code, Exp_code, MaybeType_code, MaybeVal_code, Nat_code, TExp_code, Type_code, Val_code}
+import inca.examples.ADT.Nat_code
 
 object Code {
   def module(content: String*): String =
@@ -110,5 +110,30 @@ object Code {
        |    1
        |  else
        |    fib(n - 1) + fib(n - 2)
+       |""".stripMargin
+
+
+  val setConstModule: String =
+    s"""module Foo
+       |
+       |@main def flip: Set[`Int`] = {0, 1}
+       |@main def grades: Set[`String`] = {"1.0", "1.3", "1.7", "2.0", "2.3", "2.7", "3.0", "3.3", "3.7", "4.0", "5.0"}
+       |
+       |""".stripMargin
+
+  val setOperationsModule: String =
+    s"""module Foo
+       |
+       |def flip: Set[`Int`] = {0, 1}
+       |def grades: Set[`String`] = {"1.0", "1.3", "1.7", "2.0", "2.3", "2.7", "3.0", "3.3", "3.7", "4.0", "5.0"}
+       |
+       |def member: `Boolean` = "1.0" in grades()
+       |
+       |def const: Set[`String`] = {0 | true}
+       |def enum: Set[`String`] = {g | g in grades()}
+       |def project: Set[`String`] = { (g + " grade") | g in grades()}
+       |def filter: Set[`String`] = { g | g in grades(), g < "3.0" }
+       |def cross: Set[(`Int`, `String`)] = { (i,g) | i in flip(), g in grades() }
+       |def union: Set[`Int`] = flip ++ flip
        |""".stripMargin
 }

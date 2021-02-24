@@ -139,12 +139,30 @@ class ParserTest extends AnyFunSuite {
     testSuccess(parser.exp(_))(matchString, matchExp)
   }
 
+  test("set constants") {
+    testSuccessAny(parser.module(_))(Code.setConstModule)
+  }
+
+  test("set operations") {
+    testSuccessAny(parser.module(_))(Code.setOperationsModule)
+  }
+
   private def testSuccess[T](parser: P[_] => P[Any]): (String, T) => Assertion =
     (input: String, cmp: T) => {
       parse(input, parser) match {
         case Success(value, index)        =>
           println(value)
           assert(value === cmp)
+          assertResult(input.length)(index)
+        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+      }
+    }
+
+  private def testSuccessAny[T](parser: P[_] => P[Any]): String => Assertion =
+    (input: String) => {
+      parse(input, parser) match {
+        case Success(value, index)        =>
+          println(value)
           assertResult(input.length)(index)
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
       }

@@ -46,21 +46,27 @@ trait Parser {
 
   /** PatternFunction parser */
   protected[frontend] def functionDef[_: P]: P[ModuleContent] = {
-    P(annotation.rep ~ visibility.? ~ "def" ~ identifier ~ "(" ~ paramList ~ ")" ~ ":" ~ typeAnno ~ "=" ~ exp).mapWithLoc{
+    P(annotation.rep ~ visibility.? ~ "def" ~ identifier ~ defParams ~ ":" ~ typeAnno ~ "=" ~ exp).mapWithLoc{
       case (annos, vis, name, params, ty, exp) =>
         FunctionDef(annos, vis, name, params, ty, exp)
     }
-
   }
+
+  protected[frontend] def defParams[_: P]: P[Seq[Param]] =
+    P("(" ~ paramList ~ ")") | P("").map(_ => Seq())
 
   protected[frontend]  def annotation[_: P]: P[Annotation] = mainFuncAnno
   protected[frontend]  def mainFuncAnno[_: P]: P[MainFunctionAnno.type] = P("@main").map(_ => MainFunctionAnno)
 
   protected[frontend] def exp[_: P]: P[Expression] = wideExp
 
-  protected[frontend] def wideExp[_: P]: P[Expression] = P(ifExp | letExp | infixExp)
-  protected[frontend] def infixExp[_: P]: P[Expression] = P(baseApplyInfixExp | matchExp | atomicExp)
-  protected[frontend] def atomicExp[_: P]: P[Expression] = P(optionExp | tupleExp | callExp | baseLitExp| baseApplyExp | variable | parensExp)
+  protected[frontend] def wideExp[_: P]: P[Expression] =
+    P(ifExp | letExp | infixExp)
+  protected[frontend] def infixExp[_: P]: P[Expression] =
+    P(baseApplyInfixExp | matchExp | memberExp | atomicExp)
+  protected[frontend] def atomicExp[_: P]: P[Expression] =
+    P(optionExp | constSetExp | comprehensionExp |
+      tupleExp | callExp | baseLitExp| baseApplyExp | variable | parensExp)
 
   /** Let parser */
   final protected[frontend] def parensExp[_: P]: P[Expression] = P("(" ~ exp ~ ")")
@@ -113,6 +119,16 @@ trait Parser {
       case args => Call(Name("Some"), args)
     }
   }
+
+  protected[frontend] def constSetExp[_: P]: P[Expression] =
+    P("{" ~ exp.rep(sep = ",") ~ "}").mapWithLoc(SetExp)
+
+  protected[frontend] def comprehensionExp[_: P]: P[Expression] =
+    P("{" ~ atomicExp ~ "|" ~ exp.rep(sep = ",") ~ "}").mapWithLoc(SetComprehension.tupled)
+
+  protected[frontend] def memberExp[_: P]: P[Expression] =
+    P(atomicExp ~ "in" ~ atomicExp).mapWithLoc { case (e, set) => SetMember(Seq(e), set) } |
+    P("(" ~ exp.rep(2, sep = ",") ~ ")" ~ "in" ~ atomicExp).mapWithLoc { SetMember.tupled }
 
   protected[frontend] def pattern[_: P]: P[Pattern] =
     P(optionPattern | constructorPattern)

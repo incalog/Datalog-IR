@@ -11,6 +11,10 @@ class TypecheckerTest extends AnyFunSuite {
 
   def newTypechecker(): Typechecker = new Typechecker { }
 
+  def checkModule(mod: String): Unit = {
+    checkModule(Frontend.Core.parseModule(mod).get.value)
+  }
+
   def checkModule(mod: Module): Unit = {
     val checker = newTypechecker()
     checker.typecheck(mod)
@@ -59,6 +63,14 @@ class TypecheckerTest extends AnyFunSuite {
     checkModule(AST.plusRealModule)
   }
 
+  test("set constants") {
+    checkModule(Code.setConstModule)
+  }
+
+  test("set operations") {
+    checkModule(Code.setOperationsModule)
+  }
+
   test("emptiness check 1") {
     val module = Frontend.Core.parseModule(Code.module(
       s"""def foo(i: `Int`): Option[`Int`] = bar(i)
@@ -86,6 +98,23 @@ class TypecheckerTest extends AnyFunSuite {
     checkModuleErrors(module)
   }
 
+  test("emptiness check 2b") {
+    val module = Frontend.Core.parseModule(Code.module(
+      s"""def foo(i: `Int`): Option[`Int`] = Some(1)
+         |def irr(i: `Int`): Option[`Int`] = bar(i)
+         |@main def bar(i: `Int`): Option[`Int`] = let x = irr(i) in foo(i) match {
+         |  case None => Some(0)
+         |  case Some(j) => Some(i)
+         |}
+         |""".stripMargin
+    )).get.value
+    checkModuleErrors(module)
+//    import scala.meta._
+//    val fun = Executor.loadFunction(module.prettyprint(""))
+//    println(fun.compiled.optimized)
+//    assert(fun.execute("bar_bf", Seq(q"12")) == fun.results(Seq()))
+  }
+
   test("emptiness check 3") {
     val module = Frontend.Core.parseModule(Code.module(
       s"""def foo(i: `Int`): Option[`Int`] = bar(i)
@@ -109,11 +138,11 @@ class TypecheckerTest extends AnyFunSuite {
          |}
          |""".stripMargin
     )).get.value
-    checkModuleErrors(module)
-//    import scala.meta._
-//    val fun = Executor.loadFunction(module.prettyprint(""))
-//    println(fun.compiled.optimized)
-//    assert(fun.execute("bar_bf", Seq(q"12")) == fun.results(Seq()))
+    checkModule(module)
+    import scala.meta._
+    val fun = Executor.loadFunction(module.prettyprint(""))
+    println(fun.compiled.optimized)
+    assert(fun.execute("bar_bf", Seq(q"12")) == fun.results(Seq()))
   }
 
   test("emptiness check 5") {

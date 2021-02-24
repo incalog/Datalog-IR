@@ -189,3 +189,30 @@ case class SomeExp(e: Expression) extends CoreExpression {
   override def calls: Set[Call] = e.calls
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = s"Some(${e.prettyprint})"
 }
+
+case class SetExp(es: Seq[Expression]) extends CoreExpression {
+  override def vars: Map[Name, Option[Type]] = es.flatMap(_.vars).toMap
+  override def calls: Set[Call] = es.flatMap(_.calls).toSet
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
+    s"{${es.map(_.prettyprint).mkString(", ")}}"
+}
+
+case class SetComprehension(build: Expression, predicates: Seq[Expression]) extends CoreExpression {
+  override def vars: Map[Name, Option[Type]] = build.vars ++ predicates.flatMap(_.vars)
+  override def calls: Set[Call] = build.calls ++ predicates.flatMap(_.calls)
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
+    s"{${build.prettyprint} | ${predicates.map(_.prettyprint).mkString(", ")}}"
+}
+
+case class SetMember(tup: Seq[Expression], set: Expression) extends CoreExpression {
+  override def vars: Map[Name, Option[Type]] = set.vars ++ tup.flatMap(_.vars)
+  override def calls: Set[Call] = set.calls ++ tup.flatMap(_.calls)
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    val tupS = tup match {
+      case Nil => "()"
+      case Seq(e) => e.prettyprint(infixParens = true)
+      case es => s"(${es.map(_.prettyprint).mkString(", ")})"
+    }
+    s"$tupS in ${set.prettyprint(infixParens = true)}"
+  }
+}

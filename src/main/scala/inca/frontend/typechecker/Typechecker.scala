@@ -209,6 +209,14 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case SomeExp(e) =>
       val TypeOrigin(ty, or) = typecheck(e)
       TypeOrigin(TOption(ty), or)
+
+    case SetExp(es) =>
+      val (etys, ors) = TypeOrigin.unzip(es.map(typecheck))
+      val joined = join(etys)
+      TypeOrigin(TSet(joined), ors)
+
+//    case SetMember(tup, set) =>
+
   }
 
   private def typecheckTDataMatch(exp: CoreExpression, cases: Seq[(Pattern, Expression)], td: TData): TypeOrigin = {
