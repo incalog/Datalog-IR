@@ -128,12 +128,12 @@ object Code {
        |def grades: Set[`String`] = {"1.0", "1.3", "1.7", "2.0", "2.3", "2.7", "3.0", "3.3", "3.7", "4.0", "5.0"}
        |
        |def member: `Boolean` = "1.0" in grades()
+       |def union: Set[`Int`] = flip() ++ flip()
        |
-       |def const: Set[`String`] = {0 | true}
+       |def const: Set[`Int`] = {0 | true}
        |def enum: Set[`String`] = {g | g in grades()}
        |def project: Set[`String`] = { (g + " grade") | g in grades()}
        |def filter: Set[`String`] = { g | g in grades(), g < "3.0" }
        |def cross: Set[(`Int`, `String`)] = { (i,g) | i in flip(), g in grades() }
-       |def union: Set[`Int`] = flip ++ flip
        |""".stripMargin
 }

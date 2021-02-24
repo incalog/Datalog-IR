@@ -78,9 +78,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
    * Documents which functions have contributed to a value. We use this as part of a simple effect system.
    */
   type Origin = Set[FunctionDef]
-  case class TypeOrigin(ty: Type, or: Origin) {
+  case class TypeOrigin(ty: Type, origin: Origin) {
     def ++(or2: Origin): TypeOrigin =
-      TypeOrigin(ty, or ++ or2)
+      TypeOrigin(ty, origin ++ or2)
   }
   object TypeOrigin {
     def unzip(it: Seq[TypeOrigin]): (Seq[Type], Origin) = {
@@ -196,12 +196,20 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       import meta._
       val (leftName, TypeOrigin(leftTy, leftOr)) = (Term.Name("param$_left"), typecheck(left))
       val (rightName, TypeOrigin(rightTy, rightOr)) = (Term.Name("param$_right"), typecheck(right))
-      val paramString = Seq(
-        q"val ${Pat.Var(leftName)}: ${leftTy.asScala} = Predef.???".syntax,
-        q"val ${Pat.Var(rightName)}: ${rightTy.asScala} = Predef.???".syntax).mkString("\n")
 
-      val codeSource = s"{$paramString;\n$leftName ${op.tree} $rightName}"
-      TypeOrigin(typecheckDecodeScala(codeSource, exp), leftOr ++ rightOr)
+      (leftTy, op.tree.value, rightTy) match {
+        case (TSet(tyl), "++",  TSet(tyr)) =>
+          val ty = TSet(join(tyl, tyr))
+          TypeOrigin(ty, leftOr ++ rightOr)
+        case _ =>
+          val paramString = Seq(
+            q"val ${Pat.Var(leftName)}: ${leftTy.asScala} = Predef.???".syntax,
+            q"val ${Pat.Var(rightName)}: ${rightTy.asScala} = Predef.???".syntax).mkString("\n")
+
+          val codeSource = s"{$paramString;\n$leftName ${op.tree} $rightName}"
+          TypeOrigin(typecheckDecodeScala(codeSource, exp), leftOr ++ rightOr)
+      }
+
 
     case NoneExp() =>
       TypeOrigin(TOption(TNothing), Set())
@@ -215,7 +223,87 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       val joined = join(etys)
       TypeOrigin(TSet(joined), ors)
 
-//    case SetMember(tup, set) =>
+    case SetMember(tup, set) =>
+      val TypeOrigin(tt, or1) =
+        if (tup.size == 1)
+          typecheck(tup.head)
+        else
+          typecheck(Tuple(tup))
+      val TypeOrigin(tset, or2) = typecheck(set)
+      tset match {
+        case TSet(tsetContent) =>
+          if (!subtype(tt, tsetContent))
+            error(s"Expected $tsetContent, but got $tt")
+        case ty =>
+          error(s"Required set type, but got $ty", set)
+      }
+      TypeOrigin(TScalaBoolean, or1 ++ or2)
+
+    case SetComprehension(build, preds) => scopedTypeContext {
+      // first check predicates and bind `x in S` variables
+      val ors = preds.map {
+        case mem@SetMember(Seq(Var(x)), set) if isFreeVar(x) =>
+          val TypeOrigin(ty, or) = typecheck(set)
+          ty match {
+            case TSet(tsetContent) => bindVar(x, mem, tsetContent)
+            case _ => error(s"Required set type, but got $ty", set)
+          }
+          or
+        case mem@SetMember(es, set) =>
+          val TypeOrigin(ty, or) = typecheck(set)
+          val ors = ty match {
+            case TSet(TTuple(tys)) =>
+              if (tys.size != es.size)
+                error(s"Set contains ${tys.size}-ary tuples, but test expression is ${es.size}-ary", mem)
+              val ors = tys.zipAll(es, null, null).map {
+                case (null, Var(x)) if isFreeVar(x) =>
+                  bindVar(x, mem, TAny)
+                  Set()
+                case (null, e) =>
+                  typecheck(e).origin
+                case (ty, null) =>
+                  Set() // nothing
+                case (ty, Var(x)) if isFreeVar(x) =>
+                  bindVar(x, mem, ty)
+                  Set()
+                case (ty, e) =>
+                  val TypeOrigin(tye, ore) = typecheck(e)
+                  if (!subtype(tye, ty))
+                    error(s"Expected $ty, but got $tye", e)
+                  ore
+              }
+              ors.flatten
+            case TSet(tsetContent) =>
+              val TypeOrigin(tt, ortt) =
+                if (es.size == 1)
+                  typecheck(es.head)
+                else
+                  typecheck(Tuple(es))
+              if (!subtype(tt, tsetContent))
+                error(s"Expected $tsetContent, but got $tt")
+              ortt
+            case _ =>
+              error(s"Required set type, but got $ty", set)
+              val TypeOrigin(_, ortt) =
+                if (es.size == 1)
+                  typecheck(es.head)
+                else
+                  typecheck(Tuple(es))
+              ortt
+          }
+          or ++ ors
+
+        case pred =>
+          val  TypeOrigin(tyPred, orPred) = typecheck(pred)
+          if (!subtype(tyPred, TScalaBoolean))
+            error(s"Comprehension predicate must have Boolean type, but got  $tyPred", pred)
+          orPred
+      }
+
+      // then check build and predicates
+      val  TypeOrigin(tyb, orb) = typecheck(build)
+      TypeOrigin(TSet(tyb), orb ++ ors.flatten)
+    }
 
   }
 

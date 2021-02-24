@@ -36,6 +36,9 @@ trait TypeContext extends TypeIO {
         None
     }
 
+  def isFreeVar(name: Name): Boolean =
+    !vars.contains(name)
+
   def getBindings: Map[Name, Type] =
     vars.view.mapValues(_._2).toMap
 

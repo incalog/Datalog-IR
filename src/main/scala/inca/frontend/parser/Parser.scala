@@ -65,7 +65,7 @@ trait Parser {
   protected[frontend] def infixExp[_: P]: P[Expression] =
     P(baseApplyInfixExp | matchExp | memberExp | atomicExp)
   protected[frontend] def atomicExp[_: P]: P[Expression] =
-    P(optionExp | constSetExp | comprehensionExp |
+    P(optionExp | comprehensionExp | constSetExp |
       tupleExp | callExp | baseLitExp| baseApplyExp | variable | parensExp)
 
   /** Let parser */

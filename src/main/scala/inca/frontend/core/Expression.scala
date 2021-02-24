@@ -201,10 +201,10 @@ case class SetComprehension(build: Expression, predicates: Seq[Expression]) exte
   override def vars: Map[Name, Option[Type]] = build.vars ++ predicates.flatMap(_.vars)
   override def calls: Set[Call] = build.calls ++ predicates.flatMap(_.calls)
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
-    s"{${build.prettyprint} | ${predicates.map(_.prettyprint).mkString(", ")}}"
+    s"{${build.prettyprint(infixParens = true)} | ${predicates.map(_.prettyprint).mkString(", ")}}"
 }
 
-case class SetMember(tup: Seq[Expression], set: Expression) extends CoreExpression {
+case class SetMember(tup: Seq[Expression], set: Expression) extends CoreExpression with Var.Target {
   override def vars: Map[Name, Option[Type]] = set.vars ++ tup.flatMap(_.vars)
   override def calls: Set[Call] = set.calls ++ tup.flatMap(_.calls)
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
