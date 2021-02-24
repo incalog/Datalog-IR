@@ -2,7 +2,7 @@ package inca.frontend.parser
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse.{P, parse}
-import inca.examples.{AST, Code}
+import inca.examples.{AST, CFlow, Code}
 import inca.frontend.core._
 import inca.util.Meta.Scala
 import org.scalatest.Assertion
@@ -145,6 +145,10 @@ class ParserTest extends AnyFunSuite {
 
   test("set operations") {
     testSuccessAny(parser.module(_))(Code.setOperationsModule)
+  }
+
+  test("cflow") {
+    testSuccessAny(parser.module(_))(CFlow.flowModule)
   }
 
   private def testSuccess[T](parser: P[_] => P[Any]): (String, T) => Assertion =

@@ -1,7 +1,7 @@
 package inca.frontend.typecheck
 
 import inca.Executor
-import inca.examples.{AST, Code}
+import inca.examples.{AST, CFlow, Code}
 import inca.frontend.Frontend
 import inca.frontend.core.Module
 import inca.frontend.typechecker.Typechecker
@@ -69,6 +69,10 @@ class TypecheckerTest extends AnyFunSuite {
 
   test("set operations") {
     checkModule(Code.setOperationsModule)
+  }
+
+  test("cflow") {
+    checkModule(CFlow.flowModule)
   }
 
   test("emptiness check 1") {
