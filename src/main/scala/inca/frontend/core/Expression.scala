@@ -6,6 +6,7 @@ import inca.util.Meta.Scala
 
 trait Expression extends Typeable with SourceLocation {
   def vars: Map[Name, Option[Type]]
+  def calls: Set[Call]
 
   def prettyprint(infixParens: Boolean)(implicit indent: String): String
   def prettyprint(implicit indent: String): String = prettyprint(infixParens = false)(indent)
@@ -31,6 +32,8 @@ case class Let(names: Seq[Name], anno: Option[Type], bound: Expression, body: Ex
     case Some(TTuple(ts)) if names.size == ts.size => (names zip ts.map(Some(_))).toMap
     case _ => names.map(_ -> None).toMap
   })
+
+  override def calls: Set[Call] = bound.calls ++ body.calls
 
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = infix(infixParens) {
     val namesS = names match {
@@ -62,6 +65,7 @@ case class Let(names: Seq[Name], anno: Option[Type], bound: Expression, body: Ex
 
 case class Var(name: Name) extends CoreExpression with Resolvable[Var.Target] {
   override def vars: Map[Name, Option[Type]] = Map(name -> typ)
+  override def calls: Set[Call] = Set()
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = name.name
 }
 object Var {
@@ -71,7 +75,7 @@ object Var {
 
 case class If(cnd: Expression, thn: Expression, els: Expression) extends CoreExpression {
   override def vars: Map[Name, Option[Type]] = cnd.vars ++ thn.vars ++ els.vars
-
+  override def calls: Set[Call] = cnd.calls ++ thn.calls ++ els.calls
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = infix(infixParens) {
     s"""if (${cnd.prettyprint})
        |${indent}  ${thn.prettyprint(indent + "  ")}
@@ -84,6 +88,7 @@ case class If(cnd: Expression, thn: Expression, els: Expression) extends CoreExp
 case class Call(name: Name, args: Seq[Expression], transitive: Boolean = false)
   extends CoreExpression with Resolvable[Call.Target] {
   override def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
+  override def calls: Set[Call] = Set(this)
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
     val transS = if (transitive) "+" else ""
@@ -96,13 +101,14 @@ object Call {
 
 case class Tuple(exps: Seq[Expression]) extends CoreExpression {
   override def vars: Map[Name, Option[Type]] = exps.flatMap(_.vars).toMap
-
+  override def calls: Set[Call] = exps.flatMap(_.calls).toSet
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     exps.map(_.prettyprint).mkString("(", ", ", ")")
 }
 
 case class Match(matchee: Expression, cases: Seq[(Pattern, Expression)]) extends CoreExpression {
   override def vars: Map[Name, Option[Type]] = matchee.vars ++ cases.flatMap(pe => pe._1.vars ++ pe._2.vars)
+  override def calls: Set[Call] = matchee.calls ++ cases.flatMap(_._2.calls)
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = infix(infixParens) {
     val casesS = cases.map { case (pat, exp) =>
       s"${indent}  case ${pat.prettyprint} => ${exp.prettyprint(indent + "  ")}"
@@ -131,6 +137,7 @@ case class SomePattern(arg: Name) extends Pattern with Var.Target {
 
 case class BaseLit(code: Scala[meta.Term]) extends CoreExpression {
   override def vars: Map[Name, Option[Type]] = Map()
+  override def calls: Set[Call] = Set()
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = code.tree match {
     case meta.Lit.Int(i) => i.toString
     case meta.Lit.Long(l) => l.toString
@@ -149,6 +156,7 @@ object BaseLit {
 
 case class BaseApply(fun: Scala[meta.Term], args: Seq[Expression]) extends CoreExpression {
   override def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
+  override def calls: Set[Call] = args.flatMap(_.calls).toSet
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
     s"`$fun`($argsS)"
@@ -161,6 +169,7 @@ object BaseApply {
 
 case class BaseApplyInfix(left: Expression, op: Scala[meta.Term.Name], right: Expression) extends CoreExpression {
   override def vars: Map[Name, Option[Type]] = left.vars ++ right.vars
+  override def calls: Set[Call] = left.calls ++ right.calls
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = infix(infixParens) {
     s"${left.prettyprint(infixParens = true)} $op ${right.prettyprint(infixParens = true)}"
   }
@@ -172,9 +181,11 @@ object BaseApplyInfix {
 
 case class NoneExp() extends CoreExpression {
   override def vars: Map[Name, Option[Type]] = Map()
+  override def calls: Set[Call] = Set()
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = "None"
 }
 case class SomeExp(e: Expression) extends CoreExpression {
   override def vars: Map[Name, Option[Type]] = e.vars
+  override def calls: Set[Call] = e.calls
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = s"Some(${e.prettyprint})"
 }

@@ -182,8 +182,9 @@ trait Parser {
     }
 
   protected[frontend] def baseApplyInfixExp[_: P]: P[BaseApplyInfix] =
-    P(atomicExp ~ CharsWhile(OpCharNotSlash).! ~ atomicExp).mapWithLoc {
-      case (lhs, op, rhs) => BaseApplyInfix(lhs, Scala(meta.Term.Name(op)), rhs)
+    P(atomicExp ~ CharsWhile(OpCharNotSlash).! ~ atomicExp).flatMapWithLoc {
+      case (_, "@", _) => ParserUtils.fail("@ not allowed as infix opertor")
+      case (lhs, op, rhs) => fastparse.Pass(BaseApplyInfix(lhs, Scala(meta.Term.Name(op)), rhs))
     }
 
 

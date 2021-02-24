@@ -41,9 +41,12 @@ trait ModuleContent extends SourceLocation with Annotations {
 
 case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Expression)
   extends ModuleContent with Call.Target {
+
   def boundNames: Seq[Name] = params.map(_.name)
 
-  def vars: Map[Name, Option[Type]] = body.vars ++ params.flatMap(_.vars)
+  lazy val vars: Map[Name, Option[Type]] = body.vars ++ params.flatMap(_.vars)
+
+  lazy val calls: Set[Call] = body.calls
 
   def outParams: Seq[Type] = outType match {
     case TUnit => Seq()

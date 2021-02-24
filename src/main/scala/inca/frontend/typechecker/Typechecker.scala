@@ -42,14 +42,21 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
   }
 
+  private var currentFunctionDef: Option[FunctionDef] = None
   def typecheck(fun: FunctionDef): Unit = scopedTypeContext {
     fun.params.foreach { p =>
       typecheck(p.typ)
       bindVar(p.name, p, p.typ)
     }
-    val ty = typecheck(fun.body)
-    if (!subtype(ty, fun.outType))
-      error(s"Found body of type $ty, but expected function result type ${fun.outType}", fun.body)
+    val oldFunctionDef = currentFunctionDef
+    try {
+      currentFunctionDef = Some(fun)
+      val ty = typecheck(fun.body).ty
+      if (!subtype(ty, fun.outType))
+        error(s"Found body of type $ty, but expected function result type ${fun.outType}", fun.body)
+    } finally {
+      currentFunctionDef = oldFunctionDef
+    }
   }
 
   def typecheck(data: DataDef): Unit =
@@ -67,24 +74,42 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
    * Expressions
    */
 
-  final def typecheck(exp: Expression): Type = assignType(exp)(typecheckInternal(exp, exp.typ))
+  /**
+   * Documents which functions have contributed to a value. We use this as part of a simple effect system.
+   */
+  type Origin = Set[FunctionDef]
+  case class TypeOrigin(ty: Type, or: Origin) {
+    def ++(or2: Origin): TypeOrigin =
+      TypeOrigin(ty, or ++ or2)
+  }
+  object TypeOrigin {
+    def unzip(it: Seq[TypeOrigin]): (Seq[Type], Origin) = {
+      it.foldRight[(Seq[Type], Origin)]((Seq(),Set())) { case (TypeOrigin(ty, or), (tys, ors)) =>
+        (ty +: tys, ors ++ or)
+      }
+    }
+  }
 
-  protected def typecheckInternal(exp: Expression, anno: Option[Type]): Type = exp match {
+
+
+  final def typecheck(exp: Expression): TypeOrigin = assignType(exp)(typecheckInternal(exp, exp.typ))
+
+  protected def typecheckInternal(exp: Expression, anno: Option[Type]): TypeOrigin = exp match {
     case core: CoreExpression => typecheckCore(core, anno)
     case _ => throw new UnsupportedOperationException(s"No type rule for $exp found.")
   }
 
-  final def typecheckCore(exp: CoreExpression, anno: Option[Type]): Type = exp match {
+  final def typecheckCore(exp: CoreExpression, anno: Option[Type]): TypeOrigin = exp match {
     case v@Var(name) =>
       lookupVar(name) match {
         case Some((decl, ty)) =>
           resolveTarget(v)(decl)
-          ty
+          TypeOrigin(ty, Set())
         case None =>
-          TAny
+          TypeOrigin(TAny, Set())
       }
     case let@Let(names, anno, bound, body) =>
-      val ty = typecheck(bound)
+      val TypeOrigin(ty, or) = typecheck(bound)
       val namesStr = names.mkString("(", ", ", ")")
       scopedTypeContext {
         ty match {
@@ -109,26 +134,27 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
               case (name, ty) => bindVar(name, let, ty)
             }
         }
-        typecheck(body)
+        typecheck(body) ++ or
       }
 
     case If(cnd, thn, els) =>
-      val cty = typecheck(cnd)
+      val TypeOrigin(cty, or1) = typecheck(cnd)
       if (!subtype(cty, TScalaBoolean))
         error(s"Expected Boolean condition, but got $cty", cnd)
-      val tty = typecheck(thn)
-      val ety = typecheck(els)
-      join(tty, ety)
+      val TypeOrigin(tty, or2) = typecheck(thn)
+      val TypeOrigin(ety, or3) = typecheck(els)
+      TypeOrigin(join(tty, ety), or1 ++ or2 ++ or3)
 
     case Tuple(exps) =>
-      TTuple(exps.map(typecheck))
+      val (tys, ors) = TypeOrigin.unzip(exps.map(typecheck))
+      TypeOrigin(TTuple(tys), ors)
 
     case call@Call(name, args, transitive) =>
       lookupCalled(name) match {
-        case None => TAny
+        case None => TypeOrigin(TAny, Set())
         case Some(Left(fun)) =>
           resolveTarget(call)(fun)
-          typecheckFunCall(fun, args, transitive, exp)
+          typecheckFunCall(fun, args, transitive, exp) ++ Set(fun)
         case Some(Right((constr, data))) =>
           resolveTarget(call)(constr)
           typecheckConstrCall(constr, data, args, transitive, exp)
@@ -136,53 +162,56 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
     case Match(matchee, cases) =>
       typecheck(matchee) match {
-        case td: TData if td.target.isDefined =>
-          typecheckTDataMatch(exp, cases, td)
+        case TypeOrigin(td: TData, or) if td.target.isDefined =>
+          typecheckTDataMatch(exp, cases, td) ++ or
 
-        case topt: TOption =>
-          typecheckTOptionMatch(exp, cases, topt)
+        case TypeOrigin(topt: TOption, or) =>
+          typecheckTOptionMatch(exp, matchee, cases, topt, or) ++ or
 
         case ty =>
           error(s"Cannot match on type $ty", matchee)
-          val ctys = cases.map(c => typecheck(c._2))
-          join(ctys)
+          val (ctys, ors) = TypeOrigin.unzip(cases.map(c => typecheck(c._2)))
+          TypeOrigin(join(ctys), ors)
       }
 
     case BaseLit(code) =>
-      typecheckDecodeScala(code.syntax, exp)
+      TypeOrigin(typecheckDecodeScala(code.syntax, exp), Set())
 
     case BaseApply(fun, args) =>
       import meta._
+      var ors: Origin = Set()
       val argTys = args.zipWithIndex.map { case (a, ix) =>
-        ("param$_" + ix, typecheck(a))
+        val TypeOrigin(ty, or) = typecheck(a)
+        ors ++= or
+        ("param$_" + ix, ty)
       }
       val paramString = argTys.map { case (name, ty) =>
           Some(q"val ${Pat.Var(Term.Name(name))}: ${ty.asScala} = Predef.???".syntax)
       }.mkString(";\n")
 
       val codeSource = s"{$paramString;\n${fun.syntax}(..${argTys.map(a => Term.Name(a._1))})}"
-      typecheckDecodeScala(codeSource, exp)
+      TypeOrigin(typecheckDecodeScala(codeSource, exp), ors)
 
     case BaseApplyInfix(left, op, right) =>
       import meta._
-      val (leftName, leftTy) = (Term.Name("param$_left"), typecheck(left))
-      val (rightName, rightTy) = (Term.Name("param$_right"), typecheck(right))
+      val (leftName, TypeOrigin(leftTy, leftOr)) = (Term.Name("param$_left"), typecheck(left))
+      val (rightName, TypeOrigin(rightTy, rightOr)) = (Term.Name("param$_right"), typecheck(right))
       val paramString = Seq(
         q"val ${Pat.Var(leftName)}: ${leftTy.asScala} = Predef.???".syntax,
         q"val ${Pat.Var(rightName)}: ${rightTy.asScala} = Predef.???".syntax).mkString("\n")
 
       val codeSource = s"{$paramString;\n$leftName ${op.tree} $rightName}"
-      typecheckDecodeScala(codeSource, exp)
+      TypeOrigin(typecheckDecodeScala(codeSource, exp), leftOr ++ rightOr)
 
     case NoneExp() =>
-      TOption(TNothing)
+      TypeOrigin(TOption(TNothing), Set())
 
     case SomeExp(e) =>
-      val ty = typecheck(e)
-      TOption(ty)
+      val TypeOrigin(ty, or) = typecheck(e)
+      TypeOrigin(TOption(ty), or)
   }
 
-  private def typecheckTDataMatch(exp: CoreExpression, cases: Seq[(Pattern, Expression)], td: TData) = {
+  private def typecheckTDataMatch(exp: CoreExpression, cases: Seq[(Pattern, Expression)], td: TData): TypeOrigin = {
     val data = td.target.get.asInstanceOf[DataDef]
     var seenConstrs = Set[Name]()
 
@@ -224,10 +253,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     val missingConstrs = data.constrs.map(_.name).toSet -- seenConstrs
     if (missingConstrs.nonEmpty)
       error(s"Pattern match must be complete but missed the following constructors: ${missingConstrs.mkString(", ")}", exp)
-    join(ctys)
+    val (ctysTys, ors) = TypeOrigin.unzip(ctys)
+    TypeOrigin(join(ctysTys), ors)
   }
 
-  private def typecheckTOptionMatch(exp: CoreExpression, cases: Seq[(Pattern, Expression)], topt: TOption) = {
+  private def typecheckTOptionMatch(exp: CoreExpression, matchee: Expression, cases: Seq[(Pattern, Expression)], topt: TOption, or: Origin): TypeOrigin = {
     var seenConstrs = Set[String]()
     val ctys = cases.map {
       case (pat@NonePattern(), e) =>
@@ -235,7 +265,16 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           error(s"Duplicate constructor pattern None", pat)
         else
           seenConstrs += "None"
-        typecheck(e)
+        val tor = typecheck(e)
+        val emptyBody = tor.ty match {
+          case TNothing => true
+          case TOption(TNothing) => true
+          case TSet(TNothing) => true
+          case _ => false
+        }
+        if (!emptyBody && currentFunctionDef.isDefined)
+          ensureStratifiable(or, currentFunctionDef.get, exp)
+        tor
 
       case (pat@SomePattern(v), e) =>
         if (seenConstrs.contains("Some"))
@@ -260,23 +299,26 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     val missingConstrs = Set("None", "Some") -- seenConstrs
     if (missingConstrs.nonEmpty)
       error(s"Pattern match must be complete but missed the following constructors: ${missingConstrs.mkString(", ")}", exp)
-    join(ctys)
+    val (ctysTys, ors) = TypeOrigin.unzip(ctys)
+    TypeOrigin(join(ctysTys), ors)
   }
 
-  def typecheckFunCall(fun: FunctionDef, args: Seq[Expression], transitive: Boolean, exp: Expression): Type = {
+  def typecheckFunCall(fun: FunctionDef, args: Seq[Expression], transitive: Boolean, exp: Expression): TypeOrigin = {
     val name = fun.name
 
     if (fun.params.size != args.size) {
       error(s"Function $name expects ${fun.params.size} arguments, but found ${args.size} arguments in call", exp)
     }
 
+    var ors: Origin = Set()
     fun.params.zipAll(args, null, null) foreach {
       case (null, arg) =>
         typecheck(arg)
       case (param, null) =>
       // nothing
       case (param, arg) =>
-        val argTy = typecheck(arg)
+        val TypeOrigin(argTy, or) = typecheck(arg)
+        ors ++= or
         if (meet(param.typ, argTy) == TNothing) {
           warn(s"Cast of argument type $argTy to unrelated parameter type ${param.typ} will always fail", arg)
         }
@@ -287,26 +329,28 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
 
     fun.outParams match {
-      case Seq() => TUnit
-      case Seq(out) => out
-      case outs => TTuple(outs)
+      case Seq() => TypeOrigin(TUnit, ors)
+      case Seq(out) => TypeOrigin(out, ors)
+      case outs => TypeOrigin(TTuple(outs), ors)
     }
   }
 
-  def typecheckConstrCall(constr: DataConstructor, data: DataDef, args: Seq[Expression], transitive: Boolean, exp: Expression): Type = {
+  def typecheckConstrCall(constr: DataConstructor, data: DataDef, args: Seq[Expression], transitive: Boolean, exp: Expression): TypeOrigin = {
     val name = constr.name
 
     if (constr.paramTypes.size != args.size) {
       error(s"Constructor $name expects ${constr.paramTypes.size} arguments, but found ${args.size} arguments in call", exp)
     }
 
+    var ors: Origin = Set()
     constr.paramTypes.zipAll(args, null, null) foreach {
       case (null, arg) =>
         typecheck(arg)
       case (param, null) =>
       // nothing
       case (paramTy, arg) =>
-        val argTy = typecheck(arg)
+        val TypeOrigin(argTy, or) = typecheck(arg)
+        ors ++= or
         if (meet(paramTy, argTy) == TNothing) {
           warn(s"Cast of argument type $argTy to unrelated parameter type $paramTy will always fail", arg)
         }
@@ -316,8 +360,49 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       // TODO
     }
 
-    TData(data.name).resolved(data)
+    TypeOrigin(TData(data.name).resolved(data), ors)
   }
+
+
+  /**
+   * The contributing functions may not call the containing function.
+   * Only then can we negate a value derived from the contributing functions.
+   */
+  private def ensureStratifiable(contributingFunctions: Set[FunctionDef], containingFunction: FunctionDef, loc: SourceLocation): Unit = {
+    var visited: Set[FunctionDef] = Set()
+    var todoPaths: Seq[Seq[FunctionDef]] = contributingFunctions.toSeq.map(Seq(_))
+    while (todoPaths.nonEmpty) {
+      val path = todoPaths.head
+      todoPaths = todoPaths.tail
+
+      path.head.calls.foreach { call =>
+        call.target match {
+          case None =>
+            // Calls with unresolved targets should already be marked as erroneous.
+            warn(s"Unresoved call to ${call.name} prevented exact emptiness validity check.", call)
+          case Some(_: DataConstructor) =>
+            // Constructors cannot call functions, hence we can ignore them.
+          case Some(fun: FunctionDef) =>
+            if (visited.contains(fun)) {
+              // skip
+            } else if (fun == containingFunction) {
+              val realPath = path.reverse
+              error(
+                s"""Invalid emptiness test.
+                   |The matchee depends on function ${realPath.head.name}, which has a dependency chain
+                   |  ${realPath.map(_.name).mkString("->")}->${containingFunction.name}
+                   |to the containing function ${containingFunction.name}.""".stripMargin, loc)
+              return
+            } else {
+              visited += fun
+              todoPaths = (fun +: path) +: todoPaths
+            }
+        }
+      }
+    }
+  }
+
+
 
   def typecheckDecodeScala(codeSource: String, loc: SourceLocation): Type = {
     typecheckScala(codeSource) match {
@@ -396,13 +481,13 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case _ => TAny
   }
 
-  def assignType(term: Typeable with SourceLocation)(computeType: => Type): Type = {
-    val inferred = computeType
+  def assignType(term: Typeable with SourceLocation)(computeType: => TypeOrigin): TypeOrigin = {
+    val TypeOrigin(inferred, or) = computeType
     term.typ match {
       case Some(annotated) =>
         if (!subtype(inferred, annotated))
           error(s"Inferred type $inferred, but expected annotated type $annotated", term)
-        annotated
+        TypeOrigin(annotated, or)
       case None =>
         val resolved = inferred match {
           case td@TData(name) =>
@@ -417,7 +502,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           case _ => inferred
         }
         term.typed(resolved)
-        resolved
+        TypeOrigin(resolved, or)
     }
   }
 

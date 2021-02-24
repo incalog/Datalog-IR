@@ -25,6 +25,7 @@ object Executor {
       val matcher = engine.getMatcher(compiled.psystemModule.patterns(name)())
       println(s"${matcher.getAllMatches.size()} matches of $name:   ${matcher.getAllMatches}")
     }
+
     def printAllMatches(): Unit = {
       compiled.psystemModule.patterns.keys.foreach(printMatches)
     }

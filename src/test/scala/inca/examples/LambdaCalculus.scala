@@ -94,6 +94,34 @@ object LambdaCalculus {
        |}
        |""".stripMargin
 
+  val typeOfRelationUndefs =
+    s"""def typeOf(ctx: Ctx, exp: TExp): Option[Type] = exp match {
+       |  case TNum(v) => Some(TInt())
+       |  case TLam(n, ty, b) =>
+       |    let extCtx = BindCtx(n, ty, ctx) in
+       |      let mt = typeOf(extCtx, b) in mt match {
+       |        case None => Some(TInt())
+       |        case Some(ty2) => Some(TFun(ty, ty2))
+       |      }
+       |  case TApp(fun, arg) => typeOf(ctx, fun) match {
+       |    case None => Some(TInt())
+       |    case Some(funty) => funty match {
+       |      case TInt() => Some(TInt())
+       |      case TFun(ty1, ty2) =>
+       |        typeOf(ctx, arg) match {
+       |          case None => Some(TInt())
+       |          case Some(argty) =>
+       |            if (eqType(argty, ty1))
+       |              Some(ty2)
+       |            else
+       |              Some(TInt())
+       |        }
+       |    }
+       |  }
+       |  case TVar(n) => ctxLookup(ctx, n)
+       |}
+       |""".stripMargin
+
   val eqTypeFunction =
     s"""def eqType(ty1: Type, ty2: Type): `Boolean` = ty1 match {
        |  case TInt() => ty2 match {
@@ -148,6 +176,18 @@ object LambdaCalculus {
     eqTypeFunction,
     ctxLookupRelation
   )
+
+  val typeOfRelModuleUndefs: String = module(
+    TExp_code,
+    Type_code,
+    Ctx_code,
+    s"""@main def main(exp: TExp): Option[Type] = typeOf(EmptyCtx(), exp)
+       |""".stripMargin,
+    typeOfRelationUndefs,
+    eqTypeFunction,
+    ctxLookupRelation
+  )
+
 
   val eraseFunciton =
     s"""def erase(texp: TExp): Exp = texp match {
