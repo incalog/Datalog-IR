@@ -251,12 +251,12 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
   def typecheckSetMember(mem: SetMember, bindTupVars: Boolean): TypeOrigin = {
     val TypeOrigin(tySetContent, orSet) = mem match {
-      case SetMember(_, Var(name)) if lookupData(name).isDefined =>
+      case SetMember(_, Var(name), _) if lookupData(name).isDefined =>
         // this is a type member test
         mem.isTypeMember = true
         TypeOrigin(TData(name), Set())
 
-      case SetMember(_, set) =>
+      case SetMember(_, set, _) =>
         val TypeOrigin(tset, or) = typecheck(set)
         tset match {
           case TSet(tsetContent) =>
@@ -267,7 +267,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         }
     }
 
-    if (!bindTupVars) {
+    if (mem.neg || !bindTupVars) {
       val TypeOrigin(tyTup, orTup) = typecheck(mem.tup)
       if (!subtype(tyTup, tySetContent))
         error(s"Expected $tySetContent, but got $tyTup")

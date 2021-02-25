@@ -97,7 +97,7 @@ object ControlDataFlow {
        |  case While(c, s) => {}
        |}
        |def gen_AE(stm: Stm): Set[Exp] = stm match {
-       |  case Assign(x, a) => {a2 | a2 in AExp(a), (x in freevars(a2)) == false}
+       |  case Assign(x, a) => {a2 | a2 in AExp(a), x not in freevars(a2)}
        |  case Skip() => {}
        |  case Sequence(s1, s2) => {}
        |  case If(c, s1, s2) => AExp(c)
@@ -111,7 +111,7 @@ object ControlDataFlow {
        |    intersect({exit_AE(pred, prog) | (pred, stm) in flow(prog)})
        |
        |def exit_AE(stm: Stm, prog: Stm): Set[Exp] =
-       |  gen_AE(stm) ++ {e | e in entry_AE(stm, prog), (e in kill_AE(stm, prog)) == false}
+       |  gen_AE(stm) ++ {e | e in entry_AE(stm, prog), e not in kill_AE(stm, prog)}
        |
        |def intersect(sets: Set[Set[Exp]]): Set[Exp] = {}
        |
@@ -163,7 +163,7 @@ object ControlDataFlow {
        |    {(x,s) | (pred, stm) in flow(prog), (x,s) in exit_RD(pred, prog)}
        |
        |def exit_RD(stm: Stm, prog: Stm): Set[(`String`,MaybeDef)] =
-       |  gen_RD(stm) ++ {e | e in entry_RD(stm, prog), (e in kill_RD(stm, prog)) == false}
+       |  gen_RD(stm) ++ {(r,d) | (r,d) in entry_RD(stm, prog), (r,d) not in kill_RD(stm, prog)}
        |
        |@main def final_RD(prog: Stm): Set[(`String`,MaybeDef)] =
        |  {(x,a) | s in final(prog), (x,a) in exit_RD(s, prog)}

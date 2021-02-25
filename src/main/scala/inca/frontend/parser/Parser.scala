@@ -127,7 +127,7 @@ trait Parser {
     P("{" ~ atomicExp ~ "|" ~ exp.rep(sep = ",") ~ "}").mapWithLoc(SetComprehension.tupled)
 
   protected[frontend] def memberExp[_: P]: P[Expression] =
-    P(atomicExp ~ "in" ~ infixExp).mapWithLoc(SetMember.tupled)
+    P(atomicExp ~ "not".!.? ~ "in" ~ infixExp).mapWithLoc { case (tup, not, set) => SetMember(tup, set, not.isDefined) }
 
   protected[frontend] def pattern[_: P]: P[Pattern] =
     P(optionPattern | constructorPattern)

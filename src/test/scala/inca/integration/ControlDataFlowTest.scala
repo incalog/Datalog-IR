@@ -61,10 +61,12 @@ class ControlDataFlowTest extends AnyFunSuite {
   }
 
   test("reaching definitions ex 2.7 -- entryAll") {
+    import scala.meta._
     val fun = loadFunction(ControlDataFlow.RDmodule)
-//    assert(fun.execute("entryAll_RD_bfff", Seq(q"""Assign("x", Var("y"))"""), deleteInput = false).res.size == 1)
-    val prog = fun.input(ControlDataFlow.example_2_7)
-    assert(fun.execute("entryAll_RD_bfff", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 15)
+    println(fun.execute("entryAll_RD_bfff", Seq(q"""Sequence(Assign("x", Var("y")), Assign("w", Var("x")))""")))
+//    assert(fun.execute("entryAll_RD_bfff", Seq(q"""Sequence(Assign("x", Var("y")), Assign("w", Var("x")))"""), deleteInput = false).res.size == 3)
+//    val prog = fun.input(ControlDataFlow.example_2_7)
+//    assert(fun.execute("entryAll_RD_bfff", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 15)
     fun.printAllMatches()
   }
 }
