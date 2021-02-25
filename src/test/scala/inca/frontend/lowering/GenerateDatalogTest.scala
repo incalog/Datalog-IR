@@ -3,7 +3,7 @@ package inca.frontend.lowering
 import inca.backend.ir.GP
 import inca.compiler.{Compiler, Options}
 import inca.examples.ADT.Nat_lmi
-import inca.examples.{AST, CFlow, Code}
+import inca.examples.{AST, Code, ControlDataFlow}
 import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -248,7 +248,7 @@ class GenerateDatalogTest extends AnyFunSuite {
   }
 
   test("cflow") {
-    val result = Compiler.compileFun(CFlow.flowModule, options).ir
+    val result = Compiler.compileFun(ControlDataFlow.cflowModule, options).ir
     println(result)
   }
 }

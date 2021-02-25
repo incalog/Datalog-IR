@@ -223,75 +223,17 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       val joined = join(etys)
       TypeOrigin(TSet(joined), ors)
 
-    case SetMember(tup, set) =>
-      val TypeOrigin(tt, or1) =
-        if (tup.size == 1)
-          typecheck(tup.head)
-        else
-          typecheck(Tuple(tup))
-      val TypeOrigin(tset, or2) = typecheck(set)
-      tset match {
-        case TSet(tsetContent) =>
-          if (!subtype(tt, tsetContent))
-            error(s"Expected $tsetContent, but got $tt")
-        case ty =>
-          error(s"Required set type, but got $ty", set)
-      }
-      TypeOrigin(TScalaBoolean, or1 ++ or2)
+    case mem: SetMember =>
+      typecheckSetMember(mem, bindTupVars = false)
 
     case SetComprehension(build, preds) => scopedTypeContext {
       // first check predicates and bind `x in S` variables
       val ors = preds.map {
-        case mem@SetMember(Seq(Var(x)), set) if isFreeVar(x) =>
-          val TypeOrigin(ty, or) = typecheck(set)
-          ty match {
-            case TSet(tsetContent) => bindVar(x, mem, tsetContent)
-            case _ => error(s"Required set type, but got $ty", set)
-          }
-          or
-        case mem@SetMember(es, set) =>
-          val TypeOrigin(ty, or) = typecheck(set)
-          val ors = ty match {
-            case TSet(TTuple(tys)) =>
-              if (tys.size != es.size)
-                error(s"Set contains ${tys.size}-ary tuples, but test expression is ${es.size}-ary", mem)
-              val ors = tys.zipAll(es, null, null).map {
-                case (null, Var(x)) if isFreeVar(x) =>
-                  bindVar(x, mem, TAny)
-                  Set()
-                case (null, e) =>
-                  typecheck(e).origin
-                case (ty, null) =>
-                  Set() // nothing
-                case (ty, Var(x)) if isFreeVar(x) =>
-                  bindVar(x, mem, ty)
-                  Set()
-                case (ty, e) =>
-                  val TypeOrigin(tye, ore) = typecheck(e)
-                  if (!subtype(tye, ty))
-                    error(s"Expected $ty, but got $tye", e)
-                  ore
-              }
-              ors.flatten
-            case TSet(tsetContent) =>
-              val TypeOrigin(tt, ortt) =
-                if (es.size == 1)
-                  typecheck(es.head)
-                else
-                  typecheck(Tuple(es))
-              if (!subtype(tt, tsetContent))
-                error(s"Expected $tsetContent, but got $tt")
-              ortt
-            case _ =>
-              error(s"Required set type, but got $ty", set)
-              val TypeOrigin(_, ortt) =
-                if (es.size == 1)
-                  typecheck(es.head)
-                else
-                  typecheck(Tuple(es))
-              ortt
-          }
-          or ++ ors
+        case mem: SetMember =>
+          val TypeOrigin(tyPred, orPred) = typecheckSetMember(mem, bindTupVars = true)
+          if (!subtype(tyPred, TScalaBoolean))
+            error(s"Comprehension predicate must have Boolean type, but got  $tyPred", mem)
+          orPred
 
         case pred =>
           val  TypeOrigin(tyPred, orPred) = typecheck(pred)
@@ -305,6 +247,66 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       TypeOrigin(TSet(tyb), orb ++ ors.flatten)
     }
 
+  }
+
+  def typecheckSetMember(mem: SetMember, bindTupVars: Boolean): TypeOrigin = {
+    val TypeOrigin(tySetContent, orSet) = mem match {
+      case SetMember(_, Var(name)) if lookupData(name).isDefined =>
+        // this is a type member test
+        mem.isTypeMember = true
+        TypeOrigin(TData(name), Set())
+
+      case SetMember(_, set) =>
+        val TypeOrigin(tset, or) = typecheck(set)
+        tset match {
+          case TSet(tsetContent) =>
+            TypeOrigin(tsetContent, or)
+          case ty =>
+            error(s"Required set type, but got $ty", set)
+            TypeOrigin(TAny, or)
+        }
+    }
+
+    if (!bindTupVars) {
+      val TypeOrigin(tyTup, orTup) = typecheck(mem.tup)
+      if (!subtype(tyTup, tySetContent))
+        error(s"Expected $tySetContent, but got $tyTup")
+      TypeOrigin(TScalaBoolean, orSet ++ orTup)
+    } else mem.tup match {
+      case v: Var if isFreeVar(v.name) =>
+        bindVar(v.name, mem, tySetContent)
+        assignType(v)(TypeOrigin(tySetContent, orSet))
+        TypeOrigin(TScalaBoolean, orSet)
+      case Tuple(es) if tySetContent.isInstanceOf[TTuple] =>
+        val tys = tySetContent.asInstanceOf[TTuple].ts
+        if (tys.size != es.size)
+          error(s"Set contains ${tys.size}-ary tuples, but test expression is ${es.size}-ary", mem)
+        val ors = tys.zipAll(es, null, null).map {
+          case (null, v@Var(x)) if isFreeVar(x) =>
+            bindVar(x, mem, TAny)
+            assignType(v)(TypeOrigin(TAny, orSet))
+            Set()
+          case (null, e) =>
+            typecheck(e).origin
+          case (ty, null) =>
+            Set() // nothing
+          case (ty, v@Var(x)) if isFreeVar(x) =>
+            bindVar(x, mem, ty)
+            assignType(v)(TypeOrigin(ty, orSet))
+            Set()
+          case (ty, e) =>
+            val TypeOrigin(tye, ore) = typecheck(e)
+            if (!subtype(tye, ty))
+              error(s"Expected $ty, but got $tye", e)
+            ore
+        }
+        TypeOrigin(TScalaBoolean, ors.flatten.toSet)
+      case _ =>
+        val TypeOrigin(tyTup, orTup) = typecheck(mem.tup)
+        if (!subtype(tyTup, tySetContent))
+          error(s"Expected $tySetContent, but got $tyTup")
+        TypeOrigin(TScalaBoolean, orSet ++ orTup)
+    }
   }
 
   private def typecheckTDataMatch(exp: CoreExpression, cases: Seq[(Pattern, Expression)], td: TData): TypeOrigin = {

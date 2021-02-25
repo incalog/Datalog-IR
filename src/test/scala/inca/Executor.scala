@@ -6,7 +6,7 @@ import inca.runtime.data.DataURI
 import inca.runtime.{Database, EnginePool, Query}
 import inca.util.Meta.ScalaCompiler
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
-import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
+import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truediff.Diffable
 
@@ -30,30 +30,45 @@ object Executor {
       compiled.psystemModule.patterns.keys.foreach(printMatches)
     }
 
-    def execute(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): Results[AnyRef] = {
+    def input(arg: meta.Term): AnyRef = vals(arg) match {
+      case Seq(arg: Diffable) =>
+        feed.processEditScript(Diffable.load(arg))
+        arg.uri
+      case Seq(lit) => lit
+    }
+
+    def input(args: Seq[meta.Term]): Tuple = {
       val cargs = vals(args:_*).map {
         case arg: Diffable =>
           feed.processEditScript(Diffable.load(arg))
           arg.uri
         case lit => lit
       }
+      Tuples.flatTupleOf(cargs:_*)
+    }
 
-      val tuple = Tuples.flatTupleOf(cargs:_*)
-      feed.insert(s"ext_input_$main", tuple)
-
+    def output(main: String, tuple: Tuple): Results[AnyRef] = {
       val mainSpec = compiled.psystemModule.patterns(main)()
       val mainMatcher = engine.getMatcher(mainSpec)
       val arity = mainMatcher.getParameterNames.size()
-      val inputSeq = cargs ++ (for (_ <- 0 until (arity - cargs.size)) yield null)
-      val inputMatch = Query.Match(mainSpec, inputSeq.toArray, isMutable = false)
+      val inputSeq = tuple.getElements ++ (for (_ <- 0 until (arity - tuple.getSize)) yield null)
+      val inputMatch = Query.Match(mainSpec, inputSeq, isMutable = false)
       val outputMatches = mainMatcher.getAllMatches(inputMatch).asScala.map { m =>
-        m.toArray.slice(cargs.size, arity).toSeq
+        m.toArray.slice(tuple.getSize, arity).toSeq
       }.toSeq
+      new Results(outputMatches)
+    }
 
+
+    def execute(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): Results[AnyRef] =
+      execute(main, input(args), deleteInput)
+
+    def execute(main: String, tuple: Tuple, deleteInput: Boolean): Results[AnyRef] = {
+      feed.insert(s"ext_input_$main", tuple)
+      val results = output(main, tuple)
       if (deleteInput)
         feed.delete(s"ext_input_$main", tuple)
-
-      new Results(outputMatches)
+      results
     }
 
     def vals(ts: meta.Term*): Seq[AnyRef] = {

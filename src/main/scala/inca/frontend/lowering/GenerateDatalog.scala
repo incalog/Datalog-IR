@@ -78,8 +78,14 @@ class GenerateDatalog(module: Module) {
 
   private def transExp(exp: CoreExpression): ExpRes = exp match {
     case Var(name) =>
-      val v = GP.Var(name.name)
-      Seq((Seq(v), Seq()))
+      exp.typ match {
+        case Some(TTuple(ts)) =>
+          val vs = ts.zipWithIndex.map { case (_,ix) => GP.Var(name + "$_" + ix) }
+          Seq((vs, Seq()))
+        case _ =>
+          val v = GP.Var(name.name)
+          Seq((Seq(v), Seq()))
+      }
 
     case Let(names, _, bound, body) =>
       val vars  = names.map(name => GP.Var(name.name))
@@ -223,14 +229,20 @@ class GenerateDatalog(module: Module) {
     case SetExp(es) =>
       es.flatMap(e => transExp(e.ensureCore))
 
+    case mem@SetMember(tup, Var(dataName)) if mem.isTypeMember =>
+      // this is a type member test
+      for ((Seq(term), tupCons) <- transExp(tup.ensureCore))
+        yield {
+          val typeTest = GP.Call(dataName.name, Seq(term))
+          (Seq(GP.True), tupCons :+ typeTest)
+        }
+
     case SetMember(tup, set) =>
-      val tupRes = tup.map(t => transExp(t.ensureCore))
-      for (tups <- TupleOps.cartesianProduct(tupRes);
+      for ((tupTerms, tupCons) <- transExp(tup.ensureCore);
            (setTerms, setCons) <- transExp(set.ensureCore))
         yield {
-          val (tupTerms, tupCons) = tups.unzip
-          val eqs = tupTerms.flatten.zip(setTerms).map(vt => GP.Eq(vt._1, vt._2))
-          (Seq(GP.True), setCons ++ tupCons.flatten ++ eqs)
+          val eqs = tupTerms.zip(setTerms).map(vt => GP.Eq(vt._1, vt._2))
+          (Seq(GP.True), setCons ++ tupCons ++ eqs)
         }
 
     case SetComprehension(build, predicates) =>
