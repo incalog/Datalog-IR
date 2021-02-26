@@ -36,17 +36,21 @@ object MagicSetTransformation extends Transformation {
   private def shouldInsertInput(body: Body): Boolean =
     !body.hasHint(MagicSetHints.NoInputRelationKey)
 
-  private def insertInputCall(pat: Pattern): Pattern = {
-    val bodies = pat.bodies.map { b =>
-      if (shouldInsertInput(b)) {
-        val inputCall = deriveInputCall(pat)
-        Body(inputCall.toSeq ++ b.constraints).withHints(b)
-      } else {
-        b
+  private def insertInputCall(pat: Pattern): Pattern =
+    if (pat.bodies.isEmpty) {
+      val body = deriveInputCall(pat).map(c => Body(Seq(c)))
+      Pattern(pat.vis, pat.name, pat.params, body.toSeq).withHints(pat)
+    } else {
+      val bodies = pat.bodies.map { b =>
+        if (shouldInsertInput(b)) {
+          val inputCall = deriveInputCall(pat)
+          Body(inputCall.toSeq ++ b.constraints).withHints(b)
+        } else {
+          b
+        }
       }
+      Pattern(pat.vis, pat.name, pat.params, bodies).withHints(pat)
     }
-    Pattern(pat.vis, pat.name, pat.params, bodies).withHints(pat)
-  }
 
   private def deriveInputCall(pat: Pattern): Option[Call] = {
     val boundParams = deriveBoundParams(pat)

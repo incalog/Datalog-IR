@@ -23,50 +23,31 @@ class ControlDataFlowTest extends AnyFunSuite {
     fun.printAllMatches()
   }
 
-  test("reaching definitions ex 2.7 -- assignments") {
-    import scala.meta.XtensionQuasiquoteTerm
-    val fun = loadFunction(ControlDataFlow.RDmodule)
-    val prog = fun.input(ControlDataFlow.example_2_7)
-    assert(fun.execute("assignments_bbf", Tuples.flatTupleOf(prog, fun.input(q""" "x" """)), deleteInput = true).res.size == 2)
-    assert(fun.execute("assignments_bbf", Tuples.flatTupleOf(prog, fun.input(q""" "y" """)), deleteInput = false).res.size == 2)
+  test("available expressions ex 2.4") {
+    val fun = loadFunction(ControlDataFlow.AEModule)
+    val prog = fun.input(ControlDataFlow.example_2_4)
+    assert(fun.execute("final_AE_bf", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 1)
+    assert(fun.execute("allEntries_AE_bff", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 3)
+    assert(fun.execute("allExits_AE_bff", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 5)
     fun.printAllMatches()
+    fun.output("allExits_AE_bff", Tuples.flatTupleOf(prog)).res.foreach { case Seq(c1, c2) => println(s"$c2 in $c1") }
   }
 
-  test("reaching definitions ex 2.7 -- killAll") {
+  test("reaching definitions ex 2.7") {
     val fun = loadFunction(ControlDataFlow.RDmodule)
     val prog = fun.input(ControlDataFlow.example_2_7)
-    assert(fun.execute("killAll_RD_bfff", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 12)
+    assert(fun.execute("final_RD_bff", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 4)
+    assert(fun.execute("allEntries_RD_bfff", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 15)
+    assert(fun.execute("allExits_RD_bfff", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 13)
     fun.printAllMatches()
+    fun.output("allExits_RD_bfff", Tuples.flatTupleOf(prog)).res.foreach { case Seq(c1, c2, c3) => println(s"$c2:$c3 in $c1") }
   }
 
-  test("reaching definitions ex 2.7 -- genAll") {
-    val fun = loadFunction(ControlDataFlow.RDmodule)
-    val prog = fun.input(ControlDataFlow.example_2_7)
-    assert(fun.execute("genAll_RD_bfff", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 4)
-    fun.printAllMatches()
-  }
-
-  test("reaching definitions ex 2.7 -- flow") {
-    val fun = loadFunction(ControlDataFlow.RDmodule)
+  test("intervals ex 2.7") {
+    val fun = loadFunction(ControlDataFlow.IntervalModule)
     val prog = fun.input(ControlDataFlow.example_2_7)
     assert(fun.execute("flow_bff", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 5)
-    fun.printAllMatches()
-  }
-
-  test("reaching definitions ex 2.7 -- freevarsStm") {
-    val fun = loadFunction(ControlDataFlow.RDmodule)
-    val prog = fun.input(ControlDataFlow.example_2_7)
-    assert(fun.execute("freevarsStm_bf", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 2)
-    fun.printAllMatches()
-  }
-
-  test("reaching definitions ex 2.7 -- entryAll") {
-    import scala.meta._
-    val fun = loadFunction(ControlDataFlow.RDmodule)
-    println(fun.execute("entryAll_RD_bfff", Seq(q"""Sequence(Assign("x", Var("y")), Assign("w", Var("x")))""")))
-//    assert(fun.execute("entryAll_RD_bfff", Seq(q"""Sequence(Assign("x", Var("y")), Assign("w", Var("x")))"""), deleteInput = false).res.size == 3)
-//    val prog = fun.input(ControlDataFlow.example_2_7)
-//    assert(fun.execute("entryAll_RD_bfff", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 15)
+    assert(fun.output("flowR_bff", Tuples.flatTupleOf(prog)).res.isEmpty)
     fun.printAllMatches()
   }
 }

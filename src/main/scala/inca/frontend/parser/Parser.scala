@@ -61,12 +61,12 @@ trait Parser {
   protected[frontend] def exp[_: P]: P[Expression] = wideExp
 
   protected[frontend] def wideExp[_: P]: P[Expression] =
-    P(ifExp | letExp | infixExp)
+    P(ifExp | letExp | memberExp | infixExp)
   protected[frontend] def infixExp[_: P]: P[Expression] =
-    P(baseApplyInfixExp | matchExp | memberExp | atomicExp)
+    P(baseApplyInfixExp | matchExp | atomicExp)
   protected[frontend] def atomicExp[_: P]: P[Expression] =
     P(optionExp | comprehensionExp | constSetExp |
-      tupleExp | callExp | baseLitExp| baseApplyExp | variable | parensExp)
+      tupleExp | callExp | baseApplyExp | baseLitExp | variable | parensExp)
 
   /** Let parser */
   final protected[frontend] def parensExp[_: P]: P[Expression] = P("(" ~ exp ~ ")")
@@ -75,7 +75,7 @@ trait Parser {
     P(singleLetExp | multipleLetExp)
 
   final protected[frontend] def singleLetExp[_: P]: P[Let] =
-    P("let " ~ identifier ~ (":" ~ typeAnno).? ~ "=" ~ exp ~ "in" ~ exp).mapWithLoc {
+    P("let " ~/ identifier ~ (":" ~ typeAnno).? ~ "=" ~ infixExp ~ "in" ~ exp).mapWithLoc {
       case (name, typeAnno, bound, body) => Let(Seq(name), typeAnno, bound, body)
     }
 

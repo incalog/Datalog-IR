@@ -186,10 +186,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         ("param$_" + ix, ty)
       }
       val paramString = argTys.map { case (name, ty) =>
-          Some(q"val ${Pat.Var(Term.Name(name))}: ${ty.asScala} = Predef.???".syntax)
+          q"val ${Pat.Var(Term.Name(name))}: ${ty.asScala} = Predef.???".syntax
       }.mkString(";\n")
 
-      val codeSource = s"{$paramString;\n${fun.syntax}(..${argTys.map(a => Term.Name(a._1))})}"
+      val codeArgs = argTys.map(a => Term.Name(a._1))
+      val codeSource = s"{$paramString;\n${fun.syntax}(${codeArgs.mkString(", ")})}"
       TypeOrigin(typecheckDecodeScala(codeSource, exp), ors)
 
     case BaseApplyInfix(left, op, right) =>
