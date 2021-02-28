@@ -19,7 +19,8 @@ object GenerateDatalog {
 }
 
 class GenerateDatalog(module: Module) {
-  val gensym: Gensym = new Gensym(Iterable.empty)
+  private val gensym: Gensym = new Gensym(Iterable.empty)
+  private val genScala = new GenerateScala
 
   private val generatedPatterns = ListBuffer[GP.Pattern]()
 
@@ -28,22 +29,19 @@ class GenerateDatalog(module: Module) {
     gensym.register(module.usedModuleNames.map(_.name))
     gensym.register(module.usedDefNames.map(_.name))
 
-    val scalaModuleContents = ListBuffer[meta.Import]()
-    val dataContents = ListBuffer[GP.DataDef]()
     contents.foreach {
       case fun: FunctionDef => generatedPatterns += transFun(fun)
       case data: DataDef =>
         generatedPatterns ++= transData(data)
-        dataContents += lowerData(data)
+        genScala.genDataDef(data)
     }
 
-    val scalaContent = scalaModuleContents.toList
     GP.Module(
       name.name,
       imports.map(_.name.name),
-      dataContents.toList,
+      List(),
       generatedPatterns.toList,
-      scalaContent.map(Scala.apply))
+      genScala.generated.map(Scala.apply))
   }
 
   private def transFun(fun: FunctionDef): GP.Pattern = gensym.scoped {
@@ -278,6 +276,15 @@ class GenerateDatalog(module: Module) {
         val predTrue = predBools.flatten.map(b => GP.Eq(b, GP.True))
         (buildTerms, predCons.flatten ++ predTrue ++ buildCons)
       }
+
+    case SetFold(_, init, op, set) =>
+      val pat = generatePattern(set, "AggregateCollection")
+      val freeArgs = set.vars.toSeq.flatMap { case (v, ty) => flatVars(v, ty) }.map(_._1)
+      val agg = genScala.genAggregation(init, op)
+      val aggregation = GP.CustomAggregation(transType(exp.typ.get), Scala(agg), pat.name, freeArgs, freeArgs.size)
+      val foldVar = GP.Var(gensym.fresh("fold"))
+
+      Seq((Seq(foldVar), Seq(GP.Computed(foldVar, aggregation))))
   }
 
 

@@ -18,7 +18,7 @@ trait Parser {
 
   final lazy val allKeywords: Set[String] =
     Set("if", "let", "in", "match", "fail") ++
-      Set("Option", "None", "Some", "Set")
+      Set("Option", "None", "Some", "Set", "fold")
 
   def identifier[_: P]: P[Name] =
     P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_").repX).!).mapWithLoc { s =>
@@ -66,7 +66,7 @@ trait Parser {
     P(baseApplyInfixExp | matchExp | atomicExp)
   protected[frontend] def atomicExp[_: P]: P[Expression] =
     P(optionExp | comprehensionExp | constSetExp |
-      tupleExp | callExp | baseApplyExp | baseLitExp | variable | parensExp)
+      tupleExp | callExp | foldExp | baseApplyExp | baseLitExp | variable | parensExp)
 
   /** Let parser */
   final protected[frontend] def parensExp[_: P]: P[Expression] = P("(" ~ exp ~ ")")
@@ -80,19 +80,27 @@ trait Parser {
     }
 
   final protected[frontend] def multipleLetExp[_: P]: P[Let] =
-    P("let " ~ "(" ~ identifier.rep(min = 2, sep = ",") ~ ")" ~ (":" ~ typeAnno).? ~ "=" ~ exp ~ "in" ~exp).mapWithLoc {
+    P("let " ~/ "(" ~ identifier.rep(min = 2, sep = ",") ~ ")" ~ (":" ~ typeAnno).? ~ "=" ~ exp ~ "in" ~exp).mapWithLoc {
       case (names, typeAnno, bound, body) => Let(names, typeAnno, bound, body)
     }
 
 
   protected[frontend] def ifExp[_: P]: P[If] =
-    P("if" ~ "(" ~ exp ~ ")" ~ exp ~ "else" ~ exp).mapWithLoc {
+    P("if" ~ "(" ~/ exp ~ ")" ~ exp ~ "else" ~ exp).mapWithLoc {
       case (cond, thn, els) => If(cond, thn, els)
     }
 
   protected[frontend] def callExp[_: P]: P[Call] =
     P(identifier ~ "(" ~ exp.rep(sep = ",") ~ ")").mapWithLoc {
       case (name, args) => Call(name, args)
+    }
+
+  protected[frontend] def foldExp[_: P]: P[SetFold] =
+    P("fold" ~ ("[" ~ typeAnno ~ "]").? ~ "(" ~ exp ~ "," ~ identifier ~ "," ~ exp ~ ")").mapWithLoc { case (ty, init, name, set) =>
+      val op = FoldOp(name)
+      op.startIndex = name.startIndex
+      op.endIndex = name.endIndex
+      SetFold(ty, init, op, set)
     }
 
   protected[frontend] def tupleExp[_: P]: P[CoreExpression] =
@@ -103,7 +111,7 @@ trait Parser {
     identifier.mapWithLoc(Var.apply)
 
   protected[frontend] def matchExp[_: P]: P[Match] =
-    P(atomicExp ~ "match" ~ "{" ~ matchCase.rep() ~ "}").mapWithLoc {
+    P(atomicExp ~ "match" ~ "{" ~/ matchCase.rep() ~ "}").mapWithLoc {
       case (matchee, cases) => Match(matchee, cases)
     }
 

@@ -171,7 +171,6 @@ object ControlDataFlow {
        |
        |@main def final_RD(prog: Stm): Set[(`String`,MaybeDef)] =
        |  {(x,a) | s in final(prog), (x,a) in exit_RD(s, prog)}
-       |
        |@main def allEntries_RD(prog: Stm): Set[(Stm, `String`, MaybeDef)] =
        |  {(s, x, d) | s in Stm, (x, d) in entry_RD(s, prog)}
        |@main def allExits_RD(prog: Stm): Set[(Stm, `String`, MaybeDef)] =
@@ -193,6 +192,22 @@ object ControlDataFlow {
       |data Bool = True() | False() | TopBool()
       |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
       |
+      |def joinVal(v1: Val, v2: Val): Val = v1 match {
+      |  case BotVal() => v2
+      |  case IntervalVal(iv1) => v2 match {
+      |    case BotVal() => v1
+      |    case IntervalVal(iv2) => IntervalVal(joinInterval(iv1, iv2))
+      |    case BoolVal(b2) => TopVal()
+      |    case TopVal() => TopVal()
+      |  }
+      |  case BoolVal(b1) => v2 match {
+      |    case BotVal() => v1
+      |    case IntervalVal(iv2) => TopVal()
+      |    case BoolVal(b2) => BoolVal(joinBool(b1, b2))
+      |    case TopVal() => TopVal()
+      |  }
+      |  case TopVal() => TopVal()
+      |}
       |def joinInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
       |  case TopInterval() => TopInterval()
       |  case IV(l1, h1) => iv2 match {
@@ -200,10 +215,23 @@ object ControlDataFlow {
       |    case IV(l2, h2) => IV(`Math.min`(l1, l2), `Math.max`(h1, h2))
       |  }
       |}
+      |def joinBool(b1: Bool, b2: Bool): Bool = b1 match {
+      |  case True() => b2 match {
+      |    case True() => True()
+      |    case False() => TopBool()
+      |    case TopBool() => TopBool()
+      |  }
+      |  case False() => b2 match {
+      |    case True() => TopBool()
+      |    case False() => False()
+      |    case TopBool() => TopBool()
+      |  }
+      |  case TopBool() => TopBool()
+      |}
       |
       |def entry_var(stm: Stm, prog: Stm, x: `String`): Val =
-      |  // fold(init = BotVal(), op = joinInterval) {exit_var(pred, prog, x) | (pred,stm) in flow(prog)}
-      |  exit_var(stm, prog, x) // TODO query predecessors
+      |  fold(BotVal(), joinVal,
+      |    {exit_var(pred, prog, x) | (pred,stm) in flow(prog)})
       |
       |def exit_var(stm: Stm, prog: Stm, x: `String`): Val = stm match {
       |  case Assign(y, a) =>
@@ -216,6 +244,9 @@ object ControlDataFlow {
       |  case If(c, s1, s2) => entry_var(stm, prog, x)
       |  case While(c, s) => entry_var(stm, prog, x)
       |}
+      |
+      |@main def final_var(prog: Stm): Set[(`String`,Val)] =
+      |  {(x, exit_var(s, prog, x)) | s in final(prog), x in freevars(prog)}
       |
       |def aeval(exp: Exp, node: Stm, prog: Stm): Val = exp match {
       |  case Var(x) => entry_var(node, prog, x)
@@ -327,6 +358,7 @@ object ControlDataFlow {
     finalFunction,
     flowFunction,
     flowR,
+    freevars,
     intervals
   )
 

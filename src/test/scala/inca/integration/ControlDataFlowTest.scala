@@ -46,8 +46,7 @@ class ControlDataFlowTest extends AnyFunSuite {
   test("intervals ex 2.7") {
     val fun = loadFunction(ControlDataFlow.IntervalModule)
     val prog = fun.input(ControlDataFlow.example_2_7)
-    assert(fun.execute("flow_bff", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 5)
-    assert(fun.output("flowR_bff", Tuples.flatTupleOf(prog)).res.isEmpty)
+    assert(fun.execute("final_var_bff", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 2)
     fun.printAllMatches()
   }
 }

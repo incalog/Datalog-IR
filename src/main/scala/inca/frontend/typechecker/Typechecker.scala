@@ -248,6 +248,34 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       TypeOrigin(TSet(tyb), orb ++ ors.flatten)
     }
 
+    case SetFold(tyAnno, init, op@FoldOp(opName), set) =>
+      val TypeOrigin(tyInit, orInit) = typecheck(init)
+      val TypeOrigin(tySet, orSet) = typecheck(set)
+      val tySetContent = tySet match {
+        case TSet(ty) => ty
+        case TOption(ty) => ty
+        case ty =>
+          error(s"Can only fold over sets, but got $ty", set)
+          TNothing
+      }
+      val tyFold = tyAnno.getOrElse(join(tyInit, tySetContent))
+      lookupCalled(opName) match {
+        case Some(Left(fun)) =>
+          resolveTarget(op)(fun)
+          val paramTypes = fun.params.map(_.typ)
+          val tyRes = fun.outType
+          if (fun.params.size != 2 || !subtype(tyFold, paramTypes(0)) || !subtype(tyFold, paramTypes(1)) || !subtype(tyRes, tyFold))
+            error(s"Expected function of type ($tyFold, $tyFold) => $tyFold, but $op has type (${paramTypes.mkString(", ")}) => $tyRes")
+        case Some(Right((constr, data))) =>
+          resolveTarget(op)(constr)
+          val paramTypes = constr.paramTypes
+          val tyRes = TData(data.name).resolved(data)
+          if (constr.paramTypes.size != 2  || !subtype(tyFold, paramTypes(0)) || !subtype(tyFold, paramTypes(1)) || !subtype(tyRes, tyFold))
+            error(s"Expected function of type ($tyFold, $tyFold) => $tyFold, but $op has type (${paramTypes.mkString(", ")}) => $tyRes")
+        case None =>
+          // nothing
+      }
+      TypeOrigin(tyFold, orInit ++ orSet)
   }
 
   def typecheckSetMember(mem: SetMember, bindTupVars: Boolean): TypeOrigin = {

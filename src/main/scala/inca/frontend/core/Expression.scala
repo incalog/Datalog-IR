@@ -213,3 +213,22 @@ case class SetMember(tup: Expression, set: Expression, neg: Boolean) extends Cor
     s"${tup.prettyprint(infixParens = true)} ${negS}in ${set.prettyprint(infixParens = true)}"
   }
 }
+
+case class FoldOp(name: Name) extends Resolvable[Call.Target] with SourceLocation {
+  override def toString: String = name.name
+}
+case class SetFold(anno: Option[Type], init: Expression, op: FoldOp, set: Expression) extends CoreExpression {
+  override def vars: Map[Name, Option[Type]] = init.vars ++ set.vars
+  override def calls: Set[Call] = init.calls ++ set.calls
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    val annoS = anno match {
+      case Some(ty) => s"[${ty.prettyprint}]"
+      case None => ""
+    }
+    s"""fold$annoS(
+       |$indent  ${init.prettyprint(indent + "  ")},
+       |$indent  $op,
+       |$indent  ${set.prettyprint(indent + "  ")})
+       |""".stripMargin
+  }
+}
