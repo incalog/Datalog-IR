@@ -6,17 +6,19 @@ import inca.runtime.Query.Matcher
 import inca.runtime.{Database, DatabaseAccessor}
 import truechange.{Type, URI}
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.ListHasAsScala
 
-
-class Debugger(feed: Database, matcher: Matcher, module: CompiledFunModule) { // FIXME choose more meaningful names
+// FIXME choose more meaningful names, reconsider access modifiers/qualifiers
+class Debugger(feed: Database, matcher: Matcher, module: CompiledFunModule) {
   private val db = new DatabaseAccessor(feed)
-  private val tagDepth = 2 // FIXME Figure out way to set this. Re-init matches (var) on change?
 
-  private val funParams: Map[String, Seq[Param]] = module.fun.content.map({
+  private[debugger] val funParams: Map[String, Seq[Param]] = module.fun.content.map({
     case pf: PatternFunction => (pf.name.name, pf.params)
   }).toMap
+
+  private[debugger] val env: mutable.Map[String, Set[ColumnValue]] = mutable.Map()
 
   val matches: Seq[Match] = {
     val funName = matcher.getPatternName.replace(module.fun.name + "_", "")
@@ -25,8 +27,8 @@ class Debugger(feed: Database, matcher: Matcher, module: CompiledFunModule) { //
     matcher.forEachMatch(mat => {
       val cols = mat.parameterNames().asScala.map(colName => {
         val colValue = mat.get(colName) match {
-          case uri: URI => ColURI(uri, getNodeTypes(uri), getTag(uri, tagDepth))
-          case scalaType => ColScalaType(scalaType)
+          case uri: URI => URIValue(uri, getNodeTypes(uri))
+          case scalaType => ScalaValue(scalaType)
         }
         val colType = getColType(funName, colName)
         Column(colName, colValue, colType)
@@ -36,6 +38,17 @@ class Debugger(feed: Database, matcher: Matcher, module: CompiledFunModule) { //
     })
 
     bufMatches.toList
+  }
+
+  def load(mat: Match): Unit = { // Not finalized yet! Name should also change
+    mat.inputs.foreach(col => {
+      env.updateWith(col.name) {
+        case Some(v) => Some(v + col.value)
+        case None => Some(Set(col.value))
+      }
+    })
+
+    println(env)
   }
 
   private def getColType(funName: String, colName: String): ColumnType = {
@@ -48,13 +61,32 @@ class Debugger(feed: Database, matcher: Matcher, module: CompiledFunModule) { //
       Output
   }
 
-  private def getNodeTypes(uri: URI): Seq[Type] = {
-    db.nodeInstancesByValue(uri).keys.toSeq
+  private def getNodeTypes(uri: URI): Seq[Type] = db.nodeInstancesByValue(uri).keys.toSeq
+
+
+  def printMatches(tagDepth: Int = 0): String = {
+    val builder = new StringBuilder
+    builder.append("Matches: " + matches.size)
+
+    matches.foreach(mat => builder.append(printMatch(mat, tagDepth)))
+    builder.toString
   }
 
-  private def getTag(uri: URI, d: Int): String = { // TODO Optimize
-    if (d > 0) {
-      val ts = db.linkNodeInstancesByValue1(uri).keys.map(link => stripTag(link._1)) // Link is (Tag:String, name:String)
+  def printMatch(mat: Match, tagDepth: Int = 0): String = {
+    mat.cols.map {
+      col: Column => "\"" + col.name + "[" + col.ty + "]" +  "\"=" + (col.value match {
+        case uriVal: URIValue => uriVal.uri + {
+          if(tagDepth <= 0) ""
+          else ":" + getTag(uriVal.uri, tagDepth)
+        }
+        case scalaVal: ScalaValue => scalaVal.prettyPrint()
+      })
+    }.mkString("\nMatch { ", ", ", " }")
+  }
+
+  private def getTag(uri: URI, d: Int): String = {
+    if(d > 0) {
+      val ts = db.linkNodeInstancesByValue1(uri).keys.map(link => stripTag(link._1)) // Link (Tag:String, name:String)
 
       if(ts.isEmpty) { // Primitive type
         val pts = db.linkPrimitiveInstancesByValue1(uri)
@@ -81,16 +113,4 @@ class Debugger(feed: Database, matcher: Matcher, module: CompiledFunModule) { //
     case Some(_) => tag.lastIndexOf('.') + 1
     case None => 0
   })
-
-
-  def printMatches(printTypes: Boolean = true): String = {
-    val builder = new StringBuilder
-
-    builder.append("Matches: " + matches.size)
-    for (mat <- matches) {
-      builder.append("\n" + mat.prettyPrint(printTypes))
-    }
-
-    builder.toString
-  }
 }

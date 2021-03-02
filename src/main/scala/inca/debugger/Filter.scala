@@ -4,13 +4,12 @@ import truechange.{Type, URI}
 
 object Filter {
 
-  // Filter by URI
-  def filter(matches: Seq[Match], col: String, uris: Seq[URI]): Seq[Match] = {
+  def filterByUri(matches: Seq[Match], col: String, uris: Seq[URI]): Seq[Match] = {
     matches.filter(mat => {
       val colVal = mat.inputs.find(c => c.name == col) match {
         case Some(c) => c.value match {
-          case ColURI(uri, _, _) => uri
-          case ColScalaType(scalaVal) => scalaVal
+          case URIValue(uri, _) => uri
+          case ScalaValue(scalaVal) => scalaVal
         }
         case None => throw new IllegalArgumentException(s"Column $col not found in relation")
       }
@@ -18,17 +17,29 @@ object Filter {
     })
   }
 
-  def filter(matches: Seq[Match], col: String, uri: URI): Seq[Match] =
-    filter(matches: Seq[Match], col, Seq(uri))
+  def filterByUri(matches: Seq[Match], col: String, uri: URI): Seq[Match] =
+    filterByUri(matches: Seq[Match], col, Seq(uri))
+
+  def filterByUri(matches: Seq[Match], cols: Seq[String], uris: Seq[Seq[URI]]): Seq[Match] = {
+    matches.filter(mat => {
+      val colVals = mat.inputs
+        .filter(c => cols.contains(c.name))
+        .map(c => c.value match {
+          case URIValue(uri, _) => uri
+          case ScalaValue(scalaVal) => scalaVal
+        })
+
+      uris.contains(colVals)
+    })
+  }
 
 
-  // Filter by Type
-  def filter(matches: Seq[Match], col: String, tys: Seq[Type])(implicit i: DummyImplicit): Seq[Match] = {
+  def filterByType(matches: Seq[Match], col: String, tys: Seq[Type]): Seq[Match] = {
     matches.filter(mat => {
       val colTys = mat.inputs.find(c => c.name == col) match {
         case Some(c) => c.value match {
-          case ColURI(_, tys, _) => tys
-          case ColScalaType(scalaVal) => Seq(scalaVal)
+          case URIValue(_, types) => types
+          case ScalaValue(scalaVal) => Seq(scalaVal)
         }
         case None => throw new IllegalArgumentException(s"Column $col not found in relation")
       }
@@ -37,6 +48,21 @@ object Filter {
     })
   }
 
-  def filter(matches: Seq[Match], col: String, ty: Type): Seq[Match] =
-    filter(matches: Seq[Match], col, Seq(ty))
+  def filterByType(matches: Seq[Match], col: String, ty: Type): Seq[Match] =
+    filterByType(matches: Seq[Match], col, Seq(ty))
+
+  def filterByType(matches: Seq[Match], cols: Seq[String], tys: Seq[Seq[Type]]): Seq[Match] = {
+    matches.filter(mat => {
+      val colTys = mat.inputs
+        .filter(c => cols.contains(c.name))
+        .map(c => c.value match {
+          case URIValue(_, types) => types
+          case ScalaValue(scalaVal) => Seq(scalaVal)
+        })
+
+      tys.exists(tyLst => tyLst.zip(colTys).forall {
+        case (ty, cTys) => cTys.contains(ty)
+      })
+    })
+  }
 }

@@ -12,22 +12,17 @@ case object Output extends ColumnType
 
 
 sealed trait ColumnValue {
-  def prettyPrint(withTag: Boolean = true): String
+  def prettyPrint(): String
 }
 
-case class ColURI(uri: URI, types: Seq[Type], tag: String) extends ColumnValue {
+case class URIValue(uri: URI, types: Seq[Type]) extends ColumnValue {
   override def toString: String = prettyPrint()
 
-  override def prettyPrint(withTag: Boolean): String = uri.toString + (
-    if (withTag && tag != null && tag.nonEmpty)
-      ":" + tag
-    else
-      ""
-    )
+  override def prettyPrint(): String = uri.toString
 }
 
-case class ColScalaType(v: Any) extends ColumnValue {
+case class ScalaValue(v: Any) extends ColumnValue {
   override def toString: String = prettyPrint()
 
-  override def prettyPrint(withTag: Boolean): String = v.toString
+  override def prettyPrint(): String = "ScalaValue[" + v.toString + "]"
 }
