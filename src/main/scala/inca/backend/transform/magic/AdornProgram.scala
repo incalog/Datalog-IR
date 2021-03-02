@@ -104,15 +104,19 @@ object AdornProgram extends Transformation {
       case None =>
         val boundIndices = tags.zipWithIndex.filter( _._1).map(_._2)
         val boundParams = boundIndices.map(params).map(p => Var(p.name))
-        val fv = freeVars(prevConstrs, con).diff(boundParams)
-        val adorn = args.map(a => !fv.contains(a))
+        val fv = freeVars(prevConstrs, con).removedAll(boundParams)
+        val adorn = args.map {
+          case v: Var => !fv.contains(v)
+          case _: Constant => true
+        }
         adorn
     }
   }
 
-  def freeVars(prev: Seq[Constraint], constraint: Constraint): Seq[Var] = {
-    val prevBound = prev.foldLeft(Seq[Var]()) { case (res, c) => res ++ CollectVars.transConstraint(c) }
-    CollectVars.transConstraint(constraint).diff(prevBound)
+  def freeVars(prev: Seq[Constraint], constraint: Constraint): Set[Var] = {
+    val prevBound = prev.foldLeft(Set[Var]()) { case (res, c) => res ++ CollectVars.transConstraint(c) }
+    val vars = CollectVars.transConstraint(constraint).toSet
+    vars.diff(prevBound)
   }
 
   def adornmentName(name: Name, adorn: Adornment): String =
