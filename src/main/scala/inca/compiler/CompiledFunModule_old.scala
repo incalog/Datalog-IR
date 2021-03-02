@@ -5,12 +5,15 @@ import inca.backend.ir.GP.Name
 import inca.frontend_old.core.CompileToGP
 import inca.frontend_old.core.tree._
 import inca.frontend_old.desugar.Desugar
+import inca.runtime.context.LanguageMetaInfo
 
 case class CompiledFunModule_old(fun: Module, options: Options) extends CompiledModule {
 
   override def name: Name = fun.name.name
 
   override def sourceLocation: SourceLocation = fun.name
+
+  override def lmi: LanguageMetaInfo = options.languageMetaInfo
 
   lazy val typed: Module = {
     val frontend = options.frontendOld

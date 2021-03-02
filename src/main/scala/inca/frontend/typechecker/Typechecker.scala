@@ -43,11 +43,13 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   }
 
   private var currentFunctionDef: Option[FunctionDef] = None
+
   def typecheck(fun: FunctionDef): Unit = scopedTypeContext {
     fun.params.foreach { p =>
       typecheck(p.typ)
       bindVar(p.name, p, p.typ)
     }
+    typecheck(fun.outType)
     val oldFunctionDef = currentFunctionDef
     try {
       currentFunctionDef = Some(fun)
@@ -67,6 +69,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       case Some(data) => resolveTarget[TData.Target](typ)(data)
       case None => // nothing
     }
+    case TTuple(tys) => tys.foreach(typecheck)
+    case TSet(ty) => typecheck(ty)
+    case TOption(ty) => typecheck(ty)
     case _ =>
   }
 

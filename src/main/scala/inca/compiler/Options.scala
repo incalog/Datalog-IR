@@ -1,8 +1,8 @@
 package inca.compiler
 
 import inca.backend.optimize._
+import inca.backend.transform.Transformation
 import inca.backend.transform.magic.{AdornProgram, MagicSetTransformation, RemoveBodyOfUnusedDataConstructor}
-import inca.backend.transform.{Transformation, UndefElimination}
 import inca.compiler.Options.{defaultFrontend, defaultFrontend_old, defaultOptimizations}
 import inca.frontend.Frontend
 import inca.frontend_old
@@ -36,7 +36,6 @@ object Options {
   val defaultTransformations: Seq[Transformation] = Seq(
     RemoveBodyOfUnusedDataConstructor,
     AdornProgram,
-    MagicSetTransformation,
-    UndefElimination
+    MagicSetTransformation
   )
 }

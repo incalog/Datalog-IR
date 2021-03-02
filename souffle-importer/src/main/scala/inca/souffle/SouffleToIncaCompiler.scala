@@ -38,7 +38,8 @@ class SouffleToIncaCompiler {
       moduleWithUnbounded,
       inputs.values.toSeq.map { input => (decls(input.rule), input) },
       printSizes.toSeq,
-      Options(lang)
+      lang,
+      Options()
     )
   }
 

@@ -9,7 +9,7 @@ object Meta {
 
   val TAB = "  "
 
-  def typeOf[T:ClassTag](implicit tag: ClassTag[T]): Type =
+  def typeOf[T:ClassTag](implicit tag: ClassTag[T]): Type.Ref =
     mkQualTypename(tag.runtimeClass.getCanonicalName)
 
   def symbolOf[T:ClassTag](implicit tag: ClassTag[T]): Term =
@@ -44,7 +44,7 @@ object Meta {
     Import(List(Importer(t, List(Importee.Name(Indeterminate(ss.last))))))
   }
 
-  def mkQualTypename(s: String): Type = {
+  def mkQualTypename(s: String): Type.Ref = {
     val ss = s.split('.')
     if (ss.length == 1)
       return Type.Name(ss(0))

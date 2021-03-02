@@ -12,7 +12,7 @@ object EliminateAliases extends Optimization {
     override def optimizePattern(pat: Pattern): Seq[Pattern] = {
       val unsubstitutable = pat.params.map(_.name).toSet
       val newbodies = pat.bodies.map(eliminateAliasesInBody(_, unsubstitutable))
-      Seq(Pattern(pat.vis, pat.name, pat.params, newbodies))
+      Seq(Pattern(pat.vis, pat.name, pat.params, newbodies).withHints(pat))
     }
 
     private def eliminateAliasesInBody(body: Body, unsubstitutable: Set[String]): Body = {

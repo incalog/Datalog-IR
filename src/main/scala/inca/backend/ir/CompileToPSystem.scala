@@ -74,8 +74,6 @@ object CompileToPSystem {
 
     val myenv = env ++ module.pats.map(p => p.name -> module.name) // makes sure this module's names are found first
     val funs = module.pats.map(compilePattern(module.name, _)(myenv)).toList
-    val datas = module.data.flatMap(compileData).toList
-    val lmi = generateLMI(module.data)
 
     val scalaContent = module.scalaContent.map(_.tree).toList
 
@@ -102,64 +100,10 @@ object CompileToPSystem {
           module.pats.map(p => q"${p.name} -> (() => ${Term.Name(p.name)}.instance)").toList
         })
 
-        override val lmi: $tLMI = $lmi
-
         ..$scalaContent
         ..$funs
       }
-
-      ..${datas}
     """
-  }
-
-  private def compileData(data: DataDef): Seq[Stat] = {
-    val dataTyp = Type.Name(data.name)
-    val typ = q"sealed trait $dataTyp"
-    val constrs = data.constrs.map {
-      case DataConstructor(name, paramTypes) =>
-        val params = paramTypes.zipWithIndex.map { case (pt, ix) =>
-          param"val ${Term.Name("_" + ix)}: ${pt.asScala}"
-        }.toList
-        val children = paramTypes.zipWithIndex.map { case (pt, ix) =>
-          q"${Lit.String("_" + ix)} -> ${Term.Name("_" + ix)}"
-        }.toList
-        val terms = paramTypes.zipWithIndex.map { case (pt, ix) =>
-          Term.Name("_" + ix)
-        }.toList
-        val makeChildren = paramTypes.zipWithIndex.map { case (pt, ix) =>
-          q"children($ix).asInstanceOf[${pt.asScala}]"
-        }.toList
-        q"""case class ${Type.Name(name)}(..$params) extends {} with $dataTyp() with truediff.GenericDiffable() { this =>
-              this.withURI($oDataURI($name, ..$terms))
-
-              override def name: String = $name
-              override def children: Seq[(String, Any)] = Seq(..$children)
-              override def make(children: Seq[Any]): ${Type.Name(name)} = ${Term.Name(name)}(..$makeChildren)
-            }
-           """
-    }
-    typ +: constrs
-  }
-
-  private def generateLMI(datas: Seq[DataDef]): meta.Term = {
-    val subtyps = for (DataDef(_, name, constrs) <- datas.toList;
-                       DataConstructor(cname, _) <- constrs)
-      yield q"$oNodeType($cname) -> $oNodeType($name)"
-    val kidLinks = for (DataDef(_, _, constrs) <- datas.toList;
-                        DataConstructor(cname, paramTypes) <- constrs;
-                        (ty,ix) <- paramTypes.zipWithIndex if ty.isInstanceOf[TData])
-      yield q"($cname, ${Lit.String("_" + ix)}) -> $oNodeType(${ty.asInstanceOf[TData].name})"
-    val litLinks = for (DataDef(_, _, constrs) <- datas.toList;
-                        DataConstructor(cname, paramTypes) <- constrs;
-                        (ty,ix) <- paramTypes.zipWithIndex if !ty.isInstanceOf[TData])
-      yield q"($cname, ${Lit.String("_" + ix)}) -> $oPrimitiveType(classOf[${ty.asScala}])"
-
-    q"""new $tLMI(
-          $oMultiDict(..$subtyps),
-          $oMap(..$kidLinks),
-          $oMap(..$litLinks)
-        )
-       """
   }
 
   // val TExp_lmi: LanguageMetaInfo = new LanguageMetaInfo(

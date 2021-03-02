@@ -3,7 +3,11 @@ package inca.backend.transform.magic
 import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Collect
 import inca.backend.ir.GP._
+import inca.backend.optimize.EliminateAliases
 import inca.backend.transform.{Transformation, Transformer}
+import inca.runtime.context.LanguageMetaInfo
+
+import scala.collection.mutable.ListBuffer
 
 
 
@@ -13,11 +17,14 @@ object AdornProgram extends Transformation {
   type Adornment = Seq[Boolean]
 
 
-  override def transformer: Transformer = new Transformer {
+  override def transformer(languageMetaInfo: LanguageMetaInfo): Transformer = new Transformer {
 
-    override def transformModule(module: Module): Module = {
+    override def transformModule(originalModule: Module): Module = {
+      // TODO
+      val module = EliminateAliases.optimizer(languageMetaInfo).optimizeModule(originalModule)
+
+
       var adornedPatterns: Set[(Pattern, Adornment)] = Set()
-
       var unvisitedPatterns: Set[Pattern] = module.pats.toSet
 
       val mainHints = collectMainPattern(module)
@@ -25,13 +32,13 @@ object AdornProgram extends Transformation {
         val params = p.params.map(p => Var(p.name))
         val mainHint = p.hints(MagicSetHints.MainKey).asInstanceOf[MagicSetHints.Main]
         val adornment = mainHint.adorn
-        (Call(p.name, params, transitive = false, neg = false), adornment)
+        (p.name, adornment)
       }
-      var todo: Set[(Call, Adornment)] = mains.toSet
+      var todo: Set[(Name, Adornment)] = mains.toSet
 
-      def visited(call: Call, adornment: Adornment): Boolean =
+      def visited(name: Name, adornment: Adornment): Boolean =
         adornedPatterns.exists { case (pat, _) =>
-          pat.name == adornmentName(call.name, adornment)
+          pat.name == adornmentName(name, adornment)
         }
 
       // TODO currently we only consider single module without imports
@@ -42,18 +49,22 @@ object AdornProgram extends Transformation {
         todo = todo.tail
 
         if (!visited(current, currentAdorn)) {
-          val pat = module.pats.find(_.name == current.name).getOrElse(sys.error(s"Pattern ${current.name} not found during adornment"))
+          val pat = module.pats.find(_.name == current).getOrElse(sys.error(s"Pattern $current not found during adornment"))
           unvisitedPatterns -= pat
           val adornedBody = pat.bodies.map { body =>
-            val adornedConstraints = body.constraints.zipWithIndex.map { case (constr, i) =>
-              constr match {
-                case call: Call =>
-                  val (adornedCall, adorn) = deriveAdornment(i, currentAdorn, pat.params, body)
-                  todo += call -> adorn
-                  adornedCall.withHints(call).addHint(MagicSetHints.Adornment(adorn))
-                case _ =>
+            var previous = ListBuffer[Constraint]()
+            val adornedConstraints = body.constraints.map { constr =>
+              val res = constr.asCall match {
+                case Some((name, args)) =>
+                  val adorn = deriveAdornment(constr, args, previous.toList, currentAdorn, pat.params, body)
+                  val adorned = constr.replaceCall(adornmentName(name, adorn), args)
+                  todo += name -> adorn
+                  adorned.withHints(constr).addHint(MagicSetHints.Adornment(adorn))
+                case None =>
                   constr
               }
+              previous += constr
+              res
             }
             Body(adornedConstraints).withHints(body)
           }
@@ -81,24 +92,21 @@ object AdornProgram extends Transformation {
     override def transVar(v: Var): Seq[Var] = Seq(v)
   }
 
-  def fixedAdornment(call: Call): Option[Seq[Boolean]] =
-    call.hints.get(MagicSetHints.FixedAdornmentKey).flatMap { case MagicSetHints.FixedAdornment(adorn) =>
+  def fixedAdornment(con: Constraint): Option[Seq[Boolean]] =
+    con.hints.get(MagicSetHints.FixedAdornmentKey).flatMap { case MagicSetHints.FixedAdornment(adorn) =>
       Some(adorn)
     }
 
-  def deriveAdornment(index: Int, tags: Adornment, params: Seq[Param], body: Body): (Call, Adornment) = {
-    val call = body.constraints(index).asInstanceOf[Call]
-    val prevConstrs = body.constraints.take(index)
+  def deriveAdornment(con: Constraint, args: Seq[Term], prevConstrs: Seq[Constraint], tags: Adornment, params: Seq[Param], body: Body): Adornment = {
     // generate adornment based on fixed adornment hint or on the already bound inputs
-    fixedAdornment(call) match {
-      case Some(adorn) =>
-        (Call(adornmentName(call.name, adorn), call.args, call.transitive, call.neg), adorn)
+    fixedAdornment(con) match {
+      case Some(adorn) => adorn
       case None =>
         val boundIndices = tags.zipWithIndex.filter( _._1).map(_._2)
         val boundParams = boundIndices.map(params).map(p => Var(p.name))
-        val fv = freeVars(prevConstrs, call).diff(boundParams)
-        val adorn = call.args.map(a => !fv.contains(a))
-        (Call(adornmentName(call.name, adorn), call.args, call.transitive, call.neg), adorn)
+        val fv = freeVars(prevConstrs, con).diff(boundParams)
+        val adorn = args.map(a => !fv.contains(a))
+        adorn
     }
   }
 

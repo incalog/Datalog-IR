@@ -4,6 +4,7 @@ import inca.backend.hints.{Hints, MagicSetHints}
 import inca.backend.ir.CollectVars
 import inca.backend.ir.GP._
 import inca.backend.transform.{Transformation, Transformer}
+import inca.runtime.context.LanguageMetaInfo
 import inca.util.Gensym
 
 
@@ -13,10 +14,14 @@ object MagicSetTransformation extends Transformation {
   def inputPatternName(name: Name): String = "input_" + name
   def extensionalInputPatternName(name: Name): String = "ext_input_" + name
 
-  override def transformer: Transformer = new Transformer {
+  override def transformer(languageMetaInfo: LanguageMetaInfo): Transformer = new Transformer {
+
+    val gensym = new Gensym(Seq())
 
     override def transformModule(mod: Module): Module = {
       val insertedInputCallPats = mod.pats.flatMap(transformPattern)
+      insertedInputCallPats.foreach(p => gensym.register(CollectVars.transPattern(p)))
+
       val inputPatterns = mod.pats.flatMap(deriveInputPattern(_, insertedInputCallPats))
       Module(mod.name, mod.imports, mod.data, insertedInputCallPats ++ inputPatterns, mod.scalaContent)
     }
@@ -28,121 +33,109 @@ object MagicSetTransformation extends Transformation {
       } else {
         Seq(pat)
       }
-  }
 
-  private def shouldDeriveInput(pat: Pattern): Boolean =
-    hasAdornment(pat)
+    private def shouldDeriveInput(pat: Pattern): Boolean =
+      hasAdornment(pat)
 
-  private def shouldInsertInput(body: Body): Boolean =
-    !body.hasHint(MagicSetHints.NoInputRelationKey)
+    private def shouldInsertInput(body: Body): Boolean =
+      !body.hasHint(MagicSetHints.NoInputRelationKey)
 
-  private def insertInputCall(pat: Pattern): Pattern =
-    if (pat.bodies.isEmpty) {
-      val body = deriveInputCall(pat).map(c => Body(Seq(c)))
-      Pattern(pat.vis, pat.name, pat.params, body.toSeq).withHints(pat)
-    } else {
-      val bodies = pat.bodies.map { b =>
-        if (shouldInsertInput(b)) {
-          val inputCall = deriveInputCall(pat)
-          Body(inputCall.toSeq ++ b.constraints).withHints(b)
-        } else {
-          b
+    private def insertInputCall(pat: Pattern): Pattern =
+      if (pat.bodies.isEmpty) {
+        val body = deriveInputCall(pat).map(c => Body(Seq(c)))
+        Pattern(pat.vis, pat.name, pat.params, body.toSeq).withHints(pat)
+      } else {
+        val bodies = pat.bodies.map { b =>
+          if (shouldInsertInput(b)) {
+            val inputCall = deriveInputCall(pat)
+            Body(inputCall.toSeq ++ b.constraints).withHints(b)
+          } else {
+            b
+          }
         }
+        Pattern(pat.vis, pat.name, pat.params, bodies).withHints(pat)
       }
-      Pattern(pat.vis, pat.name, pat.params, bodies).withHints(pat)
-    }
 
-  private def deriveInputCall(pat: Pattern): Option[Call] = {
-    val boundParams = deriveBoundParams(pat)
-    if (boundParams.isEmpty) {
-      None
-    } else {
-      val args = boundParams.map(p => Var(p.name))
-      Some(Call(inputPatternName(pat.name), args, transitive = false, neg = false))
-    }
-  }
-
-  private def hasAdornment(hints: Hints): Boolean = hints.hasHint(MagicSetHints.AdornmentKey)
-
-  private def deriveBoundParams(pat: Pattern): Seq[Param] = {
-    val indexBoundParams = deriveBoundIndices(pat)
-    indexBoundParams.map(pat.params)
-  }
-
-  private def deriveBoundIndices(pat: Pattern): Seq[Int] = {
-    if (!hasAdornment(pat)) {
-      throw new IllegalArgumentException(s"Cannot derive input pattern of non-adorned pattern ${pat.name}")
-    }
-
-    val adornment = pat.hints(MagicSetHints.AdornmentKey) match {
-      case MagicSetHints.Adornment(adorn) => adorn
-      case _ => throw new IllegalStateException("This cannot happen")
-    }
-
-    adornment.zipWithIndex.filter(_._1).map(_._2)
-  }
-
-  private def deriveInputPattern(pat: Pattern, modulePats: Seq[Pattern]): Seq[Pattern] = {
-    if (!shouldDeriveInput(pat))
-      return Seq()
-
-    // collect every pattern that calls pat
-    val patterns = modulePats.flatMap { p =>
-      val bodiesCallingPat = collectBodiesCallingPat(p, pat)
-      if (bodiesCallingPat.nonEmpty)
-        Some(Pattern(p.vis, p.name, p.params, bodiesCallingPat))
-      else
+    private def deriveInputCall(pat: Pattern): Option[Call] = {
+      val boundParams = deriveBoundParams(pat)
+      if (boundParams.isEmpty) {
         None
+      } else {
+        val args = boundParams.map(p => Var(p.name))
+        Some(Call(inputPatternName(pat.name), args, transitive = false, neg = false))
+      }
     }
 
-    // generate new names for pattern params to avoid name collision
-    val usedVars = patterns.flatMap(CollectVars.transPattern).toSet
-    val gensym = new Gensym(usedVars)
-    val params = pat.params.map { p =>
-      val name = gensym.fresh(p.name)
-      Param(name, p.typ)
+    private def hasAdornment(hints: Hints): Boolean = hints.hasHint(MagicSetHints.AdornmentKey)
+
+    private def deriveBoundParams(pat: Pattern): Seq[Param] = {
+      val indexBoundParams = deriveBoundIndices(pat)
+      indexBoundParams.map(pat.params)
     }
-    val boundIndices = deriveBoundIndices(pat)
-    // for each body there can be multiple input bodies (due to multiple pattern calls)
-    val inputPatterns = patterns.map { p =>
-      p.bodies.flatMap { body =>
-        body.constraints.zipWithIndex.flatMap { case (constr, constrix) =>
-          constr match {
-            case Call(name, args, _, _) if name == pat.name && !constr.hints.contains(MagicSetHints.IgnoreCallkey) =>
-              val boundParams = boundIndices.map { i =>
-                Eq(args(i), Var(params(i).name))
-              }
-              if (boundParams.isEmpty) Seq()
-              else Seq(Body(body.constraints.take(constrix) ++ boundParams).withHints(body))
-            case _ => Seq()
+
+    private def deriveBoundIndices(pat: Pattern): Seq[Int] = {
+      if (!hasAdornment(pat)) {
+        throw new IllegalArgumentException(s"Cannot derive input pattern of non-adorned pattern ${pat.name}")
+      }
+
+      val adornment = pat.hints(MagicSetHints.AdornmentKey) match {
+        case MagicSetHints.Adornment(adorn) => adorn
+        case _ => throw new IllegalStateException("This cannot happen")
+      }
+
+      adornment.zipWithIndex.filter(_._1).map(_._2)
+    }
+
+    private def deriveInputPattern(pat: Pattern, patterns: Seq[Pattern]): Seq[Pattern] = {
+      if (!shouldDeriveInput(pat))
+        return Seq()
+
+      // generate new names for pattern params to avoid name collision
+      val params = pat.params.map { p =>
+        val name = gensym.fresh(p.name)
+        Param(name, p.typ)
+      }
+      val boundIndices = deriveBoundIndices(pat)
+      // for each body there can be multiple input bodies (due to multiple pattern calls)
+      val inputPatterns = patterns.flatMap { p =>
+        p.bodies.flatMap { body =>
+          body.constraints.zipWithIndex.flatMap { case (constr, constrix) =>
+            constr.asCall match {
+              case Some((name, args)) if name == pat.name && !constr.hints.contains(MagicSetHints.IgnoreCallKey) =>
+                val boundParams = boundIndices.map { i =>
+                  Eq(args(i), Var(params(i).name))
+                }
+                if (boundParams.isEmpty) Seq()
+                else Seq(Body(body.constraints.take(constrix) ++ boundParams).withHints(body))
+              case _ => Seq()
+            }
           }
         }
       }
-    }
 
-    val boundParams = boundIndices.map(params)
+      val boundParams = boundIndices.map(params)
 
-    val extensionalBody = if (pat.hasHint(MagicSetHints.MainKey)) {
-      Some(Body(Seq(
-        ExtensionalCall(extensionalInputPatternName(pat.name), boundParams.map(p => Var(p.name)))
-      )))
-    } else {
-      None
-    }
-
-    val inputPat = Pattern(None, inputPatternName(pat.name), boundParams, inputPatterns.flatten ++ extensionalBody)
-    if (inputPat.bodies.nonEmpty)
-      Seq(inputPat)
-    else
-      Seq()
-  }
-
-  private def collectBodiesCallingPat(caller: Pattern, callee: Pattern): Seq[Body] =
-    caller.bodies.filter {
-      _.constraints.exists {
-        case Call(name, _, _, _) if name == callee.name => true
-        case _ => false
+      val extensionalBody = if (pat.hasHint(MagicSetHints.MainKey)) {
+        Some(Body(Seq(
+          ExtensionalCall(extensionalInputPatternName(pat.name), boundParams.map(p => Var(p.name)))
+        )))
+      } else {
+        None
       }
+
+      val inputPat = Pattern(None, inputPatternName(pat.name), boundParams, inputPatterns ++ extensionalBody)
+      if (inputPat.bodies.nonEmpty)
+        Seq(inputPat)
+      else
+        Seq()
     }
 
+    private def collectBodiesCallingPat(caller: Pattern, callee: Pattern): Seq[Body] =
+      caller.bodies.filter {
+        _.constraints.exists {
+          case Call(name, _, _, _) if name == callee.name => true
+          case _ => false
+        }
+      }
+  }
 }

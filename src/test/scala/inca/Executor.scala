@@ -73,7 +73,7 @@ object Executor {
 
     def vals(ts: meta.Term*): Seq[AnyRef] = {
       ts.map(a => {
-        val syntax = s"{import ${loadedPsystemModule}._; ${a.syntax}}"
+        val syntax = s"{import ${loadedPsystemModule}.${compiled.name}._; ${a.syntax}}"
         scalaCompiler.compileAndLoadScala[AnyRef](syntax)
       })
     }
@@ -106,8 +106,8 @@ object Executor {
   def loadFunction(code: String): Loaded = {
     val options = Options(transformations = Options.defaultTransformations)
     val compiled = Compiler.compileFun(code, options)
-    println(compiled.optimized)
-    val scope = new QueryScope(compiled.psystemModule.lmi)
+//    println(compiled.psystemSource)
+    val scope = new QueryScope(compiled.lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     Loaded(engine, feed, compiled)
   }

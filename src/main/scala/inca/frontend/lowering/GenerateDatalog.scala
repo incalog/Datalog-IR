@@ -84,7 +84,7 @@ class GenerateDatalog(module: Module) {
     val bodies = for ((terms, cons) <- transExp(exp.ensureCore))
       yield GP.Body(cons ++ outParams.zip(terms).map(pt => GP.Eq(GP.Var(pt._1.name), pt._2)))
 
-    val pat = GP.Pattern(Some(GP.Private), name, params ++ outParams, bodies)
+    val pat = GP.Pattern(None, name, params ++ outParams, bodies)
     generatedPatterns += pat
     pat
   }
@@ -265,7 +265,7 @@ class GenerateDatalog(module: Module) {
              (setTerms, setCons) <- transExp(set.ensureCore))
           yield {
             val eqs = tupTerms.zip(setTerms).map(vt => GP.Eq(vt._1, vt._2))
-            (Seq(GP.True), setCons ++ tupCons ++ eqs)
+            (Seq(GP.True), tupCons ++ setCons ++ eqs)
           }
 
     case SetComprehension(build, predicates) =>
@@ -280,10 +280,10 @@ class GenerateDatalog(module: Module) {
     case SetFold(_, init, op, set) =>
       val pat = generatePattern(set, "AggregateCollection")
       val freeArgs = set.vars.toSeq.flatMap { case (v, ty) => flatVars(v, ty) }.map(_._1)
-      val agg = genScala.genAggregation(init, op)
-      val aggregation = GP.CustomAggregation(transType(exp.typ.get), Scala(agg), pat.name, freeArgs, freeArgs.size)
+      val agg = genScala.genAggregation(exp.toString.replace('\n', ' '), init, op, exp.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped fold $exp")))
+      val outvar = GP.Var(gensym.fresh("out"))
+      val aggregation = GP.CustomAggregation(transType(exp.typ.get), Scala(agg), pat.name, freeArgs :+ outvar, freeArgs.size)
       val foldVar = GP.Var(gensym.fresh("fold"))
-
       Seq((Seq(foldVar), Seq(GP.Computed(foldVar, aggregation))))
   }
 

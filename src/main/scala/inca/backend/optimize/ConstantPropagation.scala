@@ -11,7 +11,7 @@ object ConstantPropagation extends Optimization {
     override def optimizePattern(pat: Pattern): Seq[Pattern] = {
       val unsubstitutable = pat.params.map(_.name).toSet
       val newbodies = pat.bodies.map(propagateConstants(_, unsubstitutable))
-      Seq(Pattern(pat.vis, pat.name, pat.params, newbodies))
+      Seq(Pattern(pat.vis, pat.name, pat.params, newbodies).withHints(pat))
     }
 
     private def propagateConstants(body: Body, unsubstitutable: Set[Name]): Body = {

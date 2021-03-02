@@ -3,7 +3,8 @@ package inca.compiler
 import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
 import inca.frontend.core.Module
-import inca.frontend.lowering.GenerateDatalog
+import inca.frontend.lowering.{GenerateDatalog, GenerateLMI}
+import inca.runtime.context.LanguageMetaInfo
 
 case class CompiledFunModule(fun: Module, options: Options) extends CompiledModule {
 
@@ -36,5 +37,10 @@ case class CompiledFunModule(fun: Module, options: Options) extends CompiledModu
     val module = new GenerateDatalog(desugared).transModule()
 //    println(module)
     module
+  }
+
+  lazy val lmi: LanguageMetaInfo = {
+    val res = new GenerateLMI(desugared).transModule()
+    res
   }
 }

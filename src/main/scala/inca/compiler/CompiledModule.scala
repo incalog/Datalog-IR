@@ -1,18 +1,18 @@
 package inca.compiler
 
 import inca.backend.ir.{CompileToPSystem, GP, PSystem}
+import inca.runtime.context.LanguageMetaInfo
 import inca.util.Meta
 
 import scala.collection.mutable.ListBuffer
 
 trait CompiledModule {
   val options: Options
-
   def name: GP.Name
-
   def sourceLocation: SourceLocation
 
   def ir: GP.Module
+  def lmi: LanguageMetaInfo
 
   protected val messages: ListBuffer[CompilationMessage] = ListBuffer()
   def allMessages: List[CompilationMessage] = messages.toList
@@ -31,7 +31,7 @@ trait CompiledModule {
   lazy val transformed: GP.Module = {
     var module = ir
     for (trans <- options.transformations) {
-      module = trans.transformer.transformModule(module)
+      module = trans.transformer(options.languageMetaInfo).transformModule(module)
     }
     module
 

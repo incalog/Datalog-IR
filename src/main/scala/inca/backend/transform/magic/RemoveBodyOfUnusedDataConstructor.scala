@@ -4,9 +4,10 @@ import inca.backend.hints.DataHints
 import inca.backend.ir.Collect
 import inca.backend.ir.GP._
 import inca.backend.transform.{Transformation, Transformer}
+import inca.runtime.context.LanguageMetaInfo
 
 object RemoveBodyOfUnusedDataConstructor extends Transformation  {
-  override def transformer: Transformer = new Transformer {
+  override def transformer(languageMetaInfo: LanguageMetaInfo): Transformer = new Transformer {
     override def transformModule(mod: Module): Module = {
       val (cotrPats, nonCotrPats) = mod.pats.partition(_.hasHint(DataHints.ConstructorKey))
       val nonDataPats = mod.pats.filter(pat => !pat.hasHint(DataHints.SelectorKey) && !pat.hasHint(DataHints.DataTypeKey))

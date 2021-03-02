@@ -2,6 +2,7 @@ package inca.backend.transform.magic
 
 import inca.backend.ir.GP
 import inca.backend.transform.magic.Examples._
+import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.funsuite.AnyFunSuite
 
 class MagicSetTransformationTest extends AnyFunSuite {
@@ -10,17 +11,17 @@ class MagicSetTransformationTest extends AnyFunSuite {
     m1.pats.size == m2.pats.size && m1.pats.forall(m2.pats.contains)
 
   test("magic sets of flat function") {
-    val magicSet = MagicSetTransformation.transformer.transformModule(adornedIncModuleGP)
+    val magicSet = MagicSetTransformation.transformer(new LanguageMetaInfo()).transformModule(adornedIncModuleGP)
     assert(moduleEqual(magicSet, magicIncModuleGP))
   }
 
   test("magic sets of recursive function") {
-    val magicSet = MagicSetTransformation.transformer.transformModule(adornedFactModuleGP)
+    val magicSet = MagicSetTransformation.transformer(new LanguageMetaInfo()).transformModule(adornedFactModuleGP)
     assert(moduleEqual(magicSet, magicFactModuleGP))
   }
 
   test("magic sets of not reachable") {
-    val magicSet = MagicSetTransformation.transformer.transformModule(adornedUnreachableModuleGP)
+    val magicSet = MagicSetTransformation.transformer(new LanguageMetaInfo()).transformModule(adornedUnreachableModuleGP)
     assert(moduleEqual(magicSet, magicUnreachableModuleGP))
   }
 

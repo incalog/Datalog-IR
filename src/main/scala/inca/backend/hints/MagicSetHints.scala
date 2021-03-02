@@ -5,7 +5,7 @@ import inca.backend.hints.Hint.Key
 object MagicSetHints {
 
   val MainKey = "MAGIC_MAIN"
-  val IgnoreCallkey = "MAGIC_IGNORE_CALL"
+  val IgnoreCallKey = "MAGIC_IGNORE_CALL"
   val FixedAdornmentKey = "MAGIC_FIXED_ADORNMENT"
   val NoInputRelationKey = "MAGIC_NO_INPUT_RELATION"
   val AdornmentKey = "MAGIC_ADORNMENT"
@@ -21,7 +21,7 @@ object MagicSetHints {
    * ignore this call when collecting the inputs of the called pattern
    */
   object IgnoreCall extends Hint {
-    val key: Key = IgnoreCallkey
+    val key: Key = IgnoreCallKey
   }
 
   /**
