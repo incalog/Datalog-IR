@@ -47,8 +47,8 @@ object Executor {
       Tuples.flatTupleOf(cargs:_*)
     }
 
-    def output(main: String, tuple: Tuple): Results[AnyRef] = {
-      val mainSpec = compiled.psystemModule.patterns(main)()
+    def output(pat: String, tuple: Tuple): Results[AnyRef] = {
+      val mainSpec = compiled.psystemModule.patterns(pat)()
       val mainMatcher = engine.getMatcher(mainSpec)
       val arity = mainMatcher.getParameterNames.size()
       val inputSeq = tuple.getElements ++ (for (_ <- 0 until (arity - tuple.getSize)) yield null)
@@ -61,9 +61,9 @@ object Executor {
 
 
     def execute(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): Results[AnyRef] =
-      execute(main, input(args), deleteInput)
+      executeTuple(main, input(args), deleteInput)
 
-    def execute(main: String, tuple: Tuple, deleteInput: Boolean): Results[AnyRef] = {
+    def executeTuple(main: String, tuple: Tuple, deleteInput: Boolean = false): Results[AnyRef] = {
       feed.insert(s"ext_input_$main", tuple)
       val results = output(main, tuple)
       if (deleteInput)
@@ -106,7 +106,8 @@ object Executor {
   def loadFunction(code: String): Loaded = {
     val options = Options(transformations = Options.defaultTransformations)
     val compiled = Compiler.compileFun(code, options)
-//    println(compiled.psystemSource)
+    println(compiled.transformed)
+//    println(compiled.optimized)
     val scope = new QueryScope(compiled.lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     Loaded(engine, feed, compiled)

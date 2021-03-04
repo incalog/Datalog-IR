@@ -212,8 +212,16 @@ object ControlDataFlow {
       |  case TopInterval() => TopInterval()
       |  case IV(l1, h1) => iv2 match {
       |    case TopInterval() => TopInterval()
-      |    case IV(l2, h2) => IV(`Math.min`(l1, l2), `Math.max`(h1, h2))
+      |    case IV(l2, h2) => widenInterval(IV(`Math.min`(l1, l2), `Math.max`(h1, h2)))
       |  }
+      |}
+      |def widenInterval(iv: Interval): Interval = iv match {
+      |  case TopInterval() => TopInterval()
+      |  case IV(l, h) =>
+      |    if (`Math.abs`(h - l) <= 10)
+      |      iv
+      |    else
+      |      TopInterval()
       |}
       |def joinBool(b1: Bool, b2: Bool): Bool = b1 match {
       |  case True() => b2 match {

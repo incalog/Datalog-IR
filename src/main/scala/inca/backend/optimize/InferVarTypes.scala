@@ -2,7 +2,7 @@ package inca.backend.optimize
 
 import inca.backend.ir.GP._
 import inca.backend.ir.TypeOps
-import inca.frontend_old.core.CompileToGP.BodyMustFail
+import inca.frontend_old.core.CompileToGP.throwBodyMustFail
 import inca.runtime.context.LanguageMetaInfo
 import inca.util.Meta.Scala
 
@@ -41,7 +41,7 @@ object InferVarTypes extends Optimization with TypeOps {
         case Constant(lit) =>
           val meetType = meet(lit.typ, ty, languageMetaInfo)
           if (meetType.isEmpty)
-            throw BodyMustFail
+            throwBodyMustFail()
       }
 
       def addPatArgTypes(name: Name, args: Seq[Term]): Unit = {
@@ -83,7 +83,7 @@ object InferVarTypes extends Optimization with TypeOps {
             case Evaluation(args, resultType, _) =>
               args.foreach(a => addType(a._1, a._2))
               addType(lhs, resultType)
-            case CustomAggregation(typ, agg, patName, args, aggregatedColumn) =>
+            case CustomAggregation(typ, _, _, patName, args, aggregatedColumn) =>
               addPatArgTypes(patName, args)
               addType(lhs, typ)
           }
@@ -95,7 +95,7 @@ object InferVarTypes extends Optimization with TypeOps {
           val meetType = meet(tys, languageMetaInfo)
           meetType match {
             case Some(ty) => mostSpecificVarTypes += v -> ty
-            case None => throw BodyMustFail
+            case None => throwBodyMustFail()
           }
         }
         super.optimizeBody(body, pat)

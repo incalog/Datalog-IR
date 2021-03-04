@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, DataConstructor, DataDef, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
+import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, DataConstructor, DataDef, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
 import truechange.JavaLitType
 
 object Printer {
@@ -31,6 +31,7 @@ object Printer {
       case JavaLitType(cl) =>  cl.getName
       case _ => throw new UnsupportedOperationException
     }
+    case TData(name) => name
     case TAnyLinked => "TAnyLinked"
     case TNode(name) => name
     case TScala(ty) => s"`${ty.syntax}`"
@@ -95,9 +96,9 @@ object Printer {
       val indented = code.syntax.replace("\n", "\n\t\t")
       val argsS = args.map(a => prettyTerm(a._1)).mkString(", ")
       s"${prettyTerm(lhs)} == `$indented`($argsS): ${prettyType(returnType)}"
-    case GP.CustomAggregation(typ, agg, patName, args, aggregatedColumn) =>
+    case GP.CustomAggregation(typ, desc, agg, patName, args, aggregatedColumn) =>
       val sargs = args.map(prettyTerm).updated(aggregatedColumn, "#").mkString(", ")
-      s"${prettyTerm(lhs)} == aggregate $patName($sargs):$typ with $agg"
+      s"${prettyTerm(lhs)} == aggregate $patName($sargs):$typ with ${desc.getOrElse(agg.toString)}"
   }
 
   def prettyDataDef(data: DataDef): String = {

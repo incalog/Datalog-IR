@@ -1,5 +1,6 @@
 package inca.frontend.lowering
 
+import inca.backend.hints.MagicSetHints.{FixedAdornment, IgnoreCall, NoInputRelation}
 import inca.backend.hints.{DataHints, MagicSetHints}
 import inca.backend.ir.GP
 import inca.frontend.core._
@@ -77,16 +78,14 @@ class GenerateDatalog(module: Module) {
   def generatePattern(exp: Expression, basename: String): GP.Pattern = {
     val name = gensym.fresh(basename)
     val vars = exp.vars.toSeq.flatMap { case (v, ty) => flatVars(v, ty) }
-    val params = vars.map { case (v,ty) => GP.Param(v.name, ty) }.toSeq
+    val params = vars.map { case (v,ty) => GP.Param(v.name, ty) }
     val expTys = exp.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped expression $exp")).flatten
     val outParams = expTys.map(ty => GP.Param(gensym.fresh("out"), transType(ty)))
 
     val bodies = for ((terms, cons) <- transExp(exp.ensureCore))
       yield GP.Body(cons ++ outParams.zip(terms).map(pt => GP.Eq(GP.Var(pt._1.name), pt._2)))
 
-    val pat = GP.Pattern(None, name, params ++ outParams, bodies)
-    generatedPatterns += pat
-    pat
+    GP.Pattern(None, name, params ++ outParams, bodies)
   }
 
   private def flatVars(x: Name, ty: Option[Type]): Seq[(GP.Var, GP.Type)] = ty match {
@@ -248,13 +247,15 @@ class GenerateDatalog(module: Module) {
       // this is a type member test
       for ((Seq(term), tupCons) <- transExp(tup.ensureCore))
         yield {
-          val typeTest = GP.Call(dataName.name, Seq(term), neg = neg)
+          val typeTest =
+            GP.Call(dataName.name, Seq(term), neg = neg).addHint(IgnoreCall)
           (Seq(GP.True), tupCons :+ typeTest)
         }
 
     case SetMember(tup, set, neg) =>
       if (neg) {
         val pat = generatePattern(set, "set")
+        generatedPatterns += pat
         val freeArgs = set.vars.toSeq.flatMap { case (v, ty) => flatVars(v, ty) }.map(_._1)
         for ((tupTerms, tupCons) <- transExp(tup.ensureCore)) yield {
           val negCall = GP.Call(pat.name, freeArgs ++ tupTerms, neg = true)
@@ -278,15 +279,50 @@ class GenerateDatalog(module: Module) {
       }
 
     case SetFold(_, init, op, set) =>
-      val pat = generatePattern(set, "AggregateCollection")
+      val tdataTyp = set.typ match {
+        case Some(TSet(td: TData)) => Some(td)
+        case _ => None
+      }
+
+      val aggregandPat = tdataTyp match {
+        case Some(td) =>
+          val pat = generatePattern(set, "AggregateCollection")
+          // patch the pattern to coalesce the aggregand values
+          val inParams = pat.params.slice(0, pat.params.size - 1)
+          val oldOutName = pat.params.last.name
+          val newOutName = gensym.fresh("out")
+          val newOutParam = GP.Param(newOutName, transDataType(td))
+          val coalesceCon = GP.Call(td.name.name + COALESCED_SUFFIX, Seq(GP.Var(oldOutName), GP.Var(newOutName)))
+          pat.copy(params = inParams :+ newOutParam, bodies = pat.bodies.map(b => GP.Body(b.constraints :+ coalesceCon)))
+        case None =>
+          generatePattern(set, "AggregateCollection")
+      }
+
+      generatedPatterns += aggregandPat
+
       val freeArgs = set.vars.toSeq.flatMap { case (v, ty) => flatVars(v, ty) }.map(_._1)
-      val agg = genScala.genAggregation(exp.toString.replace('\n', ' '), init, op, exp.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped fold $exp")))
+      val description = s"init=$init, op=$op"
+      val agg = genScala.genAggregation(description, init, op, exp.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped fold $exp")))
       val outvar = GP.Var(gensym.fresh("out"))
-      val aggregation = GP.CustomAggregation(transType(exp.typ.get), Scala(agg), pat.name, freeArgs :+ outvar, freeArgs.size)
+      val dataTyp = transDataType(exp.typ.get)
+      val aggregation = GP.CustomAggregation(dataTyp, Some(description), Scala(agg), aggregandPat.name, freeArgs :+ outvar, freeArgs.size)
       val foldVar = GP.Var(gensym.fresh("fold"))
-      Seq((Seq(foldVar), Seq(GP.Computed(foldVar, aggregation))))
+      val compCon = GP.Computed(foldVar, aggregation)
+
+      tdataTyp match {
+        case Some(td) =>
+          // uncoalesce the aggregate result
+          val foldVarUncoalesced = GP.Var(gensym.fresh("fold"))
+          val uncoalesce = GP.Call(td.name.name + UNCOALESCED_SUFFIX, Seq(foldVar, foldVarUncoalesced))
+          Seq((Seq(foldVarUncoalesced), Seq(compCon, uncoalesce)))
+        case None =>
+          Seq((Seq(foldVar), Seq(compCon)))
+      }
   }
 
+
+  val COALESCED_SUFFIX = "$Coalesced"
+  val UNCOALESCED_SUFFIX = "$Uncoalesced"
 
   private def transData(data: DataDef): Seq[GP.Pattern] = {
     val vis = transVis(data.vis)
@@ -295,33 +331,53 @@ class GenerateDatalog(module: Module) {
     val constrBodies = data.constrs.map { case DataConstructor(name, paramTypes) =>
       GP.Body(Seq(
         GP.Call(name.name, paramTypes.zipWithIndex.map(pix => GP.Var(s"_${pix._2}")) :+ GP.Var("out"))
+          .addHint(IgnoreCall, FixedAdornment(paramTypes.map(_ => true) :+ false))
       ))
     }
-    val edbDataBody = GP.Body(Seq(
-      GP.HasType(GP.Var("out"), GP.TNode(data.name.name))
-    ))
-    val dataPat = GP.Pattern(None, data.name.name, Seq(GP.Param("out", typ)),
-      constrBodies :+ edbDataBody
-    ).addHint(DataHints.DataType)
+    val dataPat = GP.Pattern(None, data.name.name, Seq(GP.Param("out", typ)), constrBodies).addHint(DataHints.DataType)
 
-    dataPat +: data.constrs.flatMap(transDataConstructor(_, vis, typ))
+    val dataTyp = GP.TData(data.name.name)
+    val uriParam = GP.Param("uri", GP_URI)
+    val dataParam = GP.Param("data", dataTyp)
+    val constrCoalescedBodies = data.constrs.map { case DataConstructor(name, paramTypes) =>
+      GP.Body(Seq(GP.Call(name.name + COALESCED_SUFFIX, Seq(GP.Var(uriParam.name), GP.Var(dataParam.name)))))
+    }
+    val constrUncoalescedBodies = data.constrs.map { case DataConstructor(name, paramTypes) =>
+      GP.Body(Seq(
+        GP.Call(name.name + UNCOALESCED_SUFFIX, Seq(GP.Var(dataParam.name), GP.Var(uriParam.name)))
+      ))
+    }
+
+    val dataCoalescedPat = GP.Pattern(None, data.name.name + COALESCED_SUFFIX, Seq(uriParam, dataParam), constrCoalescedBodies)
+      .addHint(NoInputRelation)
+    val dataUncoalescedPat = GP.Pattern(None, data.name.name + UNCOALESCED_SUFFIX, Seq(dataParam, uriParam), constrUncoalescedBodies)
+
+    dataPat +: dataCoalescedPat +: dataUncoalescedPat +: data.constrs.flatMap(transDataConstructor(_, vis, data))
   }
 
-  def lowerData(data: DataDef): GP.DataDef =
-    GP.DataDef(transVis(data.vis), data.name.name, data.constrs.map {
-      case DataConstructor(cname, paramTypes) => GP.DataConstructor(cname.name, paramTypes.map(lowerType))
-    })
-
-  val tyURI: meta.Type = typeOf[truechange.URI]
+  val GP_URI: GP.TScala = GP.TScala(Scala(typeOf[truechange.URI]))
   val tDataURI: meta.Term = symbolOf(DataURI)
 
-  private def transDataConstructor(constr: DataConstructor, vis: Option[GP.Visibility], typ: GP.Type): Seq[GP.Pattern] = {
+  private def transDataConstructor(constr: DataConstructor, vis: Option[GP.Visibility], data: DataDef): Seq[GP.Pattern] = {
+    val constrPat = generateConstructor(constr, vis, data)
+    val selectorPat = generateSelector(constr, vis, data)
+    val constrCoalescedPat = generateConstructorCoalesced(constr, vis, data)
+    val constrUncoalescedPat = generateConstructorUncoalesced(constr, vis, data)
+    Seq(
+      constrPat,
+      selectorPat,
+      constrCoalescedPat,
+      constrUncoalescedPat
+    )
+  }
+
+  private def generateConstructor(constr: DataConstructor, vis: Option[GP.Visibility], data: DataDef): GP.Pattern = {
     import scala.meta._
 
     val params = constr.paramTypes.zipWithIndex.map { case (typ, ix) =>
       GP.Param(s"_$ix", transType(typ))
     }
-    val outParam = GP.Param("out", typ)
+    val outParam = GP.Param("out", GP_URI)
 
     val constrScalaFun = Term.Function(
       params.map(p => Term.Param(Nil, Term.Name(p.name), Some(p.typ.asScala), None)).toList,
@@ -329,17 +385,155 @@ class GenerateDatalog(module: Module) {
     )
     val outVar = GP.Var(outParam.name)
     val constrIDBBody = GP.Body(Seq(GP.Computed(outVar,
-      GP.Evaluation(params.map(p => GP.Var(p.name) -> p.typ), typ, Scala(constrScalaFun))))).addHint(DataHints.IDBConstructor)
+      GP.Evaluation(params.map(p => GP.Var(p.name) -> p.typ), GP_URI, Scala(constrScalaFun))))
+    ).addHint(DataHints.IDBConstructor)
 
     val constrType = GP.TNode(constr.name.name)
     val constrEDBBody = GP.Body(
       GP.HasType(outVar, constrType) +:
-        constr.paramTypes.zipWithIndex.map { case (typ, ix) =>
-          GP.Path(outVar, constrType, GP.NamedLink(constrType, s"_$ix"), GP.Var(s"_$ix"), transRuntimeType(typ))
-        }
+      constr.paramTypes.zipWithIndex.map { case (typ, ix) =>
+        GP.Path(outVar, constrType, GP.NamedLink(constrType, s"_$ix"), GP.Var(s"_$ix"), transRuntimeType(typ))
+      }
     ).addHint(MagicSetHints.NoInputRelation)
-    val constrPat = GP.Pattern(vis, constr.name.name, params :+ outParam, Seq(constrIDBBody, constrEDBBody))
-      .addHint(DataHints.Constructor)
+
+
+    val kidVars = for (k <- constr.paramTypes.indices)
+      yield GP.Var(s"_$k")
+    val kidCoalescedVars = for (k <- constr.paramTypes.indices)
+      yield GP.Var(kidVars(k).name + COALESCED_SUFFIX)
+
+    val dataVar = GP.Var("data")
+    val queryUncoalesced = GP.Call(constr.name.name + UNCOALESCED_SUFFIX, Seq(dataVar, outVar))
+      .addHint(MagicSetHints.IgnoreCall)
+      .addHint(MagicSetHints.FixedAdornment(Seq(true, false)))
+    val queryUncoalescedKids = for (k <- constr.paramTypes.indices)
+      yield {
+        val paramTyp = constr.paramTypes(k)
+        val kidVar = kidVars(k)
+        val kidCoalescedVar = kidCoalescedVars(k)
+
+        // bind kidCoalescedVar to data.kid
+        val scalaDataParam = Term.Name(dataVar.name)
+        val constrScalaFun = q"($scalaDataParam: ${Type.Name(constr.name.name)}) => ${Term.Select(scalaDataParam, Term.Name(kidVar.name))}"
+        val extractKid = GP.Computed(kidCoalescedVar,
+          GP.Evaluation(Seq(dataVar -> transDataType(TData(constr.name))), transDataType(paramTyp), Scala(constrScalaFun)))
+
+        val bindKid = paramTyp match {
+          case TData(name) =>
+            // uncoalesce kidCoalescedVar to kidVar
+            GP.Call(name + UNCOALESCED_SUFFIX, Seq(kidCoalescedVar, kidVar))
+              .addHint(MagicSetHints.IgnoreCall)
+              .addHint(MagicSetHints.FixedAdornment(Seq(true, false)))
+          case TAny | TNothing | _: TScala =>
+            // set kidVar = kidCoalescedVar
+            GP.Eq(kidVar, kidCoalescedVar)
+          case _ => throw new UnsupportedOperationException
+        }
+        Seq(extractKid, bindKid)
+      }
+    val constrUncoalescedBody = GP.Body(queryUncoalesced +: queryUncoalescedKids.flatten).addHint(MagicSetHints.NoInputRelation)
+
+    val constrPat = GP.Pattern(vis, constr.name.name, params :+ outParam,
+      Seq(constrIDBBody, constrEDBBody, constrUncoalescedBody)
+    ).addHint(DataHints.Constructor)
+    constrPat
+  }
+
+
+  private def generateConstructorCoalesced(constr: DataConstructor, vis: Option[GP.Visibility], data: DataDef): GP.Pattern = {
+    import scala.meta._
+
+    val uriParam = GP.Param("uri", GP_URI)
+    val uriVar = GP.Var(uriParam.name)
+    val dataType = GP.TData(constr.name.name)
+    val dataParam = GP.Param("data", dataType)
+    val dataVar = GP.Var(dataParam.name)
+
+    val kidVars = for (k <- constr.paramTypes.indices)
+      yield GP.Var(s"_$k")
+    val kidCoalescedVars = for (k <- constr.paramTypes.indices)
+      yield GP.Var(kidVars(k).name + COALESCED_SUFFIX)
+
+    val queryConstructor = GP.Call(constr.name.name, kidVars :+ uriVar)
+      .addHint(MagicSetHints.IgnoreCall)
+      .addHint(MagicSetHints.FixedAdornment(kidVars.map(_ => true) :+ false))
+    val queryKids = for (k <- constr.paramTypes.indices)
+      yield constr.paramTypes(k) match {
+        case TData(name) =>
+          GP.Call(name + COALESCED_SUFFIX, Seq(kidVars(k), kidCoalescedVars(k)))
+        case TAny | TNothing | _: TScala =>
+          GP.Eq(kidVars(k), kidCoalescedVars(k))
+        case _ => throw new UnsupportedOperationException
+      }
+
+    val scalaParams = for (k <- constr.paramTypes.indices)
+      yield Term.Param(Nil, Term.Name(kidCoalescedVars(k).name), Some(transDataType(constr.paramTypes(k)).asScala), None)
+    val constrScalaFun = Term.Function(
+      scalaParams.toList,
+      q"""${Term.Name(constr.name.name)}(..${kidCoalescedVars.map(v => Term.Name(v.name)).toList})"""
+    )
+    val evalParams = for (k <- constr.paramTypes.indices)
+      yield kidCoalescedVars(k) -> transDataType(constr.paramTypes(k))
+    val genOutData = GP.Computed(dataVar, GP.Evaluation(evalParams, dataType, Scala(constrScalaFun)))
+    val body = GP.Body(
+      queryConstructor +:
+      queryKids :+
+      genOutData
+    ).addHint(MagicSetHints.NoInputRelation)
+
+    val constrCoalescedPat = GP.Pattern(vis, constr.name.name + COALESCED_SUFFIX, Seq(uriParam, dataParam), Seq(body))
+      .addHint(MagicSetHints.NoInputRelation)
+    constrCoalescedPat
+  }
+
+  private def generateConstructorUncoalesced(constr: DataConstructor, vis: Option[GP.Visibility], data: DataDef): GP.Pattern = {
+    import scala.meta._
+
+    val uriParam = GP.Param("uri", GP_URI)
+    val uriVar = GP.Var(uriParam.name)
+    val dataType = GP.TData(constr.name.name)
+    val dataParam = GP.Param("data", dataType)
+    val dataVar = GP.Var(dataParam.name)
+
+    def consumeData(ty: GP.Type, f: Term => Term): GP.Evaluation = {
+      val scalaDataParam = Term.Name(dataParam.name)
+      val t = f(scalaDataParam)
+      val constrScalaFun = q"($scalaDataParam: ${dataType.asScala}) => $t"
+      GP.Evaluation(Seq(dataVar -> dataType), ty, Scala(constrScalaFun))
+    }
+
+    val kidVars = for (k <- constr.paramTypes.indices)
+      yield GP.Var(s"_$k")
+
+    val uncoalesceKids = for (k <- constr.paramTypes.indices)
+      yield constr.paramTypes(k) match {
+        case td@TData(name) =>
+          val v = kidVars(k)
+          val ty = transDataType(td)
+          Seq(
+            GP.Computed(v, consumeData(ty, t => Term.Select(t, Term.Name(v.name)))),
+            GP.Call(name + UNCOALESCED_SUFFIX, Seq(v, GP.Var("_")))
+          )
+        case TAny | TNothing | _: TScala =>
+          Seq()
+        case _ => throw new UnsupportedOperationException
+      }
+
+    val genURI = GP.Computed(uriVar, consumeData(GP_URI, t => q"$t.uri"))
+    val body = GP.Body(
+      uncoalesceKids.flatten :+
+      genURI
+    )
+
+    val constrUncoalescedPat = GP.Pattern(vis, constr.name.name + UNCOALESCED_SUFFIX, Seq(dataParam, uriParam), Seq(body))
+    constrUncoalescedPat
+  }
+
+  private def generateSelector(constr: DataConstructor, vis: Option[GP.Visibility], data: DataDef): GP.Pattern = {
+    val params = constr.paramTypes.zipWithIndex.map { case (typ, ix) =>
+      GP.Param(s"_$ix", transType(typ))
+    }
+    val outParam = GP.Param("out", GP_URI)
 
     val selectorCons = GP.Call(constr.name.name, (params :+ outParam).map(p => GP.Var(p.name)))
       .addHint(MagicSetHints.IgnoreCall)
@@ -347,8 +541,7 @@ class GenerateDatalog(module: Module) {
     val selectorPat = GP.Pattern(vis, constr.selectorName, outParam +: params, Seq(GP.Body(Seq(selectorCons))))
       .addHint(MagicSetHints.NoInputRelation)
       .addHint(DataHints.Selector)
-
-    Seq(constrPat, selectorPat)
+    selectorPat
   }
 
   private def transVis(vis: Option[Visibility]): Option[GP.Visibility] =
@@ -357,21 +550,17 @@ class GenerateDatalog(module: Module) {
   @tailrec
   private def transType(typ: Type): GP.Type = typ match {
     case TAny => GP.TAny
-    case TData(_) => GP.TScala(Scala(tyURI))
+    case TData(_) => GP_URI
     case TScala(ty) => GP.TScala(ty)
     case TOption(ty) => transType(ty)
     case TSet(ty) => transType(ty)
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
   }
 
-  @tailrec
-  private def lowerType(typ: Type): GP.Type = typ match {
-    case TAny => GP.TAny
+  private def transDataType(typ: Type): GP.Type = typ match {
     case TData(name) => GP.TData(name.name)
-    case TScala(ty) => GP.TScala(ty)
-    case TOption(ty) => lowerType(ty)
-    case TSet(ty) => lowerType(ty)
-    case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
+    case TAny | TNothing | _: TScala => GP.TScala(Scala(typ.asScala))
+    case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Scala type")
   }
 
   private def transRuntimeType(typ: Type): GP.Type = typ match {

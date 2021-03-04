@@ -60,7 +60,9 @@ object GP {
   case class Module(name: Name, imports: Seq[Name], data: Seq[DataDef], pats: Seq[Pattern], scalaContent: Seq[Scala[meta.Stat]]) {
     override def toString: Name = Printer.prettyModule(this)
   }
-  case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body]) extends Hints
+  case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body]) extends Hints {
+    def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.constraints.isEmpty)
+  }
   case class Param(name: Name, typ: Type)
   case class Body(constraints: Seq[Constraint]) extends Hints
 
@@ -139,10 +141,10 @@ object GP {
     override def replaceCall(newPatName: Name, newArgs: Seq[Term]): CountAggregation =
       CountAggregation(newPatName, newArgs)
   }
-  case class CustomAggregation(typ: Type, agg: Scala[meta.Term], patName: Name, args: Seq[Term], aggregatedColumn: Int) extends Computation {
+  case class CustomAggregation(typ: Type, description: Option[String], agg: Scala[meta.Term], patName: Name, args: Seq[Term], aggregatedColumn: Int) extends Computation {
     override def asCall: Option[(Name, Seq[Term])] = Some(patName -> args)
     override def replaceCall(newPatName: Name, newArgs: Seq[Term]): CustomAggregation =
-      CustomAggregation(typ, agg, newPatName, newArgs, aggregatedColumn)
+      CustomAggregation(typ, description, agg, newPatName, newArgs, aggregatedColumn)
   }
 
   case class DataDef(vis: Option[Visibility], name: Name, constrs: Seq[DataConstructor])

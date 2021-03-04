@@ -2,6 +2,7 @@ package inca.integration
 
 import inca.Executor._
 import inca.examples.{Code, LambdaCalculus}
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.XtensionQuasiquoteTerm
@@ -14,6 +15,22 @@ class FunctionsDataTest extends AnyFunSuite {
       == fun.result(q"Succ(Succ(Succ(Zero())))"))
     assert(fun.execute("main_bbf", Seq(q"Succ(Succ(Succ(Succ(Zero()))))", q"Succ(Succ(Zero()))"))
       == fun.result(q"Succ(Succ(Succ(Succ(Succ(Succ(Zero()))))))"))
+    fun.printAllMatches()
+  }
+
+  test("Simple Fold Int Example") {
+    val fun = loadFunction(Code.simpleFoldIntModule)
+    val tuple = Tuples.flatTupleOf(fun.vals(q"1", q"10"):_*)
+    assert(fun.executeTuple("sum_bbf", tuple) == fun.result(q"55"))
+    assert(fun.output("AggregateCollection$0_bbf", tuple).res.size == 10)
+    fun.printAllMatches()
+  }
+
+  test("Simple Fold Example") {
+    val fun = loadFunction(Code.simpleFoldModule)
+    val tuple = Tuples.flatTupleOf(fun.vals(q"1", q"10"):_*)
+    assert(fun.executeTuple("sum_bbf", tuple) == fun.result(q"55"))
+    assert(fun.output("AggregateCollection$0_bbf", tuple).res.size == 10)
     fun.printAllMatches()
   }
 

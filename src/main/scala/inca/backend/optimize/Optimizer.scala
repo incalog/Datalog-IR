@@ -19,8 +19,13 @@ trait Optimizer {
     Seq(Pattern(pat.vis, pat.name, pat.params, newbodies).withHints(pat))
   }
 
-  def optimizeBody(body: Body, pat: Pattern): Seq[Body] =
-    Seq(Body(body.constraints.flatMap(optimizeConstraint)).withHints(body))
+  def optimizeBody(body: Body, pat: Pattern): Seq[Body] = {
+    val newConstraints = body.constraints.flatMap(optimizeConstraint)
+    if (newConstraints.isEmpty)
+      Seq()
+    else
+      Seq(Body(newConstraints).withHints(body))
+  }
 
   def optimizeConstraint(con: Constraint): Seq[Constraint] = (con match {
     case Call(name, args, transitive, neg) => Seq(Call(name, args.map(optimizeTerm), transitive, neg))

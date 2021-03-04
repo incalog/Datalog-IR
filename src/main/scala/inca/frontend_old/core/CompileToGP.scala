@@ -11,6 +11,7 @@ import scala.meta.{Name => _, Type => _}
 
 object CompileToGP {
   case object BodyMustFail extends Exception
+  def throwBodyMustFail(): Nothing = throw BodyMustFail
 }
 
 class CompileToGP {
@@ -294,7 +295,7 @@ class CompileToGP {
       val fun = PatternFunction(None, Name(funname), params, resultType, bodies)
       generatedPatterns += transform(fun)
 
-      val aggregation = GP.CustomAggregation(transType(resultType), aggCode, funname, allvars, allvars.size - 1)
+      val aggregation = GP.CustomAggregation(transType(resultType), None, aggCode, funname, allvars, allvars.size - 1)
       val resultVar = gensym.fresh("tmp")
       val compare = GP.Computed(GP.Var(resultVar), aggregation)
       (Seq(resultVar), Seq(compare))

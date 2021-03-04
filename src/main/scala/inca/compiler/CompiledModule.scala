@@ -31,7 +31,7 @@ trait CompiledModule {
   lazy val transformed: GP.Module = {
     var module = ir
     for (trans <- options.transformations) {
-      module = trans.transformer(options.languageMetaInfo).transformModule(module)
+      module = trans.transformer(lmi).transformModule(module)
     }
     module
 
@@ -41,7 +41,7 @@ trait CompiledModule {
     var module = transformed
     // println(module)
     for (op <- options.optimizations) {
-      module = op.optimizer(options.languageMetaInfo).optimizeModule(module)
+      module = op.optimizer(lmi).optimizeModule(module)
 //      println(op + "\n" + module.toString)
     }
     module

@@ -9,6 +9,7 @@ object MagicSetHints {
   val FixedAdornmentKey = "MAGIC_FIXED_ADORNMENT"
   val NoInputRelationKey = "MAGIC_NO_INPUT_RELATION"
   val AdornmentKey = "MAGIC_ADORNMENT"
+  val InputCallKey = "MAGIC_INPUT_CALL"
 
   /**
    * marks calls from which the magic set transformation starts
@@ -20,7 +21,7 @@ object MagicSetHints {
   /**
    * ignore this call when collecting the inputs of the called pattern
    */
-  object IgnoreCall extends Hint {
+  case object IgnoreCall extends Hint {
     val key: Key = IgnoreCallKey
   }
 
@@ -34,7 +35,7 @@ object MagicSetHints {
   /**
    * do not derive input relation for this pattern or body
    */
-  object NoInputRelation extends Hint {
+  case object NoInputRelation extends Hint {
     val key: Key = NoInputRelationKey
   }
 
@@ -43,5 +44,9 @@ object MagicSetHints {
    */
   case class Adornment(adorn: Seq[Boolean]) extends Hint {
     val key: Key = AdornmentKey
+  }
+
+  case class InputCall(name: String) extends Hint {
+    override def key: Key = InputCallKey
   }
 }

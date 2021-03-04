@@ -71,6 +71,10 @@ class TypecheckerTest extends AnyFunSuite {
     checkModule(Code.setOperationsModule)
   }
 
+  test("simple fold") {
+    checkModule(Code.simpleFoldModule)
+  }
+
   test("cflow") {
     checkModule(ControlDataFlow.cflowModule)
   }

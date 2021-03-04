@@ -97,7 +97,7 @@ object CompileToPSystem {
 
 
         override val patterns: $tMap[String, () => $tyQuerySpecification] = $oMap(..${
-          module.pats.map(p => q"${p.name} -> (() => ${Term.Name(p.name)}.instance)").toList
+          module.pats.filter(!_.isEmpty).map(p => q"${p.name} -> (() => ${Term.Name(p.name)}.instance)").toList
         })
 
         ..$scalaContent
@@ -140,6 +140,16 @@ object CompileToPSystem {
         q"PVisibility.PRIVATE"
       else
         q"PVisibility.PUBLIC"
+
+    if (pat.isEmpty) {
+      val obj =
+        q"""
+         object ${Term.Name(pat.name)} {
+           val error = "This pattern was empty"
+         }
+        """
+      return obj
+    }
 
     val bodies = if (pat.bodies.nonEmpty) pat.bodies else
       Seq(Body(Seq(Compare(EqComparator, Constant(IntLiteral(0)), Constant(IntLiteral(1))))))
@@ -213,7 +223,8 @@ object CompileToPSystem {
 
   private def genInputKeyAndType(typ: GP.Type): Option[(meta.Term, meta.Term)] = typ match {
     case TAny => None
-    case TScala(_) => None
+    case _: TScala => None
+    case _: TData => None
     case tlit@TLiteral(litType) =>
       litType match {
         case JavaLitType(cl) =>
@@ -384,7 +395,7 @@ object CompileToPSystem {
         }, $result)
          """)
 
-    case CustomAggregation(typ, agg, patName, args, aggregatedColumn) =>
+    case CustomAggregation(typ, _, agg, patName, args, aggregatedColumn) =>
       val result = compileTerm(lhs)
       val module = env.getOrElse(patName, throw new IllegalArgumentException(s"Unknown rule $patName"))
       val argTuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"

@@ -24,6 +24,13 @@ trait TypeOps extends ScalaTyper {
         Some(ty2)
       else
         None
+    case (TData(name1), TData(name2)) =>
+      if (languageMetaInfo.nodeSupertypes.containsEntry(SortType(name1) -> SortType(name2)))
+        Some(ty1)
+      else if (languageMetaInfo.nodeSupertypes.containsEntry(SortType(name2) -> SortType(name1)))
+        Some(ty2)
+      else
+        None
     case (TList(s1), TList(s2)) => meet(s1, s2, languageMetaInfo).map(t => TList(t.asInstanceOf[TLinked]))
     case (TScala(s1), TScala(s2)) =>
       if (subtypeScala(s1.tree, s2.tree))

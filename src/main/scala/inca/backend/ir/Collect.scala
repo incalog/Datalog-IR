@@ -62,6 +62,6 @@ trait Collect[R] {
   def transComputation(computation: Computation): Seq[R] = computation match {
     case CountAggregation(_, args) => args.flatMap(transTerm)
     case Evaluation(args, _, _) => args.flatMap(v => transTerm(v._1)).toSeq
-    case CustomAggregation(_, agg, _, args, _) => args.flatMap(transTerm)
+    case CustomAggregation(_, _, agg, _, args, _) => args.flatMap(transTerm)
   }
 }

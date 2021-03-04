@@ -25,7 +25,7 @@ class GenerateScala {
 
   def genDataDef(data: DataDef): Unit = createIfNeeded(data) {
     val dataTyp = MetaType.Name(data.name.name)
-    val typ = q"sealed trait $dataTyp"
+    val typ = q"sealed trait $dataTyp extends truediff.Diffable"
     val constrs = data.constrs.map {
       case DataConstructor(core.Name(name), paramTypes) =>
         val scalaParamTypes = paramTypes.map(transType)
@@ -74,8 +74,8 @@ class GenerateScala {
 
 
   def transType(t: Type): MetaType = t match {
-    case TAny =>  t.asScala// nothing
-    case TNothing =>  t.asScala// nothing
+    case TAny =>  t.asScala
+    case TNothing =>  t.asScala
     case TTuple(ts) => t"(..${ts.toList.map(transType)})"
     case d: TData => d.target match {
       case Some(data: DataDef) =>

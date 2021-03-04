@@ -106,6 +106,7 @@ object AdornProgram extends Transformation {
         val boundParams = boundIndices.map(params).map(p => Var(p.name))
         val fv = freeVars(prevConstrs, con).removedAll(boundParams)
         val adorn = args.map {
+          case Var("_") => false
           case v: Var => !fv.contains(v)
           case _: Constant => true
         }

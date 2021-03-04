@@ -1,7 +1,7 @@
 package inca.backend.optimize
 import inca.backend.ir.GP._
 import inca.backend.ir.TypeOps
-import inca.frontend_old.core.CompileToGP.BodyMustFail
+import inca.frontend_old.core.CompileToGP.throwBodyMustFail
 import inca.runtime.context.LanguageMetaInfo
 import inca.util.Meta.Scala
 
@@ -10,20 +10,25 @@ object FoldConstantConstraints extends Optimization with TypeOps {
 
   override def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer = new Optimizer {
 
+    var pats: Map[Name, Pattern] = Map()
+
     override def optimizeModule(module: Module): Module = {
       module.scalaContent.foreach {
         case Scala(imp: meta.Import) => registerImport(imp)
         case Scala(stat) => registerBlockDef(stat)
       }
+      pats = module.pats.map(p => p.name -> p).toMap
       super.optimizeModule(module)
     }
 
     override def optimizeConstraint(con: Constraint): Seq[Constraint] = con match {
 
-      case Compare(EqComparator, t1, t2) if t1 == t2 => Seq()
-      case Compare(EqComparator, Constant(c1), Constant(c2)) if c1 != c2 => throw BodyMustFail
+      case Call(name, _, _, false) if pats(name).isEmpty => throwBodyMustFail()
 
-      case Compare(NeqComparator, t1, t2) if t1 == t2 => throw BodyMustFail
+      case Compare(EqComparator, t1, t2) if t1 == t2 => Seq()
+      case Compare(EqComparator, Constant(c1), Constant(c2)) if c1 != c2 => throwBodyMustFail()
+
+      case Compare(NeqComparator, t1, t2) if t1 == t2 => throwBodyMustFail()
       case Compare(NeqComparator, Constant(c1), Constant(c2)) if c1 == c2 => Seq()
 
       case HasType(t, typ) =>
@@ -49,7 +54,7 @@ object FoldConstantConstraints extends Optimization with TypeOps {
             Seq(con)
           } else if (meetType.isEmpty) {
             // cast to unrelated type, cannot succeed
-            throw BodyMustFail
+            throwBodyMustFail()
           } else {
             throw new IllegalArgumentException
           }
@@ -67,7 +72,7 @@ object FoldConstantConstraints extends Optimization with TypeOps {
         val meetType = meet(termTyp, typ, languageMetaInfo)
         if (meetType.contains(termTyp)) {
           // termTyp <: typ, hence NotHasType must fail
-          throw BodyMustFail
+          throwBodyMustFail()
         } else if (meetType.contains(typ)) {
           // termTyp :> typ, hence NotHasType makes sense
           Seq(con)

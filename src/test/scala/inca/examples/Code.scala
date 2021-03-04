@@ -136,4 +136,44 @@ object Code {
        |def filter: Set[`String`] = { g | g in grades(), g < "3.0" }
        |def cross: Set[(`Int`, `String`)] = { (i,g) | i in flip(), g in grades() }
        |""".stripMargin
+
+  val simpleFoldIntModule: String =
+    s"""module Foo
+       |
+       |def add(n1: `Int`, n2: `Int`): `Int` = n1 + n2
+       |
+       |def fromTo(start: `Int`, end: `Int`): Set[`Int`] =
+       |  if (start > end)
+       |    {}
+       |  else
+       |    {start} ++ fromTo(start + 1, end)
+       |
+       |@main def sum(start: `Int`, end: `Int`): `Int` =
+       |  fold(0, add, fromTo(start, end))
+       |
+       |""".stripMargin
+
+  val simpleFoldModule: String =
+    s"""module Foo
+       |
+       |data Num = V(`Int`)
+       |
+       |def add(n1: Num, n2: Num): Num = n1 match {
+       |  case V(i1) => n2 match {
+       |    case V(i2) => V(i1 + i2)
+       |  }
+       |}
+       |
+       |def fromTo(start: `Int`, end: `Int`): Set[Num] =
+       |  if (start > end)
+       |    {}
+       |  else
+       |    {V(start)} ++ fromTo(start + 1, end)
+       |
+       |@main def sum(start: `Int`, end: `Int`): `Int` =
+       |  fold(V(0), add, fromTo(start, end)) match {
+       |    case V(res) => res
+       |  }
+       |
+       |""".stripMargin
 }

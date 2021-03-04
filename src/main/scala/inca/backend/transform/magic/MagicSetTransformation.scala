@@ -1,9 +1,10 @@
 package inca.backend.transform.magic
 
+import inca.backend.hints.MagicSetHints.{InputCall, InputCallKey}
 import inca.backend.hints.{Hints, MagicSetHints}
 import inca.backend.ir.CollectVars
 import inca.backend.ir.GP._
-import inca.backend.transform.{Transformation, Transformer}
+import inca.backend.transform.{FilterBodyTransformer, Transformation, Transformer}
 import inca.runtime.context.LanguageMetaInfo
 import inca.util.Gensym
 
@@ -23,11 +24,23 @@ object MagicSetTransformation extends Transformation {
       insertedInputCallPats.foreach(p => gensym.register(CollectVars.transPattern(p)))
 
       val inputPatterns = mod.pats.flatMap(deriveInputPattern(_, insertedInputCallPats))
-      Module(mod.name, mod.imports, mod.data, insertedInputCallPats ++ inputPatterns, mod.scalaContent)
+
+      // remove bodies with calls to input relations that don't exist
+      val inputPatNames = inputPatterns.map(_.name).toSet
+      val allPats = insertedInputCallPats ++ inputPatterns
+      val filter = new FilterBodyTransformer({ body =>
+        val hasEmptyInput = body.constraints.exists { con =>
+          con.hasHint(InputCallKey) && !inputPatNames.contains(con.asInstanceOf[Call].name)
+        }
+        !hasEmptyInput
+      })
+      val filteredPats = allPats.flatMap(filter.transformPattern)
+
+      Module(mod.name, mod.imports, mod.data, filteredPats, mod.scalaContent)
     }
 
     override def transformPattern(pat: Pattern): Seq[Pattern] =
-      if (hasAdornment(pat)) {
+      if (pat.hasHint(MagicSetHints.AdornmentKey)) {
         val extendedPattern = insertInputCall(pat)
         Seq(extendedPattern)
       } else {
@@ -35,26 +48,30 @@ object MagicSetTransformation extends Transformation {
       }
 
     private def shouldDeriveInput(pat: Pattern): Boolean =
-      hasAdornment(pat)
+      shouldInsertInput(pat) && pat.hasHint(MagicSetHints.AdornmentKey)
 
-    private def shouldInsertInput(body: Body): Boolean =
+    private def shouldInsertInput(body: Hints): Boolean =
       !body.hasHint(MagicSetHints.NoInputRelationKey)
 
-    private def insertInputCall(pat: Pattern): Pattern =
+    private def insertInputCall(pat: Pattern): Pattern = {
+      if (!shouldInsertInput(pat))
+        return pat
+
       if (pat.bodies.isEmpty) {
         val body = deriveInputCall(pat).map(c => Body(Seq(c)))
-        Pattern(pat.vis, pat.name, pat.params, body.toSeq).withHints(pat)
-      } else {
-        val bodies = pat.bodies.map { b =>
-          if (shouldInsertInput(b)) {
-            val inputCall = deriveInputCall(pat)
-            Body(inputCall.toSeq ++ b.constraints).withHints(b)
-          } else {
-            b
-          }
-        }
-        Pattern(pat.vis, pat.name, pat.params, bodies).withHints(pat)
+        return Pattern(pat.vis, pat.name, pat.params, body.toSeq).withHints(pat)
       }
+
+      val bodies = pat.bodies.map { b =>
+        if (shouldInsertInput(b)) {
+          val inputCall = deriveInputCall(pat)
+          Body(inputCall.toSeq ++ b.constraints).withHints(b)
+        } else {
+          b
+        }
+      }
+      Pattern(pat.vis, pat.name, pat.params, bodies).withHints(pat)
+    }
 
     private def deriveInputCall(pat: Pattern): Option[Call] = {
       val boundParams = deriveBoundParams(pat)
@@ -62,11 +79,9 @@ object MagicSetTransformation extends Transformation {
         None
       } else {
         val args = boundParams.map(p => Var(p.name))
-        Some(Call(inputPatternName(pat.name), args, transitive = false, neg = false))
+        Some(Call(inputPatternName(pat.name), args).addHint(InputCall(pat.name)))
       }
     }
-
-    private def hasAdornment(hints: Hints): Boolean = hints.hasHint(MagicSetHints.AdornmentKey)
 
     private def deriveBoundParams(pat: Pattern): Seq[Param] = {
       val indexBoundParams = deriveBoundIndices(pat)
@@ -74,7 +89,7 @@ object MagicSetTransformation extends Transformation {
     }
 
     private def deriveBoundIndices(pat: Pattern): Seq[Int] = {
-      if (!hasAdornment(pat)) {
+      if (!pat.hasHint(MagicSetHints.AdornmentKey)) {
         throw new IllegalArgumentException(s"Cannot derive input pattern of non-adorned pattern ${pat.name}")
       }
 
@@ -86,7 +101,7 @@ object MagicSetTransformation extends Transformation {
       adornment.zipWithIndex.filter(_._1).map(_._2)
     }
 
-    private def deriveInputPattern(pat: Pattern, patterns: Seq[Pattern]): Seq[Pattern] = {
+    private def deriveInputPattern(pat: Pattern, patterns: Seq[Pattern]): Seq[Pattern] = gensym.scoped {
       if (!shouldDeriveInput(pat))
         return Seq()
 
@@ -101,12 +116,16 @@ object MagicSetTransformation extends Transformation {
         p.bodies.flatMap { body =>
           body.constraints.zipWithIndex.flatMap { case (constr, constrix) =>
             constr.asCall match {
-              case Some((name, args)) if name == pat.name && !constr.hints.contains(MagicSetHints.IgnoreCallKey) =>
-                val boundParams = boundIndices.map { i =>
-                  Eq(args(i), Var(params(i).name))
+              case Some((name, args)) =>
+                if (name == pat.name && !constr.hints.contains(MagicSetHints.IgnoreCallKey)) {
+                  val boundParams = boundIndices.map { i =>
+                    Eq(args(i), Var(params(i).name))
+                  }
+                  if (boundParams.isEmpty) Seq()
+                  else Seq(Body(body.constraints.take(constrix) ++ boundParams).withHints(body))
                 }
-                if (boundParams.isEmpty) Seq()
-                else Seq(Body(body.constraints.take(constrix) ++ boundParams).withHints(body))
+                else
+                  Seq()
               case _ => Seq()
             }
           }
