@@ -54,17 +54,16 @@ object Code {
     s"""@main def main(): `Int` = inc(0)"""
   )
 
-  val factModule: String = module(
-    s"""def fact(n: `Int`): `Int` =
+  val factModule: String =
+    s"""module Main
+       |def fact(n: `Int`): `Int` =
        |  if (n == 1)
        |    1
        |  else
        |    n * fact(n - 1)
-       |""".stripMargin,
-    s"""@main def main(n: `Int`): `Int` =
+       |@main def main(n: `Int`): `Int` =
        |  fact(n)
        |""".stripMargin
-  )
 
   val plusModule: String = module(
     Nat_code,
@@ -171,9 +170,10 @@ object Code {
        |    {V(start)} ++ fromTo(start + 1, end)
        |
        |@main def sum(start: `Int`, end: `Int`): `Int` =
-       |  fold(V(0), add, fromTo(start, end)) match {
-       |    case V(res) => res
-       |  }
+       |  let sum = fold(V(0), add, fromTo(start, end)) in
+       |    sum match {
+       |      case V(res) => res
+       |    }
        |
        |""".stripMargin
 }

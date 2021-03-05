@@ -76,7 +76,7 @@ class GenerateDatalog(module: Module) {
   type ExpRes = Seq[(Seq[GP.Term], Seq[GP.Constraint])]
 
   def generatePattern(exp: Expression, basename: String): GP.Pattern = {
-    val name = gensym.fresh(basename)
+    val name = gensym.freshGlobal(basename)
     val vars = exp.vars.toSeq.flatMap { case (v, ty) => flatVars(v, ty) }
     val params = vars.map { case (v,ty) => GP.Param(v.name, ty) }
     val expTys = exp.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped expression $exp")).flatten

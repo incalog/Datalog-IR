@@ -3,6 +3,7 @@ package inca.util
 class Gensym(init: Iterable[String]) {
   /** map of used symbols, each of which must end with '_' */
   private var used: Map[String, Int] = Map()
+  private var globals: Seq[String] = Seq()
 
   init.foreach(register)
 
@@ -49,6 +50,12 @@ class Gensym(init: Iterable[String]) {
     }
   }
 
+  def freshGlobal(base: String): String = {
+    val v = fresh(base)
+    globals :+= v
+    v
+  }
+
   private def ensureUnder(s: String): String =
     if (s.endsWith("$") && s != "$")
       s
@@ -57,11 +64,14 @@ class Gensym(init: Iterable[String]) {
 
   def scoped[A](f: => A): A = {
     val oldused = this.used
+    val oldglobals = this.globals
     try {
       val a = f
       a
     } finally {
       this.used = oldused
+      this.globals.foreach(register)
+      this.globals = oldglobals
     }
   }
 }

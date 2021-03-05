@@ -253,8 +253,10 @@ object ControlDataFlow {
       |  case While(c, s) => entry_var(stm, prog, x)
       |}
       |
+      |def exit_var_external(stm: Stm, prog: Stm, x: `String`): Val =
+      |  fold(BotVal(), joinVal, {exit_var(stm, prog, x)})
       |@main def final_var(prog: Stm): Set[(`String`,Val)] =
-      |  {(x, exit_var(s, prog, x)) | s in final(prog), x in freevarsStm(prog)}
+      |  {(x, exit_var_external(s, prog, x)) | s in final(prog), x in freevarsStm(prog)}
       |
       |def aeval(exp: Exp, node: Stm, prog: Stm): Val = exp match {
       |  case Var(x) => entry_var(node, prog, x)

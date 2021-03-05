@@ -48,7 +48,7 @@ class ControlDataFlowTest extends AnyFunSuite {
     val prog = fun.input(ControlDataFlow.example_2_7)
     val res = fun.executeTuple("final_var_bff", Tuples.flatTupleOf(prog))
     fun.printAllMatches()
-    // TODO final_var currently reports all intermediate results, but we are only interested in the final results for x and y
-    assert(res.res.size == 15)
+    // TODO second aggregation currently implemented by hand in exit_var_external, should be generated eventually
+    assert(res.res.size == 2)
   }
 }
