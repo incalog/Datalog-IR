@@ -106,8 +106,8 @@ object Executor {
   def loadFunction(code: String): Loaded = {
     val options = Options(transformations = Options.defaultTransformations)
     val compiled = Compiler.compileFun(code, options)
-    println(compiled.transformed)
-//    println(compiled.optimized)
+//    println(compiled.transformed)
+    println(compiled.optimized)
     val scope = new QueryScope(compiled.lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     Loaded(engine, feed, compiled)

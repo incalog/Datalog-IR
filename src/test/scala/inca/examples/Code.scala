@@ -169,11 +169,8 @@ object Code {
        |  else
        |    {V(start)} ++ fromTo(start + 1, end)
        |
-       |@main def sum(start: `Int`, end: `Int`): `Int` =
-       |  let sum = fold(V(0), add, fromTo(start, end)) in
-       |    sum match {
-       |      case V(res) => res
-       |    }
+       |@main def sum(start: `Int`, end: `Int`): Num =
+       |  fold(V(0), add, fromTo(start, end))
        |
        |""".stripMargin
 }

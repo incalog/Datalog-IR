@@ -29,7 +29,7 @@ class FunctionsDataTest extends AnyFunSuite {
   test("Simple Fold Example") {
     val fun = loadFunction(Code.simpleFoldModule)
     val tuple = Tuples.flatTupleOf(fun.vals(q"1", q"10"):_*)
-    assert(fun.executeTuple("sum_bbf", tuple) == fun.result(q"55"))
+    assert(fun.executeTuple("sum_bbf", tuple) == fun.result(q"V(55)"))
     assert(fun.output("AggregateCollection$0_bbf", tuple).res.size == 10)
     fun.printAllMatches()
   }
