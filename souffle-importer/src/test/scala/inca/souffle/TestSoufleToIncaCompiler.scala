@@ -39,7 +39,7 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaMatchers {
 
   lazy val compiledModule = {
     val ast = Parser(subclassTransitiveClosure.linesIterator)
-    val compiler = new SouffleToIncaCompiler
+    val compiler = new SouffleToIncaBackendCompiler
     compiler.compile("transitiveclosure", ast)
   }
 

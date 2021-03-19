@@ -105,6 +105,13 @@ case class Tuple(exps: Seq[Expression]) extends CoreExpression {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     exps.map(_.prettyprint).mkString("(", ", ", ")")
 }
+object Tuple {
+  def from(exps: Seq[Expression]): Expression = exps match {
+    case Nil => Tuple(Seq())
+    case e :: Nil => e
+    case es => Tuple(es)
+  }
+}
 
 case class Match(matchee: Expression, cases: Seq[(Pattern, Expression)]) extends CoreExpression {
   override def vars: Map[Name, Option[Type]] = matchee.vars ++ cases.flatMap(pe => pe._1.vars ++ pe._2.vars)

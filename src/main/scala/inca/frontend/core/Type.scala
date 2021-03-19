@@ -34,6 +34,13 @@ case class TTuple(ts: Seq[Type]) extends Type {
   override def asScala: meta.Type = t"(..${ts.map(_.asScala).toList})"
   override def flatten: Seq[Type] = ts.flatMap(_.flatten)
 }
+object TTuple {
+  def from(ts: Seq[Type]): Type = ts match {
+    case Nil => TUnit
+    case t :: Nil => t
+    case ts => TTuple(ts)
+  }
+}
 
 case class TData(name: Name) extends Type with Resolvable[TData.Target] {
   override def prettyprint: String = name.name

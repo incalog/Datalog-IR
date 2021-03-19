@@ -104,7 +104,7 @@ trait Parser {
     }
 
   protected[frontend] def tupleExp[_: P]: P[CoreExpression] =
-    P("(" ~ exp.rep(2, sep = ",") ~ ")").mapWithLoc(Tuple)
+    P("(" ~ exp.rep(2, sep = ",") ~ ")").mapWithLoc(Tuple.apply)
 
 
   protected[frontend] def variable[_: P]: P[Var] =
@@ -247,7 +247,7 @@ trait Parser {
 
   /** TTuple parser without Unit */
   protected[frontend] def tTuple[_: P]: P[Type] =
-    P("(" ~ typeAnno ~ ")") | P("(" ~ typeAnno.rep(2, sep = ",") ~ ")").map(TTuple)
+    P("(" ~ typeAnno ~ ")") | P("(" ~ typeAnno.rep(2, sep = ",") ~ ")").map(TTuple.apply)
 
   // mapWithLoc is not typable
   protected[frontend] def tData[_: P]: P[TData] = P(identifier.!).map(s => TData(Name(s)))

@@ -44,6 +44,12 @@ object ControlDataFlow {
   val flowR =
     s"""@main def flowR(stm: Stm): Set[(Stm, Stm)] =
        |   {(l2, l1) | (l1, l2) in flow(stm)}
+       |
+       |def flowReverse(prog: Stm): Set[(Stm, Stm)] = {(l2, l1) | (l1, l2) in flow(prog)}
+       |def flowTransitive(prog: Stm): Set[(Stm, Stm)] =
+       |  flow(prog) ++ {(l1, l3) | (l1, l2) in flow(prog), (l2, l3) in flowTransitive(prog)}
+       |def flowCyclic(prog: Stm): Set[Stm] = {l | (l, l) in flowTransitive(prog)}
+       |
        |""".stripMargin
 
   val cflowModule = Code.module(

@@ -32,7 +32,7 @@ object TypeHelper {
         case (_, err@Left(_)) => err
         case (r@Left(msg), _) => Left(msg)
       }
-      types.map(TTuple)
+      types.map(TTuple.apply)
     case _ => Right(TScala(Scala(typ)))
   }
 

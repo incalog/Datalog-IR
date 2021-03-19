@@ -14,7 +14,7 @@ import scala.collection.immutable.MultiDict
 import scala.collection.mutable
 import scala.meta.{Input => _, Term => _, Type => _, _}
 
-class SouffleToIncaCompiler {
+class SouffleToIncaBackendCompiler {
 
   private val patFuns: mutable.Map[String, Pattern] = mutable.Map()
 

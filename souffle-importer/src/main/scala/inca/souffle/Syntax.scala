@@ -23,7 +23,7 @@ object Syntax {
   sealed trait Statement
   case class RuleApplication(negated: Boolean, component: Option[String], rule: String, arguments: Seq[Expression]) extends Statement
   case class Equality(left: Expression, not: Boolean, right: Expression) extends Statement
-  case class Or(left: Statement, right: Statement) extends Statement
+//  case class Or(left: Statement, right: Statement) extends Statement
   case class Parens(stm: Statement) extends Statement
 
   sealed trait Expression
