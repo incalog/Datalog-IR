@@ -3,6 +3,7 @@ package inca.souffle
 import inca.runtime.EnginePool
 import inca.runtime.Query.Matcher
 import inca.runtime.context.QueryScope
+import inca.souffle.Syntax.RuleSignature
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import org.scalatest.flatspec.AnyFlatSpec
 import truechange.EditScript
@@ -10,6 +11,23 @@ import truechange.EditScript
 import scala.io.Source
 
 class TestSouffleVarPointsTo extends AnyFlatSpec {
+  "var points" should "provide statistics" in {
+    println(System.getProperty("user.dir"))
+    val benchmarkPath = "souffle-importer/benchmark"
+    val filename = s"$benchmarkPath/self-contained.dl"
+    val src = Source.fromFile(filename)
+    val doopText = src.getLines().mkString("\n")
+    val analysis = Parser(doopText)
+    src.close()
+    val compiler = new SouffleToIncaCompiler
+    val compiledModule = compiler.compile("selfcontained", analysis)
+
+    println(s"Relations: ${analysis.contents.count(_.isInstanceOf[RuleSignature])}")
+    println(s"Input relations: ${analysis.contents.count(_.isInstanceOf[Syntax.Input])}")
+    println(s"Rules: ${analysis.contents.count(_.isInstanceOf[Syntax.RuleDefinition])}")
+    compiledModule.printStatistics()
+  }
+
   "var points to souffle analysis" should "derive correct number of tuples" in {
     println(System.getProperty("user.dir"))
     val benchmarkPath = "souffle-importer/benchmark"
