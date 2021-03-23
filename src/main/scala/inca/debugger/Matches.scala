@@ -1,5 +1,6 @@
 package inca.debugger
 
+import inca.frontend.core.tree.{Name, Param}
 import inca.runtime.DatabaseAccessor
 import inca.runtime.Query.Matcher
 import truechange.{Type, URI}
@@ -8,7 +9,7 @@ import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 
-class Matches(db: DatabaseAccessor, matcher: Matcher, env: Environment) {
+class Matches(db: DatabaseAccessor, matcher: Matcher, funName: Name, funParams: Map[Name, Seq[Param]]) {
 
   private[debugger] val matches: Seq[Match] = {
     val bufMatches = new ListBuffer[Match]
@@ -29,8 +30,8 @@ class Matches(db: DatabaseAccessor, matcher: Matcher, env: Environment) {
   }
 
   private def getColumnType(colName: String): ColumnType = {
-    val params = env.funParams.getOrElse(env.funName,
-      throw new IllegalArgumentException(s"Function $env.funName not defined in module"))
+    val params = funParams.getOrElse(funName,
+      throw new IllegalArgumentException(s"Function $funName not defined in module"))
 
     if(params.map(p => p.name.name).contains(colName)) // Function funName defines paramName as parameter
       Input
