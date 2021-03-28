@@ -1,6 +1,7 @@
 package inca.runtime.context
 
 import inca.runtime.index.MetaElements._
+import inca.util.TupleOps.transClosure
 import truechange.{Link => _, _}
 
 import scala.collection.immutable.MultiDict
@@ -65,15 +66,6 @@ class LanguageMetaInfo(
     case OptionType(contained) => subtypes(contained).map(OptionType) ++ Seq(NothingType)
     case AnyType => throw new UnsupportedOperationException("The subtypes of AnyType are not enumerable")
     case NothingType => Iterable()
-  }
-
-  @scala.annotation.tailrec
-  private def transClosure(rel: MultiDict[SortType, SortType]): MultiDict[SortType, SortType] = {
-    val newRel = rel.mapSets { case (src, trg) =>
-      src -> (trg ++ trg.flatMap { s => rel.get(s) } )
-    }
-    if (newRel == rel) rel
-    else transClosure(newRel)
   }
 }
 

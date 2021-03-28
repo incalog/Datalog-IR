@@ -45,6 +45,7 @@ class ControlDataFlowTest extends AnyFunSuite {
 
   test("intervals ex 2.7") {
     val fun = loadFunction(ControlDataFlow.IntervalModule)
+    fun.compiled.printStatistics()
     val prog = fun.input(ControlDataFlow.example_2_7)
     val res = fun.executeTuple("final_var_bff", Tuples.flatTupleOf(prog))
     fun.printAllMatches()
