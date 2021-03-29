@@ -40,4 +40,14 @@ object HigherOrder {
        |
        |@main def main(): `String` = compose(sqrt, doubleString)(2)
        |""".stripMargin
+
+  val composeLambdas: String =
+    s"""module Foo
+       |
+       |def compose(f: `Int` => `Double`, g: `Double` => `String`): `Int` => `String` =
+       |  (n: `Int`) => g(f(n))
+       |
+       |@main def main(): `String` =
+       |  compose((n: `Int`) => `Math.sqrt`(n), (d: `Double`) => `String.valueOf`(d))(2)
+       |""".stripMargin
 }

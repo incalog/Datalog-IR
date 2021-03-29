@@ -8,6 +8,9 @@ import truechange.{JavaLitType, LitType}
 import scala.meta.quasiquotes._
 
 object GP {
+  case object BodyMustFail extends Exception
+  def throwBodyMustFail(): Nothing = throw BodyMustFail
+
   sealed trait Type {
     def asScala: meta.Type
   }

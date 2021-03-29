@@ -3,7 +3,7 @@ package inca.compiler
 import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
 import inca.frontend.core.Module
-import inca.frontend.lowering.{GenerateDatalog, GenerateLMI}
+import inca.frontend.lowering.{Defunctionalize, GenerateDatalog, GenerateLMI}
 import inca.runtime.context.LanguageMetaInfo
 
 case class CompiledFunModule(fun: Module, options: Options) extends CompiledModule {
@@ -21,26 +21,20 @@ case class CompiledFunModule(fun: Module, options: Options) extends CompiledModu
     fun
   }
 
-  lazy val desugared: Module = typed
-//  {
-//    val frontend = options.frontend
-//    val module = Desugar(frontend.allDesugarables)(typed)
-//    frontend.typecheck(module)
-//    messages ++= frontend.getErrors
-//    messages ++= frontend.getWarnings
-////    println(module)
-//    stopIfNeeded()
-//    module
-//  }
+  lazy val coreModule: Module = {
+    val module = new Defunctionalize(typed).transModule()
+    println(module)
+    module
+  }
 
   lazy val ir: GP.Module = {
-    val module = new GenerateDatalog(desugared).transModule()
-//    println(module)
+    val module = new GenerateDatalog(coreModule).transModule()
+    // println(module)
     module
   }
 
   lazy val lmi: LanguageMetaInfo = {
-    val res = new GenerateLMI(desugared).transModule()
+    val res = new GenerateLMI(coreModule).transModule()
     res
   }
 }

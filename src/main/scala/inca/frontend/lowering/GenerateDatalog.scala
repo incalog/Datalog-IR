@@ -52,7 +52,7 @@ class GenerateDatalog(module: Module) {
     val params = fun.params.flatMap(p => flattenParam(p.name.name, p.typ, genFresh = false))
     val outParams = flattenParam("out", fun.outType, genFresh = true)
 
-    val bodies = for ((terms, cons) <- transExp(fun.body.ensureCore))
+    val bodies = for ((terms, cons) <- transExp(fun.body))
       yield GP.Body(cons ++ outParams.zip(terms).map(pt => GP.Eq(GP.Var(pt._1.name), pt._2)))
 
     val pat = GP.Pattern(vis, fun.name.name, params ++ outParams, bodies)
@@ -82,7 +82,7 @@ class GenerateDatalog(module: Module) {
     val expTys = exp.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped expression $exp")).flatten
     val outParams = expTys.map(ty => GP.Param(gensym.fresh("out"), transType(ty)))
 
-    val bodies = for ((terms, cons) <- transExp(exp.ensureCore))
+    val bodies = for ((terms, cons) <- transExp(exp))
       yield GP.Body(cons ++ outParams.zip(terms).map(pt => GP.Eq(GP.Var(pt._1.name), pt._2)))
 
     GP.Pattern(None, name, params ++ outParams, bodies)
@@ -97,23 +97,23 @@ class GenerateDatalog(module: Module) {
       Seq(GP.Var(x.name) -> GP.TAny)
   }
 
-  private def transExp(exp: CoreExpression): ExpRes = exp match {
+  private def transExp(exp: Expression): ExpRes = exp match {
     case Var(name) =>
       Seq((flatVars(name, exp.typ).map(_._1), Seq()))
 
     case Let(names, _, bound, body) =>
       val vars  = names.map(name => GP.Var(name.name))
-      for ((boundTerms, boundCons) <- transExp(bound.ensureCore);
-           (bodyTerm, bodyCons) <- transExp(body.ensureCore))
+      for ((boundTerms, boundCons) <- transExp(bound);
+           (bodyTerm, bodyCons) <- transExp(body))
         yield {
           val eqs = vars.zip(boundTerms).map(vt => GP.Eq(vt._1, vt._2))
           (bodyTerm, boundCons ++ eqs ++ bodyCons)
         }
 
     case If(cnd, thn, els) =>
-      val condTrans = transExp(cnd.ensureCore)
-      val thnTrans = transExp(thn.ensureCore)
-      val elsTrans = transExp(els.ensureCore)
+      val condTrans = transExp(cnd)
+      val thnTrans = transExp(thn)
+      val elsTrans = transExp(els)
       val thnRes: ExpRes =
         for ((Seq(cndTerm), cndCons) <- condTrans;
              (thnTerm, thnCons) <- thnTrans)
@@ -128,9 +128,9 @@ class GenerateDatalog(module: Module) {
       val outvars = call.fun.typ match {
         case Some(TFun(_, outType)) => outType.flatten.map(_ => GP.Var(gensym.fresh("call")))
         case Some(outType) => Seq(GP.Var(gensym.fresh("call")))
-        case None => throw new IllegalArgumentException(s"Unresolved call $call")
+        case None => throw new IllegalArgumentException(s"Untyped call $call")
       }
-      val argRes = args.map(e => transExp(e.ensureCore))
+      val argRes = args.map(e => transExp(e))
 
       // create single call constraint when no arguments passed
       if (argRes.isEmpty)
@@ -142,16 +142,16 @@ class GenerateDatalog(module: Module) {
       }
 
     case Tuple(exps) =>
-      val expRes = exps.map(e => transExp(e.ensureCore))
+      val expRes = exps.map(e => transExp(e))
       for (tups <- TupleOps.cartesianProduct(expRes)) yield {
         val (terms, cons) = tups.unzip
         (terms.flatten, cons.flatten)
       }
 
     case Match(matchee, cases) =>
-      val matcheeRes = transExp(matchee.ensureCore)
+      val matcheeRes = transExp(matchee)
       for ((pat, body) <- cases;
-           (bodyTerms, bodyCons) <- transExp(body.ensureCore);
+           (bodyTerms, bodyCons) <- transExp(body);
            (Seq(matcheeTerm), matcheeCons) <- matcheeRes) yield {
         val patCons = pat match {
           case pat: ConstructorPattern =>
@@ -192,7 +192,7 @@ class GenerateDatalog(module: Module) {
       val funCode = q"(..$paramsTyped) => ${fun.tree}(..$scalaArgs)"
       val resType = exp.typ.getOrElse(throw new IllegalStateException("cannot compile untyped Eval"))
 
-      val argRes = args.map(e => transExp(e.ensureCore))
+      val argRes = args.map(e => transExp(e))
       val evalOut = GP.Var(gensym.fresh("eval"))
       for (tups <- TupleOps.cartesianProduct(argRes)) yield {
         val (argTermss, argCons) = tups.unzip
@@ -207,7 +207,7 @@ class GenerateDatalog(module: Module) {
 
     case BaseApplyInfix(left, op,  right)
       if op.tree.value == "++" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
-      transExp(left.ensureCore) ++ transExp(right.ensureCore)
+      transExp(left) ++ transExp(right)
 
     case BaseApplyInfix(left, op, right) =>
       import scala.meta._
@@ -220,10 +220,10 @@ class GenerateDatalog(module: Module) {
         param"right: ${typ.asScala}"
       }
       val funCode = q"($leftParam, $rightParam) => left ${op.tree} right"
-      val resType = exp.typ.getOrElse(throw new IllegalStateException("cannot compile untyped Eval"))
+      val resType = exp.typ.getOrElse(throw new IllegalStateException("cannot compile untyped base infix application"))
 
-      val leftRes = transExp(left.ensureCore)
-      val rightRes = transExp(right.ensureCore)
+      val leftRes = transExp(left)
+      val rightRes = transExp(right)
       val evalOut = GP.Var(gensym.fresh("eval"))
       for ((Seq(leftTerm), leftCons) <- leftRes;
            (Seq(rightTerm), rightCons) <- rightRes) yield {
@@ -237,14 +237,14 @@ class GenerateDatalog(module: Module) {
       Seq() // yields no results
 
     case SomeExp(e) =>
-      transExp(e.ensureCore) // yields the results of e
+      transExp(e) // yields the results of e
 
     case SetExp(es) =>
-      es.flatMap(e => transExp(e.ensureCore))
+      es.flatMap(e => transExp(e))
 
     case mem@SetMember(tup, Var(dataName), neg) if mem.isTypeMember =>
       // this is a type member test
-      for ((Seq(term), tupCons) <- transExp(tup.ensureCore))
+      for ((Seq(term), tupCons) <- transExp(tup))
         yield {
           val typeTest =
             GP.Call(dataName.name, Seq(term), neg = neg).addHint(IgnoreCall)
@@ -256,22 +256,22 @@ class GenerateDatalog(module: Module) {
         val pat = generatePattern(set, "set")
         generatedPatterns += pat
         val freeArgs = set.vars.toSeq.flatMap { case (v, ty) => flatVars(v, ty) }.map(_._1)
-        for ((tupTerms, tupCons) <- transExp(tup.ensureCore)) yield {
+        for ((tupTerms, tupCons) <- transExp(tup)) yield {
           val negCall = GP.Call(pat.name, freeArgs ++ tupTerms, neg = true)
           (Seq(GP.True), tupCons :+ negCall)
         }
       } else
-        for ((tupTerms, tupCons) <- transExp(tup.ensureCore);
-             (setTerms, setCons) <- transExp(set.ensureCore))
+        for ((tupTerms, tupCons) <- transExp(tup);
+             (setTerms, setCons) <- transExp(set))
           yield {
             val eqs = tupTerms.zip(setTerms).map(vt => GP.Eq(vt._1, vt._2))
             (Seq(GP.True), tupCons ++ setCons ++ eqs)
           }
 
     case SetComprehension(build, predicates) =>
-      val predRes = predicates.map(e => transExp(e.ensureCore))
+      val predRes = predicates.map(e => transExp(e))
       for (ps <- TupleOps.cartesianProduct(predRes);
-           (buildTerms, buildCons) <- transExp(build.ensureCore)) yield {
+           (buildTerms, buildCons) <- transExp(build)) yield {
         val (predBools, predCons) = ps.unzip
         val predTrue = predBools.flatten.map(b => GP.Eq(b, GP.True))
         (buildTerms, predCons.flatten ++ predTrue ++ buildCons)

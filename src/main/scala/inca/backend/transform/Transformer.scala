@@ -1,7 +1,6 @@
 package inca.backend.transform
 
 import inca.backend.ir.GP._
-import inca.frontend_old.core.CompileToGP.BodyMustFail
 
 trait Transformer {
 

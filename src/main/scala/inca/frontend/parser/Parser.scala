@@ -105,7 +105,7 @@ trait Parser {
       SetFold(ty, init, op, set)
     }
 
-  protected[frontend] def tupleExp[_: P]: P[CoreExpression] =
+  protected[frontend] def tupleExp[_: P]: P[Expression] =
     P("(" ~ exp.rep(2, sep = ",") ~ ")").mapWithLoc(Tuple.apply)
 
 

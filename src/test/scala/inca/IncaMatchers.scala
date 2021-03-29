@@ -2,7 +2,6 @@ package inca
 
 import inca.backend.ir.GP
 import inca.compiler.{CompiledModule, Options}
-import inca.frontend_old.core.tree.Module
 import inca.runtime.context.QueryScope
 import inca.runtime.{EnginePool, Query}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
@@ -15,13 +14,6 @@ trait IncaMatchers extends Matchers {
   val scope: QueryScope
   val options: Options
 
-  def assertDesugar(core: Module, sugared: Module, options: Options = this.options): Unit = {
-//    println(sugared + "\n" + "-- should desugar to --" + "\n" + core)
-
-    val desugared = compiler.Compiler.compileFun(sugared, options).desugared
-    assertResult(core)(desugared)
-  }
-
   def assertOptimize(optimized: GP.Module, original: GP.Module): Unit = {
     assertResult(optimized)(compiler.Compiler.compileGP(original, options).optimized)
   }
@@ -32,30 +24,6 @@ trait IncaMatchers extends Matchers {
                           scope: QueryScope = this.scope,
                           options: Options = this.options)
                          (asserter: Query.Matcher => Assertion): Assertion = {
-
-    val editScript = Diffable.load(subjectProg)
-    val compiled = compiler.Compiler.compileFun(module, options)
-    assertMatchCoreEdit(compiled, fun, editScript, scope)(asserter)
-  }
-
-  def assertMatchFunCode_old (module: String,
-                          fun: String,
-                          subjectProg: Diffable,
-                          scope: QueryScope = this.scope,
-                          options: Options = this.options)
-                         (asserter: Query.Matcher => Assertion): Assertion = {
-
-    val editScript = Diffable.load(subjectProg)
-    val compiled = compiler.Compiler.compileFun_old(module, options)
-    assertMatchCoreEdit(compiled, fun, editScript, scope)(asserter)
-  }
-
-  def assertMatchFunModule(module: Module,
-                           fun: String,
-                           subjectProg: Diffable,
-                           scope: QueryScope = this.scope,
-                           options: Options = this.options)
-                          (asserter: Query.Matcher => Assertion): Assertion = {
 
     val editScript = Diffable.load(subjectProg)
     val compiled = compiler.Compiler.compileFun(module, options)

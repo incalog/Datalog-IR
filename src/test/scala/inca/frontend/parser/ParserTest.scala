@@ -175,6 +175,10 @@ class ParserTest extends AnyFunSuite {
     testSuccessAny(parser.module(_))(HigherOrder.composeFun)
   }
 
+  test("composeLambdas") {
+    testSuccessAny(parser.module(_))(HigherOrder.composeLambdas)
+  }
+
   private def testSuccess[T](parser: P[_] => P[Any]): (String, T) => Assertion =
     (input: String, cmp: T) => {
       parse(input, parser) match {

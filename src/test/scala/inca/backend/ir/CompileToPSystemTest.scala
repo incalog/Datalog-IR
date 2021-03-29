@@ -3,9 +3,7 @@ package inca.backend.ir
 import inca.IncaMatchers
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
-import inca.analyzedLangs.ExpLangTestAnalyses._
 import inca.compiler.Options
-import inca.frontend_old.core.tree._
 import inca.runtime.context.QueryScope
 import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
@@ -19,106 +17,6 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
 
   val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
   val options: Options = Options(scope.langMetaInfo)
-
-  test("simple compare constraint") {
-    val module = Module("Test", Seq(), Seq(idFun))
-
-    assertMatchFunModule(module, "id", testInputNumericAddition) { matcher =>
-      assert(matcher.getAllMatches.size == 3)
-    }
-    assertMatchFunModule(module, "id", testInput) { matcher =>
-      assert(matcher.getAllMatches.size == 1)
-    }
-  }
-
-  test("simple path constraint") {
-    val module = Module("Test", Seq(), Seq(lhChildFun))
-
-    assertMatchFunModule(module, "lhChild", testInputNumericAddition) { matcher =>
-      assert(matcher.getAllMatches.size == 3)
-    }
-    assertMatchFunModule(module, "lhChild", testInput) { matcher =>
-      assert(matcher.getAllMatches.size == 1)
-    }
-  }
-
-  test("multiple bodies") {
-    val module = Module("Test", Seq(), Seq(childrenFun))
-
-    assertMatchFunModule(module, "children", testInputNumericAddition) { matcher =>
-      assert(matcher.getAllMatches.size == 6)
-    }
-    assertMatchFunModule(module, "children", testInput) { matcher =>
-      assert(matcher.getAllMatches.size == 2)
-    }
-  }
-
-  test("non negative, non transtive call") {
-    val module = Module("Test", Seq(), Seq(callLhChildFun, lhChildFun))
-
-    assertMatchFunModule(module, "callLhChild", testInputNumericAddition) { matcher =>
-      assert(matcher.getAllMatches.size == 3)
-    }
-    assertMatchFunModule(module, "callLhChild", testInput) { matcher =>
-      assert(matcher.getAllMatches.size == 1)
-    }
-  }
-
-  test("constraint concept") {
-    val module = Module("Test", Seq(), Seq(instanceAddFun))
-
-    assertMatchFunModule(module, "instanceAdd", testInputNumericAddition) { matcher =>
-      assert(matcher.getAllMatches.size == 1)
-    }
-    assertMatchFunModule(module, "instanceAdd", testInput) { matcher =>
-      assert(matcher.getAllMatches.size == 0)
-    }
-  }
-
-  test("no type annotation for param") {
-    val module = Module("Test", Seq(), Seq(noParamTypeFun))
-
-    assertMatchFunModule(module, "noParamType", testInputNumericAddition) { matcher =>
-      assert(matcher.getAllMatches.size == 3)
-    }
-  }
-
-  test("primitive datatype output") {
-    val module = Module("Test", Seq(), Seq(isBooleanFun))
-
-    assertMatchFunModule(module, "isBoolean", testInputNumericAddition) { matcher =>
-      assert(matcher.getAllMatches.size == 0)
-    }
-    assertMatchFunModule(module, "isBoolean", testInput) { matcher =>
-      assert(matcher.getAllMatches.size == 2)
-    }
-  }
-
-  test("virtual parent link") {
-    val num1 = IntegerLit(1)
-    val num2 = IntegerLit(2)
-    val add = Add(num1, num2)
-    val num3 = IntegerLit(3)
-    val mul = Mul(num3, add)
-    val expType = TNode(classOf[Exp].getCanonicalName)
-    val parentFun = PatternFunction(
-      None,
-      "parent",
-      Seq(Param("in", TAny)),
-      expType,
-      Seq(
-        Body(
-          Seq(
-            Assign(Seq("p"), PathAccess(Var("in"), ParentLink)),
-            Assert(InstanceOf(Var("p"), expType)),
-            Yield(Cast(Var("p"), expType))))))
-
-    val module = Module("Test", Seq(), Seq(parentFun))
-
-    assertMatchFunModule(module, "parent", mul) { matcher =>
-      assert(matcher.getAllMatches.size == 4)
-    }
-  }
 
   test("unbounded literal parameter determined by eval") {
     val module = GP.Module("test_eval", Seq(), Seq(),

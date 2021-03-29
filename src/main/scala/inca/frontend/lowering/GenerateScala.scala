@@ -57,7 +57,7 @@ class GenerateScala {
     val scalaParams = fun.params.toList.map { case Param(name, typ) =>
       param"${Term.Name(name.name)}: ${transType(typ)}"
     }
-    val scalaFun = q"def ${Term.Name(fun.name.name)}(..$scalaParams): ${transType(fun.outType)} = ${transExp(fun.body.ensureCore)}"
+    val scalaFun = q"def ${Term.Name(fun.name.name)}(..$scalaParams): ${transType(fun.outType)} = ${transExp(fun.body)}"
     Seq(scalaFun)
   }
 
@@ -89,59 +89,59 @@ class GenerateScala {
     case TSet(ty) => t"scala.Set[${transType(ty)}]"
   }
 
-  def transExp(exp: CoreExpression): meta.Term = exp match {
+  def transExp(exp: Expression): meta.Term = exp match {
     case Var(name) =>
       Term.Name(name.name)
     case Let(names, anno, bound, body) =>
       val scalaNames = names.map(n => Pat.Var(Term.Name(n.name))).toList
-      q"{val (..$scalaNames): ${transType(exp.typ.get)} = ${transExp(bound.ensureCore)}; ${transExp(body.ensureCore)} }"
+      q"{val (..$scalaNames): ${transType(exp.typ.get)} = ${transExp(bound)}; ${transExp(body)} }"
     case If(cnd, thn, els) =>
-      q"if (${transExp(cnd.ensureCore)}) ${transExp(thn.ensureCore)} else ${transExp(els.ensureCore)}"
+      q"if (${transExp(cnd)}) ${transExp(thn)} else ${transExp(els)}"
     case call@Call(v@Var(name), args, transitive) if !transitive =>
       genCalled(v.target.getOrElse(throw new IllegalArgumentException(s"Unresoved call $call")), call.typ, call)
-      q"${Term.Name(name.name)}(..${args.map(a => transExp(a.ensureCore)).toList})"
+      q"${Term.Name(name.name)}(..${args.map(a => transExp(a)).toList})"
     case Tuple(exps) =>
-      q"(..${exps.map(e => transExp(e.ensureCore)).toList})"
+      q"(..${exps.map(e => transExp(e)).toList})"
     case Match(matchee, cases) =>
       val scalaCases = cases.toList.map {
         case (ConstructorPattern(constr, xs), e) =>
-          p"case ${Pat.Extract(Term.Name(constr.name), xs.toList.map(x => Pat.Var(Term.Name(x.name))))} => ${transExp(e.ensureCore)}"
+          p"case ${Pat.Extract(Term.Name(constr.name), xs.toList.map(x => Pat.Var(Term.Name(x.name))))} => ${transExp(e)}"
         case (NonePattern(), e) =>
-          p"case scala.None => ${transExp(e.ensureCore)}"
+          p"case scala.None => ${transExp(e)}"
         case (SomePattern(x), e) =>
-          p"case scala.Some(${Pat.Var(Term.Name(x.name))}) => ${transExp(e.ensureCore)}"
+          p"case scala.Some(${Pat.Var(Term.Name(x.name))}) => ${transExp(e)}"
       }
-      q"${transExp(matchee.ensureCore)} match {..case $scalaCases}"
+      q"${transExp(matchee)} match {..case $scalaCases}"
     case BaseLit(code) =>
       code.tree
     case BaseApply(fun, args) =>
-      q"${fun.tree}(..${args.toList.map(e => transExp(e.ensureCore))})"
+      q"${fun.tree}(..${args.toList.map(e => transExp(e))})"
     case BaseApplyInfix(left, op, right) =>
-      q"${transExp(left.ensureCore)} ${op.tree} ${transExp(right.ensureCore)}"
+      q"${transExp(left)} ${op.tree} ${transExp(right)}"
     case NoneExp() =>
       q"scala.None"
     case SomeExp(e) =>
-      q"scala.Some(${transExp(e.ensureCore)})"
+      q"scala.Some(${transExp(e)})"
     case SetExp(es) =>
-      q"scala.Set(..${es.toList.map(e => transExp(e.ensureCore))})"
+      q"scala.Set(..${es.toList.map(e => transExp(e))})"
     case SetComprehension(build, predicates) =>
       val enumerators = predicates.toList.map {
         case SetMember(v: Var, set, false) if v.target.isEmpty =>
-          enumerator"${Pat.Var(Term.Name(v.name.name))} <- ${transExp(set.ensureCore)}"
+          enumerator"${Pat.Var(Term.Name(v.name.name))} <- ${transExp(set)}"
         case SetMember(Tuple(ts), set, false) if ts.forall(t => t.isInstanceOf[Var] && t.asInstanceOf[Var].target.isEmpty) =>
-          enumerator"${Pat.Tuple(ts.toList.map(t => Pat.Var(Term.Name(t.asInstanceOf[Var].name.name))))} <- ${transExp(set.ensureCore)}"
+          enumerator"${Pat.Tuple(ts.toList.map(t => Pat.Var(Term.Name(t.asInstanceOf[Var].name.name))))} <- ${transExp(set)}"
         case e =>
-          enumerator"if ${transExp(e.ensureCore)}"
+          enumerator"if ${transExp(e)}"
       }
-      q"for(..$enumerators) yield ${transExp(build.ensureCore)}"
+      q"for(..$enumerators) yield ${transExp(build)}"
     case SetMember(tup, set, neg) =>
-      val member = q"${transExp(set.ensureCore)}.contains(${transExp(tup.ensureCore)})"
+      val member = q"${transExp(set)}.contains(${transExp(tup)})"
       if (neg)
         Term.ApplyUnary(Term.Name("!"), member)
       else
         member
     case SetFold(_, init, op, set) =>
-      q"${transExp(set.ensureCore)}.fold(${transExp(init.ensureCore)})(${transFoldOp(op, exp.typ)})"
+      q"${transExp(set)}.fold(${transExp(init)})(${transFoldOp(op, exp.typ)})"
   }
 
   def transFoldOp(op: FoldOp, typ: Option[Type]): meta.Term = {
@@ -150,7 +150,7 @@ class GenerateScala {
   }
 
   def genAggregation(name: String, init: Expression, op: FoldOp, typ: Type): meta.Term = {
-    val scalaInit = transExp(init.ensureCore)
+    val scalaInit = transExp(init)
     val scalaOp = transFoldOp(op, Some(typ))
     val scalaTy = transType(typ)
 

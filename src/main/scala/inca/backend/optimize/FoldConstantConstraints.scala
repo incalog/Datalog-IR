@@ -1,7 +1,6 @@
 package inca.backend.optimize
 import inca.backend.ir.GP._
 import inca.backend.ir.TypeOps
-import inca.frontend_old.core.CompileToGP.throwBodyMustFail
 import inca.runtime.context.LanguageMetaInfo
 import inca.util.Meta.Scala
 

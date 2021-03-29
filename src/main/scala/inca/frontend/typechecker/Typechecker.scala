@@ -100,11 +100,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   final def typecheck(exp: Expression): TypeOrigin = assignType(exp)(typecheckInternal(exp, exp.typ))
 
   protected def typecheckInternal(exp: Expression, anno: Option[Type]): TypeOrigin = exp match {
-    case core: CoreExpression => typecheckCore(core, anno)
+    case core: Expression => typecheckCore(core, anno)
     case _ => throw new UnsupportedOperationException(s"No type rule for $exp found.")
   }
 
-  final def typecheckCore(exp: CoreExpression, anno: Option[Type]): TypeOrigin = exp match {
+  final def typecheckCore(exp: Expression, anno: Option[Type]): TypeOrigin = exp match {
     case v@Var(name) =>
       lookupVar(name) match {
         case Some((decl, ty)) =>
@@ -345,7 +345,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
   }
 
-  private def typecheckTDataMatch(exp: CoreExpression, cases: Seq[(Pattern, Expression)], td: TData): TypeOrigin = {
+  private def typecheckTDataMatch(exp: Expression, cases: Seq[(Pattern, Expression)], td: TData): TypeOrigin = {
     val data = td.target.get.asInstanceOf[DataDef]
     var seenConstrs = Set[Name]()
 
@@ -391,7 +391,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     TypeOrigin(join(ctysTys), ors)
   }
 
-  private def typecheckTOptionMatch(exp: CoreExpression, matchee: Expression, cases: Seq[(Pattern, Expression)], topt: TOption, or: Origin): TypeOrigin = {
+  private def typecheckTOptionMatch(exp: Expression, matchee: Expression, cases: Seq[(Pattern, Expression)], topt: TOption, or: Origin): TypeOrigin = {
     var seenConstrs = Set[String]()
     val ctys = cases.map {
       case (pat@NonePattern(), e) =>

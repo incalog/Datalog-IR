@@ -89,6 +89,10 @@ class TypecheckerTest extends AnyFunSuite {
   test("composeFun") {
     checkModule(HigherOrder.composeFun)
   }
+
+  test("composeLambdas") {
+    checkModule(HigherOrder.composeLambdas)
+  }
   
   test("cflow") {
     checkModule(ControlDataFlow.cflowModule)

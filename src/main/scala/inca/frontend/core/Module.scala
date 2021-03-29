@@ -37,16 +37,20 @@ object Import {
 trait ModuleContent extends SourceLocation with Annotations {
   def vis: Option[Visibility]
   def prettyprint(implicit indent: String): String
+  def calls: Set[Call]
 }
 
 case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Expression)
   extends ModuleContent with Var.Target {
 
-  def boundNames: Seq[Name] = params.map(_.name)
+  lazy val boundNames: Seq[Name] = params.map(_.name)
 
   val funType: TFun = TFun(params.map(_.typ), outType)
 
   lazy val vars: Map[Name, Option[Type]] = body.vars ++ params.flatMap(_.vars)
+
+  def freevars: Set[Var] = body.freevars.filter(v => !v.target.contains(this) && !boundNames.contains(v.name))
+  def freeTvars: Set[TData] = body.freeTvars ++ params.flatMap(_.typ.freeTvars) ++ outType.freeTvars
 
   lazy val calls: Set[Call] = body.calls
 
@@ -68,6 +72,10 @@ case class Param(name: Name, typ: Type) extends SourceLocation with Var.Target {
 case class DataDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, constrs: Seq[DataConstructor])
   extends ModuleContent with TData.Target {
 
+  def freeTvars: Set[TData] = constrs.flatMap(_.freeTvars).toSet
+
+  override def calls: Set[Call] = Set()
+
   override def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     if (constrs.isEmpty)
@@ -85,8 +93,12 @@ case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends SourceLoca
 
   def constructorType(data: DataDef): TFun =
     TFun(paramTypes, TData(data.name))
+  def constructorType(data: Name): TFun =
+    TFun(paramTypes, TData(data))
 
   def selectorName: String = "un$_" + name.name
+
+  def freeTvars: Set[TData] = paramTypes.flatMap(_.freeTvars).toSet
 
   def prettyprint(implicit indent: String): String = {
     val paramTypesS = paramTypes.map(_.prettyprint).mkString(", ")
