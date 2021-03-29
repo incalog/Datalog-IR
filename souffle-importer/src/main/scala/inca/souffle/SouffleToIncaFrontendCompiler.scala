@@ -128,10 +128,10 @@ class SouffleToIncaFrontendCompiler {
       val terms = args.map(compile)
       component match {
         case Some(c) =>
-          Call(Name(s"${c}_$rule"), terms)
+          Call(Var(Name(s"${c}_$rule")), terms)
         case None =>
           val ruleName = if (topLevelRules.contains(rule)) rule else funPrefix + rule
-          Call(Name(ruleName), terms)
+          Call(Var(Name(ruleName)), terms)
       }
   }
 

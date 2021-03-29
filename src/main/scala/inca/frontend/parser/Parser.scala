@@ -63,10 +63,12 @@ trait Parser {
   protected[frontend] def wideExp[_: P]: P[Expression] =
     P(ifExp | letExp | memberExp | infixExp)
   protected[frontend] def infixExp[_: P]: P[Expression] =
-    P(baseApplyInfixExp | matchExp | atomicExp)
+    P(baseApplyInfixExp | matchExp | subinfixExp)
+  protected[frontend] def subinfixExp[_: P]: P[Expression] =
+    P(callExp | lambdaExp | atomicExp)
   protected[frontend] def atomicExp[_: P]: P[Expression] =
-    P(optionExp | comprehensionExp | constSetExp |
-      tupleExp | callExp | foldExp | baseApplyExp | baseLitExp | variable | parensExp)
+    P(parensExp | optionExp | comprehensionExp | constSetExp |
+      tupleExp | foldExp | baseApplyExp | baseLitExp | variable)
 
   /** Let parser */
   final protected[frontend] def parensExp[_: P]: P[Expression] = P("(" ~ exp ~ ")")
@@ -75,24 +77,24 @@ trait Parser {
     P(singleLetExp | multipleLetExp)
 
   final protected[frontend] def singleLetExp[_: P]: P[Let] =
-    P("let " ~/ identifier ~ (":" ~ typeAnno).? ~ "=" ~ infixExp ~ "in" ~ exp).mapWithLoc {
+    P("let " ~ identifier ~ (":" ~ typeAnno).? ~ "=" ~ infixExp ~ "in" ~ exp).mapWithLoc {
       case (name, typeAnno, bound, body) => Let(Seq(name), typeAnno, bound, body)
     }
 
   final protected[frontend] def multipleLetExp[_: P]: P[Let] =
-    P("let " ~/ "(" ~ identifier.rep(min = 2, sep = ",") ~ ")" ~ (":" ~ typeAnno).? ~ "=" ~ exp ~ "in" ~exp).mapWithLoc {
+    P("let " ~ "(" ~ identifier.rep(min = 2, sep = ",") ~ ")" ~ (":" ~ typeAnno).? ~ "=" ~ infixExp ~ "in" ~ exp).mapWithLoc {
       case (names, typeAnno, bound, body) => Let(names, typeAnno, bound, body)
     }
 
 
   protected[frontend] def ifExp[_: P]: P[If] =
-    P("if" ~ "(" ~/ exp ~ ")" ~ exp ~ "else" ~ exp).mapWithLoc {
+    P("if" ~ "(" ~ exp ~ ")" ~ exp ~ "else" ~ exp).mapWithLoc {
       case (cond, thn, els) => If(cond, thn, els)
     }
 
-  protected[frontend] def callExp[_: P]: P[Call] =
-    P(identifier ~ "(" ~ exp.rep(sep = ",") ~ ")").mapWithLoc {
-      case (name, args) => Call(name, args)
+  protected[frontend] def callExp[_: P]: P[Expression] =
+    P(atomicExp ~ ("(" ~ exp.rep(sep = ",") ~ ")").rep(1)).mapWithLoc {
+      case (fun, argLists) => argLists.foldLeft(fun)((exp, args) => Call(exp, args))
     }
 
   protected[frontend] def foldExp[_: P]: P[SetFold] =
@@ -111,7 +113,7 @@ trait Parser {
     identifier.mapWithLoc(Var.apply)
 
   protected[frontend] def matchExp[_: P]: P[Match] =
-    P(atomicExp ~ "match" ~ "{" ~/ matchCase.rep() ~ "}").mapWithLoc {
+    P(subinfixExp ~ "match" ~ "{" ~ matchCase.rep() ~ "}").mapWithLoc {
       case (matchee, cases) => Match(matchee, cases)
     }
 
@@ -120,11 +122,17 @@ trait Parser {
       case (pat, body) => (pat, body)
     }
 
+  protected[frontend] def lambdaExp[_: P]: P[Lambda] =
+    P(lambdaVars ~ "=>" ~ exp).mapWithLoc(Lambda.tupled)
+
+  protected[frontend] def lambdaVars[_: P]: P[Seq[(Name, Type)]] =
+    P("(" ~ (identifier ~ ":" ~ typeAnno).rep(sep = ",") ~ ")")
+
   protected[frontend] def optionExp[_: P]: P[Expression] = {
     P("None").mapWithLoc(_ => NoneExp()) |
     P("Some" ~ "(" ~ exp.rep(sep = ",") ~ ")").mapWithLoc {
       case Seq(arg) => SomeExp(arg)
-      case args => Call(Name("Some"), args)
+      case args => Call(Var(Name("Some")), args)
     }
   }
 
@@ -132,7 +140,7 @@ trait Parser {
     P("{" ~ exp.rep(sep = ",") ~ "}").mapWithLoc(SetExp)
 
   protected[frontend] def comprehensionExp[_: P]: P[Expression] =
-    P("{" ~ atomicExp ~ "|" ~ exp.rep(sep = ",") ~ "}").mapWithLoc(SetComprehension.tupled)
+    P("{" ~ subinfixExp ~ "|" ~ exp.rep(sep = ",") ~ "}").mapWithLoc(SetComprehension.tupled)
 
   protected[frontend] def memberExp[_: P]: P[Expression] =
     P(atomicExp ~ "not".!.? ~ "in" ~ infixExp).mapWithLoc { case (tup, not, set) => SetMember(tup, set, not.isDefined) }
@@ -205,8 +213,9 @@ trait Parser {
     }
 
   protected[frontend] def baseApplyInfixExp[_: P]: P[BaseApplyInfix] =
-    P(atomicExp ~ CharsWhile(OpCharNotSlash).! ~ infixExp).flatMapWithLoc {
+    P(subinfixExp ~ CharsWhile(OpCharNotSlash).! ~ infixExp).flatMapWithLoc {
       case (_, "@", _) => ParserUtils.fail("@ not allowed as infix opertor")
+      case (_, "=>", _) => ParserUtils.fail("=> not allowed as infix opertor")
       case (lhs, op, rhs) => fastparse.Pass(BaseApplyInfix(lhs, Scala(meta.Term.Name(op)), rhs))
     }
 
@@ -237,17 +246,28 @@ trait Parser {
     }
 
   protected[frontend] def typeAnno[_: P]: P[Type] =
-    P(simpleType("Any", TAny) | simpleType("Nothing", TNothing) |
-      tOption | tSet |
-      simpleType("Unit", TTuple(Seq())) | tTuple | tData | scalaType)
+    P(funType | atomicType)
+
+  protected[frontend] def atomicType[_: P]: P[Type] =
+    P(parensType | simpleType("Any", TAny) | simpleType("Nothing", TNothing) | simpleType("Unit", TTuple(Seq())) |
+      tOption | tSet | tTuple | tData | scalaType)
 
   /** Helper for the Type like TAny. */
   protected[frontend] def simpleType[_: P, Ty <: Type](s: String, t: Ty): P[Ty] =
     P(s).map(_ => t)
 
+  protected[frontend] def funType[_: P]: P[Type] =
+    P(atomicType ~  "=>" ~ typeAnno).mapWithLoc {
+      case (TTuple(ts), to) => TFun(ts, to)
+      case (from, to) => TFun(Seq(from), to)
+    }
+
   /** TTuple parser without Unit */
   protected[frontend] def tTuple[_: P]: P[Type] =
-    P("(" ~ typeAnno ~ ")") | P("(" ~ typeAnno.rep(2, sep = ",") ~ ")").map(TTuple.apply)
+    P("(" ~ typeAnno.rep(2, sep = ",") ~ ")").map(TTuple.apply)
+
+  protected[frontend] def parensType[_: P]: P[Type] =
+    P("(" ~ typeAnno ~ ")")
 
   // mapWithLoc is not typable
   protected[frontend] def tData[_: P]: P[TData] = P(identifier.!).map(s => TData(Name(s)))

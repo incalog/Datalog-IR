@@ -40,9 +40,11 @@ trait ModuleContent extends SourceLocation with Annotations {
 }
 
 case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Expression)
-  extends ModuleContent with Call.Target {
+  extends ModuleContent with Var.Target {
 
   def boundNames: Seq[Name] = params.map(_.name)
+
+  val funType: TFun = TFun(params.map(_.typ), outType)
 
   lazy val vars: Map[Name, Option[Type]] = body.vars ++ params.flatMap(_.vars)
 
@@ -79,7 +81,10 @@ case class DataDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, 
   }
 }
 
-case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends SourceLocation with DataConstructor.Target {
+case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends SourceLocation with DataConstructor.Target with Var.Target {
+
+  def constructorType(data: DataDef): TFun =
+    TFun(paramTypes, TData(data.name))
 
   def selectorName: String = "un$_" + name.name
 
@@ -89,5 +94,5 @@ case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends SourceLoca
   }
 }
 object DataConstructor {
-  trait Target extends Call.Target
+  trait Target
 }

@@ -61,7 +61,7 @@ class GenerateScala {
     Seq(scalaFun)
   }
 
-  def genCalled(trg: Call.Target, typ: Option[Type], loc: SourceLocation): Unit = trg match {
+  def genCalled(trg: Var.Target, typ: Option[Type], loc: SourceLocation): Unit = trg match {
     case fun: FunctionDef =>
       genFunDef(fun)
     case _: DataConstructor =>
@@ -97,8 +97,8 @@ class GenerateScala {
       q"{val (..$scalaNames): ${transType(exp.typ.get)} = ${transExp(bound.ensureCore)}; ${transExp(body.ensureCore)} }"
     case If(cnd, thn, els) =>
       q"if (${transExp(cnd.ensureCore)}) ${transExp(thn.ensureCore)} else ${transExp(els.ensureCore)}"
-    case call@Call(name, args, transitive) if !transitive =>
-      genCalled(call.target.getOrElse(throw new IllegalArgumentException(s"Unresoved call $call")), call.typ, call)
+    case call@Call(v@Var(name), args, transitive) if !transitive =>
+      genCalled(v.target.getOrElse(throw new IllegalArgumentException(s"Unresoved call $call")), call.typ, call)
       q"${Term.Name(name.name)}(..${args.map(a => transExp(a.ensureCore)).toList})"
     case Tuple(exps) =>
       q"(..${exps.map(e => transExp(e.ensureCore)).toList})"

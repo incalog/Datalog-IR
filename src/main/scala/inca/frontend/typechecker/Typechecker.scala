@@ -154,15 +154,20 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       val (tys, ors) = TypeOrigin.unzip(exps.map(typecheck))
       TypeOrigin(TTuple(tys), ors)
 
-    case call@Call(name, args, transitive) =>
-      lookupCalled(name) match {
-        case None => TypeOrigin(TAny, Set())
-        case Some(Left(fun)) =>
-          resolveTarget(call)(fun)
-          typecheckFunCall(fun, args, transitive, exp) ++ Set(fun)
-        case Some(Right((constr, data))) =>
-          resolveTarget(call)(constr)
-          typecheckConstrCall(constr, data, args, transitive, exp)
+    case lam@Lambda(vs, body) => scopedTypeContext {
+      vs.foreach { case (v, ty) => bindVar(v, lam, ty) }
+      val TypeOrigin(ty, or) = typecheck(body)
+      TypeOrigin(TFun(vs.map(_._2), ty), or)
+    }
+
+    case Call(fun, args, transitive) =>
+      val TypeOrigin(tfun, or) = typecheck(fun)
+      tfun match {
+        case tfun: TFun =>
+          typecheckFunDefCall(fun, tfun, args, transitive, exp) ++ or
+        case _ =>
+          error(s"Expression has type $tfun, but required function type", fun)
+          TypeOrigin(tfun, or)
       }
 
     case Match(matchee, cases) =>
@@ -264,19 +269,16 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           TNothing
       }
       val tyFold = tyAnno.getOrElse(join(tyInit, tySetContent))
-      lookupCalled(opName) match {
-        case Some(Left(fun)) =>
-          resolveTarget(op)(fun)
-          val paramTypes = fun.params.map(_.typ)
-          val tyRes = fun.outType
-          if (fun.params.size != 2 || !subtype(tyFold, paramTypes(0)) || !subtype(tyFold, paramTypes(1)) || !subtype(tyRes, tyFold))
-            error(s"Expected function of type ($tyFold, $tyFold) => $tyFold, but $op has type (${paramTypes.mkString(", ")}) => $tyRes")
-        case Some(Right((constr, data))) =>
-          resolveTarget(op)(constr)
-          val paramTypes = constr.paramTypes
-          val tyRes = TData(data.name).resolved(data)
-          if (constr.paramTypes.size != 2  || !subtype(tyFold, paramTypes(0)) || !subtype(tyFold, paramTypes(1)) || !subtype(tyRes, tyFold))
-            error(s"Expected function of type ($tyFold, $tyFold) => $tyFold, but $op has type (${paramTypes.mkString(", ")}) => $tyRes")
+      lookupVar(opName) match {
+        case Some((trg, top: TFun)) =>
+          resolveTarget(op)(trg)
+          val paramTypes = top.from
+          val tyRes = top.to
+          if (paramTypes.size != 2 || !subtype(tyFold, paramTypes(0)) || !subtype(tyFold, paramTypes(1)) || !subtype(tyRes, tyFold))
+            error(s"Expected function of type ($tyFold, $tyFold) => $tyFold, but $op has type $top")
+        case Some((trg, top)) =>
+          resolveTarget(op)(trg)
+          error(s"Expected function of type ($tyFold, $tyFold) => $tyFold, but $op has type $top")
         case None =>
           // nothing
       }
@@ -404,8 +406,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           case TSet(TNothing) => true
           case _ => false
         }
-        if (!emptyBody && currentFunctionDef.isDefined)
-          ensureStratifiable(or, currentFunctionDef.get, exp)
+//        if (!emptyBody && currentFunctionDef.isDefined)
+//          ensureStratifiable(or, currentFunctionDef.get, exp)
         tor
 
       case (pat@SomePattern(v), e) =>
@@ -435,24 +437,22 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     TypeOrigin(join(ctysTys), ors)
   }
 
-  def typecheckFunCall(fun: FunctionDef, args: Seq[Expression], transitive: Boolean, exp: Expression): TypeOrigin = {
-    val name = fun.name
-
-    if (fun.params.size != args.size) {
-      error(s"Function $name expects ${fun.params.size} arguments, but found ${args.size} arguments in call", exp)
+  def typecheckFunDefCall(fun: Expression, tfun: TFun, args: Seq[Expression], transitive: Boolean, exp: Expression): TypeOrigin = {
+    if (tfun.from.size != args.size) {
+      error(s"Function $fun expects ${tfun.from.size} arguments, but found ${args.size} arguments in call", exp)
     }
 
     var ors: Origin = Set()
-    fun.params.zipAll(args, null, null) foreach {
+    tfun.from.zipAll(args, null, null) foreach {
       case (null, arg) =>
         typecheck(arg)
       case (param, null) =>
       // nothing
-      case (param, arg) =>
+      case (tparam, arg) =>
         val TypeOrigin(argTy, or) = typecheck(arg)
         ors ++= or
-        if (meet(param.typ, argTy) == TNothing) {
-          warn(s"Cast of argument type $argTy to unrelated parameter type ${param.typ} will always fail", arg)
+        if (meet(tparam, argTy) == TNothing) {
+          warn(s"Cast of argument type $argTy to unrelated parameter type $tparam will always fail", arg)
         }
     }
 
@@ -460,7 +460,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       // TODO
     }
 
-    TypeOrigin(fun.outType, ors)
+    TypeOrigin(tfun.to, ors)
   }
 
   def typecheckConstrCall(constr: DataConstructor, data: DataDef, args: Seq[Expression], transitive: Boolean, exp: Expression): TypeOrigin = {
@@ -491,44 +491,44 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     TypeOrigin(TData(data.name).resolved(data), ors)
   }
 
-
-  /**
-   * The contributing functions may not call the containing function.
-   * Only then can we negate a value derived from the contributing functions.
-   */
-  private def ensureStratifiable(contributingFunctions: Set[FunctionDef], containingFunction: FunctionDef, loc: SourceLocation): Unit = {
-    var visited: Set[FunctionDef] = Set()
-    var todoPaths: Seq[Seq[FunctionDef]] = contributingFunctions.toSeq.map(Seq(_))
-    while (todoPaths.nonEmpty) {
-      val path = todoPaths.head
-      todoPaths = todoPaths.tail
-
-      path.head.calls.foreach { call =>
-        call.target match {
-          case None =>
-            // Calls with unresolved targets should already be marked as erroneous.
-            warn(s"Unresoved call to ${call.name} prevented exact emptiness validity check.", call)
-          case Some(_: DataConstructor) =>
-            // Constructors cannot call functions, hence we can ignore them.
-          case Some(fun: FunctionDef) =>
-            if (visited.contains(fun)) {
-              // skip
-            } else if (fun == containingFunction) {
-              val realPath = path.reverse
-              error(
-                s"""Invalid emptiness test.
-                   |The matchee depends on function ${realPath.head.name}, which has a dependency chain
-                   |  ${realPath.map(_.name).mkString("->")}->${containingFunction.name}
-                   |to the containing function ${containingFunction.name}.""".stripMargin, loc)
-              return
-            } else {
-              visited += fun
-              todoPaths = (fun +: path) +: todoPaths
-            }
-        }
-      }
-    }
-  }
+//
+//  /**
+//   * The contributing functions may not call the containing function.
+//   * Only then can we negate a value derived from the contributing functions.
+//   */
+//  private def ensureStratifiable(contributingFunctions: Set[FunctionDef], containingFunction: FunctionDef, loc: SourceLocation): Unit = {
+//    var visited: Set[FunctionDef] = Set()
+//    var todoPaths: Seq[Seq[FunctionDef]] = contributingFunctions.toSeq.map(Seq(_))
+//    while (todoPaths.nonEmpty) {
+//      val path = todoPaths.head
+//      todoPaths = todoPaths.tail
+//
+//      path.head.calls.foreach { call =>
+//        call.target match {
+//          case None =>
+//            // Calls with unresolved targets should already be marked as erroneous.
+//            warn(s"Unresoved call to ${call.name} prevented exact emptiness validity check.", call)
+//          case Some(_: DataConstructor) =>
+//            // Constructors cannot call functions, hence we can ignore them.
+//          case Some(fun: FunctionDef) =>
+//            if (visited.contains(fun)) {
+//              // skip
+//            } else if (fun == containingFunction) {
+//              val realPath = path.reverse
+//              error(
+//                s"""Invalid emptiness test.
+//                   |The matchee depends on function ${realPath.head.name}, which has a dependency chain
+//                   |  ${realPath.map(_.name).mkString("->")}->${containingFunction.name}
+//                   |to the containing function ${containingFunction.name}.""".stripMargin, loc)
+//              return
+//            } else {
+//              visited += fun
+//              todoPaths = (fun +: path) +: todoPaths
+//            }
+//        }
+//      }
+//    }
+//  }
 
 
 

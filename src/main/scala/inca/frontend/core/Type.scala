@@ -23,6 +23,18 @@ case object TNothing extends Type {
   override def flatten: Seq[Type] = Seq(this)
 }
 
+case class TFun(from: Seq[Type], to: Type) extends Type {
+  override def prettyprint: String = from.size match {
+    case 0 => to.prettyprint
+    case 1 => s"(${from.head.prettyprint} => ${to.prettyprint})"
+    case _ => s"(${from.map(_.prettyprint).mkString("(", ", ", ")")} => ${to.prettyprint})"
+  }
+
+  override def asScala: meta.Type = meta.Type.Function(from.map(_.asScala).toList, to.asScala)
+
+  override def flatten: Seq[Type] = Seq(this)
+}
+
 case class TTuple(ts: Seq[Type]) extends Type {
   if (ts.size == 1)
     throw new IllegalArgumentException(s"Avoid creating 1-ary tuples.")

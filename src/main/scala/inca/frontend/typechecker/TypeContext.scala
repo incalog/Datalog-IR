@@ -6,7 +6,7 @@ import scala.collection.immutable.MultiDict
 
 trait TypeContext extends TypeIO {
   private var vars: Map[Name, (Var.Target, Type)] = Map()
-  private var funs: MultiDict[Name, (Module, Either[FunctionDef, (DataConstructor, DataDef)])] = MultiDict()
+  private var funs: MultiDict[Name, (Module, (Var.Target, TFun))] = MultiDict()
   private var dataDefs: Map[Name, DataDef] = Map()
   private var modules: Map[Name, Module] = Map()
 
@@ -32,8 +32,18 @@ trait TypeContext extends TypeIO {
     vars.get(name) match {
       case Some(entry) => Some(entry)
       case None =>
-        error(s"Unbound variable $name", name)
-        None
+        funs.get(name) match {
+          case set if set.size == 1 =>
+            Some(set.head._2)
+          case set if set.size >= 2 =>
+            val modules = set.toSeq.map(_._1)
+            val modulesStr = modules.map(_.name).mkString(", ")
+            error(s"Ambiguous call to $name, found definitions in $modulesStr", (name +: modules): _*)
+            None
+          case _ =>
+            error(s"Unbound variable $name", name)
+            None
+        }
     }
 
   def isFreeVar(name: Name): Boolean =
@@ -44,14 +54,11 @@ trait TypeContext extends TypeIO {
 
 
   def bindFun(fun: FunctionDef, module: Module): Unit = {
-    funs += fun.name -> (module, Left(fun))
+    funs += fun.name -> (module, (fun, fun.funType))
   }
 
-  def lookupCalled(name: Name): Option[Either[FunctionDef, (DataConstructor, DataDef)]] =
+  def lookupCalled(name: Name): Option[(Var.Target, TFun)] =
     funs.get(name) match {
-      case set if set.isEmpty =>
-        error(s"Unbound function $name", name)
-        None
       case set if set.size == 1 =>
         Some(set.head._2)
       case set if set.size >= 2 =>
@@ -59,11 +66,22 @@ trait TypeContext extends TypeIO {
         val modulesStr = modules.map(_.name).mkString(", ")
         error(s"Ambiguous call to $name, found definitions in $modulesStr", (name +: modules): _*)
         None
+      case set if set.isEmpty => vars.get(name) match {
+        case Some((trg, ty: TFun)) =>
+          Some((trg, ty))
+        case Some((_, ty)) =>
+          error(s"Variable $name has type $ty, but required function type")
+          None
+        case None =>
+          error(s"Unbound name $name", name)
+          None
+      }
+
     }
 
   def bindData(data: DataDef, module: Module): Unit = {
     dataDefs += data.name -> data
-    data.constrs.foreach(c => funs += c.name -> (module, Right(c -> data)))
+    data.constrs.foreach(c => funs += c.name -> (module, (c, c.constructorType(data))))
   }
 
   def lookupData(name: Name): Option[DataDef] =

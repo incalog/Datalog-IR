@@ -1,0 +1,43 @@
+package inca.examples
+
+object HigherOrder {
+  def module(content: String*): String =
+    s"""module Main
+       |${content.mkString("\n")}
+       |""".stripMargin
+
+  val applyFun: String =
+    s"""module Foo
+       |
+       |def apply(f: `Int` => `Int`, x: `Int`): `Int` = f(x)
+       |
+       |def inc(n: `Int`): `Int` = n + 1
+       |
+       |@main def main(): `Int` = apply(inc, 5)
+       |""".stripMargin
+
+  val lambda: String =
+    s"""module Foo
+       |
+       |@main def main(): `Int` = ((x: `Int`) => x * 3)(7)
+       |""".stripMargin
+
+  val lambdaHigherOrder: String =
+    s"""module Foo
+       |
+       |@main def main(): `Int` =
+       |  ((f: `Int` => `Int`) => (n: `Int`) => f(f(n)))((x: `Int`) => x * 3)(7)
+       |""".stripMargin
+
+  val composeFun: String =
+    s"""module Foo
+       |
+       |def compose(f: `Int` => `Double`, g: `Double` => `String`): `Int` => `String` =
+       |  (n: `Int`) => g(f(n))
+       |
+       |def sqrt(n: `Int`): `Double` =  `Math.sqrt`(n)
+       |def doubleString(d: `Double`): `String` = `String.valueOf`(d)
+       |
+       |@main def main(): `String` = compose(sqrt, doubleString)(2)
+       |""".stripMargin
+}

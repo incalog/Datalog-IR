@@ -124,11 +124,10 @@ class GenerateDatalog(module: Module) {
           yield (elsTerm, cndCons ++ Seq(GP.Eq(cndTerm, GP.False)) ++ elsCons)
       thnRes ++ elsRes
 
-    case call@Call(name, args, transitive) =>
-      val outvars = call.target match {
-        case Some(fun: FunctionDef) => fun.outType.flatten.map(_ => GP.Var(gensym.fresh("call")))
-        case Some(ctr: DataConstructor) => Seq(GP.Var(gensym.fresh("call_" + ctr.name.name)))
-        case Some(target) => throw new IllegalArgumentException(s"Unknown call target $target")
+    case call@Call(Var(name), args, transitive) =>
+      val outvars = call.fun.typ match {
+        case Some(TFun(_, outType)) => outType.flatten.map(_ => GP.Var(gensym.fresh("call")))
+        case Some(outType) => Seq(GP.Var(gensym.fresh("call")))
         case None => throw new IllegalArgumentException(s"Unresolved call $call")
       }
       val argRes = args.map(e => transExp(e.ensureCore))

@@ -2,7 +2,7 @@ package inca.frontend.parser
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse.{P, parse}
-import inca.examples.{AST, Code, ControlDataFlow}
+import inca.examples.{AST, Code, ControlDataFlow, HigherOrder}
 import inca.frontend.core._
 import inca.util.Meta.Scala
 import org.scalatest.Assertion
@@ -58,8 +58,8 @@ class ParserTest extends AnyFunSuite {
     val boolDef = DataDef(Seq(), None, Name("Bool"), Seq(DataConstructor(Name("True"), Seq()), DataConstructor(Name("False"), Seq())))
     val funDef = FunctionDef(Seq(), None, Name("neg"), Seq(Param(Name("b"), TData(Name("Bool")))), TData(Name("Bool")),
       Match(Var("b"), Seq(
-        (ConstructorPattern(Name("True"), Seq()), Call(Name("False"), Seq())),
-        (ConstructorPattern(Name("False"), Seq()), Call(Name("True"), Seq())))))
+        (ConstructorPattern(Name("True"), Seq()), Call(Var(Name("False")), Seq())),
+        (ConstructorPattern(Name("False"), Seq()), Call(Var(Name("True")), Seq())))))
     val moduleDef = Module(Name("Main"), Seq(), Seq(boolDef, funDef))
     val moduleString =
       """module Main
@@ -115,8 +115,8 @@ class ParserTest extends AnyFunSuite {
     val letExp = Let(Seq(Name("x"), Name("y")), Some(TTuple(Seq(TAny, TNothing))), Var("tuple"), Tuple(Seq(Var("y"), Var("x"))))
     testSuccess(parser.exp(_))("let (x, y): (Any, Nothing) = tuple in (y, x)", letExp)
 
-    testSuccess(parser.exp(_))("foo(x)", Call(Name("foo"), Seq(Var("x"))))
-    testSuccess(parser.exp(_))("foo(x, (y, z))", Call(Name("foo"), Seq(Var("x"), Tuple(Seq(Var("y"), Var("z"))))))
+    testSuccess(parser.exp(_))("foo(x)", Call(Var(Name("foo")), Seq(Var("x"))))
+    testSuccess(parser.exp(_))("foo(x, (y, z))", Call(Var(Name("foo")), Seq(Var("x"), Tuple(Seq(Var("y"), Var("z"))))))
 
     testSuccess(parser.exp(_))("((x, y))", Tuple(Seq(Var("x"), Var("y"))))
 
@@ -134,8 +134,8 @@ class ParserTest extends AnyFunSuite {
         |}
         |""".stripMargin
     val matchExp = Match(Var("b"), Seq(
-      (ConstructorPattern(Name("True"), Seq()), Call(Name("False"), Seq())),
-      (ConstructorPattern(Name("False"), Seq()), Call(Name("True"), Seq()))))
+      (ConstructorPattern(Name("True"), Seq()), Call(Var(Name("False")), Seq())),
+      (ConstructorPattern(Name("False"), Seq()), Call(Var(Name("True")), Seq()))))
     testSuccess(parser.exp(_))(matchString, matchExp)
   }
 
@@ -157,6 +157,22 @@ class ParserTest extends AnyFunSuite {
 
   test("reaching definitions") {
     testSuccessAny(parser.module(_))(ControlDataFlow.RDmodule)
+  }
+
+  test("applyFun") {
+    testSuccessAny(parser.module(_))(HigherOrder.applyFun)
+  }
+
+  test("lambda") {
+    testSuccessAny(parser.module(_))(HigherOrder.lambda)
+  }
+
+  test("lambdaHigherOrder") {
+    testSuccessAny(parser.module(_))(HigherOrder.lambdaHigherOrder)
+  }
+
+  test("composeFun") {
+    testSuccessAny(parser.module(_))(HigherOrder.composeFun)
   }
 
   private def testSuccess[T](parser: P[_] => P[Any]): (String, T) => Assertion =

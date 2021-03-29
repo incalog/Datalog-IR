@@ -85,18 +85,23 @@ case class If(cnd: Expression, thn: Expression, els: Expression) extends CoreExp
 }
 
 
-case class Call(name: Name, args: Seq[Expression], transitive: Boolean = false)
-  extends CoreExpression with Resolvable[Call.Target] {
+case class Call(fun: Expression, args: Seq[Expression], transitive: Boolean = false) extends CoreExpression {
   override def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
   override def calls: Set[Call] = Set(this)
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
     val transS = if (transitive) "+" else ""
-    s"$name$transS($argsS)"
+    s"${fun.prettyprint(infixParens = true)}$transS($argsS)"
   }
 }
-object Call {
-  trait Target
+
+case class Lambda(vs: Seq[(Name, Type)], body: Expression) extends CoreExpression with Var.Target {
+  override def vars: Map[Name, Option[Type]] = body.vars ++ vs.map(kv => kv._1 -> Some(kv._2)).toMap
+  override def calls: Set[Call] = body.calls
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = infix(infixParens) {
+    val vsS = vs.map(v => s"${v._1}: ${v._2.prettyprint}").mkString(", ")
+    s"($vsS) => ${body.prettyprint}"
+  }
 }
 
 case class Tuple(exps: Seq[Expression]) extends CoreExpression {
@@ -221,7 +226,7 @@ case class SetMember(tup: Expression, set: Expression, neg: Boolean) extends Cor
   }
 }
 
-case class FoldOp(name: Name) extends Resolvable[Call.Target] with SourceLocation {
+case class FoldOp(name: Name) extends Resolvable[Var.Target] with SourceLocation {
   override def toString: String = name.name
 }
 case class SetFold(anno: Option[Type], init: Expression, op: FoldOp, set: Expression) extends CoreExpression {

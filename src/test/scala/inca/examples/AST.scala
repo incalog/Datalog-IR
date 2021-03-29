@@ -60,7 +60,7 @@ object AST {
     BaseApplyInfix(Var("n"), "+", BaseLit(q"1", TScalaInt))
   )
   val incMain: FunctionDef = FunctionDef(Seq(MainFunctionAnno), None, Name("main"), Seq(), TScalaInt,
-    Call(Name("inc"), Seq(BaseLit(q"0", TScalaInt)))
+    Call(Var(Name("inc")), Seq(BaseLit(q"0", TScalaInt)))
   )
   val incModule: Module = module(incFun, incMain)
 
@@ -69,11 +69,11 @@ object AST {
     If(BaseApplyInfix(Var("n"), "==", BaseLit(q"1", TScalaInt)),
       BaseLit(q"1", TScalaInt),
       BaseApplyInfix(Var("n"), "*",
-        Call(Name("fact"), Seq(BaseApplyInfix(Var("n"), "-", BaseLit(q"1", TScalaInt)))))
+        Call(Var(Name("fact")), Seq(BaseApplyInfix(Var("n"), "-", BaseLit(q"1", TScalaInt)))))
     )
   )
   val factMain: FunctionDef = FunctionDef(Seq(MainFunctionAnno), None, Name("main"), Seq(Param(Name("n"), TScalaInt)), TScalaInt,
-    Call(Name("fact"), Seq(Var("n")))
+    Call(Var(Name("fact")), Seq(Var("n")))
   )
   val factModule: Module = module(factFun, factMain)
 
@@ -83,19 +83,19 @@ object AST {
       ConstructorPattern(Name("Zero"), Seq()) ->
         Var("n"),
       ConstructorPattern(Name("Succ"), Seq(Name("pred"))) ->
-        Call(Name("Succ"), Seq(Call(Name("plus"), Seq(Var(Name("pred")), Var(Name("n"))))))
+        Call(Var(Name("Succ")), Seq(Call(Var(Name("plus")), Seq(Var(Name("pred")), Var(Name("n"))))))
     ))
   )
   val plusMain: FunctionDef = FunctionDef(Seq(MainFunctionAnno), None, Name("main"), Seq(), TNat,
-    Call(Name("plus"), Seq(
-      Call(Name("Succ"), Seq(Call(Name("Succ"), Seq(Call(Name("Succ"), Seq(Call(Name("Zero"), Seq()))))))),
-      Call(Name("Succ"), Seq(Call(Name("Succ"), Seq(Call(Name("Zero"), Seq())))))
+    Call(Var(Name("plus")), Seq(
+      Call(Var(Name("Succ")), Seq(Call(Var(Name("Succ")), Seq(Call(Var(Name("Succ")), Seq(Call(Var(Name("Zero")), Seq()))))))),
+      Call(Var(Name("Succ")), Seq(Call(Var(Name("Succ")), Seq(Call(Var(Name("Zero")), Seq())))))
     ))
   )
   val plusModule: Module = module(Nat, plusFun, plusMain)
 
   val plusRealMain: FunctionDef = FunctionDef(Seq(MainFunctionAnno), None, Name("main"), Seq(Param(Name("m"), TNat), Param(Name("n"), TNat)), TNat,
-    Call(Name("plus"), Seq(Var(Name("m")), Var(Name("n"))))
+    Call(Var(Name("plus")), Seq(Var(Name("m")), Var(Name("n"))))
   )
   val plusRealModule: Module = module(Nat, plusFun, plusRealMain)
 }
