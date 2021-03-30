@@ -84,6 +84,9 @@ trait TypeContext extends TypeIO {
     data.constrs.foreach(c => funs += c.name -> (module, (c, c.constructorType(data))))
   }
 
+  def isData(name: Name): Boolean =
+    dataDefs.contains(name)
+
   def lookupData(name: Name): Option[DataDef] =
     dataDefs.get(name) match {
       case Some(data) => Some(data)

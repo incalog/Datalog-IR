@@ -20,9 +20,6 @@ class Defunctionalize(module: Module) {
   private case class AnonFun(typ: Type, vs: Seq[Name], body: Expression, defunName: String, freevars: Seq[Var])
   private val anonymousFunctions = ListBuffer[AnonFun]()
 
-  private case class AnonRel(typ: Type, exp: Expression, defunName: String, freevars: Seq[Var])
-  private val anonymousRelations = ListBuffer[AnonRel]()
-
   private var funTypeDefun: Map[TFun, String] = Map()
   private def getFunTypeDefun(tfun: TFun): String = funTypeDefun.get(tfun) match {
     case Some(s) => s
@@ -74,11 +71,11 @@ class Defunctionalize(module: Module) {
         val apply = FunctionDef(Seq(), None, Name(funApply(tfun)),
           Seq(Param(Name("fun"), TData(data.name)), Param(Name("arg"), TTuple.from(from.map(transformType)))),
           transformType(to),
-          Match(Var(Name("fun")),
+          Match(Var(Name("fun")).typed(TData(data.name)),
             funs.map { case AnonFun(_, vs, body, defunName, freevars) =>
               ConstructorPattern(Name(defunName), freevars.map(_.name))
                 .resolved(newVarTargets(Name(defunName))._1.asInstanceOf[DataConstructor.Target]) ->
-              Let(vs, Some(TTuple.from(tfun.from)), Var(Name("arg")), body)
+              Let(vs, Some(TTuple.from(tfun.from)), Var(Name("arg")).typed(TTuple.from(from.map(transformType))), body)
             }
           )
         )
@@ -86,32 +83,7 @@ class Defunctionalize(module: Module) {
         Seq(data, apply)
     }
 
-    val defunRels = anonymousRelations.toList.groupBy(_.typ).flatMap {
-      case (TSet(tcontent), funs) =>
-        val data = DataDef(Seq(), None, Name(relData(tcontent)),
-          funs.map { case AnonRel(_, _, defunName, freevars) =>
-            val constr = DataConstructor(Name(defunName), freevars.map(v => transformType(v.typ.getOrElse(TAny))))
-            newVarTargets += Name(defunName) -> (constr, constr.constructorType(Name(relData(tcontent))))
-            constr
-          }
-        )
-        newTDataTargets += data.name -> data
-        val apply = FunctionDef(Seq(), None, Name(relApply(tcontent)),
-          Seq(Param(Name("fun"), TData(data.name))),
-          TSet(transformType(tcontent)),
-          Match(Var(Name("fun")),
-            funs.map { case AnonRel(_, body, defunName, freevars) =>
-              ConstructorPattern(Name(defunName), freevars.map(_.name))
-                .resolved(newVarTargets(Name(defunName))._1.asInstanceOf[DataConstructor.Target]) ->
-              body
-            }
-          )
-        )
-        newVarTargets += apply.name -> (apply, apply.funType)
-        Seq(data, apply)
-    }
-
-    val newModule = Module(name, imports, newcontents ++ defunFuns ++ defunRels)
+    val newModule = Module(name, imports, newcontents ++ defunFuns)
 
     newModule.content.foreach {
       case fun: FunctionDef =>
@@ -251,37 +223,19 @@ class Defunctionalize(module: Module) {
     case SomeExp(e) =>
       SomeExp(transformExp(e))
     case SetExp(es) =>
-      defunRel(exp.typ.get, SetExp(es.map(e => transformExp(e))))
+      SetExp(es.map(e => transformExp(e)))
     case SetComprehension(build, predicates) =>
-      defunRel(exp.typ.get, SetComprehension(transformExp(build), predicates.map(p => transformExp(p))))
+      SetComprehension(transformExp(build), predicates.map(p => transformExp(p)))
 
     case mem@SetMember(tup, set, neg) if mem.isTypeMember =>
       val m = SetMember(transformExp(tup), set, neg)
       m.isTypeMember = true
       m
     case SetMember(tup, set, neg) =>
-      SetMember(transformExp(tup), defunQuery(set), neg)
+      SetMember(transformExp(tup), transformExp(set), neg)
 
     case SetFold(anno, init, op, set) =>
-      SetFold(anno, transformExp(init), op, defunQuery(set))
+      SetFold(anno, transformExp(init), op, transformExp(set))
   }).mtyped(exp.typ.map(transformType))
-
-  private def defunRel(typ: Type, rel: Expression): Expression = {
-    // TODO
-//    val constrSym = gensym.freshGlobal("Rel")
-//    val free = rel.freevars.toSeq
-//    anonymousRelations += AnonRel(typ, rel, constrSym, free)
-//    Call(Var(Name(constrSym)), free)
-    rel
-  }
-  
-  private def defunQuery(rel: Expression): Expression = {
-    // TODO
-//    Call(
-//      Var(Name(relApply(rel.typ.get))).typed(transformNested(rel.typ.get.asInstanceOf[TSet])),
-//      Seq(transformExp(rel))
-//    )
-   rel
-  }
 
 }

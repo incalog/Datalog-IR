@@ -6,23 +6,17 @@ import inca.util.Meta.Scala
 
 object FoldConstantConstraints extends Optimization with TypeOps {
 
-
   override def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer = new Optimizer {
-
-    var pats: Map[Name, Pattern] = Map()
 
     override def optimizeModule(module: Module): Module = {
       module.scalaContent.foreach {
         case Scala(imp: meta.Import) => registerImport(imp)
         case Scala(stat) => registerBlockDef(stat)
       }
-      pats = module.pats.map(p => p.name -> p).toMap
       super.optimizeModule(module)
     }
 
     override def optimizeConstraint(con: Constraint): Seq[Constraint] = con match {
-
-      case Call(name, _, _, false) if pats(name).isEmpty => throwBodyMustFail()
 
       case Compare(EqComparator, t1, t2) if t1 == t2 => Seq()
       case Compare(EqComparator, Constant(c1), Constant(c2)) if c1 != c2 => throwBodyMustFail()

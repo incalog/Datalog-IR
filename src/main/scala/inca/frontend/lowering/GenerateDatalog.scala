@@ -77,7 +77,7 @@ class GenerateDatalog(module: Module) {
 
   def generatePattern(exp: Expression, basename: String): GP.Pattern = {
     val name = gensym.freshGlobal(basename)
-    val vars = exp.vars.toSeq.flatMap { case (v, ty) => flatVars(v, ty) }
+    val vars = exp.vars.toSeq.flatMap { case (v, ty) => flatVars(v, ty.get) }
     val params = vars.map { case (v,ty) => GP.Param(v.name, ty) }
     val expTys = exp.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped expression $exp")).flatten
     val outParams = expTys.map(ty => GP.Param(gensym.fresh("out"), transType(ty)))
@@ -88,21 +88,25 @@ class GenerateDatalog(module: Module) {
     GP.Pattern(None, name, params ++ outParams, bodies)
   }
 
-  private def flatVars(x: Name, ty: Option[Type]): Seq[(GP.Var, GP.Type)] = ty match {
-    case Some(TTuple(ts)) =>
+  private def flatVars(x: Name, ty: Type): Seq[(GP.Var, GP.Type)] = ty match {
+    case TTuple(ts) =>
       ts.zipWithIndex.map { case (ty,ix) => GP.Var(x.name + "$_" + ix) -> transType(ty) }
-    case Some(ty) =>
+    case ty =>
       Seq(GP.Var(x.name) -> transType(ty))
-    case None =>
-      Seq(GP.Var(x.name) -> GP.TAny)
   }
 
   private def transExp(exp: Expression): ExpRes = exp match {
     case Var(name) =>
-      Seq((flatVars(name, exp.typ).map(_._1), Seq()))
+      Seq((flatVars(name, exp.typ.get).map(_._1), Seq()))
 
     case Let(names, _, bound, body) =>
-      val vars  = names.map(name => GP.Var(name.name))
+      val tys = bound.typ.get match {
+        case TTuple(tys) => tys
+        case ty => Seq(ty)
+      }
+      val vars  = names.zip(tys).flatMap {
+        case (name, ty) => flatVars(name, ty).map(_._1)
+      }
       for ((boundTerms, boundCons) <- transExp(bound);
            (bodyTerm, bodyCons) <- transExp(body))
         yield {
@@ -142,6 +146,9 @@ class GenerateDatalog(module: Module) {
       }
 
     case Tuple(exps) =>
+      if (exps.isEmpty)
+        return Seq((Seq(), Seq()))
+
       val expRes = exps.map(e => transExp(e))
       for (tups <- TupleOps.cartesianProduct(expRes)) yield {
         val (terms, cons) = tups.unzip
@@ -255,7 +262,7 @@ class GenerateDatalog(module: Module) {
       if (neg) {
         val pat = generatePattern(set, "set")
         generatedPatterns += pat
-        val freeArgs = set.vars.toSeq.flatMap { case (v, ty) => flatVars(v, ty) }.map(_._1)
+        val freeArgs = set.vars.toSeq.flatMap { case (v, ty) => flatVars(v, ty.get) }.map(_._1)
         for ((tupTerms, tupCons) <- transExp(tup)) yield {
           val negCall = GP.Call(pat.name, freeArgs ++ tupTerms, neg = true)
           (Seq(GP.True), tupCons :+ negCall)
@@ -299,7 +306,7 @@ class GenerateDatalog(module: Module) {
 
       generatedPatterns += aggregandPat
 
-      val freeArgs = set.vars.toSeq.flatMap { case (v, ty) => flatVars(v, ty) }.map(_._1)
+      val freeArgs = set.vars.toSeq.flatMap { case (v, ty) => flatVars(v, ty.get) }.map(_._1)
       val description = s"init=$init, op=$op"
       val agg = genScala.genAggregation(description, init, op, exp.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped fold $exp")))
       val outvar = GP.Var(gensym.fresh("out"))
@@ -334,6 +341,7 @@ class GenerateDatalog(module: Module) {
       ))
     }
     val dataPat = GP.Pattern(None, data.name.name, Seq(GP.Param("out", typ)), constrBodies).addHint(DataHints.DataType)
+      .addHint(NoInputRelation)
 
     val dataTyp = GP.TData(data.name.name)
     val uriParam = GP.Param("uri", GP_URI)

@@ -249,8 +249,8 @@ trait Parser {
     P(funType | atomicType)
 
   protected[frontend] def atomicType[_: P]: P[Type] =
-    P(parensType | simpleType("Any", TAny) | simpleType("Nothing", TNothing) | simpleType("Unit", TTuple(Seq())) |
-      tOption | tSet | tTuple | tData | scalaType)
+    P(tTuple | simpleType("Any", TAny) | simpleType("Nothing", TNothing) | simpleType("Unit", TTuple(Seq())) |
+      tOption | tSet | tData | scalaType)
 
   /** Helper for the Type like TAny. */
   protected[frontend] def simpleType[_: P, Ty <: Type](s: String, t: Ty): P[Ty] =
@@ -264,10 +264,7 @@ trait Parser {
 
   /** TTuple parser without Unit */
   protected[frontend] def tTuple[_: P]: P[Type] =
-    P("(" ~ typeAnno.rep(2, sep = ",") ~ ")").map(TTuple.apply)
-
-  protected[frontend] def parensType[_: P]: P[Type] =
-    P("(" ~ typeAnno ~ ")")
+    P("(" ~ typeAnno.rep(sep = ",") ~ ")").map(TTuple.from)
 
   // mapWithLoc is not typable
   protected[frontend] def tData[_: P]: P[TData] = P(identifier.!).map(s => TData(Name(s)))

@@ -24,7 +24,8 @@ object Options {
     ConstantPropagation,
     EliminateAliases,
     InferVarTypes,
-    FoldConstantConstraints
+    FoldConstantConstraints,
+    EliminateEmptyRelations
   )
 
   val defaultTransformations: Seq[Transformation] = Seq(

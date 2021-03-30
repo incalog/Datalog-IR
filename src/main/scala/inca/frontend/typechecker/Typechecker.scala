@@ -47,6 +47,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   def typecheck(fun: FunctionDef): Unit = scopedTypeContext {
     fun.params.foreach { p =>
       typecheck(p.typ)
+      if (p.typ.isInstanceOf[TSet])
+        error(s"Parameters may not range over relations", p)
       bindVar(p.name, p, p.typ)
     }
     typecheck(fun.outType)
@@ -108,6 +110,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case v@Var(name) =>
       lookupVar(name) match {
         case Some((decl, ty)) =>
+          if (ty.isInstanceOf[TSet])
+            error(s"Variables may not range over relations", v)
           resolveTarget(v)(decl)
           TypeOrigin(ty, Set())
         case None =>
@@ -287,10 +291,10 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
   def typecheckSetMember(mem: SetMember, bindTupVars: Boolean): TypeOrigin = {
     val TypeOrigin(tySetContent, orSet) = mem match {
-      case SetMember(_, Var(name), _) if lookupData(name).isDefined =>
+      case SetMember(_, Var(name), _) if isData(name) =>
         // this is a type member test
         mem.isTypeMember = true
-        TypeOrigin(TData(name), Set())
+        TypeOrigin(TData(name).resolved(lookupData(name).get), Set())
 
       case SetMember(_, set, _) =>
         val TypeOrigin(tset, or) = typecheck(set)
@@ -452,7 +456,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         val TypeOrigin(argTy, or) = typecheck(arg)
         ors ++= or
         if (meet(tparam, argTy) == TNothing) {
-          warn(s"Cast of argument type $argTy to unrelated parameter type $tparam will always fail", arg)
+          error(s"Invalid argument of type $argTy for parameter of type $tparam", arg)
         }
     }
 

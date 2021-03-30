@@ -88,7 +88,9 @@ object Executor {
   class Results[T](val res: Seq[Seq[T]]) {
     override def equals(obj: Any): Boolean = obj match {
       case expected: Results[T] =>
-        res.zip(expected.res).foldLeft(true) { case (b, (r, e)) => b && sameVals(r, e) }
+        res.size == expected.res.size &&
+          res.forall(ac => expected.res.exists(ex => sameVals(ac, ex))) &&
+          expected.res.forall(ex => res.exists(ac => sameVals(ac, ex)))
       case _ => false
     }
 
