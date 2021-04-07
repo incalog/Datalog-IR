@@ -21,6 +21,8 @@ class FunctionsDataTest extends AnyFunSuite {
     val code = s"""module Test
                   |data Node = BusStation(`String`, `Int`) | TrainStation(`String`, `Int`) | NoStation()
                   |
+                  |def stations(): Set[Node] = { TrainStation("A", 10), BusStation("B", 5), BusStation("C", 2) }
+                  |
                   |def isBusStation(n: Node): `Boolean` = n match {
                   |  case BusStation(name, cap) => true
                   |  case TrainStation(name, cap) => false
@@ -35,14 +37,10 @@ class FunctionsDataTest extends AnyFunSuite {
                   |
                   |def maxCapacity(n1: Node, n2: Node): Node = if (capacity(n1) > capacity(n2)) n1 else n2
                   |
-                  |@main def main(): Node = fold(NoStation(), maxCapacity, {n | n in Node, isBusStation(n)})
+                  |@main def main(): Node = fold(NoStation(), maxCapacity, {n | n in stations(), isBusStation(n)})
                   |""".stripMargin
     val fun = loadFunction(code)
-    fun.execute("main_f", Seq(
-      q"""TrainStation("A", 100)""",
-      q"""TrainStation("B", 100)""",
-      q"""BusStation("C", 50)""",
-      q"""BusStation("D", 5)"""))
+    assert(fun.execute("main_f", Seq()) == fun.result(q"""BusStation("B", 5)"""))
     fun.printAllMatches()
   }
 
