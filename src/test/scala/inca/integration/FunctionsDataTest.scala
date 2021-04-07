@@ -19,67 +19,30 @@ class FunctionsDataTest extends AnyFunSuite {
   }
   test("section 5 Example") {
     val code = s"""module Test
-                  |data Node = BusStation(`String`) | TrainStation(`String`) | NoStation()
-                  |
-                  |data Edge = Connection(Node, Node, `Int`)
-                  |
-                  |def eqNode(n1: Node, n2: Node): `Boolean` = n1 match {
-                  |  case BusStation(name1) => n2 match {
-                  |    case BusStation(name2) => name1 == name2
-                  |    case TrainStation(name2) => false
-                  |    case NoStation() => false
-                  |  }
-                  |  case TrainStation(name1) => n2 match {
-                  |    case BusStation(name2) => false
-                  |    case TrainStation(name2) => name1 == name2
-                  |    case NoStation() => false
-                  |  }
-                  |  case NoStation() => n2 match {
-                  |    case BusStation(name2) => false
-                  |    case TrainStation(name2) => false
-                  |    case NoStation() => true
-                  |  }
-                  |}
+                  |data Node = BusStation(`String`, `Int`) | TrainStation(`String`, `Int`) | NoStation()
                   |
                   |def isBusStation(n: Node): `Boolean` = n match {
-                  |  case BusStation(name) => true
-                  |  case TrainStation(name) => false
+                  |  case BusStation(name, cap) => true
+                  |  case TrainStation(name, cap) => false
                   |  case NoStation() => false
                   |}
                   |
-                  |def connects(e: Edge, from: Node, to: Node): `Boolean` = e match {
-                  |  case Connection(from1, to1, d) => eqNode(from, from1) && eqNode(to, to1)
+                  |def capacity(n: Node): `Int` = n match {
+                  |  case BusStation(name, cap) => cap
+                  |  case TrainStation(name, cap) => cap
+                  |  case NoStation() => -1
                   |}
                   |
-                  |def distance(e: Edge): `Int` = e match {
-                  |  case Connection(f, t, d) => d
-                  |}
+                  |def maxCapacity(n1: Node, n2: Node): Node = if (capacity(n1) > capacity(n2)) n1 else n2
                   |
-                  |def connectedBusStations(from: Node): Set[(Node, `Int`)] =
-                  | {(to, distance(e)) | to in Node, isBusStation(to), e in Edge, connects(e, from, to)}
-                  |
-                  |def connections(from: Node): Set[Edge] =
-                  | {e | to in Node, isBusStation(to), e in Edge, connects(e, from, to)}
-                  |
-                  |// def connectedBusStations(from: Node): Set[(Node, `Int`)] =
-                  |//  {(to, d) | to in Node, isBusStation(to), (from, to, d) in Edges()}
-                  |
-                  |// @main def main(): Set[(Node, `Int`)] = connectedBusStations(TrainStation("A"))
-                  |@main def main(): Edge = nearestStation(TrainStation("A"))
-                  |
-                  |def minDistance(e1: Edge, e2: Edge): Edge = e1 match {
-                  |  case Connection(from1, to1, d1) => e2 match {
-                  |    case Connection(from2, to2, d2) => if (d1 < d2) e1 else e2
-                  |  }
-                  |}
-                  |
-                  |
-                  |def nearestStation(from: Node): Edge = fold(Connection(NoStation(), NoStation(), `Int.MaxValue`), minDistance, connections(from))
-                  |
-                  |
+                  |@main def main(): Node = fold(NoStation(), maxCapacity, {n | n in Node, isBusStation(n)})
                   |""".stripMargin
     val fun = loadFunction(code)
-    fun.execute("main_f", Seq(q"""Connection(TrainStation("A"), BusStation("B"), 12)""", q"""Connection(TrainStation("A"), BusStation("C"), 5)"""))
+    fun.execute("main_f", Seq(
+      q"""TrainStation("A", 100)""",
+      q"""TrainStation("B", 100)""",
+      q"""BusStation("C", 50)""",
+      q"""BusStation("D", 5)"""))
     fun.printAllMatches()
   }
 

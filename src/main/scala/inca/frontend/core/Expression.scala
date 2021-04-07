@@ -256,7 +256,12 @@ case class SetComprehension(build: Expression, predicates: Seq[Expression]) exte
 
 case class SetMember(tup: Expression, set: Expression, neg: Boolean) extends Expression with Var.Target {
   var isTypeMember: Boolean = false
-  override def vars: Map[Name, Option[Type]] = set.vars ++ tup.vars
+  override def vars: Map[Name, Option[Type]] =
+    if (isTypeMember)
+      tup.vars
+    else
+      set.vars ++ tup.vars
+
   override def freevars: Set[Var] = set.freevars ++ (tup match {
     case v: Var if v.target.isEmpty => Set()
     case Tuple(es) => es.flatMap {
