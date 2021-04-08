@@ -22,8 +22,7 @@ object ExpTyping extends App {
        |metamodelpath ./src/test/scala/inca/analyzedLangs/
        |metamodel GoLang
        |
-       |`import inca.caseStudies.typing.Type`
-       |`import inca.caseStudies.typing.Context`
+
        |
        |def checkSimple(e: $ExpT): `Type` = e match {
        |  case $IntLit() => yield `Type.Int`

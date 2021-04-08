@@ -1,32 +1,34 @@
 package inca.caseStudies.metamodelimport
 
 import inca.caseStudies.typing.Exp
+import inca.caseStudies.typing.ExpTyping.{Add, App, ExpT, IntLit, Lam, Let, Var}
 import inca.compiler.{Compiler, Options}
 
-object ExpTyping extends App {
+object SimpleChecks extends App {
   val options = Options(Exp.languageMetaInfo)
   val code =
     s"""
-       |module SimpleChekcks
+       |module MetamodelTest
        |
        |metamodelpath ./src/test/scala/inca/analyzedLangs/
-       |metamodel STL
+       |metamodel GoLang
        |
-       |`import inca.caseStudies.typing.Type`
-       |`import inca.caseStudies.typing.Context`
-       |
-       |def checkSimple(e: expression): `Type` = e match {
-       |  case boolean => yield `Type.Int`
-       |  case e1 and e2) =>
-       |    if (checkSimple(e1) == `Type.Int` &&
-       |        checkSimple(e2) == `Type.Int`)
-       |      yield `Type.Bool`
-       |    else
-       |      fail
+       |def checkSimple(e: _expression): _expression = {
+       |  if (e.isInstanceOf[binary_expression]) {
+       |    val binary = e:binary_expression
+       |    yield binary.left
+       |  }
+       |  else
+       |    fail
        |}
+       |
        |""".stripMargin
 
   val compiled = Compiler.compileFun(code, options)
+  println(compiled.fun)
+  println(compiled.typed)
+  println(compiled.ir)
   println(compiled.optimized)
+  println(compiled.fun.usingMetaModel.get)
 
 }

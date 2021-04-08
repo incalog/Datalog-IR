@@ -1,0 +1,28 @@
+[
+  {
+    "type": "_expression",
+    "named": true,
+    "subtypes": [
+      {
+        "type": "binary_expression",
+        "named": true
+      },
+      {
+        "type": "call_expression",
+        "named": true
+      } ]
+  },
+  {
+    "type": "_simple_statement",
+    "named": true,
+    "subtypes": [
+      {
+        "type": "_expression",
+        "named": true
+      },
+      {
+        "type": "assignment_statement",
+        "named": true
+      }]
+  }
+]
