@@ -314,7 +314,7 @@ trait CoreParser {
     P("import" ~ identifier).mapWithLoc(Import.apply)
 
   def metamodel_[_:P]: P[UsingMetamodel] =
-    P("metamodelpath" ~ path ~/ "metamodel" ~ identifier).mapWithLoc { case (path, name) => UsingMetamodel(path, name) }
+    P("metamodelpath" ~ path ~ "metamodel" ~ identifier).mapWithLoc { case (path, name) => UsingMetamodel(path, name) }
 
   def moduleContent[_: P]: P[Seq[ModuleContent]] =
     P(patternFunction.map(Seq(_)) | valDef.map(Seq(_)) | scalaModuleContent)
