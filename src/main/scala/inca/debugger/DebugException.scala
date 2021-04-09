@@ -11,7 +11,9 @@ sealed trait DebugException {
 case class NoFunctionCallsException(message: String)
   extends Exception(message) with DebugException
 
-case class MultipleFunctionCallsException(message: String, funs: Seq[(Name, Seq[Expression])], resolvedFuns: Seq[(Name, Seq[Set[ColumnValue]])])
+case class MultipleFunctionCallsException(message: String,
+                                          funs: Seq[(Name, Seq[Expression])],
+                                          resolvedFuns: Seq[(Name, Seq[Set[EnvValue]])])
   extends Exception(message) with DebugException
 
 case class MultipleBodiesException(message: String)

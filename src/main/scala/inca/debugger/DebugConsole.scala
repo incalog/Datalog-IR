@@ -109,7 +109,7 @@ class DebugConsole(debugger: Debugger) {
   }
 
   @tailrec
-  private def promptForFunction(funs: Seq[(Name, Seq[Expression])], resolvedFuns: Seq[(Name, Seq[Set[ColumnValue]])]): Unit = {
+  private def promptForFunction(funs: Seq[(Name, Seq[Expression])], resolvedFuns: Seq[(Name, Seq[Set[EnvValue]])]): Unit = {
     val fs = funs.indices.zip(funs)
     println(fs.map {
       case (i, f) => s"$i: ${f._1}(${f._2.mkString(", ")})"
