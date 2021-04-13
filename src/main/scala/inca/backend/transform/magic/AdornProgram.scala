@@ -3,7 +3,6 @@ package inca.backend.transform.magic
 import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Collect
 import inca.backend.ir.GP._
-import inca.backend.optimize.EliminateAliases
 import inca.backend.transform.{Transformation, Transformer}
 import inca.runtime.context.LanguageMetaInfo
 
@@ -19,11 +18,7 @@ object AdornProgram extends Transformation {
 
   override def transformer(languageMetaInfo: LanguageMetaInfo): Transformer = new Transformer {
 
-    override def transformModule(originalModule: Module): Module = {
-      // TODO
-      val module = EliminateAliases.optimizer(languageMetaInfo).optimizeModule(originalModule)
-
-
+    override def transformModule(module: Module): Module = {
       var adornedPatterns: Set[(Pattern, Adornment)] = Set()
       var unvisitedPatterns: Set[Pattern] = module.pats.toSet
 

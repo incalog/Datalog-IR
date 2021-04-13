@@ -66,7 +66,7 @@ object LambdaCalculus {
     s"""def typeOf(ctx: Ctx, exp: TExp): Option[Type] = exp match {
        |  case TNum(v) => Some(TInt())
        |  case TLam(n, ty, b) =>
-       |    typeOf(BindCtx(n, ty, ctx), b) mt match {
+       |    typeOf(BindCtx(n, ty, ctx), b) match {
        |      case None => None
        |      case Some(ty2) => Some(TFun(ty, ty2))
        |    }
