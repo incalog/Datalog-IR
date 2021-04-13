@@ -127,6 +127,12 @@ class FunctionsDataTest extends AnyFunSuite {
 
   test("Checking+Erasure+Interpreting Example") {
     val fun = loadFunction(LambdaCalculus.completeLCModule)
+    val rels = fun.compiled.optimized.pats.filter(!_.name.contains("coal"))
+    println("relations: " + rels.size)
+    println("input relations: " + rels.filter(_.name.contains("input_")).size)
+    println("bodies: " + rels.flatMap(_.bodies).size)
+    println("constraints: " + rels.flatMap(_.bodies.flatMap(_.constraints)).size)
+
     // type of peano = (a -> a) -> (a -> a)
     val zero = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TVar("x")))"""
     val one = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TVar("x"))))"""

@@ -108,7 +108,7 @@ object Executor {
   def loadFunction(code: String): Loaded = {
     val options = Options(transformations = Options.defaultTransformations)
     val compiled = Compiler.compileFun(code, options)
-    println(compiled.ir)
+//    println(compiled.ir)
 //    println(compiled.transformed)
     println(compiled.optimized)
     val scope = new QueryScope(compiled.lmi)
