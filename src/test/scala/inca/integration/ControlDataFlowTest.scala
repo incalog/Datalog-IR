@@ -10,7 +10,7 @@ class ControlDataFlowTest extends AnyFunSuite {
   test("flow ex 2.1") {
     val fun = loadFunction(ControlDataFlow.cflowModule)
     val input = fun.input(Seq(ControlDataFlow.example_2_1))
-    assert(fun.executeTuple("flow_bff", input, deleteInput = false).res.size == 4)
+    assert(fun.executeTuple("flow_bff", input).res.size == 4)
     assert(fun.output("flowR_bff", input).res.isEmpty)
     fun.printAllMatches()
   }
@@ -18,8 +18,15 @@ class ControlDataFlowTest extends AnyFunSuite {
   test("flowR ex 2.1") {
     val fun = loadFunction(ControlDataFlow.cflowModule)
     val input = fun.input(Seq(ControlDataFlow.example_2_1))
-    assert(fun.executeTuple("flowR_bff", input, deleteInput = false).res.size == 4)
+    assert(fun.executeTuple("flowR_bff", input).res.size == 4)
     assert(fun.output("flow_bff", input).res.size == 4)
+    fun.printAllMatches()
+  }
+
+  test("transitiveFlow ex 2.1") {
+    val fun = loadFunction(ControlDataFlow.cflowModule)
+    val input = fun.input(Seq(ControlDataFlow.example_2_1))
+    assert(fun.executeTuple("transitiveFlow_bff", input).res.size == 12)
     fun.printAllMatches()
   }
 

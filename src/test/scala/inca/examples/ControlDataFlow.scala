@@ -39,6 +39,14 @@ object ControlDataFlow {
        |  case If(c, s1, s2) => flow(s1) ++ flow(s2) ++ {(stm, init(s1)), (stm, init(s2))}
        |  case While(c, s) => flow(s) ++ {(stm, init(s))} ++ {(l,stm) | l in final(s)}
        |}
+       |
+       |def transitive(cfg: () => Set[(Stm, Stm)]): Set[(Stm, Stm)] =
+       |  cfg() ++ {(s1,s3) | (s1,s2) in cfg(), (s2,s3) in transitive(cfg)}
+       |
+       |@main def transitiveFlow(prog: Stm): Set[(Stm, Stm)] =
+       |  let cfg = () => flow(prog)
+       |  in transitive(cfg)
+       |
        |""".stripMargin
 
   val flowR =

@@ -63,7 +63,12 @@ case class Let(names: Seq[Name], anno: Option[Type], bound: Expression, body: Ex
 
 case class Var(name: Name) extends Expression with Resolvable[Var.Target] {
   override def vars: Map[Name, Option[Type]] = Map(name -> typ)
-  override def freevars: Set[Var] = Set(this)
+  override def freevars: Set[Var] = this.target match {
+    case Some(_: FunctionDef) => Set()
+    case Some(_: DataConstructor) => Set()
+    case _ => Set(this)
+  }
+
   override def freeTvars: Set[TData] = Set()
   override def calls: Set[Call] = Set()
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = name.name

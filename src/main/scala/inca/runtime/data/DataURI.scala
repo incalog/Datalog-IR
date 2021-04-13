@@ -3,7 +3,11 @@ package inca.runtime.data
 import truediff.Diffable
 
 class DataURI(val repr: String) extends truechange.URI {
-  override def toString: String = repr + "@" + Integer.toHexString(hashCode())
+  override def toString: String =
+    if (DataURI.DEBUG_PRINT)
+      repr + "@" + Integer.toHexString(hashCode())
+    else
+      "@" + Integer.toHexString(hashCode())
 
   def ~=(uri: truechange.URI): Boolean = uri match {
     case other: DataURI => this.repr == other.repr
@@ -11,6 +15,8 @@ class DataURI(val repr: String) extends truechange.URI {
   }
 }
 object DataURI {
+  val DEBUG_PRINT = true
+
   def apply(constr: String, args: Any*): DataURI = {
     val strArgs = args.map {
       case data: DataURI => data.repr
