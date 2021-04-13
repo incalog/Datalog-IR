@@ -20,10 +20,7 @@ trait Optimizer {
 
   def optimizeBody(body: Body, pat: Pattern): Seq[Body] = {
     val newConstraints = body.constraints.flatMap(optimizeConstraint)
-    if (newConstraints.isEmpty)
-      Seq()
-    else
-      Seq(Body(newConstraints).withHints(body))
+    Seq(Body(newConstraints).withHints(body))
   }
 
   def optimizeConstraint(con: Constraint): Seq[Constraint] = (con match {

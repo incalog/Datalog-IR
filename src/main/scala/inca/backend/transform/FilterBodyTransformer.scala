@@ -7,5 +7,5 @@ class FilterBodyTransformer(predicate: Body => Boolean) extends Transformer {
     if (predicate(body))
       Seq(body)
     else
-      Seq(Body(Seq()))
+      Seq()
 }

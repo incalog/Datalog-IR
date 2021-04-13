@@ -98,10 +98,7 @@ trait Parser {
     }
 
   protected[frontend] def foldExp[_: P]: P[SetFold] =
-    P("fold" ~ ("[" ~ typeAnno ~ "]").? ~ "(" ~ exp ~ "," ~ identifier ~ "," ~ exp ~ ")").mapWithLoc { case (ty, init, name, set) =>
-      val op = FoldOp(name)
-      op.startIndex = name.startIndex
-      op.endIndex = name.endIndex
+    P("fold" ~ ("[" ~ typeAnno ~ "]").? ~ "(" ~ exp ~ "," ~ exp ~ "," ~ exp ~ ")").mapWithLoc { case (ty, init, op, set) =>
       SetFold(ty, init, op, set)
     }
 
@@ -216,6 +213,7 @@ trait Parser {
     P(subinfixExp ~ CharsWhile(OpCharNotSlash).! ~ infixExp).flatMapWithLoc {
       case (_, "@", _) => ParserUtils.fail("@ not allowed as infix opertor")
       case (_, "=>", _) => ParserUtils.fail("=> not allowed as infix opertor")
+      case (_, "|", _) => ParserUtils.fail("| not allowed as infix opertor")
       case (lhs, op, rhs) => fastparse.Pass(BaseApplyInfix(lhs, Scala(meta.Term.Name(op)), rhs))
     }
 

@@ -30,22 +30,22 @@ class ControlDataFlowTest extends AnyFunSuite {
     fun.printAllMatches()
   }
 
-  test("available expressions ex 2.4") {
-    val fun = loadFunction(ControlDataFlow.AEModule)
-    val prog = fun.input(ControlDataFlow.example_2_4)
-    assert(fun.executeTuple("final_AE_bf", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 1)
-    assert(fun.executeTuple("allEntries_AE_bff", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 3)
-    assert(fun.executeTuple("allExits_AE_bff", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 5)
-    fun.printAllMatches()
-    fun.output("allExits_AE_bff", Tuples.flatTupleOf(prog)).res.foreach { case Seq(c1, c2) => println(s"$c2 in $c1") }
-  }
+//  test("available expressions ex 2.4") {
+//    val fun = loadFunction(ControlDataFlow.AEModule)
+//    val prog = fun.input(ControlDataFlow.example_2_4)
+//    assert(fun.executeTuple("final_AE_bf", Tuples.flatTupleOf(prog)).res.size == 1)
+//    assert(fun.executeTuple("allEntries_AE_bff", Tuples.flatTupleOf(prog)).res.size == 3)
+//    assert(fun.executeTuple("allExits_AE_bff", Tuples.flatTupleOf(prog)).res.size == 5)
+//    fun.printAllMatches()
+//    fun.output("allExits_AE_bff", Tuples.flatTupleOf(prog)).res.foreach { case Seq(c1, c2) => println(s"$c2 in $c1") }
+//  }
 
   test("reaching definitions ex 2.7") {
     val fun = loadFunction(ControlDataFlow.RDmodule)
     val prog = fun.input(ControlDataFlow.example_2_7)
     assert(fun.executeTuple("final_RD_bff", Tuples.flatTupleOf(prog)).res.size == 4)
     assert(fun.executeTuple("allEntries_RD_bfff", Tuples.flatTupleOf(prog)).res.size == 15)
-    assert(fun.executeTuple("allExits_RD_bfff", Tuples.flatTupleOf(prog), deleteInput = false).res.size == 13)
+    assert(fun.executeTuple("allExits_RD_bfff", Tuples.flatTupleOf(prog)).res.size == 13)
     fun.printAllMatches()
     fun.output("allExits_RD_bfff", Tuples.flatTupleOf(prog)).res.foreach { case Seq(c1, c2, c3) => println(s"$c2:$c3 in $c1") }
   }

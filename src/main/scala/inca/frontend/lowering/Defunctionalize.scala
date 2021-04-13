@@ -71,11 +71,12 @@ class Defunctionalize(module: Module) {
         val apply = FunctionDef(Seq(), None, Name(funApply(tfun)),
           Seq(Param(Name("fun"), TData(data.name)), Param(Name("arg"), TTuple.from(from.map(transformType)))),
           transformType(to),
-          Match(Var(Name("fun")).typed(TData(data.name)),
+          Match(Var(Name("fun")),
             funs.map { case AnonFun(_, vs, body, defunName, freevars) =>
-              ConstructorPattern(Name(defunName), freevars.map(_.name))
-                .resolved(newVarTargets(Name(defunName))._1.asInstanceOf[DataConstructor.Target]) ->
-              Let(vs, Some(TTuple.from(tfun.from)), Var(Name("arg")).typed(TTuple.from(from.map(transformType))), body)
+              body.freevars.foreach{ v => v.target = None; v.typ = None }
+              body.freeTvars.foreach(_.target = None)
+              ConstructorPattern(Name(defunName), freevars.map(_.name)) ->
+              Let(vs, Some(TTuple.from(tfun.from)), Var(Name("arg")), body)
             }
           )
         )
@@ -84,28 +85,6 @@ class Defunctionalize(module: Module) {
     }
 
     val newModule = Module(name, imports, newcontents ++ defunFuns)
-
-    newModule.content.foreach {
-      case fun: FunctionDef =>
-        fun.freevars.foreach(v => newVarTargets.get(v.name) match {
-          case Some((applyFun, tfun)) =>
-            v.resolved(applyFun)
-            v.orTyped(tfun)
-          case None => // nothing
-        })
-        fun.freeTvars.foreach(t => newTDataTargets.get(t.name) match {
-          case Some(data) =>
-            t.resolved(data)
-          case None => // nothing
-        })
-      case data: DataDef =>
-        data.freeTvars.foreach(t => newTDataTargets.get(t.name) match {
-          case Some(data) =>
-            t.resolved(data)
-          case None => // nothing
-        })
-    }
-
     newModule
   }
 
@@ -141,7 +120,7 @@ class Defunctionalize(module: Module) {
     TSet(transformType(tset.ty))
 
   def transformExp(exp: Expression): Expression = (exp match {
-    case v:Var =>
+    case v@Var(name) =>
       v.target match {
         case Some(fun: FunctionDef) =>
           val constrSym = gensym.freshGlobal("Funref")
@@ -149,8 +128,8 @@ class Defunctionalize(module: Module) {
           val afun = AnonFun(ty,
             fun.params.map(_.name),
             Call(
-              Var(fun.name).typed(ty),
-              fun.params.map(p => Var(p.name).typed(p.typ))),
+              Var(fun.name),
+              fun.params.map(p => Var(p.name))),
             constrSym, Seq())
           anonymousFunctions += afun
           Call(Var(Name(constrSym)), Seq())
@@ -161,14 +140,13 @@ class Defunctionalize(module: Module) {
           val afun = AnonFun(ty,
             paramIndices.map(ix => Name(s"_$ix")),
             Call(
-              Var(constr.name).typed(ty),
+              Var(constr.name),
               paramIndices.map(ix => Var(Name(s"_$ix")))).mtyped(v.typ.map(transformType)),
             constrSym, Seq())
           anonymousFunctions += afun
           Call(Var(Name(constrSym)), Seq())
         case _ =>
-          v.typ = v.typ.map(transformType)
-          v
+          Var(name)
       }
     case Let(names, anno, bound, body) =>
       Let(names,
@@ -183,21 +161,21 @@ class Defunctionalize(module: Module) {
     case Call(fun, args, transitive) =>
       val argTrans = args.map(a => transformExp(a))
       fun match {
-        case v: Var
+        case v@Var(name)
           if v.target.forall(_.isInstanceOf[FunctionDef]) || v.target.forall(_.isInstanceOf[DataConstructor]) =>
           // regular call to first-order function
-          Call(fun, argTrans, transitive)
+          Call(Var(name), argTrans, transitive)
         case _ =>
           val tfun@TFun(_, _) = fun.typ.get
           // call defun apply
-          Call(Var(Name(funApply(tfun))).typed(transformNested(tfun)), Seq(
+          Call(Var(Name(funApply(tfun))), Seq(
             transformExp(fun),
             Tuple.from(argTrans)
           ))
       }
     case lam: Lambda =>
       val constrSym = gensym.freshGlobal("Lambda")
-      val free = lam.freevars.toSeq
+      val free = lam.freevars.distinct
       val body = transformExp(lam.body)
       val tfun@TFun(_, _) = lam.typ.get
       anonymousFunctions += AnonFun(
@@ -205,8 +183,8 @@ class Defunctionalize(module: Module) {
         lam.vs.map(_._1),
         body, constrSym, free)
       Call(
-        Var(Name(constrSym)).typed(TFun(free.map(_.typ.get), TData(Name(funData(tfun))))),
-        free)
+        Var(Name(constrSym)),
+        free.map(_.copy()))
     case Tuple(exps) =>
       Tuple(exps.map(e => transformExp(e)))
     case Match(matchee, cases) =>
@@ -234,8 +212,13 @@ class Defunctionalize(module: Module) {
     case SetMember(tup, set, neg) =>
       SetMember(transformExp(tup), transformExp(set), neg)
 
-    case SetFold(anno, init, op, set) =>
-      SetFold(anno, transformExp(init), op, transformExp(set))
-  }).mtyped(exp.typ.map(transformType))
+    case SetFold(anno, init, op, set) => op match {
+      case Var(name) =>
+        SetFold(anno, transformExp(init), Var(name), transformExp(set))
+      case _ =>
+        throw new UnsupportedOperationException("Only function references allowed as fold operation currently.")
+//        SetFold(anno, transformExp(init), transformExp(op), transformExp(set))
+    }
+  })
 
 }

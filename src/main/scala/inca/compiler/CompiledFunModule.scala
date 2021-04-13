@@ -23,6 +23,11 @@ case class CompiledFunModule(fun: Module, options: Options) extends CompiledModu
 
   lazy val coreModule: Module = {
     val module = new Defunctionalize(typed).transModule()
+    val frontend = options.frontend
+    frontend.typecheck(module)
+    messages ++= frontend.getErrors
+    messages ++= frontend.getWarnings
+    stopIfNeeded()
     println(module)
     module
   }

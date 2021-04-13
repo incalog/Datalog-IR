@@ -87,19 +87,29 @@ class GenerateScala {
     case TScala(t) => t.tree
     case TOption(ty) => t"scala.Option[${transType(ty)}]"
     case TSet(ty) => t"scala.Set[${transType(ty)}]"
+    case TFun(from, to) => t"(..${from.toList.map(transType)}) => ${transType(to)}"
   }
 
   def transExp(exp: Expression): meta.Term = exp match {
-    case Var(name) =>
-      Term.Name(name.name)
+    case v@Var(name) => v.target match {
+      case Some(fun: FunctionDef) => genCalled(fun, v.typ, v)
+      case Some(constr: DataConstructor) => genCalled(constr, v.typ, v)
+      case _ => // nothing
+    }
+    Term.Name(name.name)
     case Let(names, anno, bound, body) =>
       val scalaNames = names.map(n => Pat.Var(Term.Name(n.name))).toList
-      q"{val (..$scalaNames): ${transType(exp.typ.get)} = ${transExp(bound)}; ${transExp(body)} }"
+      q"{val (..$scalaNames): ${transType(bound.typ.get)} = ${transExp(bound)}; ${transExp(body)} }"
     case If(cnd, thn, els) =>
       q"if (${transExp(cnd)}) ${transExp(thn)} else ${transExp(els)}"
     case call@Call(v@Var(name), args, transitive) if !transitive =>
       genCalled(v.target.getOrElse(throw new IllegalArgumentException(s"Unresoved call $call")), call.typ, call)
       q"${Term.Name(name.name)}(..${args.map(a => transExp(a)).toList})"
+    case Lambda(vs, body) =>
+      val params = vs.toList.map { case (name, ty) =>
+        Term.Param(List(), Term.Name(name.name), Some(transType(ty)), None)
+      }
+      q"(..$params) => ${transExp(body)}"
     case Tuple(exps) =>
       q"(..${exps.map(e => transExp(e)).toList})"
     case Match(matchee, cases) =>
@@ -140,18 +150,18 @@ class GenerateScala {
         Term.ApplyUnary(Term.Name("!"), member)
       else
         member
-    case SetFold(_, init, op, set) =>
+    case SetFold(_, init, op: Var, set) =>
       q"${transExp(set)}.fold(${transExp(init)})(${transFoldOp(op, exp.typ)})"
   }
 
-  def transFoldOp(op: FoldOp, typ: Option[Type]): meta.Term = {
+  def transFoldOp(op: Var, typ: Option[Type]): meta.Term = {
     genCalled(op.target.getOrElse(throw new IllegalArgumentException(s"Unresoved fold $op")), typ, op)
     Term.Name(op.name.name)
   }
 
-  def genAggregation(name: String, init: Expression, op: FoldOp, typ: Type): meta.Term = {
+  def genAggregation(name: String, init: Expression, op: Expression, typ: Type): meta.Term = {
     val scalaInit = transExp(init)
-    val scalaOp = transFoldOp(op, Some(typ))
+    val scalaOp = transExp(op)
     val scalaTy = transType(typ)
 
     val tyAggregation = typeOf[Aggregation[_]]

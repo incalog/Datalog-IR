@@ -147,7 +147,7 @@ class RuntimeContextTests extends AnyFunSuite {
     database.processEditScript(diffset)
 
     database.enumerateTuples(ParentIndex.Key, emptyMask, null).
-      asScala should contain allOf(t2(mul.uri, add.uri), t2(num3.uri, mul.uri), t2(num2.uri, mul.uri), t2(num1.uri, add.uri))
+      asScala should contain allOf(t2(mul.uri, add.uri), t2(num1.uri, mul.uri), t2(num2.uri, mul.uri), t2(num3.uri, add.uri))
   }
 
   test("List children") {

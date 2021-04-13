@@ -74,6 +74,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case TTuple(tys) => tys.foreach(typecheck)
     case TSet(ty) => typecheck(ty)
     case TOption(ty) => typecheck(ty)
+    case TFun(from, to) =>
+      from.foreach(typecheck)
+      typecheck(to)
     case _ =>
   }
 
@@ -159,7 +162,10 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       TypeOrigin(TTuple(tys), ors)
 
     case lam@Lambda(vs, body) => scopedTypeContext {
-      vs.foreach { case (v, ty) => bindVar(v, lam, ty) }
+      vs.foreach { case (v, ty) =>
+        bindVar(v, lam, ty)
+        typecheck(ty)
+      }
       val TypeOrigin(ty, or) = typecheck(body)
       TypeOrigin(TFun(vs.map(_._2), ty), or)
     }
@@ -262,8 +268,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       TypeOrigin(TSet(tyb), orb ++ ors.flatten)
     }
 
-    case SetFold(tyAnno, init, op@FoldOp(opName), set) =>
+    case SetFold(tyAnno, init, op, set) =>
       val TypeOrigin(tyInit, orInit) = typecheck(init)
+      val TypeOrigin(tyOp, orOp) = typecheck(op)
       val TypeOrigin(tySet, orSet) = typecheck(set)
       val tySetContent = tySet match {
         case TSet(ty) => ty
@@ -273,20 +280,14 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           TNothing
       }
       val tyFold = tyAnno.getOrElse(join(tyInit, tySetContent))
-      lookupVar(opName) match {
-        case Some((trg, top: TFun)) =>
-          resolveTarget(op)(trg)
-          val paramTypes = top.from
-          val tyRes = top.to
+      tyOp match {
+        case TFun(paramTypes, tyRes) =>
           if (paramTypes.size != 2 || !subtype(tyFold, paramTypes(0)) || !subtype(tyFold, paramTypes(1)) || !subtype(tyRes, tyFold))
-            error(s"Expected function of type ($tyFold, $tyFold) => $tyFold, but $op has type $top")
-        case Some((trg, top)) =>
-          resolveTarget(op)(trg)
-          error(s"Expected function of type ($tyFold, $tyFold) => $tyFold, but $op has type $top")
-        case None =>
-          // nothing
+            error(s"Expected function of type ($tyFold, $tyFold) => $tyFold, but $op has type $tyOp")
+        case _ =>
+          error(s"Expected function of type ($tyFold, $tyFold) => $tyFold, but $op has type $tyOp")
       }
-      TypeOrigin(tyFold, orInit ++ orSet)
+      TypeOrigin(tyFold, orInit ++ orOp ++ orSet)
   }
 
   def typecheckSetMember(mem: SetMember, bindTupVars: Boolean): TypeOrigin = {

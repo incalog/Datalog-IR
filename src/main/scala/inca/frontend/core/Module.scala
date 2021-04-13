@@ -49,8 +49,8 @@ case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Na
 
   lazy val vars: Map[Name, Option[Type]] = body.vars ++ params.flatMap(_.vars)
 
-  def freevars: Set[Var] = body.freevars.filter(v => !v.target.contains(this) && !boundNames.contains(v.name))
-  def freeTvars: Set[TData] = body.freeTvars ++ params.flatMap(_.typ.freeTvars) ++ outType.freeTvars
+  def freevars: Seq[Var] = body.freevars.filter(v => !v.target.contains(this) && !boundNames.contains(v.name))
+  def freeTvars: Seq[TData] = body.freeTvars ++ params.flatMap(_.typ.freeTvars) ++ outType.freeTvars
 
   lazy val calls: Set[Call] = body.calls
 

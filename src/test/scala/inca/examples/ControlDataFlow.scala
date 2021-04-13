@@ -157,12 +157,18 @@ object ControlDataFlow {
        |  case While(c, s) => availableExps(c)
        |}
        |
+       |def intersect(s1: () => Set[Exp], s2: () => Set[Exp]): () => Set[Exp] =
+       |  () => {e | e in s1(), e in s2()}
+       |
        |def entry_AE(stm: Stm, prog: Stm): Set[Exp] =
        |  if (stm == init(prog))
        |    {}
        |  else
-//       |    intersect
-       |    ({ae | (pred, stm) in flow(prog), ae in exit_AE(pred, prog)})
+       |    fold(
+       |      () => {e | e in Exp},
+       |      intersect,
+       |      {() => exit_AE(pred, prog) | (pred, stm) in flow(prog)}
+       |    )()
        |
        |def exit_AE(stm: Stm, prog: Stm): Set[Exp] =
        |  gen_AE(stm) ++ {e | e in entry_AE(stm, prog), retain_AE(stm, prog, e)}
