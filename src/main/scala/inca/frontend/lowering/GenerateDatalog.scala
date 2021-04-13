@@ -97,7 +97,7 @@ class GenerateDatalog(module: Module) {
 
   private def transExp(exp: Expression): ExpRes = exp match {
     case Var(name) =>
-      Seq((flatVars(name, exp.typ.get).map(_._1), Seq()))
+      Seq((flatVars(name, exp.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $exp"))).map(_._1), Seq()))
 
     case Let(names, _, bound, body) =>
       val tys = bound.typ.get match {

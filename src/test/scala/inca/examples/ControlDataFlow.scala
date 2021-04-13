@@ -61,14 +61,45 @@ object ControlDataFlow {
   )
 
   val freevars =
-    s"""def freevars(exp: Exp): Set[`String`] = exp match {
-       |  case Var(s) => {s}
+    s"""
+       |def findExps(exp: Exp, f: Exp => `Boolean`): Set[Exp] = (exp match {
+       |  case Var(s) => {}
        |  case Num(i) => {}
-       |  case GreaterThan(e1, e2) => freevars(e1) ++ freevars(e2)
-       |  case Mul(e1, e2) => freevars(e1) ++ freevars(e2)
-       |  case Add(e1, e2) => freevars(e1) ++ freevars(e2)
-       |  case Sub(e1, e2) => freevars(e1) ++ freevars(e2)
+       |  case GreaterThan(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
+       |  case Mul(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
+       |  case Add(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
+       |  case Sub(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
+       |}) ++ (if (f(exp)) {exp} else {})
+       |
+       |def isVar(exp: Exp): `Boolean` = exp match {
+       |  case Var(s) => true
+       |  case Num(i) => false
+       |  case GreaterThan(e1, e2) => false
+       |  case Mul(e1, e2) => false
+       |  case Add(e1, e2) => false
+       |  case Sub(e1, e2) => false
        |}
+       |
+       |def varName(exp: Exp): `String` = exp match {
+       |  case Var(s) => s
+       |  case Num(i) => ""
+       |  case GreaterThan(e1, e2) => ""
+       |  case Mul(e1, e2) => ""
+       |  case Add(e1, e2) => ""
+       |  case Sub(e1, e2) => ""
+       |}
+       |
+       |def freevars(exp: Exp): Set[`String`] =
+       |  {varName(e) | e in findExps(exp, isVar)}
+       |
+//       |def freevars(exp: Exp): Set[`String`] = exp match {
+//       |  case Var(s) => {s}
+//       |  case Num(i) => {}
+//       |  case GreaterThan(e1, e2) => freevars(e1) ++ freevars(e2)
+//       |  case Mul(e1, e2) => freevars(e1) ++ freevars(e2)
+//       |  case Add(e1, e2) => freevars(e1) ++ freevars(e2)
+//       |  case Sub(e1, e2) => freevars(e1) ++ freevars(e2)
+//       |}
        |def notFreeIn(x: `String`, exp: Exp): `Boolean` = exp match {
        |  case Var(s) => x != s
        |  case Num(i) => true
@@ -88,20 +119,20 @@ object ControlDataFlow {
 
   val availableExpression =
     s"""
-       |def AExp(exp: Exp): Set[Exp] = exp match {
-       |  case Var(s) => {}
-       |  case Num(i) => {}
-       |  case GreaterThan(e1, e2) => AExp(e1) ++ AExp(e2)
-       |  case Mul(e1, e2) => {exp} ++ AExp(e1) ++ AExp(e2)
-       |  case Add(e1, e2) => {exp} ++ AExp(e1) ++ AExp(e2)
-       |  case Sub(e1, e2) => {exp} ++ AExp(e1) ++ AExp(e2)
-       |}
+       |def availableExps(exp: Exp): Set[Exp] = findExps(exp, (e: Exp) => e match {
+       |  case Var(s) => false
+       |  case Num(i) => false
+       |  case GreaterThan(e1, e2) => false
+       |  case Mul(e1, e2) => true
+       |  case Add(e1, e2) => true
+       |  case Sub(e1, e2) => true
+       |})
        |def AExpStm(stm: Stm): Set[Exp] = stm match {
-       |  case Assign(x, a) => AExp(a)
+       |  case Assign(x, a) => availableExps(a)
        |  case Skip() => {}
        |  case Sequence(s1, s2) => AExpStm(s1) ++ AExpStm(s2)
-       |  case If(c, s1, s2) => AExp(c) ++ AExpStm(s1) ++ AExpStm(s2)
-       |  case While(c, s) => AExp(c) ++ AExpStm(s)
+       |  case If(c, s1, s2) => availableExps(c) ++ AExpStm(s1) ++ AExpStm(s2)
+       |  case While(c, s) => availableExps(c) ++ AExpStm(s)
        |}
        |def retain_AE(stm: Stm, prog: Stm, e: Exp): `Boolean` = stm match {
        |  case Assign(x, a) => notFreeIn(x, e)
@@ -111,18 +142,19 @@ object ControlDataFlow {
        |  case While(c, s) => `true`
        |}
        |def gen_AE(stm: Stm): Set[Exp] = stm match {
-       |  case Assign(x, a) => {a2 | a2 in AExp(a), notFreeIn(x, a2)}
+       |  case Assign(x, a) => {a2 | a2 in availableExps(a), notFreeIn(x, a2)}
        |  case Skip() => {}
        |  case Sequence(s1, s2) => {}
-       |  case If(c, s1, s2) => AExp(c)
-       |  case While(c, s) => AExp(c)
+       |  case If(c, s1, s2) => availableExps(c)
+       |  case While(c, s) => availableExps(c)
        |}
        |
        |def entry_AE(stm: Stm, prog: Stm): Set[Exp] =
        |  if (stm == init(prog))
        |    {}
        |  else
-       |    intersect({exit_AE(pred, prog) | (pred, stm) in flow(prog)})
+//       |    intersect
+       |    ({ae | (pred, stm) in flow(prog), ae in exit_AE(pred, prog)})
        |
        |def exit_AE(stm: Stm, prog: Stm): Set[Exp] =
        |  gen_AE(stm) ++ {e | e in entry_AE(stm, prog), retain_AE(stm, prog, e)}

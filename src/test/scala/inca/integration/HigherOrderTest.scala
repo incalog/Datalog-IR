@@ -45,7 +45,7 @@ class HigherOrderTest extends AnyFunSuite {
 
   test("transitive") {
     val fun = loadFunction(HigherOrder.transitive)
-    assert(fun.execute("main_ff", Seq()) ==
+    assert(fun.execute("foo_ff", Seq()) ==
       fun.results(
         Seq(Seq(1,2), Seq(2,3), Seq(3,1), Seq(1,3), Seq(1,1), Seq(2,1), Seq(2,2), Seq(3,2), Seq(3,3))))
     fun.printAllMatches()

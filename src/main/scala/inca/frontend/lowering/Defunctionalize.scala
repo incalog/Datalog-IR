@@ -150,7 +150,7 @@ class Defunctionalize(module: Module) {
             fun.params.map(_.name),
             Call(
               Var(fun.name).typed(ty),
-              fun.params.map(p => Var(p.name))),
+              fun.params.map(p => Var(p.name).typed(p.typ))),
             constrSym, Seq())
           anonymousFunctions += afun
           Call(Var(Name(constrSym)), Seq())

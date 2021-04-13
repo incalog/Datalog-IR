@@ -51,7 +51,6 @@ object HigherOrder {
        |  compose((n: `Int`) => `Math.sqrt`(n), (d: `Double`) => `String.valueOf`(d))(2)
        |""".stripMargin
 
-
   val transitiveWrong: String =
     s"""module Foo
        |
@@ -68,7 +67,7 @@ object HigherOrder {
        |def transitive(r: () => Set[(`Int`, `Int`)]): Set[(`Int`, `Int`)] =
        |  r() ++ {(n1,n3) | (n1,n2) in r(), (n2,n3) in transitive(r)}
        |
-       |@main def main(): Set[(`Int`, `Int`)] =
-       |  transitive(() => {(1,2), (2,3), (3,1)})
+       |@main def foo(): Set[(`Int`, `Int`)] = transitive(() => {(1,2), (2,3), (3,1)})
+       |@main def bar(): Set[(`Int`, `Int`)] = transitive(() => {(1,2), (2,3), (3,1), (2,4), (4,3)})
        |""".stripMargin
 }
