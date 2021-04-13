@@ -17,7 +17,8 @@ class FunctionsDataTest extends AnyFunSuite {
       == fun.result(q"Succ(Succ(Succ(Succ(Succ(Succ(Zero()))))))"))
     fun.printAllMatches()
   }
-  test("section 5 Example") {
+
+  test("graph example with functions as predicates") {
     val code = s"""module Test
                   |data Node = BusStation(`String`, `Int`) | TrainStation(`String`, `Int`) | NoStation()
                   |

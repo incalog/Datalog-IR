@@ -39,29 +39,25 @@ object LambdaCalculus {
     s"""def typeOf(ctx: Ctx, exp: TExp): MaybeType = exp match {
        |  case TNum(v) => SomeType(TInt())
        |  case TLam(n, ty, b) =>
-       |    let extCtx = BindCtx(n, ty, ctx) in
-       |      let mbty2 = typeOf(extCtx, b) in
-       |        mbty2 match {
-       |          case SomeType(ty2) => SomeType(TFun(ty, ty2))
-       |          case NoType() => NoType()
-       |        }
+       |    typeOf(BindCtx(n, ty, ctx), b) match {
+       |      case SomeType(ty2) => SomeType(TFun(ty, ty2))
+       |      case NoType() => NoType()
+       |    }
        |  case TApp(fun, arg) =>
-       |    let mbfunty = typeOf(ctx, fun) in
-       |      mbfunty match {
-       |        case SomeType(funty) =>
-       |          funty match {
-       |            case TInt() => NoType()
-       |            case TFun(ty1, ty2) =>
-       |              let mbargty = typeOf(ctx, arg) in
-       |                mbargty match {
-       |                  case SomeType(argty) =>
-       |                    if (eqType(argty, ty1)) SomeType(ty2)
-       |                    else NoType()
-       |                  case NoType() => NoType()
-       |                }
-       |          }
-       |        case NoType() => NoType()
+       |    typeOf(ctx, fun) match {
+       |      case SomeType(funty) =>
+       |        funty match {
+       |          case TInt() => NoType()
+       |          case TFun(ty1, ty2) =>
+       |            typeOf(ctx, arg) match {
+       |              case SomeType(argty) =>
+       |                if (eqType(argty, ty1)) SomeType(ty2)
+       |                else NoType()
+       |              case NoType() => NoType()
+       |            }
        |      }
+       |      case NoType() => NoType()
+       |    }
        |  case TVar(n) => ctxLookup(ctx, n)
        |}
        |""".stripMargin
@@ -70,11 +66,10 @@ object LambdaCalculus {
     s"""def typeOf(ctx: Ctx, exp: TExp): Option[Type] = exp match {
        |  case TNum(v) => Some(TInt())
        |  case TLam(n, ty, b) =>
-       |    let extCtx = BindCtx(n, ty, ctx) in
-       |      let mt = typeOf(extCtx, b) in mt match {
-       |        case None => None
-       |        case Some(ty2) => Some(TFun(ty, ty2))
-       |      }
+       |    typeOf(BindCtx(n, ty, ctx), b) mt match {
+       |      case None => None
+       |      case Some(ty2) => Some(TFun(ty, ty2))
+       |    }
        |  case TApp(fun, arg) => typeOf(ctx, fun) match {
        |    case None => None
        |    case Some(funty) => funty match {
@@ -192,13 +187,8 @@ object LambdaCalculus {
   val eraseFunciton =
     s"""def erase(texp: TExp): Exp = texp match {
        |  case TNum(v) => Num(v)
-       |  case TLam(n, ty, b) =>
-       |    let eb = erase(b) in
-       |      Lam(n, eb)
-       |  case TApp(fun, arg) =>
-       |    let efun = erase(fun) in
-       |      let earg = erase(arg) in
-       |        App(efun, earg)
+       |  case TLam(n, ty, b) => Lam(n, erase(b))
+       |  case TApp(fun, arg) => App(erase(fun), erase(arg))
        |  case TVar(n) => Var(n)
        |}
        |""".stripMargin
@@ -216,23 +206,16 @@ object LambdaCalculus {
     s"""def interp(env: Env, exp: Exp): MaybeVal = exp match {
        |  case Num(v) => SomeVal(VNum(v))
        |  case Lam(n, b) => SomeVal(VClosure(n, b, env))
-       |  case App(fun, arg) =>
-       |    let mbfunv = interp(env, fun) in
-       |      mbfunv match {
-       |        case SomeVal(funv) =>
-       |          funv match {
-       |            case VClosure(param, body, fenv) =>
-       |              let mbargv = interp(env, arg) in
-       |                mbargv match {
-       |                  case SomeVal(argv) =>
-       |                    let extEnv = BindEnv(param, argv, fenv) in
-       |                      interp(extEnv, body)
-       |                  case NoVal() => NoVal()
-       |                }
-       |            case VNum(v) => NoVal()
-       |          }
+       |  case App(fun, arg) => interp(env, fun) match {
+       |    case SomeVal(funv) => funv match {
+       |      case VClosure(param, body, fenv) => interp(env, arg) match {
+       |        case SomeVal(argv) => interp(BindEnv(param, argv, fenv), body)
        |        case NoVal() => NoVal()
        |      }
+       |      case VNum(v) => NoVal()
+       |    }
+       |    case NoVal() => NoVal()
+       |  }
        |  case Var(n) => envLookup(env, n)
        |}
        |
@@ -269,8 +252,7 @@ object LambdaCalculus {
     Env_code,
     s"""@main def main(texp: TExp): MaybeVal = typeOf(EmptyCtx(), texp) match {
        |  case SomeType(ty) =>
-       |    let exp = erase(texp) in
-       |      interp(EmptyEnv(), exp)
+       |    interp(EmptyEnv(), erase(texp))
        |  case NoType() => NoVal()
        |}
        |""".stripMargin,

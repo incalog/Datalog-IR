@@ -231,6 +231,32 @@ class GenerateDatalogTest extends AnyFunSuite {
     val result = Compiler.compileFun(AST.plusModule, options).ir
     println(result)
   }
+//  test("running example for section 5") {
+//    val result = Compiler.compileFun(
+//      s"""module Test
+//         |data Node = BusStation(`String`) | TrainStation(`String`)
+//         |
+//         |def Edges(): Set[(Node, Node, `Int`)] = {
+//         |  (TrainStation("A"), BusStation("B"), 12),
+//         |  (TrainStation("A"), BusStation("C"), 5),
+//         |  (TrainStation("D"), BusStation("B"), 145),
+//         |  (BusStation("B"), BusStation("C"), 1)
+//         |}
+//         |
+//         |def isBusStation(n: Node): `Boolean` = n match {
+//         |  case BusStation(name) => true
+//         |  case TrainStation(name) => false
+//         |}
+//         |
+//         |def connectedBusStations(from: Node): Set[Node] =
+//         | {to | isBusStation(to), (from, to, d) in Edges()}
+//         |
+//         |@main def main(): Set[Node] = connectedBusStations(TrainStation("A"))
+//         |
+//         |
+//         |""".stripMargin, options).ir
+//    println(result)
+//  }
 
   test("plus real example") {
     val result = Compiler.compileFun(AST.plusRealModule, options).ir
