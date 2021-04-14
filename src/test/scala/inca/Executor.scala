@@ -1,5 +1,6 @@
 package inca
 
+import inca.backend.analyze.ConstructDependencyGraph
 import inca.compiler.{CompiledModule, Compiler, Options}
 import inca.runtime.context.QueryScope
 import inca.runtime.data.DataURI
@@ -108,8 +109,10 @@ object Executor {
   def loadFunction(code: String): Loaded = {
     val options = Options(transformations = Options.defaultTransformations)
     val compiled = Compiler.compileFun(code, options)
-//    println(compiled.ir)
+    val graph = ConstructDependencyGraph(compiled.optimized)
+    //    println(compiled.ir)
 //    println(compiled.transformed)
+    println(graph.toGraphViz)
     println(compiled.optimized)
     val scope = new QueryScope(compiled.lmi)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)

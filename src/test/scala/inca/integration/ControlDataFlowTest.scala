@@ -43,17 +43,32 @@ class ControlDataFlowTest extends AnyFunSuite {
   test("reaching definitions ex 2.7") {
     val fun = loadFunction(ControlDataFlow.RDmodule)
     val prog = fun.input(ControlDataFlow.example_2_7)
+
+    val rels = fun.compiled.optimized.pats.filter(!_.name.contains("coal"))
+    println("relations: " + rels.size)
+    println("input relations: " + rels.filter(_.name.contains("input_")).size)
+    println("bodies: " + rels.flatMap(_.bodies).size)
+    println("constraints: " + rels.flatMap(_.bodies.flatMap(_.constraints)).size)
+
     assert(fun.executeTuple("final_RD_bff", Tuples.flatTupleOf(prog)).res.size == 4)
     assert(fun.executeTuple("allEntries_RD_bfff", Tuples.flatTupleOf(prog)).res.size == 15)
     assert(fun.executeTuple("allExits_RD_bfff", Tuples.flatTupleOf(prog)).res.size == 13)
+
     fun.printAllMatches()
     fun.output("allExits_RD_bfff", Tuples.flatTupleOf(prog)).res.foreach { case Seq(c1, c2, c3) => println(s"$c2:$c3 in $c1") }
   }
 
   test("intervals ex 2.7") {
     val fun = loadFunction(ControlDataFlow.IntervalModule)
-    fun.compiled.printStatistics()
+    // fun.compiled.printStatistics()
     val prog = fun.input(ControlDataFlow.example_2_7)
+
+    val rels = fun.compiled.optimized.pats.filter(!_.name.contains("coal"))
+    println("relations: " + rels.size)
+    println("input relations: " + rels.filter(_.name.contains("input_")).size)
+    println("bodies: " + rels.flatMap(_.bodies).size)
+    println("constraints: " + rels.flatMap(_.bodies.flatMap(_.constraints)).size)
+
     val res = fun.executeTuple("final_var_bff", Tuples.flatTupleOf(prog))
     fun.printAllMatches()
     // TODO second aggregation currently implemented by hand in exit_var_external, should be generated eventually
