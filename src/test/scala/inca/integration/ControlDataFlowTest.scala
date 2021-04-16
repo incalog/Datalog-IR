@@ -74,4 +74,26 @@ class ControlDataFlowTest extends AnyFunSuite {
     // TODO second aggregation currently implemented by hand in exit_var_external, should be generated eventually
     assert(res.res.size == 2)
   }
+
+  test("aeval") {
+    val fun = loadFunction(ControlDataFlow.AEvalModule)
+    fun.compiled.printStatistics()
+    val names = Set("aeval", "add","sub","greaterThan","mul")
+    val m = fun.compiled.optimized.copy(pats = fun.compiled.optimized.pats.filter(p => names.exists(n => p.name.contains(n))), scalaContent = Seq())
+    println(m)
+    println(s"GP relations: ${m.pats.size}")
+    println(s"GP bodies: ${m.pats.map(_.bodies.size).sum}")
+//    val prog = fun.input(ControlDataFlow.example_2_7)
+//
+//    val rels = fun.compiled.optimized.pats.filter(!_.name.contains("coal"))
+//    println("relations: " + rels.size)
+//    println("input relations: " + rels.filter(_.name.contains("input_")).size)
+//    println("bodies: " + rels.flatMap(_.bodies).size)
+//    println("constraints: " + rels.flatMap(_.bodies.flatMap(_.constraints)).size)
+//
+//    val res = fun.executeTuple("final_var_bff", Tuples.flatTupleOf(prog))
+//    fun.printAllMatches()
+//    // TODO second aggregation currently implemented by hand in exit_var_external, should be generated eventually
+//    assert(res.res.size == 2)
+  }
 }

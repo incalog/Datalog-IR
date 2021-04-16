@@ -196,8 +196,8 @@ object ControlDataFlow {
     s"""
        |data MaybeDef = Undef() | Def(Stm)
        |
-       |def retain_RD(stm: Stm, prog: Stm, y: `String`, d: MaybeDef): `Boolean` = stm match {
-       |  case Assign(x, a) => x != y
+       |def retain_RD(stm: Stm, x: `String`): `Boolean` = stm match {
+       |  case Assign(y, a) => x != y
        |  case Skip() => true
        |  case Sequence(s1, s2) => true
        |  case If(c, s1, s2) => true
@@ -216,10 +216,10 @@ object ControlDataFlow {
        |  if (stm == init(prog))
        |    {(x, Undef()) | x in freevarsStm(prog)}
        |  else
-       |    {(x,s) | (pred, stm) in flow(prog), (x,s) in exit_RD(pred, prog)}
+       |    {(x,d) | (pred, stm) in flow(prog), (x,d) in exit_RD(pred, prog)}
        |
        |def exit_RD(stm: Stm, prog: Stm): Set[(`String`,MaybeDef)] =
-       |  gen_RD(stm) ++ {(r,d) | (r,d) in entry_RD(stm, prog), retain_RD(stm, prog, r, d)}
+       |  gen_RD(stm) ++ {(x,d) | (x,d) in entry_RD(stm, prog), retain_RD(stm, x)}
        |
        |@main def final_RD(prog: Stm): Set[(`String`,MaybeDef)] =
        |  {(x,a) | s in final(prog), (x,a) in exit_RD(s, prog)}
@@ -294,9 +294,9 @@ object ControlDataFlow {
       |    {exit_var(pred, prog, x) | (pred,stm) in flow(prog)})
       |
       |def exit_var(stm: Stm, prog: Stm, x: `String`): Val = stm match {
-      |  case Assign(y, a) =>
+      |  case Assign(y, exp) =>
       |    if (x == y)
-      |      aeval(a, stm, prog)
+      |      aeval(exp, stm, prog)
       |    else
       |      entry_var(stm, prog, x)
       |  case Skip() => entry_var(stm, prog, x)
@@ -422,6 +422,111 @@ object ControlDataFlow {
     flowR,
     freevars,
     intervals
+  )
+
+  val aeval =
+    """data Interval = IV(`Int`, `Int`) | TopInterval()
+      |data Bool = True() | False() | TopBool()
+      |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
+      |
+      |def entry_var(stm: Stm, prog: Stm, x: `String`): Val = TopVal()
+      |
+      |@main def aeval(exp: Exp, node: Stm, prog: Stm): Val = exp match {
+      |  case Var(x) => entry_var(node, prog, x)
+      |  case Num(i) => IntervalVal(IV(i, i))
+      |  case GreaterThan(e1, e2) => greaterThan(aeval(e1, node, prog), aeval(e2, node, prog))
+      |  case Add(e1, e2) => add(aeval(e1, node, prog), aeval(e2, node, prog))
+      |  case Sub(e1, e2) => sub(aeval(e1, node, prog), aeval(e2, node, prog))
+      |  case Mul(e1, e2) => mul(aeval(e1, node, prog), aeval(e2, node, prog))
+      |}
+      |
+      |def greaterThan(v1: Val, v2: Val): Val = v1 match {
+      |  case BotVal() => BotVal()
+      |  case BoolVal(b1) => BotVal()
+      |  case TopVal() => BoolVal(TopBool())
+      |  case IntervalVal(iv1) => v2 match {
+      |    case BotVal() => BotVal()
+      |    case BoolVal(b2) => BotVal()
+      |    case TopVal() => BoolVal(TopBool())
+      |    case IntervalVal(iv2) => BoolVal(greaterThanInterval(iv1, iv2))
+      |  }
+      |}
+      |def greaterThanInterval(iv1: Interval, iv2: Interval): Bool = iv1 match {
+      |  case TopInterval() => TopBool()
+      |  case IV(l1, h1) => iv2 match {
+      |    case TopInterval() => TopBool()
+      |    case IV(l2, h2) =>
+      |      if (l1 > h2) True()
+      |      else if (l2 > h1) False()
+      |      else TopBool()
+      |  }
+      |}
+      |def add(v1: Val, v2: Val): Val = v1 match {
+      |  case BotVal() => BotVal()
+      |  case BoolVal(b1) => BotVal()
+      |  case TopVal() => IntervalVal(TopInterval())
+      |  case IntervalVal(iv1) => v2 match {
+      |    case BotVal() => BotVal()
+      |    case BoolVal(b2) => BotVal()
+      |    case TopVal() => IntervalVal(TopInterval())
+      |    case IntervalVal(iv2) => IntervalVal(addInterval(iv1, iv2))
+      |  }
+      |}
+      |def addInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
+      |  case TopInterval() => TopInterval()
+      |  case IV(l1, h1) => iv2 match {
+      |    case TopInterval() => TopInterval()
+      |    case IV(l2, h2) => IV(l1 + l2, h1 + h2)
+      |  }
+      |}
+      |def sub(v1: Val, v2: Val): Val = v1 match {
+      |  case BotVal() => BotVal()
+      |  case BoolVal(b1) => BotVal()
+      |  case TopVal() => IntervalVal(TopInterval())
+      |  case IntervalVal(iv1) => v2 match {
+      |    case BotVal() => BotVal()
+      |    case BoolVal(b2) => BotVal()
+      |    case TopVal() => IntervalVal(TopInterval())
+      |    case IntervalVal(iv2) => IntervalVal(subInterval(iv1, iv2))
+      |  }
+      |}
+      |def subInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
+      |  case TopInterval() => TopInterval()
+      |  case IV(l1, h1) => iv2 match {
+      |    case TopInterval() => TopInterval()
+      |    case IV(l2, h2) => IV(l1 - h2, h1 - l2)
+      |  }
+      |}
+      |def mul(v1: Val, v2: Val): Val = v1 match {
+      |  case BotVal() => BotVal()
+      |  case BoolVal(b1) => BotVal()
+      |  case TopVal() => IntervalVal(TopInterval())
+      |  case IntervalVal(iv1) => v2 match {
+      |    case BotVal() => BotVal()
+      |    case BoolVal(b2) => BotVal()
+      |    case TopVal() => IntervalVal(TopInterval())
+      |    case IntervalVal(iv2) => IntervalVal(mulInterval(iv1, iv2))
+      |  }
+      |}
+      |def mulInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
+      |  case TopInterval() => TopInterval()
+      |  case IV(l1, h1) => iv2 match {
+      |    case TopInterval() => TopInterval()
+      |    case IV(l2, h2) =>
+      |      let v1 = l1 * l2 in
+      |      let v2 = l1 * h2 in
+      |      let v3 = h1 * l2 in
+      |      let v4 = h1 * h2 in
+      |      let low = `Math.min`(v1, `Math.min`(v2, `Math.min`(v3, v4))) in
+      |      let high = `Math.max`(v1, `Math.max`(v2, `Math.max`(v3, v4))) in
+      |      IV(low, high)
+      |  }
+      |}
+      |""".stripMargin
+
+  val AEvalModule = Code.module(
+    AST_code,
+    aeval
   )
 
   import scala.meta.XtensionQuasiquoteTerm

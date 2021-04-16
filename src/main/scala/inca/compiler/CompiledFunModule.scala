@@ -28,7 +28,7 @@ case class CompiledFunModule(fun: Module, options: Options) extends CompiledModu
     messages ++= frontend.getErrors
     messages ++= frontend.getWarnings
     stopIfNeeded()
-    println(module)
+//    println(module)
     module
   }
 

@@ -114,6 +114,10 @@ class TypecheckerTest extends AnyFunSuite {
     checkModule(ControlDataFlow.IntervalModule)
   }
 
+  test("aeval") {
+    checkModule(ControlDataFlow.AEvalModule)
+  }
+
 //  test("emptiness check 1") {
 //    val module = Frontend.Core.parseModule(Code.module(
 //      s"""def foo(i: `Int`): Option[`Int`] = bar(i)

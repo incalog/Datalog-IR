@@ -30,8 +30,9 @@ trait CompiledModule {
   lazy val patternDependenciesTrans: MultiDict[GP.Name, GP.Name] = transClosure(patternDependencies)
 
   def printStatistics(): Unit = {
-    println(s"GP relations: ${ir.pats.size}")
-    println(s"GP bodies: ${ir.pats.map(_.bodies.size).sum}")
+    val pats = optimized.pats.filter(!_.name.contains("oalesced"))
+    println(s"GP relations: ${pats.size}")
+    println(s"GP bodies: ${pats.map(_.bodies.size).sum}")
     val recs = patternDependenciesTrans.sets.filter(p => p._2.contains(p._1))
     println(s"Recursive GP relations: ${recs.size}")
   }
