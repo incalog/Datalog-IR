@@ -44,7 +44,7 @@ class BinaryTree extends AnyFunSuite {
 
   test("different functions for binary trees") {
     val code =
-     s"""module Test
+     s"""module BinaryTreeAnalyses
         |
         |def rootNode(t: $treeTag): Unit = {
         |  assert undef t.parent

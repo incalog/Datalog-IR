@@ -5,9 +5,7 @@ import inca.runtime.Query.Match
 import inca.runtime.{Database, EnginePool}
 import inca.runtime.context.{LanguageMetaInfo, QueryScope}
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
-import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
-import truechange.EditScript
 import truediff.Diffable
 
 import scala.jdk.CollectionConverters._
@@ -22,6 +20,7 @@ object Executor {
       mainMatcher.getAllMatches().asScala.toSeq
     }
 
+    // use execute only once
     def execute[T <: Diffable](tree: T, pat: String): Seq[Match] = {
       val es = Diffable.load(tree)
       lastTree = tree
@@ -29,6 +28,7 @@ object Executor {
       output(pat)
     }
 
+    // use update after calling execute once to update analysis based on new tree
     def update[T <: Diffable](newTree: T, pat: String): Seq[Match] = {
       val (es, updatedTree) = lastTree.compareTo(newTree)
       lastTree = updatedTree
