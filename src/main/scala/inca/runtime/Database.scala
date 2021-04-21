@@ -106,21 +106,15 @@ class Database(
 
   private def editError(msg: String) = throw new IllegalStateException("Processing edit script failed: " + msg)
 
-  override def processEditScript(edits: EditScript): Unit = edits.foreach { edit =>
+  // process coreedits to so that first dynamic indicies are modified and then the core indicies
+  // we want to avoid interleaving this
+  override def processEditScript(edits: EditScript): Unit = edits.coreEdits.foreach { edit =>
     // inform dynamic indices
     dynamicIndices.values.foreach(_.processEdit(edit))
     processEdit(edit)
   }
 
-  def processEdit(edit: Edit): Unit = edit match {
-    case DetachUnload(node, tag, kids, lits, link, parent, ptag) =>
-      processEdit(Detach(node, tag, link, parent, ptag))
-      processEdit(Unload(node, tag, kids, lits))
-
-    case LoadAttach(node, tag, kids, lits, link, parent, ptag) =>
-      processEdit(Load(node, tag, kids, lits))
-      processEdit(Attach(node, tag, link, parent, ptag))
-
+  def processEdit(edit: CoreEdit): Unit = edit match {
     case Update(node, NamedTag(tagname), oldlits, newlits) =>
       // delete lits from primitiveInstances and links from node to lits
       var newLitsMap = newlits.toMap
