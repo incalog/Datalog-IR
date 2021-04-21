@@ -113,6 +113,37 @@ class Database(
   }
 
   def processEdit(edit: Edit): Unit = edit match {
+    case DetachUnload(node, tag, kids, lits, link, parent, ptag) =>
+      processEdit(Detach(node, tag, link, parent, ptag))
+      processEdit(Unload(node, tag, kids, lits))
+
+    case LoadAttach(node, tag, kids, lits, link, parent, ptag) =>
+      processEdit(Load(node, tag, kids, lits))
+      processEdit(Attach(node, tag, link, parent, ptag))
+
+    case Update(node, NamedTag(tagname), oldlits, newlits) =>
+      // delete lits from primitiveInstances and links from node to lits
+      var newLitsMap = newlits.toMap
+      oldlits.foreach { case (k, oldLit) =>
+        newLitsMap.get(k) match {
+          case Some(newLit) =>
+            newLitsMap -= k
+            if (oldLit != newLit) {
+              primitiveInstances(JavaLitType(oldLit.getClass)).delete(oldLit)
+              linkPrimitiveInstances(tagname->k).delete(node, oldLit)
+              primitiveInstances(JavaLitType(newLit.getClass)).insert(newLit)
+              linkPrimitiveInstances(tagname->k).insert(node, newLit)
+            }
+          case None =>
+            primitiveInstances(JavaLitType(oldLit.getClass)).delete(oldLit)
+            linkPrimitiveInstances(tagname->k).delete(node, oldLit)
+        }
+      }
+      newLitsMap.foreach { case (k, newLit) =>
+        primitiveInstances(JavaLitType(newLit.getClass)).insert(newLit)
+        linkPrimitiveInstances(tagname->k).insert(node, newLit)
+      }
+
     // delete link, leave rest intact
     case Detach(node, _, link, parent, ptag) => link.getRawLink match {
       case NamedLink(linkname) => ptag match {
@@ -183,7 +214,6 @@ class Database(
         linkPrimitiveInstances(tagname->name).delete(node, lit)
       }
   }
-
   def iterateNext(from: truechange.URI)(f: truechange.URI => Unit): Unit = {
     val index = linkListNextInstances.index
     f(from)
