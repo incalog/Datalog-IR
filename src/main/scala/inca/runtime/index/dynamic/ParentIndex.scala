@@ -24,16 +24,7 @@ object ParentIndex {
 class ParentIndex extends BidirectionalManyToOneIndex[URI,URI](ParentIndex.Key)
   with DynamicIndex {
 
-  /** processes edit to update this index accordingly */
-  override def processEdit(edit: truechange.Edit): Unit = edit match {
-    case DetachUnload(node, tag, kids, lits, link, parent, ptag) =>
-      processEdit(Detach(node, tag, link, parent, ptag))
-      processEdit(Unload(node, tag, kids, lits))
-
-    case LoadAttach(node, tag, kids, lits, link, parent, ptag) =>
-      processEdit(Load(node, tag, kids, lits))
-      processEdit(Attach(node, tag, link, parent, ptag))
-
+  override def processEdit(edit: truechange.CoreEdit): Unit = edit match {
     case Update(_, _, _, _) =>
       // nothing
 
