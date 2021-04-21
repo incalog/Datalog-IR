@@ -4,20 +4,21 @@ import inca.Executor
 import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.funsuite.AnyFunSuite
 import truechange.{JavaLitType, SortType}
+import truediff.Diffable
 import truediff.macros.diffable
 
 import scala.collection.immutable.MultiDict
 
 
-class BinaryTree extends AnyFunSuite {
+// language definition (data model as case classes)
+// IMPORTANT needs to be a top-level definition
+@diffable trait Tree extends Diffable
+@diffable case class BinaryNode(v: Int, l: Tree, r: Tree) extends Tree
+@diffable case class LeafNode() extends Tree
 
-  // language definition (data model as case classes)
-  @diffable
-  trait Tree
-  @diffable
-  case class BinaryNode(v: Int, l: Tree, r: Tree) extends Tree
-  @diffable
-  case class LeafNode() extends Tree
+class BinaryTreeExamples extends AnyFunSuite {
+
+
   val treeTag = classOf[Tree].getCanonicalName
   val binaryTag = classOf[BinaryNode].getCanonicalName
   val leafTag = classOf[LeafNode].getCanonicalName
@@ -68,7 +69,9 @@ class BinaryTree extends AnyFunSuite {
     val loaded = Executor.loadAnalysis(code, languageMetaInfo)
 
     val tree = BinaryNode(4, BinaryNode(2, LeafNode(), LeafNode()), LeafNode())
+    println(tree.toStringWithURI)
     val tree2 = BinaryNode(4, BinaryNode(2, BinaryNode(1, LeafNode(), LeafNode()), LeafNode()), LeafNode())
+    println(tree2.toStringWithURI)
     val res1 = loaded.execute(tree, "rootNode")
     res1.foreach(println)
     val res2 = loaded.update(tree2, "rootNode")
