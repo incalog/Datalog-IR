@@ -54,25 +54,49 @@ private object Util {
 
       case ChildrenLink =>
         val linkNodes = db.linkNodeInstancesByValue1(uriValue.uri)
-        linkNodes.flatMap {
-          case (_, uris) =>
-            val childUris = uris.index(uriValue.uri)
-            childUris.map(uri => URIValue(uri, db.nodeInstancesByValue(uri).keys.toSeq))
-        }.toSet
+        if(linkNodes.nonEmpty) {
+          linkNodes.flatMap {
+            case (_, uris) =>
+              val childUris = uris.index(uriValue.uri)
+              childUris.map(uri => URIValue(uri, db.nodeInstancesByValue(uri).keys.toSeq))
+          }.toSet
+
+        } else {
+          val llFirst = db.linkListFirstInstances.index(uriValue.uri)
+            .map(uri => URIValue(uri, db.nodeInstancesByValue(uri).keys.toSeq)).toSeq
+
+          if(llFirst.isEmpty) Set()
+          else (llFirst ++ getLinkListRest(db, llFirst.head)).toSet
+        }
 
       case NextLink =>
-        // Not implemented
-        Set()
+        val llNext = db.linkListNextInstances.index(uriValue.uri)
+          .map(uri => URIValue(uri, db.nodeInstancesByValue(uri).keys.toSeq)).toSeq
+        llNext.toSet
+
       case PreviousLink =>
-        // Not implemented
-        Set()
+        val llPrev = db.linkListNextInstances.indexInverted(uriValue.uri)
+          .map(uri => URIValue(uri, db.nodeInstancesByValue(uri).keys.toSeq)).toSeq
+        llPrev.toSet
+
       case SizeLink =>
-        // Not implemented
-        Set()
+        val llFirst = db.linkListFirstInstances.index(uriValue.uri)
+          .map(uri => URIValue(uri, db.nodeInstancesByValue(uri).keys.toSeq)).toSeq
+
+        if(llFirst.isEmpty) Set(ScalaValue(0))
+        else Set(ScalaValue(1 + getLinkListRest(db, llFirst.head).size))
 
       case _ => Set()
     }
     case _ => Set()
+  }
+
+  private def getLinkListRest(db: DatabaseAccessor, uriValue: URIValue): Seq[ColumnValue] = {
+    val nxt = db.linkListNextInstances.index(uriValue.uri)
+      .map(uri => URIValue(uri, db.nodeInstancesByValue(uri).keys.toSeq))
+
+    if(nxt.isEmpty) Seq()
+    else (nxt ++ getLinkListRest(db, nxt.head)).toSeq
   }
 
   private[debugger] def getLitVal(sv: Any): Any = sv match {

@@ -59,13 +59,49 @@ private[debugger] class StackFrame(val parent: Int, val funName: Name, val args:
   val intermVars: mutable.Map[(Name, TArgList, Int), (Set[EnvValue], TArgList)] = mutable.Map()
   var ptr: Int = -1
 
-  def incrementPntr(): Unit =ptr += 1
+  def incrementPntr(): Unit = ptr += 1
 
   override def toString: String = {
     val vars = env.map {
-      case (name, evs) => (name, evs.map(ev => ev.columnValue))
+      case (name, evs) => (name, evs.map(ev => ev.columnValue).mkString("{", ", ", "}"))
     }
-    vars.mkString(s"Frame::${funName.name} { ", ", ", " }")
+    vars.mkString(s"Frame::${funName.name} [ ", ", ", " ]")
+  }
+
+  def prettyPrint(): Unit = {
+    val allPs: Set[Name] = env.flatMap {
+      case (_, evs) => evs.flatMap(ev => ev.parents.map(p => p._1))
+    }.toSet
+
+    val leaves = env.keys.toSet -- allPs
+    val res = leaves.map(name => {
+        env(name).map(ev => getRelatedColumns(name, ev))
+    }).foldLeft(Set[Seq[(Name, ColumnValue)]]()) {
+      case (z, s) => if(z.isEmpty) s else combine(z, s)
+    }
+
+    val pOut = res.map(tup => {
+      tup.map(column => s"${column._1}=${column._2}").mkString("{", ", ", "}")
+    }).mkString("\n")
+
+    println(s"Frame::${funName.name}\n$pOut")
+  }
+
+  def getRelatedColumns(name: Name, value: EnvValue): Seq[(Name, ColumnValue)] = {
+    val parents = value.parents.flatMap {
+      case (n, cv) => env.getOrElse(n, Set())
+        .filter(ev => ev.columnValue == cv && (n, ev) != (name, value))
+        .map(ev => (n, ev))
+    }
+    parents.map {
+      case (n, ev) => getRelatedColumns(n, ev)
+    }.foldRight(Seq[(Name, ColumnValue)]((name, value.columnValue))) {
+      (z, s) => z ++ s
+    }
+  }
+
+  private def combine(as: Set[Seq[(Name, ColumnValue)]], bs: Set[Seq[(Name, ColumnValue)]]): Set[Seq[(Name, ColumnValue)]] = {
+    bs.flatMap(b => as.map(a => b ++ a))
   }
 }
 

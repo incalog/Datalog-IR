@@ -12,9 +12,13 @@ class DebugConsole(debugger: Debugger) {
    *  so      - step out
    *  l       - print current line
    *  l [n]   - print n lines centered around current line
+   *  pf      - print current function fully, with current line highlighted
    *
-   *  e | f        - print environment of current stackframe
-   *  eall | fall  - print environments of all stackframes in stack
+   *  e | f        - print environment of current stack frame
+   *  eall | fall  - print environments of all stack frames in stack
+   *
+   *  v (name)     - print bound values in the current stack frame for the given variable name
+   *  vall         - print bound values for all variables in the current stack frame
    *
    *  tup [d] - print all tuples of relation with tags up to d depth if specified
    *
@@ -71,13 +75,42 @@ class DebugConsole(debugger: Debugger) {
         })
         start()
 
+      case "pf" =>
+        val lines = debugger.currentFun()
+        val curLine = debugger.currentLine().head
+        lines.foreach(line => {
+          if(line.trim == curLine)
+            println(Console.CYAN + line + Console.RESET)
+          else
+            println(line)
+        })
+        start()
+
       case "e" | "f" =>
-        if(debugger.callStack.nonEmpty)
-          println(debugger.callStack.stackFrame)
+        if(debugger.callStack.nonEmpty && debugger.callStack.isStackFrame())
+          debugger.callStack.stackFrame.prettyPrint()
         start()
 
       case "eall" | "fall" =>
-        println(debugger.callStack)
+        debugger.callStack.stack.reverse.foreach {
+          case frame: StackFrame => frame.prettyPrint()
+          case _ =>
+        }
+        start()
+
+      case "vall" =>
+        if(debugger.callStack.nonEmpty && debugger.callStack.isStackFrame())
+          println(debugger.callStack.stackFrame)
+        start()
+
+      case s"v$n" =>
+        if(debugger.callStack.nonEmpty) {
+          val name = Name(n.trim)
+          if(debugger.callStack.stackFrame.env.contains(name))
+            println(s"$name -> ${debugger.callStack.stackFrame.env(name).mkString("{", ", ", "}")}")
+          else
+            println(s"Unbound var $name in current frame ${debugger.callStack.frame.funName}")
+        }
         start()
 
       case s"tup$d" =>

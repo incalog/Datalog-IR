@@ -77,13 +77,21 @@ class Debugger(feed: Database, matcher: Matcher, module: CompiledFunModule) {
               Math.min(sf.ptr + (n/2) + 1, sz) - n,
               Math.max(0, sf.ptr - ((n-1)/2)) + n
             )
-          } else
-            throw InvalidPointerException(s"Invalid indices f:${sf.funName} b:${sf.bodyPtr} p:${sf.ptr}")
+          } else Seq()
 
         case cf: ContainerFrame =>
           Seq(funSigs(cf.funName))
       }
     else Seq(funSigs(funName))
+  }
+
+  private[debugger] def currentFun(): Seq[String] = {
+    val fName = if(callStack.nonEmpty) callStack.frame.funName else funName
+    val f: ModuleContent = module.fun.content.filter {
+      case pf: PatternFunction => pf.name == fName
+      case _ => false
+    }.head
+    f.prettyprint("").split("\n")
   }
 
 
@@ -138,8 +146,8 @@ class Debugger(feed: Database, matcher: Matcher, module: CompiledFunModule) {
 
     val frame: StackFrame = new StackFrame(callStack.frame.parent, callStack.currentFun, callStack.frame.args, b)
     val resolvedParams = funParams(callStack.currentFun).map(p => (p.name, callStack.frame match {
-      case sf: StackFrame => sf.env(p.name)
-      case cf: ContainerFrame => cf.params(p.name)
+      case sf: StackFrame => sf.env.getOrElse(p.name, Set())
+      case cf: ContainerFrame => cf.params.getOrElse(p.name, Set())
     }))
     resolvedParams.foreach {
       case (p, v) => frame.env += p -> v
@@ -221,7 +229,10 @@ class Debugger(feed: Database, matcher: Matcher, module: CompiledFunModule) {
       val boundVs = callStack.stackFrame.env.getOrElse(name, Set())
       if(boundVs.exists(ev => ev.columnValue == cv)) {
         val filtered = boundVs.filter(ev => ev.columnValue == cv)
-        filtered.flatMap(ev => if(ev.parents.isEmpty) Set(boundVar) else ev.parents.flatMap(b => findRootParent(b)))
+        filtered.flatMap(ev =>
+          if(ev.parents.isEmpty || ev.parents.forall(p => p == (name, cv))) Set(boundVar)
+          else ev.parents.flatMap(b => findRootParent(b))
+        )
       } else
         Set(boundVar)
   }
@@ -303,8 +314,8 @@ class Debugger(feed: Database, matcher: Matcher, module: CompiledFunModule) {
       val res = traverseExp(cond)
       val passed = res.filter(ev => ev.columnValue == ScalaValue(true))
       propagateChanges(passed, res -- passed)
-      if(passed.isEmpty)
-        throw EndOfTraversalReachedException(s"Failed assertion at ${currentLine().head}")
+      if(passed.isEmpty && res.nonEmpty && currentLine().nonEmpty)
+        println(s"Failed assertion at ${currentLine().head}")
       Set()
 
     case Values(name, typ) =>
@@ -398,7 +409,7 @@ class Debugger(feed: Database, matcher: Matcher, module: CompiledFunModule) {
         val rec = traverseExp(receiver)
         val tExp = traverseExp(pa)
         val res = rec.map(ev => {
-          val keep = tExp.exists(e => e.columnValue == ev.columnValue)
+          val keep = tExp.exists(e => e.parents.exists(p => p._2 == ev.columnValue))
           EnvValue(ScalaValue(keep), ev.parents)
         })
         res.groupBy(ev => ev.columnValue).map {
@@ -423,11 +434,14 @@ class Debugger(feed: Database, matcher: Matcher, module: CompiledFunModule) {
           case (cv, evs) => EnvValue(cv, evs.flatMap(ev => ev.parents).toSet)
         }.toSet
 
-      case pa@PathAccess(receiver, _) =>
+      case PathAccess(receiver, link) =>
         val rec = traverseExp(receiver)
-        val tExp = traverseExp(pa)
+        val paRes = rec.flatMap(envVal => envVal.columnValue match {
+          case uriVal: URIValue => getLinks(db, uriVal, link).map(cv => EnvValue(cv, envVal.parents))
+          case _ => Set()
+        })
         val res = rec.map(ev => {
-          val keep = !tExp.exists(e => e.columnValue == ev.columnValue)
+          val keep = !paRes.exists(e => e.parents.exists(p => p._2 == ev.columnValue))
           EnvValue(ScalaValue(keep), ev.parents)
         })
         res.groupBy(ev => ev.columnValue).map {
@@ -436,8 +450,12 @@ class Debugger(feed: Database, matcher: Matcher, module: CompiledFunModule) {
     }
 
     case Count(call) =>
-      val tc = traverseExp(call)
-      Set(EnvValue(ScalaValue(tc.size), tc.flatMap(ev => ev.parents)))
+      val funArgs = funParams(call.name).zip(call.args.map(traverseExp))
+      val countPs = funArgs.flatMap {
+        case (param, evs) => evs.map(ev => (param.name, ev.columnValue))
+      }.toSet
+      val (tc, _) = run(call.name, call.args)
+      Set(EnvValue(ScalaValue(tc.size), countPs))
 
     case Tuple(exps) =>
       val res = exps.map(e => traverseExp(e))
