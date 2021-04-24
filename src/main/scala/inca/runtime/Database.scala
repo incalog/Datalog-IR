@@ -1,12 +1,9 @@
 package inca.runtime
 
-import java.util.Optional
-import java.util.concurrent.Callable
-import java.{lang, util}
-
 import inca.runtime.Query.ChangeFeed
 import inca.runtime.context.LanguageMetaInfo
-import inca.runtime.index.MetaElements.{Link, PrimitiveValue}
+import inca.runtime.context.LanguageMetaInfo.Link
+import inca.runtime.index.MetaElements.PrimitiveValue
 import inca.runtime.index._
 import inca.runtime.index.binary.{BidirectionalManyToOneIndex, BidirectionalOneToOneIndex}
 import inca.runtime.index.dynamic.{DynamicIndex, DynamicIndexFactory}
@@ -18,6 +15,9 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask
 import org.eclipse.viatra.query.runtime.matchers.util.Accuracy
 import truechange._
 
+import java.util.Optional
+import java.util.concurrent.Callable
+import java.{lang, util}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 

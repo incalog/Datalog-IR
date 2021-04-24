@@ -1,6 +1,6 @@
 package inca.runtime.index
 
-import inca.runtime.index.MetaElements.Link
+import inca.runtime.context.LanguageMetaInfo.Link
 import inca.runtime.index.virtual.VirtualIndexFactory
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
 import truechange.{LitType, Type}

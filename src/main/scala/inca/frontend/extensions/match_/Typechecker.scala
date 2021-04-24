@@ -30,12 +30,12 @@ trait Typechecker extends CoreTypechecker {
 
       bindings.foreach { case b@PatternBinding(field, pattern) =>
         assignType(b) {
-          lang.links.get(node.name, field.name) match {
+          lang.links.get(node.name -> field.name) match {
             case Some(trueType) =>
               val ty = truechangeTypeToType(trueType)
               typecheckPattern(pattern, ty)
               ty
-            case None => lang.litLinks.get(node.name, field.name) match {
+            case None => lang.litLinks.get(node.name -> field.name) match {
               case Some(trueLitType) =>
                 val ty = TLiteral(trueLitType)
                 typecheckPattern(pattern, ty)

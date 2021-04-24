@@ -78,7 +78,6 @@ class GraphExamples extends AnyFunSuite {
         |  yield node.name
         |}
         |""".stripMargin
-      ""
 
     val loaded = Executor.loadAnalysis(code, languageMetaInfo)
 

@@ -1,6 +1,6 @@
 package inca.runtime.context
 
-import inca.runtime.index.MetaElements._
+import inca.runtime.context.LanguageMetaInfo._
 import inca.util.TupleOps.transClosure
 import truechange.{Link => _, _}
 
@@ -21,10 +21,20 @@ class LanguageMetaInfo(
                         val litLinks: Map[Link, LitType]
                       ) {
 
+  override def toString: String = {
+    s"LanguageMetaInfo($directNodeSupertypes, $links, $litLinks)"
+  }
+
   def this() = this(MultiDict(), Map(), Map())
+  def ++(other: LanguageMetaInfo): LanguageMetaInfo =
+    new LanguageMetaInfo(
+      this.directNodeSupertypes.concat(other.directNodeSupertypes),
+      this.links ++ other.links,
+      this.litLinks ++ other.litLinks
+    )
 
   val directNodeSupertypes: MultiDict[SortType, SortType] = _directSupertypes
-  val directNodeSubtypes: MultiDict[SortType, SortType] = {
+  lazy val directNodeSubtypes: MultiDict[SortType, SortType] = {
     var res = MultiDict[SortType, SortType]()
     directNodeSupertypes.foreach { case (ty, sty) =>
       res += sty -> ty
@@ -33,15 +43,16 @@ class LanguageMetaInfo(
   }
 
   /** maps subtype to supertypes */
-  val nodeSupertypes: MultiDict[SortType, SortType] = transClosure(directNodeSupertypes)
+  lazy val nodeSupertypes: MultiDict[SortType, SortType] = transClosure(directNodeSupertypes)
   /** maps supertype to subtypes */
-  val nodeSubtypes: MultiDict[SortType, SortType] = transClosure(directNodeSubtypes)
+  lazy val nodeSubtypes: MultiDict[SortType, SortType] = transClosure(directNodeSubtypes)
 
 
   def directSupertypes(ty: Type): Iterable[Type] = ty match {
     case ty: SortType => directNodeSupertypes.get(ty) ++ Seq(AnyType)
     case ListType(contained) => directSupertypes(contained).map(ListType) ++ Seq(AnyType)
     case OptionType(contained) => directSupertypes(contained).map(OptionType) ++ Seq(AnyType)
+    case RefType(contained) => directSupertypes(contained).map(RefType) ++ Seq(AnyType)
     case AnyType => Iterable()
     case NothingType => throw new UnsupportedOperationException("The supertypes of NothingType are not enumerable")
   }
@@ -49,6 +60,7 @@ class LanguageMetaInfo(
     case ty: SortType => directNodeSubtypes.get(ty) ++ Seq(NothingType)
     case ListType(contained) => directSubtypes(contained).map(ListType) ++ Seq(NothingType)
     case OptionType(contained) => directSubtypes(contained).map(OptionType) ++ Seq(NothingType)
+    case RefType(contained) => directSubtypes(contained).map(RefType) ++ Seq(AnyType)
     case AnyType => throw new UnsupportedOperationException("The subtypes of AnyType are not enumerable")
     case NothingType => Iterable()
   }
@@ -57,6 +69,7 @@ class LanguageMetaInfo(
     case ty: SortType => nodeSupertypes.get(ty) ++ Seq(AnyType)
     case ListType(contained) => supertypes(contained).map(ListType) ++ Seq(AnyType)
     case OptionType(contained) => supertypes(contained).map(OptionType) ++ Seq(AnyType)
+    case RefType(contained) => supertypes(contained).map(RefType) ++ Seq(AnyType)
     case AnyType => Iterable()
     case NothingType => throw new UnsupportedOperationException("The supertypes of NothingType are not enumerable")
   }
@@ -64,7 +77,24 @@ class LanguageMetaInfo(
     case ty: SortType => nodeSubtypes.get(ty) ++ Seq(NothingType)
     case ListType(contained) => subtypes(contained).map(ListType) ++ Seq(NothingType)
     case OptionType(contained) => subtypes(contained).map(OptionType) ++ Seq(NothingType)
+    case RefType(contained) => subtypes(contained).map(RefType) ++ Seq(NothingType)
     case AnyType => throw new UnsupportedOperationException("The subtypes of AnyType are not enumerable")
     case NothingType => Iterable()
+  }
+}
+
+object LanguageMetaInfo {
+  type Link = (String, String)
+
+  def from(nodes: NodeMetaInfo*): LanguageMetaInfo = {
+    val _directSupertypes: MultiDict[SortType, SortType] =
+      MultiDict.from(nodes.flatMap(n => n.superSorts.map(sup => n.sort -> sup)))
+    val links: Map[Link, Type] = Map.from(nodes.flatMap(n => n.links.map {
+      case (NamedLink(name), ty) => (n.sort.name, name) -> ty
+    }))
+    val litLinks: Map[Link, LitType] = Map.from(nodes.flatMap(n => n.litLinks.map {
+      case (NamedLink(name), ty) => (n.sort.name, name) -> ty
+    }))
+    new LanguageMetaInfo(_directSupertypes, links, litLinks)
   }
 }

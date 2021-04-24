@@ -3,7 +3,7 @@ package inca.souffle
 import inca.backend.ir.GP._
 import inca.compiler.Options
 import inca.runtime.context.LanguageMetaInfo
-import inca.runtime.index.MetaElements.{Link => MLink}
+import inca.runtime.context.LanguageMetaInfo.{Link => MLink}
 import inca.souffle.Syntax.{Type => _, _}
 import inca.souffle.Util._
 import inca.util.Gensym

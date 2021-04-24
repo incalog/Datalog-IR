@@ -64,7 +64,6 @@ class BinaryTreeExamples extends AnyFunSuite {
         |  assert undef t.r
         |}
         |""".stripMargin
-      ""
 
     val loaded = Executor.loadAnalysis(code, languageMetaInfo)
 
