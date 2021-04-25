@@ -2,7 +2,7 @@ package inca.compiler
 
 import inca.backend.optimize._
 import inca.backend.transform.Transformation
-import inca.backend.transform.magic.{AdornProgram, MagicSetTransformation}
+import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPatterns}
 import inca.compiler.Options.defaultOptimizations
 import inca.frontend.Frontend
 import inca.runtime.context.LanguageMetaInfo
@@ -26,7 +26,6 @@ object Options {
 
   val defaultTransformations: Seq[Transformation] = Seq(
 //    RemoveBodyOfUnusedDataConstructor,
-    AdornProgram,
-    MagicSetTransformation
-  )
+    DeriveDemandPatterns,
+    DemandTransformation)
 }

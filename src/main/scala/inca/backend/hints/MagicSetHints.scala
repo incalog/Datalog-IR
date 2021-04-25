@@ -10,12 +10,20 @@ object MagicSetHints {
   val NoInputRelationKey = "MAGIC_NO_INPUT_RELATION"
   val AdornmentKey = "MAGIC_ADORNMENT"
   val InputCallKey = "MAGIC_INPUT_CALL"
+  val DemandPatternsKey = "DEMAND_DEMAND_PATTERNS"
 
   /**
    * marks calls from which the magic set transformation starts
    */
   case class Main(adorn: Seq[Boolean]) extends Hint {
     val key: Key = MainKey
+  }
+
+  /**
+   * indicates the demand patterns for a pattern
+   */
+  case class DemandPatterns(adorn: Set[Seq[Boolean]]) extends Hint {
+    val key: Key = DemandPatternsKey
   }
 
   /**
