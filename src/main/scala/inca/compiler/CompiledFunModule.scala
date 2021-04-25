@@ -28,13 +28,19 @@ case class CompiledFunModule(fun: Module, options: Options) extends CompiledModu
     messages ++= frontend.getErrors
     messages ++= frontend.getWarnings
     stopIfNeeded()
-//    println(module)
+    if (CompilerFlags.DEBUGMODE) {
+      println(s"Core Module")
+      println(module)
+    }
     module
   }
 
   lazy val ir: GP.Module = {
     val module = new GenerateDatalog(coreModule).transModule()
-    // println(module)
+    if (CompilerFlags.DEBUGMODE) {
+      println(s"Intermediate Representation")
+      println(module)
+    }
     module
   }
 

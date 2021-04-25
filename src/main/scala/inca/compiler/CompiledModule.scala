@@ -55,9 +55,12 @@ trait CompiledModule {
     var module = ir
     for (trans <- options.transformations) {
       module = trans.transformer(lmi).transformModule(module)
+      if (CompilerFlags.DEBUGMODE) {
+        println(s"Transformation: ${trans.getClass.getName}")
+        println(module)
+      }
     }
     module
-
   }
 
   lazy val optimized: GP.Module = {
@@ -65,14 +68,20 @@ trait CompiledModule {
     // println(module)
     for (op <- options.optimizations) {
       module = op.optimizer(lmi).optimizeModule(module)
-//      println(op + "\n" + module.toString)
+      if (CompilerFlags.DEBUGMODE) {
+        println(s"Optimization: ${op.getClass.getName}")
+        println(module)
+      }
     }
     module
   }
 
   lazy val psystemSource: meta.Source = {
     val source = CompileToPSystem.compileModule(optimized)(Map())
-//    println(source)
+    if (CompilerFlags.DEBUGMODE) {
+      println(s"PSystem")
+      println(source.syntax)
+    }
     source
   }
 
