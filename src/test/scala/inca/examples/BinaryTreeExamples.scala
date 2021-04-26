@@ -3,12 +3,8 @@ package inca.examples
 import inca.Executor
 import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.funsuite.AnyFunSuite
-import truechange.{JavaLitType, SortType}
 import truediff.Diffable
 import truediff.macros.diffable
-
-import scala.collection.immutable.MultiDict
-
 
 // language definition (data model as case classes)
 // IMPORTANT needs to be a top-level definition
@@ -18,48 +14,29 @@ import scala.collection.immutable.MultiDict
 
 class BinaryTreeExamples extends AnyFunSuite {
 
-
-  val treeTag = classOf[Tree].getCanonicalName
-  val binaryTag = classOf[BinaryNode].getCanonicalName
-  val leafTag = classOf[LeafNode].getCanonicalName
-
   // meta information about data model
-  val languageMetaInfo: LanguageMetaInfo = {
-    val treeType = SortType(treeTag)
-    val binaryType = SortType(binaryTag)
-    val leafType = SortType(leafTag)
-    new LanguageMetaInfo(
-      MultiDict[SortType, SortType](
-        binaryType -> treeType,
-        leafType -> treeType,
-      ),
-      Map(
-        (binaryTag->"l") -> treeType,
-        (binaryTag->"r") -> treeType,
-      ),
-      Map(
-        (binaryTag->"v") -> JavaLitType(classOf[java.lang.Integer]),
-      )
-    )
-  }
+  val languageMetaInfo: LanguageMetaInfo =
+    LanguageMetaInfo.from(Tree, BinaryNode, LeafNode)
 
   test("different functions for binary trees") {
     val code =
      s"""module BinaryTreeAnalyses
         |
-        |def rootNode(t: $treeTag): Unit = {
+        |import inca.examples._
+        |
+        |def rootNode(t: Tree): Unit = {
         |  assert undef t.parent
         |}
         |
-        |def lhs(t: $treeTag): $treeTag = {
-        |  val binary = t:$binaryTag
+        |def lhs(t: Tree): Tree = {
+        |  val binary = t:BinaryNode
         |  yield binary.l
         |} union {
-        |  assert t.isInstanceOf[$leafTag]
+        |  assert t.isInstanceOf[LeafNode]
         |  fail
         |}
         |
-        |def emptyBinaryNode(t: $binaryTag): Unit = {
+        |def emptyBinaryNode(t: BinaryNode): Unit = {
         |  assert undef t.l
         |  assert undef t.r
         |}

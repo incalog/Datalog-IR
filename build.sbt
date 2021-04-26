@@ -15,8 +15,8 @@ lazy val inca = (project in file(".")).settings(
   scalacOptions ++= Seq("-Ymacro-annotations", "-J-Xss10m"),
 
   libraryDependencies ++= Seq(
-    "de.uni-mainz.informatik.pl" %% "truechange" % "0.1.4-SNAPSHOT",
-    "de.uni-mainz.informatik.pl" %% "truediff" % "0.1.4-SNAPSHOT",
+    "de.uni-mainz.informatik.pl" %% "truechange" % "0.1.5-SNAPSHOT",
+    "de.uni-mainz.informatik.pl" %% "truediff" % "0.1.5-SNAPSHOT",
     "org.scala-lang.modules" %% "scala-collection-contrib" % "0.2.1",
     "org.scalameta" %% "scalameta" % "4.2.3",
     "org.eclipse.viatra" % "viatra-query-runtime" % "2.4.0",

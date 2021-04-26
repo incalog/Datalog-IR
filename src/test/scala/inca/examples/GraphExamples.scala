@@ -3,10 +3,7 @@ package inca.examples
 import inca.Executor
 import inca.runtime.context.LanguageMetaInfo
 import org.scalatest.funsuite.AnyFunSuite
-import truechange.{JavaLitType, ListType, SortType}
 import truediff.macros.diffable
-
-import scala.collection.immutable.MultiDict
 
 // language definition (data model as case classes)
 // IMPORTANT needs to be a top-level definition
@@ -15,28 +12,12 @@ import scala.collection.immutable.MultiDict
 @diffable case class Edge(from: String, to: String)
 
 class GraphExamples extends AnyFunSuite {
+  val languageMetaInfo: LanguageMetaInfo =
+    LanguageMetaInfo.from(Graph, Node, Edge)
+
   val graphTag = classOf[Graph].getCanonicalName
   val nodeTag = classOf[Node].getCanonicalName
   val edgeTag = classOf[Edge].getCanonicalName
-
-  // meta information about data model
-  val languageMetaInfo: LanguageMetaInfo = {
-    val graphType = SortType(graphTag)
-    val nodeType = SortType(nodeTag)
-    val edgeType = SortType(edgeTag)
-    new LanguageMetaInfo(
-      MultiDict[SortType, SortType](),
-      Map(
-        (graphTag->"nodes") -> ListType(nodeType),
-        (graphTag->"edges") -> ListType(edgeType),
-      ),
-      Map(
-        (nodeTag->"name") -> JavaLitType(classOf[java.lang.String]),
-        (edgeTag->"from") -> JavaLitType(classOf[java.lang.String]),
-        (edgeTag->"to") -> JavaLitType(classOf[java.lang.String]),
-      )
-    )
-  }
 
   test("different functions for graphs trees") {
     val code =
