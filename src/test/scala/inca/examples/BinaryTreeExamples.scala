@@ -22,21 +22,19 @@ class BinaryTreeExamples extends AnyFunSuite {
     val code =
      s"""module BinaryTreeAnalyses
         |
-        |import inca.examples._
-        |
-        |def rootNode(t: Tree): Unit = {
+        |def rootNode(t: inca.examples.Tree): Unit = {
         |  assert undef t.parent
         |}
         |
-        |def lhs(t: Tree): Tree = {
-        |  val binary = t:BinaryNode
+        |def lhs(t: inca.examples.Tree): inca.examples.Tree = {
+        |  val binary = t:inca.examples.BinaryNode
         |  yield binary.l
         |} union {
-        |  assert t.isInstanceOf[LeafNode]
+        |  assert t.isInstanceOf[inca.examples.LeafNode]
         |  fail
         |}
         |
-        |def emptyBinaryNode(t: BinaryNode): Unit = {
+        |def emptyBinaryNode(t: inca.examples.BinaryNode): Unit = {
         |  assert undef t.l
         |  assert undef t.r
         |}
