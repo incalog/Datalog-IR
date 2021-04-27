@@ -53,17 +53,22 @@ trait CompiledModule {
 
   lazy val optimized: GP.Module = {
     var module = ir
-    // println(module)
     for (op <- options.optimizations) {
       module = op.optimizer(options.languageMetaInfo).optimizeModule(module)
+      if (CompilerFlags.DEBUGMODE) {
+        println(s"Optimization: ${op.getClass.getName}")
+        println(module)
+      }
     }
-//    println(module)
     module
   }
 
   lazy val psystemSource: meta.Source = {
     val source = CompileToPSystem.compileModule(optimized)(Map())
-    println(source)
+    if (CompilerFlags.DEBUGMODE) {
+      println(s"PSystem")
+      println(source.syntax)
+    }
     source
   }
 
