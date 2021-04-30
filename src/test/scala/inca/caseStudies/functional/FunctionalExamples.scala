@@ -2,7 +2,7 @@ package inca.caseStudies.functional
 
 import inca.compiler.{Compiler, Options}
 import inca.runtime.EnginePool
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Meta.Scala
 import inca.backend.ir.GP._
 import inca.backend.ir.Printer
@@ -13,7 +13,7 @@ import scala.meta.quasiquotes._
 
 
 object FunctionalExamples extends App {
-  val options = Options(new LanguageMetaInfo())
+  val options = Options()
 
   val inc = Module("Inc", Seq(),
     Seq(
@@ -321,9 +321,9 @@ object FunctionalExamples extends App {
   println(Printer.prettyModule(interp))
   //  val compiled = Compiler.compileGP(inc, options)
   //  val compiled = Compiler.compileGP(fact, options)
-  val compiled = Compiler.compileGP(interp, options)
+  val compiled = Compiler.compileGP(interp, new DataModel(), options)
 
-  val scope = new QueryScope(options.languageMetaInfo)
+  val scope = new QueryScope(new DataModel())
   val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
   val matcher = EnginePool.loadQuery(compiled.psystemModule.patterns("main")(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 

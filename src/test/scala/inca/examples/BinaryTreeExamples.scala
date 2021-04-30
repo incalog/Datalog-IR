@@ -1,7 +1,7 @@
 package inca.examples
 
 import inca.Executor
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import org.scalatest.funsuite.AnyFunSuite
 import truediff.Diffable
 import truediff.macros.diffable
@@ -11,36 +11,41 @@ import truediff.macros.diffable
 @diffable trait Tree extends Diffable
 @diffable case class BinaryNode(v: Int, l: Tree, r: Tree) extends Tree
 @diffable case class LeafNode() extends Tree
+object BinaryTreeModel {
+  // meta information about data model
+  val model: DataModel =
+    DataModel.from(Tree, BinaryNode, LeafNode)
+}
 
 class BinaryTreeExamples extends AnyFunSuite {
 
-  // meta information about data model
-  val languageMetaInfo: LanguageMetaInfo =
-    LanguageMetaInfo.from(Tree, BinaryNode, LeafNode)
 
   test("different functions for binary trees") {
     val code =
      s"""module BinaryTreeAnalyses
+        |datamodel inca.examples.BinaryTreeModel.model
         |
-        |def rootNode(t: inca.examples.Tree): Unit = {
+        |node inca.examples._
+        |
+        |def rootNode(t: Tree): Unit = {
         |  assert undef t.parent
         |}
         |
-        |def lhs(t: inca.examples.Tree): inca.examples.Tree = {
-        |  val binary = t:inca.examples.BinaryNode
+        |def lhs(t: Tree): Tree = {
+        |  val binary = t:BinaryNode
         |  yield binary.l
         |} union {
-        |  assert t.isInstanceOf[inca.examples.LeafNode]
+        |  assert t.isInstanceOf[LeafNode]
         |  fail
         |}
         |
-        |def emptyBinaryNode(t: inca.examples.BinaryNode): Unit = {
+        |def emptyBinaryNode(t: BinaryNode): Unit = {
         |  assert undef t.l
         |  assert undef t.r
         |}
         |""".stripMargin
 
-    val loaded = Executor.loadAnalysis(code, languageMetaInfo)
+    val loaded = Executor.loadAnalysis(code)
 
     val tree = BinaryNode(4, BinaryNode(2, LeafNode(), LeafNode()), LeafNode())
     println(tree.toStringWithURI)

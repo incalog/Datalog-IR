@@ -45,7 +45,7 @@ trait Typechecker extends CoreTypechecker {
           val argTy = typecheck(arg)
           TypeHelper.decode(param) match {
             case Right(paramTy) =>
-              if (!subtype(argTy, paramTy, lang)) {
+              if (!subtype(argTy, paramTy, dataModel)) {
                 error(s"Cannot pass argument of type $argTy to $param of type $paramTy", arg)
               }
             case Left(msg) =>

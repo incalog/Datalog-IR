@@ -6,7 +6,7 @@ import inca.compiler.Options
 import inca.frontend.core
 import inca.frontend.core.tree._
 import inca.frontend.extensions.ifThenElse.Trees._
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.runtime.context.{DataModel, QueryScope}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
@@ -18,13 +18,12 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
   val three = Constant(IntLiteral(3))
   val four = Constant(IntLiteral(4))
 
-  val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo, info => new core.Frontend with ifThenElse.Frontend {
-    override val lang: LanguageMetaInfo = info
-  })
+  val dataModel = Exp.model
+  val scope: QueryScope = new QueryScope(Exp.model)
+  val options: Options = Options()
 
   "desugaring" should "eliminate if-then-else" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         IfThenElse(Eq(one, two), Body(
           Assign(Seq("yes"), Constant(BooleanLiteral(true)))
@@ -35,7 +34,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assert(Eq(one, two)),
         Assign(Seq("yes"), Constant(BooleanLiteral(true))),
@@ -52,7 +51,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "eliminate nested if-then-else" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         IfThenElse(Eq(one, two), Body(
           Assign(Seq("yes"), Constant(BooleanLiteral(true))),
@@ -73,7 +72,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assert(Eq(one, two)),
         Assign(Seq("yes"), Constant(BooleanLiteral(true))),
@@ -108,7 +107,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "eliminate if-then-else-if" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         IfThenElse(Eq(one, two), Body(
           Assign(Seq("yes"), Constant(BooleanLiteral(true)))
@@ -121,7 +120,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(
         Body(Seq(
           Assert(Eq(one, two)),
@@ -146,7 +145,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "eliminate if" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assign(Seq("before"), Constant(BooleanLiteral(true))),
         IfThenElse(Eq(one, two), Body(
@@ -156,7 +155,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assign(Seq("before"), Constant(BooleanLiteral(true))),
         Assert(Eq(one, two)),
@@ -174,7 +173,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaMatchers {
 
 
   "desugaring" should "implement if-then-else semantics" in {
-    val module = Module("Test_Cast", Seq(), Seq(
+    val module = Module("Test_Cast", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), TLiteral.Int, Seq(Body(Seq(
         Values("root", TNode(Exp.expTag)),
         Assert(Undef(PathAccess(Var("root"), ParentLink))),

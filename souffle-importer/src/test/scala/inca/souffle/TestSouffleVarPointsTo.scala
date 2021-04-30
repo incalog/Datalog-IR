@@ -56,7 +56,7 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
     val RUNS = 5
 
     for (run <- 1 to RUNS) {
-      val queryScope = new QueryScope(compiledModule.options.languageMetaInfo, Seq())
+      val queryScope = new QueryScope(compiledModule.dataModel, Seq())
       val (engine, database) = EnginePool.loadEngineAndDatabase(queryScope, DRedReteBackendFactory.INSTANCE)
 
       def getMatcher(fun: String): Matcher = {

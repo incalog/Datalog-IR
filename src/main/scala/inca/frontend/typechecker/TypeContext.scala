@@ -8,15 +8,18 @@ trait TypeContext extends TypeIO {
   private var vars: Map[Name, (Var.Target, Type)] = Map()
   private var funs: MultiDict[Name, (Module, PatternFunction)] = MultiDict()
   private var modules: Map[Name, Module] = Map()
+  private var nodes: Map[TNode, TNode] = Map()
 
   def scopedTypeContext[T](f: => T): T = {
     val varsSaved = vars
     val funsSaved = funs
     val modulesSaved = modules
+    val nodesSaved = nodes
     val t = f
     vars = varsSaved
     funs = funsSaved
     modules = modulesSaved
+    nodes = nodesSaved
     t
   }
 
@@ -73,4 +76,20 @@ trait TypeContext extends TypeIO {
         error(s"Unknown module $name", name)
         None
     }
+
+  def bindNode(node: TNode, fqNode: TNode): Unit = {
+    nodes.get(node) foreach { previousFQN =>
+      error(s"Node type $node shadows previously defined node type $previousFQN", node, node)
+    }
+    nodes += (node -> fqNode)
+  }
+
+  def lookupNode(node: TNode): Option[TNode] =
+    nodes.get(node) match {
+      case Some(entry) => Some(entry)
+      case None =>
+        error(s"Unbound node type ${node.name}", node)
+        None
+    }
+
 }

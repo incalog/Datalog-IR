@@ -1,7 +1,7 @@
 package inca.examples
 
 import inca.Executor
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import org.scalatest.funsuite.AnyFunSuite
 import truediff.macros.diffable
 
@@ -10,10 +10,11 @@ import truediff.macros.diffable
 @diffable case class Graph(nodes: List[Node], edges: List[Edge])
 @diffable case class Node(name: String)
 @diffable case class Edge(from: String, to: String)
+object GraphModel {
+  val model: DataModel = DataModel.from(Graph, Node, Edge)
+}
 
 class GraphExamples extends AnyFunSuite {
-  val languageMetaInfo: LanguageMetaInfo =
-    LanguageMetaInfo.from(Graph, Node, Edge)
 
   val graphTag = classOf[Graph].getCanonicalName
   val nodeTag = classOf[Node].getCanonicalName
@@ -22,6 +23,7 @@ class GraphExamples extends AnyFunSuite {
   test("different functions for graphs trees") {
     val code =
      s"""module GraphAnalyses
+        |datamodel inca.examples.GraphModel.model
         |
         |def directNeighbor(from: $nodeTag): $nodeTag = {
         |  // from.parent points to nodes: List[Node]
@@ -60,7 +62,7 @@ class GraphExamples extends AnyFunSuite {
         |}
         |""".stripMargin
 
-    val loaded = Executor.loadAnalysis(code, languageMetaInfo)
+    val loaded = Executor.loadAnalysis(code)
 
     val tree = Graph(List(Node("a"), Node("b"), Node("c")), List(Edge("a", "b"), Edge("b", "c")))
     val res1 = loaded.execute(tree, "inCycleByName")

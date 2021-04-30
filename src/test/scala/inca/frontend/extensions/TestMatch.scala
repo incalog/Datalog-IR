@@ -6,7 +6,7 @@ import inca.compiler.Options
 import inca.frontend.core
 import inca.frontend.core.tree._
 import inca.frontend.extensions.match_.Trees._
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.runtime.context.{DataModel, QueryScope}
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.language.implicitConversions
@@ -18,13 +18,12 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   val one = Constant(IntLiteral(1))
   val two = Constant(IntLiteral(2))
 
-  val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo, info => new core.Frontend with match_.Frontend {
-    override val lang: LanguageMetaInfo = info
-  })
+  val dataModel = Exp.model
+  val scope: QueryScope = new QueryScope(Exp.model)
+  val options: Options = Options()
 
   "desugaring" should "eliminate wildcard pattern" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Match(one, Seq(
           Case(WildcardPattern, Body(
@@ -34,7 +33,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assign(Seq("case"), Constant(IntLiteral(7)))
       ))))
@@ -44,7 +43,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "eliminate var pattern" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Match(one, Seq(
           Case(VarPattern("n"), Body(
@@ -54,7 +53,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assign(Seq("n"), one),
         Assign(Seq("case"), Constant(IntLiteral(1)))
@@ -65,7 +64,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "eliminate node pattern" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), TUnit, Seq(Body(Seq(
         Match(Var("e"), Seq(
           Case(NodePattern(TNode(Exp.letTag), Seq(PatternBinding("name", VarPattern("n")))), Body(
@@ -76,7 +75,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), TUnit, Seq(Body(Seq(
         Assign(Seq("matchee"), Cast(Var("e"), TNode(Exp.letTag))),
         Assign(Seq("n"), PathAccess(Var("matchee"), NamedLink("name"))),
@@ -89,7 +88,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "eliminate node pattern wildcard" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), TUnit, Seq(Body(Seq(
         Match(Var("e"), Seq(
           Case(NodePattern(TNode(Exp.letTag), Seq(PatternBinding("name", WildcardPattern))), Body(
@@ -99,7 +98,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), TUnit, Seq(Body(Seq(
         Assign(Seq("matchee"), Cast(Var("e"), TNode(Exp.letTag))),
         Assign(Seq("case"), Constant(IntLiteral(3)))
@@ -110,7 +109,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "eliminate named pattern" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), TUnit, Seq(Body(Seq(
         Match(Var("e"), Seq(
           Case(NamedPattern("node", NodePattern(TNode(Exp.letTag), Seq(PatternBinding("name", VarPattern("n"))))), Body(
@@ -120,7 +119,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), TUnit, Seq(Body(Seq(
         Assign(Seq("node"), Var("e")),
         Assign(Seq("matchee"), Cast(Var("e"), TNode(Exp.letTag))),
@@ -133,7 +132,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "eliminate tuple pattern" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(Param("e", TTuple(Seq(TNode(Exp.expTag), TNode(Exp.expTag), TNode(Exp.expTag))))), TUnit, Seq(Body(Seq(
         Match(Var("e"), Seq(
           Case(TuplePattern(Seq(VarPattern("x1"), VarPattern("x2"), VarPattern("x3"))), Body(
@@ -143,7 +142,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(Param("e", TTuple(Seq(TNode(Exp.expTag), TNode(Exp.expTag), TNode(Exp.expTag))))), TUnit, Seq(Body(Seq(
         Assign(Seq("matchee_tuple0", "matchee_tuple1", "matchee_tuple2"), Var("e")),
         Assign(Seq("x1"), Var("matchee_tuple0")),
@@ -157,7 +156,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "eliminate literal pattern" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Match(one, Seq(
           Case(LiteralPattern(IntLiteral(123)), Body(
@@ -167,7 +166,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assert(Eq(one, Constant(IntLiteral(123)))),
         Assign(Seq("case"), Constant(IntLiteral(5)))
@@ -178,7 +177,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "eliminate two literal cases" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Match(Constant(StringLiteral("0")), Seq(
           Case(LiteralPattern(StringLiteral("abc")), Body(
@@ -191,7 +190,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(
         Body(Seq(
           Assert(Eq(Constant(StringLiteral("0")), Constant(StringLiteral("abc")))),
@@ -208,7 +207,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "eliminate three literal cases" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Match(Constant(StringLiteral("0")), Seq(
           Case(LiteralPattern(StringLiteral("abc")), Body(
@@ -224,7 +223,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(
         Body(Seq(
           Assert(Eq(Constant(StringLiteral("0")), Constant(StringLiteral("abc")))),
@@ -248,7 +247,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "eliminate two tuple cases" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Match(Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0")))), Seq(
           Case(TuplePattern(Seq(LiteralPattern(StringLiteral("abc")), LiteralPattern(StringLiteral("abc")))), Body(
@@ -261,7 +260,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(
         Body(Seq(
           Assign(Seq("matchee_tuple0", "matchee_tuple1"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
@@ -291,7 +290,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "eliminate three tuple cases" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Match(Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0")))), Seq(
           Case(TuplePattern(Seq(LiteralPattern(StringLiteral("abc")), LiteralPattern(StringLiteral("abc")))), Body(
@@ -307,7 +306,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(
         Body(Seq(
           Assign(Seq("matchee_tuple0", "matchee_tuple1"), Tuple(Seq(Constant(StringLiteral("0")), Constant(StringLiteral("0"))))),
@@ -378,7 +377,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "eliminate two node cases" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), TUnit, Seq(Body(Seq(
         Match(Var("e"), Seq(
           Case(NodePattern(TNode(Exp.addTag), Seq(PatternBinding("lhs", LiteralPattern(StringLiteral("abc"))))), Body(
@@ -391,7 +390,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), TUnit, Seq(
         Body(Seq(
           Assign(Seq("matchee"), Cast(Var("e"), TNode(Exp.addTag))),
@@ -417,7 +416,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "eliminate three node cases" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), TUnit, Seq(Body(Seq(
         Match(Var("e"), Seq(
           Case(NodePattern(TNode(Exp.addTag), Seq(PatternBinding("lhs", LiteralPattern(StringLiteral("abc"))))), Body(
@@ -433,7 +432,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(Param("e", TNode(Exp.expTag))), TUnit, Seq(
         Body(Seq(
           Assign(Seq("matchee"), Cast(Var("e"), TNode(Exp.addTag))),
@@ -492,7 +491,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "eliminate var pattern eliminates remaining patterns" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Match(one, Seq(
           Case(VarPattern("n"), Body(
@@ -520,7 +519,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assign(Seq("n"), one),
         Assign(Seq("case"), Constant(IntLiteral(1)))
@@ -532,7 +531,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
 
 
   "desugaring" should "implement match semantics" in {
-    val module = Module("Test_Match", Seq(), Seq(
+    val module = Module("Test_Match", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), TLiteral.Int, Seq(Body(Seq(
         Values("root", TNode(Exp.expTag)),
         Assert(Undef(PathAccess(Var("root"), ParentLink))),

@@ -14,7 +14,7 @@ import scala.meta.quasiquotes._
 
 object ExpTypingMagicSets extends App {
 
-  val options = Options(Prog.languageMetaInfo)
+  val options = Options()
 
   val ExpT = Exp.expTag
   val IntLit = Exp.intLitTag
@@ -421,9 +421,9 @@ object ExpTypingMagicSets extends App {
       Scala(q"import inca.caseStudies.typing.Context"),
       Scala(q"import inca.caseStudies.typing.Type")))
 
-  val compiled = Compiler.compileGP(gp, options)
+  val compiled = Compiler.compileGP(gp, Prog.dataModel, options)
 
-  val scope = new QueryScope(Prog.languageMetaInfo)
+  val scope = new QueryScope(Prog.dataModel)
   val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 //  val matcher = EnginePool.loadQuery(compiled.psystemModule.patterns("sup_typed_bbf_1_0")(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 //  val matcher = EnginePool.loadQuery(compiled.psystemModule.patterns("input_typed_bbf")(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)

@@ -3,13 +3,21 @@ package inca.frontend.parser
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
 import inca.frontend.core
+import inca.frontend.extensions
 import inca.frontend.core.tree._
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
 class ExtensionParsersTest extends AnyFunSuite {
-  val parser = core.Frontend.Inca(new LanguageMetaInfo())
+  val parser = new CoreParser
+    with extensions.boolOps.Parser
+    with extensions.evalCall.Parser
+    with extensions.forallExists.Parser
+    with extensions.foreach.Parser
+    with extensions.ifThenElse.Parser
+    with extensions.match_.Parser
+    with extensions.switch_.Parser {}
 
   test("test BoolOps") {
     import inca.frontend.extensions.boolOps.Trees._

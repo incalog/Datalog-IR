@@ -2,7 +2,7 @@ package inca.souffle
 
 import inca.IncaMatchers
 import inca.compiler.Options
-import inca.runtime.context.QueryScope
+import inca.runtime.context.{DataModel, QueryScope}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaMatchers {
@@ -43,8 +43,8 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaMatchers {
     compiler.compile("transitiveclosure", ast)
   }
 
-  val lang = compiledModule.options.languageMetaInfo
-  val scope: QueryScope = new QueryScope(lang)
+  val dataModel = compiledModule.dataModel
+  val scope: QueryScope = new QueryScope(dataModel)
   val options: Options = compiledModule.options
 
   "compiled souffle" should "trivial transitive closure" in {

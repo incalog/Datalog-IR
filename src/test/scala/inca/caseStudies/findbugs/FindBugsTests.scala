@@ -1,5 +1,6 @@
 package inca.caseStudies.findbugs
 
+import inca.Executor
 import inca.analyzedLangs.tinyJava
 import inca.compiler.{Compiler, Options}
 import inca.frontend.core.tree._
@@ -21,27 +22,27 @@ class FindBugsTests extends AnyFunSuite {
     val fieldDeclType = TNode(tinyJava.fieldDeclTag)
     val visType = TNode(tinyJava.visTag)
     val protectedVisType = TNode(tinyJava.protectedVisTag)
-    val confusedInheritance = PatternFunction(
-      None,
-      "confusedInheritance",
-      Seq(Param("class", classDeclType)),
-      TUnit,
-      Seq(
-        Body(
-          Seq(
-            Assert(Eq(PathAccess(Var("class"), classDeclType("isFinal")), Constant(BooleanLiteral(true)))),
-            Assign(Seq("members"), PathAccess(Var("class"), classDeclType("members"))),
-            Assign(Seq("member"), PathAccess(Var("members"), ChildrenLink)),
-            Assert(InstanceOf(Var("member"), fieldDeclType)),
-            Assert(InstanceOf(PathAccess(Cast(Var("member"), fieldDeclType), fieldDeclType("visibility")), protectedVisType)),
-            Yield(Constant(UnitLiteral))
-          ))))
+    val code =
+      s"""
+         |module FindBugs
+         |datamodel inca.analyzedLangs.tinyJava.model
+         |
+         |node inca.analyzedLangs.tinyJava._
+         |
+         |
+         |def confusedInheritance(class: ClassDeclaration): Unit = {
+         |  assert class.isFinal == true
+         |  val members = class.members
+         |  val member = members.children
+         |  val fieldDecl = member:FieldDeclaration
+         |  assert fieldDecl.visibility.isInstanceOf[ProtectedVisibility]
+         |  yield unit
+         |}
+         |""".stripMargin
 
-    val module = Module("FindBugs", Seq(), Seq(confusedInheritance))
-
-    val scope = new QueryScope(tinyJava.langMetaInfo)
-    val options = Options(tinyJava.langMetaInfo)
-    val spec = Compiler.compileFun(module, options).psystemModule.patterns("confusedInheritance")
+    val scope = new QueryScope(tinyJava.model)
+    val options = Options()
+    val spec = Compiler.compileFun(code, options).psystemModule.patterns("confusedInheritance")
 
     val feed = EnginePool.loadDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     val matcher = EnginePool.loadQuery(spec(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)

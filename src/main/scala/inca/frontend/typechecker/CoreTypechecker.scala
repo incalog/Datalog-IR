@@ -4,7 +4,7 @@ import inca.frontend.core.tree._
 import inca.frontend.parser.SourceLocation
 import inca.frontend.util.TypeHelper
 import inca.runtime.aggregate.Aggregation
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import inca.util.Meta
 import inca.util.Meta.Scala
 import truechange.{AnyType, ListType, SortType}
@@ -12,7 +12,7 @@ import truechange.{AnyType, ListType, SortType}
 trait CoreTypechecker
   extends TypeContext with TypeIO with ScalaTypeContext {
 
-  val lang: LanguageMetaInfo
+  val dataModel: DataModel
 
   def typecheck(program: Seq[Module]): Unit = scopedTypeContext {
     program.foreach(bindModule)
@@ -37,6 +37,17 @@ trait CoreTypechecker
       }
     }
 
+    // add types of language meta info to typing context
+    dataModel.types.foreach { typ =>
+      bindNode(TNode(typ.name), TNode(typ.name))
+    }
+
+    // import nodes
+    module.nodeImports.foreach { nodeimp =>
+      validNodeImport(nodeimp)
+    }
+
+
     // bind symbols first
     module.content.foreach {
       case fun: PatternFunction => bindFun(fun, module)
@@ -55,24 +66,69 @@ trait CoreTypechecker
     }
   }
 
+  def validNodeImport(nodeImport: NodeImport): Unit = {
+    val path = nodeImport.name.name.split('.')
+    if (path.nonEmpty) {
+      if (path.last == "_") {
+        val prefix = path.init.mkString(".")
+        val typesToImport = prefixedNodes(prefix)
+        if (typesToImport.isEmpty) {
+          warn(s"The wildcard import node ${nodeImport.name} resolves to an empty set of imported nodes", nodeImport)
+        }
+        importPrefixed(prefix)
+      } else {
+        val nodes = prefixedNodes(nodeImport.name.name)
+        if (nodes.isEmpty)
+          warn(s"The imported node ${nodeImport.name} cannot be found", nodeImport)
+        importPrefixed(nodeImport.name.name)
+      }
+    } else
+      warn(s"Path of imported node ${nodeImport} is empty", nodeImport)
+  }
+
+  private def prefixedNodes(prefix: String): Set[SortType] = dataModel.types.filter { typ =>
+    typ.name.startsWith(prefix)
+  }
+
+  private def importPrefixed(prefix: String): Unit = prefixedNodes(prefix).foreach { typ =>
+    bindNode(TNode(typ.name.substring(prefix.length+1)), TNode(typ.name))
+  }
+
+
 
   /*
    * Function
    */
   def typecheck(fun: PatternFunction): Unit = scopedTypeContext {
-    // currently we do not support scala types as inputs of pattern functions
-    // Q 1: How can we detect if it is OK to have a scala type as input
-    // Q 2: How do we translate such pattern functions to IR?
     val inputScalaParams = fun.params.collect{ case p@Param(_, TScala(_)) => p }
     inputScalaParams.foreach { param =>
       error(s"Pattern functions do not allow input parameter of Scala type ${param.typ}", fun)
     }
-    fun.params.foreach(p => bindVar(p.name, p, p.typ))
+    fun.params.foreach { p =>
+      validType(p.typ)
+      bindVar(p.name, p, p.typ)
+    }
+    validType(fun.outType)
     fun.bodies.foreach { body =>
       val ty = typecheck(body, mustYield = true)
-      if (!subtype(ty.asType, fun.outType, lang))
+      if (!subtype(ty.asType, fun.outType, dataModel))
         error(s"Found body of type $ty, but expected function result type ${fun.outType}", body)
     }
+  }
+
+  def validType(typ: Type): Unit = typ match {
+    case node: TNode => lookupNode(node) match {
+      case Some(value) =>
+        val x = value
+        resolveTarget(node)(value)
+      case None => // nothing
+    }
+    case iterable: TIterable => validType(iterable.contained)
+    case TTuple(ts) => ts.foreach(validType)
+    case TScala(_) => // nothing
+    case TAny => // nothing
+    case TNothing => // nothing
+    case TLiteral(litType) => // nothing
   }
 
   def typecheck(body: Body, mustYield: Boolean): StmType = scopedTypeContext {
@@ -100,7 +156,7 @@ trait CoreTypechecker
     val inferred = typecheck(valDef.exp)
     valDef.typ match {
       case Some(annotated) =>
-        if (!subtype(inferred, annotated, lang))
+        if (!subtype(inferred, annotated, dataModel))
           error(s"Inferred type $inferred, but expected annotated type $annotated", valDef)
         bindVar(valDef.name, valDef, annotated)
       case None =>
@@ -144,11 +200,12 @@ trait CoreTypechecker
 
     case Assert(cond) =>
       val condTy = typecheck(cond)
-      if (!subtype(condTy, TScalaBoolean, lang))
+      if (!subtype(condTy, TScalaBoolean, dataModel))
         error(s"Expected Boolean condition, but got $condTy", cond)
       NoYield
 
     case vals@Values(name, typ) =>
+      validType(typ)
       typ match {
         case TNothing => warn(s"$typ contains no values, enumeration will fail", typ)
         case TScala(_) => error(s"Cannot enumerate Scala values of type $typ", typ)
@@ -159,6 +216,7 @@ trait CoreTypechecker
 
     case as@Assign(names, exp) =>
       val ty = typecheck(exp)
+      validType(ty)
 
       val namesStr = names.mkString("(", ", ", ")")
       ty match {
@@ -211,7 +269,7 @@ trait CoreTypechecker
     case Eq(lhs, rhs) =>
       val lty = typecheck(lhs)
       val rty = typecheck(rhs)
-      if (meet(lty, rty, lang) == TNothing) {
+      if (meet(lty, rty, dataModel) == TNothing) {
         error(s"Cannot compare left-hand $lty with right-hand $rty", exp)
       }
       TScalaBoolean
@@ -219,28 +277,31 @@ trait CoreTypechecker
     case Neq(lhs, rhs) =>
       val lty = typecheck(lhs)
       val rty = typecheck(rhs)
-      if (meet(lty, rty, lang) == TNothing) {
+      if (meet(lty, rty, dataModel) == TNothing) {
         error(s"Cannot compare left-hand $lty with right-hand $rty", exp)
       }
       TScalaBoolean
 
     case InstanceOf(e, ty) =>
       val ety = typecheck(e)
-      if (meet(ety, ty, lang) == TNothing) {
+      validType(ty)
+      if (meet(ety, ty, dataModel) == TNothing) {
         warn(s"Test of type $ety to unrelated type $ty will always fail", exp)
       }
       TScalaBoolean
 
     case NotInstanceOf(e, ty) =>
       val ety = typecheck(e)
-      if (meet(ety, ty, lang) == TNothing) {
+      validType(ty)
+      if (meet(ety, ty, dataModel) == TNothing) {
         warn(s"Test of type $ety to unrelated type $ty will always succeed", exp)
       }
       TScalaBoolean
 
     case Cast(src, targetTyp) =>
       val ety = typecheck(src)
-      if (meet(ety, targetTyp, lang) == TNothing) {
+      validType(targetTyp)
+      if (meet(ety, targetTyp, dataModel) == TNothing) {
         warn(s"Cast of type $ety to unrelated type $targetTyp will always fail", exp)
       }
       targetTyp
@@ -298,13 +359,13 @@ trait CoreTypechecker
 
       val bodiesTy = bodies.foldLeft[Type](TAny) { (bodiesTy, body) =>
         val Yields(ty) = typecheck(body, mustYield = true)
-        meet(bodiesTy, ty, lang)
+        meet(bodiesTy, ty, dataModel)
       }
 
       val bodiesScalaTy = bodiesTy.asScala
       val requiredAggTy = TScala(Scala(meta.Type.Apply(Meta.typeOf[Aggregation[_]], List(bodiesScalaTy))))
 
-      if (!subtype(aggTy, requiredAggTy, lang))
+      if (!subtype(aggTy, requiredAggTy, dataModel))
         error(s"Expected $requiredAggTy, but got $aggTy", agg)
 
       TScala(Scala(bodiesScalaTy))
@@ -328,10 +389,14 @@ trait CoreTypechecker
 
   final def typecheckLink(link: Link, receiverTy: Type, exp: Expression): Type = link match {
     case NamedLink(field: Name) => receiverTy match {
-      case TNode(node) =>
-        lang.links.get(node, field.name) match {
-          case Some(ty) => truechangeTypeToType(ty)
-          case _ => lang.litLinks.get(node, field.name) match {
+      case node: TNode =>
+        val nodeName = node.target.getOrElse(TNode("")).name
+        dataModel.links.get(nodeName, field.name) match {
+          case Some(tcty) =>
+            val ty = truechangeTypeToType(tcty)
+            validType(ty)
+            ty
+          case _ => dataModel.litLinks.get(nodeName, field.name) match {
             case Some(litType) => TLiteral(litType)
             case _ =>
               error(s"Cannot access field `$field` of node $node", exp)
@@ -376,7 +441,7 @@ trait CoreTypechecker
       // nothing
       case (param, arg) =>
         val argTy = typecheck(arg)
-        if (meet(param.typ, argTy, lang) == TNothing) {
+        if (meet(param.typ, argTy, dataModel) == TNothing) {
           warn(s"Cast of argument type $argTy to unrelated parameter type ${param.typ} will always fail", arg)
         }
     }
@@ -443,7 +508,7 @@ trait CoreTypechecker
     val inferred = computeType
     term.typ match {
       case Some(annotated) =>
-        if (!subtype(inferred, annotated, lang))
+        if (!subtype(inferred, annotated, dataModel))
           error(s"Inferred type $inferred, but expected annotated type $annotated", term)
         annotated
       case None =>
@@ -467,24 +532,45 @@ trait CoreTypechecker
 
   // type operations
 
-  def subtype(ty1: Type, ty2: Type, languageMetaInfo: LanguageMetaInfo): Boolean =
-    meet(ty1, ty2, languageMetaInfo) == ty1
+  def subtype(ty1: Type, ty2: Type, dataModel: DataModel): Boolean = {
+//    val resolvedTy1 = resolvedType(ty1)
+    val meetTy = meet(ty1, ty2, dataModel)
+    meetTy == ty1
+  }
 
-  protected def meet(ty1: Type, ty2: Type, languageMetaInfo: LanguageMetaInfo): Type = (ty1, ty2) match {
+  def resolvedType(ty: Type): Type = ty match {
+    case node: TNode => node.target match {
+      case Some(value) => value
+      case None => throw new IllegalArgumentException(s"Node type ${ty} is not bound")
+    }
+    case TList(contained) => TList(resolvedType(contained).asInstanceOf[TLinked])
+    case TEnumeration(contained) => TEnumeration(resolvedType(contained).asInstanceOf[TLinked])
+    case TTuple(ts) => TTuple(ts.map(resolvedType))
+    case TAny => ty
+    case TNothing => ty
+    case TLiteral(_) => ty
+    case TScala(_) => ty
+  }
+
+  protected def meet(ty1: Type, ty2: Type, dataModel: DataModel): Type = (ty1, ty2) match {
     case (_, _) if ty1 == ty2 => ty1
     case (TAny, _) => ty2
     case (_, TAny) => ty1
     case (TAnyLinked, _:TLinked) => ty2
     case (_:TLinked,TAnyLinked) => ty1
-    case (TNode(name1), TNode(name2)) =>
-      if (languageMetaInfo.nodeSupertypes.containsEntry(SortType(name1) -> SortType(name2)))
+    case (node1: TNode, node2: TNode) =>
+      val name1 = node1.target.getOrElse(throw new IllegalArgumentException(s"Unbound node type ${node1}")).name
+      val name2 = node2.target.getOrElse(throw new IllegalArgumentException(s"Unbound node type ${node2}")).name
+      if (name1 == name2)
         ty1
-      else if (languageMetaInfo.nodeSupertypes.containsEntry(SortType(name2) -> SortType(name1)))
+      else if (dataModel.nodeSupertypes.containsEntry(SortType(name1) -> SortType(name2)))
+        ty1
+      else if (dataModel.nodeSupertypes.containsEntry(SortType(name2) -> SortType(name1)))
         ty2
       else
         TNothing
-    case (TList(s1), TList(s2)) => TList(meet(s1, s2, languageMetaInfo).asInstanceOf[TLinked])
-    case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size => TTuple(tys1.zip(tys2).map(tt => meet(tt._1, tt._2, languageMetaInfo)))
+    case (TList(s1), TList(s2)) => TList(meet(s1, s2, dataModel).asInstanceOf[TLinked])
+    case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size => TTuple(tys1.zip(tys2).map(tt => meet(tt._1, tt._2, dataModel)))
     case (TScala(s1), TScala(s2)) =>
       if (subtypeScala(s1.tree, s2.tree))
         ty1
@@ -517,7 +603,7 @@ trait CoreTypechecker
     case _ => throw new UnsupportedOperationException(s"conversion of $ty from truechange to inca not supported")
   }
 
-  protected def stmMeet(stmTy1: StmType, stmTy2: StmType, lang: LanguageMetaInfo): StmType = (stmTy1, stmTy2) match {
+  protected def stmMeet(stmTy1: StmType, stmTy2: StmType, lang: DataModel): StmType = (stmTy1, stmTy2) match {
     case (NoYield, _) => NoYield
     case (_, NoYield) => NoYield
     case (Yields(ty1), Yields(ty2)) => Yields(meet(ty1, ty2, lang))

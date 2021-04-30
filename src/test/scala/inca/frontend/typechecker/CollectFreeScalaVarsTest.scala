@@ -2,7 +2,8 @@ package inca.frontend.typechecker
 
 import inca.frontend.core
 import inca.frontend.core.tree.{Name => _, Param => _, _}
-import inca.runtime.context.LanguageMetaInfo
+import inca.frontend.extensions
+import inca.runtime.context.DataModel
 import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -476,7 +477,17 @@ class CollectFreeScalaVarsTest extends AnyFunSuite {
   }
 
   private def checkEval(eval: Eval, vars: Map[String, core.tree.Type] = Map()): core.tree.Type = {
-    val typer = core.Frontend.Core(new LanguageMetaInfo())
+
+    val typer = new CoreTypechecker
+      with extensions.boolOps.Typechecker
+      with extensions.evalCall.Typechecker
+      with extensions.forallExists.Typechecker
+      with extensions.foreach.Typechecker
+      with extensions.ifThenElse.Typechecker
+      with extensions.match_.Typechecker
+      with extensions.switch_.Typechecker {
+      override val dataModel: DataModel = new DataModel()
+    }
     vars.foreach(vt => typer.bindVar(core.tree.Name(vt._1), new Var.Target {}, vt._2))
     typer.typecheck(eval)
   }

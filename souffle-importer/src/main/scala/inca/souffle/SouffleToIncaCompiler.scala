@@ -2,8 +2,8 @@ package inca.souffle
 
 import inca.backend.ir.GP._
 import inca.compiler.Options
-import inca.runtime.context.LanguageMetaInfo
-import inca.runtime.context.LanguageMetaInfo.{Link => MLink}
+import inca.runtime.context.DataModel
+import inca.runtime.context.DataModel.{Link => MLink}
 import inca.souffle.Syntax.{Type => _, _}
 import inca.souffle.Util._
 import inca.util.Gensym
@@ -32,13 +32,14 @@ class SouffleToIncaCompiler {
     val module = Module(name, Seq(), patFuns.values.toSeq, Seq())
     val moduleWithUnbounded = PropagateUnbounded.transformModule(module)
 
-    val lang = new LanguageMetaInfo(MultiDict(), Map(), genLitLinks)
+    val lang = new DataModel(Set(), MultiDict(), Map(), genLitLinks)
 
     CompiledSouffleModule(
       moduleWithUnbounded,
+      lang,
       inputs.values.toSeq.map { input => (decls(input.rule), input) },
       printSizes.toSeq,
-      Options(lang)
+      Options()
     )
   }
 

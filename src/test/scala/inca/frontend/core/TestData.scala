@@ -10,8 +10,9 @@ import org.scalatest.flatspec.AnyFlatSpec
 import scala.language.implicitConversions
 
 class TestData extends AnyFlatSpec with IncaMatchers {
-  val scope = new QueryScope(Exp.languageMetaInfo)
-  val options = Options(scope.langMetaInfo)
+  val dataModel = Exp.model
+  val scope = new QueryScope(Exp.model)
+  val options = Options()
 
   implicit def name(s: String): Name = Name(s)
 

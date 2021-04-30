@@ -3,14 +3,14 @@ package inca.backend.optimize
 import inca.IncaMatchers
 import inca.backend.ir.GP._
 import inca.compiler.Options
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.runtime.context.{DataModel, QueryScope}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class TestEliminateAliases extends AnyFlatSpec with IncaMatchers {
 
-  val langMeta = new LanguageMetaInfo()
-  val scope = new QueryScope(langMeta)
-  val options = Options(langMeta, optimizations = Seq(EliminateAliases, FoldConstantConstraints))
+  val dataModel = new DataModel()
+  val scope = new QueryScope(dataModel)
+  val options = Options(optimizations = Seq(EliminateAliases, FoldConstantConstraints))
 
   "eliminateAliases" must "find variable aliases" in {
     val module1 = Module("Test", Seq(), Seq(

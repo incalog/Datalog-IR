@@ -6,7 +6,7 @@ import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
 import inca.compiler.Options
 import inca.frontend.core.tree._
-import inca.runtime.context.QueryScope
+import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -17,11 +17,12 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   private val testInput = Add(And(Or(BooleanLit(false), BooleanLit(false)), IntegerLit(5)), LongLit(10L))
   private val testInputNumericAddition = Add(Add(IntegerLit(5), IntegerLit(7)), Add(LongLit(7), IntegerLit(8)))
 
-  val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo)
+  val scope: QueryScope = new QueryScope(Exp.model)
+  val options: Options = Options()
+  val dataModel: DataModel = Exp.model
 
   test("simple compare constraint") {
-    val module = Module("Test", Seq(), Seq(idFun))
+    val module = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(idFun))
 
     assertMatchFunModule(module, "id", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
@@ -32,7 +33,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   }
 
   test("simple path constraint") {
-    val module = Module("Test", Seq(), Seq(lhChildFun))
+    val module = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(lhChildFun))
 
     assertMatchFunModule(module, "lhChild", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
@@ -43,7 +44,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   }
 
   test("multiple bodies") {
-    val module = Module("Test", Seq(), Seq(childrenFun))
+    val module = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(childrenFun))
 
     assertMatchFunModule(module, "children", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 6)
@@ -54,7 +55,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   }
 
   test("non negative, non transtive call") {
-    val module = Module("Test", Seq(), Seq(callLhChildFun, lhChildFun))
+    val module = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(callLhChildFun, lhChildFun))
 
     assertMatchFunModule(module, "callLhChild", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
@@ -65,7 +66,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   }
 
   test("constraint concept") {
-    val module = Module("Test", Seq(), Seq(instanceAddFun))
+    val module = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(instanceAddFun))
 
     assertMatchFunModule(module, "instanceAdd", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 1)
@@ -76,7 +77,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   }
 
   test("no type annotation for param") {
-    val module = Module("Test", Seq(), Seq(noParamTypeFun))
+    val module = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(noParamTypeFun))
 
     assertMatchFunModule(module, "noParamType", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
@@ -84,7 +85,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
   }
 
   test("primitive datatype output") {
-    val module = Module("Test", Seq(), Seq(isBooleanFun))
+    val module = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(isBooleanFun))
 
     assertMatchFunModule(module, "isBoolean", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 0)
@@ -113,7 +114,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaMatchers {
             Assert(InstanceOf(Var("p"), expType)),
             Yield(Cast(Var("p"), expType))))))
 
-    val module = Module("Test", Seq(), Seq(parentFun))
+    val module = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(parentFun))
 
     assertMatchFunModule(module, "parent", mul) { matcher =>
       assert(matcher.getAllMatches.size == 4)

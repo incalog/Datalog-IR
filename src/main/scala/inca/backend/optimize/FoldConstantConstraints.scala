@@ -2,13 +2,13 @@ package inca.backend.optimize
 import inca.backend.ir.GP._
 import inca.backend.ir.TypeOps
 import inca.frontend.core.CompileToGP.BodyMustFail
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import inca.util.Meta.Scala
 
 object FoldConstantConstraints extends Optimization with TypeOps {
 
 
-  override def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer = new Optimizer {
+  override def optimizer(dataModel: DataModel): Optimizer = new Optimizer {
 
     override def optimizeModule(module: Module): Module = {
       module.scalaContent.foreach {
@@ -35,7 +35,7 @@ object FoldConstantConstraints extends Optimization with TypeOps {
           // this constraint was responsible for the inferrence of termTyp, must keep it
           Seq(con)
         } else {
-          val meetType = meet(termTyp, typ, languageMetaInfo)
+          val meetType = meet(termTyp, typ, dataModel)
           if (meetType.contains(termTyp)) {
             // upcast, always succeeds
             Seq()
@@ -55,7 +55,7 @@ object FoldConstantConstraints extends Optimization with TypeOps {
           case v:Var => v.typ.getOrElse(TAny)
           case c:Constant => c.lit.typ
         }
-        val meetType = meet(termTyp, typ, languageMetaInfo)
+        val meetType = meet(termTyp, typ, dataModel)
         if (meetType.contains(termTyp)) {
           // termTyp <: typ, hence NotHasType must fail
           throw BodyMustFail

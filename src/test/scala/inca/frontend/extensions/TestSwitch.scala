@@ -6,7 +6,7 @@ import inca.compiler.Options
 import inca.frontend.core
 import inca.frontend.core.tree._
 import inca.frontend.extensions.switch_.Trees._
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.runtime.context.{DataModel, QueryScope}
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.language.implicitConversions
@@ -20,12 +20,11 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
   val three = Constant(IntLiteral(3))
   val four = Constant(IntLiteral(4))
 
-  val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo, info => new core.Frontend with switch_.Frontend {
-    override val lang: LanguageMetaInfo = info
-  })
+  val dataModel = Exp.model
+  val scope: QueryScope = new QueryScope(Exp.model)
+  val options: Options = Options()
   "desugaring" should "lift switch bodies" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Switch(Seq(
           Body(Seq(Assert(Eq(one, two)))),
@@ -36,7 +35,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(
         Body(Seq(Assert(Eq(one, two)))),
         Body(Seq(Assert(Neq(one, two)))),
@@ -49,7 +48,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "lift nested switch bodies" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Switch(Seq(
           Body(Seq(Switch(Seq(
@@ -64,7 +63,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(
         Body(Seq(Assert(Eq(one, two)))),
         Body(Seq(Assert(Neq(one, two)))),
@@ -77,7 +76,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "multiply subsequent switch bodies" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Switch(Seq(
           Body(Seq(Assert(Eq(one, two)))),
@@ -90,7 +89,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(
         Body(Seq(Assert(Eq(one, two)), Assert(Eq(three, four)))),
         Body(Seq(Assert(Eq(one, two)), Assert(Neq(three, four)))),
@@ -104,7 +103,7 @@ class TestSwitch extends AnyFlatSpec with IncaMatchers {
 
 
   "desugaring" should "implement switch semantics" in {
-    val module = Module("Test_Cast", Seq(), Seq(
+    val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), TLiteral.Int, Seq(Body(Seq(
         Values("root", TNode(Exp.expTag)),
         Assert(Undef(PathAccess(Var("root"), ParentLink))),

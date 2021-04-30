@@ -19,7 +19,7 @@ trait CoreParser {
   protected[frontend] def keywords: Set[String] =
     Set("module", "import","def", "undef", "true",
       "false", "aggregate", "count", "_", "unit", "yield",
-      "union", "private", "assert", "fail", "continue")
+      "union", "private", "assert", "fail", "continue", "datamodel", "native", "tree-sitter")
 
   // Parser ////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /** Parse a variable identifier.
@@ -296,12 +296,22 @@ trait CoreParser {
   /** Module parser */
   def module[_: P]: P[Module] =
     P("module " ~ identifier ~
+      datamodel.rep ~
+      importNode.rep ~
       import_.rep ~
       moduleContent.rep ~
       End
-    ).mapWithLoc { case (name, imports, contents) =>
-      Module(name, imports, contents.flatten)
+    ).mapWithLoc { case (name, dataModels, nodeImports, imports, contents) =>
+      Module(name, dataModels, imports, nodeImports, contents.flatten)
     }
+
+  def datamodel[_: P]: P[DataModel] = P("datamodel" ~ P(nativeDatamodel))
+
+  def nativeDatamodel[_: P]: P[NativeDataModel] =
+    P(fullyQualifiedIdentifier).mapWithLoc(i => NativeDataModel(i.name))
+
+  def importNode[_: P]: P[NodeImport] =
+    P("node" ~ fullyQualifiedIdentifier).mapWithLoc(n => NodeImport(n))
 
   def import_[_: P]: P[Import] =
     P("import" ~ identifier).mapWithLoc(Import.apply)

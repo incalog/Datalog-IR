@@ -3,21 +3,29 @@ package inca.frontend.typechecker
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
 import inca.analyzedLangs
-import inca.frontend.core.Frontend
 import inca.frontend.core.tree._
-import inca.runtime.context.LanguageMetaInfo
+import inca.frontend.parser.CoreParser
+import inca.runtime.context.DataModel
 import inca.util.Meta.Scala
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
+import truechange.SortType
+import inca.analyzedLangs.Exp
+
+import scala.collection.immutable.MultiDict
 
 /**
   * Test class for the IncA core language typechecker.
   */
 class CoreTypecheckerTest extends AnyFlatSpec {
-  val parser = Frontend.Core(new LanguageMetaInfo())
+  val parser = new CoreParser {}
+
+  def createTypechecker(dm: DataModel) = new CoreTypechecker {
+    override val dataModel: DataModel = dm
+  }
 
   "subtype" should "work" in {
-    val typer = Frontend.Core(new LanguageMetaInfo())
+    val typer = createTypechecker(new DataModel)
     def test_run(t1 : Type, t2 : Type) = assert(typer.subtype(t1, t2, null))
 
     test_run(TLiteral.Bool, TLiteral.Bool)
@@ -30,7 +38,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     def test_run(cd: String) = {
       parse(cd, parser.module(_)) match {
         case Success(value, index) => {
-          val typer = Frontend.Core(new LanguageMetaInfo())
+          val typer = createTypechecker(Exp.model)
           typer.typecheck(Seq(value))
           assert(typer.getErrors.isEmpty)
         }
@@ -97,9 +105,10 @@ class CoreTypecheckerTest extends AnyFlatSpec {
           |} """.stripMargin}
 
     val code1 = s"""module test
+                   |datamodel inca.analyzedLangs.Exp.model
                    |
                    |def name(x: Any): Any = {
-                   |  assert x.isInstanceOf[Node]
+                   |  assert x.isInstanceOf[inca.analyzedLangs.Exp]
                    |  yield x.parent
                    |}
                    |""".stripMargin
@@ -128,9 +137,9 @@ class CoreTypecheckerTest extends AnyFlatSpec {
 
     val code = parse(src, parser.module(_)).get.value
     val prog = Seq(mod1, code)
-    val typechecker = Frontend.Core(new LanguageMetaInfo())
-    typechecker.typecheck(prog)
-    assert(typechecker.getErrors.isEmpty)
+    val typer = createTypechecker(new DataModel())
+    typer.typecheck(prog)
+    assert(typer.getErrors.isEmpty)
   }
 
   def parseExp(str: String): Expression = {
@@ -158,24 +167,28 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   def typecheckExp(exp: Expression, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Type = {
-    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = createTypechecker(analyzedLangs.Exp.model)
+    typer.dataModel.types.foreach { typ => typer.bindNode(TNode(typ.name), TNode(typ.name)) }
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
-    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
+    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(), Seq(fun))) }
     typer.typecheck(exp)
   }
 
   def assertTypecheckExpFail(exp: Expression, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
-    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = createTypechecker(analyzedLangs.Exp.model)
+    typer.dataModel.types.foreach { typ => typer.bindNode(TNode(typ.name), TNode(typ.name)) }
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
-    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
+    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(), Seq(fun))) }
     typer.typecheck(exp)
     assert(typer.getErrors.nonEmpty)
   }
 
-  def assertTypecheckExpWarn(exp: Expression, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
-    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
+  def assertTypecheckExpWarn(exp: Expression, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq(), additionalNodes: Set[SortType] = Set()): Assertion = {
+    val additionalLMI = new DataModel(additionalNodes, MultiDict(), Map(), Map())
+    val typer = createTypechecker(analyzedLangs.Exp.model ++ additionalLMI)
+    typer.dataModel.types.foreach { typ => typer.bindNode(TNode(typ.name), TNode(typ.name)) }
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
-    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
+    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(), Seq(fun))) }
     typer.typecheck(exp)
     assert(typer.getErrors.isEmpty)
     assert(typer.getWarnings.nonEmpty)
@@ -183,73 +196,76 @@ class CoreTypecheckerTest extends AnyFlatSpec {
 
 
   def typecheckStmBindings(stm: Statement, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Map[Name, Type] = {
-    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = createTypechecker(analyzedLangs.Exp.model)
+    typer.dataModel.types.foreach { typ => typer.bindNode(TNode(typ.name), TNode(typ.name)) }
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
-    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
+    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(), Seq(fun))) }
     typer.typecheck(stm, mustYield = false, mayYield = true)
     typer.getBindings
   }
 
   def typecheckStm(stm: Statement, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq(), mustTerminate: Boolean = false): StmType = {
-    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = createTypechecker(analyzedLangs.Exp.model)
+    typer.dataModel.types.foreach { typ => typer.bindNode(TNode(typ.name), TNode(typ.name)) }
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
-    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
+    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(), Seq(fun))) }
     typer.typecheck(stm, mustTerminate, mayYield = true)
   }
 
   def assertTypecheckStmFail(stm: Statement, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
-    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = createTypechecker(analyzedLangs.Exp.model)
+    typer.dataModel.types.foreach { typ => typer.bindNode(TNode(typ.name), TNode(typ.name)) }
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
-    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
+    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(), Seq(fun))) }
     typer.typecheck(stm, mustYield = false, mayYield = true)
     assert(typer.getErrors.nonEmpty)
   }
 
   def assertTypecheckStmWarn(stm: Statement, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
-    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = createTypechecker(analyzedLangs.Exp.model)
+    typer.dataModel.types.foreach { typ => typer.bindNode(TNode(typ.name), TNode(typ.name)) }
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
-    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
+    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(), Seq(fun))) }
     typer.typecheck(stm, mustYield = false, mayYield = true)
     assert(typer.getErrors.isEmpty)
     assert(typer.getWarnings.nonEmpty)
   }
 
   def typecheckFun(fun: PatternFunction, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Unit = {
-    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = createTypechecker(analyzedLangs.Exp.model)
+    typer.dataModel.types.foreach { typ => typer.bindNode(TNode(typ.name), TNode(typ.name)) }
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
-    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
+    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(), Seq(fun))) }
     typer.typecheck(fun)
   }
 
   def assertTypecheckFunFail(fun: PatternFunction, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
-    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = createTypechecker(analyzedLangs.Exp.model)
+    typer.dataModel.types.foreach { typ => typer.bindNode(TNode(typ.name), TNode(typ.name)) }
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
-    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
+    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(), Seq(fun))) }
     typer.typecheck(fun)
     assert(typer.getErrors.nonEmpty)
   }
 
   def assertTypecheckFunWarn(fun: PatternFunction, vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
-    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
+    val typer = createTypechecker(analyzedLangs.Exp.model)
+    typer.dataModel.types.foreach { typ => typer.bindNode(TNode(typ.name), TNode(typ.name)) }
     vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
-    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
+    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(), Seq(fun))) }
     typer.typecheck(fun)
     assert(typer.getErrors.isEmpty)
     assert(typer.getWarnings.nonEmpty)
   }
 
   def assertTypecheckModulesSucceed(modules: Seq[Module], vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
-    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
-    vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
-    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
+    val typer = createTypechecker(analyzedLangs.Exp.model)
     typer.typecheck(modules)
     assert(typer.getErrors.isEmpty)
   }
 
   def assertTypecheckModulesFail(modules: Seq[Module], vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
-    val typer = Frontend.Core(analyzedLangs.Exp.languageMetaInfo)
-    vars.foreach { case (name, ty) => typer.bindVar(name, new Var.Target {}, ty) }
-    funs.foreach { fun => typer.bindFun(fun, Module(Name(fun.name.name + "-module"), Seq(), Seq(fun))) }
+    val typer = createTypechecker(analyzedLangs.Exp.model)
     typer.typecheck(modules)
     assert(typer.getErrors.nonEmpty)
   }
@@ -281,12 +297,12 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     assertResult(typecheckExp(wildcard))(TAny)
   }
 
-  private val manyVars = Map(Name("many") -> TNode(analyzedLangs.Exp.manyTag))
+  private val manyVars = Map(Name("many") -> TNode(analyzedLangs.Exp.manyTag).resolved((TNode(analyzedLangs.Exp.manyTag))))
 
   "checkExp" should "type path access named link correctly" in {
     val pathAccess = parseExp("add.lhs")
 
-    val vars = Map(Name("add") -> TNode(analyzedLangs.Exp.addTag))
+    val vars = Map(Name("add") -> TNode(analyzedLangs.Exp.addTag).resolved(TNode(analyzedLangs.Exp.addTag)))
     assertResult(TNode(analyzedLangs.Exp.expTag))(typecheckExp(pathAccess, vars))
 
     assertTypecheckExpFail(pathAccess)
@@ -373,21 +389,24 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   "checkExp" should "type instanceOf correctly" in {
-    val vars = Map(Name("x") -> TNode(analyzedLangs.Exp.expTag))
+    val expType = TNode(analyzedLangs.Exp.expTag).resolved(TNode(analyzedLangs.Exp.expTag))
+    val addType = TNode(analyzedLangs.Exp.addTag).resolved(TNode(analyzedLangs.Exp.addTag))
 
-    val str = s"x.isInstanceOf[${TNode(analyzedLangs.Exp.addTag).prettyprint}]"
+    val vars = Map(Name("x") -> expType)
+
+    val str = s"x.isInstanceOf[${addType.prettyprint}]"
     val instanceOf = parseExp(str)
     val t = typecheckExp(instanceOf, vars)
     assertResult(TScalaBoolean)(t)
 
-    val notInstanceOf = parseExp(s"x.notInstanceOf[${TNode(analyzedLangs.Exp.addTag).prettyprint}]")
+    val notInstanceOf = parseExp(s"x.notInstanceOf[${addType.prettyprint}]")
     assertResult(TScalaBoolean)(typecheckExp(notInstanceOf, vars))
 
     val invalidInstanceOf = parseExp("x.isInstanceOf[TBool]")
-    assertTypecheckExpWarn(invalidInstanceOf, vars)
+    assertTypecheckExpWarn(invalidInstanceOf, vars, additionalNodes = Set(SortType("TBool")))
 
     val tupleInstanceOf = parseExp("(x, 1).isInstanceOf[TBool]")
-    assertTypecheckExpWarn(tupleInstanceOf, vars)
+    assertTypecheckExpWarn(tupleInstanceOf, vars, additionalNodes = Set(SortType("TBool")))
   }
 
 
@@ -406,22 +425,25 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     val undefinedCall = parseExp("other(1, x, 2L, y)")
     assertTypecheckExpFail(undefinedCall, Map(), funs)
 
-    val funs2 = Seq(PatternFunction(None, Name("fun"), Seq(Param(Name("x"), TNode(analyzedLangs.Exp.expTag))), TUnit, Seq()))
-    val vars2 = Map(Name("x") -> TNode(analyzedLangs.Exp.addTag))
+    val expType = TNode(analyzedLangs.Exp.expTag).resolved(TNode(analyzedLangs.Exp.expTag))
+    val intType = TNode(analyzedLangs.Exp.intTag).resolved(TNode(analyzedLangs.Exp.intTag))
+    val addType = TNode(analyzedLangs.Exp.addTag).resolved(TNode(analyzedLangs.Exp.addTag))
+    val funs2 = Seq(PatternFunction(None, Name("fun"), Seq(Param(Name("x"), expType)), TUnit, Seq()))
+    val vars2 = Map(Name("x") -> addType)
     val callWithNodeArgs = parseExp("fun(x)")
     assertResult(TUnit)(typecheckExp(callWithNodeArgs, vars2, funs2))
 
     val callWithNodeArgWrongType = parseExp("fun(1)")
     assertTypecheckExpWarn(callWithNodeArgWrongType, vars2, funs2)
 
-    val funs3 = Seq(PatternFunction(None, Name("fun"), Seq(Param(Name("x"), TNode(analyzedLangs.Exp.addTag))), TTuple(Seq(TNode(analyzedLangs.Exp.expTag), TNode(analyzedLangs.Exp.expTag))), Seq()))
-    val vars3 = Map(Name("x") -> TNode(analyzedLangs.Exp.intTag), Name("y") -> TNode(analyzedLangs.Exp.addTag))
+    val funs3 = Seq(PatternFunction(None, Name("fun"), Seq(Param(Name("x"), addType)), TTuple(Seq(expType, expType)), Seq()))
+    val vars3 = Map(Name("x") -> intType, Name("y") -> addType)
 
     val callWithNodeArgWrongType2 = parseExp("fun(x)")
     assertTypecheckExpWarn(callWithNodeArgWrongType2, vars3, funs3)
 
     val callMultipleOutputTypes = parseExp("fun(y)")
-    assertResult(TTuple(Seq(TNode(analyzedLangs.Exp.expTag), TNode(analyzedLangs.Exp.expTag))))(typecheckExp(callMultipleOutputTypes, vars3, funs3))
+    assertResult(TTuple(Seq(expType, expType)))(typecheckExp(callMultipleOutputTypes, vars3, funs3))
   }
 
   "checkExp" should "type count correctly" in {
@@ -459,12 +481,15 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   "checkStatement" should "type assert correctly" in {
-    val vars = Map(Name("x") -> TNode(analyzedLangs.Exp.expTag))
+    val expType = TNode(analyzedLangs.Exp.expTag).resolved(TNode(analyzedLangs.Exp.expTag))
+    val addType = TNode(analyzedLangs.Exp.addTag).resolved(TNode(analyzedLangs.Exp.addTag))
+    val intType = TNode(analyzedLangs.Exp.intTag).resolved(TNode(analyzedLangs.Exp.intTag))
+    val vars = Map(Name("x") -> expType)
 
     val assertBool = parseStatement("assert true")
     assertResult(vars)(typecheckStmBindings(assertBool, vars))
 
-    val str = s"x.isInstanceOf[${TNode(analyzedLangs.Exp.addTag).prettyprint}]"
+    val str = s"x.isInstanceOf[${addType.prettyprint}]"
     val assertInstanceOf = parseStatement(s"assert $str")
     assertResult(vars)(typecheckStmBindings(assertInstanceOf, vars))
 
@@ -497,7 +522,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
 
   "checkBody" should "type body correctly" in {
     val fun = (body: Body) => PatternFunction(None, Name("fun"), Seq(Param(Name("y"), TLiteral.Int)), TTuple(Seq(TLiteral.Bool, TLiteral.Long)), Seq(body))
-    val vars = Map(Name("x") -> TNode(analyzedLangs.Exp.expTag))
+    val vars = Map(Name("x") -> TNode(analyzedLangs.Exp.expTag).resolved(TNode(analyzedLangs.Exp.expTag)))
 
     val body = parseBody(
       s"""{
@@ -663,7 +688,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     def testModuleFail(mod: Module) = assertTypecheckModulesFail(Seq(mod))
 
     import meta.quasiquotes._
-    val module1 = Module(Name("Test"), Seq(),
+    val module1 = Module(Name("Test"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(),
       Seq(
         ScalaModuleContent(Scala(q"import inca.analyzedData.Nat.{Nat, Zero}")),
         PatternFunction(None, Name("test"), Seq(), TScala("Nat"),
@@ -675,7 +700,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     )
     testModuleSucceeds(module1)
 
-    val module2 = Module(Name("Test"), Seq(),
+    val module2 = Module(Name("Test"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(),
       Seq(
         ScalaModuleContent(Scala(q"trait Nat")),
         ScalaModuleContent(Scala(q"case object Zero extends Nat")),
@@ -689,7 +714,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     )
     testModuleSucceeds(module2)
 
-    val module3 = Module(Name("Test"), Seq(),
+    val module3 = Module(Name("Test"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(),
       Seq(
         PatternFunction(None, Name("testTwo"), Seq(), TScala("inca.analyzedData.Nat.Nat"),
           Seq(Body(
@@ -700,7 +725,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     )
     testModuleSucceeds(module3)
 
-    val module4 = Module(Name("Test"), Seq(),
+    val module4 = Module(Name("Test"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(),
       Seq(
         ScalaModuleContent(Scala(q"trait Nat")),
         ScalaModuleContent(Scala(q"case object Zero extends Nat")),
@@ -715,7 +740,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     )
     testModuleSucceeds(module4)
 
-    val module5 = Module(Name("Test"), Seq(),
+    val module5 = Module(Name("Test"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(),
       Seq(
         ScalaModuleContent(Scala(q"trait Nat")),
         ScalaModuleContent(Scala(q"case object Zero extends Nat")),
@@ -730,7 +755,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     )
     testModuleSucceeds(module5)
 
-    val moduleFail = Module(Name("Test"), Seq(),
+    val moduleFail = Module(Name("Test"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(),
       Seq(
         PatternFunction(None, Name("test"), Seq(), TScala("Nat"),
           Seq(Body(
@@ -749,6 +774,8 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     testModule(
       Module(
         Name("my"),
+        Seq(DirectDataModel(analyzedLangs.Exp.model)),
+        Seq(),
         Seq(),
         Seq(ValDef(None, Name("x"), None, Constant(IntLiteral(1))))
       )
@@ -756,6 +783,8 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     testModule(
       Module(
         Name("my"),
+        Seq(DirectDataModel(analyzedLangs.Exp.model)),
+        Seq(),
         Seq(),
         Seq(ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))))
       )
@@ -763,6 +792,8 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     testModule(
       Module(
         Name("my"),
+        Seq(DirectDataModel(analyzedLangs.Exp.model)),
+        Seq(),
         Seq(),
         Seq(
           ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))),
@@ -773,6 +804,8 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     testModule(
       Module(
         Name("my"),
+        Seq(DirectDataModel(analyzedLangs.Exp.model)),
+        Seq(),
         Seq(),
         Seq(
           ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))),
@@ -783,6 +816,8 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     testModuleFail(
       Module(
         Name("my"),
+        Seq(DirectDataModel(analyzedLangs.Exp.model)),
+        Seq(),
         Seq(),
         Seq(
           ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))),
@@ -793,6 +828,8 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     testModuleFail(
       Module(
         Name("my"),
+        Seq(DirectDataModel(analyzedLangs.Exp.model)),
+        Seq(),
         Seq(),
         Seq(
           ValDef(None, Name("y"), None, Var(Name("x"))),

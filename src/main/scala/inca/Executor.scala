@@ -3,7 +3,7 @@ package inca
 import inca.compiler.{CompiledModule, Compiler, Options}
 import inca.runtime.Query.Match
 import inca.runtime.{Database, EnginePool}
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.runtime.context.{DataModel, QueryScope}
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truediff.Diffable
@@ -37,10 +37,10 @@ object Executor {
     }
   }
 
-  def loadAnalysis(code: String, langMetaInfo: LanguageMetaInfo): Loaded = {
-    val options = Options(langMetaInfo)
+  def loadAnalysis(code: String): Loaded = {
+    val options = Options()
     val compiled = Compiler.compileFun(code, options)
-    val scope = new QueryScope(langMetaInfo)
+    val scope = new QueryScope(compiled.dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     Loaded(engine, feed, compiled)
   }

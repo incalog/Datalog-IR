@@ -6,7 +6,7 @@ import inca.compiler.Options
 import inca.frontend.core
 import inca.frontend.core.tree._
 import inca.frontend.extensions.forallExists.Trees._
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Meta.Scala
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -19,13 +19,12 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
   val one = Constant(IntLiteral(1))
   val two = Constant(IntLiteral(2))
 
-  val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo, info => new core.Frontend with forallExists.Frontend {
-    override val lang: LanguageMetaInfo = info
-  })
+  val dataModel = Exp.model
+  val scope: QueryScope = new QueryScope(Exp.model)
+  val options: Options = Options()
 
   "desugaring" should "eliminate forall conds" in {
-    val sugared = Module("Test", Seq(), Seq(
+    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(Param("many", TNode(Exp.manyTag))), TUnit, Seq(Body(Seq(
         Forall("x", PathAccess(Var("many"), NamedLink("exps")), Body(
           Assert(Eq(Var("x"), Var("x")))
@@ -34,7 +33,7 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
       ))))
     ))
 
-    val core = Module("Test", Seq(), Seq(
+    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "forallCond", Seq(Param("many", TNode(Exp.manyTag))), TNode(Exp.expTag), Seq(Body(Seq(
         Assign(Seq("x"),
           PathAccess(
@@ -57,7 +56,7 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
 
 
   "desugaring" should "implement forall list semantics" in {
-    val module = Module("Test_Cast", Seq(), Seq(
+    val module = Module("Test_Cast", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "intLists", Seq(Param("l", TList(TNode(Exp.expTag)))), TUnit, Seq(Body(Seq(
         Forall("e", Var("l"), Body(
           Assert(InstanceOf(Var("e"), TNode(Exp.intTag)))
@@ -93,7 +92,7 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
   }
 
   "desugaring" should "implement exists list semantics" in {
-    val module = Module("Test_Cast", Seq(), Seq(
+    val module = Module("Test_Cast", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
       PatternFunction(None, "listContaining4", Seq(Param("l", TList(TNode(Exp.expTag)))), TUnit, Seq(Body(Seq(
         Exists("e", Var("l"), Body(
           Assign(Seq("i"), PathAccess(Cast(Var("e"), TNode(Exp.intTag)), NamedLink("value"))),

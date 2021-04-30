@@ -1,6 +1,7 @@
 package inca.frontend.core.tree
 
 import inca.frontend.parser.SourceLocation
+import inca.frontend.typechecker.Resolvable
 import inca.util.Meta
 import inca.util.Meta.Scala
 import truechange.{JavaLitType, LitType}
@@ -65,7 +66,7 @@ case object TAnyLinked extends TLinked {
   override def prettyprint: String = "AnyNode"
   override def javastring: String = "anynode"
 }
-case class TNode(name: String) extends TLinked {
+case class TNode(name: String) extends TLinked  with Resolvable[TNode] {
   override def prettyprint: String = name
   override def javastring: String = name.replace('.','_')
   def apply(field: String): NamedLink = NamedLink(Name(field))

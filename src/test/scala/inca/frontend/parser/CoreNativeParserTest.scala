@@ -3,7 +3,7 @@ package inca.frontend.parser
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
 import inca.frontend.core
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import inca.util.Meta.Scala
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
@@ -18,7 +18,7 @@ import scala.meta.{Import => _, Name => _, _}
   */
 class CoreNativeParserTest extends AnyFunSuite {
 
-  val parser = core.Frontend.Inca(new LanguageMetaInfo())
+  val parser = new CoreParser {}
   import inca.frontend.core.tree._
   
   test("test Module") {
@@ -33,13 +33,16 @@ class CoreNativeParserTest extends AnyFunSuite {
                 |""".stripMargin,
       Module(
         Name("my"),
+        Seq(),
         Seq(Import(Name("math")), Import(Name("cuda_runtime"))),
+        Seq(),
         Seq(ScalaModuleContent(Scala(q"import java.lang")), ScalaModuleContent(Scala(q"import inca.Compiler")))
       )
     )
 
     testModule(
       s"""module my
+         |
          |import math
          |import cuda_runtime
          |```
@@ -49,7 +52,9 @@ class CoreNativeParserTest extends AnyFunSuite {
          |""".stripMargin,
       Module(
         Name("my"),
+        Seq(),
         Seq(Import(Name("math")), Import(Name("cuda_runtime"))),
+        Seq(),
         Seq(ScalaModuleContent(Scala(q"import java.lang")), ScalaModuleContent(Scala(q"import inca.Compiler")))
       )
     )
@@ -68,7 +73,9 @@ class CoreNativeParserTest extends AnyFunSuite {
          |""".stripMargin,
       Module(
         Name("my"),
+        Seq(),
         Seq(Import(Name("math")), Import(Name("cuda_runtime"))),
+        Seq(),
         Seq(
           q"import inca.Compiler",
           q"val i = 0",
@@ -79,6 +86,7 @@ class CoreNativeParserTest extends AnyFunSuite {
 
     testModule(
       s"""module Test
+         |
          |```
          |trait Nat
          |case object Zero extends Nat
@@ -90,6 +98,8 @@ class CoreNativeParserTest extends AnyFunSuite {
          |""".stripMargin,
       Module(
         Name("Test"),
+        Seq(),
+        Seq(),
         Seq(),
         Seq(
           q"trait Nat",

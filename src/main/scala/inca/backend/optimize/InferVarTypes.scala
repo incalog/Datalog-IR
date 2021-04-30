@@ -3,7 +3,7 @@ package inca.backend.optimize
 import inca.backend.ir.GP._
 import inca.backend.ir.TypeOps
 import inca.frontend.core.CompileToGP.BodyMustFail
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import inca.util.Meta.Scala
 
 import scala.collection.immutable.MultiDict
@@ -13,7 +13,7 @@ import scala.collection.immutable.MultiDict
  */
 object InferVarTypes extends Optimization with TypeOps {
 
-  override def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer = new Optimizer {
+  override def optimizer(dataModel: DataModel): Optimizer = new Optimizer {
 
     private var funs: Map[Name, Seq[Param]] = _
 
@@ -39,7 +39,7 @@ object InferVarTypes extends Optimization with TypeOps {
         case v: Var =>
           vars += v -> ty
         case Constant(lit) =>
-          val meetType = meet(lit.typ, ty, languageMetaInfo)
+          val meetType = meet(lit.typ, ty, dataModel)
           if (meetType.isEmpty)
             throw BodyMustFail
       }
@@ -88,7 +88,7 @@ object InferVarTypes extends Optimization with TypeOps {
       try {
         mostSpecificVarTypes = Map()
         vars.sets.foreach { case (v, tys) =>
-          val meetType = meet(tys, languageMetaInfo)
+          val meetType = meet(tys, dataModel)
           meetType match {
             case Some(ty) => mostSpecificVarTypes += v -> ty
             case None => throw BodyMustFail

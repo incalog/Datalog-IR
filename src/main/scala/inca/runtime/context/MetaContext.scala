@@ -11,7 +11,7 @@ import truechange.SortType
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 
-class MetaContext(langMetaInfo: LanguageMetaInfo) extends AbstractQueryMetaContext {
+class MetaContext(langMetaInfo: DataModel) extends AbstractQueryMetaContext {
   override def isEnumerable(key: IInputKey): Boolean = key.isEnumerable
   override def isStateless(key: IInputKey): Boolean = key match {
     case key: IndexKey[_] => key.isStateless

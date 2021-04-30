@@ -2,11 +2,11 @@ package inca.backend.optimize
 
 import inca.backend.ir.GP._
 import inca.backend.ir.Substitute
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 
 object ConstantPropagation extends Optimization {
 
-  override def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer = new Optimizer {
+  override def optimizer(dataModel: DataModel): Optimizer = new Optimizer {
 
     override def optimizePattern(pat: Pattern): Seq[Pattern] = {
       val unsubstitutable = pat.params.map(_.name).toSet

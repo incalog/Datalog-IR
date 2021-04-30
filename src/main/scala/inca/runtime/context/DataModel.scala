@@ -1,13 +1,13 @@
 package inca.runtime.context
 
-import inca.runtime.context.LanguageMetaInfo._
+import inca.runtime.context.DataModel._
 import inca.util.TupleOps.transClosure
 import truechange.{Link => _, _}
 
 import scala.collection.immutable.MultiDict
 
 /**
- * This class captures meta information about a language definition.
+ * This class captures meta information about a data model definition.
  * - directSupertypes maps a type name to all names of types that are the direct supertypes.
  * - supertypes represents the transitive closure of directSupertypes.
  * - links maps a link to its target type
@@ -15,19 +15,21 @@ import scala.collection.immutable.MultiDict
  * - directSubtypes maps a type name to all names of types that are the direct subtypes.
  * - subtypes represents the transitive closure of directSubtypes.
  */
-class LanguageMetaInfo(
+class DataModel(
+                        val types: Set[SortType],
                         _directSupertypes: MultiDict[SortType, SortType],
                         val links: Map[Link, Type],
                         val litLinks: Map[Link, LitType]
                       ) {
 
   override def toString: String = {
-    s"LanguageMetaInfo($directNodeSupertypes, $links, $litLinks)"
+    s"DataModel($types, $directNodeSupertypes, $links, $litLinks)"
   }
 
-  def this() = this(MultiDict(), Map(), Map())
-  def ++(other: LanguageMetaInfo): LanguageMetaInfo =
-    new LanguageMetaInfo(
+  def this() = this(Set(), MultiDict(), Map(), Map())
+  def ++(other: DataModel): DataModel =
+    new DataModel(
+      this.types ++ other.types,
       this.directNodeSupertypes.concat(other.directNodeSupertypes),
       this.links ++ other.links,
       this.litLinks ++ other.litLinks
@@ -83,10 +85,11 @@ class LanguageMetaInfo(
   }
 }
 
-object LanguageMetaInfo {
+object DataModel {
   type Link = (String, String)
 
-  def from(nodes: NodeMetaInfo*): LanguageMetaInfo = {
+  def from(nodes: NodeMetaInfo*): DataModel = {
+    val types = nodes.map(n => n.sort).toSet
     val _directSupertypes: MultiDict[SortType, SortType] =
       MultiDict.from(nodes.flatMap(n => n.superSorts.map(sup => n.sort -> sup)))
     val links: Map[Link, Type] = Map.from(nodes.flatMap(n => n.links.map {
@@ -95,6 +98,6 @@ object LanguageMetaInfo {
     val litLinks: Map[Link, LitType] = Map.from(nodes.flatMap(n => n.litLinks.map {
       case (NamedLink(name), ty) => (n.sort.name, name) -> ty
     }))
-    new LanguageMetaInfo(_directSupertypes, links, litLinks)
+    new DataModel(types, _directSupertypes, links, litLinks)
   }
 }

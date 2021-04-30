@@ -4,8 +4,11 @@ import inca.frontend.parser.SourceLocation
 import inca.frontend.typechecker.Resolvable
 import inca.util.Meta.Scala
 
-case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
-  extends SourceLocation with Import.Target {
+case class Module(name: Name,
+                  dataModels: Seq[DataModel],
+                  imports: Seq[Import],
+                  nodeImports: Seq[NodeImport],
+                  content: Seq[ModuleContent]) extends SourceLocation with Import.Target {
 
   def allVars: Map[Name, Option[Type]] = content.flatMap {
     case fun: PatternFunction => fun.allVars
@@ -32,11 +35,26 @@ case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
   override def toString: String = prettyprint("")
 }
 
+trait DataModel extends SourceLocation
+
+case class NativeDataModel(path: String) extends DataModel {
+  def prettyprint(implicit indent: String): String = s"${indent}datamodel native $path"
+}
+
+// TODO for testing
+case class DirectDataModel(dataModel: inca.runtime.context.DataModel) extends DataModel {
+  def prettyprint(implicit indent: String): String = s"${indent}datamodel direct ${dataModel}"
+}
+
 case class Import(name: Name) extends SourceLocation with Resolvable[Import.Target] {
   def prettyprint(implicit indent: String): String = s"${indent}import $name"
 }
 object Import {
   trait Target
+}
+
+case class NodeImport(name: Name) extends SourceLocation {
+  def prettyprint(implicit indent: String): String = s"${indent}nodeimport $name"
 }
 
 

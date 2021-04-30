@@ -3,7 +3,7 @@ package inca
 import inca.backend.ir.GP
 import inca.compiler.{CompiledModule, Options}
 import inca.frontend.core.tree.Module
-import inca.runtime.context.QueryScope
+import inca.runtime.context.{DataModel, QueryScope}
 import inca.runtime.{EnginePool, Query}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.Assertion
@@ -14,16 +14,15 @@ import truediff.Diffable
 trait IncaMatchers extends Matchers {
   val scope: QueryScope
   val options: Options
+  val dataModel: DataModel
 
   def assertDesugar(core: Module, sugared: Module, options: Options = this.options): Unit = {
-//    println(sugared + "\n" + "-- should desugar to --" + "\n" + core)
-
     val desugared = compiler.Compiler.compileFun(sugared, options).desugared
     assertResult(core)(desugared)
   }
 
   def assertOptimize(optimized: GP.Module, original: GP.Module): Unit = {
-    assertResult(optimized)(compiler.Compiler.compileGP(original, options).optimized)
+    assertResult(optimized)(compiler.Compiler.compileGP(original, dataModel, options).optimized)
   }
 
   def assertMatchFunCode (module: String,
@@ -89,7 +88,7 @@ trait IncaMatchers extends Matchers {
                         options: Options = this.options)
                        (asserter: Query.Matcher => Assertion): Assertion = {
 
-    val psystem = compiler.Compiler.compileGP(module, options).psystemModule
+    val psystem = compiler.Compiler.compileGP(module, dataModel, options).psystemModule
     val querySpec = psystem.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module ${module.name}."))
 
 

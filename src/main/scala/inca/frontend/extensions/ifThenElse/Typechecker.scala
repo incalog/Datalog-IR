@@ -10,7 +10,7 @@ trait Typechecker extends CoreTypechecker {
       val conds = cond +: elseIfs.map(_.cond)
       conds.foreach { c =>
         val ty = typecheck(c)
-        if (!subtype(ty, TScalaBoolean, lang))
+        if (!subtype(ty, TScalaBoolean, dataModel))
           error(s"Expected Boolean condition, but got $ty", c)
       }
 
@@ -20,7 +20,7 @@ trait Typechecker extends CoreTypechecker {
       }
 
       val elsTy = els.map(typecheck(_, mustYield)).getOrElse(NoYield)
-      bodyTypes.foldLeft(elsTy)(stmMeet(_, _, lang))
+      bodyTypes.foldLeft(elsTy)(stmMeet(_, _, dataModel))
 
     case _ => super.typecheckInternal(stm, mustYield)
   }

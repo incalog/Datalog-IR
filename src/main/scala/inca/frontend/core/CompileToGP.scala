@@ -20,7 +20,7 @@ class CompileToGP {
 
   def transformModule(module: Module): GP.Module = {
     // construct map Name => Fun
-    val Module(name, imports, contents) = module
+    val Module(name, langModel, imports, nodeImports, contents) = module
     gensym.register(module.usedModuleNames.map(_.name))
     gensym.register(module.usedDefNames.map(_.name))
 
@@ -46,7 +46,7 @@ class CompileToGP {
     case TAny => GP.TAny
     case TLiteral(lit) => GP.TLiteral(lit)
     case TAnyLinked => GP.TAnyLinked
-    case TNode(name) => GP.TNode(name)
+    case node: TNode => GP.TNode(getFqnNode(node).name)
     case TList(ty) => GP.TList(transType(ty).asInstanceOf[GP.TLinked])
     case TScala(ty) => GP.TScala(ty)
   }
@@ -209,7 +209,8 @@ class CompileToGP {
               GP.NoPath(GP.Var(src), srcTy, GP.SizeLink, termIsSource = true)
             case NamedLink(field) =>
               val nodeType = receiver.typ match {
-                case Some(TNode(name)) => GP.TNode(name)
+                case Some(node@TNode(_)) =>
+                  GP.TNode(getFqnNode(node).name)
                 case _ => throw new IllegalArgumentException(s"$receiver should have node type, but has ${receiver.typ}")
               }
               GP.NoPath(GP.Var(src), srcTy, GP.NamedLink(nodeType, field.name), termIsSource = true)
@@ -340,7 +341,7 @@ class CompileToGP {
         GP.Path(GP.Var(src), srcTy, GP.SizeLink, trg, trgTy)
       case NamedLink(field) =>
         val nodeType = receiver.typ match {
-          case Some(TNode(name)) => GP.TNode(name)
+          case Some(node@TNode(_)) => GP.TNode(getFqnNode(node).name)
           case _ => throw new IllegalArgumentException(s"$receiver should have node type, but has ${receiver.typ}")
         }
         GP.Path(GP.Var(src), srcTy, GP.NamedLink(nodeType, field.name), trg, trgTy)
@@ -356,4 +357,7 @@ class CompileToGP {
     case StringLiteral(v) => Some(GP.StringLiteral(v))
     case BooleanLiteral(v) => Some(GP.BooleanLiteral(v))
   }
+
+  def getFqnNode(node: TNode): TNode =
+    node.target.getOrElse(throw new IllegalArgumentException(s"Could not resolve fully qualified name of $node"))
 }

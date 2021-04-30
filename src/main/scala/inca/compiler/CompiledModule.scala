@@ -1,7 +1,8 @@
 package inca.compiler
 
 import inca.backend.ir.{CompileToPSystem, GP, PSystem}
-import inca.frontend.parser.SourceLocation
+import inca.frontend.parser.{CoreParser, SourceLocation}
+import inca.runtime.context.DataModel
 import inca.util.Meta
 import inca.util.TupleOps.transClosure
 
@@ -10,6 +11,8 @@ import scala.collection.mutable.ListBuffer
 
 trait CompiledModule {
   val options: Options
+
+  def dataModel: DataModel
 
   def name: GP.Name
 
@@ -54,7 +57,7 @@ trait CompiledModule {
   lazy val optimized: GP.Module = {
     var module = ir
     for (op <- options.optimizations) {
-      module = op.optimizer(options.languageMetaInfo).optimizeModule(module)
+      module = op.optimizer(dataModel).optimizeModule(module)
       if (CompilerFlags.DEBUGMODE) {
         println(s"Optimization: ${op.getClass.getName}")
         println(module)

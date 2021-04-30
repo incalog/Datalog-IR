@@ -11,7 +11,7 @@ trait Typechecker extends CoreTypechecker {
         error("empty switch statements are not allowed", stm)
         NoYield
       } else
-        bodies.map(typecheck(_, mustYield)).reduce(stmMeet(_, _, lang))
+        bodies.map(typecheck(_, mustYield)).reduce(stmMeet(_, _, dataModel))
 
     case _ => super.typecheckInternal(stm, mustYield)
   }

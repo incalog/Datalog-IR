@@ -3,7 +3,7 @@ package inca.backend.optimize
 import inca.IncaMatchers
 import inca.backend.ir.GP._
 import inca.compiler.Options
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Meta.Scala
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -11,12 +11,12 @@ import scala.meta._
 
 class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
 
-  val langMeta = new LanguageMetaInfo()
-  val scope = new QueryScope(langMeta)
-  val options = Options(langMeta, optimizations = Seq(ConstantPropagation))
+  val dataModel = new DataModel()
+  val scope = new QueryScope(dataModel)
+  val options = Options(optimizations = Seq(ConstantPropagation))
 
   def optimize(module: Module): Module =
-    ConstantPropagation.optimizer(langMeta).optimizeModule(module)
+    ConstantPropagation.optimizer(dataModel).optimizeModule(module)
 
   "ConstantPropagation" must "propagate constants" in {
     val one = Constant(IntLiteral(1))

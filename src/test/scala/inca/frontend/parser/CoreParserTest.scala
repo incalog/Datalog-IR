@@ -3,7 +3,7 @@ package inca.frontend.parser
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
 import inca.frontend.core
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -15,7 +15,7 @@ import org.scalatest.funsuite.AnyFunSuite
   */
 class CoreParserTest extends AnyFunSuite {
 
-  val parser = core.Frontend.Inca(new LanguageMetaInfo())
+  val parser = new CoreParser {}
   import inca.frontend.core.tree._
   
   test("test Type") {
@@ -713,6 +713,7 @@ class CoreParserTest extends AnyFunSuite {
 
     testModule(
       s"""module my
+         |datamodel inca.analyzedLangs.Exp.dataModel
          |import math
          |import cuda_runtime
          |def foo(bar: Boolean): Unit = {
@@ -723,7 +724,9 @@ class CoreParserTest extends AnyFunSuite {
          |}""".stripMargin,
       Module(
         Name("my"),
+        Seq(NativeDataModel("inca.analyzedLangs.Exp.dataModel")),
         Seq(Import(Name("math")), Import(Name("cuda_runtime"))),
+        Seq(),
         Seq(
           PatternFunction(
             None,
@@ -753,7 +756,6 @@ class CoreParserTest extends AnyFunSuite {
 
     testModule(
       s"""module my
-         |
          |import cuda_runtime
          |
          |
@@ -764,7 +766,9 @@ class CoreParserTest extends AnyFunSuite {
          |""".stripMargin,
       Module(
         Name("my"),
+        Seq(),
         Seq(Import(Name("cuda_runtime"))),
+        Seq(),
         Seq(
           PatternFunction(
             None,
@@ -793,7 +797,9 @@ class CoreParserTest extends AnyFunSuite {
          |""".stripMargin,
       Module(
         Name("my"),
+        Seq(),
         Seq(Import(Name("math"))),
+        Seq(),
         Seq(
           PatternFunction(
             None,
@@ -820,6 +826,8 @@ class CoreParserTest extends AnyFunSuite {
       Module(
         Name("my"),
         Seq(),
+        Seq(),
+        Seq(),
         Seq(
           PatternFunction(
             None,
@@ -841,6 +849,8 @@ class CoreParserTest extends AnyFunSuite {
       Module(
         Name("my"),
         Seq(),
+        Seq(),
+        Seq(),
         Seq()
       )
     )
@@ -856,6 +866,8 @@ class CoreParserTest extends AnyFunSuite {
       Module(
         Name("my"),
         Seq(),
+        Seq(),
+        Seq(),
         Seq(ValDef(None, Name("x"), None, Constant(IntLiteral(1))))
       )
     )
@@ -865,6 +877,8 @@ class CoreParserTest extends AnyFunSuite {
          |""".stripMargin,
       Module(
         Name("my"),
+        Seq(),
+        Seq(),
         Seq(),
         Seq(ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))))
       )
@@ -876,6 +890,8 @@ class CoreParserTest extends AnyFunSuite {
          |""".stripMargin,
       Module(
         Name("my"),
+        Seq(),
+        Seq(),
         Seq(),
         Seq(
           ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))),

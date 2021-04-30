@@ -1,11 +1,14 @@
 package inca.analyzedLangs
 
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import truechange.{JavaLitType, ListType, SortType}
 
 import scala.collection.immutable.MultiDict
 
 package object tinyJava {
+
+
+
   val classDeclTag = classOf[ClassDeclaration].getCanonicalName
   val classDeclType = SortType(classDeclTag)
   val classMemberTag = classOf[ClassMember].getCanonicalName
@@ -21,21 +24,12 @@ package object tinyJava {
   val publicVisTag = classOf[PublicVisibility].getCanonicalName
   val publicVisType = SortType(publicVisTag)
 
-  val langMetaInfo = new LanguageMetaInfo(
-    MultiDict(
-      fieldDeclType -> classMemberType,
-      privateVisType -> visType,
-      protectedVisType -> visType,
-      publicVisType -> visType
-    ),
-    Map(
-      (classDeclTag->"members") -> ListType(classMemberType),
-      (fieldDeclTag->"visibility") -> visType
-    ),
-    Map(
-      (classDeclTag->"name") -> JavaLitType(classOf[java.lang.String]),
-      (classDeclTag->"isFinal") -> JavaLitType(classOf[java.lang.Boolean]),
-      (fieldDeclTag->"name") -> JavaLitType(classOf[java.lang.String])
-    )
-  )
+  val model = DataModel.from(
+    ClassDeclaration,
+    ClassMember,
+    FieldDeclaration,
+    Visibility,
+    PublicVisibility,
+    ProtectedVisibility,
+    PrivateVisibility)
 }

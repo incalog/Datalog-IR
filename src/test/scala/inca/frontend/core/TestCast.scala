@@ -16,11 +16,12 @@ class TestCast extends AnyFlatSpec with IncaMatchers {
   val one = Constant(IntLiteral(1))
   val two = Constant(IntLiteral(2))
 
-  val scope: QueryScope = new QueryScope(Exp.languageMetaInfo)
-  val options: Options = Options(scope.langMetaInfo, Frontend.Core)
+  val dataModel = Exp.model
+  val scope: QueryScope = new QueryScope(Exp.model)
+  val options: Options = Options()
   
   "compiler" should "implement cast semantics" in {
-    val module = Module("Test_Cast", Seq(), Seq(
+    val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
       PatternFunction(None, "integerlits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
         Values("e", TNode(Exp.expTag)),
         Yield(Cast(Var("e"), TNode(Exp.intTag)))

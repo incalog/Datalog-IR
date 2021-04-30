@@ -18,24 +18,25 @@ trait Typechecker extends CoreTypechecker {
       if (cases.isEmpty)
         NoYield
       else
-        ctys.reduce(stmMeet(_, _, lang))
+        ctys.reduce(stmMeet(_, _, dataModel))
 
     case _ => super.typecheckInternal(stm, mustYield)
   }
 
   def typecheckPattern(pattern: Pattern, matchee: Type): Unit = pattern match {
     case NodePattern(node, bindings) =>
-      if (meet(node, matchee, lang) == TNothing)
+      validType(node)
+      if (meet(node, matchee, dataModel) == TNothing)
         warn(s"Type of pattern $node unrelated type to matchee type $matchee", pattern)
 
       bindings.foreach { case b@PatternBinding(field, pattern) =>
         assignType(b) {
-          lang.links.get(node.name -> field.name) match {
+          dataModel.links.get(node.name -> field.name) match {
             case Some(trueType) =>
               val ty = truechangeTypeToType(trueType)
               typecheckPattern(pattern, ty)
               ty
-            case None => lang.litLinks.get(node.name -> field.name) match {
+            case None => dataModel.litLinks.get(node.name -> field.name) match {
               case Some(trueLitType) =>
                 val ty = TLiteral(trueLitType)
                 typecheckPattern(pattern, ty)
@@ -69,7 +70,7 @@ trait Typechecker extends CoreTypechecker {
 
         import scala.meta.parsers._
         val expected = decode(tyString.parse[meta.Type].get)
-        if (meet(expected, matchee, lang) == TNothing)
+        if (meet(expected, matchee, dataModel) == TNothing)
           warn(s"Type of pattern $fun unrelated type to matchee type $matchee", pattern)
       } else {
         val funTyString = typecheckScala(s"${fun.code.tree}.unapply _") match {
@@ -91,7 +92,7 @@ trait Typechecker extends CoreTypechecker {
             (matchee, Seq(decode(ty)))
         }
 
-        if (meet(expected, matchee, lang) == TNothing)
+        if (meet(expected, matchee, dataModel) == TNothing)
           warn(s"Type of pattern $fun unrelated type to matchee type $matchee", pattern)
         if (params.size != args.size)
           error(s"Function $fun expects ${params.size} arguments, but found ${args.size} arguments in pattern", pattern)
@@ -139,7 +140,7 @@ trait Typechecker extends CoreTypechecker {
       // nothing
     case LiteralPattern(v) =>
       val ty = typecheckLiteral(v)
-      if (meet(ty, matchee, lang) == TNothing)
+      if (meet(ty, matchee, dataModel) == TNothing)
         warn(s"Type of pattern $ty unrelated type to matchee type $matchee", pattern)
   }
 }

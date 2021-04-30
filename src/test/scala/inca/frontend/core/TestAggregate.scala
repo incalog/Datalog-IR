@@ -14,13 +14,14 @@ import scala.language.implicitConversions
 import scala.meta.XtensionQuasiquoteTerm
 
 class TestAggregate extends AnyFlatSpec with IncaMatchers {
-  val scope = new QueryScope(Exp.languageMetaInfo)
-  val options = Options(scope.langMetaInfo)
+  val scope = new QueryScope(Exp.model)
+  val options = Options()
+  val dataModel = Exp.model
 
   implicit def name(s: String): Name = Name(s)
 
   "aggregate" should "support non-invertible joins" in {
-    val module = Module("Test_Cast", Seq(), Seq(
+    val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
       PatternFunction(None, "1_to_10", Seq(), NatTyp, Seq(
         Body(Seq(Yield(EvalCall(succOp, Seq(Eval(Seq(), zeroOp)))))),
         Body(
@@ -48,7 +49,7 @@ class TestAggregate extends AnyFlatSpec with IncaMatchers {
   }
 
   "aggregate" should "support invertible joins" in {
-    val module = Module("Test_Cast", Seq(), Seq(
+    val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
       PatternFunction(None, "1_to_10", Seq(), NatTyp, Seq(
         Body(Seq(Yield(EvalCall(succOp, Seq(Eval(Seq(), zeroOp)))))),
         Body(
@@ -76,7 +77,7 @@ class TestAggregate extends AnyFlatSpec with IncaMatchers {
   }
 
   "aggregate" should "support non-invertible joins 2" in {
-    val module = Module("Test_Cast", Seq(), Seq(
+    val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
       ScalaModuleContent(Scala(q"import inca.analyzedData.Nat.sumAgg")),
       ScalaModuleContent(Scala(q"val nine = 9")),
       ScalaModuleContent(Scala(q"object One { val num = 1 }")),
