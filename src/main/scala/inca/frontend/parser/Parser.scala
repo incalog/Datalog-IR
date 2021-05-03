@@ -248,7 +248,7 @@ trait Parser {
 
   protected[frontend] def atomicType[_: P]: P[Type] =
     P(tTuple | simpleType("Any", TAny) | simpleType("Nothing", TNothing) | simpleType("Unit", TTuple(Seq())) |
-      tOption | tSet | tData | scalaType)
+      tOption | tSet | scalaType | tData)
 
   /** Helper for the Type like TAny. */
   protected[frontend] def simpleType[_: P, Ty <: Type](s: String, t: Ty): P[Ty] =
@@ -268,7 +268,13 @@ trait Parser {
   protected[frontend] def tData[_: P]: P[TData] = P(identifier.!).map(s => TData(Name(s)))
 
   protected[frontend] def scalaType[_: P]: P[Type] =
-    P("`" ~~ scalaTypeCore ~~ "`")
+    P("`" ~~ scalaTypeCore ~~ "`") |
+      P("Int").mapWithLoc(_ => TScalaInt) |
+      P("Long").mapWithLoc(_ => TScalaLong) |
+      P("String").mapWithLoc(_ => TScalaString) |
+      P("Boolean").mapWithLoc(_ => TScalaBoolean) |
+      P("Double").mapWithLoc(_ => TScalaDouble)
+
 
   protected[frontend] def tOption[_: P]: P[Type] =
     P("Option" ~ "[" ~ typeAnno ~ "]").mapWithLoc(TOption)

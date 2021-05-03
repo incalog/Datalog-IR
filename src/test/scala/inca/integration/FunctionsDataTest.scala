@@ -20,7 +20,7 @@ class FunctionsDataTest extends AnyFunSuite {
 
   test("graph example with functions as predicates") {
     val code = s"""module Test
-                  |data Node = BusStation(`String`, `Int`) | TrainStation(`String`, `Int`) | NoStation()
+                  |data Node = BusStation(String, Int) | TrainStation(String, Int) | NoStation()
                   |
                   |def stations(): Set[Node] = { TrainStation("A", 10), BusStation("B", 5), BusStation("C", 2) }
                   |
@@ -30,7 +30,7 @@ class FunctionsDataTest extends AnyFunSuite {
                   |  case NoStation() => false
                   |}
                   |
-                  |def capacity(n: Node): `Int` = n match {
+                  |def capacity(n: Node): Int = n match {
                   |  case BusStation(name, cap) => cap
                   |  case TrainStation(name, cap) => cap
                   |  case NoStation() => -1

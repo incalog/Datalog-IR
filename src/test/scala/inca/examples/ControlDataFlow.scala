@@ -2,13 +2,13 @@ package inca.examples
 
 object ControlDataFlow {
   val AST_code =
-    s"""data Exp = Var(`String`) |
-       |           Num(`Int`) |
+    s"""data Exp = Var(String) |
+       |           Num(Int) |
        |           GreaterThan(Exp, Exp) |
        |           Mul(Exp, Exp) |
        |           Add(Exp, Exp) |
        |           Sub(Exp, Exp)
-       |data Stm = Assign(`String`, Exp) | Skip() | Sequence(Stm, Stm) | If(Exp, Stm, Stm) | While(Exp, Stm)
+       |data Stm = Assign(String, Exp) | Skip() | Sequence(Stm, Stm) | If(Exp, Stm, Stm) | While(Exp, Stm)
        |""".stripMargin
 
   val initFunction =
@@ -88,7 +88,7 @@ object ControlDataFlow {
        |  case Sub(e1, e2) => false
        |}
        |
-       |def varName(exp: Exp): `String` = exp match {
+       |def varName(exp: Exp): String = exp match {
        |  case Var(s) => s
        |  case Num(i) => ""
        |  case GreaterThan(e1, e2) => ""
@@ -97,10 +97,10 @@ object ControlDataFlow {
        |  case Sub(e1, e2) => ""
        |}
        |
-       |def freevars(exp: Exp): Set[`String`] =
+       |def freevars(exp: Exp): Set[String] =
        |  {varName(e) | e in findExps(exp, isVar)}
        |
-//       |def freevars(exp: Exp): Set[`String`] = exp match {
+//       |def freevars(exp: Exp): Set[String] = exp match {
 //       |  case Var(s) => {s}
 //       |  case Num(i) => {}
 //       |  case GreaterThan(e1, e2) => freevars(e1) ++ freevars(e2)
@@ -108,7 +108,7 @@ object ControlDataFlow {
 //       |  case Add(e1, e2) => freevars(e1) ++ freevars(e2)
 //       |  case Sub(e1, e2) => freevars(e1) ++ freevars(e2)
 //       |}
-       |def notFreeIn(x: `String`, exp: Exp): `Boolean` = exp match {
+       |def notFreeIn(x: String, exp: Exp): `Boolean` = exp match {
        |  case Var(s) => x != s
        |  case Num(i) => true
        |  case GreaterThan(e1, e2) => notFreeIn(x, e1) && notFreeIn(x, e2)
@@ -116,7 +116,7 @@ object ControlDataFlow {
        |  case Add(e1, e2) => notFreeIn(x, e1) && notFreeIn(x, e2)
        |  case Sub(e1, e2) => notFreeIn(x, e1) && notFreeIn(x, e2)
        |}
-       |@main def freevarsStm(stm: Stm): Set[`String`] = stm match {
+       |@main def freevarsStm(stm: Stm): Set[String] = stm match {
        |  case Assign(x, a) => freevars(a) // weird, but in accordance with POPA
        |  case Skip() => {}
        |  case Sequence(s1, s2) => freevarsStm(s1) ++ freevarsStm(s2)
@@ -196,7 +196,7 @@ object ControlDataFlow {
     s"""
        |data MaybeDef = Undef() | Def(Stm)
        |
-       |def retain_RD(stm: Stm, x: `String`): `Boolean` = stm match {
+       |def retain_RD(stm: Stm, x: String): `Boolean` = stm match {
        |  case Assign(y, a) => x != y
        |  case Skip() => true
        |  case Sequence(s1, s2) => true
@@ -204,7 +204,7 @@ object ControlDataFlow {
        |  case While(c, s) => true
        |}
        |
-       |def gen_RD(stm: Stm): Set[(`String`,MaybeDef)] = stm match {
+       |def gen_RD(stm: Stm): Set[(String,MaybeDef)] = stm match {
        |  case Assign(x, a) => {(x, Def(stm))}
        |  case Skip() => {}
        |  case Sequence(s1, s2) => {}
@@ -212,20 +212,20 @@ object ControlDataFlow {
        |  case While(c, s) => {}
        |}
        |
-       |def entry_RD(stm: Stm, prog: Stm): Set[(`String`,MaybeDef)] =
+       |def entry_RD(stm: Stm, prog: Stm): Set[(String,MaybeDef)] =
        |  if (stm == init(prog))
        |    {(x, Undef()) | x in freevarsStm(prog)}
        |  else
        |    {(x,d) | (pred, stm) in flow(prog), (x,d) in exit_RD(pred, prog)}
        |
-       |def exit_RD(stm: Stm, prog: Stm): Set[(`String`,MaybeDef)] =
+       |def exit_RD(stm: Stm, prog: Stm): Set[(String,MaybeDef)] =
        |  gen_RD(stm) ++ {(x,d) | (x,d) in entry_RD(stm, prog), retain_RD(stm, x)}
        |
-       |@main def final_RD(prog: Stm): Set[(`String`,MaybeDef)] =
+       |@main def final_RD(prog: Stm): Set[(String,MaybeDef)] =
        |  {(x,a) | s in final(prog), (x,a) in exit_RD(s, prog)}
-       |@main def allEntries_RD(prog: Stm): Set[(Stm, `String`, MaybeDef)] =
+       |@main def allEntries_RD(prog: Stm): Set[(Stm, String, MaybeDef)] =
        |  {(s, x, d) | s in Stm, (x, d) in entry_RD(s, prog)}
-       |@main def allExits_RD(prog: Stm): Set[(Stm, `String`, MaybeDef)] =
+       |@main def allExits_RD(prog: Stm): Set[(Stm, String, MaybeDef)] =
        |  {(s, x, d) | s in Stm, (x, d) in exit_RD(s, prog)}
        |""".stripMargin
 
@@ -240,7 +240,7 @@ object ControlDataFlow {
   )
 
   val intervals =
-    """data Interval = IV(`Int`, `Int`) | TopInterval()
+    """data Interval = IV(Int, Int) | TopInterval()
       |data Bool = True() | False() | TopBool()
       |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
       |
@@ -289,11 +289,11 @@ object ControlDataFlow {
       |  case TopBool() => TopBool()
       |}
       |
-      |def entry_var(stm: Stm, prog: Stm, x: `String`): Val =
+      |def entry_var(stm: Stm, prog: Stm, x: String): Val =
       |  fold(BotVal(), joinVal,
       |    {exit_var(pred, prog, x) | (pred,stm) in flow(prog)})
       |
-      |def exit_var(stm: Stm, prog: Stm, x: `String`): Val = stm match {
+      |def exit_var(stm: Stm, prog: Stm, x: String): Val = stm match {
       |  case Assign(y, exp) =>
       |    if (x == y)
       |      aeval(exp, stm, prog)
@@ -305,9 +305,9 @@ object ControlDataFlow {
       |  case While(c, s) => entry_var(stm, prog, x)
       |}
       |
-      |def exit_var_external(stm: Stm, prog: Stm, x: `String`): Val =
+      |def exit_var_external(stm: Stm, prog: Stm, x: String): Val =
       |  fold(BotVal(), joinVal, {exit_var(stm, prog, x)})
-      |@main def final_var(prog: Stm): Set[(`String`,Val)] =
+      |@main def final_var(prog: Stm): Set[(String,Val)] =
       |  {(x, exit_var_external(s, prog, x)) | s in final(prog), x in freevarsStm(prog)}
       |
       |def aeval(exp: Exp, node: Stm, prog: Stm): Val = exp match {
@@ -425,11 +425,11 @@ object ControlDataFlow {
   )
 
   val aeval =
-    """data Interval = IV(`Int`, `Int`) | TopInterval()
+    """data Interval = IV(Int, Int) | TopInterval()
       |data Bool = True() | False() | TopBool()
       |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
       |
-      |def entry_var(stm: Stm, prog: Stm, x: `String`): Val = TopVal()
+      |def entry_var(stm: Stm, prog: Stm, x: String): Val = TopVal()
       |
       |@main def aeval(exp: Exp, node: Stm, prog: Stm): Val = exp match {
       |  case Var(x) => entry_var(node, prog, x)

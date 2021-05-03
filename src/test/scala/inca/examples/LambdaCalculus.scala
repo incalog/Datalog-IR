@@ -10,28 +10,28 @@ object LambdaCalculus {
     s"""data MaybeType = NoType() | SomeType(Type)
        |""".stripMargin
   val TExp_code =
-    s"""data TExp = TNum(`Int`) | TLam(`String`, Type, TExp) | TApp(TExp, TExp) | TVar(`String`)
+    s"""data TExp = TNum(Int) | TLam(String, Type, TExp) | TApp(TExp, TExp) | TVar(String)
        |""".stripMargin
   val Ctx_code =
-    s"""data Ctx = EmptyCtx() | BindCtx(`String`, Type, Ctx)
+    s"""data Ctx = EmptyCtx() | BindCtx(String, Type, Ctx)
        |""".stripMargin
 
   val Exp_code =
-    s"""data Exp = Num(`Int`) | Lam(`String`, Exp) | App(Exp, Exp) | Var(`String`)
+    s"""data Exp = Num(Int) | Lam(String, Exp) | App(Exp, Exp) | Var(String)
        |""".stripMargin
 
   val Env_code =
-    s"""data Env = EmptyEnv() | BindEnv(`String`, Val, Env)
+    s"""data Env = EmptyEnv() | BindEnv(String, Val, Env)
        |""".stripMargin
   val Val_code =
-    s"""data Val = VNum(`Int`) | VClosure(`String`, Exp, Env)
+    s"""data Val = VNum(Int) | VClosure(String, Exp, Env)
        |""".stripMargin
   val MaybeVal_code =
     s"""data MaybeVal = NoVal() | SomeVal(Val)
        |""".stripMargin
 
   val Val2_code =
-    s"""data Val = VNum(`Int`) | VFun(`String`, Exp)
+    s"""data Val = VNum(Int) | VFun(String, Exp)
        |""".stripMargin
 
 
@@ -132,7 +132,7 @@ object LambdaCalculus {
        |""".stripMargin
 
   val ctxLookupFunction =
-    s"""def ctxLookup(ctx: Ctx, n: `String`): MaybeType = ctx match {
+    s"""def ctxLookup(ctx: Ctx, n: String): MaybeType = ctx match {
        |  case EmptyCtx() => NoType()
        |  case BindCtx(n1, ty, rest) =>
        |    if (n1 == n) SomeType(ty)
@@ -141,7 +141,7 @@ object LambdaCalculus {
        |""".stripMargin
 
   val ctxLookupRelation =
-    s"""def ctxLookup(ctx: Ctx, n: `String`): Option[Type] = ctx match {
+    s"""def ctxLookup(ctx: Ctx, n: String): Option[Type] = ctx match {
        |  case EmptyCtx() => None
        |  case BindCtx(n1, ty, rest) =>
        |    if (n1 == n) Some(ty)
@@ -222,7 +222,7 @@ object LambdaCalculus {
        |""".stripMargin
 
   val envLookupFunction =
-    s"""def envLookup(env: Env, n: `String`): MaybeVal = env match {
+    s"""def envLookup(env: Env, n: String): MaybeVal = env match {
        |  case EmptyEnv() => NoVal()
        |  case BindEnv(n1, v, rest) =>
        |    if (n1 == n) SomeVal(v)

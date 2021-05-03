@@ -9,22 +9,22 @@ object Code {
        |""".stripMargin
 
   val baseExample: String = module(
-    s"""@main def main(): `Int` = `7 + (12 * 3)`
+    s"""@main def main(): Int = `7 + (12 * 3)`
        |""".stripMargin
   )
 
   val baseExample2a: String = module(
-    s"""@main def main(): `Int` = `7` + (`12` * `3`)
+    s"""@main def main(): Int = `7` + (`12` * `3`)
        |""".stripMargin
   )
 
   val baseExample2b: String = module(
-    s"""@main def main(): `Int` = 7 + (12 * 3)
+    s"""@main def main(): Int = 7 + (12 * 3)
        |""".stripMargin
   )
 
   val varExample: String = module(
-    s"""@main def main(): `Int` =
+    s"""@main def main(): Int =
        |  let x = 7 in
        |    let y = 3 in
        |      x + (12 * y)
@@ -32,7 +32,7 @@ object Code {
   )
 
   val ifExample: String = module(
-    s"""@main def main(): `Int` =
+    s"""@main def main(): Int =
        |  let x = 7 in
        |    if (x > 0)
        |      x
@@ -42,7 +42,7 @@ object Code {
   )
 
   val ifExample2: String = module(
-    s"""@main def main(): `Int` =
+    s"""@main def main(): Int =
        |  let x = 7 in
        |    let y = -3 in
        |      (if (x > 0) x else x * -1) + (if (y > 0) y else y * -1)
@@ -50,18 +50,18 @@ object Code {
   )
 
   val incModule: String = module(
-    s"""def inc(n: `Int`): `Int` = n + 1""",
-    s"""@main def main(): `Int` = inc(0)"""
+    s"""def inc(n: Int): Int = n + 1""",
+    s"""@main def main(): Int = inc(0)"""
   )
 
   val factModule: String =
     s"""module Main
-       |def fact(n: `Int`): `Int` =
+       |def fact(n: Int): Int =
        |  if (n == 1)
        |    1
        |  else
        |    n * fact(n - 1)
-       |@main def main(n: `Int`): `Int` =
+       |@main def main(n: Int): Int =
        |  fact(n)
        |""".stripMargin
 
@@ -100,9 +100,9 @@ object Code {
 
   val fibModule: String =
     s"""module Fib
-       |@main def main(n: `Int`): `Int` =
+       |@main def main(n: Int): Int =
        |  fib(n)
-       |def fib(n: `Int`): `Int` =
+       |def fib(n: Int): Int =
        |  if (n == 0)
        |    0
        |  else if (n == 1)
@@ -115,39 +115,39 @@ object Code {
   val setConstModule: String =
     s"""module Foo
        |
-       |@main def flip: Set[`Int`] = {0, 1}
-       |@main def grades: Set[`String`] = {"1.0", "1.3", "1.7", "2.0", "2.3", "2.7", "3.0", "3.3", "3.7", "4.0", "5.0"}
+       |@main def flip: Set[Int] = {0, 1}
+       |@main def grades: Set[String] = {"1.0", "1.3", "1.7", "2.0", "2.3", "2.7", "3.0", "3.3", "3.7", "4.0", "5.0"}
        |
        |""".stripMargin
 
   val setOperationsModule: String =
     s"""module Foo
        |
-       |def flip: Set[`Int`] = {0, 1}
-       |def grades: Set[`String`] = {"1.0", "1.3", "1.7", "2.0", "2.3", "2.7", "3.0", "3.3", "3.7", "4.0", "5.0"}
+       |def flip: Set[Int] = {0, 1}
+       |def grades: Set[String] = {"1.0", "1.3", "1.7", "2.0", "2.3", "2.7", "3.0", "3.3", "3.7", "4.0", "5.0"}
        |
        |def member: `Boolean` = "1.0" in grades()
-       |def union: Set[`Int`] = flip() ++ flip()
+       |def union: Set[Int] = flip() ++ flip()
        |
-       |def const: Set[`Int`] = {0 | true}
-       |def enum: Set[`String`] = {g | g in grades()}
-       |def project: Set[`String`] = { (g + " grade") | g in grades()}
-       |def filter: Set[`String`] = { g | g in grades(), g < "3.0" }
-       |def cross: Set[(`Int`, `String`)] = { (i,g) | i in flip(), g in grades() }
+       |def const: Set[Int] = {0 | true}
+       |def enum: Set[String] = {g | g in grades()}
+       |def project: Set[String] = { (g + " grade") | g in grades()}
+       |def filter: Set[String] = { g | g in grades(), g < "3.0" }
+       |def cross: Set[(Int, String)] = { (i,g) | i in flip(), g in grades() }
        |""".stripMargin
 
   val simpleFoldIntModule: String =
     s"""module Foo
        |
-       |def add(n1: `Int`, n2: `Int`): `Int` = n1 + n2
+       |def add(n1: Int, n2: Int): Int = n1 + n2
        |
-       |def fromTo(start: `Int`, end: `Int`): Set[`Int`] =
+       |def fromTo(start: Int, end: Int): Set[Int] =
        |  if (start > end)
        |    {}
        |  else
        |    {start} ++ fromTo(start + 1, end)
        |
-       |@main def sum(start: `Int`, end: `Int`): `Int` =
+       |@main def sum(start: Int, end: Int): Int =
        |  fold(0, add, fromTo(start, end))
        |
        |""".stripMargin
@@ -155,7 +155,7 @@ object Code {
   val simpleFoldModule: String =
     s"""module Foo
        |
-       |data Num = V(`Int`)
+       |data Num = V(Int)
        |
        |def add(n1: Num, n2: Num): Num = n1 match {
        |  case V(i1) => n2 match {
@@ -163,13 +163,13 @@ object Code {
        |  }
        |}
        |
-       |def fromTo(start: `Int`, end: `Int`): Set[Num] =
+       |def fromTo(start: Int, end: Int): Set[Num] =
        |  if (start > end)
        |    {}
        |  else
        |    {V(start)} ++ fromTo(start + 1, end)
        |
-       |@main def sum(start: `Int`, end: `Int`): Num =
+       |@main def sum(start: Int, end: Int): Num =
        |  fold(V(0), add, fromTo(start, end))
        |
        |""".stripMargin

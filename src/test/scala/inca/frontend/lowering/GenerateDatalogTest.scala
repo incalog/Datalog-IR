@@ -234,9 +234,9 @@ class GenerateDatalogTest extends AnyFunSuite {
 //  test("running example for section 5") {
 //    val result = Compiler.compileFun(
 //      s"""module Test
-//         |data Node = BusStation(`String`) | TrainStation(`String`)
+//         |data Node = BusStation(String) | TrainStation(String)
 //         |
-//         |def Edges(): Set[(Node, Node, `Int`)] = {
+//         |def Edges(): Set[(Node, Node, Int)] = {
 //         |  (TrainStation("A"), BusStation("B"), 12),
 //         |  (TrainStation("A"), BusStation("C"), 5),
 //         |  (TrainStation("D"), BusStation("B"), 145),

@@ -120,8 +120,8 @@ class TypecheckerTest extends AnyFunSuite {
 
 //  test("emptiness check 1") {
 //    val module = Frontend.Core.parseModule(Code.module(
-//      s"""def foo(i: `Int`): Option[`Int`] = bar(i)
-//         |@main def bar(i: `Int`): Option[`Int`] = foo(i) match {
+//      s"""def foo(i: Int): Option[Int] = bar(i)
+//         |@main def bar(i: Int): Option[Int] = foo(i) match {
 //         |  case None => None
 //         |  case Some(j) => Some(i)
 //         |}
@@ -135,8 +135,8 @@ class TypecheckerTest extends AnyFunSuite {
 //
 //  test("emptiness check 2") {
 //    val module = Frontend.Core.parseModule(Code.module(
-//      s"""def foo(i: `Int`): Option[`Int`] = bar(i)
-//         |def bar(i: `Int`): Option[`Int`] = foo(i) match {
+//      s"""def foo(i: Int): Option[Int] = bar(i)
+//         |def bar(i: Int): Option[Int] = foo(i) match {
 //         |  case None => Some(0)
 //         |  case Some(j) => Some(i)
 //         |}
@@ -147,9 +147,9 @@ class TypecheckerTest extends AnyFunSuite {
 //
 //  test("emptiness check 2b") {
 //    val module = Frontend.Core.parseModule(Code.module(
-//      s"""def foo(i: `Int`): Option[`Int`] = Some(1)
-//         |def irr(i: `Int`): Option[`Int`] = bar(i)
-//         |@main def bar(i: `Int`): Option[`Int`] = let x = irr(i) in foo(i) match {
+//      s"""def foo(i: Int): Option[Int] = Some(1)
+//         |def irr(i: Int): Option[Int] = bar(i)
+//         |@main def bar(i: Int): Option[Int] = let x = irr(i) in foo(i) match {
 //         |  case None => Some(0)
 //         |  case Some(j) => Some(i)
 //         |}
@@ -164,9 +164,9 @@ class TypecheckerTest extends AnyFunSuite {
 //
 //  test("emptiness check 3") {
 //    val module = Frontend.Core.parseModule(Code.module(
-//      s"""def foo(i: `Int`): Option[`Int`] = bar(i)
-//         |def baz(i: `Int`): Option[`Int`] = foo(i)
-//         |def bar(i: `Int`): Option[`Int`] = baz(i) match {
+//      s"""def foo(i: Int): Option[Int] = bar(i)
+//         |def baz(i: Int): Option[Int] = foo(i)
+//         |def bar(i: Int): Option[Int] = baz(i) match {
 //         |  case None => Some(0)
 //         |  case Some(j) => Some(i)
 //         |}
@@ -177,9 +177,9 @@ class TypecheckerTest extends AnyFunSuite {
 //
 //  test("emptiness check 4") {
 //    val module = Frontend.Core.parseModule(Code.module(
-//      s"""def foo(i: `Int`): Option[`Int`] = Some(1)
-//         |def baz(i: `Int`): Option[`Int`] = Some(5)
-//         |@main def bar(i: `Int`): Option[`Int`] = baz(i) match {
+//      s"""def foo(i: Int): Option[Int] = Some(1)
+//         |def baz(i: Int): Option[Int] = Some(5)
+//         |@main def bar(i: Int): Option[Int] = baz(i) match {
 //         |  case None => Some(0)
 //         |  case Some(j) => let x = bar(i) in bar(i)
 //         |}
@@ -194,9 +194,9 @@ class TypecheckerTest extends AnyFunSuite {
 //
 //  test("emptiness check 5") {
 //    val module = Frontend.Core.parseModule(Code.module(
-//      s"""@main def foo(i: `Int`): Option[`Int`] = let x = foo(i) in bar(i)
-//         |def baz(i: `Int`): Option[`Int`] = Some(5)
-//         |def bar(i: `Int`): Option[`Int`] = baz(i) match {
+//      s"""@main def foo(i: Int): Option[Int] = let x = foo(i) in bar(i)
+//         |def baz(i: Int): Option[Int] = Some(5)
+//         |def bar(i: Int): Option[Int] = baz(i) match {
 //         |  case None => Some(0)
 //         |  case Some(j) => Some(i)
 //         |}

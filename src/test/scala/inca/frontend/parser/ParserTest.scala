@@ -76,10 +76,10 @@ class ParserTest extends AnyFunSuite {
 
   test("FunctionDef test") {
     val funDef = FunctionDef(Seq(), None, Name("foo"), Seq(Param(Name("x"), TScala("Int"))), TScala("Int"), If(Var("x"), BaseLit(Scala(q"1")), BaseLit(Scala(q"2"))))
-    testSuccess(parser.functionDef(_))("def foo(x: `Int`): `Int` = if (x) `1` else `2`", funDef)
+    testSuccess(parser.functionDef(_))("def foo(x: Int): Int = if (x) `1` else `2`", funDef)
 
     val annoFunDef = FunctionDef(Seq(MainFunctionAnno), None, Name("foo"), Seq(Param(Name("x"), TScala("Int"))), TScala("Int"), If(Var("x"), BaseLit(Scala(q"1")), BaseLit(Scala(q"2"))))
-    val annoFunString = "@main def foo(x: `Int`): `Int` = if (x) `1` else `2`"
+    val annoFunString = "@main def foo(x: Int): Int = if (x) `1` else `2`"
     parse(annoFunString, parser.functionDef(_)) match {
       case Success(value, _) =>
         assert(value == annoFunDef)
@@ -99,7 +99,7 @@ class ParserTest extends AnyFunSuite {
       Seq(
         DataConstructor(Name("Num"), Seq(TScala("Int"))),
         DataConstructor(Name("Add"), Seq(TData(Name("Exp")), TData(Name("Exp"))))))
-    testSuccess(parser.dataDef(_))("data Exp = Num(`Int`) | Add(Exp, Exp)", expDef)
+    testSuccess(parser.dataDef(_))("data Exp = Num(Int) | Add(Exp, Exp)", expDef)
   }
 
   test("Expression test") {
