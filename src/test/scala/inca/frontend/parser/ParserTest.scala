@@ -179,6 +179,14 @@ class ParserTest extends AnyFunSuite {
     testSuccessAny(parser.module(_))(HigherOrder.composeLambdas)
   }
 
+  test("transitiveWrong") {
+    testSuccessAny(parser.module(_))(HigherOrder.transitiveWrong)
+  }
+
+  test("transitive") {
+    testSuccessAny(parser.module(_))(HigherOrder.transitive)
+  }
+
   test("data types") {
     testSuccessAny(parser.module(_))(
       s"""module Main

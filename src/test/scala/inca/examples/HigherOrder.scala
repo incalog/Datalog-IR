@@ -59,14 +59,6 @@ object HigherOrder {
        |
        |@main def main(): Set[(Int, Int)] =
        |  transitive({(1,2), (2,3), (3,1)})
-       |
-       |def elems(l: List[Int]): Set[Int] = l match {
-       |  case Nil() => {}
-       |  case Cons(i, is) => {i} ++ elems(is)
-       |}
-       |
-       |def asList(set: () => Set[Int]): List[Int] =
-       |  fold(Nil(), concat, {Cons(i, Nil()) | i in set()})
        |""".stripMargin
 
   val transitive: String =
