@@ -20,6 +20,9 @@ trait Parser {
     Set("if", "let", "in", "match", "fail") ++
       Set("Option", "None", "Some", "Set", "fold")
 
+  def nochar[_: P]: P[Unit] =
+    P(!CharIn("a-z", "A-Z", "0-9", "_"))
+
   def identifier[_: P]: P[Name] =
     P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_").repX).!).mapWithLoc { s =>
       if (allKeywords.contains(s)) return fastparse.Fail
@@ -126,7 +129,7 @@ trait Parser {
     P("(" ~ (identifier ~ ":" ~ typeAnno).rep(sep = ",") ~ ")")
 
   protected[frontend] def optionExp[_: P]: P[Expression] = {
-    P("None").mapWithLoc(_ => NoneExp()) |
+    P("None" ~~ nochar).mapWithLoc(_ => NoneExp()) |
     P("Some" ~ "(" ~ exp.rep(sep = ",") ~ ")").mapWithLoc {
       case Seq(arg) => SomeExp(arg)
       case args => Call(Var(Name("Some")), args)
@@ -152,7 +155,7 @@ trait Parser {
   }
 
   protected[frontend] def optionPattern[_: P]: P[Pattern] =
-    P("None").mapWithLoc(_ => NonePattern()) |
+    P("None" ~~ nochar).mapWithLoc(_ => NonePattern()) |
     P("Some" ~ "(" ~ identifier.rep(sep = ",") ~")").mapWithLoc {
       case Seq(arg) => SomePattern(arg)
       case args => ConstructorPattern(Name("Some"), args)
@@ -252,7 +255,7 @@ trait Parser {
 
   /** Helper for the Type like TAny. */
   protected[frontend] def simpleType[_: P, Ty <: Type](s: String, t: Ty): P[Ty] =
-    P(s).map(_ => t)
+    P(s ~~ nochar).map(_ => t)
 
   protected[frontend] def funType[_: P]: P[Type] =
     P(atomicType ~  "=>" ~ typeAnno).mapWithLoc {
@@ -269,11 +272,11 @@ trait Parser {
 
   protected[frontend] def scalaType[_: P]: P[Type] =
     P("`" ~~ scalaTypeCore ~~ "`") |
-      P("Int").mapWithLoc(_ => TScalaInt) |
-      P("Long").mapWithLoc(_ => TScalaLong) |
-      P("String").mapWithLoc(_ => TScalaString) |
-      P("Boolean").mapWithLoc(_ => TScalaBoolean) |
-      P("Double").mapWithLoc(_ => TScalaDouble)
+      P("Int" ~~ nochar).mapWithLoc(_ => TScalaInt) |
+      P("Long" ~~ nochar).mapWithLoc(_ => TScalaLong) |
+      P("String" ~~ nochar).mapWithLoc(_ => TScalaString) |
+      P("Boolean" ~~ nochar).mapWithLoc(_ => TScalaBoolean) |
+      P("Double" ~~ nochar).mapWithLoc(_ => TScalaDouble)
 
 
   protected[frontend] def tOption[_: P]: P[Type] =

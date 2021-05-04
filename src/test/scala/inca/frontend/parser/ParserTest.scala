@@ -179,6 +179,16 @@ class ParserTest extends AnyFunSuite {
     testSuccessAny(parser.module(_))(HigherOrder.composeLambdas)
   }
 
+  test("data types") {
+    testSuccessAny(parser.module(_))(
+      s"""module Main
+         |data Interval = IV(Int, Int) | TopInterval()
+         |data Bool = True() | False() | TopBool()
+         |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
+         |""".stripMargin
+    )
+  }
+
   private def testSuccess[T](parser: P[_] => P[Any]): (String, T) => Assertion =
     (input: String, cmp: T) => {
       parse(input, parser) match {
