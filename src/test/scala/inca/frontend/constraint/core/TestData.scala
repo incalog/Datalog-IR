@@ -1,18 +1,18 @@
 package inca.frontend.constraint.core
 
-import inca.IncaMatchers
 import inca.analyzedLangs.Exp
-import inca.compiler.Options
+import inca.compiler.ConstraintOptions
 import inca.frontend.constraint.core.tree._
 import inca.runtime.context.QueryScope
+import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.language.implicitConversions
 
-class TestData extends AnyFlatSpec with IncaMatchers {
+class TestData extends AnyFlatSpec with IncaConstraintMatchers {
   val dataModel = Exp.model
   val scope = new QueryScope(Exp.model)
-  val options = Options()
+  val options = ConstraintOptions()
 
   implicit def name(s: String): Name = Name(s)
 
@@ -27,7 +27,7 @@ class TestData extends AnyFlatSpec with IncaMatchers {
 
     val input = Exp.BooleanLit(true)
 
-    assertMatchFunCode(code, "zero", input, scope) { matcher =>
+    assertMatch(code, "zero", input) { matcher =>
       assert(matcher.getAllMatches.size() == 1)
     }
   }
@@ -43,7 +43,7 @@ class TestData extends AnyFlatSpec with IncaMatchers {
 
     val input = Exp.BooleanLit(true)
 
-    assertMatchFunCode(code, "one", input, scope) { matcher =>
+    assertMatch(code, "one", input) { matcher =>
       assert(matcher.getAllMatches.size() == 1)
     }
   }
@@ -66,7 +66,7 @@ class TestData extends AnyFlatSpec with IncaMatchers {
         |""".stripMargin
     val input = Exp.BooleanLit(true)
 
-    assertMatchFunCode(code, "range", input, scope) { matcher =>
+    assertMatch(code, "range", input) { matcher =>
       assert(matcher.getAllMatches.size() == 11)
     }
   }

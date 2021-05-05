@@ -2,13 +2,13 @@ package inca.compiler.functional
 
 import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
-import inca.compiler.{CompiledModule, CompilerFlags, Options, SourceLocation}
+import inca.compiler.{CompiledModule, CompilerFlags, FunctionalOptions, SourceLocation}
 import inca.frontend.functional.core.Module
 import inca.frontend.functional.lowering.{Defunctionalize, GenerateDataModel, GenerateDatalog}
 import inca.frontend.functional.typechecker.Typechecker
 import inca.runtime.context.DataModel
 
-case class CompiledFunctionalModule(fun: Module, options: Options) extends CompiledModule {
+case class CompiledFunctionalModule(fun: Module, options: FunctionalOptions) extends CompiledModule {
 
   override def name: Name = fun.name.name
 

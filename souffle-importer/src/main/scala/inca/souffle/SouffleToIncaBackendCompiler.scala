@@ -1,7 +1,7 @@
 package inca.souffle
 
 import inca.backend.ir.GP._
-import inca.compiler.Options
+import inca.compiler.ConstraintOptions
 import inca.runtime.context.DataModel
 import inca.runtime.context.DataModel.{Link => MLink}
 import inca.souffle.Syntax.{Type => _, _}
@@ -39,7 +39,7 @@ class SouffleToIncaBackendCompiler {
       inputs.values.toSeq.map { input => (decls(input.rule), input) },
       printSizes.toSeq,
       lang,
-      Options()
+      ConstraintOptions()
     )
   }
 

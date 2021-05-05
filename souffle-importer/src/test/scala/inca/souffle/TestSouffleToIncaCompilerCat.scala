@@ -1,11 +1,11 @@
 package inca.souffle
 
-import inca.IncaMatchers
 import inca.compiler.Options
 import inca.runtime.context.{DataModel, QueryScope}
+import inca.util.matchers.IncaGPMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 
-class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaMatchers {
+class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaGPMatchers {
 
 
   val catProgram: String =
@@ -59,8 +59,8 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaMatchers {
       "<sun.security.provider.MD4: int FF(int,int,int,int,int,int)>;FF;int,int,int,int,int,int;sun.security.provider.MD4;int;(IIIIII)I;6"
     val factsCompiler = new SouffleInputToEditscript("EMPTY")
     val edit = factsCompiler.compile(superclasses.split("\n").iterator, _MethodSig, ";")
-//    println(compiledModule.ir)
-    assertMatchGPEdit(compiledModule.ir, "Method_Descriptor", edit) { matcher =>
+
+    assertMatch(compiledModule.ir, "Method_Descriptor", edit) { matcher =>
       println(matcher.getAllMatches)
       assert(matcher.getAllMatches.size == 1)
     }

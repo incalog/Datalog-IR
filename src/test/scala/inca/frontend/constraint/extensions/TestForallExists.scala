@@ -1,18 +1,17 @@
 package inca.frontend.constraint.extensions
 
-import inca.IncaMatchers
 import inca.analyzedLangs.Exp
-import inca.compiler.Options
-import inca.frontend.constraint.core
+import inca.compiler.ConstraintOptions
 import inca.frontend.constraint.core.tree._
 import inca.frontend.constraint.extensions.forallExists.Trees._
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Meta.Scala
+import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.meta.XtensionQuasiquoteTerm
 
-class TestForallExists extends AnyFlatSpec with IncaMatchers {
+class TestForallExists extends AnyFlatSpec with IncaConstraintMatchers {
 
   implicit def name(s: String): Name = Name(s)
 
@@ -21,7 +20,7 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
 
   val dataModel = Exp.model
   val scope: QueryScope = new QueryScope(Exp.model)
-  val options: Options = Options()
+  val options: ConstraintOptions = ConstraintOptions()
 
 //  "desugaring" should "eliminate forall conds" in {
 //    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
@@ -82,11 +81,11 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchFunModule(module, "forallCond$0", input) { matcher =>
+    assertMatch(module, "forallCond$0", input) { matcher =>
       assert(matcher.getAllMatchArrays.size == 3)
     }
 
-    assertMatchFunModule(module, "intLists", input) { matcher =>
+    assertMatch(module, "intLists", input) { matcher =>
       assert(matcher.getAllMatchArrays.size == 1)
     }
   }
@@ -119,11 +118,11 @@ class TestForallExists extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchFunModule(module, "existsCond$0", input, options = options) { matcher =>
+    assertMatch(module, "existsCond$0", input) { matcher =>
       assert(matcher.getAllMatchArrays.size == 1)
     }
 
-    assertMatchFunModule(module, "listContaining4", input, options = options) { matcher =>
+    assertMatch(module, "listContaining4", input) { matcher =>
       assert(matcher.getAllMatchArrays.size == 1)
     }
   }

@@ -1,9 +1,9 @@
-package inca
+package inca.executor
 
-import inca.compiler.{CompiledModule, Compiler, Options}
+import inca.compiler.{CompiledModule, Compiler, ConstraintOptions}
 import inca.runtime.Query.Match
+import inca.runtime.context.QueryScope
 import inca.runtime.{Database, EnginePool}
-import inca.runtime.context.{DataModel, QueryScope}
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truediff.Diffable
@@ -38,7 +38,7 @@ object ConstraintExecutor {
   }
 
   def loadAnalysis(code: String): Loaded = {
-    val options = Options()
+    val options = ConstraintOptions()
     val compiled = Compiler.compileConstraint(code, options)
     val scope = new QueryScope(compiled.dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)

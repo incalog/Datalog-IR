@@ -1,19 +1,19 @@
 package inca.backend.optimize
 
-import inca.IncaMatchers
 import inca.backend.ir.GP._
-import inca.compiler.Options
+import inca.compiler.ConstraintOptions
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Meta.Scala
+import inca.util.matchers.IncaGPMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.meta._
 
-class TestConstantPropagation extends AnyFlatSpec with IncaMatchers {
+class TestConstantPropagation extends AnyFlatSpec with IncaGPMatchers {
 
   val dataModel = new DataModel()
   val scope = new QueryScope(dataModel)
-  val options = Options(optimizations = Seq(ConstantPropagation))
+  val options = ConstraintOptions(optimizations = Seq(ConstantPropagation))
 
   def optimize(module: Module): Module =
     ConstantPropagation.optimizer(dataModel).optimizeModule(module)

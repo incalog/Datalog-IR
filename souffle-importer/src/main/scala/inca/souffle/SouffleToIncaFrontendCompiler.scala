@@ -1,6 +1,6 @@
 package inca.souffle
 
-import inca.compiler.Options
+import inca.compiler.{FunctionalOptions, Options}
 import inca.frontend.functional.core._
 import inca.runtime.context.DataModel.{Link => MLink}
 import inca.souffle.Syntax.{Expression => _, Type => _, _}
@@ -32,7 +32,7 @@ class SouffleToIncaFrontendCompiler {
       module,
       inputs.values.toSeq.map { input => (decls(input.rule), input) },
       printSizes.toSeq,
-      Options()
+      FunctionalOptions()
     )
   }
 

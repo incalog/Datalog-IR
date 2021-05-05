@@ -1,17 +1,16 @@
 package inca.frontend.constraint.extensions
 
-import inca.IncaMatchers
 import inca.analyzedLangs.Exp
-import inca.compiler.Options
-import inca.frontend.constraint.core
+import inca.compiler.ConstraintOptions
 import inca.frontend.constraint.core.tree._
 import inca.frontend.constraint.extensions.match_.Trees._
 import inca.runtime.context.{DataModel, QueryScope}
+import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.language.implicitConversions
 
-class TestMatch extends AnyFlatSpec with IncaMatchers {
+class TestMatch extends AnyFlatSpec with IncaConstraintMatchers {
 
   implicit def name(s: String): Name = Name(s)
 
@@ -20,7 +19,7 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
 
   val dataModel = Exp.model
   val scope: QueryScope = new QueryScope(Exp.model)
-  val options: Options = Options()
+  val options: ConstraintOptions = ConstraintOptions()
 
 //  "desugaring" should "eliminate wildcard pattern" in {
 //    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
@@ -576,11 +575,11 @@ class TestMatch extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchFunModule(module, "integerlits_rec", input) { matcher =>
+    assertMatch(module, "integerlits_rec", input) { matcher =>
       assert(matcher.getAllMatches.size() == 7)
     }
 
-    assertMatchFunModule(module, "integerlits", input) { matcher =>
+    assertMatch(module, "integerlits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 1)
       matcher.getAllMatchArrays should contain theSameElementsAs Seq(Array(2))
     }

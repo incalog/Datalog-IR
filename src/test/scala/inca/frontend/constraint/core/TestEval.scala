@@ -1,17 +1,17 @@
 package inca.frontend.constraint.core
 
-import inca.IncaMatchers
 import inca.analyzedLangs.Exp
-import inca.compiler.Options
+import inca.compiler.ConstraintOptions
 import inca.frontend.constraint.core.tree._
 import inca.runtime.context.QueryScope
 import inca.util.Meta.Scala
+import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.language.implicitConversions
 import scala.meta.XtensionQuasiquoteTerm
 
-class TestEval extends AnyFlatSpec with IncaMatchers {
+class TestEval extends AnyFlatSpec with IncaConstraintMatchers {
 
   implicit def name(s: String): Name = Name(s)
 
@@ -20,7 +20,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
 
   val dataModel = Exp.model
   val scope = new QueryScope(Exp.model)
-  val options = Options()
+  val options = ConstraintOptions()
 
   "eval" can "yield a constant" in {
     val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
@@ -49,7 +49,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchFunModule(module, "integerlits", input, scope) { matcher =>
+    assertMatch(module, "integerlits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 8)
     }
   }
@@ -83,7 +83,7 @@ class TestEval extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchFunModule(module, "integerlits", input, scope) { matcher =>
+    assertMatch(module, "integerlits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 2)
     }
   }

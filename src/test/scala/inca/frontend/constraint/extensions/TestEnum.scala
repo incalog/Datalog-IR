@@ -1,6 +1,6 @@
 //package inca.frontend.constraint.extensions
 //
-//import inca.IncaMatchers
+//import inca.util.matchers.IncaMatchers
 //import inca.analyzedLangs.Exp
 //import inca.compiler.Options
 //import inca.frontend.BaseFrontend

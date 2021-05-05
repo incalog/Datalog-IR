@@ -10,24 +10,24 @@ import inca.compiler.functional.CompiledFunctionalModule
 object Compiler {
 
   def compileFunctional(module: String,
-                 compilerOptions: Options): CompiledFunctionalModule = {
+                 compilerOptions: FunctionalOptions): CompiledFunctionalModule = {
     val parsed = functional.parser.Parser.parse(module)
     CompiledFunctionalModule(parsed, compilerOptions)
   }
 
   def compileFunctional(module: functional.core.Module,
-                 compilerOptions: Options): CompiledFunctionalModule = {
+                 compilerOptions: FunctionalOptions): CompiledFunctionalModule = {
     CompiledFunctionalModule(module, compilerOptions)
   }
 
   def compileConstraint(module: String,
-                        compilerOptions: Options): CompiledConstraintModule = {
+                        compilerOptions: ConstraintOptions): CompiledConstraintModule = {
     val parsed = constraint.parser.Parser.parse(module)
     CompiledConstraintModule(parsed, compilerOptions)
   }
 
   def compileConstraint(module: constraint.core.tree.Module,
-                        compilerOptions: Options): CompiledConstraintModule = {
+                        compilerOptions: ConstraintOptions): CompiledConstraintModule = {
     CompiledConstraintModule(module, compilerOptions)
   }
 

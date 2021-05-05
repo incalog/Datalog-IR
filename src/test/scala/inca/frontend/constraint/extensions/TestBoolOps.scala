@@ -1,19 +1,18 @@
 package inca.frontend.constraint.extensions
 
-import inca.IncaMatchers
 import inca.analyzedLangs.Exp
-import inca.compiler.Options
-import inca.frontend.constraint.core
+import inca.compiler.ConstraintOptions
 import inca.frontend.constraint.core.tree._
 import inca.frontend.constraint.extensions.boolOps.Trees._
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Meta.Scala
+import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.language.implicitConversions
 import scala.meta.XtensionQuasiquoteTerm
 
-class TestBoolOps extends AnyFlatSpec with IncaMatchers {
+class TestBoolOps extends AnyFlatSpec with IncaConstraintMatchers {
 
   implicit def name(s: String): Name = Name(s)
 
@@ -22,7 +21,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
 
   val dataModel = Exp.model
   val scope: QueryScope = new QueryScope(Exp.model)
-  val options: Options = Options()
+  val options: ConstraintOptions = ConstraintOptions()
 
   "desugaring" should "eliminate not conditions" in {
     val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
@@ -106,7 +105,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchFunModule(module, "integerlits", input) { matcher =>
+    assertMatch(module, "integerlits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 3)
     }
   }
@@ -140,7 +139,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchFunModule(module, "add_mul", input) { matcher =>
+    assertMatch(module, "add_mul", input) { matcher =>
       assert(matcher.getAllMatches.size() == 1)
     }
   }
@@ -174,7 +173,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchFunModule(module, "integerLits", input) { matcher =>
+    assertMatch(module, "integerLits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 8)
     }
   }
@@ -208,7 +207,7 @@ class TestBoolOps extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchFunModule(module, "integerLits", input) { matcher =>
+    assertMatch(module, "integerLits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 6)
     }
   }

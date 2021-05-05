@@ -1,6 +1,6 @@
-package inca
+package inca.executor
 
-import inca.compiler.{CompiledModule, Compiler, Options}
+import inca.compiler.{CompiledModule, Compiler, FunctionalOptions}
 import inca.runtime.context.QueryScope
 import inca.runtime.data.DataURI
 import inca.runtime.{Database, EnginePool, Query}
@@ -106,7 +106,7 @@ object FunctionalExecutor {
   }
 
   def loadFunction(code: String): Loaded = {
-    val options = Options(transformations = Options.defaultTransformations)
+    val options = FunctionalOptions()
     val compiled = Compiler.compileFunctional(code, options)
 //    val graph = ConstructDependencyGraph(compiled.optimized)
     //    println(compiled.ir)

@@ -1,7 +1,7 @@
 package inca.frontend.functional.lowering
 
 import inca.backend.ir.GP
-import inca.compiler.{Compiler, Options}
+import inca.compiler.{Compiler, FunctionalOptions, Options}
 import inca.examples.functional.ADT.Nat_lmi
 import inca.examples.functional.{AST, Code, ControlDataFlow, HigherOrder}
 import inca.util.Meta.Scala
@@ -190,7 +190,7 @@ class GenerateDatalogTest extends AnyFunSuite {
 
 
 
-  val options = Options()
+  val options = FunctionalOptions()
 
   test("base example") {
     val result = Compiler.compileFunctional(AST.baseExample, options).ir

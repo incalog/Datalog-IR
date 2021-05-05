@@ -1,15 +1,15 @@
 package inca.frontend.constraint.core
 
-import inca.IncaMatchers
 import inca.analyzedLangs.Exp
-import inca.compiler.Options
+import inca.compiler.ConstraintOptions
 import inca.frontend.constraint.core.tree._
 import inca.runtime.context.QueryScope
+import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.language.implicitConversions
 
-class TestCast extends AnyFlatSpec with IncaMatchers {
+class TestCast extends AnyFlatSpec with IncaConstraintMatchers {
 
   implicit def name(s: String): Name = Name(s)
 
@@ -18,7 +18,7 @@ class TestCast extends AnyFlatSpec with IncaMatchers {
 
   val dataModel = Exp.model
   val scope: QueryScope = new QueryScope(Exp.model)
-  val options: Options = Options()
+  val options: ConstraintOptions = ConstraintOptions()
   
   "compiler" should "implement cast semantics" in {
     val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
@@ -45,7 +45,7 @@ class TestCast extends AnyFlatSpec with IncaMatchers {
       )
     }
 
-    assertMatchFunModule(module, "integerlits", input) { matcher =>
+    assertMatch(module, "integerlits", input) { matcher =>
       assert(matcher.getAllMatches.size() == 5)
     }
   }

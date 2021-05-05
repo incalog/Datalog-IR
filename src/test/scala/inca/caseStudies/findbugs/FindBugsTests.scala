@@ -1,8 +1,8 @@
 package inca.caseStudies.findbugs
 
-import inca.ConstraintExecutor
 import inca.analyzedLangs.tinyJava
-import inca.compiler.{Compiler, Options}
+import inca.compiler.{Compiler, ConstraintOptions, Options}
+import inca.executor.ConstraintExecutor
 import inca.frontend.constraint.core.tree._
 import inca.runtime.EnginePool
 import inca.runtime.context.QueryScope
@@ -41,7 +41,7 @@ class FindBugsTests extends AnyFunSuite {
          |""".stripMargin
 
     val scope = new QueryScope(tinyJava.model)
-    val options = Options()
+    val options = ConstraintOptions()
     val spec = Compiler.compileConstraint(code, options).psystemModule.patterns("confusedInheritance")
 
     val feed = EnginePool.loadDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)

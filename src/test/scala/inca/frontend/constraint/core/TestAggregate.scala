@@ -1,21 +1,21 @@
 package inca.frontend.constraint.core
 
-import inca.IncaMatchers
 import inca.analyzedData.Nat._
 import inca.analyzedLangs.Exp
-import inca.compiler.Options
+import inca.compiler.ConstraintOptions
 import inca.frontend.constraint.core.tree._
 import inca.frontend.constraint.extensions.evalCall.Trees._
 import inca.runtime.context.QueryScope
 import inca.util.Meta.Scala
+import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.language.implicitConversions
 import scala.meta.XtensionQuasiquoteTerm
 
-class TestAggregate extends AnyFlatSpec with IncaMatchers {
+class TestAggregate extends AnyFlatSpec with IncaConstraintMatchers {
   val scope = new QueryScope(Exp.model)
-  val options = Options()
+  val options = ConstraintOptions()
   val dataModel = Exp.model
 
   implicit def name(s: String): Name = Name(s)
@@ -42,7 +42,7 @@ class TestAggregate extends AnyFlatSpec with IncaMatchers {
 
     val input = Exp.BooleanLit(true)
 
-    assertMatchFunModule(module, "sum_1_to_10", input, scope) { matcher =>
+    assertMatch(module, "sum_1_to_10", input) { matcher =>
       assert(matcher.getAllMatches.size() == 1)
       assert(matcher.getAllMatchArrays.head.head.asInstanceOf[Nat].toInt == (1 to 10).sum)
     }
@@ -70,7 +70,7 @@ class TestAggregate extends AnyFlatSpec with IncaMatchers {
 
     val input = Exp.BooleanLit(true)
 
-    assertMatchFunModule(module, "sum_1_to_10", input, scope) { matcher =>
+    assertMatch(module, "sum_1_to_10", input) { matcher =>
       assert(matcher.getAllMatches.size() == 1)
       assert(matcher.getAllMatchArrays.head.head.asInstanceOf[Nat].toInt == (1 to 10).sum)
     }
@@ -101,7 +101,7 @@ class TestAggregate extends AnyFlatSpec with IncaMatchers {
 
     val input = Exp.BooleanLit(true)
 
-    assertMatchFunModule(module, "sum_1_to_10", input, scope) { matcher =>
+    assertMatch(module, "sum_1_to_10", input) { matcher =>
       assert(matcher.getAllMatches.size() == 1)
       assert(matcher.getAllMatchArrays.head.head.asInstanceOf[Nat].toInt == (1 to 10).sum)
     }
