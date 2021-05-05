@@ -1,7 +1,7 @@
 package inca.runtime
 
 import inca.runtime.Query.ChangeFeed
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import inca.runtime.index.MetaElements.{Link, PrimitiveValue}
 import inca.runtime.index._
 import inca.runtime.index.binary.{BidirectionalManyToOneIndex, BidirectionalOneToOneIndex}
@@ -22,7 +22,7 @@ import scala.jdk.CollectionConverters._
 
 
 class Database(
-                _languageMetaInfo: LanguageMetaInfo,
+                _languageMetaInfo: DataModel,
                 _dynamicIndices: Seq[DynamicIndexFactory],
                 _metaContext: IQueryMetaContext
              )
@@ -30,7 +30,7 @@ class Database(
 
   def this() = this(null, Seq(), null)
 
-  val languageMetaInfo: LanguageMetaInfo = if (_languageMetaInfo != null) _languageMetaInfo else new LanguageMetaInfo()
+  val languageMetaInfo: DataModel = if (_languageMetaInfo != null) _languageMetaInfo else new DataModel()
 
   override def getMetaContext: IQueryMetaContext = _metaContext
 

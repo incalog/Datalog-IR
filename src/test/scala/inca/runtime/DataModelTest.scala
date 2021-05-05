@@ -1,13 +1,13 @@
 package inca.runtime
 
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
 import truechange.SortType
 
 import scala.collection.immutable.MultiDict
 
-class LanguageMetaInfoTest extends AnyFunSuite {
+class DataModelTest extends AnyFunSuite {
   val exp = SortType("Exp")
   val add = SortType("Add")
   val mult = SortType("Mult")
@@ -16,7 +16,7 @@ class LanguageMetaInfoTest extends AnyFunSuite {
   val and = SortType("And")
 
   test("0 step trans closure") {
-    val metaInfo = new LanguageMetaInfo(
+    val metaInfo = new DataModel(
       MultiDict(
         add -> exp,
         mult -> exp)
@@ -27,7 +27,7 @@ class LanguageMetaInfoTest extends AnyFunSuite {
   }
 
   test("1 step trans closure") {
-    val metaInfo = new LanguageMetaInfo(
+    val metaInfo = new DataModel(
       MultiDict(
         add -> iNumExp,
         mult -> iNumExp,
@@ -39,7 +39,7 @@ class LanguageMetaInfoTest extends AnyFunSuite {
   }
 
   test("2 step trans closure") {
-    val metaInfo = new LanguageMetaInfo(
+    val metaInfo = new DataModel(
       MultiDict(
         add -> iNumExp,
         mult -> iNumExp,
@@ -52,7 +52,7 @@ class LanguageMetaInfoTest extends AnyFunSuite {
   }
 
   test("inital multi inheritance trans closure") {
-    val metaInfo = new LanguageMetaInfo(
+    val metaInfo = new DataModel(
       MultiDict(
         and -> exp,
         and -> node,

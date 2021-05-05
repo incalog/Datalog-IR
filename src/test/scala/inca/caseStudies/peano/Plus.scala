@@ -3,7 +3,7 @@ package inca.caseStudies.peano
 import inca.backend.ir.GP._
 import inca.compiler.{Compiler, Options}
 import inca.runtime.EnginePool
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Meta.Scala
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 
@@ -134,9 +134,9 @@ object Plus extends App {
     main
   ), Seq())
 
-  val compiled = Compiler.compileGP(module, Options(new LanguageMetaInfo()))
+  val compiled = Compiler.compileGP(module, Options(new DataModel()))
   println(compiled.optimized)
-  val scope = new QueryScope(new LanguageMetaInfo())
+  val scope = new QueryScope(new DataModel())
   val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
   def printMatches(name: String): Unit = {

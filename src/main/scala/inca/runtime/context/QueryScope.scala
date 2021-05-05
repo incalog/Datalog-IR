@@ -6,8 +6,8 @@ import org.apache.log4j.Logger
 import org.eclipse.viatra.query.runtime.api.ViatraQueryEngine
 import org.eclipse.viatra.query.runtime.api.scope.{IEngineContext, IIndexingErrorListener}
 
-class QueryScope(val langMetaInfo: LanguageMetaInfo, val dynamicIndices: Seq[DynamicIndexFactory]) extends org.eclipse.viatra.query.runtime.api.scope.QueryScope {
-  def this(languageMetaInfo: LanguageMetaInfo) =
+class QueryScope(val langMetaInfo: DataModel, val dynamicIndices: Seq[DynamicIndexFactory]) extends org.eclipse.viatra.query.runtime.api.scope.QueryScope {
+  def this(languageMetaInfo: DataModel) =
     this(languageMetaInfo, Index.allDynamicIndices)
 
   override def createEngineContext(engine: ViatraQueryEngine, errorListener: IIndexingErrorListener, logger: Logger): IEngineContext = {

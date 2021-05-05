@@ -1,14 +1,14 @@
 package inca.frontend.functional.lowering
 
 import inca.frontend.functional.core._
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import truechange.{JavaLitType, SortType}
 
 import scala.collection.immutable.MultiDict
 
-class GenerateLMI(module: Module) {
+class GenerateDataModel(module: Module) {
 
-  def transModule(): LanguageMetaInfo = {
+  def transModule(): DataModel = {
     val datas = module.content.collect { case data: DataDef => data }
 
     val subtyps = for (DataDef(_, _, name, constrs) <- datas;
@@ -24,7 +24,7 @@ class GenerateLMI(module: Module) {
                         cl <- transType(ty))
       yield (cname.name, "_" + ix) -> JavaLitType(cl)
 
-    new LanguageMetaInfo(
+    new DataModel(
       MultiDict.from(subtyps),
       Map.from(kidLinks),
       Map.from(litLinks)

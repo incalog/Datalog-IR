@@ -2,13 +2,13 @@ package inca.backend.optimize
 
 import inca.backend.ir.GP._
 import inca.backend.ir.Substitute
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 
 import scala.collection.immutable.MultiDict
 
 object EliminateAliases extends Optimization {
 
-  override def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer = new Optimizer {
+  override def optimizer(dataModel: DataModel): Optimizer = new Optimizer {
     override def optimizePattern(pat: Pattern): Seq[Pattern] = {
       val unsubstitutable = pat.params.map(_.name).toSet
       val newbodies = pat.bodies.map(eliminateAliasesInBody(_, unsubstitutable))

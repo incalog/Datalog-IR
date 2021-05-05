@@ -4,7 +4,7 @@ package inca.backend.ir
 import inca.backend.ir.GP._
 import inca.runtime.Query
 import inca.runtime.aggregate.{AggregatorAssocComm, AggregatorAssocCommInv}
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import inca.runtime.data.DataURI
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
@@ -51,7 +51,7 @@ object CompileToPSystem {
   private val tAggregatorConstraint = typeOf[AggregatorConstraint]
   private val oDataURI = symbolOf(DataURI)
 
-  private val tLMI = typeOf[LanguageMetaInfo]
+  private val tDataModel = typeOf[DataModel]
   private val oMultiDict = symbolOf(MultiDict)
   private val tMap = typeOf[Map[_,_]]
   private val oMap = symbolOf(Map)

@@ -1,6 +1,6 @@
 package inca.analyzedLangs
 
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import truechange.{JavaLitType, ListType, SortType}
 import truediff.Diffable
 import truediff.macros.diffable
@@ -32,7 +32,7 @@ object Exp {
   val notTag = classOf[Not].getCanonicalName
   val manyTag = classOf[Many].getCanonicalName
   val letTag = classOf[Let].getCanonicalName
-  val languageMetaInfo: LanguageMetaInfo = {
+  val languageMetaInfo: DataModel = {
     val expType = SortType(expTag)
     val intType = SortType(intTag)
     val longType = SortType(longTag)
@@ -44,7 +44,7 @@ object Exp {
     val notType = SortType(notTag)
     val manyType = SortType(manyTag)
     val letType = SortType(letTag)
-    new LanguageMetaInfo(
+    new DataModel(
       MultiDict[SortType, SortType](
         intType -> expType,
         longType -> expType,

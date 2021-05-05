@@ -5,9 +5,9 @@ import inca.backend.transform.Transformation
 import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPatterns}
 import inca.compiler.Options.defaultOptimizations
 import inca.frontend.functional.Frontend
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 
-case class Options(languageMetaInfo: LanguageMetaInfo = null,
+case class Options(languageMetaInfo: DataModel = null,
                    optimizations: Seq[Optimization] = defaultOptimizations,
                    transformations: Seq[Transformation] = Seq(),
                    stopOnError: Boolean = true,

@@ -1,12 +1,12 @@
 package inca.backend.optimize
 
 import inca.backend.ir.GP.{Call, Constraint, Module, Name, Pattern, throwBodyMustFail}
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 
 object EliminateEmptyRelations extends Optimization {
 
 
-  override def optimizer(languageMetaInfo: LanguageMetaInfo): Optimizer = new Optimizer {
+  override def optimizer(dataModel: DataModel): Optimizer = new Optimizer {
 
     var pats: Map[Name, Pattern] = Map()
     var dirty = true

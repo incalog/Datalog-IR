@@ -2,7 +2,7 @@ package inca.souffle
 
 import inca.IncaMatchers
 import inca.compiler.Options
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.runtime.context.{DataModel, QueryScope}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaMatchers {
@@ -39,7 +39,7 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaMatchers {
     compiler.compile("catanalysis", ast)
   }
 
-  private val lang: LanguageMetaInfo = compiledModule.options.languageMetaInfo
+  private val lang: DataModel = compiledModule.options.languageMetaInfo
   val scope: QueryScope = new QueryScope(lang)
   val options: Options = compiledModule.options
 

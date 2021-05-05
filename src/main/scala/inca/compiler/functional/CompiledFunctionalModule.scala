@@ -4,8 +4,8 @@ import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
 import inca.compiler.{CompiledModule, CompilerFlags, Options, SourceLocation}
 import inca.frontend.functional.core.Module
-import inca.frontend.functional.lowering.{Defunctionalize, GenerateDatalog, GenerateLMI}
-import inca.runtime.context.LanguageMetaInfo
+import inca.frontend.functional.lowering.{Defunctionalize, GenerateDatalog, GenerateDataModel}
+import inca.runtime.context.DataModel
 
 case class CompiledFunctionalModule(fun: Module, options: Options) extends CompiledModule {
 
@@ -45,8 +45,8 @@ case class CompiledFunctionalModule(fun: Module, options: Options) extends Compi
     module
   }
 
-  lazy val lmi: LanguageMetaInfo = {
-    val res = new GenerateLMI(coreModule).transModule()
+  lazy val dataModel: DataModel = {
+    val res = new GenerateDataModel(coreModule).transModule()
     res
   }
 }

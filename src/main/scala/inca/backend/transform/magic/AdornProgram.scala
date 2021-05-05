@@ -4,7 +4,7 @@ import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Collect
 import inca.backend.ir.GP._
 import inca.backend.transform.{Transformation, Transformer}
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 
 import scala.collection.mutable.ListBuffer
 
@@ -16,7 +16,7 @@ object AdornProgram extends Transformation {
   type Adornment = Seq[Boolean]
 
 
-  override def transformer(languageMetaInfo: LanguageMetaInfo): Transformer = new Transformer {
+  override def transformer(dataModel: DataModel): Transformer = new Transformer {
 
     override def transformModule(module: Module): Module = {
       var adornedPatterns: Set[(Pattern, Adornment)] = Set()

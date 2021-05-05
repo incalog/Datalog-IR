@@ -113,7 +113,7 @@ object FunctionalExecutor {
 //    println(compiled.transformed)
 //    println(graph.toGraphViz)
 //    println(compiled.optimized)
-    val scope = new QueryScope(compiled.lmi)
+    val scope = new QueryScope(compiled.dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     Loaded(engine, feed, compiled)
   }

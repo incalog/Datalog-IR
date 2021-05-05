@@ -2,7 +2,7 @@ package inca.souffle
 
 import inca.backend.ir.GP._
 import inca.compiler.Options
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import inca.runtime.index.MetaElements.{Link => MLink}
 import inca.souffle.Syntax.{Type => _, _}
 import inca.souffle.Util._
@@ -32,7 +32,7 @@ class SouffleToIncaBackendCompiler {
     val module = Module(name, Seq(), Seq(), patFuns.values.toSeq, Seq())
     val moduleWithUnbounded = PropagateUnbounded.transformModule(module)
 
-    val lang = new LanguageMetaInfo(MultiDict(), Map(), genLitLinks)
+    val lang = new DataModel(MultiDict(), Map(), genLitLinks)
 
     CompiledSouffleModule(
       moduleWithUnbounded,

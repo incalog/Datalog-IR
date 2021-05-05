@@ -1,7 +1,7 @@
 package inca.compiler
 
 import inca.backend.ir.{CompileToPSystem, GP, PSystem}
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import inca.util.Meta
 import inca.util.TupleOps.transClosure
 
@@ -14,7 +14,7 @@ trait CompiledModule {
   def sourceLocation: SourceLocation
 
   def ir: GP.Module
-  def lmi: LanguageMetaInfo
+  def dataModel: DataModel
 
   lazy val patternDependencies: MultiDict[GP.Name, GP.Name] = {
     var deps = MultiDict[GP.Name, GP.Name]()
@@ -54,7 +54,7 @@ trait CompiledModule {
   lazy val transformed: GP.Module = {
     var module = ir
     for (trans <- options.transformations) {
-      module = trans.transformer(lmi).transformModule(module)
+      module = trans.transformer(dataModel).transformModule(module)
       if (CompilerFlags.DEBUGMODE) {
         println(s"Transformation: ${trans.getClass.getName}")
         println(module)
@@ -67,7 +67,7 @@ trait CompiledModule {
     var module = transformed
     // println(module)
     for (op <- options.optimizations) {
-      module = op.optimizer(lmi).optimizeModule(module)
+      module = op.optimizer(dataModel).optimizeModule(module)
       if (CompilerFlags.DEBUGMODE) {
         println(s"Optimization: ${op.getClass.getName}")
         println(module)

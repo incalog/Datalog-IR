@@ -3,12 +3,12 @@ package inca.backend.optimize
 import inca.IncaMatchers
 import inca.backend.ir.GP._
 import inca.compiler.Options
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.runtime.context.{DataModel, QueryScope}
 import org.scalatest.flatspec.AnyFlatSpec
 
 class TestFoldConstantConstraints extends AnyFlatSpec with IncaMatchers {
 
-  val langMeta = new LanguageMetaInfo()
+  val langMeta = new DataModel()
   val scope = new QueryScope(langMeta)
   val options = Options(langMeta, optimizations = Seq(FoldConstantConstraints))
 

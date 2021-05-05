@@ -1,14 +1,14 @@
 package inca.examples.functional
 
 import inca.frontend.functional.core._
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import truechange.SortType
 
 import scala.collection.immutable.MultiDict
 
 object ADT {
 
-  val Nat_lmi: LanguageMetaInfo = new LanguageMetaInfo(
+  val Nat_lmi: DataModel = new DataModel(
     MultiDict(
       SortType("Zero") -> SortType("Nat"),
       SortType("Succ") -> SortType("Nat")),

@@ -1,6 +1,6 @@
 package inca.caseStudies.typing
 
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import truechange.{JavaLitType, SortType}
 import truediff.Diffable
 import truediff.macros.diffable
@@ -24,7 +24,7 @@ case class Prog(e: Exp) extends Diffable
 object Prog {
   val progTag = classOf[Prog].getCanonicalName
 
-  val languageMetaInfo: LanguageMetaInfo = {
+  val languageMetaInfo: DataModel = {
     val expType = SortType(Exp.expTag)
     val intLitType = SortType(Exp.intLitTag)
     val addType = SortType(Exp.addTag)
@@ -37,7 +37,7 @@ object Prog {
     val intType = SortType(TypeExp.intTag)
     val funType = SortType(TypeExp.funTag)
 
-    new LanguageMetaInfo(
+    new DataModel(
       MultiDict[SortType, SortType](
         intLitType -> expType,
         varType -> expType,

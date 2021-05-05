@@ -5,7 +5,7 @@ import inca.backend.hints.{Hints, MagicSetHints}
 import inca.backend.ir.CollectVars
 import inca.backend.ir.GP._
 import inca.backend.transform.{FilterBodyTransformer, Transformation, Transformer}
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 import inca.util.Gensym
 
 
@@ -15,7 +15,7 @@ object MagicSetTransformation extends Transformation {
   def inputPatternName(name: Name): String = "input_" + name
   def extensionalInputPatternName(name: Name): String = "ext_input_" + name
 
-  override def transformer(languageMetaInfo: LanguageMetaInfo): Transformer = new Transformer {
+  override def transformer(dataModel: DataModel): Transformer = new Transformer {
 
     val gensym = new Gensym(Seq())
 

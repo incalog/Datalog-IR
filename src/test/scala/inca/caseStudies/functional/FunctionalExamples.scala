@@ -4,7 +4,7 @@ import inca.backend.ir.GP._
 import inca.backend.ir.Printer
 import inca.compiler.{Compiler, Options}
 import inca.runtime.EnginePool
-import inca.runtime.context.{LanguageMetaInfo, QueryScope}
+import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Meta.Scala
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 
@@ -12,7 +12,7 @@ import scala.meta.quasiquotes._
 
 
 object FunctionalExamples extends App {
-  val options = Options(new LanguageMetaInfo())
+  val options = Options(new DataModel())
 
   val inc = Module("Inc", Seq(), Seq(),
     Seq(

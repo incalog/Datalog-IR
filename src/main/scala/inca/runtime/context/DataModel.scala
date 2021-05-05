@@ -15,7 +15,7 @@ import scala.collection.immutable.MultiDict
  * - directSubtypes maps a type name to all names of types that are the direct subtypes.
  * - subtypes represents the transitive closure of directSubtypes.
  */
-class LanguageMetaInfo(
+class DataModel(
                         _directSupertypes: MultiDict[SortType, SortType],
                         val links: Map[Link, Type],
                         val litLinks: Map[Link, LitType]
@@ -69,8 +69,8 @@ class LanguageMetaInfo(
   }
 }
 
-object LanguageMetaInfo {
-  def combineLanguageMetaInfos(infos: LanguageMetaInfo*): LanguageMetaInfo = {
+object DataModel {
+  def combineLanguageMetaInfos(infos: DataModel*): DataModel = {
     import inca.runtime.index.MetaElements.Link
     import truechange.{LitType, SortType, Type}
     var supertypes: MultiDict[SortType, SortType] = MultiDict()
@@ -84,6 +84,6 @@ object LanguageMetaInfo {
       links ++= info.links
       litLinks ++= info.litLinks
     }
-    new LanguageMetaInfo(supertypes, links, litLinks)
+    new DataModel(supertypes, links, litLinks)
   }
 }

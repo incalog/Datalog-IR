@@ -1,7 +1,7 @@
 package inca.backend.transform
 
-import inca.runtime.context.LanguageMetaInfo
+import inca.runtime.context.DataModel
 
 trait Transformation {
-  def transformer(languageMetaInfo: LanguageMetaInfo): Transformer
+  def transformer(dataModel: DataModel): Transformer
 }
