@@ -6,9 +6,6 @@ import truechange.{JavaLitType, ListType, SortType}
 import scala.collection.immutable.MultiDict
 
 package object tinyJava {
-
-
-
   val classDeclTag = classOf[ClassDeclaration].getCanonicalName
   val classDeclType = SortType(classDeclTag)
   val classMemberTag = classOf[ClassMember].getCanonicalName

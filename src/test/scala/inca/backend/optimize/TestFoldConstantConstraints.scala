@@ -16,7 +16,7 @@ class TestFoldConstantConstraints extends AnyFlatSpec with IncaMatchers {
     val one = Constant(IntLiteral(1))
     val two = Constant(IntLiteral(2))
 
-    val module1 = Module("Test", Seq(), Seq(
+    val module1 = Module("Test", Seq(), Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TScala("Any"))), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
@@ -24,7 +24,7 @@ class TestFoldConstantConstraints extends AnyFlatSpec with IncaMatchers {
         ))
       ))
     ), Seq())
-    val optimized1 = Module("Test", Seq(), Seq(
+    val optimized1 = Module("Test", Seq(), Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TScala("Any"))), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one)
@@ -33,7 +33,7 @@ class TestFoldConstantConstraints extends AnyFlatSpec with IncaMatchers {
     ), Seq())
     assertOptimize(optimized1, module1)
 
-    val module2 = Module("Test", Seq(), Seq(
+    val module2 = Module("Test", Seq(), Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TScala("Any"))), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
@@ -42,7 +42,7 @@ class TestFoldConstantConstraints extends AnyFlatSpec with IncaMatchers {
         ))
       ))
     ), Seq())
-    val optimized2 = Module("Test", Seq(), Seq(
+    val optimized2 = Module("Test", Seq(), Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TScala("Any"))), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one)
@@ -51,7 +51,7 @@ class TestFoldConstantConstraints extends AnyFlatSpec with IncaMatchers {
     ), Seq())
     assertOptimize(optimized2, module2)
 
-    val module3 = Module("Test", Seq(), Seq(
+    val module3 = Module("Test", Seq(), Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TScala("Any"))), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
@@ -61,7 +61,7 @@ class TestFoldConstantConstraints extends AnyFlatSpec with IncaMatchers {
         ))
       ))
     ), Seq())
-    val optimized3 = Module("Test", Seq(), Seq(
+    val optimized3 = Module("Test", Seq(), Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TScala("Any"))), Seq(
       ))
     ), Seq())

@@ -4,6 +4,8 @@ package inca.backend.ir
 import inca.backend.ir.GP._
 import inca.runtime.Query
 import inca.runtime.aggregate.{AggregatorAssocComm, AggregatorAssocCommInv}
+import inca.runtime.context.DataModel
+import inca.runtime.data.DataURI
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
@@ -13,6 +15,7 @@ import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations.BoundAggre
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.AggregatorConstraint
 import truechange.{AnyType, JavaLitType, ListType, SortType}
 
+import scala.collection.immutable.MultiDict
 import scala.meta._
 
 object CompileToPSystem {
@@ -21,6 +24,7 @@ object CompileToPSystem {
   val LITPREFIX = "lit_"
   val EVALPREFIX = "eval_"
 
+  private val oNamedRelationKey = symbolOf(NamedRelationKey)
   private val oNodeTypeKey = symbolOf(NodeTypeKey)
   private val oNotNodeTypeKey = symbolOf(NotNodeTypeIndex.Key)
   private val oPrimitiveKey = symbolOf(PrimitiveTypeKey)
@@ -32,10 +36,10 @@ object CompileToPSystem {
   private val oSizeKey = symbolOf(SizeIndex.Key)
   private val oNotLinkNodeKey = symbolOf(NodeNotLinkedIndex.Key)
 
-  private val tAnyType = symbolOf(AnyType)
-  private val tNodeType = symbolOf[SortType]
-  private val tListType = symbolOf[ListType]
-  private val tPrimitiveType = symbolOf[JavaLitType]
+  private val oAnyType = symbolOf(AnyType)
+  private val oNodeType = symbolOf[SortType]
+  private val oListType = symbolOf[ListType]
+  private val oPrimitiveType = symbolOf[JavaLitType]
 
   private val tyPSystemModule = typeOf[PSystem.Module]
 
@@ -45,6 +49,12 @@ object CompileToPSystem {
   private val tAggregatorAssocComm = typeOf[AggregatorAssocComm[_]]
   private val tBoundAggregator = typeOf[BoundAggregator]
   private val tAggregatorConstraint = typeOf[AggregatorConstraint]
+  private val oDataURI = symbolOf(DataURI)
+
+  private val tDataModel = typeOf[DataModel]
+  private val oMultiDict = symbolOf(MultiDict)
+  private val tMap = typeOf[Map[_,_]]
+  private val oMap = symbolOf(Map)
 
 
   def genQueryName(moduleName: String, patName: String): String =
@@ -60,6 +70,8 @@ object CompileToPSystem {
   }
 
   def compileModule(module: Module)(implicit env: RuleEnvironment): Source = {
+    // TODO: handle module.imports
+
     val myenv = env ++ module.pats.map(p => p.name -> module.name) // makes sure this module's names are found first
     val funs = module.pats.map(compilePattern(module.name, _)(myenv)).toList
 
@@ -84,16 +96,35 @@ object CompileToPSystem {
       object $name extends ${Init(tyPSystemModule, Term.Name(tyPSystemModule.toString), List())} {
 
 
-        val patterns: Map[String, () => $tyQuerySpecification] = Map(..${
-          module.pats.map(p => q"${p.name} -> (() => ${Term.Name(p.name)}.instance)").toList
+        override val patterns: $tMap[String, () => $tyQuerySpecification] = $oMap(..${
+          module.pats.filter(!_.isEmpty).map(p => q"${p.name} -> (() => ${Term.Name(p.name)}.instance)").toList
         })
 
-        ..${scalaContent}
-
-        ..${funs}
+        ..$scalaContent
+        ..$funs
       }
     """
   }
+
+  // val TExp_lmi: LanguageMetaInfo = new LanguageMetaInfo(
+    //    MultiDict(
+    //      SortType("TNum") -> SortType("TExp"),
+    //      SortType("TLam") -> SortType("TExp"),
+    //      SortType("TApp") -> SortType("TExp"),
+    //      SortType("TVar") -> SortType("TExp"),
+    //    ),
+    //    Map(
+    //      ("TLam", "_1") -> SortType("Type"),
+    //      ("TLam", "_2") -> SortType("TExp"),
+    //      ("TApp", "_0") -> SortType("TExp"),
+    //      ("TApp", "_1") -> SortType("TExp"),
+    //    ),
+    //    Map(
+    //      ("TNum", "_0") -> JavaLitType(classOf[Int]),
+    //      ("TLam", "_0") -> JavaLitType(classOf[String]),
+    //      ("TVar", "_0") -> JavaLitType(classOf[String]),
+    //    )
+    //  )
 
   private def compilePattern(moduleName: String, pat: Pattern)(implicit env: RuleEnvironment): Stat = {
     val qname = CompileToPSystem.genQueryName(moduleName, pat.name)
@@ -101,7 +132,7 @@ object CompileToPSystem {
     val paramNames = pat.params.map(_.name)
     val paramTermNames = paramNames.map { n => Term.Name(s"$PARAMPREFIX${n}") }
     val paramLitName = paramNames.map { n => Lit.String(n) }
-    val allVars = CollectVars(pat).toSet
+    val allVars = CollectVars.transPattern(pat).toSet
     val gensym = new Gensym(allVars)
 
     val vis =
@@ -109,6 +140,16 @@ object CompileToPSystem {
         q"PVisibility.PRIVATE"
       else
         q"PVisibility.PUBLIC"
+
+    if (pat.isEmpty) {
+      val obj =
+        q"""
+         object ${Term.Name(pat.name)} {
+           val error = "This pattern was empty"
+         }
+        """
+      return obj
+    }
 
     val bodies = if (pat.bodies.nonEmpty) pat.bodies else
       Seq(Body(Seq(Compare(EqComparator, Constant(IntLiteral(0)), Constant(IntLiteral(1))))))
@@ -182,15 +223,16 @@ object CompileToPSystem {
 
   private def genInputKeyAndType(typ: GP.Type): Option[(meta.Term, meta.Term)] = typ match {
     case TAny => None
-    case TScala(_) => None
+    case _: TScala => None
+    case _: TData => None
     case tlit@TLiteral(litType) =>
       litType match {
         case JavaLitType(cl) =>
-          val gentyp = q"$tPrimitiveType(classOf[${tlit.asScala}])"
+          val gentyp = q"$oPrimitiveType(classOf[${tlit.asScala}])"
           Some(q"$oPrimitiveKey($gentyp)", gentyp)
         case _ => throw new UnsupportedOperationException
       }
-    case TAnyLinked | _: TNode | _: TList =>
+    case _: TLinked =>
       val gentyp = genNodeType(typ)
       Some(q"$oNodeTypeKey($gentyp)", gentyp)
   }
@@ -233,6 +275,9 @@ object CompileToPSystem {
   }
 
   private def compileConstraint(constraint: Constraint)(implicit env: RuleEnvironment): Seq[Stat] = constraint match {
+    case Undef(t) =>
+      throw new IllegalArgumentException(s"Cannot compile undef constraint. Use undef elimination transformation first.")
+
     case Call(name, args, transitive, neg) =>
       val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
       val argTuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
@@ -243,6 +288,16 @@ object CompileToPSystem {
           Seq(q"new BinaryTransitiveClosure(body, $argTuple, $callQuery)")
         else
           Seq(q"new PositivePatternCall(body, $argTuple, $callQuery)")
+
+    case ExtensionalCall(name, args, neg) =>
+      val key = q"$oNamedRelationKey($name, ${args.size})"
+      val tuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
+      if (neg) {
+        // use a type filter
+        ???
+      } else {
+        Seq(q"new TypeConstraint(body, $tuple, $key)")
+      }
 
     case Compare(EqComparator, lhs, rhs) =>
       Seq(q"""new Equality(body, ${compileTerm(lhs)}, ${compileTerm(rhs)})""")
@@ -340,7 +395,7 @@ object CompileToPSystem {
         }, $result)
          """)
 
-    case CustomAggregation(typ, agg, patName, args, aggregatedColumn) =>
+    case CustomAggregation(typ, _, agg, patName, args, aggregatedColumn) =>
       val result = compileTerm(lhs)
       val module = env.getOrElse(patName, throw new IllegalArgumentException(s"Unknown rule $patName"))
       val argTuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
@@ -352,9 +407,9 @@ object CompileToPSystem {
   }
 
   private def genNodeType(typ: GP.Type): meta.Term = typ match {
-    case TAnyLinked => tAnyType
-    case TNode(name) => q"$tNodeType($name)"
-    case TList(ty) => q"$tListType(${genNodeType(ty)})"
+    case TAnyLinked => oAnyType
+    case TNode(name) => q"$oNodeType($name)"
+    case TList(ty) => q"$oListType(${genNodeType(ty)})"
     case _ => throw new IllegalArgumentException(s"Cannot compile $typ as node type")
   }
 

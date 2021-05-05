@@ -11,7 +11,7 @@ import org.scalatest.funsuite.AnyFunSuite
 class CompileToGPTest extends AnyFunSuite {
 
   def compileToGP(module: Module): GP.Module =
-    Compiler.compileFun(module, Options()).ir
+    Compiler.compileConstraint(module, Options()).ir
   
   test("simple function pattern with return constraint"){
     val result = compileToGP(Module("test", Seq(DirectDataModel(Exp.model)), Nil, Nil, Seq(idFun)))

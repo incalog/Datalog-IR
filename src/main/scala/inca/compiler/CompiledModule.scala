@@ -1,7 +1,6 @@
 package inca.compiler
 
 import inca.backend.ir.{CompileToPSystem, GP, PSystem}
-import inca.frontend.constraint.parser.{CoreParser, SourceLocation}
 import inca.runtime.context.DataModel
 import inca.util.Meta
 import inca.util.TupleOps.transClosure
@@ -11,14 +10,11 @@ import scala.collection.mutable.ListBuffer
 
 trait CompiledModule {
   val options: Options
-
-  def dataModel: DataModel
-
   def name: GP.Name
-
   def sourceLocation: SourceLocation
 
   def ir: GP.Module
+  def dataModel: DataModel
 
   lazy val patternDependencies: MultiDict[GP.Name, GP.Name] = {
     var deps = MultiDict[GP.Name, GP.Name]()
@@ -34,8 +30,9 @@ trait CompiledModule {
   lazy val patternDependenciesTrans: MultiDict[GP.Name, GP.Name] = transClosure(patternDependencies)
 
   def printStatistics(): Unit = {
-    println(s"GP relations: ${ir.pats.size}")
-    println(s"GP bodies: ${ir.pats.map(_.bodies.size).sum}")
+    val pats = optimized.pats.filter(!_.name.contains("oalesced"))
+    println(s"GP relations: ${pats.size}")
+    println(s"GP bodies: ${pats.map(_.bodies.size).sum}")
     val recs = patternDependenciesTrans.sets.filter(p => p._2.contains(p._1))
     println(s"Recursive GP relations: ${recs.size}")
   }
@@ -54,8 +51,21 @@ trait CompiledModule {
       throw CompiledModule.Failed(this, es)
   }
 
-  lazy val optimized: GP.Module = {
+  lazy val transformed: GP.Module = {
     var module = ir
+    for (trans <- options.transformations) {
+      module = trans.transformer(dataModel).transformModule(module)
+      if (CompilerFlags.DEBUGMODE) {
+        println(s"Transformation: ${trans.getClass.getName}")
+        println(module)
+      }
+    }
+    module
+  }
+
+  lazy val optimized: GP.Module = {
+    var module = transformed
+    // println(module)
     for (op <- options.optimizations) {
       module = op.optimizer(dataModel).optimizeModule(module)
       if (CompilerFlags.DEBUGMODE) {

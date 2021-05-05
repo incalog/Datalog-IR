@@ -36,8 +36,10 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
     val doopText = src.getLines().mkString("\n")
     val analysis = Parser(doopText)
     src.close()
-    val compiler = new SouffleToIncaCompiler
+    val compiler = new SouffleToIncaBackendCompiler
     val compiledModule = compiler.compile("selfcontained", analysis)
+    println(compiledModule.ir.pats.size)
+    println(compiledModule.ir.pats.map(_.bodies.size).sum)
 
     val psModule = compiledModule.psystemModule
     val startLoadFactFiles = System.currentTimeMillis()

@@ -14,7 +14,7 @@ import scala.collection.immutable.MultiDict
 import scala.collection.mutable
 import scala.meta.{Input => _, Term => _, Type => _, _}
 
-class SouffleToIncaCompiler {
+class SouffleToIncaBackendCompiler {
 
   private val patFuns: mutable.Map[String, Pattern] = mutable.Map()
 
@@ -29,16 +29,16 @@ class SouffleToIncaCompiler {
   def compile(name: String, analysis: Analysis): CompiledSouffleModule = {
     analysis.contents.foreach(compile(_, ""))
 
-    val module = Module(name, Seq(), patFuns.values.toSeq, Seq())
+    val module = Module(name, Seq(), Seq(), patFuns.values.toSeq, Seq())
     val moduleWithUnbounded = PropagateUnbounded.transformModule(module)
 
     val lang = new DataModel(Set(), MultiDict(), Map(), genLitLinks)
 
     CompiledSouffleModule(
       moduleWithUnbounded,
-      lang,
       inputs.values.toSeq.map { input => (decls(input.rule), input) },
       printSizes.toSeq,
+      lang,
       Options()
     )
   }

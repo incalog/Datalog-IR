@@ -19,7 +19,7 @@ object PropagateUnbounded {
       pats = newPats
       newPats = fixStep(pats)
     }
-    Module(module.name, module.imports, pats, module.scalaContent)
+    Module(module.name, module.imports, Seq(), pats, module.scalaContent)
   }
 }
 
@@ -42,7 +42,7 @@ object TrackComputedUnbounded extends TrackUnbounded {
   def returnsUnbound(computation: Computation): Boolean = computation match {
     case Evaluation(_, resultType, _) => isUnboundType(resultType)
     case CountAggregation(_, _) => true
-    case CustomAggregation(typ, _, _, _, _) => isUnboundType(typ)
+    case CustomAggregation(typ, _, _, _, _, _) => isUnboundType(typ)
   }
 
   def isUnboundType(typeAnno: Type): Boolean = typeAnno match {

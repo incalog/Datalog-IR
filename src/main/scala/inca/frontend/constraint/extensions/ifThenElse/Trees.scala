@@ -1,7 +1,7 @@
 package inca.frontend.constraint.extensions.ifThenElse
 
+import inca.compiler.SourceLocation
 import inca.frontend.constraint.core.tree._
-import inca.frontend.constraint.parser.SourceLocation
 
 object Trees {
   case class IfThenElse(cond: Expression, thn: Body, elseIfs: Seq[ElseIf], els: Option[Body]) extends Statement {

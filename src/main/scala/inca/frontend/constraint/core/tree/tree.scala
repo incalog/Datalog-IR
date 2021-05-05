@@ -1,6 +1,7 @@
 package inca.frontend.constraint.core
 
-import inca.frontend.constraint.parser.SourceLocation
+import inca.compiler.SourceLocation
+
 
 package object tree {
   val Continue: CoreStatement = FailStatement

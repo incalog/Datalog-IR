@@ -1,6 +1,6 @@
 package inca.frontend.constraint.core.tree
 
-import inca.frontend.constraint.parser.SourceLocation
+import inca.compiler.SourceLocation
 import inca.util.Meta
 
 case class Body(stmts: Seq[Statement]) extends SourceLocation {

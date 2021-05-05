@@ -1,7 +1,7 @@
 package inca.frontend.constraint.extensions.match_
 
+import inca.compiler.SourceLocation
 import inca.frontend.constraint.core.tree._
-import inca.frontend.constraint.parser.SourceLocation
 import inca.frontend.constraint.typechecker.Typeable
 import inca.util.Meta
 

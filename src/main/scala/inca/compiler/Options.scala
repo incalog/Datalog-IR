@@ -5,8 +5,14 @@ import inca.compiler.Options.{defaultDesugarables, defaultOptimizations}
 import inca.frontend.constraint.desugar.Desugarable
 import inca.frontend.constraint.extensions
 import inca.runtime.context.DataModel
+import inca.backend.transform.Transformation
+import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPatterns}
+import inca.compiler.Options.defaultOptimizations
+import inca.frontend.functional.Frontend
+import inca.runtime.context.DataModel
 
 case class Options(optimizations: Seq[Optimization] = defaultOptimizations,
+                   transformations: Seq[Transformation] = Seq(),
                    desugarables: Seq[Desugarable] = defaultDesugarables,
                    stopOnError: Boolean = true,
                    stopOnWarning: Boolean = false) {
@@ -18,8 +24,14 @@ object Options {
     ConstantPropagation,
     EliminateAliases,
     InferVarTypes,
-    FoldConstantConstraints
+    FoldConstantConstraints,
+    EliminateEmptyRelations
   )
+
+  val defaultTransformations: Seq[Transformation] = Seq(
+//    RemoveBodyOfUnusedDataConstructor,
+    DeriveDemandPatterns,
+    DemandTransformation)
 
   val defaultDesugarables: Seq[Desugarable] = Seq(
     extensions.boolOps.Desugaring,

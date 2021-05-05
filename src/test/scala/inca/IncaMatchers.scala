@@ -17,12 +17,24 @@ trait IncaMatchers extends Matchers {
   val dataModel: DataModel
 
   def assertDesugar(core: Module, sugared: Module, options: Options = this.options): Unit = {
-    val desugared = compiler.Compiler.compileFun(sugared, options).desugared
+    val desugared = compiler.Compiler.compileConstraint(sugared, options).desugared
     assertResult(core)(desugared)
   }
 
   def assertOptimize(optimized: GP.Module, original: GP.Module): Unit = {
     assertResult(optimized)(compiler.Compiler.compileGP(original, dataModel, options).optimized)
+  }
+
+  def assertMatchFunModule (module: Module,
+                          fun: String,
+                          subjectProg: Diffable,
+                          scope: QueryScope = this.scope,
+                          options: Options = this.options)
+                         (asserter: Query.Matcher => Assertion): Assertion = {
+
+    val editScript = Diffable.load(subjectProg)
+    val compiled = compiler.Compiler.compileConstraint(module, options)
+    assertMatchCoreEdit(compiled, fun, editScript, scope)(asserter)
   }
 
   def assertMatchFunCode (module: String,
@@ -33,19 +45,7 @@ trait IncaMatchers extends Matchers {
                          (asserter: Query.Matcher => Assertion): Assertion = {
 
     val editScript = Diffable.load(subjectProg)
-    val compiled = compiler.Compiler.compileFun(module, options)
-    assertMatchCoreEdit(compiled, fun, editScript, scope)(asserter)
-  }
-
-  def assertMatchFunModule(module: Module,
-                           fun: String,
-                           subjectProg: Diffable,
-                           scope: QueryScope = this.scope,
-                           options: Options = this.options)
-                          (asserter: Query.Matcher => Assertion): Assertion = {
-
-    val editScript = Diffable.load(subjectProg)
-    val compiled = compiler.Compiler.compileFun(module, options)
+    val compiled = compiler.Compiler.compileConstraint(module, options)
     assertMatchCoreEdit(compiled, fun, editScript, scope)(asserter)
   }
 

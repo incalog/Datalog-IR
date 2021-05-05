@@ -2,13 +2,12 @@ package inca.compiler.constraint
 
 import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
-import inca.compiler.{CompiledModule, CompilerFlags, Options}
+import inca.compiler.{CompiledModule, CompilerFlags, Options, SourceLocation}
 import inca.frontend.constraint.core.CompileToGP
 import inca.frontend.constraint.core.tree._
 import inca.frontend.constraint.datamodelresolver.{DataModelResolver, DirectDataModelResolver, NativeDataModelResolver}
 import inca.frontend.constraint.desugar.Desugar
 import inca.frontend.constraint.extensions
-import inca.frontend.constraint.parser.SourceLocation
 import inca.frontend.constraint.typechecker.CoreTypechecker
 import inca.runtime.context.DataModel
 

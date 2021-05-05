@@ -12,6 +12,12 @@ sealed trait IndexKey[T] extends IInputKey {
   def isStateless: Boolean = false
 }
 
+case class NamedRelationKey(name: String, arity: Int) extends IndexKey[String] {
+  override def getStringID: String = s"namedRelation#$name($arity)"
+  override def getArity: Int = arity
+  override def isEnumerable: Boolean = true
+}
+
 case class NodeTypeKey(id: Type) extends IndexKey[Type] {
   override val getStringID: String = "nodeType#" + id.toString
   override val getArity: Int = 1

@@ -1,7 +1,7 @@
 package inca.frontend.constraint.typechecker
 
+import inca.compiler.SourceLocation
 import inca.frontend.constraint.core.tree._
-import inca.frontend.constraint.parser.SourceLocation
 import inca.frontend.constraint.util.TypeHelper
 import inca.runtime.aggregate.Aggregation
 import inca.runtime.context.DataModel

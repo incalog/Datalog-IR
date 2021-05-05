@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TList, TLiteral, TNode, TScala, Term, Type, Var, Visibility}
+import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, DataConstructor, DataDef, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
 import truechange.JavaLitType
 
 object Printer {
@@ -31,6 +31,7 @@ object Printer {
       case JavaLitType(cl) =>  cl.getName
       case _ => throw new UnsupportedOperationException
     }
+    case TData(name) => name
     case TAnyLinked => "TAnyLinked"
     case TNode(name) => name
     case TScala(ty) => s"`${ty.syntax}`"
@@ -57,6 +58,12 @@ object Printer {
       s"${neg}find $call"
     case Computed(lhs, computation) =>
       prettyComputation(lhs, computation)
+    case ExtensionalCall(name, args, isNeg) =>
+      val neg = if (isNeg) "neg " else ""
+      val call = s"$name(${args.map(prettyTerm).mkString(",")})"
+      s"${neg}extensional find $call"
+    case Undef(t) =>
+      s"undef ${prettyTerm(t)}"
   }
 
   def prettyLink(link: Link): String = link match {
@@ -86,12 +93,28 @@ object Printer {
     case GP.CountAggregation(patName, args) =>
       s"${prettyTerm(lhs)} == count $patName(${args.map(prettyTerm).mkString(",")})"
     case GP.Evaluation(args, returnType, code) =>
-      val prettyArgs = args.map { case (t, ty) => s"${prettyTerm(t)}: ${prettyType(ty)}"}.mkString(", ")
-      val syntax = s"(${code.syntax})($prettyArgs)"
-      val indented = syntax.replace("\n", "\n\t\t")
-      s"${prettyTerm(lhs)} == `$indented`: ${prettyType(returnType)}"
-    case GP.CustomAggregation(typ, agg, patName, args, aggregatedColumn) =>
+      val indented = code.syntax.replace("\n", "\n\t\t")
+      val argsS = args.map(a => prettyTerm(a._1)).mkString(", ")
+      s"${prettyTerm(lhs)} == `$indented`($argsS): ${prettyType(returnType)}"
+    case GP.CustomAggregation(typ, desc, agg, patName, args, aggregatedColumn) =>
       val sargs = args.map(prettyTerm).updated(aggregatedColumn, "#").mkString(", ")
-      s"${prettyTerm(lhs)} == aggregate $patName($sargs):$typ with $agg"
+      s"${prettyTerm(lhs)} == aggregate $patName($sargs):$typ with ${desc.getOrElse(agg.toString)}"
+  }
+
+  def prettyDataDef(data: DataDef): String = {
+    val visS = if (data.vis.contains(Private)) "private " else ""
+    if (data.constrs.isEmpty)
+      s"${visS}data ${data.name}"
+    else {
+      val constrS = data.constrs.map(prettyDataConstr)
+      s"""${visS}data ${data.name} =
+         |${constrS.mkString(" |\n")}
+         |""".stripMargin
+    }
+  }
+
+  def prettyDataConstr(constr: DataConstructor): String = {
+    val paramTypesS = constr.paramTypes.map(prettyType).mkString(", ")
+    s"${constr.name}($paramTypesS)"
   }
 }

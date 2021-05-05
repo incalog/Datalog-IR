@@ -1,13 +1,12 @@
 package inca.runtime.context
 
-import java.util
-import java.util.Collections
-
 import inca.runtime.index._
 import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
 import org.eclipse.viatra.query.runtime.matchers.context.{AbstractQueryMetaContext, IInputKey, InputKeyImplication}
 import truechange.SortType
 
+import java.util
+import java.util.Collections
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 
@@ -87,6 +86,9 @@ class MetaContext(langMetaInfo: DataModel) extends AbstractQueryMetaContext {
       Collections.emptySet()
 
     case key: VirtualKey =>
+      Collections.emptySet()
+
+    case key: NamedRelationKey =>
       Collections.emptySet()
 
     case _ => throw new IllegalArgumentException("Cannot support implication for: " + key)

@@ -19,7 +19,11 @@ object CollectConstantEvaluation extends Collect[Evaluation] {
 
 trait Collect[R] {
 
-  def apply(pat: Pattern): Seq[R] = {
+  def apply(mod: Module): Seq[R] = {
+    mod.pats.flatMap(transPattern)
+  }
+
+  def transPattern(pat: Pattern): Seq[R] = {
     val paramsRes = pat.params.flatMap(transParam)
     paramsRes ++ pat.bodies.flatMap(transBody)
   }
@@ -30,12 +34,14 @@ trait Collect[R] {
 
   def transConstraint(const: Constraint): Seq[R] = const match {
     case Call(_, args, _, _) => args.flatMap(transTerm)
+    case ExtensionalCall(_, args, _) => args.flatMap(transTerm)
     case Compare(comp, lhs, rhs) => transTerm(lhs) ++ transTerm(rhs)
     case HasType(v, typ) => transTerm(v)
     case NotHasType(v, typ) => transTerm(v)
     case Path(src, srcTy, link, trg, trgTy) => transTerm(src) ++ transTerm(trg)
     case NoPath(t, ty, link, termIsSource) => transTerm(t)
     case Computed(lhs, comp) => transTerm(lhs) ++ transComputation(comp)
+    case Undef(t) => transTerm(t)
   }
 
   def transTerm(v: Term): Seq[R] = v match {
@@ -56,6 +62,6 @@ trait Collect[R] {
   def transComputation(computation: Computation): Seq[R] = computation match {
     case CountAggregation(_, args) => args.flatMap(transTerm)
     case Evaluation(args, _, _) => args.flatMap(v => transTerm(v._1)).toSeq
-    case CustomAggregation(_, agg, _, args, _) => args.flatMap(transTerm)
+    case CustomAggregation(_, _, agg, _, args, _) => args.flatMap(transTerm)
   }
 }

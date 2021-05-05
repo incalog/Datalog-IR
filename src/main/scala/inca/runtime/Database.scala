@@ -47,6 +47,10 @@ class Database(
   private[runtime] val linkListFirstInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListFirstKey)
   private[runtime] val linkListNextInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI,URI](LinkListNextKey)
 
+  private[runtime] val namedRelationInstances: mutable.Map[String, BagIndex] = mutable.Map()
+
+
+
   private[runtime] val dynamicIndices: Map[DynamicKey, DynamicIndex] = _dynamicIndices.map { fact =>
     val ix = fact.makeIndex(this)
     ix.key.asInstanceOf[DynamicKey] -> ix
@@ -59,6 +63,13 @@ class Database(
   private[runtime] def nodeInstancesEnsure(ty: Type) = nodeInstances.getOrElse(ty, {
     val ix = new UnarySetIndex[URI](NodeTypeKey(ty))
     nodeInstances += ty -> ix
+    ix
+  })
+
+  @inline
+  private[runtime] def namedRelationInstancesEnsure(name: String, arity: Int) = namedRelationInstances.getOrElse(name, {
+    val ix = new BagIndex(NamedRelationKey(name, arity))
+    namedRelationInstances += name -> ix
     ix
   })
 
@@ -208,6 +219,13 @@ class Database(
         linkPrimitiveInstances(tagname->name).delete(node, lit)
       }
   }
+
+  override def insert(relName: String, tuple: Tuple): Unit =
+    namedRelationInstancesEnsure(relName, tuple.getSize).insert(tuple)
+
+  override def delete(relName: String, tuple: Tuple): Unit =
+    namedRelationInstancesEnsure(relName, tuple.getSize).delete(tuple)
+
   def iterateNext(from: truechange.URI)(f: truechange.URI => Unit): Unit = {
     val index = linkListNextInstances.index
     f(from)
@@ -230,6 +248,7 @@ class Database(
     case LinkPrimitiveKey(link) => linkPrimitiveInstances.get(link)
     case LinkListFirstKey => Some(linkListFirstInstances)
     case LinkListNextKey => Some(linkListNextInstances)
+    case NamedRelationKey(name, _) => namedRelationInstances.get(name)
     case dkey: DynamicKey => Some(dynamicIndices(dkey))
     case vkey: VirtualKey => Some(virtualIndexEnsure(vkey))
     case _ => throw new IllegalArgumentException(s"Unknown input key $key")
@@ -244,6 +263,7 @@ class Database(
     case LinkPrimitiveKey(link) => linkPrimitiveInstancesEnsure(link)
     case LinkListFirstKey => linkListFirstInstances
     case LinkListNextKey => linkListNextInstances
+    case NamedRelationKey(name, arity) => namedRelationInstancesEnsure(name, arity)
     case dkey: DynamicKey => dynamicIndices(dkey)
     case vkey: VirtualKey => virtualIndexEnsure(vkey)
     case _ => throw new IllegalArgumentException(s"Unknown input key $key")

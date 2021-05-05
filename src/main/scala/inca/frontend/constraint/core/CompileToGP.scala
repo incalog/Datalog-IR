@@ -1,17 +1,12 @@
 package inca.frontend.constraint.core
 
 import inca.backend.ir.GP
-import inca.frontend.constraint.core.CompileToGP.BodyMustFail
 import inca.frontend.constraint.core.tree._
 import inca.util.Gensym
 import inca.util.Meta.Scala
 
 import scala.collection.mutable.ListBuffer
 import scala.meta.{Name => _, Type => _}
-
-object CompileToGP {
-  case object BodyMustFail extends Exception
-}
 
 class CompileToGP {
   val gensym = new Gensym(Iterable.empty)
@@ -34,7 +29,7 @@ class CompileToGP {
     }
 
     val scalaContent = ScalaModuleContents.toList ++ blockDefs.toList
-    GP.Module(name.name, imports.map(_.name.name), generatedPatterns.toList, scalaContent.map(Scala.apply))
+    GP.Module(name.name, imports.map(_.name.name), Seq(), generatedPatterns.toList, scalaContent.map(Scala.apply))
   }
 
   def transform(fun: PatternFunction): GP.Pattern = {
@@ -89,7 +84,7 @@ class CompileToGP {
       }
       Some(GP.Body(constraints))
     } catch {
-      case BodyMustFail => None
+      case GP.BodyMustFail => None
     }
   }
 
@@ -114,7 +109,7 @@ class CompileToGP {
 
     case Assert(Constant(BooleanLiteral(v))) =>
       if (v) Seq()
-      else throw BodyMustFail
+      else throw GP.BodyMustFail
     case Assert(cond) => transExp(cond.ensureCore) match {
       case (Nil, cons) =>
         cons
@@ -127,7 +122,7 @@ class CompileToGP {
       constraints ++ genEqs(vars, outVars)
 
     case FailStatement =>
-      throw BodyMustFail
+      throw GP.BodyMustFail
   }
 
   def tryInlineVar(exp: Expression): Expression = exp match {
@@ -295,7 +290,7 @@ class CompileToGP {
       val fun = PatternFunction(None, Name(funname), params, resultType, bodies)
       generatedPatterns += transform(fun)
 
-      val aggregation = GP.CustomAggregation(transType(resultType), aggCode, funname, allvars, allvars.size - 1)
+      val aggregation = GP.CustomAggregation(transType(resultType), None, aggCode, funname, allvars, allvars.size - 1)
       val resultVar = gensym.fresh("tmp")
       val compare = GP.Computed(GP.Var(resultVar), aggregation)
       (Seq(resultVar), Seq(compare))

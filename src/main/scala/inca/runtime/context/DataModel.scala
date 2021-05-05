@@ -1,6 +1,6 @@
 package inca.runtime.context
 
-import inca.runtime.context.DataModel._
+import inca.runtime.context.DataModel.Link
 import inca.util.TupleOps.transClosure
 import truechange.{Link => _, _}
 

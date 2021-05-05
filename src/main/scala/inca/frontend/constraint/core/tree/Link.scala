@@ -1,6 +1,7 @@
 package inca.frontend.constraint.core.tree
 
-import inca.frontend.constraint.parser.SourceLocation
+import inca.compiler.SourceLocation
+
 
 sealed trait Link extends SourceLocation {
   def prettyprint: String

@@ -9,7 +9,7 @@ object Meta {
 
   val TAB = "  "
 
-  def typeOf[T:ClassTag](implicit tag: ClassTag[T]): Type =
+  def typeOf[T:ClassTag](implicit tag: ClassTag[T]): Type.Ref =
     mkQualTypename(tag.runtimeClass.getCanonicalName)
 
   def symbolOf[T:ClassTag](implicit tag: ClassTag[T]): Term =
@@ -44,7 +44,7 @@ object Meta {
     Import(List(Importer(t, List(Importee.Name(Indeterminate(ss.last))))))
   }
 
-  def mkQualTypename(s: String): Type = {
+  def mkQualTypename(s: String): Type.Ref = {
     val ss = s.split('.')
     if (ss.length == 1)
       return Type.Name(ss(0))
@@ -85,11 +85,36 @@ object Meta {
 
     //    println(source)
 
-    val toolbox = currentMirror.mkToolBox()
+    val toolbox = currentMirror.mkToolBox(options = "-Ymacro-annotations")
     val tree = toolbox.parse(source)
     val compiled = toolbox.compile(tree)
     val result = () => compiled()
     compilerCache += source -> result
     result.asInstanceOf[() => A]
+  }
+
+  class ScalaCompiler {
+    import reflect.runtime.{currentMirror, universe}
+    import tools.reflect.ToolBox
+
+    private val toolbox: ToolBox[universe.type] = currentMirror.mkToolBox(options = "-Ymacro-annotations")
+
+    private val compilerCache: mutable.Map[String, Any] = mutable.Map()
+
+    def compileAndLoadScala[A](source: String): A = {
+      compilerCache.get(source).map(v => return v.asInstanceOf[A])
+
+      val tree = toolbox.parse(source)
+      val compiled = toolbox.compile(tree)
+      val result = compiled().asInstanceOf[A]
+      compilerCache += source -> result
+      result
+    }
+
+    def define(source: String): String = {
+      val tree = toolbox.parse(source)
+      val sym = toolbox.define(tree.asInstanceOf[universe.ImplDef])
+      sym.fullName
+    }
   }
 }

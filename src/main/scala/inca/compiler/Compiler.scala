@@ -1,43 +1,40 @@
 package inca.compiler
 
-import fastparse.Parsed
 import inca.backend.ir.GP
+import inca.frontend.functional
+import inca.frontend.constraint
 import inca.compiler.constraint.CompiledConstraintModule
-import inca.frontend.constraint.core
-import inca.frontend.constraint.extensions
-import inca.frontend.constraint.parser.CoreParser
 import inca.runtime.context.DataModel
+import inca.compiler.functional.CompiledFunctionalModule
 
 object Compiler {
 
-  private lazy val parser: CoreParser = new CoreParser
-    with extensions.boolOps.Parser
-    with extensions.evalCall.Parser
-    with extensions.forallExists.Parser
-    with extensions.foreach.Parser
-    with extensions.ifThenElse.Parser
-    with extensions.match_.Parser
-    with extensions.switch_.Parser {}
-
-  def compileFun(code: String, compilerOptions: Options): CompiledConstraintModule = {
-    val module =
-      fastparse.parse(code, parser.module(_), verboseFailures = true) match {
-        case Parsed.Success(value, _) => value
-        case fail: Parsed.Failure =>
-          throw new IllegalArgumentException(s"Parsing Error: ${fail.trace(true).longTerminalsMsg}")
-      }
-    constraint.CompiledConstraintModule(module, compilerOptions)
+  def compileFunctional(module: String,
+                 compilerOptions: Options): CompiledFunctionalModule = {
+    val parsed = functional.parser.Parser.parse(module)
+    CompiledFunctionalModule(parsed, compilerOptions)
   }
 
-  def compileFun(module: core.tree.Module,
-                 compilerOptions: Options): CompiledConstraintModule = {
-    constraint.CompiledConstraintModule(module, compilerOptions)
+  def compileFunctional(module: functional.core.Module,
+                 compilerOptions: Options): CompiledFunctionalModule = {
+    CompiledFunctionalModule(module, compilerOptions)
+  }
+
+  def compileConstraint(module: String,
+                        compilerOptions: Options): CompiledConstraintModule = {
+    val parsed = constraint.parser.Parser.parse(module)
+    CompiledConstraintModule(parsed, compilerOptions)
+  }
+
+  def compileConstraint(module: constraint.core.tree.Module,
+                        compilerOptions: Options): CompiledConstraintModule = {
+    CompiledConstraintModule(module, compilerOptions)
   }
 
   def compileGP(module: GP.Module,
-                langMetaInfo: DataModel,
+                dataModel: DataModel,
                 compilerOptions: Options): CompiledGPModule = {
-    CompiledGPModule(module, langMetaInfo, compilerOptions)
+    CompiledGPModule(module, dataModel, compilerOptions)
   }
 
 }

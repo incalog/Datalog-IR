@@ -1,5 +1,6 @@
 package inca.backend.ir
 
+import inca.backend.hints.Hints
 import inca.util.Meta
 import inca.util.Meta.Scala
 import truechange.{JavaLitType, LitType}
@@ -7,11 +8,17 @@ import truechange.{JavaLitType, LitType}
 import scala.meta.quasiquotes._
 
 object GP {
+  case object BodyMustFail extends Exception
+  def throwBodyMustFail(): Nothing = throw BodyMustFail
+
   sealed trait Type {
     def asScala: meta.Type
   }
   case object TAny extends Type {
     override def asScala: meta.Type = t"Any"
+  }
+  case class TData(name: Name) extends Type {
+    override def asScala: meta.Type = meta.Type.Name(name)
   }
 
   case class TLiteral(litType: LitType) extends Type {
@@ -53,21 +60,36 @@ object GP {
   sealed trait Visibility
   case object Private extends Visibility
 
-  case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern], scalaContent: Seq[Scala[meta.Stat]]) {
+  case class Module(name: Name, imports: Seq[Name], data: Seq[DataDef], pats: Seq[Pattern], scalaContent: Seq[Scala[meta.Stat]]) {
     override def toString: Name = Printer.prettyModule(this)
   }
-  case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body])
+  case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body]) extends Hints {
+    def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.constraints.isEmpty)
+  }
   case class Param(name: Name, typ: Type)
-  case class Body(constraints: Seq[Constraint])
+  case class Body(constraints: Seq[Constraint]) extends Hints
 
-  sealed trait Constraint
-  case class Call(name: Name, args: Seq[Term], transitive: Boolean, neg: Boolean) extends Constraint
+  sealed trait Constraint extends Hints {
+    def asCall: Option[(Name, Seq[Term])] = None
+    def replaceCall(newPatName: Name, newArgs: Seq[Term]): Constraint = this
+  }
+  case class Call(name: Name, args: Seq[Term], transitive: Boolean = false, neg: Boolean = false) extends Constraint {
+    override def asCall: Option[(Name, Seq[Term])] = Some(name -> args)
+    override def replaceCall(newPatName: Name, newArgs: Seq[Term]): Call =
+      Call(newPatName, newArgs, transitive, neg).withHints(this)
+  }
+  case class ExtensionalCall(name: Name, args: Seq[Term], neg: Boolean = false) extends Constraint
   case class Compare(comp: Comparator, lhs: Term, rhs: Term) extends Constraint
   case class HasType(t: Term, typ: Type) extends Constraint
   case class NotHasType(t: Term, typ: Type) extends Constraint
   case class Path(src: Term, srcTy: Type, link: Link, trg: Term, trgTy: Type) extends Constraint
   case class NoPath(t: Term, ty: Type, link: Link, termIsSource: Boolean) extends Constraint
-  case class Computed(lhs: Term, computation: Computation) extends Constraint
+  case class Computed(lhs: Term, computation: Computation) extends Constraint {
+    override def asCall: Option[(Name, Seq[Term])] = computation.asCall
+    override def replaceCall(newPatName: Name, newArgs: Seq[Term]): Computed =
+      Computed(lhs, computation.replaceCall(newPatName, newArgs)).withHints(this)
+  }
+  case class Undef(t: Term) extends Constraint
 
   sealed trait Link
   case object ParentLink extends Link
@@ -78,6 +100,9 @@ object GP {
   sealed trait Comparator
   case object EqComparator extends Comparator
   case object NeqComparator extends Comparator
+
+  def Eq(lhs: Term, rhs: Term): Compare = Compare(EqComparator, lhs, rhs)
+  def Neq(lhs: Term, rhs: Term): Compare = Compare(NeqComparator, lhs, rhs)
 
   sealed trait Term
   case class Var(name: Name) extends Term {
@@ -103,9 +128,28 @@ object GP {
   case class BooleanLiteral(v: Boolean) extends Literal {
     override def typ: Type = TScalaBoolean
   }
+  def True: Constant = Constant(BooleanLiteral(true))
+  def False: Constant = Constant(BooleanLiteral(false))
 
-  sealed trait Computation
-  case class Evaluation(args: Seq[(Term,Type)], resultType: Type, code: Scala[meta.Term.Function]) extends Computation
-  case class CountAggregation(patName: Name, args: Seq[Term]) extends Computation
-  case class CustomAggregation(typ: Type, agg: Scala[meta.Term], patName: Name, args: Seq[Term], aggregatedColumn: Int) extends Computation
+  sealed trait Computation {
+    val args: Seq[Term]
+    def asCall: Option[(Name, Seq[Term])] = None
+    def replaceCall(newPatName: Name, newArgs: Seq[Term]): Computation = this
+  }
+  case class Evaluation(evalArgs: Seq[(Term,Type)], resultType: Type, code: Scala[meta.Term.Function]) extends Computation {
+    val args: Seq[Term] = evalArgs.map(_._1)
+  }
+  case class CountAggregation(patName: Name, args: Seq[Term]) extends Computation {
+    override def asCall: Option[(Name, Seq[Term])] = Some(patName -> args)
+    override def replaceCall(newPatName: Name, newArgs: Seq[Term]): CountAggregation =
+      CountAggregation(newPatName, newArgs)
+  }
+  case class CustomAggregation(typ: Type, description: Option[String], agg: Scala[meta.Term], patName: Name, args: Seq[Term], aggregatedColumn: Int) extends Computation {
+    override def asCall: Option[(Name, Seq[Term])] = Some(patName -> args)
+    override def replaceCall(newPatName: Name, newArgs: Seq[Term]): CustomAggregation =
+      CustomAggregation(typ, description, agg, newPatName, newArgs, aggregatedColumn)
+  }
+
+  case class DataDef(vis: Option[Visibility], name: Name, constrs: Seq[DataConstructor])
+  case class DataConstructor(name: Name, paramTypes: Seq[Type])
 }

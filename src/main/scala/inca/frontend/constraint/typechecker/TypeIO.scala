@@ -1,8 +1,7 @@
 package inca.frontend.constraint.typechecker
 
 import inca.compiler
-import inca.compiler.CompilationMessage
-import inca.frontend.constraint.parser.SourceLocation
+import inca.compiler.{CompilationMessage, SourceLocation}
 
 import scala.collection.mutable.ListBuffer
 

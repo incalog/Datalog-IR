@@ -39,7 +39,7 @@ object ConstraintExecutor {
 
   def loadAnalysis(code: String): Loaded = {
     val options = Options()
-    val compiled = Compiler.compileFun(code, options)
+    val compiled = Compiler.compileConstraint(code, options)
     val scope = new QueryScope(compiled.dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     Loaded(engine, feed, compiled)

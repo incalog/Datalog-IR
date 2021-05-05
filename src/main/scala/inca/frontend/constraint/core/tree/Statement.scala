@@ -1,6 +1,7 @@
 package inca.frontend.constraint.core.tree
 
-import inca.frontend.constraint.parser.SourceLocation
+import inca.compiler.SourceLocation
+
 
 trait Statement extends SourceLocation {
   def boundVars: Set[Name]

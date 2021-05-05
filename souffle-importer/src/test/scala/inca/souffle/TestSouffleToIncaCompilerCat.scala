@@ -35,7 +35,7 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaMatchers {
 
   lazy val compiledModule = {
     val ast = Parser(catProgram.linesIterator)
-    val compiler = new SouffleToIncaCompiler
+    val compiler = new SouffleToIncaBackendCompiler
     compiler.compile("catanalysis", ast)
   }
 
