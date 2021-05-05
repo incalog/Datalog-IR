@@ -12,7 +12,7 @@ import truediff.Diffable
 
 import scala.jdk.CollectionConverters._
 
-object Executor {
+object FunctionalExecutor {
   case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledModule) {
     lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
 
