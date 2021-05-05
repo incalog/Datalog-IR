@@ -1,7 +1,7 @@
 package inca.integration
 
 import inca.Executor._
-import inca.examples.{Code, LambdaCalculus}
+import inca.examples.functional.{Code, LambdaCalculus}
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.scalatest.funsuite.AnyFunSuite
 

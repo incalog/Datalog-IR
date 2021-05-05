@@ -1,7 +1,7 @@
 package inca.integration
 
 import inca.Executor._
-import inca.examples.Code
+import inca.examples.functional.Code
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.XtensionQuasiquoteTerm

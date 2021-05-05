@@ -1,6 +1,6 @@
 package inca.frontend.functional.typecheck
 
-import inca.examples.{AST, Code, ControlDataFlow, HigherOrder}
+import inca.examples.functional.{AST, Code, ControlDataFlow, HigherOrder}
 import inca.frontend.functional.Frontend
 import inca.frontend.functional.core.Module
 import inca.frontend.functional.typechecker.Typechecker

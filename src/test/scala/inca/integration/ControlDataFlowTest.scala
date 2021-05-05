@@ -1,7 +1,7 @@
 package inca.integration
 
 import inca.Executor._
-import inca.examples.ControlDataFlow
+import inca.examples.functional.ControlDataFlow
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.scalatest.funsuite.AnyFunSuite
 

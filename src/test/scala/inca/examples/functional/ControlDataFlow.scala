@@ -1,4 +1,4 @@
-package inca.examples
+package inca.examples.functional
 
 object ControlDataFlow {
   val AST_code =

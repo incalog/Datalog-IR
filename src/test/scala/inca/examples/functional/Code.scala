@@ -1,6 +1,6 @@
-package inca.examples
+package inca.examples.functional
 
-import inca.examples.ADT.Nat_code
+import inca.examples.functional.ADT.Nat_code
 
 object Code {
   def module(content: String*): String =

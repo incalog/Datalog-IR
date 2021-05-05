@@ -1,6 +1,6 @@
-package inca.examples
+package inca.examples.functional
 
-import inca.examples.Code.module
+import inca.examples.functional.Code.module
 
 object LambdaCalculus {
   val Type_code =

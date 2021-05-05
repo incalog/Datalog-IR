@@ -1,4 +1,4 @@
-package inca.examples
+package inca.examples.functional
 
 import inca.frontend.functional.core._
 import inca.runtime.context.LanguageMetaInfo

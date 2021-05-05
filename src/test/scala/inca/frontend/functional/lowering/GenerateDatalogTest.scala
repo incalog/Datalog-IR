@@ -2,8 +2,8 @@ package inca.frontend.functional.lowering
 
 import inca.backend.ir.GP
 import inca.compiler.{Compiler, Options}
-import inca.examples.ADT.Nat_lmi
-import inca.examples.{AST, Code, ControlDataFlow, HigherOrder}
+import inca.examples.functional.ADT.Nat_lmi
+import inca.examples.functional.{AST, Code, ControlDataFlow, HigherOrder}
 import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
 

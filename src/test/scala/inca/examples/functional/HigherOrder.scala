@@ -1,4 +1,4 @@
-package inca.examples
+package inca.examples.functional
 
 object HigherOrder {
   def module(content: String*): String =

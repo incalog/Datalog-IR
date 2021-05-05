@@ -2,7 +2,7 @@ package inca.integration
 
 import inca.Executor._
 import inca.compiler.CompiledModule
-import inca.examples.HigherOrder
+import inca.examples.functional.HigherOrder
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.XtensionQuasiquoteTerm
