@@ -1,8 +1,6 @@
 package inca.frontend.constraint.util
 
-//import inca.frontend.constraint.core.Frontend
-import inca.frontend.constraint.core.tree._
-import inca.runtime.context.DataModel
+import inca.frontend.constraint.core._
 import inca.util.Meta.Scala
 
 object TypeHelper {

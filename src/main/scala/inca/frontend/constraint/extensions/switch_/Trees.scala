@@ -1,6 +1,6 @@
 package inca.frontend.constraint.extensions.switch_
 
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 
 object Trees {
   case class Switch(bodies: Seq[Body]) extends Statement {

@@ -1,6 +1,6 @@
 package inca.analyzedLangs
 
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 
 import scala.language.implicitConversions
 

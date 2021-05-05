@@ -5,7 +5,7 @@ import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
 import inca.backend.ir.{GP, Printer}
 import inca.compiler.{Compiler, ConstraintOptions, Options}
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 import org.scalatest.funsuite.AnyFunSuite
 
 class CompileToGPTest extends AnyFunSuite {

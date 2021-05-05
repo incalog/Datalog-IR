@@ -3,15 +3,15 @@ package inca.compiler.constraint
 import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
 import inca.compiler.{CompiledModule, CompilerFlags, ConstraintOptions, SourceLocation}
-import inca.frontend.constraint.core.CompileToGP
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 import inca.frontend.constraint.datamodelresolver.{DataModelResolver, DirectDataModelResolver, NativeDataModelResolver}
 import inca.frontend.constraint.desugar.Desugar
-import inca.frontend.constraint.extensions
+import inca.frontend.constraint.{core, extensions}
+import inca.frontend.constraint.lowering.CompileToGP
 import inca.frontend.constraint.typechecker.CoreTypechecker
 import inca.runtime.context.DataModel
 
-case class CompiledConstraintModule(module: Module, options: ConstraintOptions) extends CompiledModule {
+case class CompiledConstraintModule(module: core.Module, options: ConstraintOptions) extends CompiledModule {
 
   override def name: Name = module.name.name
 
@@ -37,7 +37,7 @@ case class CompiledConstraintModule(module: Module, options: ConstraintOptions) 
       override val dataModel: DataModel = _dataModel
     }
 
-  lazy val typed: Module = {
+  lazy val typed: core.Module = {
     typer.typecheck(module)
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
@@ -45,7 +45,7 @@ case class CompiledConstraintModule(module: Module, options: ConstraintOptions) 
     module
   }
 
-  lazy val desugared: Module = {
+  lazy val desugared: core.Module = {
     val module = Desugar(options.desugarables)(typed)
     typer.typecheck(module)
     messages ++= typer.getErrors

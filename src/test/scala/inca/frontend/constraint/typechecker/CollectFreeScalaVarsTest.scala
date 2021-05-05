@@ -1,7 +1,7 @@
 package inca.frontend.constraint.typechecker
 
 import inca.frontend.constraint.core
-import inca.frontend.constraint.core.tree.{Name => _, Param => _, _}
+import inca.frontend.constraint.core.{Name => _, Param => _, _}
 import inca.frontend.constraint.extensions
 import inca.runtime.context.DataModel
 import inca.util.Meta.Scala
@@ -476,7 +476,7 @@ class CollectFreeScalaVarsTest extends AnyFunSuite {
     checkVars(code, Set("start", "Heap", "Set"))
   }
 
-  private def checkEval(eval: Eval, vars: Map[String, core.tree.Type] = Map()): core.tree.Type = {
+  private def checkEval(eval: Eval, vars: Map[String, core.Type] = Map()): core.Type = {
 
     val typer = new CoreTypechecker
       with extensions.boolOps.Typechecker
@@ -488,24 +488,24 @@ class CollectFreeScalaVarsTest extends AnyFunSuite {
       with extensions.switch_.Typechecker {
       override val dataModel: DataModel = new DataModel()
     }
-    vars.foreach(vt => typer.bindVar(core.tree.Name(vt._1), new Var.Target {}, vt._2))
+    vars.foreach(vt => typer.bindVar(core.Name(vt._1), new Var.Target {}, vt._2))
     typer.typecheck(eval)
   }
   
   test("test typecheck simple") {
 
 
-    def check(eval: Eval, expected: core.tree.Type, vars: Map[String, core.tree.Type] = Map()): Unit = {
+    def check(eval: Eval, expected: core.Type, vars: Map[String, core.Type] = Map()): Unit = {
       val actual = checkEval(eval, vars)
       assert(actual == expected)
     }
-    check(Eval(Seq(EvalParam(core.tree.Name("x")), EvalParam(core.tree.Name("y"))), Scala(q"x + y")), TScalaInt, Map("x" -> TLiteral.Int, "y" -> TLiteral.Int))
+    check(Eval(Seq(EvalParam(core.Name("x")), EvalParam(core.Name("y"))), Scala(q"x + y")), TScalaInt, Map("x" -> TLiteral.Int, "y" -> TLiteral.Int))
     check(Eval(Seq.empty, Scala(q"Math.PI")), TScalaDouble)
-    check(Eval(Seq(EvalParam(core.tree.Name("x")), EvalParam(core.tree.Name("y"))), Scala(q"x == y")), TScalaBoolean, Map("x" -> TLiteral.Bool, "y" -> TLiteral.Bool))
+    check(Eval(Seq(EvalParam(core.Name("x")), EvalParam(core.Name("y"))), Scala(q"x == y")), TScalaBoolean, Map("x" -> TLiteral.Bool, "y" -> TLiteral.Bool))
     check(Eval(Seq.empty, Scala(q""" "hello world" """)), TScalaString)
     check(Eval(Seq.empty, Scala(q"{val s: Short = 1; s}")), TScala("Short"))
     check(Eval(Seq.empty, Scala(q"println()")), TUnit)
-    check(Eval(Seq(EvalParam(core.tree.Name("s"))), Scala(q"s")), TScalaString, Map("s" -> TLiteral.String))
+    check(Eval(Seq(EvalParam(core.Name("s"))), Scala(q"s")), TScalaString, Map("s" -> TLiteral.String))
   }
 
 
@@ -557,7 +557,7 @@ class CollectFreeScalaVarsTest extends AnyFunSuite {
           }
        """
 
-    val eval = Eval(Seq(EvalParam(core.tree.Name("num"))), Scala(code))
+    val eval = Eval(Seq(EvalParam(core.Name("num"))), Scala(code))
     val typ = checkEval(eval, Map("num" -> TScala("inca.analyzedData.Nat.Nat")))
     assert(typ == TScala("inca.analyzedData.Nat.Nat"))
   }
@@ -571,7 +571,7 @@ class CollectFreeScalaVarsTest extends AnyFunSuite {
         }
        """
 
-    val eval = Eval(Seq(EvalParam(core.tree.Name("num"))), Scala(code))
+    val eval = Eval(Seq(EvalParam(core.Name("num"))), Scala(code))
     val typ = checkEval(eval, Map("num" -> TScala("inca.analyzedData.Nat.Nat")))
     assert(typ == TTuple(Seq(TScalaInt, TScala("inca.analyzedData.Nat.Nat"))))
   }

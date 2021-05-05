@@ -6,6 +6,7 @@ import inca.frontend.constraint
 import inca.compiler.constraint.CompiledConstraintModule
 import inca.runtime.context.DataModel
 import inca.compiler.functional.CompiledFunctionalModule
+import inca.frontend.constraint.core
 
 object Compiler {
 
@@ -26,7 +27,7 @@ object Compiler {
     CompiledConstraintModule(parsed, compilerOptions)
   }
 
-  def compileConstraint(module: constraint.core.tree.Module,
+  def compileConstraint(module: core.Module,
                         compilerOptions: ConstraintOptions): CompiledConstraintModule = {
     CompiledConstraintModule(module, compilerOptions)
   }

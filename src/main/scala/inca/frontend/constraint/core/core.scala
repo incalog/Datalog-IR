@@ -1,9 +1,9 @@
-package inca.frontend.constraint.core
+package inca.frontend.constraint
 
 import inca.compiler.SourceLocation
 
 
-package object tree {
+package object core {
   val Continue: CoreStatement = FailStatement
   val TUnit: TTuple = TTuple(Seq.empty)
 

@@ -1,6 +1,6 @@
 package inca.frontend.constraint.datamodelresolver
 
-import inca.frontend.constraint.core.tree.{DataModel, Module}
+import inca.frontend.constraint.core.{DataModel, Module}
 import inca.runtime.context
 
 trait DataModelResolver {

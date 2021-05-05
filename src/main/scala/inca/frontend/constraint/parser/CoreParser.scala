@@ -3,7 +3,7 @@ package inca.frontend.constraint.parser
 import fastparse.ScalaWhitespace._
 import fastparse._
 import inca.compiler.SourceLocation
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 import inca.util.Meta.Scala
 
 import scala.language.reflectiveCalls

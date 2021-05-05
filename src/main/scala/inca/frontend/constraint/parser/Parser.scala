@@ -1,7 +1,7 @@
 package inca.frontend.constraint.parser
 
 import inca.frontend.constraint.extensions
-import inca.frontend.constraint.core.tree.Module
+import inca.frontend.constraint.core.Module
 
 object Parser {
   private lazy val parser: CoreParser = new CoreParser with

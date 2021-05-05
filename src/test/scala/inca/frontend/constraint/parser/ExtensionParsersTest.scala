@@ -4,7 +4,7 @@ import fastparse.Parsed.{Failure, Success}
 import fastparse._
 import inca.frontend.constraint.core
 import inca.frontend.constraint.extensions
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 import inca.runtime.context.DataModel
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite

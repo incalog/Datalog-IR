@@ -3,7 +3,7 @@ package inca.frontend.constraint.typechecker
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
 import inca.analyzedLangs
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 import inca.frontend.constraint.parser.CoreParser
 import inca.runtime.context.DataModel
 import inca.util.Meta.Scala

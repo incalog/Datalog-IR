@@ -1,6 +1,6 @@
 package inca.frontend.constraint.desugar
 
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 import inca.util.Gensym
 
 /**

@@ -1,6 +1,6 @@
 package inca.frontend.constraint.typechecker
 
-import inca.frontend.constraint.core.tree.Type
+import inca.frontend.constraint.core.Type
 
 trait Typeable {
   var typ: Option[Type] = None

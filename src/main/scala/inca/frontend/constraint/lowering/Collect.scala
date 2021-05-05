@@ -1,6 +1,6 @@
-package inca.frontend.constraint.core
+package inca.frontend.constraint.lowering
 
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 
 object CollectUndefPaths extends Collect[PathAccess] {
   override def transExp(exp: CoreExpression): Seq[PathAccess] = exp match {

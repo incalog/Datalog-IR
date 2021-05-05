@@ -1,6 +1,6 @@
 package inca.analyzedData
 
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 import inca.runtime.aggregate.Aggregation
 import inca.util.Meta
 import inca.util.Meta.Scala

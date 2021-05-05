@@ -1,6 +1,6 @@
 package inca.frontend.constraint.extensions.match_
 
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 import inca.frontend.constraint.extensions.match_.Trees._
 import inca.frontend.constraint.parser.CoreParser
 import inca.frontend.constraint.parser.ParserUtils.{nl_!, sp}

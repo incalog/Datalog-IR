@@ -3,7 +3,7 @@ package inca.caseStudies.findbugs
 import inca.analyzedLangs.tinyJava
 import inca.compiler.{Compiler, ConstraintOptions, Options}
 import inca.executor.ConstraintExecutor
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 import inca.runtime.EnginePool
 import inca.runtime.context.QueryScope
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory

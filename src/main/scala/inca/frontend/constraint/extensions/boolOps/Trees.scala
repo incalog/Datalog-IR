@@ -1,6 +1,6 @@
 package inca.frontend.constraint.extensions.boolOps
 
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 
 object Trees {
   case class Not(cond: Expression) extends Expression {

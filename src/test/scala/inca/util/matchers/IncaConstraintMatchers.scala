@@ -2,7 +2,7 @@ package inca.util.matchers
 
 import inca.compiler
 import inca.compiler.ConstraintOptions
-import inca.frontend.constraint.core.tree.Module
+import inca.frontend.constraint.core.Module
 import inca.runtime.Query
 import org.scalatest.Assertion
 import truediff.Diffable

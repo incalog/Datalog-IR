@@ -1,6 +1,6 @@
 package inca.frontend.constraint.extensions.foreach
 
-import inca.frontend.constraint.core.tree.Statement
+import inca.frontend.constraint.core.Statement
 import inca.frontend.constraint.extensions.foreach.Trees.Foreach
 import inca.frontend.constraint.parser.CoreParser
 

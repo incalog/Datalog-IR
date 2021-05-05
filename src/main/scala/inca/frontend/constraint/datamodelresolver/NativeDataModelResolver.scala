@@ -1,6 +1,6 @@
 package inca.frontend.constraint.datamodelresolver
 
-import inca.frontend.constraint.core.tree.{DataModel, Module, NativeDataModel}
+import inca.frontend.constraint.core.{DataModel, Module, NativeDataModel}
 import inca.runtime.context
 
 import java.lang.reflect.InvocationTargetException

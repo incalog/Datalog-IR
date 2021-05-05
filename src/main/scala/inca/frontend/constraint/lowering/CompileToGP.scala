@@ -1,7 +1,7 @@
-package inca.frontend.constraint.core
+package inca.frontend.constraint.lowering
 
 import inca.backend.ir.GP
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 import inca.util.Gensym
 import inca.util.Meta.Scala
 

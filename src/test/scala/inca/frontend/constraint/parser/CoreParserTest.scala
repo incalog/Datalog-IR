@@ -16,7 +16,7 @@ import org.scalatest.funsuite.AnyFunSuite
 class CoreParserTest extends AnyFunSuite {
 
   val parser = new CoreParser {}
-  import inca.frontend.constraint.core.tree._
+  import inca.frontend.constraint.core._
   
   test("test Type") {
     def testType(t: Type) = {

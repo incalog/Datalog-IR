@@ -1,4 +1,4 @@
-package inca.frontend.constraint.core.tree
+package inca.frontend.constraint.core
 
 import inca.compiler.SourceLocation
 import inca.util.Meta

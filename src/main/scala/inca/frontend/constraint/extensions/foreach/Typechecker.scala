@@ -1,6 +1,6 @@
 package inca.frontend.constraint.extensions.foreach
 
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 import inca.frontend.constraint.extensions.foreach.Trees._
 import inca.frontend.constraint.typechecker.{CoreTypechecker, StmType}
 

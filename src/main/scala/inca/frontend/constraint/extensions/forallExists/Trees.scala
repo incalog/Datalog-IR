@@ -1,6 +1,6 @@
 package inca.frontend.constraint.extensions.forallExists
 
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 
 object Trees {
   case class Forall(name: Name, exp: Expression, body: Body) extends Statement with Var.Target {

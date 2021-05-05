@@ -1,6 +1,6 @@
 package inca.frontend.constraint.extensions.ifThenElse
 
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 import inca.frontend.constraint.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.constraint.extensions.ifThenElse.Trees._
 import inca.frontend.constraint.extensions.{boolOps, switch_}

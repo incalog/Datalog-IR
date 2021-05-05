@@ -1,6 +1,6 @@
 package inca.frontend.constraint.extensions.boolOps
 
-import inca.frontend.constraint.core.tree.Expression
+import inca.frontend.constraint.core.Expression
 import inca.frontend.constraint.extensions.boolOps.Trees._
 import inca.frontend.constraint.parser.CoreParser
 

@@ -1,6 +1,6 @@
 package inca.frontend.constraint.datamodelresolver
 
-import inca.frontend.constraint.core.tree.NativeDataModel
+import inca.frontend.constraint.core.NativeDataModel
 import org.scalatest.funsuite.AnyFunSuite
 import inca.analyzedLangs.tinyJava
 import inca.analyzedLangs.Exp

@@ -1,6 +1,6 @@
 package inca.frontend.constraint.extensions.forallExists
 
-import inca.frontend.constraint.core.tree.Statement
+import inca.frontend.constraint.core.Statement
 import inca.frontend.constraint.extensions.forallExists.Trees._
 import inca.frontend.constraint.parser.CoreParser
 

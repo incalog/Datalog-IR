@@ -2,7 +2,7 @@ package inca.frontend.constraint.core
 
 import inca.analyzedLangs.Exp
 import inca.compiler.ConstraintOptions
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 import inca.runtime.context.QueryScope
 import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec

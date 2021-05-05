@@ -1,6 +1,6 @@
 package inca.frontend.constraint.typechecker
 
-import inca.frontend.constraint.core.tree._
+import inca.frontend.constraint.core._
 
 sealed trait StmType {
   def asType: Type = this match {

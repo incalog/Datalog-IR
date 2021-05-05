@@ -1,6 +1,6 @@
 package inca.frontend.constraint.extensions.evalCall
 
-import inca.frontend.constraint.core.tree.Expression
+import inca.frontend.constraint.core.Expression
 import inca.frontend.constraint.extensions.evalCall.Trees.EvalCall
 import inca.frontend.constraint.parser.CoreParser
 

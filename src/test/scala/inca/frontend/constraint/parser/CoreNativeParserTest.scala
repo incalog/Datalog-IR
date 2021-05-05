@@ -19,7 +19,7 @@ import scala.meta.{Import => _, Name => _, _}
 class CoreNativeParserTest extends AnyFunSuite {
 
   val parser = new CoreParser {}
-  import inca.frontend.constraint.core.tree._
+  import inca.frontend.constraint.core._
   
   test("test Module") {
     def testModule = testSuccess[Module](parser.module(_))
