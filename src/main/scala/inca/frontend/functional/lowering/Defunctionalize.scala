@@ -1,6 +1,6 @@
-package inca.frontend.lowering
+package inca.frontend.functional.lowering
 
-import inca.frontend.core._
+import inca.frontend.functional.core._
 import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer

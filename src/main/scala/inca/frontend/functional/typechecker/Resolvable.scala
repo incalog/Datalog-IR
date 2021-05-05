@@ -1,4 +1,4 @@
-package inca.frontend.typechecker
+package inca.frontend.functional.typechecker
 
 trait Resolvable[T] {
   var target: Option[T] = None

@@ -1,6 +1,6 @@
-package inca.frontend.typechecker
+package inca.frontend.functional.typechecker
 
-import inca.frontend.core.Type
+import inca.frontend.functional.core.Type
 
 trait Typeable {
   var typ: Option[Type] = None

@@ -1,7 +1,7 @@
-package inca.frontend.typechecker
+package inca.frontend.functional.typechecker
 
 import inca.compiler.SourceLocation
-import inca.frontend.core._
+import inca.frontend.functional.core._
 
 trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 

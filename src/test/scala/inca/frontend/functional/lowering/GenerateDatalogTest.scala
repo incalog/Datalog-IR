@@ -1,4 +1,4 @@
-package inca.frontend.lowering
+package inca.frontend.functional.lowering
 
 import inca.backend.ir.GP
 import inca.compiler.{Compiler, Options}

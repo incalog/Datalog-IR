@@ -1,7 +1,7 @@
-//package inca.frontend.core
+//package inca.frontend.functional.core
 //
 //import inca.compiler.SourceLocation
-//import inca.frontend.typechecker.Typeable
+//import inca.frontend.functional.typechecker.Typeable
 //
 //trait Statement extends Typeable with SourceLocation {
 //  def vars: Map[Name, Option[Type]]

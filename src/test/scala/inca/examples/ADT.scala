@@ -1,6 +1,6 @@
 package inca.examples
 
-import inca.frontend.core._
+import inca.frontend.functional.core._
 import inca.runtime.context.LanguageMetaInfo
 import truechange.SortType
 

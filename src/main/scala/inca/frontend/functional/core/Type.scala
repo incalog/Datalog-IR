@@ -1,7 +1,7 @@
-package inca.frontend.core
+package inca.frontend.functional.core
 
 import inca.compiler.SourceLocation
-import inca.frontend.typechecker.Resolvable
+import inca.frontend.functional.typechecker.Resolvable
 import inca.util.Meta.Scala
 
 import scala.meta.quasiquotes._

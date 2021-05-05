@@ -1,4 +1,4 @@
-package inca.frontend.parser
+package inca.frontend.functional.parser
 
 import fastparse._
 

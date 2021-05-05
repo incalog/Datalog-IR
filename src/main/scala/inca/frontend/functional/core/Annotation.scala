@@ -1,6 +1,6 @@
-package inca.frontend.core
+package inca.frontend.functional.core
 
-import inca.frontend.core.Annotation.Key
+import inca.frontend.functional.core.Annotation.Key
 
 trait Annotations {
   protected val annos: Seq[Annotation]

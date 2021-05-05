@@ -1,8 +1,8 @@
-package inca.frontend
+package inca.frontend.functional
 
-import inca.frontend.core.Module
-import inca.frontend.parser.Parser
-import inca.frontend.typechecker.Typechecker
+import inca.frontend.functional.core.Module
+import inca.frontend.functional.parser.Parser
+import inca.frontend.functional.typechecker.Typechecker
 
 trait Frontend extends Parser with Typechecker {
 

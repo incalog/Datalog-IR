@@ -1,4 +1,4 @@
-package inca.frontend.typechecker
+package inca.frontend.functional.typechecker
 
 import inca.util.ScalaTyper
 

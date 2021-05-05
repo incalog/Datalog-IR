@@ -1,7 +1,7 @@
-package inca.frontend.core
+package inca.frontend.functional.core
 
 import inca.compiler.SourceLocation
-import inca.frontend.typechecker.{Resolvable, Typeable}
+import inca.frontend.functional.typechecker.{Resolvable, Typeable}
 import inca.util.Meta.Scala
 
 trait Expression extends Typeable with SourceLocation {

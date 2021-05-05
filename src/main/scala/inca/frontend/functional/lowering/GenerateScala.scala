@@ -1,8 +1,8 @@
-package inca.frontend.lowering
+package inca.frontend.functional.lowering
 
 import inca.compiler.SourceLocation
-import inca.frontend.core
-import inca.frontend.core._
+import inca.frontend.functional.core
+import inca.frontend.functional.core._
 import inca.runtime.aggregate.{Aggregation, AggregatorAssocComm}
 import inca.runtime.data.DataURI
 import inca.util.Meta.{symbolOf, typeOf}

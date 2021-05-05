@@ -1,9 +1,9 @@
-package inca.frontend.typecheck
+package inca.frontend.functional.typecheck
 
 import inca.examples.{AST, Code, ControlDataFlow, HigherOrder}
-import inca.frontend.Frontend
-import inca.frontend.core.Module
-import inca.frontend.typechecker.Typechecker
+import inca.frontend.functional.Frontend
+import inca.frontend.functional.core.Module
+import inca.frontend.functional.typechecker.Typechecker
 import org.scalatest.funsuite.AnyFunSuite
 
 class TypecheckerTest extends AnyFunSuite {

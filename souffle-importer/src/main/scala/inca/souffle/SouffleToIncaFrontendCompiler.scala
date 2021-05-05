@@ -1,7 +1,7 @@
 package inca.souffle
 
 import inca.compiler.Options
-import inca.frontend.core._
+import inca.frontend.functional.core._
 import inca.runtime.index.MetaElements.{Link => MLink}
 import inca.souffle.Syntax.{Expression => _, Type => _, _}
 import inca.souffle.Util._

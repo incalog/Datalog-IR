@@ -2,8 +2,8 @@ package inca.compiler
 
 import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
-import inca.frontend.core.Module
-import inca.frontend.lowering.{Defunctionalize, GenerateDatalog, GenerateLMI}
+import inca.frontend.functional.core.Module
+import inca.frontend.functional.lowering.{Defunctionalize, GenerateDatalog, GenerateLMI}
 import inca.runtime.context.LanguageMetaInfo
 
 case class CompiledFunModule(fun: Module, options: Options) extends CompiledModule {

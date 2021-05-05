@@ -4,7 +4,7 @@ import inca.backend.optimize._
 import inca.backend.transform.Transformation
 import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPatterns}
 import inca.compiler.Options.defaultOptimizations
-import inca.frontend.Frontend
+import inca.frontend.functional.Frontend
 import inca.runtime.context.LanguageMetaInfo
 
 case class Options(languageMetaInfo: LanguageMetaInfo = null,

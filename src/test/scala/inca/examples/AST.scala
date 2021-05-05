@@ -1,7 +1,7 @@
 package inca.examples
 
 import inca.examples.ADT._
-import inca.frontend.core._
+import inca.frontend.functional.core._
 
 import scala.meta.XtensionQuasiquoteTerm
 

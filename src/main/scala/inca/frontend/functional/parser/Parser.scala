@@ -1,9 +1,9 @@
-package inca.frontend.parser
+package inca.frontend.functional.parser
 
 import fastparse.ScalaWhitespace._
 import fastparse._
 import inca.compiler.SourceLocation
-import inca.frontend.core._
+import inca.frontend.functional.core._
 import inca.util.Meta.Scala
 import scalaparse.syntax.Identifiers.OpCharNotSlash
 

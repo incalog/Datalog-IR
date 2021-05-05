@@ -1,9 +1,9 @@
-package inca.frontend.lowering
+package inca.frontend.functional.lowering
 
 import inca.backend.hints.MagicSetHints.{FixedAdornment, IgnoreCall, NoInputRelation}
 import inca.backend.hints.{DataHints, MagicSetHints}
 import inca.backend.ir.GP
-import inca.frontend.core._
+import inca.frontend.functional.core._
 import inca.runtime.data.DataURI
 import inca.util.Meta.{Scala, symbolOf, typeOf}
 import inca.util.{Gensym, TupleOps}

@@ -1,4 +1,4 @@
-package inca.frontend
+package inca.frontend.functional
 
 import inca.compiler.SourceLocation
 
