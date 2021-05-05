@@ -2,9 +2,10 @@ package inca.compiler
 
 import fastparse.Parsed
 import inca.backend.ir.GP
-import inca.frontend.core
-import inca.frontend.extensions
-import inca.frontend.parser.CoreParser
+import inca.compiler.constraint.CompiledConstraintModule
+import inca.frontend.constraint.core
+import inca.frontend.constraint.extensions
+import inca.frontend.constraint.parser.CoreParser
 import inca.runtime.context.DataModel
 
 object Compiler {
@@ -18,19 +19,19 @@ object Compiler {
     with extensions.match_.Parser
     with extensions.switch_.Parser {}
 
-  def compileFun(code: String, compilerOptions: Options): CompiledFunModule = {
+  def compileFun(code: String, compilerOptions: Options): CompiledConstraintModule = {
     val module =
       fastparse.parse(code, parser.module(_), verboseFailures = true) match {
         case Parsed.Success(value, _) => value
         case fail: Parsed.Failure =>
           throw new IllegalArgumentException(s"Parsing Error: ${fail.trace(true).longTerminalsMsg}")
       }
-    CompiledFunModule(module, compilerOptions)
+    constraint.CompiledConstraintModule(module, compilerOptions)
   }
 
   def compileFun(module: core.tree.Module,
-                 compilerOptions: Options): CompiledFunModule = {
-    CompiledFunModule(module, compilerOptions)
+                 compilerOptions: Options): CompiledConstraintModule = {
+    constraint.CompiledConstraintModule(module, compilerOptions)
   }
 
   def compileGP(module: GP.Module,

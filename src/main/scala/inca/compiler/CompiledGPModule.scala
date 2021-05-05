@@ -2,8 +2,8 @@ package inca.compiler
 
 import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
-import inca.frontend.parser.SourceLocation
-import inca.frontend.parser.SourceLocation.NoSourceLocation
+import inca.frontend.constraint.parser.SourceLocation
+import inca.frontend.constraint.parser.SourceLocation.NoSourceLocation
 import inca.runtime.context.DataModel
 
 case class CompiledGPModule(ir: GP.Module, dataModel: DataModel, options: Options) extends CompiledModule {

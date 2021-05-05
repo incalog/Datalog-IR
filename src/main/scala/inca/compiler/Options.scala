@@ -2,8 +2,8 @@ package inca.compiler
 
 import inca.backend.optimize._
 import inca.compiler.Options.{defaultDesugarables, defaultOptimizations}
-import inca.frontend.desugar.Desugarable
-import inca.frontend.extensions
+import inca.frontend.constraint.desugar.Desugarable
+import inca.frontend.constraint.extensions
 import inca.runtime.context.DataModel
 
 case class Options(optimizations: Seq[Optimization] = defaultOptimizations,

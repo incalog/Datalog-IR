@@ -5,7 +5,7 @@ import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
 import inca.compiler.Options
-import inca.frontend.core.tree._
+import inca.frontend.constraint.core.tree._
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite

@@ -1,7 +1,7 @@
 package inca.backend.optimize
 
 import inca.backend.ir.GP._
-import inca.frontend.core.CompileToGP.BodyMustFail
+import inca.frontend.constraint.core.CompileToGP.BodyMustFail
 
 trait Optimizer {
 

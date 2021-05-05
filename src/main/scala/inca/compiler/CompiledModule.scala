@@ -1,7 +1,7 @@
 package inca.compiler
 
 import inca.backend.ir.{CompileToPSystem, GP, PSystem}
-import inca.frontend.parser.{CoreParser, SourceLocation}
+import inca.frontend.constraint.parser.{CoreParser, SourceLocation}
 import inca.runtime.context.DataModel
 import inca.util.Meta
 import inca.util.TupleOps.transClosure
