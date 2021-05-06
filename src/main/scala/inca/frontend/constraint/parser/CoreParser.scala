@@ -32,6 +32,12 @@ trait CoreParser {
       else Name(s)
     }
 
+  def path[_: P]: P[Path] =
+    P((CharIn("a-z", "A-Z", "_", ".") ~~ CharIn("a-z", "A-Z", "0-9", "_", "/").repX).!).mapWithLoc { s =>
+      if (allKeywords.contains(s)) return fastparse.Fail
+      else Path(s)
+    }
+
   /** A parser for fully qualified identifier. Allows '.' in the name */
   protected[frontend] def fullyQualifiedIdentifier[_: P]: P[Name] =
     P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_", ".").repX).!).mapWithLoc { s =>
@@ -306,10 +312,14 @@ trait CoreParser {
       Module(name, dataModels, imports, nodeImports, contents.flatten)
     }
 
-  def datamodel[_: P]: P[DataModel] = P("datamodel" ~ P(nativeDatamodel))
+  def datamodel[_: P]: P[DataModel] = P("datamodel" ~ P(nativeDatamodel | treesitterDataModel))
 
   def nativeDatamodel[_: P]: P[NativeDataModel] =
     P(fullyQualifiedIdentifier).mapWithLoc(i => NativeDataModel(i.name))
+
+  def treesitterDataModel[_:P]: P[TreesitterDataModel] =
+    P("treesitter" ~ path).mapWithLoc(p => TreesitterDataModel(p.path))
+
 
   def importNode[_: P]: P[NodeImport] =
     P("node" ~ fullyQualifiedIdentifier).mapWithLoc(n => NodeImport(n))
