@@ -1,10 +1,9 @@
 package inca.backend.ir
 
-import inca.util.matchers.IncaConstraintMatchers
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
-import inca.compiler.ConstraintOptions
+import inca.compiler.options.ConstraintOptions
 import inca.frontend.constraint.core._
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Meta.Scala
@@ -13,7 +12,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta._
 
-class CompileToPSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConstraintMatchers {
+class GeneratePSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConstraintMatchers {
 
   private val testInput = Add(And(Or(BooleanLit(false), BooleanLit(false)), IntegerLit(5)), LongLit(10L))
   private val testInputNumericAddition = Add(Add(IntegerLit(5), IntegerLit(7)), Add(LongLit(7), IntegerLit(8)))
@@ -123,7 +122,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaGPMatchers with IncaCons
   }
 
   test("unbounded literal parameter determined by eval") {
-    val module = GP.Module("test_eval", Seq(), Seq(),
+    val module = GP.Module("test_eval", Seq(),
       Seq(GP.Pattern(None, "intToString", Seq(GP.Param("exp", GP.TNode(Exp.intTag)), GP.Param("str", GP.TScalaString)),
         Seq(GP.Body(Seq(
           GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TLiteral.Int),
@@ -135,7 +134,7 @@ class CompileToPSystemTest extends AnyFunSuite with IncaGPMatchers with IncaCons
   }
 
   test("unbounded argument of second eval") {
-    val module = GP.Module("test_eval", Seq(), Seq(),
+    val module = GP.Module("test_eval", Seq(),
       Seq(GP.Pattern(None, "intToString", Seq(GP.Param("exp", GP.TNode(Exp.intTag)), GP.Param("str2", GP.TScalaString)),
         Seq(GP.Body(Seq(
           GP.Path(GP.Var("exp"), GP.TNode(Exp.intTag), GP.NamedLink(GP.TNode(Exp.intTag), "value"), GP.Var("value"), GP.TLiteral.Int),

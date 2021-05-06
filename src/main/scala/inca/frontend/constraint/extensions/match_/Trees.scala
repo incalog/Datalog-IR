@@ -2,7 +2,7 @@ package inca.frontend.constraint.extensions.match_
 
 import inca.compiler.SourceLocation
 import inca.frontend.constraint.core._
-import inca.frontend.constraint.typechecker.Typeable
+import inca.frontend.util.Typeable
 import inca.util.Meta
 
 object Trees {
@@ -26,7 +26,7 @@ object Trees {
       s"${indent}case ${pattern.prettyprint} => ${body.prettyprint}"
   }
 
-  sealed trait Pattern extends SourceLocation with Typeable {
+  sealed trait Pattern extends SourceLocation with Typeable[Type] {
     def boundVars: Set[Name]
     def allVars: Map[Name, Option[Type]]
     def prettyprint(implicit indent: String): String
@@ -42,7 +42,7 @@ object Trees {
       s"${c.prettyprint}($bindingsS)"
     }
   }
-  case class PatternBinding(field: Name, pattern: Pattern) extends Typeable with SourceLocation {
+  case class PatternBinding(field: Name, pattern: Pattern) extends Typeable[Type] with SourceLocation {
     def prettyprint(implicit indent: String): String =
       s"$field = ${pattern.prettyprint}"
   }

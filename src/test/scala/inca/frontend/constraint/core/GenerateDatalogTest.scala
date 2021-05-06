@@ -4,11 +4,11 @@ import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
 import inca.backend.ir.{GP, Printer}
-import inca.compiler.{Compiler, ConstraintOptions, Options}
-import inca.frontend.constraint.core._
+import inca.compiler.Compiler
+import inca.compiler.options.ConstraintOptions
 import org.scalatest.funsuite.AnyFunSuite
 
-class CompileToGPTest extends AnyFunSuite {
+class GenerateDatalogTest extends AnyFunSuite {
 
   def compileToGP(module: Module): GP.Module =
     Compiler.compileConstraint(module, ConstraintOptions()).ir

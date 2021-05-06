@@ -2,6 +2,7 @@ package inca.frontend.functional.typechecker
 
 import inca.compiler.SourceLocation
 import inca.frontend.functional.core._
+import inca.frontend.util.{Resolvable, Typeable}
 
 trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
@@ -525,7 +526,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case _ => TAny
   }
 
-  def assignType(term: Typeable with SourceLocation)(computeType: => Type): Type = {
+  def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type = {
     val inferred = computeType
     term.typ match {
       case Some(annotated) =>

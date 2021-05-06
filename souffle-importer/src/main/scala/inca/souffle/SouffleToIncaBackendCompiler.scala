@@ -1,7 +1,7 @@
 package inca.souffle
 
 import inca.backend.ir.GP._
-import inca.compiler.ConstraintOptions
+import inca.compiler.options.ConstraintOptions
 import inca.runtime.context.DataModel
 import inca.runtime.context.DataModel.{Link => MLink}
 import inca.souffle.Syntax.{Type => _, _}
@@ -29,7 +29,7 @@ class SouffleToIncaBackendCompiler {
   def compile(name: String, analysis: Analysis): CompiledSouffleModule = {
     analysis.contents.foreach(compile(_, ""))
 
-    val module = Module(name, Seq(), Seq(), patFuns.values.toSeq, Seq())
+    val module = Module(name, Seq(), patFuns.values.toSeq, Seq())
     val moduleWithUnbounded = PropagateUnbounded.transformModule(module)
 
     val lang = new DataModel(Set(), MultiDict(), Map(), genLitLinks)

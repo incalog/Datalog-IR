@@ -2,7 +2,8 @@ package inca.compiler.functional
 
 import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
-import inca.compiler.{CompiledModule, CompilerFlags, FunctionalOptions, SourceLocation}
+import inca.compiler.options.{CompilerFlags, FunctionalOptions}
+import inca.compiler.{CompiledModule, SourceLocation}
 import inca.frontend.functional.core.Module
 import inca.frontend.functional.lowering.{Defunctionalize, GenerateDataModel, GenerateDatalog}
 import inca.frontend.functional.typechecker.Typechecker

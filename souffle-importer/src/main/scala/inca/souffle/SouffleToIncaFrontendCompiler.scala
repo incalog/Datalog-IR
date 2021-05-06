@@ -1,6 +1,6 @@
 package inca.souffle
 
-import inca.compiler.{FunctionalOptions, Options}
+import inca.compiler.options.FunctionalOptions
 import inca.frontend.functional.core._
 import inca.runtime.context.DataModel.{Link => MLink}
 import inca.souffle.Syntax.{Expression => _, Type => _, _}

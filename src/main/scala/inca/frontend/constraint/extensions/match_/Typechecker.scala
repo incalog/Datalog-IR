@@ -2,8 +2,7 @@ package inca.frontend.constraint.extensions.match_
 
 import inca.frontend.constraint.core._
 import inca.frontend.constraint.extensions.match_.Trees._
-import inca.frontend.constraint.typechecker.{CoreTypechecker, NoYield, StmType}
-import inca.frontend.constraint.util.TypeHelper
+import inca.frontend.constraint.typechecker.{CoreTypechecker, NoYield, StmType, TypeHelper}
 
 trait Typechecker extends CoreTypechecker {
   override protected def typecheckInternal(stm: Statement, mustYield: Boolean): StmType = stm match {

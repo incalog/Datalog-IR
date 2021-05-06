@@ -1,6 +1,7 @@
 package inca.util.matchers
 
-import inca.compiler.{CompiledModule, Options}
+import inca.compiler.CompiledModule
+import inca.compiler.options.Options
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.runtime.{EnginePool, Query}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory

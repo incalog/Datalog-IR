@@ -2,6 +2,7 @@ package inca.frontend.constraint.parser
 
 import fastparse.Parsed._
 import fastparse._
+import inca.frontend.util.ParserUtils
 import org.scalatest.funsuite.AnyFunSuite
 
 /**

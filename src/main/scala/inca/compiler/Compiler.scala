@@ -1,12 +1,12 @@
 package inca.compiler
 
 import inca.backend.ir.GP
-import inca.frontend.functional
-import inca.frontend.constraint
 import inca.compiler.constraint.CompiledConstraintModule
-import inca.runtime.context.DataModel
 import inca.compiler.functional.CompiledFunctionalModule
+import inca.compiler.options.{ConstraintOptions, FunctionalOptions, Options}
 import inca.frontend.constraint.core
+import inca.frontend.{constraint, functional}
+import inca.runtime.context.DataModel
 
 object Compiler {
 

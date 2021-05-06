@@ -3,7 +3,8 @@ package inca.souffle
 import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
 import inca.compiler.SourceLocation.NoSourceLocation
-import inca.compiler.{CompiledModule, Options, SourceLocation}
+import inca.compiler.options.Options
+import inca.compiler.{CompiledModule, SourceLocation}
 import inca.runtime.context.DataModel
 import inca.souffle.Syntax.{Input, PrintSize, RuleSignature}
 

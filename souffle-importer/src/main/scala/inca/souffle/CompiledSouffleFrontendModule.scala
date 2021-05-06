@@ -1,7 +1,7 @@
 package inca.souffle
 
 import inca.compiler.functional.CompiledFunctionalModule
-import inca.compiler.FunctionalOptions
+import inca.compiler.options.FunctionalOptions
 import inca.frontend.functional.core.Module
 import inca.souffle.Syntax.{Input, PrintSize, RuleSignature}
 

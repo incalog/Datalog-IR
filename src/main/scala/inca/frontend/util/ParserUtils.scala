@@ -1,4 +1,5 @@
-package inca.frontend.constraint.parser
+package inca.frontend.util
+
 import fastparse._
 
 /** Utils for the Parser.

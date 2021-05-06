@@ -9,7 +9,7 @@ import scala.meta.quasiquotes._
 object Examples {
 
   def gpmodule(content: GP.Pattern*): GP.Module =
-    GP.Module("Main", Seq(), Seq(), content, Seq())
+    GP.Module("Main", Seq(), content, Seq())
 
   val incFunGP = GP.Pattern(None, "inc", Seq(GP.Param("n", GP.TScalaInt), GP.Param("out", GP.TScalaInt)), Seq(GP.Body(Seq(
     GP.Computed(GP.Var("lit"), GP.Evaluation(Seq(), GP.TScalaInt, Scala(q"() => 1"))),
@@ -214,7 +214,7 @@ object Examples {
   unreachableMainGP.addHint(MagicSetHints.Main(Seq(false, false)))
   val unreachableModuleGP = gpmodule(unreachableGP, nodeGP, reachableGP, unreachableMainGP)
 
-  val adornedUnreachableModuleGP = GP.Module("Main", Seq(), Seq(),
+  val adornedUnreachableModuleGP = GP.Module("Main", Seq(),
     Seq(
       GP.Pattern(None, "reachable_bb", Seq(GP.Param("x", tNode), GP.Param("y", tNode)),
         Seq(
@@ -276,7 +276,7 @@ object Examples {
     ),
     Seq())
 
-  val magicUnreachableModuleGP = GP.Module("Main", Seq(), Seq(),
+  val magicUnreachableModuleGP = GP.Module("Main", Seq(),
     Seq(
       GP.Pattern(None, "reachable_bb", Seq(GP.Param("x", tNode), GP.Param("y", tNode)),
         Seq(

@@ -1,7 +1,7 @@
 package inca.backend.optimize
 
 import inca.backend.ir.GP._
-import inca.compiler.{ConstraintOptions, Options}
+import inca.compiler.options.ConstraintOptions
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.matchers.IncaGPMatchers
 import org.scalatest.flatspec.AnyFlatSpec
@@ -16,7 +16,7 @@ class TestFoldConstantConstraints extends AnyFlatSpec with IncaGPMatchers {
     val one = Constant(IntLiteral(1))
     val two = Constant(IntLiteral(2))
 
-    val module1 = Module("Test", Seq(), Seq(), Seq(
+    val module1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TScala("Any"))), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
@@ -24,7 +24,7 @@ class TestFoldConstantConstraints extends AnyFlatSpec with IncaGPMatchers {
         ))
       ))
     ), Seq())
-    val optimized1 = Module("Test", Seq(), Seq(), Seq(
+    val optimized1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TScala("Any"))), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one)
@@ -33,7 +33,7 @@ class TestFoldConstantConstraints extends AnyFlatSpec with IncaGPMatchers {
     ), Seq())
     assertOptimize(optimized1, module1)
 
-    val module2 = Module("Test", Seq(), Seq(), Seq(
+    val module2 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TScala("Any"))), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
@@ -42,7 +42,7 @@ class TestFoldConstantConstraints extends AnyFlatSpec with IncaGPMatchers {
         ))
       ))
     ), Seq())
-    val optimized2 = Module("Test", Seq(), Seq(), Seq(
+    val optimized2 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TScala("Any"))), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one)
@@ -51,7 +51,7 @@ class TestFoldConstantConstraints extends AnyFlatSpec with IncaGPMatchers {
     ), Seq())
     assertOptimize(optimized2, module2)
 
-    val module3 = Module("Test", Seq(), Seq(), Seq(
+    val module3 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TScala("Any"))), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
@@ -61,7 +61,7 @@ class TestFoldConstantConstraints extends AnyFlatSpec with IncaGPMatchers {
         ))
       ))
     ), Seq())
-    val optimized3 = Module("Test", Seq(), Seq(), Seq(
+    val optimized3 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TScala("Any"))), Seq(
       ))
     ), Seq())

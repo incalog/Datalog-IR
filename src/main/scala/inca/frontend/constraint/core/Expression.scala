@@ -1,10 +1,10 @@
 package inca.frontend.constraint.core
 
 import inca.compiler.SourceLocation
-import inca.frontend.constraint.typechecker.{Resolvable, Typeable}
+import inca.frontend.util.{Resolvable, Typeable}
 import inca.util.Meta.Scala
 
-trait Expression extends Typeable with SourceLocation {
+trait Expression extends Typeable[Type] with SourceLocation {
   def freeVars: Map[Name, Option[Type]]
   def prettyprint(implicit indent: String): String
   override def toString: String = prettyprint("")
@@ -119,7 +119,7 @@ object Eval {
 
 }
 
-case class EvalParam(name: Name) extends SourceLocation with Typeable with Resolvable[Var.Target] {
+case class EvalParam(name: Name) extends SourceLocation with Typeable[Type] with Resolvable[Var.Target] {
   override def toString: String = name.toString
 }
 

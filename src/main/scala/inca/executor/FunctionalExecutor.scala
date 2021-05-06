@@ -1,6 +1,7 @@
 package inca.executor
 
-import inca.compiler.{CompiledModule, Compiler, FunctionalOptions}
+import inca.compiler.options.FunctionalOptions
+import inca.compiler.{CompiledModule, Compiler}
 import inca.runtime.context.QueryScope
 import inca.runtime.data.DataURI
 import inca.runtime.{Database, EnginePool, Query}
@@ -108,11 +109,6 @@ object FunctionalExecutor {
   def loadFunction(code: String): Loaded = {
     val options = FunctionalOptions()
     val compiled = Compiler.compileFunctional(code, options)
-//    val graph = ConstructDependencyGraph(compiled.optimized)
-    //    println(compiled.ir)
-//    println(compiled.transformed)
-//    println(graph.toGraphViz)
-//    println(compiled.optimized)
     val scope = new QueryScope(compiled.dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     Loaded(engine, feed, compiled)

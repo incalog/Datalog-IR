@@ -1,6 +1,7 @@
 package inca.compiler
 
-import inca.backend.ir.{CompileToPSystem, GP, PSystem}
+import inca.backend.ir.{GeneratePSystem, GP, PSystem}
+import inca.compiler.options.{CompilerFlags, Options}
 import inca.runtime.context.DataModel
 import inca.util.Meta
 import inca.util.TupleOps.transClosure
@@ -77,7 +78,7 @@ trait CompiledModule {
   }
 
   lazy val psystemSource: meta.Source = {
-    val source = CompileToPSystem.compileModule(optimized)(Map())
+    val source = GeneratePSystem.compileModule(optimized)(Map())
     if (CompilerFlags.DEBUGMODE) {
       println(s"PSystem")
       println(source.syntax)

@@ -1,7 +1,7 @@
 package inca.frontend.functional.core
 
 import inca.compiler.SourceLocation
-import inca.frontend.functional.typechecker.Resolvable
+import inca.frontend.util.Resolvable
 
 case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
   extends SourceLocation with Import.Target {

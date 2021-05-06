@@ -8,7 +8,7 @@ import inca.util.Meta.Scala
 import scala.collection.mutable.ListBuffer
 import scala.meta.{Name => _, Type => _}
 
-class CompileToGP {
+class GenerateDatalog {
   val gensym = new Gensym(Iterable.empty)
 
   private val generatedPatterns = ListBuffer[GP.Pattern]()
@@ -29,11 +29,10 @@ class CompileToGP {
     }
 
     val scalaContent = ScalaModuleContents.toList ++ blockDefs.toList
-    GP.Module(name.name, imports.map(_.name.name), Seq(), generatedPatterns.toList, scalaContent.map(Scala.apply))
+    GP.Module(name.name, imports.map(_.name.name), generatedPatterns.toList, scalaContent.map(Scala.apply))
   }
 
   def transform(fun: PatternFunction): GP.Pattern = {
-    // TODO meta analysis negation in recusion
     rewriteFunction(fun)
   }
 

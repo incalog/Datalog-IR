@@ -18,7 +18,7 @@ import truechange.{AnyType, JavaLitType, ListType, SortType}
 import scala.collection.immutable.MultiDict
 import scala.meta._
 
-object CompileToPSystem {
+object GeneratePSystem {
   val PARAMPREFIX = "param_"
   val VARPREFIX = "var_"
   val LITPREFIX = "lit_"
@@ -127,7 +127,7 @@ object CompileToPSystem {
     //  )
 
   private def compilePattern(moduleName: String, pat: Pattern)(implicit env: RuleEnvironment): Stat = {
-    val qname = CompileToPSystem.genQueryName(moduleName, pat.name)
+    val qname = GeneratePSystem.genQueryName(moduleName, pat.name)
 
     val paramNames = pat.params.map(_.name)
     val paramTermNames = paramNames.map { n => Term.Name(s"$PARAMPREFIX${n}") }

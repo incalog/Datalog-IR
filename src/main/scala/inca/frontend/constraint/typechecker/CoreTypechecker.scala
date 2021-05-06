@@ -2,7 +2,7 @@ package inca.frontend.constraint.typechecker
 
 import inca.compiler.SourceLocation
 import inca.frontend.constraint.core._
-import inca.frontend.constraint.util.TypeHelper
+import inca.frontend.util.{Resolvable, Typeable}
 import inca.runtime.aggregate.Aggregation
 import inca.runtime.context.DataModel
 import inca.util.Meta
@@ -504,7 +504,7 @@ trait CoreTypechecker
     }
   }
 
-  def assignType(term: Typeable with SourceLocation)(computeType: => Type): Type = {
+  def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type = {
     val inferred = computeType
     term.typ match {
       case Some(annotated) =>

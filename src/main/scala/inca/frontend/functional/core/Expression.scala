@@ -1,10 +1,10 @@
 package inca.frontend.functional.core
 
 import inca.compiler.SourceLocation
-import inca.frontend.functional.typechecker.{Resolvable, Typeable}
+import inca.frontend.util.{Resolvable, Typeable}
 import inca.util.Meta.Scala
 
-trait Expression extends Typeable with SourceLocation {
+trait Expression extends Typeable[Type] with SourceLocation {
   def vars: Map[Name, Option[Type]]
   def freevars: Seq[Var]
   def freeTvars: Seq[TData] = typ.toSeq.flatMap(_.freeTvars)

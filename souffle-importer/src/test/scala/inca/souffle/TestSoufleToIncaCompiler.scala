@@ -1,7 +1,7 @@
 package inca.souffle
 
-import inca.compiler.Options
-import inca.runtime.context.{DataModel, QueryScope}
+import inca.compiler.options.Options
+import inca.runtime.context.QueryScope
 import inca.util.matchers.IncaGPMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 

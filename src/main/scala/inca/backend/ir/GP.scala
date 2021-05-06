@@ -60,7 +60,7 @@ object GP {
   sealed trait Visibility
   case object Private extends Visibility
 
-  case class Module(name: Name, imports: Seq[Name], data: Seq[DataDef], pats: Seq[Pattern], scalaContent: Seq[Scala[meta.Stat]]) {
+  case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern], scalaContent: Seq[Scala[meta.Stat]]) {
     override def toString: Name = Printer.prettyModule(this)
   }
   case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body]) extends Hints {
@@ -149,7 +149,4 @@ object GP {
     override def replaceCall(newPatName: Name, newArgs: Seq[Term]): CustomAggregation =
       CustomAggregation(typ, description, agg, newPatName, newArgs, aggregatedColumn)
   }
-
-  case class DataDef(vis: Option[Visibility], name: Name, constrs: Seq[DataConstructor])
-  case class DataConstructor(name: Name, paramTypes: Seq[Type])
 }

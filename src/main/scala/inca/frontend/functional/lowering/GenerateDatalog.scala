@@ -40,7 +40,6 @@ class GenerateDatalog(module: Module) {
     GP.Module(
       name.name,
       imports.map(_.name.name),
-      List(),
       generatedPatterns.toList,
       genScala.generated.map(Scala.apply))
   }

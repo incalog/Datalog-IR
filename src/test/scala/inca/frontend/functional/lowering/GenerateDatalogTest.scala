@@ -1,8 +1,8 @@
 package inca.frontend.functional.lowering
 
 import inca.backend.ir.GP
-import inca.compiler.{Compiler, FunctionalOptions, Options}
-import inca.examples.functional.ADT.Nat_lmi
+import inca.compiler.Compiler
+import inca.compiler.options.FunctionalOptions
 import inca.examples.functional.{AST, Code, ControlDataFlow, HigherOrder}
 import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
@@ -12,7 +12,7 @@ import scala.meta.XtensionQuasiquoteTerm
 class GenerateDatalogTest extends AnyFunSuite {
 
   def gpmodule(content: GP.Pattern*): GP.Module =
-    GP.Module("Main", Seq(), Seq(), content, Seq())
+    GP.Module("Main", Seq(), content, Seq())
 
   val baseExampleGP: GP.Module = gpmodule(GP.Pattern(None, "main", Seq(GP.Param("out$0", GP.TScalaInt)), Seq(GP.Body(Seq(
     GP.Computed(GP.Var("lit$0"), GP.Evaluation(Seq(), GP.TScalaInt, Scala(q"() => 7 + (12 * 3)"))),

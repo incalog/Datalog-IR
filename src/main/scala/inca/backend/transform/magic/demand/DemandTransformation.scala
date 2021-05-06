@@ -41,7 +41,7 @@ object DemandTransformation extends Transformation {
       })
       val filteredPats = allPats.flatMap(filter.transformPattern)
 
-      Module(mod.name, mod.imports, mod.data, filteredPats, mod.scalaContent)
+      Module(mod.name, mod.imports, filteredPats, mod.scalaContent)
     }
 
     override def transformPattern(pat: Pattern): Seq[Pattern] =

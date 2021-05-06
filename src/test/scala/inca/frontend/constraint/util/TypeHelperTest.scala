@@ -1,6 +1,7 @@
 package inca.frontend.constraint.util
 
 import inca.frontend.constraint.core._
+import inca.frontend.constraint.typechecker.TypeHelper
 import org.scalatest.funsuite.AnyFunSuite
 
 class TypeHelperTest extends AnyFunSuite{

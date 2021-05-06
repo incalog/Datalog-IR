@@ -1,10 +1,10 @@
 package inca.frontend.constraint.extensions
 
 import inca.analyzedLangs.Exp
-import inca.compiler.ConstraintOptions
+import inca.compiler.options.ConstraintOptions
 import inca.frontend.constraint.core._
 import inca.frontend.constraint.extensions.switch_.Trees._
-import inca.runtime.context.{DataModel, QueryScope}
+import inca.runtime.context.QueryScope
 import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -22,6 +22,7 @@ class TestSwitch extends AnyFlatSpec with IncaConstraintMatchers {
   val dataModel = Exp.model
   val scope: QueryScope = new QueryScope(Exp.model)
   val options: ConstraintOptions = ConstraintOptions()
+
   "desugaring" should "lift switch bodies" in {
     val sugared = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
       PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(

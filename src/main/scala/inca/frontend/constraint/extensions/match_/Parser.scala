@@ -3,7 +3,7 @@ package inca.frontend.constraint.extensions.match_
 import inca.frontend.constraint.core._
 import inca.frontend.constraint.extensions.match_.Trees._
 import inca.frontend.constraint.parser.CoreParser
-import inca.frontend.constraint.parser.ParserUtils.{nl_!, sp}
+import inca.frontend.util.ParserUtils.{nl_!, sp}
 
 trait Parser extends CoreParser {
   import fastparse.ScalaWhitespace._

@@ -11,8 +11,6 @@ class GenerateDataModel(module: Module) {
   def transModule(): DataModel = {
     val datas = module.content.collect { case data: DataDef => data }
 
-    // TODO
-    val types = Set[SortType]()
     val subtyps = for (DataDef(_, _, name, constrs) <- datas;
                        DataConstructor(cname, _) <- constrs)
       yield SortType(cname.name) -> SortType(name.name)
@@ -25,6 +23,7 @@ class GenerateDataModel(module: Module) {
                         (ty,ix) <- paramTypes.zipWithIndex;
                         cl <- transType(ty))
       yield (cname.name, "_" + ix) -> JavaLitType(cl)
+    val types = datas.map { d => SortType(d.name.name) }.toSet ++ subtyps.map(_._1)
 
     new DataModel(
       types,

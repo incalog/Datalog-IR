@@ -2,8 +2,7 @@ package inca.frontend.constraint.extensions.evalCall
 
 import inca.frontend.constraint.core._
 import inca.frontend.constraint.extensions.evalCall.Trees._
-import inca.frontend.constraint.typechecker.CoreTypechecker
-import inca.frontend.constraint.util.TypeHelper
+import inca.frontend.constraint.typechecker.{CoreTypechecker, TypeHelper}
 import inca.util.Meta.Scala
 
 trait Typechecker extends CoreTypechecker {

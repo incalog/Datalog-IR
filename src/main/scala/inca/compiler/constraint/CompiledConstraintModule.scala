@@ -2,13 +2,13 @@ package inca.compiler.constraint
 
 import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
-import inca.compiler.{CompiledModule, CompilerFlags, ConstraintOptions, SourceLocation}
-import inca.frontend.constraint.core._
+import inca.compiler.options.{CompilerFlags, ConstraintOptions}
+import inca.compiler.{CompiledModule, SourceLocation}
 import inca.frontend.constraint.datamodelresolver.{DataModelResolver, DirectDataModelResolver, NativeDataModelResolver}
 import inca.frontend.constraint.desugar.Desugar
-import inca.frontend.constraint.{core, extensions}
-import inca.frontend.constraint.lowering.CompileToGP
+import inca.frontend.constraint.lowering.GenerateDatalog
 import inca.frontend.constraint.typechecker.CoreTypechecker
+import inca.frontend.constraint.{core, extensions}
 import inca.runtime.context.DataModel
 
 case class CompiledConstraintModule(module: core.Module, options: ConstraintOptions) extends CompiledModule {
@@ -59,7 +59,7 @@ case class CompiledConstraintModule(module: core.Module, options: ConstraintOpti
   }
 
   lazy val ir: GP.Module = {
-    val module = new CompileToGP().transformModule(desugared)
+    val module = new GenerateDatalog().transformModule(desugared)
     if (CompilerFlags.DEBUGMODE) {
       println(s"Intermediate Representation")
       println(module)

@@ -1,7 +1,7 @@
 package inca.frontend.constraint.core
 
 import inca.compiler.SourceLocation
-import inca.frontend.constraint.typechecker.Resolvable
+import inca.frontend.util.Resolvable
 import inca.util.Meta
 import inca.util.Meta.Scala
 import truechange.{JavaLitType, LitType}

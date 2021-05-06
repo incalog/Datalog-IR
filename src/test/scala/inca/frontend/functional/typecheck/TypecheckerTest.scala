@@ -1,8 +1,8 @@
 package inca.frontend.functional.typecheck
 
 import inca.examples.functional.{AST, Code, ControlDataFlow, HigherOrder}
-import inca.frontend.functional.Frontend
 import inca.frontend.functional.core.Module
+import inca.frontend.functional.parser.Parser
 import inca.frontend.functional.typechecker.Typechecker
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -11,7 +11,7 @@ class TypecheckerTest extends AnyFunSuite {
   def newTypechecker(): Typechecker = new Typechecker { }
 
   def checkModule(mod: String): Unit = {
-    checkModule(Frontend.Core.parseModule(mod).get.value)
+    checkModule(Parser.parse(mod))
   }
 
   def checkModule(mod: Module): Unit = {

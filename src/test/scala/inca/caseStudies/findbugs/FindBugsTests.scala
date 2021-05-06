@@ -1,8 +1,8 @@
 package inca.caseStudies.findbugs
 
 import inca.analyzedLangs.tinyJava
-import inca.compiler.{Compiler, ConstraintOptions, Options}
-import inca.executor.ConstraintExecutor
+import inca.compiler.Compiler
+import inca.compiler.options.ConstraintOptions
 import inca.frontend.constraint.core._
 import inca.runtime.EnginePool
 import inca.runtime.context.QueryScope
