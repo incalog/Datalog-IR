@@ -1,6 +1,6 @@
 package inca.souffle
 
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 import inca.util.Meta.Scala
 
 object PropagateUnbounded {
@@ -74,12 +74,12 @@ trait TrackUnbounded {
   }
 
   def transformBody(body: Body)(implicit pats: PatEnv): Set[Term] = {
-    body.constraints.foldLeft(Set[Term]()) { case (res, constraint) =>
-      res ++ transformConstraint(constraint, res)
+    body.atoms.foldLeft(Set[Term]()) { case (res, atom) =>
+      res ++ transformAtom(atom, res)
     }
   }
 
-  def transformConstraint(constraint: Constraint, seen: Set[Term])(implicit pats: PatEnv): Set[Term] = constraint match {
+  def transformAtom(atom: Atom, seen: Set[Term])(implicit pats: PatEnv): Set[Term] = atom match {
     case c: Compare => transformCompare(c, seen)
     case c:Call => transformCall(c, seen)
     case ht: HasType => transformHasType(ht, seen)

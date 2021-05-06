@@ -1,6 +1,6 @@
 package inca.backend.analyze
 
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 import inca.backend.analyze.DependencyGraph
 
 object ConstructDependencyGraph {
@@ -11,7 +11,7 @@ object ConstructDependencyGraph {
     val graph = new DependencyGraph()
     module.pats.foreach { pat =>
       pat.bodies.foreach { body =>
-        body.constraints.foreach {
+        body.atoms.foreach {
           case Call(name, _, _, neg) =>
             graph.addEdge(pats(name), pat, neg)
           case _ => // do nothing

@@ -1,6 +1,6 @@
 package inca.backend.optimize
 
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 import inca.backend.ir.TypeOps
 import inca.runtime.context.DataModel
 import inca.util.Meta.Scala
@@ -54,7 +54,7 @@ object InferVarTypes extends Optimization with TypeOps {
 
       pat.params.foreach(param => addType(Var(param.name), param.typ))
 
-      body.constraints.foreach {
+      body.atoms.foreach {
         case Compare(_, t1, t2) =>
           types(t1).foreach(ty => addType(t2, ty))
           types(t2).foreach(ty => addType(t1, ty))

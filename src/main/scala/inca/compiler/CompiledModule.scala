@@ -1,6 +1,6 @@
 package inca.compiler
 
-import inca.backend.ir.{GeneratePSystem, GP, PSystem}
+import inca.backend.ir.{GeneratePSystem, Datalog, PSystem}
 import inca.compiler.options.{CompilerFlags, Options}
 import inca.runtime.context.DataModel
 import inca.util.Meta
@@ -11,24 +11,24 @@ import scala.collection.mutable.ListBuffer
 
 trait CompiledModule {
   val options: Options
-  def name: GP.Name
+  def name: Datalog.Name
   def sourceLocation: SourceLocation
 
-  def ir: GP.Module
+  def ir: Datalog.Module
   def dataModel: DataModel
 
-  lazy val patternDependencies: MultiDict[GP.Name, GP.Name] = {
-    var deps = MultiDict[GP.Name, GP.Name]()
+  lazy val patternDependencies: MultiDict[Datalog.Name, Datalog.Name] = {
+    var deps = MultiDict[Datalog.Name, Datalog.Name]()
     for (pat <- ir.pats;
          body <- pat.bodies;
-         con <- body.constraints) con match {
-      case GP.Call(trg, _, _, _) => deps += pat.name -> trg
+         atom <- body.atoms) atom match {
+      case Datalog.Call(trg, _, _, _) => deps += pat.name -> trg
       case _ => // nothing
     }
     deps
   }
 
-  lazy val patternDependenciesTrans: MultiDict[GP.Name, GP.Name] = transClosure(patternDependencies)
+  lazy val patternDependenciesTrans: MultiDict[Datalog.Name, Datalog.Name] = transClosure(patternDependencies)
 
   def printStatistics(): Unit = {
     val pats = optimized.pats.filter(!_.name.contains("oalesced"))
@@ -52,7 +52,7 @@ trait CompiledModule {
       throw CompiledModule.Failed(this, es)
   }
 
-  lazy val transformed: GP.Module = {
+  lazy val transformed: Datalog.Module = {
     var module = ir
     for (trans <- options.transformations) {
       module = trans.transformer(dataModel).transformModule(module)
@@ -64,7 +64,7 @@ trait CompiledModule {
     module
   }
 
-  lazy val optimized: GP.Module = {
+  lazy val optimized: Datalog.Module = {
     var module = transformed
     // println(module)
     for (op <- options.optimizations) {

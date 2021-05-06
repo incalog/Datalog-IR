@@ -1,5 +1,5 @@
 package inca.backend.optimize
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 import inca.backend.ir.TypeOps
 import inca.runtime.context.DataModel
 import inca.util.Meta.Scala
@@ -16,7 +16,7 @@ object FoldConstantConstraints extends Optimization with TypeOps {
       super.optimizeModule(module)
     }
 
-    override def optimizeConstraint(con: Constraint): Seq[Constraint] = con match {
+    override def optimizeAtom(atom: Atom): Seq[Atom] = atom match {
 
       case Compare(EqComparator, t1, t2) if t1 == t2 => Seq()
       case Compare(EqComparator, Constant(c1), Constant(c2)) if c1 != c2 => throwBodyMustFail()
@@ -35,7 +35,7 @@ object FoldConstantConstraints extends Optimization with TypeOps {
         }
         if (termTyp == typ) {
           // this constraint was responsible for the inferrence of termTyp, must keep it
-          Seq(con)
+          Seq(atom)
         } else {
           val meetType = meet(termTyp, typ, dataModel)
           if (meetType.contains(termTyp)) {
@@ -44,7 +44,7 @@ object FoldConstantConstraints extends Optimization with TypeOps {
             //
           } else if (meetType.contains(typ)) {
             // downcast, makes sense
-            Seq(con)
+            Seq(atom)
           } else if (meetType.isEmpty) {
             // cast to unrelated type, cannot succeed
             throwBodyMustFail()
@@ -68,7 +68,7 @@ object FoldConstantConstraints extends Optimization with TypeOps {
           throwBodyMustFail()
         } else if (meetType.contains(typ)) {
           // termTyp :> typ, hence NotHasType makes sense
-          Seq(con)
+          Seq(atom)
         } else if (meetType.isEmpty) {
           // termTyp and typ are unrelated, NotHasType always succeeds
           Seq()
@@ -76,7 +76,7 @@ object FoldConstantConstraints extends Optimization with TypeOps {
           throw new IllegalArgumentException
         }
 
-      case _ => Seq(con)
+      case _ => Seq(atom)
     }
   }
 }

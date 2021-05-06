@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 
 case class Substitute(subst: Var => Term) {
 
@@ -11,9 +11,9 @@ case class Substitute(subst: Var => Term) {
     Pattern(pat.vis, pat.name, pat.params, pat.bodies.map(substBody)).withHints(pat)
 
   def substBody(body: Body): Body =
-    Body(body.constraints.map(substConstraint)).withHints(body)
+    Body(body.atoms.map(substAtom)).withHints(body)
 
-  def substConstraint(con: Constraint): Constraint = (con match {
+  def substAtom(atom: Atom): Atom = (atom match {
     case Call(name, args, transitive, neg) => Call(name, args.map(substTerm), transitive, neg)
     case ExtensionalCall(name, args, neg) => ExtensionalCall(name, args.map(substTerm), neg)
     case Compare(comp, lhs, rhs) => Compare(comp, substTerm(lhs), substTerm(rhs))
@@ -23,7 +23,7 @@ case class Substitute(subst: Var => Term) {
     case NoPath(t, ty, link, termIsSource) => NoPath(substTerm(t), ty, link, termIsSource)
     case Computed(lhs, computation) => Computed(substTerm(lhs), substComputation(computation))
     case Undef(t) => Undef(substTerm(t))
-  }).withHints(con)
+  }).withHints(atom)
 
   def substTerm(term: Term): Term = term match {
     case v: Var => subst(v) match {

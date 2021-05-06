@@ -1,6 +1,6 @@
 package inca.backend.transform
 
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 
 trait Transformer {
 
@@ -19,9 +19,9 @@ trait Transformer {
   }
 
   def transformBody(body: Body, pat: Pattern): Seq[Body] =
-    Seq(Body(body.constraints.flatMap(transformConstraint)).withHints(body))
+    Seq(Body(body.atoms.flatMap(transformAtom)).withHints(body))
 
-  def transformConstraint(con: Constraint): Seq[Constraint] = (con match {
+  def transformAtom(atom: Atom): Seq[Atom] = (atom match {
     case Call(name, args, transitive, neg) => Seq(Call(name, args.map(transformTerm), transitive, neg))
     case ExtensionalCall(name, args, neg) => Seq(ExtensionalCall(name, args, neg))
     case Compare(comp, lhs, rhs) => Seq(Compare(comp, transformTerm(lhs), transformTerm(rhs)))
@@ -31,7 +31,7 @@ trait Transformer {
     case NoPath(t, ty, link, termIsSource) => Seq(NoPath(transformTerm(t), ty, link, termIsSource))
     case Computed(resultVar, computation) => Seq(Computed(resultVar, computation))
     case Undef(t) => Seq(Undef(transformTerm(t)))
-  }).map(_.withHints(con))
+  }).map(_.withHints(atom))
 
   def transformTerm(term: Term): Term = term
 }

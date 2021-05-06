@@ -1,6 +1,6 @@
 package inca.frontend.constraint.lowering
 
-import inca.backend.ir.GP
+import inca.backend.ir.Datalog
 import inca.frontend.constraint.core._
 import inca.util.Gensym
 import inca.util.Meta.Scala
@@ -11,9 +11,9 @@ import scala.meta.{Name => _, Type => _}
 class GenerateDatalog {
   val gensym = new Gensym(Iterable.empty)
 
-  private val generatedPatterns = ListBuffer[GP.Pattern]()
+  private val generatedPatterns = ListBuffer[Datalog.Pattern]()
 
-  def transformModule(module: Module): GP.Module = {
+  def transformModule(module: Module): Datalog.Module = {
     // construct map Name => Fun
     val Module(name, langModel, imports, nodeImports, contents) = module
     gensym.register(module.usedModuleNames.map(_.name))
@@ -29,67 +29,67 @@ class GenerateDatalog {
     }
 
     val scalaContent = ScalaModuleContents.toList ++ blockDefs.toList
-    GP.Module(name.name, imports.map(_.name.name), generatedPatterns.toList, scalaContent.map(Scala.apply))
+    Datalog.Module(name.name, imports.map(_.name.name), generatedPatterns.toList, scalaContent.map(Scala.apply))
   }
 
-  def transform(fun: PatternFunction): GP.Pattern = {
+  def transform(fun: PatternFunction): Datalog.Pattern = {
     rewriteFunction(fun)
   }
 
-  def transType(typ: Type): GP.Type = typ match {
-    case TAny => GP.TAny
-    case TLiteral(lit) => GP.TLiteral(lit)
-    case TAnyLinked => GP.TAnyLinked
-    case node: TNode => GP.TNode(getFqnNode(node).name)
-    case TList(ty) => GP.TList(transType(ty).asInstanceOf[GP.TLinked])
-    case TScala(ty) => GP.TScala(ty)
+  def transType(typ: Type): Datalog.Type = typ match {
+    case TAny => Datalog.TAny
+    case TLiteral(lit) => Datalog.TLiteral(lit)
+    case TAnyLinked => Datalog.TAnyLinked
+    case node: TNode => Datalog.TNode(getFqnNode(node).name)
+    case TList(ty) => Datalog.TList(transType(ty).asInstanceOf[Datalog.TLinked])
+    case TScala(ty) => Datalog.TScala(ty)
   }
 
 
-  def rewriteFunction(fun: PatternFunction): GP.Pattern = {
+  def rewriteFunction(fun: PatternFunction): Datalog.Pattern = {
     gensym.register(fun.freeVars.keys.map(_.name))
     gensym.register(fun.boundNames.map(_.name))
 
     val vis = fun.vis.map {
-      case Private => GP.Private
+      case Private => Datalog.Private
     }
 
-    val params = fun.params.map { param => GP.Param(param.name.name, transType(param.typ)) }
+    val params = fun.params.map { param => Datalog.Param(param.name.name, transType(param.typ)) }
     val outParams = fun.outParams.map { out =>
       val name = gensym.fresh("out")
-      GP.Param(name, transType(out))
+      Datalog.Param(name, transType(out))
     }
     val outVars = outParams.map(_.name)
 
     val bodies = fun.bodies.flatMap(b => transBody(b, outVars)(gensym))
-    GP.Pattern(vis, fun.name.name, params ++ outParams, bodies)
+    Datalog.Pattern(vis, fun.name.name, params ++ outParams, bodies)
   }
 
-  def generateCompareConstraints(comp: GP.Comparator)(lhs: Seq[String], rhs: Seq[String]): Seq[GP.Constraint] = {
+  def generateCompareConstraints(comp: Datalog.Comparator)(lhs: Seq[String], rhs: Seq[String]): Seq[Datalog.Atom] = {
     if (lhs.size != rhs.size)
       throw new IllegalArgumentException("Cannot create equalites for different sized variable lists")
-    (lhs zip rhs).map { case (l, r) => GP.Compare(comp, GP.Var(l), GP.Var(r)) }
+    (lhs zip rhs).map { case (l, r) => Datalog.Compare(comp, Datalog.Var(l), Datalog.Var(r)) }
   }
 
-  val genEqs: (Seq[String], Seq[String]) => Seq[GP.Constraint] = generateCompareConstraints(GP.EqComparator)
-  val genNeqs: (Seq[String], Seq[String]) => Seq[GP.Constraint] = generateCompareConstraints(GP.NeqComparator)
+  val genEqs: (Seq[String], Seq[String]) => Seq[Datalog.Atom] = generateCompareConstraints(Datalog.EqComparator)
+  val genNeqs: (Seq[String], Seq[String]) => Seq[Datalog.Atom] = generateCompareConstraints(Datalog.NeqComparator)
 
-  type Res = (Seq[String], Seq[GP.Constraint])
+  type Res = (Seq[String], Seq[Datalog.Atom])
 
-  def transBody(alt: Body, outVars: Seq[String])(implicit gensym: Gensym): Option[GP.Body] = {
+  def transBody(alt: Body, outVars: Seq[String])(implicit gensym: Gensym): Option[Datalog.Body] = {
     try {
       val constraints = alt.stmts.flatMap { s =>
         transStatement(s.ensureCore, outVars)
       }
-      Some(GP.Body(constraints))
+      Some(Datalog.Body(constraints))
     } catch {
-      case GP.BodyMustFail => None
+      case Datalog.BodyMustFail => None
     }
   }
 
-  def transStatement(stmt: CoreStatement, outVars: Seq[String])(implicit gensym: Gensym): Seq[GP.Constraint] = stmt match {
+  def transStatement(stmt: CoreStatement, outVars: Seq[String])(implicit gensym: Gensym): Seq[Datalog.Atom] = stmt match {
     case Values(name, typ) =>
-      (Seq(GP.HasType(GP.Var(name.name), transType(typ))))
+      (Seq(Datalog.HasType(Datalog.Var(name.name), transType(typ))))
 
     case assign@Assign(names, exp) =>
       if (exp.typ.isEmpty)
@@ -108,12 +108,12 @@ class GenerateDatalog {
 
     case Assert(Constant(BooleanLiteral(v))) =>
       if (v) Seq()
-      else throw GP.BodyMustFail
+      else throw Datalog.BodyMustFail
     case Assert(cond) => transExp(cond.ensureCore) match {
       case (Nil, cons) =>
         cons
       case (Seq(v), cons) =>
-        cons :+ GP.Compare(GP.EqComparator, GP.Var(v), GP.Constant(GP.BooleanLiteral(true)))
+        cons :+ Datalog.Compare(Datalog.EqComparator, Datalog.Var(v), Datalog.Constant(Datalog.BooleanLiteral(true)))
     }
 
     case Yield(exp) =>
@@ -121,7 +121,7 @@ class GenerateDatalog {
       constraints ++ genEqs(vars, outVars)
 
     case FailStatement =>
-      throw GP.BodyMustFail
+      throw Datalog.BodyMustFail
   }
 
   def tryInlineVar(exp: Expression): Expression = exp match {
@@ -160,18 +160,18 @@ class GenerateDatalog {
     case InstanceOf(exp, typ) =>
       val (vars, constraints) = transExp(exp.ensureCore)
       if (vars.size != 1) throw new IllegalArgumentException("Number of variables of exp of instance of need to be 1")
-      (Seq(), constraints :+ GP.HasType(GP.Var(vars.head), transType(typ)))
+      (Seq(), constraints :+ Datalog.HasType(Datalog.Var(vars.head), transType(typ)))
 
     case NotInstanceOf(exp, typ) =>
       val (vars, constraints) = transExp(exp.ensureCore)
       if (vars.size != 1) throw new IllegalArgumentException("Number of variables of exp of instance of need to be 1")
-      (Seq(), constraints :+ GP.NotHasType(GP.Var(vars.head), transType(typ)))
+      (Seq(), constraints :+ Datalog.NotHasType(Datalog.Var(vars.head), transType(typ)))
 
     case Cast(exp, typ) =>
       val (vars, constraints) = transExp(exp.ensureCore)
       if (vars.size != 1) throw new IllegalArgumentException("Number of variables of exp of instance of need to be 1")
       val v = vars.head
-      (Seq(v), constraints :+ GP.HasType(GP.Var(v), transType(typ)))
+      (Seq(v), constraints :+ Datalog.HasType(Datalog.Var(v), transType(typ)))
 
     case Def(exp) =>
       exp match {
@@ -179,7 +179,7 @@ class GenerateDatalog {
           (Seq(), genDefCallConstraint(call, args, transitive, neg = false))
         case pa: PathAccess =>
           val tmp = gensym.fresh("_")
-          (Seq(), transPathAccess(pa, GP.Var(tmp)))
+          (Seq(), transPathAccess(pa, Datalog.Var(tmp)))
         case _ => throw new IllegalArgumentException(s"Cannot support Def($exp)")
       }
 
@@ -192,22 +192,22 @@ class GenerateDatalog {
           val srcTy = transType(receiver.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile path access with untyped receiver $receiver")))
           val path = pathAccess.link match {
             case ParentLink =>
-              GP.NoPath(GP.Var(src), srcTy, GP.ParentLink, termIsSource = true)
+              Datalog.NoPath(Datalog.Var(src), srcTy, Datalog.ParentLink, termIsSource = true)
             case ChildrenLink =>
-              GP.NoPath(GP.Var(src), srcTy, GP.ParentLink, termIsSource = false)
+              Datalog.NoPath(Datalog.Var(src), srcTy, Datalog.ParentLink, termIsSource = false)
             case NextLink =>
-              GP.NoPath(GP.Var(src), srcTy, GP.NextLink, termIsSource = true)
+              Datalog.NoPath(Datalog.Var(src), srcTy, Datalog.NextLink, termIsSource = true)
             case PreviousLink =>
-              GP.NoPath(GP.Var(src), srcTy, GP.NextLink, termIsSource = false)
+              Datalog.NoPath(Datalog.Var(src), srcTy, Datalog.NextLink, termIsSource = false)
             case SizeLink =>
-              GP.NoPath(GP.Var(src), srcTy, GP.SizeLink, termIsSource = true)
+              Datalog.NoPath(Datalog.Var(src), srcTy, Datalog.SizeLink, termIsSource = true)
             case NamedLink(field) =>
               val nodeType = receiver.typ match {
                 case Some(node@TNode(_)) =>
-                  GP.TNode(getFqnNode(node).name)
+                  Datalog.TNode(getFqnNode(node).name)
                 case _ => throw new IllegalArgumentException(s"$receiver should have node type, but has ${receiver.typ}")
               }
-              GP.NoPath(GP.Var(src), srcTy, GP.NamedLink(nodeType, field.name), termIsSource = true)
+              Datalog.NoPath(Datalog.Var(src), srcTy, Datalog.NamedLink(nodeType, field.name), termIsSource = true)
           }
           (Seq(), econstraints :+ path)
 
@@ -219,7 +219,7 @@ class GenerateDatalog {
         case None => (Seq(), Seq())
         case Some(gplit) =>
           val tmpVar = gensym.fresh("tmp")
-          val compare = GP.Compare(GP.EqComparator, GP.Var(tmpVar), GP.Constant(gplit))
+          val compare = Datalog.Compare(Datalog.EqComparator, Datalog.Var(tmpVar), Datalog.Constant(gplit))
           (Seq(tmpVar), Seq(compare))
       }
 
@@ -233,19 +233,19 @@ class GenerateDatalog {
 
     case pa: PathAccess =>
       val trg = gensym.fresh("trg")
-      (Seq(trg), transPathAccess(pa, GP.Var(trg)))
+      (Seq(trg), transPathAccess(pa, Datalog.Var(trg)))
 
     case funcall@Call(name, args, transitive) =>
       val (inVars, outVars, constraints) = transCallArgs(funcall, args)
-      val allvars = (inVars ++ outVars).map(GP.Var)
-      val call = GP.Call(name.name, allvars, transitive, neg = false)
+      val allvars = (inVars ++ outVars).map(Datalog.Var)
+      val call = Datalog.Call(name.name, allvars, transitive, neg = false)
       (outVars, constraints :+ call)
 
     case Count(funcall) =>
       val (inVars, outVars, constraints) = transCallArgs(funcall, funcall.args)
       val countVar = gensym.fresh("count")
-      val allvars = (inVars ++ outVars).map(GP.Var)
-      val countConstraint = GP.Computed(GP.Var(countVar), GP.CountAggregation(funcall.name.name, allvars))
+      val allvars = (inVars ++ outVars).map(Datalog.Var)
+      val countConstraint = Datalog.Computed(Datalog.Var(countVar), Datalog.CountAggregation(funcall.name.name, allvars))
       (Seq(countVar), constraints :+ countConstraint)
 
     case eval@Eval(code) =>
@@ -253,7 +253,7 @@ class GenerateDatalog {
       val params = eval.params.getOrElse(Seq())
 
       val evalVar = gensym.fresh("eval")
-      val argConstraints = ListBuffer[GP.Constraint]()
+      val argConstraints = ListBuffer[Datalog.Atom]()
       val paramsTyped = params.map { param =>
         param"${Term.Name(param.name.name)}: ${param.typ.get.asScala}"
       }.toList
@@ -263,14 +263,14 @@ class GenerateDatalog {
             // inline exp
             val (Seq(arg), cons) = transExp(exp.ensureCore)
             argConstraints ++= cons
-            (GP.Var(arg), transType(exp.typ.get))
-          case _: Param | _: Values | _: Assign => (GP.Var(param.name.name), transType(param.typ.get))
+            (Datalog.Var(arg), transType(exp.typ.get))
+          case _: Param | _: Values | _: Assign => (Datalog.Var(param.name.name), transType(param.typ.get))
           case target => throw new IllegalArgumentException(s"Unknown eval param target $target for $param")
         }
       }
       val funCode = q"(..$paramsTyped) => {${code.tree}}"
       val resType = eval.typ.getOrElse(throw new IllegalStateException("untyped Eval"))
-      val evalConstraint = GP.Computed(GP.Var(evalVar), GP.Evaluation(args, transType(resType), Scala(funCode)))
+      val evalConstraint = Datalog.Computed(Datalog.Var(evalVar), Datalog.Evaluation(args, transType(resType), Scala(funCode)))
       (Seq(evalVar), (argConstraints :+ evalConstraint).toSeq)
 
     case Aggregate(agg, bodies) =>
@@ -283,22 +283,22 @@ class GenerateDatalog {
 
       val inVars = bodies.flatMap(_.freeVars).toMap
       val params = inVars.map(kv => Param(kv._1, kv._2.getOrElse(throw new IllegalArgumentException(s"untyped var ${kv._1} in $exp")))).toSeq
-      val allvars = params.map(p => GP.Var(p.name.name)) :+ GP.Var(gensym.fresh("aggregand"))
+      val allvars = params.map(p => Datalog.Var(p.name.name)) :+ Datalog.Var(gensym.fresh("aggregand"))
 
       val resultType = exp.typ.getOrElse(throw new IllegalArgumentException("untyped aggregate"))
       val fun = PatternFunction(None, Name(funname), params, resultType, bodies)
       generatedPatterns += transform(fun)
 
-      val aggregation = GP.CustomAggregation(transType(resultType), None, aggCode, funname, allvars, allvars.size - 1)
+      val aggregation = Datalog.CustomAggregation(transType(resultType), None, aggCode, funname, allvars, allvars.size - 1)
       val resultVar = gensym.fresh("tmp")
-      val compare = GP.Computed(GP.Var(resultVar), aggregation)
+      val compare = Datalog.Computed(Datalog.Var(resultVar), aggregation)
       (Seq(resultVar), Seq(compare))
   }
 
   private def shouldInlineAssign(assign: Assign): Boolean =
     assign.names.size == 1 && (assign.exp.typ.contains(TScalaBoolean) || assign.exp.typ.contains(TLiteral.Bool))
 
-  def transCallArgs(call: Call, args: Seq[Expression])(implicit gensym: Gensym): (Seq[String], Seq[String], Seq[GP.Constraint]) = {
+  def transCallArgs(call: Call, args: Seq[Expression])(implicit gensym: Gensym): (Seq[String], Seq[String], Seq[Datalog.Atom]) = {
     val (vars, constraints) = args.map(e => transExp(e.ensureCore)).unzip
     val outVars = call.target match {
       case Some(fun@PatternFunction(_, _, _, _, _)) => fun.outParams.map { _ =>
@@ -310,46 +310,46 @@ class GenerateDatalog {
     (vars.flatten, outVars, constraints.flatten)
   }
 
-  def genDefCallConstraint(funcall: Call, args: Seq[Expression], transitive: Boolean, neg: Boolean)(implicit gensym: Gensym): Seq[GP.Constraint] = {
+  def genDefCallConstraint(funcall: Call, args: Seq[Expression], transitive: Boolean, neg: Boolean)(implicit gensym: Gensym): Seq[Datalog.Atom] = {
     val (inVars, outVars, constraints) = transCallArgs(funcall, args)
-    val allvars = (inVars ++ outVars).map(GP.Var)
-    val call = GP.Call(funcall.name.name, allvars, transitive, neg)
+    val allvars = (inVars ++ outVars).map(Datalog.Var)
+    val call = Datalog.Call(funcall.name.name, allvars, transitive, neg)
     constraints :+ call
   }
 
-  def transPathAccess(pathAccess: PathAccess, trg: GP.Term)(implicit gensym: Gensym): Seq[GP.Constraint] = {
+  def transPathAccess(pathAccess: PathAccess, trg: Datalog.Term)(implicit gensym: Gensym): Seq[Datalog.Atom] = {
     val receiver = pathAccess.receiver
     val (Seq(src), econstraints) = transExp(receiver.ensureCore)
     val srcTy = transType(receiver.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile path access with untyped receiver $receiver")))
     val trgTy = transType(pathAccess.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped $pathAccess")))
     val path = pathAccess.link match {
       case ParentLink =>
-        GP.Path(GP.Var(src), srcTy, GP.ParentLink, trg, trgTy)
+        Datalog.Path(Datalog.Var(src), srcTy, Datalog.ParentLink, trg, trgTy)
       case ChildrenLink =>
-        GP.Path(trg, trgTy, GP.ParentLink, GP.Var(src), srcTy)
+        Datalog.Path(trg, trgTy, Datalog.ParentLink, Datalog.Var(src), srcTy)
       case NextLink =>
-        GP.Path(GP.Var(src), srcTy, GP.NextLink, trg, trgTy)
+        Datalog.Path(Datalog.Var(src), srcTy, Datalog.NextLink, trg, trgTy)
       case PreviousLink =>
-        GP.Path(trg, trgTy, GP.NextLink, GP.Var(src), srcTy)
+        Datalog.Path(trg, trgTy, Datalog.NextLink, Datalog.Var(src), srcTy)
       case SizeLink =>
-        GP.Path(GP.Var(src), srcTy, GP.SizeLink, trg, trgTy)
+        Datalog.Path(Datalog.Var(src), srcTy, Datalog.SizeLink, trg, trgTy)
       case NamedLink(field) =>
         val nodeType = receiver.typ match {
-          case Some(node@TNode(_)) => GP.TNode(getFqnNode(node).name)
+          case Some(node@TNode(_)) => Datalog.TNode(getFqnNode(node).name)
           case _ => throw new IllegalArgumentException(s"$receiver should have node type, but has ${receiver.typ}")
         }
-        GP.Path(GP.Var(src), srcTy, GP.NamedLink(nodeType, field.name), trg, trgTy)
+        Datalog.Path(Datalog.Var(src), srcTy, Datalog.NamedLink(nodeType, field.name), trg, trgTy)
     }
     econstraints :+ path
   }
 
-  def transLiteral(lit: Literal): Option[GP.Literal] = lit match {
+  def transLiteral(lit: Literal): Option[Datalog.Literal] = lit match {
     case UnitLiteral => None
-    case IntLiteral(v) => Some(GP.IntLiteral(v))
-    case LongLiteral(v) => Some(GP.LongLiteral(v))
-    case DoubleLiteral(v) => Some(GP.DoubleLiteral(v))
-    case StringLiteral(v) => Some(GP.StringLiteral(v))
-    case BooleanLiteral(v) => Some(GP.BooleanLiteral(v))
+    case IntLiteral(v) => Some(Datalog.IntLiteral(v))
+    case LongLiteral(v) => Some(Datalog.LongLiteral(v))
+    case DoubleLiteral(v) => Some(Datalog.DoubleLiteral(v))
+    case StringLiteral(v) => Some(Datalog.StringLiteral(v))
+    case BooleanLiteral(v) => Some(Datalog.BooleanLiteral(v))
   }
 
   def getFqnNode(node: TNode): TNode =

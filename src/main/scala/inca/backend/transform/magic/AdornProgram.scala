@@ -2,7 +2,7 @@ package inca.backend.transform.magic
 
 import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Collect
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 import inca.backend.transform.{Transformation, Transformer}
 import inca.runtime.context.DataModel
 
@@ -47,21 +47,21 @@ object AdornProgram extends Transformation {
           val pat = module.pats.find(_.name == current).getOrElse(sys.error(s"Pattern $current not found during adornment"))
           unvisitedPatterns -= pat
           val adornedBody = pat.bodies.map { body =>
-            var previous = ListBuffer[Constraint]()
-            val adornedConstraints = body.constraints.map { constr =>
-              val res = constr.asCall match {
+            var previous = ListBuffer[Atom]()
+            val adornedAtoms = body.atoms.map { atom =>
+              val res = atom.asCall match {
                 case Some((name, args)) =>
-                  val adorn = deriveAdornment(constr, args, previous.toList, currentAdorn, pat.params, body)
-                  val adorned = constr.replaceCall(adornmentName(name, adorn), args)
+                  val adorn = deriveAdornment(atom, args, previous.toList, currentAdorn, pat.params, body)
+                  val adorned = atom.replaceCall(adornmentName(name, adorn), args)
                   todo += name -> adorn
-                  adorned.withHints(constr).addHint(MagicSetHints.Adornment(adorn))
+                  adorned.withHints(atom).addHint(MagicSetHints.Adornment(adorn))
                 case None =>
-                  constr
+                  atom
               }
-              previous += constr
+              previous += atom
               res
             }
-            Body(adornedConstraints).withHints(body)
+            Body(adornedAtoms).withHints(body)
           }
           // now we can construct the adorned pattern for this specific adornment
           val adornedPat =
@@ -87,12 +87,12 @@ object AdornProgram extends Transformation {
     override def transVar(v: Var): Seq[Var] = Seq(v)
   }
 
-  def fixedAdornment(con: Constraint): Option[Seq[Boolean]] =
+  def fixedAdornment(con: Atom): Option[Seq[Boolean]] =
     con.hints.get(MagicSetHints.FixedAdornmentKey).flatMap { case MagicSetHints.FixedAdornment(adorn) =>
       Some(adorn)
     }
 
-  def deriveAdornment(con: Constraint, args: Seq[Term], prevConstrs: Seq[Constraint], tags: Adornment, params: Seq[Param], body: Body): Adornment = {
+  def deriveAdornment(con: Atom, args: Seq[Term], prevConstrs: Seq[Atom], tags: Adornment, params: Seq[Param], body: Body): Adornment = {
     // generate adornment based on fixed adornment hint or on the already bound inputs
     fixedAdornment(con) match {
       case Some(adorn) => adorn
@@ -109,9 +109,9 @@ object AdornProgram extends Transformation {
     }
   }
 
-  def freeVars(prev: Seq[Constraint], constraint: Constraint): Set[Var] = {
-    val prevBound = prev.foldLeft(Set[Var]()) { case (res, c) => res ++ CollectVars.transConstraint(c) }
-    val vars = CollectVars.transConstraint(constraint).toSet
+  def freeVars(prev: Seq[Atom], constraint: Atom): Set[Var] = {
+    val prevBound = prev.foldLeft(Set[Var]()) { case (res, c) => res ++ CollectVars.transAtom(c) }
+    val vars = CollectVars.transAtom(constraint).toSet
     vars.diff(prevBound)
   }
 

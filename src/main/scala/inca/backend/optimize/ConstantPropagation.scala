@@ -1,6 +1,6 @@
 package inca.backend.optimize
 
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 import inca.backend.ir.Substitute
 import inca.runtime.context.DataModel
 
@@ -16,7 +16,7 @@ object ConstantPropagation extends Optimization {
 
     private def propagateConstants(body: Body, unsubstitutable: Set[Name]): Body = {
       var subst: Map[Var, Constant] = Map()
-      body.constraints.foreach {
+      body.atoms.foreach {
         case Compare(EqComparator, v1: Var, c2: Constant) if !unsubstitutable.contains(v1.name) =>
           subst += v1 -> c2
         case Compare(EqComparator, c1: Constant, v2: Var) if !unsubstitutable.contains(v2.name) =>

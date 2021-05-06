@@ -7,16 +7,31 @@ import truechange.{JavaLitType, LitType}
 
 import scala.meta.quasiquotes._
 
-object GP {
+object Datalog {
   case object BodyMustFail extends Exception
   def throwBodyMustFail(): Nothing = throw BodyMustFail
+
+  type Name = String
+
+  sealed trait Visibility
+  case object Private extends Visibility
+
+  case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern], scalaContent: Seq[Scala[meta.Stat]]) {
+    override def toString: Name = Printer.prettyModule(this)
+  }
+  case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body]) extends Hints {
+    def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)
+  }
+  case class Param(name: Name, typ: Type)
 
   sealed trait Type {
     def asScala: meta.Type
   }
+
   case object TAny extends Type {
     override def asScala: meta.Type = t"Any"
   }
+
   case class TData(name: Name) extends Type {
     override def asScala: meta.Type = meta.Type.Name(name)
   }
@@ -39,8 +54,13 @@ object GP {
     override def asScala: meta.Type = ty.tree
   }
   object TScala {
-    def apply(tyString: String): TScala =
-      new TScala(Scala(t"Boolean"))
+    def apply(tyString: String): TScala = tyString match {
+      case "Boolean" => TScalaBoolean
+      case "Int" => TScalaInt
+      case "Long" => TScalaLong
+      case "Double" => TScalaDouble
+      case "String" => TScalaString
+    }
   }
   object TScalaBoolean extends TScala(Scala(t"Boolean"))
   object TScalaInt extends TScala(Scala(t"Int"))
@@ -55,41 +75,36 @@ object GP {
   case class TNode(name: String) extends TLinked
   case class TList(contained: TLinked) extends TLinked
 
-  type Name = String
+  case class Body(atoms: Seq[Atom]) extends Hints
 
-  sealed trait Visibility
-  case object Private extends Visibility
-
-  case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern], scalaContent: Seq[Scala[meta.Stat]]) {
-    override def toString: Name = Printer.prettyModule(this)
-  }
-  case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body]) extends Hints {
-    def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.constraints.isEmpty)
-  }
-  case class Param(name: Name, typ: Type)
-  case class Body(constraints: Seq[Constraint]) extends Hints
-
-  sealed trait Constraint extends Hints {
+  sealed trait Atom extends Hints {
     def asCall: Option[(Name, Seq[Term])] = None
-    def replaceCall(newPatName: Name, newArgs: Seq[Term]): Constraint = this
+    def replaceCall(newPatName: Name, newArgs: Seq[Term]): Atom = this
   }
-  case class Call(name: Name, args: Seq[Term], transitive: Boolean = false, neg: Boolean = false) extends Constraint {
+  case class Call(name: Name, args: Seq[Term], transitive: Boolean = false, neg: Boolean = false) extends Atom {
     override def asCall: Option[(Name, Seq[Term])] = Some(name -> args)
     override def replaceCall(newPatName: Name, newArgs: Seq[Term]): Call =
       Call(newPatName, newArgs, transitive, neg).withHints(this)
   }
-  case class ExtensionalCall(name: Name, args: Seq[Term], neg: Boolean = false) extends Constraint
-  case class Compare(comp: Comparator, lhs: Term, rhs: Term) extends Constraint
-  case class HasType(t: Term, typ: Type) extends Constraint
-  case class NotHasType(t: Term, typ: Type) extends Constraint
-  case class Path(src: Term, srcTy: Type, link: Link, trg: Term, trgTy: Type) extends Constraint
-  case class NoPath(t: Term, ty: Type, link: Link, termIsSource: Boolean) extends Constraint
-  case class Computed(lhs: Term, computation: Computation) extends Constraint {
+  case class ExtensionalCall(name: Name, args: Seq[Term], neg: Boolean = false) extends Atom
+
+  case class Compare(comp: Comparator, lhs: Term, rhs: Term) extends Atom
+  def Eq(lhs: Term, rhs: Term): Compare = Compare(EqComparator, lhs, rhs)
+  def Neq(lhs: Term, rhs: Term): Compare = Compare(NeqComparator, lhs, rhs)
+
+  case class HasType(t: Term, typ: Type) extends Atom
+  case class NotHasType(t: Term, typ: Type) extends Atom
+
+  case class Path(src: Term, srcTy: Type, link: Link, trg: Term, trgTy: Type) extends Atom
+  case class NoPath(t: Term, ty: Type, link: Link, termIsSource: Boolean) extends Atom
+
+  case class Undef(t: Term) extends Atom
+
+  case class Computed(lhs: Term, computation: Computation) extends Atom {
     override def asCall: Option[(Name, Seq[Term])] = computation.asCall
     override def replaceCall(newPatName: Name, newArgs: Seq[Term]): Computed =
       Computed(lhs, computation.replaceCall(newPatName, newArgs)).withHints(this)
   }
-  case class Undef(t: Term) extends Constraint
 
   sealed trait Link
   case object ParentLink extends Link
@@ -101,8 +116,6 @@ object GP {
   case object EqComparator extends Comparator
   case object NeqComparator extends Comparator
 
-  def Eq(lhs: Term, rhs: Term): Compare = Compare(EqComparator, lhs, rhs)
-  def Neq(lhs: Term, rhs: Term): Compare = Compare(NeqComparator, lhs, rhs)
 
   sealed trait Term
   case class Var(name: Name) extends Term {

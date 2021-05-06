@@ -1,6 +1,6 @@
 package inca.backend.optimize
 
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 import inca.backend.ir.Substitute
 import inca.runtime.context.DataModel
 
@@ -49,7 +49,7 @@ object EliminateAliases extends Optimization {
       // which vars map to the same path
       var paths: MultiDict[(Var, Link), Var] = MultiDict()
 
-      body.constraints.foreach {
+      body.atoms.foreach {
         case Compare(EqComparator, t1, t2) =>
           (substTerm(t1), substTerm(t2)) match {
             case (v1: Var, v2: Var) if !unsubstitutable.contains(v2.name) =>
@@ -76,7 +76,7 @@ object EliminateAliases extends Optimization {
       } while (changed)
 
       val substBody = Substitute(subst).substBody(body)
-      val dedup = substBody.constraints.distinct
+      val dedup = substBody.atoms.distinct
       Body(dedup).withHints(body)
     }
   }

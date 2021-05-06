@@ -1,6 +1,6 @@
 package inca.compiler
 
-import inca.backend.ir.GP
+import inca.backend.ir.Datalog
 import inca.compiler.constraint.CompiledConstraintModule
 import inca.compiler.functional.CompiledFunctionalModule
 import inca.compiler.options.{ConstraintOptions, FunctionalOptions, Options}
@@ -32,7 +32,7 @@ object Compiler {
     CompiledConstraintModule(module, compilerOptions)
   }
 
-  def compileGP(module: GP.Module,
+  def compileGP(module: Datalog.Module,
                 dataModel: DataModel,
                 compilerOptions: Options): CompiledGPModule = {
     CompiledGPModule(module, dataModel, compilerOptions)

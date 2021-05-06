@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.GP.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Constraint, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
+import inca.backend.ir.Datalog.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Atom, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
 import truechange.JavaLitType
 
 object Printer {
@@ -38,9 +38,9 @@ object Printer {
     case TList(ty) => s"List[${prettyType(ty)}]"
   }
 
-  def prettyAlternative(alt: Body): String = alt.constraints.map(prettyConstraint).map("\t"+_).mkString("\n")
+  def prettyAlternative(alt: Body): String = alt.atoms.map(prettyAtom).map("\t"+_).mkString("\n")
 
-  def prettyConstraint(constraint: Constraint): String = constraint match {
+  def prettyAtom(atom: Atom): String = atom match {
     case Compare(comp, lhs, rhs) => prettyTerm(lhs) + " " + prettyComparator(comp) + " " + prettyTerm(rhs)
     case HasType(v, typ) => prettyType(typ) + "(" + prettyTerm(v) + ")"
     case NotHasType(v, typ) => "not " + prettyType(typ) + "(" + prettyTerm(v) + ")"
@@ -67,20 +67,20 @@ object Printer {
   }
 
   def prettyLink(link: Link): String = link match {
-    case GP.ParentLink => "parent"
-    case GP.NextLink => "next"
-    case GP.SizeLink => "size"
+    case Datalog.ParentLink => "parent"
+    case Datalog.NextLink => "next"
+    case Datalog.SizeLink => "size"
     case NamedLink(node, field) => s"${prettyType(node)}.$field"
   }
 
   def prettyTerm(value: Term): String = value match {
     case Var(name) => name
     case Constant(lit) => lit match {
-      case GP.IntLiteral(v) => v.toString
-      case GP.LongLiteral(v) => v.toString
-      case GP.DoubleLiteral(v) => v.toString
-      case GP.StringLiteral(v) => v
-      case GP.BooleanLiteral(v) => v.toString
+      case Datalog.IntLiteral(v) => v.toString
+      case Datalog.LongLiteral(v) => v.toString
+      case Datalog.DoubleLiteral(v) => v.toString
+      case Datalog.StringLiteral(v) => v
+      case Datalog.BooleanLiteral(v) => v.toString
     }
   }
 
@@ -90,13 +90,13 @@ object Printer {
   }
 
   def prettyComputation(lhs: Term, computation: Computation): String = computation match {
-    case GP.CountAggregation(patName, args) =>
+    case Datalog.CountAggregation(patName, args) =>
       s"${prettyTerm(lhs)} == count $patName(${args.map(prettyTerm).mkString(",")})"
-    case GP.Evaluation(args, returnType, code) =>
+    case Datalog.Evaluation(args, returnType, code) =>
       val indented = code.syntax.replace("\n", "\n\t\t")
       val argsS = args.map(a => prettyTerm(a._1)).mkString(", ")
       s"${prettyTerm(lhs)} == `$indented`($argsS): ${prettyType(returnType)}"
-    case GP.CustomAggregation(typ, desc, agg, patName, args, aggregatedColumn) =>
+    case Datalog.CustomAggregation(typ, desc, agg, patName, args, aggregatedColumn) =>
       val sargs = args.map(prettyTerm).updated(aggregatedColumn, "#").mkString(", ")
       s"${prettyTerm(lhs)} == aggregate $patName($sargs):$typ with ${desc.getOrElse(agg.toString)}"
   }

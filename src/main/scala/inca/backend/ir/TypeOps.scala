@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 import inca.runtime.context.DataModel
 import inca.util.Meta.Scala
 import inca.util.ScalaTyper

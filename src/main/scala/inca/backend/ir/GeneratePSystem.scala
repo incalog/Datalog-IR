@@ -1,7 +1,7 @@
 package inca.backend.ir
 
 
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 import inca.runtime.Query
 import inca.runtime.aggregate.{AggregatorAssocComm, AggregatorAssocCommInv}
 import inca.runtime.context.DataModel
@@ -136,7 +136,7 @@ object GeneratePSystem {
     val gensym = new Gensym(allVars)
 
     val vis =
-      if (pat.vis.contains(GP.Private))
+      if (pat.vis.contains(Datalog.Private))
         q"PVisibility.PRIVATE"
       else
         q"PVisibility.PUBLIC"
@@ -181,7 +181,7 @@ object GeneratePSystem {
                         ..${CollectLits.transBody(body).distinct.map(genLiteralVar(_)(gensym)).toList}
                         ..${CollectConstantEvaluation.transBody(body).distinct.map(genConstantEval(_)(gensym)).toList}
                         ..${pat.params.flatMap(genParamConstraint).toList}
-                        ..${body.constraints.flatMap(compileConstraint).toList}
+                        ..${body.atoms.flatMap(compileAtom).toList}
                         body
                       }"""
                   }.toList
@@ -221,7 +221,7 @@ object GeneratePSystem {
 
 
 
-  private def genInputKeyAndType(typ: GP.Type): Option[(meta.Term, meta.Term)] = typ match {
+  private def genInputKeyAndType(typ: Datalog.Type): Option[(meta.Term, meta.Term)] = typ match {
     case TAny => None
     case _: TScala => None
     case _: TData => None
@@ -274,7 +274,7 @@ object GeneratePSystem {
 
   }
 
-  private def compileConstraint(constraint: Constraint)(implicit env: RuleEnvironment): Seq[Stat] = constraint match {
+  private def compileAtom(atom: Atom)(implicit env: RuleEnvironment): Seq[Stat] = atom match {
     case Undef(t) =>
       throw new IllegalArgumentException(s"Cannot compile undef constraint. Use undef elimination transformation first.")
 
@@ -319,7 +319,7 @@ object GeneratePSystem {
 
     case NotHasType(t, typ) =>
       if (typ == TAny)
-        throw new IllegalArgumentException(s"Cannot compile $constraint")
+        throw new IllegalArgumentException(s"Cannot compile $atom")
       else {
         val gentyp = genNodeType(typ)
         Seq(q"""new TypeFilterConstraint(
@@ -334,33 +334,33 @@ object GeneratePSystem {
 
     case NoPath(t, ty, link, termIsSource) =>
       val nodeKey = q"$oNodeTypeKey(${genNodeType(ty)})"
-      val linkKey = genLinkKey(link, GP.TAnyLinked)
+      val linkKey = genLinkKey(link, Datalog.TAnyLinked)
       val key = q"$oNotLinkNodeKey($nodeKey, $linkKey, $termIsSource)"
       Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${compileTerm(t)}), $key)")
 
     case Computed(lhs, computation) => compileComputation(lhs, computation)
   }
 
-  private def genLinkKey(link: Link, targetType: GP.Type): meta.Term = link match {
-    case GP.ParentLink => oParentKey
-    case GP.NextLink => oLinkListNextKey
-    case GP.SizeLink => oSizeKey
-    case GP.NamedLink(TNode(name), field) => targetType match {
+  private def genLinkKey(link: Link, targetType: Datalog.Type): meta.Term = link match {
+    case Datalog.ParentLink => oParentKey
+    case Datalog.NextLink => oLinkListNextKey
+    case Datalog.SizeLink => oSizeKey
+    case Datalog.NamedLink(TNode(name), field) => targetType match {
       case TAny => throw new IllegalArgumentException(s"Cannot resolve links to type $targetType")
-      case _: GP.TLinked =>
+      case _: Datalog.TLinked =>
         q"$oLinkNodeKey(($name, $field))"
-      case _: GP.TLiteral =>
+      case _: Datalog.TLiteral =>
         q"$oLinkPrimitiveKey(($name, $field))"
     }
 
   }
 
-  private def compileTerm(v: GP.Term): meta.Term = v match {
+  private def compileTerm(v: Datalog.Term): meta.Term = v match {
     case Var(name) => Term.Name(s"$VARPREFIX$name")
     case Constant(lit) => Term.Name(s"$LITPREFIX${genLiteralVarName(lit)}")
   }
 
-  private def compileComputation(lhs: GP.Term, computation: Computation)(implicit env: RuleEnvironment): Seq[Stat] = computation match {
+  private def compileComputation(lhs: Datalog.Term, computation: Computation)(implicit env: RuleEnvironment): Seq[Stat] = computation match {
     case CountAggregation(patName, args) =>
       val result = compileTerm(lhs)
       val module = env.getOrElse(patName, throw new IllegalArgumentException(s"Unknown rule $patName"))
@@ -406,7 +406,7 @@ object GeneratePSystem {
       Seq(q"new $tAggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)")
   }
 
-  private def genNodeType(typ: GP.Type): meta.Term = typ match {
+  private def genNodeType(typ: Datalog.Type): meta.Term = typ match {
     case TAnyLinked => oAnyType
     case TNode(name) => q"$oNodeType($name)"
     case TList(ty) => q"$oListType(${genNodeType(ty)})"

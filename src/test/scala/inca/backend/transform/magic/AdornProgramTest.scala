@@ -1,11 +1,11 @@
 package inca.backend.transform.magic
 
-import inca.backend.ir.GP
+import inca.backend.ir.Datalog
 import org.scalatest.funsuite.AnyFunSuite
 
 class AdornProgramTest extends AnyFunSuite {
 
-  def moduleEqual(m1: GP.Module, m2: GP.Module): Boolean =
+  def moduleEqual(m1: Datalog.Module, m2: Datalog.Module): Boolean =
     m1.pats.size == m2.pats.size && m1.pats.forall(m2.pats.contains)
 
 //  test("Adornment of flat function") {

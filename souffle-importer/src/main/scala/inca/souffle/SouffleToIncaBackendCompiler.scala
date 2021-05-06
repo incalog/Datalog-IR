@@ -1,6 +1,6 @@
 package inca.souffle
 
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 import inca.compiler.options.ConstraintOptions
 import inca.runtime.context.DataModel
 import inca.runtime.context.DataModel.{Link => MLink}
@@ -119,7 +119,7 @@ class SouffleToIncaBackendCompiler {
     case FloatType => classOf[java.lang.Double]
   }
 
-  def compile(stm: Syntax.Statement, funPrefix: String)(implicit gensym: Gensym): Seq[Constraint] = stm match {
+  def compile(stm: Syntax.Statement, funPrefix: String)(implicit gensym: Gensym): Seq[Atom] = stm match {
     case Equality(left, not, right) if !not =>
       val (lhterm, lhConstraints) = compile(left)
       val (rhterm, rhConstraints) = compile(right)
@@ -139,7 +139,7 @@ class SouffleToIncaBackendCompiler {
       constraints.flatten :+ call
   }
 
-  def compile(exp: Syntax.Expression)(implicit gensym: Gensym): (Term, Seq[Constraint]) = exp match {
+  def compile(exp: Syntax.Expression)(implicit gensym: Gensym): (Term, Seq[Atom]) = exp match {
     case Variable(name) => (Var(cleanSouffleName(name)), Seq())
     case StringValue(value) =>
        (Constant(StringLiteral(value.intern)), Seq())

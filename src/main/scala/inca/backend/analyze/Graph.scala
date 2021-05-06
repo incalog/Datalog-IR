@@ -1,7 +1,7 @@
 package inca.backend.analyze
 
 import scala.collection.mutable
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 
 trait Graph[N, E] {
   val nodes: mutable.Set[N] = mutable.Set()

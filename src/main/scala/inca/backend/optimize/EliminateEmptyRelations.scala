@@ -1,6 +1,6 @@
 package inca.backend.optimize
 
-import inca.backend.ir.GP.{Call, Constraint, Module, Name, Pattern, throwBodyMustFail}
+import inca.backend.ir.Datalog.{Call, Atom, Module, Name, Pattern, throwBodyMustFail}
 import inca.runtime.context.DataModel
 
 object EliminateEmptyRelations extends Optimization {
@@ -27,11 +27,11 @@ object EliminateEmptyRelations extends Optimization {
       newpats.filter(!_.isEmpty)
     }
 
-    override def optimizeConstraint(con: Constraint): Seq[Constraint] = con match {
+    override def optimizeAtom(atom: Atom): Seq[Atom] = atom match {
       case Call(name, _, _, false) if pats(name).isEmpty =>
         dirty = true
         throwBodyMustFail()
-      case _ => Seq(con)
+      case _ => Seq(atom)
     }
   }
 }

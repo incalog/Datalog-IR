@@ -1,6 +1,6 @@
 package inca.backend.optimize
 
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 import inca.compiler.options.ConstraintOptions
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Meta.Scala

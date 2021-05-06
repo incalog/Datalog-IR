@@ -3,7 +3,7 @@ package inca.backend.transform.magic.demand
 import inca.backend.hints.MagicSetHints.{InputCall, InputCallKey}
 import inca.backend.hints.{Hints, MagicSetHints}
 import inca.backend.ir.CollectVars
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 import inca.backend.transform.{FilterBodyTransformer, Transformation, Transformer}
 import inca.runtime.context.DataModel
 import inca.util.Gensym
@@ -34,7 +34,7 @@ object DemandTransformation extends Transformation {
       val inputPatNames = inputPatterns.map(_.name).toSet
       val allPats = insertedInputCallPats ++ inputPatterns
       val filter = new FilterBodyTransformer({ body =>
-        val hasEmptyInput = body.constraints.exists { con =>
+        val hasEmptyInput = body.atoms.exists { con =>
           con.hasHint(InputCallKey) && !inputPatNames.contains(con.asInstanceOf[Call].name)
         }
         !hasEmptyInput
@@ -78,7 +78,7 @@ object DemandTransformation extends Transformation {
       val bodies = pat.bodies.map { b =>
         if (shouldInsertInput(b)) {
           val inputCall = deriveInputCall(pat, demandPat)
-          Body(inputCall.toSeq ++ b.constraints).withHints(b)
+          Body(inputCall.toSeq ++ b.atoms).withHints(b)
         } else {
           b
         }
@@ -118,15 +118,15 @@ object DemandTransformation extends Transformation {
       // for each body there can be multiple input bodies (due to multiple pattern calls)
       val inputPatterns = patterns.flatMap { p =>
         p.bodies.flatMap { body =>
-          body.constraints.zipWithIndex.flatMap { case (constr, constrix) =>
-            constr.asCall match {
+          body.atoms.zipWithIndex.flatMap { case (atom, atomix) =>
+            atom.asCall match {
               case Some((name, args)) =>
-                if (name == pat.name && !constr.hints.contains(MagicSetHints.IgnoreCallKey)) {
+                if (name == pat.name && !atom.hints.contains(MagicSetHints.IgnoreCallKey)) {
                   val boundParams = boundIndices.map { i =>
                     Eq(args(i), Var(params(i).name))
                   }
                   if (boundParams.isEmpty) Seq()
-                  else Seq(Body(body.constraints.take(constrix) ++ boundParams).withHints(body))
+                  else Seq(Body(body.atoms.take(atomix) ++ boundParams).withHints(body))
                 }
                 else
                   Seq()
@@ -155,7 +155,7 @@ object DemandTransformation extends Transformation {
 
     private def collectBodiesCallingPat(caller: Pattern, callee: Pattern): Seq[Body] =
       caller.bodies.filter {
-        _.constraints.exists {
+        _.atoms.exists {
           case Call(name, _, _, _) if name == callee.name => true
           case _ => false
         }

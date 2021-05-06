@@ -131,7 +131,7 @@ class FunctionsDataTest extends AnyFunSuite {
     println("relations: " + rels.size)
     println("input relations: " + rels.filter(_.name.contains("input_")).size)
     println("bodies: " + rels.flatMap(_.bodies).size)
-    println("constraints: " + rels.flatMap(_.bodies.flatMap(_.constraints)).size)
+    println("atoms: " + rels.flatMap(_.bodies.flatMap(_.atoms)).size)
 
     // type of peano = (a -> a) -> (a -> a)
     val zero = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TVar("x")))"""

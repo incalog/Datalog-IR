@@ -1,6 +1,6 @@
 package inca.util.matchers
 
-import inca.backend.ir.GP
+import inca.backend.ir.Datalog
 import inca.compiler
 import inca.runtime.{EnginePool, Query}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
@@ -10,11 +10,11 @@ import truediff.Diffable
 
 trait IncaGPMatchers extends IncaMatchers {
 
-  def assertOptimize(optimized: GP.Module, original: GP.Module): Unit = {
+  def assertOptimize(optimized: Datalog.Module, original: Datalog.Module): Unit = {
     assertResult(optimized)(compiler.Compiler.compileGP(original, dataModel, options).optimized)
   }
 
-  def assertMatch(module: GP.Module,
+  def assertMatch(module: Datalog.Module,
                   fun: String,
                   subjectProg: Diffable)
                  (asserter: Query.Matcher => Assertion): Assertion = {
@@ -23,7 +23,7 @@ trait IncaGPMatchers extends IncaMatchers {
     assertMatch(module, fun, editScript)(asserter)
   }
 
-  def assertMatch(module: GP.Module,
+  def assertMatch(module: Datalog.Module,
                   fun: String,
                   editScript: EditScript)
                  (asserter: Query.Matcher => Assertion): Assertion = {

@@ -1,7 +1,7 @@
 package inca.compiler.constraint
 
-import inca.backend.ir.GP
-import inca.backend.ir.GP.Name
+import inca.backend.ir.Datalog
+import inca.backend.ir.Datalog.Name
 import inca.compiler.options.{CompilerFlags, ConstraintOptions}
 import inca.compiler.{CompiledModule, SourceLocation}
 import inca.frontend.constraint.datamodelresolver.{DataModelResolver, DirectDataModelResolver, NativeDataModelResolver}
@@ -58,7 +58,7 @@ case class CompiledConstraintModule(module: core.Module, options: ConstraintOpti
     module
   }
 
-  lazy val ir: GP.Module = {
+  lazy val ir: Datalog.Module = {
     val module = new GenerateDatalog().transformModule(desugared)
     if (CompilerFlags.DEBUGMODE) {
       println(s"Intermediate Representation")

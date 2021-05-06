@@ -1,11 +1,11 @@
 package inca.backend.transform
 
-import inca.backend.ir.GP.{BodyMustFail, Constraint}
+import inca.backend.ir.Datalog.{BodyMustFail, Atom}
 
-class FilterConstraintTransformer(predicate: Constraint => Boolean) extends Transformer {
-  override def transformConstraint(con: Constraint): Seq[Constraint] =
-    if (predicate(con))
-      Seq(con)
+class FilterConstraintTransformer(predicate: Atom => Boolean) extends Transformer {
+  override def transformAtom(atom: Atom): Seq[Atom] =
+    if (predicate(atom))
+      Seq(atom)
     else
       throw BodyMustFail
 }

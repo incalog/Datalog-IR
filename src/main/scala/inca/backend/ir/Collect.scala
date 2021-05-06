@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 
 object CollectVars extends Collect[String] {
   override def transVar(v: Var): Seq[String] = Seq(v.name)
@@ -30,9 +30,9 @@ trait Collect[R] {
 
   def transParam(param: Param): Seq[R] = Seq()
 
-  def transBody(alt: Body): Seq[R] = alt.constraints.flatMap(transConstraint)
+  def transBody(alt: Body): Seq[R] = alt.atoms.flatMap(transAtom)
 
-  def transConstraint(const: Constraint): Seq[R] = const match {
+  def transAtom(atom: Atom): Seq[R] = atom match {
     case Call(_, args, _, _) => args.flatMap(transTerm)
     case ExtensionalCall(_, args, _) => args.flatMap(transTerm)
     case Compare(comp, lhs, rhs) => transTerm(lhs) ++ transTerm(rhs)

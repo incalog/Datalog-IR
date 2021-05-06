@@ -48,7 +48,7 @@ class ControlDataFlowTest extends AnyFunSuite {
     println("relations: " + rels.size)
     println("input relations: " + rels.filter(_.name.contains("input_")).size)
     println("bodies: " + rels.flatMap(_.bodies).size)
-    println("constraints: " + rels.flatMap(_.bodies.flatMap(_.constraints)).size)
+    println("atoms: " + rels.flatMap(_.bodies.flatMap(_.atoms)).size)
 
     assert(fun.executeTuple("final_RD", Tuples.flatTupleOf(prog)).res.size == 4)
     assert(fun.executeTuple("allEntries_RD", Tuples.flatTupleOf(prog)).res.size == 15)
@@ -67,7 +67,7 @@ class ControlDataFlowTest extends AnyFunSuite {
     println("relations: " + rels.size)
     println("input relations: " + rels.filter(_.name.contains("input_")).size)
     println("bodies: " + rels.flatMap(_.bodies).size)
-    println("constraints: " + rels.flatMap(_.bodies.flatMap(_.constraints)).size)
+    println("atoms: " + rels.flatMap(_.bodies.flatMap(_.atoms)).size)
 
     val res = fun.executeTuple("final_var", Tuples.flatTupleOf(prog))
     fun.printAllMatches()

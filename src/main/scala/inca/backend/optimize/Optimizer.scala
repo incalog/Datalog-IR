@@ -1,6 +1,6 @@
 package inca.backend.optimize
 
-import inca.backend.ir.GP._
+import inca.backend.ir.Datalog._
 
 trait Optimizer {
 
@@ -19,11 +19,11 @@ trait Optimizer {
   }
 
   def optimizeBody(body: Body, pat: Pattern): Seq[Body] = {
-    val newConstraints = body.constraints.flatMap(optimizeConstraint)
+    val newConstraints = body.atoms.flatMap(optimizeAtom)
     Seq(Body(newConstraints).withHints(body))
   }
 
-  def optimizeConstraint(con: Constraint): Seq[Constraint] = (con match {
+  def optimizeAtom(atom: Atom): Seq[Atom] = (atom match {
     case Call(name, args, transitive, neg) => Seq(Call(name, args.map(optimizeTerm), transitive, neg))
     case ExtensionalCall(name, args, neg) => Seq(ExtensionalCall(name, args, neg))
     case Compare(comp, lhs, rhs) => Seq(Compare(comp, optimizeTerm(lhs), optimizeTerm(rhs)))
@@ -33,7 +33,7 @@ trait Optimizer {
     case NoPath(t, ty, link, termIsSource) => Seq(NoPath(optimizeTerm(t), ty, link, termIsSource))
     case Computed(resultVar, computation) => Seq(Computed(resultVar, computation))
     case Undef(t) => Seq(Undef(optimizeTerm(t)))
-  }).map(_.withHints(con))
+  }).map(_.withHints(atom))
 
   def optimizeTerm(term: Term): Term = term
 }

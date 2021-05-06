@@ -1,7 +1,7 @@
 package inca.compiler.functional
 
-import inca.backend.ir.GP
-import inca.backend.ir.GP.Name
+import inca.backend.ir.Datalog
+import inca.backend.ir.Datalog.Name
 import inca.compiler.options.{CompilerFlags, FunctionalOptions}
 import inca.compiler.{CompiledModule, SourceLocation}
 import inca.frontend.functional.core.Module
@@ -38,7 +38,7 @@ case class CompiledFunctionalModule(fun: Module, options: FunctionalOptions) ext
     module
   }
 
-  lazy val ir: GP.Module = {
+  lazy val ir: Datalog.Module = {
     val module = new GenerateDatalog(coreModule).transModule()
     if (CompilerFlags.DEBUGMODE) {
       println(s"Intermediate Representation")
