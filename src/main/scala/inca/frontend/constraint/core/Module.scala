@@ -41,6 +41,10 @@ case class NativeDataModel(path: String) extends DataModel {
   def prettyprint(implicit indent: String): String = s"${indent}datamodel native $path"
 }
 
+case class TreesitterDataModel(path: String) extends DataModel {
+  def prettyprint(implicit ident: String): String = s"${ident}datamodel treesitter $path"
+}
+
 // TODO for testing
 case class DirectDataModel(dataModel: inca.runtime.context.DataModel) extends DataModel {
   def prettyprint(implicit indent: String): String = s"${indent}datamodel direct ${dataModel}"

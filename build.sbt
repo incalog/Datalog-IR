@@ -27,6 +27,7 @@ lazy val inca = (project in file(".")).settings(
     "com.lihaoyi" %% "scalaparse" % "2.1.3",
 
     "org.scalatest" %% "scalatest" % "3.1.0" % "test",
+
   )
 )
 
@@ -43,6 +44,9 @@ lazy val souffle_importer = (project in file("souffle-importer")).dependsOn(inca
 
     "de.uni-mainz.informatik.pl" %% "truediff" % "0.1.1" % "test",
     "org.eclipse.emf" % "org.eclipse.emf.ecore" % "2.23.0" % "test",
+
+    "io.circe" %% "circe-parser" % "0.13.0",
+    "io.circe" %% "circe-optics" % "0.13.0",
   )
 )
 
