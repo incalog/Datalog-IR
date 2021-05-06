@@ -7,6 +7,10 @@ package object core {
   val Continue: CoreStatement = FailStatement
   val TUnit: TTuple = TTuple(Seq.empty)
 
+  case class Path(path: String) extends SourceLocation {
+    override def toString: String = path
+  }
+
   case class Name(name: String) extends SourceLocation {
     override def toString: String = name
   }
