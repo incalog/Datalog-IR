@@ -2,33 +2,34 @@ package inca.frontend.constraint.datamodelresolver
 
 import inca.frontend.constraint.core.{DataModel, TreesitterDataModel}
 import inca.runtime.context
-
-trait TreesitterDataModelResolver extends DataModelResolver {
-  override def resolve(dataModel: DataModel): context.DataModel = dataModel match {
-    case TreesitterDataModel(path) => super.resolve(dataModel)
-    case _ => super.resolve(dataModel)
-  }
-}
-
-
-import inca.runtime.context.DataModel
+import inca.runtime.context.DataModel.Link
 import truechange.{JavaLitType, ListType, LitType, OptionType, SortType, Type}
 import scala.collection.immutable.MultiDict
 import scala.collection.immutable.Map
 import io.circe._
 import io.circe.parser._
+import java.io.File
 
-case class PreType(multiple: Boolean, required: Boolean, name: String)
-case class PreLitType(multiple: Boolean, required: Boolean)
+trait TreesitterDataModelResolver extends DataModelResolver {
+  override def resolve(dataModel: DataModel): context.DataModel = dataModel match {
+    case TreesitterDataModel(path) => new DataModelParser(path).getContextDataModel
+    case _ => super.resolve(dataModel)
+  }
+}
 
 /*
 * Assumptions: - Supertypes are declared explicity in treesitters grammar.js
 *              - Children of AST-Nodes defined in node-types.json are defined as types and not explicitly
 *
- */
+*
+*/
 
+case class PreType(multiple: Boolean, required: Boolean, name: String)
+case class PreLitType(multiple: Boolean, required: Boolean)
 
-class MetaModel(nodeTypes: Json, literalIdentifiers: Vector[String]) {
+class DataModelParser(nodeTypes: Json, literalIdentifiers: Vector[String]) {
+
+  def this(dataModelLocation: String) = this(dataModelLocation + File.separator +"node-types.json", dataModelLocation + File.separator + "token-nodes")
 
   def this(metaModelPath: String, literalIdentifiersPath: String) = this({
     val source = scala.io.Source.fromFile(metaModelPath)
@@ -38,7 +39,7 @@ class MetaModel(nodeTypes: Json, literalIdentifiers: Vector[String]) {
     try source.getLines.toVector finally source.close()})
 
 
-  def getLanguageMetaInfo: LanguageMetaInfo = getLMIFromMultiMap(getMultiLinks._1, getMultiLinks._2, getSupertypeMap)
+  def getContextDataModel: context.DataModel = getDataModelFromMultiMap(getMultiLinks._1, getMultiLinks._2, getSupertypeMap)
 
 
   private def getSupertypeMap: MultiDict[SortType, SortType] = {
@@ -63,7 +64,7 @@ class MetaModel(nodeTypes: Json, literalIdentifiers: Vector[String]) {
     directSupertypes
   }
 
-  private def getLMIFromMultiMap(multiLinks: MultiDict[Link, PreType], litLinks: Map[Link, LitType], supertypeMap: MultiDict[SortType, SortType]): LanguageMetaInfo = {
+  private def getDataModelFromMultiMap(multiLinks: MultiDict[Link, PreType], litLinks: Map[Link, LitType], supertypeMap: MultiDict[SortType, SortType]): context.DataModel = {
 
     var links = Map[Link, Type]()
     var newSupertypeMap = supertypeMap
@@ -84,7 +85,7 @@ class MetaModel(nodeTypes: Json, literalIdentifiers: Vector[String]) {
       links += (link -> newArgType)
     }
 
-    new LanguageMetaInfo(newSupertypeMap, links, litLinks)
+    new context.DataModel(newSupertypeMap.keySet.toSet ++ newSupertypeMap.values.toSet , newSupertypeMap, links, litLinks)
   }
 
 
@@ -168,4 +169,3 @@ class MetaModel(nodeTypes: Json, literalIdentifiers: Vector[String]) {
     case (false, false) => JavaLitType(classOf[Option[String]])
   }
 }
-
