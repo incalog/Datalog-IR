@@ -1,5 +1,6 @@
 package inca.frontend.constraint.parser
 
+import fastparse.ParserInput
 import inca.frontend.constraint.extensions
 import inca.frontend.constraint.core.Module
 
@@ -13,7 +14,7 @@ object Parser {
     extensions.match_.Parser with
     extensions.switch_.Parser {}
 
-  def parse(code: String): Module = {
+  def parse(code: ParserInput): Module = {
     import fastparse.Parsed
 
     fastparse.parse(code, parser.module(_), verboseFailures = true) match {

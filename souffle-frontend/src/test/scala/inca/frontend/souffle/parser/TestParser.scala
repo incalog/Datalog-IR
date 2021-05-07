@@ -1,8 +1,7 @@
-package inca.souffle
-
-import inca.souffle.Parser._
+package inca.frontend.souffle.parser
 
 import fastparse._
+import inca.frontend.souffle.Syntax
 import org.scalatest.flatspec.AnyFlatSpec
 
 class TestParser extends AnyFlatSpec {

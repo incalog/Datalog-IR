@@ -1,4 +1,4 @@
-package inca.souffle
+package inca.util
 
 import java.io.IOException
 

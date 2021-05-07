@@ -1,9 +1,9 @@
-package inca.souffle
+package inca.frontend.souffle
 
 import inca.compiler.functional.CompiledFunctionalModule
 import inca.compiler.options.FunctionalOptions
 import inca.frontend.functional.core.Module
-import inca.souffle.Syntax.{Input, PrintSize, RuleSignature}
+import Syntax.{Input, PrintSize, RuleSignature}
 
 class CompiledSouffleFrontendModule(override val fun: Module,
                                     val inputs: Seq[(RuleSignature, Input)],

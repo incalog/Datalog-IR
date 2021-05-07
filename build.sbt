@@ -30,8 +30,8 @@ lazy val inca = (project in file(".")).settings(
   )
 )
 
-lazy val souffle_importer = (project in file("souffle-importer")).dependsOn(inca).settings(
-  name := "souffle-importer",
+lazy val souffle_importer = (project in file("souffle-frontend")).dependsOn(inca).settings(
+  name := "souffle-frontend",
 
   resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
 

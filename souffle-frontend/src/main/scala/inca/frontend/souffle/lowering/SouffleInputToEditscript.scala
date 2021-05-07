@@ -1,5 +1,6 @@
-package inca.souffle
+package inca.frontend.souffle.lowering
 
+import inca.frontend.souffle.{Syntax, Util}
 import truechange.{EditScript, JVMURI, Load, NamedTag}
 
 import scala.io.Source

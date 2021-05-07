@@ -1,18 +1,20 @@
-package inca.souffle
+package inca.frontend.souffle.parser
+
+import inca.frontend.souffle.Syntax
 
 // TODO currently only supports a subset of souffle which is needed to load a specific file
 object Parser {
   import fastparse._
   import JavaWhitespace._
 
-  def apply(file: Iterator[String]): Syntax.Analysis = parse(file, Analysis(_)) match {
-      case Parsed.Success(value, index) => Syntax.Analysis(value)
-      case f@Parsed.Failure(label, index, extra) => throw new IllegalArgumentException(s"Parsing failed at index $index: ${f.trace().longMsg}")
-    }
+  def parse(code: ParserInput): Syntax.Analysis = {
+    import fastparse.Parsed
 
-  def apply(file: String): Syntax.Analysis = parse(file, Analysis(_)) match {
-    case Parsed.Success(value, index) => Syntax.Analysis(value)
-    case f@Parsed.Failure(label, index, extra) => throw new IllegalArgumentException(s"Parsing failed at index $index: ${f.trace().longMsg}")
+    fastparse.parse(code, Analysis(_), verboseFailures = true) match {
+      case Parsed.Success(value, _) => Syntax.Analysis(value)
+      case fail: Parsed.Failure =>
+        throw new IllegalArgumentException(s"Parsing Error: ${fail.trace(true).longTerminalsMsg}")
+    }
   }
 
   def Analysis[_: P]: P[Seq[Syntax.AnalysisContent]] =

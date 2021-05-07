@@ -1,4 +1,4 @@
-package inca.souffle
+package inca.frontend.souffle
 
 object Util {
 

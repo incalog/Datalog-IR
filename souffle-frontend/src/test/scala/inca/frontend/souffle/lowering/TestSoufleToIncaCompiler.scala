@@ -1,6 +1,8 @@
-package inca.souffle
+package inca.frontend.souffle.lowering
 
 import inca.compiler.options.Options
+import inca.frontend.souffle.parser.Parser
+import inca.frontend.souffle.Syntax
 import inca.runtime.context.QueryScope
 import inca.util.matchers.IncaGPMatchers
 import org.scalatest.flatspec.AnyFlatSpec
@@ -38,7 +40,7 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
       Syntax.RuleParameter("?superclass", Syntax.DeclaredType("ClassType"))), false)
 
   lazy val compiledModule = {
-    val ast = Parser(subclassTransitiveClosure.linesIterator)
+    val ast = Parser.parse(subclassTransitiveClosure.linesIterator)
     val compiler = new SouffleToIncaBackendCompiler
     compiler.compile("transitiveclosure", ast)
   }

@@ -1,10 +1,11 @@
-package inca.souffle
+package inca.frontend.souffle.lowering
 
 import inca.compiler.options.FunctionalOptions
 import inca.frontend.functional.core._
+import inca.frontend.souffle.Syntax.{Expression => _, Type => _, _}
+import inca.frontend.souffle.Util.cleanSouffleName
+import inca.frontend.souffle.{CompiledSouffleFrontendModule, Syntax}
 import inca.runtime.context.DataModel.{Link => MLink}
-import inca.souffle.Syntax.{Expression => _, Type => _, _}
-import inca.souffle.Util._
 import inca.util.Gensym
 import inca.util.Meta.Scala
 import truechange.{JavaLitType, LitType}

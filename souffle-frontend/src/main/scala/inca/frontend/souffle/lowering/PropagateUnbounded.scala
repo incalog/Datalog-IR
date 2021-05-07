@@ -1,4 +1,4 @@
-package inca.souffle
+package inca.frontend.souffle.lowering
 
 import inca.backend.ir.Datalog._
 import inca.util.Meta.Scala

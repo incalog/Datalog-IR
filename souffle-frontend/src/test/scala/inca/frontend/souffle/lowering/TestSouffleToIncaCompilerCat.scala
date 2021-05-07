@@ -1,6 +1,8 @@
-package inca.souffle
+package inca.frontend.souffle.lowering
 
 import inca.compiler.options.Options
+import inca.frontend.souffle.parser.Parser
+import inca.frontend.souffle.Syntax
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.matchers.IncaGPMatchers
 import org.scalatest.flatspec.AnyFlatSpec
@@ -34,7 +36,7 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaGPMatchers {
       |""".stripMargin
 
   lazy val compiledModule = {
-    val ast = Parser(catProgram.linesIterator)
+    val ast = Parser.parse(catProgram.linesIterator)
     val compiler = new SouffleToIncaBackendCompiler
     compiler.compile("catanalysis", ast)
   }

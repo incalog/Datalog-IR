@@ -346,7 +346,7 @@ trait Parser {
 
 object Parser {
   private lazy val parser: Parser = new Parser {}
-  def parse(code: String): Module = {
+  def parse(code: ParserInput): Module = {
     import fastparse.Parsed
 
     fastparse.parse(code, parser.module(_), verboseFailures = true) match {

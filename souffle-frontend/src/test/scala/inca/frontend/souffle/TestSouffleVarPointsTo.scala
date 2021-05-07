@@ -1,8 +1,11 @@
-package inca.souffle
+package inca.frontend.souffle
 
+import inca.frontend.souffle.lowering.{SouffleInputToEditscript, SouffleToIncaBackendCompiler}
+import inca.frontend.souffle.parser.Parser
 import inca.runtime.EnginePool
 import inca.runtime.Query.Matcher
 import inca.runtime.context.QueryScope
+import inca.util.MeasurementUtils
 import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
 import org.scalatest.flatspec.AnyFlatSpec
 import truechange.EditScript
@@ -34,7 +37,7 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
     val filename = s"$benchmarkPath/self-contained.dl"
     val src = Source.fromFile(filename)
     val doopText = src.getLines().mkString("\n")
-    val analysis = Parser(doopText)
+    val analysis = Parser.parse(doopText)
     src.close()
     val compiler = new SouffleToIncaBackendCompiler
     val compiledModule = compiler.compile("selfcontained", analysis)
