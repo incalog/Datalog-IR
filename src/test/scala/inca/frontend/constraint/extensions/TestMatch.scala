@@ -1,7 +1,7 @@
 package inca.frontend.constraint.extensions
 
 import inca.analyzedLangs.Exp
-import inca.compiler.options.ConstraintOptions
+import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.constraint.core._
 import inca.frontend.constraint.extensions.match_.Trees._
 import inca.runtime.context.QueryScope

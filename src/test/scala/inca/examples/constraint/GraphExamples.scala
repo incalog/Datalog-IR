@@ -1,6 +1,6 @@
 package inca.examples.constraint
 
-import inca.executor.ConstraintExecutor
+import inca.frontend.constraint.executor.ConstraintExecutor
 import inca.runtime.context.DataModel
 import org.scalatest.funsuite.AnyFunSuite
 import truediff.macros.diffable

@@ -1,10 +1,11 @@
 package inca.frontend.souffle.lowering
 
 import inca.backend.ir.Datalog._
-import inca.compiler.options.ConstraintOptions
+import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.souffle.Syntax.{Type => _, _}
 import inca.frontend.souffle.Util.cleanSouffleName
-import inca.frontend.souffle.{CompiledSouffleModule, Syntax}
+import inca.frontend.souffle.Syntax
+import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.runtime.context.DataModel
 import inca.runtime.context.DataModel.{Link => MLink}
 import inca.util.Gensym

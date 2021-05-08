@@ -1,6 +1,6 @@
 package inca.integration
 
-import inca.executor.FunctionalExecutor._
+import inca.frontend.functional.executor.FunctionalExecutor._
 import inca.examples.functional.Code
 import org.scalatest.funsuite.AnyFunSuite
 

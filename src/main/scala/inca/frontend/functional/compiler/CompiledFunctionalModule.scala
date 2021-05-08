@@ -1,9 +1,8 @@
-package inca.compiler.functional
+package inca.frontend.functional.compiler
 
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.Name
-import inca.compiler.options.{CompilerFlags, FunctionalOptions}
-import inca.compiler.{CompiledModule, SourceLocation}
+import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
 import inca.frontend.functional.core.Module
 import inca.frontend.functional.lowering.{Defunctionalize, GenerateDataModel, GenerateDatalog}
 import inca.frontend.functional.typechecker.Typechecker

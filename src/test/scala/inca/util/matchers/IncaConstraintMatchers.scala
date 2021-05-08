@@ -1,7 +1,7 @@
 package inca.util.matchers
 
 import inca.compiler
-import inca.compiler.options.ConstraintOptions
+import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.constraint.core.Module
 import inca.runtime.Query
 import org.scalatest.Assertion

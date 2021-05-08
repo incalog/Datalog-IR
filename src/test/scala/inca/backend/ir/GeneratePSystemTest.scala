@@ -3,7 +3,7 @@ package inca.backend.ir
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
-import inca.compiler.options.ConstraintOptions
+import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.constraint.core._
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Meta.Scala

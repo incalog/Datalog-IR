@@ -1,7 +1,7 @@
 package inca.frontend.constraint.core
 
 import inca.analyzedLangs.Exp
-import inca.compiler.options.ConstraintOptions
+import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.runtime.context.QueryScope
 import inca.util.Meta.Scala
 import inca.util.matchers.IncaConstraintMatchers

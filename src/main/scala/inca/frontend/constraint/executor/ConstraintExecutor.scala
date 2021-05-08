@@ -1,7 +1,7 @@
-package inca.executor
+package inca.frontend.constraint.executor
 
-import inca.compiler.options.ConstraintOptions
 import inca.compiler.{CompiledModule, Compiler}
+import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.runtime.Query.Match
 import inca.runtime.context.QueryScope
 import inca.runtime.{Database, EnginePool}

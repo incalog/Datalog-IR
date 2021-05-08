@@ -2,7 +2,7 @@ package inca.frontend.constraint.core
 
 import inca.analyzedData.Nat._
 import inca.analyzedLangs.Exp
-import inca.compiler.options.ConstraintOptions
+import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.constraint.extensions.evalCall.Trees._
 import inca.runtime.context.QueryScope
 import inca.util.Meta.Scala

@@ -1,12 +1,11 @@
-package inca.frontend.souffle
+package inca.frontend.souffle.compiler
 
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.Name
 import inca.compiler.SourceLocation.NoSourceLocation
-import inca.compiler.options.Options
-import inca.compiler.{CompiledModule, SourceLocation}
+import inca.compiler.{CompiledModule, Options, SourceLocation}
+import inca.frontend.souffle.Syntax.{Input, PrintSize, RuleSignature}
 import inca.runtime.context.DataModel
-import Syntax.{Input, PrintSize, RuleSignature}
 
 // TODO generate ir on demand, provide souffle module as input
 case class CompiledSouffleModule(ir: Datalog.Module,
@@ -17,5 +16,4 @@ case class CompiledSouffleModule(ir: Datalog.Module,
   override def name: Name = ir.name
 
   override def sourceLocation: SourceLocation = NoSourceLocation
-
 }

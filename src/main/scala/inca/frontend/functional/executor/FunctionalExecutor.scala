@@ -1,7 +1,7 @@
-package inca.executor
+package inca.frontend.functional.executor
 
-import inca.compiler.options.FunctionalOptions
 import inca.compiler.{CompiledModule, Compiler}
+import inca.frontend.functional.compiler.FunctionalOptions
 import inca.runtime.context.QueryScope
 import inca.runtime.data.DataURI
 import inca.runtime.{Database, EnginePool, Query}

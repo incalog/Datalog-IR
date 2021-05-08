@@ -1,7 +1,7 @@
 package inca.compiler
 
 import inca.backend.ir.{GeneratePSystem, Datalog, PSystem}
-import inca.compiler.options.{CompilerFlags, Options}
+import inca.compiler.Options
 import inca.runtime.context.DataModel
 import inca.util.Meta
 import inca.util.TupleOps.transClosure

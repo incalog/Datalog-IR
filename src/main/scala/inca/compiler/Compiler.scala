@@ -1,10 +1,9 @@
 package inca.compiler
 
 import inca.backend.ir.Datalog
-import inca.compiler.constraint.CompiledConstraintModule
-import inca.compiler.functional.CompiledFunctionalModule
-import inca.compiler.options.{ConstraintOptions, FunctionalOptions, Options}
+import inca.frontend.constraint.compiler.{CompiledConstraintModule, ConstraintOptions}
 import inca.frontend.constraint.core
+import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
 import inca.frontend.{constraint, functional}
 import inca.runtime.context.DataModel
 

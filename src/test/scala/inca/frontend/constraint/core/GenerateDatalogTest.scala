@@ -5,7 +5,7 @@ import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
 import inca.backend.ir.{Datalog, Printer}
 import inca.compiler.Compiler
-import inca.compiler.options.ConstraintOptions
+import inca.frontend.constraint.compiler.ConstraintOptions
 import org.scalatest.funsuite.AnyFunSuite
 
 class GenerateDatalogTest extends AnyFunSuite {
