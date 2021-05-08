@@ -13,7 +13,7 @@ object ConstructDependencyGraph {
       pat.bodies.foreach { body =>
         body.atoms.foreach {
           case Call(name, _, _, neg) =>
-            graph.addEdge(pats(name), pat, neg)
+            graph.addEdge(pat, pats(name), neg)
           case _ => // do nothing
         }
       }
