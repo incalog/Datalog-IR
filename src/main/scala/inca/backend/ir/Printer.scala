@@ -10,17 +10,17 @@ object Printer {
       module.name + "\n" +
       module.imports.mkString("\n") + "\n" +
       module.scalaContent.map(t => "`" + t.syntax + "`").mkString("\n") + "\n" +
-      module.pats.map(prettyGraphPattern).mkString("\n")
+      module.pats.map(prettyPattern).mkString("\n")
 
-  def prettyGraphPattern(gp: Pattern): String = {
-    val header = prettyVis(gp.vis) + " " + gp.name + gp.params.map(prettyParam).mkString("(", ", ", ")")
-    val bodies = gp.bodies.map(prettyAlternative).mkString(" {\n", "\n} or {\n", "\n}")
+  def prettyPattern(gp: Pattern): String = {
+    val header = prettyVis(gp.vis) + gp.name + gp.params.map(prettyParam).mkString("(", ", ", ")")
+    val bodies = gp.bodies.map(prettyBody).mkString(" {\n", "\n} or {\n", "\n}")
     header + bodies
   }
 
   def prettyVis(vis: Option[Visibility]): String = vis match {
-    case Some(Private) => "private"
-    case None => "public"
+    case Some(Private) => "private "
+    case None => ""
   }
 
   def prettyParam(param: Param): String = s"${param.name}: ${prettyType(param.typ)}"
@@ -38,7 +38,7 @@ object Printer {
     case TList(ty) => s"List[${prettyType(ty)}]"
   }
 
-  def prettyAlternative(alt: Body): String = alt.atoms.map(prettyAtom).map("\t"+_).mkString("\n")
+  def prettyBody(alt: Body): String = alt.atoms.map(prettyAtom).map("\t"+_).mkString("\n")
 
   def prettyAtom(atom: Atom): String = atom match {
     case Compare(comp, lhs, rhs) => prettyTerm(lhs) + " " + prettyComparator(comp) + " " + prettyTerm(rhs)
