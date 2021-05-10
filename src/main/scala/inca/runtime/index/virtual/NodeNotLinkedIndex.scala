@@ -31,8 +31,7 @@ object NodeNotLinkedIndex {
 }
 
 
-class NodeNotLinkedIndex(nodeKey: IndexKey[_], linkKey: IndexKey[_], nodeIsSource: Boolean) extends UnaryIndex[URI]
-  with VirtualIndex {
+class NodeNotLinkedIndex(nodeKey: IndexKey[_], linkKey: IndexKey[_], nodeIsSource: Boolean) extends VirtualUnaryIndex[URI] {
 
   if (nodeKey.getArity != 1)
     throw new IllegalArgumentException(s"Node key must have arity 1")

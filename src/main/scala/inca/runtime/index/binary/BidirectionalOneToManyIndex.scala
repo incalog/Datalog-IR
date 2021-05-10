@@ -32,4 +32,12 @@ class BidirectionalOneToManyIndex[K,V](val key: IndexKey[_]) extends BinaryIndex
     notify(k, v, isInsertion = false)
   }
 
+  override def update(k: K, vold: V, vnew: V): Unit = {
+    index.remove(k, vold)
+    index.put(k, vnew)
+    indexInverted.remove(vold)
+    indexInverted.put(vnew, k)
+    notify(k, vnew, isInsertion = true)
+    notify(k, vold, isInsertion = false)
+  }
 }

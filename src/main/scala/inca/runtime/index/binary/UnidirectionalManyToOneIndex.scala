@@ -26,4 +26,9 @@ class UnidirectionalManyToOneIndex[K,V](val key: IndexKey[_]) extends BinaryInde
     notify(k, v, isInsertion = false)
   }
 
+  override def update(k: K, vold: V, vnew: V): Unit = {
+    index.put(k, vnew)
+    notify(k, vnew, isInsertion = true)
+    notify(k, vold, isInsertion = false)
+  }
 }
