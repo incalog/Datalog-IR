@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.Datalog.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Atom, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
+import inca.backend.ir.Datalog.{Atom, Body, Call, Comparator, Compare, Computation, Computed, Constant, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
 import truechange.JavaLitType
 
 object Printer {
@@ -93,9 +93,14 @@ object Printer {
     case Datalog.CountAggregation(patName, args) =>
       s"${prettyTerm(lhs)} == count $patName(${args.map(prettyTerm).mkString(",")})"
     case Datalog.Evaluation(args, returnType, code) =>
-      val indented = code.syntax.replace("\n", "\n\t\t")
-      val argsS = args.map(a => prettyTerm(a._1)).mkString(", ")
-      s"${prettyTerm(lhs)} == `$indented`($argsS): ${prettyType(returnType)}"
+      if (args.isEmpty) {
+        val indented = code.tree.body.syntax.replace("\n", "\n\t\t")
+        s"${prettyTerm(lhs)} == `$indented`: ${prettyType(returnType)}"
+      } else {
+        val indented = code.syntax.replace("\n", "\n\t\t")
+        val argsS = args.map(a => prettyTerm(a._1)).mkString(", ")
+        s"${prettyTerm(lhs)} == `$indented`($argsS): ${prettyType(returnType)}"
+      }
     case Datalog.CustomAggregation(typ, desc, agg, patName, args, aggregatedColumn) =>
       val sargs = args.map(prettyTerm).updated(aggregatedColumn, "#").mkString(", ")
       s"${prettyTerm(lhs)} == aggregate $patName($sargs):$typ with ${desc.getOrElse(agg.toString)}"

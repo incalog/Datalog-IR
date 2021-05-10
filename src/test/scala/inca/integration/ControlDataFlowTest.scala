@@ -1,7 +1,7 @@
 package inca.integration
 
-import inca.frontend.functional.executor.FunctionalExecutor._
 import inca.examples.functional.ControlDataFlow
+import inca.frontend.functional.executor.FunctionalExecutor._
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -78,6 +78,7 @@ class ControlDataFlowTest extends AnyFunSuite {
   test("aeval") {
     val fun = loadFunction(ControlDataFlow.AEvalModule)
     fun.compiled.printStatistics()
+    println(fun.compiled.optimized)
     val names = Set("aeval", "add","sub","greaterThan","mul")
     val m = fun.compiled.optimized.copy(pats = fun.compiled.optimized.pats.filter(p => names.exists(n => p.name.contains(n))), scalaContent = Seq())
     println(m)

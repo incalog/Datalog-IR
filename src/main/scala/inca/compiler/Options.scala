@@ -2,8 +2,6 @@ package inca.compiler
 
 import inca.backend.optimize._
 import inca.backend.transform.Transformation
-import inca.frontend.constraint.desugar.Desugarable
-import inca.frontend.constraint.extensions
 
 trait Options {
   def optimizations: Seq[Optimization]
@@ -19,6 +17,7 @@ object Options {
 
   val defaultOptimizations: Seq[Optimization] = Seq(
     ConstantPropagation,
+    EvalFusion,
     EliminateAliases,
     InferVarTypes,
     FoldConstantConstraints,

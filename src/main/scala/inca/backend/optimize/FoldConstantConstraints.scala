@@ -1,8 +1,10 @@
 package inca.backend.optimize
 import inca.backend.ir.Datalog._
-import inca.backend.ir.TypeOps
+import inca.backend.ir.{CollectVars, TypeOps}
 import inca.runtime.context.DataModel
 import inca.util.Meta.Scala
+
+import scala.collection.immutable.MultiSet
 
 object FoldConstantConstraints extends Optimization with TypeOps {
 
@@ -16,7 +18,18 @@ object FoldConstantConstraints extends Optimization with TypeOps {
       super.optimizeModule(module)
     }
 
+    private var varCount: MultiSet[Name] = MultiSet()
+
+    override def optimizeBody(body: Body, pat: Pattern): Seq[Body] = {
+      varCount = MultiSet() ++ CollectVars.transBody(body)
+      super.optimizeBody(body, pat)
+    }
+
     override def optimizeAtom(atom: Atom): Seq[Atom] = atom match {
+
+      case Compare(_, v: Var, _) if varCount.get(v.name) == 1 => Seq()
+      case Compare(_, _, v: Var) if varCount.get(v.name) == 1 => Seq()
+      case Computed(v: Var, _) if varCount.get(v.name) == 1 => Seq()
 
       case Compare(EqComparator, t1, t2) if t1 == t2 => Seq()
       case Compare(EqComparator, Constant(c1), Constant(c2)) if c1 != c2 => throwBodyMustFail()
