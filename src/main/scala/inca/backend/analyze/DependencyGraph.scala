@@ -17,15 +17,26 @@ class DependencyGraph(module: Module) extends Graph[Pattern, Boolean] {
     }
   }
 
-  override protected def edgeToGraphViz(from: Pattern, to: Pattern, info: Boolean): String = if (info) "color=red" else "color=black"
-
   override protected def nodeToGraphViz(n: Pattern): String = n.name.replace("$", "_")
 
+  def isDataNode(p: Pattern): Boolean = p.hasHint(DataTypeKey) || p.hasHint(ConstructorKey) || p.hasHint(SelectorKey)
+
   override protected def nodeGraphVizAttributes(from: Pattern): String =
-    if (from.hasHint(DataTypeKey) || from.hasHint(ConstructorKey) || from.hasHint(SelectorKey))
+    if (isDataNode(from))
       "fillcolor=green2, style=filled"
     else if (from.name.startsWith(demandPatternPrefix))
       "fillcolor=darkorange3, style=filled"
     else
       "fillcolor=black, style=filled, fontcolor=white"
+
+  override protected def edgeGraphVizAttributes(from: Pattern, to: Pattern, isDeletion: Boolean): String = {
+    if (isDeletion)
+      "color=red"
+//    else if (isDataNode(from) && isDataNode(to))
+//      "color=green2"
+//    else if (from.name.startsWith(demandPatternPrefix) && to.name.startsWith(demandPatternPrefix))
+//      "color=darkorange3"
+    else
+      "color=black"
+  }
 }

@@ -80,7 +80,7 @@ trait Graph[N, E] {
     nodes.foreach { from =>
       sb ++= s"\t${nodeToGraphViz(from)} [${nodeGraphVizAttributes(from)}];\n"
       edges.getOrElse(from, Nil).foreach { case (to, info) =>
-        val edge = s"\t${nodeToGraphViz(from)} -> ${nodeToGraphViz(to)} [${edgeToGraphViz(from, to, info)}];\n"
+        val edge = s"\t${nodeToGraphViz(from)} -> ${nodeToGraphViz(to)} [${edgeGraphVizAttributes(from, to, info)}];\n"
         sb ++= edge
       }
     }
@@ -91,8 +91,8 @@ trait Graph[N, E] {
        |""".stripMargin
   }
 
-  protected def edgeToGraphViz(from: N, to: N, info: E): String
   protected def nodeToGraphViz(n: N): String
+  protected def edgeGraphVizAttributes(from: N, to: N, info: E): String
   protected def nodeGraphVizAttributes(from: N): String
 }
 
