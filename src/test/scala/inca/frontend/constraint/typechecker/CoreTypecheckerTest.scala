@@ -6,7 +6,7 @@ import inca.analyzedLangs
 import inca.frontend.constraint.core._
 import inca.frontend.constraint.parser.CoreParser
 import inca.runtime.context.DataModel
-import inca.util.Meta.Scala
+import inca.util.Scala
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import truechange.SortType

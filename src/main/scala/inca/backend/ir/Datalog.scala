@@ -1,8 +1,7 @@
 package inca.backend.ir
 
 import inca.backend.hints.Hints
-import inca.util.Meta
-import inca.util.Meta.Scala
+import inca.util.Scala
 import truechange.{JavaLitType, LitType}
 
 import scala.meta.quasiquotes._
@@ -38,7 +37,7 @@ object Datalog {
 
   case class TLiteral(litType: LitType) extends Type {
     override def asScala: meta.Type = litType match {
-      case JavaLitType(cl) =>  Meta.mkQualTypename(cl.getCanonicalName)
+      case JavaLitType(cl) =>  Scala.mkQualTypename(cl.getCanonicalName)
       case _ => throw new UnsupportedOperationException
     }
   }
@@ -125,6 +124,16 @@ object Datalog {
 
   sealed trait Literal {
     def typ: Type
+  }
+  object Literal {
+    def fromScalaMeta(t: meta.Lit): Option[Literal] = t match {
+      case meta.Lit.Int(i) => Some(IntLiteral(i))
+      case meta.Lit.Long(l) => Some(LongLiteral(l))
+      case d: meta.Lit.Double => Some(DoubleLiteral(d.value.asInstanceOf[Double]))
+      case meta.Lit.Boolean(b) => Some(BooleanLiteral(b))
+      case meta.Lit.String(s) => Some(StringLiteral(s))
+      case _ => None
+    }
   }
   case class IntLiteral(v: Int) extends Literal {
     override def typ: Type = TScalaInt

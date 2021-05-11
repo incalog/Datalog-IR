@@ -2,7 +2,7 @@ package inca.frontend.constraint.core
 
 import inca.compiler.SourceLocation
 import inca.frontend.util.{Resolvable, Typeable}
-import inca.util.Meta.Scala
+import inca.util.Scala
 
 trait Expression extends Typeable[Type] with SourceLocation {
   def freeVars: Map[Name, Option[Type]]

@@ -4,7 +4,7 @@ import fastparse.Parsed.{Failure, Success}
 import fastparse.{P, parse}
 import inca.examples.functional.{AST, Code, ControlDataFlow, HigherOrder}
 import inca.frontend.functional.core._
-import inca.util.Meta.Scala
+import inca.util.Scala
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 

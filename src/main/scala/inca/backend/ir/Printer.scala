@@ -1,6 +1,7 @@
 package inca.backend.ir
 
 import inca.backend.ir.Datalog.{Atom, Body, Call, Comparator, Compare, Computation, Computed, Constant, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
+import inca.backend.optimize.EvalFusion
 import truechange.JavaLitType
 
 object Printer {
@@ -34,7 +35,7 @@ object Printer {
     case TData(name) => name
     case TAnyLinked => "TAnyLinked"
     case TNode(name) => name
-    case TScala(ty) => s"`${ty.syntax}`"
+    case TScala(ty) => ty.syntax
     case TList(ty) => s"List[${prettyType(ty)}]"
   }
 
@@ -93,13 +94,15 @@ object Printer {
     case Datalog.CountAggregation(patName, args) =>
       s"${prettyTerm(lhs)} == count $patName(${args.map(prettyTerm).mkString(",")})"
     case Datalog.Evaluation(args, returnType, code) =>
-      if (args.isEmpty) {
-        val indented = code.tree.body.syntax.replace("\n", "\n\t\t")
-        s"${prettyTerm(lhs)} == `$indented`: ${prettyType(returnType)}"
+      if (args.forall(_._1.isInstanceOf[Var])) {
+        val params = code.tree.params.map(_.name.value)
+        val scalaArgs = args.map(a => meta.Term.Name(a._1.asInstanceOf[Var].name))
+        val codeS = EvalFusion.scalaSubst(code.tree.body, Map() ++ params.zip(scalaArgs)).syntax.replace("\n", "\n\t\t")
+        s"${prettyTerm(lhs)} == `$codeS`"
       } else {
-        val indented = code.syntax.replace("\n", "\n\t\t")
+        val codeS = code.syntax.replace("\n", "\n\t\t")
         val argsS = args.map(a => prettyTerm(a._1)).mkString(", ")
-        s"${prettyTerm(lhs)} == `$indented`($argsS): ${prettyType(returnType)}"
+        s"${prettyTerm(lhs)} == `$codeS`($argsS)"
       }
     case Datalog.CustomAggregation(typ, desc, agg, patName, args, aggregatedColumn) =>
       val sargs = args.map(prettyTerm).updated(aggregatedColumn, "#").mkString(", ")

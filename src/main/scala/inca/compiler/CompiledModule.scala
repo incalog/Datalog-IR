@@ -4,7 +4,7 @@ import inca.backend.analyze.StratificationAnalysis
 import inca.backend.ir.{Datalog, GeneratePSystem, PSystem}
 import inca.compiler.Options
 import inca.runtime.context.DataModel
-import inca.util.Meta
+import inca.util.Scala
 import inca.util.TupleOps.transClosure
 
 import scala.collection.immutable.MultiDict

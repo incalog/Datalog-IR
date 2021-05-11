@@ -10,7 +10,7 @@ import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
 import inca.util.Gensym
-import inca.util.Meta._
+import inca.util.Scala._
 import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations.BoundAggregator
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.AggregatorConstraint
 import truechange.{AnyType, JavaLitType, ListType, SortType}
@@ -265,13 +265,12 @@ object GeneratePSystem {
 
   private def genConstantEvalVarName(eval: Evaluation): String = eval.code.hashCode().toString
 
-  private def genLiteral(lit: Literal): Lit = lit match {
+  def genLiteral(lit: Literal): Lit = lit match {
     case IntLiteral(v) => Lit.Int(v)
     case LongLiteral(v) => Lit.Long(v)
     case DoubleLiteral(v) => Lit.Double(v)
     case StringLiteral(v) => Lit.String(v)
     case BooleanLiteral(v) => Lit.Boolean(v)
-
   }
 
   private def compileAtom(atom: Atom)(implicit env: RuleEnvironment): Seq[Stat] = atom match {

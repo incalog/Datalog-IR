@@ -7,6 +7,7 @@ ThisBuild / scalaVersion := "2.13.1"
 ThisBuild / scalacOptions += "-target:11"
 
 Test / parallelExecution := false
+Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.ScalaLibrary
 
 lazy val inca = (project in file(".")).settings(
   resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",

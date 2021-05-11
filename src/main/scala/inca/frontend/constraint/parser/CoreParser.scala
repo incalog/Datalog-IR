@@ -5,7 +5,7 @@ import fastparse._
 import inca.compiler.SourceLocation
 import inca.frontend.constraint.core._
 import inca.frontend.util.ParserUtils
-import inca.util.Meta.Scala
+import inca.util.Scala
 
 import scala.language.reflectiveCalls
 import scala.meta.Term

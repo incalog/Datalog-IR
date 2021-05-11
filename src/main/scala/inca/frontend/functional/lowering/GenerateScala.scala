@@ -5,7 +5,7 @@ import inca.frontend.functional.core
 import inca.frontend.functional.core._
 import inca.runtime.aggregate.{Aggregation, AggregatorAssocComm}
 import inca.runtime.data.DataURI
-import inca.util.Meta.{symbolOf, typeOf}
+import inca.util.Scala.{symbolOf, typeOf}
 
 import scala.meta.{Type => MetaType, _}
 

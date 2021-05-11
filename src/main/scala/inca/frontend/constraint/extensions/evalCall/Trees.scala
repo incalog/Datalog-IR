@@ -2,7 +2,7 @@ package inca.frontend.constraint.extensions.evalCall
 
 import inca.compiler.SourceLocation
 import inca.frontend.constraint.core._
-import inca.util.Meta.Scala
+import inca.util.Scala
 
 object Trees {
   case class EvalCall(fun: Eval, args: Seq[Expression]) extends Expression with SourceLocation {

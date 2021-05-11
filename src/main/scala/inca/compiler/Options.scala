@@ -17,8 +17,8 @@ object Options {
 
   val defaultOptimizations: Seq[Optimization] = Seq(
     ConstantPropagation,
-    EvalFusion,
     EliminateAliases,
+    EvalFusion,
     InferVarTypes,
     FoldConstantConstraints,
     EliminateEmptyRelations

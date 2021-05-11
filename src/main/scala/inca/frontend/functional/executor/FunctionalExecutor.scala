@@ -5,7 +5,7 @@ import inca.frontend.functional.compiler.FunctionalOptions
 import inca.runtime.context.QueryScope
 import inca.runtime.data.DataURI
 import inca.runtime.{Database, EnginePool, Query}
-import inca.util.Meta.ScalaCompiler
+import inca.util.Scala.ScalaCompiler
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory

@@ -8,7 +8,7 @@ import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.compiler.CompiledSouffleFrontendModule
 import inca.runtime.context.DataModel.{Link => MLink}
 import inca.util.Gensym
-import inca.util.Meta.Scala
+import inca.util.Scala
 import truechange.{JavaLitType, LitType}
 
 import scala.collection.mutable

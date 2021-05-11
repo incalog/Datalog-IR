@@ -66,10 +66,10 @@ class GraphExamples extends AnyFunSuite {
 
     val tree = Graph(List(Node("a"), Node("b"), Node("c")), List(Edge("a", "b"), Edge("b", "c")))
     val res1 = loaded.execute(tree, "inCycleByName")
-    res1.foreach(println)
+//    res1.foreach(println)
     val tree2 = Graph(List(Node("a"), Node("b"), Node("c"), Node("d")), List(Edge("a", "b"), Edge("b", "c"), Edge("c", "d"), Edge("c", "a")))
     val res2 = loaded.update(tree2, "inCycleByName")
-    println("updated")
-    res2.foreach(println)
+//    println("updated")
+//    res2.foreach(println)
   }
 }

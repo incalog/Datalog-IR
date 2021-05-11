@@ -3,7 +3,7 @@ package inca.frontend.constraint.extensions.evalCall
 import inca.frontend.constraint.core._
 import inca.frontend.constraint.extensions.evalCall.Trees._
 import inca.frontend.constraint.typechecker.{CoreTypechecker, TypeHelper}
-import inca.util.Meta.Scala
+import inca.util.Scala
 
 trait Typechecker extends CoreTypechecker {
   override protected def typecheckInternal(exp: Expression, anno: Option[Type]): Type = exp match {

@@ -2,7 +2,7 @@ package inca.backend.transform.magic
 
 import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Datalog
-import inca.util.Meta.Scala
+import inca.util.Scala
 
 import scala.meta.quasiquotes._
 

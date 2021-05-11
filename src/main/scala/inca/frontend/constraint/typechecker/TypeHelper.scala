@@ -1,7 +1,7 @@
 package inca.frontend.constraint.typechecker
 
 import inca.frontend.constraint.core._
-import inca.util.Meta.Scala
+import inca.util.Scala
 
 object TypeHelper {
 

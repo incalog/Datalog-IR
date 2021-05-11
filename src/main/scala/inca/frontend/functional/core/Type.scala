@@ -2,7 +2,7 @@ package inca.frontend.functional.core
 
 import inca.compiler.SourceLocation
 import inca.frontend.util.Resolvable
-import inca.util.Meta.Scala
+import inca.util.Scala
 
 import scala.meta.quasiquotes._
 

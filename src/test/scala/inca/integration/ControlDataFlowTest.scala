@@ -12,7 +12,7 @@ class ControlDataFlowTest extends AnyFunSuite {
     val input = fun.input(Seq(ControlDataFlow.example_2_1))
     assert(fun.executeTuple("flow", input).res.size == 4)
     assert(fun.output("flowR", input).res.isEmpty)
-    fun.printAllMatches()
+//    fun.printAllMatches()
   }
 
   test("flowR ex 2.1") {
@@ -20,14 +20,14 @@ class ControlDataFlowTest extends AnyFunSuite {
     val input = fun.input(Seq(ControlDataFlow.example_2_1))
     assert(fun.executeTuple("flowR", input).res.size == 4)
     assert(fun.output("flow", input).res.size == 4)
-    fun.printAllMatches()
+//    fun.printAllMatches()
   }
 
   test("transitiveFlow ex 2.1") {
     val fun = loadFunction(ControlDataFlow.cflowModule)
     val input = fun.input(Seq(ControlDataFlow.example_2_1))
     assert(fun.executeTuple("transitiveFlow", input).res.size == 12)
-    fun.printAllMatches()
+//    fun.printAllMatches()
   }
 
 //  test("available expressions ex 2.4") {
@@ -54,7 +54,7 @@ class ControlDataFlowTest extends AnyFunSuite {
     assert(fun.executeTuple("allEntries_RD", Tuples.flatTupleOf(prog)).res.size == 15)
     assert(fun.executeTuple("allExits_RD", Tuples.flatTupleOf(prog)).res.size == 13)
 
-    fun.printAllMatches()
+//    fun.printAllMatches()
     fun.output("allExits_RD", Tuples.flatTupleOf(prog)).res.foreach { case Seq(c1, c2, c3) => println(s"$c2:$c3 in $c1") }
   }
 
@@ -70,7 +70,7 @@ class ControlDataFlowTest extends AnyFunSuite {
     println("atoms: " + rels.flatMap(_.bodies.flatMap(_.atoms)).size)
 
     val res = fun.executeTuple("final_var", Tuples.flatTupleOf(prog))
-    fun.printAllMatches()
+//    fun.printAllMatches()
     // TODO second aggregation currently implemented by hand in exit_var_external, should be generated eventually
     assert(res.res.size == 2)
   }
@@ -78,12 +78,14 @@ class ControlDataFlowTest extends AnyFunSuite {
   test("aeval") {
     val fun = loadFunction(ControlDataFlow.AEvalModule)
     fun.compiled.printStatistics()
-    println(fun.compiled.optimized)
-    val names = Set("aeval", "add","sub","greaterThan","mul")
-    val m = fun.compiled.optimized.copy(pats = fun.compiled.optimized.pats.filter(p => names.exists(n => p.name.contains(n))), scalaContent = Seq())
-    println(m)
-    println(s"GP relations: ${m.pats.size}")
-    println(s"GP bodies: ${m.pats.map(_.bodies.size).sum}")
+//    println(fun.compiled.optimized)
+
+//    val names = Set("aeval", "add","sub","greaterThan","mul")
+//    val m = fun.compiled.optimized.copy(pats = fun.compiled.optimized.pats.filter(p => names.exists(n => p.name.contains(n))), scalaContent = Seq())
+//    println(m)
+//    println(s"GP relations: ${m.pats.size}")
+//    println(s"GP bodies: ${m.pats.map(_.bodies.size).sum}")
+
 //    val prog = fun.input(ControlDataFlow.example_2_7)
 //
 //    val rels = fun.compiled.optimized.pats.filter(!_.name.contains("coal"))

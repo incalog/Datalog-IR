@@ -1,10 +1,10 @@
 package inca.backend.optimize
-import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.{Evaluation, Term, Type, Var}
+import inca.backend.ir.{CollectVars, Datalog}
 import inca.runtime.context.DataModel
-import inca.util.Gensym
-import inca.util.Meta.Scala
+import inca.util.{Gensym, Scala}
 
+import scala.collection.immutable.MultiSet
 import scala.collection.mutable.ListBuffer
 
 object EvalFusion extends Optimization {
@@ -13,8 +13,16 @@ object EvalFusion extends Optimization {
     private val gensym: Gensym = new Gensym(Iterable.empty)
 
     override def optimizeBody(body: Datalog.Body, pat: Datalog.Pattern): Seq[Datalog.Body] = {
+      val varCount = MultiSet() ++ CollectVars.transBody(body) ++ pat.params.map(_.name)
       evalTerms = body.atoms.flatMap {
-        case Datalog.Computed(v: Var, eval: Evaluation) => Some(v -> eval)
+        case Datalog.Computed(v: Var, eval: Evaluation) =>
+          if (varCount.get(v.name) == 2) {
+            // v is computed here and read only once => do fusion for v
+            Some(v -> eval)
+          } else {
+            // v is read multiple times => no fusion
+            None
+          }
         case _ => None
       }.toMap
       gensym.scoped {
@@ -45,7 +53,7 @@ object EvalFusion extends Optimization {
         val newFun = meta.Term.Function(remainingParams.toList ++ newParams, currentBody)
         val eval = Evaluation(remainingArgs ++ newArgs, ty, Scala(newFun))
         lhs match {
-          case v: Var => evalTerms += v -> eval
+          case v: Var if evalTerms.contains(v) => evalTerms += v -> eval
           case _ =>
         }
         Seq(Datalog.Computed(lhs, eval).withHints(atom))
@@ -54,8 +62,12 @@ object EvalFusion extends Optimization {
   }
 
   type Env = Map[String, meta.Term]
-  def scalaSubst(t: meta.Term, env: Env): meta.Term =
-    t.transform {
-      case n@meta.Term.Name(name) => env.getOrElse(name, n)
-    }.asInstanceOf[meta.Term]
+  def scalaSubst(t: meta.Term, env: Env): meta.Term = {
+    if (env.isEmpty) t
+    else {
+      t.transform {
+        case n@meta.Term.Name(name) => env.getOrElse(name, n)
+      }.asInstanceOf[meta.Term]
+    }
+  }
 }

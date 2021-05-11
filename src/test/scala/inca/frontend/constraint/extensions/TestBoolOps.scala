@@ -5,7 +5,7 @@ import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.constraint.core._
 import inca.frontend.constraint.extensions.boolOps.Trees._
 import inca.runtime.context.QueryScope
-import inca.util.Meta.Scala
+import inca.util.Scala
 import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 

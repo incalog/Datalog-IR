@@ -5,7 +5,25 @@ import scala.meta.Name.Indeterminate
 import scala.meta.{Import, Importee, Importer, Term, Type}
 import scala.reflect.ClassTag
 
-object Meta {
+class Scala[+T <: meta.Tree](val tree: T) {
+  lazy val structure: String = this.tree.structure
+
+  def syntax: String = tree.syntax
+
+  override def hashCode(): Int =
+    structure.hashCode
+
+  override def equals(obj: Any): Boolean = obj match {
+    case that: Scala[_] => this.structure == that.structure
+    case _ => false
+  }
+
+  override def toString: String = tree.syntax
+}
+
+object Scala {
+  def apply[T <: meta.Tree](tree: T): Scala[T] = new Scala(tree)
+  def unapply[T <: meta.Tree](s: Scala[T]): Option[T] = Some(s.tree)
 
   val TAB = "  "
 
@@ -55,31 +73,10 @@ object Meta {
     Type.Select(qual, Type.Name(ss(ss.length-1)))
   }
 
-  class Scala[+T <: meta.Tree](val tree: T) {
-    lazy val structure: String = this.tree.structure
-
-    def syntax: String = tree.syntax
-
-    override def hashCode(): Int =
-      structure.hashCode
-
-    override def equals(obj: Any): Boolean = obj match {
-      case that: Scala[_] => this.structure == that.structure
-      case _ => false
-    }
-
-    override def toString: String = tree.syntax
-  }
-  object Scala {
-    def apply[T <: meta.Tree](tree: T): Scala[T] = new Scala(tree)
-    def unapply[T <: meta.Tree](s: Scala[T]): Option[T] = Some(s.tree)
-  }
-
 
   private val compilerCache: mutable.Map[String, () => Any] = mutable.Map()
   def compileAndLoadScala[A](source: String): () => A = {
     compilerCache.get(source).map(v => return v.asInstanceOf[() => A])
-
     import reflect.runtime.currentMirror
     import tools.reflect.ToolBox
 

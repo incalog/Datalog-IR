@@ -2,8 +2,7 @@ package inca.frontend.constraint.lowering
 
 import inca.backend.ir.Datalog
 import inca.frontend.constraint.core._
-import inca.util.Gensym
-import inca.util.Meta.Scala
+import inca.util.{Gensym, Scala}
 
 import scala.collection.mutable.ListBuffer
 import scala.meta.{Name => _, Type => _}

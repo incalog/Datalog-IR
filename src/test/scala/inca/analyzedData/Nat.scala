@@ -2,8 +2,8 @@ package inca.analyzedData
 
 import inca.frontend.constraint.core._
 import inca.runtime.aggregate.Aggregation
-import inca.util.Meta
-import inca.util.Meta.Scala
+import inca.util.Scala
+import inca.util.Scala
 
 import scala.meta._
 
@@ -41,7 +41,7 @@ object Nat {
     override val isAssociative: Boolean = true
     override val isCommutative: Boolean = true
   }
-  val sumAggregation = Scala(Meta.mkQualName("inca.analyzedData.Nat.sumAgg"))
+  val sumAggregation = Scala(Scala.mkQualName("inca.analyzedData.Nat.sumAgg"))
 
   val fastSumAggregation = Scala(
     q"""{import inca.analyzedData.Nat.{Nat, Zero, Succ}

@@ -4,7 +4,7 @@ import inca.frontend.constraint.core
 import inca.frontend.constraint.core.{Name => _, Param => _, _}
 import inca.frontend.constraint.extensions
 import inca.runtime.context.DataModel
-import inca.util.Meta.Scala
+import inca.util.Scala
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.Term._

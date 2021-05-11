@@ -2,8 +2,6 @@ package inca.frontend.constraint.parser
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
-import inca.frontend.constraint.core
-import inca.runtime.context.DataModel
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -953,7 +951,7 @@ class CoreParserTest extends AnyFunSuite {
     (input: String, cmp: T) => {
       parse(input, parser) match {
         case Success(value, index)        =>
-          println(value)
+//          println(value)
           assert(value === cmp)
           assertResult(input.length)(index)
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")

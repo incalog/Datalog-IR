@@ -15,7 +15,7 @@ class FunctionsDataTest extends AnyFunSuite {
       == fun.result(q"Succ(Succ(Succ(Zero())))"))
     assert(fun.execute("main", Seq(q"Succ(Succ(Succ(Succ(Zero()))))", q"Succ(Succ(Zero()))"))
       == fun.result(q"Succ(Succ(Succ(Succ(Succ(Succ(Zero()))))))"))
-    fun.printAllMatches()
+//    fun.printAllMatches()
   }
 
   test("graph example with functions as predicates") {
@@ -42,7 +42,7 @@ class FunctionsDataTest extends AnyFunSuite {
                   |""".stripMargin
     val fun = loadFunction(code)
     assert(fun.execute("main", Seq()) == fun.result(q"""BusStation("B", 5)"""))
-    fun.printAllMatches()
+//    fun.printAllMatches()
   }
 
   test("Simple Fold Int Example") {
@@ -50,7 +50,7 @@ class FunctionsDataTest extends AnyFunSuite {
     val tuple = Tuples.flatTupleOf(fun.vals(q"1", q"10"):_*)
     assert(fun.executeTuple("sum", tuple) == fun.result(q"55"))
     assert(fun.output("AggregateCollection$0", tuple).res.size == 10)
-    fun.printAllMatches()
+//    fun.printAllMatches()
   }
 
   test("Simple Fold Example") {
@@ -58,7 +58,7 @@ class FunctionsDataTest extends AnyFunSuite {
     val tuple = Tuples.flatTupleOf(fun.vals(q"1", q"10"):_*)
     assert(fun.executeTuple("sum", tuple) == fun.result(q"V(55)"))
     assert(fun.output("AggregateCollection$0", tuple).res.size == 10)
-    fun.printAllMatches()
+//    fun.printAllMatches()
   }
 
   test("Type Checker Example") {
@@ -73,7 +73,7 @@ class FunctionsDataTest extends AnyFunSuite {
       == fun.result(q"SomeType(TInt())"))
     assert(fun.execute("main", Seq(q"""TApp(TNum(12), TNum(11))"""), deleteInput = true)
       == fun.result(q"NoType()"))
-    fun.printAllMatches()
+//    fun.printAllMatches()
   }
 
   test("Type Checker Relation Example") {
@@ -88,7 +88,7 @@ class FunctionsDataTest extends AnyFunSuite {
       == fun.result(q"TInt()"))
     assert(fun.execute("main", Seq(q"""TApp(TNum(12), TNum(11))"""), deleteInput = true)
       == fun.results(Seq()))
-    fun.printAllMatches()
+//    fun.printAllMatches()
   }
 
   test("Type Erasure Example") {
@@ -103,7 +103,7 @@ class FunctionsDataTest extends AnyFunSuite {
       == fun.result(q"""App(Lam("x", Var("x")), Num(1337))"""))
     assert(fun.execute("main", Seq(q"""TApp(TNum(12), TNum(11))"""), deleteInput = true)
       == fun.result(q"App(Num(12), Num(11))"))
-    fun.printAllMatches()
+//    fun.printAllMatches()
   }
 
   test("Interpreter Example") {
@@ -122,7 +122,7 @@ class FunctionsDataTest extends AnyFunSuite {
       == fun.result(q"""SomeVal(VNum(1337))"""))
     assert(fun.execute("main", Seq(q"""App(Num(12), Num(11))"""), deleteInput = true)
       == fun.result(q"NoVal()"))
-    fun.printAllMatches()
+//    fun.printAllMatches()
   }
 
   test("Checking+Erasure+Interpreting Example") {
