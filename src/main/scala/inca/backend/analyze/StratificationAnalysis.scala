@@ -13,7 +13,7 @@ object StratificationAnalysis {
   }
 
   def hasNegCycle(mod: Module): Boolean = {
-    val graph = ConstructDependencyGraph(mod)
+    val graph = new DependencyGraph(mod)
     val cycles = graph.cycles()
     cycles.exists { cycle =>
       val edges = cycle.flatMap { n => graph.edges(n) }

@@ -33,7 +33,7 @@ class ConstructDependencyGraphTest extends AnyFlatSpec {
     ), Seq())
 
 
-    val graph = ConstructDependencyGraph(module1)
+    val graph = new DependencyGraph(module1)
     val pats = module1.pats.map { p => p.name -> p }.toMap
     assertResult(graph.nodes)(Set(pats("foo"), pats("TestTP"), pats("Pattern 2"), pats("foo")))
     assertResult(graph.edges(pats("foo")))(Set((pats("TestTP"), false)))

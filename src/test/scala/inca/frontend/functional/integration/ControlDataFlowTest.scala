@@ -1,5 +1,6 @@
 package inca.frontend.functional.integration
 
+import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
 import inca.examples.functional.ControlDataFlow
 import inca.frontend.functional.executor.FunctionalExecutor._
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
@@ -44,9 +45,9 @@ class ControlDataFlowTest extends AnyFunSuite {
     val fun = loadFunction(ControlDataFlow.RDmodule)
     val prog = fun.input(ControlDataFlow.example_2_7)
 
-    val rels = fun.compiled.optimized.pats.filter(!_.name.contains("coal"))
+    val rels = fun.compiled.optimized.pats
     println("relations: " + rels.size)
-    println("input relations: " + rels.filter(_.name.contains("input_")).size)
+    println("input relations: " + rels.count(_.name.contains(demandPatternPrefix)))
     println("bodies: " + rels.flatMap(_.bodies).size)
     println("atoms: " + rels.flatMap(_.bodies.flatMap(_.atoms)).size)
 
@@ -63,9 +64,9 @@ class ControlDataFlowTest extends AnyFunSuite {
     // fun.compiled.printStatistics()
     val prog = fun.input(ControlDataFlow.example_2_7)
 
-    val rels = fun.compiled.optimized.pats.filter(!_.name.contains("coal"))
+    val rels = fun.compiled.optimized.pats
     println("relations: " + rels.size)
-    println("input relations: " + rels.filter(_.name.contains("input_")).size)
+    println("input relations: " + rels.count(_.name.contains(demandPatternPrefix)))
     println("bodies: " + rels.flatMap(_.bodies).size)
     println("atoms: " + rels.flatMap(_.bodies.flatMap(_.atoms)).size)
 
@@ -88,9 +89,9 @@ class ControlDataFlowTest extends AnyFunSuite {
 
 //    val prog = fun.input(ControlDataFlow.example_2_7)
 //
-//    val rels = fun.compiled.optimized.pats.filter(!_.name.contains("coal"))
+//    val rels = fun.compiled.optimized.pats
 //    println("relations: " + rels.size)
-//    println("input relations: " + rels.filter(_.name.contains("input_")).size)
+//    println("input relations: " + rels.filter(_.name.contains(DemandTransformation.demandPatternPrefix)).size)
 //    println("bodies: " + rels.flatMap(_.bodies).size)
 //    println("constraints: " + rels.flatMap(_.bodies.flatMap(_.constraints)).size)
 //

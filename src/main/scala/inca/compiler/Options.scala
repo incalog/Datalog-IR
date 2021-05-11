@@ -16,11 +16,12 @@ trait Options {
 object Options {
 
   val defaultOptimizations: Seq[Optimization] = Seq(
+    EliminateNonproductiveRelations,
     ConstantPropagation,
     EliminateAliases,
     EvalFusion,
     InferVarTypes,
     FoldConstantAtoms,
-    EliminateEmptyRelations
+    EliminateNonproductiveRelations
   )
 }

@@ -1,7 +1,8 @@
 package inca.frontend.functional.integration
 
-import inca.frontend.functional.executor.FunctionalExecutor._
+import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
 import inca.examples.functional.{Code, LambdaCalculus}
+import inca.frontend.functional.executor.FunctionalExecutor._
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -63,6 +64,7 @@ class FunctionsDataTest extends AnyFunSuite {
 
   test("Type Checker Example") {
     val fun = loadFunction(LambdaCalculus.typeOfModule)
+
     assert(fun.execute("main", Seq(q"TNum(1)"), deleteInput = true)
       == fun.result(q"SomeType(TInt())"))
     assert(fun.execute("main", Seq(q"""TLam("x", TInt(), TVar("x"))"""), deleteInput = true)
@@ -127,9 +129,10 @@ class FunctionsDataTest extends AnyFunSuite {
 
   test("Checking+Erasure+Interpreting Example") {
     val fun = loadFunction(LambdaCalculus.completeLCModule)
-    val rels = fun.compiled.optimized.pats.filter(!_.name.contains("coal"))
+
+    val rels = fun.compiled.optimized.pats
     println("relations: " + rels.size)
-    println("input relations: " + rels.filter(_.name.contains("input_")).size)
+    println("input relations: " + rels.count(_.name.contains(demandPatternPrefix)))
     println("bodies: " + rels.flatMap(_.bodies).size)
     println("atoms: " + rels.flatMap(_.bodies.flatMap(_.atoms)).size)
 

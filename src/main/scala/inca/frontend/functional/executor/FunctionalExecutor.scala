@@ -1,5 +1,6 @@
 package inca.frontend.functional.executor
 
+import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
 import inca.compiler.{CompiledModule, Compiler}
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.runtime.context.QueryScope
@@ -65,10 +66,10 @@ object FunctionalExecutor {
       executeTuple(main, input(args), deleteInput)
 
     def executeTuple(main: String, tuple: Tuple, deleteInput: Boolean = false): Results[AnyRef] = {
-      feed.insert(s"ext_input_$main", tuple)
+      feed.insert(demandPatternExtensionalPrefix + main, tuple)
       val results = output(main, tuple)
       if (deleteInput)
-        feed.delete(s"ext_input_$main", tuple)
+        feed.delete(demandPatternExtensionalPrefix + main, tuple)
       results
     }
 

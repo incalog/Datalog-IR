@@ -15,7 +15,7 @@ trait Transformer {
         case BodyMustFail => Seq()
       }
     )
-    Seq(Pattern(pat.vis, pat.name, pat.params, newbodies))
+    Seq(Pattern(pat.vis, pat.name, pat.params, newbodies).withHints(pat))
   }
 
   def transformBody(body: Body, pat: Pattern): Seq[Body] =

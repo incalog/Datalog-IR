@@ -1,7 +1,6 @@
 package inca.backend.analyze
 
 import scala.collection.mutable
-import inca.backend.ir.Datalog._
 
 // based on LangComp Lab work of Saleh Oshaghi and Tomislav Pree
 trait Graph[N, E] {
@@ -79,6 +78,7 @@ trait Graph[N, E] {
   def toGraphViz: String = {
     val sb = new StringBuilder()
     nodes.foreach { from =>
+      sb ++= s"\t${nodeToGraphViz(from)} [${nodeGraphVizAttributes(from)}];\n"
       edges.getOrElse(from, Nil).foreach { case (to, info) =>
         val edge = s"\t${nodeToGraphViz(from)} -> ${nodeToGraphViz(to)} [${edgeToGraphViz(from, to, info)}];\n"
         sb ++= edge
@@ -93,10 +93,6 @@ trait Graph[N, E] {
 
   protected def edgeToGraphViz(from: N, to: N, info: E): String
   protected def nodeToGraphViz(n: N): String
+  protected def nodeGraphVizAttributes(from: N): String
 }
 
-class DependencyGraph extends Graph[Pattern, Boolean] {
-  override protected def edgeToGraphViz(from: Pattern, to: Pattern, info: Boolean): String = if (info) "color=red" else "color=black"
-
-  override protected def nodeToGraphViz(n: Pattern): String = n.name.replace("$", "_")
-}

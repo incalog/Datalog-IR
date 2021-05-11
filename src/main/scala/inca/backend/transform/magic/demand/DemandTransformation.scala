@@ -12,8 +12,10 @@ import inca.util.Gensym
 // This transformation consumes MagicSetHints.IgnoreCall and MagicSetHints.NoInputRelation
 object DemandTransformation extends Transformation {
 
-  def inputPatternName(name: Name): String = "input_" + name
-  def extensionalInputPatternName(name: Name): String = "ext_input_" + name
+  val demandPatternPrefix = "input$"
+  val demandPatternExtensionalPrefix = "ext_input$"
+  def inputPatternName(name: Name): String = demandPatternPrefix + name
+  def extensionalInputPatternName(name: Name): String = demandPatternExtensionalPrefix + name
 
   override def transformer(dataModel: DataModel): Transformer = new Transformer {
 
