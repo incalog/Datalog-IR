@@ -1,4 +1,4 @@
-package inca.integration
+package inca.frontend.functional.integration
 
 import inca.examples.functional.Code
 import inca.frontend.functional.executor.FunctionalExecutor._
