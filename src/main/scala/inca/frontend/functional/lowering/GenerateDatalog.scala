@@ -10,6 +10,7 @@ import inca.util.{Gensym, Scala, TupleOps}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
+import scala.meta.quasiquotes._
 
 object GenerateDatalog {
   def transformModule(module: Module): Datalog.Module =
@@ -216,7 +217,6 @@ class GenerateDatalog(module: Module) {
       transExp(left) ++ transExp(right)
 
     case BaseApplyInfix(left, op, right) =>
-
       val leftParam = {
         val typ = left.typ.getOrElse(throw new IllegalStateException(s"Cannot compile call to $op with untyped argument $left"))
         param"left: ${typ.asScala}"
