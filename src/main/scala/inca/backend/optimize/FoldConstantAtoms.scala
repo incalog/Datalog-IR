@@ -6,7 +6,7 @@ import inca.util.Scala
 
 import scala.collection.immutable.MultiSet
 
-object FoldConstantConstraints extends Optimization with TypeOps {
+object FoldConstantAtoms extends Optimization with TypeOps {
 
   override def optimizer(dataModel: DataModel): Optimizer = new Optimizer {
 

@@ -20,7 +20,7 @@ object Options {
     EliminateAliases,
     EvalFusion,
     InferVarTypes,
-    FoldConstantConstraints,
+    FoldConstantAtoms,
     EliminateEmptyRelations
   )
 }

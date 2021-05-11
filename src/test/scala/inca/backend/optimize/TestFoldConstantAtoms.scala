@@ -6,11 +6,11 @@ import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.matchers.IncaGPMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 
-class TestFoldConstantConstraints extends AnyFlatSpec with IncaGPMatchers {
+class TestFoldConstantAtoms extends AnyFlatSpec with IncaGPMatchers {
 
   val dataModel = new DataModel()
   val scope = new QueryScope(dataModel)
-  val options = ConstraintOptions(optimizations = Seq(FoldConstantConstraints))
+  val options = ConstraintOptions(optimizations = Seq(FoldConstantAtoms))
 
   "ConstantPropagation" must "propagate constants" in {
     val one = Constant(IntLiteral(1))
