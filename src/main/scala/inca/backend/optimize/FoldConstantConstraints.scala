@@ -21,7 +21,7 @@ object FoldConstantConstraints extends Optimization with TypeOps {
     private var varCount: MultiSet[Name] = MultiSet()
 
     override def optimizeBody(body: Body, pat: Pattern): Seq[Body] = {
-      varCount = MultiSet() ++ CollectVars.transBody(body)
+      varCount = MultiSet() ++ CollectVars.transBody(body) ++ pat.params.map(_.name)
       super.optimizeBody(body, pat)
     }
 
