@@ -33,8 +33,8 @@ object Compiler {
 
   def compileGP(module: Datalog.Module,
                 dataModel: DataModel,
-                compilerOptions: Options): CompiledGPModule = {
-    CompiledGPModule(module, dataModel, compilerOptions)
+                compilerOptions: Options): CompiledDatalogModule = {
+    CompiledDatalogModule(module, dataModel, compilerOptions)
   }
 
 }

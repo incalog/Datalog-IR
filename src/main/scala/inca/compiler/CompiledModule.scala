@@ -1,6 +1,7 @@
 package inca.compiler
 
-import inca.backend.ir.{GeneratePSystem, Datalog, PSystem}
+import inca.backend.analyze.StratificationAnalysis
+import inca.backend.ir.{Datalog, GeneratePSystem, PSystem}
 import inca.compiler.Options
 import inca.runtime.context.DataModel
 import inca.util.Meta
@@ -64,8 +65,13 @@ trait CompiledModule {
     module
   }
 
+  lazy val analyzed: Datalog.Module = {
+    StratificationAnalysis.analyze(transformed)
+    transformed
+  }
+
   lazy val optimized: Datalog.Module = {
-    var module = transformed
+    var module = analyzed
     // println(module)
     for (op <- options.optimizations) {
       module = op.optimizer(dataModel).optimizeModule(module)

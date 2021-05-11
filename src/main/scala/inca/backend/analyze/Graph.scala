@@ -44,7 +44,7 @@ trait Graph[N, E] {
 
   private def processDFSTree(stack: mutable.Stack[N], visited: mutable.Map[N, VisistedFlag]): Set[List[N]] = {
     var cycles: Set[List[N]] = Set()
-    edges(stack.top).foreach { case (neighbor, e) =>
+    edges.getOrElse(stack.top, Set()).foreach { case (neighbor, e) =>
       if (visited(neighbor) == InStack) {
         cycles = cycles + determineCycle(stack, neighbor)
       } else if (visited(neighbor) == NotVisisted) {
