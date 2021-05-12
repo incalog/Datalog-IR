@@ -1,5 +1,6 @@
 package inca.frontend.constraint.lowering
 
+import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Datalog
 import inca.frontend.constraint.core._
 import inca.util.{Gensym, Scala}
@@ -61,7 +62,10 @@ class GenerateDatalog {
     val outVars = outParams.map(_.name)
 
     val bodies = fun.bodies.flatMap(b => transBody(b, outVars)(gensym))
-    Datalog.Pattern(vis, fun.name.name, params ++ outParams, bodies)
+    val pat = Datalog.Pattern(vis, fun.name.name, params ++ outParams, bodies)
+    if (fun.hasAnnotation(MainFunctionAnno.key))
+      pat.addHint(MagicSetHints.Main(params.map(_ => true) ++ outParams.map(_ => false)))
+    pat
   }
 
   def generateCompareConstraints(comp: Datalog.Comparator)(lhs: Seq[String], rhs: Seq[String]): Seq[Datalog.Atom] = {
@@ -278,14 +282,14 @@ class GenerateDatalog {
         case _ => throw new IllegalArgumentException(s"Requires aggregation code, but got $agg")
       }
 
-      val funname = gensym.fresh("AggregateCollection")
+      val funname = gensym.freshGlobal("AggregateCollection")
 
       val inVars = bodies.flatMap(_.freeVars).toMap
       val params = inVars.map(kv => Param(kv._1, kv._2.getOrElse(throw new IllegalArgumentException(s"untyped var ${kv._1} in $exp")))).toSeq
       val allvars = params.map(p => Datalog.Var(p.name.name)) :+ Datalog.Var(gensym.fresh("aggregand"))
 
       val resultType = exp.typ.getOrElse(throw new IllegalArgumentException("untyped aggregate"))
-      val fun = PatternFunction(None, Name(funname), params, resultType, bodies)
+      val fun = PatternFunction(Seq(), None, Name(funname), params, resultType, bodies)
       generatedPatterns += transform(fun)
 
       val aggregation = Datalog.CustomAggregation(transType(resultType), None, aggCode, funname, allvars, allvars.size - 1)
@@ -300,7 +304,7 @@ class GenerateDatalog {
   def transCallArgs(call: Call, args: Seq[Expression])(implicit gensym: Gensym): (Seq[String], Seq[String], Seq[Datalog.Atom]) = {
     val (vars, constraints) = args.map(e => transExp(e.ensureCore)).unzip
     val outVars = call.target match {
-      case Some(fun@PatternFunction(_, _, _, _, _)) => fun.outParams.map { _ =>
+      case Some(fun@PatternFunction(_, _, _, _, _, _)) => fun.outParams.map { _ =>
         val argVar = gensym.fresh("arg")
         argVar
       }

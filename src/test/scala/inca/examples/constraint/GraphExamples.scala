@@ -55,6 +55,7 @@ class GraphExamples extends AnyFunSuite {
         |  yield unit
         |}
         |
+        |@main
         |def inCycleByName(): String = {
         |  vals node <- $nodeTag
         |  assert def inCycle(node)

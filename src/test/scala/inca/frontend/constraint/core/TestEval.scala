@@ -1,6 +1,7 @@
 package inca.frontend.constraint.core
 
 import inca.analyzedLangs.Exp
+import inca.analyzedLangs.Exp._
 import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.runtime.context.QueryScope
 import inca.util.Scala
@@ -23,7 +24,7 @@ class TestEval extends AnyFlatSpec with IncaConstraintMatchers {
 
   "eval" can "yield a constant" in {
     val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "integerlits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
         Values("e", TNode(Exp.expTag)),
         Assign(Seq("pi"), Eval(Seq(), Scala(q"Math.PI"))),
         Assert(Neq(Var("pi"), Constant(DoubleLiteral(3.14)))),
@@ -55,7 +56,7 @@ class TestEval extends AnyFlatSpec with IncaConstraintMatchers {
 
   "eval" can "be used to filter" in {
     val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "integerlits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
         Values("e", TNode(Exp.intTag)),
         Assign(Seq("i"), PathAccess(Var("e"), NamedLink("value"))),
         Assign(Seq("cond"),
@@ -66,7 +67,6 @@ class TestEval extends AnyFlatSpec with IncaConstraintMatchers {
     ))
 
     val input = {
-      import Exp._
       Add(
         Mul(
           IntegerLit(1),

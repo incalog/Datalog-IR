@@ -25,7 +25,7 @@ class TestBoolOps extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "eliminate not conditions" in {
     val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assert(Not(Eq(one, two))),
         Assert(Not(Neq(one, two))),
         Assert(Not(InstanceOf(one, TNode("inca.analyzedLangs.Exp.IntegerLit")))),
@@ -38,7 +38,7 @@ class TestBoolOps extends AnyFlatSpec with IncaConstraintMatchers {
     ))
 
     val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assert(Neq(one, two)),
         Assert(Eq(one, two)),
         Assert(NotInstanceOf(one, TNode("inca.analyzedLangs.Exp.IntegerLit"))),
@@ -55,7 +55,7 @@ class TestBoolOps extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "eliminate nested not conditions" in {
     val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assert(Not(Not(Eq(one, two)))),
         Assert(Not(Not(Not(Eq(one, two))))),
         Assert(Not(Not(Not(Not(Eq(one, two)))))),
@@ -64,7 +64,7 @@ class TestBoolOps extends AnyFlatSpec with IncaConstraintMatchers {
     ))
 
     val core = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assert(Eq(one, two)),
         Assert(Neq(one, two)),
         Assert(Eq(one, two)),
@@ -77,7 +77,7 @@ class TestBoolOps extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "negate eval code" in {
     val module = Module("Test_Cast", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "integerlits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
         Values("e", TNode(Exp.intTag)),
         Assign(Seq("i"), PathAccess(Var("e"), NamedLink("value"))),
         Assign(Seq("cond"),
@@ -112,7 +112,7 @@ class TestBoolOps extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "implement `and` semantics" in {
     val module = Module("Test_Cast", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "add_mul", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "add_mul", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
         Values("e", TNode(Exp.expTag)),
         Assert(And(
           InstanceOf(Var("e"), TNode(Exp.addTag)),
@@ -146,7 +146,7 @@ class TestBoolOps extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "implement `not and` semantics" in {
     val module = Module("Test_Cast", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "integerLits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "integerLits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
         Values("e", TNode(Exp.expTag)),
         Assert(Not(And(
           InstanceOf(Var("e"), TNode(Exp.addTag)),
@@ -180,7 +180,7 @@ class TestBoolOps extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "implement `not or` semantics" in {
     val module = Module("Test_Cast", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "integerLits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "integerLits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
         Values("e", TNode(Exp.expTag)),
         Assert(Not(Or(
           InstanceOf(Var("e"), TNode(Exp.addTag)),

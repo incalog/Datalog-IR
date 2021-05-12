@@ -22,13 +22,21 @@ trait Graph[N, E] {
     }
   }
 
+  def removeNode(node: N): Unit = {
+    nodes -= node
+    edges.remove(node)
+    edges.mapValuesInPlace { (_, es) =>
+      es.filter(_._1 != node)
+    }
+  }
+
   // based on https://www.baeldung.com/cs/detecting-cycles-in-directed-graph
   private trait VisistedFlag
   private case object NotVisisted extends VisistedFlag
   private case object InStack extends VisistedFlag
   private case object Done extends VisistedFlag
 
-  def cycles(): List[List[N]] = {
+  lazy val cycles: List[List[N]] = {
     val visited: mutable.Map[N, VisistedFlag] = mutable.Map()
     nodes.foreach { n => visited(n) = NotVisisted }
 

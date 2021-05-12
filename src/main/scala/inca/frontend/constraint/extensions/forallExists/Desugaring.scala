@@ -66,7 +66,7 @@ object Desugaring extends Desugarable {
       ))
       val vars = newbody.freeVars.toSeq
       val params = vars.map(v => Param(v._1, v._2.getOrElse(TAny)))
-      forallExistsFuns += PatternFunction(None, funsym, params, ty, Seq(newbody))
+      forallExistsFuns += PatternFunction(Seq(), None, funsym, params, ty, Seq(newbody))
       vars
     }
 

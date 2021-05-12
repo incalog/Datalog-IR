@@ -7,13 +7,14 @@ ThisBuild / scalaVersion := "2.13.1"
 ThisBuild / scalacOptions += "-target:11"
 
 Test / parallelExecution := false
-Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.ScalaLibrary
 
 lazy val inca = (project in file(".")).settings(
   resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
 
   scalacOptions ++= Seq("-Ymacro-annotations", "-J-Xss10m"),
+
+  Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.ScalaLibrary,
 
   libraryDependencies ++= Seq(
     "de.uni-mainz.informatik.pl" %% "truechange" % "0.1.5-SNAPSHOT",

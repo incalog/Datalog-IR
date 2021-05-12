@@ -21,7 +21,7 @@ class TestAggregate extends AnyFlatSpec with IncaConstraintMatchers {
 
   "aggregate" should "support non-invertible joins" in {
     val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(None, "1_to_10", Seq(), NatTyp, Seq(
+      PatternFunction(Seq(), None, "1_to_10", Seq(), NatTyp, Seq(
         Body(Seq(Yield(EvalCall(succOp, Seq(Eval(Seq(), zeroOp)))))),
         Body(
           Seq(
@@ -32,7 +32,7 @@ class TestAggregate extends AnyFlatSpec with IncaConstraintMatchers {
         )
       )),
 
-      PatternFunction(None, "sum_1_to_10", Seq(), NatTyp, Seq(
+      PatternFunction(Seq(), None, "sum_1_to_10", Seq(), NatTyp, Seq(
         Body(Seq(
           Yield(Aggregate(Eval(Seq(), sumAggregation), Call("1_to_10", Seq()).typed(NatTyp)))
         ))
@@ -49,7 +49,7 @@ class TestAggregate extends AnyFlatSpec with IncaConstraintMatchers {
 
   "aggregate" should "support invertible joins" in {
     val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(None, "1_to_10", Seq(), NatTyp, Seq(
+      PatternFunction(Seq(), None, "1_to_10", Seq(), NatTyp, Seq(
         Body(Seq(Yield(EvalCall(succOp, Seq(Eval(Seq(), zeroOp)))))),
         Body(
           Seq(
@@ -60,7 +60,7 @@ class TestAggregate extends AnyFlatSpec with IncaConstraintMatchers {
         )
       )),
 
-      PatternFunction(None, "sum_1_to_10", Seq(), NatTyp, Seq(
+      PatternFunction(Seq(), None, "sum_1_to_10", Seq(), NatTyp, Seq(
         Body(Seq(
           Yield(Aggregate(Eval(fastSumAggregation), Call("1_to_10", Seq()).typed(NatTyp)))
         ))
@@ -80,7 +80,7 @@ class TestAggregate extends AnyFlatSpec with IncaConstraintMatchers {
       ScalaModuleContent(Scala(q"import inca.analyzedData.Nat.sumAgg")),
       ScalaModuleContent(Scala(q"val nine = 9")),
       ScalaModuleContent(Scala(q"object One { val num = 1 }")),
-      PatternFunction(None, "1_to_10", Seq(), NatTyp, Seq(
+      PatternFunction(Seq(), None, "1_to_10", Seq(), NatTyp, Seq(
         Body(Seq(Yield(EvalCall(succOp, Seq(Eval(Seq(), zeroOp)))))),
         Body(
           Seq(
@@ -91,7 +91,7 @@ class TestAggregate extends AnyFlatSpec with IncaConstraintMatchers {
         )
       )),
 
-      PatternFunction(None, "sum_1_to_10", Seq(), NatTyp, Seq(
+      PatternFunction(Seq(), None, "sum_1_to_10", Seq(), NatTyp, Seq(
         Body(Seq(
           Yield(Aggregate(Eval(Scala(q"sumAgg")), Call("1_to_10", Seq()).typed(NatTyp)))
         ))

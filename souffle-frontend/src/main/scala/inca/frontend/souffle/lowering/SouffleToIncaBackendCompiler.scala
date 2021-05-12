@@ -1,15 +1,15 @@
 package inca.frontend.souffle.lowering
 
+import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Datalog._
 import inca.frontend.constraint.compiler.ConstraintOptions
+import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.Syntax.{Type => _, _}
 import inca.frontend.souffle.Util.cleanSouffleName
-import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.runtime.context.DataModel
 import inca.runtime.context.DataModel.{Link => MLink}
-import inca.util.Gensym
-import inca.util.Scala
+import inca.util.{Gensym, Scala}
 import truechange.{JavaLitType, LitType}
 
 import scala.collection.immutable.MultiDict
@@ -33,6 +33,11 @@ class SouffleToIncaBackendCompiler {
 
     val module = Module(name, Seq(), patFuns.values.toSeq, Seq())
     val moduleWithUnbounded = PropagateUnbounded.transformModule(module)
+    printSizes.foreach { ps =>
+      moduleWithUnbounded.pats.find(_.name == ps.name).foreach { pat =>
+        pat.addHint(MagicSetHints.Main(pat.params.map(_ => false)))
+      }
+    }
 
     val lang = new DataModel(Set(), MultiDict(), Map(), genLitLinks)
 

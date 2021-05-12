@@ -28,6 +28,7 @@ class GenerateDatalogTest extends AnyFunSuite {
     val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
     val fun = PatternFunction(
+      Seq(),
       None,
       "id",
       List(Param("add", addType)),
@@ -54,6 +55,7 @@ class GenerateDatalogTest extends AnyFunSuite {
     val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
     val fun = PatternFunction(
+      Seq(),
       None,
       "id",
       List(Param("add", addType)),
@@ -83,6 +85,7 @@ class GenerateDatalogTest extends AnyFunSuite {
     val lhsLink = addType("lhs")
     val rhsLink = addType("rhs")
     val fun = PatternFunction(
+      Seq(),
       None,
       "test",
       List(Param("add", addType)),
@@ -102,6 +105,7 @@ class GenerateDatalogTest extends AnyFunSuite {
     val lhsLink = addType("lhs")
     val rhsLink = addType("rhs")
     val fun = PatternFunction(
+      Seq(),
       None,
       "test",
       List(Param("add", addType)),
@@ -122,6 +126,7 @@ class GenerateDatalogTest extends AnyFunSuite {
     val lhsLink = addType("lhs")
     val rhsLink = addType("rhs")
     val fun = PatternFunction(
+      Seq(),
       None,
       "test",
       List(Param("add", addType)),
@@ -142,6 +147,7 @@ class GenerateDatalogTest extends AnyFunSuite {
     val lhsLink = addType("lhs")
     val rhsLink = addType("rhs")
     val fun = PatternFunction(
+      Seq(),
       None,
       "test",
       List(Param("add", addType)),
@@ -162,6 +168,7 @@ class GenerateDatalogTest extends AnyFunSuite {
     val lhsLink = addType("lhs")
     val rhsLink = addType("rhs")
     val fun = PatternFunction(
+      Seq(),
       None,
       "test",
       List(Param("add", addType)),
@@ -178,6 +185,7 @@ class GenerateDatalogTest extends AnyFunSuite {
     val addType = TNode(classOf[Add].getCanonicalName)
     val lhsLink = addType("lhs")
     val fun = PatternFunction(
+      Seq(),
       None,
       "test",
       List(Param("add", addType)),
@@ -241,7 +249,7 @@ class GenerateDatalogTest extends AnyFunSuite {
         Seq(),
         Seq(
           ValDef(None, Name("x"), Some(TScalaInt), Constant(IntLiteral(1))),
-          PatternFunction(None, Name("foo"), Seq(), TScalaInt, Seq(
+          PatternFunction(Seq(), None, Name("foo"), Seq(), TScalaInt, Seq(
             Body(Seq(Yield(Var("x"))))
           ))
         )

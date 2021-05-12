@@ -1,6 +1,7 @@
 package inca.frontend.constraint.extensions
 
 import inca.analyzedLangs.Exp
+import inca.analyzedLangs.Exp._
 import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.constraint.core._
 import inca.frontend.constraint.extensions.switch_.Trees._
@@ -25,7 +26,7 @@ class TestSwitch extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "lift switch bodies" in {
     val sugared = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(), None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Switch(Seq(
           Body(Seq(Assert(Eq(one, two)))),
           Body(Seq(Assert(Neq(one, two)))),
@@ -36,7 +37,7 @@ class TestSwitch extends AnyFlatSpec with IncaConstraintMatchers {
     ))
 
     val core = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(
+      PatternFunction(Seq(), None, "foo", Seq(), TUnit, Seq(
         Body(Seq(Assert(Eq(one, two)))),
         Body(Seq(Assert(Neq(one, two)))),
         Body(Seq(Assert(Eq(three, four)))),
@@ -49,7 +50,7 @@ class TestSwitch extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "lift nested switch bodies" in {
     val sugared = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(), None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Switch(Seq(
           Body(Seq(Switch(Seq(
             Body(Seq(Assert(Eq(one, two)))),
@@ -64,7 +65,7 @@ class TestSwitch extends AnyFlatSpec with IncaConstraintMatchers {
     ))
 
     val core = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(
+      PatternFunction(Seq(), None, "foo", Seq(), TUnit, Seq(
         Body(Seq(Assert(Eq(one, two)))),
         Body(Seq(Assert(Neq(one, two)))),
         Body(Seq(Assert(Eq(three, four)))),
@@ -77,7 +78,7 @@ class TestSwitch extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "multiply subsequent switch bodies" in {
     val sugared = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(), None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Switch(Seq(
           Body(Seq(Assert(Eq(one, two)))),
           Body(Seq(Assert(Neq(one, two))))
@@ -90,7 +91,7 @@ class TestSwitch extends AnyFlatSpec with IncaConstraintMatchers {
     ))
 
     val core = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(
+      PatternFunction(Seq(), None, "foo", Seq(), TUnit, Seq(
         Body(Seq(Assert(Eq(one, two)), Assert(Eq(three, four)))),
         Body(Seq(Assert(Eq(one, two)), Assert(Neq(three, four)))),
         Body(Seq(Assert(Neq(one, two)), Assert(Eq(three, four)))),
@@ -104,7 +105,7 @@ class TestSwitch extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "implement switch semantics" in {
     val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), TLiteral.Int, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "integerlits", Seq(), TLiteral.Int, Seq(Body(Seq(
         Values("root", TNode(Exp.expTag)),
         Assert(Undef(PathAccess(Var("root"), ParentLink))),
         Yield(
@@ -114,7 +115,7 @@ class TestSwitch extends AnyFlatSpec with IncaConstraintMatchers {
         )
       )))),
 
-      PatternFunction(None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), TLiteral.Int, Seq(Body(Seq(
+      PatternFunction(Seq(), None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), TLiteral.Int, Seq(Body(Seq(
         Switch(Seq(
           Body(Seq(
             Assert(InstanceOf(Var("e"), TNode(Exp.intTag))),
@@ -141,7 +142,6 @@ class TestSwitch extends AnyFlatSpec with IncaConstraintMatchers {
     ))))
 
     val input = {
-      import Exp._
       Add(
         Mul(
           IntegerLit(1),

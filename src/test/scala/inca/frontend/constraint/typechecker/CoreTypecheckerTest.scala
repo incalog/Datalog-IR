@@ -3,6 +3,7 @@ package inca.frontend.constraint.typechecker
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
 import inca.analyzedLangs
+import inca.analyzedLangs.Exp
 import inca.frontend.constraint.core._
 import inca.frontend.constraint.parser.CoreParser
 import inca.runtime.context.DataModel
@@ -10,7 +11,6 @@ import inca.util.Scala
 import org.scalatest.Assertion
 import org.scalatest.flatspec.AnyFlatSpec
 import truechange.SortType
-import inca.analyzedLangs.Exp
 
 import scala.collection.immutable.MultiDict
 
@@ -375,7 +375,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   "checkExp" should "type def correctly" in {
-    val funs = Seq(PatternFunction(None, Name("f"), Seq(Param(Name("x"), TLiteral.Int)), TUnit, Seq()))
+    val funs = Seq(PatternFunction(Seq(), None, Name("f"), Seq(Param(Name("x"), TLiteral.Int)), TUnit, Seq()))
     val vars = Map(Name("x") -> TNode(analyzedLangs.Exp.addTag))
 
     val defPathAccess = parseExp("def x.lhs")
@@ -411,7 +411,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
 
 
   "checkExp" should "type call correctly" in {
-    val funs = Seq(PatternFunction(None, Name("fun"), Seq(Param(Name("x"), TLiteral.Int), Param(Name("y"), TLiteral.Int)), TLiteral.Bool, Seq()))
+    val funs = Seq(PatternFunction(Seq(), None, Name("fun"), Seq(Param(Name("x"), TLiteral.Int), Param(Name("y"), TLiteral.Int)), TLiteral.Bool, Seq()))
 
     val call = parseExp("fun(1, 2)")
     assertResult(TLiteral.Bool)(typecheckExp(call, Map(), funs))
@@ -428,7 +428,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     val expType = TNode(analyzedLangs.Exp.expTag).resolved(TNode(analyzedLangs.Exp.expTag))
     val intType = TNode(analyzedLangs.Exp.intTag).resolved(TNode(analyzedLangs.Exp.intTag))
     val addType = TNode(analyzedLangs.Exp.addTag).resolved(TNode(analyzedLangs.Exp.addTag))
-    val funs2 = Seq(PatternFunction(None, Name("fun"), Seq(Param(Name("x"), expType)), TUnit, Seq()))
+    val funs2 = Seq(PatternFunction(Seq(), None, Name("fun"), Seq(Param(Name("x"), expType)), TUnit, Seq()))
     val vars2 = Map(Name("x") -> addType)
     val callWithNodeArgs = parseExp("fun(x)")
     assertResult(TUnit)(typecheckExp(callWithNodeArgs, vars2, funs2))
@@ -436,7 +436,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     val callWithNodeArgWrongType = parseExp("fun(1)")
     assertTypecheckExpWarn(callWithNodeArgWrongType, vars2, funs2)
 
-    val funs3 = Seq(PatternFunction(None, Name("fun"), Seq(Param(Name("x"), addType)), TTuple(Seq(expType, expType)), Seq()))
+    val funs3 = Seq(PatternFunction(Seq(), None, Name("fun"), Seq(Param(Name("x"), addType)), TTuple(Seq(expType, expType)), Seq()))
     val vars3 = Map(Name("x") -> intType, Name("y") -> addType)
 
     val callWithNodeArgWrongType2 = parseExp("fun(x)")
@@ -447,7 +447,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   "checkExp" should "type count correctly" in {
-    val funs = Seq(PatternFunction(None, Name("fun"), Seq(Param(Name("x"), TLiteral.Int), Param(Name("y"), TLiteral.Int)), TLiteral.Bool, Seq()))
+    val funs = Seq(PatternFunction(Seq(), None, Name("fun"), Seq(Param(Name("x"), TLiteral.Int), Param(Name("y"), TLiteral.Int)), TLiteral.Bool, Seq()))
 
     val count = parseExp("count fun(1, 2)")
     assertResult(TScalaInt)(typecheckExp(count, Map(), funs))
@@ -503,7 +503,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   }
 
   "checkYield" should "type yield correctly" in {
-    val fun = (y: Statement) => PatternFunction(None, Name("fun"), Seq(Param(Name("y"), TLiteral.Int)), TLiteral.Double, Seq(Body(y)))
+    val fun = (y: Statement) => PatternFunction(Seq(), None, Name("fun"), Seq(Param(Name("y"), TLiteral.Int)), TLiteral.Double, Seq(Body(y)))
 
     val yieldStmt = parseStatement("yield 1.0")
     assertResult(())(typecheckFun(fun(yieldStmt)))
@@ -512,16 +512,16 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     assertTypecheckFunFail(fun(yieldInt))
 
     val yieldUnit = parseStatement("yield unit")
-    val fun2 = (y: Statement) => PatternFunction(None, Name("fun"), Seq(Param(Name("y"), TLiteral.Int)), TUnit, Seq(Body(y)))
+    val fun2 = (y: Statement) => PatternFunction(Seq(), None, Name("fun"), Seq(Param(Name("y"), TLiteral.Int)), TUnit, Seq(Body(y)))
     assertResult(())(typecheckFun(fun2(yieldUnit)))
 
     val yieldTuple = parseStatement("yield (true, 1L)")
-    val fun3 = (y: Statement) => PatternFunction(None, Name("fun"), Seq(Param(Name("y"), TLiteral.Int)), TTuple(Seq(TLiteral.Bool, TLiteral.Long)), Seq(Body(y)))
+    val fun3 = (y: Statement) => PatternFunction(Seq(), None, Name("fun"), Seq(Param(Name("y"), TLiteral.Int)), TTuple(Seq(TLiteral.Bool, TLiteral.Long)), Seq(Body(y)))
     assertResult(())(typecheckFun(fun3(yieldTuple)))
   }
 
   "checkBody" should "type body correctly" in {
-    val fun = (body: Body) => PatternFunction(None, Name("fun"), Seq(Param(Name("y"), TLiteral.Int)), TTuple(Seq(TLiteral.Bool, TLiteral.Long)), Seq(body))
+    val fun = (body: Body) => PatternFunction(Seq(), None, Name("fun"), Seq(Param(Name("y"), TLiteral.Int)), TTuple(Seq(TLiteral.Bool, TLiteral.Long)), Seq(body))
     val vars = Map(Name("x") -> TNode(analyzedLangs.Exp.expTag).resolved(TNode(analyzedLangs.Exp.expTag)))
 
     val body = parseBody(
@@ -691,7 +691,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     val module1 = Module(Name("Test"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(),
       Seq(
         ScalaModuleContent(Scala(q"import inca.analyzedData.Nat.{Nat, Zero}")),
-        PatternFunction(None, Name("test"), Seq(), TScala("Nat"),
+        PatternFunction(Seq(), None, Name("test"), Seq(), TScala("Nat"),
           Seq(Body(
             Yield(Eval(Scala(q"Zero")))
           ))
@@ -705,7 +705,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
         ScalaModuleContent(Scala(q"trait Nat")),
         ScalaModuleContent(Scala(q"case object Zero extends Nat")),
         ScalaModuleContent(Scala(q"case class Succ(pred: Nat) extends Nat")),
-        PatternFunction(None, Name("testTwo"), Seq(), TScala("Nat"),
+        PatternFunction(Seq(), None, Name("testTwo"), Seq(), TScala("Nat"),
           Seq(Body(
             Yield(Eval(Scala(q"Succ(Zero)")))
           ))
@@ -716,7 +716,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
 
     val module3 = Module(Name("Test"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(),
       Seq(
-        PatternFunction(None, Name("testTwo"), Seq(), TScala("inca.analyzedData.Nat.Nat"),
+        PatternFunction(Seq(), None, Name("testTwo"), Seq(), TScala("inca.analyzedData.Nat.Nat"),
           Seq(Body(
             Yield(Eval(Scala(q"inca.analyzedData.Nat.Succ(inca.analyzedData.Nat.Zero)")))
           ))
@@ -731,7 +731,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
         ScalaModuleContent(Scala(q"case object Zero extends Nat")),
         ScalaModuleContent(Scala(q"case class Succ(pred: Nat) extends Nat")),
         ScalaModuleContent(Scala(q"val succ: Nat = Succ(Zero)")),
-        PatternFunction(None, Name("testTwo"), Seq(), TScala("Nat"),
+        PatternFunction(Seq(), None, Name("testTwo"), Seq(), TScala("Nat"),
           Seq(Body(
             Yield(Eval(Scala(q"succ")))
           ))
@@ -746,7 +746,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
         ScalaModuleContent(Scala(q"case object Zero extends Nat")),
         ScalaModuleContent(Scala(q"case class Succ(pred: Nat) extends Nat")),
         ScalaModuleContent(Scala(q"val (succ, succsucc) = (Succ(Zero), Succ(Succ(Zero)))")),
-        PatternFunction(None, Name("testTwo"), Seq(), TScala("Succ"),
+        PatternFunction(Seq(), None, Name("testTwo"), Seq(), TScala("Succ"),
           Seq(Body(
             Yield(Eval(Scala(q"succsucc")))
           ))
@@ -757,7 +757,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
 
     val moduleFail = Module(Name("Test"), Seq(DirectDataModel(analyzedLangs.Exp.model)), Seq(), Seq(),
       Seq(
-        PatternFunction(None, Name("test"), Seq(), TScala("Nat"),
+        PatternFunction(Seq(), None, Name("test"), Seq(), TScala("Nat"),
           Seq(Body(
             Yield(Eval(Scala(q"Zero")))
           ))

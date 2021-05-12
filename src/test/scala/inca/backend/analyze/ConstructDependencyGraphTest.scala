@@ -1,5 +1,6 @@
 package inca.backend.analyze
 
+import inca.backend.analyze.DependencyGraph.PositiveCall
 import inca.backend.ir.Datalog._
 import org.scalatest.flatspec.AnyFlatSpec
 
@@ -34,11 +35,10 @@ class ConstructDependencyGraphTest extends AnyFlatSpec {
 
 
     val graph = new DependencyGraph(module1)
-    val pats = module1.pats.map { p => p.name -> p }.toMap
-    assertResult(graph.nodes)(Set(pats("foo"), pats("TestTP"), pats("Pattern 2"), pats("foo")))
-    assertResult(graph.edges(pats("foo")))(Set((pats("TestTP"), false)))
-    assertResult(graph.edges(pats("TestTP")))(Set((pats("TestTP"), false)))
-    assertResult(graph.edges(pats("Pattern 2")))(Set((pats("TestTP"), false)))
+    assertResult(graph.nodes)(Set("foo", "TestTP", "Pattern 2", "foo"))
+    assertResult(graph.edges("foo"))(Set(("TestTP", PositiveCall)))
+    assertResult(graph.edges("TestTP"))(Set(("TestTP", PositiveCall)))
+    assertResult(graph.edges("Pattern 2"))(Set(("TestTP", PositiveCall)))
   }
 
 }

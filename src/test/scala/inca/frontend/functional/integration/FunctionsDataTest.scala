@@ -57,9 +57,10 @@ class FunctionsDataTest extends AnyFunSuite {
   test("Simple Fold Example") {
     val fun = loadFunction(Code.simpleFoldModule)
     val tuple = Tuples.flatTupleOf(fun.vals(q"1", q"10"):_*)
-    assert(fun.executeTuple("sum", tuple) == fun.result(q"V(55)"))
-    assert(fun.output("AggregateCollection$0", tuple).res.size == 10)
+    fun.executeTuple("sum", tuple)
 //    fun.printAllMatches()
+    assert(fun.output("sum", tuple) == fun.result(q"V(55)"))
+    assert(fun.output("AggregateCollection$0", tuple).res.size == 10)
   }
 
   test("Type Checker Example") {

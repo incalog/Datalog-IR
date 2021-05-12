@@ -23,7 +23,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "eliminate if-then-else" in {
     val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
         IfThenElse(Eq(one, two), Body(
           Assign(Seq("yes"), Constant(BooleanLiteral(true)))
         ), Seq(), Some(Body(
@@ -34,7 +34,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaConstraintMatchers {
     ))
 
     val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assert(Eq(one, two)),
         Assign(Seq("yes"), Constant(BooleanLiteral(true))),
         Assign(Seq("after"), Constant(BooleanLiteral(true)))
@@ -51,7 +51,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "eliminate nested if-then-else" in {
     val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
         IfThenElse(Eq(one, two), Body(
           Assign(Seq("yes"), Constant(BooleanLiteral(true))),
           IfThenElse(Eq(three, four), Body(
@@ -72,7 +72,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaConstraintMatchers {
     ))
 
     val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assert(Eq(one, two)),
         Assign(Seq("yes"), Constant(BooleanLiteral(true))),
         Assert(Eq(three, four)),
@@ -107,7 +107,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "eliminate if-then-else-if" in {
     val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
         IfThenElse(Eq(one, two), Body(
           Assign(Seq("yes"), Constant(BooleanLiteral(true)))
         ), Seq(ElseIf(Eq(three, four), Body(
@@ -120,7 +120,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaConstraintMatchers {
     ))
 
     val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(
         Body(Seq(
           Assert(Eq(one, two)),
           Assign(Seq("yes"), Constant(BooleanLiteral(true))),
@@ -145,7 +145,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "eliminate if" in {
     val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assign(Seq("before"), Constant(BooleanLiteral(true))),
         IfThenElse(Eq(one, two), Body(
           Assign(Seq("yes"), Constant(BooleanLiteral(true)))
@@ -155,7 +155,7 @@ class TestIfThenElse extends AnyFlatSpec with IncaConstraintMatchers {
     ))
 
     val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
         Assign(Seq("before"), Constant(BooleanLiteral(true))),
         Assert(Eq(one, two)),
         Assign(Seq("yes"), Constant(BooleanLiteral(true))),
@@ -173,13 +173,13 @@ class TestIfThenElse extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "implement if-then-else semantics" in {
     val module = Module("Test_Cast", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), TLiteral.Int, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "integerlits", Seq(), TLiteral.Int, Seq(Body(Seq(
         Values("root", TNode(Exp.expTag)),
         Assert(Undef(PathAccess(Var("root"), ParentLink))),
         Yield(Call("integerlits_rec",Seq(Var("root"))))
       )))),
 
-      PatternFunction(None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), TLiteral.Int, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), TLiteral.Int, Seq(Body(Seq(
         IfThenElse(InstanceOf(Var("e"), TNode(Exp.intTag)), Body(
           Yield(PathAccess(Cast(Var("e"), TNode(Exp.intTag)), NamedLink("value")))
         ), Seq(ElseIf(InstanceOf(Var("e"), TNode(Exp.addTag)), Body(

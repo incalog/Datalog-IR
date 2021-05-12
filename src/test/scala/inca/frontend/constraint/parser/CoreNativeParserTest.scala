@@ -2,8 +2,6 @@ package inca.frontend.constraint.parser
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
-import inca.frontend.constraint.core
-import inca.runtime.context.DataModel
 import inca.util.Scala
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
@@ -106,7 +104,7 @@ class CoreNativeParserTest extends AnyFunSuite {
           q"case object Zero extends Nat",
           q"case class Succ(pred: Nat) extends Nat"
         ).map(s => ScalaModuleContent(Scala(s)))
-        :+ PatternFunction(None, Name("testTwo"), Seq(), TScala("Nat"),
+        :+ PatternFunction(Seq(), None, Name("testTwo"), Seq(), TScala("Nat"),
              Seq(Body(Seq(Yield(Eval(Scala(q"Succ(Zero)")))))))
       )
     )

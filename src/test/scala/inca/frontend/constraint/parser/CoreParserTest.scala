@@ -577,6 +577,7 @@ class CoreParserTest extends AnyFunSuite {
                 |  val q = 9  
                 |}""".stripMargin,
       PatternFunction(
+        Seq(),
         None,
         Name("foo"),
         Seq(Param(Name("bar"), TLiteral.Int)),
@@ -602,6 +603,7 @@ class CoreParserTest extends AnyFunSuite {
                 |  val q = 9  
                 |}""".stripMargin,
       PatternFunction(
+        Seq(),
         None,
         Name("foo"),
         Seq(Param(Name("bar"), TLiteral.Int)),
@@ -627,6 +629,7 @@ class CoreParserTest extends AnyFunSuite {
                 |  val q = 9  
                 |}""".stripMargin,
       PatternFunction(
+        Seq(),
         Option(Private),
         Name("foo"),
         Seq(Param(Name("bar"), TLiteral.Int)),
@@ -647,6 +650,7 @@ class CoreParserTest extends AnyFunSuite {
                 |   val x = y
                 |}""".stripMargin,
       PatternFunction(
+        Seq(),
         None,
         Name("foo"),
         Seq(
@@ -667,6 +671,7 @@ class CoreParserTest extends AnyFunSuite {
                 |   val x = y
                 |}""".stripMargin,
       PatternFunction(
+        Seq(),
         None,
         Name("foo"),
         Seq(
@@ -687,6 +692,7 @@ class CoreParserTest extends AnyFunSuite {
                 |   val x = y
                 |}""".stripMargin,
       PatternFunction(
+        Seq(),
         None,
         Name("foo"),
         Seq(
@@ -727,6 +733,7 @@ class CoreParserTest extends AnyFunSuite {
         Seq(),
         Seq(
           PatternFunction(
+            Seq(),
             None,
             Name("foo"),
             Seq(Param(Name("bar"), TLiteral.Bool)),
@@ -738,6 +745,7 @@ class CoreParserTest extends AnyFunSuite {
             )
           ),
           PatternFunction(
+            Seq(),
             None,
             Name("bar"),
             Seq(Param(Name("foo"), TLiteral.Bool)),
@@ -769,6 +777,7 @@ class CoreParserTest extends AnyFunSuite {
         Seq(),
         Seq(
           PatternFunction(
+            Seq(),
             None,
             Name("foo"),
             Seq(Param(Name("bar"), TLiteral.Bool)),
@@ -800,6 +809,7 @@ class CoreParserTest extends AnyFunSuite {
         Seq(),
         Seq(
           PatternFunction(
+            Seq(),
             None,
             Name("foo"),
             Seq(Param(Name("bar"), TLiteral.Bool)),
@@ -828,6 +838,7 @@ class CoreParserTest extends AnyFunSuite {
         Seq(),
         Seq(
           PatternFunction(
+            Seq(),
             None,
             Name("foo"),
             Seq(Param(Name("bar"), TLiteral.Bool)),
