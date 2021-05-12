@@ -7,6 +7,10 @@ trait Graph[N, E] {
   val nodes: mutable.Set[N] = mutable.Set()
   val edges: mutable.Map[N, Set[(N, E)]] = mutable.Map()
 
+  def addNode(n: N): Unit = {
+    nodes += n
+  }
+
   def addEdge(from: N, to: N, info: E): Unit = {
     nodes += from
     nodes += to

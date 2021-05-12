@@ -66,8 +66,8 @@ class StratificationAnalysisTest extends AnyFlatSpec  {
       )),
     ), Seq())
 
-    assert(!StratificationAnalysis.hasNegCycle(module1))
-    assert(!StratificationAnalysis.hasNegCycle(module2))
-    assert(StratificationAnalysis.hasNegCycle(module3))
+    StratificationAnalysis.analyze(module1)
+    StratificationAnalysis.analyze(module2)
+    assertThrows[StratificationExpection](StratificationAnalysis.analyze(module3))
   }
 }

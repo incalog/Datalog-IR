@@ -65,7 +65,7 @@ trait CompiledModule {
   }
 
   lazy val analyzed: Datalog.Module = {
-    //StratificationAnalysis.analyze(transformed) FIXME analysis says souffle program not stratisfiable
+    StratificationAnalysis.analyze(transformed)
     transformed
   }
 

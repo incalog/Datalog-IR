@@ -8,6 +8,7 @@ import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPre
 class DependencyGraph(module: Module) extends Graph[Pattern, Boolean] {
   val pats: Map[Name, Pattern] = module.pats.map(p => p.name -> p).toMap
   module.pats.foreach { pat =>
+    this.addNode(pat)
     pat.bodies.foreach { body =>
       body.atoms.foreach {
         case Call(name, _, _, neg) =>
