@@ -71,7 +71,6 @@ trait CompiledModule {
 
   lazy val optimized: Datalog.Module = {
     var module = analyzed
-    // println(module)
     for (op <- options.optimizations) {
       module = op.optimizer(dataModel).optimizeModule(module)
       if (CompilerFlags.DEBUGMODE) {
