@@ -1,5 +1,6 @@
 package inca.frontend.functional.integration
 
+import inca.backend.analyze.DependencyGraph
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
 import inca.examples.functional.{Code, LambdaCalculus}
 import inca.frontend.functional.executor.FunctionalExecutor._
@@ -65,7 +66,7 @@ class FunctionsDataTest extends AnyFunSuite {
 
   test("Type Checker Example") {
     val fun = loadFunction(LambdaCalculus.typeOfModule)
-
+    println(new DependencyGraph(fun.compiled.optimized).toGraphViz)
     assert(fun.execute("main", Seq(q"TNum(1)"), deleteInput = true)
       == fun.result(q"SomeType(TInt())"))
     assert(fun.execute("main", Seq(q"""TLam("x", TInt(), TVar("x"))"""), deleteInput = true)

@@ -41,10 +41,25 @@ class DependencyGraph(module: Module) extends Graph[Name, DependencyEdge] {
       "fillcolor=black, style=filled, fontcolor=white"
   }
 
-  override protected def edgeGraphVizAttributes(from: Name, to: Name, kind: DependencyEdge): String = kind match {
-    case PositiveCall => "color=black"
-    case NegativeCall => "color=red"
-    case CountAggregationCall => "color=blue"
-    case CustomAggregationCall => "color=blue"
+  def cycleColor(i: Int): String = i match {
+    case 0 => "aquamarine3"
+    case 1 => "darkorchid"
+    case 2 => "dodgerblue3"
+    case 3 => "gold4"
+    case 4 => "maroon4"
+    case 5 => "palegreen4"
+    case 6 => "sienna3"
+    case 7 => "tomato3"
+    case _ => "black"
+  }
+
+  override protected def edgeGraphVizAttributes(from: Name, to: Name, kind: DependencyEdge): String = {
+    val ix = cycles.indexWhere(l => l.contains(from) && l.contains(to))
+    if (ix >= 0)
+      s"color=${cycleColor(ix)}"
+    else kind match {
+      case NegativeCall => "color=red"
+      case _ => "color=black"
+    }
   }
 }
