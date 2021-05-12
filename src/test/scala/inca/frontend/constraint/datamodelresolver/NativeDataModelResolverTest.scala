@@ -21,5 +21,4 @@ class NativeDataModelResolverTest extends AnyFunSuite {
       Exp.model.types.contains(typ)
     })
   }
-
 }

@@ -4,7 +4,7 @@ import inca.backend.ir.GP
 import inca.backend.ir.GP.Name
 import inca.compiler.{CompiledModule, CompilerFlags, ConstraintOptions, SourceLocation}
 import inca.frontend.constraint.core._
-import inca.frontend.constraint.datamodelresolver.{DataModelResolver, DirectDataModelResolver, NativeDataModelResolver}
+import inca.frontend.constraint.datamodelresolver.{DataModelResolver, DirectDataModelResolver, NativeDataModelResolver, TreesitterDataModelResolver}
 import inca.frontend.constraint.desugar.Desugar
 import inca.frontend.constraint.{core, extensions}
 import inca.frontend.constraint.lowering.CompileToGP
@@ -23,8 +23,9 @@ case class CompiledConstraintModule(module: core.Module, options: ConstraintOpti
   // FIXME: hack such that dataModel in typer is not recursively defined
   private lazy val _dataModel: DataModel = dataModel
 
+
   private lazy val dataModelResolver: DataModelResolver =
-    new DataModelResolver with NativeDataModelResolver with DirectDataModelResolver {}
+    new DataModelResolver with NativeDataModelResolver with DirectDataModelResolver with TreesitterDataModelResolver {}
 
   private lazy val typer: CoreTypechecker = new CoreTypechecker
     with extensions.boolOps.Typechecker

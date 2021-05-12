@@ -14,7 +14,12 @@ trait TreesitterDataModelResolver extends DataModelResolver {
   override def resolve(dataModel: DataModel): context.DataModel = dataModel match {
     case TreesitterDataModel(path) => new DataModelParser(path).getContextDataModel
     case _ => super.resolve(dataModel)
+
+
+
   }
+
+  //todo shift datamodel parser
 }
 
 /*
@@ -29,7 +34,7 @@ case class PreLitType(multiple: Boolean, required: Boolean)
 
 class DataModelParser(nodeTypes: Json, literalIdentifiers: Vector[String]) {
 
-  def this(dataModelLocation: String) = this(dataModelLocation + File.separator +"node-types.json", dataModelLocation + File.separator + "token-nodes")
+  def this(dataModelLocation: String) = this(dataModelLocation + File.separator + "node-types.json", dataModelLocation + File.separator + "token-nodes")
 
   def this(metaModelPath: String, literalIdentifiersPath: String) = this({
     val source = scala.io.Source.fromFile(metaModelPath)

@@ -32,6 +32,7 @@ trait CoreParser {
       else Name(s)
     }
 
+  //todo: check path snytax for all operating systems
   def path[_: P]: P[Path] =
     P((CharIn("a-z", "A-Z", "_", ".") ~~ CharIn("a-z", "A-Z", "0-9", "_", "/").repX).!).mapWithLoc { s =>
       if (allKeywords.contains(s)) return fastparse.Fail
