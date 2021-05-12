@@ -4,7 +4,7 @@ import inca.frontend.souffle.Syntax
 
 // TODO currently only supports a subset of souffle which is needed to load a specific file
 object Parser {
-  import fastparse._
+  import fastparse.{parse => _, _}
   import JavaWhitespace._
 
   def parse(code: ParserInput): Syntax.Analysis = {
@@ -18,18 +18,18 @@ object Parser {
   }
 
   def Analysis[_: P]: P[Seq[Syntax.AnalysisContent]] =
-    P(Start ~ AnalysisContent.rep ~ End).map(_.flatten)
+    P(Start ~ AnalysisContent.rep ~ End)
 
-  def AnalysisContent[_: P]: P[Option[Syntax.AnalysisContent]] =
-    P(Plan).map(_ => None) | P(ComponentInitialization | ComponentDefinition | TypeDeclaration |
+  def AnalysisContent[_: P]: P[Syntax.AnalysisContent] =
+    P(ComponentInitialization | ComponentDefinition | TypeDeclaration |
       RuleSignature | Input | RuleDefinition | Output | PrintSize
-    ).map(Some.apply)
+    )
 
   def ComponentInitialization[_: P]: P[Syntax.ComponentInitialization] =
     P(".init" ~ identifier ~ "=" ~ identifier).map(Syntax.ComponentInitialization.tupled)
 
   def ComponentDefinition[_: P]: P[Syntax.ComponentDefinition] =
-    P(".comp" ~ identifier ~ "{" ~ AnalysisContent.rep.map(_.flatten) ~ "}").map(Syntax.ComponentDefinition.tupled)
+    P(".comp" ~ identifier ~ "{" ~ AnalysisContent.rep ~ "}").map(Syntax.ComponentDefinition.tupled)
 
   def TypeDeclaration[_: P]: P[Syntax.TypeDeclaration] =
     P(".type" ~ identifier ~ ("=" ~ DeclaredType).?).map(Syntax.TypeDeclaration.tupled)

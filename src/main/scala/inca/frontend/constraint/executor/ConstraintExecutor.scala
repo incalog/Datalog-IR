@@ -23,7 +23,7 @@ object ConstraintExecutor {
 
     // use execute only once
     def execute[T <: Diffable](tree: T, pat: String): Seq[Match] = {
-      val es = Diffable.load(tree)
+      val es = tree.loadEdits
       lastTree = tree
       feed.processEditScript(es)
       output(pat)

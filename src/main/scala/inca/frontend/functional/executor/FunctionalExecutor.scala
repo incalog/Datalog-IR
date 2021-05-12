@@ -34,7 +34,7 @@ object FunctionalExecutor {
 
     def input(arg: meta.Term): AnyRef = vals(arg) match {
       case Seq(arg: Diffable) =>
-        feed.processEditScript(Diffable.load(arg))
+        feed.processEditScript(arg.loadEdits)
         arg.uri
       case Seq(lit) => lit
     }
@@ -42,7 +42,7 @@ object FunctionalExecutor {
     def input(args: Seq[meta.Term]): Tuple = {
       val cargs = vals(args:_*).map {
         case arg: Diffable =>
-          feed.processEditScript(Diffable.load(arg))
+          feed.processEditScript(arg.loadEdits)
           arg.uri
         case lit => lit
       }
