@@ -65,9 +65,28 @@ class StratificationAnalysisTest extends AnyFlatSpec  {
         ))
       )),
     ), Seq())
+    val module4 = Module("M", Seq(), Seq(
+      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
+        Body(Seq(
+          Call("bar", Seq(), true, false),
+        ))
+      )),
+      Pattern(None, "bar", Seq(Param("p", TAny)), Seq(
+        Body(Seq(
+          Call("baz", Seq(), true, true),
+        ))
+      )),
+      Pattern(None, "baz", Seq(Param("p", TAny)), Seq(
+        Body(Seq(
+          Call("foo", Seq(), true, false),
+          Call("bar", Seq(), true, false),
+        ))
+      )),
+    ), Seq())
 
     StratificationAnalysis.analyze(module1)
     StratificationAnalysis.analyze(module2)
     assertThrows[StratificationExpection](StratificationAnalysis.analyze(module3))
+    assertThrows[StratificationExpection](StratificationAnalysis.analyze(module4))
   }
 }

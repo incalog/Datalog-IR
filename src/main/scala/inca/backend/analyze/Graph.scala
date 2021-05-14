@@ -30,6 +30,16 @@ trait Graph[N, E] {
     }
   }
 
+  lazy val outermostCycles: List[List[N]] = {
+    def isNested(cycle: List[N]): Boolean = {
+      cycles.filter(_ != cycle).exists { other =>
+        cycle.forall(other.contains)
+      }
+    }
+    val nestedCycles = cycles.filter(isNested)
+    cycles.diff(nestedCycles)
+  }
+
   // based on https://www.baeldung.com/cs/detecting-cycles-in-directed-graph
   private trait VisistedFlag
   private case object NotVisisted extends VisistedFlag

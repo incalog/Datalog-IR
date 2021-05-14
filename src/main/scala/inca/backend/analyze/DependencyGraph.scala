@@ -54,7 +54,7 @@ class DependencyGraph(module: Module) extends Graph[Name, DependencyEdge] {
   }
 
   override protected def edgeGraphVizAttributes(from: Name, to: Name, kind: DependencyEdge): String = {
-    val ix = cycles.indexWhere(l => l.contains(from) && l.contains(to))
+    val ix = outermostCycles.indexWhere(l => l.contains(from) && l.contains(to))
     if (ix >= 0)
       s"color=${cycleColor(ix)}"
     else kind match {
