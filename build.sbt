@@ -32,7 +32,9 @@ lazy val inca = (project in file(".")).settings(
   )
 )
 
-lazy val souffle_importer = (project in file("souffle-frontend")).dependsOn(inca).settings(
+lazy val souffle_frontend = (project in file("souffle-frontend"))
+  .dependsOn(inca % "compile->compile;test->test")
+  .settings(
   name := "souffle-frontend",
 
   resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
@@ -40,10 +42,8 @@ lazy val souffle_importer = (project in file("souffle-frontend")).dependsOn(inca
   libraryDependencies ++= Seq(
     "com.lihaoyi" %% "fastparse" % "2.1.3",
     "org.scalatest" %% "scalatest" % "3.1.0" % "test",
-    "de.uni-mainz.informatik.pl" %% "truechange" % "0.1.1",
     "org.eclipse.collections" % "eclipse-collections" % "10.4.0",
 
-    "de.uni-mainz.informatik.pl" %% "truediff" % "0.1.1" % "test",
     "org.eclipse.emf" % "org.eclipse.emf.ecore" % "2.23.0" % "test",
   )
 )

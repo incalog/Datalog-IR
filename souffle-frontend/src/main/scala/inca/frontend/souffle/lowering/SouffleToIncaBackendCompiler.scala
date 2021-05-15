@@ -25,6 +25,7 @@ class SouffleToIncaBackendCompiler {
   private val inputs: mutable.Map[String, Input] = mutable.Map()
 
   private val printSizes: mutable.ListBuffer[PrintSize] = mutable.ListBuffer()
+  private val outputs: mutable.ListBuffer[Output] = mutable.ListBuffer()
 
   val componentDefinitions: mutable.Map[String, ComponentDefinition] = mutable.Map()
 
@@ -33,8 +34,8 @@ class SouffleToIncaBackendCompiler {
 
     val module = Module(name, Seq(), patFuns.values.toSeq, Seq())
     val moduleWithUnbounded = PropagateUnbounded.transformModule(module)
-    printSizes.foreach { ps =>
-      moduleWithUnbounded.pats.find(_.name == ps.name).foreach { pat =>
+    (printSizes.map(_.name) ++ outputs.map(_.name)).foreach { out =>
+      moduleWithUnbounded.pats.find(_.name == out).foreach { pat =>
         pat.addHint(MagicSetHints.Main(pat.params.map(_ => false)))
       }
     }
@@ -101,7 +102,8 @@ class SouffleToIncaBackendCompiler {
       )
       patFuns(rule) = Pattern(fun.vis, fun.name, fun.params, Seq(body))
 
-    case Output(rule) => // do nothing
+    case out: Output =>
+      outputs += out
 
     case PrintSize(rule) => // do nothing
       printSizes += PrintSize(funPrefix + rule)
