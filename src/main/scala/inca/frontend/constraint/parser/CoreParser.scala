@@ -32,8 +32,9 @@ trait CoreParser {
       else Name(s)
     }
 
+  //Todo: Add backslash for windows
   def path[_: P]: P[Path] =
-    P((CharIn("a-z", "A-Z", ".", "/") ~~ CharIn("a-z", "A-Z", "0-9", "_", "/", "\\", ":", "$").repX).!).mapWithLoc { s =>
+    P((CharIn("a-z", "A-Z", ".", "/") ~~ CharIn("a-z", "A-Z", "0-9", "_", "/", " ", ":", "$").repX).!).mapWithLoc { s =>
       if (allKeywords.contains(s)) return fastparse.Fail
       else Path(s)
     }
