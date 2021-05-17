@@ -66,8 +66,8 @@ trait TreesitterDataModelResolver extends DataModelResolver {
 
     private def getDataModelFromMultiMap(multiLinks: MultiDict[Link, PreType], litLinks: Map[Link, LitType], supertypeMap: MultiDict[SortType, SortType]): context.DataModel = {
       //get all occurring types to intit gensym
-      val gensym = new Gensym(for (tpe <- supertypeMap.keySet.toSet) yield tpe.name)
-      gensym.register(for (tpe <- supertypeMap.values.toSet) yield tpe.name)
+      val gensym = new Gensym(for (tpe: SortType <- supertypeMap.keySet.toSet) yield tpe.name)
+      gensym.register(for (tpe: SortType <- supertypeMap.values.toSet) yield tpe.name)
 
       var createdSupertypes: Map[Set[PreType], String] = Map()
 
