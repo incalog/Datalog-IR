@@ -17,6 +17,7 @@ lazy val inca = (project in file(".")).settings(
   libraryDependencies ++= Seq(
     "de.uni-mainz.informatik.pl" %% "truechange" % "0.1.5-SNAPSHOT",
     "de.uni-mainz.informatik.pl" %% "truediff" % "0.1.5-SNAPSHOT",
+    "de.uni-mainz.informatik.pl" %% "truediff-treesitter" % "0.1.5-SNAPSHOT",
     "org.scala-lang.modules" %% "scala-collection-contrib" % "0.2.1",
     "org.scalameta" %% "scalameta" % "4.2.3",
     "org.eclipse.viatra" % "viatra-query-runtime" % "2.4.0",
@@ -46,6 +47,7 @@ lazy val souffle_importer = (project in file("souffle-importer")).dependsOn(inca
     "org.eclipse.collections" % "eclipse-collections" % "10.4.0",
 
     "de.uni-mainz.informatik.pl" %% "truediff" % "0.1.5-SNAPSHOT",
+    "de.uni-mainz.informatik.pl" %% "truediff-treesitter" % "0.1.5-SNAPSHOT",
     "org.eclipse.emf" % "org.eclipse.emf.ecore" % "2.23.0" % "test",
 
   )
