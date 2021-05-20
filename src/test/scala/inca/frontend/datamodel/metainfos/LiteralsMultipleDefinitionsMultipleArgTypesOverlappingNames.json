@@ -1,0 +1,170 @@
+[
+  {
+    "type": "_expression",
+    "named": true,
+    "subtypes": [
+      {
+        "type": "function_declaration",
+        "named": true
+      },
+      {
+        "type": "identifier",
+        "named": true
+      },
+      {
+        "type": "imaginary_literal",
+        "named": true
+      },
+      {
+        "type": "otherNode",
+        "named": true
+      },       {
+        "type": "identifier",
+        "named": true
+      },
+      {
+        "type": "rune_literal",
+        "named": true
+      }, {
+        "type": "_simple_type",
+        "named": true
+      }, {
+        "type": "parameter_list",
+        "named": true
+      }]
+  },
+  {
+    "type": "function_declaration",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "block",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "parameters": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "rune_literal",
+            "named": true
+          }
+        ]
+      },
+      "result": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "_simple_type",
+            "named": true
+          },
+          {
+            "type": "parameter_list",
+            "named": true
+          },
+          {
+            "type": "otherNode",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "function_declaration_01",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": true,
+        "required": false,
+        "types": [
+          {
+            "type": "block",
+            "named": true
+          }
+        ]
+      },
+      "name": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "identifier",
+            "named": true
+          }
+        ]
+      },
+      "parameters": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "rune_literal",
+            "named": true
+          }
+        ]
+      },
+      "result": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "_simple_typeANDparameter_list",
+            "named": true
+          },
+          {
+            "type": "otherNode",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "otherNode",
+    "named": true,
+    "fields": {
+      "body": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "block",
+            "named": true
+          },
+          {
+            "type": "function_declaration",
+            "named": true
+          }
+        ]
+      },
+      "litarg": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "imaginary_literal",
+            "named": true
+          }
+        ]
+      }
+    }
+  }
+]
