@@ -80,7 +80,7 @@ object AnnoEditScenario extends EditScenario {
 
   override def traverse(exp: Exp, count: Int): (Exp, Int) = exp match {
     case Lam(p, t, b) =>
-      val newType = if (shouldChange(count)) TFun(TInt, TInt) else t
+      val newType = if (shouldChange(count)) TFun(TInt(), TInt()) else t
       val (bexp, bcount) = traverse(b, count)
       (Lam(p, newType, bexp), bcount + 1)
     case _ => super.traverse(exp, count)
@@ -94,7 +94,7 @@ object LambdaEditScenario extends EditScenario {
   override def traverse(exp: Exp, count: Int): (Exp, Int) = exp match {
     case Lam(p, t, b) =>
       val (bexp, bcount) = traverse(b, count)
-      (Lam(p, t, Lam("y", TInt, bexp)), bcount + 1)
+      (Lam(p, t, Lam("y", TInt(), bexp)), bcount + 1)
     case _ => super.traverse(exp, count)
   }
 }

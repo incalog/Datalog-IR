@@ -8,28 +8,28 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class ControlDataFlowTest extends AnyFunSuite {
 
-  test("flow ex 2.1") {
-    val fun = loadFunction(ControlDataFlow.cflowModule)
-    val input = fun.input(Seq(ControlDataFlow.example_2_1))
-    assert(fun.executeTuple("flow", input).res.size == 4)
-    assert(fun.output("flowR", input).res.isEmpty)
-//    fun.printAllMatches()
-  }
-
-  test("flowR ex 2.1") {
-    val fun = loadFunction(ControlDataFlow.cflowModule)
-    val input = fun.input(Seq(ControlDataFlow.example_2_1))
-    assert(fun.executeTuple("flowR", input).res.size == 4)
-    assert(fun.output("flow", input).res.size == 4)
-//    fun.printAllMatches()
-  }
-
-  test("transitiveFlow ex 2.1") {
-    val fun = loadFunction(ControlDataFlow.cflowModule)
-    val input = fun.input(Seq(ControlDataFlow.example_2_1))
-    assert(fun.executeTuple("transitiveFlow", input).res.size == 12)
-//    fun.printAllMatches()
-  }
+//  test("flow ex 2.1") {
+//    val fun = loadFunction(ControlDataFlow.cflowModule)
+//    val input = fun.input(Seq(ControlDataFlow.example_2_1))
+//    assert(fun.execute("flow", Seq(ControlDataFlow.example_2_1)).res.size == 4)
+//    assert(fun.output("flowR", input).res.isEmpty)
+////    fun.printAllMatches()
+//  }
+//
+//  test("flowR ex 2.1") {
+//    val fun = loadFunction(ControlDataFlow.cflowModule)
+//    val input = fun.input(Seq(ControlDataFlow.example_2_1))
+//    assert(fun.executeTuple("flowR", input).res.size == 4)
+//    assert(fun.output("flow", input).res.size == 4)
+////    fun.printAllMatches()
+//  }
+//
+//  test("transitiveFlow ex 2.1") {
+//    val fun = loadFunction(ControlDataFlow.cflowModule)
+//    val input = fun.input(Seq(ControlDataFlow.example_2_1))
+//    assert(fun.executeTuple("transitiveFlow", input).res.size == 12)
+////    fun.printAllMatches()
+//  }
 
 //  test("available expressions ex 2.4") {
 //    val fun = loadFunction(ControlDataFlow.AEModule)

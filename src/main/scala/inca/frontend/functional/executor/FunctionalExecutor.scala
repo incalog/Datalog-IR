@@ -1,5 +1,6 @@
 package inca.frontend.functional.executor
 
+import inca.backend.ir.DatalogPrinter
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
 import inca.compiler.{CompiledModule, Compiler}
 import inca.frontend.functional.compiler.FunctionalOptions
@@ -10,13 +11,19 @@ import inca.util.Scala.ScalaCompiler
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
+import truechange.EditScript
 import truediff.Diffable
 
+import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
 object FunctionalExecutor {
   case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledModule) {
+
+
     lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
+
+    val lastArgs: mutable.ListBuffer[Diffable] = mutable.ListBuffer()
 
     val loadedPsystemModule: String = scalaCompiler.define {
       import scala.meta._
@@ -39,19 +46,24 @@ object FunctionalExecutor {
       case Seq(lit) => lit
     }
 
-    def input(args: Seq[meta.Term]): Tuple = {
-      val cargs = vals(args:_*).map {
+    type Input = (EditScript, Tuple)
+
+    def input(args: Seq[meta.Term]): Input = {
+      val (ess, cargs) = vals(args:_*).map {
         case arg: Diffable =>
-          feed.processEditScript(arg.loadEdits)
-          arg.uri
-        case lit => lit
-      }
-      Tuples.flatTupleOf(cargs:_*)
+          println(arg.toStringWithURI)
+          (arg.loadEdits, arg.uri)
+        case lit => (EditScript(Seq()), lit)
+      }.unzip
+      (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs:_*))
     }
 
     def output(pat: String, tuple: Tuple): Results[AnyRef] = {
       val mainSpec = compiled.psystemModule.patterns(pat)()
+      val inputSpec = compiled.psystemModule.patterns("input$" + pat)()
       val mainMatcher = engine.getMatcher(mainSpec)
+      val inputMatcher = engine.getMatcher(inputSpec)
+      println(mainMatcher.countMatches())
       val arity = mainMatcher.getParameterNames.size()
       val inputSeq = tuple.getElements ++ (for (_ <- 0 until (arity - tuple.getSize)) yield null)
       val inputMatch = Query.Match(mainSpec, inputSeq, isMutable = false)
@@ -61,9 +73,30 @@ object FunctionalExecutor {
       new Results(outputMatches)
     }
 
+    def measure(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): (Long, Long) = {
+      val (es, tuple) = input(args)
+      val startQuery = System.currentTimeMillis()
+      var loadingTime: Long = 0
+      engine.delayUpdatePropagation { () =>
+        val startLoadDB = System.currentTimeMillis()
+        feed.processEditScript(es)
+        feed.insert(demandPatternExtensionalPrefix + main, tuple)
+        if (deleteInput)
+          feed.delete(demandPatternExtensionalPrefix + main, tuple)
+        val endLoadDB = System.currentTimeMillis()
+        loadingTime = endLoadDB - startLoadDB
+      }
+      val endQuery = System.currentTimeMillis()
+      val results = output(main, tuple)
+      println(results)
+      (loadingTime, endQuery - startQuery)
+    }
 
-    def execute(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): Results[AnyRef] =
-      executeTuple(main, input(args), deleteInput)
+    def execute(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): Results[AnyRef] = {
+      val (es, tuple) = input(args)
+      feed.processEditScript(es)
+      executeTuple(main, tuple, deleteInput)
+    }
 
     def executeTuple(main: String, tuple: Tuple, deleteInput: Boolean = false): Results[AnyRef] = {
       feed.insert(demandPatternExtensionalPrefix + main, tuple)
