@@ -47,7 +47,6 @@ lazy val souffle_importer = (project in file("souffle-importer")).dependsOn(inca
     "org.eclipse.collections" % "eclipse-collections" % "10.4.0",
 
     "de.uni-mainz.informatik.pl" %% "truediff" % "0.1.5-SNAPSHOT",
-    "de.uni-mainz.informatik.pl" %% "truediff-treesitter" % "0.1.5-SNAPSHOT",
     "org.eclipse.emf" % "org.eclipse.emf.ecore" % "2.23.0" % "test",
 
   )

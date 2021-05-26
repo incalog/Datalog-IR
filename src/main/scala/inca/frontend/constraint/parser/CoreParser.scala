@@ -20,7 +20,7 @@ trait CoreParser {
   protected[frontend] def keywords: Set[String] =
     Set("module", "import","def", "undef", "true",
       "false", "aggregate", "count", "_", "unit", "yield",
-      "union", "private", "assert", "fail", "continue", "datamodel", "native", "tree-sitter")
+      "union", "private", "assert", "fail", "continue", "datamodel", "native", "treesitter")
 
   // Parser ////////////////////////////////////////////////////////////////////////////////////////////////////////////
   /** Parse a variable identifier.

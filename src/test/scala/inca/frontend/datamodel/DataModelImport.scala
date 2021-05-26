@@ -1,19 +1,16 @@
 package inca.frontend.datamodel
 
-import inca.caseStudies.typing.{Exp, Prog}
-import inca.caseStudies.typing.ExpTyping.{Add, App, ExpT, IntLit, Lam, Let, Var}
-import inca.compiler.{Compiler, Options}
+import inca.executor.ConstraintExecutor
 import truediff.compat.treesitter.GoLang
 
 object SimpleChecks extends App {
-  val options = Options(Prog.languageMetaInfo)
   val analysis =
     s"""
        |module DataModelTest
        |
-       |datamodel treesitter ./src/test/scala/inca/frontend/datamodel/metainfos/
+       |datamodel treesitter ./src/test/scala/inca/frontend/datamodel/metainfos
        |
-       |def checkSimple(e: _expression): _expression = {
+       |def getLHS(e: _expression): _expression = {
        |  if (e.isInstanceOf[binary_expression]) {
        |    val binary = e:binary_expression
        |    yield binary.left
@@ -29,12 +26,17 @@ object SimpleChecks extends App {
   //  val pyParser = new TSParser("tree-sitter-python")
 
   val code =
-    """func hello(x float64) { "abc" }
-      |""".stripMargin
+    """(1 + 2) * 5
+      """.stripMargin
 
   val tree = goParser.parse(code)
   println(tree)
   println(tree.toStringWithURI)
   goParser.destroy()
+
+  val loadedAnalysis = ConstraintExecutor.loadAnalysis(analysis)
+
+  val res1 = loadedAnalysis.execute(tree, "getLHS")
+  res1.foreach(println)
 
 }
