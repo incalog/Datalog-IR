@@ -9,8 +9,8 @@ import truechange.{JavaLitType, ListType, OptionType, SortType}
 class DataModelTest extends AnyFunSuite {
 
   test("parsing subtypes 1") {
-    val dataModel: DataModel = new DataModelParser("./src/test/scala/inca/frontend/datamodel/metainfos/PartialGoLang.json",
-      "./src/test/scala/inca/frontend/datamodel/metainfos/tokenNodesGoLang").getContextDataModel
+    val dataModel: DataModel = new TreesitterDataModelResolver {}.resolve(
+      TreesitterDataModel("./src/test/scala/inca/frontend/datamodel/metainfos/Subtypes1"))
 
 
     dataModel.nodeSupertypes.toSet should contain theSameElementsAs Set(SortType("binary_expression") -> SortType("_expression"),
@@ -18,8 +18,8 @@ class DataModelTest extends AnyFunSuite {
   }
 
   test("parsing subtypes 2") {
-    val dataModel = new DataModelParser("./src/test/scala/inca/frontend/datamodel/metainfos/PartialGoLang2.json",
-      "./src/test/scala/inca/frontend/datamodel/metainfos/tokenNodesGoLang").getContextDataModel
+    val dataModel: DataModel = new TreesitterDataModelResolver {}.resolve(
+      TreesitterDataModel("./src/test/scala/inca/frontend/datamodel/metainfos/Subtypes2"))
 
 
     dataModel.directNodeSupertypes.toSet should contain theSameElementsAs Set(SortType("binary_expression") -> SortType("_expression"),
@@ -28,8 +28,8 @@ class DataModelTest extends AnyFunSuite {
   }
 
   test("parsing links and literal links, merging of multiple argument types"){
-      val dataModel = new DataModelParser("./src/test/scala/inca/frontend/datamodel/metainfos/PartialGoLangLiterals.json",
-        "./src/test/scala/inca/frontend/datamodel/metainfos/tokenNodesGoLang").getContextDataModel
+    val dataModel: DataModel = new TreesitterDataModelResolver {}.resolve(
+      TreesitterDataModel("./src/test/scala/inca/frontend/datamodel/metainfos/LinksAndMerging"))
 
 
     dataModel.litLinks.toSet should contain theSameElementsAs Set(
@@ -43,9 +43,8 @@ class DataModelTest extends AnyFunSuite {
 
 
     test("parsing links and literal links, multiple nodes, merging of multiple argument types") {
-      // first test example:
-      val dataModel = new DataModelParser("./src/test/scala/inca/frontend/datamodel/metainfos/LiteralsMultipleDefinitions.json",
-        "./src/test/scala/inca/frontend/datamodel/metainfos/tokenNodesGoLang").getContextDataModel
+      val dataModel: DataModel = new TreesitterDataModelResolver {}.resolve(
+        TreesitterDataModel("./src/test/scala/inca/frontend/datamodel/metainfos/MultipleDefinitions"))
 
       dataModel.litLinks.toSet should contain theSameElementsAs Set(
         ("function_declaration","name")       -> JavaLitType(classOf[String]),
@@ -60,8 +59,8 @@ class DataModelTest extends AnyFunSuite {
 
 
     test("parsing children to links"){
-      val dataModel = new DataModelParser("./src/test/scala/inca/frontend/datamodel/metainfos/Children.json",
-        "./src/test/scala/inca/frontend/datamodel/metainfos/tokenNodesGoLang").getContextDataModel
+      val dataModel: DataModel = new TreesitterDataModelResolver {}.resolve(
+        TreesitterDataModel("./src/test/scala/inca/frontend/datamodel/metainfos/Children"))
 
 
       dataModel.links.toSet should contain theSameElementsAs Set(("import_declaration","1") -> SortType("import_spec_list"),
@@ -70,8 +69,8 @@ class DataModelTest extends AnyFunSuite {
     }
 
     test("parsing literal children to literal links"){
-      val dataModel = new DataModelParser("./src/test/scala/inca/frontend/datamodel/metainfos/LiteralChildren.json",
-        "./src/test/scala/inca/frontend/datamodel/metainfos/tokenNodesGoLang").getContextDataModel
+      val dataModel: DataModel = new TreesitterDataModelResolver {}.resolve(
+        TreesitterDataModel("./src/test/scala/inca/frontend/datamodel/metainfos/LiteralChildren"))
 
       dataModel.litLinks.toSet should contain theSameElementsAs Set(("import_spec_list","0") -> JavaLitType(classOf[Option[List[String]]]),
         ("import_declaration","2") -> JavaLitType(classOf[String]))
@@ -84,9 +83,8 @@ class DataModelTest extends AnyFunSuite {
 
 
     test("merging of multiple argument types") {
-      // first test example:
-      val dataModel = new DataModelParser("./src/test/scala/inca/frontend/datamodel/metainfos/LiteralsMultipleDefinitionsMultipleArgTypes.json",
-        "./src/test/scala/inca/frontend/datamodel/metainfos/tokenNodesGoLang").getContextDataModel
+      val dataModel: DataModel = new TreesitterDataModelResolver {}.resolve(
+        TreesitterDataModel("./src/test/scala/inca/frontend/datamodel/metainfos/MultipleArgTypes"))
 
 
       dataModel.litLinks.toSet should contain theSameElementsAs Set(
@@ -103,8 +101,8 @@ class DataModelTest extends AnyFunSuite {
 
     test("merging of multiple argument types and creating new supertypes") {
       // first test example:
-      val dataModel = new DataModelParser("./src/test/scala/inca/frontend/datamodel/metainfos/LiteralsMultipleDefinitionsMultipleArgTypes.json",
-        "./src/test/scala/inca/frontend/datamodel/metainfos/tokenNodesGoLang").getContextDataModel
+      val dataModel: DataModel = new TreesitterDataModelResolver {}.resolve(
+        TreesitterDataModel("./src/test/scala/inca/frontend/datamodel/metainfos/MultipleArgTypes"))
 
 
       dataModel.litLinks.toSet should contain theSameElementsAs Set(
@@ -121,8 +119,8 @@ class DataModelTest extends AnyFunSuite {
 
   test("merging of multiple argument types with overlapping names and creating new supertypes") {
     // first test example:
-    val dataModel = new DataModelParser("./src/test/scala/inca/frontend/datamodel/metainfos/LiteralsMultipleDefinitionsMultipleArgTypesOverlappingNames.json",
-      "./src/test/scala/inca/frontend/datamodel/metainfos/tokenNodesGoLang").getContextDataModel
+    val dataModel = new TreesitterDataModelResolver{}.resolve(
+      TreesitterDataModel("./src/test/scala/inca/frontend/datamodel/metainfos/OverlappingNames"))
 
 
     dataModel.litLinks.toSet should contain theSameElementsAs Set(
@@ -142,8 +140,8 @@ class DataModelTest extends AnyFunSuite {
   }
 
     test("ignoring syntax (named = false)") {
-      val dataModel = new DataModelParser("./src/test/scala/inca/frontend/datamodel/metainfos/GoLangNamedFalse.json",
-        "./src/test/scala/inca/frontend/datamodel/metainfos/tokenNodesGoLang").getContextDataModel
+      val dataModel: DataModel = new TreesitterDataModelResolver {}.resolve(
+        TreesitterDataModel("./src/test/scala/inca/frontend/datamodel/metainfos/NamedFalse"))
 
       dataModel.litLinks.toSet should contain theSameElementsAs Set()
 
