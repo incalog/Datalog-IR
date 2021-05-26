@@ -29,16 +29,6 @@ class FindBugsTests extends AnyFunSuite {
          |
          |node inca.analyzedLangs.tinyJava._
          |
-         |
-         |  val member = class.members.children
-         |  val methodDecl = member:InstanceMethodDeclaration
-         |  val name = member.name
-         |  assert methodDecl.returnType.isInstanceOf[BooleanType]
-         |  assert name == "equals"
-         |  assert count getParameters(methodDecl) == 1
-         |
-         |  val test = `classifier.name.`
-         |
          |def confusedInheritance(class: ClassDeclaration): Unit = {
          |  assert class.isFinal == true
          |  val members = class.members

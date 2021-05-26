@@ -3,7 +3,7 @@ package inca.frontend.constraint.core
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
-import inca.backend.ir.{Datalog, Printer}
+import inca.backend.ir.{Datalog, GPPrinter}
 import inca.compiler.Compiler
 import inca.frontend.constraint.compiler.ConstraintOptions
 import org.scalatest.funsuite.AnyFunSuite
@@ -15,12 +15,12 @@ class GenerateDatalogTest extends AnyFunSuite {
   
   test("simple function pattern with return constraint"){
     val result = compileToGP(Module("test", Seq(DirectDataModel(Exp.model)), Nil, Nil, Seq(idFun)))
-    println(Printer.prettyModule(result))
+    println(GPPrinter.prettyModule(result))
   }
 
   test("simple function pattern with return constraint containg path expression"){
     val result = compileToGP(Module("test", Seq(DirectDataModel(Exp.model)), Nil, Nil, Seq(lhChildFun)))
-    println(Printer.prettyModule(result))
+    println(GPPrinter.prettyModule(result))
   }
 
   test("simple function pattern with equality against literal"){
@@ -47,7 +47,7 @@ class GenerateDatalogTest extends AnyFunSuite {
               Var("add"))),
             Yield(Var("add"))))))
     val result = compileToGP(Module("test", Seq(DirectDataModel(Exp.model)), Nil, Nil, Seq(fun)))
-    println(Printer.prettyModule(result))
+    println(GPPrinter.prettyModule(result))
   }
 
   test("simple function pattern with return constraint containg path expression 2"){
@@ -71,12 +71,12 @@ class GenerateDatalogTest extends AnyFunSuite {
                 lhsLink), addType),
               lhsLink))))))
     val result = compileToGP(Module("test", Seq(DirectDataModel(Exp.model)), Nil, Nil, Seq(fun)))
-    println(Printer.prettyModule(result))
+    println(GPPrinter.prettyModule(result))
   }
 
   test("multiple bodies function pattern with return constraint containg path expression"){
     val result = compileToGP(Module("test", Seq(DirectDataModel(Exp.model)), Nil, Nil, Seq(childrenFun)))
-    println(Printer.prettyModule(result))
+    println(GPPrinter.prettyModule(result))
   }
 
   test("function pattern calling other function"){
@@ -96,7 +96,7 @@ class GenerateDatalogTest extends AnyFunSuite {
             Assign(Seq("lhschild"), Call("lhChild", Seq(Var("add")))),
             Yield(Var("lhschild"))))))
     val result = compileToGP(Module("test", Seq(DirectDataModel(Exp.model)), Nil, Nil, Seq(fun, lhChildFun)))
-    println(Printer.prettyModule(result))
+    println(GPPrinter.prettyModule(result))
   }
 
   test("function pattern using instance of"){
@@ -117,7 +117,7 @@ class GenerateDatalogTest extends AnyFunSuite {
             Assert(InstanceOf(Var("lhschild"), addType)),
             Yield(Var("lhschild"))))))
     val result = compileToGP(Module("test", Seq(DirectDataModel(Exp.model)), Nil, Nil, Seq(fun)))
-    println(Printer.prettyModule(result))
+    println(GPPrinter.prettyModule(result))
   }
 
   test("function pattern using notinstance of"){
@@ -138,7 +138,7 @@ class GenerateDatalogTest extends AnyFunSuite {
             Assert(NotInstanceOf(Var("lhschild"), addType)),
             Yield(Var("lhschild"))))))
     val result = compileToGP(Module("test", Seq(DirectDataModel(Exp.model)), Nil, Nil, Seq(fun)))
-    println(Printer.prettyModule(result))
+    println(GPPrinter.prettyModule(result))
   }
 
   test("function pattern def of call"){
@@ -159,7 +159,7 @@ class GenerateDatalogTest extends AnyFunSuite {
             Assert(Def(Call("lhChild", Seq(Var("lhschild"))))),
             Yield(Var("lhschild"))))))
     val result = compileToGP(Module("test", Seq(DirectDataModel(Exp.model)), Nil, Nil, Seq(fun, lhChildFun)))
-    println(Printer.prettyModule(result))
+    println(GPPrinter.prettyModule(result))
   }
 
   test("function pattern def of path"){
@@ -178,7 +178,7 @@ class GenerateDatalogTest extends AnyFunSuite {
           List(
             Assert(Def(PathAccess(Var("add"), lhsLink)))))))
     val result = compileToGP(Module("test", Seq(DirectDataModel(Exp.model)), Nil, Nil, Seq(fun)))
-    println(Printer.prettyModule(result))
+    println(GPPrinter.prettyModule(result))
   }
 
   test("function pattern undef of path"){
@@ -195,17 +195,17 @@ class GenerateDatalogTest extends AnyFunSuite {
           List(
             Assert(Undef(PathAccess(Var("add"), lhsLink)))))))
     val result = compileToGP(Module("test", Seq(DirectDataModel(Exp.model)), Nil, Nil, Seq(fun)))
-    println(Printer.prettyModule(result))
+    println(GPPrinter.prettyModule(result))
   }
 
   test("parameter without type"){
     val result = compileToGP(Module("test", Seq(DirectDataModel(Exp.model)), Nil, Nil, Seq(noParamTypeFun)))
-    println(Printer.prettyModule(result))
+    println(GPPrinter.prettyModule(result))
   }
 
   test("parameter with primitive type"){
     val result = compileToGP(Module("test", Seq(DirectDataModel(Exp.model)), Nil, Nil, Seq(primitiveParamFun)))
-    println(Printer.prettyModule(result))
+    println(GPPrinter.prettyModule(result))
   }
 
   test("modules with val defs") {

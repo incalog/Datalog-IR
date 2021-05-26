@@ -51,7 +51,6 @@ object FunctionalExecutor {
     def input(args: Seq[meta.Term]): Input = {
       val (ess, cargs) = vals(args:_*).map {
         case arg: Diffable =>
-          println(arg.toStringWithURI)
           (arg.loadEdits, arg.uri)
         case lit => (EditScript(Seq()), lit)
       }.unzip
@@ -60,10 +59,7 @@ object FunctionalExecutor {
 
     def output(pat: String, tuple: Tuple): Results[AnyRef] = {
       val mainSpec = compiled.psystemModule.patterns(pat)()
-      val inputSpec = compiled.psystemModule.patterns("input$" + pat)()
       val mainMatcher = engine.getMatcher(mainSpec)
-      val inputMatcher = engine.getMatcher(inputSpec)
-      println(mainMatcher.countMatches())
       val arity = mainMatcher.getParameterNames.size()
       val inputSeq = tuple.getElements ++ (for (_ <- 0 until (arity - tuple.getSize)) yield null)
       val inputMatch = Query.Match(mainSpec, inputSeq, isMutable = false)
@@ -86,8 +82,8 @@ object FunctionalExecutor {
         val endLoadDB = System.currentTimeMillis()
         loadingTime = endLoadDB - startLoadDB
       }
-      val endQuery = System.currentTimeMillis()
       val results = output(main, tuple)
+      val endQuery = System.currentTimeMillis()
       println(results)
       (loadingTime, endQuery - startQuery)
     }
@@ -143,6 +139,8 @@ object FunctionalExecutor {
   def loadFunction(code: String): Loaded = {
     val options = FunctionalOptions()
     val compiled = Compiler.compileFunctional(code, options)
+//    println("#####PSYSTEM SOURCE")
+//    println(compiled.psystemSource)
     val scope = new QueryScope(compiled.dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     Loaded(engine, feed, compiled)

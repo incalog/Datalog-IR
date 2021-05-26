@@ -4,7 +4,7 @@ import inca.backend.ir.Datalog.{Atom, Body, Call, Comparator, Compare, Computati
 import inca.backend.optimize.EvalFusion
 import truechange.JavaLitType
 
-object Printer {
+object GPPrinter {
 
   def prettyModule(module: Module): String =
     "module " +

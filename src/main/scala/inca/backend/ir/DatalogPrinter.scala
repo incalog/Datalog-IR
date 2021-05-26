@@ -46,8 +46,8 @@ object DatalogPrinter {
 
   def prettyAtom(atom: Atom)(implicit verbose: Boolean): String = atom match {
     case Compare(comp, lhs, rhs) => prettyTerm(lhs) + " " + prettyComparator(comp) + " " + prettyTerm(rhs)
-    case HasType(v, typ) => prettyType(typ) + "(" + prettyTerm(v) + ")"
-    case NotHasType(v, typ) => "!" + prettyType(typ) + "(" + prettyTerm(v) + ")"
+    case HasType(v, typ) => "type " + prettyType(typ) + "(" + prettyTerm(v) + ")"
+    case NotHasType(v, typ) => "!type" + prettyType(typ) + "(" + prettyTerm(v) + ")"
     case Path(src, srcTy, link, trg, trgTy) =>
       if (verbose)
         s"${prettyLink(link)}(${prettyTerm(src)}:${prettyType(srcTy)}, ${prettyTerm(trg)}:${prettyType(trgTy)})"
@@ -74,7 +74,7 @@ object DatalogPrinter {
     case ExtensionalCall(name, args, isNeg) =>
       val neg = if (isNeg) "!" else ""
       val call = s"$name(${args.map(prettyTerm).mkString(",")})"
-      s"${neg}$call"
+      s"ext ${neg}$call"
     case Undef(t) =>
       s"!${prettyTerm(t)}"
   }

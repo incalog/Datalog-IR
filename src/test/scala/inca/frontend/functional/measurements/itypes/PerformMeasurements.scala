@@ -138,19 +138,23 @@ object PerformMeasurements extends scala.App {
        |  }
        |}
        |""".stripMargin
-  val configs = MeasurementConfig.generate(1, 30, 40)
+  val configs = MeasurementConfig.generate(200, 30, 40)
   configs.headOption.foreach { config =>
     val prog = config.gen.generate(config.depth)
+//    val prog = Lam("x", TInt(), Num(1))
     val progEdit =  config.edit.edit(prog)
     println(prog)
     println(Exp.numOfExp(prog))
-//
-    val analysis = FunctionalExecutor.loadFunction(code)
-    println(DatalogPrinter.prettyModule(analysis.compiled.optimized)(false))
 
+    val analysis = FunctionalExecutor.loadFunction(code)
+
+//    println(DatalogPrinter.prettyModule(analysis.compiled.optimized)(false))
     val (loading, query) = analysis.measure("typeOf", Seq(q"Empty()", toScalaMeta(prog)))
-//    println(s"Time to fill database: ${loading}ms")
-//    println(s"Time to process query: ${query}ms")
+    println(s"Time to fill database: ${loading}ms")
+    println(s"Time to process query: ${query}ms")
+    val (loading2, query2) = analysis.measure("typeOf", Seq(q"Empty()", toScalaMeta(progEdit)))
+    println(s"Time to fill database: ${loading2}ms")
+    println(s"Time to process query: ${query2}ms")
 
 //    println(t)
     // analysis.execute("typeOf", Seq(toScalaMeta(progEdit)), deleteInput = true)

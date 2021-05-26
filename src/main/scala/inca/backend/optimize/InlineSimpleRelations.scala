@@ -17,8 +17,8 @@ object InlineSimpleRelations extends Optimization {
       lazy val calls = pat.bodies.head.atoms.collect { case call: Call => call }
       lazy val singleCall = calls.size == 1
       lazy val directlyRecursive = calls.head.name == pat.name
-      lazy val hasCustomAggregation = pat.bodies.head.atoms.exists { case Computed(_, _: CustomAggregation) => true; case _ => false }
-      singleBody && !isMain && singleCall && !directlyRecursive && !hasCustomAggregation
+      lazy val hasEvaluation = pat.bodies.head.atoms.exists { case Computed(_, _) => true; case _ => false }
+      singleBody && !isMain && singleCall && !directlyRecursive && !hasEvaluation
     }
 
     override def optimizeModule(module: Datalog.Module): Datalog.Module = {
