@@ -1,6 +1,6 @@
 package inca.metamodel
 import inca.frontend.constraint.core.TreesitterDataModel
-import inca.frontend.constraint.datamodelresolver.{DataModelParser, TreesitterDataModelResolver}
+import inca.frontend.constraint.datamodelresolver.TreesitterDataModelResolver
 import inca.runtime.context.DataModel
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
