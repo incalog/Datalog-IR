@@ -23,7 +23,7 @@ class DataModelTest extends AnyFunSuite {
 
 
     dataModel.directNodeSupertypes.toSet should contain theSameElementsAs Set(SortType("binary_expression") -> SortType("_expression"),
-      SortType("call_expression") -> SortType("_expression"), SortType("_expression") -> SortType("_simple_statement"),
+      SortType("call_expression")      -> SortType("_expression"), SortType("_expression") -> SortType("_simple_statement"),
       SortType("assignment_statement") -> SortType("_simple_statement"))
   }
 
@@ -65,7 +65,7 @@ class DataModelTest extends AnyFunSuite {
 
       dataModel.links.toSet should contain theSameElementsAs Set(("import_declaration","1") -> SortType("import_spec_list"),
         ("import_declaration","0") -> SortType("import_spec"),
-        ("import_spec_list","0") -> OptionType(ListType(SortType("import_spec"))))
+        ("import_spec_list","0")   -> OptionType(ListType(SortType("import_spec"))))
     }
 
     test("parsing literal children to literal links"){
@@ -78,7 +78,7 @@ class DataModelTest extends AnyFunSuite {
 
       dataModel.links.toSet should contain theSameElementsAs Set(("import_declaration","1") -> SortType("import_spec_list"),
         ("import_declaration","0") -> SortType("import_spec"),
-        ("import_spec_list","1") -> OptionType(ListType(SortType("import_spec"))))
+        ("import_spec_list","1")   -> OptionType(ListType(SortType("import_spec"))))
     }
 
 
@@ -124,16 +124,16 @@ class DataModelTest extends AnyFunSuite {
 
 
     dataModel.litLinks.toSet should contain theSameElementsAs Set(
-      ("function_declaration","name")       -> JavaLitType(classOf[String]),
-      ("function_declaration","parameters") -> JavaLitType(classOf[String]),
+      ("function_declaration","name")          -> JavaLitType(classOf[String]),
+      ("function_declaration","parameters")    -> JavaLitType(classOf[String]),
       ("function_declaration_01","name")       -> JavaLitType(classOf[String]),
       ("function_declaration_01","parameters") -> JavaLitType(classOf[String]),
-      ("otherNode","litarg")                -> JavaLitType(classOf[Option[String]]))
+      ("otherNode","litarg")                   -> JavaLitType(classOf[Option[String]]))
 
     dataModel.links.toSet should contain theSameElementsAs Set(
-      ("otherNode","body")                -> OptionType(SortType("blockANDfunction_declaration$0")),
-      ("function_declaration","body")     -> OptionType(ListType(SortType("block"))),
-      ("function_declaration","result")   -> OptionType(SortType("_simple_typeANDparameter_listANDotherNode$0")),
+      ("otherNode","body")                   -> OptionType(SortType("blockANDfunction_declaration$0")),
+      ("function_declaration","body")        -> OptionType(ListType(SortType("block"))),
+      ("function_declaration","result")      -> OptionType(SortType("_simple_typeANDparameter_listANDotherNode$0")),
       ("function_declaration_01","body")     -> OptionType(ListType(SortType("block"))),
       ("function_declaration_01","result")   -> OptionType(SortType("_simple_typeANDparameter_listANDotherNode$1")))
 
