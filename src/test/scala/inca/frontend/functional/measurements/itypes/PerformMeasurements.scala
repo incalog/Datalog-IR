@@ -3,6 +3,7 @@ package inca.frontend.functional.measurements.itypes
 import inca.backend.ir.DatalogPrinter
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.util.measurement.BenchmarkUtils.{Measurement, Timing, measurementsToCSV, ms, writeFile}
+import inca.util.measurement.MemoryUtil
 
 import scala.collection.mutable
 import scala.meta.{XtensionParseInputLike, XtensionQuasiquoteTerm}
@@ -105,8 +106,12 @@ object PerformMeasurements extends scala.App {
 
     val emptyCtx = q"Empty()"
 
+
     // load analysis
     val analysis = FunctionalExecutor.loadFunction(code)
+
+    // collect garbage before running analysis
+    MemoryUtil.collectGarbage()
 
     // initialize analysis
     val (initalLoadTime, initialQueryTime) = analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
