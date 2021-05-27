@@ -102,8 +102,11 @@ object LambdaEditScenario extends EditScenario {
 
   override def traverse(exp: Exp, count: Int): (Exp, Int) = exp match {
     case Lam(p, t, b) =>
-      val (bexp, bcount) = traverse(b, count)
-      (Lam(p, t, Lam("y", TInt(), bexp)), bcount + 1)
+      val (bexp, bcount) = traverse(b, count + 1)
+      if (shouldChange(count))
+        (Lam(p, t, Lam("y", TInt(), bexp)), bcount)
+      else
+        (Lam(p, t, bexp), bcount)
     case _ => super.traverse(exp, count)
   }
 }

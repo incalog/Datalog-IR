@@ -1,6 +1,5 @@
 package inca.frontend.functional.measurements.itypes
 
-import inca.backend.ir.DatalogPrinter
 import inca.frontend.functional.executor.FunctionalExecutor
 import inca.util.measurement.BenchmarkUtils.{Measurement, Timing, measurementsToCSV, ms, writeFile}
 import inca.util.measurement.MemoryUtil
