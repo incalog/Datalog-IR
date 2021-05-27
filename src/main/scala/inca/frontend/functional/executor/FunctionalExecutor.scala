@@ -20,10 +20,34 @@ import scala.jdk.CollectionConverters._
 object FunctionalExecutor {
   case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledModule) {
 
+    // load analysis
+    // 1. Scenario
+    // execute foo
+    // execute bar with same input
+
+    // input
+    // execute foo with input
+    // execute bar with input
+    // we need to chkec that the edit script is the same as before (if so, just insert tuple otherwise also process editscript)
+
+
+    // 2. Scenario
+    // input
+    // execute foo with input
+    // new input
+    // update foo with new input
+
+
+    // 3. Scenario
+    // execute foo
+    // update foo
+    // execute bar with same input
 
     lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
 
-    val lastArgs: mutable.ListBuffer[Diffable] = mutable.ListBuffer()
+    // there are either both None or Some
+    var lastArgs: Option[Seq[Any]] = None
+    var lastTuple: Option[Tuple] = None
 
     val loadedPsystemModule: String = scalaCompiler.define {
       import scala.meta._
@@ -39,23 +63,31 @@ object FunctionalExecutor {
       compiled.psystemModule.patterns.keys.foreach(printMatches)
     }
 
-    def input(arg: meta.Term): AnyRef = vals(arg) match {
-      case Seq(arg: Diffable) =>
-        feed.processEditScript(arg.loadEdits)
-        arg.uri
-      case Seq(lit) => lit
-    }
 
     type Input = (EditScript, Tuple)
 
     def input(args: Seq[meta.Term]): Input = {
-      val (ess, cargs) = vals(args:_*).map {
-        case arg: Diffable =>
-          (arg.loadEdits, arg.uri)
-        case lit => (EditScript(Seq()), lit)
-      }.unzip
-      (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs:_*))
+      lastArgs match {
+        case Some(lastArgs1) =>
+          val (ess, cargs, updatedArgs) = vals(args:_*).zip(lastArgs1).map {
+            case (newArg: Diffable, oldArg: Diffable) =>
+              val (edits, updatedArg) = oldArg.compareTo(newArg)
+              (edits, updatedArg.uri, updatedArg)
+            case lit => (EditScript(Seq()), lit, lit)
+          }.unzip3
+          lastArgs = Some(updatedArgs)
+          (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs:_*))
+        case None =>
+          val (ess, cargs, updatedArgs) = vals(args:_*).map {
+            case arg: Diffable => (arg.loadEdits, arg.uri, arg)
+            case lit => (EditScript(Seq()), lit, lit)
+          }.unzip3
+          lastArgs = Some(updatedArgs)
+          (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs:_*))
+      }
     }
+
+    def input(arg: meta.Term): Input = input(Seq(arg))
 
     def output(pat: String, tuple: Tuple): Results[AnyRef] = {
       val mainSpec = compiled.psystemModule.patterns(pat)()
@@ -70,35 +102,51 @@ object FunctionalExecutor {
     }
 
     def measure(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): (Long, Long) = {
+      // TODO need to check if tuple is different (if it is the case insert new and delete old, else only process editscript)
       val (es, tuple) = input(args)
-      val startQuery = System.currentTimeMillis()
+      println(es.size)
+      val startQuery = System.nanoTime()
       var loadingTime: Long = 0
       engine.delayUpdatePropagation { () =>
-        val startLoadDB = System.currentTimeMillis()
+        val startLoadDB = System.nanoTime()
         feed.processEditScript(es)
-        feed.insert(demandPatternExtensionalPrefix + main, tuple)
-        if (deleteInput)
-          feed.delete(demandPatternExtensionalPrefix + main, tuple)
-        val endLoadDB = System.currentTimeMillis()
+        lastTuple match {
+          case Some(oldTuple) =>
+            if (oldTuple != tuple) {
+              feed.insert(demandPatternExtensionalPrefix + main, tuple)
+              feed.delete(demandPatternExtensionalPrefix + main, oldTuple)
+            } else {
+              // do nothing tuples are the same
+            }
+          case None =>
+            feed.insert(demandPatternExtensionalPrefix + main, tuple)
+            if (deleteInput)
+              feed.delete(demandPatternExtensionalPrefix + main, tuple)
+        }
+        lastTuple = Some(tuple)
+        val endLoadDB = System.nanoTime()
         loadingTime = endLoadDB - startLoadDB
       }
       val results = output(main, tuple)
-      val endQuery = System.currentTimeMillis()
-      println(results)
+      val endQuery = System.nanoTime()
+      // println(results)
       (loadingTime, endQuery - startQuery)
     }
 
+
     def execute(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): Results[AnyRef] = {
-      val (es, tuple) = input(args)
-      feed.processEditScript(es)
-      executeTuple(main, tuple, deleteInput)
+      // TODO need to check if tuple is different (if it is the case insert new and delete old, else only process editscript)
+      executeInput(main, input(args), deleteInput)
     }
 
-    def executeTuple(main: String, tuple: Tuple, deleteInput: Boolean = false): Results[AnyRef] = {
-      feed.insert(demandPatternExtensionalPrefix + main, tuple)
-      val results = output(main, tuple)
+    def executeInput(main: String, input: Input, deleteInput: Boolean = false): Results[AnyRef] = {
+      engine.delayUpdatePropagation {() =>
+        feed.processEditScript(input._1)
+        feed.insert(demandPatternExtensionalPrefix + main, input._2)
+      }
+      val results = output(main, input._2)
       if (deleteInput)
-        feed.delete(demandPatternExtensionalPrefix + main, tuple)
+        feed.delete(demandPatternExtensionalPrefix + main, input._2)
       results
     }
 
