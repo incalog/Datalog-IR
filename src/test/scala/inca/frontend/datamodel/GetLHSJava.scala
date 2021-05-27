@@ -1,16 +1,16 @@
 package inca.frontend.datamodel
 
 import inca.executor.ConstraintExecutor
-import truediff.compat.treesitter.GoLang
+import truediff.compat.treesitter.{GoLang, JavaLang}
 
-object SimpleChecks extends App {
+object GetLHSJava extends App {
   val analysis =
     s"""
        |module DataModelTest
        |
        |datamodel treesitter ./src/main/resources/tree-sitter-java
        |
-       |def getLHS(e: _expression): _expression = {
+       |def getLHS(e: expression): expression = {
        |  if (e.isInstanceOf[binary_expression]) {
        |    val binary = e:binary_expression
        |    yield binary.left
@@ -22,16 +22,16 @@ object SimpleChecks extends App {
        |""".stripMargin
 
 
-  val goParser = GoLang.newParser()
+  val javaParser = JavaLang.newParser()
 
   val code =
     """(1 + 2) * 5
       """.stripMargin
 
-  val tree = goParser.parse(code)
+  val tree = javaParser.parse(code)
   println(tree)
   println(tree.toStringWithURI)
-  goParser.destroy()
+  javaParser.destroy()
 
   val loadedAnalysis = ConstraintExecutor.loadAnalysis(analysis)
 
