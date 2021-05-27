@@ -1,5 +1,6 @@
-package inca.runtime
+package inca.runtime.db.updater
 
+import inca.runtime.db.Database
 import inca.runtime.index.MetaElements.PrimitiveValue
 import inca.runtime.index.binary.BinaryMapIndex
 import inca.runtime.index.unary.UnaryIndex
@@ -10,7 +11,7 @@ import truechange._
 
 import scala.jdk.CollectionConverters._
 
-class DatabaseUpdater(db: Database) {
+class CollectingDatabaseUpdater(val db: Database) extends DatabaseUpdater {
   private val deletionsLit: MutableSet[(UnaryIndex[PrimitiveValue], PrimitiveValue)] = Sets.mutable.empty()
   private val deletionsURI: MutableSet[(UnaryIndex[URI], URI)] = Sets.mutable.empty()
   private val deletionsURILit: MutableMap[(BinaryMapIndex[URI, PrimitiveValue], URI), PrimitiveValue] = Maps.mutable.empty()
@@ -70,7 +71,6 @@ class DatabaseUpdater(db: Database) {
     deletionsURIURI.clear()
   }
 
-  private def editError(msg: String) = throw new IllegalStateException("Processing edit script failed: " + msg)
 
   /** processes edit to update this index accordingly */
   def processEdit(edit: CoreEdit): Unit = edit match {
@@ -119,7 +119,7 @@ class DatabaseUpdater(db: Database) {
     case Load(node, ListTag(ty), kids, lits) =>
       // insert node to nodeInstances (also for supertypes)
       val lty = ListType(ty)
-      for (sup <- Iterable(lty) ++ db.languageMetaInfo.supertypes(lty)) {
+      for (sup <- Iterable(lty) ++ db.dataModel.supertypes(lty)) {
         insertOrUpdate(db.nodeInstancesEnsure(sup), node)
       }
       if (kids.nonEmpty || lits.nonEmpty)
@@ -127,7 +127,7 @@ class DatabaseUpdater(db: Database) {
     case Load(node, NamedTag(tagname), kids, lits) =>
       // insert node to nodeInstances (also for supertypes)
       val nty = SortType(tagname)
-      for (sup <- Iterable(nty) ++ db.languageMetaInfo.supertypes(nty)) {
+      for (sup <- Iterable(nty) ++ db.dataModel.supertypes(nty)) {
         insertOrUpdate(db.nodeInstancesEnsure(sup), node)
       }
       // insert links from node to kids
@@ -144,7 +144,7 @@ class DatabaseUpdater(db: Database) {
     case Unload(node, ListTag(ty), kids, lits) =>
       // delete node from nodeInstances (also for supertypes)
       val lty = ListType(ty)
-      for (sup <- Iterable(lty) ++ db.languageMetaInfo.supertypes(lty)) {
+      for (sup <- Iterable(lty) ++ db.dataModel.supertypes(lty)) {
         deletionsURI.add(db.nodeInstances(sup) -> node)
       }
       if (kids.nonEmpty || lits.nonEmpty)
@@ -152,7 +152,7 @@ class DatabaseUpdater(db: Database) {
     case Unload(node, NamedTag(tagname), kids, lits) =>
       // delete node from nodeInstances (also for supertypes)
       val nty = SortType(tagname)
-      for (sup <- Iterable(nty) ++ db.languageMetaInfo.supertypes(nty)) {
+      for (sup <- Iterable(nty) ++ db.dataModel.supertypes(nty)) {
         deletionsURI.add(db.nodeInstances(sup) -> node)
       }
       // delete links from node to kids

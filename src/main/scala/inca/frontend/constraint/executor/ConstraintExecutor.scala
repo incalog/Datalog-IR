@@ -4,7 +4,8 @@ import inca.compiler.{CompiledModule, Compiler}
 import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.runtime.Query.Match
 import inca.runtime.context.QueryScope
-import inca.runtime.{Database, EnginePool}
+import inca.runtime.EnginePool
+import inca.runtime.db.Database
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truediff.Diffable

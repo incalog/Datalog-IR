@@ -1,6 +1,6 @@
 package inca.runtime.index.dynamic
 
-import inca.runtime.Database
+import inca.runtime.db.Database
 import inca.runtime.index.DynamicKey
 import inca.runtime.index.binary.BidirectionalManyToOneIndex
 import org.eclipse.collections.api.factory.Maps

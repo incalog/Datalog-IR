@@ -95,13 +95,11 @@ object PerformMeasurements extends scala.App {
   // generate measurement configs
   val configs = MeasurementConfig.generate(200, 10, 40)
 
-  val measurements = configs.filter{!_.edit.isInstanceOf[AddAppEditScenario.type] }.flatMap { config =>
+  val measurements = configs.flatMap { config =>
     println(config)
     // generate program and edit
     val prog = config.gen.generate(config.depth)
     val progEdit =  config.edit.edit(prog)
-    println(prog)
-    println(progEdit)
 
     val emptyCtx = q"Empty()"
 

@@ -1,6 +1,6 @@
 package inca.runtime.index.virtual
 
-import inca.runtime.Database
+import inca.runtime.db.Database
 import inca.runtime.index.{IndexKey, VirtualKey}
 import truechange.{Type, URI}
 
