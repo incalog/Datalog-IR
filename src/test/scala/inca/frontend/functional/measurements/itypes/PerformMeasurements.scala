@@ -13,8 +13,8 @@ object PerformMeasurements extends scala.App {
   val code =
     s"""module TypeChecker
        |
-       |// data BindingList = Nil() | Cons(String, Exp, BindingList)
-       |data Exp = Num(Int) | Var(String) | Add(Exp, Exp) | Lam(String, Type, Exp) | App(Exp, Exp) | Let(String, Exp, Exp)
+       |data BindingList = Nil() | Cons(String, Exp, BindingList)
+       |data Exp = Num(Int) | Var(String) | Add(Exp, Exp) | Lam(String, Type, Exp) | App(Exp, Exp) | Let(String, Exp, Exp) | LetStar(BindingList, Exp)
        |data Type = TInt() | TFun(Type, Type)
        |data Ctx = Empty() | Bind(String, Type, Ctx)
        |
@@ -55,8 +55,20 @@ object PerformMeasurements extends scala.App {
        |    }
        |  }
        |  case Let(n, bound, body) => typeOf(ctx, bound) match {
-       |    case Some(boundty) => typeOf(Bind(n, boundty, ctx), body)
        |    case None => None
+       |    case Some(boundty) => typeOf(Bind(n, boundty, ctx), body)
+       |  }
+       |  case LetStar(bindings, body) => extendCtx(ctx, bindings) match {
+       |    case None => None
+       |    case Some(extCtx) => typeOf(extCtx, body)
+       |  }
+       |}
+       |
+       |def extendCtx(ctx: Ctx, bindings: BindingList): Option[Ctx] = bindings match {
+       |  case Nil() => Some(ctx)
+       |  case Cons(name, bound, rest) => typeOf(ctx, bound) match {
+       |    case None => None
+       |    case Some(ty) => extendCtx(Bind(name, ty, ctx), rest)
        |  }
        |}
        |
@@ -83,7 +95,7 @@ object PerformMeasurements extends scala.App {
   // generate measurement configs
   val configs = MeasurementConfig.generate(200, 10, 40)
 
-  val measurements = Seq(configs(4)).flatMap { config =>
+  val measurements = configs.filter{!_.edit.isInstanceOf[AddAppEditScenario.type] }.flatMap { config =>
     println(config)
     // generate program and edit
     val prog = config.gen.generate(config.depth)
@@ -107,7 +119,6 @@ object PerformMeasurements extends scala.App {
     val undoTimes = mutable.ListBuffer[(Long, Long)]()
     // do measurements
     (0 until config.warmupMeasurements + config.numMeasurements).foreach { ix =>
-      println(ix)
       editTimes += analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(progEdit)))
       undoTimes += analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
     }
@@ -117,6 +128,7 @@ object PerformMeasurements extends scala.App {
       Measurement(baseConfigName + " Undo", undoTimes.map(_._2).toSeq))
 
   }
+  println(measurementsToCSV(measurements))
   writeFile("benchmark/itypes/measurements.csv", measurementsToCSV(measurements))
 
 

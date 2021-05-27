@@ -10,9 +10,19 @@ case class Lam(param: String, ty: Type, body: Exp) extends Exp {
 case class Var(name: String) extends Exp {
   override def toString: String = "Var(\"" + name + "\")"
 }
-case class LetStar(bindings: Seq[(String, Exp)], body: Exp) extends Exp
+case class LetStar(bindings: BindingList, body: Exp) extends Exp {
+  override def toString: String = s"""LetStar(${bindings.toString},${body.toString})"""
+}
 case class Let(name: String, bound: Exp, body: Exp) extends Exp {
   override def toString: String = s"""Let(\"$name\",${bound.toString},${body.toString})"""
+}
+
+trait BindingList
+case class Nil() extends BindingList {
+  override def toString: String = "Nil()"
+}
+case class Cons(name: String, bound: Exp, rest: BindingList) extends BindingList {
+  override def toString: String = s"""Cons(\"$name\",${bound.toString},${rest.toString})"""
 }
 
 

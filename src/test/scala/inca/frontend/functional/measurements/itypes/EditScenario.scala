@@ -27,7 +27,7 @@ trait EditScenario {
       (Let(n, boundexp, bodyexp), bodycount)
     case LetStar(bindings, body) =>
       var bindingsCount = count
-      val newBindings = bindings.map { case (n, e) =>
+      val newBindings = mapBindingList(bindings) { case (n, e) =>
         val (newe, c) = traverse(e, bindingsCount)
         bindingsCount = c
         (n, newe)
@@ -35,7 +35,16 @@ trait EditScenario {
       val (bodyexp, bodycount) = traverse(body, bindingsCount)
       (LetStar(newBindings, bodyexp), bodycount)
   }
+
+  def mapBindingList(bindings: BindingList)(f: (String, Exp) => (String, Exp)): BindingList = bindings match {
+    case Nil() => Nil()
+    case Cons(name, bound, rest) =>
+      val (newName, newExp) = f(name, bound)
+      Cons(newName, newExp, mapBindingList(rest)(f))
+  }
 }
+
+
 
 object NumEditScenario extends EditScenario {
 

@@ -20,29 +20,6 @@ import scala.jdk.CollectionConverters._
 object FunctionalExecutor {
   case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledModule) {
 
-    // load analysis
-    // 1. Scenario
-    // execute foo
-    // execute bar with same input
-
-    // input
-    // execute foo with input
-    // execute bar with input
-    // we need to chkec that the edit script is the same as before (if so, just insert tuple otherwise also process editscript)
-
-
-    // 2. Scenario
-    // input
-    // execute foo with input
-    // new input
-    // update foo with new input
-
-
-    // 3. Scenario
-    // execute foo
-    // update foo
-    // execute bar with same input
-
     lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
 
     // there are either both None or Some
@@ -104,7 +81,6 @@ object FunctionalExecutor {
     def measure(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): (Long, Long) = {
       // TODO need to check if tuple is different (if it is the case insert new and delete old, else only process editscript)
       val (es, tuple) = input(args)
-      println(es.size)
       val startQuery = System.nanoTime()
       var loadingTime: Long = 0
       engine.delayUpdatePropagation { () =>
@@ -127,9 +103,8 @@ object FunctionalExecutor {
         val endLoadDB = System.nanoTime()
         loadingTime = endLoadDB - startLoadDB
       }
-      val results = output(main, tuple)
+      println(output(main, tuple))
       val endQuery = System.nanoTime()
-      // println(results)
       (loadingTime, endQuery - startQuery)
     }
 

@@ -12,7 +12,8 @@ object GenerateStarDependencyProg extends GenerateProg {
       Lam("x", TInt(), Add(Num(1), App(Var(f0Name), Var("x"))))
     }
 
-    val bindings = (1 to depth).map {i => (newName(i), genExp()) }
+
+    val bindings = (1 to depth).foldRight[BindingList](Nil()) {case (i, res) => Cons(newName(i), genExp(), res) }
 
     Let(f0Name, Lam("x", TInt(), Add(Num(1), Var("x"))),
       LetStar(bindings, Add(Num(1), App(Var(f0Name), Num(1))))
