@@ -70,6 +70,10 @@ object FunctionalExecutor {
     def output(pat: String, tuple: Tuple): Results[AnyRef] = {
       val mainSpec = compiled.psystemModule.patterns(pat)()
       val mainMatcher = engine.getMatcher(mainSpec)
+      val inputSpec = compiled.psystemModule.patterns(s"input$$$pat")()
+      val inputMatcher = engine.getMatcher(inputSpec)
+      println(s"typeOf: ${mainMatcher.countMatches()}")
+      println(s"input$$$pat: ${inputMatcher.countMatches()}")
       val arity = mainMatcher.getParameterNames.size()
       val inputSeq = tuple.getElements ++ (for (_ <- 0 until (arity - tuple.getSize)) yield null)
       val inputMatch = Query.Match(mainSpec, inputSeq, isMutable = false)
@@ -77,11 +81,12 @@ object FunctionalExecutor {
         m.toArray.slice(tuple.getSize, arity).toSeq
       }.toSeq
       new Results(outputMatches)
+//      new Results(Seq())
     }
 
     def measure(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): (Long, Long) = {
-      // TODO need to check if tuple is different (if it is the case insert new and delete old, else only process editscript)
       val (es, tuple) = input(args)
+      println(es.size)
       val startQuery = System.nanoTime()
       var loadingTime: Long = 0
       engine.delayUpdatePropagation { () =>
@@ -89,6 +94,7 @@ object FunctionalExecutor {
         feed.processEditScript(es)
         lastTuple match {
           case Some(oldTuple) =>
+            // check if last and current tuple are equal
             if (oldTuple != tuple) {
               feed.insert(demandPatternExtensionalPrefix + main, tuple)
               feed.delete(demandPatternExtensionalPrefix + main, oldTuple)
@@ -104,7 +110,7 @@ object FunctionalExecutor {
         val endLoadDB = System.nanoTime()
         loadingTime = endLoadDB - startLoadDB
       }
-      println(output(main, tuple))
+      output(main, tuple)
       val endQuery = System.nanoTime()
       (loadingTime, endQuery - startQuery)
     }

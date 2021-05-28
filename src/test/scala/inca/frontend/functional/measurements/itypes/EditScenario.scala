@@ -117,7 +117,7 @@ object AddAppEditScenario extends EditScenario {
 
   override def traverse(exp: Exp, count: Int): (Exp, Int) = exp match {
     case Add(l, r) =>
-      val (lexp, lcount) = traverse(l, count)
+      val (lexp, lcount) = traverse(l, count + 1)
       val (rexp, rcount) = traverse(r, lcount)
       val newExp = if (shouldChange(count)) App(lexp, rexp) else Add(lexp, rexp)
       (newExp, rcount)

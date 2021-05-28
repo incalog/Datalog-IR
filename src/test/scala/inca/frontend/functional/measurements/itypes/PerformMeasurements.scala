@@ -8,6 +8,7 @@ import scala.collection.mutable
 import scala.meta.{XtensionParseInputLike, XtensionQuasiquoteTerm}
 
 // set -Xss1G otherwise scalameta parse throws stackoverflow
+// set -Xmx16G to give as much as heap memory as possible
 object PerformMeasurements extends scala.App {
   // TODO how will the type checker for LetStar look like (needs support for lists or should we use ADT to encode lists?)?
   val code =
@@ -95,14 +96,38 @@ object PerformMeasurements extends scala.App {
   // generate measurement configs
   val configs = MeasurementConfig.generate(200, 10, 40)
 
-  val measurements = configs.flatMap { config =>
-    println(config)
+  // measure initialization times
+  val starDependencyConfig = configs.find(_.gen.isInstanceOf[GenerateStarDependencyProg.type]).get
+  val chainDependencyConfig = configs.find(_.gen.isInstanceOf[GenerateChainDependencyProg.type]).get
+
+  val initMeasurements = Seq(starDependencyConfig, chainDependencyConfig).map { config =>
+    val prog = config.gen.generate(config.depth)
+    val emptyCtx = q"Empty()"
+
+    val initialTimes = (0 until config.warmupMeasurements + config.numMeasurements).map { ix =>
+      // load analysis
+      val analysis = FunctionalExecutor.loadFunction(code)
+
+      // collect garbage before running analysis
+      MemoryUtil.collectGarbage()
+
+      // initialize analysis
+      val (initalLoadTime, initialQueryTime) = analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
+      initialQueryTime
+    }
+
+    val baseConfigName = config.gen.getClass.getSimpleName.replaceAllLiterally("$", "") + " Initial"
+    implicit val timing = Timing(config.warmupMeasurements, config.numMeasurements)
+    Measurement(baseConfigName, initialTimes)
+  }
+
+  // measure incremental update times
+
+  val incrementalMeasurements = configs.flatMap { config =>
     // generate program and edit
     val prog = config.gen.generate(config.depth)
     val progEdit =  config.edit.edit(prog)
-
     val emptyCtx = q"Empty()"
-
 
     // load analysis
     val analysis = FunctionalExecutor.loadFunction(code)
@@ -111,11 +136,11 @@ object PerformMeasurements extends scala.App {
     MemoryUtil.collectGarbage()
 
     // initialize analysis
-    val (initalLoadTime, initialQueryTime) = analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
+    val (initialLoadTime, initialQueryTime) = analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
 
     val baseConfigName = config.gen.getClass.getSimpleName.replaceAllLiterally("$", "") + " " + config.edit.getClass.getSimpleName.replaceAllLiterally("$", "")
-    println(s"$baseConfigName ${ms(initalLoadTime)}, ${ms(initialQueryTime)}")
 
+    println(baseConfigName)
     implicit val timing = Timing(config.warmupMeasurements, config.numMeasurements)
     val editTimes = mutable.ListBuffer[(Long, Long)]()
     val undoTimes = mutable.ListBuffer[(Long, Long)]()
@@ -126,14 +151,13 @@ object PerformMeasurements extends scala.App {
     }
 
     Seq(
-      Measurement(baseConfigName + " Edit", editTimes.map(_._1).toSeq),
+      Measurement(baseConfigName + " Edit", editTimes.map(_._2).toSeq),
       Measurement(baseConfigName + " Undo", undoTimes.map(_._2).toSeq))
 
   }
-  println(measurementsToCSV(measurements))
-  writeFile("benchmark/itypes/measurements.csv", measurementsToCSV(measurements))
-
-
+  val allMeasurements = initMeasurements ++ incrementalMeasurements
+  println(measurementsToCSV(allMeasurements))
+  writeFile("benchmark/itypes/measurements.csv", measurementsToCSV(allMeasurements))
 
   def toScalaMeta(exp: Exp): meta.Term = {
     exp.toString.parse[meta.Term].get
