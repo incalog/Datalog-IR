@@ -13,7 +13,8 @@ object BenchmarkUtils {
   object Measurement {
     def apply(name: String, vals: Seq[Long], extra: Map[String, Any] = Map())(implicit timing: Timing): Measurement = {
       val outliers = timing.outliers
-      Measurement(name, vals, outliers, extra)
+      val measurementVals = vals.drop(timing.discard)
+      Measurement(name, measurementVals, outliers, extra)
     }
   }
 
@@ -36,19 +37,15 @@ object BenchmarkUtils {
         text + extra.map(kv => s"\n  ${kv._1}: ${kv._2}").foldLeft("")(_+_)
     }
 
-//    def extendWithAggregated: Measurement[ES] = {
-//      val diffTime = ms(avg(valsWithoutOutliers))
-//      val newExtras = Map(
-//        "Avg Difftime (ms)" -> f"$diffTime%.32f"
-//      )
-//      extend(newExtras)
-//    }
+    def combine(name: String, other: Measurement): Measurement = {
+      Measurement(name, vals ++ other.vals, outliers = 0, Map())
+    }
 
     def extend(newExtras: Map[String, Any]): Measurement = {
       Measurement(name, vals, outliers, extra ++ newExtras)
     }
 
-    val csvHeader: String = s"Name, Average Diffing time (ms)${if (extra.isEmpty) "," else extra.keys.mkString(",", ",", ",")}raw data (ns)"
+    val csvHeader: String = s"Name, AVG time (ms)${if (extra.isEmpty) "," else extra.keys.mkString(",", ",", ",")}raw data (ns)"
 
     val csv: CSVRow = {
 

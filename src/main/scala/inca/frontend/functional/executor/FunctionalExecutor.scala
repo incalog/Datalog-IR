@@ -15,7 +15,6 @@ import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truechange.EditScript
 import truediff.Diffable
 
-import scala.collection.mutable
 import scala.jdk.CollectionConverters._
 
 object FunctionalExecutor {
@@ -23,9 +22,10 @@ object FunctionalExecutor {
 
     lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
 
-    // there are either both None or Some
+    // if lastArgs is Some then there is at least one entry in lastTuple
     var lastArgs: Option[Seq[Any]] = None
-    var lastTuple: Option[Tuple] = None
+    // maps from fuction name to inserted tuple
+    var lastTuple: Map[String, Tuple] = Map()
 
     val loadedPsystemModule: String = scalaCompiler.define {
       import scala.meta._
@@ -51,7 +51,7 @@ object FunctionalExecutor {
             case (newArg: Diffable, oldArg: Diffable) =>
               val (edits, updatedArg) = oldArg.compareTo(newArg)
               (edits, updatedArg.uri, updatedArg)
-            case lit => (EditScript(Seq()), lit, lit)
+            case (litnew, litold) => (EditScript(Seq()), litnew, litnew)
           }.unzip3
           lastArgs = Some(updatedArgs)
           (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs:_*))
@@ -70,10 +70,6 @@ object FunctionalExecutor {
     def output(pat: String, tuple: Tuple): Results[AnyRef] = {
       val mainSpec = compiled.psystemModule.patterns(pat)()
       val mainMatcher = engine.getMatcher(mainSpec)
-      val inputSpec = compiled.psystemModule.patterns(s"input$$$pat")()
-      val inputMatcher = engine.getMatcher(inputSpec)
-      println(s"typeOf: ${mainMatcher.countMatches()}")
-      println(s"input$$$pat: ${inputMatcher.countMatches()}")
       val arity = mainMatcher.getParameterNames.size()
       val inputSeq = tuple.getElements ++ (for (_ <- 0 until (arity - tuple.getSize)) yield null)
       val inputMatch = Query.Match(mainSpec, inputSeq, isMutable = false)
@@ -81,18 +77,29 @@ object FunctionalExecutor {
         m.toArray.slice(tuple.getSize, arity).toSeq
       }.toSeq
       new Results(outputMatches)
-//      new Results(Seq())
+    }
+
+    def countTuples(pat: String): Int = {
+      val mainSpec = compiled.psystemModule.patterns(pat)()
+      val mainMatcher = engine.getMatcher(mainSpec)
+      mainMatcher.countMatches()
+    }
+
+    def countTuples(pat: String, tuple: Tuple): Int = {
+      val mainSpec = compiled.psystemModule.patterns(pat)()
+      val mainMatcher = engine.getMatcher(mainSpec)
+      val partialMatch = Query.Match(mainSpec, tuple.getElements, isMutable = false)
+      mainMatcher.countMatches(partialMatch)
     }
 
     def measure(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): (Long, Long) = {
       val (es, tuple) = input(args)
-      println(es.size)
       val startQuery = System.nanoTime()
       var loadingTime: Long = 0
       engine.delayUpdatePropagation { () =>
         val startLoadDB = System.nanoTime()
         feed.processEditScript(es)
-        lastTuple match {
+        lastTuple.get(main) match {
           case Some(oldTuple) =>
             // check if last and current tuple are equal
             if (oldTuple != tuple) {
@@ -106,11 +113,11 @@ object FunctionalExecutor {
             if (deleteInput)
               feed.delete(demandPatternExtensionalPrefix + main, tuple)
         }
-        lastTuple = Some(tuple)
+        lastTuple = lastTuple + (main -> tuple)
         val endLoadDB = System.nanoTime()
         loadingTime = endLoadDB - startLoadDB
       }
-      output(main, tuple)
+      countTuples(main)
       val endQuery = System.nanoTime()
       (loadingTime, endQuery - startQuery)
     }
@@ -122,14 +129,27 @@ object FunctionalExecutor {
     }
 
     def executeInput(main: String, input: Input, deleteInput: Boolean = false): Results[AnyRef] = {
-      engine.delayUpdatePropagation {() =>
-        feed.processEditScript(input._1)
-        feed.insert(demandPatternExtensionalPrefix + main, input._2)
+      val (es, tuple) = input
+      engine.delayUpdatePropagation { () =>
+        feed.processEditScript(es)
+        lastTuple.get(main) match {
+          case Some(oldTuple) =>
+            // check if last and current tuple are equal
+            if (oldTuple != tuple) {
+              feed.insert(demandPatternExtensionalPrefix + main, tuple)
+            } else {
+              // do nothing tuples are the same
+            }
+          case None =>
+            feed.insert(demandPatternExtensionalPrefix + main, tuple)
+        }
+        lastTuple = lastTuple + (main -> tuple)
       }
-      val results = output(main, input._2)
-      if (deleteInput)
-        feed.delete(demandPatternExtensionalPrefix + main, input._2)
-      results
+      val result = output(main, tuple)
+      if (deleteInput) {
+        feed.delete(demandPatternExtensionalPrefix + main, tuple)
+      }
+      result
     }
 
     def vals(ts: meta.Term*): Seq[AnyRef] = {

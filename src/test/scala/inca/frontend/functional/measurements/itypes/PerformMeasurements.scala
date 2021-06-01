@@ -7,10 +7,10 @@ import inca.util.measurement.MemoryUtil
 import scala.collection.mutable
 import scala.meta.{XtensionParseInputLike, XtensionQuasiquoteTerm}
 
+
 // set -Xss1G otherwise scalameta parse throws stackoverflow
 // set -Xmx16G to give as much as heap memory as possible
 object PerformMeasurements extends scala.App {
-  // TODO how will the type checker for LetStar look like (needs support for lists or should we use ADT to encode lists?)?
   val code =
     s"""module TypeChecker
        |
@@ -104,7 +104,7 @@ object PerformMeasurements extends scala.App {
     val prog = config.gen.generate(config.depth)
     val emptyCtx = q"Empty()"
 
-    val initialTimes = (0 until config.warmupMeasurements + config.numMeasurements).map { ix =>
+    val initialTimes = (0 until config.warmupMeasurements + config.numMeasurements).map { _ =>
       // load analysis
       val analysis = FunctionalExecutor.loadFunction(code)
 
@@ -136,7 +136,7 @@ object PerformMeasurements extends scala.App {
     MemoryUtil.collectGarbage()
 
     // initialize analysis
-    val (initialLoadTime, initialQueryTime) = analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
+    analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
 
     val baseConfigName = config.gen.getClass.getSimpleName.replaceAllLiterally("$", "") + " " + config.edit.getClass.getSimpleName.replaceAllLiterally("$", "")
 
@@ -150,10 +150,10 @@ object PerformMeasurements extends scala.App {
       undoTimes += analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
     }
 
-    Seq(
-      Measurement(baseConfigName + " Edit", editTimes.map(_._2).toSeq),
-      Measurement(baseConfigName + " Undo", undoTimes.map(_._2).toSeq))
-
+    val editMeasurement = Measurement(baseConfigName + " Edit", editTimes.map(_._2).toSeq)
+    val undoMeasurement = Measurement(baseConfigName + " Undo", undoTimes.map(_._2).toSeq)
+    val combinedMeasurement = editMeasurement.combine(baseConfigName + " Edit + Undo", undoMeasurement)
+    Seq(editMeasurement, undoMeasurement, combinedMeasurement)
   }
   val allMeasurements = initMeasurements ++ incrementalMeasurements
   println(measurementsToCSV(allMeasurements))
