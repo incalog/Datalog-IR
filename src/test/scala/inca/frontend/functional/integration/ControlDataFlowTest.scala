@@ -1,9 +1,7 @@
 package inca.frontend.functional.integration
 
-import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
 import inca.examples.functional.ControlDataFlow
 import inca.frontend.functional.executor.FunctionalExecutor._
-import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.scalatest.funsuite.AnyFunSuite
 
 class ControlDataFlowTest extends AnyFunSuite {
@@ -59,7 +57,15 @@ class ControlDataFlowTest extends AnyFunSuite {
 //    fun.output("allExits_RD", Tuples.flatTupleOf(prog)).res.foreach { case Seq(c1, c2, c3) => println(s"$c2:$c3 in $c1") }
 //  }
 
-//  test("intervals ex 2.7") {
+    test("intervals ex 2.7") {
+      println(ControlDataFlow.IntervalModule.lines().count())
+      val fun = loadFunction(ControlDataFlow.IntervalModule)
+      println(fun.compiled.ir.copy(scalaContent = Seq()).toString.lines().count())
+      println(fun.compiled.optimized.copy(scalaContent = Seq()).toString.lines().count())
+      println(fun.compiled.psystemSource.toString.lines().count())
+}
+
+  //  test("intervals ex 2.7") {
 //    val fun = loadFunction(ControlDataFlow.IntervalModule)
 //
 //    // fun.compiled.printStatistics()
