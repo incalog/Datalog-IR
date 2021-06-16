@@ -94,6 +94,8 @@ object FunctionalExecutor {
 
     def measure(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): (Long, Long) = {
       val (es, tuple) = input(args)
+      val mainSpec = compiled.psystemModule.patterns(main)()
+      val mainMatcher = engine.getMatcher(mainSpec)
       val startQuery = System.nanoTime()
       var loadingTime: Long = 0
       engine.delayUpdatePropagation { () =>
@@ -117,7 +119,6 @@ object FunctionalExecutor {
         val endLoadDB = System.nanoTime()
         loadingTime = endLoadDB - startLoadDB
       }
-      countTuples(main)
       val endQuery = System.nanoTime()
       (loadingTime, endQuery - startQuery)
     }
@@ -189,8 +190,6 @@ object FunctionalExecutor {
   def loadFunction(code: String): Loaded = {
     val options = FunctionalOptions()
     val compiled = Compiler.compileFunctional(code, options)
-//    println("#####PSYSTEM SOURCE")
-//    println(compiled.psystemSource)
     val scope = new QueryScope(compiled.dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     Loaded(engine, feed, compiled)

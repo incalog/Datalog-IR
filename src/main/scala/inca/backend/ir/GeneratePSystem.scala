@@ -106,26 +106,6 @@ object GeneratePSystem {
     """
   }
 
-  // val TExp_lmi: LanguageMetaInfo = new LanguageMetaInfo(
-    //    MultiDict(
-    //      SortType("TNum") -> SortType("TExp"),
-    //      SortType("TLam") -> SortType("TExp"),
-    //      SortType("TApp") -> SortType("TExp"),
-    //      SortType("TVar") -> SortType("TExp"),
-    //    ),
-    //    Map(
-    //      ("TLam", "_1") -> SortType("Type"),
-    //      ("TLam", "_2") -> SortType("TExp"),
-    //      ("TApp", "_0") -> SortType("TExp"),
-    //      ("TApp", "_1") -> SortType("TExp"),
-    //    ),
-    //    Map(
-    //      ("TNum", "_0") -> JavaLitType(classOf[Int]),
-    //      ("TLam", "_0") -> JavaLitType(classOf[String]),
-    //      ("TVar", "_0") -> JavaLitType(classOf[String]),
-    //    )
-    //  )
-
   private def compilePattern(moduleName: String, pat: Pattern)(implicit env: RuleEnvironment): Stat = {
     val qname = GeneratePSystem.genQueryName(moduleName, pat.name)
 

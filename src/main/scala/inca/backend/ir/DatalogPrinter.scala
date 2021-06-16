@@ -68,13 +68,13 @@ object DatalogPrinter {
       val neg = if (isNeg) "!" else ""
       val trans = if (isTransitive) "+" else ""
       val call = s"$name$trans(${args.map(prettyTerm).mkString(",")})"
-      s"${neg}$call"
+      s"$neg$call"
     case Computed(lhs, computation) =>
       prettyComputation(lhs, computation)
     case ExtensionalCall(name, args, isNeg) =>
       val neg = if (isNeg) "!" else ""
       val call = s"$name(${args.map(prettyTerm).mkString(",")})"
-      s"ext ${neg}$call"
+      s"ext $neg$call"
     case Undef(t) =>
       s"!${prettyTerm(t)}"
   }

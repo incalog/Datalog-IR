@@ -1,7 +1,8 @@
 package inca.frontend.functional.measurements.itypes
 
+import inca.backend.ir.DatalogPrinter
 import inca.frontend.functional.executor.FunctionalExecutor
-import inca.util.measurement.BenchmarkUtils.{Measurement, Timing, measurementsToCSV, ms, writeFile}
+import inca.util.measurement.BenchmarkUtils.{Measurement, Timing, measurementsToCSV, writeFile}
 import inca.util.measurement.MemoryUtil
 
 import scala.collection.mutable
@@ -94,7 +95,10 @@ object PerformMeasurements extends scala.App {
        |""".stripMargin
 
   // generate measurement configs
-  val configs = MeasurementConfig.generate(200, 10, 40)
+  val warmupMeasurments = 10
+  val numMeasurments = 40
+  implicit val timing: Timing = Timing(warmupMeasurments, numMeasurments)
+  val configs = MeasurementConfig.generate(200, warmupMeasurments, numMeasurments)
 
   // measure initialization times
   val starDependencyConfig = configs.find(_.gen.isInstanceOf[GenerateStarDependencyProg.type]).get
@@ -112,12 +116,11 @@ object PerformMeasurements extends scala.App {
       MemoryUtil.collectGarbage()
 
       // initialize analysis
-      val (initalLoadTime, initialQueryTime) = analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
+      val (loadTime, initialQueryTime) = analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
       initialQueryTime
     }
 
     val baseConfigName = config.gen.getClass.getSimpleName.replaceAllLiterally("$", "") + " Initial"
-    implicit val timing = Timing(config.warmupMeasurements, config.numMeasurements)
     Measurement(baseConfigName, initialTimes)
   }
 
@@ -140,14 +143,14 @@ object PerformMeasurements extends scala.App {
 
     val baseConfigName = config.gen.getClass.getSimpleName.replaceAllLiterally("$", "") + " " + config.edit.getClass.getSimpleName.replaceAllLiterally("$", "")
 
-    println(baseConfigName)
-    implicit val timing = Timing(config.warmupMeasurements, config.numMeasurements)
     val editTimes = mutable.ListBuffer[(Long, Long)]()
     val undoTimes = mutable.ListBuffer[(Long, Long)]()
     // do measurements
-    (0 until config.warmupMeasurements + config.numMeasurements).foreach { ix =>
-      editTimes += analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(progEdit)))
-      undoTimes += analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
+    (0 until config.warmupMeasurements + config.numMeasurements).foreach { _ =>
+      val editTime = analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(progEdit)))
+      editTimes += editTime
+      val undoTime = analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
+      undoTimes +=  undoTime
     }
 
     val editMeasurement = Measurement(baseConfigName + " Edit", editTimes.map(_._2).toSeq)

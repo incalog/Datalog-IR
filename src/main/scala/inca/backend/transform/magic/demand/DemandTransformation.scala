@@ -148,7 +148,7 @@ object DemandTransformation extends Transformation {
         None
       }
 
-      val inputPat = Pattern(None, inputPatternName(pat.name), boundParams, inputPatterns ++ extensionalBody)
+      val inputPat = Pattern(None, inputPatternName(pat.name), boundParams, inputPatterns ++ extensionalBody).addHint(MagicSetHints.InputRelation)
       if (inputPat.bodies.nonEmpty)
         Seq(inputPat)
       else
