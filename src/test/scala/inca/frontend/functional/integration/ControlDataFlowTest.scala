@@ -107,4 +107,10 @@ class ControlDataFlowTest extends AnyFunSuite {
 //    // TODO second aggregation currently implemented by hand in exit_var_external, should be generated eventually
 //    assert(res.res.size == 2)
   }
+
+  test("powerset dataflow analysis") {
+    val fun = loadFunction(ControlDataFlow.IntValuesModule)
+    val input = fun.input(Seq(ControlDataFlow.exampleDataflow))
+    assert(fun.executeInput("final_var", input).res.size == 100)
+  }
 }
