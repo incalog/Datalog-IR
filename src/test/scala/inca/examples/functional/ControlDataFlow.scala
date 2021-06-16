@@ -512,32 +512,27 @@ object ControlDataFlow {
       |def aeval(exp: Exp, node: Stm, prog: Stm): Set[Val] = exp match {
       |  case Num(i) => {VNum(i)}
       |  case Var(x) => entry_var(node, prog, x)
-      |  case GreaterThan(e1, e2) => {v | v1 in aeval(e1, node, prog), v2 in aeval(e2, node, prog), v in greaterThan(v1, v2)}
-      |  case Add(e1, e2) => {v | v1 in aeval(e1, node, prog), v2 in aeval(e2, node, prog), v in add(v1, v2)}
+      |  case GreaterThan(e1, e2) => {greaterThan(v1, v2) | v1 in aeval(e1, node, prog), v2 in aeval(e2, node, prog)}
+      |  case Add(e1, e2) => {add(v1, v2) | v1 in aeval(e1, node, prog), v2 in aeval(e2, node, prog)}
       |}
       |
-      |def greaterThan(v1: Val, v2: Val): Set[Val] = v1 match {
+      |def greaterThan(v1: Val, v2: Val): Val = v1 match {
       |  case VNum(n1) => v2 match {
-      |    case VNum(n2) =>
-      |      if (n1 > n2)
-      |        {VBool(true)}
-      |      else
-      |        {VBool(false)}
-      |      case VBool(b2) => {}
+      |    case VNum(n2) => VBool(n1 > n2)
+      |    case VBool(b2) => VBool(false)
       |  }
-      |  case VBool(b1) => {}
+      |  case VBool(b1) => VBool(false)
       |}
       |
-      |def add(v1: Val, v2: Val): Set[Val] = v1 match {
+      |def add(v1: Val, v2: Val): Val = v1 match {
       |  case VNum(n1) => v2 match {
       |    case VNum(n2) =>
-      |      if (((n1 + n2) > -100) && ((n1 + n2) < 100))
-      |        {VNum(n1 + n2)}
-      |      else
-      |        {}
-      |    case VBool(b2) => {}
+      |      if ((n1 + n2) <= -100) VNum(-1000)
+      |      else if ((n1 + n2) >= 100) VNum(1000)
+      |      else VNum(n1 + n2)
+      |    case VBool(b2) => VBool(false)
       |  }
-      |  case VBool(b1) => {}
+      |  case VBool(b1) => VBool(false)
       |}
       |""".stripMargin
 
