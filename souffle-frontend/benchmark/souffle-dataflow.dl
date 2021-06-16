@@ -73,6 +73,7 @@ Init($While(l, b, s), $While(l, b, s)) :- Init_input($While(l, b, s)).
 Init_input(s1) :- Init_input($Sequence(_,s1,_)).
 Init_input(s2) :- Flow_input($Sequence(_,_,s2)).
 Init_input(s) :- Flow_input($While(_,_,s)).
+Init_input(s2) :- Flow_input($If(_,_,_,s2)).
 
 .decl Final(node:Stm, s:Stm)
 Final($Assign(l, x, a), $Assign(l, x, a)) :- Final_input($Assign(l, x, a)).
@@ -94,6 +95,10 @@ Final_input(p) :- AnalysisResult_input(p).
 Flow(from, to, $Sequence(l,s1,s2)) :- Flow_input($Sequence(l,s1,s2)), Flow(from, to, s1).
 Flow(from, to, $Sequence(l,s1,s2)) :- Flow_input($Sequence(l,s1,s2)), Flow(from, to, s2).
 Flow(from, to, $Sequence(l,s1,s2)) :- Flow_input($Sequence(l,s1,s2)), Final(from,s1), Init(to,s2).
+Flow(from, to, $If(l,b,s1,s2)) :- Flow_input($If(l,b,s1,s2)), Flow(from, to, s1).
+Flow(from, to, $If(l,b,s1,s2)) :- Flow_input($If(l,b,s1,s2)), Flow(from, to, s2).
+Flow($If(l,b,s1,s2), to, $If(l,b,s1,s2)) :- Flow_input($If(l,b,s1,s2)), Init(to,s1).
+Flow($If(l,b,s1,s2), to, $If(l,b,s1,s2)) :- Flow_input($If(l,b,s1,s2)), Init(to,s2).
 Flow(from, to, $While(l,b,s)) :- Flow_input($While(l,b,s)), Flow(from, to, s).
 Flow($While(l,b,s), to, $While(l,b,s)) :- Flow_input($While(l,b,s)), Init(to,s).
 Flow(from, $While(l,b,s), $While(l,b,s)) :- Flow_input($While(l,b,s)), Final(from,s).
@@ -101,6 +106,8 @@ Flow(from, $While(l,b,s), $While(l,b,s)) :- Flow_input($While(l,b,s)), Final(fro
 .decl Flow_input(s:Stm)
 Flow_input(s1) :- Flow_input($Sequence(_,s1,_)).
 Flow_input(s2) :- Flow_input($Sequence(_,_,s2)).
+Flow_input(s1) :- Flow_input($If(_,_,s1,_)).
+Flow_input(s2) :- Flow_input($If(_,_,_,s2)).
 Flow_input(s) :- Flow_input($While(_,_,s)).
 Flow_input(p) :- Entry_input(_, _, p).
 
@@ -153,6 +160,8 @@ GreaterThan_input(v1, v2) :- Eval_input($GreaterThan(e1, e2), node, p), Eval(e1,
 
 .decl Add(v1:Val, v2:Val, v:Val)
 Add($VNum(n1), $VNum(n2), $VNum(n1 + n2)) :- Add_input($VNum(n1), $VNum(n2)), n1 + n2 > -100, n1 + n2 < 100.
+Add($VNum(n1), $VNum(n2), $VNum(-1000)) :- Add_input($VNum(n1), $VNum(n2)), n1 + n2 <= -100.
+Add($VNum(n1), $VNum(n2), $VNum(1000)) :- Add_input($VNum(n1), $VNum(n2)), n1 + n2 >= -100.
 
 .decl Add_input(v1:Val, v2:Val)
 Add_input(v1, v2) :- Eval_input($Add(e1, e2), node, p), Eval(e1, v1, node, p), Eval(e2, v2, node, p).
