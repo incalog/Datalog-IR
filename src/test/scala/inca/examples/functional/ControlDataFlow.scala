@@ -507,6 +507,8 @@ object ControlDataFlow {
       |
       |// TODO: is there a better way to impelemt GreaterThan and Add cases?
       |// TODO: something like flatMap if greaterThan and add return options
+      |// This would enable us to write: case GreaterThan(e1, e2) => {greaterThan(v1, v2) | v1 in aeval(e1, node, prog), v2 in aeval(e2, node, prog)}
+      |// This seems more natural to me
       |def aeval(exp: Exp, node: Stm, prog: Stm): Set[Val] = exp match {
       |  case Num(i) => {VNum(i)}
       |  case Var(x) => entry_var(node, prog, x)
