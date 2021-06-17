@@ -3,7 +3,7 @@ package inca.frontend.functional.measurements
 import inca.backend.ir.DatalogPrinter
 import inca.examples.functional.ControlDataFlow
 import inca.frontend.functional.executor.FunctionalExecutor.loadFunction
-import inca.util.measurement.BenchmarkUtils.{Measurement, Timing, measurementsToCSV, ms, writeFile}
+import inca.util.measurement.BenchmarkUtils.{Measurement, Timing, measurementsToCSV, writeFile}
 import inca.util.measurement.MemoryUtil
 
 object MeasureDataflowAnalysis extends App {
@@ -20,7 +20,7 @@ object MeasureDataflowAnalysis extends App {
         MemoryUtil.collectGarbage()
 
         // initialize analysis
-       val (_, time) = fun.measure("final_var", Seq(ControlDataFlow.exampleDataflow))
+       val (_, time, _) = fun.measure("final_var", Seq(ControlDataFlow.exampleDataflow))
        println(time)
        time
     }

@@ -1,6 +1,5 @@
 package inca.frontend.functional.executor
 
-import inca.backend.ir.DatalogPrinter
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
 import inca.compiler.{CompiledModule, Compiler}
 import inca.frontend.functional.compiler.FunctionalOptions
@@ -12,7 +11,7 @@ import inca.util.Scala.ScalaCompiler
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
-import truechange.EditScript
+import truechange._
 import truediff.Diffable
 
 import scala.jdk.CollectionConverters._
@@ -76,7 +75,7 @@ object FunctionalExecutor {
       val outputMatches = mainMatcher.getAllMatches(inputMatch).asScala.map { m =>
         m.toArray.slice(tuple.getSize, arity).toSeq
       }.toSeq
-      new Results(outputMatches)
+      new Results(outputMatches, -1, -1)
     }
 
     def countTuples(pat: String): Int = {
@@ -92,35 +91,69 @@ object FunctionalExecutor {
       mainMatcher.countMatches(partialMatch)
     }
 
-    def measure(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): (Long, Long) = {
-      val (es, tuple) = input(args)
+    def measure(main: String, args: Seq[meta.Term]): (Long, Long, Long) = {
+      val (ess, cargs) = vals(args:_*).map {
+        case arg: Diffable => (arg.loadEdits, arg.uri)
+        case lit => (EditScript(Seq()), lit)
+      }.unzip
+      val (es, tuple) = (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs:_*))
+
       val mainSpec = compiled.psystemModule.patterns(main)()
       val mainMatcher = engine.getMatcher(mainSpec)
-      val startQuery = System.nanoTime()
+      val startInsertQuery = System.nanoTime()
       var loadingTime: Long = 0
       engine.delayUpdatePropagation { () =>
         val startLoadDB = System.nanoTime()
         feed.processEditScript(es)
-        lastTuple.get(main) match {
-          case Some(oldTuple) =>
-            // check if last and current tuple are equal
-            if (oldTuple != tuple) {
-              feed.insert(demandPatternExtensionalPrefix + main, tuple)
-              feed.delete(demandPatternExtensionalPrefix + main, oldTuple)
-            } else {
-              // do nothing tuples are the same
-            }
-          case None =>
-            feed.insert(demandPatternExtensionalPrefix + main, tuple)
-            if (deleteInput)
-              feed.delete(demandPatternExtensionalPrefix + main, tuple)
-        }
-        lastTuple = lastTuple + (main -> tuple)
+        //        lastTuple.get(main) match {
+        //          case Some(oldTuple) =>
+        //            // check if last and current tuple are equal
+        //            if (oldTuple != tuple) {
+        //              feed.insert(demandPatternExtensionalPrefix + main, tuple)
+        //              feed.delete(demandPatternExtensionalPrefix + main, oldTuple)
+        //            } else {
+        //              // do nothing tuples are the same
+        //            }
+        //          case None =>
+        feed.insert(demandPatternExtensionalPrefix + main, tuple)
+        //        }
+//        lastTuple = lastTuple + (main -> tuple)
         val endLoadDB = System.nanoTime()
         loadingTime = endLoadDB - startLoadDB
       }
-      val endQuery = System.nanoTime()
-      (loadingTime, endQuery - startQuery)
+      val endInsertQuery = System.nanoTime()
+
+      val startDeleteQuery = System.nanoTime()
+      var unloadingTime: Long = 0
+      val invEs = EditScript(es.coreEdits.map {
+        case Attach(node, tag, link, parent, ptag) =>
+          Detach(node, tag, link, parent, ptag)
+        case Load(node, tag, kids, lits) =>
+          Unload(node, tag, kids, lits)
+        case _ => throw new IllegalStateException()
+      })
+      engine.delayUpdatePropagation { () =>
+        val startUnloadDB = System.nanoTime()
+        feed.processEditScript(invEs)
+//        lastTuple.get(main) match {
+//          case Some(oldTuple) =>
+//            // check if last and current tuple are equal
+//            if (oldTuple != tuple) {
+//              feed.insert(demandPatternExtensionalPrefix + main, tuple)
+//              feed.delete(demandPatternExtensionalPrefix + main, oldTuple)
+//            } else {
+//              // do nothing tuples are the same
+//            }
+//          case None =>
+        feed.delete(demandPatternExtensionalPrefix + main, tuple)
+//        }
+//        lastTuple = lastTuple + (main -> tuple)
+        val endUnloadDB = System.nanoTime()
+        unloadingTime = endUnloadDB - startUnloadDB
+      }
+      val endDeleteQuery = System.nanoTime()
+
+      (loadingTime, endInsertQuery - startInsertQuery, endDeleteQuery - startDeleteQuery)
     }
 
 
@@ -160,14 +193,13 @@ object FunctionalExecutor {
       })
     }
 
-    def results[T](res: Seq[Seq[T]]): Results[T] = new Results(res)
-    def resultVals[T](res: T*): Results[T] = results(Seq(res))
+    def results[T](res: Seq[Seq[T]]): Results[T] = new Results(res, -1, -1)
     def resultVal[T](res: T): Results[T] = results(Seq(Seq(res)))
     def result(res: meta.Term*): Results[AnyRef] = results(Seq(vals(res:_*)))
   }
 
 
-  class Results[T](val res: Seq[Seq[T]]) {
+  class Results[T](val res: Seq[Seq[T]], var timeInsertNano: Long, var timeDeleteNano: Long) {
     override def equals(obj: Any): Boolean = obj match {
       case expected: Results[T] =>
         res.size == expected.res.size &&
@@ -187,11 +219,17 @@ object FunctionalExecutor {
     override def toString: String = s"Results(${res.mkString(", ")})"
   }
 
-  def loadFunction(code: String): Loaded = {
+  def compileFunction(code: String): CompiledModule = {
     val options = FunctionalOptions()
-    val compiled = Compiler.compileFunctional(code, options)
+    Compiler.compileFunctional(code, options)
+  }
+
+  def loadFunction(compiled: CompiledModule): Loaded = {
     val scope = new QueryScope(compiled.dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     Loaded(engine, feed, compiled)
   }
+
+  def loadFunction(code: String): Loaded =
+    loadFunction(compileFunction(code))
 }

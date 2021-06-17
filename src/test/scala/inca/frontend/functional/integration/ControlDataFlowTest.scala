@@ -2,6 +2,7 @@ package inca.frontend.functional.integration
 
 import inca.examples.functional.ControlDataFlow
 import inca.frontend.functional.executor.FunctionalExecutor._
+import inca.runtime.EnginePool
 import org.scalatest.funsuite.AnyFunSuite
 
 class ControlDataFlowTest extends AnyFunSuite {
@@ -109,8 +110,18 @@ class ControlDataFlowTest extends AnyFunSuite {
   }
 
   test("powerset dataflow analysis") {
-    val fun = loadFunction(ControlDataFlow.IntValuesModule)
-    val input = fun.input(Seq(ControlDataFlow.exampleDataflow))
-    assert(fun.executeInput("final_var", input).res.size == 100)
+    val compiled = compileFunction(ControlDataFlow.IntValuesModule)
+    val runs = 10
+    for (i <- 0 to runs) {
+      val fun = loadFunction(compiled)
+      val (load, insert, delete) = fun.measure("final_var", Seq(ControlDataFlow.exampleDataflow))
+      println(s"Load ${load / 1000 / 1000}ms, Insert ${insert / 1000 / 1000}ms, Delete ${delete / 1000 / 1000}ms")
+      EnginePool.disposeAllEngines()
+    }
+
+    //    val input = fun.input(Seq(ControlDataFlow.exampleDataflow))
+    //    val res = fun.executeInput("final_var", input, deleteInput = true)
+    //    res.res.sortBy(_.toString).foreach(println)
+//    assert(res.res.size == 100)
   }
 }

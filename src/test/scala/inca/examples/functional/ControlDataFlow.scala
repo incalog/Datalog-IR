@@ -453,29 +453,12 @@ object ControlDataFlow {
       |  case While(c, s) => flow(s) ++ {(stm, init(s))} ++ {(l,stm) | l in final(s)}
       |}
       |
-      |def findExps(exp: Exp, f: Exp => `Boolean`): Set[Exp] = (exp match {
-      |  case Var(s) => {}
+      |def freevars(exp: Exp): Set[String] = exp match {
+      |  case Var(s) => {s}
       |  case Num(i) => {}
-      |  case GreaterThan(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
-      |  case Add(e1, e2) => findExps(e1, f) ++ findExps(e2, f)
-      |}) ++ (if (f(exp)) {exp} else {})
-      |
-      |def isVar(exp: Exp): `Boolean` = exp match {
-      |  case Var(s) => true
-      |  case Num(i) => false
-      |  case GreaterThan(e1, e2) => false
-      |  case Add(e1, e2) => false
+      |  case GreaterThan(e1, e2) => freevars(e1) ++ freevars(e2)
+      |  case Add(e1, e2) => freevars(e1) ++ freevars(e2)
       |}
-      |
-      |def varName(exp: Exp): String = exp match {
-      |  case Var(s) => s
-      |  case Num(i) => ""
-      |  case GreaterThan(e1, e2) => ""
-      |  case Add(e1, e2) => ""
-      |}
-      |
-      |def freevars(exp: Exp): Set[String] =
-      |  {varName(e) | e in findExps(exp, isVar)}
       |
       |@main def freevarsStm(stm: Stm): Set[String] = stm match {
       |  case Assign(x, a) => freevars(a) // weird, but in accordance with POPA
@@ -502,13 +485,9 @@ object ControlDataFlow {
       |  case While(c, s) => entry_var(stm, prog, x)
       |}
       |
-      |@main def final_var(prog: Stm): Set[(String, Set[Val])] =
-      |  {(x, exit_var(s, prog, x)) | s in final(prog), x in freevarsStm(prog)}
+      |@main def final_var(prog: Stm): Set[(String, Val)] =
+      |  {(x, v) | s in final(prog), x in freevarsStm(prog), v in exit_var(s, prog, x)}
       |
-      |// TODO: is there a better way to impelemt GreaterThan and Add cases?
-      |// TODO: something like flatMap if greaterThan and add return options
-      |// This would enable us to write: case GreaterThan(e1, e2) => {greaterThan(v1, v2) | v1 in aeval(e1, node, prog), v2 in aeval(e2, node, prog)}
-      |// This seems more natural to me
       |def aeval(exp: Exp, node: Stm, prog: Stm): Set[Val] = exp match {
       |  case Num(i) => {VNum(i)}
       |  case Var(x) => entry_var(node, prog, x)
