@@ -67,7 +67,7 @@ case class If(c: Exp, t: Stm, e: Stm) extends Stm {
   override def toInnerFormulog(id: Int): (Int, String) = {
     val (tCount, tString) = t.toInnerFormulog(id + 1)
     val (eCount, eString) = e.toInnerFormulog(tCount)
-    (eCount, s"""if($id,${c.toFormulog},$tString,$eString)""")
+    (eCount, s"""if_($id,${c.toFormulog},$tString,$eString)""")
   }
 
   override def toInnerSouffle(id: Int): (Int, String) = {
