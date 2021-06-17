@@ -1,0 +1,1236 @@
+module Main
+
+`sealed trait Exp extends truediff.Diffable`
+`case class Var(val _0: String) extends Exp() with truediff.GenericDiffable() {
+  this.withURI(inca.runtime.data.DataURI("Var", _0))
+  override def name: String = "Var"
+  override def children: Seq[(String, Any)] = Seq("_0" -> _0)
+  override def make(children: Seq[Any]): Var = Var(children(0).asInstanceOf[String])
+}`
+`case class Num(val _0: Int) extends Exp() with truediff.GenericDiffable() {
+  this.withURI(inca.runtime.data.DataURI("Num", _0))
+  override def name: String = "Num"
+  override def children: Seq[(String, Any)] = Seq("_0" -> _0)
+  override def make(children: Seq[Any]): Num = Num(children(0).asInstanceOf[Int])
+}`
+`case class GreaterThan(val _0: Exp, val _1: Exp) extends Exp() with truediff.GenericDiffable() {
+  this.withURI(inca.runtime.data.DataURI("GreaterThan", _0, _1))
+  override def name: String = "GreaterThan"
+  override def children: Seq[(String, Any)] = Seq("_0" -> _0, "_1" -> _1)
+  override def make(children: Seq[Any]): GreaterThan = GreaterThan(children(0).asInstanceOf[Exp], children(1).asInstanceOf[Exp])
+}`
+`case class Add(val _0: Exp, val _1: Exp) extends Exp() with truediff.GenericDiffable() {
+  this.withURI(inca.runtime.data.DataURI("Add", _0, _1))
+  override def name: String = "Add"
+  override def children: Seq[(String, Any)] = Seq("_0" -> _0, "_1" -> _1)
+  override def make(children: Seq[Any]): Add = Add(children(0).asInstanceOf[Exp], children(1).asInstanceOf[Exp])
+}`
+`sealed trait Stm extends truediff.Diffable`
+`case class Assign(val _0: String, val _1: Exp) extends Stm() with truediff.GenericDiffable() {
+  this.withURI(inca.runtime.data.DataURI("Assign", _0, _1))
+  override def name: String = "Assign"
+  override def children: Seq[(String, Any)] = Seq("_0" -> _0, "_1" -> _1)
+  override def make(children: Seq[Any]): Assign = Assign(children(0).asInstanceOf[String], children(1).asInstanceOf[Exp])
+}`
+`case class Skip() extends Stm() with truediff.GenericDiffable() {
+  this.withURI(inca.runtime.data.DataURI("Skip"))
+  override def name: String = "Skip"
+  override def children: Seq[(String, Any)] = Seq()
+  override def make(children: Seq[Any]): Skip = Skip()
+}`
+`case class Sequence(val _0: Stm, val _1: Stm) extends Stm() with truediff.GenericDiffable() {
+  this.withURI(inca.runtime.data.DataURI("Sequence", _0, _1))
+  override def name: String = "Sequence"
+  override def children: Seq[(String, Any)] = Seq("_0" -> _0, "_1" -> _1)
+  override def make(children: Seq[Any]): Sequence = Sequence(children(0).asInstanceOf[Stm], children(1).asInstanceOf[Stm])
+}`
+`case class If(val _0: Exp, val _1: Stm, val _2: Stm) extends Stm() with truediff.GenericDiffable() {
+  this.withURI(inca.runtime.data.DataURI("If", _0, _1, _2))
+  override def name: String = "If"
+  override def children: Seq[(String, Any)] = Seq("_0" -> _0, "_1" -> _1, "_2" -> _2)
+  override def make(children: Seq[Any]): If = If(children(0).asInstanceOf[Exp], children(1).asInstanceOf[Stm], children(2).asInstanceOf[Stm])
+}`
+`case class While(val _0: Exp, val _1: Stm) extends Stm() with truediff.GenericDiffable() {
+  this.withURI(inca.runtime.data.DataURI("While", _0, _1))
+  override def name: String = "While"
+  override def children: Seq[(String, Any)] = Seq("_0" -> _0, "_1" -> _1)
+  override def make(children: Seq[Any]): While = While(children(0).asInstanceOf[Exp], children(1).asInstanceOf[Stm])
+}`
+`sealed trait Val extends truediff.Diffable`
+`case class VBool(val _0: Boolean) extends Val() with truediff.GenericDiffable() {
+  this.withURI(inca.runtime.data.DataURI("VBool", _0))
+  override def name: String = "VBool"
+  override def children: Seq[(String, Any)] = Seq("_0" -> _0)
+  override def make(children: Seq[Any]): VBool = VBool(children(0).asInstanceOf[Boolean])
+}`
+`case class VNum(val _0: Int) extends Val() with truediff.GenericDiffable() {
+  this.withURI(inca.runtime.data.DataURI("VNum", _0))
+  override def name: String = "VNum"
+  override def children: Seq[(String, Any)] = Seq("_0" -> _0)
+  override def make(children: Seq[Any]): VNum = VNum(children(0).asInstanceOf[Int])
+}`
+init(stm: truechange.URI, out$0: truechange.URI) {
+	find input$init(stm)
+	Assign(stm)
+	out$0 == stm
+} or {
+	find input$init(stm)
+	Skip(stm)
+	out$0 == stm
+} or {
+	find input$init(stm)
+	Sequence(stm)
+	Sequence._0(stm:Sequence, s1:Stm)
+	find init(s1,out$0)
+} or {
+	find input$init(stm)
+	If(stm)
+	out$0 == stm
+} or {
+	find input$init(stm)
+	While(stm)
+	out$0 == stm
+}
+final(stm: truechange.URI, out$0: truechange.URI) {
+	find input$final(stm)
+	Assign(stm)
+	out$0 == stm
+} or {
+	find input$final(stm)
+	Skip(stm)
+	out$0 == stm
+} or {
+	find input$final(stm)
+	Sequence(stm)
+	Sequence._1(stm:Sequence, s2:Stm)
+	find final(s2,out$0)
+} or {
+	find input$final(stm)
+	If(stm)
+	If._1(stm:If, s1:Stm)
+	find final(s1,out$0)
+} or {
+	find input$final(stm)
+	If(stm)
+	If._2(stm:If, s2:Stm)
+	find final(s2,out$0)
+} or {
+	find input$final(stm)
+	While(stm)
+	out$0 == stm
+}
+flow(stm: truechange.URI, out_0$0: truechange.URI, out_1$0: truechange.URI) {
+	find input$flow(stm)
+	Sequence(stm)
+	Sequence._0(stm:Sequence, s1:Stm)
+	find flow(s1,out_0$0,out_1$0)
+} or {
+	find input$flow(stm)
+	Sequence(stm)
+	Sequence._1(stm:Sequence, s2:Stm)
+	find flow(s2,out_0$0,out_1$0)
+} or {
+	find input$flow(stm)
+	Sequence(stm)
+	Sequence._0(stm:Sequence, s1:Stm)
+	Sequence._1(stm:Sequence, s2:Stm)
+	find final(s1,out_0$0)
+	find init(s2,out_1$0)
+} or {
+	find input$flow(stm)
+	If(stm)
+	If._1(stm:If, s1:Stm)
+	find flow(s1,out_0$0,out_1$0)
+} or {
+	find input$flow(stm)
+	If(stm)
+	If._2(stm:If, s2:Stm)
+	find flow(s2,out_0$0,out_1$0)
+} or {
+	find input$flow(stm)
+	If(stm)
+	If._1(stm:If, s1:Stm)
+	find init(s1,out_1$0)
+	out_0$0 == stm
+} or {
+	find input$flow(stm)
+	If(stm)
+	If._2(stm:If, s2:Stm)
+	find init(s2,out_1$0)
+	out_0$0 == stm
+} or {
+	find input$flow(stm)
+	While(stm)
+	While._1(stm:While, s:Stm)
+	find flow(s,out_0$0,out_1$0)
+} or {
+	find input$flow(stm)
+	While(stm)
+	While._1(stm:While, s:Stm)
+	find init(s,out_1$0)
+	out_0$0 == stm
+} or {
+	find input$flow(stm)
+	While(stm)
+	While._1(stm:While, s:Stm)
+	find final(s,out_0$0)
+	out_1$0 == stm
+}
+freevars(exp: truechange.URI, out$0: String) {
+	find input$freevars(exp)
+	Var(exp)
+	Var._0(exp:Var, out$0:java.lang.String)
+} or {
+	find input$freevars(exp)
+	GreaterThan(exp)
+	GreaterThan._0(exp:GreaterThan, e1:Exp)
+	find freevars(e1,out$0)
+} or {
+	find input$freevars(exp)
+	GreaterThan(exp)
+	GreaterThan._1(exp:GreaterThan, e2:Exp)
+	find freevars(e2,out$0)
+} or {
+	find input$freevars(exp)
+	Add(exp)
+	Add._0(exp:Add, e1:Exp)
+	find freevars(e1,out$0)
+} or {
+	find input$freevars(exp)
+	Add(exp)
+	Add._1(exp:Add, e2:Exp)
+	find freevars(e2,out$0)
+}
+freevarsStm(stm: truechange.URI, out$0: String) {
+	find input$freevarsStm(stm)
+	Assign(stm)
+	Assign._1(stm:Assign, a:Exp)
+	find freevars(a,out$0)
+} or {
+	find input$freevarsStm(stm)
+	Sequence(stm)
+	Sequence._0(stm:Sequence, s1:Stm)
+	find freevarsStm(s1,out$0)
+} or {
+	find input$freevarsStm(stm)
+	Sequence(stm)
+	Sequence._1(stm:Sequence, s2:Stm)
+	find freevarsStm(s2,out$0)
+} or {
+	find input$freevarsStm(stm)
+	If(stm)
+	If._0(stm:If, c:Exp)
+	find freevars(c,out$0)
+} or {
+	find input$freevarsStm(stm)
+	If(stm)
+	If._1(stm:If, s1:Stm)
+	find freevarsStm(s1,out$0)
+} or {
+	find input$freevarsStm(stm)
+	If(stm)
+	If._2(stm:If, s2:Stm)
+	find freevarsStm(s2,out$0)
+} or {
+	find input$freevarsStm(stm)
+	While(stm)
+	While._0(stm:While, c:Exp)
+	find freevars(c,out$0)
+} or {
+	find input$freevarsStm(stm)
+	While(stm)
+	While._1(stm:While, s:Stm)
+	find freevarsStm(s,out$0)
+}
+VBool(_0: Boolean, out: truechange.URI) {
+	find input$VBool(_0)
+	out == `inca.runtime.data.DataURI("VBool", _0)`
+}
+VNum(_0: Int, out: truechange.URI) {
+	find input$VNum(_0)
+	out == `inca.runtime.data.DataURI("VNum", _0)`
+}
+exit_var(stm: truechange.URI, prog: truechange.URI, x: String, out$0: truechange.URI) {
+	find input$entry_var(stm$1,prog,x)
+	find flow(prog,stm,stm$1)
+	Assign(stm)
+	Assign._0(stm:Assign, y:java.lang.String)
+	Assign._1(stm:Assign, exp:Exp)
+	true == `x == y`
+	find aeval(exp,stm,prog,out$0)
+} or {
+	extensional find ext_input$final_var(prog)
+	find final(prog,stm)
+	find freevarsStm(prog,x)
+	Assign(stm)
+	Assign._0(stm:Assign, y:java.lang.String)
+	Assign._1(stm:Assign, exp:Exp)
+	true == `x == y`
+	find aeval(exp,stm,prog,out$0)
+} or {
+	find input$entry_var(stm$2,prog,x)
+	find flow(prog,stm,stm$2)
+	Assign(stm)
+	Assign._0(stm:Assign, y:java.lang.String)
+	false == `x == y`
+	find input$entry_var(stm,prog,x)
+	find flow(prog,pred$0,stm)
+	find exit_var(pred$0,prog,x,out$0)
+} or {
+	extensional find ext_input$final_var(prog)
+	find final(prog,stm)
+	find freevarsStm(prog,x)
+	Assign(stm)
+	Assign._0(stm:Assign, y:java.lang.String)
+	false == `x == y`
+	find input$entry_var(stm,prog,x)
+	find flow(prog,pred$0,stm)
+	find exit_var(pred$0,prog,x,out$0)
+} or {
+	find input$entry_var(stm$3,prog,x)
+	find flow(prog,stm,stm$3)
+	Skip(stm)
+	find input$entry_var(stm,prog,x)
+	find flow(prog,pred$1,stm)
+	find exit_var(pred$1,prog,x,out$0)
+} or {
+	extensional find ext_input$final_var(prog)
+	find final(prog,stm)
+	find freevarsStm(prog,x)
+	Skip(stm)
+	find input$entry_var(stm,prog,x)
+	find flow(prog,pred$1,stm)
+	find exit_var(pred$1,prog,x,out$0)
+} or {
+	find input$entry_var(stm$4,prog,x)
+	find flow(prog,stm,stm$4)
+	Sequence(stm)
+	find input$entry_var(stm,prog,x)
+	find flow(prog,pred$2,stm)
+	find exit_var(pred$2,prog,x,out$0)
+} or {
+	extensional find ext_input$final_var(prog)
+	find final(prog,stm)
+	find freevarsStm(prog,x)
+	Sequence(stm)
+	find input$entry_var(stm,prog,x)
+	find flow(prog,pred$2,stm)
+	find exit_var(pred$2,prog,x,out$0)
+} or {
+	find input$entry_var(stm$5,prog,x)
+	find flow(prog,stm,stm$5)
+	If(stm)
+	find input$entry_var(stm,prog,x)
+	find flow(prog,pred$3,stm)
+	find exit_var(pred$3,prog,x,out$0)
+} or {
+	extensional find ext_input$final_var(prog)
+	find final(prog,stm)
+	find freevarsStm(prog,x)
+	If(stm)
+	find input$entry_var(stm,prog,x)
+	find flow(prog,pred$3,stm)
+	find exit_var(pred$3,prog,x,out$0)
+} or {
+	find input$entry_var(stm$6,prog,x)
+	find flow(prog,stm,stm$6)
+	While(stm)
+	find input$entry_var(stm,prog,x)
+	find flow(prog,pred$4,stm)
+	find exit_var(pred$4,prog,x,out$0)
+} or {
+	extensional find ext_input$final_var(prog)
+	find final(prog,stm)
+	find freevarsStm(prog,x)
+	While(stm)
+	find input$entry_var(stm,prog,x)
+	find flow(prog,pred$4,stm)
+	find exit_var(pred$4,prog,x,out$0)
+}
+final_var(prog: truechange.URI, out_0$0: String, out_1$0: truechange.URI) {
+	extensional find ext_input$final_var(prog)
+	find final(prog,s)
+	find freevarsStm(prog,out_0$0)
+	find exit_var(s,prog,out_0$0,out_1$0)
+}
+aeval(exp: truechange.URI, node: truechange.URI, prog: truechange.URI, out$0: truechange.URI) {
+	find input$aeval(exp,node,prog)
+	Num(exp)
+	Num._0(exp:Num, i:java.lang.Integer)
+	find VNum(i,out$0)
+} or {
+	find input$aeval(exp,node,prog)
+	Var(exp)
+	Var._0(exp:Var, x:java.lang.String)
+	find input$entry_var(node,prog,x)
+	find flow(prog,pred$0,node)
+	find exit_var(pred$0,prog,x,out$0)
+} or {
+	find input$aeval(exp,node,prog)
+	GreaterThan(exp)
+	GreaterThan._0(exp:GreaterThan, e1:Exp)
+	GreaterThan._1(exp:GreaterThan, e2:Exp)
+	find aeval(e1,node,prog,v1)
+	find aeval(e2,node,prog,v2)
+	find greaterThan(v1,v2,out$0)
+} or {
+	find input$aeval(exp,node,prog)
+	Add(exp)
+	Add._0(exp:Add, e1:Exp)
+	Add._1(exp:Add, e2:Exp)
+	find aeval(e1,node,prog,v1)
+	find aeval(e2,node,prog,v2)
+	find add(v1,v2,out$0)
+}
+greaterThan(v1: truechange.URI, v2: truechange.URI, out$0: truechange.URI) {
+	find input$aeval(exp$0,node$0,prog$0)
+	GreaterThan(exp$0)
+	GreaterThan._0(exp$0:GreaterThan, e1$0:Exp)
+	GreaterThan._1(exp$0:GreaterThan, e2$0:Exp)
+	find aeval(e1$0,node$0,prog$0,v1)
+	find aeval(e2$0,node$0,prog$0,v2)
+	find VNum(n1,v1)
+	find VNum(n2,v2)
+	eval$0 == `n1 > n2`
+	find VBool(eval$0,out$0)
+} or {
+	find input$aeval(exp$1,node$1,prog$1)
+	GreaterThan(exp$1)
+	GreaterThan._0(exp$1:GreaterThan, e1$1:Exp)
+	GreaterThan._1(exp$1:GreaterThan, e2$1:Exp)
+	find aeval(e1$1,node$1,prog$1,v1)
+	find aeval(e2$1,node$1,prog$1,v2)
+	find VNum(n1,v1)
+	VNum(v2)
+	VNum._0(v2:VNum, n2:java.lang.Integer)
+	eval$0 == `n1 > n2`
+	find VBool(eval$0,out$0)
+} or {
+	find input$aeval(exp$2,node$2,prog$2)
+	GreaterThan(exp$2)
+	GreaterThan._0(exp$2:GreaterThan, e1$2:Exp)
+	GreaterThan._1(exp$2:GreaterThan, e2$2:Exp)
+	find aeval(e1$2,node$2,prog$2,v1)
+	find aeval(e2$2,node$2,prog$2,v2)
+	VNum(v1)
+	VNum._0(v1:VNum, n1:java.lang.Integer)
+	find VNum(n2,v2)
+	eval$0 == `n1 > n2`
+	find VBool(eval$0,out$0)
+} or {
+	find input$aeval(exp$3,node$3,prog$3)
+	GreaterThan(exp$3)
+	GreaterThan._0(exp$3:GreaterThan, e1$3:Exp)
+	GreaterThan._1(exp$3:GreaterThan, e2$3:Exp)
+	find aeval(e1$3,node$3,prog$3,v1)
+	find aeval(e2$3,node$3,prog$3,v2)
+	VNum(v1)
+	VNum._0(v1:VNum, n1:java.lang.Integer)
+	VNum(v2)
+	VNum._0(v2:VNum, n2:java.lang.Integer)
+	eval$0 == `n1 > n2`
+	find VBool(eval$0,out$0)
+} or {
+	find input$aeval(exp$4,node$4,prog$4)
+	GreaterThan(exp$4)
+	GreaterThan._0(exp$4:GreaterThan, e1$4:Exp)
+	GreaterThan._1(exp$4:GreaterThan, e2$4:Exp)
+	find aeval(e1$4,node$4,prog$4,v1)
+	find aeval(e2$4,node$4,prog$4,v2)
+	find VNum(n1,v1)
+	find VBool(b2,v2)
+	find VBool(false,out$0)
+} or {
+	find input$aeval(exp$5,node$5,prog$5)
+	GreaterThan(exp$5)
+	GreaterThan._0(exp$5:GreaterThan, e1$5:Exp)
+	GreaterThan._1(exp$5:GreaterThan, e2$5:Exp)
+	find aeval(e1$5,node$5,prog$5,v1)
+	find aeval(e2$5,node$5,prog$5,v2)
+	VNum(v1)
+	find VBool(b2,v2)
+	find VBool(false,out$0)
+} or {
+	find input$aeval(exp$6,node$6,prog$6)
+	GreaterThan(exp$6)
+	GreaterThan._0(exp$6:GreaterThan, e1$6:Exp)
+	GreaterThan._1(exp$6:GreaterThan, e2$6:Exp)
+	find aeval(e1$6,node$6,prog$6,v1)
+	find aeval(e2$6,node$6,prog$6,v2)
+	find VNum(n1,v1)
+	VBool(v2)
+	find VBool(false,out$0)
+} or {
+	find input$aeval(exp$7,node$7,prog$7)
+	GreaterThan(exp$7)
+	GreaterThan._0(exp$7:GreaterThan, e1$7:Exp)
+	GreaterThan._1(exp$7:GreaterThan, e2$7:Exp)
+	find aeval(e1$7,node$7,prog$7,v1)
+	find aeval(e2$7,node$7,prog$7,v2)
+	VNum(v1)
+	VBool(v2)
+	find VBool(false,out$0)
+} or {
+	find input$aeval(exp$8,node$8,prog$8)
+	GreaterThan(exp$8)
+	GreaterThan._0(exp$8:GreaterThan, e1$8:Exp)
+	GreaterThan._1(exp$8:GreaterThan, e2$8:Exp)
+	find aeval(e1$8,node$8,prog$8,v1)
+	find aeval(e2$8,node$8,prog$8,v2)
+	find VBool(b1,v1)
+	find VBool(false,out$0)
+} or {
+	find input$aeval(exp$9,node$9,prog$9)
+	GreaterThan(exp$9)
+	GreaterThan._0(exp$9:GreaterThan, e1$9:Exp)
+	GreaterThan._1(exp$9:GreaterThan, e2$9:Exp)
+	find aeval(e1$9,node$9,prog$9,v1)
+	find aeval(e2$9,node$9,prog$9,v2)
+	VBool(v1)
+	find VBool(false,out$0)
+}
+add(v1: truechange.URI, v2: truechange.URI, out$0: truechange.URI) {
+	find input$aeval(exp$0,node$0,prog$0)
+	Add(exp$0)
+	Add._0(exp$0:Add, e1$0:Exp)
+	Add._1(exp$0:Add, e2$0:Exp)
+	find aeval(e1$0,node$0,prog$0,v1)
+	find aeval(e2$0,node$0,prog$0,v2)
+	find VNum(n1,v1)
+	find VNum(n2,v2)
+	true == `n1 + n2 <= -100`
+	find VNum(-1000,out$0)
+} or {
+	find input$aeval(exp$1,node$1,prog$1)
+	Add(exp$1)
+	Add._0(exp$1:Add, e1$1:Exp)
+	Add._1(exp$1:Add, e2$1:Exp)
+	find aeval(e1$1,node$1,prog$1,v1)
+	find aeval(e2$1,node$1,prog$1,v2)
+	find VNum(n1,v1)
+	VNum(v2)
+	VNum._0(v2:VNum, n2:java.lang.Integer)
+	true == `n1 + n2 <= -100`
+	find VNum(-1000,out$0)
+} or {
+	find input$aeval(exp$2,node$2,prog$2)
+	Add(exp$2)
+	Add._0(exp$2:Add, e1$2:Exp)
+	Add._1(exp$2:Add, e2$2:Exp)
+	find aeval(e1$2,node$2,prog$2,v1)
+	find aeval(e2$2,node$2,prog$2,v2)
+	VNum(v1)
+	VNum._0(v1:VNum, n1:java.lang.Integer)
+	find VNum(n2,v2)
+	true == `n1 + n2 <= -100`
+	find VNum(-1000,out$0)
+} or {
+	find input$aeval(exp$3,node$3,prog$3)
+	Add(exp$3)
+	Add._0(exp$3:Add, e1$3:Exp)
+	Add._1(exp$3:Add, e2$3:Exp)
+	find aeval(e1$3,node$3,prog$3,v1)
+	find aeval(e2$3,node$3,prog$3,v2)
+	VNum(v1)
+	VNum._0(v1:VNum, n1:java.lang.Integer)
+	VNum(v2)
+	VNum._0(v2:VNum, n2:java.lang.Integer)
+	true == `n1 + n2 <= -100`
+	find VNum(-1000,out$0)
+} or {
+	find input$aeval(exp$4,node$4,prog$4)
+	Add(exp$4)
+	Add._0(exp$4:Add, e1$4:Exp)
+	Add._1(exp$4:Add, e2$4:Exp)
+	find aeval(e1$4,node$4,prog$4,v1)
+	find aeval(e2$4,node$4,prog$4,v2)
+	find VNum(n1,v1)
+	find VNum(n2,v2)
+	false == `n1 + n2 <= -100`
+	true == `n1 + n2 >= 100`
+	find VNum(1000,out$0)
+} or {
+	find input$aeval(exp$5,node$5,prog$5)
+	Add(exp$5)
+	Add._0(exp$5:Add, e1$5:Exp)
+	Add._1(exp$5:Add, e2$5:Exp)
+	find aeval(e1$5,node$5,prog$5,v1)
+	find aeval(e2$5,node$5,prog$5,v2)
+	find VNum(n1,v1)
+	VNum(v2)
+	VNum._0(v2:VNum, n2:java.lang.Integer)
+	false == `n1 + n2 <= -100`
+	true == `n1 + n2 >= 100`
+	find VNum(1000,out$0)
+} or {
+	find input$aeval(exp$6,node$6,prog$6)
+	Add(exp$6)
+	Add._0(exp$6:Add, e1$6:Exp)
+	Add._1(exp$6:Add, e2$6:Exp)
+	find aeval(e1$6,node$6,prog$6,v1)
+	find aeval(e2$6,node$6,prog$6,v2)
+	VNum(v1)
+	VNum._0(v1:VNum, n1:java.lang.Integer)
+	find VNum(n2,v2)
+	false == `n1 + n2 <= -100`
+	true == `n1 + n2 >= 100`
+	find VNum(1000,out$0)
+} or {
+	find input$aeval(exp$7,node$7,prog$7)
+	Add(exp$7)
+	Add._0(exp$7:Add, e1$7:Exp)
+	Add._1(exp$7:Add, e2$7:Exp)
+	find aeval(e1$7,node$7,prog$7,v1)
+	find aeval(e2$7,node$7,prog$7,v2)
+	VNum(v1)
+	VNum._0(v1:VNum, n1:java.lang.Integer)
+	VNum(v2)
+	VNum._0(v2:VNum, n2:java.lang.Integer)
+	false == `n1 + n2 <= -100`
+	true == `n1 + n2 >= 100`
+	find VNum(1000,out$0)
+} or {
+	find input$aeval(exp$8,node$8,prog$8)
+	Add(exp$8)
+	Add._0(exp$8:Add, e1$8:Exp)
+	Add._1(exp$8:Add, e2$8:Exp)
+	find aeval(e1$8,node$8,prog$8,v1)
+	find aeval(e2$8,node$8,prog$8,v2)
+	find VNum(n1,v1)
+	find VNum(n2,v2)
+	false == `n1 + n2 <= -100`
+	false == `n1 + n2 >= 100`
+	eval$4 == `n1 + n2`
+	find VNum(eval$4,out$0)
+} or {
+	find input$aeval(exp$9,node$9,prog$9)
+	Add(exp$9)
+	Add._0(exp$9:Add, e1$9:Exp)
+	Add._1(exp$9:Add, e2$9:Exp)
+	find aeval(e1$9,node$9,prog$9,v1)
+	find aeval(e2$9,node$9,prog$9,v2)
+	find VNum(n1,v1)
+	VNum(v2)
+	VNum._0(v2:VNum, n2:java.lang.Integer)
+	false == `n1 + n2 <= -100`
+	false == `n1 + n2 >= 100`
+	eval$4 == `n1 + n2`
+	find VNum(eval$4,out$0)
+} or {
+	find input$aeval(exp$10,node$10,prog$10)
+	Add(exp$10)
+	Add._0(exp$10:Add, e1$10:Exp)
+	Add._1(exp$10:Add, e2$10:Exp)
+	find aeval(e1$10,node$10,prog$10,v1)
+	find aeval(e2$10,node$10,prog$10,v2)
+	VNum(v1)
+	VNum._0(v1:VNum, n1:java.lang.Integer)
+	find VNum(n2,v2)
+	false == `n1 + n2 <= -100`
+	false == `n1 + n2 >= 100`
+	eval$4 == `n1 + n2`
+	find VNum(eval$4,out$0)
+} or {
+	find input$aeval(exp$11,node$11,prog$11)
+	Add(exp$11)
+	Add._0(exp$11:Add, e1$11:Exp)
+	Add._1(exp$11:Add, e2$11:Exp)
+	find aeval(e1$11,node$11,prog$11,v1)
+	find aeval(e2$11,node$11,prog$11,v2)
+	VNum(v1)
+	VNum._0(v1:VNum, n1:java.lang.Integer)
+	VNum(v2)
+	VNum._0(v2:VNum, n2:java.lang.Integer)
+	false == `n1 + n2 <= -100`
+	false == `n1 + n2 >= 100`
+	eval$4 == `n1 + n2`
+	find VNum(eval$4,out$0)
+} or {
+	find input$aeval(exp$12,node$12,prog$12)
+	Add(exp$12)
+	Add._0(exp$12:Add, e1$12:Exp)
+	Add._1(exp$12:Add, e2$12:Exp)
+	find aeval(e1$12,node$12,prog$12,v1)
+	find aeval(e2$12,node$12,prog$12,v2)
+	find VNum(n1,v1)
+	find VBool(b2,v2)
+	find VBool(false,out$0)
+} or {
+	find input$aeval(exp$13,node$13,prog$13)
+	Add(exp$13)
+	Add._0(exp$13:Add, e1$13:Exp)
+	Add._1(exp$13:Add, e2$13:Exp)
+	find aeval(e1$13,node$13,prog$13,v1)
+	find aeval(e2$13,node$13,prog$13,v2)
+	VNum(v1)
+	find VBool(b2,v2)
+	find VBool(false,out$0)
+} or {
+	find input$aeval(exp$14,node$14,prog$14)
+	Add(exp$14)
+	Add._0(exp$14:Add, e1$14:Exp)
+	Add._1(exp$14:Add, e2$14:Exp)
+	find aeval(e1$14,node$14,prog$14,v1)
+	find aeval(e2$14,node$14,prog$14,v2)
+	find VNum(n1,v1)
+	VBool(v2)
+	find VBool(false,out$0)
+} or {
+	find input$aeval(exp$15,node$15,prog$15)
+	Add(exp$15)
+	Add._0(exp$15:Add, e1$15:Exp)
+	Add._1(exp$15:Add, e2$15:Exp)
+	find aeval(e1$15,node$15,prog$15,v1)
+	find aeval(e2$15,node$15,prog$15,v2)
+	VNum(v1)
+	VBool(v2)
+	find VBool(false,out$0)
+} or {
+	find input$aeval(exp$16,node$16,prog$16)
+	Add(exp$16)
+	Add._0(exp$16:Add, e1$16:Exp)
+	Add._1(exp$16:Add, e2$16:Exp)
+	find aeval(e1$16,node$16,prog$16,v1)
+	find aeval(e2$16,node$16,prog$16,v2)
+	find VBool(b1,v1)
+	find VBool(false,out$0)
+} or {
+	find input$aeval(exp$17,node$17,prog$17)
+	Add(exp$17)
+	Add._0(exp$17:Add, e1$17:Exp)
+	Add._1(exp$17:Add, e2$17:Exp)
+	find aeval(e1$17,node$17,prog$17,v1)
+	find aeval(e2$17,node$17,prog$17,v2)
+	VBool(v1)
+	find VBool(false,out$0)
+}
+input$init(stm$0: truechange.URI) {
+	find input$init(stm)
+	Sequence(stm)
+	Sequence._0(stm:Sequence, stm$0:Stm)
+} or {
+	find input$flow(stm)
+	Sequence(stm)
+	Sequence._0(stm:Sequence, s1:Stm)
+	Sequence._1(stm:Sequence, stm$0:Stm)
+	find final(s1,l1)
+} or {
+	find input$flow(stm)
+	If(stm)
+	If._1(stm:If, stm$0:Stm)
+} or {
+	find input$flow(stm)
+	If(stm)
+	If._2(stm:If, stm$0:Stm)
+} or {
+	find input$flow(stm)
+	While(stm)
+	While._1(stm:While, stm$0:Stm)
+}
+input$final(stm$0: truechange.URI) {
+	find input$final(stm)
+	Sequence(stm)
+	Sequence._1(stm:Sequence, stm$0:Stm)
+} or {
+	find input$final(stm)
+	If(stm)
+	If._1(stm:If, stm$0:Stm)
+} or {
+	find input$final(stm)
+	If(stm)
+	If._2(stm:If, stm$0:Stm)
+} or {
+	find input$flow(stm)
+	Sequence(stm)
+	Sequence._0(stm:Sequence, stm$0:Stm)
+} or {
+	find input$flow(stm)
+	While(stm)
+	While._1(stm:While, stm$0:Stm)
+} or {
+	extensional find ext_input$final_var(stm$0)
+}
+input$flow(stm$0: truechange.URI) {
+	find input$flow(stm)
+	Sequence(stm)
+	Sequence._0(stm:Sequence, stm$0:Stm)
+} or {
+	find input$flow(stm)
+	Sequence(stm)
+	Sequence._1(stm:Sequence, stm$0:Stm)
+} or {
+	find input$flow(stm)
+	If(stm)
+	If._1(stm:If, stm$0:Stm)
+} or {
+	find input$flow(stm)
+	If(stm)
+	If._2(stm:If, stm$0:Stm)
+} or {
+	find input$flow(stm)
+	While(stm)
+	While._1(stm:While, stm$0:Stm)
+} or {
+	find input$entry_var(stm,stm$0,x)
+}
+input$freevars(exp$0: truechange.URI) {
+	find input$freevars(exp)
+	GreaterThan(exp)
+	GreaterThan._0(exp:GreaterThan, exp$0:Exp)
+} or {
+	find input$freevars(exp)
+	GreaterThan(exp)
+	GreaterThan._1(exp:GreaterThan, exp$0:Exp)
+} or {
+	find input$freevars(exp)
+	Add(exp)
+	Add._0(exp:Add, exp$0:Exp)
+} or {
+	find input$freevars(exp)
+	Add(exp)
+	Add._1(exp:Add, exp$0:Exp)
+} or {
+	find input$freevarsStm(stm)
+	Assign(stm)
+	Assign._1(stm:Assign, exp$0:Exp)
+} or {
+	find input$freevarsStm(stm)
+	If(stm)
+	If._0(stm:If, exp$0:Exp)
+} or {
+	find input$freevarsStm(stm)
+	While(stm)
+	While._0(stm:While, exp$0:Exp)
+}
+input$freevarsStm(stm$0: truechange.URI) {
+	find input$freevarsStm(stm)
+	Sequence(stm)
+	Sequence._0(stm:Sequence, stm$0:Stm)
+} or {
+	find input$freevarsStm(stm)
+	Sequence(stm)
+	Sequence._1(stm:Sequence, stm$0:Stm)
+} or {
+	find input$freevarsStm(stm)
+	If(stm)
+	If._1(stm:If, stm$0:Stm)
+} or {
+	find input$freevarsStm(stm)
+	If(stm)
+	If._2(stm:If, stm$0:Stm)
+} or {
+	find input$freevarsStm(stm)
+	While(stm)
+	While._1(stm:While, stm$0:Stm)
+} or {
+	extensional find ext_input$final_var(stm$0)
+	find final(stm$0,s)
+}
+input$VBool(_0$0: Boolean) {
+	find input$aeval(exp$0,node$0,prog$0)
+	GreaterThan(exp$0)
+	GreaterThan._0(exp$0:GreaterThan, e1$0:Exp)
+	GreaterThan._1(exp$0:GreaterThan, e2$0:Exp)
+	find aeval(e1$0,node$0,prog$0,v1$1)
+	find aeval(e2$0,node$0,prog$0,v2$1)
+	find VNum(n1,v1$1)
+	find VNum(n2,v2$1)
+	_0$0 == `n1 > n2`
+} or {
+	find input$aeval(exp$1,node$1,prog$1)
+	GreaterThan(exp$1)
+	GreaterThan._0(exp$1:GreaterThan, e1$1:Exp)
+	GreaterThan._1(exp$1:GreaterThan, e2$1:Exp)
+	find aeval(e1$1,node$1,prog$1,v1$2)
+	find aeval(e2$1,node$1,prog$1,v2$2)
+	find VNum(n1,v1$2)
+	VNum(v2$2)
+	VNum._0(v2$2:VNum, n2:java.lang.Integer)
+	_0$0 == `n1 > n2`
+} or {
+	find input$aeval(exp$2,node$2,prog$2)
+	GreaterThan(exp$2)
+	GreaterThan._0(exp$2:GreaterThan, e1$2:Exp)
+	GreaterThan._1(exp$2:GreaterThan, e2$2:Exp)
+	find aeval(e1$2,node$2,prog$2,v1$3)
+	find aeval(e2$2,node$2,prog$2,v2$3)
+	VNum(v1$3)
+	VNum._0(v1$3:VNum, n1:java.lang.Integer)
+	find VNum(n2,v2$3)
+	_0$0 == `n1 > n2`
+} or {
+	find input$aeval(exp$3,node$3,prog$3)
+	GreaterThan(exp$3)
+	GreaterThan._0(exp$3:GreaterThan, e1$3:Exp)
+	GreaterThan._1(exp$3:GreaterThan, e2$3:Exp)
+	find aeval(e1$3,node$3,prog$3,v1$4)
+	find aeval(e2$3,node$3,prog$3,v2$4)
+	VNum(v1$4)
+	VNum._0(v1$4:VNum, n1:java.lang.Integer)
+	VNum(v2$4)
+	VNum._0(v2$4:VNum, n2:java.lang.Integer)
+	_0$0 == `n1 > n2`
+} or {
+	find input$aeval(exp$4,node$4,prog$4)
+	GreaterThan(exp$4)
+	GreaterThan._0(exp$4:GreaterThan, e1$4:Exp)
+	GreaterThan._1(exp$4:GreaterThan, e2$4:Exp)
+	find aeval(e1$4,node$4,prog$4,v1$5)
+	find aeval(e2$4,node$4,prog$4,v2$5)
+	find VNum(n1,v1$5)
+	find VBool(b2,v2$5)
+	false == _0$0
+} or {
+	find input$aeval(exp$5,node$5,prog$5)
+	GreaterThan(exp$5)
+	GreaterThan._0(exp$5:GreaterThan, e1$5:Exp)
+	GreaterThan._1(exp$5:GreaterThan, e2$5:Exp)
+	find aeval(e1$5,node$5,prog$5,v1$6)
+	find aeval(e2$5,node$5,prog$5,v2$6)
+	VNum(v1$6)
+	find VBool(b2,v2$6)
+	false == _0$0
+} or {
+	find input$aeval(exp$6,node$6,prog$6)
+	GreaterThan(exp$6)
+	GreaterThan._0(exp$6:GreaterThan, e1$6:Exp)
+	GreaterThan._1(exp$6:GreaterThan, e2$6:Exp)
+	find aeval(e1$6,node$6,prog$6,v1$7)
+	find aeval(e2$6,node$6,prog$6,v2$7)
+	find VNum(n1,v1$7)
+	VBool(v2$7)
+	false == _0$0
+} or {
+	find input$aeval(exp$7,node$7,prog$7)
+	GreaterThan(exp$7)
+	GreaterThan._0(exp$7:GreaterThan, e1$7:Exp)
+	GreaterThan._1(exp$7:GreaterThan, e2$7:Exp)
+	find aeval(e1$7,node$7,prog$7,v1$8)
+	find aeval(e2$7,node$7,prog$7,v2$8)
+	VNum(v1$8)
+	VBool(v2$8)
+	false == _0$0
+} or {
+	find input$aeval(exp$8,node$8,prog$8)
+	GreaterThan(exp$8)
+	GreaterThan._0(exp$8:GreaterThan, e1$8:Exp)
+	GreaterThan._1(exp$8:GreaterThan, e2$8:Exp)
+	find aeval(e1$8,node$8,prog$8,v1$9)
+	find aeval(e2$8,node$8,prog$8,v2$9)
+	find VBool(b1,v1$9)
+	false == _0$0
+} or {
+	find input$aeval(exp$9,node$9,prog$9)
+	GreaterThan(exp$9)
+	GreaterThan._0(exp$9:GreaterThan, e1$9:Exp)
+	GreaterThan._1(exp$9:GreaterThan, e2$9:Exp)
+	find aeval(e1$9,node$9,prog$9,v1$10)
+	find aeval(e2$9,node$9,prog$9,v2$10)
+	VBool(v1$10)
+	false == _0$0
+} or {
+	find input$aeval(exp$10,node$10,prog$10)
+	Add(exp$10)
+	Add._0(exp$10:Add, e1$10:Exp)
+	Add._1(exp$10:Add, e2$10:Exp)
+	find aeval(e1$10,node$10,prog$10,v1$11)
+	find aeval(e2$10,node$10,prog$10,v2$11)
+	find VNum(n1,v1$11)
+	find VBool(b2,v2$11)
+	false == _0$0
+} or {
+	find input$aeval(exp$11,node$11,prog$11)
+	Add(exp$11)
+	Add._0(exp$11:Add, e1$11:Exp)
+	Add._1(exp$11:Add, e2$11:Exp)
+	find aeval(e1$11,node$11,prog$11,v1$12)
+	find aeval(e2$11,node$11,prog$11,v2$12)
+	VNum(v1$12)
+	find VBool(b2,v2$12)
+	false == _0$0
+} or {
+	find input$aeval(exp$12,node$12,prog$12)
+	Add(exp$12)
+	Add._0(exp$12:Add, e1$12:Exp)
+	Add._1(exp$12:Add, e2$12:Exp)
+	find aeval(e1$12,node$12,prog$12,v1$13)
+	find aeval(e2$12,node$12,prog$12,v2$13)
+	find VNum(n1,v1$13)
+	VBool(v2$13)
+	false == _0$0
+} or {
+	find input$aeval(exp$13,node$13,prog$13)
+	Add(exp$13)
+	Add._0(exp$13:Add, e1$13:Exp)
+	Add._1(exp$13:Add, e2$13:Exp)
+	find aeval(e1$13,node$13,prog$13,v1$14)
+	find aeval(e2$13,node$13,prog$13,v2$14)
+	VNum(v1$14)
+	VBool(v2$14)
+	false == _0$0
+} or {
+	find input$aeval(exp$14,node$14,prog$14)
+	Add(exp$14)
+	Add._0(exp$14:Add, e1$14:Exp)
+	Add._1(exp$14:Add, e2$14:Exp)
+	find aeval(e1$14,node$14,prog$14,v1$15)
+	find aeval(e2$14,node$14,prog$14,v2$15)
+	find VBool(b1,v1$15)
+	false == _0$0
+} or {
+	find input$aeval(exp$15,node$15,prog$15)
+	Add(exp$15)
+	Add._0(exp$15:Add, e1$15:Exp)
+	Add._1(exp$15:Add, e2$15:Exp)
+	find aeval(e1$15,node$15,prog$15,v1$16)
+	find aeval(e2$15,node$15,prog$15,v2$16)
+	VBool(v1$16)
+	false == _0$0
+}
+input$VNum(_0$0: Int) {
+	find input$aeval(exp,node,prog)
+	Num(exp)
+	Num._0(exp:Num, _0$0:java.lang.Integer)
+} or {
+	find input$aeval(exp$0,node$0,prog$0)
+	Add(exp$0)
+	Add._0(exp$0:Add, e1$0:Exp)
+	Add._1(exp$0:Add, e2$0:Exp)
+	find aeval(e1$0,node$0,prog$0,v1$1)
+	find aeval(e2$0,node$0,prog$0,v2$1)
+	find VNum(n1,v1$1)
+	find VNum(n2,v2$1)
+	true == `n1 + n2 <= -100`
+	-1000 == _0$0
+} or {
+	find input$aeval(exp$1,node$1,prog$1)
+	Add(exp$1)
+	Add._0(exp$1:Add, e1$1:Exp)
+	Add._1(exp$1:Add, e2$1:Exp)
+	find aeval(e1$1,node$1,prog$1,v1$2)
+	find aeval(e2$1,node$1,prog$1,v2$2)
+	find VNum(n1,v1$2)
+	VNum(v2$2)
+	VNum._0(v2$2:VNum, n2:java.lang.Integer)
+	true == `n1 + n2 <= -100`
+	-1000 == _0$0
+} or {
+	find input$aeval(exp$2,node$2,prog$2)
+	Add(exp$2)
+	Add._0(exp$2:Add, e1$2:Exp)
+	Add._1(exp$2:Add, e2$2:Exp)
+	find aeval(e1$2,node$2,prog$2,v1$3)
+	find aeval(e2$2,node$2,prog$2,v2$3)
+	VNum(v1$3)
+	VNum._0(v1$3:VNum, n1:java.lang.Integer)
+	find VNum(n2,v2$3)
+	true == `n1 + n2 <= -100`
+	-1000 == _0$0
+} or {
+	find input$aeval(exp$3,node$3,prog$3)
+	Add(exp$3)
+	Add._0(exp$3:Add, e1$3:Exp)
+	Add._1(exp$3:Add, e2$3:Exp)
+	find aeval(e1$3,node$3,prog$3,v1$4)
+	find aeval(e2$3,node$3,prog$3,v2$4)
+	VNum(v1$4)
+	VNum._0(v1$4:VNum, n1:java.lang.Integer)
+	VNum(v2$4)
+	VNum._0(v2$4:VNum, n2:java.lang.Integer)
+	true == `n1 + n2 <= -100`
+	-1000 == _0$0
+} or {
+	find input$aeval(exp$4,node$4,prog$4)
+	Add(exp$4)
+	Add._0(exp$4:Add, e1$4:Exp)
+	Add._1(exp$4:Add, e2$4:Exp)
+	find aeval(e1$4,node$4,prog$4,v1$5)
+	find aeval(e2$4,node$4,prog$4,v2$5)
+	find VNum(n1,v1$5)
+	find VNum(n2,v2$5)
+	false == `n1 + n2 <= -100`
+	true == `n1 + n2 >= 100`
+	1000 == _0$0
+} or {
+	find input$aeval(exp$5,node$5,prog$5)
+	Add(exp$5)
+	Add._0(exp$5:Add, e1$5:Exp)
+	Add._1(exp$5:Add, e2$5:Exp)
+	find aeval(e1$5,node$5,prog$5,v1$6)
+	find aeval(e2$5,node$5,prog$5,v2$6)
+	find VNum(n1,v1$6)
+	VNum(v2$6)
+	VNum._0(v2$6:VNum, n2:java.lang.Integer)
+	false == `n1 + n2 <= -100`
+	true == `n1 + n2 >= 100`
+	1000 == _0$0
+} or {
+	find input$aeval(exp$6,node$6,prog$6)
+	Add(exp$6)
+	Add._0(exp$6:Add, e1$6:Exp)
+	Add._1(exp$6:Add, e2$6:Exp)
+	find aeval(e1$6,node$6,prog$6,v1$7)
+	find aeval(e2$6,node$6,prog$6,v2$7)
+	VNum(v1$7)
+	VNum._0(v1$7:VNum, n1:java.lang.Integer)
+	find VNum(n2,v2$7)
+	false == `n1 + n2 <= -100`
+	true == `n1 + n2 >= 100`
+	1000 == _0$0
+} or {
+	find input$aeval(exp$7,node$7,prog$7)
+	Add(exp$7)
+	Add._0(exp$7:Add, e1$7:Exp)
+	Add._1(exp$7:Add, e2$7:Exp)
+	find aeval(e1$7,node$7,prog$7,v1$8)
+	find aeval(e2$7,node$7,prog$7,v2$8)
+	VNum(v1$8)
+	VNum._0(v1$8:VNum, n1:java.lang.Integer)
+	VNum(v2$8)
+	VNum._0(v2$8:VNum, n2:java.lang.Integer)
+	false == `n1 + n2 <= -100`
+	true == `n1 + n2 >= 100`
+	1000 == _0$0
+} or {
+	find input$aeval(exp$8,node$8,prog$8)
+	Add(exp$8)
+	Add._0(exp$8:Add, e1$8:Exp)
+	Add._1(exp$8:Add, e2$8:Exp)
+	find aeval(e1$8,node$8,prog$8,v1$9)
+	find aeval(e2$8,node$8,prog$8,v2$9)
+	find VNum(n1,v1$9)
+	find VNum(n2,v2$9)
+	false == `n1 + n2 <= -100`
+	false == `n1 + n2 >= 100`
+	_0$0 == `n1 + n2`
+} or {
+	find input$aeval(exp$9,node$9,prog$9)
+	Add(exp$9)
+	Add._0(exp$9:Add, e1$9:Exp)
+	Add._1(exp$9:Add, e2$9:Exp)
+	find aeval(e1$9,node$9,prog$9,v1$10)
+	find aeval(e2$9,node$9,prog$9,v2$10)
+	find VNum(n1,v1$10)
+	VNum(v2$10)
+	VNum._0(v2$10:VNum, n2:java.lang.Integer)
+	false == `n1 + n2 <= -100`
+	false == `n1 + n2 >= 100`
+	_0$0 == `n1 + n2`
+} or {
+	find input$aeval(exp$10,node$10,prog$10)
+	Add(exp$10)
+	Add._0(exp$10:Add, e1$10:Exp)
+	Add._1(exp$10:Add, e2$10:Exp)
+	find aeval(e1$10,node$10,prog$10,v1$11)
+	find aeval(e2$10,node$10,prog$10,v2$11)
+	VNum(v1$11)
+	VNum._0(v1$11:VNum, n1:java.lang.Integer)
+	find VNum(n2,v2$11)
+	false == `n1 + n2 <= -100`
+	false == `n1 + n2 >= 100`
+	_0$0 == `n1 + n2`
+} or {
+	find input$aeval(exp$11,node$11,prog$11)
+	Add(exp$11)
+	Add._0(exp$11:Add, e1$11:Exp)
+	Add._1(exp$11:Add, e2$11:Exp)
+	find aeval(e1$11,node$11,prog$11,v1$12)
+	find aeval(e2$11,node$11,prog$11,v2$12)
+	VNum(v1$12)
+	VNum._0(v1$12:VNum, n1:java.lang.Integer)
+	VNum(v2$12)
+	VNum._0(v2$12:VNum, n2:java.lang.Integer)
+	false == `n1 + n2 <= -100`
+	false == `n1 + n2 >= 100`
+	_0$0 == `n1 + n2`
+}
+input$entry_var(stm$0: truechange.URI, prog$0: truechange.URI, x$0: String) {
+	find input$entry_var(stm$1,prog$0,x$0)
+	find flow(prog$0,stm$0,stm$1)
+	Assign(stm$0)
+	Assign._0(stm$0:Assign, y:java.lang.String)
+	false == `x$0 == y`
+} or {
+	extensional find ext_input$final_var(prog$0)
+	find final(prog$0,stm$0)
+	find freevarsStm(prog$0,x$0)
+	Assign(stm$0)
+	Assign._0(stm$0:Assign, y:java.lang.String)
+	false == `x$0 == y`
+} or {
+	find input$entry_var(stm$2,prog$0,x$0)
+	find flow(prog$0,stm$0,stm$2)
+	Skip(stm$0)
+} or {
+	extensional find ext_input$final_var(prog$0)
+	find final(prog$0,stm$0)
+	find freevarsStm(prog$0,x$0)
+	Skip(stm$0)
+} or {
+	find input$entry_var(stm$3,prog$0,x$0)
+	find flow(prog$0,stm$0,stm$3)
+	Sequence(stm$0)
+} or {
+	extensional find ext_input$final_var(prog$0)
+	find final(prog$0,stm$0)
+	find freevarsStm(prog$0,x$0)
+	Sequence(stm$0)
+} or {
+	find input$entry_var(stm$4,prog$0,x$0)
+	find flow(prog$0,stm$0,stm$4)
+	If(stm$0)
+} or {
+	extensional find ext_input$final_var(prog$0)
+	find final(prog$0,stm$0)
+	find freevarsStm(prog$0,x$0)
+	If(stm$0)
+} or {
+	find input$entry_var(stm$5,prog$0,x$0)
+	find flow(prog$0,stm$0,stm$5)
+	While(stm$0)
+} or {
+	extensional find ext_input$final_var(prog$0)
+	find final(prog$0,stm$0)
+	find freevarsStm(prog$0,x$0)
+	While(stm$0)
+} or {
+	find input$aeval(exp,stm$0,prog$0)
+	Var(exp)
+	Var._0(exp:Var, x$0:java.lang.String)
+}
+input$aeval(exp$0: truechange.URI, node$0: truechange.URI, prog$0: truechange.URI) {
+	find input$entry_var(stm$1,prog$0,x$1)
+	find flow(prog$0,node$0,stm$1)
+	Assign(node$0)
+	Assign._0(node$0:Assign, y:java.lang.String)
+	Assign._1(node$0:Assign, exp$0:Exp)
+	true == `x$1 == y`
+} or {
+	extensional find ext_input$final_var(prog$0)
+	find final(prog$0,node$0)
+	find freevarsStm(prog$0,x$1)
+	Assign(node$0)
+	Assign._0(node$0:Assign, y:java.lang.String)
+	Assign._1(node$0:Assign, exp$0:Exp)
+	true == `x$1 == y`
+} or {
+	find input$aeval(exp,node$0,prog$0)
+	GreaterThan(exp)
+	GreaterThan._0(exp:GreaterThan, exp$0:Exp)
+} or {
+	find input$aeval(exp,node$0,prog$0)
+	GreaterThan(exp)
+	GreaterThan._0(exp:GreaterThan, e1:Exp)
+	GreaterThan._1(exp:GreaterThan, exp$0:Exp)
+	find aeval(e1,node$0,prog$0,v1)
+} or {
+	find input$aeval(exp,node$0,prog$0)
+	Add(exp)
+	Add._0(exp:Add, exp$0:Exp)
+} or {
+	find input$aeval(exp,node$0,prog$0)
+	Add(exp)
+	Add._0(exp:Add, e1:Exp)
+	Add._1(exp:Add, exp$0:Exp)
+	find aeval(e1,node$0,prog$0,v1)
+}

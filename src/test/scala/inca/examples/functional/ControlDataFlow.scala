@@ -460,7 +460,7 @@ object ControlDataFlow {
       |  case Add(e1, e2) => freevars(e1) ++ freevars(e2)
       |}
       |
-      |@main def freevarsStm(stm: Stm): Set[String] = stm match {
+      |def freevarsStm(stm: Stm): Set[String] = stm match {
       |  case Assign(x, a) => freevars(a) // weird, but in accordance with POPA
       |  case Skip() => {}
       |  case Sequence(s1, s2) => freevarsStm(s1) ++ freevarsStm(s2)

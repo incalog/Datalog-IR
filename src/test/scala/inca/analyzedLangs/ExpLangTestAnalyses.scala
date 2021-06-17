@@ -12,7 +12,7 @@ object ExpLangTestAnalyses {
   implicit def name(s: String): Name = Name(s)
 
   val idFun: PatternFunction = PatternFunction(
-    Seq(),
+    Seq(MainFunctionAnno),
     None,
     "id",
     Seq(Param("add", addType)),
@@ -39,7 +39,7 @@ object ExpLangTestAnalyses {
           Yield(PathAccess(Var("add"), rhsLink))))))
 
   val lhChildFun: PatternFunction = PatternFunction(
-    Seq(),
+    Seq(MainFunctionAnno),
     None,
     "lhChild",
     Seq(Param("add", addType)),
@@ -62,7 +62,7 @@ object ExpLangTestAnalyses {
           Yield(Var("lhschild"))))))
 
   val instanceAddFun = PatternFunction(
-    Seq(),
+    Seq(MainFunctionAnno),
     None,
     "instanceAdd",
     Seq(Param("add", addType)),
@@ -75,7 +75,7 @@ object ExpLangTestAnalyses {
           Yield(Var("lhschild"))))))
 
   val noParamTypeFun = PatternFunction(
-    Seq(),
+    Seq(MainFunctionAnno),
     None,
     "noParamType",
     Seq(Param("add", TAny)),
@@ -86,7 +86,7 @@ object ExpLangTestAnalyses {
           Assert(InstanceOf(Var("add"), addType))))))
 
   val isBooleanFun = PatternFunction(
-    Seq(),
+    Seq(MainFunctionAnno),
     None,
     "isBoolean",
     Seq(Param("in", boolType)),
@@ -97,7 +97,7 @@ object ExpLangTestAnalyses {
           Yield(Constant(BooleanLiteral(false)))))))
 
   val primitiveParamFun = PatternFunction(
-    Seq(),
+    Seq(MainFunctionAnno),
     None,
     "idBool",
     Seq(Param("in", TLiteral.Bool)),

@@ -91,20 +91,28 @@ object FunctionalExecutor {
       mainMatcher.countMatches(partialMatch)
     }
 
-    def measure(main: String, args: Seq[meta.Term]): (Long, Long, Long) = {
+
+    def measureInput(args: meta.Term*): (EditScript, Tuple) = {
       val (ess, cargs) = vals(args:_*).map {
         case arg: Diffable => (arg.loadEdits, arg.uri)
         case lit => (EditScript(Seq()), lit)
       }.unzip
-      val (es, tuple) = (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs:_*))
+      (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs: _*))
+    }
 
+    def measure(main: String, args: Seq[meta.Term]): (Long, Long, Long) = {
+      val (es, tuple) = measureInput(args:_*)
+      measure(main, es, tuple)
+    }
+
+    def measure(main: String, edits: EditScript, tuple: Tuple): (Long, Long, Long) = {
       val mainSpec = compiled.psystemModule.patterns(main)()
       val mainMatcher = engine.getMatcher(mainSpec)
       val startInsertQuery = System.nanoTime()
       var loadingTime: Long = 0
       engine.delayUpdatePropagation { () =>
         val startLoadDB = System.nanoTime()
-        feed.processEditScript(es)
+        feed.processEditScript(edits)
         //        lastTuple.get(main) match {
         //          case Some(oldTuple) =>
         //            // check if last and current tuple are equal
@@ -124,33 +132,33 @@ object FunctionalExecutor {
       val endInsertQuery = System.nanoTime()
 
       val startDeleteQuery = System.nanoTime()
-      var unloadingTime: Long = 0
-      val invEs = EditScript(es.coreEdits.map {
-        case Attach(node, tag, link, parent, ptag) =>
-          Detach(node, tag, link, parent, ptag)
-        case Load(node, tag, kids, lits) =>
-          Unload(node, tag, kids, lits)
-        case _ => throw new IllegalStateException()
-      })
-      engine.delayUpdatePropagation { () =>
-        val startUnloadDB = System.nanoTime()
-        feed.processEditScript(invEs)
-//        lastTuple.get(main) match {
-//          case Some(oldTuple) =>
-//            // check if last and current tuple are equal
-//            if (oldTuple != tuple) {
-//              feed.insert(demandPatternExtensionalPrefix + main, tuple)
-//              feed.delete(demandPatternExtensionalPrefix + main, oldTuple)
-//            } else {
-//              // do nothing tuples are the same
-//            }
-//          case None =>
-        feed.delete(demandPatternExtensionalPrefix + main, tuple)
-//        }
-//        lastTuple = lastTuple + (main -> tuple)
-        val endUnloadDB = System.nanoTime()
-        unloadingTime = endUnloadDB - startUnloadDB
-      }
+//      var unloadingTime: Long = 0
+//      val invEdits = EditScript(edits.coreEdits.map {
+//        case Attach(node, tag, link, parent, ptag) =>
+//          Detach(node, tag, link, parent, ptag)
+//        case Load(node, tag, kids, lits) =>
+//          Unload(node, tag, kids, lits)
+//        case _ => throw new IllegalStateException()
+//      })
+//      engine.delayUpdatePropagation { () =>
+//        val startUnloadDB = System.nanoTime()
+//        feed.processEditScript(invEdits)
+////        lastTuple.get(main) match {
+////          case Some(oldTuple) =>
+////            // check if last and current tuple are equal
+////            if (oldTuple != tuple) {
+////              feed.insert(demandPatternExtensionalPrefix + main, tuple)
+////              feed.delete(demandPatternExtensionalPrefix + main, oldTuple)
+////            } else {
+////              // do nothing tuples are the same
+////            }
+////          case None =>
+//        feed.delete(demandPatternExtensionalPrefix + main, tuple)
+////        }
+////        lastTuple = lastTuple + (main -> tuple)
+//        val endUnloadDB = System.nanoTime()
+//        unloadingTime = endUnloadDB - startUnloadDB
+//      }
       val endDeleteQuery = System.nanoTime()
 
       (loadingTime, endInsertQuery - startInsertQuery, endDeleteQuery - startDeleteQuery)
@@ -197,7 +205,6 @@ object FunctionalExecutor {
     def resultVal[T](res: T): Results[T] = results(Seq(Seq(res)))
     def result(res: meta.Term*): Results[AnyRef] = results(Seq(vals(res:_*)))
   }
-
 
   class Results[T](val res: Seq[Seq[T]], var timeInsertNano: Long, var timeDeleteNano: Long) {
     override def equals(obj: Any): Boolean = obj match {

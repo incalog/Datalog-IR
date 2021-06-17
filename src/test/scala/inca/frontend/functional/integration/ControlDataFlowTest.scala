@@ -3,7 +3,9 @@ package inca.frontend.functional.integration
 import inca.examples.functional.ControlDataFlow
 import inca.frontend.functional.executor.FunctionalExecutor._
 import inca.runtime.EnginePool
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
 import org.scalatest.funsuite.AnyFunSuite
+import truechange.EditScript
 
 class ControlDataFlowTest extends AnyFunSuite {
 
@@ -30,15 +32,15 @@ class ControlDataFlowTest extends AnyFunSuite {
 //    fun.printAllMatches()
   }
 
-  test("available expressions ex 2.4") {
-    val fun = loadFunction(ControlDataFlow.AEModule)
-    val input = fun.input(ControlDataFlow.example_2_4)
-    assert(fun.executeInput("final_AE", input).res.size == 1)
-    assert(fun.executeInput("allEntries_AE", input).res.size == 3)
-    assert(fun.executeInput("allExits_AE", input).res.size == 5)
-    fun.printAllMatches()
-    fun.output("allExits_AE", input._2).res.foreach { case Seq(c1, c2) => println(s"$c2 in $c1") }
-  }
+//  test("available expressions ex 2.4") {
+//    val fun = loadFunction(ControlDataFlow.AEModule)
+//    val input = fun.input(ControlDataFlow.example_2_4)
+//    assert(fun.executeInput("final_AE", input).res.size == 1)
+//    assert(fun.executeInput("allEntries_AE", input).res.size == 3)
+//    assert(fun.executeInput("allExits_AE", input).res.size == 5)
+//    fun.printAllMatches()
+//    fun.output("allExits_AE", input._2).res.foreach { case Seq(c1, c2) => println(s"$c2 in $c1") }
+//  }
 
 //  test("reaching definitions ex 2.7") {
 //    val fun = loadFunction(ControlDataFlow.RDmodule)
@@ -111,10 +113,19 @@ class ControlDataFlowTest extends AnyFunSuite {
 
   test("powerset dataflow analysis") {
     val compiled = compileFunction(ControlDataFlow.IntValuesModule)
-    val runs = 10
-    for (i <- 0 to runs) {
+//    println(compiled.transformed)
+    println(compiled.optimized)
+    val runs = 20
+    var edits: EditScript = null
+    var tuple: Tuple = null
+    for (i <- 0 until runs) {
       val fun = loadFunction(compiled)
-      val (load, insert, delete) = fun.measure("final_var", Seq(ControlDataFlow.exampleDataflow))
+      if (edits == null) {
+        val input = fun.measureInput(ControlDataFlow.exampleDataflow)
+        edits = input._1
+        tuple = input._2
+      }
+      val (load, insert, delete) = fun.measure("final_var", edits, tuple)
       println(s"Load ${load / 1000 / 1000}ms, Insert ${insert / 1000 / 1000}ms, Delete ${delete / 1000 / 1000}ms")
       EnginePool.disposeAllEngines()
     }
