@@ -138,16 +138,83 @@ object ExamplePrograms {
         )
       )
     )
+
+  /*
+    x = 10
+    y = 1
+    z = 4
+    if (x > 1) {
+      y = 2
+      while (z > 2) {
+        z = z + y
+      }
+    } else {
+      y = 3
+      while (z > 2) {
+        z = z + y
+      }
+      while (z > x) {
+        x = x + 100
+      }
+    }
+    while (x > y) {
+      x = x + z
+    }
+   */
+  val ex3: Stm =
+    Sequence(
+      Assign("x", Num(10)),
+      Sequence(
+        Assign("y", Num(1)),
+        Sequence(
+          Assign("z", Num(4)),
+          Sequence(
+            If(
+              GreaterThan(Var("x"), Num(1)),
+              Sequence(
+                Assign("y", Num(2)),
+                While(
+                  GreaterThan(Var("z"), Num(2)),
+                  Assign("z", Add(Var("z"), Var("y")))
+                )
+              ),
+              Sequence(
+                Assign("y", Num(3)),
+                Sequence(
+                  While(
+                    GreaterThan(Var("z"), Num(2)),
+                    Assign("z", Add(Var("z"), Var("y")))
+                  ),
+                  While(
+                    GreaterThan(Var("z"), Var("x")),
+                    Assign("x", Add(Var("x"), Num(100)))
+                  )
+                )
+              )
+            ),
+            While(
+              GreaterThan(Var("x"), Var("y")),
+              Assign("x", Add(Var("x"), Var("z")))
+            )
+          )
+        )
+      )
+    )
 }
 
 object GeneratePrograms extends App {
   println("Functional Frontend")
   println(ExamplePrograms.ex1.toString)
   println(ExamplePrograms.ex2.toString)
+  println(ExamplePrograms.ex3.toString)
+
   println("Souffle")
   println(ExamplePrograms.ex1.toSouffle)
   println(ExamplePrograms.ex2.toSouffle)
+  println(ExamplePrograms.ex3.toSouffle)
+
   println("Formulog")
   println(ExamplePrograms.ex1.toFormulog)
   println(ExamplePrograms.ex2.toFormulog)
+  println(ExamplePrograms.ex3.toFormulog)
 }

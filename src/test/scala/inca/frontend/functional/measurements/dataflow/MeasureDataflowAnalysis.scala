@@ -28,12 +28,4 @@ object MeasureDataflowAnalysis extends App {
     val csv = measurementsToCSV(measurements)
     println(csv)
     writeFile("benchmark/functional/powdataflow/measurements.csv", csv)
-
-    // val input = fun.input(Seq(ControlDataFlow.exampleDataflow))
-    // val (load, query) = fun.measure("final_var", Seq(ControlDataFlow.exampleDataflow))
-    // println(ms(load))
-    // println(ms(query))
-    // fun.executeInput("final_var", input)
-    // fun.printAllMatches()
-    // fun.output("final_var", input._2).res.foreach { case Seq(c1, c2) => println(s"$c1 in $c2") }
 }

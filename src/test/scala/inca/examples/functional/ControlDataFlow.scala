@@ -737,4 +737,68 @@ object ControlDataFlow {
           )
         )
        """
+
+  /*
+    x = 10
+    y = 1
+    z = 4
+    if (x > 1) {
+      y = 2
+      while (z > 2) {
+        z = z + y
+      }
+    } else {
+      y = 3
+      while (z > 2) {
+        z = z + y
+      }
+      while (z > x) {
+        x = x + 100
+      }
+    }
+    while (x > y) {
+      x = x + z
+    }
+   */
+
+  val exampleDataflow3 = q"""
+    Sequence(
+      Assign("x", Num(10)),
+      Sequence(
+        Assign("y", Num(1)),
+        Sequence(
+          Assign("z", Num(4)),
+          Sequence(
+            If(
+              GreaterThan(Var("x"), Num(1)),
+              Sequence(
+                Assign("y", Num(2)),
+                While(
+                  GreaterThan(Var("z"), Num(2)),
+                  Assign("z", Add(Var("z"), Var("y")))
+                )
+              ),
+              Sequence(
+                Assign("y", Num(3)),
+                Sequence(
+                  While(
+                    GreaterThan(Var("z"), Num(2)),
+                    Assign("z", Add(Var("z"), Var("y")))
+                  ),
+                  While(
+                    GreaterThan(Var("z"), Var("x")),
+                    Assign("x", Add(Var("x"), Num(100)))
+                  )
+                )
+              )
+            ),
+            While(
+              GreaterThan(Var("x"), Var("y")),
+              Assign("x", Add(Var("x"), Var("z")))
+            )
+          )
+        )
+      )
+    )
+    """
 }
