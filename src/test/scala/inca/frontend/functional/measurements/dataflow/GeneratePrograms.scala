@@ -32,15 +32,15 @@ trait Stm {
 }
 
 case class Assign(n: String, e: Exp) extends Stm {
-  override def toString: String = s"""Assign(\"n\",${e.toString})"""
+  override def toString: String = s"""Assign(\"$n\",${e.toString})"""
   override def toInnerFormulog(id: Int): (Int, String) = {
     val eString = e.toFormulog
-    (id + 1, s"""assign($id,\"n\",$eString)""")
+    (id + 1, s"""assign($id,\"$n\",$eString)""")
   }
 
   override def toInnerSouffle(id: Int): (Int, String) = {
     val eString = e.toSouffle
-    (id + 1, "$" + s"""Assign($id,\"n\",$eString)""")
+    (id + 1, "$" + s"""Assign($id,\"$n\",$eString)""")
   }
 }
 

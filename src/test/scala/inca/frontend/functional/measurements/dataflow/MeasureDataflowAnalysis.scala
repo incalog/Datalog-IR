@@ -1,6 +1,5 @@
 package inca.frontend.functional.measurements.dataflow
 
-import inca.backend.ir.DatalogPrinter
 import inca.examples.functional.ControlDataFlow
 import inca.frontend.functional.executor.FunctionalExecutor.{compileFunction, loadFunction}
 import inca.util.measurement.BenchmarkUtils.{Measurement, Timing, measurementsToCSV, writeFile}
