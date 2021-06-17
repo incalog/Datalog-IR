@@ -7,20 +7,20 @@ object Parser {
   import fastparse.{parse => _, _}
   import JavaWhitespace._
 
-  def parse(code: ParserInput): Syntax.Analysis = {
+  def parse(code: ParserInput): Syntax.SouffleModule = {
     import fastparse.Parsed
 
     fastparse.parse(code, Analysis(_), verboseFailures = true) match {
-      case Parsed.Success(value, _) => Syntax.Analysis(value)
+      case Parsed.Success(value, _) => Syntax.SouffleModule(value)
       case fail: Parsed.Failure =>
         throw new IllegalArgumentException(s"Parsing Error: ${fail.trace(true).longTerminalsMsg}")
     }
   }
 
-  def Analysis[_: P]: P[Seq[Syntax.AnalysisContent]] =
+  def Analysis[_: P]: P[Seq[Syntax.SouffleContent]] =
     P(Start ~ AnalysisContent.rep ~ End)
 
-  def AnalysisContent[_: P]: P[Syntax.AnalysisContent] =
+  def AnalysisContent[_: P]: P[Syntax.SouffleContent] =
     P(ComponentInitialization | ComponentDefinition | TypeDeclaration |
       RuleSignature | Input | RuleDefinition | Output | PrintSize
     )

@@ -198,8 +198,8 @@ Add_input(v1, v2) :- Eval_input($Add(e1, e2), node, p), Eval(e1, v1, node, p), E
 
 
 
-.decl AnalysisResult(x:symbol, v:Val, p:Stm)
-AnalysisResult(x, v, p) :- Final(s,p), FreevarsStm(x, p), Exit(x, v, s, p).
+.decl AnalysisResult(x:symbol, v:Val)
+AnalysisResult(x, v) :- AnalysisResult_input(p), Final(s,p), FreevarsStm(x, p), Exit(x, v, s, p).
 
 .decl AnalysisResult_input(p:Stm)
 AnalysisResult_input(p) :- Prog(p).

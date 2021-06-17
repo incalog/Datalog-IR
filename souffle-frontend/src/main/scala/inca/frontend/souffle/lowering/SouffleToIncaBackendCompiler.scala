@@ -28,7 +28,7 @@ class SouffleToIncaBackendCompiler {
 
   val componentDefinitions: mutable.Map[String, ComponentDefinition] = mutable.Map()
 
-  def compile(name: String, analysis: Analysis): CompiledSouffleModule = {
+  def compile(name: String, analysis: SouffleModule): CompiledSouffleModule = {
     analysis.contents.foreach(compile(_, ""))
 
     val module = Module(name, Seq(), patFuns.values.toSeq, Seq())
@@ -51,7 +51,7 @@ class SouffleToIncaBackendCompiler {
   }
 
   // if funPrefix != "" we are within a compontent definition that got initialized
-  def compile(content: AnalysisContent, funPrefix: String): Unit = content match {
+  def compile(content: SouffleContent, funPrefix: String): Unit = content match {
     case cdef@ComponentDefinition(name, contents) =>
       componentDefinitions += name -> cdef
 

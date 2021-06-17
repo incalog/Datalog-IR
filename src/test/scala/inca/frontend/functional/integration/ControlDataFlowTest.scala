@@ -111,11 +111,23 @@ class ControlDataFlowTest extends AnyFunSuite {
 //    assert(res.res.size == 2)
   }
 
+  test("powerset dataflow analysis 1") {
+    val fun = loadFunction(ControlDataFlow.IntValuesModule)
+    val res = fun.executeInput("final_var", fun.input(ControlDataFlow.exampleDataflow))
+    assert(res.res.size == 100)
+  }
+
+  test("powerset dataflow analysis 2") {
+    val fun = loadFunction(ControlDataFlow.IntValuesModule)
+    val res = fun.executeInput("final_var", fun.input(ControlDataFlow.exampleDataflow2))
+    assert(res.res.size == 200)
+  }
+
   test("powerset dataflow analysis") {
     val compiled = compileFunction(ControlDataFlow.IntValuesModule)
 //    println(compiled.transformed)
     println(compiled.optimized)
-    val runs = 20
+    val runs = 5
     var edits: EditScript = null
     var tuple: Tuple = null
     for (i <- 0 until runs) {
@@ -134,5 +146,25 @@ class ControlDataFlowTest extends AnyFunSuite {
     //    val res = fun.executeInput("final_var", input, deleteInput = true)
     //    res.res.sortBy(_.toString).foreach(println)
 //    assert(res.res.size == 100)
+  }
+}
+
+object Run extends App {
+  val compiled = compileFunction(ControlDataFlow.IntValuesModule)
+  //    println(compiled.transformed)
+  println(compiled.optimized)
+  val runs = 200
+  var edits: EditScript = null
+  var tuple: Tuple = null
+  for (i <- 0 until runs) {
+    val fun = loadFunction(compiled)
+    if (edits == null) {
+      val input = fun.measureInput(ControlDataFlow.exampleDataflow2)
+      edits = input._1
+      tuple = input._2
+    }
+    val (load, insert, delete) = fun.measure("final_var", edits, tuple)
+    println(s"Load ${load / 1000 / 1000}ms, Insert ${insert / 1000 / 1000}ms, Delete ${delete / 1000 / 1000}ms")
+    EnginePool.disposeAllEngines()
   }
 }

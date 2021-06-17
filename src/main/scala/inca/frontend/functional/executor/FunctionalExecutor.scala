@@ -26,7 +26,7 @@ object FunctionalExecutor {
     // maps from fuction name to inserted tuple
     var lastTuple: Map[String, Tuple] = Map()
 
-    val loadedPsystemModule: String = scalaCompiler.define {
+    lazy val loadedPsystemModule: String = scalaCompiler.define {
       import scala.meta._
       q"object O {..${compiled.psystemSource.stats}}".syntax
     }
@@ -108,60 +108,17 @@ object FunctionalExecutor {
     def measure(main: String, edits: EditScript, tuple: Tuple): (Long, Long, Long) = {
       val mainSpec = compiled.psystemModule.patterns(main)()
       val mainMatcher = engine.getMatcher(mainSpec)
+
+      val startLoadDB = System.nanoTime()
+      engine.delayUpdatePropagation { () => feed.processEditScript(edits) }
+      val endLoadDB = System.nanoTime()
+      val loadingTime = endLoadDB - startLoadDB
+
       val startInsertQuery = System.nanoTime()
-      var loadingTime: Long = 0
-      engine.delayUpdatePropagation { () =>
-        val startLoadDB = System.nanoTime()
-        feed.processEditScript(edits)
-        //        lastTuple.get(main) match {
-        //          case Some(oldTuple) =>
-        //            // check if last and current tuple are equal
-        //            if (oldTuple != tuple) {
-        //              feed.insert(demandPatternExtensionalPrefix + main, tuple)
-        //              feed.delete(demandPatternExtensionalPrefix + main, oldTuple)
-        //            } else {
-        //              // do nothing tuples are the same
-        //            }
-        //          case None =>
-        feed.insert(demandPatternExtensionalPrefix + main, tuple)
-        //        }
-//        lastTuple = lastTuple + (main -> tuple)
-        val endLoadDB = System.nanoTime()
-        loadingTime = endLoadDB - startLoadDB
-      }
+      feed.insert(demandPatternExtensionalPrefix + main, tuple)
       val endInsertQuery = System.nanoTime()
 
-      val startDeleteQuery = System.nanoTime()
-//      var unloadingTime: Long = 0
-//      val invEdits = EditScript(edits.coreEdits.map {
-//        case Attach(node, tag, link, parent, ptag) =>
-//          Detach(node, tag, link, parent, ptag)
-//        case Load(node, tag, kids, lits) =>
-//          Unload(node, tag, kids, lits)
-//        case _ => throw new IllegalStateException()
-//      })
-//      engine.delayUpdatePropagation { () =>
-//        val startUnloadDB = System.nanoTime()
-//        feed.processEditScript(invEdits)
-////        lastTuple.get(main) match {
-////          case Some(oldTuple) =>
-////            // check if last and current tuple are equal
-////            if (oldTuple != tuple) {
-////              feed.insert(demandPatternExtensionalPrefix + main, tuple)
-////              feed.delete(demandPatternExtensionalPrefix + main, oldTuple)
-////            } else {
-////              // do nothing tuples are the same
-////            }
-////          case None =>
-//        feed.delete(demandPatternExtensionalPrefix + main, tuple)
-////        }
-////        lastTuple = lastTuple + (main -> tuple)
-//        val endUnloadDB = System.nanoTime()
-//        unloadingTime = endUnloadDB - startUnloadDB
-//      }
-      val endDeleteQuery = System.nanoTime()
-
-      (loadingTime, endInsertQuery - startInsertQuery, endDeleteQuery - startDeleteQuery)
+      (loadingTime, endInsertQuery - startInsertQuery, -1)
     }
 
 
