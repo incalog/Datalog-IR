@@ -1,4 +1,4 @@
-package inca.frontend.functional.measurements
+package inca.frontend.functional.measurements.dataflow
 
 import inca.backend.ir.DatalogPrinter
 import inca.examples.functional.ControlDataFlow
@@ -7,21 +7,19 @@ import inca.util.measurement.BenchmarkUtils.{Measurement, Timing, measurementsTo
 import inca.util.measurement.MemoryUtil
 
 object MeasureDataflowAnalysis extends App {
-    val warmup = 25
-    val numMeasurements = 100
+    val warmup = 1
+    val numMeasurements = 10
     implicit val timing: Timing = Timing(warmup, numMeasurements)
 
     val times = (0 until timing.discard + timing.repeat).map { _ =>
         // load analysis
         val fun = loadFunction(ControlDataFlow.IntValuesModule)
-        println(DatalogPrinter.prettyModule(fun.compiled.optimized)(false))
 
         // collect garbage before running analysis
         MemoryUtil.collectGarbage()
 
         // initialize analysis
-       val (_, time, _) = fun.measure("final_var", Seq(ControlDataFlow.exampleDataflow))
-       println(time)
+       val (_, time, _) = fun.measure("final_var", Seq(ControlDataFlow.exampleDataflow2))
        time
     }
 
