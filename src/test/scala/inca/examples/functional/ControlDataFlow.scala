@@ -658,6 +658,14 @@ object ControlDataFlow {
                 Assign("x", Sub(Var("x"), Num(1)))))))
        """
 
+  /*
+    x = 2
+    y = 2
+    while(x > 1) {
+      y = x + y
+      x = x + 2
+    }
+   */
   val exampleDataflow =
     q"""Sequence(
           Assign("x", Num(2)),
@@ -670,5 +678,63 @@ object ControlDataFlow {
                   Skip(),
                   Assign("x", Add(Var("x"), Num(2))))))))
        """
-
+  /*
+    x = 1
+    y = 2
+    z = 3
+    if (3 > x) {
+      x = 6
+    } else {
+      y = 7
+    }
+    while (10 > x) {
+      y = y + 1
+    }
+    while(x > 6) {
+      x = x + y
+      while (y > 7) {
+        y = x + y
+        while (z > 2) {
+          z = 2
+        }
+      }
+    }
+   */
+  val exampleDataflow2 =
+    q"""Sequence(
+          Assign("x", Num(1)),
+          Sequence(
+            Assign("y", Num(2)),
+            Sequence(
+              Assign("z", Num(3)),
+              Sequence(
+                If(
+                  GreaterThan(Num(3), Var("x")),
+                  Assign("x", Num(6)),
+                  Assign("y", Num(7))),
+                Sequence(
+                  While(
+                    GreaterThan(Num(10), Var("x")),
+                    Assign("y", Add(Var("y"), Num(1)))),
+                  While(
+                    GreaterThan(Var("x"), Num(6)),
+                    Sequence(
+                      Assign("x", Add(Var("x"), Var("y"))),
+                      While(
+                        GreaterThan(Var("y"), Num(7)),
+                        Sequence(
+                          Assign("y", Add(Var("x"), Var("y"))),
+                          While(
+                            GreaterThan(Var("z"), Num(2)),
+                            Assign("z", Num(2)))
+                        )
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+       """
 }
