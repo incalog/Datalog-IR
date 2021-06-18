@@ -27,6 +27,7 @@ trait TreesitterDataModelResolver extends DataModelResolver {
   /*
   * Assumptions: - Supertypes are declared explicity in treesitters grammar.js
   *              - Children of AST-Nodes defined in node-types.json are defined as types and not explicitly
+  *              - its important to have a close look on literals
   */
   class DataModelParser(nodeTypes: Json, literalIdentifiers: Vector[String]) {
 
@@ -141,7 +142,7 @@ trait TreesitterDataModelResolver extends DataModelResolver {
           val childTypes: Vector[Json] = typedef.hcursor.downField("children").downField("types").focus.flatMap(_.asArray).getOrElse(Vector.empty)
 
           val types: Vector[Either[String, SortType]] = extractTypes(childTypes)
-          val childNames: Vector[String] = types.indices.map(_.toString).toVector
+          val childNames: Vector[String] = types.indices.map("_" + _.toString).toVector
 
           for ((tpe: Either[String, SortType], fieldName: String) <- types.zip(childNames)) {
             getNewLink(nodeTypeName, tpe, fieldName, childMultiple, childRequired) match {
