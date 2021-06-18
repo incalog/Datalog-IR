@@ -200,6 +200,51 @@ object ExamplePrograms {
         )
       )
     )
+  /*
+    x = 10
+    y = 1
+    while (10 > x) {
+      x = x + 1
+      while (x > y) {
+        y = x + y
+        while (x > 10) {
+          y = y + y
+          while (y > 10) {
+            x = x + 1
+          }
+        }
+      }
+    }
+   */
+  val ex4: Stm =
+    Sequence(
+      Assign("x", Num(10)),
+      Sequence(
+        Assign("y", Num(1)),
+        While(
+          GreaterThan(Num(10), Var("x")),
+          Sequence(
+            Assign("x", Add(Var("x"), Num(1))),
+            While(
+              GreaterThan(Var("x"), Var("y")),
+              Sequence(
+                Assign("y", Add(Var("x"), Var("y"))),
+                While(
+                  GreaterThan(Var("x"), Num(10)),
+                  Sequence(
+                    Assign("y", Add(Var("y"), Var("y"))),
+                    While(
+                      GreaterThan(Var("y"), Num(10)),
+                      Assign("x", Add(Var("x"), Num(1)))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
 }
 
 object GeneratePrograms extends App {
@@ -207,14 +252,17 @@ object GeneratePrograms extends App {
   println(ExamplePrograms.ex1.toString)
   println(ExamplePrograms.ex2.toString)
   println(ExamplePrograms.ex3.toString)
+  println(ExamplePrograms.ex4.toString)
 
   println("Souffle")
   println(ExamplePrograms.ex1.toSouffle)
   println(ExamplePrograms.ex2.toSouffle)
   println(ExamplePrograms.ex3.toSouffle)
+  println(ExamplePrograms.ex4.toSouffle)
 
   println("Formulog")
   println(ExamplePrograms.ex1.toFormulog)
   println(ExamplePrograms.ex2.toFormulog)
   println(ExamplePrograms.ex3.toFormulog)
+  println(ExamplePrograms.ex4.toFormulog)
 }

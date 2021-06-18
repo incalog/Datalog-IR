@@ -159,7 +159,7 @@ object Run extends App {
   for (i <- 0 until runs) {
     val fun = loadFunction(compiled)
     if (edits == null) {
-      val input = fun.measureInput(ControlDataFlow.exampleDataflow2)
+      val input = fun.measureInput(ControlDataFlow.exampleDataflow4)
       edits = input._1
       tuple = input._2
     }
