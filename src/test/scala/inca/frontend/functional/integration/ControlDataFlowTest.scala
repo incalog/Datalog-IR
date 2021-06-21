@@ -1,5 +1,6 @@
 package inca.frontend.functional.integration
 
+import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
 import inca.examples.functional.ControlDataFlow
 import inca.frontend.functional.executor.FunctionalExecutor._
 import inca.runtime.EnginePool
@@ -57,34 +58,34 @@ class ControlDataFlowTest extends AnyFunSuite {
 //    assert(fun.executeInput("allExits_RD", input).res.size == 13)
 //
 ////    fun.printAllMatches()
-//    fun.output("allExits_RD", Tuples.flatTupleOf(prog)).res.foreach { case Seq(c1, c2, c3) => println(s"$c2:$c3 in $c1") }
+//    fun.output("allExits_RD", input._2).res.foreach { case Seq(c1, c2, c3) => println(s"$c2:$c3 in $c1") }
 //  }
 
-    test("intervals ex 2.7") {
-      println(ControlDataFlow.IntervalModule.lines().count())
-      val fun = loadFunction(ControlDataFlow.IntervalModule)
-      println(fun.compiled.ir.copy(scalaContent = Seq()).toString.lines().count())
-      println(fun.compiled.optimized.copy(scalaContent = Seq()).toString.lines().count())
-      println(fun.compiled.psystemSource.toString.lines().count())
-}
-
-  //  test("intervals ex 2.7") {
+//  test("intervals ex 2.7") {
+//    println(ControlDataFlow.IntervalModule.lines().count())
 //    val fun = loadFunction(ControlDataFlow.IntervalModule)
-//
-//    // fun.compiled.printStatistics()
-//    val prog = fun.input(ControlDataFlow.example_2_7)
-//
-//    val rels = fun.compiled.optimized.pats
-//    println("relations: " + rels.size)
-//    println("input relations: " + rels.count(_.name.contains(demandPatternPrefix)))
-//    println("bodies: " + rels.flatMap(_.bodies).size)
-//    println("atoms: " + rels.flatMap(_.bodies.flatMap(_.atoms)).size)
-//
-//    val res = fun.executeTuple("final_var", Tuples.flatTupleOf(prog))
-////    fun.printAllMatches()
-//    // TODO second aggregation currently implemented by hand in exit_var_external, should be generated eventually
-//    assert(res.res.size == 2)
+//    println(fun.compiled.ir.copy(scalaContent = Seq()).toString.lines().count())
+//    println(fun.compiled.optimized.copy(scalaContent = Seq()).toString.lines().count())
+//    println(fun.compiled.psystemSource.toString.lines().count())
 //  }
+
+  test("intervals ex 2.7") {
+    val fun = loadFunction(ControlDataFlow.IntervalModule)
+
+    // fun.compiled.printStatistics()
+    val prog = fun.input(ControlDataFlow.example_2_7)
+
+    val rels = fun.compiled.optimized.pats
+    println("relations: " + rels.size)
+    println("input relations: " + rels.count(_.name.contains(demandPatternPrefix)))
+    println("bodies: " + rels.flatMap(_.bodies).size)
+    println("atoms: " + rels.flatMap(_.bodies.flatMap(_.atoms)).size)
+
+    val res = fun.executeInput("final_var", prog)
+//    fun.printAllMatches()
+    // TODO second aggregation currently implemented by hand in exit_var_external, should be generated eventually
+    assert(res.res.size == 2)
+  }
 
   test("aeval") {
     val fun = loadFunction(ControlDataFlow.AEvalModule)
@@ -122,31 +123,6 @@ class ControlDataFlowTest extends AnyFunSuite {
     val res = fun.executeInput("final_var", fun.input(ControlDataFlow.exampleDataflow2))
     assert(res.res.size == 200)
   }
-
-  test("powerset dataflow analysis") {
-    val compiled = compileFunction(ControlDataFlow.IntValuesModule)
-//    println(compiled.transformed)
-    println(compiled.optimized)
-    val runs = 5
-    var edits: EditScript = null
-    var tuple: Tuple = null
-    for (i <- 0 until runs) {
-      val fun = loadFunction(compiled)
-      if (edits == null) {
-        val input = fun.measureInput(ControlDataFlow.exampleDataflow)
-        edits = input._1
-        tuple = input._2
-      }
-      val (load, insert, delete) = fun.measure("final_var", edits, tuple)
-      println(s"Load ${load / 1000 / 1000}ms, Insert ${insert / 1000 / 1000}ms, Delete ${delete / 1000 / 1000}ms")
-      EnginePool.disposeAllEngines()
-    }
-
-    //    val input = fun.input(Seq(ControlDataFlow.exampleDataflow))
-    //    val res = fun.executeInput("final_var", input, deleteInput = true)
-    //    res.res.sortBy(_.toString).foreach(println)
-//    assert(res.res.size == 100)
-  }
 }
 
 object Run extends App {
@@ -159,7 +135,7 @@ object Run extends App {
   for (i <- 0 until runs) {
     val fun = loadFunction(compiled)
     if (edits == null) {
-      val input = fun.measureInput(ControlDataFlow.exampleDataflow4)
+      val input = fun.input(ControlDataFlow.exampleDataflow4)
       edits = input._1
       tuple = input._2
     }

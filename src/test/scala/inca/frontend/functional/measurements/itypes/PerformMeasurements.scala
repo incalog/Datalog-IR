@@ -1,6 +1,6 @@
 package inca.frontend.functional.measurements.itypes
 
-import inca.frontend.functional.executor.FunctionalExecutor
+import inca.frontend.functional.executor.{FunctionalExecutor, IncrementalFunctionalExecutor}
 import inca.util.measurement.BenchmarkUtils.{Measurement, Timing, measurementsToCSV, writeFile}
 import inca.util.measurement.MemoryUtil
 
@@ -132,7 +132,7 @@ object PerformMeasurements extends scala.App {
     val emptyCtx = q"Empty()"
 
     // load analysis
-    val analysis = FunctionalExecutor.loadFunction(code)
+    val analysis = IncrementalFunctionalExecutor.loadFunction(code)
 
     // collect garbage before running analysis
     MemoryUtil.collectGarbage()
@@ -142,8 +142,8 @@ object PerformMeasurements extends scala.App {
 
     val baseConfigName = config.gen.getClass.getSimpleName.replaceAllLiterally("$", "") + " " + config.edit.getClass.getSimpleName.replaceAllLiterally("$", "")
 
-    val editTimes = mutable.ListBuffer[(Long, Long, Long)]()
-    val undoTimes = mutable.ListBuffer[(Long, Long, Long)]()
+    val editTimes = mutable.ListBuffer[(Long, Long)]()
+    val undoTimes = mutable.ListBuffer[(Long, Long)]()
     // do measurements
     (0 until config.warmupMeasurements + config.numMeasurements).foreach { _ =>
       val editTime = analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(progEdit)))
