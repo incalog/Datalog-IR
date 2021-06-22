@@ -1,0 +1,230 @@
+
+.type Exp = Num {val:number}
+          | Var {name:symbol}
+          | Add {e1:Exp, e2:Exp}
+          | GreaterThan {e1:Exp, e2:Exp}
+
+.type Stm = Assign {l:number, name:symbol, e:Exp}
+          | Skip {l:number}
+          | Sequence {l:number, s1:Stm, s2:Stm}
+          | If {l:number, cond:Exp, thn:Stm, els:Stm}
+          | While {l:number, cond:Exp, body:Stm}
+
+.decl Prog(p:Stm)
+// Prog(
+//   $Sequence(1,
+//     $Assign(2,"x", $Num(2)),
+//     $Sequence(3,
+//       $Assign(4,"y", $Num(2)),
+//       $While(5,$GreaterThan($Var("x"), $Num(1)),
+//         $Sequence(6,
+//           $Assign(7,"y", $Add($Var("x"), $Var("y"))),
+// 	  $Sequence(8,
+// 	    $Skip(9),
+//             $Assign(10,"x", $Add($Var("x"), $Num(2))))))))
+// ).
+// Prog(
+//   $Sequence(1,
+//     $Assign(2,"x",$Num(1)),
+//     $Sequence(3,
+//       $Assign(4,"y",$Num(2)),
+//       $Sequence(5,
+//         $Assign(6,"z",$Num(3)),
+//         $Sequence(7,
+//           $If(8,
+//             $GreaterThan($Num(3),$Var("x")),
+//             $Assign(9,"x",$Num(6)),
+//             $Assign(10,"y",$Num(7))),
+//           $Sequence(11,
+//             $While(12,
+//               $GreaterThan($Num(10),$Var("x")),
+//               $Assign(13,"y",$Add($Var("y"),$Num(1)))),
+//               $While(14,
+//                 $GreaterThan($Var("x"),$Num(6)),
+//                 $Sequence(15,
+//                   $Assign(16,"x",$Add($Var("x"),$Var("y"))),
+//                   $While(17,
+//                     $GreaterThan($Var("y"),$Num(7)),
+//                     $Sequence(18,
+//                       $Assign(19,"y",$Add($Var("x"),$Var("y"))),
+//                       $While(20,
+//                         $GreaterThan($Var("z"),$Num(2)),
+//                         $Assign(21,"z",$Num(2))))))))))))
+// ).
+
+Prog(
+  $Sequence(1,
+    $Assign(2,"x",$Num(10)),
+    $Sequence(3,
+      $Assign(4,"y",$Num(1)),
+      $While(5,
+        $GreaterThan($Num(10),$Var("x")),
+        $Sequence(6,
+          $Assign(7,"x",$Add($Var("x"),$Num(1))),
+          $While(8,
+            $GreaterThan($Var("x"),$Var("y")),
+            $Sequence(9,
+              $Assign(10,"y",$Add($Var("x"),$Var("y"))),
+              $While(11,
+                $GreaterThan($Var("x"),$Num(10)),
+                $Sequence(12,
+                  $Assign(13,"y",$Add($Var("y"),$Var("y"))),
+                  $While(14,
+                    $GreaterThan($Var("y"),$Num(10)),
+                    $Assign(15,"x",$Add($Var("x"),$Num(1))))))))))))
+).
+
+
+
+
+
+.decl FreevarsStm(x:symbol, s:Stm)
+FreevarsStm(x, $Assign(l, x, a)) :- FreevarsStm_input($Assign(l, x, a)).
+FreevarsStm(x, $Sequence(l, s1, s2)) :- FreevarsStm_input($Sequence(l, s1, s2)), FreevarsStm(x, s1).
+FreevarsStm(x, $Sequence(l, s1, s2)) :- FreevarsStm_input($Sequence(l, s1, s2)), FreevarsStm(x, s2).
+FreevarsStm(x, $If(l, b, s1, s2)) :- FreevarsStm_input($If(l, b, s1, s2)), FreevarsExp(x, b).
+FreevarsStm(x, $If(l, b, s1, s2)) :- FreevarsStm_input($If(l, b, s1, s2)), FreevarsStm(x, s1).
+FreevarsStm(x, $If(l, b, s1, s2)) :- FreevarsStm_input($If(l, b, s1, s2)), FreevarsStm(x, s2).
+FreevarsStm(x, $While(l, b, s)) :- FreevarsStm_input($While(l, b, s)), FreevarsExp(x, b).
+FreevarsStm(x, $While(l, b, s)) :- FreevarsStm_input($While(l, b, s)), FreevarsStm(x, s).
+
+.decl FreevarsStm_input(s:Stm)
+FreevarsStm_input(p) :- AnalysisResult_input(p).
+FreevarsStm_input(s1) :- FreevarsStm_input($Sequence(_, s1, _)).
+FreevarsStm_input(s2) :- FreevarsStm_input($Sequence(_, _, s2)).
+FreevarsStm_input(s1) :- FreevarsStm_input($If(_, _, s1, _)).
+FreevarsStm_input(s2) :- FreevarsStm_input($If(_, _, _, s2)).
+FreevarsStm_input(s) :- FreevarsStm_input($While(_, _, s)).
+
+.decl FreevarsExp(x:symbol, e:Exp)
+FreevarsExp(x, $Var(x)) :- FreevarsExp_input($Var(x)).
+FreevarsExp(x, $GreaterThan(e1,e2)) :- FreevarsExp_input($GreaterThan(e1,e2)), FreevarsExp(x, e1).
+FreevarsExp(x, $GreaterThan(e1,e2)) :- FreevarsExp_input($GreaterThan(e1,e2)), FreevarsExp(x, e2).
+FreevarsExp(x, $Add(e1,e2)) :- FreevarsExp_input($Add(e1,e2)), FreevarsExp(x, e1).
+FreevarsExp(x, $Add(e1,e2)) :- FreevarsExp_input($Add(e1,e2)), FreevarsExp(x, e2).
+
+.decl FreevarsExp_input(e:Exp)
+FreevarsExp_input(b) :- FreevarsStm_input($If(_, b, _, _)).
+FreevarsExp_input(b) :- FreevarsStm_input($While(_, b, _)).
+FreevarsExp_input(e1) :- FreevarsExp_input($GreaterThan(e1, _)).
+FreevarsExp_input(e2) :- FreevarsExp_input($GreaterThan(_, e2)).
+FreevarsExp_input(e1) :- FreevarsExp_input($Add(e1, _)).
+FreevarsExp_input(e2) :- FreevarsExp_input($Add(_, e2)).
+
+
+
+.decl Init(node:Stm, s:Stm)
+Init($Assign(l, x, a), $Assign(l, x, a)) :- Init_input($Assign(l, x, a)).
+Init($Skip(l), $Skip(l)) :- Init_input($Skip(l)).
+Init(s, $Sequence(l, s1, s2)) :- Init_input($Sequence(l, s1, s2)), Init(s, s1).
+Init($If(l, b, s1, s2), $If(l, b, s1, s2)) :- Init_input($If(l, b, s1, s2)).
+Init($While(l, b, s), $While(l, b, s)) :- Init_input($While(l, b, s)).
+
+.decl Init_input(s: Stm)
+Init_input(s1) :- Init_input($Sequence(_,s1,_)).
+Init_input(s2) :- Flow_input($Sequence(_,_,s2)).
+Init_input(s) :- Flow_input($While(_,_,s)).
+Init_input(s2) :- Flow_input($If(_,_,_,s2)).
+
+.decl Final(node:Stm, s:Stm)
+Final($Assign(l, x, a), $Assign(l, x, a)) :- Final_input($Assign(l, x, a)).
+Final($Skip(l), $Skip(l)) :- Final_input($Skip(l)).
+Final(s, $Sequence(l, s1, s2)) :- Final_input($Sequence(l, s1, s2)), Final(s,s2).
+Final(s, $If(l, b, s1, s2)) :- Final_input($If(l, b, s1, s2)), Final(s,s1).
+Final(s, $If(l, b, s1, s2)) :- Final_input($If(l, b, s1, s2)), Final(s,s2).
+Final($While(l, b, s), $While(l, b, s)) :- Final_input($While(l, b, s)).
+
+.decl Final_input(s:Stm)
+Final_input(s2) :- Final_input($Sequence(_,_,s2)).
+Final_input(s1) :- Final_input($If(_,_,s1,_)).
+Final_input(s2) :- Final_input($If(_,_,_,s2)).
+Final_input(s1) :- Flow_input($Sequence(_,s1,_)).
+Final_input(s) :- Flow_input($While(_,_,s)).
+Final_input(p) :- AnalysisResult_input(p).
+
+.decl Flow(from:Stm, to:Stm, p:Stm)
+Flow(from, to, $Sequence(l,s1,s2)) :- Flow_input($Sequence(l,s1,s2)), Flow(from, to, s1).
+Flow(from, to, $Sequence(l,s1,s2)) :- Flow_input($Sequence(l,s1,s2)), Flow(from, to, s2).
+Flow(from, to, $Sequence(l,s1,s2)) :- Flow_input($Sequence(l,s1,s2)), Final(from,s1), Init(to,s2).
+Flow(from, to, $If(l,b,s1,s2)) :- Flow_input($If(l,b,s1,s2)), Flow(from, to, s1).
+Flow(from, to, $If(l,b,s1,s2)) :- Flow_input($If(l,b,s1,s2)), Flow(from, to, s2).
+Flow($If(l,b,s1,s2), to, $If(l,b,s1,s2)) :- Flow_input($If(l,b,s1,s2)), Init(to,s1).
+Flow($If(l,b,s1,s2), to, $If(l,b,s1,s2)) :- Flow_input($If(l,b,s1,s2)), Init(to,s2).
+Flow(from, to, $While(l,b,s)) :- Flow_input($While(l,b,s)), Flow(from, to, s).
+Flow($While(l,b,s), to, $While(l,b,s)) :- Flow_input($While(l,b,s)), Init(to,s).
+Flow(from, $While(l,b,s), $While(l,b,s)) :- Flow_input($While(l,b,s)), Final(from,s).
+
+.decl Flow_input(s:Stm)
+Flow_input(s1) :- Flow_input($Sequence(_,s1,_)).
+Flow_input(s2) :- Flow_input($Sequence(_,_,s2)).
+Flow_input(s1) :- Flow_input($If(_,_,s1,_)).
+Flow_input(s2) :- Flow_input($If(_,_,_,s2)).
+Flow_input(s) :- Flow_input($While(_,_,s)).
+Flow_input(p) :- Entry_input(_, _, p).
+
+
+.type Val = VBool {b:unsigned}
+          | VNum {n:number}
+
+.decl Entry(x:symbol, v:Val, node:Stm, p:Stm)
+Entry(x, v, node, p) :- Entry_input(x, node, p), Flow(pred, node, p), Exit(x, v, pred, p).
+
+.decl Entry_input(x:symbol, node:Stm, p:Stm)
+Entry_input(x, $Assign(l,y,e), p) :- Exit_input(x, $Assign(l,y,e), p), x != y.
+Entry_input(x, $Skip(l), p) :- Exit_input(x, $Skip(l), p).
+Entry_input(x, $Sequence(l,s1,s2), p) :- Exit_input(x, $Sequence(l,s1,s2), p).
+Entry_input(x, $If(l,b,s1,s2), p) :- Exit_input(x, $If(l,b,s1,s2), p).
+Entry_input(x, $While(l,b,s), p) :- Exit_input(x, $While(l,b,s), p).
+Entry_input(x, node, p) :- Eval_input($Var(x), node, p).
+
+.decl Exit(x:symbol, v:Val, node:Stm, p:Stm)
+Exit(x, v, $Assign(l,y,e), p) :- Exit_input(x,$Assign(l,y,e), p), x = y, Eval(e, v, $Assign(l,y,e), p).
+Exit(x, v, $Assign(l,y,e), p) :- Exit_input(x,$Assign(l,y,e), p), x != y, Entry(x, v, $Assign(l,y,e), p).
+Exit(x, v, $Skip(l), p) :- Exit_input(x,$Skip(l), p), Entry(x, v, $Skip(l), p).
+Exit(x, v, $Sequence(l,s1,s2), p) :- Exit_input(x,$Sequence(l,s1,s2), p), Entry(x, v, $Sequence(l,s1,s2), p).
+Exit(x, v, $If(l,b,s1,s2), p) :- Exit_input(x,$If(l,b,s1,s2), p), Entry(x, v, $If(l,b,s1,s2), p).
+Exit(x, v, $While(l,b,s), p) :- Exit_input(x,$While(l,b,s), p), Entry(x, v, $While(l,b,s), p).
+
+.decl Exit_input(x:symbol, node:Stm, p:Stm)
+Exit_input(x, pred, p) :- Entry_input(x, node, p), Flow(pred, node, p).
+Exit_input(x, s, p) :- AnalysisResult_input(p), Final(s,p), FreevarsStm(x, p).
+
+.decl Eval(e:Exp, v:Val, node:Stm, p:Stm)
+Eval($Num(n), $VNum(n), node, p) :- Eval_input($Num(n), node, p).
+Eval($Var(x), v, node, p) :- Eval_input($Var(x), node, p), Entry(x, v, node, p).
+Eval($GreaterThan(e1, e2), v, node, p) :- Eval_input($GreaterThan(e1, e2), node, p), Eval(e1, v1, node, p), Eval(e2, v2, node, p), GreaterThan(v1, v2, v).
+Eval($Add(e1, e2), v, node, p) :- Eval_input($Add(e1, e2), node, p), Eval(e1, v1, node, p), Eval(e2, v2, node, p), Add(v1, v2, v).
+
+.decl Eval_input(e:Exp, node:Stm, p:Stm)
+Eval_input(e, $Assign(l,y,e), p) :- Exit_input(x, $Assign(l,y,e), p), x = y.
+Eval_input(e1, node, p) :- Eval_input($GreaterThan(e1, _), node, p).
+Eval_input(e2, node, p) :- Eval_input($GreaterThan(_, e2), node, p).
+Eval_input(e1, node, p) :- Eval_input($Add(e1, _), node, p).
+Eval_input(e2, node, p) :- Eval_input($Add(_, e2), node, p).
+
+.decl GreaterThan(v1:Val, v2:Val, v:Val)
+GreaterThan($VNum(n1), $VNum(n2), $VBool(1)) :- GreaterThan_input($VNum(n1), $VNum(n2)), n1 > n2.
+GreaterThan($VNum(n1), $VNum(n2), $VBool(0)) :- GreaterThan_input($VNum(n1), $VNum(n2)), n1 <= n2.
+
+.decl GreaterThan_input(v1:Val, v2:Val)
+GreaterThan_input(v1, v2) :- Eval_input($GreaterThan(e1, e2), node, p), Eval(e1, v1, node, p), Eval(e2, v2, node, p).
+
+.decl Add(v1:Val, v2:Val, v:Val)
+Add($VNum(n1), $VNum(n2), $VNum(n1 + n2)) :- Add_input($VNum(n1), $VNum(n2)), n1 + n2 > -100, n1 + n2 < 100.
+Add($VNum(n1), $VNum(n2), $VNum(-1000)) :- Add_input($VNum(n1), $VNum(n2)), n1 + n2 <= -100.
+Add($VNum(n1), $VNum(n2), $VNum(1000)) :- Add_input($VNum(n1), $VNum(n2)), n1 + n2 >= -100.
+
+.decl Add_input(v1:Val, v2:Val)
+Add_input(v1, v2) :- Eval_input($Add(e1, e2), node, p), Eval(e1, v1, node, p), Eval(e2, v2, node, p).
+
+
+
+
+
+.decl AnalysisResult(x:symbol, v:Val)
+AnalysisResult(x, v) :- AnalysisResult_input(p), Final(s,p), FreevarsStm(x, p), Exit(x, v, s, p).
+
+.decl AnalysisResult_input(p:Stm)
+AnalysisResult_input(p) :- Prog(p).
+
+.output AnalysisResult

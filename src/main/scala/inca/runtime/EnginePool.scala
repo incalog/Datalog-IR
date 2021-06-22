@@ -1,8 +1,9 @@
 package inca.runtime
 
+import inca.runtime.db.Database
+
 import java.lang.ref.WeakReference
 import java.util
-
 import org.eclipse.viatra.query.runtime.api._
 import org.eclipse.viatra.query.runtime.api.scope.QueryScope
 import org.eclipse.viatra.query.runtime.matchers.backend.{IQueryBackendFactory, QueryEvaluationHint}

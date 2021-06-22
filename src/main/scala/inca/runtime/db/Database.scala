@@ -1,4 +1,4 @@
-package inca.runtime
+package inca.runtime.db
 
 import inca.runtime.Query.ChangeFeed
 import inca.runtime.context.DataModel
@@ -9,6 +9,7 @@ import inca.runtime.index.binary.{BidirectionalManyToOneIndex, BidirectionalOneT
 import inca.runtime.index.dynamic.{DynamicIndex, DynamicIndexFactory}
 import inca.runtime.index.unary.{UnaryBagIndex, UnarySetIndex}
 import inca.runtime.index.virtual.VirtualIndex
+import inca.runtime.db.updater.{DatabaseUpdater, DirectDatabaseUpdater}
 import org.eclipse.viatra.query.runtime.api.scope.{IBaseIndex, IIndexingErrorListener, IInstanceObserver, ViatraBaseIndexChangeListener}
 import org.eclipse.viatra.query.runtime.matchers.context._
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask}
@@ -31,7 +32,7 @@ class Database(
 
   def this() = this(null, Seq(), null)
 
-  val languageMetaInfo: DataModel = if (_languageMetaInfo != null) _languageMetaInfo else new DataModel()
+  val dataModel: DataModel = if (_languageMetaInfo != null) _languageMetaInfo else new DataModel()
 
   override def getMetaContext: IQueryMetaContext = _metaContext
 
@@ -115,7 +116,7 @@ class Database(
 
   /** Process edit scripts */
 
-  private val updater: DatabaseUpdater = new DatabaseUpdater(this)
+  private val updater: DatabaseUpdater = new DirectDatabaseUpdater(this)
 
   // process coreedits to so that first dynamic indicies are modified and then the core indicies
   // we want to avoid interleaving this

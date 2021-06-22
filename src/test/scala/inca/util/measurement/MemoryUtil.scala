@@ -1,22 +1,25 @@
-package inca.util
+package inca.util.measurement
 
 import java.io.IOException
 
-object MeasurementUtils {
-
+object MemoryUtil {
   def usedMemoryInBytes(): Long = {
     val total = Runtime.getRuntime.totalMemory()
     val free = Runtime.getRuntime.freeMemory()
     total - free
   }
 
-  def usedMemoryInMBytes(): Long = {
-    System.gc()
+
+  def collectGarbage(): Unit = {
+    System.gc ()
     try {
-    Thread.sleep(2000)
+      Thread.sleep (2000)
     } catch {
-      case e: IOException => e.printStackTrace()
+     case e: IOException => e.printStackTrace ()
     }
+  }
+
+  def usedMemoryInMBytes(): Long = {
     usedMemoryInBytes() / (1024 * 1024)
   }
 }

@@ -6,7 +6,7 @@ import inca.frontend.souffle.parser.Parser
 import inca.runtime.EnginePool
 import inca.runtime.Query.Matcher
 import inca.runtime.context.QueryScope
-import inca.util.MeasurementUtils
+import inca.util.measurement.MemoryUtil
 import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
 import org.scalatest.flatspec.AnyFlatSpec
 import truechange.EditScript
@@ -89,7 +89,7 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
       }
 
       println(s"Run $run: Time to fill database: ${loadingTime}ms")
-      println(s"Run $run: Used memory: ${MeasurementUtils.usedMemoryInMBytes()}MB")
+      println(s"Run $run: Used memory: ${MemoryUtil.usedMemoryInMBytes()}MB")
       println(s"Run $run: Time to process query: ${endQuery - startQuery}ms")
 
       //    matchers.foreach { m =>

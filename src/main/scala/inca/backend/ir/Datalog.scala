@@ -16,7 +16,7 @@ object Datalog {
   case object Private extends Visibility
 
   case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern], scalaContent: Seq[Scala[meta.Stat]]) {
-    override def toString: Name = Printer.prettyModule(this)
+    override def toString: Name = GPPrinter.prettyModule(this)
   }
   case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body]) extends Hints {
     def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)

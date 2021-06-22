@@ -1,6 +1,6 @@
 package inca.runtime.index.virtual
 
-import inca.runtime.Database
+import inca.runtime.db.Database
 import inca.runtime.index.VirtualKey
 
 /** Virtual indices can be created on demand since they do not cache data themselves. */

@@ -3,61 +3,71 @@ package inca.frontend.functional.integration
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
 import inca.examples.functional.ControlDataFlow
 import inca.frontend.functional.executor.FunctionalExecutor._
-import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
+import inca.runtime.EnginePool
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
 import org.scalatest.funsuite.AnyFunSuite
+import truechange.EditScript
 
 class ControlDataFlowTest extends AnyFunSuite {
 
   test("flow ex 2.1") {
     val fun = loadFunction(ControlDataFlow.cflowModule)
     val input = fun.input(Seq(ControlDataFlow.example_2_1))
-    assert(fun.executeTuple("flow", input).res.size == 4)
-    assert(fun.output("flowR", input).res.isEmpty)
+    assert(fun.executeInput("flow", input).res.size == 4)
+    assert(fun.output("flowR", input._2).res.isEmpty)
 //    fun.printAllMatches()
   }
 
   test("flowR ex 2.1") {
     val fun = loadFunction(ControlDataFlow.cflowModule)
     val input = fun.input(Seq(ControlDataFlow.example_2_1))
-    assert(fun.executeTuple("flowR", input).res.size == 4)
-    assert(fun.output("flow", input).res.size == 4)
+    assert(fun.executeInput("flowR", input).res.size == 4)
+    assert(fun.output("flow", input._2).res.size == 4)
 //    fun.printAllMatches()
   }
 
   test("transitiveFlow ex 2.1") {
     val fun = loadFunction(ControlDataFlow.cflowModule)
     val input = fun.input(Seq(ControlDataFlow.example_2_1))
-    assert(fun.executeTuple("transitiveFlow", input).res.size == 12)
+    assert(fun.executeInput("transitiveFlow", input).res.size == 12)
 //    fun.printAllMatches()
   }
 
 //  test("available expressions ex 2.4") {
 //    val fun = loadFunction(ControlDataFlow.AEModule)
-//    val prog = fun.input(ControlDataFlow.example_2_4)
-//    assert(fun.executeTuple("final_AE", Tuples.flatTupleOf(prog)).res.size == 1)
-//    assert(fun.executeTuple("allEntries_AE", Tuples.flatTupleOf(prog)).res.size == 3)
-//    assert(fun.executeTuple("allExits_AE", Tuples.flatTupleOf(prog)).res.size == 5)
+//    val input = fun.input(ControlDataFlow.example_2_4)
+//    assert(fun.executeInput("final_AE", input).res.size == 1)
+//    assert(fun.executeInput("allEntries_AE", input).res.size == 3)
+//    assert(fun.executeInput("allExits_AE", input).res.size == 5)
 //    fun.printAllMatches()
-//    fun.output("allExits_AE", Tuples.flatTupleOf(prog)).res.foreach { case Seq(c1, c2) => println(s"$c2 in $c1") }
+//    fun.output("allExits_AE", input._2).res.foreach { case Seq(c1, c2) => println(s"$c2 in $c1") }
 //  }
 
-  test("reaching definitions ex 2.7") {
-    val fun = loadFunction(ControlDataFlow.RDmodule)
-    val prog = fun.input(ControlDataFlow.example_2_7)
+//  test("reaching definitions ex 2.7") {
+//    val fun = loadFunction(ControlDataFlow.RDmodule)
+//    val input = fun.input(ControlDataFlow.example_2_7)
+//
+//    val rels = fun.compiled.optimized.pats
+//    println("relations: " + rels.size)
+//    println("input relations: " + rels.count(_.name.contains(demandPatternPrefix)))
+//    println("bodies: " + rels.flatMap(_.bodies).size)
+//    println("atoms: " + rels.flatMap(_.bodies.flatMap(_.atoms)).size)
+//
+//    assert(fun.executeInput("final_RD", input).res.size == 4)
+//    assert(fun.executeInput("allEntries_RD", input).res.size == 15)
+//    assert(fun.executeInput("allExits_RD", input).res.size == 13)
+//
+////    fun.printAllMatches()
+//    fun.output("allExits_RD", input._2).res.foreach { case Seq(c1, c2, c3) => println(s"$c2:$c3 in $c1") }
+//  }
 
-    val rels = fun.compiled.optimized.pats
-    println("relations: " + rels.size)
-    println("input relations: " + rels.count(_.name.contains(demandPatternPrefix)))
-    println("bodies: " + rels.flatMap(_.bodies).size)
-    println("atoms: " + rels.flatMap(_.bodies.flatMap(_.atoms)).size)
-
-    assert(fun.executeTuple("final_RD", Tuples.flatTupleOf(prog)).res.size == 4)
-    assert(fun.executeTuple("allEntries_RD", Tuples.flatTupleOf(prog)).res.size == 15)
-    assert(fun.executeTuple("allExits_RD", Tuples.flatTupleOf(prog)).res.size == 13)
-
-//    fun.printAllMatches()
-    fun.output("allExits_RD", Tuples.flatTupleOf(prog)).res.foreach { case Seq(c1, c2, c3) => println(s"$c2:$c3 in $c1") }
-  }
+//  test("intervals ex 2.7") {
+//    println(ControlDataFlow.IntervalModule.lines().count())
+//    val fun = loadFunction(ControlDataFlow.IntervalModule)
+//    println(fun.compiled.ir.copy(scalaContent = Seq()).toString.lines().count())
+//    println(fun.compiled.optimized.copy(scalaContent = Seq()).toString.lines().count())
+//    println(fun.compiled.psystemSource.toString.lines().count())
+//  }
 
   test("intervals ex 2.7") {
     val fun = loadFunction(ControlDataFlow.IntervalModule)
@@ -71,7 +81,7 @@ class ControlDataFlowTest extends AnyFunSuite {
     println("bodies: " + rels.flatMap(_.bodies).size)
     println("atoms: " + rels.flatMap(_.bodies.flatMap(_.atoms)).size)
 
-    val res = fun.executeTuple("final_var", Tuples.flatTupleOf(prog))
+    val res = fun.executeInput("final_var", prog)
 //    fun.printAllMatches()
     // TODO second aggregation currently implemented by hand in exit_var_external, should be generated eventually
     assert(res.res.size == 2)
@@ -100,5 +110,37 @@ class ControlDataFlowTest extends AnyFunSuite {
 //    fun.printAllMatches()
 //    // TODO second aggregation currently implemented by hand in exit_var_external, should be generated eventually
 //    assert(res.res.size == 2)
+  }
+
+  test("powerset dataflow analysis 1") {
+    val fun = loadFunction(ControlDataFlow.IntValuesModule)
+    val res = fun.executeInput("final_var", fun.input(ControlDataFlow.exampleDataflow))
+    assert(res.res.size == 100)
+  }
+
+  test("powerset dataflow analysis 2") {
+    val fun = loadFunction(ControlDataFlow.IntValuesModule)
+    val res = fun.executeInput("final_var", fun.input(ControlDataFlow.exampleDataflow2))
+    assert(res.res.size == 200)
+  }
+}
+
+object Run extends App {
+  val compiled = compileFunction(ControlDataFlow.IntValuesModule)
+  //    println(compiled.transformed)
+  println(compiled.optimized)
+  val runs = 200
+  var edits: EditScript = null
+  var tuple: Tuple = null
+  for (i <- 0 until runs) {
+    val fun = loadFunction(compiled)
+    if (edits == null) {
+      val input = fun.input(ControlDataFlow.exampleDataflow4)
+      edits = input._1
+      tuple = input._2
+    }
+    val (load, insert, delete) = fun.measure("final_var", edits, tuple)
+    println(s"Load ${load / 1000 / 1000}ms, Insert ${insert / 1000 / 1000}ms, Delete ${delete / 1000 / 1000}ms")
+    EnginePool.disposeAllEngines()
   }
 }

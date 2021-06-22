@@ -1,6 +1,6 @@
 package inca.runtime.index.dynamic
 
-import inca.runtime.Database
+import inca.runtime.db.Database
 import inca.runtime.index.Index
 import truechange.CoreEdit
 

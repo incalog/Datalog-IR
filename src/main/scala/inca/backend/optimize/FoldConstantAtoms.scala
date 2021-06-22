@@ -30,6 +30,8 @@ object FoldConstantAtoms extends Optimization with TypeOps {
       case Compare(_, v: Var, _) if varCount.get(v.name) == 1 => Seq()
       case Compare(_, _, v: Var) if varCount.get(v.name) == 1 => Seq()
       case Computed(v: Var, _) if varCount.get(v.name) == 1 => Seq()
+      case Path(v: Var, _, _, _, _) if varCount.get(v.name) == 1 => Seq()
+      case Path(_, _, _, v: Var, _) if varCount.get(v.name) == 1 => Seq()
 
       case Compare(EqComparator, t1, t2) if t1 == t2 => Seq()
       case Compare(EqComparator, Constant(c1), Constant(c2)) if c1 != c2 => throwBodyMustFail()

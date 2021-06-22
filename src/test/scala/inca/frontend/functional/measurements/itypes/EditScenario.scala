@@ -27,7 +27,7 @@ trait EditScenario {
       (Let(n, boundexp, bodyexp), bodycount)
     case LetStar(bindings, body) =>
       var bindingsCount = count
-      val newBindings = bindings.map { case (n, e) =>
+      val newBindings = mapBindingList(bindings) { case (n, e) =>
         val (newe, c) = traverse(e, bindingsCount)
         bindingsCount = c
         (n, newe)
@@ -35,7 +35,16 @@ trait EditScenario {
       val (bodyexp, bodycount) = traverse(body, bindingsCount)
       (LetStar(newBindings, bodyexp), bodycount)
   }
+
+  def mapBindingList(bindings: BindingList)(f: (String, Exp) => (String, Exp)): BindingList = bindings match {
+    case Nil() => Nil()
+    case Cons(name, bound, rest) =>
+      val (newName, newExp) = f(name, bound)
+      Cons(newName, newExp, mapBindingList(rest)(f))
+  }
 }
+
+
 
 object NumEditScenario extends EditScenario {
 
@@ -80,7 +89,7 @@ object AnnoEditScenario extends EditScenario {
 
   override def traverse(exp: Exp, count: Int): (Exp, Int) = exp match {
     case Lam(p, t, b) =>
-      val newType = if (shouldChange(count)) TFun(TInt, TInt) else t
+      val newType = if (shouldChange(count)) TFun(TInt(), TInt()) else t
       val (bexp, bcount) = traverse(b, count)
       (Lam(p, newType, bexp), bcount + 1)
     case _ => super.traverse(exp, count)
@@ -93,8 +102,11 @@ object LambdaEditScenario extends EditScenario {
 
   override def traverse(exp: Exp, count: Int): (Exp, Int) = exp match {
     case Lam(p, t, b) =>
-      val (bexp, bcount) = traverse(b, count)
-      (Lam(p, t, Lam("y", TInt, bexp)), bcount + 1)
+      val (bexp, bcount) = traverse(b, count + 1)
+      if (shouldChange(count))
+        (Lam(p, t, Lam("y", TInt(), bexp)), bcount)
+      else
+        (Lam(p, t, bexp), bcount)
     case _ => super.traverse(exp, count)
   }
 }
@@ -105,7 +117,7 @@ object AddAppEditScenario extends EditScenario {
 
   override def traverse(exp: Exp, count: Int): (Exp, Int) = exp match {
     case Add(l, r) =>
-      val (lexp, lcount) = traverse(l, count)
+      val (lexp, lcount) = traverse(l, count + 1)
       val (rexp, rcount) = traverse(r, lcount)
       val newExp = if (shouldChange(count)) App(lexp, rexp) else Add(lexp, rexp)
       (newExp, rcount)

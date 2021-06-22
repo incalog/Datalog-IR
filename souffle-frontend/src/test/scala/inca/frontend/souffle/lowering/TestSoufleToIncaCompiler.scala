@@ -31,6 +31,7 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
       |Subclass(?c, ?a) :-
       |  Subclass(?b, ?a),
       |  DirectSubclass(?b, ?c).
+      |.output Superclass
       |Superclass(?c, ?a) :-
       |  Subclass(?a, ?c).
       |""".stripMargin

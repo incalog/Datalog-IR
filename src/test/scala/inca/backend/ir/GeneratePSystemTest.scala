@@ -103,7 +103,7 @@ class GeneratePSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConst
     val mul = Mul(num3, add)
     val expType = TNode(classOf[Exp].getCanonicalName)
     val parentFun = PatternFunction(
-      Seq(),
+      Seq(MainFunctionAnno),
       None,
       "parent",
       Seq(Param("in", TAny)),

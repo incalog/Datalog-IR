@@ -2,22 +2,22 @@ package inca.frontend.souffle
 
 object Syntax {
 
-  case class Analysis(contents: Seq[AnalysisContent])
+  case class SouffleModule(contents: Seq[SouffleContent])
 
-  sealed trait AnalysisContent
-  case class ComponentInitialization(name: String, composite: String) extends AnalysisContent
-  case class ComponentDefinition(name: String, contents: Seq[AnalysisContent]) extends AnalysisContent
-  case class TypeDeclaration(name: String, superType: Option[DeclaredType]) extends AnalysisContent
+  sealed trait SouffleContent
+  case class ComponentInitialization(name: String, composite: String) extends SouffleContent
+  case class ComponentDefinition(name: String, contents: Seq[SouffleContent]) extends SouffleContent
+  case class TypeDeclaration(name: String, assignedType: Option[DeclaredType]) extends SouffleContent
 
-  case class RuleSignature(name: String, parameters: Seq[RuleParameter], output: Boolean) extends AnalysisContent
+  case class RuleSignature(name: String, parameters: Seq[RuleParameter], output: Boolean) extends SouffleContent
   case class RuleParameter(name: String, typ: Type)
 
-  case class Output(name: String) extends AnalysisContent
-  case class PrintSize(name: String) extends AnalysisContent
+  case class Output(name: String) extends SouffleContent
+  case class PrintSize(name: String) extends SouffleContent
 
-  case class Input(rule: String, filename: String, delimiter: String) extends AnalysisContent
+  case class Input(rule: String, filename: String, delimiter: String) extends SouffleContent
 
-  case class RuleDefinition(heads: Seq[RuleHead], body: Seq[Statement]) extends AnalysisContent
+  case class RuleDefinition(heads: Seq[RuleHead], body: Seq[Statement]) extends SouffleContent
   case class RuleHead(rule: String, arguments: Seq[Expression])
 
   sealed trait Statement

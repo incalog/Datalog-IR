@@ -29,7 +29,7 @@ class FindBugsTests extends AnyFunSuite {
          |
          |node inca.analyzedLangs.tinyJava._
          |
-         |
+         |@main
          |def confusedInheritance(class: ClassDeclaration): Unit = {
          |  assert class.isFinal == true
          |  val members = class.members

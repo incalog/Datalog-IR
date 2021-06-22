@@ -49,48 +49,48 @@ class FunctionsDataTest extends AnyFunSuite {
 
   test("Simple Fold Int Example") {
     val fun = loadFunction(Code.simpleFoldIntModule)
-    val tuple = Tuples.flatTupleOf(fun.vals(q"1", q"10"):_*)
-    assert(fun.executeTuple("sum", tuple) == fun.result(q"55"))
-    assert(fun.output("AggregateCollection$0", tuple).res.size == 10)
+//    val tuple = Tuples.flatTupleOf(fun.vals(q"1", q"10"):_*)
+    assert(fun.execute("sum", Seq(q"1", q"10")) == fun.result(q"55"))
+//    assert(fun.output("AggregateCollection$0", tuple).res.size == 10)
 //    fun.printAllMatches()
   }
 
   test("Simple Fold Example") {
     val fun = loadFunction(Code.simpleFoldModule)
-    val tuple = Tuples.flatTupleOf(fun.vals(q"1", q"10"):_*)
-    fun.executeTuple("sum", tuple)
+//    val tuple = Tuples.flatTupleOf(fun.vals(q"1", q"10"):_*)
+    fun.execute("sum", Seq(q"1", q"10"))
 //    fun.printAllMatches()
-    assert(fun.output("sum", tuple) == fun.result(q"V(55)"))
-    assert(fun.output("AggregateCollection$0", tuple).res.size == 10)
+//    assert(fun.output("sum", tuple) == fun.result(q"V(55)"))
+//    assert(fun.output("AggregateCollection$0", tuple).res.size == 10)
   }
 
   test("Type Checker Example") {
     val fun = loadFunction(LambdaCalculus.typeOfModule)
     println(new DependencyGraph(fun.compiled.optimized).toGraphViz)
-    assert(fun.execute("main", Seq(q"TNum(1)"), deleteInput = true)
+    assert(fun.execute("main", Seq(q"TNum(1)"))
       == fun.result(q"SomeType(TInt())"))
-    assert(fun.execute("main", Seq(q"""TLam("x", TInt(), TVar("x"))"""), deleteInput = true)
+    assert(fun.execute("main", Seq(q"""TLam("x", TInt(), TVar("x"))"""))
       == fun.result(q"SomeType(TFun(TInt(), TInt()))"))
-    assert(fun.execute("main", Seq(q"""TLam("x", TInt(), TVar("y"))"""), deleteInput = true)
+    assert(fun.execute("main", Seq(q"""TLam("x", TInt(), TVar("y"))"""))
       == fun.result(q"NoType()"))
-    assert(fun.execute("main", Seq(q"""TApp(TLam("x", TInt(), TVar("x")), TNum(1337))"""), deleteInput = true)
+    assert(fun.execute("main", Seq(q"""TApp(TLam("x", TInt(), TVar("x")), TNum(1337))"""))
       == fun.result(q"SomeType(TInt())"))
-    assert(fun.execute("main", Seq(q"""TApp(TNum(12), TNum(11))"""), deleteInput = true)
+    assert(fun.execute("main", Seq(q"""TApp(TNum(12), TNum(11))"""))
       == fun.result(q"NoType()"))
 //    fun.printAllMatches()
   }
 
   test("Type Checker Relation Example") {
     val fun = loadFunction(LambdaCalculus.typeOfRelModule)
-    assert(fun.execute("main", Seq(q"TNum(1)"), deleteInput = true)
+    assert(fun.execute("main", Seq(q"TNum(1)"))
       == fun.result(q"TInt()"))
-    assert(fun.execute("main", Seq(q"""TLam("x", TInt(), TVar("x"))"""), deleteInput = true)
+    assert(fun.execute("main", Seq(q"""TLam("x", TInt(), TVar("x"))"""))
       == fun.result(q"TFun(TInt(), TInt())"))
-    assert(fun.execute("main", Seq(q"""TLam("x", TInt(), TVar("y"))"""), deleteInput = true)
+    assert(fun.execute("main", Seq(q"""TLam("x", TInt(), TVar("y"))"""))
       == fun.results(Seq()))
-    assert(fun.execute("main", Seq(q"""TApp(TLam("x", TInt(), TVar("x")), TNum(1337))"""), deleteInput = true)
+    assert(fun.execute("main", Seq(q"""TApp(TLam("x", TInt(), TVar("x")), TNum(1337))"""))
       == fun.result(q"TInt()"))
-    assert(fun.execute("main", Seq(q"""TApp(TNum(12), TNum(11))"""), deleteInput = true)
+    assert(fun.execute("main", Seq(q"""TApp(TNum(12), TNum(11))"""))
       == fun.results(Seq()))
 //    fun.printAllMatches()
   }

@@ -27,6 +27,7 @@ class BinaryTreeExamples extends AnyFunSuite {
         |
         |node inca.examples.constraint._
         |
+        |@main
         |def rootNode(t: Tree): Unit = {
         |  assert undef t.parent
         |}

@@ -2,13 +2,12 @@ package inca.frontend.souffle.lowering
 
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.frontend.functional.core._
+import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.Syntax.{Expression => _, Type => _, _}
 import inca.frontend.souffle.Util.cleanSouffleName
-import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.compiler.CompiledSouffleFrontendModule
 import inca.runtime.context.DataModel.{Link => MLink}
-import inca.util.Gensym
-import inca.util.Scala
+import inca.util.{Gensym, Scala}
 import truechange.{JavaLitType, LitType}
 
 import scala.collection.mutable
@@ -25,7 +24,7 @@ class SouffleToIncaFrontendCompiler {
 
   val componentDefinitions: mutable.Map[String, ComponentDefinition] = mutable.Map()
 
-  def compile(name: String, analysis: Analysis): CompiledSouffleFrontendModule = {
+  def compile(name: String, analysis: SouffleModule): CompiledSouffleFrontendModule = {
     analysis.contents.foreach(compile(_, ""))
 
     val module = Module(Name(name), Seq(), patFuns.values.toSeq)
@@ -39,7 +38,7 @@ class SouffleToIncaFrontendCompiler {
   }
 
   // if funPrefix != "" we are within a compontent definition that got initialized
-  def compile(content: AnalysisContent, funPrefix: String): Unit = content match {
+  def compile(content: SouffleContent, funPrefix: String): Unit = content match {
     case cdef@ComponentDefinition(name, contents) =>
       componentDefinitions += name -> cdef
 

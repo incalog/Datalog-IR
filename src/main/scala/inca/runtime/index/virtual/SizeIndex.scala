@@ -1,6 +1,6 @@
 package inca.runtime.index.virtual
 
-import inca.runtime.Database
+import inca.runtime.db.Database
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.{IndexKey, NodeTypeKey, VirtualKey}
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey

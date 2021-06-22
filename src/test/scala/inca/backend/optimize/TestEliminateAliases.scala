@@ -10,7 +10,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaGPMatchers {
 
   val dataModel = new DataModel()
   val scope = new QueryScope(dataModel)
-  val options = ConstraintOptions(optimizations = Seq(EliminateAliases, FoldConstantAtoms))
+  val options = ConstraintOptions(optimizations = Seq(EliminateAliases))
 
   "eliminateAliases" must "find variable aliases" in {
     val module1 = Module("Test", Seq(), Seq(

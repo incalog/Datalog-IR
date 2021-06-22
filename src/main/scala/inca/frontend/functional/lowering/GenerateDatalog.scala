@@ -339,7 +339,13 @@ class GenerateDatalog(module: Module) {
           .addHint(IgnoreCall, FixedAdornment(paramTypes.map(_ => true) :+ false))
       ))
     }
-    val dataPat = Datalog.Pattern(None, data.name.name, Seq(Datalog.Param("out", typ)), constrBodies).addHint(DataHints.DataType)
+
+
+    val outParam = Datalog.Param("out", typ)
+    val constrEDBBodies = data.constrs.map { constr =>
+      generateEDBBody(constr, outParam)
+    }
+    val dataPat = Datalog.Pattern(None, data.name.name, Seq(Datalog.Param("out", typ)), constrBodies ++ constrEDBBodies).addHint(DataHints.DataType)
       .addHint(NoInputRelation)
 
     val dataTyp = Datalog.TData(data.name.name)
@@ -395,12 +401,13 @@ class GenerateDatalog(module: Module) {
     ).addHint(DataHints.IDBConstructor)
 
     val constrType = Datalog.TNode(constr.name.name)
-    val constrEDBBody = Datalog.Body(
-      Datalog.HasType(outVar, constrType) +:
-      constr.paramTypes.zipWithIndex.map { case (typ, ix) =>
-        Datalog.Path(outVar, constrType, Datalog.NamedLink(constrType, s"_$ix"), Datalog.Var(s"_$ix"), transRuntimeType(typ))
-      }
-    ).addHint(MagicSetHints.NoInputRelation)
+//    val constrEDBBody = Datalog.Body(
+////      Datalog.ExtensionalCall(constrType.name, Seq(outVar)) +:
+//      Datalog.HasType(outVar, constrType) +:
+//      constr.paramTypes.zipWithIndex.map { case (typ, ix) =>
+//        Datalog.Path(outVar, constrType, Datalog.NamedLink(constrType, s"_$ix"), Datalog.Var(s"_$ix"), transRuntimeType(typ))
+//      }
+//    ).addHint(MagicSetHints.NoInputRelation)
 
 
     val kidVars = for (k <- constr.paramTypes.indices)
@@ -440,7 +447,7 @@ class GenerateDatalog(module: Module) {
     val constrUncoalescedBody = Datalog.Body(queryUncoalesced +: queryUncoalescedKids.flatten).addHint(MagicSetHints.NoInputRelation)
 
     val constrPat = Datalog.Pattern(vis, constr.name.name, params :+ outParam,
-      Seq(constrIDBBody, constrEDBBody, constrUncoalescedBody)
+      Seq(constrIDBBody, constrUncoalescedBody)
     ).addHint(DataHints.Constructor)
     constrPat
   }
@@ -535,16 +542,29 @@ class GenerateDatalog(module: Module) {
     constrUncoalescedPat
   }
 
+  private def generateEDBBody(constr: DataConstructor, outParam: Datalog.Param): Datalog.Body = {
+    val outVar = Datalog.Var(outParam.name)
+    val constrType = Datalog.TNode(constr.name.name)
+    Datalog.Body(
+      Datalog.HasType(outVar, constrType) +:
+        constr.paramTypes.zipWithIndex.map { case (typ, ix) =>
+          Datalog.Path(outVar, constrType, Datalog.NamedLink(constrType, s"_$ix"), Datalog.Var(s"_$ix"), transRuntimeType(typ))
+        }
+    ).addHint(MagicSetHints.NoInputRelation)
+  }
+
   private def generateSelector(constr: DataConstructor, vis: Option[Datalog.Visibility], data: DataDef): Datalog.Pattern = {
     val params = constr.paramTypes.zipWithIndex.map { case (typ, ix) =>
       Datalog.Param(s"_$ix", transType(typ))
     }
+
     val outParam = Datalog.Param("out", GP_URI)
+    val constrEDBBody = generateEDBBody(constr, outParam)
 
     val selectorCons = Datalog.Call(constr.name.name, (params :+ outParam).map(p => Datalog.Var(p.name)))
       .addHint(MagicSetHints.IgnoreCall)
       .addHint(MagicSetHints.FixedAdornment(params.map(_ => true) :+ false))
-    val selectorPat = Datalog.Pattern(vis, constr.selectorName, outParam +: params, Seq(Datalog.Body(Seq(selectorCons))))
+    val selectorPat = Datalog.Pattern(vis, constr.selectorName, outParam +: params, Seq(Datalog.Body(Seq(selectorCons)), constrEDBBody))
       .addHint(MagicSetHints.NoInputRelation)
       .addHint(DataHints.Selector)
     selectorPat
