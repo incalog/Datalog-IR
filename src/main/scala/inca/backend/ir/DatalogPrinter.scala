@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.Datalog.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Atom, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
+import inca.backend.ir.Datalog.{Atom, Body, Call, Comparator, Compare, Computation, Computed, Constant, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
 import truechange.JavaLitType
 
 object DatalogPrinter {
@@ -92,7 +92,7 @@ object DatalogPrinter {
       case Datalog.IntLiteral(v) => v.toString
       case Datalog.LongLiteral(v) => v.toString
       case Datalog.DoubleLiteral(v) => v.toString
-      case Datalog.StringLiteral(v) => v
+      case Datalog.StringLiteral(v) => "\"" + v + "\""
       case Datalog.BooleanLiteral(v) => v.toString
     }
   }

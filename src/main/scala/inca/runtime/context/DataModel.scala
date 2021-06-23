@@ -44,6 +44,9 @@ class DataModel(
     res
   }
 
+  def isSubtype(sub: SortType, sup: SortType): Boolean =
+    nodeSupertypes.containsEntry(sub -> sup)
+
   /** maps subtype to supertypes */
   lazy val nodeSupertypes: MultiDict[SortType, SortType] = transClosure(directNodeSupertypes)
   /** maps supertype to subtypes */
