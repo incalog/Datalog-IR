@@ -17,7 +17,7 @@ class DirectDatabaseUpdater(val db: Database) extends DatabaseUpdater {
             if (oldLit != newLit) {
               db.primitiveInstances(JavaLitType(oldLit.getClass)).delete(oldLit)
               db.linkPrimitiveInstances(tagname->k).delete(node, oldLit)
-              db.primitiveInstances(JavaLitType(newLit.getClass)).insert(newLit)
+              db.primitiveInstancesEnsure(JavaLitType(newLit.getClass)).insert(newLit)
               db.linkPrimitiveInstances(tagname->k).insert(node, newLit)
             }
           case None =>
@@ -26,8 +26,8 @@ class DirectDatabaseUpdater(val db: Database) extends DatabaseUpdater {
         }
       }
       newLitsMap.foreach { case (k, newLit) =>
-        db.primitiveInstances(JavaLitType(newLit.getClass)).insert(newLit)
-        db.linkPrimitiveInstances(tagname->k).insert(node, newLit)
+        db.primitiveInstancesEnsure(JavaLitType(newLit.getClass)).insert(newLit)
+        db.linkPrimitiveInstancesEnsure(tagname->k).insert(node, newLit)
       }
 
     // delete link, leave rest intact

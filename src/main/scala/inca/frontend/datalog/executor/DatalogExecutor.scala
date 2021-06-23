@@ -61,9 +61,9 @@ object DatalogExecutor {
       val tup = Tuples.flatTupleOf(values:_*)
       values.zipWithIndex.foreach {
         case (uri: URI, ix) => insertedURIs.put(uri, (extensionalRel, tup, ix))
-        case _ =>
+        case (a, _) => feed.loadPrimitive(a)
       }
-      feed.insert(extensionalRel, tup)
+      feed.insertExtensionalTuple(extensionalRel, tup)
     }
 
     def remove(extensionalRel: String, anys: Any*): Unit = {
@@ -71,9 +71,9 @@ object DatalogExecutor {
       val tup = Tuples.flatTupleOf(values:_*)
       values.foreach {
         case uri: URI => insertedURIs.removeAll(uri)
-        case _ =>
+        case a => feed.unloadPrimitive(a)
       }
-      feed.delete(extensionalRel, tup)
+      feed.deleteExtensionalTuple(extensionalRel, tup)
     }
 
     def replace(was: Diffable, now: meta.Term): Diffable = {
@@ -84,10 +84,10 @@ object DatalogExecutor {
         feed.processEditScript(edits)
         if (was.uri != replaced.uri) {
           insertedURIs.get(was.uri).asScala.foreach { case (rel, tup, ix) =>
-            feed.delete(rel, tup)
+            feed.deleteExtensionalTuple(rel, tup)
             val elements = tup.getElements
             elements(ix) = v.uri
-            feed.insert(rel, Tuples.flatTupleOf(elements: _*))
+            feed.insertExtensionalTuple(rel, Tuples.flatTupleOf(elements: _*))
           }
         }
         replaced

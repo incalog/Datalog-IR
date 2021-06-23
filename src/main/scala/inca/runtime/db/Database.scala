@@ -3,13 +3,13 @@ package inca.runtime.db
 import inca.runtime.Query.ChangeFeed
 import inca.runtime.context.DataModel
 import inca.runtime.context.DataModel.Link
+import inca.runtime.db.updater.{DatabaseUpdater, DirectDatabaseUpdater}
 import inca.runtime.index.MetaElements.PrimitiveValue
 import inca.runtime.index._
 import inca.runtime.index.binary.{BidirectionalManyToOneIndex, BidirectionalOneToOneIndex}
 import inca.runtime.index.dynamic.{DynamicIndex, DynamicIndexFactory}
 import inca.runtime.index.unary.{UnaryBagIndex, UnarySetIndex}
 import inca.runtime.index.virtual.VirtualIndex
-import inca.runtime.db.updater.{DatabaseUpdater, DirectDatabaseUpdater}
 import org.eclipse.viatra.query.runtime.api.scope.{IBaseIndex, IIndexingErrorListener, IInstanceObserver, ViatraBaseIndexChangeListener}
 import org.eclipse.viatra.query.runtime.matchers.context._
 import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask}
@@ -133,11 +133,18 @@ class Database(
     updater.endProcessEditScript()
   }
 
-  override def insert(relName: String, tuple: Tuple): Unit =
+  override def insertExtensionalTuple(relName: String, tuple: Tuple): Unit =
     namedRelationInstancesEnsure(relName, tuple.getSize).insert(tuple)
 
-  override def delete(relName: String, tuple: Tuple): Unit =
+  override def deleteExtensionalTuple(relName: String, tuple: Tuple): Unit =
     namedRelationInstancesEnsure(relName, tuple.getSize).delete(tuple)
+
+
+  override def loadPrimitive(a: Any): Unit =
+    primitiveInstancesEnsure(JavaLitType(a.getClass)).insert(a)
+
+  override def unloadPrimitive(a: Any): Unit =
+    primitiveInstancesEnsure(JavaLitType(a.getClass)).delete(a)
 
   def iterateNext(from: truechange.URI)(f: truechange.URI => Unit): Unit = {
     val index = linkListNextInstances.index

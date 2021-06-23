@@ -104,15 +104,15 @@ object IncrementalFunctionalExecutor {
           case Some(oldTuple) =>
             // check if last and current tuple are equal
             if (oldTuple != tuple) {
-              feed.insert(demandPatternExtensionalPrefix + main, tuple)
-              feed.delete(demandPatternExtensionalPrefix + main, oldTuple)
+              feed.insertExtensionalTuple(demandPatternExtensionalPrefix + main, tuple)
+              feed.deleteExtensionalTuple(demandPatternExtensionalPrefix + main, oldTuple)
             } else {
               // do nothing tuples are the same
             }
           case None =>
-            feed.insert(demandPatternExtensionalPrefix + main, tuple)
+            feed.insertExtensionalTuple(demandPatternExtensionalPrefix + main, tuple)
             if (deleteInput)
-              feed.delete(demandPatternExtensionalPrefix + main, tuple)
+              feed.deleteExtensionalTuple(demandPatternExtensionalPrefix + main, tuple)
         }
         lastTuple = lastTuple + (main -> tuple)
         val endLoadDB = System.nanoTime()
@@ -136,18 +136,18 @@ object IncrementalFunctionalExecutor {
           case Some(oldTuple) =>
             // check if last and current tuple are equal
             if (oldTuple != tuple) {
-              feed.insert(demandPatternExtensionalPrefix + main, tuple)
+              feed.insertExtensionalTuple(demandPatternExtensionalPrefix + main, tuple)
             } else {
               // do nothing tuples are the same
             }
           case None =>
-            feed.insert(demandPatternExtensionalPrefix + main, tuple)
+            feed.insertExtensionalTuple(demandPatternExtensionalPrefix + main, tuple)
         }
         lastTuple = lastTuple + (main -> tuple)
       }
       val result = output(main, tuple)
       if (deleteInput) {
-        feed.delete(demandPatternExtensionalPrefix + main, tuple)
+        feed.deleteExtensionalTuple(demandPatternExtensionalPrefix + main, tuple)
       }
       result
     }
