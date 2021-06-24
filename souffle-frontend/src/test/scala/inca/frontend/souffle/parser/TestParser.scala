@@ -42,7 +42,7 @@ class TestParser extends AnyFlatSpec {
   }
 
   "parsing" should " parse _ " in {
-    assertResult(Syntax.Any)(parse("_", Parser.Any(_)).get.value)
+    assertResult(Syntax.Wildcard)(parse("_", Parser.Any(_)).get.value)
 
     assertResult(false)(parse("0AbC", Parser.Any(_)).isSuccess)
     assertResult(false)(parse("0A?C", Parser.Any(_)).isSuccess)
@@ -63,7 +63,7 @@ class TestParser extends AnyFlatSpec {
       Syntax.BuiltInFunctionCall(
         Syntax.CatBuiltInFunction,
         Seq(
-          Syntax.Any,
+          Syntax.Wildcard,
           Syntax.Variable("s2")))
     )(parse("cat(_, s2)", Parser.BuiltInFunctionCall(_)).get.value)
     assertResult(

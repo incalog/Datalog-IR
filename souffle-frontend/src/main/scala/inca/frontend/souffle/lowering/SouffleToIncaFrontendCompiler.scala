@@ -140,7 +140,7 @@ class SouffleToIncaFrontendCompiler {
     case Syntax.Variable(name) => Var(cleanSouffleName(name))
     case Syntax.StringValue(value) => BaseLit(Scala(scala.meta.Lit.String(value.intern())))
     case Syntax.NumberValue(value) => BaseLit(Scala(scala.meta.Lit.Int(value)))
-    case Syntax.Any =>
+    case Syntax.Wildcard =>
       val fresh = gensym.fresh("wildcard")
       Var(fresh)
     case Syntax.BuiltInFunctionCall(Syntax.CatBuiltInFunction, arguments) =>
@@ -167,7 +167,7 @@ class SouffleToIncaFrontendCompiler {
     case Syntax.Variable(name) => Set(name)
     case Syntax.StringValue(_) => Set()
     case Syntax.NumberValue(_) => Set()
-    case Syntax.Any => Set()
+    case Syntax.Wildcard => Set()
     case Syntax.BuiltInFunctionCall(Syntax.CatBuiltInFunction, arguments) =>
       Set("cat") ++ arguments.flatMap(collect)
   }

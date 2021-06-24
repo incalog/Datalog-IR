@@ -3,10 +3,12 @@ package inca.backend.souffle
 import inca.backend.hints.DataHints.DataType
 import inca.backend.hints.{DataHints, MagicSetHints}
 import inca.backend.ir.Datalog
+import inca.backend.ir.Datalog.BodyMustFail
 import inca.frontend.functional
 import inca.frontend.functional.core.{DataConstructor, DataDef, TData}
 import inca.frontend.souffle.Syntax._
 import inca.runtime.context.DataModel
+import inca.util.TupleOps
 import truechange.SortType
 
 class GenerateSouffle(dataModel: DataModel) {
@@ -96,10 +98,12 @@ class GenerateSouffle(dataModel: DataModel) {
     val decl = RuleSignature(pat.name, pat.params.map(p => RuleParameter(p.name, compileType(p.typ))), output = false)
     relationDecls += decl
 //    val nonExtensionalBodies = pat.bodies.filter(!_.atoms.exists(_.isInstanceOf[Datalog.Path]))
-    val rules = pat.bodies.map { body =>
+    val rules = pat.bodies.flatMap { body =>
       val head = RuleHead(pat.name, pat.params.map(p => Variable(p.name)))
-      val atoms = body.atoms.flatMap(compileAtom)
-      RuleDefinition(Seq(head), atoms)
+
+      val atoms = body.atoms.map(compileAtom)
+      for (alt <- TupleOps.cartesianProduct(atoms))
+        yield RuleDefinition(Seq(head), alt.flatten)
     }
     val output = if (pat.hasHint(MagicSetHints.MainKey)) {
       Seq(Output(pat.name))
@@ -108,38 +112,36 @@ class GenerateSouffle(dataModel: DataModel) {
   }
 
 
-  def compileAtom(atom: Datalog.Atom): Seq[Statement] = atom match {
+  def compileAtom(atom: Datalog.Atom): Seq[Seq[Statement]] = atom match {
     case Datalog.Call(name, args, _, neg) =>
-      Seq(RuleApplication(neg, None, name, args.map(compileTerm)))
+      Seq(Seq(RuleApplication(neg, None, name, args.map(compileTerm))))
     case Datalog.ExtensionalCall(name, args, neg) =>
       if (args.isEmpty) {
-        Seq()
+        Seq(Seq())
       } else {
         namedExtensionalRelations += name -> args.size
-        Seq(RuleApplication(neg, None, name, args.map(compileTerm)))
+        Seq(Seq(RuleApplication(neg, None, name, args.map(compileTerm))))
       }
     case Datalog.Compare(Datalog.EqComparator, lhs, rhs) =>
-      Seq(Equality(compileTerm(lhs), false, compileTerm(rhs)))
+      Seq(Seq(Equality(compileTerm(lhs), false, compileTerm(rhs))))
     case Datalog.Compare(Datalog.NeqComparator, lhs, rhs) =>
-      Seq(Equality(compileTerm(lhs), true, compileTerm(rhs)))
-    case Datalog.Computed(lhs, computation) => computation match {
-      case Datalog.Evaluation(evalArgs, _, fun) =>
-        val evalTerms = evalArgs.map(_._1)
-        val funParamNames = fun.tree.params.map(_.name.value)
-        implicit val subst = funParamNames.zip(evalTerms).toMap
-        compileScalaTermToStatement(fun.tree.body, evalArgs.map(_._1), lhs)
-      case _ => throw new IllegalArgumentException(s"Not supported ${computation}")
-    }
+      Seq(Seq(Equality(compileTerm(lhs), true, compileTerm(rhs))))
+    case Datalog.Computed(lhs, computation) =>
+      compileComputation(computation).flatMap {
+        case (statements, term) =>
+          try { Some(statements ++ mkEquality(compileTerm(lhs), term)) }
+          catch { case BodyMustFail => None }
+      }
     case Datalog.HasType(t, typ) =>
       typ match {
         case Datalog.TNode(typeName) =>
-          Seq(RuleApplication(false, None, hasTypeRel(typeName), Seq(compileTerm(t))))
+          Seq(Seq(RuleApplication(false, None, hasTypeRel(typeName), Seq(compileTerm(t)))))
         case _ => throw new IllegalArgumentException(s"Do not suppport HasType of non-node type in $atom")
       }
     case Datalog.Path(src, srcTy, link, trg, trgTy) =>
       link match {
         case Datalog.NamedLink(Datalog.TNode(typeName), field) =>
-          Seq(RuleApplication(false, None, pathRel(typeName, field), Seq(compileTerm(src), compileTerm(trg))))
+          Seq(Seq(RuleApplication(false, None, pathRel(typeName, field), Seq(compileTerm(src), compileTerm(trg)))))
         case _ => throw new IllegalArgumentException(s"Only NamedLink paths are supported, in $atom")
       }
     case Datalog.NotHasType(t, typ) => throw new IllegalArgumentException(s"NotHasType not supported yet in $atom")
@@ -148,105 +150,67 @@ class GenerateSouffle(dataModel: DataModel) {
     case _ => Seq()
   }
 
-  def compileScalaTermToStatement(term: meta.Term, args: Seq[Datalog.Term], lhs: Datalog.Term)(implicit subst: Map[String, Datalog.Term]): Seq[Statement] = term match {
+  def compileScalaTerm(term: meta.Term)(implicit subst: Map[String, Datalog.Term]): Seq[(Seq[Statement], Expression)] = term match {
+    case meta.Term.Name(name) => Seq((Seq(), compileTerm(subst(name))))
+    case meta.Lit.Int(v) => Seq((Seq(), NumberValue(v)))
+    case meta.Lit.Boolean(true) => Seq((Seq(), NumberValue(1)))
+    case meta.Lit.Boolean(false) => Seq((Seq(), NumberValue(0)))
+    case meta.Lit.String(v) => Seq((Seq(), StringValue(v)))
+    case meta.Lit.Double(v) => Seq((Seq(), FloatValue(v.toFloat)))
+
     case meta.Term.Apply(fun, meta.Lit.String(name) :: args) if fun.syntax == "inca.runtime.data.DataURI" =>
       val compiledArgs = args.map {
         case meta.Term.Name(n) => Variable(n)
         case _ => throw new IllegalArgumentException("DataURI can only have variables as input")
       }
-      val Datalog.Var(vname) = lhs
-      Seq(Equality(Variable(vname), false, ADTValue(name, compiledArgs)))
-    case meta.Term.ApplyInfix(_, meta.Term.Name("+"), _, _::Nil) =>
-      val Datalog.Var(name) = lhs
-      Seq(Equality(Variable(name), false,  BuiltInFunctionCall(AddBuiltInFunction, args.map(compileTerm))))
-    case meta.Term.ApplyInfix(_, meta.Term.Name("-"), _, _::Nil) =>
-      val Datalog.Var(name) = lhs
-      Seq(Equality(Variable(name), false,  BuiltInFunctionCall(SubBuiltInFunction, args.map(compileTerm))))
-    case meta.Term.ApplyInfix(_, meta.Term.Name("*"), _, _::Nil) =>
-      val Datalog.Var(name) = lhs
-      Seq(Equality(Variable(name), false,  BuiltInFunctionCall(MultBuiltInFunction, args.map(compileTerm))))
-    case meta.Term.ApplyInfix(_, meta.Term.Name("/"), _, _::Nil) =>
-      val Datalog.Var(name) = lhs
-      Seq(Equality(Variable(name), false,  BuiltInFunctionCall(DivBuiltInFunction, args.map(compileTerm))))
-    case meta.Term.ApplyInfix(_, meta.Term.Name("%"), _, _::Nil) =>
-      val Datalog.Var(name) = lhs
-      Seq(Equality(Variable(name), false,  BuiltInFunctionCall(ModBuiltInFunction, args.map(compileTerm))))
-    case meta.Term.ApplyInfix(_, meta.Term.Name("=="), _, _::Nil) =>
-      val Datalog.Constant(Datalog.BooleanLiteral(bool)) = lhs
-      Seq(Equality(compileTerm(args(0)), !bool, compileTerm(args(1))))
-    case meta.Term.ApplyInfix(_, meta.Term.Name("!="), _, _::Nil) =>
-      val Datalog.Constant(Datalog.BooleanLiteral(bool)) = lhs
-      Seq(Equality(compileTerm(args(0)), bool, compileTerm(args(1))))
-    case meta.Term.ApplyInfix(l, meta.Term.Name(">"), _, r::Nil) =>
-      // TODO what happens if we are interested in the result of this boolean operator?
-      // TODO > is not a built in function but an atom in souffle, hence it does not produce a value
-      val Datalog.Constant(Datalog.BooleanLiteral(bool)) = lhs
-      if (true) {
-        Seq(GreaterThan(compileScalaTerm(l), compileScalaTerm(r)))
-      } else {
-        Seq(LesserThanEqual(compileScalaTerm(l), compileScalaTerm(r)))
-      }
-    case meta.Term.ApplyInfix(l, meta.Term.Name(">="), _, r::Nil) =>
-      val Datalog.Constant(Datalog.BooleanLiteral(bool)) = lhs
-      if (bool) {
-        Seq(GreaterThanEqual(compileScalaTerm(l), compileScalaTerm(r)))
-      } else {
-        Seq(LesserThan(compileScalaTerm(l), compileScalaTerm(r)))
-      }
-    case meta.Term.ApplyInfix(l, meta.Term.Name("<"), _, r::Nil) =>
-      val Datalog.Constant(Datalog.BooleanLiteral(bool)) = lhs
-      if (bool) {
-        Seq(LesserThan(compileScalaTerm(l), compileScalaTerm(r)))
-      } else {
-        Seq(GreaterThanEqual(compileScalaTerm(l), compileScalaTerm(r)))
-      }
-    case meta.Term.ApplyInfix(l, meta.Term.Name("<="), _, r::Nil) =>
-      val Datalog.Constant(Datalog.BooleanLiteral(bool)) = lhs
-      if (bool) {
-        Seq(LesserThanEqual(compileScalaTerm(l), compileScalaTerm(r)))
-      } else {
-        Seq(GreaterThan(compileScalaTerm(l), compileScalaTerm(r)))
-      }
-    case _ =>
-      Seq()
+      Seq((Seq(), ADTValue(name, compiledArgs)))
+
+    case meta.Term.ApplyInfix(e1, meta.Term.Name(op), _, e2::Nil) if builtInFunction.isDefinedAt(op) =>
+      for ((cons1, arg1) <- compileScalaTerm(e1);
+           (cons2, arg2) <- compileScalaTerm(e2))
+        yield (cons1 ++ cons2, BuiltInFunctionCall(builtInFunction(op), Seq(arg1, arg2)))
+
+    case meta.Term.ApplyInfix(e1, meta.Term.Name(op), _, e2::Nil) if builtInComparator.isDefinedAt(op) =>
+      val (posCompare, negCompare) = builtInComparator(op)
+      for ((cons1, arg1) <- compileScalaTerm(e1);
+           (cons2, arg2) <- compileScalaTerm(e2);
+           truth <- Seq(true, false))
+        yield if (truth)
+            (cons1 ++ cons2 :+ posCompare(arg1, arg2), NumberValue(1))
+          else
+            (cons1 ++ cons2 :+ negCompare(arg1, arg2), NumberValue(0))
   }
 
-  def compileComputation(computation: Datalog.Computation)(implicit subt: Map[String, Datalog.Term]): Expression = computation match {
-    case Datalog.Evaluation(evalArgs, resultType, code) => compileScalaTerm(code.tree.body)
+  def builtInFunction: PartialFunction[String, BuiltInFunction] = {
+    case "+" => AddBuiltInFunction
+    case "-" => SubBuiltInFunction
+    case "*" => MultBuiltInFunction
+    case "/" => DivBuiltInFunction
+    case "^" => PowBuiltInFunction
+    case "%" => ModBuiltInFunction
+  }
+
+  type Comparator = (Expression, Expression) => Statement
+  def builtInComparator: PartialFunction[String, (Comparator, Comparator)] = {
+    case ">" => (GreaterThan, LesserThanEqual)
+    case ">=" => (GreaterThanEqual, LesserThan)
+    case "<" => (LesserThan, GreaterThanEqual)
+    case "<=" => (LesserThanEqual, GreaterThan)
+    case "==" => (Equality(_, false, _), Equality(_, true, _))
+    case "!=" => (Equality(_, true, _), Equality(_, false, _))
+  }
+
+
+  def compileComputation(computation: Datalog.Computation): Seq[(Seq[Statement], Expression)] = computation match {
+    case Datalog.Evaluation(evalArgs, _, fun) =>
+      val evalTerms = evalArgs.map(_._1)
+      val funParamNames = fun.tree.params.map(_.name.value)
+      implicit val subst: Map[String, Datalog.Term] = funParamNames.zip(evalTerms).toMap
+      compileScalaTerm(fun.tree.body)
     case Datalog.CountAggregation(patName, args) =>
       throw new IllegalArgumentException("Count Aggregation not supported yet")
     case Datalog.CustomAggregation(typ, description, agg, patName, args, aggregatedColumn) =>
       throw new IllegalArgumentException("CustomAggregation not supported yet")
-  }
-
-  def compileScalaTerm(term: meta.Term)(implicit subst: Map[String, Datalog.Term]): Expression = term match {
-    case meta.Term.Name(name) => compileTerm(subst(name))
-    case meta.Lit.Int(v) => NumberValue(v)
-    case meta.Lit.Boolean(true) => NumberValue(-1)
-    case meta.Lit.Boolean(false) => NumberValue(1)
-    case meta.Lit.String(v) => StringValue(v)
-    case meta.Lit.Double(v) => FloatValue(v.toFloat)
-
-    case meta.Term.Apply(fun, meta.Lit.String(name) :: args) if fun.syntax == "inca.runtime.data.DataURI" =>
-      val compiledArgs = args.map {
-        case meta.Term.Name(n) => Variable(n)
-        case _ => throw new IllegalArgumentException("DataURI can only have variables as input")
-      }
-      ADTValue(name, compiledArgs)
-
-    case meta.Term.ApplyInfix(lhs, op, _, args) =>
-      val builtInFunc: BuiltInFunction = op.value match {
-        case "+" => AddBuiltInFunction
-        case "-" => SubBuiltInFunction
-        case "*" => MultBuiltInFunction
-        case "/" => DivBuiltInFunction
-        case "^" => PowBuiltInFunction
-        case "%" => ModBuiltInFunction
-        case _ => throw new IllegalArgumentException(s"No support for infix operation $op")
-      }
-      BuiltInFunctionCall(builtInFunc, (lhs +: args).map(compileScalaTerm))
-    case _ =>
-      throw new IllegalArgumentException(s"Not yet supported ${term.syntax}")
   }
 
   def compileTerm(term: Datalog.Term): Expression = term match {
@@ -287,5 +251,11 @@ class GenerateSouffle(dataModel: DataModel) {
       case None =>
         throw new IllegalArgumentException("There exists no input relation for the extensional relation")
     }
+  }
+
+  def mkEquality(e1: Expression, e2: Expression): Option[Equality] = (e1, e2) match {
+    case _ if e1 == e2 => None // always true
+    case (_: Variable, _) | (Wildcard, _) | (_, _: Variable) | (_, Wildcard) => Some(Equality(e1, false, e2))
+    case _ => throw BodyMustFail // no variable involved, but expressions differ => always false
   }
 }

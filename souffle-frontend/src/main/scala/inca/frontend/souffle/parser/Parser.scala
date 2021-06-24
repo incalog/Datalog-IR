@@ -87,8 +87,8 @@ object Parser {
     P(string).map(Syntax.StringValue)
   def NumberValue[_: P]: P[Syntax.NumberValue] =
     P(decimalinteger).map(Syntax.NumberValue)
-  def Any[_: P]: P[Syntax.Any.type] =
-    P("_").map(_ => Syntax.Any)
+  def Any[_: P]: P[Syntax.Wildcard.type] =
+    P("_").map(_ => Syntax.Wildcard)
   def BuiltInFunctionCall[_: P]: P[Syntax.BuiltInFunctionCall] =
     P(BuiltInFunction ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").map(Syntax.BuiltInFunctionCall.tupled)
 

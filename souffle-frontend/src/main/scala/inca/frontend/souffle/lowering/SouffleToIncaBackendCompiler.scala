@@ -155,7 +155,7 @@ class SouffleToIncaBackendCompiler {
 //      val computed = Computed(trgVar, ConstantEvaluation(TUnbounded(TString), funString))
 //      (trgVar, Seq(computed))
     case NumberValue(value) => (Constant(IntLiteral(value)), Seq())
-    case Syntax.Any =>
+    case Syntax.Wildcard =>
       val fresh = gensym.fresh("wildcard")
       (Var(fresh), Seq())
     case BuiltInFunctionCall(CatBuiltInFunction, arguments) =>
@@ -175,7 +175,7 @@ class SouffleToIncaBackendCompiler {
     case StringValue(_) => Seq()
     case NumberValue(_) => Seq()
     case BuiltInFunctionCall(_, args) => args.flatMap(collectParams)
-    case Syntax.Any => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
+    case Syntax.Wildcard => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
   }
 
   def compileEval(exp: Syntax.Expression): meta.Term = exp match {
@@ -186,7 +186,7 @@ class SouffleToIncaBackendCompiler {
       val lhs = compileEval(args.head)
       val rhs = compileEval((args(1)))
       q"$lhs + $rhs"
-    case Syntax.Any => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
+    case Syntax.Wildcard => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
   }
 
   def genLitLinks: Map[MLink, LitType] =
@@ -207,7 +207,7 @@ class SouffleToIncaBackendCompiler {
     case Variable(name) => Set(name)
     case StringValue(_) => Set()
     case NumberValue(_) => Set()
-    case Syntax.Any => Set()
+    case Syntax.Wildcard => Set()
     case BuiltInFunctionCall(_, arguments) =>
       // TODO only cat function supported
       Set("cat") ++ arguments.flatMap(collect)

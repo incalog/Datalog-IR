@@ -9,8 +9,8 @@ object Syntax {
   case class ComponentDefinition(name: String, contents: Seq[SouffleContent]) extends SouffleContent
   case class TypeDeclaration(name: String, assignedType: Option[DeclaredType]) extends SouffleContent
 
-  def cleanRuleName(name: String): String = name.replaceAllLiterally("$", "_")
-  def cleanVarName(name: String): String = name.replaceAllLiterally("_", "xyz").replaceAllLiterally("$", "_")
+  def cleanRuleName(name: String): String = name.replaceAllLiterally("$", "__")
+  def cleanVarName(name: String): String = name.replaceAllLiterally("$", "__")
 
   case class RuleSignature(name: String, parameters: Seq[RuleParameter], output: Boolean) extends SouffleContent {
     override def toString: String = {
@@ -86,7 +86,7 @@ object Syntax {
   case class FloatValue(value: Float) extends Expression {
     override def toString: String = value.toString
   }
-  case object Any extends Expression {
+  case object Wildcard extends Expression {
     override def toString: String = "_"
   }
 

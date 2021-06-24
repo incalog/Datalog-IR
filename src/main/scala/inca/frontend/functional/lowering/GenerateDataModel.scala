@@ -1,8 +1,9 @@
 package inca.frontend.functional.lowering
 
+import inca.backend.ir.Datalog
 import inca.frontend.functional.core._
 import inca.runtime.context.DataModel
-import truechange.{JavaLitType, SortType}
+import truechange.{JavaLitType, LitType, SortType}
 
 import scala.collection.immutable.MultiDict
 
@@ -21,8 +22,8 @@ class GenerateDataModel(module: Module) {
     val litLinks = for (DataDef(_, _, _, constrs) <- datas;
                         DataConstructor(cname, paramTypes) <- constrs;
                         (ty,ix) <- paramTypes.zipWithIndex;
-                        cl <- transType(ty))
-      yield (cname.name, "_" + ix) -> JavaLitType(cl)
+                        litType <- transType(ty))
+      yield (cname.name, "_" + ix) -> litType
     val types = datas.map { d => SortType(d.name.name) }.toSet ++ subtyps.map(_._1)
 
     new DataModel(
@@ -33,17 +34,17 @@ class GenerateDataModel(module: Module) {
     )
   }
 
-  def transType(asScala: Type): Option[Class[_]] = asScala match {
-    case TAny => Some(classOf[Any])
-    case TNothing => Some(classOf[Nothing])
+  def transType(asScala: Type): Option[LitType] = asScala match {
+    case TAny => Some(JavaLitType(classOf[Any]))
+    case TNothing => Some(JavaLitType(classOf[Nothing]))
     case TTuple(ts) =>  None
     case TData(name) => None
-    case TScalaBoolean => Some(classOf[Boolean])
-    case TScalaInt => Some(classOf[Int])
-    case TScalaLong => Some(classOf[Long])
-    case TScalaDouble => Some(classOf[Double])
-    case TScalaString => Some(classOf[String])
-    case TScalaAny => Some(classOf[Any])
+    case TScalaBoolean => Some(Datalog.TLiteral.Bool.litType)
+    case TScalaInt => Some(Datalog.TLiteral.Int.litType)
+    case TScalaLong => Some(Datalog.TLiteral.Long.litType)
+    case TScalaDouble => Some(Datalog.TLiteral.Double.litType)
+    case TScalaString => Some(Datalog.TLiteral.String.litType)
+    case TScalaAny => Some(JavaLitType(classOf[Any]))
     case TScala(ty) => None
     case TOption(ty) => None
     case TSet(ty) => None
