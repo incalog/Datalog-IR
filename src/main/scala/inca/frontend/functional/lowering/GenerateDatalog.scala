@@ -349,7 +349,7 @@ class GenerateDatalog(module: Module) {
       .addHint(NoInputRelation)
 
     val dataTyp = Datalog.TData(data.name.name)
-    val uriParam = Datalog.Param("uri", GP_URI)
+    val uriParam = Datalog.Param("uri", GP_URI.addHint(DataHints.DataTypeName(data.name.name)))
     val dataParam = Datalog.Param("data", dataTyp)
     val constrCoalescedBodies = data.constrs.map { case DataConstructor(name, paramTypes) =>
       Datalog.Body(Seq(Datalog.Call(name.name + COALESCED_SUFFIX, Seq(Datalog.Var(uriParam.name), Datalog.Var(dataParam.name)))))
@@ -389,7 +389,7 @@ class GenerateDatalog(module: Module) {
     val params = constr.paramTypes.zipWithIndex.map { case (typ, ix) =>
       Datalog.Param(s"_$ix", transType(typ))
     }
-    val outParam = Datalog.Param("out", GP_URI)
+    val outParam = Datalog.Param("out", GP_URI.addHint(DataHints.DataTypeName(data.name.name)))
 
     val constrScalaFun = Term.Function(
       params.map(p => Term.Param(Nil, Term.Name(p.name), Some(p.typ.asScala), None)).toList,
@@ -397,7 +397,7 @@ class GenerateDatalog(module: Module) {
     )
     val outVar = Datalog.Var(outParam.name)
     val constrIDBBody = Datalog.Body(Seq(Datalog.Computed(outVar,
-      Datalog.Evaluation(params.map(p => Datalog.Var(p.name) -> p.typ), GP_URI, Scala(constrScalaFun))))
+      Datalog.Evaluation(params.map(p => Datalog.Var(p.name) -> p.typ), GP_URI.addHint(DataHints.DataTypeName(data.name.name)), Scala(constrScalaFun))))
     ).addHint(DataHints.IDBConstructor)
 
     val constrType = Datalog.TNode(constr.name.name)
@@ -456,7 +456,7 @@ class GenerateDatalog(module: Module) {
   private def generateConstructorCoalesced(constr: DataConstructor, vis: Option[Datalog.Visibility], data: DataDef): Datalog.Pattern = {
     import scala.meta._
 
-    val uriParam = Datalog.Param("uri", GP_URI)
+    val uriParam = Datalog.Param("uri", GP_URI.addHint(DataHints.DataTypeName(data.name.name)))
     val uriVar = Datalog.Var(uriParam.name)
     val dataType = Datalog.TData(constr.name.name)
     val dataParam = Datalog.Param("data", dataType)
@@ -502,7 +502,7 @@ class GenerateDatalog(module: Module) {
   private def generateConstructorUncoalesced(constr: DataConstructor, vis: Option[Datalog.Visibility], data: DataDef): Datalog.Pattern = {
     import scala.meta._
 
-    val uriParam = Datalog.Param("uri", GP_URI)
+    val uriParam = Datalog.Param("uri", GP_URI.addHint(DataHints.DataTypeName(data.name.name)))
     val uriVar = Datalog.Var(uriParam.name)
     val dataType = Datalog.TData(constr.name.name)
     val dataParam = Datalog.Param("data", dataType)
@@ -532,7 +532,7 @@ class GenerateDatalog(module: Module) {
         case _ => throw new UnsupportedOperationException
       }
 
-    val genURI = Datalog.Computed(uriVar, consumeData(GP_URI, t => q"$t.uri"))
+    val genURI = Datalog.Computed(uriVar, consumeData(GP_URI.addHint(DataHints.DataTypeName(data.name.name)), t => q"$t.uri"))
     val body = Datalog.Body(
       uncoalesceKids.flatten :+
       genURI
@@ -558,7 +558,7 @@ class GenerateDatalog(module: Module) {
       Datalog.Param(s"_$ix", transType(typ))
     }
 
-    val outParam = Datalog.Param("out", GP_URI)
+    val outParam = Datalog.Param("out", GP_URI.addHint(DataHints.DataTypeName(data.name.name)))
     val constrEDBBody = generateEDBBody(constr, outParam)
 
     val selectorCons = Datalog.Call(constr.name.name, (params :+ outParam).map(p => Datalog.Var(p.name)))
@@ -576,7 +576,7 @@ class GenerateDatalog(module: Module) {
   @tailrec
   private def transType(typ: Type): Datalog.Type = typ match {
     case TAny => Datalog.TAny
-    case TData(_) => GP_URI
+    case TData(name) => GP_URI.addHint(DataHints.DataTypeName(name.name))
     case TScala(ty) => Datalog.TScala(ty)
     case TOption(ty) => transType(ty)
     case TSet(ty) => transType(ty)

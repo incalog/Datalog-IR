@@ -7,6 +7,7 @@ object DataHints {
   val SelectorKey = "DATA_SELECTOR"
   val DataTypeKey = "DATA_TYPE"
   val IDBConstructorKey = "IDB_DATA_CONSTRUCTOR"
+  val DataTypeNameKey = "Data_Type_Name"
 
   /**
    * The annotated pattern represents a constructor.
@@ -34,5 +35,9 @@ object DataHints {
    */
   object IDBConstructor extends Hint {
     override def key: Key = IDBConstructorKey
+  }
+
+  case class DataTypeName(name: String) extends Hint {
+    override def key: Key = DataTypeNameKey
   }
 }
