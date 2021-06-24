@@ -1,7 +1,7 @@
 package inca.backend.souffle
 
-import inca.backend.hints.{DataHints, MagicSetHints}
 import inca.backend.hints.DataHints.DataType
+import inca.backend.hints.{DataHints, MagicSetHints}
 import inca.backend.ir.Datalog
 import inca.frontend.functional
 import inca.frontend.functional.core.{DataConstructor, DataDef, TData}
@@ -11,16 +11,19 @@ import inca.runtime.context.DataModel
 class GenerateSouffle {
 
   // store name and number of inputs
-  private var extensionalRelations: Set[(String, Int)] = Set()
+  private var namedExtensionalRelations: Set[(String, Int)] = Set()
   private var relationDecls: Set[RuleSignature] = Set()
 
   private var dataModel: DataModel = _
+
+  val hasTypePrefix = "hasType$"
+  val pathPrefix = "path$"
 
   def compileModule(module: Datalog.Module, datas: Seq[DataDef], _dataModel: DataModel): String = {
     dataModel = _dataModel
     val types = datas.map(compileDataDef)
     val rels = module.pats.flatMap(compilePattern)
-    val extRels = extensionalRelations.flatMap { case (n, i) => generateExtensionalRelation(n, i) }
+    val extRels = namedExtensionalRelations.flatMap { case (n, i) => generateExtensionalRelation(n, i) }
     s"""
        |${types.mkString("\n")}
        |${rels.mkString("\n")}
@@ -74,7 +77,7 @@ class GenerateSouffle {
       if (args.isEmpty) {
         Seq()
       } else {
-        extensionalRelations += name -> args.size
+        namedExtensionalRelations += name -> args.size
         Seq(RuleApplication(neg, None, name, args.map(compileTerm)))
       }
     case Datalog.Compare(Datalog.EqComparator, lhs, rhs) =>
@@ -90,20 +93,21 @@ class GenerateSouffle {
       case _ => throw new IllegalArgumentException(s"Not supported ${computation}")
     }
     case Datalog.HasType(t, typ) =>
-      val name = typ match {
-        case Datalog.TNode(name) =>
-          // TODO need to pass t to .input rel application at the last position
-          name
-        case _ => throw new IllegalArgumentException("Do not suppport HasType of non-node type")
+      typ match {
+        case Datalog.TNode(typeName) =>
+          Seq(RuleApplication(false, None, hasTypePrefix + typeName, Seq(compileTerm(t))))
+        case _ => throw new IllegalArgumentException(s"Do not suppport HasType of non-node type in $atom")
       }
-      Seq(RuleApplication(false, None, name, Seq(compileTerm(t))))
     case Datalog.Path(src, srcTy, link, trg, trgTy) =>
-      // TODO need to pass trg to .input rel application
-      // TODO how do we determine an order? based on link names? _0, _1, _2, out
-      throw new IllegalArgumentException("Path not supported yet")
-    case Datalog.NotHasType(t, typ) => throw new IllegalArgumentException("NotHasType not supported yet")
-    case Datalog.NoPath(t, ty, link, termIsSource) => throw new IllegalArgumentException("NoPath not supported yet")
-    case Datalog.Undef(t) => throw new IllegalArgumentException("Undef is not supported yet")
+      link match {
+        case Datalog.NamedLink(Datalog.TNode(typeName), field) =>
+          val rel = s"${pathPrefix}_${typeName}_$field"
+          Seq(RuleApplication(false, None, rel, Seq(compileTerm(src), compileTerm(trg))))
+        case _ => throw new IllegalArgumentException(s"Only NamedLink paths are supported, in $atom")
+      }
+    case Datalog.NotHasType(t, typ) => throw new IllegalArgumentException(s"NotHasType not supported yet in $atom")
+    case Datalog.NoPath(t, ty, link, termIsSource) => throw new IllegalArgumentException(s"NoPath not supported yet in $atom")
+    case Datalog.Undef(t) => throw new IllegalArgumentException(s"Undef is not supported yet in $atom")
     case _ => Seq()
   }
 
