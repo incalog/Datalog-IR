@@ -135,10 +135,7 @@ object DemandTransformation extends Transformation {
                   val bindings = boundIndices.map { i =>
                     Eq(args(i), Var(params(i).name))
                   }
-                  if (bindings.isEmpty)
-                    Seq(Body(body.atoms.take(atomix) ++ dummyBinding).withHints(body))
-                  else
-                    Seq(Body(body.atoms.take(atomix) ++ bindings).withHints(body))
+                  Seq(Body(body.atoms.take(atomix) ++ bindings ++ dummyBinding).withHints(body))
                 }
                 else
                   Seq()
@@ -151,9 +148,8 @@ object DemandTransformation extends Transformation {
       val boundParams = boundIndices.map(params)
 
       val extensionalBody = if (pat.hasHint(MagicSetHints.MainKey)) {
-        Some(Body(Seq(
-          ExtensionalCall(extensionalInputPatternName(pat.name), boundParams.map(p => Var(p.name)))
-        )))
+        val extCall = ExtensionalCall(extensionalInputPatternName(pat.name), boundParams.map(p => Var(p.name)))
+        Some(Body(Seq(extCall) ++ dummyBinding))
       } else {
         None
       }
