@@ -7,28 +7,66 @@ import inca.frontend.functional
 import inca.frontend.functional.core.{DataConstructor, DataDef, TData}
 import inca.frontend.souffle.Syntax._
 import inca.runtime.context.DataModel
+import truechange.SortType
 
-class GenerateSouffle {
+class GenerateSouffle(dataModel: DataModel) {
 
   // store name and number of inputs
   private var namedExtensionalRelations: Set[(String, Int)] = Set()
   private var relationDecls: Set[RuleSignature] = Set()
 
-  private var dataModel: DataModel = _
+  def hasTypeRel(name: String): String =
+    "hasType$" + name
+  def pathRel(typeName: String, field: String): String =
+    s"path$$${typeName}_$field"
 
-  val hasTypePrefix = "hasType$"
-  val pathPrefix = "path$"
-
-  def compileModule(module: Datalog.Module, datas: Seq[DataDef], _dataModel: DataModel): String = {
-    dataModel = _dataModel
+  def compileModule(module: Datalog.Module, datas: Seq[DataDef]): String = {
     val types = datas.map(compileDataDef)
     val rels = module.pats.flatMap(compilePattern)
-    val extRels = namedExtensionalRelations.flatMap { case (n, i) => generateExtensionalRelation(n, i) }
+    val namedExtRels = namedExtensionalRelations.flatMap { case (n, i) => generateExtensionalRelation(n, i) }
+    val dataModelRels = compileDataModel(dataModel)
     s"""
        |${types.mkString("\n")}
+       |
        |${rels.mkString("\n")}
-       |${extRels.mkString("\n")}
+       |
+       |${namedExtRels.mkString("\n")}
+       |
+       |${dataModelRels.mkString("\n")}
        |""".stripMargin
+  }
+
+  def compileDataModel(model: DataModel): Seq[SouffleContent] = {
+    val tyRels = model.types.toSeq.flatMap { case truechange.SortType(name) =>
+      val sig = RuleSignature(hasTypeRel(name), Seq(RuleParameter("out", DeclaredType(name))), false)
+      val input = Input(hasTypeRel(name), "", "")
+      Seq(sig, input)
+    }
+    val linkRels=  model.links.flatMap { case ((srcTy, field), trgTy) =>
+      val sig = RuleSignature(pathRel(srcTy, field),
+        Seq(
+          RuleParameter("out", DeclaredType(srcTy)),
+          RuleParameter("field", DeclaredType(trgTy.asInstanceOf[SortType].name))), false)
+      val input = Input(pathRel(srcTy, field), "", "")
+      Seq(sig, input)
+    }
+    val litLinkRels=  model.litLinks.flatMap { case ((srcTy, field), trgTy) =>
+      val sig = RuleSignature(pathRel(srcTy, field),
+        Seq(
+          RuleParameter("out", DeclaredType(srcTy)),
+          RuleParameter("field", compileLitTruechangeType(trgTy))), false)
+      val input = Input(pathRel(srcTy, field), "", "")
+      Seq(sig, input)
+    }
+    tyRels ++ linkRels ++ litLinkRels
+  }
+
+  def compileLitTruechangeType(ty: truechange.LitType): Type = ty match {
+    case lit if lit == Datalog.TLiteral.Bool.litType => UnsignedType
+    case lit if lit == Datalog.TLiteral.Int.litType => NumberType
+    case lit if lit == Datalog.TLiteral.Long.litType => NumberType
+    case lit if lit == Datalog.TLiteral.Double.litType => FloatType
+    case lit if lit == Datalog.TLiteral.String.litType => SymbolType
   }
 
   def compileDataDef(data: DataDef): String = {
@@ -95,14 +133,13 @@ class GenerateSouffle {
     case Datalog.HasType(t, typ) =>
       typ match {
         case Datalog.TNode(typeName) =>
-          Seq(RuleApplication(false, None, hasTypePrefix + typeName, Seq(compileTerm(t))))
+          Seq(RuleApplication(false, None, hasTypeRel(typeName), Seq(compileTerm(t))))
         case _ => throw new IllegalArgumentException(s"Do not suppport HasType of non-node type in $atom")
       }
     case Datalog.Path(src, srcTy, link, trg, trgTy) =>
       link match {
         case Datalog.NamedLink(Datalog.TNode(typeName), field) =>
-          val rel = s"${pathPrefix}_${typeName}_$field"
-          Seq(RuleApplication(false, None, rel, Seq(compileTerm(src), compileTerm(trg))))
+          Seq(RuleApplication(false, None, pathRel(typeName, field), Seq(compileTerm(src), compileTerm(trg))))
         case _ => throw new IllegalArgumentException(s"Only NamedLink paths are supported, in $atom")
       }
     case Datalog.NotHasType(t, typ) => throw new IllegalArgumentException(s"NotHasType not supported yet in $atom")
@@ -228,6 +265,7 @@ class GenerateSouffle {
     case Datalog.TData(name) => DeclaredType(name)
     case Datalog.TLiteral.Bool => UnsignedType
     case Datalog.TLiteral.Int => NumberType
+    case Datalog.TLiteral.Long => NumberType
     case Datalog.TLiteral.Double => FloatType
     case Datalog.TLiteral.String => SymbolType
     case Datalog.TScalaBoolean => UnsignedType

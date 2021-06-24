@@ -12,7 +12,7 @@ object CompiledFunctionalToSouffleModule {
 class CompiledFunctionalToSouffleModule(fun: Module, options: FunctionalOptions) extends CompiledFunctionalModule(fun, options) {
   // TODO check if module contains fold and abort
   lazy val souffleSource: String = {
-    val compiler = new GenerateSouffle
-    compiler.compileModule(optimized, fun.content.collect{case d: DataDef => d}, dataModel)
+    val compiler = new GenerateSouffle(dataModel)
+    compiler.compileModule(optimized, fun.content.collect{case d: DataDef => d})
   }
 }
