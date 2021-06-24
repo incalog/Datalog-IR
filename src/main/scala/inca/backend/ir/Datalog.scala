@@ -23,7 +23,7 @@ object Datalog {
   }
   case class Param(name: Name, typ: Type)
 
-  sealed trait Type {
+  sealed trait Type extends Hints {
     def asScala: meta.Type
   }
 
