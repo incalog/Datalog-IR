@@ -63,22 +63,24 @@ class DataModelTest extends AnyFunSuite {
         TreesitterDataModel("./src/test/scala/inca/frontend/datamodel/metainfos/Children"))
 
 
-      dataModel.links.toSet should contain theSameElementsAs Set(("import_declaration","1") -> SortType("import_spec_list"),
-        ("import_declaration","0") -> SortType("import_spec"),
-        ("import_spec_list","0")   -> OptionType(ListType(SortType("import_spec"))))
+      dataModel.links.toSet should contain theSameElementsAs Set(("import_declaration","_1") -> SortType("import_spec_list"),
+        ("import_declaration","_0") -> SortType("import_spec"),
+        ("import_spec_list","_0")   -> OptionType(ListType(SortType("import_spec"))))
     }
 
     test("parsing literal children to literal links"){
       val dataModel: DataModel = new TreesitterDataModelResolver {}.resolve(
         TreesitterDataModel("./src/test/scala/inca/frontend/datamodel/metainfos/LiteralChildren"))
 
-      dataModel.litLinks.toSet should contain theSameElementsAs Set(("import_spec_list","0") -> JavaLitType(classOf[Option[List[String]]]),
-        ("import_declaration","2") -> JavaLitType(classOf[String]))
+      dataModel.litLinks.toSet should contain theSameElementsAs Set(
+        ("import_spec_list","_0") -> JavaLitType(classOf[Option[List[String]]]),
+        ("import_declaration","_2") -> JavaLitType(classOf[String]))
 
 
-      dataModel.links.toSet should contain theSameElementsAs Set(("import_declaration","1") -> SortType("import_spec_list"),
-        ("import_declaration","0") -> SortType("import_spec"),
-        ("import_spec_list","1")   -> OptionType(ListType(SortType("import_spec"))))
+      dataModel.links.toSet should contain theSameElementsAs Set(
+        ("import_declaration","_1") -> SortType("import_spec_list"),
+        ("import_declaration","_0") -> SortType("import_spec"),
+        ("import_spec_list","_1")   -> OptionType(ListType(SortType("import_spec"))))
     }
 
 
