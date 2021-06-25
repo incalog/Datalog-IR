@@ -6,3 +6,8 @@ decimal_floating_point_literal
 hex_floating_point_literal
 character_literal
 string_literal
+identifier
+comment
+extras
+public
+final
