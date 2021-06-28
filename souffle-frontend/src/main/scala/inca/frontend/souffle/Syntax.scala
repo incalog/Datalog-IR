@@ -91,7 +91,12 @@ object Syntax {
   }
 
   case class ADTValue(name: String, args: Seq[Expression]) extends Expression {
-    override def toString: String = "$" + cleanRuleName(name) + s"(${args.map(_.toString).mkString(", ")})"
+    override def toString: String = {
+      val argsString =
+        if (args.isEmpty) ""
+        else s"(${args.map(_.toString).mkString(", ")})"
+      "$" + cleanRuleName(name) + argsString
+    }
   }
 
   case class BuiltInFunctionCall(fun: BuiltInFunction, arguments: Seq[Expression]) extends Expression {

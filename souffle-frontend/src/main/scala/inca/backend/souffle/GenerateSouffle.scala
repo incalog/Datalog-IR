@@ -4,12 +4,14 @@ import inca.backend.hints.DataHints.{DataType, Selector, SelectorKey}
 import inca.backend.hints.{DataHints, MagicSetHints}
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.BodyMustFail
+import inca.backend.souffle.GenerateSouffle.{hasTypeRel, pathRel}
 import inca.frontend.functional
 import inca.frontend.functional.core.{DataConstructor, DataDef, TData}
 import inca.frontend.souffle.Syntax._
 import inca.runtime.context.DataModel
 import inca.util.TupleOps
-import truechange.{AnyType, SortType}
+import truechange.{AnyType, Attach, Detach, EditScript, Load, NamedLink, NamedTag, RootLink, SortType, URI, Unload, Update}
+import truediff.Diffable
 
 class GenerateSouffle(dataModel: DataModel) {
 
@@ -17,17 +19,13 @@ class GenerateSouffle(dataModel: DataModel) {
   private var namedExtensionalRelations: Set[(String, Int)] = Set()
   private var relationDecls: Set[RuleSignature] = Set()
 
-  def hasTypeRel(name: String): String =
-    "hasType$" + name
-  def pathRel(typeName: String, field: String): String =
-    s"path$$${typeName}_$field"
 
-  def compileModule(module: Datalog.Module, datas: Seq[DataDef]): String = {
+  def compileModule(module: Datalog.Module, datas: Seq[DataDef]): (String, Seq[String]) = {
     val types = datas.map(compileDataDef)
     val rels = module.pats.flatMap(compilePattern)
     val namedExtRels = namedExtensionalRelations.flatMap { case (n, i) => generateExtensionalRelation(n, i) }
     val dataModelRels = compileDataModel(dataModel)
-    s"""
+    val source = s"""
        |${types.mkString("\n")}
        |
        |${rels.mkString("\n")}
@@ -36,6 +34,10 @@ class GenerateSouffle(dataModel: DataModel) {
        |
        |${dataModelRels.mkString("\n")}
        |""".stripMargin
+    val inputs = (rels ++ namedExtRels ++ dataModelRels).collect {
+      case Input(rule, _, _) => rule
+    }
+    (source, inputs)
   }
 
   def getDataTypeOfCotr(ty: String, model: DataModel): String = {
@@ -273,5 +275,78 @@ class GenerateSouffle(dataModel: DataModel) {
     case _ if e1 == e2 => None // always true
     case (_: Variable, _) | (Wildcard, _) | (_, _: Variable) | (_, Wildcard) => Some(Equality(e1, false, e2))
     case _ => throw BodyMustFail // no variable involved, but expressions differ => always false
+  }
+}
+object GenerateSouffle {
+  def hasTypeRel(name: String): String =
+    "hasType$" + name
+  def pathRel(typeName: String, field: String): String =
+    s"path$$${typeName}_$field"
+}
+
+object GenerateFacts {
+
+  type Tuple = Seq[Expression]
+  type Relation = (String, Seq[Tuple])
+  type EDB = Seq[Relation]
+
+  def apply(terms: Seq[AnyRef], es: EditScript, mainRel: String): EDB = {
+    // store each URI we have seen and store the ADT value the uri represents
+    // only interessted in Load and Attachs because we want to build up the EDB and do not support incremental updates ATM
+    var uris: Map[URI, Expression] = Map()
+    var rels: Seq[(String, Tuple)] = Seq()
+    val edits = es.coreEdits
+
+    def transTerm(t: AnyRef): Expression = t match {
+      case uri: URI => uris(uri)
+      case lit: Any => transLit(lit)
+    }
+
+    edits.foreach {
+      case Attach(node, NamedTag(tag), RootLink, null, ptag) => // insert tuple into extensional input relation
+//        rels = rels :+ mainRel -> Seq(uris(node))
+      case Attach(node, NamedTag(tag), NamedLink(link), parent, ptag) if parent != null =>
+        rels = rels :+ pathRel(tag, link) -> Seq(uris(node), uris(parent))
+      case Load(node, NamedTag(tag), kids, lits) =>
+        // process kids and lits to constructs args
+        val args = (0 until (kids.size + lits.size)).map { ix =>
+          val name = s"_$ix"
+          kids.find(_._1 == name) match {
+            case Some((_, uri)) => uris(uri)
+            case None => lits.find(_._1 == name) match {
+              case Some((_, lit)) => transLit(lit)
+              case None => throw new IllegalArgumentException(s"Could not find kid or lit for link _${ix}")
+            }
+          }
+        }
+        val adt = ADTValue(tag, args)
+        // tuple in has type relation
+        rels = rels :+ hasTypeRel(tag) -> Seq(adt)
+
+        // tuples in path relations
+        kids.foreach { case (link, uri) =>
+          rels = rels :+ pathRel(tag, link) -> Seq(adt, uris(uri))
+        }
+        lits.foreach { case (link, lit) =>
+          rels = rels :+ pathRel(tag, link) -> Seq(adt, transLit(lit))
+        }
+        uris = uris + (node -> adt)
+      case edit => throw new IllegalArgumentException(s"Unsupported edit in ${edit}")
+    }
+
+    rels = rels :+ mainRel -> terms.map(transTerm)
+    rels.groupBy(_._1).map( kv => kv._1 -> kv._2.map(_._2)).toSeq
+  }
+
+
+
+  private def transLit(lit: Any): Expression = lit match {
+    case v: Integer => NumberValue(v)
+    case v: Boolean if v => NumberValue(1)
+    case _: Boolean => NumberValue(0)
+    case v: String => StringValue(v)
+    case v: Double => FloatValue(v.toFloat)
+    case v: Long => NumberValue(v.toInt)
+    case _ => throw new IllegalArgumentException(s"Unsupported literal in ${lit}")
   }
 }

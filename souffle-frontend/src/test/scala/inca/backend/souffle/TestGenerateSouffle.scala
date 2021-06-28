@@ -1,22 +1,22 @@
 package inca.backend.souffle
 
-import inca.backend.ir.GPPrinter
 import inca.examples.functional.{Code, ControlDataFlow}
+import inca.frontend.souffle.Syntax.cleanRuleName
 import inca.util.measurement.BenchmarkUtils.writeFile
 import org.scalatest.funsuite.AnyFunSuite
 
 
 class TestGenerateSouffle extends AnyFunSuite {
 
+  val rootDir = "souffle-frontend/benchmark/generated"
   test("plus") {
     val compiled = CompiledFunctionalToSouffleModule(Code.plusModule)
     println(compiled.souffleSource)
   }
 
   test("plus main input") {
-    val compiled = CompiledFunctionalToSouffleModule(Code.plusRealModule)
-    println(GPPrinter.prettyModule(compiled.optimized))
-    println(compiled.souffleSource)
+    import scala.meta._
+    generateSouffle(rootDir + "/plus", Code.plusRealModule, "ext_input__main", Seq(q"Succ(Succ(Zero()))", q"Succ(Zero())"))
   }
 
   val prog =
@@ -126,14 +126,28 @@ class TestGenerateSouffle extends AnyFunSuite {
 
   test("powerset dataflow analysis no input") {
     val compiled = CompiledFunctionalToSouffleModule(intValuesNoInput)
-//    println(GPPrinter.prettyModule(compiled.optimized))
     println(compiled.souffleSource)
+    writeFile("/Users/andiderp/Desktop/souffle-test/analysis.dl", compiled.souffleSource)
   }
 
   test("powerset dataflow analysis") {
-    val compiled = CompiledFunctionalToSouffleModule(ControlDataFlow.IntValuesModule)
-    println(GPPrinter.prettyModule(compiled.optimized))
-    println(compiled.souffleSource)
+    generateSouffle(s"${rootDir}/dataflow", ControlDataFlow.IntValuesModule, "ext_input__final_var", Seq(ControlDataFlow.exampleDataflow))
   }
 
+  def generateSouffle(dir: String, prog: String, extInput: String, input: Seq[meta.Term]): Unit = {
+    val compiled = CompiledFunctionalToSouffleModule(prog)
+    writeFile(s"${dir}/analysis.dl", compiled.souffleSource)
+    // create fact files for each relation marked .input
+    compiled.inputRelations.foreach { name =>
+      writeFile(s"${dir}/${cleanRuleName(name)}.facts", "")
+    }
+
+    // fill fact files based on editscript
+    val facts = compiled.generateFacts(input, extInput)
+    facts.foreach { case (name, relation) =>
+      val relationString = relation.map(_.map(_.toString).mkString("\t")).mkString("\n")
+      println(relationString)
+      writeFile(s"${dir}/${cleanRuleName(name)}.facts", relationString)
+    }
+  }
 }
