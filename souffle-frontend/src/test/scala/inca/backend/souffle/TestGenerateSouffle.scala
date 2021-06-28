@@ -2,6 +2,7 @@ package inca.backend.souffle
 
 import inca.backend.ir.GPPrinter
 import inca.examples.functional.{Code, ControlDataFlow}
+import inca.util.measurement.BenchmarkUtils.writeFile
 import org.scalatest.funsuite.AnyFunSuite
 
 

@@ -367,7 +367,7 @@ class GenerateDatalog(module: Module) {
     dataPat +: dataCoalescedPat +: dataUncoalescedPat +: data.constrs.flatMap(transDataConstructor(_, vis, data))
   }
 
-  val GP_URI: Datalog.TScala = Datalog.TScala(Scala(typeOf[truechange.URI]))
+  def GP_URI: Datalog.TScala = Datalog.TScala(Scala(typeOf[truechange.URI]))
   val tDataURI: meta.Term = symbolOf(DataURI)
 
   private def transDataConstructor(constr: DataConstructor, vis: Option[Datalog.Visibility], data: DataDef): Seq[Datalog.Pattern] = {

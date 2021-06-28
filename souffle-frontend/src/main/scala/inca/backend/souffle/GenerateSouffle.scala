@@ -1,6 +1,6 @@
 package inca.backend.souffle
 
-import inca.backend.hints.DataHints.DataType
+import inca.backend.hints.DataHints.{DataType, Selector, SelectorKey}
 import inca.backend.hints.{DataHints, MagicSetHints}
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.BodyMustFail
@@ -9,7 +9,7 @@ import inca.frontend.functional.core.{DataConstructor, DataDef, TData}
 import inca.frontend.souffle.Syntax._
 import inca.runtime.context.DataModel
 import inca.util.TupleOps
-import truechange.SortType
+import truechange.{AnyType, SortType}
 
 class GenerateSouffle(dataModel: DataModel) {
 
@@ -38,24 +38,40 @@ class GenerateSouffle(dataModel: DataModel) {
        |""".stripMargin
   }
 
+  def getDataTypeOfCotr(ty: String, model: DataModel): String = {
+    // we are interested in the most precise (direct) supertype
+    val supertypes = model.directNodeSupertypes.get(truechange.SortType(ty))
+
+    if (supertypes.size > 1) {
+      throw new IllegalArgumentException(s"Type ${ty} has more than one supertype: ${supertypes.mkString(", ")}")
+    }
+    supertypes.headOption match {
+      case Some(truechange.SortType(sup)) => sup
+      case None => ty
+    }
+  }
+
   def compileDataModel(model: DataModel): Seq[SouffleContent] = {
     val tyRels = model.types.toSeq.flatMap { case truechange.SortType(name) =>
-      val sig = RuleSignature(hasTypeRel(name), Seq(RuleParameter("out", DeclaredType(name))), false)
+      val dataType = getDataTypeOfCotr(name, model)
+      val sig = RuleSignature(hasTypeRel(name), Seq(RuleParameter("out", DeclaredType(dataType))), false)
       val input = Input(hasTypeRel(name), "", "")
       Seq(sig, input)
     }
     val linkRels=  model.links.flatMap { case ((srcTy, field), trgTy) =>
+      val dataType = getDataTypeOfCotr(srcTy, model)
       val sig = RuleSignature(pathRel(srcTy, field),
         Seq(
-          RuleParameter("out", DeclaredType(srcTy)),
+          RuleParameter("out", DeclaredType(dataType)),
           RuleParameter("field", DeclaredType(trgTy.asInstanceOf[SortType].name))), false)
       val input = Input(pathRel(srcTy, field), "", "")
       Seq(sig, input)
     }
     val litLinkRels=  model.litLinks.flatMap { case ((srcTy, field), trgTy) =>
+      val dataType = getDataTypeOfCotr(srcTy, model)
       val sig = RuleSignature(pathRel(srcTy, field),
         Seq(
-          RuleParameter("out", DeclaredType(srcTy)),
+          RuleParameter("out", DeclaredType(dataType)),
           RuleParameter("field", compileLitTruechangeType(trgTy))), false)
       val input = Input(pathRel(srcTy, field), "", "")
       Seq(sig, input)
