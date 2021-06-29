@@ -6,8 +6,8 @@ import inca.util.measurement.BenchmarkUtils.{Measurement, Timing, measurementsTo
 import inca.util.measurement.MemoryUtil
 
 object MeasureDataflowAnalysis extends App {
-    val warmup = 10
-    val numMeasurements = 20
+    val warmup = 0
+    val numMeasurements = 100
     implicit val timing: Timing = Timing(warmup, numMeasurements)
 
     val compiled = compileFunction(ControlDataFlow.IntValuesModule)

@@ -11,6 +11,8 @@
           | While {l:number, cond:Exp, body:Stm}
 
 .decl Prog(p:Stm)
+
+// ex1
 // Prog(
 //   $Sequence(1,
 //     $Assign(2,"x", $Num(2)),
@@ -23,6 +25,8 @@
 // 	    $Skip(9),
 //             $Assign(10,"x", $Add($Var("x"), $Num(2))))))))
 // ).
+
+// ex2
 // Prog(
 //   $Sequence(1,
 //     $Assign(2,"x",$Num(1)),
@@ -52,6 +56,37 @@
 //                         $Assign(21,"z",$Num(2))))))))))))
 // ).
 
+// ex 3
+// Prog(
+//   $Sequence(1,
+//     $Assign(2,"x",$Num(10)),
+//     $Sequence(3,
+//       $Assign(4,"y",$Num(1)),
+//       $Sequence(5,
+//         $Assign(6,"z",$Num(4)),
+//         $Sequence(7,
+//           $If(8,
+//             $GreaterThan($Var("x"),$Num(1)),
+//             $Sequence(9,
+//               $Assign(10,"y",$Num(2)),
+//               $While(11,
+//                 $GreaterThan($Var("z"),$Num(2)),
+//                 $Assign(12,"z",$Add($Var("z"),$Var("y"))))),
+//             $Sequence(13,
+//               $Assign(14,"y",$Num(3)),
+//               $Sequence(15,
+//                 $While(16,
+//                   $GreaterThan($Var("z"),$Num(2)),
+//                   $Assign(17,"z",$Add($Var("z"),$Var("y")))),
+//                 $While(18,
+//                   $GreaterThan($Var("z"),$Var("x")),
+//                   $Assign(19,"x",$Add($Var("x"),$Num(100))))))),
+//             $While(20,
+//               $GreaterThan($Var("x"),$Var("y")),
+//               $Assign(21,"x",$Add($Var("x"),$Var("z"))))))))
+// ).
+
+// ex4
 Prog(
   $Sequence(1,
     $Assign(2,"x",$Num(10)),

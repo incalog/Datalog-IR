@@ -127,9 +127,8 @@ class ControlDataFlowTest extends AnyFunSuite {
 
 object Run extends App {
   val compiled = compileFunction(ControlDataFlow.IntValuesModule)
-  //    println(compiled.transformed)
   println(compiled.optimized)
-  val runs = 200
+  val runs = 100
   var edits: EditScript = null
   var tuple: Tuple = null
   for (i <- 0 until runs) {
@@ -140,7 +139,7 @@ object Run extends App {
       tuple = input._2
     }
     val (load, insert, delete) = fun.measure("final_var", edits, tuple)
-    println(s"Load ${load / 1000 / 1000}ms, Insert ${insert / 1000 / 1000}ms, Delete ${delete / 1000 / 1000}ms")
+    println(s"${load / 1000 / 1000}, ${insert / 1000 / 1000}, ${delete / 1000 / 1000}")
     EnginePool.disposeAllEngines()
   }
 }

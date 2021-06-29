@@ -1,0 +1,5 @@
+$GreaterThan($Num(3), $Var("x"))	$Var("x")
+$GreaterThan($Num(10), $Var("x"))	$Var("x")
+$GreaterThan($Var("x"), $Num(6))	$Num(6)
+$GreaterThan($Var("y"), $Num(7))	$Num(7)
+$GreaterThan($Var("z"), $Num(2))	$Num(2)

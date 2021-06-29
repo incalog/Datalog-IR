@@ -17,7 +17,7 @@ object Options {
 
   val defaultOptimizations: Seq[Optimization] = Seq(
     EliminateNonproductiveRelations,
-    // InlineSimpleRelations,
+    InlineSimpleRelations,
     ConstantPropagation,
     EliminateAliases,
     EvalFusion,
