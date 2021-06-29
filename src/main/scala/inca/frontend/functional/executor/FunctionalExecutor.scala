@@ -208,7 +208,7 @@ import inca.runtime.{EnginePool, Query}
 import inca.util.Scala.ScalaCompiler
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
-import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truechange.EditScript
 import truediff.Diffable
 
@@ -322,6 +322,7 @@ object FunctionalExecutor {
       feed.insert(demandPatternExtensionalPrefix + main, tuple)
       val endInsertQuery = System.nanoTime()
 
+      println(s"Tuples in $main: ${mainMatcher.getAllMatches().size()}")
       (loadingTime, endInsertQuery - startInsertQuery, -1)
     }
 
