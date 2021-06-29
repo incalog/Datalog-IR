@@ -666,7 +666,7 @@ object ControlDataFlow {
       x = x + 2
     }
    */
-  val exampleDataflow =
+  val exampleDataflow1 =
     q"""Sequence(
           Assign("x", Num(2)),
           Sequence(

@@ -114,7 +114,7 @@ class ControlDataFlowTest extends AnyFunSuite {
 
   test("powerset dataflow analysis 1") {
     val fun = loadFunction(ControlDataFlow.IntValuesModule)
-    val res = fun.executeInput("final_var", fun.input(ControlDataFlow.exampleDataflow))
+    val res = fun.executeInput("final_var", fun.input(ControlDataFlow.exampleDataflow1))
     assert(res.res.size == 100)
   }
 
