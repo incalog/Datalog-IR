@@ -138,17 +138,17 @@ object PerformMeasurements extends scala.App {
     MemoryUtil.collectGarbage()
 
     // initialize analysis
-    analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
+    analysis.measureInitial("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
 
     val baseConfigName = config.gen.getClass.getSimpleName.replaceAllLiterally("$", "") + " " + config.edit.getClass.getSimpleName.replaceAllLiterally("$", "")
 
-    val editTimes = mutable.ListBuffer[(Long, Long)]()
-    val undoTimes = mutable.ListBuffer[(Long, Long)]()
+    val editTimes = mutable.ListBuffer[(Long, Long, Long)]()
+    val undoTimes = mutable.ListBuffer[(Long, Long, Long)]()
     // do measurements
     (0 until config.warmupMeasurements + config.numMeasurements).foreach { _ =>
-      val editTime = analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(progEdit)))
+      val editTime = analysis.measureUpdate("typeOf", Seq(emptyCtx, toScalaMeta(progEdit)))
       editTimes += editTime
-      val undoTime = analysis.measure("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
+      val undoTime = analysis.measureUpdate("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
       undoTimes +=  undoTime
     }
 

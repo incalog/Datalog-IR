@@ -678,6 +678,117 @@ object ControlDataFlow {
                   Skip(),
                   Assign("x", Add(Var("x"), Num(2))))))))
        """
+
+  // lhs of assign in while loop adds + 1
+  // y = x + y -> y = (x + y) + 1
+  val exampleDataflow1Change1 =
+    q"""Sequence(
+          Assign("x", Num(2)),
+          Sequence(
+            Assign("y", Num(2)),
+            While(GreaterThan(Var("x"), Num(1)),
+              Sequence(
+                Assign("y", Add(Add(Var("x"), Var("y")), Num(1))),
+                Sequence(
+                  Skip(),
+                  Assign("x", Add(Var("x"), Num(2))))))))
+       """
+  // insert y = y after y = x + y
+  val exampleDataflow1Change2 =
+    q"""Sequence(
+          Assign("x", Num(2)),
+          Sequence(
+            Assign("y", Num(2)),
+            While(GreaterThan(Var("x"), Num(1)),
+              Sequence(
+                Sequence(
+                  Assign("y", Add(Var("x"), Var("y"))),
+                  Assign("y", Var("y"))
+                ),
+                Sequence(
+                  Skip(),
+                  Assign("x", Add(Var("x"), Num(2))))))))
+       """
+
+  // change initial assignment of x to 3 instead of 2
+
+  val exampleDataflow1Change3 =
+    q"""Sequence(
+          Assign("x", Num(3)),
+          Sequence(
+            Assign("y", Num(2)),
+            While(GreaterThan(Var("x"), Num(1)),
+              Sequence(
+                Assign("y", Add(Var("x"), Var("y"))),
+                Sequence(
+                  Skip(),
+                  Assign("x", Add(Var("x"), Num(2))))))))
+       """
+
+  // sub millisecond update time
+  // introduce new var before while
+  val exampleDataflow1Change4 =
+    q"""Sequence(
+          Sequence(
+            Assign("z", Num(1)),
+            Assign("x", Num(2)),
+          ),
+          Sequence(
+            Assign("y", Num(2)),
+            While(GreaterThan(Var("x"), Num(1)),
+              Sequence(
+                Assign("y", Add(Var("x"), Var("y"))),
+                Sequence(
+                  Skip(),
+                  Assign("x", Add(Var("x"), Num(2))))))))
+       """
+
+  // update times around 5-8 ms
+  // introduce var that is static in loop
+  val exampleDataflow1Change5 =
+    q"""Sequence(
+          Assign("x", Num(2)),
+          Sequence(
+            Assign("y", Num(2)),
+            While(GreaterThan(Var("x"), Num(1)),
+              Sequence(
+                Assign("y", Add(Var("x"), Var("y"))),
+                Sequence(
+                  Assign("z", Num(12)),
+                  Assign("x", Add(Var("x"), Num(2))))))))
+       """
+
+  // update times around 10-13 ms
+  // introduce var in loop that changes it value each iteration
+  val exampleDataflow1Change6 =
+  q"""Sequence(
+          Assign("x", Num(2)),
+          Sequence(
+            Assign("y", Num(2)),
+            While(GreaterThan(Var("x"), Num(1)),
+              Sequence(
+                Assign("y", Add(Var("x"), Var("y"))),
+                Sequence(
+                  Assign("z", Add(Var("y"), Num(3))),
+                  Assign("x", Add(Var("x"), Num(2))))))))
+       """
+  // add assign after while
+  // x = x + 12
+  // takes > 200 ms
+  val exampleDataflow1Change7 =
+    q"""Sequence(
+          Assign("x", Num(2)),
+          Sequence(
+            Sequence(
+              Assign("y", Num(2)),
+              While(GreaterThan(Var("x"), Num(1)),
+                Sequence(
+                  Assign("y", Add(Var("x"), Var("y"))),
+                  Sequence(
+                    Skip(),
+                    Assign("x", Add(Var("x"), Num(2))))))),
+            Assign("x", Add(Var("x"), Num(12)))))
+       """
   /*
     x = 1
     y = 2
