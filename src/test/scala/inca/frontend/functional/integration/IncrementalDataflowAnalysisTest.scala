@@ -29,8 +29,16 @@ class IncrementalDataflowAnalysisTest extends AnyFunSuite {
     testIncrementalRun(ControlDataFlow.exampleDataflow7, ControlDataFlow.exampleDataflow7Change2)
   }
 
-  test("minimal example") {
+  test("minimal example change 1") {
     testIncrementalRun(ControlDataFlow.minimalExample1, ControlDataFlow.minimalExample1Change1)
+  }
+
+  test("minimal example change 2") {
+    testIncrementalRun(ControlDataFlow.minimalExample1, ControlDataFlow.minimalExample1Change2)
+  }
+
+  test("minimal example change 3") {
+    testIncrementalRun(ControlDataFlow.minimalExample1, ControlDataFlow.minimalExample1Change)
   }
 
   // fast update time tests
