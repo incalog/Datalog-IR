@@ -312,9 +312,7 @@ object IncrementalFunctionalExecutor {
 
       println(s"Tuples in $main: ${mainMatcher.getAllMatches().size()}")
       if (printMainTuples)
-        changes.foreach { case (m, ins) =>
-          val direction = if (ins) "Insert" else "Remove"
-          println(s"$direction $m") }
+        printChanges(changes)
 
       (loadingTime, endInsertQuery - startInsertQuery, -1, mainMatcher)
     }
@@ -341,9 +339,7 @@ object IncrementalFunctionalExecutor {
       val endQuery = System.nanoTime()
 
       if (printMainTuples)
-        changes.foreach { case (m, ins) =>
-          val direction = if (ins) "Insert" else "Remove"
-          println(s"$direction $m") }
+        printChanges(changes)
 
       (-1, endQuery - startQuery, -1, mainMatcher)
     }
@@ -361,6 +357,17 @@ object IncrementalFunctionalExecutor {
     def result(res: meta.Term*): Results[AnyRef] = results(Seq(vals(res:_*)))
   }
 
+
+  private def printChanges(changes: ListBuffer[(Query.Match, Boolean)]) = {
+    changes.foreach { case (m, ins) =>
+      val direction =
+        if (ins)
+          Console.BLUE + "Insert"
+        else
+          Console.RED + "Remove"
+      println(s"$direction $m")
+    }
+  }
 
   class Results[T](val res: Seq[Seq[T]]) {
     override def equals(obj: Any): Boolean = obj match {

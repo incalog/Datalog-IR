@@ -506,8 +506,8 @@ object ControlDataFlow {
       |def add(v1: Val, v2: Val): Val = v1 match {
       |  case VNum(n1) => v2 match {
       |    case VNum(n2) =>
-      |      if ((n1 + n2) <= -100) VNum(-1000)
-      |      else if ((n1 + n2) >= 100) VNum(1000)
+      |      if ((n1 + n2) <= -10) VNum(-1000)
+      |      else if ((n1 + n2) >= 10) VNum(1000)
       |      else VNum(n1 + n2)
       |    case VBool(b2) => VBool(false)
       |  }
@@ -1035,7 +1035,7 @@ object ControlDataFlow {
   val exampleDataflow7 =
     q"""
        Sequence(
-         Assign("x", Num(4)),
+         Assign("x", Num(99)),
          While(
            GreaterThan(Var("x"), Num(0)),
            Assign("x", Add(Var("x"), Num(1)))
@@ -1045,7 +1045,7 @@ object ControlDataFlow {
   val exampleDataflow7Change1 =
     q"""
        Sequence(
-         Assign("x", Num(3)),
+         Assign("x", Num(100)),
          While(
            GreaterThan(Var("x"), Num(0)),
            Assign("x", Add(Var("x"), Num(1)))
@@ -1055,7 +1055,7 @@ object ControlDataFlow {
   val exampleDataflow7Change2 =
     q"""
        Sequence(
-         Assign("x", Num(5)),
+         Assign("x", Num(98)),
          While(
            GreaterThan(Var("x"), Num(0)),
            Assign("x", Add(Var("x"), Num(1)))
@@ -1063,5 +1063,19 @@ object ControlDataFlow {
        )
       """
 
+  val exampleDataflow8 =
+    q"""
+       Sequence(
+         Assign("x", Num(4)),
+         Assign("y", Var("x"))
+       )
+      """
+  val exampleDataflow8Change1 =
+    q"""
+       Sequence(
+         Assign("x", Num(3)),
+         Assign("y", Var("x"))
+       )
+      """
 
 }
