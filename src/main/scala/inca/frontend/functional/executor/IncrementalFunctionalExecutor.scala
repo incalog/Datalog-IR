@@ -309,7 +309,9 @@ object IncrementalFunctionalExecutor {
       val startInsertQuery = System.nanoTime()
       feed.insert(demandPatternExtensionalPrefix + main, tuple)
       val endInsertQuery = System.nanoTime()
+      val out = output(main, tuple)
 
+      out.res.foreach(println)
       println(s"Tuples in $main: ${mainMatcher.getAllMatches().size()}")
       if (printMainTuples)
         printChanges(changes)
@@ -337,6 +339,8 @@ object IncrementalFunctionalExecutor {
       val startQuery = System.nanoTime()
       engine.delayUpdatePropagation { () => feed.processEditScript(edits) }
       val endQuery = System.nanoTime()
+      val out = output(main, tuple)
+      out.res.foreach(println)
 
       if (printMainTuples)
         printChanges(changes)

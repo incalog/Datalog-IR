@@ -6,10 +6,13 @@ import inca.runtime.EnginePool
 import org.scalatest.funsuite.AnyFunSuite
 
 class IncrementalDataflowAnalysisTest extends AnyFunSuite {
+  val bound = 10
+  val default = 1000
   // TODO fix slow update time tests
   test("Change rhs of assignment within loop") {
     testIncrementalRun(ControlDataFlow.exampleDataflow1, ControlDataFlow.exampleDataflow1Change1)
   }
+
   test("Insert y = y within loop after assignment of y") {
     testIncrementalRun(ControlDataFlow.exampleDataflow1, ControlDataFlow.exampleDataflow1Change2)
   }
@@ -41,7 +44,7 @@ class IncrementalDataflowAnalysisTest extends AnyFunSuite {
     testIncrementalRun(ControlDataFlow.exampleDataflow8, ControlDataFlow.exampleDataflow8Change1)
   }
   def testIncrementalRun(original: meta.Term, changed: meta.Term): Unit = {
-    val compiled = compileFunction(ControlDataFlow.IntValuesModule)
+    val compiled = compileFunction(ControlDataFlow.ParametricIntValuesModule(bound, default))
     val fun = loadFunction(compiled)
     val (edits, tuple) = fun.input(original)
     val (load, insert, delete, m0) = fun.measureInitial("final_var", edits, tuple, true)

@@ -425,8 +425,8 @@ object ControlDataFlow {
   )
 
   // Had to implement new version of ADT freevars because Sub and Mul at not present in this version
-  val intValues =
-    """
+  def parametricIntValues(bound: Int, default: Int): String =
+    s"""
       |data Exp = Var(String) | Num(Int) | GreaterThan(Exp, Exp) | Add(Exp, Exp)
       |data Stm = Assign(String, Exp) | Skip() | Sequence(Stm, Stm) | If(Exp, Stm, Stm) | While(Exp, Stm)
       |
@@ -506,16 +506,19 @@ object ControlDataFlow {
       |def add(v1: Val, v2: Val): Val = v1 match {
       |  case VNum(n1) => v2 match {
       |    case VNum(n2) =>
-      |      if ((n1 + n2) <= -10) VNum(-1000)
-      |      else if ((n1 + n2) >= 10) VNum(1000)
+      |      if ((n1 + n2) <= -${bound}) VNum(-${default})
+      |      else if ((n1 + n2) >= ${bound}) VNum(${default})
       |      else VNum(n1 + n2)
       |    case VBool(b2) => VBool(false)
       |  }
       |  case VBool(b1) => VBool(false)
       |}
       |""".stripMargin
+  def intValues: String = parametricIntValues(100, 1000)
 
-  val IntValuesModule = Code.module(intValues)
+  def ParametricIntValuesModule(bound: Int, default: Int): String = Code.module(parametricIntValues(bound, default))
+
+  def IntValuesModule: String = Code.module(intValues)
 
   val aeval =
     """data Interval = IV(Int, Int) | TopInterval()
@@ -657,6 +660,17 @@ object ControlDataFlow {
                 Assign("y", Mul(Var("x"), Var("y"))),
                 Assign("x", Sub(Var("x"), Num(1)))))))
        """
+
+  val smallExample =
+    q"""Sequence(
+         Assign("x", Num(1)),
+         If(
+           GreaterThan(Var("x"), Num(0)),
+           Assign("y", Var("x")),
+           Assign("y", Num(2))
+         )
+       )"""
+
 
   /*
     x = 2
