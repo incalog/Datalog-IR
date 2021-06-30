@@ -205,12 +205,13 @@ import inca.runtime.data.DataURI
 import inca.runtime.db.Database
 import inca.runtime.{EnginePool, Query}
 import inca.util.Scala.ScalaCompiler
-import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
+import org.eclipse.viatra.query.runtime.api.{AdvancedViatraQueryEngine, IMatchUpdateListener}
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
-import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truechange.EditScript
 import truediff.Diffable
 
+import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 
 object IncrementalFunctionalExecutor {
@@ -286,15 +287,20 @@ object IncrementalFunctionalExecutor {
       results
     }
 
-    def measureInitial(main: String, args: Seq[meta.Term]): (Long, Long, Long) = {
+    def measureInitial(main: String, args: Seq[meta.Term]): (Long, Long, Long, Query.Matcher) = {
       val (es, tuple) = input(args)
       measureInitial(main, es, tuple)
     }
 
-    def measureInitial(main: String, edits: EditScript, tuple: Tuple): (Long, Long, Long) = {
+    def measureInitial(main: String, edits: EditScript, tuple: Tuple, printMainTuples: Boolean = false): (Long, Long, Long, Query.Matcher) = {
       val mainSpec = compiled.psystemModule.patterns(main)()
       val mainMatcher = engine.getMatcher(mainSpec)
-
+      val changes: ListBuffer[(Query.Match, Boolean)] = ListBuffer()
+      if (printMainTuples)
+        engine.addMatchUpdateListener(mainMatcher, new IMatchUpdateListener[Query.Match] {
+          override def notifyAppearance(mtch: Query.Match): Unit = changes += ((mtch, true))
+          override def notifyDisappearance(mtch: Query.Match): Unit = changes += ((mtch, false))
+        }, false)
       val startLoadDB = System.nanoTime()
       engine.delayUpdatePropagation { () => feed.processEditScript(edits) }
       val endLoadDB = System.nanoTime()
@@ -305,25 +311,41 @@ object IncrementalFunctionalExecutor {
       val endInsertQuery = System.nanoTime()
 
       println(s"Tuples in $main: ${mainMatcher.getAllMatches().size()}")
-      (loadingTime, endInsertQuery - startInsertQuery, -1)
+      if (printMainTuples)
+        changes.foreach { case (m, ins) =>
+          val direction = if (ins) "Insert" else "Remove"
+          println(s"$direction $m") }
+
+      (loadingTime, endInsertQuery - startInsertQuery, -1, mainMatcher)
     }
 
-    def measureUpdate(main: String, args: Seq[meta.Term]): (Long, Long, Long) = {
+    def measureUpdate(main: String, args: Seq[meta.Term], printMainTuples: Boolean): (Long, Long, Long, Query.Matcher) = {
       val (es, tuple) = input(args)
-      measureInitial(main, es, tuple)
+      measureInitial(main, es, tuple, printMainTuples)
     }
 
-    def measureUpdate(main: String, edits: EditScript, tuple: Tuple): (Long, Long, Long) = {
+    def measureUpdate(main: String, edits: EditScript, tuple: Tuple, printMainTuples: Boolean = false): (Long, Long, Long, Query.Matcher) = {
       val mainSpec = compiled.psystemModule.patterns(main)()
       val mainMatcher = engine.getMatcher(mainSpec)
+
+      val changes: ListBuffer[(Query.Match, Boolean)] = ListBuffer()
+      if (printMainTuples)
+        engine.addMatchUpdateListener(mainMatcher, new IMatchUpdateListener[Query.Match] {
+          override def notifyAppearance(mtch: Query.Match): Unit = changes += ((mtch, true))
+          override def notifyDisappearance(mtch: Query.Match): Unit = changes += ((mtch, false))
+        }, false)
 
       // TODO fix when we remove assumption that outer uris do not change need to remove old tuple and add new
       val startQuery = System.nanoTime()
       engine.delayUpdatePropagation { () => feed.processEditScript(edits) }
       val endQuery = System.nanoTime()
 
-      println(s"Tuples in $main: ${mainMatcher.getAllMatches().size()}")
-      (-1, endQuery - startQuery, -1)
+      if (printMainTuples)
+        changes.foreach { case (m, ins) =>
+          val direction = if (ins) "Insert" else "Remove"
+          println(s"$direction $m") }
+
+      (-1, endQuery - startQuery, -1, mainMatcher)
     }
 
     def vals(ts: meta.Term*): Seq[AnyRef] = {

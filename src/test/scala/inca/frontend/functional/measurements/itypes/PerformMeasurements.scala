@@ -146,10 +146,10 @@ object PerformMeasurements extends scala.App {
     val undoTimes = mutable.ListBuffer[(Long, Long, Long)]()
     // do measurements
     (0 until config.warmupMeasurements + config.numMeasurements).foreach { _ =>
-      val editTime = analysis.measureUpdate("typeOf", Seq(emptyCtx, toScalaMeta(progEdit)))
-      editTimes += editTime
-      val undoTime = analysis.measureUpdate("typeOf", Seq(emptyCtx, toScalaMeta(prog)))
-      undoTimes +=  undoTime
+      val editTime = analysis.measureUpdate("typeOf", Seq(emptyCtx, toScalaMeta(progEdit)), false)
+      editTimes += ((editTime._1, editTime._2, editTime._3))
+      val undoTime = analysis.measureUpdate("typeOf", Seq(emptyCtx, toScalaMeta(prog)), false)
+      undoTimes +=  ((undoTime._1, undoTime._2, undoTime._3))
     }
 
     val editMeasurement = Measurement(baseConfigName + " Edit", editTimes.map(_._2).toSeq)
