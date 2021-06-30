@@ -29,18 +29,6 @@ class IncrementalDataflowAnalysisTest extends AnyFunSuite {
     testIncrementalRun(ControlDataFlow.exampleDataflow7, ControlDataFlow.exampleDataflow7Change2)
   }
 
-  test("minimal example change 1") {
-    testIncrementalRun(ControlDataFlow.minimalExample1, ControlDataFlow.minimalExample1Change1)
-  }
-
-  test("minimal example change 2") {
-    testIncrementalRun(ControlDataFlow.minimalExample1, ControlDataFlow.minimalExample1Change2)
-  }
-
-  test("minimal example change 3") {
-    testIncrementalRun(ControlDataFlow.minimalExample1, ControlDataFlow.minimalExample1Change)
-  }
-
   // fast update time tests
   test("Introduce assignment of new variable before loop") {
     testIncrementalRun(ControlDataFlow.exampleDataflow1, ControlDataFlow.exampleDataflow1Change4)
@@ -55,14 +43,27 @@ class IncrementalDataflowAnalysisTest extends AnyFunSuite {
   def testIncrementalRun(original: meta.Term, changed: meta.Term): Unit = {
     val compiled = compileFunction(ControlDataFlow.ParametricIntValuesModule(bound, default))
     val fun = loadFunction(compiled)
+//    println(fun.compiled.psystemSource)
+
+//    val changes: ListBuffer[(Query.Match, Boolean)] = ListBuffer()
+//    fun.engine.addMatchUpdateListener(fun.engine.getMatcher(compiled.psystemModule.patterns("VNum")()), new IMatchUpdateListener[Query.Match] {
+//      override def notifyAppearance(mtch: Query.Match): Unit = changes += ((mtch, true))
+//      override def notifyDisappearance(mtch: Query.Match): Unit = changes += ((mtch, false))
+//    }, false)
+
     val (edits, tuple) = fun.input(original)
     val (load, insert, delete, m0) = fun.measureInitial("final_var", edits, tuple, true)
     println(s"Initial ${load / 1000 / 1000}, ${insert / 1000 / 1000}, ${delete / 1000 / 1000}")
+//    IncrementalFunctionalExecutor.printChanges(changes)
+//    changes.clear()
 
     // incremental measurement
     val (edits1, tuple1) = fun.input(changed)
     val (load1, insert1, delete1, m1) = fun.measureUpdate("final_var", edits1, tuple1, true)
     println(s"Change1 ${load1 / 1000 / 1000}, ${insert1 / 1000 / 1000}, ${delete1 / 1000 / 1000}")
+    edits1.print()
+//    IncrementalFunctionalExecutor.printChanges(changes)
+//    changes.clear()
 
     // measure revert of change
     val (edits2, tuple2) = fun.input(original)

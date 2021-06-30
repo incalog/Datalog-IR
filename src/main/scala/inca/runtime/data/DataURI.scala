@@ -5,7 +5,7 @@ import truediff.Diffable
 class DataURI(val repr: String) extends truechange.URI {
   override def toString: String =
     if (DataURI.DEBUG_PRINT)
-      repr + "@" + Integer.toHexString(hashCode())
+      repr.substring(0, Math.min(20, repr.length)) + "@" + Integer.toHexString(hashCode())
     else
       "@" + Integer.toHexString(hashCode())
 

@@ -4,13 +4,12 @@ import inca.backend.hints.MagicSetHints.{FixedAdornment, IgnoreCall, NoInputRela
 import inca.backend.hints.{DataHints, MagicSetHints}
 import inca.backend.ir.Datalog
 import inca.frontend.functional.core._
-import inca.runtime.data.DataURI
+import inca.runtime.data.MockURI
 import inca.util.Scala.{symbolOf, typeOf}
 import inca.util.{Gensym, Scala, TupleOps}
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
-import scala.meta.quasiquotes._
 
 object GenerateDatalog {
   def transformModule(module: Module): Datalog.Module =
@@ -217,6 +216,7 @@ class GenerateDatalog(module: Module) {
       transExp(left) ++ transExp(right)
 
     case BaseApplyInfix(left, op, right) =>
+      import meta.quasiquotes._
       val leftParam = {
         val typ = left.typ.getOrElse(throw new IllegalStateException(s"Cannot compile call to $op with untyped argument $left"))
         param"left: ${typ.asScala}"
@@ -368,7 +368,7 @@ class GenerateDatalog(module: Module) {
   }
 
   def GP_URI: Datalog.TScala = Datalog.TScala(Scala(typeOf[truechange.URI]))
-  val tDataURI: meta.Term = symbolOf(DataURI)
+  val tMockURI: meta.Term = symbolOf(MockURI)
 
   private def transDataConstructor(constr: DataConstructor, vis: Option[Datalog.Visibility], data: DataDef): Seq[Datalog.Pattern] = {
     val constrPat = generateConstructor(constr, vis, data)
@@ -393,7 +393,7 @@ class GenerateDatalog(module: Module) {
 
     val constrScalaFun = Term.Function(
       params.map(p => Term.Param(Nil, Term.Name(p.name), Some(p.typ.asScala), None)).toList,
-      q"""$tDataURI(${constr.name.name}, ..${params.map(p => Term.Name(p.name)).toList})"""
+      q"""$tMockURI(${constr.name.name}, ..${params.map(p => Term.Name(p.name)).toList})"""
     )
     val outVar = Datalog.Var(outParam.name)
     val constrIDBBody = Datalog.Body(Seq(Datalog.Computed(outVar,
