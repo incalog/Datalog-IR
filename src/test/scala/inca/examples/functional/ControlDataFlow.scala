@@ -661,15 +661,6 @@ object ControlDataFlow {
                 Assign("x", Sub(Var("x"), Num(1)))))))
        """
 
-  val smallExample =
-    q"""Sequence(
-         Assign("x", Num(1)),
-         If(
-           GreaterThan(Var("x"), Num(0)),
-           Assign("y", Var("x")),
-           Assign("y", Num(2))
-         )
-       )"""
 
 
   /*
@@ -1077,19 +1068,23 @@ object ControlDataFlow {
        )
       """
 
-  val exampleDataflow8 =
-    q"""
-       Sequence(
-         Assign("x", Num(4)),
-         Assign("y", Var("x"))
-       )
-      """
-  val exampleDataflow8Change1 =
-    q"""
-       Sequence(
-         Assign("x", Num(3)),
-         Assign("y", Var("x"))
-       )
-      """
+  val minimalExample1 =
+    q"""Sequence(
+         Assign("x", Num(1)),
+         Sequence(
+           Assign("y", Var("x")),
+           Assign("y", Var("y"))))
+     """
+
+  val minimalExample1Change1 =
+    q"""Sequence(
+         Sequence(
+           Assign("x", Num(2)),
+           Assign("x", Num(1))
+         ),
+         Sequence(
+           Assign("y", Var("x")),
+           Assign("y", Var("y"))))
+     """
 
 }

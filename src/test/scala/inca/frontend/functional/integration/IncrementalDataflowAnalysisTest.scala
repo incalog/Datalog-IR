@@ -29,6 +29,10 @@ class IncrementalDataflowAnalysisTest extends AnyFunSuite {
     testIncrementalRun(ControlDataFlow.exampleDataflow7, ControlDataFlow.exampleDataflow7Change2)
   }
 
+  test("minimal example") {
+    testIncrementalRun(ControlDataFlow.minimalExample1, ControlDataFlow.minimalExample1Change1)
+  }
+
   // fast update time tests
   test("Introduce assignment of new variable before loop") {
     testIncrementalRun(ControlDataFlow.exampleDataflow1, ControlDataFlow.exampleDataflow1Change4)
@@ -40,9 +44,6 @@ class IncrementalDataflowAnalysisTest extends AnyFunSuite {
     testIncrementalRun(ControlDataFlow.exampleDataflow1, ControlDataFlow.exampleDataflow1Change6)
   }
 
-  test("minimal example 1") {
-    testIncrementalRun(ControlDataFlow.exampleDataflow8, ControlDataFlow.exampleDataflow8Change1)
-  }
   def testIncrementalRun(original: meta.Term, changed: meta.Term): Unit = {
     val compiled = compileFunction(ControlDataFlow.ParametricIntValuesModule(bound, default))
     val fun = loadFunction(compiled)
