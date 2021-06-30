@@ -1032,4 +1032,36 @@ object ControlDataFlow {
     )
     """
 
+  val exampleDataflow7 =
+    q"""
+       Sequence(
+         Assign("x", Num(4)),
+         While(
+           GreaterThan(Var("x"), Num(0)),
+           Assign("x", Add(Var("x"), Num(1)))
+         )
+       )
+      """
+  val exampleDataflow7Change1 =
+    q"""
+       Sequence(
+         Assign("x", Num(3)),
+         While(
+           GreaterThan(Var("x"), Num(0)),
+           Assign("x", Add(Var("x"), Num(1)))
+         )
+       )
+      """
+  val exampleDataflow7Change2 =
+    q"""
+       Sequence(
+         Assign("x", Num(5)),
+         While(
+           GreaterThan(Var("x"), Num(0)),
+           Assign("x", Add(Var("x"), Num(1)))
+         )
+       )
+      """
+
+
 }

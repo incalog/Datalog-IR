@@ -13,11 +13,17 @@ class IncrementalDataflowAnalysisTest extends AnyFunSuite {
   test("Insert y = y within loop after assignment of y") {
     testIncrementalRun(ControlDataFlow.exampleDataflow1, ControlDataFlow.exampleDataflow1Change2)
   }
+  test("Insert assignment that changes value of x after loop") {
+    testIncrementalRun(ControlDataFlow.exampleDataflow1, ControlDataFlow.exampleDataflow1Change7)
+  }
   test("Change rhs of initial assignment of x (2 -> 3)") {
     testIncrementalRun(ControlDataFlow.exampleDataflow1, ControlDataFlow.exampleDataflow1Change3)
   }
-  test("Insert assignment that changes value of x after loop") {
-    testIncrementalRun(ControlDataFlow.exampleDataflow1, ControlDataFlow.exampleDataflow1Change7)
+  test("Change rhs of initial assignment of x (4 -> 3) small example") {
+    testIncrementalRun(ControlDataFlow.exampleDataflow7, ControlDataFlow.exampleDataflow7Change1)
+  }
+  test("Change rhs of initial assignment of x (4 -> 5) small example") {
+    testIncrementalRun(ControlDataFlow.exampleDataflow7, ControlDataFlow.exampleDataflow7Change2)
   }
 
   // fast update time tests
