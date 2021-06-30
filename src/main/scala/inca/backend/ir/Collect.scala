@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.Datalog._
+import inca.backend.ir.IR._
 
 object CollectVars extends Collect[String] {
   override def transVar(v: Var): Seq[String] = Seq(v.name)

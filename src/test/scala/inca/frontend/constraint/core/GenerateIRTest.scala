@@ -3,14 +3,14 @@ package inca.frontend.constraint.core
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
-import inca.backend.ir.{Datalog, GPPrinter}
+import inca.backend.ir.{GPPrinter, IR}
 import inca.compiler.Compiler
 import inca.frontend.constraint.compiler.ConstraintOptions
 import org.scalatest.funsuite.AnyFunSuite
 
-class GenerateDatalogTest extends AnyFunSuite {
+class GenerateIRTest extends AnyFunSuite {
 
-  def compileToGP(module: Module): Datalog.Module =
+  def compileToGP(module: Module): IR.Module =
     Compiler.compileConstraint(module, ConstraintOptions()).ir
   
   test("simple function pattern with return constraint"){

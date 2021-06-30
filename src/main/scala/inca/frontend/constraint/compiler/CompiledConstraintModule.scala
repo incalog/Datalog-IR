@@ -1,15 +1,20 @@
 package inca.frontend.constraint.compiler
 
-import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.Name
+import inca.backend.ir.IR
+import inca.backend.ir.IR.Name
 import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
 import inca.frontend.constraint.datamodelresolver.{DataModelResolver, DirectDataModelResolver, NativeDataModelResolver}
 import inca.frontend.constraint.desugar.Desugar
-import inca.frontend.constraint.lowering.GenerateDatalog
+import inca.frontend.constraint.lowering.GenerateIR
+import inca.frontend.constraint.parser.Parser
 import inca.frontend.constraint.typechecker.CoreTypechecker
 import inca.frontend.constraint.{core, extensions}
 import inca.runtime.context.DataModel
 
+object CompiledConstraintModule {
+  def apply(source: String, options: ConstraintOptions): CompiledConstraintModule =
+    CompiledConstraintModule(Parser.parse(source), options)
+}
 case class CompiledConstraintModule(module: core.Module, options: ConstraintOptions) extends CompiledModule {
 
   override def name: Name = module.name.name
@@ -57,8 +62,8 @@ case class CompiledConstraintModule(module: core.Module, options: ConstraintOpti
     module
   }
 
-  lazy val ir: Datalog.Module = {
-    val module = new GenerateDatalog().transformModule(desugared)
+  lazy val ir: IR.Module = {
+    val module = new GenerateIR().transformModule(desugared)
     if (CompilerFlags.DEBUGMODE) {
       println(s"Intermediate Representation")
       println(module)

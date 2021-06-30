@@ -1,26 +1,26 @@
 package inca.backend.transform.magic
 
 import inca.backend.hints.MagicSetHints
-import inca.backend.ir.Datalog
+import inca.backend.ir.IR
 import inca.util.Scala
 
 import scala.meta.quasiquotes._
 
 object Examples {
 
-  def gpmodule(content: Datalog.Pattern*): Datalog.Module =
-    Datalog.Module("Main", Seq(), content, Seq())
+  def gpmodule(content: IR.Pattern*): IR.Module =
+    IR.Module("Main", Seq(), content, Seq())
 
-  val incFunGP = Datalog.Pattern(None, "inc", Seq(Datalog.Param("n", Datalog.TScalaInt), Datalog.Param("out", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Computed(Datalog.Var("eval"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-      Datalog.TScalaInt, Scala(q"(left: Int, right: Int) => left + right"))),
-    Datalog.Eq(Datalog.Var("out"), Datalog.Var("eval"))
+  val incFunGP = IR.Pattern(None, "inc", Seq(IR.Param("n", IR.TScalaInt), IR.Param("out", IR.TScalaInt)), Seq(IR.Body(Seq(
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Computed(IR.Var("eval"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("lit") -> IR.TScalaInt),
+      IR.TScalaInt, Scala(q"(left: Int, right: Int) => left + right"))),
+    IR.Eq(IR.Var("out"), IR.Var("eval"))
   ))))
-  val incMainGP = Datalog.Pattern(None, "main", Seq(Datalog.Param("out", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 0"))),
-    Datalog.Call("inc", Seq(Datalog.Var("lit"), Datalog.Var("out_0")), transitive = false, neg = false),
-    Datalog.Eq(Datalog.Var("out"), Datalog.Var("out_0"))
+  val incMainGP = IR.Pattern(None, "main", Seq(IR.Param("out", IR.TScalaInt)), Seq(IR.Body(Seq(
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 0"))),
+    IR.Call("inc", Seq(IR.Var("lit"), IR.Var("out_0")), transitive = false, neg = false),
+    IR.Eq(IR.Var("out"), IR.Var("out_0"))
   ))))
   incMainGP.addHint(MagicSetHints.Main(Seq(false)))
   val incModuleGP = gpmodule(incFunGP, incMainGP)
@@ -28,352 +28,352 @@ object Examples {
 
 
 
-  val factFunGP = Datalog.Pattern(None, "fact", Seq(Datalog.Param("n", Datalog.TScalaInt), Datalog.Param("out", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Computed(Datalog.Var("eval"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-      Datalog.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
-    Datalog.Eq(Datalog.Var("eval"), Datalog.True),
-    Datalog.Computed(Datalog.Var("lit_0"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Eq(Datalog.Var("out"), Datalog.Var("lit_0"))
-  )), Datalog.Body(Seq(
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Computed(Datalog.Var("eval"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-      Datalog.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
-    Datalog.Eq(Datalog.Var("eval"), Datalog.False),
-    Datalog.Computed(Datalog.Var("lit_1"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Computed(Datalog.Var("eval_0"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit_1") -> Datalog.TScalaInt),
-      Datalog.TScalaInt, Scala(q"(left: Int, right: Int) => left - right"))),
-    Datalog.Call("fact", Seq(Datalog.Var("eval_0"), Datalog.Var("out_0")), transitive = false, neg = false),
-    Datalog.Computed(Datalog.Var("eval_1"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("out_0") -> Datalog.TScalaInt),
-      Datalog.TScalaInt, Scala(q"(left: Int, right: Int) => left * right"))),
-    Datalog.Eq(Datalog.Var("out"), Datalog.Var("eval_1"))
+  val factFunGP = IR.Pattern(None, "fact", Seq(IR.Param("n", IR.TScalaInt), IR.Param("out", IR.TScalaInt)), Seq(IR.Body(Seq(
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Computed(IR.Var("eval"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("lit") -> IR.TScalaInt),
+      IR.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
+    IR.Eq(IR.Var("eval"), IR.True),
+    IR.Computed(IR.Var("lit_0"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Eq(IR.Var("out"), IR.Var("lit_0"))
+  )), IR.Body(Seq(
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Computed(IR.Var("eval"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("lit") -> IR.TScalaInt),
+      IR.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
+    IR.Eq(IR.Var("eval"), IR.False),
+    IR.Computed(IR.Var("lit_1"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Computed(IR.Var("eval_0"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("lit_1") -> IR.TScalaInt),
+      IR.TScalaInt, Scala(q"(left: Int, right: Int) => left - right"))),
+    IR.Call("fact", Seq(IR.Var("eval_0"), IR.Var("out_0")), transitive = false, neg = false),
+    IR.Computed(IR.Var("eval_1"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("out_0") -> IR.TScalaInt),
+      IR.TScalaInt, Scala(q"(left: Int, right: Int) => left * right"))),
+    IR.Eq(IR.Var("out"), IR.Var("eval_1"))
   ))))
-  val factMainGP = Datalog.Pattern(None, "main", Seq(Datalog.Param("out", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3"))),
-    Datalog.Call("fact", Seq(Datalog.Var("lit"), Datalog.Var("out_0")), transitive = false, neg = false),
-    Datalog.Eq(Datalog.Var("out"), Datalog.Var("out_0"))
+  val factMainGP = IR.Pattern(None, "main", Seq(IR.Param("out", IR.TScalaInt)), Seq(IR.Body(Seq(
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 3"))),
+    IR.Call("fact", Seq(IR.Var("lit"), IR.Var("out_0")), transitive = false, neg = false),
+    IR.Eq(IR.Var("out"), IR.Var("out_0"))
   ))))
   factMainGP.addHint(MagicSetHints.Main(Seq(false)))
   val factModuleGP = gpmodule(factFunGP, factMainGP)
 
-  val adornedIncFunGP = Datalog.Pattern(None, "inc_bf", Seq(Datalog.Param("n", Datalog.TScalaInt), Datalog.Param("out", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Computed(Datalog.Var("eval"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-      Datalog.TScalaInt, Scala(q"(left: Int, right: Int) => left + right"))),
-    Datalog.Eq(Datalog.Var("out"), Datalog.Var("eval"))
+  val adornedIncFunGP = IR.Pattern(None, "inc_bf", Seq(IR.Param("n", IR.TScalaInt), IR.Param("out", IR.TScalaInt)), Seq(IR.Body(Seq(
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Computed(IR.Var("eval"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("lit") -> IR.TScalaInt),
+      IR.TScalaInt, Scala(q"(left: Int, right: Int) => left + right"))),
+    IR.Eq(IR.Var("out"), IR.Var("eval"))
   )))).addHint(MagicSetHints.Adornment(Seq(true, false)))
-  val adornedIncMainGP = Datalog.Pattern(None, "main_f", Seq(Datalog.Param("out", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 0"))),
-    Datalog.Call("inc_bf", Seq(Datalog.Var("lit"), Datalog.Var("out_0")), transitive = false, neg = false).addHint(MagicSetHints.Adornment(Seq(true, false))),
-    Datalog.Eq(Datalog.Var("out"), Datalog.Var("out_0"))
+  val adornedIncMainGP = IR.Pattern(None, "main_f", Seq(IR.Param("out", IR.TScalaInt)), Seq(IR.Body(Seq(
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 0"))),
+    IR.Call("inc_bf", Seq(IR.Var("lit"), IR.Var("out_0")), transitive = false, neg = false).addHint(MagicSetHints.Adornment(Seq(true, false))),
+    IR.Eq(IR.Var("out"), IR.Var("out_0"))
   )))).addHint(MagicSetHints.Adornment(Seq(false)))
   val adornedIncModuleGP = gpmodule(adornedIncFunGP, adornedIncMainGP)
 
-  val magicIncFunGP = Datalog.Pattern(None, "inc_bf", Seq(Datalog.Param("n", Datalog.TScalaInt), Datalog.Param("out", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Call("input$inc_bf", Seq(Datalog.Var("n")), transitive = false, neg = false),
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Computed(Datalog.Var("eval"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-      Datalog.TScalaInt, Scala(q"(left: Int, right: Int) => left + right"))),
-    Datalog.Eq(Datalog.Var("out"), Datalog.Var("eval"))
+  val magicIncFunGP = IR.Pattern(None, "inc_bf", Seq(IR.Param("n", IR.TScalaInt), IR.Param("out", IR.TScalaInt)), Seq(IR.Body(Seq(
+    IR.Call("input$inc_bf", Seq(IR.Var("n")), transitive = false, neg = false),
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Computed(IR.Var("eval"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("lit") -> IR.TScalaInt),
+      IR.TScalaInt, Scala(q"(left: Int, right: Int) => left + right"))),
+    IR.Eq(IR.Var("out"), IR.Var("eval"))
   ))))
-  val magicIncMainGP = Datalog.Pattern(None, "main_f", Seq(Datalog.Param("out", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 0"))),
-    Datalog.Call("inc_bf", Seq(Datalog.Var("lit"), Datalog.Var("out_0")), transitive = false, neg = false),
-    Datalog.Eq(Datalog.Var("out"), Datalog.Var("out_0"))
+  val magicIncMainGP = IR.Pattern(None, "main_f", Seq(IR.Param("out", IR.TScalaInt)), Seq(IR.Body(Seq(
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 0"))),
+    IR.Call("inc_bf", Seq(IR.Var("lit"), IR.Var("out_0")), transitive = false, neg = false),
+    IR.Eq(IR.Var("out"), IR.Var("out_0"))
   ))))
-  val magicInputIncFunGP = Datalog.Pattern(None, "input$inc_bf", Seq(Datalog.Param("n", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 0"))),
-    Datalog.Eq(Datalog.Var("lit"), Datalog.Var("n"))
+  val magicInputIncFunGP = IR.Pattern(None, "input$inc_bf", Seq(IR.Param("n", IR.TScalaInt)), Seq(IR.Body(Seq(
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 0"))),
+    IR.Eq(IR.Var("lit"), IR.Var("n"))
   ))))
   val magicIncModuleGP = gpmodule(magicIncFunGP, magicIncMainGP, magicInputIncFunGP)
 
 
 
-  val magicFactFunGP = Datalog.Pattern(None, "fact_bf", Seq(Datalog.Param("n", Datalog.TScalaInt), Datalog.Param("out", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Call("input$fact_bf", Seq(Datalog.Var("n")), transitive = false, neg = false),
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Computed(Datalog.Var("eval"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-      Datalog.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
-    Datalog.Eq(Datalog.Var("eval"), Datalog.True),
-    Datalog.Computed(Datalog.Var("lit_0"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Eq(Datalog.Var("out"), Datalog.Var("lit_0"))
-  )), Datalog.Body(Seq(
-    Datalog.Call("input$fact_bf", Seq(Datalog.Var("n")), transitive = false, neg = false),
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Computed(Datalog.Var("eval"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-      Datalog.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
-    Datalog.Eq(Datalog.Var("eval"), Datalog.False),
-    Datalog.Computed(Datalog.Var("lit_1"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Computed(Datalog.Var("eval_0"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit_1") -> Datalog.TScalaInt),
-      Datalog.TScalaInt, Scala(q"(left: Int, right: Int) => left - right"))),
-    Datalog.Call("fact_bf", Seq(Datalog.Var("eval_0"), Datalog.Var("out_0")), transitive = false, neg = false),
-    Datalog.Computed(Datalog.Var("eval_1"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("out_0") -> Datalog.TScalaInt),
-      Datalog.TScalaInt, Scala(q"(left: Int, right: Int) => left * right"))),
-    Datalog.Eq(Datalog.Var("out"), Datalog.Var("eval_1"))
+  val magicFactFunGP = IR.Pattern(None, "fact_bf", Seq(IR.Param("n", IR.TScalaInt), IR.Param("out", IR.TScalaInt)), Seq(IR.Body(Seq(
+    IR.Call("input$fact_bf", Seq(IR.Var("n")), transitive = false, neg = false),
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Computed(IR.Var("eval"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("lit") -> IR.TScalaInt),
+      IR.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
+    IR.Eq(IR.Var("eval"), IR.True),
+    IR.Computed(IR.Var("lit_0"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Eq(IR.Var("out"), IR.Var("lit_0"))
+  )), IR.Body(Seq(
+    IR.Call("input$fact_bf", Seq(IR.Var("n")), transitive = false, neg = false),
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Computed(IR.Var("eval"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("lit") -> IR.TScalaInt),
+      IR.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
+    IR.Eq(IR.Var("eval"), IR.False),
+    IR.Computed(IR.Var("lit_1"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Computed(IR.Var("eval_0"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("lit_1") -> IR.TScalaInt),
+      IR.TScalaInt, Scala(q"(left: Int, right: Int) => left - right"))),
+    IR.Call("fact_bf", Seq(IR.Var("eval_0"), IR.Var("out_0")), transitive = false, neg = false),
+    IR.Computed(IR.Var("eval_1"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("out_0") -> IR.TScalaInt),
+      IR.TScalaInt, Scala(q"(left: Int, right: Int) => left * right"))),
+    IR.Eq(IR.Var("out"), IR.Var("eval_1"))
   ))))
-  val magicFactMainGP = Datalog.Pattern(None, "main_f", Seq(Datalog.Param("out", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3"))),
-    Datalog.Call("fact_bf", Seq(Datalog.Var("lit"), Datalog.Var("out_0")), transitive = false, neg = false),
-    Datalog.Eq(Datalog.Var("out"), Datalog.Var("out_0"))
+  val magicFactMainGP = IR.Pattern(None, "main_f", Seq(IR.Param("out", IR.TScalaInt)), Seq(IR.Body(Seq(
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 3"))),
+    IR.Call("fact_bf", Seq(IR.Var("lit"), IR.Var("out_0")), transitive = false, neg = false),
+    IR.Eq(IR.Var("out"), IR.Var("out_0"))
   ))))
-  val magicInputFactFunGP = Datalog.Pattern(None, "input$fact_bf", Seq(Datalog.Param("n_0", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Call("input$fact_bf", Seq(Datalog.Var("n")), transitive = false, neg = false),
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Computed(Datalog.Var("eval"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-      Datalog.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
-    Datalog.Eq(Datalog.Var("eval"), Datalog.False),
-    Datalog.Computed(Datalog.Var("lit_1"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Computed(Datalog.Var("eval_0"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit_1") -> Datalog.TScalaInt),
-      Datalog.TScalaInt, Scala(q"(left: Int, right: Int) => left - right"))),
-    Datalog.Eq(Datalog.Var("eval_0"), Datalog.Var("n_0"))
-  )), Datalog.Body(Seq(
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3"))),
-    Datalog.Eq(Datalog.Var("lit"), Datalog.Var("n_0"))
+  val magicInputFactFunGP = IR.Pattern(None, "input$fact_bf", Seq(IR.Param("n_0", IR.TScalaInt)), Seq(IR.Body(Seq(
+    IR.Call("input$fact_bf", Seq(IR.Var("n")), transitive = false, neg = false),
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Computed(IR.Var("eval"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("lit") -> IR.TScalaInt),
+      IR.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
+    IR.Eq(IR.Var("eval"), IR.False),
+    IR.Computed(IR.Var("lit_1"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Computed(IR.Var("eval_0"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("lit_1") -> IR.TScalaInt),
+      IR.TScalaInt, Scala(q"(left: Int, right: Int) => left - right"))),
+    IR.Eq(IR.Var("eval_0"), IR.Var("n_0"))
+  )), IR.Body(Seq(
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 3"))),
+    IR.Eq(IR.Var("lit"), IR.Var("n_0"))
   ))))
   val magicFactModuleGP = gpmodule(magicFactFunGP, magicFactMainGP, magicInputFactFunGP)
 
 
-  val adornedFactFunGP = Datalog.Pattern(None, "fact_bf", Seq(Datalog.Param("n", Datalog.TScalaInt), Datalog.Param("out", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Computed(Datalog.Var("eval"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-      Datalog.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
-    Datalog.Eq(Datalog.Var("eval"), Datalog.True),
-    Datalog.Computed(Datalog.Var("lit_0"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Eq(Datalog.Var("out"), Datalog.Var("lit_0"))
-  )), Datalog.Body(Seq(
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Computed(Datalog.Var("eval"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-      Datalog.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
-    Datalog.Eq(Datalog.Var("eval"), Datalog.False),
-    Datalog.Computed(Datalog.Var("lit_1"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-    Datalog.Computed(Datalog.Var("eval_0"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit_1") -> Datalog.TScalaInt),
-      Datalog.TScalaInt, Scala(q"(left: Int, right: Int) => left - right"))),
-    Datalog.Call("fact_bf", Seq(Datalog.Var("eval_0"), Datalog.Var("out_0")), transitive = false, neg = false).addHint(MagicSetHints.Adornment(Seq(true, false))),
-    Datalog.Computed(Datalog.Var("eval_1"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("out_0") -> Datalog.TScalaInt),
-      Datalog.TScalaInt, Scala(q"(left: Int, right: Int) => left * right"))),
-    Datalog.Eq(Datalog.Var("out"), Datalog.Var("eval_1"))
+  val adornedFactFunGP = IR.Pattern(None, "fact_bf", Seq(IR.Param("n", IR.TScalaInt), IR.Param("out", IR.TScalaInt)), Seq(IR.Body(Seq(
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Computed(IR.Var("eval"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("lit") -> IR.TScalaInt),
+      IR.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
+    IR.Eq(IR.Var("eval"), IR.True),
+    IR.Computed(IR.Var("lit_0"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Eq(IR.Var("out"), IR.Var("lit_0"))
+  )), IR.Body(Seq(
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Computed(IR.Var("eval"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("lit") -> IR.TScalaInt),
+      IR.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
+    IR.Eq(IR.Var("eval"), IR.False),
+    IR.Computed(IR.Var("lit_1"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 1"))),
+    IR.Computed(IR.Var("eval_0"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("lit_1") -> IR.TScalaInt),
+      IR.TScalaInt, Scala(q"(left: Int, right: Int) => left - right"))),
+    IR.Call("fact_bf", Seq(IR.Var("eval_0"), IR.Var("out_0")), transitive = false, neg = false).addHint(MagicSetHints.Adornment(Seq(true, false))),
+    IR.Computed(IR.Var("eval_1"), IR.Evaluation(Seq(IR.Var("n") -> IR.TScalaInt, IR.Var("out_0") -> IR.TScalaInt),
+      IR.TScalaInt, Scala(q"(left: Int, right: Int) => left * right"))),
+    IR.Eq(IR.Var("out"), IR.Var("eval_1"))
   )))).addHint(MagicSetHints.Adornment(Seq(true, false)))
-  val adornedFactMainGP = Datalog.Pattern(None, "main_f", Seq(Datalog.Param("out", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3"))),
-    Datalog.Call("fact_bf", Seq(Datalog.Var("lit"), Datalog.Var("out_0")), transitive = false, neg = false).addHint(MagicSetHints.Adornment(Seq(true, false))),
-    Datalog.Eq(Datalog.Var("out"), Datalog.Var("out_0"))
+  val adornedFactMainGP = IR.Pattern(None, "main_f", Seq(IR.Param("out", IR.TScalaInt)), Seq(IR.Body(Seq(
+    IR.Computed(IR.Var("lit"), IR.Evaluation(Seq(), IR.TScalaInt, Scala(q"() => 3"))),
+    IR.Call("fact_bf", Seq(IR.Var("lit"), IR.Var("out_0")), transitive = false, neg = false).addHint(MagicSetHints.Adornment(Seq(true, false))),
+    IR.Eq(IR.Var("out"), IR.Var("out_0"))
   )))).addHint(MagicSetHints.Adornment(Seq(false)))
   val adornedFactModuleGP = gpmodule(adornedFactFunGP, adornedFactMainGP)
 
 
-  val tLink = Datalog.TNode("Link")
-  val fromTLink = Datalog.NamedLink(tLink, "from")
-  val toTLink = Datalog.NamedLink(tLink, "to")
-  val tNode = Datalog.TNode("Node")
+  val tLink = IR.TNode("Link")
+  val fromTLink = IR.NamedLink(tLink, "from")
+  val toTLink = IR.NamedLink(tLink, "to")
+  val tNode = IR.TNode("Node")
 
-  val reachableGP = Datalog.Pattern(None, "reachable", Seq(Datalog.Param("x", tNode), Datalog.Param("y", tNode)),
+  val reachableGP = IR.Pattern(None, "reachable", Seq(IR.Param("x", tNode), IR.Param("y", tNode)),
     Seq(
-      Datalog.Body(Seq(
-        Datalog.HasType(Datalog.Var("link"), tLink),
-        Datalog.Path(Datalog.Var("link"), tNode, fromTLink, Datalog.Var("x"), tNode),
-        Datalog.Path(Datalog.Var("link"), tNode, toTLink, Datalog.Var("y"), tNode)
+      IR.Body(Seq(
+        IR.HasType(IR.Var("link"), tLink),
+        IR.Path(IR.Var("link"), tNode, fromTLink, IR.Var("x"), tNode),
+        IR.Path(IR.Var("link"), tNode, toTLink, IR.Var("y"), tNode)
       )),
-      Datalog.Body(Seq(
-        Datalog.HasType(Datalog.Var("link"), tLink),
-        Datalog.Path(Datalog.Var("link"), tNode, fromTLink, Datalog.Var("x"), tNode),
-        Datalog.Path(Datalog.Var("link"), tNode, toTLink, Datalog.Var("z"), tNode),
-        Datalog.Call("reachable", Seq(Datalog.Var("z"), Datalog.Var("y")), transitive = false, neg = false)
+      IR.Body(Seq(
+        IR.HasType(IR.Var("link"), tLink),
+        IR.Path(IR.Var("link"), tNode, fromTLink, IR.Var("x"), tNode),
+        IR.Path(IR.Var("link"), tNode, toTLink, IR.Var("z"), tNode),
+        IR.Call("reachable", Seq(IR.Var("z"), IR.Var("y")), transitive = false, neg = false)
       )),
     )
   )
-  val nodeGP = Datalog.Pattern(None, "node", Seq(Datalog.Param("x", tNode)),
+  val nodeGP = IR.Pattern(None, "node", Seq(IR.Param("x", tNode)),
     Seq(
-      Datalog.Body(Seq(
-        Datalog.HasType(Datalog.Var("link"), tLink),
-        Datalog.Path(Datalog.Var("link"), tNode, fromTLink, Datalog.Var("x"), tNode),
+      IR.Body(Seq(
+        IR.HasType(IR.Var("link"), tLink),
+        IR.Path(IR.Var("link"), tNode, fromTLink, IR.Var("x"), tNode),
       )),
-      Datalog.Body(Seq(
-        Datalog.HasType(Datalog.Var("link"), tLink),
-        Datalog.Path(Datalog.Var("link"), tNode, toTLink, Datalog.Var("x"), tNode),
+      IR.Body(Seq(
+        IR.HasType(IR.Var("link"), tLink),
+        IR.Path(IR.Var("link"), tNode, toTLink, IR.Var("x"), tNode),
       )),
     )
   )
-  val unreachableGP = Datalog.Pattern(None, "unreachable", Seq(Datalog.Param("x", tNode), Datalog.Param("y", tNode)),
+  val unreachableGP = IR.Pattern(None, "unreachable", Seq(IR.Param("x", tNode), IR.Param("y", tNode)),
     Seq(
-      Datalog.Body(Seq(
-        Datalog.Call("node", Seq(Datalog.Var("x")), transitive = false, neg = false),
-        Datalog.Call("node", Seq(Datalog.Var("y")), transitive = false, neg = false),
-        Datalog.Call("reachable", Seq(Datalog.Var("x"), Datalog.Var("y")), transitive = false, neg = true),
+      IR.Body(Seq(
+        IR.Call("node", Seq(IR.Var("x")), transitive = false, neg = false),
+        IR.Call("node", Seq(IR.Var("y")), transitive = false, neg = false),
+        IR.Call("reachable", Seq(IR.Var("x"), IR.Var("y")), transitive = false, neg = true),
       ))
     )
   )
-  val unreachableMainGP = Datalog.Pattern(None, "main", Seq(Datalog.Param("x", tNode), Datalog.Param("y", tNode)),
+  val unreachableMainGP = IR.Pattern(None, "main", Seq(IR.Param("x", tNode), IR.Param("y", tNode)),
     Seq(
-      Datalog.Body(Seq(
-        Datalog.HasType(Datalog.Var("y"), tNode),
-        Datalog.Eq(Datalog.Var("y"), Datalog.Constant(Datalog.IntLiteral(0))), // this is only temporary
-        Datalog.Call("unreachable", Seq(Datalog.Var("x"), Datalog.Var("y")), transitive = false, neg = false),
+      IR.Body(Seq(
+        IR.HasType(IR.Var("y"), tNode),
+        IR.Eq(IR.Var("y"), IR.Constant(IR.IntLiteral(0))), // this is only temporary
+        IR.Call("unreachable", Seq(IR.Var("x"), IR.Var("y")), transitive = false, neg = false),
       ))
     )
   )
   unreachableMainGP.addHint(MagicSetHints.Main(Seq(false, false)))
   val unreachableModuleGP = gpmodule(unreachableGP, nodeGP, reachableGP, unreachableMainGP)
 
-  val adornedUnreachableModuleGP = Datalog.Module("Main", Seq(),
+  val adornedUnreachableModuleGP = IR.Module("Main", Seq(),
     Seq(
-      Datalog.Pattern(None, "reachable_bb", Seq(Datalog.Param("x", tNode), Datalog.Param("y", tNode)),
+      IR.Pattern(None, "reachable_bb", Seq(IR.Param("x", tNode), IR.Param("y", tNode)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.HasType(Datalog.Var("link"), tLink),
-            Datalog.Path(Datalog.Var("link"), tNode, fromTLink, Datalog.Var("x"), tNode),
-            Datalog.Path(Datalog.Var("link"), tNode, toTLink, Datalog.Var("y"), tNode)
+          IR.Body(Seq(
+            IR.HasType(IR.Var("link"), tLink),
+            IR.Path(IR.Var("link"), tNode, fromTLink, IR.Var("x"), tNode),
+            IR.Path(IR.Var("link"), tNode, toTLink, IR.Var("y"), tNode)
           )),
-          Datalog.Body(Seq(
-            Datalog.HasType(Datalog.Var("link"), tLink),
-            Datalog.Path(Datalog.Var("link"), tNode, fromTLink, Datalog.Var("x"), tNode),
-            Datalog.Path(Datalog.Var("link"), tNode, toTLink, Datalog.Var("z"), tNode),
-            Datalog.Call("reachable_bb", Seq(Datalog.Var("z"), Datalog.Var("y")), transitive = false, neg = false).addHint(MagicSetHints.Adornment(Seq(true, true)))
+          IR.Body(Seq(
+            IR.HasType(IR.Var("link"), tLink),
+            IR.Path(IR.Var("link"), tNode, fromTLink, IR.Var("x"), tNode),
+            IR.Path(IR.Var("link"), tNode, toTLink, IR.Var("z"), tNode),
+            IR.Call("reachable_bb", Seq(IR.Var("z"), IR.Var("y")), transitive = false, neg = false).addHint(MagicSetHints.Adornment(Seq(true, true)))
           )),
         )
       ).addHint(MagicSetHints.Adornment(Seq(true, true))),
-      Datalog.Pattern(None, "node_b", Seq(Datalog.Param("x", tNode)),
+      IR.Pattern(None, "node_b", Seq(IR.Param("x", tNode)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.HasType(Datalog.Var("link"), tLink),
-            Datalog.Path(Datalog.Var("link"), tNode, fromTLink, Datalog.Var("x"), tNode),
+          IR.Body(Seq(
+            IR.HasType(IR.Var("link"), tLink),
+            IR.Path(IR.Var("link"), tNode, fromTLink, IR.Var("x"), tNode),
           )),
-          Datalog.Body(Seq(
-            Datalog.HasType(Datalog.Var("link"), tLink),
-            Datalog.Path(Datalog.Var("link"), tNode, toTLink, Datalog.Var("x"), tNode),
+          IR.Body(Seq(
+            IR.HasType(IR.Var("link"), tLink),
+            IR.Path(IR.Var("link"), tNode, toTLink, IR.Var("x"), tNode),
           )),
         )
       ).addHint(MagicSetHints.Adornment(Seq(true))),
-      Datalog.Pattern(None, "node_f", Seq(Datalog.Param("x", tNode)),
+      IR.Pattern(None, "node_f", Seq(IR.Param("x", tNode)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.HasType(Datalog.Var("link"), tLink),
-            Datalog.Path(Datalog.Var("link"), tNode, fromTLink, Datalog.Var("x"), tNode),
+          IR.Body(Seq(
+            IR.HasType(IR.Var("link"), tLink),
+            IR.Path(IR.Var("link"), tNode, fromTLink, IR.Var("x"), tNode),
           )),
-          Datalog.Body(Seq(
-            Datalog.HasType(Datalog.Var("link"), tLink),
-            Datalog.Path(Datalog.Var("link"), tNode, toTLink, Datalog.Var("x"), tNode),
+          IR.Body(Seq(
+            IR.HasType(IR.Var("link"), tLink),
+            IR.Path(IR.Var("link"), tNode, toTLink, IR.Var("x"), tNode),
           )),
         )
       ).addHint(MagicSetHints.Adornment(Seq(false))),
-      Datalog.Pattern(None, "unreachable_fb", Seq(Datalog.Param("x", tNode), Datalog.Param("y", tNode)),
+      IR.Pattern(None, "unreachable_fb", Seq(IR.Param("x", tNode), IR.Param("y", tNode)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.Call("node_f", Seq(Datalog.Var("x")), transitive = false, neg = false),
-            Datalog.Call("node_b", Seq(Datalog.Var("y")), transitive = false, neg = false),
-            Datalog.Call("reachable_bb", Seq(Datalog.Var("x"), Datalog.Var("y")), transitive = false, neg = true).addHint(MagicSetHints.Adornment(Seq(true, true))),
+          IR.Body(Seq(
+            IR.Call("node_f", Seq(IR.Var("x")), transitive = false, neg = false),
+            IR.Call("node_b", Seq(IR.Var("y")), transitive = false, neg = false),
+            IR.Call("reachable_bb", Seq(IR.Var("x"), IR.Var("y")), transitive = false, neg = true).addHint(MagicSetHints.Adornment(Seq(true, true))),
           ))
         )
       ).addHint(MagicSetHints.Adornment(Seq(false, true))),
-      Datalog.Pattern(None, "main_ff", Seq(Datalog.Param("x", tNode), Datalog.Param("y", tNode)),
+      IR.Pattern(None, "main_ff", Seq(IR.Param("x", tNode), IR.Param("y", tNode)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.HasType(Datalog.Var("y"), tNode),
-            Datalog.Eq(Datalog.Var("y"), Datalog.Constant(Datalog.IntLiteral(0))), // this is only temporary
-            Datalog.Call("unreachable_fb", Seq(Datalog.Var("x"), Datalog.Var("y")), transitive = false, neg = false).addHint(MagicSetHints.Adornment(Seq(false, true))),
+          IR.Body(Seq(
+            IR.HasType(IR.Var("y"), tNode),
+            IR.Eq(IR.Var("y"), IR.Constant(IR.IntLiteral(0))), // this is only temporary
+            IR.Call("unreachable_fb", Seq(IR.Var("x"), IR.Var("y")), transitive = false, neg = false).addHint(MagicSetHints.Adornment(Seq(false, true))),
           ))
         )
       ).addHint(MagicSetHints.Adornment(Seq(false, false))),
     ),
     Seq())
 
-  val magicUnreachableModuleGP = Datalog.Module("Main", Seq(),
+  val magicUnreachableModuleGP = IR.Module("Main", Seq(),
     Seq(
-      Datalog.Pattern(None, "reachable_bb", Seq(Datalog.Param("x", tNode), Datalog.Param("y", tNode)),
+      IR.Pattern(None, "reachable_bb", Seq(IR.Param("x", tNode), IR.Param("y", tNode)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.Call("input$reachable_bb", Seq(Datalog.Var("x"), Datalog.Var("y")), transitive = false, neg = false),
-            Datalog.HasType(Datalog.Var("link"), tLink),
-            Datalog.Path(Datalog.Var("link"), tNode, fromTLink, Datalog.Var("x"), tNode),
-            Datalog.Path(Datalog.Var("link"), tNode, toTLink, Datalog.Var("y"), tNode)
+          IR.Body(Seq(
+            IR.Call("input$reachable_bb", Seq(IR.Var("x"), IR.Var("y")), transitive = false, neg = false),
+            IR.HasType(IR.Var("link"), tLink),
+            IR.Path(IR.Var("link"), tNode, fromTLink, IR.Var("x"), tNode),
+            IR.Path(IR.Var("link"), tNode, toTLink, IR.Var("y"), tNode)
           )),
-          Datalog.Body(Seq(
-            Datalog.Call("input$reachable_bb", Seq(Datalog.Var("x"), Datalog.Var("y")), transitive = false, neg = false),
-            Datalog.HasType(Datalog.Var("link"), tLink),
-            Datalog.Path(Datalog.Var("link"), tNode, fromTLink, Datalog.Var("x"), tNode),
-            Datalog.Path(Datalog.Var("link"), tNode, toTLink, Datalog.Var("z"), tNode),
-            Datalog.Call("reachable_bb", Seq(Datalog.Var("z"), Datalog.Var("y")), transitive = false, neg = false)
+          IR.Body(Seq(
+            IR.Call("input$reachable_bb", Seq(IR.Var("x"), IR.Var("y")), transitive = false, neg = false),
+            IR.HasType(IR.Var("link"), tLink),
+            IR.Path(IR.Var("link"), tNode, fromTLink, IR.Var("x"), tNode),
+            IR.Path(IR.Var("link"), tNode, toTLink, IR.Var("z"), tNode),
+            IR.Call("reachable_bb", Seq(IR.Var("z"), IR.Var("y")), transitive = false, neg = false)
           )),
         )
       ),
-      Datalog.Pattern(None, "node_b", Seq(Datalog.Param("x", tNode)),
+      IR.Pattern(None, "node_b", Seq(IR.Param("x", tNode)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.Call("input$node_b", Seq(Datalog.Var("x")), transitive = false, neg = false),
-            Datalog.HasType(Datalog.Var("link"), tLink),
-            Datalog.Path(Datalog.Var("link"), tNode, fromTLink, Datalog.Var("x"), tNode),
+          IR.Body(Seq(
+            IR.Call("input$node_b", Seq(IR.Var("x")), transitive = false, neg = false),
+            IR.HasType(IR.Var("link"), tLink),
+            IR.Path(IR.Var("link"), tNode, fromTLink, IR.Var("x"), tNode),
           )),
-          Datalog.Body(Seq(
-            Datalog.Call("input$node_b", Seq(Datalog.Var("x")), transitive = false, neg = false),
-            Datalog.HasType(Datalog.Var("link"), tLink),
-            Datalog.Path(Datalog.Var("link"), tNode, toTLink, Datalog.Var("x"), tNode),
+          IR.Body(Seq(
+            IR.Call("input$node_b", Seq(IR.Var("x")), transitive = false, neg = false),
+            IR.HasType(IR.Var("link"), tLink),
+            IR.Path(IR.Var("link"), tNode, toTLink, IR.Var("x"), tNode),
           )),
         )
       ),
-      Datalog.Pattern(None, "node_f", Seq(Datalog.Param("x", tNode)),
+      IR.Pattern(None, "node_f", Seq(IR.Param("x", tNode)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.HasType(Datalog.Var("link"), tLink),
-            Datalog.Path(Datalog.Var("link"), tNode, fromTLink, Datalog.Var("x"), tNode),
+          IR.Body(Seq(
+            IR.HasType(IR.Var("link"), tLink),
+            IR.Path(IR.Var("link"), tNode, fromTLink, IR.Var("x"), tNode),
           )),
-          Datalog.Body(Seq(
-            Datalog.HasType(Datalog.Var("link"), tLink),
-            Datalog.Path(Datalog.Var("link"), tNode, toTLink, Datalog.Var("x"), tNode),
+          IR.Body(Seq(
+            IR.HasType(IR.Var("link"), tLink),
+            IR.Path(IR.Var("link"), tNode, toTLink, IR.Var("x"), tNode),
           )),
         )
       ),
-      Datalog.Pattern(None, "unreachable_fb", Seq(Datalog.Param("x", tNode), Datalog.Param("y", tNode)),
+      IR.Pattern(None, "unreachable_fb", Seq(IR.Param("x", tNode), IR.Param("y", tNode)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.Call("input$unreachable_fb", Seq(Datalog.Var("y")), transitive = false, neg = false),
-            Datalog.Call("node_f", Seq(Datalog.Var("x")), transitive = false, neg = false),
-            Datalog.Call("node_b", Seq(Datalog.Var("y")), transitive = false, neg = false),
-            Datalog.Call("reachable_bb", Seq(Datalog.Var("x"), Datalog.Var("y")), transitive = false, neg = true),
+          IR.Body(Seq(
+            IR.Call("input$unreachable_fb", Seq(IR.Var("y")), transitive = false, neg = false),
+            IR.Call("node_f", Seq(IR.Var("x")), transitive = false, neg = false),
+            IR.Call("node_b", Seq(IR.Var("y")), transitive = false, neg = false),
+            IR.Call("reachable_bb", Seq(IR.Var("x"), IR.Var("y")), transitive = false, neg = true),
           ))
         )
       ),
-      Datalog.Pattern(None, "main_ff", Seq(Datalog.Param("x", tNode), Datalog.Param("y", tNode)),
+      IR.Pattern(None, "main_ff", Seq(IR.Param("x", tNode), IR.Param("y", tNode)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.HasType(Datalog.Var("y"), tNode),
-            Datalog.Eq(Datalog.Var("y"), Datalog.Constant(Datalog.IntLiteral(0))), // this is only temporary
-            Datalog.Call("unreachable_fb", Seq(Datalog.Var("x"), Datalog.Var("y")), transitive = false, neg = false),
+          IR.Body(Seq(
+            IR.HasType(IR.Var("y"), tNode),
+            IR.Eq(IR.Var("y"), IR.Constant(IR.IntLiteral(0))), // this is only temporary
+            IR.Call("unreachable_fb", Seq(IR.Var("x"), IR.Var("y")), transitive = false, neg = false),
           ))
         )
       ),
-      Datalog.Pattern(None, "input$unreachable_fb", Seq(Datalog.Param("y_0", tNode)),
+      IR.Pattern(None, "input$unreachable_fb", Seq(IR.Param("y_0", tNode)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.HasType(Datalog.Var("y"), tNode),
-            Datalog.Eq(Datalog.Var("y"), Datalog.Constant(Datalog.IntLiteral(0))), // this is only temporary
-            Datalog.Eq(Datalog.Var("y"), Datalog.Var("y_0"))
+          IR.Body(Seq(
+            IR.HasType(IR.Var("y"), tNode),
+            IR.Eq(IR.Var("y"), IR.Constant(IR.IntLiteral(0))), // this is only temporary
+            IR.Eq(IR.Var("y"), IR.Var("y_0"))
           ))
         )
       ),
-      Datalog.Pattern(None, "input$reachable_bb", Seq(Datalog.Param("x_0", tNode), Datalog.Param("y_0", tNode)),
+      IR.Pattern(None, "input$reachable_bb", Seq(IR.Param("x_0", tNode), IR.Param("y_0", tNode)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.Call("input$reachable_bb", Seq(Datalog.Var("x"), Datalog.Var("y")), transitive = false, neg = false),
-            Datalog.HasType(Datalog.Var("link"), tLink),
-            Datalog.Path(Datalog.Var("link"), tNode, fromTLink, Datalog.Var("x"), tNode),
-            Datalog.Path(Datalog.Var("link"), tNode, toTLink, Datalog.Var("z"), tNode),
-            Datalog.Eq(Datalog.Var("z"), Datalog.Var("x_0")),
-            Datalog.Eq(Datalog.Var("y"), Datalog.Var("y_0"))
+          IR.Body(Seq(
+            IR.Call("input$reachable_bb", Seq(IR.Var("x"), IR.Var("y")), transitive = false, neg = false),
+            IR.HasType(IR.Var("link"), tLink),
+            IR.Path(IR.Var("link"), tNode, fromTLink, IR.Var("x"), tNode),
+            IR.Path(IR.Var("link"), tNode, toTLink, IR.Var("z"), tNode),
+            IR.Eq(IR.Var("z"), IR.Var("x_0")),
+            IR.Eq(IR.Var("y"), IR.Var("y_0"))
           )),
-          Datalog.Body(Seq(
-            Datalog.Call("input$unreachable_fb", Seq(Datalog.Var("y")), transitive = false, neg = false),
-            Datalog.Call("node_f", Seq(Datalog.Var("x")), transitive = false, neg = false),
-            Datalog.Call("node_b", Seq(Datalog.Var("y")), transitive = false, neg = false),
-            Datalog.Eq(Datalog.Var("x"), Datalog.Var("x_0")),
-            Datalog.Eq(Datalog.Var("y"), Datalog.Var("y_0"))
+          IR.Body(Seq(
+            IR.Call("input$unreachable_fb", Seq(IR.Var("y")), transitive = false, neg = false),
+            IR.Call("node_f", Seq(IR.Var("x")), transitive = false, neg = false),
+            IR.Call("node_b", Seq(IR.Var("y")), transitive = false, neg = false),
+            IR.Eq(IR.Var("x"), IR.Var("x_0")),
+            IR.Eq(IR.Var("y"), IR.Var("y_0"))
           ))
         )
       ),
-      Datalog.Pattern(None, "input$node_b", Seq(Datalog.Param("x_0", tNode)),
+      IR.Pattern(None, "input$node_b", Seq(IR.Param("x_0", tNode)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.Call("input$unreachable_fb", Seq(Datalog.Var("y")), transitive = false, neg = false),
-            Datalog.Call("node_f", Seq(Datalog.Var("x")), transitive = false, neg = false),
-            Datalog.Eq(Datalog.Var("y"), Datalog.Var("x_0"))
+          IR.Body(Seq(
+            IR.Call("input$unreachable_fb", Seq(IR.Var("y")), transitive = false, neg = false),
+            IR.Call("node_f", Seq(IR.Var("x")), transitive = false, neg = false),
+            IR.Eq(IR.Var("y"), IR.Var("x_0"))
           ))
         )
       ),

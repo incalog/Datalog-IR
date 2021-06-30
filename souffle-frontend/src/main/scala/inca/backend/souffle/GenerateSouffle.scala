@@ -1,7 +1,7 @@
 package inca.backend.souffle
 
 import inca.backend.hints.DataHints.DataType
-import inca.backend.ir.Datalog
+import inca.backend.ir.IR
 import inca.frontend.functional
 import inca.frontend.functional.core.{DataConstructor, DataDef, TData}
 import inca.frontend.souffle.Syntax._
@@ -10,7 +10,7 @@ class GenerateSouffle {
 
   private var extensionalRelations: Set[String] = Set()
 
-  def compileModule(module: Datalog.Module, datas: Seq[DataDef]): String = {
+  def compileModule(module: IR.Module, datas: Seq[DataDef]): String = {
     val types = datas.map(compileDataDef)
     val rels = module.pats.flatMap(compilePattern)
     val inputRels = generateInputRelations(extensionalRelations)
@@ -41,7 +41,7 @@ class GenerateSouffle {
     case _ => throw new IllegalArgumentException(ty.toString)
   }
 
-  def compilePattern(pat: Datalog.Pattern): Seq[SouffleContent] = {
+  def compilePattern(pat: IR.Pattern): Seq[SouffleContent] = {
     if (pat.hasHint(DataType.key))
       return Seq()
 
@@ -49,12 +49,12 @@ class GenerateSouffle {
     Seq(decl)
   }
 
-  def compileType(ty: Datalog.Type): Type = ty match {
-    case Datalog.TData(name) => DeclaredType(name)
-    case Datalog.TLiteral.Bool => UnsignedType
-    case Datalog.TLiteral.Int => NumberType
-    case Datalog.TLiteral.Double => FloatType
-    case Datalog.TLiteral.String => SymbolType
+  def compileType(ty: IR.Type): Type = ty match {
+    case IR.TData(name) => DeclaredType(name)
+    case IR.TLiteral.Bool => UnsignedType
+    case IR.TLiteral.Int => NumberType
+    case IR.TLiteral.Double => FloatType
+    case IR.TLiteral.String => SymbolType
     case _ => throw new IllegalArgumentException(ty.toString)
   }
 

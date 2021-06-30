@@ -1,7 +1,7 @@
 package inca.backend.analyze
 
 import inca.backend.analyze.DependencyGraph.NegativeCall
-import inca.backend.ir.Datalog._
+import inca.backend.ir.IR._
 
 trait AnalysisException extends Exception
 

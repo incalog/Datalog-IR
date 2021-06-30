@@ -1,6 +1,6 @@
 package inca.backend.transform
 
-import inca.backend.ir.Datalog.{Body, Pattern}
+import inca.backend.ir.IR.{Body, Pattern}
 
 class FilterBodyTransformer(predicate: Body => Boolean) extends Transformer {
   override def transformBody(body: Body, pat: Pattern): Seq[Body] =

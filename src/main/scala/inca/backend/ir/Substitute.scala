@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.Datalog._
+import inca.backend.ir.IR._
 
 class Substitute(subst: Var => Term) {
 

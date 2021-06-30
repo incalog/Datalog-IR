@@ -1,7 +1,7 @@
 package inca.backend.ir
 
 
-import inca.backend.ir.Datalog._
+import inca.backend.ir.IR._
 import inca.runtime.Query
 import inca.runtime.aggregate.{AggregatorAssocComm, AggregatorAssocCommInv}
 import inca.runtime.context.DataModel
@@ -116,7 +116,7 @@ object GeneratePSystem {
     val gensym = new Gensym(allVars)
 
     val vis =
-      if (pat.vis.contains(Datalog.Private))
+      if (pat.vis.contains(IR.Private))
         q"PVisibility.PRIVATE"
       else
         q"PVisibility.PUBLIC"
@@ -201,7 +201,7 @@ object GeneratePSystem {
 
 
 
-  private def genInputKeyAndType(typ: Datalog.Type): Option[(meta.Term, meta.Term)] = typ match {
+  private def genInputKeyAndType(typ: IR.Type): Option[(meta.Term, meta.Term)] = typ match {
     case TAny => None
     case _: TScala => None
     case _: TData => None
@@ -313,33 +313,33 @@ object GeneratePSystem {
 
     case NoPath(t, ty, link, termIsSource) =>
       val nodeKey = q"$oNodeTypeKey(${genNodeType(ty)})"
-      val linkKey = genLinkKey(link, Datalog.TAnyLinked)
+      val linkKey = genLinkKey(link, IR.TAnyLinked)
       val key = q"$oNotLinkNodeKey($nodeKey, $linkKey, $termIsSource)"
       Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${compileTerm(t)}), $key)")
 
     case Computed(lhs, computation) => compileComputation(lhs, computation)
   }
 
-  private def genLinkKey(link: Link, targetType: Datalog.Type): meta.Term = link match {
-    case Datalog.ParentLink => oParentKey
-    case Datalog.NextLink => oLinkListNextKey
-    case Datalog.SizeLink => oSizeKey
-    case Datalog.NamedLink(TNode(name), field) => targetType match {
+  private def genLinkKey(link: Link, targetType: IR.Type): meta.Term = link match {
+    case IR.ParentLink => oParentKey
+    case IR.NextLink => oLinkListNextKey
+    case IR.SizeLink => oSizeKey
+    case IR.NamedLink(TNode(name), field) => targetType match {
       case TAny => throw new IllegalArgumentException(s"Cannot resolve links to type $targetType")
-      case _: Datalog.TLinked =>
+      case _: IR.TLinked =>
         q"$oLinkNodeKey(($name, $field))"
-      case _: Datalog.TLiteral =>
+      case _: IR.TLiteral =>
         q"$oLinkPrimitiveKey(($name, $field))"
     }
 
   }
 
-  private def compileTerm(v: Datalog.Term): meta.Term = v match {
+  private def compileTerm(v: IR.Term): meta.Term = v match {
     case Var(name) => Term.Name(s"$VARPREFIX$name")
     case Constant(lit) => Term.Name(s"$LITPREFIX${genLiteralVarName(lit)}")
   }
 
-  private def compileComputation(lhs: Datalog.Term, computation: Computation)(implicit env: RuleEnvironment): Seq[Stat] = computation match {
+  private def compileComputation(lhs: IR.Term, computation: Computation)(implicit env: RuleEnvironment): Seq[Stat] = computation match {
     case CountAggregation(patName, args) =>
       val result = compileTerm(lhs)
       val module = env.getOrElse(patName, throw new IllegalArgumentException(s"Unknown rule $patName"))
@@ -385,7 +385,7 @@ object GeneratePSystem {
       Seq(q"new $tAggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)")
   }
 
-  private def genNodeType(typ: Datalog.Type): meta.Term = typ match {
+  private def genNodeType(typ: IR.Type): meta.Term = typ match {
     case TAnyLinked => oAnyType
     case TNode(name) => q"$oNodeType($name)"
     case TList(ty) => q"$oListType(${genNodeType(ty)})"

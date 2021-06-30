@@ -2,7 +2,7 @@ package inca.backend.analyze
 
 import inca.backend.analyze.DependencyGraph._
 import inca.backend.hints.DataHints.{ConstructorKey, DataTypeKey, SelectorKey}
-import inca.backend.ir.Datalog.{Call, Computed, CountAggregation, CustomAggregation, Module, Name, Pattern}
+import inca.backend.ir.IR.{Call, Computed, CountAggregation, CustomAggregation, Module, Name, Pattern}
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
 
 object DependencyGraph {

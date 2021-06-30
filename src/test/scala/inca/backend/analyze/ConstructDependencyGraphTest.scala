@@ -1,7 +1,7 @@
 package inca.backend.analyze
 
 import inca.backend.analyze.DependencyGraph.PositiveCall
-import inca.backend.ir.Datalog._
+import inca.backend.ir.IR._
 import org.scalatest.flatspec.AnyFlatSpec
 
 class ConstructDependencyGraphTest extends AnyFlatSpec {

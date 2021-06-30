@@ -1,9 +1,9 @@
 package inca.backend.ir
 
-import inca.backend.ir.Datalog.{Atom, Body, Call, Comparator, Compare, Computation, Computed, Constant, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
+import inca.backend.ir.IR.{Atom, Body, Call, Comparator, Compare, Computation, Computed, Constant, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
 import truechange.JavaLitType
 
-object DatalogPrinter {
+object IRPrinter {
 
   def prettyModule(module: Module)(implicit verbose: Boolean): String =
     "module " +
@@ -80,20 +80,20 @@ object DatalogPrinter {
   }
 
   def prettyLink(link: Link)(implicit verbose: Boolean): String = link match {
-    case Datalog.ParentLink => "parent"
-    case Datalog.NextLink => "next"
-    case Datalog.SizeLink => "size"
+    case IR.ParentLink => "parent"
+    case IR.NextLink => "next"
+    case IR.SizeLink => "size"
     case NamedLink(node, field) => s"${prettyType(node)}.$field"
   }
 
   def prettyTerm(value: Term)(implicit verbose: Boolean): String = value match {
     case Var(name) => name
     case Constant(lit) => lit match {
-      case Datalog.IntLiteral(v) => v.toString
-      case Datalog.LongLiteral(v) => v.toString
-      case Datalog.DoubleLiteral(v) => v.toString
-      case Datalog.StringLiteral(v) => "\"" + v + "\""
-      case Datalog.BooleanLiteral(v) => v.toString
+      case IR.IntLiteral(v) => v.toString
+      case IR.LongLiteral(v) => v.toString
+      case IR.DoubleLiteral(v) => v.toString
+      case IR.StringLiteral(v) => "\"" + v + "\""
+      case IR.BooleanLiteral(v) => v.toString
     }
   }
 
@@ -103,9 +103,9 @@ object DatalogPrinter {
   }
 
   def prettyComputation(lhs: Term, computation: Computation)(implicit verbose: Boolean): String = computation match {
-    case Datalog.CountAggregation(patName, args) =>
+    case IR.CountAggregation(patName, args) =>
       s"${prettyTerm(lhs)} = count $patName(${args.map(prettyTerm).mkString(",")})"
-    case Datalog.Evaluation(args, returnType, code) =>
+    case IR.Evaluation(args, returnType, code) =>
       val indented = if (verbose) {
         s"${code.syntax.replace("\n", "\n\t\t")}: ${prettyType(returnType)}"
       } else {
@@ -114,7 +114,7 @@ object DatalogPrinter {
       }
       val argsS = args.map(a => prettyTerm(a._1)).mkString(", ")
       s"${prettyTerm(lhs)} = `$indented`($argsS)"
-    case Datalog.CustomAggregation(typ, desc, agg, patName, args, aggregatedColumn) =>
+    case IR.CustomAggregation(typ, desc, agg, patName, args, aggregatedColumn) =>
       val sargs = args.map(prettyTerm).updated(aggregatedColumn, "#").mkString(", ")
       s"${prettyTerm(lhs)} = aggregate $patName($sargs):$typ with ${desc.getOrElse(agg.toString)}"
   }

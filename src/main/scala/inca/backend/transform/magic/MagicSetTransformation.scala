@@ -3,7 +3,7 @@ package inca.backend.transform.magic
 import inca.backend.hints.MagicSetHints.{InputCall, InputCallKey}
 import inca.backend.hints.{Hints, MagicSetHints}
 import inca.backend.ir.CollectVars
-import inca.backend.ir.Datalog._
+import inca.backend.ir.IR._
 import inca.backend.transform.{FilterBodyTransformer, Transformation, Transformer}
 import inca.runtime.context.DataModel
 import inca.util.Gensym

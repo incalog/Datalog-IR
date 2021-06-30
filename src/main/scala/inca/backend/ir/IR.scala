@@ -6,7 +6,7 @@ import truechange.{JavaLitType, LitType}
 
 import scala.meta.quasiquotes._
 
-object Datalog {
+object IR {
   case object BodyMustFail extends Exception
   def throwBodyMustFail(): Nothing = throw BodyMustFail
 

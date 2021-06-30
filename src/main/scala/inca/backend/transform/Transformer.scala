@@ -1,6 +1,6 @@
 package inca.backend.transform
 
-import inca.backend.ir.Datalog._
+import inca.backend.ir.IR._
 
 trait Transformer {
 

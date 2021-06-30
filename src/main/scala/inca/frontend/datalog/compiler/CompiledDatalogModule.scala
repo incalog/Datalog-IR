@@ -1,7 +1,7 @@
 package inca.frontend.datalog.compiler
 
-import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.Name
+import inca.backend.ir.IR
+import inca.backend.ir.IR.Name
 import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
 import inca.frontend.datalog.lowering._
 import inca.frontend.datalog.syntax.{Module, Parser}
@@ -39,7 +39,7 @@ case class CompiledDatalogModule(source: Module, options: DatalogOptions) extend
     source
   }
 
-  lazy val ir: Datalog.Module = {
+  lazy val ir: IR.Module = {
     val module = new GenerateIR(typed).transModule()
     if (CompilerFlags.DEBUGMODE) {
       println(s"Intermediate Representation")

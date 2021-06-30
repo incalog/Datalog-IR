@@ -1,8 +1,8 @@
 package inca.backend.optimize
 
 import inca.backend.hints.MagicSetHints.MainKey
-import inca.backend.ir.Datalog._
-import inca.backend.ir.{CollectVars, Datalog, Substitute}
+import inca.backend.ir.IR._
+import inca.backend.ir.{CollectVars, IR, Substitute}
 import inca.runtime.context.DataModel
 import inca.util.Gensym
 
@@ -20,7 +20,7 @@ object InlineSimpleRelations extends Optimization {
       inline
     }
 
-    override def optimizeModule(module: Datalog.Module): Datalog.Module = {
+    override def optimizeModule(module: IR.Module): IR.Module = {
       var pats = module.pats
       var inlined: Set[Name] = Set()
       retainInlined = Set()

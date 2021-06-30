@@ -123,11 +123,11 @@ class GeneratePSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConst
   }
 
   test("unbounded literal parameter determined by eval") {
-    val module = Datalog.Module("test_eval", Seq(),
-      Seq(Datalog.Pattern(None, "intToString", Seq(Datalog.Param("exp", Datalog.TNode(Exp.intTag)), Datalog.Param("str", Datalog.TScalaString)),
-        Seq(Datalog.Body(Seq(
-          Datalog.Path(Datalog.Var("exp"), Datalog.TNode(Exp.intTag), Datalog.NamedLink(Datalog.TNode(Exp.intTag), "value"), Datalog.Var("value"), Datalog.TLiteral.Int),
-          Datalog.Computed(Datalog.Var("str"), Datalog.Evaluation(Seq((Datalog.Var("value"), Datalog.TLiteral.Int)), Datalog.TScalaString, Scala(q"(value: Int) => value.toString"))))
+    val module = IR.Module("test_eval", Seq(),
+      Seq(IR.Pattern(None, "intToString", Seq(IR.Param("exp", IR.TNode(Exp.intTag)), IR.Param("str", IR.TScalaString)),
+        Seq(IR.Body(Seq(
+          IR.Path(IR.Var("exp"), IR.TNode(Exp.intTag), IR.NamedLink(IR.TNode(Exp.intTag), "value"), IR.Var("value"), IR.TLiteral.Int),
+          IR.Computed(IR.Var("str"), IR.Evaluation(Seq((IR.Var("value"), IR.TLiteral.Int)), IR.TScalaString, Scala(q"(value: Int) => value.toString"))))
         )))), Seq())
     assertMatch(module, "intToString", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
@@ -135,12 +135,12 @@ class GeneratePSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConst
   }
 
   test("unbounded argument of second eval") {
-    val module = Datalog.Module("test_eval", Seq(),
-      Seq(Datalog.Pattern(None, "intToString", Seq(Datalog.Param("exp", Datalog.TNode(Exp.intTag)), Datalog.Param("str2", Datalog.TScalaString)),
-        Seq(Datalog.Body(Seq(
-          Datalog.Path(Datalog.Var("exp"), Datalog.TNode(Exp.intTag), Datalog.NamedLink(Datalog.TNode(Exp.intTag), "value"), Datalog.Var("value"), Datalog.TLiteral.Int),
-          Datalog.Computed(Datalog.Var("str"), Datalog.Evaluation(Seq((Datalog.Var("value"), Datalog.TLiteral.Int)), Datalog.TScalaString, Scala(q"(value: Int) => value.toString"))),
-          Datalog.Computed(Datalog.Var("str2"), Datalog.Evaluation(Seq((Datalog.Var("str"), Datalog.TScalaString)), Datalog.TScalaString, Scala(q"""(str: String) => str + "_appended" """))))
+    val module = IR.Module("test_eval", Seq(),
+      Seq(IR.Pattern(None, "intToString", Seq(IR.Param("exp", IR.TNode(Exp.intTag)), IR.Param("str2", IR.TScalaString)),
+        Seq(IR.Body(Seq(
+          IR.Path(IR.Var("exp"), IR.TNode(Exp.intTag), IR.NamedLink(IR.TNode(Exp.intTag), "value"), IR.Var("value"), IR.TLiteral.Int),
+          IR.Computed(IR.Var("str"), IR.Evaluation(Seq((IR.Var("value"), IR.TLiteral.Int)), IR.TScalaString, Scala(q"(value: Int) => value.toString"))),
+          IR.Computed(IR.Var("str2"), IR.Evaluation(Seq((IR.Var("str"), IR.TScalaString)), IR.TScalaString, Scala(q"""(str: String) => str + "_appended" """))))
         )))), Seq())
     assertMatch(module, "intToString", testInputNumericAddition) { matcher =>
 //      println(matcher.getAllMatches)

@@ -2,7 +2,7 @@ package inca.backend.transform.magic
 
 import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Collect
-import inca.backend.ir.Datalog._
+import inca.backend.ir.IR._
 import inca.backend.transform.{Transformation, Transformer}
 import inca.runtime.context.DataModel
 

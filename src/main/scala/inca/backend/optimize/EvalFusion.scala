@@ -1,6 +1,6 @@
 package inca.backend.optimize
-import inca.backend.ir.Datalog.{Evaluation, Term, Type, Var}
-import inca.backend.ir.{CollectVars, Datalog}
+import inca.backend.ir.IR.{Evaluation, Term, Type, Var}
+import inca.backend.ir.{CollectVars, IR}
 import inca.runtime.context.DataModel
 import inca.util.{Gensym, Scala}
 
@@ -12,10 +12,10 @@ object EvalFusion extends Optimization {
     private var evalTerms: Map[Var, Evaluation] = Map()
     private val gensym: Gensym = new Gensym(Iterable.empty)
 
-    override def optimizeBody(body: Datalog.Body, pat: Datalog.Pattern): Seq[Datalog.Body] = {
+    override def optimizeBody(body: IR.Body, pat: IR.Pattern): Seq[IR.Body] = {
       val varCount = MultiSet() ++ CollectVars.transBody(body) ++ pat.params.map(_.name)
       evalTerms = body.atoms.flatMap {
-        case Datalog.Computed(v: Var, eval: Evaluation) =>
+        case IR.Computed(v: Var, eval: Evaluation) =>
           if (varCount.get(v.name) == 2) {
             // v is computed here and read only once => do fusion for v
             Some(v -> eval)
@@ -30,8 +30,8 @@ object EvalFusion extends Optimization {
       }
     }
 
-    override def optimizeAtom(atom: Datalog.Atom): Seq[Datalog.Atom] = atom match {
-      case Datalog.Computed(lhs, Evaluation(args, ty, fun)) =>
+    override def optimizeAtom(atom: IR.Atom): Seq[IR.Atom] = atom match {
+      case IR.Computed(lhs, Evaluation(args, ty, fun)) =>
         val newArgs = ListBuffer[(Term, Type)]()
         val newParams = ListBuffer[meta.Term.Param]()
         var currentBody = fun.tree.body
@@ -56,7 +56,7 @@ object EvalFusion extends Optimization {
           case v: Var if evalTerms.contains(v) => evalTerms += v -> eval
           case _ =>
         }
-        Seq(Datalog.Computed(lhs, eval).withHints(atom))
+        Seq(IR.Computed(lhs, eval).withHints(atom))
       case _ => super.optimizeAtom(atom)
     }
   }

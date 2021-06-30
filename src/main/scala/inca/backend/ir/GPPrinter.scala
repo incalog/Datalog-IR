@@ -1,6 +1,6 @@
 package inca.backend.ir
 
-import inca.backend.ir.Datalog.{Atom, Body, Call, Comparator, Compare, Computation, Computed, Constant, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
+import inca.backend.ir.IR.{Atom, Body, Call, Comparator, Compare, Computation, Computed, Constant, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
 import inca.backend.optimize.EvalFusion
 import truechange.JavaLitType
 
@@ -68,20 +68,20 @@ object GPPrinter {
   }
 
   def prettyLink(link: Link): String = link match {
-    case Datalog.ParentLink => "parent"
-    case Datalog.NextLink => "next"
-    case Datalog.SizeLink => "size"
+    case IR.ParentLink => "parent"
+    case IR.NextLink => "next"
+    case IR.SizeLink => "size"
     case NamedLink(node, field) => s"${prettyType(node)}.$field"
   }
 
   def prettyTerm(value: Term): String = value match {
     case Var(name) => name
     case Constant(lit) => lit match {
-      case Datalog.IntLiteral(v) => v.toString
-      case Datalog.LongLiteral(v) => v.toString
-      case Datalog.DoubleLiteral(v) => v.toString
-      case Datalog.StringLiteral(v) => "\"" + v + "\""
-      case Datalog.BooleanLiteral(v) => v.toString
+      case IR.IntLiteral(v) => v.toString
+      case IR.LongLiteral(v) => v.toString
+      case IR.DoubleLiteral(v) => v.toString
+      case IR.StringLiteral(v) => "\"" + v + "\""
+      case IR.BooleanLiteral(v) => v.toString
     }
   }
 
@@ -91,9 +91,9 @@ object GPPrinter {
   }
 
   def prettyComputation(lhs: Term, computation: Computation): String = computation match {
-    case Datalog.CountAggregation(patName, args) =>
+    case IR.CountAggregation(patName, args) =>
       s"${prettyTerm(lhs)} == count $patName(${args.map(prettyTerm).mkString(",")})"
-    case Datalog.Evaluation(args, returnType, code) =>
+    case IR.Evaluation(args, returnType, code) =>
       if (args.forall(_._1.isInstanceOf[Var])) {
         val params = code.tree.params.map(_.name.value)
         val scalaArgs = args.map(a => meta.Term.Name(a._1.asInstanceOf[Var].name))
@@ -104,7 +104,7 @@ object GPPrinter {
         val argsS = args.map(a => prettyTerm(a._1)).mkString(", ")
         s"${prettyTerm(lhs)} == `$codeS`($argsS)"
       }
-    case Datalog.CustomAggregation(typ, desc, agg, patName, args, aggregatedColumn) =>
+    case IR.CustomAggregation(typ, desc, agg, patName, args, aggregatedColumn) =>
       val sargs = args.map(prettyTerm).updated(aggregatedColumn, "#").mkString(", ")
       s"${prettyTerm(lhs)} == aggregate $patName($sargs):$typ with ${desc.getOrElse(agg.toString)}"
   }

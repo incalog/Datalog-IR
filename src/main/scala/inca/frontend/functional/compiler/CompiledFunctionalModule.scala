@@ -1,13 +1,18 @@
 package inca.frontend.functional.compiler
 
-import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.Name
+import inca.backend.ir.IR
+import inca.backend.ir.IR.Name
 import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
 import inca.frontend.functional.core.Module
-import inca.frontend.functional.lowering.{Defunctionalize, GenerateDataModel, GenerateDatalog}
+import inca.frontend.functional.lowering.{Defunctionalize, GenerateDataModel, GenerateIR}
+import inca.frontend.functional.parser.Parser
 import inca.frontend.functional.typechecker.Typechecker
 import inca.runtime.context.DataModel
 
+object CompiledFunctionalModule {
+  def apply(source: String, options: FunctionalOptions): CompiledFunctionalModule =
+    CompiledFunctionalModule(Parser.parse(source), options)
+}
 case class CompiledFunctionalModule(fun: Module, options: FunctionalOptions) extends CompiledModule {
 
   override def name: Name = fun.name.name
@@ -37,8 +42,8 @@ case class CompiledFunctionalModule(fun: Module, options: FunctionalOptions) ext
     module
   }
 
-  lazy val ir: Datalog.Module = {
-    val module = new GenerateDatalog(coreModule).transModule()
+  lazy val ir: IR.Module = {
+    val module = new GenerateIR(coreModule).transModule()
     if (CompilerFlags.DEBUGMODE) {
       println(s"Intermediate Representation")
       println(module)

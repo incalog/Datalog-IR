@@ -1,7 +1,7 @@
 package inca.compiler
 
 import inca.backend.analyze.StratificationAnalysis
-import inca.backend.ir.{Datalog, GeneratePSystem, PSystem}
+import inca.backend.ir.{GeneratePSystem, IR, PSystem}
 import inca.runtime.context.DataModel
 import inca.util.Scala
 import inca.util.TupleOps.transClosure
@@ -11,24 +11,24 @@ import scala.collection.mutable.ListBuffer
 
 trait CompiledModule {
   val options: Options
-  def name: Datalog.Name
+  def name: IR.Name
   def sourceLocation: SourceLocation
 
-  def ir: Datalog.Module
+  def ir: IR.Module
   def dataModel: DataModel
 
-  lazy val patternDependencies: MultiDict[Datalog.Name, Datalog.Name] = {
-    var deps = MultiDict[Datalog.Name, Datalog.Name]()
+  lazy val patternDependencies: MultiDict[IR.Name, IR.Name] = {
+    var deps = MultiDict[IR.Name, IR.Name]()
     for (pat <- ir.pats;
          body <- pat.bodies;
          atom <- body.atoms) atom match {
-      case Datalog.Call(trg, _, _, _) => deps += pat.name -> trg
+      case IR.Call(trg, _, _, _) => deps += pat.name -> trg
       case _ => // nothing
     }
     deps
   }
 
-  lazy val patternDependenciesTrans: MultiDict[Datalog.Name, Datalog.Name] = transClosure(patternDependencies)
+  lazy val patternDependenciesTrans: MultiDict[IR.Name, IR.Name] = transClosure(patternDependencies)
 
   def printStatistics(): Unit = {
     val pats = optimized.pats.filter(!_.name.contains("oalesced"))
@@ -52,7 +52,7 @@ trait CompiledModule {
       throw CompiledModule.Failed(this, es)
   }
 
-  lazy val transformed: Datalog.Module = {
+  lazy val transformed: IR.Module = {
     var module = ir
     for (trans <- options.transformations) {
       module = trans.transformer(dataModel).transformModule(module)
@@ -64,12 +64,12 @@ trait CompiledModule {
     module
   }
 
-  lazy val analyzed: Datalog.Module = {
+  lazy val analyzed: IR.Module = {
     StratificationAnalysis.analyze(transformed)
     transformed
   }
 
-  lazy val optimized: Datalog.Module = {
+  lazy val optimized: IR.Module = {
     var module = analyzed
     for (op <- options.optimizations) {
       module = op.optimizer(dataModel).optimizeModule(module)

@@ -1,7 +1,7 @@
 package inca.frontend.souffle.lowering
 
 import inca.backend.hints.MagicSetHints
-import inca.backend.ir.Datalog._
+import inca.backend.ir.IR._
 import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.Syntax.{Type => _, _}
