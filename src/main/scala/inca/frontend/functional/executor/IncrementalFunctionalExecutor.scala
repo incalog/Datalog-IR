@@ -322,7 +322,7 @@ object IncrementalFunctionalExecutor {
       engine.delayUpdatePropagation { () => feed.processEditScript(edits) }
       val endQuery = System.nanoTime()
 
-      // println(s"Tuples in $main: ${mainMatcher.getAllMatches().size()}")
+      println(s"Tuples in $main: ${mainMatcher.getAllMatches().size()}")
       (-1, endQuery - startQuery, -1)
     }
 
