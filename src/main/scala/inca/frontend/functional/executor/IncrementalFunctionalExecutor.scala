@@ -207,7 +207,7 @@ import inca.runtime.{EnginePool, Query}
 import inca.util.Scala.ScalaCompiler
 import org.eclipse.viatra.query.runtime.api.{AdvancedViatraQueryEngine, IMatchUpdateListener}
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
-import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
+import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import truechange.EditScript
 import truediff.Diffable
 
@@ -396,8 +396,8 @@ object IncrementalFunctionalExecutor {
 
   def loadFunction(compiled: CompiledModule): Loaded = {
     val scope = new QueryScope(compiled.dataModel)
-    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-//    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, DRedReteBackendFactory.INSTANCE)
+//    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, DRedReteBackendFactory.INSTANCE)
     Loaded(engine, feed, compiled)
   }
 

@@ -1,12 +1,16 @@
 package inca.frontend.functional.integration
 
 import inca.examples.functional.ControlDataFlow
+import inca.frontend.functional.executor.IncrementalFunctionalExecutor
 import inca.frontend.functional.executor.IncrementalFunctionalExecutor._
-import inca.runtime.EnginePool
+import inca.runtime.{EnginePool, Query}
+import org.eclipse.viatra.query.runtime.api.IMatchUpdateListener
 import org.scalatest.funsuite.AnyFunSuite
 
+import scala.collection.mutable.ListBuffer
+
 class IncrementalDataflowAnalysisTest extends AnyFunSuite {
-  val bound = 10
+  val bound = 5
   val default = 1000
   // TODO fix slow update time tests
   test("Change rhs of assignment within loop") {
@@ -43,32 +47,36 @@ class IncrementalDataflowAnalysisTest extends AnyFunSuite {
   def testIncrementalRun(original: meta.Term, changed: meta.Term): Unit = {
     val compiled = compileFunction(ControlDataFlow.ParametricIntValuesModule(bound, default))
     val fun = loadFunction(compiled)
-//    println(fun.compiled.psystemSource)
+//    println(fun.compiled.optimized)
 
-//    val changes: ListBuffer[(Query.Match, Boolean)] = ListBuffer()
-//    fun.engine.addMatchUpdateListener(fun.engine.getMatcher(compiled.psystemModule.patterns("VNum")()), new IMatchUpdateListener[Query.Match] {
-//      override def notifyAppearance(mtch: Query.Match): Unit = changes += ((mtch, true))
-//      override def notifyDisappearance(mtch: Query.Match): Unit = changes += ((mtch, false))
-//    }, false)
+    val changes: ListBuffer[(Query.Match, Boolean)] = ListBuffer()
+    for (pat <- Seq("VNum", "un$_VNum", "input$aeval", "aeval", "input$add"))
+      fun.engine.addMatchUpdateListener(fun.engine.getMatcher(compiled.psystemModule.patterns(pat)()), new IMatchUpdateListener[Query.Match] {
+        override def notifyAppearance(mtch: Query.Match): Unit = changes += ((mtch, true))
+        override def notifyDisappearance(mtch: Query.Match): Unit = changes += ((mtch, false))
+      }, false)
 
     val (edits, tuple) = fun.input(original)
-    val (load, insert, delete, m0) = fun.measureInitial("final_var", edits, tuple, true)
-    println(s"Initial ${load / 1000 / 1000}, ${insert / 1000 / 1000}, ${delete / 1000 / 1000}")
-//    IncrementalFunctionalExecutor.printChanges(changes)
-//    changes.clear()
+    val (load, insert, delete, m0) = fun.measureInitial("final_var", edits, tuple)
+    println(s"Initial ${load / 1000 / 1000}, ${insert / 1000 / 1000}, ${delete / 1000 / 1000}, ${changes.size} tuple changes in final_var")
+    IncrementalFunctionalExecutor.printChanges(changes)
+    changes.clear()
 
-    // incremental measurement
-    val (edits1, tuple1) = fun.input(changed)
-    val (load1, insert1, delete1, m1) = fun.measureUpdate("final_var", edits1, tuple1, true)
-    println(s"Change1 ${load1 / 1000 / 1000}, ${insert1 / 1000 / 1000}, ${delete1 / 1000 / 1000}")
-    edits1.print()
-//    IncrementalFunctionalExecutor.printChanges(changes)
-//    changes.clear()
+    for (i <- 0 until 10) {
+      // incremental measurement
+      val (edits1, tuple1) = fun.input(changed)
+      val (load1, insert1, delete1, m1) = fun.measureUpdate("final_var", edits1, tuple1)
+      println(s"Change1 ${load1 / 1000 / 1000}, ${insert1 / 1000 / 1000}, ${delete1 / 1000 / 1000}, ${changes.size} tuple changes in final_var")
+      IncrementalFunctionalExecutor.printChanges(changes)
+      changes.clear()
 
-    // measure revert of change
-    val (edits2, tuple2) = fun.input(original)
-    val (load2, insert2, delete2, m2) = fun.measureUpdate("final_var", edits2, tuple2)
-    println(s"Change2 ${load2 / 1000 / 1000}, ${insert2 / 1000 / 1000}, ${delete2 / 1000 / 1000}")
+      // measure revert of change
+      val (edits2, tuple2) = fun.input(original)
+      val (load2, insert2, delete2, m2) = fun.measureUpdate("final_var", edits2, tuple2)
+      println(s"Change2 ${load2 / 1000 / 1000}, ${insert2 / 1000 / 1000}, ${delete2 / 1000 / 1000}, ${changes.size} tuple changes in final_var")
+      IncrementalFunctionalExecutor.printChanges(changes)
+    }
+
     EnginePool.disposeAllEngines()
   }
 }

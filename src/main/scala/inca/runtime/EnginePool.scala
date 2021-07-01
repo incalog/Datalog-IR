@@ -1,15 +1,14 @@
 package inca.runtime
 
 import inca.runtime.db.Database
-
-import java.lang.ref.WeakReference
-import java.util
 import org.eclipse.viatra.query.runtime.api._
 import org.eclipse.viatra.query.runtime.api.scope.QueryScope
 import org.eclipse.viatra.query.runtime.matchers.backend.{IQueryBackendFactory, QueryEvaluationHint}
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryBackendContext
 import org.eclipse.viatra.query.runtime.matchers.psystem.queries.PQuery
 
+import java.lang.ref.WeakReference
+import java.util
 import scala.jdk.CollectionConverters._
 
 object EnginePool {
@@ -24,7 +23,9 @@ object EnginePool {
         val options = ViatraQueryEngineOptions.defineOptions
           .withDefaultBackend(backendFactory)
           .withDefaultCachingBackend(backendFactory)
-          .withDefaultSearchBackend(DummySearchBackendFactory).build
+          .withDefaultSearchBackend(DummySearchBackendFactory)
+//          .withDefaultHint(new QueryEvaluationHint(Collections.singletonMap(ReteHintOptions.cacheOutputOfEvaluatorsByDefault, false), BackendRequirement.UNSPECIFIED))
+          .build
         val e = AdvancedViatraQueryEngine.createUnmanagedEngine(scope, options)
         EnginePool.engineMap.put(scope, new WeakReference(e))
         e

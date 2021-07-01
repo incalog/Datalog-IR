@@ -141,8 +141,8 @@ object GeneratePSystem {
         private final object generatedPQuery extends BasePQuery($vis) {
           ..${pat.params.map(genPParam).toList}
           {}
-          override protected def doGetContainedBodies(): util.Set[PBody] = {
-            val bodies: util.Set[PBody] = util.Set.of(
+          override protected def doGetContainedBodies(): util.Set[PBody] =
+            util.Set.of(
               ..${bodies.map { body =>
                     q"""{
                         val body: PBody = new PBody(this)
@@ -167,8 +167,6 @@ object GeneratePSystem {
                   }.toList
               }
             )
-            bodies
-          }
 
           override def getFullyQualifiedName: String = $qname
           override def getParameters: util.List[PParameter] = util.List.of(..${paramTermNames.toList})
@@ -292,7 +290,7 @@ object GeneratePSystem {
         val gentyp = genNodeType(typ)
         Seq(q"""new TypeConstraint(
             body,
-            Tuples.flatTupleOf(${compileTerm(t)}),
+            Tuples.staticArityFlatTupleOf(${compileTerm(t)}),
             $oNodeTypeKey($gentyp))""")
       }
 
@@ -303,7 +301,7 @@ object GeneratePSystem {
         val gentyp = genNodeType(typ)
         Seq(q"""new TypeFilterConstraint(
             body,
-            Tuples.flatTupleOf(${compileTerm(t)}),
+            Tuples.staticArityFlatTupleOf(${compileTerm(t)}),
             $oNotNodeTypeKey($gentyp))""")
       }
 
