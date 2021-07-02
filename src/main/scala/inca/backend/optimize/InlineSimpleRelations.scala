@@ -17,7 +17,7 @@ object InlineSimpleRelations extends Optimization {
       lazy val directlyRecursive = containedCalls.exists(_.name == pat.name)
       lazy val hasEvaluation = pat.bodies.head.atoms.exists { case Computed(_, _) => true; case _ => false }
       val inline = pat.bodies.size <= 1 && !isMain && containedCalls.size <= 100 && !directlyRecursive && !hasEvaluation
-      inline && false
+      inline
     }
 
     override def optimizeModule(module: Datalog.Module): Datalog.Module = {

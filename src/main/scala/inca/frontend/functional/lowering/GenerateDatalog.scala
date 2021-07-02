@@ -216,7 +216,7 @@ class GenerateDatalog(module: Module) {
       transExp(left) ++ transExp(right)
 
     case BaseApplyInfix(left, op, right) =>
-      import meta.quasiquotes._
+
       val leftParam = {
         val typ = left.typ.getOrElse(throw new IllegalStateException(s"Cannot compile call to $op with untyped argument $left"))
         param"left: ${typ.asScala}"
@@ -368,7 +368,8 @@ class GenerateDatalog(module: Module) {
   }
 
   def GP_URI: Datalog.TScala = Datalog.TScala(Scala(typeOf[truechange.URI]))
-  val tMockURI: meta.Term = symbolOf(MockURI)
+  val oMockURI: meta.Term = symbolOf(MockURI)
+  val tyMockURI: meta.Type = typeOf[MockURI]
 
   private def transDataConstructor(constr: DataConstructor, vis: Option[Datalog.Visibility], data: DataDef): Seq[Datalog.Pattern] = {
     val constrPat = generateConstructor(constr, vis, data)
@@ -393,7 +394,7 @@ class GenerateDatalog(module: Module) {
 
     val constrScalaFun = Term.Function(
       params.map(p => Term.Param(Nil, Term.Name(p.name), Some(p.typ.asScala), None)).toList,
-      q"""$tMockURI(${constr.name.name}, ..${params.map(p => Term.Name(p.name)).toList})"""
+      q"""$oMockURI(${constr.name.name}, ..${params.map(p => Term.Name(p.name)).toList})"""
     )
     val outVar = Datalog.Var(outParam.name)
     val constrIDBBody = Datalog.Body(Seq(Datalog.Computed(outVar,
@@ -532,7 +533,9 @@ class GenerateDatalog(module: Module) {
         case _ => throw new UnsupportedOperationException
       }
 
-    val genURI = Datalog.Computed(uriVar, consumeData(GP_URI.addHint(DataHints.DataTypeName(data.name.name)), t => q"$t.uri"))
+    val genURI = Datalog.Computed(
+      uriVar,
+      consumeData(GP_URI.addHint(DataHints.DataTypeName(data.name.name)), t => q"new $tyMockURI($t.toString)"))
     val body = Datalog.Body(
       uncoalesceKids.flatten :+
       genURI

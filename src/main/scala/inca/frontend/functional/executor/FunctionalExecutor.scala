@@ -202,7 +202,6 @@ import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExt
 import inca.compiler.{CompiledModule, Compiler}
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.runtime.context.QueryScope
-import inca.runtime.data.DataURI
 import inca.runtime.db.Database
 import inca.runtime.{EnginePool, Query}
 import inca.util.Scala.ScalaCompiler
@@ -350,12 +349,7 @@ object FunctionalExecutor {
     }
 
     private def sameVals(actual: Seq[T], expected: Seq[T]): Boolean = actual.size == expected.size &&
-      actual.zip(expected).foldLeft(true) {
-        case (true, (u1: DataURI, u2: DataURI)) => u1.repr == u2.repr
-        case (true, (u1: DataURI, u2: Diffable)) if u2.uri.isInstanceOf[DataURI] => u1.repr == u2.uri.asInstanceOf[DataURI].repr
-        case (true, (u1, u2)) => u1 == u2
-        case _ => false
-      }
+      actual.zip(expected).forall{ case (x,y) => x == y }
 
     override def toString: String = s"Results(${res.mkString(", ")})"
   }

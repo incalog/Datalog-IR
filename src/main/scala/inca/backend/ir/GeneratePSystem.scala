@@ -5,7 +5,6 @@ import inca.backend.ir.Datalog._
 import inca.runtime.Query
 import inca.runtime.aggregate.{AggregatorAssocComm, AggregatorAssocCommInv}
 import inca.runtime.context.DataModel
-import inca.runtime.data.DataURI
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
@@ -49,7 +48,6 @@ object GeneratePSystem {
   private val tAggregatorAssocComm = typeOf[AggregatorAssocComm[_]]
   private val tBoundAggregator = typeOf[BoundAggregator]
   private val tAggregatorConstraint = typeOf[AggregatorConstraint]
-  private val oDataURI = symbolOf(DataURI)
 
   private val tDataModel = typeOf[DataModel]
   private val oMultiDict = symbolOf(MultiDict)

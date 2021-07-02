@@ -4,12 +4,17 @@ import inca.compiler.SourceLocation
 import inca.frontend.functional.core
 import inca.frontend.functional.core._
 import inca.runtime.aggregate.{Aggregation, AggregatorAssocComm}
-import inca.runtime.data.DataURI
+import inca.runtime.data.WrappedURI
 import inca.util.Scala.{symbolOf, typeOf}
+import truediff.GenericDiffable
 
 import scala.meta.{Type => MetaType, _}
 
 class GenerateScala {
+  val tGenericDiffable = typeOf[GenericDiffable]
+  val tWrappedURI = typeOf[WrappedURI]
+
+
   private var visited: Map[Any, Seq[meta.Stat]] = Map()
   private def createIfNeeded(a: Any)(f: => Seq[meta.Stat]): Unit = visited.get(a) match {
     case None =>
@@ -20,8 +25,6 @@ class GenerateScala {
   }
 
   def generated: List[meta.Stat] = visited.values.flatten.toList
-
-  private val oDataURI = symbolOf(DataURI)
 
   def genDataDef(data: DataDef): Unit = createIfNeeded(data) {
     val dataTyp = MetaType.Name(data.name.name)
@@ -41,9 +44,8 @@ class GenerateScala {
         val makeChildren = scalaParamTypes.zipWithIndex.map { case (pt, ix) =>
           q"children($ix).asInstanceOf[$pt]"
         }.toList
-        q"""case class ${MetaType.Name(name)}(..$params) extends {} with $dataTyp() with truediff.GenericDiffable() { this =>
-              this.withURI($oDataURI($name, ..$terms))
-
+        //               withURI(new $tWrappedURI(this.uri, this))
+        q"""case class ${MetaType.Name(name)}(..$params) extends {} with $dataTyp() with $tGenericDiffable() { this =>
               override def name: String = $name
               override def children: Seq[(String, Any)] = Seq(..$children)
               override def make(children: Seq[Any]): ${MetaType.Name(name)} = ${Term.Name(name)}(..$makeChildren)

@@ -201,13 +201,12 @@ import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExt
 import inca.compiler.{CompiledModule, Compiler}
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.runtime.context.QueryScope
-import inca.runtime.data.DataURI
 import inca.runtime.db.Database
 import inca.runtime.{EnginePool, Query}
 import inca.util.Scala.ScalaCompiler
 import org.eclipse.viatra.query.runtime.api.{AdvancedViatraQueryEngine, IMatchUpdateListener}
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
-import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truechange.EditScript
 import truediff.Diffable
 
@@ -246,6 +245,7 @@ object IncrementalFunctionalExecutor {
           val (ess, cargs, updatedArgs) = vals(args:_*).zip(last).map {
             case (newArg: Diffable, oldArg: Diffable) =>
               val (edits, updatedArg) = oldArg.compareTo(newArg)
+              println(updatedArg.toStringWithURI)
               (edits, updatedArg.uri, updatedArg)
             case (litnew, _) => (EditScript(Seq()), litnew, litnew)
           }.unzip3
@@ -365,7 +365,7 @@ object IncrementalFunctionalExecutor {
           Console.BLUE + "Insert"
         else
           Console.RED + "Remove"
-      println(s"$direction $m")
+      println(s"$direction $m" + Console.BLACK)
     }
   }
 
@@ -379,12 +379,7 @@ object IncrementalFunctionalExecutor {
     }
 
     private def sameVals(actual: Seq[T], expected: Seq[T]): Boolean = actual.size == expected.size &&
-      actual.zip(expected).foldLeft(true) {
-        case (true, (u1: DataURI, u2: DataURI)) => u1.repr == u2.repr
-        case (true, (u1: DataURI, u2: Diffable)) if u2.uri.isInstanceOf[DataURI] => u1.repr == u2.uri.asInstanceOf[DataURI].repr
-        case (true, (u1, u2)) => u1 == u2
-        case _ => false
-      }
+      actual.zip(expected).forall{ case (x,y) => x == y }
 
     override def toString: String = s"Results(${res.mkString(", ")})"
   }
@@ -396,8 +391,11 @@ object IncrementalFunctionalExecutor {
 
   def loadFunction(compiled: CompiledModule): Loaded = {
     val scope = new QueryScope(compiled.dataModel)
-//    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, DRedReteBackendFactory.INSTANCE)
+    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+//    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_PARALLEL)
+//    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FAITHFUL_SEQUENTIAL)
+//    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FAITHFUL_PARALLEL)
+//    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, DRedReteBackendFactory.INSTANCE)
     Loaded(engine, feed, compiled)
   }
 
