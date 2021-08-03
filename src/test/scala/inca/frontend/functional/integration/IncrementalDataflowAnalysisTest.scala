@@ -5,10 +5,12 @@ import inca.frontend.functional.executor.IncrementalFunctionalExecutor
 import inca.frontend.functional.executor.IncrementalFunctionalExecutor._
 import inca.runtime.{EnginePool, Query}
 import org.eclipse.viatra.query.runtime.api.IMatchUpdateListener
+import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.collection.mutable.ListBuffer
 
+@Ignore
 class IncrementalDataflowAnalysisTest extends AnyFunSuite {
   val defaultIntervalBound = 100
   val defaultIntervalInfty = 5000

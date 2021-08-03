@@ -4,11 +4,12 @@ import inca.backend.analyze.DependencyGraph
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
 import inca.examples.functional.{Code, LambdaCalculus}
 import inca.frontend.functional.executor.FunctionalExecutor._
-import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
+import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.XtensionQuasiquoteTerm
 
+@Ignore
 class FunctionsDataTest extends AnyFunSuite {
 
   test("Plus Example") {
