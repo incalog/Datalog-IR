@@ -5,6 +5,7 @@ import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPre
 import inca.examples.functional.{Code, LambdaCalculus}
 import inca.frontend.functional.executor.FunctionalExecutor._
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
+import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.XtensionQuasiquoteTerm
@@ -129,6 +130,7 @@ class FunctionsDataTest extends AnyFunSuite {
 //    fun.printAllMatches()
   }
 
+  @Ignore
   test("Checking+Erasure+Interpreting Example") {
     val fun = loadFunction(LambdaCalculus.completeLCModule)
 
