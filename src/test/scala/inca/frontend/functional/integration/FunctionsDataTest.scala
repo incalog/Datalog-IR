@@ -4,8 +4,6 @@ import inca.backend.analyze.DependencyGraph
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
 import inca.examples.functional.{Code, LambdaCalculus}
 import inca.frontend.functional.executor.FunctionalExecutor._
-import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
-import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.XtensionQuasiquoteTerm
@@ -130,49 +128,48 @@ class FunctionsDataTest extends AnyFunSuite {
 //    fun.printAllMatches()
   }
 
-  @Ignore
-  test("Checking+Erasure+Interpreting Example") {
-    val fun = loadFunction(LambdaCalculus.completeLCModule)
-
-    val rels = fun.compiled.optimized.pats
-    println("relations: " + rels.size)
-    println("input relations: " + rels.count(_.name.contains(demandPatternPrefix)))
-    println("bodies: " + rels.flatMap(_.bodies).size)
-    println("atoms: " + rels.flatMap(_.bodies.flatMap(_.atoms)).size)
-
-    // type of peano = (a -> a) -> (a -> a)
-    val zero = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TVar("x")))"""
-    val one = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TVar("x"))))"""
-    val two = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TApp(TVar("f"), TVar("x")))))"""
-    val three = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TApp(TVar("f"), TApp(TVar("f"), TVar("x"))))))"""
-
-    val succ =
-      q"""
-          TLam("n", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),
-            TLam("f", TFun(TInt(), TInt()),
-              TLam("x", TInt(),
-                TApp(TVar("f"), TApp(TApp(TVar("n"), TVar("f")), TVar("x"))))))
-        """
-
-    val plus =
-      q"""
-          TLam("m", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),
-            TLam("n", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),
-              TLam("f", TFun(TInt(), TInt()),
-                TLam("x", TInt(),
-                  TApp(
-                    TApp(TVar("m"), TVar("f")),
-                    TApp(TApp(TVar("n"), TVar("f")), TVar("x"))
-                  )))))
-
-       """
-    assert(fun.execute("main", Seq(three))
-      == fun.result(q"""SomeVal(VClosure("f", Lam("x", App(Var("f"), App(Var("f"), App(Var("f"), Var("x"))))), EmptyEnv()))"""))
-
-    // TODO how to assert result?
-    fun.execute("main", Seq(q"TApp($succ, $three)"))
-    fun.printMatches("main")
-    fun.execute("main", Seq(q"TApp(TApp($plus, TApp($succ, $three)), $one)"))
-    fun.printMatches("main")
-  }
+//  test("Checking+Erasure+Interpreting Example") {
+//    val fun = loadFunction(LambdaCalculus.completeLCModule)
+//
+//    val rels = fun.compiled.optimized.pats
+//    println("relations: " + rels.size)
+//    println("input relations: " + rels.count(_.name.contains(demandPatternPrefix)))
+//    println("bodies: " + rels.flatMap(_.bodies).size)
+//    println("atoms: " + rels.flatMap(_.bodies.flatMap(_.atoms)).size)
+//
+//    // type of peano = (a -> a) -> (a -> a)
+//    val zero = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TVar("x")))"""
+//    val one = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TVar("x"))))"""
+//    val two = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TApp(TVar("f"), TVar("x")))))"""
+//    val three = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TApp(TVar("f"), TApp(TVar("f"), TVar("x"))))))"""
+//
+//    val succ =
+//      q"""
+//          TLam("n", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),
+//            TLam("f", TFun(TInt(), TInt()),
+//              TLam("x", TInt(),
+//                TApp(TVar("f"), TApp(TApp(TVar("n"), TVar("f")), TVar("x"))))))
+//        """
+//
+//    val plus =
+//      q"""
+//          TLam("m", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),
+//            TLam("n", TFun(TFun(TInt(), TInt()), TFun(TInt(), TInt())),
+//              TLam("f", TFun(TInt(), TInt()),
+//                TLam("x", TInt(),
+//                  TApp(
+//                    TApp(TVar("m"), TVar("f")),
+//                    TApp(TApp(TVar("n"), TVar("f")), TVar("x"))
+//                  )))))
+//
+//       """
+//    assert(fun.execute("main", Seq(three))
+//      == fun.result(q"""SomeVal(VClosure("f", Lam("x", App(Var("f"), App(Var("f"), App(Var("f"), Var("x"))))), EmptyEnv()))"""))
+//
+//    // TODO how to assert result?
+//    fun.execute("main", Seq(q"TApp($succ, $three)"))
+//    fun.printMatches("main")
+//    fun.execute("main", Seq(q"TApp(TApp($plus, TApp($succ, $three)), $one)"))
+//    fun.printMatches("main")
+//  }
 }
