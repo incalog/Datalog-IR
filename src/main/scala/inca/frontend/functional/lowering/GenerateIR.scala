@@ -11,6 +11,8 @@ import inca.util.{Gensym, Scala, TupleOps}
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 
+import scala.meta.quasiquotes._
+
 object GenerateIR {
   def transformModule(module: Module): IR.Module =
     new GenerateIR(module).transModule()
