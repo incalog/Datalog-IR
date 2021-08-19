@@ -98,7 +98,7 @@ trait TreesitterDataModelResolver extends DataModelResolver {
           case Some(name) => SortType(name)
           case _ => {
             if (names.size > 1) {
-              val newname = gensym.fresh((for (tpe <- names) yield tpe.name).mkString("AND"))
+              val newname = gensym.fresh((for (tpe <- names) yield tpe.name).mkString("OR"))
               createdSupertypes += (names -> newname)
               SortType(newname)}
             else {
@@ -150,11 +150,14 @@ trait TreesitterDataModelResolver extends DataModelResolver {
           val fieldMultiple = typedef.hcursor.downField("fields").downField(fieldName).downField("multiple").as[Boolean].getOrElse(false)
           val fieldRequired = typedef.hcursor.downField("fields").downField(fieldName).downField("required").as[Boolean].getOrElse(true)
           //get all possible types the child node can have
-          val types: Vector[Either[String, SortType]] = extractTypes(fieldTypes)
+          val types: Vector[Either[SortType, SortType]] = extractTypes(fieldTypes)
           //create links
-          for (tpe: Either[String, SortType] <- types) {
+          for (tpe: Either[SortType, SortType] <- types) {
             getNewLink(nodeTypeName, tpe, fieldName, fieldMultiple, fieldRequired) match {
-              case Left(litLink) => litLinksMap += litLink
+              case Left(sortTypeLitLink) => {
+                linksMap += sortTypeLitLink
+                litLinksMap += (sortTypeLitLink._2.name, "_0") -> JavaLitType(classOf[String])
+              }
               case Right(sortTypeLink) => linksMap += sortTypeLink
             }
           }
@@ -169,12 +172,15 @@ trait TreesitterDataModelResolver extends DataModelResolver {
           //get all possible types the child node can have
           val childTypes: Vector[Json] = typedef.hcursor.downField("children").downField("types").focus.flatMap(_.asArray).getOrElse(Vector.empty)
 
-          val types: Vector[Either[String, SortType]] = extractTypes(childTypes)
+          val types: Vector[Either[SortType, SortType]] = extractTypes(childTypes)
           val childNames: Vector[String] = types.indices.map("_" + _.toString).toVector
           //create links
-          for ((tpe: Either[String, SortType], fieldName: String) <- types.zip(childNames)) {
+          for ((tpe: Either[SortType, SortType], fieldName: String) <- types.zip(childNames)) {
             getNewLink(nodeTypeName, tpe, fieldName, childMultiple, childRequired) match {
-              case Left(litLink) => litLinksMap += litLink
+              case Left(sortTypeLitLink) => {
+                linksMap += sortTypeLitLink
+                litLinksMap += ((sortTypeLitLink._2.name, "_0") -> JavaLitType(classOf[String]))
+              }
               case Right(sortTypeLink) => linksMap += sortTypeLink
             }
           }
@@ -192,12 +198,12 @@ trait TreesitterDataModelResolver extends DataModelResolver {
      * @param required     optionality
      * @return creates a new Link from child node information above using pretypes
      */
-    private def getNewLink(nodeTypeName: String, fieldType: Either[String, SortType], fieldName: String, multiple: Boolean, required: Boolean): Either[(Link, LitType), (Link, PreType)] = {
+    private def getNewLink(nodeTypeName: String, fieldType: Either[SortType, SortType], fieldName: String, multiple: Boolean, required: Boolean): Either[(Link, PreType), (Link, PreType)] = {
       fieldType match {
         case Right(sortType) =>
           Right((nodeTypeName, fieldName) -> PreType(multiple, required, sortType.name))
-        case Left(_) =>
-          Left((nodeTypeName, fieldName) -> getLitLinkType(multiple, required))
+        case Left(sortTypeLiteral) =>
+          Left((nodeTypeName, fieldName) -> PreType(multiple, required ,sortTypeLiteral.name))
       }
     }
 
@@ -206,12 +212,12 @@ trait TreesitterDataModelResolver extends DataModelResolver {
      * @param types in json file
      * @return Creates SortTypes and checks for literals
      */
-    private def extractTypes(types: Vector[Json]): Vector[Either[String, SortType]] =
+    private def extractTypes(types: Vector[Json]): Vector[Either[SortType, SortType]] =
       for { tpe: Json <- types
             if tpe.hcursor.downField("named").as[Boolean].getOrElse(false) } yield {
         val typeName: String = tpe.hcursor.downField("type").as[String].getOrElse("Error")
         if(literalIdentifiers.contains(typeName))
-          Left(typeName)
+          Left(SortType(typeName))
         else
           Right(SortType(typeName))
       }
