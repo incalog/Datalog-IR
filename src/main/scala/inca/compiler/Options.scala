@@ -11,6 +11,9 @@ trait Options {
   def stopOnError: Boolean
 
   def stopOnWarning: Boolean
+
+  def withOptimizations(opts: Seq[Optimization]): Options
+  def withTransformations(trans: Seq[Transformation]): Options
 }
 
 object Options {

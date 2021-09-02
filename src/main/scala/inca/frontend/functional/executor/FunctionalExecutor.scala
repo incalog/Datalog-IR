@@ -354,8 +354,8 @@ object FunctionalExecutor {
     override def toString: String = s"Results(${res.mkString(", ")})"
   }
 
-  def compileFunction(code: String): CompiledModule = {
-    val options = FunctionalOptions()
+
+  def compileFunction(code: String, options: FunctionalOptions = FunctionalOptions()): CompiledModule = {
     Compiler.compileFunctional(code, options)
   }
 

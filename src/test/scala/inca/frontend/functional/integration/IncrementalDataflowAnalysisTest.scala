@@ -73,20 +73,12 @@ class IncrementalDataflowAnalysisTest extends AnyFunSuite {
 
     val fun = loadFunction(compiled)
 //    println(fun.compiled.optimized)
-
-    val changes: ListBuffer[(Query.Match, Boolean)] = ListBuffer()
-    val trackedRelations = Seq("final_var")
-    for (pat <- trackedRelations)
-      fun.engine.addMatchUpdateListener(fun.engine.getMatcher(compiled.psystemModule.patterns(pat)()), new IMatchUpdateListener[Query.Match] {
-        override def notifyAppearance(mtch: Query.Match): Unit = changes += ((mtch, true))
-        override def notifyDisappearance(mtch: Query.Match): Unit = changes += ((mtch, false))
-      }, false)
+    fun.registerTrackedRelations(Set("final_var"))
 
     val (edits, tuple) = fun.input(original)
     val (load, insert, delete, m0) = fun.measureInitial("final_var", edits, tuple)
-    println(s"Initial ${load / 1000 / 1000}, ${insert / 1000 / 1000}, ${delete / 1000 / 1000}, ${changes.size} tuple changes in ${trackedRelations.mkString(", ")}")
+    println(s"Initial ${load / 1000 / 1000}, ${insert / 1000 / 1000}, ${delete / 1000 / 1000}")
 //    IncrementalFunctionalExecutor.printChanges(changes)
-    changes.clear()
     println()
 
     for (i <- 0 until 10) {
@@ -94,17 +86,15 @@ class IncrementalDataflowAnalysisTest extends AnyFunSuite {
       val (edits1, tuple1) = fun.input(changed)
       edits1.print()
       val (load1, insert1, delete1, m1) = fun.measureUpdate("final_var", edits1, tuple1)
-      println(s"Change1 ${load1 / 1000 / 1000}, ${insert1 / 1000 / 1000}, ${delete1 / 1000 / 1000}, ${changes.size} tuple changes in ${trackedRelations.mkString(", ")}")
-      IncrementalFunctionalExecutor.printChanges(changes)
-      changes.clear()
+      println(s"Change1 ${load1 / 1000 / 1000}, ${insert1 / 1000 / 1000}, ${delete1 / 1000 / 1000}")
+      fun.printChanges()
       println()
 
       // measure revert of change
       val (edits2, tuple2) = fun.input(original)
       val (load2, insert2, delete2, m2) = fun.measureUpdate("final_var", edits2, tuple2)
-      println(s"Change2 ${load2 / 1000 / 1000}, ${insert2 / 1000 / 1000}, ${delete2 / 1000 / 1000}, ${changes.size} tuple changes in ${trackedRelations.mkString(", ")}")
-      IncrementalFunctionalExecutor.printChanges(changes)
-      changes.clear()
+      println(s"Change2 ${load2 / 1000 / 1000}, ${insert2 / 1000 / 1000}, ${delete2 / 1000 / 1000}")
+      fun.printChanges()
       println()
     }
 

@@ -24,7 +24,7 @@ import scala.jdk.CollectionConverters._
 
 
 class Database(
-                _languageMetaInfo: DataModel,
+                _dataModel: DataModel,
                 _dynamicIndices: Seq[DynamicIndexFactory],
                 _metaContext: IQueryMetaContext
              )
@@ -32,7 +32,7 @@ class Database(
 
   def this() = this(null, Seq(), null)
 
-  val dataModel: DataModel = if (_languageMetaInfo != null) _languageMetaInfo else new DataModel()
+  val dataModel: DataModel = if (_dataModel != null) _dataModel else new DataModel()
 
   override def getMetaContext: IQueryMetaContext = _metaContext
 

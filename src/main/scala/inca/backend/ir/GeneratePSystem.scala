@@ -327,6 +327,7 @@ object GeneratePSystem {
       case _: Datalog.TLiteral =>
         q"$oLinkPrimitiveKey(($name, $field))"
     }
+    case _ => throw new IllegalStateException(s"Generating LinkKey for $link not supported")
 
   }
 

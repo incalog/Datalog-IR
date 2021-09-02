@@ -201,7 +201,7 @@ import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExt
 import inca.compiler.{CompiledModule, Compiler}
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.runtime.context.QueryScope
-import inca.runtime.db.Database
+import inca.runtime.db.{Database, DatabaseInspector}
 import inca.runtime.{EnginePool, Query}
 import inca.util.Scala.ScalaCompiler
 import org.eclipse.viatra.query.runtime.api.{AdvancedViatraQueryEngine, IMatchUpdateListener}
@@ -231,9 +231,11 @@ object IncrementalFunctionalExecutor {
       compiled.psystemModule.patterns.keys.foreach(printMatches)
     }
 
+
     // TODO for fix implementation we assume that the inserted tuple remains the same (uris does not change of the outer most nodes)
     // Invariant: If you call input you need to use the input to update the analysis otherwise there will be inconsistent state
     var lastArgs: Option[Seq[Any]] = None
+    var lastMainExtRel: Option[Tuple] = None
 
     type Input = (EditScript, Tuple)
 
@@ -292,15 +294,10 @@ object IncrementalFunctionalExecutor {
       measureInitial(main, es, tuple)
     }
 
-    def measureInitial(main: String, edits: EditScript, tuple: Tuple, printMainTuples: Boolean = false): (Long, Long, Long, Query.Matcher) = {
+    def measureInitial(main: String, edits: EditScript, tuple: Tuple): (Long, Long, Long, Query.Matcher) = {
       val mainSpec = compiled.psystemModule.patterns(main)()
       val mainMatcher = engine.getMatcher(mainSpec)
-      val changes: ListBuffer[(Query.Match, Boolean)] = ListBuffer()
-      if (printMainTuples)
-        engine.addMatchUpdateListener(mainMatcher, new IMatchUpdateListener[Query.Match] {
-          override def notifyAppearance(mtch: Query.Match): Unit = changes += ((mtch, true))
-          override def notifyDisappearance(mtch: Query.Match): Unit = changes += ((mtch, false))
-        }, false)
+
       val startLoadDB = System.nanoTime()
       engine.delayUpdatePropagation { () => feed.processEditScript(edits) }
       val endLoadDB = System.nanoTime()
@@ -309,37 +306,39 @@ object IncrementalFunctionalExecutor {
       val startInsertQuery = System.nanoTime()
       feed.insert(demandPatternExtensionalPrefix + main, tuple)
       val endInsertQuery = System.nanoTime()
+      lastMainExtRel = Some(tuple)
 
       println(s"Tuples in $main: ${mainMatcher.getAllMatches().size()}")
-      if (printMainTuples)
-        printChanges(changes)
 
       (loadingTime, endInsertQuery - startInsertQuery, -1, mainMatcher)
     }
 
-    def measureUpdate(main: String, args: Seq[meta.Term], printMainTuples: Boolean): (Long, Long, Long, Query.Matcher) = {
+    def measureUpdate(main: String, args: Seq[meta.Term]): (Long, Long, Long, Query.Matcher) = {
       val (es, tuple) = input(args)
-      measureInitial(main, es, tuple, printMainTuples)
+      measureInitial(main, es, tuple)
     }
 
-    def measureUpdate(main: String, edits: EditScript, tuple: Tuple, printMainTuples: Boolean = false): (Long, Long, Long, Query.Matcher) = {
+    def measureUpdate(main: String, edits: EditScript, tuple: Tuple): (Long, Long, Long, Query.Matcher) = {
       val mainSpec = compiled.psystemModule.patterns(main)()
       val mainMatcher = engine.getMatcher(mainSpec)
 
-      val changes: ListBuffer[(Query.Match, Boolean)] = ListBuffer()
-      if (printMainTuples)
-        engine.addMatchUpdateListener(mainMatcher, new IMatchUpdateListener[Query.Match] {
-          override def notifyAppearance(mtch: Query.Match): Unit = changes += ((mtch, true))
-          override def notifyDisappearance(mtch: Query.Match): Unit = changes += ((mtch, false))
-        }, false)
-
-      // TODO fix when we remove assumption that outer uris do not change need to remove old tuple and add new
       val startQuery = System.nanoTime()
-      engine.delayUpdatePropagation { () => feed.processEditScript(edits) }
+      engine.delayUpdatePropagation { () =>
+        lastMainExtRel match {
+          case Some(lastTuple) =>
+            if (lastTuple != tuple) {
+              feed.insert(demandPatternExtensionalPrefix + main, tuple)
+              feed.delete(demandPatternExtensionalPrefix + main, lastTuple)
+            } else {
+              // do nothing
+            }
+          case None =>
+            feed.insert(main, tuple)
+        }
+        feed.processEditScript(edits)
+      }
       val endQuery = System.nanoTime()
-
-      if (printMainTuples)
-        printChanges(changes)
+      lastMainExtRel = Some(tuple)
 
       (-1, endQuery - startQuery, -1, mainMatcher)
     }
@@ -355,17 +354,52 @@ object IncrementalFunctionalExecutor {
     def resultVals[T](res: T*): Results[T] = results(Seq(res))
     def resultVal[T](res: T): Results[T] = results(Seq(Seq(res)))
     def result(res: meta.Term*): Results[AnyRef] = results(Seq(vals(res:_*)))
-  }
 
+    // Functionality to track which tuples are inserted and removed
+    private var changesInTrackedRelations: ListBuffer[(Query.Match, Boolean)] = ListBuffer()
 
-  def printChanges(changes: ListBuffer[(Query.Match, Boolean)]): Unit = {
-    changes.foreach { case (m, ins) =>
-      val direction =
-        if (ins)
-          Console.BLUE + "Insert"
-        else
-          Console.RED + "Remove"
-      println(s"$direction $m" + Console.BLACK)
+    def registerTrackedRelations(rels: Set[String]): Unit =
+      for (pat <- rels)
+        engine.addMatchUpdateListener(
+          engine.getMatcher(compiled.psystemModule.patterns(pat)()),
+          new IMatchUpdateListener[Query.Match] {
+            override def notifyAppearance(mtch: Query.Match): Unit =
+              changesInTrackedRelations += ((mtch, true))
+            override def notifyDisappearance(mtch: Query.Match): Unit =
+              changesInTrackedRelations += ((mtch, false))
+          },
+          false
+        )
+
+    def printChanges(): Unit = {
+      changesInTrackedRelations.foreach { case (m, ins) =>
+        val direction =
+          if (ins)
+            Console.BLUE + "Insert"
+          else
+            Console.RED + "Remove"
+        println(s"$direction $m" + Console.BLACK)
+      }
+      changesInTrackedRelations.clear()
+    }
+
+    def deepPrintChanges(): Unit = {
+      val db = DatabaseInspector(feed)
+      changesInTrackedRelations.foreach { case (m, ins) =>
+        val direction =
+          if (ins)
+            Console.BLUE + "Insert"
+          else {
+            Console.RED + "Remove"
+          }
+        val prettyPrint = try {
+          m.deepPrettyPrint(db)
+        } catch {
+          case _: Exception => m.prettyPrint()
+        }
+        println(s"$direction ${m.spec.getSimpleName} ${prettyPrint}" + Console.BLACK)
+      }
+      changesInTrackedRelations.clear()
     }
   }
 
@@ -384,8 +418,7 @@ object IncrementalFunctionalExecutor {
     override def toString: String = s"Results(${res.mkString(", ")})"
   }
 
-  def compileFunction(code: String): CompiledModule = {
-    val options = FunctionalOptions()
+  def compileFunction(code: String, options: FunctionalOptions = FunctionalOptions()): CompiledModule = {
     Compiler.compileFunctional(code, options)
   }
 
