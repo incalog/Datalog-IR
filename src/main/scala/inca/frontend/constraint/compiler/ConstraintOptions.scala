@@ -13,7 +13,8 @@ case class ConstraintOptions(optimizations: Seq[Optimization] = defaultOptimizat
                              desugarables: Seq[Desugarable] = defaultDesugarables,
                              stopOnError: Boolean = true,
                              stopOnWarning: Boolean = false) extends Options {
-  override def withOptimizations(opts: Seq[Optimization]): Options =
+
+  override def withOptimizations(opts: Seq[Optimization]): ConstraintOptions =
     ConstraintOptions(
       opts,
       transformations,
@@ -22,7 +23,7 @@ case class ConstraintOptions(optimizations: Seq[Optimization] = defaultOptimizat
       stopOnWarning
     )
 
-  override def withTransformations(trans: Seq[Transformation]): Options =
+  override def withTransformations(trans: Seq[Transformation]): ConstraintOptions =
     ConstraintOptions(
       optimizations,
       trans,

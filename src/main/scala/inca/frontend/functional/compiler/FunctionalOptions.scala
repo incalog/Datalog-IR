@@ -11,7 +11,8 @@ case class FunctionalOptions(optimizations: Seq[Optimization] = defaultOptimizat
                              transformations: Seq[Transformation] = defaultTransformations,
                              stopOnError: Boolean = true,
                              stopOnWarning: Boolean = false) extends Options {
-  override def withOptimizations(opts: Seq[Optimization]): Options =
+
+  override def withOptimizations(opts: Seq[Optimization]): FunctionalOptions =
     FunctionalOptions(
       opts,
       transformations,
@@ -19,7 +20,7 @@ case class FunctionalOptions(optimizations: Seq[Optimization] = defaultOptimizat
       stopOnWarning
     )
 
-  override def withTransformations(trans: Seq[Transformation]): Options =
+  override def withTransformations(trans: Seq[Transformation]): FunctionalOptions =
     FunctionalOptions(
       optimizations,
       trans,
