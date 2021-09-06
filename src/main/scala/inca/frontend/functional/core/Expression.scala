@@ -163,6 +163,11 @@ case class SomePattern(arg: Name) extends Pattern with Var.Target {
   override def prettyprint: String = s"Some($arg)"
 }
 
+case  class TuplePattern(args: Seq[Name]) extends Pattern with Var.Target {
+  override def vars: Map[Name, Option[Type]] = args.map(_ -> None).toMap
+  override def prettyprint: String = s"(${args.mkString(", ")})"
+}
+
 
 case class BaseLit(code: Scala[meta.Term]) extends Expression {
   override def vars: Map[Name, Option[Type]] = Map()

@@ -113,12 +113,17 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
               error(s"Cannot assign expression of type $TUnit to $namesStr", let)
             names.foreach(bindVar(_, let, TAny))
           case TTuple(tys) =>
-            if (names.size != tys.size)
+            if (names.size != tys.size && names.size != 1) {
               error(s"Cannot assign ${tys.size}-ary tuple to $namesStr", let)
-            names.zipAll(tys, null, null).foreach {
-              case (name, null) => bindVar(name, let, TAny)
-              case (null, ty) => // nothing
-              case (name, ty) => bindVar(name, let, ty)
+            }
+            if (names.size == 1) {
+              bindVar(names.head, let, ty)
+            } else {
+              names.zipAll(tys, null, null).foreach {
+                case (name, null) => bindVar(name, let, TAny)
+                case (null, ty) => // nothing
+                case (name, ty) => bindVar(name, let, ty)
+              }
             }
           case ty =>
             if (names.size != 1)
@@ -170,6 +175,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
         case topt: TOption =>
           typecheckTOptionMatch(exp, matchee, cases, topt)
+
+        case ttuple: TTuple =>
+          typecheckTTupleMatch(exp, cases, ttuple)
 
         case ty =>
           error(s"Cannot match on type $ty", matchee)
@@ -397,6 +405,51 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     if (missingConstrs.nonEmpty)
       error(s"Pattern match must be complete but missed the following constructors: ${missingConstrs.mkString(", ")}", exp)
     join(ctys)
+  }
+
+  def typecheckTTupleMatch(exp: Expression, cases: Seq[(Pattern, Expression)], ttuple: TTuple): Type = {
+    var seenTuplePattern: Int = 0
+    val ctys = cases.map {
+      case (pat@TuplePattern(vars), e) =>
+        if (vars.size != ttuple.ts.size)
+          error(s"Cannot match pattern $pat against matchee of tuple type $ttuple with arity ${ttuple.ts.size}", pat)
+
+        seenTuplePattern += 1
+
+        scopedTypeContext {
+          vars.zipAll(ttuple.ts, null, null).foreach {
+            case (null, ty) => // nothing
+            case (v, null) => bindVar(v, pat, TAny)
+            case (v, ty) => bindVar(v, pat, ty)
+          }
+          typecheck(e)
+        }
+
+      case (pat@ConstructorPattern(constr, vars), e) =>
+        error(s"Cannot match pattern $pat against matchee of type $ttuple", pat)
+        scopedTypeContext {
+          val dummy = ConstructorPattern(Name("?"), Seq())
+          pat.vars.foreach(v => bindVar(v._1, dummy, TAny))
+          typecheck(e)
+        }
+
+      case (pat@NonePattern(), e) =>
+        error(s"Cannot match pattern $pat against matchee of type $ttuple", pat)
+        scopedTypeContext {
+          typecheck(e)
+        }
+
+      case (pat@SomePattern(v), e) =>
+        error(s"Cannot match pattern $pat against matchee of type $ttuple", pat)
+        scopedTypeContext {
+          val dummy = SomePattern(Name("?"))
+          pat.vars.foreach(v => bindVar(v._1, dummy, TAny))
+          typecheck(e)
+        }
+    }
+    if (seenTuplePattern != 1)
+      error(s"Pattern match must contain only a single case", exp)
+    ctys.head
   }
 
   def typecheckFunDefCall(fun: Expression, tfun: TFun, args: Seq[Expression], transitive: Boolean, exp: Expression): Type = {

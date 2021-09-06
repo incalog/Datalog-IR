@@ -20,6 +20,10 @@ class TypecheckerTest extends AnyFunSuite {
     assert(checker.getErrors.isEmpty, s"Found type errors ${checker.getErrors}")
   }
 
+  def checkModuleErrors(mod: String): Unit = {
+    checkModuleErrors(Parser.parse(mod))
+  }
+
   def checkModuleErrors(mod: Module): Unit = {
     val checker = newTypechecker()
     checker.typecheck(mod)
@@ -116,6 +120,50 @@ class TypecheckerTest extends AnyFunSuite {
 
   test("aeval") {
     checkModule(ControlDataFlow.AEvalModule)
+  }
+
+  test("correct tuple pattern match") {
+    val mod =
+      s"""module Tuples
+         |def f1(x: (`Int`, `Int`)): `Int` = x match {
+         |  case (x1, x2) => x1
+         |}
+         |def f2(x: (`Int`, `Boolean`)): `Boolean` = x match {
+         |  case (x1, x2) => x2
+         |}
+         |""".stripMargin
+    checkModule(mod)
+  }
+
+  test("tuple pattern match with too many cases") {
+    val mod =
+      s"""module Tuples
+         |def f(x: (`Int`, `Int`)): `Int` = x match {
+         |  case (x1, x2) => x1
+         |  case (x1, x2) => x2
+         |}
+         |""".stripMargin
+    checkModuleErrors(mod)
+  }
+
+  test("tuple pattern match with too many vars") {
+    val mod =
+      s"""module Tuples
+         |def f(x: (`Int`, `Int`)): `Int` = x match {
+         |  case (x1, x2, x3) => x2
+         |}
+         |""".stripMargin
+    checkModuleErrors(mod)
+  }
+
+  test("tuple pattern match with too few vars") {
+    val mod =
+      s"""module Tuples
+         |def f(x: (`Int`, `Int`)): `Int` = x match {
+         |  case (x1) => x2
+         |}
+         |""".stripMargin
+    checkModuleErrors(mod)
   }
 
 //  test("emptiness check 1") {

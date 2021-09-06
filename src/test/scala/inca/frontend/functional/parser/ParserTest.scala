@@ -137,6 +137,15 @@ class ParserTest extends AnyFunSuite {
       (ConstructorPattern(Name("True"), Seq()), Call(Var(Name("False")), Seq())),
       (ConstructorPattern(Name("False"), Seq()), Call(Var(Name("True")), Seq()))))
     testSuccess(parser.exp(_))(matchString, matchExp)
+
+    val matchString2 =
+      """b match {
+        |  case (x, y) => x
+        |}
+        |""".stripMargin
+    val matchExp2 = Match(Var("b"), Seq(
+      (TuplePattern(Seq(Name("x"), Name("y"))), Var(Name("x")))))
+    testSuccess(parser.exp(_))(matchString2, matchExp2)
   }
 
   test("set constants") {
