@@ -216,6 +216,20 @@ class GenerateDatalog(module: Module) {
       if op.tree.value == "++" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
       transExp(left) ++ transExp(right)
 
+    case BaseApplyInfix(left, op,  right)
+      if op.tree.value == "&" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
+      val transLeft = transExp(left)
+      val transRight = transExp(right)
+      // TODO: fix where we have intersect two set comprehensions that use same variable
+      for ((leftTerms, leftCons) <- transLeft;
+           (rightTerms, rightCons) <- transRight) yield {
+        val eqTerms = leftTerms.zip(rightTerms).map { case (l, r) => Datalog.Eq(l, r)}
+        (leftTerms, leftCons ++ rightCons ++ eqTerms)
+      }
+
+
+
+
     case BaseApplyInfix(left, op, right) =>
 
       val leftParam = {

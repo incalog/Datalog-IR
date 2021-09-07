@@ -365,6 +365,6 @@ object FunctionalExecutor {
     Loaded(engine, feed, compiled)
   }
 
-  def loadFunction(code: String): Loaded =
-    loadFunction(compileFunction(code))
+  def loadFunction(code: String, options: FunctionalOptions = FunctionalOptions()): Loaded =
+    loadFunction(compileFunction(code, options))
 }

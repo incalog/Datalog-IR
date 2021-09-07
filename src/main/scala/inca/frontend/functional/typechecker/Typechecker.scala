@@ -201,6 +201,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       (leftTy, op.tree.value, rightTy) match {
         case (TSet(tyl), "++",  TSet(tyr)) =>
           TSet(join(tyl, tyr))
+        case (TSet(tyl), "&",  TSet(tyr)) =>
+          TSet(join(tyl, tyr))
         case _ =>
           val paramString = Seq(
             q"val ${Pat.Var(leftName)}: ${leftTy.asScala} = Predef.???".syntax,

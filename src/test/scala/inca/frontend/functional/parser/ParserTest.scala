@@ -197,6 +197,15 @@ class ParserTest extends AnyFunSuite {
     )
   }
 
+  test("set union") {
+    testSuccessAny(parser.module(_))(
+      s"""module Main
+         |
+         |def test(): Set[Int] = {1, 2, 3} & {1, 3}
+         |""".stripMargin
+    )
+  }
+
   private def testSuccess[T](parser: P[_] => P[Any]): (String, T) => Assertion =
     (input: String, cmp: T) => {
       parse(input, parser) match {

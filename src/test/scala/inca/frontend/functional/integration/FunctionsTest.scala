@@ -1,9 +1,11 @@
 package inca.frontend.functional.integration
 
 import inca.examples.functional.Code
+import inca.frontend.functional.compiler.FunctionalOptions
 import inca.frontend.functional.executor.FunctionalExecutor
 import org.scalatest.funsuite.AnyFunSuite
 
+import scala.collection.immutable.ArraySeq
 import scala.meta.XtensionQuasiquoteTerm
 
 class FunctionsTest extends AnyFunSuite {
