@@ -2,7 +2,7 @@ package inca.frontend.functional.lowering
 
 import inca.backend.hints.MagicSetHints.{FixedAdornment, IgnoreCall, NoInputRelation}
 import inca.backend.hints.{DataHints, MagicSetHints}
-import inca.backend.ir.Datalog
+import inca.backend.ir.{Datalog, Substitute}
 import inca.frontend.functional.core._
 import inca.runtime.data.MockURI
 import inca.util.Scala.{symbolOf, typeOf}
@@ -220,11 +220,22 @@ class GenerateDatalog(module: Module) {
       if op.tree.value == "&" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
       val transLeft = transExp(left)
       val transRight = transExp(right)
-      // TODO: fix where we have intersect two set comprehensions that use same variable
+
+      // create substitution: replace every bound variable in right with freshly generated variable to avoid unwanted nameclashes after merging constraints from left and right
+      val boundNamesInRight = right.vars.keys.map(_.name).toSet -- right.freevars.map(_.name.name)
+      val freshVarsInRight = boundNamesInRight.map { n => Datalog.Var(gensym.fresh(n)) }
+      val boundVarsInRight = boundNamesInRight.map(Datalog.Var)
+      val subst = Substitute.fromMap(boundVarsInRight.zip(freshVarsInRight).toMap)
+
       for ((leftTerms, leftCons) <- transLeft;
            (rightTerms, rightCons) <- transRight) yield {
-        val eqTerms = leftTerms.zip(rightTerms).map { case (l, r) => Datalog.Eq(l, r)}
-        (leftTerms, leftCons ++ rightCons ++ eqTerms)
+        // apply substitution created above
+        val renamedRightTerms = rightTerms.map(subst.substTerm)
+        val renamedRightCons = rightCons.map(subst.substAtom)
+
+        // generate equality constraints to force that constraints of left and right have to hold (X intersect Y implemented as X AND Y)
+        val eqTerms = leftTerms.zip(renamedRightTerms).map { case (l, r) => Datalog.Eq(l, r)}
+        (leftTerms, leftCons ++ renamedRightCons ++ eqTerms)
       }
 
 
