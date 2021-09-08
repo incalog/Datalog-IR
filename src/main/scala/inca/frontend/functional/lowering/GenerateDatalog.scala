@@ -45,11 +45,22 @@ class GenerateDatalog(module: Module) {
       genScala.generated.map(Scala.apply))
   }
 
+  // needs to be reset before flattening params
+  private var tupleParams: Map[Datalog.Name, Seq[Datalog.Name]] = Map()
+
   private def transFun(fun: FunctionDef): Datalog.Pattern = gensym.scoped {
     gensym.register(fun.vars.keys.map(_.name))
 
     val vis = transVis(fun.vis)
-    val params = fun.params.flatMap(p => flattenParam(p.name.name, p.typ, genFresh = false))
+    // reset before flattening params
+    tupleParams = Map()
+    val params = fun.params.flatMap { p =>
+      val res = flattenParam(p.name.name, p.typ, genFresh = false)
+      if (res.size > 1) {
+        tupleParams = tupleParams + (p.name.name -> res.map(_.name))
+      }
+      res
+    }
     val outParams = flattenParam("out", fun.outType, genFresh = true)
 
     val bodies = for ((terms, cons) <- transExp(fun.body))
@@ -91,6 +102,12 @@ class GenerateDatalog(module: Module) {
   private def flatVars(x: Name, ty: Type): Seq[(Datalog.Var, Datalog.Type)] = ty match {
     case TTuple(ts) =>
       ts.zipWithIndex.map { case (ty,ix) => Datalog.Var(x.name + "$_" + ix) -> transType(ty) }
+      tupleParams.get(x.name) match {
+        case Some(vars) =>
+          ts.zip(vars).map { case (ty,v) => Datalog.Var(v) -> transType(ty) }
+        case None =>
+          ts.zipWithIndex.map { case (ty,ix) => Datalog.Var(x.name + "$_" + ix) -> transType(ty) }
+      }
     case ty =>
       Seq(Datalog.Var(x.name) -> transType(ty))
   }
