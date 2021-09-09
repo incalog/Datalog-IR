@@ -154,13 +154,31 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
 
     case Call(fun, args, transitive) =>
-      val tfun = typecheck(fun)
-      tfun match {
-        case tfun: TFun =>
-          typecheckFunDefCall(fun, tfun, args, transitive, exp)
+      fun match {
+        case Var(Name("parent")) =>
+          if(args.size != 1)
+            error(s"Built-in function parent expected one argument, but received ${args.size}", exp)
+          val argTys = args.map(typecheck)
+          argTys.headOption match {
+            case Some(argTy) =>
+              argTy match {
+                case TData(name) =>
+                  // do nothing
+                case _ =>
+                  error(s"Built-in function parent expected algebraic data type argument, but received argument of type $argTy", exp)
+              }
+            case None => // nothing
+          }
+          TOption(TAny)
         case _ =>
-          error(s"Expression has type $tfun, but required function type", fun)
-          tfun
+          val tfun = typecheck(fun)
+          tfun match {
+            case tfun: TFun =>
+              typecheckFunDefCall(fun, tfun, args, transitive, exp)
+            case _ =>
+              error(s"Expression has type $tfun, but required function type", fun)
+              tfun
+          }
       }
 
     case Match(matchee, cases) =>

@@ -146,6 +146,21 @@ class GenerateDatalog(module: Module) {
       thnRes ++ elsRes
 
     case call@Call(Var(name), args, transitive) =>
+      if (name.name == "parent") {
+        return for ((Seq(argTerm), argCons) <- transExp(args.head)) yield {
+          // val argTy = transType(args.head.typ.get)
+          val parentTerm = Datalog.Var(gensym.fresh("parent"))
+          // val parentLinkCons = Datalog.Path(argTerm, argTy, Datalog.ParentLink, parentTerm, Datalog.TAny)
+          // figure out what the dataDef is of the argument type
+          val dataDef = args.head.typ.get match {
+            case dty: TData => dty.target.get.asInstanceOf[DataDef]
+            case _ => throw new IllegalStateException("Cannot happen")
+          }
+          val parentCall = Datalog.Call(dataDef.parentName, Seq(argTerm, parentTerm))
+          (Seq(parentTerm), argCons :+ parentCall)
+        }
+      }
+
       val outvars = call.fun.typ match {
         case Some(TFun(_, outType)) => outType.flatten.map(_ => Datalog.Var(gensym.fresh("call")))
         case Some(outType) => Seq(Datalog.Var(gensym.fresh("call")))
@@ -407,7 +422,10 @@ class GenerateDatalog(module: Module) {
       .addHint(NoInputRelation)
     val dataUncoalescedPat = Datalog.Pattern(None, data.name.name + UNCOALESCED_SUFFIX, Seq(dataParam, uriParam), constrUncoalescedBodies)
 
-    dataPat +: dataCoalescedPat +: dataUncoalescedPat +: data.constrs.flatMap(transDataConstructor(_, vis, data))
+    val dataParentPat = generateParent(data)
+    val constructorPats = data.constrs.flatMap(transDataConstructor(_, vis, data))
+
+    dataPat +: dataCoalescedPat +: dataUncoalescedPat +: dataParentPat +: constructorPats
   }
 
   def GP_URI: Datalog.TScala = Datalog.TScala(Scala(typeOf[truechange.URI]))
@@ -614,6 +632,37 @@ class GenerateDatalog(module: Module) {
       .addHint(MagicSetHints.NoInputRelation)
       .addHint(DataHints.Selector)
     selectorPat
+  }
+
+  private def generateParent(data: DataDef): Datalog.Pattern = {
+    val dataDefs = module.content.collect { case dd: DataDef => dd }
+    // val dataDef = dataDefs.find { data => data.constrs.contains(constructor) }.getOrElse(throw new IllegalStateException(s"Could not find data definition of given constructor ${constructor.name}"))
+    val dataTy = TData(data.name)
+
+    val wrappingConstructors = dataDefs.flatMap { data =>
+      data.constrs.filter { cotr =>
+        cotr.paramTypes.contains(dataTy)
+      }
+    }
+
+    val param = gensym.fresh("param")
+    val outParam = gensym.fresh("out")
+
+
+    val params = Seq(Datalog.Param(param, transDataType(dataTy)), Datalog.Param(outParam, Datalog.TAny))
+    val bodies = wrappingConstructors.flatMap { cotr =>
+      cotr.paramTypes.zipWithIndex.filter(_._1 == dataTy).map { case (_, ix) =>
+        val args = Datalog.Var(outParam) +: cotr.paramTypes.zipWithIndex.map { case (_, ix2) =>
+          if (ix == ix2) Datalog.Var(param)
+          else Datalog.Var("_")
+        }
+        val selectorCall = Datalog.Call(cotr.selectorName, args)
+          .addHint(MagicSetHints.IgnoreCall)
+          .addHint(MagicSetHints.FixedAdornment(params.map(_ => true) :+ false))
+        Datalog.Body(Seq(selectorCall))
+      }
+    }
+    Datalog.Pattern(None, data.parentName, params, bodies).addHint(MagicSetHints.NoInputRelation)
   }
 
   private def transVis(vis: Option[Visibility]): Option[Datalog.Visibility] =

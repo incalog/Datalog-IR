@@ -74,6 +74,8 @@ case class DataDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, 
 
   def freeTvars: Set[TData] = constrs.flatMap(_.freeTvars).toSet
 
+  def parentName: String = "parent$_" + name.name
+
   override def calls: Set[Call] = Set()
 
   override def prettyprint(implicit indent: String): String = {

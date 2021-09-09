@@ -356,7 +356,7 @@ object IncrementalFunctionalExecutor {
     def result(res: meta.Term*): Results[AnyRef] = results(Seq(vals(res:_*)))
 
     // Functionality to track which tuples are inserted and removed
-    private var changesInTrackedRelations: ListBuffer[(Query.Match, Boolean)] = ListBuffer()
+    private val changesInTrackedRelations: ListBuffer[(Query.Match, Boolean)] = ListBuffer()
 
     def registerTrackedRelations(rels: Set[String]): Unit =
       for (pat <- rels)

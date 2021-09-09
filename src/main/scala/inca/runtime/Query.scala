@@ -1,7 +1,7 @@
 package inca.runtime
 
 import inca.runtime.data.MockURI
-import inca.runtime.db.DatabaseInspector
+import inca.runtime.db.{DBValue, DatabaseInspector}
 import org.eclipse.viatra.query.runtime.api.ViatraQueryEngine
 import org.eclipse.viatra.query.runtime.api.impl.{BaseMatcher, BasePatternMatch, BaseQuerySpecification}
 import org.eclipse.viatra.query.runtime.api.scope.QueryScope
@@ -93,20 +93,9 @@ object Query {
       val builder = new StringBuilder
       for (i <- 0 until values.length) {
         if (i != 0) builder.append(", ")
-        builder.append("\"" + parameterNames.get(i) + "\"=" + prettyPrintValue(values(i), db))
+        builder.append("\"" + parameterNames.get(i) + "\"=" + DBValue.prettyPrint(values(i), db))
       }
       builder.toString
-    }
-
-    def prettyPrintValue(v: Any, db: DatabaseInspector): String = {
-      v  match {
-        case uri: MockURI =>
-          val v = MockURI.convertToValue(uri)
-          val str = v.deepPrettyPrint(db)
-          str
-        case uri: URI => db.prettyPrint(uri)
-        case v => v.toString
-      }
     }
   }
 }

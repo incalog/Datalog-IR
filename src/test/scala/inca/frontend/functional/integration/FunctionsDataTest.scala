@@ -174,4 +174,35 @@ class FunctionsDataTest extends AnyFunSuite {
     fun.execute("main", Seq(q"TApp(TApp($plus, TApp($succ, $three)), $one)"))
     fun.printMatches("main")
   }
+
+
+
+  test("Accessing Parent of ADT") {
+    val code = {
+      s"""module ParentAccess
+         |data Nat = Zero() | Succ(Nat)
+         |
+         |@main def main(): Option[Any] =
+         | let x = Zero() in
+         |   let y = Succ(x) in
+         |     parent(x)
+         |
+         |@main def main2(x: Nat): Option[Any] = x match {
+         |  case Zero() => None
+         |  case Succ(p) => p match {
+         |    case Zero() => None
+         |    case Succ(pp) => parent(pp)
+         |  }
+         |}
+         |""".stripMargin
+    }
+    val fun = loadFunction(code)
+    val res1 = fun.execute("main", Seq())
+    println(res1)
+
+    val res2 = fun.execute("main2", Seq(q"Succ(Succ(Zero()))"))
+    fun.printResult(res2)
+    val res3 = fun.execute("main2", Seq(q"Zero()"))
+    fun.printResult(res3)
+  }
 }

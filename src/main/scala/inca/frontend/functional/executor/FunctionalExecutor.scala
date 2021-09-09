@@ -202,7 +202,7 @@ import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExt
 import inca.compiler.{CompiledModule, Compiler}
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.runtime.context.QueryScope
-import inca.runtime.db.Database
+import inca.runtime.db.{DBValue, Database, DatabaseInspector}
 import inca.runtime.{EnginePool, Query}
 import inca.util.Scala.ScalaCompiler
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
@@ -336,6 +336,14 @@ object FunctionalExecutor {
     def resultVals[T](res: T*): Results[T] = results(Seq(res))
     def resultVal[T](res: T): Results[T] = results(Seq(Seq(res)))
     def result(res: meta.Term*): Results[AnyRef] = results(Seq(vals(res:_*)))
+
+    def printResult(res: Results[AnyRef]): Unit = {
+      val db = DatabaseInspector(feed)
+      res.res.foreach { tuple =>
+        val tupleStrings = tuple.map { v => DBValue.prettyPrint(v, db) }
+        println(tupleStrings.mkString(", "))
+      }
+    }
   }
 
 
