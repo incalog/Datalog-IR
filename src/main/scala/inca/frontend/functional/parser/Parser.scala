@@ -67,7 +67,7 @@ trait Parser {
   protected[frontend] def wideExp[_: P]: P[Expression] =
     P(ifExp | letExp | memberExp | infixExp)
   protected[frontend] def infixExp[_: P]: P[Expression] =
-    P(baseApplyInfixExp | matchExp | subinfixExp)
+    P(typeCastExp | baseApplyInfixExp | matchExp | subinfixExp)
   protected[frontend] def subinfixExp[_: P]: P[Expression] =
     P(callExp | lambdaExp | atomicExp)
   protected[frontend] def atomicExp[_: P]: P[Expression] =

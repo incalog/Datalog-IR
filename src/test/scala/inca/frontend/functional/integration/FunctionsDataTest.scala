@@ -176,6 +176,22 @@ class FunctionsDataTest extends AnyFunSuite {
   }
 
 
+  test("type cast of ADT") {
+    val code = {
+      s"""module ParentAccess
+         |data Nat = Zero() | Succ(Nat)
+         |data Bool = True() | False()
+         |
+         |@main def main(x: Any): Nat =
+         | let nat = x.as[Nat] in nat
+         |""".stripMargin
+    }
+    val fun = loadFunction(code)
+    assert(fun.execute("main", Seq(q"Zero()")).res.nonEmpty)
+    assert(fun.execute("main", Seq(q"Succ(Succ(Zero()))")).res.nonEmpty)
+    assert(fun.execute("main", Seq(q"1")).res.isEmpty)
+    assert(fun.execute("main", Seq(q"True()")).res.isEmpty)
+  }
 
   test("Accessing Parent of ADT") {
     val code = {

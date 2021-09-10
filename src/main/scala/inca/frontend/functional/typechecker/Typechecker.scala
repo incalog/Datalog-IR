@@ -131,7 +131,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         }
         typecheck(body)
       }
-
+    case TypeCast(e, ty) =>
+      val ety = typecheck(e)
+      if (meet(ety, ty) == TNothing)
+        error(s"Type cast of ${ty} is not compatible with inferred type ${ety} of e", exp)
+      ty
     case If(cnd, thn, els) =>
       val cty = typecheck(cnd)
       if (!subtype(cty, TScalaBoolean))

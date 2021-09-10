@@ -130,6 +130,11 @@ class GenerateDatalog(module: Module) {
           val eqs = vars.zip(boundTerms).map(vt => Datalog.Eq(vt._1, vt._2))
           (bodyTerm, boundCons ++ eqs ++ bodyCons)
         }
+    case TypeCast(e, ty) =>
+      for ((Seq(eTerm), eCons) <- transExp(e)) yield {
+        val instanceCall = Datalog.Call(ty.toString, Seq(eTerm))
+        (Seq(eTerm), eCons :+ instanceCall)
+      }
 
     case If(cnd, thn, els) =>
       val condTrans = transExp(cnd)

@@ -91,6 +91,16 @@ case class If(cnd: Expression, thn: Expression, els: Expression) extends Express
   }
 }
 
+case class TypeCast(exp: Expression, ty: Type) extends Expression {
+  override def vars: Map[Name, Option[Type]] = exp.vars
+  override def freevars: Seq[Var] = exp.freevars
+  override def freeTvars: Seq[TData] = super.freeTvars ++ exp.freeTvars
+  override def calls: Set[Call] = exp.calls
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    s"${exp.prettyprint(infixParens)}.as[${ty.prettyprint}]"
+  }
+}
+
 
 case class Call(fun: Expression, args: Seq[Expression], transitive: Boolean = false) extends Expression {
   override def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
