@@ -96,6 +96,11 @@ trait Parser {
       case (cond, thn, els) => If(cond, thn, els)
     }
 
+  protected[frontend] def typeCastExp[_: P]: P[TypeCast] =
+    P(subinfixExp ~~ ".as[" ~ tData ~ "]") mapWithLoc {
+      case (e, ty) => TypeCast(e, ty)
+    }
+
   protected[frontend] def callExp[_: P]: P[Expression] =
     P(atomicExp ~ ("(" ~ exp.rep(sep = ",") ~ ")").rep(1)).mapWithLoc {
       case (fun, argLists) => argLists.foldLeft(fun)((exp, args) => Call(exp, args))
