@@ -7,7 +7,7 @@ import inca.backend.ir.Datalog.BodyMustFail
 import inca.backend.souffle.GenerateSouffle.{hasTypeRel, pathRel}
 import inca.frontend.functional
 import inca.frontend.functional.core.{DataConstructor, DataDef, TData}
-import inca.frontend.souffle.Syntax._
+import inca.frontend.souffle.Souffle._
 import inca.runtime.context.DataModel
 import inca.util.TupleOps
 import truechange.{AnyType, Attach, Detach, EditScript, Load, NamedLink, NamedTag, RootLink, SortType, URI, Unload, Update}

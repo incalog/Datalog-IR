@@ -50,8 +50,8 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
     val psModule = compiledModule.psystemModule
     val startLoadFactFiles = System.currentTimeMillis()
     val edits = compiledModule.inputs.flatMap { case (sig, input) =>
-      val inputCompiler = new SouffleInputToEditscript(s"$benchmarkPath/minijavac")
-      val editScript = inputCompiler.compile(input, sig)
+      val inputCompiler = new SouffleInputToEditscript()
+      val editScript = inputCompiler.compile(s"$benchmarkPath/minijavac", input, sig)
       editScript.edits
     }
     val endLoadFactFiles = System.currentTimeMillis()

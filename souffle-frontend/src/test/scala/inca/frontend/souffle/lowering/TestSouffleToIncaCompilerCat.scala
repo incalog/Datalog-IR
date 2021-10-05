@@ -2,7 +2,7 @@ package inca.frontend.souffle.lowering
 
 import inca.compiler.Options
 import inca.frontend.souffle.parser.Parser
-import inca.frontend.souffle.Syntax
+import inca.frontend.souffle.Souffle
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.matchers.IncaGPMatchers
 import org.scalatest.flatspec.AnyFlatSpec
@@ -46,20 +46,20 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaGPMatchers {
   val options: Options = compiledModule.options
 
 
-  val _MethodSig = Syntax.RuleSignature("_Method", Seq(
-    Syntax.RuleParameter("?method", Syntax.SymbolType),
-    Syntax.RuleParameter("?simplename", Syntax.SymbolType),
-    Syntax.RuleParameter("?descriptor", Syntax.SymbolType),
-    Syntax.RuleParameter("?declaringType", Syntax.SymbolType),
-    Syntax.RuleParameter("?returnType", Syntax.SymbolType),
-    Syntax.RuleParameter("?jvmDescriptor", Syntax.SymbolType),
-    Syntax.RuleParameter("?arity", Syntax.NumberType)),
+  val _MethodSig = Souffle.RuleSignature("_Method", Seq(
+    Souffle.RuleParameter("?method", Souffle.SymbolType),
+    Souffle.RuleParameter("?simplename", Souffle.SymbolType),
+    Souffle.RuleParameter("?descriptor", Souffle.SymbolType),
+    Souffle.RuleParameter("?declaringType", Souffle.SymbolType),
+    Souffle.RuleParameter("?returnType", Souffle.SymbolType),
+    Souffle.RuleParameter("?jvmDescriptor", Souffle.SymbolType),
+    Souffle.RuleParameter("?arity", Souffle.NumberType)),
     false)
 
   "compiled souffle" should "derive method descriptor correctly" in {
     val superclasses =
       "<sun.security.provider.MD4: int FF(int,int,int,int,int,int)>;FF;int,int,int,int,int,int;sun.security.provider.MD4;int;(IIIIII)I;6"
-    val factsCompiler = new SouffleInputToEditscript("EMPTY")
+    val factsCompiler = new SouffleInputToEditscript()
     val edit = factsCompiler.compile(superclasses.split("\n").iterator, _MethodSig, ";")
 
     assertMatch(compiledModule.ir, "Method_Descriptor", edit) { matcher =>

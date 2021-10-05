@@ -1,111 +1,111 @@
 package inca.frontend.souffle.parser
 
-import inca.frontend.souffle.Syntax
+import inca.frontend.souffle.Souffle
 
 // TODO currently only supports a subset of souffle which is needed to load a specific file
 object Parser {
   import fastparse.{parse => _, _}
   import JavaWhitespace._
 
-  def parse(code: ParserInput): Syntax.SouffleModule = {
+  def parse(code: ParserInput): Souffle.Module = {
     import fastparse.Parsed
 
     fastparse.parse(code, Analysis(_), verboseFailures = true) match {
-      case Parsed.Success(value, _) => Syntax.SouffleModule(value)
+      case Parsed.Success(value, _) => Souffle.Module(value)
       case fail: Parsed.Failure =>
         throw new IllegalArgumentException(s"Parsing Error: ${fail.trace(true).longTerminalsMsg}")
     }
   }
 
-  def Analysis[_: P]: P[Seq[Syntax.SouffleContent]] =
+  def Analysis[_: P]: P[Seq[Souffle.SouffleContent]] =
     P(Start ~ AnalysisContent.rep ~ End)
 
-  def AnalysisContent[_: P]: P[Syntax.SouffleContent] =
+  def AnalysisContent[_: P]: P[Souffle.SouffleContent] =
     P(ComponentInitialization | ComponentDefinition | TypeDeclaration |
       RuleSignature | Input | RuleDefinition | Output | PrintSize
     )
 
-  def ComponentInitialization[_: P]: P[Syntax.ComponentInitialization] =
-    P(".init" ~ identifier ~ "=" ~ identifier).map(Syntax.ComponentInitialization.tupled)
+  def ComponentInitialization[_: P]: P[Souffle.ComponentInitialization] =
+    P(".init" ~ identifier ~ "=" ~ identifier).map(Souffle.ComponentInitialization.tupled)
 
-  def ComponentDefinition[_: P]: P[Syntax.ComponentDefinition] =
-    P(".comp" ~ identifier ~ "{" ~ AnalysisContent.rep ~ "}").map(Syntax.ComponentDefinition.tupled)
+  def ComponentDefinition[_: P]: P[Souffle.ComponentDefinition] =
+    P(".comp" ~ identifier ~ "{" ~ AnalysisContent.rep ~ "}").map(Souffle.ComponentDefinition.tupled)
 
-  def TypeDeclaration[_: P]: P[Syntax.TypeDeclaration] =
-    P(".type" ~ identifier ~ ("=" ~ DeclaredType).?).map(Syntax.TypeDeclaration.tupled)
+  def TypeDeclaration[_: P]: P[Souffle.TypeDeclaration] =
+    P(".type" ~ identifier ~ ("=" ~ DeclaredType).?).map(Souffle.TypeDeclaration.tupled)
 
-  def RuleSignature[_: P]: P[Syntax.RuleSignature] =
+  def RuleSignature[_: P]: P[Souffle.RuleSignature] =
     P(".decl" ~ identifier ~ "(" ~ RuleParameter.rep(1, sep = ",") ~ ")" ~ "output".!.?).map {
-      case (rule, params, output) => Syntax.RuleSignature(rule, params, output.isDefined)
+      case (rule, params, output) => Souffle.RuleSignature(rule, params, output.isDefined)
     }
-  def RuleParameter[_: P]: P[Syntax.RuleParameter] =
-    P(identifier ~ ":" ~ Type).map(Syntax.RuleParameter.tupled)
+  def RuleParameter[_: P]: P[Souffle.RuleParameter] =
+    P(identifier ~ ":" ~ Type).map(Souffle.RuleParameter.tupled)
 
-  def Output[_: P]: P[Syntax.Output] =
-    P(".output" ~ identifier).map(Syntax.Output)
+  def Output[_: P]: P[Souffle.Output] =
+    P(".output" ~ identifier).map(Souffle.Output)
 
-  def PrintSize[_: P]: P[Syntax.PrintSize] =
-    P(".printsize" ~ identifier).map(Syntax.PrintSize)
+  def PrintSize[_: P]: P[Souffle.PrintSize] =
+    P(".printsize" ~ identifier).map(Souffle.PrintSize)
 
-  def Input[_: P]: P[Syntax.Input] =
+  def Input[_: P]: P[Souffle.Input] =
     P(".input" ~ identifier ~ "(" ~
       "IO" ~ "=" ~ "\"file\"" ~
       "," ~
       "filename" ~ "=" ~ string ~
       "," ~
       "delimiter" ~ "=" ~ string ~
-    ")").map(Syntax.Input.tupled)
+    ")").map(Souffle.Input.tupled)
 
   def Plan[_: P]: P[Unit] =
     P(".plan" ~ decimalinteger ~ "(" ~ decimalinteger.rep(sep = ",") ~ ")")
 
-  def RuleDefinition[_: P]: P[Syntax.RuleDefinition] =
-    P(RuleHead.rep(min = 1, sep = ",") ~ ":-" ~ Statement.rep(min = 1, sep = ",") ~ ".").map(Syntax.RuleDefinition.tupled)
+  def RuleDefinition[_: P]: P[Souffle.RuleDefinition] =
+    P(RuleHead.rep(min = 1, sep = ",") ~ ":-" ~ Statement.rep(min = 1, sep = ",") ~ ".").map(Souffle.RuleDefinition.tupled)
 
-  def RuleHead[_: P]: P[Syntax.RuleHead] =
-    P(identifier ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").map(Syntax.RuleHead.tupled)
+  def RuleHead[_: P]: P[Souffle.RuleHead] =
+    P(identifier ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").map(Souffle.RuleHead.tupled)
 
-  def Statement[_: P]: P[Syntax.Statement] =
+  def Statement[_: P]: P[Souffle.Statement] =
     P(RuleApplication | Equality | Parens )
-  def RuleApplication[_: P]: P[Syntax.RuleApplication] =
+  def RuleApplication[_: P]: P[Souffle.RuleApplication] =
     P("!".!.? ~ (identifier ~ ".").? ~ identifier ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").map {
-      case (neg, comp, ruleName, args) => Syntax.RuleApplication(neg.isDefined, comp, ruleName, args)
+      case (neg, comp, ruleName, args) => Souffle.RuleApplication(neg.isDefined, comp, ruleName, args)
     }
-  def Equality[_: P]: P[Syntax.Equality] =
+  def Equality[_: P]: P[Souffle.Equality] =
     P(Expression ~ ("!=" | "=").! ~ Expression).map {
-      case (left, compare, right) => Syntax.Equality(left, compare == "!=", right)
+      case (left, compare, right) => Souffle.Equality(left, compare == "!=", right)
     }
-  def Parens[_: P]: P[Syntax.Statement] =
-    P("(" ~ Statement ~ ")").map(Syntax.Parens)
+  def Parens[_: P]: P[Souffle.Statement] =
+    P("(" ~ Statement ~ ")").map(Souffle.Parens)
 
 
-  def Expression[_: P]: P[Syntax.Expression] =
+  def Expression[_: P]: P[Souffle.Expression] =
     P(Any | BuiltInFunctionCall | Variable | StringValue | NumberValue)
-  def Variable[_: P]: P[Syntax.Variable] =
-    P(identifier).map(Syntax.Variable)
-  def StringValue[_: P]: P[Syntax.StringValue] =
-    P(string).map(Syntax.StringValue)
-  def NumberValue[_: P]: P[Syntax.NumberValue] =
-    P(decimalinteger).map(Syntax.NumberValue)
-  def Any[_: P]: P[Syntax.Wildcard.type] =
-    P("_").map(_ => Syntax.Wildcard)
-  def BuiltInFunctionCall[_: P]: P[Syntax.BuiltInFunctionCall] =
-    P(BuiltInFunction ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").map(Syntax.BuiltInFunctionCall.tupled)
+  def Variable[_: P]: P[Souffle.Variable] =
+    P(identifier).map(Souffle.Variable)
+  def StringValue[_: P]: P[Souffle.StringValue] =
+    P(string).map(Souffle.StringValue)
+  def NumberValue[_: P]: P[Souffle.NumberValue] =
+    P(decimalinteger).map(Souffle.NumberValue)
+  def Any[_: P]: P[Souffle.Wildcard.type] =
+    P("_").map(_ => Souffle.Wildcard)
+  def BuiltInFunctionCall[_: P]: P[Souffle.BuiltInFunctionCall] =
+    P(BuiltInFunction ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").map(Souffle.BuiltInFunctionCall.tupled)
 
 
-  def BuiltInFunction[_: P]: P[Syntax.BuiltInFunction] = CatBuiltInFunction
-  def CatBuiltInFunction[_: P]: P[Syntax.CatBuiltInFunction.type] = P("cat").map(_ => Syntax.CatBuiltInFunction)
+  def BuiltInFunction[_: P]: P[Souffle.BuiltInFunction] = CatBuiltInFunction
+  def CatBuiltInFunction[_: P]: P[Souffle.CatBuiltInFunction.type] = P("cat").map(_ => Souffle.CatBuiltInFunction)
 
 
-  def Type[_: P]: P[Syntax.Type] =
+  def Type[_: P]: P[Souffle.Type] =
     P(SymbolType | NumberType | UnsignedType | FloatType | DeclaredType)
 
-  def DeclaredType[_: P]: P[Syntax.DeclaredType] = P(identifier).map(Syntax.DeclaredType)
+  def DeclaredType[_: P]: P[Souffle.DeclaredType] = P(identifier).map(Souffle.DeclaredType)
 
-  def SymbolType[_: P]: P[Syntax.SymbolType.type] = P("symbol").map(_ => Syntax.SymbolType)
-  def NumberType[_: P]: P[Syntax.NumberType.type] = P("number").map(_ => Syntax.NumberType)
-  def UnsignedType[_: P]: P[Syntax.UnsignedType.type] = P("unsigned").map(_ => Syntax.UnsignedType)
-  def FloatType[_: P]: P[Syntax.FloatType.type] = P("float").map(_ => Syntax.FloatType)
+  def SymbolType[_: P]: P[Souffle.SymbolType.type] = P("symbol").map(_ => Souffle.SymbolType)
+  def NumberType[_: P]: P[Souffle.NumberType.type] = P("number").map(_ => Souffle.NumberType)
+  def UnsignedType[_: P]: P[Souffle.UnsignedType.type] = P("unsigned").map(_ => Souffle.UnsignedType)
+  def FloatType[_: P]: P[Souffle.FloatType.type] = P("float").map(_ => Souffle.FloatType)
 
 
   def identifier[_: P]: P[String] = P( (letter | "_" | "?")  ~~ (letter | digit | "_").repX).!.filter(_ != "_")

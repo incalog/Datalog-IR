@@ -1,7 +1,7 @@
 package inca.frontend.souffle.lowering
 
 import inca.compiler.Options
-import inca.frontend.souffle.Syntax
+import inca.frontend.souffle.Souffle
 import inca.frontend.souffle.parser.Parser
 import inca.runtime.context.QueryScope
 import inca.util.matchers.IncaGPMatchers
@@ -36,9 +36,9 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
       |""".stripMargin
 
   val directsuperclassSig =
-    Syntax.RuleSignature("DirectSuperclass", Seq(
-      Syntax.RuleParameter("?class", Syntax.DeclaredType("ClassType")),
-      Syntax.RuleParameter("?superclass", Syntax.DeclaredType("ClassType"))), false)
+    Souffle.RuleSignature("DirectSuperclass", Seq(
+      Souffle.RuleParameter("?class", Souffle.DeclaredType("ClassType")),
+      Souffle.RuleParameter("?superclass", Souffle.DeclaredType("ClassType"))), false)
 
   lazy val compiledModule = {
     val ast = Parser.parse(subclassTransitiveClosure.linesIterator)
@@ -54,7 +54,7 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
     val superclasses =
       """A B
         |E G""".stripMargin
-    val factsCompiler = new SouffleInputToEditscript("EMPTY")
+    val factsCompiler = new SouffleInputToEditscript()
     val directsuperclassEdits = factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
 
     assertMatch(compiledModule.ir, "Superclass", directsuperclassEdits) { matcher =>
@@ -66,7 +66,7 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
     val superclasses =
       """A B
         |B C""".stripMargin
-    val factsCompiler = new SouffleInputToEditscript("EMPTY")
+    val factsCompiler = new SouffleInputToEditscript()
     val directsuperclassEdits = factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
 
     assertMatch(compiledModule.ir, "Superclass", directsuperclassEdits) { matcher =>
@@ -79,7 +79,7 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
       """A B
         |B C
         |C D""".stripMargin
-    val factsCompiler = new SouffleInputToEditscript("EMPTY")
+    val factsCompiler = new SouffleInputToEditscript()
     val directsuperclassEdits = factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
 
     assertMatch(compiledModule.ir, "Superclass", directsuperclassEdits) { matcher =>
@@ -93,7 +93,7 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
         |B C
         |C D
         |D E""".stripMargin
-    val factsCompiler = new SouffleInputToEditscript("EMPTY")
+    val factsCompiler = new SouffleInputToEditscript()
     val directsuperclassEdits = factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
 
     assertMatch(compiledModule.ir, "Superclass", directsuperclassEdits) { matcher =>
@@ -108,7 +108,7 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
         |C D
         |D E
         |E F""".stripMargin
-    val factsCompiler = new SouffleInputToEditscript("EMPTY")
+    val factsCompiler = new SouffleInputToEditscript()
     val directsuperclassEdits = factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
 
     assertMatch(compiledModule.ir, "Superclass", directsuperclassEdits) { matcher =>

@@ -1,7 +1,7 @@
 package inca.backend.souffle
 
 import inca.examples.functional.{Code, ControlDataFlow}
-import inca.frontend.souffle.Syntax.cleanRuleName
+import inca.frontend.souffle.Souffle.cleanRuleName
 import inca.util.measurement.BenchmarkUtils.writeFile
 import org.scalatest.funsuite.AnyFunSuite
 

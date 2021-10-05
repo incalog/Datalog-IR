@@ -2,8 +2,8 @@ package inca.frontend.souffle.lowering
 
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.frontend.functional.core._
-import inca.frontend.souffle.Syntax
-import inca.frontend.souffle.Syntax.{Expression => _, Type => _, _}
+import inca.frontend.souffle.Souffle
+import inca.frontend.souffle.Souffle.{Expression => _, Type => _, Module => _, _}
 import inca.frontend.souffle.Util.cleanSouffleName
 import inca.frontend.souffle.compiler.CompiledSouffleFrontendModule
 import inca.runtime.context.DataModel.{Link => MLink}
@@ -24,7 +24,7 @@ class SouffleToIncaFrontendCompiler {
 
   val componentDefinitions: mutable.Map[String, ComponentDefinition] = mutable.Map()
 
-  def compile(name: String, analysis: SouffleModule): CompiledSouffleFrontendModule = {
+  def compile(name: String, analysis: Souffle.Module): CompiledSouffleFrontendModule = {
     analysis.contents.foreach(compile(_, ""))
 
     val module = Module(Name(name), Seq(), patFuns.values.toSeq)
@@ -102,7 +102,7 @@ class SouffleToIncaFrontendCompiler {
       printSizes += PrintSize(funPrefix + rule)
   }
 
-  def compile(typ: Syntax.Type): Type = typ match {
+  def compile(typ: Souffle.Type): Type = typ match {
     case DeclaredType(_) => TScalaString
     case SymbolType => TScalaString
     case NumberType => TScalaInt
@@ -110,7 +110,7 @@ class SouffleToIncaFrontendCompiler {
     case FloatType => TScalaDouble
   }
 
-  def getJavaClassForType(typ: Syntax.Type): Class[_] = typ match {
+  def getJavaClassForType(typ: Souffle.Type): Class[_] = typ match {
     case DeclaredType(name) => classOf[java.lang.Integer]
     case SymbolType => classOf[java.lang.Integer]
     case NumberType => classOf[java.lang.Integer]
@@ -118,11 +118,11 @@ class SouffleToIncaFrontendCompiler {
     case FloatType => classOf[java.lang.Double]
   }
 
-  def compile(stm: Syntax.Statement, funPrefix: String)(implicit gensym: Gensym): Expression = stm match {
-    case Syntax.Equality(left, not, right)  =>
+  def compile(stm: Souffle.Statement, funPrefix: String)(implicit gensym: Gensym): Expression = stm match {
+    case Souffle.Equality(left, not, right)  =>
       val op = if (not) "!=" else "=="
       BaseApplyInfix(compile(left), op, compile(right))
-    case Syntax.RuleApplication(negated, component, rule, args) =>
+    case Souffle.RuleApplication(negated, component, rule, args) =>
       if (negated)
         throw new UnsupportedOperationException("Cannot currently support negation, in " + stm)
 
@@ -136,14 +136,14 @@ class SouffleToIncaFrontendCompiler {
       }
   }
 
-  def compile(exp: Syntax.Expression)(implicit gensym: Gensym): Expression = exp match {
-    case Syntax.Variable(name) => Var(cleanSouffleName(name))
-    case Syntax.StringValue(value) => BaseLit(Scala(scala.meta.Lit.String(value.intern())))
-    case Syntax.NumberValue(value) => BaseLit(Scala(scala.meta.Lit.Int(value)))
-    case Syntax.Wildcard =>
+  def compile(exp: Souffle.Expression)(implicit gensym: Gensym): Expression = exp match {
+    case Souffle.Variable(name) => Var(cleanSouffleName(name))
+    case Souffle.StringValue(value) => BaseLit(Scala(scala.meta.Lit.String(value.intern())))
+    case Souffle.NumberValue(value) => BaseLit(Scala(scala.meta.Lit.Int(value)))
+    case Souffle.Wildcard =>
       val fresh = gensym.fresh("wildcard")
       Var(fresh)
-    case Syntax.BuiltInFunctionCall(Syntax.CatBuiltInFunction, arguments) =>
+    case Souffle.BuiltInFunctionCall(Souffle.CatBuiltInFunction, arguments) =>
       val emptyString = BaseLit(Scala(scala.meta.Lit.String("")))
       arguments.foldLeft[Expression](emptyString)((e, arg) => BaseApplyInfix(e, "+", compile(arg)))
     case _ => throw new IllegalArgumentException(s"TODO $exp not supported")
@@ -163,20 +163,20 @@ class SouffleToIncaFrontendCompiler {
 
   def collect(head: RuleHead): Set[String] = head.arguments.flatMap(collect).toSet
 
-  def collect(exp: Syntax.Expression): Set[String] = exp match {
-    case Syntax.Variable(name) => Set(name)
-    case Syntax.StringValue(_) => Set()
-    case Syntax.NumberValue(_) => Set()
-    case Syntax.Wildcard => Set()
-    case Syntax.BuiltInFunctionCall(Syntax.CatBuiltInFunction, arguments) =>
+  def collect(exp: Souffle.Expression): Set[String] = exp match {
+    case Souffle.Variable(name) => Set(name)
+    case Souffle.StringValue(_) => Set()
+    case Souffle.NumberValue(_) => Set()
+    case Souffle.Wildcard => Set()
+    case Souffle.BuiltInFunctionCall(Souffle.CatBuiltInFunction, arguments) =>
       Set("cat") ++ arguments.flatMap(collect)
   }
 
-  def collect(stm: Syntax.Statement): Set[String] = stm match {
-    case Syntax.RuleApplication(negated, component, rule, arguments) =>
+  def collect(stm: Souffle.Statement): Set[String] = stm match {
+    case Souffle.RuleApplication(negated, component, rule, arguments) =>
       Set(rule) ++ arguments.flatMap(collect)
-    case Syntax.Equality(left, _, right) => collect(left) ++ collect(right)
-    case Syntax.Parens(stm) => collect(stm)
+    case Souffle.Equality(left, _, right) => collect(left) ++ collect(right)
+    case Souffle.Parens(stm) => collect(stm)
   }
 }
 

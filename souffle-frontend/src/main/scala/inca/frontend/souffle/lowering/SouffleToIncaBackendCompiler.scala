@@ -3,8 +3,8 @@ package inca.frontend.souffle.lowering
 import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Datalog._
 import inca.frontend.constraint.compiler.ConstraintOptions
-import inca.frontend.souffle.Syntax
-import inca.frontend.souffle.Syntax.{Type => _, _}
+import inca.frontend.souffle.Souffle
+import inca.frontend.souffle.Souffle.{Type => _, Module => _, _}
 import inca.frontend.souffle.Util.cleanSouffleName
 import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.runtime.context.DataModel
@@ -28,7 +28,7 @@ class SouffleToIncaBackendCompiler {
 
   val componentDefinitions: mutable.Map[String, ComponentDefinition] = mutable.Map()
 
-  def compile(name: String, analysis: SouffleModule): CompiledSouffleModule = {
+  def compile(name: String, analysis: Souffle.Module): CompiledSouffleModule = {
     analysis.contents.foreach(compile(_, ""))
 
     val module = Module(name, Seq(), patFuns.values.toSeq, Seq())
@@ -110,7 +110,7 @@ class SouffleToIncaBackendCompiler {
   def compile(param: RuleParameter): Param =
     Param(cleanSouffleName(param.name), compile(param.typ))
 
-  def compile(typ: Syntax.Type): Type = typ match {
+  def compile(typ: Souffle.Type): Type = typ match {
     case DeclaredType(_) => TLiteral.String
     case SymbolType => TLiteral.String
     case NumberType => TLiteral.Int
@@ -118,7 +118,7 @@ class SouffleToIncaBackendCompiler {
     case FloatType => TLiteral.Double
   }
 
-  def getJavaClassForType(typ: Syntax.Type): Class[_] = typ match {
+  def getJavaClassForType(typ: Souffle.Type): Class[_] = typ match {
     case DeclaredType(name) => classOf[java.lang.Integer]
     case SymbolType => classOf[java.lang.Integer]
     case NumberType => classOf[java.lang.Integer]
@@ -126,7 +126,7 @@ class SouffleToIncaBackendCompiler {
     case FloatType => classOf[java.lang.Double]
   }
 
-  def compile(stm: Syntax.Statement, funPrefix: String)(implicit gensym: Gensym): Seq[Atom] = stm match {
+  def compile(stm: Souffle.Statement, funPrefix: String)(implicit gensym: Gensym): Seq[Atom] = stm match {
     case Equality(left, not, right) if !not =>
       val (lhterm, lhConstraints) = compile(left)
       val (rhterm, rhConstraints) = compile(right)
@@ -146,7 +146,7 @@ class SouffleToIncaBackendCompiler {
       constraints.flatten :+ call
   }
 
-  def compile(exp: Syntax.Expression)(implicit gensym: Gensym): (Term, Seq[Atom]) = exp match {
+  def compile(exp: Souffle.Expression)(implicit gensym: Gensym): (Term, Seq[Atom]) = exp match {
     case Variable(name) => (Var(cleanSouffleName(name)), Seq())
     case StringValue(value) =>
        (Constant(StringLiteral(value.intern)), Seq())
@@ -155,7 +155,7 @@ class SouffleToIncaBackendCompiler {
 //      val computed = Computed(trgVar, ConstantEvaluation(TUnbounded(TString), funString))
 //      (trgVar, Seq(computed))
     case NumberValue(value) => (Constant(IntLiteral(value)), Seq())
-    case Syntax.Wildcard =>
+    case Souffle.Wildcard =>
       val fresh = gensym.fresh("wildcard")
       (Var(fresh), Seq())
     case BuiltInFunctionCall(CatBuiltInFunction, arguments) =>
@@ -170,15 +170,15 @@ class SouffleToIncaBackendCompiler {
     case _ => throw new IllegalArgumentException(s"TODO $exp not supported")
   }
 
-  def collectParams(exp: Syntax.Expression): Seq[Term] = exp match {
+  def collectParams(exp: Souffle.Expression): Seq[Term] = exp match {
     case Variable(name) => Seq(Var(cleanSouffleName(name)))
     case StringValue(_) => Seq()
     case NumberValue(_) => Seq()
     case BuiltInFunctionCall(_, args) => args.flatMap(collectParams)
-    case Syntax.Wildcard => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
+    case Souffle.Wildcard => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
   }
 
-  def compileEval(exp: Syntax.Expression): meta.Term = exp match {
+  def compileEval(exp: Souffle.Expression): meta.Term = exp match {
     case Variable(name) => scala.meta.Term.Name(cleanSouffleName(name))
     case StringValue(value) =>  scala.meta.Lit.String(value)
     case NumberValue(value) => scala.meta.Lit.String(value.toString)
@@ -186,7 +186,7 @@ class SouffleToIncaBackendCompiler {
       val lhs = compileEval(args.head)
       val rhs = compileEval((args(1)))
       q"$lhs + $rhs"
-    case Syntax.Wildcard => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
+    case Souffle.Wildcard => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
   }
 
   def genLitLinks: Map[MLink, LitType] =
@@ -207,7 +207,7 @@ class SouffleToIncaBackendCompiler {
     case Variable(name) => Set(name)
     case StringValue(_) => Set()
     case NumberValue(_) => Set()
-    case Syntax.Wildcard => Set()
+    case Souffle.Wildcard => Set()
     case BuiltInFunctionCall(_, arguments) =>
       // TODO only cat function supported
       Set("cat") ++ arguments.flatMap(collect)

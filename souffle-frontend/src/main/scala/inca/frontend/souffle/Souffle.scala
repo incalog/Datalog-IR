@@ -1,8 +1,8 @@
 package inca.frontend.souffle
 
-object Syntax {
+object Souffle {
 
-  case class SouffleModule(contents: Seq[SouffleContent])
+  case class Module(contents: Seq[SouffleContent])
 
   sealed trait SouffleContent
   case class ComponentInitialization(name: String, composite: String) extends SouffleContent
