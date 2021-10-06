@@ -4,6 +4,7 @@ import inca.frontend.functionalxsouffle.executor.FunctionalXSouffleExecutor
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.io.Source
+import scala.meta.XtensionQuasiquoteTerm
 
 class CloneDetectionTest extends AnyFunSuite {
   // x = 1 +2
@@ -31,10 +32,12 @@ class CloneDetectionTest extends AnyFunSuite {
   (x, y, z) in assignBinOp
    */
 
+  // BinOp: Instruction x
+
   val funCode: String =
     s"""module CloneDetection
        |
-       |data Exp = Num(Int)
+       |data Exp = NumLit(String)
        |         | Var(String)
        |         | BinOp(String, Exp, Exp)
        |         | UnOp(String, Exp)
@@ -50,9 +53,22 @@ class CloneDetectionTest extends AnyFunSuite {
        |//          | Return()
        |
        |
-       |// def genExp(instr: Instruction): Exp = Num(1)
+       |def assignExp(v: String): Set[Exp] =
+       |  { BinOp(op, left, right) |
+       |      (inst, idx, v, meth) in _AssignBinop,
+       |      (inst, op) in _OperatorAt,
+       |      left in getOperand(inst, 1),
+       |      right in getOperand(inst, 2)
+       |  } ++ {
+       |    NumLit(num) | (inst, idx, num, v, meth) in _AssignNumConstant
+       |  }
        |
-       |@main def main(): Set[String] = { op | (ins, op) in _OperatorAt }
+       |def getOperand(inst: String, pos: Int): Set[Exp] =
+       |  { NumLit(num) | (inst, pos, num) in _AssignOperFromConstant } ++
+       |  { exp | (inst, pos, var) in _AssignOperFrom, exp in assignExp(var) }
+       |
+       |// @main def main(): Set[String] = { op | (ins, op) in _OperatorAt }
+       |@main def main(v: String): Set[Exp] = { exp | exp in assignExp(v) }
        |""".stripMargin
 
   val baseDir = s"souffle-frontend/doop-context-insensitive"
@@ -64,7 +80,9 @@ class CloneDetectionTest extends AnyFunSuite {
 
 
     val fun = FunctionalXSouffleExecutor.loadFunction(funCode, souffleCode)
-    val res = fun.execute("main", Seq(), s"$baseDir/database-simple-add", false)
+//    val res = fun.execute("main", Seq(q""""<Main: void main(java.lang.String[])>/x#_3""""), s"$baseDir/database-simple-add", false)
+
+    val res = fun.execute("main", Seq(q""""<Main: void main(java.lang.String[])>/y#_4""""), s"$baseDir/database-simple-add", false)
     println(res)
   }
 }
