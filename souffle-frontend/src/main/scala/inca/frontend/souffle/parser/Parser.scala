@@ -48,13 +48,19 @@ object Parser {
     P(".printsize" ~ identifier).map(Souffle.PrintSize)
 
   def Input[_: P]: P[Souffle.Input] =
-    P(".input" ~ identifier ~ "(" ~
-      "IO" ~ "=" ~ "\"file\"" ~
-      "," ~
-      "filename" ~ "=" ~ string ~
-      "," ~
-      "delimiter" ~ "=" ~ string ~
-    ")").map(Souffle.Input.tupled)
+    P(".input" ~ identifier ~ ("(" ~ InputOption.rep(min = 1, sep = ",") ~")").?).map {
+      case (name, Some(options)) =>
+        val optMap = options.toMap
+        val path = optMap.getOrElse("filename", s"${name}.facts")
+        val delim = optMap.getOrElse("delimiter", "\t")
+        Souffle.Input(name, path, delim)
+      case (name, None) => Souffle.Input(name, s"${name}.facts", "\t")
+    }
+
+  def InputOption[_: P]: P[(String, String)] = P(InputType | InputPath | InputDelimiter)
+  def InputType[_: P]: P[(String, String)] = P("IO".! ~ "=" ~ "\"file\"".!)
+  def InputPath[_: P]: P[(String, String)] = P("filename".! ~ "=" ~ string)
+  def InputDelimiter[_:  P]: P[(String, String)] = P("delimiter".! ~ "=" ~ string)
 
   def Plan[_: P]: P[Unit] =
     P(".plan" ~ decimalinteger ~ "(" ~ decimalinteger.rep(sep = ",") ~ ")")

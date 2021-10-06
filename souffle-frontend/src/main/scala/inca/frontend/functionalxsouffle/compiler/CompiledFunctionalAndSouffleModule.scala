@@ -61,7 +61,10 @@ case class CompiledFunctionalAndSouffleModule(fun: Module, souffle: Souffle.Modu
     module
   }
 
-  lazy val (souffleIR, souffleDatamodel): (Datalog.Module, DataModel) = {
+  lazy val (
+    souffleIR,
+    souffleDatamodel,
+    souffleInputs): (Datalog.Module, DataModel, Seq[(Souffle.RuleSignature, Souffle.Input)]) = {
     val module = new SouffleToIncaBackendCompiler().compile("SouffleIR", souffle)
     if (CompilerFlags.DEBUGMODE) {
       println(s"Souffle Intermediate Representation")
@@ -70,7 +73,7 @@ case class CompiledFunctionalAndSouffleModule(fun: Module, souffle: Souffle.Modu
     // We want to avoid generate input relations for all external relations
     val transPats = module.ir.pats.map(_.addHint(MagicSetHints.NoInputRelation))
     val transModuleIR = Datalog.Module(module.ir.name, module.ir.imports, transPats, module.ir.scalaContent)
-    (transModuleIR, module.dataModel)
+    (transModuleIR, module.dataModel, module.inputs)
   }
 
   lazy val ir: Datalog.Module = {

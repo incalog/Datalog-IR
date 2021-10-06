@@ -1,0 +1,329 @@
+// Keep information.
+.decl KeepMethod(?m:Method)
+.decl KeepClassMembers(?m:Method)
+.decl KeepClassesWithMembers(?m:Method)
+.decl KeepClass(?c:ReferenceType)
+.decl RootCodeElement(?id:symbol)
+
+.input KeepMethod(filename="KeepMethod.facts")
+.input KeepClassMembers(filename="KeepClassMembers.facts")
+.input KeepClassesWithMembers(filename="KeepClassesWithMembers.facts")
+.input KeepClass(filename="KeepClass.facts")
+.input RootCodeElement(filename="RootCodeElement.facts")
+
+.decl _ClassType(?class:ClassType)
+.input _ClassType(filename="ClassType.facts")
+
+
+.decl _ArrayType(?arrayType:ArrayType)
+.input _ArrayType(filename="ArrayType.facts")
+
+.decl _InterfaceType(?interface:InterfaceType)
+.input _InterfaceType(filename="InterfaceType.facts")
+
+.decl _ComponentType(?arrayType:ArrayType, ?componentType:Type)
+.input _ComponentType(filename="ComponentType.facts")
+
+.decl _ActualParam(?index:number, ?invocation:MethodInvocation, ?var:Var)
+.input _ActualParam(filename="ActualParam.facts")
+
+.decl _BootstrapParam(?index:number, ?invocation:MethodInvocation, ?var:Var)
+.input _BootstrapParam(filename="BootstrapParam.facts")
+
+.decl _DirectSuperinterface(?class:ReferenceType, ?interface:InterfaceType)
+.input _DirectSuperinterface(filename="DirectSuperinterface.facts")
+
+.decl _DirectSuperclass(?class:ClassType, ?superclass:ClassType)
+.input _DirectSuperclass(filename="DirectSuperclass.facts")
+
+.decl _Field_Modifier(?modifier:Modifier, ?field:Field)
+.input _Field_Modifier(filename="Field-Modifier.facts")
+
+.decl _ClassModifier(?modifier:Modifier, ?class:ReferenceType)
+.input _ClassModifier(filename="ClassModifier.facts")
+
+.decl _FormalParam(?index:number, ?method:Method, ?var:Var)
+.input _FormalParam(filename="FormalParam.facts")
+
+.decl _Method_DeclaresException(?exceptionType:ReferenceType, ?method:Method)
+.input _Method_DeclaresException(filename="Method-DeclaresException.facts")
+
+.decl _Method_Modifier(?mod:Modifier, ?method:Method)
+.input _Method_Modifier(filename="Method-Modifier.facts")
+
+.decl _NativeReturnVar(?var:Var, ?method:Method)
+.input _NativeReturnVar(filename="NativeReturnVar.facts")
+
+.decl _Var_Type(?var:Var, ?type:Type)
+.input _Var_Type(filename="Var-Type.facts")
+
+.decl _Var_DeclaringMethod(?var:Var, ?method:Method)
+.input _Var_DeclaringMethod(filename="Var-DeclaringMethod.facts")
+
+.decl _Var_SimpleName(?var:Var, ?simplename:symbol)
+.input _Var_SimpleName(filename="Var-SimpleName.facts")
+
+.decl _ApplicationClass(?type:ReferenceType)
+.input _ApplicationClass(filename="ApplicationClass.facts")
+
+
+.decl _ApplicationPackage(?package:symbol)
+.input _ApplicationPackage(filename="ApplicationPackage.facts")
+
+.decl _ThisVar(?method:Method, ?var:Var)
+.input _ThisVar(filename="ThisVar.facts")
+
+.decl _ExceptionHandler_Previous(?handler:ExceptionHandler, ?previous:ExceptionHandler)
+.input _ExceptionHandler_Previous(filename="ExceptionHandler-Previous.facts")
+
+.decl _AssignReturnValue(?invocation:MethodInvocation, ?to:Var)
+.input _AssignReturnValue(filename="AssignReturnValue.facts")
+
+// Properties
+.decl Properties(?path:StringConstant, ?key:StringConstant, ?value:StringConstant)
+// .input Properties
+
+.decl _OperatorAt(?instruction:Instruction, ?operator:symbol)
+.input _OperatorAt(filename="OperatorAt.facts")
+
+// MainClass
+.decl MainClass(?class:ClassType)
+// .input MainClass
+
+.decl _ClassArtifact(?artifact:symbol, ?className:ReferenceType, ?subArtifact:symbol, ?size:number)
+.input _ClassArtifact(filename="Class-Artifact.facts")
+
+.decl _NormalHeap(?id:NormalHeap, ?type:ReferenceType)
+.input _NormalHeap(filename="NormalHeap.facts")
+
+.decl _StringConstant(?id:StringConstant)
+.input _StringConstant(filename="StringConstant.facts")
+
+.decl _StringRaw(?id:symbol, ?rawId:symbol)
+.input _StringRaw(filename="StringRaw.facts")
+
+.decl _ClassHeap(?id:ClassHeap, ?instanceType:ReferenceType)
+.input _ClassHeap(filename="ClassHeap.facts")
+
+.decl _MethodHandleConstant(?id:MethodHandleConstant, ?method:Method, ?retType:Type, ?paramTypes:symbol, ?arity:number)
+.input _MethodHandleConstant(filename="MethodHandleConstant.facts")
+
+.decl _MethodTypeConstant(?id:MethodTypeConstant, ?arity:number, ?retType:Type, ?paramTypes:symbol)
+.input _MethodTypeConstant(filename="MethodTypeConstant.facts")
+
+.decl _MethodTypeConstantParam(?id:MethodTypeConstant, ?idx:number, ?type:Type)
+.input _MethodTypeConstantParam(filename="MethodTypeConstantParam.facts")
+
+.decl _NativeLibEntryPoint(?lib:symbol, ?function:symbol, ?addr:symbol)
+.input _NativeLibEntryPoint(filename="NativeLibEntryPoint.facts")
+
+.decl _NativeMethodTypeCandidate(?lib:symbol, ?function:symbol, ?descriptor:symbol, ?offset2:number)
+.input _NativeMethodTypeCandidate(filename="NativeMethodTypeCandidate.facts")
+
+.decl _NativeNameCandidate(?lib:symbol, ?function:symbol, ?name:symbol, ?offset1:number)
+.input _NativeNameCandidate(filename="NativeNameCandidate.facts")
+
+.decl _NativeMethodId(?javaMethod:Method, ?nativeId:symbol)
+.input _NativeMethodId(filename="NativeMethodId.facts")
+
+.decl _NativeXRef(?string:symbol, ?lib:symbol, ?function:symbol, ?dataAddr:number)
+.input _NativeXRef(filename="NativeXRef.facts")
+
+
+.decl _EmptyArray(?id:HeapAllocation)
+.input _EmptyArray(filename="EmptyArray.facts")
+
+.decl _ArrayAllocation(?instruction:Instruction, ?pos:number, ?sizeVar:Var)
+.input _ArrayAllocation(filename="ArrayAllocation.facts")
+
+.decl _AssignHeapAllocation(?instruction:AssignHeapAllocation_Insn, ?index:number, ?heap:HeapAllocation, ?to:Var, ?inmethod:Method, ?linenumber:number)
+.input _AssignHeapAllocation(filename="AssignHeapAllocation.facts")
+
+.decl _AssignLocal(?instruction:AssignLocal_Insn, ?index:number, ?from:Var, ?to:Var, ?inmethod:Method)
+.input _AssignLocal(filename="AssignLocal.facts")
+
+.decl _AssignBinop(?instruction:AssignBinop_Insn, ?index:number, ?to:Var, ?inmethod:Method)
+.input _AssignBinop(filename="AssignBinop.facts")
+
+.decl _AssignUnop(?instruction:AssignUnop_Insn, ?index:number, ?to:Var, ?inmethod:Method)
+.input _AssignUnop(filename="AssignUnop.facts")
+
+.decl _AssignOperFrom(?instruction:AssignOper_Insn, ?pos: number, ?from:Var)
+.input _AssignOperFrom(filename="AssignOperFrom.facts")
+
+.decl _AssignOperFromConstant(?instruction:AssignOper_Insn, ?pos: number, ?from:NumConstant)
+.input _AssignOperFromConstant(filename="AssignOperFromConstant.facts")
+
+.decl _IfConstant(?instruction:If_Insn, ?pos:number, ?cons:NumConstant)
+.input _IfConstant(filename="IfConstant.facts")
+
+.decl _IfVar(?instruction:If_Insn, ?pos:number, ?var:Var)
+.input _IfVar(filename="IfVar.facts")
+
+.decl _DummyIfVar(?instruction:If_Insn, ?var:Var)
+.input _DummyIfVar(filename="DummyIfVar.facts")
+
+.decl _AssignCast(?instruction:AssignCast_Insn, ?index:number, ?from:Var, ?to:Var, ?type:Type, ?inmethod:Method)
+.input _AssignCast(filename="AssignCast.facts")
+
+.decl _AssignCastNumConstant(?instruction:AssignCastNumConstant_Insn, ?index:number, ?const:symbol, ?to:Var, ?type:Type, ?inmethod:Method)
+.input _AssignCastNumConstant(filename="AssignCastNumConstant.facts")
+
+
+.decl _AssignCastNull(?instruction:AssignCastNull_Insn, ?index:number, ?to:Var, ?type:Type, ?method:Method)
+.input _AssignCastNull(filename="AssignCastNull.facts")
+
+.decl _AssignNumConstant(?instruction:AssignNumConstant_Insn, ?index:number, ?const:NumConstant, ?to:Var, ?inmethod:Method)
+.input _AssignNumConstant(filename="AssignNumConstant.facts")
+
+.decl _AssignNull(?instruction:AssignNull_Insn, ?index:number, ?to:Var, ?method:Method)
+.input _AssignNull(filename="AssignNull.facts")
+
+.decl _AssignInstanceOf(?instruction:AssignInstanceOf_Insn, ?index:number, ?from:Var, ?to:Var, ?type:Type, ?inmethod:Method)
+.input _AssignInstanceOf(filename="AssignInstanceOf.facts")
+
+.decl _Field(?signature:Field, ?declaringClass:ReferenceType, ?simplename:symbol, ?type:Type)
+.input _Field(filename="Field.facts")
+
+.decl _EnterMonitor(?instruction:EnterMonitor_Insn, ?index:number, ?var:Var, ?method:Method)
+.input _EnterMonitor(filename="EnterMonitor.facts")
+
+.decl _ExitMonitor(?instruction:ExitMonitor_Insn, ?index:number, ?var:Var, ?method:Method)
+.input _ExitMonitor(filename="ExitMonitor.facts")
+
+.decl _MethodInvocation_Line(?instruction:MethodInvocation, line:number)
+.input _MethodInvocation_Line(filename="MethodInvocation-Line.facts")
+
+.decl _StaticMethodInvocation(?instruction:StaticMethodInvocation_Insn, ?index:number, ?signature:Method, ?method:Method)
+.input _StaticMethodInvocation(filename="StaticMethodInvocation.facts")
+
+.decl _SpecialMethodInvocation(?instruction:SpecialMethodInvocation_Insn, ?index:number, ?signature:Method, ?base:Var, ?method:Method)
+.input _SpecialMethodInvocation(filename="SpecialMethodInvocation.facts")
+
+.decl _VirtualMethodInvocation(?instruction:VirtualMethodInvocation_Insn, ?index:number, ?signature:Method, ?base:Var, ?method:Method)
+.input _VirtualMethodInvocation(filename="VirtualMethodInvocation.facts")
+
+.decl _SuperMethodInvocation(?instruction:SuperMethodInvocation_Insn, ?index:number, ?signature:Method, ?base:Var, ?method:Method)
+.input _SuperMethodInvocation(filename="SuperMethodInvocation.facts")
+
+.decl _DynamicMethodInvocation(?instruction:DynamicMethodInvocation_Insn, ?index:number, ?bootSignature:Method, ?dynName:symbol, ?dynRetType:Type, ?dynArity:number, ?dynParamTypes:symbol, ?tag:number, ?method:Method)
+.input _DynamicMethodInvocation(filename="DynamicMethodInvocation.facts")
+
+.decl _DynamicMethodInvocation_DynParamType(?invocation:DynamicMethodInvocation_Insn, ?idx:number, ?pType:Type)
+.input _DynamicMethodInvocation_DynParamType(filename="DynamicMethodInvocation-ParamType.facts")
+
+.decl _PolymorphicInvocation(?invocation:MethodInvocation, ?simpleName:symbol)
+.input _PolymorphicInvocation(filename="PolymorphicInvocation.facts")
+
+.decl _Throw(?instruction:Throw_Insn, ?index:number, ?var:Var, ?method:Method)
+.input _Throw(filename="Throw.facts")
+
+.decl _ThrowNull(?instruction:ThrowNull_Insn, ?index:number, ?method:Method)
+.input _ThrowNull(filename="ThrowNull.facts")
+
+.decl _ExceptionHandler(?handler:ExceptionHandler, ?method:Method, ?index:number, ?type:ReferenceType, ?begin:number, ?end:number)
+.input _ExceptionHandler(filename="ExceptionHandler.facts")
+
+.input ExceptionHandler_FormalParam(filename="ExceptionHandler-FormalParam.facts")
+
+.decl _Method(?method:Method, ?simplename:symbol, ?descriptor:symbol, ?declaringType:ReferenceType, ?returnType:Type, ?jvmDescriptor:JVMDescriptor, ?arity:number)
+.input _Method(filename="Method.facts")
+
+.decl _StoreInstanceField(?instruction:StoreInstanceField_Insn, ?index:number, ?from:Var, ?base:Var, ?signature:Field, ?method:Method)
+.input _StoreInstanceField(filename="StoreInstanceField.facts")
+
+.decl _LoadInstanceField(?instruction:LoadInstanceField_Insn, ?index:number, ?to:Var, ?base:Var, ?signature:Field, ?method:Method)
+.input _LoadInstanceField(filename="LoadInstanceField.facts")
+
+
+.decl _StoreStaticField(?instruction:StoreStaticField_Insn, ?index:number, ?from:Var, ?signature:Field, ?method:Method)
+.input _StoreStaticField(filename="StoreStaticField.facts")
+
+.decl _LoadStaticField(?instruction:LoadStaticField_Insn, ?index:number, ?to:Var, ?signature:Field, ?method:Method)
+.input _LoadStaticField(filename="LoadStaticField.facts")
+
+.decl _StoreArrayIndex(?instruction:StoreArrayIndex_Insn, ?index:number, ?from:Var, ?base:Var, ?method:Method)
+.input _StoreArrayIndex(filename="StoreArrayIndex.facts")
+
+.decl _LoadArrayIndex(?instruction:LoadArrayIndex_Insn, ?index:number, ?to:Var, ?base:Var, ?method:Method)
+.input _LoadArrayIndex(filename="LoadArrayIndex.facts")
+
+.decl _ArrayInsnIndex(?instruction:Instruction, ?index:Var)
+.input _ArrayInsnIndex(filename="ArrayInsnIndex.facts")
+
+.decl _ArrayNumIndex(?instruction:Instruction, ?index:number)
+.input _ArrayNumIndex(filename="ArrayNumIndex.facts")
+
+.decl _Goto(?instruction:Goto_Insn, ?index:number, ?to:number, ?method:Method)
+.input _Goto(filename="Goto.facts")
+
+.decl _If(?instruction:If_Insn, ?index:number, ?to:number, ?method:Method)
+.input _If(filename="If.facts")
+
+.decl _TableSwitch(?instruction:TableSwitch_Insn, ?index:number, ?key:Var, ?method:Method)
+.input _TableSwitch(filename="TableSwitch.facts")
+
+.decl _LookupSwitch(?instruction:LookupSwitch_Insn, ?index:number, ?key:Var, ?method:Method)
+.input _LookupSwitch(filename="LookupSwitch.facts")
+
+.decl _TableSwitch_Target(?instruction:Switch_Insn, ?value:number, ?target:number)
+.input _TableSwitch_Target(filename="TableSwitch-Target.facts")
+
+.decl _LookupSwitch_Target(?instruction:Switch_Insn, ?value:number, ?target:number)
+.input _LookupSwitch_Target(filename="LookupSwitch-Target.facts")
+
+.decl _TableSwitch_DefaultTarget(?instruction:Switch_Insn, ?target:number)
+.input _TableSwitch_DefaultTarget(filename="TableSwitch-Default.facts")
+
+.decl _LookupSwitch_DefaultTarget(?instruction:Switch_Insn, ?target:number)
+.input _LookupSwitch_DefaultTarget(filename="LookupSwitch-Default.facts")
+
+.decl _Return(?instruction:ReturnNonvoid_Insn, ?index:number, ?var:Var, ?method:Method)
+.input _Return(filename="Return.facts")
+
+.decl _ReturnVoid(?instruction:ReturnVoid_Insn, ?index:number, ?method:Method)
+.input _ReturnVoid(filename="ReturnVoid.facts")
+
+.decl _AssignPhantomInvoke(?instruction:AssignPhantomInvoke, ?index:number, ?method:Method)
+.input _AssignPhantomInvoke(filename="AssignPhantomInvoke.facts")
+
+.decl _BreakpointStmt(?instruction:BreakpointStmt, ?index:number, ?method:Method)
+.input _BreakpointStmt(filename="BreakpointStmt.facts")
+
+.decl _UnsupportedInstruction(?instruction:UnsupportedInstruction, ?index:number, ?method:Method)
+.input _UnsupportedInstruction(filename="UnsupportedInstruction.facts")
+
+// Annotations
+.decl Type_Annotation(?type:ReferenceType, ?annotation:Annotation)
+.decl Method_Annotation(?method:Method, ?annotation:Annotation)
+.decl Field_Annotation(?fld:Field, ?annotation:Annotation)
+.decl Param_Annotation(?method:Method, ?index:number, ?annotation:Annotation)
+.decl AnnotationElement(?annotationKind:symbol, ?element:symbol, ?parentId:symbol, ?id:symbol, ?name:symbol, ?value1:symbol, ?value2:symbol)
+// Type
+.input Type_Annotation(filename="Type-Annotation.facts")
+// Method
+.input Method_Annotation(filename="Method-Annotation.facts")
+// Field
+.input Field_Annotation(filename="Field-Annotation.facts")
+// Param
+.input Param_Annotation(filename="Param-Annotation.facts")
+
+.input AnnotationElement(filename="AnnotationElement.facts")
+
+// Phantom types/methods and phantom-based methods.
+.decl PhantomType(?t:ReferenceType)
+.input PhantomType(filename="PhantomType.facts")
+.decl PhantomMethod(?m:Method)
+.input PhantomMethod(filename="PhantomMethod.facts")
+.decl PhantomBasedMethod(?m:Method)
+.input PhantomBasedMethod(filename="PhantomBasedMethod.facts")
+
+.decl NumConstantRawInt(?const:symbol)
+.input NumConstantRawInt(filename="NumConstantRawInt.facts")
+
+.decl XMLNode(?file:symbol, ?nodeId:symbol, ?parentNodeId:symbol, ?namespaceURI:symbol, ?localName:symbol, ?qName:symbol)
+.input XMLNode(filename="XMLNode.facts")
+.decl XMLNodeAttribute(?file:symbol, ?nodeId:symbol, ?index:symbol, ?localName:symbol, ?qName:symbol, ?value:symbol)
+.input XMLNodeAttribute(filename="XMLNodeAttribute.facts")
+.decl XMLNodeData(?file:symbol, ?nodeId:symbol, ?data:symbol)
+.input XMLNodeData(filename="XMLNodeData.facts")

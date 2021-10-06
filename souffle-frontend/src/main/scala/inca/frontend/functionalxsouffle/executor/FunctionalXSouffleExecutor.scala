@@ -95,6 +95,7 @@ object FunctionalXSouffleExecutor {
     //    }
 
     type SouffleRelations = Map[String, Seq[Seq[String]]]
+
     def souffleInput(rels: SouffleRelations): EditScript = {
       val inputProcessor = new SouffleInputToEditscript()
       val edits = rels.flatMap { case (name, tuples) =>
@@ -109,7 +110,18 @@ object FunctionalXSouffleExecutor {
     }
 
 
-    def execute(main: String, args: Seq[meta.Term], souffleRels: SouffleRelations, deleteInput: Boolean = false): Results[AnyRef] = {
+
+    def execute(main: String, args: Seq[meta.Term], souffleFactsDir: String, deleteInput: Boolean): Results[AnyRef] = {
+      val inputProcessor = new SouffleInputToEditscript()
+      val souffleEdits = compiled.souffleInputs.flatMap { case (sig, input) =>
+        inputProcessor.compile(souffleFactsDir, input, sig).edits
+      }
+      val argInput = input(args)
+      val finalES = EditScript(argInput._1.edits ++ souffleEdits)
+      executeInput(main, (finalES, argInput._2), deleteInput)
+    }
+
+    def execute(main: String, args: Seq[meta.Term], souffleRels: SouffleRelations, deleteInput: Boolean): Results[AnyRef] = {
       val souffleES = souffleInput(souffleRels)
       val argInput = input(args)
       val finalES = EditScript(argInput._1.edits ++ souffleES.edits)
