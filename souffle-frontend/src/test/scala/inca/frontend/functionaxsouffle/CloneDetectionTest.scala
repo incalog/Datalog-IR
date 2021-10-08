@@ -5,6 +5,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import scala.io.Source
 import scala.meta.XtensionQuasiquoteTerm
+import scala.meta.Term
 
 class CloneDetectionTest extends AnyFunSuite {
   // x = 1 +2
@@ -41,48 +42,121 @@ class CloneDetectionTest extends AnyFunSuite {
        |         | Var(String)
        |         | BinOp(String, Exp, Exp)
        |         | UnOp(String, Exp)
+       |         | Cast(Exp, String)
+       |         | InstanceOf(Exp, String)
+       |         | StringLit(String)
+       |         | Alloc(String) // is a heap allocation, which is a value which is a symbol
+       |         | ArrayRead(Exp, Exp)
        |//          | Null()
-       |//          | Cast(Exp, Type)
-       |//          | InstanceOf(Exp, Type)
        |//          | CastNull(Exp)
        |//          | CastNum(Exp)
-       |//          | Alloc(String) // is a heap allocation, which is a value which is a symbol
-       |//          | OperFrom(Int, String) // what is the meaning?
-       |//          | OperFromConst(Int, Int) // what is the meaning?
        |//          | PhantomInvoke()
        |//          | Return()
        |
        |
        |def assignExp(v: String): Set[Exp] =
-       |  { BinOp(op, left, right) |
+       |  { NumLit(num) | (inst, idx, num, v, meth) in _AssignNumConstant } ++ {
+       |    BinOp(op, left, right) |
        |      (inst, idx, v, meth) in _AssignBinop,
        |      (inst, op) in _OperatorAt,
        |      left in getOperand(inst, 1),
        |      right in getOperand(inst, 2)
        |  } ++ {
-       |    NumLit(num) | (inst, idx, num, v, meth) in _AssignNumConstant
+       |    UnOp(op, exp) |
+       |      (inst, idx, v, meth) in _AssignUnop,
+       |      (inst, op) in _OperatorAt,
+       |      exp in getOperand(inst, 1)
+       |  } ++ {
+       |    exp | (inst, idx, from, v, meth) in _AssignLocal, exp in assignExp(from)
+       |  } ++ {
+       |    // TODO maybe remove the method prefix from the variable name
+       |    Var(v) | (idx, meth, v) in _FormalParam
+       |  } ++ {
+       |    Cast(exp, ty) |
+       |      (inst, idx, from, v, ty, meth) in _AssignCast,
+       |      exp in assignExp(from)
+       |  } ++ {
+       |    InstanceOf(exp, ty) |
+       |      (inst, idx, from, v, ty, meth) in _AssignInstanceOf,
+       |      exp in assignExp(from)
+       |  } ++ {
+       |    Alloc(heap) |
+       |      (inst, idx, heap, v, meth, line) in _AssignHeapAllocation
+       |  } ++ {
+       |    ArrayRead(exp, NumLit(`String.valueOf`(index))) |
+       |       (inst, idx, v, from, meth) in _LoadArrayIndex,
+       |       exp in assignExp(from),
+       |       (inst, index) in _ArrayNumIndex
+       |  } ++ {
+       |    ArrayRead(exp, indexExp) |
+       |       (inst, idx, v, from, meth) in _LoadArrayIndex,
+       |       (inst, indexVar) in _ArrayInsnIndex,
+       |       exp in assignExp(from),
+       |       indexExp in assignExp(indexVar)
        |  }
        |
        |def getOperand(inst: String, pos: Int): Set[Exp] =
        |  { NumLit(num) | (inst, pos, num) in _AssignOperFromConstant } ++
        |  { exp | (inst, pos, var) in _AssignOperFrom, exp in assignExp(var) }
+       |  // { StringLit(str) | str
        |
-       |// @main def main(): Set[String] = { op | (ins, op) in _OperatorAt }
        |@main def main(v: String): Set[Exp] = { exp | exp in assignExp(v) }
        |""".stripMargin
 
   val baseDir = s"souffle-frontend/doop-context-insensitive"
 
-  test("simple addition example") {
-    val souffleSrc = Source.fromFile(s"$baseDir/souffle-input-schema.dl")
-    val souffleCode = souffleSrc.getLines().mkString("\n")
-    souffleSrc.close()
+  val souffleSrc = Source.fromFile(s"$baseDir/souffle-input-schema.dl")
+  val souffleCode = souffleSrc.getLines().mkString("\n")
+  souffleSrc.close()
+  val x = 1
 
-
+  def testJimpleExample(dir: String, name: meta.Term): Unit = {
     val fun = FunctionalXSouffleExecutor.loadFunction(funCode, souffleCode)
-//    val res = fun.execute("main", Seq(q""""<Main: void main(java.lang.String[])>/x#_3""""), s"$baseDir/database-simple-add", false)
-
-    val res = fun.execute("main", Seq(q""""<Main: void main(java.lang.String[])>/y#_4""""), s"$baseDir/database-simple-add", false)
+    val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
+    // println(fun.compiled.optimized)
+    println(fun.compiled.psystemSource)
     println(res)
   }
+
+  test("simple addition example") {
+    testJimpleExample("database-simple-add",q""""<Main: void main(java.lang.String[])>/y#_4"""")
+  }
+
+  test("nested addition example") {
+    testJimpleExample("database-nested-add",q""""<Main: void main(java.lang.String[])>/z#_5"""")
+  }
+
+  test("cast example") {
+    testJimpleExample("database-cast",q""""<Main: void main(java.lang.String[])>/l2#_4"""")
+  }
+
+  test("instanceof example") {
+    testJimpleExample("database-instanceof",q""""<Main: void main(java.lang.String[])>/l2#_4"""")
+  }
+
+  test("simple unop")  {
+    testJimpleExample("database-unop",q""""<Main: void main(java.lang.String[])>/l1#_3"""")
+  }
+
+  test("array read with int") {
+    testJimpleExample("database-array-read-int",q""""<Main: void main(java.lang.String[])>/l1#_3"""")
+  }
+
+  test("array read with complex expression") {
+    testJimpleExample("database-array-read-var",q""""<Main: void main(java.lang.String[])>/l4#_6"""")
+  }
+
+  // TODO
+  // Where is the info where the result of the special invokation is stored?
+  test("string length example") {
+    testJimpleExample("database-string-length",q""""<Main: void main(java.lang.String[])>/l1#_3"""")
+  }
+
+  // MethodInvocation-Line
+  // VirtualMethodInvocation
+  // AssignReturn
+
+  // LoadArrayIndex
+  // LoadInstanceField
+  // LoadStaticField
 }
