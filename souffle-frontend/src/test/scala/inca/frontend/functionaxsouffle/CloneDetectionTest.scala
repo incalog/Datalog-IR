@@ -38,6 +38,7 @@ class CloneDetectionTest extends AnyFunSuite {
   val funCode: String =
     s"""module CloneDetection
        |
+       |data ArgList = NoArg() | Arg(Exp, ArgList)
        |data Exp = NumLit(String)
        |         | Var(String)
        |         | BinOp(String, Exp, Exp)
@@ -47,6 +48,9 @@ class CloneDetectionTest extends AnyFunSuite {
        |         | StringLit(String)
        |         | Alloc(String) // is a heap allocation, which is a value which is a symbol
        |         | ArrayRead(Exp, Exp)
+       |         | Invoke(Exp, String)
+       |         | InstanceFieldRead(Exp, String)
+       |         | StaticFieldRead(String)
        |//          | Null()
        |//          | CastNull(Exp)
        |//          | CastNum(Exp)
@@ -93,12 +97,26 @@ class CloneDetectionTest extends AnyFunSuite {
        |       (inst, indexVar) in _ArrayInsnIndex,
        |       exp in assignExp(from),
        |       indexExp in assignExp(indexVar)
+       |  } ++ {
+       |    Invoke(recvExp, meth) |
+       |      (inst, v) in _AssignReturnValue,
+       |      (inst, idx, meth, recv, callingMeth) in _VirtualMethodInvocation,
+       |      recvExp in assignExp(recv)
+       |  } ++ {
+       |    InstanceFieldRead(recvExp, field) |
+       |      (inst, idx, v, recv, field, meth) in _LoadInstanceField,
+       |      recvExp in assignExp(recv)
+       |  } ++ {
+       |    StaticFieldRead(fieldsig) | (inst, idx, v, fieldsig, meth) in _LoadStaticField
        |  }
        |
        |def getOperand(inst: String, pos: Int): Set[Exp] =
        |  { NumLit(num) | (inst, pos, num) in _AssignOperFromConstant } ++
        |  { exp | (inst, pos, var) in _AssignOperFrom, exp in assignExp(var) }
        |  // { StringLit(str) | str
+       |
+       |// def getArgList(): ArgList = {
+       |// }
        |
        |@main def main(v: String): Set[Exp] = { exp | exp in assignExp(v) }
        |""".stripMargin
@@ -114,7 +132,7 @@ class CloneDetectionTest extends AnyFunSuite {
     val fun = FunctionalXSouffleExecutor.loadFunction(funCode, souffleCode)
     val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
     // println(fun.compiled.optimized)
-    println(fun.compiled.psystemSource)
+    // println(fun.compiled.psystemSource)
     println(res)
   }
 
@@ -146,17 +164,25 @@ class CloneDetectionTest extends AnyFunSuite {
     testJimpleExample("database-array-read-var",q""""<Main: void main(java.lang.String[])>/l4#_6"""")
   }
 
-  // TODO
-  // Where is the info where the result of the special invokation is stored?
-  test("string length example") {
+  test("string length method call example") {
     testJimpleExample("database-string-length",q""""<Main: void main(java.lang.String[])>/l1#_3"""")
   }
 
-  // MethodInvocation-Line
-  // VirtualMethodInvocation
-  // AssignReturn
+  test("method call example") {
+    testJimpleExample("database-method-call",q""""<Main: void main(java.lang.String[])>/l3#_5"""")
+  }
 
-  // LoadArrayIndex
-  // LoadInstanceField
-  // LoadStaticField
+  test("multiple method call example") {
+    testJimpleExample("database-multiple-method-call",q""""<Main: void main(java.lang.String[])>/l5#_7"""")
+  }
+
+  // TODO method call with arguments
+
+  test("instance field read access ") {
+    testJimpleExample("database-instance-field-read",q""""<Main: void main(java.lang.String[])>/l2#_13"""")
+  }
+
+  test("static field read access ") {
+    testJimpleExample("database-static-field-read",q""""<Main: void main(java.lang.String[])>/l1#_13"""")
+  }
 }
