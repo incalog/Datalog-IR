@@ -26,12 +26,10 @@ class CloneDetectionTest extends AnyFunSuite {
        |         | StaticFieldRead(String)
        |         | Invoke(Exp, String, ArgList)
        |         | StaticInvoke(String, ArgList)
-       |         | SpecialInvoke(Exp, String, ArgList)
-       |//          | Null()
+       |         | SpecialInvoke(String, String, ArgList)
+       |         | Null()
        |//          | CastNull(Exp)
-       |//          | CastNum(Exp)
        |//          | PhantomInvoke()
-       |//          | Return()
        |
        |
        |def assignExp(v: String): Set[Exp] = {
@@ -61,8 +59,16 @@ class CloneDetectionTest extends AnyFunSuite {
        |      (inst, idx, from, v, ty, meth) in _AssignInstanceOf,
        |      exp in assignExp(from)
        |  } ++ {
+       |    Null() | (inst, idx, v, meth) in _AssignNull
+       |  } ++ {
        |    Alloc(heap) |
-       |      (inst, idx, heap, v, meth, line) in _AssignHeapAllocation
+       |      (inst1, idx1, heap, v, meth, line) in _AssignHeapAllocation,
+       |      (inst2, idx2, specialmeth, v, meth) not in _SpecialMethodInvocation
+       |  } ++ {
+       |    SpecialInvoke(heap, specialmeth, args) |
+       |      (inst1, idx1, heap, v, meth, line) in _AssignHeapAllocation,
+       |      (inst2, idx2, specialmeth, v, callingMeth) in _SpecialMethodInvocation,
+       |      args in getArgs(inst2, 0)
        |  } ++ {
        |    ArrayRead(exp, NumLit(`String.valueOf`(index))) |
        |       (inst, idx, v, from, meth) in _LoadArrayIndex,
@@ -120,6 +126,7 @@ class CloneDetectionTest extends AnyFunSuite {
     val fun = FunctionalXSouffleExecutor.loadFunction(funCode, souffleCode)
     val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
     println(res)
+    assert(res.res.size == 1)
   }
 
   test("simple addition example") {
@@ -173,5 +180,13 @@ class CloneDetectionTest extends AnyFunSuite {
 
   test("static method call") {
     testJimpleExample("database-static-method-call",q""""<Main: void main(java.lang.String[])>/l1#_4"""")
+  }
+
+  test("method call with null argument") {
+    testJimpleExample("database-null-argument",q""""<Main: void main(java.lang.String[])>/l2#_5"""")
+  }
+
+  test("constructor call") {
+    testJimpleExample("database-constructor-call",q""""<Main: void main(java.lang.String[])>/l1#_4"""")
   }
 }
