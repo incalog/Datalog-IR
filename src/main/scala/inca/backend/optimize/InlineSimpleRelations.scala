@@ -1,5 +1,7 @@
 package inca.backend.optimize
 
+import inca.backend.analyze.DependencyGraph
+import inca.backend.analyze.DependencyGraph.NegativeCall
 import inca.backend.hints.MagicSetHints.MainKey
 import inca.backend.ir.Datalog._
 import inca.backend.ir.{CollectVars, Datalog, Substitute}
@@ -10,13 +12,15 @@ object InlineSimpleRelations extends Optimization {
   override def optimizer(dataModel: DataModel): Optimizer = new Optimizer {
     private val gensym: Gensym = new Gensym(Iterable.empty)
     private var retainInlined: Set[Name] = Set()
+    private var depGraph: DependencyGraph = null
 
     def shouldInline(pat: Pattern): Boolean = {
       val isMain = pat.hasHint(MainKey)
       lazy val containedCalls= pat.bodies.head.atoms.collect { case call: Call => call }
       lazy val directlyRecursive = containedCalls.exists(_.name == pat.name)
+      lazy val negativelyCalled = depGraph.incomingEdges(pat.name).exists { case (_, NegativeCall) => true ; case _ => false }
       lazy val hasEvaluation = pat.bodies.head.atoms.exists { case Computed(_, _) => true; case _ => false }
-      val inline = pat.bodies.size <= 1 && !isMain && containedCalls.size <= 100 && !directlyRecursive && !hasEvaluation
+      val inline = pat.bodies.size <= 1 && !isMain && containedCalls.size <= 100 && !directlyRecursive && !hasEvaluation && !negativelyCalled
       inline
     }
 
@@ -24,6 +28,7 @@ object InlineSimpleRelations extends Optimization {
       var pats = module.pats
       var inlined: Set[Name] = Set()
       retainInlined = Set()
+      depGraph = new DependencyGraph(module)
       var progress = true
 
       while (progress) {

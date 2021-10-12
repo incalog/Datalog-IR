@@ -1,0 +1,7 @@
+public	<Main: void <init>()>
+public	<Main: void main(java.lang.String[])>
+static	<Main: void main(java.lang.String[])>
+public	<Point: void <init>(int,int)>
+public	<Point: Point add(Point)>
+public	<Point: Point add(int,int)>
+static	<Point: void <clinit>()>

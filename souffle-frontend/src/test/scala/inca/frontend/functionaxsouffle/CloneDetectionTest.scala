@@ -3,37 +3,11 @@ package inca.frontend.functionaxsouffle
 import inca.frontend.functionalxsouffle.executor.FunctionalXSouffleExecutor
 import org.scalatest.funsuite.AnyFunSuite
 
-import scala.io.Source
+import scala.io.{BufferedSource, Source}
 import scala.meta.XtensionQuasiquoteTerm
 import scala.meta.Term
 
 class CloneDetectionTest extends AnyFunSuite {
-  // x = 1 +2
-  // y = x +5
-
-  /*
-
-  def getOperand(inst: Inst, side: String): Set[Exp] =
-    {NumLit(num) | assignNumFrom(inst, side)} ++
-    {exp |
-     (inst, side, var) in assignOpFrom,
-     exp in assignExp(var)}
-
-  def assingExp(v: Local): Set[Exp] =
-      {BinOp(op, left, right) |
-        (inst, _, v, _) in assignBinOp,
-        (inst, op) in operatorAt,
-        left in getOperand(inst, "1"),
-        right in getOperand(inst, "2")
-      }
-      ++
-      // unop
-      // method call
-      // phi
-  (x, y, z) in assignBinOp
-   */
-
-  // BinOp: Instruction x
 
   val funCode: String =
     s"""module CloneDetection
@@ -48,9 +22,11 @@ class CloneDetectionTest extends AnyFunSuite {
        |         | StringLit(String)
        |         | Alloc(String) // is a heap allocation, which is a value which is a symbol
        |         | ArrayRead(Exp, Exp)
-       |         | Invoke(Exp, String)
        |         | InstanceFieldRead(Exp, String)
        |         | StaticFieldRead(String)
+       |         | Invoke(Exp, String, ArgList)
+       |         | StaticInvoke(String, ArgList)
+       |         | SpecialInvoke(Exp, String, ArgList)
        |//          | Null()
        |//          | CastNull(Exp)
        |//          | CastNum(Exp)
@@ -58,8 +34,9 @@ class CloneDetectionTest extends AnyFunSuite {
        |//          | Return()
        |
        |
-       |def assignExp(v: String): Set[Exp] =
-       |  { NumLit(num) | (inst, idx, num, v, meth) in _AssignNumConstant } ++ {
+       |def assignExp(v: String): Set[Exp] = {
+       |    NumLit(num) | (inst, idx, num, v, meth) in _AssignNumConstant
+       |  } ++ {
        |    BinOp(op, left, right) |
        |      (inst, idx, v, meth) in _AssignBinop,
        |      (inst, op) in _OperatorAt,
@@ -98,10 +75,16 @@ class CloneDetectionTest extends AnyFunSuite {
        |       exp in assignExp(from),
        |       indexExp in assignExp(indexVar)
        |  } ++ {
-       |    Invoke(recvExp, meth) |
+       |    Invoke(recvExp, meth, args) |
        |      (inst, v) in _AssignReturnValue,
        |      (inst, idx, meth, recv, callingMeth) in _VirtualMethodInvocation,
-       |      recvExp in assignExp(recv)
+       |      recvExp in assignExp(recv),
+       |      args in getArgs(inst, 0)
+       |  } ++ {
+       |    StaticInvoke(meth, args) |
+       |      (inst, v) in _AssignReturnValue,
+       |      (inst, idx, meth, callingMeth) in _StaticMethodInvocation,
+       |      args in getArgs(inst, 0)
        |  } ++ {
        |    InstanceFieldRead(recvExp, field) |
        |      (inst, idx, v, recv, field, meth) in _LoadInstanceField,
@@ -115,24 +98,27 @@ class CloneDetectionTest extends AnyFunSuite {
        |  { exp | (inst, pos, var) in _AssignOperFrom, exp in assignExp(var) }
        |  // { StringLit(str) | str
        |
-       |// def getArgList(): ArgList = {
-       |// }
+       |def getArgs(inst: String, currentIdx: Int): Set[ArgList] = {
+       |  Arg(exp, rest) |
+       |    (currentIdx, inst, v) in _ActualParam,
+       |    exp in assignExp(v),
+       |    rest in getArgs(inst, currentIdx + 1)
+       |} ++ {
+       |  NoArg() | (currentIdx, inst, v) not in _ActualParam
+       |}
        |
        |@main def main(v: String): Set[Exp] = { exp | exp in assignExp(v) }
        |""".stripMargin
 
   val baseDir = s"souffle-frontend/doop-context-insensitive"
 
-  val souffleSrc = Source.fromFile(s"$baseDir/souffle-input-schema.dl")
-  val souffleCode = souffleSrc.getLines().mkString("\n")
+  val souffleSrc: BufferedSource = Source.fromFile(s"$baseDir/souffle-input-schema.dl")
+  val souffleCode: String = souffleSrc.getLines().mkString("\n")
   souffleSrc.close()
-  val x = 1
 
   def testJimpleExample(dir: String, name: meta.Term): Unit = {
     val fun = FunctionalXSouffleExecutor.loadFunction(funCode, souffleCode)
     val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
-    // println(fun.compiled.optimized)
-    // println(fun.compiled.psystemSource)
     println(res)
   }
 
@@ -173,16 +159,19 @@ class CloneDetectionTest extends AnyFunSuite {
   }
 
   test("multiple method call example") {
-    testJimpleExample("database-multiple-method-call",q""""<Main: void main(java.lang.String[])>/l5#_7"""")
+    testJimpleExample("database-multiple-arg-method-call",q""""<Main: void main(java.lang.String[])>/l4#_7"""")
   }
 
-  // TODO method call with arguments
-
+  // TODO consider arguments and constructor that are being used for alloc
   test("instance field read access ") {
     testJimpleExample("database-instance-field-read",q""""<Main: void main(java.lang.String[])>/l2#_13"""")
   }
 
   test("static field read access ") {
     testJimpleExample("database-static-field-read",q""""<Main: void main(java.lang.String[])>/l1#_13"""")
+  }
+
+  test("static method call") {
+    testJimpleExample("database-static-method-call",q""""<Main: void main(java.lang.String[])>/l1#_4"""")
   }
 }

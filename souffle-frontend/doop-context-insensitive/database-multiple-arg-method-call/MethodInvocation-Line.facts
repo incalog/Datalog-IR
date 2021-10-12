@@ -1,0 +1,6 @@
+<Main: void <init>()>/java.lang.Object.<init>/0	1
+<Main: void main(java.lang.String[])>/Point.<init>/0	4
+<Main: void main(java.lang.String[])>/Point.add/0	7
+<Point: void <init>(int,int)>/java.lang.Object.<init>/0	5
+<Point: Point add(Point)>/Point.<init>/0	10
+<Point: Point add(int,int)>/Point.<init>/0	15

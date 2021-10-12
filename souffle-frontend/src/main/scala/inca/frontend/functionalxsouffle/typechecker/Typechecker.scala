@@ -314,7 +314,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         }
     }
 
-    if (mem.neg || !bindTupVars) {
+    // We want to call souffle relations negatively while not specifying all variables in the tuple beforehand
+    if (!bindTupVars) {
       val tyTup = typecheck(mem.tup)
       if (!subtype(tyTup, tySetContent))
         error(s"Expected $tySetContent, but got $tyTup")

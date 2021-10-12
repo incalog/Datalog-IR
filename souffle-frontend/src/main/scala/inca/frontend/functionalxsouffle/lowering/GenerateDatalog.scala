@@ -321,20 +321,16 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
             Datalog.Call(dataName.name, Seq(term), neg = neg).addHint(IgnoreCall)
           (Seq(Datalog.True), tupCons :+ typeTest)
         }
+
+
     case mem@SetMember(tup, Var(relName), neg) if externalSignatures.contains(relName)=>
       // we access an external relation (souffle relation)
-      if (neg) {
-        // TODO
-        throw new IllegalArgumentException("Currently not support negated access of external relation")
-      } else {
-        // throw new IllegalArgumentException("Currently not support access of external relation")
-        // x, y
-
-        for ((tupTerms, tupCons) <- transExp(tup))
-        yield {
-          val call = Datalog.Call(relName.name, tupTerms, transitive = false, neg = false).addHint(MagicSetHints.IgnoreCall)
-          (Seq(Datalog.True), tupCons :+ call)
-        }
+      // accessing an external relation negatively does not introduce a negated cycle because the external relation does not access relations of the module
+      // further we do not apply the demand transformation to the souffle relations
+      for ((tupTerms, tupCons) <- transExp(tup))
+      yield {
+        val call = Datalog.Call(relName.name, tupTerms, transitive = false, neg).addHint(MagicSetHints.IgnoreCall)
+        (Seq(Datalog.True), tupCons :+ call)
       }
 
     case SetMember(tup, set, neg) =>

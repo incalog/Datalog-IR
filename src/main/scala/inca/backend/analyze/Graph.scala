@@ -63,6 +63,19 @@ trait Graph[N, E] {
     cycles.toList
   }
 
+  def incomingEdges(to: N): Set[(N, E)] = {
+    var incoming: Set[(N, E)] = Set()
+    edges.toSeq.foreach { case (from, outgoing) =>
+      outgoing.foreach { case (to2, edge) =>
+        if (to == to2)
+          incoming = incoming + (from -> edge)
+      }
+    }
+    incoming
+  }
+
+  def outgoingEdges(from: N): Set[(N, E)] = edges(from)
+
   private def processDFSTree(stack: mutable.Stack[N], visited: mutable.Map[N, VisistedFlag]): Set[List[N]] = {
     var cycles: Set[List[N]] = Set()
     edges.getOrElse(stack.top, Set()).foreach { case (neighbor, e) =>

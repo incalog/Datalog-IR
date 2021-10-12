@@ -1,0 +1,38 @@
+public class Main extends java.lang.Object
+{
+
+    public void <init>()
+    {
+        Main l0#_0;
+
+        l0#_0 := @this: Main;
+
+        specialinvoke l0#_0.<java.lang.Object: void <init>()>();
+
+        return;
+    }
+
+    public static void main(java.lang.String[])
+    {
+        Main$Point $stack4, l1#_17, $stack5, l2#_18, l3#_19;
+        java.lang.String[] l0#_0;
+
+        l0#_0 := @parameter0: java.lang.String[];
+
+        $stack4 = new Main$Point;
+
+        specialinvoke $stack4.<Main$Point: void <init>(int,int)>(1, 2);
+
+        l1#_17 = $stack4;
+
+        $stack5 = new Main$Point;
+
+        specialinvoke $stack5.<Main$Point: void <init>(int,int)>(1, 2);
+
+        l2#_18 = $stack5;
+
+        l3#_19 = virtualinvoke l1#_17.<Main$Point: Main$Point add(Main$Point)>(l2#_18);
+
+        return;
+    }
+}

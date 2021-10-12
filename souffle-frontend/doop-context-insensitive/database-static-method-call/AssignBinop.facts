@@ -1,0 +1,4 @@
+<Point: Point add(Point)>/assign/3	5	<Point: Point add(Point)>/$stack9	<Point: Point add(Point)>
+<Point: Point add(Point)>/assign/4	8	<Point: Point add(Point)>/$stack8	<Point: Point add(Point)>
+<Point: Point add(int,int)>/assign/4	5	<Point: Point add(int,int)>/$stack8	<Point: Point add(int,int)>
+<Point: Point add(int,int)>/assign/5	7	<Point: Point add(int,int)>/$stack7	<Point: Point add(int,int)>
