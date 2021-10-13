@@ -1,0 +1,54 @@
+public class Main extends java.lang.Object
+{
+
+    public void <init>()
+    {
+        Main l0#_0;
+
+        l0#_0 := @this: Main;
+
+        specialinvoke l0#_0.<java.lang.Object: void <init>()>();
+
+        return;
+    }
+
+    public static void main(java.lang.String[])
+    {
+        java.util.ArrayList $stack2, l1#_9;
+        java.lang.Integer $stack3;
+        java.util.function.Consumer $stack5;
+        java.lang.String[] l0#_0;
+
+        l0#_0 := @parameter0: java.lang.String[];
+
+        $stack2 = new java.util.ArrayList;
+
+        specialinvoke $stack2.<java.util.ArrayList: void <init>()>();
+
+        l1#_9 = $stack2;
+
+        $stack3 = staticinvoke <java.lang.Integer: java.lang.Integer valueOf(int)>(5);
+
+        virtualinvoke l1#_9.<java.util.ArrayList: boolean add(java.lang.Object)>($stack3);
+
+        $stack5 = dynamicinvoke "accept" <java.util.function.Consumer ()>() <java.lang.invoke.LambdaMetafactory: java.lang.invoke.CallSite metafactory(java.lang.invoke.MethodHandles$Lookup,java.lang.String,java.lang.invoke.MethodType,java.lang.invoke.MethodType,java.lang.invoke.MethodHandle,java.lang.invoke.MethodType)>(methodtype: void __METHODTYPE__(java.lang.Object), methodhandle: "REF_INVOKE_STATIC" <Main: void lambda$main$0(java.lang.Integer)>, methodtype: void __METHODTYPE__(java.lang.Integer));
+
+        virtualinvoke l1#_9.<java.util.ArrayList: void forEach(java.util.function.Consumer)>($stack5);
+
+        return;
+    }
+
+    private static void lambda$main$0(java.lang.Integer)
+    {
+        java.lang.Integer l0#_0;
+        java.io.PrintStream $stack1;
+
+        l0#_0 := @parameter0: java.lang.Integer;
+
+        $stack1 = <java.lang.System: java.io.PrintStream out>;
+
+        virtualinvoke $stack1.<java.io.PrintStream: void println(java.lang.Object)>(l0#_0);
+
+        return;
+    }
+}

@@ -1,0 +1,10 @@
+0	<Main: void main(java.lang.String[])>/java.lang.Integer.valueOf/0	<Main: void main(java.lang.String[])>/$numconstant0
+0	<Main: void main(java.lang.String[])>/java.util.ArrayList.add/0	<Main: void main(java.lang.String[])>/$stack3
+0	<Main: void main(java.lang.String[])>/java.util.ArrayList.forEach/0	<Main: void main(java.lang.String[])>/$stack5
+0	<Main: void lambda$main$0(java.lang.Integer)>/java.io.PrintStream.println/0	<Main: void lambda$main$0(java.lang.Integer)>/l0#_0
+0	<Point: Point genPoint(int,int)>/Point.<init>/0	<Point: Point genPoint(int,int)>/l0#_0
+1	<Point: Point genPoint(int,int)>/Point.<init>/0	<Point: Point genPoint(int,int)>/l1#_0
+0	<Point: Point add(Point)>/Point.<init>/0	<Point: Point add(Point)>/$stack9
+1	<Point: Point add(Point)>/Point.<init>/0	<Point: Point add(Point)>/$stack8
+0	<Point: Point add(int,int)>/Point.<init>/0	<Point: Point add(int,int)>/$stack8
+1	<Point: Point add(int,int)>/Point.<init>/0	<Point: Point add(int,int)>/$stack7

@@ -1,0 +1,4 @@
+<Main: void <init>()>/return-void/0	2	<Main: void <init>()>
+<Main: void main(java.lang.String[])>/return-void/0	4	<Main: void main(java.lang.String[])>
+<Point: void <init>(int,int)>/return-void/0	6	<Point: void <init>(int,int)>
+<Point: void <clinit>()>/return-void/0	2	<Point: void <clinit>()>

@@ -1,36 +1,29 @@
 package inca.frontend.functionaxsouffle
 
 import inca.frontend.functionalxsouffle.executor.FunctionalXSouffleExecutor
+import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.io.{BufferedSource, Source}
-import scala.meta.XtensionQuasiquoteTerm
+import scala.meta.{Lit, Term, XtensionQuasiquoteTerm}
 
 class CloneDetectionTest extends AnyFunSuite {
 
-  val funCode: String =
-    s"""module CloneDetection
-       |
-       |data ArgList = NoArg() | Arg(Exp, ArgList)
-       |data Exp = NumLit(String)
-       |         | Var(String)
-       |         | BinOp(String, Exp, Exp)
-       |         | UnOp(String, Exp)
-       |         | Cast(Exp, String)
-       |         | InstanceOf(Exp, String)
-       |         | StringLit(String)
-       |         | Alloc(String) // is a heap allocation, which is a value which is a symbol
-       |         | ArrayRead(Exp, Exp)
-       |         | InstanceFieldRead(Exp, String)
-       |         | StaticFieldRead(String)
-       |         | Invoke(Exp, String, ArgList)
-       |         | StaticInvoke(String, ArgList)
-       |         | SpecialInvoke(String, String, ArgList)
-       |         | Null()
-       |//          | CastNull(Exp)
-       |//          | PhantomInvoke()
-       |
-       |
+  val expAdt =
+    s"""data ArgList = NoArg() | Arg(Exp, ArgList)
+       |data Exp = NumLit(String) | Var(String) | BinOp(String, Exp, Exp) | UnOp(String, Exp) | Cast(Exp, String) | InstanceOf(Exp, String) | StringLit(String) | Alloc(String, String) | SpecialInvoke(String, String, ArgList) | ArrayRead(Exp, Exp) | InstanceFieldRead(Exp, String) | StaticFieldRead(String) | Invoke(Exp, String, ArgList) | StaticInvoke(String, ArgList) | DynamicInvoke(String, String, ArgList) | Null()
+       |""".stripMargin
+
+  val stmAdt: String =
+    s"""data Stm = Assign(String, String) | InvokeStm(Exp, String, ArgList) | StaticInvokeStm(Exp, String, ArgList) | ArrayWrite(Exp, Exp, Exp)
+       |""".stripMargin
+
+  // TODO ClassConstant
+  // TODO MethodHandleConstant
+  // PolymorphicInvoke
+  // How can i generate them? What features do i need to use to get these in jimple?
+  val assignExpFun: String =
+    s"""
        |def assignExp(v: String): Set[Exp] = {
        |    NumLit(num) | (inst, idx, num, v, meth) in _AssignNumConstant
        |  } ++ {
@@ -60,8 +53,9 @@ class CloneDetectionTest extends AnyFunSuite {
        |  } ++ {
        |    Null() | (inst, idx, v, meth) in _AssignNull
        |  } ++ {
-       |    Alloc(heap) |
+       |    Alloc(heap, ty) |
        |      (inst1, idx1, heap, v, meth, line) in _AssignHeapAllocation,
+       |      (v, ty) in _Var_Type,
        |      (inst2, idx2, specialmeth, v, meth) not in _SpecialMethodInvocation
        |  } ++ {
        |    SpecialInvoke(heap, specialmeth, args) |
@@ -91,6 +85,11 @@ class CloneDetectionTest extends AnyFunSuite {
        |      (inst, idx, meth, callingMeth) in _StaticMethodInvocation,
        |      args in getArgs(inst, 0)
        |  } ++ {
+       |    DynamicInvoke(bootmeth, dynname, args) |
+       |      (inst, v) in _AssignReturnValue,
+       |      (inst, idx, bootmeth, dynname, dynretty, dynarity, dynparamtys, tag, callingMeth) in _DynamicMethodInvocation,
+       |      args in getArgs(inst, 0)
+       |  } ++ {
        |    InstanceFieldRead(recvExp, field) |
        |      (inst, idx, v, recv, field, meth) in _LoadInstanceField,
        |      recvExp in assignExp(recv)
@@ -101,7 +100,6 @@ class CloneDetectionTest extends AnyFunSuite {
        |def getOperand(inst: String, pos: Int): Set[Exp] =
        |  { NumLit(num) | (inst, pos, num) in _AssignOperFromConstant } ++
        |  { exp | (inst, pos, var) in _AssignOperFrom, exp in assignExp(var) }
-       |  // { StringLit(str) | str
        |
        |def getArgs(inst: String, currentIdx: Int): Set[ArgList] = {
        |  Arg(exp, rest) |
@@ -111,9 +109,34 @@ class CloneDetectionTest extends AnyFunSuite {
        |} ++ {
        |  NoArg() | (currentIdx, inst, v) not in _ActualParam
        |}
-       |
-       |@main def main(v: String): Set[Exp] = { exp | exp in assignExp(v) }
        |""".stripMargin
+
+  def module(contents: String*): String = {
+    s"""module Programm
+       |${contents.mkString("\n")}
+       |""".stripMargin
+  }
+  val genStmFun: String =
+    s"""def genStm(inst: String): Set[Stm] =
+       |  { ArrayWrite(toExp, NumLit(`String.valueOf`(num)), fromExp) |
+       |      (inst, idx, from, to, meth) in _StoreArrayIndex,
+       |      fromExp in assignExp(from),
+       |      toExp in assignExp(to),
+       |      (inst, num) in _ArrayNumIndex
+       |  } ++ {
+       |    ArrayWrite(toExp, indexExp, fromExp) |
+       |      (inst, idx, from, to, meth) in _StoreArrayIndex,
+       |      fromExp in assignExp(from),
+       |      toExp in assignExp(to),
+       |      (inst, index) in _ArrayInsnIndex,
+       |      indexExp in assignExp(index)
+       |  }
+       |""".stripMargin
+
+  val assignExpMain: String = module(expAdt, assignExpFun, "@main def main(v: String): Set[Exp] = { exp | exp in assignExp(v) }")
+
+  val genStmMain: String = module(expAdt, stmAdt, assignExpFun, genStmFun, "@main def main(v: String): Set[Stm] = { stm | stm in genStm(v) }")
+
 
   val baseDir = s"souffle-frontend/doop-context-insensitive"
 
@@ -122,11 +145,22 @@ class CloneDetectionTest extends AnyFunSuite {
   souffleSrc.close()
 
   def testAssignExp(dir: String, name: meta.Term, expected: meta.Term): Unit = {
-    val fun = FunctionalXSouffleExecutor.loadFunction(funCode, souffleCode)
+    println(assignExpMain)
+    val fun = FunctionalXSouffleExecutor.loadFunction(assignExpMain, souffleCode)
     val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
     assert(res == fun.result(expected))
   }
 
+  def testGenStm(dir: String, name: meta.Term, expected: meta.Term): Unit = {
+    val fun = FunctionalXSouffleExecutor.loadFunction(genStmMain, souffleCode)
+    val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
+    assert(res == fun.result(expected))
+  }
+
+
+  /**
+   * Construct Expressions
+   */
   test("simple addition example") {
     testAssignExp(
       "database-simple-add",
@@ -152,7 +186,7 @@ class CloneDetectionTest extends AnyFunSuite {
     testAssignExp(
       "database-instanceof",
       q""""<Main: void main(java.lang.String[])>/l2#_4"""",
-      q"""InstanceOf(Alloc("12"), "java.lang.String")""")
+      q"""InstanceOf(Alloc("12", "java.lang.String"), "java.lang.String")""")
   }
 
   test("simple unop")  {
@@ -187,7 +221,7 @@ class CloneDetectionTest extends AnyFunSuite {
     testAssignExp(
       "database-method-call",
       q""""<Main: void main(java.lang.String[])>/l3#_5"""",
-      q"""BinOp("+", Invoke(Alloc("12"), "<java.lang.String: int length()>", NoArg()), NumLit("1"))""")
+      q"""BinOp("+", Invoke(Alloc("12", "java.lang.String"), "<java.lang.String: int length()>", NoArg()), NumLit("1"))""")
   }
 
   test("method call with multiple args example") {
@@ -231,5 +265,46 @@ class CloneDetectionTest extends AnyFunSuite {
       "database-constructor-call",
       q""""<Main: void main(java.lang.String[])>/l1#_4"""",
       q"""SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", Arg(NumLit("1"), Arg(NumLit("2"), NoArg())))""")
+  }
+
+  test("dynamic invocation (lambda)") {
+    val varName = Lit.String("<Main: void main(java.lang.String[])>/$stack5")
+
+    val bootMeth = Lit.String("<java.lang.invoke.LambdaMetafactory: java.lang.invoke.CallSite metafactory(java.lang.invoke.MethodHandles$Lookup,java.lang.String,java.lang.invoke.MethodType,java.lang.invoke.MethodType,java.lang.invoke.MethodHandle,java.lang.invoke.MethodType)>")
+    val methName = Lit.String("accept")
+    val expected = q"DynamicInvoke($bootMeth, $methName,  NoArg())"
+
+    testAssignExp(
+      "database-dynamic-invoke",
+      varName,
+      expected)
+  }
+
+  // PhantomInvoke(Exp, String) Phantom invocations are invocations of methods belonging to phantom classes. Phantom classes are classes not part of the analyzed jar
+  // Phantom method calls cannot be recovered because the database does not store them
+  // The database only lists phantom types and phantom methods that are being used in the program
+  // test("phantom method call") {
+  //   testAssignExp(
+  //     "database-phantom-method-call",
+  //     q""""<Main: void main(java.lang.String[])>/l2#_5"""",
+  //     q"""Invoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", Arg(NumLit("1"), Arg(NumLit("2"), NoArg())))""")
+  // }
+
+  /**
+   * Construct Statements
+   */
+
+  test("array write num index") {
+    testGenStm(
+      "database-array-write-num",
+      q""""<Main: void main(java.lang.String[])>/write-array-idx/0"""",
+      q"""ArrayWrite(Alloc("<Main: void main(java.lang.String[])>/new int[]/0", "int[]"), NumLit("1"), NumLit("12"))""")
+  }
+
+  test("array write complex index") {
+    testGenStm(
+      "database-array-write-complex",
+      q""""<Main: void main(java.lang.String[])>/write-array-idx/0"""",
+      q"""ArrayWrite(Alloc("<Main: void main(java.lang.String[])>/new int[]/0", "int[]"), BinOp("+", NumLit("2"), NumLit("2")), NumLit("12"))""")
   }
 }
