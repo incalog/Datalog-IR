@@ -1,0 +1,32 @@
+public class Main extends java.lang.Object
+{
+
+    public void <init>()
+    {
+        Main l0#_0;
+
+        l0#_0 := @this: Main;
+
+        specialinvoke l0#_0.<java.lang.Object: void <init>()>();
+
+        return;
+    }
+
+    public static void main(java.lang.String[])
+    {
+        Point $stack2, l1#_6;
+        java.lang.String[] l0#_0;
+
+        l0#_0 := @parameter0: java.lang.String[];
+
+        $stack2 = new Point;
+
+        specialinvoke $stack2.<Point: void <init>(int,int)>(1, 2);
+
+        l1#_6 = $stack2;
+
+        l1#_6.<Point: int x> = 2;
+
+        return;
+    }
+}

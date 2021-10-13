@@ -15,7 +15,7 @@ class CloneDetectionTest extends AnyFunSuite {
        |""".stripMargin
 
   val stmAdt: String =
-    s"""data Stm = Assign(String, String) | InvokeStm(Exp, String, ArgList) | StaticInvokeStm(Exp, String, ArgList) | ArrayWrite(Exp, Exp, Exp)
+    s"""data Stm = Assign(String, String) | InvokeStm(Exp, String, ArgList) | StaticInvokeStm(Exp, String, ArgList) | ArrayWrite(Exp, Exp, Exp) | InstanceFieldWrite(Exp, String, Exp) | StaticFieldWrite(String, Exp)
        |""".stripMargin
 
   // TODO ClassConstant
@@ -130,6 +130,15 @@ class CloneDetectionTest extends AnyFunSuite {
        |      toExp in assignExp(to),
        |      (inst, index) in _ArrayInsnIndex,
        |      indexExp in assignExp(index)
+       |  } ++ {
+       |    InstanceFieldWrite(recvExp, field, valExp) |
+       |      (inst, idx, val, recv, field, meth) in _StoreInstanceField,
+       |      recvExp in assignExp(recv),
+       |      valExp in assignExp(val)
+       |  } ++ {
+       |    StaticFieldWrite(field, valExp) |
+       |      (inst, idx, val, field, meth) in _StoreStaticField,
+       |      valExp in assignExp(val)
        |  }
        |""".stripMargin
 
@@ -306,5 +315,19 @@ class CloneDetectionTest extends AnyFunSuite {
       "database-array-write-complex",
       q""""<Main: void main(java.lang.String[])>/write-array-idx/0"""",
       q"""ArrayWrite(Alloc("<Main: void main(java.lang.String[])>/new int[]/0", "int[]"), BinOp("+", NumLit("2"), NumLit("2")), NumLit("12"))""")
+  }
+
+  test("instance field write") {
+    testGenStm(
+      "database-instance-field-write",
+      q""""<Main: void main(java.lang.String[])>/write-field-x/0"""",
+      q"""InstanceFieldWrite(SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", Arg(NumLit("1"), Arg(NumLit("2"), NoArg()))), "<Point: int x>", NumLit("2"))""")
+  }
+
+  test("static field write") {
+    testGenStm(
+      "database-static-field-write",
+      q""""<Main: void main(java.lang.String[])>/write-field-TY/0"""",
+      q"""StaticFieldWrite("<Point: java.lang.String TY>", Alloc("POINT", "java.lang.String"))""")
   }
 }

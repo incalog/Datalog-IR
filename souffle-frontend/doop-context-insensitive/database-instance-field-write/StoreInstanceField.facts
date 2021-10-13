@@ -1,0 +1,3 @@
+<Main: void main(java.lang.String[])>/write-field-x/0	6	<Main: void main(java.lang.String[])>/$numconstant2	<Main: void main(java.lang.String[])>/l1#_6	<Point: int x>	<Main: void main(java.lang.String[])>
+<Point: void <init>(int,int)>/write-field-x/0	4	<Point: void <init>(int,int)>/l1#_0	<Point: void <init>(int,int)>/l0#_0	<Point: int x>	<Point: void <init>(int,int)>
+<Point: void <init>(int,int)>/write-field-y/0	5	<Point: void <init>(int,int)>/l2#_0	<Point: void <init>(int,int)>/l0#_0	<Point: int y>	<Point: void <init>(int,int)>
