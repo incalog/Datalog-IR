@@ -1,1 +1,7 @@
-<Main: void main(java.lang.String[])>/read-field-x/0	6	<Main: void main(java.lang.String[])>/l2#_13	<Main: void main(java.lang.String[])>/l1#_12	<Main$Point: int x>	<Main: void main(java.lang.String[])>
+<Main: void main(java.lang.String[])>/read-field-x/0	6	<Main: void main(java.lang.String[])>/l2#_5	<Main: void main(java.lang.String[])>/l1#_4	<Point: int x>	<Main: void main(java.lang.String[])>
+<Point: Point add(Point)>/read-field-x/0	3	<Point: Point add(Point)>/$stack5	<Point: Point add(Point)>/l0#_0	<Point: int x>	<Point: Point add(Point)>
+<Point: Point add(Point)>/read-field-x/1	4	<Point: Point add(Point)>/$stack4	<Point: Point add(Point)>/l1#_0	<Point: int x>	<Point: Point add(Point)>
+<Point: Point add(Point)>/read-field-y/0	6	<Point: Point add(Point)>/$stack7	<Point: Point add(Point)>/l0#_0	<Point: int y>	<Point: Point add(Point)>
+<Point: Point add(Point)>/read-field-y/1	7	<Point: Point add(Point)>/$stack6	<Point: Point add(Point)>/l1#_0	<Point: int y>	<Point: Point add(Point)>
+<Point: Point add(int,int)>/read-field-x/0	4	<Point: Point add(int,int)>/$stack5	<Point: Point add(int,int)>/l0#_0	<Point: int x>	<Point: Point add(int,int)>
+<Point: Point add(int,int)>/read-field-y/0	6	<Point: Point add(int,int)>/$stack6	<Point: Point add(int,int)>/l0#_0	<Point: int y>	<Point: Point add(int,int)>

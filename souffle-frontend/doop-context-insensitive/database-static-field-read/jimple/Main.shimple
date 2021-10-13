@@ -14,12 +14,12 @@ public class Main extends java.lang.Object
 
     public static void main(java.lang.String[])
     {
-        java.lang.String l1#_13;
+        java.lang.String l1#_4;
         java.lang.String[] l0#_0;
 
         l0#_0 := @parameter0: java.lang.String[];
 
-        l1#_13 = <Main$Point: java.lang.String TY>;
+        l1#_4 = <Point: java.lang.String TY>;
 
         return;
     }

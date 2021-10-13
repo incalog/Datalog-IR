@@ -1,2 +1,8 @@
 <Main: void <init>()>	<Main: void <init>()>
 <Main: void main(java.lang.String[])>	<Main: void main(java.lang.String[])>
+<Point: Point genPoint(int,int)>	<Point: Point genPoint(int,int)>
+<Point: void <init>(int,int)>	<Point: void <init>(int,int)>
+<Point: Point add(Point)>	<Point: Point add(Point)>
+<Point: Point add(int,int)>	<Point: Point add(int,int)>
+<Point: void <clinit>()>	<Point: void <clinit>()>
+POINT	POINT

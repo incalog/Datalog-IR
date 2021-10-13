@@ -5,7 +5,6 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import scala.io.{BufferedSource, Source}
 import scala.meta.XtensionQuasiquoteTerm
-import scala.meta.Term
 
 class CloneDetectionTest extends AnyFunSuite {
 
@@ -122,71 +121,115 @@ class CloneDetectionTest extends AnyFunSuite {
   val souffleCode: String = souffleSrc.getLines().mkString("\n")
   souffleSrc.close()
 
-  def testJimpleExample(dir: String, name: meta.Term): Unit = {
+  def testAssignExp(dir: String, name: meta.Term, expected: meta.Term): Unit = {
     val fun = FunctionalXSouffleExecutor.loadFunction(funCode, souffleCode)
     val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
-    println(res)
-    assert(res.res.size == 1)
+    assert(res == fun.result(expected))
   }
 
   test("simple addition example") {
-    testJimpleExample("database-simple-add",q""""<Main: void main(java.lang.String[])>/y#_4"""")
+    testAssignExp(
+      "database-simple-add",
+      q""""<Main: void main(java.lang.String[])>/y#_4"""",
+      q"""BinOp("+", NumLit("3"), NumLit("5"))""")
   }
 
   test("nested addition example") {
-    testJimpleExample("database-nested-add",q""""<Main: void main(java.lang.String[])>/z#_5"""")
+    testAssignExp(
+      "database-nested-add",
+      q""""<Main: void main(java.lang.String[])>/z#_5"""",
+      q"""BinOp("+", BinOp("+", NumLit("3"), NumLit("5")), BinOp("+", NumLit("3"), NumLit("5")))""")
   }
 
   test("cast example") {
-    testJimpleExample("database-cast",q""""<Main: void main(java.lang.String[])>/l2#_4"""")
+    testAssignExp(
+      "database-cast",
+      q""""<Main: void main(java.lang.String[])>/l2#_4"""",
+      q"""Cast(NumLit("12"), "long")""")
   }
 
   test("instanceof example") {
-    testJimpleExample("database-instanceof",q""""<Main: void main(java.lang.String[])>/l2#_4"""")
+    testAssignExp(
+      "database-instanceof",
+      q""""<Main: void main(java.lang.String[])>/l2#_4"""",
+      q"""InstanceOf(Alloc("12"), "java.lang.String")""")
   }
 
   test("simple unop")  {
-    testJimpleExample("database-unop",q""""<Main: void main(java.lang.String[])>/l1#_3"""")
+    testAssignExp(
+      "database-unop",
+      q""""<Main: void main(java.lang.String[])>/l1#_3"""",
+      q"""UnOp("len", Var("<Main: void main(java.lang.String[])>/@parameter0"))""")
   }
 
   test("array read with int") {
-    testJimpleExample("database-array-read-int",q""""<Main: void main(java.lang.String[])>/l1#_3"""")
+    testAssignExp(
+      "database-array-read-int",
+      q""""<Main: void main(java.lang.String[])>/l1#_3"""",
+      q"""ArrayRead(Var("<Main: void main(java.lang.String[])>/@parameter0"), NumLit("12"))""")
   }
 
   test("array read with complex expression") {
-    testJimpleExample("database-array-read-var",q""""<Main: void main(java.lang.String[])>/l4#_6"""")
+    testAssignExp(
+      "database-array-read-var",
+      q""""<Main: void main(java.lang.String[])>/l4#_6"""",
+      q"""ArrayRead(Var("<Main: void main(java.lang.String[])>/@parameter0"), BinOp("+", BinOp("+", NumLit("1"), NumLit("4")), NumLit("2")))""")
   }
 
   test("string length method call example") {
-    testJimpleExample("database-string-length",q""""<Main: void main(java.lang.String[])>/l1#_3"""")
+    testAssignExp(
+      "database-string-length",
+      q""""<Main: void main(java.lang.String[])>/l1#_3"""",
+      q"""Invoke(ArrayRead(Var("<Main: void main(java.lang.String[])>/@parameter0"), NumLit("0")), "<java.lang.String: int length()>", NoArg())""")
   }
 
   test("method call example") {
-    testJimpleExample("database-method-call",q""""<Main: void main(java.lang.String[])>/l3#_5"""")
+    testAssignExp(
+      "database-method-call",
+      q""""<Main: void main(java.lang.String[])>/l3#_5"""",
+      q"""BinOp("+", Invoke(Alloc("12"), "<java.lang.String: int length()>", NoArg()), NumLit("1"))""")
   }
 
-  test("multiple method call example") {
-    testJimpleExample("database-multiple-arg-method-call",q""""<Main: void main(java.lang.String[])>/l4#_7"""")
+  test("method call with multiple args example") {
+    testAssignExp(
+      "database-multiple-arg-method-call",
+      q""""<Main: void main(java.lang.String[])>/l4#_7"""",
+      q"""Invoke(SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", Arg(NumLit("1"), Arg(NumLit("2"), NoArg()))), "<Point: Point add(int,int)>", Arg(NumLit("10"), Arg(NumLit("12"), NoArg())))""")
   }
 
-  // TODO consider arguments and constructor that are being used for alloc
   test("instance field read access ") {
-    testJimpleExample("database-instance-field-read",q""""<Main: void main(java.lang.String[])>/l2#_13"""")
+    testAssignExp(
+      "database-instance-field-read",
+      q""""<Main: void main(java.lang.String[])>/l2#_5"""",
+      q"""InstanceFieldRead(SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", Arg(NumLit("1"), Arg(NumLit("2"), NoArg()))), "<Point: int x>")""")
   }
 
   test("static field read access ") {
-    testJimpleExample("database-static-field-read",q""""<Main: void main(java.lang.String[])>/l1#_13"""")
+    testAssignExp(
+      "database-static-field-read",
+      q""""<Main: void main(java.lang.String[])>/l1#_4"""",
+      q"""StaticFieldRead("<Point: java.lang.String TY>")""")
   }
 
   test("static method call") {
-    testJimpleExample("database-static-method-call",q""""<Main: void main(java.lang.String[])>/l1#_4"""")
+    testAssignExp(
+      "database-static-method-call",
+      q""""<Main: void main(java.lang.String[])>/l1#_4"""",
+      q"""StaticInvoke("<Point: Point genPoint(int,int)>", Arg(NumLit("1"), Arg(NumLit("2"), NoArg())))"""
+    )
   }
 
   test("method call with null argument") {
-    testJimpleExample("database-null-argument",q""""<Main: void main(java.lang.String[])>/l2#_5"""")
+    testAssignExp(
+      "database-null-argument",
+      q""""<Main: void main(java.lang.String[])>/l2#_5"""",
+      q"""Invoke(StaticInvoke("<Point: Point genPoint(int,int)>", Arg(NumLit("1"), Arg(NumLit("2"), NoArg()))), "<Point: Point add(Point)>", Arg(Null(), NoArg()))""")
   }
 
   test("constructor call") {
-    testJimpleExample("database-constructor-call",q""""<Main: void main(java.lang.String[])>/l1#_4"""")
+    testAssignExp(
+      "database-constructor-call",
+      q""""<Main: void main(java.lang.String[])>/l1#_4"""",
+      q"""SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", Arg(NumLit("1"), Arg(NumLit("2"), NoArg())))""")
   }
 }

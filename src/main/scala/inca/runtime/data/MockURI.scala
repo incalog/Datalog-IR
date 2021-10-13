@@ -1,10 +1,12 @@
 package inca.runtime.data
 
 import inca.runtime.db.{Database, DatabaseInspector}
+import truediff.Diffable
 
 class MockURI(val repr: String) extends truechange.URI {
   override def equals(obj: Any): Boolean = obj match {
     case other: MockURI => this.repr == other.repr
+    case other: Diffable => this.repr == other.toString
     case _ => false
   }
 
@@ -34,7 +36,7 @@ object MockURI {
       case data: MockURI => data.repr
       case arg => arg.toString
     }
-    new MockURI(constr + strArgs.mkString("(", ", ", ")"))
+    new MockURI(constr + strArgs.mkString("(", ",", ")"))
   }
 
   def convertToValue(uri: MockURI): Value = {

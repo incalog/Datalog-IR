@@ -1,1 +1,8 @@
 0	<Main: void main(java.lang.String[])>	<Main: void main(java.lang.String[])>/@parameter0
+0	<Point: Point genPoint(int,int)>	<Point: Point genPoint(int,int)>/@parameter0
+1	<Point: Point genPoint(int,int)>	<Point: Point genPoint(int,int)>/@parameter1
+0	<Point: void <init>(int,int)>	<Point: void <init>(int,int)>/@parameter0
+1	<Point: void <init>(int,int)>	<Point: void <init>(int,int)>/@parameter1
+0	<Point: Point add(Point)>	<Point: Point add(Point)>/@parameter0
+0	<Point: Point add(int,int)>	<Point: Point add(int,int)>/@parameter0
+1	<Point: Point add(int,int)>	<Point: Point add(int,int)>/@parameter1
