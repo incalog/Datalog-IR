@@ -1,0 +1,16 @@
+<Main: void <init>()>/assign/0	0	<Main: void <init>()>/@this	<Main: void <init>()>/l0#_0	<Main: void <init>()>
+<Main: void main(java.lang.String[])>/assign/0	0	<Main: void main(java.lang.String[])>/@parameter0	<Main: void main(java.lang.String[])>/l0#_0	<Main: void main(java.lang.String[])>
+<Point: Point genPoint(int,int)>/assign/0	0	<Point: Point genPoint(int,int)>/@parameter0	<Point: Point genPoint(int,int)>/l0#_0	<Point: Point genPoint(int,int)>
+<Point: Point genPoint(int,int)>/assign/1	1	<Point: Point genPoint(int,int)>/@parameter1	<Point: Point genPoint(int,int)>/l1#_0	<Point: Point genPoint(int,int)>
+<Point: Point genPoint(int,int)>/assign/3	4	<Point: Point genPoint(int,int)>/$stack3	<Point: Point genPoint(int,int)>/l2#_6	<Point: Point genPoint(int,int)>
+<Point: void <init>(int,int)>/assign/0	0	<Point: void <init>(int,int)>/@this	<Point: void <init>(int,int)>/l0#_0	<Point: void <init>(int,int)>
+<Point: void <init>(int,int)>/assign/1	1	<Point: void <init>(int,int)>/@parameter0	<Point: void <init>(int,int)>/l1#_0	<Point: void <init>(int,int)>
+<Point: void <init>(int,int)>/assign/2	2	<Point: void <init>(int,int)>/@parameter1	<Point: void <init>(int,int)>/l2#_0	<Point: void <init>(int,int)>
+<Point: int getX()>/assign/0	0	<Point: int getX()>/@this	<Point: int getX()>/l0#_0	<Point: int getX()>
+<Point: Point add(Point)>/assign/0	0	<Point: Point add(Point)>/@this	<Point: Point add(Point)>/l0#_0	<Point: Point add(Point)>
+<Point: Point add(Point)>/assign/1	1	<Point: Point add(Point)>/@parameter0	<Point: Point add(Point)>/l1#_0	<Point: Point add(Point)>
+<Point: Point add(Point)>/assign/5	10	<Point: Point add(Point)>/$stack3	<Point: Point add(Point)>/l2#_24	<Point: Point add(Point)>
+<Point: Point add(int,int)>/assign/0	0	<Point: Point add(int,int)>/@this	<Point: Point add(int,int)>/l0#_0	<Point: Point add(int,int)>
+<Point: Point add(int,int)>/assign/1	1	<Point: Point add(int,int)>/@parameter0	<Point: Point add(int,int)>/l1#_0	<Point: Point add(int,int)>
+<Point: Point add(int,int)>/assign/2	2	<Point: Point add(int,int)>/@parameter1	<Point: Point add(int,int)>/l2#_0	<Point: Point add(int,int)>
+<Point: Point add(int,int)>/assign/6	9	<Point: Point add(int,int)>/$stack4	<Point: Point add(int,int)>/l3#_29	<Point: Point add(int,int)>

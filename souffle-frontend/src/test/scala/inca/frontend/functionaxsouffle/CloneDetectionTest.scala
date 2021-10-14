@@ -11,12 +11,35 @@ class CloneDetectionTest extends AnyFunSuite {
 
   val expAdt =
     s"""data ArgList = NoArg() | Arg(Exp, ArgList)
-       |data Exp = NumLit(String) | Var(String) | BinOp(String, Exp, Exp) | UnOp(String, Exp) | Cast(Exp, String) | InstanceOf(Exp, String) | StringLit(String) | Alloc(String, String) | SpecialInvoke(String, String, ArgList) | ArrayRead(Exp, Exp) | InstanceFieldRead(Exp, String) | StaticFieldRead(String) | Invoke(Exp, String, ArgList) | StaticInvoke(String, ArgList) | DynamicInvoke(String, String, ArgList) | Null()
-       |""".stripMargin
+       |data Exp = NumLit(String)
+       |         | Var(String)
+       |         | BinOp(String, Exp, Exp)
+       |         | UnOp(String, Exp)
+       |         | Cast(Exp, String)
+       |         | InstanceOf(Exp, String)
+       |         | StringLit(String)
+       |         | Alloc(String, String)
+       |         | SpecialInvoke(String, String, ArgList)
+       |         | ArrayRead(Exp, Exp)
+       |         | InstanceFieldRead(Exp, String)
+       |         | StaticFieldRead(String)
+       |         | Invoke(Exp, String, ArgList)
+       |         | StaticInvoke(String, ArgList)
+       |         | DynamicInvoke(String, String, ArgList)
+       |         | This()
+       |         | Null()
+       |"""
 
   val stmAdt: String =
-    s"""data Stm = Assign(String, String) | InvokeStm(Exp, String, ArgList) | StaticInvokeStm(Exp, String, ArgList) | ArrayWrite(Exp, Exp, Exp) | InstanceFieldWrite(Exp, String, Exp) | StaticFieldWrite(String, Exp)
-       |""".stripMargin
+    s"""data Stm = Assign(String, String)
+       |         | InvokeStm(Exp, String, ArgList)
+       |         | StaticInvokeStm(String, ArgList)
+       |         | ArrayWrite(Exp, Exp, Exp)
+       |         | InstanceFieldWrite(Exp, String, Exp)
+       |         | StaticFieldWrite(String, Exp)
+       |         | ReturnVoid()
+       |         | Return(Exp) // is this correct?
+       |"""
 
   // TODO ClassConstant
   // TODO MethodHandleConstant
@@ -52,6 +75,8 @@ class CloneDetectionTest extends AnyFunSuite {
        |      exp in assignExp(from)
        |  } ++ {
        |    Null() | (inst, idx, v, meth) in _AssignNull
+       |  } ++ {
+       |    This() | (meth, v) in _ThisVar
        |  } ++ {
        |    Alloc(heap, ty) |
        |      (inst1, idx1, heap, v, meth, line) in _AssignHeapAllocation,
@@ -139,6 +164,24 @@ class CloneDetectionTest extends AnyFunSuite {
        |    StaticFieldWrite(field, valExp) |
        |      (inst, idx, val, field, meth) in _StoreStaticField,
        |      valExp in assignExp(val)
+       |  } ++ {
+       |    ReturnVoid() | (inst, idx, meth) in _ReturnVoid
+       |  } ++ {
+       |    Return(exp) |
+       |      (inst, idx, v, meth) in _Return,
+       |      exp in assignExp(v)
+       |  } ++ {
+       |    InvokeStm(recvExp, meth, args) |
+       |      (inst, v) not in _AssignReturnValue, // an invoke statement does not assign a value to
+       |      (inst, idx, meth, recv, callingMeth) in _VirtualMethodInvocation,
+       |      recvExp in assignExp(recv),
+       |      args in getArgs(inst, 0)
+       |  } ++ {
+       |    StaticInvokeStm(meth, args) |
+       |      (inst, v) not in _AssignReturnValue,
+       |      (inst, idx, meth, callingMeth) in _StaticMethodInvocation,
+       |      args in getArgs(inst, 0)
+       |  } ++ {
        |  }
        |""".stripMargin
 
@@ -154,7 +197,6 @@ class CloneDetectionTest extends AnyFunSuite {
   souffleSrc.close()
 
   def testAssignExp(dir: String, name: meta.Term, expected: meta.Term): Unit = {
-    println(assignExpMain)
     val fun = FunctionalXSouffleExecutor.loadFunction(assignExpMain, souffleCode)
     val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
     assert(res == fun.result(expected))
@@ -329,5 +371,40 @@ class CloneDetectionTest extends AnyFunSuite {
       "database-static-field-write",
       q""""<Main: void main(java.lang.String[])>/write-field-TY/0"""",
       q"""StaticFieldWrite("<Point: java.lang.String TY>", Alloc("POINT", "java.lang.String"))""")
+  }
+
+  test("return void") {
+    testGenStm(
+      "database-static-field-write",
+      q""""<Main: void main(java.lang.String[])>/return-void/0"""",
+      q"""ReturnVoid()""")
+  }
+
+  test("return numlit") {
+    testGenStm(
+      "database-return",
+      q""""<Point: int maxX()>/return/0"""",
+      q"""Return(NumLit("10"))""")
+  }
+
+  test("return field") {
+    testGenStm(
+      "database-return",
+      q""""<Point: int getX()>/return/0"""",
+      q"""Return(InstanceFieldRead(This(), "<Point: int x>"))""")
+  }
+
+  test("return complex expression") {
+    testGenStm(
+      "database-return",
+      q""""<Point: Point add(int,int)>/return/0"""",
+      q"""Return(SpecialInvoke("<Point: Point add(int,int)>/new Point/0", "<Point: void <init>(int,int)>", Arg(BinOp("+", InstanceFieldRead(This(), "<Point: int x>"), Var("<Point: Point add(int,int)>/@parameter0")), Arg(BinOp("+", InstanceFieldRead(This(), "<Point: int y>"), Var("<Point: Point add(int,int)>/@parameter1")), NoArg()))))""")
+  }
+
+  test("invoke statement") {
+    testGenStm(
+      "database-invoke-stm",
+      q""""<Main: void main(java.lang.String[])>/Point.print/0"""",
+      q"""InvokeStm(SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>",Arg(NumLit("1"), Arg(NumLit("2"), NoArg()))), "<Point: void print()>" ,NoArg())""")
   }
 }
