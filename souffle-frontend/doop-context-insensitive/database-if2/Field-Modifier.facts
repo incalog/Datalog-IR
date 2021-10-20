@@ -1,0 +1,4 @@
+public	<Point: java.lang.String TY>
+static	<Point: java.lang.String TY>
+	<Point: int x>
+	<Point: int y>

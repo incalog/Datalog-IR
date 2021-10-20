@@ -1,5 +1,7 @@
 package inca.frontend.functionaxsouffle
 
+import inca.backend.analyze.DependencyGraph
+import inca.frontend.functional.compiler.FunctionalOptions
 import inca.frontend.functionalxsouffle.executor.FunctionalXSouffleExecutor
 import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
@@ -10,7 +12,7 @@ import scala.meta.{Lit, Term, XtensionQuasiquoteTerm}
 class CloneDetectionTest extends AnyFunSuite {
 
   val expAdt =
-    s"""data ArgList = NoArg() | Arg(Exp, ArgList)
+    s"""data ArgList = NilArg() | ConsArg(Exp, ArgList)
        |data Exp = NumLit(String)
        |         | Var(String)
        |         | BinOp(String, Exp, Exp)
@@ -24,6 +26,7 @@ class CloneDetectionTest extends AnyFunSuite {
        |         | InstanceFieldRead(Exp, String)
        |         | StaticFieldRead(String)
        |         | Invoke(Exp, String, ArgList)
+       |         | SuperInvoke(Exp, String, ArgList)
        |         | StaticInvoke(String, ArgList)
        |         | DynamicInvoke(String, String, ArgList)
        |         | This()
@@ -31,14 +34,21 @@ class CloneDetectionTest extends AnyFunSuite {
        |"""
 
   val stmAdt: String =
-    s"""data Stm = Assign(String, String)
+    s"""data CaseList = Case(Int, Int, CaseList) | Default(Int)
+       |data Stm = Assign(String, String)
        |         | InvokeStm(Exp, String, ArgList)
        |         | StaticInvokeStm(String, ArgList)
        |         | ArrayWrite(Exp, Exp, Exp)
        |         | InstanceFieldWrite(Exp, String, Exp)
        |         | StaticFieldWrite(String, Exp)
        |         | ReturnVoid()
-       |         | Return(Exp) // is this correct?
+       |         | Return(Exp)
+       |         | Goto(Int)
+       |         | If(String, Exp, Exp, Int) // TODO What is DummyIfVar for?
+       |         | TableSwitch(Exp, CaseList)
+       |         | LookupSwitch(Exp, CaseList)
+       |
+       |data StmList = ConsStm(Stm, StmList) | NilStm()
        |"""
 
   // TODO ClassConstant
@@ -105,6 +115,12 @@ class CloneDetectionTest extends AnyFunSuite {
        |      recvExp in assignExp(recv),
        |      args in getArgs(inst, 0)
        |  } ++ {
+       |    SuperInvoke(recvExp, meth, args) |
+       |      (inst, v) in _AssignReturnValue,
+       |      (inst, idx, meth, recv, callingMeth) in _SuperMethodInvocation,
+       |      recvExp in assignExp(recv),
+       |      args in getArgs(inst, 0)
+       |  } ++ {
        |    StaticInvoke(meth, args) |
        |      (inst, v) in _AssignReturnValue,
        |      (inst, idx, meth, callingMeth) in _StaticMethodInvocation,
@@ -127,12 +143,12 @@ class CloneDetectionTest extends AnyFunSuite {
        |  { exp | (inst, pos, var) in _AssignOperFrom, exp in assignExp(var) }
        |
        |def getArgs(inst: String, currentIdx: Int): Set[ArgList] = {
-       |  Arg(exp, rest) |
+       |  ConsArg(exp, rest) |
        |    (currentIdx, inst, v) in _ActualParam,
        |    exp in assignExp(v),
        |    rest in getArgs(inst, currentIdx + 1)
        |} ++ {
-       |  NoArg() | (currentIdx, inst, v) not in _ActualParam
+       |  NilArg() | (currentIdx, inst, v) not in _ActualParam
        |}
        |""".stripMargin
 
@@ -141,6 +157,7 @@ class CloneDetectionTest extends AnyFunSuite {
        |${contents.mkString("\n")}
        |""".stripMargin
   }
+
   val genStmFun: String =
     s"""def genStm(inst: String): Set[Stm] =
        |  { ArrayWrite(toExp, NumLit(`String.valueOf`(num)), fromExp) |
@@ -182,12 +199,76 @@ class CloneDetectionTest extends AnyFunSuite {
        |      (inst, idx, meth, callingMeth) in _StaticMethodInvocation,
        |      args in getArgs(inst, 0)
        |  } ++ {
+       |    Goto(trg) | (inst, idx, trg, meth) in _Goto
+       |  } ++ {
+       |    If(op, lhs, rhs, trg) |
+       |      (inst, idx, trg, _) in _If,
+       |      (inst, op) in _OperatorAt,
+       |      lhs in getIfOperand(inst, 1),
+       |      rhs in getIfOperand(inst, 2)
+       |  } // TODO use fold
+       |  // ++ {
+       |  //   TableSwitch(matcheeExp, cases) |
+       |  //     (inst, idx, matchee, meth) in _TableSwitch,
+       |  //     matcheeExp in assignExp(matchee),
+       |  //     cases in getTableSwitchCases(inst)
+       |  // }
+       |
+       |def getIfOperand(inst: String, pos: Int): Set[Exp] =
+       |  { NumLit(num) | (inst, pos, num) in _IfConstant } ++
+       |  { exp | (inst, pos, v) in _IfVar, exp in assignExp(v) }
+       |
+       |// TODO how can I construct a switch statement? We do not have an index for each case
+       |// def getTableSwitchVals(inst: String): Set[Int] = { v | (inst, v, trg) in _ TableSwitch_Target }
+       |// def getTableSwitchCases(inst: String, v: Int): Set[CaseList] =
+       |//   {
+       |//     Case(num, trg, rest) |
+       |//       (inst, v, trg) in _TableSwitch_Target,
+       |//       rest in getTableSwitchCases(inst)
+       |//   } ++ {
+       |//     Default(trg) | (inst, trg) in _TableSwitch_DefaultTarget
+       |//   }
+       |
+       |def maxIndexOfInstructions(method: String): Int =
+       |  fold(-1, maxInt, indicesOfInstructions(method))
+       |
+       |def indicesOfInstructions(method: String): Set[Int] =
+       |  { index | (inst, method) in Instruction_Method, (inst, index) in Instruction_Index }
+       |
+       |def maxInt(x: Int, y: Int): Int =
+       |  if (x > y)
+       |    x
+       |  else
+       |    if (x < y)
+       |      y
+       |    else
+       |      x
+       |
+       |
+       |def getStmList(method: String, currentIdx: Int): Set[StmList] =
+       |  {
+       |    ConsStm(stm, rest) |
+       |      (inst, method) in Instruction_Method,
+       |      (inst, currentIdx) in Instruction_Index,
+       |      inst in Stm_Instruction,
+       |      stm in genStm(inst),
+       |      rest in getStmList(method, currentIdx + 1)
+       |  } ++ {
+       |    stmList |
+       |      (inst, method) in Instruction_Method,
+       |      (inst, currentIdx) in Instruction_Index,
+       |      inst not in Stm_Instruction,
+       |      stmList in getStmList(method, currentIdx + 1)
+       |  } ++ {
+       |    NilStm() | currentIdx > maxIndexOfInstructions(method)
        |  }
        |""".stripMargin
 
   val assignExpMain: String = module(expAdt, assignExpFun, "@main def main(v: String): Set[Exp] = { exp | exp in assignExp(v) }")
 
   val genStmMain: String = module(expAdt, stmAdt, assignExpFun, genStmFun, "@main def main(v: String): Set[Stm] = { stm | stm in genStm(v) }")
+
+  val getStmListMain: String = module(expAdt, stmAdt, assignExpFun, genStmFun, "@main def main(meth: String): Set[StmList] = getStmList(meth, 0)")
 
 
   val baseDir = s"souffle-frontend/doop-context-insensitive"
@@ -204,6 +285,13 @@ class CloneDetectionTest extends AnyFunSuite {
 
   def testGenStm(dir: String, name: meta.Term, expected: meta.Term): Unit = {
     val fun = FunctionalXSouffleExecutor.loadFunction(genStmMain, souffleCode)
+    val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
+    assert(res == fun.result(expected))
+  }
+
+  def testGetStmList(dir: String, name: meta.Term, expected: meta.Term): Unit = {
+    val opts = FunctionalOptions()
+    val fun = FunctionalXSouffleExecutor.loadFunction(getStmListMain, souffleCode, opts)
     val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
     assert(res == fun.result(expected))
   }
@@ -265,28 +353,28 @@ class CloneDetectionTest extends AnyFunSuite {
     testAssignExp(
       "database-string-length",
       q""""<Main: void main(java.lang.String[])>/l1#_3"""",
-      q"""Invoke(ArrayRead(Var("<Main: void main(java.lang.String[])>/@parameter0"), NumLit("0")), "<java.lang.String: int length()>", NoArg())""")
+      q"""Invoke(ArrayRead(Var("<Main: void main(java.lang.String[])>/@parameter0"), NumLit("0")), "<java.lang.String: int length()>", NilArg())""")
   }
 
   test("method call example") {
     testAssignExp(
       "database-method-call",
       q""""<Main: void main(java.lang.String[])>/l3#_5"""",
-      q"""BinOp("+", Invoke(Alloc("12", "java.lang.String"), "<java.lang.String: int length()>", NoArg()), NumLit("1"))""")
+      q"""BinOp("+", Invoke(Alloc("12", "java.lang.String"), "<java.lang.String: int length()>", NilArg()), NumLit("1"))""")
   }
 
   test("method call with multiple args example") {
     testAssignExp(
       "database-multiple-arg-method-call",
       q""""<Main: void main(java.lang.String[])>/l4#_7"""",
-      q"""Invoke(SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", Arg(NumLit("1"), Arg(NumLit("2"), NoArg()))), "<Point: Point add(int,int)>", Arg(NumLit("10"), Arg(NumLit("12"), NoArg())))""")
+      q"""Invoke(SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg()))), "<Point: Point add(int,int)>", ConsArg(NumLit("10"), ConsArg(NumLit("12"), NilArg())))""")
   }
 
   test("instance field read access ") {
     testAssignExp(
       "database-instance-field-read",
       q""""<Main: void main(java.lang.String[])>/l2#_5"""",
-      q"""InstanceFieldRead(SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", Arg(NumLit("1"), Arg(NumLit("2"), NoArg()))), "<Point: int x>")""")
+      q"""InstanceFieldRead(SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg()))), "<Point: int x>")""")
   }
 
   test("static field read access ") {
@@ -300,7 +388,7 @@ class CloneDetectionTest extends AnyFunSuite {
     testAssignExp(
       "database-static-method-call",
       q""""<Main: void main(java.lang.String[])>/l1#_4"""",
-      q"""StaticInvoke("<Point: Point genPoint(int,int)>", Arg(NumLit("1"), Arg(NumLit("2"), NoArg())))"""
+      q"""StaticInvoke("<Point: Point genPoint(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg())))"""
     )
   }
 
@@ -308,14 +396,14 @@ class CloneDetectionTest extends AnyFunSuite {
     testAssignExp(
       "database-null-argument",
       q""""<Main: void main(java.lang.String[])>/l2#_5"""",
-      q"""Invoke(StaticInvoke("<Point: Point genPoint(int,int)>", Arg(NumLit("1"), Arg(NumLit("2"), NoArg()))), "<Point: Point add(Point)>", Arg(Null(), NoArg()))""")
+      q"""Invoke(StaticInvoke("<Point: Point genPoint(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg()))), "<Point: Point add(Point)>", ConsArg(Null(), NilArg()))""")
   }
 
   test("constructor call") {
     testAssignExp(
       "database-constructor-call",
       q""""<Main: void main(java.lang.String[])>/l1#_4"""",
-      q"""SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", Arg(NumLit("1"), Arg(NumLit("2"), NoArg())))""")
+      q"""SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg())))""")
   }
 
   test("dynamic invocation (lambda)") {
@@ -323,7 +411,7 @@ class CloneDetectionTest extends AnyFunSuite {
 
     val bootMeth = Lit.String("<java.lang.invoke.LambdaMetafactory: java.lang.invoke.CallSite metafactory(java.lang.invoke.MethodHandles$Lookup,java.lang.String,java.lang.invoke.MethodType,java.lang.invoke.MethodType,java.lang.invoke.MethodHandle,java.lang.invoke.MethodType)>")
     val methName = Lit.String("accept")
-    val expected = q"DynamicInvoke($bootMeth, $methName,  NoArg())"
+    val expected = q"DynamicInvoke($bootMeth, $methName,  NilArg())"
 
     testAssignExp(
       "database-dynamic-invoke",
@@ -338,7 +426,7 @@ class CloneDetectionTest extends AnyFunSuite {
   //   testAssignExp(
   //     "database-phantom-method-call",
   //     q""""<Main: void main(java.lang.String[])>/l2#_5"""",
-  //     q"""Invoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", Arg(NumLit("1"), Arg(NumLit("2"), NoArg())))""")
+  //     q"""Invoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg())))""")
   // }
 
   /**
@@ -363,7 +451,7 @@ class CloneDetectionTest extends AnyFunSuite {
     testGenStm(
       "database-instance-field-write",
       q""""<Main: void main(java.lang.String[])>/write-field-x/0"""",
-      q"""InstanceFieldWrite(SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", Arg(NumLit("1"), Arg(NumLit("2"), NoArg()))), "<Point: int x>", NumLit("2"))""")
+      q"""InstanceFieldWrite(SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg()))), "<Point: int x>", NumLit("2"))""")
   }
 
   test("static field write") {
@@ -398,13 +486,70 @@ class CloneDetectionTest extends AnyFunSuite {
     testGenStm(
       "database-return",
       q""""<Point: Point add(int,int)>/return/0"""",
-      q"""Return(SpecialInvoke("<Point: Point add(int,int)>/new Point/0", "<Point: void <init>(int,int)>", Arg(BinOp("+", InstanceFieldRead(This(), "<Point: int x>"), Var("<Point: Point add(int,int)>/@parameter0")), Arg(BinOp("+", InstanceFieldRead(This(), "<Point: int y>"), Var("<Point: Point add(int,int)>/@parameter1")), NoArg()))))""")
+      q"""Return(SpecialInvoke("<Point: Point add(int,int)>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(BinOp("+", InstanceFieldRead(This(), "<Point: int x>"), Var("<Point: Point add(int,int)>/@parameter0")), ConsArg(BinOp("+", InstanceFieldRead(This(), "<Point: int y>"), Var("<Point: Point add(int,int)>/@parameter1")), NilArg()))))""")
   }
 
   test("invoke statement") {
     testGenStm(
       "database-invoke-stm",
       q""""<Main: void main(java.lang.String[])>/Point.print/0"""",
-      q"""InvokeStm(SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>",Arg(NumLit("1"), Arg(NumLit("2"), NoArg()))), "<Point: void print()>" ,NoArg())""")
+      q"""InvokeStm(SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg()))), "<Point: void print()>" ,NilArg())""")
   }
+
+  test("goto statement") {
+    testGenStm(
+      "database-if",
+      q""""<Main: void main(java.lang.String[])>/goto/0"""",
+      q"""Goto(8)""")
+  }
+
+  test("if statement") {
+    testGenStm(
+      "database-if",
+      q""""<Main: void main(java.lang.String[])>/if/0"""",
+      q"""If("<=", NumLit("1"), NumLit("2"), 7)""")
+  }
+
+//  test("phi expression") {
+//    testGenStm(
+//      "database-if",
+//      q"""If("<=", NumLit("1"), NumLit("2"), 7)""")
+//  }
+
+  // test("table switch statement") {
+  //   testGenStm(
+  //     "database-switch",
+  //     q""""<Main: void main(java.lang.String[])>/table-switch/0"""",
+  //     q"""TableSwitch(BinOp("+", NumLit("2"), NumLit("1")), Default(1))""")
+  // }
+
+  test("test stmt list with phi") {
+    testGetStmList(
+      "database-if",
+      q""""<Main: void main(java.lang.String[])>"""",
+      q"""TableSwitch(BinOp("+", NumLit("2"), NumLit("1")), Default(1))""")
+  }
+
+  test("test gen simple stm list") {
+    testGetStmList(
+      "database-stmt-list",
+      q""""<Main: void main(java.lang.String[])>"""",
+      q"""ConsStm(If("==", NumLit("1"), NumLit("1"), 5), ConsStm(ReturnVoid(), ConsStm(ReturnVoid(), NilStm())))""")
+  }
+
+  test("test gen simple stm list 2") {
+    testGetStmList(
+      "database-if2",
+      q""""<Main: void main(java.lang.String[])>"""",
+      q"NilStm()")
+      //q"""ConsStm(If("==", NumLit("1"), NumLit("1"), 5), ConsStm(ReturnVoid(), ConsStm(ReturnVoid(), NilStm())))""")
+  }
+
+  // test("test phi") {
+  //   testGetStmList(
+  //     "database-phi",
+  //     q""""<Main: void main(java.lang.String[])>"""",
+  //     q"NilStm()")
+  //   //q"""ConsStm(If("==", NumLit("1"), NumLit("1"), 5), ConsStm(ReturnVoid(), ConsStm(ReturnVoid(), NilStm())))""")
+  // }
 }
