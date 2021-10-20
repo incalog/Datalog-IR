@@ -7,7 +7,6 @@ import inca.frontend.util.{Resolvable, Typeable}
 
 trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
-
   def externalSignatures: Map[Name, Seq[Type]]
 
   def typecheck(program: Seq[Module]): Unit = scopedTypeContext {
@@ -30,6 +29,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           case data: DataDef => bindData(data, module)
         }
       }
+    }
+
+    externalSignatures.foreach { case (name, tys) =>
+      val tsetInnerTy = if (tys.size == 1) tys.head else TTuple(tys)
+      bindVar(name, Var.ExternalTarget, TSet(tsetInnerTy))
     }
 
     // bind symbols first
@@ -99,6 +103,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   final def typecheckCore(exp: Expression, anno: Option[Type]): Type = exp match {
     case v@Var(name) =>
       lookupVar(name) match {
+        // this variable is bound to an external relation (currently onsouffle relation)
+        case Some((Var.ExternalTarget, ty)) => ty
         case Some((decl, ty)) =>
           if (ty.isInstanceOf[TSet])
             error(s"Variables may not range over relations", v)
@@ -107,6 +113,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         case None =>
           TAny
       }
+    case wc@Wildcard() =>
+      error("Widlcards can only occur in membership tests and count function call", wc)
+      TAny
     case let@Let(names, anno, bound, body) =>
       val ty = typecheck(bound)
       val namesStr = names.mkString("(", ", ", ")")
@@ -178,6 +187,21 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             case None => // nothing
           }
           TOption(TAny)
+        case Var(Name("count")) =>
+          if (args.size != 1)
+            error(s"Built-in function count expected one argument, but received ${args.size}", exp)
+
+          args.head match {
+            case c@Call(_, callArgs, _) =>
+//              val argTys = callArgs.map {
+//                case Wildcard() => // do nothing
+//                case arg => typecheck(arg)
+//              }
+              typecheckCountCallArg(c, exp)
+            case _ =>
+              error(s"Built-in function count expected argument as a function call, but received ${args.head}", exp)
+          }
+          TScalaInt
         case _ =>
           val tfun = typecheck(fun)
           tfun match {
@@ -294,14 +318,17 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       tyFold
   }
 
+
   def typecheckSetMember(mem: SetMember, bindTupVars: Boolean): Unit = {
     val tySetContent = mem match {
       case SetMember(_, Var(name), _) if isData(name) =>
         // this is a type member test
         mem.isTypeMember = true
         TData(name).resolved(lookupData(name).get)
-      case SetMember(_, Var(name), _) if externalSignatures.contains(name) =>
-        TTuple(externalSignatures(name))
+//      case SetMember(_, Var(name), _) if externalSignatures.contains(name) =>
+//        if (externalSignatures(name).size == 1)
+//          externalSignatures(name).head
+//        else TTuple(externalSignatures(name))
 
       case SetMember(_, set, _) =>
         val tset = typecheck(set)
@@ -328,12 +355,16 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         if (tys.size != es.size)
           error(s"Set contains ${tys.size}-ary tuples, but test expression is ${es.size}-ary", mem)
         tys.zipAll(es, null, null).foreach {
+          case (null, wc@Wildcard()) =>
+            assignType(wc)(TAny)
           case (null, v@Var(x)) if isFreeVar(x) =>
             bindVar(x, mem, TAny)
             assignType(v)(TAny)
           case (null, e) =>
             typecheck(e)
           case (ty, null) =>
+          case (ty, wc@Wildcard()) =>
+            assignType(wc)(ty)
           case (ty, v@Var(x)) if isFreeVar(x) =>
             bindVar(x, mem, ty)
             assignType(v)(ty)
@@ -452,6 +483,40 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
 
     tfun.to
+  }
+
+  def typecheckCountCallArg(call: Call, exp: Expression): Type = {
+    val fun = call.fun
+    val args = call.args
+    val tuplety = typecheck(fun) match {
+      case TFun(_, _) => throw new IllegalArgumentException("Count of function call not supported yet")
+      case TSet(TTuple(ty)) => ty
+      case TSet(ty) => Seq(ty)
+      case ty => throw new IllegalArgumentException(s"Count of $ty not supported")
+    }
+
+    if (tuplety.size != args.size) {
+      error(s"Function $fun expects ${tuplety.size} arguments, but found ${args.size} arguments in call", exp)
+    }
+
+    tuplety.zipAll(args, null, null) foreach {
+      case (null, wc@Wildcard()) =>
+        assignType(wc)(TAny)
+       // nothing
+      case (null, arg) =>
+        typecheck(arg)
+      case (param, null) =>
+        // nothing
+      case (tparam, wc@Wildcard()) =>
+        assignType(wc)(tparam)
+        // nothing
+      case (tparam, arg) =>
+        val argTy = typecheck(arg)
+        if (meet(tparam, argTy) == TNothing) {
+          error(s"Invalid argument of type $argTy for parameter of type $tparam", arg)
+        }
+    }
+    TTuple(tuplety)
   }
 
   def typecheckConstrCall(constr: DataConstructor, data: DataDef, args: Seq[Expression], transitive: Boolean, exp: Expression): Type = {

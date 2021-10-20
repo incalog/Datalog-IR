@@ -76,6 +76,14 @@ case class Var(name: Name) extends Expression with Resolvable[Var.Target] {
 object Var {
   def apply(name: String): Var = new Var(Name(name))
   trait Target extends SourceLocation
+  object ExternalTarget extends Target
+}
+
+case class Wildcard() extends Expression {
+  override def vars: Map[Name, Option[Type]] = Map()
+  override def freevars: Seq[Var] = Seq()
+  override def calls: Set[Call] = Set()
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = "_"
 }
 
 case class If(cnd: Expression, thn: Expression, els: Expression) extends Expression {

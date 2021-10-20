@@ -118,6 +118,9 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
     case Var(name) =>
       Seq((flatVars(name, exp.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $exp"))).map(_._1), Seq()))
 
+    case Wildcard() =>
+      Seq((flatVars(Name("wildcard"), exp.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $exp"))).map(_._1), Seq()))
+
     case Let(names, _, bound, body) =>
       val tys = bound.typ.get match {
         case TTuple(tys) => tys
@@ -154,35 +157,27 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
 
     case call@Call(Var(name), args, transitive) =>
       if (name.name == "parent") {
-        return for ((Seq(argTerm), argCons) <- transExp(args.head)) yield {
-          // val argTy = transType(args.head.typ.get)
-          val parentTerm = Datalog.Var(gensym.fresh("parent"))
-          // val parentLinkCons = Datalog.Path(argTerm, argTy, Datalog.ParentLink, parentTerm, Datalog.TAny)
-          // figure out what the dataDef is of the argument type
-          val dataDef = args.head.typ.get match {
-            case dty: TData => dty.target.get.asInstanceOf[DataDef]
-            case _ => throw new IllegalStateException("Cannot happen")
-          }
-          val parentCall = Datalog.Call(dataDef.parentName, Seq(argTerm, parentTerm))
-          (Seq(parentTerm), argCons :+ parentCall)
+        transParentCall(call)
+      } else if (name.name == "count") {
+        transCountCall(call)
+      } else {
+        val outvars = call.fun.typ match {
+          case Some(TFun(_, outType)) => outType.flatten.map(_ => Datalog.Var(gensym.fresh("call")))
+          case Some(outType) => Seq(Datalog.Var(gensym.fresh("call")))
+          case None => throw new IllegalArgumentException(s"Untyped call $call")
+        }
+        val argRes = args.map(e => transExp(e))
+
+        // create single call constraint when no arguments passed
+        if (argRes.isEmpty)
+          return Seq((outvars, Seq(Datalog.Call(name.name, outvars, transitive, neg = false))))
+
+        for (tups <- TupleOps.cartesianProduct(argRes)) yield {
+          val (argTerms, argCons) = tups.unzip
+          (outvars, argCons.flatten ++ Seq(Datalog.Call(name.name, argTerms.flatten ++ outvars, transitive, neg = false)))
         }
       }
 
-      val outvars = call.fun.typ match {
-        case Some(TFun(_, outType)) => outType.flatten.map(_ => Datalog.Var(gensym.fresh("call")))
-        case Some(outType) => Seq(Datalog.Var(gensym.fresh("call")))
-        case None => throw new IllegalArgumentException(s"Untyped call $call")
-      }
-      val argRes = args.map(e => transExp(e))
-
-      // create single call constraint when no arguments passed
-      if (argRes.isEmpty)
-        return Seq((outvars, Seq(Datalog.Call(name.name, outvars, transitive, neg = false))))
-
-      for (tups <- TupleOps.cartesianProduct(argRes)) yield {
-        val (argTerms, argCons) = tups.unzip
-        (outvars, argCons.flatten ++ Seq(Datalog.Call(name.name, argTerms.flatten ++ outvars, transitive, neg = false)))
-      }
 
     case Tuple(exps) =>
       if (exps.isEmpty)
@@ -399,6 +394,40 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
         case None =>
           Seq((Seq(foldVar), Seq(compCon)))
       }
+  }
+
+  private def transParentCall(call: Call): ExpRes = {
+    val args = call.args
+    for ((Seq(argTerm), argCons) <- transExp(args.head)) yield {
+      // val argTy = transType(args.head.typ.get)
+      val parentTerm = Datalog.Var(gensym.fresh("parent"))
+      // val parentLinkCons = Datalog.Path(argTerm, argTy, Datalog.ParentLink, parentTerm, Datalog.TAny)
+      // figure out what the dataDef is of the argument type
+      val dataDef = args.head.typ.get match {
+        case dty: TData => dty.target.get.asInstanceOf[DataDef]
+        case _ => throw new IllegalStateException("Cannot happen")
+      }
+      val parentCall = Datalog.Call(dataDef.parentName, Seq(argTerm, parentTerm))
+      (Seq(parentTerm), argCons :+ parentCall)
+    }
+  }
+
+  private def transCountCall(call: Call): ExpRes = {
+    val args = call.args
+    val (relName, callArgs) = args.head match {
+      case Call(Var(name), callArgs, trans) => (name.name, callArgs)
+      // case arg => new IllegalArgumentException(s"Expected call as argument of count but got ${arg}")
+    }
+    val argsRes = callArgs.map(e => transExp(e))
+
+    for (tups <- TupleOps.cartesianProduct(argsRes)) yield {
+      val (argTerms, argCons) = tups.unzip
+
+      val countTerm = Datalog.Var(gensym.fresh("count"))
+      val countAgg = Datalog.CountAggregation(relName, argTerms.flatten)
+      val computed = Datalog.Computed(countTerm, countAgg)
+      (Seq(countTerm), argCons.flatten ++ Seq(computed))
+    }
   }
 
 

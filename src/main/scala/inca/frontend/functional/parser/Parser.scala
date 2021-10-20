@@ -19,7 +19,8 @@ trait Parser {
 
   final lazy val allKeywords: Set[String] =
     Set("if", "let", "in", "match", "fail") ++
-      Set("Option", "None", "Some", "Set", "fold")
+      Set("Option", "None", "Some", "Set", "fold", "_")
+
 
   def nochar[_: P]: P[Unit] =
     P(!CharIn("a-z", "A-Z", "0-9", "_"))
@@ -72,7 +73,7 @@ trait Parser {
     P(callExp | lambdaExp | atomicExp)
   protected[frontend] def atomicExp[_: P]: P[Expression] =
     P(parensExp | optionExp | comprehensionExp | constSetExp |
-      tupleExp | foldExp | baseApplyExp | baseLitExp | variable)
+      tupleExp | foldExp | baseApplyExp | baseLitExp | variable | wildcard)
 
   /** Let parser */
   final protected[frontend] def parensExp[_: P]: P[Expression] = P("(" ~ exp ~ ")")
@@ -117,6 +118,9 @@ trait Parser {
 
   protected[frontend] def variable[_: P]: P[Var] =
     identifier.mapWithLoc(Var.apply)
+
+  protected[frontend] def wildcard[_: P]: P[Wildcard] =
+    P("_").mapWithLoc(x => Wildcard())
 
   protected[frontend] def matchExp[_: P]: P[Match] =
     P(subinfixExp ~ "match" ~ "{" ~ matchCase.rep() ~ "}").mapWithLoc {

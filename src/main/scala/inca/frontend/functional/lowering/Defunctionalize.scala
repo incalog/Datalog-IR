@@ -148,6 +148,8 @@ class Defunctionalize(module: Module) {
         case _ =>
           Var(name)
       }
+    case Wildcard() =>
+      Wildcard()
     case TypeCast(e, ty) =>
       TypeCast(transformExp(e), transformType(ty))
     case Let(names, anno, bound, body) =>
