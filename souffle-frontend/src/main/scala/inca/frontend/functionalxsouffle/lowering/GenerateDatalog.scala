@@ -65,7 +65,7 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
     }
     val outParams = flattenParam("out", fun.outType, genFresh = true)
 
-    val bodies = for ((terms, cons) <- transExp(fun.body))
+    val bodies = for ((terms, cons) <- transExp(fun.body)(false))
       yield Datalog.Body(cons ++ outParams.zip(terms).map(pt => Datalog.Eq(Datalog.Var(pt._1.name), pt._2)))
 
     val pat = Datalog.Pattern(vis, fun.name.name, params ++ outParams, bodies)
@@ -95,7 +95,7 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
     val expTys = exp.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped expression $exp")).flatten
     val outParams = expTys.map(ty => Datalog.Param(gensym.fresh("out"), transType(ty)))
 
-    val bodies = for ((terms, cons) <- transExp(exp))
+    val bodies = for ((terms, cons) <- transExp(exp)(false))
       yield Datalog.Body(cons ++ outParams.zip(terms).map(pt => Datalog.Eq(Datalog.Var(pt._1.name), pt._2)))
 
     Datalog.Pattern(None, name, params ++ outParams, bodies)
@@ -114,7 +114,7 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
       Seq(Datalog.Var(x.name) -> transType(ty))
   }
 
-  private def transExp(exp: Expression): ExpRes = exp match {
+  private def transExp(exp: Expression)(implicit inSetComprehension: Boolean): ExpRes = exp match {
     case Var(name) =>
       Seq((flatVars(name, exp.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $exp"))).map(_._1), Seq()))
 
@@ -322,11 +322,20 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
       // we access an external relation (souffle relation)
       // accessing an external relation negatively does not introduce a negated cycle because the external relation does not access relations of the module
       // further we do not apply the demand transformation to the souffle relations
-      for ((tupTerms, tupCons) <- transExp(tup))
-      yield {
+      val trueCase = for ((tupTerms, tupCons) <- transExp(tup)) yield {
         val call = Datalog.Call(relName.name, tupTerms, transitive = false, neg).addHint(MagicSetHints.IgnoreCall)
         (Seq(Datalog.True), tupCons :+ call)
       }
+      val falseCase = for ((tupTerms, tupCons) <- transExp(tup)) yield {
+        val call = Datalog.Call(relName.name, tupTerms, transitive = false, !neg).addHint(MagicSetHints.IgnoreCall)
+        (Seq(Datalog.False), tupCons :+ call)
+      }
+
+      // we do not want to generate false case when set membership occurs as predicate in set comprehension
+      if (inSetComprehension) trueCase
+      else trueCase ++ falseCase
+
+
 
     case SetMember(tup, set, neg) =>
       if (neg) {
@@ -346,7 +355,7 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
         }
 
     case SetComprehension(build, predicates) =>
-      val predRes = predicates.map(e => transExp(e))
+      val predRes = predicates.map(e => transExp(e)(true))
       for (ps <- TupleOps.cartesianProduct(predRes);
            (buildTerms, buildCons) <- transExp(build)) yield {
         val (predBools, predCons) = ps.unzip
@@ -396,7 +405,7 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
       }
   }
 
-  private def transParentCall(call: Call): ExpRes = {
+  private def transParentCall(call: Call)(implicit inSetComprehension: Boolean): ExpRes = {
     val args = call.args
     for ((Seq(argTerm), argCons) <- transExp(args.head)) yield {
       // val argTy = transType(args.head.typ.get)
@@ -412,7 +421,7 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
     }
   }
 
-  private def transCountCall(call: Call): ExpRes = {
+  private def transCountCall(call: Call)(implicit inSetComprehension: Boolean): ExpRes = {
     val args = call.args
     val (relName, callArgs) = args.head match {
       case Call(Var(name), callArgs, trans) => (name.name, callArgs)

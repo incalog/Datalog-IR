@@ -48,7 +48,7 @@ class CloneDetectionTest extends AnyFunSuite {
        |         | TableSwitch(Exp, CaseList)
        |         | LookupSwitch(Exp, CaseList)
        |
-       |data StmList = ConsStm(Stm, StmList) | NilStm()
+       |data StmList = ConsStm(Stm, Int, StmList) | NilStm()
        |"""
 
   // TODO ClassConstant
@@ -238,37 +238,92 @@ class CloneDetectionTest extends AnyFunSuite {
        |def maxInt(x: Int, y: Int): Int =
        |  if (x > y)
        |    x
+       |  else if (x < y)
+       |    y
        |  else
-       |    if (x < y)
-       |      y
+       |    x
+       |
+       |data IndexList = ConsIndex(Int, IndexList) | NilIndex()
+       |
+       |def sortedInstructionIndexList(method: String, idx: Int): IndexList =
+       |  if (idx <= maxIndexOfInstructions(method))
+       |    if ((method, idx) in Method_Instruction_Index)
+       |      ConsIndex(idx, sortedInstructionIndexList(method, idx + 1))
        |    else
-       |      x
+       |      sortedInstructionIndexList(method, idx + 1)
+       |  else NilIndex()
+       |
+       |def getStmList(method: String): Set[StmList] =
+       |  let indexList = sortedInstructionIndexList(method, 0) in
+       |      getStmListHelper(method, indexList)
+       |
+       |def getStmListHelper(method: String, indexList: IndexList): Set[StmList] = indexList match {
+       |  case NilIndex() => { NilStm() }
+       |  case ConsIndex(idx, r) =>
+       |    {
+       |      ConsStm(stm, idx, rest) |
+       |        (inst, method) in Instruction_Method,
+       |        (inst, idx) in Instruction_Index,
+       |        inst in Stm_Instruction,
+       |        stm in genStm(inst),
+       |        rest in getStmListHelper(method, r)
+       |    } ++ {
+       |      rest |
+       |        (inst, method) in Instruction_Method,
+       |        (inst, idx) in Instruction_Index,
+       |        inst not in Stm_Instruction,
+       |        rest in getStmListHelper(method, r)
+       |    }
+       |}
        |
        |
-       |def getStmList(method: String, currentIdx: Int): Set[StmList] =
-       |  {
-       |    ConsStm(stm, rest) |
-       |      (inst, method) in Instruction_Method,
-       |      (inst, currentIdx) in Instruction_Index,
-       |      inst in Stm_Instruction,
-       |      stm in genStm(inst),
-       |      rest in getStmList(method, currentIdx + 1)
-       |  } ++ {
-       |    stmList |
-       |      (inst, method) in Instruction_Method,
-       |      (inst, currentIdx) in Instruction_Index,
-       |      inst not in Stm_Instruction,
-       |      stmList in getStmList(method, currentIdx + 1)
-       |  } ++ {
-       |    NilStm() | currentIdx > maxIndexOfInstructions(method)
-       |  }
+       |// def getStmList(method: String, currentIdx: Int): Set[StmList] =
+       |//   {
+       |//     ConsStm(stm, currentIdx, rest) |
+       |//       instIdx in getInstructionIndex(method, currentIdx),
+       |//       (inst, method) in Instruction_Method,
+       |//       (inst, instIdx) in Instruction_Index,
+       |//       inst in Stm_Instruction,
+       |//       stm in genStm(inst),
+       |//       rest in getStmList(method, currentIdx + 1)
+       |//   } ++ {
+       |//     stmList |
+       |//       instIdx in getInstructionIndex(method, currentIdx),
+       |//       (inst, method) in Instruction_Method,
+       |//       (inst, instIdx) in Instruction_Index,
+       |//       inst not in Stm_Instruction,
+       |//       stmList in getStmList(method, currentIdx + 1)
+       |//   } ++ {
+       |//     NilStm() | currentIdx >= count(Instruction_Method(_, method))
+       |//   }
+       |
+       |// def getStmList(method: String, currentIdx: Int): Set[StmList] =
+       |//   {
+       |//     ConsStm(stm, currentIdx, rest) |
+       |//       (inst, method) in Instruction_Method,
+       |//       (inst, currentIdx) in Instruction_Index,
+       |//       inst in Stm_Instruction,
+       |//       stm in genStm(inst),
+       |//       rest in getStmList(method, currentIdx + 1)
+       |//   } ++ {
+       |//     stmList |
+       |//       (inst, method) in Instruction_Method,
+       |//       (inst, currentIdx) in Instruction_Index,
+       |//       inst not in Stm_Instruction,
+       |//       stmList in getStmList(method, currentIdx + 1)
+       |//   } ++ {
+       |//     NilStm() | currentIdx > maxIndexOfInstructions(method)
+       |//   }
+       |
+       |// TODO how do we skip instructions?
        |""".stripMargin
 
   val assignExpMain: String = module(expAdt, assignExpFun, "@main def main(v: String): Set[Exp] = { exp | exp in assignExp(v) }")
 
   val genStmMain: String = module(expAdt, stmAdt, assignExpFun, genStmFun, "@main def main(v: String): Set[Stm] = { stm | stm in genStm(v) }")
 
-  val getStmListMain: String = module(expAdt, stmAdt, assignExpFun, genStmFun, "@main def main(meth: String): Set[StmList] = getStmList(meth, 0)")
+  val getStmListMain: String = module(expAdt, stmAdt, assignExpFun, genStmFun, "@main def main(meth: String): Set[StmList] = getStmList(meth)")
+  // val getStmListMain: String = module(expAdt, stmAdt, assignExpFun, genStmFun, "@main def main(meth: String): IndexList = sortedInstructionIndexList(meth, 0)")
 
 
   val baseDir = s"souffle-frontend/doop-context-insensitive"
@@ -293,6 +348,11 @@ class CloneDetectionTest extends AnyFunSuite {
     val opts = FunctionalOptions()
     val fun = FunctionalXSouffleExecutor.loadFunction(getStmListMain, souffleCode, opts)
     val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
+//    val stmInst = fun.output("Stm_Instruction")
+//    stmInst.res.foreach(println)
+//    val instIdx = fun.output("Instruction_Index")
+//    println("INDEX")
+//    instIdx.res.foreach(println)
     assert(res == fun.result(expected))
   }
 
@@ -523,33 +583,18 @@ class CloneDetectionTest extends AnyFunSuite {
   //     q"""TableSwitch(BinOp("+", NumLit("2"), NumLit("1")), Default(1))""")
   // }
 
-  test("test stmt list with phi") {
-    testGetStmList(
-      "database-if",
-      q""""<Main: void main(java.lang.String[])>"""",
-      q"""TableSwitch(BinOp("+", NumLit("2"), NumLit("1")), Default(1))""")
-  }
-
   test("test gen simple stm list") {
     testGetStmList(
       "database-stmt-list",
       q""""<Main: void main(java.lang.String[])>"""",
-      q"""ConsStm(If("==", NumLit("1"), NumLit("1"), 5), ConsStm(ReturnVoid(), ConsStm(ReturnVoid(), NilStm())))""")
+      q"""ConsStm(If("==", NumLit("1"), NumLit("1"), 5), 2, ConsStm(ReturnVoid(), 4, ConsStm(ReturnVoid(), 6, NilStm())))""")
   }
 
-  test("test gen simple stm list 2") {
+  // need to account for holes in the sequence of instruction indices
+  test("test stmt list with phi") {
     testGetStmList(
-      "database-if2",
+      "database-if",
       q""""<Main: void main(java.lang.String[])>"""",
-      q"NilStm()")
-      //q"""ConsStm(If("==", NumLit("1"), NumLit("1"), 5), ConsStm(ReturnVoid(), ConsStm(ReturnVoid(), NilStm())))""")
+      q"""ConsStm(If("<=", NumLit("1"), NumLit("2"), 7), 4, ConsStm(Goto(8), 6, ConsStm(ReturnVoid(), 11, NilStm())))""")
   }
-
-  // test("test phi") {
-  //   testGetStmList(
-  //     "database-phi",
-  //     q""""<Main: void main(java.lang.String[])>"""",
-  //     q"NilStm()")
-  //   //q"""ConsStm(If("==", NumLit("1"), NumLit("1"), 5), ConsStm(ReturnVoid(), ConsStm(ReturnVoid(), NilStm())))""")
-  // }
 }
