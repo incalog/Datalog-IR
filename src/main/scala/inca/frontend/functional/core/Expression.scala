@@ -203,6 +203,17 @@ object BaseLit {
     new BaseLit(Scala(code)).typed(typ)
 }
 
+case class BaseApplyMethod(recv: Expression, method: Name, args: Option[Seq[Expression]]) extends Expression {
+  override def vars: Map[Name, Option[Type]] = args.getOrElse(Seq()).flatMap(_.vars).toMap ++ recv.vars
+  override def freevars: Seq[Var] = args.getOrElse(Seq()).flatMap(_.freevars) ++ recv.freevars
+  override def freeTvars: Seq[TData] = super.freeTvars ++ args.getOrElse(Seq()).flatMap(_.freeTvars) ++ recv.freeTvars
+  override def calls: Set[Call] = args.getOrElse(Seq()).flatMap(_.calls).toSet ++ recv.calls
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    val argsS = if (args.isEmpty) "" else args.get.map(_.prettyprint).mkString(", ")
+    s"${recv.prettyprint(infixParens)}.`$method`($argsS)"
+  }
+}
+
 case class BaseApply(fun: Scala[meta.Term], args: Seq[Expression]) extends Expression {
   override def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
   override def freevars: Seq[Var] = args.flatMap(_.freevars)

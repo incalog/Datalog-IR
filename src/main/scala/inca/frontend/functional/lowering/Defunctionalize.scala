@@ -197,6 +197,12 @@ class Defunctionalize(module: Module) {
       exp
     case BaseApply(fun, args) =>
       BaseApply(fun, args.map(a => transformExp(a)))
+    case BaseApplyMethod(recv, method, argsOpt) =>
+      val transformedArgs = argsOpt match {
+        case Some(args) => Some(args.map(transformExp))
+        case None => None
+      }
+      BaseApplyMethod(transformExp(recv), method, transformedArgs)
     case BaseApplyInfix(left, op, right) =>
       BaseApplyInfix(transformExp(left), op, transformExp(right))
 

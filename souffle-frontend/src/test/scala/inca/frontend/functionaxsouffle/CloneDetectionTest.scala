@@ -1,13 +1,11 @@
 package inca.frontend.functionaxsouffle
 
-import inca.backend.analyze.DependencyGraph
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.frontend.functionalxsouffle.executor.FunctionalXSouffleExecutor
-import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.io.{BufferedSource, Source}
-import scala.meta.{Lit, Term, XtensionQuasiquoteTerm}
+import scala.meta.{Lit, XtensionQuasiquoteTerm}
 
 class CloneDetectionTest extends AnyFunSuite {
 
@@ -31,6 +29,7 @@ class CloneDetectionTest extends AnyFunSuite {
        |         | DynamicInvoke(String, String, ArgList)
        |         | This()
        |         | Null()
+       |         | Phi(ArgList)
        |"""
 
   val stmAdt: String =
@@ -71,7 +70,15 @@ class CloneDetectionTest extends AnyFunSuite {
        |      (inst, op) in _OperatorAt,
        |      exp in getOperand(inst, 1)
        |  } ++ {
-       |    exp | (inst, idx, from, v, meth) in _AssignLocal, exp in assignExp(from)
+       |    exp |
+       |      count(_AssignLocal(_, _, _, v, _)) == 1,
+       |      (inst, idx, from, v, meth) in _AssignLocal,
+       |      exp in assignExp(from)
+       |  } ++ {
+       |    Phi(alts) |
+       |      (inst, _, _, v, method) in _AssignLocal,
+       |      count(_AssignLocal(_, _, _, v, _)) > 1,
+       |      alts in getPhiAlternatives(v, method)
        |  } ++ {
        |    // TODO maybe remove the method prefix from the variable name
        |    Var(v) | (idx, meth, v) in _FormalParam
@@ -142,14 +149,70 @@ class CloneDetectionTest extends AnyFunSuite {
        |  { NumLit(num) | (inst, pos, num) in _AssignOperFromConstant } ++
        |  { exp | (inst, pos, var) in _AssignOperFrom, exp in assignExp(var) }
        |
-       |def getArgs(inst: String, currentIdx: Int): Set[ArgList] = {
-       |  ConsArg(exp, rest) |
-       |    (currentIdx, inst, v) in _ActualParam,
-       |    exp in assignExp(v),
-       |    rest in getArgs(inst, currentIdx + 1)
-       |} ++ {
-       |  NilArg() | (currentIdx, inst, v) not in _ActualParam
-       |}
+       |def getArgs(inst: String, currentIdx: Int): Set[ArgList] =
+       |  {
+       |    ConsArg(exp, rest) |
+       |      (currentIdx, inst, v) in _ActualParam,
+       |      exp in assignExp(v),
+       |      rest in getArgs(inst, currentIdx + 1)
+       |  } ++ {
+       |    NilArg() | (currentIdx, inst, v) not in _ActualParam
+       |  }
+       |
+       |def maxInt(x: Int, y: Int): Int =
+       |  if (x > y)
+       |    x
+       |  else if (x < y)
+       |    y
+       |  else
+       |    x
+       |
+       |def minInt(x: Int, y: Int): Int =
+       |  if (x > y)
+       |    y
+       |  else if (x < y)
+       |    x
+       |  else
+       |    x
+       |
+       |def lastIndexOfPhiPrefix(v: String): Int = (v.`lastIndexOf`("phi-assign/")) + 11
+       |
+       |def indexOfPhiInstruction(inst: String): Int =
+       |  let idx = lastIndexOfPhiPrefix(inst) in
+       |    let phiIdx = inst.`substring`(idx) in
+       |      phiIdx.`toInt`
+       |
+       |def indicesOfPhiAlternatives(v: String): Set[Int] =
+       |  { indexOfPhiInstruction(inst) | (inst, _, _, v, _) in _AssignLocal }
+       |
+       |def prefixOfPhiInstruction(inst: String): String =
+       |  inst.`substring`(0, lastIndexOfPhiPrefix(inst))
+       |
+       |def instructionPrefixOfPhiAlternatives(v: String): Set[String] =
+       |  { prefixOfPhiInstruction(inst) | (inst, _, _, v, _) in _AssignLocal }
+       |
+       |def minOfPhiIndices(v: String): Int =
+       |  fold(-1, minInt, indicesOfPhiAlternatives(v))
+       |
+       |def maxOfPhiIndices(v: String): Int =
+       |  fold(-1, maxInt, indicesOfPhiAlternatives(v))
+       |
+       |def getPhiAlternatives(v: String, method: String): Set[ArgList] =
+       |  let minIdx = minOfPhiIndices(v) in
+       |    getPhiAlternativesHelper(v, method, minIdx)
+       |
+       |def getPhiAlternativesHelper(v: String, method: String, currentIdx: Int): Set[ArgList] =
+       |  let maxIdx = maxOfPhiIndices(v) in
+       |  let instPrefix = method + "/phi-assign/" in
+       |    {
+       |      ConsArg(arg, rest) |
+       |        currentIdx <= maxIdx,
+       |        (instPrefix + currentIdx.`toString`, _, from, v, method) in _AssignLocal,
+       |        arg in assignExp(from),
+       |        rest in getPhiAlternativesHelper(v, method, currentIdx + 1)
+       |    } ++ {
+       |      NilArg() | currentIdx > maxIdx
+       |    }
        |""".stripMargin
 
   def module(contents: String*): String = {
@@ -235,14 +298,6 @@ class CloneDetectionTest extends AnyFunSuite {
        |def indicesOfInstructions(method: String): Set[Int] =
        |  { index | (inst, method) in Instruction_Method, (inst, index) in Instruction_Index }
        |
-       |def maxInt(x: Int, y: Int): Int =
-       |  if (x > y)
-       |    x
-       |  else if (x < y)
-       |    y
-       |  else
-       |    x
-       |
        |data IndexList = ConsIndex(Int, IndexList) | NilIndex()
        |
        |def sortedInstructionIndexList(method: String, idx: Int): IndexList =
@@ -275,47 +330,6 @@ class CloneDetectionTest extends AnyFunSuite {
        |        rest in getStmListHelper(method, r)
        |    }
        |}
-       |
-       |
-       |// def getStmList(method: String, currentIdx: Int): Set[StmList] =
-       |//   {
-       |//     ConsStm(stm, currentIdx, rest) |
-       |//       instIdx in getInstructionIndex(method, currentIdx),
-       |//       (inst, method) in Instruction_Method,
-       |//       (inst, instIdx) in Instruction_Index,
-       |//       inst in Stm_Instruction,
-       |//       stm in genStm(inst),
-       |//       rest in getStmList(method, currentIdx + 1)
-       |//   } ++ {
-       |//     stmList |
-       |//       instIdx in getInstructionIndex(method, currentIdx),
-       |//       (inst, method) in Instruction_Method,
-       |//       (inst, instIdx) in Instruction_Index,
-       |//       inst not in Stm_Instruction,
-       |//       stmList in getStmList(method, currentIdx + 1)
-       |//   } ++ {
-       |//     NilStm() | currentIdx >= count(Instruction_Method(_, method))
-       |//   }
-       |
-       |// def getStmList(method: String, currentIdx: Int): Set[StmList] =
-       |//   {
-       |//     ConsStm(stm, currentIdx, rest) |
-       |//       (inst, method) in Instruction_Method,
-       |//       (inst, currentIdx) in Instruction_Index,
-       |//       inst in Stm_Instruction,
-       |//       stm in genStm(inst),
-       |//       rest in getStmList(method, currentIdx + 1)
-       |//   } ++ {
-       |//     stmList |
-       |//       (inst, method) in Instruction_Method,
-       |//       (inst, currentIdx) in Instruction_Index,
-       |//       inst not in Stm_Instruction,
-       |//       stmList in getStmList(method, currentIdx + 1)
-       |//   } ++ {
-       |//     NilStm() | currentIdx > maxIndexOfInstructions(method)
-       |//   }
-       |
-       |// TODO how do we skip instructions?
        |""".stripMargin
 
   val assignExpMain: String = module(expAdt, assignExpFun, "@main def main(v: String): Set[Exp] = { exp | exp in assignExp(v) }")
@@ -323,7 +337,6 @@ class CloneDetectionTest extends AnyFunSuite {
   val genStmMain: String = module(expAdt, stmAdt, assignExpFun, genStmFun, "@main def main(v: String): Set[Stm] = { stm | stm in genStm(v) }")
 
   val getStmListMain: String = module(expAdt, stmAdt, assignExpFun, genStmFun, "@main def main(meth: String): Set[StmList] = getStmList(meth)")
-  // val getStmListMain: String = module(expAdt, stmAdt, assignExpFun, genStmFun, "@main def main(meth: String): IndexList = sortedInstructionIndexList(meth, 0)")
 
 
   val baseDir = s"souffle-frontend/doop-context-insensitive"
@@ -348,11 +361,6 @@ class CloneDetectionTest extends AnyFunSuite {
     val opts = FunctionalOptions()
     val fun = FunctionalXSouffleExecutor.loadFunction(getStmListMain, souffleCode, opts)
     val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
-//    val stmInst = fun.output("Stm_Instruction")
-//    stmInst.res.foreach(println)
-//    val instIdx = fun.output("Instruction_Index")
-//    println("INDEX")
-//    instIdx.res.foreach(println)
     assert(res == fun.result(expected))
   }
 
@@ -477,6 +485,14 @@ class CloneDetectionTest extends AnyFunSuite {
       "database-dynamic-invoke",
       varName,
       expected)
+  }
+
+  test("phi expression") {
+    val name = Lit.String("<Main: void main(java.lang.String[])>/l2_$$A_2#_11")
+    testAssignExp(
+      "database-phi",
+      name,
+      q"""Phi(ConsArg(NumLit("2"), ConsArg(NumLit("3"), NilArg())))""")
   }
 
   // PhantomInvoke(Exp, String) Phantom invocations are invocations of methods belonging to phantom classes. Phantom classes are classes not part of the analyzed jar

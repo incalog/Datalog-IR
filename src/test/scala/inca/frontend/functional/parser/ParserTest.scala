@@ -206,6 +206,16 @@ class ParserTest extends AnyFunSuite {
     )
   }
 
+  test("base method application") {
+    testSuccessAny(parser.module(_))(
+      s"""module Main
+         |
+         |def foo(v: String): Int = v.`toInt`()
+         |def foo2(v: String): Int = v.`substring`(2)
+         |""".stripMargin
+    )
+  }
+
   private def testSuccess[T](parser: P[_] => P[Any]): (String, T) => Assertion =
     (input: String, cmp: T) => {
       parse(input, parser) match {

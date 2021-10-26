@@ -68,7 +68,7 @@ trait Parser {
   protected[frontend] def wideExp[_: P]: P[Expression] =
     P(ifExp | letExp | memberExp | infixExp)
   protected[frontend] def infixExp[_: P]: P[Expression] =
-    P(typeCastExp | baseApplyInfixExp | matchExp | subinfixExp)
+    P(typeCastExp | baseApplyMethodExp | baseApplyInfixExp | matchExp | subinfixExp)
   protected[frontend] def subinfixExp[_: P]: P[Expression] =
     P(callExp | lambdaExp | atomicExp)
   protected[frontend] def atomicExp[_: P]: P[Expression] =
@@ -220,6 +220,12 @@ trait Parser {
   protected[frontend] def baseApplyExp[_: P]: P[BaseApply] =
     P("`" ~~ scalaTerm ~~ "`" ~ "(" ~ exp.rep(sep = ",") ~ ")").mapWithLoc {
       case (funTerm, args) => BaseApply(funTerm, args)
+    }
+
+  protected[frontend] def baseApplyMethodExp[_: P]: P[BaseApplyMethod] =
+    P(subinfixExp ~~ ".`" ~~ identifier ~~ "`" ~ ("(" ~ exp.rep(sep = ",") ~ ")").?).mapWithLoc {
+      case (recv, method, None) => BaseApplyMethod(recv, method, None)
+      case (recv, method, Some(args)) => BaseApplyMethod(recv, method, Some(args))
     }
 
   protected[frontend] def baseApplyInfixExp[_: P]: P[BaseApplyInfix] =
