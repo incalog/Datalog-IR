@@ -33,7 +33,7 @@ class CloneDetectionTest extends AnyFunSuite {
        |"""
 
   val stmAdt: String =
-    s"""data CaseList = Case(Int, Int, CaseList) | Default(Int)
+    s"""data CaseList = ConsCase(Int, Int, CaseList) | DefaultCase(Int)
        |data Stm = Assign(String, String)
        |         | InvokeStm(Exp, String, ArgList)
        |         | StaticInvokeStm(String, ArgList)
@@ -269,13 +269,12 @@ class CloneDetectionTest extends AnyFunSuite {
        |      (inst, op) in _OperatorAt,
        |      lhs in getIfOperand(inst, 1),
        |      rhs in getIfOperand(inst, 2)
-       |  } // TODO use fold
-       |  // ++ {
-       |  //   TableSwitch(matcheeExp, cases) |
-       |  //     (inst, idx, matchee, meth) in _TableSwitch,
-       |  //     matcheeExp in assignExp(matchee),
-       |  //     cases in getTableSwitchCases(inst)
-       |  // }
+       |  } ++ {
+       |    TableSwitch(matcheeExp, cases) |
+       |      (inst, idx, matchee, meth) in _TableSwitch,
+       |      matcheeExp in assignExp(matchee),
+       |      cases in getTableSwitchCases(inst)
+       |  }
        |
        |def getIfOperand(inst: String, pos: Int): Set[Exp] =
        |  { NumLit(num) | (inst, pos, num) in _IfConstant } ++
@@ -292,29 +291,64 @@ class CloneDetectionTest extends AnyFunSuite {
        |//     Default(trg) | (inst, trg) in _TableSwitch_DefaultTarget
        |//   }
        |
+       |def getTableSwitchCases(switch: String): Set[CaseList] =
+       |  let minVal = minValueOfCases(switch) in
+       |    let valueList = sortedTableSwitchCaseValues(switch, minVal) in
+       |      getTableSwitchCasesHelper(switch, valueList)
+       |
+       |def minValueOfCases(switch: String): Int =
+       |  fold(-1, minInt, valuesOfTableSwitch(switch))
+       |
+       |// FIX GenerateDatalog throws error when we inline valuesOfTableSwitch
+       |def maxValueOfCases(switch: String): Int =
+       |  fold(-1, maxInt, valuesOfTableSwitch(switch))
+       |
+       |def valuesOfTableSwitch(switch: String): Set[Int] =
+       |  { idx | (switch, idx, _) in _TableSwitch_Target }
+       |
+       |
+       |def sortedTableSwitchCaseValues(switch: String, idx: Int): IntList =
+       |  if (idx <= maxValueOfCases(switch))
+       |    if ((switch, idx) in TableSwitch_CaseValue)
+       |      ConsInt(idx, sortedTableSwitchCaseValues(switch, idx + 1))
+       |    else
+       |      sortedTableSwitchCaseValues(switch, idx + 1)
+       |  else NilInt()
+       |
+       |
+       |def getTableSwitchCasesHelper(switch: String, valueList: IntList): Set[CaseList] = valueList match {
+       |  case NilInt() => { DefaultCase(trg) | (switch, trg) in _TableSwitch_DefaultTarget }
+       |  case ConsInt(v, r) =>
+       |    {
+       |      ConsCase(v, trg, rest) |
+       |        (switch, v, trg) in _TableSwitch_Target,
+       |        rest in getTableSwitchCasesHelper(switch, r)
+       |    }
+       |}
+       |
        |def maxIndexOfInstructions(method: String): Int =
        |  fold(-1, maxInt, indicesOfInstructions(method))
        |
        |def indicesOfInstructions(method: String): Set[Int] =
        |  { index | (inst, method) in Instruction_Method, (inst, index) in Instruction_Index }
        |
-       |data IndexList = ConsIndex(Int, IndexList) | NilIndex()
+       |data IntList = ConsInt(Int, IntList) | NilInt()
        |
-       |def sortedInstructionIndexList(method: String, idx: Int): IndexList =
+       |def sortedInstructionIndexList(method: String, idx: Int): IntList =
        |  if (idx <= maxIndexOfInstructions(method))
        |    if ((method, idx) in Method_Instruction_Index)
-       |      ConsIndex(idx, sortedInstructionIndexList(method, idx + 1))
+       |      ConsInt(idx, sortedInstructionIndexList(method, idx + 1))
        |    else
        |      sortedInstructionIndexList(method, idx + 1)
-       |  else NilIndex()
+       |  else NilInt()
        |
        |def getStmList(method: String): Set[StmList] =
        |  let indexList = sortedInstructionIndexList(method, 0) in
        |      getStmListHelper(method, indexList)
        |
-       |def getStmListHelper(method: String, indexList: IndexList): Set[StmList] = indexList match {
-       |  case NilIndex() => { NilStm() }
-       |  case ConsIndex(idx, r) =>
+       |def getStmListHelper(method: String, indexList: IntList): Set[StmList] = indexList match {
+       |  case NilInt() => { NilStm() }
+       |  case ConsInt(idx, r) =>
        |    {
        |      ConsStm(stm, idx, rest) |
        |        (inst, method) in Instruction_Method,
@@ -586,18 +620,12 @@ class CloneDetectionTest extends AnyFunSuite {
       q"""If("<=", NumLit("1"), NumLit("2"), 7)""")
   }
 
-//  test("phi expression") {
-//    testGenStm(
-//      "database-if",
-//      q"""If("<=", NumLit("1"), NumLit("2"), 7)""")
-//  }
-
-  // test("table switch statement") {
-  //   testGenStm(
-  //     "database-switch",
-  //     q""""<Main: void main(java.lang.String[])>/table-switch/0"""",
-  //     q"""TableSwitch(BinOp("+", NumLit("2"), NumLit("1")), Default(1))""")
-  // }
+  test("table switch statement") {
+    testGenStm(
+      "database-switch",
+      q""""<Main: void main(java.lang.String[])>/table-switch/0"""",
+      q"""TableSwitch(BinOp("+", NumLit("2"), NumLit("1")), ConsCase(1, 5, ConsCase(2, 6, ConsCase(3, 7, DefaultCase(11)))))""")
+  }
 
   test("test gen simple stm list") {
     testGetStmList(

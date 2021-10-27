@@ -581,9 +581,19 @@ Stm_Instruction(?inst) :- _Return(?inst, _, _, _).
 Stm_Instruction(?inst) :- _Goto(?inst, _, _, _).
 Stm_Instruction(?inst) :- _If(?inst, _, _, _).
 Stm_Instruction(?inst) :- _TableSwitch(?inst, _, _, _).
+Stm_Instruction(?inst) :- _LookupSwitch(?inst, _, _, _).
+Stm_Instruction(?inst) :- _EnterMonitor(?inst, _, _, _).
+Stm_Instruction(?inst) :- _ExitMonitor(?inst, _, _, _).
+Stm_Instruction(?inst) :- _Throw(?inst, _, _, _).
+Stm_Instruction(?inst) :- _ThrowNull(?inst, _, _).
+
 Stm_Instruction(?inst) :- _VirtualMethodInvocation(?inst, _, _, _, _), !_AssignReturnValue(?inst, _).
 Stm_Instruction(?inst) :- _SuperMethodInvocation(?inst, _, _, _, _), !_AssignReturnValue(?inst, _).
 Stm_Instruction(?inst) :- _SpecialMethodInvocation(?inst, _, _, _, _), !_AssignReturnValue(?inst, _).
+// enter monitor, exit monitor, throw, throw null, breakpoint, unsupported instruction (?), AssignPhantomInvoke, LookupSwitch
+
+.decl TableSwitch_CaseValue(?instruction:Switch_Insn, ?value:number)
+TableSwitch_CaseValue(?inst, ?value) :- _TableSwitch_Target(?inst, ?value, _).
 
 .decl Method_Instruction_Index(?method:Method, ?index:number)
 Method_Instruction_Index(?method, ?index) :- Instruction_Method(?inst, ?method), Instruction_Index(?inst, ?index).

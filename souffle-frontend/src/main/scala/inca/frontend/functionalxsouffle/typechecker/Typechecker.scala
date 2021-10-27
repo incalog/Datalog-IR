@@ -114,7 +114,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           TAny
       }
     case wc@Wildcard() =>
-      error("Widlcards can only occur in membership tests and count function call", wc)
+      error("Wildcards can only occur in membership tests and count function call", wc)
       TAny
     case let@Let(names, anno, bound, body) =>
       val ty = typecheck(bound)
