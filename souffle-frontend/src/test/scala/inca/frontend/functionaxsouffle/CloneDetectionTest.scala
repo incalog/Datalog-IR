@@ -308,4 +308,20 @@ class CloneDetectionTest extends AnyFunSuite {
       q""""<Main: void main(java.lang.String[])>"""",
       None)
   }
+  test("if typechecker methodecl method") {
+    val name = Lit.String("<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>/if/0")
+    testGenStm(
+      "database-minijavac",
+      name,
+      q"""TableSwitch(BinOp("+", NumLit("2"), NumLit("1")), ConsCase(1, 5, ConsCase(2, 6, ConsCase(3, 7, DefaultCase(11)))))""")
+  }
+
+  // TODO fix this
+  test("recursive phi assignment") {
+    val name = Lit.String("<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>/i_$$A_1#_300")
+    testAssignExp(
+      "database-minijavac",
+      name,
+      q"""This()""")
+  }
 }

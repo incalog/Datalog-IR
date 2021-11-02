@@ -21,6 +21,7 @@ data Exp = NumLit(String)
          | Null()
          | Phi(ArgList)
          | CaughtException(String)
+         | DummyVar() // TODO dummy var is always generated and we use it when there is no lhs or rhs for if
 
 data CaseList = ConsCase(Int, Int, CaseList) | DefaultCase(Int)
 data CatchList = ConsCatch() | NilCatch()
@@ -33,7 +34,7 @@ data Stm = Assign(String, String)
          | ReturnVoid()
          | Return(Exp)
          | Goto(Int)
-         | If(String, Exp, Exp, Int) // TODO What is DummyIfVar for?
+         | If(String, Exp, Exp, Int)
          | TableSwitch(Exp, CaseList)
          | LookupSwitch(Exp, CaseList)
          | Throw(Exp)
@@ -271,7 +272,8 @@ def genStm(inst: String): Set[Stm] =
 
 def getIfOperand(inst: String, pos: Int): Set[Exp] =
   { NumLit(num) | (inst, pos, num) in _IfConstant } ++
-  { exp | (inst, pos, v) in _IfVar, exp in assignExp(v) }
+  { exp | (inst, pos, v) in _IfVar, exp in assignExp(v) } ++
+  { DummyVar() | (inst, _) in _DummyIfVar, (inst, pos, _) not in _IfConstant, (inst, pos, _) not in _IfVar }
 
 def getTableSwitchCases(switch: String): Set[CaseList] =
   let minVal = minValueOfCases(switch) in
