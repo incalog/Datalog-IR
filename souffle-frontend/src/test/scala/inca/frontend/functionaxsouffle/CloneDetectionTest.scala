@@ -45,7 +45,8 @@ class CloneDetectionTest extends AnyFunSuite {
     expected match {
       case Some(t)  =>
         assert(res == fun.result(t))
-      case None => // do nothing
+      case None =>
+        assert(res.res.nonEmpty)
     }
   }
 
