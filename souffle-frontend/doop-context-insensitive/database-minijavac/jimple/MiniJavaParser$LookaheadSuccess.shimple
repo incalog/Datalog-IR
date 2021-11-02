@@ -1,0 +1,28 @@
+final class MiniJavaParser$LookaheadSuccess extends java.lang.Error
+{
+
+    private void <init>()
+    {
+        MiniJavaParser$LookaheadSuccess this#_0;
+
+        this#_0 := @this: MiniJavaParser$LookaheadSuccess;
+
+        specialinvoke this#_0.<java.lang.Error: void <init>()>();
+
+        return;
+    }
+
+    void <init>(MiniJavaParser$1)
+    {
+        MiniJavaParser$LookaheadSuccess this#_0;
+        MiniJavaParser$1 x0#_0;
+
+        this#_0 := @this: MiniJavaParser$LookaheadSuccess;
+
+        x0#_0 := @parameter0: MiniJavaParser$1;
+
+        specialinvoke this#_0.<MiniJavaParser$LookaheadSuccess: void <init>()>();
+
+        return;
+    }
+}

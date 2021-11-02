@@ -1,0 +1,208 @@
+public class typechecking.AllScopeShadowedTypeSearch extends java.lang.Object
+{
+    java.util.HashMap globalMap;
+    typechecking.CurrentScope currentScope;
+
+    public void <init>(java.util.HashMap)
+    {
+        typechecking.AllScopeShadowedTypeSearch this#_0;
+        java.util.HashMap gm#_0;
+
+        this#_0 := @this: typechecking.AllScopeShadowedTypeSearch;
+
+        gm#_0 := @parameter0: java.util.HashMap;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        this#_0.<typechecking.AllScopeShadowedTypeSearch: java.util.HashMap globalMap> = gm#_0;
+
+        return;
+    }
+
+    public java.lang.String getType(java.lang.String, java.lang.String, java.lang.String)
+    {
+        boolean $stack7, $stack8, $stack9, $stack11, $stack12, $stack28, $stack31, $stack35;
+        typechecking.AllScopeShadowedTypeSearch this#_0;
+        java.lang.String className#_0, methodName#_0, $stack17, $stack20, $stack22, $stack27, $stack30, $stack34, $stack38, identifier#_0, identifier#3#_21, $stack29, type#_35, type_$$A_1#_37, type_$$A_2#_38;
+        java.util.HashMap $stack13, $stack18, $stack21, $stack36;
+        java.lang.Object $stack14, $stack19, $stack23, $stack37;
+        typechecking.ClassSymbol $stack15, currentClass#_36, currentClass_$$A_1#_37, currentClass_$$A_2#_39;
+        java.lang.String[] pieces#_20;
+        typechecking.MethodSymbol pieces#12#_34;
+
+        this#_0 := @this: typechecking.AllScopeShadowedTypeSearch;
+
+        identifier#_0 := @parameter0: java.lang.String;
+
+        className#_0 := @parameter1: java.lang.String;
+
+        methodName#_0 := @parameter2: java.lang.String;
+
+        if identifier#_0 != null goto label01;
+
+        return null;
+
+     label01:
+        $stack7 = virtualinvoke identifier#_0.<java.lang.String: boolean contains(java.lang.CharSequence)>("Resolved:");
+
+        if $stack7 == 0 goto label05;
+
+        pieces#_20 = virtualinvoke identifier#_0.<java.lang.String: java.lang.String[] split(java.lang.String)>(":");
+
+        identifier#3#_21 = pieces#_20[1];
+
+        $stack27 = pieces#_20[1];
+
+        $stack28 = virtualinvoke $stack27.<java.lang.String: boolean equals(java.lang.Object)>("int");
+
+        if $stack28 != 0 goto label02;
+
+        $stack30 = pieces#_20[1];
+
+        $stack31 = virtualinvoke $stack30.<java.lang.String: boolean equals(java.lang.Object)>("int[]");
+
+        if $stack31 != 0 goto label02;
+
+        $stack34 = pieces#_20[1];
+
+        $stack35 = virtualinvoke $stack34.<java.lang.String: boolean equals(java.lang.Object)>("boolean");
+
+        if $stack35 == 0 goto label03;
+
+     label02:
+        $stack29 = pieces#_20[1];
+
+        return $stack29;
+
+     label03:
+        $stack36 = this#_0.<typechecking.AllScopeShadowedTypeSearch: java.util.HashMap globalMap>;
+
+        $stack37 = virtualinvoke $stack36.<java.util.HashMap: java.lang.Object get(java.lang.Object)>(identifier#3#_21);
+
+        if $stack37 == null goto label04;
+
+        $stack38 = pieces#_20[1];
+
+        return $stack38;
+
+     label04:
+        return null;
+
+     label05:
+        $stack8 = virtualinvoke identifier#_0.<java.lang.String: boolean equals(java.lang.Object)>("int");
+
+        if $stack8 != 0 goto label06;
+
+        $stack9 = virtualinvoke identifier#_0.<java.lang.String: boolean equals(java.lang.Object)>("int[]");
+
+        if $stack9 != 0 goto label06;
+
+        $stack11 = virtualinvoke identifier#_0.<java.lang.String: boolean equals(java.lang.Object)>("boolean");
+
+        if $stack11 == 0 goto label07;
+
+     label06:
+        return identifier#_0;
+
+     label07:
+        $stack12 = virtualinvoke identifier#_0.<java.lang.String: boolean equals(java.lang.Object)>("this");
+
+        if $stack12 == 0 goto label08;
+
+        return className#_0;
+
+     label08:
+        $stack13 = this#_0.<typechecking.AllScopeShadowedTypeSearch: java.util.HashMap globalMap>;
+
+        $stack14 = virtualinvoke $stack13.<java.util.HashMap: java.lang.Object get(java.lang.Object)>(className#_0);
+
+        $stack15 = (typechecking.ClassSymbol) $stack14;
+
+        pieces#12#_34 = virtualinvoke $stack15.<typechecking.ClassSymbol: typechecking.MethodSymbol getMethod(java.lang.String)>(methodName#_0);
+
+        $stack17 = virtualinvoke pieces#12#_34.<typechecking.MethodSymbol: java.lang.String getLocalVariableType(java.lang.String)>(identifier#_0);
+
+        type#_35 = $stack17;
+
+        if $stack17 != null goto label12;
+
+        $stack18 = this#_0.<typechecking.AllScopeShadowedTypeSearch: java.util.HashMap globalMap>;
+
+        $stack19 = virtualinvoke $stack18.<java.util.HashMap: java.lang.Object get(java.lang.Object)>(className#_0);
+
+(0)     currentClass#_36 = (typechecking.ClassSymbol) $stack19;
+
+     label09:
+        currentClass_$$A_1#_37 = Phi(currentClass#_36 #0, currentClass_$$A_2#_39 #1);
+
+        type_$$A_1#_37 = Phi(type#_35 #0, type_$$A_2#_38 #1);
+
+        $stack20 = virtualinvoke currentClass_$$A_1#_37.<typechecking.ClassSymbol: java.lang.String getMemberType(java.lang.String)>(identifier#_0);
+
+        type_$$A_2#_38 = $stack20;
+
+        if $stack20 != null goto label10;
+
+        $stack21 = this#_0.<typechecking.AllScopeShadowedTypeSearch: java.util.HashMap globalMap>;
+
+        $stack22 = virtualinvoke currentClass_$$A_1#_37.<typechecking.ClassSymbol: java.lang.String getParentClass()>();
+
+        $stack23 = virtualinvoke $stack21.<java.util.HashMap: java.lang.Object get(java.lang.Object)>($stack22);
+
+        currentClass_$$A_2#_39 = (typechecking.ClassSymbol) $stack23;
+
+        goto label11;
+
+     label10:
+        return type_$$A_2#_38;
+
+     label11:
+(1)     if currentClass_$$A_2#_39 != null goto label09;
+
+        goto label13;
+
+     label12:
+        return type#_35;
+
+     label13:
+        return type_$$A_2#_38;
+    }
+
+    public java.lang.String parseType(java.lang.String)
+    {
+        boolean $stack3;
+        java.lang.String[] pieces#_52;
+        typechecking.AllScopeShadowedTypeSearch this#_0;
+        java.util.HashMap $stack5;
+        java.lang.Object $stack6;
+        java.lang.String $stack7, rawType#_0, rawType#2#_53;
+
+        this#_0 := @this: typechecking.AllScopeShadowedTypeSearch;
+
+        rawType#_0 := @parameter0: java.lang.String;
+
+        $stack3 = virtualinvoke rawType#_0.<java.lang.String: boolean contains(java.lang.CharSequence)>("Class:");
+
+        if $stack3 == 0 goto label2;
+
+        pieces#_52 = virtualinvoke rawType#_0.<java.lang.String: java.lang.String[] split(java.lang.String)>(":");
+
+        rawType#2#_53 = pieces#_52[1];
+
+        $stack5 = this#_0.<typechecking.AllScopeShadowedTypeSearch: java.util.HashMap globalMap>;
+
+        $stack6 = virtualinvoke $stack5.<java.util.HashMap: java.lang.Object get(java.lang.Object)>(rawType#2#_53);
+
+        if $stack6 == null goto label1;
+
+        $stack7 = pieces#_52[1];
+
+        return $stack7;
+
+     label1:
+        return null;
+
+     label2:
+        return rawType#_0;
+    }
+}

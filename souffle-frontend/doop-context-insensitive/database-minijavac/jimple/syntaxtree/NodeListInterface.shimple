@@ -1,0 +1,19 @@
+public interface  syntaxtree.NodeListInterface extends java.lang.Object implements syntaxtree.Node
+{
+
+    public abstract void addNode(syntaxtree.Node);
+
+    public abstract syntaxtree.Node elementAt(int);
+
+    public abstract java.util.Enumeration elements();
+
+    public abstract int size();
+
+    public abstract void accept(visitor.Visitor);
+
+    public abstract java.lang.Object accept(visitor.GJVisitor, java.lang.Object);
+
+    public abstract java.lang.Object accept(visitor.GJNoArguVisitor);
+
+    public abstract void accept(visitor.GJVoidVisitor, java.lang.Object);
+}

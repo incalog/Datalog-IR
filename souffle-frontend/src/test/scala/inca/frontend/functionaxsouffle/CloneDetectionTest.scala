@@ -8,27 +8,23 @@ import scala.io.{BufferedSource, Source}
 import scala.meta.{Lit, XtensionQuasiquoteTerm}
 
 class CloneDetectionTest extends AnyFunSuite {
+
   def module(contents: String*): String = contents.mkString("\n")
 
-  val souffleCode: String = {
-    val src: BufferedSource = Source.fromFile(s"$baseDir/souffle-input-schema.dl")
+  def readFile(path: String): String = {
+    val src: BufferedSource = Source.fromFile(path)
     val code: String = src.getLines().mkString("\n")
     src.close()
     code
   }
 
-  val funCode: String = {
-    val src: BufferedSource = Source.fromFile(s"$baseDir/clone-detection.fun")
-    val code = src.getLines().mkString("\n")
-    src.close()
-    code
-  }
+  val baseDir = s"souffle-frontend/doop-context-insensitive"
+  val souffleCode: String = readFile(s"$baseDir/souffle-input-schema.dl")
+  val funCode: String = readFile(s"$baseDir/clone-detection.fun")
 
   val assignExpMain: String = module(funCode, "@main def main(v: String): Set[Exp] = { exp | exp in assignExp(v) }")
   val genStmMain: String = module(funCode, "@main def main(v: String): Set[Stm] = { stm | stm in genStm(v) }")
   val getStmListMain: String = module(funCode, "@main def main(meth: String): Set[StmList] = getStmList(meth)")
-
-  val baseDir = s"souffle-frontend/doop-context-insensitive"
 
   def testAssignExp(dir: String, name: meta.Term, expected: meta.Term): Unit = {
     val fun = FunctionalXSouffleExecutor.loadFunction(assignExpMain, souffleCode)
@@ -42,11 +38,15 @@ class CloneDetectionTest extends AnyFunSuite {
     assert(res == fun.result(expected))
   }
 
-  def testGetStmList(dir: String, name: meta.Term, expected: meta.Term): Unit = {
+  def testGetStmList(dir: String, name: meta.Term, expected: Option[meta.Term]): Unit = {
     val opts = FunctionalOptions()
     val fun = FunctionalXSouffleExecutor.loadFunction(getStmListMain, souffleCode, opts)
     val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
-    assert(res == fun.result(expected))
+    expected match {
+      case Some(t)  =>
+        assert(res == fun.result(t))
+      case None => // do nothing
+    }
   }
 
 
@@ -285,11 +285,12 @@ class CloneDetectionTest extends AnyFunSuite {
       name,
       q"""Throw(SpecialInvoke("<Main: void main(java.lang.String[])>/new java.lang.IllegalArgumentException/0", "<java.lang.IllegalArgumentException: void <init>(java.lang.String)>" ,ConsArg(Alloc("1", "java.lang.String"), NilArg())))""")
   }
+
   test("test gen simple stm list") {
     testGetStmList(
       "database-stmt-list",
       q""""<Main: void main(java.lang.String[])>"""",
-      q"""ConsStm(If("==", NumLit("1"), NumLit("1"), 5), 2, ConsStm(ReturnVoid(), 4, ConsStm(ReturnVoid(), 6, NilStm())))""")
+      Some(q"""ConsStm(If("==", NumLit("1"), NumLit("1"), 5), 2, ConsStm(ReturnVoid(), 4, ConsStm(ReturnVoid(), 6, NilStm())))"""))
   }
 
   // need to account for holes in the sequence of instruction indices
@@ -297,6 +298,13 @@ class CloneDetectionTest extends AnyFunSuite {
     testGetStmList(
       "database-if",
       q""""<Main: void main(java.lang.String[])>"""",
-      q"""ConsStm(If("<=", NumLit("1"), NumLit("2"), 7), 4, ConsStm(Goto(8), 6, ConsStm(ReturnVoid(), 11, NilStm())))""")
+      Some(q"""ConsStm(If("<=", NumLit("1"), NumLit("2"), 7), 4, ConsStm(Goto(8), 6, ConsStm(ReturnVoid(), 11, NilStm())))"""))
+  }
+
+  test("test for minijavac main method") {
+    testGetStmList(
+      "database-minijavac",
+      q""""<Main: void main(java.lang.String[])>"""",
+      None)
   }
 }

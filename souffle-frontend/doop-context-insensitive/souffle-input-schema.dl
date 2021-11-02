@@ -589,7 +589,7 @@ Stm_Instruction(?inst) :- _ThrowNull(?inst, _, _).
 
 Stm_Instruction(?inst) :- _VirtualMethodInvocation(?inst, _, _, _, _), !_AssignReturnValue(?inst, _).
 Stm_Instruction(?inst) :- _SuperMethodInvocation(?inst, _, _, _, _), !_AssignReturnValue(?inst, _).
-Stm_Instruction(?inst) :- _SpecialMethodInvocation(?inst, _, _, _, _), !_AssignReturnValue(?inst, _).
+Stm_Instruction(?inst) :- _SpecialMethodInvocation(?inst, _, _, _, _), !_AssignReturnValue(?inst, _), !_Method(?sig, "<init>", _, _, _, _, _).
 // enter monitor, exit monitor, throw, throw null, breakpoint, unsupported instruction (?), AssignPhantomInvoke, LookupSwitch
 
 .decl TableSwitch_CaseValue(?instruction:Switch_Insn, ?value:number)

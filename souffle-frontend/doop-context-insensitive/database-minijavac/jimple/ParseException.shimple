@@ -1,0 +1,517 @@
+public class ParseException extends java.lang.Exception
+{
+    private static final long serialVersionUID;
+    public Token currentToken;
+    public int[][] expectedTokenSequences;
+    public java.lang.String[] tokenImage;
+    protected java.lang.String eol;
+
+    public void <init>(Token, int[][], java.lang.String[])
+    {
+        ParseException this#_0;
+        Token currentTokenVal#_0;
+        int[][] expectedTokenSequencesVal#_0;
+        java.lang.String[] tokenImageVal#_0;
+        java.lang.String $stack4, $stack5;
+
+        this#_0 := @this: ParseException;
+
+        currentTokenVal#_0 := @parameter0: Token;
+
+        expectedTokenSequencesVal#_0 := @parameter1: int[][];
+
+        tokenImageVal#_0 := @parameter2: java.lang.String[];
+
+        $stack4 = staticinvoke <ParseException: java.lang.String initialise(Token,int[][],java.lang.String[])>(currentTokenVal#_0, expectedTokenSequencesVal#_0, tokenImageVal#_0);
+
+        specialinvoke this#_0.<java.lang.Exception: void <init>(java.lang.String)>($stack4);
+
+        $stack5 = staticinvoke <java.lang.System: java.lang.String getProperty(java.lang.String,java.lang.String)>("line.separator", "\n");
+
+        this#_0.<ParseException: java.lang.String eol> = $stack5;
+
+        this#_0.<ParseException: Token currentToken> = currentTokenVal#_0;
+
+        this#_0.<ParseException: int[][] expectedTokenSequences> = expectedTokenSequencesVal#_0;
+
+        this#_0.<ParseException: java.lang.String[] tokenImage> = tokenImageVal#_0;
+
+        return;
+    }
+
+    public void <init>()
+    {
+        ParseException this#_0;
+        java.lang.String $stack1;
+
+        this#_0 := @this: ParseException;
+
+        specialinvoke this#_0.<java.lang.Exception: void <init>()>();
+
+        $stack1 = staticinvoke <java.lang.System: java.lang.String getProperty(java.lang.String,java.lang.String)>("line.separator", "\n");
+
+        this#_0.<ParseException: java.lang.String eol> = $stack1;
+
+        return;
+    }
+
+    public void <init>(java.lang.String)
+    {
+        ParseException this#_0;
+        java.lang.String message#_0, $stack2;
+
+        this#_0 := @this: ParseException;
+
+        message#_0 := @parameter0: java.lang.String;
+
+        specialinvoke this#_0.<java.lang.Exception: void <init>(java.lang.String)>(message#_0);
+
+        $stack2 = staticinvoke <java.lang.System: java.lang.String getProperty(java.lang.String,java.lang.String)>("line.separator", "\n");
+
+        this#_0.<ParseException: java.lang.String eol> = $stack2;
+
+        return;
+    }
+
+    private static java.lang.String initialise(Token, int[][], java.lang.String[])
+    {
+        java.lang.String eol#_89, $stack37, $stack54, $stack63, $stack64, $stack75, $stack112, i#14#_104, i#14_$$A_1#_107, i#14_$$A_2#_107, i#14_$$A_3#_108, i#14_$$A_4#_109, i#14_$$A_5#_112, i#14_$$A_6#_113, i#14_$$A_7#_114, i#14_$$A_8#_115, i#14_$$A_9#_107, i#14_$$A_10#_118, i#14_$$A_11#_119, i#14_$$A_12#_121, i#14_$$A_13#_123, i#14_$$A_14#_124, i#14_$$A_15#_125;
+        java.lang.StringBuffer $stack10, expected#_90, $stack102, $stack113;
+        int[][] expectedTokenSequences#_0;
+        int $stack11, $stack16, $stack20, $stack28, $stack49, $stack53, $stack94, $stack98, $stack99, $stack101, $stack111, maxSize#_91, i#_92, j#_93, $stack96, i_$$A_1#_93, maxSize_$$A_1#_93, maxSize_$$A_2#_94, maxSize_$$A_3#_95, j_$$A_1#_96, j_$$A_2#_97, j_$$A_3#_96, i_$$A_2#_92, i_$$A_3#_106, i_$$A_4#_107, i_$$A_5#_106;
+        Token currentToken#_0, $stack15, $stack19, j#15#_105, j#15_$$A_1#_107, j#15_$$A_2#_116;
+        java.lang.StringBuilder $stack12, $stack13, $stack14, $stack17, $stack18, $stack21, $stack23, $stack24, $stack25, $stack26, $stack29, $stack30, $stack31, $stack32, $stack33, $stack35, $stack36, $stack38, $stack40, $stack41, $stack42, $stack43, $stack44, $stack50, $stack51, $stack52, $stack55, $stack57, $stack58, $stack59, $stack61, $stack62, $stack65, $stack67, $stack68, $stack69, $stack73, $stack74, $stack76, $stack88, $stack89, $stack90;
+        java.lang.String[] tokenImage#_0;
+        int[] $stack93, $stack97, $stack100, $stack110, $stack118, $stack95;
+
+        currentToken#_0 := @parameter0: Token;
+
+        expectedTokenSequences#_0 := @parameter1: int[][];
+
+        tokenImage#_0 := @parameter2: java.lang.String[];
+
+        eol#_89 = staticinvoke <java.lang.System: java.lang.String getProperty(java.lang.String,java.lang.String)>("line.separator", "\n");
+
+        $stack10 = new java.lang.StringBuffer;
+
+        specialinvoke $stack10.<java.lang.StringBuffer: void <init>()>();
+
+        expected#_90 = $stack10;
+
+        maxSize#_91 = 0;
+
+(0)     i#_92 = 0;
+
+     label01:
+        j#_93 = Phi(j#_93 #0, j_$$A_2#_97 #5);
+
+        i_$$A_1#_93 = Phi(i#_92 #0, i_$$A_2#_92 #5);
+
+        maxSize_$$A_1#_93 = Phi(maxSize#_91 #0, maxSize_$$A_3#_95 #5);
+
+        $stack11 = lengthof expectedTokenSequences#_0;
+
+        if i_$$A_1#_93 >= $stack11 goto label06;
+
+        $stack93 = expectedTokenSequences#_0[i_$$A_1#_93];
+
+        $stack94 = lengthof $stack93;
+
+(1)     if maxSize_$$A_1#_93 >= $stack94 goto label02;
+
+        $stack118 = expectedTokenSequences#_0[i_$$A_1#_93];
+
+(2)     maxSize_$$A_2#_94 = lengthof $stack118;
+
+     label02:
+        maxSize_$$A_3#_95 = Phi(maxSize_$$A_1#_93 #1, maxSize_$$A_2#_94 #2);
+
+(3)     j_$$A_1#_96 = 0;
+
+     label03:
+        j_$$A_2#_97 = Phi(j_$$A_1#_96 #3, j_$$A_3#_96 #4);
+
+        $stack95 = expectedTokenSequences#_0[i_$$A_1#_93];
+
+        $stack96 = lengthof $stack95;
+
+        if j_$$A_2#_97 >= $stack96 goto label04;
+
+        $stack110 = expectedTokenSequences#_0[i_$$A_1#_93];
+
+        $stack111 = $stack110[j_$$A_2#_97];
+
+        $stack112 = tokenImage#_0[$stack111];
+
+        $stack113 = virtualinvoke expected#_90.<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>($stack112);
+
+        virtualinvoke $stack113.<java.lang.StringBuffer: java.lang.StringBuffer append(char)>(32);
+
+        j_$$A_3#_96 = j_$$A_2#_97 + 1;
+
+(4)     goto label03;
+
+     label04:
+        $stack100 = expectedTokenSequences#_0[i_$$A_1#_93];
+
+        $stack97 = expectedTokenSequences#_0[i_$$A_1#_93];
+
+        $stack98 = lengthof $stack97;
+
+        $stack99 = $stack98 - 1;
+
+        $stack101 = $stack100[$stack99];
+
+        if $stack101 == 0 goto label05;
+
+        virtualinvoke expected#_90.<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>("...");
+
+     label05:
+        $stack102 = virtualinvoke expected#_90.<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>(eol#_89);
+
+        virtualinvoke $stack102.<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>("    ");
+
+        i_$$A_2#_92 = i_$$A_1#_93 + 1;
+
+(5)     goto label01;
+
+     label06:
+        i#14#_104 = "Encountered \"";
+
+        j#15#_105 = currentToken#_0.<Token: Token next>;
+
+(6)     i_$$A_3#_106 = 0;
+
+     label07:
+        j#15_$$A_1#_107 = Phi(j#15#_105 #6, j#15_$$A_2#_116 #11);
+
+        i#14_$$A_1#_107 = Phi(i#14#_104 #6, i#14_$$A_8#_115 #11);
+
+        i_$$A_4#_107 = Phi(i_$$A_3#_106 #6, i_$$A_5#_106 #11);
+
+(7)     if i_$$A_4#_107 >= maxSize_$$A_1#_93 goto label10;
+
+(8)     if i_$$A_4#_107 == 0 goto label08;
+
+        $stack88 = new java.lang.StringBuilder;
+
+        specialinvoke $stack88.<java.lang.StringBuilder: void <init>()>();
+
+        $stack89 = virtualinvoke $stack88.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(i#14_$$A_1#_107);
+
+        $stack90 = virtualinvoke $stack89.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(" ");
+
+(9)     i#14_$$A_2#_107 = virtualinvoke $stack90.<java.lang.StringBuilder: java.lang.String toString()>();
+
+     label08:
+        i#14_$$A_3#_108 = Phi(i#14_$$A_1#_107 #8, i#14_$$A_2#_107 #9);
+
+        $stack49 = j#15_$$A_1#_107.<Token: int kind>;
+
+        if $stack49 != 0 goto label09;
+
+        $stack73 = new java.lang.StringBuilder;
+
+        specialinvoke $stack73.<java.lang.StringBuilder: void <init>()>();
+
+        $stack74 = virtualinvoke $stack73.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(i#14_$$A_3#_108);
+
+        $stack75 = tokenImage#_0[0];
+
+        $stack76 = virtualinvoke $stack74.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>($stack75);
+
+        i#14_$$A_4#_109 = virtualinvoke $stack76.<java.lang.StringBuilder: java.lang.String toString()>();
+
+(10)    goto label10;
+
+     label09:
+        $stack50 = new java.lang.StringBuilder;
+
+        specialinvoke $stack50.<java.lang.StringBuilder: void <init>()>();
+
+        $stack51 = virtualinvoke $stack50.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(i#14_$$A_3#_108);
+
+        $stack52 = virtualinvoke $stack51.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(" ");
+
+        $stack53 = j#15_$$A_1#_107.<Token: int kind>;
+
+        $stack54 = tokenImage#_0[$stack53];
+
+        $stack55 = virtualinvoke $stack52.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>($stack54);
+
+        i#14_$$A_5#_112 = virtualinvoke $stack55.<java.lang.StringBuilder: java.lang.String toString()>();
+
+        $stack57 = new java.lang.StringBuilder;
+
+        specialinvoke $stack57.<java.lang.StringBuilder: void <init>()>();
+
+        $stack58 = virtualinvoke $stack57.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(i#14_$$A_5#_112);
+
+        $stack59 = virtualinvoke $stack58.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(" \"");
+
+        i#14_$$A_6#_113 = virtualinvoke $stack59.<java.lang.StringBuilder: java.lang.String toString()>();
+
+        $stack61 = new java.lang.StringBuilder;
+
+        specialinvoke $stack61.<java.lang.StringBuilder: void <init>()>();
+
+        $stack62 = virtualinvoke $stack61.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(i#14_$$A_6#_113);
+
+        $stack63 = j#15_$$A_1#_107.<Token: java.lang.String image>;
+
+        $stack64 = staticinvoke <ParseException: java.lang.String add_escapes(java.lang.String)>($stack63);
+
+        $stack65 = virtualinvoke $stack62.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>($stack64);
+
+        i#14_$$A_7#_114 = virtualinvoke $stack65.<java.lang.StringBuilder: java.lang.String toString()>();
+
+        $stack67 = new java.lang.StringBuilder;
+
+        specialinvoke $stack67.<java.lang.StringBuilder: void <init>()>();
+
+        $stack68 = virtualinvoke $stack67.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(i#14_$$A_7#_114);
+
+        $stack69 = virtualinvoke $stack68.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(" \"");
+
+        i#14_$$A_8#_115 = virtualinvoke $stack69.<java.lang.StringBuilder: java.lang.String toString()>();
+
+        j#15_$$A_2#_116 = j#15_$$A_1#_107.<Token: Token next>;
+
+        i_$$A_5#_106 = i_$$A_4#_107 + 1;
+
+(11)    goto label07;
+
+     label10:
+        i#14_$$A_9#_107 = Phi(i#14_$$A_1#_107 #7, i#14_$$A_4#_109 #10);
+
+        $stack12 = new java.lang.StringBuilder;
+
+        specialinvoke $stack12.<java.lang.StringBuilder: void <init>()>();
+
+        $stack13 = virtualinvoke $stack12.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(i#14_$$A_9#_107);
+
+        $stack14 = virtualinvoke $stack13.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>("\" at line ");
+
+        $stack15 = currentToken#_0.<Token: Token next>;
+
+        $stack16 = $stack15.<Token: int beginLine>;
+
+        $stack17 = virtualinvoke $stack14.<java.lang.StringBuilder: java.lang.StringBuilder append(int)>($stack16);
+
+        $stack18 = virtualinvoke $stack17.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(", column ");
+
+        $stack19 = currentToken#_0.<Token: Token next>;
+
+        $stack20 = $stack19.<Token: int beginColumn>;
+
+        $stack21 = virtualinvoke $stack18.<java.lang.StringBuilder: java.lang.StringBuilder append(int)>($stack20);
+
+        i#14_$$A_10#_118 = virtualinvoke $stack21.<java.lang.StringBuilder: java.lang.String toString()>();
+
+        $stack23 = new java.lang.StringBuilder;
+
+        specialinvoke $stack23.<java.lang.StringBuilder: void <init>()>();
+
+        $stack24 = virtualinvoke $stack23.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(i#14_$$A_10#_118);
+
+        $stack25 = virtualinvoke $stack24.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(".");
+
+        $stack26 = virtualinvoke $stack25.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(eol#_89);
+
+        i#14_$$A_11#_119 = virtualinvoke $stack26.<java.lang.StringBuilder: java.lang.String toString()>();
+
+        $stack28 = lengthof expectedTokenSequences#_0;
+
+        if $stack28 != 1 goto label11;
+
+        $stack40 = new java.lang.StringBuilder;
+
+        specialinvoke $stack40.<java.lang.StringBuilder: void <init>()>();
+
+        $stack41 = virtualinvoke $stack40.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(i#14_$$A_11#_119);
+
+        $stack42 = virtualinvoke $stack41.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>("Was expecting:");
+
+        $stack43 = virtualinvoke $stack42.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(eol#_89);
+
+        $stack44 = virtualinvoke $stack43.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>("    ");
+
+        i#14_$$A_12#_121 = virtualinvoke $stack44.<java.lang.StringBuilder: java.lang.String toString()>();
+
+(12)    goto label12;
+
+     label11:
+        $stack29 = new java.lang.StringBuilder;
+
+        specialinvoke $stack29.<java.lang.StringBuilder: void <init>()>();
+
+        $stack30 = virtualinvoke $stack29.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(i#14_$$A_11#_119);
+
+        $stack31 = virtualinvoke $stack30.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>("Was expecting one of:");
+
+        $stack32 = virtualinvoke $stack31.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(eol#_89);
+
+        $stack33 = virtualinvoke $stack32.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>("    ");
+
+(13)    i#14_$$A_13#_123 = virtualinvoke $stack33.<java.lang.StringBuilder: java.lang.String toString()>();
+
+     label12:
+        i#14_$$A_14#_124 = Phi(i#14_$$A_12#_121 #12, i#14_$$A_13#_123 #13);
+
+        $stack35 = new java.lang.StringBuilder;
+
+        specialinvoke $stack35.<java.lang.StringBuilder: void <init>()>();
+
+        $stack36 = virtualinvoke $stack35.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>(i#14_$$A_14#_124);
+
+        $stack37 = virtualinvoke expected#_90.<java.lang.StringBuffer: java.lang.String toString()>();
+
+        $stack38 = virtualinvoke $stack36.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>($stack37);
+
+        i#14_$$A_15#_125 = virtualinvoke $stack38.<java.lang.StringBuilder: java.lang.String toString()>();
+
+        return i#14_$$A_15#_125;
+    }
+
+    static java.lang.String add_escapes(java.lang.String)
+    {
+        java.lang.StringBuffer $stack5, retval#_140;
+        java.lang.String str#_0, $stack7, $stack22, s#_173, $stack30, $stack32;
+        int $stack6, $stack27, $stack28, $stack29, i#_142, i_$$A_1#_143, i_$$A_2#_142;
+        char $stack8, $stack19, ch#_172;
+        java.lang.StringBuilder $stack20, $stack21, $stack23, $stack25, $stack26, $stack31;
+
+        str#_0 := @parameter0: java.lang.String;
+
+        $stack5 = new java.lang.StringBuffer;
+
+        specialinvoke $stack5.<java.lang.StringBuffer: void <init>()>();
+
+        retval#_140 = $stack5;
+
+(0)     i#_142 = 0;
+
+     label01:
+        i_$$A_1#_143 = Phi(i#_142 #0, i_$$A_2#_142 #1);
+
+        $stack6 = virtualinvoke str#_0.<java.lang.String: int length()>();
+
+        if i_$$A_1#_143 >= $stack6 goto label15;
+
+        $stack8 = virtualinvoke str#_0.<java.lang.String: char charAt(int)>(i_$$A_1#_143);
+
+        lookupswitch($stack8)
+        {
+            case 0: goto label02;
+            case 8: goto label03;
+            case 9: goto label04;
+            case 10: goto label05;
+            case 12: goto label06;
+            case 13: goto label07;
+            case 34: goto label08;
+            case 39: goto label09;
+            case 92: goto label10;
+            default: goto label11;
+        };
+
+     label02:
+        goto label14;
+
+     label03:
+        virtualinvoke retval#_140.<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>("\\b");
+
+        goto label14;
+
+     label04:
+        virtualinvoke retval#_140.<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>("\\t");
+
+        goto label14;
+
+     label05:
+        virtualinvoke retval#_140.<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>("\\n");
+
+        goto label14;
+
+     label06:
+        virtualinvoke retval#_140.<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>("\\f");
+
+        goto label14;
+
+     label07:
+        virtualinvoke retval#_140.<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>("\\r");
+
+        goto label14;
+
+     label08:
+        virtualinvoke retval#_140.<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>("\\\"");
+
+        goto label14;
+
+     label09:
+        virtualinvoke retval#_140.<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>("\\\'");
+
+        goto label14;
+
+     label10:
+        virtualinvoke retval#_140.<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>("\\\\");
+
+        goto label14;
+
+     label11:
+        $stack19 = virtualinvoke str#_0.<java.lang.String: char charAt(int)>(i_$$A_1#_143);
+
+        ch#_172 = $stack19;
+
+        if $stack19 < 32 goto label12;
+
+        if ch#_172 <= 126 goto label13;
+
+     label12:
+        $stack20 = new java.lang.StringBuilder;
+
+        specialinvoke $stack20.<java.lang.StringBuilder: void <init>()>();
+
+        $stack21 = virtualinvoke $stack20.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>("0000");
+
+        $stack22 = staticinvoke <java.lang.Integer: java.lang.String toString(int,int)>(ch#_172, 16);
+
+        $stack23 = virtualinvoke $stack21.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>($stack22);
+
+        s#_173 = virtualinvoke $stack23.<java.lang.StringBuilder: java.lang.String toString()>();
+
+        $stack25 = new java.lang.StringBuilder;
+
+        specialinvoke $stack25.<java.lang.StringBuilder: void <init>()>();
+
+        $stack26 = virtualinvoke $stack25.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>("\\u");
+
+        $stack27 = virtualinvoke s#_173.<java.lang.String: int length()>();
+
+        $stack28 = $stack27 - 4;
+
+        $stack29 = virtualinvoke s#_173.<java.lang.String: int length()>();
+
+        $stack30 = virtualinvoke s#_173.<java.lang.String: java.lang.String substring(int,int)>($stack28, $stack29);
+
+        $stack31 = virtualinvoke $stack26.<java.lang.StringBuilder: java.lang.StringBuilder append(java.lang.String)>($stack30);
+
+        $stack32 = virtualinvoke $stack31.<java.lang.StringBuilder: java.lang.String toString()>();
+
+        virtualinvoke retval#_140.<java.lang.StringBuffer: java.lang.StringBuffer append(java.lang.String)>($stack32);
+
+        goto label14;
+
+     label13:
+        virtualinvoke retval#_140.<java.lang.StringBuffer: java.lang.StringBuffer append(char)>(ch#_172);
+
+     label14:
+        i_$$A_2#_142 = i_$$A_1#_143 + 1;
+
+(1)     goto label01;
+
+     label15:
+        $stack7 = virtualinvoke retval#_140.<java.lang.StringBuffer: java.lang.String toString()>();
+
+        return $stack7;
+    }
+}

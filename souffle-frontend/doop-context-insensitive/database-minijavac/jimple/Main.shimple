@@ -1,0 +1,124 @@
+public class Main extends java.lang.Object
+{
+
+    public void <init>()
+    {
+        Main this#_0;
+
+        this#_0 := @this: Main;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        return;
+    }
+
+    public static void main(java.lang.String[])
+    {
+        java.io.PrintStream $stack8, $stack16, $stack22, $stack24, $stack26;
+        java.lang.String[] args#_0, pieces#_19, pieces_$$A_1#_21, pieces_$$A_2#_38, pieces_$$A_3#_38, pieces_$$A_4#_36;
+        MiniJavaParser $stack9, parser#_18;
+        java.io.FileReader $stack10;
+        int $stack12, $stack13;
+        java.lang.String mainClassFile#_20, mainClass#_22, fileName#_16;
+        syntaxtree.Goal root#_23;
+        java.util.HashMap $stack17, globalMap#_25;
+        typechecking.GlobalSymbolTableMaker $stack18;
+        typechecking.TypeChecker $stack20;
+        java.io.FileNotFoundException $stack23, fileName#5#_34;
+        ParseException $stack25, fileName#4#_31;
+
+        args#_0 := @parameter0: java.lang.String[];
+
+        $stack8 = <java.lang.System: java.io.PrintStream out>;
+
+        virtualinvoke $stack8.<java.io.PrintStream: void println(java.lang.String)>("[module: \u001b[34mMiniJavac\u001b[0m]\n");
+
+     label1:
+        fileName#_16 = args#_0[0];
+
+        $stack9 = new MiniJavaParser;
+
+(0)     $stack10 = new java.io.FileReader;
+
+        specialinvoke $stack10.<java.io.FileReader: void <init>(java.lang.String)>(fileName#_16);
+
+        specialinvoke $stack9.<MiniJavaParser: void <init>(java.io.Reader)>($stack10);
+
+        parser#_18 = $stack9;
+
+        pieces#_19 = virtualinvoke fileName#_16.<java.lang.String: java.lang.String[] split(java.lang.String)>("/");
+
+        $stack12 = lengthof pieces#_19;
+
+        $stack13 = $stack12 - 1;
+
+        mainClassFile#_20 = pieces#_19[$stack13];
+
+(1)     pieces_$$A_1#_21 = virtualinvoke mainClassFile#_20.<java.lang.String: java.lang.String[] split(java.lang.String)>("\\.");
+
+        mainClass#_22 = pieces_$$A_1#_21[0];
+
+        root#_23 = virtualinvoke parser#_18.<MiniJavaParser: syntaxtree.Goal Goal()>();
+
+        $stack16 = <java.lang.System: java.io.PrintStream err>;
+
+        virtualinvoke $stack16.<java.io.PrintStream: void println(java.lang.String)>("Minijava program parsed successfully.");
+
+        $stack17 = new java.util.HashMap;
+
+        specialinvoke $stack17.<java.util.HashMap: void <init>()>();
+
+        globalMap#_25 = $stack17;
+
+        $stack18 = new typechecking.GlobalSymbolTableMaker;
+
+        specialinvoke $stack18.<typechecking.GlobalSymbolTableMaker: void <init>(java.util.HashMap)>(globalMap#_25);
+
+        virtualinvoke root#_23.<syntaxtree.Goal: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>($stack18, mainClass#_22);
+
+        $stack20 = new typechecking.TypeChecker;
+
+        specialinvoke $stack20.<typechecking.TypeChecker: void <init>(java.util.HashMap)>(globalMap#_25);
+
+        virtualinvoke root#_23.<syntaxtree.Goal: java.lang.Object accept(visitor.GJVisitor,java.lang.Object)>($stack20, mainClass#_22);
+
+        $stack22 = <java.lang.System: java.io.PrintStream err>;
+
+        virtualinvoke $stack22.<java.io.PrintStream: void println(java.lang.String)>("Minijava program type checked successfully - no errors found");
+
+     label2:
+(2)     goto label5;
+
+     label3:
+        $stack25 := @caughtexception;
+
+        pieces_$$A_2#_38 = Phi(pieces#_19 #0, pieces_$$A_1#_21 #1);
+
+        fileName#4#_31 = $stack25;
+
+        $stack26 = <java.lang.System: java.io.PrintStream err>;
+
+        virtualinvoke $stack26.<java.io.PrintStream: void println(java.lang.String)>("Encountered errors during parse.");
+
+(3)     goto label5;
+
+     label4:
+        $stack23 := @caughtexception;
+
+        pieces_$$A_3#_38 = Phi(pieces#_19 #0, pieces_$$A_1#_21 #1);
+
+        fileName#5#_34 = $stack23;
+
+        $stack24 = <java.lang.System: java.io.PrintStream err>;
+
+(4)     virtualinvoke $stack24.<java.io.PrintStream: void println(java.lang.String)>("File not found");
+
+     label5:
+        pieces_$$A_4#_36 = Phi(pieces_$$A_1#_21 #2, pieces_$$A_2#_38 #3, pieces_$$A_3#_38 #4);
+
+        return;
+
+        catch ParseException from label1 to label2 with label3;
+        catch java.io.FileNotFoundException from label1 to label2 with label4;
+    }
+}

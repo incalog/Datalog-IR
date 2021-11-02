@@ -20,6 +20,7 @@ data Exp = NumLit(String)
          | This()
          | Null()
          | Phi(ArgList)
+         | CaughtException(String)
 
 data CaseList = ConsCase(Int, Int, CaseList) | DefaultCase(Int)
 data CatchList = ConsCatch() | NilCatch()
@@ -36,6 +37,7 @@ data Stm = Assign(String, String)
          | TableSwitch(Exp, CaseList)
          | LookupSwitch(Exp, CaseList)
          | Throw(Exp)
+         | ThrowNull()
 
 data StmList = ConsStm(Stm, Int, StmList) | NilStm()
 
@@ -130,7 +132,12 @@ def assignExp(v: String): Set[Exp] = {
       recvExp in assignExp(recv)
   } ++ {
     StaticFieldRead(fieldsig) | (inst, idx, v, fieldsig, meth) in _LoadStaticField
+  } ++ { // TODO order of caught exceptions????
+    CaughtException(ex) |
+      (handler, v) in ExceptionHandler_FormalParam,
+      (handler, _, _, ex, _, _) in _ExceptionHandler
   }
+
 
 def getOperand(inst: String, pos: Int): Set[Exp] =
   { NumLit(num) | (inst, pos, num) in _AssignOperFromConstant } ++
@@ -203,61 +210,63 @@ def getPhiAlternativesHelper(v: String, method: String, currentIdx: Int): Set[Ar
 
 def genStm(inst: String): Set[Stm] =
   { ArrayWrite(toExp, NumLit(`String.valueOf`(num)), fromExp) |
-      (inst, idx, from, to, meth) in _StoreArrayIndex,
+      (inst, _, from, to, _) in _StoreArrayIndex,
       fromExp in assignExp(from),
       toExp in assignExp(to),
       (inst, num) in _ArrayNumIndex
   } ++ {
     ArrayWrite(toExp, indexExp, fromExp) |
-      (inst, idx, from, to, meth) in _StoreArrayIndex,
+      (inst, _, from, to, _) in _StoreArrayIndex,
       fromExp in assignExp(from),
       toExp in assignExp(to),
       (inst, index) in _ArrayInsnIndex,
       indexExp in assignExp(index)
   } ++ {
     InstanceFieldWrite(recvExp, field, valExp) |
-      (inst, idx, val, recv, field, meth) in _StoreInstanceField,
+      (inst, _, val, recv, field, _) in _StoreInstanceField,
       recvExp in assignExp(recv),
       valExp in assignExp(val)
   } ++ {
     StaticFieldWrite(field, valExp) |
-      (inst, idx, val, field, meth) in _StoreStaticField,
+      (inst, _, val, field, _) in _StoreStaticField,
       valExp in assignExp(val)
   } ++ {
-    ReturnVoid() | (inst, idx, meth) in _ReturnVoid
+    ReturnVoid() | (inst, _, _) in _ReturnVoid
   } ++ {
     Return(exp) |
-      (inst, idx, v, meth) in _Return,
+      (inst, _, v, _) in _Return,
       exp in assignExp(v)
   } ++ {
     InvokeStm(recvExp, meth, args) |
       (inst, v) not in _AssignReturnValue, // an invoke statement does not assign a value to
-      (inst, idx, meth, recv, callingMeth) in _VirtualMethodInvocation,
+      (inst, _, meth, recv, _) in _VirtualMethodInvocation,
       recvExp in assignExp(recv),
       args in getArgs(inst, 0)
   } ++ {
     StaticInvokeStm(meth, args) |
       (inst, v) not in _AssignReturnValue,
-      (inst, idx, meth, callingMeth) in _StaticMethodInvocation,
+      (inst, _, meth, _) in _StaticMethodInvocation,
       args in getArgs(inst, 0)
   } ++ {
-    Goto(trg) | (inst, idx, trg, meth) in _Goto
+    Goto(trg) | (inst, _, trg, _) in _Goto
   } ++ {
     If(op, lhs, rhs, trg) |
-      (inst, idx, trg, _) in _If,
+      (inst, _, trg, _) in _If,
       (inst, op) in _OperatorAt,
       lhs in getIfOperand(inst, 1),
       rhs in getIfOperand(inst, 2)
   } ++ {
     TableSwitch(matcheeExp, cases) |
-      (inst, idx, matchee, meth) in _TableSwitch,
+      (inst, _, matchee, _) in _TableSwitch,
       matcheeExp in assignExp(matchee),
       cases in getTableSwitchCases(inst)
   } ++ {
     Throw(exp) |
-      (inst, idx, v, method) in _Throw,
-      exp in assignExp(v) // TODO this is not an expression?
-      // clauses in getCatchClauses(inst)
+      (inst, _, v, _) in _Throw,
+      exp in assignExp(v)
+  } ++ {
+    ThrowNull() |
+      (inst, _, _) in _ThrowNull
   }
 
 def getIfOperand(inst: String, pos: Int): Set[Exp] =

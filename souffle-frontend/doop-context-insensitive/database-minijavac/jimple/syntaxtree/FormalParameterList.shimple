@@ -1,0 +1,89 @@
+public class syntaxtree.FormalParameterList extends java.lang.Object implements syntaxtree.Node
+{
+    public syntaxtree.FormalParameter f0;
+    public syntaxtree.FormalParameterTail f1;
+
+    public void <init>(syntaxtree.FormalParameter, syntaxtree.FormalParameterTail)
+    {
+        syntaxtree.FormalParameterList this#_0;
+        syntaxtree.FormalParameter n0#_0;
+        syntaxtree.FormalParameterTail n1#_0;
+
+        this#_0 := @this: syntaxtree.FormalParameterList;
+
+        n0#_0 := @parameter0: syntaxtree.FormalParameter;
+
+        n1#_0 := @parameter1: syntaxtree.FormalParameterTail;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        this#_0.<syntaxtree.FormalParameterList: syntaxtree.FormalParameter f0> = n0#_0;
+
+        this#_0.<syntaxtree.FormalParameterList: syntaxtree.FormalParameterTail f1> = n1#_0;
+
+        return;
+    }
+
+    public void accept(visitor.Visitor)
+    {
+        visitor.Visitor v#_0;
+        syntaxtree.FormalParameterList this#_0;
+
+        this#_0 := @this: syntaxtree.FormalParameterList;
+
+        v#_0 := @parameter0: visitor.Visitor;
+
+        interfaceinvoke v#_0.<visitor.Visitor: void visit(syntaxtree.FormalParameterList)>(this#_0);
+
+        return;
+    }
+
+    public java.lang.Object accept(visitor.GJVisitor, java.lang.Object)
+    {
+        visitor.GJVisitor v#_0;
+        syntaxtree.FormalParameterList this#_0;
+        java.lang.Object argu#_0, $stack3;
+
+        this#_0 := @this: syntaxtree.FormalParameterList;
+
+        v#_0 := @parameter0: visitor.GJVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = interfaceinvoke v#_0.<visitor.GJVisitor: java.lang.Object visit(syntaxtree.FormalParameterList,java.lang.Object)>(this#_0, argu#_0);
+
+        return $stack3;
+    }
+
+    public java.lang.Object accept(visitor.GJNoArguVisitor)
+    {
+        visitor.GJNoArguVisitor v#_0;
+        syntaxtree.FormalParameterList this#_0;
+        java.lang.Object $stack2;
+
+        this#_0 := @this: syntaxtree.FormalParameterList;
+
+        v#_0 := @parameter0: visitor.GJNoArguVisitor;
+
+        $stack2 = interfaceinvoke v#_0.<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.FormalParameterList)>(this#_0);
+
+        return $stack2;
+    }
+
+    public void accept(visitor.GJVoidVisitor, java.lang.Object)
+    {
+        visitor.GJVoidVisitor v#_0;
+        syntaxtree.FormalParameterList this#_0;
+        java.lang.Object argu#_0;
+
+        this#_0 := @this: syntaxtree.FormalParameterList;
+
+        v#_0 := @parameter0: visitor.GJVoidVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        interfaceinvoke v#_0.<visitor.GJVoidVisitor: void visit(syntaxtree.FormalParameterList,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+}

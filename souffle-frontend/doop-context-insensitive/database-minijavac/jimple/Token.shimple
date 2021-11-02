@@ -1,0 +1,114 @@
+public class Token extends java.lang.Object implements java.io.Serializable
+{
+    private static final long serialVersionUID;
+    public int kind;
+    public int beginLine;
+    public int beginColumn;
+    public int endLine;
+    public int endColumn;
+    public java.lang.String image;
+    public Token next;
+    public Token specialToken;
+
+    public java.lang.Object getValue()
+    {
+        Token this#_0;
+
+        this#_0 := @this: Token;
+
+        return null;
+    }
+
+    public void <init>()
+    {
+        Token this#_0;
+
+        this#_0 := @this: Token;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        return;
+    }
+
+    public void <init>(int)
+    {
+        Token this#_0;
+        int kind#_0;
+
+        this#_0 := @this: Token;
+
+        kind#_0 := @parameter0: int;
+
+        specialinvoke this#_0.<Token: void <init>(int,java.lang.String)>(kind#_0, null);
+
+        return;
+    }
+
+    public void <init>(int, java.lang.String)
+    {
+        Token this#_0;
+        int kind#_0;
+        java.lang.String image#_0;
+
+        this#_0 := @this: Token;
+
+        kind#_0 := @parameter0: int;
+
+        image#_0 := @parameter1: java.lang.String;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        this#_0.<Token: int kind> = kind#_0;
+
+        this#_0.<Token: java.lang.String image> = image#_0;
+
+        return;
+    }
+
+    public java.lang.String toString()
+    {
+        Token this#_0;
+        java.lang.String $stack1;
+
+        this#_0 := @this: Token;
+
+        $stack1 = this#_0.<Token: java.lang.String image>;
+
+        return $stack1;
+    }
+
+    public static Token newToken(int, java.lang.String)
+    {
+        int ofKind#_0;
+        Token $stack2;
+        java.lang.String image#_0;
+
+        ofKind#_0 := @parameter0: int;
+
+        image#_0 := @parameter1: java.lang.String;
+
+        lookupswitch(ofKind#_0)
+        {
+            default: goto label1;
+        };
+
+     label1:
+        $stack2 = new Token;
+
+        specialinvoke $stack2.<Token: void <init>(int,java.lang.String)>(ofKind#_0, image#_0);
+
+        return $stack2;
+    }
+
+    public static Token newToken(int)
+    {
+        int ofKind#_0;
+        Token $stack1;
+
+        ofKind#_0 := @parameter0: int;
+
+        $stack1 = staticinvoke <Token: Token newToken(int,java.lang.String)>(ofKind#_0, null);
+
+        return $stack1;
+    }
+}

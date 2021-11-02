@@ -1,0 +1,123 @@
+public class syntaxtree.Block extends java.lang.Object implements syntaxtree.Node
+{
+    public syntaxtree.NodeToken f0;
+    public syntaxtree.NodeListOptional f1;
+    public syntaxtree.NodeToken f2;
+
+    public void <init>(syntaxtree.NodeToken, syntaxtree.NodeListOptional, syntaxtree.NodeToken)
+    {
+        syntaxtree.Block this#_0;
+        syntaxtree.NodeToken n0#_0, n2#_0;
+        syntaxtree.NodeListOptional n1#_0;
+
+        this#_0 := @this: syntaxtree.Block;
+
+        n0#_0 := @parameter0: syntaxtree.NodeToken;
+
+        n1#_0 := @parameter1: syntaxtree.NodeListOptional;
+
+        n2#_0 := @parameter2: syntaxtree.NodeToken;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        this#_0.<syntaxtree.Block: syntaxtree.NodeToken f0> = n0#_0;
+
+        this#_0.<syntaxtree.Block: syntaxtree.NodeListOptional f1> = n1#_0;
+
+        this#_0.<syntaxtree.Block: syntaxtree.NodeToken f2> = n2#_0;
+
+        return;
+    }
+
+    public void <init>(syntaxtree.NodeListOptional)
+    {
+        syntaxtree.Block this#_0;
+        syntaxtree.NodeToken $stack2, $stack3;
+        syntaxtree.NodeListOptional n0#_0;
+
+        this#_0 := @this: syntaxtree.Block;
+
+        n0#_0 := @parameter0: syntaxtree.NodeListOptional;
+
+        specialinvoke this#_0.<java.lang.Object: void <init>()>();
+
+        $stack2 = new syntaxtree.NodeToken;
+
+        specialinvoke $stack2.<syntaxtree.NodeToken: void <init>(java.lang.String)>("{");
+
+        this#_0.<syntaxtree.Block: syntaxtree.NodeToken f0> = $stack2;
+
+        this#_0.<syntaxtree.Block: syntaxtree.NodeListOptional f1> = n0#_0;
+
+        $stack3 = new syntaxtree.NodeToken;
+
+        specialinvoke $stack3.<syntaxtree.NodeToken: void <init>(java.lang.String)>("}");
+
+        this#_0.<syntaxtree.Block: syntaxtree.NodeToken f2> = $stack3;
+
+        return;
+    }
+
+    public void accept(visitor.Visitor)
+    {
+        visitor.Visitor v#_0;
+        syntaxtree.Block this#_0;
+
+        this#_0 := @this: syntaxtree.Block;
+
+        v#_0 := @parameter0: visitor.Visitor;
+
+        interfaceinvoke v#_0.<visitor.Visitor: void visit(syntaxtree.Block)>(this#_0);
+
+        return;
+    }
+
+    public java.lang.Object accept(visitor.GJVisitor, java.lang.Object)
+    {
+        visitor.GJVisitor v#_0;
+        syntaxtree.Block this#_0;
+        java.lang.Object argu#_0, $stack3;
+
+        this#_0 := @this: syntaxtree.Block;
+
+        v#_0 := @parameter0: visitor.GJVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        $stack3 = interfaceinvoke v#_0.<visitor.GJVisitor: java.lang.Object visit(syntaxtree.Block,java.lang.Object)>(this#_0, argu#_0);
+
+        return $stack3;
+    }
+
+    public java.lang.Object accept(visitor.GJNoArguVisitor)
+    {
+        visitor.GJNoArguVisitor v#_0;
+        syntaxtree.Block this#_0;
+        java.lang.Object $stack2;
+
+        this#_0 := @this: syntaxtree.Block;
+
+        v#_0 := @parameter0: visitor.GJNoArguVisitor;
+
+        $stack2 = interfaceinvoke v#_0.<visitor.GJNoArguVisitor: java.lang.Object visit(syntaxtree.Block)>(this#_0);
+
+        return $stack2;
+    }
+
+    public void accept(visitor.GJVoidVisitor, java.lang.Object)
+    {
+        visitor.GJVoidVisitor v#_0;
+        syntaxtree.Block this#_0;
+        java.lang.Object argu#_0;
+
+        this#_0 := @this: syntaxtree.Block;
+
+        v#_0 := @parameter0: visitor.GJVoidVisitor;
+
+        argu#_0 := @parameter1: java.lang.Object;
+
+        interfaceinvoke v#_0.<visitor.GJVoidVisitor: void visit(syntaxtree.Block,java.lang.Object)>(this#_0, argu#_0);
+
+        return;
+    }
+}

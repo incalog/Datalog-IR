@@ -1,0 +1,101 @@
+public interface  visitor.GJNoArguVisitor extends java.lang.Object
+{
+
+    public abstract java.lang.Object visit(syntaxtree.NodeList);
+
+    public abstract java.lang.Object visit(syntaxtree.NodeListOptional);
+
+    public abstract java.lang.Object visit(syntaxtree.NodeOptional);
+
+    public abstract java.lang.Object visit(syntaxtree.NodeSequence);
+
+    public abstract java.lang.Object visit(syntaxtree.NodeToken);
+
+    public abstract java.lang.Object visit(syntaxtree.Goal);
+
+    public abstract java.lang.Object visit(syntaxtree.MainClass);
+
+    public abstract java.lang.Object visit(syntaxtree.TypeDeclaration);
+
+    public abstract java.lang.Object visit(syntaxtree.ClassDeclaration);
+
+    public abstract java.lang.Object visit(syntaxtree.ClassExtendsDeclaration);
+
+    public abstract java.lang.Object visit(syntaxtree.VarDeclaration);
+
+    public abstract java.lang.Object visit(syntaxtree.MethodDeclaration);
+
+    public abstract java.lang.Object visit(syntaxtree.FormalParameterList);
+
+    public abstract java.lang.Object visit(syntaxtree.FormalParameter);
+
+    public abstract java.lang.Object visit(syntaxtree.FormalParameterTail);
+
+    public abstract java.lang.Object visit(syntaxtree.FormalParameterTerm);
+
+    public abstract java.lang.Object visit(syntaxtree.Type);
+
+    public abstract java.lang.Object visit(syntaxtree.ArrayType);
+
+    public abstract java.lang.Object visit(syntaxtree.BooleanType);
+
+    public abstract java.lang.Object visit(syntaxtree.IntegerType);
+
+    public abstract java.lang.Object visit(syntaxtree.Statement);
+
+    public abstract java.lang.Object visit(syntaxtree.Block);
+
+    public abstract java.lang.Object visit(syntaxtree.AssignmentStatement);
+
+    public abstract java.lang.Object visit(syntaxtree.ArrayAssignmentStatement);
+
+    public abstract java.lang.Object visit(syntaxtree.IfStatement);
+
+    public abstract java.lang.Object visit(syntaxtree.WhileStatement);
+
+    public abstract java.lang.Object visit(syntaxtree.PrintStatement);
+
+    public abstract java.lang.Object visit(syntaxtree.Expression);
+
+    public abstract java.lang.Object visit(syntaxtree.AndExpression);
+
+    public abstract java.lang.Object visit(syntaxtree.CompareExpression);
+
+    public abstract java.lang.Object visit(syntaxtree.PlusExpression);
+
+    public abstract java.lang.Object visit(syntaxtree.MinusExpression);
+
+    public abstract java.lang.Object visit(syntaxtree.TimesExpression);
+
+    public abstract java.lang.Object visit(syntaxtree.ArrayLookup);
+
+    public abstract java.lang.Object visit(syntaxtree.ArrayLength);
+
+    public abstract java.lang.Object visit(syntaxtree.MessageSend);
+
+    public abstract java.lang.Object visit(syntaxtree.ExpressionList);
+
+    public abstract java.lang.Object visit(syntaxtree.ExpressionTail);
+
+    public abstract java.lang.Object visit(syntaxtree.ExpressionTerm);
+
+    public abstract java.lang.Object visit(syntaxtree.PrimaryExpression);
+
+    public abstract java.lang.Object visit(syntaxtree.IntegerLiteral);
+
+    public abstract java.lang.Object visit(syntaxtree.TrueLiteral);
+
+    public abstract java.lang.Object visit(syntaxtree.FalseLiteral);
+
+    public abstract java.lang.Object visit(syntaxtree.Identifier);
+
+    public abstract java.lang.Object visit(syntaxtree.ThisExpression);
+
+    public abstract java.lang.Object visit(syntaxtree.ArrayAllocationExpression);
+
+    public abstract java.lang.Object visit(syntaxtree.AllocationExpression);
+
+    public abstract java.lang.Object visit(syntaxtree.NotExpression);
+
+    public abstract java.lang.Object visit(syntaxtree.BracketExpression);
+}
