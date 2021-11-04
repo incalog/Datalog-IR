@@ -346,10 +346,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         // this is a type member test
         mem.isTypeMember = true
         TData(name).resolved(lookupData(name).get)
-//      case SetMember(_, Var(name), _) if externalSignatures.contains(name) =>
-//        if (externalSignatures(name).size == 1)
-//          externalSignatures(name).head
-//        else TTuple(externalSignatures(name))
 
       case SetMember(_, set, _) =>
         val tset = typecheck(set)

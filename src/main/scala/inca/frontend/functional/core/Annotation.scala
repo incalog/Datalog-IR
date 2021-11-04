@@ -27,3 +27,10 @@ object MainFunctionAnno extends Annotation {
 
   override def toString: String = "@main"
 }
+
+object NoDemandAnno extends Annotation {
+  override def key: Annotation.Key = "NODEMAND"
+
+  override def toString: String = "@nodemand"
+
+}

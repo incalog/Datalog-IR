@@ -60,8 +60,9 @@ trait Parser {
   protected[frontend] def defParams[_: P]: P[Seq[Param]] =
     P("(" ~ paramList ~ ")") | P("").map(_ => Seq())
 
-  protected[frontend]  def annotation[_: P]: P[Annotation] = mainFuncAnno
+  protected[frontend]  def annotation[_: P]: P[Annotation] = mainFuncAnno | noDemandAnno
   protected[frontend]  def mainFuncAnno[_: P]: P[MainFunctionAnno.type] = P("@main").map(_ => MainFunctionAnno)
+  protected[frontend]  def noDemandAnno[_: P]: P[NoDemandAnno.type] = P("@nodemand").map(_ => NoDemandAnno)
 
   protected[frontend] def exp[_: P]: P[Expression] = wideExp
 
@@ -223,7 +224,7 @@ trait Parser {
     }
 
   protected[frontend] def baseApplyMethodExp[_: P]: P[BaseApplyMethod] =
-    P(subinfixExp ~~ ".`" ~~ identifier ~~ "`" ~ ("(" ~ exp.rep(sep = ",") ~ ")").?).mapWithLoc {
+    P(subinfixExp ~~ ".`" ~~ identifier ~~ "`" ~ ("(" ~ infixExp.rep(sep = ",") ~ ")").?).mapWithLoc {
       case (recv, method, None) => BaseApplyMethod(recv, method, None)
       case (recv, method, Some(args)) => BaseApplyMethod(recv, method, Some(args))
     }

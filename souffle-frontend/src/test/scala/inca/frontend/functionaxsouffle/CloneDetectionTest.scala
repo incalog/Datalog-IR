@@ -173,14 +173,6 @@ class CloneDetectionTest extends AnyFunSuite {
       expected)
   }
 
-  test("phi expression") {
-    val name = Lit.String("<Main: void main(java.lang.String[])>/l2_$$A_2#_11")
-    testAssignExp(
-      "database-phi",
-      name,
-      q"""Phi(ConsArg(NumLit("2"), ConsArg(NumLit("3"), NilArg())))""")
-  }
-
   // PhantomInvoke(Exp, String) Phantom invocations are invocations of methods belonging to phantom classes. Phantom classes are classes not part of the analyzed jar
   // Phantom method calls cannot be recovered because the database does not store them
   // The database only lists phantom types and phantom methods that are being used in the program
@@ -287,6 +279,15 @@ class CloneDetectionTest extends AnyFunSuite {
       q"""Throw(SpecialInvoke("<Main: void main(java.lang.String[])>/new java.lang.IllegalArgumentException/0", "<java.lang.IllegalArgumentException: void <init>(java.lang.String)>" ,ConsArg(Alloc("1", "java.lang.String"), NilArg())))""")
   }
 
+  test("recursive phi assignment statement") {
+    val name = Lit.String("<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>/phi-assign/0")
+    val phiTrgVar = Lit.String("<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>/i_$$A_1#_300")
+    testGenStm(
+      "database-minijavac",
+      name,
+      q"""Phi($phiTrgVar, ConsArg(NumLit("0"), ConsArg(BinOp("+", Var($phiTrgVar), NumLit("1")), NilArg())))""")
+  }
+
   test("test gen simple stm list") {
     testGetStmList(
       "database-stmt-list",
@@ -296,10 +297,11 @@ class CloneDetectionTest extends AnyFunSuite {
 
   // need to account for holes in the sequence of instruction indices
   test("test stmt list with phi") {
+    val targetName = Lit.String("<Main: void main(java.lang.String[])>/l3_$$A_3#_11")
     testGetStmList(
       "database-if",
       q""""<Main: void main(java.lang.String[])>"""",
-      Some(q"""ConsStm(If("<=", NumLit("1"), NumLit("2"), 7), 4, ConsStm(Goto(8), 6, ConsStm(ReturnVoid(), 11, NilStm())))"""))
+      Some(q"""ConsStm(If("<=", NumLit("1"), NumLit("2"), 7), 4, ConsStm(Goto(8), 6, ConsStm(Phi($targetName, ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg()))), 9, ConsStm(ReturnVoid(), 11, NilStm()))))"""))
   }
 
   test("test for minijavac main method") {
@@ -308,20 +310,11 @@ class CloneDetectionTest extends AnyFunSuite {
       q""""<Main: void main(java.lang.String[])>"""",
       None)
   }
-  test("if typechecker methodecl method") {
-    val name = Lit.String("<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>/if/0")
-    testGenStm(
-      "database-minijavac",
-      name,
-      q"""TableSwitch(BinOp("+", NumLit("2"), NumLit("1")), ConsCase(1, 5, ConsCase(2, 6, ConsCase(3, 7, DefaultCase(11)))))""")
-  }
 
-  // TODO fix this
-  test("recursive phi assignment") {
-    val name = Lit.String("<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>/i_$$A_1#_300")
-    testAssignExp(
+  test("test for minijavac typechecker methoddeclaration method") {
+    testGetStmList(
       "database-minijavac",
-      name,
-      q"""This()""")
+      q""""<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>"""",
+      None)
   }
 }

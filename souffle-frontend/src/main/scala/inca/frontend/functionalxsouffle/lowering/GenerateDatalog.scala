@@ -26,6 +26,11 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
   private val gensym: Gensym = new Gensym(Iterable.empty)
   private val genScala = new GenerateScala
 
+  val negatableSignatures: Set[Name] = externalSignatures.keys.toSet ++ module.content.flatMap {
+    case fd: FunctionDef if fd.hasAnnotation(NoDemandAnno.key) => Some(fd.name)
+    case _ => None
+  }
+
   private val generatedPatterns = ListBuffer[Datalog.Pattern]()
 
   def transModule(): Datalog.Module = {
@@ -71,6 +76,8 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
     val pat = Datalog.Pattern(vis, fun.name.name, params ++ outParams, bodies)
     if (fun.hasAnnotation(MainFunctionAnno.key))
       pat.addHint(MagicSetHints.Main(params.map(_ => true) ++ outParams.map(_ => false)))
+    if (fun.hasAnnotation(NoDemandAnno.key))
+      pat.addHint(MagicSetHints.NoInputRelation)
     pat
   }
 
@@ -348,25 +355,14 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
           (Seq(Datalog.True), tupCons :+ typeTest)
         }
 
+    case mem@SetMember(tup, Var(relName), neg) if negatableSignatures.contains(relName)=>
+      transNegatableSetMember(relName, tup, neg)
 
-    case mem@SetMember(tup, Var(relName), neg) if externalSignatures.contains(relName)=>
-      // we access an external relation (souffle relation)
-      // accessing an external relation negatively does not introduce a negated cycle because the external relation does not access relations of the module
-      // further we do not apply the demand transformation to the souffle relations
-      val trueCase = for ((tupTerms, tupCons) <- transExp(tup)) yield {
-        val call = Datalog.Call(relName.name, tupTerms, transitive = false, neg).addHint(MagicSetHints.IgnoreCall)
-        (Seq(Datalog.True), tupCons :+ call)
+    case SetMember(tup, Call(Var(name), args, _), neg) if negatableSignatures.contains(name) =>
+      if (args.nonEmpty) {
+        throw new IllegalArgumentException("Currently we do not support no-demand annotated functions with arguments")
       }
-      val falseCase = for ((tupTerms, tupCons) <- transExp(tup)) yield {
-        val call = Datalog.Call(relName.name, tupTerms, transitive = false, !neg).addHint(MagicSetHints.IgnoreCall)
-        (Seq(Datalog.False), tupCons :+ call)
-      }
-
-      // we do not want to generate false case when set membership occurs as predicate in set comprehension
-      if (inSetComprehension) trueCase
-      else trueCase ++ falseCase
-
-
+      transNegatableSetMember(name, tup, neg)
 
     case SetMember(tup, set, neg) =>
       if (neg) {
@@ -434,6 +430,23 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
         case None =>
           Seq((Seq(foldVar), Seq(compCon)))
       }
+  }
+
+  private def transNegatableSetMember(name: Name, tup: Expression, neg: Boolean)(implicit inSetComprehension: Boolean): ExpRes = {
+    // we access an no demand relation
+    // accessing an no demand relation negatively does not introduce a negated cycle because we do not generate an input relation for the relation
+    val trueCase = for ((tupTerms, tupCons) <- transExp(tup)) yield {
+      val call = Datalog.Call(name.name, tupTerms, transitive = false, neg).addHint(MagicSetHints.IgnoreCall)
+      (Seq(Datalog.True), tupCons :+ call)
+    }
+    val falseCase = for ((tupTerms, tupCons) <- transExp(tup)) yield {
+      val call = Datalog.Call(name.name, tupTerms, transitive = false, !neg).addHint(MagicSetHints.IgnoreCall)
+      (Seq(Datalog.False), tupCons :+ call)
+    }
+
+    // we do not want to generate false case when set membership occurs as predicate in set comprehension
+    if (inSetComprehension) trueCase
+    else trueCase ++ falseCase
   }
 
   private def transParentCall(call: Call)(implicit inSetComprehension: Boolean): ExpRes = {

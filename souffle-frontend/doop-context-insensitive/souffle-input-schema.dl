@@ -571,27 +571,6 @@ Instruction_Method(?inst, ?method) :-
 // .decl _ExceptionHandler(?handler:ExceptionHandler, ?method:Method, ?index:number, ?type:ReferenceType, ?begin:number, ?end:number)
 // .input _ExceptionHandler(filename="ExceptionHandler.facts")
 
-.decl Stm_Instruction(?inst:Instruction)
-
-Stm_Instruction(?inst) :- _StoreArrayIndex(?inst, _, _, _, _).
-Stm_Instruction(?inst) :- _StoreStaticField(?inst, _, _, _, _).
-Stm_Instruction(?inst) :- _StoreInstanceField(?inst, _, _, _, _, _).
-Stm_Instruction(?inst) :- _ReturnVoid(?inst, _, _).
-Stm_Instruction(?inst) :- _Return(?inst, _, _, _).
-Stm_Instruction(?inst) :- _Goto(?inst, _, _, _).
-Stm_Instruction(?inst) :- _If(?inst, _, _, _).
-Stm_Instruction(?inst) :- _TableSwitch(?inst, _, _, _).
-Stm_Instruction(?inst) :- _LookupSwitch(?inst, _, _, _).
-Stm_Instruction(?inst) :- _EnterMonitor(?inst, _, _, _).
-Stm_Instruction(?inst) :- _ExitMonitor(?inst, _, _, _).
-Stm_Instruction(?inst) :- _Throw(?inst, _, _, _).
-Stm_Instruction(?inst) :- _ThrowNull(?inst, _, _).
-
-Stm_Instruction(?inst) :- _VirtualMethodInvocation(?inst, _, _, _, _), !_AssignReturnValue(?inst, _).
-Stm_Instruction(?inst) :- _SuperMethodInvocation(?inst, _, _, _, _), !_AssignReturnValue(?inst, _).
-Stm_Instruction(?inst) :- _SpecialMethodInvocation(?inst, _, _, _, _), !_AssignReturnValue(?inst, _), !_Method(?sig, "<init>", _, _, _, _, _).
-// enter monitor, exit monitor, throw, throw null, breakpoint, unsupported instruction (?), AssignPhantomInvoke, LookupSwitch
-
 .decl TableSwitch_CaseValue(?instruction:Switch_Insn, ?value:number)
 TableSwitch_CaseValue(?inst, ?value) :- _TableSwitch_Target(?inst, ?value, _).
 

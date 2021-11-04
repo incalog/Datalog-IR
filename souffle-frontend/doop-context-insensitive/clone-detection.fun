@@ -19,7 +19,6 @@ data Exp = NumLit(String)
          | DynamicInvoke(String, String, ArgList)
          | This()
          | Null()
-         | Phi(ArgList)
          | CaughtException(String)
          | DummyVar() // TODO dummy var is always generated and we use it when there is no lhs or rhs for if
 
@@ -39,6 +38,7 @@ data Stm = Assign(String, String)
          | LookupSwitch(Exp, CaseList)
          | Throw(Exp)
          | ThrowNull()
+         | Phi(String, ArgList)
 
 data StmList = ConsStm(Stm, Int, StmList) | NilStm()
 
@@ -64,11 +64,10 @@ def assignExp(v: String): Set[Exp] = {
       count(_AssignLocal(_, _, _, v, _)) == 1,
       (inst, idx, from, v, meth) in _AssignLocal,
       exp in assignExp(from)
-  } ++ {
-    Phi(alts) |
-      (inst, _, _, v, method) in _AssignLocal,
+  } ++ { // we do not inline results of phi functions
+    Var(v) |
       count(_AssignLocal(_, _, _, v, _)) > 1,
-      alts in getPhiAlternatives(v, method)
+      (inst, idx, from, v, meth) in _AssignLocal
   } ++ {
     // TODO maybe remove the method prefix from the variable name
     Var(v) | (idx, meth, v) in _FormalParam
@@ -200,10 +199,10 @@ def getPhiAlternativesHelper(v: String, method: String, currentIdx: Int): Set[Ar
   let maxIdx = maxOfPhiIndices(v) in
   let instPrefix = method + "/phi-assign/" in
     {
-      ConsArg(arg, rest) |
+      ConsArg(exp, rest) |
         currentIdx <= maxIdx,
-        (instPrefix + currentIdx.`toString`, _, from, v, method) in _AssignLocal,
-        arg in assignExp(from),
+        (instPrefix + currentIdx.`toString`, _, from, v, _) in _AssignLocal,
+        exp in assignExp(from),
         rest in getPhiAlternativesHelper(v, method, currentIdx + 1)
     } ++ {
       NilArg() | currentIdx > maxIdx
@@ -268,7 +267,40 @@ def genStm(inst: String): Set[Stm] =
   } ++ {
     ThrowNull() |
       (inst, _, _) in _ThrowNull
+  } ++ {
+    Phi(v, alts) |
+      (inst, _, _, v, method) in _AssignLocal,
+      // isFirstPhiInstruction(inst, v),
+      count(_AssignLocal(_, _, _, v, _)) > 1,
+      alts in getPhiAlternatives(v, method)
   }
+
+
+def isPhiInstruction(inst: String): Boolean = inst.`contains`("/phi-assign/")
+
+def targetVarOfPhiInstruction(inst: String): Set[String] = {
+  { v | (inst, _, _, v, _) in _AssignLocal }
+}
+
+def getLongerString(s1: String, s2: String): String =
+  if ((s1.`length`) > (s2.`length`))
+    s1
+  else
+    s2
+
+// we only call this function if we are sure the instruction is a phi instruction
+def isFirstPhiInstruction(inst: String): Boolean = {
+  // FIX the fold is a workaround because we cannot select a single element when accessing a relation
+  let v = fold("", getLongerString, targetVarOfPhiInstruction(inst)) in
+    minOfPhiIndices(v) == indexOfPhiInstruction(inst)
+}
+
+def shouldGenerateStm(inst: String): Boolean = {
+  if (inst in stmInstructions())
+    if (isPhiInstruction(inst)) isFirstPhiInstruction(inst)
+    else true
+  else false
+}
 
 def getIfOperand(inst: String, pos: Int): Set[Exp] =
   { NumLit(num) | (inst, pos, num) in _IfConstant } ++
@@ -339,14 +371,69 @@ def getStmListHelper(method: String, indexList: IntList): Set[StmList] = indexLi
       ConsStm(stm, idx, rest) |
         (inst, method) in Instruction_Method,
         (inst, idx) in Instruction_Index,
-        inst in Stm_Instruction,
+        shouldGenerateStm(inst) == true,
         stm in genStm(inst),
         rest in getStmListHelper(method, r)
     } ++ {
       rest |
         (inst, method) in Instruction_Method,
         (inst, idx) in Instruction_Index,
-        inst not in Stm_Instruction,
+        shouldGenerateStm(inst) == false,
         rest in getStmListHelper(method, r)
     }
 }
+
+
+
+// everything used in this function is ground hence it is allowed to avoid generating demand relation
+@nodemand def stmInstructions(): Set[String] =
+  {
+    inst | (inst, _, _, _, _) in _StoreArrayIndex
+  } ++ {
+    inst | (inst, _, _, _, _) in _StoreStaticField
+  } ++ {
+    inst | (inst, _, _, _, _, _) in _StoreInstanceField
+  } ++ {
+    inst | (inst, _, _) in _ReturnVoid
+  } ++ {
+    inst | (inst, _, _, _) in _Return
+  } ++ {
+    inst | (inst, _, _, _) in _Goto
+  } ++ {
+    inst | (inst, _, _, _) in _If
+  } ++ {
+    inst | (inst, _, _, _) in _TableSwitch
+  } ++ {
+    inst | (inst, _, _, _) in _LookupSwitch
+  } ++ {
+    inst | (inst, _, _, _) in _EnterMonitor
+  } ++ {
+    inst | (inst, _, _, _) in _ExitMonitor
+  } ++ {
+    inst | (inst, _, _, _) in _Throw
+  } ++ {
+    inst | (inst, _, _) in _ThrowNull
+  } ++ {
+    inst | (inst, _, _, _, _) in _VirtualMethodInvocation, (inst, _) not in _AssignReturnValue
+  } ++ {
+    inst | (inst, _, _, _, _) in _SuperMethodInvocation, (inst, _) not in _AssignReturnValue
+  } ++ {
+    inst | (inst, _, sig, _, _) in _SpecialMethodInvocation, (inst, _) not in _AssignReturnValue, (sig, name, _, _, _, _, _) in _Method, name != "<init>"
+  } ++ {
+    inst | (inst, _, from, to, _) in _AssignLocal, inst.`contains`("/phi-assign/")
+  }
+
+// TODO implement meaningful simple clonedetection function
+// def isCloneLvl1(s1: StmList, s2: StmList): Boolean = true
+//
+// def getClonedMethods(clonePred: (StmList, StmList) => Boolean): Set[(String, String)] =
+//   { (meth1, meth2) |
+//       (meth1, _, _, _, _, _, _) in _Method,
+//       (meth2, _, _, _, _, _, _) in _Method,
+//       meth1 != meth2,
+//       stms1 in getStmList(meth1),
+//       stms2 in getStmList(meth2),
+//       clonePred(stms1, stms2)
+//   }
+//
+// def test(): Set[(String, String)] = getClonedMethods(isCloneLvl1)

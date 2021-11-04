@@ -130,6 +130,12 @@ class GenerateScala {
       q"${fun.tree}(..${args.toList.map(e => transExp(e))})"
     case BaseApplyInfix(left, op, right) =>
       q"${transExp(left)} ${op.tree} ${transExp(right)}"
+    case BaseApplyMethod(recv, meth, args) =>
+      val methName = Term.Name(meth.name)
+      if (args.isDefined)
+        q"(${transExp(recv)}).${methName}(..${args.get.toList.map(e => transExp(e))})"
+      else
+        q"(${transExp(recv)}).${methName}"
     case NoneExp() =>
       q"scala.None"
     case SomeExp(e) =>

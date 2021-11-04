@@ -212,6 +212,8 @@ class ParserTest extends AnyFunSuite {
          |
          |def foo(v: String): Int = v.`toInt`()
          |def foo2(v: String): Int = v.`substring`(2)
+         |// TODO parser cannot handle this example
+         |// def foo3(v: String): v.`length` > v.`length`
          |""".stripMargin
     )
   }

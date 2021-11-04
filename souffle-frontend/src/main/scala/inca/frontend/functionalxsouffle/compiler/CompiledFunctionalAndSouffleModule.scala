@@ -70,7 +70,7 @@ case class CompiledFunctionalAndSouffleModule(fun: Module, souffle: Souffle.Modu
       println(s"Souffle Intermediate Representation")
       println(module)
     }
-    // We want to avoid generate input relations for all external relations
+    // We want to avoid generating input relations for all external relations
     val transPats = module.ir.pats.map(_.addHint(MagicSetHints.NoInputRelation))
     val transModuleIR = Datalog.Module(module.ir.name, module.ir.imports, transPats, module.ir.scalaContent)
     (transModuleIR, module.dataModel, module.inputs)
