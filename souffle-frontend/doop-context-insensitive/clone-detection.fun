@@ -1,6 +1,7 @@
 module CloneDetection
 
 data ArgList = NilArg() | ConsArg(Exp, ArgList)
+// TODO recover more info about new array and new multi array
 data Exp = NumLit(String)
          | Var(String)
          | BinOp(String, Exp, Exp)
@@ -9,11 +10,12 @@ data Exp = NumLit(String)
          | InstanceOf(Exp, String)
          | StringLit(String)
          | Alloc(String, String)
-         | SpecialInvoke(String, String, ArgList)
+         | SpecialAlloc(String, String, ArgList)
          | ArrayRead(Exp, Exp)
          | InstanceFieldRead(Exp, String)
          | StaticFieldRead(String)
          | Invoke(Exp, String, ArgList)
+         | SpecialInvoke(Exp, String, ArgList)
          | SuperInvoke(Exp, String, ArgList)
          | StaticInvoke(String, ArgList)
          | DynamicInvoke(String, String, ArgList)
@@ -26,6 +28,7 @@ data CaseList = ConsCase(Int, Int, CaseList) | DefaultCase(Int)
 data CatchList = ConsCatch() | NilCatch()
 data Stm = Assign(String, String)
          | InvokeStm(Exp, String, ArgList)
+         | SpecialInvokeStm(Exp, String, ArgList)
          | StaticInvokeStm(String, ArgList)
          | ArrayWrite(Exp, Exp, Exp)
          | InstanceFieldWrite(Exp, String, Exp)
@@ -61,13 +64,13 @@ def assignExp(v: String): Set[Exp] = {
       exp in getOperand(inst, 1)
   } ++ {
     exp |
-      count(_AssignLocal(_, _, _, v, _)) == 1,
       (inst, idx, from, v, meth) in _AssignLocal,
+      isPhiInstruction(inst) == false,
       exp in assignExp(from)
   } ++ { // we do not inline results of phi functions
     Var(v) |
-      count(_AssignLocal(_, _, _, v, _)) > 1,
-      (inst, idx, from, v, meth) in _AssignLocal
+      (inst, idx, from, v, meth) in _AssignLocal,
+      isPhiInstruction(inst)
   } ++ {
     // TODO maybe remove the method prefix from the variable name
     Var(v) | (idx, meth, v) in _FormalParam
@@ -89,7 +92,7 @@ def assignExp(v: String): Set[Exp] = {
       (v, ty) in _Var_Type,
       (inst2, idx2, specialmeth, v, meth) not in _SpecialMethodInvocation
   } ++ {
-    SpecialInvoke(heap, specialmeth, args) |
+    SpecialAlloc(heap, specialmeth, args) |
       (inst1, idx1, heap, v, meth, line) in _AssignHeapAllocation,
       (inst2, idx2, specialmeth, v, callingMeth) in _SpecialMethodInvocation,
       args in getArgs(inst2, 0)
@@ -114,6 +117,12 @@ def assignExp(v: String): Set[Exp] = {
     SuperInvoke(recvExp, meth, args) |
       (inst, v) in _AssignReturnValue,
       (inst, idx, meth, recv, callingMeth) in _SuperMethodInvocation,
+      recvExp in assignExp(recv),
+      args in getArgs(inst, 0)
+  } ++ {
+    SpecialInvoke(recvExp, meth, args) |
+      (inst, v) in _AssignReturnValue,
+      (inst, idx, meth, recv, callingMeth) in _SpecialMethodInvocation,
       recvExp in assignExp(recv),
       args in getArgs(inst, 0)
   } ++ {
@@ -243,6 +252,14 @@ def genStm(inst: String): Set[Stm] =
       recvExp in assignExp(recv),
       args in getArgs(inst, 0)
   } ++ {
+    SpecialInvokeStm(recvExp, meth, args) |
+      (inst, v) not in _AssignReturnValue, // an invoke statement does not assign a value to
+      (inst, _, meth, recv, _) in _SpecialMethodInvocation,
+      (meth, simplename, _, _, _, _, _) in _Method,
+      simplename != "<init>",
+      recvExp in assignExp(recv),
+      args in getArgs(inst, 0)
+  } ++ {
     StaticInvokeStm(meth, args) |
       (inst, v) not in _AssignReturnValue,
       (inst, _, meth, _) in _StaticMethodInvocation,
@@ -261,6 +278,11 @@ def genStm(inst: String): Set[Stm] =
       matcheeExp in assignExp(matchee),
       cases in getTableSwitchCases(inst)
   } ++ {
+    LookupSwitch(matcheeExp, cases) |
+      (inst, _, matchee, _) in _LookupSwitch,
+      matcheeExp in assignExp(matchee),
+      cases in getLookupSwitchCases(inst)
+  } ++ {
     Throw(exp) |
       (inst, _, v, _) in _Throw,
       exp in assignExp(v)
@@ -270,8 +292,8 @@ def genStm(inst: String): Set[Stm] =
   } ++ {
     Phi(v, alts) |
       (inst, _, _, v, method) in _AssignLocal,
-      // isFirstPhiInstruction(inst, v),
-      count(_AssignLocal(_, _, _, v, _)) > 1,
+      isPhiInstruction(inst),
+      // count(_AssignLocal(_, _, _, v, _)) > 1,
       alts in getPhiAlternatives(v, method)
   }
 
@@ -308,27 +330,42 @@ def getIfOperand(inst: String, pos: Int): Set[Exp] =
   { DummyVar() | (inst, _) in _DummyIfVar, (inst, pos, _) not in _IfConstant, (inst, pos, _) not in _IfVar }
 
 def getTableSwitchCases(switch: String): Set[CaseList] =
-  let minVal = minValueOfCases(switch) in
+  let minVal = minValue(() => valuesOfTableSwitch(switch)) in
     let valueList = sortedTableSwitchCaseValues(switch, minVal) in
       getTableSwitchCasesHelper(switch, valueList)
 
-def minValueOfCases(switch: String): Int =
-  fold(-1, minInt, valuesOfTableSwitch(switch))
+def getLookupSwitchCases(switch: String): Set[CaseList] =
+  let minVal = minValue(() => valuesOfLookupSwitch(switch)) in
+    let valueList = sortedLookupSwitchCaseValues(switch, minVal) in
+      getLookupSwitchCasesHelper(switch, valueList)
+
+def minValue(values: () => Set[Int]): Int =
+  fold(-1, minInt, values())
 
 // FIX GenerateDatalog throws error when we inline valuesOfTableSwitch
-def maxValueOfCases(switch: String): Int =
-  fold(-1, maxInt, valuesOfTableSwitch(switch))
+def maxValue(values: () => Set[Int]): Int =
+  fold(-1, maxInt, values())
 
 def valuesOfTableSwitch(switch: String): Set[Int] =
   { idx | (switch, idx, _) in _TableSwitch_Target }
 
+def valuesOfLookupSwitch(switch: String): Set[Int] =
+  { idx | (switch, idx, _) in _LookupSwitch_Target }
 
 def sortedTableSwitchCaseValues(switch: String, idx: Int): IntList =
-  if (idx <= maxValueOfCases(switch))
+  if (idx <= maxValue(() => valuesOfTableSwitch(switch)))
     if ((switch, idx) in TableSwitch_CaseValue)
       ConsInt(idx, sortedTableSwitchCaseValues(switch, idx + 1))
     else
       sortedTableSwitchCaseValues(switch, idx + 1)
+  else NilInt()
+
+def sortedLookupSwitchCaseValues(switch: String, idx: Int): IntList =
+  if (idx <= maxValue(() => valuesOfLookupSwitch(switch)))
+    if ((switch, idx) in LookupSwitch_CaseValue)
+      ConsInt(idx, sortedLookupSwitchCaseValues(switch, idx + 1))
+    else
+      sortedLookupSwitchCaseValues(switch, idx + 1)
   else NilInt()
 
 def getTableSwitchCasesHelper(switch: String, valueList: IntList): Set[CaseList] = valueList match {
@@ -341,6 +378,15 @@ def getTableSwitchCasesHelper(switch: String, valueList: IntList): Set[CaseList]
     }
 }
 
+def getLookupSwitchCasesHelper(switch: String, valueList: IntList): Set[CaseList] = valueList match {
+  case NilInt() => { DefaultCase(trg) | (switch, trg) in _LookupSwitch_DefaultTarget }
+  case ConsInt(v, r) =>
+    {
+      ConsCase(v, trg, rest) |
+        (switch, v, trg) in _LookupSwitch_Target,
+        rest in getLookupSwitchCasesHelper(switch, r)
+    }
+}
 
 def getCatchClauses(inst: String): Set[CatchList] = { NilCatch() }
 

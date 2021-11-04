@@ -574,5 +574,8 @@ Instruction_Method(?inst, ?method) :-
 .decl TableSwitch_CaseValue(?instruction:Switch_Insn, ?value:number)
 TableSwitch_CaseValue(?inst, ?value) :- _TableSwitch_Target(?inst, ?value, _).
 
+.decl LookupSwitch_CaseValue(?instruction:Switch_Insn, ?value:number)
+LookupSwitch_CaseValue(?inst, ?value) :- _LookupSwitch_Target(?inst, ?value, _).
+
 .decl Method_Instruction_Index(?method:Method, ?index:number)
 Method_Instruction_Index(?method, ?index) :- Instruction_Method(?inst, ?method), Instruction_Index(?inst, ?index).

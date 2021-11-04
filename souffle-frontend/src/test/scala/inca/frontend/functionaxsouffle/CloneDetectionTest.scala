@@ -23,8 +23,9 @@ class CloneDetectionTest extends AnyFunSuite {
   val funCode: String = readFile(s"$baseDir/clone-detection.fun")
 
   val assignExpMain: String = module(funCode, "@main def main(v: String): Set[Exp] = { exp | exp in assignExp(v) }")
-  val genStmMain: String = module(funCode, "@main def main(v: String): Set[Stm] = { stm | stm in genStm(v) }")
+  val genStmMain: String = module(funCode, "@main def main(inst: String): Set[Stm] = { stm | stm in genStm(inst) }")
   val getStmListMain: String = module(funCode, "@main def main(meth: String): Set[StmList] = getStmList(meth)")
+  val getAllStmListsMain: String = module(funCode, "@main def main(clazz: String): Set[(String, StmList)] = { (meth, stms) | (meth, _, _, clazz, _, _, _) in _Method, stms in getStmList(meth) }")
 
   def testAssignExp(dir: String, name: meta.Term, expected: meta.Term): Unit = {
     val fun = FunctionalXSouffleExecutor.loadFunction(assignExpMain, souffleCode)
@@ -48,6 +49,37 @@ class CloneDetectionTest extends AnyFunSuite {
       case None =>
         assert(res.res.nonEmpty)
     }
+  }
+
+  def testAllMethodsOfClass(dir: String, clazz: String): Unit = {
+    val src = Source.fromFile(s"$baseDir/$dir/Method.facts")
+    val rows = src.getLines().toList
+    src.close()
+
+    val methods = rows.flatMap { row =>
+      val columns = row.split("\t")
+      if (columns(3) == clazz) Some(columns.head)
+      else None
+    }
+
+    val opts = FunctionalOptions()
+    val fun = FunctionalXSouffleExecutor.loadFunction(getAllStmListsMain, souffleCode, opts)
+    val res = fun.execute("main", Seq(Lit.String(clazz)), s"$baseDir/$dir", false)
+    methods.foreach { meth =>
+      val methodIsConstructed = res.res.exists { entry =>
+        entry.head == meth
+      }
+      if (!methodIsConstructed)
+        println(s"Method $meth was not constructed")
+    }
+    assert(methods.size == res.res.size)
+  }
+
+  def resultIsEmpty(dir: String, name: meta.Term): Boolean = {
+    val opts = FunctionalOptions()
+    val fun = FunctionalXSouffleExecutor.loadFunction(getStmListMain, souffleCode, opts)
+    val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
+    res.res.isEmpty
   }
 
 
@@ -121,14 +153,14 @@ class CloneDetectionTest extends AnyFunSuite {
     testAssignExp(
       "database-multiple-arg-method-call",
       q""""<Main: void main(java.lang.String[])>/l4#_7"""",
-      q"""Invoke(SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg()))), "<Point: Point add(int,int)>", ConsArg(NumLit("10"), ConsArg(NumLit("12"), NilArg())))""")
+      q"""Invoke(SpecialAlloc("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg()))), "<Point: Point add(int,int)>", ConsArg(NumLit("10"), ConsArg(NumLit("12"), NilArg())))""")
   }
 
   test("instance field read access ") {
     testAssignExp(
       "database-instance-field-read",
       q""""<Main: void main(java.lang.String[])>/l2#_5"""",
-      q"""InstanceFieldRead(SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg()))), "<Point: int x>")""")
+      q"""InstanceFieldRead(SpecialAlloc("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg()))), "<Point: int x>")""")
   }
 
   test("static field read access ") {
@@ -157,7 +189,7 @@ class CloneDetectionTest extends AnyFunSuite {
     testAssignExp(
       "database-constructor-call",
       q""""<Main: void main(java.lang.String[])>/l1#_4"""",
-      q"""SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg())))""")
+      q"""SpecialAlloc("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg())))""")
   }
 
   test("dynamic invocation (lambda)") {
@@ -205,7 +237,7 @@ class CloneDetectionTest extends AnyFunSuite {
     testGenStm(
       "database-instance-field-write",
       q""""<Main: void main(java.lang.String[])>/write-field-x/0"""",
-      q"""InstanceFieldWrite(SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg()))), "<Point: int x>", NumLit("2"))""")
+      q"""InstanceFieldWrite(SpecialAlloc("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg()))), "<Point: int x>", NumLit("2"))""")
   }
 
   test("static field write") {
@@ -240,14 +272,14 @@ class CloneDetectionTest extends AnyFunSuite {
     testGenStm(
       "database-return",
       q""""<Point: Point add(int,int)>/return/0"""",
-      q"""Return(SpecialInvoke("<Point: Point add(int,int)>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(BinOp("+", InstanceFieldRead(This(), "<Point: int x>"), Var("<Point: Point add(int,int)>/@parameter0")), ConsArg(BinOp("+", InstanceFieldRead(This(), "<Point: int y>"), Var("<Point: Point add(int,int)>/@parameter1")), NilArg()))))""")
+      q"""Return(SpecialAlloc("<Point: Point add(int,int)>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(BinOp("+", InstanceFieldRead(This(), "<Point: int x>"), Var("<Point: Point add(int,int)>/@parameter0")), ConsArg(BinOp("+", InstanceFieldRead(This(), "<Point: int y>"), Var("<Point: Point add(int,int)>/@parameter1")), NilArg()))))""")
   }
 
   test("invoke statement") {
     testGenStm(
       "database-invoke-stm",
       q""""<Main: void main(java.lang.String[])>/Point.print/0"""",
-      q"""InvokeStm(SpecialInvoke("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg()))), "<Point: void print()>" ,NilArg())""")
+      q"""InvokeStm(SpecialAlloc("<Main: void main(java.lang.String[])>/new Point/0", "<Point: void <init>(int,int)>", ConsArg(NumLit("1"), ConsArg(NumLit("2"), NilArg()))), "<Point: void print()>" ,NilArg())""")
   }
 
   test("goto statement") {
@@ -276,7 +308,7 @@ class CloneDetectionTest extends AnyFunSuite {
     testGenStm(
       "database-throw",
       name,
-      q"""Throw(SpecialInvoke("<Main: void main(java.lang.String[])>/new java.lang.IllegalArgumentException/0", "<java.lang.IllegalArgumentException: void <init>(java.lang.String)>" ,ConsArg(Alloc("1", "java.lang.String"), NilArg())))""")
+      q"""Throw(SpecialAlloc("<Main: void main(java.lang.String[])>/new java.lang.IllegalArgumentException/0", "<java.lang.IllegalArgumentException: void <init>(java.lang.String)>" ,ConsArg(Alloc("1", "java.lang.String"), NilArg())))""")
   }
 
   test("recursive phi assignment statement") {
@@ -311,10 +343,29 @@ class CloneDetectionTest extends AnyFunSuite {
       None)
   }
 
-  test("test for minijavac typechecker methoddeclaration method") {
+  test("test for minijavac typechecker methoddeclaration method (contains recursive phi nodes)") {
     testGetStmList(
       "database-minijavac",
       q""""<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>"""",
       None)
+  }
+
+  test("test for minijavac typechecker messagesend method ()") {
+    testGetStmList(
+      "database-minijavac",
+      q""""<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MessageSend,java.lang.String)>"""",
+      None)
+  }
+
+  test("test generating statement lists for all methods of minijavac type checker") {
+    testAllMethodsOfClass("database-minijavac", "typechecking.TypeChecker")
+  }
+
+  test("test generating statement lists for all methods of minijavac symbol table maker") {
+    testAllMethodsOfClass("database-minijavac", "typechecking.GlobalSymbolTableMaker")
+  }
+
+  test("test generating statement lists for all methods of minijavac parser") {
+    testAllMethodsOfClass("database-minijavac", "MiniJavaParser")
   }
 }
