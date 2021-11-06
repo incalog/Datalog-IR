@@ -23,7 +23,31 @@ class CloneDetectionTest extends AnyFunSuite {
   val funCode: String = readFile(s"$baseDir/clone-detection.fun")
 
   val assignExpMain: String = module(funCode, "@main def main(v: String): Set[Exp] = { exp | exp in assignExp(v) }")
-  val genStmMain: String = module(funCode, "@main def main(inst: String): Set[Stm] = { stm | stm in genStm(inst) }")
+  // val genStmMain: String = module(funCode, "@main def main(inst: String): Set[Stm] = { stm | stm in genStm(inst) }")
+  // val genStmMain: String = module(funCode, "@main def main(inst: String): Int = if (minValue(() => valuesOfLookupSwitch(inst)) == -1) 1 else 2")
+  // val genStmMain: String = module(funCode, "@main def main(inst: String): Int = minValue(() => valuesOfLookupSwitch(inst))")
+  // val genStmMain: String = module(funCode, "@main def main(inst: String): Set[CaseList] = getLookupSwitchCasesHelper(inst, NilInt())")
+  // TODO this example does not work
+  // sortedLookupSwitchCaseValues returns empty set if for empty set
+  val genStmMain: String = module(funCode,
+    """@main def main(inst: String): Set[CaseList] =
+      |  let minVal = minValue(() => valuesOfLookupSwitch(inst)) in
+      |    if (minVal == -1)
+      |      getLookupSwitchCasesHelper(inst, NilInt())
+      |    else
+      |      let valueList = sortedLookupSwitchCaseValues(inst, minVal) in
+      |        {DefaultCase(1337)}
+      |        // getLookupSwitchCasesHelper(inst, valueList)
+      |""".stripMargin)
+  // TODO this example does work
+  val genStmMain2: String = module(funCode,
+    """@main def main(inst: String): Set[CaseList] =
+      |  let minVal = minValue(() => valuesOfLookupSwitch(inst)) in
+      |    if (minVal == -1)
+      |      getLookupSwitchCasesHelper(inst, NilInt())
+      |    else
+      |      {DefaultCase(1337)}
+      |""".stripMargin)
   val getStmListMain: String = module(funCode, "@main def main(meth: String): Set[StmList] = getStmList(meth)")
   val getAllStmListsMain: String = module(funCode, "@main def main(clazz: String): Set[(String, StmList)] = { (meth, stms) | (meth, _, _, clazz, _, _, _) in _Method, stms in getStmList(meth) }")
 
@@ -34,7 +58,7 @@ class CloneDetectionTest extends AnyFunSuite {
   }
 
   def testGenStm(dir: String, name: meta.Term, expected: meta.Term): Unit = {
-    val fun = FunctionalXSouffleExecutor.loadFunction(genStmMain, souffleCode)
+    val fun = FunctionalXSouffleExecutor.loadFunction(genStmMain2, souffleCode)
     val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
     assert(res == fun.result(expected))
   }
@@ -311,6 +335,14 @@ class CloneDetectionTest extends AnyFunSuite {
       q"""Throw(SpecialAlloc("<Main: void main(java.lang.String[])>/new java.lang.IllegalArgumentException/0", "<java.lang.IllegalArgumentException: void <init>(java.lang.String)>" ,ConsArg(Alloc("1", "java.lang.String"), NilArg())))""")
   }
 
+  test("lookupswitch with only default case") {
+    val name = Lit.String("<Token: Token newToken(int,java.lang.String)>/lookup-switch/0")
+    testGenStm(
+      "database-minijavac",
+      name,
+      q"""ThrowNull()""")
+  }
+
   test("recursive phi assignment statement") {
     val name = Lit.String("<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>/phi-assign/0")
     val phiTrgVar = Lit.String("<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MethodDeclaration,java.lang.String)>/i_$$A_1#_300")
@@ -350,7 +382,7 @@ class CloneDetectionTest extends AnyFunSuite {
       None)
   }
 
-  test("test for minijavac typechecker messagesend method ()") {
+  test("test for minijavac typechecker messagesend method") {
     testGetStmList(
       "database-minijavac",
       q""""<typechecking.TypeChecker: java.lang.String visit(syntaxtree.MessageSend,java.lang.String)>"""",

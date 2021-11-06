@@ -331,13 +331,21 @@ def getIfOperand(inst: String, pos: Int): Set[Exp] =
 
 def getTableSwitchCases(switch: String): Set[CaseList] =
   let minVal = minValue(() => valuesOfTableSwitch(switch)) in
-    let valueList = sortedTableSwitchCaseValues(switch, minVal) in
-      getTableSwitchCasesHelper(switch, valueList)
+    // there are no values
+    if (minVal == -1)
+      getTableSwitchCasesHelper(switch, NilInt())
+    else
+      let valueList = sortedTableSwitchCaseValues(switch, minVal) in
+        getTableSwitchCasesHelper(switch, valueList)
 
 def getLookupSwitchCases(switch: String): Set[CaseList] =
   let minVal = minValue(() => valuesOfLookupSwitch(switch)) in
-    let valueList = sortedLookupSwitchCaseValues(switch, minVal) in
-      getLookupSwitchCasesHelper(switch, valueList)
+    // there are no values
+    if (minVal == -1)
+      getLookupSwitchCasesHelper(switch, NilInt())
+    else
+      let valueList = sortedLookupSwitchCaseValues(switch, minVal) in
+        getLookupSwitchCasesHelper(switch, valueList)
 
 def minValue(values: () => Set[Int]): Int =
   fold(-1, minInt, values())
