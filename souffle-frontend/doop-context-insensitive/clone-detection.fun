@@ -195,7 +195,7 @@ def instructionPrefixOfPhiAlternatives(v: String): Set[String] =
   { prefixOfPhiInstruction(inst) | (inst, _, _, v, _) in _AssignLocal }
 
 def minOfPhiIndices(v: String): Int =
-  fold(-1, minInt, indicesOfPhiAlternatives(v))
+  fold(`Int.MaxValue`, minInt, indicesOfPhiAlternatives(v))
 
 def maxOfPhiIndices(v: String): Int =
   fold(-1, maxInt, indicesOfPhiAlternatives(v))
@@ -332,7 +332,7 @@ def getIfOperand(inst: String, pos: Int): Set[Exp] =
 def getTableSwitchCases(switch: String): Set[CaseList] =
   let minVal = minValue(() => valuesOfTableSwitch(switch)) in
     // there are no values
-    if (minVal == -1)
+    if (minVal == `Int.MaxValue`)
       getTableSwitchCasesHelper(switch, NilInt())
     else
       let valueList = sortedTableSwitchCaseValues(switch, minVal) in
@@ -341,14 +341,20 @@ def getTableSwitchCases(switch: String): Set[CaseList] =
 def getLookupSwitchCases(switch: String): Set[CaseList] =
   let minVal = minValue(() => valuesOfLookupSwitch(switch)) in
     // there are no values
-    if (minVal == -1)
+    if (minVal == `Int.MaxValue`)
       getLookupSwitchCasesHelper(switch, NilInt())
     else
       let valueList = sortedLookupSwitchCaseValues(switch, minVal) in
         getLookupSwitchCasesHelper(switch, valueList)
 
 def minValue(values: () => Set[Int]): Int =
-  fold(-1, minInt, values())
+  fold(`Int.MaxValue`, minInt, values())
+
+def minValueOfLookupSwitch(switch: String): Int =
+  fold(`Int.MaxValue`, minInt, valuesOfLookupSwitch(switch))
+
+def minValueOfTableSwitch(switch: String): Int =
+  fold(`Int.MaxValue`, minInt, valuesOfTableSwitch(switch))
 
 // FIX GenerateDatalog throws error when we inline valuesOfTableSwitch
 def maxValue(values: () => Set[Int]): Int =

@@ -7,10 +7,12 @@ import inca.compiler.Options.defaultOptimizations
 import inca.frontend.constraint.compiler.ConstraintOptions.defaultDesugarables
 import inca.frontend.constraint.desugar.Desugarable
 import inca.frontend.constraint.extensions
+import org.eclipse.viatra.query.runtime.rete.matcher.{ReteBackendFactory, TimelyReteBackendFactory}
 
 case class ConstraintOptions(optimizations: Seq[Optimization] = defaultOptimizations,
                              transformations: Seq[Transformation] = Seq(),
                              desugarables: Seq[Desugarable] = defaultDesugarables,
+                             engine: ReteBackendFactory = TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL,
                              stopOnError: Boolean = true,
                              stopOnWarning: Boolean = false) extends Options {
 
@@ -19,6 +21,7 @@ case class ConstraintOptions(optimizations: Seq[Optimization] = defaultOptimizat
       opts,
       transformations,
       desugarables,
+      engine,
       stopOnError,
       stopOnWarning
     )
@@ -28,9 +31,13 @@ case class ConstraintOptions(optimizations: Seq[Optimization] = defaultOptimizat
       optimizations,
       trans,
       desugarables,
+      engine,
       stopOnError,
       stopOnWarning
     )
+
+  override def withEngine(eng: ReteBackendFactory): ConstraintOptions =
+    ConstraintOptions(optimizations, transformations, desugarables, engine, stopOnError, stopOnWarning)
 }
 
 object ConstraintOptions {

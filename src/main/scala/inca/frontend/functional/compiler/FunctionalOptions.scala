@@ -6,9 +6,11 @@ import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPa
 import inca.compiler.Options
 import inca.compiler.Options.defaultOptimizations
 import inca.frontend.functional.compiler.FunctionalOptions.defaultTransformations
+import org.eclipse.viatra.query.runtime.rete.matcher.{ReteBackendFactory, TimelyReteBackendFactory}
 
 case class FunctionalOptions(optimizations: Seq[Optimization] = defaultOptimizations,
                              transformations: Seq[Transformation] = defaultTransformations,
+                             engine: ReteBackendFactory = TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL,
                              stopOnError: Boolean = true,
                              stopOnWarning: Boolean = false) extends Options {
 
@@ -16,6 +18,7 @@ case class FunctionalOptions(optimizations: Seq[Optimization] = defaultOptimizat
     FunctionalOptions(
       opts,
       transformations,
+      engine,
       stopOnError,
       stopOnWarning
     )
@@ -24,9 +27,13 @@ case class FunctionalOptions(optimizations: Seq[Optimization] = defaultOptimizat
     FunctionalOptions(
       optimizations,
       trans,
+      engine,
       stopOnError,
       stopOnWarning
     )
+
+  override def withEngine(eng: ReteBackendFactory): FunctionalOptions =
+    FunctionalOptions(optimizations, transformations, eng, stopOnError, stopOnWarning)
 }
 
 object FunctionalOptions {

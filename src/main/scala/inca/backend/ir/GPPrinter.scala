@@ -35,7 +35,7 @@ object GPPrinter {
     case TData(name) => name
     case TAnyLinked => "TAnyLinked"
     case TNode(name) => name
-    case TScala(ty) => ty.syntax
+    case TScala(ty) => s"TScala[${ty.syntax}]"
     case TList(ty) => s"List[${prettyType(ty)}]"
   }
 
@@ -106,6 +106,6 @@ object GPPrinter {
       }
     case Datalog.CustomAggregation(typ, desc, agg, patName, args, aggregatedColumn) =>
       val sargs = args.map(prettyTerm).updated(aggregatedColumn, "#").mkString(", ")
-      s"${prettyTerm(lhs)} == aggregate $patName($sargs):$typ with ${desc.getOrElse(agg.toString)}"
+      s"${prettyTerm(lhs)} == aggregate $patName($sargs):${prettyType(typ)} with ${desc.getOrElse(agg.toString)}"
   }
 }

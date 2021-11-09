@@ -74,7 +74,7 @@ trait Graph[N, E] {
     incoming
   }
 
-  def outgoingEdges(from: N): Set[(N, E)] = edges(from)
+  def outgoingEdges(from: N): Set[(N, E)] = edges.getOrElse(from, Set())
 
   private def processDFSTree(stack: mutable.Stack[N], visited: mutable.Map[N, VisistedFlag]): Set[List[N]] = {
     var cycles: Set[List[N]] = Set()

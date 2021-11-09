@@ -4,7 +4,6 @@ import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExt
 import inca.frontend.functionalxsouffle.compiler.Compiler
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.frontend.functionalxsouffle.compiler.CompiledFunctionalAndSouffleModule
-import inca.frontend.souffle.Souffle
 import inca.frontend.souffle.lowering.SouffleInputToEditscript
 import inca.runtime.context.QueryScope
 import inca.runtime.db.{DBValue, Database, DatabaseInspector}
@@ -12,7 +11,6 @@ import inca.runtime.{EnginePool, Query}
 import inca.util.Scala.ScalaCompiler
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
-import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truechange.EditScript
 import truediff.Diffable
 
@@ -49,6 +47,13 @@ object FunctionalXSouffleExecutor {
       (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs:_*))
     }
 
+
+    def output(pat: String): Results[AnyRef] = {
+      val mainSpec = compiled.psystemModule.patterns(pat)()
+      val mainMatcher = engine.getMatcher(mainSpec)
+      val outputMatches = mainMatcher.getAllMatches().asScala.map(_.toArray.toSeq).toSeq
+      new Results(outputMatches)
+    }
 
     def output(pat: String, tuple: Tuple): Results[AnyRef] = {
       val mainSpec = compiled.psystemModule.patterns(pat)()
@@ -132,6 +137,7 @@ object FunctionalXSouffleExecutor {
       val (es, tuple) = input
       feed.processEditScript(es)
       feed.insert(demandPatternExtensionalPrefix + main, tuple)
+
       val results = output(main, tuple)
       if (deleteInput)
         feed.delete(demandPatternExtensionalPrefix + main, tuple)
@@ -204,7 +210,7 @@ object FunctionalXSouffleExecutor {
 
   def loadFunction(compiled: CompiledFunctionalAndSouffleModule): Loaded = {
     val scope = new QueryScope(compiled.dataModel)
-    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, compiled.options.engine)
     Loaded(engine, feed, compiled)
   }
 

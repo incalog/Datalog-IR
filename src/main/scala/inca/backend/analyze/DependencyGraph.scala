@@ -27,6 +27,28 @@ class DependencyGraph(module: Module) extends Graph[Name, DependencyEdge] {
     }
   }
 
+
+  def subgraph(begin: Name): DependencyGraph = {
+
+    var remaining = Set[Name](begin)
+    var seen = Set[Name]()
+
+    while (remaining.nonEmpty) {
+      val current = remaining.head
+      if (!seen.contains(current)) {
+        seen += current
+
+        outgoingEdges(current).foreach { case (to, e) =>
+          remaining += to
+        }
+      }
+      remaining -= current
+    }
+    val submod = Module("Sub " + module.name, module.imports, module.pats.filter(p => seen.contains(p.name)), module.scalaContent)
+    new DependencyGraph(submod)
+  }
+
+
   override protected def nodeToGraphViz(n: Name): String = n.replace("$", "_")
 
   def isDataNode(p: Pattern): Boolean = p.hasHint(DataTypeKey) || p.hasHint(ConstructorKey) || p.hasHint(SelectorKey)
