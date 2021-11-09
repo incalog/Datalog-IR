@@ -23,13 +23,15 @@ class AggregatorAssocComm[V](val agg: Aggregation[V]) extends IMultisetAggregati
     acc
   }
 
+  // TODO FIX return init value instead of no  result
   override def getAggregate(acc: AugmentedAVLTree[V]): V = {
-    if (acc.root == null) agg.init
+    if (acc.root == null) null.asInstanceOf[V]
     else acc.root.computedValue
   }
 
+  // TODO FIX return init value instead of no  result
   override def combine(left: V, right: AugmentedAVLTree[V]): V = {
-    if (left == null && right == null) agg.init
+    if (left == null && right == null) null.asInstanceOf[V]
     else if (left == null)
       getAggregate(right)
     else if (right == null)
