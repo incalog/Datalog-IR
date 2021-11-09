@@ -27,10 +27,9 @@ class CloneDetectionTest extends AnyFunSuite {
   val assignExpMain: String = module(funCode, "@main def main(v: String): Set[Exp] = { exp | exp in assignExp(v) }")
   val genStmMain: String = module(funCode, "@main def main(inst: String): Set[Stm] = { stm | stm in genStm(inst) }")
 
-  // val genStmMain: String = module(funCode, "@main def main(inst: String): Int = if (minValue(() => valuesOfLookupSwitch(inst)) == -1) 1 else 2")
-  // val genStmMain: String = module(funCode, "@main def main(inst: String): Int = minValue(() => valuesOfLookupSwitch(inst))")
-  // val genStmMain: String = module(funCode, "@main def main(inst: String): Set[CaseList] = getLookupSwitchCasesHelper(inst, NilInt())")
-  // TODO this example does not work
+  // TODO LADDDER and DRed produce different results
+  //  - LADDER produces no result when lookup has no case, but produces the correct singleton result if there is at least one case
+  //  - DRed produces the correct singleton result when lookup has no case, but produces multiple if it has at least one case
   // sortedLookupSwitchCaseValues returns empty set if for empty set
   // val genStmMain: String = module(funCode,
   //   """@main def main(inst: String): Set[CaseList] =
@@ -62,9 +61,9 @@ class CloneDetectionTest extends AnyFunSuite {
   }
 
   def testGenStm(dir: String, name: meta.Term, expected: meta.Term): Unit = {
-    val opts = FunctionalOptions().withEngine(DRedReteBackendFactory.INSTANCE)
+    // val opts = FunctionalOptions().withEngine(DRedReteBackendFactory.INSTANCE)
 
-    val fun = FunctionalXSouffleExecutor.loadFunction(genStmMain, souffleCode, opts)
+    val fun = FunctionalXSouffleExecutor.loadFunction(genStmMain, souffleCode)
     val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
     // val subdep = new DependencyGraph(fun.compiled.optimized).subgraph("main")
     // println(fun.compiled.optimized)
@@ -355,10 +354,11 @@ class CloneDetectionTest extends AnyFunSuite {
 
   test("lookupswitch with multiple cases") {
     val name = Lit.String("<MiniJavaParser: syntaxtree.ClassDeclaration ClassDeclaration()>/lookup-switch/0")
+    val lookupVar = Lit.String("<MiniJavaParser: syntaxtree.ClassDeclaration ClassDeclaration()>/$stack20_$$A_3")
     testGenStm(
       "database-minijavac",
       name,
-      q"""LookupSwitch(Var("<Token: Token newToken(int,java.lang.String)>/@parameter0"), DefaultCase(3))""")
+      q"""LookupSwitch(Var($lookupVar), ConsCase(23, 26, ConsCase(31, 26, ConsCase(44, 26, DefaultCase(27)))))""")
   }
 
   test("recursive phi assignment statement") {
