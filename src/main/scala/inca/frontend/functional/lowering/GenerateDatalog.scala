@@ -9,6 +9,7 @@ import inca.util.Scala.{symbolOf, typeOf}
 import inca.util.{Gensym, Scala, TupleOps}
 
 import scala.annotation.tailrec
+import scala.collection.immutable.{AbstractSeq, LinearSeq}
 import scala.collection.mutable.ListBuffer
 import scala.meta.quasiquotes._
 
@@ -196,25 +197,38 @@ class GenerateDatalog(module: Module) {
       val matcheeRes = transExp(matchee)
       for ((pat, body) <- cases;
            (bodyTerms, bodyCons) <- transExp(body);
-           (Seq(matcheeTerm), matcheeCons) <- matcheeRes) yield {
-        val patCons = pat match {
-          case pat: ConstructorPattern =>
-            val selector = pat.target match {
-              case Some(constr: DataConstructor) => constr.selectorName
-              case Some(target) => throw new IllegalStateException(s"Unknown constructor target $target")
-              case None => throw new IllegalArgumentException(s"Cannot compile unresolved constructor pattern $pat")
+           (matcheeTerms, matcheeCons) <- matcheeRes) yield {
+        matcheeTerms match {
+          case Nil => throw new IllegalStateException("Matchee terms cannot be empty for pattern match")
+          case Seq(matcheeTerm) =>
+            val patCons = pat match {
+              case pat: ConstructorPattern =>
+                val selector = pat.target match {
+                  case Some(constr: DataConstructor) => constr.selectorName
+                  case Some(target) => throw new IllegalStateException(s"Unknown constructor target $target")
+                  case None => throw new IllegalArgumentException(s"Cannot compile unresolved constructor pattern $pat")
+                }
+                Datalog.Call(selector, matcheeTerm +: pat.args.map(a => Datalog.Var(a.name)))
+
+              case SomePattern(v) =>
+                Datalog.Eq(Datalog.Var(v.name), matcheeTerm)
+
+              case NonePattern() =>
+                Datalog.Undef(matcheeTerm)
+
+              case _ => throw new IllegalStateException(s"Unknown pattern $pat")
             }
-            Datalog.Call(selector, matcheeTerm +: pat.args.map(a => Datalog.Var(a.name)))
+            (bodyTerms, matcheeCons ++ (patCons +: bodyCons))
+          case matcheeTerms => pat match {
+            case TuplePattern(args) =>
+              val patCons = args.zip(matcheeTerms).map { case (v, t) =>
+                Datalog.Eq(Datalog.Var(v.name), t)
+              }
+              (bodyTerms, matcheeCons ++ patCons ++ bodyCons)
+            case _ => throw new IllegalStateException(s"Unknown pattern $pat")
+          }
 
-          case SomePattern(v) =>
-            Datalog.Eq(Datalog.Var(v.name), matcheeTerm)
-
-          case NonePattern() =>
-            Datalog.Undef(matcheeTerm)
-
-          case _ => throw new IllegalStateException(s"Unknown pattern $pat")
         }
-        (bodyTerms, matcheeCons ++ (patCons +: bodyCons))
       }
 
     case BaseLit(code) =>

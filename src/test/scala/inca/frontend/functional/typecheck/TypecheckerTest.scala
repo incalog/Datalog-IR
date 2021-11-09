@@ -161,6 +161,7 @@ class TypecheckerTest extends AnyFunSuite {
          |""".stripMargin
     checkModule(code)
   }
+
   test("type cast for non adt") {
     val code =
       s"""module Test
@@ -169,6 +170,50 @@ class TypecheckerTest extends AnyFunSuite {
          |@main def main(x: Any): Int = x.as[Int]
          |""".stripMargin
     checkModuleErrors(code)
+  }
+
+  test("correct tuple pattern match") {
+    val mod =
+      s"""module Tuples
+         |def f1(x: (`Int`, `Int`)): `Int` = x match {
+         |  case (x1, x2) => x1
+         |}
+         |def f2(x: (`Int`, `Boolean`)): `Boolean` = x match {
+         |  case (x1, x2) => x2
+         |}
+         |""".stripMargin
+    checkModule(mod)
+  }
+
+  test("tuple pattern match with too many cases") {
+    val mod =
+      s"""module Tuples
+         |def f(x: (`Int`, `Int`)): `Int` = x match {
+         |  case (x1, x2) => x1
+         |  case (x1, x2) => x2
+         |}
+         |""".stripMargin
+    checkModuleErrors(mod)
+  }
+
+  test("tuple pattern match with too many vars") {
+    val mod =
+      s"""module Tuples
+         |def f(x: (`Int`, `Int`)): `Int` = x match {
+         |  case (x1, x2, x3) => x2
+         |}
+         |""".stripMargin
+    checkModuleErrors(mod)
+  }
+
+  test("tuple pattern match with too few vars") {
+    val mod =
+      s"""module Tuples
+         |def f(x: (`Int`, `Int`)): `Int` = x match {
+         |  case (x1) => x2
+         |}
+         |""".stripMargin
+    checkModuleErrors(mod)
   }
 
 //  test("emptiness check 1") {

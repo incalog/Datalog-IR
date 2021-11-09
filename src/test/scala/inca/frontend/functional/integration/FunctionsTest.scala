@@ -69,4 +69,20 @@ class FunctionsTest extends AnyFunSuite {
     assert(fun.execute("main5", Seq()) == fun.results(Seq(Seq(3), Seq(4))))
     assert(fun.execute("main6", Seq()) == fun.results(Seq(Seq(3), Seq(4), Seq(5))))
   }
+
+  test("Tuple Example") {
+    val code =
+      s"""module TupleXXXX
+         |@main def main(): Int =
+         |  let x = (1, true) in
+         |    x match {
+         |      case (x1,x2) => x1
+         |    }
+         |""".stripMargin
+    val fun = FunctionalExecutor.loadFunction(code)
+    println(fun.compiled.optimized)
+    assert(fun.execute("main", Seq()) == fun.resultVal(1))
+    //    println(fun.compiled.optimized)
+    //    fun.printAllMatches()
+  }
 }
