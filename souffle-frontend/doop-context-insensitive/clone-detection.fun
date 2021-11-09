@@ -330,7 +330,7 @@ def getIfOperand(inst: String, pos: Int): Set[Exp] =
   { DummyVar() | (inst, _) in _DummyIfVar, (inst, pos, _) not in _IfConstant, (inst, pos, _) not in _IfVar }
 
 def getTableSwitchCases(switch: String): Set[CaseList] =
-  if (count(_TableSwitch_Target(switch, _, _) == 0)
+  if (count(_TableSwitch_Target(switch, _, _)) == 0)
     getTableSwitchCasesHelper(switch, NilInt())
   else
     let minVal = minValue(() => valuesOfTableSwitch(switch)) in

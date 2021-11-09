@@ -407,6 +407,13 @@ class CloneDetectionTest extends AnyFunSuite {
       None)
   }
 
+  test("test for minijavac newToken lookupswitch only default") {
+    testGetStmList(
+      "database-minijavac",
+      q""""<Token: Token newToken(int,java.lang.String)>"""",
+      None)
+  }
+
   test("test generating statement lists for all methods of minijavac type checker") {
     testAllMethodsOfClass("database-minijavac", "typechecking.TypeChecker")
   }
@@ -417,5 +424,70 @@ class CloneDetectionTest extends AnyFunSuite {
 
   test("test generating statement lists for all methods of minijavac parser") {
     testAllMethodsOfClass("database-minijavac", "MiniJavaParser")
+  }
+
+  test("test generating statement lists for all methods of minijavac javacharstream") {
+    testAllMethodsOfClass("database-minijavac", "JavaCharStream")
+  }
+
+  test("test generating statement lists for all methods of minijavac jtbtoolkit") {
+    testAllMethodsOfClass("database-minijavac", "JTBToolkit")
+  }
+
+  test("test generating statement lists for all methods of minijavac main") {
+    testAllMethodsOfClass("database-minijavac", "Main")
+  }
+
+  test("test generating statement lists for all methods of minijavac parser$1") {
+    testAllMethodsOfClass("database-minijavac", "MiniJavaParser$1")
+  }
+
+  test("test generating statement lists for all methods of minijavac parser jjcals") {
+    testAllMethodsOfClass("database-minijavac", "MiniJavaParser$JJCalls")
+  }
+
+  test("test generating statement lists for all methods of minijavac parser lookahead") {
+    testAllMethodsOfClass("database-minijavac", "MiniJavaParser$LookaheadSuccess")
+  }
+
+  test("test generating statement lists for all methods of minijavac parser constants") {
+    testAllMethodsOfClass("database-minijavac", "MiniJavaParserConstants")
+  }
+
+  // TODO takes very long
+  // test("test generating statement lists for all methods of minijavac parser token manager") {
+  //   testAllMethodsOfClass("database-minijavac", "MiniJavaParserTokenManager")
+  // }
+
+  test("test generating statement lists for all methods of minijavac parser exception") {
+    testAllMethodsOfClass("database-minijavac", "ParseException")
+  }
+
+  test("test generating statement lists for all methods of minijavac token") {
+    testAllMethodsOfClass("database-minijavac", "Token")
+  }
+
+  test("test generating statement lists for all methods of minijavac tokenmgrerror") {
+    testAllMethodsOfClass("database-minijavac", "TokenMgrError")
+  }
+
+  test("test generating statement lists for all methods of minijavac scoped type search") {
+    testAllMethodsOfClass("database-minijavac", "typechecking.AllScopeShadowedTypeSearch")
+  }
+
+  test("test generating statement lists for all methods of minijavac class symbol") {
+    testAllMethodsOfClass("database-minijavac", "typechecking.ClassSymbol")
+  }
+
+  test("test generating statement lists for all methods of minijavac method symbol") {
+    testAllMethodsOfClass("database-minijavac", "typechecking.MethodSymbol")
+  }
+
+  test("test generating statement lists for all methods of minijavac scope") {
+    testAllMethodsOfClass("database-minijavac", "typechecking.CurrentScope")
+  }
+
+  test("test generating statement lists for all methods of minijavac typechecking expection") {
+    testAllMethodsOfClass("database-minijavac", "typechecking.MyTypeCheckingException")
   }
 }
