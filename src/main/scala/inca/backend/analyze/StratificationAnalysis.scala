@@ -5,14 +5,14 @@ import inca.backend.ir.Datalog._
 
 trait AnalysisException extends Exception
 
-case class StratificationExpection(msg: String) extends Exception
+case class StratificationException(msg: String) extends Exception
 
 object StratificationAnalysis {
   def analyze(mod: Module): Unit = {
     val negCycles = detNegCycles(mod)
     if (negCycles.nonEmpty) {
       val prettyNegCycles = negCycles.map{ c => c.mkString(" -> ")}.mkString("{", "}, {", "}")
-      throw StratificationExpection(s"Datalog program contains cyclic dependency with a negation: $prettyNegCycles")
+      throw StratificationException(s"Datalog program contains cyclic dependency with a negation: $prettyNegCycles")
     }
   }
 

@@ -86,7 +86,7 @@ class StratificationAnalysisTest extends AnyFlatSpec  {
 
     StratificationAnalysis.analyze(module1)
     StratificationAnalysis.analyze(module2)
-    assertThrows[StratificationExpection](StratificationAnalysis.analyze(module3))
-    assertThrows[StratificationExpection](StratificationAnalysis.analyze(module4))
+    assertThrows[StratificationException](StratificationAnalysis.analyze(module3))
+    assertThrows[StratificationException](StratificationAnalysis.analyze(module4))
   }
 }
