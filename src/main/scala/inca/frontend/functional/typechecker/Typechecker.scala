@@ -441,7 +441,10 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           seenConstrs += "Some"
 
         scopedTypeContext {
-          bindVar(v, pat, topt.ty)
+          v match {
+            case VarPattern(name) => bindVar(name, pat, topt.ty)
+            case _ => error(s"Non-variable pattern in some pattern not allowed", pat)
+          }
           typecheck(e)
         }
 
@@ -472,8 +475,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         scopedTypeContext {
           vars.zipAll(ttuple.ts, null, null).foreach {
             case (null, ty) => // nothing
-            case (v, null) => bindVar(v, pat, TAny)
-            case (v, ty) => bindVar(v, pat, ty)
+            case (VarPattern(v), null) => bindVar(v, pat, TAny)
+            case (VarPattern(v), ty) => bindVar(v, pat, ty)
+            case _ => error(s"Non-variable pattern in tuple pattern not allowed", pat)
           }
           typecheck(e)
         }
@@ -495,7 +499,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       case (pat@SomePattern(v), e) =>
         error(s"Cannot match pattern $pat against matchee of type $ttuple", pat)
         scopedTypeContext {
-          val dummy = SomePattern(Name("?"))
+          val dummy = SomePattern(VarPattern(Name("?")))
           pat.vars.foreach(v => bindVar(v._1, dummy, TAny))
           typecheck(e)
         }
