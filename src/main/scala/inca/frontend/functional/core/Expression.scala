@@ -167,23 +167,33 @@ trait Pattern extends SourceLocation {
   def vars: Map[Name, Option[Type]]
   def prettyprint: String
 }
-case class ConstructorPattern(constr: Name, args: Seq[Name]) extends Pattern with Resolvable[DataConstructor.Target] with Var.Target {
-  override def vars: Map[Name, Option[Type]] = args.map(_ -> None).toMap
-  override def prettyprint: String = s"$constr(${args.mkString(", ")})"
+case class VarPattern(name: Name) extends Pattern {
+  override def vars: Map[Name, Option[Type]] = Map(name -> None)
+  override def prettyprint: String = name.name
+}
+case class WildcardPattern() extends Pattern {
+  override def vars: Map[Name, Option[Type]] = Map()
+  override def prettyprint: String = "_"
+}
+
+case class ConstructorPattern(constr: Name, args: Seq[Pattern]) extends Pattern with Resolvable[DataConstructor.Target] with Var.Target {
+  def selectorName: String = "un$_" + constr.name
+  override def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
+  override def prettyprint: String = s"$constr(${args.map(_.prettyprint).mkString(", ")})"
 }
 
 case class NonePattern() extends Pattern {
   override def vars: Map[Name, Option[Type]] = Map()
   override def prettyprint: String = "None"
 }
-case class SomePattern(arg: Name) extends Pattern with Var.Target {
-  override def vars: Map[Name, Option[Type]] = Map(arg -> None)
-  override def prettyprint: String = s"Some($arg)"
+case class SomePattern(arg: Pattern) extends Pattern with Var.Target {
+  override def vars: Map[Name, Option[Type]] = arg.vars
+  override def prettyprint: String = s"Some(${arg.prettyprint})"
 }
 
-case  class TuplePattern(args: Seq[Name]) extends Pattern with Var.Target {
-  override def vars: Map[Name, Option[Type]] = args.map(_ -> None).toMap
-  override def prettyprint: String = s"(${args.mkString(", ")})"
+case  class TuplePattern(args: Seq[Pattern]) extends Pattern with Var.Target {
+  override def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
+  override def prettyprint: String = s"(${args.map(_.prettyprint).mkString(", ")})"
 }
 
 

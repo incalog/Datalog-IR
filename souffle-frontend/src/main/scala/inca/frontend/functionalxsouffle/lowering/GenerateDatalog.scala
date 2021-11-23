@@ -10,7 +10,9 @@ import inca.runtime.data.MockURI
 import inca.util.Scala.{symbolOf, typeOf}
 import inca.util.{Gensym, Scala, TupleOps}
 
+import scala.::
 import scala.annotation.tailrec
+import scala.collection.immutable.{AbstractSeq, LinearSeq}
 import scala.collection.mutable.ListBuffer
 import scala.meta.quasiquotes._
 
@@ -53,18 +55,18 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
   }
 
   // needs to be reset before flattening params
-  private var tupleParams: Map[Datalog.Name, Seq[Datalog.Name]] = Map()
+  private var tupleVars: Map[Datalog.Name, Seq[Datalog.Name]] = Map()
 
   private def transFun(fun: FunctionDef): Datalog.Pattern = gensym.scoped {
     gensym.register(fun.vars.keys.map(_.name))
 
     val vis = transVis(fun.vis)
     // reset before flattening params
-    tupleParams = Map()
+    tupleVars = Map()
     val params = fun.params.flatMap { p =>
       val res = flattenParam(p.name.name, p.typ, genFresh = false)
       if (res.size > 1) {
-        tupleParams = tupleParams + (p.name.name -> res.map(_.name))
+        tupleVars = tupleVars + (p.name.name -> res.map(_.name))
       }
       res
     }
@@ -111,7 +113,7 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
   private def flatVars(x: Name, ty: Type): Seq[(Datalog.Var, Datalog.Type)] = ty match {
     case TTuple(ts) =>
       ts.zipWithIndex.map { case (ty,ix) => Datalog.Var(x.name + "$_" + ix) -> transType(ty) }
-      tupleParams.get(x.name) match {
+      tupleVars.get(x.name) match {
         case Some(vars) =>
           ts.zip(vars).map { case (ty,v) => Datalog.Var(v) -> transType(ty) }
         case None =>
@@ -130,13 +132,21 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
       Seq((flatVars(Name(freshName), exp.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $exp"))).map(_._1), Seq()))
 
     case Let(names, _, bound, body) =>
-      val tys = bound.typ.get match {
+      val boundTy = bound.typ.get
+      val tys = boundTy match {
         case TTuple(tys) => tys
         case ty => Seq(ty)
       }
-      val vars  = names.zip(tys).flatMap {
-        case (name, ty) => flatVars(name, ty).map(_._1)
-      }
+      val vars =
+        if (names.size == 1) {
+          val res = flatVars(names.head, boundTy)
+          tupleVars = tupleVars + (names.head.name -> res.map(_._1.name))
+          res.map(_._1)
+        } else {
+          names.zip(tys).flatMap {
+            case (name, ty) => flatVars(name, ty).map(_._1)
+          }
+        }
       for ((boundTerms, boundCons) <- transExp(bound);
            (bodyTerm, bodyCons) <- transExp(body))
       yield {
@@ -199,28 +209,115 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
 
     case Match(matchee, cases) =>
       val matcheeRes = transExp(matchee)
+      val tys = matchee.typ.get match {
+        case TTuple(tys) => tys
+        case ty => Seq(ty)
+      }
+      val leftCombinations = missingPatterns(tys, cases)
+      val defaultGuard = generateDefaultGuardPattern(tys, leftCombinations)
+      generatedPatterns += defaultGuard
       for ((pat, body) <- cases;
            (bodyTerms, bodyCons) <- transExp(body);
-           (Seq(matcheeTerm), matcheeCons) <- matcheeRes) yield {
-        val patCons = pat match {
-          case pat: ConstructorPattern =>
-            val selector = pat.target match {
-              case Some(constr: DataConstructor) => constr.selectorName
-              case Some(target) => throw new IllegalStateException(s"Unknown constructor target $target")
-              case None => throw new IllegalArgumentException(s"Cannot compile unresolved constructor pattern $pat")
-            }
-            Datalog.Call(selector, matcheeTerm +: pat.args.map(a => Datalog.Var(a.name)))
+           (matcheeTerms, matcheeCons) <- matcheeRes) yield {
+          val patCons = transPattern(matcheeTerms, pat, defaultGuard)
 
-          case SomePattern(v) =>
-            Datalog.Eq(Datalog.Var(v.name), matcheeTerm)
-
-          case NonePattern() =>
-            Datalog.Undef(matcheeTerm)
-
-          case _ => throw new IllegalStateException(s"Unknown pattern $pat")
-        }
-        (bodyTerms, matcheeCons ++ (patCons +: bodyCons))
+        (bodyTerms, matcheeCons ++ patCons ++ bodyCons)
       }
+
+
+      // figure out lift of typles, if no tuple we create singleton list
+      // is there a valid wildcard pattern? if so generate defaultGuard dl pattern
+      // compile each
+      // add default case when there is wildcard pattern
+      //matchee.typ.get match {
+      //  case TTuple(ts) if cases.size > 1 =>
+      //    val constructors = ts.map {
+      //      case tdata: TData =>
+      //        tdata.target.get.asInstanceOf[DataDef].constrs
+      //      case _ => Seq()
+      //    }
+
+      //    val seenCombinations = collectSeenPatternCombinations(ts, cases)
+      //    val constructorCombinations = TupleOps.cartesianProduct(constructors)
+      //    // collect seen combinations
+      //    val leftCombinations = constructorCombinations.filter { comb =>
+      //      val combNames = comb.map(_.name)
+      //      !seenCombinations.contains(combNames)
+      //    }
+      //    // generate relation enumerating combinations not seen
+      //    val defaultGuardPattern = generateDefaultGuardPattern(ts.map(transType), leftCombinations)
+      //    val defaultCase = cases.find { case (pat, _) =>
+      //      pat match {
+      //        case TuplePattern(pats) => pats.forall(p => p.isInstanceOf[WildcardPattern] || p.isInstanceOf[VarPattern])
+      //        case WildcardPattern() => true
+      //        case _ => false
+      //      }
+      //    }
+      //    // TODO continue
+      //    defaultCase match {
+      //      case Some(_) if leftCombinations.isEmpty =>
+      //        throw new IllegalArgumentException("The default case of the exhaustive pattern match will never execute")
+      //      case Some(default) =>
+      //        generatedPatterns += defaultGuardPattern
+      //        val res = transExp(default._2)
+      //        val defaultGuardCall = Datalog.Call(defaultGuardPattern.name, default._1.vars.map(v => Datalog.Var(v._1.name)).toSeq, transitive = false, neg = false)
+      //        val x = for ((_, matcheeCons) <- matcheeRes) yield {
+      //          res.map { case (terms, cons) => (terms, (matcheeCons :+ defaultGuardCall) ++ cons) }
+      //        }
+
+      //        x
+
+      //      case None if leftCombinations.nonEmpty =>
+      //        throw new IllegalArgumentException("The pattern matching expression is not exhaustive")
+      //      case None =>
+      //        // TODO normal exhaustive pattern match
+      //    }
+
+      //    Seq()
+      //  case _ =>
+      //    for ((pat, body) <- cases;
+      //         (bodyTerms, bodyCons) <- transExp(body);
+      //         (matcheeTerms, matcheeCons) <- matcheeRes) yield {
+      //      matcheeTerms match {
+      //        case Nil => throw new IllegalStateException("Matchee terms cannot be empty for pattern match")
+      //        case Seq(matcheeTerm) =>
+      //          val patCons = pat match {
+      //            case pat: ConstructorPattern =>
+      //              val selector = pat.target match {
+      //                case Some(constr: DataConstructor) => constr.selectorName
+      //                case Some(target) => throw new IllegalStateException(s"Unknown constructor target $target")
+      //                case None => throw new IllegalArgumentException(s"Cannot compile unresolved constructor pattern $pat")
+      //              }
+      //              val patArgs = pat.args.map {
+      //                case VarPattern(name) => Datalog.Var(name.name)
+      //                case _ => throw new IllegalStateException(s"Non-variable nested in constructor pattern is not allowed in ${pat}")
+      //              }
+      //              Datalog.Call(selector, matcheeTerm +: patArgs)
+
+
+      //            case SomePattern(VarPattern(name)) =>
+      //              Datalog.Eq(Datalog.Var(name.name), matcheeTerm)
+      //            case SomePattern(_) =>
+      //              throw new IllegalArgumentException(s"Non-variable nested in some pattern is not allowed in ${pat}")
+
+      //            case NonePattern() =>
+      //              Datalog.Undef(matcheeTerm)
+
+      //            case _ => throw new IllegalStateException(s"Unknown pattern $pat")
+      //          }
+      //          (bodyTerms, matcheeCons ++ (patCons +: bodyCons))
+      //        case matcheeTerms => pat match {
+      //          case TuplePattern(args) =>
+      //            val patCons = args.zip(matcheeTerms).map {
+      //              case (VarPattern(name), t) => Datalog.Eq(Datalog.Var(name.name), t)
+      //              case _ => throw new IllegalStateException(s"Non-variable inside of tuple pattern in ${pat}")
+      //            }
+      //            (bodyTerms, matcheeCons ++ patCons ++ bodyCons)
+      //          case _ => throw new IllegalStateException(s"Unknown pattern $pat")
+      //        }
+      //      }
+      //    }
+      //}
 
     case BaseLit(code) =>
       import scala.meta._
@@ -483,9 +580,189 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
     }
   }
 
+  private def missingPatterns(tys: Seq[Type], cases: Seq[(Pattern, Expression)]): Seq[Seq[DataConstructor]] = {
+    val seenCombinations = collectSeenPatternCombinations(tys, cases)
+    val constructors = tys.map {
+      case tdata: TData =>
+        tdata.target.get.asInstanceOf[DataDef].constrs
+      case _ => Seq()
+    }
+    val constructorCombinations = TupleOps.cartesianProduct(constructors)
+    // collect seen combinations
+    constructorCombinations.filter { comb =>
+      val combNames = comb.map(_.name)
+      !seenCombinations.contains(combNames)
+    }
+  }
+
+  private def transPattern(matcheeTerms: Seq[Datalog.Term], pattern: Pattern, defaultGuard: Datalog.Pattern): Seq[Datalog.Atom] = matcheeTerms match {
+    case Nil => throw new IllegalStateException("Matchee terms cannot be empty for pattern match")
+    case Seq(matcheeTerm) => pattern match {
+      case cpat@ConstructorPattern(_, args) =>
+        val selector = cpat.target match {
+          case Some(constr: DataConstructor) => constr.selectorName
+          case Some(target) => throw new IllegalStateException(s"Unknown constructor target $target")
+          case None => throw new IllegalArgumentException(s"Cannot compile unresolved constructor pattern $pattern")
+        }
+        val patArgs = args.map {
+          case VarPattern(name) => Datalog.Var(name.name)
+          case _ => throw new IllegalStateException(s"Non-variable nested in constructor pattern is not allowed in ${pattern}")
+        }
+        Seq(Datalog.Call(selector, matcheeTerm +: patArgs))
+      case VarPattern(name) =>
+        Seq(Datalog.Eq(Datalog.Var(name.name), matcheeTerm))
+      case WildcardPattern() =>
+        throw new IllegalArgumentException("IMPLEMENT")
+      case SomePattern(VarPattern(name)) =>
+        Seq(Datalog.Eq(Datalog.Var(name.name), matcheeTerm))
+      case NonePattern() =>
+        Seq(Datalog.Undef(matcheeTerm))
+
+      case _ => throw new IllegalArgumentException(s"Pattern $pattern not supported")
+    }
+    case _ => pattern match {
+      case TuplePattern(pats) =>
+        if (isDefaultPattern(pattern)) {
+          Seq(Datalog.Call(defaultGuard.name, matcheeTerms, transitive = false, neg = false))
+          // throw new IllegalArgumentException("IMPLEMENT DEFAULT CASE")
+        } else {
+          // case (x, y) => isDefaultPattern = true
+          // case (_, _) => isDefaultPattern = true
+          // case _ => isDefaultPattern = true
+          // case x => isDefaultPattern = true
+          // tup match {
+          //   case (X(x1, x2), Y(y1, y2)) =>
+          // }
+          // tup_1
+          // tup_2
+          // unX(tup_1, x1, x2), unY(tup_2, y1, y2)
+
+          if (onlyConstructorPatterns(pattern)) {
+            // throw new IllegalArgumentException("NNONONONOON")
+            matcheeTerms.zip(pats).map {
+              case (t, cp@ConstructorPattern(cname, args)) =>
+                val selArgs = args.map {
+                  case VarPattern(v) => Datalog.Var(v.name)
+                  case _ => throw new IllegalArgumentException("Non-variable patterns within constructor patterns not supported yet")
+                }
+                Datalog.Call(cp.selectorName, t +: selArgs, transitive = false, neg = false)
+              case _ => throw new IllegalArgumentException("NOT SUPPORTED YEEEEET")
+            }
+          } else {
+            throw new IllegalArgumentException("Non-constructor patterns within tuple patterns are not supported yet")
+          }
+          // vars
+          // cotrs
+
+          // ignore some and none are not supported
+          //            val patCons = args.zip(matcheeTerms).map {
+          //              case (VarPattern(name), t) => Datalog.Eq(Datalog.Var(name.name), t)
+          //              case _ => throw new IllegalStateException(s"Non-variable inside of tuple pattern in ${pat}")
+          //            }
+          //            (bodyTerms, matcheeCons ++ patCons ++ bodyCons)
+
+        }
+        // check if the tuple pattern contains at least one constructor pattern
+        // otherwise it is a
+      case _ => throw new IllegalArgumentException(s"Pattern $pattern not supported")
+    }
+  }
+
+  private def isDefaultPattern(p: Pattern): Boolean = p match {
+    case _: VarPattern => true
+    case _: WildcardPattern => true
+    case TuplePattern(pats) => pats.forall(isDefaultPattern)
+    case _ => false
+  }
+
+  private def containsConstructorPattern(p: Pattern): Boolean = p match {
+    case ConstructorPattern(_, _) => true
+    case TuplePattern(pats) => pats.exists(containsConstructorPattern)
+    case _ => false
+  }
+
+  private def onlyConstructorPatterns(p: Pattern): Boolean = p match {
+    case ConstructorPattern(_, _) => true
+    case TuplePattern(pats) => pats.forall(onlyConstructorPatterns)
+    case _ => false
+  }
+
+    //        case Nil => throw new IllegalStateException("Matchee terms cannot be empty for pattern match")
+    //        case Seq(matcheeTerm) =>
+    //          val patCons = pat match {
+    //            case pat: ConstructorPattern =>
+    //              val selector = pat.target match {
+    //                case Some(constr: DataConstructor) => constr.selectorName
+    //                case Some(target) => throw new IllegalStateException(s"Unknown constructor target $target")
+    //                case None => throw new IllegalArgumentException(s"Cannot compile unresolved constructor pattern $pat")
+    //              }
+    //              val patArgs = pat.args.map {
+    //                case VarPattern(name) => Datalog.Var(name.name)
+    //                case _ => throw new IllegalStateException(s"Non-variable nested in constructor pattern is not allowed in ${pat}")
+    //              }
+    //              Datalog.Call(selector, matcheeTerm +: patArgs)
+
+
+    //            case SomePattern(VarPattern(name)) =>
+    //              Datalog.Eq(Datalog.Var(name.name), matcheeTerm)
+    //            case SomePattern(_) =>
+    //              throw new IllegalArgumentException(s"Non-variable nested in some pattern is not allowed in ${pat}")
+
+    //            case NonePattern() =>
+    //              Datalog.Undef(matcheeTerm)
+
+    //            case _ => throw new IllegalStateException(s"Unknown pattern $pat")
+    //          }
+    //          (bodyTerms, matcheeCons ++ (patCons +: bodyCons))
+    //        case matcheeTerms => pat match {
+    //          case TuplePattern(args) =>
+    //            val patCons = args.zip(matcheeTerms).map {
+    //              case (VarPattern(name), t) => Datalog.Eq(Datalog.Var(name.name), t)
+    //              case _ => throw new IllegalStateException(s"Non-variable inside of tuple pattern in ${pat}")
+    //            }
+    //            (bodyTerms, matcheeCons ++ patCons ++ bodyCons)
+    //          case _ => throw new IllegalStateException(s"Unknown pattern $pat")
+    //        }
+
+
+  private def collectSeenPatternCombinations(ts: Seq[Type], cases: Seq[(Pattern, Expression)]): Seq[Seq[Name]] = {
+    var seenCombinations = Seq[Seq[Name]]()
+    cases.map(_._1).foreach {
+      case TuplePattern(pats) =>
+        if (pats.forall(_.isInstanceOf[ConstructorPattern])) {
+          seenCombinations = seenCombinations :+ pats.map { case ConstructorPattern(name, _) => name }
+        } else if (pats.forall(_.isInstanceOf[VarPattern])) {
+          // this is the default pattern
+        } else {
+          throw new IllegalStateException("We currently do not allow mixed patterns in tuple patterns")
+        }
+      case _ => // do nothing
+    }
+    seenCombinations
+  }
+
+
+  private def generateDefaultGuardPattern(tupleTys: Seq[Type], combinations: Seq[Seq[DataConstructor]]): Datalog.Pattern = {
+    val name = gensym.fresh("defaultGuard")
+    val params = tupleTys.zipWithIndex.map { case (ty, idx) =>
+      val paramName = gensym.fresh(s"arg$idx")
+      Datalog.Param(paramName, transType(ty))
+    }
+
+    val bodies = combinations.map { constrs =>
+      val selectorCalls = params.zip(constrs).map { case (param, constr) =>
+        val subArgs = constr.paramTypes.map(_ => Datalog.Var(gensym.fresh("wildcard")))
+        Datalog.Call(constr.selectorName, Datalog.Var(param.name) +: subArgs, transitive = false, neg = false)
+      }
+      Datalog.Body(selectorCalls)
+    }
+    Datalog.Pattern(None, name, params, bodies)
+  }
 
   val COALESCED_SUFFIX = "$Coalesced"
   val UNCOALESCED_SUFFIX = "$Uncoalesced"
+
+
 
   private def transData(data: DataDef): Seq[Datalog.Pattern] = {
     val vis = transVis(data.vis)

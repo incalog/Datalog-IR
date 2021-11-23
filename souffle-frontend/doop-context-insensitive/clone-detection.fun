@@ -482,17 +482,111 @@ def getStmListHelper(method: String, indexList: IntList): Set[StmList] = indexLi
     inst | (inst, _, from, to, _) in _AssignLocal, inst.`contains`("/phi-assign/")
   }
 
-// TODO implement meaningful simple clonedetection function
-// def isCloneLvl1(s1: StmList, s2: StmList): Boolean = true
-//
-// def getClonedMethods(clonePred: (StmList, StmList) => Boolean): Set[(String, String)] =
-//   { (meth1, meth2) |
-//       (meth1, _, _, _, _, _, _) in _Method,
-//       (meth2, _, _, _, _, _, _) in _Method,
-//       meth1 != meth2,
-//       stms1 in getStmList(meth1),
-//       stms2 in getStmList(meth2),
-//       clonePred(stms1, stms2)
-//   }
-//
-// def test(): Set[(String, String)] = getClonedMethods(isCloneLvl1)
+
+def isMethodClone(meth1: String, meth2: String): Set[Boolean] =
+  {
+    isStmListClone(stms1, stms2) |
+      stms1 in getStmList(meth1),
+      stms2 in getStmList(meth2)
+  }
+
+// TODO keep track of the stmt indices (for alpha equiv)
+// TODO keep track of variables (for alpha equiv)
+def isStmListClone(sl1: StmList, sl2: StmList): Boolean = (sl1, sl2) match {
+  case (ConsStm(s1, i1, r1), ConsStm(s2, i2, r2)) => (i1 == i2) && isStmListClone(r1, r2)
+  case (NilStm(), NilStm()) => true
+  case (x1, x2) => false
+}
+
+def isStmClone(s1: Stm, s2: Stm): Boolean = (s1, s2) match {
+  case (InvokeStm(recv1, meth1, args1), InvokeStm(recv2, meth2, args2)) =>
+    (meth1 == meth2) && isExpClone(recv1, recv2) && isArgListClone(args1, args2)
+  case (SpecialInvokeStm(recv1, meth1, args1), SpecialInvokeStm(recv2, meth2, args2)) =>
+    (meth1 == meth2) && isExpClone(recv1, recv2) && isArgListClone(args1, args2)
+  case (StaticInvokeStm(meth1, args1), StaticInvokeStm(meth2, args2)) =>
+    (meth1 == meth2) && isArgListClone(args1, args2)
+  case (ArrayWrite(arr1, idx1, rhs1), ArrayWrite(arr2, idx2, rhs2)) =>
+    isExpClone(arr1, arr2) && isExpClone(idx1, idx2) && isExpClone(rhs1, rhs2)
+  case (InstanceFieldWrite(recv1, field1, rhs1), InstanceFieldWrite(recv2, field2, rhs2)) =>
+    (field1 == field2) && isExpClone(recv1, recv2) && isExpClone(rhs1, rhs2)
+  case (StaticFieldWrite(field1, rhs1), StaticFieldWrite(field2, rhs2)) =>
+    (field1 == field2) && isExpClone(rhs1, rhs2)
+  case (ReturnVoid(), ReturnVoid()) =>
+    true
+  case (Return(exp1), Return(exp2)) =>
+    isExpClone(exp1, exp2)
+  case (Goto(idx1), Goto(idx2)) =>
+    idx1 == idx2 // TODO for alpha equivalence we need to store this pair or look it up
+  case (If(op1, lhs1, rhs1, idx1), If(op2, lhs2, rhs2, idx2)) =>
+    (op1 == op2) && isExpClone(lhs1, lhs2) && isExpClone(rhs1, rhs2) && (idx1 == idx2) // TODO for alpha equivalence
+  case (TableSwitch(matchee1, cases1), TableSwitch(matchee2, cases2)) =>
+    isExpClone(matchee1, matchee2) && isCaseListClone(cases1, cases2)
+  case (LookupSwitch(matchee1, cases1), LookupSwitch(matchee2, cases2)) =>
+    isExpClone(matchee1, matchee2) && isCaseListClone(cases1, cases2)
+  case (Throw(exp1), Throw(exp2)) =>
+    isExpClone(exp1, exp2)
+  case (ThrowNull(), ThrowNull()) =>
+    true
+  case (Phi(name1, args1), Phi(name2, args2)) =>
+    isArgListClone(args1, args2) // TODO for alpha equivalence need store this pair
+  case (x1, x2) =>
+    false
+}
+
+def isExpClone(exp1: Exp, exp2: Exp): Boolean = (exp1, exp2) match {
+  case (NumLit(i1), NumLit(i2)) =>
+    i1 == i2
+  case (BinOp(op1, lhs1, rhs1), BinOp(op2, lhs2, rhs2)) =>
+    (op1 == op2) && isExpClone(lhs1, lhs2) && isExpClone(rhs1, rhs2)
+  case (UnOp(op1, e1), BinOp(op2, e2)) =>
+    (op1 == op2) && isExpClone(e1, e2)
+  case (Cast(e1, clazz1), Cast(e2, clazz2)) =>
+    (clazz1 == clazz2) && isExpClone(e1, e2)
+  case (InstanceOf(e1, clazz1), InstanceOf(e2, clazz2)) =>
+    (clazz1 == clazz2) && isExpClone(e1, e2)
+  case (StringLit(s1), StringLit(s2)) =>
+    s1 == s2
+  case (Alloc(s1, clazz1), Alloc(s2, clazz2)) =>
+    (s1 == s2) && (clazz1 == clazz2)
+  case (ArrayRead(arr1, rhs1), ArrayRead(arr2, rhs2)) =>
+    isExpClone(arr1, arr2) && isExpClone(rhs1, rhs2)
+  case (InstanceFieldRead(recv1, field1), InstanceFieldRead(recv2, field2)) =>
+    (field1 == field2) && isExpClone(recv1, recv2)
+  case (StaticFieldRead(field1), StaticFieldRead(field2)) =>
+    field1 == field2
+  case (Invoke(recv1, meth1, args1), Invoke(recv2, meth2, args2)) =>
+    (meth1 == meth2) && isExpClone(recv1, recv2) && isArgListClone(args1, args2)
+  case (SpecialInvoke(recv1, meth1, args1), SpecialInvoke(recv2, meth2, args2)) =>
+    (meth1 == meth2) && isExpClone(recv1, recv2) && isArgListClone(args1, args2)
+  case (SuperInvoke(recv1, meth1, args1), SuperInvoke(recv2, meth2, args2)) =>
+    (meth1 == meth2) && isExpClone(recv1, recv2) && isArgListClone(args1, args2)
+  case (StaticInvoke(meth1, args1), StaticInvoke(meth2, args2)) =>
+    (meth1 == meth2) && isArgListClone(args1, args2)
+  case (DynamicInvoke(s1, meth1, args1), DynamicInvoke(s2, meth2, args2)) =>
+    (s1 == s2) && (meth1 == meth2) && isArgListClone(args1, args2)
+  case (This(), This()) =>
+    true
+  case (Null(), Null()) =>
+    true
+  case (CaughtException(clazz1), CaughtException(clazz2)) =>
+    clazz1 == clazz2
+  case (DummyVar(), DummyVar()) =>
+    true
+  case (x1, x2) =>
+    false
+}
+
+def isArgListClone(l1: ArgList, l2: ArgList): Boolean = (l1, l2) match {
+  case (NilArg(), NilArg()) =>
+    true
+  case (ConsArg(e1, r1), ConsArg(e2, r2)) =>
+    isExpClone(e1, e2) && isArgListClone(r1, r2)
+  case (x1, x2) =>
+    false
+}
+
+def isCaseListClone(cl1: CaseList, cl2: CaseList): Boolean = (cl1, cl2) match {
+  case (DefaultCase(idx1), DefaultCase(idx2)) => idx1 == idx2
+  case (ConsCase(v1, idx1, r1), ConsCase(v2, idx2, r2)) =>
+    (v1 == v2) && (idx1 == idx2) && isCaseListClone(r1, r2)
+}

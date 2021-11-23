@@ -387,18 +387,26 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             resolveTarget(pat)(dcon)
             if (paramTypes.size != vars.size)
               error(s"Wrong number of constructor arguments, expected ${paramTypes.size} but got ${vars.size}", pat)
+            vars.foreach {
+              case VarPattern(_) => // do nothing
+              case _ => error(s"Non-variable pattern in constructor pattern not allowed", pat)
+            }
             scopedTypeContext {
               vars.zipAll(paramTypes, null, null).foreach {
                 case (null, ty) => // nothing
-                case (v, null) => bindVar(v, pat, TAny)
-                case (v, ty) => bindVar(v, pat, ty)
+                case (VarPattern(v), null) => bindVar(v, pat, TAny)
+                case (VarPattern(v), ty) => bindVar(v, pat, ty)
               }
               typecheck(e)
             }
           case None =>
             error(s"Cannot match constructor $constr against matchee of type $td", constr)
+
             scopedTypeContext {
-              vars.foreach(v => bindVar(v, pat, TAny))
+              vars.foreach {
+                case VarPattern(v) => bindVar(v, pat, TAny)
+                case _ => error(s"Non-variable pattern in constructor pattern not allowed", pat)
+              }
               typecheck(e)
             }
         }

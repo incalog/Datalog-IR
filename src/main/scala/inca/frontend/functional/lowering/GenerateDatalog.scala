@@ -47,18 +47,18 @@ class GenerateDatalog(module: Module) {
   }
 
   // needs to be reset before flattening params
-  private var tupleParams: Map[Datalog.Name, Seq[Datalog.Name]] = Map()
+  private var tupleVars: Map[Datalog.Name, Seq[Datalog.Name]] = Map()
 
   private def transFun(fun: FunctionDef): Datalog.Pattern = gensym.scoped {
     gensym.register(fun.vars.keys.map(_.name))
 
     val vis = transVis(fun.vis)
     // reset before flattening params
-    tupleParams = Map()
+    tupleVars = Map()
     val params = fun.params.flatMap { p =>
       val res = flattenParam(p.name.name, p.typ, genFresh = false)
       if (res.size > 1) {
-        tupleParams = tupleParams + (p.name.name -> res.map(_.name))
+        tupleVars = tupleVars + (p.name.name -> res.map(_.name))
       }
       res
     }
@@ -103,7 +103,7 @@ class GenerateDatalog(module: Module) {
   private def flatVars(x: Name, ty: Type): Seq[(Datalog.Var, Datalog.Type)] = ty match {
     case TTuple(ts) =>
       ts.zipWithIndex.map { case (ty,ix) => Datalog.Var(x.name + "$_" + ix) -> transType(ty) }
-      tupleParams.get(x.name) match {
+      tupleVars.get(x.name) match {
         case Some(vars) =>
           ts.zip(vars).map { case (ty,v) => Datalog.Var(v) -> transType(ty) }
         case None =>
@@ -122,9 +122,17 @@ class GenerateDatalog(module: Module) {
         case TTuple(tys) => tys
         case ty => Seq(ty)
       }
-      val vars  = names.zip(tys).flatMap {
-        case (name, ty) => flatVars(name, ty).map(_._1)
-      }
+      val vars =
+        if (names.size == 1) {
+          val res = flatVars(names.head, TTuple(tys))
+          tupleVars = tupleVars + (names.head.name -> res.map(_._1.name))
+          res.map(_._1)
+        } else {
+          names.zip(tys).flatMap {
+            case (name, ty) => flatVars(name, ty).map(_._1)
+          }
+        }
+
       for ((boundTerms, boundCons) <- transExp(bound);
            (bodyTerm, bodyCons) <- transExp(body))
         yield {
@@ -195,40 +203,67 @@ class GenerateDatalog(module: Module) {
 
     case Match(matchee, cases) =>
       val matcheeRes = transExp(matchee)
-      for ((pat, body) <- cases;
-           (bodyTerms, bodyCons) <- transExp(body);
-           (matcheeTerms, matcheeCons) <- matcheeRes) yield {
-        matcheeTerms match {
-          case Nil => throw new IllegalStateException("Matchee terms cannot be empty for pattern match")
-          case Seq(matcheeTerm) =>
-            val patCons = pat match {
-              case pat: ConstructorPattern =>
-                val selector = pat.target match {
-                  case Some(constr: DataConstructor) => constr.selectorName
-                  case Some(target) => throw new IllegalStateException(s"Unknown constructor target $target")
-                  case None => throw new IllegalArgumentException(s"Cannot compile unresolved constructor pattern $pat")
-                }
-                Datalog.Call(selector, matcheeTerm +: pat.args.map(a => Datalog.Var(a.name)))
-
-              case SomePattern(v) =>
-                Datalog.Eq(Datalog.Var(v.name), matcheeTerm)
-
-              case NonePattern() =>
-                Datalog.Undef(matcheeTerm)
-
-              case _ => throw new IllegalStateException(s"Unknown pattern $pat")
-            }
-            (bodyTerms, matcheeCons ++ (patCons +: bodyCons))
-          case matcheeTerms => pat match {
-            case TuplePattern(args) =>
-              val patCons = args.zip(matcheeTerms).map { case (v, t) =>
-                Datalog.Eq(Datalog.Var(v.name), t)
-              }
-              (bodyTerms, matcheeCons ++ patCons ++ bodyCons)
-            case _ => throw new IllegalStateException(s"Unknown pattern $pat")
+      matchee.typ.get match {
+        case TTuple(ts) if cases.size > 1 =>
+          val constructors = ts.map {
+            case tdata: TData =>
+              tdata.target.get.asInstanceOf[DataDef].constrs
+            case _ => Seq()
           }
+          val seenCombinations = Set[(Name, Name)]()
+          cases.map(_._1).foreach {
+            case TuplePattern(pats) =>
+              if (pats.forall(_.isInstanceOf[ConstructorPattern])) {
 
-        }
+              } else if (pats.forall(_.isInstanceOf[VarPattern])) {}
+            case _ => // do nothing
+          }
+          val constructorCombinations = TupleOps.cartesianProduct(constructors)
+          // collect seen combinations
+          // generate relation enumerating combinations not seen
+
+          Seq()
+        case _ =>
+          for ((pat, body) <- cases;
+               (bodyTerms, bodyCons) <- transExp(body);
+               (matcheeTerms, matcheeCons) <- matcheeRes) yield {
+            matcheeTerms match {
+              case Nil => throw new IllegalStateException("Matchee terms cannot be empty for pattern match")
+              case Seq(matcheeTerm) =>
+                val patCons = pat match {
+                  case pat: ConstructorPattern =>
+                    val selector = pat.target match {
+                      case Some(constr: DataConstructor) => constr.selectorName
+                      case Some(target) => throw new IllegalStateException(s"Unknown constructor target $target")
+                      case None => throw new IllegalArgumentException(s"Cannot compile unresolved constructor pattern $pat")
+                    }
+                    Datalog.Call(selector, matcheeTerm +: pat.args.map {
+                      case VarPattern(name) => Datalog.Var(name.name)
+                      case _ => throw new IllegalStateException(s"Non-variable nested in constructor pattern is not allowed in ${pat}")
+                    })
+
+                  case SomePattern(VarPattern(name)) =>
+                    Datalog.Eq(Datalog.Var(name.name), matcheeTerm)
+                  case SomePattern(_) =>
+                    throw new IllegalArgumentException(s"Non-variable nested in some pattern is not allowed in ${pat}")
+
+                  case NonePattern() =>
+                    Datalog.Undef(matcheeTerm)
+
+                  case _ => throw new IllegalStateException(s"Unknown pattern $pat")
+                }
+                (bodyTerms, matcheeCons ++ (patCons +: bodyCons))
+              case matcheeTerms => pat match {
+                case TuplePattern(args) =>
+                  val patCons = args.zip(matcheeTerms).map {
+                    case (VarPattern(name), t) => Datalog.Eq(Datalog.Var(name.name), t)
+                    case _ => throw new IllegalStateException(s"Non-variable inside of tuple pattern in ${pat}")
+                  }
+                  (bodyTerms, matcheeCons ++ patCons ++ bodyCons)
+                case _ => throw new IllegalStateException(s"Unknown pattern $pat")
+              }
+            }
+          }
       }
 
     case BaseLit(code) =>
@@ -432,6 +467,15 @@ class GenerateDatalog(module: Module) {
       }
   }
 
+//  private def transNestedTuplePattern(bodyTerms): ExpRes = {
+//    case matcheeTerms => pat match {
+//      case TuplePattern(args) =>
+//        val patCons = args.zip(matcheeTerms).map {
+//          case (VarPattern(name), t) => Datalog.Eq(Datalog.Var(name.name), t)
+//          case _ => throw new IllegalStateException(s"Non-variable inside of tuple pattern in ${pat}")
+//        }
+//        (bodyTerms, matcheeCons ++ patCons ++ bodyCons)
+//  }
 
   val COALESCED_SUFFIX = "$Coalesced"
   val UNCOALESCED_SUFFIX = "$Uncoalesced"

@@ -117,11 +117,17 @@ class GenerateScala {
     case Match(matchee, cases) =>
       val scalaCases = cases.toList.map {
         case (ConstructorPattern(constr, xs), e) =>
-          p"case ${Pat.Extract(Term.Name(constr.name), xs.toList.map(x => Pat.Var(Term.Name(x.name))))} => ${transExp(e)}"
+          val args = xs.toList.map {
+            case VarPattern(x) => Pat.Var(Term.Name(x.name))
+            case _ => throw new IllegalArgumentException("Non-variable pattern in constructor pattern not allowed")
+          }
+          p"case ${Pat.Extract(Term.Name(constr.name), args)} => ${transExp(e)}"
         case (NonePattern(), e) =>
           p"case scala.None => ${transExp(e)}"
-        case (SomePattern(x), e) =>
+        case (SomePattern(VarPattern(x)), e) =>
           p"case scala.Some(${Pat.Var(Term.Name(x.name))}) => ${transExp(e)}"
+        case (SomePattern(_), e) =>
+          throw new IllegalArgumentException("Non-variable pattern in some pattern not allowed")
       }
       q"${transExp(matchee)} match {..case $scalaCases}"
     case BaseLit(code) =>

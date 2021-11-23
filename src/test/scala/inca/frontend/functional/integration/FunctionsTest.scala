@@ -70,7 +70,7 @@ class FunctionsTest extends AnyFunSuite {
     assert(fun.execute("main6", Seq()) == fun.results(Seq(Seq(3), Seq(4), Seq(5))))
   }
 
-  test("Tuple Example") {
+  test("primitive tuple") {
     val code =
       s"""module TupleXXXX
          |@main def main(): Int =

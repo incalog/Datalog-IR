@@ -144,7 +144,7 @@ class ParserTest extends AnyFunSuite {
         |}
         |""".stripMargin
     val matchExp2 = Match(Var("b"), Seq(
-      (TuplePattern(Seq(Name("x"), Name("y"))), Var(Name("x")))))
+      (TuplePattern(Seq(VarPattern(Name("x")), VarPattern(Name("y")))), Var(Name("x")))))
     testSuccess(parser.exp(_))(matchString2, matchExp2)
   }
 

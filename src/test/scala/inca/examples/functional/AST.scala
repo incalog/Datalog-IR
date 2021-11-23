@@ -82,7 +82,7 @@ object AST {
     Match(Var(Name("m")), Seq(
       ConstructorPattern(Name("Zero"), Seq()) ->
         Var("n"),
-      ConstructorPattern(Name("Succ"), Seq(Name("pred"))) ->
+      ConstructorPattern(Name("Succ"), Seq(VarPattern(Name("pred")))) ->
         Call(Var(Name("Succ")), Seq(Call(Var(Name("plus")), Seq(Var(Name("pred")), Var(Name("n"))))))
     ))
   )

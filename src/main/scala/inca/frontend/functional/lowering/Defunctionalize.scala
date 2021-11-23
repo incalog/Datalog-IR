@@ -75,7 +75,7 @@ class Defunctionalize(module: Module) {
             funs.map { case AnonFun(_, vs, body, defunName, freevars) =>
               body.freevars.foreach{ v => v.target = None; v.typ = None }
               body.freeTvars.foreach(_.target = None)
-              ConstructorPattern(Name(defunName), freevars.map(_.name)) ->
+              ConstructorPattern(Name(defunName), freevars.map(v => VarPattern(v.name))) ->
               Let(vs, Some(TTuple.from(tfun.from)), Var(Name("arg")), body)
             }
           )

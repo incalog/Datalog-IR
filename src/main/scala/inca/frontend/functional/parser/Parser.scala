@@ -157,20 +157,23 @@ trait Parser {
     P(atomicExp ~ "not".!.? ~ "in" ~ infixExp).mapWithLoc { case (tup, not, set) => SetMember(tup, set, not.isDefined) }
 
   protected[frontend] def pattern[_: P]: P[Pattern] =
-    P(optionPattern | constructorPattern | tuplePattern)
+    P(optionPattern | constructorPattern | tuplePattern | varPattern)
+
+  protected[frontend] def varPattern[_: P]: P[VarPattern] =
+    P(identifier).map(VarPattern.apply)
 
   protected[frontend] def constructorPattern[_: P]: P[ConstructorPattern] = {
-    P(identifier ~ "(" ~ identifier.rep(sep = ",") ~")").mapWithLoc {
+    P(identifier ~ "(" ~ pattern.rep(sep = ",") ~")").mapWithLoc {
       case (name, args) => ConstructorPattern(name, args)
     }
   }
 
   protected[frontend] def tuplePattern[_: P]: P[TuplePattern] =
-    P("(" ~ identifier.rep(sep = ",") ~")").mapWithLoc(TuplePattern.apply)
+    P("(" ~ pattern.rep(sep = ",") ~")").mapWithLoc(TuplePattern.apply)
 
   protected[frontend] def optionPattern[_: P]: P[Pattern] =
     P("None" ~~ nochar).mapWithLoc(_ => NonePattern()) |
-    P("Some" ~ "(" ~ identifier.rep(sep = ",") ~")").mapWithLoc {
+    P("Some" ~ "(" ~ pattern.rep(sep = ",") ~")").mapWithLoc {
       case Seq(arg) => SomePattern(arg)
       case args => ConstructorPattern(Name("Some"), args)
     }

@@ -27,6 +27,9 @@ class CloneDetectionTest extends AnyFunSuite {
   val assignExpMain: String = module(funCode, "@main def main(v: String): Set[Exp] = { exp | exp in assignExp(v) }")
   val genStmMain: String = module(funCode, "@main def main(inst: String): Set[Stm] = { stm | stm in genStm(inst) }")
 
+  // TODO
+  val isMethodCloneMain: String = module(funCode, "@main def main(meth1: String, meth2: String): Set[Boolean] = isMethodClone(meth1, meth2)")
+
   // TODO LADDDER and DRed produce different results
   //  - LADDER produces no result when lookup has no case, but produces the correct singleton result if there is at least one case
   //  - DRed produces the correct singleton result when lookup has no case, but produces multiple if it has at least one case
@@ -115,6 +118,13 @@ class CloneDetectionTest extends AnyFunSuite {
     res.res.isEmpty
   }
 
+
+  def testIsMethodClone(dir: String, meth1: meta.Term, meth2: meta.Term, expected: Boolean): Unit = {
+    val fun = FunctionalXSouffleExecutor.loadFunction(isMethodCloneMain, souffleCode)
+    val res = fun.execute("main", Seq(meth1, meth2), s"$baseDir/$dir", false)
+    val expectedTerm = Lit.Boolean(expected)
+    assert(res == fun.result(expectedTerm))
+  }
 
   /**
    * Construct Expressions
