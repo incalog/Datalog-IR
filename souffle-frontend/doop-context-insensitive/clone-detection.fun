@@ -493,7 +493,7 @@ def isMethodClone(meth1: String, meth2: String): Set[Boolean] =
 // TODO keep track of the stmt indices (for alpha equiv)
 // TODO keep track of variables (for alpha equiv)
 def isStmListClone(sl1: StmList, sl2: StmList): Boolean = (sl1, sl2) match {
-  case (ConsStm(s1, i1, r1), ConsStm(s2, i2, r2)) => (i1 == i2) && isStmListClone(r1, r2)
+  case (ConsStm(s1, i1, r1), ConsStm(s2, i2, r2)) => isStmClone(s1, s2) && (i1 == i2) && isStmListClone(r1, r2)
   case (NilStm(), NilStm()) => true
   case (x1, x2) => false
 }
@@ -528,17 +528,21 @@ def isStmClone(s1: Stm, s2: Stm): Boolean = (s1, s2) match {
   case (ThrowNull(), ThrowNull()) =>
     true
   case (Phi(name1, args1), Phi(name2, args2)) =>
-    isArgListClone(args1, args2) // TODO for alpha equivalence need store this pair
+    (name1 == name2) && isArgListClone(args1, args2) // TODO for alpha equivalence need store this pair
   case (x1, x2) =>
     false
 }
 
+data StringPairList = ConsStringPair(String, String, StringPairList) | NilStringPair()
+
 def isExpClone(exp1: Exp, exp2: Exp): Boolean = (exp1, exp2) match {
   case (NumLit(i1), NumLit(i2)) =>
     i1 == i2
+  case (Var(s1), Var(s2)) =>
+    true // TODO alpha-equivalence
   case (BinOp(op1, lhs1, rhs1), BinOp(op2, lhs2, rhs2)) =>
     (op1 == op2) && isExpClone(lhs1, lhs2) && isExpClone(rhs1, rhs2)
-  case (UnOp(op1, e1), BinOp(op2, e2)) =>
+  case (UnOp(op1, e1), UnOp(op2, e2)) =>
     (op1 == op2) && isExpClone(e1, e2)
   case (Cast(e1, clazz1), Cast(e2, clazz2)) =>
     (clazz1 == clazz2) && isExpClone(e1, e2)
@@ -547,7 +551,9 @@ def isExpClone(exp1: Exp, exp2: Exp): Boolean = (exp1, exp2) match {
   case (StringLit(s1), StringLit(s2)) =>
     s1 == s2
   case (Alloc(s1, clazz1), Alloc(s2, clazz2)) =>
-    (s1 == s2) && (clazz1 == clazz2)
+    (clazz1 == clazz2) // TODO alpha-equivalence
+  case (SpecialAlloc(alloc1, meth1, args1), SpecialAlloc(alloc2, meth2, args2)) =>
+    (meth1 == meth2) && isArgListClone(args1, args2) // TODO alpha-equiv
   case (ArrayRead(arr1, rhs1), ArrayRead(arr2, rhs2)) =>
     isExpClone(arr1, arr2) && isExpClone(rhs1, rhs2)
   case (InstanceFieldRead(recv1, field1), InstanceFieldRead(recv2, field2)) =>
@@ -563,7 +569,7 @@ def isExpClone(exp1: Exp, exp2: Exp): Boolean = (exp1, exp2) match {
   case (StaticInvoke(meth1, args1), StaticInvoke(meth2, args2)) =>
     (meth1 == meth2) && isArgListClone(args1, args2)
   case (DynamicInvoke(s1, meth1, args1), DynamicInvoke(s2, meth2, args2)) =>
-    (s1 == s2) && (meth1 == meth2) && isArgListClone(args1, args2)
+    (s1 == s2) && (meth1 == meth2) && isArgListClone(args1, args2) // TODO alpha-equiv
   case (This(), This()) =>
     true
   case (Null(), Null()) =>

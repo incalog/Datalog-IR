@@ -646,6 +646,8 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
                   case _ => throw new IllegalArgumentException("Non-variable patterns within constructor patterns not supported yet")
                 }
                 Datalog.Call(cp.selectorName, t +: selArgs, transitive = false, neg = false)
+                  .addHint(MagicSetHints.IgnoreCall)
+                  .addHint(MagicSetHints.FixedAdornment(args.map(_ => true) :+ false))
               case _ => throw new IllegalArgumentException("NOT SUPPORTED YEEEEET")
             }
           } else {
@@ -743,7 +745,7 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
 
 
   private def generateDefaultGuardPattern(tupleTys: Seq[Type], combinations: Seq[Seq[DataConstructor]]): Datalog.Pattern = {
-    val name = gensym.fresh("defaultGuard")
+    val name = gensym.freshGlobal("defaultGuard")
     val params = tupleTys.zipWithIndex.map { case (ty, idx) =>
       val paramName = gensym.fresh(s"arg$idx")
       Datalog.Param(paramName, transType(ty))
@@ -753,6 +755,8 @@ class GenerateDatalog(module: Module, externalSignatures: Map[Name, Seq[Type]]) 
       val selectorCalls = params.zip(constrs).map { case (param, constr) =>
         val subArgs = constr.paramTypes.map(_ => Datalog.Var(gensym.fresh("wildcard")))
         Datalog.Call(constr.selectorName, Datalog.Var(param.name) +: subArgs, transitive = false, neg = false)
+          .addHint(MagicSetHints.IgnoreCall)
+          .addHint(MagicSetHints.FixedAdornment(params.map(_ => true) :+ false))
       }
       Datalog.Body(selectorCalls)
     }

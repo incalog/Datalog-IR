@@ -1,0 +1,5 @@
+<Point: void print()>/java.io.PrintStream.println/0	5	<java.io.PrintStream: void println(java.lang.String)>	<Point: void print()>/$stack3	<Point: void print()>
+<Point: Point add(Point)>/Point.abs/0	6	<Point: int abs(int)>	<Point: Point add(Point)>/l0#_0	<Point: Point add(Point)>
+<Point: Point add(Point)>/Point.abs/1	10	<Point: int abs(int)>	<Point: Point add(Point)>/l0#_0	<Point: Point add(Point)>
+<Point: Point increaseXTill(int)>/Point.getX/0	7	<Point: int getX()>	<Point: Point increaseXTill(int)>/l2#_33	<Point: Point increaseXTill(int)>
+<Point: Point increaseXTill2(int)>/Point.getX/0	7	<Point: int getX()>	<Point: Point increaseXTill2(int)>/l2#_41	<Point: Point increaseXTill2(int)>

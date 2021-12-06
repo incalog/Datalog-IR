@@ -1,0 +1,5 @@
+<Point: Point genPoint(int,int)>/new Point/0	Point
+<Point: Point add(Point)>/new Point/0	Point
+<Point: Point increaseXTill(int)>/new Point/0	Point
+<Point: Point increaseXTill2(int)>/new Point/0	Point
+<Point: Point add(int,int)>/new Point/0	Point

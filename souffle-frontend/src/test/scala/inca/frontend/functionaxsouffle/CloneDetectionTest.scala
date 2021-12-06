@@ -26,8 +26,6 @@ class CloneDetectionTest extends AnyFunSuite {
 
   val assignExpMain: String = module(funCode, "@main def main(v: String): Set[Exp] = { exp | exp in assignExp(v) }")
   val genStmMain: String = module(funCode, "@main def main(inst: String): Set[Stm] = { stm | stm in genStm(inst) }")
-
-  // TODO
   val isMethodCloneMain: String = module(funCode, "@main def main(meth1: String, meth2: String): Set[Boolean] = isMethodClone(meth1, meth2)")
 
   // TODO LADDDER and DRed produce different results
@@ -64,17 +62,8 @@ class CloneDetectionTest extends AnyFunSuite {
   }
 
   def testGenStm(dir: String, name: meta.Term, expected: meta.Term): Unit = {
-    // val opts = FunctionalOptions().withEngine(DRedReteBackendFactory.INSTANCE)
-
     val fun = FunctionalXSouffleExecutor.loadFunction(genStmMain, souffleCode)
     val res = fun.execute("main", Seq(name), s"$baseDir/$dir", false)
-    // val subdep = new DependencyGraph(fun.compiled.optimized).subgraph("main")
-    // println(fun.compiled.optimized)
-    // println(fun.compiled.psystemSource)
-    // // println(subdep.toGraphViz)
-    // subdep.nodes.foreach { n =>
-    //   println(s"$n ${fun.output(n)}")
-    // }
     assert(res == fun.result(expected))
   }
 
@@ -497,7 +486,12 @@ class CloneDetectionTest extends AnyFunSuite {
     testAllMethodsOfClass("database-minijavac", "typechecking.CurrentScope")
   }
 
-  test("test generating statement lists for all methods of minijavac typechecking expection") {
-    testAllMethodsOfClass("database-minijavac", "typechecking.MyTypeCheckingException")
+  test("test isMethodClone for exact clone") {
+    testIsMethodClone("database-exactclone", q""""<Point: Point increaseXTill(int)>"""", q""""<Point: Point increaseXTill2(int)>"""", true)
+    testIsMethodClone("database-exactclone", q""""<Point: Point increaseXTill(int)>"""", q""""<Point: int abs(int)>"""", false)
+  }
+
+  test("test isMethodClone for alpha-equivalence clone") {
+    testIsMethodClone("database-clone", q""""<Point: Point increaseXTill(int)>"""", q""""<Point: Point increaseXTill2(int)>"""", false)
   }
 }

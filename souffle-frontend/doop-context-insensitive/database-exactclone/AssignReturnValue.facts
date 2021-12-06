@@ -1,0 +1,4 @@
+<Point: Point add(Point)>/Point.abs/0	<Point: Point add(Point)>/$stack7
+<Point: Point add(Point)>/Point.abs/1	<Point: Point add(Point)>/$stack11
+<Point: Point increaseXTill(int)>/Point.getX/0	<Point: Point increaseXTill(int)>/$stack6
+<Point: Point increaseXTill2(int)>/Point.getX/0	<Point: Point increaseXTill2(int)>/$stack6

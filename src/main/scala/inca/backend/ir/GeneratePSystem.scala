@@ -132,38 +132,30 @@ object GeneratePSystem {
     val bodies = if (pat.bodies.nonEmpty) pat.bodies else
       Seq(Body(Seq(Compare(EqComparator, Constant(IntLiteral(0)), Constant(IntLiteral(1))))))
 
+    val bodyMethodNames = bodies.map { b =>
+      val methodName = gensym.freshGlobal("doGetContainedBody")
+      methodName -> b
+    }.toMap
+
+    val bodyMethods = bodyMethodNames.map { case (name, body) =>
+      genSingleBodyMethod(name, pat.params, body)(gensym, env)
+    }
+
     q"""
       object ${Term.Name(pat.name)} {
         lazy val instance: $tyQuerySpecification = new $tyQuerySpecification(generatedPQuery)
 
+
         private final object generatedPQuery extends BasePQuery($vis) {
           ..${pat.params.map(genPParam).toList}
           {}
+          ..${bodyMethods.toList}
+          {}
           override protected def doGetContainedBodies(): util.Set[PBody] =
             util.Set.of(
-              ..${bodies.map { body =>
-                    q"""{
-                        val body: PBody = new PBody(this)
-                        ..${pat.params.map(genBodyParam).toList}
-                        ()
-                        val exportedParams = new util.ArrayList[ExportedParameter]()
-                        ..${pat.params.map { param =>
-                              q"""exportedParams.add(new ExportedParameter(body,
-                                ${Term.Name(s"$VARPREFIX${param.name}")},
-                                ${Term.Name(s"$PARAMPREFIX${param.name}")}))"""
-                          }.toList
-                        }
-                        body.setSymbolicParameters(exportedParams)
-
-                        ..${CollectVars.transBody(body).distinct.diff(paramNames).map(genTempVar).toList}
-                        ..${CollectLits.transBody(body).distinct.map(genLiteralVar(_)(gensym)).toList}
-                        ..${CollectConstantEvaluation.transBody(body).distinct.map(genConstantEval(_)(gensym)).toList}
-                        ..${pat.params.flatMap(genParamConstraint).toList}
-                        ..${body.atoms.flatMap(compileAtom).toList}
-                        body
-                      }"""
-                  }.toList
-              }
+              ..${bodyMethodNames.map { case (methName, _) =>
+                q"""${Term.Name(methName)}(this)"""
+              }.toList}
             )
 
           override def getFullyQualifiedName: String = $qname
@@ -171,6 +163,34 @@ object GeneratePSystem {
           override def getParameterNames: util.List[String] = util.List.of(..${paramLitName.toList})
         }
     }"""
+  }
+
+  private def genSingleBodyMethod(methName: String, params: Seq[Param], body: Body)(implicit gensym: Gensym, env: RuleEnvironment): Stat = {
+    val methodName = Term.Name(methName)
+    val queryName = Term.Name(gensym.freshGlobal("queryParam"))
+    val paramNames = params.map(_.name)
+
+    q"""def $methodName($queryName: BasePQuery): PBody = {
+          val body: PBody = new PBody($queryName)
+          ..${params.map(genBodyParam).toList}
+          ()
+          val exportedParams = new util.ArrayList[ExportedParameter]()
+          ..${params.map { param =>
+            q"""exportedParams.add(new ExportedParameter(body,
+              ${Term.Name(s"$VARPREFIX${param.name}")},
+              ${Term.Name(s"$PARAMPREFIX${param.name}")}))"""
+            }.toList
+          }
+          body.setSymbolicParameters(exportedParams)
+
+          ..${CollectVars.transBody(body).distinct.diff(paramNames).map(genTempVar).toList}
+          ..${CollectLits.transBody(body).distinct.map(genLiteralVar(_)(gensym)).toList}
+          ..${CollectConstantEvaluation.transBody(body).distinct.map(genConstantEval(_)(gensym)).toList}
+          ..${params.flatMap(genParamConstraint).toList}
+          ..${body.atoms.flatMap(compileAtom).toList}
+          body
+        }
+     """
   }
 
   private def genPParam(param: Param): Stat = {
