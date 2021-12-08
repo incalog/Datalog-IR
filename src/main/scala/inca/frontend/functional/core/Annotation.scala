@@ -27,3 +27,20 @@ object MainFunctionAnno extends Annotation {
 
   override def toString: String = "@main"
 }
+case class JoinFunctionAnno(props: Seq[JoinProperty]) extends Annotation {
+  override def key: Annotation.Key = "JOIN_FUNCTION"
+  override def toString: String = s"@join(${props.mkString(", ")})"
+}
+trait JoinProperty {
+  def name: String
+  override def toString: Key = name
+}
+case object Associativity extends JoinProperty {
+  override def name: String = "assoc"
+}
+case object Commutativity extends JoinProperty {
+  override def name: String = "comm"
+}
+//case object Invertibility extends JoinProperty {
+//  override def name: String = "inv"
+//}
