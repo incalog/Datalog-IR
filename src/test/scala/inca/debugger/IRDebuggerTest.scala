@@ -94,13 +94,31 @@ class IRDebuggerTest extends AnyFunSuite {
     assert(debugger.isFinished)
   }
 
+  test("step into non-call atom") {
+    val debugger = initDebugger(mod)
+    debugger.entry("two", Map())
+    debugger.stepInto() // into two
+    debugger.stepInto() // into body
+    debugger.stepInto() // into edge call
+    debugger.stepInto() // into edge pattern
+    debugger.stepInto() // into body
+    debugger.stepInto() // over first computed
+    debugger.stepInto() // over second computed
+    debugger.stepInto() // out of body
+    debugger.stepOut() // out of edge
+    debugger.stepOver() // out of body
+    debugger.stepOut() // out of body
+    debugger.stepOut() // out of two
+    assert(debugger.isFinished)
+  }
+
   test("step into rule and into body then out of body") {
     val debugger = initDebugger(mod)
     debugger.entry("edge", Map())
     debugger.stepInto() // into edge
     debugger.stepInto() // into body
-    debugger.stepOut() // into body
-    debugger.stepOut() // into body
+    debugger.stepOut() // out of body
+    debugger.stepOut() // out of pattern
     assert(debugger.isFinished)
   }
 }

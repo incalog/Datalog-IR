@@ -6,6 +6,8 @@ sealed trait DebugException {
   val message: String
 }
 
+case class IllegalDebugStateException(message: String)
+  extends Exception(message) with DebugException
 
 case class NoFunctionCallsException(message: String)
   extends Exception(message) with DebugException
