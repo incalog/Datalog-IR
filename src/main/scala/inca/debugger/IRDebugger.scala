@@ -5,6 +5,7 @@ import inca.backend.optimize.Optimization
 import inca.backend.transform.Transformation
 import inca.compiler.options.Options
 import inca.compiler.CompiledDatalogModule
+import inca.debugger.ControlPoint.{AtAtom, AtBody}
 import inca.runtime.EnginePool
 import inca.runtime.Query.ChangeFeed
 import inca.runtime.context.{DataModel, QueryScope}
@@ -48,161 +49,142 @@ trait IRDebugger {
 
 
   def entry(name: Datalog.Name, args: PartialTuple): Unit = {
-    val frame = PatternFrame(patterns(name), args)
-    callStack.push(frame)
+    val cp = ControlPoint.patternEntryPoint(patterns(name))
+    callStack.push(cp)
   }
 
+  // def visualizeCurrentPosition(): String = {
+  //   val ControlPoint(pat, bodyPoint) = callStack.top
+  //   bodyPoint match {
+  //     case Point.Before =>
+  //       s"↓${}"
+  //     case Point.After =>
 
-  def stepOver(): Unit = callStack.frame match {
-    case PatternFrame(pat, _) =>
-      callStack.pop()
-      val newFrame = PatternEndFrame(pat)
-      callStack.push(newFrame)
+  //     case Point.At(AtBody())
+  //   }
+  // }
 
-    case BodyFrame(body) =>
-      callStack.pop()
-      val newFrame = BodyEndFrame(body)
-      callStack.push(newFrame)
-
-    case AtomFrame(atom) =>
-      // TODO we currently consider non-recursive programs
-      // TODO when we step over a recursive call we of the current scc we need to change the fixpoint state
-      val body = callStack.enclosingBody.getOrElse(throw IllegalDebugStateException("Atom frame has to occur after body frame"))
-      callStack.pop()
-      val frame = nextAtom(body, atom) match {
-        case Some(next) =>
-          AtomFrame(next)
-        case None =>
-          callStack.pop() // need to pop corresponding body frame
-          BodyEndFrame(body)
-      }
-      callStack.push(frame)
-
-    case bf@BodyEndFrame(_) =>
-      transitionBodyEndFrame(bf)
-
-    case pf@PatternEndFrame(_) =>
-      transitionPatternEndFrame(pf)
-  }
-
-  // TODO these functions currently only work correctly if bodies and atoms are unique within a pattern/body
-  private def nextAtom(body: Datalog.Body, atom: Datalog.Atom): Option[Datalog.Atom] = {
-    val idx = body.atoms.indexOf(atom)
-    val nextIdx = idx + 1
-    if (nextIdx > 0 && nextIdx < body.atoms.size) Some(body.atoms(nextIdx))
-    else None
-  }
-
-  private def nextBody(pat: Datalog.Pattern, body: Datalog.Body): Option[Datalog.Body] = {
-    val idx = pat.bodies.indexOf(body)
-    val nextIdx = idx + 1
-    if (nextIdx > 0 && nextIdx < pat.bodies.size) Some(pat.bodies(nextIdx))
-    else None
-  }
-
-
-  def stepInto(): Unit = callStack.frame match {
-    case PatternFrame(pat, _) =>
-      val newFrame = BodyFrame(pat.bodies.head)
-      callStack.push(newFrame)
-
-    case BodyFrame(body) =>
-      val newFrame = AtomFrame(body.atoms.head)
-      callStack.push(newFrame)
-
-    case AtomFrame(atom) => atom match {
-      case Datalog.Call(name, _, _, _) =>
-        val newFrame = PatternFrame(patterns(name), Map())
-        callStack.push(newFrame)
-      case Datalog.Computed(_, Datalog.CountAggregation(name, _)) =>
-        val newFrame = PatternFrame(patterns(name), Map())
-        callStack.push(newFrame)
-      case Datalog.Computed(_, Datalog.CustomAggregation(_, _, _ , name, _, _)) =>
-        val newFrame = PatternFrame(patterns(name), Map())
-        callStack.push(newFrame)
-      case _ =>
-        val body = callStack.enclosingBody.getOrElse(throw IllegalDebugStateException("Atom frame has to occur after body frame"))
-        callStack.pop()
-        val frame = nextAtom(body, atom) match {
-          case Some(next) =>
-            AtomFrame(next)
-          case None =>
-            callStack.pop()
-            BodyEndFrame(body)
-        }
-        callStack.push(frame)
+  def stepOver(): Unit = {
+    val ControlPoint(pat, bodyPos) = callStack.pop()
+    bodyPos match {
+      case Point.Before =>
+        val cp = ControlPoint.patternEndPoint(pat)
+        callStack.push(cp)
+      case Point.After =>
+        stepPatternEndPoint(bodyPos)
+      case Point.At(AtBody(ix, Point.Before)) =>
+        val cp = ControlPoint.bodyEndPoint(pat, ix)
+        callStack.push(cp)
+      case Point.At(AtBody(bix, Point.At(AtAtom(aix, true)))) =>
+        val cp = ControlPoint.atomEndPoint(pat, bix, aix)
+        callStack.push(cp)
+      case Point.At(AtBody(bix, Point.At(AtAtom(aix, false)))) =>
+        val cp =
+          if (isLastAtom(pat, bix, aix))
+            ControlPoint.bodyEndPoint(pat, bix)
+          else
+            ControlPoint.atomEntryPoint(pat, bix, aix + 1)
+        callStack.push(cp)
+      case Point.At(AtBody(ix, Point.After)) =>
+        val cp =
+          if (isLastBody(pat, ix))
+            ControlPoint.patternEndPoint(pat)
+          else
+            ControlPoint.bodyEntryPoint(pat, ix + 1)
+        callStack.push(cp)
     }
-
-    case bf@BodyEndFrame(_) =>
-      transitionBodyEndFrame(bf)
-
-    case pf@PatternEndFrame(_) =>
-      transitionPatternEndFrame(pf)
   }
 
-  def stepOut(): Unit = callStack.frame match {
-    case PatternFrame(pat, _) =>
-      callStack.pop()
-      val nextFrame = PatternEndFrame(pat)
-      callStack.push(nextFrame)
-
-    case BodyFrame(_) =>
-      val pat = callStack.enclosingPattern.getOrElse(throw IllegalDebugStateException("Body frame has to occur after pattern frame"))
-      callStack.pop() // pop body
-      callStack.pop() // pop pattern
-      val nextFrame = PatternEndFrame(pat)
-      callStack.push(nextFrame)
-
-    case AtomFrame(_) =>
-      val body = callStack.enclosingBody.getOrElse(throw IllegalDebugStateException("Atom frame has to occur after body frame"))
-      callStack.pop() // pop atom
-      callStack.pop() // pop body
-      val nextFrame = BodyEndFrame(body)
-      callStack.push(nextFrame)
-
-    case BodyEndFrame(_) =>
-      val pat = callStack.enclosingPattern.getOrElse(throw IllegalDebugStateException("End frame of a body has to occur after pattern frame"))
-      callStack.pop() // pop body end
-      callStack.pop() // pop pattern
-      val nextFrame = PatternEndFrame(pat)
-      callStack.push(nextFrame)
-
-    case pf@PatternEndFrame(_) =>
-      transitionPatternEndFrame(pf)
-  }
-
-  def transitionBodyEndFrame(bf: BodyEndFrame): Unit = {
-    val pat = callStack.enclosingPattern.getOrElse(throw IllegalDebugStateException("End frame of a body has to occur after pattern frame"))
-    callStack.pop()
-    val frame = nextBody(pat, bf.body) match {
-      case Some(next) =>
-        BodyFrame(next)
-      case None =>
-        callStack.pop() // need to pop corresponding pattern frame
-        PatternEndFrame(pat)
-    }
-    callStack.push(frame)
-  }
-
-  def transitionPatternEndFrame(pf: PatternEndFrame): Unit = {
-    callStack.pop()
+  def stepPatternEndPoint(bp: ControlPoint.BodyPoint): Unit = {
     if (callStack.isEmpty)
       throw EndOfTraversalReachedException("Program terminated")
 
-    callStack.frame match {
-      case AtomFrame(atom) =>
-        // this means we did a step into a call
-        val body = callStack.enclosingBody.getOrElse(throw IllegalDebugStateException("Atom frame has to occur after a body frame"))
-        nextAtom(body, atom) match {
-          case Some(next) =>
-            val nextFrame = AtomFrame(next)
-            callStack.pop() // pop corresponding atom frame
-            callStack.push(nextFrame)
-          case None =>
-            callStack.pop() // pop corresponding atom frame
-            callStack.push(BodyEndFrame(body))
+    if (callStack.top.isAtomPoint) {
+      val ControlPoint(p, Point.At(AtBody(bix, Point.At(AtAtom(aix, true))))) = callStack.pop()
+      val cp =
+        if (isLastAtom(p, bix, aix))
+          ControlPoint.bodyEndPoint(p, bix)
+        else
+          ControlPoint.atomEndPoint(p, bix, aix)
+      callStack.push(cp)
+    } else throw IllegalDebugStateException(s"${callStack.top} cannot occur after end of pattern ${bp}")
+  }
+
+  def stepInto(): Unit = {
+    val ControlPoint(pat, bodyPos) = callStack.top
+    bodyPos match {
+      case Point.Before =>
+        val cp = ControlPoint.bodyEntryPoint(pat, 0)
+        callStack.pop()
+        callStack.push(cp)
+      case Point.After =>
+        callStack.pop()
+        stepPatternEndPoint(bodyPos)
+      case Point.At(AtBody(ix, Point.Before)) =>
+        val cp = ControlPoint.atomEntryPoint(pat, ix, 0)
+        callStack.pop()
+        callStack.push(cp)
+      case Point.At(AtBody(bix, Point.At(AtAtom(aix, true)))) =>
+        val atom = pat.bodies(bix).atoms(aix)
+        atom match {
+          case Datalog.Call(name, _, _, _) =>
+            val cp = ControlPoint.patternEntryPoint(patterns(name))
+            callStack.push(cp)
+          case Datalog.Computed(lhs, Datalog.CountAggregation(name, _)) =>
+            val cp = ControlPoint.patternEntryPoint(patterns(name))
+            callStack.push(cp)
+          case Datalog.Computed(lhs, Datalog.CustomAggregation(_, _, _, name, _, _)) =>
+            val cp = ControlPoint.patternEntryPoint(patterns(name))
+            callStack.push(cp)
+          case _ =>
+            val cp = ControlPoint.atomEndPoint(pat, bix, aix)
+            callStack.pop()
+            callStack.push(cp)
         }
-      case f => throw new IllegalDebugStateException(s"$f cannot occur after end of pattern frame $pf")
+      case Point.At(AtBody(bix, Point.At(AtAtom(aix, false)))) =>
+        callStack.pop()
+        val cp =
+          if (isLastAtom(pat, bix, aix)) {
+            callStack.pop()
+            ControlPoint.bodyEndPoint(pat, bix)
+          } else
+            ControlPoint.atomEntryPoint(pat, bix, aix + 1)
+        callStack.push(cp)
+      case Point.At(AtBody(ix, Point.After)) =>
+        val cp =
+          if (isLastBody(pat, ix))
+            ControlPoint.patternEndPoint(pat)
+          else
+            ControlPoint.bodyEntryPoint(pat, ix + 1)
+
+        callStack.pop()
+        callStack.push(cp)
     }
   }
+
+  def stepOut(): Unit = {
+    val ControlPoint(pat, bodyPoint) = callStack.pop()
+    bodyPoint match {
+      case Point.After =>
+        stepPatternEndPoint(bodyPoint)
+      case Point.Before =>
+        val cp = ControlPoint.patternEndPoint(pat)
+        callStack.push(cp)
+      case Point.At(AtBody(bix, Point.Before)) =>
+        val cp = ControlPoint.bodyEndPoint(pat, bix)
+        callStack.push(cp)
+      case Point.At(AtBody(bix, Point.After)) =>
+        val cp = ControlPoint.patternEndPoint(pat)
+        callStack.push(cp)
+      case Point.At(AtBody(bix, Point.At(_))) =>
+        val cp = ControlPoint.bodyEndPoint(pat, bix)
+        callStack.push(cp)
+    }
+  }
+
+  private def isLastAtom(pat: Datalog.Pattern, bodyIdx: Int, atomIdx: Int): Boolean =
+    pat.bodies(bodyIdx).atoms.size <= atomIdx + 1
+
+  private def isLastBody(pat: Datalog.Pattern, bodyIdx: Int): Boolean =
+    pat.bodies.size <= bodyIdx + 1
 }

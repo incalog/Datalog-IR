@@ -88,8 +88,10 @@ class IRDebuggerTest extends AnyFunSuite {
     debugger.entry("two", Map())
     debugger.stepInto() // into two
     debugger.stepInto() // into body
-    debugger.stepOver() // over edge
-    debugger.stepOver() // over one
+    debugger.stepOver() // over edge before
+    debugger.stepOver() // over edge after
+    debugger.stepOver() // over one before
+    debugger.stepOver() // over one after
     debugger.stepOver() // out of body
     assert(debugger.isFinished)
   }
@@ -102,11 +104,12 @@ class IRDebuggerTest extends AnyFunSuite {
     debugger.stepInto() // into edge call
     debugger.stepInto() // into edge pattern
     debugger.stepInto() // into body
-    debugger.stepInto() // over first computed
-    debugger.stepInto() // over second computed
-    debugger.stepInto() // out of body
+    debugger.stepInto() // over first computed before
+    debugger.stepInto() // over first computed after
+    debugger.stepInto() // over second computed before
+    debugger.stepOut() // out of edge body
     debugger.stepOut() // out of edge
-    debugger.stepOver() // out of body
+    debugger.stepOver() // out of two body
     debugger.stepOut() // out of body
     debugger.stepOut() // out of two
     assert(debugger.isFinished)
