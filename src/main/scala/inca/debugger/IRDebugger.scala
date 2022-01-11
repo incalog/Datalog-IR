@@ -1,190 +1,214 @@
 package inca.debugger
 
 import inca.backend.ir.Datalog
-import inca.backend.optimize.Optimization
-import inca.backend.transform.Transformation
-import inca.compiler.options.Options
-import inca.compiler.CompiledDatalogModule
 import inca.debugger.ControlPoint.{AtAtom, AtBody}
-import inca.runtime.EnginePool
-import inca.runtime.Query.ChangeFeed
-import inca.runtime.context.{DataModel, QueryScope}
-import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
-import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
+import inca.util.Meta.Scala
+import inca.util.TupleOps
 
-case class FixpointState(derivedRels: Set[Relation])
+import scala.collection.mutable.ListBuffer
+import scala.meta.Term
+import scala.reflect.runtime.universe
+import scala.tools.reflect.ToolBox
 
 trait IRDebugger {
   private var module: Datalog.Module = _
-  private lazy val patterns: Map[Datalog.Name, Datalog.Pattern] = {
-    module.pats.map { p => p.name -> p }.toMap
+  implicit lazy val patterns: Map[String, Datalog.Pattern] = {
+    module.pats.map { pat => pat.name -> pat }.toMap
   }
 
-  private var engine: AdvancedViatraQueryEngine = _
-  private var feed: ChangeFeed = _
-  private var scope: QueryScope = _
-
+  private var fixpointState: FixpointState = FixpointState(Map())
   private val callStack: CallStack = new CallStack()
-  // private var fixpointState: FixpointState = FixpointState(Set())
+  private val _controlTrace: ListBuffer[ControlPoint] = ListBuffer.empty
+  def controlTrace: Seq[ControlPoint] = _controlTrace.toSeq
+
+  def relation(name: String): Table = fixpointState.derivedRels(name)
+
+  private val toolBox: ToolBox[universe.type] =
+    universe.runtimeMirror(getClass.getClassLoader).mkToolBox()
 
   def isFinished: Boolean = callStack.isFinished
 
-
   def initialize(mod: Datalog.Module): Unit = {
-    // TODO how to make this better?
     module = mod
-    val options = new Options {
-      override def optimizations: Seq[Optimization] = Seq()
-      override def transformations: Seq[Transformation] = Seq()
-      override def stopOnError: Boolean = true
-      override def stopOnWarning: Boolean = false
+  }
+
+  def entry(name: Datalog.Name, bindings: Table): Unit = {
+    val pat = patterns(name)
+    val cp = ControlPoint.patternEntryPoint(pat)
+    val frame = Frame(cp, bindings, Table.empty, Table(pat.params.map(_.name).toVector, Vector()))
+    callStack.push(frame)
+    _controlTrace += cp
+  }
+
+  def runUntil(cp: ControlPoint): Unit = {
+    while (callStack.top.cp != cp) {
+      val top = callStack.top
+      top.cp.into match {
+        case Some(nextCP) =>
+          if (!nextCP.isPatternPoint) {
+            callStack.pop()
+          }
+          val (args, bodySubst, patternSubst) = process(top)
+          if (nextCP.isPatternEndPoint) {
+            fixpointState = fixpointState.extendRelation(nextCP.pat.name, patternSubst)
+          }
+          callStack.push(Frame(nextCP, args, bodySubst, patternSubst))
+        case None =>
+          stepOutOfPattern()
+      }
     }
-    val dataModel = new DataModel()
-    val compiled = CompiledDatalogModule(module, dataModel, options)
-    scope = new QueryScope(compiled.dataModel)
-    val (_engine, _feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-    engine = _engine
-    feed = _feed
+    _controlTrace += cp
   }
 
-
-  def entry(name: Datalog.Name, args: PartialTuple): Unit = {
-    val cp = ControlPoint.patternEntryPoint(patterns(name))
-    callStack.push(cp)
+  private def process(frame: Frame): (Table, Table, Table) = frame.cp.body match {
+    case Point.Before =>
+      (frame.arguments, frame.arguments, frame.patternSubst)
+    case Point.After =>
+      val pat = frame.cp.pat
+      val columns = pat.params.map(_.name).toVector
+      val projectedBodySubst = frame.bodySubst.project(columns)
+      val patternSubst = frame.patternSubst.addRows(projectedBodySubst.data)
+      (frame.arguments, Table.empty, patternSubst)
+    case Point.At(AtBody(_, Point.Before)) =>
+      (frame.arguments, frame.arguments, frame.patternSubst)
+    case Point.At(AtBody(_, Point.After)) =>
+      val pat = frame.cp.pat
+      val columns = pat.params.map(_.name).toVector.filter(frame.bodySubst.columns.contains)
+      val projectedBodySubst = frame.bodySubst.project(columns)
+      val patternSubst = frame.patternSubst.addRows(projectedBodySubst.data)
+      (frame.arguments, frame.arguments, patternSubst)
+    case Point.At(AtBody(bix, Point.At(AtAtom(aix, true)))) =>
+      val atom = frame.cp.pat.bodies(bix).atoms(aix)
+      processAtom(frame, atom)
+    case Point.At(AtBody(_, Point.At(AtAtom(_, false)))) =>
+      (frame.arguments, frame.bodySubst, frame.patternSubst)
   }
 
-  // def visualizeCurrentPosition(): String = {
-  //   val ControlPoint(pat, bodyPoint) = callStack.top
-  //   bodyPoint match {
-  //     case Point.Before =>
-  //       s"↓${}"
-  //     case Point.After =>
+  private def processAtom(frame: Frame, atom: Datalog.Atom): (Table, Table, Table) = atom match {
+    case Datalog.Call(name, args, _, _) =>
+      val callingPat = patterns(name)
 
-  //     case Point.At(AtBody())
-  //   }
-  // }
+      val paramSubst = callingPat.params.zip(args)
+      val (varsBindings, constBindings) = paramSubst.partition(_._2.isInstanceOf[Datalog.Var])
+      val varsBindingsCast = varsBindings.map { case (p, v) => (p, v.asInstanceOf[Datalog.Var]) }
+      val constBindingsCast = constBindings.map { case (p, v) => (p, v.asInstanceOf[Datalog.Constant]) }
 
-  def stepOver(): Unit = {
-    val ControlPoint(pat, bodyPos) = callStack.pop()
-    bodyPos match {
-      case Point.Before =>
-        val cp = ControlPoint.patternEndPoint(pat)
-        callStack.push(cp)
-      case Point.After =>
-        stepPatternEndPoint(bodyPos)
-      case Point.At(AtBody(ix, Point.Before)) =>
-        val cp = ControlPoint.bodyEndPoint(pat, ix)
-        callStack.push(cp)
-      case Point.At(AtBody(bix, Point.At(AtAtom(aix, true)))) =>
-        val cp = ControlPoint.atomEndPoint(pat, bix, aix)
-        callStack.push(cp)
-      case Point.At(AtBody(bix, Point.At(AtAtom(aix, false)))) =>
-        val cp =
-          if (isLastAtom(pat, bix, aix))
-            ControlPoint.bodyEndPoint(pat, bix)
-          else
-            ControlPoint.atomEntryPoint(pat, bix, aix + 1)
-        callStack.push(cp)
-      case Point.At(AtBody(ix, Point.After)) =>
-        val cp =
-          if (isLastBody(pat, ix))
-            ControlPoint.patternEndPoint(pat)
-          else
-            ControlPoint.bodyEntryPoint(pat, ix + 1)
-        callStack.push(cp)
-    }
+      val columnsSubst = varsBindingsCast.map { case (p, v) => (v.name, p.name) }.toMap
+      var argsSubst = frame.bodySubst.project(varsBindingsCast.map(_._2.name).toVector).renameColumns(columnsSubst)
+      constBindingsCast.foreach { case (p, c) =>
+        argsSubst = argsSubst.bind(p.name, transLiteral(c.lit))
+      }
+
+      val bodySubst = argsSubst
+
+      val patternSubst = Table(callingPat.params.map(_.name).toVector, Vector())
+      (argsSubst, bodySubst, patternSubst)
+    case comp@Datalog.Computed(_, _) =>
+      processComputed(frame, comp)
+    case Datalog.ExtensionalCall(name, args, neg) => ???
+    case Datalog.Compare(comp, lhs, rhs) => ???
+    case Datalog.HasType(t, typ) => ???
+    case Datalog.NotHasType(t, typ) => ???
+    case Datalog.Path(src, srcTy, link, trg, trgTy) => ???
+    case Datalog.NoPath(t, ty, link, termIsSource) => ???
+    case Datalog.Undef(t) => ???
   }
 
-  def stepPatternEndPoint(bp: ControlPoint.BodyPoint): Unit = {
-    if (callStack.isEmpty)
-      throw EndOfTraversalReachedException("Program terminated")
+  private def transLiteral(c: Datalog.Literal): Value = c match {
+    case Datalog.IntLiteral(v) => ScalaValue(v)
+    case Datalog.LongLiteral(v) => ScalaValue(v)
+    case Datalog.DoubleLiteral(v) => ScalaValue(v)
+    case Datalog.StringLiteral(v) => ScalaValue(v)
+    case Datalog.BooleanLiteral(v) => ScalaValue(v)
+  }
 
-    if (callStack.top.isAtomPoint) {
-      val ControlPoint(p, Point.At(AtBody(bix, Point.At(AtAtom(aix, true))))) = callStack.pop()
-      val cp =
-        if (isLastAtom(p, bix, aix))
-          ControlPoint.bodyEndPoint(p, bix)
-        else
-          ControlPoint.atomEndPoint(p, bix, aix)
-      callStack.push(cp)
-    } else throw IllegalDebugStateException(s"${callStack.top} cannot occur after end of pattern ${bp}")
+  private def processComputed(frame: Frame, computed: Datalog.Computed): (Table, Table, Table) = computed match {
+    case Datalog.Computed(lhs, Datalog.Evaluation(evalArgs, resultType, code)) =>
+      // TODO everything has to be bound otherwise it is not executable
+      val argsData = evalArgs.map {
+        case (Datalog.Var(vname), _) =>
+          frame.bodySubst.project(vname)
+        case (Datalog.Constant(l), _) => Seq(transLiteral(l))
+      }
+      val cartProduct = TupleOps.cartesianProduct(argsData).map(_.toVector).toVector
+
+      val results =
+        if (cartProduct.isEmpty)
+          Seq(processScala(Vector(), code))
+        else cartProduct.map { tuple =>
+          processScala(tuple, code)
+        }
+      val multipleBodySubsts = results.map { result =>
+        lhs match {
+          case Datalog.Var(name) =>
+            frame.bodySubst.bind(name, result)
+          case Datalog.Constant(lit) =>
+            throw IllegalDebugStateException("Not supported yet")
+        }
+      }
+      // TODO merge all the bodies
+      val resBodySubst = multipleBodySubsts.head
+      (frame.arguments, resBodySubst, frame.patternSubst)
+    case Datalog.Computed(lhs, Datalog.CountAggregation(patName, args)) => ???
+    case Datalog.Computed(lhs, Datalog.CustomAggregation(typ, description, agg, patName, args, aggregatedColumn)) => ???
+  }
+
+  private def processScala(tuple: Vector[Value], code: Scala[Term.Function]): ScalaValue = {
+    val funCode = s"(${code.syntax})(${tuple.mkString(", ")})"
+    val parsed = toolBox.parse(funCode)
+    ScalaValue(toolBox.eval(parsed))
+  }
+
+  def stepOutOfPattern(): Unit = {
+    val patternEnd = callStack.pop()
+    // fixpointState = fixpointState.extendRelation(patternEnd.patternSubst)
+    // top is definitely now at an atom
+    val nextCP = callStack.top.cp.over.getOrElse(throw IllegalDebugStateException(""))
+
+    val arguments = callStack.top.arguments
+
+    val call = callStack.top.cp.atom.asCall.getOrElse(throw IllegalDebugStateException("Control point below pattern end has to be an atom control point"))
+    val calledPat = patternEnd.cp.pat
+    val callArgVars = call._2.collect { case Datalog.Var(name) => name }
+    val columnsSubst = calledPat.params.map(_.name).zip(callArgVars).toMap
+    val renamedPatternSubst = patternEnd.patternSubst.renameColumns(columnsSubst)
+    val bodySubst = callStack.top.bodySubst.join(renamedPatternSubst)
+
+    val patternSubst = callStack.top.patternSubst
+
+    // pop atom before control point and push atom end control point
+    callStack.pop()
+    callStack.push(Frame(nextCP, arguments, bodySubst, patternSubst))
   }
 
   def stepInto(): Unit = {
-    val ControlPoint(pat, bodyPos) = callStack.top
-    bodyPos match {
-      case Point.Before =>
-        val cp = ControlPoint.bodyEntryPoint(pat, 0)
-        callStack.pop()
-        callStack.push(cp)
-      case Point.After =>
-        callStack.pop()
-        stepPatternEndPoint(bodyPos)
-      case Point.At(AtBody(ix, Point.Before)) =>
-        val cp = ControlPoint.atomEntryPoint(pat, ix, 0)
-        callStack.pop()
-        callStack.push(cp)
-      case Point.At(AtBody(bix, Point.At(AtAtom(aix, true)))) =>
-        val atom = pat.bodies(bix).atoms(aix)
-        atom match {
-          case Datalog.Call(name, _, _, _) =>
-            val cp = ControlPoint.patternEntryPoint(patterns(name))
-            callStack.push(cp)
-          case Datalog.Computed(lhs, Datalog.CountAggregation(name, _)) =>
-            val cp = ControlPoint.patternEntryPoint(patterns(name))
-            callStack.push(cp)
-          case Datalog.Computed(lhs, Datalog.CustomAggregation(_, _, _, name, _, _)) =>
-            val cp = ControlPoint.patternEntryPoint(patterns(name))
-            callStack.push(cp)
-          case _ =>
-            val cp = ControlPoint.atomEndPoint(pat, bix, aix)
-            callStack.pop()
-            callStack.push(cp)
-        }
-      case Point.At(AtBody(bix, Point.At(AtAtom(aix, false)))) =>
-        callStack.pop()
-        val cp =
-          if (isLastAtom(pat, bix, aix)) {
-            callStack.pop()
-            ControlPoint.bodyEndPoint(pat, bix)
-          } else
-            ControlPoint.atomEntryPoint(pat, bix, aix + 1)
-        callStack.push(cp)
-      case Point.At(AtBody(ix, Point.After)) =>
-        val cp =
-          if (isLastBody(pat, ix))
-            ControlPoint.patternEndPoint(pat)
-          else
-            ControlPoint.bodyEntryPoint(pat, ix + 1)
+    callStack.top.cp.into match {
+      case Some(next) => runUntil(next)
+      case None =>
+    }
+  }
 
+  def stepOver(): Unit = {
+    callStack.top.cp.over match {
+      case Some(next) => runUntil(next)
+      case None =>
         callStack.pop()
-        callStack.push(cp)
+        callStack.top.cp.over match {
+          case Some(next) => runUntil(next)
+          case None =>
+        }
     }
   }
 
   def stepOut(): Unit = {
-    val ControlPoint(pat, bodyPoint) = callStack.pop()
-    bodyPoint match {
-      case Point.After =>
-        stepPatternEndPoint(bodyPoint)
-      case Point.Before =>
-        val cp = ControlPoint.patternEndPoint(pat)
-        callStack.push(cp)
-      case Point.At(AtBody(bix, Point.Before)) =>
-        val cp = ControlPoint.bodyEndPoint(pat, bix)
-        callStack.push(cp)
-      case Point.At(AtBody(bix, Point.After)) =>
-        val cp = ControlPoint.patternEndPoint(pat)
-        callStack.push(cp)
-      case Point.At(AtBody(bix, Point.At(_))) =>
-        val cp = ControlPoint.bodyEndPoint(pat, bix)
-        callStack.push(cp)
+    callStack.top.cp.out match {
+      case Some(next) => runUntil(next)
+      case None =>
+        callStack.pop()
+        callStack.top.cp.over match {
+          case Some(next) => runUntil(next)
+          case None =>
+        }
     }
   }
-
-  private def isLastAtom(pat: Datalog.Pattern, bodyIdx: Int, atomIdx: Int): Boolean =
-    pat.bodies(bodyIdx).atoms.size <= atomIdx + 1
-
-  private def isLastBody(pat: Datalog.Pattern, bodyIdx: Int): Boolean =
-    pat.bodies.size <= bodyIdx + 1
 }
