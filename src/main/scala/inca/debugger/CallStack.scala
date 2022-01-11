@@ -1,5 +1,7 @@
 package inca.debugger
 
+import inca.debugger.table.Table
+
 import scala.collection.mutable
 
 // case class Breakpoint(cp: ControlPattern, bindings: BindingPattern, constraints: Seq[Datalog.Atom])

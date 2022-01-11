@@ -1,24 +1,17 @@
-package inca.debugger
+package inca.debugger.table
 
-/**
- * Edge(x,y), z := y, IsConnected(x,y)
- *
- *
- * type Table = (Columns, ColumnsIndices, Data)
- * type ColumnsIndices = Map[String, Int]
- * type Data = Map[ArraySeq[V], Int]
- */
+import inca.debugger.Value
 
-// first implementation, we do not consider efficiency
-case class Table(columns: Vector[String], data: Vector[Vector[Value]]) {
+case class SimpleTable(columns: Vector[String], data: Vector[Vector[Value]]) extends Table {
 
-  def isBound(col: String): Boolean = columns.contains(col)
+  override def isEmpty: Boolean = data.isEmpty
+  override def isBound(col: String): Boolean = columns.contains(col)
 
-  def renameColumns(columnsSubst: Map[String, String]): Table = {
+  override def renameColumns(columnsSubst: Map[String, String]): Table = {
     Table(columns.map(columnsSubst.apply), data)
   }
 
-  def addRow(row: Vector[Value]): Table = {
+  override def addRow(row: Seq[Value]): Table = {
     val newData =
       if (data.contains(row))
         data
@@ -27,11 +20,14 @@ case class Table(columns: Vector[String], data: Vector[Vector[Value]]) {
     Table(columns, newData)
   }
 
-  def addRows(rows: Vector[Vector[Value]]): Table = {
-    Table(columns, (data ++ rows).distinct)
+  // override def addRows(rows: Seq[Seq[Value]]): Table = {
+  //   Table(columns, (data ++ rows).distinct)
+  // }
+  override def addRows(table: Table): Table = {
+    Table(columns, (data ++ table.data).distinct)
   }
 
-  def bind(column: String, v: Value): Table = {
+  override def bind(column: String, v: Value): Table = {
     val colIdx = columns.indexOf(column)
     if (colIdx > -1) {
       val newData = data.filter { row =>
@@ -46,15 +42,15 @@ case class Table(columns: Vector[String], data: Vector[Vector[Value]]) {
     }
   }
 
-  def project(col: String): Vector[Value] = {
-    data.map { row =>
-      val colIdx = columns.indexOf(col)
-      if (colIdx > -1) row(colIdx)
-      else throw new IllegalArgumentException(s"Cannot project column $col out of table with columns ${columns.mkString(", ")}")
-    }
-  }
+  // def project(col: String): Table = {
+  //   data.map { row =>
+  //     val colIdx = columns.indexOf(col)
+  //     if (colIdx > -1) row(colIdx)
+  //     else throw new IllegalArgumentException(s"Cannot project column $col out of table with columns ${columns.mkString(", ")}")
+  //   }
+  // }
 
-  def project(cols: Vector[String]): Table = {
+  override def project(cols: Seq[String]): Table = {
     val newColumns = cols.filter(columns.contains)
     val newData = data.map { row =>
       newColumns.flatMap { col =>
@@ -68,7 +64,15 @@ case class Table(columns: Vector[String], data: Vector[Vector[Value]]) {
     Table(newColumns, newData)
   }
 
-  def join(other: Table): Table = {
+  override def rearrangeColumns(cols: Seq[String]): Table = {
+    val colsIdx = cols.map(columns.indexOf)
+    val newData = data.map { row =>
+      colsIdx.map(row.apply)
+    }
+    Table(cols, newData)
+  }
+
+  override def join(other: Table): Table = {
     val otherCols = other.columns.diff(columns)
     val otherColsIdx = otherCols.map(other.columns.indexOf)
     val newColumns = columns ++ otherCols
@@ -86,7 +90,4 @@ case class Table(columns: Vector[String], data: Vector[Vector[Value]]) {
     }
     Table(newColumns, newData)
   }
-}
-object Table {
-  def empty: Table = Table(Vector(), Vector())
 }

@@ -2,6 +2,7 @@ package inca.debugger
 
 import inca.backend.ir.Datalog
 import inca.debugger.ControlPoint.{AtAtom, AtBody}
+import inca.debugger.table.Table
 import inca.util.Meta.Scala
 import inca.util.TupleOps
 
@@ -21,7 +22,7 @@ trait IRDebugger {
   private val _controlTrace: ListBuffer[ControlPoint] = ListBuffer.empty
   def controlTrace: Seq[ControlPoint] = _controlTrace.toSeq
 
-  def relation(name: String): Table = fixpointState.derivedRels(name)
+  def relation(name: String): Table = fixpointState.derived(name)
 
   private val toolBox: ToolBox[universe.type] =
     universe.runtimeMirror(getClass.getClassLoader).mkToolBox()
@@ -35,7 +36,7 @@ trait IRDebugger {
   def entry(name: Datalog.Name, bindings: Table): Unit = {
     val pat = patterns(name)
     val cp = ControlPoint.patternEntryPoint(pat)
-    val frame = Frame(cp, bindings, Table.empty, Table(pat.params.map(_.name).toVector, Vector()))
+    val frame = Frame(cp, bindings, Table.empty, Table(pat.params.map(_.name), Seq()))
     callStack.push(frame)
     _controlTrace += cp
   }
@@ -65,17 +66,17 @@ trait IRDebugger {
       (frame.arguments, frame.arguments, frame.patternSubst)
     case Point.After =>
       val pat = frame.cp.pat
-      val columns = pat.params.map(_.name).toVector
+      val columns = pat.params.map(_.name)
       val projectedBodySubst = frame.bodySubst.project(columns)
-      val patternSubst = frame.patternSubst.addRows(projectedBodySubst.data)
+      val patternSubst = frame.patternSubst.addRows(projectedBodySubst)
       (frame.arguments, Table.empty, patternSubst)
     case Point.At(AtBody(_, Point.Before)) =>
       (frame.arguments, frame.arguments, frame.patternSubst)
     case Point.At(AtBody(_, Point.After)) =>
       val pat = frame.cp.pat
-      val columns = pat.params.map(_.name).toVector.filter(frame.bodySubst.columns.contains)
+      val columns = pat.params.map(_.name).filter(frame.bodySubst.columns.contains)
       val projectedBodySubst = frame.bodySubst.project(columns)
-      val patternSubst = frame.patternSubst.addRows(projectedBodySubst.data)
+      val patternSubst = frame.patternSubst.addRows(projectedBodySubst)
       (frame.arguments, frame.arguments, patternSubst)
     case Point.At(AtBody(bix, Point.At(AtAtom(aix, true)))) =>
       val atom = frame.cp.pat.bodies(bix).atoms(aix)
@@ -94,14 +95,14 @@ trait IRDebugger {
       val constBindingsCast = constBindings.map { case (p, v) => (p, v.asInstanceOf[Datalog.Constant]) }
 
       val columnsSubst = varsBindingsCast.map { case (p, v) => (v.name, p.name) }.toMap
-      var argsSubst = frame.bodySubst.project(varsBindingsCast.map(_._2.name).toVector).renameColumns(columnsSubst)
+      var argsSubst = frame.bodySubst.project(varsBindingsCast.map(_._2.name)).renameColumns(columnsSubst)
       constBindingsCast.foreach { case (p, c) =>
         argsSubst = argsSubst.bind(p.name, transLiteral(c.lit))
       }
 
       val bodySubst = argsSubst
 
-      val patternSubst = Table(callingPat.params.map(_.name).toVector, Vector())
+      val patternSubst = Table(callingPat.params.map(_.name), Seq())
       (argsSubst, bodySubst, patternSubst)
     case comp@Datalog.Computed(_, _) =>
       processComputed(frame, comp)
@@ -125,17 +126,26 @@ trait IRDebugger {
   private def processComputed(frame: Frame, computed: Datalog.Computed): (Table, Table, Table) = computed match {
     case Datalog.Computed(lhs, Datalog.Evaluation(evalArgs, resultType, code)) =>
       // TODO everything has to be bound otherwise it is not executable
-      val argsData = evalArgs.map {
-        case (Datalog.Var(vname), _) =>
-          frame.bodySubst.project(vname)
-        case (Datalog.Constant(l), _) => Seq(transLiteral(l))
+      val (evalVarArgs, evalConstArgs) = evalArgs.map(_._1).zip(code.tree.params).partitionMap {
+        case (Datalog.Var(v), p) => Left((p.name, v))
+        case (Datalog.Constant(l), p) => Right((p.name, transLiteral(l)))
       }
-      val cartProduct = TupleOps.cartesianProduct(argsData).map(_.toVector).toVector
+      var argsTable = frame.bodySubst.project(evalVarArgs.map(_._2))
+      evalConstArgs.foreach { case(p, v) =>
+        argsTable = argsTable.bind(p.value, v)
+      }
+      argsTable = argsTable.rearrangeColumns(code.tree.params.map(_.name.value))
+      // val argsData = evalArgs.map {
+      //   case (Datalog.Var(vname), _) =>
+      //     frame.bodySubst.project(vname)
+      //   case (Datalog.Constant(l), _) => Seq(transLiteral(l))
+      // }
+      // val cartProduct = TupleOps.cartesianProduct(argsData).map(_.toVector).toVector
 
       val results =
-        if (cartProduct.isEmpty)
-          Seq(processScala(Vector(), code))
-        else cartProduct.map { tuple =>
+        if (argsTable.isEmpty)
+          Seq(processScala(Seq(), code))
+        else argsTable.data.map { tuple =>
           processScala(tuple, code)
         }
       val multipleBodySubsts = results.map { result =>
@@ -153,7 +163,7 @@ trait IRDebugger {
     case Datalog.Computed(lhs, Datalog.CustomAggregation(typ, description, agg, patName, args, aggregatedColumn)) => ???
   }
 
-  private def processScala(tuple: Vector[Value], code: Scala[Term.Function]): ScalaValue = {
+  private def processScala(tuple: Seq[Value], code: Scala[Term.Function]): ScalaValue = {
     val funCode = s"(${code.syntax})(${tuple.mkString(", ")})"
     val parsed = toolBox.parse(funCode)
     ScalaValue(toolBox.eval(parsed))

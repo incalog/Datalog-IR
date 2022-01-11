@@ -1,6 +1,7 @@
 package inca.debugger
 
 import inca.backend.ir.Datalog
+import inca.debugger.table.Table
 import inca.runtime.context.DataModel
 import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
@@ -94,18 +95,18 @@ class IRDebuggerTest extends AnyFunSuite {
 
   test("simple step over") {
     val debugger = initDebugger(mod)
-    debugger.entry("two", Table(Vector("from"), Vector(Vector(ScalaValue(1)))))
+    debugger.entry("two", Table(Seq("from"), Seq(Seq(ScalaValue(1)))))
     debugger.stepOver()
     assert(debugger.controlTrace.size == 2)
     assert(debugger.controlTrace(0).isPatternPoint)
     assert(debugger.controlTrace(1).isPatternEndPoint)
     assert(debugger.isFinished)
     // debugger.stepInto()
-    val expectedTable = Vector(
-      Vector(ScalaValue(1), ScalaValue(3)),
-      Vector(ScalaValue(1), ScalaValue(6)),
+    val expectedTable = Seq(
+      Seq(ScalaValue(1), ScalaValue(3)),
+      Seq(ScalaValue(1), ScalaValue(6)),
     )
-    assert(debugger.relation("two") == Table(Vector("from", "to"), expectedTable))
+    assert(debugger.relation("two") == Table(Seq("from", "to"), expectedTable))
   }
 
   test("step into body and over body") {
@@ -218,7 +219,7 @@ class IRDebuggerTest extends AnyFunSuite {
 
   test("two edge rule") {
     val debugger = initDebugger(twoEdgeMod)
-    debugger.entry("edge", Table(Vector("from"), Vector(Vector(ScalaValue(1)))))
+    debugger.entry("edge", Table(Seq("from"), Seq(Seq(ScalaValue(1)))))
     debugger.stepInto() // into edge
     debugger.stepInto() // into body
     debugger.stepInto() // execute computed before
