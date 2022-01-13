@@ -53,17 +53,12 @@ abstract class UnaryIndex[V] extends Index {
     }
   }
 
-  final override def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[Tuple] = {
+  final override def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[V] = {
     val maskLength = mask.indices.length
-    if (maskLength == 1) {
-      val v = seed.get(0).asInstanceOf[V]
-      if (index(v) != 0) {
-        Seq(Tuples.staticArityFlatTupleOf(v))
-      } else {
-        Seq()
-      }
+    if (maskLength == 0) {
+      entries
     } else {
-      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for enumerateValues in bijective virtual index " + this)
+      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for enumerateValues in unary index " + this)
     }
   }
 

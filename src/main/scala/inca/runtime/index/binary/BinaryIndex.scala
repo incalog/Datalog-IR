@@ -78,19 +78,19 @@ abstract class BinaryIndex[K,V] extends Index {
     }
   }
 
-  final override def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[Tuple] = {
+  final override def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[Any] = {
     val maskLength = mask.indices.length
     if (maskLength == 1) {
       val isOrdered = mask.indices(0) == 0
       if (isOrdered) {
         val k = seed.get(0).asInstanceOf[K]
-        index(k).map(Tuples.staticArityFlatTupleOf(k, _))
+        index(k)
       } else {
         val v = seed.get(1).asInstanceOf[V]
-        indexInverted(v).map(Tuples.staticArityFlatTupleOf(_, v))
+        indexInverted(v)
       }
     } else {
-      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for enumerateValues in bijective virtual index " + this)
+      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for enumerateValues in binary index " + this)
     }
   }
 

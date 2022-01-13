@@ -62,8 +62,8 @@ class BagIndex(val key: IndexKey[_]) extends Index {
     } else {
       // enumerate tuples that have the elements in seed at position according to mask
       index.keySet().asScala.filter { t =>
-        seed.getElements.zipWithIndex.forall { case (c, ix) =>
-          c == t.get(ix)
+        seed.getElements.zipWithIndex.forall { case (seedVal, seedIx) =>
+          seedVal == t.get(mask.indices(seedIx))
         }
       }
     }
@@ -71,17 +71,16 @@ class BagIndex(val key: IndexKey[_]) extends Index {
 
   /** enumerate all values within index associated with virtual key based on provided mask and seed */
   override def enumerateValues(mask: TupleMask, seed: ITuple): Iterable[_] = {
-    // TODO what should we enumerate here? All values of the specified columns?
     val maskLength = mask.indices.length
-    if (maskLength == 0) {
-      Seq()
-    } else {
+    if (maskLength == key.getArity - 1) {
       index.keySet().asScala.flatMap { t =>
-        seed.getElements.zipWithIndex.flatMap { case (c, ix) =>
-          if(c == t.get(ix)) Some(c)
-          else None
-        }
+        if (seed.getElements.zipWithIndex.forall { case (seedVal, seedIx) => seedVal == t.get(mask.indices(seedIx)) })
+          Some(t.get(mask.getFirstOmittedIndex.getAsInt))
+        else
+          None
       }
+    } else {
+      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for enumerateValues in bag index with arity " + key.getArity + " in " + this)
     }
   }
 
