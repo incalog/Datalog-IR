@@ -1,9 +1,25 @@
 package inca.backend.ir
 
-import inca.backend.ir.Datalog.{Body, Call, Comparator, Compare, Computation, Computed, Constant, Atom, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
+import inca.backend.hints.DebugHints.SourceConstruct
+import inca.backend.hints.{DebugHints, Hints}
+import inca.backend.ir.Datalog.{Atom, Body, Call, Comparator, Compare, Computation, Computed, Constant, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
 import truechange.JavaLitType
 
 object Printer {
+
+  val PRINT_SOURCE_CONSTRUCT = true
+
+  def prettySourceConstruct(hinted: Hints, sep: String = ""): String =
+    if (PRINT_SOURCE_CONSTRUCT) {
+      hinted.hints.get(DebugHints.SourceConstruct.key) match {
+        case Some(SourceConstruct(constr)) =>
+          val constrStr = constr.toString.replaceAll("\\s+", " ")
+          s"$sep @[$constrStr]"
+        case _ => ""
+      }
+    } else {
+      ""
+    }
 
   def prettyModule(module: Module): String =
     "module " +
@@ -15,7 +31,7 @@ object Printer {
   def prettyGraphPattern(gp: Pattern): String = {
     val header = prettyVis(gp.vis) + " " + gp.name + gp.params.map(prettyParam).mkString("(", ", ", ")")
     val bodies = gp.bodies.map(prettyAlternative).mkString(" {\n", "\n} or {\n", "\n}")
-    header + bodies
+    header + bodies + prettySourceConstruct(gp)
   }
 
   def prettyVis(vis: Option[Visibility]): String = vis match {
@@ -40,7 +56,7 @@ object Printer {
 
   def prettyAlternative(alt: Body): String = alt.atoms.map(prettyAtom).map("\t"+_).mkString("\n")
 
-  def prettyAtom(atom: Atom): String = atom match {
+  def prettyAtom(atom: Atom): String = (atom match {
     case Compare(comp, lhs, rhs) => prettyTerm(lhs) + " " + prettyComparator(comp) + " " + prettyTerm(rhs)
     case HasType(v, typ) => prettyType(typ) + "(" + prettyTerm(v) + ")"
     case NotHasType(v, typ) => "not " + prettyType(typ) + "(" + prettyTerm(v) + ")"
@@ -64,7 +80,7 @@ object Printer {
       s"${neg}extensional find $call"
     case Undef(t) =>
       s"undef ${prettyTerm(t)}"
-  }
+  }) + prettySourceConstruct(atom)
 
   def prettyLink(link: Link): String = link match {
     case Datalog.ParentLink => "parent"

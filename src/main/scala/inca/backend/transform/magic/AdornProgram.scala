@@ -25,7 +25,7 @@ object AdornProgram extends Transformation {
       val mainHints = collectMainPattern(module)
       val mains = mainHints.map { p =>
         val params = p.params.map(p => Var(p.name))
-        val mainHint = p.hints(MagicSetHints.MainKey).asInstanceOf[MagicSetHints.Main]
+        val mainHint = p.hints(MagicSetHints.Main.key).asInstanceOf[MagicSetHints.Main]
         val adornment = mainHint.adorn
         (p.name, adornment)
       }
@@ -81,14 +81,14 @@ object AdornProgram extends Transformation {
   }
 
   private def collectMainPattern(module: Module): Seq[Pattern]=
-    module.pats.filter { p => p.hints.contains(MagicSetHints.MainKey) }
+    module.pats.filter { p => p.hints.contains(MagicSetHints.Main.key) }
 
   object CollectVars extends Collect[Var] {
     override def transVar(v: Var): Seq[Var] = Seq(v)
   }
 
   def fixedAdornment(con: Atom): Option[Seq[Boolean]] =
-    con.hints.get(MagicSetHints.FixedAdornmentKey).flatMap { case MagicSetHints.FixedAdornment(adorn) =>
+    con.hints.get(MagicSetHints.FixedAdornment.key).flatMap { case MagicSetHints.FixedAdornment(adorn) =>
       Some(adorn)
     }
 

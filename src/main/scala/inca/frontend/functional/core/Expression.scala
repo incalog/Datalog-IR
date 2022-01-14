@@ -4,7 +4,7 @@ import inca.compiler.SourceLocation
 import inca.frontend.util.{Resolvable, Typeable}
 import inca.util.Meta.Scala
 
-trait Expression extends Typeable[Type] with SourceLocation {
+sealed trait Expression extends Typeable[Type] with SourceLocation {
   def vars: Map[Name, Option[Type]]
   def freevars: Seq[Var]
   def freeTvars: Seq[TData] = typ.toSeq.flatMap(_.freeTvars)

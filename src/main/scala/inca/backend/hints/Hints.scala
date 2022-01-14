@@ -3,21 +3,22 @@ package inca.backend.hints
 import scala.collection.mutable
 
 trait Hints {
-  val hints: mutable.Map[Hint.Key, Hint] = mutable.Map()
+  private val _hints: mutable.Map[Hint.Key, Hint] = mutable.Map()
+  def hints: Map[Hint.Key, Hint] = _hints.toMap
   def addHint(hint: Hint*): this.type = {
-    hint.foreach(h => hints += h.key -> h)
+    hint.foreach(h => _hints += h.key -> h)
     this
   }
   def withHints(h: Hints): this.type = {
-    this.hints.clear()
-    this.hints ++= h.hints
+    this._hints.clear()
+    this._hints ++= h._hints
     this
   }
-  def hasHint(key: Hint.Key): Boolean = this.hints.contains(key)
+  def hasHint(key: Hint.Key): Boolean = this._hints.contains(key)
 }
 
 trait Hint {
-  def key: Hint.Key
+  val key: Hint.Key
 }
 object Hint {
   type Key = String

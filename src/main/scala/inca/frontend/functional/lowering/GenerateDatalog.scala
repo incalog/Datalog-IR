@@ -1,5 +1,6 @@
 package inca.frontend.functional.lowering
 
+import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.hints.MagicSetHints.{FixedAdornment, IgnoreCall, NoInputRelation}
 import inca.backend.hints.{DataHints, MagicSetHints}
 import inca.backend.ir.Datalog
@@ -41,7 +42,7 @@ class GenerateDatalog(module: Module) {
       name.name,
       imports.map(_.name.name),
       generatedPatterns.toList,
-      genScala.generated.map(Scala.apply))
+      genScala.generated.map(Scala.apply)).addHint(SourceConstruct.from(module))
   }
 
   private def transFun(fun: FunctionDef): Datalog.Pattern = gensym.scoped {
@@ -55,6 +56,7 @@ class GenerateDatalog(module: Module) {
       yield Datalog.Body(cons ++ outParams.zip(terms).map(pt => Datalog.Eq(Datalog.Var(pt._1.name), pt._2)))
 
     val pat = Datalog.Pattern(vis, fun.name.name, params ++ outParams, bodies)
+      .addHint(SourceConstruct.from(fun))
     if (fun.hasAnnotation(MainFunctionAnno.key))
       pat.addHint(MagicSetHints.Main(params.map(_ => true) ++ outParams.map(_ => false)))
     pat
@@ -84,7 +86,7 @@ class GenerateDatalog(module: Module) {
     val bodies = for ((terms, cons) <- transExp(exp))
       yield Datalog.Body(cons ++ outParams.zip(terms).map(pt => Datalog.Eq(Datalog.Var(pt._1.name), pt._2)))
 
-    Datalog.Pattern(None, name, params ++ outParams, bodies)
+    Datalog.Pattern(None, name, params ++ outParams, bodies).addHint(SourceConstruct.from(exp))
   }
 
   private def flatVars(x: Name, ty: Type): Seq[(Datalog.Var, Datalog.Type)] = ty match {
@@ -109,7 +111,7 @@ class GenerateDatalog(module: Module) {
       for ((boundTerms, boundCons) <- transExp(bound);
            (bodyTerm, bodyCons) <- transExp(body))
         yield {
-          val eqs = vars.zip(boundTerms).map(vt => Datalog.Eq(vt._1, vt._2))
+          val eqs = vars.zip(boundTerms).map(vt => Datalog.Eq(vt._1, vt._2).addHint(SourceConstruct.from(exp, exp -> vt._1)))
           (bodyTerm, boundCons ++ eqs ++ bodyCons)
         }
 
@@ -120,11 +122,11 @@ class GenerateDatalog(module: Module) {
       val thnRes: ExpRes =
         for ((Seq(cndTerm), cndCons) <- condTrans;
              (thnTerm, thnCons) <- thnTrans)
-          yield (thnTerm, cndCons ++ Seq(Datalog.Eq(cndTerm, Datalog.True)) ++ thnCons)
+          yield (thnTerm, cndCons ++ Seq(Datalog.Eq(cndTerm, Datalog.True).addHint(SourceConstruct.from(exp, exp -> true))) ++ thnCons)
       val elsRes: ExpRes =
         for ((Seq(cndTerm), cndCons) <- condTrans;
              (elsTerm, elsCons) <- elsTrans)
-          yield (elsTerm, cndCons ++ Seq(Datalog.Eq(cndTerm, Datalog.False)) ++ elsCons)
+          yield (elsTerm, cndCons ++ Seq(Datalog.Eq(cndTerm, Datalog.False).addHint(SourceConstruct.from(exp, exp -> false))) ++ elsCons)
       thnRes ++ elsRes
 
     case call@Call(Var(name), args, transitive) =>
@@ -137,11 +139,11 @@ class GenerateDatalog(module: Module) {
 
       // create single call constraint when no arguments passed
       if (argRes.isEmpty)
-        return Seq((outvars, Seq(Datalog.Call(name.name, outvars, transitive, neg = false))))
+        return Seq((outvars, Seq(Datalog.Call(name.name, outvars, transitive, neg = false).addHint(SourceConstruct.from(call)))))
 
       for (tups <- TupleOps.cartesianProduct(argRes)) yield {
         val (argTerms, argCons) = tups.unzip
-        (outvars, argCons.flatten ++ Seq(Datalog.Call(name.name, argTerms.flatten ++ outvars, transitive, neg = false)))
+        (outvars, argCons.flatten ++ Seq(Datalog.Call(name.name, argTerms.flatten ++ outvars, transitive, neg = false).addHint(SourceConstruct.from(call))))
       }
 
     case Tuple(exps) =>
@@ -160,13 +162,13 @@ class GenerateDatalog(module: Module) {
            (bodyTerms, bodyCons) <- transExp(body);
            (Seq(matcheeTerm), matcheeCons) <- matcheeRes) yield {
         val patCons = pat match {
-          case pat: ConstructorPattern =>
-            val selector = pat.target match {
+          case cpat: ConstructorPattern =>
+            val selector = cpat.target match {
               case Some(constr: DataConstructor) => constr.selectorName
               case Some(target) => throw new IllegalStateException(s"Unknown constructor target $target")
-              case None => throw new IllegalArgumentException(s"Cannot compile unresolved constructor pattern $pat")
+              case None => throw new IllegalArgumentException(s"Cannot compile unresolved constructor pattern $cpat")
             }
-            Datalog.Call(selector, matcheeTerm +: pat.args.map(a => Datalog.Var(a.name)))
+            Datalog.Call(selector, matcheeTerm +: cpat.args.map(a => Datalog.Var(a.name)))
 
           case SomePattern(v) =>
             Datalog.Eq(Datalog.Var(v.name), matcheeTerm)
@@ -176,6 +178,7 @@ class GenerateDatalog(module: Module) {
 
           case _ => throw new IllegalStateException(s"Unknown pattern $pat")
         }
+        patCons.addHint(SourceConstruct.from(pat))
         (bodyTerms, matcheeCons ++ (patCons +: bodyCons))
       }
 
@@ -185,6 +188,7 @@ class GenerateDatalog(module: Module) {
       val resType = exp.typ.getOrElse(throw new IllegalStateException("cannot compile untyped Eval"))
       val funCode = q"() => ${code.tree}"
       val evalConstraint = Datalog.Computed(evalOut, Datalog.Evaluation(Seq(), transType(resType), Scala(funCode)))
+        .addHint(SourceConstruct.from(exp))
       Seq((Seq(evalOut), Seq(evalConstraint)))
 
     case BaseApply(fun, args) =>
@@ -208,6 +212,7 @@ class GenerateDatalog(module: Module) {
           case (_, arg) => throw new IllegalArgumentException(s"Cannot pass tuple argument $arg to $fun")
         }
         val evalConstraint = Datalog.Computed(evalOut, Datalog.Evaluation(flatArgTerms, transType(resType), Scala(funCode)))
+          .addHint(SourceConstruct.from(exp))
         (Seq(evalOut), argCons.flatten :+ evalConstraint)
       }
 
@@ -216,7 +221,7 @@ class GenerateDatalog(module: Module) {
       transExp(left) ++ transExp(right)
 
     case BaseApplyInfix(left, op, right) =>
-      import scala.meta._
+
       val leftParam = {
         val typ = left.typ.getOrElse(throw new IllegalStateException(s"Cannot compile call to $op with untyped argument $left"))
         param"left: ${typ.asScala}"
@@ -236,6 +241,7 @@ class GenerateDatalog(module: Module) {
         val evalConstraint = Datalog.Computed(evalOut,
           Datalog.Evaluation(Seq(leftTerm -> transType(left.typ.get), rightTerm -> transType(right.typ.get)),
             transType(resType), Scala(funCode)))
+          .addHint(SourceConstruct.from(exp))
         (Seq(evalOut), leftCons ++ rightCons ++ Seq(evalConstraint))
       }
 
@@ -253,7 +259,9 @@ class GenerateDatalog(module: Module) {
       for ((Seq(term), tupCons) <- transExp(tup))
         yield {
           val typeTest =
-            Datalog.Call(dataName.name, Seq(term), neg = neg).addHint(IgnoreCall)
+            Datalog.Call(dataName.name, Seq(term), neg = neg)
+              .addHint(IgnoreCall)
+              .addHint(SourceConstruct.from(mem))
           (Seq(Datalog.True), tupCons :+ typeTest)
         }
 
@@ -264,13 +272,14 @@ class GenerateDatalog(module: Module) {
         val freeArgs = set.vars.toSeq.flatMap { case (v, ty) => flatVars(v, ty.get) }.map(_._1)
         for ((tupTerms, tupCons) <- transExp(tup)) yield {
           val negCall = Datalog.Call(pat.name, freeArgs ++ tupTerms, neg = true)
+            .addHint(SourceConstruct.from(exp))
           (Seq(Datalog.True), tupCons :+ negCall)
         }
       } else
         for ((tupTerms, tupCons) <- transExp(tup);
              (setTerms, setCons) <- transExp(set))
           yield {
-            val eqs = tupTerms.zip(setTerms).map(vt => Datalog.Eq(vt._1, vt._2))
+            val eqs = tupTerms.zip(setTerms).map(vt => Datalog.Eq(vt._1, vt._2).addHint(SourceConstruct.from(exp)))
             (Seq(Datalog.True), tupCons ++ setCons ++ eqs)
           }
 
@@ -279,7 +288,7 @@ class GenerateDatalog(module: Module) {
       for (ps <- TupleOps.cartesianProduct(predRes);
            (buildTerms, buildCons) <- transExp(build)) yield {
         val (predBools, predCons) = ps.unzip
-        val predTrue = predBools.flatten.map(b => Datalog.Eq(b, Datalog.True))
+        val predTrue = predBools.flatten.map(b => Datalog.Eq(b, Datalog.True).addHint(SourceConstruct.from(exp)))
         (buildTerms, predCons.flatten ++ predTrue ++ buildCons)
       }
 
@@ -298,7 +307,7 @@ class GenerateDatalog(module: Module) {
           val newOutName = gensym.fresh("out")
           val newOutParam = Datalog.Param(newOutName, transDataType(td))
           val coalesceCon = Datalog.Call(td.name.name + COALESCED_SUFFIX, Seq(Datalog.Var(oldOutName), Datalog.Var(newOutName)))
-          pat.copy(params = inParams :+ newOutParam, bodies = pat.bodies.map(b => Datalog.Body(b.atoms :+ coalesceCon)))
+          pat.copy(params = inParams :+ newOutParam, bodies = pat.bodies.map(b => Datalog.Body(b.atoms :+ coalesceCon))).withHints(pat)
         case None =>
           generatePattern(set, "AggregateCollection")
       }
@@ -312,7 +321,7 @@ class GenerateDatalog(module: Module) {
       val dataTyp = transDataType(exp.typ.get)
       val aggregation = Datalog.CustomAggregation(dataTyp, Some(description), Scala(agg), aggregandPat.name, freeArgs :+ outvar, freeArgs.size)
       val foldVar = Datalog.Var(gensym.fresh("fold"))
-      val compCon = Datalog.Computed(foldVar, aggregation)
+      val compCon = Datalog.Computed(foldVar, aggregation).addHint(SourceConstruct.from(exp))
 
       tdataTyp match {
         case Some(td) =>

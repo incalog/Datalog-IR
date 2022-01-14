@@ -214,6 +214,7 @@ class GenerateDatalogTest extends AnyFunSuite {
 
   test("if example 2") {
     val result = Compiler.compileFunctional(AST.ifExample2, options).ir
+    println(result)
     assert(result == ifExample2GP)
   }
 

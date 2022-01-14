@@ -1,6 +1,6 @@
 package inca.backend.transform.magic.demand
 
-import inca.backend.hints.MagicSetHints.{InputCall, InputCallKey}
+import inca.backend.hints.MagicSetHints.InputCall
 import inca.backend.hints.{Hints, MagicSetHints}
 import inca.backend.ir.CollectVars
 import inca.backend.ir.Datalog._
@@ -35,7 +35,7 @@ object DemandTransformation extends Transformation {
       val allPats = insertedInputCallPats ++ inputPatterns
       val filter = new FilterBodyTransformer({ body =>
         val hasEmptyInput = body.atoms.exists { con =>
-          con.hasHint(InputCallKey) && !inputPatNames.contains(con.asInstanceOf[Call].name)
+          con.hasHint(InputCall.key) && !inputPatNames.contains(con.asInstanceOf[Call].name)
         }
         !hasEmptyInput
       })
@@ -45,7 +45,7 @@ object DemandTransformation extends Transformation {
     }
 
     override def transformPattern(pat: Pattern): Seq[Pattern] =
-      if (pat.hasHint(MagicSetHints.DemandPatternsKey)) {
+      if (pat.hasHint(MagicSetHints.DemandPatterns.key)) {
         val demandPats = getDemandPatterns(pat)
         demandPats.adorn.map { demandPat =>
           val extendedPatterns = insertInputCall(pat, demandPat)
@@ -56,14 +56,14 @@ object DemandTransformation extends Transformation {
       }
 
     private def shouldDeriveInput(pat: Pattern): Boolean =
-      shouldInsertInput(pat) && pat.hasHint(MagicSetHints.DemandPatternsKey)
+      shouldInsertInput(pat) && pat.hasHint(MagicSetHints.DemandPatterns.key)
 
     private def shouldInsertInput(body: Hints): Boolean =
-      !body.hasHint(MagicSetHints.NoInputRelationKey)
+      !body.hasHint(MagicSetHints.NoInputRelation.key)
 
     private def getDemandPatterns(pat: Pattern): MagicSetHints.DemandPatterns = {
-      if (!pat.hasHint(MagicSetHints.DemandPatternsKey)) MagicSetHints.DemandPatterns(Set())
-      else pat.hints(MagicSetHints.DemandPatternsKey).asInstanceOf[MagicSetHints.DemandPatterns]
+      if (!pat.hasHint(MagicSetHints.DemandPatterns.key)) MagicSetHints.DemandPatterns(Set())
+      else pat.hints(MagicSetHints.DemandPatterns.key).asInstanceOf[MagicSetHints.DemandPatterns]
     }
 
     private def insertInputCall(pat: Pattern, demandPat: Seq[Boolean]): Pattern = {
@@ -121,7 +121,7 @@ object DemandTransformation extends Transformation {
           body.atoms.zipWithIndex.flatMap { case (atom, atomix) =>
             atom.asCall match {
               case Some((name, args)) =>
-                if (name == pat.name && !atom.hints.contains(MagicSetHints.IgnoreCallKey)) {
+                if (name == pat.name && !atom.hints.contains(MagicSetHints.IgnoreCall.key)) {
                   val boundParams = boundIndices.map { i =>
                     Eq(args(i), Var(params(i).name))
                   }
@@ -138,7 +138,7 @@ object DemandTransformation extends Transformation {
 
       val boundParams = boundIndices.map(params)
 
-      val extensionalBody = if (pat.hasHint(MagicSetHints.MainKey)) {
+      val extensionalBody = if (pat.hasHint(MagicSetHints.Main.key)) {
         Some(Body(Seq(
           ExtensionalCall(extensionalInputPatternName(pat.name), boundParams.map(p => Var(p.name)))
         )))

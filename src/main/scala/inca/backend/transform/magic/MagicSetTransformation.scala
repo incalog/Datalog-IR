@@ -1,6 +1,6 @@
 package inca.backend.transform.magic
 
-import inca.backend.hints.MagicSetHints.{InputCall, InputCallKey}
+import inca.backend.hints.MagicSetHints.InputCall
 import inca.backend.hints.{Hints, MagicSetHints}
 import inca.backend.ir.CollectVars
 import inca.backend.ir.Datalog._
@@ -30,7 +30,7 @@ object MagicSetTransformation extends Transformation {
       val allPats = insertedInputCallPats ++ inputPatterns
       val filter = new FilterBodyTransformer({ body =>
         val hasEmptyInput = body.atoms.exists { con =>
-          con.hasHint(InputCallKey) && !inputPatNames.contains(con.asInstanceOf[Call].name)
+          con.hasHint(InputCall.key) && !inputPatNames.contains(con.asInstanceOf[Call].name)
         }
         !hasEmptyInput
       })
@@ -40,7 +40,7 @@ object MagicSetTransformation extends Transformation {
     }
 
     override def transformPattern(pat: Pattern): Seq[Pattern] =
-      if (pat.hasHint(MagicSetHints.AdornmentKey)) {
+      if (pat.hasHint(MagicSetHints.Adornment.key)) {
         val extendedPattern = insertInputCall(pat)
         Seq(extendedPattern)
       } else {
@@ -48,10 +48,10 @@ object MagicSetTransformation extends Transformation {
       }
 
     private def shouldDeriveInput(pat: Pattern): Boolean =
-      shouldInsertInput(pat) && pat.hasHint(MagicSetHints.AdornmentKey)
+      shouldInsertInput(pat) && pat.hasHint(MagicSetHints.Adornment.key)
 
     private def shouldInsertInput(body: Hints): Boolean =
-      !body.hasHint(MagicSetHints.NoInputRelationKey)
+      !body.hasHint(MagicSetHints.NoInputRelation.key)
 
     private def insertInputCall(pat: Pattern): Pattern = {
       if (!shouldInsertInput(pat))
@@ -89,11 +89,11 @@ object MagicSetTransformation extends Transformation {
     }
 
     private def deriveBoundIndices(pat: Pattern): Seq[Int] = {
-      if (!pat.hasHint(MagicSetHints.AdornmentKey)) {
+      if (!pat.hasHint(MagicSetHints.Adornment.key)) {
         throw new IllegalArgumentException(s"Cannot derive input pattern of non-adorned pattern ${pat.name}")
       }
 
-      val adornment = pat.hints(MagicSetHints.AdornmentKey) match {
+      val adornment = pat.hints(MagicSetHints.Adornment.key) match {
         case MagicSetHints.Adornment(adorn) => adorn
         case _ => throw new IllegalStateException("This cannot happen")
       }
@@ -117,7 +117,7 @@ object MagicSetTransformation extends Transformation {
           body.atoms.zipWithIndex.flatMap { case (atom, atomix) =>
             atom.asCall match {
               case Some((name, args)) =>
-                if (name == pat.name && !atom.hints.contains(MagicSetHints.IgnoreCallKey)) {
+                if (name == pat.name && !atom.hints.contains(MagicSetHints.IgnoreCall.key)) {
                   val boundParams = boundIndices.map { i =>
                     Eq(args(i), Var(params(i).name))
                   }
@@ -134,7 +134,7 @@ object MagicSetTransformation extends Transformation {
 
       val boundParams = boundIndices.map(params)
 
-      val extensionalBody = if (pat.hasHint(MagicSetHints.MainKey)) {
+      val extensionalBody = if (pat.hasHint(MagicSetHints.Main.key)) {
         Some(Body(Seq(
           ExtensionalCall(extensionalInputPatternName(pat.name), boundParams.map(p => Var(p.name)))
         )))
