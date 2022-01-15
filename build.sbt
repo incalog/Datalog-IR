@@ -52,4 +52,10 @@ lazy val souffle_importer = (project in file("souffle-frontend"))
   )
 )
 
+lazy val treesitter_truediff_api = (project in file("treesitter-truediff-API")).dependsOn(inca).settings(
+  name := "treesitter-truediff-API",
 
+  libraryDependencies ++= Seq(
+    "org.junit.jupiter" % "junit-jupiter" % "5.8.2",
+  )
+)

@@ -1,0 +1,21 @@
+package inca.treesitterAPI.editscriptAPI;
+
+import com.sun.jna.Pointer;
+import com.sun.jna.Structure;
+
+@Structure.FieldOrder({"id", "tag", "old_padding", "new_padding"})
+public class UpdatePadding extends Structure {
+
+    public Pointer id;
+    public short tag;
+    public Length old_padding;
+    public Length new_padding;
+
+    public UpdatePadding() {
+        super();
+    }
+    public UpdatePadding(Pointer p) {
+        super(p);
+        this.read();
+    }
+}
