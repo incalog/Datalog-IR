@@ -27,6 +27,9 @@ class CallStack {
 
   def pop(): Frame = _stack.pop()
 
+  def update(cp: Frame): Unit =
+    _stack.update(0, cp)
+
   override def toString: String =
     _stack.mkString("[", ", ", "]")
 }

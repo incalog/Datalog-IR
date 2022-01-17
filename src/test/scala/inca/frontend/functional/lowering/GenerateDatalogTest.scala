@@ -213,9 +213,12 @@ class GenerateDatalogTest extends AnyFunSuite {
   }
 
   test("if example 2") {
-    val result = Compiler.compileFunctional(AST.ifExample2, options).ir
-    println(result)
-    assert(result == ifExample2GP)
+    val compiled = Compiler.compileFunctional(AST.ifExample2, options)
+    println(compiled.fun)
+    println(compiled.ir)
+    println(compiled.transformed)
+    println(compiled.optimized)
+    assert(compiled.ir == ifExample2GP)
   }
 
   test("inc example") {
@@ -229,8 +232,11 @@ class GenerateDatalogTest extends AnyFunSuite {
   }
 
   test("plus example") {
-    val result = Compiler.compileFunctional(AST.plusModule, options).ir
-    println(result)
+    val compiled = Compiler.compileFunctional(AST.plusModule, options)
+    println(compiled.fun)
+    println(compiled.ir)
+    println(compiled.transformed)
+    println(compiled.optimized)
   }
 //  test("running example for section 5") {
 //    val result = Compiler.compileFunctional(

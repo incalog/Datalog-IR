@@ -9,6 +9,7 @@ trait Hints {
     hint.foreach(h => _hints += h.key -> h)
     this
   }
+  def getHint(key: Hint.Key): Option[Hint] = _hints.get(key)
   def withHints(h: Hints): this.type = {
     this._hints.clear()
     this._hints ++= h._hints
