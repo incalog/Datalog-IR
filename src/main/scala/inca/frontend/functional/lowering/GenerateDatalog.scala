@@ -221,7 +221,7 @@ class GenerateDatalog(module: Module) {
       transExp(left) ++ transExp(right)
 
     case BaseApplyInfix(left, op, right) =>
-
+      import scala.meta._
       val leftParam = {
         val typ = left.typ.getOrElse(throw new IllegalStateException(s"Cannot compile call to $op with untyped argument $left"))
         param"left: ${typ.asScala}"
