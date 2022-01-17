@@ -72,6 +72,12 @@ trait Debugger {
         val tables = processAtom(frame, call)
         val callee = ControlPoint(PatternPoint(patterns(call.name), BeforeList))
         callStack.push(Frame(callee, ???, ???, ???))
+      case Some(undef: Datalog.Undef) =>
+        // TODO step into the call
+      case Some(comp@Datalog.Computed(_, countAgg: Datalog.CountAggregation)) =>
+        // TODO step into the call
+      case Some(comp@Datalog.Computed(_, custAgg: Datalog.CustomAggregation)) =>
+        // TODO step into the call
       case Some(atom) =>
         // TODO step inside the current call frame
         val tables = processAtom(frame, atom)
