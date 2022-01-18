@@ -1,29 +1,25 @@
 package inca.debugger
 
+import inca.analyzedLangs.{Exp, ExpLangTestAnalyses}
 import inca.backend.ir.Datalog
 import inca.debugger.table.Table
 import inca.runtime.context.DataModel
 import inca.util.Meta.Scala
 import org.scalatest.funsuite.AnyFunSuite
+import truechange.EditScript
+import truediff.Diffable
 
 import scala.meta.XtensionQuasiquoteTerm
 
 class IRDebuggerTest extends AnyFunSuite {
-  val singleEdgeMod = Datalog.Module(
-    "SingleEdge",
-    Seq(),
-    Seq(
-      Datalog.Pattern(None, "edge", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
-        Seq(
-          Datalog.Body(Seq(
-            Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-            Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq((Datalog.Var("from"), Datalog.TScalaInt)), Datalog.TScalaInt, Scala(q"(x: Int) => x + 1")))))))),
-    Seq())
+  val singleEdgePattern =
+    Datalog.Pattern(None, "edge", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+      Seq(
+        Datalog.Body(Seq(
+          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
+          Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq((Datalog.Var("from"), Datalog.TScalaInt)), Datalog.TScalaInt, Scala(q"(x: Int) => x + 1")))))))
 
-  val twoEdgeMod = Datalog.Module(
-    "SingleEdge",
-    Seq(),
-    Seq(
+  val twoEdgePattern =
       Datalog.Pattern(None, "edge", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
         Seq(
           Datalog.Body(Seq(
@@ -31,10 +27,9 @@ class IRDebuggerTest extends AnyFunSuite {
             Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 2"))))),
           Datalog.Body(Seq(
             Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-            Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3")))))))),
-  Seq())
+            Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3")))))))
 
-  val mod = Datalog.Module(
+  val twoHopsModule = Datalog.Module(
     "Path",
     Seq(),
     Seq(
@@ -85,169 +80,163 @@ class IRDebuggerTest extends AnyFunSuite {
     ),
     Seq()
   )
-  val dataModel = new DataModel()
 
-  def initDebugger(module: Datalog.Module): IRDebugger = {
-    val debugger = new IRDebugger
-    debugger.initialize(module)
+  val comparatorPattern =
+    Datalog.Pattern(None, "edge", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+      Seq(
+        Datalog.Body(Seq(
+          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
+          Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 2"))),
+          Datalog.Compare(Datalog.EqComparator, Datalog.Var("from"), Datalog.Var("to")))),
+        Datalog.Body(Seq(
+          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 4"))),
+          Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 4"))),
+          Datalog.Compare(Datalog.EqComparator, Datalog.Var("from"), Datalog.Var("to")))),
+        Datalog.Body(Seq(
+          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
+          Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3"))),
+          Datalog.Compare(Datalog.NeqComparator, Datalog.Var("from"), Datalog.Var("to")))),
+        Datalog.Body(Seq(
+          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
+          Datalog.Compare(Datalog.EqComparator, Datalog.Var("from"), Datalog.Var("to")))),
+        Datalog.Body(Seq(
+          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 2"))),
+          Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
+          Datalog.Compare(Datalog.NeqComparator, Datalog.Var("to"), Datalog.Var("from")))),
+        Datalog.Body(Seq(
+          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3"))),
+          Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
+          Datalog.Compare(Datalog.NeqComparator, Datalog.Var("from"), Datalog.Var("to")))),
+        Datalog.Body(Seq(
+          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 5"))),
+          Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 5"))),
+          Datalog.Compare(Datalog.NeqComparator, Datalog.Var("from"), Datalog.Var("to")))),
+        Datalog.Body(Seq(
+          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 6"))),
+          Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 6"))),
+          Datalog.Compare(Datalog.NeqComparator, Datalog.Var("to"), Datalog.Var("from")))),
+    ))
+
+  def module(pat: Datalog.Pattern): Datalog.Module =
+    Datalog.Module("TestModule", Seq(), Seq(pat), Seq())
+
+  val emptyDataModel = new DataModel()
+
+  def initDebugger(module: Datalog.Module, dataModel: DataModel, tree: Diffable): IRDebugger =
+    initDebugger(module, dataModel, tree.loadEdits)
+
+  def stepTillFinish(debugger: IRDebugger): Unit = {
+    while (!debugger.isFinished)
+      debugger.stepInto()
+  }
+
+
+  def initDebugger(module: Datalog.Module, dataModel: DataModel, edits: EditScript = EditScript(Seq())): IRDebugger = {
+    val debugger = new IRDebugger {}
+    debugger.initialize(module, dataModel, edits)
     debugger
   }
 
   test("simple step over") {
-    val debugger = initDebugger(mod)
+    val debugger = initDebugger(twoHopsModule, emptyDataModel)
     debugger.entry("two", Table(Seq("from"), Seq(Seq(ScalaValue(1)))))
-    debugger.stepOver()
-    assert(debugger.controlTrace.size == 2)
-    assert(debugger.controlTrace(0).isPatternPoint)
-    assert(debugger.controlTrace(1).isPatternEndPoint)
+    stepTillFinish(debugger)
+
     assert(debugger.isFinished)
-    // debugger.stepInto()
-    val expectedTable = Seq(
+
+    val expectedTable = Table(Seq("from", "to"), Seq(
       Seq(ScalaValue(1), ScalaValue(3)),
       Seq(ScalaValue(1), ScalaValue(6)),
-    )
-    assert(debugger.relation("two") == Table(Seq("from", "to"), expectedTable))
+    ))
+    val rel = debugger.relation("two")
+    assertResult(expectedTable)(rel)
   }
 
-  test("step into body and over body") {
-    val debugger = initDebugger(mod)
-    debugger.entry("two", Table.empty)
-    debugger.stepInto() // into two
-    debugger.stepOver() // over body
-    debugger.stepOver() // out of two
-    assert(debugger.controlTrace.size == 4)
-    assert(debugger.controlTrace(0).isPatternPoint)
-    assert(debugger.controlTrace(1).isBodyPoint)
-    assert(debugger.controlTrace(2).isBodyEndPoint)
-    assert(debugger.controlTrace(3).isPatternEndPoint)
-    assert(debugger.isFinished)
+
+  test("test compare atoms") {
+    val debugger = initDebugger(module(comparatorPattern), emptyDataModel)
+    debugger.entry("edge", Table(Seq("from"), Seq(Seq(ScalaValue(4)), Seq(ScalaValue(1)), Seq(ScalaValue(2)), Seq(ScalaValue(3)))))
+    stepTillFinish(debugger)
+    val rel = debugger.relation("edge")
+
+    val expectedTable = Table(Seq("from", "to"), Seq(
+      Seq(ScalaValue(4), ScalaValue(4)),
+      Seq(ScalaValue(1), ScalaValue(3)),
+      Seq(ScalaValue(1), ScalaValue(1)),
+      Seq(ScalaValue(2), ScalaValue(1)),
+      Seq(ScalaValue(3), ScalaValue (1)),
+    ))
+    assertResult(expectedTable)(rel)
   }
 
-  test("step into rule and into body") {
-    val debugger = initDebugger(mod)
-    debugger.entry("two", Table.empty)
-    debugger.stepInto() // into two
-    debugger.stepInto() // into body
-    debugger.stepOver() // over edge before
-    debugger.stepOver() // over edge after
-    debugger.stepOver() // over one before
-    debugger.stepOver() // over one after
-    debugger.stepOver() // out of body
-    assert(debugger.controlTrace.size == 8)
-    assert(debugger.controlTrace(0).isPatternPoint)
-    assert(debugger.controlTrace(1).isBodyPoint)
-    assert(debugger.controlTrace(2).isAtomPoint)
-    assert(debugger.controlTrace(3).isAtomEndPoint)
-    assert(debugger.controlTrace(4).isAtomPoint)
-    assert(debugger.controlTrace(5).isAtomEndPoint)
-    assert(debugger.controlTrace(6).isBodyEndPoint)
-    assert(debugger.controlTrace(7).isPatternEndPoint)
-    assert(debugger.isFinished)
+  test("test has type atom") {
+    val tree = Exp.Mul(Exp.IntegerLit(1), Exp.IntegerLit(2))
+    val mulURI = tree.uri
+
+    val debugger = initDebugger(module(ExpLangTestAnalyses.mulPattern), Exp.model, tree)
+    debugger.entry("mul", Table(Seq("mul"), Seq(Seq(URIValue(mulURI)))))
+    stepTillFinish(debugger)
+    val rel = debugger.relation("mul")
+
+    val expectedTable = Table(Seq("mul"), Seq(
+      Seq(URIValue(mulURI))
+    ))
+
+    assertResult(expectedTable)(rel)
   }
 
-  test("step into non-call atom") {
-    val debugger = initDebugger(mod)
-    debugger.entry("two", Table.empty)
-    debugger.stepInto() // into two
-    debugger.stepInto() // into body
-    debugger.stepInto() // into edge call
-    debugger.stepInto() // into edge pattern
-    debugger.stepInto() // into body
-    debugger.stepInto() // over first computed before
-    debugger.stepInto() // over first computed after
-    debugger.stepInto() // over second computed before
-    debugger.stepOut() // out of edge body
-    debugger.stepOut() // out of edge
-    debugger.stepOver() // out of two body
-    debugger.stepOut() // out of body
-    debugger.stepOut() // out of two
-    assert(debugger.controlTrace.size == 14)
-    assert(debugger.controlTrace(0).isPatternPoint)
-    assert(debugger.controlTrace(1).isBodyPoint)
-    assert(debugger.controlTrace(2).isAtomPoint)
-    assert(debugger.controlTrace(3).isPatternPoint)
-    assert(debugger.controlTrace(4).isBodyPoint)
-    assert(debugger.controlTrace(5).isAtomPoint)
-    assert(debugger.controlTrace(6).isAtomEndPoint)
-    assert(debugger.controlTrace(7).isAtomPoint)
-    assert(debugger.controlTrace(8).isAtomEndPoint)
-    assert(debugger.controlTrace(9).isBodyEndPoint)
-    assert(debugger.controlTrace(10).isPatternEndPoint)
-    assert(debugger.controlTrace(11).isAtomEndPoint)
-    assert(debugger.controlTrace(12).isBodyEndPoint)
-    assert(debugger.controlTrace(13).isPatternEndPoint)
-    assert(debugger.isFinished)
+  test("test two has type atoms join") {
+    val tree = Exp.Mul(Exp.IntegerLit(1), Exp.IntegerLit(2))
+    val mulURI = tree.uri
+    val intLit1URI = tree.lhs.uri
+    val intLit2URI = tree.rhs.uri
+
+    val debugger = initDebugger(module(ExpLangTestAnalyses.mulIntLitPattern), Exp.model, tree)
+    debugger.entry("mulIntLit", Table(Seq("mul"), Seq(Seq(URIValue(tree.uri)))))
+    stepTillFinish(debugger)
+    val rel = debugger.relation("mulIntLit")
+
+    val expectedTable = Table(Seq("mul", "intLit"), Seq(
+      Seq(URIValue(mulURI), URIValue(intLit1URI)),
+      Seq(URIValue(mulURI), URIValue(intLit2URI))
+    ))
+
+    assertResult(expectedTable)(rel)
   }
 
-  test("step into rule and into body then out of body") {
-    val debugger = initDebugger(mod)
-    debugger.entry("edge", Table.empty)
-    debugger.stepInto() // into edge
-    debugger.stepInto() // into body
-    debugger.stepOut() // out of body
-    debugger.stepOut() // out of pattern
-    assert(debugger.controlTrace.size == 5)
-    assert(debugger.controlTrace(0).isPatternPoint)
-    assert(debugger.controlTrace(1).isBodyPoint)
-    assert(debugger.controlTrace(2).isAtomPoint)
-    assert(debugger.controlTrace(3).isBodyEndPoint)
-    assert(debugger.controlTrace(4).isPatternEndPoint)
-    assert(debugger.isFinished)
+  test("test path atom") {
+    val tree = Exp.Mul(Exp.Add(Exp.IntegerLit(1), Exp.IntegerLit(2)), Exp.IntegerLit(3))
+    val mulURI = tree.uri
+    val mulLhsURI = tree.lhs.uri
+    val addLhsURI = tree.lhs.asInstanceOf[Exp.Add].lhs.uri
+
+    val debugger = initDebugger(module(ExpLangTestAnalyses.lhsPattern), Exp.model, tree)
+    debugger.entry("lhs", Table(Seq("exp"), Seq(Seq(URIValue(mulURI)), Seq(URIValue(mulLhsURI)))))
+    stepTillFinish(debugger)
+    val rel = debugger.relation("lhs")
+
+    val expectedTable = Table(Seq("exp", "res"), Seq(
+      Seq(URIValue(mulURI), URIValue(mulLhsURI)),
+      Seq(URIValue(mulLhsURI), URIValue(addLhsURI))
+    ))
+
+    assertResult(expectedTable)(rel)
   }
 
-  // test("only step into") {
-  //   val debugger = initDebugger(mod)
-  //   debugger.entry("two", Table(Vector("from"), Vector(Vector(ScalaValue(1)))))
-  //   debugger.stepInto() // into two
-  //   debugger.stepInto() // over body
-  //   debugger.stepInto() // out of two
-  //   debugger.stepInto() // out of two
-  //   debugger.stepInto() // out of two
-  //   debugger.stepInto() // out of two
-  //   debugger.stepInto() // out of two
-  //   debugger.stepInto() // out of two
-  //   debugger.stepInto() // out of two
-  //   debugger.stepInto() // out of two
-  //   debugger.stepInto() // out of two
-  //   debugger.stepInto() // out of two
-  //   debugger.stepInto() // out of two
-  //   debugger.stepInto() // out of two
-  //   debugger.stepInto() // out of two
-  //   debugger.stepInto() // out of two
-  //   assert(debugger.isFinished)
-  // }
+  test("test path atom where trg is literal") {
+    val tree = Exp.Add(Exp.IntegerLit(1), Exp.IntegerLit(2))
+    val intLitLhs = tree.lhs.uri
+    val intLitRhs = tree.rhs.uri
 
-  test("two edge rule") {
-    val debugger = initDebugger(twoEdgeMod)
-    debugger.entry("edge", Table(Seq("from"), Seq(Seq(ScalaValue(1)))))
-    debugger.stepInto() // into edge
-    debugger.stepInto() // into body
-    debugger.stepInto() // execute computed before
-    debugger.stepInto() // skip to seconded computed before
-    debugger.stepInto() // execute seconded computed before
-    debugger.stepInto() // get to body end
-    debugger.stepInto() // get into second body
-    debugger.stepInto() // execute computed before
-    debugger.stepInto() // skip to seconded computed before
-    debugger.stepInto() // execute seconded computed before
-    debugger.stepInto() // get to body end
-    debugger.stepInto() // get to pattern end
-    debugger.stepInto() // get to pattern end
-    assert(debugger.controlTrace.size == 14)
-    assert(debugger.controlTrace(0).isPatternPoint)
-    assert(debugger.controlTrace(1).isBodyPoint)
-    assert(debugger.controlTrace(2).isAtomPoint)
-    assert(debugger.controlTrace(3).isAtomEndPoint)
-    assert(debugger.controlTrace(4).isAtomPoint)
-    assert(debugger.controlTrace(5).isAtomEndPoint)
-    assert(debugger.controlTrace(6).isBodyEndPoint)
-    assert(debugger.controlTrace(7).isBodyPoint)
-    assert(debugger.controlTrace(8).isAtomPoint)
-    assert(debugger.controlTrace(9).isAtomEndPoint)
-    assert(debugger.controlTrace(10).isAtomPoint)
-    assert(debugger.controlTrace(11).isAtomEndPoint)
-    assert(debugger.controlTrace(12).isBodyEndPoint)
-    assert(debugger.controlTrace(13).isPatternEndPoint)
-    assert(debugger.isFinished)
+    val debugger = initDebugger(module(ExpLangTestAnalyses.intVal), Exp.model, tree)
+    debugger.entry("intVal", Table(Seq("exp"), Seq(Seq(URIValue(intLitLhs)), Seq(URIValue(intLitRhs)))))
+    stepTillFinish(debugger)
+    val rel = debugger.relation("intVal")
+
+    val expectedTable = Table(Seq("exp", "v"), Seq(
+      Seq(URIValue(intLitLhs), ScalaValue(1)),
+      Seq(URIValue(intLitRhs), ScalaValue(2))
+    ))
+    assertResult(expectedTable)(rel)
   }
 }

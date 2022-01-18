@@ -2,7 +2,7 @@ package inca.frontend.functional.debugger
 
 import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.ir.Datalog
-import inca.debugger.{ControlPoint, DebuggerFrontend, Enterable}
+import inca.debugger.{ControlPoint, DebuggerFrontend}
 import inca.frontend.functional.core.{FunctionDef, Module}
 
 class FunctionalDebuggerFrontend extends DebuggerFrontend {
@@ -21,11 +21,8 @@ class FunctionalDebuggerFrontend extends DebuggerFrontend {
   }
 
   override def frontendPoint(cp: ControlPoint): Option[FunctionPoint] = {
-    val fun = getFunction(cp.point).getOrElse(return None)
-    cp.body match {
-      case Enterable.Before => Some(FunctionPoint(fun, fun.sourceObject, cp))
-      case Enterable.After => ???
-      case Enterable.At(t) => ???
-    }
+    val fun = getFunction(cp.point.pat).getOrElse(return None)
+    // TODO implement
+    ???
   }
 }

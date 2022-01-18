@@ -6,7 +6,12 @@ import scala.collection.mutable
 
 // case class Breakpoint(cp: ControlPattern, bindings: BindingPattern, constraints: Seq[Datalog.Atom])
 
-case class Frame(cp: ControlPoint, arguments: Table, bodySubst: Table, patternSubst: Table)
+case class Frame(cp: ControlPoint, argsTable: Table, bodyTable: Table, patternTable: Table)
+object Frame {
+  type Tables = (Table, Table, Table)
+  def apply(cp: ControlPoint, frameTables: Tables): Frame =
+    Frame(cp, frameTables._1, frameTables._2, frameTables._3)
+}
 
 class CallStack {
   private val _stack: mutable.Stack[Frame] = mutable.Stack.empty
@@ -19,7 +24,7 @@ class CallStack {
     else
       Some(_stack.toSeq(index))
 
-  def isFinished: Boolean = _stack.size == 1 && top.cp.isPatternEndPoint
+  def isFinished: Boolean = _stack.isEmpty // _stack.size == 1 && top.cp.isPatternEndPoint
   def isEmpty: Boolean = _stack.isEmpty
   def nonEmpty: Boolean = _stack.nonEmpty
 

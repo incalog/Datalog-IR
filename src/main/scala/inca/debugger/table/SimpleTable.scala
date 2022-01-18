@@ -2,7 +2,11 @@ package inca.debugger.table
 
 import inca.debugger.Value
 
+// first implementation, we do not consider efficiency
 case class SimpleTable(columns: Vector[String], data: Vector[Vector[Value]]) extends Table {
+
+  private val columnIdx: Map[String, Int] = columns.zipWithIndex.toMap
+  // private val inverseColumnsIdx: Map[Int, String] = columnIdx.map { case (c, i) => (i, c) }
 
   override def isEmpty: Boolean = data.isEmpty
   override def isBound(col: String): Boolean = columns.contains(col)
@@ -20,12 +24,11 @@ case class SimpleTable(columns: Vector[String], data: Vector[Vector[Value]]) ext
     Table(columns, newData)
   }
 
-  // override def addRows(rows: Seq[Seq[Value]]): Table = {
-  //   Table(columns, (data ++ rows).distinct)
-  // }
   override def addRows(table: Table): Table = {
     Table(columns, (data ++ table.data).distinct)
   }
+
+  override def bind(column: String, vs: Seq[Value]): Table = ???
 
   override def bind(column: String, v: Value): Table = {
     val colIdx = columns.indexOf(column)
@@ -35,6 +38,14 @@ case class SimpleTable(columns: Vector[String], data: Vector[Vector[Value]]) ext
       }
       Table(columns, newData)
     } else {
+//      val newData = {
+//        if (data.isEmpty)
+//          Vector(Vector(v))
+//        else
+//          data.map { row =>
+//            row :+ v
+//          }
+//      }
       val newData = data.map { row =>
         row :+ v
       }
@@ -42,13 +53,9 @@ case class SimpleTable(columns: Vector[String], data: Vector[Vector[Value]]) ext
     }
   }
 
-  // def project(col: String): Table = {
-  //   data.map { row =>
-  //     val colIdx = columns.indexOf(col)
-  //     if (colIdx > -1) row(colIdx)
-  //     else throw new IllegalArgumentException(s"Cannot project column $col out of table with columns ${columns.mkString(", ")}")
-  //   }
-  // }
+  override def addColumn(column: String): Table = {
+    Table(columns :+ column, data)
+  }
 
   override def project(cols: Seq[String]): Table = {
     val newColumns = cols.filter(columns.contains)
@@ -89,5 +96,31 @@ case class SimpleTable(columns: Vector[String], data: Vector[Vector[Value]]) ext
       }
     }
     Table(newColumns, newData)
+  }
+
+  override def columnIndex(col: String): Int = columnIdx(col)
+
+  override def filter(pred: Seq[Value] => Boolean): Table = {
+    val newData = data.filter(pred)
+    Table(columns, newData)
+  }
+
+  override def map(f: Seq[Value] => Seq[Value]): Table = {
+    val newData = data.map(f)
+    Table(columns, newData)
+  }
+
+  override def flatMap(f: Seq[Value] => Seq[Seq[Value]]): Table = {
+    val newData = data.flatMap(f)
+    Table(columns, newData)
+  }
+
+  override def equals(obj: Any): Boolean = obj match {
+    case other: Table =>
+      this.columns == other.columns &&
+        this.data.forall { row =>
+          other.data.contains(row)
+        }
+    case _ => false
   }
 }

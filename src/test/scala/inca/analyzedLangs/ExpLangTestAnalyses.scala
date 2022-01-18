@@ -1,5 +1,6 @@
 package inca.analyzedLangs
 
+import inca.backend.ir.Datalog
 import inca.frontend.constraint.core._
 
 import scala.language.implicitConversions
@@ -97,4 +98,52 @@ object ExpLangTestAnalyses {
     Seq(
       Body(
         Seq(Yield(Var("in"))))))
+
+
+  val mulPattern =
+    Datalog.Pattern(None, "mul", Seq(Datalog.Param("mul", Datalog.TNode(Exp.expTag))),
+      Seq(
+        Datalog.Body(Seq(
+          Datalog.HasType(Datalog.Var("mul"), Datalog.TNode(Exp.multTag))))
+      ))
+
+  val mulIntLitPattern =
+    Datalog.Pattern(None, "mulIntLit", Seq(Datalog.Param("mul", Datalog.TNode(Exp.expTag)), Datalog.Param("intLit", Datalog.TNode(Exp.intTag))),
+      Seq(
+        Datalog.Body(Seq(
+          Datalog.HasType(Datalog.Var("mul"), Datalog.TNode(Exp.multTag)),
+          Datalog.HasType(Datalog.Var("intLit"), Datalog.TNode(Exp.intTag))))
+      ))
+
+  val lhsPattern =
+    Datalog.Pattern(None, "lhs", Seq(Datalog.Param("exp", Datalog.TNode(Exp.expTag)), Datalog.Param("res", Datalog.TNode(Exp.expTag))),
+      Seq(
+        Datalog.Body(Seq(
+          Datalog.HasType(Datalog.Var("exp"), Datalog.TNode(Exp.addTag)),
+          Datalog.Path(Datalog.Var("exp"), Datalog.TNode(Exp.addTag), Datalog.NamedLink(Datalog.TNode(Exp.addTag), "lhs"), Datalog.Var("res"), Datalog.TNode(Exp.expTag)),
+        )),
+        Datalog.Body(Seq(
+          Datalog.HasType(Datalog.Var("exp"), Datalog.TNode(Exp.multTag)),
+          Datalog.Path(Datalog.Var("exp"), Datalog.TNode(Exp.multTag), Datalog.NamedLink(Datalog.TNode(Exp.multTag), "lhs"), Datalog.Var("res"), Datalog.TNode(Exp.expTag)),
+        )),
+      ))
+
+  val lhsPattern2 =
+    Datalog.Pattern(None, "lhs", Seq(Datalog.Param("exp", Datalog.TNode(Exp.expTag)), Datalog.Param("res", Datalog.TNode(Exp.expTag))),
+      Seq(
+        Datalog.Body(Seq(
+          Datalog.Path(Datalog.Var("exp"), Datalog.TNode(Exp.addTag), Datalog.NamedLink(Datalog.TNode(Exp.addTag), "lhs"), Datalog.Var("res"), Datalog.TNode(Exp.expTag)),
+        )),
+        Datalog.Body(Seq(
+          Datalog.Path(Datalog.Var("exp"), Datalog.TNode(Exp.multTag), Datalog.NamedLink(Datalog.TNode(Exp.multTag), "lhs"), Datalog.Var("res"), Datalog.TNode(Exp.expTag)),
+        )),
+      ))
+
+  val intVal =
+    Datalog.Pattern(None, "intVal", Seq(Datalog.Param("exp", Datalog.TNode(Exp.intTag)), Datalog.Param("v", Datalog.TLiteral.Int)),
+      Seq(
+        Datalog.Body(Seq(
+          Datalog.Path(Datalog.Var("exp"), Datalog.TNode(Exp.intTag), Datalog.NamedLink(Datalog.TNode(Exp.intTag), "value"), Datalog.Var("v"), Datalog.TLiteral.Int)
+        )),
+      ))
 }
