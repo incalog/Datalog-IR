@@ -36,6 +36,8 @@ trait Table {
   def flatMap(f: Seq[Value] => Seq[Seq[Value]]): Table
   def map(f: Seq[Value] => Seq[Value]): Table
 
+  def contains(colValPairs: Seq[(String, Value)]): Boolean
+
 }
 
 object Table {

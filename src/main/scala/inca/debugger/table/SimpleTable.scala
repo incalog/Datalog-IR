@@ -115,6 +115,15 @@ case class SimpleTable(columns: Vector[String], data: Vector[Vector[Value]]) ext
     Table(columns, newData)
   }
 
+  override def contains(colValPairs: Seq[(String, Value)]): Boolean = {
+    data.exists { row =>
+      colValPairs.forall { case (col, v) =>
+        val colIdx = columnIndex(col)
+        row(colIdx) == v
+      }
+    }
+  }
+
   override def equals(obj: Any): Boolean = obj match {
     case other: Table =>
       this.columns == other.columns &&

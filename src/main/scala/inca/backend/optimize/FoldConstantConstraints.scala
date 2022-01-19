@@ -4,9 +4,9 @@ import inca.backend.ir.TypeOps
 import inca.runtime.context.DataModel
 import inca.util.Meta.Scala
 
-object FoldConstantConstraints extends Optimization with TypeOps {
+object FoldConstantConstraints extends Optimization {
 
-  override def optimizer(dataModel: DataModel): Optimizer = new Optimizer {
+  override def optimizer(dataModel: DataModel): Optimizer = new Optimizer with TypeOps {
 
     override def optimizeModule(module: Module): Module = {
       module.scalaContent.foreach {

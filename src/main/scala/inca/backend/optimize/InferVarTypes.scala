@@ -10,9 +10,9 @@ import scala.collection.immutable.MultiDict
 /**
  * Should run after `EliminateAliases` and before `FoldConstantConstraints`
  */
-object InferVarTypes extends Optimization with TypeOps {
+object InferVarTypes extends Optimization {
 
-  override def optimizer(dataModel: DataModel): Optimizer = new Optimizer {
+  override def optimizer(dataModel: DataModel): Optimizer = new Optimizer with TypeOps {
 
     private var funs: Map[Name, Seq[Param]] = _
 

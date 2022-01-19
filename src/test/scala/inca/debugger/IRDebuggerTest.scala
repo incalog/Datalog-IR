@@ -81,6 +81,75 @@ class IRDebuggerTest extends AnyFunSuite {
     Seq()
   )
 
+  val negationModule = Datalog.Module(
+    "Path",
+    Seq(),
+    Seq(
+      Datalog.Pattern(None, "node", Seq(Datalog.Param("n", Datalog.TScalaInt)),
+        Seq(
+          Datalog.Body(Seq(
+            Datalog.Computed(Datalog.Var("n"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))))),
+          Datalog.Body(Seq(
+            Datalog.Computed(Datalog.Var("n"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 2"))))),
+          Datalog.Body(Seq(
+            Datalog.Computed(Datalog.Var("n"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3"))))),
+          Datalog.Body(Seq(
+            Datalog.Computed(Datalog.Var("n"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 4"))))),
+          Datalog.Body(Seq(
+            Datalog.Computed(Datalog.Var("n"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 5"))))),
+          Datalog.Body(Seq(
+            Datalog.Computed(Datalog.Var("n"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 6"))))),
+          Datalog.Body(Seq(
+            Datalog.Computed(Datalog.Var("n"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 7"))))),
+        )),
+      Datalog.Pattern(None, "edge", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+        Seq(
+          Datalog.Body(Seq(
+            Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
+            Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 2"))))),
+          Datalog.Body(Seq(
+            Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
+            Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 4"))))),
+          Datalog.Body(Seq(
+            Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
+            Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 5"))))),
+          Datalog.Body(Seq(
+            Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 2"))),
+            Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3"))))),
+          Datalog.Body(Seq(
+            Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 2"))),
+            Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 6"))))),
+          Datalog.Body(Seq(
+            Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 4"))),
+            Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 6"))))),
+          Datalog.Body(Seq(
+            Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 6"))),
+            Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 7")))))
+        )),
+      Datalog.Pattern(None, "one", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+        Seq(
+          Datalog.Body(Seq(
+            Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("to"))))
+          )
+        )),
+      Datalog.Pattern(None, "two", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+        Seq(
+          Datalog.Body(Seq(
+            Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
+            Datalog.Call("one", Seq(Datalog.Var("temp"), Datalog.Var("to"))))
+          )
+        )),
+      Datalog.Pattern(None, "nodesNotTwoHop", Seq(Datalog.Param("x", Datalog.TScalaInt), Datalog.Param("y", Datalog.TScalaInt)),
+        Seq(
+          Datalog.Body(Seq(
+            Datalog.Call("node", Seq(Datalog.Var("x"))),
+            Datalog.Call("node", Seq(Datalog.Var("y"))),
+            Datalog.Call("two", Seq(Datalog.Var("x"), Datalog.Var("y")), neg = true)))
+        )),
+    ),
+    Seq()
+  )
+
   val comparatorPattern =
     Datalog.Pattern(None, "edge", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
       Seq(
@@ -236,6 +305,22 @@ class IRDebuggerTest extends AnyFunSuite {
     val expectedTable = Table(Seq("exp", "v"), Seq(
       Seq(URIValue(intLitLhs), ScalaValue(1)),
       Seq(URIValue(intLitRhs), ScalaValue(2))
+    ))
+    assertResult(expectedTable)(rel)
+  }
+
+  test("test negative call") {
+    val debugger = initDebugger(negationModule, Exp.model)
+    debugger.entry("nodesNotTwoHop", Table(Seq("x"), Seq(Seq(ScalaValue(1)))))
+    stepTillFinish(debugger)
+    val rel = debugger.relation("nodesNotTwoHop")
+
+    val expectedTable = Table(Seq("x", "y"), Seq(
+      Seq(ScalaValue(1), ScalaValue(1)),
+      Seq(ScalaValue(1), ScalaValue(2)),
+      Seq(ScalaValue(1), ScalaValue(4)),
+      Seq(ScalaValue(1), ScalaValue(5)),
+      Seq(ScalaValue(1), ScalaValue(7)),
     ))
     assertResult(expectedTable)(rel)
   }

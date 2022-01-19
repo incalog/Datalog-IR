@@ -95,6 +95,13 @@ trait Debugger {
       case Some(call: Datalog.Call) =>
         val tables = prepareCallTables(frame, call)
         val callee = ControlPoint(PatternPoint(patterns(call.name), BeforeList))
+        if (call.neg) {
+          call.args.foreach {
+            case Datalog.Var(name) if !frame.bodyTable.isBound(name) =>
+              throw IllegalDebugStateException(s"All arguments of a negative pattern call have to be bound, but $name is not bound")
+            case _ => // do nothing
+          }
+        }
         callStack.push(Frame(callee, tables))
       case Some(comp@Datalog.Computed(_, countAgg: Datalog.CountAggregation)) =>
         val tables = prepareAggregationCallTables(frame, countAgg)
@@ -123,13 +130,16 @@ trait Debugger {
           if (callStack.nonEmpty) {
             val callerFrame = callStack.top
             callerFrame.cp.atom match {
-              case Datalog.Call(name, args, transitive, false) =>
+              case Datalog.Call(_, _, _, false) =>
                 val next = callerFrame.cp.stepIntra
                   .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
                 val tables = transitionReturnCallTables(callerFrame, frame)
                 callStack.update(Frame(next, tables))
-              case Datalog.Call(name, args, transitive, true) =>
-                // TODO we need to negate the result of the pattern
+              case Datalog.Call(_, _, _, true) =>
+                val next = callerFrame.cp.stepIntra
+                  .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+                val tables = transitionReturnNegCallTables(callerFrame, frame)
+                callStack.update(Frame(next, tables))
               case Datalog.Computed(lhs, custAgg: Datalog.CustomAggregation) =>
                 // TODO we need to aggregate over the results of the pattern
               case Datalog.Computed(lhs, countAgg: Datalog.CountAggregation) =>
@@ -462,8 +472,22 @@ trait Debugger {
     val (_, args) = callerFrame.cp.atom.asCall.get
     val callArgVars = args.collect { case Datalog.Var(name) => name }
     val columnsSubst = calleFrame.cp.point.pat.params.map(_.name).zip(callArgVars).toMap
-    val renamedPatternTable = callerFrame.patternTable.renameColumns(columnsSubst)
+    val renamedPatternTable = calleFrame.patternTable.renameColumns(columnsSubst)
     val bodyTable = callerFrame.bodyTable.join(renamedPatternTable)
+
+    (callerFrame.argsTable, bodyTable, callerFrame.patternTable)
+  }
+
+  private def transitionReturnNegCallTables(callerFrame: Frame, calleFrame: Frame): Frame.Tables = {
+    // remove rows of caller bodyTable of that contains tuples of pattern table of callee
+    val (_, args) = callerFrame.cp.atom.asCall.get
+    val callArgVars = args.collect { case Datalog.Var(name) => name }
+    val columnsSubst = calleFrame.cp.point.pat.params.map(_.name).zip(callArgVars).toMap
+    val renamedPatternTable = calleFrame.patternTable.renameColumns(columnsSubst)
+    val bodyTable = callerFrame.bodyTable.filter { row =>
+      val columnValuePairs = callerFrame.bodyTable.columns.zip(row)
+      !renamedPatternTable.contains(columnValuePairs)
+    }
 
     (callerFrame.argsTable, bodyTable, callerFrame.patternTable)
   }
