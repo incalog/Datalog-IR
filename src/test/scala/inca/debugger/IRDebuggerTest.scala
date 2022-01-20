@@ -332,7 +332,7 @@ class IRDebuggerTest extends AnyFunSuite {
     val compiledExample = Compiler.compileFunctional(AST.ifExample, FunctionalOptions())
     println(compiledExample.ir)
     val debugger = initDebugger(compiledExample.ir, new DataModel())
-    debugger.entry("main", Table.empty)
+    debugger.entry("main", Table.unit)
     while (!debugger.isFinished) {
       val frame = debugger.frame
       println(s"${frame.cp}:\n  ${frame.bodyTable}")

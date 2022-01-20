@@ -43,6 +43,7 @@ trait Table {
 object Table {
   def empty: Table = SimpleTable(Vector(), Vector())
   def empty(columns: Seq[String]): Table = SimpleTable(columns.toVector, Vector())
+  def unit: Table = SimpleTable(Vector(), Vector(Vector()))
   def apply(columns: Seq[String], rows: Seq[Seq[Value]]): Table =
     SimpleTable(columns.toVector, rows.map(_.toVector).toVector)
 }
