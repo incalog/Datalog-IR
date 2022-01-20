@@ -1,10 +1,8 @@
 package inca.debugger
 
 import inca.backend.ir.Datalog
-import inca.backend.optimize.Optimization
-import inca.backend.transform.Transformation
+import inca.backend.ir.Datalog.{CustomAggregation, True}
 import inca.compiler.Options
-import inca.debugger.Frame.Tables
 import inca.debugger.table.Table
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.runtime.index.dynamic.ParentIndex
@@ -30,9 +28,14 @@ trait Debugger {
   // Datalog program information
   private var module: Datalog.Module = _
   private var dataModel: DataModel = _
-  implicit lazy val patterns: Map[String, Datalog.Pattern] = {
+  implicit private lazy val patterns: Map[String, Datalog.Pattern] =
     module.pats.map { pat => pat.name -> pat }.toMap
-  }
+
+  private lazy val scalaFunctions: Map[String, Scala[meta.Defn]] =
+    module.scalaContent.collect {
+      case d: meta.Defn.Def  =>
+        d.name.value -> Scala(d)
+    }.toMap
 
   // Extensional database stuff
   private var database: Database = _
@@ -45,6 +48,7 @@ trait Debugger {
 
   // Needed to execute scala code via reflection
   private val scalaCompiler = new Scala.ScalaCompiler()
+  private var defintionObjSym: String = _
 
   // Accessor methods of debugger statej
   def frame: Frame = callStack.top
@@ -72,14 +76,20 @@ trait Debugger {
     engine = _engine
     database = _database
     _database.processEditScript(edits)
+    initScalaCompiler()
   }
 
   private def compileModule(): (AdvancedViatraQueryEngine, Database) = {
     val options = Options(_stopOnError = true, _stopOnWarning = false)
-
     val compiled = inca.compiler.Compiler.compileGP(module, dataModel, options)
     val scope = new QueryScope(compiled.dataModel)
     EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+  }
+
+  private def initScalaCompiler(): Unit = {
+    val scalaContent = module.scalaContent.map(_.syntax).mkString("\n")
+    val scalaObject = s"object DefinitionObj {\n  $scalaContent \n}"
+    defintionObjSym = scalaCompiler.define(scalaObject)
   }
 
   // Debugger methods
@@ -107,7 +117,7 @@ trait Debugger {
     val cp = frame.cp
     cp.point.atom match {
       case Some(call: Datalog.Call) =>
-        val tables = prepareCallTables(frame, call)
+        val tables = prepareCallTables(frame, call.name, call.args)
         val callee = ControlPoint(PatternPoint(patterns(call.name), BeforeList))
         if (call.neg) {
           call.args.foreach {
@@ -117,12 +127,12 @@ trait Debugger {
           }
         }
         callStack.push(Frame(callee, tables))
-      case Some(comp@Datalog.Computed(_, countAgg: Datalog.CountAggregation)) =>
-        val tables = prepareAggregationCallTables(frame, countAgg)
+      case Some(Datalog.Computed(_, countAgg: Datalog.CountAggregation)) =>
+        val tables = prepareCallTables(frame, countAgg.patName, countAgg.args)
         val callee = ControlPoint(PatternPoint(patterns(countAgg.patName), BeforeList))
         callStack.push(Frame(callee, tables))
-      case Some(comp@Datalog.Computed(_, custAgg: Datalog.CustomAggregation)) =>
-        val tables = prepareAggregationCallTables(frame, custAgg)
+      case Some(Datalog.Computed(_, custAgg: Datalog.CustomAggregation)) =>
+        val tables = prepareCallTables(frame, custAgg.patName, custAgg.args)
         val callee = ControlPoint(PatternPoint(patterns(custAgg.patName), BeforeList))
         callStack.push(Frame(callee, tables))
       case Some(atom) =>
@@ -159,9 +169,15 @@ trait Debugger {
                 val tables = transitionReturnNegCallTables(callerFrame, frame)
                 callStack.update(Frame(next, tables))
               case Datalog.Computed(lhs, custAgg: Datalog.CustomAggregation) =>
-                // TODO we need to aggregate over the results of the pattern
+                val next = callerFrame.cp.stepIntra
+                  .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+                val tables = transitionCustomAggTables(callerFrame, frame, lhs, custAgg)
+                callStack.update(Frame(next, tables))
               case Datalog.Computed(lhs, countAgg: Datalog.CountAggregation) =>
-                // TODO we need to count the number of results of the pattern
+                val next = callerFrame.cp.stepIntra
+                  .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+                val tables = transitionCountAggTables(callerFrame, frame, lhs)
+                callStack.update(Frame(next, tables))
             }
           }
         } else if (cp.point.isBodyEntry) {
@@ -180,12 +196,12 @@ trait Debugger {
   }
 
   // Methods to prepare frame tables for atoms that can jump into another pattern (calls and aggregations)
-  private def prepareCallTables(frame: Frame, call: Datalog.Call): Frame.Tables = {
-    val callingPat = patterns(call.name)
+  private def prepareCallTables(frame: Frame, name: String, args: Seq[Datalog.Term]): Frame.Tables = {
+    val callingPat = patterns(name)
     val params = callingPat.params.map(_.name)
 
     // prepare argsTable
-    val paramSubst = params.zip(call.args)
+    val paramSubst = params.zip(args)
     val (varsBindings, constBindings) = paramSubst.partition(_._2.isInstanceOf[Datalog.Var])
     val varsBindingsCast = varsBindings.map { case (p, v) => (p, v.asInstanceOf[Datalog.Var]) }
     val constBindingsCast = constBindings.map { case (p, v) => (p, v.asInstanceOf[Datalog.Constant]) }
@@ -198,18 +214,6 @@ trait Debugger {
     val patternTable = Table.empty[Value](params)
 
     (argsTable, argsTable, patternTable)
-  }
-
-
-  private def prepareAggregationCallTables(frame: Frame, agg: Datalog.Computation): Frame.Tables = agg match {
-    case Datalog.CountAggregation(patName, args) =>
-      // TODO implement
-      ???
-    case Datalog.CustomAggregation(typ, description, agg, patName, args, aggregatedColumn) =>
-      // TODO implement
-      ???
-    case Datalog.Evaluation(evalArgs, resultType, code) =>
-      throw IllegalDebugStateException(s"The function prepareAggregationCallTables should not be called with evaluation computation $agg")
   }
 
 
@@ -508,6 +512,70 @@ trait Debugger {
     (callerFrame.argsTable, bodyTable, callerFrame.patternTable)
   }
 
+
+  private def transitionCountAggTables(callerFrame: Frame, calleeFrame: Frame, lhs: Datalog.Term): Frame.Tables = {
+    val count = calleeFrame.patternTable.numRows
+    transitionAggTables(callerFrame, lhs, ScalaValue(count))
+  }
+
+  private def transitionCustomAggTables(callerFrame: Frame, calleeFrame: Frame, lhs: Datalog.Term, agg: CustomAggregation) : Frame.Tables = {
+    val valsToAgg = calleeFrame.patternTable.rows.map {
+      row => row(agg.aggregatedColumn).asScala
+    }.toSeq
+    val (initTerm, joinOpTerm) = getInitValueAndJoin(agg.agg)
+    val initValue = executeScala(initTerm)
+    val foldRes = valsToAgg.foldLeft(initValue.v) { case (res, x) =>
+      // currently we assume that the previous result is the left op and the current value the right op
+      val joinCode = s"(${joinOpTerm.syntax})($res, $x)"
+      executeScala(joinCode).v
+    }
+    transitionAggTables(callerFrame, lhs, ScalaValue(foldRes))
+  }
+
+
+  private def getInitValueAndJoin(agg: Scala[meta.Term]): (Scala[meta.Term], Scala[meta.Term]) = {
+    import scala.meta._
+    var init: Option[meta.Term] = None
+    var joinOp: Option[meta.Term] = None
+    agg.tree match {
+      case Term.NewAnonymous(Template(_, _, _, stats)) =>
+        stats.foreach {
+          case Defn.Def(_, Term.Name("init"), _, _, _, body) =>
+            init = Some(body)
+          case Defn.Def(_, Term.Name("join"), _, Seq(params), _, body) =>
+            joinOp = Some(q"(..$params) => $body")
+          case _ => // do nothing
+        }
+      case _ => throw IllegalDebugStateException("Object created for aggregation is not of type Aggregation")
+    }
+    if (init.isEmpty || joinOp.isEmpty) {
+      throw IllegalDebugStateException("Aggregation has no initial value or join operation defined")
+    }
+    (Scala(init.get), Scala(joinOp.get))
+  }
+
+  private def transitionAggTables(callerFrame: Frame, lhs: Datalog.Term, v: ScalaValue): Frame.Tables = {
+    val table = callerFrame.bodyTable
+    val extBodyTable = lhs match {
+      case Datalog.Var(name) =>
+        if (table.isBound(name)) {
+          val nameIdx = table.columnIndex(name)
+          table.filter { row =>
+            row(nameIdx) == v
+          }
+        } else
+          table.bind(name, v)
+      case Datalog.Constant(lit) =>
+        val transLit = transLiteral(lit)
+        if (transLit == v)
+          table
+        else
+          Table.empty[Value](table.columns)
+    }
+    (callerFrame.argsTable, extBodyTable, callerFrame.patternTable)
+  }
+
+
   private def transitionNextBodyTables(frame: Frame): Frame.Tables = {
     // extend pattern table with tuples derived by body
     val pat = frame.cp.point.pat
@@ -561,7 +629,15 @@ trait Debugger {
       case (Datalog.Var(v), _) => row(table.columnIndex(v))
       case (Datalog.Constant(v), _) => transLiteral(v)
     }
-    val funCode = s"(${eval.code.syntax})(${args.mkString(", ")})"
+    val funCode = s"import ${defintionObjSym}._\n(${eval.code.syntax})(${args.mkString(", ")})"
     ScalaValue(scalaCompiler.compileAndLoadScala(funCode))
+  }
+
+  private def executeScala(term: Scala[meta.Term]): ScalaValue =
+    executeScala(term.syntax)
+
+  private def executeScala(term: String): ScalaValue = {
+    val code = s"import ${defintionObjSym}._\n$term"
+    ScalaValue(scalaCompiler.compileAndLoadScala(code))
   }
 }

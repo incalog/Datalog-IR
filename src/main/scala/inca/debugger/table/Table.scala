@@ -17,11 +17,11 @@ trait Table[V] {
   def isBound(col: String): Boolean
 
   def bind(col: String, v: V): Table[V]
-  def bind(col: String, vs: Seq[V]): Table[V]
   def join(other: Table[V]) : Table[V]
   def addRow(row: Seq[V]): Table[V]
   def addRows(rows: Table[V]): Table[V]
   def addColumn(col: String): Table[V]
+  def numRows: Int
 
   def project(cols: Seq[String]): Table[V]
   def renameColumns(subst: Map[String, String]): Table[V]

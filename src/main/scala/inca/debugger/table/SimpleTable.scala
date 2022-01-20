@@ -4,10 +4,10 @@ package inca.debugger.table
 case class SimpleTable[V](columns: Vector[String], rows: Vector[Vector[V]]) extends Table[V] {
 
   private val columnIdx: Map[String, Int] = columns.zipWithIndex.toMap
-  // private val inverseColumnsIdx: Map[Int, String] = columnIdx.map { case (c, i) => (i, c) }
 
   override def isEmpty: Boolean = rows.isEmpty
   override def isBound(col: String): Boolean = columns.contains(col)
+  override def numRows: Int = rows.size
 
   override def renameColumns(columnsSubst: Map[String, String]): SimpleTable[V] = {
     SimpleTable(columns.map(columnsSubst.apply), rows)
@@ -25,8 +25,6 @@ case class SimpleTable[V](columns: Vector[String], rows: Vector[Vector[V]]) exte
   override def addRows(table: Table[V]): SimpleTable[V] =
     SimpleTable(columns, (rows ++ table.rows.map(_.toVector)).distinct)
 
-  override def bind(column: String, vs: Seq[V]): SimpleTable[V] = ???
-
   override def bind(column: String, v: V): SimpleTable[V] = {
     val colIdx = columns.indexOf(column)
     if (colIdx > -1) {
@@ -35,14 +33,6 @@ case class SimpleTable[V](columns: Vector[String], rows: Vector[Vector[V]]) exte
       }
       SimpleTable(columns, newData)
     } else {
-//      val newData = {
-//        if (data.isEmpty)
-//          Vector(Vector(v))
-//        else
-//          data.map { row =>
-//            row :+ v
-//          }
-//      }
       val newData = rows.map { row =>
         row :+ v
       }
