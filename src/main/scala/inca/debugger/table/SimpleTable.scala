@@ -3,40 +3,39 @@ package inca.debugger.table
 import inca.debugger.Value
 
 // first implementation, we do not consider efficiency
-case class SimpleTable(columns: Vector[String], data: Vector[Vector[Value]]) extends Table {
+case class SimpleTable(columns: Vector[String], rows: Vector[Vector[Value]]) extends Table {
 
   private val columnIdx: Map[String, Int] = columns.zipWithIndex.toMap
   // private val inverseColumnsIdx: Map[Int, String] = columnIdx.map { case (c, i) => (i, c) }
 
-  override def isEmpty: Boolean = data.isEmpty
+  override def isEmpty: Boolean = rows.isEmpty
   override def isBound(col: String): Boolean = columns.contains(col)
 
   override def renameColumns(columnsSubst: Map[String, String]): Table = {
-    Table(columns.map(columnsSubst.apply), data)
+    SimpleTable(columns.map(columnsSubst.apply), rows)
   }
 
   override def addRow(row: Seq[Value]): Table = {
     val newData =
-      if (data.contains(row))
-        data
+      if (rows.contains(row))
+        rows
       else
-        data :+ row
-    Table(columns, newData)
+        rows :+ row.toVector
+    SimpleTable(columns, newData)
   }
 
-  override def addRows(table: Table): Table = {
-    Table(columns, (data ++ table.data).distinct)
-  }
+  override def addRows(table: Table): Table =
+    SimpleTable(columns, (rows ++ table.rows.map(_.toVector)).distinct)
 
   override def bind(column: String, vs: Seq[Value]): Table = ???
 
   override def bind(column: String, v: Value): Table = {
     val colIdx = columns.indexOf(column)
     if (colIdx > -1) {
-      val newData = data.filter { row =>
+      val newData = rows.filter { row =>
         row(colIdx) == v
       }
-      Table(columns, newData)
+      SimpleTable(columns, newData)
     } else {
 //      val newData = {
 //        if (data.isEmpty)
@@ -46,37 +45,38 @@ case class SimpleTable(columns: Vector[String], data: Vector[Vector[Value]]) ext
 //            row :+ v
 //          }
 //      }
-      val newData = data.map { row =>
+      val newData = rows.map { row =>
         row :+ v
       }
-      Table(columns :+ column, newData)
+      SimpleTable(columns :+ column, newData)
     }
   }
 
   override def addColumn(column: String): Table = {
-    Table(columns :+ column, data)
+    SimpleTable(columns :+ column, rows)
   }
 
   override def project(cols: Seq[String]): Table = {
-    val newColumns = cols.filter(columns.contains)
-    val newData = data.map { row =>
+    val newColumns = cols.filter(columns.contains).toVector
+    val newData = rows.map { row =>
       newColumns.flatMap { col =>
         val colIdx = columns.indexOf(col)
-        if (colIdx > -1) {
-          if (colIdx >= row.size) Vector()
-          else Vector(row(colIdx))
-        } else Vector() // throw new IllegalArgumentException(s"Cannot project column $col out of table with columns ${columns.mkString(", ")}")
+        if (colIdx < 0 || colIdx >= row.size)
+          Vector()
+        else
+          Vector(row(colIdx))
       }
     }
-    Table(newColumns, newData)
+    SimpleTable(newColumns, newData)
   }
 
   override def rearrangeColumns(cols: Seq[String]): Table = {
-    val colsIdx = cols.map(columns.indexOf)
-    val newData = data.map { row =>
+    val colsVector = cols.toVector
+    val colsIdx = colsVector.map(columns.indexOf)
+    val newData = rows.map { row =>
       colsIdx.map(row.apply)
     }
-    Table(cols, newData)
+    SimpleTable(colsVector, newData)
   }
 
   override def join(other: Table): Table = {
@@ -86,37 +86,47 @@ case class SimpleTable(columns: Vector[String], data: Vector[Vector[Value]]) ext
     val sameCols = columns.filter(other.columns.contains)
     val sameColIdxs = sameCols.map(columns.indexOf)
     val otherSameColIdxs = sameCols.map(other.columns.indexOf)
-    val newData = data.flatMap { row =>
+    val newData = rows.flatMap { row =>
       val sameColVals = sameColIdxs.map(row.apply)
-      other.data.filter { otherRow =>
+      other.rows.filter { otherRow =>
         val otherSameColVals = otherSameColIdxs.map(otherRow.apply)
         sameColVals == otherSameColVals
       }.map { otherRow =>
         row ++ otherColsIdx.map(otherRow.apply)
       }
     }
-    Table(newColumns, newData)
+    SimpleTable(newColumns, newData)
   }
 
   override def columnIndex(col: String): Int = columnIdx(col)
 
   override def filter(pred: Seq[Value] => Boolean): Table = {
-    val newData = data.filter(pred)
-    Table(columns, newData)
+    val newData = rows.filter(pred)
+    SimpleTable(columns, newData)
   }
 
   override def map(f: Seq[Value] => Seq[Value]): Table = {
-    val newData = data.map(f)
-    Table(columns, newData)
+    val newData = rows.map(row => f(row).toVector)
+    SimpleTable(columns, newData)
+  }
+
+  override def expand(newcol: String, f: Seq[Value] => Value): Table = {
+    val newData = rows.map(row => row :+ f(row))
+    SimpleTable(columns :+ newcol, newData)
+  }
+
+  override def expand(newcols: Seq[String], f: Seq[Value] => Seq[Value]): Table = {
+    val newData = rows.map(row => row ++ f(row))
+    SimpleTable(columns ++ newcols, newData)
   }
 
   override def flatMap(f: Seq[Value] => Seq[Seq[Value]]): Table = {
-    val newData = data.flatMap(f)
-    Table(columns, newData)
+    val newData = rows.flatMap(row => f(row).map(_.toVector))
+    SimpleTable(columns, newData)
   }
 
   override def contains(colValPairs: Seq[(String, Value)]): Boolean = {
-    data.exists { row =>
+    rows.exists { row =>
       colValPairs.forall { case (col, v) =>
         val colIdx = columnIndex(col)
         row(colIdx) == v
@@ -127,8 +137,8 @@ case class SimpleTable(columns: Vector[String], data: Vector[Vector[Value]]) ext
   override def equals(obj: Any): Boolean = obj match {
     case other: Table =>
       this.columns == other.columns &&
-        this.data.forall { row =>
-          other.data.contains(row)
+        other.rows.forall { row =>
+          this.rows.contains(row)
         }
     case _ => false
   }

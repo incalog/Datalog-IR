@@ -13,7 +13,7 @@ import inca.debugger.Value
 
 trait Table {
   def columns: Seq[String]
-  def data: Seq[Seq[Value]]
+  def rows: Iterable[Seq[Value]]
 
   def isEmpty: Boolean
   def isBound(col: String): Boolean
@@ -25,7 +25,6 @@ trait Table {
   def addRows(rows: Table): Table
   def addColumn(col: String): Table
 
-
   def project(cols: Seq[String]): Table
   def renameColumns(subst: Map[String, String]): Table
   def rearrangeColumns(cols: Seq[String]): Table
@@ -35,6 +34,8 @@ trait Table {
   def filter(f: Seq[Value] => Boolean): Table
   def flatMap(f: Seq[Value] => Seq[Seq[Value]]): Table
   def map(f: Seq[Value] => Seq[Value]): Table
+  def expand(newcol: String, f: Seq[Value] => Value): Table
+  def expand(newcols: Seq[String], f: Seq[Value] => Seq[Value]): Table
 
   def contains(colValPairs: Seq[(String, Value)]): Boolean
 

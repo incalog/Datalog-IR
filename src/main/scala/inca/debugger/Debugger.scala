@@ -22,9 +22,6 @@ import truediff.Diffable
 
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.IteratorHasAsScala
-import scala.meta.Term
-import scala.reflect.runtime.universe
-import scala.tools.reflect.ToolBox
 
 trait Debugger {
   val frontend: DebuggerFrontend
@@ -46,8 +43,7 @@ trait Debugger {
   private val _controlTrace: ListBuffer[ControlPoint] = ListBuffer.empty
 
   // Needed to execute scala code via reflection
-  private val toolBox: ToolBox[universe.type] =
-    universe.runtimeMirror(getClass.getClassLoader).mkToolBox()
+  private val scalaCompiler = new Scala.ScalaCompiler()
 
   // Accessor methods of debugger statej
   def controlTrace: Seq[ControlPoint] = _controlTrace.toSeq
@@ -109,9 +105,15 @@ trait Debugger {
         val callee = ControlPoint(PatternPoint(patterns(custAgg.patName), BeforeList))
         callStack.push(Frame(callee, tables))
       case Some(atom) =>
-        val tables = transitionAtomTables(frame, atom)
+        val nextBodyTable = transitionAtomTables(frame, atom)
         val next = cp.stepIntra.get // yields next atom
-        callStack.update(Frame(next, tables))
+        callStack.update(frame.copy(cp = next, bodyTable = nextBodyTable))
+//        if (nextBodyTable.isEmpty) {
+//          println(nextBodyTable)
+//        } else {
+//          val next = cp.stepIntra.get // yields next atom
+//          callStack.update(frame.copy(cp = next, bodyTable = nextBodyTable))
+//        }
       case None =>
         if (cp.point.isPatternEntry) {
           val next = cp.stepIntra.get // yields first body of this pattern
@@ -193,7 +195,7 @@ trait Debugger {
 
 
   // methods to prepare frame tables for atoms that do not jump into another pattern (atom is not a call, or aggregation)
-  private def transitionAtomTables(frame: Frame, atom: Datalog.Atom): Frame.Tables = atom match {
+  private def transitionAtomTables(frame: Frame, atom: Datalog.Atom): Table = atom match {
     case ht: Datalog.HasType =>
       transitionHasTypeTables(frame, ht)
     case nht: Datalog.NotHasType =>
@@ -210,8 +212,8 @@ trait Debugger {
       transitionUndefTables(frame, un)
     case ext: Datalog.ExtensionalCall =>
       transitionExtCallTables(frame, ext)
-    case comp@Datalog.Computed(_, eval: Datalog.Evaluation) =>
-      transitionEvalTables(frame, comp)
+    case Datalog.Computed(lhs, eval: Datalog.Evaluation) =>
+      transitionEvalTables(frame, lhs, eval)
     case Datalog.Call(_, _, _, _) =>
       throw IllegalDebugStateException(s"The function transitionAtomTables should not be called with call atom $atom")
     case Datalog.Computed(_, _) =>
@@ -220,16 +222,14 @@ trait Debugger {
 
 
   // method to prepare frame tables of atoms that query unary edb relations (has type and not has type)
-  private def transitionHasTypeTables(frame: Frame, ht: Datalog.HasType): Frame.Tables = {
-    val bodyTable = ht.t match {
+  private def transitionHasTypeTables(frame: Frame, ht: Datalog.HasType): Table =
+    ht.t match {
       case Datalog.Var(name) =>
         val key = NodeTypeKey(transType(ht.typ))
         transitionUnaryIndexTable(frame.bodyTable, name, key)
       case Datalog.Constant(_) =>
         throw new IllegalArgumentException(s"HasType is not defined on constants $ht")
     }
-    (frame.argsTable, bodyTable, frame.patternTable)
-  }
 
   private def transType(typ: Datalog.Type): truechange.Type = typ match {
     case Datalog.TAny => truechange.AnyType
@@ -238,16 +238,14 @@ trait Debugger {
     case _ => throw new IllegalArgumentException("NOT SUPPORTED YET")
   }
 
-  private def transitionNotHasTypeTables(frame: Frame, nht: Datalog.NotHasType): Frame.Tables = {
-    val bodyTable = nht.t match {
+  private def transitionNotHasTypeTables(frame: Frame, nht: Datalog.NotHasType): Table =
+    nht.t match {
       case Datalog.Var(name) =>
         val key = NotNodeTypeIndex.Key(transType(nht.typ))
         transitionUnaryIndexTable(frame.bodyTable, name, key)
       case Datalog.Constant(_) =>
         throw new IllegalArgumentException(s"HasType is not defined on constants $nht")
     }
-    (frame.argsTable, bodyTable, frame.patternTable)
-  }
 
   private def transitionUnaryIndexTable(table: Table, col: String, key: IInputKey): Table = {
     if (table.isBound(col)) {
@@ -267,7 +265,7 @@ trait Debugger {
 
 
   // methods to prepare frame tables for atoms that query binary edb relations (path, nopath)
-  private def transitionPathTables(frame: Frame, p: Datalog.Path): Frame.Tables = {
+  private def transitionPathTables(frame: Frame, p: Datalog.Path): Table = {
     val (src, trg) = (p.src, p.trg) match {
       case (Datalog.Var(srcName), Datalog.Var(trgName)) => (srcName, trgName)
       case _ => throw IllegalDebugStateException(s"Path is not defined on constants $p")
@@ -283,7 +281,7 @@ trait Debugger {
         transitionBinaryIndexQueryOneBound(bodyTable, key, trg, src, isSourceBound = false)
       else
         transitionBinaryIndexQueryUnbound(bodyTable, key, trg, src)
-    (frame.argsTable, nextBodyTable, frame.patternTable)
+    nextBodyTable
   }
 
   private def transitionBinaryIndexQueryBothBound(table: Table, key: IInputKey, src: String, trg: String): Table = {
@@ -335,7 +333,7 @@ trait Debugger {
         LinkPrimitiveKey(link)
   }
 
-  private def transitionNoPathTables(frame: Frame, np: Datalog.NoPath): Frame.Tables = {
+  private def transitionNoPathTables(frame: Frame, np: Datalog.NoPath): Table = {
     val nodeKey = NodeTypeKey(transType(np.ty))
     val linkKey = generateLinkKey(np.link)
     val key = NodeNotLinkedIndex.Key(nodeKey, linkKey, np.termIsSource)
@@ -348,10 +346,10 @@ trait Debugger {
       case Datalog.Constant(lit) =>
         throw IllegalDebugStateException("Cannot debug NoPath atom where the given term is a constant")
     }
-    (frame.argsTable, bodyTable, frame.patternTable)
+    bodyTable
   }
 
-  private def transitionUndefTables(frame: Frame, un: Datalog.Undef): Frame.Tables = {
+  private def transitionUndefTables(frame: Frame, un: Datalog.Undef): Table = {
     val bodyTable = un.t match {
       case Datalog.Var(name) =>
         if (frame.bodyTable.isBound(name))
@@ -361,12 +359,12 @@ trait Debugger {
       case Datalog.Constant(_) =>
         Table.empty(frame.bodyTable.columns)
     }
-    (frame.argsTable, bodyTable, frame.patternTable)
+    bodyTable
   }
 
-  private def transitionExtCallTables(frame: Frame, ext: Datalog.ExtensionalCall): Frame.Tables = ???
+  private def transitionExtCallTables(frame: Frame, ext: Datalog.ExtensionalCall): Table = ???
 
-  private def transitionEqCompTables(frame: Frame, comp: Datalog.Compare): Tables = {
+  private def transitionEqCompTables(frame: Frame, comp: Datalog.Compare): Table = {
     val bodyTable = frame.bodyTable
     val nextBodyTable = (comp.lhs, comp.rhs) match {
       case (Datalog.Var(name1), Datalog.Var(name2)) =>
@@ -394,7 +392,7 @@ trait Debugger {
         if (v1 == v2) frame.bodyTable
         else Table.empty(frame.bodyTable.columns)
     }
-    (frame.argsTable, nextBodyTable, frame.patternTable)
+    nextBodyTable
   }
 
   private def transitionEqCompBothBound(table: Table, col1: String, col2: String): Table = {
@@ -424,7 +422,7 @@ trait Debugger {
     table.bind(col, v)
   }
 
-  private def transitionNeqCompTables(frame: Frame, comp: Datalog.Compare): Tables = {
+  private def transitionNeqCompTables(frame: Frame, comp: Datalog.Compare): Table = {
     val bodyTable = frame.bodyTable
     val nextBodyTable = (comp.lhs, comp.rhs) match {
       case (Datalog.Var(name1), Datalog.Var(name2)) =>
@@ -448,7 +446,7 @@ trait Debugger {
         if (v1 == v2) frame.bodyTable
         else Table.empty(bodyTable.columns)
     }
-    (frame.argsTable, nextBodyTable, frame.patternTable)
+    nextBodyTable
   }
 
   private def transitionNeqCompBothBound(table: Table, col1: String, col2: String): Table = {
@@ -509,54 +507,42 @@ trait Debugger {
     case Datalog.BooleanLiteral(v) => ScalaValue(v)
   }
 
-  private def transitionEvalTables(frame: Frame, comp: Datalog.Computed): Frame.Tables = {
+  private def transitionEvalTables(frame: Frame, lhs: Datalog.Term, eval: Datalog.Evaluation): Table = {
     val bodyTable = frame.bodyTable
-    val Datalog.Evaluation(evalArgs, resultType, code) = comp.computation
 
-    // prepare table for arguments of scala code
-    val (evalVarArgs, evalConstArgs) = evalArgs.map(_._1).zip(code.tree.params).partitionMap {
-      case (Datalog.Var(v), p) => Left((p.name, v))
-      case (Datalog.Constant(l), p) => Right((p.name, transLiteral(l)))
-    }
-    var argsTable = bodyTable.project(evalVarArgs.map(_._2))
-    evalConstArgs.foreach { case(p, v) =>
-      argsTable = argsTable.bind(p.value, v)
-    }
-    argsTable = argsTable.rearrangeColumns(code.tree.params.map(_.name.value))
-
-    // execute scala code for each row of table
-    val results =
-      if (argsTable.isEmpty)
-        Seq(executeScala(Seq(), code))
-      else argsTable.data.map { tuple =>
-        executeScala(tuple, code)
-      }
-
-    // transition eq constraint for each result
-    val multipleBodyTable = results.map { result =>
-      comp.lhs match {
-        case Datalog.Var(name) =>
-          frame.bodyTable.bind(name, result)
-        case Datalog.Constant(lit) =>
-          if (transLiteral(lit) == result) {
-            bodyTable
-          } else
-            Table.empty(bodyTable.columns)
-      }
+    val lhsValue: Seq[Value] => Value = lhs match {
+      case Datalog.Var(name) =>
+        if (bodyTable.isBound(name)) {
+          val cix = bodyTable.columnIndex(name)
+          row => row(cix)
+        } else {
+          _ => throw new IllegalArgumentException
+        }
+      case Datalog.Constant(lit) =>
+        val v = transLiteral(lit)
+        _ => v
     }
 
-    // merge resulting tables
-    var extBodyTable = multipleBodyTable.head
-    multipleBodyTable.tail.foreach { table =>
-      extBodyTable.addRows(table)
+    lhs match {
+      case Datalog.Var(name) if !bodyTable.isBound(name) =>
+        bodyTable.expand(Seq(name), { row =>
+          Seq(executeScala(bodyTable, row, eval))
+        })
+      case _ =>
+        bodyTable.filter { row =>
+          val scalaValue = executeScala(bodyTable, row, eval)
+          val lhsVal = lhsValue(row)
+          scalaValue == lhsVal
+        }
     }
-
-    (frame.argsTable, extBodyTable, frame.patternTable)
   }
 
-  private def executeScala(tuple: Seq[Value], code: Scala[Term.Function]): ScalaValue = {
-    val funCode = s"(${code.syntax})(${tuple.mkString(", ")})"
-    val parsed = toolBox.parse(funCode)
-    ScalaValue(toolBox.eval(parsed))
+  private def executeScala(table: Table, row: Seq[Value], eval: Datalog.Evaluation): ScalaValue = {
+    val args = eval.evalArgs.map {
+      case (Datalog.Var(v), _) => row(table.columnIndex(v))
+      case (Datalog.Constant(v), _) => transLiteral(v)
+    }
+    val funCode = s"(${eval.code.syntax})(${args.mkString(", ")})"
+    ScalaValue(scalaCompiler.compileAndLoadScala(funCode))
   }
 }
