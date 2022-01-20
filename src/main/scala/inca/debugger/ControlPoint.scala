@@ -47,6 +47,8 @@ sealed trait ListPoint[+El, +P]
 case object BeforeList extends ListPoint[Nothing, Nothing]
 case object AfterList extends ListPoint[Nothing, Nothing]
 case class AtListElem[El, P](elems: IndexedSeq[El], ix: Int, point: P) extends ListPoint[El, P] {
+  override def toString: String = s"AtListElem($ix, $point)"
+
   val elem: El = elems(ix)
 
   def isLast: Boolean =
@@ -75,6 +77,8 @@ object ListPoint {
 
 case class AtomPoint(atom: Datalog.Atom)
 case class BodyPoint(body: Datalog.Body, atoms: ListPoint[Datalog.Atom, AtomPoint]) {
+  override def toString: String = s"BodyPoint($atoms)"
+
   def atom: Option[Datalog.Atom] = atoms match {
     case elem@AtListElem(_, _, _) => Some(elem.elem)
     case _ => None
@@ -88,6 +92,8 @@ case class BodyPoint(body: Datalog.Body, atoms: ListPoint[Datalog.Atom, AtomPoin
   def isBodyExit: Boolean = atoms == AfterList
 }
 case class PatternPoint(pat: Datalog.Pattern, bodies: ListPoint[Datalog.Body, BodyPoint]) {
+  override def toString: String = s"PatternPoint(${pat.name}, $bodies)"
+
   def atom: Option[Datalog.Atom] = bodies match {
     case AtListElem(_, _, bodyPoint) => bodyPoint.atom
     case _ => None

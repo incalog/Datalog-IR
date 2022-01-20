@@ -2,7 +2,10 @@ package inca.debugger
 
 import inca.analyzedLangs.{Exp, ExpLangTestAnalyses}
 import inca.backend.ir.Datalog
+import inca.compiler.Compiler
+import inca.frontend.functional.compiler.FunctionalOptions
 import inca.debugger.table.Table
+import inca.examples.functional.AST
 import inca.runtime.context.DataModel
 import inca.util.Scala
 import org.scalatest.funsuite.AnyFunSuite
@@ -323,5 +326,18 @@ class IRDebuggerTest extends AnyFunSuite {
       Seq(ScalaValue(1), ScalaValue(7)),
     ))
     assertResult(expectedTable)(rel)
+  }
+
+  test("if example control") {
+    val compiledExample = Compiler.compileFunctional(AST.ifExample, FunctionalOptions())
+    println(compiledExample.ir)
+    val debugger = initDebugger(compiledExample.ir, new DataModel())
+    debugger.entry("main", Table.empty)
+    while (!debugger.isFinished) {
+      val frame = debugger.frame
+      println(s"${frame.cp}:\n  ${frame.bodyTable}")
+      debugger.stepInto()
+    }
+    debugger.controlTrace.foreach(println)
   }
 }

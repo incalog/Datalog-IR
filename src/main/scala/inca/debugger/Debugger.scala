@@ -51,6 +51,7 @@ trait Debugger {
 
   // Accessor methods of debugger statej
   def controlTrace: Seq[ControlPoint] = _controlTrace.toSeq
+  def frame: Frame = callStack.top
   def relation(name: String): Table = fixpointState.derived(name)
   def isFinished: Boolean = callStack.isFinished
 
@@ -153,6 +154,8 @@ trait Debugger {
           throw new IllegalStateException(s"Unexpected control point $cp")
         }
     }
+    if (callStack.nonEmpty)
+      _controlTrace += callStack.top.cp
   }
 
   // Methods to prepare frame tables for atoms that can jump into another pattern (calls and aggregations)
