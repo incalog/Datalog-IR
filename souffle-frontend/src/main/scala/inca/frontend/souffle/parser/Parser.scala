@@ -4,32 +4,32 @@ import inca.frontend.souffle.Syntax
 
 // TODO currently only supports a subset of souffle which is needed to load a specific file
 object Parser {
-  import fastparse._
+  import fastparse.{parse => _, _}
   import JavaWhitespace._
 
-  def parse(code: ParserInput): Syntax.Analysis = {
+  def parse(code: ParserInput): Syntax.SouffleModule = {
     import fastparse.Parsed
 
     fastparse.parse(code, Analysis(_), verboseFailures = true) match {
-      case Parsed.Success(value, _) => Syntax.Analysis(value)
+      case Parsed.Success(value, _) => Syntax.SouffleModule(value)
       case fail: Parsed.Failure =>
         throw new IllegalArgumentException(s"Parsing Error: ${fail.trace(true).longTerminalsMsg}")
     }
   }
 
-  def Analysis[_: P]: P[Seq[Syntax.AnalysisContent]] =
-    P(Start ~ AnalysisContent.rep ~ End).map(_.flatten)
+  def Analysis[_: P]: P[Seq[Syntax.SouffleContent]] =
+    P(Start ~ AnalysisContent.rep ~ End)
 
-  def AnalysisContent[_: P]: P[Option[Syntax.AnalysisContent]] =
-    P(Plan).map(_ => None) | P(ComponentInitialization | ComponentDefinition | TypeDeclaration |
+  def AnalysisContent[_: P]: P[Syntax.SouffleContent] =
+    P(ComponentInitialization | ComponentDefinition | TypeDeclaration |
       RuleSignature | Input | RuleDefinition | Output | PrintSize
-    ).map(Some.apply)
+    )
 
   def ComponentInitialization[_: P]: P[Syntax.ComponentInitialization] =
     P(".init" ~ identifier ~ "=" ~ identifier).map(Syntax.ComponentInitialization.tupled)
 
   def ComponentDefinition[_: P]: P[Syntax.ComponentDefinition] =
-    P(".comp" ~ identifier ~ "{" ~ AnalysisContent.rep.map(_.flatten) ~ "}").map(Syntax.ComponentDefinition.tupled)
+    P(".comp" ~ identifier ~ "{" ~ AnalysisContent.rep ~ "}").map(Syntax.ComponentDefinition.tupled)
 
   def TypeDeclaration[_: P]: P[Syntax.TypeDeclaration] =
     P(".type" ~ identifier ~ ("=" ~ DeclaredType).?).map(Syntax.TypeDeclaration.tupled)
@@ -87,8 +87,8 @@ object Parser {
     P(string).map(Syntax.StringValue)
   def NumberValue[_: P]: P[Syntax.NumberValue] =
     P(decimalinteger).map(Syntax.NumberValue)
-  def Any[_: P]: P[Syntax.Any.type] =
-    P("_").map(_ => Syntax.Any)
+  def Any[_: P]: P[Syntax.Wildcard.type] =
+    P("_").map(_ => Syntax.Wildcard)
   def BuiltInFunctionCall[_: P]: P[Syntax.BuiltInFunctionCall] =
     P(BuiltInFunction ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").map(Syntax.BuiltInFunctionCall.tupled)
 

@@ -1,8 +1,8 @@
 package inca.frontend.souffle.lowering
 
-import inca.compiler.options.Options
-import inca.frontend.souffle.parser.Parser
+import inca.compiler.Options
 import inca.frontend.souffle.Syntax
+import inca.frontend.souffle.parser.Parser
 import inca.runtime.context.QueryScope
 import inca.util.matchers.IncaGPMatchers
 import org.scalatest.flatspec.AnyFlatSpec
@@ -30,6 +30,7 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
       |Subclass(?c, ?a) :-
       |  Subclass(?b, ?a),
       |  DirectSubclass(?b, ?c).
+      |.output Superclass
       |Superclass(?c, ?a) :-
       |  Subclass(?a, ?c).
       |""".stripMargin

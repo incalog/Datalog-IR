@@ -3,10 +3,10 @@ package inca.backend.ir
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
-import inca.compiler.options.ConstraintOptions
+import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.constraint.core._
 import inca.runtime.context.{DataModel, QueryScope}
-import inca.util.Meta.Scala
+import inca.util.Scala
 import inca.util.matchers.{IncaConstraintMatchers, IncaGPMatchers}
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -103,6 +103,7 @@ class GeneratePSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConst
     val mul = Mul(num3, add)
     val expType = TNode(classOf[Exp].getCanonicalName)
     val parentFun = PatternFunction(
+      Seq(MainFunctionAnno),
       None,
       "parent",
       Seq(Param("in", TAny)),
@@ -142,7 +143,7 @@ class GeneratePSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConst
           Datalog.Computed(Datalog.Var("str2"), Datalog.Evaluation(Seq((Datalog.Var("str"), Datalog.TScalaString)), Datalog.TScalaString, Scala(q"""(str: String) => str + "_appended" """))))
         )))), Seq())
     assertMatch(module, "intToString", testInputNumericAddition) { matcher =>
-      println(matcher.getAllMatches)
+//      println(matcher.getAllMatches)
       assert(matcher.getAllMatches.size == 3)
     }
   }

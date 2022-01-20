@@ -1,6 +1,6 @@
 package inca.frontend.souffle.lowering
 
-import inca.compiler.options.Options
+import inca.compiler.Options
 import inca.frontend.souffle.parser.Parser
 import inca.frontend.souffle.Syntax
 import inca.runtime.context.{DataModel, QueryScope}

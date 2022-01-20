@@ -1,7 +1,7 @@
 package inca.frontend.functional.typechecker
 
 import inca.frontend.functional.core._
-import inca.util.Meta.Scala
+import inca.util.Scala
 
 object TypeHelper {
 

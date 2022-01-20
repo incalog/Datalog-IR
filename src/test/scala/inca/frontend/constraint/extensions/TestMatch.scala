@@ -1,7 +1,7 @@
 package inca.frontend.constraint.extensions
 
 import inca.analyzedLangs.Exp
-import inca.compiler.options.ConstraintOptions
+import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.constraint.core._
 import inca.frontend.constraint.extensions.match_.Trees._
 import inca.runtime.context.QueryScope
@@ -531,7 +531,7 @@ class TestMatch extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "implement match semantics" in {
     val module = Module("Test_Match", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), TLiteral.Int, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "integerlits", Seq(), TLiteral.Int, Seq(Body(Seq(
         Values("root", TNode(Exp.expTag)),
         Assert(Undef(PathAccess(Var("root"), ParentLink))),
         Yield(
@@ -541,7 +541,7 @@ class TestMatch extends AnyFlatSpec with IncaConstraintMatchers {
         )
       )))),
 
-      PatternFunction(None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), TLiteral.Int, Seq(Body(Seq(
+      PatternFunction(Seq(), None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), TLiteral.Int, Seq(Body(Seq(
         Match(Var("e"), Seq(
           Case(
             NodePattern(TNode(Exp.intTag), Seq(PatternBinding("value", VarPattern("v")))),

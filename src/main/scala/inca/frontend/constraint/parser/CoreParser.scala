@@ -5,7 +5,7 @@ import fastparse._
 import inca.compiler.SourceLocation
 import inca.frontend.constraint.core._
 import inca.frontend.util.ParserUtils
-import inca.util.Meta.Scala
+import inca.util.Scala
 
 import scala.language.reflectiveCalls
 import scala.meta.Term
@@ -285,10 +285,13 @@ trait CoreParser {
     P("{" ~ statement.rep ~ "}").mapWithLoc(Body.apply) |
     P(statement).mapWithLoc(s => Body(Seq(s)))
 
+  protected[frontend]  def annotation[_: P]: P[Annotation] = mainFuncAnno
+  protected[frontend]  def mainFuncAnno[_: P]: P[MainFunctionAnno.type] = P("@main").map(_ => MainFunctionAnno)
+
   /** PatternFunction parser */
   protected[frontend] def patternFunction[_: P]: P[ModuleContent] = {
-    P(visibility.? ~ "def" ~ identifier ~ "(" ~ paramList ~ ")" ~ ":" ~ typeAnno ~ "=" ~ bodyList).mapWithLoc{
-      case (vis, name, params, ty, bodies) => PatternFunction(vis, name, params, ty, bodies)
+    P(annotation.rep ~ visibility.? ~ "def" ~ identifier ~ "(" ~ paramList ~ ")" ~ ":" ~ typeAnno ~ "=" ~ bodyList).mapWithLoc{
+      case (annos, vis, name, params, ty, bodies) => PatternFunction(annos, vis, name, params, ty, bodies)
     }
   }
 

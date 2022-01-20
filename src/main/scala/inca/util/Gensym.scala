@@ -1,7 +1,7 @@
 package inca.util
 
 class Gensym(init: Iterable[String]) {
-  /** map of used symbols, each of which must end with '_' */
+  /** map of used symbols, each of which must end with '$' */
   private var used: Map[String, Int] = Map()
   private var globals: Seq[String] = Seq()
 
@@ -10,35 +10,20 @@ class Gensym(init: Iterable[String]) {
   def register(it: Iterable[String]): Unit =
     it.foreach(register)
 
-  def register(s: String): Unit = {
-    val ix = s.lastIndexOf('_')
-    if (ix <= 0) {
-      val s_ = ensureUnder(s)
-      used += s_ -> used.getOrElse(s_, 0)
-    } else {
-      val digits = s.substring(ix + 1)
-      digits.toIntOption match {
-        case Some(num) =>
-          val s_ = s.substring(0, ix+1)
-          used += s_ -> num.max(used.getOrElse(s_, 0))
-        case None =>
-          val s_ = ensureUnder(s)
-          used += s_ -> used.getOrElse(s_, 0)
-      }
-    }
+  def isRegistered(s: String): Boolean =
+    used.contains(decompileName(s)._1)
 
-    val digits = s.reverse.takeWhile(_.isDigit).reverse
-    if (digits.length == 0) {
-      used += s -> used.getOrElse(s, 0)
-    } else {
-      val count = digits.toInt + 1
-      val prefix = s.substring(0, s.length  - digits.length)
-      used += prefix -> count.max(used.getOrElse(s, 0))
+  def register(s: String): Unit = {
+    decompileName(s) match {
+      case (s_, None) =>
+        used += s_ -> used.getOrElse(s_, 0)
+      case (s_, Some(num)) =>
+        used += s_ -> (num + 1).max(used.getOrElse(s_, 0))
     }
   }
 
   def fresh(base: String): String = {
-    val base_ = ensureUnder(base)
+    val base_ = decompileName(base)._1
     used.get(base_) match {
       case Some(count) =>
         val v = base_ + count
@@ -56,7 +41,23 @@ class Gensym(init: Iterable[String]) {
     v
   }
 
-  private def ensureUnder(s: String): String =
+  private def decompileName(s: String): (String, Option[Int]) = {
+    val ix = s.lastIndexOf('$')
+    if (ix <= 0) {
+      (ensureDollar(s), None)
+    } else {
+      val digits = s.substring(ix + 1)
+      digits.toIntOption match {
+        case Some(num) =>
+          val s_ = s.substring(0, ix+1)
+          (s_, Some(num))
+        case None =>
+          (ensureDollar(s), None)
+      }
+    }
+  }
+
+  private def ensureDollar(s: String): String =
     if (s.endsWith("$") && s != "$")
       s
     else
@@ -64,14 +65,12 @@ class Gensym(init: Iterable[String]) {
 
   def scoped[A](f: => A): A = {
     val oldused = this.used
-    val oldglobals = this.globals
     try {
       val a = f
       a
     } finally {
       this.used = oldused
       this.globals.foreach(register)
-      this.globals = oldglobals
     }
   }
 }

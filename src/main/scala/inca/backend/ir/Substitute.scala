@@ -2,7 +2,7 @@ package inca.backend.ir
 
 import inca.backend.ir.Datalog._
 
-case class Substitute(subst: Var => Term) {
+class Substitute(subst: Var => Term) {
 
   def substModule(module: Module): Module =
     Module(module.name, module.imports, module.pats.map(substPattern), module.scalaContent)

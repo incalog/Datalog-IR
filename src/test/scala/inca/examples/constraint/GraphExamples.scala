@@ -1,6 +1,6 @@
 package inca.examples.constraint
 
-import inca.executor.ConstraintExecutor
+import inca.frontend.constraint.executor.ConstraintExecutor
 import inca.runtime.context.DataModel
 import org.scalatest.funsuite.AnyFunSuite
 import truediff.macros.diffable
@@ -55,6 +55,7 @@ class GraphExamples extends AnyFunSuite {
         |  yield unit
         |}
         |
+        |@main
         |def inCycleByName(): String = {
         |  vals node <- $nodeTag
         |  assert def inCycle(node)
@@ -66,10 +67,10 @@ class GraphExamples extends AnyFunSuite {
 
     val tree = Graph(List(Node("a"), Node("b"), Node("c")), List(Edge("a", "b"), Edge("b", "c")))
     val res1 = loaded.execute(tree, "inCycleByName")
-    res1.foreach(println)
+//    res1.foreach(println)
     val tree2 = Graph(List(Node("a"), Node("b"), Node("c"), Node("d")), List(Edge("a", "b"), Edge("b", "c"), Edge("c", "d"), Edge("c", "a")))
     val res2 = loaded.update(tree2, "inCycleByName")
-    println("updated")
-    res2.foreach(println)
+//    println("updated")
+//    res2.foreach(println)
   }
 }

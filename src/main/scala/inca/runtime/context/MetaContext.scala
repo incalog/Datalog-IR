@@ -1,6 +1,8 @@
 package inca.runtime.context
 
 import inca.runtime.index._
+import inca.runtime.index.dynamic.ParentIndex
+import inca.runtime.index.virtual.SizeIndex
 import org.eclipse.viatra.query.runtime.matchers.context.common.JavaTransitiveInstancesKey
 import org.eclipse.viatra.query.runtime.matchers.context.{AbstractQueryMetaContext, IInputKey, InputKeyImplication}
 import truechange.SortType
@@ -24,6 +26,9 @@ class MetaContext(langMetaInfo: DataModel) extends AbstractQueryMetaContext {
         val impliedSuper = NodeTypeKey(stype)
         new InputKeyImplication(key, impliedSuper, Collections.singletonList(0))
       }.toSeq.asJava
+
+    case _: PrimitiveTypeKey =>
+      Collections.emptySet()
 
     case jkey: JavaTransitiveInstancesKey =>
       val instanceClass = jkey.getInstanceClass
@@ -51,10 +56,14 @@ class MetaContext(langMetaInfo: DataModel) extends AbstractQueryMetaContext {
     case LinkNodeKey(link@(tagname, _)) =>
       val impliedSource = NodeTypeKey(SortType(tagname))
       val impliedTarget = NodeTypeKey(langMetaInfo.links(link))
+      val impliedParent = ParentIndex.Key
       Seq(
         new InputKeyImplication(key, impliedSource, Collections.singletonList(0)),
-        new InputKeyImplication(key, impliedTarget, Collections.singletonList(1))
+        new InputKeyImplication(key, impliedTarget, Collections.singletonList(1)),
+        new InputKeyImplication(key, impliedParent, util.Arrays.asList(1, 0))
       ).asJava
+
+
     case LinkPrimitiveKey(link@(tagname, _)) =>
       val impliedSource = NodeTypeKey(SortType(tagname))
       val impliedTarget = PrimitiveTypeKey(langMetaInfo.litLinks(link))
@@ -63,40 +72,34 @@ class MetaContext(langMetaInfo: DataModel) extends AbstractQueryMetaContext {
         new InputKeyImplication(key, impliedTarget, Collections.singletonList(1))
       ).asJava
 
-//    case LinkNodeKey(FirstLink(typ)) =>
-//      val firstImpl = new InputKeyImplication(key, NodeTypeKey(typ), Collections.singletonList(0))
-//      val secondImpl = typ match {
-//        case MetaElements.ListType(contained) =>
-//          new InputKeyImplication(key, new NodeTypeKey(ListType(contained)), Collections.singletonList(1))
-//        case MetaElements.NodeType(name) =>
-//          new InputKeyImplication(key, new NodeTypeKey(NodeType(name)), Collections.singletonList(1))
-//      }
-//      Seq(firstImpl, secondImpl).asJava
-//    case LinkNodeKey(NextLink) =>
-//      Seq().asJava
-//      // TODO
-//    case LinkNodeKey(DefinedNodeLink(typ, field)) =>
-//      Seq().asJava
-//      // TODO do not know yet
-
-    case key: PrimitiveTypeKey =>
+    case _: VirtualKey =>
       Collections.emptySet()
-
-    case key: DynamicKey =>
+    case _: NamedRelationKey =>
       Collections.emptySet()
-
-    case key: VirtualKey =>
+    case ParentIndex.Key =>
       Collections.emptySet()
-
-    case key: NamedRelationKey =>
+    case LinkListFirstKey =>
+      val impliedParent = ParentIndex.Key
+      Seq(
+        new InputKeyImplication(key, impliedParent, util.Arrays.asList(1, 0))
+      ).asJava
+    case LinkListNextKey =>
       Collections.emptySet()
-
-    case _ => throw new IllegalArgumentException("Cannot support implication for: " + key)
   }
 
+  val bidirectional: util.Map[util.Set[Integer], util.Set[Integer]] = util.Map.of(
+    Collections.singleton(0), Collections.singleton(1),
+    Collections.singleton(1), Collections.singleton(0)
+  )
+  val leftToRight: util.Map[util.Set[Integer], util.Set[Integer]] = util.Map.of(
+    Collections.singleton(0), Collections.singleton(1)
+  )
+
   override def getFunctionalDependencies(key: IInputKey): util.Map[util.Set[Integer], util.Set[Integer]] = key match {
-    case _: LinkNodeKey =>
-      Collections.singletonMap(Collections.singleton(0), Collections.singleton(1))
+    case _: LinkNodeKey | LinkListFirstKey | LinkListNextKey =>
+      bidirectional
+    case _: LinkPrimitiveKey | ParentIndex.Key | SizeIndex.Key =>
+      leftToRight
     case _ => Collections.emptyMap()
   }
 }

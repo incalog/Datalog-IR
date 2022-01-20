@@ -3,15 +3,16 @@ package inca.debugger
 import inca.backend.ir.Datalog
 import inca.backend.optimize.Optimization
 import inca.backend.transform.Transformation
-import inca.compiler.options.Options
+import inca.compiler.Options
 import inca.debugger.Frame.Tables
 import inca.debugger.table.Table
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.{IndexKey, LinkListNextKey, LinkNodeKey, LinkPrimitiveKey, NodeTypeKey}
 import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
-import inca.runtime.{Database, EnginePool}
-import inca.util.Meta.Scala
+import inca.runtime.EnginePool
+import inca.runtime.db.Database
+import inca.util.Scala
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
 import org.eclipse.viatra.query.runtime.matchers.tuple.{TupleMask, Tuples}
@@ -67,12 +68,7 @@ trait Debugger {
   }
 
   private def compileModule(): (AdvancedViatraQueryEngine, Database) = {
-    val options = new Options {
-      override def optimizations: Seq[Optimization] = Seq()
-      override def transformations: Seq[Transformation] = Seq()
-      override def stopOnError: Boolean = true
-      override def stopOnWarning: Boolean = false
-    }
+    val options = Options(_stopOnError = true, _stopOnWarning = false)
 
     val compiled = inca.compiler.Compiler.compileGP(module, dataModel, options)
     val scope = new QueryScope(compiled.dataModel)

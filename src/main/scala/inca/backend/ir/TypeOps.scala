@@ -2,8 +2,7 @@ package inca.backend.ir
 
 import inca.backend.ir.Datalog._
 import inca.runtime.context.DataModel
-import inca.util.Meta.Scala
-import inca.util.ScalaTyper
+import inca.util.{Scala, ScalaTyper}
 import truechange.SortType
 
 trait TypeOps extends ScalaTyper {

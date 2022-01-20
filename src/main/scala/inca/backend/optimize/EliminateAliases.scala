@@ -75,10 +75,40 @@ object EliminateAliases extends Optimization {
         }
       } while (changed)
 
-      val substBody = Substitute(subst).substBody(body)
+      val substBody = new AliasSubstitute(subst).substBody(body)
       val dedup = substBody.atoms.distinct
       Body(dedup).withHints(body)
     }
+  }
+
+  class AliasSubstitute(subst: Var => Term) extends Substitute(subst) {
+    override def substPattern(pat: Pattern): Pattern = {
+      val newbodies = pat.bodies.flatMap(body =>
+        try {
+          Some(substBody(body))
+        } catch {
+          case BodyMustFail => None
+        }
+      )
+      Pattern(pat.vis, pat.name, pat.params, newbodies).withHints(pat)
+    }
+
+    override def substBody(body: Body): Body =
+      Body(body.atoms.flatMap(flatSubstAtom)).withHints(body)
+
+    def flatSubstAtom(atom: Atom): Option[Atom] = (atom match {
+      case Compare(comp, lhs, rhs) =>
+        val left = substTerm(lhs)
+        val right = substTerm(rhs)
+        val same = left == right
+        if (same && comp == EqComparator)
+          None
+        else if (same && comp == NeqComparator)
+          throw BodyMustFail
+        else
+          Some(Compare(comp, left, right).withHints(atom))
+      case _ => Some(super.substAtom(atom))
+    })
   }
 }
 

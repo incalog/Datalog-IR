@@ -1,7 +1,6 @@
 package inca.runtime.index.virtual
 
-import inca.runtime.Database
-import inca.runtime.index.binary.BinaryIndex
+import inca.runtime.db.Database
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.{IndexKey, NodeTypeKey, VirtualKey}
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
@@ -28,8 +27,7 @@ object SizeIndex {
 }
 
 
-class SizeIndex extends BinaryIndex[URI, Int]
-  with VirtualIndex {
+class SizeIndex extends VirtualBinaryIndex[URI, Int] {
 
   /** The key of this index */
   override val key: IndexKey[_] = SizeIndex.Key
@@ -55,9 +53,6 @@ class SizeIndex extends BinaryIndex[URI, Int]
     }
 
   override def indexInverted(v: Int): Iterable[URI] = parentIndex.entrySets.flatMap(kv => if (kv._2.size == v) Some(kv._1) else None)
-
-  override def insert(k: URI, v: Int): Unit = throw new UnsupportedOperationException
-  override def delete(k: URI, v: Int): Unit = throw new UnsupportedOperationException
 
   override def afterInitialization(): Unit = {
     // emit size 0 for loaded/unloaded lists

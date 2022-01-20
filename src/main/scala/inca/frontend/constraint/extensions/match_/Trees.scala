@@ -3,7 +3,7 @@ package inca.frontend.constraint.extensions.match_
 import inca.compiler.SourceLocation
 import inca.frontend.constraint.core._
 import inca.frontend.util.Typeable
-import inca.util.Meta
+import inca.util.Scala
 
 object Trees {
   case class Match(matchee: Expression, cases: Seq[Case]) extends Statement {
@@ -12,7 +12,7 @@ object Trees {
 
     override def prettyprint(implicit indent: String): String = {
       val casesS = if (cases.isEmpty) "" else
-        "\n" + cases.map(_.prettyprint(indent+Meta.TAB)).mkString("\n")
+        "\n" + cases.map(_.prettyprint(indent+Scala.TAB)).mkString("\n")
       s"""${indent}${matchee.prettyprint} match {$casesS
          |${indent}}""".stripMargin
     }

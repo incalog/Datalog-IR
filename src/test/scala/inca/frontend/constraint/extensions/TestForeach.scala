@@ -1,7 +1,7 @@
 package inca.frontend.constraint.extensions
 
 import inca.analyzedLangs.Exp
-import inca.compiler.options.ConstraintOptions
+import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.constraint.core._
 import inca.frontend.constraint.extensions.foreach.Trees._
 import inca.runtime.context.QueryScope
@@ -23,7 +23,7 @@ class TestForeach extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "eliminate foreach loops" in {
     val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("inca.analyzedLangs.Exp.Many")))), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(Param(Name("list"), TList(TNode("inca.analyzedLangs.Exp.Many")))), TUnit, Seq(Body(Seq(
         Foreach("x", Var("list"), Body(
           Assert(Eq(Var("x"), Var("x"))),
           Assert(Neq(Var("x"), Var("x")))
@@ -32,7 +32,7 @@ class TestForeach extends AnyFlatSpec with IncaConstraintMatchers {
     ))
 
     val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("inca.analyzedLangs.Exp.Many")))), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(Param(Name("list"), TList(TNode("inca.analyzedLangs.Exp.Many")))), TUnit, Seq(Body(Seq(
         Assign(Seq("x"), PathAccess(Var("list"), ChildrenLink)),
         Assert(Eq(Var("x"), Var("x"))),
         Assert(Neq(Var("x"), Var("x"))),
@@ -44,7 +44,7 @@ class TestForeach extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "eliminate nested foreach loops" in {
     val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("inca.analyzedLangs.Exp.Many"))), Param(Name("list2"), TList(TNode("inca.analyzedLangs.Exp.Many")))), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(Param(Name("list"), TList(TNode("inca.analyzedLangs.Exp.Many"))), Param(Name("list2"), TList(TNode("inca.analyzedLangs.Exp.Many")))), TUnit, Seq(Body(Seq(
         Foreach("x", Var("list"), Body(
           Assert(Eq(Var("x"), Var("x"))),
           Foreach("y", Var("list2"), Body(
@@ -56,7 +56,7 @@ class TestForeach extends AnyFlatSpec with IncaConstraintMatchers {
     ))
 
     val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "foo", Seq(Param(Name("list"), TList(TNode("inca.analyzedLangs.Exp.Many"))), Param(Name("list2"), TList(TNode("inca.analyzedLangs.Exp.Many")))), TUnit, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(Param(Name("list"), TList(TNode("inca.analyzedLangs.Exp.Many"))), Param(Name("list2"), TList(TNode("inca.analyzedLangs.Exp.Many")))), TUnit, Seq(Body(Seq(
         Assign(Seq("x"), PathAccess(Var("list"), ChildrenLink)),
         Assert(Eq(Var("x"), Var("x"))),
         Assign(Seq("y"), PathAccess(Var("list2"), ChildrenLink)),
@@ -102,7 +102,7 @@ class TestForeach extends AnyFlatSpec with IncaConstraintMatchers {
 
   "desugaring" should "implement foreach list semantics" in {
     val module = Module("Test_Cast", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), TLiteral.Int, Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "integerlits", Seq(), TLiteral.Int, Seq(Body(Seq(
         Values("many", TNode(Exp.manyTag)),
         Foreach("i", PathAccess(Var("many"), NamedLink("exps")), Body(
           Yield(PathAccess(Cast(Var("i"), TNode(Exp.intTag)), NamedLink("value")))

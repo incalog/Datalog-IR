@@ -2,7 +2,7 @@ package inca.frontend.functional.core
 
 import inca.compiler.SourceLocation
 import inca.frontend.util.{Resolvable, Typeable}
-import inca.util.Meta.Scala
+import inca.util.Scala
 
 sealed trait Expression extends Typeable[Type] with SourceLocation {
   def vars: Map[Name, Option[Type]]
@@ -88,6 +88,16 @@ case class If(cnd: Expression, thn: Expression, els: Expression) extends Express
        |${indent}  ${thn.prettyprint(indent + "  ")}
        |${indent}else
        |${indent}  ${els.prettyprint(indent + "  ")}""".stripMargin
+  }
+}
+
+case class TypeCast(exp: Expression, ty: Type) extends Expression {
+  override def vars: Map[Name, Option[Type]] = exp.vars
+  override def freevars: Seq[Var] = exp.freevars
+  override def freeTvars: Seq[TData] = super.freeTvars ++ exp.freeTvars
+  override def calls: Set[Call] = exp.calls
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    s"${exp.prettyprint(infixParens)}.as[${ty.prettyprint}]"
   }
 }
 

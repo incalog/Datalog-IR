@@ -1,13 +1,13 @@
 package inca.frontend.souffle.lowering
 
-import inca.compiler.options.FunctionalOptions
+import inca.frontend.functional.compiler.FunctionalOptions
 import inca.frontend.functional.core._
+import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.Syntax.{Expression => _, Type => _, _}
 import inca.frontend.souffle.Util.cleanSouffleName
-import inca.frontend.souffle.{CompiledSouffleFrontendModule, Syntax}
+import inca.frontend.souffle.compiler.CompiledSouffleFrontendModule
 import inca.runtime.context.DataModel.{Link => MLink}
-import inca.util.Gensym
-import inca.util.Meta.Scala
+import inca.util.{Gensym, Scala}
 import truechange.{JavaLitType, LitType}
 
 import scala.collection.mutable
@@ -24,7 +24,7 @@ class SouffleToIncaFrontendCompiler {
 
   val componentDefinitions: mutable.Map[String, ComponentDefinition] = mutable.Map()
 
-  def compile(name: String, analysis: Analysis): CompiledSouffleFrontendModule = {
+  def compile(name: String, analysis: SouffleModule): CompiledSouffleFrontendModule = {
     analysis.contents.foreach(compile(_, ""))
 
     val module = Module(Name(name), Seq(), patFuns.values.toSeq)
@@ -38,7 +38,7 @@ class SouffleToIncaFrontendCompiler {
   }
 
   // if funPrefix != "" we are within a compontent definition that got initialized
-  def compile(content: AnalysisContent, funPrefix: String): Unit = content match {
+  def compile(content: SouffleContent, funPrefix: String): Unit = content match {
     case cdef@ComponentDefinition(name, contents) =>
       componentDefinitions += name -> cdef
 
@@ -140,7 +140,7 @@ class SouffleToIncaFrontendCompiler {
     case Syntax.Variable(name) => Var(cleanSouffleName(name))
     case Syntax.StringValue(value) => BaseLit(Scala(scala.meta.Lit.String(value.intern())))
     case Syntax.NumberValue(value) => BaseLit(Scala(scala.meta.Lit.Int(value)))
-    case Syntax.Any =>
+    case Syntax.Wildcard =>
       val fresh = gensym.fresh("wildcard")
       Var(fresh)
     case Syntax.BuiltInFunctionCall(Syntax.CatBuiltInFunction, arguments) =>
@@ -167,7 +167,7 @@ class SouffleToIncaFrontendCompiler {
     case Syntax.Variable(name) => Set(name)
     case Syntax.StringValue(_) => Set()
     case Syntax.NumberValue(_) => Set()
-    case Syntax.Any => Set()
+    case Syntax.Wildcard => Set()
     case Syntax.BuiltInFunctionCall(Syntax.CatBuiltInFunction, arguments) =>
       Set("cat") ++ arguments.flatMap(collect)
   }

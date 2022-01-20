@@ -1,11 +1,12 @@
 package inca.frontend.souffle
 
+import inca.backend.analyze.DependencyGraph
 import inca.frontend.souffle.lowering.{SouffleInputToEditscript, SouffleToIncaBackendCompiler}
 import inca.frontend.souffle.parser.Parser
 import inca.runtime.EnginePool
 import inca.runtime.Query.Matcher
 import inca.runtime.context.QueryScope
-import inca.util.MeasurementUtils
+import inca.util.measurement.MemoryUtil
 import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
 import org.scalatest.flatspec.AnyFlatSpec
 import truechange.EditScript
@@ -33,7 +34,7 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
 
   "var points to souffle analysis" should "derive correct number of tuples" in {
     println(System.getProperty("user.dir"))
-    val benchmarkPath = "souffle-importer/benchmark"
+    val benchmarkPath = "souffle-frontend/benchmark"
     val filename = s"$benchmarkPath/self-contained.dl"
     val src = Source.fromFile(filename)
     val doopText = src.getLines().mkString("\n")
@@ -43,6 +44,8 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
     val compiledModule = compiler.compile("selfcontained", analysis)
     println(compiledModule.ir.pats.size)
     println(compiledModule.ir.pats.map(_.bodies.size).sum)
+
+    println(new DependencyGraph(compiledModule.optimized).toGraphViz)
 
     val psModule = compiledModule.psystemModule
     val startLoadFactFiles = System.currentTimeMillis()
@@ -86,7 +89,7 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
       }
 
       println(s"Run $run: Time to fill database: ${loadingTime}ms")
-      println(s"Run $run: Used memory: ${MeasurementUtils.usedMemoryInMBytes()}MB")
+      println(s"Run $run: Used memory: ${MemoryUtil.usedMemoryInMBytes()}MB")
       println(s"Run $run: Time to process query: ${endQuery - startQuery}ms")
 
       //    matchers.foreach { m =>

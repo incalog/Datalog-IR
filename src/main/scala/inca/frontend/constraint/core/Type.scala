@@ -2,8 +2,7 @@ package inca.frontend.constraint.core
 
 import inca.compiler.SourceLocation
 import inca.frontend.util.Resolvable
-import inca.util.Meta
-import inca.util.Meta.Scala
+import inca.util.Scala
 import truechange.{JavaLitType, LitType}
 
 import scala.annotation.tailrec
@@ -47,7 +46,7 @@ case class TLiteral(litType: LitType) extends Type {
   }
 
   override def asScala: meta.Type = litType match {
-    case JavaLitType(cl) =>  Meta.mkQualTypename(cl.getCanonicalName)
+    case JavaLitType(cl) =>  Scala.mkQualTypename(cl.getCanonicalName)
     case _ => throw new UnsupportedOperationException
   }
 }

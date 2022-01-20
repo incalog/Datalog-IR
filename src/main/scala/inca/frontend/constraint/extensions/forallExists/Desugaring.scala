@@ -4,8 +4,7 @@ import inca.frontend.constraint.core._
 import inca.frontend.constraint.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.constraint.extensions.forallExists.Trees._
 import inca.frontend.constraint.extensions.foreach
-import inca.util.Gensym
-import inca.util.Meta.Scala
+import inca.util.{Gensym, Scala}
 
 import scala.collection.mutable.ListBuffer
 import scala.meta.Term
@@ -67,7 +66,7 @@ object Desugaring extends Desugarable {
       ))
       val vars = newbody.freeVars.toSeq
       val params = vars.map(v => Param(v._1, v._2.getOrElse(TAny)))
-      forallExistsFuns += PatternFunction(None, funsym, params, ty, Seq(newbody))
+      forallExistsFuns += PatternFunction(Seq(), None, funsym, params, ty, Seq(newbody))
       vars
     }
 

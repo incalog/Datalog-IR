@@ -2,9 +2,9 @@ package inca.frontend.functional.lowering
 
 import inca.backend.ir.Datalog
 import inca.compiler.Compiler
-import inca.compiler.options.FunctionalOptions
 import inca.examples.functional.{AST, Code, ControlDataFlow, HigherOrder}
-import inca.util.Meta.Scala
+import inca.frontend.functional.compiler.FunctionalOptions
+import inca.util.Scala
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.XtensionQuasiquoteTerm

@@ -1,7 +1,7 @@
 package inca.frontend.constraint.core
 
 import inca.compiler.SourceLocation
-import inca.util.Meta
+import inca.util.Scala
 
 case class Body(stmts: Seq[Statement]) extends SourceLocation {
   def boundVars: Set[Name] = stmts.flatMap(_.boundVars).toSet
@@ -15,7 +15,7 @@ case class Body(stmts: Seq[Statement]) extends SourceLocation {
 
   def prettyprint(implicit indent: String): String = {
     val stmtsS = if (stmts.isEmpty) " " else
-      "\n" + stmts.map(_.prettyprint(indent + Meta.TAB)).mkString("\n")
+      "\n" + stmts.map(_.prettyprint(indent + Scala.TAB)).mkString("\n")
     s"""{$stmtsS
        |$indent}""".stripMargin
   }

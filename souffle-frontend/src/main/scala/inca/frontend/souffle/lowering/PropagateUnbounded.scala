@@ -1,7 +1,7 @@
 package inca.frontend.souffle.lowering
 
 import inca.backend.ir.Datalog._
-import inca.util.Meta.Scala
+import inca.util.Scala
 
 object PropagateUnbounded {
 

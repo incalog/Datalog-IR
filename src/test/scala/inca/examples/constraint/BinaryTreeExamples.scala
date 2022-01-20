@@ -1,6 +1,6 @@
 package inca.examples.constraint
 
-import inca.executor.ConstraintExecutor
+import inca.frontend.constraint.executor.ConstraintExecutor
 import inca.runtime.context.DataModel
 import org.scalatest.funsuite.AnyFunSuite
 import truediff.Diffable
@@ -27,6 +27,7 @@ class BinaryTreeExamples extends AnyFunSuite {
         |
         |node inca.examples.constraint._
         |
+        |@main
         |def rootNode(t: Tree): Unit = {
         |  assert undef t.parent
         |}
@@ -48,12 +49,12 @@ class BinaryTreeExamples extends AnyFunSuite {
     val loaded = ConstraintExecutor.loadAnalysis(code)
 
     val tree = BinaryNode(4, BinaryNode(2, LeafNode(), LeafNode()), LeafNode())
-    println(tree.toStringWithURI)
+//    println(tree.toStringWithURI)
     val tree2 = BinaryNode(4, BinaryNode(2, BinaryNode(1, LeafNode(), LeafNode()), LeafNode()), LeafNode())
-    println(tree2.toStringWithURI)
+//    println(tree2.toStringWithURI)
     val res1 = loaded.execute(tree, "rootNode")
-    res1.foreach(println)
+//    res1.foreach(println)
     val res2 = loaded.update(tree2, "rootNode")
-    res2.foreach(println)
+//    res2.foreach(println)
   }
 }

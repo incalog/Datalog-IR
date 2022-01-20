@@ -5,12 +5,11 @@ import inca.backend.ir.Datalog._
 import inca.runtime.Query
 import inca.runtime.aggregate.{AggregatorAssocComm, AggregatorAssocCommInv}
 import inca.runtime.context.DataModel
-import inca.runtime.data.DataURI
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
 import inca.util.Gensym
-import inca.util.Meta._
+import inca.util.Scala._
 import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations.BoundAggregator
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.AggregatorConstraint
 import truechange.{AnyType, JavaLitType, ListType, SortType}
@@ -49,7 +48,6 @@ object GeneratePSystem {
   private val tAggregatorAssocComm = typeOf[AggregatorAssocComm[_]]
   private val tBoundAggregator = typeOf[BoundAggregator]
   private val tAggregatorConstraint = typeOf[AggregatorConstraint]
-  private val oDataURI = symbolOf(DataURI)
 
   private val tDataModel = typeOf[DataModel]
   private val oMultiDict = symbolOf(MultiDict)
@@ -106,26 +104,6 @@ object GeneratePSystem {
     """
   }
 
-  // val TExp_lmi: LanguageMetaInfo = new LanguageMetaInfo(
-    //    MultiDict(
-    //      SortType("TNum") -> SortType("TExp"),
-    //      SortType("TLam") -> SortType("TExp"),
-    //      SortType("TApp") -> SortType("TExp"),
-    //      SortType("TVar") -> SortType("TExp"),
-    //    ),
-    //    Map(
-    //      ("TLam", "_1") -> SortType("Type"),
-    //      ("TLam", "_2") -> SortType("TExp"),
-    //      ("TApp", "_0") -> SortType("TExp"),
-    //      ("TApp", "_1") -> SortType("TExp"),
-    //    ),
-    //    Map(
-    //      ("TNum", "_0") -> JavaLitType(classOf[Int]),
-    //      ("TLam", "_0") -> JavaLitType(classOf[String]),
-    //      ("TVar", "_0") -> JavaLitType(classOf[String]),
-    //    )
-    //  )
-
   private def compilePattern(moduleName: String, pat: Pattern)(implicit env: RuleEnvironment): Stat = {
     val qname = GeneratePSystem.genQueryName(moduleName, pat.name)
 
@@ -161,8 +139,8 @@ object GeneratePSystem {
         private final object generatedPQuery extends BasePQuery($vis) {
           ..${pat.params.map(genPParam).toList}
           {}
-          override protected def doGetContainedBodies(): util.Set[PBody] = {
-            val bodies: util.Set[PBody] = util.Set.of(
+          override protected def doGetContainedBodies(): util.Set[PBody] =
+            util.Set.of(
               ..${bodies.map { body =>
                     q"""{
                         val body: PBody = new PBody(this)
@@ -187,8 +165,6 @@ object GeneratePSystem {
                   }.toList
               }
             )
-            bodies
-          }
 
           override def getFullyQualifiedName: String = $qname
           override def getParameters: util.List[PParameter] = util.List.of(..${paramTermNames.toList})
@@ -265,13 +241,12 @@ object GeneratePSystem {
 
   private def genConstantEvalVarName(eval: Evaluation): String = eval.code.hashCode().toString
 
-  private def genLiteral(lit: Literal): Lit = lit match {
+  def genLiteral(lit: Literal): Lit = lit match {
     case IntLiteral(v) => Lit.Int(v)
     case LongLiteral(v) => Lit.Long(v)
     case DoubleLiteral(v) => Lit.Double(v)
     case StringLiteral(v) => Lit.String(v)
     case BooleanLiteral(v) => Lit.Boolean(v)
-
   }
 
   private def compileAtom(atom: Atom)(implicit env: RuleEnvironment): Seq[Stat] = atom match {
@@ -313,7 +288,7 @@ object GeneratePSystem {
         val gentyp = genNodeType(typ)
         Seq(q"""new TypeConstraint(
             body,
-            Tuples.flatTupleOf(${compileTerm(t)}),
+            Tuples.staticArityFlatTupleOf(${compileTerm(t)}),
             $oNodeTypeKey($gentyp))""")
       }
 
@@ -324,7 +299,7 @@ object GeneratePSystem {
         val gentyp = genNodeType(typ)
         Seq(q"""new TypeFilterConstraint(
             body,
-            Tuples.flatTupleOf(${compileTerm(t)}),
+            Tuples.staticArityFlatTupleOf(${compileTerm(t)}),
             $oNotNodeTypeKey($gentyp))""")
       }
 
@@ -352,6 +327,7 @@ object GeneratePSystem {
       case _: Datalog.TLiteral =>
         q"$oLinkPrimitiveKey(($name, $field))"
     }
+    case _ => throw new IllegalStateException(s"Generating LinkKey for $link not supported")
 
   }
 

@@ -2,7 +2,7 @@ package inca.caseStudies.findbugs
 
 import inca.analyzedLangs.tinyJava
 import inca.compiler.Compiler
-import inca.compiler.options.ConstraintOptions
+import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.constraint.core._
 import inca.runtime.EnginePool
 import inca.runtime.context.QueryScope
@@ -29,7 +29,7 @@ class FindBugsTests extends AnyFunSuite {
          |
          |node inca.analyzedLangs.tinyJava._
          |
-         |
+         |@main
          |def confusedInheritance(class: ClassDeclaration): Unit = {
          |  assert class.isFinal == true
          |  val members = class.members

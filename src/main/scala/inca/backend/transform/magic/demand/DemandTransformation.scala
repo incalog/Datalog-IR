@@ -12,8 +12,10 @@ import inca.util.Gensym
 // This transformation consumes MagicSetHints.IgnoreCall and MagicSetHints.NoInputRelation
 object DemandTransformation extends Transformation {
 
-  def inputPatternName(name: Name): String = "input_" + name
-  def extensionalInputPatternName(name: Name): String = "ext_input_" + name
+  val demandPatternPrefix = "input$"
+  val demandPatternExtensionalPrefix = "ext_input$"
+  def inputPatternName(name: Name): String = demandPatternPrefix + name
+  def extensionalInputPatternName(name: Name): String = demandPatternExtensionalPrefix + name
 
   override def transformer(dataModel: DataModel): Transformer = new Transformer {
 
@@ -89,7 +91,7 @@ object DemandTransformation extends Transformation {
     private def deriveInputCall(pat: Pattern, demandPat: Seq[Boolean]): Option[Call] = {
       val boundParams = deriveBoundParams(pat, demandPat)
       if (boundParams.isEmpty) {
-        None
+        Some(Call(inputPatternName(pat.name), List(Var("_"))).addHint(InputCall(pat.name)))
       } else {
         val args = boundParams.map(p => Var(p.name))
         Some(Call(inputPatternName(pat.name), args).addHint(InputCall(pat.name)))
@@ -114,19 +116,26 @@ object DemandTransformation extends Transformation {
         val name = gensym.fresh(p.name)
         Param(name, p.typ)
       }
+
       val boundIndices = deriveBoundIndices(pat, demandPat)
+      val dummyParam =
+        if (boundIndices.isEmpty)
+          Some(Param(gensym.fresh("dummy"), TScala("Boolean")))
+        else
+          None
+      val dummyBinding = dummyParam.map(p => Eq(Var(p.name), Constant(BooleanLiteral(true))))
+
       // for each body there can be multiple input bodies (due to multiple pattern calls)
       val inputPatterns = patterns.flatMap { p =>
         p.bodies.flatMap { body =>
           body.atoms.zipWithIndex.flatMap { case (atom, atomix) =>
             atom.asCall match {
               case Some((name, args)) =>
-                if (name == pat.name && !atom.hints.contains(MagicSetHints.IgnoreCall.key)) {
-                  val boundParams = boundIndices.map { i =>
+                if (name == pat.name && !atom.hints.contains(MagicSetHints.IgnoreCallKey)) {
+                  val bindings = boundIndices.map { i =>
                     Eq(args(i), Var(params(i).name))
                   }
-                  if (boundParams.isEmpty) Seq()
-                  else Seq(Body(body.atoms.take(atomix) ++ boundParams).withHints(body))
+                  Seq(Body(body.atoms.take(atomix) ++ bindings ++ dummyBinding).withHints(body))
                 }
                 else
                   Seq()
@@ -138,15 +147,14 @@ object DemandTransformation extends Transformation {
 
       val boundParams = boundIndices.map(params)
 
-      val extensionalBody = if (pat.hasHint(MagicSetHints.Main.key)) {
-        Some(Body(Seq(
-          ExtensionalCall(extensionalInputPatternName(pat.name), boundParams.map(p => Var(p.name)))
-        )))
+      val extensionalBody = if (pat.hasHint(MagicSetHints.MainKey)) {
+        val extCall = ExtensionalCall(extensionalInputPatternName(pat.name), boundParams.map(p => Var(p.name)))
+        Some(Body(Seq(extCall) ++ dummyBinding))
       } else {
         None
       }
 
-      val inputPat = Pattern(None, inputPatternName(pat.name), boundParams, inputPatterns ++ extensionalBody)
+      val inputPat = Pattern(None, inputPatternName(pat.name), boundParams ++ dummyParam, inputPatterns ++ extensionalBody).addHint(MagicSetHints.InputRelation)
       if (inputPat.bodies.nonEmpty)
         Seq(inputPat)
       else

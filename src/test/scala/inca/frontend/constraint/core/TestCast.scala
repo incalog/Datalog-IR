@@ -1,7 +1,7 @@
 package inca.frontend.constraint.core
 
 import inca.analyzedLangs.Exp
-import inca.compiler.options.ConstraintOptions
+import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.runtime.context.QueryScope
 import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec
@@ -21,7 +21,7 @@ class TestCast extends AnyFlatSpec with IncaConstraintMatchers {
   
   "compiler" should "implement cast semantics" in {
     val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(None, "integerlits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
+      PatternFunction(Seq(MainFunctionAnno), None, "integerlits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
         Values("e", TNode(Exp.expTag)),
         Yield(Cast(Var("e"), TNode(Exp.intTag)))
       ))))

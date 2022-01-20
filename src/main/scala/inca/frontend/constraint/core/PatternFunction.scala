@@ -2,8 +2,8 @@ package inca.frontend.constraint.core
 
 import inca.compiler.SourceLocation
 
-case class PatternFunction(vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, bodies: Seq[Body])
-  extends ModuleContent with Call.Target {
+case class PatternFunction(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, bodies: Seq[Body])
+  extends ModuleContent with Call.Target with Annotations {
   def boundNames: Seq[Name] = params.map(_.name)
 
   def freeVars: Map[Name, Option[Type]] = allVars -- boundNames

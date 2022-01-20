@@ -4,8 +4,7 @@ import inca.frontend.constraint.core._
 import inca.frontend.constraint.desugar.{DesugarTrans, Desugarable}
 import inca.frontend.constraint.extensions.boolOps.Trees._
 import inca.frontend.constraint.extensions.switch_
-import inca.util.Gensym
-import inca.util.Meta.Scala
+import inca.util.{Gensym, Scala}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer

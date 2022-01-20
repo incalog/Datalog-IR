@@ -4,7 +4,7 @@ import inca.analyzedLangs.{Exp, ExpLangTestAnalyses}
 import inca.backend.ir.Datalog
 import inca.debugger.table.Table
 import inca.runtime.context.DataModel
-import inca.util.Meta.Scala
+import inca.util.Scala
 import org.scalatest.funsuite.AnyFunSuite
 import truechange.EditScript
 import truediff.Diffable

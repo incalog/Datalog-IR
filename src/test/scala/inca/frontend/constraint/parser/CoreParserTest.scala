@@ -2,8 +2,6 @@ package inca.frontend.constraint.parser
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
-import inca.frontend.constraint.core
-import inca.runtime.context.DataModel
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -579,6 +577,7 @@ class CoreParserTest extends AnyFunSuite {
                 |  val q = 9  
                 |}""".stripMargin,
       PatternFunction(
+        Seq(),
         None,
         Name("foo"),
         Seq(Param(Name("bar"), TLiteral.Int)),
@@ -604,6 +603,7 @@ class CoreParserTest extends AnyFunSuite {
                 |  val q = 9  
                 |}""".stripMargin,
       PatternFunction(
+        Seq(),
         None,
         Name("foo"),
         Seq(Param(Name("bar"), TLiteral.Int)),
@@ -629,6 +629,7 @@ class CoreParserTest extends AnyFunSuite {
                 |  val q = 9  
                 |}""".stripMargin,
       PatternFunction(
+        Seq(),
         Option(Private),
         Name("foo"),
         Seq(Param(Name("bar"), TLiteral.Int)),
@@ -649,6 +650,7 @@ class CoreParserTest extends AnyFunSuite {
                 |   val x = y
                 |}""".stripMargin,
       PatternFunction(
+        Seq(),
         None,
         Name("foo"),
         Seq(
@@ -669,6 +671,7 @@ class CoreParserTest extends AnyFunSuite {
                 |   val x = y
                 |}""".stripMargin,
       PatternFunction(
+        Seq(),
         None,
         Name("foo"),
         Seq(
@@ -689,6 +692,7 @@ class CoreParserTest extends AnyFunSuite {
                 |   val x = y
                 |}""".stripMargin,
       PatternFunction(
+        Seq(),
         None,
         Name("foo"),
         Seq(
@@ -729,6 +733,7 @@ class CoreParserTest extends AnyFunSuite {
         Seq(),
         Seq(
           PatternFunction(
+            Seq(),
             None,
             Name("foo"),
             Seq(Param(Name("bar"), TLiteral.Bool)),
@@ -740,6 +745,7 @@ class CoreParserTest extends AnyFunSuite {
             )
           ),
           PatternFunction(
+            Seq(),
             None,
             Name("bar"),
             Seq(Param(Name("foo"), TLiteral.Bool)),
@@ -771,6 +777,7 @@ class CoreParserTest extends AnyFunSuite {
         Seq(),
         Seq(
           PatternFunction(
+            Seq(),
             None,
             Name("foo"),
             Seq(Param(Name("bar"), TLiteral.Bool)),
@@ -802,6 +809,7 @@ class CoreParserTest extends AnyFunSuite {
         Seq(),
         Seq(
           PatternFunction(
+            Seq(),
             None,
             Name("foo"),
             Seq(Param(Name("bar"), TLiteral.Bool)),
@@ -830,6 +838,7 @@ class CoreParserTest extends AnyFunSuite {
         Seq(),
         Seq(
           PatternFunction(
+            Seq(),
             None,
             Name("foo"),
             Seq(Param(Name("bar"), TLiteral.Bool)),
@@ -953,7 +962,7 @@ class CoreParserTest extends AnyFunSuite {
     (input: String, cmp: T) => {
       parse(input, parser) match {
         case Success(value, index)        =>
-          println(value)
+//          println(value)
           assert(value === cmp)
           assertResult(input.length)(index)
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")

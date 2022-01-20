@@ -5,7 +5,7 @@ import fastparse._
 import inca.compiler.SourceLocation
 import inca.frontend.functional.core._
 import inca.frontend.util.ParserUtils
-import inca.util.Meta.Scala
+import inca.util.Scala
 import scalaparse.syntax.Identifiers.OpCharNotSlash
 
 import scala.language.reflectiveCalls
@@ -67,7 +67,7 @@ trait Parser {
   protected[frontend] def wideExp[_: P]: P[Expression] =
     P(ifExp | letExp | memberExp | infixExp)
   protected[frontend] def infixExp[_: P]: P[Expression] =
-    P(baseApplyInfixExp | matchExp | subinfixExp)
+    P(typeCastExp | baseApplyInfixExp | matchExp | subinfixExp)
   protected[frontend] def subinfixExp[_: P]: P[Expression] =
     P(callExp | lambdaExp | atomicExp)
   protected[frontend] def atomicExp[_: P]: P[Expression] =
@@ -94,6 +94,11 @@ trait Parser {
   protected[frontend] def ifExp[_: P]: P[If] =
     P("if" ~ "(" ~ exp ~ ")" ~ exp ~ "else" ~ exp).mapWithLoc {
       case (cond, thn, els) => If(cond, thn, els)
+    }
+
+  protected[frontend] def typeCastExp[_: P]: P[TypeCast] =
+    P(subinfixExp ~~ ".as[" ~ tData ~ "]") mapWithLoc {
+      case (e, ty) => TypeCast(e, ty)
     }
 
   protected[frontend] def callExp[_: P]: P[Expression] =

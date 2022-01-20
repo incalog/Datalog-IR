@@ -2,7 +2,7 @@ package inca.backend.transform.magic
 
 import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Datalog
-import inca.util.Meta.Scala
+import inca.util.Scala
 
 import scala.meta.quasiquotes._
 
@@ -70,7 +70,7 @@ object Examples {
   val adornedIncModuleGP = gpmodule(adornedIncFunGP, adornedIncMainGP)
 
   val magicIncFunGP = Datalog.Pattern(None, "inc_bf", Seq(Datalog.Param("n", Datalog.TScalaInt), Datalog.Param("out", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Call("input_inc_bf", Seq(Datalog.Var("n")), transitive = false, neg = false),
+    Datalog.Call("input$inc_bf", Seq(Datalog.Var("n")), transitive = false, neg = false),
     Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
     Datalog.Computed(Datalog.Var("eval"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
       Datalog.TScalaInt, Scala(q"(left: Int, right: Int) => left + right"))),
@@ -81,7 +81,7 @@ object Examples {
     Datalog.Call("inc_bf", Seq(Datalog.Var("lit"), Datalog.Var("out_0")), transitive = false, neg = false),
     Datalog.Eq(Datalog.Var("out"), Datalog.Var("out_0"))
   ))))
-  val magicInputIncFunGP = Datalog.Pattern(None, "input_inc_bf", Seq(Datalog.Param("n", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
+  val magicInputIncFunGP = Datalog.Pattern(None, "input$inc_bf", Seq(Datalog.Param("n", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
     Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 0"))),
     Datalog.Eq(Datalog.Var("lit"), Datalog.Var("n"))
   ))))
@@ -90,7 +90,7 @@ object Examples {
 
 
   val magicFactFunGP = Datalog.Pattern(None, "fact_bf", Seq(Datalog.Param("n", Datalog.TScalaInt), Datalog.Param("out", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Call("input_fact_bf", Seq(Datalog.Var("n")), transitive = false, neg = false),
+    Datalog.Call("input$fact_bf", Seq(Datalog.Var("n")), transitive = false, neg = false),
     Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
     Datalog.Computed(Datalog.Var("eval"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
       Datalog.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
@@ -98,7 +98,7 @@ object Examples {
     Datalog.Computed(Datalog.Var("lit_0"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
     Datalog.Eq(Datalog.Var("out"), Datalog.Var("lit_0"))
   )), Datalog.Body(Seq(
-    Datalog.Call("input_fact_bf", Seq(Datalog.Var("n")), transitive = false, neg = false),
+    Datalog.Call("input$fact_bf", Seq(Datalog.Var("n")), transitive = false, neg = false),
     Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
     Datalog.Computed(Datalog.Var("eval"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
       Datalog.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
@@ -116,8 +116,8 @@ object Examples {
     Datalog.Call("fact_bf", Seq(Datalog.Var("lit"), Datalog.Var("out_0")), transitive = false, neg = false),
     Datalog.Eq(Datalog.Var("out"), Datalog.Var("out_0"))
   ))))
-  val magicInputFactFunGP = Datalog.Pattern(None, "input_fact_bf", Seq(Datalog.Param("n_0", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
-    Datalog.Call("input_fact_bf", Seq(Datalog.Var("n")), transitive = false, neg = false),
+  val magicInputFactFunGP = Datalog.Pattern(None, "input$fact_bf", Seq(Datalog.Param("n_0", Datalog.TScalaInt)), Seq(Datalog.Body(Seq(
+    Datalog.Call("input$fact_bf", Seq(Datalog.Var("n")), transitive = false, neg = false),
     Datalog.Computed(Datalog.Var("lit"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
     Datalog.Computed(Datalog.Var("eval"), Datalog.Evaluation(Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
       Datalog.TScalaBoolean, Scala(q"(left: Int, right: Int) => left == right"))),
@@ -281,13 +281,13 @@ object Examples {
       Datalog.Pattern(None, "reachable_bb", Seq(Datalog.Param("x", tNode), Datalog.Param("y", tNode)),
         Seq(
           Datalog.Body(Seq(
-            Datalog.Call("input_reachable_bb", Seq(Datalog.Var("x"), Datalog.Var("y")), transitive = false, neg = false),
+            Datalog.Call("input$reachable_bb", Seq(Datalog.Var("x"), Datalog.Var("y")), transitive = false, neg = false),
             Datalog.HasType(Datalog.Var("link"), tLink),
             Datalog.Path(Datalog.Var("link"), tNode, fromTLink, Datalog.Var("x"), tNode),
             Datalog.Path(Datalog.Var("link"), tNode, toTLink, Datalog.Var("y"), tNode)
           )),
           Datalog.Body(Seq(
-            Datalog.Call("input_reachable_bb", Seq(Datalog.Var("x"), Datalog.Var("y")), transitive = false, neg = false),
+            Datalog.Call("input$reachable_bb", Seq(Datalog.Var("x"), Datalog.Var("y")), transitive = false, neg = false),
             Datalog.HasType(Datalog.Var("link"), tLink),
             Datalog.Path(Datalog.Var("link"), tNode, fromTLink, Datalog.Var("x"), tNode),
             Datalog.Path(Datalog.Var("link"), tNode, toTLink, Datalog.Var("z"), tNode),
@@ -298,12 +298,12 @@ object Examples {
       Datalog.Pattern(None, "node_b", Seq(Datalog.Param("x", tNode)),
         Seq(
           Datalog.Body(Seq(
-            Datalog.Call("input_node_b", Seq(Datalog.Var("x")), transitive = false, neg = false),
+            Datalog.Call("input$node_b", Seq(Datalog.Var("x")), transitive = false, neg = false),
             Datalog.HasType(Datalog.Var("link"), tLink),
             Datalog.Path(Datalog.Var("link"), tNode, fromTLink, Datalog.Var("x"), tNode),
           )),
           Datalog.Body(Seq(
-            Datalog.Call("input_node_b", Seq(Datalog.Var("x")), transitive = false, neg = false),
+            Datalog.Call("input$node_b", Seq(Datalog.Var("x")), transitive = false, neg = false),
             Datalog.HasType(Datalog.Var("link"), tLink),
             Datalog.Path(Datalog.Var("link"), tNode, toTLink, Datalog.Var("x"), tNode),
           )),
@@ -324,7 +324,7 @@ object Examples {
       Datalog.Pattern(None, "unreachable_fb", Seq(Datalog.Param("x", tNode), Datalog.Param("y", tNode)),
         Seq(
           Datalog.Body(Seq(
-            Datalog.Call("input_unreachable_fb", Seq(Datalog.Var("y")), transitive = false, neg = false),
+            Datalog.Call("input$unreachable_fb", Seq(Datalog.Var("y")), transitive = false, neg = false),
             Datalog.Call("node_f", Seq(Datalog.Var("x")), transitive = false, neg = false),
             Datalog.Call("node_b", Seq(Datalog.Var("y")), transitive = false, neg = false),
             Datalog.Call("reachable_bb", Seq(Datalog.Var("x"), Datalog.Var("y")), transitive = false, neg = true),
@@ -340,7 +340,7 @@ object Examples {
           ))
         )
       ),
-      Datalog.Pattern(None, "input_unreachable_fb", Seq(Datalog.Param("y_0", tNode)),
+      Datalog.Pattern(None, "input$unreachable_fb", Seq(Datalog.Param("y_0", tNode)),
         Seq(
           Datalog.Body(Seq(
             Datalog.HasType(Datalog.Var("y"), tNode),
@@ -349,10 +349,10 @@ object Examples {
           ))
         )
       ),
-      Datalog.Pattern(None, "input_reachable_bb", Seq(Datalog.Param("x_0", tNode), Datalog.Param("y_0", tNode)),
+      Datalog.Pattern(None, "input$reachable_bb", Seq(Datalog.Param("x_0", tNode), Datalog.Param("y_0", tNode)),
         Seq(
           Datalog.Body(Seq(
-            Datalog.Call("input_reachable_bb", Seq(Datalog.Var("x"), Datalog.Var("y")), transitive = false, neg = false),
+            Datalog.Call("input$reachable_bb", Seq(Datalog.Var("x"), Datalog.Var("y")), transitive = false, neg = false),
             Datalog.HasType(Datalog.Var("link"), tLink),
             Datalog.Path(Datalog.Var("link"), tNode, fromTLink, Datalog.Var("x"), tNode),
             Datalog.Path(Datalog.Var("link"), tNode, toTLink, Datalog.Var("z"), tNode),
@@ -360,7 +360,7 @@ object Examples {
             Datalog.Eq(Datalog.Var("y"), Datalog.Var("y_0"))
           )),
           Datalog.Body(Seq(
-            Datalog.Call("input_unreachable_fb", Seq(Datalog.Var("y")), transitive = false, neg = false),
+            Datalog.Call("input$unreachable_fb", Seq(Datalog.Var("y")), transitive = false, neg = false),
             Datalog.Call("node_f", Seq(Datalog.Var("x")), transitive = false, neg = false),
             Datalog.Call("node_b", Seq(Datalog.Var("y")), transitive = false, neg = false),
             Datalog.Eq(Datalog.Var("x"), Datalog.Var("x_0")),
@@ -368,10 +368,10 @@ object Examples {
           ))
         )
       ),
-      Datalog.Pattern(None, "input_node_b", Seq(Datalog.Param("x_0", tNode)),
+      Datalog.Pattern(None, "input$node_b", Seq(Datalog.Param("x_0", tNode)),
         Seq(
           Datalog.Body(Seq(
-            Datalog.Call("input_unreachable_fb", Seq(Datalog.Var("y")), transitive = false, neg = false),
+            Datalog.Call("input$unreachable_fb", Seq(Datalog.Var("y")), transitive = false, neg = false),
             Datalog.Call("node_f", Seq(Datalog.Var("x")), transitive = false, neg = false),
             Datalog.Eq(Datalog.Var("y"), Datalog.Var("x_0"))
           ))

@@ -83,6 +83,18 @@ class DataModel(
     case AnyType => throw new UnsupportedOperationException("The subtypes of AnyType are not enumerable")
     case NothingType => Iterable()
   }
+
+  def mostSpecificType(tys: Seq[Type]): Option[Type] =
+    if (tys.isEmpty) {
+      None
+    } else {
+      tys.find {
+        case AnyType => false
+        case ty =>
+          val res = !subtypes(ty).exists(_ != NothingType)
+          res
+      }
+    }
 }
 
 object DataModel {

@@ -5,8 +5,7 @@ import inca.frontend.constraint.core._
 import inca.frontend.util.{Resolvable, Typeable}
 import inca.runtime.aggregate.Aggregation
 import inca.runtime.context.DataModel
-import inca.util.Meta
-import inca.util.Meta.Scala
+import inca.util.Scala
 import truechange.{AnyType, ListType, SortType}
 
 trait CoreTypechecker
@@ -363,7 +362,7 @@ trait CoreTypechecker
       }
 
       val bodiesScalaTy = bodiesTy.asScala
-      val requiredAggTy = TScala(Scala(meta.Type.Apply(Meta.typeOf[Aggregation[_]], List(bodiesScalaTy))))
+      val requiredAggTy = TScala(Scala(meta.Type.Apply(Scala.typeOf[Aggregation[_]], List(bodiesScalaTy))))
 
       if (!subtype(aggTy, requiredAggTy, dataModel))
         error(s"Expected $requiredAggTy, but got $aggTy", agg)

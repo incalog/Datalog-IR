@@ -10,6 +10,9 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask
 import scala.collection.mutable
 import scala.jdk.FunctionWrappers.AsJavaConsumer
 
+/* Marker trait for binary indices that uniquely identify V from K */
+trait BinaryMapIndex[K, V] extends BinaryIndex[K, V]
+
 abstract class BinaryIndex[K,V] extends Index {
   def entries: Iterable[(K,V)]
   def index(k: K): Iterable[V]
@@ -97,6 +100,7 @@ abstract class BinaryIndex[K,V] extends Index {
 
   def insert(k: K, v: V): Unit
   def delete(k: K, v: V): Unit
+  def update(k: K, vold: V, vnew: V): Unit
 
   protected val listenAll: mutable.Set[IQueryRuntimeContextListener] = mutable.Set()
   protected val listenKey: MutableSetMultimap[K, IQueryRuntimeContextListener] = Multimaps.mutable.set.empty()
@@ -149,3 +153,4 @@ abstract class BinaryIndex[K,V] extends Index {
     }
   }
 }
+

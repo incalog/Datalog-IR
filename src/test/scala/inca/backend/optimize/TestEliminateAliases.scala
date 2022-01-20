@@ -1,7 +1,7 @@
 package inca.backend.optimize
 
 import inca.backend.ir.Datalog._
-import inca.compiler.options.ConstraintOptions
+import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.matchers.IncaGPMatchers
 import org.scalatest.flatspec.AnyFlatSpec
@@ -10,7 +10,7 @@ class TestEliminateAliases extends AnyFlatSpec with IncaGPMatchers {
 
   val dataModel = new DataModel()
   val scope = new QueryScope(dataModel)
-  val options = ConstraintOptions(optimizations = Seq(EliminateAliases, FoldConstantConstraints))
+  val options = ConstraintOptions(optimizations = Seq(EliminateAliases))
 
   "eliminateAliases" must "find variable aliases" in {
     val module1 = Module("Test", Seq(), Seq(

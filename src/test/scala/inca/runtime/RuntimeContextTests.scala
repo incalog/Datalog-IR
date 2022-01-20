@@ -1,9 +1,9 @@
 package inca.runtime
 
 import java.{lang, util}
-
 import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.{Exp, tinyJava}
+import inca.runtime.db.Database
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.SizeIndex

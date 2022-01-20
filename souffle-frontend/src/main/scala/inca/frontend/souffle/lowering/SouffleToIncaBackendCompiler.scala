@@ -1,14 +1,15 @@
 package inca.frontend.souffle.lowering
 
+import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Datalog._
-import inca.compiler.options.ConstraintOptions
+import inca.frontend.constraint.compiler.ConstraintOptions
+import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.Syntax.{Type => _, _}
 import inca.frontend.souffle.Util.cleanSouffleName
-import inca.frontend.souffle.{CompiledSouffleModule, Syntax}
+import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.runtime.context.DataModel
 import inca.runtime.context.DataModel.{Link => MLink}
-import inca.util.Gensym
-import inca.util.Meta.Scala
+import inca.util.{Gensym, Scala}
 import truechange.{JavaLitType, LitType}
 
 import scala.collection.immutable.MultiDict
@@ -27,11 +28,16 @@ class SouffleToIncaBackendCompiler {
 
   val componentDefinitions: mutable.Map[String, ComponentDefinition] = mutable.Map()
 
-  def compile(name: String, analysis: Analysis): CompiledSouffleModule = {
+  def compile(name: String, analysis: SouffleModule): CompiledSouffleModule = {
     analysis.contents.foreach(compile(_, ""))
 
     val module = Module(name, Seq(), patFuns.values.toSeq, Seq())
     val moduleWithUnbounded = PropagateUnbounded.transformModule(module)
+    printSizes.foreach { ps =>
+      moduleWithUnbounded.pats.find(_.name == ps.name).foreach { pat =>
+        pat.addHint(MagicSetHints.Main(pat.params.map(_ => false)))
+      }
+    }
 
     val lang = new DataModel(Set(), MultiDict(), Map(), genLitLinks)
 
@@ -45,7 +51,7 @@ class SouffleToIncaBackendCompiler {
   }
 
   // if funPrefix != "" we are within a compontent definition that got initialized
-  def compile(content: AnalysisContent, funPrefix: String): Unit = content match {
+  def compile(content: SouffleContent, funPrefix: String): Unit = content match {
     case cdef@ComponentDefinition(name, contents) =>
       componentDefinitions += name -> cdef
 
@@ -149,7 +155,7 @@ class SouffleToIncaBackendCompiler {
 //      val computed = Computed(trgVar, ConstantEvaluation(TUnbounded(TString), funString))
 //      (trgVar, Seq(computed))
     case NumberValue(value) => (Constant(IntLiteral(value)), Seq())
-    case Syntax.Any =>
+    case Syntax.Wildcard =>
       val fresh = gensym.fresh("wildcard")
       (Var(fresh), Seq())
     case BuiltInFunctionCall(CatBuiltInFunction, arguments) =>
@@ -169,7 +175,7 @@ class SouffleToIncaBackendCompiler {
     case StringValue(_) => Seq()
     case NumberValue(_) => Seq()
     case BuiltInFunctionCall(_, args) => args.flatMap(collectParams)
-    case Syntax.Any => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
+    case Syntax.Wildcard => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
   }
 
   def compileEval(exp: Syntax.Expression): meta.Term = exp match {
@@ -180,7 +186,7 @@ class SouffleToIncaBackendCompiler {
       val lhs = compileEval(args.head)
       val rhs = compileEval((args(1)))
       q"$lhs + $rhs"
-    case Syntax.Any => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
+    case Syntax.Wildcard => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
   }
 
   def genLitLinks: Map[MLink, LitType] =
@@ -201,7 +207,7 @@ class SouffleToIncaBackendCompiler {
     case Variable(name) => Set(name)
     case StringValue(_) => Set()
     case NumberValue(_) => Set()
-    case Syntax.Any => Set()
+    case Syntax.Wildcard => Set()
     case BuiltInFunctionCall(_, arguments) =>
       // TODO only cat function supported
       Set("cat") ++ arguments.flatMap(collect)

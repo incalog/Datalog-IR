@@ -4,7 +4,7 @@ import fastparse.Parsed.{Failure, Success}
 import fastparse.{P, parse}
 import inca.examples.functional.{AST, Code, ControlDataFlow, HigherOrder}
 import inca.frontend.functional.core._
-import inca.util.Meta.Scala
+import inca.util.Scala
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -193,6 +193,15 @@ class ParserTest extends AnyFunSuite {
          |data Interval = IV(Int, Int) | TopInterval()
          |data Bool = True() | False() | TopBool()
          |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
+         |""".stripMargin
+    )
+  }
+
+  test("set union") {
+    testSuccessAny(parser.module(_))(
+      s"""module Main
+         |
+         |def test(): Set[Int] = {1, 2, 3} & {1, 3}
          |""".stripMargin
     )
   }

@@ -5,6 +5,7 @@ stages:
 
 before_script:
   - sbt sbtVersion
+  - sbt update
 
 test:
   stage: test

@@ -20,6 +20,10 @@ class TypecheckerTest extends AnyFunSuite {
     assert(checker.getErrors.isEmpty, s"Found type errors ${checker.getErrors}")
   }
 
+  def checkModuleErrors(mod: String): Unit = {
+    checkModuleErrors(Parser.parse(mod))
+  }
+
   def checkModuleErrors(mod: Module): Unit = {
     val checker = newTypechecker()
     checker.typecheck(mod)
@@ -116,6 +120,55 @@ class TypecheckerTest extends AnyFunSuite {
 
   test("aeval") {
     checkModule(ControlDataFlow.AEvalModule)
+  }
+
+  test("parent call for adt") {
+    val code =
+      s"""module Test
+         |data Nat = Zero() | Succ(Nat)
+         |
+         |@main def main(): Option[Any] = parent(Zero())
+         |""".stripMargin
+    checkModule(code)
+  }
+
+  test("parent call wrong number of args") {
+    val code =
+      s"""module Test
+         |data Nat = Zero() | Succ(Nat)
+         |
+         |@main def main(): Option[Any] = parent(Zero(), Succ(Zero()))
+         |""".stripMargin
+    checkModuleErrors(code)
+  }
+
+  test("parent call for non adt") {
+    val code =
+      s"""module Test
+         |data Nat = Zero() | Succ(Nat)
+         |
+         |@main def main(): Option[Any] = parent(1)
+         |""".stripMargin
+    checkModuleErrors(code)
+  }
+
+  test("type cast for adt") {
+    val code =
+      s"""module Test
+         |data Nat = Zero() | Succ(Nat)
+         |
+         |@main def main(x: Any): Nat = x.as[Nat]
+         |""".stripMargin
+    checkModule(code)
+  }
+  test("type cast for non adt") {
+    val code =
+      s"""module Test
+         |data Nat = Zero() | Succ(Nat)
+         |
+         |@main def main(x: Any): Int = x.as[Int]
+         |""".stripMargin
+    checkModuleErrors(code)
   }
 
 //  test("emptiness check 1") {

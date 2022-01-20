@@ -1,9 +1,9 @@
 package inca.compiler
 
-import inca.backend.ir.{GeneratePSystem, Datalog, PSystem}
-import inca.compiler.options.{CompilerFlags, Options}
+import inca.backend.analyze.StratificationAnalysis
+import inca.backend.ir.{Datalog, GeneratePSystem, PSystem}
 import inca.runtime.context.DataModel
-import inca.util.Meta
+import inca.util.Scala
 import inca.util.TupleOps.transClosure
 
 import scala.collection.immutable.MultiDict
@@ -64,9 +64,13 @@ trait CompiledModule {
     module
   }
 
+  lazy val analyzed: Datalog.Module = {
+    StratificationAnalysis.analyze(transformed)
+    transformed
+  }
+
   lazy val optimized: Datalog.Module = {
-    var module = transformed
-    // println(module)
+    var module = analyzed
     for (op <- options.optimizations) {
       module = op.optimizer(dataModel).optimizeModule(module)
       if (CompilerFlags.DEBUGMODE) {
@@ -89,7 +93,7 @@ trait CompiledModule {
   lazy val psystemModule: PSystem.Module = {
     import scala.meta._
     val loadSource = source"..${psystemSource.stats}; ${Term.Name(name)}"
-    Meta.compileAndLoadScala[PSystem.Module](loadSource.syntax)()
+    Scala.compileAndLoadScala[PSystem.Module](loadSource.syntax)()
   }
 }
 

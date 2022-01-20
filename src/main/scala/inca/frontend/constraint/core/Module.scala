@@ -2,7 +2,7 @@ package inca.frontend.constraint.core
 
 import inca.compiler.SourceLocation
 import inca.frontend.util.Resolvable
-import inca.util.Meta.Scala
+import inca.util.Scala
 
 case class Module(name: Name,
                   dataModels: Seq[DataModel],

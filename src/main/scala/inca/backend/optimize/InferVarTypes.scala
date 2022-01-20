@@ -3,7 +3,7 @@ package inca.backend.optimize
 import inca.backend.ir.Datalog._
 import inca.backend.ir.TypeOps
 import inca.runtime.context.DataModel
-import inca.util.Meta.Scala
+import inca.util.Scala
 
 import scala.collection.immutable.MultiDict
 

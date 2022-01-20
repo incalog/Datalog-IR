@@ -36,7 +36,7 @@ class DesugarTrans {
 
   def desugarFun(fun: PatternFunction)(implicit gensym: Gensym): Seq[PatternFunction] = gensym.scoped {
     gensym.register(fun.boundNames.map(_.name))
-    val newfun = PatternFunction(fun.vis, fun.name, fun.params, fun.outType, fun.bodies.flatMap(desugarBody))
+    val newfun = PatternFunction(fun.annos, fun.vis, fun.name, fun.params, fun.outType, fun.bodies.flatMap(desugarBody))
     Seq(newfun)
   }
 
