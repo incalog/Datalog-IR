@@ -106,14 +106,12 @@ trait Debugger {
         callStack.push(Frame(callee, tables))
       case Some(atom) =>
         val nextBodyTable = transitionAtomTables(frame, atom)
-        val next = cp.stepIntra.get // yields next atom
+        val next =
+          if (nextBodyTable.isEmpty)
+            cp.stepOut.get // step out of current body
+          else
+            cp.stepIntra.get // yields next atom
         callStack.update(frame.copy(cp = next, bodyTable = nextBodyTable))
-//        if (nextBodyTable.isEmpty) {
-//          println(nextBodyTable)
-//        } else {
-//          val next = cp.stepIntra.get // yields next atom
-//          callStack.update(frame.copy(cp = next, bodyTable = nextBodyTable))
-//        }
       case None =>
         if (cp.point.isPatternEntry) {
           val next = cp.stepIntra.get // yields first body of this pattern

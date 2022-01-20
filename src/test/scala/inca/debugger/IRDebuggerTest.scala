@@ -339,5 +339,20 @@ class IRDebuggerTest extends AnyFunSuite {
       debugger.stepInto()
     }
     debugger.controlTrace.foreach(println)
+    println(debugger.relation("main"))
+  }
+
+  test("if example 2 control") {
+    val compiledExample = Compiler.compileFunctional(AST.ifExample2, FunctionalOptions())
+    println(compiledExample.ir)
+    val debugger = initDebugger(compiledExample.ir, new DataModel())
+    debugger.entry("main", Table.unit)
+    while (!debugger.isFinished) {
+      val frame = debugger.frame
+      println(s"${frame.cp}:\n  ${frame.bodyTable}")
+      debugger.stepInto()
+    }
+    debugger.controlTrace.foreach(println)
+    println(debugger.relation("main"))
   }
 }
