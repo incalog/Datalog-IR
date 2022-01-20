@@ -6,9 +6,9 @@ import scala.collection.mutable
 
 // case class Breakpoint(cp: ControlPattern, bindings: BindingPattern, constraints: Seq[Datalog.Atom])
 
-case class Frame(cp: ControlPoint, argsTable: Table, bodyTable: Table, patternTable: Table)
+case class Frame(cp: ControlPoint, argsTable: Table[Value], bodyTable: Table[Value], patternTable: Table[Value])
 object Frame {
-  type Tables = (Table, Table, Table)
+  type Tables = (Table[Value], Table[Value], Table[Value])
   def apply(cp: ControlPoint, frameTables: Tables): Frame =
     Frame(cp, frameTables._1, frameTables._2, frameTables._3)
 }

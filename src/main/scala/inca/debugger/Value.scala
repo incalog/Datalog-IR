@@ -17,7 +17,7 @@ case class URIValue(uri: URI) extends Value {
 }
 case class ScalaValue(v: Any) extends Value {
   override def toString: String = prettyPrint
-  override def prettyPrint: String = v.toString
+  override def prettyPrint: String = s"$v"
   override def asURI: URI = throw new IllegalArgumentException("Cannot convert scala value to uri value")
   override def asScala: Any = v
   override def inner: Any = v

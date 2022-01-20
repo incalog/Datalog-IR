@@ -1,7 +1,5 @@
 package inca.debugger.table
 
-import inca.debugger.Value
-
 /**
  * Edge(x,y), z := y, IsConnected(x,y)
  *
@@ -11,40 +9,40 @@ import inca.debugger.Value
  * type Data = Map[ArraySeq[V], Int]
  */
 
-trait Table {
+trait Table[V] {
   def columns: Seq[String]
-  def rows: Iterable[Seq[Value]]
+  def rows: Iterable[Seq[V]]
 
   def isEmpty: Boolean
   def isBound(col: String): Boolean
 
-  def bind(col: String, v: Value): Table
-  def bind(col: String, vs: Seq[Value]): Table
-  def join(other: Table) : Table
-  def addRow(row: Seq[Value]): Table
-  def addRows(rows: Table): Table
-  def addColumn(col: String): Table
+  def bind(col: String, v: V): Table[V]
+  def bind(col: String, vs: Seq[V]): Table[V]
+  def join(other: Table[V]) : Table[V]
+  def addRow(row: Seq[V]): Table[V]
+  def addRows(rows: Table[V]): Table[V]
+  def addColumn(col: String): Table[V]
 
-  def project(cols: Seq[String]): Table
-  def renameColumns(subst: Map[String, String]): Table
-  def rearrangeColumns(cols: Seq[String]): Table
+  def project(cols: Seq[String]): Table[V]
+  def renameColumns(subst: Map[String, String]): Table[V]
+  def rearrangeColumns(cols: Seq[String]): Table[V]
 
   def columnIndex(col: String): Int
 
-  def filter(f: Seq[Value] => Boolean): Table
-  def flatMap(f: Seq[Value] => Seq[Seq[Value]]): Table
-  def map(f: Seq[Value] => Seq[Value]): Table
-  def expand(newcol: String, f: Seq[Value] => Value): Table
-  def expand(newcols: Seq[String], f: Seq[Value] => Seq[Value]): Table
+  def filter(f: Seq[V] => Boolean): Table[V]
+  def flatMap(f: Seq[V] => Seq[Seq[V]]): Table[V]
+  def map(f: Seq[V] => Seq[V]): Table[V]
+  def expand(newcol: String, f: Seq[V] => V): Table[V]
+  def expand(newcols: Seq[String], f: Seq[V] => Seq[V]): Table[V]
 
-  def contains(colValPairs: Seq[(String, Value)]): Boolean
+  def contains(colValPairs: Seq[(String, V)]): Boolean
 
 }
 
 object Table {
-  def empty: Table = SimpleTable(Vector(), Vector())
-  def empty(columns: Seq[String]): Table = SimpleTable(columns.toVector, Vector())
-  def unit: Table = SimpleTable(Vector(), Vector(Vector()))
-  def apply(columns: Seq[String], rows: Seq[Seq[Value]]): Table =
+  def empty[V]: Table[V] = SimpleTable(Vector(), Vector())
+  def empty[V](columns: Seq[String]): Table[V] = SimpleTable(columns.toVector, Vector())
+  def unit[V]: Table[V] = SimpleTable(Vector(), Vector(Vector()))
+  def apply[V](columns: Seq[String], rows: Seq[Seq[V]]): Table[V] =
     SimpleTable(columns.toVector, rows.map(_.toVector).toVector)
 }

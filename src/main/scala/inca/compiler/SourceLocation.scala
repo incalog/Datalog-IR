@@ -17,4 +17,6 @@ class SourceObject(val o: SourceLocation) {
   }
 
   override def hashCode(): Int = (o.startIndex, o.endIndex, o).hashCode()
+
+  override def toString: String = o.toString
 }

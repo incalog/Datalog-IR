@@ -204,7 +204,7 @@ class IRDebuggerTest extends AnyFunSuite {
 
 
   def initDebugger(module: Datalog.Module, dataModel: DataModel, edits: EditScript = EditScript(Seq())): IRDebugger = {
-    val debugger = new IRDebugger {}
+    val debugger = new IRDebugger
     debugger.initialize(module, dataModel, edits)
     debugger
   }
@@ -334,11 +334,10 @@ class IRDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(compiledExample.ir, new DataModel())
     debugger.entry("main", Table.unit)
     while (!debugger.isFinished) {
-      val frame = debugger.frame
-      println(s"${frame.cp}:\n  ${frame.bodyTable}")
+      println(s"${debugger.controlPointIR}:\n  ${debugger.varsIR}")
       debugger.stepInto()
     }
-    debugger.controlTrace.foreach(println)
+    debugger.controlTraceIR.foreach(println)
     println(debugger.relation("main"))
   }
 
@@ -348,11 +347,10 @@ class IRDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(compiledExample.ir, new DataModel())
     debugger.entry("main", Table.unit)
     while (!debugger.isFinished) {
-      val frame = debugger.frame
-      println(s"${frame.cp}:\n  ${frame.bodyTable}")
+      println(s"${debugger.controlPointIR}:\n  ${debugger.varsIR}")
       debugger.stepInto()
     }
-    debugger.controlTrace.foreach(println)
+    debugger.controlTraceIR.foreach(println)
     println(debugger.relation("main"))
   }
 }
