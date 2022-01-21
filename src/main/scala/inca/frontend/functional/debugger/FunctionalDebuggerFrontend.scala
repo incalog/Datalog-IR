@@ -7,49 +7,10 @@ import inca.debugger.table.{SimpleTable, Table}
 import inca.debugger.{AfterList, AtListElem, AtomPoint, BeforeList, BodyPoint, ControlPoint, Debugger, DebuggerFrontend, ScalaValue, Value}
 import inca.frontend.functional.core.{BaseApply, BaseApplyInfix, BaseLit, Call, Expression, FunctionDef, If, Lambda, Let, Match, Module, NoneExp, SetComprehension, SetExp, SetFold, SetMember, SomeExp, Tuple, TypeCast, Var}
 
-final class FunctionalDebugger extends Debugger {
-  override val frontend: FunctionalDebuggerFrontend = new FunctionalDebuggerFrontend
-
-  def currentFunction: FunctionDef = controlPointFrontend.fun
-  def currentCodeSurrounding: String =
-    controlPointFrontend.point.loc.sourceExcerpt(ExcerptRelativeRegion(3, 3)).linesColored
-  def currentCodeFunction: String = {
-    val fp = controlPointFrontend
-    fp.point.loc.sourceExcerpt(ExcerptAbsoluteRegion(fp.fun.startIndex, fp.fun.endIndex)).linesColored
-  }
-  def currentBindings: String = {
-    val table = frontend.frontendTable(controlPointFrontend, varsIR)
-    val rowStrings = table.rows.map { row =>
-      val sb = new StringBuilder
-      sb += '['
-      table.columns.foreach { col =>
-        val ix = table.columnIndex(col)
-        val v = row(ix)
-        if (v != null) {
-          sb ++= col
-          sb += '='
-          sb ++= v.toString
-          sb ++= ", "
-        }
-      }
-      if (sb.length() > 2) {
-        sb.deleteCharAt(sb.length() - 1)
-        sb.deleteCharAt(sb.length() - 1)
-      }
-      sb += ']'
-      sb.toString()
-    }
-    rowStrings.size match {
-      case 0 => "[]"
-      case 1 => rowStrings.head
-      case _ => rowStrings.mkString("{", ", ", "}")
-    }
-  }
-}
 
 class FunctionalDebuggerFrontend extends DebuggerFrontend {
 
-  override type FrontendPoint = FunctionPoint
+  override type FrontendPoint = FunctionalControlPoint
   override type FrontendValue = Value
 
   var module: Module = _
@@ -64,7 +25,7 @@ class FunctionalDebuggerFrontend extends DebuggerFrontend {
     case _ => None
   }
 
-  override def frontendPoint(cp: ControlPoint): Option[FunctionPoint] = {
+  override def frontendPoint(cp: ControlPoint): Option[FunctionalControlPoint] = {
     val patPoint = cp.point
     val fun = getFunction(patPoint.pat).getOrElse(return None)
     patPoint.bodies match {
@@ -79,8 +40,8 @@ class FunctionalDebuggerFrontend extends DebuggerFrontend {
               expressionPoint(constr).map(FunctionPoint(fun, _, cp))
             case Some(SourceConstruct((let: Let, v: String))) =>
               let.names.find(_.name == v).map(p => FunctionPoint(fun, p.sourceObject, cp))
-            case Some(SourceConstruct((_: If, _: Boolean))) =>
-              None
+            case Some(SourceConstruct((cond: If, thenBranch: Boolean))) =>
+              Some(ConditionalPoint(cond, thenBranch, cp))
             case None =>
               None
           }
@@ -97,20 +58,21 @@ class FunctionalDebuggerFrontend extends DebuggerFrontend {
     case _ => Some(exp.sourceObject)
   }
 
-  override def frontendTable(fp: FunctionPoint, bound: Table[Value]): Table[Value] = {
-    val vars = fp.vars.map(_.name).toList.sorted.distinct
-    var myVars = Table.empty[Value](vars)
-    for (row <- bound.rows) {
-      val vals = vars.map { v =>
-        val ix = bound.columnIndex(v)
-        if (ix < 0)
-          null
-        else
-          row(ix)
+  override def frontendTable(fp: FunctionalControlPoint, bound: Table[Value]): Table[Value] = fp match {
+    case fp: FunctionPoint => val vars = fp.vars.map(_.name).toList.sorted.distinct
+      var myVars = Table.empty[Value](vars)
+      for (row <- bound.rows) {
+        val vals = vars.map { v =>
+          val ix = bound.columnIndex(v)
+          if (ix < 0)
+            null
+          else
+            row(ix)
+        }
+        myVars = myVars.addRow(vals)
       }
-      myVars = myVars.addRow(vals)
-    }
-    myVars
+      myVars
+    case _: ConditionalPoint =>
+      Table.empty
   }
-
 }

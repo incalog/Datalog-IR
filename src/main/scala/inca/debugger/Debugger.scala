@@ -43,7 +43,7 @@ trait Debugger {
 
   // Debugger state
   private var fixpointState: FixpointState = FixpointState(Map())
-  private val callStack: CallStack = new CallStack()
+  protected val callStack: CallStack = new CallStack()
   private val _controlTrace: ListBuffer[ControlPoint] = ListBuffer.empty
 
   // Needed to execute scala code via reflection
@@ -102,16 +102,11 @@ trait Debugger {
     _controlTrace += cp
   }
 
-  @tailrec
-  final def stepIntoFrontend(): Unit = {
-    stepInto()
-    if (callStack.nonEmpty)
-      frontend.frontendPoint(frame.cp) match {
-        case Some(_) => // return
-        case None => stepIntoFrontend()
-      }
-  }
+  def stepIntoFrontend(): Unit
 
+  def stepIntoUntil(stop: () => Boolean): Unit =
+    while (!stop())
+      stepInto()
 
   def stepInto(): Unit = {
     val frame = callStack.top

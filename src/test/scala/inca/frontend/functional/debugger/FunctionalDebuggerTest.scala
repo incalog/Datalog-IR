@@ -59,8 +59,9 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(compiledExample.ir, new DataModel())
     debugger.entry("main", Table(Map("x" -> ScalaValue(3))))
     while (!debugger.isFinished) {
+      println(debugger.currentCallStack)
+      println("  " + debugger.currentBindings)
       debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
-      println(debugger.currentBindings)
       debugger.stepIntoFrontend()
     }
     println(debugger.relation("main"))

@@ -128,6 +128,10 @@ case class PatternPoint(pat: Datalog.Pattern, bodies: ListPoint[Datalog.Body, Bo
     case AtListElem(_, _, b) => b.isBodyExit
     case _ => false
   }
+  def bodyIndex: Option[Int] = bodies match {
+    case AtListElem(_, ix, _) => Some(ix)
+    case _ => None
+  }
 }
 
 case class ControlPoint(point: PatternPoint) {
@@ -159,10 +163,8 @@ case class ControlPoint(point: PatternPoint) {
     case _ => false
   }
 
-  def atom: Datalog.Atom = point.bodies match {
-    case AtListElem(_, _, BodyPoint(_, atomElem@AtListElem(_, _, _))) => atomElem.elem
-    case _ => throw new IllegalStateException(s"Cannot access atom of control point $this")
-  }
+  def atom: Datalog.Atom =
+    point.atom.getOrElse(throw new IllegalStateException(s"Cannot access atom of control point $this"))
 
 //  def into(implicit patterns: Map[String, Datalog.Pattern]): Option[ControlPoint] = body match {
 //    case Point.Before =>

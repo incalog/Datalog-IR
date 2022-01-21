@@ -11,4 +11,6 @@ final class IRDebugger extends Debugger {
     override type FrontendValue = Value
     override def frontendTable(fp: FrontendPoint, bound: Table[Value]): Table[Value] = bound
   }
+
+  override def stepIntoFrontend(): Unit = stepInto()
 }

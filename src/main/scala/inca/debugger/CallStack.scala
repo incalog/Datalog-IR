@@ -36,5 +36,5 @@ class CallStack {
     _stack.update(0, cp)
 
   override def toString: String =
-    _stack.mkString("[", ", ", "]")
+    _stack.map(_.cp.point.pat.name).mkString("[", ", ", "]")
 }
