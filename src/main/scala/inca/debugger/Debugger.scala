@@ -1,14 +1,14 @@
 package inca.debugger
 
 import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.{CustomAggregation, True}
-import inca.compiler.Options
+import inca.backend.ir.Datalog.{CountAggregation, CustomAggregation}
+import inca.compiler.{CompiledModule, Options}
 import inca.debugger.table.Table
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.{IndexKey, LinkListNextKey, LinkNodeKey, LinkPrimitiveKey, NodeTypeKey}
 import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
-import inca.runtime.EnginePool
+import inca.runtime.{EnginePool, Query}
 import inca.runtime.db.Database
 import inca.util.Scala
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
@@ -20,22 +20,15 @@ import truediff.Diffable
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
-import scala.jdk.CollectionConverters.IteratorHasAsScala
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, IteratorHasAsScala}
 
 trait Debugger {
   val frontend: DebuggerFrontend
 
   // Datalog program information
-  private var module: Datalog.Module = _
-  private var dataModel: DataModel = _
+  private var compiled: CompiledModule = _
   implicit private lazy val patterns: Map[String, Datalog.Pattern] =
-    module.pats.map { pat => pat.name -> pat }.toMap
-
-  private lazy val scalaFunctions: Map[String, Scala[meta.Defn]] =
-    module.scalaContent.collect {
-      case d: meta.Defn.Def  =>
-        d.name.value -> Scala(d)
-    }.toMap
+    compiled.ir.pats.map { pat => pat.name -> pat }.toMap
 
   // Extensional database stuff
   private var database: Database = _
@@ -70,25 +63,25 @@ trait Debugger {
     initialize(mod, dm, Diffable.load(tree))
 
   def initialize(mod: Datalog.Module, dm: DataModel, edits: EditScript): Unit = {
-    module = mod
     frontend.initialize(mod)
-    dataModel = dm
-    val (_engine, _database) = compileModule()
+    val (_engine, _database) = compileModule(mod, dm)
     engine = _engine
     database = _database
-    _database.processEditScript(edits)
+    engine.delayUpdatePropagation { () =>
+      database.processEditScript(edits)
+    }
     initScalaCompiler()
   }
 
-  private def compileModule(): (AdvancedViatraQueryEngine, Database) = {
+  private def compileModule(mod: Datalog.Module, dm: DataModel): (AdvancedViatraQueryEngine, Database) = {
     val options = Options(_stopOnError = true, _stopOnWarning = false)
-    val compiled = inca.compiler.Compiler.compileGP(module, dataModel, options)
+    compiled = inca.compiler.Compiler.compileGP(mod, dm, options)
     val scope = new QueryScope(compiled.dataModel)
     EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
   }
 
   private def initScalaCompiler(): Unit = {
-    val scalaContent = module.scalaContent.map(_.syntax).mkString("\n")
+    val scalaContent = compiled.ir.scalaContent.map(_.syntax).mkString("\n")
     val scalaObject = s"object DefinitionObj {\n  $scalaContent \n}"
     defintionObjSym = scalaCompiler.define(scalaObject)
   }
@@ -110,85 +103,98 @@ trait Debugger {
 
   def stepInto(): Unit = {
     val frame = callStack.top
-    val cp = frame.cp
-    cp.point.atom match {
-      case Some(call: Datalog.Call) =>
-        val tables = prepareCallTables(frame, call.name, call.args)
-        val callee = ControlPoint(PatternPoint(patterns(call.name), BeforeList))
-        if (call.neg) {
-          call.args.foreach {
-            case Datalog.Var(name) if !frame.bodyTable.isBound(name) =>
-              throw IllegalDebugStateException(s"All arguments of a negative pattern call have to be bound, but $name is not bound")
-            case _ => // do nothing
-          }
-        }
-        callStack.push(Frame(callee, tables))
-      case Some(Datalog.Computed(_, countAgg: Datalog.CountAggregation)) =>
-        val tables = prepareCallTables(frame, countAgg.patName, countAgg.args)
-        val callee = ControlPoint(PatternPoint(patterns(countAgg.patName), BeforeList))
-        callStack.push(Frame(callee, tables))
-      case Some(Datalog.Computed(_, custAgg: Datalog.CustomAggregation)) =>
-        val tables = prepareCallTables(frame, custAgg.patName, custAgg.args)
-        val callee = ControlPoint(PatternPoint(patterns(custAgg.patName), BeforeList))
-        callStack.push(Frame(callee, tables))
+    frame.cp.point.atom match {
       case Some(atom) =>
-        val nextBodyTable = transitionAtomTables(frame, atom)
-        val next =
-          if (nextBodyTable.isEmpty)
-            cp.stepOut.get // step out of current body
-          else
-            cp.stepIntra.get // yields next atom
-        callStack.update(frame.copy(cp = next, bodyTable = nextBodyTable))
+        stepIntoNextAtom(frame, atom)
       case None =>
-        if (cp.point.isPatternEntry) {
-          val next = cp.stepIntra.get // yields first body of this pattern
-          callStack.update(Frame(next,  frame.argsTable, frame.argsTable, frame.patternTable))
-        } else if (cp.point.isPatternExit) {
-          val pat = frame.cp.point.pat
-          callStack.pop() // pop pattern exit point
-
-          // extend derived relations
-          fixpointState = fixpointState.extendRelation(pat.name, frame.patternTable)
-
-          // if the stack is still not empty there should be a call, or an aggregation on top
-          if (callStack.nonEmpty) {
-            val callerFrame = callStack.top
-            callerFrame.cp.atom match {
-              case Datalog.Call(_, _, _, false) =>
-                val next = callerFrame.cp.stepIntra
-                  .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
-                val tables = transitionReturnCallTables(callerFrame, frame)
-                callStack.update(Frame(next, tables))
-              case Datalog.Call(_, _, _, true) =>
-                val next = callerFrame.cp.stepIntra
-                  .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
-                val tables = transitionReturnNegCallTables(callerFrame, frame)
-                callStack.update(Frame(next, tables))
-              case Datalog.Computed(lhs, custAgg: Datalog.CustomAggregation) =>
-                val next = callerFrame.cp.stepIntra
-                  .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
-                val tables = transitionCustomAggTables(callerFrame, frame, lhs, custAgg)
-                callStack.update(Frame(next, tables))
-              case Datalog.Computed(lhs, countAgg: Datalog.CountAggregation) =>
-                val next = callerFrame.cp.stepIntra
-                  .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
-                val tables = transitionCountAggTables(callerFrame, frame, lhs)
-                callStack.update(Frame(next, tables))
-            }
-          }
-        } else if (cp.point.isBodyEntry) {
-          val next = cp.stepIntra.get // yields first atom of this body
-          callStack.update(Frame(next, frame.argsTable, frame.argsTable, frame.patternTable))
-        } else if (cp.point.isBodyExit) {
-          val next = cp.stepIntra.get // yields entry of next body
-          val tables = transitionNextBodyTables(frame)
-          callStack.update(Frame(next, tables))
-        } else {
-          throw new IllegalStateException(s"Unexpected control point $cp")
-        }
+        stepIntoPatternBoundary(frame)
     }
     if (callStack.nonEmpty)
       _controlTrace += callStack.top.cp
+  }
+
+  def stepIntoNextAtom(frame: Frame, atom: Datalog.Atom): Unit = atom match {
+    case call: Datalog.Call =>
+      val tables = prepareCallTables(frame, call.name, call.args)
+      val callee = ControlPoint(PatternPoint(patterns(call.name), BeforeList))
+      if (call.neg) {
+        checkNegativeCallArguments(call.args, frame.bodyTable)
+      }
+      callStack.push(Frame(callee, tables))
+    case Datalog.Computed(_, countAgg: Datalog.CountAggregation) =>
+      val tables = prepareCallTables(frame, countAgg.patName, countAgg.args)
+      val callee = ControlPoint(PatternPoint(patterns(countAgg.patName), BeforeList))
+      callStack.push(Frame(callee, tables))
+    case Datalog.Computed(_, custAgg: Datalog.CustomAggregation) =>
+      val tables = prepareCallTables(frame, custAgg.patName, custAgg.args)
+      val callee = ControlPoint(PatternPoint(patterns(custAgg.patName), BeforeList))
+      callStack.push(Frame(callee, tables))
+    case atom =>
+      val nextBodyTable = transitionAtomTables(frame, atom)
+      val next =
+        if (nextBodyTable.isEmpty)
+          frame.cp.stepOut.get // step out of current body
+        else
+          frame.cp.stepIntra.get // yields next atom
+      callStack.update(frame.copy(cp = next, bodyTable = nextBodyTable))
+  }
+
+  private def checkNegativeCallArguments(args: Seq[Datalog.Term], table: Table[Value]): Unit = {
+    args.foreach {
+      case Datalog.Var(name) if !table.isBound(name) =>
+        throw IllegalDebugStateException(s"All arguments of a negative pattern call have to be bound, but $name is not bound")
+      case _ => // do nothing
+    }
+  }
+
+  private def stepIntoPatternBoundary(frame: Frame): Unit = {
+    val cp = frame.cp
+    if (cp.point.isPatternEntry) {
+      val next = cp.stepIntra.get // yields first body of this pattern
+      callStack.update(Frame(next,  frame.argsTable, frame.argsTable, frame.patternTable))
+    } else if (cp.point.isPatternExit) {
+      val pat = frame.cp.point.pat
+      callStack.pop() // pop pattern exit point
+
+      // extend derived relations
+      fixpointState = fixpointState.extendRelation(pat.name, frame.patternTable)
+
+      // if the stack is still not empty there should be a call, or an aggregation on top
+      if (callStack.nonEmpty) {
+        val callerFrame = callStack.top
+        callerFrame.cp.atom match {
+          case Datalog.Call(_, _, _, false) =>
+            val next = callerFrame.cp.stepIntra
+              .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+            val tables = transitionReturnCallTables(callerFrame, frame)
+            callStack.update(Frame(next, tables))
+          case Datalog.Call(_, _, _, true) =>
+            val next = callerFrame.cp.stepIntra
+              .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+            val tables = transitionReturnNegCallTables(callerFrame, frame)
+            callStack.update(Frame(next, tables))
+          case Datalog.Computed(lhs, custAgg: Datalog.CustomAggregation) =>
+            val next = callerFrame.cp.stepIntra
+              .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+            val tables = transitionCustomAggTables(callerFrame, frame.patternTable, lhs, custAgg)
+            callStack.update(Frame(next, tables))
+          case Datalog.Computed(lhs, countAgg: Datalog.CountAggregation) =>
+            val next = callerFrame.cp.stepIntra
+              .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+            val tables = transitionCountAggTables(callerFrame, frame.patternTable, lhs)
+            callStack.update(Frame(next, tables))
+        }
+      }
+    } else if (cp.point.isBodyEntry) {
+      val next = cp.stepIntra.get // yields first atom of this body
+      callStack.update(Frame(next, frame.argsTable, frame.argsTable, frame.patternTable))
+    } else if (cp.point.isBodyExit) {
+      val next = cp.stepIntra.get // yields entry of next body
+      val tables = transitionNextBodyTables(frame)
+      callStack.update(Frame(next, tables))
+    } else {
+      throw new IllegalStateException(s"Unexpected control point $cp")
+    }
   }
 
   // Methods to prepare frame tables for atoms that can jump into another pattern (calls and aggregations)
@@ -346,7 +352,7 @@ trait Debugger {
     case Datalog.SizeLink => SizeIndex.Key
     case Datalog.NamedLink(node, field) =>
       val link = (node.name, field)
-      if (dataModel.links.contains(link))
+      if (compiled.dataModel.links.contains(link))
         LinkNodeKey(link)
       else
         LinkPrimitiveKey(link)
@@ -484,22 +490,32 @@ trait Debugger {
   }
 
   private def transitionReturnCallTables(callerFrame: Frame, calleFrame: Frame): Frame.Tables = {
+    val params = calleFrame.cp.point.pat.params.map(_.name)
+    transitionReturnCallTables(callerFrame, params, calleFrame.patternTable)
+  }
+
+  private def transitionReturnCallTables(callerFrame: Frame, params: Seq[String], patternTable: Table[Value]): Frame.Tables = {
     // join bodyTable of caller with pattern table of callee
     val (_, args) = callerFrame.cp.atom.asCall.get
     val callArgVars = args.collect { case Datalog.Var(name) => name }
-    val columnsSubst = calleFrame.cp.point.pat.params.map(_.name).zip(callArgVars).toMap
-    val renamedPatternTable = calleFrame.patternTable.renameColumns(columnsSubst)
+    val columnsSubst = params.zip(callArgVars).toMap
+    val renamedPatternTable = patternTable.renameColumns(columnsSubst)
     val bodyTable = callerFrame.bodyTable.join(renamedPatternTable)
 
     (callerFrame.argsTable, bodyTable, callerFrame.patternTable)
   }
 
   private def transitionReturnNegCallTables(callerFrame: Frame, calleFrame: Frame): Frame.Tables = {
+    val params = calleFrame.cp.point.pat.params.map(_.name)
+    transitionReturnNegCallTables(callerFrame, params, calleFrame.patternTable)
+  }
+
+  private def transitionReturnNegCallTables(callerFrame: Frame, params: Seq[String], patternTable: Table[Value]): Frame.Tables = {
     // remove rows of caller bodyTable of that contains tuples of pattern table of callee
     val (_, args) = callerFrame.cp.atom.asCall.get
     val callArgVars = args.collect { case Datalog.Var(name) => name }
-    val columnsSubst = calleFrame.cp.point.pat.params.map(_.name).zip(callArgVars).toMap
-    val renamedPatternTable = calleFrame.patternTable.renameColumns(columnsSubst)
+    val columnsSubst = params.map(_.name).zip(callArgVars).toMap
+    val renamedPatternTable = patternTable.renameColumns(columnsSubst)
     val bodyTable = callerFrame.bodyTable.filter { row =>
       val columnValuePairs = callerFrame.bodyTable.columns.zip(row)
       !renamedPatternTable.contains(columnValuePairs)
@@ -508,14 +524,13 @@ trait Debugger {
     (callerFrame.argsTable, bodyTable, callerFrame.patternTable)
   }
 
-
-  private def transitionCountAggTables(callerFrame: Frame, calleeFrame: Frame, lhs: Datalog.Term): Frame.Tables = {
-    val count = calleeFrame.patternTable.numRows
+  private def transitionCountAggTables(callerFrame: Frame, patternTable: Table[Value], lhs: Datalog.Term): Frame.Tables = {
+    val count = patternTable.numRows
     transitionAggTables(callerFrame, lhs, ScalaValue(count))
   }
 
-  private def transitionCustomAggTables(callerFrame: Frame, calleeFrame: Frame, lhs: Datalog.Term, agg: CustomAggregation) : Frame.Tables = {
-    val valsToAgg = calleeFrame.patternTable.rows.map {
+  private def transitionCustomAggTables(callerFrame: Frame, patternTable: Table[Value], lhs: Datalog.Term, agg: CustomAggregation) : Frame.Tables = {
+    val valsToAgg = patternTable.rows.map {
       row => row(agg.aggregatedColumn).asScala
     }.toSeq
     val (initTerm, joinOpTerm) = getInitValueAndJoin(agg.agg)
@@ -635,5 +650,90 @@ trait Debugger {
   private def executeScala(term: String): ScalaValue = {
     val code = s"import ${defintionObjSym}._\n$term"
     ScalaValue(scalaCompiler.compileAndLoadScala(code))
+  }
+
+  def stepOver(): Unit = {
+    val frame = callStack.top
+    frame.cp.point.atom match {
+      case Some(atom) =>
+        atom match {
+          case Datalog.Call(name, args, _, false) =>
+            val (argsTable, _, _) = prepareCallTables(frame, name, args)
+            val callPatternTable = readDatabase(name, argsTable)
+            val params = patterns(name).params.map(_.name)
+            val tables = transitionReturnCallTables(frame, params, callPatternTable)
+            val next = frame.cp.stepOver.get
+            callStack.update(Frame(next, tables))
+
+          case Datalog.Call(name, args, _, true) =>
+            val (argsTable, _, _) = prepareCallTables(frame, name, args)
+            checkNegativeCallArguments(args, frame.bodyTable)
+            val callPatternTable = readDatabase(name, argsTable)
+            val params = patterns(name).params.map(_.name)
+            val tables = transitionReturnNegCallTables(frame, params, callPatternTable)
+            val next = frame.cp.stepOver.get
+            callStack.update(Frame(next, tables))
+
+          case Datalog.Computed(lhs, countAgg: CountAggregation) =>
+            val (argsTable, _, _) = prepareCallTables(frame, countAgg.patName, countAgg.args)
+            val callPatternTable = readDatabase(countAgg.patName, argsTable)
+            val tables = transitionCountAggTables(frame, callPatternTable, lhs)
+            val next = frame.cp.stepOver.get
+            callStack.update(Frame(next, tables))
+
+          case Datalog.Computed(lhs, customAgg: CustomAggregation) =>
+            val (argsTable, _, _) = prepareCallTables(frame, customAgg.patName, customAgg.args)
+            val callPatternTable = readDatabase(customAgg.patName, argsTable)
+            val tables = transitionCustomAggTables(frame, callPatternTable, lhs, customAgg)
+            val next = frame.cp.stepOver.get
+            callStack.update(Frame(next, tables))
+
+          case _ =>
+            stepIntoNextAtom(frame, atom)
+        }
+      case None =>
+        if (frame.cp.isPatternPoint) {
+          val pattern = frame.cp.point.pat
+          val patternTable = readDatabase(pattern.name, frame.argsTable)
+          val next = ControlPoint(PatternPoint(pattern, AfterList))
+          callStack.update(Frame(next, frame.argsTable, patternTable, patternTable))
+        } else if (frame.cp.isBodyPoint) {
+          // we cannot read from the database because we dont know which tuples where derived by a specific body
+          val next = frame.cp.stepOver.get
+          // we run until the the next breakpoint
+          // TODO is there a better way to do this?
+          runUntil(next)
+        } else {
+          stepIntoPatternBoundary(frame)
+        }
+    }
+    if (callStack.nonEmpty)
+      _controlTrace += callStack.top.cp
+  }
+
+  private def runUntil(cp: ControlPoint): Unit = {
+    val currentStackSize = callStack.size
+    // we run stepInto until we reach the target controlpoint and the stack size is the same as it was before
+    while (!(callStack.top.cp == cp && callStack.size == currentStackSize)) {
+      stepInto()
+    }
+  }
+
+  private def readDatabase(name: String, bindings: Table[Value]): Table[Value] = {
+    val mainSpec = compiled.psystemModule.patterns(name)()
+    val mainMatcher = engine.getMatcher(mainSpec)
+    val rows = bindings.rows.flatMap { row =>
+      val unboundCols = patterns(name).params.map(_.name).diff(bindings.columns)
+      val inputMap = bindings.columns.zip(row.map(_.inner)).toMap ++ unboundCols.map( _ -> null)
+      val input = Query.Match(mainSpec, inputMap, isMutable = false)
+      val matches = mainMatcher.getAllMatches(input)
+      matches.asScala.map { m =>
+        m.toArray.map {
+          case uri: URI => URIValue(uri)
+          case v: Any => ScalaValue(v)
+        }.toSeq
+      }
+    }.toSeq
+    Table(mainMatcher.getParameterNames.asScala.toSeq, rows)
   }
 }

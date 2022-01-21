@@ -2,12 +2,14 @@ package inca.debugger
 
 import inca.analyzedLangs.{Exp, ExpLangTestAnalyses}
 import inca.backend.ir.Datalog
-import inca.compiler.Compiler
+import inca.compiler.{Compiler, Options}
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.debugger.table.Table
 import inca.examples.functional.{AST, Code}
-import inca.runtime.context.DataModel
+import inca.runtime.EnginePool
+import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Scala
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
 import truechange.EditScript
 import truediff.Diffable
@@ -74,13 +76,6 @@ class IRDebuggerTest extends AnyFunSuite {
           Datalog.Body(Seq(
             Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
             Datalog.Call("one", Seq(Datalog.Var("temp"), Datalog.Var("to"))))
-          )
-        )),
-      Datalog.Pattern(None, "three", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
-        Seq(
-          Datalog.Body(Seq(
-            Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
-            Datalog.Call("two", Seq(Datalog.Var("temp"), Datalog.Var("to"))))
           )
         )),
     ),
@@ -201,7 +196,8 @@ class IRDebuggerTest extends AnyFunSuite {
     debugger
   }
 
-  test("simple step over") {
+  // Step into tests
+  test("simple stepinto over") {
     val debugger = initDebugger(twoHopsModule, emptyDataModel)
     debugger.entry("two", Table(Seq("from"), Seq(Seq(ScalaValue(1)))))
     stepTillFinish(debugger)
@@ -214,6 +210,22 @@ class IRDebuggerTest extends AnyFunSuite {
     ))
     val rel = debugger.relation("two")
     assertResult(expectedTable)(rel)
+  }
+
+  test("execute prog") {
+    val options = Options(_stopOnError = true, _stopOnWarning = false)
+    val compiled = inca.compiler.Compiler.compileGP(twoHopsModule, emptyDataModel, options)
+    val scope = new QueryScope(compiled.dataModel)
+    val (engine, db) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    engine.delayUpdatePropagation { () =>
+      db.processEditScript(EditScript(Seq()))
+    }
+    val spec = compiled.psystemModule.patterns("two")
+    val matcher = engine.getMatcher(spec())
+    matcher.getAllMatchArrays.foreach { tuple =>
+      println(tuple.toString)
+    }
+
   }
 
 
@@ -376,6 +388,61 @@ class IRDebuggerTest extends AnyFunSuite {
 
     val expected = Table(Seq("start", "end", "out$0"), Seq(Seq(ScalaValue(0), ScalaValue(4), ScalaValue(10))))
     assertResult(expected)(res)
+  }
+
+
+  // step over tests
+  test("step over pattern") {
+    val debugger = initDebugger(twoHopsModule, emptyDataModel)
+    debugger.entry("two", Table(Seq("from"), Seq(Seq(ScalaValue(1)))))
+    debugger.stepOver()
+    debugger.stepOver()
+
+    assert(debugger.isFinished)
+    val expectedTable = Table(Seq("from", "to"), Seq(
+      Seq(ScalaValue(1), ScalaValue(3)),
+      Seq(ScalaValue(1), ScalaValue(6)),
+    ))
+    val rel = debugger.relation("two")
+    assertResult(expectedTable)(rel)
+  }
+
+  test("step over body") {
+    val debugger = initDebugger(twoHopsModule, emptyDataModel)
+    debugger.entry("two", Table(Seq("from"), Seq(Seq(ScalaValue(1)))))
+    debugger.stepInto()
+    debugger.stepOver() // step over body
+
+    debugger.stepOver() // needed to step to pattern exit
+    debugger.stepOver() // needed to pop last element from stack
+
+    assert(debugger.isFinished)
+    val expectedTable = Table(Seq("from", "to"), Seq(
+      Seq(ScalaValue(1), ScalaValue(3)),
+      Seq(ScalaValue(1), ScalaValue(6)),
+    ))
+    val rel = debugger.relation("two")
+    assertResult(expectedTable)(rel)
+  }
+
+  test("step over call") {
+    val debugger = initDebugger(twoHopsModule, emptyDataModel)
+    debugger.entry("two", Table(Seq("from"), Seq(Seq(ScalaValue(1)))))
+    debugger.stepInto()
+    debugger.stepInto() // step into body
+    debugger.stepOver() // step over edge call
+    debugger.stepOver() // step over one call
+
+    debugger.stepOver() // needed to step to pattern exit
+    debugger.stepOver() // needed to pop last element from stack
+
+    assert(debugger.isFinished)
+    val expectedTable = Table(Seq("from", "to"), Seq(
+      Seq(ScalaValue(1), ScalaValue(3)),
+      Seq(ScalaValue(1), ScalaValue(6)),
+    ))
+    val rel = debugger.relation("two")
+    assertResult(expectedTable)(rel)
   }
 
   test("if example control") {

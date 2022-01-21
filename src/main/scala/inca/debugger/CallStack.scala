@@ -27,6 +27,7 @@ class CallStack {
   def isFinished: Boolean = _stack.isEmpty // _stack.size == 1 && top.cp.isPatternEndPoint
   def isEmpty: Boolean = _stack.isEmpty
   def nonEmpty: Boolean = _stack.nonEmpty
+  def size: Int = _stack.size
 
   def push(cp: Frame): Unit = _stack.push(cp)
 

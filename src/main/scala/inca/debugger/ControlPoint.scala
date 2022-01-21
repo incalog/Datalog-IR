@@ -23,7 +23,6 @@ object ControlPoint {
 //    ControlPoint(PatternPoint(pat, AtListElem(bodies, bix, BodyPoint(AtListElem(bodies(bix).atoms.toIndexedSeq, aix, After(AtomPoint))))))
 //  }
 }
-import ControlPoint._
 
 case class BeforeAfter[P](point: P, before: Boolean)
 object Before {
@@ -88,6 +87,11 @@ case class BodyPoint(body: Datalog.Body, atoms: ListPoint[Datalog.Atom, AtomPoin
     case elem@AtListElem(_, _, _) => Some(BodyPoint(body, elem.next(AtomPoint.apply)))
     case AfterList => None
   }
+  def stepOver: Option[BodyPoint] = atoms match {
+    case BeforeList => Some(BodyPoint(body, AfterList))
+    case elem@AtListElem(_, _, _) => Some(BodyPoint(body, elem.next(AtomPoint.apply)))
+    case AfterList => None
+  }
   def stepOut: Option[BodyPoint] = atoms match {
     case BeforeList | AtListElem(_, _, _) => Some(BodyPoint(body, AfterList))
     case AfterList => None
@@ -110,9 +114,17 @@ case class PatternPoint(pat: Datalog.Pattern, bodies: ListPoint[Datalog.Body, Bo
     }
     case AfterList => None
   }
+  def stepOver: Option[PatternPoint] = bodies match {
+    case BeforeList => Some(PatternPoint(pat, AfterList))
+    case elem@AtListElem(_, _, body) => body.stepOver match {
+      case Some(next) => Some(PatternPoint(pat, elem.copy(point = next)))
+      case None => None
+    }
+    case AfterList => None
+  }
   def stepOut: Option[PatternPoint] = bodies match {
     case BeforeList => Some(PatternPoint(pat, AfterList))
-    case elem@AtListElem(elems, ix, body) => body.stepOut match {
+    case elem@AtListElem(_, _, body) => body.stepOut match {
       case Some(next) => Some(PatternPoint(pat, elem.copy(point = next)))
       case None => Some(PatternPoint(pat, AfterList))
     }
@@ -136,6 +148,7 @@ case class PatternPoint(pat: Datalog.Pattern, bodies: ListPoint[Datalog.Body, Bo
 
 case class ControlPoint(point: PatternPoint) {
   def stepIntra: Option[ControlPoint] = point.stepIntra.map(ControlPoint.apply)
+  def stepOver: Option[ControlPoint] = point.stepOver.map(ControlPoint.apply)
   def stepOut: Option[ControlPoint] = point.stepOut.map(ControlPoint.apply)
 
   def isPatternPoint: Boolean = point.bodies match {
