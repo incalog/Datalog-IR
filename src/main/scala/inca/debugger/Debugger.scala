@@ -514,7 +514,7 @@ trait Debugger {
     // remove rows of caller bodyTable of that contains tuples of pattern table of callee
     val (_, args) = callerFrame.cp.atom.asCall.get
     val callArgVars = args.collect { case Datalog.Var(name) => name }
-    val columnsSubst = params.map(_.name).zip(callArgVars).toMap
+    val columnsSubst = params.zip(callArgVars).toMap
     val renamedPatternTable = patternTable.renameColumns(columnsSubst)
     val bodyTable = callerFrame.bodyTable.filter { row =>
       val columnValuePairs = callerFrame.bodyTable.columns.zip(row)
