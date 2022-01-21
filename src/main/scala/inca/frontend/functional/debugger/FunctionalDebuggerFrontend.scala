@@ -17,6 +17,34 @@ final class FunctionalDebugger extends Debugger {
     val fp = controlPointFrontend
     fp.point.loc.sourceExcerpt(ExcerptAbsoluteRegion(fp.fun.startIndex, fp.fun.endIndex)).linesColored
   }
+  def currentBindings: String = {
+    val table = frontend.frontendTable(controlPointFrontend, varsIR)
+    val rowStrings = table.rows.map { row =>
+      val sb = new StringBuilder
+      sb += '['
+      table.columns.foreach { col =>
+        val ix = table.columnIndex(col)
+        val v = row(ix)
+        if (v != null) {
+          sb ++= col
+          sb += '='
+          sb ++= v.toString
+          sb ++= ", "
+        }
+      }
+      if (sb.length() > 2) {
+        sb.deleteCharAt(sb.length() - 1)
+        sb.deleteCharAt(sb.length() - 1)
+      }
+      sb += ']'
+      sb.toString()
+    }
+    rowStrings.size match {
+      case 0 => "[]"
+      case 1 => rowStrings.head
+      case _ => rowStrings.mkString("{", ", ", "}")
+    }
+  }
 }
 
 class FunctionalDebuggerFrontend extends DebuggerFrontend {
@@ -70,13 +98,13 @@ class FunctionalDebuggerFrontend extends DebuggerFrontend {
   }
 
   override def frontendTable(fp: FunctionPoint, bound: Table[Value]): Table[Value] = {
-    val vars = fp.vars.map(_.name).toList.sorted
+    val vars = fp.vars.map(_.name).toList.sorted.distinct
     var myVars = Table.empty[Value](vars)
     for (row <- bound.rows) {
       val vals = vars.map { v =>
         val ix = bound.columnIndex(v)
         if (ix < 0)
-          ScalaValue(null)
+          null
         else
           row(ix)
       }

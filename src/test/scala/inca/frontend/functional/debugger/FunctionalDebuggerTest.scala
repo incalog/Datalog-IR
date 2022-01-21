@@ -36,7 +36,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     debugger.entry("main", Table.unit)
     while (!debugger.isFinished) {
       debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
-      println(debugger.varsFrontEnd)
+      println(debugger.currentBindings)
       debugger.stepIntoFrontend()
     }
     println(debugger.relation("main"))
@@ -48,7 +48,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     debugger.entry("main", Table.unit)
     while (!debugger.isFinished) {
       debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
-      println(debugger.varsFrontEnd)
+      println(debugger.currentBindings)
       debugger.stepIntoFrontend()
     }
     println(debugger.relation("main"))
@@ -60,7 +60,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     debugger.entry("main", Table(Map("x" -> ScalaValue(3))))
     while (!debugger.isFinished) {
       debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
-      println(debugger.varsFrontEnd)
+      println(debugger.currentBindings)
       debugger.stepIntoFrontend()
     }
     println(debugger.relation("main"))

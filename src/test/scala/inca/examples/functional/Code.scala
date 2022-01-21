@@ -93,8 +93,8 @@ object Code {
        |  case Succ(pred) => Succ(plus(pred, n))
        |}
        |""".stripMargin,
-    s"""@main def main(m: Nat, n: Nat): Nat =
-       |  plus(m, n)
+    s"""@main def main(x: Nat, y: Nat): Nat =
+       |  plus(x, y)
        |""".stripMargin
   )
 
