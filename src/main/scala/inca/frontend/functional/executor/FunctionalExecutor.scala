@@ -245,7 +245,7 @@ object FunctionalExecutor {
     }
 
 
-    def output(pat: String, tuple: Tuple): Results[AnyRef] = {
+    def output(pat: String, tuple: Tuple): Results[Any] = {
       val mainSpec = compiled.psystemModule.patterns(pat)()
       val mainMatcher = engine.getMatcher(mainSpec)
       val arity = mainMatcher.getParameterNames.size()
@@ -290,10 +290,10 @@ object FunctionalExecutor {
   //    }
 
 
-    def execute(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): Results[AnyRef] =
+    def execute(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): Results[Any] =
       executeInput(main, input(args), deleteInput)
 
-    def executeInput(main: String, input: Input, deleteInput: Boolean = false): Results[AnyRef] = {
+    def executeInput(main: String, input: Input, deleteInput: Boolean = false): Results[Any] = {
       val (es, tuple) = input
       feed.processEditScript(es)
       feed.insert(demandPatternExtensionalPrefix + main, tuple)
@@ -325,19 +325,19 @@ object FunctionalExecutor {
       (loadingTime, endInsertQuery - startInsertQuery, -1)
     }
 
-    def vals(ts: meta.Term*): Seq[AnyRef] = {
+    def vals(ts: meta.Term*): Seq[Any] = {
       ts.map(a => {
         val syntax = s"{import ${loadedPsystemModule}.${compiled.name}._; ${a.syntax}}"
-        scalaCompiler.compileAndLoadScala[AnyRef](syntax)
+        scalaCompiler.compileAndLoadScala[Any](syntax)
       })
     }
 
     def results[T](res: Seq[Seq[T]]): Results[T] = new Results(res)
     def resultVals[T](res: T*): Results[T] = results(Seq(res))
     def resultVal[T](res: T): Results[T] = results(Seq(Seq(res)))
-    def result(res: meta.Term*): Results[AnyRef] = results(Seq(vals(res:_*)))
+    def result(res: meta.Term*): Results[Any] = results(Seq(vals(res:_*)))
 
-    def printResult(res: Results[AnyRef]): Unit = {
+    def printResult(res: Results[Any]): Unit = {
       val db = DatabaseInspector(feed)
       res.res.foreach { tuple =>
         val tupleStrings = tuple.map { v => DBValue.prettyPrint(v, db) }
