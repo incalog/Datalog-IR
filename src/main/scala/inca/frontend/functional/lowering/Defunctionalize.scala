@@ -147,7 +147,7 @@ class Defunctionalize(module: Module) {
           anonymousFunctions += afun
           Call(Var(Name(constrSym).sourceLocFrom(v)).sourceLocFrom(v), Seq()).sourceLocFrom(v)
         case _ =>
-          v
+          Var(name).sourceLocFrom(v)
       }
     case TypeCast(e, ty) =>
       TypeCast(transformExp(e), transformType(ty)).sourceLocFrom(exp)
@@ -169,7 +169,7 @@ class Defunctionalize(module: Module) {
         case v@Var(name)
           if v.target.forall(_.isInstanceOf[FunctionDef]) || v.target.forall(_.isInstanceOf[DataConstructor]) =>
           // regular call to first-order function
-          Call(v, argTrans, transitive).sourceLocFrom(exp)
+          Call(Var(name).sourceLocFrom(v), argTrans, transitive).sourceLocFrom(exp)
         case _ =>
           val tfun@TFun(_, _) = fun.typ.get
           // call defun apply

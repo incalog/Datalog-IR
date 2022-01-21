@@ -79,7 +79,7 @@ class FunctionalDebuggerFrontend extends DebuggerFrontend {
               expressionPoint(constr).map(FunctionPoint(fun, _, cp))
             case Some(SourceConstruct((let: Let, v: String))) =>
               let.names.find(_.name == v).map(p => FunctionPoint(fun, p.sourceObject, cp))
-            case Some(SourceConstruct((let: If, thenBranch: Boolean))) =>
+            case Some(SourceConstruct((_: If, _: Boolean))) =>
               None
             case None =>
               None

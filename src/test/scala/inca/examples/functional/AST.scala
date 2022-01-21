@@ -94,8 +94,8 @@ object AST {
   )
   val plusModule: Module = module(Nat, plusFun, plusMain)
 
-  val plusRealMain: FunctionDef = FunctionDef(Seq(MainFunctionAnno), None, Name("main"), Seq(Param(Name("m"), TNat), Param(Name("n"), TNat)), TNat,
-    Call(Var(Name("plus")), Seq(Var(Name("m")), Var(Name("n"))))
+  val plusRealMain: FunctionDef = FunctionDef(Seq(MainFunctionAnno), None, Name("main"), Seq(Param(Name("x"), TNat), Param(Name("y"), TNat)), TNat,
+    Call(Var(Name("plus")), Seq(Var(Name("x")), Var(Name("y"))))
   )
   val plusRealModule: Module = module(Nat, plusFun, plusRealMain)
 }
