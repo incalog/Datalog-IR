@@ -1,6 +1,6 @@
 package inca.frontend.constraint.core
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 
 
 trait Statement extends SourceLocation {

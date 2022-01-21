@@ -1,6 +1,6 @@
 package inca.frontend.functional.debugger
 
-import inca.compiler.SourceObject
+import inca.compiler.source.SourceObject
 import inca.debugger.{BeforeAfter, ControlPoint}
 import inca.frontend.functional.core
 import inca.frontend.functional.core.FunctionDef

@@ -1,6 +1,7 @@
 package inca.compiler
 
 import inca.backend.ir.Datalog
+import inca.compiler.source.SourceString
 import inca.frontend.constraint.compiler.{CompiledConstraintModule, ConstraintOptions}
 import inca.frontend.constraint.core
 import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
@@ -11,7 +12,7 @@ object Compiler {
 
   def compileFunctional(module: String,
                  compilerOptions: FunctionalOptions): CompiledFunctionalModule = {
-    val parsed = functional.parser.Parser.parse(module)
+    val parsed = functional.parser.Parser.parse(SourceString(module))
     CompiledFunctionalModule(parsed, compilerOptions)
   }
 

@@ -1,6 +1,6 @@
 package inca.frontend.constraint.typechecker
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 import inca.frontend.constraint.core._
 import inca.frontend.util.{Resolvable, Typeable}
 import inca.runtime.aggregate.Aggregation

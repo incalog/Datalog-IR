@@ -1,6 +1,6 @@
 package inca.frontend.functional.typechecker
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 import inca.frontend.functional.core._
 import inca.frontend.util.{Resolvable, Typeable}
 

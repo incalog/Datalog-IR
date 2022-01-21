@@ -1,5 +1,6 @@
 package inca.frontend.functional.typecheck
 
+import inca.compiler.source.SourceString
 import inca.examples.functional.{AST, Code, ControlDataFlow, HigherOrder}
 import inca.frontend.functional.core.Module
 import inca.frontend.functional.parser.Parser
@@ -11,7 +12,7 @@ class TypecheckerTest extends AnyFunSuite {
   def newTypechecker(): Typechecker = new Typechecker { }
 
   def checkModule(mod: String): Unit = {
-    checkModule(Parser.parse(mod))
+    checkModule(Parser.parse(SourceString(mod)))
   }
 
   def checkModule(mod: Module): Unit = {
@@ -21,7 +22,7 @@ class TypecheckerTest extends AnyFunSuite {
   }
 
   def checkModuleErrors(mod: String): Unit = {
-    checkModuleErrors(Parser.parse(mod))
+    checkModuleErrors(Parser.parse(SourceString(mod)))
   }
 
   def checkModuleErrors(mod: Module): Unit = {

@@ -1,6 +1,6 @@
 package inca.frontend.constraint.extensions.match_
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 import inca.frontend.constraint.core._
 import inca.frontend.util.Typeable
 import inca.util.Scala

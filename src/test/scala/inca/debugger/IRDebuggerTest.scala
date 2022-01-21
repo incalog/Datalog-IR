@@ -379,7 +379,7 @@ class IRDebuggerTest extends AnyFunSuite {
   }
 
   test("if example control") {
-    val compiledExample = Compiler.compileFunctional(AST.ifExample, FunctionalOptions())
+    val compiledExample = Compiler.compileFunctional(Code.ifExample, FunctionalOptions())
     println(compiledExample.ir)
     val debugger = initDebugger(compiledExample.ir, new DataModel())
     debugger.entry("main", Table.unit)
@@ -392,7 +392,7 @@ class IRDebuggerTest extends AnyFunSuite {
   }
 
   test("if example 2 control") {
-    val compiledExample = Compiler.compileFunctional(AST.ifExample2, FunctionalOptions())
+    val compiledExample = Compiler.compileFunctional(Code.ifExample2, FunctionalOptions())
     println(compiledExample.ir)
     val debugger = initDebugger(compiledExample.ir, new DataModel())
     debugger.entry("main", Table.unit)

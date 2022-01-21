@@ -3,8 +3,9 @@ package inca.frontend.functional.debugger
 import inca.analyzedLangs.{Exp, ExpLangTestAnalyses}
 import inca.backend.ir.Datalog
 import inca.compiler.Compiler
+import inca.debugger.ScalaValue
 import inca.debugger.table.Table
-import inca.examples.functional.AST
+import inca.examples.functional.{AST, Code}
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.runtime.context.DataModel
 import inca.util.Scala
@@ -30,29 +31,38 @@ class FunctionalDebuggerTest extends AnyFunSuite {
   }
 
   test("if example control") {
-    val compiledExample = Compiler.compileFunctional(AST.ifExample, FunctionalOptions())
-    println(compiledExample.ir)
-    println(compiledExample.fun)
+    val compiledExample = Compiler.compileFunctional(Code.ifExample, FunctionalOptions())
     val debugger = initDebugger(compiledExample.ir, new DataModel())
     debugger.entry("main", Table.unit)
     while (!debugger.isFinished) {
-      println(s"${debugger.controlPointFrontend}:\n  ${debugger.varsFrontEnd}")
+      debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
+      println(debugger.varsFrontEnd)
       debugger.stepIntoFrontend()
     }
-    debugger.controlTraceFrontend.foreach(println)
     println(debugger.relation("main"))
   }
 
   test("if example 2 control") {
-    val compiledExample = Compiler.compileFunctional(AST.ifExample2, FunctionalOptions())
-    println(compiledExample.ir)
+    val compiledExample = Compiler.compileFunctional(Code.ifExample2, FunctionalOptions())
     val debugger = initDebugger(compiledExample.ir, new DataModel())
     debugger.entry("main", Table.unit)
     while (!debugger.isFinished) {
-      println(s"${debugger.controlPointFrontend}:\n  ${debugger.varsFrontEnd}")
+      debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
+      println(debugger.varsFrontEnd)
       debugger.stepIntoFrontend()
     }
-    debugger.controlTraceFrontend.foreach(println)
+    println(debugger.relation("main"))
+  }
+
+  test("fib example control") {
+    val compiledExample = Compiler.compileFunctional(Code.fibModule, FunctionalOptions())
+    val debugger = initDebugger(compiledExample.ir, new DataModel())
+    debugger.entry("main", Table(Map("x" -> ScalaValue(3))))
+    while (!debugger.isFinished) {
+      debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
+      println(debugger.varsFrontEnd)
+      debugger.stepIntoFrontend()
+    }
     println(debugger.relation("main"))
   }
 }

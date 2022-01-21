@@ -2,8 +2,9 @@ package inca.frontend.souffle.compiler
 
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.Name
-import inca.compiler.SourceLocation.NoSourceLocation
-import inca.compiler.{CompiledModule, Options, SourceLocation}
+import inca.compiler.source.SourceLocation
+import inca.compiler.source.SourceLocation.NoSourceLocation
+import inca.compiler.{CompiledModule, Options}
 import inca.frontend.souffle.Syntax.{Input, PrintSize, RuleSignature}
 import inca.runtime.context.DataModel
 

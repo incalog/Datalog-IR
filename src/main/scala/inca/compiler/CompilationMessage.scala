@@ -1,6 +1,7 @@
 package inca.compiler
 
 import inca.compiler.CompilationMessage.Severity
+import inca.compiler.source.SourceLocation
 
 case class CompilationMessage(msg: String, sourceLocations: Seq[SourceLocation], severity: Severity) {
   override def toString: String =

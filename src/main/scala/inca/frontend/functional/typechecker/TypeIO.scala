@@ -1,7 +1,8 @@
 package inca.frontend.functional.typechecker
 
 import inca.compiler
-import inca.compiler.{CompilationMessage, SourceLocation}
+import inca.compiler.CompilationMessage
+import inca.compiler.source.SourceLocation
 
 import scala.collection.mutable.ListBuffer
 

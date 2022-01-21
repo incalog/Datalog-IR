@@ -71,6 +71,7 @@ trait Debugger {
 
   def initialize(mod: Datalog.Module, dm: DataModel, edits: EditScript): Unit = {
     module = mod
+    frontend.initialize(mod)
     dataModel = dm
     val (_engine, _database) = compileModule()
     engine = _engine

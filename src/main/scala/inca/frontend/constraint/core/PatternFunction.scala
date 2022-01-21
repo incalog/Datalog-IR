@@ -1,6 +1,6 @@
 package inca.frontend.constraint.core
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 
 case class PatternFunction(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, bodies: Seq[Body])
   extends ModuleContent with Call.Target with Annotations {

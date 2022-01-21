@@ -1,6 +1,6 @@
 package inca.frontend.functional.lowering
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 import inca.frontend.functional.core
 import inca.frontend.functional.core._
 import inca.runtime.aggregate.{Aggregation, AggregatorAssocComm}

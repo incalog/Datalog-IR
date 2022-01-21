@@ -1,6 +1,7 @@
 package inca.backend.souffle
 
 import inca.backend.souffle.GenerateFacts.EDB
+import inca.compiler.source.SourceString
 import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
 import inca.frontend.functional.core.{DataDef, Module}
 import inca.util.Scala.ScalaCompiler
@@ -9,7 +10,7 @@ import truediff.Diffable
 
 object CompiledFunctionalToSouffleModule {
   def apply(src: String, options: FunctionalOptions = FunctionalOptions()): CompiledFunctionalToSouffleModule = {
-    val fun = inca.frontend.functional.parser.Parser.parse(src)
+    val fun = inca.frontend.functional.parser.Parser.parse(SourceString(src))
     new CompiledFunctionalToSouffleModule(fun, options)
   }
 }

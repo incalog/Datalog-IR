@@ -129,7 +129,7 @@ class GenerateDatalog(module: Module) {
       for ((boundTerms, boundCons) <- transExp(bound);
            (bodyTerm, bodyCons) <- transExp(body))
         yield {
-          val eqs = vars.zip(boundTerms).map(vt => Datalog.Eq(vt._1, vt._2).addHint(SourceConstruct.from(exp, exp -> vt._1)))
+          val eqs = vars.zip(boundTerms).map(vt => Datalog.Eq(vt._1, vt._2).addHint(SourceConstruct.from(exp, exp -> vt._1.name)))
           (bodyTerm, boundCons ++ eqs ++ bodyCons)
         }
     case TypeCast(e, ty) =>

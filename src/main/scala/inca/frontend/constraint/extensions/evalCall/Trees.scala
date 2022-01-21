@@ -1,6 +1,6 @@
 package inca.frontend.constraint.extensions.evalCall
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 import inca.frontend.constraint.core._
 import inca.util.Scala
 

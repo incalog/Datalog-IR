@@ -2,7 +2,8 @@ package inca.frontend.constraint.compiler
 
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.Name
-import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
+import inca.compiler.source.SourceLocation
+import inca.compiler.{CompiledModule, CompilerFlags}
 import inca.frontend.constraint.datamodelresolver.{DataModelResolver, DirectDataModelResolver, NativeDataModelResolver}
 import inca.frontend.constraint.desugar.Desugar
 import inca.frontend.constraint.lowering.GenerateDatalog

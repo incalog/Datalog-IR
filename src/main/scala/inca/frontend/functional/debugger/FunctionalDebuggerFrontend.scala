@@ -2,13 +2,21 @@ package inca.frontend.functional.debugger
 
 import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.ir.Datalog
-import inca.compiler.{SourceLocation, SourceObject}
+import inca.compiler.source.{ExcerptAbsoluteRegion, ExcerptRelativeRegion, SourceLocation, SourceObject}
 import inca.debugger.table.{SimpleTable, Table}
 import inca.debugger.{AfterList, AtListElem, AtomPoint, BeforeList, BodyPoint, ControlPoint, Debugger, DebuggerFrontend, ScalaValue, Value}
 import inca.frontend.functional.core.{BaseApply, BaseApplyInfix, BaseLit, Call, Expression, FunctionDef, If, Lambda, Let, Match, Module, NoneExp, SetComprehension, SetExp, SetFold, SetMember, SomeExp, Tuple, TypeCast, Var}
 
 final class FunctionalDebugger extends Debugger {
-  override val frontend: DebuggerFrontend = new FunctionalDebuggerFrontend
+  override val frontend: FunctionalDebuggerFrontend = new FunctionalDebuggerFrontend
+
+  def currentFunction: FunctionDef = controlPointFrontend.fun
+  def currentCodeSurrounding: String =
+    controlPointFrontend.point.loc.sourceExcerpt(ExcerptRelativeRegion(3, 3)).linesColored
+  def currentCodeFunction: String = {
+    val fp = controlPointFrontend
+    fp.point.loc.sourceExcerpt(ExcerptAbsoluteRegion(fp.fun.startIndex, fp.fun.endIndex)).linesColored
+  }
 }
 
 class FunctionalDebuggerFrontend extends DebuggerFrontend {
@@ -41,8 +49,8 @@ class FunctionalDebuggerFrontend extends DebuggerFrontend {
           atom.getHint(SourceConstruct.key) match {
             case Some(SourceConstruct(constr: Expression)) =>
               expressionPoint(constr).map(FunctionPoint(fun, _, cp))
-            case Some(SourceConstruct((let: Let, v: Datalog.Var))) =>
-              let.vars.find(_._1.name == v.name).map(p => FunctionPoint(fun, p._1.sourceObject, cp))
+            case Some(SourceConstruct((let: Let, v: String))) =>
+              let.names.find(_.name == v).map(p => FunctionPoint(fun, p.sourceObject, cp))
             case Some(SourceConstruct((let: If, thenBranch: Boolean))) =>
               None
             case None =>

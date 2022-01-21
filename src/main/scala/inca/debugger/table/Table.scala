@@ -45,4 +45,8 @@ object Table {
   def unit[V]: Table[V] = SimpleTable(Vector(), Vector(Vector()))
   def apply[V](columns: Seq[String], rows: Seq[Seq[V]]): Table[V] =
     SimpleTable(columns.toVector, rows.map(_.toVector).toVector)
+  def apply[V](map: Map[String, V]): Table[V] = {
+    val (colums, row) = map.toVector.unzip
+    SimpleTable(colums, Vector(row))
+  }
 }

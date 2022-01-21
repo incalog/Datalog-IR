@@ -2,7 +2,7 @@ package inca.frontend.constraint.parser
 
 import fastparse.ScalaWhitespace._
 import fastparse._
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 import inca.frontend.constraint.core._
 import inca.frontend.util.ParserUtils
 import inca.util.Scala

@@ -1,6 +1,6 @@
 package inca.frontend.constraint
 
-import inca.compiler.SourceLocation
+import inca.compiler.source.SourceLocation
 
 
 package object core {

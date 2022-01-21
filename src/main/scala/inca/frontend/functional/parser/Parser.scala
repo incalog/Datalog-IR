@@ -2,7 +2,7 @@ package inca.frontend.functional.parser
 
 import fastparse.ScalaWhitespace._
 import fastparse._
-import inca.compiler.SourceLocation
+import inca.compiler.source.{Source, SourceLocation}
 import inca.frontend.functional.core._
 import inca.frontend.util.ParserUtils
 import inca.util.Scala
@@ -15,7 +15,7 @@ import scala.meta.parsers.{Parsed, _}
 /**
  * Parser for the IncA Core language.
  */
-trait Parser {
+class Parser(source: Source) {
 
   final lazy val allKeywords: Set[String] =
     Set("if", "let", "in", "match", "fail") ++
@@ -318,6 +318,7 @@ trait Parser {
       (Index ~ p ~ Index).map {
         case (start, t, end) =>
           val u = f(t)
+          u.source = source
           u.startIndex = start
           u.endIndex = end
           u
@@ -329,6 +330,7 @@ trait Parser {
           val uv = f(t)
           u => {
             val v = uv(u)
+            u.source = source
             v.startIndex = u.startIndex
             v.endIndex = end
             v
@@ -340,6 +342,7 @@ trait Parser {
         case (start, t, end) =>
           val up = f(t)
           up.map { u =>
+            u.source = source
             u.startIndex = start
             u.endIndex = end
             u
@@ -350,11 +353,11 @@ trait Parser {
 }
 
 object Parser {
-  private lazy val parser: Parser = new Parser {}
-  def parse(code: ParserInput): Module = {
+  def parse(source: Source): Module = {
     import fastparse.Parsed
+    val parser = new Parser(source)
 
-    fastparse.parse(code, parser.module(_), verboseFailures = true) match {
+    fastparse.parse(source.code, parser.module(_), verboseFailures = true) match {
       case Parsed.Success(value, _) => value
       case fail: Parsed.Failure =>
         throw new IllegalArgumentException(s"Parsing Error: ${fail.trace(true).longTerminalsMsg}")

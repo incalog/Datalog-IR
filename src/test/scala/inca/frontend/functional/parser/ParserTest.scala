@@ -2,6 +2,7 @@ package inca.frontend.functional.parser
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse.{P, parse}
+import inca.compiler.source.NoSource
 import inca.examples.functional.{AST, Code, ControlDataFlow, HigherOrder}
 import inca.frontend.functional.core._
 import inca.util.Scala
@@ -12,7 +13,7 @@ import scala.meta.quasiquotes._
 
 class ParserTest extends AnyFunSuite {
 
-  val parser: Parser = new Parser {}
+  val parser: Parser = new Parser(NoSource)
 
   test("base example") {
     testSuccess(parser.module(_))(Code.baseExample, AST.baseExample)

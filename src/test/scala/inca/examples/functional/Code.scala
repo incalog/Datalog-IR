@@ -100,8 +100,8 @@ object Code {
 
   val fibModule: String =
     s"""module Fib
-       |@main def main(n: Int): Int =
-       |  fib(n)
+       |@main def main(x: Int): Int =
+       |  fib(x)
        |def fib(n: Int): Int =
        |  if (n == 0)
        |    0
