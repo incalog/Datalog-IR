@@ -54,6 +54,31 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     println(debugger.relation("main"))
   }
 
+  def ifControlJump(b1: Boolean, b2: Boolean): String =
+    s"""module M
+       |@main def main(): Int =
+       |  if ($b1 == true)
+       |    if ($b2 == true)
+       |      0 + 0
+       |    else
+       |      1 + 0
+       |  else
+       |    if ($b2 == true)
+       |      2 + 0
+       |    else
+       |      3 + 0
+       |""".stripMargin
+
+  test("if control jumping") {
+    for (b1 <- Seq(true, false); b2 <- Seq(true, false)) {
+      val compiledExample = Compiler.compileFunctional(ifControlJump(b1, b2), FunctionalOptions())
+      val debugger = initDebugger(compiledExample.ir, new DataModel())
+      debugger.entry("main", Table.unit)
+      debugger.untilFinished(() => debugger.stepIntoFrontend())
+      assertResult(5)(debugger.controlTraceFrontend.size)
+    }
+  }
+
   test("fib example control") {
     val compiledExample = Compiler.compileFunctional(Code.fibModule, FunctionalOptions())
     val debugger = initDebugger(compiledExample.ir, new DataModel())

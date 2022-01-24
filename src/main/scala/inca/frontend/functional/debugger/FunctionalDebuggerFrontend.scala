@@ -4,20 +4,22 @@ import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.ir.Datalog
 import inca.compiler.source.{ExcerptAbsoluteRegion, ExcerptRelativeRegion, SourceLocation, SourceObject}
 import inca.debugger.table.{SimpleTable, Table}
-import inca.debugger.{AfterList, AtListElem, AtomPoint, BeforeList, BodyPoint, ControlPoint, Debugger, DebuggerFrontend, ScalaValue, Value}
+import inca.debugger.{AfterList, AtListElem, AtomPoint, BeforeList, BodyPoint, ControlPoint, Debugger, DebuggerFrontend, Frame, ScalaValue, Value}
 import inca.frontend.functional.core.{BaseApply, BaseApplyInfix, BaseLit, Call, Expression, FunctionDef, If, Lambda, Let, Match, Module, NoneExp, SetComprehension, SetExp, SetFold, SetMember, SomeExp, Tuple, TypeCast, Var}
 
 
-class FunctionalDebuggerFrontend extends DebuggerFrontend {
+class FunctionalDebuggerFrontend(debugger: Debugger) extends DebuggerFrontend {
 
   override type FrontendPoint = FunctionalControlPoint
   override type FrontendValue = Value
 
   var module: Module = _
 
-  override def initialize(mod: Datalog.Module): Unit = mod.getHint(SourceConstruct.key) match {
-    case Some(SourceConstruct(m: Module)) => this.module = m
-    case h => throw new IllegalArgumentException(s"Cannot create functional debugger frontend for ${mod.name}: No functional module source construct found $h")
+  override def initialize(mod: Datalog.Module): Unit = {
+    mod.getHint(SourceConstruct.key) match {
+      case Some(SourceConstruct(m: Module)) => this.module = m
+      case h => throw new IllegalArgumentException(s"Cannot create functional debugger frontend for ${mod.name}: No functional module source construct found $h")
+    }
   }
 
   def getFunction(pat: Datalog.Pattern): Option[FunctionDef] = pat.getHint(SourceConstruct.key) match {
@@ -31,7 +33,7 @@ class FunctionalDebuggerFrontend extends DebuggerFrontend {
     patPoint.bodies match {
       case BeforeList =>
         // start of function
-        Some(FunctionPoint(fun, fun.sourceObject, cp))
+        Some(FunctionPoint(fun, fun.name.sourceObject, cp))
       case AtListElem(_, _, BodyPoint(_, atoms)) => atoms match {
         case BeforeList => None
         case AtListElem(_, _, AtomPoint(atom)) =>
@@ -42,14 +44,28 @@ class FunctionalDebuggerFrontend extends DebuggerFrontend {
               let.names.find(_.name == v).map(p => FunctionPoint(fun, p.sourceObject, cp))
             case Some(SourceConstruct((cond: If, thenBranch: Boolean))) =>
               Some(ConditionalPoint(cond, thenBranch, cp))
-            case None =>
+            case _ =>
               None
           }
         case AfterList => None
       }
       case AfterList =>
         // end of function
-        None
+        Some(FunctionPoint(fun, fun.sourceObject, cp))
+//        // => show call point once again
+//        debugger.frames.lift(1) match {
+//          case None => None
+//          case Some(fr) => fr.cp.point.bodies match {
+//            case BeforeList | AfterList => None
+//            case AtListElem(_, _, BodyPoint(_, atoms)) => atoms match {
+//              case BeforeList | AfterList => None
+//              case AtListElem(_, _, AtomPoint(atom)) => atom.getHint(SourceConstruct.key) match {
+//                case Some(SourceConstruct(call: Call)) => Some(FunctionPoint(fun, call.sourceObject, cp))
+//                case _ => None
+//              }
+//            }
+//          }
+//        }
     }
   }
 
@@ -59,7 +75,10 @@ class FunctionalDebuggerFrontend extends DebuggerFrontend {
   }
 
   override def frontendTable(fp: FunctionalControlPoint, bound: Table[Value]): Table[Value] = fp match {
-    case fp: FunctionPoint => val vars = fp.vars.map(_.name).toList.sorted.distinct
+    case fp: FunctionPoint =>
+      var vars = fp.vars.map(_.name).toList.sorted.distinct
+      if (fp.isFunctionExit)
+        vars :+= fp.irPoint.point.pat.params.last.name
       var myVars = Table.empty[Value](vars)
       for (row <- bound.rows) {
         val vals = vars.map { v =>

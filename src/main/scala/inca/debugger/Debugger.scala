@@ -38,6 +38,7 @@ trait Debugger {
   private var fixpointState: FixpointState = FixpointState(Map())
   protected val callStack: CallStack = new CallStack()
   private val _controlTrace: ListBuffer[ControlPoint] = ListBuffer.empty
+  protected val _controlTraceFrontend: ListBuffer[frontend.FrontendPoint] = ListBuffer.empty
 
   // Needed to execute scala code via reflection
   private val scalaCompiler = new Scala.ScalaCompiler()
@@ -46,14 +47,23 @@ trait Debugger {
   // Accessor methods of debugger statej
   def frame: Frame = callStack.top
 
-  def varsIR: Table[Value] = callStack.top.bodyTable
+  def varsIR: Table[Value] = controlPointIR.point.bodies match {
+    case BeforeList => frame.argsTable
+    case AtListElem(_, _, _) => frame.bodyTable
+    case AfterList => frame.patternTable
+  }
   def varsFrontEnd: Table[frontend.FrontendValue] = frontend.frontendTable(controlPointFrontend, varsIR)
 
   def controlPointIR: ControlPoint = callStack.top.cp
   def controlPointFrontend: frontend.FrontendPoint = frontend.frontendPoint(controlPointIR).get
 
   def controlTraceIR: Seq[ControlPoint] = _controlTrace.toSeq
-  def controlTraceFrontend: Seq[frontend.FrontendPoint] = controlTraceIR.flatMap(frontend.frontendPoint)
+  def controlTraceFrontend: Seq[frontend.FrontendPoint] = _controlTraceFrontend.toSeq
+
+  private def traceControlPoint(cp: ControlPoint): Unit = {
+    _controlTrace += cp
+    frontend.frontendPoint(cp).foreach(_controlTraceFrontend += _)
+  }
 
   def relation(name: String): Table[Value] = fixpointState.derived(name)
   def isFinished: Boolean = callStack.isFinished
@@ -92,10 +102,14 @@ trait Debugger {
     val cp = ControlPoint.patternEntryPoint(pat)
     val frame = Frame(cp, bindings, Table.empty, Table(pat.params.map(_.name), Seq()))
     callStack.push(frame)
-    _controlTrace += cp
+    traceControlPoint(cp)
   }
 
   def stepIntoFrontend(): Unit
+
+  def untilFinished(run: () => Unit): Unit =
+    while (callStack.nonEmpty)
+      stepIntoFrontend()
 
   def stepIntoUntil(stop: () => Boolean): Unit =
     while (!stop())
@@ -110,7 +124,7 @@ trait Debugger {
         stepIntoPatternBoundary(frame)
     }
     if (callStack.nonEmpty)
-      _controlTrace += callStack.top.cp
+      traceControlPoint(callStack.top.cp)
   }
 
   def stepIntoNextAtom(frame: Frame, atom: Datalog.Atom): Unit = atom match {
@@ -147,51 +161,67 @@ trait Debugger {
     }
   }
 
+  protected def doPatternEntry(cp: ControlPoint): Unit = {
+    val next = cp.stepIntra.get // yields first body of this pattern
+    callStack.update(Frame(next,  frame.argsTable, frame.argsTable, frame.patternTable))
+  }
+
+  protected def doPatternExit(frame: Frame): Unit = {
+    val pat = frame.cp.point.pat
+    callStack.pop() // pop pattern exit point
+
+    // extend derived relations
+    fixpointState = fixpointState.extendRelation(pat.name, frame.patternTable)
+
+    // if the stack is still not empty there should be a call, or an aggregation on top
+    if (callStack.nonEmpty) {
+      val callerFrame = callStack.top
+      callerFrame.cp.atom match {
+        case Datalog.Call(_, _, _, false) =>
+          val next = callerFrame.cp.stepIntra
+            .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+          val tables = transitionReturnCallTables(callerFrame, frame)
+          callStack.update(Frame(next, tables))
+        case Datalog.Call(_, _, _, true) =>
+          val next = callerFrame.cp.stepIntra
+            .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+          val tables = transitionReturnNegCallTables(callerFrame, frame)
+          callStack.update(Frame(next, tables))
+        case Datalog.Computed(lhs, custAgg: CustomAggregation) =>
+          val next = callerFrame.cp.stepIntra
+            .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+          val tables = transitionCustomAggTables(callerFrame, frame.patternTable, lhs, custAgg)
+          callStack.update(Frame(next, tables))
+        case Datalog.Computed(lhs, countAgg: CountAggregation) =>
+          val next = callerFrame.cp.stepIntra
+            .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+          val tables = transitionCountAggTables(callerFrame, frame.patternTable, lhs)
+          callStack.update(Frame(next, tables))
+      }
+    }
+  }
+
+  protected def doBodyEntry(frame: Frame, cp: ControlPoint): Unit = {
+    val next = cp.stepIntra.get // yields first atom of this body
+    callStack.update(Frame(next, frame.argsTable, frame.argsTable, frame.patternTable))
+  }
+
+  protected def doBodyExit(frame: Frame, cp: ControlPoint): Unit = {
+    val next = cp.stepIntra.get // yields entry of next body
+    val tables = transitionNextBodyTables(frame)
+    callStack.update(Frame(next, tables))
+  }
+
   private def stepIntoPatternBoundary(frame: Frame): Unit = {
     val cp = frame.cp
     if (cp.point.isPatternEntry) {
-      val next = cp.stepIntra.get // yields first body of this pattern
-      callStack.update(Frame(next,  frame.argsTable, frame.argsTable, frame.patternTable))
+      doPatternEntry(cp)
     } else if (cp.point.isPatternExit) {
-      val pat = frame.cp.point.pat
-      callStack.pop() // pop pattern exit point
-
-      // extend derived relations
-      fixpointState = fixpointState.extendRelation(pat.name, frame.patternTable)
-
-      // if the stack is still not empty there should be a call, or an aggregation on top
-      if (callStack.nonEmpty) {
-        val callerFrame = callStack.top
-        callerFrame.cp.atom match {
-          case Datalog.Call(_, _, _, false) =>
-            val next = callerFrame.cp.stepIntra
-              .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
-            val tables = transitionReturnCallTables(callerFrame, frame)
-            callStack.update(Frame(next, tables))
-          case Datalog.Call(_, _, _, true) =>
-            val next = callerFrame.cp.stepIntra
-              .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
-            val tables = transitionReturnNegCallTables(callerFrame, frame)
-            callStack.update(Frame(next, tables))
-          case Datalog.Computed(lhs, custAgg: Datalog.CustomAggregation) =>
-            val next = callerFrame.cp.stepIntra
-              .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
-            val tables = transitionCustomAggTables(callerFrame, frame.patternTable, lhs, custAgg)
-            callStack.update(Frame(next, tables))
-          case Datalog.Computed(lhs, countAgg: Datalog.CountAggregation) =>
-            val next = callerFrame.cp.stepIntra
-              .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
-            val tables = transitionCountAggTables(callerFrame, frame.patternTable, lhs)
-            callStack.update(Frame(next, tables))
-        }
-      }
+      doPatternExit(frame)
     } else if (cp.point.isBodyEntry) {
-      val next = cp.stepIntra.get // yields first atom of this body
-      callStack.update(Frame(next, frame.argsTable, frame.argsTable, frame.patternTable))
+      doBodyEntry(frame, cp)
     } else if (cp.point.isBodyExit) {
-      val next = cp.stepIntra.get // yields entry of next body
-      val tables = transitionNextBodyTables(frame)
-      callStack.update(Frame(next, tables))
+      doBodyExit(frame, cp)
     } else {
       throw new IllegalStateException(s"Unexpected control point $cp")
     }
@@ -652,6 +682,10 @@ trait Debugger {
     ScalaValue(scalaCompiler.compileAndLoadScala(code))
   }
 
+  def stepOverUntil(stop: () => Boolean): Unit =
+    while (!stop())
+      stepOver()
+
   def stepOver(): Unit = {
     val frame = callStack.top
     frame.cp.point.atom match {
@@ -708,7 +742,7 @@ trait Debugger {
         }
     }
     if (callStack.nonEmpty)
-      _controlTrace += callStack.top.cp
+      traceControlPoint(callStack.top.cp)
   }
 
   private def runUntil(cp: ControlPoint): Unit = {

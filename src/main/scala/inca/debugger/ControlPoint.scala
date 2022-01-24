@@ -106,6 +106,10 @@ case class PatternPoint(pat: Datalog.Pattern, bodies: ListPoint[Datalog.Body, Bo
     case AtListElem(_, _, bodyPoint) => bodyPoint.atom
     case _ => None
   }
+  def body: Option[Datalog.Body] = bodies match {
+    case AtListElem(bodies, ix, _) => Some(bodies(ix))
+    case _ => None
+  }
   def stepIntra: Option[PatternPoint] = bodies match {
     case BeforeList => Some(PatternPoint(pat, ListPoint.first(pat.bodies, BodyPoint(_, BeforeList))))
     case elem@AtListElem(_, _, body) => body.stepIntra match {

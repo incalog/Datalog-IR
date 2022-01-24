@@ -2,6 +2,8 @@ package inca.backend.hints
 
 import inca.backend.hints.Hint.Key
 
+import scala.reflect.ClassTag
+
 object DebugHints {
   object SourceConstruct {
     val key: Key = "SourceConstruct"
@@ -13,6 +15,11 @@ object DebugHints {
       case hinted: Hints => SourceConstruct(hinted.hints.getOrElse(key, constr))
       case _ => SourceConstruct(default)
     }
+    def get(hints: Hints): Option[Any] =
+      hints.getHint(key) match {
+        case None => None
+        case Some(SourceConstruct(constr)) => Some(constr)
+      }
   }
   case class SourceConstruct[C](constr: C) extends Hint {
     override val key: Key = SourceConstruct.key
