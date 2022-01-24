@@ -2,7 +2,7 @@ package inca.debugger
 
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.{CountAggregation, CustomAggregation}
-import inca.compiler.{CompiledModule, Options}
+import inca.compiler.{CompiledDatalogModule, CompiledModule, Options}
 import inca.debugger.table.Table
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.runtime.index.dynamic.ParentIndex
@@ -27,7 +27,7 @@ trait Debugger {
 
   // Datalog program information
   private var compiled: CompiledModule = _
-  implicit private lazy val patterns: Map[String, Datalog.Pattern] =
+  private lazy val patterns: Map[String, Datalog.Pattern] =
     compiled.ir.pats.map { pat => pat.name -> pat }.toMap
 
   // Extensional database stuff
@@ -69,12 +69,11 @@ trait Debugger {
   def isFinished: Boolean = callStack.isFinished
 
   // initialization methods
-  def initialize(mod: Datalog.Module, dm: DataModel, tree: Diffable): Unit =
-    initialize(mod, dm, Diffable.load(tree))
-
-  def initialize(mod: Datalog.Module, dm: DataModel, edits: EditScript): Unit = {
-    frontend.initialize(mod)
-    val (_engine, _database) = compileModule(mod, dm)
+  def initialize(mod: CompiledModule, edits: EditScript): Unit = {
+    compiled = CompiledDatalogModule(mod.ir, mod.dataModel, mod.options.withOptimizations(Seq()).withTransformations(Seq()))
+    println(compiled.ir)
+    val scope = new QueryScope(compiled.dataModel)
+    val (_engine, _database) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     engine = _engine
     database = _database
     engine.delayUpdatePropagation { () =>
@@ -83,15 +82,8 @@ trait Debugger {
     initScalaCompiler()
   }
 
-  private def compileModule(mod: Datalog.Module, dm: DataModel): (AdvancedViatraQueryEngine, Database) = {
-    val options = Options(_stopOnError = true, _stopOnWarning = false)
-    compiled = inca.compiler.Compiler.compileGP(mod, dm, options)
-    val scope = new QueryScope(compiled.dataModel)
-    EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-  }
-
   private def initScalaCompiler(): Unit = {
-    val scalaContent = compiled.ir.scalaContent.map(_.syntax).mkString("\n")
+    val scalaContent = compiled.transformed.scalaContent.map(_.syntax).mkString("\n")
     val scalaObject = s"object DefinitionObj {\n  $scalaContent \n}"
     defintionObjSym = scalaCompiler.define(scalaObject)
   }
@@ -171,7 +163,7 @@ trait Debugger {
     callStack.pop() // pop pattern exit point
 
     // extend derived relations
-    fixpointState = fixpointState.extendRelation(pat.name, frame.patternTable)
+    fixpointState = fixpointState.extendRelation(pat.name, frame.patternTable)(patterns)
 
     // if the stack is still not empty there should be a call, or an aggregation on top
     if (callStack.nonEmpty) {
@@ -417,7 +409,10 @@ trait Debugger {
     bodyTable
   }
 
-  private def transitionExtCallTables(frame: Frame, ext: Datalog.ExtensionalCall): Table[Value] = ???
+  private def transitionExtCallTables(frame: Frame, ext: Datalog.ExtensionalCall): Table[Value] = {
+    // TODO implement this correctly
+    Table.empty
+  }
 
   private def transitionEqCompTables(frame: Frame, comp: Datalog.Compare): Table[Value] = {
     val bodyTable = frame.bodyTable

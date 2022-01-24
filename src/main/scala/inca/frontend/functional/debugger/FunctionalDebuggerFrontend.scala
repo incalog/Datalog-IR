@@ -2,25 +2,18 @@ package inca.frontend.functional.debugger
 
 import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.ir.Datalog
-import inca.compiler.source.{ExcerptAbsoluteRegion, ExcerptRelativeRegion, SourceLocation, SourceObject}
-import inca.debugger.table.{SimpleTable, Table}
-import inca.debugger.{AfterList, AtListElem, AtomPoint, BeforeList, BodyPoint, ControlPoint, Debugger, DebuggerFrontend, Frame, ScalaValue, Value}
-import inca.frontend.functional.core.{BaseApply, BaseApplyInfix, BaseLit, Call, Expression, FunctionDef, If, Lambda, Let, Match, Module, NoneExp, SetComprehension, SetExp, SetFold, SetMember, SomeExp, Tuple, TypeCast, Var}
+import inca.compiler.CompiledModule
+import inca.compiler.source.SourceObject
+import inca.debugger.table.Table
+import inca.debugger._
+import inca.frontend.functional.compiler.CompiledFunctionalModule
+import inca.frontend.functional.core.{BaseLit, Expression, FunctionDef, If, Let, Module, NoneExp, SetExp, SomeExp, Tuple, Var}
 
 
 class FunctionalDebuggerFrontend(debugger: Debugger) extends DebuggerFrontend {
 
   override type FrontendPoint = FunctionalControlPoint
   override type FrontendValue = Value
-
-  var module: Module = _
-
-  override def initialize(mod: Datalog.Module): Unit = {
-    mod.getHint(SourceConstruct.key) match {
-      case Some(SourceConstruct(m: Module)) => this.module = m
-      case h => throw new IllegalArgumentException(s"Cannot create functional debugger frontend for ${mod.name}: No functional module source construct found $h")
-    }
-  }
 
   def getFunction(pat: Datalog.Pattern): Option[FunctionDef] = pat.getHint(SourceConstruct.key) match {
     case Some(SourceConstruct(f: FunctionDef)) => Some(f)

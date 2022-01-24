@@ -2,7 +2,7 @@ package inca.debugger
 
 import inca.analyzedLangs.{Exp, ExpLangTestAnalyses}
 import inca.backend.ir.Datalog
-import inca.compiler.{Compiler, Options}
+import inca.compiler.{CompiledDatalogModule, Compiler, Options}
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.debugger.table.Table
 import inca.examples.functional.{AST, Code}
@@ -192,7 +192,8 @@ class IRDebuggerTest extends AnyFunSuite {
 
   def initDebugger(module: Datalog.Module, dataModel: DataModel, edits: EditScript = EditScript(Seq())): IRDebugger = {
     val debugger = new IRDebugger
-    debugger.initialize(module, dataModel, edits)
+    val compiled = CompiledDatalogModule(module, dataModel, Options(_stopOnError = true, _stopOnWarning = false, Seq(), Seq()))
+    debugger.initialize(compiled, edits)
     debugger
   }
 
