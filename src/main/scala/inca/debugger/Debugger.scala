@@ -1,5 +1,6 @@
 package inca.debugger
 
+import inca.backend.hints.DataHints
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.{CountAggregation, CustomAggregation}
 import inca.compiler.{CompiledDatalogModule, CompiledModule, Options}
@@ -121,19 +122,39 @@ trait Debugger {
 
   def stepIntoNextAtom(frame: Frame, atom: Datalog.Atom): Unit = atom match {
     case call: Datalog.Call =>
-      val tables = prepareCallTables(frame, call.name, call.args)
-      val callee = ControlPoint(PatternPoint(patterns(call.name), BeforeList))
-      if (call.neg) {
-        checkNegativeCallArguments(call.args, frame.bodyTable)
+      val (preTables, pattern) = prepareCallTables(frame, call.name, call.args)
+      if (pattern.hasHint(DataHints.ConstructorKey)) {
+        val constrEval = pattern.bodies.head.atoms.head.asInstanceOf[Datalog.Evaluation]
+        val out = pattern.params.last
+        val args = preTables._1
+        val data = args.expand(Seq(out.name), { row =>
+          Seq(executeScala(args, row, constrEval))
+        })
+        fixpointState = fixpointState.extendRelation(call.name, data)(patterns)
+        val nextTables = transitionReturnCallTables(frame, pattern.params.map(_.name), data)
+        val next = frame.cp.stepOver.get
+        callStack.update(Frame(next, nextTables))
+      } else if (pattern.hasHint(DataHints.SelectorKey)) {
+        val data = fixpointState.derived.getOrElse(call.name, Table.empty)
+        val args = preTables._1
+        val selected = args.join(data)
+        val nextTables = transitionReturnCallTables(frame, pattern.params.map(_.name), selected)
+        val next = frame.cp.stepOver.get
+        callStack.update(Frame(next, nextTables))
+      } else {
+        val callee = ControlPoint(PatternPoint(pattern, BeforeList))
+        if (call.neg) {
+          checkNegativeCallArguments(call.args, frame.bodyTable)
+        }
+        callStack.push(Frame(callee, preTables))
       }
-      callStack.push(Frame(callee, tables))
     case Datalog.Computed(_, countAgg: Datalog.CountAggregation) =>
-      val tables = prepareCallTables(frame, countAgg.patName, countAgg.args)
-      val callee = ControlPoint(PatternPoint(patterns(countAgg.patName), BeforeList))
+      val (tables, pattern) = prepareCallTables(frame, countAgg.patName, countAgg.args)
+      val callee = ControlPoint(PatternPoint(pattern, BeforeList))
       callStack.push(Frame(callee, tables))
     case Datalog.Computed(_, custAgg: Datalog.CustomAggregation) =>
-      val tables = prepareCallTables(frame, custAgg.patName, custAgg.args)
-      val callee = ControlPoint(PatternPoint(patterns(custAgg.patName), BeforeList))
+      val (tables, pattern) = prepareCallTables(frame, custAgg.patName, custAgg.args)
+      val callee = ControlPoint(PatternPoint(pattern, BeforeList))
       callStack.push(Frame(callee, tables))
     case atom =>
       val nextBodyTable = transitionAtomTables(frame, atom)
@@ -220,9 +241,9 @@ trait Debugger {
   }
 
   // Methods to prepare frame tables for atoms that can jump into another pattern (calls and aggregations)
-  private def prepareCallTables(frame: Frame, name: String, args: Seq[Datalog.Term]): Frame.Tables = {
-    val callingPat = patterns(name)
-    val params = callingPat.params.map(_.name)
+  private def prepareCallTables(frame: Frame, name: String, args: Seq[Datalog.Term]): (Frame.Tables, Datalog.Pattern) = {
+    val calledPattern = patterns(name)
+    val params = calledPattern.params.map(_.name)
 
     // prepare argsTable
     val paramSubst = params.zip(args)
@@ -237,7 +258,7 @@ trait Debugger {
 
     val patternTable = Table.empty[Value](params)
 
-    (argsTable, argsTable, patternTable)
+    ((argsTable, argsTable, patternTable), calledPattern)
   }
 
 
@@ -514,9 +535,9 @@ trait Debugger {
     }
   }
 
-  private def transitionReturnCallTables(callerFrame: Frame, calleFrame: Frame): Frame.Tables = {
-    val params = calleFrame.cp.point.pat.params.map(_.name)
-    transitionReturnCallTables(callerFrame, params, calleFrame.patternTable)
+  private def transitionReturnCallTables(callerFrame: Frame, calleeFrame: Frame): Frame.Tables = {
+    val params = calleeFrame.cp.point.pat.params.map(_.name)
+    transitionReturnCallTables(callerFrame, params, calleeFrame.patternTable)
   }
 
   private def transitionReturnCallTables(callerFrame: Frame, params: Seq[String], patternTable: Table[Value]): Frame.Tables = {
@@ -687,31 +708,31 @@ trait Debugger {
       case Some(atom) =>
         atom match {
           case Datalog.Call(name, args, _, false) =>
-            val (argsTable, _, _) = prepareCallTables(frame, name, args)
+            val ((argsTable, _, _), pattern) = prepareCallTables(frame, name, args)
             val callPatternTable = readDatabase(name, argsTable)
-            val params = patterns(name).params.map(_.name)
+            val params = pattern.params.map(_.name)
             val tables = transitionReturnCallTables(frame, params, callPatternTable)
             val next = frame.cp.stepOver.get
             callStack.update(Frame(next, tables))
 
           case Datalog.Call(name, args, _, true) =>
-            val (argsTable, _, _) = prepareCallTables(frame, name, args)
+            val ((argsTable, _, _), pattern) = prepareCallTables(frame, name, args)
             checkNegativeCallArguments(args, frame.bodyTable)
             val callPatternTable = readDatabase(name, argsTable)
-            val params = patterns(name).params.map(_.name)
+            val params = pattern.params.map(_.name)
             val tables = transitionReturnNegCallTables(frame, params, callPatternTable)
             val next = frame.cp.stepOver.get
             callStack.update(Frame(next, tables))
 
           case Datalog.Computed(lhs, countAgg: CountAggregation) =>
-            val (argsTable, _, _) = prepareCallTables(frame, countAgg.patName, countAgg.args)
+            val ((argsTable, _, _), _) = prepareCallTables(frame, countAgg.patName, countAgg.args)
             val callPatternTable = readDatabase(countAgg.patName, argsTable)
             val tables = transitionCountAggTables(frame, callPatternTable, lhs)
             val next = frame.cp.stepOver.get
             callStack.update(Frame(next, tables))
 
           case Datalog.Computed(lhs, customAgg: CustomAggregation) =>
-            val (argsTable, _, _) = prepareCallTables(frame, customAgg.patName, customAgg.args)
+            val ((argsTable, _, _), _) = prepareCallTables(frame, customAgg.patName, customAgg.args)
             val callPatternTable = readDatabase(customAgg.patName, argsTable)
             val tables = transitionCustomAggTables(frame, callPatternTable, lhs, customAgg)
             val next = frame.cp.stepOver.get
