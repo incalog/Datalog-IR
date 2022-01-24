@@ -104,7 +104,7 @@ object Code {
        |  fib(x)
        |def fib(n: Int): Int =
        |  if (n == 0)
-       |    1
+       |    0
        |  else if (n == 1)
        |    1
        |  else
