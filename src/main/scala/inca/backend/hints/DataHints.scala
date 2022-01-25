@@ -18,7 +18,7 @@ object DataHints {
   /**
    * The annotated pattern represents a selector.
    */
-  object Selector extends Hint {
+  case class Selector(ctor: String) extends Hint {
     override val key: Key = SelectorKey
   }
 

@@ -1,6 +1,7 @@
 package inca.debugger
 
 import inca.backend.hints.DataHints
+import inca.backend.hints.DataHints.Selector
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.{CountAggregation, CustomAggregation}
 import inca.compiler.{CompiledDatalogModule, CompiledModule, Options}
@@ -16,12 +17,12 @@ import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
 import org.eclipse.viatra.query.runtime.matchers.tuple.{TupleMask, Tuples}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
-import truechange.{EditScript, URI}
+import truechange.{EditScript, SortType, URI}
 import truediff.Diffable
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
-import scala.jdk.CollectionConverters.{CollectionHasAsScala, IteratorHasAsScala}
+import scala.jdk.CollectionConverters._
 
 trait Debugger {
   val frontend: DebuggerFrontend
@@ -42,8 +43,8 @@ trait Debugger {
   protected val _controlTraceFrontend: ListBuffer[frontend.FrontendPoint] = ListBuffer.empty
 
   // Needed to execute scala code via reflection
-  private val scalaCompiler = new Scala.ScalaCompiler()
-  private var defintionObjSym: String = _
+  protected val scalaCompiler = new Scala.ScalaCompiler()
+  protected var defintionObjSym: String = _
 
   // Accessor methods of debugger statej
   def frame: Frame = callStack.top
@@ -70,23 +71,26 @@ trait Debugger {
   def isFinished: Boolean = callStack.isFinished
 
   // initialization methods
-  def initialize(mod: CompiledModule, edits: EditScript): Unit = {
+  def initialize(mod: CompiledModule): Unit = {
     compiled = CompiledDatalogModule(mod.ir, mod.dataModel, mod.options.withOptimizations(Seq()).withTransformations(Seq()))
     println(compiled.ir)
     val scope = new QueryScope(compiled.dataModel)
     val (_engine, _database) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     engine = _engine
     database = _database
-    engine.delayUpdatePropagation { () =>
-      database.processEditScript(edits)
-    }
     initScalaCompiler()
   }
 
+  def updateExtensionalData(edits: EditScript): Unit =
+    engine.delayUpdatePropagation { () =>
+      database.processEditScript(edits)
+    }
+
   private def initScalaCompiler(): Unit = {
-    val scalaContent = compiled.transformed.scalaContent.map(_.syntax).mkString("\n")
-    val scalaObject = s"object DefinitionObj {\n  $scalaContent \n}"
-    defintionObjSym = scalaCompiler.define(scalaObject)
+    defintionObjSym = scalaCompiler.define {
+      import scala.meta._
+      q"object O {..${compiled.psystemSource.stats}}".syntax
+    }
   }
 
   // Debugger methods
@@ -120,50 +124,79 @@ trait Debugger {
       traceControlPoint(callStack.top.cp)
   }
 
-  def stepIntoNextAtom(frame: Frame, atom: Datalog.Atom): Unit = atom match {
-    case call: Datalog.Call =>
-      val (preTables, pattern) = prepareCallTables(frame, call.name, call.args)
-      if (pattern.hasHint(DataHints.ConstructorKey)) {
-        val constrEval = pattern.bodies.head.atoms.head.asInstanceOf[Datalog.Evaluation]
-        val out = pattern.params.last
-        val args = preTables._1
-        val data = args.expand(Seq(out.name), { row =>
-          Seq(executeScala(args, row, constrEval))
-        })
-        fixpointState = fixpointState.extendRelation(call.name, data)(patterns)
-        val nextTables = transitionReturnCallTables(frame, pattern.params.map(_.name), data)
-        val next = frame.cp.stepOver.get
-        callStack.update(Frame(next, nextTables))
-      } else if (pattern.hasHint(DataHints.SelectorKey)) {
-        val data = fixpointState.derived.getOrElse(call.name, Table.empty)
-        val args = preTables._1
-        val selected = args.join(data)
-        val nextTables = transitionReturnCallTables(frame, pattern.params.map(_.name), selected)
-        val next = frame.cp.stepOver.get
-        callStack.update(Frame(next, nextTables))
-      } else {
-        val callee = ControlPoint(PatternPoint(pattern, BeforeList))
-        if (call.neg) {
-          checkNegativeCallArguments(call.args, frame.bodyTable)
+  def stepIntoNextAtom(frame: Frame, atom: Datalog.Atom): Unit = {
+    atom match {
+      case call: Datalog.Call =>
+        val (preTables, pattern) = prepareCallTables(frame, call.name, call.args)
+        if (pattern.hasHint(DataHints.ConstructorKey)) {
+          // constructor call
+          val computed = pattern.bodies.head.atoms.head.asInstanceOf[Datalog.Computed]
+          val constrEval = computed.computation.asInstanceOf[Datalog.Evaluation]
+          val out = pattern.params.last
+          val args = preTables._1
+          val data = args.expand(Seq(out.name), { row =>
+            Seq(executeScala(args, row, constrEval))
+          })
+          fixpointState = fixpointState.extendRelation(call.name, data)(patterns)
+          val nextTables = transitionReturnCallTables(frame, pattern.params.map(_.name), data)
+          val next = frame.cp.stepOver.get
+          callStack.update(Frame(next, nextTables))
+        } else if (pattern.hasHint(DataHints.SelectorKey)) {
+          // selector call
+          val ctor = pattern.hints(DataHints.SelectorKey).asInstanceOf[Selector].ctor
+          val args = preTables._1
+          val extrinsicData = selectExtrinsicData(ctor, pattern, args)
+          val intrinsicData = fixpointState.derived.getOrElse(ctor, Table.empty).join(args).project(extrinsicData.columns)
+          val selected = extrinsicData.addRows(intrinsicData)
+          val nextTables = transitionReturnCallTables(frame, pattern.params.map(_.name), selected)
+          val next = frame.cp.stepOver.get
+          callStack.update(Frame(next, nextTables))
+        } else {
+          // pattern call
+          val callee = ControlPoint(PatternPoint(pattern, BeforeList))
+          if (call.neg) {
+            checkNegativeCallArguments(call.args, frame.bodyTable)
+          }
+          callStack.push(Frame(callee, preTables))
         }
-        callStack.push(Frame(callee, preTables))
+      case Datalog.Computed(_, countAgg: Datalog.CountAggregation) =>
+        val (tables, pattern) = prepareCallTables(frame, countAgg.patName, countAgg.args)
+        val callee = ControlPoint(PatternPoint(pattern, BeforeList))
+        callStack.push(Frame(callee, tables))
+      case Datalog.Computed(_, custAgg: Datalog.CustomAggregation) =>
+        val (tables, pattern) = prepareCallTables(frame, custAgg.patName, custAgg.args)
+        val callee = ControlPoint(PatternPoint(pattern, BeforeList))
+        callStack.push(Frame(callee, tables))
+      case atom =>
+        val nextBodyTable = transitionAtomTables(frame, atom)
+        val next = frame.cp.stepIntra.get // yields next atom
+        callStack.update(frame.copy(cp = next, bodyTable = nextBodyTable))
+    }
+    if (callStack.nonEmpty) {
+      val next = callStack.top
+      if (next.bodyTable.isEmpty)
+        callStack.update(frame.copy(cp = next.cp.abortBody))
+    }
+  }
+
+  private def selectExtrinsicData(ctor: String, selectorPattern: Datalog.Pattern, instances: Table[Value]): Table[Value] = {
+    val sortKey = NodeTypeKey(SortType(ctor))
+    val matchingInstances = instances.filter { case Seq(URIValue(inst)) => database.containsTuple(sortKey, Tuples.staticArityFlatTupleOf(inst)) }
+
+    val params = selectorPattern.params.tail
+    matchingInstances.expand(params.map(_.name), { case Seq(URIValue(instance)) =>
+      val vs = params.zipWithIndex.map {
+        case (Datalog.Param(_, ty), ix) if ty.hasHint(DataHints.DataTypeNameKey) =>
+          val linkKey = LinkNodeKey(ctor -> s"_$ix")
+          val vals = database.enumerateValues(linkKey, TupleMask.selectSingle(0, 2), Tuples.staticArityFlatTupleOf(instance))
+          URIValue(vals.asScala.head.asInstanceOf[URI])
+        case (Datalog.Param(_, _), ix) =>
+          val linkKey = LinkPrimitiveKey(ctor -> s"_$ix")
+          val vals = database.enumerateValues(linkKey, TupleMask.selectSingle(0, 2), Tuples.staticArityFlatTupleOf(instance))
+          ScalaValue(vals.asScala.head)
       }
-    case Datalog.Computed(_, countAgg: Datalog.CountAggregation) =>
-      val (tables, pattern) = prepareCallTables(frame, countAgg.patName, countAgg.args)
-      val callee = ControlPoint(PatternPoint(pattern, BeforeList))
-      callStack.push(Frame(callee, tables))
-    case Datalog.Computed(_, custAgg: Datalog.CustomAggregation) =>
-      val (tables, pattern) = prepareCallTables(frame, custAgg.patName, custAgg.args)
-      val callee = ControlPoint(PatternPoint(pattern, BeforeList))
-      callStack.push(Frame(callee, tables))
-    case atom =>
-      val nextBodyTable = transitionAtomTables(frame, atom)
-      val next =
-        if (nextBodyTable.isEmpty)
-          frame.cp.stepOut.get // step out of current body
-        else
-          frame.cp.stepIntra.get // yields next atom
-      callStack.update(frame.copy(cp = next, bodyTable = nextBodyTable))
+      vs
+    })
   }
 
   private def checkNegativeCallArguments(args: Seq[Datalog.Term], table: Table[Value]): Unit = {
@@ -682,19 +715,36 @@ trait Debugger {
   }
 
   private def executeScala(table: Table[Value], row: Seq[Value], eval: Datalog.Evaluation): ScalaValue = {
-    val args = eval.evalArgs.map {
-      case (Datalog.Var(v), _) => row(table.columnIndex(v))
-      case (Datalog.Constant(v), _) => transLiteral(v)
+    val argTerms = eval.evalArgs.map {
+      case (Datalog.Var(v), ty) => s"""$$env("$v").asInstanceOf[${ty.asScala.syntax}]"""
+      case (Datalog.Constant(lit), _) => lit match {
+        case Datalog.IntLiteral(v) => v.toString
+        case Datalog.LongLiteral(v) => v.toString
+        case Datalog.DoubleLiteral(v) => v.toString
+        case Datalog.StringLiteral(v) => v.toString
+        case Datalog.BooleanLiteral(v) => v.toString
+      }
     }
-    val funCode = s"import ${defintionObjSym}._\n(${eval.code.syntax})(${args.mkString(", ")})"
-    ScalaValue(scalaCompiler.compileAndLoadScala(funCode))
+    val argsMap: Map[String, Any] = eval.evalArgs.flatMap {
+      case (Datalog.Var(v), _) => Some(v -> row(table.columnIndex(v)).inner)
+      case (Datalog.Constant(_), _) => None
+    }.toMap
+
+    val funCode =
+      s"""{ ($$env: Map[String, Any]) =>
+         |  import ${defintionObjSym}.${compiled.name}._
+         |  (${eval.code.syntax})(${argTerms.mkString(", ")})
+         |}""".stripMargin
+
+    val fun: Map[String, Any] => Any = scalaCompiler.compileAndLoadScala(funCode)
+    ScalaValue(fun(argsMap))
   }
 
   private def executeScala(term: Scala[meta.Term]): ScalaValue =
     executeScala(term.syntax)
 
   private def executeScala(term: String): ScalaValue = {
-    val code = s"import ${defintionObjSym}._\n$term"
+    val code = s"import ${defintionObjSym}.${compiled.name}._\n$term"
     ScalaValue(scalaCompiler.compileAndLoadScala(code))
   }
 

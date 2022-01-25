@@ -96,6 +96,7 @@ case class BodyPoint(body: Datalog.Body, atoms: ListPoint[Datalog.Atom, AtomPoin
     case BeforeList | AtListElem(_, _, _) => Some(BodyPoint(body, AfterList))
     case AfterList => None
   }
+  def abortBody: BodyPoint = BodyPoint(body, AfterList)
   def isBodyEntry: Boolean = atoms == BeforeList
   def isBodyExit: Boolean = atoms == AfterList
 }
@@ -134,6 +135,10 @@ case class PatternPoint(pat: Datalog.Pattern, bodies: ListPoint[Datalog.Body, Bo
     }
     case AfterList => None
   }
+  def abortBody: PatternPoint = bodies match {
+    case BeforeList | AfterList => this
+    case AtListElem(elems, ix, point) => PatternPoint(pat, AtListElem(elems, ix, point.abortBody))
+  }
   def isPatternEntry: Boolean = bodies == BeforeList
   def isPatternExit: Boolean = bodies == AfterList
   def isBodyEntry: Boolean = bodies match {
@@ -154,6 +159,7 @@ case class ControlPoint(point: PatternPoint) {
   def stepIntra: Option[ControlPoint] = point.stepIntra.map(ControlPoint.apply)
   def stepOver: Option[ControlPoint] = point.stepOver.map(ControlPoint.apply)
   def stepOut: Option[ControlPoint] = point.stepOut.map(ControlPoint.apply)
+  def abortBody: ControlPoint = ControlPoint(point.abortBody)
 
   def isPatternPoint: Boolean = point.bodies match {
     case BeforeList => true

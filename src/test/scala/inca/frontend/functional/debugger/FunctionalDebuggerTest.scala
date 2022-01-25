@@ -1,18 +1,18 @@
 package inca.frontend.functional.debugger
 
 import inca.compiler.Compiler
-import inca.debugger.ScalaValue
+import inca.debugger.{ScalaValue, URIValue}
 import inca.debugger.table.Table
-import inca.examples.functional.Code
+import inca.examples.functional.{ADT, Code}
 import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
 import org.scalatest.funsuite.AnyFunSuite
 import truechange.EditScript
 
 class FunctionalDebuggerTest extends AnyFunSuite {
 
-  def initDebugger(module: CompiledFunctionalModule, edits: EditScript = EditScript(Seq())): FunctionalDebugger = {
-    val debugger = new FunctionalDebugger
-    debugger.initialize(module, edits)
+  def initDebugger(module: CompiledFunctionalModule): FunctionalDebugger = {
+    val debugger = new FunctionalDebugger(module)
+    debugger.initialize(module)
     debugger
   }
 
@@ -78,10 +78,31 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     println(debugger.relation("main"))
   }
 
+  test("Constructor calls example") {
+    val code = Code.module(
+      ADT.Nat_code,
+      """def main(): Nat = Succ(Succ(Zero()))
+        |""".stripMargin
+    )
+    val compiledExample = Compiler.compileFunctional(code, FunctionalOptions())
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main", Table.unit)
+    while (!debugger.isFinished) {
+      println(debugger.currentCallStack)
+      println("  " + debugger.currentBindings)
+      debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
+      debugger.stepIntoFrontend()
+    }
+    println(debugger.relation("main"))
+  }
+
   test("plus example") {
     val compiledExample = Compiler.compileFunctional(Code.plusRealModule, FunctionalOptions())
     val debugger = initDebugger(compiledExample)
-    debugger.entry("main", Table(Map("x" -> ScalaValue(3), "y" -> ScalaValue(3))))
+    import meta.quasiquotes._
+    val two = debugger.loadExtensionalData(q"Succ(Succ(Zero()))")
+    val one = debugger.loadExtensionalData(q"Succ(Zero())")
+    debugger.entry("main", Table(Map("x" -> URIValue(two.uri), "y" -> URIValue(one.uri))))
     while (!debugger.isFinished) {
       println(debugger.currentCallStack)
       println("  " + debugger.currentBindings)

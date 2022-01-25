@@ -181,19 +181,16 @@ class IRDebuggerTest extends AnyFunSuite {
 
   val emptyDataModel = new DataModel()
 
-  def initDebugger(module: Datalog.Module, dataModel: DataModel, tree: Diffable): IRDebugger =
-    initDebugger(module, dataModel, tree.loadEdits)
-
   def stepTillFinish(debugger: IRDebugger): Unit = {
     while (!debugger.isFinished)
       debugger.stepInto()
   }
 
 
-  def initDebugger(module: Datalog.Module, dataModel: DataModel, edits: EditScript = EditScript(Seq())): IRDebugger = {
+  def initDebugger(module: Datalog.Module, dataModel: DataModel): IRDebugger = {
     val debugger = new IRDebugger
     val compiled = CompiledDatalogModule(module, dataModel, Options(_stopOnError = true, _stopOnWarning = false, Seq(), Seq()))
-    debugger.initialize(compiled, edits)
+    debugger.initialize(compiled)
     debugger
   }
 
@@ -250,7 +247,9 @@ class IRDebuggerTest extends AnyFunSuite {
     val tree = Exp.Mul(Exp.IntegerLit(1), Exp.IntegerLit(2))
     val mulURI = tree.uri
 
-    val debugger = initDebugger(module(ExpLangTestAnalyses.mulPattern), Exp.model, tree)
+    val debugger = initDebugger(module(ExpLangTestAnalyses.mulPattern), Exp.model)
+    debugger.updateExtensionalData(tree.loadEdits)
+
     debugger.entry("mul", Table(Seq("mul"), Seq(Seq(URIValue(mulURI)))))
     stepTillFinish(debugger)
     val rel = debugger.relation("mul")
@@ -268,7 +267,9 @@ class IRDebuggerTest extends AnyFunSuite {
     val intLit1URI = tree.lhs.uri
     val intLit2URI = tree.rhs.uri
 
-    val debugger = initDebugger(module(ExpLangTestAnalyses.mulIntLitPattern), Exp.model, tree)
+    val debugger = initDebugger(module(ExpLangTestAnalyses.mulIntLitPattern), Exp.model)
+    debugger.updateExtensionalData(tree.loadEdits)
+
     debugger.entry("mulIntLit", Table(Seq("mul"), Seq(Seq(URIValue(tree.uri)))))
     stepTillFinish(debugger)
     val rel = debugger.relation("mulIntLit")
@@ -287,7 +288,9 @@ class IRDebuggerTest extends AnyFunSuite {
     val mulLhsURI = tree.lhs.uri
     val addLhsURI = tree.lhs.asInstanceOf[Exp.Add].lhs.uri
 
-    val debugger = initDebugger(module(ExpLangTestAnalyses.lhsPattern), Exp.model, tree)
+    val debugger = initDebugger(module(ExpLangTestAnalyses.mulIntLitPattern), Exp.model)
+    debugger.updateExtensionalData(tree.loadEdits)
+
     debugger.entry("lhs", Table(Seq("exp"), Seq(Seq(URIValue(mulURI)), Seq(URIValue(mulLhsURI)))))
     stepTillFinish(debugger)
     val rel = debugger.relation("lhs")
@@ -305,7 +308,9 @@ class IRDebuggerTest extends AnyFunSuite {
     val intLitLhs = tree.lhs.uri
     val intLitRhs = tree.rhs.uri
 
-    val debugger = initDebugger(module(ExpLangTestAnalyses.intVal), Exp.model, tree)
+    val debugger = initDebugger(module(ExpLangTestAnalyses.mulIntLitPattern), Exp.model)
+    debugger.updateExtensionalData(tree.loadEdits)
+
     debugger.entry("intVal", Table(Seq("exp"), Seq(Seq(URIValue(intLitLhs)), Seq(URIValue(intLitRhs)))))
     stepTillFinish(debugger)
     val rel = debugger.relation("intVal")

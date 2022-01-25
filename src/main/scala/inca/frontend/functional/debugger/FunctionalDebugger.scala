@@ -5,12 +5,18 @@ import inca.backend.ir.Datalog
 import inca.compiler.source.{ExcerptAbsoluteRegion, ExcerptRelativeRegion, SourceObject}
 import inca.debugger.table.Table
 import inca.debugger.{ControlPoint, Debugger, Frame}
+import inca.frontend.functional.compiler.CompiledFunctionalModule
 import inca.frontend.functional.core.{FunctionDef, If, Name}
+import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
+import truechange.{EditScript, URI}
+import truediff.Diffable
 
 import scala.annotation.tailrec
 import scala.collection.mutable
 
-final class FunctionalDebugger extends Debugger {
+final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends Debugger {
+  super.initialize(compiled)
+
   override val frontend: FunctionalDebuggerFrontend = new FunctionalDebuggerFrontend(this)
 
   private var skipElseBranches: List[mutable.Set[SourceObject]] = List()
@@ -19,6 +25,17 @@ final class FunctionalDebugger extends Debugger {
   def getFunctionalCallStack: List[Name] = callStack.frames.flatMap { fr =>
     frontend.getFunction(fr.cp.point.pat).map(_.name)
   }
+
+  def loadExtensionalData(t: Diffable): Unit =
+    updateExtensionalData(t.loadEdits)
+
+  def loadExtensionalData(t: meta.Term): Diffable = {
+    val syntax = s"{import ${defintionObjSym}.${compiled.name}._; ${t.syntax}}"
+    val diff: Diffable = scalaCompiler.compileAndLoadScala(syntax)
+    loadExtensionalData(diff)
+    diff
+  }
+
 
   def stepIntoFrontend(): Unit = {
     var fp: Option[FunctionalControlPoint] = None

@@ -442,7 +442,7 @@ class GenerateDatalog(module: Module) {
     dataPat +: dataCoalescedPat +: dataUncoalescedPat +: dataParentPat +: constructorPats
   }
 
-  def GP_URI: Datalog.TScala = Datalog.TScala(Scala(typeOf[truechange.URI]))
+  val GP_URI: Datalog.TScala = Datalog.TScala(Scala(typeOf[truechange.URI]))
   val oMockURI: meta.Term = symbolOf(MockURI)
   val tyMockURI: meta.Type = typeOf[MockURI]
 
@@ -644,7 +644,7 @@ class GenerateDatalog(module: Module) {
       .addHint(MagicSetHints.FixedAdornment(params.map(_ => true) :+ false))
     val selectorPat = Datalog.Pattern(vis, constr.selectorName, outParam +: params, Seq(Datalog.Body(Seq(selectorCons)), constrEDBBody))
       .addHint(MagicSetHints.NoInputRelation)
-      .addHint(DataHints.Selector)
+      .addHint(DataHints.Selector(constr.name.name))
     selectorPat
   }
 

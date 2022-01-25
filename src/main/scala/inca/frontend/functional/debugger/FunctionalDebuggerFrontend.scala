@@ -7,7 +7,7 @@ import inca.compiler.source.SourceObject
 import inca.debugger.table.Table
 import inca.debugger._
 import inca.frontend.functional.compiler.CompiledFunctionalModule
-import inca.frontend.functional.core.{BaseLit, Expression, FunctionDef, If, Let, Module, NoneExp, SetExp, SomeExp, Tuple, Var}
+import inca.frontend.functional.core.{BaseLit, Expression, FunctionDef, If, Let, Module, NoneExp, Pattern, SetExp, SomeExp, Tuple, Var}
 
 
 class FunctionalDebuggerFrontend(debugger: Debugger) extends DebuggerFrontend {
@@ -33,6 +33,8 @@ class FunctionalDebuggerFrontend(debugger: Debugger) extends DebuggerFrontend {
           atom.getHint(SourceConstruct.key) match {
             case Some(SourceConstruct(constr: Expression)) =>
               expressionPoint(constr).map(FunctionPoint(fun, _, cp))
+            case Some(SourceConstruct(constr: Pattern)) =>
+              Some(FunctionPoint(fun, constr.sourceObject, cp))
             case Some(SourceConstruct((let: Let, v: String))) =>
               let.names.find(_.name == v).map(p => FunctionPoint(fun, p.sourceObject, cp))
             case Some(SourceConstruct((cond: If, thenBranch: Boolean))) =>
@@ -79,7 +81,7 @@ class FunctionalDebuggerFrontend(debugger: Debugger) extends DebuggerFrontend {
           if (ix < 0)
             null
           else
-            row(ix)
+            row.lift(ix).orNull
         }
         myVars = myVars.addRow(vals)
       }
