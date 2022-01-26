@@ -1,14 +1,16 @@
 package inca.frontend.functional.debugger
 
 import inca.backend.hints.DebugHints.SourceConstruct
-import inca.backend.hints.MagicSetHints
+import inca.backend.hints.{DataHints, MagicSetHints}
+import inca.backend.hints.OptimizationHints.KeepPattern
 import inca.backend.ir.Datalog
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
+import inca.compiler.CompiledDatalogModule
 import inca.compiler.source.{ExcerptAbsoluteRegion, ExcerptRelativeRegion, SourceObject}
 import inca.debugger.table.Table
 import inca.debugger._
 import inca.frontend.functional.compiler.CompiledFunctionalModule
-import inca.frontend.functional.core.{FunctionDef, If, Name}
+import inca.frontend.functional.core.{BaseLit, Expression, FunctionDef, If, Let, Name, NoneExp, Pattern, SetExp, SomeExp, Tuple, Var}
 import inca.runtime.data.{MockURI, WrappedURI}
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import truechange.{JVMURI, URI}
@@ -18,14 +20,87 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 
 final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends Debugger {
-  super.initialize(compiled)
-
-  override val frontend: FunctionalDebuggerFrontend = new FunctionalDebuggerFrontend(this)
+  {
+    val pats = compiled.ir.pats.map { pat =>
+      val p = pat.copy().withHints(pat)
+      // constructors and selectors may not be inlined, so that we can read values from the database
+      if (p.hasHint(DataHints.ConstructorKey) || p.hasHint(DataHints.SelectorKey))
+        p.addHint(KeepPattern)
+      p
+    }
+    val m = compiled.ir.copy(pats = pats)
+    val modified = CompiledDatalogModule(m, compiled.dataModel, compiled.options)
+    super.initialize(modified)
+  }
 
   private var skipElseBranches: List[mutable.Set[SourceObject]] = List()
   private var skipToElse: List[Option[SourceObject]] = List()
 
   private var uris: Map[URI, Diffable] = Map()
+
+  override type FrontendPoint = FunctionalControlPoint
+  override type FrontendValue = Value
+
+  def getFunction(pat: Datalog.Pattern): Option[FunctionDef] = pat.getHint(SourceConstruct.key) match {
+    case Some(SourceConstruct(f: FunctionDef)) => Some(f)
+    case _ => None
+  }
+
+  override def frontendPoint(cp: ControlPoint): Option[FunctionalControlPoint] = {
+    val patPoint = cp.point
+    val fun = getFunction(patPoint.pat).getOrElse(return None)
+    patPoint.bodies match {
+      case BeforeList =>
+        // start of function
+        Some(FunctionPoint(fun, fun.name.sourceObject, cp))
+      case AtListElem(_, _, BodyPoint(_, atoms)) => atoms match {
+        case BeforeList => None
+        case AtListElem(_, _, AtomPoint(atom)) =>
+          atom.getHint(SourceConstruct.key) match {
+            case Some(SourceConstruct(constr: Expression)) =>
+              expressionPoint(constr).map(FunctionPoint(fun, _, cp))
+            case Some(SourceConstruct(constr: Pattern)) =>
+              Some(FunctionPoint(fun, constr.sourceObject, cp))
+            case Some(SourceConstruct((let: Let, v: String))) =>
+              let.names.find(_.name == v).map(p => FunctionPoint(fun, p.sourceObject, cp))
+            case Some(SourceConstruct((cond: If, thenBranch: Boolean))) =>
+              Some(ConditionalPoint(cond, thenBranch, cp))
+            case _ =>
+              None
+          }
+        case AfterList => None
+      }
+      case AfterList =>
+        // end of function
+        Some(FunctionPoint(fun, fun.sourceObject, cp))
+    }
+  }
+
+  private def expressionPoint(exp: Expression): Option[SourceObject] = exp match {
+    case _: Var | _: Tuple | _: BaseLit | _: NoneExp | _: SomeExp | _: SetExp => None
+    case _ => Some(exp.sourceObject)
+  }
+
+  override def frontendTable(fp: FunctionalControlPoint, bound: Table[Value]): Table[Value] = fp match {
+    case fp: FunctionPoint =>
+      var vars = fp.vars.map(_.name).toList.sorted.distinct
+      if (fp.isFunctionExit)
+        vars :+= fp.irPoint.point.pat.params.last.name
+      var myVars = Table.empty[Value](vars)
+      for (row <- bound.rows) {
+        val vals = vars.map { v =>
+          val ix = bound.columnIndex(v)
+          if (ix < 0)
+            null
+          else
+            row.lift(ix).orNull
+        }
+        myVars = myVars.addRow(vals)
+      }
+      myVars
+    case _: ConditionalPoint =>
+      Table.empty
+  }
 
   def entry(mainFun: String, args: meta.Term*): Unit = {
     val (vals, debugVals) = args.map { t =>
@@ -49,7 +124,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
   }
 
   def getFunctionalCallStack: List[Name] = callStack.frames.flatMap { fr =>
-    frontend.getFunction(fr.cp.point.pat).map(_.name)
+    getFunction(fr.cp.point.pat).map(_.name)
   }
 
   def stepIntoFrontend(): Unit = {
@@ -58,7 +133,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
       stepInto()
       if (callStack.isEmpty)
         return
-      fp = frontend.frontendPoint(controlPointIR)
+      fp = frontendPoint(controlPointIR)
     }
     stepOverConditionalPoint(fp.get)
   }
@@ -85,7 +160,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
         skipToElse = Some(condp.cond.sourceObject) :: skipToElse.tail
         controlPointIR
       }
-      frontend.frontendPoint(next) match {
+      frontendPoint(next) match {
         case Some(fp2) => stepOverConditionalPoint(fp2)
         case None => stepIntoFrontend()
       }
@@ -114,13 +189,30 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
         super.doBodyEntry(frame, cp)
         stepOverUntil { () =>
           val atom = controlPointIR.point.atom
-          frontend.frontendPoint(controlPointIR).foreach(_ => _controlTraceFrontend.remove(_controlTraceFrontend.size - 1))
+          frontendPoint(controlPointIR).foreach(_ => _controlTraceFrontend.remove(_controlTraceFrontend.size - 1))
           atom.isEmpty || (SourceConstruct.get(atom.get) match {
             case Some((cond: If, false)) => cond.sourceObject == elseCond
             case _ => false
           })
         }
     }
+  }
+
+  override def stepIntoNextAtom(frame: Frame, atom: Datalog.Atom): Unit = atom match {
+    case call: Datalog.Call =>
+      val pattern = patterns(call.name)
+      if (pattern.hasHint(DataHints.ConstructorKey) || pattern.hasHint(DataHints.SelectorKey)) {
+        // constructor or selector call
+        val preTables = prepareCallTables(frame, pattern, call.args)
+        val data = readDatabase(call.name, preTables._1)
+        val nextTables = transitionReturnCallTables(frame, pattern.params.map(_.name), data)
+        val next = frame.cp.stepOver.get
+        callStack.update(Frame(next, nextTables))
+        abortIfBodyFailed()
+      }
+      else
+        super.stepIntoNextAtom(frame, atom)
+    case _ => super.stepIntoNextAtom(frame, atom)
   }
 
   override def doPatternEntry(cp: ControlPoint): Unit = {
@@ -135,7 +227,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     super.doPatternExit(frame)
   }
 
-  override def controlPointFrontend: FunctionPoint = frontend.frontendPoint(controlPointIR) match {
+  override def controlPointFrontend: FunctionPoint = frontendPoint(controlPointIR) match {
     case Some(fp: FunctionPoint) => fp
     case o => throw new MatchError(s"Expected function point but got $o")
   }
@@ -173,7 +265,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
   }
 
   def currentBindings: String = {
-    val table = frontend.frontendTable(controlPointFrontend, varsIR)
+    val table = frontendTable(controlPointFrontend, varsIR)
     val rowStrings = table.rows.map { row =>
       val sb = new StringBuilder
       sb += '['

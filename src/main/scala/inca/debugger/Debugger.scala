@@ -1,30 +1,31 @@
 package inca.debugger
 
-import inca.backend.hints.DataHints
-import inca.backend.hints.DataHints.Selector
-import inca.backend.hints.OptimizationHints.KeepPattern
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.{CountAggregation, CustomAggregation}
-import inca.compiler.{CompiledDatalogModule, CompiledModule, Options}
+import inca.compiler.CompiledModule
 import inca.debugger.table.Table
-import inca.runtime.context.{DataModel, QueryScope}
-import inca.runtime.index.dynamic.ParentIndex
-import inca.runtime.index.{IndexKey, LinkListNextKey, LinkNodeKey, LinkPrimitiveKey, NodeTypeKey}
-import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
-import inca.runtime.{EnginePool, Query}
+import inca.runtime.context.QueryScope
 import inca.runtime.db.Database
+import inca.runtime.index.dynamic.ParentIndex
+import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
+import inca.runtime.index._
+import inca.runtime.{EnginePool, Query}
 import inca.util.Scala
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
 import org.eclipse.viatra.query.runtime.matchers.tuple.{TupleMask, Tuples}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
-import truechange.{EditScript, SortType, URI}
+import truechange.{EditScript, URI}
 
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 
 trait Debugger {
-  val frontend: DebuggerFrontend
+  type FrontendPoint
+  def frontendPoint(cp: ControlPoint): Option[FrontendPoint]
+
+  type FrontendValue
+  def frontendTable(fp: FrontendPoint, bound: Table[Value]): Table[FrontendValue]
 
   // Datalog program information
   private var compiled: CompiledModule = _
@@ -39,7 +40,7 @@ trait Debugger {
   private var fixpointState: FixpointState = FixpointState(Map())
   protected val callStack: CallStack = new CallStack()
   private val _controlTrace: ListBuffer[ControlPoint] = ListBuffer.empty
-  protected val _controlTraceFrontend: ListBuffer[frontend.FrontendPoint] = ListBuffer.empty
+  protected val _controlTraceFrontend: ListBuffer[FrontendPoint] = ListBuffer.empty
 
   // Needed to execute scala code via reflection
   protected val scalaCompiler = new Scala.ScalaCompiler()
@@ -53,17 +54,17 @@ trait Debugger {
     case AtListElem(_, _, _) => frame.bodyTable
     case AfterList => frame.patternTable
   }
-  def varsFrontEnd: Table[frontend.FrontendValue] = frontend.frontendTable(controlPointFrontend, varsIR)
+  def varsFrontEnd: Table[FrontendValue] = frontendTable(controlPointFrontend, varsIR)
 
   def controlPointIR: ControlPoint = callStack.top.cp
-  def controlPointFrontend: frontend.FrontendPoint = frontend.frontendPoint(controlPointIR).get
+  def controlPointFrontend: FrontendPoint = frontendPoint(controlPointIR).get
 
   def controlTraceIR: Seq[ControlPoint] = _controlTrace.toSeq
-  def controlTraceFrontend: Seq[frontend.FrontendPoint] = _controlTraceFrontend.toSeq
+  def controlTraceFrontend: Seq[FrontendPoint] = _controlTraceFrontend.toSeq
 
   private def traceControlPoint(cp: ControlPoint): Unit = {
     _controlTrace += cp
-    frontend.frontendPoint(cp).foreach(_controlTraceFrontend += _)
+    frontendPoint(cp).foreach(_controlTraceFrontend += _)
   }
 
   def relation(name: String): Table[Value] = fixpointState.derived(name)
@@ -71,15 +72,7 @@ trait Debugger {
 
   // initialization methods
   def initialize(mod: CompiledModule): Unit = {
-    val pats = mod.ir.pats.map { pat =>
-      val p = pat.copy().withHints(pat)
-      // constructors and selectors may not be inlined, so that we can read values from the database
-      if (p.hasHint(DataHints.ConstructorKey) || p.hasHint(DataHints.SelectorKey))
-        p.addHint(KeepPattern)
-      p
-    }
-    val m = mod.ir.copy(pats = pats)
-    compiled = CompiledDatalogModule(m, mod.dataModel, mod.options)
+    compiled = mod
     val scope = new QueryScope(compiled.dataModel)
     val (_engine, _database) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     engine = _engine
@@ -130,26 +123,24 @@ trait Debugger {
       traceControlPoint(callStack.top.cp)
   }
 
+  def abortIfBodyFailed(): Unit =
+    if (callStack.nonEmpty) {
+      val next = callStack.top
+      if (next.bodyTable.isEmpty)
+        callStack.update(next.copy(cp = next.cp.abortBody))
+    }
+
   def stepIntoNextAtom(frame: Frame, atom: Datalog.Atom): Unit = {
     atom match {
       case call: Datalog.Call =>
         val pattern = patterns(call.name)
-        if (pattern.hasHint(DataHints.ConstructorKey) || pattern.hasHint(DataHints.SelectorKey)) {
-          // constructor or selector call
-          val preTables = prepareCallTables(frame, pattern, call.args)
-          val data = readDatabase(call.name, preTables._1)
-          val nextTables = transitionReturnCallTables(frame, pattern.params.map(_.name), data)
-          val next = frame.cp.stepOver.get
-          callStack.update(Frame(next, nextTables))
-        } else {
-          val preTables = prepareCallTables(frame, pattern, call.args)
-          // pattern call
-          val callee = ControlPoint(PatternPoint(pattern, BeforeList))
-          if (call.neg) {
-            checkNegativeCallArguments(call.args, frame.bodyTable)
-          }
-          callStack.push(Frame(callee, preTables))
+        val preTables = prepareCallTables(frame, pattern, call.args)
+        // pattern call
+        val callee = ControlPoint(PatternPoint(pattern, BeforeList))
+        if (call.neg) {
+          checkNegativeCallArguments(call.args, frame.bodyTable)
         }
+        callStack.push(Frame(callee, preTables))
       case Datalog.Computed(_, countAgg: Datalog.CountAggregation) =>
         val pattern = patterns(countAgg.patName)
         val tables = prepareCallTables(frame, pattern, countAgg.args)
@@ -165,11 +156,7 @@ trait Debugger {
         val next = frame.cp.stepIntra.get // yields next atom
         callStack.update(frame.copy(cp = next, bodyTable = nextBodyTable))
     }
-    if (callStack.nonEmpty) {
-      val next = callStack.top
-      if (next.bodyTable.isEmpty)
-        callStack.update(next.copy(cp = next.cp.abortBody))
-    }
+    abortIfBodyFailed()
   }
 
   private def checkNegativeCallArguments(args: Seq[Datalog.Term], table: Table[Value]): Unit = {
@@ -247,7 +234,7 @@ trait Debugger {
   }
 
   // Methods to prepare frame tables for atoms that can jump into another pattern (calls and aggregations)
-  private def prepareCallTables(frame: Frame, calledPattern: Datalog.Pattern, args: Seq[Datalog.Term]): Frame.Tables = {
+  protected def prepareCallTables(frame: Frame, calledPattern: Datalog.Pattern, args: Seq[Datalog.Term]): Frame.Tables = {
     val params = calledPattern.params.map(_.name)
 
     // prepare argsTable
@@ -542,7 +529,7 @@ trait Debugger {
     transitionReturnCallTables(callerFrame, params, calleeFrame.patternTable)
   }
 
-  private def transitionReturnCallTables(callerFrame: Frame, params: Seq[String], patternTable: Table[Value]): Frame.Tables = {
+  protected def transitionReturnCallTables(callerFrame: Frame, params: Seq[String], patternTable: Table[Value]): Frame.Tables = {
     // join bodyTable of caller with pattern table of callee
     val (_, args) = callerFrame.cp.atom.asCall.get
     val callArgVars = args.collect { case Datalog.Var(name) => name }
@@ -792,7 +779,7 @@ trait Debugger {
     }
   }
 
-  private def readDatabase(name: String, bindings: Table[Value]): Table[Value] = {
+  protected def readDatabase(name: String, bindings: Table[Value]): Table[Value] = {
     val mainSpec = compiled.psystemModule.patterns.get(name) match {
       case Some(spec) => spec()
       case None => return Table.empty
