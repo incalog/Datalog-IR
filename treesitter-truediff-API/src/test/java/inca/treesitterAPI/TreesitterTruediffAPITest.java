@@ -1,6 +1,7 @@
 package inca.treesitterAPI;
 
 import inca.treesitterAPI.editscriptAPI.EditScript;
+import inca.treesitterAPI.editscriptAPI.SugaredEdit;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;
@@ -180,8 +181,8 @@ public class TreesitterTruediffAPITest {
 //        for (SugaredEdit edits : edit_array) {
 //            System.out.println("\t" + "Tag: " + edits.edit_tag);
 //        }
-//
-//        TreeSitterTruediffLibrary.lib.print_edit_script(lang, diff_result.edit_script);
+
+        TreeSitterTruediffLibrary.lib.print_edit_script(lang, diff_result.edit_script);
 
         TreeSitterTruediffLibrary.lib.ts_edit_script_delete(diff_result.edit_script);
         TreeSitterTruediffLibrary.lib.ts_diff_heap_delete(tree1);

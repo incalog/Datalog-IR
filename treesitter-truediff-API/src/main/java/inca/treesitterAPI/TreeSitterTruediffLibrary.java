@@ -7,8 +7,8 @@ import com.sun.jna.Pointer;
 
 public interface TreeSitterTruediffLibrary extends Library {
 
-    TreeSitterTruediffLibrary JAVA_INSTANCE = Native.load("resources/treesitter-java/libtree-sitter-java.so", TreeSitterTruediffLibrary.class);
-    TreeSitterTruediffLibrary INSTANCE = Native.load("resources/treesitter-truediff/libtree-sitter.so", TreeSitterTruediffLibrary.class);
+    TreeSitterTruediffLibrary INSTANCE = Native.load("resources/treesitter-truediff/libtree-sitter.dll", TreeSitterTruediffLibrary.class);
+    TreeSitterTruediffLibrary JAVA_INSTANCE = Native.load("resources/treesitter-java/libtree-sitter-java.dll", TreeSitterTruediffLibrary.class);
 
     TreeSitterTruediffLibrary lib = INSTANCE;
     TreeSitterTruediffLibrary java_lib = JAVA_INSTANCE;
