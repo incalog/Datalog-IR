@@ -610,7 +610,7 @@ class GenerateDatalog(module: Module) {
 
     val genURI = Datalog.Computed(
       uriVar,
-      consumeData(GP_URI.addHint(DataHints.DataTypeName(data.name.name)), t => q"new $tyMockURI($t.toString)"))
+      consumeData(GP_URI.addHint(DataHints.DataTypeName(data.name.name)), t => q"new $tyMockURI($t.toString, Seq())"))
     val body = Datalog.Body(
       uncoalesceKids.flatten :+
       genURI

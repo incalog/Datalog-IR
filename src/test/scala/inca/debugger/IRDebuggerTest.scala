@@ -3,16 +3,15 @@ package inca.debugger
 import inca.analyzedLangs.{Exp, ExpLangTestAnalyses}
 import inca.backend.ir.Datalog
 import inca.compiler.{CompiledDatalogModule, Compiler, Options}
-import inca.frontend.functional.compiler.FunctionalOptions
 import inca.debugger.table.Table
-import inca.examples.functional.{AST, Code}
+import inca.examples.functional.Code
+import inca.frontend.functional.compiler.FunctionalOptions
 import inca.runtime.EnginePool
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Scala
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
 import truechange.EditScript
-import truediff.Diffable
 
 import scala.meta.XtensionQuasiquoteTerm
 
@@ -287,7 +286,7 @@ class IRDebuggerTest extends AnyFunSuite {
     val mulLhsURI = tree.lhs.uri
     val addLhsURI = tree.lhs.asInstanceOf[Exp.Add].lhs.uri
 
-    val debugger = initDebugger(module(ExpLangTestAnalyses.mulIntLitPattern), Exp.model)
+    val debugger = initDebugger(module(ExpLangTestAnalyses.lhsPattern), Exp.model)
     debugger.updateExtensionalData(tree.loadEdits)
 
     debugger.entry("lhs", Table(Seq("exp"), Seq(Seq(URIValue(mulURI)), Seq(URIValue(mulLhsURI)))))
@@ -307,7 +306,7 @@ class IRDebuggerTest extends AnyFunSuite {
     val intLitLhs = tree.lhs.uri
     val intLitRhs = tree.rhs.uri
 
-    val debugger = initDebugger(module(ExpLangTestAnalyses.mulIntLitPattern), Exp.model)
+    val debugger = initDebugger(module(ExpLangTestAnalyses.intVal), Exp.model)
     debugger.updateExtensionalData(tree.loadEdits)
 
     debugger.entry("intVal", Table(Seq("exp"), Seq(Seq(URIValue(intLitLhs)), Seq(URIValue(intLitRhs)))))

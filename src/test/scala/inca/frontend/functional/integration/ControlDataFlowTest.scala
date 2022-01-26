@@ -1,7 +1,9 @@
 package inca.frontend.functional.integration
 
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
+import inca.compiler.Compiler
 import inca.examples.functional.ControlDataFlow
+import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
 import inca.frontend.functional.executor.FunctionalExecutor._
 import inca.runtime.EnginePool
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
