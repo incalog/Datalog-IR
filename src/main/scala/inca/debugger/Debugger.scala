@@ -2,6 +2,7 @@ package inca.debugger
 
 import inca.backend.hints.DataHints
 import inca.backend.hints.DataHints.Selector
+import inca.backend.hints.OptimizationHints.KeepPattern
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.{CountAggregation, CustomAggregation}
 import inca.compiler.{CompiledDatalogModule, CompiledModule, Options}
@@ -18,9 +19,7 @@ import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
 import org.eclipse.viatra.query.runtime.matchers.tuple.{TupleMask, Tuples}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truechange.{EditScript, SortType, URI}
-import truediff.Diffable
 
-import scala.annotation.tailrec
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 
@@ -29,11 +28,11 @@ trait Debugger {
 
   // Datalog program information
   private var compiled: CompiledModule = _
-  private lazy val patterns: Map[String, Datalog.Pattern] =
+  protected lazy val patterns: Map[String, Datalog.Pattern] =
     compiled.ir.pats.map { pat => pat.name -> pat }.toMap
 
   // Extensional database stuff
-  private var database: Database = _
+  protected var database: Database = _
   private var engine: AdvancedViatraQueryEngine =  _
 
   // Debugger state
@@ -72,8 +71,15 @@ trait Debugger {
 
   // initialization methods
   def initialize(mod: CompiledModule): Unit = {
-    compiled = CompiledDatalogModule(mod.ir, mod.dataModel, mod.options.withOptimizations(Seq()).withTransformations(Seq()))
-    println(compiled.ir)
+    val pats = mod.ir.pats.map { pat =>
+      val p = pat.copy().withHints(pat)
+      // constructors and selectors may not be inlined, so that we can read values from the database
+      if (p.hasHint(DataHints.ConstructorKey) || p.hasHint(DataHints.SelectorKey))
+        p.addHint(KeepPattern)
+      p
+    }
+    val m = mod.ir.copy(pats = pats)
+    compiled = CompiledDatalogModule(m, mod.dataModel, mod.options)
     val scope = new QueryScope(compiled.dataModel)
     val (_engine, _database) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     engine = _engine
@@ -94,7 +100,7 @@ trait Debugger {
   }
 
   // Debugger methods
-  def entry(name: Datalog.Name, bindings: Table[Value]): Unit = {
+  protected def entry(name: Datalog.Name, bindings: Table[Value]): Unit = {
     val pat = patterns(name)
     val cp = ControlPoint.patternEntryPoint(pat)
     val frame = Frame(cp, bindings, Table.empty, Table(pat.params.map(_.name), Seq()))
@@ -127,31 +133,16 @@ trait Debugger {
   def stepIntoNextAtom(frame: Frame, atom: Datalog.Atom): Unit = {
     atom match {
       case call: Datalog.Call =>
-        val (preTables, pattern) = prepareCallTables(frame, call.name, call.args)
-        if (pattern.hasHint(DataHints.ConstructorKey)) {
-          // constructor call
-          val computed = pattern.bodies.head.atoms.head.asInstanceOf[Datalog.Computed]
-          val constrEval = computed.computation.asInstanceOf[Datalog.Evaluation]
-          val out = pattern.params.last
-          val args = preTables._1
-          val data = args.expand(Seq(out.name), { row =>
-            Seq(executeScala(args, row, constrEval))
-          })
-          fixpointState = fixpointState.extendRelation(call.name, data)(patterns)
+        val pattern = patterns(call.name)
+        if (pattern.hasHint(DataHints.ConstructorKey) || pattern.hasHint(DataHints.SelectorKey)) {
+          // constructor or selector call
+          val preTables = prepareCallTables(frame, pattern, call.args)
+          val data = readDatabase(call.name, preTables._1)
           val nextTables = transitionReturnCallTables(frame, pattern.params.map(_.name), data)
           val next = frame.cp.stepOver.get
           callStack.update(Frame(next, nextTables))
-        } else if (pattern.hasHint(DataHints.SelectorKey)) {
-          // selector call
-          val ctor = pattern.hints(DataHints.SelectorKey).asInstanceOf[Selector].ctor
-          val args = preTables._1
-          val extrinsicData = selectExtrinsicData(ctor, pattern, args)
-          val intrinsicData = fixpointState.derived.getOrElse(ctor, Table.empty).join(args).project(extrinsicData.columns)
-          val selected = extrinsicData.addRows(intrinsicData)
-          val nextTables = transitionReturnCallTables(frame, pattern.params.map(_.name), selected)
-          val next = frame.cp.stepOver.get
-          callStack.update(Frame(next, nextTables))
         } else {
+          val preTables = prepareCallTables(frame, pattern, call.args)
           // pattern call
           val callee = ControlPoint(PatternPoint(pattern, BeforeList))
           if (call.neg) {
@@ -160,11 +151,13 @@ trait Debugger {
           callStack.push(Frame(callee, preTables))
         }
       case Datalog.Computed(_, countAgg: Datalog.CountAggregation) =>
-        val (tables, pattern) = prepareCallTables(frame, countAgg.patName, countAgg.args)
+        val pattern = patterns(countAgg.patName)
+        val tables = prepareCallTables(frame, pattern, countAgg.args)
         val callee = ControlPoint(PatternPoint(pattern, BeforeList))
         callStack.push(Frame(callee, tables))
       case Datalog.Computed(_, custAgg: Datalog.CustomAggregation) =>
-        val (tables, pattern) = prepareCallTables(frame, custAgg.patName, custAgg.args)
+        val pattern = patterns(custAgg.patName)
+        val tables = prepareCallTables(frame, pattern, custAgg.args)
         val callee = ControlPoint(PatternPoint(pattern, BeforeList))
         callStack.push(Frame(callee, tables))
       case atom =>
@@ -175,28 +168,8 @@ trait Debugger {
     if (callStack.nonEmpty) {
       val next = callStack.top
       if (next.bodyTable.isEmpty)
-        callStack.update(frame.copy(cp = next.cp.abortBody))
+        callStack.update(next.copy(cp = next.cp.abortBody))
     }
-  }
-
-  private def selectExtrinsicData(ctor: String, selectorPattern: Datalog.Pattern, instances: Table[Value]): Table[Value] = {
-    val sortKey = NodeTypeKey(SortType(ctor))
-    val matchingInstances = instances.filter { case Seq(URIValue(inst)) => database.containsTuple(sortKey, Tuples.staticArityFlatTupleOf(inst)) }
-
-    val params = selectorPattern.params.tail
-    matchingInstances.expand(params.map(_.name), { case Seq(URIValue(instance)) =>
-      val vs = params.zipWithIndex.map {
-        case (Datalog.Param(_, ty), ix) if ty.hasHint(DataHints.DataTypeNameKey) =>
-          val linkKey = LinkNodeKey(ctor -> s"_$ix")
-          val vals = database.enumerateValues(linkKey, TupleMask.selectSingle(0, 2), Tuples.staticArityFlatTupleOf(instance))
-          URIValue(vals.asScala.head.asInstanceOf[URI])
-        case (Datalog.Param(_, _), ix) =>
-          val linkKey = LinkPrimitiveKey(ctor -> s"_$ix")
-          val vals = database.enumerateValues(linkKey, TupleMask.selectSingle(0, 2), Tuples.staticArityFlatTupleOf(instance))
-          ScalaValue(vals.asScala.head)
-      }
-      vs
-    })
   }
 
   private def checkNegativeCallArguments(args: Seq[Datalog.Term], table: Table[Value]): Unit = {
@@ -274,8 +247,7 @@ trait Debugger {
   }
 
   // Methods to prepare frame tables for atoms that can jump into another pattern (calls and aggregations)
-  private def prepareCallTables(frame: Frame, name: String, args: Seq[Datalog.Term]): (Frame.Tables, Datalog.Pattern) = {
-    val calledPattern = patterns(name)
+  private def prepareCallTables(frame: Frame, calledPattern: Datalog.Pattern, args: Seq[Datalog.Term]): Frame.Tables = {
     val params = calledPattern.params.map(_.name)
 
     // prepare argsTable
@@ -284,14 +256,15 @@ trait Debugger {
     val varsBindingsCast = varsBindings.map { case (p, v) => (p, v.asInstanceOf[Datalog.Var]) }
     val constBindingsCast = constBindings.map { case (p, v) => (p, v.asInstanceOf[Datalog.Constant]) }
     val columnsSubst = varsBindingsCast.map { case (p, v) => (v.name, p) }.toMap
-    var argsTable = frame.bodyTable.project(varsBindingsCast.map(_._2.name)).renameColumns(columnsSubst)
+    val projected = frame.bodyTable.project(varsBindingsCast.map(_._2.name))
+    var argsTable = projected.renameColumns(columnsSubst)
     constBindingsCast.foreach { case (p, c) =>
       argsTable = argsTable.bind(p, transLiteral(c.lit))
     }
 
     val patternTable = Table.empty[Value](params)
 
-    ((argsTable, argsTable, patternTable), calledPattern)
+    (argsTable, argsTable, patternTable)
   }
 
 
@@ -396,15 +369,14 @@ trait Debugger {
   }
 
   private def transitionBinaryIndexQueryOneBound(table: Table[Value], key: IInputKey, bound: String, unbound: String, isSourceBound: Boolean): Table[Value] = {
-    val extendedTable = table.addColumn(unbound)
     val selectIdx = if (isSourceBound) 0 else 1
     val mask = TupleMask.selectSingle(selectIdx, 2)
     val boundIdx = table.columnIndex(bound)
-    extendedTable.map { row =>
+    table.expand(unbound, { row =>
       val boundURI = row(boundIdx).asURI
       val unboundURI = database.enumerateValues(key, mask, Tuples.staticArityFlatTupleOf(boundURI)).iterator().next()
-      row :+ convertDatabaseTupleValue(unboundURI)
-    }
+      convertDatabaseTupleValue(unboundURI)
+    })
   }
 
   private def transitionBinaryIndexQueryUnbound(table: Table[Value], key: IndexKey[_], src: String, trg: String): Table[Value] = {
@@ -509,10 +481,7 @@ trait Debugger {
 
   private def transitionEqCompOneBound(table: Table[Value], boundCol: String, unboundCol: String): Table[Value] = {
     val colIndex = table.columnIndex(boundCol)
-    val extendedTable = table.addColumn(unboundCol)
-    extendedTable.map { row =>
-      row :+ row(colIndex)
-    }
+    table.expand(unboundCol, row => row(colIndex))
   }
 
   private def transitionEqCompConstBound(table: Table[Value], col: String, v: Value): Table[Value] = {
@@ -758,7 +727,8 @@ trait Debugger {
       case Some(atom) =>
         atom match {
           case Datalog.Call(name, args, _, false) =>
-            val ((argsTable, _, _), pattern) = prepareCallTables(frame, name, args)
+            val pattern = patterns(name)
+            val (argsTable, _, _) = prepareCallTables(frame, pattern, args)
             val callPatternTable = readDatabase(name, argsTable)
             val params = pattern.params.map(_.name)
             val tables = transitionReturnCallTables(frame, params, callPatternTable)
@@ -766,7 +736,8 @@ trait Debugger {
             callStack.update(Frame(next, tables))
 
           case Datalog.Call(name, args, _, true) =>
-            val ((argsTable, _, _), pattern) = prepareCallTables(frame, name, args)
+            val pattern = patterns(name)
+            val (argsTable, _, _) = prepareCallTables(frame, pattern, args)
             checkNegativeCallArguments(args, frame.bodyTable)
             val callPatternTable = readDatabase(name, argsTable)
             val params = pattern.params.map(_.name)
@@ -775,14 +746,16 @@ trait Debugger {
             callStack.update(Frame(next, tables))
 
           case Datalog.Computed(lhs, countAgg: CountAggregation) =>
-            val ((argsTable, _, _), _) = prepareCallTables(frame, countAgg.patName, countAgg.args)
+            val pattern = patterns(countAgg.patName)
+            val (argsTable, _, _) = prepareCallTables(frame, pattern, countAgg.args)
             val callPatternTable = readDatabase(countAgg.patName, argsTable)
             val tables = transitionCountAggTables(frame, callPatternTable, lhs)
             val next = frame.cp.stepOver.get
             callStack.update(Frame(next, tables))
 
           case Datalog.Computed(lhs, customAgg: CustomAggregation) =>
-            val ((argsTable, _, _), _) = prepareCallTables(frame, customAgg.patName, customAgg.args)
+            val pattern = patterns(customAgg.patName)
+            val (argsTable, _, _) = prepareCallTables(frame, pattern, customAgg.args)
             val callPatternTable = readDatabase(customAgg.patName, argsTable)
             val tables = transitionCustomAggTables(frame, callPatternTable, lhs, customAgg)
             val next = frame.cp.stepOver.get
@@ -820,7 +793,10 @@ trait Debugger {
   }
 
   private def readDatabase(name: String, bindings: Table[Value]): Table[Value] = {
-    val mainSpec = compiled.psystemModule.patterns(name)()
+    val mainSpec = compiled.psystemModule.patterns.get(name) match {
+      case Some(spec) => spec()
+      case None => return Table.empty
+    }
     val mainMatcher = engine.getMatcher(mainSpec)
     val rows = bindings.rows.flatMap { row =>
       val unboundCols = patterns(name).params.map(_.name).diff(bindings.columns)

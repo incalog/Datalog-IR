@@ -3,6 +3,9 @@ package inca.debugger.table
 // first implementation, we do not consider efficiency
 case class SimpleTable[V](columns: Vector[String], rows: Vector[Vector[V]]) extends Table[V] {
 
+  if (rows.exists(_.size != columns.size))
+    throw new IllegalArgumentException
+
   private val columnIdx: Map[String, Int] = columns.zipWithIndex.toMap
 
   override def isEmpty: Boolean = rows.isEmpty
@@ -40,20 +43,11 @@ case class SimpleTable[V](columns: Vector[String], rows: Vector[Vector[V]]) exte
     }
   }
 
-  override def addColumn(column: String): SimpleTable[V] = {
-    SimpleTable(columns :+ column, rows)
-  }
-
   override def project(cols: Seq[String]): SimpleTable[V] = {
     val newColumns = cols.filter(columns.contains).toVector
+    val newColumnsIndex = newColumns.map(columns.indexOf)
     val newData = rows.map { row =>
-      newColumns.flatMap { col =>
-        val colIdx = columns.indexOf(col)
-        if (colIdx < 0 || colIdx >= row.size)
-          Vector()
-        else
-          Vector(row(colIdx))
-      }
+      newColumnsIndex.map(row.apply)
     }
     SimpleTable(newColumns, newData)
   }

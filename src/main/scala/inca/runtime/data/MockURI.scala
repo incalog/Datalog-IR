@@ -2,15 +2,27 @@ package inca.runtime.data
 
 import inca.runtime.db.{Database, DatabaseInspector}
 
-class MockURI(val repr: String) extends truechange.URI {
-  override def equals(obj: Any): Boolean = obj match {
-    case other: MockURI => this.repr == other.repr
-    case _ => false
-  }
+case class MockURI(constr: String, args: Seq[Any]) extends truechange.URI {
+  override def toString: String = s"$constr(${args.mkString(", ")})"
 
-  override def hashCode(): Int = repr.hashCode
-
-  override def toString: String = repr
+//  def convertToValue: Value = {
+//    def deconstruct(str: String): Value = {
+//      val openIdx = str.indexOf("(")
+//      val closingIdx = str.lastIndexOf(")")
+//      if (openIdx != -1 && closingIdx != -1) {
+//        val name = str.substring(0, openIdx)
+//        val args = str.substring(openIdx + 1, closingIdx).split(", ")
+//        ConstructorValue(name , args.map(deconstruct))
+//      } else {
+//        str.toBooleanOption.map(ScalaValue.apply).getOrElse(
+//          str.toIntOption.map(ScalaValue.apply).getOrElse(
+//            str.toLongOption.map(ScalaValue.apply).getOrElse(
+//              str.toDoubleOption.map(ScalaValue.apply).getOrElse(
+//                URIValue(str)))))
+//      }
+//    }
+//    deconstruct(repr)
+//  }
 }
 
 trait Value {
@@ -28,33 +40,5 @@ case class URIValue(id: String) extends Value {
 
 object MockURI {
   val DEBUG_PRINT = true
-
-  def apply(constr: String, args: Any*): MockURI = {
-    val strArgs = args.map {
-      case data: MockURI => data.repr
-      case arg => arg.toString
-    }
-    new MockURI(constr + strArgs.mkString("(", ", ", ")"))
-  }
-
-  def convertToValue(uri: MockURI): Value = {
-    def deconstruct(str: String): Value = {
-      val openIdx = str.indexOf("(")
-      val closingIdx = str.lastIndexOf(")")
-      if (openIdx != -1 && closingIdx != -1) {
-        val name = str.substring(0, openIdx)
-        val args = str.substring(openIdx + 1, closingIdx).split(", ")
-        ConstructorValue(name , args.map(deconstruct))
-      } else {
-        str.toBooleanOption.map(ScalaValue.apply).getOrElse(
-          str.toIntOption.map(ScalaValue.apply).getOrElse(
-            str.toLongOption.map(ScalaValue.apply).getOrElse(
-              str.toDoubleOption.map(ScalaValue.apply).getOrElse(
-                URIValue(str)))))
-      }
-    }
-
-    deconstruct(uri.repr)
-  }
 }
 

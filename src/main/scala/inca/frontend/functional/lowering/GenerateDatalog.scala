@@ -469,7 +469,7 @@ class GenerateDatalog(module: Module) {
 
     val constrScalaFun = Term.Function(
       params.map(p => Term.Param(Nil, Term.Name(p.name), Some(p.typ.asScala), None)).toList,
-      q"""$oMockURI(${constr.name.name}, ..${params.map(p => Term.Name(p.name)).toList})"""
+      q"""$oMockURI(${constr.name.name}, Seq(..${params.map(p => Term.Name(p.name)).toList}))"""
     )
     val outVar = Datalog.Var(outParam.name)
     val constrIDBBody = Datalog.Body(Seq(Datalog.Computed(outVar,

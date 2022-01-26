@@ -384,7 +384,7 @@ object IncrementalFunctionalExecutor {
     }
 
     def deepPrintChanges(): Unit = {
-      val db = DatabaseInspector(feed)
+      val db = new DatabaseInspector(feed)
       changesInTrackedRelations.foreach { case (m, ins) =>
         val direction =
           if (ins)

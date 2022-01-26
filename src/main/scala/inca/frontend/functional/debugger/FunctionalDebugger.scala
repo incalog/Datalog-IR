@@ -1,14 +1,17 @@
 package inca.frontend.functional.debugger
 
 import inca.backend.hints.DebugHints.SourceConstruct
+import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Datalog
+import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
 import inca.compiler.source.{ExcerptAbsoluteRegion, ExcerptRelativeRegion, SourceObject}
 import inca.debugger.table.Table
-import inca.debugger.{ControlPoint, Debugger, Frame}
+import inca.debugger._
 import inca.frontend.functional.compiler.CompiledFunctionalModule
 import inca.frontend.functional.core.{FunctionDef, If, Name}
-import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
-import truechange.{EditScript, URI}
+import inca.runtime.data.{MockURI, WrappedURI}
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
+import truechange.{JVMURI, URI}
 import truediff.Diffable
 
 import scala.annotation.tailrec
@@ -22,20 +25,32 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
   private var skipElseBranches: List[mutable.Set[SourceObject]] = List()
   private var skipToElse: List[Option[SourceObject]] = List()
 
+  private var uris: Map[URI, Diffable] = Map()
+
+  def entry(mainFun: String, args: meta.Term*): Unit = {
+    val (vals, debugVals) = args.map { t =>
+      val syntax = s"{import ${defintionObjSym}.${compiled.name}._; ${t.syntax}}"
+      scalaCompiler.compileAndLoadScala[Any](syntax) match {
+        case diff: Diffable =>
+          updateExtensionalData(diff.loadEdits)
+          diff.foreachTree(t => uris += t.uri -> t)
+          (diff.uri, URIValue(diff.uri))
+        case v =>
+          (v, ScalaValue(v))
+      }
+    }.unzip
+    database.insert(demandPatternExtensionalPrefix + mainFun, Tuples.flatTupleOf(vals:_*))
+
+    val pattern = patterns(mainFun)
+    val adorn =  pattern.hints(MagicSetHints.Main.key).asInstanceOf[MagicSetHints.Main].adorn
+    val inputParams = pattern.params.zip(adorn).filter(_._2).map(_._1.name)
+    val inputTable = Table[Value](inputParams, Seq(debugVals))
+    super.entry(mainFun, inputTable)
+  }
+
   def getFunctionalCallStack: List[Name] = callStack.frames.flatMap { fr =>
     frontend.getFunction(fr.cp.point.pat).map(_.name)
   }
-
-  def loadExtensionalData(t: Diffable): Unit =
-    updateExtensionalData(t.loadEdits)
-
-  def loadExtensionalData(t: meta.Term): Diffable = {
-    val syntax = s"{import ${defintionObjSym}.${compiled.name}._; ${t.syntax}}"
-    val diff: Diffable = scalaCompiler.compileAndLoadScala(syntax)
-    loadExtensionalData(diff)
-    diff
-  }
-
 
   def stepIntoFrontend(): Unit = {
     var fp: Option[FunctionalControlPoint] = None
@@ -140,6 +155,23 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
   def currentCallStack: String =
     getFunctionalCallStack.mkString("[", ", ", "]")
 
+  def prettyPrint(uri: URI): String = uri match {
+    case i: JVMURI => uris(i).toString
+    case MockURI(constr, args) =>
+      val argsS = args.map {
+        case a: URI => prettyPrint(a)
+        case v => v.toString
+      }
+      s"$constr(${argsS.mkString(", ")})"
+    case i: WrappedURI => uris(i.uri).toString
+    case _ => uri.toString
+  }
+
+  def prettyPrint(v: Value): String = v match {
+    case URIValue(uri) => prettyPrint(uri)
+    case ScalaValue(v) => v.toString
+  }
+
   def currentBindings: String = {
     val table = frontend.frontendTable(controlPointFrontend, varsIR)
     val rowStrings = table.rows.map { row =>
@@ -151,7 +183,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
         if (v != null) {
           sb ++= col
           sb += '='
-          sb ++= v.toString
+          sb ++= prettyPrint(v)
           sb ++= ", "
         }
       }

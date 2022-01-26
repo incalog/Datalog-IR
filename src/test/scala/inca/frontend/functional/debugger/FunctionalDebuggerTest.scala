@@ -6,20 +6,18 @@ import inca.debugger.table.Table
 import inca.examples.functional.{ADT, Code}
 import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
 import org.scalatest.funsuite.AnyFunSuite
-import truechange.EditScript
+import meta.quasiquotes._
 
 class FunctionalDebuggerTest extends AnyFunSuite {
 
   def initDebugger(module: CompiledFunctionalModule): FunctionalDebugger = {
-    val debugger = new FunctionalDebugger(module)
-    debugger.initialize(module)
-    debugger
+    new FunctionalDebugger(module)
   }
 
   test("if example") {
     val compiledExample = Compiler.compileFunctional(Code.ifExample, FunctionalOptions())
     val debugger = initDebugger(compiledExample)
-    debugger.entry("main", Table.unit)
+    debugger.entry("main")
     while (!debugger.isFinished) {
       debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
       println(debugger.currentBindings)
@@ -31,7 +29,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
   test("if example 2") {
     val compiledExample = Compiler.compileFunctional(Code.ifExample2, FunctionalOptions())
     val debugger = initDebugger(compiledExample)
-    debugger.entry("main", Table.unit)
+    debugger.entry("main")
     while (!debugger.isFinished) {
       debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
       println(debugger.currentBindings)
@@ -59,7 +57,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     for (b1 <- Seq(true, false); b2 <- Seq(true, false)) {
       val compiledExample = Compiler.compileFunctional(ifControlJump(b1, b2), FunctionalOptions())
       val debugger = initDebugger(compiledExample)
-      debugger.entry("main", Table.unit)
+      debugger.entry("main")
       debugger.untilFinished(() => debugger.stepIntoFrontend())
       assertResult(5)(debugger.controlTraceFrontend.size)
     }
@@ -68,7 +66,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
   test("fib example") {
     val compiledExample = Compiler.compileFunctional(Code.fibModule, FunctionalOptions())
     val debugger = initDebugger(compiledExample)
-    debugger.entry("main", Table(Map("x" -> ScalaValue(3))))
+    debugger.entry("main", q"3")
     while (!debugger.isFinished) {
       println(debugger.currentCallStack)
       println("  " + debugger.currentBindings)
@@ -81,12 +79,12 @@ class FunctionalDebuggerTest extends AnyFunSuite {
   test("Constructor calls example") {
     val code = Code.module(
       ADT.Nat_code,
-      """def main(): Nat = Succ(Succ(Zero()))
+      """@main def main(): Nat = Succ(Succ(Zero()))
         |""".stripMargin
     )
     val compiledExample = Compiler.compileFunctional(code, FunctionalOptions())
     val debugger = initDebugger(compiledExample)
-    debugger.entry("main", Table.unit)
+    debugger.entry("main")
     while (!debugger.isFinished) {
       println(debugger.currentCallStack)
       println("  " + debugger.currentBindings)
@@ -99,10 +97,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
   test("plus example") {
     val compiledExample = Compiler.compileFunctional(Code.plusRealModule, FunctionalOptions())
     val debugger = initDebugger(compiledExample)
-    import meta.quasiquotes._
-    val two = debugger.loadExtensionalData(q"Succ(Succ(Zero()))")
-    val one = debugger.loadExtensionalData(q"Succ(Zero())")
-    debugger.entry("main", Table(Map("x" -> URIValue(two.uri), "y" -> URIValue(one.uri))))
+    debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
     while (!debugger.isFinished) {
       println(debugger.currentCallStack)
       println("  " + debugger.currentBindings)

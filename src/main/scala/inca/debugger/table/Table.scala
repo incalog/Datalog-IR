@@ -20,7 +20,6 @@ trait Table[V] {
   def join(other: Table[V]) : Table[V]
   def addRow(row: Seq[V]): Table[V]
   def addRows(rows: Table[V]): Table[V]
-  def addColumn(col: String): Table[V]
   def numRows: Int
 
   def project(cols: Seq[String]): Table[V]
@@ -43,8 +42,11 @@ object Table {
   def empty[V]: Table[V] = SimpleTable(Vector(), Vector())
   def empty[V](columns: Seq[String]): Table[V] = SimpleTable(columns.toVector, Vector())
   def unit[V]: Table[V] = SimpleTable(Vector(), Vector(Vector()))
-  def apply[V](columns: Seq[String], rows: Seq[Seq[V]]): Table[V] =
+  def apply[V](columns: Seq[String], rows: Seq[Seq[V]]): Table[V] = {
+    if (rows.exists(_.size != columns.size))
+      throw new IllegalArgumentException(s"Ill-formed table with columns $columns and rows $rows")
     SimpleTable(columns.toVector, rows.map(_.toVector).toVector)
+  }
   def apply[V](map: Map[String, V]): Table[V] = {
     val (colums, row) = map.toVector.unzip
     SimpleTable(colums, Vector(row))

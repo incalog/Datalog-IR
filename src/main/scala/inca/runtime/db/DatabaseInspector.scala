@@ -6,7 +6,7 @@ import inca.runtime.index.binary.{BidirectionalManyToOneIndex, BidirectionalOneT
 import inca.runtime.index.unary.{UnaryBagIndex, UnarySetIndex}
 import truechange.{LitType, Type, URI}
 
-case class DatabaseInspector(feed: Database) {
+class DatabaseInspector(feed: Database) {
 
   def nodeInstances: Map[Type, UnarySetIndex[URI]] = feed.nodeInstances.toMap
 
@@ -74,7 +74,8 @@ case class DatabaseInspector(feed: Database) {
     }.toMap
   }
 
-  def childrenOfURI(uri: URI): Map[String, Any] = nodeChildrenOfURI(uri) ++ primitiveChildrenOfURI(uri)
+  def childrenOfURI(uri: URI): Map[String, Any] =
+    nodeChildrenOfURI(uri) ++ primitiveChildrenOfURI(uri)
 
   def uriMatchingString(str: String): Option[URI] =
     nodeInstances.flatMap { case (_, set) =>
@@ -84,7 +85,7 @@ case class DatabaseInspector(feed: Database) {
     }.headOption
 
   def prettyPrint(v: Any, depth: Int = Int.MinValue): String = v match {
-    case uri: MockURI => MockURI.convertToValue(uri).deepPrettyPrint(this)
+    case MockURI(constr, args) => s"$constr(${args.map(prettyPrint(_)).mkString(", ")})"
     case uri: URI => prettyPrint(uri)
     case uriv: URIValue =>
       uriMatchingString(uriv.id) match {
