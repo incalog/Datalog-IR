@@ -1,16 +1,35 @@
 package inca.debugger
 
-import inca.backend.ir.Datalog
 import inca.debugger.table.Table
 
-case class FixpointState(derived: Map[Datalog.Name, Table[Value]]) {
-  def addRelation(name: Datalog.Name, relation: Table[Value]): FixpointState = {
-    FixpointState(derived + (name -> relation))
+import scala.collection.mutable
+
+class FixpointState {
+  private val derived: mutable.Map[(String, Table[Value]), Table[Value]] = mutable.Map()
+
+  def contains(name: String, args: Table[Value]): Boolean = derived.contains(name -> args)
+
+  def add(name: String, args: Table[Value], rel: Table[Value]): Unit = {
+      derived.get(name -> args) match {
+        case Some(old) =>
+            derived += (name -> args) -> old.addRows(rel)
+        case None =>
+          derived += (name -> args) -> rel
+      }
   }
 
-  def extendRelation(name: Datalog.Name, table: Table[Value])(implicit patterns: Map[Datalog.Name, Datalog.Pattern]): FixpointState = {
-    val rel = derived.getOrElse(name, Table(patterns(name).params.map(_.name).toVector, Vector()))
-    val newRels = derived + (name -> rel.addRows(table))
-    FixpointState(newRels)
+  def relation(name: String, args: Table[Value]): Option[Table[Value]] =
+    derived.get(name -> args)
+
+  def relation(name: String): Table[Value] = {
+    val tables = derived.collect {
+      case ((relName, _), rel) if name == relName=>
+        rel
+    }.toSeq
+    var res = tables.head
+    tables.tail.foreach { t =>
+      res = res.addRows(t)
+    }
+    res
   }
 }
