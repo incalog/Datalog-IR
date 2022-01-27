@@ -106,8 +106,8 @@ trait Debugger {
   def stepIntoFrontend(): Unit
 
   def untilFinished(run: () => Unit): Unit =
-    while (callStack.nonEmpty)
-      stepIntoFrontend()
+    while (!isFinished)
+      run()
 
   def stepIntoUntil(stop: () => Boolean): Unit =
     while (!stop())
@@ -246,6 +246,7 @@ trait Debugger {
             .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
           val tables = transitionCountAggTables(callerFrame, frame.patternTable, lhs)
           callStack.update(Frame(next, tables))
+        case atom => throw new MatchError(atom, "should be a call or an aggregation")
       }
     }
   }

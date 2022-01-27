@@ -198,7 +198,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     }
   }
 
-  override def stepIntoNextAtom(frame: Frame, atom: Datalog.Atom): Unit = atom match {
+  override def stepIntoCall(frame: Frame, atom: Datalog.Atom): Unit = atom match {
     case call: Datalog.Call =>
       val pattern = patterns(call.name)
       if (pattern.hasHint(DataHints.ConstructorKey) || pattern.hasHint(DataHints.SelectorKey)) {
@@ -208,11 +208,10 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
         val nextTables = transitionReturnCallTables(frame, pattern.params.map(_.name), data)
         val next = frame.cp.stepOver.get
         callStack.update(Frame(next, nextTables))
-        abortIfBodyFailed()
       }
       else
-        super.stepIntoNextAtom(frame, atom)
-    case _ => super.stepIntoNextAtom(frame, atom)
+        super.stepIntoCall(frame, atom)
+    case _ => super.stepIntoCall(frame, atom)
   }
 
   override def doPatternEntry(cp: ControlPoint): Unit = {
