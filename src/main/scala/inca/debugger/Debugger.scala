@@ -81,7 +81,7 @@ trait Debugger {
   }
 
   // Debugger methods
-  protected def entry(name: Datalog.Name, bindings: Table[Value]): Unit = {
+  def entry(name: Datalog.Name, bindings: Table[Value]): Unit = {
     val pat = patterns(name)
     val cp = ControlPoint.patternEntryPoint(pat)
     val frame = Frame(cp, bindings, Table.empty, Table(pat.params.map(_.name), Seq()))
