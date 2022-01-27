@@ -6,6 +6,7 @@ import com.sun.jna.ptr.PointerByReference;
 
 @Structure.FieldOrder({"content", "size", "capacity"})
 public class EditArray extends Structure {
+    public static class ByValue extends EditArray implements Structure.ByValue { }
 
     public SugaredEdit.ByReference content;
     public int size;

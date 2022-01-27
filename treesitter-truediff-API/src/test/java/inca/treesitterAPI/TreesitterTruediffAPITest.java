@@ -1,5 +1,6 @@
 package inca.treesitterAPI;
 
+import inca.treesitterAPI.editscriptAPI.EditArray;
 import inca.treesitterAPI.editscriptAPI.EditScript;
 import inca.treesitterAPI.editscriptAPI.SugaredEdit;
 import org.junit.jupiter.api.DisplayName;
@@ -169,20 +170,21 @@ public class TreesitterTruediffAPITest {
 
         TSDiffResult diff_result = TreeSitterTruediffLibrary.lib.ts_compare_to(tree1, tree2, source, dest, lit_map);
         System.out.println(diff_result.edit_script.edits.content);
-        System.out.println(diff_result.edit_script.edits.content.getPointer().dump(0, 56));
-        System.out.println(diff_result.edit_script.edits.content.getPointer().dump(57, 52));
-        System.out.println(diff_result.edit_script.edits.content.getPointer().dump(109, 48));
-        System.out.println(diff_result.edit_script.edits.content.getPointer().dump(157, 64));
-        System.out.println(diff_result.edit_script.edits.content.getPointer().dump(221, 48));
-        System.out.println(diff_result.edit_script.edits.content.getPointer().dump(269, 64));
-        System.out.println(diff_result.edit_script.edits.content.getPointer().dump(333, 48));
-//        final SugaredEdit[] edit_array = (SugaredEdit[])diff_result.edit_script.edits.content.toArray(diff_result.edit_script.edits.size);
+//        System.out.println(diff_result.edit_script.edits.content.getPointer().dump(0, 56));
+//        System.out.println(diff_result.edit_script.edits.content.getPointer().dump(57, 52));
+//        System.out.println(diff_result.edit_script.edits.content.getPointer().dump(109, 48));
+//        System.out.println(diff_result.edit_script.edits.content.getPointer().dump(157, 64));
+//        System.out.println(diff_result.edit_script.edits.content.getPointer().dump(221, 48));
+//        System.out.println(diff_result.edit_script.edits.content.getPointer().dump(269, 64));
+//        System.out.println(diff_result.edit_script.edits.content.getPointer().dump(333, 48));
+        final EditArray.ByValue edit = TreeSitterTruediffLibrary.lib.ts_get_edit_array(diff_result.edit_script);
+        final SugaredEdit[] edit_array = (SugaredEdit[])edit.content.toArray(14);
 //        System.out.println("Hopefully it worked: ");
 //        for (SugaredEdit edits : edit_array) {
 //            System.out.println("\t" + "Tag: " + edits.edit_tag);
 //        }
 
-        TreeSitterTruediffLibrary.lib.print_edit_script(lang, diff_result.edit_script);
+//        TreeSitterTruediffLibrary.lib.print_edit_script(lang, diff_result.edit_script);
 
         TreeSitterTruediffLibrary.lib.ts_edit_script_delete(diff_result.edit_script);
         TreeSitterTruediffLibrary.lib.ts_diff_heap_delete(tree1);
