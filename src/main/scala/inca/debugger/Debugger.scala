@@ -21,12 +21,6 @@ import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 
 trait Debugger {
-  type FrontendPoint
-  def frontendPoint(cp: ControlPoint): Option[FrontendPoint]
-
-  type FrontendValue
-  def frontendTable(fp: FrontendPoint, bound: Table[Value]): Table[FrontendValue]
-
   // Datalog program information
   private var compiled: CompiledModule = _
   protected lazy val patterns: Map[String, Datalog.Pattern] =
@@ -40,7 +34,6 @@ trait Debugger {
   private val fixpointState: FixpointState = new FixpointState
   protected val callStack: CallStack = new CallStack()
   private val _controlTrace: ListBuffer[ControlPoint] = ListBuffer.empty
-  protected val _controlTraceFrontend: ListBuffer[FrontendPoint] = ListBuffer.empty
 
   // Needed to execute scala code via reflection
   protected val scalaCompiler = new Scala.ScalaCompiler()
@@ -54,18 +47,11 @@ trait Debugger {
     case AtListElem(_, _, _) => frame.bodyTable
     case AfterList => frame.patternTable
   }
-  def varsFrontEnd: Table[FrontendValue] = frontendTable(controlPointFrontend, varsIR)
-
   def controlPointIR: ControlPoint = callStack.top.cp
-  def controlPointFrontend: FrontendPoint = frontendPoint(controlPointIR).get
-
   def controlTraceIR: Seq[ControlPoint] = _controlTrace.toSeq
-  def controlTraceFrontend: Seq[FrontendPoint] = _controlTraceFrontend.toSeq
 
-  private def traceControlPoint(cp: ControlPoint): Unit = {
+  protected def traceControlPoint(cp: ControlPoint): Unit =
     _controlTrace += cp
-    frontendPoint(cp).foreach(_controlTraceFrontend += _)
-  }
 
   def relation(name: String): Table[Value] = fixpointState.relation(name)
   def relation(name: String, args: Table[Value]): Table[Value] =

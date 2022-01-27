@@ -54,6 +54,8 @@ case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Na
 
   lazy val calls: Set[Call] = body.calls
 
+  def isRelation: Boolean = outType.isSet
+
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")

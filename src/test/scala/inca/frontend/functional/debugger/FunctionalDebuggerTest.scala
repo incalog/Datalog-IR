@@ -106,4 +106,19 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     }
     println(debugger.relation("main"))
   }
+
+  test("plus example extra") {
+    val compiledExample = Compiler.compileFunctional(Code.plusRealModuleExtra, FunctionalOptions())
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    while (!debugger.isFinished) {
+      println(debugger.currentCallStack)
+      println("  " + debugger.currentBindings)
+      debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
+      debugger.stepIntoFrontend()
+    }
+    println(debugger.relation("main"))
+    debugger.controlTraceFrontend.foreach(println)
+
+  }
 }

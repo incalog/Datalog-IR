@@ -6,14 +6,5 @@ import inca.debugger.table.Table
 final class IRDebugger(compiled: CompiledModule) extends Debugger {
   super.initialize(compiled)
 
-  override type FrontendPoint = ControlPoint
-  override def frontendPoint(cp: ControlPoint): Option[FrontendPoint] = Some(cp)
-
-  override type FrontendValue = Value
-  override def frontendTable(fp: FrontendPoint, bound: Table[Value]): Table[Value] = bound
-
-  override def entry(name: Datalog.Name, bindings: Table[Value]): Unit =
-    super.entry(name, bindings)
-
   override def stepIntoFrontend(): Unit = stepInto()
 }

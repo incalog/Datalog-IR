@@ -11,6 +11,7 @@ sealed trait Type extends SourceLocation {
   def asScala: meta.Type
   def flatten: Seq[Type]
   def freeTvars: Seq[TData]
+  def isSet: Boolean
   override def toString: String = prettyprint
 }
 case object TAny extends Type {
@@ -18,12 +19,14 @@ case object TAny extends Type {
   override def asScala: meta.Type = t"Any"
   override def flatten: Seq[Type] = Seq(this)
   override def freeTvars: Seq[TData] = Seq()
+  override def isSet: Boolean = false
 }
 case object TNothing extends Type {
   override def prettyprint: String = "Nothing"
   override def asScala: meta.Type = t"Nothing"
   override def flatten: Seq[Type] = Seq(this)
   override def freeTvars: Seq[TData] = Seq()
+  override def isSet: Boolean = false
 }
 
 case class TFun(from: Seq[Type], to: Type) extends Type {
@@ -37,6 +40,7 @@ case class TFun(from: Seq[Type], to: Type) extends Type {
 
   override def flatten: Seq[Type] = Seq(this)
   override def freeTvars: Seq[TData] = to.freeTvars ++ from.flatMap(_.freeTvars)
+  override def isSet: Boolean = false
 }
 
 case class TTuple(ts: Seq[Type]) extends Type {
@@ -50,6 +54,7 @@ case class TTuple(ts: Seq[Type]) extends Type {
   override def asScala: meta.Type = t"(..${ts.map(_.asScala).toList})"
   override def flatten: Seq[Type] = ts.flatMap(_.flatten)
   override def freeTvars: Seq[TData] = ts.flatMap(_.freeTvars)
+  override def isSet: Boolean = ts.exists(_.isSet)
 }
 object TTuple {
   def from(ts: Seq[Type]): Type = ts match {
@@ -64,6 +69,7 @@ case class TData(name: Name) extends Type with Resolvable[TData.Target] {
   override def asScala: meta.Type = t"truechange.URI"
   override def flatten: Seq[Type] = Seq(this)
   override def freeTvars: Seq[TData] = Seq(this)
+  override def isSet: Boolean = false
 }
 object TData {
   trait Target
@@ -74,6 +80,7 @@ case class TScala(ty: Scala[meta.Type]) extends Type {
   override def asScala: meta.Type = ty.tree
   override def flatten: Seq[Type] = Seq(this)
   override def freeTvars: Seq[TData] = Seq()
+  override def isSet: Boolean = false
 }
 object TScala {
   def apply(typeString: String): TScala = {
@@ -94,6 +101,7 @@ case class TOption(ty: Type) extends Type {
   override def asScala: meta.Type = ty.asScala
   override def flatten: Seq[Type] = ty.flatten
   override def freeTvars: Seq[TData] = ty.freeTvars
+  override def isSet: Boolean = true
 }
 
 case class TSet(ty: Type) extends Type {
@@ -101,4 +109,5 @@ case class TSet(ty: Type) extends Type {
   override def asScala: meta.Type = ty.asScala
   override def flatten: Seq[Type] = ty.flatten
   override def freeTvars: Seq[TData] = ty.freeTvars
+  override def isSet: Boolean = true
 }

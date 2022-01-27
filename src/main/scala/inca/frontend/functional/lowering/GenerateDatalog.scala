@@ -216,7 +216,7 @@ class GenerateDatalog(module: Module) {
 
           case _ => throw new IllegalStateException(s"Unknown pattern $pat")
         }
-        patCons.addHint(SourceConstruct.from(pat))
+        patCons.addHint(SourceConstruct.from(exp -> pat))
         (bodyTerms, matcheeCons ++ (patCons +: bodyCons))
       }
 

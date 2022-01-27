@@ -4,6 +4,26 @@ import inca.debugger.table.Table
 
 import scala.collection.mutable
 
+
+/*
+ *
+ * p(x,y) :- p(x,z),e(z,y).
+ * p(x,y) :- e(x,y).
+ *
+ * p(1,5) -> p(1)=z0 -> p(1)=z1
+ * = p(1,2)
+ * p(1,5) -> p(1)=2 -> e(2)=3
+ * = p(1,3)
+ * p(1,5) -> p(1)=3 -> e(3)=4
+ * = p(1,4)
+ * p(1,5) -> p(1)=4 -> e(4)=5
+ * = p(1,5)
+ *
+ *
+ */
+
+
+
 class FixpointState {
   private val derived: mutable.Map[(String, Table[Value]), Table[Value]] = mutable.Map()
 

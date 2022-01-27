@@ -198,6 +198,18 @@ class IRDebuggerTest extends AnyFunSuite {
           Datalog.Call("path", Seq(Datalog.Var("temp"), Datalog.Var("to"))),
         ))))
 
+  val pathPatternLeftRecursive =
+    Datalog.Pattern(None, "path", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+      Seq(
+        Datalog.Body(Seq(
+          Datalog.Call("path", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
+          Datalog.Call("edge", Seq(Datalog.Var("temp"), Datalog.Var("to"))),
+        )),
+        Datalog.Body(Seq(
+          Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("to"))),
+        )),
+      ))
+
   val pathPatternSwitchBodies =
     Datalog.Pattern(None, "path", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
       Seq(
@@ -377,6 +389,16 @@ class IRDebuggerTest extends AnyFunSuite {
   // recursive step into
   test("step into recursive pattern") {
     val debugger = initDebugger(module(sevenEdgePattern, pathPattern), emptyDataModel)
+    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("path", args)
+    stepTillFinish(debugger)
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "path", args)
+  }
+
+  test("step into left recursive pattern") {
+    val debugger = initDebugger(module(sevenEdgePattern, pathPatternLeftRecursive), emptyDataModel)
     val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("path", args)
     stepTillFinish(debugger)

@@ -98,6 +98,20 @@ object Code {
        |""".stripMargin
   )
 
+  val plusRealModuleExtra: String = module(
+    Nat_code,
+    s"""def plus(m: Nat, n: Nat): Nat =
+       | let x = `1 + 2` in
+       | m match {
+       |  case Zero() => n
+       |  case Succ(pred) => Succ(plus(pred, n))
+       |}
+       |""".stripMargin,
+    s"""@main def main(x: Nat, y: Nat): Nat =
+       |  plus(x, y)
+       |""".stripMargin
+  )
+
   val fibModule: String =
     s"""module Fib
        |@main def main(x: Int): Int =
