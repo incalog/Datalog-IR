@@ -1,7 +1,8 @@
 package inca.frontend.souffle
 
 import inca.backend.analyze.DependencyGraph
-import inca.frontend.souffle.lowering.{SouffleInputToEditscript, SouffleToIncaBackendCompiler}
+import inca.compiler.source.SourceFile
+import inca.frontend.souffle.lowering.{SouffleInputToEditscript, SouffleToDatalogIR}
 import inca.frontend.souffle.parser.Parser
 import inca.runtime.EnginePool
 import inca.runtime.Query.Matcher
@@ -11,7 +12,7 @@ import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, Ti
 import org.scalatest.flatspec.AnyFlatSpec
 import truechange.EditScript
 
-import scala.io.Source
+import java.io.File
 
 class TestSouffleVarPointsTo extends AnyFlatSpec {
   val expectedTupleCount = Map(
@@ -35,12 +36,9 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
   "var points to souffle analysis" should "derive correct number of tuples" in {
     println(System.getProperty("user.dir"))
     val benchmarkPath = "souffle-frontend/benchmark"
-    val filename = s"$benchmarkPath/self-contained.dl"
-    val src = Source.fromFile(filename)
-    val doopText = src.getLines().mkString("\n")
-    val analysis = Parser.parse(doopText)
-    src.close()
-    val compiler = new SouffleToIncaBackendCompiler
+    val file = new File(s"$benchmarkPath/self-contained.dl")
+    val analysis = Parser.parse(SourceFile(file.toPath))
+    val compiler = new SouffleToDatalogIR
     val compiledModule = compiler.compile("selfcontained", analysis)
     println(compiledModule.ir.pats.size)
     println(compiledModule.ir.pats.map(_.bodies.size).sum)
@@ -72,7 +70,7 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
         EnginePool.loadQuery(querySpec(), queryScope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
       }
 
-      val matchers = compiledModule.printSizes.map(ps => getMatcher(ps.name))
+      val matchers = compiledModule.printSizes.map(ps => getMatcher(ps.name.name))
 
       val startQuery = System.currentTimeMillis()
       var loadingTime: Long = 0

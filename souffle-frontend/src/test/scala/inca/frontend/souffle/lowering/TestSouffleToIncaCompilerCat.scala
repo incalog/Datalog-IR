@@ -1,8 +1,10 @@
 package inca.frontend.souffle.lowering
 
 import inca.compiler.Options
+import inca.compiler.source.SourceString
 import inca.frontend.souffle.parser.Parser
 import inca.frontend.souffle.Syntax
+import inca.frontend.souffle.Syntax.Name
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.matchers.IncaGPMatchers
 import org.scalatest.flatspec.AnyFlatSpec
@@ -36,8 +38,8 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaGPMatchers {
       |""".stripMargin
 
   lazy val compiledModule = {
-    val ast = Parser.parse(catProgram.linesIterator)
-    val compiler = new SouffleToIncaBackendCompiler
+    val ast = Parser.parse(SourceString(catProgram))
+    val compiler = new SouffleToDatalogIR
     compiler.compile("catanalysis", ast)
   }
 
@@ -46,14 +48,14 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaGPMatchers {
   val options: Options = compiledModule.options
 
 
-  val _MethodSig = Syntax.RuleSignature("_Method", Seq(
-    Syntax.RuleParameter("?method", Syntax.SymbolType),
-    Syntax.RuleParameter("?simplename", Syntax.SymbolType),
-    Syntax.RuleParameter("?descriptor", Syntax.SymbolType),
-    Syntax.RuleParameter("?declaringType", Syntax.SymbolType),
-    Syntax.RuleParameter("?returnType", Syntax.SymbolType),
-    Syntax.RuleParameter("?jvmDescriptor", Syntax.SymbolType),
-    Syntax.RuleParameter("?arity", Syntax.NumberType)),
+  val _MethodSig = Syntax.RuleSignature(Name("_Method"), Seq(
+    Syntax.RuleParameter(Name("?method"), Syntax.SymbolType),
+    Syntax.RuleParameter(Name("?simplename"), Syntax.SymbolType),
+    Syntax.RuleParameter(Name("?descriptor"), Syntax.SymbolType),
+    Syntax.RuleParameter(Name("?declaringType"), Syntax.SymbolType),
+    Syntax.RuleParameter(Name("?returnType"), Syntax.SymbolType),
+    Syntax.RuleParameter(Name("?jvmDescriptor"), Syntax.SymbolType),
+    Syntax.RuleParameter(Name("?arity"), Syntax.NumberType)),
     false)
 
   "compiled souffle" should "derive method descriptor correctly" in {

@@ -45,7 +45,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
 
   override def traceControlPoint(cp: ControlPoint): Unit = {
     super.traceControlPoint(cp)
-    frontendPoint(cp).foreach(_controlTraceFrontend += _)
+    functionalPoint(cp).foreach(_controlTraceFrontend += _)
   }
 
   def getFunction(pat: Datalog.Pattern): Option[FunctionDef] = pat.getHint(SourceConstruct.key) match {
@@ -53,7 +53,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     case _ => None
   }
 
-  def frontendPoint(cp: ControlPoint): Option[FunctionalControlPoint] = {
+  def functionalPoint(cp: ControlPoint): Option[FunctionalControlPoint] = {
     val patPoint = cp.point
     val fun = getFunction(patPoint.pat).getOrElse(return None)
     patPoint.bodies match {
@@ -134,13 +134,13 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     getFunction(fr.cp.point.pat).map(_.name)
   }
 
-  def stepIntoFrontend(): Unit = {
+  def functionalStepInto(): Unit = {
     var fp: Option[FunctionalControlPoint] = None
     while (fp.isEmpty) {
       stepInto()
       if (callStack.isEmpty)
         return
-      fp = frontendPoint(controlPointIR)
+      fp = functionalPoint(controlPointIR)
     }
     stepOverConditionPoint(fp.get)
   }
@@ -174,9 +174,9 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
         }
         controlPointIR
       }
-      frontendPoint(next) match {
+      functionalPoint(next) match {
         case Some(fp2) => stepOverConditionPoint(fp2)
-        case None => stepIntoFrontend()
+        case None => functionalStepInto()
       }
   }
 
@@ -205,7 +205,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
       super.doBodyEntry(frame, cp)
       skipAheadTo.head.foreach { pred =>
         stepOverUntil { () =>
-          frontendPoint(controlPointIR).foreach(_ => _controlTraceFrontend.remove(_controlTraceFrontend.size - 1))
+          functionalPoint(controlPointIR).foreach(_ => _controlTraceFrontend.remove(_controlTraceFrontend.size - 1))
           val atom = controlPointIR.point.atom
           atom.isEmpty || atom.get.getHint(SourceConstruct.key).exists(h => pred(h.asInstanceOf[SourceConstruct[_]]))
         }
@@ -265,7 +265,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
   }
 
   def controlPointFrontend: FunctionalControlPoint =
-    frontendPoint(controlPointIR).get
+    functionalPoint(controlPointIR).get
 
   def currentFunction: FunctionDef =
     controlPointFrontend.fun

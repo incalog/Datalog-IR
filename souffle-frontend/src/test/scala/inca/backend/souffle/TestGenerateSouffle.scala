@@ -1,7 +1,7 @@
 package inca.backend.souffle
 
 import inca.examples.functional.{Code, ControlDataFlow}
-import inca.frontend.souffle.Syntax.cleanRuleName
+import inca.frontend.souffle.Syntax.{Name, cleanRuleName}
 import inca.util.measurement.BenchmarkUtils.writeFile
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -37,7 +37,7 @@ class TestGenerateSouffle extends AnyFunSuite {
     }
 
     // fill fact files based on editscript
-    val facts = compiled.generateFacts(input, extInput)
+    val facts = compiled.generateFacts(input, Name(extInput))
     facts.foreach { case (name, relation) =>
       val relationString = relation.map(_.map(_.toString).mkString("\t")).mkString("\n")
       println(relationString)

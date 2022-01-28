@@ -1,7 +1,9 @@
 package inca.frontend.souffle.lowering
 
 import inca.compiler.Options
+import inca.compiler.source.SourceString
 import inca.frontend.souffle.Syntax
+import inca.frontend.souffle.Syntax.Name
 import inca.frontend.souffle.parser.Parser
 import inca.runtime.context.QueryScope
 import inca.util.matchers.IncaGPMatchers
@@ -33,16 +35,18 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
       |.output Superclass
       |Superclass(?c, ?a) :-
       |  Subclass(?a, ?c).
+      |
+      |.printsize Superclass
       |""".stripMargin
 
   val directsuperclassSig =
-    Syntax.RuleSignature("DirectSuperclass", Seq(
-      Syntax.RuleParameter("?class", Syntax.DeclaredType("ClassType")),
-      Syntax.RuleParameter("?superclass", Syntax.DeclaredType("ClassType"))), false)
+    Syntax.RuleSignature(Name("DirectSuperclass"), Seq(
+      Syntax.RuleParameter(Name("?class"), Syntax.DeclaredType(Name("ClassType"))),
+      Syntax.RuleParameter(Name("?superclass"), Syntax.DeclaredType(Name("ClassType")))), false)
 
   lazy val compiledModule = {
-    val ast = Parser.parse(subclassTransitiveClosure.linesIterator)
-    val compiler = new SouffleToIncaBackendCompiler
+    val ast = Parser.parse(SourceString(subclassTransitiveClosure))
+    val compiler = new SouffleToDatalogIR
     compiler.compile("transitiveclosure", ast)
   }
 
@@ -57,6 +61,7 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
     val factsCompiler = new SouffleInputToEditscript("EMPTY")
     val directsuperclassEdits = factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
 
+    println(compiledModule.psystemModule.patterns.keys)
     assertMatch(compiledModule.ir, "Superclass", directsuperclassEdits) { matcher =>
       assert(matcher.getAllMatches.size == 2)
     }

@@ -68,6 +68,7 @@ object BenchmarkUtils {
 
   def writeFile(path: String, content: String): Unit = {
     val file = new File(path)
+    file.getParentFile.mkdirs()
     file.createNewFile()
     val writer = new PrintWriter(file)
     writer.write(content)

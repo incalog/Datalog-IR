@@ -32,7 +32,7 @@ class DependencyGraph(module: Module) extends Graph[Name, DependencyEdge] {
   def isDataNode(p: Pattern): Boolean = p.hasHint(DataTypeKey) || p.hasHint(ConstructorKey) || p.hasHint(SelectorKey)
 
   override protected def nodeGraphVizAttributes(n: Name): String = {
-    val node = pats(n)
+    val node = pats.getOrElse(n, throw new IllegalArgumentException(s"Unknown pattern $n"))
     if (isDataNode(node))
       "fillcolor=green2, style=filled"
     else if (n.startsWith(demandPatternPrefix))

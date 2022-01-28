@@ -89,8 +89,6 @@ trait Debugger {
     traceControlPoint(cp)
   }
 
-  def stepIntoFrontend(): Unit
-
   def untilFinished(run: () => Unit): Unit =
     while (!isFinished)
       run()

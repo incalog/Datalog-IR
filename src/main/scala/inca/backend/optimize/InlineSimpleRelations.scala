@@ -65,6 +65,9 @@ object InlineSimpleRelations extends Optimization {
     }
 
     def inlineRelationAtom(atom: Atom, inline: Pattern): Seq[Seq[Atom]] = atom match {
+      case Call(name, args, transitive, negative) if name == inline.name && transitive || negative =>
+        retainInlined += name
+        Seq(Seq(atom))
       case Call(name, args, false, false) if name == inline.name =>
         val paramSubst = inline.params.map(_.name).zip(args).toMap
         var renamings: Map[String, String] = Map()

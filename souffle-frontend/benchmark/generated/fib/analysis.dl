@@ -1,21 +1,19 @@
 
 
 
-.decl main(n: number, out__0: number)
+.decl main(x: number, out__0: number)
 .output main
-main(n, out__0) :- input__main(n), fib(n, out__0).
+main(x, out__0) :- ext_input__main(x), fib(x, out__0).
 .decl fib(n: number, out__0: number)
 fib(n, out__0) :- input__fib(n), n = 0, out__0 = 0.
 fib(n, out__0) :- input__fib(n), n != 0, n = 1, out__0 = 1.
 fib(n, out__0) :- input__fib(n), n != 0, n != 1, eval__2 = n - 1, fib(eval__2, call__0), eval__3 = n - 2, fib(eval__3, call__1), out__0 = call__0 + call__1.
-.decl input__main(n__0: number)
-input__main(n__0) :- ext_input__main(n__0).
 .decl input__fib(n__0: number)
-input__fib(n__0) :- input__main(n__0).
+input__fib(n__0) :- ext_input__main(n__0).
 input__fib(n__0) :- input__fib(n), n != 0, n != 1, n__0 = n - 1.
 input__fib(n__0) :- input__fib(n), n != 0, n != 1, eval__2 = n - 1, fib(eval__2, call__0), n__0 = n - 2.
 
-.decl ext_input__main(n: number)
+.decl ext_input__main(x: number)
 .input ext_input__main
 
 

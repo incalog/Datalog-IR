@@ -1,7 +1,7 @@
 package inca.frontend.souffle.lowering
 
 import inca.backend.hints.MagicSetHints
-import inca.backend.ir.Datalog._
+import inca.backend.ir.Datalog.{Name => _, _}
 import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.Syntax.{Type => _, _}
@@ -14,27 +14,27 @@ import truechange.{JavaLitType, LitType}
 
 import scala.collection.immutable.MultiDict
 import scala.collection.mutable
-import scala.meta.{Input => _, Term => _, Type => _, _}
+import scala.meta.{Input => _, Term => _, Type => _, Name => _, _}
 
-class SouffleToIncaBackendCompiler {
+class SouffleToDatalogIR {
 
-  private val patFuns: mutable.Map[String, Pattern] = mutable.Map()
+  private val patterns: mutable.Map[String, Pattern] = mutable.Map()
 
-  private val topLevelRules: mutable.ListBuffer[String] = mutable.ListBuffer()
-  private val decls: mutable.Map[String, RuleSignature] = mutable.Map()
-  private val inputs: mutable.Map[String, Input] = mutable.Map()
+  private val topLevelRules: mutable.ListBuffer[Name] = mutable.ListBuffer()
+  private val decls: mutable.Map[Name, RuleSignature] = mutable.Map()
+  private val inputs: mutable.Map[Name, Input] = mutable.Map()
 
   private val printSizes: mutable.ListBuffer[PrintSize] = mutable.ListBuffer()
 
-  val componentDefinitions: mutable.Map[String, ComponentDefinition] = mutable.Map()
+  val componentDefinitions: mutable.Map[Name, ComponentDefinition] = mutable.Map()
 
   def compile(name: String, analysis: SouffleModule): CompiledSouffleModule = {
     analysis.contents.foreach(compile(_, ""))
 
-    val module = Module(name, Seq(), patFuns.values.toSeq, Seq())
+    val module = Module(name, Seq(), patterns.values.toSeq, Seq())
     val moduleWithUnbounded = PropagateUnbounded.transformModule(module)
     printSizes.foreach { ps =>
-      moduleWithUnbounded.pats.find(_.name == ps.name).foreach { pat =>
+      moduleWithUnbounded.pats.find(_.name == ps.name.name).foreach { pat =>
         pat.addHint(MagicSetHints.Main(pat.params.map(_ => false)))
       }
     }
@@ -65,15 +65,15 @@ class SouffleToIncaBackendCompiler {
       if (funPrefix == "") {
         topLevelRules += name
       }
-      patFuns += (funPrefix + name) -> fun
+      patterns += (funPrefix + name) -> fun
       decls += name -> s
 
     case ruleDef@RuleDefinition(heads, rulebody) =>
       for (RuleHead(name, args) <- heads) {
-        val fun = patFuns.getOrElse(funPrefix + name, throw new IllegalArgumentException(s"Unknown relation ${funPrefix + name}"))
-        val usedVars = collect(ruleDef)
-        implicit val gensym: Gensym = new Gensym(usedVars)
-        val headEqs = (fun.params zip args).flatMap {
+        val pat = patterns.getOrElse(funPrefix + name, throw new IllegalArgumentException(s"Unknown relation ${funPrefix + name}"))
+        val usedVars = Syntax.collectNames(ruleDef)
+        implicit val gensym: Gensym = new Gensym(usedVars.map(_.name))
+        val headEqs = (pat.params zip args).flatMap {
           case (Param(name, _), arg) =>
             val (term, constraints) = compile(arg)
             constraints :+ Compare(EqComparator, Var(name), term)
@@ -82,7 +82,7 @@ class SouffleToIncaBackendCompiler {
         val constraints = rulebody.map(compile(_, funPrefix))
         val funbody = Body(headEqs ++ constraints.flatten)
 
-        patFuns += (funPrefix + name) -> Pattern(fun.vis, fun.name, fun.params, fun.bodies :+ funbody)
+        patterns += (funPrefix + name) -> Pattern(pat.vis, pat.name, pat.params, pat.bodies :+ funbody)
       }
 
     case TypeDeclaration(name, superType) => // do nothing
@@ -91,20 +91,20 @@ class SouffleToIncaBackendCompiler {
       val decl = decls(rule)
       inputs(rule) = in
       // generate pattern that enumerates all node instances of AST node class
-      val fun = patFuns.getOrElse(rule, throw new IllegalArgumentException("Rule signature has to come before input declaration"))
+      val fun = patterns.getOrElse(rule.name, throw new IllegalArgumentException("Rule signature has to come before input declaration"))
       val body = Body(
-        HasType(Var("node"), TNode(rule)) +:
+        HasType(Var("node"), TNode(rule.name)) +:
         decl.parameters.map { param =>
           val cleanName = cleanSouffleName(param.name)
-          Path(Var("node"), TNode(rule), NamedLink(TNode(rule), cleanName), Var(cleanName), compile(param.typ))
+          Path(Var("node"), TNode(rule.name), NamedLink(TNode(rule.name), cleanName), Var(cleanName), compile(param.typ))
         }
       )
-      patFuns(rule) = Pattern(fun.vis, fun.name, fun.params, Seq(body))
+      patterns(rule.name) = Pattern(fun.vis, fun.name, fun.params, Seq(body))
 
     case Output(rule) => // do nothing
 
     case PrintSize(rule) => // do nothing
-      printSizes += PrintSize(funPrefix + rule)
+      printSizes += PrintSize(Name(funPrefix + rule).sourceLocFrom(rule))
   }
 
   def compile(param: RuleParameter): Param =
@@ -135,12 +135,12 @@ class SouffleToIncaBackendCompiler {
       val (lhterm, lhConstraints) = compile(left)
       val (rhterm, rhConstraints) = compile(right)
       lhConstraints ++ rhConstraints :+ Compare(NeqComparator, lhterm, rhterm)
-    case RuleApplication(negated, component, rule, args) =>
+    case RelationApplication(negated, component, rule, args) =>
       val (terms, constraints) = args.map(compile).unzip
       val call = component match {
         case Some(c) => Call(s"${c}_$rule", terms, transitive = false, neg = negated)
         case None =>
-          val ruleName = if (topLevelRules.contains(rule)) rule else funPrefix + rule
+          val ruleName = if (topLevelRules.contains(rule)) rule.name else funPrefix + rule.name
           Call(ruleName, terms, transitive = false, neg = negated)
       }
       constraints.flatten :+ call
@@ -192,32 +192,9 @@ class SouffleToIncaBackendCompiler {
   def genLitLinks: Map[MLink, LitType] =
     decls.values.flatMap { decl =>
       decl.parameters.map { param =>
-        val link = decl.name -> cleanSouffleName(param.name)
+        val link = decl.name.name -> cleanSouffleName(param.name)
         link -> JavaLitType(getJavaClassForType(param.typ))
       }
     }.toMap
-
-  def collect(rule: RuleDefinition): Set[String] = {
-    rule.heads.flatMap(collect).toSet ++ rule.body.flatMap(collect)
-  }
-
-  def collect(head: RuleHead): Set[String] = head.arguments.flatMap(collect).toSet
-
-  def collect(exp: Expression): Set[String] = exp match {
-    case Variable(name) => Set(name)
-    case StringValue(_) => Set()
-    case NumberValue(_) => Set()
-    case Syntax.Wildcard => Set()
-    case BuiltInFunctionCall(_, arguments) =>
-      // TODO only cat function supported
-      Set("cat") ++ arguments.flatMap(collect)
-  }
-
-  def collect(stm: Statement): Set[String] = stm match {
-    case RuleApplication(negated, component, rule, arguments) =>
-      Set(rule) ++ arguments.flatMap(collect)
-    case Equality(left, _, right) => collect(left) ++ collect(right)
-    case Parens(stm) => collect(stm)
-  }
 }
 

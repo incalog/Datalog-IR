@@ -4,6 +4,7 @@ import inca.backend.souffle.GenerateFacts.EDB
 import inca.compiler.source.SourceString
 import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
 import inca.frontend.functional.core.{DataDef, Module}
+import inca.frontend.souffle.Syntax.Name
 import inca.util.Scala.ScalaCompiler
 import truechange.EditScript
 import truediff.Diffable
@@ -17,7 +18,7 @@ object CompiledFunctionalToSouffleModule {
 class CompiledFunctionalToSouffleModule(fun: Module, options: FunctionalOptions) extends CompiledFunctionalModule(fun, options) {
   // TODO check if module contains fold and abort
   lazy val compiler = new GenerateSouffle(dataModel)
-  lazy val (souffleSource, inputRelations): (String, Seq[String]) = {
+  lazy val (souffleSource, inputRelations): (String, Seq[Name]) = {
     compiler.compileModule(optimized, fun.content.collect{case d: DataDef => d})
   }
 
@@ -27,7 +28,7 @@ class CompiledFunctionalToSouffleModule(fun: Module, options: FunctionalOptions)
     import scala.meta._
     q"object O {..${psystemSource.stats}}".syntax
   }
-  def generateFacts(terms: Seq[meta.Term], mainRel: String): EDB = {
+  def generateFacts(terms: Seq[meta.Term], mainRel: Name): EDB = {
 
     def vals(ts: meta.Term*): Seq[AnyRef] = {
       ts.map(a => {

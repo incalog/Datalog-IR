@@ -3,7 +3,7 @@ package inca.frontend.souffle.lowering
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.frontend.functional.core._
 import inca.frontend.souffle.Syntax
-import inca.frontend.souffle.Syntax.{Expression => _, Type => _, _}
+import inca.frontend.souffle.Syntax.{Name => _, Expression => _, Type => _, _}
 import inca.frontend.souffle.Util.cleanSouffleName
 import inca.frontend.souffle.compiler.CompiledSouffleFrontendModule
 import inca.runtime.context.DataModel.{Link => MLink}
@@ -12,22 +12,22 @@ import truechange.{JavaLitType, LitType}
 
 import scala.collection.mutable
 
-class SouffleToIncaFrontendCompiler {
+class SouffleToFunctionalDatalog {
 
-  private val patFuns: mutable.Map[String, FunctionDef] = mutable.Map()
+  private val patterns: mutable.Map[String, FunctionDef] = mutable.Map()
 
-  private val topLevelRules: mutable.ListBuffer[String] = mutable.ListBuffer()
-  private val decls: mutable.Map[String, RuleSignature] = mutable.Map()
-  private val inputs: mutable.Map[String, Input] = mutable.Map()
+  private val topLevelRules: mutable.ListBuffer[Syntax.Name] = mutable.ListBuffer()
+  private val decls: mutable.Map[Syntax.Name, RuleSignature] = mutable.Map()
+  private val inputs: mutable.Map[Syntax.Name, Input] = mutable.Map()
 
   private val printSizes: mutable.ListBuffer[PrintSize] = mutable.ListBuffer()
 
-  val componentDefinitions: mutable.Map[String, ComponentDefinition] = mutable.Map()
+  val componentDefinitions: mutable.Map[Syntax.Name, ComponentDefinition] = mutable.Map()
 
   def compile(name: String, analysis: SouffleModule): CompiledSouffleFrontendModule = {
     analysis.contents.foreach(compile(_, ""))
 
-    val module = Module(Name(name), Seq(), patFuns.values.toSeq)
+    val module = Module(Name(name), Seq(), patterns.values.toSeq)
 
     new CompiledSouffleFrontendModule(
       module,
@@ -57,21 +57,21 @@ class SouffleToIncaFrontendCompiler {
       if (funPrefix == "") {
         topLevelRules += name
       }
-      patFuns += (funPrefix + name) -> fun
+      patterns += (funPrefix + name) -> fun
       decls += name -> s
 
     case ruleDef@RuleDefinition(heads, rulebody) =>
       for (RuleHead(name, args) <- heads) {
         val prefName = funPrefix + name
-        val fun = patFuns.getOrElse(prefName, throw new IllegalArgumentException(s"Unknown relation $prefName"))
+        val fun = patterns.getOrElse(prefName, throw new IllegalArgumentException(s"Unknown relation $prefName"))
 
-        val usedVars = collect(ruleDef)
-        implicit val gensym: Gensym = new Gensym(usedVars)
+        val usedVars = Syntax.collectNames(ruleDef)
+        implicit val gensym: Gensym = new Gensym(usedVars.map(_.name))
         val predicates: Seq[Expression] = rulebody.map(s => compile(s, funPrefix))
         val alt = SetComprehension(Tuple.from(args.map(compile)), predicates)
         val newBody = BaseApplyInfix(fun.body, "++", alt)
         val newFun = FunctionDef(fun.annos, fun.vis, fun.name, fun.params, fun.outType, newBody)
-        patFuns += prefName -> newFun
+        patterns += prefName -> newFun
       }
 
     case TypeDeclaration(name, superType) => // do nothing
@@ -95,11 +95,11 @@ class SouffleToIncaFrontendCompiler {
 
     case Output(name) =>
       val prefName = funPrefix + name
-      val fun = patFuns.getOrElse(prefName, throw new IllegalArgumentException(s"Unknown relation $prefName"))
-      patFuns += prefName -> fun.copy(annos = MainFunctionAnno +: fun.annos)
+      val fun = patterns.getOrElse(prefName, throw new IllegalArgumentException(s"Unknown relation $prefName"))
+      patterns += prefName -> fun.copy(annos = MainFunctionAnno +: fun.annos)
 
     case PrintSize(rule) => // do nothing
-      printSizes += PrintSize(funPrefix + rule)
+      printSizes += PrintSize(Syntax.Name(funPrefix + rule).sourceLocFrom(rule))
   }
 
   def compile(typ: Syntax.Type): Type = typ match {
@@ -122,7 +122,7 @@ class SouffleToIncaFrontendCompiler {
     case Syntax.Equality(left, not, right)  =>
       val op = if (not) "!=" else "=="
       BaseApplyInfix(compile(left), op, compile(right))
-    case Syntax.RuleApplication(negated, component, rule, args) =>
+    case Syntax.RelationApplication(negated, component, rule, args) =>
       if (negated)
         throw new UnsupportedOperationException("Cannot currently support negation, in " + stm)
 
@@ -131,7 +131,7 @@ class SouffleToIncaFrontendCompiler {
         case Some(c) =>
           Call(Var(Name(s"${c}_$rule")), terms)
         case None =>
-          val ruleName = if (topLevelRules.contains(rule)) rule else funPrefix + rule
+          val ruleName = if (topLevelRules.contains(rule)) rule.name else funPrefix + rule.name
           Call(Var(Name(ruleName)), terms)
       }
   }
@@ -152,31 +152,10 @@ class SouffleToIncaFrontendCompiler {
   def genLitLinks: Map[MLink, LitType] =
     decls.values.flatMap { decl =>
       decl.parameters.map { param =>
-        val link = decl.name -> cleanSouffleName(param.name)
+        val link = decl.name.name -> cleanSouffleName(param.name)
         link -> JavaLitType(getJavaClassForType(param.typ))
       }
     }.toMap
 
-  def collect(rule: RuleDefinition): Set[String] = {
-    rule.heads.flatMap(collect).toSet ++ rule.body.flatMap(collect)
-  }
-
-  def collect(head: RuleHead): Set[String] = head.arguments.flatMap(collect).toSet
-
-  def collect(exp: Syntax.Expression): Set[String] = exp match {
-    case Syntax.Variable(name) => Set(name)
-    case Syntax.StringValue(_) => Set()
-    case Syntax.NumberValue(_) => Set()
-    case Syntax.Wildcard => Set()
-    case Syntax.BuiltInFunctionCall(Syntax.CatBuiltInFunction, arguments) =>
-      Set("cat") ++ arguments.flatMap(collect)
-  }
-
-  def collect(stm: Syntax.Statement): Set[String] = stm match {
-    case Syntax.RuleApplication(negated, component, rule, arguments) =>
-      Set(rule) ++ arguments.flatMap(collect)
-    case Syntax.Equality(left, _, right) => collect(left) ++ collect(right)
-    case Syntax.Parens(stm) => collect(stm)
-  }
 }
 

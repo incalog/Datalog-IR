@@ -1,33 +1,41 @@
 package inca.frontend.souffle
 
+import inca.compiler.source.SourceLocation
+
+import scala.annotation.tailrec
+
 object Syntax {
 
   case class SouffleModule(contents: Seq[SouffleContent])
 
-  sealed trait SouffleContent
-  case class ComponentInitialization(name: String, composite: String) extends SouffleContent
-  case class ComponentDefinition(name: String, contents: Seq[SouffleContent]) extends SouffleContent
-  case class TypeDeclaration(name: String, assignedType: Option[DeclaredType]) extends SouffleContent
+  case class Name(name: String) extends SourceLocation {
+    override def toString: String = name
+  }
 
-  def cleanRuleName(name: String): String = name.replaceAllLiterally("$", "__")
-  def cleanVarName(name: String): String = name.replaceAllLiterally("$", "__")
+  sealed trait SouffleContent extends SourceLocation
+  case class ComponentInitialization(name: Name, composite: Name) extends SouffleContent
+  case class ComponentDefinition(name: Name, contents: Seq[SouffleContent]) extends SouffleContent
+  case class TypeDeclaration(name: Name, assignedType: Option[DeclaredType]) extends SouffleContent
 
-  case class RuleSignature(name: String, parameters: Seq[RuleParameter], output: Boolean) extends SouffleContent {
+  def cleanRuleName(name: Name): String = name.toString.replaceAllLiterally("$", "__")
+  def cleanVarName(name: Name): String = name.toString.replaceAllLiterally("$", "__")
+
+  case class RuleSignature(name: Name, parameters: Seq[RuleParameter], output: Boolean) extends SouffleContent {
     override def toString: String = {
       val outputS = if (output) ".output " else ""
       s".decl ${cleanRuleName(name)}(${parameters.map(_.toString).mkString(", ")})"
     }
   }
-  case class RuleParameter(name: String, typ: Type) {
+  case class RuleParameter(name: Name, typ: Type) {
     override def toString: String = s"${cleanVarName(name)}: $typ"
   }
 
-  case class Output(name: String) extends SouffleContent {
+  case class Output(name: Name) extends SouffleContent {
     override def toString: String = s".output ${cleanRuleName(name)}"
   }
-  case class PrintSize(name: String) extends SouffleContent
+  case class PrintSize(name: Name) extends SouffleContent
 
-  case class Input(rule: String, filename: String, delimiter: String) extends SouffleContent {
+  case class Input(rule: Name, filename: String, delimiter: String) extends SouffleContent {
     override def toString: String = ".input " + cleanRuleName(rule)
   }
 
@@ -39,15 +47,15 @@ object Syntax {
       s"$headsS :- $bodyS."
     }
   }
-  case class RuleHead(rule: String, arguments: Seq[Expression]) {
+  case class RuleHead(rule: Name, arguments: Seq[Expression]) extends SourceLocation {
     override def toString: String = s"${cleanRuleName(rule)}(${arguments.map(_.toString).mkString(", ")})"
   }
 
-  sealed trait Statement
-  case class RuleApplication(negated: Boolean, component: Option[String], rule: String, arguments: Seq[Expression]) extends Statement {
+  sealed trait Statement extends SourceLocation
+  case class RelationApplication(negated: Boolean, component: Option[Name], rel: Name, arguments: Seq[Expression]) extends Statement {
     override def toString: String = {
       val negS = if (negated) "!" else ""
-      s"$negS${cleanRuleName(rule)}(${arguments.map(_.toString).mkString(", ")})"
+      s"$negS${cleanRuleName(rel)}(${arguments.map(_.toString).mkString(", ")})"
     }
   }
   case class Equality(left: Expression, not: Boolean, right: Expression) extends Statement {
@@ -74,7 +82,7 @@ object Syntax {
   }
 
   sealed trait Expression
-  case class Variable(name: String) extends Expression {
+  case class Variable(name: Name) extends Expression {
     override def toString: String = cleanVarName(name)
   }
   case class StringValue(value: String) extends Expression {
@@ -90,7 +98,7 @@ object Syntax {
     override def toString: String = "_"
   }
 
-  case class ADTValue(name: String, args: Seq[Expression]) extends Expression {
+  case class ADTValue(name: Name, args: Seq[Expression]) extends Expression {
     override def toString: String = {
       val argsString =
         if (args.isEmpty) ""
@@ -101,7 +109,7 @@ object Syntax {
 
   case class BuiltInFunctionCall(fun: BuiltInFunction, arguments: Seq[Expression]) extends Expression {
     override def toString: String = fun match {
-      case func: InfixBuiltInFunction => s"${arguments(0).toString} $func ${arguments(1).toString}"
+      case func: InfixBuiltInFunction => s"${arguments.head.toString} $func ${arguments(1).toString}"
       case func: PrefixBuiltInFunction => s"$func(${arguments.mkString(", ")})"
     }
   }
@@ -141,8 +149,8 @@ object Syntax {
 
 
   sealed trait Type
-  case class DeclaredType(name: String) extends Type {
-    override def toString: String = name
+  case class DeclaredType(name: Name) extends Type {
+    override def toString: String = name.toString
   }
 
   sealed trait PrimitiveType extends Type
@@ -157,5 +165,29 @@ object Syntax {
   }
   case object FloatType extends PrimitiveType {
     override def toString: String = "float"
+  }
+
+  def collectNames(rule: RuleDefinition): Set[Name] = {
+    rule.heads.flatMap(collectNames).toSet ++ rule.body.flatMap(collectNames)
+  }
+
+  def collectNames(head: RuleHead): Set[Name] = head.arguments.flatMap(collectNames).toSet
+
+  def collectNames(exp: Expression): Set[Name] = exp match {
+    case Variable(name) => Set(name)
+    case StringValue(_) => Set()
+    case NumberValue(_) => Set()
+    case Syntax.Wildcard => Set()
+    case BuiltInFunctionCall(_, arguments) =>
+      // TODO only cat function supported
+      Set(Name("cat")) ++ arguments.flatMap(collectNames)
+  }
+
+  @tailrec
+  def collectNames(stm: Statement): Set[Name] = stm match {
+    case RelationApplication(negated, component, rule, arguments) =>
+      Set(rule) ++ arguments.flatMap(collectNames)
+    case Equality(left, _, right) => collectNames(left) ++ collectNames(right)
+    case Parens(stm) => collectNames(stm)
   }
 }

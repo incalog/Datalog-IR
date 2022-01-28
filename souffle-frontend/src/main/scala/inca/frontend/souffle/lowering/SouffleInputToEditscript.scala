@@ -17,7 +17,7 @@ class SouffleInputToEditscript(dir: String) {
   }
 
   def compile(rows: Iterator[String], sig: Syntax.RuleSignature, delimiter: String): EditScript = {
-    val tag = NamedTag(sig.name.intern)
+    val tag = NamedTag(sig.name.name.intern)
 
     val rowLits = rows.map { tuple =>
       val columns = tuple.split(delimiter)

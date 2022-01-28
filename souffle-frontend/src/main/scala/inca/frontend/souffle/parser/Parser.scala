@@ -1,21 +1,12 @@
 package inca.frontend.souffle.parser
 
+import inca.compiler.source.{Source, SourceLocation}
 import inca.frontend.souffle.Syntax
 
 // TODO currently only supports a subset of souffle which is needed to load a specific file
-object Parser {
+class Parser(source: Source) {
   import fastparse.{parse => _, _}
   import JavaWhitespace._
-
-  def parse(code: ParserInput): Syntax.SouffleModule = {
-    import fastparse.Parsed
-
-    fastparse.parse(code, Analysis(_), verboseFailures = true) match {
-      case Parsed.Success(value, _) => Syntax.SouffleModule(value)
-      case fail: Parsed.Failure =>
-        throw new IllegalArgumentException(s"Parsing Error: ${fail.trace(true).longTerminalsMsg}")
-    }
-  }
 
   def Analysis[_: P]: P[Seq[Syntax.SouffleContent]] =
     P(Start ~ AnalysisContent.rep ~ End)
@@ -67,9 +58,9 @@ object Parser {
 
   def Statement[_: P]: P[Syntax.Statement] =
     P(RuleApplication | Equality | Parens )
-  def RuleApplication[_: P]: P[Syntax.RuleApplication] =
+  def RuleApplication[_: P]: P[Syntax.RelationApplication] =
     P("!".!.? ~ (identifier ~ ".").? ~ identifier ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").map {
-      case (neg, comp, ruleName, args) => Syntax.RuleApplication(neg.isDefined, comp, ruleName, args)
+      case (neg, comp, ruleName, args) => Syntax.RelationApplication(neg.isDefined, comp, ruleName, args)
     }
   def Equality[_: P]: P[Syntax.Equality] =
     P(Expression ~ ("!=" | "=").! ~ Expression).map {
@@ -108,7 +99,9 @@ object Parser {
   def FloatType[_: P]: P[Syntax.FloatType.type] = P("float").map(_ => Syntax.FloatType)
 
 
-  def identifier[_: P]: P[String] = P( (letter | "_" | "?")  ~~ (letter | digit | "_").repX).!.filter(_ != "_")
+  def identifier[_: P]: P[Syntax.Name] =
+    P(((letter | "_" | "?")  ~~ (letter | digit | "_").repX).!.filter(_ != "_")).mapWithLoc(Syntax.Name.apply)
+
   def letter[_: P]: P[Unit] = P( lowercase | uppercase )
   def lowercase[_: P]: P[Unit] = P( CharIn("a-z") )
   def uppercase[_: P]: P[Unit] = P( CharIn("A-Z") )
@@ -123,4 +116,56 @@ object Parser {
   def unicodeEscape[_: P]  = P( "u" ~~ hexDigit ~~ hexDigit ~~ hexDigit ~~ hexDigit )
   def escape[_: P]         = P( "\\" ~~ (CharIn("\"/\\\\bfnrt") | unicodeEscape) )
   def string[_: P]         = P( "\"" ~~ (strChars | escape).repX.! ~~ "\"")
+
+
+  implicit class Ploc[T](p: => P[T])(implicit ctx: P[_]) {
+    def mapWithLoc[U <: SourceLocation](f: T => U): P[U] =
+      (Index ~ p ~ Index).map {
+        case (start, t, end) =>
+          val u = f(t)
+          u.source = source
+          u.startIndex = start
+          u.endIndex = end
+          u
+      }
+
+    def mapWithLocFun[U <: SourceLocation, V <: SourceLocation](f: T => (U => V)): P[U => V] =
+      (Index ~ p ~ Index).map {
+        case (start, t, end) =>
+          val uv = f(t)
+          u => {
+            val v = uv(u)
+            u.source = source
+            v.startIndex = u.startIndex
+            v.endIndex = end
+            v
+          }
+      }
+
+    def flatMapWithLoc[U <: SourceLocation](f: T => P[U]): P[U] =
+      (Index ~ p ~ Index).flatMap {
+        case (start, t, end) =>
+          val up = f(t)
+          up.map { u =>
+            u.source = source
+            u.startIndex = start
+            u.endIndex = end
+            u
+          }
+      }
+  }
+}
+
+
+object Parser {
+  def parse(source: Source): Syntax.SouffleModule = {
+    import fastparse.Parsed
+    val parser = new Parser(source)
+
+    fastparse.parse(source.code, parser.Analysis(_), verboseFailures = true) match {
+      case Parsed.Success(value, _) => Syntax.SouffleModule(value)
+      case fail: Parsed.Failure =>
+        throw new IllegalArgumentException(s"Parsing Error: ${fail.trace(true).longTerminalsMsg}")
+    }
+  }
 }

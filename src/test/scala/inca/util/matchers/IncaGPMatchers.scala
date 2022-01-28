@@ -24,12 +24,12 @@ trait IncaGPMatchers extends IncaMatchers {
   }
 
   def assertMatch(module: Datalog.Module,
-                  fun: String,
+                  patName: String,
                   editScript: EditScript)
                  (asserter: Query.Matcher => Assertion): Assertion = {
 
     val psystem = compiler.Compiler.compileGP(module, dataModel, options).psystemModule
-    val querySpec = psystem.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module ${module.name}."))
+    val querySpec = psystem.patterns.getOrElse(patName, throw new IllegalArgumentException(s"Pattern $patName undefined in module ${module.name}."))
 
 
     val feed = EnginePool.loadDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
