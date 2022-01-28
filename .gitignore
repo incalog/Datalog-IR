@@ -1,4 +1,5 @@
-code/**
+/benchmark/python/*/
+/souffle-frontend/benchmark/generated
 
 # sbt
 dist/*
@@ -71,5 +72,4 @@ $RECYCLE.BIN/
 #general
 *.class
 
-/benchmark/python/*/
 /.bsp/
