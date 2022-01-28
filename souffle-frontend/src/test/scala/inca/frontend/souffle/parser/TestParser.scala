@@ -98,11 +98,10 @@ class TestParser extends AnyFlatSpec {
     )(parse("x != \"abc\"", parser.Statement(_)).get.value)
 
     assertResult(
-      Syntax.Parens(
-        Syntax.Equality(
-          Syntax.Variable(Name("x")),
-          not = true,
-          Syntax.StringValue("abc"))
+      Syntax.Equality(
+        Syntax.Variable(Name("x")),
+        not = true,
+        Syntax.StringValue("abc")
       )
     )(parse("(x != \"abc\")", parser.Statement(_)).get.value)
 

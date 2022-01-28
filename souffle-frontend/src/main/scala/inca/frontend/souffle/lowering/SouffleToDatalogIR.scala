@@ -1,5 +1,6 @@
 package inca.frontend.souffle.lowering
 
+import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Datalog.{Name => _, _}
 import inca.frontend.constraint.compiler.ConstraintOptions
@@ -14,7 +15,7 @@ import truechange.{JavaLitType, LitType}
 
 import scala.collection.immutable.MultiDict
 import scala.collection.mutable
-import scala.meta.{Input => _, Term => _, Type => _, Name => _, _}
+import scala.meta.{Input => _, Name => _, Term => _, Type => _, _}
 
 class SouffleToDatalogIR {
 
@@ -61,6 +62,7 @@ class SouffleToDatalogIR {
 
     case s@RuleSignature(name, parameters, _) =>
       val fun = Pattern(None, funPrefix + name, parameters.map(compile), Seq())
+        .addHint(SourceConstruct.from(s))
       // this is a top-level rule
       if (funPrefix == "") {
         topLevelRules += name
@@ -69,14 +71,14 @@ class SouffleToDatalogIR {
       decls += name -> s
 
     case ruleDef@RuleDefinition(heads, rulebody) =>
-      for (RuleHead(name, args) <- heads) {
+      for (head@RuleHead(name, args) <- heads) {
         val pat = patterns.getOrElse(funPrefix + name, throw new IllegalArgumentException(s"Unknown relation ${funPrefix + name}"))
         val usedVars = Syntax.collectNames(ruleDef)
         implicit val gensym: Gensym = new Gensym(usedVars.map(_.name))
         val headEqs = (pat.params zip args).flatMap {
           case (Param(name, _), arg) =>
             val (term, constraints) = compile(arg)
-            constraints :+ Compare(EqComparator, Var(name), term)
+            constraints :+ Compare(EqComparator, Var(name), term).addHint(SourceConstruct.from(arg, head -> arg))
         }
 
         val constraints = rulebody.map(compile(_, funPrefix))
@@ -130,11 +132,15 @@ class SouffleToDatalogIR {
     case Equality(left, not, right) if !not =>
       val (lhterm, lhConstraints) = compile(left)
       val (rhterm, rhConstraints) = compile(right)
-      lhConstraints ++ rhConstraints :+ Compare(EqComparator, lhterm, rhterm)
+      lhConstraints ++ rhConstraints :+
+        Compare(EqComparator, lhterm, rhterm)
+          .addHint(SourceConstruct.from(stm))
     case Equality(left, not, right) if not =>
       val (lhterm, lhConstraints) = compile(left)
       val (rhterm, rhConstraints) = compile(right)
-      lhConstraints ++ rhConstraints :+ Compare(NeqComparator, lhterm, rhterm)
+      lhConstraints ++ rhConstraints :+
+        Compare(NeqComparator, lhterm, rhterm)
+          .addHint(SourceConstruct.from(stm))
     case RelationApplication(negated, component, rule, args) =>
       val (terms, constraints) = args.map(compile).unzip
       val call = component match {
@@ -144,6 +150,7 @@ class SouffleToDatalogIR {
           Call(ruleName, terms, transitive = false, neg = negated)
       }
       constraints.flatten :+ call
+        .addHint(SourceConstruct.from(stm))
   }
 
   def compile(exp: Syntax.Expression)(implicit gensym: Gensym): (Term, Seq[Atom]) = exp match {
@@ -166,6 +173,7 @@ class SouffleToDatalogIR {
       }.toList
       val funString = q"(..$typedParams) => (${compileEval(exp)}).intern"
       val computed = Computed(trgVar, Evaluation(params.map((_, TLiteral.String)), TScalaString, Scala(funString)))
+        .addHint(SourceConstruct.from(exp))
       (trgVar, Seq(computed))
     case _ => throw new IllegalArgumentException(s"TODO $exp not supported")
   }

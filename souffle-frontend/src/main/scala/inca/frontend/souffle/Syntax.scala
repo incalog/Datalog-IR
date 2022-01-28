@@ -77,11 +77,7 @@ object Syntax {
     override def toString: String = s"${left} <= ${right}"
   }
 //  case class Or(left: Statement, right: Statement) extends Statement
-  case class Parens(stm: Statement) extends Statement {
-    override def toString: String = s"($stm)"
-  }
-
-  sealed trait Expression
+  sealed trait Expression extends SourceLocation
   case class Variable(name: Name) extends Expression {
     override def toString: String = cleanVarName(name)
   }
@@ -183,11 +179,9 @@ object Syntax {
       Set(Name("cat")) ++ arguments.flatMap(collectNames)
   }
 
-  @tailrec
   def collectNames(stm: Statement): Set[Name] = stm match {
     case RelationApplication(negated, component, rule, arguments) =>
       Set(rule) ++ arguments.flatMap(collectNames)
     case Equality(left, _, right) => collectNames(left) ++ collectNames(right)
-    case Parens(stm) => collectNames(stm)
   }
 }

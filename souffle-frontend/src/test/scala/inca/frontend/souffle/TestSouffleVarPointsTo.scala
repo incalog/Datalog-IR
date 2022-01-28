@@ -59,7 +59,7 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
     println(editScript.size)
 
 
-    val RUNS = 5
+    val RUNS = 1
 
     for (run <- 1 to RUNS) {
       val queryScope = new QueryScope(compiledModule.dataModel, Seq())

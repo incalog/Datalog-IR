@@ -19,7 +19,7 @@ object PropagateUnbounded {
       pats = newPats
       newPats = fixStep(pats)
     }
-    Module(module.name, module.imports, pats, module.scalaContent)
+    Module(module.name, module.imports, pats, module.scalaContent).withHints(module)
   }
 }
 
@@ -70,7 +70,7 @@ trait TrackUnbounded {
         Param(p.name, ty)
       } else p
     }
-    Pattern(pat.vis, pat.name, updatedParams, pat.bodies)
+    Pattern(pat.vis, pat.name, updatedParams, pat.bodies).withHints(pat)
   }
 
   def transformBody(body: Body)(implicit pats: PatEnv): Set[Term] = {

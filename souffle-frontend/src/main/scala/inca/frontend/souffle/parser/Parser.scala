@@ -17,26 +17,26 @@ class Parser(source: Source) {
     )
 
   def ComponentInitialization[_: P]: P[Syntax.ComponentInitialization] =
-    P(".init" ~ identifier ~ "=" ~ identifier).map(Syntax.ComponentInitialization.tupled)
+    P(".init" ~ identifier ~ "=" ~ identifier).mapWithLoc(Syntax.ComponentInitialization.tupled)
 
   def ComponentDefinition[_: P]: P[Syntax.ComponentDefinition] =
-    P(".comp" ~ identifier ~ "{" ~ AnalysisContent.rep ~ "}").map(Syntax.ComponentDefinition.tupled)
+    P(".comp" ~ identifier ~ "{" ~ AnalysisContent.rep ~ "}").mapWithLoc(Syntax.ComponentDefinition.tupled)
 
   def TypeDeclaration[_: P]: P[Syntax.TypeDeclaration] =
-    P(".type" ~ identifier ~ ("=" ~ DeclaredType).?).map(Syntax.TypeDeclaration.tupled)
+    P(".type" ~ identifier ~ ("=" ~ DeclaredType).?).mapWithLoc(Syntax.TypeDeclaration.tupled)
 
   def RuleSignature[_: P]: P[Syntax.RuleSignature] =
-    P(".decl" ~ identifier ~ "(" ~ RuleParameter.rep(1, sep = ",") ~ ")" ~ "output".!.?).map {
+    P(".decl" ~ identifier ~ "(" ~ RuleParameter.rep(1, sep = ",") ~ ")" ~ "output".!.?).mapWithLoc {
       case (rule, params, output) => Syntax.RuleSignature(rule, params, output.isDefined)
     }
   def RuleParameter[_: P]: P[Syntax.RuleParameter] =
     P(identifier ~ ":" ~ Type).map(Syntax.RuleParameter.tupled)
 
   def Output[_: P]: P[Syntax.Output] =
-    P(".output" ~ identifier).map(Syntax.Output)
+    P(".output" ~ identifier).mapWithLoc(Syntax.Output)
 
   def PrintSize[_: P]: P[Syntax.PrintSize] =
-    P(".printsize" ~ identifier).map(Syntax.PrintSize)
+    P(".printsize" ~ identifier).mapWithLoc(Syntax.PrintSize)
 
   def Input[_: P]: P[Syntax.Input] =
     P(".input" ~ identifier ~ "(" ~
@@ -45,43 +45,43 @@ class Parser(source: Source) {
       "filename" ~ "=" ~ string ~
       "," ~
       "delimiter" ~ "=" ~ string ~
-    ")").map(Syntax.Input.tupled)
+    ")").mapWithLoc(Syntax.Input.tupled)
 
   def Plan[_: P]: P[Unit] =
     P(".plan" ~ decimalinteger ~ "(" ~ decimalinteger.rep(sep = ",") ~ ")")
 
   def RuleDefinition[_: P]: P[Syntax.RuleDefinition] =
-    P(RuleHead.rep(min = 1, sep = ",") ~ ":-" ~ Statement.rep(min = 1, sep = ",") ~ ".").map(Syntax.RuleDefinition.tupled)
+    P(RuleHead.rep(min = 1, sep = ",") ~ ":-" ~ Statement.rep(min = 1, sep = ",") ~ ".").mapWithLoc(Syntax.RuleDefinition.tupled)
 
   def RuleHead[_: P]: P[Syntax.RuleHead] =
-    P(identifier ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").map(Syntax.RuleHead.tupled)
+    P(identifier ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").mapWithLoc(Syntax.RuleHead.tupled)
 
   def Statement[_: P]: P[Syntax.Statement] =
     P(RuleApplication | Equality | Parens )
   def RuleApplication[_: P]: P[Syntax.RelationApplication] =
-    P("!".!.? ~ (identifier ~ ".").? ~ identifier ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").map {
+    P("!".!.? ~ (identifier ~ ".").? ~ identifier ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").mapWithLoc {
       case (neg, comp, ruleName, args) => Syntax.RelationApplication(neg.isDefined, comp, ruleName, args)
     }
   def Equality[_: P]: P[Syntax.Equality] =
-    P(Expression ~ ("!=" | "=").! ~ Expression).map {
+    P(Expression ~ ("!=" | "=").! ~ Expression).mapWithLoc {
       case (left, compare, right) => Syntax.Equality(left, compare == "!=", right)
     }
   def Parens[_: P]: P[Syntax.Statement] =
-    P("(" ~ Statement ~ ")").map(Syntax.Parens)
+    P("(" ~ Statement ~ ")")
 
 
   def Expression[_: P]: P[Syntax.Expression] =
     P(Any | BuiltInFunctionCall | Variable | StringValue | NumberValue)
   def Variable[_: P]: P[Syntax.Variable] =
-    P(identifier).map(Syntax.Variable)
+    P(identifier).mapWithLoc(Syntax.Variable)
   def StringValue[_: P]: P[Syntax.StringValue] =
-    P(string).map(Syntax.StringValue)
+    P(string).mapWithLoc(Syntax.StringValue)
   def NumberValue[_: P]: P[Syntax.NumberValue] =
-    P(decimalinteger).map(Syntax.NumberValue)
+    P(decimalinteger).mapWithLoc(Syntax.NumberValue)
   def Any[_: P]: P[Syntax.Wildcard.type] =
-    P("_").map(_ => Syntax.Wildcard)
+    P("_").mapWithLoc(_ => Syntax.Wildcard)
   def BuiltInFunctionCall[_: P]: P[Syntax.BuiltInFunctionCall] =
-    P(BuiltInFunction ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").map(Syntax.BuiltInFunctionCall.tupled)
+    P(BuiltInFunction ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").mapWithLoc(Syntax.BuiltInFunctionCall.tupled)
 
 
   def BuiltInFunction[_: P]: P[Syntax.BuiltInFunction] = CatBuiltInFunction

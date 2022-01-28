@@ -12,7 +12,7 @@ object DebugHints {
       case _ => SourceConstruct(constr)
     }
     def from[C](constr: C, default: C): Hint = constr match {
-      case hinted: Hints => SourceConstruct(hinted.hints.getOrElse(key, constr))
+      case hinted: Hints => SourceConstruct(hinted.hints.getOrElse(key, default))
       case _ => SourceConstruct(default)
     }
     def get(hints: Hints): Option[Any] =
