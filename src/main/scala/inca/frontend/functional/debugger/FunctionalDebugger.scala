@@ -267,6 +267,17 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
   def controlPointFrontend: FunctionalControlPoint =
     functionalPoint(controlPointIR).get
 
+
+  def currentDebuggerInfo: String = {
+    val sb = new StringBuilder
+    sb ++= currentCallStack += '\n'
+    sb ++= currentBindings += '\n'
+    currentCodeFunction.lines().map("  |  " + _).forEach( line =>
+      sb ++= line += '\n'
+    )
+    sb.toString()
+  }
+
   def currentFunction: FunctionDef =
     controlPointFrontend.fun
 
@@ -300,30 +311,6 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
 
   def currentBindings: String = {
     val table = frontendTable(controlPointFrontend, varsIR)
-    val rowStrings = table.rows.map { row =>
-      val sb = new StringBuilder
-      sb += '['
-      table.columns.foreach { col =>
-        val ix = table.columnIndex(col)
-        val v = row(ix)
-        if (v != null) {
-          sb ++= col
-          sb += '='
-          sb ++= prettyPrint(v)
-          sb ++= ", "
-        }
-      }
-      if (sb.length() > 2) {
-        sb.deleteCharAt(sb.length() - 1)
-        sb.deleteCharAt(sb.length() - 1)
-      }
-      sb += ']'
-      sb.toString()
-    }
-    rowStrings.size match {
-      case 0 => "[]"
-      case 1 => rowStrings.head
-      case _ => rowStrings.mkString("{", ", ", "}")
-    }
+    table.bindingsToString(prettyPrint)
   }
 }

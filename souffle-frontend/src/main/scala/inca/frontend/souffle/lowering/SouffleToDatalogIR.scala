@@ -76,32 +76,34 @@ class SouffleToDatalogIR {
         val usedVars = Syntax.collectNames(ruleDef)
         implicit val gensym: Gensym = new Gensym(usedVars.map(_.name))
         val headEqs = (pat.params zip args).flatMap {
+          case (Param(name, _), Variable(vname)) if s"?$name" == vname.name =>
+            Seq()
           case (Param(name, _), arg) =>
             val (term, constraints) = compile(arg)
             constraints :+ Compare(EqComparator, Var(name), term).addHint(SourceConstruct.from(arg, head -> arg))
         }
 
         val constraints = rulebody.map(compile(_, funPrefix))
-        val funbody = Body(headEqs ++ constraints.flatten)
+        val funbody = Body(constraints.flatten ++ headEqs).addHint(SourceConstruct.from(head, head -> ruleDef))
 
-        patterns += (funPrefix + name) -> Pattern(pat.vis, pat.name, pat.params, pat.bodies :+ funbody)
+        patterns += (funPrefix + name) -> Pattern(pat.vis, pat.name, pat.params, pat.bodies :+ funbody).withHints(pat)
       }
 
     case TypeDeclaration(name, superType) => // do nothing
 
-    case in@Input(rule, filename, delimiter) =>
-      val decl = decls(rule)
-      inputs(rule) = in
+    case in@Input(rel, filename, delimiter) =>
+      val decl = decls(rel)
+      inputs(rel) = in
       // generate pattern that enumerates all node instances of AST node class
-      val fun = patterns.getOrElse(rule.name, throw new IllegalArgumentException("Rule signature has to come before input declaration"))
+      val pat = patterns.getOrElse(rel.name, throw new IllegalArgumentException("Rule signature has to come before input declaration"))
       val body = Body(
-        HasType(Var("node"), TNode(rule.name)) +:
+        HasType(Var("node"), TNode(rel.name)) +:
         decl.parameters.map { param =>
           val cleanName = cleanSouffleName(param.name)
-          Path(Var("node"), TNode(rule.name), NamedLink(TNode(rule.name), cleanName), Var(cleanName), compile(param.typ))
+          Path(Var("node"), TNode(rel.name), NamedLink(TNode(rel.name), cleanName), Var(cleanName), compile(param.typ))
         }
-      )
-      patterns(rule.name) = Pattern(fun.vis, fun.name, fun.params, Seq(body))
+      ).addHint(SourceConstruct.from(in))
+      patterns(rel.name) = Pattern(pat.vis, pat.name, pat.params, Seq(body)).withHints(pat)
 
     case Output(rule) => // do nothing
 

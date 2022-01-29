@@ -36,6 +36,33 @@ trait Table[V] {
 
   def contains(colValPairs: Seq[(String, V)]): Boolean
 
+  def bindingsToString(f: V => String): String = {
+    val rowStrings = rows.map { row =>
+      val sb = new StringBuilder
+      sb += '['
+      columns.foreach { col =>
+        val ix = columnIndex(col)
+        val v = row(ix)
+        if (v != null) {
+          sb ++= col
+          sb += '='
+          sb ++= f(v)
+          sb ++= ", "
+        }
+      }
+      if (sb.length() > 2) {
+        sb.deleteCharAt(sb.length() - 1)
+        sb.deleteCharAt(sb.length() - 1)
+      }
+      sb += ']'
+      sb.toString()
+    }
+    rowStrings.size match {
+      case 0 => "nil"
+      case 1 => rowStrings.head
+      case _ => rowStrings.mkString("{", ", ", "}")
+    }
+  }
 }
 
 object Table {

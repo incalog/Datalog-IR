@@ -19,8 +19,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(compiledExample)
     debugger.entry("main")
     while (!debugger.isFinished) {
-      debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
-      println(debugger.currentBindings)
+      println(debugger.currentDebuggerInfo)
       debugger.functionalStepInto()
     }
     println(debugger.relation("main"))
@@ -31,8 +30,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(compiledExample)
     debugger.entry("main")
     while (!debugger.isFinished) {
-      debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
-      println(debugger.currentBindings)
+      println(debugger.currentDebuggerInfo)
       debugger.functionalStepInto()
     }
     println(debugger.relation("main"))
@@ -68,9 +66,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(compiledExample)
     debugger.entry("main", q"3")
     while (!debugger.isFinished) {
-      println(debugger.currentCallStack)
-      println("  " + debugger.currentBindings)
-      debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
+      println(debugger.currentDebuggerInfo)
       debugger.functionalStepInto()
     }
     println(debugger.relation("main"))
@@ -86,9 +82,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(compiledExample)
     debugger.entry("main")
     while (!debugger.isFinished) {
-      println(debugger.currentCallStack)
-      println("  " + debugger.currentBindings)
-      debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
+      println(debugger.currentDebuggerInfo)
       debugger.functionalStepInto()
     }
     println(debugger.relation("main"))
@@ -99,9 +93,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(compiledExample)
     debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
     while (!debugger.isFinished) {
-      println(debugger.currentCallStack)
-      println("  " + debugger.currentBindings)
-      debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
+      println(debugger.currentDebuggerInfo)
       debugger.functionalStepInto()
     }
     println(debugger.relation("main"))
@@ -112,13 +104,9 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(compiledExample)
     debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
     while (!debugger.isFinished) {
-      println(debugger.currentCallStack)
-      println("  " + debugger.currentBindings)
-      debugger.currentCodeFunction.lines().map("  |  " + _).forEach(println)
+      println(debugger.currentDebuggerInfo)
       debugger.functionalStepInto()
     }
     println(debugger.relation("main"))
-    debugger.controlTraceFrontend.foreach(println)
-
   }
 }
