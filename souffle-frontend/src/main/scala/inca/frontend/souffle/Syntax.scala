@@ -2,11 +2,25 @@ package inca.frontend.souffle
 
 import inca.compiler.source.SourceLocation
 
-import scala.annotation.tailrec
-
 object Syntax {
 
-  case class SouffleModule(contents: Seq[SouffleContent])
+  case class SouffleModule(contents: Seq[SouffleContent]) {
+    lazy val rules: Map[String, Seq[(RuleHead, RuleDefinition)]] = {
+      val ruleNames = contents.flatMap {
+        case RuleDefinition(heads, _) => heads.map(_.rule.name)
+        case _ => Seq()
+      }
+      (for (name <- ruleNames)
+        yield name -> rulesByName(name)).toMap
+    }
+
+    def rulesByName(name: String): Seq[(RuleHead, RuleDefinition)] =
+      contents.flatMap {
+        case rule@RuleDefinition(heads, body) =>
+          heads.filter(_.rule.name == name).map(_ -> rule)
+        case _ => Seq()
+      }
+  }
 
   case class Name(name: String) extends SourceLocation {
     override def toString: String = name
@@ -40,11 +54,13 @@ object Syntax {
   }
 
 
-  case class RuleDefinition(heads: Seq[RuleHead], body: Seq[Statement]) extends SouffleContent {
+  case class RuleBody(ss: Seq[Statement]) extends SourceLocation {
+    override def toString: String = ss.map(_.toString).mkString(", ")
+  }
+  case class RuleDefinition(heads: Seq[RuleHead], body: RuleBody) extends SouffleContent {
     override def toString: String = {
       val headsS = heads.map(_.toString).mkString(", ")
-      val bodyS = body.map(_.toString).mkString(", ")
-      s"$headsS :- $bodyS."
+      s"$headsS :- $body."
     }
   }
   case class RuleHead(rule: Name, arguments: Seq[Expression]) extends SourceLocation {
@@ -164,7 +180,7 @@ object Syntax {
   }
 
   def collectNames(rule: RuleDefinition): Set[Name] = {
-    rule.heads.flatMap(collectNames).toSet ++ rule.body.flatMap(collectNames)
+    rule.heads.flatMap(collectNames).toSet ++ rule.body.ss.flatMap(collectNames)
   }
 
   def collectNames(head: RuleHead): Set[Name] = head.arguments.flatMap(collectNames).toSet

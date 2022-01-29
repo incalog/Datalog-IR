@@ -122,7 +122,7 @@ class GenerateSouffle(dataModel: DataModel) {
 
       val atoms = body.atoms.map(compileAtom)
       for (alt <- TupleOps.cartesianProduct(atoms))
-        yield RuleDefinition(Seq(head), alt.flatten)
+        yield RuleDefinition(Seq(head), RuleBody(alt.flatten))
     }
     val output = if (pat.hasHint(MagicSetHints.MainKey)) {
       Seq(Output(patname))

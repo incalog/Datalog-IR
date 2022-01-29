@@ -29,8 +29,8 @@ class SouffleToDatalogIR {
 
   val componentDefinitions: mutable.Map[Name, ComponentDefinition] = mutable.Map()
 
-  def compile(name: String, analysis: SouffleModule): CompiledSouffleModule = {
-    analysis.contents.foreach(compile(_, ""))
+  def compile(name: String, souffle: SouffleModule): CompiledSouffleModule = {
+    souffle.contents.foreach(compile(_, ""))
 
     val module = Module(name, Seq(), patterns.values.toSeq, Seq())
     val moduleWithUnbounded = PropagateUnbounded.transformModule(module)
@@ -43,8 +43,9 @@ class SouffleToDatalogIR {
     val lang = new DataModel(Set(), MultiDict(), Map(), genLitLinks)
 
     CompiledSouffleModule(
+      souffle,
       moduleWithUnbounded,
-      inputs.values.toSeq.map { input => (decls(input.rule), input) },
+      inputs.map { case (name, input) => name.name -> (decls(input.rule), input) }.toMap,
       printSizes.toSeq,
       lang,
       ConstraintOptions()
@@ -83,7 +84,7 @@ class SouffleToDatalogIR {
             constraints :+ Compare(EqComparator, Var(name), term).addHint(SourceConstruct.from(arg, head -> arg))
         }
 
-        val constraints = rulebody.map(compile(_, funPrefix))
+        val constraints = rulebody.ss.map(compile(_, funPrefix))
         val funbody = Body(constraints.flatten ++ headEqs).addHint(SourceConstruct.from(head, head -> ruleDef))
 
         patterns += (funPrefix + name) -> Pattern(pat.vis, pat.name, pat.params, pat.bodies :+ funbody).withHints(pat)

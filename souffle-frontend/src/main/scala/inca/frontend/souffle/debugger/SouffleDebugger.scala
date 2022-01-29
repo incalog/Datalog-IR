@@ -2,7 +2,7 @@ package inca.frontend.souffle.debugger
 
 import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.ir.Datalog
-import inca.compiler.source.{ExcerptAbsoluteRegion, SourceLocation, SourceLocationList, SourceObject}
+import inca.compiler.source.{ExcerptAbsoluteRegion, PaddedRegion, SourceLocation, SourceLocationList, SourceObject}
 import inca.debugger.table.Table
 import inca.debugger.{AfterList, AtListElem, AtomPoint, BeforeList, ControlPoint, Debugger, Value}
 import inca.frontend.souffle.Syntax.{Expression, Input, Name, RuleDefinition, RuleHead, RuleSignature, SouffleContent, Statement}
@@ -57,7 +57,7 @@ class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
                 case Some(SourceConstruct((_: RuleHead, _: Expression))) => None // param=argument equality constraint
                 case constr => throw new IllegalArgumentException(s"Unexpected source construct $constr")
               }
-              case AfterList => Some(InRulePoint(rel, rule, SourceLocationList(rule.body).sourceObject, cp))
+              case AfterList => Some(InRulePoint(rel, rule, SourceLocationList(rule.body.ss).sourceObject, cp))
             }
           case Some(SourceConstruct(in: Input)) =>
             Some(InputPoint(rel, in, in.sourceObject, cp))
@@ -90,8 +90,46 @@ class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
 
   def currentCodeFunction: String = {
     val sp = soufflePoint(controlPointIR).getOrElse(throw new IllegalStateException())
-    val region = ExcerptAbsoluteRegion(sp.region.startIndex, sp.region.endIndex)
-    sp.point.loc.sourceExcerpt(region).linesColored
+    val excerptRegion = ExcerptAbsoluteRegion(sp.region.startIndex, sp.region.endIndex)
+    val contextualRegion = sp match {
+      case OutOfRulePoint(rel, point, irPoint) =>
+        compiled.inputs.get(rel.name.name) match {
+          case Some((_, input)) =>
+            PaddedRegion("", excerptRegion, "\n" + input.sourceCode)
+          case None =>
+            val rules = compiled.souffle.rules(rel.name.name)
+            val sb = new StringBuilder
+            sb += '\n'
+            for ((head, rule) <- rules) {
+              sb ++= head.sourceCode
+              sb ++= rule.body.sourceCode.stripTrailing()
+              sb += '\n'
+            }
+            PaddedRegion("", excerptRegion, sb.toString().stripTrailing())
+        }
+      case InRulePoint(rel, rule, point, irPoint) =>
+        val rules = compiled.souffle.rules(rel.name.name)
+        val ix = rules.indexWhere(_._2.sourceObject == rule.sourceObject)
+        val (prior, thisAfter) = rules.splitAt(ix)
+        val after = thisAfter.tail
+        val sbPrior = new StringBuilder
+        sbPrior ++= rel.sourceCode.stripTrailing() += '\n'
+        for ((head, rule) <- prior) {
+          sbPrior ++= head.sourceCode
+          sbPrior ++= rule.body.sourceCode.stripTrailing()
+          sbPrior += '\n'
+        }
+        val sbAfter = new StringBuilder
+        for ((head, rule) <- after) {
+          sbAfter ++= head.sourceCode
+          sbAfter ++= rule.body.sourceCode.stripTrailing()
+          sbAfter += '\n'
+        }
+        PaddedRegion(sbPrior.toString(), excerptRegion, "\n" + sbAfter.toString())
+      case InputPoint(rel, input, point, irPoint) =>
+        PaddedRegion(rel.sourceCode.stripTrailing() + "\n", excerptRegion, "")
+    }
+    sp.point.loc.sourceExcerpt(contextualRegion).linesColored
   }
 
   def getRelationSignature(pat: Datalog.Pattern): Option[RuleSignature] = pat.getHint(SourceConstruct.key) match {

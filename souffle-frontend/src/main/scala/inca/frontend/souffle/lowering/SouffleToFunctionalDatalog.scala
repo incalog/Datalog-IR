@@ -67,7 +67,7 @@ class SouffleToFunctionalDatalog {
 
         val usedVars = Syntax.collectNames(ruleDef)
         implicit val gensym: Gensym = new Gensym(usedVars.map(_.name))
-        val predicates: Seq[Expression] = rulebody.map(s => compile(s, funPrefix))
+        val predicates: Seq[Expression] = rulebody.ss.map(s => compile(s, funPrefix))
         val alt = SetComprehension(Tuple.from(args.map(compile)), predicates)
         val newBody = BaseApplyInfix(fun.body, "++", alt)
         val newFun = FunctionDef(fun.annos, fun.vis, fun.name, fun.params, fun.outType, newBody)

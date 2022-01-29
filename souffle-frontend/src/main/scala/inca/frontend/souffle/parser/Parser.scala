@@ -51,7 +51,10 @@ class Parser(source: Source) {
     P(".plan" ~ decimalinteger ~ "(" ~ decimalinteger.rep(sep = ",") ~ ")")
 
   def RuleDefinition[_: P]: P[Syntax.RuleDefinition] =
-    P(RuleHead.rep(min = 1, sep = ",") ~ ":-" ~ Statement.rep(min = 1, sep = ",") ~ ".").mapWithLoc(Syntax.RuleDefinition.tupled)
+    P(RuleHead.rep(min = 1, sep = ",") ~ RuleBody).mapWithLoc(Syntax.RuleDefinition.tupled)
+
+  def RuleBody[_: P]: P[Syntax.RuleBody] =
+    P(":-" ~ Statement.rep(min = 1, sep = ",") ~ ".").mapWithLoc(Syntax.RuleBody.apply)
 
   def RuleHead[_: P]: P[Syntax.RuleHead] =
     P(identifier ~ "(" ~ Expression.rep(min = 1, sep = ",") ~ ")").mapWithLoc(Syntax.RuleHead.tupled)

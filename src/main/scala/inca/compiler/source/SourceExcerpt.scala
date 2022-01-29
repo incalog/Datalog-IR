@@ -22,6 +22,12 @@ case class ExcerptAbsoluteRegion(startIndex: Int, endIndex: Int) extends Excerpt
     (preLine, core, postLine.stripTrailing())
   }
 }
+case class PaddedRegion(leftPad: String, config: ExcerptConfig, rightPad: String) extends ExcerptConfig {
+  override def computeExcerpt(pre: String, core: String, post: String): (String, String, String) = {
+    val (preS, coreS, postS) = config.computeExcerpt(pre, core, post)
+    (leftPad + preS, coreS, postS + rightPad)
+  }
+}
 
 class SourceExcerpt(loc: SourceLocation, config: ExcerptConfig) {
   if (loc.startIndex == SourceLocation.NoIndex || loc.endIndex == SourceLocation.NoIndex)

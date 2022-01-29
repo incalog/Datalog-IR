@@ -165,11 +165,11 @@ class TestParser extends AnyFlatSpec {
             Syntax.Variable(Name("y")))
           )
         ),
-        Seq(
+        Syntax.RuleBody(Seq(
           Syntax.RelationApplication(false, None, Name("Rule1"), Seq(Syntax.Variable(Name("x")))),
           Syntax.Equality(Syntax.Variable(Name("y")), false, Syntax.BuiltInFunctionCall(Syntax.CatBuiltInFunction, Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y"))))),
           Syntax.RelationApplication(true, None, Name("Rule3"), Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y"))))
-        )
+        ))
       )
     )(parse("Rule(x, y) :- Rule1(x), y = cat(x, y), !Rule3(x, y).", parser.RuleDefinition(_)).get.value)
 
@@ -187,11 +187,11 @@ class TestParser extends AnyFlatSpec {
             Seq(Syntax.Variable(Name("y")))
           )
         ),
-        Seq(
+        Syntax.RuleBody(Seq(
           Syntax.RelationApplication(false, None, Name("Rule1"), Seq(Syntax.Variable(Name("x")))),
           Syntax.Equality(Syntax.Variable(Name("y")), false, Syntax.BuiltInFunctionCall(Syntax.CatBuiltInFunction, Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y"))))),
           Syntax.RelationApplication(true, None, Name("Rule3"), Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y"))))
-        )
+        ))
       )
     )(parse("Rule(x, y), Rule4(y) :- Rule1(x), y = cat(x, y), !Rule3(x, y).", parser.RuleDefinition(_)).get.value)
 
@@ -213,11 +213,11 @@ class TestParser extends AnyFlatSpec {
               Syntax.Variable(Name("y")))
           )
         ),
-        Seq(
+        Syntax.RuleBody(Seq(
           Syntax.RelationApplication(false, None, Name("Rule1"), Seq(Syntax.Variable(Name("x")))),
           Syntax.Equality(Syntax.Variable(Name("y")), false, Syntax.BuiltInFunctionCall(Syntax.CatBuiltInFunction, Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y"))))),
           Syntax.RelationApplication(true, None, Name("Rule3"), Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y"))))
-        )
+        ))
       )
     )(parse("Rule(x, y) :- Rule1(x), y = cat(x, y), !Rule3(x, y).", parser.RuleDefinition(_)).get.value)
 
@@ -235,11 +235,11 @@ class TestParser extends AnyFlatSpec {
             Seq(Syntax.Variable(Name("y")))
           )
         ),
-        Seq(
+        Syntax.RuleBody(Seq(
           Syntax.RelationApplication(false, None, Name("Rule1"), Seq(Syntax.Variable(Name("x")))),
           Syntax.Equality(Syntax.Variable(Name("y")), false, Syntax.BuiltInFunctionCall(Syntax.CatBuiltInFunction, Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y"))))),
           Syntax.RelationApplication(true, None, Name("Rule3"), Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y"))))
-        )
+        ))
       )
     )(parse("Rule(x, y), Rule4(y) :- Rule1(x), y = cat(x, y), !Rule3(x, y).", parser.RuleDefinition(_)).get.value)
 

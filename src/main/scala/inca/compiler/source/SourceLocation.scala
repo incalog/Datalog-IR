@@ -7,6 +7,7 @@ trait SourceLocation {
 
   def sourceObject: SourceObject = new SourceObject(this)
   def sourceExcerpt(config: ExcerptConfig): SourceExcerpt = new SourceExcerpt(this, config)
+  def sourceCode: String = source.code.substring(startIndex, endIndex)
 
   def sourceLocFrom(other: SourceLocation): this.type = {
     this.source = other.source
