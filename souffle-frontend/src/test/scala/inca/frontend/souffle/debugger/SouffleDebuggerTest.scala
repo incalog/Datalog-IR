@@ -22,21 +22,21 @@ class SouffleDebuggerTest extends AnyFlatSpec with IncaGPMatchers {
       |.decl DirectSuperclass(?class:ClassType, ?superclass:ClassType)
       |.input DirectSuperclass(IO="file", filename="DirectSuperclass.facts", delimiter="\t")
       |
-      |.decl DirectSubclass(?a:Type, ?c:Type)
+      |.decl DirectSubclass(?c:Type, ?a:Type)
       |.decl Subclass(?c:Type, ?a:Type)
-      |.decl Superclass(?c:Type, ?a:Type)
+      |.decl Superclass(?a:Type, ?c:Type)
       |
-      |DirectSubclass(?a, ?c) :-
+      |DirectSubclass(?c, ?a) :-
       |  DirectSuperclass(?a, ?c).
       |
       |Subclass(?c, ?a) :-
-      |  DirectSubclass(?a, ?c).
+      |  DirectSubclass(?c, ?a).
       |Subclass(?c, ?a) :-
       |  Subclass(?b, ?a),
-      |  DirectSubclass(?b, ?c).
+      |  DirectSubclass(?c, ?b).
       |.output Superclass
-      |Superclass(?c, ?a) :-
-      |  Subclass(?a, ?c).
+      |Superclass(?a, ?c) :-
+      |  Subclass(?c, ?a).
       |
       |.printsize Superclass
       |""".stripMargin
@@ -77,6 +77,7 @@ class SouffleDebuggerTest extends AnyFlatSpec with IncaGPMatchers {
     val directsuperclassEdits = factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
 
     println(compiledModule.ir)
+
     val debugger = new SouffleDebugger(compiledModule)
     debugger.entry("Superclass", directsuperclassEdits, Table.unit)
     while (!debugger.isFinished) {

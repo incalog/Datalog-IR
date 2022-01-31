@@ -344,14 +344,12 @@ trait Debugger {
     if (table.isBound(col)) {
       val colIdx = table.columnIndex(col)
       table.filter { row =>
-        val uri = row(colIdx).asURI
-        database.containsTuple(key, Tuples.staticArityFlatTupleOf(uri))
+        val v = row(colIdx).unwrap
+        database.containsTuple(key, Tuples.staticArityFlatTupleOf(v))
       }
     } else {
-      val uriRows = database.enumerateValues(key, TupleMask.empty(0), Tuples.staticArityFlatTupleOf()).iterator().asScala.map { case uri: URI =>
-        Seq(URIValue(uri))
-      }.toSeq
-      val nameTable = Table[Value](Seq(col), uriRows)
+      val vals = database.enumerateValues(key, TupleMask.empty(0), Tuples.staticArityFlatTupleOf()).asScala
+      val nameTable = Table[Value](Seq(col), vals.map(v => Seq(Value(v))))
       table.join(nameTable)
     }
   }
@@ -378,12 +376,12 @@ trait Debugger {
   }
 
   private def transitionBinaryIndexQueryBothBound(table: Table[Value], key: IInputKey, src: String, trg: String): Table[Value] = {
-    val srcIdx = table.columnIndex(src)
-    val trgIdx = table.columnIndex(trg)
+    val idxL = table.columnIndex(src)
+    val idxR = table.columnIndex(trg)
     table.filter { row =>
-      val srcURI = row(srcIdx)
-      val trgURI = row(trgIdx)
-      database.containsTuple(key, Tuples.staticArityFlatTupleOf(srcURI, trgURI))
+      val vL = row(idxL).unwrap
+      val vR = row(idxR).unwrap
+      database.containsTuple(key, Tuples.staticArityFlatTupleOf(vL, vR))
     }
   }
 
@@ -392,25 +390,20 @@ trait Debugger {
     val mask = TupleMask.selectSingle(selectIdx, 2)
     val boundIdx = table.columnIndex(bound)
     table.expand(unbound, { row =>
-      val boundURI = row(boundIdx).asURI
-      val unboundURI = database.enumerateValues(key, mask, Tuples.staticArityFlatTupleOf(boundURI)).iterator().next()
-      convertDatabaseTupleValue(unboundURI)
+      val boundV = row(boundIdx).unwrap
+      val unboundURI = database.enumerateValues(key, mask, Tuples.staticArityFlatTupleOf(boundV)).iterator().next()
+      Value(unboundURI)
     })
   }
 
   private def transitionBinaryIndexQueryUnbound(table: Table[Value], key: IndexKey[_], src: String, trg: String): Table[Value] = {
     val rows = database.enumerateTuples(key, TupleMask.empty(2), Tuples.staticArityFlatTupleOf()).iterator().asScala.map { tuple =>
-      val src = tuple.get(0)
-      val trg = tuple.get(1)
-      Seq(convertDatabaseTupleValue(src), convertDatabaseTupleValue(trg))
+      val vL = tuple.get(0)
+      val vR = tuple.get(1)
+      Seq(Value(vL), Value(vR))
     }
     val srcTrgTable = Table(Seq(src, trg), rows.toSeq)
     table.join(srcTrgTable)
-  }
-
-  private def convertDatabaseTupleValue(value: Any): Value = value match {
-    case uri: URI => URIValue(uri)
-    case v: Any => ScalaValue(v)
   }
 
   private def generateLinkKey(link: Datalog.Link): IndexKey[_] = link match {
@@ -714,7 +707,7 @@ trait Debugger {
       }
     }
     val argsMap: Map[String, Any] = eval.evalArgs.flatMap {
-      case (Datalog.Var(v), _) => Some(v -> row(table.columnIndex(v)).inner)
+      case (Datalog.Var(v), _) => Some(v -> row(table.columnIndex(v)).unwrap)
       case (Datalog.Constant(_), _) => None
     }.toMap
 
@@ -819,7 +812,7 @@ trait Debugger {
     val mainMatcher = engine.getMatcher(mainSpec)
     val rows = bindings.rows.flatMap { row =>
       val unboundCols = patterns(name).params.map(_.name).diff(bindings.columns)
-      val inputMap = bindings.columns.zip(row.map(_.inner)).toMap ++ unboundCols.map( _ -> null)
+      val inputMap = bindings.columns.zip(row.map(_.unwrap)).toMap ++ unboundCols.map( _ -> null)
       val input = Query.Match(mainSpec, inputMap, isMutable = false)
       val matches = mainMatcher.getAllMatches(input)
       matches.asScala.map { m =>

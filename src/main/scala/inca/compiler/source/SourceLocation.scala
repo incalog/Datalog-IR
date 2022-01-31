@@ -24,5 +24,5 @@ object SourceLocation {
 case class SourceLocationList(list: Seq[SourceLocation]) extends SourceLocation {
   this.source = list.head.source
   this.startIndex = list.map(_.startIndex).min
-  this.endIndex = list.map(_.endIndex).min
+  this.endIndex = list.map(_.endIndex).max
 }

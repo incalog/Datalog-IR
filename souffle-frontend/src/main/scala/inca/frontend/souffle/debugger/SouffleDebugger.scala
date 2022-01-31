@@ -14,14 +14,14 @@ sealed trait SouffleControlPoint {
   val point: SourceObject
   def region: SourceLocation
 }
-case class OutOfRulePoint(rel: RuleSignature, point: SourceObject, irPoint: ControlPoint) extends SouffleControlPoint {
-  override def region: SourceLocation = rel
+case class PatternEndPoint(rel: RuleSignature, point: SourceObject, irPoint: ControlPoint) extends SouffleControlPoint {
+  override def region: SourceLocation = point.loc
+}
+case class InputPoint(rel: RuleSignature, in: Input, point: SourceObject, irPoint: ControlPoint) extends SouffleControlPoint {
+  override def region: SourceLocation = in
 }
 case class InRulePoint(rel: RuleSignature, rule: RuleDefinition, point: SourceObject, irPoint: ControlPoint) extends SouffleControlPoint {
   override def region: SourceLocation = rule
-}
-case class InputPoint(rel: RuleSignature, input: Input, point: SourceObject, irPoint: ControlPoint) extends SouffleControlPoint {
-  override def region: SourceLocation = input
 }
 
 class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
@@ -30,6 +30,7 @@ class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
   def entry(name: Datalog.Name, edits: EditScript, bindings: Table[Value]): Unit = {
     super.updateExtensionalData(edits)
     super.entry(name, bindings)
+    soufflePoint(controlPointIR).getOrElse(souffleStepInto())
   }
 
   def souffleStepInto(): Unit = {
@@ -45,7 +46,7 @@ class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
     val rel = getRelationSignature(cp.point.pat).getOrElse(throw new IllegalArgumentException(s"Could not find signature for pattern ${cp.point.pat.name}"))
     cp.point.bodies match {
       case BeforeList =>
-        Some(OutOfRulePoint(rel, rel.name.sourceObject, cp))
+        None
       case at@AtListElem(_, _, point) =>
         at.elem.getHint(SourceConstruct.key) match {
           case Some(SourceConstruct((ruleHead: RuleHead, rule: RuleDefinition))) =>
@@ -59,12 +60,25 @@ class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
               }
               case AfterList => Some(InRulePoint(rel, rule, SourceLocationList(rule.body.ss).sourceObject, cp))
             }
-          case Some(SourceConstruct(in: Input)) =>
-            Some(InputPoint(rel, in, in.sourceObject, cp))
+          case Some(SourceConstruct(in: Input)) => at.point.atoms match {
+            case BeforeList =>
+              val inKeyword = new SourceLocation {}
+              inKeyword.sourceLocFrom(in)
+              inKeyword.endIndex = inKeyword.startIndex + ".input".length
+              val padRight = in.sourceCode.substring(".input".length)
+              Some(InputPoint(rel, in, inKeyword.sourceObject, cp))
+            case AfterList => Some(InputPoint(rel, in, in.sourceObject, cp))
+            case _ => None
+          }
           case _ => None
         }
-      case AfterList =>
-        Some(OutOfRulePoint(rel, rel.sourceObject, cp))
+      case AfterList => compiled.inputs.get(rel.name.name) match {
+        case Some(_) => None
+        case None =>
+          val rules = compiled.souffle.rules(rel.name.name)
+          val sobj = SourceLocationList(rules.map(_._2)).sourceObject
+          Some(PatternEndPoint(rel, sobj, cp))
+      }
     }
   }
 
@@ -92,42 +106,27 @@ class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
     val sp = soufflePoint(controlPointIR).getOrElse(throw new IllegalStateException())
     val excerptRegion = ExcerptAbsoluteRegion(sp.region.startIndex, sp.region.endIndex)
     val contextualRegion = sp match {
-      case OutOfRulePoint(rel, point, irPoint) =>
-        compiled.inputs.get(rel.name.name) match {
-          case Some((_, input)) =>
-            PaddedRegion("", excerptRegion, "\n" + input.sourceCode)
-          case None =>
-            val rules = compiled.souffle.rules(rel.name.name)
-            val sb = new StringBuilder
-            sb += '\n'
-            for ((head, rule) <- rules) {
-              sb ++= head.sourceCode
-              sb ++= rule.body.sourceCode.stripTrailing()
-              sb += '\n'
-            }
-            PaddedRegion("", excerptRegion, sb.toString().stripTrailing())
-        }
-      case InRulePoint(rel, rule, point, irPoint) =>
+      case InRulePoint(rel, rule, _, _) =>
         val rules = compiled.souffle.rules(rel.name.name)
         val ix = rules.indexWhere(_._2.sourceObject == rule.sourceObject)
         val (prior, thisAfter) = rules.splitAt(ix)
         val after = thisAfter.tail
         val sbPrior = new StringBuilder
         sbPrior ++= rel.sourceCode.stripTrailing() += '\n'
-        for ((head, rule) <- prior) {
-          sbPrior ++= head.sourceCode
-          sbPrior ++= rule.body.sourceCode.stripTrailing()
+        for ((_, rule) <- prior) {
+          sbPrior ++= rule.sourceCode.stripTrailing()
           sbPrior += '\n'
         }
         val sbAfter = new StringBuilder
-        for ((head, rule) <- after) {
-          sbAfter ++= head.sourceCode
-          sbAfter ++= rule.body.sourceCode.stripTrailing()
+        for ((_, rule) <- after) {
+          sbAfter ++= rule.sourceCode.stripTrailing()
           sbAfter += '\n'
         }
         PaddedRegion(sbPrior.toString(), excerptRegion, "\n" + sbAfter.toString())
-      case InputPoint(rel, input, point, irPoint) =>
-        PaddedRegion(rel.sourceCode.stripTrailing() + "\n", excerptRegion, "")
+      case InputPoint(rel, _, _, _) =>
+        PaddedRegion(rel.sourceCode.stripTrailing() + '\n', excerptRegion, "")
+      case PatternEndPoint(rel, _, _) =>
+        PaddedRegion(rel.sourceCode.stripTrailing() + '\n', excerptRegion, "")
     }
     sp.point.loc.sourceExcerpt(contextualRegion).linesColored
   }
