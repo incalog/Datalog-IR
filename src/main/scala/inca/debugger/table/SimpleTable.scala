@@ -6,6 +6,9 @@ case class SimpleTable[V](columns: Vector[String], rows: Vector[Vector[V]]) exte
   if (rows.exists(_.size != columns.size))
     throw new IllegalArgumentException
 
+  private def constructNew(columns: Vector[String], rows: Vector[Vector[V]]): SimpleTable[V] =
+    SimpleTable(columns, rows.distinct)
+
   private val columnIdx: Map[String, Int] = columns.zipWithIndex.toMap
 
   override def isEmpty: Boolean = rows.isEmpty
@@ -13,7 +16,7 @@ case class SimpleTable[V](columns: Vector[String], rows: Vector[Vector[V]]) exte
   override def numRows: Int = rows.size
 
   override def renameColumns(columnsSubst: Map[String, String]): SimpleTable[V] = {
-    SimpleTable(columns.map(columnsSubst.apply), rows)
+    constructNew(columns.map(columnsSubst.apply), rows)
   }
 
   override def addRow(row: Seq[V]): SimpleTable[V] = {
@@ -22,11 +25,11 @@ case class SimpleTable[V](columns: Vector[String], rows: Vector[Vector[V]]) exte
         rows
       else
         rows :+ row.toVector
-    SimpleTable(columns, newData)
+    constructNew(columns, newData)
   }
 
   override def addRows(table: Table[V]): SimpleTable[V] =
-    SimpleTable(columns, (rows ++ table.rows.map(_.toVector)).distinct)
+    constructNew(columns, rows ++ table.rows.map(_.toVector))
 
   override def bind(column: String, v: V): SimpleTable[V] = {
     val colIdx = columns.indexOf(column)
@@ -34,12 +37,12 @@ case class SimpleTable[V](columns: Vector[String], rows: Vector[Vector[V]]) exte
       val newData = rows.filter { row =>
         row(colIdx) == v
       }
-      SimpleTable(columns, newData)
+      constructNew(columns, newData)
     } else {
       val newData = rows.map { row =>
         row :+ v
       }
-      SimpleTable(columns :+ column, newData)
+      constructNew(columns :+ column, newData)
     }
   }
 
@@ -49,7 +52,7 @@ case class SimpleTable[V](columns: Vector[String], rows: Vector[Vector[V]]) exte
     val newData = rows.map { row =>
       newColumnsIndex.map(row.apply)
     }
-    SimpleTable(newColumns, newData)
+    constructNew(newColumns, newData)
   }
 
   override def rearrangeColumns(cols: Seq[String]): SimpleTable[V] = {
@@ -58,7 +61,7 @@ case class SimpleTable[V](columns: Vector[String], rows: Vector[Vector[V]]) exte
     val newData = rows.map { row =>
       colsIdx.map(row.apply)
     }
-    SimpleTable(colsVector, newData)
+    constructNew(colsVector, newData)
   }
 
   override def join(other: Table[V]): SimpleTable[V] = {
@@ -77,34 +80,41 @@ case class SimpleTable[V](columns: Vector[String], rows: Vector[Vector[V]]) exte
         row ++ otherColsIdx.map(otherRow.apply)
       }
     }
-    SimpleTable(newColumns, newData)
+    constructNew(newColumns, newData)
+  }
+
+  override def diff(other: Table[V]): Table[V] = {
+    this.filter { row =>
+      val colValPair = other.columns.zip(row)
+      !other.contains(colValPair)
+    }
   }
 
   override def columnIndex(col: String): Int = columnIdx.getOrElse(col, -1)
 
   override def filter(pred: Seq[V] => Boolean): SimpleTable[V] = {
     val newData = rows.filter(pred)
-    SimpleTable(columns, newData)
+    constructNew(columns, newData)
   }
 
   override def map(f: Seq[V] => Seq[V]): SimpleTable[V] = {
     val newData = rows.map(row => f(row).toVector)
-    SimpleTable(columns, newData)
+    constructNew(columns, newData)
   }
 
   override def expand(newcol: String, f: Seq[V] => V): SimpleTable[V] = {
     val newData = rows.map(row => row :+ f(row))
-    SimpleTable(columns :+ newcol, newData)
+    constructNew(columns :+ newcol, newData)
   }
 
   override def expand(newcols: Seq[String], f: Seq[V] => Seq[V]): SimpleTable[V] = {
     val newData = rows.map(row => row ++ f(row))
-    SimpleTable(columns ++ newcols, newData)
+    constructNew(columns ++ newcols, newData)
   }
 
   override def flatMap(f: Seq[V] => Seq[Seq[V]]): SimpleTable[V] = {
     val newData = rows.flatMap(row => f(row).map(_.toVector))
-    SimpleTable(columns, newData)
+    constructNew(columns, newData)
   }
 
   override def contains(colValPairs: Seq[(String, V)]): Boolean = {
@@ -118,10 +128,14 @@ case class SimpleTable[V](columns: Vector[String], rows: Vector[Vector[V]]) exte
 
   override def equals(obj: Any): Boolean = obj match {
     case other: Table[V] =>
-      this.columns == other.columns &&
-        other.rows.forall { row =>
-          this.rows.contains(row)
+      val sameColumns = this.columns.size == other.columns.size &&
+        this.columns.forall(other.columns.contains)
+      val sameRows = this.numRows == other.numRows &&
+        this.rows.forall { row =>
+          val colValPair = this.columns.zip(row)
+          other.contains(colValPair)
         }
+      sameColumns && sameRows
     case _ => false
   }
 }

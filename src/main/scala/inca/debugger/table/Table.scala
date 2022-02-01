@@ -20,6 +20,7 @@ trait Table[V] {
   def join(other: Table[V]) : Table[V]
   def addRow(row: Seq[V]): Table[V]
   def addRows(rows: Table[V]): Table[V]
+  def diff(other: Table[V]): Table[V]
   def numRows: Int
 
   def project(cols: Seq[String]): Table[V]

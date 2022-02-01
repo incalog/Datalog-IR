@@ -397,6 +397,16 @@ class IRDebuggerTest extends AnyFunSuite {
     assertExpectedTable(debugger, "path", args)
   }
 
+  test("step into left recursive pattern") {
+    val debugger = initDebugger(module(sevenEdgePattern, pathPatternLeftRecursive), emptyDataModel)
+    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("path", args)
+    stepTillFinish(debugger)
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "path", args)
+  }
+
   test("step into recursive pattern 2") {
     val debugger = initDebugger(module(sevenEdgePattern, pathPatternSwitchBodies), emptyDataModel)
     val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
