@@ -31,7 +31,7 @@ trait Debugger {
   private var engine: AdvancedViatraQueryEngine =  _
 
   // Debugger state
-  private val fixpointState: FixpointState = new FixpointState
+  private lazy val fixpointState: FixpointState[Value] = new FixpointState[Value](patterns)
   protected val callStack: CallStack = new CallStack()
   private val _controlTrace: ListBuffer[ControlPoint] = ListBuffer.empty
 
@@ -55,7 +55,7 @@ trait Debugger {
 
   def relation(name: String): Table[Value] = fixpointState.relation(name)
   def relation(name: String, args: Table[Value]): Table[Value] =
-    fixpointState.relation(name, args).getOrElse(throw IllegalDebugStateException(s"Pattern $name was never called with argument $args"))
+    fixpointState.relation(name, args)
   def isFinished: Boolean = callStack.isFinished
 
   // initialization methods
@@ -137,46 +137,49 @@ trait Debugger {
       val preTables = prepareCallTables(frame, pattern, args)
       // if we called the pattern already before with the same argument lookup table
       // else step into pattern
-      if (fixpointState.contains(name, preTables._1)) {
-        val tables = readPatternTable(frame, name, args, neg)
-        val next = frame.cp.stepOver.get
-        callStack.update(Frame(next, tables))
-      } else {
-        val callee = ControlPoint(PatternPoint(pattern, BeforeList))
-        if (neg) {
-          checkNegativeCallArguments(args, frame.bodyTable)
-        }
-        callStack.push(Frame(callee, preTables))
+      fixpointState.addQuery(name, preTables._1) match {
+        case Some(query) =>
+          println(s"into $name $query")
+          val callee = ControlPoint(PatternPoint(pattern, BeforeList))
+          if (neg) {
+            checkNegativeCallArguments(args, frame.bodyTable)
+          }
+          callStack.push(Frame(callee, query, query, preTables._3))
+        case None =>
+          val tables = readPatternTable(name, preTables._1, neg)
+          println(s"read $name ${preTables._1} -> ${tables._2}")
+          val next = frame.cp.stepOver.get
+          callStack.update(Frame(next, tables))
       }
     case Datalog.Computed(lhs, agg: Datalog.CountAggregation) =>
-      val pattern = patterns(agg.patName)
-      val preTables = prepareCallTables(frame, pattern, agg.args)
-      if (fixpointState.contains(agg.patName, preTables._1)) {
-        val (_, _, patternTable) = readPatternTable(frame, agg.patName, agg.args)
-        val next = frame.cp.stepIntra.getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
-        val tables = transitionCountAggTables(frame, patternTable, lhs)
-        callStack.update(Frame(next, tables))
-      } else {
-        val callee = ControlPoint(PatternPoint(patterns(agg.patName), BeforeList))
-        callStack.push(Frame(callee, preTables))
-      }
+//      val pattern = patterns(agg.patName)
+//      val preTables = prepareCallTables(frame, pattern, agg.args)
+//      if (fixpointState.contains(agg.patName, preTables._1)) {
+//        val (_, _, patternTable) = readPatternTable(frame, agg.patName, agg.args)
+//        val next = frame.cp.stepIntra.getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+//        val tables = transitionCountAggTables(frame, patternTable, lhs)
+//        callStack.update(Frame(next, tables))
+//      } else {
+//        val callee = ControlPoint(PatternPoint(patterns(agg.patName), BeforeList))
+//        callStack.push(Frame(callee, preTables))
+//      }
     case Datalog.Computed(lhs, agg: Datalog.CustomAggregation) =>
-      val pattern = patterns(agg.patName)
-      val preTables = prepareCallTables(frame, pattern, agg.args)
-      if (fixpointState.contains(agg.patName, preTables._1)) {
-        val (_, _, patternTable) = readPatternTable(frame, agg.patName, agg.args)
-        val next = frame.cp.stepIntra.getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
-        val tables = transitionCountAggTables(frame, patternTable, lhs)
-        callStack.update(Frame(next, tables))
-      } else {
-        val callee = ControlPoint(PatternPoint(pattern, BeforeList))
-        callStack.push(Frame(callee, preTables))
-      }
+//      val pattern = patterns(agg.patName)
+//      val preTables = prepareCallTables(frame, pattern, agg.args)
+//      if (fixpointState.contains(agg.patName, preTables._1)) {
+//        val (_, _, patternTable) = readPatternTable(frame, agg.patName, agg.args)
+//        val next = frame.cp.stepIntra.getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+//        val tables = transitionCountAggTables(frame, patternTable, lhs)
+//        callStack.update(Frame(next, tables))
+//      } else {
+//        val callee = ControlPoint(PatternPoint(pattern, BeforeList))
+//        callStack.push(Frame(callee, preTables))
+//      }
     case _ => throw IllegalDebugStateException(s"Atom $atom should contain call")
   }
 
-  private def readPatternTable(callerFrame: Frame, name: String, args: Seq[Datalog.Term], neg: Boolean = false): Frame.Tables = {
-    val patternTable = fixpointState.relation(name)
+  private def readPatternTable(name: String, argsTable: Table[Value], neg: Boolean = false): Frame.Tables = {
+    val patternTable = fixpointState.relation(name, argsTable)
     val params = patterns(name).params.map(_.name)
     if (neg)
       transitionReturnNegCallTables(frame, params, patternTable)
@@ -204,34 +207,38 @@ trait Debugger {
     callStack.pop() // pop pattern exit point
 
     // extend derived relations
-    fixpointState.add(pat.name, frame.argsTable, frame.patternTable)
+    val oldTable = fixpointState.relation(pat.name, frame.argsTable)
+    fixpointState.addDerivedTuples(pat.name, frame.patternTable)
+
+    val currentTable = fixpointState.relation(pat.name, frame.argsTable)
+    val fullTable = readDatabase(pat.name, frame.argsTable)
+    val missing = fullTable.diff(currentTable)
+
+    // if the fixpoint has not been reached
+    if (!missing.isEmpty) {
+      val nextFrame = Frame(ControlPoint.patternEntryPoint(pat), frame.argsTable, frame.argsTable, frame.patternTable)
+      println(s"call ${pat.name} ${frame.argsTable}")
+      callStack.push(nextFrame)
+      return
+    }
 
     // if the stack is still not empty there should be a call, or an aggregation on top
     if (callStack.nonEmpty) {
       val callerFrame = callStack.top
-      callerFrame.cp.atom match {
+      val next = callerFrame.cp.stepIntra
+        .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+      val tables = callerFrame.cp.atom match {
         case Datalog.Call(_, _, _, false) =>
-          val next = callerFrame.cp.stepIntra
-            .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
-          val tables = transitionReturnCallTables(callerFrame, frame)
-          callStack.update(Frame(next, tables))
+          transitionReturnCallTables(callerFrame, frame)
         case Datalog.Call(_, _, _, true) =>
-          val next = callerFrame.cp.stepIntra
-            .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
-          val tables = transitionReturnNegCallTables(callerFrame, frame)
-          callStack.update(Frame(next, tables))
+          transitionReturnNegCallTables(callerFrame, frame)
         case Datalog.Computed(lhs, custAgg: CustomAggregation) =>
-          val next = callerFrame.cp.stepIntra
-            .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
-          val tables = transitionCustomAggTables(callerFrame, frame.patternTable, lhs, custAgg)
-          callStack.update(Frame(next, tables))
+          transitionCustomAggTables(callerFrame, frame.patternTable, lhs, custAgg)
         case Datalog.Computed(lhs, countAgg: CountAggregation) =>
-          val next = callerFrame.cp.stepIntra
-            .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
-          val tables = transitionCountAggTables(callerFrame, frame.patternTable, lhs)
-          callStack.update(Frame(next, tables))
+          transitionCountAggTables(callerFrame, frame.patternTable, lhs)
         case atom => throw new MatchError(atom, "should be a call or an aggregation")
       }
+      callStack.update(Frame(next, tables))
     }
   }
 
@@ -245,7 +252,8 @@ trait Debugger {
     val pattern = frame.cp.point.pat
     val params = pattern.params.map(_.name)
     val projectedBodyTable = frame.bodyTable.project(params)
-    fixpointState.add(pattern.name, frame.argsTable, projectedBodyTable)
+    println(s"exit ${pattern.name} ${frame.argsTable} -> ${frame.bodyTable}")
+    fixpointState.addDerivedTuples(pattern.name, projectedBodyTable)
     val tables = transitionNextBodyTables(frame)
     callStack.update(Frame(next, tables))
   }
@@ -810,8 +818,8 @@ trait Debugger {
       case None => return Table.empty
     }
     val mainMatcher = engine.getMatcher(mainSpec)
+    val unboundCols = patterns(name).params.map(_.name).diff(bindings.columns)
     val rows = bindings.rows.flatMap { row =>
-      val unboundCols = patterns(name).params.map(_.name).diff(bindings.columns)
       val inputMap = bindings.columns.zip(row.map(_.unwrap)).toMap ++ unboundCols.map( _ -> null)
       val input = Query.Match(mainSpec, inputMap, isMutable = false)
       val matches = mainMatcher.getAllMatches(input)
