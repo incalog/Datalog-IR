@@ -45,7 +45,9 @@ trait Debugger {
   def varsIR: Table[Value] = controlPointIR.point.bodies match {
     case BeforeList => frame.argsTable
     case AtListElem(_, _, _) => frame.bodyTable
-    case AfterList => frame.patternTable
+    case AfterList =>
+      val pat = controlPointIR.point.pat
+      fixpointState.relation(pat.name, frame.argsTable)
   }
   def controlPointIR: ControlPoint = callStack.top.cp
   def controlTraceIR: Seq[ControlPoint] = _controlTrace.toSeq
@@ -84,7 +86,7 @@ trait Debugger {
   def entry(name: Datalog.Name, bindings: Table[Value]): Unit = {
     val pat = patterns(name)
     val cp = ControlPoint.patternEntryPoint(pat)
-    val frame = Frame(cp, bindings, Table.empty, Table(pat.params.map(_.name), Seq()))
+    val frame = Frame(cp, bindings, Table.empty)
     callStack.push(frame)
     traceControlPoint(cp)
   }
@@ -134,22 +136,22 @@ trait Debugger {
   def stepIntoCall(frame: Frame, atom: Datalog.Atom): Unit = atom match {
     case Datalog.Call(name, args, _, neg) =>
       val pattern = patterns(name)
-      val preTables = prepareCallTables(frame, pattern, args)
+      val argsTable = prepareArgTableOfCall(frame, pattern, args)
       // if we called the pattern already before with the same argument lookup table
       // else step into pattern
-      fixpointState.addQuery(name, preTables._1) match {
+      fixpointState.addQuery(name, argsTable) match {
         case Some(query) =>
           println(s"into $name $query")
           val callee = ControlPoint(PatternPoint(pattern, BeforeList))
           if (neg) {
             checkNegativeCallArguments(args, frame.bodyTable)
           }
-          callStack.push(Frame(callee, query, query, preTables._3))
+          callStack.push(Frame(callee, query, query))
         case None =>
-          val tables = readPatternTable(name, preTables._1, neg)
-          println(s"read $name ${preTables._1} -> ${tables._2}")
+          val patternTable = transitionReturnCallTables(name, argsTable, neg)
+          println(s"read $name ${argsTable} -> ${patternTable}")
           val next = frame.cp.stepOver.get
-          callStack.update(Frame(next, tables))
+          callStack.update(Frame(next, patternTable))
       }
     case Datalog.Computed(lhs, agg: Datalog.CountAggregation) =>
 //      val pattern = patterns(agg.patName)
@@ -178,7 +180,7 @@ trait Debugger {
     case _ => throw IllegalDebugStateException(s"Atom $atom should contain call")
   }
 
-  private def readPatternTable(name: String, argsTable: Table[Value], neg: Boolean = false): Frame.Tables = {
+  private def transitionReturnCallTables(name: String, argsTable: Table[Value], neg: Boolean = false): Frame.Tables = {
     val patternTable = fixpointState.relation(name, argsTable)
     val params = patterns(name).params.map(_.name)
     if (neg)
@@ -187,7 +189,6 @@ trait Debugger {
       transitionReturnCallTables(frame, params, patternTable)
     }
   }
-
 
   private def checkNegativeCallArguments(args: Seq[Datalog.Term], table: Table[Value]): Unit = {
     args.foreach {
@@ -199,7 +200,7 @@ trait Debugger {
 
   protected def doPatternEntry(cp: ControlPoint): Unit = {
     val next = cp.stepIntra.get // yields first body of this pattern
-    callStack.update(Frame(next,  frame.argsTable, frame.argsTable, frame.patternTable))
+    callStack.update(Frame(next,  frame.argsTable, frame.argsTable))
   }
 
   protected def doPatternExit(frame: Frame): Unit = {
@@ -208,7 +209,7 @@ trait Debugger {
 
     // extend derived relations
     val oldTable = fixpointState.relation(pat.name, frame.argsTable)
-    fixpointState.addDerivedTuples(pat.name, frame.patternTable)
+    // fixpointState.addDerivedTuples(pat.name, frame.patternTable)
 
     val currentTable = fixpointState.relation(pat.name, frame.argsTable)
     val fullTable = readDatabase(pat.name, frame.argsTable)
@@ -216,7 +217,7 @@ trait Debugger {
 
     // if the fixpoint has not been reached
     if (!missing.isEmpty) {
-      val nextFrame = Frame(ControlPoint.patternEntryPoint(pat), frame.argsTable, frame.argsTable, frame.patternTable)
+      val nextFrame = Frame(ControlPoint.patternEntryPoint(pat), frame.argsTable, frame.argsTable)
       println(s"call ${pat.name} ${frame.argsTable}")
       callStack.push(nextFrame)
       return
@@ -233,9 +234,11 @@ trait Debugger {
         case Datalog.Call(_, _, _, true) =>
           transitionReturnNegCallTables(callerFrame, frame)
         case Datalog.Computed(lhs, custAgg: CustomAggregation) =>
-          transitionCustomAggTables(callerFrame, frame.patternTable, lhs, custAgg)
+          val patternTable = fixpointState.relation(custAgg.patName, frame.argsTable)
+          transitionCustomAggTables(callerFrame, patternTable, lhs, custAgg)
         case Datalog.Computed(lhs, countAgg: CountAggregation) =>
-          transitionCountAggTables(callerFrame, frame.patternTable, lhs)
+          val patternTable = fixpointState.relation(countAgg.patName, frame.argsTable)
+          transitionCountAggTables(callerFrame, patternTable, lhs)
         case atom => throw new MatchError(atom, "should be a call or an aggregation")
       }
       callStack.update(Frame(next, tables))
@@ -244,7 +247,7 @@ trait Debugger {
 
   protected def doBodyEntry(frame: Frame, cp: ControlPoint): Unit = {
     val next = cp.stepIntra.get // yields first atom of this body
-    callStack.update(Frame(next, frame.argsTable, frame.argsTable, frame.patternTable))
+    callStack.update(Frame(next, frame.argsTable, frame.argsTable))
   }
 
   protected def doBodyExit(frame: Frame, cp: ControlPoint): Unit = {
@@ -274,7 +277,7 @@ trait Debugger {
   }
 
   // Methods to prepare frame tables for atoms that can jump into another pattern (calls and aggregations)
-  protected def prepareCallTables(frame: Frame, calledPattern: Datalog.Pattern, args: Seq[Datalog.Term]): Frame.Tables = {
+  protected def prepareArgTableOfCall(frame: Frame, calledPattern: Datalog.Pattern, args: Seq[Datalog.Term]): Table[Value] = {
     val params = calledPattern.params.map(_.name)
 
     // prepare argsTable
@@ -289,9 +292,7 @@ trait Debugger {
       argsTable = argsTable.bind(p, transLiteral(c.lit))
     }
 
-    val patternTable = Table.empty[Value](params)
-
-    (argsTable, argsTable, patternTable)
+    argsTable
   }
 
 
@@ -558,8 +559,10 @@ trait Debugger {
   }
 
   private def transitionReturnCallTables(callerFrame: Frame, calleeFrame: Frame): Frame.Tables = {
-    val params = calleeFrame.cp.point.pat.params.map(_.name)
-    transitionReturnCallTables(callerFrame, params, calleeFrame.patternTable)
+    val pat = calleeFrame.cp.point.pat
+    val params = pat.params.map(_.name)
+    val patternTable = fixpointState.relation(pat.name, calleeFrame.argsTable)
+    transitionReturnCallTables(callerFrame, params, patternTable)
   }
 
   protected def transitionReturnCallTables(callerFrame: Frame, params: Seq[String], patternTable: Table[Value]): Frame.Tables = {
@@ -570,12 +573,14 @@ trait Debugger {
     val renamedPatternTable = patternTable.renameColumns(columnsSubst)
     val bodyTable = callerFrame.bodyTable.join(renamedPatternTable)
 
-    (callerFrame.argsTable, bodyTable, callerFrame.patternTable)
+    (callerFrame.argsTable, bodyTable)
   }
 
   private def transitionReturnNegCallTables(callerFrame: Frame, calleFrame: Frame): Frame.Tables = {
-    val params = calleFrame.cp.point.pat.params.map(_.name)
-    transitionReturnNegCallTables(callerFrame, params, calleFrame.patternTable)
+    val pat = calleFrame.cp.point.pat
+    val params = pat.params.map(_.name)
+    val patternTable = fixpointState.relation(pat.name, calleFrame.argsTable)
+    transitionReturnNegCallTables(callerFrame, params, patternTable)
   }
 
   private def transitionReturnNegCallTables(callerFrame: Frame, params: Seq[String], patternTable: Table[Value]): Frame.Tables = {
@@ -588,8 +593,7 @@ trait Debugger {
       val columnValuePairs = callerFrame.bodyTable.columns.zip(row)
       !renamedPatternTable.contains(columnValuePairs)
     }
-
-    (callerFrame.argsTable, bodyTable, callerFrame.patternTable)
+    (callerFrame.argsTable, bodyTable)
   }
 
   private def transitionCountAggTables(callerFrame: Frame, patternTable: Table[Value], lhs: Datalog.Term): Frame.Tables = {
@@ -651,18 +655,18 @@ trait Debugger {
         else
           Table.empty[Value](table.columns)
     }
-    (callerFrame.argsTable, extBodyTable, callerFrame.patternTable)
+    (callerFrame.argsTable, extBodyTable)
   }
 
 
   private def transitionNextBodyTables(frame: Frame): Frame.Tables = {
     // extend pattern table with tuples derived by body
-    val pat = frame.cp.point.pat
-    val columns = pat.params.map(_.name).filter(frame.bodyTable.columns.contains)
-    val projectedBodySubst = frame.bodyTable.project(columns)
-    val patternTable = frame.patternTable.addRows(projectedBodySubst)
+//    val pat = frame.cp.point.pat
+//    val columns = pat.params.map(_.name).filter(frame.bodyTable.columns.contains)
+//    val projectedBodySubst = frame.bodyTable.project(columns)
+//    val patternTable = frame.patternTable.addRows(projectedBodySubst)
 
-    (frame.argsTable, frame.argsTable, patternTable)
+    (frame.argsTable, frame.argsTable)
   }
 
   private def transLiteral(c: Datalog.Literal): Value = c match {
@@ -748,7 +752,7 @@ trait Debugger {
         atom match {
           case Datalog.Call(name, args, _, false) =>
             val pattern = patterns(name)
-            val (argsTable, _, _) = prepareCallTables(frame, pattern, args)
+            val argsTable = prepareArgTableOfCall(frame, pattern, args)
             val callPatternTable = readDatabase(name, argsTable)
             val params = pattern.params.map(_.name)
             val tables = transitionReturnCallTables(frame, params, callPatternTable)
@@ -757,7 +761,7 @@ trait Debugger {
 
           case Datalog.Call(name, args, _, true) =>
             val pattern = patterns(name)
-            val (argsTable, _, _) = prepareCallTables(frame, pattern, args)
+            val argsTable = prepareArgTableOfCall(frame, pattern, args)
             checkNegativeCallArguments(args, frame.bodyTable)
             val callPatternTable = readDatabase(name, argsTable)
             val params = pattern.params.map(_.name)
@@ -767,7 +771,7 @@ trait Debugger {
 
           case Datalog.Computed(lhs, countAgg: CountAggregation) =>
             val pattern = patterns(countAgg.patName)
-            val (argsTable, _, _) = prepareCallTables(frame, pattern, countAgg.args)
+            val argsTable = prepareArgTableOfCall(frame, pattern, countAgg.args)
             val callPatternTable = readDatabase(countAgg.patName, argsTable)
             val tables = transitionCountAggTables(frame, callPatternTable, lhs)
             val next = frame.cp.stepOver.get
@@ -775,7 +779,7 @@ trait Debugger {
 
           case Datalog.Computed(lhs, customAgg: CustomAggregation) =>
             val pattern = patterns(customAgg.patName)
-            val (argsTable, _, _) = prepareCallTables(frame, pattern, customAgg.args)
+            val argsTable = prepareArgTableOfCall(frame, pattern, customAgg.args)
             val callPatternTable = readDatabase(customAgg.patName, argsTable)
             val tables = transitionCustomAggTables(frame, callPatternTable, lhs, customAgg)
             val next = frame.cp.stepOver.get
@@ -788,8 +792,9 @@ trait Debugger {
         if (frame.cp.isPatternPoint) {
           val pattern = frame.cp.point.pat
           val patternTable = readDatabase(pattern.name, frame.argsTable)
+          fixpointState.addDerivedTuples(pattern.name, patternTable)
           val next = ControlPoint(PatternPoint(pattern, AfterList))
-          callStack.update(Frame(next, frame.argsTable, patternTable, patternTable))
+          callStack.update(Frame(next, frame.argsTable, patternTable))
         } else if (frame.cp.isBodyPoint) {
           // we cannot read from the database because we dont know which tuples where derived by a specific body
           val next = frame.cp.stepOver.get

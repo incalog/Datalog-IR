@@ -200,7 +200,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     val skip = skipBody(cp.point.body.get)
     if (skip) {
       val next = cp.stepOver.get
-      callStack.update(Frame(next, frame.argsTable, Table.empty, frame.patternTable))
+      callStack.update(Frame(next, frame.argsTable, Table.empty))
     } else {
       super.doBodyEntry(frame, cp)
       skipAheadTo.head.foreach { pred =>
@@ -218,8 +218,8 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
       val pattern = patterns(call.name)
       if (pattern.hasHint(DataHints.ConstructorKey) || pattern.hasHint(DataHints.SelectorKey)) {
         // constructor or selector call
-        val preTables = prepareCallTables(frame, pattern, call.args)
-        val data = readDatabase(call.name, preTables._1)
+        val argsTable = prepareArgTableOfCall(frame, pattern, call.args)
+        val data = readDatabase(call.name, argsTable)
         val nextTables = transitionReturnCallTables(frame, pattern.params.map(_.name), data)
         val next = frame.cp.stepOver.get
 

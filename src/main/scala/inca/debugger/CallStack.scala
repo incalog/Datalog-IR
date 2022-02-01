@@ -6,11 +6,11 @@ import scala.collection.mutable
 
 // case class Breakpoint(cp: ControlPattern, bindings: BindingPattern, constraints: Seq[Datalog.Atom])
 
-case class Frame(cp: ControlPoint, argsTable: Table[Value], bodyTable: Table[Value], patternTable: Table[Value])
+case class Frame(cp: ControlPoint, argsTable: Table[Value], bodyTable: Table[Value])
 object Frame {
-  type Tables = (Table[Value], Table[Value], Table[Value])
+  type Tables = (Table[Value], Table[Value])
   def apply(cp: ControlPoint, frameTables: Tables): Frame =
-    Frame(cp, frameTables._1, frameTables._2, frameTables._3)
+    Frame(cp, frameTables._1, frameTables._2)
 }
 
 class CallStack {
