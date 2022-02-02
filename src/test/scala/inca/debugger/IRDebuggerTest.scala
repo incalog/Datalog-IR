@@ -182,7 +182,6 @@ class IRDebuggerTest extends AnyFunSuite {
 
   def stepTillFinish(debugger: IRDebugger): Unit = {
     while (!debugger.isFinished) {
-      Thread.sleep(100)
       debugger.stepInto()
     }
   }
@@ -473,6 +472,8 @@ class IRDebuggerTest extends AnyFunSuite {
     debugger.stepOver() // step over body
 
     debugger.stepOver() // needed to step to pattern exit
+    debugger.stepOver() // needed to exit pattern
+    debugger.stepOver() // needed to step over pattern call again
     debugger.stepOver() // needed to pop last element from stack
 
     assert(debugger.isFinished)
@@ -489,6 +490,8 @@ class IRDebuggerTest extends AnyFunSuite {
     debugger.stepOver() // step over one call
 
     debugger.stepOver() // needed to step to pattern exit
+    debugger.stepOver() // needed to exit pattern
+    debugger.stepOver() // needed to step over pattern call again
     debugger.stepOver() // needed to pop last element from stack
 
     assert(debugger.isFinished)

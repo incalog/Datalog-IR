@@ -35,11 +35,14 @@ trait Debugger {
   protected val callStack: CallStack = new CallStack()
   private val _controlTrace: ListBuffer[ControlPoint] = ListBuffer.empty
 
+  // we store the derived tuples for a given pattern before executing the pattern to check if we reached a fixpoint
+  private var lastDerivedTuples: Table[Value] = _
+
   // Needed to execute scala code via reflection
   protected val scalaCompiler = new Scala.ScalaCompiler()
   protected var defintionObjSym: String = _
 
-  // Accessor methods of debugger statej
+  // Accessor methods of debugger state
   def frame: Frame = callStack.top
 
   def varsIR: Table[Value] = controlPointIR.point.bodies match {
@@ -141,52 +144,52 @@ trait Debugger {
       // else step into pattern
       fixpointState.addQuery(name, argsTable) match {
         case Some(query) =>
-          println(s"into $name $query")
           val callee = ControlPoint(PatternPoint(pattern, BeforeList))
           if (neg) {
             checkNegativeCallArguments(args, frame.bodyTable)
           }
           callStack.push(Frame(callee, query, query))
         case None =>
-          val patternTable = transitionReturnCallTables(name, argsTable, neg)
-          println(s"read $name ${argsTable} -> ${patternTable}")
+          val patternTable = transitionReturnCallTables(frame, name, argsTable, neg)
           val next = frame.cp.stepOver.get
           callStack.update(Frame(next, patternTable))
       }
     case Datalog.Computed(lhs, agg: Datalog.CountAggregation) =>
-//      val pattern = patterns(agg.patName)
-//      val preTables = prepareCallTables(frame, pattern, agg.args)
-//      if (fixpointState.contains(agg.patName, preTables._1)) {
-//        val (_, _, patternTable) = readPatternTable(frame, agg.patName, agg.args)
-//        val next = frame.cp.stepIntra.getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
-//        val tables = transitionCountAggTables(frame, patternTable, lhs)
-//        callStack.update(Frame(next, tables))
-//      } else {
-//        val callee = ControlPoint(PatternPoint(patterns(agg.patName), BeforeList))
-//        callStack.push(Frame(callee, preTables))
-//      }
+      val pattern = patterns(agg.patName)
+      val argTable = prepareArgTableOfCall(frame, pattern, agg.args)
+      fixpointState.addQuery(agg.patName, argTable) match {
+        case Some(query) =>
+          val callee = ControlPoint(PatternPoint(pattern, BeforeList))
+          callStack.push(Frame(callee, query, query))
+        case None =>
+          val patternTable = fixpointState.relation(agg.patName, argTable)
+          val next = frame.cp.stepIntra.getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+          val tables = transitionCountAggTables(frame, patternTable, lhs)
+          callStack.update(Frame(next, tables))
+      }
     case Datalog.Computed(lhs, agg: Datalog.CustomAggregation) =>
-//      val pattern = patterns(agg.patName)
-//      val preTables = prepareCallTables(frame, pattern, agg.args)
-//      if (fixpointState.contains(agg.patName, preTables._1)) {
-//        val (_, _, patternTable) = readPatternTable(frame, agg.patName, agg.args)
-//        val next = frame.cp.stepIntra.getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
-//        val tables = transitionCountAggTables(frame, patternTable, lhs)
-//        callStack.update(Frame(next, tables))
-//      } else {
-//        val callee = ControlPoint(PatternPoint(pattern, BeforeList))
-//        callStack.push(Frame(callee, preTables))
-//      }
+      val pattern = patterns(agg.patName)
+      val argTable = prepareArgTableOfCall(frame, pattern, agg.args)
+      fixpointState.addQuery(agg.patName, argTable) match {
+        case Some(query) =>
+          val callee = ControlPoint(PatternPoint(pattern, BeforeList))
+          callStack.push(Frame(callee, query, query))
+        case None =>
+          val patternTable = fixpointState.relation(agg.patName, argTable)
+          val next = frame.cp.stepIntra.getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+          val tables = transitionCustomAggTables(frame, patternTable, lhs, agg)
+          callStack.update(Frame(next, tables))
+      }
     case _ => throw IllegalDebugStateException(s"Atom $atom should contain call")
   }
 
-  private def transitionReturnCallTables(name: String, argsTable: Table[Value], neg: Boolean = false): Frame.Tables = {
+  private def transitionReturnCallTables(callerFrame: Frame, name: String, argsTable: Table[Value], neg: Boolean = false): Frame.Tables = {
     val patternTable = fixpointState.relation(name, argsTable)
     val params = patterns(name).params.map(_.name)
     if (neg)
-      transitionReturnNegCallTables(frame, params, patternTable)
+      transitionReturnNegCallTables(callerFrame, params, patternTable)
     else {
-      transitionReturnCallTables(frame, params, patternTable)
+      transitionReturnCallTables(callerFrame, params, patternTable)
     }
   }
 
@@ -200,25 +203,19 @@ trait Debugger {
 
   protected def doPatternEntry(cp: ControlPoint): Unit = {
     val next = cp.stepIntra.get // yields first body of this pattern
-    callStack.update(Frame(next,  frame.argsTable, frame.argsTable))
+    lastDerivedTuples = fixpointState.relation(cp.point.pat.name, frame.argsTable)
+    callStack.update(Frame(next, frame.argsTable, frame.argsTable))
   }
 
   protected def doPatternExit(frame: Frame): Unit = {
     val pat = frame.cp.point.pat
     callStack.pop() // pop pattern exit point
 
-    // extend derived relations
-    val oldTable = fixpointState.relation(pat.name, frame.argsTable)
-    // fixpointState.addDerivedTuples(pat.name, frame.patternTable)
-
+    // if the fixpoint of the call has not been reached call pattern again
     val currentTable = fixpointState.relation(pat.name, frame.argsTable)
-    val fullTable = readDatabase(pat.name, frame.argsTable)
-    val missing = fullTable.diff(currentTable)
-
-    // if the fixpoint has not been reached
-    if (!missing.isEmpty) {
+    val noNewTuples = currentTable.diff(lastDerivedTuples).isEmpty
+    if (!noNewTuples) {
       val nextFrame = Frame(ControlPoint.patternEntryPoint(pat), frame.argsTable, frame.argsTable)
-      println(s"call ${pat.name} ${frame.argsTable}")
       callStack.push(nextFrame)
       return
     }
@@ -255,10 +252,8 @@ trait Debugger {
     val pattern = frame.cp.point.pat
     val params = pattern.params.map(_.name)
     val projectedBodyTable = frame.bodyTable.project(params)
-    println(s"exit ${pattern.name} ${frame.argsTable} -> ${frame.bodyTable}")
     fixpointState.addDerivedTuples(pattern.name, projectedBodyTable)
-    val tables = transitionNextBodyTables(frame)
-    callStack.update(Frame(next, tables))
+    callStack.update(Frame(next, frame.argsTable, frame.argsTable))
   }
 
   private def stepIntoPatternBoundary(frame: Frame): Unit = {
@@ -658,17 +653,6 @@ trait Debugger {
     (callerFrame.argsTable, extBodyTable)
   }
 
-
-  private def transitionNextBodyTables(frame: Frame): Frame.Tables = {
-    // extend pattern table with tuples derived by body
-//    val pat = frame.cp.point.pat
-//    val columns = pat.params.map(_.name).filter(frame.bodyTable.columns.contains)
-//    val projectedBodySubst = frame.bodyTable.project(columns)
-//    val patternTable = frame.patternTable.addRows(projectedBodySubst)
-
-    (frame.argsTable, frame.argsTable)
-  }
-
   private def transLiteral(c: Datalog.Literal): Value = c match {
     case Datalog.IntLiteral(v) => ScalaValue(v)
     case Datalog.LongLiteral(v) => ScalaValue(v)
@@ -791,6 +775,7 @@ trait Debugger {
       case None =>
         if (frame.cp.isPatternPoint) {
           val pattern = frame.cp.point.pat
+          lastDerivedTuples = fixpointState.relation(pattern.name, frame.argsTable)
           val patternTable = readDatabase(pattern.name, frame.argsTable)
           fixpointState.addDerivedTuples(pattern.name, patternTable)
           val next = ControlPoint(PatternPoint(pattern, AfterList))

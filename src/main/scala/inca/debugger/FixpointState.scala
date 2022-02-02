@@ -11,10 +11,6 @@ class FixpointState[V](patterns: Map[String, Datalog.Pattern]) {
   private val derivedTuples: mutable.Map[String, Table[V]] = mutable.Map()
   private val generalizedQueries: mutable.Map[(String, Adornment), Table[V]] = mutable.Map()
 
-  def print(): Unit = {
-    println(derivedTuples)
-  }
-
   def addQuery(name: String, args: Table[V]): Option[Table[V]] = {
     val adorn = adornment(name, args)
     val nextQuery = generalizedQueries.get(name -> adorn) match {
