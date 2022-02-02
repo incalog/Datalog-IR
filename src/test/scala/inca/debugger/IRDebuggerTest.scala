@@ -473,8 +473,6 @@ class IRDebuggerTest extends AnyFunSuite {
 
     debugger.stepOver() // needed to step to pattern exit
     debugger.stepOver() // needed to exit pattern
-    debugger.stepOver() // needed to step over pattern call again
-    debugger.stepOver() // needed to pop last element from stack
 
     assert(debugger.isFinished)
     assertExpectedTable(debugger, "two", args)
@@ -491,8 +489,6 @@ class IRDebuggerTest extends AnyFunSuite {
 
     debugger.stepOver() // needed to step to pattern exit
     debugger.stepOver() // needed to exit pattern
-    debugger.stepOver() // needed to step over pattern call again
-    debugger.stepOver() // needed to pop last element from stack
 
     assert(debugger.isFinished)
     assertExpectedTable(debugger, "two", args)

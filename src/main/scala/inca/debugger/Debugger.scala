@@ -213,8 +213,10 @@ trait Debugger {
 
     // if the fixpoint of the call has not been reached call pattern again
     val currentTable = fixpointState.relation(pat.name, frame.argsTable)
-    val noNewTuples = currentTable.diff(lastDerivedTuples).isEmpty
-    if (!noNewTuples) {
+    val fullTable = readDatabase(pat.name, frame.argsTable)
+    val notEqToBottomUpTable = currentTable != fullTable
+    val newTupledDerived = !currentTable.diff(lastDerivedTuples).isEmpty
+    if (notEqToBottomUpTable && newTupledDerived) {
       val nextFrame = Frame(ControlPoint.patternEntryPoint(pat), frame.argsTable, frame.argsTable)
       callStack.push(nextFrame)
       return
