@@ -27,20 +27,28 @@ object MainFunctionAnno extends Annotation {
 
   override def toString: String = "@main"
 }
-case class JoinFunctionAnno(props: Seq[JoinProperty]) extends Annotation {
-  override def key: Annotation.Key = "JOIN_FUNCTION"
-  override def toString: String = s"@join(${props.mkString(", ")})"
+case class AggregationAnno(props: Seq[AggregationProperty]) extends Annotation {
+  override def key: Annotation.Key = "AGGREGATION"
+  override def toString: String = s"@aggr(${props.mkString(", ")})"
 }
-trait JoinProperty {
+trait AggregationProperty {
   def name: String
+  def inverseName: Option[String]
   override def toString: Key = name
 }
-case object Associativity extends JoinProperty {
+case object Associativity extends AggregationProperty {
   override def name: String = "assoc"
+  override def inverseName: Option[String] = None
 }
-case object Commutativity extends JoinProperty {
+case object Commutativity extends AggregationProperty {
   override def name: String = "comm"
+  override def inverseName: Option[String] = None
 }
-//case object Invertibility extends JoinProperty {
-//  override def name: String = "inv"
-//}
+case class Invertibility(invName: String) extends AggregationProperty {
+  override def name: String = s"invert($invName)"
+  override def inverseName: Option[String] = Some(invName)
+}
+case object InverseFunction extends AggregationProperty {
+  override def name: String = "inverse"
+  override def inverseName: Option[String] = None
+}
