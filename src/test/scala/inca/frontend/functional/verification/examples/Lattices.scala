@@ -6,7 +6,7 @@ import inca.frontend.functional.parser.Parser
 object Lattices {
 
   val sign_lattice =
-    s"""module SignLatticeModule
+    s"""module SignLattice
        |data Sign = Neg() | Zero() | Pos() | Bot() | Top()
        |
        |def join(s1: Sign, s2: Sign): Sign = s1 match {
@@ -37,4 +37,21 @@ object Lattices {
        |""".stripMargin
 
   val sign_lattice_module: Module = Parser.parse(sign_lattice)
+
+  val const_lattice =
+    s"""module ConstantPropagationLattice
+       |data Constant = Bot() | Num(Int) | Top()
+       |
+       |def join(c1: Constant, c2: Constant): Constant = c1 match {
+       |  case Top() => Top()
+       |  case Bot() => c2
+       |  case Num(i1) => c2 match {
+       |    case Top() => Top()
+       |    case Bot() => c1
+       |    case Num(i2) => (if (i1==i2) {Num(i1)} else {Top()})
+       |  }
+       |}
+       |""".stripMargin
+
+  val const_lattice_module: Module = Parser.parse(const_lattice)
 }

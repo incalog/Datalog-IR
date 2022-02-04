@@ -7,7 +7,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import smtlib.trees.Commands.PropLiteral
 import smtlib.trees.Terms.SSymbol
 import inca.frontend.functional.verification.Verifier
-import inca.frontend.functional.verification.examples.Lattices.sign_lattice_module
+import inca.frontend.functional.verification.examples.Lattices.{const_lattice_module, sign_lattice_module}
 
 class GenerateSMTLIBTest extends AnyFunSuite {
 
@@ -20,6 +20,9 @@ class GenerateSMTLIBTest extends AnyFunSuite {
   }
   test("print sign lattice") {
     print(sign_lattice_module)
+  }
+  test("print constant Propagation lattice") {
+    print(const_lattice_module)
   }
   test("collect called functions") {
     val module = Parser.parse(ControlDataFlow.IntervalModule)
