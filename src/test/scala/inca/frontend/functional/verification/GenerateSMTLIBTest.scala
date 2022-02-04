@@ -7,6 +7,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import smtlib.trees.Commands.PropLiteral
 import smtlib.trees.Terms.SSymbol
 import inca.frontend.functional.verification.Verifier
+import inca.frontend.functional.verification.examples.Lattices.sign_lattice_module
 
 class GenerateSMTLIBTest extends AnyFunSuite {
 
@@ -16,6 +17,9 @@ class GenerateSMTLIBTest extends AnyFunSuite {
   }
   test("what does the functional AS look like") {
     print(Parser.parse(ControlDataFlow.IntervalModule))
+  }
+  test("print sign lattice") {
+    print(sign_lattice_module)
   }
   test("collect called functions") {
     val module = Parser.parse(ControlDataFlow.IntervalModule)
