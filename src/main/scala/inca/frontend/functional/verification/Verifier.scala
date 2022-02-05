@@ -73,7 +73,7 @@ class Verifier {
 
   def generate(funcName: Name, props: Seq[Property]): Script = {
     val calledFunctions = collectCalledFunctions(functionDict(funcName))
-    val dataDefs = calledFunctions.flatMap(fName => collectUsedDataDefs(functionDict(fName)))
+    val dataDefs = (calledFunctions :+ funcName).flatMap(fName => collectUsedDataDefs(functionDict(fName)))
     val transDataDefs =  dataDefs.map(transDataDef)
     val transFuncDefs = calledFunctions.map(transFunctionDef)
     val transProps = props.map(transProperty)

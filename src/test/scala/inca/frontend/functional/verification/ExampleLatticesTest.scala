@@ -16,7 +16,13 @@ class ExampleLatticesTest extends AnyFunSuite {
     val aggregations = verifier.collectAggregations(module)
     print("\n###################### Aggregations: \n")
     print(aggregations)
-    val joinFunc = verifier.functionDict(aggregations.toSeq.map(ag => ag._1).head)
+    val joinFuncName = aggregations.head._1
+    val calledFunctions = verifier.collectCalledFunctions(verifier.functionDict(joinFuncName))
+    print("\n############## Called Functions: \n")
+    print(calledFunctions)
+    val dataDefs = (calledFunctions :+ joinFuncName).flatMap(fName => verifier.collectUsedDataDefs(verifier.functionDict(fName)))
+    print("\n############## Used DataDefs: \n")
+    print(dataDefs)
 
   }
 }
