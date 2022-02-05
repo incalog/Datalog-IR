@@ -1,6 +1,7 @@
 package inca.frontend.functional.verification
 
 import inca.frontend.functional.core.{Call, Let, Match, _}
+import inca.frontend.functional.Collect
 import smtlib.interpreters.Z3Interpreter
 import smtlib.trees.Commands.Script
 
@@ -45,66 +46,61 @@ class Verifier {
   def collectAggregations(module: Module): Map[Name, Seq[Property]] = ???
 
   def generate(funcName: Name, props: Seq[Property]): Script = {
-    val calledFunctions = collectCalledFunctions(functionDict(funcName).body).toSeq
-    val dataDefs = calledFunctions.flatMap(fName => collectUsedDataDefs(functionDict(fName))).toSeq
+    val calledFunctions = collectCalledFunctions(functionDict(funcName))
+    val dataDefs = calledFunctions.flatMap(fName => collectUsedDataDefs(functionDict(fName)))
     val transDataDefs =  dataDefs.map(transDataDef)
     val transFuncDefs = calledFunctions.map(transFunctionDef)
     val transProps = props.map(transProperty)
     makeScript(transDataDefs ++ transFuncDefs ++ transProps)
   }
 
-  def collectCalledFunctions(funBody: Expression): Set[Name] = {
-    funBody match {
-      case Var(name) => Set()
-      case inca.frontend.functional.core.Let(names, anno, bound, body) =>
-        collectCalledFunctions(bound) ++ collectCalledFunctions(body)
-      case BaseApplyInfix(left, op, right) =>
-        collectCalledFunctions(left)++collectCalledFunctions(right)
-      case BaseLit(code) => Set()
-      case If(cnd, thn, els) =>
-        collectCalledFunctions(cnd)++collectCalledFunctions(thn)++collectCalledFunctions(els)
-      case Match(matchee: Expression, cases: Seq[(Pattern, Expression)]) =>
-        collectCalledFunctions(matchee)++cases.flatMap(c => collectCalledFunctions(c._2))
-      case Call(fun, args, transitive) => fun match {
-        case Var(name) => Set(name)++args.flatMap(collectCalledFunctions)
-        case _ => collectCalledFunctions(fun)++args.flatMap(collectCalledFunctions)
+  def collectCalledFunctions(func: FunctionDef): Seq[Name] = {
+    // TODO okay das mit vars zu machen?
+    //val functions: mutable.Seq[Name] = mutable.Seq()
+    //val newFunctions: mutable.Seq[Name] = mutable.Seq(CollectCalledFunctionNames.transFun(func))
+    //while (functions != newFunctions) {
+    //  functions = newFunctions
+    //}
+    val funcNameCollector = new Collect[Name] {
+      override def transExp(exp: Expression): Seq[Name] = exp match {
+        case Call(fun, args, _) => fun match {
+          case Var(name) => Seq(name) ++ args.flatMap(super.transExp)
+          case _ => super.transExp(exp)
+        }
+        case _ => super.transExp(exp)
       }
-      case BaseApply(fun, args) =>
-        args.flatMap(collectCalledFunctions).toSet
-      case Tuple(exps) =>
-        exps.flatMap(collectCalledFunctions).toSet
-      case SetExp(es) =>
-        es.flatMap(collectCalledFunctions).toSet
-      case SetComprehension(build, predicates) =>
-        collectCalledFunctions(build)++predicates.flatMap(collectCalledFunctions)
-      case SetMember(tup, set, neg) =>
-        collectCalledFunctions(tup)++collectCalledFunctions(set)
-      case Lambda(vs, body) => collectCalledFunctions(body)
-      case SetFold(anno, init, op, set) =>
-        collectCalledFunctions(init)++collectCalledFunctions(op)++collectCalledFunctions(set)
-      case SomeExp(e) => collectCalledFunctions(e)
-      case NoneExp() => Set()
     }
+    /*
+     Da auch Konstruktoraufrufe als Funktionsaufrufe gestaltet sind, wir aber nur "echte Funktionsaufrufe"
+     haben wollen, filtern wir nach den Funktionen im dictionary. TODO imports des Moduls
+     */
+    var functions: Seq[Name] = Seq()
+    var newFunctions: Seq[Name] = funcNameCollector.transFun(func).filter(functionDict.contains).distinct
+    while (functions != newFunctions) {
+      functions = newFunctions
+      newFunctions = (functions ++ functions.flatMap(f =>
+        funcNameCollector.transFun(functionDict(f))).filter(functionDict.contains)).distinct
+    }
+    functions
   }
 
-  def collectUsedDataDefs(func: FunctionDef): Set[Name] = {
-    val funcTypes = (Set(func.outType)++func.params.map(p => p.typ)).flatMap(getDataTypes)
-    funcTypes ++ funcTypes.flatMap(dataName => {
-      val constrs = dataDict(dataName).constrs
-      constrs.flatMap(c => c.paramTypes.flatMap(getDataTypes))
-    })
+  def collectUsedDataDefs(func: FunctionDef): Seq[Name] = {
+    val dataNameCollector = new Collect[Name] {
+      override def transType(t: Type): Seq[Name] = t match {
+        case TData(name) => Seq(name)
+        case _ => super.transType(t)
+      }
+    }
+    var dataDefs: Seq[Name] = Seq()
+    var newDataDefs: Seq[Name] = dataNameCollector.transFun(func).filter(dataDict.contains).distinct
+    while (dataDefs != newDataDefs) {
+      dataDefs = newDataDefs
+      newDataDefs = (dataDefs ++ dataDefs.flatMap(d =>
+        dataNameCollector.transData(dataDict(d))).filter(dataDict.contains)).distinct
+    }
+    dataDefs
   }
 
-  def getDataTypes(outType: Type): Set[Name] = {
-    outType match {
-      case TFun(from, to) => (from.flatMap(getDataTypes)++getDataTypes(to)).toSet
-      case TTuple(ts) => ts.flatMap(getDataTypes).toSet
-      case TData(name) => Set(name)
-      case TOption(ty) => getDataTypes(ty)
-      case TSet(ty) => getDataTypes(ty)
-      case _ => Set()
-    }
-  }
 
   def transDataDef(dataName: Name): Script = ???
 

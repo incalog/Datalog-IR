@@ -2,24 +2,6 @@ package inca.frontend.functional
 
 import inca.frontend.functional.core._
 
-
-object CollectCalledFunctionNames extends Collect[Name] {
-  override def transExp(exp: Expression): Seq[Name] = exp match {
-    case Call(fun, args, transitive) => fun match {
-      case Var(name) => Seq(name) ++ args.flatMap(super.transExp)
-      case _ => super.transExp(exp)
-    }
-    case _ => super.transExp(exp)
-  }
-}
-
-object CollectUsedDataDefNames extends Collect[Name] {
-  override def transType(t: Type): Seq[Name] = t match {
-    case TData(name) => Seq(name)
-    case _ => super.transType(t)
-  }
-}
-
 trait Collect[R] {
 
   def apply(module: Module): Seq[R] = {
