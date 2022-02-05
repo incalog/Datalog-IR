@@ -42,7 +42,7 @@ object Lattices {
     s"""module ConstantPropagationLattice
        |data Constant = Bot() | Num(Int) | Top()
        |
-       |def join(c1: Constant, c2: Constant): Constant = c1 match {
+       |@main def join(c1: Constant, c2: Constant): Constant = c1 match {
        |  case Top() => Top()
        |  case Bot() => c2
        |  case Num(i1) => c2 match {
