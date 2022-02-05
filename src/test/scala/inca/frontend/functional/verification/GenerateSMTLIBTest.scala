@@ -1,6 +1,8 @@
 package inca.frontend.functional.verification
 
 import inca.examples.functional.ControlDataFlow
+import inca.frontend.functional.CollectCalledFunctionNames
+import inca.frontend.functional.CollectUsedDataDefNames
 import inca.frontend.functional.core.FunctionDef
 import inca.frontend.functional.parser.Parser
 import org.scalatest.funsuite.AnyFunSuite
@@ -30,11 +32,22 @@ class GenerateSMTLIBTest extends AnyFunSuite {
     print(verifier.collectCalledFunctions(module.content(2).asInstanceOf[FunctionDef].body))
     print(verifier.collectCalledFunctions(module.content(4).asInstanceOf[FunctionDef].body))
   }
+  test("collect called functions with Collect trait") {
+    val module = Parser.parse(ControlDataFlow.IntervalModule)
+    print(CollectCalledFunctionNames(module).distinct)
+    print(CollectCalledFunctionNames.transExp(module.content(2).asInstanceOf[FunctionDef].body).distinct)
+    print(CollectCalledFunctionNames.transExp(module.content(4).asInstanceOf[FunctionDef].body).distinct)
+  }
   test("collect used datatypes") {
     val module = Parser.parse(ControlDataFlow.IntervalModule)
     val verifier = new Verifier()
     verifier.fillDicts(module)
     print(verifier.collectUsedDataDefs(module.content(2).asInstanceOf[FunctionDef]))
     print(verifier.collectUsedDataDefs(module.content(4).asInstanceOf[FunctionDef]))
+  }
+  test("collect used datatypes with Collect") {
+    val module = Parser.parse(ControlDataFlow.IntervalModule)
+    print(CollectUsedDataDefNames.transFun(module.content(2).asInstanceOf[FunctionDef]))
+    print(CollectUsedDataDefNames.transFun(module.content(4).asInstanceOf[FunctionDef]))
   }
 }

@@ -13,6 +13,13 @@ object CollectCalledFunctionNames extends Collect[Name] {
   }
 }
 
+object CollectUsedDataDefNames extends Collect[Name] {
+  override def transType(t: Type): Seq[Name] = t match {
+    case TData(name) => Seq(name)
+    case _ => super.transType(t)
+  }
+}
+
 trait Collect[R] {
 
   def apply(module: Module): Seq[R] = {
@@ -32,15 +39,32 @@ trait Collect[R] {
 
   def transAnno(anno: Annotation): Seq[R] = Seq()
 
-  def transConstr(constr: DataConstructor): Seq[R] = Seq()
+  def transType(t: Type): Seq[R] = {
+    t match {
+      case TAny => Seq()
+      case TNothing => Seq()
+      case TFun(from, to) => from.flatMap(transType) ++ transType(to)
+      case TTuple(ts) => ts.flatMap(transType)
+      case TData(name) => Seq()
+      case TScala(ty) => Seq()
+      case TOption(ty) => transType(ty) // TODO macht das Sinn? Was sollte der Default sein?
+      case TSet(ty) => transType(ty)
+    }
+  }
 
-  def transParam(par: Param): Seq[R] = Seq()
+  def transConstr(constr: DataConstructor): Seq[R] = {
+    constr.paramTypes.flatMap(transType)
+  }
+
+  def transParam(par: Param): Seq[R] = {
+    transType(par.typ)
+  }
 
   def transExp(exp: Expression): Seq[R] = {
     exp match {
       case Var(name) => Seq()
       case inca.frontend.functional.core.Let(names, anno, bound, body) =>
-        transExp(bound) ++ transExp(body)
+        transExp(bound) ++ transExp(body) ++ transType(anno.getOrElse(TAny))
       case BaseApplyInfix(left, op, right) =>
         transExp(left)++transExp(right)
       case BaseLit(code) => Seq()
@@ -59,9 +83,9 @@ trait Collect[R] {
         transExp(build)++predicates.flatMap(transExp)
       case SetMember(tup, set, neg) =>
         transExp(tup)++transExp(set)
-      case Lambda(vs, body) => transExp(body)
+      case Lambda(vs, body) => vs.flatMap(v => transType(v._2)) ++ transExp(body)
       case SetFold(anno, init, op, set) =>
-        transExp(init)++transExp(op)++transExp(set)
+        transType(anno.getOrElse(TAny)) ++ transExp(init)++transExp(op)++transExp(set)
       case SomeExp(e) => transExp(e)
       case NoneExp() => Seq()
     }
