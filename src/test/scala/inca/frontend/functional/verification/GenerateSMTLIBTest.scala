@@ -11,7 +11,6 @@ import inca.frontend.functional.verification.Verifier
 import inca.frontend.functional.verification.examples.Lattices.{const_lattice_module, sign_lattice_module}
 
 class GenerateSMTLIBTest extends AnyFunSuite {
-
   test("generate data type") {
     print(PropLiteral(SSymbol("x"), true))
     assertResult(1)(1)
@@ -43,4 +42,10 @@ class GenerateSMTLIBTest extends AnyFunSuite {
     print(verifier.collectUsedDataDefs(module.content(2).asInstanceOf[FunctionDef]))
     print(verifier.collectUsedDataDefs(module.content(4).asInstanceOf[FunctionDef]))
   }
+  test("collect aggregations") {
+    val module = Parser.parse(ControlDataFlow.IntervalModule)
+    val verifier = new Verifier()
+    print(verifier.collectAggregations(module))
+  }
 }
+

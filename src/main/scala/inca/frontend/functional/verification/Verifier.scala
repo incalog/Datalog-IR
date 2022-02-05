@@ -43,7 +43,33 @@ class Verifier {
     case d: DataDef => dataDict += d.name -> d
     case f: FunctionDef => functionDict += f.name -> f
   }
-  def collectAggregations(module: Module): Map[Name, Seq[Property]] = ???
+  def collectAggregations(module: Module): Map[Name, Seq[Property]] = {
+    val aggrCollector = new Collect[(Name, Seq[Property])] {
+      override def transFun(func: FunctionDef): Seq[(Name, Seq[Property])] = {
+        if (func.annos.exists {
+          // TODO Ich benutze main Annotations, weil AggregationAnnos noch nicht
+          //  funktionieren (vor allem nicht mit dem Parser)
+          case AggregationAnno(props) => false
+          case MainFunctionAnno => true
+        }) {
+          Seq((func.name, getAggrProps(func)))
+        } else {
+          Seq()
+        }
+      }
+    }
+    aggrCollector(module).toMap
+  }
+
+  def getAggrProps(func: FunctionDef): Seq[Property] = {
+    val aggrPropCollector = new Collect[Property] {
+      override def transAnno(anno: Annotation): Seq[Property] = anno match {
+        case AggregationAnno(props) => props
+        case MainFunctionAnno => Seq()
+      }
+    }
+    aggrPropCollector.transFun(func)
+  }
 
   def generate(funcName: Name, props: Seq[Property]): Script = {
     val calledFunctions = collectCalledFunctions(functionDict(funcName))
@@ -114,7 +140,7 @@ class Verifier {
 
   def makeScript(scripts: Seq[Script]): Script = ???
 
-  case class Property()
+  type Property = AggregationProperty
 
 }
 

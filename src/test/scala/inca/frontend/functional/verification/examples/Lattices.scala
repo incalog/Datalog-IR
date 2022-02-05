@@ -9,7 +9,7 @@ object Lattices {
     s"""module SignLattice
        |data Sign = Neg() | Zero() | Pos() | Bot() | Top()
        |
-       |def join(s1: Sign, s2: Sign): Sign = s1 match {
+       |@main def join(s1: Sign, s2: Sign): Sign = s1 match {
        |  case Top() => Top()
        |  case Bot() => s2
        |  case Neg() => s2 match {

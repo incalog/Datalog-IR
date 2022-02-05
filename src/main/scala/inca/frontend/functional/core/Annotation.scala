@@ -27,10 +27,12 @@ object MainFunctionAnno extends Annotation {
 
   override def toString: String = "@main"
 }
+
 case class AggregationAnno(props: Seq[AggregationProperty]) extends Annotation {
   override def key: Annotation.Key = "AGGREGATION"
   override def toString: String = s"@aggr(${props.mkString(", ")})"
 }
+
 trait AggregationProperty {
   def name: String
   def inverseName: Option[String]
