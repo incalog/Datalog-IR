@@ -48,5 +48,11 @@ class ExampleLatticesTest extends AnyFunSuite {
     val dataDefs = (calledFunctions :+ joinFuncName).flatMap(fName => verifier.collectUsedDataDefs(verifier.functionDict(fName)))
     print("\n############## Used DataDefs: \n")
     print(dataDefs)
+    print("\n############## Translated DataDefs: \n")
+    val gensym = new Gensym(Seq())
+    print(dataDefs.map(d => verifier.transDataDef(d)(gensym)))
+    print("\n############## Translated FunctionDefs: \n")
+    val functions = calledFunctions :+ joinFuncName
+    print(functions.map(f => verifier.transFunctionDef(f)))
   }
 }

@@ -3,7 +3,7 @@ package inca.frontend.functional.verification
 import com.sun.jdi.InvalidTypeException
 import inca.frontend.functional.core.{Call, Let, Match, _}
 import inca.frontend.functional.Collect
-import inca.util.Gensym
+import inca.util.{Gensym, Scala}
 import smtlib.extensions.tip.Terms.{Case, CaseClass, CaseObject}
 import smtlib.interpreters.Z3Interpreter
 import smtlib.trees.Commands.{Constructor, DeclareDatatypes, DefineFun, FunDef, Script}
@@ -172,10 +172,10 @@ class Verifier {
     typ match {
       // TODO macht es Sinn, irgendeinen Error zu wählen, der zur Situation passt?
       case TScala(ty) => ty match {
-        case scala.meta.Type.Name("Int") => Sort(Identifier(SSymbol("Int")))
-        case scala.meta.Type.Name("Boolean") => Sort(Identifier(SSymbol("Bool")))
-        case scala.meta.Type.Name("Double") => Sort(Identifier(SSymbol("Real")))
-        case scala.meta.Type.Name("String") => ???
+        case Scala(scala.meta.Type.Name("Int")) => Sort(Identifier(SSymbol("Int")))
+        case Scala(scala.meta.Type.Name("Boolean")) => Sort(Identifier(SSymbol("Bool")))
+        case Scala(scala.meta.Type.Name("Double")) => Sort(Identifier(SSymbol("Real")))
+        case Scala(scala.meta.Type.Name("String")) => ???
       }
       case TData(name) => Sort(Identifier(SSymbol(name.name)))
       // TODO andere Cases
@@ -210,7 +210,7 @@ class Verifier {
           //ConstructorPattern(constr: Name, args: Seq[Name]) extends Pattern
           //NonePattern() extends Pattern
           //SomePattern(arg: Name) extends Pattern
-      case Match(matchee, cases) => {
+      case Match(matchee, cases) =>
         val scrut = transExp(matchee)
         val transCases = cases.map {
           case (ConstructorPattern(constr, args), body) =>
@@ -223,15 +223,14 @@ class Verifier {
           case _ => ??? // Some und None werden erstmal nicht gebraucht
         }
         smtlib.extensions.tip.Terms.Match(scrut, transCases)
-      }
-        // Match(scrut: Term, cases: Seq[Case])
+      // Match(scrut: Term, cases: Seq[Case])
       // Case(pattern: Pattern, rhs: Term)
         // Default extends Pattern
         //CaseObject(sym: SSymbol) extends Pattern
         //CaseClass(sym: SSymbol, binders: Seq[SSymbol]) extends Pattern
 
       //Call(fun: Expression, args: Seq[Expression], transitive: Boolean = false)
-      case Call(fun, args, transitive) => {
+      case Call(fun, args, transitive) =>
         val transFun = transExp(fun)
         val transArgs = args.map(transExp)
         transFun match {
@@ -242,8 +241,22 @@ class Verifier {
           }
           case _ => throw new Exception("Wir brauchen bei einem Funktionsaufruf einen qualified identifier")
         }
-      }
       //FunctionApplication(fun: QualifiedIdentifier, terms: Seq[Term])
+
+      case If(cnd, thn, els) =>
+        FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("ite"))),
+          Seq(cnd, thn, els).map(transExp))
+
+      case BaseApplyInfix(left, op, right) =>
+        val transOp = op.tree.value match {
+          // TODO bei Bedarf mehr Infix Operatoren hinzufügen (Was, wenn das nicht in Core theory
+          //  enthalten ist? Extra FunctionDefinition?)
+          case "==" => "="
+          case _ => op.tree.value
+        }
+        FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(transOp))), Seq(left, right).map(transExp))
+
+      case SetExp(es) => ???
     }
   }
 
