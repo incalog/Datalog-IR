@@ -1,10 +1,14 @@
 package inca.frontend.functional.verification
 
+import com.sun.jdi.InvalidTypeException
 import inca.frontend.functional.core.{Call, Let, Match, _}
 import inca.frontend.functional.Collect
+import inca.util.Gensym
 import smtlib.interpreters.Z3Interpreter
-import smtlib.trees.Commands.Script
+import smtlib.trees.Commands.{Constructor, DeclareDatatypes, Script}
+import smtlib.trees.Terms.{Identifier, SSymbol, Sort}
 
+import javax.naming.directory.InvalidAttributeValueException
 import scala.collection.mutable
 //import smtlib.theories.Ints._
 //import smtlib.trees.Terms._
@@ -43,6 +47,7 @@ class Verifier {
     case d: DataDef => dataDict += d.name -> d
     case f: FunctionDef => functionDict += f.name -> f
   }
+
   def collectAggregations(module: Module): Map[Name, Seq[Property]] = {
     val aggrCollector = new Collect[(Name, Seq[Property])] {
       override def transFun(func: FunctionDef): Seq[(Name, Seq[Property])] = {
@@ -72,9 +77,10 @@ class Verifier {
   }
 
   def generate(funcName: Name, props: Seq[Property]): Script = {
+    implicit val gensym = new Gensym(Seq())
     val calledFunctions = collectCalledFunctions(functionDict(funcName))
     val dataDefs = (calledFunctions :+ funcName).flatMap(fName => collectUsedDataDefs(functionDict(fName)))
-    val transDataDefs =  dataDefs.map(transDataDef)
+    val transDataDefs = dataDefs.map(transDataDef)
     val transFuncDefs = calledFunctions.map(transFunctionDef)
     val transProps = props.map(transProperty)
     makeScript(transDataDefs ++ transFuncDefs ++ transProps)
@@ -127,15 +133,44 @@ class Verifier {
     dataDefs
   }
 
+  // DataDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, constrs: Seq[DataConstructor])
+  // DataConstructor(name: Name, paramTypes: Seq[Type])
 
-  def transDataDef(dataName: Name): Script = ???
+  def transDataDef(dataName: Name)(implicit gensym: Gensym): Script = {
+    val data = dataDict(dataName)
+    val transConstrs = data.constrs.map(c =>
+      Constructor(SSymbol(c.name.name),
+        c.paramTypes.map(paramType => {
+          val fieldName = gensym.fresh(c.name.name)
+          val sort = paramType match {
+            // TODO macht es Sinn, irgendeinen Error zu wählen, der zur Situation passt?
+            case TScala(ty) => ty match {
+              case scala.meta.Type.Name("Int") => Sort(Identifier(SSymbol("Int")))
+              case scala.meta.Type.Name("Boolean") => Sort(Identifier(SSymbol("Bool")))
+              case scala.meta.Type.Name("Double") => Sort(Identifier(SSymbol("Real")))
+              case scala.meta.Type.Name("String") => ???
+            }
+            case TData(name) => Sort(Identifier(SSymbol(name.name)))
+            case _ => throw new InvalidAttributeValueException("Constructor parameter type needs to be specified")
+          }
+          (SSymbol(fieldName), sort)
+        }))
+    )
+    Script(List(DeclareDatatypes(Seq((SSymbol(dataName.name), transConstrs)))))
+  }
 
-  def transFunctionDef(func: Name): Script = ???
+  // DeclareDatatypes(datatypes: Seq[(SSymbol, Seq[Constructor])])
+  // Constructor(sym: SSymbol, fields: Seq[(SSymbol, Sort)])
+
+  def transFunctionDef(funcName: Name): Script = {
+    val func = functionDict(funcName)
+    Script(List())
+  }
 
   def transProperty(prop: Property): Script = ???
-    //prop match {
-    //case Assoc => transAsssoc(name)
-    //case Commutativity => transCommu(name)
+  //prop match {
+  //case Assoc => transAsssoc(name)
+  //case Commutativity => transCommu(name)
 
 
   def makeScript(scripts: Seq[Script]): Script = ???

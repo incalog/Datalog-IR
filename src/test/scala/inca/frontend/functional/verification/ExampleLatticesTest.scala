@@ -1,8 +1,8 @@
 package inca.frontend.functional.verification
 
 import org.scalatest.funsuite.AnyFunSuite
-import inca.frontend.functional.verification.Verifier
 import inca.frontend.functional.verification.examples.Lattices.{const_lattice_module, sign_lattice_module}
+import inca.util.Gensym
 
 class ExampleLatticesTest extends AnyFunSuite {
   test("test sign_lattice_module"){
@@ -23,6 +23,9 @@ class ExampleLatticesTest extends AnyFunSuite {
     val dataDefs = (calledFunctions :+ joinFuncName).flatMap(fName => verifier.collectUsedDataDefs(verifier.functionDict(fName)))
     print("\n############## Used DataDefs: \n")
     print(dataDefs)
+    print("\n############## Translated DataDefs: \n")
+    val gensym = new Gensym(Seq())
+    print(dataDefs.map(d => verifier.transDataDef(d)(gensym)))
   }
   test("test const_lattice_module"){
     val module = const_lattice_module
