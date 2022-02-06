@@ -26,6 +26,9 @@ class ExampleLatticesTest extends AnyFunSuite {
     print("\n############## Translated DataDefs: \n")
     val gensym = new Gensym(Seq())
     print(dataDefs.map(d => verifier.transDataDef(d)(gensym)))
+    print("\n############## Translated FunctionDefs: \n")
+    val functions = calledFunctions :+ joinFuncName
+    print(functions.map(f => verifier.transFunctionDef(f)))
   }
   test("test const_lattice_module"){
     val module = const_lattice_module

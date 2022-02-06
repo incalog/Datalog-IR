@@ -4,9 +4,11 @@ import com.sun.jdi.InvalidTypeException
 import inca.frontend.functional.core.{Call, Let, Match, _}
 import inca.frontend.functional.Collect
 import inca.util.Gensym
+import smtlib.extensions.tip.Terms.{Case, CaseClass, CaseObject}
 import smtlib.interpreters.Z3Interpreter
-import smtlib.trees.Commands.{Constructor, DeclareDatatypes, Script}
-import smtlib.trees.Terms.{Identifier, SSymbol, Sort}
+import smtlib.trees.Commands.{Constructor, DeclareDatatypes, DefineFun, FunDef, Script}
+import smtlib.trees.Terms
+import smtlib.trees.Terms.{Identifier, SSymbol, Sort, SortedVar, _}
 
 import javax.naming.directory.InvalidAttributeValueException
 import scala.collection.mutable
@@ -77,12 +79,12 @@ class Verifier {
   }
 
   def generate(funcName: Name, props: Seq[Property]): Script = {
-    implicit val gensym = new Gensym(Seq())
+    implicit val gensym: Gensym = new Gensym(Seq())
     val calledFunctions = collectCalledFunctions(functionDict(funcName))
     val dataDefs = (calledFunctions :+ funcName).flatMap(fName => collectUsedDataDefs(functionDict(fName)))
     val transDataDefs = dataDefs.map(transDataDef)
     val transFuncDefs = calledFunctions.map(transFunctionDef)
-    val transProps = props.map(transProperty)
+    val transProps = Seq() //props.map(transProperty)
     makeScript(transDataDefs ++ transFuncDefs ++ transProps)
   }
 
@@ -142,17 +144,7 @@ class Verifier {
       Constructor(SSymbol(c.name.name),
         c.paramTypes.map(paramType => {
           val fieldName = gensym.fresh(c.name.name)
-          val sort = paramType match {
-            // TODO macht es Sinn, irgendeinen Error zu wählen, der zur Situation passt?
-            case TScala(ty) => ty match {
-              case scala.meta.Type.Name("Int") => Sort(Identifier(SSymbol("Int")))
-              case scala.meta.Type.Name("Boolean") => Sort(Identifier(SSymbol("Bool")))
-              case scala.meta.Type.Name("Double") => Sort(Identifier(SSymbol("Real")))
-              case scala.meta.Type.Name("String") => ???
-            }
-            case TData(name) => Sort(Identifier(SSymbol(name.name)))
-            case _ => throw new InvalidAttributeValueException("Constructor parameter type needs to be specified")
-          }
+          val sort = transType(paramType)
           (SSymbol(fieldName), sort)
         }))
     )
@@ -162,22 +154,114 @@ class Verifier {
   // DeclareDatatypes(datatypes: Seq[(SSymbol, Seq[Constructor])])
   // Constructor(sym: SSymbol, fields: Seq[(SSymbol, Sort)])
 
+  //FunctionDef(annos: Seq[Annotation], vis: Option[Visibility],
+  //  name: Name, params: Seq[Param], outType: Type, body: Expression)
+  //Param(name: Name, typ: Type)
   def transFunctionDef(funcName: Name): Script = {
     val func = functionDict(funcName)
-    Script(List())
+    val transParams: Seq[SortedVar] = func.params.map(p => SortedVar(SSymbol(p.name.name), transType(p.typ)))
+    val transOutType: Sort = transType(func.outType)
+    val transBody: Term = transExp(func.body)
+    Script(List(DefineFun(FunDef(SSymbol(func.name.name), transParams, transOutType, transBody))))
+  }
+  //DefineFun(funDef: FunDef)
+  //FunDef(name: SSymbol, params: Seq[SortedVar], returnSort: Sort, body: Term)
+  //SortedVar(name: SSymbol, sort: Sort)
+
+  def transType(typ: Type): Sort = {
+    typ match {
+      // TODO macht es Sinn, irgendeinen Error zu wählen, der zur Situation passt?
+      case TScala(ty) => ty match {
+        case scala.meta.Type.Name("Int") => Sort(Identifier(SSymbol("Int")))
+        case scala.meta.Type.Name("Boolean") => Sort(Identifier(SSymbol("Bool")))
+        case scala.meta.Type.Name("Double") => Sort(Identifier(SSymbol("Real")))
+        case scala.meta.Type.Name("String") => ???
+      }
+      case TData(name) => Sort(Identifier(SSymbol(name.name)))
+      // TODO andere Cases
+      case _ => throw new InvalidAttributeValueException("Type needs to be specified")
+    }
   }
 
-  def transProperty(prop: Property): Script = ???
+  def transExp(ex: Expression): Term = {
+    ex match {
+      case Var(name) => QualifiedIdentifier(Identifier(SSymbol(name.name)))
+
+      case Let(names, anno, bound, body) =>
+        val varNames: Seq[SSymbol] = names.map(name => SSymbol(name.name))
+        val boundTerms: Seq[Term] = if (names.length == 1) {
+          Seq(transExp(bound))
+        } else {
+          if (names.length < 1) {
+            throw new Exception("Let ohne variablen")
+          } else {
+            bound match {
+              case SetExp(es) => es.map(transExp)
+              // TODO könnte es auch was anderes sein?
+              case _ => throw new Exception("Hier sollte ein Set von expressions stehen")
+            }
+          }
+        }
+        val firstBinding = VarBinding(varNames.head, boundTerms.head)
+        val otherBindings = varNames.tail.zip(boundTerms.tail).map(x => VarBinding(x._1, x._2))
+        Terms.Let(firstBinding, otherBindings, transExp(body))
+
+        // Match(matchee: Expression, cases: Seq[(Pattern, Expression)])
+          //ConstructorPattern(constr: Name, args: Seq[Name]) extends Pattern
+          //NonePattern() extends Pattern
+          //SomePattern(arg: Name) extends Pattern
+      case Match(matchee, cases) => {
+        val scrut = transExp(matchee)
+        val transCases = cases.map {
+          case (ConstructorPattern(constr, args), body) =>
+            val transPattern = if (args.isEmpty) {
+              CaseObject(SSymbol(constr.name))
+            } else {
+              CaseClass(SSymbol(constr.name), args.map(arg => SSymbol(arg.name)))
+            }
+            Case(transPattern, transExp(body))
+          case _ => ??? // Some und None werden erstmal nicht gebraucht
+        }
+        smtlib.extensions.tip.Terms.Match(scrut, transCases)
+      }
+        // Match(scrut: Term, cases: Seq[Case])
+      // Case(pattern: Pattern, rhs: Term)
+        // Default extends Pattern
+        //CaseObject(sym: SSymbol) extends Pattern
+        //CaseClass(sym: SSymbol, binders: Seq[SSymbol]) extends Pattern
+
+      //Call(fun: Expression, args: Seq[Expression], transitive: Boolean = false)
+      case Call(fun, args, transitive) => {
+        val transFun = transExp(fun)
+        val transArgs = args.map(transExp)
+        transFun match {
+          case q: QualifiedIdentifier => if(transArgs.isEmpty) {
+            q
+          } else {
+            FunctionApplication(q, transArgs)
+          }
+          case _ => throw new Exception("Wir brauchen bei einem Funktionsaufruf einen qualified identifier")
+        }
+      }
+      //FunctionApplication(fun: QualifiedIdentifier, terms: Seq[Term])
+    }
+  }
+
+
+
+def transProperty (prop: Property): Script = ???
   //prop match {
   //case Assoc => transAsssoc(name)
   //case Commutativity => transCommu(name)
 
 
-  def makeScript(scripts: Seq[Script]): Script = ???
+  def makeScript (scripts: Seq[Script] ): Script = {
+    Script(scripts.flatMap(s => s.commands).toList)
+  }
 
   type Property = AggregationProperty
 
-}
+  }
 
 // implicit val z3Interp = Z3Interepreter.buildDefault
 // val script = ..
