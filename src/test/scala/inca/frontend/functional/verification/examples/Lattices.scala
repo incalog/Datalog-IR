@@ -26,7 +26,7 @@ object Lattices {
        |    case Zero() => Zero()
        |    case Pos() => Top()
        |  }
-       |  case Zero() => s2 match {
+       |  case Pos() => s2 match {
        |    case Top() => Top()
        |    case Bot() => s1
        |    case Neg() => Top()
