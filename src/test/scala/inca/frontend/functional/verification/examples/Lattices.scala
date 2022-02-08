@@ -48,7 +48,7 @@ object Lattices {
        |  case Num(i1) => c2 match {
        |    case Top() => Top()
        |    case Bot() => c1
-       |    case Num(i2) => (if (i1==i2) Num(i1) else Top())
+       |    case Num(i2) => (if (i1==i2) c1 else Top())
        |  }
        |}
        |""".stripMargin

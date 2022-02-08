@@ -12,19 +12,16 @@ import smtlib.trees.Terms.{Identifier, SSymbol, Sort, SortedVar, _}
 
 import javax.naming.directory.InvalidAttributeValueException
 import scala.collection.mutable
-//import smtlib.theories.Ints._
-//import smtlib.trees.Terms._
-//import smtlib.trees.Commands._
 
 
 // Functional Program
 // Collect functions with verification annotations IncA
-// get provable properties IncA
+// get provable properties IncA TODO
 // collect datatype definitions
 // compile data types to smt lib
 // compile function to smt lib (IncA -> SMTLIB)
-// Foreach provable property add provable goal (assertion) (SMTLIB -> SMTLIB)
-// execute z3 with smtlib as input
+// Foreach provable property add provable goal (assertion) (SMTLIB -> SMTLIB) TODO
+// execute z3 with smtlib as input TODO
 // SMTLIB
 
 
@@ -80,11 +77,12 @@ class Verifier {
 
   def generate(funcName: Name, props: Seq[Property]): Script = {
     implicit val gensym: Gensym = new Gensym(Seq())
-    val calledFunctions = collectCalledFunctions(functionDict(funcName))
+    val calledFunctions: Seq[Name] = collectCalledFunctions(functionDict(funcName))
     val dataDefs = (calledFunctions :+ funcName).flatMap(fName => collectUsedDataDefs(functionDict(fName)))
     val transDataDefs = dataDefs.map(transDataDef)
-    val transFuncDefs = calledFunctions.map(transFunctionDef)
-    val transProps = Seq() //props.map(transProperty)
+    val functions = calledFunctions:+funcName
+    val transFuncDefs = functions.map(transFunctionDef)
+    val transProps = props.map(transProperty(_, funcName.name))
     makeScript(transDataDefs ++ transFuncDefs ++ transProps)
   }
 
@@ -206,10 +204,10 @@ class Verifier {
         val otherBindings = varNames.tail.zip(boundTerms.tail).map(x => VarBinding(x._1, x._2))
         Terms.Let(firstBinding, otherBindings, transExp(body))
 
-        // Match(matchee: Expression, cases: Seq[(Pattern, Expression)])
-          //ConstructorPattern(constr: Name, args: Seq[Name]) extends Pattern
-          //NonePattern() extends Pattern
-          //SomePattern(arg: Name) extends Pattern
+      // Match(matchee: Expression, cases: Seq[(Pattern, Expression)])
+      //ConstructorPattern(constr: Name, args: Seq[Name]) extends Pattern
+      //NonePattern() extends Pattern
+      //SomePattern(arg: Name) extends Pattern
       case Match(matchee, cases) =>
         val scrut = transExp(matchee)
         val transCases = cases.map {
@@ -225,16 +223,16 @@ class Verifier {
         smtlib.extensions.tip.Terms.Match(scrut, transCases)
       // Match(scrut: Term, cases: Seq[Case])
       // Case(pattern: Pattern, rhs: Term)
-        // Default extends Pattern
-        //CaseObject(sym: SSymbol) extends Pattern
-        //CaseClass(sym: SSymbol, binders: Seq[SSymbol]) extends Pattern
+      // Default extends Pattern
+      //CaseObject(sym: SSymbol) extends Pattern
+      //CaseClass(sym: SSymbol, binders: Seq[SSymbol]) extends Pattern
 
       //Call(fun: Expression, args: Seq[Expression], transitive: Boolean = false)
       case Call(fun, args, transitive) =>
         val transFun = transExp(fun)
         val transArgs = args.map(transExp)
         transFun match {
-          case q: QualifiedIdentifier => if(transArgs.isEmpty) {
+          case q: QualifiedIdentifier => if (transArgs.isEmpty) {
             q
           } else {
             FunctionApplication(q, transArgs)
@@ -261,20 +259,19 @@ class Verifier {
   }
 
 
+  def transProperty(prop: Property, aggrName: String): Script = prop match {
+    case Associativity => PropertyScripts.associativity(aggrName)
+    case Commutativity => PropertyScripts.commutativity(aggrName)
+  }
 
-def transProperty (prop: Property): Script = ???
-  //prop match {
-  //case Assoc => transAsssoc(name)
-  //case Commutativity => transCommu(name)
 
-
-  def makeScript (scripts: Seq[Script] ): Script = {
+  def makeScript(scripts: Seq[Script]): Script = {
     Script(scripts.flatMap(s => s.commands).toList)
   }
 
   type Property = AggregationProperty
 
-  }
+}
 
 // implicit val z3Interp = Z3Interepreter.buildDefault
 // val script = ..

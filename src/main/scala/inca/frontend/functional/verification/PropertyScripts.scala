@@ -1,34 +1,42 @@
-/*
 package inca.frontend.functional.verification
 
-import SMTLIB._
+import smtlib.trees.Commands._
+import smtlib.trees.Terms._
+
+import scala.language.implicitConversions
 
 object PropertyScripts {
 
   def commutativity(aggrName: String): Script = Script(
-    Seq(
-      Push(),
-      Assertion(Exists(Seq(SortedVariable("x", ZInt), SortedVariable("y", ZInt)),
-        Call(Identifier("not"), Seq(Call(Identifier("="), Seq(
-          Call(Identifier(aggrName), Seq(Identifier("x"), Identifier("y"))),
-          Call(Identifier(aggrName), Seq(Identifier("y"), Identifier("x"))))))))),
+    List(
+      Push(1),
+      Assert(Exists(SortedVar("x", Sort("Int")), Seq(SortedVar("y", Sort("Int"))),
+        FunctionApplication("not", Seq(FunctionApplication("=", Seq(
+          FunctionApplication(aggrName, Seq("x", "y")),
+          FunctionApplication(aggrName, Seq("y", "x")))))))),
       CheckSat(),
-      Pop())
+      Pop(1))
   )
 
   def associativity(aggrName: String): Script = Script(
-    Seq(
-      Push(),
-      Assertion(Forall(Seq(SortedVariable("x", ZInt), SortedVariable("y", ZInt), SortedVariable("z", ZInt)),
-        Call(Identifier("not"), Seq(Call(Identifier("="), Seq(
-          Call(Identifier(aggrName), Seq(
-            Identifier("x"), Call(Identifier(aggrName), Seq(Identifier("y"), Identifier("z"))))),
-          Call(Identifier(aggrName), Seq(
-            Call(Identifier(aggrName), Seq(Identifier("x"), Identifier("y"))), Identifier("z"))))))))),
+    List(
+      Push(1),
+      Assert(Exists(SortedVar("x", Sort("Int")), Seq(SortedVar("y", Sort("Int")), SortedVar("z", Sort("Int"))),
+        FunctionApplication("not", Seq(FunctionApplication("=", Seq(
+          FunctionApplication(aggrName, Seq("x", FunctionApplication(aggrName, Seq("y", "z")))),
+          FunctionApplication(aggrName, Seq(FunctionApplication(aggrName, Seq("x", "y")), "z")))))))),
       CheckSat(),
-      Pop()
-    )
+      Pop(1))
   )
 
+  // TODO kann ich die hier benutzen?
+  implicit def StringToSSymbol(s: String): SSymbol = {
+    SSymbol(s)
+  }
+  implicit def StringToIdentifier(s: String): Identifier = {
+    Identifier(SSymbol(s))
+  }
+  implicit def StringToQualifiedIdentifier(s: String): QualifiedIdentifier = {
+    QualifiedIdentifier(Identifier(SSymbol(s)))
+  }
 }
-*/

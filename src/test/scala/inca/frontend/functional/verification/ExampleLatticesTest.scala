@@ -1,8 +1,11 @@
 package inca.frontend.functional.verification
 
+import inca.frontend.functional.core.{Associativity, Commutativity}
 import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.functional.verification.examples.Lattices.{const_lattice_module, sign_lattice_module}
 import inca.util.Gensym
+import smtlib.Interpreter
+import smtlib.interpreters.Z3Interpreter
 
 class ExampleLatticesTest extends AnyFunSuite {
   test("test sign_lattice_module"){
@@ -29,6 +32,12 @@ class ExampleLatticesTest extends AnyFunSuite {
     print("\n############## Translated FunctionDefs: \n")
     val functions = calledFunctions :+ joinFuncName
     print(functions.map(f => verifier.transFunctionDef(f)))
+    print("\n\n############## Output generate with assoc and comm: \n")
+    val verificationScript = verifier.generate(joinFuncName, Seq(Associativity, Commutativity))
+    print(verificationScript)
+    print("\n\n############## Output verificationScript feedback: \n")
+    implicit val z3Interp = Z3Interpreter.buildDefault
+    print(Interpreter.execute(verificationScript))
   }
   test("test const_lattice_module"){
     val module = const_lattice_module
@@ -54,5 +63,7 @@ class ExampleLatticesTest extends AnyFunSuite {
     print("\n############## Translated FunctionDefs: \n")
     val functions = calledFunctions :+ joinFuncName
     print(functions.map(f => verifier.transFunctionDef(f)))
+    print("\n\n############## Output generate with assoc and comm: \n")
+    print(verifier.generate(joinFuncName, Seq(Associativity, Commutativity)))
   }
 }
