@@ -10,7 +10,7 @@ import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
 import inca.runtime.index._
 import inca.runtime.{EnginePool, Query}
-import inca.util.Scala
+import inca.util.{Gensym, Scala}
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
 import org.eclipse.viatra.query.runtime.matchers.tuple.{TupleMask, Tuples}
@@ -454,8 +454,41 @@ trait Debugger {
   }
 
   private def transitionExtCallTables(frame: Frame, ext: Datalog.ExtensionalCall): Table[Value] = {
-    // TODO implement this correctly
-    Table.empty
+    val key = NamedRelationKey(ext.name, ext.args.size)
+
+    val gensym = new Gensym(Set())
+    val selectedIndices = ext.args.zipWithIndex.flatMap {
+      case (Datalog.Var(name), idx) =>
+        gensym.register(name)
+        if (frame.bodyTable.isBound(name)) Some(idx)
+        else None
+      case (Datalog.Constant(_), idx) => Some(idx)
+    }
+    val mask = TupleMask.fromSelectedIndices(ext.args.size, selectedIndices.toArray)
+
+    var argsTable: Table[Value] = Table.unit
+    ext.args.foreach {
+      case Datalog.Var(name) =>
+        argsTable = argsTable.join(frame.bodyTable.project(Seq(name)))
+      case Datalog.Constant(l) =>
+        val newCol = gensym.fresh("const")
+        argsTable.bind(newCol, transLiteral(l))
+    }
+
+    val extCallRows = argsTable.rows.flatMap { row =>
+      val seed = Tuples.flatTupleOf(row.map(_.unwrap))
+      database.enumerateTuples(key, mask, seed).asScala.map { tuple =>
+        tuple.getElements.toSeq.map(Value.apply)
+      }.toSeq
+    }.toSeq
+    val extCallColumns = ext.args.map {
+      case Datalog.Var(name) => name
+      case Datalog.Constant(_) => gensym.fresh("const")
+    }
+    val extCallTable = Table(extCallColumns, extCallRows)
+
+    val extVarArgs = ext.args.collect { case Datalog.Var(name) => name}
+    frame.bodyTable.join(extCallTable.project(extVarArgs))
   }
 
   private def transitionEqCompTables(frame: Frame, comp: Datalog.Compare): Table[Value] = {
