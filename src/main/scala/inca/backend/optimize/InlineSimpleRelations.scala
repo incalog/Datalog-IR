@@ -16,7 +16,8 @@ object InlineSimpleRelations extends Optimization {
       lazy val containedCalls= pat.bodies.head.atoms.collect { case call: Call => call }
       lazy val directlyRecursive = containedCalls.exists(_.name == pat.name)
       lazy val hasEvaluation = pat.bodies.head.atoms.exists { case Computed(_, _) => true; case _ => false }
-      val inline = pat.bodies.size <= 1 && !isMain && containedCalls.size <= 100 && !directlyRecursive && !hasEvaluation
+      lazy val isNegativeIndirection = pat.hasHint(NegativeIndirectionRelation.key)
+      val inline = pat.bodies.size <= 1 && !isMain && containedCalls.size <= 100 && !directlyRecursive && !hasEvaluation && !isNegativeIndirection
       inline
     }
 
