@@ -79,9 +79,9 @@ class GraphExamples extends AnyFunSuite {
         |}
         |""".stripMargin
 
-    val loaded = ConstraintExecutor.loadAnalysis(code, ConstraintOptions())
-    //val loaded = ConstraintExecutor.loadAnalysis(code, ConstraintOptions().withTransformations(FunctionalOptions.defaultTransformations))
-
+    //val loaded = ConstraintExecutor.loadAnalysis(code, ConstraintOptions())
+    val loaded = ConstraintExecutor.loadAnalysis(code, ConstraintOptions().withTransformations(FunctionalOptions.defaultTransformations))
+    // println(new DependencyGraph(loaded.compiled.transformed).toGraphViz)
     println(loaded.compiled.psystemSource)
 
 //    val tree = Graph(List(Node("a"), Node("b"), Node("c")), List(Edge("a", "b"), Edge("b", "c")), List())
