@@ -14,6 +14,8 @@ object MagicSetHints {
   val DemandPatternsKey = "DEMAND_DEMAND_PATTERNS"
   val InputRelationKey = "DEMAND_INPUT_RELATION"
 
+  val NegativeIndirectionRelationKey = "DEMAND_NEGATIVE_INDIRECTION_RELATION"
+
   /**
    * marks calls from which the magic set transformation starts
    */
@@ -65,5 +67,12 @@ object MagicSetHints {
 
   case class InputCall(name: String) extends Hint {
     override def key: Key = InputCallKey
+  }
+
+  /**
+   * indicates relation with negative call inserted by demand transformation
+   */
+  case object NegativeIndirectionRelation extends Hint{
+    val key: Key = NegativeIndirectionRelationKey
   }
 }
