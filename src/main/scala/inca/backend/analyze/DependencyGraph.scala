@@ -2,6 +2,8 @@ package inca.backend.analyze
 
 import inca.backend.analyze.DependencyGraph._
 import inca.backend.hints.DataHints.{ConstructorKey, DataTypeKey, SelectorKey}
+import inca.backend.hints.Hint
+import inca.backend.hints.MagicSetHints._
 import inca.backend.ir.Datalog.{Call, Computed, CountAggregation, CustomAggregation, Module, Name, Pattern}
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
 
@@ -19,11 +21,12 @@ class DependencyGraph(module: Module) extends Graph[Name, DependencyEdge] {
     this.addNode(pat.name)
     pat.bodies.foreach { body =>
       body.atoms.foreach {
-        case Call(name, _, _, neg) => this.addEdge(pat.name, name, if (neg) NegativeCall else PositiveCall)
+        case Call(name, _, _, neg) => this.addEdge(pat.name, name,
+          if (neg) NegativeCall else PositiveCall)
         case Computed(_, CountAggregation(name, _)) => this.addEdge(pat.name, name, CountAggregationCall)
         case Computed(_, CustomAggregation(_, _, _, name, _, _)) => this.addEdge(pat.name, name, CustomAggregationCall)
         case _ => // do nothing
-      }
+    }
     }
   }
 
@@ -31,14 +34,26 @@ class DependencyGraph(module: Module) extends Graph[Name, DependencyEdge] {
 
   def isDataNode(p: Pattern): Boolean = p.hasHint(DataTypeKey) || p.hasHint(ConstructorKey) || p.hasHint(SelectorKey)
 
+  def nodeColor(hint: Hint.Key): String = hint match {
+    case MainKey => "aquamarine3"
+    case InputRelationKey => "darkorchid"
+    case DemandPatternsKey => "dodgerblue3"
+    case IgnoreCallKey => "gold4"
+    case InputCallKey => "maroon4"
+    case FixedAdornmentKey => "palegreen4"
+    case NoInputRelationKey => "sienna3"
+    case AdornmentKey => "tomato3"
+    case _ => "black"
+  }
+
   override protected def nodeGraphVizAttributes(n: Name): String = {
     val node = pats(n)
     if (isDataNode(node))
       "fillcolor=green2, style=filled"
-    else if (n.startsWith(demandPatternPrefix))
-      "fillcolor=darkorange3, style=filled"
+    else if (node.hasHint(NegativeIndirectionRelation.key))
+      "fillcolor=tomato3, style=filled, fontcolor=white"
     else
-      "fillcolor=black, style=filled, fontcolor=white"
+      s"fillcolor=${nodeColor(node.hints.head._1)}, style=filled, fontcolor=white"
   }
 
   def cycleColor(i: Int): String = i match {
@@ -54,12 +69,11 @@ class DependencyGraph(module: Module) extends Graph[Name, DependencyEdge] {
   }
 
   override protected def edgeGraphVizAttributes(from: Name, to: Name, kind: DependencyEdge): String = {
-    val ix = outermostCycles.indexWhere(l => l.contains(from) && l.contains(to))
-    if (ix >= 0)
-      s"color=${cycleColor(ix)}"
-    else kind match {
-      case NegativeCall => "color=red"
-      case _ => "color=black"
+    val ix = stronglyConnectedComponentsWithDemand.indexWhere(l => l.contains(from) && l.contains(to))
+    val s = s"color=${cycleColor(ix)}"
+    kind match {
+      case NegativeCall => s ++ ", style=dashed"
+      case _ => s
     }
   }
 }
