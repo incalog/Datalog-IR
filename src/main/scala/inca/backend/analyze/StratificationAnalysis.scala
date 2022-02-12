@@ -18,11 +18,17 @@ object StratificationAnalysis {
 
   def detNegCycles(mod: Module): Seq[Seq[Name]] = {
     val graph = new DependencyGraph(mod)
-    val cycles = graph.cycles
-    cycles.filter { cycle =>
-      val edges = cycle.flatMap { n => graph.edges(n) }
-      val edgesOfCycle = edges.filter { e => cycle.contains(e._1) }
-      edgesOfCycle.exists(_._2 == NegativeCall)
+    // withDemand=false: check for stratification of original program only,
+    // negative cycles introduced by demand transformation are handled separately
+    val scc = graph.stronglyConnectedComponents(false)
+
+    scc.filter{ comp =>
+      val edges = comp.flatMap{ n => graph.edges(n) }
+      val edgesOfComp = edges.filter { e => comp.contains(e._1) }
+      edgesOfComp.exists {
+        case (name, NegativeCall) => true
+        case _ => false
+      }
     }
   }
 }
