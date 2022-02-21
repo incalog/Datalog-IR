@@ -7,14 +7,10 @@ import com.sun.jna.Union;
 @Structure.FieldOrder({"is_leaf", "symbol", "id", "edit_data"})
 public class Load extends Structure {
 
-    public short is_leaf;
+    public byte is_leaf; // packs value of is_leaf into this field
     public short symbol;
     public Pointer id;
     public EditData edit_data;
-
-    public short getIsLeaf() {
-        return (short)(is_leaf & 0x1);
-    }
 
     public static class EditData extends Union {
 
@@ -22,22 +18,25 @@ public class Load extends Structure {
         public EditNodeData node;
     }
 
-    public Load() {
-        super();
-    }
-    public Load(Pointer p) {
-        super(p);
-        this.read();
-    }
-
     @Override
     public void read() {
         super.read();
-        if (is_leaf == 0) {
-            edit_data.setType(EditNodeData.class);
-        } else {
-            edit_data.setType(EditLeafData.class);
+        switch (is_leaf) {
+            case 0 -> edit_data.setType(EditNodeData.class);
+            case 1 -> edit_data.setType(EditLeafData.class);
+            default -> {
+
+            }
         }
         edit_data.read();
+    }
+
+    public Load() {
+        super();
+    }
+
+    public Load(Pointer p) {
+        super(p);
+        this.read();
     }
 }

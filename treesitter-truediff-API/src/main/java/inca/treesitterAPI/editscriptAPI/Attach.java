@@ -10,11 +10,12 @@ public class Attach extends Structure {
     public short tag;
     public int link;
     public Pointer parent_id;
-    public short parent_tag;
+    public int parent_tag;
 
     public Attach() {
         super();
     }
+
     public Attach(Pointer p) {
         super(p);
         this.read();

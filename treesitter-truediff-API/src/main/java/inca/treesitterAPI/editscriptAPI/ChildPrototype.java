@@ -12,6 +12,7 @@ public class ChildPrototype extends Structure {
     public ChildPrototype() {
         super();
     }
+
     public ChildPrototype(Pointer p) {
         super(p);
         this.read();

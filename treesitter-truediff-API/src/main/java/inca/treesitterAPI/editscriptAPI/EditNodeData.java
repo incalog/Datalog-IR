@@ -12,6 +12,7 @@ public class EditNodeData extends Structure {
     public EditNodeData() {
         super();
     }
+
     public EditNodeData(Pointer p) {
         super(p);
         this.read();

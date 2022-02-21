@@ -13,6 +13,7 @@ public class Unload extends Structure {
     public Unload() {
         super();
     }
+
     public Unload(Pointer p) {
         super(p);
         this.read();

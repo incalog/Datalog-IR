@@ -12,6 +12,7 @@ public class EditScript extends Structure {
     public EditScript() {
         super();
     }
+
     public EditScript(Pointer p) {
         super(p);
         this.read();

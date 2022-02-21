@@ -10,11 +10,12 @@ public class TSDiffResult extends Structure {
 
     public TSTree constructed_tree;
     public EditScript.ByReference edit_script;
-    public boolean success;
+    public byte success;
 
     public TSDiffResult() {
         super();
     }
+
     public TSDiffResult(Pointer p) {
         super(p);
         this.read();

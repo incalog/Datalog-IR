@@ -15,6 +15,7 @@ public class TSNode extends Structure {
     public TSNode() {
         super();
     }
+
     public TSNode(Pointer p) {
         super(p);
         this.read();

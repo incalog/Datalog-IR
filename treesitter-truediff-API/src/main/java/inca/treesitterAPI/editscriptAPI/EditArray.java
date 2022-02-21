@@ -19,4 +19,8 @@ public class EditArray extends Structure {
         super(p);
         this.read();
     }
+
+    public SugaredEdit.ByReference[] toArray(int size) {
+        return (SugaredEdit.ByReference[]) content.toArray(size);
+    }
 }

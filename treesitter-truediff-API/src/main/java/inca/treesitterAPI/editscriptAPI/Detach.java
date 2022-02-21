@@ -10,11 +10,12 @@ public class Detach extends Structure {
     public short tag;
     public int link;
     public Pointer parent_id;
-    public int parent_tag;
+    public short parent_tag;
 
     public Detach() {
         super();
     }
+
     public Detach(Pointer p) {
         super(p);
         this.read();

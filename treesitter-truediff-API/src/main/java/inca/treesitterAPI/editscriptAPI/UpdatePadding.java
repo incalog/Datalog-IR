@@ -14,6 +14,7 @@ public class UpdatePadding extends Structure {
     public UpdatePadding() {
         super();
     }
+
     public UpdatePadding(Pointer p) {
         super(p);
         this.read();

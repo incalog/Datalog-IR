@@ -18,11 +18,12 @@ public class TSTreeCursor extends Structure {
     }
 
     public TSTreeCursor() {
+        super();
     }
 
     public TSTreeCursor(Pointer p) {
         super(p);
-        read();
+        this.read();
     }
 
     public Pointer tree;

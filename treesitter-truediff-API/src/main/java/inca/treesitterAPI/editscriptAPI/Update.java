@@ -16,6 +16,7 @@ public class Update extends Structure {
     public Update() {
         super();
     }
+
     public Update(Pointer p) {
         super(p);
         this.read();

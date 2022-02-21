@@ -1,10 +1,12 @@
 package inca.treesitterAPI;
 
+import com.sun.jna.ptr.PointerByReference;
 import inca.treesitterAPI.editscriptAPI.EditArray;
 import inca.treesitterAPI.editscriptAPI.EditScript;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
+import inca.treesitterAPI.editscriptAPI.SugaredEdit;
 
 public interface TreeSitterTruediffLibrary extends Library {
 
@@ -312,7 +314,7 @@ public interface TreeSitterTruediffLibrary extends Library {
 
     int ts_edit_script_length(EditScript edit_script);
 
-    EditArray.ByValue ts_get_edit_array(EditScript edit_script);
+    void print_struct_sizes();
 
     /**
      * The following TreeCursor functions should be private but are

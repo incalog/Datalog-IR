@@ -16,6 +16,7 @@ public class DetachUnload extends Structure {
     public DetachUnload() {
         super();
     }
+
     public DetachUnload(Pointer p) {
         super(p);
         this.read();
