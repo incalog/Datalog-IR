@@ -1,4 +1,4 @@
-package inca.treesitterAPI;
+package inca.treesitterAPI.treesitterAPI;
 
 import com.sun.jna.PointerType;
 

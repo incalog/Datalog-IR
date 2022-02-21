@@ -1,4 +1,4 @@
-package inca.treesitterAPI;
+package inca.treesitterAPI.treesitterAPI;
 
 import inca.treesitterAPI.editscriptAPI.EditScript;
 import com.sun.jna.Pointer;

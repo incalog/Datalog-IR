@@ -1,20 +1,33 @@
 package inca.treesitterAPI;
 
-import com.sun.jna.ptr.PointerByReference;
-import inca.treesitterAPI.editscriptAPI.EditArray;
-import inca.treesitterAPI.editscriptAPI.EditScript;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
+import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
-import inca.treesitterAPI.editscriptAPI.SugaredEdit;
+import inca.treesitterAPI.editscriptAPI.EditScript;
+import inca.treesitterAPI.treesitterAPI.*;
 
 public interface TreeSitterTruediffLibrary extends Library {
 
-    TreeSitterTruediffLibrary INSTANCE = Native.load("resources/treesitter-truediff/libtree-sitter.dll", TreeSitterTruediffLibrary.class);
-    TreeSitterTruediffLibrary JAVA_INSTANCE = Native.load("resources/treesitter-java/libtree-sitter-java.dll", TreeSitterTruediffLibrary.class);
+    String lib_path = detect_OS_used();
+
+    TreeSitterTruediffLibrary INSTANCE = Native.load(lib_path + "libtree-sitter.dll", TreeSitterTruediffLibrary.class);
+    TreeSitterTruediffLibrary JAVA_INSTANCE = Native.load(lib_path + "libtree-sitter-java.dll", TreeSitterTruediffLibrary.class);
 
     TreeSitterTruediffLibrary lib = INSTANCE;
     TreeSitterTruediffLibrary java_lib = JAVA_INSTANCE;
+
+    static String detect_OS_used() {
+        String path = "";
+        if (Platform.isWindows()) {
+            path = "src/main/resources/windows/";
+        } else if (Platform.isLinux()) {
+            path = "src/main/resources/linux/";
+        } else if (Platform.isMac()) {
+            path = "src/main/resources/darwin/";
+        }
+        return path;
+    }
 
 
     /**

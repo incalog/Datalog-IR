@@ -24,15 +24,6 @@ public class SugaredEdit extends Structure {
         public DetachUnload detach_unload;
     }
 
-    public SugaredEdit() {
-        super();
-    }
-
-    public SugaredEdit(Pointer p) {
-        super(p);
-        this.read();
-    }
-
     @Override
     public void read() {
         super.read();
@@ -49,5 +40,14 @@ public class SugaredEdit extends Structure {
             }
         }
         sugar_edit.read();
+    }
+
+    public SugaredEdit() {
+        super();
+    }
+
+    public SugaredEdit(Pointer p) {
+        super(p);
+        this.read();
     }
 }

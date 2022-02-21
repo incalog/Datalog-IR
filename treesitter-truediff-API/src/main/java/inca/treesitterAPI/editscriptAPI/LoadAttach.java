@@ -21,15 +21,6 @@ public class LoadAttach extends Structure {
         public EditNodeData node;
     }
 
-    public LoadAttach() {
-        super();
-    }
-
-    public LoadAttach(Pointer p) {
-        super(p);
-        this.read();
-    }
-
     @Override
     public void read() {
         super.read();
@@ -39,5 +30,14 @@ public class LoadAttach extends Structure {
             edit_data.setType(EditLeafData.class);
         }
         edit_data.read();
+    }
+
+    public LoadAttach() {
+        super();
+    }
+
+    public LoadAttach(Pointer p) {
+        super(p);
+        this.read();
     }
 }

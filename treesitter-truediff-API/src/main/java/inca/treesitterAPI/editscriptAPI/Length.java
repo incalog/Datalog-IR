@@ -2,7 +2,7 @@ package inca.treesitterAPI.editscriptAPI;
 
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
-import inca.treesitterAPI.TSPoint;
+import inca.treesitterAPI.treesitterAPI.TSPoint;
 
 @Structure.FieldOrder({"bytes", "extent"})
 public class Length extends Structure {
