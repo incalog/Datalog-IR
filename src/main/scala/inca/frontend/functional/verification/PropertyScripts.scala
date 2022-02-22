@@ -7,10 +7,10 @@ import scala.language.implicitConversions
 
 object PropertyScripts {
 
-  def commutativity(aggrName: String): Script = Script(
+  def commutativity(aggrName: String, paramTypeName: String): Script = Script(
     List(
       Push(1),
-      Assert(Exists(SortedVar("x", Sort("Int")), Seq(SortedVar("y", Sort("Int"))),
+      Assert(Exists(SortedVar("x", Sort(paramTypeName)), Seq(SortedVar("y", Sort(paramTypeName))),
         FunctionApplication("not", Seq(FunctionApplication("=", Seq(
           FunctionApplication(aggrName, Seq("x", "y")),
           FunctionApplication(aggrName, Seq("y", "x")))))))),
@@ -19,10 +19,10 @@ object PropertyScripts {
   )
 
   // TODO dataname paramater
-  def associativity(aggrName: String): Script = Script(
+  def associativity(aggrName: String, paramTypeName: String): Script = Script(
     List(
       Push(1),
-      Assert(Exists(SortedVar("x", Sort("Int")), Seq(SortedVar("y", Sort("Int")), SortedVar("z", Sort("Int"))),
+      Assert(Exists(SortedVar("x", Sort(paramTypeName)), Seq(SortedVar("y", Sort(paramTypeName)), SortedVar("z", Sort(paramTypeName))),
         FunctionApplication("not", Seq(FunctionApplication("=", Seq(
           FunctionApplication(aggrName, Seq("x", FunctionApplication(aggrName, Seq("y", "z")))),
           FunctionApplication(aggrName, Seq(FunctionApplication(aggrName, Seq("x", "y")), "z")))))))),

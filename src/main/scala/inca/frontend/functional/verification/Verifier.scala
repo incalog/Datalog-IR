@@ -35,7 +35,7 @@ class Verifier {
   def verify(module: Module): Unit = {
     fillDicts(module)
     val aggregations: Map[String, Seq[Property]] = collectAggregations(module)
-    val verificationScripts: Seq[Script] = aggregations.toSeq.map(ag => generate(ag._1, ag._2))
+    val verificationScripts: Seq[Script] = aggregations.toSeq.map(ag => generateScript(ag._1, ag._2))
     implicit val z3Interp: Z3Interpreter = Z3Interpreter.buildDefault
     verificationScripts.foreach(s =>
       smtlib.Interpreter.execute(s)
@@ -53,7 +53,7 @@ class Verifier {
         if (func.annos.exists {
           // TODO Ich benutze main Annotations, weil AggregationAnnos noch nicht
           //  funktionieren (vor allem nicht mit dem Parser)
-          case AggregationAnno(props) => true
+          case AggregationAnno(_) => true
           case _ => false
         }) {
           Seq((func.name.name, getAggrProps(func)))
@@ -75,7 +75,7 @@ class Verifier {
     aggrPropCollector.transFun(func)
   }
 
-  def generate(funcName: String, props: Seq[Property]): Script = {
+  def generateScript(funcName: String, props: Seq[Property]): Script = {
     implicit val gensym: Gensym = new Gensym(Seq())
     val calledFunctions: Seq[String] = collectCalledFunctions(functionDict(funcName))
     val dataDefs = (calledFunctions :+ funcName).flatMap(fName => collectUsedDataDefs(functionDict(fName)))
@@ -257,9 +257,20 @@ class Verifier {
   }
 
 
-  def transProperty(prop: Property, aggrName: String): Script = prop match {
-    case Associativity => PropertyScripts.associativity(aggrName)
-    case Commutativity => PropertyScripts.commutativity(aggrName)
+  def transProperty(prop: Property, aggrName: String): Script = {
+    val paramTypeName = getParamTypeName(aggrName)
+    prop match {
+      case Associativity => PropertyScripts.associativity(aggrName, paramTypeName)
+      case Commutativity => PropertyScripts.commutativity(aggrName, paramTypeName)
+    }
+  }
+
+  def getParamTypeName(aggrName: String): String = {
+    val func = functionDict(aggrName)
+    func.params.foreach(p => if(p.typ != func.params.head.typ){
+      throw new Exception("Aggregations should take two values of the same type")
+    })
+    transType(func.params.head.typ).id.symbol.name
   }
 
 

@@ -9,8 +9,12 @@ import smtlib.trees.Commands.PropLiteral
 import smtlib.trees.Terms.SSymbol
 import inca.frontend.functional.verification.Verifier
 import inca.frontend.functional.verification.examples.Lattices.{const_lattice_module, sign_lattice_module}
+import smtlib.interpreters.Z3Interpreter
 
 class GenerateSMTLIBTest extends AnyFunSuite {
+  test("run z3") {
+    implicit val z3Interp = Z3Interpreter.buildDefault
+  }
   test("generate data type") {
     print(PropLiteral(SSymbol("x"), true))
     assertResult(1)(1)
