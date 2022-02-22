@@ -30,17 +30,25 @@ class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
   def entry(name: Datalog.Name, edits: EditScript, bindings: Table[Value]): Unit = {
     super.updateExtensionalData(edits)
     super.entry(name, bindings)
-    soufflePoint(controlPointIR).getOrElse(souffleStepInto())
+    soufflePoint(controlPointIR).getOrElse(stepInto())
   }
 
-  def souffleStepInto(): Unit = {
+  def stepInto(): Unit = {
     while (true) {
-      stepInto()
+      stepIntoIR()
       if (callStack.isEmpty || soufflePoint(controlPointIR).isDefined)
         return
     }
   }
 
+  override def stepOver(): Unit = ???
+  override def stepOut(): Unit = ???
+  override def resume(): Unit = ???
+
+  override type Breakpoint = Nothing
+  override def addBreakpoint(bp: Breakpoint): Unit = ???
+  override def removeBreakpoint(bp: Breakpoint): Unit = ???
+  override def clearBreakpoints(): Unit = ???
 
   def soufflePoint(cp: ControlPoint): Option[SouffleControlPoint] = {
     val rel = getRelationSignature(cp.point.pat).getOrElse(throw new IllegalArgumentException(s"Could not find signature for pattern ${cp.point.pat.name}"))

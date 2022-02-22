@@ -20,7 +20,7 @@ import truechange.{EditScript, URI}
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
 
-trait Debugger {
+trait Debugger extends DebuggerAPI {
   // Datalog program information
   private var compiled: CompiledModule = _
   protected lazy val patterns: Map[String, Datalog.Pattern] =
@@ -94,27 +94,19 @@ trait Debugger {
     traceControlPoint(cp)
   }
 
-  def untilFinished(run: () => Unit): Unit =
-    while (!isFinished)
-      run()
-
-  def stepIntoUntil(stop: () => Boolean): Unit =
-    while (!stop())
-      stepInto()
-
-  def stepInto(): Unit = {
+  protected def stepIntoIR(): Unit = {
     val frame = callStack.top
     frame.cp.point.atom match {
       case Some(atom) =>
-        stepIntoNextAtom(frame, atom)
+        stepIntoIRNextAtom(frame, atom)
       case None =>
-        stepIntoPatternBoundary(frame)
+        stepIntoIRPatternBoundary(frame)
     }
     if (callStack.nonEmpty)
       traceControlPoint(callStack.top.cp)
   }
 
-  def abortIfBodyFailed(): Unit =
+  protected def abortIfBodyFailed(): Unit =
     if (callStack.nonEmpty) {
       val next = callStack.top
       if (next.bodyTable.isEmpty) {
@@ -125,9 +117,9 @@ trait Debugger {
       }
     }
 
-  def stepIntoNextAtom(frame: Frame, atom: Datalog.Atom): Unit = {
+  protected def stepIntoIRNextAtom(frame: Frame, atom: Datalog.Atom): Unit = {
     if (atom.asCall.isDefined) {
-      stepIntoCall(frame, atom)
+      stepIntoIRCall(frame, atom)
     } else {
       val nextBodyTable = transitionAtomTables(frame, atom)
       val next = frame.cp.stepIntra.get // yields next atom
@@ -136,7 +128,7 @@ trait Debugger {
     abortIfBodyFailed()
   }
 
-  def stepIntoCall(frame: Frame, atom: Datalog.Atom): Unit = atom match {
+  protected def stepIntoIRCall(frame: Frame, atom: Datalog.Atom): Unit = atom match {
     case Datalog.Call(name, args, _, neg) =>
       val pattern = patterns(name)
       val argsTable = prepareArgTableOfCall(frame, pattern, args)
@@ -258,7 +250,7 @@ trait Debugger {
     callStack.update(Frame(next, frame.argsTable, frame.argsTable))
   }
 
-  private def stepIntoPatternBoundary(frame: Frame): Unit = {
+  private def stepIntoIRPatternBoundary(frame: Frame): Unit = {
     val cp = frame.cp
     if (cp.point.isPatternEntry) {
       doPatternEntry(cp)
@@ -760,11 +752,7 @@ trait Debugger {
     ScalaValue(scalaCompiler.compileAndLoadScala(code))
   }
 
-  def stepOverUntil(stop: () => Boolean): Unit =
-    while (!stop())
-      stepOver()
-
-  def stepOver(): Unit = {
+  protected def stepOverIR(): Unit = {
     val frame = callStack.top
     frame.cp.point.atom match {
       case Some(atom) =>
@@ -805,7 +793,7 @@ trait Debugger {
             callStack.update(Frame(next, tables))
 
           case _ =>
-            stepIntoNextAtom(frame, atom)
+            stepIntoIRNextAtom(frame, atom)
         }
       case None =>
         if (frame.cp.isPatternPoint) {
@@ -822,7 +810,7 @@ trait Debugger {
           // TODO is there a better way to do this?
           runUntil(next)
         } else {
-          stepIntoPatternBoundary(frame)
+          stepIntoIRPatternBoundary(frame)
         }
     }
     if (callStack.nonEmpty)
@@ -833,7 +821,7 @@ trait Debugger {
     val currentStackSize = callStack.size
     // we run stepInto until we reach the target controlpoint and the stack size is the same as it was before
     while (!(callStack.top.cp == cp && callStack.size == currentStackSize)) {
-      stepInto()
+      stepIntoIR()
     }
   }
 

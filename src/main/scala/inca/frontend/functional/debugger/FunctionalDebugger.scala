@@ -134,16 +134,25 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     getFunction(fr.cp.point.pat).map(_.name)
   }
 
-  def functionalStepInto(): Unit = {
+  def stepInto(): Unit = {
     var fp: Option[FunctionalControlPoint] = None
     while (fp.isEmpty) {
-      stepInto()
+      stepIntoIR()
       if (callStack.isEmpty)
         return
       fp = functionalPoint(controlPointIR)
     }
     stepOverConditionPoint(fp.get)
   }
+
+  override def stepOver(): Unit = ???
+  override def stepOut(): Unit = ???
+  override def resume(): Unit = ???
+
+  override type Breakpoint = Nothing
+  override def addBreakpoint(bp: Breakpoint): Unit = ???
+  override def removeBreakpoint(bp: Breakpoint): Unit = ???
+  override def clearBreakpoints(): Unit = ???
 
   @tailrec
   def stepOverConditionPoint(fp: FunctionalControlPoint): Unit = fp match {
@@ -152,7 +161,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
       _controlTraceFrontend.remove(_controlTraceFrontend.size - 1)
       val currentPat = condp.irPoint.point.pat.name
       val currentBody = condp.irPoint.point.bodyIndex
-      stepInto()
+      stepIntoIR()
       val cp = controlPointIR
 
       val next = if (!condp.thenBranch) {
@@ -176,7 +185,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
       }
       functionalPoint(next) match {
         case Some(fp2) => stepOverConditionPoint(fp2)
-        case None => functionalStepInto()
+        case None => stepInto()
       }
   }
 
@@ -203,17 +212,24 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
       callStack.update(Frame(next, frame.argsTable, Table.empty))
     } else {
       super.doBodyEntry(frame, cp)
-      skipAheadTo.head.foreach { pred =>
-        stepOverUntil { () =>
-          functionalPoint(controlPointIR).foreach(_ => _controlTraceFrontend.remove(_controlTraceFrontend.size - 1))
-          val atom = controlPointIR.point.atom
-          atom.isEmpty || atom.get.getHint(SourceConstruct.key).exists(h => pred(h.asInstanceOf[SourceConstruct[_]]))
-        }
-      }
+      skipAheadTo.head.foreach(doSkipAheadTo)
     }
   }
 
-  override def stepIntoCall(frame: Frame, atom: Datalog.Atom): Unit = atom match {
+  @tailrec
+  private def doSkipAheadTo(stopCond: SourceConstruct[_] => Boolean): Unit = {
+    // hide last point
+    val r = controlPointIR
+    functionalPoint(r).foreach(_ => _controlTraceFrontend.remove(_controlTraceFrontend.size - 1))
+    val stop = controlPointIR.point.atom.forall(_.getHint(SourceConstruct.key).exists(h => stopCond(h.asInstanceOf[SourceConstruct[_]])))
+    if (!stop) {
+      stepOverIR()
+      doSkipAheadTo(stopCond)
+    }
+  }
+
+
+  override protected def stepIntoIRCall(frame: Frame, atom: Datalog.Atom): Unit = atom match {
     case call: Datalog.Call =>
       val pattern = patterns(call.name)
       if (pattern.hasHint(DataHints.ConstructorKey) || pattern.hasHint(DataHints.SelectorKey)) {
@@ -246,8 +262,8 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
         callStack.update(Frame(next, nextTables))
       }
       else
-        super.stepIntoCall(frame, atom)
-    case _ => super.stepIntoCall(frame, atom)
+        super.stepIntoIRCall(frame, atom)
+    case _ => super.stepIntoIRCall(frame, atom)
   }
 
   override def doPatternEntry(cp: ControlPoint): Unit = {

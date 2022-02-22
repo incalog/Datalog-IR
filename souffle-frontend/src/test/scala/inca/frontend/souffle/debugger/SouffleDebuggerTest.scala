@@ -82,7 +82,7 @@ class SouffleDebuggerTest extends AnyFlatSpec with IncaGPMatchers {
     debugger.entry("Superclass", directsuperclassEdits, Table.unit)
     while (!debugger.isFinished) {
       println(debugger.currentDebuggerInfo)
-      debugger.souffleStepInto()
+      debugger.stepInto()
     }
     println(debugger.relation("Superclass"))
   }

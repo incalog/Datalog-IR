@@ -1,8 +1,6 @@
 package inca.frontend.functional.debugger
 
 import inca.compiler.Compiler
-import inca.debugger.{ScalaValue, URIValue}
-import inca.debugger.table.Table
 import inca.examples.functional.{ADT, Code}
 import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
 import org.scalatest.funsuite.AnyFunSuite
@@ -20,7 +18,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     debugger.entry("main")
     while (!debugger.isFinished) {
       println(debugger.currentDebuggerInfo)
-      debugger.functionalStepInto()
+      debugger.stepInto()
     }
     println(debugger.relation("main"))
   }
@@ -31,7 +29,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     debugger.entry("main")
     while (!debugger.isFinished) {
       println(debugger.currentDebuggerInfo)
-      debugger.functionalStepInto()
+      debugger.stepInto()
     }
     println(debugger.relation("main"))
   }
@@ -56,7 +54,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
       val compiledExample = Compiler.compileFunctional(ifControlJump(b1, b2), FunctionalOptions())
       val debugger = initDebugger(compiledExample)
       debugger.entry("main")
-      debugger.untilFinished(() => debugger.functionalStepInto())
+      while (!debugger.isFinished) debugger.stepInto()
       assertResult(5)(debugger.controlTraceFrontend.size)
     }
   }
@@ -67,7 +65,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     debugger.entry("main", q"3")
     while (!debugger.isFinished) {
       println(debugger.currentDebuggerInfo)
-      debugger.functionalStepInto()
+      debugger.stepInto()
     }
     println(debugger.relation("main"))
   }
@@ -83,7 +81,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     debugger.entry("main")
     while (!debugger.isFinished) {
       println(debugger.currentDebuggerInfo)
-      debugger.functionalStepInto()
+      debugger.stepInto()
     }
     println(debugger.relation("main"))
   }
@@ -94,7 +92,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
     while (!debugger.isFinished) {
       println(debugger.currentDebuggerInfo)
-      debugger.functionalStepInto()
+      debugger.stepInto()
     }
     println(debugger.relation("main"))
   }
@@ -105,7 +103,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
     while (!debugger.isFinished) {
       println(debugger.currentDebuggerInfo)
-      debugger.functionalStepInto()
+      debugger.stepInto()
     }
     println(debugger.relation("main"))
   }
