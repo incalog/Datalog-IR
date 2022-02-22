@@ -478,7 +478,7 @@ class IRDebuggerTest extends AnyFunSuite {
     assertExpectedTable(debugger, "two", args)
   }
 
-  test("step over call") {
+  test("step over non-rec call") {
     val debugger = initDebugger(twoHopsModule, emptyDataModel)
     val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("two", args)
@@ -492,6 +492,60 @@ class IRDebuggerTest extends AnyFunSuite {
 
     assert(debugger.isFinished)
     assertExpectedTable(debugger, "two", args)
+  }
+
+  test("step over rec pattern (not part of scc)") {
+    val debugger = initDebugger(module(notTargetOfPattern, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
+    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("notTargetOf", args)
+    debugger.stepInto() // step into pattern
+    debugger.stepInto() // step into body
+    debugger.stepOver() // step over node call
+    debugger.stepOver() // step over node call
+    debugger.stepOver() // step over negated path call
+
+    debugger.stepOver() // needed to step to pattern exit
+    debugger.stepOver() // needed to exit pattern
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "notTargetOf", args)
+  }
+
+  test("step over rec pattern (part of scc)") {
+    val debugger = initDebugger(module(notTargetOfPattern, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
+    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("notTargetOf", args)
+    debugger.stepInto() // step into pattern
+    assert(debugger.frame.cp.isBodyPoint)
+    debugger.stepInto() // step into body
+    assert(debugger.frame.cp.isAtomPoint)
+    debugger.stepOver() // step over node call
+    assert(debugger.frame.cp.isAtomPoint)
+    debugger.stepOver() // step over node call
+    assert(debugger.frame.cp.isAtomPoint)
+    debugger.stepInto() // step into negated path call
+    assert(debugger.frame.cp.isPatternPoint)
+    debugger.stepInto() // step into pattern
+    assert(debugger.frame.cp.isBodyPoint)
+    debugger.stepOver() // step over first body
+    assert(debugger.frame.cp.isBodyEndPoint)
+    debugger.stepInto() // step into second body
+    assert(debugger.frame.cp.isBodyPoint)
+    debugger.stepInto() // step to edge call
+    assert(debugger.frame.cp.isAtomPoint)
+    debugger.stepOver() // step over edge call
+    assert(debugger.frame.cp.isAtomPoint)
+    debugger.stepOver() // step over recursive path call
+    assert(debugger.frame.cp.isBodyEndPoint)
+    debugger.stepOver() // needed to step to pattern exit (of inner path call)
+    assert(debugger.frame.cp.isPatternEndPoint)
+    debugger.stepOver() // needed to step to pattern exit (of outer path call)
+    assert(debugger.frame.cp.isBodyEndPoint)
+    debugger.stepOver() // needed to step to body exit (of notTargetof)
+    assert(debugger.frame.cp.isPatternEndPoint)
+    debugger.stepOver() // needed to step to pattern exit (of notTargetof)
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "notTargetOf", args)
   }
 
   test("if example control") {

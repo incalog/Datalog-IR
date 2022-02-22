@@ -1,5 +1,6 @@
 package inca.debugger
 
+import inca.backend.analyze.DependencyGraph
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.{CountAggregation, CustomAggregation}
 import inca.compiler.CompiledModule
@@ -25,6 +26,7 @@ trait Debugger extends DebuggerAPI {
   private var compiled: CompiledModule = _
   protected lazy val patterns: Map[String, Datalog.Pattern] =
     compiled.ir.pats.map { pat => pat.name -> pat }.toMap
+  protected lazy val dependencyGraph = new DependencyGraph(compiled.ir)
 
   // Extensional database stuff
   protected var database: Database = _
@@ -763,45 +765,10 @@ trait Debugger extends DebuggerAPI {
     val frame0 = callStack.top
     frame0.cp.point.atom match {
       case Some(atom) =>
-        atom match {
-          case Datalog.Call(name, args, _, false) =>
-            val pattern = patterns(name)
-            val argsTable = prepareArgTableOfCall(frame0, pattern, args)
-            val callPatternTable = readDatabase(name, argsTable)
-            val params = pattern.params.map(_.name)
-            val tables = transitionReturnCallTables(frame0, params, callPatternTable)
-            val next = frame0.cp.stepOver.get
-            callStack.update(Frame(next, tables))
-
-          case Datalog.Call(name, args, _, true) =>
-            val pattern = patterns(name)
-            val argsTable = prepareArgTableOfCall(frame0, pattern, args)
-            checkNegativeCallArguments(args, frame0.bodyTable)
-            val callPatternTable = readDatabase(name, argsTable)
-            val params = pattern.params.map(_.name)
-            val tables = transitionReturnNegCallTables(frame0, params, callPatternTable)
-            val next = frame0.cp.stepOver.get
-            callStack.update(Frame(next, tables))
-
-          case Datalog.Computed(lhs, countAgg: CountAggregation) =>
-            val pattern = patterns(countAgg.patName)
-            val argsTable = prepareArgTableOfCall(frame0, pattern, countAgg.args)
-            val callPatternTable = readDatabase(countAgg.patName, argsTable)
-            val tables = transitionCountAggTables(frame0, callPatternTable, lhs)
-            val next = frame0.cp.stepOver.get
-            callStack.update(Frame(next, tables))
-
-          case Datalog.Computed(lhs, customAgg: CustomAggregation) =>
-            val pattern = patterns(customAgg.patName)
-            val argsTable = prepareArgTableOfCall(frame0, pattern, customAgg.args)
-            val callPatternTable = readDatabase(customAgg.patName, argsTable)
-            val tables = transitionCustomAggTables(frame0, callPatternTable, lhs, customAgg)
-            val next = frame0.cp.stepOver.get
-            callStack.update(Frame(next, tables))
-
-          case _ =>
-            stepIntoIRNextAtom(frame0, atom)
-        }
+        if (atom.asCall.isDefined)
+          stepOverCall(frame, atom)
+        else
+          stepIntoIRNextAtom(frame, atom)
       case None =>
         if (frame0.cp.isPatternPoint) {
           val pattern = frame0.cp.point.pat
@@ -812,9 +779,8 @@ trait Debugger extends DebuggerAPI {
           callStack.update(Frame(next, frame0.argsTable, patternTable))
         } else if (frame0.cp.isBodyPoint) {
           // we cannot read from the database because we dont know which tuples where derived by a specific body
+          // we step into until the next breakpoint is reached where the stack size does not change
           val next = frame0.cp.stepOver.get
-          // we run until the the next breakpoint
-          // TODO is there a better way to do this?
           runUntil(next)
         } else {
           stepIntoIRPatternBoundary(frame0)
@@ -822,6 +788,64 @@ trait Debugger extends DebuggerAPI {
     }
     if (callStack.nonEmpty)
       traceCurrentControlPoint()
+  }
+
+  private def stepOverCall(frame: Frame, atom: Datalog.Atom): Unit = {
+    val (name, args) = atom.asCall.get
+    val calledPat = patterns(name)
+    val argsTable = prepareArgTableOfCall(frame, calledPat, args)
+    val calledPatTable =
+      if (isPartOfCurrentSCC(atom)) {
+        def stepIntoUntil(stop: () => Boolean): Unit =
+          while (!stop())
+            stepInto()
+
+        // compute fixpoint of current call and top is
+        val patternEntryPoint = ControlPoint.patternEntryPoint(calledPat)
+        val controlPointTarget = patternEntryPoint.stepOver.getOrElse(throw IllegalDebugStateException("Pattern entry point has to have a corresponding pattern exit"))
+        val currentStackSize = callStack.size
+        var currentTable = fixpointState.relation(name, argsTable)
+        stepIntoUntil(() => {
+          val newTable = fixpointState.relation(name, argsTable)
+          val fixpointReached = currentTable == newTable
+          currentTable = newTable
+          fixpointReached && currentStackSize == callStack.size && controlPointTarget == callStack.top.cp
+        })
+        currentTable
+      } else {
+        // we can read because pattern belongs to lower scc
+        val table = readDatabase(name, argsTable)
+        // we extend the fixpoint state accordingly
+        fixpointState.addQuery(name, argsTable)
+        fixpointState.addDerivedTuples(name, table)
+        table
+      }
+    atom match {
+      case Datalog.Call(_, args, _, neg) =>
+        val params = calledPat.params.map(_.name)
+        val tables =
+          if (neg) {
+            checkNegativeCallArguments(args, frame.bodyTable)
+            transitionReturnNegCallTables(frame, params, calledPatTable)
+          } else {
+            transitionReturnCallTables(frame, params, calledPatTable)
+          }
+        val next = frame.cp.stepOver.get
+        callStack.update(Frame(next, tables))
+      case Datalog.Computed(lhs, _: CountAggregation) =>
+        val tables = transitionCountAggTables(frame, calledPatTable, lhs)
+        val next = frame.cp.stepOver.get
+        callStack.update(Frame(next, tables))
+      case Datalog.Computed(lhs, agg: CustomAggregation) =>
+        val tables = transitionCustomAggTables(frame, calledPatTable, lhs, agg)
+        val next = frame.cp.stepOver.get
+        callStack.update(Frame(next, tables))
+    }
+  }
+
+  private def isPartOfCurrentSCC(atom: Datalog.Atom): Boolean = {
+    val (name, _) = atom.asCall.get
+    dependencyGraph.inSameStronglyConnectedCompontent(name, callStack.top.cp.point.pat.name)
   }
 
   private def runUntil(cp: ControlPoint): Unit = {

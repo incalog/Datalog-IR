@@ -113,6 +113,88 @@ trait Graph[N, E] {
        |""".stripMargin
   }
 
+  def inSameStronglyConnectedCompontent(n1: N, n2: N): Boolean = stronglyconnectedComponentOfNode(n1).contains(n2)
+
+  lazy val stronglyconnectedComponentOfNode: Map[N, List[N]] = {
+    nodes.map { n =>
+      n -> stronglyConnectedComponentsNoDemand.find(_.contains(n)).getOrElse(throw new IllegalArgumentException("Each node of the graph has to be in exactly one strongly connected component"))
+    }
+  }.toMap
+
+  lazy val stronglyConnectedComponentsNoDemand: List[List[N]] = stronglyConnectedComponents(false)
+
+  lazy val stronglyConnectedComponentsWithDemand: List[List[N]] = stronglyConnectedComponents(true)
+
+
+  // based on https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
+  def stronglyConnectedComponents(withDemand: Boolean = true): List[List[N]] = {
+
+    val consideredGraph = getConsideredNodes(withDemand)
+    val (consideredNodes, consideredEdges) = consideredGraph
+
+    val visited = mutable.Map[N, VisistedFlag]()
+    consideredNodes.foreach { n => visited(n) = NotVisisted }
+
+    var currentIndex = 0
+
+    val lowlink = mutable.Map[N, Int]()
+    val index = mutable.Map[N, Int]()
+    val stack = mutable.Stack[N]()
+    val components = mutable.Set[List[N]]()
+
+    consideredNodes.foreach { node =>
+      index.getOrElse(node, {
+        currentIndex = strongConnect(node, currentIndex, consideredEdges, index, lowlink, visited, stack, components)
+      })
+    }
+
+    components.toList
+  }
+
+  private def strongConnect(node: N, currentIndex: Int, edges: Map[N, Set[(N, E)]],
+                            index: mutable.Map[N, Int], lowlink: mutable.Map[N, Int], visited: mutable.Map[N, VisistedFlag],
+                            stack: mutable.Stack[N], components: mutable.Set[List[N]]): Int = {
+    lowlink(node) = currentIndex
+    index(node) = currentIndex
+    var i = currentIndex + 1
+    stack.push(node)
+    visited(node) = InStack
+
+    edges.getOrElse(node, Set()).foreach { edge =>
+      val neighbor = edge._1
+      val n = index.getOrElse(neighbor, {
+        i = strongConnect(neighbor, i, edges, index, lowlink, visited, stack, components)
+        lowlink(node) = lowlink(node).min(lowlink(neighbor))
+      })
+      if (n.isInstanceOf[Int]) if (visited(neighbor) == InStack) lowlink(node) = lowlink(node).min(index(neighbor))
+    }
+
+    if (lowlink(node) == index(node)) {
+      val comp = mutable.Set[N]()
+      var neighbor = node
+      do {
+        neighbor = stack.pop()
+        visited(neighbor) = NotVisisted
+        comp.add(neighbor)
+      } while (node != neighbor)
+      components.add(comp.toList)
+    }
+    i
+  }
+
+  private def getConsideredNodes(withDemand: Boolean): (Set[N], Map[N, Set[(N, E)]]) = if (withDemand) (nodes.toSet, edges.toMap) else {
+    val consideredNodes = nodes.filterNot(node => node.toString.startsWith("input$"))
+    val consideredEdges = mutable.Map[N, Set[(N, E)]]()
+
+    edges.foreach { edge =>
+      val node = edge._1
+      val neighbors = edge._2
+      val newneighbors = neighbors.filter(n => consideredNodes.contains(n._1))
+      if (consideredNodes.contains(node) && newneighbors.nonEmpty) consideredEdges(node) = newneighbors
+    }
+    (consideredNodes.toSet, consideredEdges.toMap)
+  }
+
   protected def nodeToGraphViz(n: N): String
   protected def edgeGraphVizAttributes(from: N, to: N, info: E): String
   protected def nodeGraphVizAttributes(from: N): String
