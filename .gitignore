@@ -73,3 +73,5 @@ $RECYCLE.BIN/
 
 /benchmark/python/*/
 /.bsp/
+
+/null
