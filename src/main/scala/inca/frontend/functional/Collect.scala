@@ -4,20 +4,16 @@ import inca.frontend.functional.core._
 
 trait Collect[R] {
 
-  def apply(module: Module): Seq[R] = {
-    module.content.flatMap{
-      case func: FunctionDef => transFun(func)
-      case data: DataDef => transData(data)
-    }
+  def apply(module: Module): Seq[R] = module.content.flatMap {
+    case func: FunctionDef => transFun(func)
+    case data: DataDef => transData(data)
   }
 
-  def transData(data: DataDef): Seq[R] = {
+  def transData(data: DataDef): Seq[R] =
     data.annos.flatMap(transAnno) ++ data.constrs.flatMap(transConstr)
-  }
 
-  def transFun(func: FunctionDef): Seq[R] = {
+  def transFun(func: FunctionDef): Seq[R] =
     func.annos.flatMap(transAnno) ++ func.params.flatMap(transParam) ++ transExp(func.body)
-  }
 
   def transAnno(anno: Annotation): Seq[R] = Seq()
 
@@ -29,7 +25,7 @@ trait Collect[R] {
       case TTuple(ts) => ts.flatMap(transType)
       case TData(name) => Seq()
       case TScala(ty) => Seq()
-      case TOption(ty) => transType(ty) // TODO macht das Sinn? Was sollte der Default sein?
+      case TOption(ty) => transType(ty)
       case TSet(ty) => transType(ty)
     }
   }
@@ -48,13 +44,13 @@ trait Collect[R] {
       case inca.frontend.functional.core.Let(names, anno, bound, body) =>
         transExp(bound) ++ transExp(body) ++ transType(anno.getOrElse(TAny))
       case BaseApplyInfix(left, op, right) =>
-        transExp(left)++transExp(right)
+        transExp(left) ++ transExp(right)
       case BaseLit(code) => Seq()
       case If(cnd, thn, els) =>
-        transExp(cnd)++transExp(thn)++transExp(els)
+        transExp(cnd) ++ transExp(thn) ++ transExp(els)
       case Match(matchee: Expression, cases: Seq[(Pattern, Expression)]) =>
-        transExp(matchee)++cases.flatMap(c => transExp(c._2))
-      case Call(fun, args, transitive) => transExp(fun)++args.flatMap(transExp)
+        transExp(matchee) ++ cases.flatMap(c => transExp(c._2))
+      case Call(fun, args, transitive) => transExp(fun) ++ args.flatMap(transExp)
       case BaseApply(fun, args) =>
         args.flatMap(transExp)
       case Tuple(exps) =>
@@ -62,12 +58,12 @@ trait Collect[R] {
       case SetExp(es) =>
         es.flatMap(transExp)
       case SetComprehension(build, predicates) =>
-        transExp(build)++predicates.flatMap(transExp)
+        transExp(build) ++ predicates.flatMap(transExp)
       case SetMember(tup, set, neg) =>
-        transExp(tup)++transExp(set)
+        transExp(tup) ++ transExp(set)
       case Lambda(vs, body) => vs.flatMap(v => transType(v._2)) ++ transExp(body)
       case SetFold(anno, init, op, set) =>
-        transType(anno.getOrElse(TAny)) ++ transExp(init)++transExp(op)++transExp(set)
+        transType(anno.getOrElse(TAny)) ++ transExp(init) ++ transExp(op) ++ transExp(set)
       case SomeExp(e) => transExp(e)
       case NoneExp() => Seq()
     }

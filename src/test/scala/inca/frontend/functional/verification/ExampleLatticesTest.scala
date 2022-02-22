@@ -1,10 +1,10 @@
 package inca.frontend.functional.verification
 
+import inca.frontend.functional.core
 import inca.frontend.functional.core.{Associativity, Commutativity}
 import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.functional.verification.examples.Lattices.{const_lattice_module, sign_lattice_module}
 import inca.util.Gensym
-import smtlib.Interpreter
 import smtlib.interpreters.Z3Interpreter
 
 class ExampleLatticesTest extends AnyFunSuite {
@@ -19,7 +19,7 @@ class ExampleLatticesTest extends AnyFunSuite {
     val aggregations = verifier.collectAggregations(module)
     print("\n###################### Aggregations: \n")
     print(aggregations)
-    val joinFuncName = aggregations.head._1
+    val joinFuncName = aggregations(core.Name("join"))._1
     val calledFunctions = verifier.collectCalledFunctions(verifier.functionDict(joinFuncName))
     print("\n############## Called Functions: \n")
     print(calledFunctions)
@@ -33,11 +33,11 @@ class ExampleLatticesTest extends AnyFunSuite {
     val functions = calledFunctions :+ joinFuncName
     print(functions.map(f => verifier.transFunctionDef(f)))
     print("\n\n############## Output generate with assoc and comm: \n")
-    val verificationScript = verifier.generate(joinFuncName, Seq(Associativity, Commutativity))
+    val verificationScript = verifier.generate(joinFuncName, aggregations(core.Name("join")))
     print(verificationScript)
     print("\n\n############## Output verificationScript feedback: \n")
     implicit val z3Interp = Z3Interpreter.buildDefault
-    print(Interpreter.execute(verificationScript))
+    //print(Interpreter.execute(verificationScript))
   }
   test("test const_lattice_module"){
     val module = const_lattice_module

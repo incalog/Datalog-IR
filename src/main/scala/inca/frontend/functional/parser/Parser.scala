@@ -59,8 +59,16 @@ trait Parser {
   protected[frontend] def defParams[_: P]: P[Seq[Param]] =
     P("(" ~ paramList ~ ")") | P("").map(_ => Seq())
 
-  protected[frontend]  def annotation[_: P]: P[Annotation] = mainFuncAnno
-  protected[frontend]  def mainFuncAnno[_: P]: P[MainFunctionAnno.type] = P("@main").map(_ => MainFunctionAnno)
+  protected[frontend] def annotation[_: P]: P[Annotation] = mainFuncAnno | aggrAnno
+  protected[frontend] def mainFuncAnno[_: P]: P[MainFunctionAnno.type] = P("@main").map(_ => MainFunctionAnno)
+  protected[frontend] def aggrAnno[_: P]: P[AggregationAnno] =
+    (P("@aggr(") ~ aggregationProp.rep(min = 0, sep = ",") ~ P(")")).map(AggregationAnno.apply)
+
+  protected[frontend] def aggregationProp[_: P]: P[AggregationProperty] = assocProp | commProp
+  protected[frontend] def assocProp[_: P]: P[Associativity.type] = P("assoc").map(_ => Associativity)
+  protected[frontend] def commProp[_: P]: P[Commutativity.type] = P("comm").map(_ => Commutativity)
+
+
 
   protected[frontend] def exp[_: P]: P[Expression] = wideExp
 

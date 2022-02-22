@@ -53,8 +53,8 @@ class Verifier {
         if (func.annos.exists {
           // TODO Ich benutze main Annotations, weil AggregationAnnos noch nicht
           //  funktionieren (vor allem nicht mit dem Parser)
-          case AggregationAnno(props) => false
-          case MainFunctionAnno => true
+          case AggregationAnno(props) => true
+          case _ => false
         }) {
           Seq((func.name, getAggrProps(func)))
         } else {
@@ -95,10 +95,8 @@ class Verifier {
     //}
     val funcNameCollector = new Collect[Name] {
       override def transExp(exp: Expression): Seq[Name] = exp match {
-        case Call(fun, args, _) => fun match {
-          case Var(name) => Seq(name) ++ args.flatMap(super.transExp)
-          case _ => super.transExp(exp)
-        }
+        case Call(Var(name), args, _) =>
+       Seq(name) ++ args.flatMap(super.transExp)
         case _ => super.transExp(exp)
       }
     }
@@ -172,12 +170,12 @@ class Verifier {
       case TScala(ty) => ty match {
         case Scala(scala.meta.Type.Name("Int")) => Sort(Identifier(SSymbol("Int")))
         case Scala(scala.meta.Type.Name("Boolean")) => Sort(Identifier(SSymbol("Bool")))
-        case Scala(scala.meta.Type.Name("Double")) => Sort(Identifier(SSymbol("Real")))
-        case Scala(scala.meta.Type.Name("String")) => ???
+        case Scala(scala.meta.Type.Name("Double")) => Sort(Identifier(SSymbol("Real"))) //TODO floating point theory
+        case Scala(scala.meta.Type.Name("String")) => Sort(Identifier(SSymbol("String")))
       }
       case TData(name) => Sort(Identifier(SSymbol(name.name)))
       // TODO andere Cases
-      case _ => throw new InvalidAttributeValueException("Type needs to be specified")
+      case _ => throw new Exception("Type needs to be specified")
     }
   }
 
