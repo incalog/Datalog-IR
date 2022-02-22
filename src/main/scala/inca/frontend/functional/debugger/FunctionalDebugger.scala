@@ -12,6 +12,7 @@ import inca.debugger._
 import inca.frontend.functional.compiler.CompiledFunctionalModule
 import inca.frontend.functional.core.{BaseLit, Expression, FunctionDef, If, Let, Match, Name, NoneExp, Pattern, SetExp, SomeExp, Tuple, Var}
 import inca.runtime.data.{MockURI, WrappedURI}
+import inca.util.Derivative
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import truechange.{JVMURI, URI}
 import truediff.Diffable
@@ -43,9 +44,9 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
   private val _controlTraceFrontend: ListBuffer[FunctionalControlPoint] = ListBuffer.empty
   def controlTraceFrontend: Seq[FunctionalControlPoint] = _controlTraceFrontend.toSeq
 
-  override def traceControlPoint(cp: ControlPoint): Unit = {
-    super.traceControlPoint(cp)
-    functionalPoint(cp).foreach(_controlTraceFrontend += _)
+  override def traceCurrentControlPoint(): Unit = {
+    super.traceCurrentControlPoint()
+    currentFunctionalPoint.foreach(_controlTraceFrontend += _)
   }
 
   def getFunction(pat: Datalog.Pattern): Option[FunctionDef] = pat.getHint(SourceConstruct.key) match {
@@ -53,7 +54,48 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     case _ => None
   }
 
-  def functionalPoint(cp: ControlPoint): Option[FunctionalControlPoint] = {
+  private val functionalPointDeriv: Derivative[CallStack, Option[FunctionalControlPoint]] =
+    callStack.addDerivative[Option[FunctionalControlPoint]](_ => None) { stack =>
+      if (stack.isEmpty)
+        None
+      else {
+        val cp = stack.top.cp
+        val patPoint = cp.point
+        getFunction(patPoint.pat) match {
+          case Some(fun) => patPoint.bodies match {
+            case BeforeList =>
+              // start of function
+              Some(FunctionPoint(fun, fun.name.sourceObject, cp))
+            case AtListElem(_, _, BodyPoint(_, atoms)) => atoms match {
+              case BeforeList => None
+              case AtListElem(_, _, AtomPoint(atom)) =>
+                atom.getHint(SourceConstruct.key) match {
+                  case Some(SourceConstruct(constr: Expression)) =>
+                    expressionPoint(constr).map(FunctionPoint(fun, _, cp))
+                  case Some(SourceConstruct((let: Let, v: String))) =>
+                    let.names.find(_.name == v).map(p => FunctionPoint(fun, p.sourceObject, cp))
+                  case Some(SourceConstruct((m: Match, constr: Pattern))) =>
+                    Some(MatchPoint(fun, m, constr, cp))
+                  case Some(SourceConstruct((cond: If, thenBranch: Boolean))) =>
+                    Some(ConditionPoint(fun, cond, thenBranch, cp))
+                  case _ =>
+                    None
+                }
+              case AfterList => None
+            }
+            case AfterList =>
+              // end of function
+              Some(FunctionPoint(fun, fun.sourceObject, cp))
+          }
+          case None => None
+        }
+      }
+    }
+
+  @inline
+  def currentFunctionalPoint: Option[FunctionalControlPoint] = functionalPointDeriv.value
+
+  private def getFunctionalPoint(cp: ControlPoint): Option[FunctionalControlPoint] = {
     val patPoint = cp.point
     val fun = getFunction(patPoint.pat).getOrElse(return None)
     patPoint.bodies match {
@@ -140,7 +182,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
       stepIntoIR()
       if (callStack.isEmpty)
         return
-      fp = functionalPoint(controlPointIR)
+      fp = currentFunctionalPoint
     }
     stepOverConditionPoint(fp.get)
   }
@@ -162,16 +204,13 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
       val currentPat = condp.irPoint.point.pat.name
       val currentBody = condp.irPoint.point.bodyIndex
       stepIntoIR()
-      val cp = controlPointIR
 
-      val next = if (!condp.thenBranch) {
+      if (!condp.thenBranch) {
         // we're at the else branch, continue
-        cp
-      } else if (controlPointIR.point.pat.name == currentPat && cp.point.bodyIndex == currentBody && !frame.bodyTable.isEmpty) {
+      } else if (currentPattern.name == currentPat && frame.cp.point.bodyIndex == currentBody && !frame.bodyTable.isEmpty) {
         // we're in the same body and didn't fail => condition succeeded
         if (!condp.fun.isRelation)
           skipElseBranches.head += condp.cond.sourceObject
-        cp
       } else {
         // condition failed and we were at the then branch => step to else branch
         if (!condp.fun.isRelation) {
@@ -181,9 +220,8 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
           }
           skipAheadTo = Some(skipToElse) :: skipAheadTo.tail
         }
-        controlPointIR
       }
-      functionalPoint(next) match {
+      currentFunctionalPoint match {
         case Some(fp2) => stepOverConditionPoint(fp2)
         case None => stepInto()
       }
@@ -212,6 +250,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
       callStack.update(Frame(next, frame.argsTable, Table.empty))
     } else {
       super.doBodyEntry(frame, cp)
+      stepOverIR()
       skipAheadTo.head.foreach(doSkipAheadTo)
     }
   }
@@ -219,9 +258,10 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
   @tailrec
   private def doSkipAheadTo(stopCond: SourceConstruct[_] => Boolean): Unit = {
     // hide last point
-    val r = controlPointIR
-    functionalPoint(r).foreach(_ => _controlTraceFrontend.remove(_controlTraceFrontend.size - 1))
-    val stop = controlPointIR.point.atom.forall(_.getHint(SourceConstruct.key).exists(h => stopCond(h.asInstanceOf[SourceConstruct[_]])))
+    currentFunctionalPoint.foreach { _ =>
+      _controlTraceFrontend.remove(_controlTraceFrontend.size - 1)
+    }
+    val stop = frame.cp.point.atom.forall(_.getHint(SourceConstruct.key).exists(h => stopCond(h.asInstanceOf[SourceConstruct[_]])))
     if (!stop) {
       stepOverIR()
       doSkipAheadTo(stopCond)
@@ -281,7 +321,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
   }
 
   def controlPointFrontend: FunctionalControlPoint =
-    functionalPoint(controlPointIR).get
+    currentFunctionalPoint.get
 
 
   def currentDebuggerInfo: String = {

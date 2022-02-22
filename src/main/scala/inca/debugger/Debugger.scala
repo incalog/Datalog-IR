@@ -10,7 +10,7 @@ import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
 import inca.runtime.index._
 import inca.runtime.{EnginePool, Query}
-import inca.util.{Gensym, Scala}
+import inca.util.{Derivative, Gensym, Scala}
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
 import org.eclipse.viatra.query.runtime.matchers.tuple.{TupleMask, Tuples}
@@ -43,20 +43,29 @@ trait Debugger extends DebuggerAPI {
   protected var defintionObjSym: String = _
 
   // Accessor methods of debugger state
-  def frame: Frame = callStack.top
 
-  def varsIR: Table[Value] = controlPointIR.point.bodies match {
+  val frameDeriv: Derivative[CallStack, Frame] = callStack.addDerivative(_ => null.asInstanceOf[Frame]){ stack =>
+    if (stack.isEmpty) null.asInstanceOf[Frame]
+    else stack.top
+  }
+  @inline
+  def frame: Frame = frameDeriv.value
+
+  def currentPoint: ControlPoint = frame.cp
+  def currentPattern: Datalog.Pattern = frame.cp.point.pat
+  def currentAtom: Option[Datalog.Atom] = frame.cp.point.atom
+
+  def varsIR: Table[Value] = frame.cp.point.bodies match {
     case BeforeList => frame.argsTable
     case AtListElem(_, _, _) => frame.bodyTable
     case AfterList =>
-      val pat = controlPointIR.point.pat
-      fixpointState.relation(pat.name, frame.argsTable)
+      fixpointState.relation(currentPattern.name, frame.argsTable)
   }
-  def controlPointIR: ControlPoint = callStack.top.cp
+
   def controlTraceIR: Seq[ControlPoint] = _controlTrace.toSeq
 
-  protected def traceControlPoint(cp: ControlPoint): Unit =
-    _controlTrace += cp
+  protected def traceCurrentControlPoint(): Unit =
+    _controlTrace += currentPoint
 
   def relation(name: String): Table[Value] = fixpointState.relation(name)
   def relation(name: String, args: Table[Value]): Table[Value] =
@@ -91,29 +100,27 @@ trait Debugger extends DebuggerAPI {
     val cp = ControlPoint.patternEntryPoint(pat)
     val frame = Frame(cp, bindings, Table.empty)
     callStack.push(frame)
-    traceControlPoint(cp)
+    traceCurrentControlPoint()
   }
 
   protected def stepIntoIR(): Unit = {
-    val frame = callStack.top
-    frame.cp.point.atom match {
+    currentAtom match {
       case Some(atom) =>
         stepIntoIRNextAtom(frame, atom)
       case None =>
         stepIntoIRPatternBoundary(frame)
     }
     if (callStack.nonEmpty)
-      traceControlPoint(callStack.top.cp)
+      traceCurrentControlPoint()
   }
 
   protected def abortIfBodyFailed(): Unit =
     if (callStack.nonEmpty) {
-      val next = callStack.top
-      if (next.bodyTable.isEmpty) {
-        val pattern = next.cp.point.pat
+      if (frame.bodyTable.isEmpty) {
+        val pattern = frame.cp.point.pat
         // the empty body table has to range over all pattern parameters
         val emptyBodyTable = Table.empty[Value](pattern.params.map(_.name))
-        callStack.update(next.copy(cp = next.cp.abortBody, bodyTable = emptyBodyTable))
+        callStack.update(frame.copy(cp = frame.cp.abortBody, bodyTable = emptyBodyTable))
       }
     }
 
@@ -753,74 +760,74 @@ trait Debugger extends DebuggerAPI {
   }
 
   protected def stepOverIR(): Unit = {
-    val frame = callStack.top
-    frame.cp.point.atom match {
+    val frame0 = callStack.top
+    frame0.cp.point.atom match {
       case Some(atom) =>
         atom match {
           case Datalog.Call(name, args, _, false) =>
             val pattern = patterns(name)
-            val argsTable = prepareArgTableOfCall(frame, pattern, args)
+            val argsTable = prepareArgTableOfCall(frame0, pattern, args)
             val callPatternTable = readDatabase(name, argsTable)
             val params = pattern.params.map(_.name)
-            val tables = transitionReturnCallTables(frame, params, callPatternTable)
-            val next = frame.cp.stepOver.get
+            val tables = transitionReturnCallTables(frame0, params, callPatternTable)
+            val next = frame0.cp.stepOver.get
             callStack.update(Frame(next, tables))
 
           case Datalog.Call(name, args, _, true) =>
             val pattern = patterns(name)
-            val argsTable = prepareArgTableOfCall(frame, pattern, args)
-            checkNegativeCallArguments(args, frame.bodyTable)
+            val argsTable = prepareArgTableOfCall(frame0, pattern, args)
+            checkNegativeCallArguments(args, frame0.bodyTable)
             val callPatternTable = readDatabase(name, argsTable)
             val params = pattern.params.map(_.name)
-            val tables = transitionReturnNegCallTables(frame, params, callPatternTable)
-            val next = frame.cp.stepOver.get
+            val tables = transitionReturnNegCallTables(frame0, params, callPatternTable)
+            val next = frame0.cp.stepOver.get
             callStack.update(Frame(next, tables))
 
           case Datalog.Computed(lhs, countAgg: CountAggregation) =>
             val pattern = patterns(countAgg.patName)
-            val argsTable = prepareArgTableOfCall(frame, pattern, countAgg.args)
+            val argsTable = prepareArgTableOfCall(frame0, pattern, countAgg.args)
             val callPatternTable = readDatabase(countAgg.patName, argsTable)
-            val tables = transitionCountAggTables(frame, callPatternTable, lhs)
-            val next = frame.cp.stepOver.get
+            val tables = transitionCountAggTables(frame0, callPatternTable, lhs)
+            val next = frame0.cp.stepOver.get
             callStack.update(Frame(next, tables))
 
           case Datalog.Computed(lhs, customAgg: CustomAggregation) =>
             val pattern = patterns(customAgg.patName)
-            val argsTable = prepareArgTableOfCall(frame, pattern, customAgg.args)
+            val argsTable = prepareArgTableOfCall(frame0, pattern, customAgg.args)
             val callPatternTable = readDatabase(customAgg.patName, argsTable)
-            val tables = transitionCustomAggTables(frame, callPatternTable, lhs, customAgg)
-            val next = frame.cp.stepOver.get
+            val tables = transitionCustomAggTables(frame0, callPatternTable, lhs, customAgg)
+            val next = frame0.cp.stepOver.get
             callStack.update(Frame(next, tables))
 
           case _ =>
-            stepIntoIRNextAtom(frame, atom)
+            stepIntoIRNextAtom(frame0, atom)
         }
       case None =>
-        if (frame.cp.isPatternPoint) {
-          val pattern = frame.cp.point.pat
-          lastDerivedTuples = fixpointState.relation(pattern.name, frame.argsTable)
-          val patternTable = readDatabase(pattern.name, frame.argsTable)
+        if (frame0.cp.isPatternPoint) {
+          val pattern = frame0.cp.point.pat
+          lastDerivedTuples = fixpointState.relation(pattern.name, frame0.argsTable)
+          val patternTable = readDatabase(pattern.name, frame0.argsTable)
           fixpointState.addDerivedTuples(pattern.name, patternTable)
           val next = ControlPoint(PatternPoint(pattern, AfterList))
-          callStack.update(Frame(next, frame.argsTable, patternTable))
-        } else if (frame.cp.isBodyPoint) {
+          callStack.update(Frame(next, frame0.argsTable, patternTable))
+        } else if (frame0.cp.isBodyPoint) {
           // we cannot read from the database because we dont know which tuples where derived by a specific body
-          val next = frame.cp.stepOver.get
+          val next = frame0.cp.stepOver.get
           // we run until the the next breakpoint
           // TODO is there a better way to do this?
           runUntil(next)
         } else {
-          stepIntoIRPatternBoundary(frame)
+          stepIntoIRPatternBoundary(frame0)
         }
     }
     if (callStack.nonEmpty)
-      traceControlPoint(callStack.top.cp)
+      traceCurrentControlPoint()
   }
 
   private def runUntil(cp: ControlPoint): Unit = {
     val currentStackSize = callStack.size
     // we run stepInto until we reach the target controlpoint and the stack size is the same as it was before
-    while (!(callStack.top.cp == cp && callStack.size == currentStackSize)) {
+    while (!(frame.cp == cp && callStack.size == currentStackSize)) {
       stepIntoIR()
     }
   }

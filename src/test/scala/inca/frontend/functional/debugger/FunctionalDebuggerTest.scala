@@ -54,7 +54,10 @@ class FunctionalDebuggerTest extends AnyFunSuite {
       val compiledExample = Compiler.compileFunctional(ifControlJump(b1, b2), FunctionalOptions())
       val debugger = initDebugger(compiledExample)
       debugger.entry("main")
-      while (!debugger.isFinished) debugger.stepInto()
+      while (!debugger.isFinished) {
+        println(debugger.currentDebuggerInfo)
+        debugger.stepInto()
+      }
       assertResult(5)(debugger.controlTraceFrontend.size)
     }
   }

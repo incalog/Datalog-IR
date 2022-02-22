@@ -1,6 +1,7 @@
 package inca.debugger
 
 import inca.debugger.table.Table
+import inca.util.Derivative
 
 import scala.collection.mutable
 
@@ -15,6 +16,7 @@ object Frame {
 
 class CallStack {
   private var _stack: List[Frame] = List()
+  private var _observers: List[CallStack => Unit] = List()
 
   def frames: List[Frame] = _stack
 
@@ -28,16 +30,32 @@ class CallStack {
   def nonEmpty: Boolean = _stack.nonEmpty
   def size: Int = _stack.size
 
-  def push(cp: Frame): Unit = _stack = cp :: _stack
+  def push(cp: Frame): Unit = {
+    _stack = cp :: _stack
+    notifyStackChanged()
+  }
 
   def pop(): Frame = {
     val hd = _stack.head
     _stack = _stack.tail
+    notifyStackChanged()
     hd
   }
 
-  def update(cp: Frame): Unit =
+  def update(cp: Frame): Unit = {
     _stack = cp :: _stack.tail
+    notifyStackChanged()
+  }
+
+  def addDerivative[T](init: CallStack => T)(f: CallStack => T): Derivative[CallStack, T] = {
+    val deriv = new Derivative[CallStack, T](init(this), f)
+    addObserver(deriv)
+    deriv
+  }
+  def addObserver(obs: CallStack => Unit): Unit =
+    _observers +:= obs
+  private def notifyStackChanged(): Unit =
+    _observers.foreach(_(this))
 
   override def toString: String =
     _stack.map(_.cp.point.pat.name).mkString("[", ", ", "]")

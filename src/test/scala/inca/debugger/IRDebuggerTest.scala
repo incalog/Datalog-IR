@@ -500,7 +500,7 @@ class IRDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(compiledExample.ir, new DataModel())
     debugger.entry("main", Table.unit)
     while (!debugger.isFinished) {
-      println(s"${debugger.controlPointIR}:\n  ${debugger.varsIR}")
+      println(s"${debugger.frame.cp}:\n  ${debugger.varsIR}")
       debugger.stepInto()
     }
     debugger.controlTraceIR.foreach(println)
@@ -513,7 +513,7 @@ class IRDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(compiledExample.ir, new DataModel())
     debugger.entry("main", Table.unit)
     while (!debugger.isFinished) {
-      println(s"${debugger.controlPointIR}:\n  ${debugger.varsIR}")
+      println(s"${debugger.frame.cp}:\n  ${debugger.varsIR}")
       debugger.stepInto()
     }
     debugger.controlTraceIR.foreach(println)
