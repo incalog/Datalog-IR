@@ -19,7 +19,7 @@ class ExampleLatticesTest extends AnyFunSuite {
     val aggregations = verifier.collectAggregations(module)
     print("\n###################### Aggregations: \n")
     print(aggregations)
-    val joinFuncName = aggregations(core.Name("join"))._1
+    val joinFuncName = "join"
     val calledFunctions = verifier.collectCalledFunctions(verifier.functionDict(joinFuncName))
     print("\n############## Called Functions: \n")
     print(calledFunctions)
@@ -33,7 +33,7 @@ class ExampleLatticesTest extends AnyFunSuite {
     val functions = calledFunctions :+ joinFuncName
     print(functions.map(f => verifier.transFunctionDef(f)))
     print("\n\n############## Output generate with assoc and comm: \n")
-    val verificationScript = verifier.generate(joinFuncName, aggregations(core.Name("join")))
+    val verificationScript = verifier.generate(joinFuncName, aggregations(joinFuncName))
     print(verificationScript)
     print("\n\n############## Output verificationScript feedback: \n")
     implicit val z3Interp = Z3Interpreter.buildDefault
@@ -50,7 +50,7 @@ class ExampleLatticesTest extends AnyFunSuite {
     val aggregations = verifier.collectAggregations(module)
     print("\n###################### Aggregations: \n")
     print(aggregations)
-    val joinFuncName = aggregations.head._1
+    val joinFuncName = "join"
     val calledFunctions = verifier.collectCalledFunctions(verifier.functionDict(joinFuncName))
     print("\n############## Called Functions: \n")
     print(calledFunctions)

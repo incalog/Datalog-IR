@@ -29,12 +29,12 @@ class Verifier {
 
   def module: Module = ???
 
-  val functionDict: mutable.Map[Name, FunctionDef] = mutable.Map()
-  val dataDict: mutable.Map[Name, DataDef] = mutable.Map()
+  val functionDict: mutable.Map[String, FunctionDef] = mutable.Map()
+  val dataDict: mutable.Map[String, DataDef] = mutable.Map()
 
   def verify(module: Module): Unit = {
     fillDicts(module)
-    val aggregations: Map[Name, Seq[Property]] = collectAggregations(module)
+    val aggregations: Map[String, Seq[Property]] = collectAggregations(module)
     val verificationScripts: Seq[Script] = aggregations.toSeq.map(ag => generate(ag._1, ag._2))
     implicit val z3Interp: Z3Interpreter = Z3Interpreter.buildDefault
     verificationScripts.foreach(s =>
@@ -43,20 +43,20 @@ class Verifier {
   }
 
   def fillDicts(module: Module): Unit = module.content.foreach {
-    case d: DataDef => dataDict += d.name -> d
-    case f: FunctionDef => functionDict += f.name -> f
+    case d: DataDef => dataDict += d.name.name -> d
+    case f: FunctionDef => functionDict += f.name.name -> f
   }
 
-  def collectAggregations(module: Module): Map[Name, Seq[Property]] = {
-    val aggrCollector = new Collect[(Name, Seq[Property])] {
-      override def transFun(func: FunctionDef): Seq[(Name, Seq[Property])] = {
+  def collectAggregations(module: Module): Map[String, Seq[Property]] = {
+    val aggrCollector = new Collect[(String, Seq[Property])] {
+      override def transFun(func: FunctionDef): Seq[(String, Seq[Property])] = {
         if (func.annos.exists {
           // TODO Ich benutze main Annotations, weil AggregationAnnos noch nicht
           //  funktionieren (vor allem nicht mit dem Parser)
           case AggregationAnno(props) => true
           case _ => false
         }) {
-          Seq((func.name, getAggrProps(func)))
+          Seq((func.name.name, getAggrProps(func)))
         } else {
           Seq()
         }
@@ -75,28 +75,28 @@ class Verifier {
     aggrPropCollector.transFun(func)
   }
 
-  def generate(funcName: Name, props: Seq[Property]): Script = {
+  def generate(funcName: String, props: Seq[Property]): Script = {
     implicit val gensym: Gensym = new Gensym(Seq())
-    val calledFunctions: Seq[Name] = collectCalledFunctions(functionDict(funcName))
+    val calledFunctions: Seq[String] = collectCalledFunctions(functionDict(funcName))
     val dataDefs = (calledFunctions :+ funcName).flatMap(fName => collectUsedDataDefs(functionDict(fName)))
     val transDataDefs = dataDefs.map(transDataDef)
     val functions = calledFunctions:+funcName
     val transFuncDefs = functions.map(transFunctionDef)
-    val transProps = props.map(transProperty(_, funcName.name))
+    val transProps = props.map(transProperty(_, funcName))
     makeScript(transDataDefs ++ transFuncDefs ++ transProps)
   }
 
-  def collectCalledFunctions(func: FunctionDef): Seq[Name] = {
+  def collectCalledFunctions(func: FunctionDef): Seq[String] = {
     // TODO okay das mit vars zu machen?
-    //val functions: mutable.Seq[Name] = mutable.Seq()
-    //val newFunctions: mutable.Seq[Name] = mutable.Seq(CollectCalledFunctionNames.transFun(func))
+    //val functions: mutable.Seq[String] = mutable.Seq()
+    //val newFunctions: mutable.Seq[String] = mutable.Seq(CollectCalledFunctionNames.transFun(func))
     //while (functions != newFunctions) {
     //  functions = newFunctions
     //}
-    val funcNameCollector = new Collect[Name] {
-      override def transExp(exp: Expression): Seq[Name] = exp match {
+    val funcNameCollector = new Collect[String] {
+      override def transExp(exp: Expression): Seq[String] = exp match {
         case Call(Var(name), args, _) =>
-       Seq(name) ++ args.flatMap(super.transExp)
+       Seq(name.name) ++ args.flatMap(super.transExp)
         case _ => super.transExp(exp)
       }
     }
@@ -104,8 +104,8 @@ class Verifier {
      Da auch Konstruktoraufrufe als Funktionsaufrufe gestaltet sind, wir aber nur "echte Funktionsaufrufe"
      haben wollen, filtern wir nach den Funktionen im dictionary. TODO imports des Moduls
      */
-    var functions: Seq[Name] = Seq()
-    var newFunctions: Seq[Name] = funcNameCollector.transFun(func).filter(functionDict.contains).distinct
+    var functions: Seq[String] = Seq()
+    var newFunctions: Seq[String] = funcNameCollector.transFun(func).filter(functionDict.contains).distinct
     while (functions != newFunctions) {
       functions = newFunctions
       newFunctions = (functions ++ functions.flatMap(f =>
@@ -114,15 +114,15 @@ class Verifier {
     functions
   }
 
-  def collectUsedDataDefs(func: FunctionDef): Seq[Name] = {
-    val dataNameCollector = new Collect[Name] {
-      override def transType(t: Type): Seq[Name] = t match {
-        case TData(name) => Seq(name)
+  def collectUsedDataDefs(func: FunctionDef): Seq[String] = {
+    val dataNameCollector = new Collect[String] {
+      override def transType(t: Type): Seq[String] = t match {
+        case TData(name) => Seq(name.name)
         case _ => super.transType(t)
       }
     }
-    var dataDefs: Seq[Name] = Seq()
-    var newDataDefs: Seq[Name] = dataNameCollector.transFun(func).filter(dataDict.contains).distinct
+    var dataDefs: Seq[String] = Seq()
+    var newDataDefs: Seq[String] = dataNameCollector.transFun(func).filter(dataDict.contains).distinct
     while (dataDefs != newDataDefs) {
       dataDefs = newDataDefs
       newDataDefs = (dataDefs ++ dataDefs.flatMap(d =>
@@ -131,10 +131,10 @@ class Verifier {
     dataDefs
   }
 
-  // DataDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, constrs: Seq[DataConstructor])
-  // DataConstructor(name: Name, paramTypes: Seq[Type])
+  // DataDef(annos: Seq[Annotation], vis: Option[Visibility], name: String, constrs: Seq[DataConstructor])
+  // DataConstructor(name: String, paramTypes: Seq[Type])
 
-  def transDataDef(dataName: Name)(implicit gensym: Gensym): Script = {
+  def transDataDef(dataName: String)(implicit gensym: Gensym): Script = {
     val data = dataDict(dataName)
     val transConstrs = data.constrs.map(c =>
       Constructor(SSymbol(c.name.name),
@@ -144,16 +144,16 @@ class Verifier {
           (SSymbol(fieldName), sort)
         }))
     )
-    Script(List(DeclareDatatypes(Seq((SSymbol(dataName.name), transConstrs)))))
+    Script(List(DeclareDatatypes(Seq((SSymbol(dataName), transConstrs)))))
   }
 
   // DeclareDatatypes(datatypes: Seq[(SSymbol, Seq[Constructor])])
   // Constructor(sym: SSymbol, fields: Seq[(SSymbol, Sort)])
 
   //FunctionDef(annos: Seq[Annotation], vis: Option[Visibility],
-  //  name: Name, params: Seq[Param], outType: Type, body: Expression)
-  //Param(name: Name, typ: Type)
-  def transFunctionDef(funcName: Name): Script = {
+  //  name: String, params: Seq[Param], outType: Type, body: Expression)
+  //Param(name: String, typ: Type)
+  def transFunctionDef(funcName: String): Script = {
     val func = functionDict(funcName)
     val transParams: Seq[SortedVar] = func.params.map(p => SortedVar(SSymbol(p.name.name), transType(p.typ)))
     val transOutType: Sort = transType(func.outType)
