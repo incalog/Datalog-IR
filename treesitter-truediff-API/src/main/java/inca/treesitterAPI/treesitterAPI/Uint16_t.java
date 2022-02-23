@@ -2,7 +2,9 @@ package inca.treesitterAPI.treesitterAPI;
 
 import com.sun.jna.IntegerType;
 
+// Custom class for uint16_t data type.
 public class Uint16_t extends IntegerType {
+
     public Uint16_t() {
         this(0);
     }

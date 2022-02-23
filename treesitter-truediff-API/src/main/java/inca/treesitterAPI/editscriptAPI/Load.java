@@ -4,10 +4,22 @@ import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;
 
+/*C definition:
+* typedef struct {
+    bool is_leaf: 1;    Bit Packing. Use type close to original type size to map packed values.
+    TSSymbol tag;       TSSymbol: alias for uint16_t.
+    void *id;
+    union {
+        EditLeafData leaf;
+        EditNodeData node;
+    };
+} Load;
+*/
+
 @Structure.FieldOrder({"is_leaf", "symbol", "id", "edit_data"})
 public class Load extends Structure {
 
-    public byte is_leaf; // packs value of is_leaf into this field
+    public byte is_leaf; // packs value of is_leaf into this field.
     public short symbol;
     public Pointer id;
     public EditData edit_data;
@@ -18,6 +30,7 @@ public class Load extends Structure {
         public EditNodeData node;
     }
 
+    // Use custom read() function to set the appropriate type for union field edit_data.
     @Override
     public void read() {
         super.read();

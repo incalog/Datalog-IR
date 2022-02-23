@@ -3,8 +3,17 @@ package inca.treesitterAPI.treesitterAPI;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 
+/*
+* C definition:
+* typedef struct {
+  uint32_t row;
+  uint32_t column;
+} TSPoint;
+*/
+
 @Structure.FieldOrder({"row", "column"})
 public class TSPoint extends Structure {
+
     public int row;
     public int column;
 

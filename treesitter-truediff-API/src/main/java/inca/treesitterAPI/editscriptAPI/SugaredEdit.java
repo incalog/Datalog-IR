@@ -4,8 +4,26 @@ import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;
 
+/*C definition:
+* struct SugaredEdit {
+    EditTag edit_tag;
+    union {
+        Attach attach;
+        Detach detach;
+        Unload unload;
+        Load load;
+        Update update;
+        UpdatePadding update_padding;
+        LoadAttach load_attach;
+        DetachUnload detach_unload;
+    };
+};
+*/
+
 @Structure.FieldOrder({"edit_tag", "sugar_edit"})
 public class SugaredEdit extends Structure {
+
+    // Use ByReference for pointer in struct fields and ByValue for function arguments and return values.
     public static class ByReference extends SugaredEdit implements Structure.ByReference { }
     public static class ByValue extends SugaredEdit implements Structure.ByValue { }
 
@@ -24,18 +42,19 @@ public class SugaredEdit extends Structure {
         public DetachUnload detach_unload;
     }
 
+    // Use custom read() function to set the appropriate type for the union field sugar_edit.
     @Override
     public void read() {
         super.read();
         switch (edit_tag) {
-            case 0 -> sugar_edit.setType(Attach.class);
-            case 1 -> sugar_edit.setType(Detach.class);
-            case 2 -> sugar_edit.setType(Unload.class);
-            case 3 -> sugar_edit.setType(Load.class);
-            case 4 -> sugar_edit.setType(LoadAttach.class);
-            case 5 -> sugar_edit.setType(DetachUnload.class);
-            case 6 -> sugar_edit.setType(Update.class);
-            case 7 -> sugar_edit.setType(UpdatePadding.class);
+            case EditTag.ATTACH -> sugar_edit.setType(Attach.class);
+            case EditTag.DETACH -> sugar_edit.setType(Detach.class);
+            case EditTag.UNLOAD -> sugar_edit.setType(Unload.class);
+            case EditTag.LOAD -> sugar_edit.setType(Load.class);
+            case EditTag.LOAD_ATTACH -> sugar_edit.setType(LoadAttach.class);
+            case EditTag.DETACH_UNLOAD -> sugar_edit.setType(DetachUnload.class);
+            case EditTag.UPDATE -> sugar_edit.setType(Update.class);
+            case EditTag.UPDATE_PADDING -> sugar_edit.setType(UpdatePadding.class);
             default -> {
             }
         }

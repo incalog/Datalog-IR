@@ -9,26 +9,26 @@ import inca.treesitterAPI.treesitterAPI.*;
 
 public interface TreeSitterTruediffLibrary extends Library {
 
-    String lib_path = detect_OS_used();
+    boolean error = addLibPath();
 
-    TreeSitterTruediffLibrary INSTANCE = Native.load(lib_path + "libtree-sitter.dll", TreeSitterTruediffLibrary.class);
-    TreeSitterTruediffLibrary JAVA_INSTANCE = Native.load(lib_path + "libtree-sitter-java.dll", TreeSitterTruediffLibrary.class);
+    TreeSitterTruediffLibrary INSTANCE = error ? null : Native.load("libtree-sitter", TreeSitterTruediffLibrary.class);
+    TreeSitterTruediffLibrary JAVA_INSTANCE = error ? null : Native.load("libtree-sitter-java", TreeSitterTruediffLibrary.class);
 
     TreeSitterTruediffLibrary lib = INSTANCE;
     TreeSitterTruediffLibrary java_lib = JAVA_INSTANCE;
 
-    static String detect_OS_used() {
-        String path = "";
+    static boolean addLibPath() {
         if (Platform.isWindows()) {
-            path = "src/main/resources/windows/";
+            System.setProperty("jna.library.path", "src/main/resources/windows");
         } else if (Platform.isLinux()) {
-            path = "src/main/resources/linux/";
+            System.setProperty("jna.library.path", "src/main/resources/linux");
         } else if (Platform.isMac()) {
-            path = "src/main/resources/darwin/";
+            System.setProperty("jna.library.path", "src/main/resources/darwin");
+        } else {
+            return true;
         }
-        return path;
+        return false;
     }
-
 
     /**
      * Create a language build on the java grammar

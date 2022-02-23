@@ -4,16 +4,30 @@ import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.Union;
 
+/*
+* C definition:
+* typedef struct {
+  union {
+    char *long_data;
+    char short_data[24];
+  };
+  uint32_t length;
+} ExternalScannerState;
+*/
+
 @Structure.FieldOrder({"data", "length"})
 public class ExternalScannerState extends Structure {
+
     public Data data;
     public int length;
 
     public static class Data extends Union {
+
         public Pointer long_data;
         public byte[] short_data = new byte[24];
     }
 
+    // Use custom read() function to set appropriate type for union field data.
     @Override
     public void read() {
         super.read();

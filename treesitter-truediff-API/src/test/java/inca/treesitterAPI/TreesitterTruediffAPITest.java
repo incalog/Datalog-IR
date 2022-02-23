@@ -25,17 +25,17 @@ public class TreesitterTruediffAPITest {
 
             // Create map with literals used in tests.
             lit_map = TreeSitterTruediffLibrary.lib.ts_literal_map_create(lang);
-            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 1);
-            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 2);
-            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 3);
-            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 4);
-            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 5);
-            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 6);
-            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 7);
-            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 10);
-            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 11);
-            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 12);
-            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 122);
+            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 1);   // identifier
+            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 2);   // decimal_integer_literal
+            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 3);   // hex_integer_literal
+            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 4);   // octal_integer_literal
+            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 5);   // binary_integer_literal
+            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 6);   // decimal_floating_point_literal
+            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 7);   // hex_floating_point_literal
+            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 10);  // character_literal
+            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 11);  // string_literal
+            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 12);  // null_literal
+            TreeSitterTruediffLibrary.lib.ts_literal_map_add_literal(lit_map, (short) 124); // comment
         }
 
         public void freeResources() {
