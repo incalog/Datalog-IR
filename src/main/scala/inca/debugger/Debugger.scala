@@ -805,6 +805,8 @@ trait Debugger extends DebuggerAPI {
         val controlPointTarget = patternEntryPoint.stepOver.getOrElse(throw IllegalDebugStateException("Pattern entry point has to have a corresponding pattern exit"))
         val currentStackSize = callStack.size
         var currentTable = fixpointState.relation(name, argsTable)
+
+        // compute fixpoint of current call
         stepIntoUntil(() => {
           val newTable = fixpointState.relation(name, argsTable)
           val fixpointReached = currentTable == newTable
