@@ -6,7 +6,7 @@ final class IRDebugger(compiled: CompiledModule) extends Debugger {
 
   override def stepInto(): Unit = stepIntoIR()
   override def stepOver(): Unit = stepOverIR()
-  override def stepOut(): Unit = ???
+  override def stepOut(): Unit = stepOutIR()
 
   override type Breakpoint = Nothing
   override def addBreakpoint(bp: Breakpoint): Unit = ???

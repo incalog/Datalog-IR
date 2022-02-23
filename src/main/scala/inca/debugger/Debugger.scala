@@ -358,6 +358,21 @@ trait Debugger extends DebuggerAPI {
     }
   }
 
+
+  protected def stepOutIR(): Unit = {
+    val frame0 = callStack.top
+    frame0.cp.stepOut match {
+      case Some(next) =>
+        val currentStackSize = callStack.size
+        while (!(currentStackSize == callStack.size && callStack.top.cp == next)) {
+          stepOverIR()
+        }
+      case None =>
+        // we are at an pattern exit
+        doPatternExit(frame0)
+    }
+  }
+
   def readDatabase(name: String, bindings: Table[Value]): Table[Value] = {
     val mainSpec = compiled.psystemModule.patterns.get(name) match {
       case Some(spec) => spec()

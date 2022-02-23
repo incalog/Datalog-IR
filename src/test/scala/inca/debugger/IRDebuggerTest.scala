@@ -693,11 +693,51 @@ class IRDebuggerTest extends AnyFunSuite {
     assertExpectedTable(debugger, "query", args)
   }
 
-  test("step into rec pattern with cyclic data test") {
+  test("step out of pattern") {
     val debugger = initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
     val args = Table.unit[Value]
     debugger.entry("query", args)
-    stepTillFinish(debugger)
+    assert(debugger.frame.cp.isPatternPoint)
+    debugger.stepOut()
+    assert(debugger.frame.cp.isPatternEndPoint)
+    assertExpectedTable(debugger, "query", args)
+  }
+
+  test("step out of body") {
+    val debugger = initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
+    val args = Table.unit[Value]
+    debugger.entry("query", args)
+    assert(debugger.frame.cp.isPatternPoint)
+    debugger.stepInto()
+    assert(debugger.frame.cp.isBodyPoint)
+    debugger.stepInto()
+    assert(debugger.frame.cp.isAtomPoint)
+    debugger.stepOut()
+    assert(debugger.frame.cp.isBodyEndPoint)
+    debugger.stepOver()
+    assert(debugger.frame.cp.isPatternEndPoint)
+    assertExpectedTable(debugger, "query", args)
+  }
+
+  test("step out inner call") {
+    val debugger = initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
+    val args = Table.unit[Value]
+    debugger.entry("query", args)
+    assert(debugger.frame.cp.isPatternPoint)
+    debugger.stepInto()
+    assert(debugger.frame.cp.isBodyPoint)
+    debugger.stepInto()
+    assert(debugger.frame.cp.isAtomPoint)
+    debugger.stepOver()
+    assert(debugger.frame.cp.isAtomPoint)
+    debugger.stepInto()
+    assert(debugger.frame.cp.isPatternPoint)
+    debugger.stepOut()
+    assert(debugger.frame.cp.isPatternEndPoint)
+    debugger.stepOut()
+    assert(debugger.frame.cp.isBodyEndPoint)
+    debugger.stepOut()
+    assert(debugger.frame.cp.isPatternEndPoint)
     assertExpectedTable(debugger, "query", args)
   }
 
