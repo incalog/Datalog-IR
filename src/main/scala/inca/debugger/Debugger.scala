@@ -269,14 +269,14 @@ trait Debugger extends DebuggerAPI {
         else
           stepIntoIRNextAtom(frame, atom)
       case None =>
-        if (frame0.cp.isPatternPoint) {
+        if (frame0.cp.isPatternEntry) {
           val pattern = frame0.cp.point.pat
           lastDerivedTuples = fixpointState.relation(pattern.name, frame0.argsTable)
           val patternTable = readDatabase(pattern.name, frame0.argsTable)
           fixpointState.addDerivedTuples(pattern.name, patternTable)
           val next = ControlPoint(PatternPoint(pattern, AfterList))
           callStack.update(Frame(next, frame0.argsTable, patternTable))
-        } else if (frame0.cp.isBodyPoint) {
+        } else if (frame0.cp.isBodyEntry) {
           // we cannot read from the database because we dont know which tuples where derived by a specific body
           // we step into until the next breakpoint is reached where the stack size does not change
           val next = frame0.cp.stepOver.get

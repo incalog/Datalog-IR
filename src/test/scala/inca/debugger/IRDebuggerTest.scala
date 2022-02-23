@@ -543,21 +543,21 @@ class IRDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
     val args = Table.unit[Value]
     debugger.entry("query", args)
-    assert(debugger.frame.cp.isPatternPoint)
+    assert(debugger.frame.cp.isPatternEntry)
     debugger.stepInto() // step into pattern
-    assert(debugger.frame.cp.isBodyPoint)
+    assert(debugger.frame.cp.isBodyEntry)
     debugger.stepInto() // step into body
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepOver() // step over computed
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepInto() // step into path call
-    assert(debugger.frame.cp.isPatternPoint)
+    assert(debugger.frame.cp.isPatternEntry)
     debugger.stepInto() // step into pattern
-    assert(debugger.frame.cp.isBodyPoint)
+    assert(debugger.frame.cp.isBodyEntry)
     debugger.stepOver() // step over first body
-    assert(debugger.frame.cp.isBodyEndPoint)
+    assert(debugger.frame.cp.isBodyExit)
     debugger.stepInto() // step into second body
-    assert(debugger.frame.cp.isBodyPoint)
+    assert(debugger.frame.cp.isBodyEntry)
     debugger.stepInto() // step to edge call
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepOver() // step over edge call
@@ -568,14 +568,14 @@ class IRDebuggerTest extends AnyFunSuite {
       debugger.relation("path", Table[Value](Seq("from"), Seq(Seq(ScalaValue(4)), Seq(ScalaValue(2)), Seq(ScalaValue(5)))))
     val expected = edgeTable(Seq("from", "to"), 4 -> 6, 2 -> 3, 2 -> 6, 4 -> 7, 2 -> 7)
     assertResult(expected)(currentDerived)
-    assert(debugger.frame.cp.isBodyEndPoint)
+    assert(debugger.frame.cp.isBodyExit)
 
     debugger.stepOver() // needed to step to pattern exit (of path call)
-    assert(debugger.frame.cp.isPatternEndPoint)
+    assert(debugger.frame.cp.isPatternExit)
     debugger.stepOver() // needed to step to body exit
-    assert(debugger.frame.cp.isBodyEndPoint)
+    assert(debugger.frame.cp.isBodyExit)
     debugger.stepOver() // needed to step to pattern exit (of notTargetof)
-    assert(debugger.frame.cp.isPatternEndPoint)
+    assert(debugger.frame.cp.isPatternExit)
     debugger.stepOver() // pop pattern exit (of notTargetof)
     assert(debugger.isFinished)
     assertExpectedTable(debugger, "query", args)
@@ -585,33 +585,33 @@ class IRDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
     val args = Table.unit[Value]
     debugger.entry("query", args)
-    assert(debugger.frame.cp.isPatternPoint)
+    assert(debugger.frame.cp.isPatternEntry)
     debugger.stepInto() // step into pattern
-    assert(debugger.frame.cp.isBodyPoint)
+    assert(debugger.frame.cp.isBodyEntry)
     debugger.stepInto() // step into body
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepOver() // step over computed
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepInto() // step into negated path call
-    assert(debugger.frame.cp.isPatternPoint)
+    assert(debugger.frame.cp.isPatternEntry)
     debugger.stepInto() // step into pattern
-    assert(debugger.frame.cp.isBodyPoint)
+    assert(debugger.frame.cp.isBodyEntry)
     debugger.stepOver() // step over first body
-    assert(debugger.frame.cp.isBodyEndPoint)
+    assert(debugger.frame.cp.isBodyExit)
     debugger.stepInto() // step into second body
-    assert(debugger.frame.cp.isBodyPoint)
+    assert(debugger.frame.cp.isBodyEntry)
     debugger.stepInto() // step to edge call
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepOver() // step over edge call
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepInto() // step into recursive path call
-    assert(debugger.frame.cp.isPatternPoint)
+    assert(debugger.frame.cp.isPatternEntry)
     debugger.stepInto() // step into pattern
-    assert(debugger.frame.cp.isBodyPoint)
+    assert(debugger.frame.cp.isBodyEntry)
     debugger.stepOver() // step over first body
-    assert(debugger.frame.cp.isBodyEndPoint)
+    assert(debugger.frame.cp.isBodyExit)
     debugger.stepInto() // step into second body
-    assert(debugger.frame.cp.isBodyPoint)
+    assert(debugger.frame.cp.isBodyEntry)
     debugger.stepInto() // step to edge call
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepOver() // step over edge call
@@ -621,17 +621,17 @@ class IRDebuggerTest extends AnyFunSuite {
       debugger.relation("path", Table[Value](Seq("from"), Seq(Seq(ScalaValue(3)), Seq(ScalaValue(6)))))
     val expected = edgeTable(Seq("from", "to"), 6 -> 7)
     assertResult(expected)(currentDerived)
-    assert(debugger.frame.cp.isBodyEndPoint)
+    assert(debugger.frame.cp.isBodyExit)
     debugger.stepOver() // needed to step to pattern exit (of path call)
-    assert(debugger.frame.cp.isPatternEndPoint)
+    assert(debugger.frame.cp.isPatternExit)
     debugger.stepOver() // needed to step to pattern exit (of path call)
-    assert(debugger.frame.cp.isBodyEndPoint)
+    assert(debugger.frame.cp.isBodyExit)
     debugger.stepOver() // needed to step to pattern exit (of path call)
-    assert(debugger.frame.cp.isPatternEndPoint)
+    assert(debugger.frame.cp.isPatternExit)
     debugger.stepOver() // needed to step to body exit
-    assert(debugger.frame.cp.isBodyEndPoint)
+    assert(debugger.frame.cp.isBodyExit)
     debugger.stepOver() // needed to step to pattern exit (of notTargetof)
-    assert(debugger.frame.cp.isPatternEndPoint)
+    assert(debugger.frame.cp.isPatternExit)
     debugger.stepOver() // pop pattern exit (of notTargetof)
     assert(debugger.isFinished)
     assertExpectedTable(debugger, "query", args)
@@ -641,33 +641,33 @@ class IRDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
     val args = Table.unit[Value]
     debugger.entry("query", args)
-    assert(debugger.frame.cp.isPatternPoint)
+    assert(debugger.frame.cp.isPatternEntry)
     debugger.stepInto() // step into pattern
-    assert(debugger.frame.cp.isBodyPoint)
+    assert(debugger.frame.cp.isBodyEntry)
     debugger.stepInto() // step into body
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepOver() // step over computed
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepInto() // step into negated path call
-    assert(debugger.frame.cp.isPatternPoint)
+    assert(debugger.frame.cp.isPatternEntry)
     debugger.stepInto() // step into pattern
-    assert(debugger.frame.cp.isBodyPoint)
+    assert(debugger.frame.cp.isBodyEntry)
     debugger.stepOver() // step over first body
-    assert(debugger.frame.cp.isBodyEndPoint)
+    assert(debugger.frame.cp.isBodyExit)
     debugger.stepInto() // step into second body
-    assert(debugger.frame.cp.isBodyPoint)
+    assert(debugger.frame.cp.isBodyEntry)
     debugger.stepInto() // step to edge call
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepOver() // step over edge call
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepInto() // step into recursive path call
-    assert(debugger.frame.cp.isPatternPoint)
+    assert(debugger.frame.cp.isPatternEntry)
     debugger.stepInto() // step into pattern
-    assert(debugger.frame.cp.isBodyPoint)
+    assert(debugger.frame.cp.isBodyEntry)
     debugger.stepOver() // step over first body
-    assert(debugger.frame.cp.isBodyEndPoint)
+    assert(debugger.frame.cp.isBodyExit)
     debugger.stepInto() // step into second body
-    assert(debugger.frame.cp.isBodyPoint)
+    assert(debugger.frame.cp.isBodyEntry)
     debugger.stepInto() // step to edge call
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepOver() // step over edge call
@@ -677,17 +677,17 @@ class IRDebuggerTest extends AnyFunSuite {
       debugger.relation("path", Table[Value](Seq("from"), Seq(Seq(ScalaValue(3)), Seq(ScalaValue(6)))))
     val expected = edgeTable(Seq("from", "to"), 6 -> 7, 3 -> 1, 3 -> 2, 3 -> 4, 3 -> 5)
     assertResult(expected)(currentDerived)
-    assert(debugger.frame.cp.isBodyEndPoint)
+    assert(debugger.frame.cp.isBodyExit)
     debugger.stepOver() // needed to step to pattern exit (of path call)
-    assert(debugger.frame.cp.isPatternEndPoint)
+    assert(debugger.frame.cp.isPatternExit)
     debugger.stepOver() // needed to step to pattern exit (of path call)
-    assert(debugger.frame.cp.isBodyEndPoint)
+    assert(debugger.frame.cp.isBodyExit)
     debugger.stepOver() // needed to step to pattern exit (of path call)
-    assert(debugger.frame.cp.isPatternEndPoint)
+    assert(debugger.frame.cp.isPatternExit)
     debugger.stepOver() // needed to step to body exit
-    assert(debugger.frame.cp.isBodyEndPoint)
+    assert(debugger.frame.cp.isBodyExit)
     debugger.stepOver() // needed to step to pattern exit (of notTargetof)
-    assert(debugger.frame.cp.isPatternEndPoint)
+    assert(debugger.frame.cp.isPatternExit)
     debugger.stepOver() // pop pattern exit (of notTargetof)
     assert(debugger.isFinished)
     assertExpectedTable(debugger, "query", args)
@@ -697,9 +697,9 @@ class IRDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
     val args = Table.unit[Value]
     debugger.entry("query", args)
-    assert(debugger.frame.cp.isPatternPoint)
+    assert(debugger.frame.cp.isPatternEntry)
     debugger.stepOut()
-    assert(debugger.frame.cp.isPatternEndPoint)
+    assert(debugger.frame.cp.isPatternExit)
     assertExpectedTable(debugger, "query", args)
   }
 
@@ -707,15 +707,15 @@ class IRDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
     val args = Table.unit[Value]
     debugger.entry("query", args)
-    assert(debugger.frame.cp.isPatternPoint)
+    assert(debugger.frame.cp.isPatternEntry)
     debugger.stepInto()
-    assert(debugger.frame.cp.isBodyPoint)
+    assert(debugger.frame.cp.isBodyEntry)
     debugger.stepInto()
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepOut()
-    assert(debugger.frame.cp.isBodyEndPoint)
+    assert(debugger.frame.cp.isBodyExit)
     debugger.stepOver()
-    assert(debugger.frame.cp.isPatternEndPoint)
+    assert(debugger.frame.cp.isPatternExit)
     assertExpectedTable(debugger, "query", args)
   }
 
@@ -723,21 +723,21 @@ class IRDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
     val args = Table.unit[Value]
     debugger.entry("query", args)
-    assert(debugger.frame.cp.isPatternPoint)
+    assert(debugger.frame.cp.isPatternEntry)
     debugger.stepInto()
-    assert(debugger.frame.cp.isBodyPoint)
+    assert(debugger.frame.cp.isBodyEntry)
     debugger.stepInto()
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepOver()
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepInto()
-    assert(debugger.frame.cp.isPatternPoint)
+    assert(debugger.frame.cp.isPatternEntry)
     debugger.stepOut()
-    assert(debugger.frame.cp.isPatternEndPoint)
+    assert(debugger.frame.cp.isPatternExit)
     debugger.stepOut()
-    assert(debugger.frame.cp.isBodyEndPoint)
+    assert(debugger.frame.cp.isBodyExit)
     debugger.stepOut()
-    assert(debugger.frame.cp.isPatternEndPoint)
+    assert(debugger.frame.cp.isPatternExit)
     assertExpectedTable(debugger, "query", args)
   }
 
