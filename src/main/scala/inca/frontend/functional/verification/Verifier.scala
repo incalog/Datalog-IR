@@ -4,6 +4,7 @@ import com.sun.jdi.InvalidTypeException
 import inca.frontend.functional.core.{Call, Let, Match, _}
 import inca.frontend.functional.Collect
 import inca.util.{Gensym, Scala}
+import smtlib.{Interpreter, interpreters}
 import smtlib.extensions.tip.Terms.{Case, CaseClass, CaseObject}
 import smtlib.interpreters.Z3Interpreter
 import smtlib.trees.Commands.{Constructor, DeclareDatatypes, DefineFun, FunDef, Script}
@@ -78,7 +79,7 @@ class Verifier {
   def generateScript(funcName: String, props: Seq[Property]): Script = {
     implicit val gensym: Gensym = new Gensym(Seq())
     val calledFunctions: Seq[String] = collectCalledFunctions(functionDict(funcName))
-    val dataDefs = (calledFunctions :+ funcName).flatMap(fName => collectUsedDataDefs(functionDict(fName)))
+    val dataDefs = (calledFunctions :+ funcName).flatMap(fName => collectUsedDataDefs(functionDict(fName))).distinct
     val transDataDefs = dataDefs.map(transDataDef)
     val functions = calledFunctions:+funcName
     val transFuncDefs = functions.map(transFunctionDef)
@@ -87,16 +88,9 @@ class Verifier {
   }
 
   def collectCalledFunctions(func: FunctionDef): Seq[String] = {
-    // TODO okay das mit vars zu machen?
-    //val functions: mutable.Seq[String] = mutable.Seq()
-    //val newFunctions: mutable.Seq[String] = mutable.Seq(CollectCalledFunctionNames.transFun(func))
-    //while (functions != newFunctions) {
-    //  functions = newFunctions
-    //}
     val funcNameCollector = new Collect[String] {
       override def transExp(exp: Expression): Seq[String] = exp match {
-        case Call(Var(name), args, _) =>
-       Seq(name.name) ++ args.flatMap(super.transExp)
+        case Call(Var(name), args, _) => Seq(name.name) ++ args.flatMap(transExp)
         case _ => super.transExp(exp)
       }
     }
@@ -105,7 +99,8 @@ class Verifier {
      haben wollen, filtern wir nach den Funktionen im dictionary. TODO imports des Moduls
      */
     var functions: Seq[String] = Seq()
-    var newFunctions: Seq[String] = funcNameCollector.transFun(func).filter(functionDict.contains).distinct
+    val allFuncs = funcNameCollector.transFun(func)
+    var newFunctions: Seq[String] = allFuncs.filter(functionDict.contains).distinct
     while (functions != newFunctions) {
       functions = newFunctions
       newFunctions = (functions ++ functions.flatMap(f =>

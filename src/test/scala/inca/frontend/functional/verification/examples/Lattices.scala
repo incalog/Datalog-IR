@@ -7,31 +7,31 @@ object Lattices {
 
   val sign_lattice =
     s"""module SignLattice
-       |data Sign = Neg() | Zero() | Pos() | Bot() | Top()
+       |data Sign = Top() | Bot() | Pos() | Zero() | Neg()
        |
        |@aggr(assoc, comm) def join(s1: Sign, s2: Sign): Sign = s1 match {
        |  case Top() => Top()
        |  case Bot() => s2
-       |  case Neg() => s2 match {
+       |  case Pos() => s2 match {
        |    case Top() => Top()
        |    case Bot() => s1
-       |    case Neg() => Neg()
+       |    case Pos() => Pos()
        |    case Zero() => Top()
-       |    case Pos() => Top()
+       |    case Neg() => Top()
        |  }
        |  case Zero() => s2 match {
        |    case Top() => Top()
        |    case Bot() => s1
-       |    case Neg() => Top()
-       |    case Zero() => Zero()
        |    case Pos() => Top()
+       |    case Zero() => Zero()
+       |    case Neg() => Top()
        |  }
-       |  case Pos() => s2 match {
+       |  case Neg() => s2 match {
        |    case Top() => Top()
        |    case Bot() => s1
-       |    case Neg() => Top()
+       |    case Pos() => Top()
        |    case Zero() => Top()
-       |    case Pos() => Pos()
+       |    case Neg() => Neg()
        |  }
        |}
        |""".stripMargin
@@ -42,7 +42,7 @@ object Lattices {
     s"""module ConstantPropagationLattice
        |data Constant = Bot() | Num(Int) | Top()
        |
-       |@main def join(c1: Constant, c2: Constant): Constant = c1 match {
+       |@aggr(assoc, comm) def join(c1: Constant, c2: Constant): Constant = c1 match {
        |  case Top() => Top()
        |  case Bot() => c2
        |  case Num(i1) => c2 match {
@@ -54,4 +54,74 @@ object Lattices {
        |""".stripMargin
 
   val const_lattice_module: Module = Parser.parse(const_lattice)
+
+  val signVal_lattice =
+    s"""module SignValLattice
+       |data Val = Top() | Bot() | BoolVal(Boole) | SignVal(Sign)
+       |data Boole = TopBool() | BotBool() | True() | False()
+       |data Sign = TopSign() | BotSign() | Pos() | Zero() | Neg()
+       |
+       |
+       |@aggr(assoc, comm) def join(v1: Val, v2: Val): Val = v1 match {
+       |  case Top() => Top()
+       |  case Bot() => v2
+       |  case BoolVal(b1) => v2 match {
+       |    case Top() => Top()
+       |    case Bot() => v1
+       |    case BoolVal(b2) => BoolVal(joinBool(b1, b2))
+       |    case SignVal(s) => Top()
+       |  }
+       |  case SignVal(s1) => v2 match {
+       |    case Top() => Top()
+       |    case Bot() => v1
+       |    case BoolVal(b) => Top()
+       |    case SignVal(s2) => SignVal(joinSign(s1, s2))
+       |  }
+       |}
+       |
+       |def joinBool(b1: Boole, b2: Boole): Boole = b1 match {
+       |  case TopBool() => TopBool()
+       |  case BotBool() => b2
+       |  case True() => b2 match {
+       |    case TopBool() => TopBool()
+       |    case BotBool() => b1
+       |    case True() => True()
+       |    case False() => TopBool()
+       |  }
+       |  case False() => b2 match {
+       |    case TopBool() => TopBool()
+       |    case BotBool() => b1
+       |    case True() => TopBool()
+       |    case False() => False()
+       |  }
+       |}
+       |
+       |def joinSign(s1: Sign, s2: Sign): Sign = s1 match {
+       |  case TopSign() => TopSign()
+       |  case BotSign() => s2
+       |  case Neg() => s2 match {
+       |    case TopSign() => TopSign()
+       |    case BotSign() => s1
+       |    case Neg() => Neg()
+       |    case Zero() => TopSign()
+       |    case Pos() => TopSign()
+       |  }
+       |  case Zero() => s2 match {
+       |    case TopSign() => TopSign()
+       |    case BotSign() => s1
+       |    case Neg() => TopSign()
+       |    case Zero() => Zero()
+       |    case Pos() => TopSign()
+       |  }
+       |  case Pos() => s2 match {
+       |    case TopSign() => TopSign()
+       |    case BotSign() => s1
+       |    case Neg() => TopSign()
+       |    case Zero() => TopSign()
+       |    case Pos() => Pos()
+       |  }
+       |}
+       |""".stripMargin
+
+  val signVal_lattice_module: Module = Parser.parse(signVal_lattice)
 }
