@@ -52,4 +52,13 @@ lazy val souffle_importer = (project in file("souffle-frontend"))
   )
 )
 
+lazy val new_souffle = (project in file("new-souffle-frontend"))
+  .dependsOn(inca % "compile->compile;test->test")
+  .settings(
+    name := "new-souffle-frontend",
 
+    libraryDependencies ++= Seq(
+      "org.scalatest" %% "scalatest" % "3.2.9" % "test",
+      "org.typelevel" %% "cats-parse" % "0.3.6",
+    )
+  )
