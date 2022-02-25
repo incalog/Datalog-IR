@@ -1,6 +1,7 @@
 package inca.backend.analyze
 
-import scala.collection.mutable
+import scala.collection.{MultiDict, mutable}
+import scala.collection.mutable.ListBuffer
 
 // based on LangComp Lab work of Saleh Oshaghi and Tomislav Pree
 trait Graph[N, E] {
@@ -113,21 +114,39 @@ trait Graph[N, E] {
        |""".stripMargin
   }
 
-  def inSameStronglyConnectedCompontent(n1: N, n2: N): Boolean = stronglyconnectedComponentOfNode(n1).contains(n2)
+  def transitvelyReachable(from: N): Set[N] = {
+    val nodeInfo = stronglyconnectedComponentOfNode(from)
+    val nodes = mutable.Set.from(nodeInfo.component)
+    for (comp <- nodeInfo.uses)
+      nodes ++= comp
+    nodes.toSet
+  }
 
-  lazy val stronglyconnectedComponentOfNode: Map[N, List[N]] = {
-    nodes.map { n =>
-      n -> stronglyConnectedComponentsNoDemand.find(_.contains(n)).getOrElse(throw new IllegalArgumentException("Each node of the graph has to be in exactly one strongly connected component"))
+  def inSameStronglyConnectedCompontent(n1: N, n2: N): Boolean = stronglyconnectedComponentOfNode(n1).component.contains(n2)
+
+  case class NodeComponentInfo(component: Set[N], uses: List[Set[N]], usedBy: List[Set[N]])
+
+  lazy val stronglyconnectedComponentOfNode: Map[N, NodeComponentInfo] = {
+    val nodes: mutable.Map[N, NodeComponentInfo] = mutable.Map()
+    var usedBy = stronglyConnectedComponentsNoDemand
+    var uses = List[Set[N]]()
+    while (usedBy.nonEmpty) {
+      val comp = usedBy.head
+      usedBy = usedBy.tail
+      for (node <- comp)
+        nodes += node -> NodeComponentInfo(comp, uses, usedBy)
+      uses = comp :: uses
     }
-  }.toMap
+    nodes.toMap
+  }
 
-  lazy val stronglyConnectedComponentsNoDemand: List[List[N]] = stronglyConnectedComponents(false)
+  lazy val stronglyConnectedComponentsNoDemand: List[Set[N]] = stronglyConnectedComponents(false)
 
-  lazy val stronglyConnectedComponentsWithDemand: List[List[N]] = stronglyConnectedComponents(true)
+  lazy val stronglyConnectedComponentsWithDemand: List[Set[N]] = stronglyConnectedComponents(true)
 
 
   // based on https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
-  def stronglyConnectedComponents(withDemand: Boolean = true): List[List[N]] = {
+  def stronglyConnectedComponents(withDemand: Boolean = true): List[Set[N]] = {
 
     val consideredGraph = getConsideredNodes(withDemand)
     val (consideredNodes, consideredEdges) = consideredGraph
@@ -140,7 +159,7 @@ trait Graph[N, E] {
     val lowlink = mutable.Map[N, Int]()
     val index = mutable.Map[N, Int]()
     val stack = mutable.Stack[N]()
-    val components = mutable.Set[List[N]]()
+    val components = ListBuffer[Set[N]]()
 
     consideredNodes.foreach { node =>
       index.getOrElse(node, {
@@ -153,7 +172,7 @@ trait Graph[N, E] {
 
   private def strongConnect(node: N, currentIndex: Int, edges: Map[N, Set[(N, E)]],
                             index: mutable.Map[N, Int], lowlink: mutable.Map[N, Int], visited: mutable.Map[N, VisistedFlag],
-                            stack: mutable.Stack[N], components: mutable.Set[List[N]]): Int = {
+                            stack: mutable.Stack[N], components: ListBuffer[Set[N]]): Int = {
     lowlink(node) = currentIndex
     index(node) = currentIndex
     var i = currentIndex + 1
@@ -177,7 +196,7 @@ trait Graph[N, E] {
         visited(neighbor) = NotVisisted
         comp.add(neighbor)
       } while (node != neighbor)
-      components.add(comp.toList)
+      components += comp.toSet
     }
     i
   }

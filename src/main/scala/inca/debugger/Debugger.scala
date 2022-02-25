@@ -2,19 +2,14 @@ package inca.debugger
 
 import inca.backend.analyze.DependencyGraph
 import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.{CountAggregation, CustomAggregation}
+import inca.backend.ir.Datalog.{CountAggregation, CustomAggregation, Name}
 import inca.compiler.CompiledModule
 import inca.debugger.table.Table
 import inca.runtime.context.QueryScope
 import inca.runtime.db.Database
-import inca.runtime.index.dynamic.ParentIndex
-import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
-import inca.runtime.index._
 import inca.runtime.{EnginePool, Query}
-import inca.util.{Derivative, Gensym, Scala}
+import inca.util.Derivative
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
-import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
-import org.eclipse.viatra.query.runtime.matchers.tuple.{TupleMask, Tuples}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truechange.{EditScript, URI}
 
@@ -291,6 +286,13 @@ trait Debugger extends DebuggerAPI {
 
   private def stepOverCall(frame: Frame, atom: Datalog.Atom): Unit = {
     val (name, args) = atom.asCall.get
+
+    if (canReachBreakpoint(name)) {
+      stepIntoIRCall(frame, atom)
+      resume()
+      return
+    }
+
     val calledPat = compiled.ir.patternMap(name)
     val argsTable = tableOps.prepareArgTableOfCall(frame, calledPat, args)
     val calledPatTable =
@@ -399,6 +401,21 @@ trait Debugger extends DebuggerAPI {
 
   override def clearBreakpoints(): Unit = _breakpoints.clear()
 
-  override def resume(): Unit = ???
+  protected def isAtBreakpoint: Boolean =
+    _breakpoints.contains(frame.cp)
+
+  protected def patternsWithBreakpoint: Set[Name] =
+    _breakpoints.map(_.point.pat.name).toSet
+
+  protected def canReachBreakpoint(patName: Datalog.Name): Boolean = {
+    val reachable = dependencyGraph.transitvelyReachable(patName)
+    patternsWithBreakpoint.exists(reachable.contains)
+  }
+
+  override def resume(): Unit = {
+    stepOver()
+    while (!isFinished && !isAtBreakpoint)
+      stepOver()
+  }
 
 }
