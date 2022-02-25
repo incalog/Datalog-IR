@@ -95,36 +95,6 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
   @inline
   def currentFunctionalPoint: Option[FunctionalControlPoint] = functionalPointDeriv.value
 
-  private def getFunctionalPoint(cp: ControlPoint): Option[FunctionalControlPoint] = {
-    val patPoint = cp.point
-    val fun = getFunction(patPoint.pat).getOrElse(return None)
-    patPoint.bodies match {
-      case BeforeList =>
-        // start of function
-        Some(FunctionPoint(fun, fun.name.sourceObject, cp))
-      case AtListElem(_, _, BodyPoint(_, atoms)) => atoms match {
-        case BeforeList => None
-        case AtListElem(_, _, AtomPoint(atom)) =>
-          atom.getHint(SourceConstruct.key) match {
-            case Some(SourceConstruct(constr: Expression)) =>
-              expressionPoint(constr).map(FunctionPoint(fun, _, cp))
-            case Some(SourceConstruct((let: Let, v: String))) =>
-              let.names.find(_.name == v).map(p => FunctionPoint(fun, p.sourceObject, cp))
-            case Some(SourceConstruct((m: Match, constr: Pattern))) =>
-              Some(MatchPoint(fun, m, constr, cp))
-            case Some(SourceConstruct((cond: If, thenBranch: Boolean))) =>
-              Some(ConditionPoint(fun, cond, thenBranch, cp))
-            case _ =>
-              None
-          }
-        case AfterList => None
-      }
-      case AfterList =>
-        // end of function
-        Some(FunctionPoint(fun, fun.sourceObject, cp))
-    }
-  }
-
   private def expressionPoint(exp: Expression): Option[SourceObject] = exp match {
     case _: Var | _: Tuple | _: BaseLit | _: NoneExp | _: SomeExp | _: SetExp => None
     case _ => Some(exp.sourceObject)
@@ -153,8 +123,8 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
 
   def entry(mainFun: String, args: meta.Term*): Unit = {
     val (vals, debugVals) = args.map { t =>
-      val syntax = s"{import ${defintionObjSym}.${compiled.name}._; ${t.syntax}}"
-      scalaCompiler.compileAndLoadScala[Any](syntax) match {
+      val syntax = s"{import ${tableOps.getDefinitionObjSym}.${compiled.name}._; ${t.syntax}}"
+      tableOps.compileAndLoadScala[Any](syntax) match {
         case diff: Diffable =>
           updateExtensionalData(diff.loadEdits)
           diff.foreachTree(t => uris += t.uri -> t)
@@ -165,7 +135,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     }.unzip
     database.insert(demandPatternExtensionalPrefix + mainFun, Tuples.flatTupleOf(vals:_*))
 
-    val pattern = patterns(mainFun)
+    val pattern = compiled.ir.patternMap(mainFun)
     val adorn =  pattern.hints(MagicSetHints.Main.key).asInstanceOf[MagicSetHints.Main].adorn
     val inputParams = pattern.params.zip(adorn).filter(_._2).map(_._1.name)
     val inputTable = Table[Value](inputParams, Seq(debugVals))
@@ -189,12 +159,10 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
 
   override def stepOver(): Unit = ???
   override def stepOut(): Unit = ???
-  override def resume(): Unit = ???
 
   override type Breakpoint = Nothing
   override def addBreakpoint(bp: Breakpoint): Unit = ???
   override def removeBreakpoint(bp: Breakpoint): Unit = ???
-  override def clearBreakpoints(): Unit = ???
 
   @tailrec
   def stepOverConditionPoint(fp: FunctionalControlPoint): Unit = fp match {
@@ -271,12 +239,12 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
 
   override protected def stepIntoIRCall(frame: Frame, atom: Datalog.Atom): Unit = atom match {
     case call: Datalog.Call =>
-      val pattern = patterns(call.name)
+      val pattern = compiled.ir.patternMap(call.name)
       if (pattern.hasHint(DataHints.ConstructorKey) || pattern.hasHint(DataHints.SelectorKey)) {
         // constructor or selector call
-        val argsTable = prepareArgTableOfCall(frame, pattern, call.args)
+        val argsTable = tableOps.prepareArgTableOfCall(frame, pattern, call.args)
         val data = readDatabase(call.name, argsTable)
-        val nextTables = transitionReturnCallTables(frame, pattern.params.map(_.name), data)
+        val nextTables = tableOps.transitionReturnCallTables(frame, pattern.params.map(_.name), data)
         val next = frame.cp.stepOver.get
 
         controlPointFrontend match {

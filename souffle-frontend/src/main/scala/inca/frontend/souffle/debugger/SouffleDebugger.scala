@@ -4,9 +4,10 @@ import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.ir.Datalog
 import inca.compiler.source.{ExcerptAbsoluteRegion, PaddedRegion, SourceLocation, SourceLocationList, SourceObject}
 import inca.debugger.table.Table
-import inca.debugger.{AfterList, AtListElem, AtomPoint, BeforeList, ControlPoint, Debugger, Value}
+import inca.debugger.{AfterList, AtListElem, AtomPoint, BeforeList, CallStack, ControlPoint, Debugger, Value}
 import inca.frontend.souffle.Syntax.{Expression, Input, Name, RuleDefinition, RuleHead, RuleSignature, SouffleContent, Statement}
 import inca.frontend.souffle.compiler.CompiledSouffleModule
+import inca.util.Derivative
 import truechange.EditScript
 
 sealed trait SouffleControlPoint {
@@ -30,27 +31,35 @@ class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
   def entry(name: Datalog.Name, edits: EditScript, bindings: Table[Value]): Unit = {
     super.updateExtensionalData(edits)
     super.entry(name, bindings)
-    soufflePoint(controlPointIR).getOrElse(stepInto())
+    soufflePoint.getOrElse(stepInto())
   }
 
   def stepInto(): Unit = {
     while (true) {
       stepIntoIR()
-      if (callStack.isEmpty || soufflePoint(controlPointIR).isDefined)
+      if (callStack.isEmpty || soufflePoint.isDefined)
         return
     }
   }
 
   override def stepOver(): Unit = ???
   override def stepOut(): Unit = ???
-  override def resume(): Unit = ???
 
   override type Breakpoint = Nothing
   override def addBreakpoint(bp: Breakpoint): Unit = ???
   override def removeBreakpoint(bp: Breakpoint): Unit = ???
-  override def clearBreakpoints(): Unit = ???
 
-  def soufflePoint(cp: ControlPoint): Option[SouffleControlPoint] = {
+  private val soufflePointDeriv: Derivative[CallStack, Option[SouffleControlPoint]] =
+    callStack.addDerivative[Option[SouffleControlPoint]](_ => None) { stack =>
+      if (stack.isEmpty)
+        None
+      else
+        computeSoufflePoint(stack.top.cp)
+    }
+
+  def soufflePoint: Option[SouffleControlPoint] = soufflePointDeriv.value
+
+  private def computeSoufflePoint(cp: ControlPoint): Option[SouffleControlPoint] = {
     val rel = getRelationSignature(cp.point.pat).getOrElse(throw new IllegalArgumentException(s"Could not find signature for pattern ${cp.point.pat.name}"))
     cp.point.bodies match {
       case BeforeList =>
@@ -111,7 +120,7 @@ class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
     varsIR.bindingsToString(_.toString)
 
   def currentCodeFunction: String = {
-    val sp = soufflePoint(controlPointIR).getOrElse(throw new IllegalStateException())
+    val sp = soufflePoint.getOrElse(throw new IllegalStateException())
     val excerptRegion = ExcerptAbsoluteRegion(sp.region.startIndex, sp.region.endIndex)
     val contextualRegion = sp match {
       case InRulePoint(rel, rule, _, _) =>
