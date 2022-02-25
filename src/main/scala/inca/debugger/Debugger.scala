@@ -28,10 +28,31 @@ trait Debugger extends DebuggerAPI {
   protected var tableOps: TableOps = _
 
   // Debugger state
+
+  case class BreakpointIR(cp: ControlPoint, cond: () => Boolean)
+
+  def currentFrameBreakpoint(cp: ControlPoint): BreakpointIR = {
+    val height = callStack.size
+    BreakpointIR(cp, () => callStack.size == height)
+  }
+
   private var fixpointState: FixpointState[Value] = _
   protected val callStack: CallStack = new CallStack()
   private val _controlTrace: ListBuffer[ControlPoint] = ListBuffer.empty
-  protected val _breakpoints: mutable.Set[ControlPoint] = mutable.Set()
+  protected val _breakpoints: mutable.Set[BreakpointIR] = mutable.Set()
+  protected val _breakpointPoints: mutable.Map[ControlPoint, BreakpointIR] = mutable.Map()
+  protected val _patternsWithBreakpoint: mutable.MultiSet[Datalog.Name] = mutable.MultiSet()
+
+  protected def addBreakpointIR(bp: BreakpointIR): Unit = {
+    _breakpoints += bp
+    _breakpointPoints += bp.cp -> bp
+    _patternsWithBreakpoint += bp.cp.point.pat.name
+  }
+  protected def removeBreakpointIR(bp: BreakpointIR): Unit = {
+    _breakpoints -= bp
+    _breakpointPoints -= bp.cp
+    _patternsWithBreakpoint -= bp.cp.point.pat.name
+  }
 
   // we store the derived tuples for a given pattern before executing the pattern to check if we reached a fixpoint
   private var lastDerivedTuples: Table[Value] = _
@@ -269,7 +290,7 @@ trait Debugger extends DebuggerAPI {
           // we cannot read from the database because we dont know which tuples where derived by a specific body
           // we step into until the next breakpoint is reached where the stack size does not change
           val next = frame0.cp.stepOver.get
-          runUntil(next)
+          resumeUntilPointInCurrentFrame(next)
         } else {
           stepIntoIRPatternBoundary(frame0)
         }
@@ -291,24 +312,9 @@ trait Debugger extends DebuggerAPI {
     val argsTable = tableOps.prepareArgTableOfCall(frame, calledPat, args)
     val calledPatTable =
       if (isPartOfCurrentSCC(atom)) {
-        def stepIntoUntil(stop: () => Boolean): Unit =
-          while (!stop())
-            stepInto()
-
-        // compute fixpoint of current call and top is
-        val patternEntryPoint = ControlPoint.patternEntryPoint(calledPat)
-        val controlPointTarget = patternEntryPoint.stepOver.getOrElse(throw IllegalDebugStateException("Pattern entry point has to have a corresponding pattern exit"))
-        val currentStackSize = callStack.size
-        var currentTable = fixpointState.relation(name, argsTable)
-
-        // compute fixpoint of current call
-        stepIntoUntil(() => {
-          val newTable = fixpointState.relation(name, argsTable)
-          val fixpointReached = currentTable == newTable
-          currentTable = newTable
-          fixpointReached && currentStackSize == callStack.size && controlPointTarget == callStack.top.cp
-        })
-        currentTable
+        val next = frame.cp.stepOver.get // atom after call or body exit
+        resumeUntilPointInCurrentFrame(next)
+        fixpointState.relation(name, argsTable)
       } else {
         // we can read because pattern belongs to lower scc
         val table = readDatabase(name, argsTable)
@@ -346,27 +352,22 @@ trait Debugger extends DebuggerAPI {
     dependencyGraph.inSameStronglyConnectedCompontent(name, callStack.top.cp.point.pat.name)
   }
 
-  private def runUntil(cp: ControlPoint): Unit = {
-    val currentStackSize = callStack.size
-    // we run stepInto until we reach the target controlpoint and the stack size is the same as it was before
-    while (!(frame.cp == cp && callStack.size == currentStackSize)) {
-      stepIntoIR()
-    }
-  }
-
-
   protected def stepOutIR(): Unit = {
     val frame0 = callStack.top
     frame0.cp.stepOut match {
       case Some(next) =>
-        val currentStackSize = callStack.size
-        while (!(currentStackSize == callStack.size && callStack.top.cp == next)) {
-          stepOverIR()
-        }
+        resumeUntilPointInCurrentFrame(next)
       case None =>
         // we are at an pattern exit
         doPatternExit(frame0)
     }
+  }
+
+  protected def resumeUntilPointInCurrentFrame(stopAt: ControlPoint): Unit = {
+    val break = currentFrameBreakpoint(stopAt)
+    addBreakpointIR(break)
+    resume()
+    removeBreakpointIR(break)
   }
 
   def readDatabase(name: String, bindings: Table[Value]): Table[Value] = {
@@ -396,14 +397,14 @@ trait Debugger extends DebuggerAPI {
   override def clearBreakpoints(): Unit = _breakpoints.clear()
 
   protected def isAtBreakpoint: Boolean =
-    _breakpoints.contains(frame.cp)
-
-  protected def patternsWithBreakpoint: Set[Name] =
-    _breakpoints.map(_.point.pat.name).toSet
+    _breakpointPoints.get(frame.cp) match {
+      case None => false
+      case Some(bp) => bp.cond()
+    }
 
   protected def canReachBreakpoint(patName: Datalog.Name): Boolean = {
     val reachable = dependencyGraph.transitvelyReachable(patName)
-    patternsWithBreakpoint.exists(reachable.contains)
+    _patternsWithBreakpoint.exists(reachable.contains)
   }
 
   override def resume(): Unit = {
