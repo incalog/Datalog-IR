@@ -40,13 +40,7 @@ trait Debugger extends DebuggerAPI {
 
   // Accessor methods of debugger state
 
-  val frameDeriv: Derivative[CallStack, Frame] = callStack.addDerivative(_ => null.asInstanceOf[Frame]){ stack =>
-    if (stack.isEmpty) null.asInstanceOf[Frame]
-    else stack.top
-  }
-  @inline
-  def frame: Frame = frameDeriv.value
-
+  def frame: Frame = callStack.top
   def currentPoint: ControlPoint = frame.cp
   def currentPattern: Datalog.Pattern = frame.cp.point.pat
   def currentAtom: Option[Datalog.Atom] = frame.cp.point.atom
