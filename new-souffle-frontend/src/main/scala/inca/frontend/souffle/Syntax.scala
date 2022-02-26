@@ -44,22 +44,21 @@ object Syntax {
 
   // DIRECTIVE VALUES
   // directive_value ::= STRING | IDENT | NUMBER | 'true' | 'false'
-  // TODO: Pretty sure this is not exactly correct, seems weird
 
   sealed trait DirectiveValue
-  case class StringDirectiveValue extends DirectiveValue {
-    override def toString: String = "STRING"
+  case class StringDirectiveValue(value: String) extends DirectiveValue {
+    override def toString: String = value
   }
-  case class IdentDirectiveValue extends DirectiveValue {
-    override def toString: String = "IDENT"
+  case class IdentDirectiveValue(value: String) extends DirectiveValue {
+    override def toString: String = value
   }
-  case class NumberDirectiveValue extends DirectiveValue {
-    override def toString: String = "NUMBER"
+  case class NumberDirectiveValue(value: Int) extends DirectiveValue {
+    override def toString: String = value.toString
   }
-  case class TrueDirectiveValue extends DirectiveValue {
+  case object TrueDirectiveValue extends DirectiveValue {
     override def toString: String = "true"
   }
-  case class FalseDirectiveValue extends DirectiveValue {
+  case object FalseDirectiveValue extends DirectiveValue {
     override def toString: String = "false"
   }
 
@@ -88,6 +87,7 @@ object Syntax {
     override def toString: String = s"$name: $ty"
   }
 
+  // relation qualifiers
   sealed trait RelationQualifier
   case object BtreeQualifier extends RelationQualifier {
     override def toString: String = "btree"
@@ -201,25 +201,26 @@ object Syntax {
   //        ( type_decl | relation_decl | rule | fact | directive | '.override' IDENT | component_init | component_decl )*
   //    '}'
 
-  // TODO: COMPONENT INITIALISATION
   // component_init ::= '.init' IDENT '=' component_type
+  case class ComponentInit(name: String, ty: ComponentType)
 
-  // TODO: COMPONENT TYPE
   // component_type ::= IDENT ( '<' IDENT ( ',' IDENT )* '>' )?
+  case class ComponentType(name: String, arguments: Seq[String])
 
   // DIRECTIVE
-  // directive ::= directive_qualifier qualified_name ( ',' qualified_name )* ( '(' ( IDENT '=' directive_value ( ',' IDENT '=' directive_value )* )? ')' )?
-  case class Directive(dirQualifier: DirectiveQualifier, qualNames: Seq[QualifiedName], params: (identifier: Seq[String], directiveValue: Seq[DirectiveValue]))
+  // directive ::=
+  //    directive_qualifier qualified_name ( ',' qualified_name )*
+  //        ( '(' ( IDENT '=' directive_value ( ',' IDENT '=' directive_value )* )? ')' )?
+  case class Directive(qualifier: DirectiveQualifier,
+                       qualifiedNames: Seq[QualifiedName],
+                       params: Map[String, DirectiveValue])
 
   // USER-DEFINED FUNCTORS
   // functor_decl
   //         ::= '.functor' IDENT '(' ( attribute ( ',' attribute )* )? ')' ':' type_name 'stateful'?
-  // TODO: Find out what to do with the optional 'stateful'
-  case class Functor(name: String, attributes: Seq[RelationAttribute], returnType: Type)
+  case class Functor(name: String, attributes: Seq[RelationAttribute], returnType: Type, isStateful: Boolean = false)
 
   // PRAGMAS
   // pragma   ::= '.pragma' STRING STRING?
   case class Pragma(param: String, parameterValue: Option[String] = None)
-
-
 }
