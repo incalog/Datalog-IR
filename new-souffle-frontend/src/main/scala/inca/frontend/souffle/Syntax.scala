@@ -48,10 +48,24 @@ object Syntax {
   //    ( 'override' | 'inline' | 'no_inline' | 'magic' | 'no_magic' | 'brie' | 'btree' | 'eqrel' )*
   //    choice_domain
 
-  case class Relation(name: String, attributes: Seq[RelationAttribute], qualifier: Seq[RelationQualifier] = Seq())
+  case class Relation(name: String, attributes: Seq[RelationAttribute], qualifiers: Seq[RelationQualifier] = Seq(), choiceDomain: Option[ChoiceDomain] = None) {
+    override def toString: String =
+      s".decl $name(${attributes.mkString(", ")})" + {
+        if (qualifiers.nonEmpty) " " + qualifiers.mkString(" ") else ""
+      } + {
+        choiceDomain match {
+          case Some(value) => s" choice-domain $value"
+          case None => ""
+        }
+      }
+
+    def isNullary: Boolean = attributes.isEmpty
+  }
 
   // attribute ::= IDENT ":" type_name
-  case class RelationAttribute(name: String, ty: Type)
+  case class RelationAttribute(name: String, ty: Type) {
+    override def toString: String = s"$name: $ty"
+  }
 
   sealed trait RelationQualifier
   case object BtreeQualifier extends RelationQualifier {
@@ -82,7 +96,9 @@ object Syntax {
   // CHOICE DOMAIN
   // choice_domain ::=
   //    ( 'choice-domain' ( IDENT | '(' IDENT ( ',' IDENT )* ')' ) ( ',' ( IDENT | '(' IDENT ( ',' IDENT )* ')' ) )* )?
-  // TODO
+  case class ChoiceDomain(body: Seq[String]) {
+    override def toString: String = body.mkString(", ")
+  }
 
   // RULES
   // rule ::= atom ( ',' atom )* ':-' disjunction '.' query_plan?
