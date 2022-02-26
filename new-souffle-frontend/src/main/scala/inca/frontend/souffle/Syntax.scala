@@ -42,6 +42,27 @@ object Syntax {
     override def toString: String = "float"
   }
 
+  // DIRECTIVE VALUES
+  // directive_value ::= STRING | IDENT | NUMBER | 'true' | 'false'
+  // TODO: Pretty sure this is not exactly correct, seems weird
+
+  sealed trait DirectiveValue
+  case class StringDirectiveValue extends DirectiveValue {
+    override def toString: String = "STRING"
+  }
+  case class IdentDirectiveValue extends DirectiveValue {
+    override def toString: String = "IDENT"
+  }
+  case class NumberDirectiveValue extends DirectiveValue {
+    override def toString: String = "NUMBER"
+  }
+  case class TrueDirectiveValue extends DirectiveValue {
+    override def toString: String = "true"
+  }
+  case class FalseDirectiveValue extends DirectiveValue {
+    override def toString: String = "false"
+  }
+
   // RELATIONS
   // relation_decl ::=
   //    '.decl' IDENT ( ',' IDENT )* '(' attribute ( ',' attribute )* ')'
@@ -93,6 +114,22 @@ object Syntax {
     override def toString: String = "no_magic"
   }
 
+  // DirectiveQualifier
+  // directive_qualifier  ::= '.input' | '.output' | '.printsize' | '.limitsize'
+  sealed trait DirectiveQualifier
+  case object InputQualifier extends DirectiveQualifier {
+    override def toString: String = ".input"
+  }
+  case object OutputQualifier extends DirectiveQualifier {
+    override def toString: String = ".output"
+  }
+  case object PrintsizeQualifier extends DirectiveQualifier {
+    override def toString: String = ".printsize"
+  }
+  case object LimitsizeQualifier extends DirectiveQualifier {
+    override def toString: String = ".limitsize"
+  }
+
   // CHOICE DOMAIN
   // choice_domain ::=
   //    ( 'choice-domain' ( IDENT | '(' IDENT ( ',' IDENT )* ')' ) ( ',' ( IDENT | '(' IDENT ( ',' IDENT )* ')' ) )* )?
@@ -104,11 +141,18 @@ object Syntax {
   // rule ::= atom ( ',' atom )* ':-' disjunction '.' query_plan?
   case class Rule(atoms: Seq[Atom], disjunction: Seq[Conjunction], queryPlan: Option[QueryPlan] = None)
 
+  // SUBSUMPTIVE RULE
+  // rule ::= atom '<=' atom ':-' disjunction '.' query_plan?
+  case class SubsumptiveRule(atom1: Atom, atom2: Atom, disjunction: Disjunction, queryPlan: Option[QueryPlan] = None)
+
   // qualified_name ::= IDENT ( '.' IDENT )*
   case class QualifiedName(identifiers: Seq[String])
 
   // atom ::= qualified_name '(' ( argument ( ',' argument )* )? ')'
   case class Atom(name: QualifiedName, args: Seq[Argument])
+
+  // fact ::= atom '.'
+  case class Fact(atom: Atom)
 
   // disjunction ::= conjunction ( ';' conjunction )*
   case class Disjunction(conjunctions: Seq[Conjunction])
@@ -126,6 +170,10 @@ object Syntax {
   case class QueryPlan(body: Seq[(NumberValue, Seq[NumberValue])])
 
   // TODO: CONSTRAINTS
+  // constraint ::= argument ( '<' | '>' | '<=' | '>=' | '=' | '!=' ) argument
+  //           | ( 'match' | 'contains' ) '(' argument ',' argument ')'
+  //           | 'true'
+  //           | 'false'
   type Constraint
 
   // TODO: ARGUMENTS
@@ -141,4 +189,37 @@ object Syntax {
   //    | aggregator
   //    | ( unary_operation | argument binary_operation ) argument
   type Argument
+
+  // TODO: AGGREGATOR
+  // aggregator  ::= (( ( 'max' | 'mean' | 'min' | 'sum' ) argument | 'count' ) ':' ( '{' disjunction '}' | atom )) |
+  //                'range' '(' argument ',' argument (',' argument)? ')'
+
+  // TODO: COMPONENT DECLARATION
+  // component_decl ::=
+  //  '.comp' component_type ( ( ':' | ',' ) component_type )*
+  //    '{'
+  //        ( type_decl | relation_decl | rule | fact | directive | '.override' IDENT | component_init | component_decl )*
+  //    '}'
+
+  // TODO: COMPONENT INITIALISATION
+  // component_init ::= '.init' IDENT '=' component_type
+
+  // TODO: COMPONENT TYPE
+  // component_type ::= IDENT ( '<' IDENT ( ',' IDENT )* '>' )?
+
+  // DIRECTIVE
+  // directive ::= directive_qualifier qualified_name ( ',' qualified_name )* ( '(' ( IDENT '=' directive_value ( ',' IDENT '=' directive_value )* )? ')' )?
+  case class Directive(dirQualifier: DirectiveQualifier, qualNames: Seq[QualifiedName], params: (identifier: Seq[String], directiveValue: Seq[DirectiveValue]))
+
+  // USER-DEFINED FUNCTORS
+  // functor_decl
+  //         ::= '.functor' IDENT '(' ( attribute ( ',' attribute )* )? ')' ':' type_name 'stateful'?
+  // TODO: Find out what to do with the optional 'stateful'
+  case class Functor(name: String, attributes: Seq[RelationAttribute], returnType: Type)
+
+  // PRAGMAS
+  // pragma   ::= '.pragma' STRING STRING?
+  case class Pragma(param: String, parameterValue: Option[String] = None)
+
+
 }
