@@ -4,7 +4,7 @@ import cats.parse.Parser.not
 
 import Console.{RED, RESET, UNDERLINED}
 import cats.parse.{Numbers, Parser => P, Parser0 => P0}
-import inca.frontend.souffle.Syntax.{BrieQualifier, BtreeQualifier, ChoiceDomain, DeclaredType, EquivalenceQualifier, Expression, FloatType, FloatValue, InlineQualifier, MagicQualifier, NoInlineQualifier, NoMagicQualifier, NumberType, NumberValue, OverrideQualifier, Relation, RelationAttribute, RelationQualifier, StringValue, SymbolType, Type, UnsignedType}
+import inca.frontend.souffle.Syntax.{Argument, ArgumentConstant, ArgumentNil, ArgumentVariable, Atom, BrieQualifier, BtreeQualifier, ChoiceDomain, Conjunction, ConjunctionBodyAtom, ConjunctionBodyDisjunction, ConjunctionTerm, Constant, ConstantFloat, ConstantNumber, ConstantString, ConstantUnsigned, DeclaredType, Disjunction, EquivalenceQualifier, Expression, Fact, FloatType, FloatValue, InlineQualifier, MagicQualifier, NoInlineQualifier, NoMagicQualifier, NumberType, NumberValue, OverrideQualifier, QualifiedName, QueryPlan, Relation, RelationAttribute, RelationQualifier, Rule, StringValue, SymbolType, Type, UnsignedType}
 
 object Parser {
 
@@ -17,7 +17,8 @@ object Parser {
     val underscore: P[Unit] = P.char('_')
     val comma: P[Unit] = P.char(',')
 
-    val string: P[String] = quotes *> P.until0(quotes)
+    val string: P[String] = quotes *> P.until0(quotes) <* quotes
+    val unsigned: P[Int] = Numbers.nonNegativeIntString.map(_.toInt)
     val number: P[Int] = Numbers.signedIntString.map(_.toInt)
     val float: P[Float] = Numbers.jsonNumber.map(_.toFloat)
 
@@ -36,6 +37,7 @@ object Parser {
 
   val whitespace: P0[Unit] = P.until0(P.not(P.charIn(" \t\n\r"))).void
 
+  def spaced[A](p: P0[A]): P0[A] = p <* whitespace
   def spaced[A](p: P[A]): P[A] = p <* whitespace
 
   def parens[A](p: P0[A]): P[A] = spaced(P.char('(')) *> p <* spaced(P.char(')'))
@@ -97,19 +99,76 @@ object Parser {
     }
   }
 
+  val qualifiedName: P[QualifiedName] =
+    Literals.identifier.repSep(P.char('.')).map(l => QualifiedName(l.toList))
+
+  val constant: P[Constant] =
+    Literals.unsigned.map(ConstantUnsigned.apply) |
+    Literals.number.map(ConstantNumber.apply) |
+    Literals.float.map(ConstantFloat.apply) |
+    Literals.string.map(ConstantString.apply)
+
+  val argument: P[Argument] =
+    P.string("nil").as(ArgumentNil) |
+    Literals.identifier.map(ArgumentVariable.apply) |
+    constant.map(ArgumentConstant.apply)
+
+  val atom: P[Atom] =
+    (spaced(qualifiedName) ~ parens(spaced(argument).repSep(Separators.comma).?))
+      .map {
+        case (qn, args) => Atom(qn, if (args.isDefined) args.get.toList else Seq.empty)
+      }
+
+  val fact: P[Fact] = atom.map(Fact.apply) <* spaced(P.char('.'))
+
+  val negation: P0[Boolean] = P.char('!').rep0.map(_.length % 2 == 1)
+
+  val conjunctionTerm: P[ConjunctionTerm] =
+    (
+      negation ~
+      spaced(atom | parens(P.defer(disjunction)) /*| constraint*/)
+    ).map {
+      case (negated, atom: Atom) => ConjunctionTerm(negated, ConjunctionBodyAtom(atom))
+      case (negated, disjunction: Disjunction) => ConjunctionTerm(negated, ConjunctionBodyDisjunction(disjunction))
+    }.asInstanceOf[P[ConjunctionTerm]]
+
+  val conjunction: P[Conjunction] =
+    conjunctionTerm.repSep(Separators.comma).map(l => Conjunction(l.toList))
+
+  lazy val disjunction: P[Disjunction] =
+    spaced(conjunction).repSep(Separators.semicolon).map(l => Disjunction.apply(l.toList))
+
+  val queryPlan: P[QueryPlan] =
+    spaced(P.string(".plan")) *>
+    (
+      (spaced(Literals.number) <* spaced(Literals.colon)) ~
+        spaced(parens(Literals.number.repSep0(Separators.comma)))
+    ).rep.map(l => QueryPlan(l.toList))
+
+  // rule ::= atom ( ',' atom )* ':-' disjunction '.' query_plan?
+  val rule: P[Rule] = {
+    (
+      (spaced(atom).repSep(Separators.comma) <* spaced(P.string(":-"))) ~
+      (disjunction <* spaced(P.char('.'))) ~
+      queryPlan.?
+    ).map { case ((atoms, disjunction), qp) => Rule(atoms.toList, disjunction, qp) }
+  }
+
   // PROGRAM
 
   val program: P[Seq[Any]] = (
+    fact.backtrack |
+    rule |
     relation
   ).rep.map(_.toList)
-
 
   // PARSE METHODS
 
   def parse[A](p: P[A], source: String): A = p.surroundedBy(whitespace).parseAll(source) match {
     case Left(err) =>
+      val errorChar = if (err.failedAtOffset < source.length) source(err.failedAtOffset) else " "
       System.out.print(source.substring(0, err.failedAtOffset))
-      System.out.print(s"$RED$UNDERLINED${source(err.failedAtOffset)}$RESET")
+      System.out.print(s"$RED$UNDERLINED$errorChar$RESET")
       System.out.print(source.substring(err.failedAtOffset + 1))
 
       throw new Exception(s"Parser error! Expected: ${err.expected}")

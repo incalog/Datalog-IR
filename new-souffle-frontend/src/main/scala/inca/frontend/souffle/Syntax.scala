@@ -5,62 +5,32 @@ object Syntax {
   // EXPRESSIONS
 
   sealed trait Expression
-  case class Variable(name: String) extends Expression {
-    //override def toString: String = cleanVarName(name)
-  }
-  case class StringValue(value: String) extends Expression {
-    override def toString: String = "\"" + value + "\""
-  }
-  case class NumberValue(value: Int) extends Expression {
-    override def toString: String = value.toString
-  }
-  case class FloatValue(value: Float) extends Expression {
-    override def toString: String = value.toString
-  }
-  case object Wildcard extends Expression {
-    override def toString: String = "_"
-  }
+  case class Variable(name: String) extends Expression
+  case class StringValue(value: String) extends Expression
+  case class NumberValue(value: Int) extends Expression
+  case class FloatValue(value: Float) extends Expression
+  case object Wildcard extends Expression
 
   // TYPES
 
   sealed trait Type
-  case class DeclaredType(name: String) extends Type {
-    override def toString: String = name
-  }
+  case class DeclaredType(name: String) extends Type
 
   sealed trait PrimitiveType extends Type
-  case object SymbolType extends PrimitiveType {
-    override def toString: String = "symbol"
-  }
-  case object NumberType extends PrimitiveType {
-    override def toString: String = "number"
-  }
-  case object UnsignedType extends PrimitiveType {
-    override def toString: String = "unsigned"
-  }
-  case object FloatType extends PrimitiveType {
-    override def toString: String = "float"
-  }
+  case object SymbolType extends PrimitiveType
+  case object NumberType extends PrimitiveType
+  case object UnsignedType extends PrimitiveType
+  case object FloatType extends PrimitiveType
 
   // DIRECTIVE VALUES
   // directive_value ::= STRING | IDENT | NUMBER | 'true' | 'false'
 
   sealed trait DirectiveValue
-  case class StringDirectiveValue(value: String) extends DirectiveValue {
-    override def toString: String = value
-  }
-  case class IdentDirectiveValue(value: String) extends DirectiveValue {
-    override def toString: String = value
-  }
-  case class NumberDirectiveValue(value: Int) extends DirectiveValue {
-    override def toString: String = value.toString
-  }
-  case object TrueDirectiveValue extends DirectiveValue {
-    override def toString: String = "true"
-  }
-  case object FalseDirectiveValue extends DirectiveValue {
-    override def toString: String = "false"
-  }
+  case class StringDirectiveValue(value: String) extends DirectiveValue
+  case class IdentDirectiveValue(value: String) extends DirectiveValue
+  case class NumberDirectiveValue(value: Int) extends DirectiveValue
+  case object TrueDirectiveValue extends DirectiveValue
+  case object FalseDirectiveValue extends DirectiveValue
 
   // RELATIONS
   // relation_decl ::=
@@ -69,77 +39,45 @@ object Syntax {
   //    choice_domain
 
   case class Relation(name: String, attributes: Seq[RelationAttribute], qualifiers: Seq[RelationQualifier] = Seq(), choiceDomain: Option[ChoiceDomain] = None) {
-    override def toString: String =
-      s".decl $name(${attributes.mkString(", ")})" + {
-        if (qualifiers.nonEmpty) " " + qualifiers.mkString(" ") else ""
-      } + {
-        choiceDomain match {
-          case Some(value) => s" choice-domain $value"
-          case None => ""
-        }
-      }
-
     def isNullary: Boolean = attributes.isEmpty
   }
 
   // attribute ::= IDENT ":" type_name
-  case class RelationAttribute(name: String, ty: Type) {
-    override def toString: String = s"$name: $ty"
-  }
+  case class RelationAttribute(name: String, ty: Type)
 
   // relation qualifiers
   sealed trait RelationQualifier
-  case object BtreeQualifier extends RelationQualifier {
-    override def toString: String = "btree"
-  }
-  case object BrieQualifier extends RelationQualifier {
-    override def toString: String = "brie"
-  }
-  case object EquivalenceQualifier extends RelationQualifier {
-    override def toString: String = "eqrel"
-  }
-  case object OverrideQualifier extends RelationQualifier {
-    override def toString: String = "override"
-  }
-  case object InlineQualifier extends RelationQualifier {
-    override def toString: String = "inline"
-  }
-  case object NoInlineQualifier extends RelationQualifier {
-    override def toString: String = "no_inline"
-  }
-  case object MagicQualifier extends RelationQualifier {
-    override def toString: String = "magic"
-  }
-  case object NoMagicQualifier extends RelationQualifier {
-    override def toString: String = "no_magic"
-  }
+  case object BtreeQualifier extends RelationQualifier
+  case object BrieQualifier extends RelationQualifier
+  case object EquivalenceQualifier extends RelationQualifier
+  case object OverrideQualifier extends RelationQualifier
+  case object InlineQualifier extends RelationQualifier
+  case object NoInlineQualifier extends RelationQualifier
+  case object MagicQualifier extends RelationQualifier
+  case object NoMagicQualifier extends RelationQualifier
 
   // DirectiveQualifier
   // directive_qualifier  ::= '.input' | '.output' | '.printsize' | '.limitsize'
   sealed trait DirectiveQualifier
-  case object InputQualifier extends DirectiveQualifier {
-    override def toString: String = ".input"
-  }
-  case object OutputQualifier extends DirectiveQualifier {
-    override def toString: String = ".output"
-  }
-  case object PrintsizeQualifier extends DirectiveQualifier {
-    override def toString: String = ".printsize"
-  }
-  case object LimitsizeQualifier extends DirectiveQualifier {
-    override def toString: String = ".limitsize"
-  }
+  case object InputQualifier extends DirectiveQualifier
+  case object OutputQualifier extends DirectiveQualifier
+  case object PrintsizeQualifier extends DirectiveQualifier
+  case object LimitsizeQualifier extends DirectiveQualifier
 
   // CHOICE DOMAIN
   // choice_domain ::=
   //    ( 'choice-domain' ( IDENT | '(' IDENT ( ',' IDENT )* ')' ) ( ',' ( IDENT | '(' IDENT ( ',' IDENT )* ')' ) )* )?
-  case class ChoiceDomain(body: Seq[String]) {
-    override def toString: String = body.mkString(", ")
-  }
+  case class ChoiceDomain(body: Seq[String])
 
   // RULES
   // rule ::= atom ( ',' atom )* ':-' disjunction '.' query_plan?
-  case class Rule(atoms: Seq[Atom], disjunction: Seq[Conjunction], queryPlan: Option[QueryPlan] = None)
+  case class Rule(atoms: Seq[Atom], disjunction: Disjunction, queryPlan: Option[QueryPlan] = None) {
+    override def toString: String =
+      s"${atoms.mkString(", ")} :- $disjunction." + {
+        if (queryPlan.isDefined) " " + queryPlan.get.toString
+        else ""
+      }
+  }
 
   // SUBSUMPTIVE RULE
   // rule ::= atom '<=' atom ':-' disjunction '.' query_plan?
@@ -155,11 +93,17 @@ object Syntax {
   case class Fact(atom: Atom)
 
   // disjunction ::= conjunction ( ';' conjunction )*
-  case class Disjunction(conjunctions: Seq[Conjunction])
+  case class Disjunction(conjunctions: Seq[Conjunction]) {
+    override def toString: String = conjunctions.mkString("; ")
+  }
 
-  // conjunction ::= '!'* ( atom | constraint | '(' disjunction ')' ) ( ',' '!'* ( atom | constraint | '(' disjunction ')' ) )*
-  // example: a(x, y, z), !b, !!!!c, (g + 1; h == 1)
-  case class Conjunction(body: Seq[ConjunctionBody])
+  // conjunction ::=
+  //    '!'* ( atom | constraint | '(' disjunction ')' )
+  //        ( ',' '!'* ( atom | constraint | '(' disjunction ')' ) )*
+  // example: a(x, y, z), !b, !!!!c, age > 50
+  case class Conjunction(terms: Seq[ConjunctionTerm])
+
+  case class ConjunctionTerm(negated: Boolean, body: ConjunctionBody)
 
   sealed trait ConjunctionBody
   case class ConjunctionBodyAtom(atom: Atom) extends ConjunctionBody
@@ -167,7 +111,7 @@ object Syntax {
   case class ConjunctionBodyDisjunction(disjunction: Disjunction) extends ConjunctionBody
 
   // query_plan ::= '.plan' NUMBER ':' '(' ( NUMBER ( ',' NUMBER )* )? ')' ( ',' NUMBER ':' '(' ( NUMBER ( ',' NUMBER )* )? ')' )*
-  case class QueryPlan(body: Seq[(NumberValue, Seq[NumberValue])])
+  case class QueryPlan(body: Seq[(Int, Seq[Int])])
 
   // TODO: CONSTRAINTS
   // constraint ::= argument ( '<' | '>' | '<=' | '>=' | '=' | '!=' ) argument
@@ -176,7 +120,15 @@ object Syntax {
   //           | 'false'
   type Constraint
 
-  // TODO: ARGUMENTS
+  // constant ::= STRING | NUMBER | UNSIGNED | FLOAT
+  sealed trait Constant
+  case class ConstantString(value: String) extends Constant
+  case class ConstantNumber(value: Int) extends Constant
+  case class ConstantUnsigned(value: Int) extends Constant {
+    assert(value >= 0)
+  }
+  case class ConstantFloat(value: Float) extends Constant
+
   // argument ::=
   //      constant
   //    | variable
@@ -188,7 +140,13 @@ object Syntax {
   //    | ( userdef_functor | intrinsic_functor ) '(' argument_list ')'
   //    | aggregator
   //    | ( unary_operation | argument binary_operation ) argument
-  type Argument
+  // TODO: extend
+  sealed trait Argument
+  case class ArgumentConstant(value: Constant) extends Argument
+  case class ArgumentVariable(name: String) extends Argument {
+    def isWildcard: Boolean = name == "_"
+  }
+  case object ArgumentNil extends Argument
 
   // TODO: AGGREGATOR
   // aggregator  ::= (( ( 'max' | 'mean' | 'min' | 'sum' ) argument | 'count' ) ':' ( '{' disjunction '}' | atom )) |

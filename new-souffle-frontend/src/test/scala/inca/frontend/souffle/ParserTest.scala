@@ -37,6 +37,44 @@ class ParserTest extends AnyFunSuite {
     assert(decls.last == Relation("Nullary", Seq()))
     assert(decls.last.isNullary)
 
-    println(r.mkString("\n"))
+    println(PrettyPrinter.print(r))
+  }
+
+  test("literals") {
+    assert(Parser.parse(Parser.Literals.string, "\"Hallo!\"") == "Hallo!")
+  }
+
+  test("facts") {
+    val r = Parser.parse(
+      """ A(0, 1).
+        | A().
+        | B("hallo", 42).
+        |""".stripMargin
+    )
+
+    println(PrettyPrinter.print(r))
+  }
+
+  test("rules") {
+    val r = Parser.parse(
+      """ A(a, b) :- A(a, c), A(c, b).
+        |""".stripMargin
+    )
+
+    println(PrettyPrinter.print(r))
+  }
+
+  test("program") {
+    val r = Parser.parse(
+      """ .decl A(i: number, s: symbol)
+        |
+        | A(0, "leon").
+        | A(1, "sina").
+        |
+        | A(i, s) :- A(0, s).
+        |""".stripMargin
+    )
+
+    println(PrettyPrinter.print(r))
   }
 }
