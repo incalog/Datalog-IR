@@ -675,7 +675,7 @@ class IRDebuggerTest extends AnyFunSuite {
     debugger.stepOver() // step over recursive path call
     val currentDerived =
       debugger.relation("path", Table[Value](Seq("from"), Seq(Seq(ScalaValue(3)), Seq(ScalaValue(6)))))
-    val expected = edgeTable(Seq("from", "to"), 6 -> 7, 3 -> 1, 3 -> 2, 3 -> 4, 3 -> 5)
+    val expected = edgeTable(Seq("from", "to"), 6 -> 7, 3 -> 1, 3 -> 2, 3 -> 4, 3 -> 5, 3 -> 3, 3 -> 7, 3 -> 6)
     assertResult(expected)(currentDerived)
     assert(debugger.frame.cp.isBodyExit)
     debugger.stepOver() // needed to step to pattern exit (of path call)
