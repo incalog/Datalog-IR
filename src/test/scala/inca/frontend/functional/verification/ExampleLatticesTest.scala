@@ -1,12 +1,9 @@
 package inca.frontend.functional.verification
 
-import inca.frontend.functional.core
-import inca.frontend.functional.core.{Associativity, Commutativity}
+import inca.frontend.functional.verification.examples.Aggregations.addition_module
 import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.functional.verification.examples.Lattices.{const_lattice_module, signVal_lattice_module, sign_lattice, sign_lattice_module}
-import inca.util.Gensym
-import smtlib.Interpreter
-import smtlib.interpreters.Z3Interpreter
+
 
 class ExampleLatticesTest extends AnyFunSuite {
   test("test sign_lattice_module verification") {
@@ -27,5 +24,12 @@ class ExampleLatticesTest extends AnyFunSuite {
     assertResult(Map("join" -> Map("assoc" -> "true", "comm" -> "true"),
       "joinBool" -> Map("assoc" -> "true", "comm" -> "true"),
       "joinSign" -> Map("assoc" -> "true", "comm" -> "true")))(verifier.verify(module))
+  }
+
+  test("test addition_module verification") {
+    val module = addition_module
+    val verifier = new Verifier()
+    assertResult(Map("add" -> Map("assoc" -> "true", "comm" -> "true"),
+      "sub" -> Map("assoc" -> "false", "comm" -> "false")))(verifier.verify(module))
   }
 }

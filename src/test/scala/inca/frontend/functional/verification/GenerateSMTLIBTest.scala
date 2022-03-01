@@ -8,6 +8,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import smtlib.trees.Commands.PropLiteral
 import smtlib.trees.Terms.SSymbol
 import inca.frontend.functional.verification.Verifier
+import inca.frontend.functional.verification.examples.Aggregations.addition_module
 import inca.frontend.functional.verification.examples.Lattices.{const_lattice_module, signVal_lattice_module, sign_lattice_module}
 import inca.util.Gensym
 import smtlib.Interpreter
@@ -23,6 +24,9 @@ class GenerateSMTLIBTest extends AnyFunSuite {
   }
   test("what does the functional AS look like") {
     print(Parser.parse(ControlDataFlow.IntervalModule))
+  }
+  test("print addition module") {
+    print(addition_module)
   }
   test("print sign lattice") {
     print(signVal_lattice_module)
