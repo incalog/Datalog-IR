@@ -18,7 +18,6 @@ object PropertyScripts {
       Pop(1))
   )
 
-  // TODO dataname paramater
   def associativity(aggrName: String, paramTypeName: String): Script = Script(
     List(
       Push(1),

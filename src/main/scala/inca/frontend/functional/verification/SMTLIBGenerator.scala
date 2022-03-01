@@ -78,9 +78,9 @@ object SMTLIBGenerator {
           case _ => throw new Exception("Function is not a function")
         }
       case Tuple(exps) =>
-      case SetExp(es) =>
-      case SetComprehension(build, predicates) =>
-      case SetMember(tup, set, neg) =>
+      case SetExp(es) => //
+      case SetComprehension(build, predicates) => //
+      case SetMember(tup, set, neg) => //
       case Lambda(vs, body) =>
       case SetFold(anno, init, op, set) => //nicht verwendet
 

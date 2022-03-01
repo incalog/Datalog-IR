@@ -7,40 +7,40 @@ import inca.util.{Gensym, Scala}
 import smtlib.{Interpreter, interpreters}
 import smtlib.extensions.tip.Terms.{Case, CaseClass, CaseObject}
 import smtlib.interpreters.Z3Interpreter
-import smtlib.trees.Commands.{Constructor, DeclareDatatypes, DefineFun, FunDef, Script}
-import smtlib.trees.Terms
+import smtlib.lexer.Lexer
+import smtlib.parser.Parser
+import smtlib.trees.Commands.{CheckSat, Constructor, DeclareDatatypes, DefineFun, FunDef, Script}
+import smtlib.trees.{Commands, CommandsResponses, Terms}
 import smtlib.trees.Terms.{Identifier, SSymbol, Sort, SortedVar, _}
 
+import java.io.StringReader
 import javax.naming.directory.InvalidAttributeValueException
 import scala.collection.mutable
 
 
 // Functional Program
 // Collect functions with verification annotations IncA
-// get provable properties IncA TODO
+// get provable properties IncA
 // collect datatype definitions
 // compile data types to smt lib
 // compile function to smt lib (IncA -> SMTLIB)
-// Foreach provable property add provable goal (assertion) (SMTLIB -> SMTLIB) TODO
-// execute z3 with smtlib as input TODO
+// Foreach provable property add provable goal (assertion) (SMTLIB -> SMTLIB)
+// execute z3 with smtlib as input
 // SMTLIB
 
 
 class Verifier {
 
-  def module: Module = ???
-
   val functionDict: mutable.Map[String, FunctionDef] = mutable.Map()
   val dataDict: mutable.Map[String, DataDef] = mutable.Map()
 
-  def verify(module: Module): Unit = {
+  def verify(module: Module): Map[String, Map[String, String]] = {
     fillDicts(module)
     val aggregations: Map[String, Seq[Property]] = collectAggregations(module)
     val verificationScripts: Seq[Script] = aggregations.toSeq.map(ag => generateScript(ag._1, ag._2))
     implicit val z3Interp: Z3Interpreter = Z3Interpreter.buildDefault
-    verificationScripts.foreach(s =>
-      smtlib.Interpreter.execute(s)
-    )
+    val verificationResults = verificationScripts.zip(aggregations).map(s => getInterpResult(s._1, s._2._2))
+    aggregations.keys.zip(verificationResults).toMap
   }
 
   def fillDicts(module: Module): Unit = module.content.foreach {
@@ -52,8 +52,6 @@ class Verifier {
     val aggrCollector = new Collect[(String, Seq[Property])] {
       override def transFun(func: FunctionDef): Seq[(String, Seq[Property])] = {
         if (func.annos.exists {
-          // TODO Ich benutze main Annotations, weil AggregationAnnos noch nicht
-          //  funktionieren (vor allem nicht mit dem Parser)
           case AggregationAnno(_) => true
           case _ => false
         }) {
@@ -76,12 +74,29 @@ class Verifier {
     aggrPropCollector.transFun(func)
   }
 
+  def getInterpResult(s: Script, props: Seq[Property])(implicit interp: Z3Interpreter): Map[String, String] = {
+    val evalResults: mutable.ListBuffer[String] = mutable.ListBuffer()
+    s.commands.foreach {
+      cmd =>
+        interp.eval(cmd) match {
+          case CommandsResponses.CheckSatStatus(status) =>
+            evalResults += (status match {
+              case CommandsResponses.SatStatus => "false"
+              case CommandsResponses.UnsatStatus => "true"
+              case CommandsResponses.UnknownStatus => "unknown"
+            })
+          case _ =>
+        }
+    }
+    props.map(p => p.name).zip(evalResults).toMap
+  }
+
   def generateScript(funcName: String, props: Seq[Property]): Script = {
     implicit val gensym: Gensym = new Gensym(Seq())
     val calledFunctions: Seq[String] = collectCalledFunctions(functionDict(funcName))
     val dataDefs = (calledFunctions :+ funcName).flatMap(fName => collectUsedDataDefs(functionDict(fName))).distinct
     val transDataDefs = dataDefs.map(transDataDef)
-    val functions = calledFunctions:+funcName
+    val functions = calledFunctions :+ funcName
     val transFuncDefs = functions.map(transFunctionDef)
     val transProps = props.map(transProperty(_, funcName))
     makeScript(transDataDefs ++ transFuncDefs ++ transProps)
@@ -161,7 +176,6 @@ class Verifier {
 
   def transType(typ: Type): Sort = {
     typ match {
-      // TODO macht es Sinn, irgendeinen Error zu wählen, der zur Situation passt?
       case TScala(ty) => ty match {
         case Scala(scala.meta.Type.Name("Int")) => Sort(Identifier(SSymbol("Int")))
         case Scala(scala.meta.Type.Name("Boolean")) => Sort(Identifier(SSymbol("Bool")))
@@ -247,7 +261,7 @@ class Verifier {
         }
         FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(transOp))), Seq(left, right).map(transExp))
 
-      case SetExp(es) => ???
+      // TODO BaseLit, BaseApply, BaseApplyInfix, Tuples, Lambda
     }
   }
 
@@ -262,7 +276,7 @@ class Verifier {
 
   def getParamTypeName(aggrName: String): String = {
     val func = functionDict(aggrName)
-    func.params.foreach(p => if(p.typ != func.params.head.typ){
+    func.params.foreach(p => if (p.typ != func.params.head.typ) {
       throw new Exception("Aggregations should take two values of the same type")
     })
     transType(func.params.head.typ).id.symbol.name

@@ -79,7 +79,7 @@ object Lattices {
        |  }
        |}
        |
-       |def joinBool(b1: Boole, b2: Boole): Boole = b1 match {
+       |@aggr(assoc, comm) def joinBool(b1: Boole, b2: Boole): Boole = b1 match {
        |  case TopBool() => TopBool()
        |  case BotBool() => b2
        |  case True() => b2 match {
@@ -96,7 +96,7 @@ object Lattices {
        |  }
        |}
        |
-       |def joinSign(s1: Sign, s2: Sign): Sign = s1 match {
+       |@aggr(assoc, comm) def joinSign(s1: Sign, s2: Sign): Sign = s1 match {
        |  case TopSign() => TopSign()
        |  case BotSign() => s2
        |  case Neg() => s2 match {
