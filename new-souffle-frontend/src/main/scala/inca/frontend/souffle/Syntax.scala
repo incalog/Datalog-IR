@@ -101,16 +101,17 @@ object Syntax {
   }
 
   // conjunction_term ::= atom | constraint | '(' disjunction ')'
-  sealed abstract case class ConjunctionTerm(isNegated: Boolean) {
+  sealed abstract class ConjunctionTerm {
+    val isNegated: Boolean
     def negated: ConjunctionTerm
   }
-  case class ConjunctionTermAtom(override val isNegated: Boolean, atom: Atom) extends ConjunctionTerm(isNegated) {
+  case class ConjunctionTermAtom(override val isNegated: Boolean, atom: Atom) extends ConjunctionTerm {
     override def negated: ConjunctionTerm = ConjunctionTermAtom(!isNegated, atom)
   }
-  case class ConjunctionTermConstraint(override val isNegated: Boolean, constraint: Constraint) extends ConjunctionTerm(isNegated) {
+  case class ConjunctionTermConstraint(override val isNegated: Boolean, constraint: Constraint) extends ConjunctionTerm {
     override def negated: ConjunctionTerm = ConjunctionTermConstraint(!isNegated, constraint)
   }
-  case class ConjunctionTermDisjunction(override val isNegated: Boolean, disjunction: Disjunction) extends ConjunctionTerm(isNegated) {
+  case class ConjunctionTermDisjunction(override val isNegated: Boolean, disjunction: Disjunction) extends ConjunctionTerm {
     override def negated: ConjunctionTerm = ConjunctionTermDisjunction(!isNegated, disjunction)
   }
 
