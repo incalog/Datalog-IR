@@ -1,10 +1,11 @@
 package inca.frontend.souffle
 
-import inca.frontend.souffle.Syntax.{ArgumentConstant, ArgumentNil, ArgumentVariable, Atom, BrieQualifier, BtreeQualifier, ChoiceDomain, Conjunction, ConjunctionBodyAtom, ConjunctionBodyConstraint, ConjunctionBodyDisjunction, ConjunctionTerm, ConstantFloat, ConstantNumber, ConstantString, ConstantUnsigned, DeclaredType, Disjunction, EquivalenceQualifier, Fact, FalseDirectiveValue, FloatType, FloatValue, IdentDirectiveValue, InlineQualifier, InputQualifier, LimitsizeQualifier, MagicQualifier, NoInlineQualifier, NoMagicQualifier, NumberDirectiveValue, NumberType, NumberValue, OutputQualifier, OverrideQualifier, PrintsizeQualifier, QualifiedName, Relation, RelationAttribute, Rule, StringDirectiveValue, StringValue, SymbolType, TrueDirectiveValue, UnsignedType, Variable, Wildcard}
+import inca.frontend.souffle.EliminateRuleDisjunction.CompiledRule
+import inca.frontend.souffle.Syntax.{ArgumentConstant, ArgumentNil, ArgumentVariable, Atom, BrieQualifier, BtreeQualifier, ChoiceDomain, Conjunction, ConjunctionTermAtom, ConjunctionTermConstraint, ConjunctionTermDisjunction, ConstantFloat, ConstantNumber, ConstantString, ConstantUnsigned, DeclaredType, Directive, DirectiveQualifierInput, DirectiveQualifierLimitsize, DirectiveQualifierOutput, DirectiveQualifierPrintsize, DirectiveValueBool, DirectiveValueIdent, DirectiveValueNumber, DirectiveValueString, Disjunction, EquivalenceQualifier, Fact, FloatType, FloatValue, InlineQualifier, MagicQualifier, NoInlineQualifier, NoMagicQualifier, NumberType, NumberValue, OverrideQualifier, QualifiedName, Relation, RelationAttribute, Rule, StringValue, SymbolType, UnsignedType, Variable, Wildcard}
 
 object PrettyPrinter {
-  def print(e: Any): String = e match {
-    case l: Seq[Any] => l.map(print).mkString("\n")
+  def stringify(e: Any): String = e match {
+    case l: Seq[Any] => l.map(stringify).mkString("\n")
 
     case Variable(name) => name
     case StringValue(value) => "\"" + value + "\""
@@ -18,23 +19,28 @@ object PrettyPrinter {
     case UnsignedType => "unsigned"
     case FloatType => "float"
 
-    case StringDirectiveValue(value) => "\"" + value + "\""
-    case IdentDirectiveValue(value) => value
-    case NumberDirectiveValue(value) => value.toString
-    case TrueDirectiveValue => "true"
-    case FalseDirectiveValue => "false"
+    case DirectiveValueString(value) => "\"" + value + "\""
+    case DirectiveValueIdent(value) => value
+    case DirectiveValueNumber(value) => value.toString
+    case DirectiveValueBool(value) => value.toString
+
+    case Directive(qualifier, qualifiedNames, params) =>
+      s"${stringify(qualifier)} ${stringify(qualifiedNames).mkString(", ")}" + {
+        if (params.isDefined) s"(${params.get.map { case (id, v) => s"$id = ${stringify(v)}" }.mkString(", ")})"
+        else ""
+      }
 
     case Relation(name, attributes, qualifiers, choiceDomain) =>
-      s".decl $name(${attributes.map(print).mkString(", ")})" + {
-        if (qualifiers.nonEmpty) " " + qualifiers.map(print).mkString(" ") else ""
+      s".decl $name(${attributes.map(stringify).mkString(", ")})" + {
+        if (qualifiers.nonEmpty) " " + qualifiers.map(stringify).mkString(" ") else ""
       } + {
         choiceDomain match {
-          case Some(value) => s" choice-domain ${print(value)}"
+          case Some(value) => s" choice-domain ${stringify(value)}"
           case None => ""
         }
       }
 
-    case RelationAttribute(name, ty) => s"${print(name)}: ${print(ty)}"
+    case RelationAttribute(name, ty) => s"${stringify(name)}: ${stringify(ty)}"
 
     case BtreeQualifier => "btree"
     case BrieQualifier => "brie"
@@ -45,40 +51,50 @@ object PrettyPrinter {
     case MagicQualifier => "magic"
     case NoMagicQualifier => "no_magic"
 
-    case InputQualifier => ".input"
-    case OutputQualifier => ".output"
-    case PrintsizeQualifier => ".printsize"
-    case LimitsizeQualifier => ".limitsize"
+    case DirectiveQualifierInput => ".input"
+    case DirectiveQualifierOutput => ".output"
+    case DirectiveQualifierPrintsize => ".printsize"
+    case DirectiveQualifierLimitsize => ".limitsize"
 
-    case ChoiceDomain(body) => body.map(print).mkString(", ")
+    case ChoiceDomain(body) => body.map(stringify).mkString(", ")
 
     case Rule(atoms, disjunction, queryPlan) =>
-      s"${atoms.map(print).mkString(", ")} :- ${print(disjunction)}." + {
-        if (queryPlan.isDefined) " " + print(queryPlan.get)
+      s"${atoms.map(stringify).mkString(", ")} :- ${stringify(disjunction)}." + {
+        if (queryPlan.isDefined) " " + stringify(queryPlan.get)
+        else ""
+      }
+
+    case CompiledRule(atom, conjunction, queryPlan) =>
+      s"${stringify(atom)} :- ${stringify(conjunction)}." + {
+        if (queryPlan.isDefined) " " + stringify(queryPlan.get)
         else ""
       }
 
     case QualifiedName(identifiers) => identifiers.mkString(".")
 
-    case Atom(name, args) => s"${print(name)}(${args.map(print).mkString(", ")})"
-    case Fact(atom) => print(atom) + "."
+    case Atom(name, args) => s"${stringify(name)}(${args.map(stringify).mkString(", ")})"
+    case Fact(atom) => stringify(atom) + "."
 
-    case Disjunction(conjunctions) => conjunctions.map(print).mkString("; ")
-    case Conjunction(terms) => terms.map(print).mkString(", ")
-    case ConjunctionTerm(negated, body) => s"${if (negated) "!" else ""}${print(body)}"
-    case ConjunctionBodyAtom(atom) => print(atom)
-    case ConjunctionBodyConstraint(constraint) => print(constraint)
-    case ConjunctionBodyDisjunction(disjunction) => "(" + print(disjunction) + ")"
+    case Disjunction(conjunctions) => conjunctions.map(stringify).mkString("; ")
+    case Conjunction(terms) => terms.map(stringify).mkString(", ")
+    case ConjunctionTermAtom(negated, atom) =>
+      s"${if (negated) "!" else ""}${stringify(atom)}"
+    case ConjunctionTermConstraint(negated, constraint) =>
+      s"${if (negated) "!" else ""}${stringify(constraint)}"
+    case ConjunctionTermDisjunction(negated, disjunction) =>
+      s"${if (negated) "!" else ""}(${stringify(disjunction)})"
 
     case ConstantString(value) => "\"" + value + "\""
     case ConstantNumber(value) => value.toString
     case ConstantUnsigned(value) => value.toString
     case ConstantFloat(value) => value.toString
 
-    case ArgumentConstant(value) => print(value)
-    case ArgumentVariable(name) => print(name)
+    case ArgumentConstant(value) => stringify(value)
+    case ArgumentVariable(name) => stringify(name)
     case ArgumentNil => "nil"
 
     case _ => e.toString
   }
+
+  def print(e: Any): Unit = println(stringify(e))
 }

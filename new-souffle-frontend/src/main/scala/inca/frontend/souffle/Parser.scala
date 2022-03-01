@@ -4,7 +4,7 @@ import cats.parse.Parser.not
 
 import Console.{RED, RESET, UNDERLINED}
 import cats.parse.{Numbers, Parser => P, Parser0 => P0}
-import inca.frontend.souffle.Syntax.{Argument, ArgumentConstant, ArgumentNil, ArgumentVariable, Atom, BrieQualifier, BtreeQualifier, ChoiceDomain, Conjunction, ConjunctionBodyAtom, ConjunctionBodyDisjunction, ConjunctionTerm, Constant, ConstantFloat, ConstantNumber, ConstantString, ConstantUnsigned, DeclaredType, Disjunction, EquivalenceQualifier, Expression, Fact, FloatType, FloatValue, InlineQualifier, MagicQualifier, NoInlineQualifier, NoMagicQualifier, NumberType, NumberValue, OverrideQualifier, QualifiedName, QueryPlan, Relation, RelationAttribute, RelationQualifier, Rule, StringValue, SymbolType, Type, UnsignedType}
+import inca.frontend.souffle.Syntax.{Argument, ArgumentConstant, ArgumentNil, ArgumentVariable, Atom, BrieQualifier, BtreeQualifier, ChoiceDomain, Conjunction, ConjunctionTerm, ConjunctionTermAtom, ConjunctionTermDisjunction, Constant, ConstantFloat, ConstantNumber, ConstantString, ConstantUnsigned, DeclaredType, Directive, DirectiveQualifier, DirectiveQualifierInput, DirectiveQualifierLimitsize, DirectiveQualifierOutput, DirectiveQualifierPrintsize, DirectiveValue, DirectiveValueBool, DirectiveValueIdent, DirectiveValueNumber, DirectiveValueString, Disjunction, EquivalenceQualifier, Expression, Fact, FloatType, FloatValue, InlineQualifier, MagicQualifier, NoInlineQualifier, NoMagicQualifier, NumberType, NumberValue, OverrideQualifier, QualifiedName, QueryPlan, Relation, RelationAttribute, RelationQualifier, Rule, StringValue, SymbolType, Type, UnsignedType}
 
 object Parser {
 
@@ -35,7 +35,11 @@ object Parser {
     val semicolon: P[Unit] = spaced(Literals.semicolon)
   }
 
-  val whitespace: P0[Unit] = P.until0(P.not(P.charIn(" \t\n\r"))).void
+  val lineComment: P[Unit] = P.char('/').rep(2) *> P.until0(P.char('\n')).void
+  // TODO: make recursive
+  val rangeComment: P[Unit] = P.char('/').rep *> P.char('*') *> P.until0(P.string("*/")) *> P.until0(P.not(P.char('/'))).void
+  val comment: P[Unit] = rangeComment.backtrack | lineComment
+  val whitespace: P0[Unit] = P.until0(P.not(P.charIn(" \t\n\r") | comment)).void
 
   def spaced[A](p: P0[A]): P0[A] = p <* whitespace
   def spaced[A](p: P[A]): P[A] = p <* whitespace
@@ -128,8 +132,9 @@ object Parser {
       negation ~
       spaced(atom | parens(P.defer(disjunction)) /*| constraint*/)
     ).map {
-      case (negated, atom: Atom) => ConjunctionTerm(negated, ConjunctionBodyAtom(atom))
-      case (negated, disjunction: Disjunction) => ConjunctionTerm(negated, ConjunctionBodyDisjunction(disjunction))
+      case (negated, atom: Atom) => ConjunctionTermAtom(negated, atom)
+      // TODO: constraint
+      case (negated, disjunction: Disjunction) => ConjunctionTermDisjunction(negated, disjunction)
     }.asInstanceOf[P[ConjunctionTerm]]
 
   val conjunction: P[Conjunction] =
@@ -154,12 +159,44 @@ object Parser {
     ).map { case ((atoms, disjunction), qp) => Rule(atoms.toList, disjunction, qp) }
   }
 
+  // DIRECTIVE
+
+  val directiveQualifier: P[DirectiveQualifier] =
+    P.string(".input").as(DirectiveQualifierInput) |
+    P.string(".output").as(DirectiveQualifierOutput) |
+    P.string(".printsize").as(DirectiveQualifierPrintsize) |
+    P.string(".limitsize").as(DirectiveQualifierLimitsize)
+
+  val directiveValue: P[DirectiveValue] = {
+    P.string("true").as(DirectiveValueBool(true)) |
+    P.string("false").as(DirectiveValueBool(false)) |
+    Literals.number.map(DirectiveValueNumber.apply) |
+    Literals.identifier.map(DirectiveValueIdent.apply) |
+    Literals.string.map(DirectiveValueString.apply)
+  }
+
+  val directiveMapping: P[(String, DirectiveValue)] =
+    (spaced(Literals.identifier) <* spaced(P.char('='))) ~ spaced(directiveValue)
+
+  val directive: P[Directive] =
+    (
+      spaced(directiveQualifier) ~
+      spaced(qualifiedName).repSep(Separators.comma) ~
+      spaced(parens(spaced(directiveMapping).repSep(Separators.comma))).?
+    ).map {
+      case ((q, n), m) => Directive(q, n.toList, m match {
+        case Some(l) => Some(Map.from(l.toList))
+        case None => None
+      })
+    }
+
   // PROGRAM
 
   val program: P[Seq[Any]] = (
     fact.backtrack |
     rule |
-    relation
+    relation |
+    directive
   ).rep.map(_.toList)
 
   // PARSE METHODS
@@ -169,7 +206,8 @@ object Parser {
       val errorChar = if (err.failedAtOffset < source.length) source(err.failedAtOffset) else " "
       System.out.print(source.substring(0, err.failedAtOffset))
       System.out.print(s"$RED$UNDERLINED$errorChar$RESET")
-      System.out.print(source.substring(err.failedAtOffset + 1))
+      if (err.failedAtOffset < source.length)
+        System.out.print(source.substring(err.failedAtOffset + 1))
 
       throw new Exception(s"Parser error! Expected: ${err.expected}")
     case Right(value) => value

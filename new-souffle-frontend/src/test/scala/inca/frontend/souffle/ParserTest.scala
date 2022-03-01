@@ -37,7 +37,7 @@ class ParserTest extends AnyFunSuite {
     assert(decls.last == Relation("Nullary", Seq()))
     assert(decls.last.isNullary)
 
-    println(PrettyPrinter.print(r))
+    println(PrettyPrinter.stringify(r))
   }
 
   test("literals") {
@@ -52,7 +52,7 @@ class ParserTest extends AnyFunSuite {
         |""".stripMargin
     )
 
-    println(PrettyPrinter.print(r))
+    println(PrettyPrinter.stringify(r))
   }
 
   test("rules") {
@@ -61,7 +61,7 @@ class ParserTest extends AnyFunSuite {
         |""".stripMargin
     )
 
-    println(PrettyPrinter.print(r))
+    println(PrettyPrinter.stringify(r))
   }
 
   test("program") {
@@ -75,6 +75,15 @@ class ParserTest extends AnyFunSuite {
         |""".stripMargin
     )
 
-    println(PrettyPrinter.print(r))
+    println(PrettyPrinter.stringify(r))
+  }
+
+  test("directive") {
+    val r = Parser.parse(
+      """ .limitsize A(n=47)
+        |""".stripMargin
+    )
+
+    println(PrettyPrinter.stringify(r))
   }
 }
