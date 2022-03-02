@@ -1,6 +1,9 @@
 package inca.frontend.souffle
 
-import inca.frontend.souffle.Syntax.{Atom, Conjunction, ConjunctionTerm, ConjunctionTermAtom, ConjunctionTermConstraint, ConjunctionTermDisjunction, Disjunction, QueryPlan, Rule}
+import inca.frontend.souffle.Syntax.{
+  Atom, Conjunction, ConjunctionTerm, ConjunctionTermAtom, ConjunctionTermConstraint,
+  ConjunctionTermDisjunction, Disjunction, QueryPlan
+}
 
 object EliminateRuleDisjunction {
 
@@ -64,9 +67,9 @@ object EliminateRuleDisjunction {
     r.reduce(crossProduct)
   }
 
-  sealed case class CompiledRule(head: Atom, conjunction: Conjunction, queryPlan: Option[QueryPlan])
+  sealed case class Rule(head: Atom, conjunction: Conjunction, queryPlan: Option[QueryPlan])
 
-  def eliminateRuleDisjunction(e: Rule): Seq[CompiledRule] = {
+  def eliminateRuleDisjunction(e: Syntax.Rule): Seq[Rule] = {
 
     /*
     *   Strategies
@@ -95,6 +98,6 @@ object EliminateRuleDisjunction {
 
     atoms.flatMap(atom =>
       conjunctions.map(conjunction =>
-        CompiledRule(atom, conjunction, e.queryPlan)))
+        Rule(atom, conjunction, e.queryPlan)))
   }
 }

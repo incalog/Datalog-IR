@@ -1,6 +1,6 @@
 package inca.frontend.souffle
 
-import inca.frontend.souffle.Syntax.{ChoiceDomain, DeclaredType, InlineQualifier, MagicQualifier, NoInlineQualifier, NumberType, Relation, RelationAttribute, SymbolType}
+import inca.frontend.souffle.Syntax.{ChoiceDomain, DeclaredType, InlineQualifier, MagicQualifier, NoInlineQualifier, NumberType, RelationDecl, Attribute, SymbolType}
 import org.scalatest.funsuite.AnyFunSuite
 
 class ParserTest extends AnyFunSuite {
@@ -14,27 +14,27 @@ class ParserTest extends AnyFunSuite {
         |""".stripMargin
     )
 
-    val decls = r.map(_.asInstanceOf[Relation])
+    val decls = r.map(_.asInstanceOf[RelationDecl])
 
-    assert(decls.head == Relation(
+    assert(decls.head == RelationDecl(
       "Foo1",
-      Seq(RelationAttribute("x", DeclaredType("hi")))
+      Seq(Attribute("x", DeclaredType("hi")))
     ))
 
-    assert(decls(1) == Relation(
+    assert(decls(1) == RelationDecl(
       "Foo2",
-      Seq(RelationAttribute("x", SymbolType), RelationAttribute("y", NumberType)),
+      Seq(Attribute("x", SymbolType), Attribute("y", NumberType)),
       Seq(InlineQualifier, NoInlineQualifier)
     ))
 
-    assert(decls(2) == Relation(
+    assert(decls(2) == RelationDecl(
       "Foo3",
-      Seq(RelationAttribute("x", SymbolType), RelationAttribute("y", NumberType)),
+      Seq(Attribute("x", SymbolType), Attribute("y", NumberType)),
       Seq(MagicQualifier),
       Some(ChoiceDomain(Seq("x", "y", "z")))
     ))
 
-    assert(decls.last == Relation("Nullary", Seq()))
+    assert(decls.last == RelationDecl("Nullary", Seq()))
     assert(decls.last.isNullary)
 
     println(PrettyPrinter.stringify(r))

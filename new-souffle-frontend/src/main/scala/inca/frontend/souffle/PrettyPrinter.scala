@@ -1,7 +1,7 @@
 package inca.frontend.souffle
 
-import inca.frontend.souffle.EliminateRuleDisjunction.CompiledRule
-import inca.frontend.souffle.Syntax.{ArgumentConstant, ArgumentNil, ArgumentVariable, Atom, BrieQualifier, BtreeQualifier, ChoiceDomain, Conjunction, ConjunctionTermAtom, ConjunctionTermConstraint, ConjunctionTermDisjunction, ConstantFloat, ConstantNumber, ConstantString, ConstantUnsigned, DeclaredType, Directive, DirectiveQualifierInput, DirectiveQualifierLimitsize, DirectiveQualifierOutput, DirectiveQualifierPrintsize, DirectiveValueBool, DirectiveValueIdent, DirectiveValueNumber, DirectiveValueString, Disjunction, EquivalenceQualifier, Fact, FloatType, FloatValue, InlineQualifier, MagicQualifier, NoInlineQualifier, NoMagicQualifier, NumberType, NumberValue, OverrideQualifier, QualifiedName, Relation, RelationAttribute, Rule, StringValue, SymbolType, UnsignedType, Variable, Wildcard}
+import inca.frontend.souffle.EliminateRuleDisjunction.Rule
+import inca.frontend.souffle.Syntax.{ArgumentConstant, ArgumentNil, ArgumentVariable, Atom, BrieQualifier, BtreeQualifier, ChoiceDomain, Conjunction, ConjunctionTermAtom, ConjunctionTermConstraint, ConjunctionTermDisjunction, ConstantFloat, ConstantNumber, ConstantString, ConstantUnsigned, DeclaredType, Directive, DirectiveQualifierInput, DirectiveQualifierLimitsize, DirectiveQualifierOutput, DirectiveQualifierPrintsize, DirectiveValueBool, DirectiveValueIdent, DirectiveValueNumber, DirectiveValueString, Disjunction, EquivalenceQualifier, Fact, FloatType, FloatValue, InlineQualifier, MagicQualifier, NoInlineQualifier, NoMagicQualifier, NumberType, NumberValue, OverrideQualifier, QualifiedName, RelationDecl, Attribute, Rule, StringValue, SymbolType, UnsignedType, Variable, Wildcard}
 
 object PrettyPrinter {
   def stringify(e: Any): String = e match {
@@ -30,7 +30,7 @@ object PrettyPrinter {
         else ""
       }
 
-    case Relation(name, attributes, qualifiers, choiceDomain) =>
+    case RelationDecl(name, attributes, qualifiers, choiceDomain) =>
       s".decl $name(${attributes.map(stringify).mkString(", ")})" + {
         if (qualifiers.nonEmpty) " " + qualifiers.map(stringify).mkString(" ") else ""
       } + {
@@ -40,7 +40,7 @@ object PrettyPrinter {
         }
       }
 
-    case RelationAttribute(name, ty) => s"${stringify(name)}: ${stringify(ty)}"
+    case Attribute(name, ty) => s"${stringify(name)}: ${stringify(ty)}"
 
     case BtreeQualifier => "btree"
     case BrieQualifier => "brie"
@@ -58,13 +58,13 @@ object PrettyPrinter {
 
     case ChoiceDomain(body) => body.map(stringify).mkString(", ")
 
-    case Rule(atoms, disjunction, queryPlan) =>
+    case Syntax.Rule(atoms, disjunction, queryPlan) =>
       s"${atoms.map(stringify).mkString(", ")} :- ${stringify(disjunction)}." + {
         if (queryPlan.isDefined) " " + stringify(queryPlan.get)
         else ""
       }
 
-    case CompiledRule(atom, conjunction, queryPlan) =>
+    case EliminateRuleDisjunction.Rule(atom, conjunction, queryPlan) =>
       s"${stringify(atom)} :- ${stringify(conjunction)}." + {
         if (queryPlan.isDefined) " " + stringify(queryPlan.get)
         else ""

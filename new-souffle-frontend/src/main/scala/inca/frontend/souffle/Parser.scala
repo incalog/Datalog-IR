@@ -4,7 +4,7 @@ import cats.parse.Parser.not
 
 import Console.{RED, RESET, UNDERLINED}
 import cats.parse.{Numbers, Parser => P, Parser0 => P0}
-import inca.frontend.souffle.Syntax.{Argument, ArgumentConstant, ArgumentNil, ArgumentVariable, Atom, BrieQualifier, BtreeQualifier, ChoiceDomain, Conjunction, ConjunctionTerm, ConjunctionTermAtom, ConjunctionTermDisjunction, Constant, ConstantFloat, ConstantNumber, ConstantString, ConstantUnsigned, DeclaredType, Directive, DirectiveQualifier, DirectiveQualifierInput, DirectiveQualifierLimitsize, DirectiveQualifierOutput, DirectiveQualifierPrintsize, DirectiveValue, DirectiveValueBool, DirectiveValueIdent, DirectiveValueNumber, DirectiveValueString, Disjunction, EquivalenceQualifier, Expression, Fact, FloatType, FloatValue, InlineQualifier, MagicQualifier, NoInlineQualifier, NoMagicQualifier, NumberType, NumberValue, OverrideQualifier, QualifiedName, QueryPlan, Relation, RelationAttribute, RelationQualifier, Rule, StringValue, SymbolType, Type, UnsignedType}
+import inca.frontend.souffle.Syntax.{Argument, ArgumentConstant, ArgumentNil, ArgumentVariable, Atom, BrieQualifier, BtreeQualifier, ChoiceDomain, Conjunction, ConjunctionTerm, ConjunctionTermAtom, ConjunctionTermDisjunction, Constant, ConstantFloat, ConstantNumber, ConstantString, ConstantUnsigned, DeclaredType, Directive, DirectiveQualifier, DirectiveQualifierInput, DirectiveQualifierLimitsize, DirectiveQualifierOutput, DirectiveQualifierPrintsize, DirectiveValue, DirectiveValueBool, DirectiveValueIdent, DirectiveValueNumber, DirectiveValueString, Disjunction, EquivalenceQualifier, Expression, Fact, FloatType, FloatValue, InlineQualifier, MagicQualifier, NoInlineQualifier, NoMagicQualifier, NumberType, NumberValue, OverrideQualifier, QualifiedName, QueryPlan, RelationDecl, Attribute, RelationQualifier, Rule, StringValue, SymbolType, TypeName, UnsignedType}
 
 object Parser {
 
@@ -48,7 +48,7 @@ object Parser {
 
   // TYPES
 
-  val typename: P[Type] =
+  val typename: P[TypeName] =
     P.string("symbol").as(SymbolType) |
     P.string("number").as(NumberType) |
     P.string("unsigned").as(UnsignedType) |
@@ -64,10 +64,10 @@ object Parser {
 
   // RELATIONS
 
-  val relationAttribute: P[RelationAttribute] =
+  val relationAttribute: P[Attribute] =
     ((spaced(Literals.identifier) <* spaced(Literals.colon)) ~
       spaced(typename))
-      .map { case (n, t) => RelationAttribute(n, t) }
+      .map { case (n, t) => Attribute(n, t) }
 
   val qualifierMap: Map[String, RelationQualifier] = Map(
     "override" -> OverrideQualifier,
@@ -91,7 +91,7 @@ object Parser {
       ).repSep(Separators.comma).map(_.toList.flatten)
         .map(ChoiceDomain.apply)
 
-  val relation: P[Relation] = {
+  val relation: P[RelationDecl] = {
     (
       /* name */ (spaced(P.string(".decl")) *> spaced(Literals.identifier)) ~
       /* attributes */ spaced(parens(relationAttribute.repSep0(Separators.comma))) ~
@@ -99,7 +99,7 @@ object Parser {
       /* choice domain */ choiceDomain.?
     ).map {
       case (((name, attr), qualifiers), choiceDomain) =>
-        Relation(name, attr, qualifiers, choiceDomain)
+        RelationDecl(name, attr, qualifiers, choiceDomain)
     }
   }
 

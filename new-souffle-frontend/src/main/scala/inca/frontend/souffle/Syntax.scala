@@ -8,15 +8,15 @@ object Syntax {
 
   sealed trait SouffleStatement
   object SouffleStatement {
-    implicit case class Pragma(pragma: Syntax.Pragma) extends SouffleStatement
-    implicit case class FunctorDecl(functorDecl: Syntax.FunctorDecl) extends SouffleStatement
-    implicit case class ComponentDecl(component: ComponentDecl) extends SouffleStatement
-    implicit case class ComponentInit(componentInit: Syntax.ComponentInit) extends SouffleStatement
-    implicit case class Directive(directive: Syntax.Directive) extends SouffleStatement
-    implicit case class Rule(rule: Syntax.Rule) extends SouffleStatement
-    implicit case class Fact(fact: Syntax.Fact) extends SouffleStatement
-    implicit case class Relation(relation: Syntax.RelationDecl) extends SouffleStatement
-    implicit case class TypeDecl(typeDecl: Syntax.TypeDecl) extends SouffleStatement
+    implicit class Pragma(pragma: Syntax.Pragma) extends SouffleStatement
+    implicit class FunctorDecl(functorDecl: Syntax.FunctorDecl) extends SouffleStatement
+    implicit class ComponentDecl(component: ComponentDecl) extends SouffleStatement
+    implicit class ComponentInit(componentInit: Syntax.ComponentInit) extends SouffleStatement
+    implicit class Directive(directive: Syntax.Directive) extends SouffleStatement
+    implicit class Rule(rule: Syntax.Rule) extends SouffleStatement
+    implicit class Fact(fact: Syntax.Fact) extends SouffleStatement
+    implicit class Relation(relation: Syntax.RelationDecl) extends SouffleStatement
+    implicit class TypeDecl(typeDecl: Syntax.TypeDecl) extends SouffleStatement
   }
 
   // EXPRESSIONS
@@ -57,7 +57,9 @@ object Syntax {
   case class TypeDeclRecord(name: String, records: Seq[Attribute]) extends TypeDecl
   case class TypeDeclADT(name: String, branches: Seq[ADTBranch]) extends TypeDecl
 
-  case class ADTBranch(name: String, attributes: Seq[Attribute])
+  // ADT DECLARATION
+  // adt_branch ::= IDENT "{" (attribute ( "," attribute)*)? "}"
+  case class ADTBranch(branchId: String, attributes: Seq[Attribute])
 
   // DIRECTIVE VALUES
   // directive_value ::= STRING | IDENT | NUMBER | 'true' | 'false'
@@ -304,14 +306,4 @@ object Syntax {
   // PRAGMAS
   // pragma ::= '.pragma' STRING STRING?
   case class Pragma(param: String, parameterValue: Option[String] = None)
-
-
-  // ADT DECLARATION
-  // adt_branch ::= IDENT "{" (attribute ( "," attribute)*)? "}"
-  case class AdtBranch(branchId: String, attributeList: Seq[Attribute])
-
-  // RECORD DECLARATION
-  // record_list ::= "[" attribute ( "," attribute)* "]"
-  case class RecordList(attributeList: Seq[Attribute])
-
 }
