@@ -227,13 +227,13 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
 
   @tailrec
   private def doSkipAheadTo(stopCond: SourceConstruct[_] => Boolean): Unit = {
-    // hide last point
-    currentFunctionalPoint.foreach { _ =>
-      _controlTraceFrontend.remove(_controlTraceFrontend.size - 1)
-    }
     val stop = frame.cp.point.atom.forall(_.getHint(SourceConstruct.key).exists(h => stopCond(h.asInstanceOf[SourceConstruct[_]])))
     if (!stop) {
       stepOverIR()
+      // hide last point
+      currentFunctionalPoint.foreach { _ =>
+        _controlTraceFrontend.remove(_controlTraceFrontend.size - 1)
+      }
       doSkipAheadTo(stopCond)
     }
   }
@@ -260,6 +260,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
                   case SourceConstruct((m: Match, p: Pattern)) => m.sourceObject == ma.sourceObject && p.sourceObject == next._1.sourceObject
                   case _ => false
                 }
+                skipAheadTo = Some(skipToNextPat) :: skipAheadTo.tail
               }
             } else {
               // pattern succeeded => skip other patterns

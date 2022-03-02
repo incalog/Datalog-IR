@@ -98,7 +98,6 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     assertControlTraceSize(matchProg, "main", q"""Let("x", Num(3), Add(Var("x"), Num(2)))""")(6)
   }
 
-
   val nestedMatchProg: String =
     s"""module M
        |data Exp = Var(String) | Num(Int) | Add(Exp, Exp) | Let(String, Exp, Exp)
@@ -130,7 +129,6 @@ class FunctionalDebuggerTest extends AnyFunSuite {
        |}
        |""".stripMargin
 
-  // TODO fix
   test("nested pattern matching") {
     val (v, n, a, l) = (q"""Var("x")""", q"Num(1)", q"Add(Num(1), Num(2))", q"""Let("x", Num(1), Num(2))""")
 
@@ -156,7 +154,6 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     assertControlTraceSize(Code.plusRealModule, "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(18)
   }
 
-  // TODO fix
   test("plus example extra") {
     assertControlTraceSize(Code.plusRealModuleExtra, "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(21)
   }
