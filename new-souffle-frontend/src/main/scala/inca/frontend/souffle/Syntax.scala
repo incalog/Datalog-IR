@@ -304,4 +304,14 @@ object Syntax {
   // PRAGMAS
   // pragma ::= '.pragma' STRING STRING?
   case class Pragma(param: String, parameterValue: Option[String] = None)
+
+
+  // ADT DECLARATION
+  // adt_branch ::= IDENT "{" (attribute ( "," attribute)*)? "}"
+  case class AdtBranch(branchId: String, attributeList: Seq[Attribute])
+
+  // RECORD DECLARATION
+  // record_list ::= "[" attribute ( "," attribute)* "]"
+  case class RecordList(attributeList: Seq[Attribute])
+
 }
