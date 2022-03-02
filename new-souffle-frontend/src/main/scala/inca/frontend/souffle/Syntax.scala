@@ -2,6 +2,23 @@ package inca.frontend.souffle
 
 object Syntax {
 
+  // PROGRAM
+
+  type SouffleProgram = Seq[SouffleStatement]
+
+  sealed trait SouffleStatement
+  object SouffleStatement {
+    implicit case class Pragma(pragma: Syntax.Pragma) extends SouffleStatement
+    implicit case class FunctorDecl(functorDecl: Syntax.FunctorDecl) extends SouffleStatement
+    implicit case class ComponentDecl(component: ComponentDecl) extends SouffleStatement
+    implicit case class ComponentInit(componentInit: Syntax.ComponentInit) extends SouffleStatement
+    implicit case class Directive(directive: Syntax.Directive) extends SouffleStatement
+    implicit case class Rule(rule: Syntax.Rule) extends SouffleStatement
+    implicit case class Fact(fact: Syntax.Fact) extends SouffleStatement
+    implicit case class Relation(relation: Syntax.RelationDecl) extends SouffleStatement
+    implicit case class TypeDecl(typeDecl: Syntax.TypeDecl) extends SouffleStatement
+  }
+
   // EXPRESSIONS
 
   sealed trait Expression
@@ -13,14 +30,34 @@ object Syntax {
 
   // TYPES
 
-  sealed trait Type
-  case class DeclaredType(name: String) extends Type
+  sealed trait TypeName
+  case class DeclaredType(name: String) extends TypeName
 
-  sealed trait PrimitiveType extends Type
+  sealed trait PrimitiveType extends TypeName
   case object SymbolType extends PrimitiveType
   case object NumberType extends PrimitiveType
   case object UnsignedType extends PrimitiveType
   case object FloatType extends PrimitiveType
+
+  /*   "A type declaration binds a name with a new type.
+  *     The type is either a subtype, an equivalence/union type, a record type, of an ADT."
+  *
+  * type_decl ::= TYPE IDENT ("<:" type_name | "=" ( type_name ( "|" type_name )* | record_list | adt_branch ( "|" adt_branch )* ))
+  *
+  *     or:
+  *
+  * type_decl ::= TYPE IDENT "<:" type_name
+  * type_decl ::= TYPE IDENT "=" ( type_name ( "|" type_name )* )
+  * type_decl ::= TYPE IDENT "=" record_list
+  * type_decl ::= TYPE IDENT "=" adt_branch ( "|" adt_branch )*
+  * */
+  sealed trait TypeDecl
+  case class TypeDeclSubtype(name: String, superType: TypeName) extends TypeDecl
+  case class TypeDeclUnion(name: String, types: Seq[TypeName]) extends TypeDecl
+  case class TypeDeclRecord(name: String, records: Seq[Attribute]) extends TypeDecl
+  case class TypeDeclADT(name: String, branches: Seq[ADTBranch]) extends TypeDecl
+
+  case class ADTBranch(name: String, attributes: Seq[Attribute])
 
   // DIRECTIVE VALUES
   // directive_value ::= STRING | IDENT | NUMBER | 'true' | 'false'
@@ -37,14 +74,18 @@ object Syntax {
   //    ( 'override' | 'inline' | 'no_inline' | 'magic' | 'no_magic' | 'brie' | 'btree' | 'eqrel' )*
   //    choice_domain
 
-  case class Relation(name: String, attributes: Seq[RelationAttribute], qualifiers: Seq[RelationQualifier] = Seq(), choiceDomain: Option[ChoiceDomain] = None) {
+  case class RelationDecl(name: String,
+                          attributes: Seq[Attribute],
+                          qualifiers: Seq[RelationQualifier] = Seq(),
+                          choiceDomain: Option[ChoiceDomain] = None) {
     def isNullary: Boolean = attributes.isEmpty
   }
 
   // attribute ::= IDENT ":" type_name
-  case class RelationAttribute(name: String, ty: Type)
+  case class Attribute(name: String, ty: TypeName)
 
   // relation qualifiers
+  // relation_qualifier ::= 'override' | 'inline' | 'no_inline' | 'magic' | 'no_magic' | 'brie' | 'btree' | 'eqrel'
   sealed trait RelationQualifier
   case object BtreeQualifier extends RelationQualifier
   case object BrieQualifier extends RelationQualifier
@@ -56,7 +97,7 @@ object Syntax {
   case object NoMagicQualifier extends RelationQualifier
 
   // DirectiveQualifier
-  // directive_qualifier  ::= '.input' | '.output' | '.printsize' | '.limitsize'
+  // directive_qualifier ::= '.input' | '.output' | '.printsize' | '.limitsize'
   sealed trait DirectiveQualifier
   case object DirectiveQualifierInput extends DirectiveQualifier
   case object DirectiveQualifierOutput extends DirectiveQualifier
@@ -71,10 +112,6 @@ object Syntax {
   // RULES
   // rule ::= atom ( ',' atom )* ':-' disjunction '.' query_plan?
   case class Rule(atoms: Seq[Atom], disjunction: Disjunction, queryPlan: Option[QueryPlan] = None)
-
-  // A(x) :- B(x); C(x)
-  // A(x) :- B(x)
-  // A(x) :- C(x)
 
   // SUBSUMPTIVE RULE
   // rule ::= atom '<=' atom ':-' disjunction '.' query_plan?
@@ -123,20 +160,20 @@ object Syntax {
   //           | 'true'
   //           | 'false'
 
-  sealed trait ConstraintCmpType
-  object ConstraintCmp {
-    case object Lt extends ConstraintCmpType
-    case object Gt extends ConstraintCmpType
-    case object Leq extends ConstraintCmpType
-    case object Geq extends ConstraintCmpType
-    case object Eq extends ConstraintCmpType
-    case object Neq extends ConstraintCmpType
-    case object Match extends ConstraintCmpType
-    case object Contains extends ConstraintCmpType
+  sealed trait ConstraintCmpOp
+  object ConstraintCmpOp {
+    case object Lt extends ConstraintCmpOp
+    case object Gt extends ConstraintCmpOp
+    case object Leq extends ConstraintCmpOp
+    case object Geq extends ConstraintCmpOp
+    case object Eq extends ConstraintCmpOp
+    case object Neq extends ConstraintCmpOp
+    case object Match extends ConstraintCmpOp
+    case object Contains extends ConstraintCmpOp
   }
 
   sealed trait Constraint
-  case class ConstraintCmp(ty: ConstraintCmpType, l: Argument, r: Argument) extends Constraint
+  case class ConstraintCmp(ty: ConstraintCmpOp, l: Argument, r: Argument) extends Constraint
   case object ConstraintTrue extends Constraint
   case object ConstraintFalse extends Constraint
 
@@ -169,7 +206,7 @@ object Syntax {
   case class ArgumentList(args: Seq[Argument]) extends Argument
   case class ArgumentDollarFunctor(name: String, args: Seq[Argument]) extends Argument
   case class ArgumentSingle(arg: Argument) extends Argument
-  case class ArgumentAlias(arg: Argument, ty: Type) extends Argument
+  case class ArgumentAlias(arg: Argument, ty: TypeName) extends Argument
   case class ArgumentFunctorCall(name: String, arguments: Seq[Argument]) extends Argument
   case class ArgumentAggregator(aggregator: Aggregator) extends Argument
   case class ArgumentUnOp(op: UnOp, argument: Argument) extends Argument
@@ -219,17 +256,17 @@ object Syntax {
   //    '{'
   //        ( type_decl | relation_decl | rule | fact | directive | '.override' IDENT | component_init | component_decl )*
   //    '}'
-  case class Component(ty: ComponentType, supers: Seq[ComponentType], bodies: Seq[ComponentBody])
+  case class ComponentDecl(ty: ComponentType, supers: Seq[ComponentType], bodies: Seq[ComponentBody])
 
   sealed trait ComponentBody
-  case class ComponentBodyType(ty: Type) extends ComponentBody
-  case class ComponentBodyRelation(relation: Relation) extends ComponentBody
+  case class ComponentBodyType(ty: TypeName) extends ComponentBody
+  case class ComponentBodyRelation(relation: RelationDecl) extends ComponentBody
   case class ComponentBodyRule(rule: Rule) extends ComponentBody
   case class ComponentBodyFact(fact: Fact) extends ComponentBody
   case class ComponentBodyDirective(directive: Directive) extends ComponentBody
   case class ComponentBodyOverride(identifier: String) extends ComponentBody
   case class ComponentBodyComponentInit(init: ComponentInit) extends ComponentBody
-  case class ComponentBodyComponentDecl(decl: Component) extends ComponentBody
+  case class ComponentBodyComponentDecl(decl: ComponentDecl) extends ComponentBody
 
   // component_init ::= '.init' IDENT '=' component_type
   case class ComponentInit(name: String, ty: ComponentType)
@@ -246,11 +283,14 @@ object Syntax {
                        params: Option[Map[String, DirectiveValue]])
 
   // FUNCTORS
-  // functor_decl
-  //         ::= '.functor' IDENT '(' ( attribute ( ',' attribute )* )? ')' ':' type_name 'stateful'?
-  case class UserDefinedFunctor(name: String, attributes: Seq[RelationAttribute], returnType: Type, isStateful: Boolean = false)
+  // functor_decl ::=
+  //    '.functor' IDENT '(' ( attribute ( ',' attribute )* )? ')' ':' type_name 'stateful'?
+  case class FunctorDecl(name: String, attributes: Seq[Attribute], returnType: TypeName, isStateful: Boolean = false)
 
-  sealed trait IntrinsicFunctor
+  sealed trait Functor
+  case class UserDefinedFunctor(name: String) extends Functor
+
+  sealed trait IntrinsicFunctor extends Functor
   case object IntrinsicFunctorOrd extends IntrinsicFunctor
   case object IntrinsicFunctorToFloat extends IntrinsicFunctor
   case object IntrinsicFunctorToNumber extends IntrinsicFunctor
@@ -262,6 +302,6 @@ object Syntax {
   case object IntrinsicFunctorAutoInc extends IntrinsicFunctor
 
   // PRAGMAS
-  // pragma   ::= '.pragma' STRING STRING?
+  // pragma ::= '.pragma' STRING STRING?
   case class Pragma(param: String, parameterValue: Option[String] = None)
 }
