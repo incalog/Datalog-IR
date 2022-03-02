@@ -35,8 +35,11 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     super.initialize(modified)
   }
 
+  // skip bodies representing else-branches when corresponding then-branch was chosen
   private var skipElseBranches: List[mutable.Set[SourceObject]] = List()
+  // skip everything until the atoms corresponding to the body of the else-branch/case when the else-branch/case was chosen
   private var skipAheadTo: List[Option[SourceConstruct[_] => Boolean]] = List()
+  // skip the bodies that handle the other patterns of a pattern match if we found a matching pattern
   private var skipAlternativePatterns: List[mutable.Map[SourceObject, Set[SourceObject]]] = List()
 
   private var uris: Map[URI, Diffable] = Map()
@@ -218,7 +221,6 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
       callStack.update(Frame(next, frame.argsTable, Table.empty))
     } else {
       super.doBodyEntry(frame, cp)
-      stepIntoIR()
       skipAheadTo.head.foreach(doSkipAheadTo)
     }
   }
