@@ -1,11 +1,22 @@
 package inca.frontend.souffle
 
-import inca.frontend.souffle.EliminateRuleDisjunction.Rule
-import inca.frontend.souffle.Syntax.{ArgumentConstant, ArgumentNil, ArgumentVariable, Atom, BrieQualifier, BtreeQualifier, ChoiceDomain, Conjunction, ConjunctionTermAtom, ConjunctionTermConstraint, ConjunctionTermDisjunction, ConstantFloat, ConstantNumber, ConstantString, ConstantUnsigned, DeclaredType, Directive, DirectiveQualifierInput, DirectiveQualifierLimitsize, DirectiveQualifierOutput, DirectiveQualifierPrintsize, DirectiveValueBool, DirectiveValueIdent, DirectiveValueNumber, DirectiveValueString, Disjunction, EquivalenceQualifier, Fact, FloatType, FloatValue, InlineQualifier, MagicQualifier, NoInlineQualifier, NoMagicQualifier, NumberType, NumberValue, OverrideQualifier, QualifiedName, RelationDecl, Attribute, Rule, StringValue, SymbolType, UnsignedType, Variable, Wildcard}
+import inca.frontend.souffle.Syntax.{ADTBranch, ArgumentConstant, ArgumentNil, ArgumentVariable, Atom, Attribute, BrieQualifier, BtreeQualifier, ChoiceDomain, Conjunction, ConjunctionTermAtom, ConjunctionTermConstraint, ConjunctionTermDisjunction, ConstantFloat, ConstantNumber, ConstantString, ConstantUnsigned, DeclaredType, Directive, DirectiveQualifierInput, DirectiveQualifierLimitsize, DirectiveQualifierOutput, DirectiveQualifierPrintsize, DirectiveValueBool, DirectiveValueIdent, DirectiveValueNumber, DirectiveValueString, Disjunction, EquivalenceQualifier, Fact, FloatType, FloatValue, InlineQualifier, MagicQualifier, NoInlineQualifier, NoMagicQualifier, NumberType, NumberValue, OverrideQualifier, QualifiedName, RelationDecl, SouffleStatement, StringValue, SymbolType, TypeDeclADT, TypeDeclRecord, TypeDeclSubtype, TypeDeclUnion, UnsignedType, Variable, Wildcard}
 
 object PrettyPrinter {
   def stringify(e: Any): String = e match {
     case l: Seq[Any] => l.map(stringify).mkString("\n")
+
+    case s: SouffleStatement => s match {
+      case SouffleStatement.Pragma(v) => stringify(v)
+      case SouffleStatement.FunctorDecl(v) => stringify(v)
+      case SouffleStatement.ComponentDecl(v) => stringify(v)
+      case SouffleStatement.ComponentInit(v) => stringify(v)
+      case SouffleStatement.Directive(v) => stringify(v)
+      case SouffleStatement.Rule(v) => stringify(v)
+      case SouffleStatement.Fact(v) => stringify(v)
+      case SouffleStatement.RelationDecl(v) => stringify(v)
+      case SouffleStatement.TypeDecl(v) => stringify(v)
+    }
 
     case Variable(name) => name
     case StringValue(value) => "\"" + value + "\""
@@ -92,6 +103,13 @@ object PrettyPrinter {
     case ArgumentConstant(value) => stringify(value)
     case ArgumentVariable(name) => stringify(name)
     case ArgumentNil => "nil"
+
+    case ADTBranch(branchId, attributes) => s"$branchId { ${attributes.map(stringify).mkString(", ")} }"
+
+    case TypeDeclSubtype(name, superType) => s".type $name <: ${stringify(superType)}"
+    case TypeDeclUnion(name, types) => s".type $name = ${types.map(stringify).mkString(" | ")}"
+    case TypeDeclRecord(name, records) => s".type $name = [ ${records.map(stringify).mkString(", ")} ]"
+    case TypeDeclADT(name, branches) => s".type $name = ${branches.map(stringify).mkString(" | ")}"
 
     case _ => e.toString
   }

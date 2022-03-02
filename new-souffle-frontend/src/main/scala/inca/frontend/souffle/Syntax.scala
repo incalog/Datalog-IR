@@ -4,19 +4,30 @@ object Syntax {
 
   // PROGRAM
 
+  // program  ::=
+  // ( pragma |
+  //   functor_decl |
+  //   component_decl |
+  //   component_init |
+  //   directive |
+  //   rule |
+  //   fact |
+  //   relation_decl |
+  //   type_decl )*
+
   type SouffleProgram = Seq[SouffleStatement]
 
   sealed trait SouffleStatement
   object SouffleStatement {
-    implicit class Pragma(pragma: Syntax.Pragma) extends SouffleStatement
-    implicit class FunctorDecl(functorDecl: Syntax.FunctorDecl) extends SouffleStatement
-    implicit class ComponentDecl(component: ComponentDecl) extends SouffleStatement
-    implicit class ComponentInit(componentInit: Syntax.ComponentInit) extends SouffleStatement
-    implicit class Directive(directive: Syntax.Directive) extends SouffleStatement
-    implicit class Rule(rule: Syntax.Rule) extends SouffleStatement
-    implicit class Fact(fact: Syntax.Fact) extends SouffleStatement
-    implicit class Relation(relation: Syntax.RelationDecl) extends SouffleStatement
-    implicit class TypeDecl(typeDecl: Syntax.TypeDecl) extends SouffleStatement
+    case class Pragma(pragma: Syntax.Pragma) extends SouffleStatement
+    case class FunctorDecl(functorDecl: Syntax.FunctorDecl) extends SouffleStatement
+    case class ComponentDecl(component: ComponentDecl) extends SouffleStatement
+    case class ComponentInit(componentInit: Syntax.ComponentInit) extends SouffleStatement
+    case class Directive(directive: Syntax.Directive) extends SouffleStatement
+    case class Rule(rule: Syntax.Rule) extends SouffleStatement
+    case class Fact(fact: Syntax.Fact) extends SouffleStatement
+    case class RelationDecl(relation: Syntax.RelationDecl) extends SouffleStatement
+    case class TypeDecl(typeDecl: Syntax.TypeDecl) extends SouffleStatement
   }
 
   // EXPRESSIONS

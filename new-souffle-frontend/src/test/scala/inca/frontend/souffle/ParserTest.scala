@@ -75,7 +75,7 @@ class ParserTest extends AnyFunSuite {
         |""".stripMargin
     )
 
-    println(PrettyPrinter.stringify(r))
+    PrettyPrinter.print(r)
   }
 
   test("directive") {

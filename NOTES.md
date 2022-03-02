@@ -105,3 +105,16 @@ A, (B; C), (D; E)
 		A, C, (D; E)
 				A, C, D
 				A, C, E
+
+## Stratification
+
+forbidden:
+
+A :- !B
+B :- !A
+
+## Capturing
+
+All variables have to be captured
+
+A(x, y) :- B(x)
