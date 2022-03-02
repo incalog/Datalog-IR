@@ -250,6 +250,8 @@ object Syntax {
   //         ::= '.functor' IDENT '(' ( attribute ( ',' attribute )* )? ')' ':' type_name 'stateful'?
   case class UserDefinedFunctor(name: String, attributes: Seq[RelationAttribute], returnType: Type, isStateful: Boolean = false)
 
+  // INTRINSIC FUNCTOR
+  // intrinsic_functor ::= 'ord' | 'to_float' | 'to_number' | 'to_string' | 'to_unsigned' | 'cat' | 'strlen' | 'substr' | 'autoinc'
   sealed trait IntrinsicFunctor
   case object IntrinsicFunctorOrd extends IntrinsicFunctor
   case object IntrinsicFunctorToFloat extends IntrinsicFunctor
@@ -264,4 +266,16 @@ object Syntax {
   // PRAGMAS
   // pragma   ::= '.pragma' STRING STRING?
   case class Pragma(param: String, parameterValue: Option[String] = None)
+
+  // ADT DECLARATION
+  // adt_branch ::= IDENT "{" (attribute ( "," attribute)*)? "}"
+  case class AdtBranch(branchId: String, attributeList: Seq[RelationAttribute])
+
+  // RECORD DECLARATION
+  // record_list ::= "[" attribute ( "," attribute)* "]"
+  case class RecordList(attributeList: Seq[RelationAttribute])
+
+
+
+
 }
