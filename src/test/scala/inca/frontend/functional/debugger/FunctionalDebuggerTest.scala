@@ -194,4 +194,48 @@ class FunctionalDebuggerTest extends AnyFunSuite {
   test("plus example extra") {
     assertControlTraceSize(Code.plusRealModuleExtra, "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(21)
   }
+
+  test("tuple example") {
+    val code: String =
+      s"""module M
+         |@main def main(): (Int, Boolean) = (1 + 1, true && false)
+         |""".stripMargin
+    assertControlTraceSize(code, "main")(4)
+  }
+
+  test("set example") {
+    val code: String =
+      s"""module M
+         |@main def main(): Set[Int] = {1 + 1, 2 + 1, 3 + 1}
+         |""".stripMargin
+    assertControlTraceSize(code, "main")(5)
+  }
+
+  test("set comprehension") {
+    val code: String =
+      s"""module M
+         |@main def main: Set[Int] = { (x+1) | x in intSet()}
+         |def intSet(): Set[Int] = {1, 2, 3, 4}
+         |""".stripMargin
+    assertControlTraceSize(code, "main")(8)
+  }
+
+  test("nested binary") {
+    val code: String =
+      s"""module M
+         |@main def main(): Int = (1 + 4) + (3 + 4)
+         |""".stripMargin
+    assertControlTraceSize(code, "main")(5)
+  }
+
+  // TODO fix we currently do not consider the set to fold over
+  ignore("fold example") {
+    val code: String =
+      s"""module M
+         |def add(x: Int, y: Int): Int = x + y
+         |@main def main(): Int = fold(0, add, {1 + 1, 2 + 3, 3 + 4})
+         |""".stripMargin
+    assertControlTraceSize(code, "main")(6)
+
+  }
 }
