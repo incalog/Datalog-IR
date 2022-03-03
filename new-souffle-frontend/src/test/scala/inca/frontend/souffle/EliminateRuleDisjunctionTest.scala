@@ -1,5 +1,6 @@
 package inca.frontend.souffle
 
+import Syntax._
 import org.scalatest.funsuite.AnyFunSuite
 
 class EliminateRuleDisjunctionTest extends AnyFunSuite {

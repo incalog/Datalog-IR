@@ -1,10 +1,30 @@
 package inca.frontend.souffle
 
+import Syntax._
+import inca.backend.ir.{Datalog, DatalogPrinter}
+
 object PrettyPrinter {
+  def stringifyDatalog(e: Any)(implicit verbose: Boolean = true): String = e match {
+    case e: Datalog.Module => DatalogPrinter.prettyModule(e)
+    case e: Datalog.Pattern => DatalogPrinter.prettyPattern(e)
+    case e: Datalog.Visibility => DatalogPrinter.prettyVis(Some(e))
+    case e: Option[Datalog.Visibility] => DatalogPrinter.prettyVis(e)
+    case e: Datalog.Param => DatalogPrinter.prettyParam(e)
+    case e: Datalog.Type => DatalogPrinter.prettyType(e)
+    case e: Datalog.Body => DatalogPrinter.prettyBody(e)
+    case e: Datalog.Atom => DatalogPrinter.prettyAtom(e)
+    case e: Datalog.Link => DatalogPrinter.prettyLink(e)
+    case e: Datalog.Term => DatalogPrinter.prettyTerm(e)
+    case e: Datalog.Comparator => DatalogPrinter.prettyComparator(e)
+    case _ => e.toString
+  }
+
+  def printDatalog(e: Any)(implicit verbose: Boolean = true): Unit =
+    println(stringifyDatalog(e)(verbose))
+
   def stringify(e: Any): String = e match {
     case l: Seq[Any] => l.map(stringify).mkString("\n")
-
-    case SouffleProgram(statements) => stringify(statements)
+    case e: SouffleProgram => e.map(stringify).mkString("\n")
 
     case Variable(name) => name
     case StringValue(value) => "\"" + value + "\""
@@ -99,7 +119,7 @@ object PrettyPrinter {
     case TypeDeclRecord(name, records) => s".type $name = [ ${records.map(stringify).mkString(", ")} ]"
     case TypeDeclADT(name, branches) => s".type $name = ${branches.map(stringify).mkString(" | ")}"
 
-    case _ => e.toString
+    case _ => stringifyDatalog(e)
   }
 
   def print(e: Any): Unit = println(stringify(e))

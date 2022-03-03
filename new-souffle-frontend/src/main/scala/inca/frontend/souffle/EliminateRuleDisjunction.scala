@@ -1,5 +1,7 @@
 package inca.frontend.souffle
 
+import Syntax._
+
 object EliminateRuleDisjunction {
 
   /*    Strategy
@@ -64,7 +66,7 @@ object EliminateRuleDisjunction {
 
   sealed case class Rule(head: Atom, conjunction: Conjunction, queryPlan: Option[QueryPlan])
 
-  def eliminateRuleDisjunction(e: inca.frontend.souffle.Rule): Seq[Rule] = {
+  def eliminateRuleDisjunction(e: Syntax.Rule): Seq[Rule] = {
 
     /*
     *   Strategies

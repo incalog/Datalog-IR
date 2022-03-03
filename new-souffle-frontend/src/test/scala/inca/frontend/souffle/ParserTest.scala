@@ -1,5 +1,6 @@
 package inca.frontend.souffle
 
+import Syntax._
 import org.scalatest.funsuite.AnyFunSuite
 
 class ParserTest extends AnyFunSuite {
@@ -13,7 +14,7 @@ class ParserTest extends AnyFunSuite {
         |""".stripMargin
     )
 
-    val decls = r.statements.map(_.asInstanceOf[RelationDecl])
+    val decls = r.map(_.asInstanceOf[RelationDecl])
 
     assert(decls.head == RelationDecl(
       "Foo1",

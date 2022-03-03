@@ -1,7 +1,7 @@
 package inca.frontend.souffle
 
+import Syntax._
 import cats.parse.Parser.not
-
 import Console.{RED, RESET, UNDERLINED}
 import cats.parse.{Numbers, Parser => P, Parser0 => P0}
 
@@ -207,7 +207,7 @@ object Parser {
     rule |
     relation |
     directive
-  ).rep.map(statements => SouffleProgram(statements.toList))
+  ).rep.map(_.toList)
 
   // PARSE METHODS
 
