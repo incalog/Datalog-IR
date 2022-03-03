@@ -150,8 +150,45 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     assertControlTraceSize(nestedMatchProg, "main", l, l)(10)
   }
 
-  test("plus example") {
-    assertControlTraceSize(Code.plusRealModule, "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(18)
+  val matchInIfProg: String =
+    s"""module Mod
+       |data Exp = Var(String) | Num(Int) | Add(Exp, Exp)
+       |@main def main(flag: Boolean, exp: Exp): Boolean =
+       |  if (flag == true) {
+       |    exp match {
+       |      case Var(x) => true
+       |      case Num(x) => false
+       |      case Add(x, y) => true
+       |    }
+       |  } else {
+       |    exp match {
+       |      case Var(x) => false
+       |      case Num(x) => true
+       |      case Add(x, y) => true
+       |    }
+       |  }
+       |""".stripMargin
+  test("pattern match in if expression") {
+    assertControlTraceSize(matchInIfProg, "main", q"true", q"""Var("x")""")(4)
+    assertControlTraceSize(matchInIfProg, "main", q"true", q"Num(1)")(5)
+    assertControlTraceSize(matchInIfProg, "main", q"false", q"Num(1)")(5)
+    assertControlTraceSize(matchInIfProg, "main", q"false", q"""Var("x")""")(4)
+  }
+
+  val ifInMatchProg: String =
+    s"""module Mod
+       |data Exp = Var(String) | Num(Int) | Add(Exp, Exp)
+       |@main def main(flag: Boolean, exp: Exp): Boolean = exp match {
+       |  case Var(x) => if (flag == true) true else false
+       |  case Num(x) => if (flag == true) false else true
+       |  case Add(x, y) => true
+       |}
+       |""".stripMargin
+  test("if expression in pattern match") {
+    assertControlTraceSize(ifInMatchProg, "main", q"true", q"""Var("x")""")(4)
+    assertControlTraceSize(ifInMatchProg, "main", q"true", q"Num(1)")(5)
+    assertControlTraceSize(ifInMatchProg, "main", q"false", q"Num(1)")(5)
+    assertControlTraceSize(ifInMatchProg, "main", q"false", q"""Var("x")""")(4)
   }
 
   test("plus example extra") {
