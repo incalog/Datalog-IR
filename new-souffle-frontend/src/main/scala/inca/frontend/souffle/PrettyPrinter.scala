@@ -1,22 +1,10 @@
 package inca.frontend.souffle
 
-import inca.frontend.souffle.Syntax.{ADTBranch, ArgumentConstant, ArgumentNil, ArgumentVariable, Atom, Attribute, BrieQualifier, BtreeQualifier, ChoiceDomain, Conjunction, ConjunctionTermAtom, ConjunctionTermConstraint, ConjunctionTermDisjunction, ConstantFloat, ConstantNumber, ConstantString, ConstantUnsigned, DeclaredType, Directive, DirectiveQualifierInput, DirectiveQualifierLimitsize, DirectiveQualifierOutput, DirectiveQualifierPrintsize, DirectiveValueBool, DirectiveValueIdent, DirectiveValueNumber, DirectiveValueString, Disjunction, EquivalenceQualifier, Fact, FloatType, FloatValue, InlineQualifier, MagicQualifier, NoInlineQualifier, NoMagicQualifier, NumberType, NumberValue, OverrideQualifier, QualifiedName, RelationDecl, SouffleStatement, StringValue, SymbolType, TypeDeclADT, TypeDeclRecord, TypeDeclSubtype, TypeDeclUnion, UnsignedType, Variable, Wildcard}
-
 object PrettyPrinter {
   def stringify(e: Any): String = e match {
     case l: Seq[Any] => l.map(stringify).mkString("\n")
 
-    case s: SouffleStatement => s match {
-      case SouffleStatement.Pragma(v) => stringify(v)
-      case SouffleStatement.FunctorDecl(v) => stringify(v)
-      case SouffleStatement.ComponentDecl(v) => stringify(v)
-      case SouffleStatement.ComponentInit(v) => stringify(v)
-      case SouffleStatement.Directive(v) => stringify(v)
-      case SouffleStatement.Rule(v) => stringify(v)
-      case SouffleStatement.Fact(v) => stringify(v)
-      case SouffleStatement.RelationDecl(v) => stringify(v)
-      case SouffleStatement.TypeDecl(v) => stringify(v)
-    }
+    case SouffleProgram(statements) => stringify(statements)
 
     case Variable(name) => name
     case StringValue(value) => "\"" + value + "\""
@@ -69,7 +57,7 @@ object PrettyPrinter {
 
     case ChoiceDomain(body) => body.map(stringify).mkString(", ")
 
-    case Syntax.Rule(atoms, disjunction, queryPlan) =>
+    case Rule(atoms, disjunction, queryPlan) =>
       s"${atoms.map(stringify).mkString(", ")} :- ${stringify(disjunction)}." + {
         if (queryPlan.isDefined) " " + stringify(queryPlan.get)
         else ""

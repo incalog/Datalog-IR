@@ -1,6 +1,5 @@
 package inca.frontend.souffle
 
-import inca.frontend.souffle.Syntax.{Atom, Conjunction, ConjunctionTerm, ConjunctionTermAtom, ConjunctionTermDisjunction, Disjunction, QualifiedName}
 import org.scalatest.funsuite.AnyFunSuite
 
 class EliminateRuleDisjunctionTest extends AnyFunSuite {

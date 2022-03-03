@@ -4,7 +4,6 @@ import cats.parse.Parser.not
 
 import Console.{RED, RESET, UNDERLINED}
 import cats.parse.{Numbers, Parser => P, Parser0 => P0}
-import inca.frontend.souffle.Syntax.{Argument, ArgumentConstant, ArgumentNil, ArgumentVariable, Atom, Attribute, BrieQualifier, BtreeQualifier, ChoiceDomain, Conjunction, ConjunctionTerm, ConjunctionTermAtom, ConjunctionTermDisjunction, Constant, ConstantFloat, ConstantNumber, ConstantString, ConstantUnsigned, DeclaredType, Directive, DirectiveQualifier, DirectiveQualifierInput, DirectiveQualifierLimitsize, DirectiveQualifierOutput, DirectiveQualifierPrintsize, DirectiveValue, DirectiveValueBool, DirectiveValueIdent, DirectiveValueNumber, DirectiveValueString, Disjunction, EquivalenceQualifier, Expression, Fact, FloatType, FloatValue, InlineQualifier, MagicQualifier, NoInlineQualifier, NoMagicQualifier, NumberType, NumberValue, OverrideQualifier, QualifiedName, QueryPlan, RelationDecl, RelationQualifier, Rule, SouffleProgram, SouffleStatement, StringValue, SymbolType, TypeName, UnsignedType}
 
 object Parser {
 
@@ -208,17 +207,7 @@ object Parser {
     rule |
     relation |
     directive
-  ).map {
-    //case v@Syntax.Pragma(_, _) => SouffleStatement.Pragma(v)
-    //case v@Syntax.FunctorDecl => ???
-    //case v@Syntax.ComponentDecl => ???
-    //case v@Syntax.ComponentInit => ???
-    case v@Syntax.Directive(_,_,_) => SouffleStatement.Directive(v)
-    case v@Syntax.Rule(_,_,_) => SouffleStatement.Rule(v)
-    case v@Syntax.Fact(_) => SouffleStatement.Fact(v)
-    case v@Syntax.RelationDecl(_,_,_,_) => SouffleStatement.RelationDecl(v)
-    //case v@Syntax.TypeDecl => ???
-  }.rep.map(_.toList)
+  ).rep.map(statements => SouffleProgram(statements.toList))
 
   // PARSE METHODS
 
