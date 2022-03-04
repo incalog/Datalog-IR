@@ -119,4 +119,11 @@ class ParserTest extends AnyFunSuite {
 
     PrettyPrinter.print(Parser.parse(Parser.rule, "A(x) :- x = 0."))
   }
+
+  test("typeDecls") {
+    PrettyPrinter.print(Parser.parse(Parser.typeDecl, ".type A <: B"))
+    PrettyPrinter.print(Parser.parse(Parser.typeDecl, ".type A = B | C | number"))
+    PrettyPrinter.print(Parser.parse(Parser.typeDecl, ".type A = [ a: float, b: symbol ]"))
+    PrettyPrinter.print(Parser.parse(Parser.typeDecl, ".type A = B { b: number } | C { c: symbol }"))
+  }
 }
