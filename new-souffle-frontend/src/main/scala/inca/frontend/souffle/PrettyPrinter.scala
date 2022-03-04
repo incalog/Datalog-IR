@@ -41,12 +41,10 @@ object PrettyPrinter {
       case DeclaredType(name) => name
       case Syntax.AnyType => "Any"
       case Syntax.NilType => "Nil"
-      case primitiveType: PrimitiveType => primitiveType match {
-        case SymbolType => "symbol"
-        case NumberType => "number"
-        case UnsignedType => "unsigned"
-        case FloatType => "float"
-      }
+      case SymbolType => "symbol"
+      case NumberType => "number"
+      case UnsignedType => "unsigned"
+      case FloatType => "float"
     }
 
     case e: DirectiveValue => e match {
