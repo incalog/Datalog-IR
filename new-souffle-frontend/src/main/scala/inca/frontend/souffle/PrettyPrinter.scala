@@ -98,8 +98,13 @@ object PrettyPrinter {
         else ""
       }
 
-    // TODO: SubsumptiveRule
-    // case SubsumptiveRule(atom1, atom2, disjunction, queryPlan) => ???
+
+    case SubsumptiveRule(atom1, atom2, disjunction, queryPlan) =>
+      queryPlan match {
+        case Some(value) => s"${stringify(atom1)} <= ${stringify(atom2)} :- ${stringify(disjunction)} ${stringify(value)}"
+        case None => s"${stringify(atom1)} <= ${stringify(atom2)} :- ${stringify(disjunction)}"
+      }
+
 
     case EliminateRuleDisjunction.Rule(atom, conjunction, queryPlan) =>
       s"${stringify(atom)} :- ${stringify(conjunction)}." + {
@@ -173,54 +178,73 @@ object PrettyPrinter {
       case Syntax.BinOpBShrU => "bshru"
     }
 
-    // TODO: AGGREGATOR
-    /*
+
     case e: Aggregator => e match {
-      case AggregatorMin(argument, cond) => ???
-      case AggregatorMax(argument, cond) => ???
-      case AggregatorMean(argument, cond) => ???
-      case AggregatorSum(argument, cond) => ???
-      case AggregatorCount(cond) => ???
-      case AggregatorRange(arg1, arg2, arg3) => ???
+      case AggregatorMin(argument, cond) =>
+        cond match {
+          case AggregatorConditionAtom(atom) => s"min ${stringify(argument)}: ${stringify(atom)}"
+          case AggregatorConditionDisjunction(disjunction) => s"min ${stringify(argument)}: {${stringify(disjunction)}}"
+        }
+      case AggregatorMax(argument, cond) =>
+        cond match {
+          case AggregatorConditionAtom(atom) => s"max ${stringify(argument)}: ${stringify(atom)}"
+          case AggregatorConditionDisjunction(disjunction) => s"max ${stringify(argument)}: {${stringify(disjunction)}}"
+        }
+      case AggregatorMean(argument, cond) =>
+        cond match {
+          case AggregatorConditionAtom(atom) => s"mean ${stringify(argument)}: ${stringify(atom)}"
+          case AggregatorConditionDisjunction(disjunction) => s"mean ${stringify(argument)}: {${stringify(disjunction)}}"
+        }
+      case AggregatorSum(argument, cond) =>
+        cond match {
+          case AggregatorConditionAtom(atom) => s"sum ${stringify(argument)}: ${stringify(atom)}"
+          case AggregatorConditionDisjunction(disjunction) => s"sum ${stringify(argument)}: {${stringify(disjunction)}}"
+        }
+      case AggregatorCount(cond) =>
+        cond match {
+          case AggregatorConditionAtom(atom) => s"count: ${stringify(atom)}"
+          case AggregatorConditionDisjunction(disjunction) => s"count: {${stringify(disjunction)}}"
+        }
+      case AggregatorRange(arg1, arg2, arg3) => s"range( ${stringify(arg1)}, ${stringify(arg2)}, ${stringify(arg3)} )"
     }
-     */
 
-    // TODO: AGGREGATORCONDITION
-    /*
+
     case e: AggregatorCondition => e match {
-      case AggregatorConditionAtom(atom) => ???
-      case AggregatorConditionDisjunction(disjunction) => ???
+      case AggregatorConditionAtom(atom) => stringify(atom)
+      case AggregatorConditionDisjunction(disjunction) => s"{ ${stringify(disjunction)} }"
     }
-     */
 
-    // TODO: COMPONENTDECL
-    // case ComponentDecl(ty, supers, bodies) => ???
 
-    // TODO: COMPONENTBODY
-    /*
+    // TODO: Supers can either be divided by "," or by ":", only "," supported so far
+    //  unsure which criteria to use to determine which one required in context
+    case ComponentDecl(ty, supers, bodies) =>
+      s"${stringify(ty)} ${supers.map(stringify).mkString(",")} { ${bodies.map(stringify).mkString(" ")} }"
+
+
     case e: ComponentBody => e match {
-      case ComponentBodyType(ty) => ???
-      case ComponentBodyRelation(relation) => ???
-      case ComponentBodyRule(rule) => ???
-      case ComponentBodyFact(fact) => ???
-      case ComponentBodyDirective(directive) => ???
-      case ComponentBodyOverride(identifier) => ???
-      case ComponentBodyComponentInit(init) => ???
-      case ComponentBodyComponentDecl(decl) => ???
+      case ComponentBodyType(ty) => stringify(ty)
+      case ComponentBodyRelation(relation) => stringify(relation)
+      case ComponentBodyRule(rule) => stringify(rule)
+      case ComponentBodyFact(fact) => stringify(fact)
+      case ComponentBodyDirective(directive) => stringify(directive)
+      case ComponentBodyOverride(identifier) => s".override ${stringify(identifier)}"
+      case ComponentBodyComponentInit(init) => stringify(init)
+      case ComponentBodyComponentDecl(decl) => stringify(decl)
     }
-     */
 
-    // TODO: COMPONENTINIT
-    // case ComponentInit(name, ty) => ???
 
-    // TODO: COMPONENTTYPE
-    // case ComponentType(name, arguments) => ???
+    case ComponentInit(name, ty) => s".init ${stringify(name)} = ${stringify(ty)}"
 
-    // TODO: FUNCTORDECL
-    // case FunctorDecl(name, attributes, returnType, isStateful) => ???
 
-    // TODO: PRAGMA
-    // case Pragma(param, parameterValue) => ???
+    case ComponentType(name, arguments) => s"${stringify(name)} < ${arguments.map(stringify).mkString(",")} >"
+
+
+    case FunctorDecl(name, attributes, returnType, isStateful) =>
+      s".functor ${stringify(name)} ( ${attributes.map(stringify).mkString(",")} ): " +
+        s"${stringify(returnType)} ${if(isStateful) "stateful" else ""}"
+
+
+    case Pragma(param, parameterValue) => s".pragma ${stringify(param)} ${stringify(parameterValue)}"
 
 
     case ADTBranch(branchId, attributes) => s"$branchId { ${attributes.map(stringify).mkString(", ")} }"
