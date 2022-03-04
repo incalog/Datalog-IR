@@ -15,6 +15,7 @@ object Parser {
     val semicolon: P[Unit] = P.char(';')
     val underscore: P[Unit] = P.char('_')
     val comma: P[Unit] = P.char(',')
+    val pipe: P[Unit] = P.char('|')
 
     val digit: P[Char] = cats.parse.Rfc5234.digit
     val letter: P[Char] = cats.parse.Rfc5234.alpha
@@ -48,6 +49,7 @@ object Parser {
   object Separators {
     val comma: P[Unit] = spaced(Literals.comma)
     val semicolon: P[Unit] = spaced(Literals.semicolon)
+    val pipe: P[Unit] = spaced(Literals.pipe)
   }
 
   val lineComment: P[Unit] = P.char('/').rep(2) *> P.until0(P.char('\n')).void
@@ -60,6 +62,8 @@ object Parser {
   def spaced[A](p: P[A]): P[A] = p <* whitespace
 
   def parens[A](p: P0[A]): P[A] = spaced(P.char('(')) *> p <* spaced(P.char(')'))
+  def brackets[A](p: P0[A]): P[A] = spaced(P.char('[')) *> p <* spaced(P.char(']'))
+  def braces[A](p: P0[A]): P[A] = spaced(P.char('{')) *> p <* spaced(P.char('}'))
 
   // TYPES
 
@@ -70,6 +74,42 @@ object Parser {
     P.string("float").as(FloatType) |
     Literals.identifier.map(DeclaredType.apply)
 
+  val typeDeclSubtype: P[TypeDeclSubtype] = {
+    (spaced(P.string(".type")) *> spaced(Literals.identifier) <* spaced(P.string("<:"))) ~
+      spaced(typename)
+  }.map { case (sub, sup) => TypeDeclSubtype(sub, sup) }
+
+  val typeDeclUnion: P[TypeDeclUnion] = {
+    (spaced(P.string(".type")) *> spaced(Literals.identifier) <* spaced(P.string("="))) ~
+      spaced(typename).repSep(Separators.pipe)
+  }.map { case (name, tys) => TypeDeclUnion(name, tys.toList) }
+
+  // record_list ::= "[" attribute ( "," attribute)* "]"
+  val recordList: P[Seq[Attribute]] = {
+    brackets(relationAttribute.repSep(Separators.comma))
+      .map(_.toList)
+  }
+
+  val typeDeclRecord: P[TypeDeclRecord] = {
+    (spaced(P.string(".type")) *> spaced(Literals.identifier) <* spaced(P.string("="))) ~
+    recordList
+  }.map { case (name, records) => TypeDeclRecord(name, records) }
+
+  val adtBranch: P[ADTBranch] = {
+    spaced(Literals.identifier) ~ braces(relationAttribute.repSep(Separators.comma))
+  }.map { case (id, attributes) => ADTBranch(id, attributes.toList) }
+
+  val typeDeclADT: P[TypeDeclADT] = {
+    (spaced(P.string(".type")) *> spaced(Literals.identifier) <* spaced(P.string("="))) ~
+    adtBranch.repSep(Separators.pipe)
+  }.map { case (name, branches) => TypeDeclADT(name, branches.toList) }
+
+  val typeDecl: P[TypeDecl] =
+    typeDeclSubtype.backtrack |
+    typeDeclRecord.backtrack |
+    typeDeclADT.backtrack |
+    typeDeclUnion
+
   // EXPRESSIONS
 
   val variable: P[Expression] =
@@ -79,7 +119,7 @@ object Parser {
 
   // RELATIONS
 
-  val relationAttribute: P[Attribute] =
+  lazy val relationAttribute: P[Attribute] =
     ((spaced(Literals.identifier) <* spaced(Literals.colon)) ~
       spaced(typename))
       .map { case (n, t) => Attribute(n, t) }
@@ -240,7 +280,8 @@ object Parser {
     fact.backtrack |
     rule |
     relation |
-    directive
+    directive |
+    typeDecl
   ).rep.map(_.toList)
 
   // PARSE METHODS
@@ -258,4 +299,14 @@ object Parser {
   }
 
   def parse(source: String): SouffleProgram = parse(program, source)
+
+  /*  TODO: Missing parsers:
+  * ComponentDecl
+  * ComponentInit
+  * some Arguments
+  * Pragma
+  * Aggregator
+  * SubsumptiveRule
+  * FunctorDecl
+  * */
 }
