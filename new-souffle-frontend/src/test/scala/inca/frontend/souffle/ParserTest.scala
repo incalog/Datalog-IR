@@ -4,6 +4,22 @@ import Syntax._
 import org.scalatest.funsuite.AnyFunSuite
 
 class ParserTest extends AnyFunSuite {
+  test("constants") {
+    def p(src: String): Constant = Parser.parse(Parser.constant, src)
+
+    print(Seq(
+      p("5.42"),
+      p("+5.42"),
+      p("-5.42"),
+      p("5.42"),
+      p(".42"),
+      p("6424"),
+      p("3526"),
+      p("-1363"),
+      p("\"waddup\""),
+    ))
+  }
+
   test("relation declaration") {
     val r = Parser.parse(
       """
@@ -41,6 +57,14 @@ class ParserTest extends AnyFunSuite {
   }
 
   test("literals") {
+    def f(src: String): Float = Parser.parse(Parser.Literals.float, src)
+    assert(f("42.8") == 42.8f)
+    assert(f("+42.8") == 42.8f)
+    assert(f("-42.8") == -42.8f)
+    assert(f(".8") == 0.8f)
+    assert(f("-.8") == -0.8f)
+    assert(f("42e-3") == 0.042f)
+
     assert(Parser.parse(Parser.Literals.string, "\"Hallo!\"") == "Hallo!")
   }
 
@@ -85,5 +109,14 @@ class ParserTest extends AnyFunSuite {
     )
 
     println(PrettyPrinter.stringify(r))
+  }
+
+  test("constraints") {
+    PrettyPrinter.print(Parser.parse(Parser.constraint, "x = 0"))
+    PrettyPrinter.print(Parser.parse(Parser.constraint, "x != 0"))
+    PrettyPrinter.print(Parser.parse(Parser.constraint, "x <= 0"))
+    PrettyPrinter.print(Parser.parse(Parser.constraint, "x < 0"))
+
+    PrettyPrinter.print(Parser.parse(Parser.rule, "A(x) :- x = 0."))
   }
 }

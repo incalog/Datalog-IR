@@ -16,17 +16,33 @@ object Parser {
     val underscore: P[Unit] = P.char('_')
     val comma: P[Unit] = P.char(',')
 
-    val string: P[String] = quotes *> P.until0(quotes) <* quotes
-    val unsigned: P[Int] = Numbers.nonNegativeIntString.map(_.toInt)
-    val number: P[Int] = Numbers.signedIntString.map(_.toInt)
-    val float: P[Float] = Numbers.jsonNumber.map(_.toFloat)
-
     val digit: P[Char] = cats.parse.Rfc5234.digit
     val letter: P[Char] = cats.parse.Rfc5234.alpha
     val identifier: P[String] =
       ((letter | underscore.as('_')) ~ (letter | digit | underscore.as('_')).rep0).map {
         case (c, s) => s"$c${s.mkString}"
       }
+
+    val string: P[String] = quotes *> P.until0(quotes) <* quotes
+    val unsigned: P[Int] = Numbers.nonNegativeIntString.map(_.toInt)
+    val number: P[Int] = Numbers.signedIntString.map(_.toInt)
+
+    val sign: P[String] = P.charIn("+-").map(_.toString)
+    val digits: P[String] = digit.rep.map(_.toList.mkString)
+
+    val float: P[Float] =
+        // +1.5, -.42
+        (sign.?.with1 ~
+          (digits.?.with1 <* P.char('.')) ~
+          digits
+        ).backtrack
+          .map { case ((a, b), c) => (a.getOrElse("") + b.getOrElse("") + "." + c).toFloat } |
+        // 1e-5
+        (sign.?.with1 ~
+          (digits <* P.char('e')) ~
+          sign.? ~
+          digits
+        ).map { case (((a, b), c), d) => (a.getOrElse("") + b + "e" + c.getOrElse("") + d).toFloat }
   }
 
   object Separators {
@@ -106,9 +122,9 @@ object Parser {
     Literals.identifier.repSep(P.char('.')).map(l => QualifiedName(l.toList))
 
   val constant: P[Constant] =
-    Literals.unsigned.map(ConstantUnsigned.apply) |
-    Literals.number.map(ConstantNumber.apply) |
-    Literals.float.map(ConstantFloat.apply) |
+    Literals.float.backtrack.map(ConstantFloat.apply) |
+    Literals.unsigned.backtrack.map(ConstantUnsigned.apply) |
+    Literals.number.backtrack.map(ConstantNumber.apply) |
     Literals.string.map(ConstantString.apply)
 
   val argument: P[Argument] =
@@ -126,13 +142,31 @@ object Parser {
 
   val negation: P0[Boolean] = P.char('!').rep0.map(_.length % 2 == 1)
 
+  val constraintCmpOpInfix: P[ConstraintCmpOp] =
+    P.string("<=").as(ConstraintCmpOp.Leq) |
+    P.string("<").as(ConstraintCmpOp.Lt) |
+    P.string(">").as(ConstraintCmpOp.Gt) |
+    P.string(">=").as(ConstraintCmpOp.Geq) |
+    P.string("=").as(ConstraintCmpOp.Eq) |
+    P.string("!=").as(ConstraintCmpOp.Neq)
+
+  val constraintCmpOpPrefix: P[ConstraintCmpOp] =
+    P.string("match").as(ConstraintCmpOp.Match) |
+    P.string("contains").as(ConstraintCmpOp.Contains)
+
+  val constraint: P[Constraint] =
+    (spaced(argument) ~ spaced(constraintCmpOpInfix) ~ spaced(argument)).map {
+      case ((l, op), r) => ConstraintCmp(op, l, r)
+    }
+    // TODO: extend with match and contains
+
   val conjunctionTerm: P[ConjunctionTerm] =
     (
       negation ~
-      spaced(atom | parens(P.defer(disjunction)) /*| constraint*/)
+      spaced(constraint.backtrack | atom | parens(P.defer(disjunction)))
     ).map {
       case (negated, atom: Atom) => ConjunctionTermAtom(negated, atom)
-      // TODO: constraint
+      case (negated, constraint: Constraint) => ConjunctionTermConstraint(negated, constraint)
       case (negated, disjunction: Disjunction) => ConjunctionTermDisjunction(negated, disjunction)
     }.asInstanceOf[P[ConjunctionTerm]]
 
@@ -184,8 +218,8 @@ object Parser {
       spaced(parens(spaced(directiveMapping).repSep(Separators.comma))).?
     ).map {
       case ((q, n), m) => Directive(q, n.toList, m match {
-        case Some(l) => Some(Map.from(l.toList))
-        case None => None
+        case Some(l) => Map.from(l.toList)
+        case None => Map.empty
       })
     }
 
