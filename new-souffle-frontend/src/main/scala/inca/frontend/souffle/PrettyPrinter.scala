@@ -23,7 +23,7 @@ object PrettyPrinter {
     println(stringifyDatalog(e)(verbose))
 
   def stringify(e: Any): String = e match {
-    case l: Seq[Any] => l.map(stringify).mkString("\n")
+    case l: Iterable[Any] => l.map(stringify).mkString("\n")
     case e: SouffleProgram => e.map(stringify).mkString("\n")
 
     case Variable(name) => name
@@ -45,7 +45,7 @@ object PrettyPrinter {
 
     case Directive(qualifier, qualifiedNames, params) =>
       s"${stringify(qualifier)} ${stringify(qualifiedNames).mkString(", ")}" + {
-        if (params.isDefined) s"(${params.get.map { case (id, v) => s"$id = ${stringify(v)}" }.mkString(", ")})"
+        if (params.nonEmpty) s"(${params.map { case (id, v) => s"$id = ${stringify(v)}" }.mkString(", ")})"
         else ""
       }
 

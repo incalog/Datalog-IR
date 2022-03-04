@@ -120,7 +120,10 @@ object Syntax {
   case class SubsumptiveRule(atom1: Atom, atom2: Atom, disjunction: Disjunction, queryPlan: Option[QueryPlan] = None)
 
   // qualified_name ::= IDENT ( '.' IDENT )*
-  case class QualifiedName(identifiers: Seq[String])
+  case class QualifiedName(identifiers: Seq[String]) {
+    override def toString: String = identifiers.mkString(".")
+  }
+
   object QualifiedName {
     def apply(identifier: String): QualifiedName = QualifiedName(identifier.split('.'))
 
@@ -156,6 +159,10 @@ object Syntax {
   }
   case class ConjunctionTermConstraint(override val isNegated: Boolean, constraint: Constraint) extends ConjunctionTerm {
     override def negated: ConjunctionTerm = ConjunctionTermConstraint(!isNegated, constraint)
+
+    def applyDeMorgan(): ConjunctionTermConstraint =
+      // !(a > b) -> a <= b
+    ConjunctionTermConstraint(!isNegated, constraint.negated)
   }
   case class ConjunctionTermDisjunction(override val isNegated: Boolean, disjunction: Disjunction) extends ConjunctionTerm {
     override def negated: ConjunctionTerm = ConjunctionTermDisjunction(!isNegated, disjunction)
@@ -181,10 +188,32 @@ object Syntax {
     case object Contains extends ConstraintCmpOp
   }
 
-  sealed trait Constraint
-  case class ConstraintCmp(ty: ConstraintCmpOp, l: Argument, r: Argument) extends Constraint
-  case object ConstraintTrue extends Constraint
-  case object ConstraintFalse extends Constraint
+  sealed trait Constraint {
+    def negated: Constraint
+  }
+  case class ConstraintCmp(ty: ConstraintCmpOp, l: Argument, r: Argument) extends Constraint {
+    override def negated: ConstraintCmp =
+      ConstraintCmp(
+        ty match {
+          case ConstraintCmpOp.Lt => ConstraintCmpOp.Geq
+          case ConstraintCmpOp.Gt => ConstraintCmpOp.Leq
+          case ConstraintCmpOp.Leq => ConstraintCmpOp.Gt
+          case ConstraintCmpOp.Geq => ConstraintCmpOp.Lt
+          case ConstraintCmpOp.Eq => ConstraintCmpOp.Neq
+          case ConstraintCmpOp.Neq => ConstraintCmpOp.Eq
+          case ConstraintCmpOp.Match |
+               ConstraintCmpOp.Contains =>
+            throw new Exception("This does not make sense here...")
+        },
+        l, r
+      )
+  }
+  case object ConstraintTrue extends Constraint {
+    override def negated: Constraint = ConstraintFalse
+  }
+  case object ConstraintFalse extends Constraint {
+    override def negated: Constraint = ConstraintTrue
+  }
 
   // constant ::= STRING | NUMBER | UNSIGNED | FLOAT
   sealed trait Constant
@@ -211,10 +240,10 @@ object Syntax {
   }
   case class ArgumentConstant(value: Constant) extends Argument {
     override def getType: TypeName = value match {
-      case ConstantString(value) => SymbolType
-      case ConstantNumber(value) => NumberType
-      case ConstantUnsigned(value) => UnsignedType
-      case ConstantFloat(value) => FloatType
+      case ConstantString(_) => SymbolType
+      case ConstantNumber(_) => NumberType
+      case ConstantUnsigned(_) => UnsignedType
+      case ConstantFloat(_) => FloatType
     }
   }
   case class ArgumentVariable(name: String) extends Argument {
@@ -300,7 +329,7 @@ object Syntax {
   //        ( '(' ( IDENT '=' directive_value ( ',' IDENT '=' directive_value )* )? ')' )?
   case class Directive(qualifier: DirectiveQualifier,
                        qualifiedNames: Seq[QualifiedName],
-                       params: Option[Map[String, DirectiveValue]]) extends SouffleStatement
+                       params: Map[String, DirectiveValue] = Map.empty) extends SouffleStatement
 
   // FUNCTORS
   // functor_decl ::=
