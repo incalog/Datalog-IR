@@ -144,11 +144,11 @@ object PrettyPrinter {
       case ArgumentConstant(value) => stringify(value)
       case ArgumentVariable(name) => stringify(name)
       case Syntax.ArgumentNil => "nil"
-      case ArgumentList(args) => s"${args.map(stringify).mkString(",")}"
-      case ArgumentDollarFunctor(name, args) => s"$$ $name ( ${args.map(stringify).mkString(",")} )"
+      case ArgumentList(args) => s"${args.map(stringify).mkString(", ")}"
+      case ArgumentDollarFunctor(name, args) => s"$$ $name ( ${args.map(stringify).mkString(", ")} )"
       case ArgumentSingle(arg) => s"( ${stringify(arg)} )"
       case ArgumentAlias(arg, ty) => s"as ( ${stringify(arg)}, ${stringify(ty)} )"
-      case ArgumentFunctorCall(name, args) => s"$name ( ${args.map(stringify).mkString(",")} )"
+      case ArgumentFunctorCall(name, args) => s"$name ( ${args.map(stringify).mkString(", ")} )"
       case ArgumentAggregator(aggregator) => stringify(aggregator)
       case ArgumentUnOp(op, arg) => stringify(op) + " " + stringify(arg)
       case ArgumentBinOp(op, l, r) => stringify(l) + " " + stringify(op) + " " + stringify(r)
@@ -215,10 +215,8 @@ object PrettyPrinter {
     }
 
 
-    // TODO: Supers can either be divided by "," or by ":", only "," supported so far
-    //  unsure which criteria to use to determine which one required in context
     case ComponentDecl(ty, supers, bodies) =>
-      s"${stringify(ty)} ${supers.map(stringify).mkString(",")} { ${bodies.map(stringify).mkString(" ")} }"
+      s"${stringify(ty)}: ${supers.map(stringify).mkString(", ")} { ${bodies.map(stringify).mkString(" ")} }"
 
 
     case e: ComponentBody => e match {
@@ -236,11 +234,11 @@ object PrettyPrinter {
     case ComponentInit(name, ty) => s".init ${stringify(name)} = ${stringify(ty)}"
 
 
-    case ComponentType(name, arguments) => s"${stringify(name)} < ${arguments.map(stringify).mkString(",")} >"
+    case ComponentType(name, arguments) => s"${stringify(name)} < ${arguments.map(stringify).mkString(", ")} >"
 
 
     case FunctorDecl(name, attributes, returnType, isStateful) =>
-      s".functor ${stringify(name)} ( ${attributes.map(stringify).mkString(",")} ): " +
+      s".functor ${stringify(name)} ( ${attributes.map(stringify).mkString(", ")} ): " +
         s"${stringify(returnType)} ${if(isStateful) "stateful" else ""}"
 
 
