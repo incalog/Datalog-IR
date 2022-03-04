@@ -280,7 +280,8 @@ object Parser {
     fact.backtrack |
     rule |
     relation |
-    directive
+    directive |
+    typeDecl
   ).rep.map(_.toList)
 
   // PARSE METHODS
@@ -298,4 +299,14 @@ object Parser {
   }
 
   def parse(source: String): SouffleProgram = parse(program, source)
+
+  /*  TODO: Missing parsers:
+  * ComponentDecl
+  * ComponentInit
+  * some Arguments
+  * Pragma
+  * Aggregator
+  * SubsumptiveRule
+  * FunctorDecl
+  * */
 }
