@@ -118,3 +118,25 @@ B :- !A
 All variables have to be captured
 
 A(x, y) :- B(x)
+
+## Compilation path
+
+source
+ -> Parser
+ -> SouffleProgram -> CompiledSouffleModule
+
+...inca stuff follows
+
+## Datalog patterns
+
+```
+Pattern(vis, name, params: Seq[Param], bodies: Seq[Body])
+
+.decl <name>(<params>)
+<name>(<params>) :- <body1>.
+<name>(<params>) :- <body2>.
+...
+```
+
+- datalog pattern corresponds to relation declaraion and all its rules
+- every datalog body corresponds to one souffle rule
