@@ -256,9 +256,9 @@ object Syntax {
   case class ArgumentDollarFunctor(name: String, args: Seq[Argument]) extends Argument
   case class ArgumentSingle(arg: Argument) extends Argument
   case class ArgumentAlias(arg: Argument, ty: TypeName) extends Argument
-  case class ArgumentFunctorCall(name: String, arguments: Seq[Argument]) extends Argument
+  case class ArgumentFunctorCall(name: String, args: Seq[Argument]) extends Argument
   case class ArgumentAggregator(aggregator: Aggregator) extends Argument
-  case class ArgumentUnOp(op: UnOp, argument: Argument) extends Argument
+  case class ArgumentUnOp(op: UnOp, arg: Argument) extends Argument
   case class ArgumentBinOp(op: BinOp, l: Argument, r: Argument) extends Argument
 
   // unary_operation ::= '-' | 'bnot' | 'lnot'
