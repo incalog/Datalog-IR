@@ -63,15 +63,6 @@ object Syntax {
   // adt_branch ::= IDENT "{" (attribute ( "," attribute)*)? "}"
   case class ADTBranch(branchId: String, attributes: Seq[Attribute])
 
-  // DIRECTIVE VALUES
-  // directive_value ::= STRING | IDENT | NUMBER | 'true' | 'false'
-
-  sealed trait DirectiveValue
-  case class DirectiveValueString(value: String) extends DirectiveValue
-  case class DirectiveValueIdent(value: String) extends DirectiveValue
-  case class DirectiveValueNumber(value: Int) extends DirectiveValue
-  case class DirectiveValueBool(value: Boolean) extends DirectiveValue
-
   // RELATIONS
   // relation_decl ::=
   //    '.decl' IDENT ( ',' IDENT )* '(' attribute ( ',' attribute )* ')'
@@ -324,6 +315,15 @@ object Syntax {
 
   // component_type ::= IDENT ( '<' IDENT ( ',' IDENT )* '>' )?
   case class ComponentType(name: String, arguments: Seq[String])
+
+  // DIRECTIVE VALUES
+  // directive_value ::= STRING | IDENT | NUMBER | 'true' | 'false'
+
+  sealed trait DirectiveValue
+  case class DirectiveValueString(value: String) extends DirectiveValue
+  case class DirectiveValueIdent(value: String) extends DirectiveValue
+  case class DirectiveValueNumber(value: Int) extends DirectiveValue
+  case class DirectiveValueBool(value: Boolean) extends DirectiveValue
 
   // DIRECTIVE
   // directive ::=
