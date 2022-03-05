@@ -28,7 +28,9 @@ object Syntax {
 
   // TYPES
 
-  sealed trait TypeName
+  sealed trait TypeName {
+    def isPrimitive: Boolean = this.isInstanceOf[PrimitiveType]
+  }
   case class DeclaredType(name: String) extends TypeName
   case object AnyType extends TypeName
   case object NilType extends TypeName
