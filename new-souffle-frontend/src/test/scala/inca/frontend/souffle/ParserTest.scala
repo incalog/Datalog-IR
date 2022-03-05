@@ -104,6 +104,15 @@ class ParserTest extends AnyFunSuite {
         | A(1, "sina").
         |
         | A(i, s) :- A(0, s).
+        |
+        | .comp Tree<T> : Plant {
+        |   .decl Leaf(n: T)
+        |   Leaf(0).
+        |   Leaf(1).
+        |   Leaf(2).
+        | }
+        |
+        | .init myTree = Tree<number>
         |""".stripMargin
     )
 
