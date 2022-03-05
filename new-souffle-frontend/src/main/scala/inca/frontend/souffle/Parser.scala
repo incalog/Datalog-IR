@@ -314,7 +314,9 @@ object Parser {
     rule |
     relationDecl |
     directive |
-    typeDecl
+    typeDecl |
+    componentDecl |
+    componentInit
   ).rep.map(_.toList)
 
   // PARSE METHODS
