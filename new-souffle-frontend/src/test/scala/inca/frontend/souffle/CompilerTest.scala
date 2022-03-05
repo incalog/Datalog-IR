@@ -45,7 +45,7 @@ class CompilerTest extends AnyFunSuite {
 
     assertFail(c.compileFact(Parser.parse(Parser.fact, "A(x, 0).")))
 
-    c.compileRelationDecl(Parser.parse(Parser.relation, ".decl A(x: number)"))
+    c.compileRelationDecl(Parser.parse(Parser.relationDecl, ".decl A(x: number)"))
     assertFail(c.compileFact(Parser.parse(Parser.fact, "A(1, 2).")))
   }
 
@@ -60,7 +60,7 @@ class CompilerTest extends AnyFunSuite {
   test("rule") {
     val c = new Compiler
 
-    c.compileRelationDecl(Parser.parse(Parser.relation, ".decl A(x: number, y: number)"))
+    c.compileRelationDecl(Parser.parse(Parser.relationDecl, ".decl A(x: number, y: number)"))
 
     c.compileRule(Parser.parse(Parser.rule, "A(x, y) :- x = 0, y = 1."))
     c.compileRule(Parser.parse(Parser.rule, "A(5, y) :- y = 1."))
