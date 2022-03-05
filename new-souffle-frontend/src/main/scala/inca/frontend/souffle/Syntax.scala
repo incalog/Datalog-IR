@@ -308,7 +308,7 @@ object Syntax {
   case class ComponentDecl(ty: ComponentType, supers: Seq[ComponentType], bodies: Seq[ComponentBody]) extends SouffleStatement
 
   sealed trait ComponentBody
-  case class ComponentBodyType(ty: TypeName) extends ComponentBody
+  case class ComponentBodyType(decl: TypeDecl) extends ComponentBody
   case class ComponentBodyRelation(relation: RelationDecl) extends ComponentBody
   case class ComponentBodyRule(rule: Rule) extends ComponentBody
   case class ComponentBodyFact(fact: Fact) extends ComponentBody

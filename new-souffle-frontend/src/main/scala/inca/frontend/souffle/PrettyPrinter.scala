@@ -1,10 +1,7 @@
 package inca.frontend.souffle
 
 import Syntax._
-import com.sun.tools.javac.code.Type
 import inca.backend.ir.{Datalog, DatalogPrinter}
-
-import javax.lang.model.`type`.PrimitiveType
 
 object PrettyPrinter {
   def stringifyDatalog(e: Any)(implicit verbose: Boolean = true): String = e match {
@@ -98,13 +95,11 @@ object PrettyPrinter {
         else ""
       }
 
-
     case SubsumptiveRule(atom1, atom2, disjunction, queryPlan) =>
       queryPlan match {
         case Some(value) => s"${stringify(atom1)} <= ${stringify(atom2)} :- ${stringify(disjunction)} ${stringify(value)}"
         case None => s"${stringify(atom1)} <= ${stringify(atom2)} :- ${stringify(disjunction)}"
       }
-
 
     case EliminateRuleDisjunction.Rule(atom, conjunction, queryPlan) =>
       s"${stringify(atom)} :- ${stringify(conjunction)}." + {
@@ -150,34 +145,40 @@ object PrettyPrinter {
       case ArgumentAlias(arg, ty) => s"as ( ${stringify(arg)}, ${stringify(ty)} )"
       case ArgumentFunctorCall(name, args) => s"$name ( ${args.map(stringify).mkString(", ")} )"
       case ArgumentAggregator(aggregator) => stringify(aggregator)
-      case ArgumentUnOp(op, arg) => stringify(op) + " " + stringify(arg)
+      case ArgumentUnOp(op, arg) =>
+        stringify(op) + {
+          op match {
+            case UnOpMinus => ""
+            case _ => " "
+          }
+        } +
+        stringify(arg)
       case ArgumentBinOp(op, l, r) => stringify(l) + " " + stringify(op) + " " + stringify(r)
     }
 
     case e: UnOp => e match {
-      case Syntax.UnOpMinus => "-"
-      case Syntax.UnOpBNot => "bnot"
-      case Syntax.UnOpLNot => "lnot"
+      case UnOpMinus => "-"
+      case UnOpBNot => "bnot"
+      case UnOpLNot => "lnot"
     }
 
     case e: BinOp => e match {
-      case Syntax.BinOpAdd => "+"
-      case Syntax.BinOpMinus => "-"
-      case Syntax.BinOpMult => "*"
-      case Syntax.BinOpDiv => "/"
-      case Syntax.BinOpMod => "%"
-      case Syntax.BinOpPow => "^"
-      case Syntax.BinOpLAnd => "land"
-      case Syntax.BinOpLOr => "lor"
-      case Syntax.BinOpLXor => "lxor"
-      case Syntax.BinOpBAnd => "band"
-      case Syntax.BinOpBOr => "bor"
-      case Syntax.BinOpBXor => "bxor"
-      case Syntax.BinOpBShl => "bshl"
-      case Syntax.BinOpBShr => "bshr"
-      case Syntax.BinOpBShrU => "bshru"
+      case BinOpAdd => "+"
+      case BinOpMinus => "-"
+      case BinOpMult => "*"
+      case BinOpDiv => "/"
+      case BinOpMod => "%"
+      case BinOpPow => "^"
+      case BinOpLAnd => "land"
+      case BinOpLOr => "lor"
+      case BinOpLXor => "lxor"
+      case BinOpBAnd => "band"
+      case BinOpBOr => "bor"
+      case BinOpBXor => "bxor"
+      case BinOpBShl => "bshl"
+      case BinOpBShr => "bshr"
+      case BinOpBShrU => "bshru"
     }
-
 
     case e: Aggregator => e match {
       case AggregatorMin(argument, cond) =>
@@ -208,16 +209,15 @@ object PrettyPrinter {
       case AggregatorRange(arg1, arg2, arg3) => s"range( ${stringify(arg1)}, ${stringify(arg2)}, ${stringify(arg3)} )"
     }
 
-
     case e: AggregatorCondition => e match {
       case AggregatorConditionAtom(atom) => stringify(atom)
       case AggregatorConditionDisjunction(disjunction) => s"{ ${stringify(disjunction)} }"
     }
 
-
     case ComponentDecl(ty, supers, bodies) =>
-      s"${stringify(ty)}: ${supers.map(stringify).mkString(", ")} { ${bodies.map(stringify).mkString(" ")} }"
-
+      s".comp ${stringify(ty)}: ${supers.map(stringify).mkString(", ")} {\n" +
+      s"${bodies.map("\t" + stringify(_)).mkString("\n")}" +
+      "\n}"
 
     case e: ComponentBody => e match {
       case ComponentBodyType(ty) => stringify(ty)
@@ -230,20 +230,19 @@ object PrettyPrinter {
       case ComponentBodyComponentDecl(decl) => stringify(decl)
     }
 
-
     case ComponentInit(name, ty) => s".init ${stringify(name)} = ${stringify(ty)}"
 
-
-    case ComponentType(name, arguments) => s"${stringify(name)} < ${arguments.map(stringify).mkString(", ")} >"
-
+    case ComponentType(name, arguments) =>
+      stringify(name) + {
+        if (arguments.isEmpty) ""
+        else "<" + arguments.map(stringify).mkString(", ") + ">"
+      }
 
     case FunctorDecl(name, attributes, returnType, isStateful) =>
       s".functor ${stringify(name)} ( ${attributes.map(stringify).mkString(", ")} ): " +
         s"${stringify(returnType)} ${if(isStateful) "stateful" else ""}"
 
-
     case Pragma(param, parameterValue) => s".pragma ${stringify(param)} ${stringify(parameterValue)}"
-
 
     case ADTBranch(branchId, attributes) => s"$branchId { ${attributes.map(stringify).mkString(", ")} }"
 
@@ -273,18 +272,17 @@ object PrettyPrinter {
     case e: Functor => e match {
       case UserDefinedFunctor(name) => s"@${stringify(name)}"
       case e: IntrinsicFunctor => e match {
-        case Syntax.IntrinsicFunctorOrd => "ord"
-        case Syntax.IntrinsicFunctorToFloat => "to_float"
-        case Syntax.IntrinsicFunctorToNumber => "to_number"
-        case Syntax.IntrinsicFunctorToString => "to_string"
-        case Syntax.IntrinsicFunctorToUnsigned => "to_unsigned"
-        case Syntax.IntrinsicFunctorCat => "cat"
-        case Syntax.IntrinsicFunctorStrLen => "strlen"
-        case Syntax.IntrinsicFunctorSubStr => "substr"
-        case Syntax.IntrinsicFunctorAutoInc => "autoinc"
+        case IntrinsicFunctorOrd => "ord"
+        case IntrinsicFunctorToFloat => "to_float"
+        case IntrinsicFunctorToNumber => "to_number"
+        case IntrinsicFunctorToString => "to_string"
+        case IntrinsicFunctorToUnsigned => "to_unsigned"
+        case IntrinsicFunctorCat => "cat"
+        case IntrinsicFunctorStrLen => "strlen"
+        case IntrinsicFunctorSubStr => "substr"
+        case IntrinsicFunctorAutoInc => "autoinc"
       }
     }
-
 
     case _ => stringifyDatalog(e)
   }

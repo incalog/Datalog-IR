@@ -5,6 +5,8 @@ import cats.parse.Parser.not
 import Console.{RED, RESET, UNDERLINED}
 import cats.parse.{Numbers, Parser => P, Parser0 => P0}
 
+case class ParseException(message: String) extends Exception(message)
+
 object Parser {
 
   // HELPERS
@@ -146,7 +148,7 @@ object Parser {
       ).repSep(Separators.comma).map(_.toList.flatten)
         .map(ChoiceDomain.apply)
 
-  val relation: P[RelationDecl] = {
+  val relationDecl: P[RelationDecl] = {
     (
       /* name */ (spaced(P.string(".decl")) *> spaced(Literals.identifier)) ~
       /* attributes */ spaced(parens(relationAttribute.repSep0(Separators.comma))) ~
@@ -263,6 +265,37 @@ object Parser {
       })
     }
 
+  // COMPONENT DECL
+
+  val componentType: P[ComponentType] = {
+    Literals.identifier ~
+    (spaced(P.char('<')) *> spaced(Literals.identifier).repSep(Separators.comma) <* spaced(P.char('>'))).?
+  }.map { case (name, arguments) => ComponentType(name, arguments.map(_.toList).getOrElse(Seq())) }
+
+  val componentBody: P[ComponentBody] =
+    typeDecl.map(ComponentBodyType.apply) |
+    relationDecl.map(ComponentBodyRelation.apply) |
+    fact.backtrack.map(ComponentBodyFact.apply) |
+    rule.map(ComponentBodyRule.apply) |
+    directive.map(ComponentBodyDirective.apply) |
+    (P.string(".override") *> Literals.identifier).map(ComponentBodyOverride.apply) |
+    P.defer(componentInit).map(ComponentBodyComponentInit.apply) |
+    P.defer(componentDecl).map(ComponentBodyComponentDecl.apply)
+
+  lazy val componentDecl: P[ComponentDecl] = {
+    (spaced(P.string(".comp")) *> spaced(componentType)) ~
+    (spaced(Literals.colon) *> spaced(componentType).repSep(Separators.comma)).? ~
+    braces(spaced(componentBody).rep)
+  }.map {
+    case ((ty, supers), bodies) =>
+      ComponentDecl(ty, supers.map(_.toList).getOrElse(Seq()), bodies.toList)
+  }
+
+  lazy val componentInit: P[ComponentInit] = {
+    (spaced(P.string(".init")) *> spaced(Literals.identifier) <* spaced(P.char('='))) ~
+    spaced(componentType)
+  }.map { case (name, ty) => ComponentInit(name, ty) }
+
   // PROGRAM
 
   // program  ::=
@@ -279,7 +312,7 @@ object Parser {
   val program: P[SouffleProgram] = (
     fact.backtrack |
     rule |
-    relation |
+    relationDecl |
     directive |
     typeDecl
   ).rep.map(_.toList)
@@ -294,15 +327,13 @@ object Parser {
       if (err.failedAtOffset < source.length)
         System.out.print(source.substring(err.failedAtOffset + 1))
 
-      throw new Exception(s"Parser error! Expected: ${err.expected}")
+      throw new ParseException(s"Parser error! Expected: ${err.expected}")
     case Right(value) => value
   }
 
   def parse(source: String): SouffleProgram = parse(program, source)
 
   /*  TODO: Missing parsers:
-  * ComponentDecl
-  * ComponentInit
   * some Arguments
   * Pragma
   * Aggregator

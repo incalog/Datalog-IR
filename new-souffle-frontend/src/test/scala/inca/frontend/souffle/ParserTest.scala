@@ -4,6 +4,14 @@ import Syntax._
 import org.scalatest.funsuite.AnyFunSuite
 
 class ParserTest extends AnyFunSuite {
+  def assertParseFail(f: => Any): Unit = {
+    try f
+    catch {
+      case ParseException(_) => assert(0 == 0)
+      case _: Throwable => assert(0 == 1)
+    }
+  }
+
   test("constants") {
     def p(src: String): Constant = Parser.parse(Parser.constant, src)
 
@@ -125,5 +133,30 @@ class ParserTest extends AnyFunSuite {
     PrettyPrinter.print(Parser.parse(Parser.typeDecl, ".type A = B | C | number"))
     PrettyPrinter.print(Parser.parse(Parser.typeDecl, ".type A = [ a: float, b: symbol ]"))
     PrettyPrinter.print(Parser.parse(Parser.typeDecl, ".type A = B { b: number } | C { c: symbol }"))
+  }
+
+  test("componentDecl") {
+    def p(src: String): Unit =
+      PrettyPrinter.print(Parser.parse(Parser.componentDecl, src))
+
+    p(""" .comp Tree : Plant<Wood> {
+        |   .decl Leaf(n: symbol)
+        |   Leaf("a").
+        |   Leaf("b").
+        | }
+        |""".stripMargin)
+
+    p(""" .comp Soup {
+        |   .type A = B
+        | }
+        |""".stripMargin)
+  }
+
+  test("componentInit") {
+    def p(src: String): Unit =
+      PrettyPrinter.print(Parser.parse(Parser.componentInit, src))
+
+    p(".init Tree = Bonsai<A>")
+    assertParseFail(p(".init Tree = Bonsai <A>"))
   }
 }
