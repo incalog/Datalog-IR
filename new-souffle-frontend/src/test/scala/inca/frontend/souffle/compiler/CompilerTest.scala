@@ -1,8 +1,7 @@
-package inca.frontend.souffle.compiler
+package inca.frontend.souffle
 
+import Syntax._
 import inca.backend.ir.Datalog
-import inca.frontend.souffle.Syntax._
-import inca.frontend.souffle.{Parser, PrettyPrinter, compiler}
 import org.scalatest.funsuite.AnyFunSuite
 
 class CompilerTest extends AnyFunSuite {
@@ -16,7 +15,7 @@ class CompilerTest extends AnyFunSuite {
   }
 
   test("relationDecl") {
-    val c = new compiler.Compiler()
+    val c = new Compiler()
     val decl = RelationDecl("A", Seq(Attribute("x", NumberType)))
 
     c.compileRelationDecl(decl)
@@ -26,7 +25,7 @@ class CompilerTest extends AnyFunSuite {
   }
 
   test("fact") {
-    val c = new compiler.Compiler()
+    val c = new Compiler()
 
     val decl = RelationDecl("A", Seq(Attribute("x", FloatType)))
 
@@ -42,7 +41,7 @@ class CompilerTest extends AnyFunSuite {
   }
 
   test("factFail") {
-    val c = new compiler.Compiler
+    val c = new Compiler
 
     assertFail(c.compileFact(Parser.parse(Parser.fact, "A(x, 0).")))
 
@@ -51,7 +50,7 @@ class CompilerTest extends AnyFunSuite {
   }
 
   test("subtyping") {
-    val c = new compiler.Compiler
+    val c = new Compiler
 
     assert(c.isSubtype(UnsignedType, NumberType))
     assert(c.isSubtype(NumberType, FloatType))
@@ -59,27 +58,13 @@ class CompilerTest extends AnyFunSuite {
   }
 
   test("rule") {
-    val c = new compiler.Compiler
+    val c = new Compiler
 
     c.compileRelationDecl(Parser.parse(Parser.relationDecl, ".decl A(x: number, y: number)"))
 
     c.compileRule(Parser.parse(Parser.rule, "A(x, y) :- x = 0, y = 1."))
-    c.compileRule(Parser.parse(Parser.rule, "A(x, y) :- x = 5, (y = 1; y = 7)."))
     c.compileRule(Parser.parse(Parser.rule, "A(5, y) :- y = 1."))
 
     PrettyPrinter.print(c.patterns.values)
-  }
-
-  test("directives") {
-    val c = new Compiler
-
-    c.compileRelationDecl(Parser.parse(Parser.relationDecl, ".decl A(a: number, b: symbol)"))
-    c.compileRelationDecl(Parser.parse(Parser.relationDecl, ".decl B(a: float)"))
-
-    c.compileDirective(Parser.parse(Parser.directive, ".input A"))
-    c.compileDirective(Parser.parse(Parser.directive, ".printsize B"))
-
-    c.inputs.map(c.relationDecls.apply).foreach(PrettyPrinter.print)
-    c.printSizes.map(c.relationDecls.apply).foreach(PrettyPrinter.print)
   }
 }

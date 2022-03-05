@@ -1,11 +1,8 @@
-package inca.frontend.souffle.compiler
+package inca.frontend.souffle
 
 import inca.backend.ir.Datalog
-import inca.frontend.constraint.compiler.ConstraintOptions
-import inca.frontend.souffle.Syntax._
-import inca.frontend.souffle.{PrettyPrinter, Syntax}
+import Syntax._
 import inca.util.Scala
-import inca.runtime.context.DataModel
 
 import scala.collection.mutable.{Map => MutableMap}
 import scala.meta.{Term, XtensionQuasiquoteTerm}
@@ -14,9 +11,6 @@ class Compiler {
 
   val relationDecls: MutableMap[QualifiedName, RelationDecl] = MutableMap.empty
   val patterns: MutableMap[QualifiedName, Datalog.Pattern] = MutableMap.empty
-
-  var inputs: Seq[QualifiedName] = Seq.empty
-  var printSizes: Seq[QualifiedName] = Seq.empty
 
   // <subtype> -> <direct supertypes>
   val types: MutableMap[TypeName, Seq[TypeName]] = MutableMap(
@@ -238,17 +232,18 @@ class Compiler {
         case ConstraintCmpOp.Geq => compileCmp(l, r, ">=")
         case ConstraintCmpOp.Eq => Datalog.Eq(compileArgument(l), compileArgument(r))
         case ConstraintCmpOp.Neq => Datalog.Neq(compileArgument(l), compileArgument(r))
+        case ConstraintCmpOp.Match =>
+          // comparable to SQL 'like'
+          // example: match("a.*", <someString>)
+          compileStringConstraint(l, r, "matches")
+        case ConstraintCmpOp.Contains =>
+          compileStringConstraint(l, r, "contains")
       }
-      case ConstraintMatch(pattern, argument) =>
-        // comparable to SQL 'like'
-        // example: match("a.*", <someString>)
-        compileStringConstraint(pattern, argument, "matches")
-      case ConstraintContains(substring, argument) =>
-        compileStringConstraint(substring, argument, "contains")
-      case ConstraintTrue =>
+      case Syntax.ConstraintTrue =>
+
         // 0 == 0
         Datalog.Eq(Datalog.Constant(Datalog.IntLiteral(0)), Datalog.Constant(Datalog.IntLiteral(0)))
-      case ConstraintFalse =>
+      case Syntax.ConstraintFalse =>
         // 0 == 1
         Datalog.Eq(Datalog.Constant(Datalog.IntLiteral(0)), Datalog.Constant(Datalog.IntLiteral(1)))
     }
@@ -269,34 +264,10 @@ class Compiler {
       .eliminateRuleDisjunction(rule)
       .foreach(compileRule)
 
+  def compileTypeDecl(typeDecl: TypeDecl): Unit = ???
   def compileComponentDecl(componentDecl: ComponentDecl): Unit = ???
   def compileComponentInit(componentInit: ComponentInit): Unit = ???
-
-  def compileTypeDecl(typeDecl: TypeDecl): Unit = typeDecl match {
-    case TypeDeclSubtype(name, superType) => ???
-    case TypeDeclUnion(name, types) => ???
-    case TypeDeclRecord(name, records) => ???
-    case TypeDeclADT(name, branches) => ???
-  }
-
-  def compileDirective(directive: Directive): Unit = directive.qualifier match {
-    case Syntax.DirectiveQualifierInput =>
-      assert(directive.qualifiedNames.length == 1, "Input directive must have one relation argument!")
-      assert(directive.params.isEmpty, "Input directives must not have any parameters!")
-
-      // extend list of inputs
-      inputs :+= directive.qualifiedNames.head
-
-    case Syntax.DirectiveQualifierPrintsize =>
-      assert(directive.qualifiedNames.length == 1, "Printsize directive must have one relation argument!")
-      assert(directive.params.isEmpty, "Printsize directives must not have any parameters!")
-
-      // extend list of printSizes
-      printSizes :+= directive.qualifiedNames.head
-
-    case Syntax.DirectiveQualifierOutput => ???
-    case Syntax.DirectiveQualifierLimitsize => ???
-  }
+  def compileDirective(directive: Directive): Unit = ???
 
   // MODULE
 
@@ -312,20 +283,14 @@ class Compiler {
     case Pragma(_,_) => throw new Exception("Pragmas are not supported for compilation!")
   }
 
-  def compileProgram(program: SouffleProgram, name: String = "module"): CompiledSouffleModule = {
+  def compileProgram(program: SouffleProgram): Datalog.Module = {
     // compile program
     program.foreach(compileStatement)
 
     // create module
-    val scalaContent = Seq.empty
-    val module = Datalog.Module(name, Seq.empty, patterns.values.toSeq, scalaContent)
-
-    CompiledSouffleModule(
-      module,
-      inputs.map(relationDecls.apply),
-      printSizes.map(relationDecls.apply),
-      new DataModel(),
-      ConstraintOptions()
-    )
+    val name = "module"
+    val patterns = Seq()
+    val scalaContent = Seq()
+    Datalog.Module(name, Seq(), patterns, scalaContent)
   }
 }
