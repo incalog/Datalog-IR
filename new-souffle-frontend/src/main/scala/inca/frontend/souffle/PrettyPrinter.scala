@@ -260,9 +260,9 @@ object PrettyPrinter {
           case ConstraintCmpOp.Geq => s"${stringify(l)} >= ${stringify(r)}"
           case ConstraintCmpOp.Eq => s"${stringify(l)} = ${stringify(r)}"
           case ConstraintCmpOp.Neq => s"${stringify(l)} != ${stringify(r)}"
-          case ConstraintCmpOp.Match => s"match ( ${stringify(l)}, ${stringify(r)} )"
-          case ConstraintCmpOp.Contains => s"contains ( ${stringify(l)}, ${stringify(r)} )"
         }
+      case ConstraintMatch(l, r) => s"match(${stringify(l)}, ${stringify(r)})"
+      case ConstraintContains(l, r) => s"contains(${stringify(l)}, ${stringify(r)})"
       case ConstraintTrue => "true"
       case ConstraintFalse => "false"
     }

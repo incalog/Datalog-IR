@@ -184,8 +184,6 @@ object Syntax {
     case object Geq extends ConstraintCmpOp
     case object Eq extends ConstraintCmpOp
     case object Neq extends ConstraintCmpOp
-    case object Match extends ConstraintCmpOp
-    case object Contains extends ConstraintCmpOp
   }
 
   sealed trait Constraint {
@@ -201,12 +199,17 @@ object Syntax {
           case ConstraintCmpOp.Geq => ConstraintCmpOp.Lt
           case ConstraintCmpOp.Eq => ConstraintCmpOp.Neq
           case ConstraintCmpOp.Neq => ConstraintCmpOp.Eq
-          case ConstraintCmpOp.Match |
-               ConstraintCmpOp.Contains =>
-            throw new Exception("This does not make sense here...")
         },
         l, r
       )
+  }
+  case class ConstraintMatch(pattern: Argument, argument: Argument) extends Constraint {
+    override def negated: Constraint =
+      throw new Exception("This does not make sense here...")
+  }
+  case class ConstraintContains(substring: Argument, argument: Argument) extends Constraint {
+    override def negated: Constraint =
+      throw new Exception("This does not make sense here...")
   }
   case object ConstraintTrue extends Constraint {
     override def negated: Constraint = ConstraintFalse

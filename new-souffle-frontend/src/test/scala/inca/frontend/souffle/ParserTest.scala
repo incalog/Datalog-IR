@@ -1,14 +1,13 @@
 package inca.frontend.souffle
 
 import Syntax._
-import inca.backend.ir.Datalog
 import org.scalatest.funsuite.AnyFunSuite
 
 class ParserTest extends AnyFunSuite {
   def assertParseFail(f: => Any): Unit = {
     try f
     catch {
-      case ParseException(_) =>
+      case e: ParseException => println("Correct parse failure: " + e.message)
       case _: Throwable => assert(0 == 1)
     }
   }
@@ -89,12 +88,11 @@ class ParserTest extends AnyFunSuite {
   }
 
   test("rules") {
-    val r = Parser.parse(
-      """ A(a, b) :- A(a, c), A(c, b).
-        |""".stripMargin
-    )
+    def p(src: String): Unit =
+      PrettyPrinter.print(Parser.parse(src))
 
-    println(PrettyPrinter.stringify(r))
+    p("A(a, b) :- A(a, c), A(c, b).")
+    p("A(a, b) :- A(a, c), b = \"yo\".")
   }
 
   test("program") {
@@ -130,10 +128,17 @@ class ParserTest extends AnyFunSuite {
   }
 
   test("constraints") {
-    PrettyPrinter.print(Parser.parse(Parser.constraint, "x = 0"))
-    PrettyPrinter.print(Parser.parse(Parser.constraint, "x != 0"))
-    PrettyPrinter.print(Parser.parse(Parser.constraint, "x <= 0"))
-    PrettyPrinter.print(Parser.parse(Parser.constraint, "x < 0"))
+    def p(src: String): Unit =
+      PrettyPrinter.print(Parser.parse(Parser.constraint, src))
+
+    p("x = 0")
+    p("x != 0")
+    p("x <= 0")
+    p("x < 0")
+
+    p("match(x, y)")
+    p("contains(\"a\", \"bab\")")
+    assertParseFail(p("foo(x, y)"))
 
     PrettyPrinter.print(Parser.parse(Parser.rule, "A(x) :- x = 0."))
   }

@@ -192,15 +192,17 @@ object Parser {
     P.string("=").as(ConstraintCmpOp.Eq) |
     P.string("!=").as(ConstraintCmpOp.Neq)
 
-  val constraintCmpOpPrefix: P[ConstraintCmpOp] =
-    P.string("match").as(ConstraintCmpOp.Match) |
-    P.string("contains").as(ConstraintCmpOp.Contains)
-
   val constraint: P[Constraint] =
+    (
+      (P.string("match") | P.string("contains")).string ~
+      parens((spaced(argument) <* Separators.comma) ~ spaced(argument))
+    ).map { case (op, (l, r)) => op match {
+      case "match" => ConstraintMatch(l, r)
+      case "contains" => ConstraintContains(l, r)
+    }}.backtrack |
     (spaced(argument) ~ spaced(constraintCmpOpInfix) ~ spaced(argument)).map {
       case ((l, op), r) => ConstraintCmp(op, l, r)
     }
-    // TODO: extend with match and contains
 
   val conjunctionTerm: P[ConjunctionTerm] =
     (
@@ -210,6 +212,7 @@ object Parser {
       case (negated, atom: Atom) => ConjunctionTermAtom(negated, atom)
       case (negated, constraint: Constraint) => ConjunctionTermConstraint(negated, constraint)
       case (negated, disjunction: Disjunction) => ConjunctionTermDisjunction(negated, disjunction)
+      case _ => throw ParseException("Failed to parse conjunction term!")
     }.asInstanceOf[P[ConjunctionTerm]]
 
   val conjunction: P[Conjunction] =
