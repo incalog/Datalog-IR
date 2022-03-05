@@ -99,7 +99,7 @@ object PrettyPrinter {
         case None => s"${stringify(atom1)} <= ${stringify(atom2)} :- ${stringify(disjunction)}"
       }
 
-    case EliminateRuleDisjunction.Rule(atom, conjunction, queryPlan) =>
+    case compiler.EliminateRuleDisjunction.Rule(atom, conjunction, queryPlan) =>
       s"${stringify(atom)} :- ${stringify(conjunction)}." + {
         if (queryPlan.isDefined) " " + stringify(queryPlan.get)
         else ""

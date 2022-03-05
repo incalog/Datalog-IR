@@ -1,6 +1,7 @@
-package inca.frontend.souffle
+package inca.frontend.souffle.compiler
 
-import Syntax._
+import inca.frontend.souffle.Syntax._
+import inca.frontend.souffle.{Parser, PrettyPrinter}
 import org.scalatest.funsuite.AnyFunSuite
 
 class EliminateRuleDisjunctionTest extends AnyFunSuite {
