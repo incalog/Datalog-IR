@@ -1,13 +1,14 @@
 package inca.frontend.souffle
 
 import Syntax._
+import inca.backend.ir.Datalog
 import org.scalatest.funsuite.AnyFunSuite
 
 class ParserTest extends AnyFunSuite {
   def assertParseFail(f: => Any): Unit = {
     try f
     catch {
-      case ParseException(_) => assert(0 == 0)
+      case ParseException(_) =>
       case _: Throwable => assert(0 == 1)
     }
   }

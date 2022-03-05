@@ -8,7 +8,6 @@ object PrettyPrinter {
     case e: Datalog.Module => DatalogPrinter.prettyModule(e)
     case e: Datalog.Pattern => DatalogPrinter.prettyPattern(e)
     case e: Datalog.Visibility => DatalogPrinter.prettyVis(Some(e))
-    case e: Option[Datalog.Visibility] => DatalogPrinter.prettyVis(e)
     case e: Datalog.Param => DatalogPrinter.prettyParam(e)
     case e: Datalog.Type => DatalogPrinter.prettyType(e)
     case e: Datalog.Body => DatalogPrinter.prettyBody(e)
@@ -24,7 +23,6 @@ object PrettyPrinter {
 
   def stringify(e: Any): String = e match {
     case l: Iterable[Any] => l.map(stringify).mkString("\n")
-    case e: SouffleProgram => e.map(stringify).mkString("\n")
 
     case e: Expression => e match {
       case Variable(name) => name

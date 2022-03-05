@@ -329,7 +329,10 @@ object Parser {
       if (err.failedAtOffset < source.length)
         System.out.print(source.substring(err.failedAtOffset + 1))
 
-      throw new ParseException(s"Parser error! Expected: ${err.expected}")
+      System.out.print("\n")
+      System.out.flush()
+
+      throw ParseException(s"Parser error! Expected: ${err.expected}")
     case Right(value) => value
   }
 
