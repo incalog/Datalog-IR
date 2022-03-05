@@ -2,7 +2,10 @@ package inca.frontend.souffle
 
 import Syntax._
 import inca.backend.ir.Datalog
+import inca.util.Scala
 import org.scalatest.funsuite.AnyFunSuite
+
+import scala.meta.{Term, XtensionQuasiquoteTerm}
 
 class CompilerTest extends AnyFunSuite {
 
@@ -63,6 +66,7 @@ class CompilerTest extends AnyFunSuite {
     c.compileRelationDecl(Parser.parse(Parser.relationDecl, ".decl A(x: number, y: number)"))
 
     c.compileRule(Parser.parse(Parser.rule, "A(x, y) :- x = 0, y = 1."))
+    c.compileRule(Parser.parse(Parser.rule, "A(x, y) :- x = 5, (y = 1; y = 7)."))
     c.compileRule(Parser.parse(Parser.rule, "A(5, y) :- y = 1."))
 
     PrettyPrinter.print(c.patterns.values)

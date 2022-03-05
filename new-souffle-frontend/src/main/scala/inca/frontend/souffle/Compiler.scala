@@ -2,8 +2,10 @@ package inca.frontend.souffle
 
 import inca.backend.ir.Datalog
 import Syntax._
+import inca.util.Scala
 
 import scala.collection.mutable.{Map => MutableMap}
+import scala.meta.{Term, XtensionQuasiquoteTerm}
 
 class Compiler {
 
@@ -151,23 +153,100 @@ class Compiler {
     case ArgumentBinOp(op, l, r) => ???
   }
 
-  def compileConstraint(constraint: Constraint): Datalog.Atom = constraint match {
-    case ConstraintCmp(ty, l, r) => ty match {
-      case ConstraintCmpOp.Lt => ???
-      case ConstraintCmpOp.Gt => ???
-      case ConstraintCmpOp.Leq => ???
-      case ConstraintCmpOp.Geq => ???
-      case ConstraintCmpOp.Eq => Datalog.Eq(compileArgument(l), compileArgument(r))
-      case ConstraintCmpOp.Neq => Datalog.Neq(compileArgument(l), compileArgument(r))
-      case ConstraintCmpOp.Match => ???
-      case ConstraintCmpOp.Contains => ???
+  def compileType(ty: TypeName): Datalog.Type = ty match {
+    case DeclaredType(name) => Datalog.TData(name)
+    case AnyType => Datalog.TAny
+    case NilType => ???
+    case SymbolType => Datalog.TScalaString
+    case NumberType => Datalog.TScalaInt
+    case UnsignedType => Datalog.TScalaInt
+    case FloatType => Datalog.TScalaDouble
+  }
+
+  def compileConstraint(constraint: Constraint): Datalog.Atom = {
+    def compileCmp(l: Argument, r: Argument, op: String): Datalog.Atom = {
+      assert(
+        l.getType.isPrimitive && r.getType.isPrimitive,
+        s"Both arguments for comparison have to be of primitive type! " +
+        s"Got '${PrettyPrinter.stringify(l.getType)}' and ${PrettyPrinter.stringify(r.getType)}!")
+
+      assert(
+        l.getType == r.getType,
+        s"Both arguments for comparison have to be of equal type! " +
+        s"Got '${PrettyPrinter.stringify(l.getType)}' and ${PrettyPrinter.stringify(r.getType)}!")
+
+      val cl = compileArgument(l)
+      val cr = compileArgument(r)
+
+      val scalaType = l.getType match {
+        case primitiveType: PrimitiveType => primitiveType match {
+          case SymbolType => "String"
+          case NumberType => "Int"
+          case UnsignedType => "Int"
+          case FloatType => "Double"
+        }
+        case _ => throw new Exception("Wie zur Hölle bist du hier hin gekommen??")
+      }
+
+      val f = Term.Function(
+        List(
+          Term.Param(List.empty, meta.Name("l"), Some(meta.Type.Name(scalaType)), None),
+          Term.Param(List.empty, meta.Name("r"), Some(meta.Type.Name(scalaType)), None),
+        ),
+        q"l ${Term.Name(op)} r"
+      )
+
+      Datalog.Computed(
+        cl,
+        Datalog.Evaluation(
+          Seq((cr, compileType(r.getType))),
+          Datalog.TScalaBoolean,
+          Scala[Term.Function](f)
+        )
+      )
     }
-    case Syntax.ConstraintTrue =>
-      // 0 == 0
-      Datalog.Eq(Datalog.Constant(Datalog.IntLiteral(0)), Datalog.Constant(Datalog.IntLiteral(0)))
-    case Syntax.ConstraintFalse =>
-      // 0 == 1
-      Datalog.Eq(Datalog.Constant(Datalog.IntLiteral(0)), Datalog.Constant(Datalog.IntLiteral(1)))
+
+    def compileStringConstraint(l: Argument, r: Argument, op: String): Datalog.Atom = {
+      assert(
+        l.getType == SymbolType && r.getType == SymbolType,
+        s"Arguments to match have to be symbols! Got '${PrettyPrinter.stringify(l.getType)}' and '${PrettyPrinter.stringify(r.getType)}'!")
+
+      val cl = compileArgument(l)
+      val cr = compileArgument(r)
+
+      Datalog.Computed(
+        cl,
+        Datalog.Evaluation(
+          Seq((cr, compileType(r.getType))),
+          Datalog.TScalaBoolean,
+          Scala[Term.Function](q"(l: String, r: String) => r.${Term.Name(op)}(l)")
+        )
+      )
+    }
+
+    constraint match {
+      case ConstraintCmp(ty, l, r) => ty match {
+        case ConstraintCmpOp.Lt => compileCmp(l, r, "<")
+        case ConstraintCmpOp.Gt => compileCmp(l, r, ">")
+        case ConstraintCmpOp.Leq => compileCmp(l, r, "<=")
+        case ConstraintCmpOp.Geq => compileCmp(l, r, ">=")
+        case ConstraintCmpOp.Eq => Datalog.Eq(compileArgument(l), compileArgument(r))
+        case ConstraintCmpOp.Neq => Datalog.Neq(compileArgument(l), compileArgument(r))
+        case ConstraintCmpOp.Match =>
+          // comparable to SQL 'like'
+          // example: match("a.*", <someString>)
+          compileStringConstraint(l, r, "matches")
+        case ConstraintCmpOp.Contains =>
+          compileStringConstraint(l, r, "contains")
+      }
+      case Syntax.ConstraintTrue =>
+
+        // 0 == 0
+        Datalog.Eq(Datalog.Constant(Datalog.IntLiteral(0)), Datalog.Constant(Datalog.IntLiteral(0)))
+      case Syntax.ConstraintFalse =>
+        // 0 == 1
+        Datalog.Eq(Datalog.Constant(Datalog.IntLiteral(0)), Datalog.Constant(Datalog.IntLiteral(1)))
+    }
   }
 
   def compileTerm(term: ConjunctionTerm): Datalog.Atom = term match {
