@@ -289,8 +289,12 @@ object Syntax {
   case object BinOpBShr extends BinOp
   case object BinOpBShrU extends BinOp
 
-  // aggregator  ::= (( ( 'max' | 'mean' | 'min' | 'sum' ) argument | 'count' ) ':' ( '{' disjunction '}' | atom )) |
+  // aggregator ::= (( ( 'max' | 'mean' | 'min' | 'sum' ) argument | 'count' ) ':' ( '{' disjunction '}' | atom )) |
   //                'range' '(' argument ',' argument (',' argument)? ')'
+  //
+  // aggregator ::= ( 'max' | 'mean' | 'min' | 'sum' ) argument ':' ( '{' disjunction '}' | atom )
+  // aggregator ::= 'count' ':' ( '{' disjunction '}' | atom )
+  // aggregator ::= 'range' '(' argument ',' argument (',' argument)? ')'
   sealed trait Aggregator
   case class AggregatorMin(argument: Argument, cond: AggregatorCondition) extends Aggregator
   case class AggregatorMax(argument: Argument, cond: AggregatorCondition) extends Aggregator

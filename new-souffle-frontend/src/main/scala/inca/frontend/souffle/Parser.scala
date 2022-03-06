@@ -50,6 +50,7 @@ object Parser {
 
   object Separators {
     val comma: P[Unit] = spaced(Literals.comma)
+    val colon: P[Unit] = spaced(Literals.colon)
     val semicolon: P[Unit] = spaced(Literals.semicolon)
     val pipe: P[Unit] = spaced(Literals.pipe)
   }
@@ -63,9 +64,9 @@ object Parser {
   def spaced[A](p: P0[A]): P0[A] = p <* whitespace
   def spaced[A](p: P[A]): P[A] = p <* whitespace
 
-  def parens[A](p: P0[A]): P[A] = spaced(P.char('(')) *> p <* spaced(P.char(')'))
-  def brackets[A](p: P0[A]): P[A] = spaced(P.char('[')) *> p <* spaced(P.char(']'))
-  def braces[A](p: P0[A]): P[A] = spaced(P.char('{')) *> p <* spaced(P.char('}'))
+  def parens[A](p: P0[A]): P[A] = spaced(P.char('(')) *> spaced(p) <* spaced(P.char(')'))
+  def brackets[A](p: P0[A]): P[A] = spaced(P.char('[')) *> spaced(p) <* spaced(P.char(']'))
+  def braces[A](p: P0[A]): P[A] = spaced(P.char('{')) *> spaced(p) <* spaced(P.char('}'))
 
   def keyword(kw: String): P[Unit] = spaced(P.string(kw))
 
@@ -121,6 +122,41 @@ object Parser {
     Literals.number.map(NumberValue.apply) |
     Literals.float.map(FloatValue.apply)
 
+  // AGGREGATOR
+
+  val aggregatorCondition: P[AggregatorCondition] =
+    P.defer(atom).map(AggregatorConditionAtom.apply) |
+    braces(P.defer(disjunction)).map(AggregatorConditionDisjunction.apply)
+
+  val prefixAggregator: P[Aggregator] = {
+    (keyword("min").as("min") |
+      keyword("max").as("max") |
+      keyword("mean").as("mean") |
+      keyword("sum").as("sum")) ~
+      (spaced(P.defer(argument)) <* Separators.colon) ~ spaced(aggregatorCondition)
+  }.map { case ((op, arg), cond) => op match {
+    case "min" => AggregatorMin(arg, cond)
+    case "max" => AggregatorMax(arg, cond)
+    case "mean" => AggregatorMean(arg, cond)
+    case "sum" => AggregatorSum(arg, cond)
+  }}
+
+  val aggregatorCount: P[AggregatorCount] = {
+    keyword("count") *> Separators.colon *> spaced(aggregatorCondition)
+  }.map(AggregatorCount.apply)
+
+  val aggregatorRange: P[AggregatorRange] = {
+    P.string("range") *>
+      parens(
+        (spaced(P.defer(argument)) <* Separators.comma) ~
+        spaced(P.defer(argument)) ~
+        (Separators.comma *> spaced(P.defer(argument))).?
+      )
+  }.map { case ((arg1, arg2), arg3) => AggregatorRange(arg1, arg2, arg3) }
+
+  val aggregator: P[Aggregator] =
+    prefixAggregator | aggregatorCount | aggregatorRange
+
   // RELATIONS
 
   lazy val relationAttribute: P[Attribute] =
@@ -171,12 +207,14 @@ object Parser {
     Literals.number.backtrack.map(ConstantNumber.apply) |
     Literals.string.map(ConstantString.apply)
 
-  val argument: P[Argument] =
+  lazy val argument: P[Argument] = {
     P.string("nil").as(ArgumentNil) |
     Literals.identifier.map(ArgumentVariable.apply) |
     constant.map(ArgumentConstant.apply)
+    // TODO extend
+  }
 
-  val atom: P[Atom] =
+  lazy val atom: P[Atom] =
     (spaced(qualifiedName) ~ parens(spaced(argument).repSep(Separators.comma).?))
       .map {
         case (qn, args) => Atom(qn, if (args.isDefined) args.get.toList else Seq.empty)

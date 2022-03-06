@@ -185,4 +185,18 @@ class ParserTest extends AnyFunSuite {
     p(".pragma \"legacy\"")
     p(".pragma \"someFlag\" \"on\"")
   }
+
+  test("aggregator") {
+    def p(src: String): Unit =
+      PrettyPrinter.print(Parser.parse(Parser.aggregator, src))
+
+    p("min x : A(x)")
+    p("max    x:  A(x)   ")
+    p("mean\nx\n:\nA(x)\n")
+    p("sum x  :  A(x)   ")
+
+    p("count : A(x)")
+    p("count : { A(x), x > 0; x = 0 }")
+    p("range(0, 5, .5)")
+  }
 }

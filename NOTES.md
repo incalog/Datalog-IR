@@ -140,3 +140,9 @@ Pattern(vis, name, params: Seq[Param], bodies: Seq[Body])
 
 - datalog pattern corresponds to relation declaraion and all its rules
 - every datalog body corresponds to one souffle rule
+
+## Aggregation
+
+- nested aggregates are not allowed
+- Witness problem (https://souffle-lang.github.io/aggregates#the-witness-problem)
+- maybe refactor AggregatorConditionAtom into AggregatorConditionDisjunction with ONE conjunction with ONE atom
