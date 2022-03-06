@@ -240,7 +240,11 @@ object PrettyPrinter {
       s".functor ${stringify(name)} ( ${attributes.map(stringify).mkString(", ")} ): " +
         s"${stringify(returnType)} ${if(isStateful) "stateful" else ""}"
 
-    case Pragma(param, parameterValue) => s".pragma ${stringify(param)} ${stringify(parameterValue)}"
+    case Pragma(param, parameterValue) =>
+      ".pragma \"" + param + "\"" + {
+        if (parameterValue.isDefined) " \"" + parameterValue.get + "\""
+        else ""
+      }
 
     case ADTBranch(branchId, attributes) => s"$branchId { ${attributes.map(stringify).mkString(", ")} }"
 

@@ -67,6 +67,8 @@ object Parser {
   def brackets[A](p: P0[A]): P[A] = spaced(P.char('[')) *> p <* spaced(P.char(']'))
   def braces[A](p: P0[A]): P[A] = spaced(P.char('{')) *> p <* spaced(P.char('}'))
 
+  def keyword(kw: String): P[Unit] = spaced(P.string(kw))
+
   // TYPES
 
   val typename: P[TypeName] =
@@ -77,12 +79,12 @@ object Parser {
     Literals.identifier.map(DeclaredType.apply)
 
   val typeDeclSubtype: P[TypeDeclSubtype] = {
-    (spaced(P.string(".type")) *> spaced(Literals.identifier) <* spaced(P.string("<:"))) ~
+    (keyword(".type") *> spaced(Literals.identifier) <* keyword("<:")) ~
       spaced(typename)
   }.map { case (sub, sup) => TypeDeclSubtype(sub, sup) }
 
   val typeDeclUnion: P[TypeDeclUnion] = {
-    (spaced(P.string(".type")) *> spaced(Literals.identifier) <* spaced(P.string("="))) ~
+    (keyword(".type") *> spaced(Literals.identifier) <* keyword("=")) ~
       spaced(typename).repSep(Separators.pipe)
   }.map { case (name, tys) => TypeDeclUnion(name, tys.toList) }
 
@@ -93,7 +95,7 @@ object Parser {
   }
 
   val typeDeclRecord: P[TypeDeclRecord] = {
-    (spaced(P.string(".type")) *> spaced(Literals.identifier) <* spaced(P.string("="))) ~
+    (keyword(".type") *> spaced(Literals.identifier) <* keyword("=")) ~
     recordList
   }.map { case (name, records) => TypeDeclRecord(name, records) }
 
@@ -102,7 +104,7 @@ object Parser {
   }.map { case (id, attributes) => ADTBranch(id, attributes.toList) }
 
   val typeDeclADT: P[TypeDeclADT] = {
-    (spaced(P.string(".type")) *> spaced(Literals.identifier) <* spaced(P.string("="))) ~
+    (keyword(".type") *> spaced(Literals.identifier) <* keyword("=")) ~
     adtBranch.repSep(Separators.pipe)
   }.map { case (name, branches) => TypeDeclADT(name, branches.toList) }
 
@@ -141,7 +143,7 @@ object Parser {
     P.stringIn(qualifierMap.keys).map(qualifierMap.apply)
 
   val choiceDomain: P[ChoiceDomain] =
-    spaced(P.string("choice-domain")) *>
+    keyword("choice-domain") *>
       spaced(
         Literals.identifier.map(Seq(_)) |
           parens(spaced(Literals.identifier).repSep(Separators.comma)).map(_.toList)
@@ -150,7 +152,7 @@ object Parser {
 
   val relationDecl: P[RelationDecl] = {
     (
-      /* name */ (spaced(P.string(".decl")) *> spaced(Literals.identifier)) ~
+      /* name */ (keyword(".decl") *> spaced(Literals.identifier)) ~
       /* attributes */ spaced(parens(relationAttribute.repSep0(Separators.comma))) ~
       /* qualifiers */ spaced(qualifier).repUntil0(not(qualifier)) ~
       /* choice domain */ choiceDomain.?
@@ -222,7 +224,7 @@ object Parser {
     spaced(conjunction).repSep(Separators.semicolon).map(l => Disjunction.apply(l.toList))
 
   val queryPlan: P[QueryPlan] =
-    spaced(P.string(".plan")) *>
+    keyword(".plan") *>
     (
       (spaced(Literals.number) <* spaced(Literals.colon)) ~
         spaced(parens(Literals.number.repSep0(Separators.comma)))
@@ -286,7 +288,7 @@ object Parser {
     P.defer(componentDecl).map(ComponentBodyComponentDecl.apply)
 
   lazy val componentDecl: P[ComponentDecl] = {
-    (spaced(P.string(".comp")) *> spaced(componentType)) ~
+    (keyword(".comp") *> spaced(componentType)) ~
     (spaced(Literals.colon) *> spaced(componentType).repSep(Separators.comma)).? ~
     braces(spaced(componentBody).rep)
   }.map {
@@ -295,9 +297,15 @@ object Parser {
   }
 
   lazy val componentInit: P[ComponentInit] = {
-    (spaced(P.string(".init")) *> spaced(Literals.identifier) <* spaced(P.char('='))) ~
+    (keyword(".init") *> spaced(Literals.identifier) <* spaced(P.char('='))) ~
     spaced(componentType)
   }.map { case (name, ty) => ComponentInit(name, ty) }
+
+  // PRAGMA
+
+  val pragma: P[Pragma] =
+    (keyword(".pragma") *> spaced(Literals.string) ~ spaced(Literals.string).?)
+      .map { case (param, value) => Pragma(param, value) }
 
   // PROGRAM
 
@@ -313,6 +321,7 @@ object Parser {
   //   type_decl )*
 
   val program: P[SouffleProgram] = (
+    pragma |
     fact.backtrack |
     rule |
     relationDecl |
@@ -343,7 +352,6 @@ object Parser {
 
   /*  TODO: Missing parsers:
   * some Arguments
-  * Pragma
   * Aggregator
   * SubsumptiveRule
   * FunctorDecl

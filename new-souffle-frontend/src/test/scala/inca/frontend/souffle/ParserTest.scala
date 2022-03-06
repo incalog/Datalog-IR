@@ -112,6 +112,9 @@ class ParserTest extends AnyFunSuite {
         | }
         |
         | .init myTree = Tree<number>
+        |
+        | .pragma "legacy"
+        | .pragma "someFlag" "on"
         |""".stripMargin
     )
 
@@ -173,5 +176,13 @@ class ParserTest extends AnyFunSuite {
 
     p(".init Tree = Bonsai<A>")
     assertParseFail(p(".init Tree = Bonsai <A>"))
+  }
+
+  test("pragma") {
+    def p(src: String): Unit =
+      PrettyPrinter.print(Parser.parse(Parser.pragma, src))
+
+    p(".pragma \"legacy\"")
+    p(".pragma \"someFlag\" \"on\"")
   }
 }
