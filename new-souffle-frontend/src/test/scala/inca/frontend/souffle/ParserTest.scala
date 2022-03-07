@@ -199,4 +199,29 @@ class ParserTest extends AnyFunSuite {
     p("count : { A(x), x > 0; x = 0 }")
     p("range(0, 5, .5)")
   }
+
+  test("argument") {
+    def p(src: String): Unit = PrettyPrinter.print(Parser.parse(Parser.argument, src))
+    def q(src: String): Unit = println(Parser.parse(Parser.argument, src))
+
+    p("nil")
+    q("xyz")
+    q("_")
+    p("bnot x")
+    p("lnot y")
+    q("- z")
+    q("-z")
+    p("foo(.5)")
+    p("$foo")
+    p("$foo(\"hi\")")
+    assertParseFail(p("$foo (0)"))
+    p("\"whats up\"")
+    p("max q : { q < 0 }")
+    p("range(0, 1)")
+    p("42")
+    p(" [ a  ,  b , 42 , count : A(x)  ] ")
+    p("as  ( x ,  number )")
+    q("as(x, number)")
+    q(" ( _ ) ")
+  }
 }

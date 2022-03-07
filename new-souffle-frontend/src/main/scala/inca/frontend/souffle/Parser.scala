@@ -207,11 +207,53 @@ object Parser {
     Literals.number.backtrack.map(ConstantNumber.apply) |
     Literals.string.map(ConstantString.apply)
 
-  lazy val argument: P[Argument] = {
+  val argumentList: P[Seq[Argument]] =
+    P.defer(argument).repSep(Separators.comma).map(_.toList)
+
+  val binOpMap: Map[String, BinOp] = Map(
+    "+" -> BinOpAdd,
+    "-" -> BinOpMinus,
+    "*" -> BinOpMult,
+    "/" -> BinOpDiv,
+    "%" -> BinOpMod,
+    "^" -> BinOpPow,
+    "land" -> BinOpLAnd,
+    "lor" -> BinOpLOr,
+    "lxor" -> BinOpLXor,
+    "band" -> BinOpBAnd,
+    "bor" -> BinOpBOr,
+    "bxor" -> BinOpBXor,
+    "bshl" -> BinOpBShl,
+    "bshr" -> BinOpBShr,
+    "bshru" -> BinOpBShrU,
+  )
+
+  val binOp: P[BinOp] = P.stringIn(binOpMap.keys).map(binOpMap.apply)
+
+  lazy val argumentAtom: P[Argument] = {
     P.string("nil").as(ArgumentNil) |
-    Literals.identifier.map(ArgumentVariable.apply) |
-    constant.map(ArgumentConstant.apply)
-    // TODO extend
+    (keyword("bnot") *> spaced(P.defer(argument))).map(ArgumentUnOp(UnOpBNot, _)) |
+    (keyword("lnot") *> spaced(P.defer(argument))).map(ArgumentUnOp(UnOpLNot, _)) |
+    (keyword("-") *> spaced(P.defer(argument))).map(ArgumentUnOp(UnOpMinus, _)) |
+    aggregator.map(ArgumentAggregator.apply) |
+    (keyword("as") *> parens((spaced(P.defer(argument)) <* Separators.comma) ~ typename))
+      .map { case (arg, ty) => ArgumentAlias(arg, ty) } |
+    (Literals.identifier ~ parens(argumentList))
+      .map { case (name, args) => ArgumentFunctorCall(name, args.toList) }.backtrack |
+    (Literals.identifier | P.char('_').as("_")).map(ArgumentVariable.apply) |
+    (P.char('$') *> Literals.identifier ~ parens(argumentList).?)
+      .map { case (name, args) => ArgumentDollarFunctor(name, args.getOrElse(Seq.empty)) } |
+    constant.map(ArgumentConstant.apply) |
+    brackets(argumentList).map(l => ArgumentList(l.toList)) |
+    parens(P.defer(argument)).map(ArgumentSingle.apply)
+  }
+
+  lazy val argument: P[Argument] = {
+    spaced(P.defer(argumentAtom)) ~ (spaced(binOp) ~ spaced(P.defer(argument))).?
+  }.map { case (arg1, tail) => tail match {
+      case Some((op, arg2)) => ArgumentBinOp(op, arg1, arg2)
+      case None => arg1
+    }
   }
 
   lazy val atom: P[Atom] =
@@ -389,8 +431,6 @@ object Parser {
   def parse(source: String): SouffleProgram = parse(program, source)
 
   /*  TODO: Missing parsers:
-  * some Arguments
-  * Aggregator
   * SubsumptiveRule
   * FunctorDecl
   * */
