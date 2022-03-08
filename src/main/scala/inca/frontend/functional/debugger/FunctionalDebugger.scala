@@ -162,7 +162,25 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
   }
 
   override def stepOver(): Unit = ???
-  override def stepOut(): Unit = ???
+
+  override def stepOut(): Unit = {
+    currentFunctionalPoint match {
+      case Some(fp) =>
+        if (fp.isFunctionExit) {
+          stepInto()
+        } else {
+          val fbp = FunctionalBreakpoint(FunctionExit(fp.fun.name.name))
+          // function exit translates to only one break point
+          val irBP = FunctionalBreakpoint.convert(fbp)(compiled.ir.patternMap).head
+          resumeUntilPointInCurrentFrame(irBP.cp)
+          // we need to stepInto until we reach a valid functional control point
+          stepInto()
+        }
+      case None =>
+        throw IllegalDebugStateException("Functional debugger cannot be at non-functional control point")
+    }
+  }
+
   override def resume(): Unit = {
     stepInto()
     while (!isFinished && !isAtBreakpoint) {

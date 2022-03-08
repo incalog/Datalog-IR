@@ -375,8 +375,37 @@ class FunctionalDebuggerTest extends AnyFunSuite {
   }
 
 
+  // step out tests
+  test("step out of function call") {
+    val compiledExample = compile(Code.plusRealModule)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    debugger.stepInto()
+    debugger.stepInto()
+    debugger.stepInto()
+    debugger.stepOut()
+    assert(!debugger.isFinished)
+    debugger.stepOut()
+    assert(debugger.isFinished)
+  }
 
+  test("step out of recursive function call") {
+    val compiledExample = compile(Code.plusRealModule)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    debugger.stepInto()
+    debugger.stepInto()
+    debugger.stepInto()
+    debugger.stepInto()
+    debugger.stepInto()
+    debugger.stepInto()
+    debugger.stepOut()
+    assert(!debugger.isFinished)
+    debugger.stepOut()
+    assert(!debugger.isFinished)
+    debugger.stepOut()
+    assert(debugger.isFinished)
+  }
   // TODO Step over tests
-  // TODO Step out tests
 }
 
