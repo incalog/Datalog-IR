@@ -447,7 +447,6 @@ object Parser {
   def parse(source: String): SouffleProgram = parse(program, source)
 
   /*  TODO: Missing parsers:
-  * SubsumptiveRule
   * FunctorDecl
   * */
 }
