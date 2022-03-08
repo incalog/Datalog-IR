@@ -238,18 +238,17 @@ class Compiler {
         case ConstraintCmpOp.Geq => compileCmp(l, r, ">=")
         case ConstraintCmpOp.Eq => Datalog.Eq(compileArgument(l), compileArgument(r))
         case ConstraintCmpOp.Neq => Datalog.Neq(compileArgument(l), compileArgument(r))
-        case ConstraintCmpOp.Match =>
-          // comparable to SQL 'like'
-          // example: match("a.*", <someString>)
-          compileStringConstraint(l, r, "matches")
-        case ConstraintCmpOp.Contains =>
-          compileStringConstraint(l, r, "contains")
       }
-      case Syntax.ConstraintTrue =>
-
+      case ConstraintMatch(pattern, argument) =>
+        // comparable to SQL 'like'
+        // example: match("a.*", <someString>)
+        compileStringConstraint(pattern, argument, "matches")
+      case ConstraintContains(substring, argument) =>
+        compileStringConstraint(substring, argument, "contains")
+      case ConstraintTrue =>
         // 0 == 0
         Datalog.Eq(Datalog.Constant(Datalog.IntLiteral(0)), Datalog.Constant(Datalog.IntLiteral(0)))
-      case Syntax.ConstraintFalse =>
+      case ConstraintFalse =>
         // 0 == 1
         Datalog.Eq(Datalog.Constant(Datalog.IntLiteral(0)), Datalog.Constant(Datalog.IntLiteral(1)))
     }
