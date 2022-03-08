@@ -115,6 +115,9 @@ class ParserTest extends AnyFunSuite {
         |
         | .pragma "legacy"
         | .pragma "someFlag" "on"
+        |
+        | B(x) :- A(  count : { Prime(x) }  ).
+        | B(x):-A(count:{Prime(x)}).
         |""".stripMargin
     )
 
@@ -122,10 +125,7 @@ class ParserTest extends AnyFunSuite {
   }
 
   test("directive") {
-    val r = Parser.parse(
-      """ .limitsize A(n=47)
-        |""".stripMargin
-    )
+    val r = Parser.parse(".limitsize A(n=47)")
 
     println(PrettyPrinter.stringify(r))
   }
