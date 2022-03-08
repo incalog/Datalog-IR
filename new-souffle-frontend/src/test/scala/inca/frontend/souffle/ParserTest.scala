@@ -203,6 +203,9 @@ class ParserTest extends AnyFunSuite {
   test("subsumptiveRule") {
     def p(src: String): Unit =
       PrettyPrinter.print(Parser.parse(Parser.subsumptiveRule, src))
+
+    p("A(a, b) <= B(b, d) :- B(b, c), B(c, d). ")
+    p("A(a, b) <= B(b, d) :- B(b, c), B(c, d). .plan ")
   }
 
   test("argument") {
