@@ -2,33 +2,17 @@ package inca.treesitterAPI;
 
 import com.sun.jna.Library;
 import com.sun.jna.Native;
-import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
-import inca.treesitterAPI.editscriptAPI.EditScript;
-import inca.treesitterAPI.treesitterAPI.*;
+import inca.treesitterAPI.editscriptMappings.EditScript;
+import inca.treesitterAPI.treesitterMappings.*;
 
 public interface TreeSitterTruediffLibrary extends Library {
 
-    boolean error = addLibPath();
-
-    TreeSitterTruediffLibrary INSTANCE = error ? null : Native.load("libtree-sitter", TreeSitterTruediffLibrary.class);
-    TreeSitterTruediffLibrary JAVA_INSTANCE = error ? null : Native.load("libtree-sitter-java", TreeSitterTruediffLibrary.class);
+    TreeSitterTruediffLibrary INSTANCE = Native.load("libtree-sitter", TreeSitterTruediffLibrary.class);
+    TreeSitterTruediffLibrary JAVA_INSTANCE = Native.load("libtree-sitter-java", TreeSitterTruediffLibrary.class);
 
     TreeSitterTruediffLibrary lib = INSTANCE;
     TreeSitterTruediffLibrary java_lib = JAVA_INSTANCE;
-
-    static boolean addLibPath() {
-        if (Platform.isWindows()) {
-            System.setProperty("jna.library.path", "src/main/resources/windows");
-        } else if (Platform.isLinux()) {
-            System.setProperty("jna.library.path", "src/main/resources/linux");
-        } else if (Platform.isMac()) {
-            System.setProperty("jna.library.path", "src/main/resources/darwin");
-        } else {
-            return true;
-        }
-        return false;
-    }
 
     /**
      * Create a language build on the java grammar
@@ -328,6 +312,8 @@ public interface TreeSitterTruediffLibrary extends Library {
     int ts_edit_script_length(EditScript edit_script);
 
     void print_struct_sizes();
+
+    short ts_get_child_tag(TSTree tree, Pointer parent_id, Pointer child_id);
 
     /**
      * The following TreeCursor functions should be private but are
