@@ -57,6 +57,7 @@ lazy val treesitter_truediff_api = (project in file("treesitter-truediff-API")).
 
   libraryDependencies ++= Seq(
     "org.junit.jupiter" % "junit-jupiter" % "5.8.2",
+    "org.scalatest" %% "scalatest" % "3.1.0" % "test",
     "net.java.dev.jna" % "jna" % "5.10.0",
     "net.java.dev.jna" % "jna-platform" % "5.10.0",
   )
