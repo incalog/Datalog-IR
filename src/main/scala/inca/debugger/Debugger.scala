@@ -29,7 +29,6 @@ trait Debugger extends DebuggerAPI {
 
   // Debugger state
 
-  case class BreakpointIR(cp: ControlPoint, cond: () => Boolean)
 
   def currentFrameBreakpoint(cp: ControlPoint): BreakpointIR = {
     val height = callStack.size
@@ -75,8 +74,9 @@ trait Debugger extends DebuggerAPI {
 
   def controlTraceIR: Seq[ControlPoint] = _controlTrace.toSeq
 
-  protected def traceCurrentControlPoint(): Unit =
+  protected def traceCurrentControlPoint(): Unit = {
     _controlTrace += currentPoint
+  }
 
   def relation(name: String): Table[Value] = fixpointState.relation(name)
   def relation(name: String, args: Table[Value]): Table[Value] =
@@ -102,7 +102,7 @@ trait Debugger extends DebuggerAPI {
   // Debugger methods
   def entry(name: Datalog.Name, bindings: Table[Value]): Unit = {
     val pat = compiled.ir.patternMap(name)
-    val cp = ControlPoint.patternEntryPoint(pat)
+    val cp = ControlPoint.patternEntry(pat)
     val frame = Frame(cp, bindings, Table.empty)
     callStack.push(frame)
     traceCurrentControlPoint()
@@ -211,7 +211,7 @@ trait Debugger extends DebuggerAPI {
     val notEqToBottomUpTable = currentTable != fullTable
     val newTupledDerived = !currentTable.diff(lastDerivedTuples).isEmpty
     if (notEqToBottomUpTable && newTupledDerived) {
-      val nextFrame = Frame(ControlPoint.patternEntryPoint(pat), frame.argsTable, frame.argsTable)
+      val nextFrame = Frame(ControlPoint.patternEntry(pat), frame.argsTable, frame.argsTable)
       callStack.push(nextFrame)
       return
     }
@@ -410,9 +410,10 @@ trait Debugger extends DebuggerAPI {
   }
 
   override def resume(): Unit = {
-    stepOver()
-    while (!isFinished && !isAtBreakpoint)
-      stepOver()
+    stepOverIR()
+    while (!isFinished && !isAtBreakpoint) {
+      stepOverIR()
+    }
   }
 
 }

@@ -151,6 +151,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
 
   def stepInto(): Unit = {
     var fp: Option[FunctionalControlPoint] = None
+    // we cannot reach breakpoint that has no functional control point
     while (fp.isEmpty) {
       stepIntoIR()
       if (callStack.isEmpty)
@@ -162,10 +163,22 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
 
   override def stepOver(): Unit = ???
   override def stepOut(): Unit = ???
+  override def resume(): Unit = {
+    stepInto()
+    while (!isFinished && !isAtBreakpoint) {
+      stepInto()
+    }
+  }
 
-  override type Breakpoint = Nothing
-  override def addBreakpoint(bp: Breakpoint): Unit = ???
-  override def removeBreakpoint(bp: Breakpoint): Unit = ???
+  override type Breakpoint = FunctionalBreakpoint
+  override def addBreakpoint(bp: Breakpoint): Unit = {
+    val irBPs = FunctionalBreakpoint.convert(bp)(compiled.ir.patternMap)
+    irBPs.foreach(addBreakpointIR)
+  }
+  override def removeBreakpoint(bp: Breakpoint): Unit = {
+    val irBPs = FunctionalBreakpoint.convert(bp)(compiled.ir.patternMap)
+    irBPs.foreach(removeBreakpointIR)
+  }
 
   @tailrec
   def stepOverConditionPoint(fp: FunctionalControlPoint): Unit = fp match {

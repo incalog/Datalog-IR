@@ -4,8 +4,10 @@ import inca.backend.ir.Datalog
 
 
 object ControlPoint {
-  def patternEntryPoint(pat: Datalog.Pattern): ControlPoint =
+  def patternEntry(pat: Datalog.Pattern): ControlPoint =
     ControlPoint(PatternPoint(pat, BeforeList))
+  def patternExit(pat: Datalog.Pattern): ControlPoint =
+    ControlPoint(PatternPoint(pat, AfterList))
 }
 
 case class BeforeAfter[P](point: P, before: Boolean)
