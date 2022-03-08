@@ -118,6 +118,9 @@ class ParserTest extends AnyFunSuite {
         |
         | B(x) :- A(  count : { Prime(x) }  ).
         | B(x):-A(count:{Prime(x)}).
+        |
+        | A(x) <= B(x) :- C(x).
+        | A(x) <= B(x) :- C(x). .plan 1:(42)
         |""".stripMargin
     )
 
@@ -205,7 +208,7 @@ class ParserTest extends AnyFunSuite {
       PrettyPrinter.print(Parser.parse(Parser.subsumptiveRule, src))
 
     p("A(a, b) <= B(b, d) :- B(b, c), B(c, d). ")
-    p("A(a, b) <= B(b, d) :- B(b, c), B(c, d). .plan ")
+    p("A(a, b) <= B(b, d) :- B(b, c), B(c, d). .plan 1 : (), 2 : (42), 3:(0,1,2)")
   }
 
   test("argument") {

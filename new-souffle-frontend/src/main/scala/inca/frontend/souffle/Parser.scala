@@ -308,7 +308,7 @@ object Parser {
     (
       (spaced(Literals.number) <* spaced(Literals.colon)) ~
         spaced(parens(Literals.number.repSep0(Separators.comma)))
-    ).rep.map(l => QueryPlan(l.toList))
+    ).repSep(Separators.comma).map(l => QueryPlan(l.toList))
 
   // rule ::= atom ( ',' atom )* ':-' disjunction '.' query_plan?
   val rule: P[Rule] = {
@@ -418,6 +418,7 @@ object Parser {
   val program: P[SouffleProgram] = (
     pragma |
     fact.backtrack |
+    subsumptiveRule.backtrack |
     rule |
     relationDecl |
     directive |

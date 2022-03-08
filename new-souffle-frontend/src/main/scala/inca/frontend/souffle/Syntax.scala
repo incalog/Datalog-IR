@@ -117,7 +117,10 @@ object Syntax {
 
   // SUBSUMPTIVE RULE
   // rule ::= atom '<=' atom ':-' disjunction '.' query_plan?
-  case class SubsumptiveRule(atom1: Atom, atom2: Atom, disjunction: Disjunction, queryPlan: Option[QueryPlan] = None)
+  case class SubsumptiveRule(atom1: Atom,
+                             atom2: Atom,
+                             disjunction: Disjunction,
+                             queryPlan: Option[QueryPlan] = None) extends SouffleStatement
 
   // qualified_name ::= IDENT ( '.' IDENT )*
   case class QualifiedName(identifiers: Seq[String]) {
