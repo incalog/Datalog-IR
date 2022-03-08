@@ -200,6 +200,11 @@ class ParserTest extends AnyFunSuite {
     p("range(0, 5, .5)")
   }
 
+  test("subsumptiveRule") {
+    def p(src: String): Unit =
+      PrettyPrinter.print(Parser.parse(Parser.subsumptiveRule, src))
+  }
+
   test("argument") {
     def p(src: String): Unit = PrettyPrinter.print(Parser.parse(Parser.argument, src))
     def q(src: String): Unit = println(Parser.parse(Parser.argument, src))
