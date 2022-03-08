@@ -386,8 +386,8 @@ object Parser {
   lazy val subsumptiveRule: P[SubsumptiveRule] = {
     (
       (
-        (spaced(atom) <* spaced(P.string(":-"))) ~
-        (spaced(P.string(":-")) *> spaced(atom))
+        (spaced(atom) <* spaced(P.string("<="))) ~
+        (spaced(P.string("<=")) *> spaced(atom))
         ) ~
         (disjunction <* spaced(P.char('.'))) ~
         queryPlan.?
