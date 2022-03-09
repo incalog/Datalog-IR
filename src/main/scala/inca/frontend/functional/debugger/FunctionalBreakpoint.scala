@@ -33,6 +33,14 @@ object FunctionalBreakpoint {
                   Some((pat, body, atom))
                 case Some(SourceConstruct((m: Match, p: Pattern))) if (p.sourceObject == so) =>
                   Some((pat, body, atom))
+                case Some(SourceConstruct((let: Let, v: String))) =>
+                  val bindsV = let.names.exists { name =>
+                    val sameVar = v == name.name
+                    val sameSO = name.sourceObject == so
+                    sameVar && sameSO
+                  }
+                  if (bindsV) Some((pat, body, atom))
+                  else None
                 case _ => None
               }
             }
@@ -58,6 +66,11 @@ object FunctionalBreakpoint {
 
   def forPattern(prog: Module, f: String, p: Pattern, occurrence: Int = 0): FunctionalBreakpoint = {
     val sourceObject = getSourceObjectOfPattern(prog, f, p, occurrence)
+    FunctionalBreakpoint(InFunction(sourceObject))
+  }
+
+  def forBinding(prog: Module, f: String, name: String, occurrence: Int = 0): FunctionalBreakpoint = {
+    val sourceObject = getSourceObjectOfBinding(prog, f, name, occurrence)
     FunctionalBreakpoint(InFunction(sourceObject))
   }
 
@@ -87,6 +100,25 @@ object FunctionalBreakpoint {
       override def transPattern(p: Pattern): Seq[SourceObject] = {
         if (p == patternOfInterest) Seq(p.sourceObject)
         else Seq()
+      }
+    }
+    val sourceObjectCandidates = collectExpressions.transModule(funProg)
+    sourceObjectCandidates(occurrence)
+  }
+
+  private def getSourceObjectOfBinding(funProg: Module, f: String, bindingOfInterest: String, occurrence: Int = 0): SourceObject = {
+    val collectExpressions = new Collect[SourceObject] {
+      override def transFunDef(fun: FunctionDef): Seq[SourceObject] =
+        if (fun.name.name == f) super.transFunDef(fun)
+        else Seq()
+
+      override def transExpression(e: Expression): Seq[SourceObject] = e match {
+        case Let(names, _, bound, body) =>
+          names.flatMap { n =>
+            if (n.name == bindingOfInterest) Seq(n.sourceObject)
+            else Seq()
+          } ++ transExpression(bound) ++ transExpression(body)
+        case _ => super.transExpression(e)
       }
     }
     val sourceObjectCandidates = collectExpressions.transModule(funProg)

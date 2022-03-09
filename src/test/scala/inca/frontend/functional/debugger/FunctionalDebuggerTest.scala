@@ -1,11 +1,10 @@
 package inca.frontend.functional.debugger
 
 import inca.compiler.Compiler
-import inca.compiler.source.SourceObject
 import inca.examples.functional.{ADT, Code}
 import inca.frontend.functional.core
 import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
-import inca.frontend.functional.core.{Collect, Expression, FunctionDef, Pattern}
+import inca.frontend.functional.core.{Expression, FunctionDef, Pattern}
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -39,6 +38,10 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     FunctionalBreakpoint.forPattern(debugger.compiled.fun, f, p, occurrence)
   }
 
+  def createBreakpointOfBinding(f: String, name: String, occurrence: Int = 0): FunctionalDebugger => FunctionalBreakpoint = debugger => {
+    FunctionalBreakpoint.forBinding(debugger.compiled.fun, f, name, occurrence)
+  }
+
   def assertBreakpoints(prog: String, bps: Seq[FunctionalDebugger => FunctionalBreakpoint], main: String, args: meta.Term*)(expected: Int): Assertion = {
     val compiledExample = compile(prog)
     val debugger = initDebugger(compiledExample)
@@ -57,6 +60,27 @@ class FunctionalDebuggerTest extends AnyFunSuite {
 
   test("nested let") {
     assertControlTraceSize(Code.varExample, "main")(6)
+  }
+
+  val tupleLetProg =
+    s"""module M
+       |@main def main(): Int =
+       |  let (x, y) = (1 + 2, 2 + 3) in
+       |    x + y
+       |""".stripMargin
+  test("multiple names let") {
+    assertControlTraceSize(tupleLetProg, "main")(7)
+  }
+
+  test("nested let 2") {
+    val code =
+      s"""module M
+         |@main def main(): Int =
+         |  let x = 1 + 2 in
+         |    let y = 2 + 3 in
+         |      x + y
+         |""".stripMargin
+    assertControlTraceSize(code, "main")(7)
   }
 
   test("simple function call") {
@@ -347,6 +371,18 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     val bp = createBreakpointOfPattern("main", pattern, 2)
     assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Num(1)""", q"Num(1)")(0)
     assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(1)
+  }
+
+  // test binding
+  test("test binding breakpoint") {
+    val bp = createBreakpointOfBinding("main", "x")
+    assertBreakpoints(Code.varExample, Seq(bp), "main")(1)
+  }
+
+  test("test binding breakpoint in multiple let") {
+    val bp1 = createBreakpointOfBinding("main", "y")
+    val bp2 = createBreakpointOfBinding("main", "x")
+    assertBreakpoints(tupleLetProg, Seq(bp1, bp2), "main")(2)
   }
 
   // test constructor call breakpoint
