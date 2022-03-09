@@ -9,6 +9,7 @@ import smtlib.extensions.tip.Terms.{Case, CaseClass, CaseObject}
 import smtlib.interpreters.Z3Interpreter
 import smtlib.lexer.Lexer
 import smtlib.parser.Parser
+import smtlib.theories.Core
 import smtlib.trees.Commands.{CheckSat, Constructor, DeclareDatatypes, DefineFun, FunDef, Script}
 import smtlib.trees.{Commands, CommandsResponses, Terms}
 import smtlib.trees.Terms.{Identifier, SSymbol, Sort, SortedVar, _}
@@ -28,13 +29,20 @@ import scala.collection.mutable
 // execute z3 with smtlib as input
 // SMTLIB
 
+trait Response
+
+case object SatisfiedResponse extends Response
+
+case object UnsatisfiedResponse extends Response
+
+case object UnknownResponse extends Response
 
 class Verifier {
 
   val functionDict: mutable.Map[String, FunctionDef] = mutable.Map()
   val dataDict: mutable.Map[String, DataDef] = mutable.Map()
 
-  def verify(module: Module): Map[String, Map[String, String]] = {
+  def verify(module: Module): Map[String, Map[Property, Response]] = {
     fillDicts(module)
     val aggregations: Map[String, Seq[Property]] = collectAggregations(module)
     val verificationScripts: Seq[Script] = aggregations.toSeq.map(ag => generateScript(ag._1, ag._2))
@@ -74,21 +82,21 @@ class Verifier {
     aggrPropCollector.transFun(func)
   }
 
-  def getInterpResult(s: Script, props: Seq[Property])(implicit interp: Z3Interpreter): Map[String, String] = {
-    val evalResults: mutable.ListBuffer[String] = mutable.ListBuffer()
+  def getInterpResult(s: Script, props: Seq[Property])(implicit interp: Z3Interpreter): Map[Property, Response] = {
+    val evalResults: mutable.ListBuffer[Response] = mutable.ListBuffer()
     s.commands.foreach {
       cmd =>
         interp.eval(cmd) match {
           case CommandsResponses.CheckSatStatus(status) =>
             evalResults += (status match {
-              case CommandsResponses.SatStatus => "false"
-              case CommandsResponses.UnsatStatus => "true"
-              case CommandsResponses.UnknownStatus => "unknown"
+              case CommandsResponses.SatStatus => UnsatisfiedResponse
+              case CommandsResponses.UnsatStatus => SatisfiedResponse
+              case CommandsResponses.UnknownStatus => UnknownResponse
             })
           case _ =>
         }
     }
-    props.map(p => p.name).zip(evalResults).toMap
+    props.zip(evalResults).toMap
   }
 
   def generateScript(funcName: String, props: Seq[Property]): Script = {
@@ -253,18 +261,133 @@ class Verifier {
           Seq(cnd, thn, els).map(transExp))
 
       case BaseApplyInfix(left, op, right) =>
-        val transOp = op.tree.value match {
-          // TODO bei Bedarf mehr Infix Operatoren hinzufügen (Was, wenn das nicht in Core theory
-          //  enthalten ist? Extra FunctionDefinition?)
-          case "==" => "="
-          case _ => op.tree.value
-        }
-        FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(transOp))), Seq(left, right).map(transExp))
+        FunctionApplication(transMetaInfixOp(op.tree), Seq(left, right).map(transExp))
 
       // TODO BaseLit, BaseApply, BaseApplyInfix, Tuples, Lambda
+      case BaseLit(code) =>
+        code.tree match {
+          case l: meta.Lit => transMetaLit(l)
+          case _ => throw new Exception("BaseLit does not contain Term.Literal")
+        }
+
+      case BaseApply(fun, args) =>
+        // Das sieht sehr anstrengend aus... Vielleicht irgendwie so:
+        fun.tree match {
+          case f: scala.meta.Term.Function =>
+            val funParams = f.params.map {
+              ???
+            }
+            val funBody = transMetaTerm(f.body, Map())
+            val funName: String = ???
+            ???
+          case f: scala.meta.Term.Select =>
+            throw new Exception("Cannot translate library functions")
+          case _ => throw new Exception("Function is not a function")
+        }
     }
   }
 
+
+  /* +, -, *, /, %, **, ==, !=, >, <, >=, <=, && (bzw and)
+    || (bzw or),  &, |, ^, <<, >>,
+
+    keine direkte Entsprechung: +=, -=, *=, /=, %=, **=, <<=, >>=,
+    &= (bitw and assign), ^= (bitwise xor and assign), |= (bitw or assign),
+    >>> (right shift zero fill)
+
+    Prefix: ! (bzw not),  ~ (bitw ones compl)
+  */
+
+  val metaInfixOpMap: Map[meta.Term.Name, QualifiedIdentifier] = {
+    // TODO welche Infix OPs gibt es?
+    (Seq("+", "-", "*", "!=", ">", ">=", "<", "<=", "and", "or").map(s => (s, s)) ++
+      Seq(("==", "="), ("/", "div"), ("&&", "and"), ("||", "or"), ("&", "bvand"),
+        ("|", "bvor"), ("<<", "bvshl"), (">>", "bvshr")
+      )).map(x => (meta.Term.Name(x._1), QualifiedIdentifier(Identifier(SSymbol(x._2))))).toMap
+  }
+
+  def transMetaInfixOp(name: meta.Term.Name): QualifiedIdentifier = {
+    val opName = name.value match {
+      case "&&" => "and"
+      case "and" => "and"
+      case "||" => "or"
+      case "or" => "or"
+      case "==" => "="
+      case "!=" => "distinct"
+      case "+" => "+"
+      case "-" => "-"
+      case "*" => "*"
+      case "/" => "/" // TODO div geht nur auf Ints, / nur auf Reals
+      case "%" => "mod" //TODO mod geht nur auf Ints, wie verhindere Ich, dass das mit Reals versucht wird?
+      case "<=" => "<="
+      case "<" => "<"
+      case ">=" => ">="
+      case ">" => ">"
+    }
+    QualifiedIdentifier(Identifier(SSymbol(opName)))
+  }
+
+  def transMetaLit(lit: meta.Lit): Term = {
+    lit match {
+      case scala.meta.Lit(value) => value match {
+        case b: Boolean => Core.BoolConst(b)
+        case by: Byte => SNumeral(by)
+        case ch: Char => SString(ch.toString)
+        case d: Double => SDecimal(d)
+        case f: Float => SDecimal(f)
+        case i: Int => SNumeral(i)
+        case _ => throw new Exception("Literal not implemented")
+      }
+      case _ => throw new Exception("Literal is not a literal")
+    }
+  }
+
+  def transMetaParam(value: List[scala.meta.Term.Param]): Term = ???
+
+  def transMetaTerm(term: scala.meta.Term, boundVars: Map[String, String]): Term = term match {
+    case scala.meta.Term.If(term, term1, term2) =>
+      FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("ite"))),
+        Seq(term, term1, term2).map(transMetaTerm(_, boundVars)))
+    case scala.meta.Term.ApplyInfix(lhs, op, targs, args) =>
+      if (args.length != 1) {
+        FunctionApplication(metaInfixOpMap(op),
+          Seq(lhs, args.head).map(transMetaTerm(_, boundVars)))
+      } else {
+        throw new Exception("Cannot handle Infix Operation with several rhs arguments")
+      }
+    case l: scala.meta.Lit => transMetaLit(l)
+    case scala.meta.Term.Name(name) => QualifiedIdentifier(Identifier(SSymbol(name)))
+
+    case scala.meta.Term.ApplyUnary(op, arg) =>
+      val opName: String = op match {
+        case meta.Term.Name(name) => name match {
+          case "!" => "not"
+          case "-" => "-"
+        }
+        case _ => throw new Exception("") //TODO
+      }
+      FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(opName))),
+        Seq(transMetaTerm(arg, boundVars)))
+
+    case scala.meta.Term.Block(value) => ???
+    case scala.meta.Term.Match(term, value) => ???
+    case meta.Term.Select(qual, name) => ???
+      // TODO wenn Ich versuchen will, zu erkennen, ob das eine Integer Conversion
+      //  ist, die Ich übersetzen kann, wie mache Ich das?
+    case scala.meta.Term.Apply(fun, args) =>
+      fun match {
+        case meta.Term.Name(name) =>
+          val opName = name match {
+            case "abs" => "abs" //TODO geht auch nur für Ints
+            case _ => ???
+          }
+          FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(opName))),
+           args.map(transMetaTerm(_, boundVars)))
+        case _ => ???
+      }
+
+    case _ => throw new Exception("Scala Content cannot be expressed in SMT-lib or is not yet implemented")
+  }
 
   def transProperty(prop: Property, aggrName: String): Script = {
     val paramTypeName = getParamTypeName(aggrName)
@@ -281,7 +404,6 @@ class Verifier {
     })
     transType(func.params.head.typ).id.symbol.name
   }
-
 
   def makeScript(scripts: Seq[Script]): Script = {
     Script(scripts.flatMap(s => s.commands).toList)

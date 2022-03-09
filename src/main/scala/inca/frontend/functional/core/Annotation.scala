@@ -50,7 +50,3 @@ case class Invertibility(invName: String) extends AggregationProperty {
   override def name: String = s"invert($invName)"
   override def inverseName: Option[String] = Some(invName)
 }
-case object InverseFunction extends AggregationProperty {
-  override def name: String = "inverse"
-  override def inverseName: Option[String] = None
-}
