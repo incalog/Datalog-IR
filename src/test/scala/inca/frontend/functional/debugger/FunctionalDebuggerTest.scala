@@ -52,6 +52,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     assert(!debugger.isFinished)
     (0 until expected).foreach { _ =>
       debugger.resume()
+      println(debugger.currentDebuggerInfo)
       assert(!debugger.isFinished)
     }
     debugger.resume()
@@ -278,6 +279,14 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     assertControlTraceSize(nestedBinaryProg, "main")(5)
   }
 
+  val deeperNestedBinaryProg: String =
+    s"""module M
+       |@main def main(): Int = ((1 + 5) + 4) + (3 + 4)
+       |""".stripMargin
+  test("deeper nested binary") {
+    assertControlTraceSize(deeperNestedBinaryProg, "main")(6)
+  }
+
   // TODO fix we currently do not consider the set to fold over
   ignore("fold example") {
     val code: String =
@@ -295,6 +304,21 @@ class FunctionalDebuggerTest extends AnyFunSuite {
          |@main def main(): Int = ((x: Int) => x + 1)(4)
          |""".stripMargin
     assertControlTraceSize(code, "main")(6)
+  }
+
+  val twoFunctionCallArgs: String = Code.module(
+    ADT.Nat_code,
+    s"""def plus(m: Nat, n: Nat): Nat = m match {
+       |  case Zero() => n
+       |  case Succ(pred) => Succ(plus(pred, n))
+       |}
+       |""".stripMargin,
+    s"""@main def main(x: Nat, y: Nat): Nat =
+       |  plus(Succ(Zero()), plus(x, y))
+       |""".stripMargin
+  )
+  test("function with two call arguments") {
+    assertControlTraceSize(twoFunctionCallArgs, "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(30)
   }
 
   // Breakpoint tests
@@ -442,6 +466,145 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     debugger.stepOut()
     assert(debugger.isFinished)
   }
-  // TODO Step over tests
+
+  // step over tests
+  test("step over function entry") {
+    val compiledExample = compile(Code.plusRealModule)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    debugger.stepOver()
+    assert(!debugger.isFinished)
+    debugger.stepOver()
+    assert(debugger.isFinished)
+  }
+
+  test("step over function entry of recursive function") {
+    val compiledExample = compile(Code.plusRealModule)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo)
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo)
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo)
+    assert(!debugger.isFinished)
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo)
+    assert(!debugger.isFinished)
+    debugger.stepOver()
+    assert(debugger.isFinished)
+  }
+
+  test("step over function entry of recursive call of function") {
+    val compiledExample = compile(Code.plusRealModule)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo)
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo)
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo)
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo)
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo)
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo)
+    debugger.stepOver() // step over recursive plus call
+    println(debugger.currentDebuggerInfo)
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo)
+    debugger.stepOut() // step out of non-rec plus call
+    println(debugger.currentDebuggerInfo)
+    debugger.stepOver()
+    assert(debugger.isFinished)
+  }
+
+  // step over function call
+  test("step over function call of non-recursive function") {
+    val compiledExample = compile(Code.incModule)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main")
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo)
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo)
+    assert(!debugger.isFinished)
+    debugger.stepOver()
+    assert(debugger.isFinished)
+  }
+
+  test("step over nested function call of non-recursive function") {
+    val code =
+      s"""module M
+         |def inc(x: Int): Int = x + 1
+         |@main def main(): Int = inc(inc(0))
+         |""".stripMargin
+    val compiledExample = compile(code)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main")
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo)
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo)
+    assert(!debugger.isFinished)
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo)
+    assert(!debugger.isFinished)
+    debugger.stepOver()
+    assert(debugger.isFinished)
+  }
+
+  test("step over function call with multiple arguments as calls") {
+    val code =
+      s"""module M
+         |def add(x: Int, y: Int): Int = x + y
+         |@main def main(): Int = add(add(1, 2), add(3, add(4, 5)))
+         |""".stripMargin
+    val compiledExample = compile(code)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main")
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo)
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo)
+    assert(!debugger.isFinished)
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo)
+    assert(!debugger.isFinished)
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo)
+    assert(!debugger.isFinished)
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo)
+    assert(!debugger.isFinished)
+    debugger.stepOver()
+    assert(debugger.isFinished)
+  }
+
+  test("step over nested function calls") {
+    val compiledExample = compile(twoFunctionCallArgs)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo)
+    debugger.stepOver()
+    println(debugger.currentDebuggerInfo)
+    assert(!debugger.isFinished)
+    debugger.stepOver()
+    assert(!debugger.isFinished)
+    println(debugger.currentDebuggerInfo)
+    debugger.stepOver()
+    assert(!debugger.isFinished)
+    println(debugger.currentDebuggerInfo)
+    debugger.stepOver()
+    assert(!debugger.isFinished)
+    println(debugger.currentDebuggerInfo)
+    debugger.stepOver()
+    assert(debugger.isFinished)
+  }
+
 }
 

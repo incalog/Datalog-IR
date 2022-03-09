@@ -161,7 +161,45 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     stepOverConditionPoint(fp.get)
   }
 
-  override def stepOver(): Unit = ???
+  override def stepOver(): Unit = {
+    currentFunctionalPoint match {
+      case Some(fp) =>
+        if (fp.isFunctionExit) {
+          stepInto()
+        } else if (fp.isFunctionEntry) {
+          val fbp = FunctionalBreakpoint(FunctionExit(fp.fun.name.name))
+          val irBPs = FunctionalBreakpoint.convert(fbp)(compiled.ir.patternMap).map(_.cp)
+          resumeUntilPointsInCurrentFrame(irBPs)
+        } else {
+          fp.irPoint.point.atom match {
+            case Some(Datalog.Call(f, _, _, _)) =>
+              val pattern = compiled.ir.patternMap(f)
+              if (!pattern.hasHint(DataHints.ConstructorKey)) {
+                val irCP = ControlPoint.patternExit(pattern)
+                // we want to step to the pattern exit of the called pattern
+                val stackHeight = callStack.size + 1
+                val break = BreakpointIR(irCP, () => callStack.size == stackHeight)
+                addBreakpointIR(break)
+                resume()
+                removeBreakpointIR(break)
+              }
+              // return from function or read constructor value
+              stepInto()
+            case None =>
+              stepInto()
+          }
+        }
+      case None =>
+        throw IllegalDebugStateException("Functional debugger cannot be at non-functional control point")
+    }
+  }
+
+  private def resumeUntilPointsInCurrentFrame(spotAt: Seq[ControlPoint]): Unit = {
+    val cps = spotAt.map(currentFrameBreakpoint)
+    cps.foreach(addBreakpointIR)
+    resume()
+    cps.foreach(removeBreakpointIR)
+  }
 
   override def stepOut(): Unit = {
     currentFunctionalPoint match {
