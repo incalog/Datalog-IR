@@ -8,8 +8,8 @@ import org.scalatest.funsuite.AnyFunSuite
 import smtlib.trees.Commands.PropLiteral
 import smtlib.trees.Terms.SSymbol
 import inca.frontend.functional.verification.Verifier
-import inca.frontend.functional.verification.examples.Aggregations.addition_module
-import inca.frontend.functional.verification.examples.Lattices.{const_lattice_module, signVal_lattice_module, sign_lattice_module}
+import inca.frontend.functional.verification.examples.Aggregations.compiledAdditionModule
+import inca.frontend.functional.verification.examples.Lattices.{compiledConstLattice, compiledSignLattice, compiledSignValLattice, signValLattice}
 import inca.util.Gensym
 import smtlib.Interpreter
 import smtlib.interpreters.Z3Interpreter
@@ -26,13 +26,13 @@ class GenerateSMTLIBTest extends AnyFunSuite {
     print(Parser.parse(ControlDataFlow.IntervalModule))
   }
   test("print addition module") {
-    print(addition_module)
+    print(compiledAdditionModule.typed)
   }
   test("print sign lattice") {
-    print(signVal_lattice_module)
+    print(compiledSignValLattice.typed)
   }
   test("print constant Propagation lattice") {
-    print(const_lattice_module)
+    print(compiledConstLattice.typed)
   }
   test("collect called functions") {
     val module = Parser.parse(ControlDataFlow.IntervalModule)
@@ -60,7 +60,7 @@ class GenerateSMTLIBTest extends AnyFunSuite {
 
 
   test("test signVal_lattice_module Schritt für Schritt") {
-    val module = signVal_lattice_module
+    val module = compiledSignValLattice.typed
     val verifier = new Verifier()
     verifier.fillDicts(module)
     print("#################### DataDict: \n")
@@ -92,7 +92,7 @@ class GenerateSMTLIBTest extends AnyFunSuite {
   }
 
   test("test sign_lattice_module Schritt für Schritt") {
-    val module = sign_lattice_module
+    val module = compiledSignLattice.typed
     val verifier = new Verifier()
     verifier.fillDicts(module)
     print("#################### DataDict: \n")
@@ -124,7 +124,7 @@ class GenerateSMTLIBTest extends AnyFunSuite {
   }
 
   test("test const_lattice_module") {
-    val module = const_lattice_module
+    val module = compiledConstLattice.typed
     val verifier = new Verifier()
     verifier.fillDicts(module)
     print("#################### DataDict: \n")

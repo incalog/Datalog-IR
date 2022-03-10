@@ -32,9 +32,7 @@ import scala.collection.mutable
 trait Response
 
 case object SatisfiedResponse extends Response
-
 case object UnsatisfiedResponse extends Response
-
 case object UnknownResponse extends Response
 
 class Verifier {
@@ -262,12 +260,20 @@ class Verifier {
         FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("ite"))),
           Seq(cnd, thn, els).map(transExp))
 
+      // TODO Tuples, Lambdas
+      // Lambda(vs: Seq[(Name, Type)], body: Expression)
+      // TODO hier wieder die Frage, ob Ich eine FunctionDefinition hochreiche und die aufrufe,
+      //  oder ob Ich die Funktion inline, dann müsste ich immer eine Variablen Map mit-
+      //  und zurückgeben
+      case Lambda(vs, body) => ???
+
+      case Tuple(exps) => ???
+
       case BaseApplyInfix(left, op, right) =>
         // TODO Ich weiß nicht, zu welchem Datentyp die Argumente auswerten, wie kann Ich
         //  eingrenzen, wann Ich übersetzen kann und wann nicht?
         FunctionApplication(transMetaInfixOp(op.tree), Seq(left, right).map(transExp))
 
-      // TODO Tuples, Lambdas
       case BaseLit(code) =>
         code.tree match {
           case l: meta.Lit => transMetaLit(l)
@@ -352,6 +358,8 @@ class Verifier {
         ("|", "bvor"), ("<<", "bvshl"), (">>", "bvshr")
       )).map(x => (meta.Term.Name(x._1), QualifiedIdentifier(Identifier(SSymbol(x._2))))).toMap
   } */
+
+  val metaInfixOps: Map[(Type, Type, meta.Term.Name), QualifiedIdentifier] = Map()
 
   // TODO wie kann Ich eingrenzen, für welche Datentypen der Operator übersetzt werden kann?
   //  Vielleicht irgendwas extra mitgeben und irgendwas mitgeben, was lazy ist und erst den
