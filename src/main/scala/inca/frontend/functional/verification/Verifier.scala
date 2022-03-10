@@ -100,7 +100,7 @@ class Verifier {
   }
 
   def generateScript(funcName: String, props: Seq[Property]): Script = {
-    implicit val gensym: Gensym = new Gensym(Seq())
+    implicit val gensym: Gensym = new Gensym(Seq(funcName))
     val calledFunctions: Seq[String] = collectCalledFunctions(functionDict(funcName))
     val dataDefs = (calledFunctions :+ funcName).flatMap(fName => collectUsedDataDefs(functionDict(fName))).distinct
     val transDataDefs = dataDefs.map(transDataDef)
@@ -185,10 +185,10 @@ class Verifier {
   def transType(typ: Type): Sort = {
     typ match {
       case TScala(ty) => ty match {
-        case Scala(scala.meta.Type.Name("Int")) => Sort(Identifier(SSymbol("Int")))
-        case Scala(scala.meta.Type.Name("Boolean")) => Sort(Identifier(SSymbol("Bool")))
-        case Scala(scala.meta.Type.Name("Double")) => Sort(Identifier(SSymbol("Real"))) //TODO floating point theory
-        case Scala(scala.meta.Type.Name("String")) => Sort(Identifier(SSymbol("String")))
+        case Scala(meta.Type.Name("Int")) => Sort(Identifier(SSymbol("Int")))
+        case Scala(meta.Type.Name("Boolean")) => Sort(Identifier(SSymbol("Bool")))
+        case Scala(meta.Type.Name("Double")) => Sort(Identifier(SSymbol("Real"))) //TODO floating point theory
+        case Scala(meta.Type.Name("String")) => Sort(Identifier(SSymbol("String")))
       }
       case TData(name) => Sort(Identifier(SSymbol(name.name)))
       // TODO andere Cases
@@ -202,16 +202,18 @@ class Verifier {
 
       case Let(names, anno, bound, body) =>
         val varNames: Seq[SSymbol] = names.map(name => SSymbol(name.name))
-        val boundTerms: Seq[Term] = if (names.length == 1) {
-          Seq(transExp(bound))
-        } else {
-          if (names.length < 1) {
-            throw new Exception("Let ohne variablen")
+        val boundTerms: Seq[Term] = {
+          if (names.length == 1) {
+            Seq(transExp(bound))
           } else {
-            bound match {
-              case SetExp(es) => es.map(transExp)
-              // TODO könnte es auch was anderes sein?
-              case _ => throw new Exception("Hier sollte ein Set von expressions stehen")
+            if (names.length < 1) {
+              throw new Exception("Let ohne variablen")
+            } else {
+              bound match {
+                case SetExp(es) => es.map(transExp)
+                // TODO könnte es auch was anderes sein?
+                case _ => throw new Exception("Hier sollte ein Set von expressions stehen")
+              }
             }
           }
         }
@@ -261,9 +263,11 @@ class Verifier {
           Seq(cnd, thn, els).map(transExp))
 
       case BaseApplyInfix(left, op, right) =>
+        // TODO Ich weiß nicht, zu welchem Datentyp die Argumente auswerten, wie kann Ich
+        //  eingrenzen, wann Ich übersetzen kann und wann nicht?
         FunctionApplication(transMetaInfixOp(op.tree), Seq(left, right).map(transExp))
 
-      // TODO BaseLit, BaseApply, BaseApplyInfix, Tuples, Lambda
+      // TODO Tuples, Lambdas
       case BaseLit(code) =>
         code.tree match {
           case l: meta.Lit => transMetaLit(l)
@@ -271,122 +275,26 @@ class Verifier {
         }
 
       case BaseApply(fun, args) =>
-        // Das sieht sehr anstrengend aus... Vielleicht irgendwie so:
         fun.tree match {
-          case f: scala.meta.Term.Function =>
+          case f: meta.Term.Function =>
+            // TODO mögliche Vorgehensweisen für anonyme Funktionen:
+            //  1. Rückgabetyp der Übersetzungsfuntkionen ändern und es möglich machen,
+            //    die Funktion als Command zurückzugeben, zB
+            //      a) Rückgabe zum Tupel mit einer Seq von Commands erweitern,
+            //        am besten direkt als FunctionDefs getypet (so würde ich es machen)
+            //  2. anonyme Function inlinen
             val funParams = f.params.map {
               ???
             }
-            val funBody = transMetaTerm(f.body, Map())
+            val funBody = transMetaTerm(f.body)
             val funName: String = ???
             ???
-          case f: scala.meta.Term.Select =>
-            throw new Exception("Cannot translate library functions")
+          case f: meta.Term.Select =>
+            // TODO Gibt es Funktionen die Ich damit vernachlässige?
+            throw new Exception("Cannot translate library/class functions")
           case _ => throw new Exception("Function is not a function")
         }
     }
-  }
-
-
-  /* +, -, *, /, %, **, ==, !=, >, <, >=, <=, && (bzw and)
-    || (bzw or),  &, |, ^, <<, >>,
-
-    keine direkte Entsprechung: +=, -=, *=, /=, %=, **=, <<=, >>=,
-    &= (bitw and assign), ^= (bitwise xor and assign), |= (bitw or assign),
-    >>> (right shift zero fill)
-
-    Prefix: ! (bzw not),  ~ (bitw ones compl)
-  */
-
-  val metaInfixOpMap: Map[meta.Term.Name, QualifiedIdentifier] = {
-    // TODO welche Infix OPs gibt es?
-    (Seq("+", "-", "*", "!=", ">", ">=", "<", "<=", "and", "or").map(s => (s, s)) ++
-      Seq(("==", "="), ("/", "div"), ("&&", "and"), ("||", "or"), ("&", "bvand"),
-        ("|", "bvor"), ("<<", "bvshl"), (">>", "bvshr")
-      )).map(x => (meta.Term.Name(x._1), QualifiedIdentifier(Identifier(SSymbol(x._2))))).toMap
-  }
-
-  def transMetaInfixOp(name: meta.Term.Name): QualifiedIdentifier = {
-    val opName = name.value match {
-      case "&&" => "and"
-      case "and" => "and"
-      case "||" => "or"
-      case "or" => "or"
-      case "==" => "="
-      case "!=" => "distinct"
-      case "+" => "+"
-      case "-" => "-"
-      case "*" => "*"
-      case "/" => "/" // TODO div geht nur auf Ints, / nur auf Reals
-      case "%" => "mod" //TODO mod geht nur auf Ints, wie verhindere Ich, dass das mit Reals versucht wird?
-      case "<=" => "<="
-      case "<" => "<"
-      case ">=" => ">="
-      case ">" => ">"
-    }
-    QualifiedIdentifier(Identifier(SSymbol(opName)))
-  }
-
-  def transMetaLit(lit: meta.Lit): Term = {
-    lit match {
-      case scala.meta.Lit(value) => value match {
-        case b: Boolean => Core.BoolConst(b)
-        case by: Byte => SNumeral(by)
-        case ch: Char => SString(ch.toString)
-        case d: Double => SDecimal(d)
-        case f: Float => SDecimal(f)
-        case i: Int => SNumeral(i)
-        case _ => throw new Exception("Literal not implemented")
-      }
-      case _ => throw new Exception("Literal is not a literal")
-    }
-  }
-
-  def transMetaParam(value: List[scala.meta.Term.Param]): Term = ???
-
-  def transMetaTerm(term: scala.meta.Term, boundVars: Map[String, String]): Term = term match {
-    case scala.meta.Term.If(term, term1, term2) =>
-      FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("ite"))),
-        Seq(term, term1, term2).map(transMetaTerm(_, boundVars)))
-    case scala.meta.Term.ApplyInfix(lhs, op, targs, args) =>
-      if (args.length != 1) {
-        FunctionApplication(metaInfixOpMap(op),
-          Seq(lhs, args.head).map(transMetaTerm(_, boundVars)))
-      } else {
-        throw new Exception("Cannot handle Infix Operation with several rhs arguments")
-      }
-    case l: scala.meta.Lit => transMetaLit(l)
-    case scala.meta.Term.Name(name) => QualifiedIdentifier(Identifier(SSymbol(name)))
-
-    case scala.meta.Term.ApplyUnary(op, arg) =>
-      val opName: String = op match {
-        case meta.Term.Name(name) => name match {
-          case "!" => "not"
-          case "-" => "-"
-        }
-        case _ => throw new Exception("") //TODO
-      }
-      FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(opName))),
-        Seq(transMetaTerm(arg, boundVars)))
-
-    case scala.meta.Term.Block(value) => ???
-    case scala.meta.Term.Match(term, value) => ???
-    case meta.Term.Select(qual, name) => ???
-      // TODO wenn Ich versuchen will, zu erkennen, ob das eine Integer Conversion
-      //  ist, die Ich übersetzen kann, wie mache Ich das?
-    case scala.meta.Term.Apply(fun, args) =>
-      fun match {
-        case meta.Term.Name(name) =>
-          val opName = name match {
-            case "abs" => "abs" //TODO geht auch nur für Ints
-            case _ => ???
-          }
-          FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(opName))),
-           args.map(transMetaTerm(_, boundVars)))
-        case _ => ???
-      }
-
-    case _ => throw new Exception("Scala Content cannot be expressed in SMT-lib or is not yet implemented")
   }
 
   def transProperty(prop: Property, aggrName: String): Script = {
@@ -410,6 +318,119 @@ class Verifier {
   }
 
   type Property = AggregationProperty
+
+
+  def transMetaLit(lit: meta.Lit): Term = {
+    lit match {
+      case meta.Lit(value) => value match {
+        case b: Boolean => Core.BoolConst(b)
+        case by: Byte => SNumeral(by)
+        case ch: Char => SString(ch.toString)
+        case d: Double => SDecimal(d)
+        case f: Float => SDecimal(f)
+        case i: Int => SNumeral(i)
+        case _ => throw new Exception("Literal not implemented")
+      }
+      case _ => throw new Exception("Literal is not a literal")
+    }
+  }
+
+  /* +, -, *, /, %, **, ==, !=, >, <, >=, <=, && (bzw and)
+    || (bzw or),  &, |, ^, <<, >>,
+
+    keine direkte Entsprechung: +=, -=, *=, /=, %=, **=, <<=, >>=,
+    &= (bitw and assign), ^= (bitwise xor and assign), |= (bitw or assign),
+    >>> (right shift zero fill)
+
+    Prefix: ! (bzw not),  ~ (bitw ones compl)
+  */
+
+  /* val metaInfixOpMap: Map[meta.Term.Name, QualifiedIdentifier] = {
+    // welche Infix OPs gibt es?
+    (Seq("+", "-", "*", "!=", ">", ">=", "<", "<=", "and", "or").map(s => (s, s)) ++
+      Seq(("==", "="), ("/", "div"), ("&&", "and"), ("||", "or"), ("&", "bvand"),
+        ("|", "bvor"), ("<<", "bvshl"), (">>", "bvshr")
+      )).map(x => (meta.Term.Name(x._1), QualifiedIdentifier(Identifier(SSymbol(x._2))))).toMap
+  } */
+
+  // TODO wie kann Ich eingrenzen, für welche Datentypen der Operator übersetzt werden kann?
+  //  Vielleicht irgendwas extra mitgeben und irgendwas mitgeben, was lazy ist und erst den
+  //  richtigen Operator wählt oder Alarm schlägt, wenn klar ist, auf welchen Datentypen?
+  def transMetaInfixOp(name: meta.Term.Name): QualifiedIdentifier = {
+    val opName = name.value match {
+      case "&&" => "and"
+      case "and" => "and"
+      case "||" => "or"
+      case "or" => "or"
+      case "==" => "="
+      case "!=" => "distinct"
+      case "+" => "+"
+      case "-" => "-"
+      case "*" => "*"
+      case "/" => "/" // TODO div geht nur auf Ints, / nur auf Reals
+      case "%" => "mod" //TODO mod geht nur auf Ints, wie verhindere Ich, dass das mit Reals versucht wird?
+      case "<=" => "<="
+      case "<" => "<"
+      case ">=" => ">="
+      case ">" => ">"
+      case _ => throw new Exception("Infix Operator has no equivalent in SMTlib or is not implemented yet")
+    }
+    QualifiedIdentifier(Identifier(SSymbol(opName)))
+  }
+
+  def transMetaParam(value: List[meta.Term.Param]): Term = ???
+
+  def transMetaTerm(term: meta.Term): Term = term match {
+    case meta.Term.If(term, term1, term2) =>
+      FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("ite"))),
+        Seq(term, term1, term2).map(transMetaTerm))
+
+    case meta.Term.ApplyInfix(lhs, op, targs, args) =>
+      if (args.length != 1) {
+        FunctionApplication(transMetaInfixOp(op),
+          Seq(transMetaTerm(lhs)) ++ args.map(transMetaTerm))
+      } else {
+        // TODO Ich kann hier überprüfen, ob der Infix Operator in SMTlib chainable ist,
+        //  vielleicht mit einer Liste von chainable Operatoren in SMTlib?
+        throw new Exception("Cannot handle Infix Operation with several rhs arguments")
+      }
+
+    case l: meta.Lit => transMetaLit(l)
+
+    case meta.Term.Name(name) => QualifiedIdentifier(Identifier(SSymbol(name)))
+
+    case meta.Term.ApplyUnary(op, arg) =>
+      val opName: String = op match {
+        case meta.Term.Name(name) => name match {
+          case "!" => "not"
+          case "-" => "-"
+        }
+        case _ => throw new Exception("") //TODO
+      }
+      FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(opName))),
+        Seq(transMetaTerm(arg)))
+
+    case meta.Term.Block(value) => ???
+    case meta.Term.Match(term, value) => ???
+    case meta.Term.Select(qual, name) => ???
+    // TODO wenn Ich versuchen will, zu erkennen, ob das eine Integer Conversion
+    //  ist, die Ich übersetzen kann, wie mache Ich das? Ich weiß ja nicht, zu
+    //  welchem Typ qual auswertet
+
+    case meta.Term.Apply(fun, args) =>
+      fun match {
+        case meta.Term.Name(name) =>
+          val opName = name match {
+            case "abs" => "abs" //TODO geht auch nur für Ints
+            case _ => ???
+          }
+          FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(opName))),
+            args.map(transMetaTerm))
+        case _ => ???
+      }
+
+    case _ => throw new Exception("Scala Content cannot be expressed in SMT-lib or is not yet implemented")
+  }
 
 }
 
