@@ -225,6 +225,25 @@ class GenerateDatalog(module: Module) {
       val evalConstraint = Datalog.Computed(evalOut, Datalog.Evaluation(Seq(), transType(resType), Scala(funCode)))
       Seq((Seq(evalOut), Seq(evalConstraint)))
 
+    case BaseApplyUnary(op, exp) =>
+      val expParam = {
+        val typ = exp.typ.getOrElse(throw new IllegalStateException(s"Cannot compile call to $op with untyped argument $exp"))
+        param"exp: ${typ.asScala}"
+      }
+
+      val unary = meta.Term.ApplyUnary(op.tree, meta.Term.Name("exp"))
+      val funCode = q"($expParam) => $unary"
+      val resType = exp.typ.getOrElse(throw new IllegalStateException("cannot compile untyped base infix application"))
+
+      val expRes = transExp(exp)
+      val evalOut = Datalog.Var(gensym.fresh("eval"))
+      for ((Seq(expTerm), expCons) <- expRes) yield {
+        val evalConstraint = Datalog.Computed(evalOut,
+          Datalog.Evaluation(Seq(expTerm -> transType(exp.typ.get)),
+            transType(resType), Scala(funCode)))
+        (Seq(evalOut), expCons ++ Seq(evalConstraint))
+      }
+
     case BaseApply(fun, args) =>
       import scala.meta._
       val paramsTyped = args.zipWithIndex.map { case (arg, ix) =>

@@ -72,7 +72,7 @@ trait Parser {
     P(callExp | lambdaExp | atomicExp)
   protected[frontend] def atomicExp[_: P]: P[Expression] =
     P(parensExp | optionExp | comprehensionExp | constSetExp |
-      tupleExp | foldExp | baseApplyExp | baseLitExp | variable)
+      tupleExp | foldExp | baseApplyExp | baseLitExp | variable | baseApplyUnaryExp)
 
   /** Let parser */
   final protected[frontend] def parensExp[_: P]: P[Expression] = P("(" ~ exp ~ ")")
@@ -216,6 +216,12 @@ trait Parser {
   protected[frontend] def baseApplyExp[_: P]: P[BaseApply] =
     P("`" ~~ scalaTerm ~~ "`" ~ "(" ~ exp.rep(sep = ",") ~ ")").mapWithLoc {
       case (funTerm, args) => BaseApply(funTerm, args)
+    }
+
+  protected[frontend] def baseApplyUnaryExp[_: P]: P[BaseApplyUnary] =
+    P(CharsWhile(OpCharNotSlash).! ~ infixExp).flatMapWithLoc {
+//      case ("@", _) => ParserUtils.fail("@ not allowed as infix opertor")
+      case (op, rhs) => fastparse.Pass(BaseApplyUnary(op, rhs))
     }
 
   protected[frontend] def baseApplyInfixExp[_: P]: P[BaseApplyInfix] =

@@ -97,6 +97,10 @@ object Code {
        |  plus(m, n)
        |""".stripMargin
   )
+  val unaryModule: String =
+    s"""module M
+       |@main def main(n: Int): Int = -n
+       |""".stripMargin
 
   val fibModule: String =
     s"""module Fib

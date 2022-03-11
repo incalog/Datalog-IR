@@ -224,6 +224,20 @@ object BaseApplyInfix {
     new BaseApplyInfix(left, Scala(meta.Term.Name(op)), right)
 }
 
+case class BaseApplyUnary(op: Scala[meta.Term.Name], exp: Expression) extends Expression {
+  override def vars: Map[Name, Option[Type]] = exp.vars
+  override def freevars: Seq[Var] = exp.freevars
+  override def freeTvars: Seq[TData] = super.freeTvars ++ exp.freeTvars
+  override def calls: Set[Call] = exp.calls
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    s"$indent${op.syntax}${exp.prettyprint(false)}"
+  }
+}
+object BaseApplyUnary {
+  def apply(op: String, exp: Expression): BaseApplyUnary =
+    new BaseApplyUnary(Scala(meta.Term.Name(op)), exp)
+}
+
 case class NoneExp() extends Expression {
   override def vars: Map[Name, Option[Type]] = Map()
   override def freevars: Seq[Var] = Seq()
