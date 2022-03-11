@@ -197,6 +197,8 @@ class Defunctionalize(module: Module) {
       BaseApply(fun, args.map(a => transformExp(a)))
     case BaseApplyUnary(op, exp) =>
       BaseApplyUnary(op, transformExp(exp))
+    case BaseApplyMethod(recv, meth, args) =>
+      BaseApplyMethod(transformExp(recv), meth, args.map(_.map(transformExp)))
     case BaseApplyInfix(left, op, right) =>
       BaseApplyInfix(transformExp(left), op, transformExp(right))
 

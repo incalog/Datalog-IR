@@ -244,6 +244,36 @@ class GenerateDatalog(module: Module) {
         (Seq(evalOut), expCons ++ Seq(evalConstraint))
       }
 
+    case BaseApplyMethod(recv, method, args) =>
+      import scala.meta._
+
+      val paramsTyped = (recv +: args.getOrElse(Seq())).zipWithIndex.map { case (arg, ix) =>
+        val argTyp = arg.typ.getOrElse(throw new IllegalStateException(s"Cannot compile call of ${recv.prettyprint("")}.$method with untyped argument/reciever $arg"))
+        val paramName = gensym.fresh(s"arg$ix")
+        param"${Term.Name(paramName)}: ${argTyp.asScala}"
+      }.toList
+      val scalaArgs = paramsTyped.map(p => Term.Name(p.name.value))
+      val methodName = Term.Name(method.name)
+      val funCode =
+        if (args.isEmpty)
+          q"(..$paramsTyped) => ${scalaArgs.head}.${methodName}"
+        else
+          q"(..$paramsTyped) => ${scalaArgs.head}.${methodName}(..${scalaArgs.tail})"
+      val resType = exp.typ.getOrElse(throw new IllegalStateException("cannot compile untyped Eval"))
+
+      val recvRes = transExp(recv)
+      val argRes = args.getOrElse(Seq()).map(e => transExp(e))
+      val evalOut = Datalog.Var(gensym.fresh("eval"))
+      for (tups <- TupleOps.cartesianProduct(recvRes +: argRes)) yield {
+        val (argTermss, argCons) = tups.unzip
+        val flatArgTerms = argTermss.zip(recv +: args.getOrElse(Nil)).map {
+          case (t :: Nil, arg) => (t, transType(arg.typ.get))
+          case (_, arg) => throw new IllegalArgumentException(s"Cannot pass tuple argument $arg to ${recv.prettyprint("")}.$method")
+        }
+        val evalConstraint = Datalog.Computed(evalOut, Datalog.Evaluation(flatArgTerms, transType(resType), Scala(funCode)))
+        (Seq(evalOut), argCons.flatten :+ evalConstraint)
+      }
+
     case BaseApply(fun, args) =>
       import scala.meta._
       val paramsTyped = args.zipWithIndex.map { case (arg, ix) =>

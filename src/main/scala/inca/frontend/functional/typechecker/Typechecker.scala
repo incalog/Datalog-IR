@@ -222,6 +222,25 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       val codeSource = s"{$paramString;\n${op.tree}$expName}"
       typecheckDecodeScala(codeSource, exp)
 
+    case BaseApplyMethod(recv, method, args) =>
+      import meta._
+      val recvTy = typecheck(recv)
+      val recvString = q"val ${Pat.Var(Term.Name(recv.prettyprint("")))}: ${recvTy.asScala} = Predef.???".syntax
+
+      val codeSource =
+        if (args.isEmpty) s"{$recvString;\n${recv.prettyprint("")}.$method}" else {
+          val argTys = args.getOrElse(Seq()).zipWithIndex.map { case (a, ix) =>
+            ("param$_" + ix, typecheck(a))
+          }
+
+          val paramString = argTys.map { case (name, ty) =>
+            q"val ${Pat.Var(Term.Name(name))}: ${ty.asScala} = Predef.???".syntax
+          }.mkString(";\n")
+          val codeArgs = argTys.map(a => Term.Name(a._1))
+          s"{$paramString;\n$recvString;\n${recv.prettyprint("")}.$method(${codeArgs.mkString(", ")})}"
+        }
+      typecheckDecodeScala(codeSource, exp)
+
     case BaseApplyInfix(left, op, right) =>
       import meta._
       val (leftName, leftTy) = (Term.Name("param$_left"), typecheck(left))

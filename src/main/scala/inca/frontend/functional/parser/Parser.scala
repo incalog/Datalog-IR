@@ -67,7 +67,7 @@ trait Parser {
   protected[frontend] def wideExp[_: P]: P[Expression] =
     P(ifExp | letExp | memberExp | infixExp)
   protected[frontend] def infixExp[_: P]: P[Expression] =
-    P(typeCastExp | baseApplyInfixExp | matchExp | subinfixExp)
+    P(typeCastExp | baseApplyMethodExp | baseApplyInfixExp | matchExp | subinfixExp)
   protected[frontend] def subinfixExp[_: P]: P[Expression] =
     P(callExp | lambdaExp | atomicExp)
   protected[frontend] def atomicExp[_: P]: P[Expression] =
@@ -222,6 +222,12 @@ trait Parser {
     P(CharsWhile(OpCharNotSlash).! ~ infixExp).flatMapWithLoc {
 //      case ("@", _) => ParserUtils.fail("@ not allowed as infix opertor")
       case (op, rhs) => fastparse.Pass(BaseApplyUnary(op, rhs))
+    }
+
+  protected[frontend] def baseApplyMethodExp[_: P]: P[BaseApplyMethod] =
+    P(subinfixExp ~~ ".`" ~~ identifier ~~ "`" ~ ("(" ~ infixExp.rep(sep = ",") ~ ")").?).mapWithLoc {
+      case (recv, method, None) => BaseApplyMethod(recv, method, None)
+      case (recv, method, Some(args)) => BaseApplyMethod(recv, method, Some(args))
     }
 
   protected[frontend] def baseApplyInfixExp[_: P]: P[BaseApplyInfix] =
