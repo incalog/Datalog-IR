@@ -2,10 +2,12 @@ package inca.frontend.functional.verification.examples
 
 import inca.frontend.functional.core._
 import inca.frontend.functional.parser.Parser
+import inca.compiler.Compiler
+import inca.frontend.functional.compiler.FunctionalOptions
 
 object Lattices {
 
-  val sign_lattice =
+  val signLattice =
     s"""module SignLattice
        |data Sign = Top() | Bot() | Pos() | Zero() | Neg()
        |
@@ -36,9 +38,11 @@ object Lattices {
        |}
        |""".stripMargin
 
-  val sign_lattice_module: Module = Parser.parse(sign_lattice)
+  //val signLatticeModule: Module = Parser.parse(signLattice)
 
-  val const_lattice =
+  val compiledSignLattice = Compiler.compileFunctional(signLattice, FunctionalOptions())
+
+  val constLattice =
     s"""module ConstantPropagationLattice
        |data Constant = Bot() | Num(Int) | Top()
        |
@@ -53,9 +57,10 @@ object Lattices {
        |}
        |""".stripMargin
 
-  val const_lattice_module: Module = Parser.parse(const_lattice)
 
-  val signVal_lattice =
+  val compiledConstLattice = Compiler.compileFunctional(constLattice, FunctionalOptions())
+
+  val signValLattice =
     s"""module SignValLattice
        |data Val = Top() | Bot() | BoolVal(Boole) | SignVal(Sign)
        |data Boole = TopBool() | BotBool() | True() | False()
@@ -123,60 +128,63 @@ object Lattices {
        |}
        |""".stripMargin
 
-  val signVal_lattice_module: Module = Parser.parse(signVal_lattice)
+  val compiledSignValLattice = Compiler.compileFunctional(signValLattice, FunctionalOptions())
 
-  val interval_lattice =
-    s"""module IntervalLattice
-       |data Interval = IV(Int, Int) | TopInterval()
-       |  data Bool = True() | False() | TopBool()
-       |  data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
-       |
-       |  @aggr(assoc, comm)def joinVal(v1: Val, v2: Val): Val = v1 match {
-       |    case BotVal() => v2
-       |    case IntervalVal(iv1) => v2 match {
-       |      case BotVal() => v1
-       |      case IntervalVal(iv2) => IntervalVal(joinInterval(iv1, iv2))
-       |      case BoolVal(b2) => TopVal()
-       |      case TopVal() => TopVal()
-       |    }
-       |    case BoolVal(b1) => v2 match {
-       |      case BotVal() => v1
-       |      case IntervalVal(iv2) => TopVal()
-       |      case BoolVal(b2) => BoolVal(joinBool(b1, b2))
-       |      case TopVal() => TopVal()
-       |    }
-       |    case TopVal() => TopVal()
-       |  }
-       |  @aggr(assoc, comm)def joinInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
-       |    case TopInterval() => TopInterval()
-       |    case IV(l1, h1) => iv2 match {
-       |      case TopInterval() => TopInterval()
-       |      case IV(l2, h2) => widenInterval(IV(`(a, b) => if (a < b) {a} else {b}`(l1, l2), `Math.max`(h1, h2)))
-       |    }
-       |  }
-       |  def widenInterval(iv: Interval): Interval = iv match {
-       |    case TopInterval() => TopInterval()
-       |    case IV(l, h) =>
-       |      if (`Math.abs`(h - l) <= 10)
-       |        iv
-       |      else
-       |        TopInterval()
-       |  }
-       |  @aggr(assoc, comm)def joinBool(b1: Bool, b2: Bool): Bool = b1 match {
-       |    case True() => b2 match {
-       |      case True() => True()
-       |      case False() => TopBool()
-       |      case TopBool() => TopBool()
-       |    }
-       |    case False() => b2 match {
-       |      case True() => TopBool()
-       |      case False() => False()
-       |      case TopBool() => TopBool()
-       |    }
-       |    case TopBool() => TopBool()
-       |  }
-       |""".stripMargin
+  val intervalLattice =
+    """module IntervalLattice
+      |data Interval = IV(Int, Int) | TopInterval()
+      |data Bool = True() | False() | TopBool()
+      |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
+      |
+      |@aggr(assoc, comm) def joinVal(v1: Val, v2: Val): Val = v1 match {
+      |  case BotVal() => v2
+      |  case IntervalVal(iv1) => v2 match {
+      |    case BotVal() => v1
+      |    case IntervalVal(iv2) => IntervalVal(joinInterval(iv1, iv2))
+      |    case BoolVal(b2) => TopVal()
+      |    case TopVal() => TopVal()
+      |  }
+      |  case BoolVal(b1) => v2 match {
+      |    case BotVal() => v1
+      |    case IntervalVal(iv2) => TopVal()
+      |    case BoolVal(b2) => BoolVal(joinBool(b1, b2))
+      |    case TopVal() => TopVal()
+      |  }
+      |  case TopVal() => TopVal()
+      |}
+      |@aggr(assoc, comm) def joinInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
+      |  case TopInterval() => TopInterval()
+      |  case IV(l1, h1) => iv2 match {
+      |    case TopInterval() => TopInterval()
+      |    case IV(l2, h2) => widenInterval(IV(min(l1, l2), max(h1, h2)))
+      |  }
+      |}
+      |def widenInterval(iv: Interval): Interval = iv match {
+      |  case TopInterval() => TopInterval()
+      |  case IV(l, h) =>
+      |    if (abs(h - l) <= 10)
+      |      iv
+      |    else
+      |      TopInterval()
+      |}
+      |def min(i1: Int, i2: Int): Int = if(i1 < i2) i1 else i2
+      |def max(i1: Int, i2: Int): Int = if(i1 < i2) i2 else i1
+      |def abs(i: Int): Int = if(i < 0) i * (-1) else i
+      |@aggr(assoc, comm) def joinBool(b1: Bool, b2: Bool): Bool = b1 match {
+      |  case True() => b2 match {
+      |    case True() => True()
+      |    case False() => TopBool()
+      |    case TopBool() => TopBool()
+      |  }
+      |  case False() => b2 match {
+      |    case True() => TopBool()
+      |    case False() => False()
+      |    case TopBool() => TopBool()
+      |  }
+      |  case TopBool() => TopBool()
+      |}""".stripMargin
 
-  val interval_lattice_module: Module = Parser.parse(interval_lattice)
+
+  val compiledIntervalLattice = Compiler.compileFunctional(intervalLattice, FunctionalOptions())
 
 }

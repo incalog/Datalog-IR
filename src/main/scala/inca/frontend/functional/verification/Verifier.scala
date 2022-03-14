@@ -32,9 +32,7 @@ import scala.collection.mutable
 trait Response
 
 case object SatisfiedResponse extends Response
-
 case object UnsatisfiedResponse extends Response
-
 case object UnknownResponse extends Response
 
 class Verifier {
@@ -262,12 +260,26 @@ class Verifier {
         FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("ite"))),
           Seq(cnd, thn, els).map(transExp))
 
-      case BaseApplyInfix(left, op, right) =>
-        // TODO Ich weiß nicht, zu welchem Datentyp die Argumente auswerten, wie kann Ich
-        //  eingrenzen, wann Ich übersetzen kann und wann nicht?
-        FunctionApplication(transMetaInfixOp(op.tree), Seq(left, right).map(transExp))
+      case Lambda(vs, body) =>
+        val args = vs.map(v => SortedVar(SSymbol(v._1.name), transType(v._2)))
+        smtlib.extensions.tip.Terms.Lambda(args, transExp(body))
 
-      // TODO Tuples, Lambdas
+      // TODO Tuples
+      case Tuple(exps) => ???
+
+      case BaseApplyInfix(left, op, right) =>
+        val qualId = left.typ match {
+          case Some(leftType) => right.typ match {
+            case Some(rightType) =>
+              val exc = new Exception(s"Operator $op on types $leftType and $rightType has no equivalent in SMTlib")
+              val typeMap = metaInfixOps.getOrElse((leftType, rightType), throw exc)
+                typeMap.getOrElse(op.tree.value, throw exc)
+            case None => ???
+          }
+          case None => ???
+        }
+        FunctionApplication(qualId, Seq(left, right).map(transExp))
+
       case BaseLit(code) =>
         code.tree match {
           case l: meta.Lit => transMetaLit(l)
@@ -353,30 +365,55 @@ class Verifier {
       )).map(x => (meta.Term.Name(x._1), QualifiedIdentifier(Identifier(SSymbol(x._2))))).toMap
   } */
 
-  // TODO wie kann Ich eingrenzen, für welche Datentypen der Operator übersetzt werden kann?
-  //  Vielleicht irgendwas extra mitgeben und irgendwas mitgeben, was lazy ist und erst den
-  //  richtigen Operator wählt oder Alarm schlägt, wenn klar ist, auf welchen Datentypen?
-  def transMetaInfixOp(name: meta.Term.Name): QualifiedIdentifier = {
-    val opName = name.value match {
-      case "&&" => "and"
-      case "and" => "and"
-      case "||" => "or"
-      case "or" => "or"
-      case "==" => "="
-      case "!=" => "distinct"
-      case "+" => "+"
-      case "-" => "-"
-      case "*" => "*"
-      case "/" => "/" // TODO div geht nur auf Ints, / nur auf Reals
-      case "%" => "mod" //TODO mod geht nur auf Ints, wie verhindere Ich, dass das mit Reals versucht wird?
-      case "<=" => "<="
-      case "<" => "<"
-      case ">=" => ">="
-      case ">" => ">"
-      case _ => throw new Exception("Infix Operator has no equivalent in SMTlib or is not implemented yet")
-    }
-    QualifiedIdentifier(Identifier(SSymbol(opName)))
-  }
+  val metaInfixIntOps: Map[String, QualifiedIdentifier] = Map(
+    // TODO Division umsetzen?
+    "+" -> "+",
+    "-" -> "-",
+    "*" -> "*",
+    "%" -> "mod",
+    "<" -> "<",
+    ">" -> ">",
+    "<=" -> "<=",
+    ">=" -> ">=",
+    "==" -> "=",
+    "!=" -> "distinct"
+  ).map(x => (x._1, QualifiedIdentifier(Identifier(SSymbol(x._2)))))
+
+  val metaInfixRealOps: Map[String, QualifiedIdentifier] = Map(
+    "+" -> "+",
+    "-" -> "-",
+    "*" -> "*",
+    "/" -> "/",
+    "<" -> "<",
+    ">" -> ">",
+    "<=" -> "<=",
+    ">=" -> ">=",
+    "==" -> "=",
+    "!=" -> "distinct"
+  ).map(x => (x._1, QualifiedIdentifier(Identifier(SSymbol(x._2)))))
+
+  val metaInfixBoolOps: Map[String, QualifiedIdentifier] = Map(
+    "&&" -> "and",
+    "and" -> "and",
+    "||" -> "or",
+    "or" -> "or",
+    "==" -> "=",
+    "!=" -> "distinct"
+  ).map(x => (x._1, QualifiedIdentifier(Identifier(SSymbol(x._2)))))
+
+  val metaInfixStringOps: Map[String, QualifiedIdentifier] = Map(
+    "+" -> "str.++",
+    "==" -> "=",
+    "!=" -> "distinct"
+  ).map(x => (x._1, QualifiedIdentifier(Identifier(SSymbol(x._2)))))
+
+  val metaInfixOps: Map[(Type, Type), Map[String, QualifiedIdentifier]] = Map(
+    (TScalaInt, TScalaInt) -> metaInfixIntOps,
+    (TScalaLong, TScalaLong) -> metaInfixIntOps,
+    (TScalaDouble, TScalaDouble) -> metaInfixRealOps,
+    (TScalaBoolean, TScalaBoolean) -> metaInfixBoolOps,
+    (TScalaString, TScalaString) -> metaInfixStringOps
+  )
 
   def transMetaParam(value: List[meta.Term.Param]): Term = ???
 
@@ -386,9 +423,9 @@ class Verifier {
         Seq(term, term1, term2).map(transMetaTerm))
 
     case meta.Term.ApplyInfix(lhs, op, targs, args) =>
-      if (args.length != 1) {
-        FunctionApplication(transMetaInfixOp(op),
-          Seq(transMetaTerm(lhs)) ++ args.map(transMetaTerm))
+      if (args.length != 1) { ???
+        //FunctionApplication(meta(op),
+        //  Seq(transMetaTerm(lhs)) ++ args.map(transMetaTerm))
       } else {
         // TODO Ich kann hier überprüfen, ob der Infix Operator in SMTlib chainable ist,
         //  vielleicht mit einer Liste von chainable Operatoren in SMTlib?
