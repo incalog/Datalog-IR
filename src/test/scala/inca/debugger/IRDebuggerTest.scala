@@ -200,10 +200,20 @@ class IRDebuggerTest extends AnyFunSuite {
     }
   }
 
+  def initDatabaseRuntime(debugger: Debugger, dataModel: DataModel, es: EditScript): Unit = {
+    val scope = new QueryScope(dataModel)
+    val (_engine, _database) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    _engine.delayUpdatePropagation(() => {
+      _database.processEditScript(es)
+    })
+    debugger.setDatabaseRuntime(_database, _engine)
+  }
 
-  def initDebugger(module: Datalog.Module, dataModel: DataModel): IRDebugger = {
+
+  def initDebugger(module: Datalog.Module, dataModel: DataModel, es: EditScript = EditScript(Seq())): IRDebugger = {
     val compiled = CompiledDatalogModule(module, dataModel, Options(_stopOnError = true, _stopOnWarning = false, Seq(), Seq()))
     val debugger = new IRDebugger(compiled)
+    initDatabaseRuntime(debugger, dataModel, es)
     debugger
   }
 
@@ -238,8 +248,7 @@ class IRDebuggerTest extends AnyFunSuite {
     val tree = Exp.Mul(Exp.IntegerLit(1), Exp.IntegerLit(2))
     val mulURI = tree.uri
 
-    val debugger = initDebugger(module(ExpLangTestAnalyses.mulPattern), Exp.model)
-    debugger.updateExtensionalData(tree.loadEdits)
+    val debugger = initDebugger(module(ExpLangTestAnalyses.mulPattern), Exp.model, tree.loadEdits)
 
     val args = Table[Value](Seq("mul"), Seq(Seq(URIValue(mulURI))))
     debugger.entry("mul", args)
@@ -251,8 +260,7 @@ class IRDebuggerTest extends AnyFunSuite {
   test("test two has type atoms join") {
     val tree = Exp.Mul(Exp.IntegerLit(1), Exp.IntegerLit(2))
 
-    val debugger = initDebugger(module(ExpLangTestAnalyses.mulIntLitPattern), Exp.model)
-    debugger.updateExtensionalData(tree.loadEdits)
+    val debugger = initDebugger(module(ExpLangTestAnalyses.mulIntLitPattern), Exp.model, tree.loadEdits)
 
     val args = Table[Value](Seq("mul"), Seq(Seq(URIValue(tree.uri))))
     debugger.entry("mulIntLit", args)
@@ -266,8 +274,7 @@ class IRDebuggerTest extends AnyFunSuite {
     val mulURI = tree.uri
     val mulLhsURI = tree.lhs.uri
 
-    val debugger = initDebugger(module(ExpLangTestAnalyses.lhsPattern), Exp.model)
-    debugger.updateExtensionalData(tree.loadEdits)
+    val debugger = initDebugger(module(ExpLangTestAnalyses.lhsPattern), Exp.model, tree.loadEdits)
 
     val args = Table[Value](Seq("exp"), Seq(Seq(URIValue(mulURI)), Seq(URIValue(mulLhsURI))))
     debugger.entry("lhs", args)
@@ -281,8 +288,7 @@ class IRDebuggerTest extends AnyFunSuite {
     val intLitLhs = tree.lhs.uri
     val intLitRhs = tree.rhs.uri
 
-    val debugger = initDebugger(module(ExpLangTestAnalyses.intVal), Exp.model)
-    debugger.updateExtensionalData(tree.loadEdits)
+    val debugger = initDebugger(module(ExpLangTestAnalyses.intVal), Exp.model, tree.loadEdits)
 
     val args = Table[Value](Seq("exp"), Seq(Seq(URIValue(intLitLhs)), Seq(URIValue(intLitRhs))))
     debugger.entry("intVal", args)
@@ -740,31 +746,5 @@ class IRDebuggerTest extends AnyFunSuite {
     debugger.stepOut()
     assert(debugger.frame.cp.isPatternExit)
     assertExpectedTable(debugger, "query", args)
-  }
-
-  test("if example control") {
-    val compiledExample = Compiler.compileFunctional(Code.ifExample, FunctionalOptions())
-    println(compiledExample.ir)
-    val debugger = initDebugger(compiledExample.ir, new DataModel())
-    debugger.entry("main", Table.unit)
-    while (!debugger.isFinished) {
-      println(s"${debugger.frame.cp}:\n  ${debugger.varsIR}")
-      debugger.stepInto()
-    }
-    debugger.controlTraceIR.foreach(println)
-    println(debugger.relation("main"))
-  }
-
-  test("if example 2 control") {
-    val compiledExample = Compiler.compileFunctional(Code.ifExample2, FunctionalOptions())
-    println(compiledExample.ir)
-    val debugger = initDebugger(compiledExample.ir, new DataModel())
-    debugger.entry("main", Table.unit)
-    while (!debugger.isFinished) {
-      println(s"${debugger.frame.cp}:\n  ${debugger.varsIR}")
-      debugger.stepInto()
-    }
-    debugger.controlTraceIR.foreach(println)
-    println(debugger.relation("main"))
   }
 }
