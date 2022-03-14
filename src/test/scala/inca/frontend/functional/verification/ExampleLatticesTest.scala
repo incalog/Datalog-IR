@@ -3,41 +3,41 @@ package inca.frontend.functional.verification
 import inca.examples.functional.ControlDataFlow.IntervalModule
 import inca.frontend.functional.core.{Associativity, Commutativity}
 import inca.frontend.functional.parser.Parser
-import inca.frontend.functional.verification.examples.Aggregations.compiledAdditionModule
+import inca.frontend.functional.verification.examples.Aggregations.addition_module
 import org.scalatest.funsuite.AnyFunSuite
-import inca.frontend.functional.verification.examples.Lattices.{compiledConstLattice, compiledIntervalLattice, compiledSignLattice, compiledSignValLattice}
+import inca.frontend.functional.verification.examples.Lattices.{const_lattice_module, interval_lattice_module, signVal_lattice_module, sign_lattice, sign_lattice_module}
 
 
 class ExampleLatticesTest extends AnyFunSuite {
-  test("test sign lattice verification") {
-    val module = compiledSignLattice.typed
+  test("test sign_lattice_module verification") {
+    val module = sign_lattice_module
     val verifier = new Verifier()
     assertResult(Map("join" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse)))(verifier.verify(module))
   }
 
-  test("test const lattice verification") {
-    val module = compiledConstLattice.typed
+  test("test const_lattice_module verification") {
+    val module = const_lattice_module
     val verifier = new Verifier()
     assertResult(Map("join" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse)))(verifier.verify(module))
   }
 
-  test("test signVal lattice verification") {
-    val module = compiledSignValLattice.typed
+  test("test signVal_lattice_module verification") {
+    val module = signVal_lattice_module
     val verifier = new Verifier()
     assertResult(Map("join" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
       "joinBool" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
       "joinSign" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse)))(verifier.verify(module))
   }
 
-  test("test addition module verification") {
-    val module = compiledAdditionModule.typed
+  test("test addition_module verification") {
+    val module = addition_module
     val verifier = new Verifier()
     assertResult(Map("add" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
       "sub" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse)))(verifier.verify(module))
   }
 
-  test("test interval module verification") {
-    val module = compiledIntervalLattice.typed
+  test("test IntervalModule verification") {
+    val module = interval_lattice_module
     val verifier = new Verifier()
     assertResult(Map("joinVal" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
       "joinBool" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),

@@ -2,12 +2,10 @@ package inca.frontend.functional.verification.examples
 
 import inca.frontend.functional.core._
 import inca.frontend.functional.parser.Parser
-import inca.compiler.Compiler
-import inca.frontend.functional.compiler.FunctionalOptions
 
 object Lattices {
 
-  val signLattice =
+  val sign_lattice =
     s"""module SignLattice
        |data Sign = Top() | Bot() | Pos() | Zero() | Neg()
        |
@@ -38,11 +36,9 @@ object Lattices {
        |}
        |""".stripMargin
 
-  //val signLatticeModule: Module = Parser.parse(signLattice)
+  val sign_lattice_module: Module = Parser.parse(sign_lattice)
 
-  val compiledSignLattice = Compiler.compileFunctional(signLattice, FunctionalOptions())
-
-  val constLattice =
+  val const_lattice =
     s"""module ConstantPropagationLattice
        |data Constant = Bot() | Num(Int) | Top()
        |
@@ -57,10 +53,9 @@ object Lattices {
        |}
        |""".stripMargin
 
+  val const_lattice_module: Module = Parser.parse(const_lattice)
 
-  val compiledConstLattice = Compiler.compileFunctional(constLattice, FunctionalOptions())
-
-  val signValLattice =
+  val signVal_lattice =
     s"""module SignValLattice
        |data Val = Top() | Bot() | BoolVal(Boole) | SignVal(Sign)
        |data Boole = TopBool() | BotBool() | True() | False()
@@ -128,9 +123,9 @@ object Lattices {
        |}
        |""".stripMargin
 
-  val compiledSignValLattice = Compiler.compileFunctional(signValLattice, FunctionalOptions())
+  val signVal_lattice_module: Module = Parser.parse(signVal_lattice)
 
-  val intervalLattice =
+  val interval_lattice =
     s"""module IntervalLattice
        |data Interval = IV(Int, Int) | TopInterval()
        |  data Bool = True() | False() | TopBool()
@@ -156,7 +151,7 @@ object Lattices {
        |    case TopInterval() => TopInterval()
        |    case IV(l1, h1) => iv2 match {
        |      case TopInterval() => TopInterval()
-       |      case IV(l2, h2) => widenInterval(IV(`Math.min`(l1, l2), `Math.max`(h1, h2)))
+       |      case IV(l2, h2) => widenInterval(IV(`(a, b) => if (a < b) {a} else {b}`(l1, l2), `Math.max`(h1, h2)))
        |    }
        |  }
        |  def widenInterval(iv: Interval): Interval = iv match {
@@ -182,6 +177,6 @@ object Lattices {
        |  }
        |""".stripMargin
 
-  val compiledIntervalLattice = Compiler.compileFunctional(intervalLattice, FunctionalOptions())
+  val interval_lattice_module: Module = Parser.parse(interval_lattice)
 
 }
