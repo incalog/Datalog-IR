@@ -86,12 +86,20 @@ trait Debugger extends DebuggerAPI {
   // initialization methods
   def initialize(mod: CompiledModule): Unit = {
     compiled = mod
-    val scope = new QueryScope(compiled.dataModel)
-    val (_engine, _database) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-    engine = _engine
-    database = _database
     fixpointState = new FixpointState[Value](compiled.ir.patternMap)
     tableOps = new TableOps(database, compiled, fixpointState)
+  }
+
+
+  type DatabaseRuntime = (Database, AdvancedViatraQueryEngine)
+  def setDatabaseRuntime(rt: DatabaseRuntime): Unit = {
+    setDatabaseRuntime(rt._1, rt._2)
+  }
+
+  def setDatabaseRuntime(_database: Database, _engine: AdvancedViatraQueryEngine): Unit = {
+    tableOps.database = _database
+    this.database = _database
+    this.engine = _engine
   }
 
   def updateExtensionalData(edits: EditScript): Unit =

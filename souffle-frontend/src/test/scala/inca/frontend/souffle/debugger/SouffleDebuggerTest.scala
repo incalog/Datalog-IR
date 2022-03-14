@@ -7,8 +7,10 @@ import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.Syntax.Name
 import inca.frontend.souffle.lowering.{SouffleInputToEditscript, SouffleToDatalogIR}
 import inca.frontend.souffle.parser.Parser
+import inca.runtime.EnginePool
 import inca.runtime.context.QueryScope
 import inca.util.matchers.IncaGPMatchers
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.flatspec.AnyFlatSpec
 
 class SouffleDebuggerTest extends AnyFlatSpec with IncaGPMatchers {
@@ -56,6 +58,10 @@ class SouffleDebuggerTest extends AnyFlatSpec with IncaGPMatchers {
   val scope: QueryScope = new QueryScope(dataModel)
   val options: Options = compiledModule.options
 
+  val (engine, database) = {
+    EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+  }
+
 //  "compiled souffle" should "trivial transitive closure" in {
 //    val superclasses =
 //      """A B
@@ -75,11 +81,15 @@ class SouffleDebuggerTest extends AnyFlatSpec with IncaGPMatchers {
         |B C""".stripMargin
     val factsCompiler = new SouffleInputToEditscript("EMPTY")
     val directsuperclassEdits = factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
+    engine.delayUpdatePropagation(() => {
+     database.processEditScript(directsuperclassEdits)
+    })
 
     println(compiledModule.ir)
 
     val debugger = new SouffleDebugger(compiledModule)
-    debugger.entry("Superclass", directsuperclassEdits, Table.unit)
+    debugger.setDatabaseRuntime(database, engine)
+    debugger.entry("Superclass", Table.unit)
     while (!debugger.isFinished) {
       println(debugger.currentDebuggerInfo)
       debugger.stepInto()

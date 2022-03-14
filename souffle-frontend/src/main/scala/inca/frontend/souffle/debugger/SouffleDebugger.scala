@@ -28,8 +28,8 @@ case class InRulePoint(rel: RuleSignature, rule: RuleDefinition, point: SourceOb
 class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
   super.initialize(compiled)
 
-  def entry(name: Datalog.Name, edits: EditScript, bindings: Table[Value]): Unit = {
-    super.updateExtensionalData(edits)
+  override def entry(name: Datalog.Name, bindings: Table[Value]): Unit = {
+    // super.updateExtensionalData(edits)
     super.entry(name, bindings)
     soufflePoint.getOrElse(stepInto())
   }

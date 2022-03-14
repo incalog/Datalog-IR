@@ -5,19 +5,34 @@ import inca.examples.functional.{ADT, Code}
 import inca.frontend.functional.core
 import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
 import inca.frontend.functional.core.{Expression, FunctionDef, Pattern}
+import inca.runtime.EnginePool
+import inca.runtime.context.{DataModel, QueryScope}
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
+import truechange.EditScript
 
 import meta.quasiquotes._
 
 class FunctionalDebuggerTest extends AnyFunSuite {
 
   def initDebugger(module: CompiledFunctionalModule): FunctionalDebugger = {
-    new FunctionalDebugger(module)
+    val debugger = new FunctionalDebugger(module)
+    setupDatabaseRuntime(debugger, module.dataModel)
+    debugger
   }
 
   def compile(code: String): CompiledFunctionalModule =
     Compiler.compileFunctional(code, FunctionalOptions().withOptimizations(Seq()))
+
+  def setupDatabaseRuntime(debugger: FunctionalDebugger, dataModel: DataModel, es: EditScript = EditScript(Seq())): Unit = {
+    val scope = new QueryScope(dataModel)
+    val (_engine, _database) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    _engine.delayUpdatePropagation(() => {
+      _database.processEditScript(es)
+    })
+    debugger.setDatabaseRuntime(_database, _engine)
+  }
 
   def assertControlTraceSize(prog: String, main: String, args: meta.Term*)(expected: Int): Assertion = {
     val compiledExample = compile(prog)

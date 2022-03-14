@@ -14,7 +14,7 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.{TupleMask, Tuples}
 
 import scala.jdk.CollectionConverters._
 
-class TableOps(val database: Database, val compiled: CompiledModule, val fixpointState: FixpointState[Value]) {
+class TableOps(var database: Database, val compiled: CompiledModule, val fixpointState: FixpointState[Value]) {
 
   // Needed to execute scala code via reflection
   private lazy val scalaCompiler = new Scala.ScalaCompiler()

@@ -2,14 +2,15 @@ package inca.debugger
 
 import inca.analyzedLangs.{Exp, ExpLangTestAnalyses}
 import inca.backend.ir.Datalog
-import inca.compiler.{CompiledDatalogModule, Compiler, Options}
+import inca.compiler.{CompiledDatalogModule, Options}
 import inca.debugger.table.Table
-import inca.examples.functional.Code
-import inca.frontend.functional.compiler.FunctionalOptions
-import inca.runtime.context.DataModel
+import inca.runtime.EnginePool
+import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Scala
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
+import truechange.EditScript
 
 import scala.meta.XtensionQuasiquoteTerm
 
