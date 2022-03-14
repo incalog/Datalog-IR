@@ -97,12 +97,15 @@ class Verifier {
     props.zip(evalResults).toMap
   }
 
+  val z3ProtectedWords: Seq[String] = Seq("Bool", "Int")
+
   def generateScript(funcName: String, props: Seq[Property]): Script = {
     implicit val gensym: Gensym = new Gensym(Seq(funcName))
     val calledFunctions: Seq[String] = collectCalledFunctions(functionDict(funcName))
-    val dataDefs = (calledFunctions :+ funcName).flatMap(fName => collectUsedDataDefs(functionDict(fName))).distinct
+    // TODO reicht das reverse um sicherzustellen, dass die Funktionen und DataDefs in der richtigen Reihenfolge sind?
+    val functions = calledFunctions.reverse :+ funcName
+    val dataDefs = functions.flatMap(fName => collectUsedDataDefs(functionDict(fName))).distinct
     val transDataDefs = dataDefs.map(transDataDef)
-    val functions = calledFunctions :+ funcName
     val transFuncDefs = functions.map(transFunctionDef)
     val transProps = props.map(transProperty(_, funcName))
     makeScript(transDataDefs ++ transFuncDefs ++ transProps)
@@ -160,6 +163,7 @@ class Verifier {
           (SSymbol(fieldName), sort)
         }))
     )
+    // val freshDataName = gensym.fresh(dataName)
     Script(List(DeclareDatatypes(Seq((SSymbol(dataName), transConstrs)))))
   }
 
@@ -169,12 +173,13 @@ class Verifier {
   //FunctionDef(annos: Seq[Annotation], vis: Option[Visibility],
   //  name: String, params: Seq[Param], outType: Type, body: Expression)
   //Param(name: String, typ: Type)
-  def transFunctionDef(funcName: String): Script = {
+  def transFunctionDef(funcName: String)(implicit gensym: Gensym): Script = {
     val func = functionDict(funcName)
     val transParams: Seq[SortedVar] = func.params.map(p => SortedVar(SSymbol(p.name.name), transType(p.typ)))
     val transOutType: Sort = transType(func.outType)
     val transBody: Term = transExp(func.body)
-    Script(List(DefineFun(FunDef(SSymbol(func.name.name), transParams, transOutType, transBody))))
+    // val freshFuncName = gensym.fresh(funcName)
+    Script(List(DefineFun(FunDef(SSymbol(funcName), transParams, transOutType, transBody))))
   }
   //DefineFun(funDef: FunDef)
   //FunDef(name: SSymbol, params: Seq[SortedVar], returnSort: Sort, body: Term)

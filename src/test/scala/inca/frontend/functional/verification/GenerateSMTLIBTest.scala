@@ -9,7 +9,7 @@ import smtlib.trees.Commands.PropLiteral
 import smtlib.trees.Terms.SSymbol
 import inca.frontend.functional.verification.Verifier
 import inca.frontend.functional.verification.examples.Aggregations.compiledIntegerOperationsModule
-import inca.frontend.functional.verification.examples.Lattices.{compiledConstLattice, compiledSignLattice, compiledSignValLattice, intervalLattice, signValLattice}
+import inca.frontend.functional.verification.examples.Lattices.{compiledConstLattice, compiledIntervalLattice, compiledSignLattice, compiledSignValLattice, intervalLattice, signValLattice}
 import inca.util.Gensym
 import smtlib.Interpreter
 import smtlib.interpreters.Z3Interpreter
@@ -24,6 +24,14 @@ class GenerateSMTLIBTest extends AnyFunSuite {
       }
     }
   }*/
+  test("why doesnt joinInterval work?") {
+    val verifier = new Verifier()
+    val module = compiledIntervalLattice.typed
+    verifier.fillDicts(module)
+    val aggregations = verifier.collectAggregations(module)
+    val verificationScripts = aggregations.toSeq.map(ag => verifier.generateScript(ag._1, ag._2))
+    print(verificationScripts.head.commands.mkString(""))
+  }
   test("run z3") {
     implicit val z3Interp = Z3Interpreter.buildDefault
   }
@@ -87,7 +95,7 @@ class GenerateSMTLIBTest extends AnyFunSuite {
     print("\n############## Used DataDefs: \n")
     print(dataDefs)
     print("\n############## Translated DataDefs: \n")
-    val gensym = new Gensym(Seq())
+    implicit val gensym = new Gensym(Seq())
     print(dataDefs.map(d => verifier.transDataDef(d)(gensym)))
     print("\n############## Translated FunctionDefs: \n")
     val functions = calledFunctions :+ joinFuncName
@@ -119,7 +127,7 @@ class GenerateSMTLIBTest extends AnyFunSuite {
     print("\n############## Used DataDefs: \n")
     print(dataDefs)
     print("\n############## Translated DataDefs: \n")
-    val gensym = new Gensym(Seq())
+    implicit val gensym = new Gensym(Seq())
     print(dataDefs.map(d => verifier.transDataDef(d)(gensym)))
     print("\n############## Translated FunctionDefs: \n")
     val functions = calledFunctions :+ joinFuncName
@@ -151,7 +159,7 @@ class GenerateSMTLIBTest extends AnyFunSuite {
     print("\n############## Used DataDefs: \n")
     print(dataDefs)
     print("\n############## Translated DataDefs: \n")
-    val gensym = new Gensym(Seq())
+    implicit val gensym = new Gensym(Seq())
     print(dataDefs.map(d => verifier.transDataDef(d)(gensym)))
     print("\n############## Translated FunctionDefs: \n")
     val functions = calledFunctions :+ joinFuncName

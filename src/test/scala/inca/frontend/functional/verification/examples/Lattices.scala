@@ -133,8 +133,8 @@ object Lattices {
   val intervalLattice =
     """module IntervalLattice
       |data Interval = IV(Int, Int) | TopInterval()
-      |data Bool = True() | False() | TopBool()
-      |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
+      |data Boole = True() | False() | TopBool()
+      |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Boole) | TopVal()
       |
       |@aggr(assoc, comm) def joinVal(v1: Val, v2: Val): Val = v1 match {
       |  case BotVal() => v2
@@ -170,7 +170,7 @@ object Lattices {
       |def min(i1: Int, i2: Int): Int = if(i1 < i2) i1 else i2
       |def max(i1: Int, i2: Int): Int = if(i1 < i2) i2 else i1
       |def abs(i: Int): Int = if(i < 0) i * (-1) else i
-      |@aggr(assoc, comm) def joinBool(b1: Bool, b2: Bool): Bool = b1 match {
+      |@aggr(assoc, comm) def joinBool(b1: Boole, b2: Boole): Boole = b1 match {
       |  case True() => b2 match {
       |    case True() => True()
       |    case False() => TopBool()

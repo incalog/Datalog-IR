@@ -55,13 +55,14 @@ class ExampleLatticesTest extends AnyFunSuite {
     ))(verifier.verify(module))
   }
 
+  // joinInterval ist nicht assoziativ, solange man Intervalle erstellen kann mit l > h
   test("test interval module verification") {
     val module = compiledIntervalLattice.typed
     val verifier = new Verifier()
     assertResult(Map(
-      "joinVal" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
+      "joinVal" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> SatisfiedResponse),
       "joinBool" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
-      "joinInterval" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse)
+      "joinInterval" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> SatisfiedResponse)
     ))(verifier.verify(module))
   }
 }
