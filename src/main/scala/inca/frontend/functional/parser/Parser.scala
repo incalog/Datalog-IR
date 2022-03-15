@@ -6,6 +6,7 @@ import inca.compiler.source.{Source, SourceLocation}
 import inca.frontend.functional.core._
 import inca.frontend.util.ParserUtils
 import inca.util.Scala
+import scalaparse.syntax.Basic.isOpChar
 import scalaparse.syntax.Identifiers.OpCharNotSlash
 
 import scala.language.reflectiveCalls
@@ -219,7 +220,7 @@ class Parser(source: Source) {
     }
 
   protected[frontend] def baseApplyInfixExp[_: P]: P[BaseApplyInfix] =
-    P(subinfixExp ~ CharsWhile(OpCharNotSlash).! ~ infixExp).flatMapWithLoc {
+    P(subinfixExp ~ CharsWhile(isOpChar).! ~ infixExp).flatMapWithLoc {
       case (_, "@", _) => ParserUtils.fail("@ not allowed as infix opertor")
       case (_, "=>", _) => ParserUtils.fail("=> not allowed as infix opertor")
       case (_, "|", _) => ParserUtils.fail("| not allowed as infix opertor")
