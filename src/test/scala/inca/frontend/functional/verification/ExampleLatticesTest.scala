@@ -42,7 +42,7 @@ class ExampleLatticesTest extends AnyFunSuite {
       "add" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
       "sub" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse),
       "mult" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
-      //"div" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse),
+      "div" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse),
       "min" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
       "pow" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse),
     ))(verifier.verify(module))
@@ -55,7 +55,7 @@ class ExampleLatticesTest extends AnyFunSuite {
       "add" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
       "sub" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse),
       "mult" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
-      //"div" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse),
+      "div" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse),
       "min" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
     ))(verifier.verify(module))
   }
