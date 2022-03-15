@@ -5,7 +5,7 @@ import inca.frontend.functional.core.{Associativity, Commutativity}
 import inca.frontend.functional.parser.Parser
 import inca.frontend.functional.verification.examples.Aggregations.{compiledIntegerOperationsModule, compiledStringOperationsModule}
 import org.scalatest.funsuite.AnyFunSuite
-import inca.frontend.functional.verification.examples.Lattices.{compiledConstLattice, compiledIntervalLattice, compiledSignLattice, compiledSignValLattice}
+import inca.frontend.functional.verification.examples.Lattices.{compiledConstLattice, compiledIntervalLattice, compiledBoolLattice, compiledSignLattice, compiledSignValLattice, compiledModifiedIntervalLattice}
 
 
 class ExampleLatticesTest extends AnyFunSuite {
@@ -63,6 +63,25 @@ class ExampleLatticesTest extends AnyFunSuite {
       "joinVal" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> SatisfiedResponse),
       "joinBool" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
       "joinInterval" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> SatisfiedResponse)
+    ))(verifier.verify(module))
+  }
+
+  test("test modified interval module verification") {
+    val module = compiledModifiedIntervalLattice.typed
+    val verifier = new Verifier()
+    assertResult(Map(
+      "joinVal" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
+      "joinBool" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
+      "joinInterval" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse)
+    ))(verifier.verify(module))
+  }
+
+  // funktioniert nicht, da Bool ein protected word ist in z3
+  test("test bool lattice module verification") {
+    val module = compiledBoolLattice.typed
+    val verifier = new Verifier()
+    assertResult(Map(
+      "joinBool" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse)
     ))(verifier.verify(module))
   }
 }
