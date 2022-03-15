@@ -1,19 +1,23 @@
 package inca.frontend.souffle.debugger
 
-import inca.compiler.Options
 import inca.compiler.source.SourceString
+import inca.debugger.Value
 import inca.debugger.table.Table
 import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.Syntax.Name
+import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.frontend.souffle.lowering.{SouffleInputToEditscript, SouffleToDatalogIR}
 import inca.frontend.souffle.parser.Parser
 import inca.runtime.EnginePool
-import inca.runtime.context.QueryScope
-import inca.util.matchers.IncaGPMatchers
+import inca.runtime.context.{DataModel, QueryScope}
+import inca.runtime.db.Database
+import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
-import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.Assertion
+import org.scalatest.funsuite.AnyFunSuite
+import truechange.{Edit, EditScript}
 
-class SouffleDebuggerTest extends AnyFlatSpec with IncaGPMatchers {
+class SouffleDebuggerTest extends AnyFunSuite {
 
   val subclassTransitiveClosure: String =
     """
@@ -43,99 +47,97 @@ class SouffleDebuggerTest extends AnyFlatSpec with IncaGPMatchers {
       |.printsize Superclass
       |""".stripMargin
 
-  val directsuperclassSig =
+  val directsuperclassSig: Syntax.RuleSignature =
     Syntax.RuleSignature(Name("DirectSuperclass"), Seq(
       Syntax.RuleParameter(Name("?class"), Syntax.DeclaredType(Name("ClassType"))),
       Syntax.RuleParameter(Name("?superclass"), Syntax.DeclaredType(Name("ClassType")))), false)
 
-  lazy val compiledModule = {
-    val ast = Parser.parse(SourceString(subclassTransitiveClosure))
+  val pathProg: String =
+    s"""
+       |.decl edge(x: number, y: number)
+       |.input edge(IO="file", filename="edge.facts", delimiter=";")
+       |
+       |.decl path(x: number, y: number)
+       |path(X, Y) :- edge(X, Y).
+       |path(X, Y) :- edge(X, Z), path(Z, Y).
+       |""".stripMargin
+
+  lazy val compiledModule: CompiledSouffleModule = compileSouffle(subclassTransitiveClosure)
+  lazy val (engine, database): DatabaseRuntime = loadIncARuntime(compiledModule.dataModel)
+
+  def compileSouffle(code: String): CompiledSouffleModule = {
+    val ast = Parser.parse(SourceString(code))
     val compiler = new SouffleToDatalogIR
-    compiler.compile("transitiveclosure", ast)
+    compiler.compile("soufflemod", ast)
   }
 
-  val dataModel = compiledModule.dataModel
-  val scope: QueryScope = new QueryScope(dataModel)
-  val options: Options = compiledModule.options
 
-  val (engine, database) = {
+  type DatabaseRuntime = (AdvancedViatraQueryEngine, Database)
+  def loadIncARuntime(dataModel: DataModel): DatabaseRuntime = {
+    val scope = new QueryScope(dataModel)
     EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
   }
 
-//  "compiled souffle" should "trivial transitive closure" in {
-//    val superclasses =
-//      """A B
-//        |E G""".stripMargin
-//    val factsCompiler = new SouffleInputToEditscript("EMPTY")
-//    val directsuperclassEdits = factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
-//
-//    println(compiledModule.psystemModule.patterns.keys)
-//    assertMatch(compiledModule.ir, "Superclass", directsuperclassEdits) { matcher =>
-//      assert(matcher.getAllMatches.size == 2)
-//    }
-//  }
+  def loadInputs(rt: DatabaseRuntime, inputs: Map[Syntax.RuleSignature, String], delimiter: String = ";"): Unit = {
+    val inputCompiler = new SouffleInputToEditscript("EMPTY")
+    var edits: Seq[Edit] = Seq()
+    inputs.foreach { case (sig, content) =>
+      val rows = content.split("\n")
+      val es = inputCompiler.compile(rows.toIterator, sig, delimiter)
+      edits ++= es.edits
+    }
 
-  "souffle debugger" should "one step transitive closure" in {
+    rt._1.delayUpdatePropagation(() =>
+      rt._2.processEditScript(EditScript(edits))
+    )
+  }
+
+  def initDebugger(prog: String, inputs: Map[Syntax.RuleSignature, String]): SouffleDebugger = {
+    val compiled = compileSouffle(prog)
+    val rt = loadIncARuntime(compiled.dataModel)
+    loadInputs(rt, inputs)
+
+    val debugger = new SouffleDebugger(compiled)
+    debugger.setDatabaseRuntime(rt)
+    debugger
+  }
+
+  def assertExpectedResult(rel: String, args: Table[Value], debugger: SouffleDebugger): Assertion = {
+    val derived = debugger.relation(rel, args)
+    val bottomUp = debugger.readDatabase(rel, args)
+    assertResult(bottomUp)(derived)
+  }
+
+  test("one step transitive closure") {
     val superclasses =
-      """A B
-        |B C""".stripMargin
-    val factsCompiler = new SouffleInputToEditscript("EMPTY")
-    val directsuperclassEdits = factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
-    engine.delayUpdatePropagation(() => {
-     database.processEditScript(directsuperclassEdits)
-    })
+      """A;B
+        |B;C""".stripMargin
 
-    println(compiledModule.ir)
-
-    val debugger = new SouffleDebugger(compiledModule)
-    debugger.setDatabaseRuntime(database, engine)
+    val debugger = initDebugger(subclassTransitiveClosure, Map(directsuperclassSig -> superclasses))
     debugger.entry("Superclass", Table.unit)
     while (!debugger.isFinished) {
       println(debugger.currentDebuggerInfo)
       debugger.stepInto()
     }
-    println(debugger.relation("Superclass"))
+    assertExpectedResult("Superclass", Table.unit, debugger)
   }
 
-//  "compiled souffle" should "two step transitive closure" in {
-//    val superclasses =
-//      """A B
-//        |B C
-//        |C D""".stripMargin
-//    val factsCompiler = new SouffleInputToEditscript("EMPTY")
-//    val directsuperclassEdits = factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
-//
-//    assertMatch(compiledModule.ir, "Superclass", directsuperclassEdits) { matcher =>
-//      assert(matcher.getAllMatches.size == 6)
-//    }
-//  }
-//
-//  "compiled souffle" should "three step transitive closure" in {
-//    val superclasses =
-//      """A B
-//        |B C
-//        |C D
-//        |D E""".stripMargin
-//    val factsCompiler = new SouffleInputToEditscript("EMPTY")
-//    val directsuperclassEdits = factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
-//
-//    assertMatch(compiledModule.ir, "Superclass", directsuperclassEdits) { matcher =>
-//      assert(matcher.getAllMatches.size == 10)
-//    }
-//  }
-//
-//  "compiled souffle" should "four step transitive closure" in {
-//    val superclasses =
-//      """A B
-//        |B C
-//        |C D
-//        |D E
-//        |E F""".stripMargin
-//    val factsCompiler = new SouffleInputToEditscript("EMPTY")
-//    val directsuperclassEdits = factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
-//
-//    assertMatch(compiledModule.ir, "Superclass", directsuperclassEdits) { matcher =>
-//      assert(matcher.getAllMatches.size == 15)
-//    }
-//  }
+  test("simple edge program") {
+    val edges =
+      """1;2
+        |2;3
+        |3;4
+        |4;2""".stripMargin
+    val edgeSig = Syntax.RuleSignature(Syntax.Name("edge"), Seq(
+      Syntax.RuleParameter(Syntax.Name("x"), Syntax.NumberType),
+      Syntax.RuleParameter(Syntax.Name("y"), Syntax.NumberType)), false)
+
+    val debugger = initDebugger(pathProg, Map(edgeSig -> edges))
+    debugger.entry("path", Table.unit)
+    while (!debugger.isFinished) {
+      println(debugger.currentDebuggerInfo)
+      debugger.stepInto()
+    }
+    assertExpectedResult("path", Table.unit, debugger)
+  }
 }

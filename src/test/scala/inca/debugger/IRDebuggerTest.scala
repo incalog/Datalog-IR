@@ -206,7 +206,7 @@ class IRDebuggerTest extends AnyFunSuite {
     _engine.delayUpdatePropagation(() => {
       _database.processEditScript(es)
     })
-    debugger.setDatabaseRuntime(_database, _engine)
+    debugger.setDatabaseRuntime(_engine, _database)
   }
 
 

@@ -91,15 +91,19 @@ trait Debugger extends DebuggerAPI {
   }
 
 
-  type DatabaseRuntime = (Database, AdvancedViatraQueryEngine)
+//  val scope = new QueryScope(compiled.dataModel)
+//  val (_engine, _database) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+//  setDatabaseRuntime(_database, _engine)
+
+  type DatabaseRuntime = (AdvancedViatraQueryEngine, Database)
   def setDatabaseRuntime(rt: DatabaseRuntime): Unit = {
     setDatabaseRuntime(rt._1, rt._2)
   }
 
-  def setDatabaseRuntime(_database: Database, _engine: AdvancedViatraQueryEngine): Unit = {
+  def setDatabaseRuntime(_engine: AdvancedViatraQueryEngine, _database: Database): Unit = {
+    this.engine = _engine
     tableOps.database = _database
     this.database = _database
-    this.engine = _engine
   }
 
   def updateExtensionalData(edits: EditScript): Unit =

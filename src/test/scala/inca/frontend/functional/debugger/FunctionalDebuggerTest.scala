@@ -31,7 +31,7 @@ class FunctionalDebuggerTest extends AnyFunSuite {
     _engine.delayUpdatePropagation(() => {
       _database.processEditScript(es)
     })
-    debugger.setDatabaseRuntime(_database, _engine)
+    debugger.setDatabaseRuntime(_engine, _database)
   }
 
   def assertControlTraceSize(prog: String, main: String, args: meta.Term*)(expected: Int): Assertion = {
