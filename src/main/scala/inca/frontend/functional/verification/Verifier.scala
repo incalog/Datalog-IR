@@ -272,7 +272,7 @@ class Verifier {
       // TODO Tuples
       case Tuple(exps) => ???
 
-      case BaseApplyInfix(left, op, right) =>
+/*      case BaseApplyInfix(left, op, right) =>
         val qualId = left.typ match {
           case Some(leftType) => right.typ match {
             case Some(rightType) =>
@@ -283,7 +283,20 @@ class Verifier {
           }
           case None => ???
         }
-        FunctionApplication(qualId, Seq(left, right).map(transExp))
+        FunctionApplication(qualId, Seq(left, right).map(transExp))*/
+
+      case BaseApplyInfix(left, op, right) =>
+        val infixFun: (Term, Term) => Term = left.typ match {
+          case Some(leftType) => right.typ match {
+            case Some(rightType) =>
+              val exc = new Exception(s"Operator $op on types $leftType and $rightType has no equivalent in SMTlib")
+              val typeMap = newMetaInfixOps.getOrElse((leftType, rightType), throw exc)
+              typeMap.getOrElse(op.tree.value, throw exc)
+            case None => ???
+          }
+          case None => ???
+        }
+        infixFun(transExp(left), transExp(right))
 
       case BaseLit(code) =>
         code.tree match {
@@ -418,6 +431,66 @@ class Verifier {
     (TScalaDouble, TScalaDouble) -> metaInfixRealOps,
     (TScalaBoolean, TScalaBoolean) -> metaInfixBoolOps,
     (TScalaString, TScalaString) -> metaInfixStringOps
+  )
+
+  val integerDivision: (Term, Term) => Term = (left, right) => {
+    FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("div"))), Seq(
+      FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("to_real"))), Seq(left)),
+      FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("to_real"))), Seq(right))
+    ))
+  }
+
+  val basicMetaInfixIntOps: Map[String, (Term, Term) => Term] = Map(
+    "+" -> "+",
+    "-" -> "-",
+    "*" -> "*",
+    "%" -> "mod",
+    "<" -> "<",
+    ">" -> ">",
+    "<=" -> "<=",
+    ">=" -> ">=",
+    "==" -> "=",
+    "!=" -> "distinct"
+  ).map(x => (x._1, (left: Term, right: Term) => FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(x._2))), Seq(left, right))))
+  val newMetaInfixIntOps: Map[String, (Term, Term) => Term] = basicMetaInfixIntOps ++ Map(
+    "/" -> integerDivision
+  )
+
+  val newMetaInfixRealOps: Map[String, (Term, Term) => Term] = Map(
+    "+" -> "+",
+    "-" -> "-",
+    "*" -> "*",
+    "/" -> "/",
+    "<" -> "<",
+    ">" -> ">",
+    "<=" -> "<=",
+    ">=" -> ">=",
+    "==" -> "=",
+    "!=" -> "distinct"
+  ).map(x => (x._1, (left: Term, right: Term) => FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(x._2))), Seq(left, right))))
+
+  val newMetaInfixBoolOps: Map[String, (Term, Term) => Term] = Map(
+    "&&" -> "and",
+    "and" -> "and",
+    "||" -> "or",
+    "or" -> "or",
+    "==" -> "=",
+    "!=" -> "distinct"
+  ).map(x => (x._1, (left: Term, right: Term) => FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(x._2))), Seq(left, right))))
+
+  val newMetaInfixStringOps: Map[String, (Term, Term) => Term] = Map(
+    "+" -> "str.++",
+    "==" -> "=",
+    "!=" -> "distinct"
+  ).map(x => (x._1, (left: Term, right: Term) => FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(x._2))), Seq(left, right))))
+
+  // TODO André fragen, was er von dieser Umsetzung hält
+  val newMetaInfixOps: Map[(Type, Type), Map[String, (Term, Term) => Term]] = Map(
+    (TScalaInt, TScalaInt) -> newMetaInfixIntOps,
+    (TScalaLong, TScalaLong) -> newMetaInfixIntOps,
+    (TScalaDouble, TScalaDouble) -> newMetaInfixRealOps,
+    (TScalaBoolean, TScalaBoolean) -> newMetaInfixBoolOps,
+    (TScalaString, TScalaString) -> newMetaInfixStringOps
   )
 
   def transMetaParam(value: List[meta.Term.Param]): Term = ???
