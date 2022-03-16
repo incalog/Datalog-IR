@@ -19,7 +19,7 @@ class Compiler {
   var printSizes: Seq[QualifiedName] = Seq.empty
 
   // <subtype> -> <direct supertypes>
-  val types: MutableMap[TypeName, Set[TypeName]] = MutableMap(
+  val subTypes: MutableMap[TypeName, Set[TypeName]] = MutableMap(
     UnsignedType -> Set(NumberType, AnyType),
     NumberType -> Set(FloatType, AnyType),
     FloatType -> Set(AnyType),
@@ -28,7 +28,7 @@ class Compiler {
 
   def isSubtype(ty1: TypeName, ty2: TypeName): Boolean = {
     ty1 == ty2 || ty2 == AnyType || {
-      val supers = types.getOrElse(ty1, return false)
+      val supers = subTypes.getOrElse(ty1, return false)
       if (supers contains ty2)
         true
       else
@@ -277,11 +277,12 @@ class Compiler {
   def compileTypeDecl(typeDecl: TypeDecl): Unit = typeDecl match {
     case TypeDeclSubtype(name, superType) =>
       val subtype = DeclaredType(name)
-      if(types.contains(subtype)) {
-        types+=subtype->(types(subtype)++Set(superType))
+      assert(superType.isPrimitive, "Supertype has to be PrimitiveType")
+      if(subTypes.contains(subtype)) {
+        subTypes+=subtype->(subTypes(subtype)++Set(superType))
       }
       else {
-        types+=subtype->(Set(superType, AnyType))
+        subTypes+=subtype->(Set(superType, AnyType))
       }
     case TypeDeclUnion(name, types) => ???
     case TypeDeclRecord(name, records) => ???

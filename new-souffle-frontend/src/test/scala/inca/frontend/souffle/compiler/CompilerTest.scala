@@ -89,6 +89,6 @@ class CompilerTest extends AnyFunSuite {
     c.compileTypeDecl(TypeDeclSubtype("Test", DeclaredType("TestSuper")))
     c.compileTypeDecl(TypeDeclSubtype("Test", DeclaredType("TestSuper2")))
 
-    println(c.types)
+    println(c.subTypes)
   }
 }
