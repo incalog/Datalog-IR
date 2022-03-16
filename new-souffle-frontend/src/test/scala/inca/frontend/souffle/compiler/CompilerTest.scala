@@ -82,4 +82,13 @@ class CompilerTest extends AnyFunSuite {
     c.inputs.map(c.relationDecls.apply).foreach(PrettyPrinter.print)
     c.printSizes.map(c.relationDecls.apply).foreach(PrettyPrinter.print)
   }
+
+  test("TypeDeclSubtype") {
+    val c = new Compiler
+
+    c.compileTypeDecl(TypeDeclSubtype("Test", DeclaredType("TestSuper")))
+    c.compileTypeDecl(TypeDeclSubtype("Test", DeclaredType("TestSuper2")))
+
+    println(c.types)
+  }
 }
