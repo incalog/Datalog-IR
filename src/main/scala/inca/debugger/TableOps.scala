@@ -364,7 +364,7 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
     val (_, args) = callerFrame.cp.atom.asCall.get
     val callArgVars = args.collect { case Datalog.Var(name) => name }
     val columnsSubst = params.zip(callArgVars).toMap
-    val renamedPatternTable = patternTable.renameColumns(columnsSubst)
+    val renamedPatternTable = patternTable.project(columnsSubst)
     val bodyTable = callerFrame.bodyTable.join(renamedPatternTable)
 
     (callerFrame.argsTable, bodyTable)

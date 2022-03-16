@@ -55,6 +55,20 @@ case class SimpleTable[V](columns: Vector[String], rows: Vector[Vector[V]]) exte
     constructNew(newColumns, newData)
   }
 
+  override def project(columnsSubst: Map[String, String]): SimpleTable[V] = {
+    val newColumns = columns.flatMap(columnsSubst.get)
+    val newColumnsIndex = columns.flatMap { oldCol =>
+      columnsSubst.get(oldCol) match {
+        case Some(_) => Some(columnIndex(oldCol))
+        case None => None
+      }
+    }
+    val newData = rows.map { row =>
+      newColumnsIndex.map(row.apply)
+    }
+    constructNew(newColumns, newData)
+  }
+
   override def rearrangeColumns(cols: Seq[String]): SimpleTable[V] = {
     val colsVector = cols.toVector
     val colsIdx = colsVector.map(columns.indexOf)

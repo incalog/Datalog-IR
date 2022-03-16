@@ -297,6 +297,17 @@ class IRDebuggerTest extends AnyFunSuite {
     assertExpectedTable(debugger, "intVal", args)
   }
 
+  test("test call with literal as argument") {
+    val tree = Exp.Let("y", Exp.IntegerLit(5), Exp.Let("x", Exp.IntegerLit(4), Exp.IntegerLit(9)))
+    val debugger = initDebugger(module(ExpLangTestAnalyses.letBindingX, ExpLangTestAnalyses.boundIdOfLet), Exp.model, tree.loadEdits)
+
+    val args = Table.unit[Value]
+    debugger.entry("letBindingX", args)
+    stepTillFinish(debugger)
+
+    assertExpectedTable(debugger, "letBindingX", args)
+  }
+
   test("test negative call") {
     val debugger = initDebugger(negationModule, emptyDataModel)
     val args = Table[Value](Seq("x"), Seq(Seq(ScalaValue(1))))

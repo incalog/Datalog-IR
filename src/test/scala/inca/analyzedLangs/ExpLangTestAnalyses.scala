@@ -154,4 +154,23 @@ object ExpLangTestAnalyses {
           Datalog.Path(Datalog.Var("exp"), Datalog.TNode(Exp.intTag), Datalog.NamedLink(Datalog.TNode(Exp.intTag), "value"), Datalog.Var("v"), Datalog.TLiteral.Int)
         )),
       ))
+
+  val boundIdOfLet =
+    Datalog.Pattern(None, "boundIdOfLet", Seq(Datalog.Param("exp", Datalog.TNode(Exp.expTag)), Datalog.Param("id", Datalog.TLiteral.String)),
+      Seq(
+        Datalog.Body(Seq(
+          Datalog.HasType(Datalog.Var("exp"), Datalog.TNode(Exp.letTag)),
+          Datalog.Path(Datalog.Var("exp"), Datalog.TNode(Exp.letTag), Datalog.NamedLink(Datalog.TNode(Exp.letTag), "name"), Datalog.Var("id"), Datalog.TLiteral.String)
+        ))
+      )
+    )
+
+  val letBindingX =
+    Datalog.Pattern(None, "letBindingX", Seq(Datalog.Param("exp", Datalog.TNode(Exp.expTag))),
+      Seq(
+        Datalog.Body(Seq(
+          Datalog.Call("boundIdOfLet", Seq(Datalog.Var("exp"), Datalog.Constant(Datalog.StringLiteral("x"))))
+        ))
+      ))
+
 }

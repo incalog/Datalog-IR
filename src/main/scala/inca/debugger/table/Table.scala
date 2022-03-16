@@ -24,6 +24,7 @@ trait Table[V] {
   def numRows: Int
 
   def project(cols: Seq[String]): Table[V]
+  def project(subst: Map[String, String]): Table[V]
   def renameColumns(subst: Map[String, String]): Table[V]
   def rearrangeColumns(cols: Seq[String]): Table[V]
 

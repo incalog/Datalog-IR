@@ -1,6 +1,6 @@
 package inca.frontend.souffle.debugger
 
-import inca.compiler.source.SourceString
+import inca.compiler.source.{Source, SourceFile, SourceString}
 import inca.debugger.Value
 import inca.debugger.table.Table
 import inca.frontend.souffle.Syntax
@@ -16,6 +16,9 @@ import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 import truechange.{Edit, EditScript}
+
+import java.io.File
+import java.nio.file.Path
 
 class SouffleDebuggerTest extends AnyFunSuite {
 
@@ -62,11 +65,11 @@ class SouffleDebuggerTest extends AnyFunSuite {
        |path(X, Y) :- edge(X, Z), path(Z, Y).
        |""".stripMargin
 
-  lazy val compiledModule: CompiledSouffleModule = compileSouffle(subclassTransitiveClosure)
+  lazy val compiledModule: CompiledSouffleModule = compileSouffle(SourceString(subclassTransitiveClosure))
   lazy val (engine, database): DatabaseRuntime = loadIncARuntime(compiledModule.dataModel)
 
-  def compileSouffle(code: String): CompiledSouffleModule = {
-    val ast = Parser.parse(SourceString(code))
+  def compileSouffle(code: Source): CompiledSouffleModule = {
+    val ast = Parser.parse(code)
     val compiler = new SouffleToDatalogIR
     compiler.compile("soufflemod", ast)
   }
@@ -92,10 +95,34 @@ class SouffleDebuggerTest extends AnyFunSuite {
     )
   }
 
-  def initDebugger(prog: String, inputs: Map[Syntax.RuleSignature, String]): SouffleDebugger = {
+  def loadInputs(rt: DatabaseRuntime, dir: String, compiled: CompiledSouffleModule): Unit = {
+    val inputCompiler = new SouffleInputToEditscript(dir)
+    var edits: Seq[Edit] = Seq()
+    compiled.inputs.foreach { case (_, (sig, input)) =>
+      val es = inputCompiler.compile(input, sig)
+      edits ++= es.edits
+    }
+    rt._1.delayUpdatePropagation(() =>
+      rt._2.processEditScript(EditScript(edits))
+    )
+  }
+
+  def initDebugger(prog: Source, inputs: Map[Syntax.RuleSignature, String]): SouffleDebugger = {
     val compiled = compileSouffle(prog)
     val rt = loadIncARuntime(compiled.dataModel)
     loadInputs(rt, inputs)
+
+    val debugger = new SouffleDebugger(compiled)
+    debugger.setDatabaseRuntime(rt)
+    debugger
+  }
+
+  def initDebugger(prog: Source, dir: String): SouffleDebugger = {
+    val compiled = compileSouffle(prog)
+    val ir = compiled.ir
+//    println(ir)
+    val rt = loadIncARuntime(compiled.dataModel)
+    loadInputs(rt, dir, compiled)
 
     val debugger = new SouffleDebugger(compiled)
     debugger.setDatabaseRuntime(rt)
@@ -113,7 +140,7 @@ class SouffleDebuggerTest extends AnyFunSuite {
       """A;B
         |B;C""".stripMargin
 
-    val debugger = initDebugger(subclassTransitiveClosure, Map(directsuperclassSig -> superclasses))
+    val debugger = initDebugger(SourceString(subclassTransitiveClosure), Map(directsuperclassSig -> superclasses))
     debugger.entry("Superclass", Table.unit)
     while (!debugger.isFinished) {
       println(debugger.currentDebuggerInfo)
@@ -132,12 +159,29 @@ class SouffleDebuggerTest extends AnyFunSuite {
       Syntax.RuleParameter(Syntax.Name("x"), Syntax.NumberType),
       Syntax.RuleParameter(Syntax.Name("y"), Syntax.NumberType)), false)
 
-    val debugger = initDebugger(pathProg, Map(edgeSig -> edges))
+    val debugger = initDebugger(SourceString(pathProg), Map(edgeSig -> edges))
     debugger.entry("path", Table.unit)
     while (!debugger.isFinished) {
       println(debugger.currentDebuggerInfo)
       debugger.stepInto()
     }
     assertExpectedResult("path", Table.unit, debugger)
+  }
+
+  val pointsToDebugger: SouffleDebugger = {
+    val benchmarkPath = "souffle-frontend/benchmark"
+    val file = Path.of(s"$benchmarkPath/self-contained.dl")
+    val factsDir = s"$benchmarkPath/minijavac"
+    initDebugger(SourceFile(file), factsDir)
+  }
+
+  test("var points to analysis") {
+    val debugger = pointsToDebugger
+    debugger.entry("InstanceFieldPointsTo", Table.unit)
+    while (!debugger.isFinished) {
+      println(debugger.currentDebuggerInfo)
+      debugger.stepInto()
+    }
+    println(debugger.currentDebuggerInfo)
   }
 }

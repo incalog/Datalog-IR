@@ -5,19 +5,23 @@ import inca.compiler.source.SourceLocation
 object Syntax {
 
   case class SouffleModule(contents: Seq[SouffleContent]) {
+    def getRuleNames(content: SouffleContent): Set[String] = content match {
+      case RuleDefinition(heads, _) => heads.map(_.rule.name).toSet
+      case ComponentDefinition(_, contents) => contents.flatMap(getRuleNames).toSet
+      case _ => Set()
+    }
     lazy val rules: Map[String, Seq[(RuleHead, RuleDefinition)]] = {
-      val ruleNames = contents.flatMap {
-        case RuleDefinition(heads, _) => heads.map(_.rule.name)
-        case _ => Seq()
-      }
+      val ruleNames = contents.flatMap(getRuleNames).toSet
       (for (name <- ruleNames)
-        yield name -> rulesByName(name)).toMap
+        yield name -> contents.flatMap(rulesByName(name, _))).toMap
     }
 
-    def rulesByName(name: String): Seq[(RuleHead, RuleDefinition)] =
-      contents.flatMap {
+    def rulesByName(name: String, content: SouffleContent): Seq[(RuleHead, RuleDefinition)] =
+      content match {
         case rule@RuleDefinition(heads, body) =>
           heads.filter(_.rule.name == name).map(_ -> rule)
+        case ComponentDefinition(_, contents) =>
+          contents.flatMap(rulesByName(name, _))
         case _ => Seq()
       }
   }

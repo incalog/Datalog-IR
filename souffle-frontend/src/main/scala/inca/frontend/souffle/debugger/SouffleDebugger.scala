@@ -73,6 +73,7 @@ class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
               case AtListElem(_, _, AtomPoint(atom)) => atom.getHint(SourceConstruct.key) match {
                 case Some(SourceConstruct(constr: Statement)) => Some(InRulePoint(rel, rule, constr.sourceObject, cp))
                 case Some(SourceConstruct((_: RuleHead, _: Expression))) => None // param=argument equality constraint
+                case Some(SourceConstruct(exp: Expression)) => None // result of expression such as calling built-in function
                 case constr => throw new IllegalArgumentException(s"Unexpected source construct $constr")
               }
               case AfterList => Some(InRulePoint(rel, rule, SourceLocationList(rule.body.ss).sourceObject, cp))
