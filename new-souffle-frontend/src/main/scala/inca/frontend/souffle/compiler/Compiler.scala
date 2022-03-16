@@ -26,6 +26,9 @@ class Compiler {
     SymbolType -> Set(AnyType)
   )
 
+  // .type <ident> = <ident-1> | <ident-2> | ... | <ident-k>
+  val unionTypes: MutableMap[TypeName, Set[TypeName]] = MutableMap()
+
   def isSubtype(ty1: TypeName, ty2: TypeName): Boolean = {
     ty1 == ty2 || ty2 == AnyType || {
       val supers = subTypes.getOrElse(ty1, return false)
@@ -284,7 +287,30 @@ class Compiler {
       else {
         subTypes+=subtype->(Set(superType, AnyType))
       }
-    case TypeDeclUnion(name, types) => ???
+    case TypeDeclUnion(name, types) =>
+      val ty = DeclaredType(name)
+      var primTy: TypeName = AnyType;
+      def checkUnionType(ty: TypeName): Boolean = {
+        if(ty.isPrimitive) {
+          if(primTy == AnyType) primTy = ty
+          else {
+            if(primTy != ty) return false
+          }
+          true
+        }
+        else if(ty.isInstanceOf[DeclaredType]) {
+          assert(unionTypes.contains(ty))
+          val unionSet = unionTypes(ty)
+          for(id<-unionSet)
+            if(!checkUnionType(id)) return false
+          true
+        }
+        else false
+      }
+      types.foreach(x => assert(checkUnionType(x), "Invalid unitType declaration"))
+      unionTypes+=ty->(types.toSet)
+      types
+
     case TypeDeclRecord(name, records) => ???
     case TypeDeclADT(name, branches) => ???
   }
