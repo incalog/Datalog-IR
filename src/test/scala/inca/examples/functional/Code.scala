@@ -111,6 +111,15 @@ object Code {
        |  plus(x, y)
        |""".stripMargin
   )
+  val unaryModule: String =
+    s"""module M
+       |@main def main(n: Int): Int = -n
+       |""".stripMargin
+
+  val methodCallModule: String =
+    s"""module M
+       |@main def main(n: String): Boolean = n.`contains`("bcd")
+       |""".stripMargin
 
   val fibModule: String =
     s"""module Fib

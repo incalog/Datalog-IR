@@ -22,6 +22,17 @@ class FunctionsTest extends AnyFunSuite {
     assert(fun.execute("main", Seq(q"20")) == fun.resultVal(6765))
   }
 
+  test("Unary Operator Example") {
+    val fun = FunctionalExecutor.loadFunction(Code.unaryModule)
+    assert(fun.execute("main", Seq(q"10")) == fun.resultVal(-10))
+  }
+
+  test("Method Call Example") {
+    val fun = FunctionalExecutor.loadFunction(Code.methodCallModule)
+    assert(fun.execute("main", Seq(q""""abcdefg"""")) == fun.resultVal(true))
+    assert(fun.execute("main", Seq(q""""abdefg"""")) == fun.resultVal(false))
+  }
+
   test("Tuple Input Example") {
     val code =
       s"""module TupleInput

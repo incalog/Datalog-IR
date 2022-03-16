@@ -198,6 +198,10 @@ class Defunctionalize(module: Module) {
       exp
     case BaseApply(fun, args) =>
       BaseApply(fun, args.map(a => transformExp(a))).sourceLocFrom(exp)
+    case BaseApplyUnary(op, exp) =>
+      BaseApplyUnary(op, transformExp(exp)).sourceLocFrom(exp)
+    case BaseApplyMethod(recv, meth, args) =>
+      BaseApplyMethod(transformExp(recv), meth, args.map(_.map(transformExp))).sourceLocFrom(exp)
     case BaseApplyInfix(left, op, right) =>
       BaseApplyInfix(transformExp(left), op, transformExp(right)).sourceLocFrom(exp)
 

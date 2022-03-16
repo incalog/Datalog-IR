@@ -224,6 +224,31 @@ object BaseApplyInfix {
     new BaseApplyInfix(left, Scala(meta.Term.Name(op)), right)
 }
 
+case class BaseApplyMethod(recv: Expression, method: Name, args: Option[Seq[Expression]]) extends Expression {
+  override def vars: Map[Name, Option[Type]] = args.getOrElse(Seq()).flatMap(_.vars).toMap ++ recv.vars
+  override def freevars: Seq[Var] = args.getOrElse(Seq()).flatMap(_.freevars) ++ recv.freevars
+  override def freeTvars: Seq[TData] = super.freeTvars ++ args.getOrElse(Seq()).flatMap(_.freeTvars) ++ recv.freeTvars
+  override def calls: Set[Call] = args.getOrElse(Seq()).flatMap(_.calls).toSet ++ recv.calls
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    val argsS = if (args.isEmpty) "" else args.get.map(_.prettyprint).mkString(", ")
+    s"${recv.prettyprint(infixParens)}.`$method`($argsS)"
+  }
+}
+
+case class BaseApplyUnary(op: Scala[meta.Term.Name], exp: Expression) extends Expression {
+  override def vars: Map[Name, Option[Type]] = exp.vars
+  override def freevars: Seq[Var] = exp.freevars
+  override def freeTvars: Seq[TData] = super.freeTvars ++ exp.freeTvars
+  override def calls: Set[Call] = exp.calls
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    s"$indent${op.syntax}${exp.prettyprint(false)}"
+  }
+}
+object BaseApplyUnary {
+  def apply(op: String, exp: Expression): BaseApplyUnary =
+    new BaseApplyUnary(Scala(meta.Term.Name(op)), exp)
+}
+
 case class NoneExp() extends Expression {
   override def vars: Map[Name, Option[Type]] = Map()
   override def freevars: Seq[Var] = Seq()
