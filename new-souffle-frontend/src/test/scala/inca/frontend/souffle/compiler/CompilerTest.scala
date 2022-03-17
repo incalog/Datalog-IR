@@ -92,10 +92,18 @@ class CompilerTest extends AnyFunSuite {
     println(c.subTypes)
   }
 
-  test("TypeDeclUniontype") {
+  test("TypeDeclUnionTypeCorrect") {
     val c = new Compiler
 
-    c.compileTypeDecl(TypeDeclUnion("Test", Seq(NumberType, FloatType)))
+    c.compileTypeDecl(TypeDeclUnion("Test", Seq(NumberType, NumberType)))
+
+    println(c.unionTypes)
+  }
+
+  test("TypeDeclUnionTypeWrongType") {
+    val c = new Compiler
+
+    c.compileTypeDecl(TypeDeclUnion("Test", Seq(FloatType, NumberType)))
 
     println(c.unionTypes)
   }
