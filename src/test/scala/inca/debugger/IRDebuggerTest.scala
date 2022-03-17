@@ -211,7 +211,7 @@ class IRDebuggerTest extends AnyFunSuite {
 
 
   def initDebugger(module: Datalog.Module, dataModel: DataModel, es: EditScript = EditScript(Seq())): IRDebugger = {
-    val compiled = CompiledDatalogModule(module, dataModel, Options(_stopOnError = true, _stopOnWarning = false, Seq(), Seq()))
+    val compiled = CompiledDatalogModule(module, dataModel, Options())
     val debugger = new IRDebugger(compiled)
     initDatabaseRuntime(debugger, dataModel, es)
     debugger
