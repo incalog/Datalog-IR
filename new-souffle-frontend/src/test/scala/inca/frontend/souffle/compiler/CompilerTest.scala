@@ -96,13 +96,17 @@ class CompilerTest extends AnyFunSuite {
     val c = new Compiler
 
     c.compileTypeDecl(TypeDeclUnion("Test", Seq(NumberType, NumberType)))
+    assertFail(c.compileTypeDecl(TypeDeclUnion("Test", Seq(FloatType, NumberType))))
 
     println(c.unionTypes)
   }
 
-  test("TypeDeclUnionTypeWrongType") {
+  test("TypeDeclRecordType"){
     val c = new Compiler
 
-    assertFail(c.compileTypeDecl(TypeDeclUnion("Test", Seq(FloatType, NumberType))))
+    c.compileTypeDecl(TypeDeclRecord("Test", Seq(Attribute("test", FloatType), Attribute("test2", NumberType))))
+    assertFail(c.compileTypeDecl(TypeDeclRecord("Test", Seq(Attribute("test", FloatType)))))
+
+    println(c.recordTypes)
   }
 }
