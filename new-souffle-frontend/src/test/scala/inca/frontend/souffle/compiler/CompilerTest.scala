@@ -109,4 +109,25 @@ class CompilerTest extends AnyFunSuite {
 
     println(c.recordTypes)
   }
+
+  test("TypeDeclADT"){
+    val c = new Compiler
+
+    c.compileTypeDecl(TypeDeclADT("Test",
+      Seq(ADTBranch("TestId", Seq(Attribute("TestAt1", NumberType), Attribute("TestAt2", FloatType))))))
+    assertFail(c.compileTypeDecl(TypeDeclADT("Test",
+      Seq(ADTBranch("TestId", Seq(Attribute("TestAt1", NumberType), Attribute("TestAt2", FloatType)))))))
+    assertFail(c.compileTypeDecl(TypeDeclADT("Test2",
+      Seq(ADTBranch("TestId", Seq(Attribute("TestAt1", NumberType), Attribute("TestAt2", FloatType)))))))
+    assertFail(c.compileTypeDecl(TypeDeclADT("Test3",
+      Seq(ADTBranch("TestBranchId",
+        Seq(Attribute("TestAt1", NumberType), Attribute("TestAt2", FloatType))),
+        ADTBranch("TestBranchId", Seq(Attribute("TestAt1", NumberType), Attribute("TestAt2", FloatType)))))))
+    c.compileTypeDecl(TypeDeclADT("Test4",
+      Seq(ADTBranch("TestBranchIdNew1",
+        Seq(Attribute("TestAt1", NumberType), Attribute("TestAt2", FloatType))),
+        ADTBranch("TestBranchIdNew2", Seq(Attribute("TestAt1", NumberType), Attribute("TestAt2", FloatType))))))
+
+    println(c.algebraicDataTypes)
+  }
 }

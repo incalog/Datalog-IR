@@ -30,7 +30,10 @@ class Compiler {
   val unionTypes: MutableMap[TypeName, Set[TypeName]] = MutableMap()
 
   // .type <new-record> = [ <name_1>: <type_1>, ..., <name_k>: <type_k> ]
-  val recordTypes: MutableMap[TypeName, Map[String, TypeName]] = MutableMap()
+  val recordTypes: MutableMap[TypeName, Seq[Attribute]] = MutableMap()
+
+  // .type <new-adt> = <branch-id> { <name_1>: <type_1>, ..., <name_k>: <type_k> } | ...
+  val algebraicDataTypes: MutableMap[TypeName, Seq[ADTBranch]] = MutableMap()
 
   def isSubtype(ty1: TypeName, ty2: TypeName): Boolean = {
     ty1 == ty2 || ty2 == AnyType || {
@@ -312,14 +315,19 @@ class Compiler {
       }
       types.foreach(x => assert(checkUnionType(x), "Invalid unitType declaration"))
       unionTypes+=ty->(types.toSet)
-      types
-    // .type <new-record> = [ <name_1>: <type_1>, ..., <name_k>: <type_k> ]
     case TypeDeclRecord(name, records) =>
       assert(!recordTypes.contains(DeclaredType(name)))
-      recordTypes+=DeclaredType(name)->records.map(x => x.name -> x.ty).toMap
+      recordTypes+=DeclaredType(name)->records
 
-    // .type <new-adt> = <branch-id> { <name_1>: <type_1>, ..., <name_k>: <type_k> } | ...
-    case TypeDeclADT(name, branches) => ???
+    case TypeDeclADT(name, branches) =>
+      assert(!algebraicDataTypes.contains(DeclaredType(name)))
+      for(adt<-algebraicDataTypes.values)
+        branches.foreach(x => adt.foreach(y => assert(y.branchId != x.branchId)))
+      algebraicDataTypes+=DeclaredType(name)->branches
+      for((br1, idx1)<-branches.zipWithIndex)
+        for((br2, idx2)<-branches.zipWithIndex){
+          if(idx1 != idx2) assert(br1.branchId != br2.branchId)
+        }
   }
 
   def compileDirective(directive: Directive): Unit = directive.qualifier match {
