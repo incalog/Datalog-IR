@@ -29,6 +29,9 @@ class Compiler {
   // .type <ident> = <ident-1> | <ident-2> | ... | <ident-k>
   val unionTypes: MutableMap[TypeName, Set[TypeName]] = MutableMap()
 
+  // .type <new-record> = [ <name_1>: <type_1>, ..., <name_k>: <type_k> ]
+  val recordTypes: MutableMap[TypeName, Map[String, TypeName]] = MutableMap()
+
   def isSubtype(ty1: TypeName, ty2: TypeName): Boolean = {
     ty1 == ty2 || ty2 == AnyType || {
       val supers = subTypes.getOrElse(ty1, return false)
@@ -310,8 +313,12 @@ class Compiler {
       types.foreach(x => assert(checkUnionType(x), "Invalid unitType declaration"))
       unionTypes+=ty->(types.toSet)
       types
+    // .type <new-record> = [ <name_1>: <type_1>, ..., <name_k>: <type_k> ]
+    case TypeDeclRecord(name, records) =>
+      assert(!recordTypes.contains(DeclaredType(name)))
+      recordTypes+=DeclaredType(name)->records.map(x => x.name -> x.ty).toMap
 
-    case TypeDeclRecord(name, records) => ???
+    // .type <new-adt> = <branch-id> { <name_1>: <type_1>, ..., <name_k>: <type_k> } | ...
     case TypeDeclADT(name, branches) => ???
   }
 
