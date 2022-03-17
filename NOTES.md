@@ -146,3 +146,26 @@ Pattern(vis, name, params: Seq[Param], bodies: Seq[Body])
 - nested aggregates are not allowed
 - Witness problem (https://souffle-lang.github.io/aggregates#the-witness-problem)
 - maybe refactor AggregatorConditionAtom into AggregatorConditionDisjunction with ONE conjunction with ONE atom
+
+## TODO: Compiler(Easy)
+
+- Pragma
+- Directive
+  - Output
+  - Limit size
+- Subsumptive Rule
+- Term
+- Aggregator
+
+## TODO: Compiler(Hard)
+
+- Arguments
+  - Argument List
+  - User-Defined Functor
+  - Unary Operation
+  - Binary Operation
+  - Intrinsic Functor
+  - Type Name
+- Negated Disjunction
+- Components
+- Functors
