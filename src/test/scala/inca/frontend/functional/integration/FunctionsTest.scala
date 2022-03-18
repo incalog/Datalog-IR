@@ -3,12 +3,19 @@ package inca.frontend.functional.integration
 import inca.examples.functional.Code
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.frontend.functional.executor.FunctionalExecutor
+import inca.runtime.EnginePool
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.collection.immutable.ArraySeq
 import scala.meta.XtensionQuasiquoteTerm
 
-class FunctionsTest extends AnyFunSuite {
+class FunctionsTest extends AnyFunSuite with BeforeAndAfterEach {
+
+  override def afterEach(): Unit = {
+    EnginePool.disposeAllEngines()
+  }
+
   test("Factorial Example") {
     val fun = FunctionalExecutor.loadFunction(Code.factModule)
     assert(fun.execute("main", Seq(q"5")) == fun.resultVal(120))

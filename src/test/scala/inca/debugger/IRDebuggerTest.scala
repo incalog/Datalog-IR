@@ -8,13 +8,18 @@ import inca.runtime.EnginePool
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Scala
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
-import org.scalatest.Assertion
+import org.scalatest.{Assertion, BeforeAndAfterEach}
 import org.scalatest.funsuite.AnyFunSuite
 import truechange.EditScript
 
 import scala.meta.XtensionQuasiquoteTerm
 
-class IRDebuggerTest extends AnyFunSuite {
+class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
+
+  override def afterEach(): Unit = {
+    EnginePool.disposeAllEngines()
+  }
+
   def edgePattern(edges: (Int, Int)*): Datalog.Pattern =
     Datalog.Pattern(None, "edge", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
       edges.map { case (from, to) =>

@@ -3,11 +3,17 @@ package inca.frontend.functional.integration
 import inca.frontend.functional.executor.FunctionalExecutor._
 import inca.compiler.CompiledModule
 import inca.examples.functional.HigherOrder
+import inca.runtime.EnginePool
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.XtensionQuasiquoteTerm
 
-class HigherOrderTest extends AnyFunSuite {
+class HigherOrderTest extends AnyFunSuite with BeforeAndAfterEach {
+
+  override def afterEach(): Unit = {
+    EnginePool.disposeAllEngines()
+  }
 
   test("applyFun") {
     val fun = loadFunction(HigherOrder.applyFun)

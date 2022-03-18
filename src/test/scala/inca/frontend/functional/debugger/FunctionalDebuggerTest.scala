@@ -8,13 +8,17 @@ import inca.frontend.functional.core.{Expression, FunctionDef, Pattern}
 import inca.runtime.EnginePool
 import inca.runtime.context.{DataModel, QueryScope}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
-import org.scalatest.Assertion
+import org.scalatest.{Assertion, BeforeAndAfterEach}
 import org.scalatest.funsuite.AnyFunSuite
 import truechange.EditScript
 
 import meta.quasiquotes._
 
-class FunctionalDebuggerTest extends AnyFunSuite {
+class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
+
+  override def afterEach(): Unit = {
+    EnginePool.disposeAllEngines()
+  }
 
   def initDebugger(module: CompiledFunctionalModule): FunctionalDebugger = {
     val debugger = new FunctionalDebugger(module)

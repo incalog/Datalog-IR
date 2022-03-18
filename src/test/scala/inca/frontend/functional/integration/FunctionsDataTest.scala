@@ -4,13 +4,18 @@ import inca.backend.analyze.DependencyGraph
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
 import inca.examples.functional.{Code, LambdaCalculus}
 import inca.frontend.functional.executor.FunctionalExecutor._
-import org.scalatest.Ignore
+import inca.runtime.EnginePool
+import org.scalatest.{BeforeAndAfterEach, Ignore}
 import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.XtensionQuasiquoteTerm
 
 @Ignore
-class FunctionsDataTest extends AnyFunSuite {
+class FunctionsDataTest extends AnyFunSuite with BeforeAndAfterEach {
+
+  override def afterEach(): Unit = {
+    EnginePool.disposeAllEngines()
+  }
 
   test("Plus Example") {
     val fun = loadFunction(Code.plusRealModule)

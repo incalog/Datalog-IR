@@ -4,12 +4,17 @@ import inca.examples.functional.Code
 import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.functional.executor.IncrementalFunctionalExecutor._
 import inca.runtime.EnginePool
+import org.scalatest.BeforeAndAfterEach
 
 import scala.meta.quasiquotes._
 
-class IncrementalTests extends AnyFunSuite {
+class IncrementalTests extends AnyFunSuite with BeforeAndAfterEach {
   val trackedRelsPlus = Set("plus", "input$plus")
   val trackedRelsFact = Set("main", "fact", "input$fact")
+
+  override def afterEach(): Unit = {
+    EnginePool.disposeAllEngines()
+  }
 
   test("primitive prog increase numerical input") {
     val original = Seq(q"5")

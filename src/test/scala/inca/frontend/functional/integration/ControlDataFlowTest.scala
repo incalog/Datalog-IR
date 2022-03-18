@@ -7,10 +7,15 @@ import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOp
 import inca.frontend.functional.executor.FunctionalExecutor._
 import inca.runtime.EnginePool
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
+import org.scalatest.BeforeAndAfterEach
 import org.scalatest.funsuite.AnyFunSuite
 import truechange.EditScript
 
-class ControlDataFlowTest extends AnyFunSuite {
+class ControlDataFlowTest extends AnyFunSuite with BeforeAndAfterEach {
+
+  override def afterEach(): Unit = {
+    EnginePool.disposeAllEngines()
+  }
 
   test("flow ex 2.1") {
     val fun = loadFunction(ControlDataFlow.cflowModule)
