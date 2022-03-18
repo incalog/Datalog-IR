@@ -144,12 +144,11 @@ case class SimpleTable[V](columns: Vector[String], rows: Vector[Vector[V]]) exte
     case other: Table[V] =>
       val sameColumns = this.columns.size == other.columns.size &&
         this.columns.forall(other.columns.contains)
-      val sameRows = this.numRows == other.numRows &&
+      sameColumns && (this.numRows == other.numRows) &&
         this.rows.forall { row =>
           val colValPair = this.columns.zip(row)
           other.contains(colValPair)
         }
-      sameColumns && sameRows
     case _ => false
   }
 }

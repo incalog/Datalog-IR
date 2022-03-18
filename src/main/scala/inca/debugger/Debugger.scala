@@ -220,12 +220,14 @@ trait Debugger extends DebuggerAPI {
     // if the fixpoint of the call has not been reached call pattern again
     val currentTable = fixpointState.relation(pat.name, frame.argsTable)
     val fullTable = readDatabase(pat.name, frame.argsTable)
-    val notEqToBottomUpTable = currentTable != fullTable
-    val newTupledDerived = !currentTable.diff(lastDerivedTuples).isEmpty
-    if (notEqToBottomUpTable && newTupledDerived) {
-      val nextFrame = Frame(ControlPoint.patternEntry(pat), frame.argsTable, frame.argsTable)
-      callStack.push(nextFrame)
-      return
+    val notEqToBottomUpTable = currentTable.numRows != fullTable.numRows
+    if (notEqToBottomUpTable) {
+      val newTupleDerived = currentTable.numRows != lastDerivedTuples.numRows
+      if (newTupleDerived) {
+        val nextFrame = Frame(ControlPoint.patternEntry(pat), frame.argsTable, frame.argsTable)
+        callStack.push(nextFrame)
+        return
+      }
     }
 
     // if the stack is still not empty there should be a call, or an aggregation on top

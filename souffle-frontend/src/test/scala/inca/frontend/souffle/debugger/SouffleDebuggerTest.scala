@@ -141,12 +141,11 @@ class SouffleDebuggerTest extends AnyFunSuite {
 
   test("var points to analysis") {
     val debugger = pointsToDebugger
-    debugger.entry("InstanceFieldPointsTo", Table.unit)
+    debugger.entry("VarPointsTo", Table.unit)
     while (!debugger.isFinished) {
       // println(debugger.currentDebuggerInfo)
-      println(debugger.frame.cp + " " + debugger.frame.bodyTable.numRows)
       debugger.stepInto()
     }
-    println(debugger.currentDebuggerInfo)
+    // println(debugger.currentDebuggerInfo)
   }
 }
