@@ -85,7 +85,7 @@ class ParserTest extends AnyFunSuite {
       case Success(value, _) =>
         assert(value == annoFunDef)
         assert(value.hasAnnotation(MainFunctionAnno.key))
-      case Failure(_, _, _) => assert(false)
+      case Failure(_, _, _) => fail("")
     }
   }
 
@@ -225,15 +225,6 @@ class ParserTest extends AnyFunSuite {
           println(value)
           assertResult(input.length)(index)
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
-      }
-    }
-
-  private def testFailure[T](parser: P[_] => P[Any]): String => Unit =
-    (input: String) => {
-      parse(input, parser) match {
-        case Success(value, index) if input.length == index => fail(s"Expected failed parsing, but got $value")
-        case Success(value, index) if input.length != index =>
-        case Failure(label, index, extra) =>
       }
     }
 }

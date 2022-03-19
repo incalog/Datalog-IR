@@ -17,11 +17,6 @@ class FindBugsTests extends AnyFunSuite {
   implicit def name(s: String): Name = Name(s)
 
   test("Confused Inheritance") {
-    val classDeclType = TNode(tinyJava.classDeclTag)
-    val classMemberType = TNode(tinyJava.classMemberTag)
-    val fieldDeclType = TNode(tinyJava.fieldDeclTag)
-    val visType = TNode(tinyJava.visTag)
-    val protectedVisType = TNode(tinyJava.protectedVisTag)
     val code =
       s"""
          |module FindBugs
@@ -48,29 +43,27 @@ class FindBugsTests extends AnyFunSuite {
     val matcher = EnginePool.loadQuery(spec(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
     import tinyJava._
-    val clazz = ClassDeclaration("Foo", true, List(FieldDeclaration("baz", PublicVisibility()), FieldDeclaration("bar", ProtectedVisibility())))
+    val clazz = ClassDeclaration("Foo", isFinal = true, List(FieldDeclaration("baz", PublicVisibility()), FieldDeclaration("bar", ProtectedVisibility())))
     val editScript = Diffable.load(clazz)
     feed.processEditScript(editScript)
     assert(matcher.getAllValues("class").contains(clazz.uri))
 
-    val clazz2 = ClassDeclaration("Foo", true, List(FieldDeclaration("baz", PublicVisibility())))
+    val clazz2 = ClassDeclaration("Foo", isFinal = true, List(FieldDeclaration("baz", PublicVisibility())))
     val (diffset, updatedclazz) = clazz.compareTo(clazz2)
     feed.processEditScript(diffset)
     assert(matcher.getAllMatches.isEmpty)
 
-    val clazz3 = ClassDeclaration("Foo", false, List(FieldDeclaration("baz", PublicVisibility())))
+    val clazz3 = ClassDeclaration("Foo", isFinal = false, List(FieldDeclaration("baz", PublicVisibility())))
     val (diffset2, updatedclazz2) = updatedclazz.compareTo(clazz3)
     feed.processEditScript(diffset2)
     assert(matcher.getAllMatches.isEmpty)
 
-    val clazz4 = ClassDeclaration("Foo", true, List(
+    val clazz4 = ClassDeclaration("Foo", isFinal = true, List(
       FieldDeclaration("bar", PrivateVisibility()),
       FieldDeclaration("baz", PublicVisibility()),
       FieldDeclaration("baaz", ProtectedVisibility())))
     val (diffset3, updatedclazz3) = updatedclazz2.compareTo(clazz4)
     feed.processEditScript(diffset3)
     assert(matcher.getAllValues("class").contains(updatedclazz3.uri))
-
   }
-
 }

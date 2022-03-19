@@ -4,7 +4,7 @@ import inca.compiler.Compiler
 import inca.examples.functional.{ADT, Code}
 import inca.frontend.functional.core
 import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
-import inca.frontend.functional.core.{Expression, FunctionDef, Pattern}
+import inca.frontend.functional.core.{Expression, Pattern}
 import inca.runtime.EnginePool
 import inca.runtime.context.{DataModel, QueryScope}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
@@ -82,7 +82,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     assertControlTraceSize(Code.varExample, "main")(6)
   }
 
-  val tupleLetProg =
+  val tupleLetProg: String =
     s"""module M
        |@main def main(): Int =
        |  let (x, y) = (1 + 2, 2 + 3) in
@@ -140,7 +140,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     assertControlTraceSize(Code.fibModule, "main", q"3")(28)
   }
 
-  val constructorProg = Code.module(
+  val constructorProg: String = Code.module(
     ADT.Nat_code,
     """@main def main(): Nat = Succ(Succ(Zero()))
       |""".stripMargin
@@ -371,7 +371,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     assertBreakpoints(Code.fibModule, Seq(bp), "main", q"3")(4)
   }
 
-  val multipleIfsWithSameCond =
+  val multipleIfsWithSameCond: String =
     s"""module M
        |@main def main(n: Int): Int =
        |  let x = (if (n == 0) 1 else 2) in
@@ -380,7 +380,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
        |""".stripMargin
   test("test if condition breakpoint where condition is occuring twice in program 1") {
     val expression = core.BaseApplyInfix(core.Var("n"), "==", core.BaseLit(q"0", core.TScalaInt))
-    val bp = createBreakpointOfExpression("main", expression, 0)
+    val bp = createBreakpointOfExpression("main", expression)
     assertBreakpoints(multipleIfsWithSameCond, Seq(bp), "main", q"3")(1)
   }
 
@@ -399,7 +399,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   test("test pattern breakpoint occuring multiple times 1") {
     val pattern = core.ConstructorPattern(core.Name("Var"), Seq(core.Name("x2")))
-    val bp = createBreakpointOfPattern("main", pattern, 0)
+    val bp = createBreakpointOfPattern("main", pattern)
     assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(0)
     assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Var("x")""", q"Num(1)")(1)
   }
@@ -430,7 +430,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   // test constructor call breakpoint
   test("constructor call breakpoint") {
-    val expression = core.Call(core.Var("Succ"), Seq(core.Call(core.Var("Zero"), Seq(), false)), false)
+    val expression = core.Call(core.Var("Succ"), Seq(core.Call(core.Var("Zero"), Seq())))
     val bp = createBreakpointOfExpression("main", expression)
     assertBreakpoints(constructorProg, Seq(bp), "main")(1)
   }

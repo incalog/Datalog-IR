@@ -16,11 +16,11 @@ import scala.meta.{Import => _, Name => _, _}
   */
 class CoreNativeParserTest extends AnyFunSuite {
 
-  val parser = new CoreParser {}
+  val parser: CoreParser = new CoreParser {}
   import inca.frontend.constraint.core._
   
   test("test Module") {
-    def testModule = testSuccess[Module](parser.module(_))
+    def testModule: (String, Module) => Assertion = testSuccess[Module](parser.module(_))
 
     testModule(
       s"""module my
@@ -111,7 +111,6 @@ class CoreNativeParserTest extends AnyFunSuite {
 
   }
 
-
   private def testSuccess[T](parser: P[_] => P[Any]): (String, T) => Assertion =
     (input: String, cmp: T) => {
       parse(input, parser) match {
@@ -119,15 +118,6 @@ class CoreNativeParserTest extends AnyFunSuite {
           assert(value === cmp)
           assertResult(input.length)(index)
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
-      }
-    }
-
-  private def testFailure[T](parser: P[_] => P[Any]): String => Unit =
-    (input: String) => {
-      parse(input, parser) match {
-        case Success(value, index) if input.length == index => fail(s"Expected failed parsing, but got $value")
-        case Success(value, index) if input.length != index =>
-        case Failure(label, index, extra) =>
       }
     }
 }

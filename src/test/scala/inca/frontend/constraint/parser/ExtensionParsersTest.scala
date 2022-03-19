@@ -2,15 +2,13 @@ package inca.frontend.constraint.parser
 
 import fastparse.Parsed.{Failure, Success}
 import fastparse._
-import inca.frontend.constraint.core
 import inca.frontend.constraint.extensions
 import inca.frontend.constraint.core._
-import inca.runtime.context.DataModel
 import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
 class ExtensionParsersTest extends AnyFunSuite {
-  val parser = new CoreParser
+  val parser: CoreParser = new CoreParser
     with extensions.boolOps.Parser
     with extensions.evalCall.Parser
     with extensions.forallExists.Parser
@@ -258,18 +256,19 @@ class ExtensionParsersTest extends AnyFunSuite {
   private def testSuccess[T](parser: P[_] => P[Any]): (String, T) => Assertion =
     (input: String, cmp: T) => {
       parse(input, parser) match {
-        case Success(value, index)        =>
+        case Success(value, index) =>
           assertResult(cmp)(value)
           assertResult(input.length)(index)
-        case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+        case Failure(label, index, extra) =>
+          fail(s"$label, $index, $extra")
       }
     }
 
   private def testFailure[T](parser: P[_] => P[Any]): String => Unit =
     (input: String) => {
       parse(input, parser) match {
-        case Success(value, index)        => fail(s"$value, $index")
-        case Failure(label, index, extra) =>
+        case Success(value, index) => fail(s"$value, $index")
+        case Failure(_, _, _) => // do nothing
       }
     }
 }

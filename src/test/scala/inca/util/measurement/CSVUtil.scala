@@ -15,7 +15,7 @@ object CSVUtil {
     val filtered =
       if (skipHeader && lines.nonEmpty) lines.tail
       else lines
-    filtered.map(_.split(","))
+    filtered.map(_.split(",").toIndexedSeq)
   }
 
   def columnOfCSV(columnName: String, csv: CSV): Seq[Any] = {

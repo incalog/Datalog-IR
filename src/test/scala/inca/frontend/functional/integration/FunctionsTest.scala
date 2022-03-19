@@ -7,7 +7,6 @@ import inca.runtime.EnginePool
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.funsuite.AnyFunSuite
 
-import scala.collection.immutable.ArraySeq
 import scala.meta.XtensionQuasiquoteTerm
 
 class FunctionsTest extends AnyFunSuite with BeforeAndAfterEach {

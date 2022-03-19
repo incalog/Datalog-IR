@@ -23,7 +23,7 @@ lazy val inca = (project in file(".")).settings(
     "-unchecked",
     "-feature",
     "-Xlint",
-    // "-Xfatal-warnings",
+    "-Xfatal-warnings",
     "-Ywarn-numeric-widen",
     "-Ywarn-unused:imports,privates,locals,implicits",
     "-Ywarn-dead-code",

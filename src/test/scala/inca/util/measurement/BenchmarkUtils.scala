@@ -4,7 +4,6 @@ package inca.util.measurement
 import inca.util.measurement.CSVUtil.{CSVRow, csvRowToString}
 
 import java.io.{File, PrintWriter}
-import truechange.EditScript
 
 import scala.io.Source
 
@@ -137,7 +136,6 @@ object BenchmarkUtils {
       result = r
     }
 
-    var sum: Long = 0
     var setuptimes: Seq[Long] = Nil
     var times: Seq[Long] = Nil
     for (_ <- 1 to timing.repeat) {

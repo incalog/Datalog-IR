@@ -145,9 +145,7 @@ class FunctionsDataTest extends AnyFunSuite with BeforeAndAfterEach {
     println("atoms: " + rels.flatMap(_.bodies.flatMap(_.atoms)).size)
 
     // type of peano = (a -> a) -> (a -> a)
-    val zero = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TVar("x")))"""
     val one = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TVar("x"))))"""
-    val two = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TApp(TVar("f"), TVar("x")))))"""
     val three = q"""TLam("f", TFun(TInt(), TInt()), TLam("x", TInt(), TApp(TVar("f"), TApp(TVar("f"), TApp(TVar("f"), TVar("x"))))))"""
 
     val succ =

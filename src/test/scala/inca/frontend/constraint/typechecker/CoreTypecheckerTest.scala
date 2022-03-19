@@ -18,9 +18,9 @@ import scala.collection.immutable.MultiDict
   * Test class for the IncA core language typechecker.
   */
 class CoreTypecheckerTest extends AnyFlatSpec {
-  val parser = new CoreParser {}
+  val parser: CoreParser = new CoreParser {}
 
-  def createTypechecker(dm: DataModel) = new CoreTypechecker {
+  def createTypechecker(dm: DataModel): CoreTypechecker = new CoreTypechecker {
     override val dataModel: DataModel = dm
   }
 
@@ -37,11 +37,10 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   "typechecker" should "work" in {
     def test_run(cd: String) = {
       parse(cd, parser.module(_)) match {
-        case Success(value, index) => {
+        case Success(value, _) =>
           val typer = createTypechecker(Exp.model)
           typer.typecheck(Seq(value))
           assert(typer.getErrors.isEmpty)
-        }
         case Failure(label, index, extra) =>
           fail(s" ${cd.slice(index - 10, index + 10)} $label, $index, $extra")
       }
@@ -160,8 +159,8 @@ class CoreTypecheckerTest extends AnyFlatSpec {
 
   def parseModule(str: String): Module = {
     parse(str, parser.module(_), verboseFailures = true) match {
-      case Success(value, index) => value
-      case Failure(label, index, extra) =>
+      case Success(value, _) => value
+      case Failure(_, _, extra) =>
         throw new IllegalArgumentException(extra.trace(true).longMsg)
     }
   }
@@ -258,13 +257,13 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     assert(typer.getWarnings.nonEmpty)
   }
 
-  def assertTypecheckModulesSucceed(modules: Seq[Module], vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
+  def assertTypecheckModulesSucceed(modules: Seq[Module]): Assertion = {
     val typer = createTypechecker(analyzedLangs.Exp.model)
     typer.typecheck(modules)
     assert(typer.getErrors.isEmpty)
   }
 
-  def assertTypecheckModulesFail(modules: Seq[Module], vars: Map[Name, Type] = Map(), funs: Seq[PatternFunction] = Seq()): Assertion = {
+  def assertTypecheckModulesFail(modules: Seq[Module]): Assertion = {
     val typer = createTypechecker(analyzedLangs.Exp.model)
     typer.typecheck(modules)
     assert(typer.getErrors.nonEmpty)
@@ -297,7 +296,7 @@ class CoreTypecheckerTest extends AnyFlatSpec {
     assertResult(typecheckExp(wildcard))(TAny)
   }
 
-  private val manyVars = Map(Name("many") -> TNode(analyzedLangs.Exp.manyTag).resolved((TNode(analyzedLangs.Exp.manyTag))))
+  private val manyVars = Map(Name("many") -> TNode(analyzedLangs.Exp.manyTag).resolved(TNode(analyzedLangs.Exp.manyTag)))
 
   "checkExp" should "type path access named link correctly" in {
     val pathAccess = parseExp("add.lhs")
@@ -483,7 +482,6 @@ class CoreTypecheckerTest extends AnyFlatSpec {
   "checkStatement" should "type assert correctly" in {
     val expType = TNode(analyzedLangs.Exp.expTag).resolved(TNode(analyzedLangs.Exp.expTag))
     val addType = TNode(analyzedLangs.Exp.addTag).resolved(TNode(analyzedLangs.Exp.addTag))
-    val intType = TNode(analyzedLangs.Exp.intTag).resolved(TNode(analyzedLangs.Exp.intTag))
     val vars = Map(Name("x") -> expType)
 
     val assertBool = parseStatement("assert true")
@@ -616,30 +614,6 @@ class CoreTypecheckerTest extends AnyFlatSpec {
         |""".stripMargin
     )
     assertTypecheckModulesSucceed(Seq(mod1, mod2))
-
-    val secondMod1 = parseModule(
-      """module mod1
-        |
-        |def main(): Unit = {
-        |  val x = hello()
-        |  yield unit
-        |}
-        |
-        |def hello(): String = {
-        |  yield "x"
-        |}
-        |""".stripMargin
-    )
-
-    val mod3 = parseModule(
-      """module mod3
-        |import mod1
-        |
-        |def hello(): String = {
-        |  yield "x"
-        |}
-        |""".stripMargin
-    )
 
     val mod4 = parseModule(
       """module mod4
