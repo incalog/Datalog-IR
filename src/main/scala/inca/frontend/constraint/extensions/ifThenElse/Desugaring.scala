@@ -33,7 +33,7 @@ object Desugaring extends Desugarable {
       case _ => super.desugarStm(stm)
     }
 
-    def desugarConditional(cond: Expression, notconds: Iterable[Not], body: Seq[Statement])(implicit gensym: Gensym): Seq[Statement] =
+    def desugarConditional(cond: Expression, notconds: Iterable[Not], body: Seq[Statement]): Seq[Statement] =
       notconds.toSeq.map(Assert) ++ Seq(Assert(cond)) ++ body
   }
 }

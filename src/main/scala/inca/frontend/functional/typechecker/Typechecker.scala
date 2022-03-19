@@ -103,7 +103,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         case None =>
           TAny
       }
-    case let@Let(names, anno, bound, body) =>
+    case let@Let(names, _, bound, body) =>
       val ty = typecheck(bound)
       val namesStr = names.mkString("(", ", ", ")")
       scopedTypeContext {
@@ -117,7 +117,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
               error(s"Cannot assign ${tys.size}-ary tuple to $namesStr", let)
             names.zipAll(tys, null, null).foreach {
               case (name, null) => bindVar(name, let, TAny)
-              case (null, ty) => // nothing
+              case (null, _) => // nothing
               case (name, ty) => bindVar(name, let, ty)
             }
           case ty =>
@@ -125,7 +125,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
               error(s"Cannot assign expression of type $ty to $namesStr", let)
             names.zipAll(Seq(ty), null, null).foreach {
               case (name, null) => bindVar(name, let, TAny)
-              case (null, ty) => // nothing
+              case (null, _) => // nothing
               case (name, ty) => bindVar(name, let, ty)
             }
         }
@@ -134,7 +134,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case TypeCast(e, ty) =>
       val ety = typecheck(e)
       if (meet(ety, ty) == TNothing)
-        error(s"Type cast of ${ty} is not compatible with inferred type ${ety} of e", exp)
+        error(s"Type cast of $ty is not compatible with inferred type $ety of e", exp)
       ty
     case If(cnd, thn, els) =>
       val cty = typecheck(cnd)
@@ -166,7 +166,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           argTys.headOption match {
             case Some(argTy) =>
               argTy match {
-                case TData(name) =>
+                case TData(_) =>
                   // do nothing
                 case _ =>
                   error(s"Built-in function parent expected algebraic data type argument, but received argument of type $argTy", exp)
@@ -191,7 +191,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           typecheckTDataMatch(exp, cases, td)
 
         case topt: TOption =>
-          typecheckTOptionMatch(exp, matchee, cases, topt)
+          typecheckTOptionMatch(exp, cases, topt)
 
         case ty =>
           error(s"Cannot match on type $ty", matchee)
@@ -308,7 +308,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       val tyFold = tyAnno.getOrElse(join(tyInit, tySetContent))
       tyOp match {
         case TFun(paramTypes, tyRes) =>
-          if (paramTypes.size != 2 || !subtype(tyFold, paramTypes(0)) || !subtype(tyFold, paramTypes(1)) || !subtype(tyRes, tyFold))
+          if (paramTypes.size != 2 || !subtype(tyFold, paramTypes.head) || !subtype(tyFold, paramTypes(1)) || !subtype(tyRes, tyFold))
             error(s"Expected function of type ($tyFold, $tyFold) => $tyFold, but $op has type $tyOp")
         case _ =>
           error(s"Expected function of type ($tyFold, $tyFold) => $tyFold, but $op has type $tyOp")
@@ -352,7 +352,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             assignType(v)(TAny)
           case (null, e) =>
             typecheck(e)
-          case (ty, null) =>
+          case (_, null) =>
           case (ty, v@Var(x)) if isFreeVar(x) =>
             bindVar(x, mem, ty)
             assignType(v)(ty)
@@ -386,7 +386,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
               error(s"Wrong number of constructor arguments, expected ${paramTypes.size} but got ${vars.size}", pat)
             scopedTypeContext {
               vars.zipAll(paramTypes, null, null).foreach {
-                case (null, ty) => // nothing
+                case (null, _) => // nothing
                 case (v, null) => bindVar(v, pat, TAny)
                 case (v, ty) => bindVar(v, pat, ty)
               }
@@ -413,7 +413,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     join(ctys)
   }
 
-  private def typecheckTOptionMatch(exp: Expression, matchee: Expression, cases: Seq[(Pattern, Expression)], topt: TOption): Type = {
+  private def typecheckTOptionMatch(exp: Expression, cases: Seq[(Pattern, Expression)], topt: TOption): Type = {
     var seenConstrs = Set[String]()
     val ctys = cases.map {
       case (pat@NonePattern(), e) =>
@@ -434,7 +434,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           typecheck(e)
         }
 
-      case (pat@ConstructorPattern(constr, vars), e) =>
+      case (pat@ConstructorPattern(_, _), e) =>
         error(s"Cannot match pattern $pat against matchee of type $topt", pat)
         scopedTypeContext {
           val dummy = ConstructorPattern(Name("?"), Seq())
@@ -457,7 +457,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     tfun.from.zipAll(args, null, null) foreach {
       case (null, arg) =>
         typecheck(arg)
-      case (param, null) =>
+      case (_, null) =>
       // nothing
       case (tparam, arg) =>
         val argTy = typecheck(arg)
@@ -483,7 +483,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     constr.paramTypes.zipAll(args, null, null) foreach {
       case (null, arg) =>
         typecheck(arg)
-      case (param, null) =>
+      case (_, null) =>
       // nothing
       case (paramTy, arg) =>
         val argTy = typecheck(arg)

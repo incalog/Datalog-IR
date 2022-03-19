@@ -207,7 +207,6 @@ import inca.runtime.{EnginePool, Query}
 import inca.util.Scala.ScalaCompiler
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
-import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truechange.EditScript
 import truediff.Diffable
 

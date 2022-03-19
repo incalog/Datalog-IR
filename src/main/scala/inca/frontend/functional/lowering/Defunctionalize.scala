@@ -29,24 +29,10 @@ class Defunctionalize(module: Module) {
       sym
   }
 
-  private var relTypeDefun: Map[Type, String] = Map()
-  private def getRelTypeDefun(ty: Type): String = relTypeDefun.get(ty) match {
-    case Some(s) => s
-    case None =>
-      val sym = gensym.freshGlobal("Derel")
-      relTypeDefun += ty -> sym
-      sym
-  }
-
   private def funData(tfun: TFun): String =
     getFunTypeDefun(transformNested(tfun))
   private def funApply(tfun: TFun): String =
     "apply" + getFunTypeDefun(transformNested(tfun))
-
-  private def relData(tcontent: Type) =
-    getRelTypeDefun(tcontent)
-  private def relApply(tcontent: Type): String =
-    "query" + getRelTypeDefun(tcontent)
 
   private var newVarTargets: Map[Name, (Var.Target, Type)] = Map()
   private var newTDataTargets: Map[Name, TData.Target] = Map()
@@ -63,7 +49,7 @@ class Defunctionalize(module: Module) {
         val data = DataDef(Seq(), None, Name(funData(tfun)),
           funs.map { case AnonFun(_, _, _, defunName, freevars) =>
             val constr = DataConstructor(Name(defunName), freevars.map(v => transformType(v.typ.getOrElse(TAny))))
-            newVarTargets += Name(defunName) -> (constr, constr.constructorType(Name(funData(tfun))))
+            newVarTargets += Name(defunName) -> ((constr, constr.constructorType(Name(funData(tfun)))))
             constr
           }
         )
@@ -75,13 +61,14 @@ class Defunctionalize(module: Module) {
             funs.map { case AnonFun(_, vs, body, defunName, freevars) =>
               body.freevars.foreach{ v => v.target = None; v.typ = None }
               body.freeTvars.foreach(_.target = None)
-              ConstructorPattern(Name(defunName), freevars.map(_.name)) ->
-              Let(vs, Some(TTuple.from(tfun.from)), Var(Name("arg")), body)
+              ConstructorPattern(Name(defunName), freevars.map(_.name)) -> Let(vs, Some(TTuple.from(tfun.from)), Var(Name("arg")), body)
             }
           )
         )
-        newVarTargets += apply.name -> (apply, apply.funType)
+        newVarTargets += apply.name -> ((apply, apply.funType))
         Seq(data, apply)
+      case (ty, funs) =>
+        throw new IllegalStateException(s"We cannot have non-function type $ty for functions $funs")
     }
 
     val newModule = Module(name, imports, newcontents ++ defunFuns).sourceLocFrom(module)
@@ -171,7 +158,7 @@ class Defunctionalize(module: Module) {
           // regular call to first-order function
           Call(Var(name).sourceLocFrom(v), argTrans, transitive).sourceLocFrom(exp)
         case _ =>
-          val tfun@TFun(_, _) = fun.typ.get
+          val tfun@TFun(_, _) = fun.typ.getOrElse(throw new IllegalStateException(s"Expression at function position of call has to be of function type")).asInstanceOf[TFun]
           // call defun apply
           Call(Var(Name(funApply(tfun)).sourceLocFrom(exp)).sourceLocFrom(exp), Seq(
             transformExp(fun),
@@ -182,7 +169,7 @@ class Defunctionalize(module: Module) {
       val constrSym = gensym.freshGlobal("Lambda")
       val free = lam.freevars.distinct
       val body = transformExp(lam.body)
-      val tfun@TFun(_, _) = lam.typ.get
+      val tfun@TFun(_, _) = lam.typ.getOrElse(throw new IllegalStateException(s"Lambda has to be of function type")).asInstanceOf[TFun]
       anonymousFunctions += AnonFun(
         transformNested(tfun),
         lam.vs.map(_._1),
@@ -194,7 +181,7 @@ class Defunctionalize(module: Module) {
       Tuple(exps.map(e => transformExp(e))).sourceLocFrom(exp)
     case Match(matchee, cases) =>
       Match(transformExp(matchee), cases.map(c => c._1 -> transformExp(c._2))).sourceLocFrom(exp)
-    case BaseLit(code) =>
+    case BaseLit(_) =>
       exp
     case BaseApply(fun, args) =>
       BaseApply(fun, args.map(a => transformExp(a))).sourceLocFrom(exp)

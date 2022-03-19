@@ -58,7 +58,7 @@ object TLiteral {
   val String: TLiteral = TLiteral(JavaLitType(classOf[java.lang.String]))
 }
 
-trait TLinked extends Type {
+sealed trait TLinked extends Type {
   override def asScala: meta.Type = t"truechange.URI"
 }
 case object TAnyLinked extends TLinked {

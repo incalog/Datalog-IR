@@ -55,22 +55,21 @@ object MagicSetTransformation extends Transformation {
 
     private def insertInputCall(pat: Pattern): Pattern = {
       if (!shouldInsertInput(pat))
-        return pat
-
-      if (pat.bodies.isEmpty) {
+        pat
+      else if (pat.bodies.isEmpty) {
         val body = deriveInputCall(pat).map(c => Body(Seq(c)))
-        return Pattern(pat.vis, pat.name, pat.params, body.toSeq).withHints(pat)
-      }
-
-      val bodies = pat.bodies.map { b =>
-        if (shouldInsertInput(b)) {
-          val inputCall = deriveInputCall(pat)
-          Body(inputCall.toSeq ++ b.atoms).withHints(b)
-        } else {
-          b
+        Pattern(pat.vis, pat.name, pat.params, body.toSeq).withHints(pat)
+      } else {
+        val bodies = pat.bodies.map { b =>
+          if (shouldInsertInput(b)) {
+            val inputCall = deriveInputCall(pat)
+            Body(inputCall.toSeq ++ b.atoms).withHints(b)
+          } else {
+            b
+          }
         }
+        Pattern(pat.vis, pat.name, pat.params, bodies).withHints(pat)
       }
-      Pattern(pat.vis, pat.name, pat.params, bodies).withHints(pat)
     }
 
     private def deriveInputCall(pat: Pattern): Option[Call] = {
@@ -103,58 +102,51 @@ object MagicSetTransformation extends Transformation {
 
     private def deriveInputPattern(pat: Pattern, patterns: Seq[Pattern]): Seq[Pattern] = gensym.scoped {
       if (!shouldDeriveInput(pat))
-        return Seq()
-
-      // generate new names for pattern params to avoid name collision
-      val params = pat.params.map { p =>
-        val name = gensym.fresh(p.name)
-        Param(name, p.typ)
-      }
-      val boundIndices = deriveBoundIndices(pat)
-      // for each body there can be multiple input bodies (due to multiple pattern calls)
-      val inputPatterns = patterns.flatMap { p =>
-        p.bodies.flatMap { body =>
-          body.atoms.zipWithIndex.flatMap { case (atom, atomix) =>
-            atom.asCall match {
-              case Some((name, args)) =>
-                if (name == pat.name && !atom.hints.contains(MagicSetHints.IgnoreCall.key)) {
-                  val boundParams = boundIndices.map { i =>
-                    Eq(args(i), Var(params(i).name))
+        Seq()
+      else {
+        // generate new names for pattern params to avoid name collision
+        val params = pat.params.map { p =>
+          val name = gensym.fresh(p.name)
+          Param(name, p.typ)
+        }
+        val boundIndices = deriveBoundIndices(pat)
+        // for each body there can be multiple input bodies (due to multiple pattern calls)
+        val inputPatterns = patterns.flatMap { p =>
+          p.bodies.flatMap { body =>
+            body.atoms.zipWithIndex.flatMap { case (atom, atomix) =>
+              atom.asCall match {
+                case Some((name, args)) =>
+                  if (name == pat.name && !atom.hints.contains(MagicSetHints.IgnoreCall.key)) {
+                    val boundParams = boundIndices.map { i =>
+                      Eq(args(i), Var(params(i).name))
+                    }
+                    if (boundParams.isEmpty) Seq()
+                    else Seq(Body(body.atoms.take(atomix) ++ boundParams).withHints(body))
                   }
-                  if (boundParams.isEmpty) Seq()
-                  else Seq(Body(body.atoms.take(atomix) ++ boundParams).withHints(body))
-                }
-                else
-                  Seq()
-              case _ => Seq()
+                  else
+                    Seq()
+                case _ => Seq()
+              }
             }
           }
         }
-      }
 
-      val boundParams = boundIndices.map(params)
+        val boundParams = boundIndices.map(params)
 
-      val extensionalBody = if (pat.hasHint(MagicSetHints.Main.key)) {
-        Some(Body(Seq(
-          ExtensionalCall(extensionalInputPatternName(pat.name), boundParams.map(p => Var(p.name)))
-        )))
-      } else {
-        None
-      }
-
-      val inputPat = Pattern(None, inputPatternName(pat.name), boundParams, inputPatterns ++ extensionalBody)
-      if (inputPat.bodies.nonEmpty)
-        Seq(inputPat)
-      else
-        Seq()
-    }
-
-    private def collectBodiesCallingPat(caller: Pattern, callee: Pattern): Seq[Body] =
-      caller.bodies.filter {
-        _.atoms.exists {
-          case Call(name, _, _, _) if name == callee.name => true
-          case _ => false
+        val extensionalBody = if (pat.hasHint(MagicSetHints.Main.key)) {
+          Some(Body(Seq(
+            ExtensionalCall(extensionalInputPatternName(pat.name), boundParams.map(p => Var(p.name)))
+          )))
+        } else {
+          None
         }
+
+        val inputPat = Pattern(None, inputPatternName(pat.name), boundParams, inputPatterns ++ extensionalBody)
+        if (inputPat.bodies.nonEmpty)
+          Seq(inputPat)
+        else
+          Seq()
       }
+    }
   }
 }

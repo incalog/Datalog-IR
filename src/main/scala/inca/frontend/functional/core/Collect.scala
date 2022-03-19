@@ -20,14 +20,14 @@ trait Collect[R] {
   def transType(ty: Type): Seq[R] = Seq()
 
   def transExpression(exp: Expression): Seq[R] = exp match {
-    case Let(names, anno, bound, body) =>
+    case Let(_, anno, bound, body) =>
       anno.toSeq.flatMap(transType) ++ transExpression(bound) ++ transExpression(body)
-    case Var(name) => Seq()
+    case Var(_) => Seq()
     case If(cnd, thn, els) =>
       transExpression(cnd) ++ transExpression(thn) ++ transExpression(els)
     case TypeCast(exp, ty) =>
       transExpression(exp) ++ transType(ty)
-    case Call(fun, args, transitive) =>
+    case Call(fun, args, _) =>
       transExpression(fun) ++ args.flatMap(transExpression)
     case Lambda(vs, body) =>
       vs.flatMap(x => transType(x._2)) ++ transExpression(body)
@@ -35,9 +35,9 @@ trait Collect[R] {
       exps.flatMap(transExpression)
     case Match(matchee, cases) =>
       transExpression(matchee) ++ cases.flatMap(transCase)
-    case BaseLit(code) => Seq()
-    case BaseApply(fun, args) => args.flatMap(transExpression)
-    case BaseApplyInfix(left, op, right) =>
+    case BaseLit(_) => Seq()
+    case BaseApply(_, args) => args.flatMap(transExpression)
+    case BaseApplyInfix(left, _, right) =>
       transExpression(left) ++ transExpression(right)
     case NoneExp() => Seq()
     case SomeExp(e) => transExpression(e)
@@ -47,6 +47,8 @@ trait Collect[R] {
     case SetMember(tup, set, _) =>
       transExpression(tup) ++ transExpression(set)
     case SetFold(anno, init, op, set) => anno.toSeq.flatMap(transType) ++ transExpression(init) ++ transExpression(op) ++ transExpression(set)
+    case BaseApplyUnary(_, e) => transExpression(e)
+    case BaseApplyMethod(recv, _, args) => transExpression(recv) ++ args.getOrElse(Seq()).flatMap(transExpression)
   }
 
   def transCase(c: (Pattern, Expression)): Seq[R] =

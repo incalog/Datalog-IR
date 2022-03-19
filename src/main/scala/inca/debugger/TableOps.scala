@@ -513,7 +513,7 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
          |  (${eval.code.syntax})(${argTerms.mkString(", ")})
          |}""".stripMargin
 
-    val fun: Map[String, Any] => Any = scalaCompiler.compileAndLoadScala(funCode)
+    val fun: Map[String, Any] => Any = scalaCompiler.compileAndLoadScala[Map[String, Any] => Any](funCode)
     ScalaValue(fun(argsMap))
   }
 
@@ -522,6 +522,6 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
 
   def executeScala(term: String): ScalaValue = {
     val code = s"import ${defintionObjSym}.${compiled.name}._\n$term"
-    ScalaValue(scalaCompiler.compileAndLoadScala(code))
+    ScalaValue(scalaCompiler.compileAndLoadScala[Any](code))
   }
 }

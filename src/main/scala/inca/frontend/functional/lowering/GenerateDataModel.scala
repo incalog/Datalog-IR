@@ -37,17 +37,18 @@ class GenerateDataModel(module: Module) {
   def transType(asScala: Type): Option[LitType] = asScala match {
     case TAny => Some(JavaLitType(classOf[Any]))
     case TNothing => Some(JavaLitType(classOf[Nothing]))
-    case TTuple(ts) =>  None
-    case TData(name) => None
     case TScalaBoolean => Some(Datalog.TLiteral.Bool.litType)
     case TScalaInt => Some(Datalog.TLiteral.Int.litType)
     case TScalaLong => Some(Datalog.TLiteral.Long.litType)
     case TScalaDouble => Some(Datalog.TLiteral.Double.litType)
     case TScalaString => Some(Datalog.TLiteral.String.litType)
     case TScalaAny => Some(JavaLitType(classOf[Any]))
-    case TScala(ty) => None
-    case TOption(ty) => None
-    case TSet(ty) => None
+    case TFun(_, _) => None
+    case TTuple(_) =>  None
+    case TData(_) => None
+    case TScala(_) => None
+    case TOption(_) => None
+    case TSet(_) => None
   }
 
 }

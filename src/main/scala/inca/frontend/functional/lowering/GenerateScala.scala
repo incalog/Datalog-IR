@@ -3,16 +3,16 @@ package inca.frontend.functional.lowering
 import inca.compiler.source.SourceLocation
 import inca.frontend.functional.core
 import inca.frontend.functional.core._
-import inca.runtime.aggregate.{Aggregation, AggregatorAssocComm}
+import inca.runtime.aggregate.Aggregation
 import inca.runtime.data.WrappedURI
-import inca.util.Scala.{symbolOf, typeOf}
+import inca.util.Scala.typeOf
 import truediff.GenericDiffable
 
 import scala.meta.{Type => MetaType, _}
 
 class GenerateScala {
-  val tGenericDiffable = typeOf[GenericDiffable]
-  val tWrappedURI = typeOf[WrappedURI]
+  val tGenericDiffable: MetaType.Ref = typeOf[GenericDiffable]
+  val tWrappedURI: MetaType.Ref = typeOf[WrappedURI]
 
 
   private var visited: Map[Any, Seq[meta.Stat]] = Map()
@@ -37,9 +37,6 @@ class GenerateScala {
         }.toList
         val children = scalaParamTypes.zipWithIndex.map { case (_, ix) =>
           q"${Lit.String("_" + ix)} -> ${Term.Name("_" + ix)}"
-        }.toList
-        val terms = scalaParamTypes.zipWithIndex.map { case (_, ix) =>
-          Term.Name("_" + ix)
         }.toList
         val makeChildren = scalaParamTypes.zipWithIndex.map { case (pt, ix) =>
           q"children($ix).asInstanceOf[$pt]"
@@ -122,6 +119,8 @@ class GenerateScala {
           p"case scala.None => ${transExp(e)}"
         case (SomePattern(x), e) =>
           p"case scala.Some(${Pat.Var(Term.Name(x.name))}) => ${transExp(e)}"
+        case (pat, e) =>
+          throw new IllegalStateException(s"Cannot translate pattern $pat to Scala")
       }
       q"${transExp(matchee)} match {..case $scalaCases}"
     case BaseLit(code) =>

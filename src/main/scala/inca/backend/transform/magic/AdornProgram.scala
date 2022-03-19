@@ -24,7 +24,6 @@ object AdornProgram extends Transformation {
 
       val mainHints = collectMainPattern(module)
       val mains = mainHints.map { p =>
-        val params = p.params.map(p => Var(p.name))
         val mainHint = p.hints(MagicSetHints.Main.key).asInstanceOf[MagicSetHints.Main]
         val adornment = mainHint.adorn
         (p.name, adornment)
@@ -47,7 +46,7 @@ object AdornProgram extends Transformation {
           val pat = module.pats.find(_.name == current).getOrElse(sys.error(s"Pattern $current not found during adornment"))
           unvisitedPatterns -= pat
           val adornedBody = pat.bodies.map { body =>
-            var previous = ListBuffer[Atom]()
+            val previous = ListBuffer[Atom]()
             val adornedAtoms = body.atoms.map { atom =>
               val res = atom.asCall match {
                 case Some((name, args)) =>

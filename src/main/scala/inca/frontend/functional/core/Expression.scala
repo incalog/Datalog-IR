@@ -155,7 +155,7 @@ case class Match(matchee: Expression, cases: Seq[(Pattern, Expression)]) extends
     s"${matchee.prettyprint} match {\n$casesS\n$indent}"
   }
 }
-trait Pattern extends SourceLocation {
+sealed trait Pattern extends SourceLocation {
   def vars: Map[Name, Option[Type]]
   def prettyprint: String
 }

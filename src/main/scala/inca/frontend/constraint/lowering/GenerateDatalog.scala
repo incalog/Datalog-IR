@@ -43,6 +43,7 @@ class GenerateDatalog {
     case node: TNode => Datalog.TNode(getFqnNode(node).name)
     case TList(ty) => Datalog.TList(transType(ty).asInstanceOf[Datalog.TLinked])
     case TScala(ty) => Datalog.TScala(ty)
+    case _ => throw new IllegalStateException(s"Translating type $typ currently not supported")
   }
 
 
@@ -99,7 +100,6 @@ class GenerateDatalog {
         throw new IllegalArgumentException(s"Cannot compile untyped assignment $stmt")
 
       gensym.register(names.map(_.name))
-      val expTy = exp.typ.get
 
       if (shouldInlineAssign(assign)) {
         Seq()

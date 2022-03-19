@@ -43,8 +43,8 @@ object DeriveDemandPatterns extends Transformation {
         if (!visited(current, currentAdorn)) {
           val pat = module.pats.find(_.name == current).getOrElse(sys.error(s"Pattern $current not found during adornment"))
           unvisitedPatterns -= pat
-          val adornedBody = pat.bodies.map { body =>
-            var previous = ListBuffer[Atom]()
+          pat.bodies.foreach { body =>
+            val previous = ListBuffer[Atom]()
             val adornedAtoms = body.atoms.map { atom =>
               val res = atom.asCall match {
                 case Some((name, args)) =>
@@ -60,14 +60,6 @@ object DeriveDemandPatterns extends Transformation {
             }
             Body(adornedAtoms).withHints(body)
           }
-          // now we can construct the adorned pattern for this specific adornment
-          val adornedPat =
-            Pattern(
-              pat.vis,
-              adornmentName(pat.name, currentAdorn),
-              pat.params,
-              adornedBody
-            ).withHints(pat).addHint(MagicSetHints.Adornment(currentAdorn))
           adornedPatterns += pat.name -> currentAdorn
         }
       }
@@ -79,7 +71,6 @@ object DeriveDemandPatterns extends Transformation {
         }.map(_._2)
         p.addHint(MagicSetHints.DemandPatterns(demandPats))
       }
-      // Module(module.name, module.imports, module.data, module.pats, module.scalaContent)
       module
     }
   }

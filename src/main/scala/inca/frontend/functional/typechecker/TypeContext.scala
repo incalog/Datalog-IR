@@ -25,7 +25,7 @@ trait TypeContext extends TypeIO {
     vars.get(name) foreach { case (previousDecl, _) =>
       error(s"Variable $name shadows previously defined variable $previousDecl", name, previousDecl)
     }
-    vars += (name -> (decl, ty))
+    vars += name -> ((decl, ty))
   }
 
   def lookupVar(name: Name): Option[(Var.Target,Type)] =
@@ -54,7 +54,7 @@ trait TypeContext extends TypeIO {
 
 
   def bindFun(fun: FunctionDef, module: Module): Unit = {
-    funs += fun.name -> (module, (fun, fun.funType))
+    funs += fun.name -> ((module, (fun, fun.funType)))
   }
 
   def lookupCalled(name: Name): Option[(Var.Target, TFun)] =
@@ -81,7 +81,9 @@ trait TypeContext extends TypeIO {
 
   def bindData(data: DataDef, module: Module): Unit = {
     dataDefs += data.name -> data
-    data.constrs.foreach(c => funs += c.name -> (module, (c, c.constructorType(data))))
+    data.constrs.foreach { c =>
+      funs += c.name -> ((module, (c, c.constructorType(data))))
+    }
   }
 
   def isData(name: Name): Boolean =
@@ -100,7 +102,7 @@ trait TypeContext extends TypeIO {
     modules.get(name) foreach { bound =>
       error(s"Found multiple modules with same name $name", name, bound.name)
     }
-    modules += (name -> module)
+    modules += name -> module
   }
 
   def lookupModule(name: Name): Option[Module] =

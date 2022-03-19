@@ -185,7 +185,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
               }
               // return from function or read constructor value
               stepInto()
-            case None =>
+            case _ =>
               stepInto()
           }
         }

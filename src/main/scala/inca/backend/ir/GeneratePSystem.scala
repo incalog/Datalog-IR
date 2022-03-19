@@ -3,18 +3,14 @@ package inca.backend.ir
 
 import inca.backend.ir.Datalog._
 import inca.runtime.Query
-import inca.runtime.aggregate.{AggregatorAssocComm, AggregatorAssocCommInv}
-import inca.runtime.context.DataModel
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
-import inca.util.Gensym
 import inca.util.Scala._
 import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations.BoundAggregator
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.AggregatorConstraint
 import truechange.{AnyType, JavaLitType, ListType, SortType}
 
-import scala.collection.immutable.MultiDict
 import scala.meta._
 
 object GeneratePSystem {
@@ -44,19 +40,15 @@ object GeneratePSystem {
 
   private val tyQuerySpecification = typeOf[Query.Specification]
 
-  private val tAggregatorAssocCommInv = typeOf[AggregatorAssocCommInv[_]]
-  private val tAggregatorAssocComm = typeOf[AggregatorAssocComm[_]]
   private val tBoundAggregator = typeOf[BoundAggregator]
   private val tAggregatorConstraint = typeOf[AggregatorConstraint]
 
-  private val tDataModel = typeOf[DataModel]
-  private val oMultiDict = symbolOf(MultiDict)
   private val tMap = typeOf[Map[_,_]]
   private val oMap = symbolOf(Map)
 
 
   def genQueryName(moduleName: String, patName: String): String =
-    s"${moduleName}_${patName}"
+    s"${moduleName}_$patName"
 
   /** Maps rule name to the name of the module that defines it. */
   type RuleEnvironment = Map[String, String]
@@ -108,10 +100,8 @@ object GeneratePSystem {
     val qname = GeneratePSystem.genQueryName(moduleName, pat.name)
 
     val paramNames = pat.params.map(_.name)
-    val paramTermNames = paramNames.map { n => Term.Name(s"$PARAMPREFIX${n}") }
+    val paramTermNames = paramNames.map { n => Term.Name(s"$PARAMPREFIX$n") }
     val paramLitName = paramNames.map { n => Lit.String(n) }
-    val allVars = CollectVars.transPattern(pat).toSet
-    val gensym = new Gensym(allVars)
 
     val vis =
       if (pat.vis.contains(Datalog.Private))
@@ -156,8 +146,8 @@ object GeneratePSystem {
                         body.setSymbolicParameters(exportedParams)
 
                         ..${CollectVars.transBody(body).distinct.diff(paramNames).map(genTempVar).toList}
-                        ..${CollectLits.transBody(body).distinct.map(genLiteralVar(_)(gensym)).toList}
-                        ..${CollectConstantEvaluation.transBody(body).distinct.map(genConstantEval(_)(gensym)).toList}
+                        ..${CollectLits.transBody(body).distinct.map(genLiteralVar).toList}
+                        ..${CollectConstantEvaluation.transBody(body).distinct.map(genConstantEval).toList}
                         ..${pat.params.flatMap(genParamConstraint).toList}
                         ..${body.atoms.flatMap(compileAtom).toList}
                         body
@@ -203,14 +193,14 @@ object GeneratePSystem {
     case _: TData => None
     case tlit@TLiteral(litType) =>
       litType match {
-        case JavaLitType(cl) =>
+        case JavaLitType(_) =>
           val gentyp = q"$oPrimitiveType(classOf[${tlit.asScala}])"
-          Some(q"$oPrimitiveKey($gentyp)", gentyp)
+          Some((q"$oPrimitiveKey($gentyp)", gentyp))
         case _ => throw new UnsupportedOperationException
       }
     case _: TLinked =>
       val gentyp = genNodeType(typ)
-      Some(q"$oNodeTypeKey($gentyp)", gentyp)
+      Some((q"$oNodeTypeKey($gentyp)", gentyp))
   }
 
 
@@ -221,12 +211,12 @@ object GeneratePSystem {
   private def genTempVar(name: String): Stat =
     q"val ${Pat.Var(Term.Name(VARPREFIX + name))}: PVariable = body.getOrCreateVariableByName(${Lit.String(name)})"
 
-  private def genLiteralVar(lit: Literal)(implicit gensym: Gensym): Stat = {
+  private def genLiteralVar(lit: Literal): Stat = {
     val varName = genLiteralVarName(lit)
     q"val ${Pat.Var(Term.Name(LITPREFIX + varName))}: PVariable = body.newConstantVariable(${genLiteral(lit)})"
   }
 
-  private def genConstantEval(eval: Evaluation)(implicit gensym: Gensym): Stat = {
+  private def genConstantEval(eval: Evaluation): Stat = {
     val varName = genConstantEvalVarName(eval)
     q"val ${Pat.Var(Term.Name(EVALPREFIX + varName))}: PVariable = body.newConstantVariable((${eval.code.tree})())"
   }
@@ -250,11 +240,11 @@ object GeneratePSystem {
   }
 
   private def compileAtom(atom: Atom)(implicit env: RuleEnvironment): Seq[Stat] = atom match {
-    case Undef(t) =>
-      throw new IllegalArgumentException(s"Cannot compile undef constraint. Use undef elimination transformation first.")
+    case Undef(_) =>
+      throw new IllegalStateException(s"Cannot compile undef constraint. Use undef elimination transformation first.")
 
     case Call(name, args, transitive, neg) =>
-      val module = env.getOrElse(name, throw new IllegalArgumentException(s"Unknown rule $name"))
+      val module = env.getOrElse(name, throw new IllegalStateException(s"Unknown rule $name"))
       val argTuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
       val callQuery = q"${Term.Name(module)}.${Term.Name(name)}.instance.getInternalQueryRepresentation"
       if (neg) Seq(q"new NegativePatternCall(body, $argTuple, $callQuery)")
@@ -269,7 +259,7 @@ object GeneratePSystem {
       val tuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
       if (neg) {
         // use a type filter
-        ???
+        throw new IllegalStateException("Currently do not support negation of extensional call")
       } else {
         Seq(q"new TypeConstraint(body, $tuple, $key)")
       }
@@ -294,7 +284,7 @@ object GeneratePSystem {
 
     case NotHasType(t, typ) =>
       if (typ == TAny)
-        throw new IllegalArgumentException(s"Cannot compile $atom")
+        throw new IllegalStateException(s"Cannot compile $atom")
       else {
         val gentyp = genNodeType(typ)
         Seq(q"""new TypeFilterConstraint(
@@ -303,7 +293,7 @@ object GeneratePSystem {
             $oNotNodeTypeKey($gentyp))""")
       }
 
-    case Path(src, srcTy, link, trg, trgTy) =>
+    case Path(src, _, link, trg, trgTy) =>
       val key = genLinkKey(link, trgTy)
       Seq(q"new TypeConstraint(body, Tuples.staticArityFlatTupleOf(${compileTerm(src)}, ${compileTerm(trg)}), $key)")
 
@@ -321,11 +311,12 @@ object GeneratePSystem {
     case Datalog.NextLink => oLinkListNextKey
     case Datalog.SizeLink => oSizeKey
     case Datalog.NamedLink(TNode(name), field) => targetType match {
-      case TAny => throw new IllegalArgumentException(s"Cannot resolve links to type $targetType")
+      case TAny => throw new IllegalStateException(s"Cannot resolve links to type $targetType")
       case _: Datalog.TLinked =>
         q"$oLinkNodeKey(($name, $field))"
       case _: Datalog.TLiteral =>
         q"$oLinkPrimitiveKey(($name, $field))"
+      case _ => throw new IllegalStateException(s"Generating LinkKey for NamedLink with target type $targetType not supported")
     }
     case _ => throw new IllegalStateException(s"Generating LinkKey for $link not supported")
 
@@ -339,7 +330,7 @@ object GeneratePSystem {
   private def compileComputation(lhs: Datalog.Term, computation: Computation)(implicit env: RuleEnvironment): Seq[Stat] = computation match {
     case CountAggregation(patName, args) =>
       val result = compileTerm(lhs)
-      val module = env.getOrElse(patName, throw new IllegalArgumentException(s"Unknown rule $patName"))
+      val module = env.getOrElse(patName, throw new IllegalStateException(s"Unknown rule $patName"))
       val argTuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
       val callQuery = q"${Term.Name(module)}.${Term.Name(patName)}.instance.getInternalQueryRepresentation"
       Seq(q"new PatternMatchCounter(body, $argTuple, $callQuery, $result)")
@@ -358,7 +349,7 @@ object GeneratePSystem {
       }
       val argTerms = args.toList.map {
         case (v:Var, ty) => q"env.getValue(${Lit.String(v.name)}).asInstanceOf[${ty.asScala}]"
-        case (Constant(lit), ty) => genLiteral(lit)
+        case (Constant(lit), _) => genLiteral(lit)
       }
       Seq(
         q"""
@@ -373,7 +364,7 @@ object GeneratePSystem {
 
     case CustomAggregation(typ, _, agg, patName, args, aggregatedColumn) =>
       val result = compileTerm(lhs)
-      val module = env.getOrElse(patName, throw new IllegalArgumentException(s"Unknown rule $patName"))
+      val module = env.getOrElse(patName, throw new IllegalStateException(s"Unknown rule $patName"))
       val argTuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
       val callQuery = q"${Term.Name(module)}.${Term.Name(patName)}.instance.getInternalQueryRepresentation"
 
@@ -386,7 +377,6 @@ object GeneratePSystem {
     case TAnyLinked => oAnyType
     case TNode(name) => q"$oNodeType($name)"
     case TList(ty) => q"$oListType(${genNodeType(ty)})"
-    case _ => throw new IllegalArgumentException(s"Cannot compile $typ as node type")
+    case _ => throw new IllegalStateException(s"Cannot compile $typ as node type")
   }
-
 }

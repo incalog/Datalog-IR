@@ -165,5 +165,6 @@ class CollectingDatabaseUpdater(val db: Database) extends DatabaseUpdater {
         deletionsLit.add(db.primitiveInstances(litTy) -> lit)
         deletionsURILit.put(db.linkPrimitiveInstances(tagname->name) -> node, lit)
       }
+    case _ => throw new UnsupportedOperationException("Cannot support edit" + edit)
   }
 }

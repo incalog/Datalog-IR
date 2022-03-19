@@ -82,7 +82,7 @@ trait CoreTypechecker
         importPrefixed(nodeImport.name.name)
       }
     } else
-      warn(s"Path of imported node ${nodeImport} is empty", nodeImport)
+      warn(s"Path of imported node $nodeImport is empty", nodeImport)
   }
 
   private def prefixedNodes(prefix: String): Set[SortType] = dataModel.types.filter { typ =>
@@ -118,7 +118,6 @@ trait CoreTypechecker
   def validType(typ: Type): Unit = typ match {
     case node: TNode => lookupNode(node) match {
       case Some(value) =>
-        val x = value
         resolveTarget(node)(value)
       case None => // nothing
     }
@@ -127,7 +126,8 @@ trait CoreTypechecker
     case TScala(_) => // nothing
     case TAny => // nothing
     case TNothing => // nothing
-    case TLiteral(litType) => // nothing
+    case TLiteral(_) => // nothing
+    case _ => throw new IllegalArgumentException(s"Validity check of type $typ currently not supported")
   }
 
   def typecheck(body: Body, mustYield: Boolean): StmType = scopedTypeContext {
@@ -228,7 +228,7 @@ trait CoreTypechecker
             error(s"Cannot assign ${tys.size}-ary tuple to $namesStr", stm)
           names.zipAll(tys, null, null).foreach {
             case (name, null) => bindVar(name, as, TAny)
-            case (null, ty) => // nothing
+            case (null, _) => // nothing
             case (name, ty) => bindVar(name, as, ty.unroll)
           }
         case ty =>
@@ -236,7 +236,7 @@ trait CoreTypechecker
             error(s"Cannot assign expression of type $ty to $namesStr", stm)
           names.zipAll(Seq(ty), null, null).foreach {
             case (name, null) => bindVar(name, as, TAny)
-            case (null, ty) => // nothing
+            case (null, _) => // nothing
             case (name, ty) => bindVar(name, as, ty.unroll)
           }
       }
@@ -357,8 +357,12 @@ trait CoreTypechecker
       val aggTy = typecheck(agg)
 
       val bodiesTy = bodies.foldLeft[Type](TAny) { (bodiesTy, body) =>
-        val Yields(ty) = typecheck(body, mustYield = true)
-        meet(bodiesTy, ty, dataModel)
+        typecheck(body, mustYield = true) match {
+          case NoYield =>
+            throw new IllegalStateException(s"Body $body has to yield type")
+          case Yields(ty) =>
+            meet(bodiesTy, ty, dataModel)
+        }
       }
 
       val bodiesScalaTy = bodiesTy.asScala
@@ -390,12 +394,12 @@ trait CoreTypechecker
     case NamedLink(field: Name) => receiverTy match {
       case node: TNode =>
         val nodeName = node.target.getOrElse(TNode("")).name
-        dataModel.links.get(nodeName, field.name) match {
+        dataModel.links.get((nodeName, field.name)) match {
           case Some(tcty) =>
             val ty = truechangeTypeToType(tcty)
             validType(ty)
             ty
-          case _ => dataModel.litLinks.get(nodeName, field.name) match {
+          case _ => dataModel.litLinks.get((nodeName, field.name)) match {
             case Some(litType) => TLiteral(litType)
             case _ =>
               error(s"Cannot access field `$field` of node $node", exp)
@@ -436,7 +440,7 @@ trait CoreTypechecker
     fun.params.zipAll(args, null, null) foreach {
       case (null, arg) =>
         typecheck(arg)
-      case (param, null) =>
+      case (_, null) =>
       // nothing
       case (param, arg) =>
         val argTy = typecheck(arg)
@@ -464,8 +468,8 @@ trait CoreTypechecker
     val params = exp.params match {
       case Some(params) => params
       case None =>
-        val params = (CollectFreeScalaVars.freeVars(code.tree)
-          .diff(boundNames.map(Name).toSet))
+        val params = CollectFreeScalaVars.freeVars(code.tree)
+          .diff(boundNames.map(Name).toSet)
           .intersect(getBindings.keySet)
         exp.params = Some(params.map(EvalParam).toSeq)
         exp.params.get
@@ -540,7 +544,7 @@ trait CoreTypechecker
   def resolvedType(ty: Type): Type = ty match {
     case node: TNode => node.target match {
       case Some(value) => value
-      case None => throw new IllegalArgumentException(s"Node type ${ty} is not bound")
+      case None => throw new IllegalArgumentException(s"Node type $ty is not bound")
     }
     case TList(contained) => TList(resolvedType(contained).asInstanceOf[TLinked])
     case TEnumeration(contained) => TEnumeration(resolvedType(contained).asInstanceOf[TLinked])
@@ -549,6 +553,7 @@ trait CoreTypechecker
     case TNothing => ty
     case TLiteral(_) => ty
     case TScala(_) => ty
+    case _ => throw new IllegalArgumentException(s"Cannot resolve type $ty")
   }
 
   protected def meet(ty1: Type, ty2: Type, dataModel: DataModel): Type = (ty1, ty2) match {
@@ -558,8 +563,8 @@ trait CoreTypechecker
     case (TAnyLinked, _:TLinked) => ty2
     case (_:TLinked,TAnyLinked) => ty1
     case (node1: TNode, node2: TNode) =>
-      val name1 = node1.target.getOrElse(throw new IllegalArgumentException(s"Unbound node type ${node1}")).name
-      val name2 = node2.target.getOrElse(throw new IllegalArgumentException(s"Unbound node type ${node2}")).name
+      val name1 = node1.target.getOrElse(throw new IllegalArgumentException(s"Unbound node type $node1")).name
+      val name2 = node2.target.getOrElse(throw new IllegalArgumentException(s"Unbound node type $node2")).name
       if (name1 == name2)
         ty1
       else if (dataModel.nodeSupertypes.containsEntry(SortType(name1) -> SortType(name2)))
@@ -597,9 +602,9 @@ trait CoreTypechecker
       val convertedTy = truechangeTypeToType(ty)
       convertedTy match {
         case linked: TLinked => TList(linked)
-        case _ => throw new IllegalArgumentException()
+        case _ => throw new IllegalArgumentException(s"Inner type of List type has to be linked, but got $convertedTy")
       }
-    case _ => throw new UnsupportedOperationException(s"conversion of $ty from truechange to inca not supported")
+    case _ => throw new UnsupportedOperationException(s"Conversion of $ty from truechange to inca not supported")
   }
 
   protected def stmMeet(stmTy1: StmType, stmTy2: StmType, lang: DataModel): StmType = (stmTy1, stmTy2) match {
