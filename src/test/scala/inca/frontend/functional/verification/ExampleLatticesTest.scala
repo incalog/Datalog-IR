@@ -5,7 +5,7 @@ import inca.frontend.functional.core.{Associativity, Commutativity}
 import inca.frontend.functional.parser.Parser
 import inca.frontend.functional.verification.examples.Aggregations.{compiledDoubleOperationsModule, compiledIntegerOperationsModule, compiledStringOperationsModule}
 import org.scalatest.funsuite.AnyFunSuite
-import inca.frontend.functional.verification.examples.Lattices.{compiledBoolLattice, compiledConstLattice, compiledIntervalLattice, compiledModifiedIntervalLattice, compiledSignLattice, compiledSignValLattice}
+import inca.frontend.functional.verification.examples.Lattices.{compiledBoolLattice, compiledConstLattice, compiledIntervalLattice, compiledIntervalLatticeInvariants, compiledModifiedIntervalLattice, compiledSignLattice, compiledSignValLattice}
 
 
 class ExampleLatticesTest extends AnyFunSuite {
@@ -81,6 +81,16 @@ class ExampleLatticesTest extends AnyFunSuite {
 
   test("test modified interval module verification") {
     val module = compiledModifiedIntervalLattice.typed
+    val verifier = new Verifier()
+    assertResult(Map(
+      "joinVal" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
+      "joinBool" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
+      "joinInterval" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse)
+    ))(verifier.verify(module))
+  }
+
+  test("test interval module with invariants verification") {
+    val module = compiledIntervalLatticeInvariants.typed
     val verifier = new Verifier()
     assertResult(Map(
       "joinVal" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),

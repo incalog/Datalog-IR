@@ -10,7 +10,7 @@ import smtlib.interpreters.Z3Interpreter
 import smtlib.lexer.Lexer
 import smtlib.parser.Parser
 import smtlib.theories.Core
-import smtlib.trees.Commands.{CheckSat, Constructor, DeclareDatatypes, DefineFun, FunDef, Script}
+import smtlib.trees.Commands.{Assert, CheckSat, Constructor, DeclareDatatypes, DefineFun, FunDef, Script}
 import smtlib.trees.{Commands, CommandsResponses, Terms}
 import smtlib.trees.Terms.{Identifier, SSymbol, Sort, SortedVar, _}
 
@@ -155,26 +155,48 @@ class Verifier {
 
   def transDataDef(dataName: String)(implicit gensym: Gensym): Script = {
     val data = dataDict(dataName)
-    val transConstrs = data.constrs.map(c =>
-      Constructor(SSymbol(c.name.name),
-        c.paramTypes.map(paramType => {
-          val fieldName = gensym.fresh(c.name.name)
-          val sort = transType(paramType)
-          (SSymbol(fieldName), sort)
-        }))
-    )
+    val invariantScripts = data.annos.flatMap{
+      case UsesInvariantAnno(invariantNames) => Seq(generateInvariantsScript(invariantNames.map(_.name), dataName))
+      case _ => Seq()
+    }
+    val transConstrs = data.constrs.map(transDataConstructor)
     // val freshDataName = gensym.fresh(dataName)
-    Script(List(DeclareDatatypes(Seq((SSymbol(dataName), transConstrs)))))
+    makeScript(Seq(
+      Script(List(DeclareDatatypes(Seq((SSymbol(dataName), transConstrs)))))) ++ invariantScripts)
   }
 
   // DeclareDatatypes(datatypes: Seq[(SSymbol, Seq[Constructor])])
   // Constructor(sym: SSymbol, fields: Seq[(SSymbol, Sort)])
 
+  def transDataConstructor(c: DataConstructor)(implicit gensym: Gensym): Constructor = {
+    Constructor(SSymbol(c.name.name),
+      c.paramTypes.map(paramType => {
+        val fieldName = gensym.fresh(c.name.name)
+        val sort = transType(paramType)
+        (SSymbol(fieldName), sort)
+      }))
+  }
+
+  def generateInvariantsScript(invariantNames: Seq[String], dataName: String)(implicit gensym:Gensym): Script = {
+    makeScript(invariantNames.map(name => {
+      val invariantFuncScript = transFunctionDef(name)
+      val forallVariableName = gensym.fresh(dataName)
+      val invariantAssertion = Script(List(
+        Assert(Forall(SortedVar(SSymbol(forallVariableName), Sort(Identifier(SSymbol(dataName)))), Seq(),
+          FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("="))),
+            Seq(FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(name))),
+              Seq(QualifiedIdentifier(Identifier(SSymbol(forallVariableName))))),
+              Core.BoolConst(true)))))
+      ))
+      makeScript(Seq(invariantFuncScript, invariantAssertion))
+    }))
+  }
+
   //FunctionDef(annos: Seq[Annotation], vis: Option[Visibility],
   //  name: String, params: Seq[Param], outType: Type, body: Expression)
   //Param(name: String, typ: Type)
   def transFunctionDef(funcName: String)(implicit gensym: Gensym): Script = {
-    val func = functionDict(funcName)
+    val func = functionDict.getOrElse(funcName, throw new Exception(s"Function $funcName doesn't seem to be implemented"))
     val transParams: Seq[SortedVar] = func.params.map(p => SortedVar(SSymbol(p.name.name), transType(p.typ)))
     val transOutType: Sort = transType(func.outType)
     val transBody: Term = transExp(func.body)

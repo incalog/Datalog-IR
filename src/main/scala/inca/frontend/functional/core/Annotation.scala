@@ -24,8 +24,17 @@ object Annotation {
 
 object MainFunctionAnno extends Annotation {
   override def key: Annotation.Key = "MAIN_FUNCTION"
-
   override def toString: String = "@main"
+}
+
+object InvariantAnno extends Annotation {
+  override def key: Annotation.Key = "INVARIANT"
+  override def toString: String = "@invariant"
+}
+
+case class UsesInvariantAnno(invariantNames: Seq[Name]) extends Annotation {
+  override def key: Annotation.Key = "USES_INVARIANTS"
+  override def toString: String = s"@uses(${invariantNames.mkString(", ")})"
 }
 
 case class AggregationAnno(props: Seq[AggregationProperty]) extends Annotation {

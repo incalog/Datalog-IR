@@ -243,6 +243,67 @@ object Lattices {
 
   val compiledModifiedIntervalLattice = Compiler.compileFunctional(modifiedIntervalLattice, FunctionalOptions())
 
+  val intervalLatticeInvariants =
+    """module IntervalLattice
+      |@uses(intervalBounds) data Interval = IV(Int, Int) | TopInterval()
+      |data Boole = True() | False() | TopBool()
+      |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Boole) | TopVal()
+      |
+      |@invariant def intervalBounds(iv: Interval): Boolean = iv match {
+      |  case TopInterval() => true
+      |  case IV(l, h) => if(l <= h) true else false
+      |}
+      |
+      |@aggr(assoc, comm) def joinVal(v1: Val, v2: Val): Val = v1 match {
+      |  case BotVal() => v2
+      |  case IntervalVal(iv1) => v2 match {
+      |    case BotVal() => v1
+      |    case IntervalVal(iv2) => IntervalVal(joinInterval(iv1, iv2))
+      |    case BoolVal(b2) => TopVal()
+      |    case TopVal() => TopVal()
+      |  }
+      |  case BoolVal(b1) => v2 match {
+      |    case BotVal() => v1
+      |    case IntervalVal(iv2) => TopVal()
+      |    case BoolVal(b2) => BoolVal(joinBool(b1, b2))
+      |    case TopVal() => TopVal()
+      |  }
+      |  case TopVal() => TopVal()
+      |}
+      |@aggr(assoc, comm) def joinInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
+      |  case TopInterval() => TopInterval()
+      |  case IV(l1, h1) => iv2 match {
+      |    case TopInterval() => TopInterval()
+      |    case IV(l2, h2) => widenInterval(IV(min(l1, l2), max(h1, h2)))
+      |  }
+      |}
+      |def widenInterval(iv: Interval): Interval = iv match {
+      |  case TopInterval() => TopInterval()
+      |  case IV(l, h) =>
+      |    if (abs(h - l) <= 10)
+      |      iv
+      |    else
+      |      TopInterval()
+      |}
+      |def min(i1: Int, i2: Int): Int = if(i1 < i2) i1 else i2
+      |def max(i1: Int, i2: Int): Int = if(i1 < i2) i2 else i1
+      |def abs(i: Int): Int = if(i < 0) i * (-1) else i
+      |@aggr(assoc, comm) def joinBool(b1: Boole, b2: Boole): Boole = b1 match {
+      |  case True() => b2 match {
+      |    case True() => True()
+      |    case False() => TopBool()
+      |    case TopBool() => TopBool()
+      |  }
+      |  case False() => b2 match {
+      |    case True() => TopBool()
+      |    case False() => False()
+      |    case TopBool() => TopBool()
+      |  }
+      |  case TopBool() => TopBool()
+      |}""".stripMargin
+
+  val compiledIntervalLatticeInvariants = Compiler.compileFunctional(intervalLatticeInvariants, FunctionalOptions())
+
   // funktioniert nicht, da Bool ein protected word ist in z3
   val boolLattice =
     """module BoolLattice

@@ -60,8 +60,12 @@ trait Parser {
   protected[frontend] def defParams[_: P]: P[Seq[Param]] =
     P("(" ~ paramList ~ ")") | P("").map(_ => Seq())
 
-  protected[frontend] def annotation[_: P]: P[Annotation] = mainFuncAnno | aggrAnno
+  protected[frontend] def annotation[_: P]: P[Annotation] = mainFuncAnno | aggrAnno | invariantAnno | usesInvariantAnno
   protected[frontend] def mainFuncAnno[_: P]: P[MainFunctionAnno.type] = P("@main").map(_ => MainFunctionAnno)
+  protected[frontend] def invariantAnno[_: P]: P[InvariantAnno.type] = P("@invariant").map(_ => InvariantAnno)
+  protected[frontend] def usesInvariantAnno[_: P]: P[UsesInvariantAnno] =
+    (P("@uses(") ~ identifier.rep(min = 1, sep = ",") ~ P(")")).map(UsesInvariantAnno.apply)
+
   protected[frontend] def aggrAnno[_: P]: P[AggregationAnno] =
     (P("@aggr(") ~ aggregationProp.rep(min = 0, sep = ",") ~ P(")")).map(AggregationAnno.apply)
 
