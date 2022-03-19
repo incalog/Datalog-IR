@@ -7,7 +7,6 @@ import inca.frontend.constraint.core._
 import inca.frontend.util.ParserUtils
 import inca.util.Scala
 
-import scala.language.reflectiveCalls
 import scala.meta.Term
 import scala.meta.parsers.{Parsed, _}
 
@@ -28,16 +27,15 @@ trait CoreParser {
     * The first character must be an alphabetical one. After that digits and underscores are also allowed
     */
   def identifier[_: P]: P[Name] =
-    P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_").repX).!).mapWithLoc { s =>
-      if (allKeywords.contains(s)) return fastparse.Fail
-      else Name(s)
-    }
+    P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_").repX).!).filter { s =>
+      !allKeywords.contains(s)
+    }.mapWithLoc(Name.apply)
 
   /** A parser for fully qualified identifier. Allows '.' in the name */
   protected[frontend] def fullyQualifiedIdentifier[_: P]: P[Name] =
-    P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_", ".").repX).!).mapWithLoc { s =>
-      if(allKeywords.contains(s)) return fastparse.Fail else Name(s)
-  }
+    P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_", ".").repX).!).filter { s =>
+      !allKeywords.contains(s)
+    }.mapWithLoc(Name.apply)
 
   /** TNode parser */
   protected[frontend] def tNode[_: P]: P[TNode] = P(fullyQualifiedIdentifier.!).mapWithLoc(TNode)
@@ -395,7 +393,7 @@ trait CoreParser {
 
     def mapWithLocFun[U <: SourceLocation, V <: SourceLocation](f: T => (U => V)): P[U => V] =
       (Index ~ p ~ Index).map {
-        case (start, t, end) =>
+        case (_, t, end) =>
           val uv = f(t)
           u => {
             val v = uv(u)

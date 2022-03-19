@@ -11,6 +11,7 @@ import java.util
 import java.util.Collections
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
+import scala.language.existentials
 
 class MetaContext(langMetaInfo: DataModel) extends AbstractQueryMetaContext {
   override def isEnumerable(key: IInputKey): Boolean = key.isEnumerable

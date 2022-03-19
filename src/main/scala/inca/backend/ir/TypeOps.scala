@@ -47,11 +47,15 @@ trait TypeOps extends ScalaTyper {
     if (tys.isEmpty)
       None
     else {
-      var ty = tys.head
+      var ty: Option[Type] = Some(tys.head)
       for (other <- tys.tail) {
-        ty = meet(ty, other, languageMetaInfo).getOrElse(return None)
+        ty match {
+          case None => // do nothing
+          case Some(lastty) =>
+            ty = meet(lastty, other, languageMetaInfo)
+        }
       }
-      Some(ty)
+      ty
     }
   }
 }

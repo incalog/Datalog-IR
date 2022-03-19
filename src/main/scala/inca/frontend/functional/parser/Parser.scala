@@ -9,7 +9,6 @@ import inca.util.Scala
 import scalaparse.syntax.Basic.isOpChar
 import scalaparse.syntax.Identifiers.OpCharNotSlash
 
-import scala.language.reflectiveCalls
 import scala.meta.Term
 import scala.meta.parsers.{Parsed, _}
 
@@ -26,10 +25,9 @@ class Parser(source: Source) {
     P(!CharIn("a-z", "A-Z", "0-9", "_"))
 
   def identifier[_: P]: P[Name] =
-    P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_").repX).!).mapWithLoc { s =>
-      if (allKeywords.contains(s)) return fastparse.Fail
-      else Name(s)
-    }
+    P((CharIn("a-z", "A-Z", "_") ~~ CharIn("a-z", "A-Z", "0-9", "_").repX).!).filter { s =>
+      !allKeywords.contains(s)
+    }.mapWithLoc(Name.apply)
 
   /** Module parser */
   def module[_: P]: P[Module] =
@@ -339,7 +337,7 @@ class Parser(source: Source) {
 
     def mapWithLocFun[U <: SourceLocation, V <: SourceLocation](f: T => (U => V)): P[U => V] =
       (Index ~ p ~ Index).map {
-        case (start, t, end) =>
+        case (_, t, end) =>
           val uv = f(t)
           u => {
             val v = uv(u)

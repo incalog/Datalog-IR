@@ -33,7 +33,7 @@ trait Collect[R] {
   def transBody(body: Body): Seq[R] = body.stmts.flatMap(s => transStatement(s.ensureCore))
 
   def transStatement(stm: CoreStatement): Seq[R] = stm match {
-    case Values(name, typ) => transBinding(name)
+    case Values(name, _) => transBinding(name)
     case Assign(names, exp) => names.flatMap(transBinding) ++ transExp(exp.ensureCore)
     case Assert(cond) => transExp(cond.ensureCore)
     case Yield(exp) => transExp(exp.ensureCore)
@@ -46,26 +46,28 @@ trait Collect[R] {
   def transExp(exp: CoreExpression): Seq[R] = exp match {
     case Eq(lhs, rhs) => transExp(lhs.ensureCore) ++ transExp(rhs.ensureCore)
     case Neq(lhs, rhs) => transExp(lhs.ensureCore) ++ transExp(rhs.ensureCore)
-    case InstanceOf(exp, ty) => transExp(exp.ensureCore)
-    case NotInstanceOf(exp, ty) => transExp(exp.ensureCore)
+    case InstanceOf(exp, _) => transExp(exp.ensureCore)
+    case NotInstanceOf(exp, _) => transExp(exp.ensureCore)
     case Def(exp) => transExp(exp.ensureCore)
     case Undef(exp) => transExp(exp.ensureCore)
     case Var(name) => transReference(name)
     case Constant(lit) => transLit(lit)
-    case PathAccess(receiver, link) => transExp(receiver.ensureCore)
-    case Call(name, args, transitive) => args.flatMap(a => transExp(a.ensureCore))
-    case Count(Call(name, args, transitive)) => args.flatMap(a => transExp(a.ensureCore))
+    case PathAccess(receiver, _) => transExp(receiver.ensureCore)
+    case Call(_, args, _) => args.flatMap(a => transExp(a.ensureCore))
+    case Count(Call(_, args, _)) => args.flatMap(a => transExp(a.ensureCore))
     case Tuple(exps) => exps.flatMap(e => transExp(e.ensureCore))
     case eval: Eval => eval.params.get.flatMap(p => transReference(p.name))
     case Aggregate(agg, bodies) => transExp(agg.ensureCore) ++ bodies.flatMap(transBody)
+    case Cast(e, _) => transExp(e.ensureCore)
+    case Wildcard => Seq()
   }
 
   def transLit(lit: Literal): Seq[R] = lit match {
-    case IntLiteral(v) => Seq()
-    case LongLiteral(v) => Seq()
-    case DoubleLiteral(v) => Seq()
-    case StringLiteral(v) => Seq()
-    case BooleanLiteral(v) => Seq()
+    case IntLiteral(_) => Seq()
+    case LongLiteral(_) => Seq()
+    case DoubleLiteral(_) => Seq()
+    case StringLiteral(_) => Seq()
+    case BooleanLiteral(_) => Seq()
     case UnitLiteral => Seq()
   }
 }

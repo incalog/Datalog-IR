@@ -5,7 +5,7 @@ import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.ir.Datalog
 import inca.compiler.source.SourceObject
 import inca.debugger.{AtListElem, AtomPoint, BodyPoint, BreakpointIR, ControlPoint, PatternPoint}
-import inca.frontend.functional.core.{Collect, Expression, FunctionDef, If, Let, Match, Pattern, Module}
+import inca.frontend.functional.core.{Collect, Expression, FunctionDef, Let, Match, Pattern, Module}
 
 sealed trait BreakpointPos
 case class FunctionEntry(f: String) extends BreakpointPos
@@ -74,7 +74,7 @@ object FunctionalBreakpoint {
     FunctionalBreakpoint(InFunction(sourceObject))
   }
 
-  private def getSourceObjectOfExpression(funProg: Module, f: String, expOfInterest: Expression, occurrence: Int = 0): SourceObject = {
+  private def getSourceObjectOfExpression(funProg: Module, f: String, expOfInterest: Expression, occurrence: Int): SourceObject = {
     val collectExpressions = new Collect[SourceObject] {
       override def transFunDef(fun: FunctionDef): Seq[SourceObject] =
         if (fun.name.name == f) super.transFunDef(fun)
@@ -91,7 +91,7 @@ object FunctionalBreakpoint {
     sourceObjectCandidates(occurrence)
   }
 
-  private def getSourceObjectOfPattern(funProg: Module, f: String, patternOfInterest: Pattern, occurrence: Int = 0): SourceObject = {
+  private def getSourceObjectOfPattern(funProg: Module, f: String, patternOfInterest: Pattern, occurrence: Int): SourceObject = {
     val collectExpressions = new Collect[SourceObject] {
       override def transFunDef(fun: FunctionDef): Seq[SourceObject] =
         if (fun.name.name == f) super.transFunDef(fun)
@@ -106,7 +106,7 @@ object FunctionalBreakpoint {
     sourceObjectCandidates(occurrence)
   }
 
-  private def getSourceObjectOfBinding(funProg: Module, f: String, bindingOfInterest: String, occurrence: Int = 0): SourceObject = {
+  private def getSourceObjectOfBinding(funProg: Module, f: String, bindingOfInterest: String, occurrence: Int): SourceObject = {
     val collectExpressions = new Collect[SourceObject] {
       override def transFunDef(fun: FunctionDef): Seq[SourceObject] =
         if (fun.name.name == f) super.transFunDef(fun)

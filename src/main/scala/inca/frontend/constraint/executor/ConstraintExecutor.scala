@@ -9,7 +9,6 @@ import inca.runtime.db.Database
 import inca.runtime.{EnginePool, Query}
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
-import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truediff.Diffable
 
 import scala.jdk.CollectionConverters._

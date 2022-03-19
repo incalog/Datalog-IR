@@ -3,10 +3,6 @@ package inca.debugger
 import inca.debugger.table.Table
 import inca.util.Derivative
 
-import scala.collection.mutable
-
-// case class Breakpoint(cp: ControlPattern, bindings: BindingPattern, constraints: Seq[Datalog.Atom])
-
 case class Frame(cp: ControlPoint, argsTable: Table[Value], bodyTable: Table[Value])
 object Frame {
   type Tables = (Table[Value], Table[Value])

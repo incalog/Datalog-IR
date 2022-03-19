@@ -19,14 +19,14 @@ object DatalogPrinter {
     s"$decl\n${rules.mkString("\n")}"
   }
 
-  def prettyVis(vis: Option[Visibility])(implicit verbose: Boolean): String = vis match {
+  def prettyVis(vis: Option[Visibility]): String = vis match {
     case Some(Private) => "private "
     case None => ""
   }
 
-  def prettyParam(param: Param)(implicit verbose: Boolean): String = s"${param.name}: ${prettyType(param.typ)}"
+  def prettyParam(param: Param): String = s"${param.name}: ${prettyType(param.typ)}"
 
-  def prettyType(typ: Type)(implicit verbose: Boolean): String = typ match {
+  def prettyType(typ: Type): String = typ match {
     case TAny => "TAny"
     case TLiteral(litType) => litType match {
       case JavaLitType(cl) =>  cl.getName
@@ -79,14 +79,14 @@ object DatalogPrinter {
       s"!${prettyTerm(t)}"
   }
 
-  def prettyLink(link: Link)(implicit verbose: Boolean): String = link match {
+  def prettyLink(link: Link): String = link match {
     case Datalog.ParentLink => "parent"
     case Datalog.NextLink => "next"
     case Datalog.SizeLink => "size"
     case NamedLink(node, field) => s"${prettyType(node)}.$field"
   }
 
-  def prettyTerm(value: Term)(implicit verbose: Boolean): String = value match {
+  def prettyTerm(value: Term): String = value match {
     case Var(name) => name
     case Constant(lit) => lit match {
       case Datalog.IntLiteral(v) => v.toString
@@ -97,7 +97,7 @@ object DatalogPrinter {
     }
   }
 
-  def prettyComparator(comp: Comparator)(implicit verbose: Boolean): String = comp match {
+  def prettyComparator(comp: Comparator): String = comp match {
     case EqComparator => "="
     case NeqComparator => "!="
   }

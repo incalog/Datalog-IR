@@ -1,6 +1,6 @@
 package inca.backend.analyze
 
-import scala.collection.{MultiDict, mutable}
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 // based on LangComp Lab work of Saleh Oshaghi and Tomislav Pree
@@ -66,7 +66,7 @@ trait Graph[N, E] {
 
   private def processDFSTree(stack: mutable.Stack[N], visited: mutable.Map[N, VisistedFlag]): Set[List[N]] = {
     var cycles: Set[List[N]] = Set()
-    edges.getOrElse(stack.top, Set()).foreach { case (neighbor, e) =>
+    edges.getOrElse(stack.top, Set()).foreach { case (neighbor, _) =>
       if (visited(neighbor) == InStack) {
         cycles = cycles + determineCycle(stack, neighbor)
       } else if (visited(neighbor) == NotVisisted) {
@@ -142,7 +142,7 @@ trait Graph[N, E] {
 
   lazy val stronglyConnectedComponentsNoDemand: List[Set[N]] = stronglyConnectedComponents(false)
 
-  lazy val stronglyConnectedComponentsWithDemand: List[Set[N]] = stronglyConnectedComponents(true)
+  lazy val stronglyConnectedComponentsWithDemand: List[Set[N]] = stronglyConnectedComponents()
 
 
   // based on https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
@@ -162,9 +162,8 @@ trait Graph[N, E] {
     val components = ListBuffer[Set[N]]()
 
     consideredNodes.foreach { node =>
-      index.getOrElse(node, {
+      if (!index.contains(node))
         currentIndex = strongConnect(node, currentIndex, consideredEdges, index, lowlink, visited, stack, components)
-      })
     }
 
     components.toList
@@ -181,11 +180,14 @@ trait Graph[N, E] {
 
     edges.getOrElse(node, Set()).foreach { edge =>
       val neighbor = edge._1
-      val n = index.getOrElse(neighbor, {
-        i = strongConnect(neighbor, i, edges, index, lowlink, visited, stack, components)
-        lowlink(node) = lowlink(node).min(lowlink(neighbor))
-      })
-      if (n.isInstanceOf[Int]) if (visited(neighbor) == InStack) lowlink(node) = lowlink(node).min(index(neighbor))
+      index.get(neighbor) match {
+        case Some(_) =>
+          if (visited(neighbor) == InStack)
+            lowlink(node) = lowlink(node).min(index(neighbor))
+        case None =>
+          i = strongConnect(neighbor, i, edges, index, lowlink, visited, stack, components)
+          lowlink(node) = lowlink(node).min(lowlink(neighbor))
+      }
     }
 
     if (lowlink(node) == index(node)) {

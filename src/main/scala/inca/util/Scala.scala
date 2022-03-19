@@ -64,30 +64,32 @@ object Scala {
 
   def mkQualTypename(s: String): Type.Ref = {
     val ss = s.split('.')
-    if (ss.length == 1)
-      return Type.Name(ss(0))
-
-    var qual: Term.Ref = Term.Name(ss(0))
-    for (i <- 1 until (ss.length - 1))
-      qual = Term.Select(qual, Term.Name(ss(i)))
-    Type.Select(qual, Type.Name(ss(ss.length-1)))
+    if (ss.length == 1) {
+      Type.Name(ss(0))
+    } else {
+      var qual: Term.Ref = Term.Name(ss(0))
+      for (i <- 1 until (ss.length - 1))
+        qual = Term.Select(qual, Term.Name(ss(i)))
+      Type.Select(qual, Type.Name(ss(ss.length-1)))
+    }
   }
 
 
   private val compilerCache: mutable.Map[String, () => Any] = mutable.Map()
   def compileAndLoadScala[A](source: String): () => A = {
-    compilerCache.get(source).map(v => return v.asInstanceOf[() => A])
-    import reflect.runtime.currentMirror
-    import tools.reflect.ToolBox
+    compilerCache.get(source) match {
+      case Some(value) => value.asInstanceOf[() => A]
+      case None =>
+        import reflect.runtime.currentMirror
+        import tools.reflect.ToolBox
 
-    //    println(source)
-
-    val toolbox = currentMirror.mkToolBox(options = "-Ymacro-annotations")
-    val tree = toolbox.parse(source)
-    val compiled = toolbox.compile(tree)
-    val result = () => compiled()
-    compilerCache += source -> result
-    result.asInstanceOf[() => A]
+        val toolbox = currentMirror.mkToolBox(options = "-Ymacro-annotations")
+        val tree = toolbox.parse(source)
+        val compiled = toolbox.compile(tree)
+        val result = () => compiled()
+        compilerCache += source -> result
+        result.asInstanceOf[() => A]
+    }
   }
 
   class ScalaCompiler {
@@ -98,15 +100,16 @@ object Scala {
 
     private val compilerCache: mutable.Map[String, Any] = mutable.Map()
 
-    def compileAndLoadScala[A](source: String): A = {
-      compilerCache.get(source).map(v => return v.asInstanceOf[A])
-
-      val tree = toolbox.parse(source)
-      val compiled = toolbox.compile(tree)
-      val result = compiled().asInstanceOf[A]
-      compilerCache += source -> result
-      result
-    }
+    def compileAndLoadScala[A](source: String): A =
+      compilerCache.get(source) match {
+        case Some(value) => value.asInstanceOf[A]
+        case None =>
+          val tree = toolbox.parse(source)
+          val compiled = toolbox.compile(tree)
+          val result = compiled().asInstanceOf[A]
+          compilerCache += source -> result
+          result
+      }
 
     def define(source: String): String = {
       val tree = toolbox.parse(source)

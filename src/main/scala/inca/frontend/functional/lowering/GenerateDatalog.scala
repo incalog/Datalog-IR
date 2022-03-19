@@ -525,16 +525,6 @@ class GenerateDatalog(module: Module) {
       Datalog.Evaluation(params.map(p => Datalog.Var(p.name) -> p.typ), GP_URI.addHint(DataHints.DataTypeName(data.name.name)), Scala(constrScalaFun))))
     ).addHint(DataHints.IDBConstructor)
 
-    val constrType = Datalog.TNode(constr.name.name)
-//    val constrEDBBody = Datalog.Body(
-////      Datalog.ExtensionalCall(constrType.name, Seq(outVar)) +:
-//      Datalog.HasType(outVar, constrType) +:
-//      constr.paramTypes.zipWithIndex.map { case (typ, ix) =>
-//        Datalog.Path(outVar, constrType, Datalog.NamedLink(constrType, s"_$ix"), Datalog.Var(s"_$ix"), transRuntimeType(typ))
-//      }
-//    ).addHint(MagicSetHints.NoInputRelation)
-
-
     val kidVars = for (k <- constr.paramTypes.indices)
       yield Datalog.Var(s"_$k")
     val kidCoalescedVars = for (k <- constr.paramTypes.indices)
@@ -559,7 +549,7 @@ class GenerateDatalog(module: Module) {
         val bindKid = paramTyp match {
           case TData(name) =>
             // uncoalesce kidCoalescedVar to kidVar
-            Datalog.Call(name + UNCOALESCED_SUFFIX, Seq(kidCoalescedVar, kidVar))
+            Datalog.Call(name.name + UNCOALESCED_SUFFIX, Seq(kidCoalescedVar, kidVar))
               .addHint(MagicSetHints.IgnoreCall)
               .addHint(MagicSetHints.FixedAdornment(Seq(true, false)))
           case TAny | TNothing | _: TScala =>
@@ -598,7 +588,7 @@ class GenerateDatalog(module: Module) {
     val queryKids = for (k <- constr.paramTypes.indices)
       yield constr.paramTypes(k) match {
         case TData(name) =>
-          Datalog.Call(name + COALESCED_SUFFIX, Seq(kidVars(k), kidCoalescedVars(k)))
+          Datalog.Call(name.name + COALESCED_SUFFIX, Seq(kidVars(k), kidCoalescedVars(k)))
         case TAny | TNothing | _: TScala =>
           Datalog.Eq(kidVars(k), kidCoalescedVars(k))
         case _ => throw new UnsupportedOperationException
@@ -650,7 +640,7 @@ class GenerateDatalog(module: Module) {
           val ty = transDataType(td)
           Seq(
             Datalog.Computed(v, consumeData(ty, t => Term.Select(t, Term.Name(v.name)))),
-            Datalog.Call(name + UNCOALESCED_SUFFIX, Seq(v, Datalog.Var("_")))
+            Datalog.Call(name.name + UNCOALESCED_SUFFIX, Seq(v, Datalog.Var("_")))
           )
         case TAny | TNothing | _: TScala =>
           Seq()

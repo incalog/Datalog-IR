@@ -1,6 +1,6 @@
 package inca.runtime.data
 
-import inca.runtime.db.{Database, DatabaseInspector}
+import inca.runtime.db.DatabaseInspector
 
 case class MockURI(constr: String, args: Seq[Any]) extends truechange.URI {
   override def toString: String = s"$constr(${args.mkString(", ")})"

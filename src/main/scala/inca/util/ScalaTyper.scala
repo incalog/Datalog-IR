@@ -26,18 +26,22 @@ trait ScalaTyper {
   def boundNames: Seq[String] = importBoundNames.toSeq ++ toplevelBoundNames
 
   def registerImport(imp: meta.Import): Either[Unit, Throwable] = {
+    var throwable: Option[Throwable] = None
     imp.importers.head.importees.foreach {
       case Importee.Name(n) => importBoundNames += n.value
       case Importee.Rename(_, n) => importBoundNames += n.value
       case _: Importee.Unimport => // nothing
       case _: Importee.Wildcard =>
         // wildcards are not allowed
-        return Right(new IllegalArgumentException("Wildcard Scala imports are now allowed"))
+        throwable = Some(new IllegalArgumentException("Wildcard Scala imports are now allowed"))
       case _ =>
-        return Right(new IllegalArgumentException("Unsupported Scala import"))
+        throwable = Some(new IllegalArgumentException("Unsupported Scala import"))
     }
     imports += imp
-    Left(())
+    throwable match {
+      case Some(value) => Right(value)
+      case None => Left(())
+    }
   }
 
 
@@ -117,7 +121,7 @@ trait ScalaTyper {
         typ.toString.replace(s"${topLevelObject.fullName}.ScalaObject$$", "")
       Left(normalizedType)
     } catch {
-      case err@ToolBoxError(msg, throwable) =>
+      case ToolBoxError(msg, throwable) =>
         val cleanMsg = msg.replace(s"${topLevelObject.fullName}.", "")
         Right(ToolBoxError(cleanMsg, throwable))
     }
@@ -133,7 +137,7 @@ trait ScalaTyper {
     typecheckScala(code) match {
       case Left(str) =>
         str == "Unit"
-      case Right(err) =>
+      case Right(_) =>
         false
     }
   }

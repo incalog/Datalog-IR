@@ -99,6 +99,7 @@ class DirectDatabaseUpdater(val db: Database) extends DatabaseUpdater {
         db.primitiveInstances(litTy).delete(lit)
         db.linkPrimitiveInstances(tagname->name).delete(node, lit)
       }
+    case _ => throw new UnsupportedOperationException("Cannot support edit" + edit)
   }
 }
 

@@ -196,7 +196,7 @@ object AugmentedAVLTree {
 }
 
 
-class AugmentedAVLNode[T](var value: T, op: (T, T) => T)(implicit ord: Ordering[T]) {
+class AugmentedAVLNode[T](var value: T, op: (T, T) => T) {
 
   var _parent: AugmentedAVLNode[T] = _
   private var _lhs: AugmentedAVLNode[T] = _
@@ -260,5 +260,5 @@ class AugmentedAVLNode[T](var value: T, op: (T, T) => T)(implicit ord: Ordering[
 }
 
 object AugmentedAVLNode {
-  def apply[T](value: T, op: (T, T) => T)(implicit ord: Ordering[T]): AugmentedAVLNode[T] = new AugmentedAVLNode(value, op)
+  def apply[T](value: T, op: (T, T) => T): AugmentedAVLNode[T] = new AugmentedAVLNode(value, op)
 }

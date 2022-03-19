@@ -14,7 +14,26 @@ lazy val inca = (project in file(".")).settings(
   resolvers += "Eclipse Releases" at "https://repo.eclipse.org/content/groups/releases",
   resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots",
 
-  scalacOptions ++= Seq("-Ymacro-annotations", "-J-Xss10m"),
+  scalacOptions ++= Seq(
+    "-Ymacro-annotations", 
+    "-J-Xss10m",
+    "–encoding", "UTF8",
+    "-target:jvm-1.8",
+    "-deprecation",
+    "-unchecked",
+    "-feature",
+    "-Xlint",
+    // "-Xfatal-warnings",
+    "-Ywarn-numeric-widen",
+    "-Ywarn-unused:imports,privates,locals,implicits",
+    "-Ywarn-dead-code",
+    "-Xlint:infer-any",
+    "-Xlint:inaccessible",
+    "-Xlint:nullary-unit",
+    "-Xlint:nullary-override",
+    "-Xlint:adapted-args",
+    "-Xdisable-assertions"
+  ),
 
   Test / classLoaderLayeringStrategy := ClassLoaderLayeringStrategy.ScalaLibrary,
 

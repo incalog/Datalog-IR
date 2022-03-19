@@ -2,15 +2,12 @@ package inca.debugger
 
 import inca.backend.analyze.DependencyGraph
 import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.{CountAggregation, CustomAggregation, Name}
+import inca.backend.ir.Datalog.{CountAggregation, CustomAggregation}
 import inca.compiler.CompiledModule
 import inca.debugger.table.Table
-import inca.runtime.context.QueryScope
 import inca.runtime.db.Database
-import inca.runtime.{EnginePool, Query}
-import inca.util.Derivative
+import inca.runtime.Query
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
-import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truechange.{EditScript, URI}
 
 import scala.collection.mutable
@@ -246,7 +243,7 @@ trait Debugger extends DebuggerAPI {
         case Datalog.Computed(lhs, countAgg: CountAggregation) =>
           val patternTable = fixpointState.relation(countAgg.patName, frame.argsTable)
           tableOps.transitionCountAggTables(callerFrame, patternTable, lhs)
-        case atom => throw new MatchError(atom, "should be a call or an aggregation")
+        case atom => throw new MatchError((atom, "should be a call or an aggregation"))
       }
       callStack.update(Frame(next, tables))
     }

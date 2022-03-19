@@ -22,10 +22,10 @@ class DesugarTrans {
     Module(name, langModel, imports.flatMap(desugarImport), nodeImports.flatMap(desugarNodeImport), content.flatMap(desugarModuleContent))
   }
 
-  def desugarImport(imp: Import)(implicit gensym: Gensym): Seq[Import] =
+  def desugarImport(imp: Import): Seq[Import] =
     Seq(Import(imp.name))
 
-  def desugarNodeImport(imp: NodeImport)(implicit gensym: Gensym): Seq[NodeImport] =
+  def desugarNodeImport(imp: NodeImport): Seq[NodeImport] =
     Seq(NodeImport(imp.name))
 
   def desugarModuleContent(content: ModuleContent)(implicit gensym: Gensym): Seq[ModuleContent] = content match {

@@ -27,7 +27,7 @@ trait TypeContext extends TypeIO {
     vars.get(name) foreach { case (previousDecl, _) =>
       error(s"Variable $name shadows previously defined variable $previousDecl", name, previousDecl)
     }
-    vars += (name -> (decl, ty))
+    vars += name -> ((decl, ty))
   }
 
   def lookupVar(name: Name): Option[(Var.Target,Type)] =
@@ -43,7 +43,7 @@ trait TypeContext extends TypeIO {
 
 
   def bindFun(fun: PatternFunction, module: Module): Unit = {
-    funs += fun.name -> (module, fun)
+    funs += fun.name -> ((module, fun))
   }
 
   def lookupFun(name: Name): Option[PatternFunction] =
@@ -66,7 +66,7 @@ trait TypeContext extends TypeIO {
     modules.get(name) foreach { bound =>
       error(s"Found multiple modules with same name $name", name, bound.name)
     }
-    modules += (name -> module)
+    modules += name -> module
   }
 
   def lookupModule(name: Name): Option[Module] =
@@ -81,7 +81,7 @@ trait TypeContext extends TypeIO {
     nodes.get(node) foreach { previousFQN =>
       error(s"Node type $node shadows previously defined node type $previousFQN", node, node)
     }
-    nodes += (node -> fqNode)
+    nodes += node -> fqNode
   }
 
   def lookupNode(node: TNode): Option[TNode] =

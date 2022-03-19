@@ -43,7 +43,6 @@ object CollectFreeScalaVars {
    */
   def freeVars(term: Term, bound: Set[Name] = Set()): Set[Name] = {
     val extendedBound = mutable.Set[Name]() ++ bound
-//    extendedBound ++= (bound ++ predefinedNames.map(Name))
     val scope = new Scope(mutable.Set(), extendedBound)
     freeVars(term, scope)
     scope.free.toSet
@@ -167,7 +166,6 @@ object CollectFreeScalaVars {
       ctor.paramss.foreach { params =>
         params.foreach(p => newScope.newBound(makeName(p.name)))
       }
-//      params.foreach(p => newScope.newBound(makeName(p.name)))
       freeVars(tmpl, newScope)
     case Defn.Object(_, name, tmpl) =>
       scope.newBound(makeName(name))
@@ -253,7 +251,6 @@ object CollectFreeScalaVars {
       args.flatMap(freeVars(_, scope)).toSet
     case Pat.ExtractInfix(lhs, op, rhs) =>
       val bound = freeVars(lhs, scope)
-//      freeVars(op, scope)
       bound ++ rhs.flatMap(freeVars(_, scope))
     case Pat.Typed(p, _) => freeVars(p, scope)
     case Pat.Quasi(_, _) => throw new UnsupportedOperationException("Pat.Quasi is currently not supported")
@@ -261,14 +258,6 @@ object CollectFreeScalaVars {
     case _ => throw new UnsupportedOperationException(s"not yet implemented: ${pat.productPrefix}")
   }
 
-
-  private def addPatVar(v: Name, scope: Scope): Unit =
-    if (v.name.charAt(0).isUpper && !scope.isBound(v)) {
-      // pattern variables with the first char in upper case are assumed to be constants defined somewhere else
-      scope.newFree(v)
-    } else {
-      scope.newBound(v)
-    }
 
   /**
    * A scope represents the free and bound variables in a specific code block.
@@ -282,8 +271,6 @@ object CollectFreeScalaVars {
    * @param bound the set of bound variables known in this scope
    */
   private class Scope(val free: mutable.Set[Name], val bound: mutable.Set[Name]) {
-
-    def isFree(v: Name): Boolean = free.exists(_.name == v.name)
 
     def isBound(v: Name): Boolean = bound.exists(_.name == v.name)
 
@@ -309,12 +296,6 @@ object CollectFreeScalaVars {
 
     def nestedScope(): Scope = {
       new Scope(free, bound.clone())
-    }
-
-    def newFreeIfUnbound(name: Name): Unit = {
-      if (!isBound(name)) {
-        newFree(name)
-      }
     }
   }
 }

@@ -35,33 +35,33 @@ trait Collect[R] {
   def transAtom(atom: Atom): Seq[R] = atom match {
     case Call(_, args, _, _) => args.flatMap(transTerm)
     case ExtensionalCall(_, args, _) => args.flatMap(transTerm)
-    case Compare(comp, lhs, rhs) => transTerm(lhs) ++ transTerm(rhs)
-    case HasType(v, typ) => transTerm(v)
-    case NotHasType(v, typ) => transTerm(v)
-    case Path(src, srcTy, link, trg, trgTy) => transTerm(src) ++ transTerm(trg)
-    case NoPath(t, ty, link, termIsSource) => transTerm(t)
+    case Compare(_, lhs, rhs) => transTerm(lhs) ++ transTerm(rhs)
+    case HasType(v, _) => transTerm(v)
+    case NotHasType(v, _) => transTerm(v)
+    case Path(src, _, _, trg, _) => transTerm(src) ++ transTerm(trg)
+    case NoPath(t, _, _, _) => transTerm(t)
     case Computed(lhs, comp) => transTerm(lhs) ++ transComputation(comp)
     case Undef(t) => transTerm(t)
   }
 
   def transTerm(v: Term): Seq[R] = v match {
-    case vari@Var(name) => transVar(vari)
+    case vari@Var(_) => transVar(vari)
     case Constant(lit) => transLit(lit)
   }
 
   def transVar(v: Var): Seq[R] = Seq()
 
   def transLit(lit: Literal): Seq[R] = lit match {
-    case IntLiteral(v) => Seq()
-    case LongLiteral(v) => Seq()
-    case DoubleLiteral(v) => Seq()
-    case StringLiteral(v) => Seq()
-    case BooleanLiteral(v) => Seq()
+    case IntLiteral(_) => Seq()
+    case LongLiteral(_) => Seq()
+    case DoubleLiteral(_) => Seq()
+    case StringLiteral(_) => Seq()
+    case BooleanLiteral(_) => Seq()
   }
 
   def transComputation(computation: Computation): Seq[R] = computation match {
     case CountAggregation(_, args) => args.flatMap(transTerm)
-    case Evaluation(args, _, _) => args.flatMap(v => transTerm(v._1)).toSeq
-    case CustomAggregation(_, _, agg, _, args, _) => args.flatMap(transTerm)
+    case Evaluation(args, _, _) => args.flatMap(v => transTerm(v._1))
+    case CustomAggregation(_, _, _, _, args, _) => args.flatMap(transTerm)
   }
 }
