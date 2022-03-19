@@ -4,21 +4,23 @@ import inca.analyzedLangs.Exp
 import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.constraint.core._
 import inca.frontend.constraint.extensions.forallExists.Trees._
+import inca.runtime.context
 import inca.runtime.context.QueryScope
 import inca.util.Scala
 import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 
+import scala.language.implicitConversions
 import scala.meta.XtensionQuasiquoteTerm
 
 class TestForallExists extends AnyFlatSpec with IncaConstraintMatchers {
 
   implicit def name(s: String): Name = Name(s)
 
-  val one = Constant(IntLiteral(1))
-  val two = Constant(IntLiteral(2))
+  val one: Constant = Constant(IntLiteral(1))
+  val two: Constant = Constant(IntLiteral(2))
 
-  val dataModel = Exp.model
+  val dataModel: context.DataModel = Exp.model
   val scope: QueryScope = new QueryScope(Exp.model)
   val options: ConstraintOptions = ConstraintOptions()
 

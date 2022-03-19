@@ -4,7 +4,7 @@ import inca.frontend.constraint.core._
 import inca.frontend.constraint.typechecker.TypeHelper
 import org.scalatest.funsuite.AnyFunSuite
 
-class TypeHelperTest extends AnyFunSuite{
+class TypeHelperTest extends AnyFunSuite {
 
   test("test decode primitive types") {
 
@@ -39,6 +39,7 @@ class TypeHelperTest extends AnyFunSuite{
 
   private def checkEq(name: String, exp: Type): Unit = {
     val typ = TypeHelper.decode(name)
-    assert(typ.right.get == exp)
+    assert(typ.isRight)
+    assert(typ.getOrElse(throw new AssertionError("Decode threw an error")) == exp)
   }
 }

@@ -82,8 +82,6 @@ class GenerateDatalogTest extends AnyFunSuite {
   test("function pattern calling other function"){
     val addType = TNode(classOf[Add].getCanonicalName)
     val expType = TNode(classOf[Exp].getCanonicalName)
-    val lhsLink = addType("lhs")
-    val rhsLink = addType("rhs")
     val fun = PatternFunction(
       Seq(),
       None,
@@ -103,7 +101,6 @@ class GenerateDatalogTest extends AnyFunSuite {
     val addType = TNode(classOf[Add].getCanonicalName)
     val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
-    val rhsLink = addType("rhs")
     val fun = PatternFunction(
       Seq(),
       None,
@@ -124,7 +121,6 @@ class GenerateDatalogTest extends AnyFunSuite {
     val addType = TNode(classOf[Add].getCanonicalName)
     val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
-    val rhsLink = addType("rhs")
     val fun = PatternFunction(
       Seq(),
       None,
@@ -145,7 +141,6 @@ class GenerateDatalogTest extends AnyFunSuite {
     val addType = TNode(classOf[Add].getCanonicalName)
     val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
-    val rhsLink = addType("rhs")
     val fun = PatternFunction(
       Seq(),
       None,
@@ -164,9 +159,7 @@ class GenerateDatalogTest extends AnyFunSuite {
 
   test("function pattern def of path"){
     val addType = TNode(classOf[Add].getCanonicalName)
-    val expType = TNode(classOf[Exp].getCanonicalName)
     val lhsLink = addType("lhs")
-    val rhsLink = addType("rhs")
     val fun = PatternFunction(
       Seq(),
       None,
@@ -209,7 +202,7 @@ class GenerateDatalogTest extends AnyFunSuite {
   }
 
   test("modules with val defs") {
-    def testModule(mod: Module) = println(compileToGP(mod))
+    def testModule(mod: Module): Unit = println(compileToGP(mod))
 
     testModule(
       Module(

@@ -1,14 +1,10 @@
 package inca.frontend.functional.integration
 
 import inca.examples.functional.ControlDataFlow
-import inca.frontend.functional.executor.IncrementalFunctionalExecutor
 import inca.frontend.functional.executor.IncrementalFunctionalExecutor._
-import inca.runtime.{EnginePool, Query}
-import org.eclipse.viatra.query.runtime.api.IMatchUpdateListener
+import inca.runtime.EnginePool
 import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
-
-import scala.collection.mutable.ListBuffer
 
 @Ignore
 class IncrementalDataflowAnalysisTest extends AnyFunSuite {
@@ -60,12 +56,12 @@ class IncrementalDataflowAnalysisTest extends AnyFunSuite {
   }
 
   def testIncrementalRun(original: meta.Term, changed: meta.Term, intervalBound: Int = this.defaultIntervalBound, intervalInfty: Int = this.defaultIntervalInfty): Unit = {
-    val compiled = compileFunction(ControlDataFlow.ParametricIntValuesModule(intervalBound, defaultIntervalInfty))
+    val compiled = compileFunction(ControlDataFlow.ParametricIntValuesModule(intervalBound, intervalInfty))
 
-    for (i <- 0 until 5) {
+    for (_ <- 0 until 5) {
       val fun = loadFunction(compiled)
       val (edits, tuple) = fun.input(original)
-      val (load, insert, delete, m0) = fun.measureInitial("final_var", edits, tuple)
+      val (load, insert, delete, _) = fun.measureInitial("final_var", edits, tuple)
       println(s"Initial ${load / 1000 / 1000}, ${insert / 1000 / 1000}, ${delete / 1000 / 1000}")
     }
     EnginePool.disposeAllEngines()
@@ -76,23 +72,23 @@ class IncrementalDataflowAnalysisTest extends AnyFunSuite {
     fun.registerTrackedRelations(Set("final_var"))
 
     val (edits, tuple) = fun.input(original)
-    val (load, insert, delete, m0) = fun.measureInitial("final_var", edits, tuple)
+    val (load, insert, delete, _) = fun.measureInitial("final_var", edits, tuple)
     println(s"Initial ${load / 1000 / 1000}, ${insert / 1000 / 1000}, ${delete / 1000 / 1000}")
 //    IncrementalFunctionalExecutor.printChanges(changes)
     println()
 
-    for (i <- 0 until 10) {
+    for (_ <- 0 until 10) {
       // incremental measurement
       val (edits1, tuple1) = fun.input(changed)
       edits1.print()
-      val (load1, insert1, delete1, m1) = fun.measureUpdate("final_var", edits1, tuple1)
+      val (load1, insert1, delete1, _) = fun.measureUpdate("final_var", edits1, tuple1)
       println(s"Change1 ${load1 / 1000 / 1000}, ${insert1 / 1000 / 1000}, ${delete1 / 1000 / 1000}")
       fun.printChanges()
       println()
 
       // measure revert of change
       val (edits2, tuple2) = fun.input(original)
-      val (load2, insert2, delete2, m2) = fun.measureUpdate("final_var", edits2, tuple2)
+      val (load2, insert2, delete2, _) = fun.measureUpdate("final_var", edits2, tuple2)
       println(s"Change2 ${load2 / 1000 / 1000}, ${insert2 / 1000 / 1000}, ${delete2 / 1000 / 1000}")
       fun.printChanges()
       println()

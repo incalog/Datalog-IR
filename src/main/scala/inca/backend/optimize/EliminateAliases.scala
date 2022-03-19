@@ -96,7 +96,7 @@ object EliminateAliases extends Optimization {
     override def substBody(body: Body): Body =
       Body(body.atoms.flatMap(flatSubstAtom)).withHints(body)
 
-    def flatSubstAtom(atom: Atom): Option[Atom] = (atom match {
+    def flatSubstAtom(atom: Atom): Option[Atom] = atom match {
       case Compare(comp, lhs, rhs) =>
         val left = substTerm(lhs)
         val right = substTerm(rhs)
@@ -108,7 +108,7 @@ object EliminateAliases extends Optimization {
         else
           Some(Compare(comp, left, right).withHints(atom))
       case _ => Some(super.substAtom(atom))
-    })
+    }
   }
 }
 

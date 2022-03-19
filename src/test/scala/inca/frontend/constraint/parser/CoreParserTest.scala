@@ -13,7 +13,7 @@ import org.scalatest.funsuite.AnyFunSuite
   */
 class CoreParserTest extends AnyFunSuite {
 
-  val parser = new CoreParser {}
+  val parser: CoreParser = new CoreParser {}
   import inca.frontend.constraint.core._
   
   test("test Type") {
@@ -79,7 +79,7 @@ class CoreParserTest extends AnyFunSuite {
       testSuccess(parser.numericLiteral(_))(input, LongLiteral(r))
     testLongLit("1L", 1L)
     testLongLit("-1L", -1L)
-    testLongLit("11L", 11l)
+    testLongLit("11L", 11L)
     testLongLit("-11L", -11L)
     testLongLit("-111111111111111L", -111111111111111L)
   }
@@ -118,8 +118,9 @@ class CoreParserTest extends AnyFunSuite {
 
   test("test UnitLiteral") {
     parse("unit", parser.unitLiteral(_)) match {
-      case Success(UnitLiteral, _)      =>
+      case Success(UnitLiteral, _) =>
       case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+      case _ => fail("Could not parse unit literal")
     }
   }
 
@@ -193,13 +194,13 @@ class CoreParserTest extends AnyFunSuite {
   test("test identifier") {
     def positive(v: String): Assertion =
       parse(v, parser.identifier(_)) match {
-        case Failure(label, index, extra) => fail()
-        case Success(value, index)        => assert(value === Name(v))
+        case Failure(_, _, _) => fail()
+        case Success(value, _)        => assert(value === Name(v))
       }
     def negative(v: String): Unit =
       parse(v, parser.identifier(_)) match {
-        case Failure(label, index, extra) => {}
-        case Success(value, index)        => fail()
+        case Failure(_, _, _) => // do nothing
+        case Success(_, _)=> fail()
       }
 
     Seq("kuch3n", "k3k53", "t33", "kl33", "br0t", "s0nn3nblum3").map(positive)
@@ -363,19 +364,19 @@ class CoreParserTest extends AnyFunSuite {
       "x.size",
       PathAccess(Var("x"), SizeLink)
     )
-    testExp("foo()", Call(Name("foo"), Seq(), false))
-    testExp("foo+()", Call(Name("foo"), Seq(), true))
-    testExp("foo(x)", Call(Name("foo"), Seq(Var("x")), false))
-    testExp("foo+(x)", Call(Name("foo"), Seq(Var("x")), true))
-    testExp("foo(x, y)", Call(Name("foo"), Seq(Var("x"), Var("y")), false))
-    testExp("foo+(x, y)", Call(Name("foo"), Seq(Var("x"), Var("y")), true))
+    testExp("foo()", Call(Name("foo"), Seq()))
+    testExp("foo+()", Call(Name("foo"), Seq(), transitive = true))
+    testExp("foo(x)", Call(Name("foo"), Seq(Var("x"))))
+    testExp("foo+(x)", Call(Name("foo"), Seq(Var("x")), transitive = true))
+    testExp("foo(x, y)", Call(Name("foo"), Seq(Var("x"), Var("y"))))
+    testExp("foo+(x, y)", Call(Name("foo"), Seq(Var("x"), Var("y")), transitive = true))
 
-    testExp("count foo()", Count(Call(Name("foo"), Seq(), false)))
-    testExp("count foo+()", Count(Call(Name("foo"), Seq(), true)))
-    testExp("count foo(x)", Count(Call(Name("foo"), Seq(Var("x")), false)))
-    testExp("count foo+(x)", Count(Call(Name("foo"), Seq(Var("x")), true)))
-    testExp("count foo(x, y)", Count(Call(Name("foo"), Seq(Var("x"), Var("y")), false)))
-    testExp("count foo+(x, y)", Count(Call(Name("foo"), Seq(Var("x"), Var("y")), true)))
+    testExp("count foo()", Count(Call(Name("foo"), Seq())))
+    testExp("count foo+()", Count(Call(Name("foo"), Seq(), transitive = true)))
+    testExp("count foo(x)", Count(Call(Name("foo"), Seq(Var("x")))))
+    testExp("count foo+(x)", Count(Call(Name("foo"), Seq(Var("x")), transitive = true)))
+    testExp("count foo(x, y)", Count(Call(Name("foo"), Seq(Var("x"), Var("y")))))
+    testExp("count foo+(x, y)", Count(Call(Name("foo"), Seq(Var("x"), Var("y")), transitive = true)))
 
     testExp("(x, y)", Tuple(Seq(Var("x"), Var("y"))))
     testExp("(x, 5)", Tuple(Seq(Var("x"), Constant(IntLiteral(5)))))
@@ -397,7 +398,7 @@ class CoreParserTest extends AnyFunSuite {
           Tuple(
             Seq(
               Constant(IntLiteral(9)),
-              Count(Call(Name("foo"), Seq.empty, true))
+              Count(Call(Name("foo"), Seq.empty, transitive = true))
             )
           )
         )
@@ -913,11 +914,10 @@ class CoreParserTest extends AnyFunSuite {
   test("test Eval") {
     def testEval(input: String, cmp_code : String): Assertion =
       parse(input, parser.evalExp(_)) match {
-        case Success(Eval(code), index) => {
+        case Success(Eval(code), _) =>
           assert(cmp_code === code.syntax)
-//          assert(ss.map(_.name).toSet === vars)
-        }
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
+        case _ => fail("Eval could not be parsed")
       }
 
     testEval("`x + 2`", "x + 2")
@@ -973,8 +973,8 @@ class CoreParserTest extends AnyFunSuite {
     (input: String) => {
       parse(input, parser) match {
         case Success(value, index) if input.length == index => fail(s"Expected failed parsing, but got $value")
-        case Success(value, index) if input.length != index =>
-        case Failure(label, index, extra) =>
+        case Success(_, index) if input.length != index =>
+        case Failure(_, _, _) =>
       }
     }
 }
