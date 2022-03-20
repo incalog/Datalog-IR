@@ -10,29 +10,54 @@ class ConstructDependencyGraphTest extends AnyFlatSpec {
     val one = Constant(IntLiteral(1))
     val two = Constant(IntLiteral(1))
 
-    val module1 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
-        Body(Seq(
-          Compare(EqComparator, Var("c"), two),
-          HasType(one, TScalaInt),
-          Call("TestTP", Seq(), true, false)
-        ))
-      )),
-      Pattern(None, "TestTP", Seq(Param("p", TAny)), Seq(
-        Body(Seq(
-          Compare(EqComparator, Var("c"), two),
-          HasType(one, TScalaInt),
-          Call("TestTP", Seq(), true, false)
-        ))
-      )),
-      Pattern(None, "Pattern 2", Seq(Param("p", TAny)), Seq(
-        Body(Seq(
-          Compare(EqComparator, Var("p"), one),
-          Call("TestTP", Seq(), true, false)
-        ))
-      )),
-    ), Seq())
-
+    val module1 = Module(
+      "Test",
+      Seq(),
+      Seq(
+        Pattern(
+          None,
+          "foo",
+          Seq(Param("p", TAny)),
+          Seq(
+            Body(
+              Seq(
+                Compare(EqComparator, Var("c"), two),
+                HasType(one, TScalaInt),
+                Call("TestTP", Seq(), true, false)
+              )
+            )
+          )
+        ),
+        Pattern(
+          None,
+          "TestTP",
+          Seq(Param("p", TAny)),
+          Seq(
+            Body(
+              Seq(
+                Compare(EqComparator, Var("c"), two),
+                HasType(one, TScalaInt),
+                Call("TestTP", Seq(), true, false)
+              )
+            )
+          )
+        ),
+        Pattern(
+          None,
+          "Pattern 2",
+          Seq(Param("p", TAny)),
+          Seq(
+            Body(
+              Seq(
+                Compare(EqComparator, Var("p"), one),
+                Call("TestTP", Seq(), true, false)
+              )
+            )
+          )
+        )
+      ),
+      Seq()
+    )
 
     val graph = new DependencyGraph(module1)
     assertResult(graph.nodes)(Set("foo", "TestTP", "Pattern 2", "foo"))

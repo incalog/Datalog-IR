@@ -36,15 +36,14 @@ trait EditScenario {
       (LetStar(newBindings, bodyexp), bodycount)
   }
 
-  def mapBindingList(bindings: BindingList)(f: (String, Exp) => (String, Exp)): BindingList = bindings match {
-    case Nil() => Nil()
-    case Cons(name, bound, rest) =>
-      val (newName, newExp) = f(name, bound)
-      Cons(newName, newExp, mapBindingList(rest)(f))
-  }
+  def mapBindingList(bindings: BindingList)(f: (String, Exp) => (String, Exp)): BindingList =
+    bindings match {
+      case Nil() => Nil()
+      case Cons(name, bound, rest) =>
+        val (newName, newExp) = f(name, bound)
+        Cons(newName, newExp, mapBindingList(rest)(f))
+    }
 }
-
-
 
 object NumEditScenario extends EditScenario {
 

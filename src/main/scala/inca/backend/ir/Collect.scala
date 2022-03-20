@@ -45,7 +45,7 @@ trait Collect[R] {
   }
 
   def transTerm(v: Term): Seq[R] = v match {
-    case vari@Var(_) => transVar(vari)
+    case vari @ Var(_) => transVar(vari)
     case Constant(lit) => transLit(lit)
   }
 

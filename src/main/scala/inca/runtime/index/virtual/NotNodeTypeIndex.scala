@@ -1,19 +1,23 @@
 package inca.runtime.index.virtual
 
 import inca.runtime.db.Database
-import inca.runtime.index.{IndexKey, VirtualKey}
-import truechange.{Type, URI}
+import inca.runtime.index.IndexKey
+import inca.runtime.index.VirtualKey
+import truechange.Type
+import truechange.URI
 
 object NotNodeTypeIndex {
   case class Key(id: Type) extends VirtualKey {
     override val getStringID: String = "not#nodeType#" + id.toString
     override val getArity: Int = 1
     override def isEnumerable: Boolean = false
+
     /**
-     *  We assert statelessness, which is not strictly true. However:
+     * We assert statelessness, which is not strictly true. However:
      *   - we only use NotNodeTypeKey in TypeFilterConstraint
      *   - TypeFilterConstraint defers checking until the tuple is grounded
-     *   - the membership of a grounded tuple in NotNodeTypeKey is stable, because the type of URIs cannot change
+     *   - the membership of a grounded tuple in NotNodeTypeKey is stable, because the type of URIs
+     *     cannot change
      */
     override def isStateless: Boolean = true
 
@@ -45,7 +49,9 @@ class NotNodeTypeIndex(ty: Type) extends VirtualUnaryIndex[URI] {
     case None => 1 // tuple does not have type ty
   }
 
-  override def entries: Iterable[URI] = throw new UnsupportedOperationException(s"Cannot enumerate nodes _not_ of type $ty")
+  override def entries: Iterable[URI] = throw new UnsupportedOperationException(
+    s"Cannot enumerate nodes _not_ of type $ty"
+  )
 
   override def afterInitialization(): Unit = {
     // do nothing

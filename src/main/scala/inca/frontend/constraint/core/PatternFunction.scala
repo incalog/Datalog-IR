@@ -2,13 +2,22 @@ package inca.frontend.constraint.core
 
 import inca.compiler.source.SourceLocation
 
-case class PatternFunction(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, bodies: Seq[Body])
-  extends ModuleContent with Call.Target with Annotations {
+case class PatternFunction(
+    annos: Seq[Annotation],
+    vis: Option[Visibility],
+    name: Name,
+    params: Seq[Param],
+    outType: Type,
+    bodies: Seq[Body])
+    extends ModuleContent
+    with Call.Target
+    with Annotations {
   def boundNames: Seq[Name] = params.map(_.name)
 
   def freeVars: Map[Name, Option[Type]] = allVars -- boundNames
 
-  def allVars: Map[Name, Option[Type]] = bodies.flatMap(_.allVars).toMap ++ params.flatMap(_.freeVars)
+  def allVars: Map[Name, Option[Type]] =
+    bodies.flatMap(_.allVars).toMap ++ params.flatMap(_.freeVars)
 
   def outParams: Seq[Type] = outType match {
     case TUnit => Seq()
@@ -20,8 +29,10 @@ case class PatternFunction(annos: Seq[Annotation], vis: Option[Visibility], name
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")
     val outS = outType.prettyprint
-    val bodiesS = if (bodies.isEmpty) "{ }" else
-      bodies.map(_.prettyprint(indent)).mkString(" union ")
+    val bodiesS =
+      if (bodies.isEmpty) "{ }"
+      else
+        bodies.map(_.prettyprint(indent)).mkString(" union ")
     s"$indent${visS}def $name($paramsS): $outS = $bodiesS"
   }
 }

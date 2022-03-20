@@ -1,11 +1,10 @@
 package inca.frontend.functional.integration
 
 import inca.examples.functional.Code
-import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.functional.executor.IncrementalFunctionalExecutor._
 import inca.runtime.EnginePool
+import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.BeforeAndAfterEach
-
 import scala.meta.quasiquotes._
 
 class IncrementalTests extends AnyFunSuite with BeforeAndAfterEach {
@@ -35,8 +34,12 @@ class IncrementalTests extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("Non-cyclic data change first argument bigger example (simple dependency)") {
-    val original = Seq(q"Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Zero()))))))))))", q"Succ(Zero())")
-    val changed = Seq(q"Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Zero())))))))))))", q"Succ(Zero())")
+    val original =
+      Seq(q"Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Zero()))))))))))", q"Succ(Zero())")
+    val changed = Seq(
+      q"Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Succ(Zero())))))))))))",
+      q"Succ(Zero())"
+    )
     testIncrementalRun(Code.plusNoMainModule, "plus", original, changed, trackedRelsPlus)
   }
 
@@ -52,8 +55,13 @@ class IncrementalTests extends AnyFunSuite with BeforeAndAfterEach {
     testIncrementalRun(Code.plusNoMainModule, "plus", original, changed, trackedRelsPlus)
   }
 
-
-  def testIncrementalRun(code: String, mainFun: String, original: Seq[meta.Term], changed: Seq[meta.Term], trackedRelations: Set[String] = Set()): Unit = {
+  def testIncrementalRun(
+      code: String,
+      mainFun: String,
+      original: Seq[meta.Term],
+      changed: Seq[meta.Term],
+      trackedRelations: Set[String] = Set()
+    ): Unit = {
     val compiled = compileFunction(code)
 
     for (i <- 0 until 0) {
@@ -63,7 +71,6 @@ class IncrementalTests extends AnyFunSuite with BeforeAndAfterEach {
       println(s"Initial ${load / 1000 / 1000}, ${insert / 1000 / 1000}, ${delete / 1000 / 1000}")
     }
     EnginePool.disposeAllEngines()
-
 
     val fun = loadFunction(compiled)
 
@@ -96,4 +103,3 @@ class IncrementalTests extends AnyFunSuite with BeforeAndAfterEach {
   }
 
 }
-

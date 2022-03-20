@@ -5,18 +5,19 @@ import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Datalog.{Name => _, _}
 import inca.backend.optimize.EliminateAliases
 import inca.frontend.constraint.compiler.ConstraintOptions
+import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.Syntax.{Type => _, _}
 import inca.frontend.souffle.Util.cleanSouffleName
-import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.runtime.context.DataModel
 import inca.runtime.context.DataModel.{Link => MLink}
-import inca.util.{Gensym, Scala}
-import truechange.{JavaLitType, LitType}
-
+import inca.util.Gensym
+import inca.util.Scala
 import scala.collection.immutable.MultiDict
 import scala.collection.mutable
 import scala.meta.{Input => _, Name => _, Term => _, Type => _, _}
+import truechange.JavaLitType
+import truechange.LitType
 
 class SouffleToDatalogIR {
 
@@ -57,14 +58,17 @@ class SouffleToDatalogIR {
 
   // if funPrefix != "" we are within a compontent definition that got initialized
   def compile(content: SouffleContent, funPrefix: String): Unit = content match {
-    case cdef@ComponentDefinition(name, contents) =>
+    case cdef @ ComponentDefinition(name, contents) =>
       componentDefinitions += name -> cdef
 
     case ComponentInitialization(name, composite) =>
-      val cdef = componentDefinitions.getOrElse(composite, throw new IllegalArgumentException(s"Unknown component definition $composite"))
+      val cdef = componentDefinitions.getOrElse(
+        composite,
+        throw new IllegalArgumentException(s"Unknown component definition $composite")
+      )
       cdef.contents.foreach(compile(_, name + "_"))
 
-    case s@RuleSignature(name, parameters, _) =>
+    case s @ RuleSignature(name, parameters, _) =>
       val patName = funPrefix + cleanSouffleName(name)
       val params = parameters.zipWithIndex.map { case (p, ix) =>
         Param(cleanSouffleName(p.name), compile(p.typ))
@@ -78,44 +82,63 @@ class SouffleToDatalogIR {
       patterns += (funPrefix + name) -> fun
       decls += name -> s
 
-    case ruleDef@RuleDefinition(heads, rulebody) =>
-      for (head@RuleHead(name, args) <- heads) {
-        val pat = patterns.getOrElse(funPrefix + name, throw new IllegalArgumentException(s"Unknown relation ${funPrefix + name}"))
+    case ruleDef @ RuleDefinition(heads, rulebody) =>
+      for (head @ RuleHead(name, args) <- heads) {
+        val pat = patterns.getOrElse(
+          funPrefix + name,
+          throw new IllegalArgumentException(s"Unknown relation ${funPrefix + name}")
+        )
         val params = pat.params.map(_.name)
         val headVars = collectNames(head)
         val bodyVars = ruleDef.body.ss.flatMap(collectNames).map(_.name)
 
         implicit val gensym: Gensym = new Gensym(bodyVars)
-        implicit val subst: Map[Name, String] = headVars.map(v => v -> gensym.fresh(cleanSouffleName(v))).toMap
+        implicit val subst: Map[Name, String] =
+          headVars.map(v => v -> gensym.fresh(cleanSouffleName(v))).toMap
 
         val headEqs = (pat.params zip args).flatMap { case (param, arg) =>
           val (term, constraints) = compile(arg)
-          constraints :+ Compare(EqComparator, Var(param.name), term).addHint(SourceConstruct.from(arg, head -> arg))
+          constraints :+ Compare(EqComparator, Var(param.name), term).addHint(
+            SourceConstruct.from(arg, head -> arg)
+          )
         }
 
         val constraints = rulebody.ss.map(compile(_, funPrefix))
-        val funbody = Body(constraints.flatten ++ headEqs).addHint(SourceConstruct.from(head, head -> ruleDef))
+        val funbody =
+          Body(constraints.flatten ++ headEqs).addHint(SourceConstruct.from(head, head -> ruleDef))
 
-        patterns += (funPrefix + name) -> Pattern(pat.vis, pat.name, pat.params, pat.bodies :+ funbody).withHints(pat)
+        patterns += (funPrefix + name) -> Pattern(
+          pat.vis,
+          pat.name,
+          pat.params,
+          pat.bodies :+ funbody
+        ).withHints(pat)
       }
 
     case TypeDeclaration(name, superType) => // do nothing
-
-    case in@Input(rel, filename, delimiter) =>
+    case in @ Input(rel, filename, delimiter) =>
       val decl = decls(rel)
       inputs(rel) = in
       // generate pattern that enumerates all node instances of AST node class
-      val pat = patterns.getOrElse(rel.name, throw new IllegalArgumentException("Rule signature has to come before input declaration"))
+      val pat = patterns.getOrElse(
+        rel.name,
+        throw new IllegalArgumentException("Rule signature has to come before input declaration")
+      )
       val body = Body(
         HasType(Var("node"), TNode(rel.name)) +:
-        pat.params.zip(decl.parameters).map { case (param, link) =>
-          Path(Var("node"), TNode(rel.name), NamedLink(TNode(rel.name), cleanSouffleName(link.name)), Var(param.name), param.typ)
-        }
+          pat.params.zip(decl.parameters).map { case (param, link) =>
+            Path(
+              Var("node"),
+              TNode(rel.name),
+              NamedLink(TNode(rel.name), cleanSouffleName(link.name)),
+              Var(param.name),
+              param.typ
+            )
+          }
       ).addHint(SourceConstruct.from(in))
       patterns(rel.name) = Pattern(pat.vis, pat.name, pat.params, Seq(body)).withHints(pat)
 
     case Output(rule) => // do nothing
-
     case PrintSize(rule) => // do nothing
       printSizes += PrintSize(Name(funPrefix + rule).sourceLocFrom(rule))
   }
@@ -136,7 +159,12 @@ class SouffleToDatalogIR {
     case FloatType => classOf[java.lang.Double]
   }
 
-  def compile(stm: Syntax.Statement, funPrefix: String)(implicit gensym: Gensym, subst: Map[Name, String]): Seq[Atom] = stm match {
+  def compile(
+      stm: Syntax.Statement,
+      funPrefix: String
+    )(implicit gensym: Gensym,
+      subst: Map[Name, String]
+    ): Seq[Atom] = stm match {
     case Equality(left, not, right) if !not =>
       val (lhterm, lhConstraints) = compile(left)
       val (rhterm, rhConstraints) = compile(right)
@@ -161,13 +189,18 @@ class SouffleToDatalogIR {
         .addHint(SourceConstruct.from(stm))
   }
 
-  def compile(exp: Syntax.Expression)(implicit gensym: Gensym, subst: Map[Name, String]): (Term, Seq[Atom]) = exp match {
-    case Variable(name) => subst.get(name) match {
-      case Some(dlogName) => (Var(dlogName), Seq())
-      case None => (Var(cleanSouffleName(name)), Seq())
-    }
+  def compile(
+      exp: Syntax.Expression
+    )(implicit gensym: Gensym,
+      subst: Map[Name, String]
+    ): (Term, Seq[Atom]) = exp match {
+    case Variable(name) =>
+      subst.get(name) match {
+        case Some(dlogName) => (Var(dlogName), Seq())
+        case None => (Var(cleanSouffleName(name)), Seq())
+      }
     case StringValue(value) =>
-       (Constant(StringLiteral(value.intern)), Seq())
+      (Constant(StringLiteral(value.intern)), Seq())
 //      val trgVar = Var(gensym.fresh("trg"))
 //      val funString = "\"" + value + "\".intern"
 //      val computed = Computed(trgVar, ConstantEvaluation(TUnbounded(TString), funString))
@@ -179,11 +212,14 @@ class SouffleToDatalogIR {
     case BuiltInFunctionCall(CatBuiltInFunction, arguments) =>
       val params = collectParams(exp)
       val trgVar = Var(gensym.fresh("trg"))
-      val typedParams = params.map {
-        case Var(name) => param"${scala.meta.Term.Name(name)}: String"
+      val typedParams = params.map { case Var(name) =>
+        param"${scala.meta.Term.Name(name)}: String"
       }.toList
       val funString = q"(..$typedParams) => (${compileEval(exp)}).intern"
-      val computed = Computed(trgVar, Evaluation(params.map((_, TLiteral.String)), TScalaString, Scala(funString)))
+      val computed = Computed(
+        trgVar,
+        Evaluation(params.map((_, TLiteral.String)), TScalaString, Scala(funString))
+      )
         .addHint(SourceConstruct.from(exp))
       (trgVar, Seq(computed))
     case _ => throw new IllegalArgumentException(s"TODO $exp not supported")
@@ -194,18 +230,20 @@ class SouffleToDatalogIR {
     case StringValue(_) => Seq()
     case NumberValue(_) => Seq()
     case BuiltInFunctionCall(_, args) => args.flatMap(collectParams)
-    case Syntax.Wildcard => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
+    case Syntax.Wildcard =>
+      throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
   }
 
   def compileEval(exp: Syntax.Expression): meta.Term = exp match {
     case Variable(name) => scala.meta.Term.Name(cleanSouffleName(name))
-    case StringValue(value) =>  scala.meta.Lit.String(value)
+    case StringValue(value) => scala.meta.Lit.String(value)
     case NumberValue(value) => scala.meta.Lit.String(value.toString)
     case BuiltInFunctionCall(CatBuiltInFunction, args) =>
       val lhs = compileEval(args.head)
       val rhs = compileEval((args(1)))
       q"$lhs + $rhs"
-    case Syntax.Wildcard => throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
+    case Syntax.Wildcard =>
+      throw new IllegalArgumentException("Any is not supported in BuiltInFunctionCall")
   }
 
   def genLitLinks: Map[MLink, LitType] =
@@ -216,4 +254,3 @@ class SouffleToDatalogIR {
       }
     }.toMap
 }
-

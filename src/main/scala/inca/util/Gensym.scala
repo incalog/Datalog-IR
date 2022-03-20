@@ -1,6 +1,7 @@
 package inca.util
 
 class Gensym(init: Iterable[String]) {
+
   /** map of used symbols, each of which must end with '$' */
   private var used: Map[String, Int] = Map()
   private var globals: Seq[String] = Seq()
@@ -49,7 +50,7 @@ class Gensym(init: Iterable[String]) {
       val digits = s.substring(ix + 1)
       digits.toIntOption match {
         case Some(num) =>
-          val s_ = s.substring(0, ix+1)
+          val s_ = s.substring(0, ix + 1)
           (s_, Some(num))
         case None =>
           (ensureDollar(s), None)

@@ -8,7 +8,6 @@ import inca.runtime.context
 import inca.runtime.context.QueryScope
 import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec
-
 import scala.language.implicitConversions
 
 class TestIfThenElse extends AnyFlatSpec with IncaConstraintMatchers {
@@ -25,183 +24,421 @@ class TestIfThenElse extends AnyFlatSpec with IncaConstraintMatchers {
   val options: ConstraintOptions = ConstraintOptions()
 
   "desugaring" should "eliminate if-then-else" in {
-    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
-        IfThenElse(Eq(one, two), Body(
-          Assign(Seq("yes"), Constant(BooleanLiteral(true)))
-        ), Seq(), Some(Body(
-          Assign(Seq("yes"), Constant(BooleanLiteral(false)))
-        ))),
-        Assign(Seq("after"), Constant(BooleanLiteral(true)))
-      ))))
-    ))
+    val sugared = Module(
+      "Test",
+      Seq(DirectDataModel(dataModel)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "foo",
+          Seq(),
+          TUnit,
+          Seq(
+            Body(
+              Seq(
+                IfThenElse(
+                  Eq(one, two),
+                  Body(
+                    Assign(Seq("yes"), Constant(BooleanLiteral(true)))
+                  ),
+                  Seq(),
+                  Some(
+                    Body(
+                      Assign(Seq("yes"), Constant(BooleanLiteral(false)))
+                    )
+                  )
+                ),
+                Assign(Seq("after"), Constant(BooleanLiteral(true)))
+              )
+            )
+          )
+        )
+      )
+    )
 
-    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
-        Assert(Eq(one, two)),
-        Assign(Seq("yes"), Constant(BooleanLiteral(true))),
-        Assign(Seq("after"), Constant(BooleanLiteral(true)))
-      )),
-      Body(Seq(
-        Assert(Neq(one, two)),
-        Assign(Seq("yes"), Constant(BooleanLiteral(false))),
-        Assign(Seq("after"), Constant(BooleanLiteral(true)))
-      ))))
-    ))
+    val core = Module(
+      "Test",
+      Seq(DirectDataModel(dataModel)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "foo",
+          Seq(),
+          TUnit,
+          Seq(
+            Body(
+              Seq(
+                Assert(Eq(one, two)),
+                Assign(Seq("yes"), Constant(BooleanLiteral(true))),
+                Assign(Seq("after"), Constant(BooleanLiteral(true)))
+              )
+            ),
+            Body(
+              Seq(
+                Assert(Neq(one, two)),
+                Assign(Seq("yes"), Constant(BooleanLiteral(false))),
+                Assign(Seq("after"), Constant(BooleanLiteral(true)))
+              )
+            )
+          )
+        )
+      )
+    )
 
     assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate nested if-then-else" in {
-    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
-        IfThenElse(Eq(one, two), Body(
-          Assign(Seq("yes"), Constant(BooleanLiteral(true))),
-          IfThenElse(Eq(three, four), Body(
-            Assign(Seq("yes2"), Constant(BooleanLiteral(true)))
-          ), Seq(), Some(Body(
-            Assign(Seq("yes2"), Constant(BooleanLiteral(false)))
-          )))
-        ), Seq(), Some(Body(
-          Assign(Seq("yes"), Constant(BooleanLiteral(false))),
-          IfThenElse(Eq(three, four), Body(
-            Assign(Seq("yes2"), Constant(BooleanLiteral(true)))
-          ), Seq(), Some(Body(
-            Assign(Seq("yes2"), Constant(BooleanLiteral(false)))
-          )))
-        ))),
-        Assign(Seq("after"), Constant(BooleanLiteral(true)))
-      ))))
-    ))
+    val sugared = Module(
+      "Test",
+      Seq(DirectDataModel(dataModel)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "foo",
+          Seq(),
+          TUnit,
+          Seq(
+            Body(
+              Seq(
+                IfThenElse(
+                  Eq(one, two),
+                  Body(
+                    Assign(Seq("yes"), Constant(BooleanLiteral(true))),
+                    IfThenElse(
+                      Eq(three, four),
+                      Body(
+                        Assign(Seq("yes2"), Constant(BooleanLiteral(true)))
+                      ),
+                      Seq(),
+                      Some(
+                        Body(
+                          Assign(Seq("yes2"), Constant(BooleanLiteral(false)))
+                        )
+                      )
+                    )
+                  ),
+                  Seq(),
+                  Some(
+                    Body(
+                      Assign(Seq("yes"), Constant(BooleanLiteral(false))),
+                      IfThenElse(
+                        Eq(three, four),
+                        Body(
+                          Assign(Seq("yes2"), Constant(BooleanLiteral(true)))
+                        ),
+                        Seq(),
+                        Some(
+                          Body(
+                            Assign(Seq("yes2"), Constant(BooleanLiteral(false)))
+                          )
+                        )
+                      )
+                    )
+                  )
+                ),
+                Assign(Seq("after"), Constant(BooleanLiteral(true)))
+              )
+            )
+          )
+        )
+      )
+    )
 
-    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
-        Assert(Eq(one, two)),
-        Assign(Seq("yes"), Constant(BooleanLiteral(true))),
-        Assert(Eq(three, four)),
-        Assign(Seq("yes2"), Constant(BooleanLiteral(true))),
-        Assign(Seq("after"), Constant(BooleanLiteral(true)))
-      )),
-      Body(Seq(
-        Assert(Eq(one, two)),
-        Assign(Seq("yes"), Constant(BooleanLiteral(true))),
-        Assert(Neq(three, four)),
-        Assign(Seq("yes2"), Constant(BooleanLiteral(false))),
-        Assign(Seq("after"), Constant(BooleanLiteral(true)))
-      )),
-      Body(Seq(
-        Assert(Neq(one, two)),
-        Assign(Seq("yes"), Constant(BooleanLiteral(false))),
-        Assert(Eq(three, four)),
-        Assign(Seq("yes2"), Constant(BooleanLiteral(true))),
-        Assign(Seq("after"), Constant(BooleanLiteral(true)))
-      )),
-      Body(Seq(
-        Assert(Neq(one, two)),
-        Assign(Seq("yes"), Constant(BooleanLiteral(false))),
-        Assert(Neq(three, four)),
-        Assign(Seq("yes2"), Constant(BooleanLiteral(false))),
-        Assign(Seq("after"), Constant(BooleanLiteral(true)))
-      ))))
-    ))
+    val core = Module(
+      "Test",
+      Seq(DirectDataModel(dataModel)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "foo",
+          Seq(),
+          TUnit,
+          Seq(
+            Body(
+              Seq(
+                Assert(Eq(one, two)),
+                Assign(Seq("yes"), Constant(BooleanLiteral(true))),
+                Assert(Eq(three, four)),
+                Assign(Seq("yes2"), Constant(BooleanLiteral(true))),
+                Assign(Seq("after"), Constant(BooleanLiteral(true)))
+              )
+            ),
+            Body(
+              Seq(
+                Assert(Eq(one, two)),
+                Assign(Seq("yes"), Constant(BooleanLiteral(true))),
+                Assert(Neq(three, four)),
+                Assign(Seq("yes2"), Constant(BooleanLiteral(false))),
+                Assign(Seq("after"), Constant(BooleanLiteral(true)))
+              )
+            ),
+            Body(
+              Seq(
+                Assert(Neq(one, two)),
+                Assign(Seq("yes"), Constant(BooleanLiteral(false))),
+                Assert(Eq(three, four)),
+                Assign(Seq("yes2"), Constant(BooleanLiteral(true))),
+                Assign(Seq("after"), Constant(BooleanLiteral(true)))
+              )
+            ),
+            Body(
+              Seq(
+                Assert(Neq(one, two)),
+                Assign(Seq("yes"), Constant(BooleanLiteral(false))),
+                Assert(Neq(three, four)),
+                Assign(Seq("yes2"), Constant(BooleanLiteral(false))),
+                Assign(Seq("after"), Constant(BooleanLiteral(true)))
+              )
+            )
+          )
+        )
+      )
+    )
 
     assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate if-then-else-if" in {
-    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
-        IfThenElse(Eq(one, two), Body(
-          Assign(Seq("yes"), Constant(BooleanLiteral(true)))
-        ), Seq(ElseIf(Eq(three, four), Body(
-          Assign(Seq("yes"), Constant(IntLiteral(99)))
-        ))), Some(Body(
-          Assign(Seq("yes"), Constant(BooleanLiteral(false)))
-        ))),
-        Assign(Seq("after"), Constant(BooleanLiteral(true)))
-      ))))
-    ))
+    val sugared = Module(
+      "Test",
+      Seq(DirectDataModel(dataModel)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "foo",
+          Seq(),
+          TUnit,
+          Seq(
+            Body(
+              Seq(
+                IfThenElse(
+                  Eq(one, two),
+                  Body(
+                    Assign(Seq("yes"), Constant(BooleanLiteral(true)))
+                  ),
+                  Seq(
+                    ElseIf(
+                      Eq(three, four),
+                      Body(
+                        Assign(Seq("yes"), Constant(IntLiteral(99)))
+                      )
+                    )
+                  ),
+                  Some(
+                    Body(
+                      Assign(Seq("yes"), Constant(BooleanLiteral(false)))
+                    )
+                  )
+                ),
+                Assign(Seq("after"), Constant(BooleanLiteral(true)))
+              )
+            )
+          )
+        )
+      )
+    )
 
-    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(
-        Body(Seq(
-          Assert(Eq(one, two)),
-          Assign(Seq("yes"), Constant(BooleanLiteral(true))),
-          Assign(Seq("after"), Constant(BooleanLiteral(true)))
-        )),
-        Body(Seq(
-          Assert(Neq(one, two)),
-          Assert(Eq(three, four)),
-          Assign(Seq("yes"), Constant(IntLiteral(99))),
-          Assign(Seq("after"), Constant(BooleanLiteral(true)))
-        )),
-        Body(Seq(
-          Assert(Neq(one, two)),
-          Assert(Neq(three, four)),
-          Assign(Seq("yes"), Constant(BooleanLiteral(false))),
-          Assign(Seq("after"), Constant(BooleanLiteral(true)))
-        ))))
-    ))
+    val core = Module(
+      "Test",
+      Seq(DirectDataModel(dataModel)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "foo",
+          Seq(),
+          TUnit,
+          Seq(
+            Body(
+              Seq(
+                Assert(Eq(one, two)),
+                Assign(Seq("yes"), Constant(BooleanLiteral(true))),
+                Assign(Seq("after"), Constant(BooleanLiteral(true)))
+              )
+            ),
+            Body(
+              Seq(
+                Assert(Neq(one, two)),
+                Assert(Eq(three, four)),
+                Assign(Seq("yes"), Constant(IntLiteral(99))),
+                Assign(Seq("after"), Constant(BooleanLiteral(true)))
+              )
+            ),
+            Body(
+              Seq(
+                Assert(Neq(one, two)),
+                Assert(Neq(three, four)),
+                Assign(Seq("yes"), Constant(BooleanLiteral(false))),
+                Assign(Seq("after"), Constant(BooleanLiteral(true)))
+              )
+            )
+          )
+        )
+      )
+    )
 
     assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate if" in {
-    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
-        Assign(Seq("before"), Constant(BooleanLiteral(true))),
-        IfThenElse(Eq(one, two), Body(
-          Assign(Seq("yes"), Constant(BooleanLiteral(true)))
-        ), Seq(), None),
-        Assign(Seq("after"), Constant(BooleanLiteral(true)))
-      ))))
-    ))
+    val sugared = Module(
+      "Test",
+      Seq(DirectDataModel(dataModel)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "foo",
+          Seq(),
+          TUnit,
+          Seq(
+            Body(
+              Seq(
+                Assign(Seq("before"), Constant(BooleanLiteral(true))),
+                IfThenElse(
+                  Eq(one, two),
+                  Body(
+                    Assign(Seq("yes"), Constant(BooleanLiteral(true)))
+                  ),
+                  Seq(),
+                  None
+                ),
+                Assign(Seq("after"), Constant(BooleanLiteral(true)))
+              )
+            )
+          )
+        )
+      )
+    )
 
-    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(), TUnit, Seq(Body(Seq(
-        Assign(Seq("before"), Constant(BooleanLiteral(true))),
-        Assert(Eq(one, two)),
-        Assign(Seq("yes"), Constant(BooleanLiteral(true))),
-        Assign(Seq("after"), Constant(BooleanLiteral(true)))
-      )),
-        Body(Seq(
-          Assign(Seq("before"), Constant(BooleanLiteral(true))),
-          Assign(Seq("after"), Constant(BooleanLiteral(true)))
-        ))))
-    ))
+    val core = Module(
+      "Test",
+      Seq(DirectDataModel(dataModel)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "foo",
+          Seq(),
+          TUnit,
+          Seq(
+            Body(
+              Seq(
+                Assign(Seq("before"), Constant(BooleanLiteral(true))),
+                Assert(Eq(one, two)),
+                Assign(Seq("yes"), Constant(BooleanLiteral(true))),
+                Assign(Seq("after"), Constant(BooleanLiteral(true)))
+              )
+            ),
+            Body(
+              Seq(
+                Assign(Seq("before"), Constant(BooleanLiteral(true))),
+                Assign(Seq("after"), Constant(BooleanLiteral(true)))
+              )
+            )
+          )
+        )
+      )
+    )
 
     assertDesugar(core, sugared)
   }
 
-
   "desugaring" should "implement if-then-else semantics" in {
-    val module = Module("Test_Cast", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "integerlits", Seq(), TLiteral.Int, Seq(Body(Seq(
-        Values("root", TNode(Exp.expTag)),
-        Assert(Undef(PathAccess(Var("root"), ParentLink))),
-        Yield(Call("integerlits_rec",Seq(Var("root"))))
-      )))),
-
-      PatternFunction(Seq(MainFunctionAnno), None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), TLiteral.Int, Seq(Body(Seq(
-        IfThenElse(InstanceOf(Var("e"), TNode(Exp.intTag)), Body(
-          Yield(PathAccess(Cast(Var("e"), TNode(Exp.intTag)), NamedLink("value")))
-        ), Seq(ElseIf(InstanceOf(Var("e"), TNode(Exp.addTag)), Body(
-          Yield(
-            Call("integerlits_rec",
-              Seq(PathAccess(Cast(Var("e"), TNode(Exp.addTag)), NamedLink("lhs")))
+    val module = Module(
+      "Test_Cast",
+      Seq(DirectDataModel(dataModel)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "integerlits",
+          Seq(),
+          TLiteral.Int,
+          Seq(
+            Body(
+              Seq(
+                Values("root", TNode(Exp.expTag)),
+                Assert(Undef(PathAccess(Var("root"), ParentLink))),
+                Yield(Call("integerlits_rec", Seq(Var("root"))))
+              )
             )
           )
-        )), ElseIf(InstanceOf(Var("e"), TNode(Exp.multTag)), Body(
-          Yield(
-            Call("integerlits_rec",
-              Seq(PathAccess(Cast(Var("e"), TNode(Exp.multTag)), NamedLink("rhs")))
+        ),
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "integerlits_rec",
+          Seq(Param("e", TNode(Exp.expTag))),
+          TLiteral.Int,
+          Seq(
+            Body(
+              Seq(
+                IfThenElse(
+                  InstanceOf(Var("e"), TNode(Exp.intTag)),
+                  Body(
+                    Yield(PathAccess(Cast(Var("e"), TNode(Exp.intTag)), NamedLink("value")))
+                  ),
+                  Seq(
+                    ElseIf(
+                      InstanceOf(Var("e"), TNode(Exp.addTag)),
+                      Body(
+                        Yield(
+                          Call(
+                            "integerlits_rec",
+                            Seq(PathAccess(Cast(Var("e"), TNode(Exp.addTag)), NamedLink("lhs")))
+                          )
+                        )
+                      )
+                    ),
+                    ElseIf(
+                      InstanceOf(Var("e"), TNode(Exp.multTag)),
+                      Body(
+                        Yield(
+                          Call(
+                            "integerlits_rec",
+                            Seq(PathAccess(Cast(Var("e"), TNode(Exp.multTag)), NamedLink("rhs")))
+                          )
+                        )
+                      )
+                    )
+                  ),
+                  Some(
+                    Body(
+                      FailStatement
+                    )
+                  )
+                )
+              )
             )
           )
-        ))), Some(Body(
-          FailStatement
-        ))),
-      ))))
-    ))
+        )
+      )
+    )
 
     val input = {
       import Exp._

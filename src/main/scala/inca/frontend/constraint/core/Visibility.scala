@@ -9,4 +9,3 @@ sealed trait Visibility extends SourceLocation {
 case object Private extends Visibility {
   def prettyprint(implicit indent: String): String = "private"
 }
-

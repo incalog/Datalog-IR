@@ -2,9 +2,9 @@ package inca.backend.ir
 
 import inca.backend.hints.Hints
 import inca.util.Scala
-import truechange.{JavaLitType, LitType}
-
 import scala.meta.quasiquotes._
+import truechange.JavaLitType
+import truechange.LitType
 
 object Datalog {
   case object BodyMustFail extends Exception
@@ -15,19 +15,23 @@ object Datalog {
   sealed trait Visibility
   case object Private extends Visibility
 
-  case class Module(name: Name, imports: Seq[Name], pats: Seq[Pattern], scalaContent: Seq[Scala[meta.Stat]]) extends Hints {
+  case class Module(
+      name: Name,
+      imports: Seq[Name],
+      pats: Seq[Pattern],
+      scalaContent: Seq[Scala[meta.Stat]])
+      extends Hints {
     override def toString: Name = GPPrinter.prettyModule(this)
     lazy val patternMap: Map[String, Datalog.Pattern] = pats.map { pat => pat.name -> pat }.toMap
   }
-  case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body]) extends Hints {
+  case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body])
+      extends Hints {
     def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)
 
     /**
      * def R(x) = P(x) union Q(x) union x == 0
      *
-     * R(0).
-     * R(x) :- P(x).
-     * R(y) :- Q(y).
+     * R(0). R(x) :- P(x). R(y) :- Q(y).
      */
   }
   case class Param(name: Name, typ: Type)
@@ -46,7 +50,7 @@ object Datalog {
 
   case class TLiteral(litType: LitType) extends Type {
     override def asScala: meta.Type = litType match {
-      case JavaLitType(cl) =>  Scala.mkQualTypename(cl.getCanonicalName)
+      case JavaLitType(cl) => Scala.mkQualTypename(cl.getCanonicalName)
       case _ => throw new UnsupportedOperationException
     }
   }
@@ -89,7 +93,8 @@ object Datalog {
     def asCall: Option[(Name, Seq[Term])] = None
     def replaceCall(newPatName: Name, newArgs: Seq[Term]): Atom = this
   }
-  case class Call(name: Name, args: Seq[Term], transitive: Boolean = false, neg: Boolean = false) extends Atom {
+  case class Call(name: Name, args: Seq[Term], transitive: Boolean = false, neg: Boolean = false)
+      extends Atom {
     override def asCall: Option[(Name, Seq[Term])] = Some(name -> args)
     override def replaceCall(newPatName: Name, newArgs: Seq[Term]): Call =
       Call(newPatName, newArgs, transitive, neg).withHints(this)
@@ -123,7 +128,6 @@ object Datalog {
   sealed trait Comparator
   case object EqComparator extends Comparator
   case object NeqComparator extends Comparator
-
 
   sealed trait Term
   case class Var(name: Name) extends Term {
@@ -167,7 +171,11 @@ object Datalog {
     def asCall: Option[(Name, Seq[Term])] = None
     def replaceCall(newPatName: Name, newArgs: Seq[Term]): Computation = this
   }
-  case class Evaluation(evalArgs: Seq[(Term,Type)], resultType: Type, code: Scala[meta.Term.Function]) extends Computation {
+  case class Evaluation(
+      evalArgs: Seq[(Term, Type)],
+      resultType: Type,
+      code: Scala[meta.Term.Function])
+      extends Computation {
     val args: Seq[Term] = evalArgs.map(_._1)
   }
   case class CountAggregation(patName: Name, args: Seq[Term]) extends Computation {
@@ -175,7 +183,14 @@ object Datalog {
     override def replaceCall(newPatName: Name, newArgs: Seq[Term]): CountAggregation =
       CountAggregation(newPatName, newArgs)
   }
-  case class CustomAggregation(typ: Type, description: Option[String], agg: Scala[meta.Term], patName: Name, args: Seq[Term], aggregatedColumn: Int) extends Computation {
+  case class CustomAggregation(
+      typ: Type,
+      description: Option[String],
+      agg: Scala[meta.Term],
+      patName: Name,
+      args: Seq[Term],
+      aggregatedColumn: Int)
+      extends Computation {
     override def asCall: Option[(Name, Seq[Term])] = Some(patName -> args)
     override def replaceCall(newPatName: Name, newArgs: Seq[Term]): CustomAggregation =
       CustomAggregation(typ, description, agg, newPatName, newArgs, aggregatedColumn)

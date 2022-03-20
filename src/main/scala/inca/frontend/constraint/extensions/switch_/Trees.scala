@@ -8,7 +8,8 @@ object Trees {
     override def allVars: Map[Name, Option[Type]] = bodies.flatMap(_.allVars).toMap
 
     override def prettyprint(implicit indent: String): String = {
-      if (bodies.isEmpty) "switch { }" else
+      if (bodies.isEmpty) "switch { }"
+      else
         s"${indent}switch " + bodies.map(_.prettyprint(indent)).mkString(" union ")
     }
   }

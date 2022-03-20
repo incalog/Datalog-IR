@@ -6,14 +6,12 @@ import inca.frontend.functional.core._
 import inca.runtime.aggregate.Aggregation
 import inca.runtime.data.WrappedURI
 import inca.util.Scala.typeOf
-import truediff.GenericDiffable
-
 import scala.meta.{Type => MetaType, _}
+import truediff.GenericDiffable
 
 class GenerateScala {
   val tGenericDiffable: MetaType.Ref = typeOf[GenericDiffable]
   val tWrappedURI: MetaType.Ref = typeOf[WrappedURI]
-
 
   private var visited: Map[Any, Seq[meta.Stat]] = Map()
   private def createIfNeeded(a: Any)(f: => Seq[meta.Stat]): Unit = visited.get(a) match {
@@ -29,23 +27,26 @@ class GenerateScala {
   def genDataDef(data: DataDef): Unit = createIfNeeded(data) {
     val dataTyp = MetaType.Name(data.name.name)
     val typ = q"sealed trait $dataTyp extends truediff.Diffable"
-    val constrs = data.constrs.map {
-      case DataConstructor(core.Name(name), paramTypes) =>
-        val scalaParamTypes = paramTypes.map(transType)
-        val params = scalaParamTypes.zipWithIndex.map { case (pt, ix) =>
-          param"val ${Term.Name("_" + ix)}: $pt"
-        }.toList
-        val children = scalaParamTypes.zipWithIndex.map { case (_, ix) =>
-          q"${Lit.String("_" + ix)} -> ${Term.Name("_" + ix)}"
-        }.toList
-        val makeChildren = scalaParamTypes.zipWithIndex.map { case (pt, ix) =>
-          q"children($ix).asInstanceOf[$pt]"
-        }.toList
-        //               withURI(new $tWrappedURI(this.uri, this))
-        q"""case class ${MetaType.Name(name)}(..$params) extends {} with $dataTyp() with $tGenericDiffable() { this =>
+    val constrs = data.constrs.map { case DataConstructor(core.Name(name), paramTypes) =>
+      val scalaParamTypes = paramTypes.map(transType)
+      val params = scalaParamTypes.zipWithIndex.map { case (pt, ix) =>
+        param"val ${Term.Name("_" + ix)}: $pt"
+      }.toList
+      val children = scalaParamTypes.zipWithIndex.map { case (_, ix) =>
+        q"${Lit.String("_" + ix)} -> ${Term.Name("_" + ix)}"
+      }.toList
+      val makeChildren = scalaParamTypes.zipWithIndex.map { case (pt, ix) =>
+        q"children($ix).asInstanceOf[$pt]"
+      }.toList
+      //               withURI(new $tWrappedURI(this.uri, this))
+      q"""case class ${MetaType.Name(
+          name
+        )}(..$params) extends {} with $dataTyp() with $tGenericDiffable() { this =>
               override def name: String = $name
               override def children: Seq[(String, Any)] = Seq(..$children)
-              override def make(children: Seq[Any]): ${MetaType.Name(name)} = ${Term.Name(name)}(..$makeChildren)
+              override def make(children: Seq[Any]): ${MetaType.Name(name)} = ${Term.Name(
+          name
+        )}(..$makeChildren)
             }
            """
     }
@@ -56,7 +57,8 @@ class GenerateScala {
     val scalaParams = fun.params.toList.map { case Param(name, typ) =>
       param"${Term.Name(name.name)}: ${transType(typ)}"
     }
-    val scalaFun = q"def ${Term.Name(fun.name.name)}(..$scalaParams): ${transType(fun.outType)} = ${transExp(fun.body)}"
+    val scalaFun =
+      q"def ${Term.Name(fun.name.name)}(..$scalaParams): ${transType(fun.outType)} = ${transExp(fun.body)}"
     Seq(scalaFun)
   }
 
@@ -64,25 +66,28 @@ class GenerateScala {
     case fun: FunctionDef =>
       genFunDef(fun)
     case _: DataConstructor =>
-      val data = typ.getOrElse(throw new IllegalArgumentException(s"Untyped call $loc")).asInstanceOf[TData]
-        .target.getOrElse(throw new IllegalArgumentException(s"Unresolved data type ${typ.get}")).asInstanceOf[DataDef]
+      val data =
+        typ.getOrElse(throw new IllegalArgumentException(s"Untyped call $loc")).asInstanceOf[TData]
+          .target.getOrElse(
+            throw new IllegalArgumentException(s"Unresolved data type ${typ.get}")
+          ).asInstanceOf[DataDef]
       genDataDef(data)
     case trg =>
       throw new IllegalArgumentException(s"Unknown call target $trg")
   }
 
-
   def transType(t: Type): MetaType = t match {
-    case TAny =>  t.asScala
-    case TNothing =>  t.asScala
+    case TAny => t.asScala
+    case TNothing => t.asScala
     case TTuple(ts) => t"(..${ts.toList.map(transType)})"
-    case d: TData => d.target match {
-      case Some(data: DataDef) =>
-        genDataDef(data)
-        MetaType.Name(data.name.name)
-      case Some(t) => throw new IllegalArgumentException(s"Unknown data target $t")
-      case _ => throw new IllegalArgumentException(s"Cannot compile unresolved type $d")
-    }
+    case d: TData =>
+      d.target match {
+        case Some(data: DataDef) =>
+          genDataDef(data)
+          MetaType.Name(data.name.name)
+        case Some(t) => throw new IllegalArgumentException(s"Unknown data target $t")
+        case _ => throw new IllegalArgumentException(s"Cannot compile unresolved type $d")
+      }
     case TScala(t) => t.tree
     case TOption(ty) => t"scala.Option[${transType(ty)}]"
     case TSet(ty) => t"scala.Set[${transType(ty)}]"
@@ -90,19 +95,24 @@ class GenerateScala {
   }
 
   def transExp(exp: Expression): meta.Term = exp match {
-    case v@Var(name) => v.target match {
-      case Some(fun: FunctionDef) => genCalled(fun, v.typ, v)
-      case Some(constr: DataConstructor) => genCalled(constr, v.typ, v)
-      case _ => // nothing
-    }
-    Term.Name(name.name)
+    case v @ Var(name) =>
+      v.target match {
+        case Some(fun: FunctionDef) => genCalled(fun, v.typ, v)
+        case Some(constr: DataConstructor) => genCalled(constr, v.typ, v)
+        case _ => // nothing
+      }
+      Term.Name(name.name)
     case Let(names, anno, bound, body) =>
       val scalaNames = names.map(n => Pat.Var(Term.Name(n.name))).toList
       q"{val (..$scalaNames): ${transType(bound.typ.get)} = ${transExp(bound)}; ${transExp(body)} }"
     case If(cnd, thn, els) =>
       q"if (${transExp(cnd)}) ${transExp(thn)} else ${transExp(els)}"
-    case call@Call(v@Var(name), args, transitive) if !transitive =>
-      genCalled(v.target.getOrElse(throw new IllegalArgumentException(s"Unresoved call $call")), call.typ, call)
+    case call @ Call(v @ Var(name), args, transitive) if !transitive =>
+      genCalled(
+        v.target.getOrElse(throw new IllegalArgumentException(s"Unresoved call $call")),
+        call.typ,
+        call
+      )
       q"${Term.Name(name.name)}(..${args.map(a => transExp(a)).toList})"
     case Lambda(vs, body) =>
       val params = vs.toList.map { case (name, ty) =>
@@ -139,8 +149,10 @@ class GenerateScala {
       val enumerators = predicates.toList.map {
         case SetMember(v: Var, set, false) if v.target.isEmpty =>
           enumerator"${Pat.Var(Term.Name(v.name.name))} <- ${transExp(set)}"
-        case SetMember(Tuple(ts), set, false) if ts.forall(t => t.isInstanceOf[Var] && t.asInstanceOf[Var].target.isEmpty) =>
-          enumerator"${Pat.Tuple(ts.toList.map(t => Pat.Var(Term.Name(t.asInstanceOf[Var].name.name))))} <- ${transExp(set)}"
+        case SetMember(Tuple(ts), set, false)
+            if ts.forall(t => t.isInstanceOf[Var] && t.asInstanceOf[Var].target.isEmpty) =>
+          enumerator"${Pat.Tuple(ts.toList.map(t =>
+              Pat.Var(Term.Name(t.asInstanceOf[Var].name.name))))} <- ${transExp(set)}"
         case e =>
           enumerator"if ${transExp(e)}"
       }
@@ -156,7 +168,11 @@ class GenerateScala {
   }
 
   def transFoldOp(op: Var, typ: Option[Type]): meta.Term = {
-    genCalled(op.target.getOrElse(throw new IllegalArgumentException(s"Unresoved fold $op")), typ, op)
+    genCalled(
+      op.target.getOrElse(throw new IllegalArgumentException(s"Unresoved fold $op")),
+      typ,
+      op
+    )
     Term.Name(op.name.name)
   }
 

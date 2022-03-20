@@ -7,7 +7,6 @@ import inca.frontend.constraint.extensions.match_.Trees._
 import inca.runtime.context.QueryScope
 import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec
-
 import scala.language.implicitConversions
 
 class TestMatch extends AnyFlatSpec with IncaConstraintMatchers {
@@ -528,35 +527,63 @@ class TestMatch extends AnyFlatSpec with IncaConstraintMatchers {
 //    assertDesugar(core, sugared)
 //  }
 
-
   "desugaring" should "implement match semantics" in {
-    val module = Module("Test_Match", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "integerlits", Seq(), TLiteral.Int, Seq(Body(Seq(
-        Values("root", TNode(Exp.expTag)),
-        Assert(Undef(PathAccess(Var("root"), ParentLink))),
-        Yield(
-          Call("integerlits_rec",
-            Seq(Var("root"))
+    val module = Module(
+      "Test_Match",
+      Seq(DirectDataModel(dataModel)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "integerlits",
+          Seq(),
+          TLiteral.Int,
+          Seq(
+            Body(
+              Seq(
+                Values("root", TNode(Exp.expTag)),
+                Assert(Undef(PathAccess(Var("root"), ParentLink))),
+                Yield(
+                  Call("integerlits_rec", Seq(Var("root")))
+                )
+              )
+            )
+          )
+        ),
+        PatternFunction(
+          Seq(),
+          None,
+          "integerlits_rec",
+          Seq(Param("e", TNode(Exp.expTag))),
+          TLiteral.Int,
+          Seq(
+            Body(
+              Seq(
+                Match(
+                  Var("e"),
+                  Seq(
+                    Case(
+                      NodePattern(TNode(Exp.intTag), Seq(PatternBinding("value", VarPattern("v")))),
+                      Body(Yield(Var("v")))
+                    ),
+                    Case(
+                      NodePattern(TNode(Exp.addTag), Seq(PatternBinding("lhs", VarPattern("e1")))),
+                      Body(Yield(Call("integerlits_rec", Seq(Var("e1")))))
+                    ),
+                    Case(
+                      NodePattern(TNode(Exp.multTag), Seq(PatternBinding("rhs", VarPattern("e1")))),
+                      Body(Yield(Call("integerlits_rec", Seq(Var("e1")))))
+                    )
+                  )
+                )
+              )
+            )
           )
         )
-      )))),
-
-      PatternFunction(Seq(), None, "integerlits_rec", Seq(Param("e", TNode(Exp.expTag))), TLiteral.Int, Seq(Body(Seq(
-        Match(Var("e"), Seq(
-          Case(
-            NodePattern(TNode(Exp.intTag), Seq(PatternBinding("value", VarPattern("v")))),
-            Body(Yield(Var("v")))),
-          Case(
-            NodePattern(TNode(Exp.addTag), Seq(PatternBinding("lhs", VarPattern("e1")))),
-            Body(Yield(Call("integerlits_rec",
-              Seq(Var("e1")))))),
-          Case(
-            NodePattern(TNode(Exp.multTag), Seq(PatternBinding("rhs", VarPattern("e1")))),
-            Body(Yield(Call("integerlits_rec",
-              Seq(Var("e1"))))))
-        ))
-      ))))
-    ))
+      )
+    )
 
     val input = {
       import Exp._

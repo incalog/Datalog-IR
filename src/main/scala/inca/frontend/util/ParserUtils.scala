@@ -2,11 +2,12 @@ package inca.frontend.util
 
 import fastparse._
 
-/** Utils for the Parser.
-  *
-  * @author Ronja Schnur (rschnur@students.uni-mainz.de)
-  *         Julian Cichorius (jcichori@students.uni-mainz.de)
-  */
+/**
+ * Utils for the Parser.
+ *
+ * @author
+ *   Ronja Schnur (rschnur@students.uni-mainz.de) Julian Cichorius (jcichori@students.uni-mainz.de)
+ */
 object ParserUtils {
 
   /** Parser consuming all spaces by ignoring them. */
@@ -15,9 +16,11 @@ object ParserUtils {
   /** Parser for line endings */
   def nl_![_: P]: P[Unit] = P("\n" | "\r\n")
 
-  /** A parser for string literals
-    * @todo implement character escaping
-    */
+  /**
+   * A parser for string literals
+   * @todo
+   *   implement character escaping
+   */
   def string[_: P]: P[String] =
     P("\"\"".!.map(_ => "") | "\"" ~~ CharsWhile(_ != '\"').! ~~ "\"")
 

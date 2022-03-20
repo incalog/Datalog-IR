@@ -1,12 +1,13 @@
 package inca.compiler
 
 import inca.backend.analyze.StratificationAnalysis
-import inca.backend.ir.{Datalog, GeneratePSystem, PSystem}
+import inca.backend.ir.Datalog
+import inca.backend.ir.GeneratePSystem
+import inca.backend.ir.PSystem
 import inca.compiler.source.SourceLocation
 import inca.runtime.context.DataModel
 import inca.util.Scala
 import inca.util.TupleOps.transClosure
-
 import scala.collection.immutable.MultiDict
 import scala.collection.mutable.ListBuffer
 
@@ -20,16 +21,20 @@ trait CompiledModule {
 
   lazy val patternDependencies: MultiDict[Datalog.Name, Datalog.Name] = {
     var deps = MultiDict[Datalog.Name, Datalog.Name]()
-    for (pat <- ir.pats;
-         body <- pat.bodies;
-         atom <- body.atoms) atom match {
+    for {
+      pat <- ir.pats
+      body <- pat.bodies
+      atom <- body.atoms
+    } atom match {
       case Datalog.Call(trg, _, _, _) => deps += pat.name -> trg
       case _ => // nothing
     }
     deps
   }
 
-  lazy val patternDependenciesTrans: MultiDict[Datalog.Name, Datalog.Name] = transClosure(patternDependencies)
+  lazy val patternDependenciesTrans: MultiDict[Datalog.Name, Datalog.Name] = transClosure(
+    patternDependencies
+  )
 
   def printStatistics(): Unit = {
     val pats = optimized.pats.filter(!_.name.contains("oalesced"))
@@ -41,8 +46,10 @@ trait CompiledModule {
 
   protected val messages: ListBuffer[CompilationMessage] = ListBuffer()
   def allMessages: List[CompilationMessage] = messages.toList
-  def errors: List[CompilationMessage] = messages.filter(_.severity == CompilationMessage.ERROR).toList
-  def warnings: List[CompilationMessage] = messages.filter(_.severity == CompilationMessage.WARNING).toList
+  def errors: List[CompilationMessage] =
+    messages.filter(_.severity == CompilationMessage.ERROR).toList
+  def warnings: List[CompilationMessage] =
+    messages.filter(_.severity == CompilationMessage.WARNING).toList
 
   protected def stopIfNeeded(): Unit = {
     val es = errors
@@ -99,5 +106,6 @@ trait CompiledModule {
 }
 
 object CompiledModule {
-  case class Failed(module: CompiledModule, messages: Seq[CompilationMessage]) extends Exception(messages.mkString("\n"))
+  case class Failed(module: CompiledModule, messages: Seq[CompilationMessage])
+      extends Exception(messages.mkString("\n"))
 }

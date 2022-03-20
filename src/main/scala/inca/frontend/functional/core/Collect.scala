@@ -46,9 +46,13 @@ trait Collect[R] {
       transExpression(build) ++ predicates.flatMap(transExpression)
     case SetMember(tup, set, _) =>
       transExpression(tup) ++ transExpression(set)
-    case SetFold(anno, init, op, set) => anno.toSeq.flatMap(transType) ++ transExpression(init) ++ transExpression(op) ++ transExpression(set)
+    case SetFold(anno, init, op, set) =>
+      anno.toSeq.flatMap(transType) ++ transExpression(init) ++ transExpression(
+        op
+      ) ++ transExpression(set)
     case BaseApplyUnary(_, e) => transExpression(e)
-    case BaseApplyMethod(recv, _, args) => transExpression(recv) ++ args.getOrElse(Seq()).flatMap(transExpression)
+    case BaseApplyMethod(recv, _, args) =>
+      transExpression(recv) ++ args.getOrElse(Seq()).flatMap(transExpression)
   }
 
   def transCase(c: (Pattern, Expression)): Seq[R] =

@@ -22,7 +22,6 @@ case class Add(l: Exp, r: Exp) extends Exp {
   override def toFormulog: String = s"""add(${l.toFormulog}, ${r.toFormulog})"""
 }
 
-
 trait Stm {
   def toInnerFormulog(id: Int): (Int, String)
   def toFormulog: String = toInnerFormulog(1)._2
@@ -95,12 +94,15 @@ object ExamplePrograms {
       Assign("x", Num(2)),
       Sequence(
         Assign("y", Num(2)),
-        While(GreaterThan(Var("x"), Num(1)),
+        While(
+          GreaterThan(Var("x"), Num(1)),
           Sequence(
             Assign("y", Add(Var("x"), Var("y"))),
-            Sequence(
-              Skip(),
-              Assign("x", Add(Var("x"), Num(2))))))))
+            Sequence(Skip(), Assign("x", Add(Var("x"), Num(2))))
+          )
+        )
+      )
+    )
 
   val ex2: Stm =
     Sequence(
@@ -110,14 +112,9 @@ object ExamplePrograms {
         Sequence(
           Assign("z", Num(3)),
           Sequence(
-            If(
-              GreaterThan(Num(3), Var("x")),
-              Assign("x", Num(6)),
-              Assign("y", Num(7))),
+            If(GreaterThan(Num(3), Var("x")), Assign("x", Num(6)), Assign("y", Num(7))),
             Sequence(
-              While(
-                GreaterThan(Num(10), Var("x")),
-                Assign("y", Add(Var("y"), Num(1)))),
+              While(GreaterThan(Num(10), Var("x")), Assign("y", Add(Var("y"), Num(1)))),
               While(
                 GreaterThan(Var("x"), Num(6)),
                 Sequence(
@@ -126,9 +123,7 @@ object ExamplePrograms {
                     GreaterThan(Var("y"), Num(7)),
                     Sequence(
                       Assign("y", Add(Var("x"), Var("y"))),
-                      While(
-                        GreaterThan(Var("z"), Num(2)),
-                        Assign("z", Num(2)))
+                      While(GreaterThan(Var("z"), Num(2)), Assign("z", Num(2)))
                     )
                   )
                 )

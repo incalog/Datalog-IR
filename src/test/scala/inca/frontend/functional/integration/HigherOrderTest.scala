@@ -1,12 +1,11 @@
 package inca.frontend.functional.integration
 
-import inca.frontend.functional.executor.FunctionalExecutor._
 import inca.compiler.CompiledModule
 import inca.examples.functional.HigherOrder
+import inca.frontend.functional.executor.FunctionalExecutor._
 import inca.runtime.EnginePool
-import org.scalatest.BeforeAndAfterEach
 import org.scalatest.funsuite.AnyFunSuite
-
+import org.scalatest.BeforeAndAfterEach
 import scala.meta.XtensionQuasiquoteTerm
 
 class HigherOrderTest extends AnyFunSuite with BeforeAndAfterEach {
@@ -51,9 +50,22 @@ class HigherOrderTest extends AnyFunSuite with BeforeAndAfterEach {
 
   test("transitive") {
     val fun = loadFunction(HigherOrder.transitive)
-    assert(fun.execute("foo", Seq()) ==
-      fun.results(
-        Seq(Seq(1,2), Seq(2,3), Seq(3,1), Seq(1,3), Seq(1,1), Seq(2,1), Seq(2,2), Seq(3,2), Seq(3,3))))
+    assert(
+      fun.execute("foo", Seq()) ==
+        fun.results(
+          Seq(
+            Seq(1, 2),
+            Seq(2, 3),
+            Seq(3, 1),
+            Seq(1, 3),
+            Seq(1, 1),
+            Seq(2, 1),
+            Seq(2, 2),
+            Seq(3, 2),
+            Seq(3, 3)
+          )
+        )
+    )
 //    fun.printAllMatches()
   }
 }

@@ -1,19 +1,23 @@
 package inca.frontend.functional.executor
 
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
-import inca.compiler.{CompiledModule, Compiler}
+import inca.compiler.CompiledModule
+import inca.compiler.Compiler
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.runtime.context.QueryScope
-import inca.runtime.db.{Database, DatabaseInspector}
-import inca.runtime.{EnginePool, Query}
+import inca.runtime.db.Database
+import inca.runtime.db.DatabaseInspector
+import inca.runtime.EnginePool
+import inca.runtime.Query
 import inca.util.Scala.ScalaCompiler
-import org.eclipse.viatra.query.runtime.api.{AdvancedViatraQueryEngine, IMatchUpdateListener}
-import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
-import truechange.EditScript
-import truediff.Diffable
-
+import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
+import org.eclipse.viatra.query.runtime.api.IMatchUpdateListener
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
+import truechange.EditScript
+import truediff.Diffable
 
 object IncrementalFunctionalExecutor {
   case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledModule) {
@@ -33,7 +37,6 @@ object IncrementalFunctionalExecutor {
       compiled.psystemModule.patterns.keys.foreach(printMatches)
     }
 
-
     // TODO for fix implementation we assume that the inserted tuple remains the same (uris does not change of the outer most nodes)
     // Invariant: If you call input you need to use the input to update the analysis otherwise there will be inconsistent state
     var lastArgs: Option[Seq[Any]] = None
@@ -46,7 +49,7 @@ object IncrementalFunctionalExecutor {
     def input(args: Seq[meta.Term]): Input = {
       lastArgs match {
         case Some(last) =>
-          val (ess, cargs, updatedArgs) = vals(args:_*).zip(last).map {
+          val (ess, cargs, updatedArgs) = vals(args: _*).zip(last).map {
             case (newArg: Diffable, oldArg: Diffable) =>
               val (edits, updatedArg) = oldArg.compareTo(newArg)
               println(updatedArg.toStringWithURI)
@@ -54,17 +57,16 @@ object IncrementalFunctionalExecutor {
             case (litnew, _) => (EditScript(Seq()), litnew, litnew)
           }.unzip3
           lastArgs = Some(updatedArgs)
-          (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs:_*))
+          (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs: _*))
         case None =>
-          val (ess, cargs, updatedArgs) = vals(args:_*).map {
+          val (ess, cargs, updatedArgs) = vals(args: _*).map {
             case arg: Diffable => (arg.loadEdits, arg.uri, arg)
             case lit => (EditScript(Seq()), lit, lit)
           }.unzip3
           lastArgs = Some(updatedArgs)
-          (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs:_*))
+          (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs: _*))
       }
     }
-
 
     def output(pat: String, tuple: Tuple): Results[Any] = {
       val mainSpec = compiled.psystemModule.patterns(pat)()
@@ -96,7 +98,11 @@ object IncrementalFunctionalExecutor {
       measureInitial(main, es, tuple)
     }
 
-    def measureInitial(main: String, edits: EditScript, tuple: Tuple): (Long, Long, Long, Query.Matcher) = {
+    def measureInitial(
+        main: String,
+        edits: EditScript,
+        tuple: Tuple
+      ): (Long, Long, Long, Query.Matcher) = {
       val mainSpec = compiled.psystemModule.patterns(main)()
       val mainMatcher = engine.getMatcher(mainSpec)
 
@@ -120,7 +126,11 @@ object IncrementalFunctionalExecutor {
       measureInitial(main, es, tuple)
     }
 
-    def measureUpdate(main: String, edits: EditScript, tuple: Tuple): (Long, Long, Long, Query.Matcher) = {
+    def measureUpdate(
+        main: String,
+        edits: EditScript,
+        tuple: Tuple
+      ): (Long, Long, Long, Query.Matcher) = {
       val mainSpec = compiled.psystemModule.patterns(main)()
       val mainMatcher = engine.getMatcher(mainSpec)
 
@@ -155,7 +165,7 @@ object IncrementalFunctionalExecutor {
     def results[T](res: Seq[Seq[T]]): Results[T] = new Results(res)
     def resultVals[T](res: T*): Results[T] = results(Seq(res))
     def resultVal[T](res: T): Results[T] = results(Seq(Seq(res)))
-    def result(res: meta.Term*): Results[Any] = results(Seq(vals(res:_*)))
+    def result(res: meta.Term*): Results[Any] = results(Seq(vals(res: _*)))
 
     // Functionality to track which tuples are inserted and removed
     private val changesInTrackedRelations: ListBuffer[(Query.Match, Boolean)] = ListBuffer()
@@ -194,11 +204,12 @@ object IncrementalFunctionalExecutor {
           else {
             Console.RED + "Remove"
           }
-        val prettyPrint = try {
-          m.deepPrettyPrint(db)
-        } catch {
-          case _: Exception => m.prettyPrint()
-        }
+        val prettyPrint =
+          try {
+            m.deepPrettyPrint(db)
+          } catch {
+            case _: Exception => m.prettyPrint()
+          }
         println(s"$direction ${m.spec.getSimpleName} ${prettyPrint}" + Console.BLACK)
       }
       changesInTrackedRelations.clear()
@@ -209,18 +220,22 @@ object IncrementalFunctionalExecutor {
     override def equals(obj: Any): Boolean = obj match {
       case expected: Results[T] =>
         res.size == expected.res.size &&
-          res.forall(ac => expected.res.exists(ex => sameVals(ac, ex))) &&
-          expected.res.forall(ex => res.exists(ac => sameVals(ac, ex)))
+        res.forall(ac => expected.res.exists(ex => sameVals(ac, ex))) &&
+        expected.res.forall(ex => res.exists(ac => sameVals(ac, ex)))
       case _ => false
     }
 
-    private def sameVals(actual: Seq[T], expected: Seq[T]): Boolean = actual.size == expected.size &&
-      actual.zip(expected).forall{ case (x,y) => x == y }
+    private def sameVals(actual: Seq[T], expected: Seq[T]): Boolean =
+      actual.size == expected.size &&
+        actual.zip(expected).forall { case (x, y) => x == y }
 
     override def toString: String = s"Results(${res.mkString(", ")})"
   }
 
-  def compileFunction(code: String, options: FunctionalOptions = FunctionalOptions()): CompiledModule = {
+  def compileFunction(
+      code: String,
+      options: FunctionalOptions = FunctionalOptions()
+    ): CompiledModule = {
     Compiler.compileFunctional(code, options)
   }
 

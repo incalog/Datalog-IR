@@ -1,13 +1,15 @@
 package inca.backend.transform.magic.demand
 
+import inca.backend.hints.Hints
+import inca.backend.hints.MagicSetHints
 import inca.backend.hints.MagicSetHints.InputCall
-import inca.backend.hints.{Hints, MagicSetHints}
 import inca.backend.ir.CollectVars
 import inca.backend.ir.Datalog._
-import inca.backend.transform.{FilterBodyTransformer, Transformation, Transformer}
+import inca.backend.transform.FilterBodyTransformer
+import inca.backend.transform.Transformation
+import inca.backend.transform.Transformer
 import inca.runtime.context.DataModel
 import inca.util.Gensym
-
 
 // This transformation consumes MagicSetHints.IgnoreCall and MagicSetHints.NoInputRelation
 object DemandTransformation extends Transformation {
@@ -106,7 +108,11 @@ object DemandTransformation extends Transformation {
       demandPat.zipWithIndex.filter(_._1).map(_._2)
     }
 
-    private def deriveInputPattern(pat: Pattern, demandPat: Seq[Boolean], patterns: Seq[Pattern]): Seq[Pattern] = gensym.scoped {
+    private def deriveInputPattern(
+        pat: Pattern,
+        demandPat: Seq[Boolean],
+        patterns: Seq[Pattern]
+      ): Seq[Pattern] = gensym.scoped {
       if (!shouldDeriveInput(pat))
         Seq()
       else {
@@ -134,8 +140,7 @@ object DemandTransformation extends Transformation {
                       Eq(args(i), Var(params(i).name))
                     }
                     Seq(Body(body.atoms.take(atomix) ++ bindings ++ dummyBinding).withHints(body))
-                  }
-                  else
+                  } else
                     Seq()
                 case _ => Seq()
               }
@@ -146,13 +151,21 @@ object DemandTransformation extends Transformation {
         val boundParams = boundIndices.map(params)
 
         val extensionalBody = if (pat.hasHint(MagicSetHints.MainKey)) {
-          val extCall = ExtensionalCall(extensionalInputPatternName(pat.name), boundParams.map(p => Var(p.name)))
+          val extCall = ExtensionalCall(
+            extensionalInputPatternName(pat.name),
+            boundParams.map(p => Var(p.name))
+          )
           Some(Body(Seq(extCall) ++ dummyBinding))
         } else {
           None
         }
 
-        val inputPat = Pattern(None, inputPatternName(pat.name), boundParams ++ dummyParam, inputPatterns ++ extensionalBody).addHint(MagicSetHints.InputRelation)
+        val inputPat = Pattern(
+          None,
+          inputPatternName(pat.name),
+          boundParams ++ dummyParam,
+          inputPatterns ++ extensionalBody
+        ).addHint(MagicSetHints.InputRelation)
         if (inputPat.bodies.nonEmpty)
           Seq(inputPat)
         else

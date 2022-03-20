@@ -4,10 +4,9 @@ import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
 import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.runtime.context.QueryScope
-import inca.util.Scala
 import inca.util.matchers.IncaConstraintMatchers
+import inca.util.Scala
 import org.scalatest.flatspec.AnyFlatSpec
-
 import scala.language.implicitConversions
 import scala.meta.XtensionQuasiquoteTerm
 
@@ -23,14 +22,31 @@ class TestEval extends AnyFlatSpec with IncaConstraintMatchers {
   val options = ConstraintOptions()
 
   "eval" can "yield a constant" in {
-    val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "integerlits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
-        Values("e", TNode(Exp.expTag)),
-        Assign(Seq("pi"), Eval(Seq(), Scala(q"Math.PI"))),
-        Assert(Neq(Var("pi"), Constant(DoubleLiteral(3.14)))),
-        Yield(Var("e"))
-      ))))
-    ))
+    val module = Module(
+      "Test_Cast",
+      Seq(DirectDataModel(Exp.model)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "integerlits",
+          Seq(),
+          TNode(Exp.expTag),
+          Seq(
+            Body(
+              Seq(
+                Values("e", TNode(Exp.expTag)),
+                Assign(Seq("pi"), Eval(Seq(), Scala(q"Math.PI"))),
+                Assert(Neq(Var("pi"), Constant(DoubleLiteral(3.14)))),
+                Yield(Var("e"))
+              )
+            )
+          )
+        )
+      )
+    )
 
     val input = {
       import Exp._
@@ -55,16 +71,35 @@ class TestEval extends AnyFlatSpec with IncaConstraintMatchers {
   }
 
   "eval" can "be used to filter" in {
-    val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "integerlits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
-        Values("e", TNode(Exp.intTag)),
-        Assign(Seq("i"), PathAccess(Var("e"), NamedLink("value"))),
-        Assign(Seq("cond"),
-          Eval(Seq(EvalParam("i")), Scala(q"Math.sqrt(i.doubleValue()).isValidInt"))),
-        Assert(Eq(Var("cond"), Constant(BooleanLiteral(true)))),
-        Yield(Var("e"))
-      ))))
-    ))
+    val module = Module(
+      "Test_Cast",
+      Seq(DirectDataModel(Exp.model)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "integerlits",
+          Seq(),
+          TNode(Exp.expTag),
+          Seq(
+            Body(
+              Seq(
+                Values("e", TNode(Exp.intTag)),
+                Assign(Seq("i"), PathAccess(Var("e"), NamedLink("value"))),
+                Assign(
+                  Seq("cond"),
+                  Eval(Seq(EvalParam("i")), Scala(q"Math.sqrt(i.doubleValue()).isValidInt"))
+                ),
+                Assert(Eq(Var("cond"), Constant(BooleanLiteral(true)))),
+                Yield(Var("e"))
+              )
+            )
+          )
+        )
+      )
+    )
 
     val input = {
       Add(

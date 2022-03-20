@@ -1,18 +1,21 @@
 package inca.debugger
 
-import inca.analyzedLangs.{Exp, ExpLangTestAnalyses}
+import inca.analyzedLangs.Exp
+import inca.analyzedLangs.ExpLangTestAnalyses
 import inca.backend.ir.Datalog
-import inca.compiler.{CompiledDatalogModule, Options}
+import inca.compiler.CompiledDatalogModule
+import inca.compiler.Options
 import inca.debugger.table.Table
+import inca.runtime.context.DataModel
+import inca.runtime.context.QueryScope
 import inca.runtime.EnginePool
-import inca.runtime.context.{DataModel, QueryScope}
 import inca.util.Scala
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
-import org.scalatest.{Assertion, BeforeAndAfterEach}
 import org.scalatest.funsuite.AnyFunSuite
-import truechange.EditScript
-
+import org.scalatest.Assertion
+import org.scalatest.BeforeAndAfterEach
 import scala.meta.XtensionQuasiquoteTerm
+import truechange.EditScript
 
 class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
@@ -21,12 +24,25 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   def edgePattern(edges: (Int, Int)*): Datalog.Pattern =
-    Datalog.Pattern(None, "edge", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+    Datalog.Pattern(
+      None,
+      "edge",
+      Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
       edges.map { case (from, to) =>
-        Datalog.Body(Seq(
-          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => $from"))),
-          Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => $to")))))
-      })
+        Datalog.Body(
+          Seq(
+            Datalog.Computed(
+              Datalog.Var("from"),
+              Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => $from"))
+            ),
+            Datalog.Computed(
+              Datalog.Var("to"),
+              Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => $to"))
+            )
+          )
+        )
+      }
+    )
   def edgeTable(columns: Seq[String], edges: (Int, Int)*): Table[Value] = {
     val rows = edges.map { case (x, y) =>
       Seq(ScalaValue(x), ScalaValue(y))
@@ -35,11 +51,29 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   val singleEdgePattern =
-    Datalog.Pattern(None, "edge", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+    Datalog.Pattern(
+      None,
+      "edge",
+      Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
       Seq(
-        Datalog.Body(Seq(
-          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-          Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq((Datalog.Var("from"), Datalog.TScalaInt)), Datalog.TScalaInt, Scala(q"(x: Int) => x + 1")))))))
+        Datalog.Body(
+          Seq(
+            Datalog.Computed(
+              Datalog.Var("from"),
+              Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            ),
+            Datalog.Computed(
+              Datalog.Var("to"),
+              Datalog.Evaluation(
+                Seq((Datalog.Var("from"), Datalog.TScalaInt)),
+                Datalog.TScalaInt,
+                Scala(q"(x: Int) => x + 1")
+              )
+            )
+          )
+        )
+      )
+    )
   val twoEdgePattern = edgePattern(1 -> 2, 1 -> 3)
   val sevenEdgePattern = edgePattern(1 -> 2, 1 -> 4, 1 -> 5, 2 -> 3, 2 -> 6, 4 -> 6, 6 -> 7)
   val simpleCycleEdgePattern = edgePattern(1 -> 2, 2 -> 1)
@@ -52,29 +86,40 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     Seq(),
     Seq(
       sevenEdgePattern,
-      Datalog.Pattern(None, "one", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+      Datalog.Pattern(
+        None,
+        "one",
+        Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("to"))))
-          )
-        )),
-      Datalog.Pattern(None, "two", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+          Datalog.Body(Seq(Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("to")))))
+        )
+      ),
+      Datalog.Pattern(
+        None,
+        "two",
+        Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
-            Datalog.Call("one", Seq(Datalog.Var("temp"), Datalog.Var("to"))))
+          Datalog.Body(
+            Seq(
+              Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
+              Datalog.Call("one", Seq(Datalog.Var("temp"), Datalog.Var("to")))
+            )
           )
-        )),
+        )
+      )
     ),
     Seq()
   )
   val nodePattern =
-    Datalog.Pattern(None, "node", Seq(Datalog.Param("n", Datalog.TScalaInt)),
+    Datalog.Pattern(
+      None,
+      "node",
+      Seq(Datalog.Param("n", Datalog.TScalaInt)),
       Seq(
-        Datalog.Body(Seq(
-          Datalog.Call("edge", Seq(Datalog.Var("n"), Datalog.Var("to"))))),
-        Datalog.Body(Seq(
-          Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("n")))))))
+        Datalog.Body(Seq(Datalog.Call("edge", Seq(Datalog.Var("n"), Datalog.Var("to"))))),
+        Datalog.Body(Seq(Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("n")))))
+      )
+    )
 
   val negationModule = Datalog.Module(
     "Path",
@@ -82,120 +127,257 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     Seq(
       nodePattern,
       sevenEdgePattern,
-      Datalog.Pattern(None, "one", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+      Datalog.Pattern(
+        None,
+        "one",
+        Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("to"))))
+          Datalog.Body(Seq(Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("to")))))
+        )
+      ),
+      Datalog.Pattern(
+        None,
+        "two",
+        Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+        Seq(
+          Datalog.Body(
+            Seq(
+              Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
+              Datalog.Call("one", Seq(Datalog.Var("temp"), Datalog.Var("to")))
+            )
           )
-        )),
-      Datalog.Pattern(None, "two", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+        )
+      ),
+      Datalog.Pattern(
+        None,
+        "nodesNotTwoHop",
+        Seq(Datalog.Param("x", Datalog.TScalaInt), Datalog.Param("y", Datalog.TScalaInt)),
         Seq(
-          Datalog.Body(Seq(
-            Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
-            Datalog.Call("one", Seq(Datalog.Var("temp"), Datalog.Var("to"))))
+          Datalog.Body(
+            Seq(
+              Datalog.Call("node", Seq(Datalog.Var("x"))),
+              Datalog.Call("node", Seq(Datalog.Var("y"))),
+              Datalog.Call("two", Seq(Datalog.Var("x"), Datalog.Var("y")), neg = true)
+            )
           )
-        )),
-      Datalog.Pattern(None, "nodesNotTwoHop", Seq(Datalog.Param("x", Datalog.TScalaInt), Datalog.Param("y", Datalog.TScalaInt)),
-        Seq(
-          Datalog.Body(Seq(
-            Datalog.Call("node", Seq(Datalog.Var("x"))),
-            Datalog.Call("node", Seq(Datalog.Var("y"))),
-            Datalog.Call("two", Seq(Datalog.Var("x"), Datalog.Var("y")), neg = true)))
-        )),
+        )
+      )
     ),
     Seq()
   )
 
   val comparatorPattern =
-    Datalog.Pattern(None, "edge", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+    Datalog.Pattern(
+      None,
+      "edge",
+      Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
       Seq(
-        Datalog.Body(Seq(
-          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-          Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 2"))),
-          Datalog.Compare(Datalog.EqComparator, Datalog.Var("from"), Datalog.Var("to")))),
-        Datalog.Body(Seq(
-          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 4"))),
-          Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 4"))))),
-        Datalog.Body(Seq(
-          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-          Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3"))),
-          Datalog.Compare(Datalog.NeqComparator, Datalog.Var("from"), Datalog.Var("to")))),
-        Datalog.Body(Seq(
-          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-          Datalog.Compare(Datalog.EqComparator, Datalog.Var("from"), Datalog.Var("to")))),
-        Datalog.Body(Seq(
-          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 2"))),
-          Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-          Datalog.Compare(Datalog.NeqComparator, Datalog.Var("to"), Datalog.Var("from")))),
-        Datalog.Body(Seq(
-          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3"))),
-          Datalog.Computed(Datalog.Var("to"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-          Datalog.Compare(Datalog.NeqComparator, Datalog.Var("from"), Datalog.Var("to"))))
-      ))
+        Datalog.Body(
+          Seq(
+            Datalog.Computed(
+              Datalog.Var("from"),
+              Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            ),
+            Datalog.Computed(
+              Datalog.Var("to"),
+              Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 2"))
+            ),
+            Datalog.Compare(Datalog.EqComparator, Datalog.Var("from"), Datalog.Var("to"))
+          )
+        ),
+        Datalog.Body(
+          Seq(
+            Datalog.Computed(
+              Datalog.Var("from"),
+              Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 4"))
+            ),
+            Datalog.Computed(
+              Datalog.Var("to"),
+              Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 4"))
+            )
+          )
+        ),
+        Datalog.Body(
+          Seq(
+            Datalog.Computed(
+              Datalog.Var("from"),
+              Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            ),
+            Datalog.Computed(
+              Datalog.Var("to"),
+              Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3"))
+            ),
+            Datalog.Compare(Datalog.NeqComparator, Datalog.Var("from"), Datalog.Var("to"))
+          )
+        ),
+        Datalog.Body(
+          Seq(
+            Datalog.Computed(
+              Datalog.Var("from"),
+              Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            ),
+            Datalog.Compare(Datalog.EqComparator, Datalog.Var("from"), Datalog.Var("to"))
+          )
+        ),
+        Datalog.Body(
+          Seq(
+            Datalog.Computed(
+              Datalog.Var("from"),
+              Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 2"))
+            ),
+            Datalog.Computed(
+              Datalog.Var("to"),
+              Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            ),
+            Datalog.Compare(Datalog.NeqComparator, Datalog.Var("to"), Datalog.Var("from"))
+          )
+        ),
+        Datalog.Body(
+          Seq(
+            Datalog.Computed(
+              Datalog.Var("from"),
+              Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3"))
+            ),
+            Datalog.Computed(
+              Datalog.Var("to"),
+              Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            ),
+            Datalog.Compare(Datalog.NeqComparator, Datalog.Var("from"), Datalog.Var("to"))
+          )
+        )
+      )
+    )
 
   val countAggPattern =
-    Datalog.Pattern(None, "numberOfEdges", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("res", Datalog.TScalaInt)),
-      Seq(Datalog.Body(Seq(
-        Datalog.Computed(Datalog.Var("res"), Datalog.CountAggregation("edge", Seq(Datalog.Var("from"), Datalog.Var("to"))))
-      ))))
+    Datalog.Pattern(
+      None,
+      "numberOfEdges",
+      Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("res", Datalog.TScalaInt)),
+      Seq(
+        Datalog.Body(
+          Seq(
+            Datalog.Computed(
+              Datalog.Var("res"),
+              Datalog.CountAggregation("edge", Seq(Datalog.Var("from"), Datalog.Var("to")))
+            )
+          )
+        )
+      )
+    )
 
   val countAggPatternCompareWithConst =
-    Datalog.Pattern(None, "numberOfEdges", Seq(Datalog.Param("from", Datalog.TScalaInt)),
-      Seq(Datalog.Body(Seq(
-        Datalog.Computed(Datalog.Constant(Datalog.IntLiteral(3)), Datalog.CountAggregation("edge", Seq(Datalog.Var("from"), Datalog.Var("to"))))
-      ))))
+    Datalog.Pattern(
+      None,
+      "numberOfEdges",
+      Seq(Datalog.Param("from", Datalog.TScalaInt)),
+      Seq(
+        Datalog.Body(
+          Seq(
+            Datalog.Computed(
+              Datalog.Constant(Datalog.IntLiteral(3)),
+              Datalog.CountAggregation("edge", Seq(Datalog.Var("from"), Datalog.Var("to")))
+            )
+          )
+        )
+      )
+    )
 
   val pathPattern =
-    Datalog.Pattern(None, "path", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+    Datalog.Pattern(
+      None,
+      "path",
+      Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
       Seq(
-        Datalog.Body(Seq(
-          Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("to"))),
-        )),
-        Datalog.Body(Seq(
-          Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
-          Datalog.Call("path", Seq(Datalog.Var("temp"), Datalog.Var("to"))),
-        ))))
+        Datalog.Body(
+          Seq(
+            Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("to")))
+          )
+        ),
+        Datalog.Body(
+          Seq(
+            Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
+            Datalog.Call("path", Seq(Datalog.Var("temp"), Datalog.Var("to")))
+          )
+        )
+      )
+    )
 
   val pathPatternLeftRecursive =
-    Datalog.Pattern(None, "path", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+    Datalog.Pattern(
+      None,
+      "path",
+      Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
       Seq(
-        Datalog.Body(Seq(
-          Datalog.Call("path", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
-          Datalog.Call("edge", Seq(Datalog.Var("temp"), Datalog.Var("to"))),
-        )),
-        Datalog.Body(Seq(
-          Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("to"))),
-        )),
-      ))
+        Datalog.Body(
+          Seq(
+            Datalog.Call("path", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
+            Datalog.Call("edge", Seq(Datalog.Var("temp"), Datalog.Var("to")))
+          )
+        ),
+        Datalog.Body(
+          Seq(
+            Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("to")))
+          )
+        )
+      )
+    )
 
   val pathPatternSwitchBodies =
-    Datalog.Pattern(None, "path", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+    Datalog.Pattern(
+      None,
+      "path",
+      Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
       Seq(
-        Datalog.Body(Seq(
-          Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
-          Datalog.Call("path", Seq(Datalog.Var("temp"), Datalog.Var("to"))),
-        )),
-        Datalog.Body(Seq(
-          Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("to"))),
-        ))))
+        Datalog.Body(
+          Seq(
+            Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
+            Datalog.Call("path", Seq(Datalog.Var("temp"), Datalog.Var("to")))
+          )
+        ),
+        Datalog.Body(
+          Seq(
+            Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("to")))
+          )
+        )
+      )
+    )
 
   val notTargetOfPattern =
-    Datalog.Pattern(None, "notTargetOf", Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("n", Datalog.TScalaInt)),
+    Datalog.Pattern(
+      None,
+      "notTargetOf",
+      Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("n", Datalog.TScalaInt)),
       Seq(
-        Datalog.Body(Seq(
-          Datalog.Call("node", Seq(Datalog.Var("from"))),
-          Datalog.Call("node", Seq(Datalog.Var("n"))),
-          Datalog.Call("path", Seq(Datalog.Var("from"), Datalog.Var("n")), neg = true)))))
+        Datalog.Body(
+          Seq(
+            Datalog.Call("node", Seq(Datalog.Var("from"))),
+            Datalog.Call("node", Seq(Datalog.Var("n"))),
+            Datalog.Call("path", Seq(Datalog.Var("from"), Datalog.Var("n")), neg = true)
+          )
+        )
+      )
+    )
 
   val query =
-    Datalog.Pattern(None, "query", Seq(Datalog.Param("to", Datalog.TScalaInt)),
+    Datalog.Pattern(
+      None,
+      "query",
+      Seq(Datalog.Param("to", Datalog.TScalaInt)),
       Seq(
-        Datalog.Body(Seq(
-          Datalog.Computed(Datalog.Var("from"), Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))),
-          Datalog.Call("path", Seq(Datalog.Var("from"), Datalog.Var("to")))))))
+        Datalog.Body(
+          Seq(
+            Datalog.Computed(
+              Datalog.Var("from"),
+              Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            ),
+            Datalog.Call("path", Seq(Datalog.Var("from"), Datalog.Var("to")))
+          )
+        )
+      )
+    )
 
   def module(pats: Datalog.Pattern*): Datalog.Module =
-    Datalog.Module("TestModule", Seq(), pats , Seq())
+    Datalog.Module("TestModule", Seq(), pats, Seq())
 
   val emptyDataModel = new DataModel()
 
@@ -207,15 +389,19 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   def initDatabaseRuntime(debugger: Debugger, dataModel: DataModel, es: EditScript): Unit = {
     val scope = new QueryScope(dataModel)
-    val (_engine, _database) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    val (_engine, _database) =
+      EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     _engine.delayUpdatePropagation(() => {
       _database.processEditScript(es)
     })
     debugger.setDatabaseRuntime(_engine, _database)
   }
 
-
-  def initDebugger(module: Datalog.Module, dataModel: DataModel, es: EditScript = EditScript(Seq())): IRDebugger = {
+  def initDebugger(
+      module: Datalog.Module,
+      dataModel: DataModel,
+      es: EditScript = EditScript(Seq())
+    ): IRDebugger = {
     val compiled = CompiledDatalogModule(module, dataModel, Options())
     val debugger = new IRDebugger(compiled)
     initDatabaseRuntime(debugger, dataModel, es)
@@ -239,10 +425,12 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     assertExpectedTable(debugger, "two", args)
   }
 
-
   test("test compare atoms") {
     val debugger = initDebugger(module(comparatorPattern), emptyDataModel)
-    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(4)), Seq(ScalaValue(1)), Seq(ScalaValue(2)), Seq(ScalaValue(3))))
+    val args = Table[Value](
+      Seq("from"),
+      Seq(Seq(ScalaValue(4)), Seq(ScalaValue(1)), Seq(ScalaValue(2)), Seq(ScalaValue(3)))
+    )
     debugger.entry("edge", args)
     stepTillFinish(debugger)
 
@@ -265,7 +453,8 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("test two has type atoms join") {
     val tree = Exp.Mul(Exp.IntegerLit(1), Exp.IntegerLit(2))
 
-    val debugger = initDebugger(module(ExpLangTestAnalyses.mulIntLitPattern), Exp.model, tree.loadEdits)
+    val debugger =
+      initDebugger(module(ExpLangTestAnalyses.mulIntLitPattern), Exp.model, tree.loadEdits)
 
     val args = Table[Value](Seq("mul"), Seq(Seq(URIValue(tree.uri))))
     debugger.entry("mulIntLit", args)
@@ -304,7 +493,11 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   test("test call with literal as argument") {
     val tree = Exp.Let("y", Exp.IntegerLit(5), Exp.Let("x", Exp.IntegerLit(4), Exp.IntegerLit(9)))
-    val debugger = initDebugger(module(ExpLangTestAnalyses.letBindingX, ExpLangTestAnalyses.boundIdOfLet), Exp.model, tree.loadEdits)
+    val debugger = initDebugger(
+      module(ExpLangTestAnalyses.letBindingX, ExpLangTestAnalyses.boundIdOfLet),
+      Exp.model,
+      tree.loadEdits
+    )
 
     val args = Table.unit[Value]
     debugger.entry("letBindingX", args)
@@ -391,7 +584,8 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("step into left recursive pattern with simple cyclic data") {
-    val debugger = initDebugger(module(simpleCycleEdgePattern, pathPatternLeftRecursive), emptyDataModel)
+    val debugger =
+      initDebugger(module(simpleCycleEdgePattern, pathPatternLeftRecursive), emptyDataModel)
     val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("path", args)
     stepTillFinish(debugger)
@@ -401,7 +595,8 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("step into left recursive pattern with simple cyclic data 2") {
-    val debugger = initDebugger(module(simpleCycleEdgePattern2, pathPatternLeftRecursive), emptyDataModel)
+    val debugger =
+      initDebugger(module(simpleCycleEdgePattern2, pathPatternLeftRecursive), emptyDataModel)
     val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("path", args)
     stepTillFinish(debugger)
@@ -440,7 +635,6 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     assertExpectedTable(debugger, "path", args)
   }
 
-
   test("step into recursive pattern with simple cyclic data 2") {
     val debugger = initDebugger(module(simpleCycleEdgePattern2, pathPattern), emptyDataModel)
     val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
@@ -472,7 +666,10 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("test negative call of recursive pattern 1") {
-    val debugger = initDebugger(module(sevenEdgePattern, nodePattern, pathPattern, notTargetOfPattern), emptyDataModel)
+    val debugger = initDebugger(
+      module(sevenEdgePattern, nodePattern, pathPattern, notTargetOfPattern),
+      emptyDataModel
+    )
     val args = Table[Value](Seq("n"), Seq(Seq(ScalaValue(1))))
     debugger.entry("notTargetOf", args)
     stepTillFinish(debugger)
@@ -481,7 +678,10 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("test negative call of recursive pattern 2") {
-    val debugger = initDebugger(module(sevenEdgePattern, nodePattern, pathPattern, notTargetOfPattern), emptyDataModel)
+    val debugger = initDebugger(
+      module(sevenEdgePattern, nodePattern, pathPattern, notTargetOfPattern),
+      emptyDataModel
+    )
     val args = Table[Value](Seq("n"), Seq(Seq(ScalaValue(2))))
     debugger.entry("notTargetOf", args)
     stepTillFinish(debugger)
@@ -531,7 +731,8 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("step over rec pattern (not part of scc)") {
-    val debugger = initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
+    val debugger =
+      initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
     val args = Table.unit[Value]
     debugger.entry("query", args)
     debugger.stepInto() // step into pattern
@@ -547,7 +748,8 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("step over rec pattern (not part of scc) with cyclic data") {
-    val debugger = initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
+    val debugger =
+      initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
     val args = Table.unit[Value]
     debugger.entry("query", args)
     debugger.stepInto() // step into pattern
@@ -563,7 +765,8 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("step over rec pattern (part of scc)") {
-    val debugger = initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
+    val debugger =
+      initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
     val args = Table.unit[Value]
     debugger.entry("query", args)
     assert(debugger.frame.cp.isPatternEntry)
@@ -588,7 +791,10 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     debugger.stepOver() // step over recursive path call
 
     val currentDerived =
-      debugger.relation("path", Table[Value](Seq("from"), Seq(Seq(ScalaValue(4)), Seq(ScalaValue(2)), Seq(ScalaValue(5)))))
+      debugger.relation(
+        "path",
+        Table[Value](Seq("from"), Seq(Seq(ScalaValue(4)), Seq(ScalaValue(2)), Seq(ScalaValue(5))))
+      )
     val expected = edgeTable(Seq("from", "to"), 4 -> 6, 2 -> 3, 2 -> 6, 4 -> 7, 2 -> 7)
     assertResult(expected)(currentDerived)
     assert(debugger.frame.cp.isBodyExit)
@@ -605,7 +811,8 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("step over rec pattern 2 levels deep (part of scc)") {
-    val debugger = initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
+    val debugger =
+      initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
     val args = Table.unit[Value]
     debugger.entry("query", args)
     assert(debugger.frame.cp.isPatternEntry)
@@ -641,7 +848,10 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepOver() // step over recursive path call
     val currentDerived =
-      debugger.relation("path", Table[Value](Seq("from"), Seq(Seq(ScalaValue(3)), Seq(ScalaValue(6)))))
+      debugger.relation(
+        "path",
+        Table[Value](Seq("from"), Seq(Seq(ScalaValue(3)), Seq(ScalaValue(6))))
+      )
     val expected = edgeTable(Seq("from", "to"), 6 -> 7)
     assertResult(expected)(currentDerived)
     assert(debugger.frame.cp.isBodyExit)
@@ -661,7 +871,8 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("step over rec pattern 2 levels deep (part of scc) with cyclic data") {
-    val debugger = initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
+    val debugger =
+      initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
     val args = Table.unit[Value]
     debugger.entry("query", args)
     assert(debugger.frame.cp.isPatternEntry)
@@ -697,8 +908,12 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     assert(debugger.frame.cp.isAtomPoint)
     debugger.stepOver() // step over recursive path call
     val currentDerived =
-      debugger.relation("path", Table[Value](Seq("from"), Seq(Seq(ScalaValue(3)), Seq(ScalaValue(6)))))
-    val expected = edgeTable(Seq("from", "to"), 6 -> 7, 3 -> 1, 3 -> 2, 3 -> 4, 3 -> 5, 3 -> 3, 3 -> 7, 3 -> 6)
+      debugger.relation(
+        "path",
+        Table[Value](Seq("from"), Seq(Seq(ScalaValue(3)), Seq(ScalaValue(6))))
+      )
+    val expected =
+      edgeTable(Seq("from", "to"), 6 -> 7, 3 -> 1, 3 -> 2, 3 -> 4, 3 -> 5, 3 -> 3, 3 -> 7, 3 -> 6)
     assertResult(expected)(currentDerived)
     assert(debugger.frame.cp.isBodyExit)
     debugger.stepOver() // needed to step to pattern exit (of path call)
@@ -717,7 +932,8 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("step out of pattern") {
-    val debugger = initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
+    val debugger =
+      initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
     val args = Table.unit[Value]
     debugger.entry("query", args)
     assert(debugger.frame.cp.isPatternEntry)
@@ -727,7 +943,8 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("step out of body") {
-    val debugger = initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
+    val debugger =
+      initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
     val args = Table.unit[Value]
     debugger.entry("query", args)
     assert(debugger.frame.cp.isPatternEntry)
@@ -743,7 +960,8 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("step out inner call") {
-    val debugger = initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
+    val debugger =
+      initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
     val args = Table.unit[Value]
     debugger.entry("query", args)
     assert(debugger.frame.cp.isPatternEntry)

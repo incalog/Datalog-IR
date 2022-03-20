@@ -1,7 +1,8 @@
 package inca.frontend.constraint.core
 
 import inca.compiler.source.SourceLocation
-import inca.frontend.util.{Resolvable, Typeable}
+import inca.frontend.util.Resolvable
+import inca.frontend.util.Typeable
 import inca.util.Scala
 
 trait Expression extends Typeable[Type] with SourceLocation {
@@ -77,7 +78,8 @@ case class PathAccess(receiver: Expression, link: Link) extends CoreExpression {
 }
 
 case class Call(name: Name, args: Seq[Expression], transitive: Boolean = false)
-    extends CoreExpression with Resolvable[Call.Target] {
+    extends CoreExpression
+    with Resolvable[Call.Target] {
   override def freeVars: Map[Name, Option[Type]] = args.flatMap(_.freeVars).toMap
   override def prettyprint(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
@@ -99,7 +101,11 @@ case class Tuple(exps: Seq[Expression]) extends CoreExpression {
   override def prettyprint(implicit indent: String): String =
     exps.map(_.prettyprint).mkString("(", ", ", ")")
 }
-/** Eval code must be a Scala expression that can access `params` by name and must yield a `resultType`. */
+
+/**
+ * Eval code must be a Scala expression that can access `params` by name and must yield a
+ * `resultType`.
+ */
 case class Eval(code: Scala[meta.Term]) extends CoreExpression {
   var params: Option[Seq[EvalParam]] = None
 
@@ -119,7 +125,10 @@ object Eval {
 
 }
 
-case class EvalParam(name: Name) extends SourceLocation with Typeable[Type] with Resolvable[Var.Target] {
+case class EvalParam(name: Name)
+    extends SourceLocation
+    with Typeable[Type]
+    with Resolvable[Var.Target] {
   override def toString: String = name.toString
 }
 
@@ -127,8 +136,10 @@ case class Aggregate(agg: Expression, bodies: Seq[Body]) extends CoreExpression 
   override def freeVars: Map[Name, Option[Type]] = agg.freeVars ++ bodies.flatMap(_.freeVars)
 
   override def prettyprint(implicit indent: String): String = {
-    val bodiesS = if (bodies.isEmpty) "{ }" else
-      bodies.map(_.prettyprint).mkString(" union ")
+    val bodiesS =
+      if (bodies.isEmpty) "{ }"
+      else
+        bodies.map(_.prettyprint).mkString(" union ")
     s"aggregate($agg) $bodiesS"
   }
 }

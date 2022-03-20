@@ -5,17 +5,20 @@ import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
 import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.constraint.core._
-import inca.runtime.context.{DataModel, QueryScope}
+import inca.runtime.context.DataModel
+import inca.runtime.context.QueryScope
+import inca.util.matchers.IncaConstraintMatchers
+import inca.util.matchers.IncaGPMatchers
 import inca.util.Scala
-import inca.util.matchers.{IncaConstraintMatchers, IncaGPMatchers}
 import org.scalatest.funsuite.AnyFunSuite
-
 import scala.meta._
 
 class GeneratePSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConstraintMatchers {
 
-  private val testInput = Add(And(Or(BooleanLit(false), BooleanLit(false)), IntegerLit(5)), LongLit(10L))
-  private val testInputNumericAddition = Add(Add(IntegerLit(5), IntegerLit(7)), Add(LongLit(7), IntegerLit(8)))
+  private val testInput =
+    Add(And(Or(BooleanLit(false), BooleanLit(false)), IntegerLit(5)), LongLit(10L))
+  private val testInputNumericAddition =
+    Add(Add(IntegerLit(5), IntegerLit(7)), Add(LongLit(7), IntegerLit(8)))
 
   val scope: QueryScope = new QueryScope(Exp.model)
   val options: ConstraintOptions = ConstraintOptions()
@@ -55,7 +58,8 @@ class GeneratePSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConst
   }
 
   test("non negative, non transtive call") {
-    val module = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(callLhChildFun, lhChildFun))
+    val module =
+      Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(callLhChildFun, lhChildFun))
 
     assertMatch(module, "callLhChild", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
@@ -113,7 +117,11 @@ class GeneratePSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConst
           Seq(
             Assign(Seq("p"), PathAccess(Var("in"), ParentLink)),
             Assert(InstanceOf(Var("p"), expType)),
-            Yield(Cast(Var("p"), expType))))))
+            Yield(Cast(Var("p"), expType))
+          )
+        )
+      )
+    )
 
     val module = Module("Test", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(parentFun))
 
@@ -124,25 +132,92 @@ class GeneratePSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConst
 
   // TODO ignore because it does not work on git pipeline
   ignore("unbounded literal parameter determined by eval") {
-    val module = Datalog.Module("test_eval", Seq(),
-      Seq(Datalog.Pattern(None, "intToString", Seq(Datalog.Param("exp", Datalog.TNode(Exp.intTag)), Datalog.Param("str", Datalog.TScalaString)),
-        Seq(Datalog.Body(Seq(
-          Datalog.Path(Datalog.Var("exp"), Datalog.TNode(Exp.intTag), Datalog.NamedLink(Datalog.TNode(Exp.intTag), "value"), Datalog.Var("value"), Datalog.TLiteral.Int),
-          Datalog.Computed(Datalog.Var("str"), Datalog.Evaluation(Seq((Datalog.Var("value"), Datalog.TLiteral.Int)), Datalog.TScalaString, Scala(q"(value: Int) => value.toString"))))
-        )))), Seq())
+    val module = Datalog.Module(
+      "test_eval",
+      Seq(),
+      Seq(
+        Datalog.Pattern(
+          None,
+          "intToString",
+          Seq(
+            Datalog.Param("exp", Datalog.TNode(Exp.intTag)),
+            Datalog.Param("str", Datalog.TScalaString)
+          ),
+          Seq(
+            Datalog.Body(
+              Seq(
+                Datalog.Path(
+                  Datalog.Var("exp"),
+                  Datalog.TNode(Exp.intTag),
+                  Datalog.NamedLink(Datalog.TNode(Exp.intTag), "value"),
+                  Datalog.Var("value"),
+                  Datalog.TLiteral.Int
+                ),
+                Datalog.Computed(
+                  Datalog.Var("str"),
+                  Datalog.Evaluation(
+                    Seq((Datalog.Var("value"), Datalog.TLiteral.Int)),
+                    Datalog.TScalaString,
+                    Scala(q"(value: Int) => value.toString")
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      Seq()
+    )
     assertMatch(module, "intToString", testInputNumericAddition) { matcher =>
       assert(matcher.getAllMatches.size == 3)
     }
   }
 
   test("unbounded argument of second eval") {
-    val module = Datalog.Module("test_eval", Seq(),
-      Seq(Datalog.Pattern(None, "intToString", Seq(Datalog.Param("exp", Datalog.TNode(Exp.intTag)), Datalog.Param("str2", Datalog.TScalaString)),
-        Seq(Datalog.Body(Seq(
-          Datalog.Path(Datalog.Var("exp"), Datalog.TNode(Exp.intTag), Datalog.NamedLink(Datalog.TNode(Exp.intTag), "value"), Datalog.Var("value"), Datalog.TLiteral.Int),
-          Datalog.Computed(Datalog.Var("str"), Datalog.Evaluation(Seq((Datalog.Var("value"), Datalog.TLiteral.Int)), Datalog.TScalaString, Scala(q"(value: Int) => value.toString"))),
-          Datalog.Computed(Datalog.Var("str2"), Datalog.Evaluation(Seq((Datalog.Var("str"), Datalog.TScalaString)), Datalog.TScalaString, Scala(q"""(str: String) => str + "_appended" """))))
-        )))), Seq())
+    val module = Datalog.Module(
+      "test_eval",
+      Seq(),
+      Seq(
+        Datalog.Pattern(
+          None,
+          "intToString",
+          Seq(
+            Datalog.Param("exp", Datalog.TNode(Exp.intTag)),
+            Datalog.Param("str2", Datalog.TScalaString)
+          ),
+          Seq(
+            Datalog.Body(
+              Seq(
+                Datalog.Path(
+                  Datalog.Var("exp"),
+                  Datalog.TNode(Exp.intTag),
+                  Datalog.NamedLink(Datalog.TNode(Exp.intTag), "value"),
+                  Datalog.Var("value"),
+                  Datalog.TLiteral.Int
+                ),
+                Datalog.Computed(
+                  Datalog.Var("str"),
+                  Datalog.Evaluation(
+                    Seq((Datalog.Var("value"), Datalog.TLiteral.Int)),
+                    Datalog.TScalaString,
+                    Scala(q"(value: Int) => value.toString")
+                  )
+                ),
+                Datalog.Computed(
+                  Datalog.Var("str2"),
+                  Datalog.Evaluation(
+                    Seq((Datalog.Var("str"), Datalog.TScalaString)),
+                    Datalog.TScalaString,
+                    Scala(q"""(str: String) => str + "_appended" """)
+                  )
+                )
+              )
+            )
+          )
+        )
+      ),
+      Seq()
+    )
     assertMatch(module, "intToString", testInputNumericAddition) { matcher =>
 //      println(matcher.getAllMatches)
       assert(matcher.getAllMatches.size == 3)

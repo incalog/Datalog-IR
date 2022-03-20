@@ -1,6 +1,7 @@
 package inca.backend.optimize
+import inca.backend.ir.CollectVars
 import inca.backend.ir.Datalog._
-import inca.backend.ir.{CollectVars, TypeOps}
+import inca.backend.ir.TypeOps
 import inca.runtime.context.DataModel
 import inca.util.Scala
 
@@ -41,12 +42,13 @@ object FoldConstantAtoms extends Optimization {
 
       case HasType(t, typ) =>
         val termTyp = t match {
-          case v:Var => v.typ match {
-            case Some(ty: TLiteral) => ty
-            case Some(ty: TLinked) => ty
-            case _ => TAny
-          }
-          case c:Constant => c.lit.typ
+          case v: Var =>
+            v.typ match {
+              case Some(ty: TLiteral) => ty
+              case Some(ty: TLinked) => ty
+              case _ => TAny
+            }
+          case c: Constant => c.lit.typ
         }
         if (termTyp == typ) {
           // this constraint was responsible for the inferrence of termTyp, must keep it
@@ -70,12 +72,13 @@ object FoldConstantAtoms extends Optimization {
 
       case NotHasType(t, typ) =>
         val termTyp = t match {
-          case v:Var => v.typ match {
-            case Some(ty: TLiteral) => ty
-            case Some(ty: TLinked) => ty
-            case _ => TAny
-          }
-          case c:Constant => c.lit.typ
+          case v: Var =>
+            v.typ match {
+              case Some(ty: TLiteral) => ty
+              case Some(ty: TLinked) => ty
+              case _ => TAny
+            }
+          case c: Constant => c.lit.typ
         }
         val meetType = meet(termTyp, typ, dataModel)
         if (meetType.contains(termTyp)) {

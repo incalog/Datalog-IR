@@ -2,7 +2,6 @@ package inca.debugger
 
 import inca.backend.ir.Datalog
 
-
 object ControlPoint {
   def patternEntry(pat: Datalog.Pattern): ControlPoint =
     ControlPoint(PatternPoint(pat, BeforeList))
@@ -65,17 +64,17 @@ case class BodyPoint(body: Datalog.Body, atoms: ListPoint[Datalog.Atom, AtomPoin
   override def toString: String = s"BodyPoint($atoms)"
 
   def atom: Option[Datalog.Atom] = atoms match {
-    case elem@AtListElem(_, _, _) => Some(elem.elem)
+    case elem @ AtListElem(_, _, _) => Some(elem.elem)
     case _ => None
   }
   def stepIntra: Option[BodyPoint] = atoms match {
     case BeforeList => Some(BodyPoint(body, ListPoint.first(body.atoms, AtomPoint.apply)))
-    case elem@AtListElem(_, _, _) => Some(BodyPoint(body, elem.next(AtomPoint.apply)))
+    case elem @ AtListElem(_, _, _) => Some(BodyPoint(body, elem.next(AtomPoint.apply)))
     case AfterList => None
   }
   def stepOver: Option[BodyPoint] = atoms match {
     case BeforeList => Some(BodyPoint(body, AfterList))
-    case elem@AtListElem(_, _, _) => Some(BodyPoint(body, elem.next(AtomPoint.apply)))
+    case elem @ AtListElem(_, _, _) => Some(BodyPoint(body, elem.next(AtomPoint.apply)))
     case AfterList => None
   }
   def stepOut: Option[BodyPoint] = atoms match {
@@ -98,27 +97,31 @@ case class PatternPoint(pat: Datalog.Pattern, bodies: ListPoint[Datalog.Body, Bo
     case _ => None
   }
   def stepIntra: Option[PatternPoint] = bodies match {
-    case BeforeList => Some(PatternPoint(pat, ListPoint.first(pat.bodies, BodyPoint(_, BeforeList))))
-    case elem@AtListElem(_, _, body) => body.stepIntra match {
-      case Some(next) => Some(PatternPoint(pat, elem.copy(point = next)))
-      case None => Some(PatternPoint(pat, elem.next(BodyPoint(_, BeforeList))))
-    }
+    case BeforeList =>
+      Some(PatternPoint(pat, ListPoint.first(pat.bodies, BodyPoint(_, BeforeList))))
+    case elem @ AtListElem(_, _, body) =>
+      body.stepIntra match {
+        case Some(next) => Some(PatternPoint(pat, elem.copy(point = next)))
+        case None => Some(PatternPoint(pat, elem.next(BodyPoint(_, BeforeList))))
+      }
     case AfterList => None
   }
   def stepOver: Option[PatternPoint] = bodies match {
     case BeforeList => Some(PatternPoint(pat, AfterList))
-    case elem@AtListElem(_, _, body) => body.stepOver match {
-      case Some(next) => Some(PatternPoint(pat, elem.copy(point = next)))
-      case None => None
-    }
+    case elem @ AtListElem(_, _, body) =>
+      body.stepOver match {
+        case Some(next) => Some(PatternPoint(pat, elem.copy(point = next)))
+        case None => None
+      }
     case AfterList => None
   }
   def stepOut: Option[PatternPoint] = bodies match {
     case BeforeList => Some(PatternPoint(pat, AfterList))
-    case elem@AtListElem(_, _, body) => body.stepOut match {
-      case Some(next) => Some(PatternPoint(pat, elem.copy(point = next)))
-      case None => Some(PatternPoint(pat, AfterList))
-    }
+    case elem @ AtListElem(_, _, body) =>
+      body.stepOut match {
+        case Some(next) => Some(PatternPoint(pat, elem.copy(point = next)))
+        case None => Some(PatternPoint(pat, AfterList))
+      }
     case AfterList => None
   }
   def abortBody: PatternPoint = bodies match {
@@ -157,5 +160,7 @@ case class ControlPoint(point: PatternPoint) {
   }
 
   def atom: Datalog.Atom =
-    point.atom.getOrElse(throw new IllegalStateException(s"Cannot access atom of control point $this"))
+    point.atom.getOrElse(
+      throw new IllegalStateException(s"Cannot access atom of control point $this")
+    )
 }

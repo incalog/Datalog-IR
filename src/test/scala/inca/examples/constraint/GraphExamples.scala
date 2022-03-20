@@ -26,7 +26,7 @@ class GraphExamples extends AnyFunSuite {
 
   test("different functions for graphs trees") {
     val code =
-     s"""module GraphAnalyses
+      s"""module GraphAnalyses
         |datamodel inca.examples.constraint.GraphModel.model
         |
         |@main
@@ -53,7 +53,10 @@ class GraphExamples extends AnyFunSuite {
         |""".stripMargin
 
 //    val loaded = ConstraintExecutor.loadAnalysis(code, ConstraintOptions())
-    val loaded = ConstraintExecutor.loadAnalysis(code, ConstraintOptions().withTransformations(FunctionalOptions.defaultTransformations))
+    val loaded = ConstraintExecutor.loadAnalysis(
+      code,
+      ConstraintOptions().withTransformations(FunctionalOptions.defaultTransformations)
+    )
 
     println(loaded.compiled.optimized)
 
@@ -61,7 +64,10 @@ class GraphExamples extends AnyFunSuite {
     val res1 = loaded.execute(tree, "paths", Tuples.flatTupleOf("a"))
     res1.foreach(println)
 
-    val tree2 = Graph(List(Node("a"), Node("b"), Node("c"), Node("d")), List(Edge("a", "b"), Edge("b", "c"), Edge("c", "d"), Edge("c", "a")))
+    val tree2 = Graph(
+      List(Node("a"), Node("b"), Node("c"), Node("d")),
+      List(Edge("a", "b"), Edge("b", "c"), Edge("c", "d"), Edge("c", "a"))
+    )
     val res2 = loaded.update(tree2, "paths", Tuples.flatTupleOf("a"))
     println("updated")
     res2.foreach(println)

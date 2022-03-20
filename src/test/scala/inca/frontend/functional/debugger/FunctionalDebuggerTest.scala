@@ -1,18 +1,22 @@
 package inca.frontend.functional.debugger
 
 import inca.compiler.Compiler
-import inca.examples.functional.{ADT, Code}
+import inca.examples.functional.ADT
+import inca.examples.functional.Code
+import inca.frontend.functional.compiler.CompiledFunctionalModule
+import inca.frontend.functional.compiler.FunctionalOptions
 import inca.frontend.functional.core
-import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
-import inca.frontend.functional.core.{Expression, Pattern}
+import inca.frontend.functional.core.Expression
+import inca.frontend.functional.core.Pattern
+import inca.runtime.context.DataModel
+import inca.runtime.context.QueryScope
 import inca.runtime.EnginePool
-import inca.runtime.context.{DataModel, QueryScope}
-import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
-import org.scalatest.{Assertion, BeforeAndAfterEach}
-import org.scalatest.funsuite.AnyFunSuite
-import truechange.EditScript
-
 import meta.quasiquotes._
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.Assertion
+import org.scalatest.BeforeAndAfterEach
+import truechange.EditScript
 
 class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
@@ -29,16 +33,27 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   def compile(code: String): CompiledFunctionalModule =
     Compiler.compileFunctional(code, FunctionalOptions().withOptimizations(Seq()))
 
-  def setupDatabaseRuntime(debugger: FunctionalDebugger, dataModel: DataModel, es: EditScript = EditScript(Seq())): Unit = {
+  def setupDatabaseRuntime(
+      debugger: FunctionalDebugger,
+      dataModel: DataModel,
+      es: EditScript = EditScript(Seq())
+    ): Unit = {
     val scope = new QueryScope(dataModel)
-    val (_engine, _database) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    val (_engine, _database) =
+      EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     _engine.delayUpdatePropagation(() => {
       _database.processEditScript(es)
     })
     debugger.setDatabaseRuntime(_engine, _database)
   }
 
-  def assertControlTraceSize(prog: String, main: String, args: meta.Term*)(expected: Int): Assertion = {
+  def assertControlTraceSize(
+      prog: String,
+      main: String,
+      args: meta.Term*
+    )(
+      expected: Int
+    ): Assertion = {
     val compiledExample = compile(prog)
     val debugger = initDebugger(compiledExample)
     debugger.entry(main, args: _*)
@@ -49,19 +64,38 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     assertResult(expected)(debugger.controlTraceFrontend.size)
   }
 
-  def createBreakpointOfExpression(f: String, exp: Expression, occurrence: Int = 0): FunctionalDebugger => FunctionalBreakpoint = debugger => {
+  def createBreakpointOfExpression(
+      f: String,
+      exp: Expression,
+      occurrence: Int = 0
+    ): FunctionalDebugger => FunctionalBreakpoint = debugger => {
     FunctionalBreakpoint.forExpression(debugger.compiled.fun, f, exp, occurrence)
   }
 
-  def createBreakpointOfPattern(f: String, p: Pattern, occurrence: Int = 0): FunctionalDebugger => FunctionalBreakpoint = debugger => {
+  def createBreakpointOfPattern(
+      f: String,
+      p: Pattern,
+      occurrence: Int = 0
+    ): FunctionalDebugger => FunctionalBreakpoint = debugger => {
     FunctionalBreakpoint.forPattern(debugger.compiled.fun, f, p, occurrence)
   }
 
-  def createBreakpointOfBinding(f: String, name: String, occurrence: Int = 0): FunctionalDebugger => FunctionalBreakpoint = debugger => {
+  def createBreakpointOfBinding(
+      f: String,
+      name: String,
+      occurrence: Int = 0
+    ): FunctionalDebugger => FunctionalBreakpoint = debugger => {
     FunctionalBreakpoint.forBinding(debugger.compiled.fun, f, name, occurrence)
   }
 
-  def assertBreakpoints(prog: String, bps: Seq[FunctionalDebugger => FunctionalBreakpoint], main: String, args: meta.Term*)(expected: Int): Assertion = {
+  def assertBreakpoints(
+      prog: String,
+      bps: Seq[FunctionalDebugger => FunctionalBreakpoint],
+      main: String,
+      args: meta.Term*
+    )(
+      expected: Int
+    ): Assertion = {
     val compiledExample = compile(prog)
     val debugger = initDebugger(compiledExample)
     debugger.entry(main, args: _*)
@@ -84,10 +118,10 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   val tupleLetProg: String =
     s"""module M
-       |@main def main(): Int =
-       |  let (x, y) = (1 + 2, 2 + 3) in
-       |    x + y
-       |""".stripMargin
+      |@main def main(): Int =
+      |  let (x, y) = (1 + 2, 2 + 3) in
+      |    x + y
+      |""".stripMargin
   test("multiple names let") {
     assertControlTraceSize(tupleLetProg, "main")(7)
   }
@@ -95,11 +129,11 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("nested let 2") {
     val code =
       s"""module M
-         |@main def main(): Int =
-         |  let x = 1 + 2 in
-         |    let y = 2 + 3 in
-         |      x + y
-         |""".stripMargin
+        |@main def main(): Int =
+        |  let x = 1 + 2 in
+        |    let y = 2 + 3 in
+        |      x + y
+        |""".stripMargin
     assertControlTraceSize(code, "main")(7)
   }
 
@@ -117,21 +151,24 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   def ifControlJump(b1: Boolean, b2: Boolean): String =
     s"""module M
-       |@main def main(): Int =
-       |  if ($b1 == true)
-       |    if ($b2 == true)
-       |      0 + 0
-       |    else
-       |      1 + 0
-       |  else
-       |    if ($b2 == true)
-       |      2 + 0
-       |    else
-       |      3 + 0
-       |""".stripMargin
+      |@main def main(): Int =
+      |  if ($b1 == true)
+      |    if ($b2 == true)
+      |      0 + 0
+      |    else
+      |      1 + 0
+      |  else
+      |    if ($b2 == true)
+      |      2 + 0
+      |    else
+      |      3 + 0
+      |""".stripMargin
 
   test("if control jumping") {
-    for (b1 <- Seq(true, false); b2 <- Seq(true, false)) {
+    for {
+      b1 <- Seq(true, false)
+      b2 <- Seq(true, false)
+    } {
       assertControlTraceSize(ifControlJump(b1, b2), "main")(5)
     }
   }
@@ -149,17 +186,16 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     assertControlTraceSize(constructorProg, "main")(5)
   }
 
-
   val matchProg: String =
     s"""module M
-       |data Exp = Var(String) | Num(Int) | Add(Exp, Exp) | Let(String, Exp, Exp)
-       |@main def main(exp: Exp): Int = exp match {
-       |  case Var(x) => 1
-       |  case Num(i) => 2
-       |  case Add(l, r) => 3
-       |  case Let(n, bound, body) => 4
-       |}
-       |""".stripMargin
+      |data Exp = Var(String) | Num(Int) | Add(Exp, Exp) | Let(String, Exp, Exp)
+      |@main def main(exp: Exp): Int = exp match {
+      |  case Var(x) => 1
+      |  case Num(i) => 2
+      |  case Add(l, r) => 3
+      |  case Let(n, bound, body) => 4
+      |}
+      |""".stripMargin
 
   test("pattern matching multiple constructors") {
     assertControlTraceSize(matchProg, "main", q"""Var("x")""")(3)
@@ -170,37 +206,38 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   val nestedMatchProg: String =
     s"""module M
-       |data Exp = Var(String) | Num(Int) | Add(Exp, Exp) | Let(String, Exp, Exp)
-       |@main def main(exp1: Exp, exp2: Exp): Boolean = exp1 match {
-       |  case Var(x1) => exp2 match {
-       |    case Var(x2) => true
-       |    case Num(i2) => false
-       |    case Add(l2, r2) => false
-       |    case Let(n2, bound2, body2) => false
-       |  }
-       |  case Num(i1) => exp2 match {
-       |    case Var(x2) => false
-       |    case Num(i2) => true
-       |    case Add(l2, r2) => false
-       |    case Let(n2, bound2, body2) => false
-       |  }
-       |  case Add(l1, r1) => exp2 match {
-       |    case Var(x2) => false
-       |    case Num(i2) => false
-       |    case Add(l2, r2) => true
-       |    case Let(n2, bound2, body2) => false
-       |    }
-       |  case Let(n1, bound1, body1) => exp2 match {
-       |    case Var(x2) => false
-       |    case Num(i2) => false
-       |    case Add(l2, r2) => false
-       |    case Let(n2, bound2, body2) => true
-       |  }
-       |}
-       |""".stripMargin
+      |data Exp = Var(String) | Num(Int) | Add(Exp, Exp) | Let(String, Exp, Exp)
+      |@main def main(exp1: Exp, exp2: Exp): Boolean = exp1 match {
+      |  case Var(x1) => exp2 match {
+      |    case Var(x2) => true
+      |    case Num(i2) => false
+      |    case Add(l2, r2) => false
+      |    case Let(n2, bound2, body2) => false
+      |  }
+      |  case Num(i1) => exp2 match {
+      |    case Var(x2) => false
+      |    case Num(i2) => true
+      |    case Add(l2, r2) => false
+      |    case Let(n2, bound2, body2) => false
+      |  }
+      |  case Add(l1, r1) => exp2 match {
+      |    case Var(x2) => false
+      |    case Num(i2) => false
+      |    case Add(l2, r2) => true
+      |    case Let(n2, bound2, body2) => false
+      |    }
+      |  case Let(n1, bound1, body1) => exp2 match {
+      |    case Var(x2) => false
+      |    case Num(i2) => false
+      |    case Add(l2, r2) => false
+      |    case Let(n2, bound2, body2) => true
+      |  }
+      |}
+      |""".stripMargin
 
   test("nested pattern matching") {
-    val (v, n, a, l) = (q"""Var("x")""", q"Num(1)", q"Add(Num(1), Num(2))", q"""Let("x", Num(1), Num(2))""")
+    val (v, n, a, l) =
+      (q"""Var("x")""", q"Num(1)", q"Add(Num(1), Num(2))", q"""Let("x", Num(1), Num(2))""")
 
     assertControlTraceSize(nestedMatchProg, "main", v, v)(4)
     assertControlTraceSize(nestedMatchProg, "main", v, n)(5)
@@ -222,22 +259,22 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   val matchInIfProg: String =
     s"""module Mod
-       |data Exp = Var(String) | Num(Int) | Add(Exp, Exp)
-       |@main def main(flag: Boolean, exp: Exp): Boolean =
-       |  if (flag == true) {
-       |    exp match {
-       |      case Var(x) => true
-       |      case Num(x) => false
-       |      case Add(x, y) => true
-       |    }
-       |  } else {
-       |    exp match {
-       |      case Var(x) => false
-       |      case Num(x) => true
-       |      case Add(x, y) => true
-       |    }
-       |  }
-       |""".stripMargin
+      |data Exp = Var(String) | Num(Int) | Add(Exp, Exp)
+      |@main def main(flag: Boolean, exp: Exp): Boolean =
+      |  if (flag == true) {
+      |    exp match {
+      |      case Var(x) => true
+      |      case Num(x) => false
+      |      case Add(x, y) => true
+      |    }
+      |  } else {
+      |    exp match {
+      |      case Var(x) => false
+      |      case Num(x) => true
+      |      case Add(x, y) => true
+      |    }
+      |  }
+      |""".stripMargin
   test("pattern match in if expression") {
     assertControlTraceSize(matchInIfProg, "main", q"true", q"""Var("x")""")(4)
     assertControlTraceSize(matchInIfProg, "main", q"true", q"Num(1)")(5)
@@ -247,13 +284,13 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   val ifInMatchProg: String =
     s"""module Mod
-       |data Exp = Var(String) | Num(Int) | Add(Exp, Exp)
-       |@main def main(flag: Boolean, exp: Exp): Boolean = exp match {
-       |  case Var(x) => if (flag == true) true else false
-       |  case Num(x) => if (flag == true) false else true
-       |  case Add(x, y) => true
-       |}
-       |""".stripMargin
+      |data Exp = Var(String) | Num(Int) | Add(Exp, Exp)
+      |@main def main(flag: Boolean, exp: Exp): Boolean = exp match {
+      |  case Var(x) => if (flag == true) true else false
+      |  case Num(x) => if (flag == true) false else true
+      |  case Add(x, y) => true
+      |}
+      |""".stripMargin
   test("if expression in pattern match") {
     assertControlTraceSize(ifInMatchProg, "main", q"true", q"""Var("x")""")(4)
     assertControlTraceSize(ifInMatchProg, "main", q"true", q"Num(1)")(5)
@@ -262,46 +299,51 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("plus example extra") {
-    assertControlTraceSize(Code.plusRealModuleExtra, "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(21)
+    assertControlTraceSize(
+      Code.plusRealModuleExtra,
+      "main",
+      q"Succ(Succ(Zero()))",
+      q"Succ(Zero())"
+    )(21)
   }
 
   val tupleProg: String =
     s"""module M
-       |@main def main(): (Int, Boolean) = (1 + 1, true && false)
-       |""".stripMargin
+      |@main def main(): (Int, Boolean) = (1 + 1, true && false)
+      |""".stripMargin
   test("tuple example") {
     assertControlTraceSize(tupleProg, "main")(4)
   }
 
   val setProg: String =
     s"""module M
-       |@main def main(): Set[Int] = {1 + 1, 2 + 1, 3 + 1}
-       |""".stripMargin
+      |@main def main(): Set[Int] = {1 + 1, 2 + 1, 3 + 1}
+      |""".stripMargin
   test("set example") {
     assertControlTraceSize(setProg, "main")(5)
   }
 
   val setCompProg: String =
     s"""module M
-       |@main def main: Set[Int] = { (x+1) | x in intSet()}
-       |def intSet(): Set[Int] = {1, 2, 3, 4}
-       |""".stripMargin
+      |@main def main: Set[Int] = { (x+1) | x in intSet()}
+      |def intSet(): Set[Int] = {1, 2, 3, 4}
+      |""".stripMargin
   test("set comprehension") {
     assertControlTraceSize(setCompProg, "main")(8)
   }
 
   val nestedBinaryProg: String =
     s"""module M
-       |@main def main(): Int = (1 + 4) + (3 + 4)
-       |""".stripMargin
+      |@main def main(): Int = (1 + 4) + (3 + 4)
+      |""".stripMargin
   test("nested binary") {
     assertControlTraceSize(nestedBinaryProg, "main")(5)
   }
 
   val deeperNestedBinaryProg: String =
     s"""module M
-       |@main def main(): Int = ((1 + 5) + 4) + (3 + 4)
-       |""".stripMargin
+      |@main def main(): Int = ((1 + 5) + 4) + (3 + 4)
+      |""".stripMargin
   test("deeper nested binary") {
     assertControlTraceSize(deeperNestedBinaryProg, "main")(6)
   }
@@ -310,9 +352,9 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   ignore("fold example") {
     val code: String =
       s"""module M
-         |def add(x: Int, y: Int): Int = x + y
-         |@main def main(): Int = fold(0, add, {1 + 1, 2 + 3, 3 + 4})
-         |""".stripMargin
+        |def add(x: Int, y: Int): Int = x + y
+        |@main def main(): Int = fold(0, add, {1 + 1, 2 + 3, 3 + 4})
+        |""".stripMargin
     assertControlTraceSize(code, "main")(6)
   }
 
@@ -320,21 +362,21 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   ignore("lambda example") {
     val code: String =
       s"""module M
-         |@main def main(): Int = ((x: Int) => x + 1)(4)
-         |""".stripMargin
+        |@main def main(): Int = ((x: Int) => x + 1)(4)
+        |""".stripMargin
     assertControlTraceSize(code, "main")(6)
   }
 
   val twoFunctionCallArgs: String = Code.module(
     ADT.Nat_code,
     s"""def plus(m: Nat, n: Nat): Nat = m match {
-       |  case Zero() => n
-       |  case Succ(pred) => Succ(plus(pred, n))
-       |}
-       |""".stripMargin,
+      |  case Zero() => n
+      |  case Succ(pred) => Succ(plus(pred, n))
+      |}
+      |""".stripMargin,
     s"""@main def main(x: Nat, y: Nat): Nat =
-       |  plus(Succ(Zero()), plus(x, y))
-       |""".stripMargin
+      |  plus(Succ(Zero()), plus(x, y))
+      |""".stripMargin
   )
   test("function with two call arguments") {
     assertControlTraceSize(twoFunctionCallArgs, "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(30)
@@ -343,20 +385,42 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   // Breakpoint tests
 
   test("test main function entry breakpoint") {
-    assertBreakpoints(Code.fibModule, Seq(_ => FunctionalBreakpoint(FunctionEntry("main"))), "main", q"3")(0)
+    assertBreakpoints(
+      Code.fibModule,
+      Seq(_ => FunctionalBreakpoint(FunctionEntry("main"))),
+      "main",
+      q"3"
+    )(0)
   }
   test("test function entry breakpoint") {
-    assertBreakpoints(Code.incModule, Seq(_ => FunctionalBreakpoint(FunctionEntry("inc"))), "main")(1)
+    assertBreakpoints(Code.incModule, Seq(_ => FunctionalBreakpoint(FunctionEntry("inc"))), "main")(
+      1
+    )
   }
   test("test function entry breakpoint of recursive function") {
-    assertBreakpoints(Code.fibModule, Seq(_ => FunctionalBreakpoint(FunctionEntry("fib"))), "main", q"3")(4)
+    assertBreakpoints(
+      Code.fibModule,
+      Seq(_ => FunctionalBreakpoint(FunctionEntry("fib"))),
+      "main",
+      q"3"
+    )(4)
   }
 
   test("test function exit breakpoint") {
-    assertBreakpoints(Code.fibModule, Seq(_ => FunctionalBreakpoint(FunctionExit("main"))), "main", q"3")(1)
+    assertBreakpoints(
+      Code.fibModule,
+      Seq(_ => FunctionalBreakpoint(FunctionExit("main"))),
+      "main",
+      q"3"
+    )(1)
   }
   test("test function exit breakpoint of recursive function") {
-    assertBreakpoints(Code.fibModule, Seq(_ => FunctionalBreakpoint(FunctionExit("fib"))), "main", q"3")(4)
+    assertBreakpoints(
+      Code.fibModule,
+      Seq(_ => FunctionalBreakpoint(FunctionExit("fib"))),
+      "main",
+      q"3"
+    )(4)
   }
 
   test("test function call argument breakpoint ") {
@@ -373,11 +437,11 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   val multipleIfsWithSameCond: String =
     s"""module M
-       |@main def main(n: Int): Int =
-       |  let x = (if (n == 0) 1 else 2) in
-       |    let y = (if (n == 0) 2 else 1) in
-       |      x + y
-       |""".stripMargin
+      |@main def main(n: Int): Int =
+      |  let x = (if (n == 0) 1 else 2) in
+      |    let y = (if (n == 0) 2 else 1) in
+      |      x + y
+      |""".stripMargin
   test("test if condition breakpoint where condition is occuring twice in program 1") {
     val expression = core.BaseApplyInfix(core.Var("n"), "==", core.BaseLit(q"0", core.TScalaInt))
     val bp = createBreakpointOfExpression("main", expression)
@@ -394,26 +458,34 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("test pattern breakpoint") {
     val pattern = core.ConstructorPattern(core.Name("Succ"), Seq(core.Name("pred")))
     val bp = createBreakpointOfPattern("plus", pattern)
-    assertBreakpoints(Code.plusRealModule, Seq(bp), "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(2)
+    assertBreakpoints(Code.plusRealModule, Seq(bp), "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(
+      2
+    )
   }
 
   test("test pattern breakpoint occuring multiple times 1") {
     val pattern = core.ConstructorPattern(core.Name("Var"), Seq(core.Name("x2")))
     val bp = createBreakpointOfPattern("main", pattern)
-    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(0)
+    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(
+      0
+    )
     assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Var("x")""", q"Num(1)")(1)
   }
   test("test pattern breakpoint occuring multiple times 2") {
     val pattern = core.ConstructorPattern(core.Name("Var"), Seq(core.Name("x2")))
     val bp = createBreakpointOfPattern("main", pattern, 1)
-    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(0)
+    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(
+      0
+    )
     assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Num(2)""", q"Num(1)")(1)
   }
   test("test pattern breakpoint occuring multiple times 3") {
     val pattern = core.ConstructorPattern(core.Name("Var"), Seq(core.Name("x2")))
     val bp = createBreakpointOfPattern("main", pattern, 2)
     assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Num(1)""", q"Num(1)")(0)
-    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(1)
+    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(
+      1
+    )
   }
 
   // test binding
@@ -436,23 +508,34 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("breakpoint in tuple") {
-    val expression = core.BaseApplyInfix(core.BaseLit(q"1", core.TScalaInt), "+", core.BaseLit(q"1", core.TScalaInt))
+    val expression = core.BaseApplyInfix(
+      core.BaseLit(q"1", core.TScalaInt),
+      "+",
+      core.BaseLit(q"1", core.TScalaInt)
+    )
     val bp = createBreakpointOfExpression("main", expression)
     assertBreakpoints(tupleProg, Seq(bp), "main")(1)
   }
 
   test("breakpoint in set") {
-    val expression = core.BaseApplyInfix(core.BaseLit(q"1", core.TScalaInt), "+", core.BaseLit(q"1", core.TScalaInt))
+    val expression = core.BaseApplyInfix(
+      core.BaseLit(q"1", core.TScalaInt),
+      "+",
+      core.BaseLit(q"1", core.TScalaInt)
+    )
     val bp = createBreakpointOfExpression("main", expression)
     assertBreakpoints(setProg, Seq(bp), "main")(1)
   }
 
   test("breakpoint in nested binary") {
-    val expression = core.BaseApplyInfix(core.BaseLit(q"1", core.TScalaInt), "+", core.BaseLit(q"4", core.TScalaInt))
+    val expression = core.BaseApplyInfix(
+      core.BaseLit(q"1", core.TScalaInt),
+      "+",
+      core.BaseLit(q"4", core.TScalaInt)
+    )
     val bp = createBreakpointOfExpression("main", expression)
     assertBreakpoints(nestedBinaryProg, Seq(bp), "main")(1)
   }
-
 
   // step out tests
   test("step out of function call") {
@@ -558,9 +641,9 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("step over nested function call of non-recursive function") {
     val code =
       s"""module M
-         |def inc(x: Int): Int = x + 1
-         |@main def main(): Int = inc(inc(0))
-         |""".stripMargin
+        |def inc(x: Int): Int = x + 1
+        |@main def main(): Int = inc(inc(0))
+        |""".stripMargin
     val compiledExample = compile(code)
     val debugger = initDebugger(compiledExample)
     debugger.entry("main")
@@ -579,9 +662,9 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("step over function call with multiple arguments as calls") {
     val code =
       s"""module M
-         |def add(x: Int, y: Int): Int = x + y
-         |@main def main(): Int = add(add(1, 2), add(3, add(4, 5)))
-         |""".stripMargin
+        |def add(x: Int, y: Int): Int = x + y
+        |@main def main(): Int = add(add(1, 2), add(3, add(4, 5)))
+        |""".stripMargin
     val compiledExample = compile(code)
     val debugger = initDebugger(compiledExample)
     debugger.entry("main")
@@ -626,4 +709,3 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
 }
-

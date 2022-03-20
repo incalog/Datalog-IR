@@ -1,7 +1,6 @@
 package inca.frontend.constraint.typechecker
 
 import inca.frontend.constraint.core._
-
 import scala.collection.immutable.MultiDict
 
 trait TypeContext extends TypeIO {
@@ -30,7 +29,7 @@ trait TypeContext extends TypeIO {
     vars += name -> ((decl, ty))
   }
 
-  def lookupVar(name: Name): Option[(Var.Target,Type)] =
+  def lookupVar(name: Name): Option[(Var.Target, Type)] =
     vars.get(name) match {
       case Some(entry) => Some(entry)
       case None =>
@@ -40,7 +39,6 @@ trait TypeContext extends TypeIO {
 
   def getBindings: Map[Name, Type] =
     vars.view.mapValues(_._2).toMap
-
 
   def bindFun(fun: PatternFunction, module: Module): Unit = {
     funs += fun.name -> ((module, fun))
@@ -56,10 +54,12 @@ trait TypeContext extends TypeIO {
       case set if set.size >= 2 =>
         val modules = set.toSeq.map(_._1)
         val modulesStr = modules.map(_.name).mkString(", ")
-        error(s"Ambiguous function call $name, found definitions in $modulesStr", (name +: modules): _*)
+        error(
+          s"Ambiguous function call $name, found definitions in $modulesStr",
+          (name +: modules): _*
+        )
         None
     }
-
 
   def bindModule(module: Module): Unit = {
     val name = module.name

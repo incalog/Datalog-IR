@@ -1,11 +1,12 @@
 package inca.frontend.constraint.extensions.ifThenElse
 
 import inca.frontend.constraint.core._
-import inca.frontend.constraint.desugar.{DesugarTrans, Desugarable}
+import inca.frontend.constraint.desugar.DesugarTrans
+import inca.frontend.constraint.desugar.Desugarable
+import inca.frontend.constraint.extensions.boolOps
 import inca.frontend.constraint.extensions.ifThenElse.Trees._
-import inca.frontend.constraint.extensions.{boolOps, switch_}
+import inca.frontend.constraint.extensions.switch_
 import inca.util.Gensym
-
 import scala.collection.mutable.ListBuffer
 
 object Desugaring extends Desugarable {
@@ -20,7 +21,8 @@ object Desugaring extends Desugarable {
         val thnBody = Body(desugarConditional(cond, Seq(), thn.stmts.flatMap(desugarStm)))
         val notconds = ListBuffer(Not(cond))
         val elseIfBodies = elseIfs.map { elseIf =>
-          val elseIfBody = Body(desugarConditional(elseIf.cond, notconds, elseIf.body.stmts.flatMap(desugarStm)))
+          val elseIfBody =
+            Body(desugarConditional(elseIf.cond, notconds, elseIf.body.stmts.flatMap(desugarStm)))
           notconds += Not(elseIf.cond)
           elseIfBody
         }
@@ -33,7 +35,11 @@ object Desugaring extends Desugarable {
       case _ => super.desugarStm(stm)
     }
 
-    def desugarConditional(cond: Expression, notconds: Iterable[Not], body: Seq[Statement]): Seq[Statement] =
+    def desugarConditional(
+        cond: Expression,
+        notconds: Iterable[Not],
+        body: Seq[Statement]
+      ): Seq[Statement] =
       notconds.toSeq.map(Assert) ++ Seq(Assert(cond)) ++ body
   }
 }

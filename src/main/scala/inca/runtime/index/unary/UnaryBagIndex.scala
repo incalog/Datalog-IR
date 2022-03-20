@@ -3,7 +3,6 @@ package inca.runtime.index.unary
 import inca.runtime.index.IndexKey
 import org.eclipse.collections.api.map.primitive.MutableObjectIntMap
 import org.eclipse.collections.impl.factory.primitive.ObjectIntMaps
-
 import scala.jdk.CollectionConverters._
 
 class UnaryBagIndex[V](val key: IndexKey[_]) extends UnaryIndex[V] {

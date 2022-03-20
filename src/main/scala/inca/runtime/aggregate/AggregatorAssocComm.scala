@@ -1,13 +1,12 @@
 package inca.runtime.aggregate
 
 import java.util.stream
-
 import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations.IMultisetAggregationOperator
-
 import scala.jdk.CollectionConverters._
 
 /** An aggregator for operations that are associative and commutative */
-class AggregatorAssocComm[V](val agg: Aggregation[V]) extends IMultisetAggregationOperator[V, AugmentedAVLTree[V], V] {
+class AggregatorAssocComm[V](val agg: Aggregation[V])
+    extends IMultisetAggregationOperator[V, AugmentedAVLTree[V], V] {
 
   override def getShortDescription: String = agg.name
   override def getName: String = agg.name
@@ -42,7 +41,8 @@ class AggregatorAssocComm[V](val agg: Aggregation[V]) extends IMultisetAggregati
     }
   }
 
-  override def contains(value: V, accumulator: AugmentedAVLTree[V]): Boolean = accumulator.find(value) != null
+  override def contains(value: V, accumulator: AugmentedAVLTree[V]): Boolean =
+    accumulator.find(value) != null
 
   override def aggregateStream(str: stream.Stream[V]): V =
     str.iterator().asScala.foldLeft(agg.init)(agg.join)

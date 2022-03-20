@@ -1,7 +1,10 @@
 package inca.frontend.functional.typecheck
 
 import inca.compiler.source.SourceString
-import inca.examples.functional.{AST, Code, ControlDataFlow, HigherOrder}
+import inca.examples.functional.AST
+import inca.examples.functional.Code
+import inca.examples.functional.ControlDataFlow
+import inca.examples.functional.HigherOrder
 import inca.frontend.functional.core.Module
 import inca.frontend.functional.parser.Parser
 import inca.frontend.functional.typechecker.Typechecker
@@ -9,7 +12,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class TypecheckerTest extends AnyFunSuite {
 
-  def newTypechecker(): Typechecker = new Typechecker { }
+  def newTypechecker(): Typechecker = new Typechecker {}
 
   def checkModule(mod: String): Unit = {
     checkModule(Parser.parse(SourceString(mod)))
@@ -102,7 +105,7 @@ class TypecheckerTest extends AnyFunSuite {
   test("transitive") {
     checkModule(HigherOrder.transitive)
   }
-  
+
   test("cflow") {
     checkModule(ControlDataFlow.cflowModule)
   }
@@ -126,49 +129,49 @@ class TypecheckerTest extends AnyFunSuite {
   test("parent call for adt") {
     val code =
       s"""module Test
-         |data Nat = Zero() | Succ(Nat)
-         |
-         |@main def main(): Option[Any] = parent(Zero())
-         |""".stripMargin
+        |data Nat = Zero() | Succ(Nat)
+        |
+        |@main def main(): Option[Any] = parent(Zero())
+        |""".stripMargin
     checkModule(code)
   }
 
   test("parent call wrong number of args") {
     val code =
       s"""module Test
-         |data Nat = Zero() | Succ(Nat)
-         |
-         |@main def main(): Option[Any] = parent(Zero(), Succ(Zero()))
-         |""".stripMargin
+        |data Nat = Zero() | Succ(Nat)
+        |
+        |@main def main(): Option[Any] = parent(Zero(), Succ(Zero()))
+        |""".stripMargin
     checkModuleErrors(code)
   }
 
   test("parent call for non adt") {
     val code =
       s"""module Test
-         |data Nat = Zero() | Succ(Nat)
-         |
-         |@main def main(): Option[Any] = parent(1)
-         |""".stripMargin
+        |data Nat = Zero() | Succ(Nat)
+        |
+        |@main def main(): Option[Any] = parent(1)
+        |""".stripMargin
     checkModuleErrors(code)
   }
 
   test("type cast for adt") {
     val code =
       s"""module Test
-         |data Nat = Zero() | Succ(Nat)
-         |
-         |@main def main(x: Any): Nat = x.as[Nat]
-         |""".stripMargin
+        |data Nat = Zero() | Succ(Nat)
+        |
+        |@main def main(x: Any): Nat = x.as[Nat]
+        |""".stripMargin
     checkModule(code)
   }
   test("type cast for non adt") {
     val code =
       s"""module Test
-         |data Nat = Zero() | Succ(Nat)
-         |
-         |@main def main(x: Any): Int = x.as[Int]
-         |""".stripMargin
+        |data Nat = Zero() | Succ(Nat)
+        |
+        |@main def main(x: Any): Int = x.as[Int]
+        |""".stripMargin
     checkModuleErrors(code)
   }
 

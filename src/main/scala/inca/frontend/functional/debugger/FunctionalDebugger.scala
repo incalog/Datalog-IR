@@ -1,25 +1,41 @@
 package inca.frontend.functional.debugger
 
+import inca.backend.hints.DataHints
 import inca.backend.hints.DebugHints.SourceConstruct
-import inca.backend.hints.{DataHints, MagicSetHints}
+import inca.backend.hints.MagicSetHints
 import inca.backend.hints.OptimizationHints.KeepPattern
 import inca.backend.ir.Datalog
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
+import inca.compiler.source.ExcerptAbsoluteRegion
+import inca.compiler.source.ExcerptRelativeRegion
+import inca.compiler.source.SourceObject
 import inca.compiler.CompiledDatalogModule
-import inca.compiler.source.{ExcerptAbsoluteRegion, ExcerptRelativeRegion, SourceObject}
-import inca.debugger.table.Table
 import inca.debugger._
+import inca.debugger.table.Table
 import inca.frontend.functional.compiler.CompiledFunctionalModule
-import inca.frontend.functional.core.{BaseLit, Expression, FunctionDef, If, Let, Match, Name, NoneExp, Pattern, SetExp, SomeExp, Tuple, Var}
-import inca.runtime.data.{MockURI, WrappedURI}
+import inca.frontend.functional.core.BaseLit
+import inca.frontend.functional.core.Expression
+import inca.frontend.functional.core.FunctionDef
+import inca.frontend.functional.core.If
+import inca.frontend.functional.core.Let
+import inca.frontend.functional.core.Match
+import inca.frontend.functional.core.Name
+import inca.frontend.functional.core.NoneExp
+import inca.frontend.functional.core.Pattern
+import inca.frontend.functional.core.SetExp
+import inca.frontend.functional.core.SomeExp
+import inca.frontend.functional.core.Tuple
+import inca.frontend.functional.core.Var
+import inca.runtime.data.MockURI
+import inca.runtime.data.WrappedURI
 import inca.util.Derivative
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
-import truechange.{JVMURI, URI}
-import truediff.Diffable
-
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import truechange.JVMURI
+import truechange.URI
+import truediff.Diffable
 
 final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends Debugger {
   {
@@ -52,10 +68,11 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     currentFunctionalPoint.foreach(_controlTraceFrontend += _)
   }
 
-  def getFunction(pat: Datalog.Pattern): Option[FunctionDef] = pat.getHint(SourceConstruct.key) match {
-    case Some(SourceConstruct(f: FunctionDef)) => Some(f)
-    case _ => None
-  }
+  def getFunction(pat: Datalog.Pattern): Option[FunctionDef] =
+    pat.getHint(SourceConstruct.key) match {
+      case Some(SourceConstruct(f: FunctionDef)) => Some(f)
+      case _ => None
+    }
 
   private val functionalPointDeriv: Derivative[CallStack, Option[FunctionalControlPoint]] =
     callStack.addDerivative[Option[FunctionalControlPoint]](_ => None) { stack =>
@@ -65,31 +82,33 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
         val cp = stack.top.cp
         val patPoint = cp.point
         getFunction(patPoint.pat) match {
-          case Some(fun) => patPoint.bodies match {
-            case BeforeList =>
-              // start of function
-              Some(FunctionPoint(fun, fun.name.sourceObject, cp))
-            case AtListElem(_, _, BodyPoint(_, atoms)) => atoms match {
-              case BeforeList => None
-              case AtListElem(_, _, AtomPoint(atom)) =>
-                atom.getHint(SourceConstruct.key) match {
-                  case Some(SourceConstruct(constr: Expression)) =>
-                    expressionPoint(constr).map(FunctionPoint(fun, _, cp))
-                  case Some(SourceConstruct((let: Let, v: String))) =>
-                    let.names.find(_.name == v).map(p => FunctionPoint(fun, p.sourceObject, cp))
-                  case Some(SourceConstruct((m: Match, constr: Pattern))) =>
-                    Some(MatchPoint(fun, m, constr, cp))
-                  case Some(SourceConstruct((cond: If, thenBranch: Boolean))) =>
-                    Some(ConditionPoint(fun, cond, thenBranch, cp))
-                  case _ =>
-                    None
+          case Some(fun) =>
+            patPoint.bodies match {
+              case BeforeList =>
+                // start of function
+                Some(FunctionPoint(fun, fun.name.sourceObject, cp))
+              case AtListElem(_, _, BodyPoint(_, atoms)) =>
+                atoms match {
+                  case BeforeList => None
+                  case AtListElem(_, _, AtomPoint(atom)) =>
+                    atom.getHint(SourceConstruct.key) match {
+                      case Some(SourceConstruct(constr: Expression)) =>
+                        expressionPoint(constr).map(FunctionPoint(fun, _, cp))
+                      case Some(SourceConstruct((let: Let, v: String))) =>
+                        let.names.find(_.name == v).map(p => FunctionPoint(fun, p.sourceObject, cp))
+                      case Some(SourceConstruct((m: Match, constr: Pattern))) =>
+                        Some(MatchPoint(fun, m, constr, cp))
+                      case Some(SourceConstruct((cond: If, thenBranch: Boolean))) =>
+                        Some(ConditionPoint(fun, cond, thenBranch, cp))
+                      case _ =>
+                        None
+                    }
+                  case AfterList => None
                 }
-              case AfterList => None
+              case AfterList =>
+                // end of function
+                Some(FunctionPoint(fun, fun.sourceObject, cp))
             }
-            case AfterList =>
-              // end of function
-              Some(FunctionPoint(fun, fun.sourceObject, cp))
-          }
           case None => None
         }
       }
@@ -136,10 +155,10 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
           (v, ScalaValue(v))
       }
     }.unzip
-    database.insert(demandPatternExtensionalPrefix + mainFun, Tuples.flatTupleOf(vals:_*))
+    database.insert(demandPatternExtensionalPrefix + mainFun, Tuples.flatTupleOf(vals: _*))
 
     val pattern = compiled.ir.patternMap(mainFun)
-    val adorn =  pattern.hints(MagicSetHints.Main.key).asInstanceOf[MagicSetHints.Main].adorn
+    val adorn = pattern.hints(MagicSetHints.Main.key).asInstanceOf[MagicSetHints.Main].adorn
     val inputParams = pattern.params.zip(adorn).filter(_._2).map(_._1.name)
     val inputTable = Table[Value](inputParams, Seq(debugVals))
     super.entry(mainFun, inputTable)
@@ -190,7 +209,9 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
           }
         }
       case None =>
-        throw IllegalDebugStateException("Functional debugger cannot be at non-functional control point")
+        throw IllegalDebugStateException(
+          "Functional debugger cannot be at non-functional control point"
+        )
     }
   }
 
@@ -215,7 +236,9 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
           stepInto()
         }
       case None =>
-        throw IllegalDebugStateException("Functional debugger cannot be at non-functional control point")
+        throw IllegalDebugStateException(
+          "Functional debugger cannot be at non-functional control point"
+        )
     }
   }
 
@@ -247,7 +270,9 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
 
       if (!condp.thenBranch) {
         // we're at the else branch, continue
-      } else if (currentPattern.name == currentPat && frame.cp.point.bodyIndex == currentBody && !frame.bodyTable.isEmpty) {
+      } else if (
+        currentPattern.name == currentPat && frame.cp.point.bodyIndex == currentBody && !frame.bodyTable.isEmpty
+      ) {
         // we're in the same body and didn't fail => condition succeeded
         if (!condp.fun.isRelation)
           skipElseBranches.head += condp.cond.sourceObject
@@ -299,7 +324,9 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
 
   @tailrec
   private def doSkipAheadTo(stopCond: SourceConstruct[_] => Boolean): Unit = {
-    val stop = frame.cp.point.atom.forall(_.getHint(SourceConstruct.key).exists(h => stopCond(h.asInstanceOf[SourceConstruct[_]])))
+    val stop = frame.cp.point.atom.forall(
+      _.getHint(SourceConstruct.key).exists(h => stopCond(h.asInstanceOf[SourceConstruct[_]]))
+    )
     if (!stop) {
       stepOverIR()
       // hide last point
@@ -310,7 +337,6 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     }
   }
 
-
   override protected def stepIntoIRCall(frame: Frame, atom: Datalog.Atom): Unit = atom match {
     case call: Datalog.Call =>
       val pattern = compiled.ir.patternMap(call.name)
@@ -318,7 +344,8 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
         // constructor or selector call
         val argsTable = tableOps.prepareArgTableOfCall(frame, pattern, call.args)
         val data = readDatabase(call.name, argsTable)
-        val nextTables = tableOps.transitionReturnCallTables(frame, pattern.params.map(_.name), data)
+        val nextTables =
+          tableOps.transitionReturnCallTables(frame, pattern.params.map(_.name), data)
         val next = frame.cp.stepOver.get
 
         controlPointFrontend match {
@@ -329,7 +356,8 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
               // pattern failed => go to next pattern
               nextPats.headOption.foreach { next =>
                 val skipToNextPat: SourceConstruct[_] => Boolean = {
-                  case SourceConstruct((m: Match, p: Pattern)) => m.sourceObject == ma.sourceObject && p.sourceObject == next._1.sourceObject
+                  case SourceConstruct((m: Match, p: Pattern)) =>
+                    m.sourceObject == ma.sourceObject && p.sourceObject == next._1.sourceObject
                   case _ => false
                 }
                 skipAheadTo = Some(skipToNextPat) :: skipAheadTo.tail
@@ -337,14 +365,15 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
             } else {
               // pattern succeeded => skip other patterns
               if (nextPats.nonEmpty)
-                skipAlternativePatterns.head += ma.sourceObject -> nextPats.map(_._1.sourceObject).toSet
+                skipAlternativePatterns.head += ma.sourceObject -> nextPats.map(
+                  _._1.sourceObject
+                ).toSet
             }
           case _ => // nothing
         }
 
         callStack.update(Frame(next, nextTables))
-      }
-      else
+      } else
         super.stepIntoIRCall(frame, atom)
     case _ => super.stepIntoIRCall(frame, atom)
   }
@@ -352,7 +381,8 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
   override def doPatternEntry(cp: ControlPoint): Unit = {
     skipElseBranches = mutable.Set[SourceObject]() :: skipElseBranches
     skipAheadTo = None :: skipAheadTo
-    skipAlternativePatterns = mutable.Map[SourceObject, Set[SourceObject]]() :: skipAlternativePatterns
+    skipAlternativePatterns =
+      mutable.Map[SourceObject, Set[SourceObject]]() :: skipAlternativePatterns
     super.doPatternEntry(cp)
   }
 
@@ -366,14 +396,11 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
   def controlPointFrontend: FunctionalControlPoint =
     currentFunctionalPoint.get
 
-
   def currentDebuggerInfo: String = {
     val sb = new StringBuilder
     sb ++= currentCallStack += '\n'
     sb ++= currentBindings += '\n'
-    currentCodeFunction.lines().map("  |  " + _).forEach( line =>
-      sb ++= line += '\n'
-    )
+    currentCodeFunction.lines().map("  |  " + _).forEach(line => sb ++= line += '\n')
     sb.toString()
   }
 
@@ -385,7 +412,9 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
 
   def currentCodeFunction: String = {
     val fp = controlPointFrontend
-    fp.point.loc.sourceExcerpt(ExcerptAbsoluteRegion(fp.fun.startIndex, fp.fun.endIndex)).linesColored
+    fp.point.loc.sourceExcerpt(
+      ExcerptAbsoluteRegion(fp.fun.startIndex, fp.fun.endIndex)
+    ).linesColored
   }
 
   def currentCallStack: String =

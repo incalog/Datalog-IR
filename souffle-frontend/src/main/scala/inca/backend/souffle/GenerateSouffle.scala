@@ -1,17 +1,35 @@
 package inca.backend.souffle
 
-import inca.backend.hints.DataHints.{DataType, Selector, SelectorKey}
-import inca.backend.hints.{DataHints, MagicSetHints}
+import inca.backend.hints.DataHints
+import inca.backend.hints.DataHints.DataType
+import inca.backend.hints.DataHints.Selector
+import inca.backend.hints.DataHints.SelectorKey
+import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.BodyMustFail
-import inca.backend.souffle.GenerateSouffle.{hasTypeRel, pathRel}
+import inca.backend.souffle.GenerateSouffle.hasTypeRel
+import inca.backend.souffle.GenerateSouffle.pathRel
 import inca.frontend.functional
-import inca.frontend.functional.core.{DataConstructor, DataDef, TData}
+import inca.frontend.functional.core.DataConstructor
+import inca.frontend.functional.core.DataDef
+import inca.frontend.functional.core.TData
 import inca.frontend.souffle.Syntax._
 import inca.runtime.context.DataModel
 import inca.runtime.data.MockURI
-import inca.util.{Scala, TupleOps}
-import truechange.{AnyType, Attach, Detach, EditScript, Load, NamedLink, NamedTag, RootLink, SortType, URI, Unload, Update}
+import inca.util.Scala
+import inca.util.TupleOps
+import truechange.AnyType
+import truechange.Attach
+import truechange.Detach
+import truechange.EditScript
+import truechange.Load
+import truechange.NamedLink
+import truechange.NamedTag
+import truechange.RootLink
+import truechange.SortType
+import truechange.URI
+import truechange.Unload
+import truechange.Update
 import truediff.Diffable
 
 class GenerateSouffle(dataModel: DataModel) {
@@ -20,23 +38,24 @@ class GenerateSouffle(dataModel: DataModel) {
   private var namedExtensionalRelations: Set[(String, Int)] = Set()
   private var relationDecls: Set[RuleSignature] = Set()
 
-
   def compileModule(module: Datalog.Module, datas: Seq[DataDef]): (String, Seq[Name]) = {
     val types = datas.map(compileDataDef)
     val rels = module.pats.flatMap(compilePattern)
-    val namedExtRels = namedExtensionalRelations.flatMap { case (n, i) => generateExtensionalRelation(n, i) }
+    val namedExtRels = namedExtensionalRelations.flatMap { case (n, i) =>
+      generateExtensionalRelation(n, i)
+    }
     val dataModelRels = compileDataModel(dataModel)
     val source = s"""
-       |${types.mkString("\n")}
-       |
-       |${rels.mkString("\n")}
-       |
-       |${namedExtRels.mkString("\n")}
-       |
-       |${dataModelRels.mkString("\n")}
-       |""".stripMargin
-    val inputs = (rels ++ namedExtRels ++ dataModelRels).collect {
-      case Input(rule, _, _) => rule
+      |${types.mkString("\n")}
+      |
+      |${rels.mkString("\n")}
+      |
+      |${namedExtRels.mkString("\n")}
+      |
+      |${dataModelRels.mkString("\n")}
+      |""".stripMargin
+    val inputs = (rels ++ namedExtRels ++ dataModelRels).collect { case Input(rule, _, _) =>
+      rule
     }
     (source, inputs)
   }
@@ -46,7 +65,9 @@ class GenerateSouffle(dataModel: DataModel) {
     val supertypes = model.directNodeSupertypes.get(truechange.SortType(ty))
 
     if (supertypes.size > 1) {
-      throw new IllegalArgumentException(s"Type ${ty} has more than one supertype: ${supertypes.mkString(", ")}")
+      throw new IllegalArgumentException(
+        s"Type ${ty} has more than one supertype: ${supertypes.mkString(", ")}"
+      )
     }
     supertypes.headOption match {
       case Some(truechange.SortType(sup)) => Name(sup)
@@ -57,25 +78,37 @@ class GenerateSouffle(dataModel: DataModel) {
   def compileDataModel(model: DataModel): Seq[SouffleContent] = {
     val tyRels = model.types.toSeq.flatMap { case truechange.SortType(name) =>
       val dataType = getDataTypeOfCotr(name, model)
-      val sig = RuleSignature(hasTypeRel(name), Seq(RuleParameter(Name("out"), DeclaredType(dataType))), false)
+      val sig = RuleSignature(
+        hasTypeRel(name),
+        Seq(RuleParameter(Name("out"), DeclaredType(dataType))),
+        false
+      )
       val input = Input(hasTypeRel(name), "", "")
       Seq(sig, input)
     }
-    val linkRels=  model.links.flatMap { case ((srcTy, field), trgTy) =>
+    val linkRels = model.links.flatMap { case ((srcTy, field), trgTy) =>
       val dataType = getDataTypeOfCotr(srcTy, model)
-      val sig = RuleSignature(pathRel(srcTy, field),
+      val sig = RuleSignature(
+        pathRel(srcTy, field),
         Seq(
           RuleParameter(Name("out"), DeclaredType(dataType)),
-          RuleParameter(Name("field"), DeclaredType(Name(trgTy.asInstanceOf[SortType].name)))), false)
+          RuleParameter(Name("field"), DeclaredType(Name(trgTy.asInstanceOf[SortType].name)))
+        ),
+        false
+      )
       val input = Input(pathRel(srcTy, field), "", "")
       Seq(sig, input)
     }
-    val litLinkRels=  model.litLinks.flatMap { case ((srcTy, field), trgTy) =>
+    val litLinkRels = model.litLinks.flatMap { case ((srcTy, field), trgTy) =>
       val dataType = getDataTypeOfCotr(srcTy, model)
-      val sig = RuleSignature(pathRel(srcTy, field),
+      val sig = RuleSignature(
+        pathRel(srcTy, field),
         Seq(
           RuleParameter(Name("out"), DeclaredType(dataType)),
-          RuleParameter(Name("field"), compileLitTruechangeType(trgTy))), false)
+          RuleParameter(Name("field"), compileLitTruechangeType(trgTy))
+        ),
+        false
+      )
       val input = Input(pathRel(srcTy, field), "", "")
       Seq(sig, input)
     }
@@ -97,8 +130,8 @@ class GenerateSouffle(dataModel: DataModel) {
     }
 
     s""".type ${data.name} =
-       |  ${constructors.mkString(" | ")}
-       |""".stripMargin
+      |  ${constructors.mkString(" | ")}
+      |""".stripMargin
   }
   def compileFunType(ty: functional.core.Type): String = ty match {
     case TData(name) => name.name
@@ -114,7 +147,11 @@ class GenerateSouffle(dataModel: DataModel) {
       return Seq()
     val patname = Name(pat.name)
 
-    val decl = RuleSignature(patname, pat.params.map(p => RuleParameter(Name(p.name), compileType(p.typ))), output = false)
+    val decl = RuleSignature(
+      patname,
+      pat.params.map(p => RuleParameter(Name(p.name), compileType(p.typ))),
+      output = false
+    )
     relationDecls += decl
 //    val nonExtensionalBodies = pat.bodies.filter(!_.atoms.exists(_.isInstanceOf[Datalog.Path]))
     val rules = pat.bodies.flatMap { body =>
@@ -129,7 +166,6 @@ class GenerateSouffle(dataModel: DataModel) {
     } else Seq()
     decl +: (output ++ rules)
   }
-
 
   def compileAtom(atom: Datalog.Atom): Seq[Seq[Statement]] = atom match {
     case Datalog.Call(name, args, _, neg) =>
@@ -146,31 +182,47 @@ class GenerateSouffle(dataModel: DataModel) {
     case Datalog.Compare(Datalog.NeqComparator, lhs, rhs) =>
       Seq(Seq(Equality(compileTerm(lhs), true, compileTerm(rhs))))
     case Datalog.Computed(lhs, computation) =>
-      compileComputation(computation).flatMap {
-        case (statements, term) =>
-          try { Some(statements ++ mkEquality(compileTerm(lhs), term)) }
-          catch { case BodyMustFail => None }
+      compileComputation(computation).flatMap { case (statements, term) =>
+        try { Some(statements ++ mkEquality(compileTerm(lhs), term)) }
+        catch { case BodyMustFail => None }
       }
     case Datalog.HasType(t, typ) =>
       typ match {
         case Datalog.TNode(typeName) =>
           Seq(Seq(RelationApplication(false, None, hasTypeRel(typeName), Seq(compileTerm(t)))))
-        case _ => throw new IllegalArgumentException(s"Do not suppport HasType of non-node type in $atom")
+        case _ =>
+          throw new IllegalArgumentException(s"Do not suppport HasType of non-node type in $atom")
       }
     case Datalog.Path(src, srcTy, link, trg, trgTy) =>
       link match {
         case Datalog.NamedLink(Datalog.TNode(typeName), field) =>
-          Seq(Seq(RelationApplication(false, None, pathRel(typeName, field), Seq(compileTerm(src), compileTerm(trg)))))
-        case _ => throw new IllegalArgumentException(s"Only NamedLink paths are supported, in $atom")
+          Seq(
+            Seq(
+              RelationApplication(
+                false,
+                None,
+                pathRel(typeName, field),
+                Seq(compileTerm(src), compileTerm(trg))
+              )
+            )
+          )
+        case _ =>
+          throw new IllegalArgumentException(s"Only NamedLink paths are supported, in $atom")
       }
-    case Datalog.NotHasType(t, typ) => throw new IllegalArgumentException(s"NotHasType not supported yet in $atom")
-    case Datalog.NoPath(t, ty, link, termIsSource) => throw new IllegalArgumentException(s"NoPath not supported yet in $atom")
-    case Datalog.Undef(t) => throw new IllegalArgumentException(s"Undef is not supported yet in $atom")
+    case Datalog.NotHasType(t, typ) =>
+      throw new IllegalArgumentException(s"NotHasType not supported yet in $atom")
+    case Datalog.NoPath(t, ty, link, termIsSource) =>
+      throw new IllegalArgumentException(s"NoPath not supported yet in $atom")
+    case Datalog.Undef(t) =>
+      throw new IllegalArgumentException(s"Undef is not supported yet in $atom")
     case _ => Seq()
   }
 
   import meta.quasiquotes._
-  def compileScalaTerm(term: meta.Term)(implicit subst: Map[String, Datalog.Term]): Seq[(Seq[Statement], Expression)] = term match {
+  def compileScalaTerm(
+      term: meta.Term
+    )(implicit subst: Map[String, Datalog.Term]
+    ): Seq[(Seq[Statement], Expression)] = term match {
     case meta.Term.Name(name) => Seq((Seq(), compileTerm(subst(name))))
     case meta.Lit.Int(v) => Seq((Seq(), NumberValue(v)))
     case meta.Lit.Boolean(true) => Seq((Seq(), NumberValue(1)))
@@ -178,27 +230,34 @@ class GenerateSouffle(dataModel: DataModel) {
     case meta.Lit.String(v) => Seq((Seq(), StringValue(v)))
     case meta.Lit.Double(v) => Seq((Seq(), FloatValue(v.toFloat)))
 
-    case meta.Term.Apply(fun, meta.Lit.String(name) :: q"Seq(..$args)" :: Nil) if fun.syntax == Scala.symbolOf[MockURI].syntax =>
+    case meta.Term.Apply(fun, meta.Lit.String(name) :: q"Seq(..$args)" :: Nil)
+        if fun.syntax == Scala.symbolOf[MockURI].syntax =>
       val compiledArgs = args.map {
         case meta.Term.Name(n) => Variable(Name(n))
-        case _ => throw new IllegalArgumentException(s"MockURI can only have variables as input: $term")
+        case _ =>
+          throw new IllegalArgumentException(s"MockURI can only have variables as input: $term")
       }
       Seq((Seq(), ADTValue(Name(name), compiledArgs)))
 
-    case meta.Term.ApplyInfix(e1, meta.Term.Name(op), _, e2::Nil) if builtInFunction.isDefinedAt(op) =>
-      for ((cons1, arg1) <- compileScalaTerm(e1);
-           (cons2, arg2) <- compileScalaTerm(e2))
-        yield (cons1 ++ cons2, BuiltInFunctionCall(builtInFunction(op), Seq(arg1, arg2)))
+    case meta.Term.ApplyInfix(e1, meta.Term.Name(op), _, e2 :: Nil)
+        if builtInFunction.isDefinedAt(op) =>
+      for {
+        (cons1, arg1) <- compileScalaTerm(e1)
+        (cons2, arg2) <- compileScalaTerm(e2)
+      } yield (cons1 ++ cons2, BuiltInFunctionCall(builtInFunction(op), Seq(arg1, arg2)))
 
-    case meta.Term.ApplyInfix(e1, meta.Term.Name(op), _, e2::Nil) if builtInComparator.isDefinedAt(op) =>
+    case meta.Term.ApplyInfix(e1, meta.Term.Name(op), _, e2 :: Nil)
+        if builtInComparator.isDefinedAt(op) =>
       val (posCompare, negCompare) = builtInComparator(op)
-      for ((cons1, arg1) <- compileScalaTerm(e1);
-           (cons2, arg2) <- compileScalaTerm(e2);
-           truth <- Seq(true, false))
-        yield if (truth)
-            (cons1 ++ cons2 :+ posCompare(arg1, arg2), NumberValue(1))
-          else
-            (cons1 ++ cons2 :+ negCompare(arg1, arg2), NumberValue(0))
+      for {
+        (cons1, arg1) <- compileScalaTerm(e1)
+        (cons2, arg2) <- compileScalaTerm(e2)
+        truth <- Seq(true, false)
+      } yield
+        if (truth)
+          (cons1 ++ cons2 :+ posCompare(arg1, arg2), NumberValue(1))
+        else
+          (cons1 ++ cons2 :+ negCompare(arg1, arg2), NumberValue(0))
   }
 
   def builtInFunction: PartialFunction[String, BuiltInFunction] = {
@@ -220,29 +279,30 @@ class GenerateSouffle(dataModel: DataModel) {
     case "!=" => (Equality(_, true, _), Equality(_, false, _))
   }
 
-
-  def compileComputation(computation: Datalog.Computation): Seq[(Seq[Statement], Expression)] = computation match {
-    case Datalog.Evaluation(evalArgs, _, fun) =>
-      val evalTerms = evalArgs.map(_._1)
-      val funParamNames = fun.tree.params.map(_.name.value)
-      implicit val subst: Map[String, Datalog.Term] = funParamNames.zip(evalTerms).toMap
-      compileScalaTerm(fun.tree.body)
-    case Datalog.CountAggregation(patName, args) =>
-      throw new IllegalArgumentException("Count Aggregation not supported yet")
-    case Datalog.CustomAggregation(typ, description, agg, patName, args, aggregatedColumn) =>
-      throw new IllegalArgumentException("CustomAggregation not supported yet")
-  }
+  def compileComputation(computation: Datalog.Computation): Seq[(Seq[Statement], Expression)] =
+    computation match {
+      case Datalog.Evaluation(evalArgs, _, fun) =>
+        val evalTerms = evalArgs.map(_._1)
+        val funParamNames = fun.tree.params.map(_.name.value)
+        implicit val subst: Map[String, Datalog.Term] = funParamNames.zip(evalTerms).toMap
+        compileScalaTerm(fun.tree.body)
+      case Datalog.CountAggregation(patName, args) =>
+        throw new IllegalArgumentException("Count Aggregation not supported yet")
+      case Datalog.CustomAggregation(typ, description, agg, patName, args, aggregatedColumn) =>
+        throw new IllegalArgumentException("CustomAggregation not supported yet")
+    }
 
   def compileTerm(term: Datalog.Term): Expression = term match {
     case Datalog.Var(name) => Variable(Name(name))
-    case Datalog.Constant(lit) => lit match {
-      case Datalog.IntLiteral(v) => NumberValue(v)
-      case Datalog.LongLiteral(v) => NumberValue(v.toInt)
-      case Datalog.DoubleLiteral(v) => FloatValue(v.toFloat)
-      case Datalog.StringLiteral(v) => StringValue(v)
-      case Datalog.BooleanLiteral(true) => NumberValue(1)
-      case Datalog.BooleanLiteral(false) => NumberValue(0)
-    }
+    case Datalog.Constant(lit) =>
+      lit match {
+        case Datalog.IntLiteral(v) => NumberValue(v)
+        case Datalog.LongLiteral(v) => NumberValue(v.toInt)
+        case Datalog.DoubleLiteral(v) => FloatValue(v.toFloat)
+        case Datalog.StringLiteral(v) => StringValue(v)
+        case Datalog.BooleanLiteral(true) => NumberValue(1)
+        case Datalog.BooleanLiteral(false) => NumberValue(0)
+      }
   }
 
   def compileType(ty: Datalog.Type): Type = ty match {
@@ -257,7 +317,9 @@ class GenerateSouffle(dataModel: DataModel) {
     case Datalog.TScalaDouble => FloatType
     case Datalog.TScalaString => SymbolType
     case ty if ty.hasHint(DataHints.DataTypeNameKey) =>
-      DeclaredType(Name(ty.hints(DataHints.DataTypeNameKey).asInstanceOf[DataHints.DataTypeName].name))
+      DeclaredType(
+        Name(ty.hints(DataHints.DataTypeNameKey).asInstanceOf[DataHints.DataTypeName].name)
+      )
     case _ => throw new IllegalArgumentException(ty.toString)
   }
 
@@ -269,13 +331,16 @@ class GenerateSouffle(dataModel: DataModel) {
           Input(Name(name), "", "")
         )
       case None =>
-        throw new IllegalArgumentException("There exists no input relation for the extensional relation")
+        throw new IllegalArgumentException(
+          "There exists no input relation for the extensional relation"
+        )
     }
   }
 
   def mkEquality(e1: Expression, e2: Expression): Option[Equality] = (e1, e2) match {
     case _ if e1 == e2 => None // always true
-    case (_: Variable, _) | (Wildcard, _) | (_, _: Variable) | (_, Wildcard) => Some(Equality(e1, false, e2))
+    case (_: Variable, _) | (Wildcard, _) | (_, _: Variable) | (_, Wildcard) =>
+      Some(Equality(e1, false, e2))
     case _ => throw BodyMustFail // no variable involved, but expressions differ => always false
   }
 }
@@ -305,7 +370,13 @@ object GenerateFacts {
     }
 
     edits.foreach {
-      case Attach(node, NamedTag(tag), RootLink, null, ptag) => // insert tuple into extensional input relation
+      case Attach(
+            node,
+            NamedTag(tag),
+            RootLink,
+            null,
+            ptag
+          ) => // insert tuple into extensional input relation
 //        rels = rels :+ mainRel -> Seq(uris(node))
       case Attach(node, NamedTag(tag), NamedLink(link), parent, ptag) if parent != null =>
         rels = rels :+ pathRel(tag, link) -> Seq(uris(node), uris(parent))
@@ -315,10 +386,12 @@ object GenerateFacts {
           val name = s"_$ix"
           kids.find(_._1 == name) match {
             case Some((_, uri)) => uris(uri)
-            case None => lits.find(_._1 == name) match {
-              case Some((_, lit)) => transLit(lit)
-              case None => throw new IllegalArgumentException(s"Could not find kid or lit for link _${ix}")
-            }
+            case None =>
+              lits.find(_._1 == name) match {
+                case Some((_, lit)) => transLit(lit)
+                case None =>
+                  throw new IllegalArgumentException(s"Could not find kid or lit for link _${ix}")
+              }
           }
         }
         val adt = ADTValue(Name(tag), args)
@@ -337,10 +410,8 @@ object GenerateFacts {
     }
 
     rels = rels :+ mainRel -> terms.map(transTerm)
-    rels.groupBy(_._1).map( kv => kv._1 -> kv._2.map(_._2)).toSeq
+    rels.groupBy(_._1).map(kv => kv._1 -> kv._2.map(_._2)).toSeq
   }
-
-
 
   private def transLit(lit: Any): Expression = lit match {
     case v: Integer => NumberValue(v)

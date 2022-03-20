@@ -5,16 +5,27 @@ import inca.backend.ir.Datalog.CustomAggregation
 import inca.compiler.CompiledModule
 import inca.debugger.table.Table
 import inca.runtime.db.Database
-import inca.runtime.index.{IndexKey, LinkListNextKey, LinkNodeKey, LinkPrimitiveKey, NamedRelationKey, NodeTypeKey}
 import inca.runtime.index.dynamic.ParentIndex
-import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
-import inca.util.{Gensym, Scala}
+import inca.runtime.index.virtual.NodeNotLinkedIndex
+import inca.runtime.index.virtual.NotNodeTypeIndex
+import inca.runtime.index.virtual.SizeIndex
+import inca.runtime.index.IndexKey
+import inca.runtime.index.LinkListNextKey
+import inca.runtime.index.LinkNodeKey
+import inca.runtime.index.LinkPrimitiveKey
+import inca.runtime.index.NamedRelationKey
+import inca.runtime.index.NodeTypeKey
+import inca.util.Gensym
+import inca.util.Scala
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
-import org.eclipse.viatra.query.runtime.matchers.tuple.{TupleMask, Tuples}
-
+import org.eclipse.viatra.query.runtime.matchers.tuple.TupleMask
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import scala.jdk.CollectionConverters._
 
-class TableOps(var database: Database, val compiled: CompiledModule, val fixpointState: FixpointState[Value]) {
+class TableOps(
+    var database: Database,
+    val compiled: CompiledModule,
+    val fixpointState: FixpointState[Value]) {
 
   // Needed to execute scala code via reflection
   private lazy val scalaCompiler = new Scala.ScalaCompiler()
@@ -28,14 +39,20 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
     scalaCompiler.compileAndLoadScala(source)
 
   // Methods to prepare frame tables for atoms that can jump into another pattern (calls and aggregations)
-  def prepareArgTableOfCall(frame: Frame, calledPattern: Datalog.Pattern, args: Seq[Datalog.Term]): Table[Value] = {
+  def prepareArgTableOfCall(
+      frame: Frame,
+      calledPattern: Datalog.Pattern,
+      args: Seq[Datalog.Term]
+    ): Table[Value] = {
     val params = calledPattern.params.map(_.name)
 
     // prepare argsTable
     val paramSubst = params.zip(args)
     val (varsBindings, constBindings) = paramSubst.partition(_._2.isInstanceOf[Datalog.Var])
     val varsBindingsCast = varsBindings.map { case (p, v) => (p, v.asInstanceOf[Datalog.Var]) }
-    val constBindingsCast = constBindings.map { case (p, v) => (p, v.asInstanceOf[Datalog.Constant]) }
+    val constBindingsCast = constBindings.map { case (p, v) =>
+      (p, v.asInstanceOf[Datalog.Constant])
+    }
     val columnsSubst = varsBindingsCast.map { case (p, v) => (v.name, p) }.toMap
     val projected = frame.bodyTable.project(varsBindingsCast.map(_._2.name))
     var argsTable = projected.renameColumns(columnsSubst)
@@ -46,16 +63,15 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
     argsTable
   }
 
-
   // methods to prepare frame tables for atoms that do not jump into another pattern (atom is not a call, or aggregation)
   def transitionAtomTables(frame: Frame, atom: Datalog.Atom): Table[Value] = atom match {
     case ht: Datalog.HasType =>
       transitionHasTypeTables(frame, ht)
     case nht: Datalog.NotHasType =>
       transitionNotHasTypeTables(frame, nht)
-    case comp@Datalog.Compare(Datalog.EqComparator, _, _) =>
+    case comp @ Datalog.Compare(Datalog.EqComparator, _, _) =>
       transitionEqCompTables(frame, comp)
-    case comp@Datalog.Compare(Datalog.NeqComparator, _, _) =>
+    case comp @ Datalog.Compare(Datalog.NeqComparator, _, _) =>
       transitionNeqCompTables(frame, comp)
     case p: Datalog.Path =>
       transitionPathTables(frame, p)
@@ -68,11 +84,14 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
     case Datalog.Computed(lhs, eval: Datalog.Evaluation) =>
       transitionEvalTables(frame, lhs, eval)
     case Datalog.Call(_, _, _, _) =>
-      throw IllegalDebugStateException(s"The function transitionAtomTables should not be called with call atom $atom")
+      throw IllegalDebugStateException(
+        s"The function transitionAtomTables should not be called with call atom $atom"
+      )
     case Datalog.Computed(_, _) =>
-      throw IllegalDebugStateException(s"The function transitionAtomTables should not be called with computed atom $atom")
+      throw IllegalDebugStateException(
+        s"The function transitionAtomTables should not be called with computed atom $atom"
+      )
   }
-
 
   // method to prepare frame tables of atoms that query unary edb relations (has type and not has type)
   def transitionHasTypeTables(frame: Frame, ht: Datalog.HasType): Table[Value] =
@@ -108,12 +127,12 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
         database.containsTuple(key, Tuples.staticArityFlatTupleOf(v))
       }
     } else {
-      val vals = database.enumerateValues(key, TupleMask.empty(0), Tuples.staticArityFlatTupleOf()).asScala
+      val vals =
+        database.enumerateValues(key, TupleMask.empty(0), Tuples.staticArityFlatTupleOf()).asScala
       val nameTable = Table[Value](Seq(col), vals.map(v => Seq(Value(v))))
       table.join(nameTable)
     }
   }
-
 
   // methods to prepare frame tables for atoms that query binary edb relations (path, nopath)
   def transitionPathTables(frame: Frame, p: Datalog.Path): Table[Value] = {
@@ -135,7 +154,12 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
     nextBodyTable
   }
 
-  def transitionBinaryIndexQueryBothBound(table: Table[Value], key: IInputKey, src: String, trg: String): Table[Value] = {
+  def transitionBinaryIndexQueryBothBound(
+      table: Table[Value],
+      key: IInputKey,
+      src: String,
+      trg: String
+    ): Table[Value] = {
     val idxL = table.columnIndex(src)
     val idxR = table.columnIndex(trg)
     table.filter { row =>
@@ -145,19 +169,41 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
     }
   }
 
-  def transitionBinaryIndexQueryOneBound(table: Table[Value], key: IInputKey, bound: String, unbound: String, isSourceBound: Boolean): Table[Value] = {
+  def transitionBinaryIndexQueryOneBound(
+      table: Table[Value],
+      key: IInputKey,
+      bound: String,
+      unbound: String,
+      isSourceBound: Boolean
+    ): Table[Value] = {
     val selectIdx = if (isSourceBound) 0 else 1
     val mask = TupleMask.selectSingle(selectIdx, 2)
     val boundIdx = table.columnIndex(bound)
-    table.expand(unbound, { row =>
-      val boundV = row(boundIdx).unwrap
-      val unboundURI = database.enumerateValues(key, mask, Tuples.staticArityFlatTupleOf(boundV)).iterator().next()
-      Value(unboundURI)
-    })
+    table.expand(
+      unbound,
+      { row =>
+        val boundV = row(boundIdx).unwrap
+        val unboundURI = database.enumerateValues(
+          key,
+          mask,
+          Tuples.staticArityFlatTupleOf(boundV)
+        ).iterator().next()
+        Value(unboundURI)
+      }
+    )
   }
 
-  def transitionBinaryIndexQueryUnbound(table: Table[Value], key: IndexKey[_], src: String, trg: String): Table[Value] = {
-    val rows = database.enumerateTuples(key, TupleMask.empty(2), Tuples.staticArityFlatTupleOf()).iterator().asScala.map { tuple =>
+  def transitionBinaryIndexQueryUnbound(
+      table: Table[Value],
+      key: IndexKey[_],
+      src: String,
+      trg: String
+    ): Table[Value] = {
+    val rows = database.enumerateTuples(
+      key,
+      TupleMask.empty(2),
+      Tuples.staticArityFlatTupleOf()
+    ).iterator().asScala.map { tuple =>
       val vL = tuple.get(0)
       val vR = tuple.get(1)
       Seq(Value(vL), Value(vR))
@@ -187,9 +233,13 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
         if (frame.bodyTable.isBound(name))
           transitionUnaryIndexTable(frame.bodyTable, name, key)
         else
-          throw IllegalDebugStateException("Cannot debug NoPath atom where the given variable is unbound")
+          throw IllegalDebugStateException(
+            "Cannot debug NoPath atom where the given variable is unbound"
+          )
       case Datalog.Constant(lit) =>
-        throw IllegalDebugStateException("Cannot debug NoPath atom where the given term is a constant")
+        throw IllegalDebugStateException(
+          "Cannot debug NoPath atom where the given term is a constant"
+        )
     }
     bodyTable
   }
@@ -241,7 +291,7 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
     }
     val extCallTable = Table(extCallColumns, extCallRows)
 
-    val extVarArgs = ext.args.collect { case Datalog.Var(name) => name}
+    val extVarArgs = ext.args.collect { case Datalog.Var(name) => name }
     frame.bodyTable.join(extCallTable.project(extVarArgs))
   }
 
@@ -256,7 +306,9 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
         else if (!bodyTable.isBound(name1) && bodyTable.isBound(name2))
           transitionEqCompOneBound(bodyTable, name2, name1)
         else
-          throw IllegalDebugStateException("Cannot debug eq comparator where both arguments are not bound")
+          throw IllegalDebugStateException(
+            "Cannot debug eq comparator where both arguments are not bound"
+          )
       case (Datalog.Var(name), Datalog.Constant(l)) =>
         if (bodyTable.isBound(name))
           transitionEqCompConstBound(bodyTable, name, transLiteral(l))
@@ -284,7 +336,11 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
     }
   }
 
-  def transitionEqCompOneBound(table: Table[Value], boundCol: String, unboundCol: String): Table[Value] = {
+  def transitionEqCompOneBound(
+      table: Table[Value],
+      boundCol: String,
+      unboundCol: String
+    ): Table[Value] = {
     val colIndex = table.columnIndex(boundCol)
     table.expand(unboundCol, row => row(colIndex))
   }
@@ -307,17 +363,23 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
         if (bodyTable.isBound(name1) && bodyTable.isBound(name2))
           transitionNeqCompBothBound(bodyTable, name1, name2)
         else
-          throw IllegalDebugStateException("Cannot debug neq comparator where one argument is not bound")
+          throw IllegalDebugStateException(
+            "Cannot debug neq comparator where one argument is not bound"
+          )
       case (Datalog.Var(name), Datalog.Constant(l)) =>
         if (bodyTable.isBound(name))
           transitionNeqCompOneConstant(bodyTable, name, transLiteral(l))
         else
-          throw IllegalDebugStateException("Cannot debug neq comparator where one argument is not bound")
+          throw IllegalDebugStateException(
+            "Cannot debug neq comparator where one argument is not bound"
+          )
       case (Datalog.Constant(l), Datalog.Var(name)) =>
         if (bodyTable.isBound(name))
           transitionNeqCompOneConstant(bodyTable, name, transLiteral(l))
         else
-          throw IllegalDebugStateException("Cannot debug neq comparator where one argument is not bound")
+          throw IllegalDebugStateException(
+            "Cannot debug neq comparator where one argument is not bound"
+          )
       case (Datalog.Constant(l1), Datalog.Constant(l2)) =>
         val v1 = transLiteral(l1)
         val v2 = transLiteral(l2)
@@ -342,7 +404,12 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
     }
   }
 
-  def transitionReturnCallTables(callerFrame: Frame, name: String, argsTable: Table[Value], neg: Boolean = false): Frame.Tables = {
+  def transitionReturnCallTables(
+      callerFrame: Frame,
+      name: String,
+      argsTable: Table[Value],
+      neg: Boolean = false
+    ): Frame.Tables = {
     val patternTable = fixpointState.relation(name, argsTable)
     val params = compiled.ir.patternMap(name).params.map(_.name)
     if (neg)
@@ -359,7 +426,11 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
     transitionReturnCallTables(callerFrame, params, patternTable)
   }
 
-  def transitionReturnCallTables(callerFrame: Frame, params: Seq[String], patternTable: Table[Value]): Frame.Tables = {
+  def transitionReturnCallTables(
+      callerFrame: Frame,
+      params: Seq[String],
+      patternTable: Table[Value]
+    ): Frame.Tables = {
     // join bodyTable of caller with pattern table of callee
     val (_, args) = callerFrame.cp.atom.asCall.get
     val callArgVars = args.collect { case Datalog.Var(name) => name }
@@ -377,7 +448,11 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
     transitionReturnNegCallTables(callerFrame, params, patternTable)
   }
 
-  def transitionReturnNegCallTables(callerFrame: Frame, params: Seq[String], patternTable: Table[Value]): Frame.Tables = {
+  def transitionReturnNegCallTables(
+      callerFrame: Frame,
+      params: Seq[String],
+      patternTable: Table[Value]
+    ): Frame.Tables = {
     // remove rows of caller bodyTable of that contains tuples of pattern table of callee
     val (_, args) = callerFrame.cp.atom.asCall.get
     val callArgVars = args.collect { case Datalog.Var(name) => name }
@@ -390,14 +465,23 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
     (callerFrame.argsTable, bodyTable)
   }
 
-  def transitionCountAggTables(callerFrame: Frame, patternTable: Table[Value], lhs: Datalog.Term): Frame.Tables = {
+  def transitionCountAggTables(
+      callerFrame: Frame,
+      patternTable: Table[Value],
+      lhs: Datalog.Term
+    ): Frame.Tables = {
     val count = patternTable.numRows
     transitionAggTables(callerFrame, lhs, ScalaValue(count))
   }
 
-  def transitionCustomAggTables(callerFrame: Frame, patternTable: Table[Value], lhs: Datalog.Term, agg: CustomAggregation) : Frame.Tables = {
-    val valsToAgg = patternTable.rows.map {
-      row => row(agg.aggregatedColumn).asScala
+  def transitionCustomAggTables(
+      callerFrame: Frame,
+      patternTable: Table[Value],
+      lhs: Datalog.Term,
+      agg: CustomAggregation
+    ): Frame.Tables = {
+    val valsToAgg = patternTable.rows.map { row =>
+      row(agg.aggregatedColumn).asScala
     }.toSeq
     val (initTerm, joinOpTerm) = getInitValueAndJoin(agg.agg)
     val initValue = executeScala(initTerm)
@@ -422,7 +506,10 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
             joinOp = Some(q"(..$params) => $body")
           case _ => // do nothing
         }
-      case _ => throw IllegalDebugStateException("Object created for aggregation is not of type Aggregation")
+      case _ =>
+        throw IllegalDebugStateException(
+          "Object created for aggregation is not of type Aggregation"
+        )
     }
     if (init.isEmpty || joinOp.isEmpty) {
       throw IllegalDebugStateException("Aggregation has no initial value or join operation defined")
@@ -459,7 +546,11 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
     case Datalog.BooleanLiteral(v) => ScalaValue(v)
   }
 
-  def transitionEvalTables(frame: Frame, lhs: Datalog.Term, eval: Datalog.Evaluation): Table[Value] = {
+  def transitionEvalTables(
+      frame: Frame,
+      lhs: Datalog.Term,
+      eval: Datalog.Evaluation
+    ): Table[Value] = {
     val bodyTable = frame.bodyTable
 
     val lhsValue: Seq[Value] => Value = lhs match {
@@ -467,8 +558,8 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
         if (bodyTable.isBound(name)) {
           val cix = bodyTable.columnIndex(name)
           row => row(cix)
-        } else {
-          _ => throw new IllegalArgumentException
+        } else { _ =>
+          throw new IllegalArgumentException
         }
       case Datalog.Constant(lit) =>
         val v = transLiteral(lit)
@@ -477,9 +568,12 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
 
     lhs match {
       case Datalog.Var(name) if !bodyTable.isBound(name) =>
-        bodyTable.expand(Seq(name), { row =>
-          Seq(executeScala(bodyTable, row, eval))
-        })
+        bodyTable.expand(
+          Seq(name),
+          { row =>
+            Seq(executeScala(bodyTable, row, eval))
+          }
+        )
       case _ =>
         bodyTable.filter { row =>
           val scalaValue = executeScala(bodyTable, row, eval)
@@ -489,18 +583,17 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
     }
   }
 
-
-
   def executeScala(table: Table[Value], row: Seq[Value], eval: Datalog.Evaluation): ScalaValue = {
     val argTerms = eval.evalArgs.map {
       case (Datalog.Var(v), ty) => s"""$$env("$v").asInstanceOf[${ty.asScala.syntax}]"""
-      case (Datalog.Constant(lit), _) => lit match {
-        case Datalog.IntLiteral(v) => v.toString
-        case Datalog.LongLiteral(v) => v.toString
-        case Datalog.DoubleLiteral(v) => v.toString
-        case Datalog.StringLiteral(v) => v.toString
-        case Datalog.BooleanLiteral(v) => v.toString
-      }
+      case (Datalog.Constant(lit), _) =>
+        lit match {
+          case Datalog.IntLiteral(v) => v.toString
+          case Datalog.LongLiteral(v) => v.toString
+          case Datalog.DoubleLiteral(v) => v.toString
+          case Datalog.StringLiteral(v) => v.toString
+          case Datalog.BooleanLiteral(v) => v.toString
+        }
     }
     val argsMap: Map[String, Any] = eval.evalArgs.flatMap {
       case (Datalog.Var(v), _) => Some(v -> row(table.columnIndex(v)).unwrap)
@@ -509,11 +602,12 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
 
     val funCode =
       s"""{ ($$env: Map[String, Any]) =>
-         |  import ${defintionObjSym}.${compiled.name}._
-         |  (${eval.code.syntax})(${argTerms.mkString(", ")})
-         |}""".stripMargin
+        |  import ${defintionObjSym}.${compiled.name}._
+        |  (${eval.code.syntax})(${argTerms.mkString(", ")})
+        |}""".stripMargin
 
-    val fun: Map[String, Any] => Any = scalaCompiler.compileAndLoadScala[Map[String, Any] => Any](funCode)
+    val fun: Map[String, Any] => Any =
+      scalaCompiler.compileAndLoadScala[Map[String, Any] => Any](funCode)
     ScalaValue(fun(argsMap))
   }
 

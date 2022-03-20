@@ -1,10 +1,11 @@
 package inca.backend.souffle
 
-import inca.examples.functional.{Code, ControlDataFlow}
-import inca.frontend.souffle.Syntax.{Name, cleanRuleName}
+import inca.examples.functional.Code
+import inca.examples.functional.ControlDataFlow
+import inca.frontend.souffle.Syntax.cleanRuleName
+import inca.frontend.souffle.Syntax.Name
 import inca.util.measurement.BenchmarkUtils.writeFile
 import org.scalatest.funsuite.AnyFunSuite
-
 
 class TestGenerateSouffle extends AnyFunSuite {
 
@@ -16,7 +17,12 @@ class TestGenerateSouffle extends AnyFunSuite {
 
   test("plus main input") {
     import scala.meta._
-    generateSouffle(rootDir + "/plus", Code.plusRealModule, "ext_input__main", Seq(q"Succ(Succ(Zero()))", q"Succ(Zero())"))
+    generateSouffle(
+      rootDir + "/plus",
+      Code.plusRealModule,
+      "ext_input__main",
+      Seq(q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    )
   }
 
   test("fib main input") {
@@ -25,7 +31,12 @@ class TestGenerateSouffle extends AnyFunSuite {
   }
 
   test("powerset dataflow analysis") {
-    generateSouffle(s"${rootDir}/dataflow/ex4", ControlDataFlow.IntValuesModule, "ext_input__final_var", Seq(ControlDataFlow.exampleDataflow4))
+    generateSouffle(
+      s"${rootDir}/dataflow/ex4",
+      ControlDataFlow.IntValuesModule,
+      "ext_input__final_var",
+      Seq(ControlDataFlow.exampleDataflow4)
+    )
   }
 
   def generateSouffle(dir: String, prog: String, extInput: String, input: Seq[meta.Term]): Unit = {

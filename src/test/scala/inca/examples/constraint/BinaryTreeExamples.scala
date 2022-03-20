@@ -3,8 +3,8 @@ package inca.examples.constraint
 import inca.frontend.constraint.executor.ConstraintExecutor
 import inca.runtime.context.DataModel
 import org.scalatest.funsuite.AnyFunSuite
-import truediff.Diffable
 import truediff.macros.diffable
+import truediff.Diffable
 
 // language definition (data model as case classes)
 // IMPORTANT needs to be a top-level definition
@@ -19,10 +19,9 @@ object BinaryTreeModel {
 
 class BinaryTreeExamples extends AnyFunSuite {
 
-
   test("different functions for binary trees") {
     val code =
-     s"""module BinaryTreeAnalyses
+      s"""module BinaryTreeAnalyses
         |datamodel inca.examples.constraint.BinaryTreeModel.model
         |
         |node inca.examples.constraint._
@@ -49,7 +48,8 @@ class BinaryTreeExamples extends AnyFunSuite {
     val loaded = ConstraintExecutor.loadAnalysis(code)
 
     val tree = BinaryNode(4, BinaryNode(2, LeafNode(), LeafNode()), LeafNode())
-    val tree2 = BinaryNode(4, BinaryNode(2, BinaryNode(1, LeafNode(), LeafNode()), LeafNode()), LeafNode())
+    val tree2 =
+      BinaryNode(4, BinaryNode(2, BinaryNode(1, LeafNode(), LeafNode()), LeafNode()), LeafNode())
     val res1 = loaded.execute(tree, "rootNode")
     assertResult(1)(res1.size)
     val res2 = loaded.update(tree2, "rootNode")

@@ -29,7 +29,8 @@ trait Value {
   def deepPrettyPrint(db: DatabaseInspector): String
 }
 case class ConstructorValue(name: String, args: Seq[Value]) extends Value {
-  override def deepPrettyPrint(db: DatabaseInspector): String = s"$name(${args.map(_.deepPrettyPrint(db)).mkString(", ")})"
+  override def deepPrettyPrint(db: DatabaseInspector): String =
+    s"$name(${args.map(_.deepPrettyPrint(db)).mkString(", ")})"
 }
 case class ScalaValue(v: Any) extends Value {
   override def deepPrettyPrint(db: DatabaseInspector): String = v.toString
@@ -41,4 +42,3 @@ case class URIValue(id: String) extends Value {
 object MockURI {
   val DEBUG_PRINT = true
 }
-

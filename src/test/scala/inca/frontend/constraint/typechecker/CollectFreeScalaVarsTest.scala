@@ -6,9 +6,18 @@ import inca.frontend.constraint.extensions
 import inca.runtime.context.DataModel
 import inca.util.Scala
 import org.scalatest.funsuite.AnyFunSuite
-
+import scala.meta.Case
+import scala.meta.Defn
+import scala.meta.Enumerator
+import scala.meta.Init
+import scala.meta.Lit
+import scala.meta.Mod
+import scala.meta.Pat
+import scala.meta.Term
 import scala.meta.Term._
-import scala.meta.{Case, Defn, Enumerator, Init, Lit, Mod, Pat, Term, Type, XtensionParseInputLike, XtensionQuasiquoteTerm}
+import scala.meta.Type
+import scala.meta.XtensionParseInputLike
+import scala.meta.XtensionQuasiquoteTerm
 
 class CollectFreeScalaVarsTest extends AnyFunSuite {
 
@@ -16,7 +25,8 @@ class CollectFreeScalaVarsTest extends AnyFunSuite {
 
   private val defValue = Defn.Val(Nil, List(Pat.Var(Name("value"))), None, Name("free"))
   private val defVar = Defn.Var(Nil, List(Pat.Var(Name("value"))), None, Some(Name("free")))
-  private val undefinedVar = Defn.Var(Nil, List(Pat.Var(Name("value"))),Some(Type.Name("Int")), None)
+  private val undefinedVar =
+    Defn.Var(Nil, List(Pat.Var(Name("value"))), Some(Type.Name("Int")), None)
 
   private val paramN = Param(Nil, Name("n"), Some(tInt), None)
 
@@ -491,23 +501,33 @@ class CollectFreeScalaVarsTest extends AnyFunSuite {
     vars.foreach(vt => typer.bindVar(core.Name(vt._1), new Var.Target {}, vt._2))
     typer.typecheck(eval)
   }
-  
-  test("test typecheck simple") {
 
+  test("test typecheck simple") {
 
     def check(eval: Eval, expected: core.Type, vars: Map[String, core.Type] = Map()): Unit = {
       val actual = checkEval(eval, vars)
       assert(actual == expected)
     }
-    check(Eval(Seq(EvalParam(core.Name("x")), EvalParam(core.Name("y"))), Scala(q"x + y")), TScalaInt, Map("x" -> TLiteral.Int, "y" -> TLiteral.Int))
+    check(
+      Eval(Seq(EvalParam(core.Name("x")), EvalParam(core.Name("y"))), Scala(q"x + y")),
+      TScalaInt,
+      Map("x" -> TLiteral.Int, "y" -> TLiteral.Int)
+    )
     check(Eval(Seq.empty, Scala(q"Math.PI")), TScalaDouble)
-    check(Eval(Seq(EvalParam(core.Name("x")), EvalParam(core.Name("y"))), Scala(q"x == y")), TScalaBoolean, Map("x" -> TLiteral.Bool, "y" -> TLiteral.Bool))
+    check(
+      Eval(Seq(EvalParam(core.Name("x")), EvalParam(core.Name("y"))), Scala(q"x == y")),
+      TScalaBoolean,
+      Map("x" -> TLiteral.Bool, "y" -> TLiteral.Bool)
+    )
     check(Eval(Seq.empty, Scala(q""" "hello world" """)), TScalaString)
     check(Eval(Seq.empty, Scala(q"{val s: Short = 1; s}")), TScala("Short"))
     check(Eval(Seq.empty, Scala(q"println()")), TUnit)
-    check(Eval(Seq(EvalParam(core.Name("s"))), Scala(q"s")), TScalaString, Map("s" -> TLiteral.String))
+    check(
+      Eval(Seq(EvalParam(core.Name("s"))), Scala(q"s")),
+      TScalaString,
+      Map("s" -> TLiteral.String)
+    )
   }
-
 
   test("test typecheck tuple") {
     val eval = Eval(Seq.empty, Scala(q"(1, 1.0, true)"))
@@ -526,7 +546,17 @@ class CollectFreeScalaVarsTest extends AnyFunSuite {
     val code = q"""(42, 6.9, true, ("hello", 2), "world") """
     val eval = Eval(Seq.empty, Scala(code))
     val typ = checkEval(eval)
-    assert(typ == TTuple(Seq(TScalaInt, TScalaDouble, TScalaBoolean, TTuple(Seq(TScalaString, TScalaInt)), TScalaString)))
+    assert(
+      typ == TTuple(
+        Seq(
+          TScalaInt,
+          TScalaDouble,
+          TScalaBoolean,
+          TTuple(Seq(TScalaString, TScalaInt)),
+          TScalaString
+        )
+      )
+    )
   }
 
   test("test typecheck subtyping") {

@@ -68,10 +68,16 @@ class AugmentedAVLTree[T](op: (T, T) => T)(implicit ord: Ordering[T]) {
     this
   }
 
-  def remove(node: AugmentedAVLNode[T], value: T, removeAll: Boolean, mustBePresent: Boolean): AugmentedAVLNode[T] = {
+  def remove(
+      node: AugmentedAVLNode[T],
+      value: T,
+      removeAll: Boolean,
+      mustBePresent: Boolean
+    ): AugmentedAVLNode[T] = {
     var currentNode = node
     if (currentNode == null) {
-      if (mustBePresent) throw new IllegalArgumentException(s"Sought node $currentNode was not present!")
+      if (mustBePresent)
+        throw new IllegalArgumentException(s"Sought node $currentNode was not present!")
       else null
     } else {
       val res = ord.compare(value, currentNode.value)
@@ -128,7 +134,6 @@ class AugmentedAVLTree[T](op: (T, T) => T)(implicit ord: Ordering[T]) {
     }
   }
 
-
   def leftMostLeaf(node: AugmentedAVLNode[T]): AugmentedAVLNode[T] = {
     var current = node
     while (current.lhs != null) {
@@ -163,8 +168,8 @@ class AugmentedAVLTree[T](op: (T, T) => T)(implicit ord: Ordering[T]) {
     lhs
   }
 
-  def find(value: T):  AugmentedAVLNode[T] = find(root, value)
-  def find(node: AugmentedAVLNode[T], value: T):  AugmentedAVLNode[T] = {
+  def find(value: T): AugmentedAVLNode[T] = find(root, value)
+  def find(node: AugmentedAVLNode[T], value: T): AugmentedAVLNode[T] = {
     if (node == null) null
     else {
       val res = ord.compare(value, node.value)
@@ -195,7 +200,6 @@ object AugmentedAVLTree {
   }
 }
 
-
 class AugmentedAVLNode[T](var value: T, op: (T, T) => T) {
 
   var _parent: AugmentedAVLNode[T] = _
@@ -211,18 +215,18 @@ class AugmentedAVLNode[T](var value: T, op: (T, T) => T) {
   }
 
   def lhs_=(node: AugmentedAVLNode[T]): Unit = {
-    if (_lhs ==  null ||  _lhs != node) {
+    if (_lhs == null || _lhs != node) {
       _lhs = node
-      if (_lhs  != null)
+      if (_lhs != null)
         _lhs.parent = this
       lhsChanged(node)
     }
   }
 
   def rhs_=(node: AugmentedAVLNode[T]): Unit = {
-    if (_rhs ==  null ||  _rhs != node) {
+    if (_rhs == null || _rhs != node) {
       _rhs = node
-      if (_rhs  != null)
+      if (_rhs != null)
         _rhs.parent = this
       rhsChanged(node)
     }

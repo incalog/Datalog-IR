@@ -2,17 +2,18 @@ package inca.frontend.souffle
 
 import inca.backend.analyze.DependencyGraph
 import inca.compiler.source.SourceFile
-import inca.frontend.souffle.lowering.{SouffleInputToEditscript, SouffleToDatalogIR}
+import inca.frontend.souffle.lowering.SouffleInputToEditscript
+import inca.frontend.souffle.lowering.SouffleToDatalogIR
 import inca.frontend.souffle.parser.Parser
+import inca.runtime.context.QueryScope
 import inca.runtime.EnginePool
 import inca.runtime.Query.Matcher
-import inca.runtime.context.QueryScope
 import inca.util.measurement.MemoryUtil
-import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, TimelyReteBackendFactory}
+import java.io.File
+import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
+import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.flatspec.AnyFlatSpec
 import truechange.EditScript
-
-import java.io.File
 
 class TestSouffleVarPointsTo extends AnyFlatSpec {
   val expectedTupleCount = Map(
@@ -53,21 +54,28 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
       editScript.edits
     }
     val endLoadFactFiles = System.currentTimeMillis()
-    println(s"Load fact files: ${endLoadFactFiles-startLoadFactFiles}ms")
+    println(s"Load fact files: ${endLoadFactFiles - startLoadFactFiles}ms")
 
     val editScript = EditScript(edits.toSeq)
     println(editScript.size)
-
 
     val RUNS = 1
 
     for (run <- 1 to RUNS) {
       val queryScope = new QueryScope(compiledModule.dataModel, Seq())
-      val (engine, database) = EnginePool.loadEngineAndDatabase(queryScope, DRedReteBackendFactory.INSTANCE)
+      val (engine, database) =
+        EnginePool.loadEngineAndDatabase(queryScope, DRedReteBackendFactory.INSTANCE)
 
       def getMatcher(fun: String): Matcher = {
-        val querySpec = psModule.patterns.getOrElse(fun, throw new IllegalArgumentException(s"Function $fun undefined in module."))
-        EnginePool.loadQuery(querySpec(), queryScope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+        val querySpec = psModule.patterns.getOrElse(
+          fun,
+          throw new IllegalArgumentException(s"Function $fun undefined in module.")
+        )
+        EnginePool.loadQuery(
+          querySpec(),
+          queryScope,
+          TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL
+        )
       }
 
       val matchers = compiledModule.printSizes.map(ps => getMatcher(ps.name.name))
