@@ -8,6 +8,7 @@ object DataHints {
   val DataTypeKey = "DATA_TYPE"
   val IDBConstructorKey = "IDB_DATA_CONSTRUCTOR"
   val DataTypeNameKey = "Data_Type_Name"
+
   /**
    * The annotated pattern represents a constructor.
    */

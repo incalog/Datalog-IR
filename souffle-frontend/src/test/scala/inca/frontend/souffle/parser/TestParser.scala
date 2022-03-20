@@ -9,7 +9,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 class TestParser extends AnyFlatSpec {
 
   val parser: Parser = new Parser(NoSource)
-  
+
   "parsing" should " parse identifier " in {
     assertResult(Name("?abc"))(parse("?abc", parser.identifier(_)).get.value)
     assertResult(Name("abc"))(parse("abc", parser.identifier(_)).get.value)
@@ -58,22 +58,18 @@ class TestParser extends AnyFlatSpec {
     assertResult(
       Syntax.BuiltInFunctionCall(
         Syntax.CatBuiltInFunction,
-        Seq(
-          Syntax.Variable(Name("s1")),
-          Syntax.Variable(Name("s2"))))
+        Seq(Syntax.Variable(Name("s1")), Syntax.Variable(Name("s2")))
+      )
     )(parse("cat(s1, s2)", parser.BuiltInFunctionCall(_)).get.value)
 
     assertResult(
       Syntax.BuiltInFunctionCall(
         Syntax.CatBuiltInFunction,
-        Seq(
-          Syntax.Wildcard,
-          Syntax.Variable(Name("s2"))))
+        Seq(Syntax.Wildcard, Syntax.Variable(Name("s2")))
+      )
     )(parse("cat(_, s2)", parser.BuiltInFunctionCall(_)).get.value)
     assertResult(
-      Syntax.BuiltInFunctionCall(
-        Syntax.CatBuiltInFunction,
-        Seq(Syntax.NumberValue(123)))
+      Syntax.BuiltInFunctionCall(Syntax.CatBuiltInFunction, Seq(Syntax.NumberValue(123)))
     )(parse("cat(123)", parser.BuiltInFunctionCall(_)).get.value)
 
     assertResult(false)(parse("cat(c, ", parser.BuiltInFunctionCall(_)).isSuccess)
@@ -84,17 +80,11 @@ class TestParser extends AnyFlatSpec {
 
   "parsing" should " parse statements" in {
     assertResult(
-      Syntax.Equality(
-        Syntax.Variable(Name("x")),
-        not = false,
-        Syntax.Variable(Name("y")))
+      Syntax.Equality(Syntax.Variable(Name("x")), not = false, Syntax.Variable(Name("y")))
     )(parse("x = y", parser.Statement(_)).get.value)
 
     assertResult(
-      Syntax.Equality(
-        Syntax.Variable(Name("x")),
-        not = true,
-        Syntax.StringValue("abc"))
+      Syntax.Equality(Syntax.Variable(Name("x")), not = true, Syntax.StringValue("abc"))
     )(parse("x != \"abc\"", parser.Statement(_)).get.value)
 
     assertResult(
@@ -141,10 +131,7 @@ class TestParser extends AnyFlatSpec {
     assertResult(
       Syntax.RuleHead(
         Name("_Rule"),
-        Seq(
-          Syntax.Variable(Name("x")),
-          Syntax.Variable(Name("y")),
-          Syntax.Variable(Name("z")))
+        Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y")), Syntax.Variable(Name("z")))
       )
     )(parse("_Rule(x, y, z)", parser.RuleHead(_)).get.value)
 
@@ -159,41 +146,75 @@ class TestParser extends AnyFlatSpec {
       Syntax.RuleDefinition(
         Seq(
           Syntax.RuleHead(
-          Name("Rule"),
-          Seq(
-            Syntax.Variable(Name("x")),
-            Syntax.Variable(Name("y")))
+            Name("Rule"),
+            Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y")))
           )
         ),
-        Syntax.RuleBody(Seq(
-          Syntax.RelationApplication(false, None, Name("Rule1"), Seq(Syntax.Variable(Name("x")))),
-          Syntax.Equality(Syntax.Variable(Name("y")), false, Syntax.BuiltInFunctionCall(Syntax.CatBuiltInFunction, Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y"))))),
-          Syntax.RelationApplication(true, None, Name("Rule3"), Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y"))))
-        ))
+        Syntax.RuleBody(
+          Seq(
+            Syntax.RelationApplication(false, None, Name("Rule1"), Seq(Syntax.Variable(Name("x")))),
+            Syntax.Equality(
+              Syntax.Variable(Name("y")),
+              false,
+              Syntax.BuiltInFunctionCall(
+                Syntax.CatBuiltInFunction,
+                Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y")))
+              )
+            ),
+            Syntax.RelationApplication(
+              true,
+              None,
+              Name("Rule3"),
+              Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y")))
+            )
+          )
+        )
       )
-    )(parse("Rule(x, y) :- Rule1(x), y = cat(x, y), !Rule3(x, y).", parser.RuleDefinition(_)).get.value)
+    )(
+      parse(
+        "Rule(x, y) :- Rule1(x), y = cat(x, y), !Rule3(x, y).",
+        parser.RuleDefinition(_)
+      ).get.value
+    )
 
     assertResult(
       Syntax.RuleDefinition(
         Seq(
           Syntax.RuleHead(
             Name("Rule"),
-            Seq(
-              Syntax.Variable(Name("x")),
-              Syntax.Variable(Name("y")))
+            Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y")))
           ),
           Syntax.RuleHead(
             Name("Rule4"),
             Seq(Syntax.Variable(Name("y")))
           )
         ),
-        Syntax.RuleBody(Seq(
-          Syntax.RelationApplication(false, None, Name("Rule1"), Seq(Syntax.Variable(Name("x")))),
-          Syntax.Equality(Syntax.Variable(Name("y")), false, Syntax.BuiltInFunctionCall(Syntax.CatBuiltInFunction, Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y"))))),
-          Syntax.RelationApplication(true, None, Name("Rule3"), Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y"))))
-        ))
+        Syntax.RuleBody(
+          Seq(
+            Syntax.RelationApplication(false, None, Name("Rule1"), Seq(Syntax.Variable(Name("x")))),
+            Syntax.Equality(
+              Syntax.Variable(Name("y")),
+              false,
+              Syntax.BuiltInFunctionCall(
+                Syntax.CatBuiltInFunction,
+                Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y")))
+              )
+            ),
+            Syntax.RelationApplication(
+              true,
+              None,
+              Name("Rule3"),
+              Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y")))
+            )
+          )
+        )
       )
-    )(parse("Rule(x, y), Rule4(y) :- Rule1(x), y = cat(x, y), !Rule3(x, y).", parser.RuleDefinition(_)).get.value)
+    )(
+      parse(
+        "Rule(x, y), Rule4(y) :- Rule1(x), y = cat(x, y), !Rule3(x, y).",
+        parser.RuleDefinition(_)
+      ).get.value
+    )
 
     assertResult(false)(parse("Rule(x, y)", parser.RuleDefinition(_)).isSuccess)
     assertResult(false)(parse(":- R(x).", parser.RuleDefinition(_)).isSuccess)
@@ -208,40 +229,74 @@ class TestParser extends AnyFlatSpec {
         Seq(
           Syntax.RuleHead(
             Name("Rule"),
-            Seq(
-              Syntax.Variable(Name("x")),
-              Syntax.Variable(Name("y")))
+            Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y")))
           )
         ),
-        Syntax.RuleBody(Seq(
-          Syntax.RelationApplication(false, None, Name("Rule1"), Seq(Syntax.Variable(Name("x")))),
-          Syntax.Equality(Syntax.Variable(Name("y")), false, Syntax.BuiltInFunctionCall(Syntax.CatBuiltInFunction, Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y"))))),
-          Syntax.RelationApplication(true, None, Name("Rule3"), Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y"))))
-        ))
+        Syntax.RuleBody(
+          Seq(
+            Syntax.RelationApplication(false, None, Name("Rule1"), Seq(Syntax.Variable(Name("x")))),
+            Syntax.Equality(
+              Syntax.Variable(Name("y")),
+              false,
+              Syntax.BuiltInFunctionCall(
+                Syntax.CatBuiltInFunction,
+                Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y")))
+              )
+            ),
+            Syntax.RelationApplication(
+              true,
+              None,
+              Name("Rule3"),
+              Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y")))
+            )
+          )
+        )
       )
-    )(parse("Rule(x, y) :- Rule1(x), y = cat(x, y), !Rule3(x, y).", parser.RuleDefinition(_)).get.value)
+    )(
+      parse(
+        "Rule(x, y) :- Rule1(x), y = cat(x, y), !Rule3(x, y).",
+        parser.RuleDefinition(_)
+      ).get.value
+    )
 
     assertResult(
       Syntax.RuleDefinition(
         Seq(
           Syntax.RuleHead(
             Name("Rule"),
-            Seq(
-              Syntax.Variable(Name("x")),
-              Syntax.Variable(Name("y")))
+            Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y")))
           ),
           Syntax.RuleHead(
             Name("Rule4"),
             Seq(Syntax.Variable(Name("y")))
           )
         ),
-        Syntax.RuleBody(Seq(
-          Syntax.RelationApplication(false, None, Name("Rule1"), Seq(Syntax.Variable(Name("x")))),
-          Syntax.Equality(Syntax.Variable(Name("y")), false, Syntax.BuiltInFunctionCall(Syntax.CatBuiltInFunction, Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y"))))),
-          Syntax.RelationApplication(true, None, Name("Rule3"), Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y"))))
-        ))
+        Syntax.RuleBody(
+          Seq(
+            Syntax.RelationApplication(false, None, Name("Rule1"), Seq(Syntax.Variable(Name("x")))),
+            Syntax.Equality(
+              Syntax.Variable(Name("y")),
+              false,
+              Syntax.BuiltInFunctionCall(
+                Syntax.CatBuiltInFunction,
+                Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y")))
+              )
+            ),
+            Syntax.RelationApplication(
+              true,
+              None,
+              Name("Rule3"),
+              Seq(Syntax.Variable(Name("x")), Syntax.Variable(Name("y")))
+            )
+          )
+        )
       )
-    )(parse("Rule(x, y), Rule4(y) :- Rule1(x), y = cat(x, y), !Rule3(x, y).", parser.RuleDefinition(_)).get.value)
+    )(
+      parse(
+        "Rule(x, y), Rule4(y) :- Rule1(x), y = cat(x, y), !Rule3(x, y).",
+        parser.RuleDefinition(_)
+      ).get.value
+    )
 
     assertResult(false)(parse("Rule(x, y)", parser.RuleDefinition(_)).isSuccess)
     assertResult(false)(parse(":- R(x).", parser.RuleDefinition(_)).isSuccess)
@@ -253,15 +308,46 @@ class TestParser extends AnyFlatSpec {
   "parsing" should " input" in {
     assertResult(
       Syntax.Input(Name("Rule"), "path", "\n")
-    )(parse(".input Rule(IO=\"file\", filename=\"path\", delimiter=\"\n\")", parser.Input(_)).get.value)
+    )(
+      parse(
+        ".input Rule(IO=\"file\", filename=\"path\", delimiter=\"\n\")",
+        parser.Input(_)
+      ).get.value
+    )
 
-    assertResult(false)(parse(".input Rule(OI=\"file\", filename=\"path\", delimiter=\"\n\")", parser.Input(_)).isSuccess)
-    assertResult(false)(parse(".input Rule(IO=\"x\", filename=\"path\", delimiter=\"\n\")", parser.Input(_)).isSuccess)
-    assertResult(false)(parse(".input Rule(IO=\"file\", filname=\"path\", delimiter=\"\n\")", parser.Input(_)).isSuccess)
-    assertResult(false)(parse(".input Rule(IO=\"file\", filename=\"path\", delimitr=\"\n\")", parser.Input(_)).isSuccess)
-    assertResult(false)(parse(".input Rule(IO=\"file, filename=\"path\", delimiter=\"\n\")", parser.Input(_)).isSuccess)
-    assertResult(false)(parse(".input Rule(IO=\"file, filename=path\", delimiter=\"\n\")", parser.Input(_)).isSuccess)
-    assertResult(false)(parse(".input Rule(IO=\"file, filename=path\", delimiter=\n\")", parser.Input(_)).isSuccess)
+    assertResult(false)(
+      parse(
+        ".input Rule(OI=\"file\", filename=\"path\", delimiter=\"\n\")",
+        parser.Input(_)
+      ).isSuccess
+    )
+    assertResult(false)(
+      parse(".input Rule(IO=\"x\", filename=\"path\", delimiter=\"\n\")", parser.Input(_)).isSuccess
+    )
+    assertResult(false)(
+      parse(
+        ".input Rule(IO=\"file\", filname=\"path\", delimiter=\"\n\")",
+        parser.Input(_)
+      ).isSuccess
+    )
+    assertResult(false)(
+      parse(
+        ".input Rule(IO=\"file\", filename=\"path\", delimitr=\"\n\")",
+        parser.Input(_)
+      ).isSuccess
+    )
+    assertResult(false)(
+      parse(
+        ".input Rule(IO=\"file, filename=\"path\", delimiter=\"\n\")",
+        parser.Input(_)
+      ).isSuccess
+    )
+    assertResult(false)(
+      parse(".input Rule(IO=\"file, filename=path\", delimiter=\"\n\")", parser.Input(_)).isSuccess
+    )
+    assertResult(false)(
+      parse(".input Rule(IO=\"file, filename=path\", delimiter=\n\")", parser.Input(_)).isSuccess
+    )
   }
 
   "parsing" should " output" in {
@@ -287,7 +373,8 @@ class TestParser extends AnyFlatSpec {
         Seq(
           Syntax.RuleParameter(Name("x"), Syntax.SymbolType),
           Syntax.RuleParameter(Name("y"), Syntax.NumberType),
-          Syntax.RuleParameter(Name("z"), Syntax.DeclaredType(Name("Var")))),
+          Syntax.RuleParameter(Name("z"), Syntax.DeclaredType(Name("Var")))
+        ),
         false
       )
     )(parse(".decl Rule(x: symbol, y: number, z: Var)", parser.RuleSignature(_)).get.value)
@@ -319,18 +406,27 @@ class TestParser extends AnyFlatSpec {
     )(parse(".comp Comp { }", parser.ComponentDefinition(_)).get.value)
 
     assertResult(
-      Syntax.ComponentDefinition(Name("Comp"),
+      Syntax.ComponentDefinition(
+        Name("Comp"),
         Seq(
           Syntax.TypeDeclaration(Name("T"), None),
-          Syntax.RuleSignature(Name("R"), Seq(
-           Syntax.RuleParameter(Name("x"), Syntax.DeclaredType(Name("T"))),
-           Syntax.RuleParameter(Name("y"), Syntax.DeclaredType(Name("T")))
-          ), false)
+          Syntax.RuleSignature(
+            Name("R"),
+            Seq(
+              Syntax.RuleParameter(Name("x"), Syntax.DeclaredType(Name("T"))),
+              Syntax.RuleParameter(Name("y"), Syntax.DeclaredType(Name("T")))
+            ),
+            false
+          )
         )
       )
-    )(parse(".comp Comp { .type T \n.decl R(x: T, y: T) }", parser.ComponentDefinition(_)).get.value)
+    )(
+      parse(".comp Comp { .type T \n.decl R(x: T, y: T) }", parser.ComponentDefinition(_)).get.value
+    )
 
-    assertResult(false)(parse(".comp Comp { .type T \n.decl R(x: T, y: T) ", parser.ComponentDefinition(_)).isSuccess)
+    assertResult(false)(
+      parse(".comp Comp { .type T \n.decl R(x: T, y: T) ", parser.ComponentDefinition(_)).isSuccess
+    )
   }
 
   "parsing" should " component initialization" in {
@@ -347,7 +443,11 @@ class TestParser extends AnyFlatSpec {
     assertResult(
       Seq(
         Syntax.TypeDeclaration(Name("T"), None),
-        Syntax.RuleSignature(Name("R"), Seq(Syntax.RuleParameter(Name("x"), Syntax.SymbolType)), false),
+        Syntax.RuleSignature(
+          Name("R"),
+          Seq(Syntax.RuleParameter(Name("x"), Syntax.SymbolType)),
+          false
+        ),
         Syntax.ComponentInitialization(Name("Comp"), Name("Other"))
       )
     )(parse(".type T\n.decl R(x: symbol)\n .init Comp = Other", parser.Analysis(_)).get.value)
@@ -355,10 +455,13 @@ class TestParser extends AnyFlatSpec {
     assertResult(
       Seq(
         Syntax.TypeDeclaration(Name("T"), None),
-        Syntax.ComponentDefinition(Name("R"), Seq(
-          Syntax.TypeDeclaration(Name("X"), None),
-          Syntax.TypeDeclaration(Name("Y"), None)
-        )),
+        Syntax.ComponentDefinition(
+          Name("R"),
+          Seq(
+            Syntax.TypeDeclaration(Name("X"), None),
+            Syntax.TypeDeclaration(Name("Y"), None)
+          )
+        )
       )
     )(parse(".type T\n.comp R {\n.type X\n.type Y \n}", parser.Analysis(_)).get.value)
 

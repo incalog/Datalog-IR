@@ -1,11 +1,9 @@
 package inca.frontend.constraint.typechecker
 
 import inca.compiler
-import inca.compiler.CompilationMessage
 import inca.compiler.source.SourceLocation
-
+import inca.compiler.CompilationMessage
 import scala.collection.mutable.ListBuffer
-
 
 /* The Typechecker results */
 trait TypeIO {

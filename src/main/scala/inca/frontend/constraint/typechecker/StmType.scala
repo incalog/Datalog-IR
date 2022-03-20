@@ -19,4 +19,3 @@ sealed trait StmType {
 }
 case object NoYield extends StmType
 case class Yields(ty: Type) extends StmType
-

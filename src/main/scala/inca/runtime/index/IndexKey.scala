@@ -3,11 +3,13 @@ package inca.runtime.index
 import inca.runtime.context.DataModel.Link
 import inca.runtime.index.virtual.VirtualIndexFactory
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
-import truechange.{LitType, Type}
+import truechange.LitType
+import truechange.Type
 
 sealed trait IndexKey[T] extends IInputKey {
   override def toString: String = getPrettyPrintableName
   override def getPrettyPrintableName: String = getStringID
+
   /** See isStateless in [[org.eclipse.viatra.query.runtime.matchers.context.IQueryMetaContext]]. */
   def isStateless: Boolean = false
 }

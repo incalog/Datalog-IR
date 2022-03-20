@@ -5,7 +5,6 @@ import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.runtime.context.QueryScope
 import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec
-
 import scala.language.implicitConversions
 
 class TestCast extends AnyFlatSpec with IncaConstraintMatchers {
@@ -18,14 +17,31 @@ class TestCast extends AnyFlatSpec with IncaConstraintMatchers {
   val dataModel = Exp.model
   val scope: QueryScope = new QueryScope(Exp.model)
   val options: ConstraintOptions = ConstraintOptions()
-  
+
   "compiler" should "implement cast semantics" in {
-    val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "integerlits", Seq(), TNode(Exp.expTag), Seq(Body(Seq(
-        Values("e", TNode(Exp.expTag)),
-        Yield(Cast(Var("e"), TNode(Exp.intTag)))
-      ))))
-    ))
+    val module = Module(
+      "Test_Cast",
+      Seq(DirectDataModel(Exp.model)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "integerlits",
+          Seq(),
+          TNode(Exp.expTag),
+          Seq(
+            Body(
+              Seq(
+                Values("e", TNode(Exp.expTag)),
+                Yield(Cast(Var("e"), TNode(Exp.intTag)))
+              )
+            )
+          )
+        )
+      )
+    )
 
     val input = {
       import Exp._
@@ -48,6 +64,5 @@ class TestCast extends AnyFlatSpec with IncaConstraintMatchers {
       assert(matcher.getAllMatches.size() == 5)
     }
   }
-
 
 }

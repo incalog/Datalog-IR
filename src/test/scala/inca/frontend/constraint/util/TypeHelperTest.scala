@@ -18,7 +18,10 @@ class TypeHelperTest extends AnyFunSuite {
 
   test("test decode TTuple") {
     checkEq("(Int, Double)", TTuple(Seq(TScalaInt, TScalaDouble)))
-    checkEq("(String, Boolean, (Int, Double))", TTuple(Seq(TScalaString, TScalaBoolean, TTuple(Seq(TScalaInt, TScalaDouble)))))
+    checkEq(
+      "(String, Boolean, (Int, Double))",
+      TTuple(Seq(TScalaString, TScalaBoolean, TTuple(Seq(TScalaInt, TScalaDouble))))
+    )
   }
 
   test("test decode TNodes") {
@@ -34,7 +37,10 @@ class TypeHelperTest extends AnyFunSuite {
 
   test("test decode strip traits") {
     checkEq("Hello with Product", TScala("Hello with Product"))
-    checkEq("inca.Nat with Product with SuperProduct", TScala("inca.Nat with Product with SuperProduct"))
+    checkEq(
+      "inca.Nat with Product with SuperProduct",
+      TScala("inca.Nat with Product with SuperProduct")
+    )
   }
 
   private def checkEq(name: String, exp: Type): Unit = {

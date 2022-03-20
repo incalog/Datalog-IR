@@ -16,4 +16,3 @@ trait ScalaTypeContext extends TypeContext with ScalaTyper {
     t
   }
 }
-

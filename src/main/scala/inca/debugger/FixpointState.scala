@@ -2,7 +2,6 @@ package inca.debugger
 
 import inca.backend.ir.Datalog
 import inca.debugger.table.Table
-
 import scala.collection.mutable
 
 class FixpointState[V](patterns: Map[String, Datalog.Pattern]) {

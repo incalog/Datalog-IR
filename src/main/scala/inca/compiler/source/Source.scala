@@ -1,7 +1,7 @@
 package inca.compiler.source
 
-import java.nio.file.{Files, Path}
-
+import java.nio.file.Files
+import java.nio.file.Path
 import scala.jdk.StreamConverters._
 
 /** A source */

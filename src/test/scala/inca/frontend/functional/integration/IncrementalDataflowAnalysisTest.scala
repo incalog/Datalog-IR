@@ -3,8 +3,8 @@ package inca.frontend.functional.integration
 import inca.examples.functional.ControlDataFlow
 import inca.frontend.functional.executor.IncrementalFunctionalExecutor._
 import inca.runtime.EnginePool
-import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.Ignore
 
 @Ignore
 class IncrementalDataflowAnalysisTest extends AnyFunSuite {
@@ -38,10 +38,20 @@ class IncrementalDataflowAnalysisTest extends AnyFunSuite {
     testIncrementalRun(ControlDataFlow.exampleDataflow8, ControlDataFlow.exampleDataflow8Change2)
   }
   test("Mininmal loop, add skip after increment") {
-    testIncrementalRun(ControlDataFlow.exampleDataflow8, ControlDataFlow.exampleDataflow8Change3, 5, 1000)
+    testIncrementalRun(
+      ControlDataFlow.exampleDataflow8,
+      ControlDataFlow.exampleDataflow8Change3,
+      5,
+      1000
+    )
   }
   test("Mininmal loop, add skip before increment") {
-    testIncrementalRun(ControlDataFlow.exampleDataflow8, ControlDataFlow.exampleDataflow8Change4, 5, 1000)
+    testIncrementalRun(
+      ControlDataFlow.exampleDataflow8,
+      ControlDataFlow.exampleDataflow8Change4,
+      5,
+      1000
+    )
   }
 
   // fast update time tests
@@ -55,8 +65,15 @@ class IncrementalDataflowAnalysisTest extends AnyFunSuite {
     testIncrementalRun(ControlDataFlow.exampleDataflow1, ControlDataFlow.exampleDataflow1Change6)
   }
 
-  def testIncrementalRun(original: meta.Term, changed: meta.Term, intervalBound: Int = this.defaultIntervalBound, intervalInfty: Int = this.defaultIntervalInfty): Unit = {
-    val compiled = compileFunction(ControlDataFlow.ParametricIntValuesModule(intervalBound, intervalInfty))
+  def testIncrementalRun(
+      original: meta.Term,
+      changed: meta.Term,
+      intervalBound: Int = this.defaultIntervalBound,
+      intervalInfty: Int = this.defaultIntervalInfty
+    ): Unit = {
+    val compiled = compileFunction(
+      ControlDataFlow.ParametricIntValuesModule(intervalBound, intervalInfty)
+    )
 
     for (_ <- 0 until 5) {
       val fun = loadFunction(compiled)
@@ -65,7 +82,6 @@ class IncrementalDataflowAnalysisTest extends AnyFunSuite {
       println(s"Initial ${load / 1000 / 1000}, ${insert / 1000 / 1000}, ${delete / 1000 / 1000}")
     }
     EnginePool.disposeAllEngines()
-
 
     val fun = loadFunction(compiled)
 //    println(fun.compiled.optimized)

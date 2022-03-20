@@ -1,8 +1,12 @@
 package inca.util
 
 import scala.collection.mutable
+import scala.meta.Import
+import scala.meta.Importee
+import scala.meta.Importer
 import scala.meta.Name.Indeterminate
-import scala.meta.{Import, Importee, Importer, Term, Type}
+import scala.meta.Term
+import scala.meta.Type
 import scala.reflect.ClassTag
 
 class Scala[+T <: meta.Tree](val tree: T) {
@@ -27,10 +31,10 @@ object Scala {
 
   val TAB = "  "
 
-  def typeOf[T:ClassTag](implicit tag: ClassTag[T]): Type.Ref =
+  def typeOf[T: ClassTag](implicit tag: ClassTag[T]): Type.Ref =
     mkQualTypename(tag.runtimeClass.getCanonicalName)
 
-  def symbolOf[T:ClassTag](implicit tag: ClassTag[T]): Term =
+  def symbolOf[T: ClassTag](implicit tag: ClassTag[T]): Term =
     mkQualName(tag.runtimeClass.getCanonicalName)
 
   def symbolOf(o: Any): Term = {
@@ -46,7 +50,7 @@ object Scala {
     t
   }
 
-  def importOf[T:ClassTag](implicit tag: ClassTag[T]): Import =
+  def importOf[T: ClassTag](implicit tag: ClassTag[T]): Import =
     mkImport(tag.runtimeClass.getCanonicalName)
 
   def importOf(o: Any): Import = {
@@ -70,10 +74,9 @@ object Scala {
       var qual: Term.Ref = Term.Name(ss(0))
       for (i <- 1 until (ss.length - 1))
         qual = Term.Select(qual, Term.Name(ss(i)))
-      Type.Select(qual, Type.Name(ss(ss.length-1)))
+      Type.Select(qual, Type.Name(ss(ss.length - 1)))
     }
   }
-
 
   private val compilerCache: mutable.Map[String, () => Any] = mutable.Map()
   def compileAndLoadScala[A](source: String): () => A = {
@@ -93,10 +96,12 @@ object Scala {
   }
 
   class ScalaCompiler {
-    import reflect.runtime.{currentMirror, universe}
+    import reflect.runtime.currentMirror
+    import reflect.runtime.universe
     import tools.reflect.ToolBox
 
-    private val toolbox: ToolBox[universe.type] = currentMirror.mkToolBox(options = "-Ymacro-annotations")
+    private val toolbox: ToolBox[universe.type] =
+      currentMirror.mkToolBox(options = "-Ymacro-annotations")
 
     private val compilerCache: mutable.Map[String, Any] = mutable.Map()
 

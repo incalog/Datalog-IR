@@ -2,7 +2,6 @@ package inca.frontend.constraint.core
 
 import inca.compiler.source.SourceLocation
 
-
 trait Statement extends SourceLocation {
   def boundVars: Set[Name]
   def allVars: Map[Name, Option[Type]]

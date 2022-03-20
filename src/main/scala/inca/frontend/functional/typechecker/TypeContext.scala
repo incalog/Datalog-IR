@@ -1,7 +1,6 @@
 package inca.frontend.functional.typechecker
 
 import inca.frontend.functional.core._
-
 import scala.collection.immutable.MultiDict
 
 trait TypeContext extends TypeIO {
@@ -28,7 +27,7 @@ trait TypeContext extends TypeIO {
     vars += name -> ((decl, ty))
   }
 
-  def lookupVar(name: Name): Option[(Var.Target,Type)] =
+  def lookupVar(name: Name): Option[(Var.Target, Type)] =
     vars.get(name) match {
       case Some(entry) => Some(entry)
       case None =>
@@ -38,7 +37,10 @@ trait TypeContext extends TypeIO {
           case set if set.size >= 2 =>
             val modules = set.toSeq.map(_._1)
             val modulesStr = modules.map(_.name).mkString(", ")
-            error(s"Ambiguous call to $name, found definitions in $modulesStr", (name +: modules): _*)
+            error(
+              s"Ambiguous call to $name, found definitions in $modulesStr",
+              (name +: modules): _*
+            )
             None
           case _ =>
             error(s"Unbound variable $name", name)
@@ -51,7 +53,6 @@ trait TypeContext extends TypeIO {
 
   def getBindings: Map[Name, Type] =
     vars.view.mapValues(_._2).toMap
-
 
   def bindFun(fun: FunctionDef, module: Module): Unit = {
     funs += fun.name -> ((module, (fun, fun.funType)))
@@ -66,16 +67,17 @@ trait TypeContext extends TypeIO {
         val modulesStr = modules.map(_.name).mkString(", ")
         error(s"Ambiguous call to $name, found definitions in $modulesStr", (name +: modules): _*)
         None
-      case set if set.isEmpty => vars.get(name) match {
-        case Some((trg, ty: TFun)) =>
-          Some((trg, ty))
-        case Some((_, ty)) =>
-          error(s"Variable $name has type $ty, but required function type")
-          None
-        case None =>
-          error(s"Unbound name $name", name)
-          None
-      }
+      case set if set.isEmpty =>
+        vars.get(name) match {
+          case Some((trg, ty: TFun)) =>
+            Some((trg, ty))
+          case Some((_, ty)) =>
+            error(s"Variable $name has type $ty, but required function type")
+            None
+          case None =>
+            error(s"Unbound name $name", name)
+            None
+        }
 
     }
 

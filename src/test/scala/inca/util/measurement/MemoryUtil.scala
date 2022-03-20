@@ -9,13 +9,12 @@ object MemoryUtil {
     total - free
   }
 
-
   def collectGarbage(): Unit = {
-    System.gc ()
+    System.gc()
     try {
-      Thread.sleep (2000)
+      Thread.sleep(2000)
     } catch {
-     case e: IOException => e.printStackTrace ()
+      case e: IOException => e.printStackTrace()
     }
   }
 

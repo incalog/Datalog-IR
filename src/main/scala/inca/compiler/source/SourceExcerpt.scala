@@ -8,7 +8,8 @@ sealed trait ExcerptConfig {
 }
 case class ExcerptRelativeRegion(linesBefore: Int, linesAfter: Int) extends ExcerptConfig {
   override def computeExcerpt(pre: String, core: String, post: String): (String, String, String) = {
-    val preLines = pre.reverse.lines().toScala(Iterator).take(linesBefore + 1).map(_.reverse).toArray.reverse
+    val preLines =
+      pre.reverse.lines().toScala(Iterator).take(linesBefore + 1).map(_.reverse).toArray.reverse
     val postLines = post.lines().toScala(Iterator).take(linesAfter + 1).toArray
     val preLine = preLines.mkString("\n")
     val postLine = postLines.mkString("\n")
@@ -22,7 +23,8 @@ case class ExcerptAbsoluteRegion(startIndex: Int, endIndex: Int) extends Excerpt
     (preLine, core, postLine.stripTrailing())
   }
 }
-case class PaddedRegion(leftPad: String, config: ExcerptConfig, rightPad: String) extends ExcerptConfig {
+case class PaddedRegion(leftPad: String, config: ExcerptConfig, rightPad: String)
+    extends ExcerptConfig {
   override def computeExcerpt(pre: String, core: String, post: String): (String, String, String) = {
     val (preS, coreS, postS) = config.computeExcerpt(pre, core, post)
     (leftPad + preS, coreS, postS + rightPad)

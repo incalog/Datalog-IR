@@ -2,17 +2,18 @@ package inca.debugger
 
 import inca.backend.analyze.DependencyGraph
 import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.{CountAggregation, CustomAggregation}
+import inca.backend.ir.Datalog.CountAggregation
+import inca.backend.ir.Datalog.CustomAggregation
 import inca.compiler.CompiledModule
 import inca.debugger.table.Table
 import inca.runtime.db.Database
 import inca.runtime.Query
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
-import truechange.{EditScript, URI}
-
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
+import truechange.EditScript
+import truechange.URI
 
 trait Debugger extends DebuggerAPI {
   // Datalog program information
@@ -21,11 +22,10 @@ trait Debugger extends DebuggerAPI {
 
   // Extensional database stuff
   protected var database: Database = _
-  private var engine: AdvancedViatraQueryEngine =  _
+  private var engine: AdvancedViatraQueryEngine = _
   protected var tableOps: TableOps = _
 
   // Debugger state
-
 
   def currentFrameBreakpoint(cp: ControlPoint): BreakpointIR = {
     val height = callStack.size
@@ -52,8 +52,6 @@ trait Debugger extends DebuggerAPI {
 
   // we store the derived tuples for a given pattern before executing the pattern to check if we reached a fixpoint
   private var lastDerivedTuples: Table[Value] = _
-
-
 
   // Accessor methods of debugger state
 
@@ -86,7 +84,6 @@ trait Debugger extends DebuggerAPI {
     fixpointState = new FixpointState[Value](compiled.ir.patternMap)
     tableOps = new TableOps(database, compiled, fixpointState)
   }
-
 
 //  val scope = new QueryScope(compiled.dataModel)
 //  val (_engine, _database) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
@@ -176,20 +173,28 @@ trait Debugger extends DebuggerAPI {
           callStack.push(Frame(callee, query, query))
         case None =>
           val patternTable = fixpointState.relation(agg.patName, argTable)
-          val next = frame.cp.stepIntra.getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+          val next = frame.cp.stepIntra.getOrElse(
+            throw IllegalDebugStateException(
+              "Cannot have non-atom frame below pattern end frame on call stack"
+            )
+          )
           val tables = tableOps.transitionCountAggTables(frame, patternTable, lhs)
           callStack.update(Frame(next, tables))
       }
     case Datalog.Computed(lhs, agg: Datalog.CustomAggregation) =>
       val pattern = compiled.ir.patternMap(agg.patName)
-      val argTable = tableOps. prepareArgTableOfCall(frame, pattern, agg.args)
+      val argTable = tableOps.prepareArgTableOfCall(frame, pattern, agg.args)
       fixpointState.addQuery(agg.patName, argTable) match {
         case Some(query) =>
           val callee = ControlPoint(PatternPoint(pattern, BeforeList))
           callStack.push(Frame(callee, query, query))
         case None =>
           val patternTable = fixpointState.relation(agg.patName, argTable)
-          val next = frame.cp.stepIntra.getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+          val next = frame.cp.stepIntra.getOrElse(
+            throw IllegalDebugStateException(
+              "Cannot have non-atom frame below pattern end frame on call stack"
+            )
+          )
           val tables = tableOps.transitionCustomAggTables(frame, patternTable, lhs, agg)
           callStack.update(Frame(next, tables))
       }
@@ -199,7 +204,9 @@ trait Debugger extends DebuggerAPI {
   private def checkNegativeCallArguments(args: Seq[Datalog.Term], table: Table[Value]): Unit = {
     args.foreach {
       case Datalog.Var(name) if !table.isBound(name) =>
-        throw IllegalDebugStateException(s"All arguments of a negative pattern call have to be bound, but $name is not bound")
+        throw IllegalDebugStateException(
+          s"All arguments of a negative pattern call have to be bound, but $name is not bound"
+        )
       case _ => // do nothing
     }
   }
@@ -231,7 +238,11 @@ trait Debugger extends DebuggerAPI {
     if (callStack.nonEmpty) {
       val callerFrame = callStack.top
       val next = callerFrame.cp.stepIntra
-        .getOrElse(throw IllegalDebugStateException("Cannot have non-atom frame below pattern end frame on call stack"))
+        .getOrElse(
+          throw IllegalDebugStateException(
+            "Cannot have non-atom frame below pattern end frame on call stack"
+          )
+        )
       val tables = callerFrame.cp.atom match {
         case Datalog.Call(_, _, _, false) =>
           tableOps.transitionReturnCallTables(callerFrame, frame)
@@ -277,9 +288,6 @@ trait Debugger extends DebuggerAPI {
       throw new IllegalStateException(s"Unexpected control point $cp")
     }
   }
-
-
-
 
   protected def stepOverIR(): Unit = {
     val frame0 = callStack.top
@@ -391,7 +399,7 @@ trait Debugger extends DebuggerAPI {
     val mainMatcher = engine.getMatcher(mainSpec)
     val unboundCols = compiled.ir.patternMap(name).params.map(_.name).diff(bindings.columns)
     val rows = bindings.rows.flatMap { row =>
-      val inputMap = bindings.columns.zip(row.map(_.unwrap)).toMap ++ unboundCols.map( _ -> null)
+      val inputMap = bindings.columns.zip(row.map(_.unwrap)).toMap ++ unboundCols.map(_ -> null)
       val input = Query.Match(mainSpec, inputMap, isMutable = false)
       val matches = mainMatcher.getAllMatches(input)
       matches.asScala.map { m =>
@@ -403,7 +411,6 @@ trait Debugger extends DebuggerAPI {
     }.toSeq
     Table(mainMatcher.getParameterNames.asScala.toSeq, rows)
   }
-
 
   /** Breakpoint related functionality */
 

@@ -2,7 +2,8 @@ package inca.backend.ir
 
 import inca.backend.ir.Datalog._
 import inca.runtime.context.DataModel
-import inca.util.{Scala, ScalaTyper}
+import inca.util.Scala
+import inca.util.ScalaTyper
 import truechange.SortType
 
 trait TypeOps extends ScalaTyper {
@@ -14,8 +15,8 @@ trait TypeOps extends ScalaTyper {
     case (_, _) if ty1 == ty2 => Some(ty1)
     case (TAny, _) => Some(ty2)
     case (_, TAny) => Some(ty1)
-    case (TAnyLinked, _:TLinked) => Some(ty2)
-    case (_:TLinked,TAnyLinked) => Some(ty1)
+    case (TAnyLinked, _: TLinked) => Some(ty2)
+    case (_: TLinked, TAnyLinked) => Some(ty1)
     case (TNode(name1), TNode(name2)) =>
       if (dataModel.nodeSupertypes.containsEntry(SortType(name1) -> SortType(name2)))
         Some(ty1)

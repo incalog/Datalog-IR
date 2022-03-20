@@ -2,25 +2,29 @@ package inca.frontend.constraint.extensions.match_
 
 import inca.frontend.constraint.core._
 import inca.frontend.constraint.extensions.match_.Trees._
-import inca.frontend.constraint.typechecker.{CoreTypechecker, NoYield, StmType, TypeHelper}
+import inca.frontend.constraint.typechecker.CoreTypechecker
+import inca.frontend.constraint.typechecker.NoYield
+import inca.frontend.constraint.typechecker.StmType
+import inca.frontend.constraint.typechecker.TypeHelper
 
 trait Typechecker extends CoreTypechecker {
-  override protected def typecheckInternal(stm: Statement, mustYield: Boolean): StmType = stm match {
-    case Match(matchee, cases) =>
-      val mty = typecheck(matchee)
-      val ctys = cases.map { c =>
-        scopedTypeContext {
-          typecheckPattern(c.pattern, mty)
-          typecheck(c.body, mustYield)
+  override protected def typecheckInternal(stm: Statement, mustYield: Boolean): StmType =
+    stm match {
+      case Match(matchee, cases) =>
+        val mty = typecheck(matchee)
+        val ctys = cases.map { c =>
+          scopedTypeContext {
+            typecheckPattern(c.pattern, mty)
+            typecheck(c.body, mustYield)
+          }
         }
-      }
-      if (cases.isEmpty)
-        NoYield
-      else
-        ctys.reduce(stmMeet(_, _, dataModel))
+        if (cases.isEmpty)
+          NoYield
+        else
+          ctys.reduce(stmMeet(_, _, dataModel))
 
-    case _ => super.typecheckInternal(stm, mustYield)
-  }
+      case _ => super.typecheckInternal(stm, mustYield)
+    }
 
   def typecheckPattern(pattern: Pattern, matchee: Type): Unit = pattern match {
     case NodePattern(node, bindings) =>
@@ -28,23 +32,24 @@ trait Typechecker extends CoreTypechecker {
       if (meet(node, matchee, dataModel) == TNothing)
         warn(s"Type of pattern $node unrelated type to matchee type $matchee", pattern)
 
-      bindings.foreach { case b@PatternBinding(field, pattern) =>
+      bindings.foreach { case b @ PatternBinding(field, pattern) =>
         assignType(b) {
           dataModel.links.get(node.name -> field.name) match {
             case Some(trueType) =>
               val ty = truechangeTypeToType(trueType)
               typecheckPattern(pattern, ty)
               ty
-            case None => dataModel.litLinks.get(node.name -> field.name) match {
-              case Some(trueLitType) =>
-                val ty = TLiteral(trueLitType)
-                typecheckPattern(pattern, ty)
-                ty
-              case None =>
-                error(s"Cannot access field `$field` of node $node", field)
-                typecheckPattern(pattern, TAny)
-                TAny
-            }
+            case None =>
+              dataModel.litLinks.get(node.name -> field.name) match {
+                case Some(trueLitType) =>
+                  val ty = TLiteral(trueLitType)
+                  typecheckPattern(pattern, ty)
+                  ty
+                case None =>
+                  error(s"Cannot access field `$field` of node $node", field)
+                  typecheckPattern(pattern, TAny)
+                  TAny
+              }
           }
         }
       }
@@ -94,7 +99,10 @@ trait Typechecker extends CoreTypechecker {
         if (meet(expected, matchee, dataModel) == TNothing)
           warn(s"Type of pattern $fun unrelated type to matchee type $matchee", pattern)
         if (params.size != args.size)
-          error(s"Function $fun expects ${params.size} arguments, but found ${args.size} arguments in pattern", pattern)
+          error(
+            s"Function $fun expects ${params.size} arguments, but found ${args.size} arguments in pattern",
+            pattern
+          )
 
         params.zipAll(args, null, null) foreach {
           case (null, arg) =>
@@ -106,15 +114,20 @@ trait Typechecker extends CoreTypechecker {
         }
       }
 
-
     case TuplePattern(pats) =>
       matchee match {
         case TUnit =>
           if (pats.nonEmpty)
-            warn(s"Cannot match expression of type $TUnit against ${pats.size}-ary tuple pattern", pattern)
+            warn(
+              s"Cannot match expression of type $TUnit against ${pats.size}-ary tuple pattern",
+              pattern
+            )
         case TTuple(tys) =>
           if (pats.size != tys.size)
-            warn(s"Cannot match ${tys.size}-ary tuple against ${pats.size}-ary tuple pattern", pattern)
+            warn(
+              s"Cannot match ${tys.size}-ary tuple against ${pats.size}-ary tuple pattern",
+              pattern
+            )
           pats.zipAll(tys, null, null).foreach {
             case (pat, null) => typecheckPattern(pat, TAny)
             case (null, ty) => // nothing
@@ -122,7 +135,10 @@ trait Typechecker extends CoreTypechecker {
           }
         case ty =>
           if (pats.size != 1)
-            warn(s"Cannot match expression of type $ty against ${pats.size}-ary tuple pattern", pattern)
+            warn(
+              s"Cannot match expression of type $ty against ${pats.size}-ary tuple pattern",
+              pattern
+            )
           pats.zipAll(Seq(ty), null, null).foreach {
             case (pat, null) => typecheckPattern(pat, TAny)
             case (null, ty) => // nothing
@@ -130,13 +146,13 @@ trait Typechecker extends CoreTypechecker {
           }
       }
 
-    case vp@VarPattern(name) =>
+    case vp @ VarPattern(name) =>
       bindVar(name, vp, matchee)
-    case np@NamedPattern(name, pat) =>
+    case np @ NamedPattern(name, pat) =>
       bindVar(name, np, matchee)
       typecheckPattern(pat, matchee)
     case WildcardPattern =>
-      // nothing
+    // nothing
     case LiteralPattern(v) =>
       val ty = typecheckLiteral(v)
       if (meet(ty, matchee, dataModel) == TNothing)

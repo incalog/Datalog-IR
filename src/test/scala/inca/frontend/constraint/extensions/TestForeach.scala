@@ -7,7 +7,6 @@ import inca.frontend.constraint.extensions.foreach.Trees._
 import inca.runtime.context.QueryScope
 import inca.util.matchers.IncaConstraintMatchers
 import org.scalatest.flatspec.AnyFlatSpec
-
 import scala.language.implicitConversions
 
 class TestForeach extends AnyFlatSpec with IncaConstraintMatchers {
@@ -22,52 +21,137 @@ class TestForeach extends AnyFlatSpec with IncaConstraintMatchers {
   val options: ConstraintOptions = ConstraintOptions()
 
   "desugaring" should "eliminate foreach loops" in {
-    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(Param(Name("list"), TList(TNode("inca.analyzedLangs.Exp.Many")))), TUnit, Seq(Body(Seq(
-        Foreach("x", Var("list"), Body(
-          Assert(Eq(Var("x"), Var("x"))),
-          Assert(Neq(Var("x"), Var("x")))
-        )),
-      ))))
-    ))
+    val sugared = Module(
+      "Test",
+      Seq(DirectDataModel(dataModel)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "foo",
+          Seq(Param(Name("list"), TList(TNode("inca.analyzedLangs.Exp.Many")))),
+          TUnit,
+          Seq(
+            Body(
+              Seq(
+                Foreach(
+                  "x",
+                  Var("list"),
+                  Body(
+                    Assert(Eq(Var("x"), Var("x"))),
+                    Assert(Neq(Var("x"), Var("x")))
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
 
-    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(Param(Name("list"), TList(TNode("inca.analyzedLangs.Exp.Many")))), TUnit, Seq(Body(Seq(
-        Assign(Seq("x"), PathAccess(Var("list"), ChildrenLink)),
-        Assert(Eq(Var("x"), Var("x"))),
-        Assert(Neq(Var("x"), Var("x"))),
-      ))))
-    ))
+    val core = Module(
+      "Test",
+      Seq(DirectDataModel(dataModel)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "foo",
+          Seq(Param(Name("list"), TList(TNode("inca.analyzedLangs.Exp.Many")))),
+          TUnit,
+          Seq(
+            Body(
+              Seq(
+                Assign(Seq("x"), PathAccess(Var("list"), ChildrenLink)),
+                Assert(Eq(Var("x"), Var("x"))),
+                Assert(Neq(Var("x"), Var("x")))
+              )
+            )
+          )
+        )
+      )
+    )
 
     assertDesugar(core, sugared)
   }
 
   "desugaring" should "eliminate nested foreach loops" in {
-    val sugared = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(Param(Name("list"), TList(TNode("inca.analyzedLangs.Exp.Many"))), Param(Name("list2"), TList(TNode("inca.analyzedLangs.Exp.Many")))), TUnit, Seq(Body(Seq(
-        Foreach("x", Var("list"), Body(
-          Assert(Eq(Var("x"), Var("x"))),
-          Foreach("y", Var("list2"), Body(
-            Assert(Eq(Var("x"), Var("y")))
-          )),
-          Assert(Neq(Var("x"), Var("x")))
-        )),
-      ))))
-    ))
+    val sugared = Module(
+      "Test",
+      Seq(DirectDataModel(dataModel)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "foo",
+          Seq(
+            Param(Name("list"), TList(TNode("inca.analyzedLangs.Exp.Many"))),
+            Param(Name("list2"), TList(TNode("inca.analyzedLangs.Exp.Many")))
+          ),
+          TUnit,
+          Seq(
+            Body(
+              Seq(
+                Foreach(
+                  "x",
+                  Var("list"),
+                  Body(
+                    Assert(Eq(Var("x"), Var("x"))),
+                    Foreach(
+                      "y",
+                      Var("list2"),
+                      Body(
+                        Assert(Eq(Var("x"), Var("y")))
+                      )
+                    ),
+                    Assert(Neq(Var("x"), Var("x")))
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
 
-    val core = Module("Test", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "foo", Seq(Param(Name("list"), TList(TNode("inca.analyzedLangs.Exp.Many"))), Param(Name("list2"), TList(TNode("inca.analyzedLangs.Exp.Many")))), TUnit, Seq(Body(Seq(
-        Assign(Seq("x"), PathAccess(Var("list"), ChildrenLink)),
-        Assert(Eq(Var("x"), Var("x"))),
-        Assign(Seq("y"), PathAccess(Var("list2"), ChildrenLink)),
-        Assert(Eq(Var("x"), Var("y"))),
-        Assert(Neq(Var("x"), Var("x"))),
-      ))))
-    ))
+    val core = Module(
+      "Test",
+      Seq(DirectDataModel(dataModel)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "foo",
+          Seq(
+            Param(Name("list"), TList(TNode("inca.analyzedLangs.Exp.Many"))),
+            Param(Name("list2"), TList(TNode("inca.analyzedLangs.Exp.Many")))
+          ),
+          TUnit,
+          Seq(
+            Body(
+              Seq(
+                Assign(Seq("x"), PathAccess(Var("list"), ChildrenLink)),
+                Assert(Eq(Var("x"), Var("x"))),
+                Assign(Seq("y"), PathAccess(Var("list2"), ChildrenLink)),
+                Assert(Eq(Var("x"), Var("y"))),
+                Assert(Neq(Var("x"), Var("x")))
+              )
+            )
+          )
+        )
+      )
+    )
 
     assertDesugar(core, sugared)
   }
-
 
 //  "desugaring" should "implement foreach enum semantics" in {
 //    val module = Module("Test_Cast", Seq(), Seq(
@@ -101,14 +185,35 @@ class TestForeach extends AnyFlatSpec with IncaConstraintMatchers {
 //  }
 
   "desugaring" should "implement foreach list semantics" in {
-    val module = Module("Test_Cast", Seq(DirectDataModel(dataModel)), Seq(), Seq(), Seq(
-      PatternFunction(Seq(MainFunctionAnno), None, "integerlits", Seq(), TLiteral.Int, Seq(Body(Seq(
-        Values("many", TNode(Exp.manyTag)),
-        Foreach("i", PathAccess(Var("many"), NamedLink("exps")), Body(
-          Yield(PathAccess(Cast(Var("i"), TNode(Exp.intTag)), NamedLink("value")))
-        ))
-      ))))
-    ))
+    val module = Module(
+      "Test_Cast",
+      Seq(DirectDataModel(dataModel)),
+      Seq(),
+      Seq(),
+      Seq(
+        PatternFunction(
+          Seq(MainFunctionAnno),
+          None,
+          "integerlits",
+          Seq(),
+          TLiteral.Int,
+          Seq(
+            Body(
+              Seq(
+                Values("many", TNode(Exp.manyTag)),
+                Foreach(
+                  "i",
+                  PathAccess(Var("many"), NamedLink("exps")),
+                  Body(
+                    Yield(PathAccess(Cast(Var("i"), TNode(Exp.intTag)), NamedLink("value")))
+                  )
+                )
+              )
+            )
+          )
+        )
+      )
+    )
 
     val input = {
       import Exp._

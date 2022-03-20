@@ -1,20 +1,24 @@
 package inca.runtime
 
-import java.{lang, util}
+import inca.analyzedLangs.tinyJava
+import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
-import inca.analyzedLangs.{Exp, tinyJava}
 import inca.runtime.db.Database
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.SizeIndex
-import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, TupleMask, Tuples}
+import java.lang
+import java.util
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
+import org.eclipse.viatra.query.runtime.matchers.tuple.TupleMask
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.matchers.should.Matchers._
-import truechange.{JavaLitType, ListType, SortType}
-import truediff.Diffable
-
 import scala.jdk.CollectionConverters._
-
+import truechange.JavaLitType
+import truechange.ListType
+import truechange.SortType
+import truediff.Diffable
 
 class RuntimeContextTests extends AnyFunSuite {
 
@@ -34,17 +38,27 @@ class RuntimeContextTests extends AnyFunSuite {
     val editScript = Diffable.load(add)
     database.processEditScript(editScript)
 
-    database.enumerateTuples(NodeTypeKey(SortType(expName)), emptyMask, null).
-      asScala should be(empty)
+    database.enumerateTuples(NodeTypeKey(SortType(expName)), emptyMask, null).asScala should be(
+      empty
+    )
 
-    database.enumerateTuples(new NodeTypeKey(SortType(numName)), emptyMask, null).
-      asScala should contain allOf(t1(num1.uri), t1(num2.uri), t1(num3.uri))
+    database.enumerateTuples(
+      new NodeTypeKey(SortType(numName)),
+      emptyMask,
+      null
+    ).asScala should contain allOf (t1(num1.uri), t1(num2.uri), t1(num3.uri))
 
-    database.enumerateTuples(new NodeTypeKey(SortType(addName)), emptyMask, null).
-      asScala should contain(t1(add.uri))
+    database.enumerateTuples(
+      new NodeTypeKey(SortType(addName)),
+      emptyMask,
+      null
+    ).asScala should contain(t1(add.uri))
 
-    database.enumerateTuples(new NodeTypeKey(SortType(mulName)), emptyMask, null).
-      asScala should contain(t1(mul.uri))
+    database.enumerateTuples(
+      new NodeTypeKey(SortType(mulName)),
+      emptyMask,
+      null
+    ).asScala should contain(t1(mul.uri))
 
   }
 
@@ -57,26 +71,29 @@ class RuntimeContextTests extends AnyFunSuite {
     val string = JavaLitType(classOf[lang.String])
     val bool = JavaLitType(classOf[lang.Boolean])
 
-    database.enumerateTuples(PrimitiveTypeKey(integer), emptyMask, null).
-      asScala should contain allOf(t1(1), t1(2), t1(3))
+    database.enumerateTuples(
+      PrimitiveTypeKey(integer),
+      emptyMask,
+      null
+    ).asScala should contain allOf (t1(1), t1(2), t1(3))
 
-    database.enumerateTuples(PrimitiveTypeKey(string), emptyMask, null).
-      asScala should be(empty)
+    database.enumerateTuples(PrimitiveTypeKey(string), emptyMask, null).asScala should be(empty)
 
-    database.enumerateTuples(PrimitiveTypeKey(bool), emptyMask, null).
-      asScala should be(empty)
+    database.enumerateTuples(PrimitiveTypeKey(bool), emptyMask, null).asScala should be(empty)
 
-    val (updateScript, newtree) = add.compareTo(Add(Mul(IntegerLit(4), IntegerLit(5)), IntegerLit(6)))
+    val (updateScript, newtree) =
+      add.compareTo(Add(Mul(IntegerLit(4), IntegerLit(5)), IntegerLit(6)))
     database.processEditScript(updateScript)
 
-    database.enumerateTuples(PrimitiveTypeKey(integer), emptyMask, null).
-      asScala should contain allOf(t1(4), t1(5), t1(6))
+    database.enumerateTuples(
+      PrimitiveTypeKey(integer),
+      emptyMask,
+      null
+    ).asScala should contain allOf (t1(4), t1(5), t1(6))
 
-    database.enumerateTuples(PrimitiveTypeKey(string), emptyMask, null).
-      asScala should be(empty)
+    database.enumerateTuples(PrimitiveTypeKey(string), emptyMask, null).asScala should be(empty)
 
-    database.enumerateTuples(PrimitiveTypeKey(bool), emptyMask, null).
-      asScala should be(empty)
+    database.enumerateTuples(PrimitiveTypeKey(bool), emptyMask, null).asScala should be(empty)
   }
 
   test("DataType instances bag semantics") {
@@ -88,26 +105,27 @@ class RuntimeContextTests extends AnyFunSuite {
     val string = JavaLitType(classOf[lang.String])
     val bool = JavaLitType(classOf[lang.Boolean])
 
-    database.enumerateTuples(PrimitiveTypeKey(integer), emptyMask, null).
-      asScala should contain (t1(1))
+    database.enumerateTuples(PrimitiveTypeKey(integer), emptyMask, null).asScala should contain(
+      t1(1)
+    )
 
-    database.enumerateTuples(PrimitiveTypeKey(string), emptyMask, null).
-      asScala should be(empty)
+    database.enumerateTuples(PrimitiveTypeKey(string), emptyMask, null).asScala should be(empty)
 
-    database.enumerateTuples(PrimitiveTypeKey(bool), emptyMask, null).
-      asScala should be(empty)
+    database.enumerateTuples(PrimitiveTypeKey(bool), emptyMask, null).asScala should be(empty)
 
-    val (updateScript, newtree) = add.compareTo(Add(Mul(IntegerLit(1), IntegerLit(5)), IntegerLit(6)))
+    val (updateScript, newtree) =
+      add.compareTo(Add(Mul(IntegerLit(1), IntegerLit(5)), IntegerLit(6)))
     database.processEditScript(updateScript)
 
-    database.enumerateTuples(PrimitiveTypeKey(integer), emptyMask, null).
-      asScala should contain allOf(t1(1), t1(5), t1(6))
+    database.enumerateTuples(
+      PrimitiveTypeKey(integer),
+      emptyMask,
+      null
+    ).asScala should contain allOf (t1(1), t1(5), t1(6))
 
-    database.enumerateTuples(PrimitiveTypeKey(string), emptyMask, null).
-      asScala should be(empty)
+    database.enumerateTuples(PrimitiveTypeKey(string), emptyMask, null).asScala should be(empty)
 
-    database.enumerateTuples(PrimitiveTypeKey(bool), emptyMask, null).
-      asScala should be(empty)
+    database.enumerateTuples(PrimitiveTypeKey(bool), emptyMask, null).asScala should be(empty)
   }
 
   test("NodeLink instances") {
@@ -115,20 +133,35 @@ class RuntimeContextTests extends AnyFunSuite {
     val editScript = Diffable.load(add)
     database.processEditScript(editScript)
 
-    database.enumerateTuples(LinkPrimitiveKey(numName->"value"), emptyMask, null).
-      asScala should contain allOf(t2(num1.uri, 1), t2(num2.uri, 2), t2(num3.uri, 3))
+    database.enumerateTuples(
+      LinkPrimitiveKey(numName -> "value"),
+      emptyMask,
+      null
+    ).asScala should contain allOf (t2(num1.uri, 1), t2(num2.uri, 2), t2(num3.uri, 3))
 
-    database.enumerateTuples(LinkNodeKey(mulName->"lhs"), emptyMask, null).
-      asScala should contain only (t2(mul.uri, num1.uri))
+    database.enumerateTuples(
+      LinkNodeKey(mulName -> "lhs"),
+      emptyMask,
+      null
+    ).asScala should contain only (t2(mul.uri, num1.uri))
 
-    database.enumerateTuples(LinkNodeKey(mulName->"rhs"), emptyMask, null).
-      asScala should contain only (t2(mul.uri, num2.uri))
+    database.enumerateTuples(
+      LinkNodeKey(mulName -> "rhs"),
+      emptyMask,
+      null
+    ).asScala should contain only (t2(mul.uri, num2.uri))
 
-    database.enumerateTuples(LinkNodeKey(addName->"lhs"), emptyMask, null).
-      asScala should contain only (t2(add.uri, mul.uri))
+    database.enumerateTuples(
+      LinkNodeKey(addName -> "lhs"),
+      emptyMask,
+      null
+    ).asScala should contain only (t2(add.uri, mul.uri))
 
-    database.enumerateTuples(LinkNodeKey(addName->"rhs"), emptyMask, null).
-      asScala should contain only (t2(add.uri, num3.uri))
+    database.enumerateTuples(
+      LinkNodeKey(addName -> "rhs"),
+      emptyMask,
+      null
+    ).asScala should contain only (t2(add.uri, num3.uri))
 
   }
 
@@ -139,15 +172,19 @@ class RuntimeContextTests extends AnyFunSuite {
     val editScript = Diffable.load(add)
     database.processEditScript(editScript)
 
-    database.enumerateTuples(ParentIndex.Key, emptyMask, null).
-      asScala should contain allOf(t2(mul.uri, add.uri), t2(num1.uri, mul.uri), t2(num2.uri, mul.uri), t2(num3.uri, add.uri))
+    database.enumerateTuples(ParentIndex.Key, emptyMask, null).asScala should contain allOf (t2(
+      mul.uri,
+      add.uri
+    ), t2(num1.uri, mul.uri), t2(num2.uri, mul.uri), t2(num3.uri, add.uri))
 
     val newtree = Add(Mul(IntegerLit(3), IntegerLit(2)), IntegerLit(1))
     val (diffset, _) = add.compareTo(newtree)
     database.processEditScript(diffset)
 
-    database.enumerateTuples(ParentIndex.Key, emptyMask, null).
-      asScala should contain allOf(t2(mul.uri, add.uri), t2(num1.uri, mul.uri), t2(num2.uri, mul.uri), t2(num3.uri, add.uri))
+    database.enumerateTuples(ParentIndex.Key, emptyMask, null).asScala should contain allOf (t2(
+      mul.uri,
+      add.uri
+    ), t2(num1.uri, mul.uri), t2(num2.uri, mul.uri), t2(num3.uri, add.uri))
   }
 
   test("List children") {
@@ -160,27 +197,35 @@ class RuntimeContextTests extends AnyFunSuite {
     val editScript = Diffable.load(exp)
     database.processEditScript(editScript)
 
-    database.enumerateTuples(ParentIndex.Key, emptyMask, null).
-      asScala should contain allOf(t2(li.uri, exp.uri), t2(num1.uri, li.uri), t2(num2.uri, li.uri))
+    database.enumerateTuples(ParentIndex.Key, emptyMask, null).asScala should contain allOf (t2(
+      li.uri,
+      exp.uri
+    ), t2(num1.uri, li.uri), t2(num2.uri, li.uri))
 
-    database.enumerateTuples(SizeIndex.Key, emptyMask, null).
-      asScala should contain (t2(li.uri, 2))
+    database.enumerateTuples(SizeIndex.Key, emptyMask, null).asScala should contain(t2(li.uri, 2))
 
-    database.enumerateTuples(NodeTypeKey(ListType(SortType(expTag))), emptyMask, null).
-      asScala should contain (t1(li.uri))
+    database.enumerateTuples(
+      NodeTypeKey(ListType(SortType(expTag))),
+      emptyMask,
+      null
+    ).asScala should contain(t1(li.uri))
 
     val newtree = Many(List(IntegerLit(3), IntegerLit(1)))
     val (diffset, updatedTree) = exp.compareTo(newtree)
     database.processEditScript(diffset)
 
-    database.enumerateTuples(ParentIndex.Key, emptyMask, null).
-      asScala should contain allOf(t2(li.uri, exp.uri), t2(updatedTree.exps(1).uri, li.uri), t2(updatedTree.exps(0).uri, li.uri))
+    database.enumerateTuples(ParentIndex.Key, emptyMask, null).asScala should contain allOf (t2(
+      li.uri,
+      exp.uri
+    ), t2(updatedTree.exps(1).uri, li.uri), t2(updatedTree.exps(0).uri, li.uri))
 
-    database.enumerateTuples(SizeIndex.Key, emptyMask, null).
-      asScala should contain (t2(li.uri, 2))
+    database.enumerateTuples(SizeIndex.Key, emptyMask, null).asScala should contain(t2(li.uri, 2))
 
-    database.enumerateTuples(NodeTypeKey(ListType(SortType(expTag))), emptyMask, null).
-      asScala should contain (t1(li.uri))
+    database.enumerateTuples(
+      NodeTypeKey(ListType(SortType(expTag))),
+      emptyMask,
+      null
+    ).asScala should contain(t1(li.uri))
 
   }
 
@@ -196,41 +241,65 @@ class RuntimeContextTests extends AnyFunSuite {
     val editScript = Diffable.load(clazz)
     database.processEditScript(editScript)
 
-    database.enumerateTuples(LinkNodeKey(classDeclTag->"members"), emptyMask, null).
-      asScala should contain only t2(clazz.uri, clazz.members.uri)
+    database.enumerateTuples(
+      LinkNodeKey(classDeclTag -> "members"),
+      emptyMask,
+      null
+    ).asScala should contain only t2(clazz.uri, clazz.members.uri)
 
-    database.enumerateTuples(NodeTypeKey(ListType(classMemberType)), emptyMask, null).
-      asScala should contain only t1(clazz.members.uri)
+    database.enumerateTuples(
+      NodeTypeKey(ListType(classMemberType)),
+      emptyMask,
+      null
+    ).asScala should contain only t1(clazz.members.uri)
 
-    database.enumerateTuples(ParentIndex.Key, secondElementMask, t2(null, clazz.members.uri)).
-      asScala should contain only (t2(fieldDecl1.uri, clazz.members.uri), t2(fieldDecl2.uri, clazz.members.uri))
+    database.enumerateTuples(
+      ParentIndex.Key,
+      secondElementMask,
+      t2(null, clazz.members.uri)
+    ).asScala should contain only (t2(fieldDecl1.uri, clazz.members.uri), t2(
+      fieldDecl2.uri,
+      clazz.members.uri
+    ))
 
-    database.enumerateTuples(LinkListNextKey, emptyMask, null).
-      asScala should contain only t2(fieldDecl1.uri, fieldDecl2.uri)
+    database.enumerateTuples(LinkListNextKey, emptyMask, null).asScala should contain only t2(
+      fieldDecl1.uri,
+      fieldDecl2.uri
+    )
 
     val fieldDecl3 = FieldDeclaration("baaz", PublicVisibility())
     val clazz2 = ClassDeclaration("Foo", true, List(fieldDecl2, fieldDecl1, fieldDecl3))
     val (diffScript, updatedclazz) = clazz.compareTo(clazz2)
     database.processEditScript(diffScript)
 
-    database.enumerateTuples(LinkNodeKey(classDeclTag->"members"), emptyMask, null).
-      asScala should contain only t2(updatedclazz.uri, updatedclazz.members.uri)
+    database.enumerateTuples(
+      LinkNodeKey(classDeclTag -> "members"),
+      emptyMask,
+      null
+    ).asScala should contain only t2(updatedclazz.uri, updatedclazz.members.uri)
 
-    database.enumerateTuples(NodeTypeKey(ListType(classMemberType)), emptyMask, null).
-      asScala should contain only t1(updatedclazz.members.uri)
+    database.enumerateTuples(
+      NodeTypeKey(ListType(classMemberType)),
+      emptyMask,
+      null
+    ).asScala should contain only t1(updatedclazz.members.uri)
 
-    database.enumerateTuples(ParentIndex.Key, secondElementMask, t2(null, updatedclazz.members.uri)).
-      asScala should contain only (
-        t2(updatedclazz.members(0).uri, updatedclazz.members.uri),
-        t2(updatedclazz.members(1).uri, updatedclazz.members.uri),
-        t2(updatedclazz.members(2).uri, updatedclazz.members.uri)
-      )
+    database.enumerateTuples(
+      ParentIndex.Key,
+      secondElementMask,
+      t2(null, updatedclazz.members.uri)
+    ).asScala should contain only (
+      t2(updatedclazz.members(0).uri, updatedclazz.members.uri),
+      t2(updatedclazz.members(1).uri, updatedclazz.members.uri),
+      t2(updatedclazz.members(2).uri, updatedclazz.members.uri)
+    )
 
-    database.enumerateTuples(LinkListNextKey, emptyMask, null).
-      asScala should contain only (t2(updatedclazz.members(0).uri, updatedclazz.members(1).uri), t2(updatedclazz.members(1).uri, updatedclazz.members(2).uri))
+    database.enumerateTuples(LinkListNextKey, emptyMask, null).asScala should contain only (t2(
+      updatedclazz.members(0).uri,
+      updatedclazz.members(1).uri
+    ), t2(updatedclazz.members(1).uri, updatedclazz.members(2).uri))
 
   }
-
 
   def isEmptyOrNull(coll: util.Collection[_]): Boolean = coll == null || coll.isEmpty
 

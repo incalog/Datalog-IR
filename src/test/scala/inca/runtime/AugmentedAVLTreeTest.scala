@@ -1,12 +1,10 @@
 package inca.runtime
 
 import inca.runtime.aggregate.AugmentedAVLTree
-
 import org.scalatest.funsuite.AnyFunSuite
 
-
 class AugmentedAVLTreeTest extends AnyFunSuite {
-  def newTree(): AugmentedAVLTree[Int] = new AugmentedAVLTree[Int]((x, y) =>  Math.max(x,y))
+  def newTree(): AugmentedAVLTree[Int] = new AugmentedAVLTree[Int]((x, y) => Math.max(x, y))
   val a = 1
   val b = 2
   val c = 3
@@ -187,7 +185,7 @@ class AugmentedAVLTreeTest extends AnyFunSuite {
     assert(tree.root.lhs.lhs.lhs.value == a)
     assert(tree.root.lhs.lhs.rhs.value == d)
     assert(tree.root.lhs.rhs.value == g)
-    assert(tree.root.lhs.rhs.lhs.value ==  f)
+    assert(tree.root.lhs.rhs.lhs.value == f)
     assert(tree.root.rhs.value == j)
     assert(tree.root.rhs.lhs.value == i)
     assert(tree.root.rhs.rhs.value == k)

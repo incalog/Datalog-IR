@@ -18,7 +18,7 @@ object Syntax {
 
     def rulesByName(name: String, content: SouffleContent): Seq[(RuleHead, RuleDefinition)] =
       content match {
-        case rule@RuleDefinition(heads, body) =>
+        case rule @ RuleDefinition(heads, body) =>
           heads.filter(_.rule.name == name).map(_ -> rule)
         case ComponentDefinition(_, contents) =>
           contents.flatMap(rulesByName(name, _))
@@ -38,7 +38,8 @@ object Syntax {
   def cleanRuleName(name: Name): String = name.toString.replaceAllLiterally("$", "__")
   def cleanVarName(name: Name): String = name.toString.replaceAllLiterally("$", "__")
 
-  case class RuleSignature(name: Name, parameters: Seq[RuleParameter], output: Boolean) extends SouffleContent {
+  case class RuleSignature(name: Name, parameters: Seq[RuleParameter], output: Boolean)
+      extends SouffleContent {
     override def toString: String = {
       val outputS = if (output) ".output " else ""
       s".decl ${cleanRuleName(name)}(${parameters.map(_.toString).mkString(", ")})"
@@ -57,7 +58,6 @@ object Syntax {
     override def toString: String = ".input " + cleanRuleName(rule)
   }
 
-
   case class RuleBody(ss: Seq[Statement]) extends SourceLocation {
     override def toString: String = ss.map(_.toString).mkString(", ")
   }
@@ -68,11 +68,17 @@ object Syntax {
     }
   }
   case class RuleHead(rule: Name, arguments: Seq[Expression]) extends SourceLocation {
-    override def toString: String = s"${cleanRuleName(rule)}(${arguments.map(_.toString).mkString(", ")})"
+    override def toString: String =
+      s"${cleanRuleName(rule)}(${arguments.map(_.toString).mkString(", ")})"
   }
 
   sealed trait Statement extends SourceLocation
-  case class RelationApplication(negated: Boolean, component: Option[Name], rel: Name, arguments: Seq[Expression]) extends Statement {
+  case class RelationApplication(
+      negated: Boolean,
+      component: Option[Name],
+      rel: Name,
+      arguments: Seq[Expression])
+      extends Statement {
     override def toString: String = {
       val negS = if (negated) "!" else ""
       s"$negS${cleanRuleName(rel)}(${arguments.map(_.toString).mkString(", ")})"
@@ -123,9 +129,11 @@ object Syntax {
     }
   }
 
-  case class BuiltInFunctionCall(fun: BuiltInFunction, arguments: Seq[Expression]) extends Expression {
+  case class BuiltInFunctionCall(fun: BuiltInFunction, arguments: Seq[Expression])
+      extends Expression {
     override def toString: String = fun match {
-      case func: InfixBuiltInFunction => s"${arguments.head.toString} $func ${arguments(1).toString}"
+      case func: InfixBuiltInFunction =>
+        s"${arguments.head.toString} $func ${arguments(1).toString}"
       case func: PrefixBuiltInFunction => s"$func(${arguments.mkString(", ")})"
     }
   }
@@ -161,8 +169,6 @@ object Syntax {
   case object LorBuiltInFunction extends BuiltInFunction
   case object LxorBuiltInFunction extends BuiltInFunction
   case object LnotBuiltInFunction extends BuiltInFunction
-
-
 
   sealed trait Type
   case class DeclaredType(name: Name) extends Type {

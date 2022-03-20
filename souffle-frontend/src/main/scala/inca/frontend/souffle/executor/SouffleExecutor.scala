@@ -3,24 +3,28 @@ package inca.frontend.souffle.executor
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
 import inca.compiler.source.Source
 import inca.compiler.Options
-import inca.frontend.souffle.Syntax.RuleSignature
 import inca.frontend.souffle.compiler.CompiledSouffleModule
-import inca.frontend.souffle.lowering.{SouffleInputToEditscript, SouffleToDatalogIR}
+import inca.frontend.souffle.lowering.SouffleInputToEditscript
+import inca.frontend.souffle.lowering.SouffleToDatalogIR
 import inca.frontend.souffle.parser.Parser
-import inca.runtime.Query.Match
-import inca.runtime.Query
-import inca.runtime.EnginePool
+import inca.frontend.souffle.Syntax.RuleSignature
 import inca.runtime.context.QueryScope
 import inca.runtime.db.Database
+import inca.runtime.EnginePool
+import inca.runtime.Query
+import inca.runtime.Query.Match
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
-import truechange.{Edit, EditScript}
+import scala.jdk.CollectionConverters.CollectionHasAsScala
+import truechange.Edit
+import truechange.EditScript
 import truediff.Diffable
 
-import scala.jdk.CollectionConverters.CollectionHasAsScala
-
 object SouffleExecutor {
-  case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledSouffleModule) {
+  case class Loaded(
+      engine: AdvancedViatraQueryEngine,
+      feed: Database,
+      compiled: CompiledSouffleModule) {
 
     def output(matcher: Query.Matcher, tuple: Tuple): Seq[Match] = {
       if (tuple == null)
@@ -28,7 +32,11 @@ object SouffleExecutor {
       else {
         val arity = matcher.getParameterNames.size()
         val inputSeq = tuple.getElements ++ (for (_ <- 0 until (arity - tuple.getSize)) yield null)
-        val inputMatch = Query.Match(matcher.getSpecification.asInstanceOf[Query.Specification], inputSeq, isMutable = false)
+        val inputMatch = Query.Match(
+          matcher.getSpecification.asInstanceOf[Query.Specification],
+          inputSeq,
+          isMutable = false
+        )
         val outputMatches = matcher.getAllMatches(inputMatch).asScala.toSeq
         outputMatches
       }
@@ -55,7 +63,12 @@ object SouffleExecutor {
       output(patMatcher, input)
     }
 
-    def execute[T <: Diffable](pat: String, inputs: Map[RuleSignature, String], delimiter: String = "\n", input: Tuple): Seq[Match] = {
+    def execute[T <: Diffable](
+        pat: String,
+        inputs: Map[RuleSignature, String],
+        delimiter: String = "\n",
+        input: Tuple
+      ): Seq[Match] = {
       val patMatcher = matcher(pat)
       engine.delayUpdatePropagation(() => {
         loadInputs(inputs, delimiter)
@@ -72,9 +85,7 @@ object SouffleExecutor {
         val es = inputCompiler.compile(input, sig)
         edits ++= es.edits
       }
-      engine.delayUpdatePropagation(() =>
-        feed.processEditScript(EditScript(edits))
-      )
+      engine.delayUpdatePropagation(() => feed.processEditScript(EditScript(edits)))
     }
 
     private def loadInputs(inputs: Map[RuleSignature, String], delimiter: String = "\t"): Unit = {
@@ -85,9 +96,7 @@ object SouffleExecutor {
         val es = inputCompiler.compile(rows.toIterator, sig, delimiter)
         edits ++= es.edits
       }
-      engine.delayUpdatePropagation(() =>
-        feed.processEditScript(EditScript(edits))
-      )
+      engine.delayUpdatePropagation(() => feed.processEditScript(EditScript(edits)))
     }
   }
 

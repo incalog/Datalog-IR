@@ -4,8 +4,10 @@ import inca.runtime.index.Index
 import org.eclipse.collections.api.multimap.set.MutableSetMultimap
 import org.eclipse.collections.impl.factory.Multimaps
 import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextListener
-import org.eclipse.viatra.query.runtime.matchers.tuple.{ITuple, Tuple, TupleMask, Tuples}
-
+import org.eclipse.viatra.query.runtime.matchers.tuple.ITuple
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
+import org.eclipse.viatra.query.runtime.matchers.tuple.TupleMask
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import scala.collection.mutable
 import scala.jdk.FunctionWrappers.AsJavaConsumer
 
@@ -36,7 +38,9 @@ abstract class UnaryIndex[V] extends Index {
         0
       }
     } else {
-      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for bijective virtual index " + this)
+      throw new IllegalArgumentException(
+        "Invalid tuple mask " + mask + " for bijective virtual index " + this
+      )
     }
   }
 
@@ -52,7 +56,9 @@ abstract class UnaryIndex[V] extends Index {
         Seq()
       }
     } else {
-      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for bijective virtual index " + this)
+      throw new IllegalArgumentException(
+        "Invalid tuple mask " + mask + " for bijective virtual index " + this
+      )
     }
   }
 
@@ -61,12 +67,15 @@ abstract class UnaryIndex[V] extends Index {
     if (maskLength == 0) {
       entries
     } else {
-      throw new IllegalArgumentException("Invalid tuple mask " + mask + " for enumerateValues in unary index " + this)
+      throw new IllegalArgumentException(
+        "Invalid tuple mask " + mask + " for enumerateValues in unary index " + this
+      )
     }
   }
 
   protected val listenAll: mutable.Set[IQueryRuntimeContextListener] = mutable.Set()
-  protected val listenVal: MutableSetMultimap[V, IQueryRuntimeContextListener] = Multimaps.mutable.set.empty()
+  protected val listenVal: MutableSetMultimap[V, IQueryRuntimeContextListener] =
+    Multimaps.mutable.set.empty()
 
   final protected def notify(v: V, isInsertion: Boolean): Unit = {
     val t = Tuples.staticArityFlatTupleOf(v)
@@ -83,7 +92,7 @@ abstract class UnaryIndex[V] extends Index {
       val v = seed.get(0).asInstanceOf[V]
       if (v == null) {
         listenAll += listener
-      } else  {
+      } else {
         listenVal.put(v, listener)
       }
     }

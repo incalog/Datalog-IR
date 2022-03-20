@@ -1,11 +1,17 @@
 package inca.util
 
 import scala.collection.mutable
-import scala.meta.{Defn, Importee, Lit, Pat, Term}
+import scala.meta.Defn
+import scala.meta.Importee
+import scala.meta.Lit
+import scala.meta.Pat
+import scala.meta.Term
 
 trait ScalaTyper {
-  import scala.reflect.runtime.{currentMirror, universe}
-  import scala.tools.reflect.{ToolBox, ToolBoxError}
+  import scala.reflect.runtime.currentMirror
+  import scala.reflect.runtime.universe
+  import scala.tools.reflect.ToolBox
+  import scala.tools.reflect.ToolBoxError
 
   private lazy val toolbox: ToolBox[universe.type] = currentMirror.mkToolBox()
 
@@ -44,18 +50,17 @@ trait ScalaTyper {
     }
   }
 
-
   private var topLevelObject: universe.Symbol = _
 
   protected def typecheckTopLevelObject(): Unit = {
     if (topLevelObject == null) {
       val scalaObject =
         s"""
-           |object ScalaObject {
-           |${imports.mkString("\n")}
-           |${seenCode.mkString("\n")}
-           |}
-           |""".stripMargin
+          |object ScalaObject {
+          |${imports.mkString("\n")}
+          |${seenCode.mkString("\n")}
+          |}
+          |""".stripMargin
       val tree = toolbox.parse(scalaObject)
       topLevelObject = toolbox.define(tree.asInstanceOf[universe.ImplDef])
     }
@@ -86,16 +91,17 @@ trait ScalaTyper {
 
   private def collectVars(pat: meta.Pat): Set[String] = pat match {
     case Term.Name(str) => Set(str)
-    case Pat.Var(name) =>  Set(name.value)
+    case Pat.Var(name) => Set(name.value)
     case Lit(_) => Set()
     case Pat.Wildcard() => Set()
     case Pat.Tuple(pats) => pats.flatMap(collectVars).toSet
     case Pat.SeqWildcard() => Set()
     case Pat.Typed(pat, _) => collectVars(pat)
-    case Term.Select(term, _) => term match {
-      case Term.Name(n) => Set(n)
-      case inner: Term.Select => collectVars(inner)
-    }
+    case Term.Select(term, _) =>
+      term match {
+        case Term.Name(n) => Set(n)
+        case inner: Term.Select => collectVars(inner)
+      }
     case Pat.Extract(_, value) =>
       value.flatMap(collectVars).toSet
     case Pat.Alternative(lhs, rhs) =>
@@ -108,11 +114,11 @@ trait ScalaTyper {
     typecheckTopLevelObject()
     val completeCode =
       s"""{
-         |  import ${topLevelObject.fullName}._
-         |  ${imports.mkString("\n")}
-         |  $code
-         |}
-         |""".stripMargin
+        |  import ${topLevelObject.fullName}._
+        |  ${imports.mkString("\n")}
+        |  $code
+        |}
+        |""".stripMargin
     val tree = toolbox.parse(completeCode)
     try {
       val typechecked = toolbox.typecheck(tree)
@@ -130,9 +136,9 @@ trait ScalaTyper {
   def subtypeScala(ty1: meta.Type, ty2: meta.Type): Boolean = {
     val code =
       s"""{
-         |  val v1: ${ty1.syntax} = ???
-         |  val v2: ${ty2.syntax} = v1
-         |}""".stripMargin
+        |  val v1: ${ty1.syntax} = ???
+        |  val v2: ${ty2.syntax} = v1
+        |}""".stripMargin
 
     typecheckScala(code) match {
       case Left(str) =>

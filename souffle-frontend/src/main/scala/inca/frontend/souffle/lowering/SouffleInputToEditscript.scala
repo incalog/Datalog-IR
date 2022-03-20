@@ -1,9 +1,12 @@
 package inca.frontend.souffle.lowering
 
-import inca.frontend.souffle.{Syntax, Util}
-import truechange.{EditScript, JVMURI, Load, NamedTag}
-
+import inca.frontend.souffle.Syntax
+import inca.frontend.souffle.Util
 import scala.io.Source
+import truechange.EditScript
+import truechange.JVMURI
+import truechange.Load
+import truechange.NamedTag
 
 // Important: Legacy souffle code .type Type will translate to .type Type <: symbol
 class SouffleInputToEditscript(dir: String) {
@@ -21,7 +24,10 @@ class SouffleInputToEditscript(dir: String) {
 
     val rowLits = rows.map { tuple =>
       val columns = tuple.split(delimiter)
-      if (columns.size != sig.parameters.size) throw new IllegalArgumentException(s"Number of entries ${columns.size} does not match number of parameters ${sig.parameters.size} of signature ${sig.name}")
+      if (columns.size != sig.parameters.size)
+        throw new IllegalArgumentException(
+          s"Number of entries ${columns.size} does not match number of parameters ${sig.parameters.size} of signature ${sig.name}"
+        )
       val sigTypes = sig.parameters.map(_.typ)
       val compiledColumns = columns.zip(sigTypes).map { case (c, t) => compileColumn(c, t) }
       val cleanedNames = sig.parameters.map(p => Util.cleanSouffleName(p.name))

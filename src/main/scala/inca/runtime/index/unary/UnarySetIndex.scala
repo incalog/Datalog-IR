@@ -1,7 +1,6 @@
 package inca.runtime.index.unary
 
 import inca.runtime.index.IndexKey
-
 import scala.collection.mutable
 
 class UnarySetIndex[V](val key: IndexKey[_]) extends UnaryIndex[V] {

@@ -2,11 +2,29 @@ package inca.frontend.souffle.debugger
 
 import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.ir.Datalog
-import inca.compiler.source.{ExcerptAbsoluteRegion, PaddedRegion, SourceLocation, SourceLocationList, SourceObject}
+import inca.compiler.source.ExcerptAbsoluteRegion
+import inca.compiler.source.PaddedRegion
+import inca.compiler.source.SourceLocation
+import inca.compiler.source.SourceLocationList
+import inca.compiler.source.SourceObject
 import inca.debugger.table.Table
-import inca.debugger.{AfterList, AtListElem, AtomPoint, BeforeList, CallStack, ControlPoint, Debugger, Value}
-import inca.frontend.souffle.Syntax.{Expression, Input, Name, RuleDefinition, RuleHead, RuleSignature, SouffleContent, Statement}
+import inca.debugger.AfterList
+import inca.debugger.AtListElem
+import inca.debugger.AtomPoint
+import inca.debugger.BeforeList
+import inca.debugger.CallStack
+import inca.debugger.ControlPoint
+import inca.debugger.Debugger
+import inca.debugger.Value
 import inca.frontend.souffle.compiler.CompiledSouffleModule
+import inca.frontend.souffle.Syntax.Expression
+import inca.frontend.souffle.Syntax.Input
+import inca.frontend.souffle.Syntax.Name
+import inca.frontend.souffle.Syntax.RuleDefinition
+import inca.frontend.souffle.Syntax.RuleHead
+import inca.frontend.souffle.Syntax.RuleSignature
+import inca.frontend.souffle.Syntax.SouffleContent
+import inca.frontend.souffle.Syntax.Statement
 import inca.util.Derivative
 import truechange.EditScript
 
@@ -15,13 +33,20 @@ sealed trait SouffleControlPoint {
   val point: SourceObject
   def region: SourceLocation
 }
-case class PatternEndPoint(rel: RuleSignature, point: SourceObject, irPoint: ControlPoint) extends SouffleControlPoint {
+case class PatternEndPoint(rel: RuleSignature, point: SourceObject, irPoint: ControlPoint)
+    extends SouffleControlPoint {
   override def region: SourceLocation = point.loc
 }
-case class InputPoint(rel: RuleSignature, in: Input, point: SourceObject, irPoint: ControlPoint) extends SouffleControlPoint {
+case class InputPoint(rel: RuleSignature, in: Input, point: SourceObject, irPoint: ControlPoint)
+    extends SouffleControlPoint {
   override def region: SourceLocation = in
 }
-case class InRulePoint(rel: RuleSignature, rule: RuleDefinition, point: SourceObject, irPoint: ControlPoint) extends SouffleControlPoint {
+case class InRulePoint(
+    rel: RuleSignature,
+    rule: RuleDefinition,
+    point: SourceObject,
+    irPoint: ControlPoint)
+    extends SouffleControlPoint {
   override def region: SourceLocation = rule
 }
 
@@ -60,43 +85,55 @@ class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
   def soufflePoint: Option[SouffleControlPoint] = soufflePointDeriv.value
 
   private def computeSoufflePoint(cp: ControlPoint): Option[SouffleControlPoint] = {
-    val rel = getRelationSignature(cp.point.pat).getOrElse(throw new IllegalArgumentException(s"Could not find signature for pattern ${cp.point.pat.name}"))
+    val rel = getRelationSignature(cp.point.pat).getOrElse(
+      throw new IllegalArgumentException(
+        s"Could not find signature for pattern ${cp.point.pat.name}"
+      )
+    )
     cp.point.bodies match {
       case BeforeList =>
         None
-      case at@AtListElem(_, _, point) =>
+      case at @ AtListElem(_, _, point) =>
         at.elem.getHint(SourceConstruct.key) match {
           case Some(SourceConstruct((ruleHead: RuleHead, rule: RuleDefinition))) =>
             // we're in a rule body
             point.atoms match {
               case BeforeList => Some(InRulePoint(rel, rule, ruleHead.sourceObject, cp))
-              case AtListElem(_, _, AtomPoint(atom)) => atom.getHint(SourceConstruct.key) match {
-                case Some(SourceConstruct(constr: Statement)) => Some(InRulePoint(rel, rule, constr.sourceObject, cp))
-                case Some(SourceConstruct((_: RuleHead, _: Expression))) => None // param=argument equality constraint
-                case Some(SourceConstruct(exp: Expression)) => None // result of expression such as calling built-in function
-                case constr => throw new IllegalArgumentException(s"Unexpected source construct $constr")
-              }
-              case AfterList => Some(InRulePoint(rel, rule, SourceLocationList(rule.body.ss).sourceObject, cp))
+              case AtListElem(_, _, AtomPoint(atom)) =>
+                atom.getHint(SourceConstruct.key) match {
+                  case Some(SourceConstruct(constr: Statement)) =>
+                    Some(InRulePoint(rel, rule, constr.sourceObject, cp))
+                  case Some(SourceConstruct((_: RuleHead, _: Expression))) =>
+                    None // param=argument equality constraint
+                  case Some(SourceConstruct(exp: Expression)) =>
+                    None // result of expression such as calling built-in function
+                  case constr =>
+                    throw new IllegalArgumentException(s"Unexpected source construct $constr")
+                }
+              case AfterList =>
+                Some(InRulePoint(rel, rule, SourceLocationList(rule.body.ss).sourceObject, cp))
             }
-          case Some(SourceConstruct(in: Input)) => at.point.atoms match {
-            case BeforeList =>
-              val inKeyword = new SourceLocation {}
-              inKeyword.sourceLocFrom(in)
-              inKeyword.endIndex = inKeyword.startIndex + ".input".length
-              val padRight = in.sourceCode.substring(".input".length)
-              Some(InputPoint(rel, in, inKeyword.sourceObject, cp))
-            case AfterList => Some(InputPoint(rel, in, in.sourceObject, cp))
-            case _ => None
-          }
+          case Some(SourceConstruct(in: Input)) =>
+            at.point.atoms match {
+              case BeforeList =>
+                val inKeyword = new SourceLocation {}
+                inKeyword.sourceLocFrom(in)
+                inKeyword.endIndex = inKeyword.startIndex + ".input".length
+                val padRight = in.sourceCode.substring(".input".length)
+                Some(InputPoint(rel, in, inKeyword.sourceObject, cp))
+              case AfterList => Some(InputPoint(rel, in, in.sourceObject, cp))
+              case _ => None
+            }
           case _ => None
         }
-      case AfterList => compiled.inputs.get(rel.name.name) match {
-        case Some(_) => None
-        case None =>
-          val rules = compiled.souffle.rules(rel.name.name)
-          val sobj = SourceLocationList(rules.map(_._2)).sourceObject
-          Some(PatternEndPoint(rel, sobj, cp))
-      }
+      case AfterList =>
+        compiled.inputs.get(rel.name.name) match {
+          case Some(_) => None
+          case None =>
+            val rules = compiled.souffle.rules(rel.name.name)
+            val sobj = SourceLocationList(rules.map(_._2)).sourceObject
+            Some(PatternEndPoint(rel, sobj, cp))
+        }
     }
   }
 
@@ -104,9 +141,7 @@ class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
     val sb = new StringBuilder
     sb ++= currentCallStack += '\n'
     sb ++= currentBindings += '\n'
-    currentCodeFunction.lines().map("  |  " + _).forEach( line =>
-      sb ++= line += '\n'
-    )
+    currentCodeFunction.lines().map("  |  " + _).forEach(line => sb ++= line += '\n')
     sb.toString()
   }
 
@@ -149,13 +184,15 @@ class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
     sp.point.loc.sourceExcerpt(contextualRegion).linesColored
   }
 
-  def getRelationSignature(pat: Datalog.Pattern): Option[RuleSignature] = pat.getHint(SourceConstruct.key) match {
-    case Some(SourceConstruct(r: RuleSignature)) => Some(r)
-    case _ => None
-  }
+  def getRelationSignature(pat: Datalog.Pattern): Option[RuleSignature] =
+    pat.getHint(SourceConstruct.key) match {
+      case Some(SourceConstruct(r: RuleSignature)) => Some(r)
+      case _ => None
+    }
 
-  def getRuleDefinition(body: Datalog.Body): Option[(RuleHead, RuleDefinition)] = body.getHint(SourceConstruct.key) match {
-    case Some(SourceConstruct((rh: RuleHead, rd: RuleDefinition))) => Some(rh -> rd)
-    case _ => None
-  }
+  def getRuleDefinition(body: Datalog.Body): Option[(RuleHead, RuleDefinition)] =
+    body.getHint(SourceConstruct.key) match {
+      case Some(SourceConstruct((rh: RuleHead, rd: RuleDefinition))) => Some(rh -> rd)
+      case _ => None
+    }
 }

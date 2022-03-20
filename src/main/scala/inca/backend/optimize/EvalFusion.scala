@@ -1,9 +1,13 @@
 package inca.backend.optimize
-import inca.backend.ir.Datalog.{Evaluation, Term, Type, Var}
-import inca.backend.ir.{CollectVars, Datalog}
+import inca.backend.ir.CollectVars
+import inca.backend.ir.Datalog
+import inca.backend.ir.Datalog.Evaluation
+import inca.backend.ir.Datalog.Term
+import inca.backend.ir.Datalog.Type
+import inca.backend.ir.Datalog.Var
 import inca.runtime.context.DataModel
-import inca.util.{Gensym, Scala}
-
+import inca.util.Gensym
+import inca.util.Scala
 import scala.collection.immutable.MultiSet
 import scala.collection.mutable.ListBuffer
 
@@ -37,16 +41,22 @@ object EvalFusion extends Optimization {
         var currentBody = fun.tree.body
 
         val (remainingArgs, remainingParams) = (args zip fun.tree.params).flatMap {
-          case ((v: Var, ty), param) => evalTerms.get(v) match {
-            case Some(Evaluation(otherArgs, _, otherFun)) =>
-              val freshParams = otherFun.tree.params.map(p => p -> meta.Term.Name(gensym.fresh("fuse")))
-              val inlineExp = scalaSubst(otherFun.tree.body, freshParams.map(p => p._1.name.value -> p._2).toMap)
-              currentBody = scalaSubst(currentBody, Map(param.name.value -> inlineExp))
-              freshParams.map(p => newParams += meta.Term.Param(p._1.mods, p._2, p._1.decltpe, p._1.default))
-              newArgs ++= otherArgs
-              None
-            case _ => Some((v -> ty, param))
-          }
+          case ((v: Var, ty), param) =>
+            evalTerms.get(v) match {
+              case Some(Evaluation(otherArgs, _, otherFun)) =>
+                val freshParams =
+                  otherFun.tree.params.map(p => p -> meta.Term.Name(gensym.fresh("fuse")))
+                val inlineExp = scalaSubst(
+                  otherFun.tree.body,
+                  freshParams.map(p => p._1.name.value -> p._2).toMap
+                )
+                currentBody = scalaSubst(currentBody, Map(param.name.value -> inlineExp))
+                freshParams.map(p =>
+                  newParams += meta.Term.Param(p._1.mods, p._2, p._1.decltpe, p._1.default))
+                newArgs ++= otherArgs
+                None
+              case _ => Some((v -> ty, param))
+            }
           case argParam => Some(argParam)
         }.unzip
 
@@ -65,8 +75,8 @@ object EvalFusion extends Optimization {
   def scalaSubst(t: meta.Term, env: Env): meta.Term = {
     if (env.isEmpty) t
     else {
-      t.transform {
-        case n@meta.Term.Name(name) => env.getOrElse(name, n)
+      t.transform { case n @ meta.Term.Name(name) =>
+        env.getOrElse(name, n)
       }.asInstanceOf[meta.Term]
     }
   }

@@ -199,18 +199,21 @@
 package inca.frontend.functional.executor
 
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
-import inca.compiler.{CompiledModule, Compiler}
+import inca.compiler.CompiledModule
+import inca.compiler.Compiler
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.runtime.context.QueryScope
-import inca.runtime.db.{Database, DatabaseInspector}
-import inca.runtime.{EnginePool, Query}
+import inca.runtime.db.Database
+import inca.runtime.db.DatabaseInspector
+import inca.runtime.EnginePool
+import inca.runtime.Query
 import inca.util.Scala.ScalaCompiler
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
-import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
+import scala.jdk.CollectionConverters._
 import truechange.EditScript
 import truediff.Diffable
-
-import scala.jdk.CollectionConverters._
 
 object FunctionalExecutor {
   case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledModule) {
@@ -230,19 +233,17 @@ object FunctionalExecutor {
       compiled.psystemModule.patterns.keys.foreach(printMatches)
     }
 
-
     type Input = (EditScript, Tuple)
 
     def input(arg: meta.Term): Input = input(Seq(arg))
 
     def input(args: Seq[meta.Term]): Input = {
-      val (ess, cargs, _) = vals(args:_*).map {
+      val (ess, cargs, _) = vals(args: _*).map {
         case arg: Diffable => (arg.loadEdits, arg.uri, arg)
         case lit => (EditScript(Seq()), lit, lit)
       }.unzip3
-      (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs:_*))
+      (EditScript(ess.flatMap(_.edits)), Tuples.flatTupleOf(cargs: _*))
     }
-
 
     def output(pat: String, tuple: Tuple): Results[Any] = {
       val mainSpec = compiled.psystemModule.patterns(pat)()
@@ -256,38 +257,37 @@ object FunctionalExecutor {
       new Results(outputMatches)
     }
 
-  //
-  //    def executeInput(main: String, input: Input, deleteInput: Boolean = false): Results[AnyRef] = {
-  //      val (es, tuple) = input
-  //      engine.delayUpdatePropagation { () =>
-  //        feed.processEditScript(es)
-  //        lastTuple.get(main) match {
-  //          case Some(oldTuple) =>
-  //            // check if last and current tuple are equal
-  //            if (oldTuple != tuple) {
-  //              feed.insert(demandPatternExtensionalPrefix + main, tuple)
-  //            } else {
-  //              // do nothing tuples are the same
-  //            }
-  //          case None =>
-  //            feed.insert(demandPatternExtensionalPrefix + main, tuple)
-  //        }
-  //        lastTuple = lastTuple + (main -> tuple)
-  //      }
-  //      val result = output(main, tuple)
-  //      if (deleteInput) {
-  //        feed.delete(demandPatternExtensionalPrefix + main, tuple)
-  //      }
-  //      result
-  //    }
-  //
-  //    def vals(ts: meta.Term*): Seq[AnyRef] = {
-  //      ts.map(a => {
-  //        val syntax = s"{import ${loadedPsystemModule}.${compiled.name}._; ${a.syntax}}"
-  //        scalaCompiler.compileAndLoadScala[AnyRef](syntax)
-  //      })
-  //    }
-
+    //
+    //    def executeInput(main: String, input: Input, deleteInput: Boolean = false): Results[AnyRef] = {
+    //      val (es, tuple) = input
+    //      engine.delayUpdatePropagation { () =>
+    //        feed.processEditScript(es)
+    //        lastTuple.get(main) match {
+    //          case Some(oldTuple) =>
+    //            // check if last and current tuple are equal
+    //            if (oldTuple != tuple) {
+    //              feed.insert(demandPatternExtensionalPrefix + main, tuple)
+    //            } else {
+    //              // do nothing tuples are the same
+    //            }
+    //          case None =>
+    //            feed.insert(demandPatternExtensionalPrefix + main, tuple)
+    //        }
+    //        lastTuple = lastTuple + (main -> tuple)
+    //      }
+    //      val result = output(main, tuple)
+    //      if (deleteInput) {
+    //        feed.delete(demandPatternExtensionalPrefix + main, tuple)
+    //      }
+    //      result
+    //    }
+    //
+    //    def vals(ts: meta.Term*): Seq[AnyRef] = {
+    //      ts.map(a => {
+    //        val syntax = s"{import ${loadedPsystemModule}.${compiled.name}._; ${a.syntax}}"
+    //        scalaCompiler.compileAndLoadScala[AnyRef](syntax)
+    //      })
+    //    }
 
     def execute(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): Results[Any] =
       executeInput(main, input(args), deleteInput)
@@ -334,7 +334,7 @@ object FunctionalExecutor {
     def results[T](res: Seq[Seq[T]]): Results[T] = new Results(res)
     def resultVals[T](res: T*): Results[T] = results(Seq(res))
     def resultVal[T](res: T): Results[T] = results(Seq(Seq(res)))
-    def result(res: meta.Term*): Results[Any] = results(Seq(vals(res:_*)))
+    def result(res: meta.Term*): Results[Any] = results(Seq(vals(res: _*)))
 
     def printResult(res: Results[Any]): Unit = {
       val db = new DatabaseInspector(feed)
@@ -345,24 +345,26 @@ object FunctionalExecutor {
     }
   }
 
-
   class Results[T](val res: Seq[Seq[T]]) {
     override def equals(obj: Any): Boolean = obj match {
       case expected: Results[T] =>
         res.size == expected.res.size &&
-          res.forall(ac => expected.res.exists(ex => sameVals(ac, ex))) &&
-          expected.res.forall(ex => res.exists(ac => sameVals(ac, ex)))
+        res.forall(ac => expected.res.exists(ex => sameVals(ac, ex))) &&
+        expected.res.forall(ex => res.exists(ac => sameVals(ac, ex)))
       case _ => false
     }
 
-    private def sameVals(actual: Seq[T], expected: Seq[T]): Boolean = actual.size == expected.size &&
-      actual.zip(expected).forall{ case (x,y) => x == y }
+    private def sameVals(actual: Seq[T], expected: Seq[T]): Boolean =
+      actual.size == expected.size &&
+        actual.zip(expected).forall { case (x, y) => x == y }
 
     override def toString: String = s"Results(${res.mkString(", ")})"
   }
 
-
-  def compileFunction(code: String, options: FunctionalOptions = FunctionalOptions()): CompiledModule = {
+  def compileFunction(
+      code: String,
+      options: FunctionalOptions = FunctionalOptions()
+    ): CompiledModule = {
     Compiler.compileFunctional(code, options)
   }
 

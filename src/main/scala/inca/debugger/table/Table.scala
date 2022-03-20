@@ -3,10 +3,8 @@ package inca.debugger.table
 /**
  * Edge(x,y), z := y, IsConnected(x,y)
  *
- *
- * type Table = (Columns, ColumnsIndices, Data)
- * type ColumnsIndices = Map[String, Int]
- * type Data = Map[ArraySeq[V], Int]
+ * type Table = (Columns, ColumnsIndices, Data) type ColumnsIndices = Map[String, Int] type Data =
+ * Map[ArraySeq[V], Int]
  */
 
 trait Table[V] {
@@ -17,7 +15,7 @@ trait Table[V] {
   def isBound(col: String): Boolean
 
   def bind(col: String, v: V): Table[V]
-  def join(other: Table[V]) : Table[V]
+  def join(other: Table[V]): Table[V]
   def addRow(row: Seq[V]): Table[V]
   def addRows(rows: Table[V]): Table[V]
   def diff(other: Table[V]): Table[V]

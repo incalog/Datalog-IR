@@ -5,9 +5,9 @@ class SourceObject(val loc: SourceLocation) {
   override def equals(obj: Any): Boolean = obj match {
     case that: SourceObject =>
       loc.source == that.loc.source &&
-        loc.startIndex == that.loc.startIndex &&
-        loc.endIndex == that.loc.endIndex &&
-        loc == that.loc
+      loc.startIndex == that.loc.startIndex &&
+      loc.endIndex == that.loc.endIndex &&
+      loc == that.loc
     case _ => false
   }
 

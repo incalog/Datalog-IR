@@ -3,7 +3,6 @@ package inca.frontend.functional.core
 import inca.compiler.source.SourceLocation
 import inca.frontend.util.Resolvable
 import inca.util.Scala
-
 import scala.meta.quasiquotes._
 
 sealed trait Type extends SourceLocation {
@@ -94,7 +93,6 @@ object TScalaLong extends TScala(Scala(t"Long"))
 object TScalaDouble extends TScala(Scala(t"Double"))
 object TScalaString extends TScala(Scala(t"String"))
 object TScalaAny extends TScala(Scala(t"Any"))
-
 
 case class TOption(ty: Type) extends Type {
   override def prettyprint: String = s"Option[${ty.prettyprint}]"

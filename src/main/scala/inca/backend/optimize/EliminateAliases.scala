@@ -3,7 +3,6 @@ package inca.backend.optimize
 import inca.backend.ir.Datalog._
 import inca.backend.ir.Substitute
 import inca.runtime.context.DataModel
-
 import scala.collection.immutable.MultiDict
 
 object EliminateAliases extends Optimization {
@@ -65,7 +64,6 @@ object EliminateAliases extends Optimization {
         case _ => // nothing
       }
 
-
       var changed = false
       do {
         changed = false
@@ -88,8 +86,7 @@ object EliminateAliases extends Optimization {
           Some(substBody(body))
         } catch {
           case BodyMustFail => None
-        }
-      )
+        })
       Pattern(pat.vis, pat.name, pat.params, newbodies).withHints(pat)
     }
 
@@ -111,4 +108,3 @@ object EliminateAliases extends Optimization {
     }
   }
 }
-

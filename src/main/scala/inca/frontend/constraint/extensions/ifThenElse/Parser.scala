@@ -5,8 +5,8 @@ import inca.frontend.constraint.extensions.ifThenElse.Trees._
 import inca.frontend.constraint.parser.CoreParser
 
 trait Parser extends CoreParser {
-  import fastparse.ScalaWhitespace._
   import fastparse._
+  import fastparse.ScalaWhitespace._
 
   override protected[frontend] def keywords: Set[String] = super.keywords ++ Seq("if", "else")
 
@@ -20,7 +20,6 @@ trait Parser extends CoreParser {
       "if" ~ "(" ~ exp ~ ")" ~ body ~
         elseif.rep.? ~ P("else" ~ body).?
     ).mapWithLoc { case (e, b, eifs, el) => IfThenElse(e, b, eifs.getOrElse(Seq.empty), el) }
-
 
   protected[frontend] def elseif[_: P]: P[ElseIf] =
     P(

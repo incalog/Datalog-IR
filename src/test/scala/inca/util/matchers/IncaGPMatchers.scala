@@ -2,7 +2,8 @@ package inca.util.matchers
 
 import inca.backend.ir.Datalog
 import inca.compiler
-import inca.runtime.{EnginePool, Query}
+import inca.runtime.EnginePool
+import inca.runtime.Query
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.Assertion
 import truechange.EditScript
@@ -14,26 +15,35 @@ trait IncaGPMatchers extends IncaMatchers {
     assertResult(optimized)(compiler.Compiler.compileGP(original, dataModel, options).optimized)
   }
 
-  def assertMatch(module: Datalog.Module,
-                  fun: String,
-                  subjectProg: Diffable)
-                 (asserter: Query.Matcher => Assertion): Assertion = {
+  def assertMatch(
+      module: Datalog.Module,
+      fun: String,
+      subjectProg: Diffable
+    )(
+      asserter: Query.Matcher => Assertion
+    ): Assertion = {
 
     val editScript = Diffable.load(subjectProg)
     assertMatch(module, fun, editScript)(asserter)
   }
 
-  def assertMatch(module: Datalog.Module,
-                  patName: String,
-                  editScript: EditScript)
-                 (asserter: Query.Matcher => Assertion): Assertion = {
+  def assertMatch(
+      module: Datalog.Module,
+      patName: String,
+      editScript: EditScript
+    )(
+      asserter: Query.Matcher => Assertion
+    ): Assertion = {
 
     val psystem = compiler.Compiler.compileGP(module, dataModel, options).psystemModule
-    val querySpec = psystem.patterns.getOrElse(patName, throw new IllegalArgumentException(s"Pattern $patName undefined in module ${module.name}."))
-
+    val querySpec = psystem.patterns.getOrElse(
+      patName,
+      throw new IllegalArgumentException(s"Pattern $patName undefined in module ${module.name}.")
+    )
 
     val feed = EnginePool.loadDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-    val matcher = EnginePool.loadQuery(querySpec(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    val matcher =
+      EnginePool.loadQuery(querySpec(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 
     feed.processEditScript(editScript)
 

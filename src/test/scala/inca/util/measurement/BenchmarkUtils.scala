@@ -1,16 +1,20 @@
 package inca.util.measurement
 
-
-import inca.util.measurement.CSVUtil.{CSVRow, csvRowToString}
-
-import java.io.{File, PrintWriter}
-
+import inca.util.measurement.CSVUtil.csvRowToString
+import inca.util.measurement.CSVUtil.CSVRow
+import java.io.File
+import java.io.PrintWriter
 import scala.io.Source
 
 object BenchmarkUtils {
 
   object Measurement {
-    def apply(name: String, vals: Seq[Long], extra: Map[String, Any] = Map())(implicit timing: Timing): Measurement = {
+    def apply(
+        name: String,
+        vals: Seq[Long],
+        extra: Map[String, Any] = Map()
+      )(implicit timing: Timing
+      ): Measurement = {
       val outliers = timing.outliers
       val measurementVals = vals.drop(timing.discard)
       Measurement(name, measurementVals, outliers, extra)
@@ -28,12 +32,12 @@ object BenchmarkUtils {
       // edit size
       // diff time
       val text = s"""
-                    |Measurement $name
-                    |  Diffing time (ms): ${ms(diffTime)}""".stripMargin
+        |Measurement $name
+        |  Diffing time (ms): ${ms(diffTime)}""".stripMargin
       if (extra.isEmpty)
         text
       else
-        text + extra.map(kv => s"\n  ${kv._1}: ${kv._2}").foldLeft("")(_+_)
+        text + extra.map(kv => s"\n  ${kv._1}: ${kv._2}").foldLeft("")(_ + _)
     }
 
     def combine(name: String, other: Measurement): Measurement = {
@@ -44,7 +48,8 @@ object BenchmarkUtils {
       Measurement(name, vals, outliers, extra ++ newExtras)
     }
 
-    val csvHeader: String = s"Name, AVG time (ms)${if (extra.isEmpty) "," else extra.keys.mkString(",", ",", ",")}raw data (ns)"
+    val csvHeader: String =
+      s"Name, AVG time (ms)${if (extra.isEmpty) "," else extra.keys.mkString(",", ",", ",")}raw data (ns)"
 
     val csv: CSVRow = {
 
@@ -56,7 +61,10 @@ object BenchmarkUtils {
 
   def measurementsToCSV(measurements: Seq[Measurement]): String =
     if (measurements.isEmpty) ""
-    else measurements.head.csvHeader + "\n" + measurements.map { m => csvRowToString(m.csv) }.mkString("\n")
+    else
+      measurements.head.csvHeader + "\n" + measurements.map { m => csvRowToString(m.csv) }.mkString(
+        "\n"
+      )
 
   def readFile(path: String): String = {
     val source = Source.fromFile(path)
@@ -94,7 +102,13 @@ object BenchmarkUtils {
     } else Nil
   }
 
-  def foreachFile(path: String, transitive: Boolean = true, pattern: String = ".*")(f: String => Unit): Unit = {
+  def foreachFile(
+      path: String,
+      transitive: Boolean = true,
+      pattern: String = ".*"
+    )(
+      f: String => Unit
+    ): Unit = {
     val file = new File(path)
     if (file.isDirectory) {
       file.listFiles().foreach { sub =>
@@ -107,11 +121,11 @@ object BenchmarkUtils {
     }
   }
 
-  def ms(l: Double): Double = l/1000/1000
+  def ms(l: Double): Double = l / 1000 / 1000
 
-  def time[R](block: => R): (R,Long) = {
+  def time[R](block: => R): (R, Long) = {
     val t0 = System.nanoTime()
-    val result = block    // call-by-name
+    val result = block // call-by-name
     val t1 = System.nanoTime()
     (result, t1 - t0)
   }
@@ -125,14 +139,18 @@ object BenchmarkUtils {
     (out, t)
   }
 
-  def timed[A,R](setup: () => A, block: A => R)(implicit timing: Timing): (A, R, Seq[Long], Seq[Long]) = {
+  def timed[A, R](
+      setup: () => A,
+      block: A => R
+    )(implicit timing: Timing
+    ): (A, R, Seq[Long], Seq[Long]) = {
     var input = null.asInstanceOf[A]
     var result = null.asInstanceOf[R]
 
     // discard first runs
     for (_ <- 1 to timing.discard) {
       input = setup()
-      val (r,_) = time(block(input))
+      val (r, _) = time(block(input))
       result = r
     }
 
@@ -149,5 +167,6 @@ object BenchmarkUtils {
     (input, result, setuptimes, times)
   }
 
-  def avg[T](vals: Seq[T])(implicit num: Numeric[T]): Double = if (vals.isEmpty) 0 else num.toDouble(vals.sum) / vals.size
+  def avg[T](vals: Seq[T])(implicit num: Numeric[T]): Double =
+    if (vals.isEmpty) 0 else num.toDouble(vals.sum) / vals.size
 }

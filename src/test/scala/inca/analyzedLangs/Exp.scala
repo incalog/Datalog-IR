@@ -1,11 +1,12 @@
 package inca.analyzedLangs
 
 import inca.runtime.context.DataModel
-import truechange.{JavaLitType, ListType, SortType}
-import truediff.Diffable
-import truediff.macros.diffable
-
 import scala.collection.immutable.MultiDict
+import truechange.JavaLitType
+import truechange.ListType
+import truechange.SortType
+import truediff.macros.diffable
+import truediff.Diffable
 
 @diffable
 trait Exp extends Diffable
@@ -46,7 +47,19 @@ object Exp {
     val manyType = SortType(manyTag)
     val letType = SortType(letTag)
     new DataModel(
-      Set(expType, intType, longType, boolType, multType, addType, andType, orType, notType, manyType, letType),
+      Set(
+        expType,
+        intType,
+        longType,
+        boolType,
+        multType,
+        addType,
+        andType,
+        orType,
+        notType,
+        manyType,
+        letType
+      ),
       MultiDict[SortType, SortType](
         intType -> expType,
         longType -> expType,
@@ -60,23 +73,23 @@ object Exp {
         letType -> expType
       ),
       Map(
-        (addTag->"lhs") -> expType,
-        (addTag->"rhs") -> expType,
-        (multTag->"lhs") -> expType,
-        (multTag->"rhs") -> expType,
-        (andTag->"lhs") -> expType,
-        (andTag->"rhs") -> expType,
-        (orTag->"lhs") -> expType,
-        (orTag->"rhs") -> expType,
-        (notTag->"e") -> expType,
-        (manyTag->"exps") -> ListType(expType),
+        (addTag -> "lhs") -> expType,
+        (addTag -> "rhs") -> expType,
+        (multTag -> "lhs") -> expType,
+        (multTag -> "rhs") -> expType,
+        (andTag -> "lhs") -> expType,
+        (andTag -> "rhs") -> expType,
+        (orTag -> "lhs") -> expType,
+        (orTag -> "rhs") -> expType,
+        (notTag -> "e") -> expType,
+        (manyTag -> "exps") -> ListType(expType),
         (letTag -> "bound") -> expType,
         (letTag -> "body") -> expType
       ),
       Map(
-        (intTag->"value") -> JavaLitType(classOf[java.lang.Integer]),
-        (longTag->"value") -> JavaLitType(classOf[java.lang.Long]),
-        (boolTag->"value") -> JavaLitType(classOf[java.lang.Boolean]),
+        (intTag -> "value") -> JavaLitType(classOf[java.lang.Integer]),
+        (longTag -> "value") -> JavaLitType(classOf[java.lang.Long]),
+        (boolTag -> "value") -> JavaLitType(classOf[java.lang.Boolean]),
         (letTag -> "name") -> JavaLitType(classOf[java.lang.String])
       )
     )

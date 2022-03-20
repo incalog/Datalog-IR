@@ -4,8 +4,8 @@ import inca.frontend.constraint.core._
 import inca.util.Gensym
 
 /**
- * Desugaring adapter that makes no changes by default.
- * Acutal desugarings should extend this class and must set `changesMade` when making a change.
+ * Desugaring adapter that makes no changes by default. Acutal desugarings should extend this class
+ * and must set `changesMade` when making a change.
  */
 class DesugarTrans {
   var changesMade: Boolean = false
@@ -19,7 +19,13 @@ class DesugarTrans {
     val Module(name, langModel, imports, nodeImports, content) = module
     gensym.register(module.usedModuleNames.map(_.name))
     gensym.register(module.usedDefNames.map(_.name))
-    Module(name, langModel, imports.flatMap(desugarImport), nodeImports.flatMap(desugarNodeImport), content.flatMap(desugarModuleContent))
+    Module(
+      name,
+      langModel,
+      imports.flatMap(desugarImport),
+      nodeImports.flatMap(desugarNodeImport),
+      content.flatMap(desugarModuleContent)
+    )
   }
 
   def desugarImport(imp: Import): Seq[Import] =
@@ -28,17 +34,26 @@ class DesugarTrans {
   def desugarNodeImport(imp: NodeImport): Seq[NodeImport] =
     Seq(NodeImport(imp.name))
 
-  def desugarModuleContent(content: ModuleContent)(implicit gensym: Gensym): Seq[ModuleContent] = content match {
-    case fun: PatternFunction => desugarFun(fun)
-    case ValDef(vis, name, typ, exp) => Seq(ValDef(vis, name, typ, desugarExp(exp)))
-    case con => Seq(con)
-  }
+  def desugarModuleContent(content: ModuleContent)(implicit gensym: Gensym): Seq[ModuleContent] =
+    content match {
+      case fun: PatternFunction => desugarFun(fun)
+      case ValDef(vis, name, typ, exp) => Seq(ValDef(vis, name, typ, desugarExp(exp)))
+      case con => Seq(con)
+    }
 
-  def desugarFun(fun: PatternFunction)(implicit gensym: Gensym): Seq[PatternFunction] = gensym.scoped {
-    gensym.register(fun.boundNames.map(_.name))
-    val newfun = PatternFunction(fun.annos, fun.vis, fun.name, fun.params, fun.outType, fun.bodies.flatMap(desugarBody))
-    Seq(newfun)
-  }
+  def desugarFun(fun: PatternFunction)(implicit gensym: Gensym): Seq[PatternFunction] =
+    gensym.scoped {
+      gensym.register(fun.boundNames.map(_.name))
+      val newfun = PatternFunction(
+        fun.annos,
+        fun.vis,
+        fun.name,
+        fun.params,
+        fun.outType,
+        fun.bodies.flatMap(desugarBody)
+      )
+      Seq(newfun)
+    }
 
   def desugarBody(body: Body)(implicit gensym: Gensym): Seq[Body] =
     Seq(Body(body.stmts.flatMap(desugarStm)))
@@ -64,10 +79,11 @@ class DesugarTrans {
     case Constant(lit) => Constant(lit)
     case PathAccess(receiver, link) => PathAccess(desugarExp(receiver), link)
     case Call(name, args, trans) => Call(name, args.map(desugarExp), trans)
-    case Count(call@Call(name, args, trans)) => Count(Call(name, args.map(desugarExp), trans).mtyped(call.typ))
+    case Count(call @ Call(name, args, trans)) =>
+      Count(Call(name, args.map(desugarExp), trans).mtyped(call.typ))
     case Tuple(exps) => Tuple(exps.map(desugarExp))
     case Aggregate(agg, bodies) => Aggregate(desugarExp(agg), bodies.flatMap(desugarBody))
-    case eval@Eval(code) =>
+    case eval @ Eval(code) =>
       val desugaredEval = Eval(code)
       eval.params match {
         case Some(params) =>

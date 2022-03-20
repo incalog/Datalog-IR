@@ -1,9 +1,9 @@
 package inca.runtime.index.virtual
 
 import inca.runtime.db.Database
-import inca.runtime.index.Index
 import inca.runtime.index.binary.BinaryIndex
 import inca.runtime.index.unary.UnaryIndex
+import inca.runtime.index.Index
 
 /** A virtual index stores no data of its own but uses other indices to answer queries */
 trait VirtualIndex extends Index {

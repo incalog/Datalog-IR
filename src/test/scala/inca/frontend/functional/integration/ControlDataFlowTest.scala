@@ -5,8 +5,8 @@ import inca.examples.functional.ControlDataFlow
 import inca.frontend.functional.executor.FunctionalExecutor._
 import inca.runtime.EnginePool
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
-import org.scalatest.BeforeAndAfterEach
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.BeforeAndAfterEach
 import truechange.EditScript
 
 class ControlDataFlowTest extends AnyFunSuite with BeforeAndAfterEach {

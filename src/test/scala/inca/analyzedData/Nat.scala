@@ -3,7 +3,6 @@ package inca.analyzedData
 import inca.frontend.constraint.core._
 import inca.runtime.aggregate.Aggregation
 import inca.util.Scala
-
 import scala.meta._
 
 object Nat {
@@ -17,7 +16,8 @@ object Nat {
     override def add(that: Nat): Nat = that
     override def sub(that: Nat): Nat = that match {
       case Zero => this
-      case Succ(_) => throw new IllegalArgumentException(s"Cannot construct negative natural numbers")
+      case Succ(_) =>
+        throw new IllegalArgumentException(s"Cannot construct negative natural numbers")
     }
   }
   case class Succ(n: Nat) extends Nat {
@@ -42,8 +42,7 @@ object Nat {
   }
   val sumAggregation = Scala(Scala.mkQualName("inca.analyzedData.Nat.sumAgg"))
 
-  val fastSumAggregation = Scala(
-    q"""{import inca.analyzedData.Nat.{Nat, Zero, Succ}
+  val fastSumAggregation = Scala(q"""{import inca.analyzedData.Nat.{Nat, Zero, Succ}
         new inca.runtime.aggregate.Aggregation[Nat] {
           override val name: String = "sum"
           override def init: Nat = Zero

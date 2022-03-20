@@ -64,7 +64,10 @@ trait Graph[N, E] {
     cycles.toList
   }
 
-  private def processDFSTree(stack: mutable.Stack[N], visited: mutable.Map[N, VisistedFlag]): Set[List[N]] = {
+  private def processDFSTree(
+      stack: mutable.Stack[N],
+      visited: mutable.Map[N, VisistedFlag]
+    ): Set[List[N]] = {
     var cycles: Set[List[N]] = Set()
     edges.getOrElse(stack.top, Set()).foreach { case (neighbor, _) =>
       if (visited(neighbor) == InStack) {
@@ -103,15 +106,16 @@ trait Graph[N, E] {
     nodes.foreach { from =>
       sb ++= s"\t${nodeToGraphViz(from)} [${nodeGraphVizAttributes(from)}];\n"
       edges.getOrElse(from, Nil).foreach { case (to, info) =>
-        val edge = s"\t${nodeToGraphViz(from)} -> ${nodeToGraphViz(to)} [${edgeGraphVizAttributes(from, to, info)}];\n"
+        val edge =
+          s"\t${nodeToGraphViz(from)} -> ${nodeToGraphViz(to)} [${edgeGraphVizAttributes(from, to, info)}];\n"
         sb ++= edge
       }
     }
 
     s"""strict digraph {
-       |  ${sb.toString()}
-       |}
-       |""".stripMargin
+      |  ${sb.toString()}
+      |}
+      |""".stripMargin
   }
 
   def transitvelyReachable(from: N): Set[N] = {
@@ -122,7 +126,8 @@ trait Graph[N, E] {
     nodes.toSet
   }
 
-  def inSameStronglyConnectedCompontent(n1: N, n2: N): Boolean = stronglyconnectedComponentOfNode(n1).component.contains(n2)
+  def inSameStronglyConnectedCompontent(n1: N, n2: N): Boolean =
+    stronglyconnectedComponentOfNode(n1).component.contains(n2)
 
   case class NodeComponentInfo(component: Set[N], uses: List[Set[N]], usedBy: List[Set[N]])
 
@@ -144,7 +149,6 @@ trait Graph[N, E] {
 
   lazy val stronglyConnectedComponentsWithDemand: List[Set[N]] = stronglyConnectedComponents()
 
-
   // based on https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
   def stronglyConnectedComponents(withDemand: Boolean = true): List[Set[N]] = {
 
@@ -163,15 +167,31 @@ trait Graph[N, E] {
 
     consideredNodes.foreach { node =>
       if (!index.contains(node))
-        currentIndex = strongConnect(node, currentIndex, consideredEdges, index, lowlink, visited, stack, components)
+        currentIndex = strongConnect(
+          node,
+          currentIndex,
+          consideredEdges,
+          index,
+          lowlink,
+          visited,
+          stack,
+          components
+        )
     }
 
     components.toList
   }
 
-  private def strongConnect(node: N, currentIndex: Int, edges: Map[N, Set[(N, E)]],
-                            index: mutable.Map[N, Int], lowlink: mutable.Map[N, Int], visited: mutable.Map[N, VisistedFlag],
-                            stack: mutable.Stack[N], components: ListBuffer[Set[N]]): Int = {
+  private def strongConnect(
+      node: N,
+      currentIndex: Int,
+      edges: Map[N, Set[(N, E)]],
+      index: mutable.Map[N, Int],
+      lowlink: mutable.Map[N, Int],
+      visited: mutable.Map[N, VisistedFlag],
+      stack: mutable.Stack[N],
+      components: ListBuffer[Set[N]]
+    ): Int = {
     lowlink(node) = currentIndex
     index(node) = currentIndex
     var i = currentIndex + 1
@@ -203,7 +223,11 @@ trait Graph[N, E] {
     i
   }
 
-  private def getConsideredNodes(withDemand: Boolean): (Set[N], Map[N, Set[(N, E)]]) = if (withDemand) (nodes.toSet, edges.toMap) else {
+  private def getConsideredNodes(
+      withDemand: Boolean
+    ): (Set[N], Map[N, Set[(N, E)]]) = if (withDemand)
+    (nodes.toSet, edges.toMap)
+  else {
     val consideredNodes = nodes.filterNot(node => node.toString.startsWith("input$"))
     val consideredEdges = mutable.Map[N, Set[(N, E)]]()
 
@@ -211,7 +235,8 @@ trait Graph[N, E] {
       val node = edge._1
       val neighbors = edge._2
       val newneighbors = neighbors.filter(n => consideredNodes.contains(n._1))
-      if (consideredNodes.contains(node) && newneighbors.nonEmpty) consideredEdges(node) = newneighbors
+      if (consideredNodes.contains(node) && newneighbors.nonEmpty)
+        consideredEdges(node) = newneighbors
     }
     (consideredNodes.toSet, consideredEdges.toMap)
   }
@@ -220,4 +245,3 @@ trait Graph[N, E] {
   protected def edgeGraphVizAttributes(from: N, to: N, info: E): String
   protected def nodeGraphVizAttributes(from: N): String
 }
-

@@ -26,5 +26,6 @@ package object tinyJava {
     Visibility,
     PublicVisibility,
     ProtectedVisibility,
-    PrivateVisibility)
+    PrivateVisibility
+  )
 }

@@ -3,13 +3,12 @@ package inca.runtime.index.binary
 import inca.runtime.index.IndexKey
 import org.eclipse.collections.api.bimap.MutableBiMap
 import org.eclipse.collections.api.factory.BiMaps
-
 import scala.jdk.CollectionConverters._
 
 /*
  * In a BidirectionalOneToOneIndex, each key uniquely identifies the correponding value and vice versa.
  */
-class BidirectionalOneToOneIndex[K,V](val key: IndexKey[_]) extends BinaryMapIndex[K,V] {
+class BidirectionalOneToOneIndex[K, V](val key: IndexKey[_]) extends BinaryMapIndex[K, V] {
   private[inca] val index: MutableBiMap[K, V] = BiMaps.mutable.empty()
 
   override def entries: Iterable[(K, V)] = index.entrySet().asScala.map(e => (e.getKey, e.getValue))

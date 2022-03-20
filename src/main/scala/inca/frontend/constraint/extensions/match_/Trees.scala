@@ -11,10 +11,12 @@ object Trees {
     override def allVars: Map[Name, Option[Type]] = matchee.freeVars ++ cases.flatMap(_.allVars)
 
     override def prettyprint(implicit indent: String): String = {
-      val casesS = if (cases.isEmpty) "" else
-        "\n" + cases.map(_.prettyprint(indent+Scala.TAB)).mkString("\n")
+      val casesS =
+        if (cases.isEmpty) ""
+        else
+          "\n" + cases.map(_.prettyprint(indent + Scala.TAB)).mkString("\n")
       s"""${indent}${matchee.prettyprint} match {$casesS
-         |${indent}}""".stripMargin
+        |${indent}}""".stripMargin
     }
 
   }
@@ -37,12 +39,16 @@ object Trees {
     override def allVars: Map[Name, Option[Type]] = bindings.flatMap(_.pattern.allVars).toMap
 
     override def prettyprint(implicit indent: String): String = {
-      val bindingsS = if (bindings.isEmpty) "" else
-        bindings.map(_.prettyprint).mkString(", ")
+      val bindingsS =
+        if (bindings.isEmpty) ""
+        else
+          bindings.map(_.prettyprint).mkString(", ")
       s"${c.prettyprint}($bindingsS)"
     }
   }
-  case class PatternBinding(field: Name, pattern: Pattern) extends Typeable[Type] with SourceLocation {
+  case class PatternBinding(field: Name, pattern: Pattern)
+      extends Typeable[Type]
+      with SourceLocation {
     def prettyprint(implicit indent: String): String =
       s"$field = ${pattern.prettyprint}"
   }
@@ -53,8 +59,10 @@ object Trees {
     override def allVars: Map[Name, Option[Type]] = args.flatMap(_.allVars).toMap
 
     override def prettyprint(implicit indent: String): String = {
-      val argsS = if (args.isEmpty) "" else
-        args.map(_.prettyprint).mkString(", ")
+      val argsS =
+        if (args.isEmpty) ""
+        else
+          args.map(_.prettyprint).mkString(", ")
       s"${fun.code.syntax}($argsS)"
     }
   }

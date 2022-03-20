@@ -1,11 +1,12 @@
 package inca.frontend.constraint.parser
 
-import fastparse.Parsed.{Failure, Success}
 import fastparse._
-import inca.frontend.constraint.extensions
+import fastparse.Parsed.Failure
+import fastparse.Parsed.Success
 import inca.frontend.constraint.core._
-import org.scalatest.Assertion
+import inca.frontend.constraint.extensions
 import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.Assertion
 
 class ExtensionParsersTest extends AnyFunSuite {
   val parser: CoreParser = new CoreParser
@@ -59,46 +60,46 @@ class ExtensionParsersTest extends AnyFunSuite {
 
     testForallExistsSuccess(
       s"""forall v in (x, y) {
-                |    assert x
-                |}""".stripMargin,
+        |    assert x
+        |}""".stripMargin,
       Forall(Name("v"), Tuple(Seq(Var("x"), Var("y"))), Body(Seq(Assert(Var("x")))))
     )
 
     testForallExistsSuccess(
       s"""exists v in list {
-         |    assert v
-         |}""".stripMargin,
+        |    assert v
+        |}""".stripMargin,
       Exists(Name("v"), Var("list"), Body(Seq(Assert(Var("v")))))
     )
 
     testForallExistsFailure(
       s"""forall vin (x, y) {
-         |    assert x
-         |}""".stripMargin
+        |    assert x
+        |}""".stripMargin
     )
 
     testForallExistsFailure(
       s"""forall v in {
-         |    assert x
-         |}""".stripMargin
+        |    assert x
+        |}""".stripMargin
     )
 
     testForallExistsFailure(
       s"""forall v in(x, y) {
-         |    assert x
-         |}""".stripMargin
+        |    assert x
+        |}""".stripMargin
     )
 
     testForallExistsFailure(
       s"""exists v inlist {
-         |    assert v
-         |}""".stripMargin
+        |    assert v
+        |}""".stripMargin
     )
 
     testForallExistsFailure(
       s"""exists v in {
-         |    assert v
-         |}""".stripMargin
+        |    assert v
+        |}""".stripMargin
     )
   }
 
@@ -110,27 +111,27 @@ class ExtensionParsersTest extends AnyFunSuite {
 
     testForeachSuccess(
       s"""foreach v in (x, y) {
-                |    assert x
-                |}""".stripMargin,
+        |    assert x
+        |}""".stripMargin,
       Foreach(Name("v"), Tuple(Seq(Var("x"), Var("y"))), Body(Seq(Assert(Var("x")))))
     )
 
     testForeachFailure(
       s"""foreachv in (x, y) {
-         |    assert x
-         |}""".stripMargin
+        |    assert x
+        |}""".stripMargin
     )
 
     testForeachFailure(
       s"""foreach v in(x, y) {
-         |    assert x
-         |}""".stripMargin
+        |    assert x
+        |}""".stripMargin
     )
 
     testForeachFailure(
       s"""foreach v in {
-         |    assert x
-         |}""".stripMargin
+        |    assert x
+        |}""".stripMargin
     )
   }
 
@@ -141,12 +142,12 @@ class ExtensionParsersTest extends AnyFunSuite {
 
     testIfThenElse(
       s"""if (v) {
-                |    assert x
-                |} else if (q) {
-                | val z = 7
-                |} else {
-                | assert y
-                |}""".stripMargin,
+        |    assert x
+        |} else if (q) {
+        | val z = 7
+        |} else {
+        | assert y
+        |}""".stripMargin,
       IfThenElse(
         Var("v"),
         Body(Seq(Assert(Var("x")))),
@@ -163,15 +164,15 @@ class ExtensionParsersTest extends AnyFunSuite {
 
     testMatch(
       s"""|x match {
-          |    case Node() => {}
-          |    case br0t(topping = cheese) => {}
-          |    case x => { assert x == 5 }
-          |    case (v, w) => {}
-          |    case 5 => {}
-          |    case x@y => {}
-          |    case "Hello World" => {}
-          |    case _ => {}
-          |}""".stripMargin,
+        |    case Node() => {}
+        |    case br0t(topping = cheese) => {}
+        |    case x => { assert x == 5 }
+        |    case (v, w) => {}
+        |    case 5 => {}
+        |    case x@y => {}
+        |    case "Hello World" => {}
+        |    case _ => {}
+        |}""".stripMargin,
       Match(
         Var("x"),
         Seq(
@@ -235,21 +236,15 @@ class ExtensionParsersTest extends AnyFunSuite {
     testSwitch(s"""switch {} union {}""", Switch(Seq(Body(Seq.empty), Body(Seq.empty))))
     testSwitch(
       s"""|switch{
-          |    assert x
-          |} union {}""".stripMargin,
-      Switch(Seq(
-        Body(Seq(Assert(Var("x")))),
-        Body(Seq.empty))
-      )
+        |    assert x
+        |} union {}""".stripMargin,
+      Switch(Seq(Body(Seq(Assert(Var("x")))), Body(Seq.empty)))
     )
     testSwitch(
       s"""|switch{
-          |    val x = 5
-          |} union {}""".stripMargin,
-      Switch(Seq(
-        Body(Seq(Assign(Seq(Name("x")), Constant(IntLiteral(5))))),
-        Body(Seq.empty))
-      )
+        |    val x = 5
+        |} union {}""".stripMargin,
+      Switch(Seq(Body(Seq(Assign(Seq(Name("x")), Constant(IntLiteral(5))))), Body(Seq.empty)))
     )
   }
 

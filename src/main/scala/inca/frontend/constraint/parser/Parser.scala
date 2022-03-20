@@ -1,18 +1,18 @@
 package inca.frontend.constraint.parser
 
 import fastparse.ParserInput
-import inca.frontend.constraint.extensions
 import inca.frontend.constraint.core.Module
+import inca.frontend.constraint.extensions
 
 object Parser {
-  private lazy val parser: CoreParser = new CoreParser with
-    extensions.boolOps.Parser with
-    extensions.evalCall.Parser with
-    extensions.forallExists.Parser with
-    extensions.foreach.Parser with
-    extensions.ifThenElse.Parser with
-    extensions.match_.Parser with
-    extensions.switch_.Parser {}
+  private lazy val parser: CoreParser = new CoreParser
+    with extensions.boolOps.Parser
+    with extensions.evalCall.Parser
+    with extensions.forallExists.Parser
+    with extensions.foreach.Parser
+    with extensions.ifThenElse.Parser
+    with extensions.match_.Parser
+    with extensions.switch_.Parser {}
 
   def parse(code: ParserInput): Module = {
     import fastparse.Parsed

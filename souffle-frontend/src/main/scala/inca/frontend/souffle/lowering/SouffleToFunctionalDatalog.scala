@@ -2,15 +2,16 @@ package inca.frontend.souffle.lowering
 
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.frontend.functional.core._
-import inca.frontend.souffle.Syntax
-import inca.frontend.souffle.Syntax.{Name => _, Expression => _, Type => _, _}
-import inca.frontend.souffle.Util.cleanSouffleName
 import inca.frontend.souffle.compiler.CompiledSouffleFrontendModule
+import inca.frontend.souffle.Syntax
+import inca.frontend.souffle.Syntax.{Expression => _, Name => _, Type => _, _}
+import inca.frontend.souffle.Util.cleanSouffleName
 import inca.runtime.context.DataModel.{Link => MLink}
-import inca.util.{Gensym, Scala}
-import truechange.{JavaLitType, LitType}
-
+import inca.util.Gensym
+import inca.util.Scala
 import scala.collection.mutable
+import truechange.JavaLitType
+import truechange.LitType
 
 class SouffleToFunctionalDatalog {
 
@@ -39,14 +40,17 @@ class SouffleToFunctionalDatalog {
 
   // if funPrefix != "" we are within a compontent definition that got initialized
   def compile(content: SouffleContent, funPrefix: String): Unit = content match {
-    case cdef@ComponentDefinition(name, contents) =>
+    case cdef @ ComponentDefinition(name, contents) =>
       componentDefinitions += name -> cdef
 
     case ComponentInitialization(name, composite) =>
-      val cdef = componentDefinitions.getOrElse(composite, throw new IllegalArgumentException(s"Unknown component definition $composite"))
+      val cdef = componentDefinitions.getOrElse(
+        composite,
+        throw new IllegalArgumentException(s"Unknown component definition $composite")
+      )
       cdef.contents.foreach(compile(_, name + "_"))
 
-    case s@RuleSignature(name, parameters, _) =>
+    case s @ RuleSignature(name, parameters, _) =>
       val ty = parameters match {
         case Nil => TUnit
         case p :: Nil => TSet(compile(p.typ))
@@ -60,10 +64,13 @@ class SouffleToFunctionalDatalog {
       patterns += (funPrefix + name) -> fun
       decls += name -> s
 
-    case ruleDef@RuleDefinition(heads, rulebody) =>
+    case ruleDef @ RuleDefinition(heads, rulebody) =>
       for (RuleHead(name, args) <- heads) {
         val prefName = funPrefix + name
-        val fun = patterns.getOrElse(prefName, throw new IllegalArgumentException(s"Unknown relation $prefName"))
+        val fun = patterns.getOrElse(
+          prefName,
+          throw new IllegalArgumentException(s"Unknown relation $prefName")
+        )
 
         val usedVars = Syntax.collectNames(ruleDef)
         implicit val gensym: Gensym = new Gensym(usedVars.map(_.name))
@@ -75,10 +82,8 @@ class SouffleToFunctionalDatalog {
       }
 
     case TypeDeclaration(name, superType) => // do nothing
-
-    case in@Input(rule, filename, delimiter) =>
-      // TODO generate data constructor for rule?
-
+    case in @ Input(rule, filename, delimiter) =>
+    // TODO generate data constructor for rule?
 
 //      val decl = decls(rule)
 //      inputs(rule) = in
@@ -95,7 +100,10 @@ class SouffleToFunctionalDatalog {
 
     case Output(name) =>
       val prefName = funPrefix + name
-      val fun = patterns.getOrElse(prefName, throw new IllegalArgumentException(s"Unknown relation $prefName"))
+      val fun = patterns.getOrElse(
+        prefName,
+        throw new IllegalArgumentException(s"Unknown relation $prefName")
+      )
       patterns += prefName -> fun.copy(annos = MainFunctionAnno +: fun.annos)
 
     case PrintSize(rule) => // do nothing
@@ -118,23 +126,24 @@ class SouffleToFunctionalDatalog {
     case FloatType => classOf[java.lang.Double]
   }
 
-  def compile(stm: Syntax.Statement, funPrefix: String)(implicit gensym: Gensym): Expression = stm match {
-    case Syntax.Equality(left, not, right)  =>
-      val op = if (not) "!=" else "=="
-      BaseApplyInfix(compile(left), op, compile(right))
-    case Syntax.RelationApplication(negated, component, rule, args) =>
-      if (negated)
-        throw new UnsupportedOperationException("Cannot currently support negation, in " + stm)
+  def compile(stm: Syntax.Statement, funPrefix: String)(implicit gensym: Gensym): Expression =
+    stm match {
+      case Syntax.Equality(left, not, right) =>
+        val op = if (not) "!=" else "=="
+        BaseApplyInfix(compile(left), op, compile(right))
+      case Syntax.RelationApplication(negated, component, rule, args) =>
+        if (negated)
+          throw new UnsupportedOperationException("Cannot currently support negation, in " + stm)
 
-      val terms = args.map(compile)
-      component match {
-        case Some(c) =>
-          Call(Var(Name(s"${c}_$rule")), terms)
-        case None =>
-          val ruleName = if (topLevelRules.contains(rule)) rule.name else funPrefix + rule.name
-          Call(Var(Name(ruleName)), terms)
-      }
-  }
+        val terms = args.map(compile)
+        component match {
+          case Some(c) =>
+            Call(Var(Name(s"${c}_$rule")), terms)
+          case None =>
+            val ruleName = if (topLevelRules.contains(rule)) rule.name else funPrefix + rule.name
+            Call(Var(Name(ruleName)), terms)
+        }
+    }
 
   def compile(exp: Syntax.Expression)(implicit gensym: Gensym): Expression = exp match {
     case Syntax.Variable(name) => Var(cleanSouffleName(name))
@@ -158,4 +167,3 @@ class SouffleToFunctionalDatalog {
     }.toMap
 
 }
-

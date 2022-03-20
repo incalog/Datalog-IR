@@ -4,7 +4,8 @@ import inca.compiler.source.SourceLocation
 import inca.frontend.util.Resolvable
 
 case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
-  extends SourceLocation with Import.Target {
+    extends SourceLocation
+    with Import.Target {
 
   def usedModuleNames: Seq[Name] = name +: imports.map(_.name)
 
@@ -14,10 +15,14 @@ case class Module(name: Name, imports: Seq[Import], content: Seq[ModuleContent])
   }
 
   def prettyprint(implicit indent: String): String = {
-    val importsS = if (imports.isEmpty) "" else
-      "\n" + imports.map(_.prettyprint).mkString("\n")
-    val contentS = if (content.isEmpty) "" else
-      "\n" + content.map(_.prettyprint).mkString("\n")
+    val importsS =
+      if (imports.isEmpty) ""
+      else
+        "\n" + imports.map(_.prettyprint).mkString("\n")
+    val contentS =
+      if (content.isEmpty) ""
+      else
+        "\n" + content.map(_.prettyprint).mkString("\n")
     s"${indent}module $name$importsS$contentS".stripMargin
   }
 
@@ -31,17 +36,21 @@ object Import {
   trait Target
 }
 
-
-
-
 trait ModuleContent extends SourceLocation with Annotations {
   def vis: Option[Visibility]
   def prettyprint(implicit indent: String): String
   def calls: Set[Call]
 }
 
-case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Expression)
-  extends ModuleContent with Var.Target {
+case class FunctionDef(
+    annos: Seq[Annotation],
+    vis: Option[Visibility],
+    name: Name,
+    params: Seq[Param],
+    outType: Type,
+    body: Expression)
+    extends ModuleContent
+    with Var.Target {
 
   lazy val boundNames: Seq[Name] = params.map(_.name)
 
@@ -49,7 +58,8 @@ case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Na
 
   lazy val vars: Map[Name, Option[Type]] = body.vars ++ params.flatMap(_.vars)
 
-  def freevars: Seq[Var] = body.freevars.filter(v => !v.target.contains(this) && !boundNames.contains(v.name))
+  def freevars: Seq[Var] =
+    body.freevars.filter(v => !v.target.contains(this) && !boundNames.contains(v.name))
   def freeTvars: Seq[TData] = body.freeTvars ++ params.flatMap(_.typ.freeTvars) ++ outType.freeTvars
 
   lazy val calls: Set[Call] = body.calls
@@ -61,7 +71,7 @@ case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Na
     val paramsS = params.map(_.prettyprint).mkString(", ")
     val outS = outType.prettyprint
     s"""$annoPrefix$indent${visS}def $name($paramsS): $outS =
-       |$indent  ${body.prettyprint(indent + "  ")}""".stripMargin
+      |$indent  ${body.prettyprint(indent + "  ")}""".stripMargin
   }
 }
 
@@ -71,8 +81,13 @@ case class Param(name: Name, typ: Type) extends SourceLocation with Var.Target {
   def prettyprint: String = s"$name: ${typ.prettyprint}"
 }
 
-case class DataDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, constrs: Seq[DataConstructor])
-  extends ModuleContent with TData.Target {
+case class DataDef(
+    annos: Seq[Annotation],
+    vis: Option[Visibility],
+    name: Name,
+    constrs: Seq[DataConstructor])
+    extends ModuleContent
+    with TData.Target {
 
   def freeTvars: Set[TData] = constrs.flatMap(_.freeTvars).toSet
 
@@ -87,13 +102,16 @@ case class DataDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, 
     else {
       val constrS = constrs.map(_.prettyprint(indent + "  "))
       s"""$annoPrefix$indent${visS}data $name =
-         |${constrS.mkString(" |\n")}
-         |""".stripMargin
+        |${constrS.mkString(" |\n")}
+        |""".stripMargin
     }
   }
 }
 
-case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends SourceLocation with DataConstructor.Target with Var.Target {
+case class DataConstructor(name: Name, paramTypes: Seq[Type])
+    extends SourceLocation
+    with DataConstructor.Target
+    with Var.Target {
 
   def constructorType(data: DataDef): TFun =
     TFun(paramTypes, TData(data.name))
