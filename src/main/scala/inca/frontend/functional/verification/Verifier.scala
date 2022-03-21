@@ -38,6 +38,19 @@ class Verifier {
   val functionDict: mutable.Map[String, FunctionDef] = mutable.Map()
   val dataDict: mutable.Map[String, DataDef] = mutable.Map()
 
+  // TODO theoretically we need to pass a list of protected words in SMTlib to Gensym,
+  //  but Gensym renames everything anyway, so it makes no difference
+  /* TODO possible problems with my "hygienic renaming":
+      - currently renaming variables, even though there should be no danger of conflict with
+        SMTlib protected words: protected words are function names, they should not clash with
+        variable names. But variables have to be renamed, because I do not have the context of
+        Function or Variable vs Function Call when translating Var construct.
+        is there a problem in this case?
+          Let(x, 1,
+            Let(x, 2,
+              x))
+        => change transExp?
+   */
   def verify(module: Module): Map[String, Map[Property, Response]] = {
     implicit val gensym: Gensym = new Gensym(Seq())
     fillDicts(module)
@@ -456,6 +469,46 @@ class Verifier {
     "!=" -> "distinct"
   ))
 
+  def transformInfixMapRightArgToReal(inputMap: Map[String, String]): Map[String, (Term, Term) => Term] = inputMap.map(x =>
+    (x._1, (left: Term, right: Term) =>
+      FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(x._2))), Seq(
+        left,
+        FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("to_real"))), Seq(right))
+      ))))
+
+  def transformInfixMapLeftArgToReal(inputMap: Map[String, String]): Map[String, (Term, Term) => Term] = inputMap.map(x =>
+    (x._1, (left: Term, right: Term) =>
+      FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(x._2))), Seq(
+        FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("to_real"))), Seq(left)),
+        right
+      ))))
+
+  val metaInfixIntRealOps: Map[String, (Term, Term) => Term] = transformInfixMapRightArgToReal(Map(
+    "+" -> "+",
+    "-" -> "-",
+    "*" -> "*",
+    "/" -> "/",
+    "<" -> "<",
+    ">" -> ">",
+    "<=" -> "<=",
+    ">=" -> ">=",
+    "==" -> "=",
+    "!=" -> "distinct"
+  ))
+
+  val metaInfixRealIntOps: Map[String, (Term, Term) => Term] = transformInfixMapLeftArgToReal(Map(
+    "+" -> "+",
+    "-" -> "-",
+    "*" -> "*",
+    "/" -> "/",
+    "<" -> "<",
+    ">" -> ">",
+    "<=" -> "<=",
+    ">=" -> ">=",
+    "==" -> "=",
+    "!=" -> "distinct"
+  ))
+
   val metaInfixBoolOps: Map[String, (Term, Term) => Term] = transformInfixMap(Map(
     "&&" -> "and",
     "and" -> "and",
@@ -481,7 +534,11 @@ class Verifier {
     (TScalaLong, TScalaLong) -> metaInfixIntOps,
     (TScalaDouble, TScalaDouble) -> metaInfixRealOps,
     (TScalaBoolean, TScalaBoolean) -> metaInfixBoolOps,
-    (TScalaString, TScalaString) -> metaInfixStringOps
+    (TScalaString, TScalaString) -> metaInfixStringOps,
+    (TScalaLong, TScalaDouble) -> metaInfixIntRealOps,
+    (TScalaDouble, TScalaLong) -> metaInfixRealIntOps,
+    (TScalaInt, TScalaDouble) -> metaInfixIntRealOps,
+    (TScalaDouble, TScalaInt) -> metaInfixRealIntOps,
   )
 
   def transMetaParam(value: List[meta.Term.Param]): Term = ???
