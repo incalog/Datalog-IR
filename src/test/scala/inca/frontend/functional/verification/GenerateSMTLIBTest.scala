@@ -25,12 +25,13 @@ class GenerateSMTLIBTest extends AnyFunSuite {
     }
   }*/
   test("why doesnt joinInterval work?") {
+    implicit val gensym:Gensym = new Gensym(Seq())
     val verifier = new Verifier()
     val module = compiledIntervalLatticeInvariants.typed
     verifier.fillDicts(module)
     val aggregations = verifier.collectAggregations(module)
     val verificationScripts = aggregations.toSeq.map(ag => verifier.generateScript(ag._1, ag._2))
-    print(verificationScripts.head.commands.mkString(""))
+    print(verificationScripts.map(_.commands.mkString("")).mkString("\n"))
   }
 
   test("run z3") {
@@ -53,6 +54,7 @@ class GenerateSMTLIBTest extends AnyFunSuite {
     print(compiledConstLattice.typed)
   }
   test("collect called functions") {
+    implicit val gensym:Gensym = new Gensym(Seq())
     val module = Parser.parse(ControlDataFlow.IntervalModule)
     val verifier = new Verifier()
     verifier.fillDicts(module)
@@ -64,6 +66,7 @@ class GenerateSMTLIBTest extends AnyFunSuite {
     print(verifier.collectCalledFunctions(module.content(4).asInstanceOf[FunctionDef]))
   }
   test("collect used datatypes") {
+    implicit val gensym:Gensym = new Gensym(Seq())
     val module = Parser.parse(ControlDataFlow.IntervalModule)
     val verifier = new Verifier()
     verifier.fillDicts(module)
@@ -71,6 +74,7 @@ class GenerateSMTLIBTest extends AnyFunSuite {
     print(verifier.collectUsedDataDefs(module.content(4).asInstanceOf[FunctionDef]))
   }
   test("collect aggregations") {
+    implicit val gensym:Gensym = new Gensym(Seq())
     val module = Parser.parse(ControlDataFlow.IntervalModule)
     val verifier = new Verifier()
     print(verifier.collectAggregations(module))
@@ -78,6 +82,7 @@ class GenerateSMTLIBTest extends AnyFunSuite {
 
 
   test("test signVal_lattice_module Schritt für Schritt") {
+    implicit val gensym:Gensym = new Gensym(Seq())
     val module = compiledSignValLattice.typed
     val verifier = new Verifier()
     verifier.fillDicts(module)
@@ -96,20 +101,20 @@ class GenerateSMTLIBTest extends AnyFunSuite {
     print("\n############## Used DataDefs: \n")
     print(dataDefs)
     print("\n############## Translated DataDefs: \n")
-    implicit val gensym = new Gensym(Seq())
     print(dataDefs.map(d => verifier.transDataDef(d)(gensym)))
     print("\n############## Translated FunctionDefs: \n")
     val functions = calledFunctions :+ joinFuncName
-    print(functions.map(f => verifier.transFunctionDef(f)))
+    print(functions.map(f => verifier.transFunctionDefs(Seq(f))))
     print("\n\n############## Output generate with assoc and comm: \n")
     val verificationScript = verifier.generateScript(joinFuncName, aggregations(joinFuncName))
     print(verificationScript.commands.mkString(""))
     print("\n\n############## Output verificationScript feedback: \n")
-    implicit val z3Interp = Z3Interpreter.buildDefault
+    implicit val z3Interp: Z3Interpreter = Z3Interpreter.buildDefault
     print(Interpreter.execute(verificationScript))
   }
 
   test("test sign_lattice_module Schritt für Schritt") {
+    implicit val gensym:Gensym = new Gensym(Seq())
     val module = compiledSignLattice.typed
     val verifier = new Verifier()
     verifier.fillDicts(module)
@@ -128,20 +133,20 @@ class GenerateSMTLIBTest extends AnyFunSuite {
     print("\n############## Used DataDefs: \n")
     print(dataDefs)
     print("\n############## Translated DataDefs: \n")
-    implicit val gensym = new Gensym(Seq())
     print(dataDefs.map(d => verifier.transDataDef(d)(gensym)))
     print("\n############## Translated FunctionDefs: \n")
     val functions = calledFunctions :+ joinFuncName
-    print(functions.map(f => verifier.transFunctionDef(f)))
+    print(functions.map(f => verifier.transFunctionDefs(Seq(f))))
     print("\n\n############## Output generate with assoc and comm: \n")
     val verificationScript = verifier.generateScript(joinFuncName, aggregations(joinFuncName))
     print(verificationScript.commands.mkString(""))
     print("\n\n############## Output verificationScript feedback: \n")
-    implicit val z3Interp = Z3Interpreter.buildDefault
+    implicit val z3Interp: Z3Interpreter = Z3Interpreter.buildDefault
     print(Interpreter.execute(verificationScript))
   }
 
   test("test const_lattice_module") {
+    implicit val gensym:Gensym = new Gensym(Seq())
     val module = compiledConstLattice.typed
     val verifier = new Verifier()
     verifier.fillDicts(module)
@@ -160,16 +165,15 @@ class GenerateSMTLIBTest extends AnyFunSuite {
     print("\n############## Used DataDefs: \n")
     print(dataDefs)
     print("\n############## Translated DataDefs: \n")
-    implicit val gensym = new Gensym(Seq())
     print(dataDefs.map(d => verifier.transDataDef(d)(gensym)))
     print("\n############## Translated FunctionDefs: \n")
     val functions = calledFunctions :+ joinFuncName
-    print(functions.map(f => verifier.transFunctionDef(f)))
+    print(functions.map(f => verifier.transFunctionDefs(Seq(f))))
     print("\n\n############## Output generate with assoc and comm: \n")
     val verificationScript = verifier.generateScript(joinFuncName, aggregations(joinFuncName))
     print(verificationScript.commands.mkString(""))
     print("\n\n############## Output verificationScript feedback: \n")
-    implicit val z3Interp = Z3Interpreter.buildDefault
+    implicit val z3Interp: Z3Interpreter = Z3Interpreter.buildDefault
     print(Interpreter.execute(verificationScript))
   }
 }

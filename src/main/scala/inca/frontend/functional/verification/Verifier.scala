@@ -1,22 +1,19 @@
 package inca.frontend.functional.verification
 
-import com.sun.jdi.InvalidTypeException
-import inca.frontend.functional.core.{Call, Let, Match, _}
 import inca.frontend.functional.Collect
+import inca.frontend.functional.core.{Call, Let, Match, _}
 import inca.util.{Gensym, Scala}
-import smtlib.{Interpreter, interpreters}
 import smtlib.extensions.tip.Terms.{Case, CaseClass, CaseObject}
 import smtlib.interpreters.Z3Interpreter
-import smtlib.lexer.Lexer
-import smtlib.parser.Parser
 import smtlib.theories.Core
-import smtlib.trees.Commands.{Assert, CheckSat, Constructor, DeclareDatatypes, DefineFun, FunDef, Script}
-import smtlib.trees.{Commands, CommandsResponses, Terms}
-import smtlib.trees.Terms.{Identifier, SSymbol, Sort, SortedVar, _}
+import smtlib.trees.Commands._
+import smtlib.trees.Terms._
+import smtlib.trees.{CommandsResponses, Terms}
 
-import java.io.StringReader
-import javax.naming.directory.InvalidAttributeValueException
 import scala.collection.mutable
+import inca.frontend.functional.verification.CompileToSMTLIB._
+
+import scala.collection.mutable.ListBuffer
 
 
 // Functional Program
@@ -37,10 +34,12 @@ case object UnknownResponse extends Response
 
 class Verifier {
 
+  val varMem: mutable.Map[String, String] = mutable.Map()
   val functionDict: mutable.Map[String, FunctionDef] = mutable.Map()
   val dataDict: mutable.Map[String, DataDef] = mutable.Map()
 
   def verify(module: Module): Map[String, Map[Property, Response]] = {
+    implicit val gensym: Gensym = new Gensym(Seq())
     fillDicts(module)
     val aggregations: Map[String, Seq[Property]] = collectAggregations(module)
     val verificationScripts: Seq[Script] = aggregations.toSeq.map(ag => generateScript(ag._1, ag._2))
@@ -49,19 +48,27 @@ class Verifier {
     aggregations.keys.zip(verificationResults).toMap
   }
 
-  def fillDicts(module: Module): Unit = module.content.foreach {
-    case d: DataDef => dataDict += d.name.name -> d
-    case f: FunctionDef => functionDict += f.name.name -> f
+  def fillDicts(module: Module)(implicit gensym: Gensym): Unit = module.content.foreach {
+    case d: DataDef => dataDict += getHygienicName(d.name.name) -> d
+    case f: FunctionDef => functionDict += getHygienicName(f.name.name) -> f
   }
 
-  def collectAggregations(module: Module): Map[String, Seq[Property]] = {
+  def getHygienicName(name: String)(implicit gensym: Gensym): String = {
+    varMem.getOrElse(name, {
+      val freshName = gensym.fresh(name)
+      varMem += name -> freshName
+      freshName
+    })
+  }
+
+  def collectAggregations(module: Module)(implicit gensym: Gensym): Map[String, Seq[Property]] = {
     val aggrCollector = new Collect[(String, Seq[Property])] {
       override def transFun(func: FunctionDef): Seq[(String, Seq[Property])] = {
         if (func.annos.exists {
           case AggregationAnno(_) => true
           case _ => false
         }) {
-          Seq((func.name.name, getAggrProps(func)))
+          Seq((getHygienicName(func.name.name), getAggrProps(func)))
         } else {
           Seq()
         }
@@ -97,21 +104,19 @@ class Verifier {
     props.zip(evalResults).toMap
   }
 
-  val z3ProtectedWords: Seq[String] = Seq("Bool", "Int")
-
-  def generateScript(funcName: String, props: Seq[Property]): Script = {
-    implicit val gensym: Gensym = new Gensym(Seq(funcName))
+  // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
+  def generateScript(funcName: String, props: Seq[Property])(implicit gensym: Gensym): Script = {
     val calledFunctions: Seq[String] = collectCalledFunctions(functionDict(funcName))
-    // TODO reicht das reverse um sicherzustellen, dass die Funktionen und DataDefs in der richtigen Reihenfolge sind?
-    val functions = calledFunctions.reverse :+ funcName
+    val functions = (calledFunctions :+ funcName).distinct
     val dataDefs = functions.flatMap(fName => collectUsedDataDefs(functionDict(fName))).distinct
     val transDataDefs = dataDefs.map(transDataDef)
-    val transFuncDefs = functions.map(transFunctionDef)
+    val transFuncDefs = transFunctionDefs(functions)
     val transProps = props.map(transProperty(_, funcName))
-    makeScript(transDataDefs ++ transFuncDefs ++ transProps)
+    makeScript(transDataDefs ++ Seq(transFuncDefs) ++ transProps)
   }
 
-  def collectCalledFunctions(func: FunctionDef): Seq[String] = {
+  // Die Funktion gibt hygienische Namen zurück
+  def collectCalledFunctions(func: FunctionDef)(implicit gensym: Gensym): Seq[String] = {
     val funcNameCollector = new Collect[String] {
       override def transExp(exp: Expression): Seq[String] = exp match {
         case Call(Var(name), args, _) => Seq(name.name) ++ args.flatMap(transExp)
@@ -124,16 +129,18 @@ class Verifier {
      */
     var functions: Seq[String] = Seq()
     val allFuncs = funcNameCollector.transFun(func)
-    var newFunctions: Seq[String] = allFuncs.filter(functionDict.contains).distinct
+    var newFunctions: Seq[String] =
+      allFuncs.map(getHygienicName).filter(functionDict.contains).distinct
     while (functions != newFunctions) {
       functions = newFunctions
       newFunctions = (functions ++ functions.flatMap(f =>
-        funcNameCollector.transFun(functionDict(f))).filter(functionDict.contains)).distinct
+        funcNameCollector.transFun(functionDict(f))).map(getHygienicName).filter(functionDict.contains)).distinct
     }
     functions
   }
 
-  def collectUsedDataDefs(func: FunctionDef): Seq[String] = {
+  // Die Funktion gibt hygienische Namen zurück
+  def collectUsedDataDefs(func: FunctionDef)(implicit gensym: Gensym): Seq[String] = {
     val dataNameCollector = new Collect[String] {
       override def transType(t: Type): Seq[String] = t match {
         case TData(name) => Seq(name.name)
@@ -141,18 +148,17 @@ class Verifier {
       }
     }
     var dataDefs: Seq[String] = Seq()
-    var newDataDefs: Seq[String] = dataNameCollector.transFun(func).filter(dataDict.contains).distinct
+    var newDataDefs: Seq[String] =
+      dataNameCollector.transFun(func).map(getHygienicName).filter(dataDict.contains).distinct
     while (dataDefs != newDataDefs) {
       dataDefs = newDataDefs
       newDataDefs = (dataDefs ++ dataDefs.flatMap(d =>
-        dataNameCollector.transData(dataDict(d))).filter(dataDict.contains)).distinct
+        dataNameCollector.transData(dataDict(d))).map(getHygienicName).filter(dataDict.contains)).distinct
     }
     dataDefs
   }
 
-  // DataDef(annos: Seq[Annotation], vis: Option[Visibility], name: String, constrs: Seq[DataConstructor])
-  // DataConstructor(name: String, paramTypes: Seq[Type])
-
+  // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
   def transDataDef(dataName: String)(implicit gensym: Gensym): Script = {
     val data = dataDict(dataName)
     val invariantScripts = data.annos.flatMap{
@@ -169,7 +175,7 @@ class Verifier {
   // Constructor(sym: SSymbol, fields: Seq[(SSymbol, Sort)])
 
   def transDataConstructor(c: DataConstructor)(implicit gensym: Gensym): Constructor = {
-    Constructor(SSymbol(c.name.name),
+    Constructor(SSymbol(getHygienicName(c.name.name)),
       c.paramTypes.map(paramType => {
         val fieldName = gensym.fresh(c.name.name)
         val sort = transType(paramType)
@@ -179,35 +185,50 @@ class Verifier {
 
   def generateInvariantsScript(invariantNames: Seq[String], dataName: String)(implicit gensym:Gensym): Script = {
     makeScript(invariantNames.map(name => {
-      val invariantFuncScript = transFunctionDef(name)
+      val hygienicName = getHygienicName(name)
+      val invariantFuncScript = transFunctionDefs(Seq(hygienicName))
       val forallVariableName = gensym.fresh(dataName)
       val invariantAssertion = Script(List(
+        Assert(smtForall(Seq(smtSortedVar(forallVariableName, dataName)),
+          smtCall("=", Seq(
+            smtCall(hygienicName, Seq(
+              smtVarCall(forallVariableName)
+            )),
+            smtTrue()
+          ))))
+      ))
+      // TODO André fragen, ob es sinnvol ist, eine CompileToSMTLIB Klasse zu haben
+/*      val invariantAssertion = Script(List(
         Assert(Forall(SortedVar(SSymbol(forallVariableName), Sort(Identifier(SSymbol(dataName)))), Seq(),
           FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("="))),
             Seq(FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(name))),
               Seq(QualifiedIdentifier(Identifier(SSymbol(forallVariableName))))),
               Core.BoolConst(true)))))
-      ))
+      ))*/
       makeScript(Seq(invariantFuncScript, invariantAssertion))
     }))
   }
 
-  //FunctionDef(annos: Seq[Annotation], vis: Option[Visibility],
-  //  name: String, params: Seq[Param], outType: Type, body: Expression)
-  //Param(name: String, typ: Type)
-  def transFunctionDef(funcName: String)(implicit gensym: Gensym): Script = {
-    val func = functionDict.getOrElse(funcName, throw new Exception(s"Function $funcName doesn't seem to be implemented"))
-    val transParams: Seq[SortedVar] = func.params.map(p => SortedVar(SSymbol(p.name.name), transType(p.typ)))
-    val transOutType: Sort = transType(func.outType)
-    val transBody: Term = transExp(func.body)
-    // val freshFuncName = gensym.fresh(funcName)
-    Script(List(DefineFun(FunDef(SSymbol(funcName), transParams, transOutType, transBody))))
+  // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
+  def transFunctionDefs(funcNames: Seq[String])(implicit gensym: Gensym): Script = {
+    val funDecls: mutable.ListBuffer[FunDec] = ListBuffer()
+    val funBodys: mutable.ListBuffer[Term]= ListBuffer()
+    funcNames.foreach{ funcName =>
+      val func = functionDict(funcName)
+      val transParams: Seq[SortedVar] =
+        func.params.map(p => SortedVar(SSymbol(getHygienicName(p.name.name)), transType(p.typ)))
+      val transOutType: Sort = transType(func.outType)
+      funDecls += FunDec(SSymbol(funcName), transParams, transOutType)
+      val transBody: Term = transExp(func.body)
+      funBodys += transBody
+    }
+    Script(List(DefineFunsRec(funDecls.toSeq, funBodys.toSeq)))
   }
   //DefineFun(funDef: FunDef)
   //FunDef(name: SSymbol, params: Seq[SortedVar], returnSort: Sort, body: Term)
   //SortedVar(name: SSymbol, sort: Sort)
 
-  def transType(typ: Type): Sort = {
+  def transType(typ: Type)(implicit gensym: Gensym): Sort = {
     typ match {
       case TScala(ty) => ty match {
         case Scala(meta.Type.Name("Int")) => Sort(Identifier(SSymbol("Int")))
@@ -215,23 +236,24 @@ class Verifier {
         case Scala(meta.Type.Name("Double")) => Sort(Identifier(SSymbol("Real"))) //TODO floating point theory
         case Scala(meta.Type.Name("String")) => Sort(Identifier(SSymbol("String")))
       }
-      case TData(name) => Sort(Identifier(SSymbol(name.name)))
+      case TData(name) => Sort(Identifier(SSymbol(getHygienicName(name.name))))
       // TODO andere Cases
       case _ => throw new Exception("Type needs to be specified")
     }
   }
 
-  def transExp(ex: Expression): Term = {
+  def transExp(ex: Expression)(implicit gensym: Gensym): Term = {
     ex match {
-      case Var(name) => QualifiedIdentifier(Identifier(SSymbol(name.name)))
+      case Var(name) => QualifiedIdentifier(Identifier(SSymbol(getHygienicName(name.name))))
 
-      case Let(names, anno, bound, body) =>
-        val varNames: Seq[SSymbol] = names.map(name => SSymbol(name.name))
+      case Let(names, _, bound, body) =>
+        val hygienicNames: Seq[String] = names.map(n => getHygienicName(n.name))
+        val varNames: Seq[SSymbol] = hygienicNames.map(name => SSymbol(name))
         val boundTerms: Seq[Term] = {
-          if (names.length == 1) {
+          if (hygienicNames.length == 1) {
             Seq(transExp(bound))
           } else {
-            if (names.length < 1) {
+            if (hygienicNames.length < 1) {
               throw new Exception("Let ohne variablen")
             } else {
               bound match {
@@ -255,9 +277,9 @@ class Verifier {
         val transCases = cases.map {
           case (ConstructorPattern(constr, args), body) =>
             val transPattern = if (args.isEmpty) {
-              CaseObject(SSymbol(constr.name))
+              CaseObject(SSymbol(getHygienicName(constr.name)))
             } else {
-              CaseClass(SSymbol(constr.name), args.map(arg => SSymbol(arg.name)))
+              CaseClass(SSymbol(getHygienicName(constr.name)), args.map(arg => SSymbol(getHygienicName(arg.name))))
             }
             Case(transPattern, transExp(body))
           case _ => ??? // Some und None werden erstmal nicht gebraucht
@@ -270,7 +292,7 @@ class Verifier {
       //CaseClass(sym: SSymbol, binders: Seq[SSymbol]) extends Pattern
 
       //Call(fun: Expression, args: Seq[Expression], transitive: Boolean = false)
-      case Call(fun, args, transitive) =>
+      case Call(fun, args, _) =>
         val transFun = transExp(fun)
         val transArgs = args.map(transExp)
         transFun match {
@@ -288,7 +310,7 @@ class Verifier {
           Seq(cnd, thn, els).map(transExp))
 
       case Lambda(vs, body) =>
-        val args = vs.map(v => SortedVar(SSymbol(v._1.name), transType(v._2)))
+        val args = vs.map(v => SortedVar(SSymbol(getHygienicName(v._1.name)), transType(v._2)))
         smtlib.extensions.tip.Terms.Lambda(args, transExp(body))
 
       // TODO Tuples
@@ -312,7 +334,7 @@ class Verifier {
           case Some(leftType) => right.typ match {
             case Some(rightType) =>
               val exc = new Exception(s"Operator $op on types $leftType and $rightType has no equivalent in SMTlib")
-              val typeMap = newMetaInfixOps.getOrElse((leftType, rightType), throw exc)
+              val typeMap = metaInfixOps.getOrElse((leftType, rightType), throw exc)
               typeMap.getOrElse(op.tree.value, throw exc)
             case None => ???
           }
@@ -349,7 +371,8 @@ class Verifier {
     }
   }
 
-  def transProperty(prop: Property, aggrName: String): Script = {
+  // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
+  def transProperty(prop: Property, aggrName: String)(implicit gensym: Gensym): Script = {
     val paramTypeName = getParamTypeName(aggrName)
     prop match {
       case Associativity => PropertyScripts.associativity(aggrName, paramTypeName)
@@ -357,7 +380,7 @@ class Verifier {
     }
   }
 
-  def getParamTypeName(aggrName: String): String = {
+  def getParamTypeName(aggrName: String)(implicit gensym: Gensym): String = {
     val func = functionDict(aggrName)
     func.params.foreach(p => if (p.typ != func.params.head.typ) {
       throw new Exception("Aggregations should take two values of the same type")
@@ -397,64 +420,6 @@ class Verifier {
     Prefix: ! (bzw not),  ~ (bitw ones compl)
   */
 
-  /* val metaInfixOpMap: Map[meta.Term.Name, QualifiedIdentifier] = {
-    // welche Infix OPs gibt es?
-    (Seq("+", "-", "*", "!=", ">", ">=", "<", "<=", "and", "or").map(s => (s, s)) ++
-      Seq(("==", "="), ("/", "div"), ("&&", "and"), ("||", "or"), ("&", "bvand"),
-        ("|", "bvor"), ("<<", "bvshl"), (">>", "bvshr")
-      )).map(x => (meta.Term.Name(x._1), QualifiedIdentifier(Identifier(SSymbol(x._2))))).toMap
-  } */
-
-  val metaInfixIntOps: Map[String, QualifiedIdentifier] = Map(
-    // TODO Division umsetzen?
-    "+" -> "+",
-    "-" -> "-",
-    "*" -> "*",
-    "%" -> "mod",
-    "<" -> "<",
-    ">" -> ">",
-    "<=" -> "<=",
-    ">=" -> ">=",
-    "==" -> "=",
-    "!=" -> "distinct"
-  ).map(x => (x._1, QualifiedIdentifier(Identifier(SSymbol(x._2)))))
-
-  val metaInfixRealOps: Map[String, QualifiedIdentifier] = Map(
-    "+" -> "+",
-    "-" -> "-",
-    "*" -> "*",
-    "/" -> "/",
-    "<" -> "<",
-    ">" -> ">",
-    "<=" -> "<=",
-    ">=" -> ">=",
-    "==" -> "=",
-    "!=" -> "distinct"
-  ).map(x => (x._1, QualifiedIdentifier(Identifier(SSymbol(x._2)))))
-
-  val metaInfixBoolOps: Map[String, QualifiedIdentifier] = Map(
-    "&&" -> "and",
-    "and" -> "and",
-    "||" -> "or",
-    "or" -> "or",
-    "==" -> "=",
-    "!=" -> "distinct"
-  ).map(x => (x._1, QualifiedIdentifier(Identifier(SSymbol(x._2)))))
-
-  val metaInfixStringOps: Map[String, QualifiedIdentifier] = Map(
-    "+" -> "str.++",
-    "==" -> "=",
-    "!=" -> "distinct"
-  ).map(x => (x._1, QualifiedIdentifier(Identifier(SSymbol(x._2)))))
-
-  val metaInfixOps: Map[(Type, Type), Map[String, QualifiedIdentifier]] = Map(
-    (TScalaInt, TScalaInt) -> metaInfixIntOps,
-    (TScalaLong, TScalaLong) -> metaInfixIntOps,
-    (TScalaDouble, TScalaDouble) -> metaInfixRealOps,
-    (TScalaBoolean, TScalaBoolean) -> metaInfixBoolOps,
-    (TScalaString, TScalaString) -> metaInfixStringOps
-  )
-
   val integerDivision: (Term, Term) => Term = (left, right) => {
     FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("div"))), Seq(
       FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("to_real"))), Seq(left)),
@@ -462,7 +427,7 @@ class Verifier {
     ))
   }
 
-  val basicMetaInfixIntOps: Map[String, (Term, Term) => Term] = Map(
+  val basicMetaInfixIntOps: Map[String, (Term, Term) => Term] = transformInfixMap(Map(
     "+" -> "+",
     "-" -> "-",
     "*" -> "*",
@@ -473,12 +438,12 @@ class Verifier {
     ">=" -> ">=",
     "==" -> "=",
     "!=" -> "distinct"
-  ).map(x => (x._1, (left: Term, right: Term) => FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(x._2))), Seq(left, right))))
-  val newMetaInfixIntOps: Map[String, (Term, Term) => Term] = basicMetaInfixIntOps ++ Map(
+  ))
+  val metaInfixIntOps: Map[String, (Term, Term) => Term] = basicMetaInfixIntOps ++ Map(
     "/" -> integerDivision
   )
 
-  val newMetaInfixRealOps: Map[String, (Term, Term) => Term] = Map(
+  val metaInfixRealOps: Map[String, (Term, Term) => Term] = transformInfixMap(Map(
     "+" -> "+",
     "-" -> "-",
     "*" -> "*",
@@ -489,30 +454,34 @@ class Verifier {
     ">=" -> ">=",
     "==" -> "=",
     "!=" -> "distinct"
-  ).map(x => (x._1, (left: Term, right: Term) => FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(x._2))), Seq(left, right))))
+  ))
 
-  val newMetaInfixBoolOps: Map[String, (Term, Term) => Term] = Map(
+  val metaInfixBoolOps: Map[String, (Term, Term) => Term] = transformInfixMap(Map(
     "&&" -> "and",
     "and" -> "and",
     "||" -> "or",
     "or" -> "or",
     "==" -> "=",
     "!=" -> "distinct"
-  ).map(x => (x._1, (left: Term, right: Term) => FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(x._2))), Seq(left, right))))
+  ))
 
-  val newMetaInfixStringOps: Map[String, (Term, Term) => Term] = Map(
+  val metaInfixStringOps: Map[String, (Term, Term) => Term] = transformInfixMap(Map(
     "+" -> "str.++",
     "==" -> "=",
     "!=" -> "distinct"
-  ).map(x => (x._1, (left: Term, right: Term) => FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(x._2))), Seq(left, right))))
+  ))
 
-  // TODO André fragen, was er von dieser Umsetzung hält
-  val newMetaInfixOps: Map[(Type, Type), Map[String, (Term, Term) => Term]] = Map(
-    (TScalaInt, TScalaInt) -> newMetaInfixIntOps,
-    (TScalaLong, TScalaLong) -> newMetaInfixIntOps,
-    (TScalaDouble, TScalaDouble) -> newMetaInfixRealOps,
-    (TScalaBoolean, TScalaBoolean) -> newMetaInfixBoolOps,
-    (TScalaString, TScalaString) -> newMetaInfixStringOps
+  def transformInfixMap(inputMap: Map[String, String]): Map[String, (Term, Term) => Term] = inputMap.map(x =>
+  (x._1, (left: Term, right: Term) =>
+    FunctionApplication(QualifiedIdentifier(Identifier(SSymbol(x._2))), Seq(left, right))))
+
+  // TODO nested integer division
+  val metaInfixOps: Map[(Type, Type), Map[String, (Term, Term) => Term]] = Map(
+    (TScalaInt, TScalaInt) -> metaInfixIntOps,
+    (TScalaLong, TScalaLong) -> metaInfixIntOps,
+    (TScalaDouble, TScalaDouble) -> metaInfixRealOps,
+    (TScalaBoolean, TScalaBoolean) -> metaInfixBoolOps,
+    (TScalaString, TScalaString) -> metaInfixStringOps
   )
 
   def transMetaParam(value: List[meta.Term.Param]): Term = ???
