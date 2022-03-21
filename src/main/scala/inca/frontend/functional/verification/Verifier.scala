@@ -43,7 +43,6 @@ class Verifier {
     fillDicts(module)
     val aggregations: Map[String, Seq[Property]] = collectAggregations(module)
     val verificationScripts: Seq[Script] = aggregations.toSeq.map(ag => generateScript(ag._1, ag._2))
-    implicit val z3Interp: Z3Interpreter = Z3Interpreter.buildDefault
     val verificationResults = verificationScripts.zip(aggregations).map(s => getInterpResult(s._1, s._2._2))
     aggregations.keys.zip(verificationResults).toMap
   }
@@ -87,7 +86,8 @@ class Verifier {
     aggrPropCollector.transFun(func)
   }
 
-  def getInterpResult(s: Script, props: Seq[Property])(implicit interp: Z3Interpreter): Map[Property, Response] = {
+  def getInterpResult(s: Script, props: Seq[Property]): Map[Property, Response] = {
+    val interp = Z3Interpreter.buildDefault
     val evalResults: mutable.ListBuffer[Response] = mutable.ListBuffer()
     s.commands.foreach {
       cmd =>
