@@ -16,7 +16,9 @@ class Compiler {
   val patterns: MutableMap[QualifiedName, Datalog.Pattern] = MutableMap.empty
 
   var inputs: Seq[QualifiedName] = Seq.empty
+  var outputs: Seq[QualifiedName] = Seq.empty
   var printSizes: Seq[QualifiedName] = Seq.empty
+  var limitSizes: Seq[Map[QualifiedName, DirectiveValue]] = Seq.empty
 
   // <subtype> -> <direct supertypes>
   val subTypes: MutableMap[TypeName, Set[TypeName]] = MutableMap(
@@ -161,7 +163,7 @@ class Compiler {
     case Syntax.ArgumentNil => ???
     case ArgumentList(args) => ???
     case ArgumentDollarFunctor(name, args) => ???
-    case ArgumentSingle(arg) => ???
+    case ArgumentSingle(arg) => compileArgument(arg)
     case ArgumentAlias(arg, ty) => ???
     case ArgumentFunctorCall(name, arguments) => ???
     case ArgumentAggregator(aggregator) => ???
@@ -346,8 +348,20 @@ class Compiler {
       // extend list of printSizes
       printSizes :+= directive.qualifiedNames.head
 
-    case Syntax.DirectiveQualifierOutput => ???
-    case Syntax.DirectiveQualifierLimitsize => ???
+    case Syntax.DirectiveQualifierOutput =>
+      assert(directive.qualifiedNames.length == 1, "Output directive must have one relation argument!")
+      assert(directive.params.isEmpty, "Output directives must not have any parameters!")
+
+      // extend list of outputs
+      outputs :+= directive.qualifiedNames.head
+
+    case Syntax.DirectiveQualifierLimitsize =>
+      assert(directive.qualifiedNames.length == 1, "Limitsize directive must have one relation argument!")
+      assert(directive.params.nonEmpty, "Limitsize directive must have a parameter!")
+      assert(directive.params.head._2.isInstanceOf[DirectiveValueNumber], "Limitsize parameter value must be an integer!")
+
+      // extend list of limitSizes
+      limitSizes :+= Map(directive.qualifiedNames.head -> directive.params.head._2)
   }
 
   // MODULE
