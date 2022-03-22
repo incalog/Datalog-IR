@@ -211,6 +211,17 @@ class ParserTest extends AnyFunSuite {
     p("A(a, b) <= B(b, d) :- B(b, c), B(c, d). .plan 1 : (), 2 : (42), 3:(0,1,2)")
   }
 
+  test("functorDecl") {
+    def p(src: String): Unit = {
+      PrettyPrinter.print(Parser.parse(Parser.functorDecl, src))
+      println(Parser.parse(Parser.functorDecl, src))
+    }
+
+    p(".functor test(a:number):number ")
+    p(".functor test(a:number,b:number,c:symbol):number ")
+    p(".functor test(a:number):number stateful")
+  }
+
   test("argument") {
     def p(src: String): Unit = PrettyPrinter.print(Parser.parse(Parser.argument, src))
     def q(src: String): Unit = println(Parser.parse(Parser.argument, src))

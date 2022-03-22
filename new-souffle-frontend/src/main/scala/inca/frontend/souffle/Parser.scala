@@ -394,10 +394,19 @@ object Parser {
   }
 
   //FunctorDecl
-
+  // functor_decl ::= '.functor' IDENT '(' ( attribute ( ',' attribute )* )? ')' ':' type_name 'stateful'?
+  lazy val functorDecl: P[FunctorDecl] = {
+    ((keyword(".functor") *> Literals.identifier ~
+      spaced(parens(relationAttribute.repSep0(Separators.comma)))) ~
+      (spaced(Literals.colon) *> spaced(typename)) ~
+      keyword("stateful").?
+      ).map {
+      case (((name, attributes), returnType), None) => FunctorDecl(name, attributes, returnType)
+      case (((name, attributes), returnType), Some(())) => FunctorDecl(name, attributes, returnType, true)
+    }
+  }
 
   // PRAGMA
-
   val pragma: P[Pragma] =
     (keyword(".pragma") *> spaced(Literals.string) ~ spaced(Literals.string).?)
       .map { case (param, value) => Pragma(param, value) }
@@ -417,6 +426,7 @@ object Parser {
 
   val program: P[SouffleProgram] = (
     pragma |
+    functorDecl |
     fact.backtrack |
     subsumptiveRule.backtrack |
     rule |
