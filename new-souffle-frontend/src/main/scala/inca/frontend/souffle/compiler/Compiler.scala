@@ -283,6 +283,14 @@ class Compiler {
       .eliminateRuleDisjunction(rule)
       .foreach(compileRule)
 
+  def compileSubsumptiveRule(atom: Atom, rule: Rule): Unit = {
+    assert(rule.atoms.size == 1, "Subsumptive rules must have exactly one dominating head")
+    EliminateRuleDisjunction
+      .eliminateRuleDisjunction(rule)
+      .foreach(compileRule)
+  }
+
+
   def compileComponentDecl(componentDecl: ComponentDecl): Unit = ???
   def compileComponentInit(componentInit: ComponentInit): Unit = ???
 
