@@ -77,7 +77,9 @@ class CompilerTest extends AnyFunSuite {
     c.compileRelationDecl(Parser.parse(Parser.relationDecl, ".decl B(a: float)"))
 
     c.compileDirective(Parser.parse(Parser.directive, ".input A"))
+    c.compileDirective(Parser.parse(Parser.directive, ".output A"))
     c.compileDirective(Parser.parse(Parser.directive, ".printsize B"))
+    //c.compileDirective(Parser.parse(Parser.directive, ".limitsize B"))
 
     c.inputs.map(c.relationDecls.apply).foreach(PrettyPrinter.print)
     c.printSizes.map(c.relationDecls.apply).foreach(PrettyPrinter.print)
