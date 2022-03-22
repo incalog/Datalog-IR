@@ -151,8 +151,7 @@ Pattern(vis, name, params: Seq[Param], bodies: Seq[Body])
 
 - Pragma
 - Directive
-  - Output
-  - Limit size
+  - Limit size (Testing required)
 - Subsumptive Rule
 - Term
 - Aggregator
