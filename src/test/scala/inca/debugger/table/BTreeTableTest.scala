@@ -1,5 +1,6 @@
 package inca.debugger.table
 
+import inca.debugger.table.MutableTable.IndexOrder
 import inca.debugger.ScalaValue
 import inca.debugger.Value
 import org.scalatest.funsuite.AnyFunSuite
@@ -11,7 +12,7 @@ class BTreeTableTest extends AnyFunSuite {
       cols: Seq[String],
       elems: Seq[Seq[Any]],
       minDegree: Int = 256,
-      index: Seq[Int] = Seq()
+      index: Seq[IndexOrder] = Seq()
     ): BTreeTable[Value] = {
     val table = new BTreeTable[Value](cols, minDegree, index)
     elems.foreach { t =>
@@ -30,7 +31,7 @@ class BTreeTableTest extends AnyFunSuite {
   }
 
   test("inserts with non-standard index") {
-    val table = new BTreeTable[Value](Seq("name", "age", "m"), 2, Seq(1, 2, 0))
+    val table = new BTreeTable[Value](Seq("name", "age", "m"), 2, Seq(Seq(1, 2, 0)))
     table.insert(tuple("andre", 31, true))
     table.insert(tuple("isa", 27, true))
     table.insert(tuple("andre", 31, false))
@@ -50,5 +51,4 @@ class BTreeTableTest extends AnyFunSuite {
     assert(!table.contains(tuple(3, 2)))
     assert(!table.contains(tuple(4, 4)))
   }
-
 }

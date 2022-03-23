@@ -22,6 +22,13 @@ class BTree[T: ClassTag](
 
   def foreach(f: T => Unit): Unit = root.foreach(f)
   def entries: Seq[T] = root.entries
+
+  def deepCopy(): BTree[T] = {
+    val treeCopy = new BTree[T](null, minDegree)
+    treeCopy.root = root.deepCopy(treeCopy)
+    treeCopy
+  }
+
   override def toString: String =
     if (root == null) s"()"
     else root.toString
@@ -58,7 +65,9 @@ class BTreeNode[T: ClassTag](
   }
 
   def keys: Seq[T] = _keys.take(numberOfKeys).toSeq
-  def children: Seq[BTreeNode[T]] = _children.take(numberOfKeys + 1).toSeq
+  def children: Seq[BTreeNode[T]] =
+    if (isLeafNode) Seq()
+    else _children.take(numberOfKeys + 1).toSeq
 
   def isLeafNode: Boolean = _isLeafNode
   def numberOfKeys: Int = _numberOfKeys
@@ -161,6 +170,13 @@ class BTreeNode[T: ClassTag](
     if (!isLeafNode) {
       _children(numberOfKeys).foreach(f)
     }
+  }
+
+  def deepCopy(tree: BTree[T]): BTreeNode[T] = {
+    val childrenCopies = children.map { child =>
+      child.deepCopy(tree)
+    }.toSeq
+    new BTreeNode[T](tree, keys, childrenCopies)
   }
 
   override def toString: String = {

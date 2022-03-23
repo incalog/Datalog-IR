@@ -1,5 +1,7 @@
 package inca.debugger.table
 
+import inca.debugger.table.MutableTable.constructTupleOrdering
+import inca.debugger.table.MutableTable.IndexOrder
 import inca.util.datastructure.BTree
 import scala.collection.mutable
 import scala.reflect.ClassTag
@@ -7,41 +9,33 @@ import scala.reflect.ClassTag
 class BTreeTable[V: ClassTag](
     cols: Seq[String],
     minDegree: Int = 256,
-    indexOrder: Seq[Int] = Seq()
+    _indexOrders: Seq[IndexOrder] = Seq()
   )(implicit val valOrd: Ordering[V])
     extends MutableTable[V] {
 
-  val _indexOrder: Seq[Int] = if (indexOrder.isEmpty) cols.indices else indexOrder
-
-  implicit private val tupleOrd: Ordering[Tuple] = new Ordering[Tuple] {
-    override def compare(x: Tuple, y: Tuple): Int = {
-      _indexOrder.foreach { idx =>
-        val xVal = x(idx)
-        val yVal = y(idx)
-        val vCompare = valOrd.compare(xVal, yVal)
-        if (vCompare < 0) {
-          return -1
-        } else if (vCompare > 0) {
-          return 1
-        }
-      }
-      0
-    }
-
-  }
-
-  private var tree: BTree[Tuple] = BTree.empty[Tuple](minDegree)
   private val _columns: mutable.ListBuffer[String] = mutable.ListBuffer.from(cols)
+  val indexOrders: Seq[IndexOrder] =
+    if (_indexOrders.isEmpty) Seq(columns.indices) else _indexOrders
+  private val defaultIndexOrder: IndexOrder = indexOrders.head
+
+  private val indices: Map[IndexOrder, BTree[Tuple]] = indexOrders.map { io =>
+    implicit val tupleOrder: Ordering[Tuple] = constructTupleOrdering(io)
+    io -> BTree.empty[Tuple](minDegree)
+  }.toMap
 
   override def columns: Seq[String] = _columns.toSeq
-  override def entries: Seq[Tuple] = tree.entries
+  override def entries: Seq[Tuple] = indices(defaultIndexOrder).entries
   override def contains(t: NamedTuple): Boolean = false
-  override def contains(t: Tuple): Boolean = tree.contains(t)
+  override def contains(t: Tuple, indexOrder: Option[IndexOrder] = None): Boolean =
+    indices(indexOrder.getOrElse(defaultIndexOrder)).contains(t)
+
   override def join(other: MutableTable[V]): Unit = {
     // we need to create a new table
   }
-  override def insert(t: Tuple): Unit = tree.insert(t)
+
+  override def insert(t: Tuple): Unit = indices.foreach { case (_, tree) => tree.insert(t) }
+
   override def toString: String = {
-    s"${cols.mkString(", ")}, $tree"
+    s"${cols.mkString(", ")}, ${indices(defaultIndexOrder)}"
   }
 }

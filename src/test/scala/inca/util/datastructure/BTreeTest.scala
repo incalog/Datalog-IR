@@ -140,4 +140,10 @@ class BTreeTest extends AnyFunSuite {
     assertResult(twoLevelEntries)(twoLevelTree.entries)
     assertResult(threeLevelEntries)(threeLevelTree.entries)
   }
+
+  test("deepCopy") {
+    assertResult(singleNodeTree.entries)(singleNodeTree.deepCopy().entries)
+    assertResult(twoLevelTree.entries)(twoLevelTree.deepCopy().entries)
+    assertResult(threeLevelTree.entries)(threeLevelTree.deepCopy().entries)
+  }
 }
