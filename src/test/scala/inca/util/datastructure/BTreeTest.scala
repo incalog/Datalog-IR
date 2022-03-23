@@ -4,12 +4,14 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class BTreeTest extends AnyFunSuite {
 
+  val singleNodeEntries: Seq[Int] = Seq(1, 2, 3, 6)
   val singleNodeTree: BTree[Int] = {
     val tree = BTree.empty[Int](256)
     val node = BTreeNode(tree, Seq(1, 2, 3, 6), Seq())
     tree.root = node
     tree
   }
+  val twoLevelEntries: Seq[Int] = Seq(1, 2, 3, 5, 6, 9, 10)
   val twoLevelTree: BTree[Int] = {
     val tree = BTree.empty[Int](3)
     val node = BTreeNode(
@@ -25,6 +27,8 @@ class BTreeTest extends AnyFunSuite {
     tree
   }
 
+  val threeLevelEntries: Seq[Int] = Seq(10, 36, 3, 6, 1, 2, 5, 7, 8, 18, 30, 12, 16, 22, 27, 33, 34,
+    40, 50, 37, 38, 41, 46, 51, 56).sorted
   val threeLevelTree: BTree[Int] = {
     val tree = BTree.empty[Int](2)
     val node = BTreeNode(
@@ -65,19 +69,15 @@ class BTreeTest extends AnyFunSuite {
   }
 
   test("test contains on single node tree") {
-    val elements = Seq(1, 2, 3, 6)
-    testMembership(elements, singleNodeTree)
+    testMembership(singleNodeEntries, singleNodeTree)
   }
 
   test("test contains on two level tree") {
-    val elements = Seq(1, 2, 3, 5, 6, 9, 10)
-    testMembership(elements, twoLevelTree)
+    testMembership(twoLevelEntries, twoLevelTree)
   }
 
   test("test contains on three level tree") {
-    val elements = Seq(10, 36, 3, 6, 1, 2, 5, 7, 8, 18, 30, 12, 16, 22, 27, 33, 34, 40, 50, 37, 38,
-      41, 46, 51, 56)
-    testMembership(elements, threeLevelTree)
+    testMembership(threeLevelEntries, threeLevelTree)
   }
 
   private def testMembership(elements: Seq[Int], tree: BTree[Int]): Unit = {
@@ -133,5 +133,11 @@ class BTreeTest extends AnyFunSuite {
     assertResult(Seq(1, 2, 3))(tree.root.children.head.keys)
     insert(-1)
     testMembership(elements, tree)
+  }
+
+  test("entries") {
+    assertResult(singleNodeEntries)(singleNodeTree.entries)
+    assertResult(twoLevelEntries)(twoLevelTree.entries)
+    assertResult(threeLevelEntries)(threeLevelTree.entries)
   }
 }

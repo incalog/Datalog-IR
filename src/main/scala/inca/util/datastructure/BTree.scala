@@ -20,6 +20,8 @@ class BTree[T: ClassTag](
     } else
       root.insert(k)
 
+  def foreach(f: T => Unit): Unit = root.foreach(f)
+  def entries: Seq[T] = root.entries
   override def toString: String =
     if (root == null) s"()"
     else root.toString
@@ -139,6 +141,26 @@ class BTreeNode[T: ClassTag](
     }
     _keys(idx) = nodeToSplit._keys(tree.minDegree - 1)
     incKeyCount()
+  }
+
+  def entries: Seq[T] = {
+    val res = mutable.ListBuffer[T]()
+    foreach { k =>
+      res.append(k)
+    }
+    res.toSeq
+  }
+
+  def foreach(f: T => Unit): Unit = {
+    for (i <- 0 until numberOfKeys) {
+      if (!isLeafNode) {
+        _children(i).foreach(f)
+      }
+      f(_keys(i))
+    }
+    if (!isLeafNode) {
+      _children(numberOfKeys).foreach(f)
+    }
   }
 
   override def toString: String = {
