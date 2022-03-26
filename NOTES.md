@@ -150,8 +150,6 @@ Pattern(vis, name, params: Seq[Param], bodies: Seq[Body])
 ## TODO: Compiler(Easy)
 
 - Pragma
-- Directive
-  - Limit size (Testing required)
 - Subsumptive Rule
 - Term
 - Aggregator
