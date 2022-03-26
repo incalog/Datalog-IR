@@ -18,7 +18,7 @@ class Compiler {
   var inputs: Seq[QualifiedName] = Seq.empty
   var outputs: Seq[QualifiedName] = Seq.empty
   var printSizes: Seq[QualifiedName] = Seq.empty
-  var limitSizes: Seq[Map[QualifiedName, DirectiveValue]] = Seq.empty
+  var limitSizes: Map[QualifiedName, Int] = Map.empty
 
   // <subtype> -> <direct supertypes>
   val subTypes: MutableMap[TypeName, Set[TypeName]] = MutableMap(
@@ -364,11 +364,15 @@ class Compiler {
 
     case Syntax.DirectiveQualifierLimitsize =>
       assert(directive.qualifiedNames.length == 1, "Limitsize directive must have one relation argument!")
-      assert(directive.params.nonEmpty, "Limitsize directive must have a parameter!")
+      assert(directive.params.size == 1, "Limitsize directive must have exactly one parameter!")
+      assert(directive.params.head._1 == "n", "Limitsize directive must have 'n' sa parameter!")
       assert(directive.params.head._2.isInstanceOf[DirectiveValueNumber], "Limitsize parameter value must be an integer!")
 
+      val name = directive.qualifiedNames.head
+      val n = directive.params.head._2.asInstanceOf[DirectiveValueNumber].value
+
       // extend list of limitSizes
-      limitSizes :+= Map(directive.qualifiedNames.head -> directive.params.head._2)
+      limitSizes += name -> n
   }
 
   // MODULE

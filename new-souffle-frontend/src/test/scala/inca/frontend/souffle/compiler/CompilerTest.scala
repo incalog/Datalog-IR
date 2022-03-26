@@ -79,10 +79,12 @@ class CompilerTest extends AnyFunSuite {
     c.compileDirective(Parser.parse(Parser.directive, ".input A"))
     c.compileDirective(Parser.parse(Parser.directive, ".output A"))
     c.compileDirective(Parser.parse(Parser.directive, ".printsize B"))
-    //c.compileDirective(Parser.parse(Parser.directive, ".limitsize B"))
+    c.compileDirective(Parser.parse(Parser.directive, ".limitsize B(n = 42)"))
 
     c.inputs.map(c.relationDecls.apply).foreach(PrettyPrinter.print)
     c.printSizes.map(c.relationDecls.apply).foreach(PrettyPrinter.print)
+    c.limitSizes.foreach { case (name, n) =>
+      println(PrettyPrinter.stringify(c.relationDecls(name)) + " -> " + n) }
   }
 
   test("TypeDeclSubtype") {
