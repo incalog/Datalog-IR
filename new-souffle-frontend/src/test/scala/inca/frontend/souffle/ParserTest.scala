@@ -246,4 +246,16 @@ class ParserTest extends AnyFunSuite {
     q("as(x, number)")
     q(" ( _ ) ")
   }
+
+  test("large program") {
+    import scala.io.Source
+
+    val location = "new-souffle-frontend/src/test/scala/inca/frontend/souffle/context-insensitive.dl"
+    val buffer = Source.fromFile(location)
+    val src = buffer.getLines().filter(!_.startsWith("//")).mkString("\n")
+    buffer.close()
+
+    val program = Parser.parse(src)
+    println(program)
+  }
 }

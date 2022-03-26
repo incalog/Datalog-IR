@@ -55,11 +55,13 @@ object Parser {
     val pipe: P[Unit] = spaced(Literals.pipe)
   }
 
-  val lineComment: P[Unit] = P.char('/').rep(2) *> P.until0(P.char('\n')).void
-  // TODO: make recursive
-  val rangeComment: P[Unit] = P.char('/').rep *> P.char('*') *> P.until0(P.string("*/")) *> P.until0(P.not(P.char('/'))).void
-  val comment: P[Unit] = rangeComment.backtrack | lineComment
-  val whitespace: P0[Unit] = P.until0(P.not(P.charIn(" \t\n\r") | comment)).void
+  val lineComment: P[Unit] = P.string("//") *> P.charsWhile0(c => c != '\n' && c != '\r').void
+  val blockComment: P[Unit] = P.string("/*") *> P.recursive[Unit](rec =>
+    P.product01(P.charsWhile0(c => c != '*').void, P.string("*/") | P.char('*') ~ rec).void
+  )
+  val comment: P[Unit] = lineComment | blockComment
+  val oneWhitespace: P[Unit] = P.charIn(" \t\n\r").void | comment
+  val whitespace: P0[Unit] = oneWhitespace.rep0.void
 
   def spaced[A](p: P0[A]): P0[A] = p <* whitespace
   def spaced[A](p: P[A]): P[A] = p <* whitespace
@@ -68,7 +70,7 @@ object Parser {
   def brackets[A](p: P0[A]): P[A] = spaced(P.char('[')) *> spaced(p) <* spaced(P.char(']'))
   def braces[A](p: P0[A]): P[A] = spaced(P.char('{')) *> spaced(p) <* spaced(P.char('}'))
 
-  def keyword(kw: String): P[Unit] = spaced(P.string(kw))
+  def keyword(kw: String): P[Unit] = spaced(P.string(kw) <* oneWhitespace)
 
   // TYPES
 
@@ -77,7 +79,7 @@ object Parser {
     P.string("number").as(NumberType) |
     P.string("unsigned").as(UnsignedType) |
     P.string("float").as(FloatType) |
-    Literals.identifier.map(DeclaredType.apply)
+    P.defer(qualifiedName).map(name => DeclaredType(name.toString))
 
   val typeDeclSubtype: P[TypeDeclSubtype] = {
     (keyword(".type") *> spaced(Literals.identifier) <* keyword("<:")) ~
@@ -125,14 +127,14 @@ object Parser {
   // AGGREGATOR
 
   val aggregatorCondition: P[AggregatorCondition] =
-    P.defer(atom).map(AggregatorConditionAtom.apply) |
-    braces(P.defer(disjunction)).map(AggregatorConditionDisjunction.apply)
+    braces(P.defer(disjunction)).map(AggregatorConditionDisjunction.apply) |
+    P.defer(atom).map(AggregatorConditionAtom.apply)
 
   val prefixAggregator: P[Aggregator] = {
-    (keyword("min").as("min") |
-      keyword("max").as("max") |
-      keyword("mean").as("mean") |
-      keyword("sum").as("sum")) ~
+    (keyword("min").backtrack.as("min") |
+      keyword("max").backtrack.as("max") |
+      keyword("mean").backtrack.as("mean") |
+      keyword("sum").backtrack.as("sum")) ~
       (spaced(P.defer(argument)) <* Separators.colon) ~ spaced(aggregatorCondition)
   }.map { case ((op, arg), cond) => op match {
     case "min" => AggregatorMin(arg, cond)
@@ -198,7 +200,7 @@ object Parser {
     }
   }
 
-  val qualifiedName: P[QualifiedName] =
+  lazy val qualifiedName: P[QualifiedName] =
     Literals.identifier.repSep(P.char('.')).map(l => QualifiedName(l.toList))
 
   val constant: P[Constant] =
@@ -208,7 +210,7 @@ object Parser {
     Literals.string.map(ConstantString.apply)
 
   val argumentList: P[Seq[Argument]] =
-    P.defer(argument).repSep(Separators.comma).map(_.toList)
+    P.defer(spaced(argument)).repSep(Separators.comma).map(_.toList)
 
   val binOpMap: Map[String, BinOp] = Map(
     "+" -> BinOpAdd,
@@ -238,7 +240,7 @@ object Parser {
     aggregator.map(ArgumentAggregator.apply) |
     (keyword("as") *> parens((spaced(P.defer(argument)) <* Separators.comma) ~ typename))
       .map { case (arg, ty) => ArgumentAlias(arg, ty) } |
-    (Literals.identifier ~ parens(argumentList))
+    (spaced(Literals.identifier) ~ parens(argumentList))
       .map { case (name, args) => ArgumentFunctorCall(name, args.toList) }.backtrack |
     (Literals.identifier | P.char('_').as("_")).map(ArgumentVariable.apply) |
     (P.char('$') *> Literals.identifier ~ parens(argumentList).?)
@@ -269,8 +271,8 @@ object Parser {
   val constraintCmpOpInfix: P[ConstraintCmpOp] =
     P.string("<=").as(ConstraintCmpOp.Leq) |
     P.string("<").as(ConstraintCmpOp.Lt) |
-    P.string(">").as(ConstraintCmpOp.Gt) |
     P.string(">=").as(ConstraintCmpOp.Geq) |
+    P.string(">").as(ConstraintCmpOp.Gt) |
     P.string("=").as(ConstraintCmpOp.Eq) |
     P.string("!=").as(ConstraintCmpOp.Neq)
 
@@ -288,7 +290,7 @@ object Parser {
 
   val conjunctionTerm: P[ConjunctionTerm] =
     (
-      negation ~
+      spaced(negation) ~
       spaced(constraint.backtrack | atom | parens(P.defer(disjunction)))
     ).map {
       case (negated, atom: Atom) => ConjunctionTermAtom(negated, atom)
@@ -457,6 +459,6 @@ object Parser {
   def parse(source: String): SouffleProgram = parse(program, source)
 
   /*  TODO: Missing parsers:
-  * FunctorDecl
+  * Intrinsic functors
   * */
 }
