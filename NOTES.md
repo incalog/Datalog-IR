@@ -149,8 +149,7 @@ Pattern(vis, name, params: Seq[Param], bodies: Seq[Body])
 
 ## TODO: Compiler(Easy)
 
-- Pragma
-- Subsumptive Rule
+- Subsumptive Rule (?)
 - Term
 - Aggregator
 
