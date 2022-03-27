@@ -3,14 +3,16 @@ package inca.frontend.souffle.compiler
 import inca.backend.ir.Datalog
 import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.souffle.Syntax._
-import inca.frontend.souffle.{PrettyPrinter, Syntax}
-import inca.util.Scala
+import inca.frontend.souffle.{FreeVars, PrettyPrinter, Syntax}
+import inca.util.{Gensym, Scala}
 import inca.runtime.context.DataModel
 
 import scala.collection.mutable.{Map => MutableMap}
 import scala.meta.{Term, XtensionQuasiquoteTerm}
 
 class Compiler {
+
+  val gensym: Gensym = new Gensym(Seq())
 
   val relationDecls: MutableMap[QualifiedName, RelationDecl] = MutableMap.empty
   val patterns: MutableMap[QualifiedName, Datalog.Pattern] = MutableMap.empty
@@ -249,33 +251,87 @@ class Compiler {
         case ConstraintCmpOp.Gt => compileCmp(l, r, ">")
         case ConstraintCmpOp.Leq => compileCmp(l, r, "<=")
         case ConstraintCmpOp.Geq => compileCmp(l, r, ">=")
-        case ConstraintCmpOp.Eq => Datalog.Eq(compileArgument(l), compileArgument(r))
         case ConstraintCmpOp.Neq => Datalog.Neq(compileArgument(l), compileArgument(r))
-        case ConstraintCmpOp.Match =>
-          // comparable to SQL 'like'
-          // example: match("a.*", <someString>)
-          compileStringConstraint(l, r, "matches")
-        case ConstraintCmpOp.Contains =>
-          compileStringConstraint(l, r, "contains")
-      }
-      case Syntax.ConstraintTrue =>
 
+        case ConstraintCmpOp.Eq =>
+
+          def compileAggregation(bound: ArgumentVariable, aggregator: ArgumentAggregator): Datalog.Atom = {
+            Datalog.Computed(
+              Datalog.Var(bound.name),
+              aggregator.aggregator match {
+                case AggregatorMin(argument, cond) => ???
+                case AggregatorMax(argument, cond) => ???
+                case AggregatorMean(argument, cond) => ???
+                case AggregatorSum(argument, cond) => ???
+                case AggregatorRange(arg1, arg2, arg3) => ???
+                case AggregatorCount(cond) => cond match {
+                  case AggregatorConditionDisjunction(disjunction) =>
+                    // A(a, b) :- x = count : { B(a, 0), C(b), D(b) }
+                    // ==>
+                    // Temp(a, b) :- B(a, 0), C(b), D(b).
+                    // A :- x = count : Temp
+
+                    val freeVars = FreeVars.freeVars(disjunction)
+
+                    compileRule(Rule(
+                      Seq(
+                        Atom(gensym.fresh("temp"),
+                          freeVars.map(ArgumentVariable.apply))),
+                      disjunction
+                    ))
+
+                    // TODO
+
+                  case AggregatorConditionAtom(atom) =>
+                    Datalog.CountAggregation(atom.name.toString, atom.args.map(compileArgument))
+                }
+              }
+            )
+          }
+
+          (l, r) match {
+            case (l: ArgumentAggregator, r: ArgumentVariable) => compileAggregation(r, l)
+            case (l: ArgumentVariable, r: ArgumentAggregator) => compileAggregation(l, r)
+            case _ => Datalog.Eq(compileArgument(l), compileArgument(r))
+          }
+
+          // TODO: count ... = 0
+          // -> temp = count ..., temp = 0
+      }
+      case ConstraintMatch(pattern, argument) =>
+        // comparable to SQL 'like'
+        // example: match("a.*", <someString>)
+        compileStringConstraint(pattern, argument, "matches")
+      case ConstraintContains(substring, argument) =>
+        compileStringConstraint(substring, argument, "contains")
+      case ConstraintTrue =>
         // 0 == 0
         Datalog.Eq(Datalog.Constant(Datalog.IntLiteral(0)), Datalog.Constant(Datalog.IntLiteral(0)))
-      case Syntax.ConstraintFalse =>
+      case ConstraintFalse =>
         // 0 == 1
         Datalog.Eq(Datalog.Constant(Datalog.IntLiteral(0)), Datalog.Constant(Datalog.IntLiteral(1)))
     }
   }
 
   def compileTerm(term: ConjunctionTerm): Datalog.Atom = term match {
-    case ConjunctionTermAtom(isNegated, atom) => ???
+    case ConjunctionTermAtom(isNegated, atom) =>
+      if (inputs.contains(atom.name)) {
+        // extensional call
+        Datalog.ExtensionalCall(atom.name.toString, atom.args.map(compileArgument), neg = isNegated)
+      }
+      else {
+        // extensional call
+        Datalog.Call(atom.name.toString, atom.args.map(compileArgument), neg = isNegated)
+      }
     case term@ConjunctionTermConstraint(isNegated, constraint) =>
       if (isNegated)
         compileConstraint(term.applyDeMorgan().constraint)
       else
         compileConstraint(constraint)
     case ConjunctionTermDisjunction(isNegated, disjunction) => ???
+      // A :- B, (C; D)
+      // A :- B, C
+      // A :- B, D
   }
 
   def compileRule(rule: Rule): Unit =

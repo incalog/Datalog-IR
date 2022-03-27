@@ -134,4 +134,12 @@ class CompilerTest extends AnyFunSuite {
 
     println(c.algebraicDataTypes)
   }
+
+  test("count aggregation") {
+    val c = new Compiler
+
+    val r = c.compileConstraint(Parser.parse(Parser.constraint, "x = count : Hello(y)"))
+    println(r)
+    PrettyPrinter.print(r)
+  }
 }
