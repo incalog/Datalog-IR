@@ -12,6 +12,11 @@ class ParserTest extends AnyFunSuite {
     }
   }
 
+  def assertEqual[A](head: A, as: A*): Unit = {
+    as.foreach(a => assert(a == head))
+    PrettyPrinter.print(head)
+  }
+
   test("constants") {
     def p(src: String): Constant = Parser.parse(Parser.constant, src)
 
@@ -236,7 +241,7 @@ class ParserTest extends AnyFunSuite {
     p("foo(.5)")
     p("$foo")
     p("$foo(\"hi\")")
-    assertParseFail(p("$foo (0)"))
+    p("$foo (0)")
     p("\"whats up\"")
     p("max q : { q < 0 }")
     p("range(0, 1)")
@@ -245,6 +250,12 @@ class ParserTest extends AnyFunSuite {
     p("as  ( x ,  number )")
     q("as(x, number)")
     q(" ( _ ) ")
+
+    assertEqual(
+      ArgumentAlias(ArgumentVariable("x"), NumberType),
+      Parser.parse(Parser.argument, "as(x, number)"),
+      Parser.parse(Parser.argument, "as ( x , number )"),
+    )
   }
 
   test("large program") {

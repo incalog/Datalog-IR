@@ -21,8 +21,13 @@ object Parser {
 
     val digit: P[Char] = cats.parse.Rfc5234.digit
     val letter: P[Char] = cats.parse.Rfc5234.alpha
+
+    val identifierStartChar: P[Char] =
+      letter | underscore.as('_')
+    val identifierChar: P[Char] =
+      letter | digit | underscore.as('_')
     val identifier: P[String] =
-      ((letter | underscore.as('_')) ~ (letter | digit | underscore.as('_')).rep0).map {
+      (identifierStartChar ~ identifierChar.rep0).map {
         case (c, s) => s"$c${s.mkString}"
       }
 
@@ -70,7 +75,10 @@ object Parser {
   def brackets[A](p: P0[A]): P[A] = spaced(P.char('[')) *> spaced(p) <* spaced(P.char(']'))
   def braces[A](p: P0[A]): P[A] = spaced(P.char('{')) *> spaced(p) <* spaced(P.char('}'))
 
-  def keyword(kw: String): P[Unit] = spaced(P.string(kw) <* oneWhitespace)
+  val wordBarrier: P0[Unit] =
+    P.not(Literals.identifierChar).void | oneWhitespace
+
+  def keyword(kw: String): P[Unit] = spaced(P.string(kw) <* P.peek(wordBarrier))
 
   // TYPES
 
@@ -236,14 +244,14 @@ object Parser {
     P.string("nil").as(ArgumentNil) |
     (keyword("bnot") *> spaced(P.defer(argument))).map(ArgumentUnOp(UnOpBNot, _)) |
     (keyword("lnot") *> spaced(P.defer(argument))).map(ArgumentUnOp(UnOpLNot, _)) |
-    (keyword("-") *> spaced(P.defer(argument))).map(ArgumentUnOp(UnOpMinus, _)) |
+    (spaced(P.string("-")) *> spaced(P.defer(argument))).map(ArgumentUnOp(UnOpMinus, _)) |
     aggregator.map(ArgumentAggregator.apply) |
     (keyword("as") *> parens((spaced(P.defer(argument)) <* Separators.comma) ~ typename))
       .map { case (arg, ty) => ArgumentAlias(arg, ty) } |
     (spaced(Literals.identifier) ~ parens(argumentList))
       .map { case (name, args) => ArgumentFunctorCall(name, args.toList) }.backtrack |
     (Literals.identifier | P.char('_').as("_")).map(ArgumentVariable.apply) |
-    (P.char('$') *> Literals.identifier ~ parens(argumentList).?)
+    (spaced(P.char('$') *> Literals.identifier) ~ parens(argumentList).?)
       .map { case (name, args) => ArgumentDollarFunctor(name, args.getOrElse(Seq.empty)) } |
     constant.map(ArgumentConstant.apply) |
     brackets(argumentList).map(l => ArgumentList(l.toList)) |
