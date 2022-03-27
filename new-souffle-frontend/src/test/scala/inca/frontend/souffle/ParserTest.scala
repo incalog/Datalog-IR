@@ -252,10 +252,10 @@ class ParserTest extends AnyFunSuite {
 
     val location = "new-souffle-frontend/src/test/scala/inca/frontend/souffle/context-insensitive.dl"
     val buffer = Source.fromFile(location)
-    val src = buffer.getLines().filter(!_.startsWith("//")).mkString("\n")
+    val src = buffer.getLines().mkString("\n")
     buffer.close()
 
     val program = Parser.parse(src)
-    println(program)
+    PrettyPrinter.print(program)
   }
 }
