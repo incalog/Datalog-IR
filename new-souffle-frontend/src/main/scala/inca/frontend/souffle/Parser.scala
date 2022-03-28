@@ -421,6 +421,19 @@ object Parser {
     (keyword(".pragma") *> spaced(Literals.string) ~ spaced(Literals.string).?)
       .map { case (param, value) => Pragma(param, value) }
 
+  //IntrinsicFunctor
+
+  lazy val instrinsicFunc: P[IntrinsicFunctor] =
+    keyword("ord").as(IntrinsicFunctorOrd) |
+    keyword("to_float").as(IntrinsicFunctorToFloat) |
+    keyword("to_number").as(IntrinsicFunctorToNumber) |
+    keyword("to_string").as(IntrinsicFunctorToString) |
+    keyword("to_unsigned").as(IntrinsicFunctorToUnsigned) |
+    keyword("cat").as(IntrinsicFunctorCat) |
+    keyword("strlen").as(IntrinsicFunctorStrLen) |
+    keyword("substr").as(IntrinsicFunctorSubStr) |
+    keyword("autoinc").as(IntrinsicFunctorAutoInc)
+
   // PROGRAM
 
   // program  ::=

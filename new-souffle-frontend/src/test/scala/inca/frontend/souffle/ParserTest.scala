@@ -227,6 +227,23 @@ class ParserTest extends AnyFunSuite {
     p(".functor test(a:number):number stateful")
   }
 
+  test("instrinsicFunc"){
+    def p(src: String): Unit = {
+      PrettyPrinter.print(Parser.parse(Parser.instrinsicFunc, src))
+      println(Parser.parse(Parser.instrinsicFunc, src))
+    }
+
+    p("ord")
+    p("to_float")
+    p("to_number")
+    p("to_string")
+    p("to_unsigned")
+    p("cat")
+    p("strlen")
+    p("substr")
+    p("autoinc")
+  }
+
   test("argument") {
     def p(src: String): Unit = PrettyPrinter.print(Parser.parse(Parser.argument, src))
     def q(src: String): Unit = println(Parser.parse(Parser.argument, src))
