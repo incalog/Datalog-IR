@@ -244,6 +244,16 @@ class ParserTest extends AnyFunSuite {
     p("autoinc")
   }
 
+  test("userdefinedFunc"){
+    def p(src: String): Unit = {
+      PrettyPrinter.print(Parser.parse(Parser.userFunc, src))
+      println(Parser.parse(Parser.userFunc, src))
+    }
+
+    p("@test_func")
+    p("@test_func2")
+  }
+
   test("argument") {
     def p(src: String): Unit = PrettyPrinter.print(Parser.parse(Parser.argument, src))
     def q(src: String): Unit = println(Parser.parse(Parser.argument, src))
