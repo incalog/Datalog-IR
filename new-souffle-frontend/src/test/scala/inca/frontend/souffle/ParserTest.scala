@@ -254,6 +254,44 @@ class ParserTest extends AnyFunSuite {
     p("@test_func2")
   }
 
+  test("functors"){
+    def p(src: String): Unit = {
+//      PrettyPrinter.print(Parser.parse(Parser.argumentAtom, src))
+      println(Parser.parse(Parser.argumentAtom, src))
+    }
+    println("usual functor calls")
+    p("some_function(a)")
+    p("this_function(123)")
+    println("\n")
+
+    println("intrinsic functor calls")
+    p("ord(a)")
+    p("ord(\"some text\")")
+    p("to_float(\"123\")")
+    p("to_float(b)")
+    p("to_string(123)")
+    p("to_string(some_var)")
+    p("to_number(\"13\")")
+    p("to_number(c)")
+    p("to_unsigned(\"16\")")
+    p("to_unsigned(var_name)")
+    p("to_unsigned(var_name)")
+    p("cat(\"left text\", \"right text\")")
+    p("cat(\"left text\", cat(\"second left text\",\"right text\"))")
+    p("strlen(\"left text\")")
+    p("substr(\"left text\", 3, 4)")
+    p("substr(cat(\"left text\", \"right text\"), 3, 4)")
+    p("autoinc()")
+    println("\n")
+
+    println("user_defined functor calls")
+    p("@my_function(a, b, c)")
+    p("@my_function2(a)")
+    p("@test_function(\"some text\")")
+    p("@some_function()")
+    println("\n")
+  }
+
   test("argument") {
     def p(src: String): Unit = PrettyPrinter.print(Parser.parse(Parser.argument, src))
     def q(src: String): Unit = println(Parser.parse(Parser.argument, src))

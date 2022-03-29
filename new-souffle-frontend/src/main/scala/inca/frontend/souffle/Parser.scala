@@ -264,6 +264,10 @@ object Parser {
     aggregator.map(ArgumentAggregator.apply) |
     (keyword("as") *> parens((spaced(P.defer(argument)) <* Separators.comma) ~ typename))
       .map { case (arg, ty) => ArgumentAlias(arg, ty) } |
+    (instrinsicFunc ~ parens(argumentList.?)).map {
+      case (func, args) => ArgumentIntrinsicFunc(func, args.getOrElse(Seq.empty))} |
+    (userFunc ~ parens(argumentList.?))
+       .map { case (func, args) => ArgumentUserDefinedFunc(func, args.getOrElse(Seq.empty)) } |
     (spaced(Literals.identifier) ~ parens(argumentList))
       .map { case (name, args) => ArgumentFunctorCall(name, args.toList) }.backtrack |
     (Literals.identifier | P.char('_').as("_")).map(ArgumentVariable.apply) |
