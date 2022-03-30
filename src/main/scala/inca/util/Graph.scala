@@ -1,4 +1,4 @@
-package inca.backend.analyze
+package inca.util
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
