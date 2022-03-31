@@ -52,6 +52,17 @@ lazy val souffle_importer = (project in file("souffle-frontend"))
   )
 )
 
+lazy val abstract_treesitter_truediff_api = (project in file("abstract-treesitter-truediff-API")).dependsOn(inca).settings(
+  name := "abstract-treesitter-truediff-API",
+
+  libraryDependencies ++= Seq(
+    "org.scalatest" %% "scalatest" % "3.1.0" % "test",
+    "net.java.dev.jna" % "jna" % "5.10.0",
+    "com.lihaoyi" %% "os-lib" % "0.8.0",
+    "com.lihaoyi" %% "upickle" % "1.4.3",
+  )
+)
+
 lazy val treesitter_truediff_api = (project in file("treesitter-truediff-API")).dependsOn(inca).settings(
   name := "treesitter-truediff-API",
 
@@ -59,6 +70,7 @@ lazy val treesitter_truediff_api = (project in file("treesitter-truediff-API")).
     "org.junit.jupiter" % "junit-jupiter" % "5.8.2",
     "org.scalatest" %% "scalatest" % "3.1.0" % "test",
     "net.java.dev.jna" % "jna" % "5.10.0",
-    "net.java.dev.jna" % "jna-platform" % "5.10.0",
+    "com.lihaoyi" %% "os-lib" % "0.8.0",
+    "com.lihaoyi" %% "upickle" % "1.4.3",
   )
 )
