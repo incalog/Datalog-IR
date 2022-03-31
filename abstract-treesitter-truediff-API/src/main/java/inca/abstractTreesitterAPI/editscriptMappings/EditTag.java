@@ -1,0 +1,18 @@
+package inca.abstractTreesitterAPI.editscriptMappings;
+
+/*
+* Used to map the EditTag enum:
+* typedef enum {
+    ATTACH, DETACH, UNLOAD, LOAD, LOAD_ATTACH, DETACH_UNLOAD, UPDATE
+} EditTag;
+*/
+
+public interface EditTag {
+    int ATTACH = 0;
+    int DETACH = 1;
+    int UNLOAD = 2;
+    int LOAD = 3;
+    int LOAD_ATTACH = 4;
+    int DETACH_UNLOAD = 5;
+    int UPDATE = 6;
+}
