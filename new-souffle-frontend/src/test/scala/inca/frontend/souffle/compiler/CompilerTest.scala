@@ -2,9 +2,11 @@ package inca.frontend.souffle.compiler
 
 import inca.backend.ir.Datalog
 import inca.frontend.souffle.Syntax._
+import inca.frontend.souffle.executor.SouffleExecutor
 import inca.frontend.souffle.{Parser, PrettyPrinter, compiler}
 import org.scalatest.funsuite.AnyFunSuite
 
+// TODO use assertions instead of printing tests
 class CompilerTest extends AnyFunSuite {
 
   def assertFail(f: => Any): Unit = {
@@ -141,5 +143,23 @@ class CompilerTest extends AnyFunSuite {
     val r = c.compileConstraint(Parser.parse(Parser.constraint, "x = count : Hello(y)"))
     println(r)
     PrettyPrinter.print(r)
+  }
+
+  test("souffle executor example") {
+    val prog =
+      s""".decl edge(x: number, y: number)
+         |edge(1, 2).
+         |edge(2, 3).
+         |edge(3, 4).
+         |edge(4, 2).
+         |
+         |.decl path(x: number, y: number)
+         |.output path
+         |.printsize path
+         |path(x, y) :- edge(x, y).
+         |path(x, y) :- edge(x, z), path(z, y).
+         |""".stripMargin
+    val loaded = SouffleExecutor.loadFunction(prog)
+    val outputs = loaded.execute("")
   }
 }
