@@ -14,7 +14,7 @@ object FreeVars {
     case ArgumentFunctorCall(_, args) => args.flatMap(freeVars).toSet
     case ArgumentAggregator(aggregator) => freeVars(aggregator)
     case ArgumentUnOp(op, arg) => freeVars(arg)
-    case ArgumentBinOp(op, l, r) => freeVars(l) + freeVars(r)
+    case ArgumentBinOp(op, l, r) => freeVars(l) ++ freeVars(r)
   }
 
   def freeVars(aggregator: Aggregator): Set[String] = aggregator match {

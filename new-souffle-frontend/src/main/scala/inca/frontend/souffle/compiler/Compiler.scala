@@ -273,14 +273,15 @@ class Compiler {
 
                     val freeVars = FreeVars.freeVars(disjunction)
 
-                    compileRule(Rule(
-                      Seq(
-                        Atom(gensym.fresh("temp"),
-                          freeVars.map(ArgumentVariable.apply))),
-                      disjunction
-                    ))
+                    // TODO
+//                    compileRule(Rule(
+//                      Seq(Atom(gensym.fresh("temp"),
+//                          freeVars.map(ArgumentVariable.apply))),
+//                          disjunction
+//                    ))
 
                     // TODO
+                  null
 
                   case AggregatorConditionAtom(atom) =>
                     Datalog.CountAggregation(atom.name.toString, atom.args.map(compileArgument))

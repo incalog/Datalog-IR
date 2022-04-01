@@ -17,6 +17,14 @@ trait Options {
 }
 
 object Options {
+  def apply(): Options = new Options {
+    override def optimizations: Seq[Optimization] = defaultOptimizations
+    override def transformations: Seq[Transformation] = Seq()
+    override def stopOnError: Boolean = true
+    override def stopOnWarning: Boolean = false
+    override def withOptimizations(opts: Seq[Optimization]): Options = this
+    override def withTransformations(trans: Seq[Transformation]): Options = this
+  }
 
   val defaultOptimizations: Seq[Optimization] = Seq(
     EliminateNonproductiveRelations,
