@@ -1,5 +1,6 @@
 package inca.util.datastructure
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.reflect.ClassTag
 
@@ -21,11 +22,20 @@ class BTree[T: ClassTag](
       root.insert(k)
 
   def foreach(f: T => Unit): Unit = root.foreach(f)
-  def entries: Seq[T] = root.entries
+  def entries: Seq[T] =
+    if (root == null) Seq()
+    else root.entries
+
+  def lexSearch(lower: T, upper: T): Seq[T] = {
+    if (root == null) Seq()
+    else root.lexSearch(lower, upper)
+  }
 
   def deepCopy(): BTree[T] = {
     val treeCopy = new BTree[T](null, minDegree)
-    treeCopy.root = root.deepCopy(treeCopy)
+    treeCopy.root =
+      if (root == null) null
+      else root.deepCopy(treeCopy)
     treeCopy
   }
 
@@ -38,7 +48,7 @@ object BTree {
     new BTree[T](null, minDegree)
 }
 
-class BTreeNode[T: ClassTag](
+final class BTreeNode[T: ClassTag](
     var tree: BTree[T],
     val initKeys: Seq[T],
     val initChildren: Seq[BTreeNode[T]]
@@ -73,6 +83,7 @@ class BTreeNode[T: ClassTag](
   def numberOfKeys: Int = _numberOfKeys
   def size: Int = numberOfKeys + children.map(c => if (c != null) c.size else 0).sum
 
+  @tailrec
   def contains(k: T): Boolean = {
     var idx = 0
     while (idx < numberOfKeys && ord.gt(k, keys(idx)))
@@ -100,6 +111,7 @@ class BTreeNode[T: ClassTag](
     }
   }
 
+  @tailrec
   def insertNotFull(k: T): Unit = {
     var idx = numberOfKeys - 1
     if (isLeafNode) {
@@ -170,6 +182,27 @@ class BTreeNode[T: ClassTag](
     if (!isLeafNode) {
       _children(numberOfKeys).foreach(f)
     }
+  }
+
+  def lexSearch(lower: T, upper: T): Seq[T] = {
+    val entries = mutable.ListBuffer[T]()
+
+    var idx = 0
+    while (idx < numberOfKeys && ord.lteq(_keys(idx), lower)) {
+      idx += 1
+    }
+
+    while (idx < numberOfKeys && ord.lt(_keys(idx), upper)) {
+      if (!isLeafNode)
+        entries ++= _children(idx).lexSearch(lower, upper)
+      entries += _keys(idx)
+      idx += 1
+    }
+
+    if (!isLeafNode)
+      entries ++= _children(idx).lexSearch(lower, upper)
+
+    entries.toSeq
   }
 
   def deepCopy(tree: BTree[T]): BTreeNode[T] = {

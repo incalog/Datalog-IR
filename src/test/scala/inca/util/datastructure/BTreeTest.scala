@@ -146,4 +146,32 @@ class BTreeTest extends AnyFunSuite {
     assertResult(twoLevelTree.entries)(twoLevelTree.deepCopy().entries)
     assertResult(threeLevelTree.entries)(threeLevelTree.deepCopy().entries)
   }
+
+  test("lexSearch of single node tree") {
+    assertResult(Seq(3))(singleNodeTree.lexSearch(2, 4))
+    assertResult(Seq(2, 3))(singleNodeTree.lexSearch(1, 4))
+    assertResult(Seq(1, 2, 3))(singleNodeTree.lexSearch(0, 6))
+    assertResult(Seq(1, 2, 3, 6))(singleNodeTree.lexSearch(Int.MinValue, Int.MaxValue))
+    assertResult(Nil)(singleNodeTree.lexSearch(-1000, 0))
+    assertResult(Nil)(singleNodeTree.lexSearch(8, 1000))
+  }
+
+  test("lexSearch of two level tree") {
+    assertResult(Seq(3))(twoLevelTree.lexSearch(2, 4))
+    assertResult(Seq(2, 3))(twoLevelTree.lexSearch(1, 4))
+    assertResult(Seq(2, 3, 5))(twoLevelTree.lexSearch(1, 6))
+    assertResult(twoLevelEntries)(twoLevelTree.lexSearch(Int.MinValue, Int.MaxValue))
+    assertResult(Nil)(twoLevelTree.lexSearch(-1000, 0))
+    assertResult(Nil)(twoLevelTree.lexSearch(12, 1000))
+  }
+
+  test("lexSearch of three level tree") {
+    assertResult(Seq(3))(threeLevelTree.lexSearch(2, 4))
+    assertResult(Seq(2, 3))(threeLevelTree.lexSearch(1, 4))
+    assertResult(Seq(2, 3, 5))(threeLevelTree.lexSearch(1, 6))
+    assertResult(threeLevelEntries)(threeLevelTree.lexSearch(Int.MinValue, Int.MaxValue))
+    assertResult(Nil)(threeLevelTree.lexSearch(-1000, 0))
+    assertResult(Seq(51, 56))(threeLevelTree.lexSearch(50, 1000))
+    assertResult(Nil)(threeLevelTree.lexSearch(60, 1000))
+  }
 }
