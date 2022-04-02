@@ -1,6 +1,5 @@
-package inca.debugger.table
+package inca.util.datastructure
 
-import inca.util.Graph
 import scala.collection.mutable
 
 class NetworkFlowGraph[N] extends Graph[N, Int] {

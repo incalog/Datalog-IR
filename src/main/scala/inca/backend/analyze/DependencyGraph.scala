@@ -12,7 +12,7 @@ import inca.backend.ir.Datalog.Module
 import inca.backend.ir.Datalog.Name
 import inca.backend.ir.Datalog.Pattern
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
-import inca.util.Graph
+import inca.util.datastructure.Graph
 
 object DependencyGraph {
   sealed trait DependencyEdge

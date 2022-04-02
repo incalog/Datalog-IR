@@ -1,4 +1,4 @@
-package inca.util
+package inca.util.datastructure
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
