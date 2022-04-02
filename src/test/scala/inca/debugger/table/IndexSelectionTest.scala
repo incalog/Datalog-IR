@@ -1,5 +1,8 @@
 package inca.debugger.table
 
+import inca.debugger.table.indexing.IndexSelection
+import inca.debugger.table.indexing.Search
+import inca.debugger.table.indexing.SearchChain
 import org.scalatest.funsuite.AnyFunSuite
 
 class IndexSelectionTest extends AnyFunSuite {
@@ -75,6 +78,20 @@ class IndexSelectionTest extends AnyFunSuite {
       Seq(
         Search.from("x"),
         Search.from("z")
+      ))
+    assertResult(expected)(min)
+  }
+
+  test("swapped searches") {
+    val searches = Set(
+      Search.from("x", "y"),
+      Search.from("y", "x")
+    )
+    val min = IndexSelection.minIndex(searches)
+    val expected = SearchChain(
+      Seq(
+        Search.from("x", "y"),
+        Search.from("y", "x")
       ))
     assertResult(expected)(min)
   }

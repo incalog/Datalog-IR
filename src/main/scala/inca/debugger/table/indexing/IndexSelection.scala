@@ -1,5 +1,6 @@
-package inca.debugger.table
+package inca.debugger.table.indexing
 
+import inca.util.datastructure.NetworkFlowGraph
 import scala.collection.mutable
 
 // implementing algorithm from paper "Automatic Index Selection for Large-Scale Datalog Computation"
