@@ -15,6 +15,12 @@ object Value {
 
   implicit def valueOrdering: Ordering[Value] = (x: Value, y: Value) =>
     (x, y) match {
+      case (TopValue, TopValue) => 0
+      case (TopValue, _) => 1
+      case (_, TopValue) => -1
+      case (BotValue, BotValue) => 0
+      case (BotValue, _) => -1
+      case (_, BotValue) => 1
       case (ScalaValue(xv: Int), ScalaValue(yv: Int)) =>
         Ordering.Int.compare(xv, yv)
       case (ScalaValue(xv: Boolean), ScalaValue(yv: Boolean)) =>
@@ -30,6 +36,8 @@ object Value {
         else throw new IllegalArgumentException("HOW DO WE COMPARE URIS?")
       case _ => throw new IllegalArgumentException(s"Compare on $x, $y not supported yet")
     }
+
+  implicit def topAndBotFactory: () => (Value, Value) = () => (TopValue, BotValue)
 }
 case class URIValue(uri: URI) extends Value {
   override def toString: String = uri.toString
@@ -46,4 +54,23 @@ case class ScalaValue(v: Any) extends Value {
   )
   override def asScala: Any = v
   override def unwrap: Any = v
+}
+
+case object TopValue extends Value {
+  override def asURI: URI = throw new IllegalArgumentException(
+    "Cannot convert top value to uri value"
+  )
+  override def asScala: Any = throw new IllegalArgumentException(
+    "Cannot convert top value to scala value"
+  )
+  override def unwrap: Any = throw new IllegalArgumentException("Cannot unwrap top value")
+}
+case object BotValue extends Value {
+  override def asURI: URI = throw new IllegalArgumentException(
+    "Cannot convert bot value to uri value"
+  )
+  override def asScala: Any = throw new IllegalArgumentException(
+    "Cannot convert bot value to scala value"
+  )
+  override def unwrap: Any = throw new IllegalArgumentException("Cannot unwrap bot value")
 }
