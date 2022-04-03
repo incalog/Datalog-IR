@@ -106,13 +106,13 @@ object Syntax {
 
   // RULES
   // rule ::= atom ( ',' atom )* ':-' disjunction '.' query_plan?
-  case class Rule(atoms: Seq[Atom], disjunction: Disjunction, queryPlan: Option[QueryPlan] = None) extends SouffleStatement
+  case class Rule(atoms: Seq[Atom], disjunction: TermDisjunction, queryPlan: Option[QueryPlan] = None) extends SouffleStatement
 
   // SUBSUMPTIVE RULE
   // rule ::= atom '<=' atom ':-' disjunction '.' query_plan?
   case class SubsumptiveRule(atom1: Atom,
                              atom2: Atom,
-                             disjunction: Disjunction,
+                             disjunction: TermDisjunction,
                              queryPlan: Option[QueryPlan] = None) extends SouffleStatement
 
   // qualified_name ::= IDENT ( '.' IDENT )*
@@ -135,34 +135,22 @@ object Syntax {
   case class Fact(atom: Atom) extends SouffleStatement
 
   // disjunction ::= conjunction ( ';' conjunction )*
-  case class Disjunction(conjunctions: Seq[Conjunction])
+
+  // A :- B, (C; D, E, (!F; !G))
+  // A :- B, C.
+  // A :- B, D.
 
   // conjunction ::=
   //    '!'* ( atom | constraint | '(' disjunction ')' )
   //        ( ',' '!'* ( atom | constraint | '(' disjunction ')' ) )*
   // example: a(x, y, z), !b, !!!!c, age > 50, (true; false)
-  case class Conjunction(terms: Seq[ConjunctionTerm]) {
-    def ++(other: Conjunction): Conjunction = Conjunction(terms ++ other.terms)
-  }
 
   // conjunction_term ::= atom | constraint | '(' disjunction ')'
-  sealed abstract class ConjunctionTerm {
-    val isNegated: Boolean
-    def negated: ConjunctionTerm
-  }
-  case class ConjunctionTermAtom(override val isNegated: Boolean, atom: Atom) extends ConjunctionTerm {
-    override def negated: ConjunctionTerm = ConjunctionTermAtom(!isNegated, atom)
-  }
-  case class ConjunctionTermConstraint(override val isNegated: Boolean, constraint: Constraint) extends ConjunctionTerm {
-    override def negated: ConjunctionTerm = ConjunctionTermConstraint(!isNegated, constraint)
-
-    def applyDeMorgan(): ConjunctionTermConstraint =
-      // !(a > b) -> a <= b
-    ConjunctionTermConstraint(!isNegated, constraint.negated)
-  }
-  case class ConjunctionTermDisjunction(override val isNegated: Boolean, disjunction: Disjunction) extends ConjunctionTerm {
-    override def negated: ConjunctionTerm = ConjunctionTermDisjunction(!isNegated, disjunction)
-  }
+  sealed trait Term
+  case class TermConjunction(terms: Seq[Term], isNegated: Boolean = false) extends Term
+  case class TermDisjunction(terms: Seq[Term], isNegated: Boolean = false) extends Term
+  case class TermAtom(atom: Atom, isNegated: Boolean = false) extends Term
+  case class TermConstraint(constraint: Constraint, isNegated: Boolean = false) extends Term
 
   // query_plan ::= '.plan' NUMBER ':' '(' ( NUMBER ( ',' NUMBER )* )? ')' ( ',' NUMBER ':' '(' ( NUMBER ( ',' NUMBER )* )? ')' )*
   case class QueryPlan(body: Seq[(Int, Seq[Int])])
@@ -301,7 +289,7 @@ object Syntax {
 
   sealed trait AggregatorCondition
   case class AggregatorConditionAtom(atom: Atom) extends AggregatorCondition
-  case class AggregatorConditionDisjunction(disjunction: Disjunction) extends AggregatorCondition
+  case class AggregatorConditionDisjunction(disjunction: TermDisjunction) extends AggregatorCondition
 
   // component_decl ::=
   //  '.comp' component_type ( ( ':' | ',' ) component_type )*

@@ -23,49 +23,51 @@ object EliminateRuleDisjunction {
   *
   * */
 
-  def resolveNegatedDisjunctions(e: ConjunctionTerm): Conjunction = e match {
-    case ConjunctionTermDisjunction(true, disjunction) =>
-      // !(A; B) => !A, !B
-      // !(A; B, C) => !A, !(B, C)
-      // !(A; (B; C)) => !A, !(B; C)
-      val terms = disjunction.conjunctions.map { conjunction =>
-        if (conjunction.terms.length == 1) conjunction.terms.head
-        else ConjunctionTermDisjunction(isNegated = true, Disjunction(Seq(conjunction)))
-      }
-
-      Conjunction(terms)
-    case _ => Conjunction(Seq(e))
-  }
-
-  def crossProduct(as: Seq[Conjunction], bs: Seq[Conjunction]): Seq[Conjunction] = {
+  def crossProduct(as: Seq[TermConjunction], bs: Seq[TermConjunction]): Seq[TermConjunction] = {
     // [A, B], [C, D] => [A, C], [A, D], [B, C], [B, D]
     for (a <- as; b <- bs)
-      yield a ++ b
+      yield TermConjunction(a.terms ++ b.terms)
   }
 
-  def extractConjunctions(e: Conjunction): Seq[Conjunction] = {
-
-    /*
-    *  Strategy
-    *
-    * - for each term in the conjunction extract their conjunctions into a list
-    * - example: A, (B; C) => [[A], [B, C]]
-    * - then, reduce the resulting list of lists by applying the cross product
-    * - example: [[A], [B, C]] => [AB, AC]
-    *
-    * */
-
-    val r = e.terms.map {
-      case term@ConjunctionTermAtom(isNegated, atom) => Seq(Conjunction(Seq(term)))
-      case term@ConjunctionTermConstraint(isNegated, constraint) => Seq(Conjunction(Seq(term)))
-      case ConjunctionTermDisjunction(isNegated, disjunction) =>
-        disjunction.conjunctions.map(extractConjunctions).reduce(_ ++ _)
+  def transformToDNF(e: TermConjunction): Seq[TermConjunction] = {
+    // 1) push negation inwards (negation normal form, nnf)
+    def negated(t: Term): Term = t match {
+      case TermConjunction(terms, isNegated) => TermConjunction(terms, isNegated = !isNegated)
+      case TermDisjunction(terms, isNegated) => TermDisjunction(terms, isNegated = !isNegated)
+      case TermAtom(atom, isNegated) => TermAtom(atom, isNegated = !isNegated)
+      case TermConstraint(constraint, isNegated) => TermConstraint(constraint, isNegated = !isNegated)
     }
 
-    r.reduce(crossProduct)
+    def pushNegation(t: Term): Term = t match {
+      case term@TermAtom(_, _) => term
+      case term@TermConstraint(_, _) => term
+      case TermConjunction(terms, isNegated) =>
+        if (isNegated) TermDisjunction(terms.map(t => pushNegation(negated(t))))
+        else TermConjunction(terms.map(pushNegation))
+      case TermDisjunction(terms, isNegated) =>
+        if (isNegated) TermConjunction(terms.map(t => pushNegation(negated(t))))
+        else TermDisjunction(terms.map(pushNegation))
+    }
+
+    val nnf = pushNegation(e)
+
+    // 2) reduce nnf to dnf
+    def reduceToDNF(t: Term): Seq[TermConjunction] = t match {
+      case TermDisjunction(terms, isNegated) =>
+        assert(!isNegated)
+        terms.map(reduceToDNF).reduce(_ ++ _)
+      case TermConjunction(terms, isNegated) =>
+        assert(!isNegated)
+        terms.map(reduceToDNF).reduce(crossProduct)
+      case t@TermAtom(_, _) => Seq(TermConjunction(Seq(t)))
+      case t@TermConstraint(_, _) => Seq(TermConjunction(Seq(t)))
+    }
+
+    // dnf
+    reduceToDNF(nnf)
   }
 
-  sealed case class Rule(head: Atom, conjunction: Conjunction, queryPlan: Option[QueryPlan])
+  sealed case class Rule(head: Atom, conjunction: TermConjunction, queryPlan: Option[QueryPlan])
 
   def eliminateRuleDisjunction(e: Syntax.Rule): Seq[Rule] = {
 
@@ -90,9 +92,11 @@ object EliminateRuleDisjunction {
     * */
 
     val atoms = e.atoms
-    val conjunctions =
-      e.disjunction.conjunctions
-        .flatMap(extractConjunctions)
+    val conjunctions: Seq[TermConjunction] =
+      e.disjunction.terms.map {
+        case t@TermConjunction(_, _) => t
+        case t => TermConjunction(Seq(t))
+      }.flatMap(transformToDNF)
 
     atoms.flatMap(atom =>
       conjunctions.map(conjunction =>
