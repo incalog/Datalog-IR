@@ -18,12 +18,13 @@ object Parser {
     val underscore: P[Unit] = P.char('_')
     val comma: P[Unit] = P.char(',')
     val pipe: P[Unit] = P.char('|')
+    val questionMark: P[Unit] = P.char('?')
 
     val digit: P[Char] = cats.parse.Rfc5234.digit
     val letter: P[Char] = cats.parse.Rfc5234.alpha
 
     val identifierStartChar: P[Char] =
-      letter | underscore.as('_')
+      letter | underscore.as('_') | questionMark.as('?')
     val identifierChar: P[Char] =
       letter | digit | underscore.as('_')
     val identifier: P[String] =
@@ -423,7 +424,7 @@ object Parser {
       ).map { case (((atom1, atom2), disjunction), qp) => SubsumptiveRule(atom1, atom2, disjunction, qp) }
   }
 
-  //FunctorDecl
+  // FunctorDecl
   // functor_decl ::= '.functor' IDENT '(' ( attribute ( ',' attribute )* )? ')' ':' type_name 'stateful'?
   lazy val functorDecl: P[FunctorDecl] = {
     ((keyword(".functor") *> Literals.identifier ~
@@ -484,9 +485,6 @@ object Parser {
     case Right(value) => value
   }
 
-  def parse(source: String): SouffleProgram = parse(program, source)
-
-  /*  TODO: Missing parsers:
-  * Intrinsic functors
-  * */
+  def parse(source: String): SouffleProgram =
+    parse(program, source)
 }
