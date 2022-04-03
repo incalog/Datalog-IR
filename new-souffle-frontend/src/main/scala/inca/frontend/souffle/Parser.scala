@@ -18,11 +18,12 @@ object Parser {
     val underscore: P[Unit] = P.char('_')
     val comma: P[Unit] = P.char(',')
     val pipe: P[Unit] = P.char('|')
+    val questionMark: P[Unit] = P.char('?')
 
     val digit: P[Char] = cats.parse.Rfc5234.digit
     val letter: P[Char] = cats.parse.Rfc5234.alpha
     val identifier: P[String] =
-      ((letter | underscore.as('_')) ~ (letter | digit | underscore.as('_')).rep0).map {
+      ((letter | underscore.as('_') | questionMark) ~ (letter | digit | underscore.as('_')).rep0).map {
         case (c, s) => s"$c${s.mkString}"
       }
 
