@@ -232,6 +232,8 @@ class Compiler {
         l.getType == SymbolType && r.getType == SymbolType,
         s"Arguments to match have to be symbols! Got '${PrettyPrinter.stringify(l.getType)}' and '${PrettyPrinter.stringify(r.getType)}'!")
 
+      // TODO: Souffle match => Scala matches
+
       val cl = compileArgument(l)
       val cr = compileArgument(r)
 
