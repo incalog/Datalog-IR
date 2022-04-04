@@ -80,12 +80,13 @@ object Syntax {
   case class Attribute(name: String, ty: TypeName)
 
   // relation qualifiers
-  // relation_qualifier ::= 'override' | 'inline' | 'no_inline' | 'magic' | 'no_magic' | 'brie' | 'btree' | 'eqrel'
+  // relation_qualifier ::= 'override' | 'overridable' | 'inline' | 'no_inline' | 'magic' | 'no_magic' | 'brie' | 'btree' | 'eqrel'
   sealed trait RelationQualifier
   case object BtreeQualifier extends RelationQualifier
   case object BrieQualifier extends RelationQualifier
   case object EquivalenceQualifier extends RelationQualifier
   case object OverrideQualifier extends RelationQualifier
+  case object OverridableQualifier extends RelationQualifier
   case object InlineQualifier extends RelationQualifier
   case object NoInlineQualifier extends RelationQualifier
   case object MagicQualifier extends RelationQualifier

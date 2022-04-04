@@ -72,6 +72,7 @@ object PrettyPrinter {
       case BrieQualifier => "brie"
       case EquivalenceQualifier => "eqrel"
       case OverrideQualifier => "override"
+      case OverridableQualifier => "overridable"
       case InlineQualifier => "inline"
       case NoInlineQualifier => "no_inline"
       case MagicQualifier => "magic"

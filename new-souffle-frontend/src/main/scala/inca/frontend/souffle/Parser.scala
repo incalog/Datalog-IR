@@ -177,6 +177,7 @@ object Parser {
 
   val qualifierMap: Map[String, RelationQualifier] = Map(
     "override" -> OverrideQualifier,
+    "overridable" -> OverridableQualifier,
     "inline" -> InlineQualifier,
     "no_inline" -> NoInlineQualifier,
     "magic" -> MagicQualifier,
