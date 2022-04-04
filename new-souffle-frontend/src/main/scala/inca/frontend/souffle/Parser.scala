@@ -317,22 +317,43 @@ object Parser {
       case ((l, op), r) => ConstraintCmp(op, l, r)
     }
 
-  val conjunctionTerm: P[ConjunctionTerm] =
+  val conjunctionTerm: P[Term] =
     (
       spaced(negation) ~
       spaced(constraint.backtrack | atom | parens(P.defer(disjunction)))
     ).map {
-      case (negated, atom: Atom) => ConjunctionTermAtom(negated, atom)
-      case (negated, constraint: Constraint) => ConjunctionTermConstraint(negated, constraint)
-      case (negated, disjunction: Disjunction) => ConjunctionTermDisjunction(negated, disjunction)
+      case (isNegated, atom: Atom) => TermAtom(atom, isNegated)
+      case (isNegated, constraint: Constraint) => TermConstraint(constraint, isNegated)
+      case (isNegated, disjunction: TermDisjunction) =>
+        if (isNegated) negated(disjunction)
+        else disjunction
       case _ => throw ParseException("Failed to parse conjunction term!")
-    }.asInstanceOf[P[ConjunctionTerm]]
+    }.asInstanceOf[P[Term]]
 
-  val conjunction: P[Conjunction] =
-    conjunctionTerm.repSep(Separators.comma).map(l => Conjunction(l.toList))
+  def flattenTerms(terms: Seq[Term]): Seq[Term] =
+    terms.map {
+      case TermConjunction(terms, isNegated) =>
+        if (terms.size == 1) {
+          if (isNegated) negated(terms.head)
+          else terms.head
+        }
+        else TermConjunction(flattenTerms(terms), isNegated)
+      case TermDisjunction(terms, isNegated) =>
+        if (terms.size == 1) {
+          if (isNegated) negated(terms.head)
+          else terms.head
+        }
+        else TermDisjunction(flattenTerms(terms), isNegated)
+      case other => other
+    }
 
-  lazy val disjunction: P[Disjunction] =
-    spaced(conjunction).repSep(Separators.semicolon).map(l => Disjunction.apply(l.toList))
+  val conjunction: P[TermConjunction] =
+    conjunctionTerm.repSep(Separators.comma)
+      .map(l => TermConjunction(flattenTerms(l.toList)))
+
+  lazy val disjunction: P[TermDisjunction] =
+    spaced(conjunction).repSep(Separators.semicolon)
+      .map(l => TermDisjunction(flattenTerms(l.toList)))
 
   val queryPlan: P[QueryPlan] =
     keyword(".plan") *>

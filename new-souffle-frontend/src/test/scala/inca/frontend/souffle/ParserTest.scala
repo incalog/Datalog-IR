@@ -37,8 +37,8 @@ class ParserTest extends AnyFunSuite {
     val r = Parser.parse(
       """
         | .decl Foo1(x: hi)
-        | .decl Foo2(x: symbol, y: number) inline no_inline
-        | .decl Foo3(x: symbol, y: number) magic choice-domain x, (y, z)
+        | .decl Foo2(x: symbol, ?y: number) inline no_inline
+        | .decl Foo3(x: symbol, ?y: number) magic choice-domain x, (y, z)
         | .decl Nullary()
         |""".stripMargin
     )
@@ -52,13 +52,13 @@ class ParserTest extends AnyFunSuite {
 
     assert(decls(1) == RelationDecl(
       "Foo2",
-      Seq(Attribute("x", SymbolType), Attribute("y", NumberType)),
+      Seq(Attribute("x", SymbolType), Attribute("?y", NumberType)),
       Seq(InlineQualifier, NoInlineQualifier)
     ))
 
     assert(decls(2) == RelationDecl(
       "Foo3",
-      Seq(Attribute("x", SymbolType), Attribute("y", NumberType)),
+      Seq(Attribute("x", SymbolType), Attribute("?y", NumberType)),
       Seq(MagicQualifier),
       Some(ChoiceDomain(Seq("x", "y", "z")))
     ))
@@ -90,6 +90,12 @@ class ParserTest extends AnyFunSuite {
     )
 
     println(PrettyPrinter.stringify(r))
+
+    assert(r == Seq(
+      Fact(Atom("A", Seq(ArgumentConstant(ConstantUnsigned(0)), ArgumentConstant(ConstantUnsigned(1))))),
+      Fact(Atom("A", Seq())),
+      Fact(Atom("B", Seq(ArgumentConstant(ConstantString("hallo")), ArgumentConstant(ConstantUnsigned(42))))),
+    ))
   }
 
   test("rules") {

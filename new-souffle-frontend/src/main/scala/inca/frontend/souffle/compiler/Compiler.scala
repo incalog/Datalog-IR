@@ -8,7 +8,7 @@ import inca.util.{Gensym, Scala}
 import inca.runtime.context.DataModel
 
 import scala.collection.mutable.{Map => MutableMap}
-import scala.meta.{Term, XtensionQuasiquoteTerm}
+import scala.meta.{Term => ScalaTerm, XtensionQuasiquoteTerm}
 
 class Compiler {
 
@@ -184,7 +184,7 @@ class Compiler {
     case FloatType => Datalog.TScalaDouble
   }
 
-  def compileConstraint(constraint: Constraint): Datalog.Atom = {
+  def compileConstraint(constraint: Constraint, isNegated: Boolean = false): Datalog.Atom = {
     def compileCmp(l: Argument, r: Argument, op: String): Datalog.Atom = {
       assert(
         l.getType.isPrimitive && r.getType.isPrimitive,
@@ -209,12 +209,12 @@ class Compiler {
         case _ => throw new Exception("Wie zur Hölle bist du hier hin gekommen??")
       }
 
-      val f = Term.Function(
+      val f = ScalaTerm.Function(
         List(
-          Term.Param(List.empty, meta.Name("l"), Some(meta.Type.Name(scalaType)), None),
-          Term.Param(List.empty, meta.Name("r"), Some(meta.Type.Name(scalaType)), None),
+          ScalaTerm.Param(List.empty, meta.Name("l"), Some(meta.Type.Name(scalaType)), None),
+          ScalaTerm.Param(List.empty, meta.Name("r"), Some(meta.Type.Name(scalaType)), None),
         ),
-        q"l ${Term.Name(op)} r"
+        q"l ${ScalaTerm.Name(op)} r"
       )
 
       Datalog.Computed(
@@ -222,27 +222,35 @@ class Compiler {
         Datalog.Evaluation(
           Seq((cr, compileType(r.getType))),
           Datalog.TScalaBoolean,
-          Scala[Term.Function](f)
+          Scala[ScalaTerm.Function](f)
         )
       )
     }
 
-    def compileStringConstraint(l: Argument, r: Argument, op: String): Datalog.Atom = {
+    def compileStringConstraint(l: Argument, r: Argument, _op: String): Datalog.Atom = {
       assert(
         l.getType == SymbolType && r.getType == SymbolType,
-        s"Arguments to match have to be symbols! Got '${PrettyPrinter.stringify(l.getType)}' and '${PrettyPrinter.stringify(r.getType)}'!")
-
-      // TODO: Souffle match => Scala matches
+        s"Arguments to string constraint have to be symbols! " +
+        s"Got '${PrettyPrinter.stringify(l.getType)}' and '${PrettyPrinter.stringify(r.getType)}'!")
 
       val cl = compileArgument(l)
       val cr = compileArgument(r)
+
+      val op = _op match {
+        case "match" => "matches"
+        case "contains" => "contains"
+        case other => throw new Exception(s"Unknown string constraint '$other'!")
+      }
 
       Datalog.Computed(
         cl,
         Datalog.Evaluation(
           Seq((cr, compileType(r.getType))),
           Datalog.TScalaBoolean,
-          Scala[Term.Function](q"(l: String, r: String) => r.${Term.Name(op)}(l)")
+          if (isNegated)
+            Scala[ScalaTerm.Function](q"(l: String, r: String) => !r.${ScalaTerm.Name(op)}(l)")
+          else
+            Scala[ScalaTerm.Function](q"(l: String, r: String) => r.${ScalaTerm.Name(op)}(l)")
         )
       )
     }
@@ -316,39 +324,27 @@ class Compiler {
     }
   }
 
-  def compileTerm(term: ConjunctionTerm): Datalog.Atom = term match {
-    case ConjunctionTermAtom(isNegated, atom) =>
+  def compileTerm(term: Syntax.Term): Datalog.Atom = term match {
+    case TermAtom(atom, isNegated) =>
       if (inputs.contains(atom.name)) {
         // extensional call
         Datalog.ExtensionalCall(atom.name.toString, atom.args.map(compileArgument), neg = isNegated)
       }
       else {
-        // extensional call
+        // intensional call
         Datalog.Call(atom.name.toString, atom.args.map(compileArgument), neg = isNegated)
       }
-    case term@ConjunctionTermConstraint(isNegated, constraint) =>
-      if (isNegated)
-        compileConstraint(term.applyDeMorgan().constraint)
-      else
-        compileConstraint(constraint)
-    case ConjunctionTermDisjunction(isNegated, disjunction) => ???
-      // A :- B, (C; D)
-      // A :- B, C
-      // A :- B, D
+    case TermConstraint(constraint, isNegated) =>
+      if (isNegated && constraint.canBeNegated)
+        compileConstraint(constraint.negated)
+      else compileConstraint(constraint, isNegated)
+    case TermDisjunction(terms, isNegated) => ???
   }
 
   def compileRule(rule: Rule): Unit =
     EliminateRuleDisjunction
       .eliminateRuleDisjunction(rule)
       .foreach(compileRule)
-
-  def compileSubsumptiveRule(atom: Atom, rule: Rule): Unit = {
-    assert(rule.atoms.size == 1, "Subsumptive rules must have exactly one dominating head")
-    EliminateRuleDisjunction
-      .eliminateRuleDisjunction(rule)
-      .foreach(compileRule)
-  }
-
 
   def compileComponentDecl(componentDecl: ComponentDecl): Unit = ???
   def compileComponentInit(componentInit: ComponentInit): Unit = ???

@@ -152,6 +152,13 @@ object Syntax {
   case class TermAtom(atom: Atom, isNegated: Boolean = false) extends Term
   case class TermConstraint(constraint: Constraint, isNegated: Boolean = false) extends Term
 
+  def negated(t: Term): Term = t match {
+    case TermConjunction(terms, isNegated) => TermConjunction(terms, isNegated = !isNegated)
+    case TermDisjunction(terms, isNegated) => TermDisjunction(terms, isNegated = !isNegated)
+    case TermAtom(atom, isNegated) => TermAtom(atom, isNegated = !isNegated)
+    case TermConstraint(constraint, isNegated) => TermConstraint(constraint, isNegated = !isNegated)
+  }
+
   // query_plan ::= '.plan' NUMBER ':' '(' ( NUMBER ( ',' NUMBER )* )? ')' ( ',' NUMBER ':' '(' ( NUMBER ( ',' NUMBER )* )? ')' )*
   case class QueryPlan(body: Seq[(Int, Seq[Int])])
 
@@ -172,6 +179,7 @@ object Syntax {
 
   sealed trait Constraint {
     def negated: Constraint
+    def canBeNegated: Boolean = true
   }
   case class ConstraintCmp(ty: ConstraintCmpOp, l: Argument, r: Argument) extends Constraint {
     override def negated: ConstraintCmp =
@@ -190,10 +198,14 @@ object Syntax {
   case class ConstraintMatch(pattern: Argument, argument: Argument) extends Constraint {
     override def negated: Constraint =
       throw new Exception("This does not make sense here...")
+
+    override def canBeNegated: Boolean = false
   }
   case class ConstraintContains(substring: Argument, argument: Argument) extends Constraint {
     override def negated: Constraint =
       throw new Exception("This does not make sense here...")
+
+    override def canBeNegated: Boolean = false
   }
   case object ConstraintTrue extends Constraint {
     override def negated: Constraint = ConstraintFalse

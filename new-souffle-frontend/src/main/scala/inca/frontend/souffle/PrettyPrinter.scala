@@ -110,17 +110,14 @@ object PrettyPrinter {
     case Atom(name, args) => s"${stringify(name)}(${args.map(stringify).mkString(", ")})"
     case Fact(atom) => stringify(atom) + "."
 
-    case Disjunction(conjunctions) => conjunctions.map(stringify).mkString("; ")
-    case Conjunction(terms) => terms.map(stringify).mkString(", ")
-
-    case e: ConjunctionTerm => e match {
-      case ConjunctionTermAtom(negated, atom) =>
-        s"${if (negated) "!" else ""}${stringify(atom)}"
-      case ConjunctionTermConstraint(negated, constraint) =>
-        s"${if (negated) "!" else ""}${stringify(constraint)}"
-      case ConjunctionTermDisjunction(negated, disjunction) =>
-        s"${if (negated) "!" else ""}(${stringify(disjunction)})"
-    }
+    case TermDisjunction(terms, isNegated) =>
+      { if (isNegated) "!" else "" } + "(" + terms.map(stringify).mkString("; ") + ")"
+    case TermConjunction(terms, isNegated) =>
+      val s = terms.map(stringify).mkString(", ")
+      if (isNegated) s"!($s)"
+      else s
+    case TermAtom(atom, isNegated) => s"${if (isNegated) "!" else ""}${stringify(atom)}"
+    case TermConstraint(constraint, isNegated) => s"${if (isNegated) "!" else ""}${stringify(constraint)}"
 
     // TODO: QueryPlan
     // case QueryPlan(body) => ???
@@ -152,6 +149,21 @@ object PrettyPrinter {
         } +
         stringify(arg)
       case ArgumentBinOp(op, l, r) => stringify(l) + " " + stringify(op) + " " + stringify(r)
+      case ArgumentIntrinsicFunc(func, args) => {
+        func match {
+          case Syntax.IntrinsicFunctorOrd => "ord"
+          case Syntax.IntrinsicFunctorToFloat => "to_float"
+          case Syntax.IntrinsicFunctorToNumber => "to_number"
+          case Syntax.IntrinsicFunctorToString => "to_string"
+          case Syntax.IntrinsicFunctorToUnsigned => "to_unsigned"
+          case Syntax.IntrinsicFunctorCat => "cat"
+          case Syntax.IntrinsicFunctorStrLen => "strlen"
+          case Syntax.IntrinsicFunctorSubStr => "substr"
+          case Syntax.IntrinsicFunctorAutoInc => "autoinc"
+        }
+      } + {
+        if (args.isEmpty) "" else s"(${args.map(stringify).mkString(", ")})"
+      }
     }
 
     case e: UnOp => e match {
