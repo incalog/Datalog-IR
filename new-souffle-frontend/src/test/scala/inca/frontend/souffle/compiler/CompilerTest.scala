@@ -145,6 +145,14 @@ class CompilerTest extends AnyFunSuite {
     PrettyPrinter.print(r)
   }
 
+  test("argument unary operation") {
+    val c = new Compiler
+
+    c.compileArgument(ArgumentUnOp(UnOpMinus, ArgumentConstant(ConstantNumber(42))))
+    println(c.boundComputedArguments)
+    c.boundComputedArguments.values.map(PrettyPrinter.print)
+  }
+
   test("souffle executor example") {
     val prog =
       s""".decl edge(x: number, y: number)

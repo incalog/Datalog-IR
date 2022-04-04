@@ -22,6 +22,9 @@ class Compiler {
   var printSizes: Seq[QualifiedName] = Seq.empty
   var limitSizes: Map[QualifiedName, Int] = Map.empty
 
+  // bound computed argument
+  var boundComputedArguments: Map[Datalog.Var, Datalog.Computed] = Map.empty
+
   // <subtype> -> <direct supertypes>
   val subTypes: MutableMap[TypeName, Set[TypeName]] = MutableMap(
     UnsignedType -> Set(NumberType, AnyType),
@@ -169,8 +172,74 @@ class Compiler {
     case ArgumentAlias(arg, ty) => ???
     case ArgumentFunctorCall(name, arguments) => ???
     case ArgumentAggregator(aggregator) => ???
-    case ArgumentUnOp(op, argument) => ???
-      //Datalog.Computed(compileArgument(argument), Datalog.Evaluation())
+    case ArgumentUnOp(op, argument) =>
+      val ty = compileTypeName(argument.getType)
+
+      def throwError =
+        throw new Exception(s"Cannot compute unary operation '$op' of argument of type '${argument.getType}'!")
+
+      val resultType = argument.getType match {
+        case DeclaredType(_) => throwError
+        case Syntax.AnyType => throwError
+        case Syntax.NilType => throwError
+        case primitiveType: PrimitiveType => primitiveType match {
+          case Syntax.SymbolType => throwError
+          case Syntax.NumberType => op match {
+            case Syntax.UnOpMinus => Datalog.TScalaInt
+            case Syntax.UnOpBNot => Datalog.TScalaBoolean
+            case Syntax.UnOpLNot => Datalog.TScalaBoolean
+          }
+          case Syntax.UnsignedType => op match {
+            case Syntax.UnOpMinus => Datalog.TScalaInt
+            case Syntax.UnOpBNot => Datalog.TScalaBoolean
+            case Syntax.UnOpLNot => Datalog.TScalaBoolean
+          }
+          case Syntax.FloatType => op match {
+            case Syntax.UnOpMinus => Datalog.TScalaDouble
+            case Syntax.UnOpBNot => throwError
+            case Syntax.UnOpLNot => throwError
+          }
+        }
+      }
+
+      val argType = argument.getType match {
+        case DeclaredType(_) => ???
+        case Syntax.AnyType => ???
+        case Syntax.NilType => ???
+        case primitiveType: PrimitiveType => primitiveType match {
+          case Syntax.SymbolType => meta.Type.Name("String")
+          case Syntax.NumberType => meta.Type.Name("Int")
+          case Syntax.UnsignedType => meta.Type.Name("Int")
+          case Syntax.FloatType => meta.Type.Name("Float")
+        }
+      }
+
+      val scalaOp = op match {
+        case Syntax.UnOpMinus =>
+          meta.Term.ApplyUnary(meta.Term.Name("-"), meta.Term.Name("arg"))
+        case Syntax.UnOpBNot =>
+          meta.Term.ApplyUnary(meta.Term.Name("~"), meta.Term.Name("arg"))
+        case Syntax.UnOpLNot =>
+          meta.Term.ApplyUnary(meta.Term.Name("!"), meta.Term.Name("arg"))
+      }
+
+      // Souffle: A(x) :- B(-x).
+      // Datalog: A(x) :- temp = Computed(...), Call(temp)
+
+      val bound = Datalog.Var(gensym.fresh("bound"))
+
+      boundComputedArguments += bound -> Datalog.Computed(
+        bound,
+        Datalog.Evaluation(
+          Seq((compileArgument(argument), ty)),
+          resultType,
+          Scala[ScalaTerm.Function](q"(arg: $argType) => $scalaOp")
+        )
+      )
+
+      // return bound variable
+      bound
+
     case ArgumentBinOp(op, l, r) => ???
   }
 
@@ -217,10 +286,12 @@ class Compiler {
         q"l ${ScalaTerm.Name(op)} r"
       )
 
+      // Souffle: A(x) :- x > 42.
+      // Datalog: A(x) :- true = Computation(...).
       Datalog.Computed(
-        cl,
+        if (isNegated) Datalog.False else Datalog.True,
         Datalog.Evaluation(
-          Seq((cr, compileType(r.getType))),
+          Seq((cl, compileType(l.getType)), (cr, compileType(r.getType))),
           Datalog.TScalaBoolean,
           Scala[ScalaTerm.Function](f)
         )
@@ -242,10 +313,12 @@ class Compiler {
         case other => throw new Exception(s"Unknown string constraint '$other'!")
       }
 
+      // Souffle: A(x) :- contains(x, "abc").
+      // Datalog: A(x) :- true = Evaluation(x, "abc").
       Datalog.Computed(
-        cl,
+        Datalog.True,
         Datalog.Evaluation(
-          Seq((cr, compileType(r.getType))),
+          Seq((cl, compileType(l.getType)), (cr, compileType(r.getType))),
           Datalog.TScalaBoolean,
           if (isNegated)
             Scala[ScalaTerm.Function](q"(l: String, r: String) => !r.${ScalaTerm.Name(op)}(l)")
@@ -305,9 +378,6 @@ class Compiler {
             case (l: ArgumentVariable, r: ArgumentAggregator) => compileAggregation(l, r)
             case _ => Datalog.Eq(compileArgument(l), compileArgument(r))
           }
-
-          // TODO: count ... = 0
-          // -> temp = count ..., temp = 0
       }
       case ConstraintMatch(pattern, argument) =>
         // comparable to SQL 'like'
@@ -338,7 +408,8 @@ class Compiler {
       if (isNegated && constraint.canBeNegated)
         compileConstraint(constraint.negated)
       else compileConstraint(constraint, isNegated)
-    case TermDisjunction(terms, isNegated) => ???
+    case TermDisjunction(_, _) =>
+      throw new Exception("There should be no disjunctions at this point.")
   }
 
   def compileRule(rule: Rule): Unit =

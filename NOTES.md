@@ -149,8 +149,6 @@ Pattern(vis, name, params: Seq[Param], bodies: Seq[Body])
 
 ## TODO: Compiler(Easy)
 
-- Subsumptive Rule (?)
-- Term
 - Aggregator
 
 ## TODO: Compiler(Hard)
@@ -162,6 +160,5 @@ Pattern(vis, name, params: Seq[Param], bodies: Seq[Body])
   - Binary Operation
   - Intrinsic Functor
   - Type Name
-- Negated Disjunction
 - Components
 - Functors

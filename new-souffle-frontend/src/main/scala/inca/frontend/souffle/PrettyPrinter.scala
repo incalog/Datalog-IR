@@ -120,8 +120,8 @@ object PrettyPrinter {
     case TermAtom(atom, isNegated) => s"${if (isNegated) "!" else ""}${stringify(atom)}"
     case TermConstraint(constraint, isNegated) => s"${if (isNegated) "!" else ""}${stringify(constraint)}"
 
-    // TODO: QueryPlan
-    // case QueryPlan(body) => ???
+    case QueryPlan(body) =>
+      ".plan " + body.map { case (i, value) => s"$i : (${value.mkString(", ")})" }.mkString(", ")
 
     case e: Constant => e match {
       case ConstantString(value) => "\"" + value + "\""
