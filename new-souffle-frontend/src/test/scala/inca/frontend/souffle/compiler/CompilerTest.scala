@@ -153,6 +153,14 @@ class CompilerTest extends AnyFunSuite {
     c.boundComputedArguments.values.map(PrettyPrinter.print)
   }
 
+  test("argument binary operation") {
+    val c = new Compiler
+
+    c.compileArgument(ArgumentBinOp(BinOpAdd, ArgumentConstant(ConstantNumber(42)), ArgumentConstant(ConstantNumber(21))))
+    println(c.boundComputedArguments)
+    c.boundComputedArguments.values.map(PrettyPrinter.print)
+  }
+
   test("souffle executor example") {
     val prog =
       s""".decl edge(x: number, y: number)

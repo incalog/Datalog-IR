@@ -240,7 +240,141 @@ class Compiler {
       // return bound variable
       bound
 
-    case ArgumentBinOp(op, l, r) => ???
+    case ArgumentBinOp(op, l, r) =>
+      val lty = compileTypeName(l.getType)
+      val rty = compileTypeName(r.getType)
+
+      def throwError =
+        throw new Exception(s"Cannot compute binary operation '$op' on arguments of types '${l.getType}' and '${r.getType}'!")
+
+      assert(l.getType == r.getType, s"Arguments $l and $r have to be of same type")
+
+      val resultType = l.getType match {
+        case DeclaredType(_) => throwError
+        case Syntax.AnyType => throwError
+        case Syntax.NilType => throwError
+        case primitiveType: PrimitiveType => primitiveType match {
+          case Syntax.SymbolType => throwError
+          case Syntax.NumberType => op match {
+            case Syntax.BinOpAdd => Datalog.TScalaInt
+            case Syntax.BinOpMinus => Datalog.TScalaInt
+            case Syntax.BinOpMult => Datalog.TScalaInt
+            case Syntax.BinOpDiv => Datalog.TScalaInt // unsure, might also be a float?
+            case Syntax.BinOpMod => Datalog.TScalaInt
+            case Syntax.BinOpPow => Datalog.TScalaInt
+            case Syntax.BinOpLAnd => Datalog.TScalaBoolean
+            case Syntax.BinOpLOr => Datalog.TScalaBoolean
+            case Syntax.BinOpLXor => Datalog.TScalaBoolean
+            case Syntax.BinOpBAnd => Datalog.TScalaBoolean
+            case Syntax.BinOpBOr => Datalog.TScalaBoolean
+            case Syntax.BinOpBXor => Datalog.TScalaBoolean
+            // TODO: Figure out if shifts are even defined on Integers here
+            case Syntax.BinOpBShl => Datalog.TScalaBoolean
+            case Syntax.BinOpBShr => Datalog.TScalaBoolean
+            case Syntax.BinOpBShrU => Datalog.TScalaBoolean
+          }
+          case Syntax.UnsignedType => op match {
+            case Syntax.BinOpAdd => Datalog.TScalaInt
+            case Syntax.BinOpMinus => Datalog.TScalaInt
+            case Syntax.BinOpMult => Datalog.TScalaInt
+            case Syntax.BinOpDiv => Datalog.TScalaInt // again, maybe a float?
+            case Syntax.BinOpMod => Datalog.TScalaInt
+            case Syntax.BinOpPow => Datalog.TScalaInt
+            case Syntax.BinOpLAnd => Datalog.TScalaInt
+            case Syntax.BinOpLOr => Datalog.TScalaBoolean
+            case Syntax.BinOpLXor => Datalog.TScalaBoolean
+            case Syntax.BinOpBAnd => Datalog.TScalaBoolean
+            case Syntax.BinOpBOr => Datalog.TScalaBoolean
+            case Syntax.BinOpBXor => Datalog.TScalaBoolean
+            case Syntax.BinOpBShl => Datalog.TScalaBoolean
+            case Syntax.BinOpBShr => Datalog.TScalaBoolean
+            case Syntax.BinOpBShrU => Datalog.TScalaBoolean
+          }
+          case Syntax.FloatType => op match {
+            case Syntax.BinOpAdd => Datalog.TScalaDouble
+            case Syntax.BinOpMinus => Datalog.TScalaDouble
+            case Syntax.BinOpMult => Datalog.TScalaDouble
+            case Syntax.BinOpDiv => Datalog.TScalaDouble
+            case Syntax.BinOpMod => Datalog.TScalaDouble
+            case Syntax.BinOpPow => Datalog.TScalaDouble
+            case Syntax.BinOpLAnd => throwError
+            case Syntax.BinOpLOr => throwError
+            case Syntax.BinOpLXor => throwError
+            case Syntax.BinOpBAnd => throwError
+            case Syntax.BinOpBOr => throwError
+            case Syntax.BinOpBXor => throwError
+            case Syntax.BinOpBShl => throwError
+            case Syntax.BinOpBShr => throwError
+            case Syntax.BinOpBShrU => throwError
+          }
+        }
+      }
+
+      val lType = l.getType match {
+        case DeclaredType(name) => ???
+        case Syntax.AnyType => ???
+        case Syntax.NilType => ???
+        case primitiveType: PrimitiveType => primitiveType match {
+          case Syntax.SymbolType => meta.Type.Name("String")
+          case Syntax.NumberType => meta.Type.Name("Int")
+          case Syntax.UnsignedType => meta.Type.Name("Int")
+          case Syntax.FloatType => meta.Type.Name("Float")
+        }
+      }
+      val rType = r.getType match {
+        case DeclaredType(name) => ???
+        case Syntax.AnyType => ???
+        case Syntax.NilType => ???
+        case primitiveType: PrimitiveType => primitiveType match {
+          case Syntax.SymbolType => meta.Type.Name("String")
+          case Syntax.NumberType => meta.Type.Name("Int")
+          case Syntax.UnsignedType => meta.Type.Name("Int")
+          case Syntax.FloatType => meta.Type.Name("Float")
+        }
+      }
+
+      val scalaOp = op match {
+        case Syntax.BinOpAdd =>
+          meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("+"), Nil, List(meta.Term.Name("r")))
+        case Syntax.BinOpMinus =>
+          meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("-"), Nil, List(meta.Term.Name("r")))
+        case Syntax.BinOpMult =>
+          meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("*"), Nil, List(meta.Term.Name("r")))
+        case Syntax.BinOpDiv =>
+          meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("/"), Nil, List(meta.Term.Name("r")))
+        case Syntax.BinOpMod =>
+          meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("%"), Nil, List(meta.Term.Name("r")))
+        case Syntax.BinOpPow => ???
+        case Syntax.BinOpLAnd =>
+          meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("&&"), Nil, List(meta.Term.Name("r")))
+        case Syntax.BinOpLOr =>
+          meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("||"), Nil, List(meta.Term.Name("r")))
+        case Syntax.BinOpLXor => ???
+        case Syntax.BinOpBAnd =>
+          meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("&"), Nil, List(meta.Term.Name("r")))
+        case Syntax.BinOpBOr =>
+          meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("|"), Nil, List(meta.Term.Name("r")))
+        case Syntax.BinOpBXor =>
+          meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("^"), Nil, List(meta.Term.Name("r")))
+        case Syntax.BinOpBShl =>
+          meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("<<"), Nil, List(meta.Term.Name("r")))
+        case Syntax.BinOpBShr =>
+          meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name(">>"), Nil, List(meta.Term.Name("r")))
+        case Syntax.BinOpBShrU => ???
+      }
+
+      val bound = Datalog.Var(gensym.fresh("bound"))
+
+      boundComputedArguments += bound -> Datalog.Computed(
+        bound,
+        Datalog.Evaluation(
+          Seq((compileArgument(l), lty), (compileArgument(r), rty)),
+          resultType,
+          Scala[ScalaTerm.Function](q"(l: $lType, r: $rType) => $scalaOp")
+        )
+      )
+
+      bound
   }
 
   def compileType(ty: TypeName): Datalog.Type = ty match {
