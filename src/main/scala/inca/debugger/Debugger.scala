@@ -5,7 +5,7 @@ import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.CountAggregation
 import inca.backend.ir.Datalog.CustomAggregation
 import inca.compiler.CompiledModule
-import inca.debugger.table.Table
+import inca.debugger.table.ImmutableTable
 import inca.runtime.db.Database
 import inca.runtime.Query
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
