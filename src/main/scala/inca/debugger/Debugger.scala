@@ -17,6 +17,12 @@ import truechange.URI
 
 trait Debugger extends DebuggerAPI {
   // Datalog program information
+
+  // TODO maybe move?
+  val minDegreeOfBTree: Int = 256
+  implicit val topAndBotFactory: () => (Value, Value) = () => (TopValue, BotValue)
+  implicit val valueOrdering: Ordering[Value] = Value.valueOrdering
+
   private var compiled: CompiledModule = _
   protected lazy val dependencyGraph = new DependencyGraph(compiled.ir)
 
@@ -51,7 +57,7 @@ trait Debugger extends DebuggerAPI {
   }
 
   // we store the derived tuples for a given pattern before executing the pattern to check if we reached a fixpoint
-  private var lastDerivedTuples: Table[Value] = _
+  private var lastDerivedTuples: ImmutableTable[Value] = _
 
   // Accessor methods of debugger state
 
@@ -60,7 +66,7 @@ trait Debugger extends DebuggerAPI {
   def currentPattern: Datalog.Pattern = frame.cp.point.pat
   def currentAtom: Option[Datalog.Atom] = frame.cp.point.atom
 
-  def varsIR: Table[Value] = frame.cp.point.bodies match {
+  def varsIR: ImmutableTable[Value] = frame.cp.point.bodies match {
     case BeforeList => frame.argsTable
     case AtListElem(_, _, _) => frame.bodyTable
     case AfterList =>
@@ -73,8 +79,8 @@ trait Debugger extends DebuggerAPI {
     _controlTrace += currentPoint
   }
 
-  def relation(name: String): Table[Value] = fixpointState.relation(name)
-  def relation(name: String, args: Table[Value]): Table[Value] =
+  def relation(name: String): ImmutableTable[Value] = fixpointState.relation(name)
+  def relation(name: String, args: ImmutableTable[Value]): ImmutableTable[Value] =
     fixpointState.relation(name, args)
   def isFinished: Boolean = callStack.isFinished
 
@@ -106,10 +112,10 @@ trait Debugger extends DebuggerAPI {
     }
 
   // Debugger methods
-  def entry(name: Datalog.Name, bindings: Table[Value]): Unit = {
+  def entry(name: Datalog.Name, bindings: ImmutableTable[Value]): Unit = {
     val pat = compiled.ir.patternMap(name)
     val cp = ControlPoint.patternEntry(pat)
-    val frame = Frame(cp, bindings, Table.empty)
+    val frame = Frame(cp, bindings, ImmutableTable.empty(Seq()))
     callStack.push(frame)
     traceCurrentControlPoint()
   }
@@ -130,7 +136,7 @@ trait Debugger extends DebuggerAPI {
       if (frame.bodyTable.isEmpty) {
         val pattern = frame.cp.point.pat
         // the empty body table has to range over all pattern parameters
-        val emptyBodyTable = Table.empty[Value](pattern.params.map(_.name))
+        val emptyBodyTable = ImmutableTable.empty[Value](pattern.params.map(_.name))
         callStack.update(frame.copy(cp = frame.cp.abortBody, bodyTable = emptyBodyTable))
       }
     }
@@ -201,7 +207,10 @@ trait Debugger extends DebuggerAPI {
     case _ => throw IllegalDebugStateException(s"Atom $atom should contain call")
   }
 
-  private def checkNegativeCallArguments(args: Seq[Datalog.Term], table: Table[Value]): Unit = {
+  private def checkNegativeCallArguments(
+      args: Seq[Datalog.Term],
+      table: ImmutableTable[Value]
+    ): Unit = {
     args.foreach {
       case Datalog.Var(name) if !table.isBound(name) =>
         throw IllegalDebugStateException(
@@ -224,9 +233,9 @@ trait Debugger extends DebuggerAPI {
     // if the fixpoint of the call has not been reached call pattern again
     val currentTable = fixpointState.relation(pat.name, frame.argsTable)
     val fullTable = readDatabase(pat.name, frame.argsTable)
-    val notEqToBottomUpTable = currentTable.numRows != fullTable.numRows
+    val notEqToBottomUpTable = currentTable.size != fullTable.size
     if (notEqToBottomUpTable) {
-      val newTupleDerived = currentTable.numRows != lastDerivedTuples.numRows
+      val newTupleDerived = currentTable.size != lastDerivedTuples.size
       if (newTupleDerived) {
         val nextFrame = Frame(ControlPoint.patternEntry(pat), frame.argsTable, frame.argsTable)
         callStack.push(nextFrame)
@@ -391,14 +400,14 @@ trait Debugger extends DebuggerAPI {
     removeBreakpointIR(break)
   }
 
-  def readDatabase(name: String, bindings: Table[Value]): Table[Value] = {
+  def readDatabase(name: String, bindings: ImmutableTable[Value]): ImmutableTable[Value] = {
     val mainSpec = compiled.psystemModule.patterns.get(name) match {
       case Some(spec) => spec()
-      case None => return Table.empty
+      case None => return ImmutableTable.empty[Value](Seq())
     }
     val mainMatcher = engine.getMatcher(mainSpec)
     val unboundCols = compiled.ir.patternMap(name).params.map(_.name).diff(bindings.columns)
-    val rows = bindings.rows.flatMap { row =>
+    val rows = bindings.entries.flatMap { row =>
       val inputMap = bindings.columns.zip(row.map(_.unwrap)).toMap ++ unboundCols.map(_ -> null)
       val input = Query.Match(mainSpec, inputMap, isMutable = false)
       val matches = mainMatcher.getAllMatches(input)
@@ -408,8 +417,8 @@ trait Debugger extends DebuggerAPI {
           case v: Any => ScalaValue(v)
         }.toSeq
       }
-    }.toSeq
-    Table(mainMatcher.getParameterNames.asScala.toSeq, rows)
+    }
+    ImmutableTable(mainMatcher.getParameterNames.asScala.toSeq, rows)
   }
 
   /** Breakpoint related functionality */
@@ -433,5 +442,4 @@ trait Debugger extends DebuggerAPI {
       stepOverIR()
     }
   }
-
 }

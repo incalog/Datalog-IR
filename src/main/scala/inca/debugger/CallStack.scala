@@ -1,11 +1,15 @@
 package inca.debugger
 
-import inca.debugger.table.Table
+import inca.debugger.table.ImmutableTable
 import inca.util.Derivative
 
-case class Frame(cp: ControlPoint, argsTable: Table[Value], bodyTable: Table[Value])
+case class Frame(
+    cp: ControlPoint,
+    argsTable: ImmutableTable[Value],
+    bodyTable: ImmutableTable[Value])
+
 object Frame {
-  type Tables = (Table[Value], Table[Value])
+  type Tables = (ImmutableTable[Value], ImmutableTable[Value])
   def apply(cp: ControlPoint, frameTables: Tables): Frame =
     Frame(cp, frameTables._1, frameTables._2)
 }

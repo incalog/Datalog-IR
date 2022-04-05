@@ -51,6 +51,19 @@ class IndexSelectionTest extends AnyFunSuite {
     assertResult(expected)(min)
   }
 
+  test("search chain with prefix") {
+    val searches = Set(
+      Search.from("y", "z"),
+      Search.from("x", "y", "z")
+    )
+    val min = IndexSelection.minIndex(searches)
+    val expected = SearchChain(
+      Seq(
+        Search.from("y", "z", "x")
+      ))
+    assertResult(expected)(min)
+  }
+
   test("two different search chains") {
     val searches = Set(
       Search.from("x"),

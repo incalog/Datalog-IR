@@ -32,8 +32,7 @@ object Value {
       case (ScalaValue(xv: String), ScalaValue(yv: String)) =>
         Ordering.String.compare(xv, yv)
       case (URIValue(xuri), URIValue(yuri)) =>
-        if (xuri == yuri) 0
-        else throw new IllegalArgumentException("HOW DO WE COMPARE URIS?")
+        Ordering.Int.compare(xuri.hashCode(), yuri.hashCode())
       case _ => throw new IllegalArgumentException(s"Compare on $x, $y not supported yet")
     }
 

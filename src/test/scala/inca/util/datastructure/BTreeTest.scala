@@ -4,6 +4,13 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class BTreeTest extends AnyFunSuite {
 
+  val singleNodeSingleValueTree: BTree[Int] = {
+    val tree = BTree.empty[Int](256)
+    val node = BTreeNode(tree, Seq(3), Seq())
+    tree.root = node
+    tree
+  }
+
   val singleNodeEntries: Seq[Int] = Seq(1, 2, 3, 6)
   val singleNodeTree: BTree[Int] = {
     val tree = BTree.empty[Int](256)
@@ -174,4 +181,12 @@ class BTreeTest extends AnyFunSuite {
     assertResult(Seq(51, 56))(threeLevelTree.lexSearch(50, 1000))
     assertResult(Nil)(threeLevelTree.lexSearch(60, 1000))
   }
+
+  test("lexSearch of single level single value tree") {
+    assertResult(Seq())(singleNodeSingleValueTree.lexSearch(3, 3))
+    assertResult(Seq())(singleNodeSingleValueTree.lexSearch(1, 3))
+    assertResult(Seq(3))(singleNodeSingleValueTree.lexSearch(2, 4))
+    assertResult(Seq())(singleNodeSingleValueTree.lexSearch(3, 10))
+  }
+
 }

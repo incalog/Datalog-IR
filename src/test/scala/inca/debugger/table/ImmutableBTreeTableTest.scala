@@ -10,14 +10,14 @@ class ImmutableBTreeTableTest extends AnyFunSuite {
 
   def constructTable(
       cols: Seq[String],
-      elems: Seq[Seq[Any]],
+      elems: Seq[Seq[Value]],
       _indexCovers: Set[IndexCover] = Set()
     ): ImmutableTable[Value] = {
     val indexCovers =
       if (_indexCovers.isEmpty)
         Set(IndexCover(cols))
       else _indexCovers
-    ImmutableBTreeTable[Value](cols, 256, elems.map(tuple), indexCovers)
+    ImmutableBTreeTable[Value](cols, elems, indexCovers)
   }
 
   test("simple contains test") {
@@ -29,10 +29,10 @@ class ImmutableBTreeTableTest extends AnyFunSuite {
     val table = constructTable(
       Seq("name", "age", "m"),
       Seq(
-        Seq("andre", 31, true),
-        Seq("isa", 27, false),
-        Seq("andre", 28, false),
-        Seq("patrick", 27, true)
+        tuple("andre", 31, true),
+        tuple("isa", 27, false),
+        tuple("andre", 28, false),
+        tuple("patrick", 27, true)
       ),
       indexCovers.toSet)
 
@@ -44,11 +44,11 @@ class ImmutableBTreeTableTest extends AnyFunSuite {
     assert(!table.contains(tuple("andre", 31, false), indexCovers(2)))
 
     assertResult(tuple("andre", "andre", "isa", "patrick"))(
-      table.entries(indexCovers.head).toSeq.map(_.head))
+      table.entries(indexCovers.head).map(_.head))
     assertResult(tuple("isa", "patrick", "andre", "andre"))(
-      table.entries(indexCovers(1)).toSeq.map(_.head))
+      table.entries(indexCovers(1)).map(_.head))
     assertResult(tuple("isa", "andre", "patrick", "andre"))(
-      table.entries(indexCovers(2)).toSeq.map(_.head))
+      table.entries(indexCovers(2)).map(_.head))
   }
 
   test("simple union") {
@@ -60,25 +60,70 @@ class ImmutableBTreeTableTest extends AnyFunSuite {
     val table1 = constructTable(
       Seq("name", "age", "m"),
       Seq(
-        Seq("andre", 31, true),
-        Seq("isa", 27, false),
-        Seq("andre", 28, false),
-        Seq("patrick", 27, true)
+        tuple("andre", 31, true),
+        tuple("isa", 27, false),
+        tuple("andre", 28, false),
+        tuple("patrick", 27, true)
       ),
       indexCovers.toSet)
 
     val table2 = constructTable(
       Seq("name", "age", "m"),
       Seq(
-        Seq("lukas", 27, true),
-        Seq("fabio", 26, true)
+        tuple("lukas", 27, true),
+        tuple("fabio", 26, true)
       ),
       indexCovers.toSet)
 
     val union = table1.union(table2)
 
+    assertResult(Seq("name", "age", "m"))(union.columns)
     assertResult(tuple("andre", "andre", "fabio", "isa", "lukas", "patrick"))(
-      union.entries(indexCovers.head).toSeq.map(_.head))
+      union.entries(indexCovers.head).map(_.head))
+  }
+
+  test("union with empty table on lhs") {
+    val indexCovers = Seq(
+      IndexCover(Seq("name", "age", "m")),
+      IndexCover(Seq("age", "name", "m")),
+      IndexCover(Seq("m", "age", "name"))
+    )
+    val table1 = constructTable(Seq("name", "age", "m"), Seq(), indexCovers.toSet)
+
+    val table2 = constructTable(
+      Seq("name", "age", "m"),
+      Seq(
+        tuple("lukas", 27, true),
+        tuple("fabio", 26, true)
+      ),
+      indexCovers.toSet)
+
+    val union = table1.union(table2)
+
+    assertResult(Seq("name", "age", "m"))(union.columns)
+    assertResult(table2.entries)(union.entries)
+  }
+
+  test("union with empty table on rhs") {
+    val indexCovers = Seq(
+      IndexCover(Seq("name", "age", "m")),
+      IndexCover(Seq("age", "name", "m")),
+      IndexCover(Seq("m", "age", "name"))
+    )
+    val table1 = constructTable(
+      Seq("name", "age", "m"),
+      Seq(
+        tuple("lukas", 27, true),
+        tuple("fabio", 26, true)
+      ),
+      indexCovers.toSet)
+
+    val table2 = constructTable(Seq("name", "age", "m"), Seq(), indexCovers.toSet)
+
+    val union = table1.union(table2)
+
+    assertResult(Seq("name", "age", "m"))(union.columns)
+    assertResult(table1.entries)(union.entries)
   }
 
   test("simple diff") {
@@ -90,24 +135,25 @@ class ImmutableBTreeTableTest extends AnyFunSuite {
     val table1 = constructTable(
       Seq("name", "age", "m"),
       Seq(
-        Seq("andre", 31, true),
-        Seq("isa", 27, false),
-        Seq("andre", 28, false),
-        Seq("patrick", 27, true)
+        tuple("andre", 31, true),
+        tuple("isa", 27, false),
+        tuple("andre", 28, false),
+        tuple("patrick", 27, true)
       ),
       indexCovers.toSet)
 
     val table2 = constructTable(
       Seq("name", "age", "m"),
       Seq(
-        Seq("andre", 28, false),
-        Seq("fabio", 26, true)
+        tuple("andre", 28, false),
+        tuple("fabio", 26, true)
       ),
       indexCovers.toSet)
 
     val diff = table1.diff(table2)
 
-    assertResult(tuple("andre", "isa", "patrick"))(diff.entries(indexCovers.head).toSeq.map(_.head))
+    assertResult(Seq("name", "age", "m"))(diff.columns)
+    assertResult(tuple("andre", "isa", "patrick"))(diff.entries(indexCovers.head).map(_.head))
   }
 
   test("simple project") {
@@ -119,16 +165,17 @@ class ImmutableBTreeTableTest extends AnyFunSuite {
     val table1 = constructTable(
       Seq("name", "age", "m"),
       Seq(
-        Seq("andre", 31, true),
-        Seq("isa", 27, false),
-        Seq("andre", 28, false),
-        Seq("patrick", 27, true)
+        tuple("andre", 31, true),
+        tuple("isa", 27, false),
+        tuple("andre", 28, false),
+        tuple("patrick", 27, true)
       ),
       indexCovers.toSet)
 
     val newIndexCover = IndexCover(Seq("name", "m"))
     val projection = table1.project(newIndexCover.order)
 
+    assertResult(Seq("name", "m"))(projection.columns)
     assertResult(
       Seq(
         tuple("andre", false),
@@ -146,27 +193,29 @@ class ImmutableBTreeTableTest extends AnyFunSuite {
     val table1 = constructTable(
       Seq("name", "age", "m"),
       Seq(
-        Seq("andre", 31, true),
-        Seq("isa", 27, false),
-        Seq("andre", 28, false),
-        Seq("patrick", 27, true)
+        tuple("andre", 31, true),
+        tuple("isa", 27, false),
+        tuple("andre", 28, false),
+        tuple("patrick", 27, true)
       ),
       indexCovers.toSet)
 
-    val newIndexCover = IndexCover(Seq("name", "m"))
     val selection = table1.select { tuple =>
       tuple.head == ScalaValue("andre")
     }
 
+    assertResult(Seq("name", "age", "m"))(selection.columns)
     assertResult(Seq(tuple("andre", 28, false), tuple("andre", 31, true)))(
       selection.entries(indexCovers.head))
   }
 
   test("simple join") {
     val table1 =
-      constructTable(Seq("x", "y"), Seq(Seq(1, 2), Seq(2, 3), Seq(1, 3), Seq(2, 4), Seq(4, 2)))
+      constructTable(
+        Seq("x", "y"),
+        Seq(tuple(1, 2), tuple(2, 3), tuple(1, 3), tuple(2, 4), tuple(4, 2)))
     val table2 =
-      constructTable(Seq("y", "z"), Seq(Seq(2, 6), Seq(2, 7), Seq(1, 3), Seq(3, 10)))
+      constructTable(Seq("y", "z"), Seq(tuple(2, 6), tuple(2, 7), tuple(1, 3), tuple(3, 10)))
     val joined = table1.join(table2)
     val expectedEntries = Seq(
       tuple(1, 2, 6),
@@ -175,6 +224,118 @@ class ImmutableBTreeTableTest extends AnyFunSuite {
       tuple(2, 3, 10),
       tuple(4, 2, 6),
       tuple(4, 2, 7))
+    assertResult(Seq("x", "y", "z"))(joined.columns)
+    assertResult(expectedEntries)(joined.entries)
+  }
+
+  test("join with unit table on lhs") {
+    val table1 =
+      constructTable(Seq(), Seq(tuple()))
+    val table2 =
+      constructTable(Seq("x", "y"), Seq(tuple(2, 6), tuple(2, 7), tuple(1, 3), tuple(3, 10)))
+    val joined = table1.join(table2)
+    val expectedEntries = Seq(tuple(1, 3), tuple(2, 6), tuple(2, 7), tuple(3, 10))
+    assertResult(Seq("x", "y"))(joined.columns)
+    assertResult(expectedEntries)(joined.entries)
+  }
+
+  test("join with unit table on rhs") {
+    val table1 =
+      constructTable(Seq("x", "y"), Seq(tuple(2, 6), tuple(2, 7), tuple(1, 3), tuple(3, 10)))
+    val table2 =
+      constructTable(Seq(), Seq(tuple()))
+    val joined = table1.join(table2)
+    val expectedEntries = Seq(tuple(1, 3), tuple(2, 6), tuple(2, 7), tuple(3, 10))
+    assertResult(Seq("x", "y"))(joined.columns)
+    assertResult(expectedEntries)(joined.entries)
+  }
+
+  test("join with empty table on lhs") {
+    val table1 =
+      constructTable(Seq("y", "z"), Seq())
+    val table2 =
+      constructTable(Seq("x", "y"), Seq(tuple(2, 6), tuple(2, 7), tuple(1, 3), tuple(3, 10)))
+    val joined = table1.join(table2)
+    assertResult(Seq("y", "z", "x"))(joined.columns)
+    assertResult(Seq())(joined.entries)
+  }
+
+  test("join with empty table on rhs") {
+    val table1 =
+      constructTable(Seq("x", "y"), Seq(tuple(2, 6), tuple(2, 7), tuple(1, 3), tuple(3, 10)))
+    val table2 =
+      constructTable(Seq("y", "z"), Seq())
+    val joined = table1.join(table2)
+    assertResult(Seq("x", "y", "z"))(joined.columns)
+    assertResult(Seq())(joined.entries)
+  }
+
+  test("join with tables that have no common columns") {
+    val table1 =
+      constructTable(Seq("x", "y"), Seq(tuple(2, 6), tuple(2, 7), tuple(1, 3), tuple(3, 10)))
+    val table2 =
+      constructTable(Seq("z"), Seq(tuple(4)))
+    val joined = table1.join(table2)
+    val expectedEntries = Seq(tuple(1, 3, 4), tuple(2, 6, 4), tuple(2, 7, 4), tuple(3, 10, 4))
+    assertResult(Seq("x", "y", "z"))(joined.columns)
+    assertResult(expectedEntries)(joined.entries)
+  }
+
+  test("simple projectAndRename") {
+    val indexCovers = Seq(
+      IndexCover(Seq("name", "age", "m")),
+      IndexCover(Seq("age", "name", "m")),
+      IndexCover(Seq("m", "age", "name"))
+    )
+    val table1 = constructTable(
+      Seq("name", "age", "m"),
+      Seq(
+        tuple("andre", 31, true),
+        tuple("isa", 27, false),
+        tuple("andre", 28, false),
+        tuple("patrick", 27, true)
+      ),
+      indexCovers.toSet)
+
+    val newIndexCover = IndexCover(Seq("name1", "male"))
+    val subst = Map("name" -> "name1", "m" -> "male")
+    val projection = table1.projectAndRename(subst)
+
+    assertResult(Seq("name1", "male"))(projection.columns)
+    assertResult(
+      Seq(
+        tuple("andre", false),
+        tuple("andre", true),
+        tuple("isa", false),
+        tuple("patrick", true)))(projection.entries(newIndexCover))
+  }
+
+  test("entries of named tuple") {
+    val table1 =
+      constructTable(Seq("x", "y"), Seq(tuple(1, 2), tuple(1, 4), tuple(1, 5)))
+    val entries = table1.entries(Map("x" -> ScalaValue(1)))
+    assertResult(table1.entries)(entries)
+  }
+
+  test("join where rhs is a projected table of the lhs") {
+    val table1 =
+      constructTable(Seq("x", "y"), Seq(tuple(1, 2), tuple(1, 4), tuple(1, 5)))
+    val table2 =
+      constructTable(Seq("x"), Seq(tuple(1)))
+    val joined = table1.join(table2)
+    val expectedEntries = Seq(tuple(1, 2), tuple(1, 4), tuple(1, 5))
+    assertResult(Seq("x", "y"))(joined.columns)
+    assertResult(expectedEntries)(joined.entries)
+  }
+
+  test("join where lhs is a projected table of the rhs") {
+    val table1 =
+      constructTable(Seq("x"), Seq(tuple(1)))
+    val table2 =
+      constructTable(Seq("x", "y"), Seq(tuple(1, 2), tuple(1, 4), tuple(1, 5)))
+    val joined = table1.join(table2)
+    val expectedEntries = Seq(tuple(1, 2), tuple(1, 4), tuple(1, 5))
+    assertResult(Seq("x", "y"))(joined.columns)
     assertResult(expectedEntries)(joined.entries)
   }
 }

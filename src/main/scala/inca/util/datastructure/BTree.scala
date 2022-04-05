@@ -9,7 +9,9 @@ class BTree[T: ClassTag](
     val minDegree: Int
   )(implicit val ord: Ordering[T]) {
 
-  def size: Int = root.size
+  def size: Int =
+    if (root == null) 0
+    else root.size
 
   def contains(k: T): Boolean =
     if (root == null) false
@@ -18,10 +20,16 @@ class BTree[T: ClassTag](
   def insert(k: T): Unit =
     if (root == null) {
       root = BTreeNode(this, Seq(k), Seq())
-    } else
+    } else if (root.contains(k)) {
+      // do nothing
+    } else {
       root.insert(k)
+    }
 
-  def foreach(f: T => Unit): Unit = root.foreach(f)
+  def foreach(f: T => Unit): Unit =
+    if (root == null) ()
+    else root.foreach(f)
+
   def entries: Seq[T] =
     if (root == null) Seq()
     else root.entries

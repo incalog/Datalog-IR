@@ -5,7 +5,7 @@ import inca.analyzedLangs.ExpLangTestAnalyses
 import inca.backend.ir.Datalog
 import inca.compiler.CompiledDatalogModule
 import inca.compiler.Options
-import inca.debugger.table.Table
+import inca.debugger.table.ImmutableTable
 import inca.runtime.context.DataModel
 import inca.runtime.context.QueryScope
 import inca.runtime.EnginePool
@@ -43,11 +43,11 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
         )
       }
     )
-  def edgeTable(columns: Seq[String], edges: (Int, Int)*): Table[Value] = {
+  def edgeTable(columns: Seq[String], edges: (Int, Int)*): ImmutableTable[Value] = {
     val rows = edges.map { case (x, y) =>
       Seq(ScalaValue(x), ScalaValue(y))
     }
-    Table[Value](columns, rows)
+    ImmutableTable[Value](columns, rows)
   }
 
   val singleEdgePattern =
@@ -383,6 +383,10 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   def stepTillFinish(debugger: IRDebugger): Unit = {
     while (!debugger.isFinished) {
+      println(debugger.frame)
+      if (debugger.frame.cp.isAtomPoint) {
+        println(debugger.frame.cp.atom)
+      }
       debugger.stepInto()
     }
   }
@@ -408,16 +412,30 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     debugger
   }
 
-  def assertExpectedTable(debugger: IRDebugger, name: String, args: Table[Value]): Assertion = {
+  def assertExpectedTable(
+      debugger: IRDebugger,
+      name: String,
+      args: ImmutableTable[Value]
+    ): Assertion = {
     val derived = debugger.relation(name, args)
     val expected = debugger.readDatabase(name, args)
     assertResult(expected)(derived)
   }
 
   // Step into tests
-  test("simple stepinto ") {
+  test("simple stepinto of single call") {
     val debugger = initDebugger(twoHopsModule, emptyDataModel)
-    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("one", args)
+    stepTillFinish(debugger)
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "one", args)
+  }
+
+  test("simple stepinto") {
+    val debugger = initDebugger(twoHopsModule, emptyDataModel)
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("two", args)
     stepTillFinish(debugger)
 
@@ -427,7 +445,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   test("test compare atoms") {
     val debugger = initDebugger(module(comparatorPattern), emptyDataModel)
-    val args = Table[Value](
+    val args = ImmutableTable[Value](
       Seq("from"),
       Seq(Seq(ScalaValue(4)), Seq(ScalaValue(1)), Seq(ScalaValue(2)), Seq(ScalaValue(3)))
     )
@@ -443,7 +461,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
     val debugger = initDebugger(module(ExpLangTestAnalyses.mulPattern), Exp.model, tree.loadEdits)
 
-    val args = Table[Value](Seq("mul"), Seq(Seq(URIValue(mulURI))))
+    val args = ImmutableTable[Value](Seq("mul"), Seq(Seq(URIValue(mulURI))))
     debugger.entry("mul", args)
     stepTillFinish(debugger)
 
@@ -456,7 +474,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     val debugger =
       initDebugger(module(ExpLangTestAnalyses.mulIntLitPattern), Exp.model, tree.loadEdits)
 
-    val args = Table[Value](Seq("mul"), Seq(Seq(URIValue(tree.uri))))
+    val args = ImmutableTable[Value](Seq("mul"), Seq(Seq(URIValue(tree.uri))))
     debugger.entry("mulIntLit", args)
     stepTillFinish(debugger)
 
@@ -470,7 +488,8 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
     val debugger = initDebugger(module(ExpLangTestAnalyses.lhsPattern), Exp.model, tree.loadEdits)
 
-    val args = Table[Value](Seq("exp"), Seq(Seq(URIValue(mulURI)), Seq(URIValue(mulLhsURI))))
+    val args =
+      ImmutableTable[Value](Seq("exp"), Seq(Seq(URIValue(mulURI)), Seq(URIValue(mulLhsURI))))
     debugger.entry("lhs", args)
     stepTillFinish(debugger)
 
@@ -484,7 +503,8 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
     val debugger = initDebugger(module(ExpLangTestAnalyses.intVal), Exp.model, tree.loadEdits)
 
-    val args = Table[Value](Seq("exp"), Seq(Seq(URIValue(intLitLhs)), Seq(URIValue(intLitRhs))))
+    val args =
+      ImmutableTable[Value](Seq("exp"), Seq(Seq(URIValue(intLitLhs)), Seq(URIValue(intLitRhs))))
     debugger.entry("intVal", args)
     stepTillFinish(debugger)
 
@@ -499,7 +519,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       tree.loadEdits
     )
 
-    val args = Table.unit[Value]
+    val args = ImmutableTable.unit[Value]()
     debugger.entry("letBindingX", args)
     stepTillFinish(debugger)
 
@@ -508,7 +528,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   test("test negative call") {
     val debugger = initDebugger(negationModule, emptyDataModel)
-    val args = Table[Value](Seq("x"), Seq(Seq(ScalaValue(1))))
+    val args = ImmutableTable[Value](Seq("x"), Seq(Seq(ScalaValue(1))))
     debugger.entry("nodesNotTwoHop", args)
     stepTillFinish(debugger)
 
@@ -565,7 +585,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   // recursive step into
   test("step into recursive pattern") {
     val debugger = initDebugger(module(sevenEdgePattern, pathPattern), emptyDataModel)
-    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("path", args)
     stepTillFinish(debugger)
 
@@ -575,7 +595,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   test("step into left recursive pattern") {
     val debugger = initDebugger(module(sevenEdgePattern, pathPatternLeftRecursive), emptyDataModel)
-    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("path", args)
     stepTillFinish(debugger)
 
@@ -586,7 +606,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("step into left recursive pattern with simple cyclic data") {
     val debugger =
       initDebugger(module(simpleCycleEdgePattern, pathPatternLeftRecursive), emptyDataModel)
-    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("path", args)
     stepTillFinish(debugger)
 
@@ -597,7 +617,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("step into left recursive pattern with simple cyclic data 2") {
     val debugger =
       initDebugger(module(simpleCycleEdgePattern2, pathPatternLeftRecursive), emptyDataModel)
-    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("path", args)
     stepTillFinish(debugger)
 
@@ -607,7 +627,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   test("step into left recursive pattern with cyclic data") {
     val debugger = initDebugger(module(cycleEdgePattern, pathPatternLeftRecursive), emptyDataModel)
-    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("path", args)
     stepTillFinish(debugger)
 
@@ -617,7 +637,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   test("step into recursive pattern 2") {
     val debugger = initDebugger(module(sevenEdgePattern, pathPatternSwitchBodies), emptyDataModel)
-    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("path", args)
     stepTillFinish(debugger)
 
@@ -627,7 +647,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   test("step into recursive pattern with simple cyclic data") {
     val debugger = initDebugger(module(simpleCycleEdgePattern, pathPattern), emptyDataModel)
-    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("path", args)
     stepTillFinish(debugger)
 
@@ -637,7 +657,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   test("step into recursive pattern with simple cyclic data 2") {
     val debugger = initDebugger(module(simpleCycleEdgePattern2, pathPattern), emptyDataModel)
-    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("path", args)
     stepTillFinish(debugger)
 
@@ -647,7 +667,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   test("step into recursive pattern with three hop cycle") {
     val debugger = initDebugger(module(threeHopCyclePattern, pathPattern), emptyDataModel)
-    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("path", args)
     stepTillFinish(debugger)
 
@@ -657,7 +677,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   test("step into recursive pattern with cyclic data") {
     val debugger = initDebugger(module(cycleEdgePattern, pathPattern), emptyDataModel)
-    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("path", args)
     stepTillFinish(debugger)
 
@@ -670,7 +690,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       module(sevenEdgePattern, nodePattern, pathPattern, notTargetOfPattern),
       emptyDataModel
     )
-    val args = Table[Value](Seq("n"), Seq(Seq(ScalaValue(1))))
+    val args = ImmutableTable[Value](Seq("n"), Seq(Seq(ScalaValue(1))))
     debugger.entry("notTargetOf", args)
     stepTillFinish(debugger)
 
@@ -682,7 +702,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       module(sevenEdgePattern, nodePattern, pathPattern, notTargetOfPattern),
       emptyDataModel
     )
-    val args = Table[Value](Seq("n"), Seq(Seq(ScalaValue(2))))
+    val args = ImmutableTable[Value](Seq("n"), Seq(Seq(ScalaValue(2))))
     debugger.entry("notTargetOf", args)
     stepTillFinish(debugger)
 
@@ -692,7 +712,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   // step over tests
   test("step over pattern") {
     val debugger = initDebugger(twoHopsModule, emptyDataModel)
-    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("two", args)
     debugger.stepOver()
     debugger.stepOver()
@@ -702,7 +722,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   test("step over body") {
     val debugger = initDebugger(twoHopsModule, emptyDataModel)
-    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("two", args)
     debugger.stepInto()
     debugger.stepOver() // step over body
@@ -716,7 +736,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   test("step over non-rec call") {
     val debugger = initDebugger(twoHopsModule, emptyDataModel)
-    val args = Table[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("two", args)
     debugger.stepInto()
     debugger.stepInto() // step into body
@@ -733,7 +753,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("step over rec pattern (not part of scc)") {
     val debugger =
       initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
-    val args = Table.unit[Value]
+    val args = ImmutableTable.unit[Value]()
     debugger.entry("query", args)
     debugger.stepInto() // step into pattern
     debugger.stepInto() // step into body
@@ -750,7 +770,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("step over rec pattern (not part of scc) with cyclic data") {
     val debugger =
       initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
-    val args = Table.unit[Value]
+    val args = ImmutableTable.unit[Value]()
     debugger.entry("query", args)
     debugger.stepInto() // step into pattern
     debugger.stepInto() // step into body
@@ -767,7 +787,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("step over rec pattern (part of scc)") {
     val debugger =
       initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
-    val args = Table.unit[Value]
+    val args = ImmutableTable.unit[Value]()
     debugger.entry("query", args)
     assert(debugger.frame.cp.isPatternEntry)
     debugger.stepInto() // step into pattern
@@ -793,7 +813,9 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     val currentDerived =
       debugger.relation(
         "path",
-        Table[Value](Seq("from"), Seq(Seq(ScalaValue(4)), Seq(ScalaValue(2)), Seq(ScalaValue(5))))
+        ImmutableTable[Value](
+          Seq("from"),
+          Seq(Seq(ScalaValue(4)), Seq(ScalaValue(2)), Seq(ScalaValue(5))))
       )
     val expected = edgeTable(Seq("from", "to"), 4 -> 6, 2 -> 3, 2 -> 6, 4 -> 7, 2 -> 7)
     assertResult(expected)(currentDerived)
@@ -813,7 +835,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("step over rec pattern 2 levels deep (part of scc)") {
     val debugger =
       initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
-    val args = Table.unit[Value]
+    val args = ImmutableTable.unit[Value]()
     debugger.entry("query", args)
     assert(debugger.frame.cp.isPatternEntry)
     debugger.stepInto() // step into pattern
@@ -850,7 +872,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     val currentDerived =
       debugger.relation(
         "path",
-        Table[Value](Seq("from"), Seq(Seq(ScalaValue(3)), Seq(ScalaValue(6))))
+        ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(3)), Seq(ScalaValue(6))))
       )
     val expected = edgeTable(Seq("from", "to"), 6 -> 7)
     assertResult(expected)(currentDerived)
@@ -873,7 +895,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("step over rec pattern 2 levels deep (part of scc) with cyclic data") {
     val debugger =
       initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
-    val args = Table.unit[Value]
+    val args = ImmutableTable.unit[Value]()
     debugger.entry("query", args)
     assert(debugger.frame.cp.isPatternEntry)
     debugger.stepInto() // step into pattern
@@ -910,7 +932,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     val currentDerived =
       debugger.relation(
         "path",
-        Table[Value](Seq("from"), Seq(Seq(ScalaValue(3)), Seq(ScalaValue(6))))
+        ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(3)), Seq(ScalaValue(6))))
       )
     val expected =
       edgeTable(Seq("from", "to"), 6 -> 7, 3 -> 1, 3 -> 2, 3 -> 4, 3 -> 5, 3 -> 3, 3 -> 7, 3 -> 6)
@@ -934,7 +956,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("step out of pattern") {
     val debugger =
       initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
-    val args = Table.unit[Value]
+    val args = ImmutableTable.unit[Value]()
     debugger.entry("query", args)
     assert(debugger.frame.cp.isPatternEntry)
     debugger.stepOut()
@@ -945,7 +967,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("step out of body") {
     val debugger =
       initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
-    val args = Table.unit[Value]
+    val args = ImmutableTable.unit[Value]()
     debugger.entry("query", args)
     assert(debugger.frame.cp.isPatternEntry)
     debugger.stepInto()
@@ -962,7 +984,7 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("step out inner call") {
     val debugger =
       initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
-    val args = Table.unit[Value]
+    val args = ImmutableTable.unit[Value]()
     debugger.entry("query", args)
     assert(debugger.frame.cp.isPatternEntry)
     debugger.stepInto()

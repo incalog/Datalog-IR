@@ -3,7 +3,7 @@ package inca.debugger
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.CustomAggregation
 import inca.compiler.CompiledModule
-import inca.debugger.table.Table
+import inca.debugger.table.ImmutableTable
 import inca.runtime.db.Database
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.NodeNotLinkedIndex
@@ -25,7 +25,9 @@ import scala.jdk.CollectionConverters._
 class TableOps(
     var database: Database,
     val compiled: CompiledModule,
-    val fixpointState: FixpointState[Value]) {
+    val fixpointState: FixpointState[Value]
+  )(implicit valueOrdering: Ordering[Value],
+    topAndBotFactory: () => (Value, Value)) {
 
   // Needed to execute scala code via reflection
   private lazy val scalaCompiler = new Scala.ScalaCompiler()
@@ -43,7 +45,7 @@ class TableOps(
       frame: Frame,
       calledPattern: Datalog.Pattern,
       args: Seq[Datalog.Term]
-    ): Table[Value] = {
+    ): ImmutableTable[Value] = {
     val params = calledPattern.params.map(_.name)
 
     // prepare argsTable
@@ -54,17 +56,24 @@ class TableOps(
       (p, v.asInstanceOf[Datalog.Constant])
     }
     val columnsSubst = varsBindingsCast.map { case (p, v) => (v.name, p) }.toMap
-    val projected = frame.bodyTable.project(varsBindingsCast.map(_._2.name))
-    var argsTable = projected.renameColumns(columnsSubst)
-    constBindingsCast.foreach { case (p, c) =>
-      argsTable = argsTable.bind(p, transLiteral(c.lit))
-    }
-
-    argsTable
+//    val projected = frame.bodyTable.project(varsBindingsCast.map(_._2.name))
+//    val argsTable = projected.rename(columnsSubst)
+    val argsTable = frame.bodyTable.projectAndRename(columnsSubst)
+    val constBindingsTable =
+      if (constBindingsCast.isEmpty)
+        ImmutableTable.unit[Value]()
+      else
+        ImmutableTable(
+          constBindingsCast.map(_._1),
+          constBindingsCast.map(x => Seq(transLiteral(x._2.lit))))
+    //    constBindingsCast.foreach { case (p, c) =>
+//        argsTable = argsTable.bind(p, transLiteral(c.lit))
+//      }
+    argsTable.join(constBindingsTable)
   }
 
   // methods to prepare frame tables for atoms that do not jump into another pattern (atom is not a call, or aggregation)
-  def transitionAtomTables(frame: Frame, atom: Datalog.Atom): Table[Value] = atom match {
+  def transitionAtomTables(frame: Frame, atom: Datalog.Atom): ImmutableTable[Value] = atom match {
     case ht: Datalog.HasType =>
       transitionHasTypeTables(frame, ht)
     case nht: Datalog.NotHasType =>
@@ -94,7 +103,7 @@ class TableOps(
   }
 
   // method to prepare frame tables of atoms that query unary edb relations (has type and not has type)
-  def transitionHasTypeTables(frame: Frame, ht: Datalog.HasType): Table[Value] =
+  def transitionHasTypeTables(frame: Frame, ht: Datalog.HasType): ImmutableTable[Value] =
     ht.t match {
       case Datalog.Var(name) =>
         val key = NodeTypeKey(transType(ht.typ))
@@ -110,7 +119,7 @@ class TableOps(
     case _ => throw new IllegalArgumentException("NOT SUPPORTED YET")
   }
 
-  def transitionNotHasTypeTables(frame: Frame, nht: Datalog.NotHasType): Table[Value] =
+  def transitionNotHasTypeTables(frame: Frame, nht: Datalog.NotHasType): ImmutableTable[Value] =
     nht.t match {
       case Datalog.Var(name) =>
         val key = NotNodeTypeIndex.Key(transType(nht.typ))
@@ -119,23 +128,27 @@ class TableOps(
         throw new IllegalArgumentException(s"HasType is not defined on constants $nht")
     }
 
-  def transitionUnaryIndexTable(table: Table[Value], col: String, key: IInputKey): Table[Value] = {
+  def transitionUnaryIndexTable(
+      table: ImmutableTable[Value],
+      col: String,
+      key: IInputKey
+    ): ImmutableTable[Value] = {
     if (table.isBound(col)) {
       val colIdx = table.columnIndex(col)
-      table.filter { row =>
+      table.select { row =>
         val v = row(colIdx).unwrap
         database.containsTuple(key, Tuples.staticArityFlatTupleOf(v))
       }
     } else {
       val vals =
         database.enumerateValues(key, TupleMask.empty(0), Tuples.staticArityFlatTupleOf()).asScala
-      val nameTable = Table[Value](Seq(col), vals.map(v => Seq(Value(v))))
+      val nameTable = ImmutableTable[Value](Seq(col), vals.toSeq.map(v => Seq(Value(v))))
       table.join(nameTable)
     }
   }
 
   // methods to prepare frame tables for atoms that query binary edb relations (path, nopath)
-  def transitionPathTables(frame: Frame, p: Datalog.Path): Table[Value] = {
+  def transitionPathTables(frame: Frame, p: Datalog.Path): ImmutableTable[Value] = {
     val (src, trg) = (p.src, p.trg) match {
       case (Datalog.Var(srcName), Datalog.Var(trgName)) => (srcName, trgName)
       case _ => throw IllegalDebugStateException(s"Path is not defined on constants $p")
@@ -155,14 +168,14 @@ class TableOps(
   }
 
   def transitionBinaryIndexQueryBothBound(
-      table: Table[Value],
+      table: ImmutableTable[Value],
       key: IInputKey,
       src: String,
       trg: String
-    ): Table[Value] = {
+    ): ImmutableTable[Value] = {
     val idxL = table.columnIndex(src)
     val idxR = table.columnIndex(trg)
-    table.filter { row =>
+    table.select { row =>
       val vL = row(idxL).unwrap
       val vR = row(idxR).unwrap
       database.containsTuple(key, Tuples.staticArityFlatTupleOf(vL, vR))
@@ -170,35 +183,33 @@ class TableOps(
   }
 
   def transitionBinaryIndexQueryOneBound(
-      table: Table[Value],
+      table: ImmutableTable[Value],
       key: IInputKey,
       bound: String,
       unbound: String,
       isSourceBound: Boolean
-    ): Table[Value] = {
+    ): ImmutableTable[Value] = {
     val selectIdx = if (isSourceBound) 0 else 1
     val mask = TupleMask.selectSingle(selectIdx, 2)
     val boundIdx = table.columnIndex(bound)
-    table.expand(
-      unbound,
-      { row =>
-        val boundV = row(boundIdx).unwrap
-        val unboundURI = database.enumerateValues(
-          key,
-          mask,
-          Tuples.staticArityFlatTupleOf(boundV)
-        ).iterator().next()
-        Value(unboundURI)
-      }
-    )
+    val extendedEntries = table.entries.map { tuple =>
+      val boundV = tuple(boundIdx).unwrap
+      val unboundURI = database.enumerateValues(
+        key,
+        mask,
+        Tuples.staticArityFlatTupleOf(boundV)
+      ).iterator().next()
+      tuple :+ Value(unboundURI)
+    }
+    ImmutableTable(table.columns :+ unbound, extendedEntries)
   }
 
   def transitionBinaryIndexQueryUnbound(
-      table: Table[Value],
+      table: ImmutableTable[Value],
       key: IndexKey[_],
       src: String,
       trg: String
-    ): Table[Value] = {
+    ): ImmutableTable[Value] = {
     val rows = database.enumerateTuples(
       key,
       TupleMask.empty(2),
@@ -208,7 +219,7 @@ class TableOps(
       val vR = tuple.get(1)
       Seq(Value(vL), Value(vR))
     }
-    val srcTrgTable = Table(Seq(src, trg), rows.toSeq)
+    val srcTrgTable = ImmutableTable(Seq(src, trg), rows.toSeq)
     table.join(srcTrgTable)
   }
 
@@ -224,7 +235,7 @@ class TableOps(
         LinkPrimitiveKey(link)
   }
 
-  def transitionNoPathTables(frame: Frame, np: Datalog.NoPath): Table[Value] = {
+  def transitionNoPathTables(frame: Frame, np: Datalog.NoPath): ImmutableTable[Value] = {
     val nodeKey = NodeTypeKey(transType(np.ty))
     val linkKey = generateLinkKey(np.link)
     val key = NodeNotLinkedIndex.Key(nodeKey, linkKey, np.termIsSource)
@@ -244,20 +255,20 @@ class TableOps(
     bodyTable
   }
 
-  def transitionUndefTables(frame: Frame, un: Datalog.Undef): Table[Value] = {
+  def transitionUndefTables(frame: Frame, un: Datalog.Undef): ImmutableTable[Value] = {
     val bodyTable = un.t match {
       case Datalog.Var(name) =>
         if (frame.bodyTable.isBound(name))
-          Table.empty[Value](frame.bodyTable.columns)
+          ImmutableTable.empty[Value](frame.bodyTable.columns)
         else
           frame.bodyTable
       case Datalog.Constant(_) =>
-        Table.empty[Value](frame.bodyTable.columns)
+        ImmutableTable.empty[Value](frame.bodyTable.columns)
     }
     bodyTable
   }
 
-  def transitionExtCallTables(frame: Frame, ext: Datalog.ExtensionalCall): Table[Value] = {
+  def transitionExtCallTables(frame: Frame, ext: Datalog.ExtensionalCall): ImmutableTable[Value] = {
     val key = NamedRelationKey(ext.name, ext.args.size)
 
     val gensym = new Gensym(Set())
@@ -270,16 +281,18 @@ class TableOps(
     }
     val mask = TupleMask.fromSelectedIndices(ext.args.size, selectedIndices.toArray)
 
-    var argsTable: Table[Value] = Table.unit
+    var argsTable: ImmutableTable[Value] = ImmutableTable.unit()
+
     ext.args.foreach {
       case Datalog.Var(name) =>
         argsTable = argsTable.join(frame.bodyTable.project(Seq(name)))
       case Datalog.Constant(l) =>
         val newCol = gensym.fresh("const")
-        argsTable.bind(newCol, transLiteral(l))
+        val constantTable = ImmutableTable(Seq(newCol), Seq(Seq(transLiteral(l))))
+        argsTable.join(constantTable)
     }
 
-    val extCallRows = argsTable.rows.flatMap { row =>
+    val extCallRows = argsTable.entries.flatMap { row =>
       val seed = Tuples.flatTupleOf(row.map(_.unwrap))
       database.enumerateTuples(key, mask, seed).asScala.map { tuple =>
         tuple.getElements.toSeq.map(Value.apply)
@@ -289,15 +302,15 @@ class TableOps(
       case Datalog.Var(name) => name
       case Datalog.Constant(_) => gensym.fresh("const")
     }
-    val extCallTable = Table(extCallColumns, extCallRows)
+    val extCallTable = ImmutableTable(extCallColumns, extCallRows)
 
     val extVarArgs = ext.args.collect { case Datalog.Var(name) => name }
     frame.bodyTable.join(extCallTable.project(extVarArgs))
   }
 
-  def transitionEqCompTables(frame: Frame, comp: Datalog.Compare): Table[Value] = {
+  def transitionEqCompTables(frame: Frame, comp: Datalog.Compare): ImmutableTable[Value] = {
     val bodyTable = frame.bodyTable
-    val nextBodyTable: Table[Value] = (comp.lhs, comp.rhs) match {
+    val nextBodyTable: ImmutableTable[Value] = (comp.lhs, comp.rhs) match {
       case (Datalog.Var(name1), Datalog.Var(name2)) =>
         if (bodyTable.isBound(name1) && bodyTable.isBound(name2))
           transitionEqCompBothBound(bodyTable, name1, name2)
@@ -323,42 +336,58 @@ class TableOps(
         val v1 = transLiteral(l1)
         val v2 = transLiteral(l2)
         if (v1 == v2) frame.bodyTable
-        else Table.empty(frame.bodyTable.columns)
+        else ImmutableTable.empty(frame.bodyTable.columns)
     }
     nextBodyTable
   }
 
-  def transitionEqCompBothBound(table: Table[Value], col1: String, col2: String): Table[Value] = {
+  def transitionEqCompBothBound(
+      table: ImmutableTable[Value],
+      col1: String,
+      col2: String
+    ): ImmutableTable[Value] = {
     val col1Index = table.columnIndex(col1)
     val col2Index = table.columnIndex(col2)
-    table.filter { row =>
+    table.select { row =>
       row(col1Index) == row(col2Index)
     }
   }
 
   def transitionEqCompOneBound(
-      table: Table[Value],
+      table: ImmutableTable[Value],
       boundCol: String,
       unboundCol: String
-    ): Table[Value] = {
+    ): ImmutableTable[Value] = {
     val colIndex = table.columnIndex(boundCol)
-    table.expand(unboundCol, row => row(colIndex))
+    val extendedEntries = table.entries.map { tuple =>
+      tuple :+ tuple(colIndex)
+    }
+    ImmutableTable(table.columns :+ unboundCol, extendedEntries)
   }
 
-  def transitionEqCompConstBound(table: Table[Value], col: String, v: Value): Table[Value] = {
+  def transitionEqCompConstBound(
+      table: ImmutableTable[Value],
+      col: String,
+      v: Value
+    ): ImmutableTable[Value] = {
     val colIdx = table.columnIndex(col)
-    table.filter { row =>
+    table.select { row =>
       row(colIdx) == v
     }
   }
 
-  def transitionEqCompConstUnbound(table: Table[Value], col: String, v: Value): Table[Value] = {
-    table.bind(col, v)
+  def transitionEqCompConstUnbound(
+      table: ImmutableTable[Value],
+      col: String,
+      v: Value
+    ): ImmutableTable[Value] = {
+    val singleValueTable = ImmutableTable(Seq(col), Seq(Seq(v)))
+    table.join(singleValueTable)
   }
 
-  def transitionNeqCompTables(frame: Frame, comp: Datalog.Compare): Table[Value] = {
+  def transitionNeqCompTables(frame: Frame, comp: Datalog.Compare): ImmutableTable[Value] = {
     val bodyTable = frame.bodyTable
-    val nextBodyTable: Table[Value] = (comp.lhs, comp.rhs) match {
+    val nextBodyTable: ImmutableTable[Value] = (comp.lhs, comp.rhs) match {
       case (Datalog.Var(name1), Datalog.Var(name2)) =>
         if (bodyTable.isBound(name1) && bodyTable.isBound(name2))
           transitionNeqCompBothBound(bodyTable, name1, name2)
@@ -384,22 +413,30 @@ class TableOps(
         val v1 = transLiteral(l1)
         val v2 = transLiteral(l2)
         if (v1 == v2) frame.bodyTable
-        else Table.empty(bodyTable.columns)
+        else ImmutableTable.empty(bodyTable.columns)
     }
     nextBodyTable
   }
 
-  def transitionNeqCompBothBound(table: Table[Value], col1: String, col2: String): Table[Value] = {
+  def transitionNeqCompBothBound(
+      table: ImmutableTable[Value],
+      col1: String,
+      col2: String
+    ): ImmutableTable[Value] = {
     val col1Idx = table.columnIndex(col1)
     val col2Idx = table.columnIndex(col2)
-    table.filter { row =>
+    table.select { row =>
       row(col1Idx) != row(col2Idx)
     }
   }
 
-  def transitionNeqCompOneConstant(table: Table[Value], col: String, v: Value): Table[Value] = {
+  def transitionNeqCompOneConstant(
+      table: ImmutableTable[Value],
+      col: String,
+      v: Value
+    ): ImmutableTable[Value] = {
     val colIdx = table.columnIndex(col)
-    table.filter { row =>
+    table.select { row =>
       row(colIdx) != v
     }
   }
@@ -407,7 +444,7 @@ class TableOps(
   def transitionReturnCallTables(
       callerFrame: Frame,
       name: String,
-      argsTable: Table[Value],
+      argsTable: ImmutableTable[Value],
       neg: Boolean = false
     ): Frame.Tables = {
     val patternTable = fixpointState.relation(name, argsTable)
@@ -429,13 +466,13 @@ class TableOps(
   def transitionReturnCallTables(
       callerFrame: Frame,
       params: Seq[String],
-      patternTable: Table[Value]
+      patternTable: ImmutableTable[Value]
     ): Frame.Tables = {
     // join bodyTable of caller with pattern table of callee
     val (_, args) = callerFrame.cp.atom.asCall.get
     val callArgVars = args.collect { case Datalog.Var(name) => name }
     val columnsSubst = params.zip(callArgVars).toMap
-    val renamedPatternTable = patternTable.project(columnsSubst)
+    val renamedPatternTable = patternTable.projectAndRename(columnsSubst)
     val bodyTable = callerFrame.bodyTable.join(renamedPatternTable)
 
     (callerFrame.argsTable, bodyTable)
@@ -451,15 +488,15 @@ class TableOps(
   def transitionReturnNegCallTables(
       callerFrame: Frame,
       params: Seq[String],
-      patternTable: Table[Value]
+      patternTable: ImmutableTable[Value]
     ): Frame.Tables = {
     // remove rows of caller bodyTable of that contains tuples of pattern table of callee
     val (_, args) = callerFrame.cp.atom.asCall.get
     val callArgVars = args.collect { case Datalog.Var(name) => name }
     val columnsSubst = params.zip(callArgVars).toMap
-    val renamedPatternTable = patternTable.renameColumns(columnsSubst)
-    val bodyTable = callerFrame.bodyTable.filter { row =>
-      val columnValuePairs = callerFrame.bodyTable.columns.zip(row)
+    val renamedPatternTable = patternTable.rename(columnsSubst)
+    val bodyTable = callerFrame.bodyTable.select { row =>
+      val columnValuePairs = callerFrame.bodyTable.columns.zip(row).toMap
       !renamedPatternTable.contains(columnValuePairs)
     }
     (callerFrame.argsTable, bodyTable)
@@ -467,20 +504,20 @@ class TableOps(
 
   def transitionCountAggTables(
       callerFrame: Frame,
-      patternTable: Table[Value],
+      patternTable: ImmutableTable[Value],
       lhs: Datalog.Term
     ): Frame.Tables = {
-    val count = patternTable.numRows
+    val count = patternTable.size
     transitionAggTables(callerFrame, lhs, ScalaValue(count))
   }
 
   def transitionCustomAggTables(
       callerFrame: Frame,
-      patternTable: Table[Value],
+      patternTable: ImmutableTable[Value],
       lhs: Datalog.Term,
       agg: CustomAggregation
     ): Frame.Tables = {
-    val valsToAgg = patternTable.rows.map { row =>
+    val valsToAgg = patternTable.entries.map { row =>
       row(agg.aggregatedColumn).asScala
     }.toSeq
     val (initTerm, joinOpTerm) = getInitValueAndJoin(agg.agg)
@@ -523,17 +560,19 @@ class TableOps(
       case Datalog.Var(name) =>
         if (table.isBound(name)) {
           val nameIdx = table.columnIndex(name)
-          table.filter { row =>
+          table.select { row =>
             row(nameIdx) == v
           }
-        } else
-          table.bind(name, v)
+        } else {
+          val singleValueTable: ImmutableTable[Value] = ImmutableTable(Seq(name), Seq(Seq(v)))
+          table.join(singleValueTable)
+        }
       case Datalog.Constant(lit) =>
         val transLit = transLiteral(lit)
         if (transLit == v)
           table
         else
-          Table.empty[Value](table.columns)
+          ImmutableTable.empty[Value](table.columns)
     }
     (callerFrame.argsTable, extBodyTable)
   }
@@ -550,7 +589,7 @@ class TableOps(
       frame: Frame,
       lhs: Datalog.Term,
       eval: Datalog.Evaluation
-    ): Table[Value] = {
+    ): ImmutableTable[Value] = {
     val bodyTable = frame.bodyTable
 
     val lhsValue: Seq[Value] => Value = lhs match {
@@ -568,22 +607,24 @@ class TableOps(
 
     lhs match {
       case Datalog.Var(name) if !bodyTable.isBound(name) =>
-        bodyTable.expand(
-          Seq(name),
-          { row =>
-            Seq(executeScala(bodyTable, row, eval))
-          }
-        )
+        val extendedEntries = bodyTable.entries.map { tuple =>
+          tuple :+ executeScala(bodyTable, tuple, eval)
+        }
+        ImmutableTable[Value](bodyTable.columns :+ name, extendedEntries)
       case _ =>
-        bodyTable.filter { row =>
-          val scalaValue = executeScala(bodyTable, row, eval)
-          val lhsVal = lhsValue(row)
+        bodyTable.select { tuple =>
+          val scalaValue = executeScala(bodyTable, tuple, eval)
+          val lhsVal = lhsValue(tuple)
           scalaValue == lhsVal
         }
     }
   }
 
-  def executeScala(table: Table[Value], row: Seq[Value], eval: Datalog.Evaluation): ScalaValue = {
+  def executeScala(
+      table: ImmutableTable[Value],
+      row: Seq[Value],
+      eval: Datalog.Evaluation
+    ): ScalaValue = {
     val argTerms = eval.evalArgs.map {
       case (Datalog.Var(v), ty) => s"""$$env("$v").asInstanceOf[${ty.asScala.syntax}]"""
       case (Datalog.Constant(lit), _) =>

@@ -11,7 +11,7 @@ import inca.compiler.source.ExcerptRelativeRegion
 import inca.compiler.source.SourceObject
 import inca.compiler.CompiledDatalogModule
 import inca.debugger._
-import inca.debugger.table.Table
+import inca.debugger.table.ImmutableTable
 import inca.frontend.functional.compiler.CompiledFunctionalModule
 import inca.frontend.functional.core.BaseLit
 import inca.frontend.functional.core.Expression
@@ -122,25 +122,26 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     case _ => Some(exp.sourceObject)
   }
 
-  def frontendTable(fp: FunctionalControlPoint, bound: Table[Value]): Table[Value] = {
+  def frontendTable(
+      fp: FunctionalControlPoint,
+      bound: ImmutableTable[Value]
+    ): ImmutableTable[Value] = {
     var vars = fp.vars.map(_.name).toList.sorted.distinct
     if (fp.isFunctionExit)
       vars :+= fp.irPoint.point.pat.params.last.name
-    var myVars = Table.empty[Value](vars)
-    for (row <- bound.rows) {
-      val vals = vars.map { v =>
+    val rows = for (row <- bound.entries) yield {
+      vars.map { v =>
         val ix = bound.columnIndex(v)
         if (ix < 0)
           null
         else
           row.lift(ix).orNull
       }
-      myVars = myVars.addRow(vals)
     }
-    myVars
+    ImmutableTable[Value](vars, rows)
   }
 
-  def varsFrontEnd: Table[Value] =
+  def varsFrontEnd: ImmutableTable[Value] =
     frontendTable(controlPointFrontend, varsIR)
 
   def entry(mainFun: String, args: meta.Term*): Unit = {
@@ -160,7 +161,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     val pattern = compiled.ir.patternMap(mainFun)
     val adorn = pattern.hints(MagicSetHints.Main.key).asInstanceOf[MagicSetHints.Main].adorn
     val inputParams = pattern.params.zip(adorn).filter(_._2).map(_._1.name)
-    val inputTable = Table[Value](inputParams, Seq(debugVals))
+    val inputTable = ImmutableTable[Value](inputParams, Seq(debugVals))
     super.entry(mainFun, inputTable)
   }
 
@@ -312,7 +313,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     val skip = skipBody(cp.point.body.get)
     if (skip) {
       val next = cp.stepOver.get
-      callStack.update(Frame(next, frame.argsTable, Table.empty))
+      callStack.update(Frame(next, frame.argsTable, ImmutableTable.empty(Seq())))
     } else {
       super.doBodyEntry(frame, cp)
       skipAheadTo.head.foreach(doSkipAheadTo)
@@ -432,6 +433,8 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
   def prettyPrint(v: Value): String = v match {
     case URIValue(uri) => prettyPrint(uri)
     case ScalaValue(v) => v.toString
+    case TopValue => "⊤"
+    case BotValue => "⊥"
   }
 
   def currentBindings: String = {
