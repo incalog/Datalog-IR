@@ -313,8 +313,22 @@ class ImmutableBTreeTableTest extends AnyFunSuite {
   test("entries of named tuple") {
     val table1 =
       constructTable(Seq("x", "y"), Seq(tuple(1, 2), tuple(1, 4), tuple(1, 5)))
-    val entries = table1.entries(Map("x" -> ScalaValue(1)))
+    val entries = table1.entries(Map("x" -> ScalaValue(1)).toSeq)
     assertResult(table1.entries)(entries)
+  }
+
+  test("contains named tuple") {
+    val table1 =
+      constructTable(Seq("x", "y"), Seq(tuple(1, 2), tuple(1, 4), tuple(1, 5)))
+    val check = table1.contains(Map("x" -> ScalaValue(1), "y" -> ScalaValue(2)).toSeq)
+    assert(check)
+  }
+
+  test("contains named tuple (other ordering)") {
+    val table1 =
+      constructTable(Seq("x", "y"), Seq(tuple(1, 2), tuple(1, 4), tuple(1, 5)))
+    val check = table1.contains(Map("y" -> ScalaValue(2), "x" -> ScalaValue(1)).toSeq)
+    assert(check)
   }
 
   test("join where rhs is a projected table of the lhs") {

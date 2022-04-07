@@ -17,5 +17,4 @@ case class IndexOrder(indices: Seq[Int]) {
         0
       }
     }
-
 }

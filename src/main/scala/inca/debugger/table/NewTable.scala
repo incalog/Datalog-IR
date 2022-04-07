@@ -4,7 +4,7 @@ import inca.debugger.table.indexing.IndexCover
 
 trait NewTable[V] {
   type Tuple = Seq[V]
-  type NamedTuple = Map[String, V]
+  type NamedTuple = Seq[(String, V)]
   def columns: Seq[String]
   def isEmpty: Boolean
   def size: Int

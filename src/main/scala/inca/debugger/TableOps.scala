@@ -3,7 +3,9 @@ package inca.debugger
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.CustomAggregation
 import inca.compiler.CompiledModule
+import inca.debugger.table.indexing.IndexCover
 import inca.debugger.table.ImmutableTable
+import inca.debugger.table.IndexedTableFactory
 import inca.runtime.db.Database
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.NodeNotLinkedIndex
@@ -25,7 +27,8 @@ import scala.jdk.CollectionConverters._
 class TableOps(
     var database: Database,
     val compiled: CompiledModule,
-    val fixpointState: FixpointState[Value]
+    val fixpointState: FixpointState[Value],
+    val indexedTableFactory: IndexedTableFactory[Value]
   )(implicit valueOrdering: Ordering[Value],
     topAndBotFactory: () => (Value, Value)) {
 
@@ -44,7 +47,8 @@ class TableOps(
   def prepareArgTableOfCall(
       frame: Frame,
       calledPattern: Datalog.Pattern,
-      args: Seq[Datalog.Term]
+      args: Seq[Datalog.Term],
+      resultIndices: Set[IndexCover] = Set()
     ): ImmutableTable[Value] = {
     val params = calledPattern.params.map(_.name)
 
@@ -56,20 +60,17 @@ class TableOps(
       (p, v.asInstanceOf[Datalog.Constant])
     }
     val columnsSubst = varsBindingsCast.map { case (p, v) => (v.name, p) }.toMap
-//    val projected = frame.bodyTable.project(varsBindingsCast.map(_._2.name))
-//    val argsTable = projected.rename(columnsSubst)
     val argsTable = frame.bodyTable.projectAndRename(columnsSubst)
     val constBindingsTable =
       if (constBindingsCast.isEmpty)
         ImmutableTable.unit[Value]()
-      else
-        ImmutableTable(
+      else {
+        indexedTableFactory(
           constBindingsCast.map(_._1),
-          constBindingsCast.map(x => Seq(transLiteral(x._2.lit))))
-    //    constBindingsCast.foreach { case (p, c) =>
-//        argsTable = argsTable.bind(p, transLiteral(c.lit))
-//      }
-    argsTable.join(constBindingsTable)
+          constBindingsCast.map(x => Seq(transLiteral(x._2.lit))),
+          argsTable)
+      }
+    argsTable.join(constBindingsTable, resultIndices)
   }
 
   // methods to prepare frame tables for atoms that do not jump into another pattern (atom is not a call, or aggregation)
@@ -142,7 +143,7 @@ class TableOps(
     } else {
       val vals =
         database.enumerateValues(key, TupleMask.empty(0), Tuples.staticArityFlatTupleOf()).asScala
-      val nameTable = ImmutableTable[Value](Seq(col), vals.toSeq.map(v => Seq(Value(v))))
+      val nameTable = indexedTableFactory(Seq(col), vals.toSeq.map(v => Seq(Value(v))), table)
       table.join(nameTable)
     }
   }
@@ -219,7 +220,8 @@ class TableOps(
       val vR = tuple.get(1)
       Seq(Value(vL), Value(vR))
     }
-    val srcTrgTable = ImmutableTable(Seq(src, trg), rows.toSeq)
+    val columns = Seq(src, trg)
+    val srcTrgTable = indexedTableFactory(columns, rows.toSeq, table)
     table.join(srcTrgTable)
   }
 
@@ -285,10 +287,15 @@ class TableOps(
 
     ext.args.foreach {
       case Datalog.Var(name) =>
-        argsTable = argsTable.join(frame.bodyTable.project(Seq(name)))
+        val indexCovers =
+          indexedTableFactory.constructIndexCovers(frame.bodyTable, Seq(name))
+        val lhsTable = frame.bodyTable.project(Seq(name), indexCovers)
+        argsTable = argsTable.join(lhsTable)
       case Datalog.Constant(l) =>
         val newCol = gensym.fresh("const")
-        val constantTable = ImmutableTable(Seq(newCol), Seq(Seq(transLiteral(l))))
+        val indexCovers = indexedTableFactory.constructIndexCovers(argsTable, Seq(newCol))
+        val constantTable =
+          ImmutableTable(Seq(newCol), Seq(Seq(transLiteral(l))), indexCovers = indexCovers)
         argsTable.join(constantTable)
     }
 
@@ -297,15 +304,18 @@ class TableOps(
       database.enumerateTuples(key, mask, seed).asScala.map { tuple =>
         tuple.getElements.toSeq.map(Value.apply)
       }.toSeq
-    }.toSeq
+    }
     val extCallColumns = ext.args.map {
       case Datalog.Var(name) => name
       case Datalog.Constant(_) => gensym.fresh("const")
     }
+    // TODO maybe we need to construct a good index for this already to have good projection performance
     val extCallTable = ImmutableTable(extCallColumns, extCallRows)
 
     val extVarArgs = ext.args.collect { case Datalog.Var(name) => name }
-    frame.bodyTable.join(extCallTable.project(extVarArgs))
+    val indexCovers = indexedTableFactory.constructIndexCovers(extCallTable, extVarArgs)
+    val projectedExtCallTable = extCallTable.project(extVarArgs, indexCovers)
+    frame.bodyTable.join(projectedExtCallTable)
   }
 
   def transitionEqCompTables(frame: Frame, comp: Datalog.Compare): ImmutableTable[Value] = {
@@ -381,7 +391,8 @@ class TableOps(
       col: String,
       v: Value
     ): ImmutableTable[Value] = {
-    val singleValueTable = ImmutableTable(Seq(col), Seq(Seq(v)))
+    val indexCovers = indexedTableFactory.constructIndexCovers(table, Seq(col))
+    val singleValueTable = ImmutableTable(Seq(col), Seq(Seq(v)), indexCovers = indexCovers)
     table.join(singleValueTable)
   }
 
@@ -472,7 +483,13 @@ class TableOps(
     val (_, args) = callerFrame.cp.atom.asCall.get
     val callArgVars = args.collect { case Datalog.Var(name) => name }
     val columnsSubst = params.zip(callArgVars).toMap
-    val renamedPatternTable = patternTable.projectAndRename(columnsSubst)
+
+    val renamedColumnsOfPatternTable = patternTable.columns.flatMap(columnsSubst.get)
+    val indexCovers =
+      indexedTableFactory.constructIndexCovers(callerFrame.bodyTable, renamedColumnsOfPatternTable)
+
+    val renamedPatternTable =
+      patternTable.projectAndRename(columnsSubst, indexCovers)
     val bodyTable = callerFrame.bodyTable.join(renamedPatternTable)
 
     (callerFrame.argsTable, bodyTable)
@@ -494,11 +511,11 @@ class TableOps(
     val (_, args) = callerFrame.cp.atom.asCall.get
     val callArgVars = args.collect { case Datalog.Var(name) => name }
     val columnsSubst = params.zip(callArgVars).toMap
-    val renamedPatternTable = patternTable.rename(columnsSubst)
-    val bodyTable = callerFrame.bodyTable.select { row =>
-      val columnValuePairs = callerFrame.bodyTable.columns.zip(row).toMap
-      !renamedPatternTable.contains(columnValuePairs)
-    }
+    val indexCovers = indexedTableFactory.constructIndexCovers(
+      callerFrame.bodyTable,
+      patternTable.columns.map(columnsSubst))
+    val renamedPatternTable = patternTable.rename(columnsSubst, resultIndices = indexCovers)
+    val bodyTable = callerFrame.bodyTable.antiJoin(renamedPatternTable)
     (callerFrame.argsTable, bodyTable)
   }
 
@@ -564,7 +581,9 @@ class TableOps(
             row(nameIdx) == v
           }
         } else {
-          val singleValueTable: ImmutableTable[Value] = ImmutableTable(Seq(name), Seq(Seq(v)))
+          val indexCovers = indexedTableFactory.constructIndexCovers(table, Seq(name))
+          val singleValueTable: ImmutableTable[Value] =
+            ImmutableTable(Seq(name), Seq(Seq(v)), indexCovers = indexCovers)
           table.join(singleValueTable)
         }
       case Datalog.Constant(lit) =>

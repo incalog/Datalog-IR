@@ -42,7 +42,8 @@ class FixpointState[V: ClassTag](
 
   def relation(name: String, args: ImmutableTable[V]): ImmutableTable[V] = {
     val table = relation(name)
-    args.join(table)
+    table.join(args)
+    // args.join(table)
   }
 
   def relation(name: String): ImmutableTable[V] = {

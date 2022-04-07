@@ -54,6 +54,17 @@ class BTree[T: ClassTag](
 object BTree {
   def empty[T: ClassTag](minDegree: Int = 256)(implicit ord: Ordering[T]): BTree[T] =
     new BTree[T](null, minDegree)
+  def apply[T: ClassTag](
+      entries: Seq[T],
+      minDegree: Int = 256
+    )(implicit ord: Ordering[T]
+    ): BTree[T] = {
+
+    val tree = new BTree[T](null, minDegree)
+    entries.sorted.foreach(tree.insert)
+    tree
+  }
+
 }
 
 final class BTreeNode[T: ClassTag](

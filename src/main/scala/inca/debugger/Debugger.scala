@@ -6,6 +6,7 @@ import inca.backend.ir.Datalog.CountAggregation
 import inca.backend.ir.Datalog.CustomAggregation
 import inca.compiler.CompiledModule
 import inca.debugger.table.ImmutableTable
+import inca.debugger.table.IndexedTableFactory
 import inca.runtime.db.Database
 import inca.runtime.Query
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
@@ -22,6 +23,13 @@ trait Debugger extends DebuggerAPI {
   val minDegreeOfBTree: Int = 256
   implicit val topAndBotFactory: () => (Value, Value) = () => (TopValue, BotValue)
   implicit val valueOrdering: Ordering[Value] = Value.valueOrdering
+
+  implicit lazy val indexedTableFactory: IndexedTableFactory[Value] = {
+    val parametersOfRelations = compiled.ir.patternMap.map { case (name, pattern) =>
+      name -> pattern.params.map(_.name)
+    }
+    new IndexedTableFactory[Value](parametersOfRelations)
+  }
 
   private var compiled: CompiledModule = _
   protected lazy val dependencyGraph = new DependencyGraph(compiled.ir)
@@ -88,7 +96,7 @@ trait Debugger extends DebuggerAPI {
   def initialize(mod: CompiledModule): Unit = {
     compiled = mod
     fixpointState = new FixpointState[Value](compiled.ir.patternMap)
-    tableOps = new TableOps(database, compiled, fixpointState)
+    tableOps = new TableOps(database, compiled, fixpointState, indexedTableFactory)
   }
 
 //  val scope = new QueryScope(compiled.dataModel)

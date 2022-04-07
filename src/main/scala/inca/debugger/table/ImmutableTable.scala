@@ -6,18 +6,22 @@ import scala.reflect.ClassTag
 
 trait ImmutableTable[V] extends NewTable[V] {
 
-  def insert(t: Tuple): ImmutableTable[V]
+  def insert(t: Tuple, resultIndices: Set[IndexCover] = Set()): ImmutableTable[V]
 
-  def union(other: Seq[Tuple]): ImmutableTable[V]
-  def union(other: ImmutableTable[V]): ImmutableTable[V]
-  def diff(other: ImmutableTable[V]): ImmutableTable[V]
-  def cartesian(other: ImmutableTable[V]): ImmutableTable[V]
-  def project(cols: Seq[String]): ImmutableTable[V]
-  def select(f: Tuple => Boolean): ImmutableTable[V]
-  def join(other: ImmutableTable[V]): ImmutableTable[V]
+  // def union(other: Seq[Tuple], resultIndices: Set[IndexCover] = Set()): ImmutableTable[V]
+  def union(other: ImmutableTable[V], resultIndices: Set[IndexCover] = Set()): ImmutableTable[V]
+  def diff(other: ImmutableTable[V], resultIndices: Set[IndexCover] = Set()): ImmutableTable[V]
+  def cartesian(other: ImmutableTable[V], resultIndices: Set[IndexCover] = Set()): ImmutableTable[V]
+  def project(cols: Seq[String], resultIndices: Set[IndexCover] = Set()): ImmutableTable[V]
+  def select(f: Tuple => Boolean, resultIndices: Set[IndexCover] = Set()): ImmutableTable[V]
+  def join(other: ImmutableTable[V], resultIndices: Set[IndexCover] = Set()): ImmutableTable[V]
 
-  def rename(subst: Map[String, String]): ImmutableTable[V]
-  def projectAndRename(subst: Map[String, String]): ImmutableTable[V]
+  def antiJoin(other: ImmutableTable[V], resultIndices: Set[IndexCover] = Set()): ImmutableTable[V]
+  def rename(subst: Map[String, String], resultIndices: Set[IndexCover] = Set()): ImmutableTable[V]
+  def projectAndRename(
+      subst: Map[String, String],
+      resultIndices: Set[IndexCover] = Set()
+    ): ImmutableTable[V]
 
   def bindingsToString(f: V => String): String = {
     val rowStrings = entries.map { row =>
@@ -107,89 +111,140 @@ class ImmutableBTreeTable[V: ClassTag](
   override def entries(namedTuple: NamedTuple): Seq[Tuple] = {
     // select appropriate index
     val search = columns.filter(namedTuple.contains)
-    val indexCover = selectIndexCover(search)
-
+    val btree = selectIndexCover(search) match {
+      case Some(indexCover) => indices(indexCover)
+      case None =>
+        // this is inefficient, we construct new tree because the the appropriate index was not available
+        // TODO hOW can we know at each construction of table what index is needed in the future?
+        val indexCover = IndexCover(namedTuple.map(_._1))
+        implicit val tupleOrdering: Ordering[Tuple] = indexCover.toIndexOrder(columns).tupleOrdering
+        BTree[Tuple](entries.sorted)
+    }
     if (namedTuple.size == columns.size) {
-      val tuple = columns.map(namedTuple)
-      if (indices(indexCover).contains(tuple)) Seq(tuple)
+      val tuple = columns.map(namedTuple.toMap)
+      if (btree.contains(tuple)) Seq(tuple)
       else Nil
     } else {
       // prepare lower and upper bound
       val (top, bot) = topAndBotFactory()
       val lower = columns.map { col =>
-        namedTuple.getOrElse(col, bot)
+        namedTuple.toMap.getOrElse(col, bot)
       }
       val upper = columns.map { col =>
-        namedTuple.getOrElse(col, top)
+        namedTuple.toMap.getOrElse(col, top)
       }
       // do lexical search on appropriate index
-      // we want to return the unit table if we query a unit table
-      // Normally we would need query BotList and TopList to get the correct result
-      // TODO fix
-      indices(indexCover).lexSearch(lower, upper)
+      btree.lexSearch(lower, upper)
     }
   }
 
-  private def selectIndexCover(search: Seq[String]): IndexCover = {
+  private def selectIndexCover(search: Seq[String]): Option[IndexCover] =
     indexCovers.find { cover =>
       cover.order.startsWith(search)
-    }.getOrElse(
-      throw new IllegalArgumentException(s"We could not find an index that covers search $search"))
-  }
+    }
 
-  override def insert(t: Tuple): ImmutableTable[V] = {
+  private def selectResultIndices(resultIndices: Set[IndexCover]): Set[IndexCover] =
+    if (resultIndices.isEmpty) indexCovers
+    else resultIndices
+
+  override def insert(t: Tuple, resultIndices: Set[IndexCover] = Set()): ImmutableTable[V] = {
     val newTable = new ImmutableBTreeTable[V](columns, indexCovers, minDegree)
 
-    val newIndices = indices.map { case (indexCover, btree) =>
-      val copy = btree.deepCopy()
-      copy.insert(t)
-      indexCover -> copy
-    }
+    val newIndexCovers = selectResultIndices(resultIndices)
+
+    // use old indices if possible, create new btree if necessary
+    val newIndices = newIndexCovers.map { indexCover =>
+      indices.get(indexCover) match {
+        case Some(btree) =>
+          val copy = btree.deepCopy()
+          copy.insert(t)
+          indexCover -> copy
+        case None =>
+          val newEntries = t +: entries
+          implicit val tupleOrdering: Ordering[Seq[V]] =
+            indexCover.toIndexOrder(columns).tupleOrdering
+          val btree = BTree(newEntries, minDegree)
+          indexCover -> btree
+      }
+    }.toMap
+
     newTable.indices = newIndices
     newTable
   }
   override def contains(t: Tuple, indexOrder: IndexCover): Boolean = indices(indexOrder).contains(t)
-  override def contains(t: NamedTuple): Boolean = { true }
+  override def contains(t: NamedTuple): Boolean = {
+    val tuple = columns.map(t.toMap)
+    indices(indexCovers.head).contains(tuple)
+  }
 
-  override def union(other: ImmutableTable[V]): ImmutableBTreeTable[V] = {
+  override def union(
+      other: ImmutableTable[V],
+      resultIndices: Set[IndexCover] = Set()
+    ): ImmutableBTreeTable[V] = {
     val newEntries = entries ++ other.entries
-    ImmutableBTreeTable[V](columns, newEntries, indexCovers, minDegree)
+    val newIndexCovers = selectResultIndices(resultIndices)
+    ImmutableBTreeTable[V](columns, newEntries, newIndexCovers, minDegree)
   }
 
-  override def union(other: Seq[Tuple]): ImmutableBTreeTable[V] = {
-    val newEntries = entries ++ other
-    ImmutableBTreeTable[V](columns, newEntries, indexCovers, minDegree)
-  }
+//  override def union(
+//      other: Seq[Tuple],
+//      resultIndices: Set[IndexCover] = Set()
+//    ): ImmutableBTreeTable[V] = {
+//    val newEntries = entries ++ other
+//    ImmutableBTreeTable[V](columns, newEntries, indexCovers, minDegree)
+//  }
 
-  override def diff(other: ImmutableTable[V]): ImmutableBTreeTable[V] = {
+  override def diff(
+      other: ImmutableTable[V],
+      resultIndices: Set[IndexCover] = Set()
+    ): ImmutableBTreeTable[V] = {
+    val newIndexCovers = selectResultIndices(resultIndices)
     val newEntries = entries.diff(other.entries)
-    ImmutableBTreeTable[V](columns, newEntries, indexCovers, minDegree)
+    ImmutableBTreeTable[V](columns, newEntries, newIndexCovers, minDegree)
   }
 
-  override def cartesian(other: ImmutableTable[V]): ImmutableBTreeTable[V] = {
+  override def cartesian(
+      other: ImmutableTable[V],
+      resultIndices: Set[IndexCover] = Set()
+    ): ImmutableBTreeTable[V] = {
     null
   }
 
-  override def project(newCols: Seq[String]): ImmutableBTreeTable[V] = {
-    if (newCols == columns) {
+  override def project(
+      newCols: Seq[String],
+      resultIndices: Set[IndexCover] = Set()
+    ): ImmutableBTreeTable[V] = {
+
+    val newIndexCovers =
+      if (resultIndices.isEmpty)
+        indexCovers.map { cover =>
+          IndexCover(cover.order.filter(newCols.contains))
+        }
+      else
+        resultIndices
+    if (newCols == columns && newIndexCovers == indexCovers) {
       // when we want to project the whole table we return the table instead
       this
     } else {
       val colsIndex = newCols.map(columnIndex)
-      val projectedIndexCovers = indexCovers.map { cover =>
-        IndexCover(cover.order.filter(newCols.contains))
-      }
       val newEntries = entries.map(colsIndex.map)
-      ImmutableBTreeTable[V](newCols, newEntries, projectedIndexCovers, minDegree)
+      ImmutableBTreeTable[V](newCols, newEntries, newIndexCovers, minDegree)
     }
   }
 
-  override def select(f: Tuple => Boolean): ImmutableBTreeTable[V] = {
+  override def select(
+      f: Tuple => Boolean,
+      resultIndices: Set[IndexCover] = Set()
+    ): ImmutableBTreeTable[V] = {
+    val newIndexCovers = selectResultIndices(resultIndices)
     val newEntries = entries.filter(f)
-    ImmutableBTreeTable[V](cols, newEntries, indexCovers, minDegree)
+    ImmutableBTreeTable[V](cols, newEntries, newIndexCovers, minDegree)
   }
 
-  override def join(other: ImmutableTable[V]): ImmutableBTreeTable[V] = {
+  override def join(
+      other: ImmutableTable[V],
+      resultIndices: Set[IndexCover] = Set()
+    ): ImmutableBTreeTable[V] = {
     val otherNewCols = other.columns.filter { col =>
       !columns.contains(col)
     }
@@ -198,8 +253,7 @@ class ImmutableBTreeTable[V: ClassTag](
     val newEntries =
       for {
         entry <- entries
-        // TODO we need to consider all bound values of other not of this
-        namedEntry = columns.zip(entry).toMap
+        namedEntry = columns.zip(entry)
         otherNamedEntry = namedEntry.filter { case (k, _) => sameCols.contains(k) }
         // use lexical search to efficiently query inner table
         // this is only efficient as long as there is an appropriate index
@@ -207,26 +261,62 @@ class ImmutableBTreeTable[V: ClassTag](
       } yield {
         entry ++ otherNewColsIndices.map(otherEntry.apply)
       }
-    ImmutableBTreeTable[V](columns ++ otherNewCols, newEntries, indexCovers, minDegree)
+    val newIndexCovers = selectResultIndices(resultIndices)
+    ImmutableBTreeTable[V](columns ++ otherNewCols, newEntries, newIndexCovers, minDegree)
   }
 
-  override def rename(subst: Map[String, String]): ImmutableBTreeTable[V] = {
+  def antiJoin(
+      other: ImmutableTable[V],
+      resultIndices: Set[IndexCover] = Set()
+    ): ImmutableTable[V] = {
+    val sameCols = other.columns.filter(columns.contains)
+    val newEntries =
+      for {
+        entry <- entries
+        namedEntry = columns.zip(entry)
+        otherNamedEntry = namedEntry.filter { case (k, _) => sameCols.contains(k) }
+        // use lexical search to efficiently query inner table
+        // this is only efficient as long as there is an appropriate index
+        if !other.contains(otherNamedEntry)
+      } yield {
+        entry
+      }
+    val newIndexCovers = selectResultIndices(resultIndices)
+    ImmutableBTreeTable[V](columns, newEntries, newIndexCovers, minDegree)
+  }
+
+  override def rename(
+      subst: Map[String, String],
+      resultIndices: Set[IndexCover] = Set()
+    ): ImmutableBTreeTable[V] = {
     val newColumns = columns.map(subst)
-    val newIndexCovers = indexCovers.map { cover => IndexCover(cover.order.map(subst)) }
+    val newIndexCovers =
+      if (resultIndices.isEmpty)
+        indexCovers.map { cover => IndexCover(cover.order.map(subst)) }
+      else
+        resultIndices
+
     // entries should stay the same as this was only a renaming of columns
     ImmutableBTreeTable[V](newColumns, entries, newIndexCovers, minDegree)
   }
 
-  override def projectAndRename(subst: Map[String, String]): ImmutableBTreeTable[V] = {
+  override def projectAndRename(
+      subst: Map[String, String],
+      resultIndices: Set[IndexCover] = Set()
+    ): ImmutableBTreeTable[V] = {
     // project and rename columns
     val newColumns = columns.flatMap(subst.get)
 
     // project and rename indices
-    val newIndexCovers = indexCovers.flatMap { cover =>
-      val newOrder = cover.order.flatMap(subst.get)
-      if (newOrder.nonEmpty) Some(IndexCover(newOrder))
-      else None
-    }
+    val newIndexCovers =
+      if (resultIndices.isEmpty)
+        indexCovers.flatMap { cover =>
+          val newOrder = cover.order.flatMap(subst.get)
+          if (newOrder.nonEmpty) Some(IndexCover(newOrder))
+          else None
+        }
+      else
+        resultIndices
 
     // project rows
     val projectedCols = columns.filter(subst.contains)
