@@ -154,11 +154,9 @@ Pattern(vis, name, params: Seq[Param], bodies: Seq[Body])
 ## TODO: Compiler(Hard)
 
 - Arguments
-  - Argument List
   - User-Defined Functor
-  - Unary Operation
   - Binary Operation
   - Intrinsic Functor
-  - Type Name
+  - Alias
 - Components
 - Functors

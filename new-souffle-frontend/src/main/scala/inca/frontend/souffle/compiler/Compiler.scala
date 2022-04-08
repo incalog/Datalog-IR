@@ -24,6 +24,7 @@ class Compiler {
 
   // bound computed argument
   var boundComputedArguments: Map[Datalog.Var, Datalog.Computed] = Map.empty
+  var boundArgumentList: Map[Datalog.Var, Seq[Datalog.Term]] = Map.empty
 
   // <subtype> -> <direct supertypes>
   val subTypes: MutableMap[TypeName, Set[TypeName]] = MutableMap(
@@ -166,7 +167,15 @@ class Compiler {
     case ArgumentConstant(constant) => compileConstant(constant)
     case ArgumentVariable(name) => Datalog.Var(name)
     case Syntax.ArgumentNil => ???
-    case ArgumentList(args) => ???
+    case ArgumentList(args) =>
+      val bound = Datalog.Var(gensym.fresh("bound"))
+      var argumentList: Seq[Datalog.Term] = Seq.empty
+      for (arg <- args) {
+        argumentList :+= compileArgument(arg)
+      }
+      boundArgumentList += bound -> argumentList
+
+      bound
     case ArgumentDollarFunctor(name, args) => ???
     case ArgumentSingle(arg) => compileArgument(arg)
     case ArgumentAlias(arg, ty) => ???
