@@ -165,6 +165,20 @@ class CompilerTest extends AnyFunSuite {
     c.boundComputedArguments.values.map(PrettyPrinter.print)
   }
 
+  test("argument intrinsic functor call") {
+    val c = new Compiler
+
+    c.compileArgument(ArgumentFunctorCall("ord", Seq(ArgumentConstant(ConstantString("hello")))))
+    c.compileArgument(ArgumentFunctorCall("substr", Seq(
+      ArgumentConstant(ConstantString("hello")),
+      ArgumentConstant(ConstantNumber(1)),
+      ArgumentConstant(ConstantNumber(4)),
+    )))
+
+    println(c.boundFunctorCall)
+    c.boundFunctorCall.values.map(PrettyPrinter.print)
+  }
+
   test("argument list") {
     val c = new Compiler
 

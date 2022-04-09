@@ -25,24 +25,20 @@ class Compiler {
   // bound computed argument
   var boundComputedArguments: Map[Datalog.Var, Datalog.Computed] = Map.empty
   var boundArgumentList: Map[Datalog.Var, Seq[Datalog.Term]] = Map.empty
+  var boundFunctorCall: Map[Datalog.Var, Datalog.Computed] = Map.empty
 
-  /*var intrinsicFunctors: Map[String, Seq[TypeName]] =
-    Map("ord" -> Seq[])
-  */
+  case class IntrinsicFunctor(name: String, argTypes: Seq[TypeName], returnType: TypeName)
 
-  case class IntrinsicFunctor(name : String, argTypes : Seq[TypeName], returnType: TypeName)
-    var intrinsicFunctors: Map[String, IntrinsicFunctor] = {
-      Map("ord" -> IntrinsicFunctor("ord", Seq(SymbolType), UnsignedType),
-          "to_float" -> IntrinsicFunctor("to_float", Seq(SymbolType), FloatType),
-          "to_number" -> IntrinsicFunctor("to_number", Seq(SymbolType), NumberType),
-          "to_string" -> IntrinsicFunctor("to_string", Seq(NumberType), SymbolType),
-          "to_unsigned" -> IntrinsicFunctor("to_unsigned", Seq(SymbolType), UnsignedType),
-          "cat" -> IntrinsicFunctor("cat", Seq(SymbolType, SymbolType), SymbolType),
-          "strlen" -> IntrinsicFunctor("strlen", Seq(SymbolType), NumberType),
-          "substr" -> IntrinsicFunctor("substr", Seq(SymbolType, UnsignedType, UnsignedType), SymbolType)
-      )
-    }
-
+  val intrinsicFunctors: Map[String, IntrinsicFunctor] = Map(
+    "ord" -> IntrinsicFunctor("ord", Seq(SymbolType), UnsignedType),
+    "to_float" -> IntrinsicFunctor("to_float", Seq(SymbolType), FloatType),
+    "to_number" -> IntrinsicFunctor("to_number", Seq(SymbolType), NumberType),
+    "to_string" -> IntrinsicFunctor("to_string", Seq(NumberType), SymbolType),
+    "to_unsigned" -> IntrinsicFunctor("to_unsigned", Seq(SymbolType), UnsignedType),
+    "cat" -> IntrinsicFunctor("cat", Seq(SymbolType, SymbolType), SymbolType),
+    "strlen" -> IntrinsicFunctor("strlen", Seq(SymbolType), NumberType),
+    "substr" -> IntrinsicFunctor("substr", Seq(SymbolType, UnsignedType, UnsignedType), SymbolType),
+  )
 
   // <subtype> -> <direct supertypes>
   val subTypes: MutableMap[TypeName, Set[TypeName]] = MutableMap(
@@ -200,18 +196,26 @@ class Compiler {
         case Some(value) =>
           assert(value.argTypes.length == arguments.length,
             s"invalid number of arguments, ${value.argTypes.length} required.")
-          val scalaFunction = value.name match {
-            case "ord" => ???
-            case "to_float" =>
-              q"(x) => x.toFloat"
-            case "to_number" => ???
-            case "to_string" => ???
-            case "to_unsigned" => ???
-            case "cat" => ???
-            case "strlen" => ???
-            case "substr" => ???
 
+          val scalaFunction = value.name match {
+            case "ord" =>
+              q"(x: String) => x.hashCode"
+            case "to_float" =>
+              q"(x: String) => x.toFloat"
+            case "to_number" =>
+              q"(x: String) => x.toInt"
+            case "to_unsigned" =>
+              q"(x: String) => x.toInt"
+            case "to_string" =>
+              q"(x: Int) => x.toString"
+            case "cat" =>
+              q"(x: String, y: String) => x + y"
+            case "strlen" =>
+              q"(x: String) => x.length"
+            case "substr" =>
+              q"(s: String, i: Int, n: Int) => s.substr(i, i + n)"
           }
+
           val returnType = value.returnType match {
             case DeclaredType(name) => ???
             case Syntax.AnyType => ???
@@ -223,12 +227,22 @@ class Compiler {
               case Syntax.FloatType => Datalog.TScalaDouble
             }
           }
-          Datalog.Evaluation(
-            arguments.map(compileArgument()),
-            returnType,
-            Scala[ScalaTerm.Function](scalaFunction)
 
-          )
+          val bound = Datalog.Var(gensym.fresh("bound"))
+
+          boundFunctorCall +=
+            bound -> Datalog.Computed(
+              bound,
+              Datalog.Evaluation(
+                arguments.map(arg => (compileArgument(arg), compileType(arg.getType))),
+                returnType,
+                Scala[ScalaTerm.Function](scalaFunction)
+              )
+            )
+
+          // return bound variable
+          bound
+
         case None => ??? // TODO: Check if User-Defined Functor
       }
     case ArgumentAggregator(aggregator) => ???
@@ -582,6 +596,26 @@ class Compiler {
 
   def compileTerm(term: Syntax.Term): Datalog.Atom = term match {
     case TermAtom(atom, isNegated) =>
+      // TODO:
+      // Souffle: A(x) :- B(-x).
+      // Datalog: A(x) :- Computed(tmp, -x), B(tmp)
+
+      atom.args.map {
+        case ArgumentConstant(value) => ???
+        case ArgumentVariable(name) => ???
+        case Syntax.ArgumentNil => ???
+        case ArgumentList(args) => ???
+        case ArgumentDollarFunctor(name, args) => ???
+        case ArgumentSingle(arg) => ???
+        case ArgumentAlias(arg, ty) => ???
+        case ArgumentFunctorCall(name, args) => ???
+        case ArgumentIntrinsicFunc(func, args) => ???
+        case ArgumentUserDefinedFunc(func, args) => ???
+        case ArgumentAggregator(aggregator) => ???
+        case ArgumentUnOp(op, arg) => ???
+        case ArgumentBinOp(op, l, r) => ???
+      }
+
       if (inputs.contains(atom.name)) {
         // extensional call
         Datalog.ExtensionalCall(atom.name.toString, atom.args.map(compileArgument), neg = isNegated)
