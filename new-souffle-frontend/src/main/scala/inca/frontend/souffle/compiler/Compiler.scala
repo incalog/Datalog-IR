@@ -170,10 +170,7 @@ class Compiler {
     case Syntax.ArgumentNil => ???
     case ArgumentList(args) =>
       val bound = Datalog.Var(gensym.fresh("bound"))
-      var argumentList: Seq[Datalog.Term] = Seq.empty
-      for (arg <- args) {
-        argumentList :+= compileArgument(arg)
-      }
+      val argumentList: Seq[Datalog.Term] = args.map(compileArgument)
 
       boundArgumentList += bound -> argumentList
       bound
