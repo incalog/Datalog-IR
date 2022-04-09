@@ -26,6 +26,23 @@ class Compiler {
   var boundComputedArguments: Map[Datalog.Var, Datalog.Computed] = Map.empty
   var boundArgumentList: Map[Datalog.Var, Seq[Datalog.Term]] = Map.empty
 
+  /*var intrinsicFunctors: Map[String, Seq[TypeName]] =
+    Map("ord" -> Seq[])
+  */
+
+  case class IntrinsicFunctor(name : String, argTypes : Seq[TypeName], returnType: TypeName)
+    var intrinsicFunctors: Map[String, IntrinsicFunctor] = {
+      Map("ord" -> IntrinsicFunctor("ord", Seq(SymbolType), UnsignedType),
+          "to_float" -> IntrinsicFunctor("to_float", Seq(SymbolType), FloatType),
+          "to_number" -> IntrinsicFunctor("to_number", Seq(SymbolType), NumberType),
+          "to_string" -> IntrinsicFunctor("to_string", Seq(NumberType), SymbolType),
+          "to_unsigned" -> IntrinsicFunctor("to_unsigned", Seq(SymbolType), UnsignedType),
+          "cat" -> IntrinsicFunctor("cat", Seq(SymbolType, SymbolType), SymbolType),
+          "strlen" -> IntrinsicFunctor("strlen", Seq(SymbolType), NumberType),
+          "substr" -> IntrinsicFunctor("substr", Seq(SymbolType, UnsignedType, UnsignedType), SymbolType)
+      )
+    }
+
 
   // <subtype> -> <direct supertypes>
   val subTypes: MutableMap[TypeName, Set[TypeName]] = MutableMap(
@@ -178,7 +195,42 @@ class Compiler {
     case ArgumentDollarFunctor(name, args) => ???
     case ArgumentSingle(arg) => compileArgument(arg)
     case ArgumentAlias(arg, ty) => ???
-    case ArgumentFunctorCall(name, arguments) => ???
+    case ArgumentFunctorCall(name, arguments) =>
+      intrinsicFunctors.get(name) match {
+        case Some(value) =>
+          assert(value.argTypes.length == arguments.length,
+            s"invalid number of arguments, ${value.argTypes.length} required.")
+          val scalaFunction = value.name match {
+            case "ord" => ???
+            case "to_float" =>
+              q"(x) => x.toFloat"
+            case "to_number" => ???
+            case "to_string" => ???
+            case "to_unsigned" => ???
+            case "cat" => ???
+            case "strlen" => ???
+            case "substr" => ???
+
+          }
+          val returnType = value.returnType match {
+            case DeclaredType(name) => ???
+            case Syntax.AnyType => ???
+            case Syntax.NilType => ???
+            case primitiveType: PrimitiveType => primitiveType match {
+              case Syntax.SymbolType => Datalog.TScalaString
+              case Syntax.NumberType => Datalog.TScalaInt
+              case Syntax.UnsignedType => Datalog.TScalaInt
+              case Syntax.FloatType => Datalog.TScalaDouble
+            }
+          }
+          Datalog.Evaluation(
+            arguments.map(compileArgument()),
+            returnType,
+            Scala[ScalaTerm.Function](scalaFunction)
+
+          )
+        case None => ??? // TODO: Check if User-Defined Functor
+      }
     case ArgumentAggregator(aggregator) => ???
     case ArgumentUnOp(op, argument) =>
       val ty = compileTypeName(argument.getType)
