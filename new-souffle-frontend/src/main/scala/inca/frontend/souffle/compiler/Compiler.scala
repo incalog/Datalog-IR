@@ -26,6 +26,7 @@ class Compiler {
   var boundComputedArguments: Map[Datalog.Var, Datalog.Computed] = Map.empty
   var boundArgumentList: Map[Datalog.Var, Seq[Datalog.Term]] = Map.empty
 
+
   // <subtype> -> <direct supertypes>
   val subTypes: MutableMap[TypeName, Set[TypeName]] = MutableMap(
     UnsignedType -> Set(NumberType, AnyType),
@@ -173,9 +174,10 @@ class Compiler {
       for (arg <- args) {
         argumentList :+= compileArgument(arg)
       }
-      boundArgumentList += bound -> argumentList
 
+      boundArgumentList += bound -> argumentList
       bound
+
     case ArgumentDollarFunctor(name, args) => ???
     case ArgumentSingle(arg) => compileArgument(arg)
     case ArgumentAlias(arg, ty) => ???
@@ -264,40 +266,22 @@ class Compiler {
         case Syntax.NilType => throwError
         case primitiveType: PrimitiveType => primitiveType match {
           case Syntax.SymbolType => throwError
-          case Syntax.NumberType => op match {
+          case Syntax.NumberType | Syntax.UnsignedType => op match {
             case Syntax.BinOpAdd => Datalog.TScalaInt
             case Syntax.BinOpMinus => Datalog.TScalaInt
             case Syntax.BinOpMult => Datalog.TScalaInt
-            case Syntax.BinOpDiv => Datalog.TScalaInt // unsure, might also be a float?
+            case Syntax.BinOpDiv => Datalog.TScalaInt
             case Syntax.BinOpMod => Datalog.TScalaInt
             case Syntax.BinOpPow => Datalog.TScalaInt
             case Syntax.BinOpLAnd => Datalog.TScalaBoolean
             case Syntax.BinOpLOr => Datalog.TScalaBoolean
             case Syntax.BinOpLXor => Datalog.TScalaBoolean
-            case Syntax.BinOpBAnd => Datalog.TScalaBoolean
-            case Syntax.BinOpBOr => Datalog.TScalaBoolean
-            case Syntax.BinOpBXor => Datalog.TScalaBoolean
-            // TODO: Figure out if shifts are even defined on Integers here
-            case Syntax.BinOpBShl => Datalog.TScalaBoolean
-            case Syntax.BinOpBShr => Datalog.TScalaBoolean
-            case Syntax.BinOpBShrU => Datalog.TScalaBoolean
-          }
-          case Syntax.UnsignedType => op match {
-            case Syntax.BinOpAdd => Datalog.TScalaInt
-            case Syntax.BinOpMinus => Datalog.TScalaInt
-            case Syntax.BinOpMult => Datalog.TScalaInt
-            case Syntax.BinOpDiv => Datalog.TScalaInt // again, maybe a float?
-            case Syntax.BinOpMod => Datalog.TScalaInt
-            case Syntax.BinOpPow => Datalog.TScalaInt
-            case Syntax.BinOpLAnd => Datalog.TScalaInt
-            case Syntax.BinOpLOr => Datalog.TScalaBoolean
-            case Syntax.BinOpLXor => Datalog.TScalaBoolean
-            case Syntax.BinOpBAnd => Datalog.TScalaBoolean
-            case Syntax.BinOpBOr => Datalog.TScalaBoolean
-            case Syntax.BinOpBXor => Datalog.TScalaBoolean
-            case Syntax.BinOpBShl => Datalog.TScalaBoolean
-            case Syntax.BinOpBShr => Datalog.TScalaBoolean
-            case Syntax.BinOpBShrU => Datalog.TScalaBoolean
+            case Syntax.BinOpBAnd => Datalog.TScalaInt
+            case Syntax.BinOpBOr => Datalog.TScalaInt
+            case Syntax.BinOpBXor => Datalog.TScalaInt
+            case Syntax.BinOpBShl => Datalog.TScalaInt
+            case Syntax.BinOpBShr => Datalog.TScalaInt
+            case Syntax.BinOpBShrU => Datalog.TScalaInt
           }
           case Syntax.FloatType => op match {
             case Syntax.BinOpAdd => Datalog.TScalaDouble
@@ -306,15 +290,15 @@ class Compiler {
             case Syntax.BinOpDiv => Datalog.TScalaDouble
             case Syntax.BinOpMod => Datalog.TScalaDouble
             case Syntax.BinOpPow => Datalog.TScalaDouble
-            case Syntax.BinOpLAnd => throwError
-            case Syntax.BinOpLOr => throwError
-            case Syntax.BinOpLXor => throwError
-            case Syntax.BinOpBAnd => throwError
-            case Syntax.BinOpBOr => throwError
-            case Syntax.BinOpBXor => throwError
-            case Syntax.BinOpBShl => throwError
-            case Syntax.BinOpBShr => throwError
-            case Syntax.BinOpBShrU => throwError
+            case Syntax.BinOpLAnd => Datalog.TScalaBoolean
+            case Syntax.BinOpLOr => Datalog.TScalaBoolean
+            case Syntax.BinOpLXor => Datalog.TScalaBoolean
+            case Syntax.BinOpBAnd => Datalog.TScalaDouble
+            case Syntax.BinOpBOr => Datalog.TScalaDouble
+            case Syntax.BinOpBXor => Datalog.TScalaDouble
+            case Syntax.BinOpBShl => Datalog.TScalaDouble
+            case Syntax.BinOpBShr => Datalog.TScalaDouble
+            case Syntax.BinOpBShrU => Datalog.TScalaDouble
           }
         }
       }
@@ -342,6 +326,8 @@ class Compiler {
         }
       }
 
+      // a + b ; scala.math.pow(a,b)
+
       val scalaOp = op match {
         case Syntax.BinOpAdd =>
           meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("+"), Nil, List(meta.Term.Name("r")))
@@ -353,12 +339,19 @@ class Compiler {
           meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("/"), Nil, List(meta.Term.Name("r")))
         case Syntax.BinOpMod =>
           meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("%"), Nil, List(meta.Term.Name("r")))
-        case Syntax.BinOpPow => ???
+        case Syntax.BinOpPow =>
+          meta.Term.Apply(meta.Term.Name("scala.math.pow"), List(meta.Term.Name("l"), meta.Term.Name("r")))
         case Syntax.BinOpLAnd =>
           meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("&&"), Nil, List(meta.Term.Name("r")))
         case Syntax.BinOpLOr =>
           meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("||"), Nil, List(meta.Term.Name("r")))
-        case Syntax.BinOpLXor => ???
+        // a xor b = (a and !b) or (!a and b)
+        case Syntax.BinOpLXor =>
+          val notL = meta.Term.ApplyUnary(meta.Term.Name("!"), meta.Term.Name("l"))
+          val notR = meta.Term.ApplyUnary(meta.Term.Name("!"), meta.Term.Name("r"))
+          val firstAnd = meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("&&"), Nil, List(notR))
+          val secondAnd = meta.Term.ApplyInfix(notL, meta.Term.Name("&&"), Nil, List(meta.Term.Name("r")))
+          meta.Term.ApplyInfix(firstAnd, meta.Term.Name("||"), Nil, List(secondAnd))
         case Syntax.BinOpBAnd =>
           meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("&"), Nil, List(meta.Term.Name("r")))
         case Syntax.BinOpBOr =>
@@ -369,7 +362,8 @@ class Compiler {
           meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name("<<"), Nil, List(meta.Term.Name("r")))
         case Syntax.BinOpBShr =>
           meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name(">>"), Nil, List(meta.Term.Name("r")))
-        case Syntax.BinOpBShrU => ???
+        case Syntax.BinOpBShrU =>
+          meta.Term.ApplyInfix(meta.Term.Name("l"), meta.Term.Name(">>>"), Nil, List(meta.Term.Name("r")))
       }
 
       val bound = Datalog.Var(gensym.fresh("bound"))

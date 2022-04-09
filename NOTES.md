@@ -147,6 +147,10 @@ Pattern(vis, name, params: Seq[Param], bodies: Seq[Body])
 - Witness problem (https://souffle-lang.github.io/aggregates#the-witness-problem)
 - maybe refactor AggregatorConditionAtom into AggregatorConditionDisjunction with ONE conjunction with ONE atom
 
+## Questions:
+
+- ArgumentAlias (what exactly is it? A Type-Parse?)
+
 ## TODO: Compiler(Easy)
 
 - Aggregator
@@ -155,8 +159,8 @@ Pattern(vis, name, params: Seq[Param], bodies: Seq[Body])
 
 - Arguments
   - User-Defined Functor
-  - Binary Operation
   - Intrinsic Functor
-  - Alias
+  - (Alias)
+  - Run/bind data struct (bound)
 - Components
 - Functors

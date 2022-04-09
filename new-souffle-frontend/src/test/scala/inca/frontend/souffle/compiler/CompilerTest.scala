@@ -157,6 +157,10 @@ class CompilerTest extends AnyFunSuite {
     val c = new Compiler
 
     c.compileArgument(ArgumentBinOp(BinOpAdd, ArgumentConstant(ConstantNumber(42)), ArgumentConstant(ConstantNumber(21))))
+    c.compileArgument(ArgumentBinOp(BinOpLAnd, ArgumentConstant(ConstantNumber(42)), ArgumentConstant(ConstantNumber(21))))
+    c.compileArgument(ArgumentBinOp(BinOpPow, ArgumentConstant(ConstantNumber(2)), ArgumentConstant(ConstantNumber(3))))
+    c.compileArgument(ArgumentBinOp(BinOpPow, ArgumentConstant(ConstantNumber(2)), ArgumentConstant(ConstantNumber(3))))
+    c.compileArgument(ArgumentBinOp(BinOpLXor, ArgumentConstant(ConstantNumber(2)), ArgumentConstant(ConstantNumber(3))))
     println(c.boundComputedArguments)
     c.boundComputedArguments.values.map(PrettyPrinter.print)
   }
