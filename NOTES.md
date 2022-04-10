@@ -150,6 +150,7 @@ Pattern(vis, name, params: Seq[Param], bodies: Seq[Body])
 ## Questions:
 
 - ArgumentAlias (what exactly is it? A Type-Parse?)
+- aggregatedColumn parameter (CustomAggregation)?
 
 ## TODO: Compiler(Easy)
 
@@ -159,8 +160,7 @@ Pattern(vis, name, params: Seq[Param], bodies: Seq[Body])
 
 - Arguments
   - User-Defined Functor
-  - Intrinsic Functor
   - (Alias)
   - Run/bind data struct (bound)
 - Components
-- Functors
+- Functor declarations
