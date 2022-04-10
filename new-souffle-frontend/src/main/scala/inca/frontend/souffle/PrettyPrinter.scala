@@ -136,7 +136,7 @@ object PrettyPrinter {
       case ArgumentVariable(name) => stringify(name)
       case Syntax.ArgumentNil => "nil"
       case ArgumentList(args) => s"${args.map(stringify).mkString(", ")}"
-      case ArgumentDollarFunctor(name, args) => s"$$ $name ( ${args.map(stringify).mkString(", ")} )"
+      case ArgumentBranchConstructor(name, args) => s"$$ $name ( ${args.map(stringify).mkString(", ")} )"
       case ArgumentSingle(arg) => s"( ${stringify(arg)} )"
       case ArgumentAlias(arg, ty) => s"as ( ${stringify(arg)}, ${stringify(ty)} )"
       case ArgumentFunctorCall(name, args) => s"$name ( ${args.map(stringify).mkString(", ")} )"

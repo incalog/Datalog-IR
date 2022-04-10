@@ -253,7 +253,7 @@ object Syntax {
     override def getType: TypeName = NilType
   }
   case class ArgumentList(args: Seq[Argument]) extends Argument
-  case class ArgumentDollarFunctor(name: String, args: Seq[Argument]) extends Argument
+  case class ArgumentBranchConstructor(name: String, args: Seq[Argument]) extends Argument
   case class ArgumentSingle(arg: Argument) extends Argument
   case class ArgumentAlias(arg: Argument, ty: TypeName) extends Argument
   case class ArgumentFunctorCall(name: String, args: Seq[Argument]) extends Argument

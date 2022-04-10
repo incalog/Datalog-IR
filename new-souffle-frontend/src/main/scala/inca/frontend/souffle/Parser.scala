@@ -274,7 +274,9 @@ object Parser {
       .map { case (name, args) => ArgumentFunctorCall(name, args.toList) }.backtrack |
     (Literals.identifier | P.char('_').as("_")).map(ArgumentVariable.apply) |
     (spaced(P.char('$') *> Literals.identifier) ~ parens(argumentList).?)
-      .map { case (name, args) => ArgumentDollarFunctor(name, args.getOrElse(Seq.empty)) } |
+      .map { case (name, args) => ArgumentBranchConstructor(name, args.getOrElse(Seq.empty)) }
+      .backtrack |
+    spaced(P.char('$').as(ArgumentIntrinsicFunc(IntrinsicFunctorAutoInc, Seq()))) |
     constant.map(ArgumentConstant.apply) |
     brackets(argumentList).map(l => ArgumentList(l.toList)) |
     parens(P.defer(argument)).map(ArgumentSingle.apply)

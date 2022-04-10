@@ -8,7 +8,7 @@ object FreeVars {
     case ArgumentVariable(name) => Set(name)
     case Syntax.ArgumentNil => Set()
     case ArgumentList(args) => args.flatMap(freeVars).toSet
-    case ArgumentDollarFunctor(_, args) => args.flatMap(freeVars).toSet
+    case ArgumentBranchConstructor(_, args) => args.flatMap(freeVars).toSet
     case ArgumentSingle(arg) => freeVars(arg)
     case ArgumentAlias(arg, _) => freeVars(arg)
     case ArgumentFunctorCall(_, args) => args.flatMap(freeVars).toSet

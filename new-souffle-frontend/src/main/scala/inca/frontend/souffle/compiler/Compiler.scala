@@ -9,7 +9,7 @@ import inca.util.{Gensym, Scala}
 import inca.runtime.context.DataModel
 
 import scala.collection.mutable.{Map => MutableMap}
-import scala.meta.{XtensionQuasiquoteTerm, XtensionQuasiquoteInit, XtensionQuasiquoteType, Term => ScalaTerm}
+import scala.meta.{XtensionQuasiquoteTerm, XtensionQuasiquoteSource, XtensionQuasiquoteInit, XtensionQuasiquoteType, Term => ScalaTerm}
 
 class Compiler {
 
@@ -39,6 +39,7 @@ class Compiler {
     "cat" -> IntrinsicFunctor("cat", Seq(SymbolType, SymbolType), SymbolType),
     "strlen" -> IntrinsicFunctor("strlen", Seq(SymbolType), NumberType),
     "substr" -> IntrinsicFunctor("substr", Seq(SymbolType, UnsignedType, UnsignedType), SymbolType),
+    "autoinc" -> IntrinsicFunctor("autoinc", Seq(), NumberType),
   )
 
   // <subtype> -> <direct supertypes>
@@ -189,7 +190,7 @@ class Compiler {
       boundArgumentList += bound -> argumentList
       bound
 
-    case ArgumentDollarFunctor(name, args) => ???
+    case ArgumentBranchConstructor(name, args) => ???
     case ArgumentSingle(arg) => compileArgument(arg)
     case ArgumentAlias(arg, ty) => ???
     case ArgumentFunctorCall(name, arguments) =>
@@ -215,6 +216,8 @@ class Compiler {
               q"(x: String) => x.length"
             case "substr" =>
               q"(s: String, i: Int, n: Int) => s.substr(i, i + n)"
+            case "autoinc" =>
+              q"() => AUTOINC_COUNTER++"
           }
 
           val returnType = value.returnType match {
@@ -658,10 +661,11 @@ class Compiler {
                       val ruleName: String = gensym.fresh("rule")
                       val freeVars = FreeVars.freeVars(disjunction)
 
-                      compileRule(Rule(
-                        Seq(Atom(ruleName, freeVars)),
-                        disjunction
-                      ))
+//                      compileRule(Rule(
+//                        Seq(Atom(ruleName, freeVars)),
+//                        disjunction
+//                      ))
+                      null
                   }
 
                 case AggregatorMax(argument, cond) => ???
@@ -842,7 +846,14 @@ class Compiler {
     program.foreach(compileStatement)
 
     // create module
-    val scalaContent = Seq.empty
+    val scalaContent: Seq[Scala[meta.Stat]] = {
+      import scala.meta._
+
+      Seq(
+        "val AUTOINC_COUNTER = 0",
+      ).map(line => Scala[Stat](line.parse[meta.Stat].get))
+    }
+
     val module = Datalog.Module(name, Seq.empty, patterns.values.toSeq, scalaContent)
 
     CompiledSouffleModule(
