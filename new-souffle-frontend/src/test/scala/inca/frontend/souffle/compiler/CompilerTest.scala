@@ -183,6 +183,34 @@ class CompilerTest extends AnyFunSuite {
     c.boundArgumentList.values.map(PrettyPrinter.print)
   }
 
+  test("aggregator with disjunction") {
+    val c = new Compiler
+
+    c.compileRelationDecl(RelationDecl("A", Seq(Attribute("x", NumberType))))
+    c.compileRelationDecl(RelationDecl("B", Seq(Attribute("x", NumberType))))
+
+    val compiled = c.compileConstraint(ConstraintCmp(
+      ConstraintCmpOp.Eq,
+      ArgumentVariable("y"),
+      ArgumentAggregator(AggregatorMin(
+        ArgumentVariable("x"),
+        AggregatorConditionDisjunction(TermDisjunction(Seq(TermConjunction(Seq(
+          TermAtom(Atom("A", Seq(ArgumentVariable("x")))),
+          TermAtom(Atom("B", Seq(ArgumentVariable("x")))),
+        )))))
+      )))
+    )
+
+    println(c.relationDecls)
+    println(c.patterns)
+
+    c.relationDecls.values.foreach(PrettyPrinter.print)
+    c.patterns.values.foreach(PrettyPrinter.print)
+
+    println(compiled)
+    PrettyPrinter.print(compiled)
+  }
+
   test("souffle executor example") {
     val prog =
       s""".decl edge(x: number, y: number)
@@ -196,23 +224,6 @@ class CompilerTest extends AnyFunSuite {
          |.printsize path
          |path(x, y) :- edge(x, y).
          |path(x, y) :- edge(x, z), path(z, y).
-         |""".stripMargin
-    val loaded = SouffleExecutor.loadFunction(prog)
-    val outputs = loaded.execute("")
-
-    println(outputs)
-  }
-
-  test("souffle executor example 2") {
-    val prog =
-      s""".decl edge(x: number, y: number)
-         |edge(1, 2).
-         |edge(2, 3).
-         |edge(3, 4).
-         |edge(4, 2).
-         |
-         |.output edge
-         |.printsize edge
          |""".stripMargin
     val loaded = SouffleExecutor.loadFunction(prog)
     val outputs = loaded.execute("")

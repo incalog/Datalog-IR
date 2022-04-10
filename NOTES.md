@@ -151,6 +151,11 @@ Pattern(vis, name, params: Seq[Param], bodies: Seq[Body])
 
 - ArgumentAlias (what exactly is it? A Type-Parse?)
 - aggregatedColumn parameter (CustomAggregation)?
+- executing?
+- collecting inputs/outputs
+- field 'scalaContent' in Datalog.Module: define global variables there?
+- Aggregator: min x+y : { ... }
+- Argument: nil
 
 ## TODO: Compiler(Easy)
 

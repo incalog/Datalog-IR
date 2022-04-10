@@ -30,16 +30,16 @@ class Compiler {
 
   case class IntrinsicFunctor(name: String, argTypes: Seq[TypeName], returnType: TypeName)
 
-  val intrinsicFunctors: Map[String, IntrinsicFunctor] = Map(
-    "ord" -> IntrinsicFunctor("ord", Seq(SymbolType), UnsignedType),
-    "to_float" -> IntrinsicFunctor("to_float", Seq(SymbolType), FloatType),
-    "to_number" -> IntrinsicFunctor("to_number", Seq(SymbolType), NumberType),
-    "to_string" -> IntrinsicFunctor("to_string", Seq(NumberType), SymbolType),
-    "to_unsigned" -> IntrinsicFunctor("to_unsigned", Seq(SymbolType), UnsignedType),
-    "cat" -> IntrinsicFunctor("cat", Seq(SymbolType, SymbolType), SymbolType),
-    "strlen" -> IntrinsicFunctor("strlen", Seq(SymbolType), NumberType),
-    "substr" -> IntrinsicFunctor("substr", Seq(SymbolType, UnsignedType, UnsignedType), SymbolType),
-    "autoinc" -> IntrinsicFunctor("autoinc", Seq(), NumberType),
+  val intrinsicFunctors: Map[Syntax.IntrinsicFunctor, IntrinsicFunctor] = Map(
+    IntrinsicFunctorOrd -> IntrinsicFunctor("ord", Seq(SymbolType), UnsignedType),
+    IntrinsicFunctorToFloat -> IntrinsicFunctor("to_float", Seq(SymbolType), FloatType),
+    IntrinsicFunctorToNumber -> IntrinsicFunctor("to_number", Seq(SymbolType), NumberType),
+    IntrinsicFunctorToString -> IntrinsicFunctor("to_string", Seq(NumberType), SymbolType),
+    IntrinsicFunctorToUnsigned -> IntrinsicFunctor("to_unsigned", Seq(SymbolType), UnsignedType),
+    IntrinsicFunctorCat -> IntrinsicFunctor("cat", Seq(SymbolType, SymbolType), SymbolType),
+    IntrinsicFunctorStrLen -> IntrinsicFunctor("strlen", Seq(SymbolType), NumberType),
+    IntrinsicFunctorSubStr -> IntrinsicFunctor("substr", Seq(SymbolType, UnsignedType, UnsignedType), SymbolType),
+    IntrinsicFunctorAutoInc -> IntrinsicFunctor("autoinc", Seq(), NumberType),
   )
 
   // <subtype> -> <direct supertypes>
@@ -190,20 +190,9 @@ class Compiler {
     case ArgumentSingle(arg) => compileArgument(arg)
     case ArgumentAlias(arg, ty) => ???
     case ArgumentIntrinsicFunc(func, arguments) =>
-
-      val requiredArgs = func match {
-        case Syntax.IntrinsicFunctorOrd => 1
-        case Syntax.IntrinsicFunctorToFloat => 1
-        case Syntax.IntrinsicFunctorToNumber => 1
-        case Syntax.IntrinsicFunctorToString => 1
-        case Syntax.IntrinsicFunctorToUnsigned => 1
-        case Syntax.IntrinsicFunctorCat => 2
-        case Syntax.IntrinsicFunctorStrLen => 1
-        case Syntax.IntrinsicFunctorSubStr => 3
-        case Syntax.IntrinsicFunctorAutoInc => ???
-      }
-      assert(requiredArgs == arguments.length,
-        s"invalid number of arguments, ${requiredArgs} required.")
+      assert(
+        arguments.length == intrinsicFunctors(func).argTypes.length,
+        s"Invalid number of arguments, ${intrinsicFunctors(func).argTypes.length} required.")
 
       val scalaFunction = func match {
         case Syntax.IntrinsicFunctorOrd => q"(x: String) => x.hashCode"
@@ -217,7 +206,7 @@ class Compiler {
         case Syntax.IntrinsicFunctorAutoInc => q"() => AUTOINC_COUNTER++"
       }
 
-      val retType = func match {
+      val returnType = func match {
         case Syntax.IntrinsicFunctorOrd => Syntax.UnsignedType
         case Syntax.IntrinsicFunctorToFloat => Syntax.FloatType
         case Syntax.IntrinsicFunctorToNumber => Syntax.NumberType
@@ -226,13 +215,10 @@ class Compiler {
         case Syntax.IntrinsicFunctorCat => Syntax.SymbolType
         case Syntax.IntrinsicFunctorStrLen => Syntax.NumberType
         case Syntax.IntrinsicFunctorSubStr => Syntax.UnsignedType
-        case Syntax.IntrinsicFunctorAutoInc => ???
+        case Syntax.IntrinsicFunctorAutoInc => Syntax.UnsignedType
       }
 
-      val returnType = retType match {
-        //        case DeclaredType(name) => ???
-        //        case Syntax.AnyType => ???
-        //        case Syntax.NilType => ???
+      val scalaReturnType = returnType match {
         case primitiveType: PrimitiveType => primitiveType match {
           case Syntax.SymbolType => Datalog.TScalaString
           case Syntax.NumberType => Datalog.TScalaInt
@@ -248,14 +234,15 @@ class Compiler {
           bound,
           Datalog.Evaluation(
             arguments.map(arg => (compileArgument(arg), compileType(arg.getType))),
-            returnType,
+            scalaReturnType,
             Scala[ScalaTerm.Function](scalaFunction)
           )
         )
       // return bound variable
       bound
-    case ArgumentUserDefinedFunc(func, args) => ???
-    case ArgumentAggregator(aggregator) => aggregator match {
+    case ArgumentUserDefinedFunc(func, args) =>
+      throw new Exception("Compilation of user defined functors not supported!")
+    case argument@ArgumentAggregator(aggregator) => aggregator match {
       case AggregatorMin(argument, cond) => ???
       case AggregatorMax(argument, cond) => ???
       case AggregatorMean(argument, cond) => ???
@@ -467,6 +454,181 @@ class Compiler {
     case FloatType => Datalog.TScalaDouble
   }
 
+  def compileAggregation(bound: ArgumentVariable, aggregator: ArgumentAggregator): Datalog.Atom = {
+    def compileAggregatorMinAtom(argument: Argument, atom: Atom) = {
+      val ty: TypeName = {
+        if (argument.getType.isPrimitive) argument.getType
+        else {
+          // find attribute of relation that matches argument name
+          var attributeType: Option[TypeName] = None
+          relationDecls(atom.name).attributes.foreach {
+            case Attribute(name, ty) =>
+              if (name == argument.asInstanceOf[ArgumentVariable].name)
+                attributeType = Some(ty)
+          }
+
+          attributeType match {
+            case Some(value) => value
+            case None => throw new Exception(s"Aggregator argument '$argument' not present in relation '${atom.name}'!")
+          }
+        }
+      }
+
+      val scalaType: meta.Type = ty match {
+        case DeclaredType(name) => ???
+        case Syntax.AnyType => ???
+        case Syntax.NilType => ???
+        case primitiveType: PrimitiveType => primitiveType match {
+          case Syntax.SymbolType => ???
+          case Syntax.NumberType => t"Int"
+          case Syntax.UnsignedType => t"Int"
+          case Syntax.FloatType => t"Float"
+        }
+      }
+
+      def genAggregation(name: String, init: meta.Term, op: meta.Term, typ: meta.Type): meta.Term = {
+        val tyAggregation = inca.util.Scala.typeOf[Aggregation[_]]
+        val initAggregation = init"${meta.Type.Apply(tyAggregation, List(typ))}()"
+
+        q"""
+                new $initAggregation {
+                  override val name = $name
+                  override def init: $typ = $init
+                  override def join(v1: $typ, v2: $typ): $typ = $op(v1, v2)
+                  override val isAssociative = true
+                  override val isCommutative = true
+                }"""
+      }
+
+      val init: meta.Term = scalaType match {
+        case meta.Type.Name("Int") => q"Int.MaxValue"
+        case meta.Type.Name("Float") => q"Float.MaxValue"
+        case _ => ???
+      }
+
+      val agg: meta.Term = genAggregation(
+        "min",
+        init,
+        q"scala.math.min",
+        scalaType
+      )
+
+      // TODO ?
+      val column: Int = 0
+
+      Datalog.CustomAggregation(
+        compileTypeName(ty),
+        None,
+        Scala[meta.Term](agg),
+        atom.name.toString,
+        atom.args.map(compileArgument),
+        column
+      )
+    }
+
+    Datalog.Computed(
+      Datalog.Var(bound.name),
+      aggregator.aggregator match {
+        case AggregatorMin(argument, cond) => cond match {
+          case AggregatorConditionAtom(atom) =>
+            compileAggregatorMinAtom(argument, atom)
+
+          case AggregatorConditionDisjunction(disjunction) =>
+            // 1) discard all atoms that do not contain the argument:
+            // min x : { A(x), B(y) } ==> min x : A(x)
+
+            // 2) factor out disjunction into own rule:
+            // min x : { A(x), B(x) }
+            // ==>
+            // .decl rule(x: ...)
+            // rule(x) :- A(x), B(x).
+            // min x : rule(x)
+
+            def collect[A](l: Seq[Option[A]]): Seq[A] =
+              l.filter(_.isDefined).map {
+                case Some(value) => value
+                case None => ???
+              }
+
+            def filterTerm(t: Term): Option[Term] = t match {
+              case TermConjunction(terms, isNegated) =>
+                Some(TermConjunction(collect(terms.map(filterTerm)), isNegated))
+              case TermDisjunction(terms, isNegated) =>
+                Some(TermDisjunction(collect(terms.map(filterTerm)), isNegated))
+              case t@TermAtom(atom, isNegated) =>
+                if (atom.args.contains(argument) || atom.args.exists(_.isInstanceOf[ArgumentConstant]))
+                  Some(t)
+                else
+                  None
+              case t@TermConstraint(constraint, isNegated) =>
+                val keep = constraint match {
+                  case ConstraintCmp(_, l, r) => l == argument || r == argument
+                  case ConstraintMatch(_, arg) => argument == arg
+                  case ConstraintContains(_, arg) => argument == arg
+                  case Syntax.ConstraintTrue => true
+                  case Syntax.ConstraintFalse => true
+                }
+
+                if (keep) Some(t)
+                else None
+            }
+
+            val filtered: Seq[Term] = collect(disjunction.terms.map(filterTerm))
+
+            val ruleName: String = gensym.fresh("rule")
+            val freeVars = FreeVars.freeVars(disjunction)
+            val ruleAtom = Atom(ruleName, freeVars.toSeq.map(ArgumentVariable.apply))
+
+            // create new relation
+            // TODO: collect argument types for ne relation
+            // min x : { A(x), B(y) }
+            // .decl rule(x: <type of x in relation A>)
+
+            compileRelationDecl(RelationDecl(
+              ruleName,
+              freeVars.toSeq.map(Attribute(_, NumberType)),  // TODO
+            ))
+
+            // create new rule from disjunction
+            compileRule(Rule(
+              Seq(ruleAtom),
+              disjunction
+            ))
+
+            // call new rule as atom in aggregator
+            compileAggregatorMinAtom(argument, ruleAtom)
+        }
+
+        case AggregatorMax(argument, cond) => ???
+        case AggregatorMean(argument, cond) => ???
+        case AggregatorSum(argument, cond) => ???
+        case AggregatorRange(arg1, arg2, arg3) => ???
+        case AggregatorCount(cond) => cond match {
+          case AggregatorConditionDisjunction(disjunction) =>
+            // A(a, b) :- x = count : { B(a, 0), C(b), D(b) }
+            // ==>
+            // Temp(a, b) :- B(a, 0), C(b), D(b).
+            // A(a, b) :- x = count : Temp(a, b)
+
+            val freeVars = FreeVars.freeVars(disjunction)
+
+            // TODO
+            //                    compileRule(Rule(
+            //                      Seq(Atom(gensym.fresh("temp"),
+            //                          freeVars.map(ArgumentVariable.apply))),
+            //                          disjunction
+            //                    ))
+
+            // TODO
+            null
+
+          case AggregatorConditionAtom(atom) =>
+            Datalog.CountAggregation(atom.name.toString, atom.args.map(compileArgument))
+        }
+      }
+    )
+  }
+
   def compileConstraint(constraint: Constraint, isNegated: Boolean = false): Datalog.Atom = {
     def compileCmp(l: Argument, r: Argument, op: String): Datalog.Atom = {
       assert(
@@ -549,165 +711,7 @@ class Compiler {
         case ConstraintCmpOp.Leq => compileCmp(l, r, "<=")
         case ConstraintCmpOp.Geq => compileCmp(l, r, ">=")
         case ConstraintCmpOp.Neq => Datalog.Neq(compileArgument(l), compileArgument(r))
-
         case ConstraintCmpOp.Eq =>
-          def compileAggregation(bound: ArgumentVariable, aggregator: ArgumentAggregator): Datalog.Atom = {
-
-
-
-
-            Datalog.Computed(
-              Datalog.Var(bound.name),
-              aggregator.aggregator match {
-                case AggregatorMin(argument, cond) => cond match {
-                  case AggregatorConditionAtom(atom) =>
-                    val ty: TypeName = {
-                      if (argument.getType.isPrimitive) argument.getType
-                      else {
-                        // find attribute of relation that matches argument name
-                        val attribute = relationDecls(atom.name).attributes.collectFirst {
-                          case Attribute(name, ty) if name == atom.name.toString => ty
-                        }
-
-                        attribute match {
-                          case Some(value) => value
-                          case None => throw new Exception(s"Aggregator argument '$argument' not present in relation '${atom.name}'!")
-                        }
-                      }
-                    }
-
-                    val scalaType: meta.Type = ty match {
-                      case DeclaredType(name) => ???
-                      case Syntax.AnyType => ???
-                      case Syntax.NilType => ???
-                      case primitiveType: PrimitiveType => primitiveType match {
-                        case Syntax.SymbolType => ???
-                        case Syntax.NumberType => t"Int"
-                        case Syntax.UnsignedType => t"Int"
-                        case Syntax.FloatType => t"Float"
-                      }
-                    }
-
-                    def genAggregation(name: String, init: meta.Term, op: meta.Term, typ: meta.Type): meta.Term = {
-                      val tyAggregation = inca.util.Scala.typeOf[Aggregation[_]]
-                      val initAggregation = init"${meta.Type.Apply(tyAggregation, List(typ))}()"
-
-                      q"""
-                         new $initAggregation {
-                           override val name = $name
-                           override def init: $typ = $init
-                           override def join(v1: $typ, v2: $typ): $typ = $op(v1, v2)
-                           override val isAssociative = true
-                           override val isCommutative = true
-                         }"""
-                    }
-
-                    val init: meta.Term = scalaType match {
-                      case meta.Type.Name("Int") => q"Int.MinValue"
-                      case meta.Type.Name("Float") => q"Float.MinValue"
-                      case _ => ???
-                    }
-
-                    val agg: meta.Term = genAggregation(
-                      "min",
-                      init,
-                      q"scala.math.min",
-                      scalaType
-                    )
-
-                    // TODO ?
-                    val column: Int = 0
-
-                    Datalog.CustomAggregation(
-                      compileTypeName(ty),
-                      None,
-                      Scala[meta.Term](agg),
-                      atom.name.toString,
-                      atom.args.map(compileArgument),
-                      column
-                    )
-
-                  case AggregatorConditionDisjunction(disjunction) =>
-                    // 1) discard all atoms that do not contain the argument:
-                    // min x : { A(x), B(y) } ==> min x : A(x)
-
-                    // 2) factor out disjunction into own rule:
-                    // min x : { A(x), B(x) }
-                    // ==>
-                    // rule(x) :- A(x), B(x).
-                    // min x : rule(x)
-
-                    def collect[A](l: Seq[Option[A]]): Seq[A] =
-                      l.filter(_.isDefined).map {
-                        case Some(value) => value
-                        case None => ???
-                      }
-
-                    def filterTerm(t: Term): Option[Term] = t match {
-                      case TermConjunction(terms, isNegated) =>
-                        Some(TermConjunction(collect(terms.map(filterTerm)), isNegated))
-                      case TermDisjunction(terms, isNegated) =>
-                        Some(TermDisjunction(collect(terms.map(filterTerm)), isNegated))
-                      case t@TermAtom(atom, isNegated) =>
-                        if (atom.args.contains(argument) || atom.args.exists(_.isInstanceOf[ArgumentConstant]))
-                          Some(t)
-                        else
-                          None
-                      case t@TermConstraint(constraint, isNegated) =>
-                        val keep = constraint match {
-                          case ConstraintCmp(_, l, r) => l == argument || r == argument
-                          case ConstraintMatch(_, arg) => argument == arg
-                          case ConstraintContains(_, arg) => argument == arg
-                          case Syntax.ConstraintTrue => true
-                          case Syntax.ConstraintFalse => true
-                        }
-
-                        if (keep) Some(t)
-                        else None
-                    }
-
-                    val filtered: Seq[Term] = collect(disjunction.terms.map(filterTerm))
-
-                    val ruleName: String = gensym.fresh("rule")
-                    val freeVars = FreeVars.freeVars(disjunction)
-
-                    //                      compileRule(Rule(
-                    //                        Seq(Atom(ruleName, freeVars)),
-                    //                        disjunction
-                    //                      ))
-                    null
-                }
-
-                case AggregatorMax(argument, cond) => ???
-                case AggregatorMean(argument, cond) => ???
-                case AggregatorSum(argument, cond) => ???
-                case AggregatorRange(arg1, arg2, arg3) => ???
-                case AggregatorCount(cond) => cond match {
-                  case AggregatorConditionDisjunction(disjunction) =>
-                    // A(a, b) :- x = count : { B(a, 0), C(b), D(b) }
-                    // ==>
-                    // Temp(a, b) :- B(a, 0), C(b), D(b).
-                    // A(a, b) :- x = count : Temp(a, b)
-
-                    val freeVars = FreeVars.freeVars(disjunction)
-
-                    // TODO
-                    //                    compileRule(Rule(
-                    //                      Seq(Atom(gensym.fresh("temp"),
-                    //                          freeVars.map(ArgumentVariable.apply))),
-                    //                          disjunction
-                    //                    ))
-
-                    // TODO
-                    null
-
-                  case AggregatorConditionAtom(atom) =>
-                    Datalog.CountAggregation(atom.name.toString, atom.args.map(compileArgument))
-                }
-              }
-            )
-          }
-
           (l, r) match {
             case (l: ArgumentAggregator, r: ArgumentVariable) => compileAggregation(r, l)
             case (l: ArgumentVariable, r: ArgumentAggregator) => compileAggregation(l, r)
