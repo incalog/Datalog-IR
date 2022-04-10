@@ -628,7 +628,7 @@ class Compiler {
         }
       }
 
-      def genAggregation(name: String, init: meta.Term, op: meta.Term, typ: meta.Type): meta.Term = {
+      def genAggregation(name: String, init: meta.Term, op: scala.meta.Term.Name, typ: meta.Type): meta.Term = {
         val tyAggregation = inca.util.Scala.typeOf[Aggregation[_]]
         val initAggregation = init"${meta.Type.Apply(tyAggregation, List(typ))}()"
 
@@ -644,14 +644,14 @@ class Compiler {
 
       val init: meta.Term = scalaType match {
         case meta.Type.Name("Int") => q"0"
-        case meta.Type.Name("Float") => q"0."
+        case meta.Type.Name("Float") => q"0f"
         case _ => ???
       }
 
       val agg: meta.Term = genAggregation(
         "sum",
         init,
-        q"scala.meta.Term.Name(\"+\")",
+        meta.Term.Name("+"),
         scalaType
       )
 

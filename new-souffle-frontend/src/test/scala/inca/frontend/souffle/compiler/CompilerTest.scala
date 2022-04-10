@@ -188,6 +188,7 @@ class CompilerTest extends AnyFunSuite {
 
     c.compileRelationDecl(RelationDecl("A", Seq(Attribute("x", NumberType))))
     c.compileRelationDecl(RelationDecl("B", Seq(Attribute("x", NumberType))))
+    c.compileRelationDecl(RelationDecl("C", Seq(Attribute("x", NumberType))))
 
     val compiledMax = c.compileConstraint(ConstraintCmp(
       ConstraintCmpOp.Eq,
@@ -197,6 +198,7 @@ class CompilerTest extends AnyFunSuite {
         AggregatorConditionDisjunction(TermDisjunction(Seq(TermConjunction(Seq(
           TermAtom(Atom("A", Seq(ArgumentVariable("x")))),
           TermAtom(Atom("B", Seq(ArgumentVariable("x")))),
+          TermAtom(Atom("C", Seq(ArgumentVariable("x")))),
         )))))
       )))
     )
@@ -231,10 +233,10 @@ class CompilerTest extends AnyFunSuite {
     c.relationDecls.values.foreach(PrettyPrinter.print)
     c.patterns.values.foreach(PrettyPrinter.print)
 
-    //println(compiledMax)
-    //PrettyPrinter.print(compiledMax)
-    //println(compiledMin)
-    //PrettyPrinter.print(compiledMin)
+    println(compiledMax)
+    PrettyPrinter.print(compiledMax)
+    println(compiledMin)
+    PrettyPrinter.print(compiledMin)
     println(compiledSum)
     PrettyPrinter.print(compiledSum)
   }
