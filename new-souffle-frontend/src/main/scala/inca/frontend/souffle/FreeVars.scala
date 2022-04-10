@@ -11,7 +11,8 @@ object FreeVars {
     case ArgumentBranchConstructor(_, args) => args.flatMap(freeVars).toSet
     case ArgumentSingle(arg) => freeVars(arg)
     case ArgumentAlias(arg, _) => freeVars(arg)
-    case ArgumentFunctorCall(_, args) => args.flatMap(freeVars).toSet
+    case ArgumentIntrinsicFunc(_, args) => args.flatMap(freeVars).toSet
+    case ArgumentUserDefinedFunc(_, args) => args.flatMap(freeVars).toSet
     case ArgumentAggregator(aggregator) => freeVars(aggregator)
     case ArgumentUnOp(op, arg) => freeVars(arg)
     case ArgumentBinOp(op, l, r) => freeVars(l) ++ freeVars(r)

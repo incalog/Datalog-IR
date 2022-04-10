@@ -139,7 +139,7 @@ object PrettyPrinter {
       case ArgumentBranchConstructor(name, args) => s"$$ $name ( ${args.map(stringify).mkString(", ")} )"
       case ArgumentSingle(arg) => s"( ${stringify(arg)} )"
       case ArgumentAlias(arg, ty) => s"as ( ${stringify(arg)}, ${stringify(ty)} )"
-      case ArgumentFunctorCall(name, args) => s"$name ( ${args.map(stringify).mkString(", ")} )"
+      case ArgumentUserDefinedFunc(name, args) => s"@$name ( ${args.map(stringify).mkString(", ")} )"
       case ArgumentAggregator(aggregator) => stringify(aggregator)
       case ArgumentUnOp(op, arg) =>
         stringify(op) + {

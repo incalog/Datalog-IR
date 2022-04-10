@@ -189,7 +189,6 @@ class Compiler {
     case ArgumentBranchConstructor(name, args) => ???
     case ArgumentSingle(arg) => compileArgument(arg)
     case ArgumentAlias(arg, ty) => ???
-    case ArgumentFunctorCall(name, arguments) => ???
     case ArgumentIntrinsicFunc(func, arguments) =>
 
       val requiredArgs = func match {
