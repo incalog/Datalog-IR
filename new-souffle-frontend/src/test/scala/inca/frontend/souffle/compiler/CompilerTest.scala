@@ -189,7 +189,19 @@ class CompilerTest extends AnyFunSuite {
     c.compileRelationDecl(RelationDecl("A", Seq(Attribute("x", NumberType))))
     c.compileRelationDecl(RelationDecl("B", Seq(Attribute("x", NumberType))))
 
-    val compiled = c.compileConstraint(ConstraintCmp(
+    val compiledMax = c.compileConstraint(ConstraintCmp(
+      ConstraintCmpOp.Eq,
+      ArgumentVariable("y"),
+      ArgumentAggregator(AggregatorMax(
+        ArgumentVariable("x"),
+        AggregatorConditionDisjunction(TermDisjunction(Seq(TermConjunction(Seq(
+          TermAtom(Atom("A", Seq(ArgumentVariable("x")))),
+          TermAtom(Atom("B", Seq(ArgumentVariable("x")))),
+        )))))
+      )))
+    )
+
+    val compiledMin = c.compileConstraint(ConstraintCmp(
       ConstraintCmpOp.Eq,
       ArgumentVariable("y"),
       ArgumentAggregator(AggregatorMin(
@@ -207,8 +219,10 @@ class CompilerTest extends AnyFunSuite {
     c.relationDecls.values.foreach(PrettyPrinter.print)
     c.patterns.values.foreach(PrettyPrinter.print)
 
-    println(compiled)
-    PrettyPrinter.print(compiled)
+    println(compiledMax)
+    PrettyPrinter.print(compiledMax)
+    println(compiledMin)
+    PrettyPrinter.print(compiledMin)
   }
 
   test("souffle executor example") {
