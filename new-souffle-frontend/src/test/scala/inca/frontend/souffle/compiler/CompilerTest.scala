@@ -199,5 +199,24 @@ class CompilerTest extends AnyFunSuite {
          |""".stripMargin
     val loaded = SouffleExecutor.loadFunction(prog)
     val outputs = loaded.execute("")
+
+    println(outputs)
+  }
+
+  test("souffle executor example 2") {
+    val prog =
+      s""".decl edge(x: number, y: number)
+         |edge(1, 2).
+         |edge(2, 3).
+         |edge(3, 4).
+         |edge(4, 2).
+         |
+         |.output edge
+         |.printsize edge
+         |""".stripMargin
+    val loaded = SouffleExecutor.loadFunction(prog)
+    val outputs = loaded.execute("")
+
+    println(outputs)
   }
 }

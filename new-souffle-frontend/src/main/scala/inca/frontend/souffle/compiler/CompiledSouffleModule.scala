@@ -9,6 +9,7 @@ import inca.runtime.context.DataModel
 
 case class CompiledSouffleModule(ir: Datalog.Module,
                                  inputs: Seq[RelationDecl],
+                                 outputs: Seq[String],
                                  printSizes: Seq[RelationDecl],
                                  dataModel: DataModel,
                                  options: Options) extends CompiledModule {

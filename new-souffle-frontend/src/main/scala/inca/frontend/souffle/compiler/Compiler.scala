@@ -807,6 +807,28 @@ class Compiler {
       assert(directive.qualifiedNames.length == 1, "Input directive must have one relation argument!")
       assert(directive.params.isEmpty, "Input directives must not have any parameters!")
 
+      // TODO: parse all input parameters
+
+      assert(
+        directive.params.isDefinedAt("IO"),
+        "Input directive has to define parameter 'IO'!")
+
+      assert(
+        directive.params.isDefinedAt("filename"),
+        "Input directive has to define parameter 'filename'!")
+
+      directive.params("filename") match {
+        case DirectiveValueString(value) =>
+          assert(value.endsWith(".csv"), "Input file has to be in csv format!")
+        case _ => throw new Exception("Invalid value for parameter 'filename'!")
+      }
+
+      directive.params("IO") match {
+        case DirectiveValueString(value) =>
+          assert(value == "file", "Input has to come from a file!")
+        case _ => throw new Exception("Invalid value for parameter 'IO'!")
+      }
+
       // extend list of inputs
       inputs :+= directive.qualifiedNames.head
 
@@ -869,6 +891,7 @@ class Compiler {
     CompiledSouffleModule(
       module,
       inputs.map(relationDecls.apply),
+      outputs.map(_.toString),
       printSizes.map(relationDecls.apply),
       new DataModel(),
       ConstraintOptions()

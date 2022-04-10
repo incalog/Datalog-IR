@@ -1,7 +1,7 @@
 package inca.frontend.souffle.executor
 
 import inca.compiler.Options
-import inca.frontend.souffle.{Parser, Syntax}
+import inca.frontend.souffle.{Parser, PrettyPrinter, Syntax}
 import inca.frontend.souffle.compiler.Compiler
 import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.runtime.{EnginePool, Query}
@@ -53,7 +53,8 @@ object SouffleExecutor {
       val inputRelations: Map[String, Seq[Tuple]] = Map()
 
       // TODO compiled.outputs
-      val outputDirectives: Seq[String] = Seq()
+      // val outputDirectives: Seq[String] = Seq()
+      val outputDirectives: Seq[String] = compiled.outputs
 
       var outputs: Outputs = Map()
       var sizes: Map[String, Int] = Map()
