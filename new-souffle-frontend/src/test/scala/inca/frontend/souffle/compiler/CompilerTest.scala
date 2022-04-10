@@ -147,6 +147,17 @@ class CompilerTest extends AnyFunSuite {
     PrettyPrinter.print(r)
   }
 
+  test("argument intrinsic functor") {
+    val c = new Compiler
+
+//    c.compileArgument(Parser.parse(Parser.argumentAtom, "ord(a)"))
+    c.compileArgument(Parser.parse(Parser.argumentAtom, "ord(\"some text\")"))
+    c.compileArgument(Parser.parse(Parser.argumentAtom, "to_float(\"123\")"))
+    c.compileArgument(Parser.parse(Parser.argumentAtom, "to_number(\"13\")"))
+    println(c.boundFunctorCall)
+    c.boundFunctorCall.values.map(PrettyPrinter.print)
+  }
+
   test("argument unary operation") {
     val c = new Compiler
 
