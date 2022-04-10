@@ -256,7 +256,6 @@ object Syntax {
   case class ArgumentBranchConstructor(name: String, args: Seq[Argument]) extends Argument
   case class ArgumentSingle(arg: Argument) extends Argument
   case class ArgumentAlias(arg: Argument, ty: TypeName) extends Argument
-  case class ArgumentFunctorCall(name: String, args: Seq[Argument]) extends Argument
   case class ArgumentIntrinsicFunc(func: IntrinsicFunctor, args: Seq[Argument]) extends Argument
   case class ArgumentUserDefinedFunc(func: UserDefinedFunctor, args: Seq[Argument]) extends Argument
   case class ArgumentAggregator(aggregator: Aggregator) extends Argument

@@ -270,8 +270,6 @@ object Parser {
       case (func, args) => ArgumentIntrinsicFunc(func, args.getOrElse(Seq.empty))} |
     (userFunc ~ parens(argumentList.?))
        .map { case (func, args) => ArgumentUserDefinedFunc(func, args.getOrElse(Seq.empty)) } |
-    (spaced(Literals.identifier) ~ parens(argumentList))
-      .map { case (name, args) => ArgumentFunctorCall(name, args.toList) }.backtrack |
     (Literals.identifier | P.char('_').as("_")).map(ArgumentVariable.apply) |
     (spaced(P.char('$') *> Literals.identifier) ~ parens(argumentList).?)
       .map { case (name, args) => ArgumentBranchConstructor(name, args.getOrElse(Seq.empty)) }
