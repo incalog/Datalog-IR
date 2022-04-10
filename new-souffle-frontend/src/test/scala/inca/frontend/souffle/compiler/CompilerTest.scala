@@ -70,6 +70,8 @@ class CompilerTest extends AnyFunSuite {
     c.compileRule(Parser.parse(Parser.rule, "A(5, y) :- y = 1."))
 
     PrettyPrinter.print(c.patterns.values)
+    println(c.patterns)
+    println(c.patterns.values)
   }
 
   test("directives") {
@@ -157,26 +159,9 @@ class CompilerTest extends AnyFunSuite {
     val c = new Compiler
 
     c.compileArgument(ArgumentBinOp(BinOpAdd, ArgumentConstant(ConstantNumber(42)), ArgumentConstant(ConstantNumber(21))))
-    c.compileArgument(ArgumentBinOp(BinOpLAnd, ArgumentConstant(ConstantNumber(42)), ArgumentConstant(ConstantNumber(21))))
-    c.compileArgument(ArgumentBinOp(BinOpPow, ArgumentConstant(ConstantNumber(2)), ArgumentConstant(ConstantNumber(3))))
-    c.compileArgument(ArgumentBinOp(BinOpPow, ArgumentConstant(ConstantNumber(2)), ArgumentConstant(ConstantNumber(3))))
-    c.compileArgument(ArgumentBinOp(BinOpLXor, ArgumentConstant(ConstantNumber(2)), ArgumentConstant(ConstantNumber(3))))
+//    c.compileArgument(ArgumentBinOp(BinOpAdd, ArgumentVariable("x"), ArgumentVariable("y")))
     println(c.boundComputedArguments)
     c.boundComputedArguments.values.map(PrettyPrinter.print)
-  }
-
-  test("argument intrinsic functor call") {
-    val c = new Compiler
-
-    c.compileArgument(ArgumentFunctorCall("ord", Seq(ArgumentConstant(ConstantString("hello")))))
-    c.compileArgument(ArgumentFunctorCall("substr", Seq(
-      ArgumentConstant(ConstantString("hello")),
-      ArgumentConstant(ConstantNumber(1)),
-      ArgumentConstant(ConstantNumber(4)),
-    )))
-
-    println(c.boundFunctorCall)
-    c.boundFunctorCall.values.map(PrettyPrinter.print)
   }
 
   test("argument list") {

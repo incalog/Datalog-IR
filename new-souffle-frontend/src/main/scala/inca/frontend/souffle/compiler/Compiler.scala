@@ -245,7 +245,14 @@ class Compiler {
 
         case None => ??? // TODO: Check if User-Defined Functor
       }
-    case ArgumentAggregator(aggregator) => ???
+    case ArgumentAggregator(aggregator) => aggregator match {
+      case AggregatorMin(argument, cond) => ???
+      case AggregatorMax(argument, cond) => ???
+      case AggregatorMean(argument, cond) => ???
+      case AggregatorSum(argument, cond) => ???
+      case AggregatorCount(cond) => ???
+      case AggregatorRange(arg1, arg2, arg3) => ???
+    }
     case ArgumentUnOp(op, argument) =>
       val ty = compileTypeName(argument.getType)
 
@@ -253,11 +260,8 @@ class Compiler {
         throw new Exception(s"Cannot compute unary operation '$op' of argument of type '${argument.getType}'!")
 
       val resultType = argument.getType match {
-        case DeclaredType(_) => throwError
-        case Syntax.AnyType => throwError
-        case Syntax.NilType => throwError
+
         case primitiveType: PrimitiveType => primitiveType match {
-          case Syntax.SymbolType => throwError
           case Syntax.NumberType => op match {
             case Syntax.UnOpMinus => Datalog.TScalaInt
             case Syntax.UnOpBNot => Datalog.TScalaBoolean
@@ -270,10 +274,11 @@ class Compiler {
           }
           case Syntax.FloatType => op match {
             case Syntax.UnOpMinus => Datalog.TScalaDouble
-            case Syntax.UnOpBNot => throwError
-            case Syntax.UnOpLNot => throwError
+            case _ => throwError
           }
+          case _ => throwError
         }
+        case _ => throwError
       }
 
       val argType = argument.getType match {
@@ -324,11 +329,7 @@ class Compiler {
       assert(l.getType == r.getType, s"Arguments $l and $r have to be of same type")
 
       val resultType = l.getType match {
-        case DeclaredType(_) => throwError
-        case Syntax.AnyType => throwError
-        case Syntax.NilType => throwError
         case primitiveType: PrimitiveType => primitiveType match {
-          case Syntax.SymbolType => throwError
           case Syntax.NumberType | Syntax.UnsignedType => op match {
             case Syntax.BinOpAdd => Datalog.TScalaInt
             case Syntax.BinOpMinus => Datalog.TScalaInt
@@ -363,7 +364,9 @@ class Compiler {
             case Syntax.BinOpBShr => Datalog.TScalaDouble
             case Syntax.BinOpBShrU => Datalog.TScalaDouble
           }
+          case _ => throwError
         }
+        case _ => throwError
       }
 
       val lType = l.getType match {

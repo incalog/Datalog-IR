@@ -201,10 +201,13 @@ class ParserTest extends AnyFunSuite {
   }
 
   test("aggregator") {
-    def p(src: String): Unit =
+    def p(src: String): Unit = {
       PrettyPrinter.print(Parser.parse(Parser.aggregator, src))
+      println(Parser.parse(Parser.aggregator, src))
+    }
 
     p("min x : A(x)")
+    p("min x+y : { A(x), A(y), C(y) }")
     p("max    x:  A(x)   ")
     p("mean\nx\n:\nA(x)\n")
     p("sum x  :  A(x)   ")
