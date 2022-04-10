@@ -213,16 +213,30 @@ class CompilerTest extends AnyFunSuite {
       )))
     )
 
+    val compiledSum = c.compileConstraint(ConstraintCmp(
+      ConstraintCmpOp.Eq,
+      ArgumentVariable("y"),
+      ArgumentAggregator(AggregatorSum(
+        ArgumentVariable("x"),
+        AggregatorConditionDisjunction(TermDisjunction(Seq(TermConjunction(Seq(
+          TermAtom(Atom("A", Seq(ArgumentVariable("x")))),
+          TermAtom(Atom("B", Seq(ArgumentVariable("x")))),
+        )))))
+      )))
+    )
+
     println(c.relationDecls)
     println(c.patterns)
 
     c.relationDecls.values.foreach(PrettyPrinter.print)
     c.patterns.values.foreach(PrettyPrinter.print)
 
-    println(compiledMax)
-    PrettyPrinter.print(compiledMax)
-    println(compiledMin)
-    PrettyPrinter.print(compiledMin)
+    //println(compiledMax)
+    //PrettyPrinter.print(compiledMax)
+    //println(compiledMin)
+    //PrettyPrinter.print(compiledMin)
+    println(compiledSum)
+    PrettyPrinter.print(compiledSum)
   }
 
   test("souffle executor example") {

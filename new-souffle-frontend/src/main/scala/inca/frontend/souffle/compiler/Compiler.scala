@@ -597,7 +597,7 @@ class Compiler {
       )
     }
 
-    def compileAggregatorMaxAtom(argument: Argument, atom: Atom) = {
+    def compileAggregatorSumAtom(argument: Argument, atom: Atom) = {
       val ty: TypeName = {
         if (argument.getType.isPrimitive) argument.getType
         else {
@@ -636,22 +636,22 @@ class Compiler {
                 new $initAggregation {
                   override val name = $name
                   override def init: $typ = $init
-                  override def join(v1: $typ, v2: $typ): $typ = $op(v1, v2)
+                  override def join(v1: $typ, v2: $typ): $typ = v1 $op v2
                   override val isAssociative = true
                   override val isCommutative = true
                 }"""
       }
 
       val init: meta.Term = scalaType match {
-        case meta.Type.Name("Int") => q"Int.MinValue"
-        case meta.Type.Name("Float") => q"Float.MinValue"
+        case meta.Type.Name("Int") => q"0"
+        case meta.Type.Name("Float") => q"0."
         case _ => ???
       }
 
       val agg: meta.Term = genAggregation(
-        "max",
+        "sum",
         init,
-        q"scala.math.max",
+        q"scala.meta.Term.Name(\"+\")",
         scalaType
       )
 
@@ -795,7 +795,59 @@ class Compiler {
         }
 
         case AggregatorMean(argument, cond) => ???
-        case AggregatorSum(argument, cond) => ???
+        case AggregatorSum(argument, cond) => cond match {
+          case AggregatorConditionAtom(atom) =>
+            compileAggregatorSumAtom(argument, atom)
+          case AggregatorConditionDisjunction(disjunction) =>
+            def collect[A](l: Seq[Option[A]]): Seq[A] =
+              l.filter(_.isDefined).map {
+                case Some(value) => value
+                case None => ???
+              }
+
+            def filterTerm(t: Term): Option[Term] = t match {
+              case TermConjunction(terms, isNegated) =>
+                Some(TermConjunction(collect(terms.map(filterTerm)), isNegated))
+              case TermDisjunction(terms, isNegated) =>
+                Some(TermDisjunction(collect(terms.map(filterTerm)), isNegated))
+              case t@TermAtom(atom, isNegated) =>
+                if (atom.args.contains(argument) || atom.args.exists(_.isInstanceOf[ArgumentConstant]))
+                  Some(t)
+                else
+                  None
+              case t@TermConstraint(constraint, isNegated) =>
+                val keep = constraint match {
+                  case ConstraintCmp(_, l, r) => l == argument || r == argument
+                  case ConstraintMatch(_, arg) => argument == arg
+                  case ConstraintContains(_, arg) => argument == arg
+                  case Syntax.ConstraintTrue => true
+                  case Syntax.ConstraintFalse => true
+                }
+
+                if (keep) Some(t)
+                else None
+            }
+
+            val filtered: Seq[Term] = collect(disjunction.terms.map(filterTerm))
+
+            val ruleName: String = gensym.fresh("rule")
+            val freeVars = FreeVars.freeVars(disjunction)
+            val ruleAtom = Atom(ruleName, freeVars.toSeq.map(ArgumentVariable.apply))
+
+            compileRelationDecl(RelationDecl(
+              ruleName,
+              freeVars.toSeq.map(Attribute(_, NumberType)),  // TODO
+            ))
+
+            // create new rule from disjunction
+            compileRule(Rule(
+              Seq(ruleAtom),
+              disjunction
+            ))
+
+            compileAggregatorSumAtom(argument, ruleAtom)
+        }
+
         case AggregatorRange(arg1, arg2, arg3) => ???
         case AggregatorCount(cond) => cond match {
           case AggregatorConditionDisjunction(disjunction) =>
