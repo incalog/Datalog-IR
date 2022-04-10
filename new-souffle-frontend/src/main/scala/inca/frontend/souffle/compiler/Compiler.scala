@@ -28,19 +28,6 @@ class Compiler {
   var boundArgumentList: Map[Datalog.Var, Seq[Datalog.Term]] = Map.empty
   var boundFunctorCall: Map[Datalog.Var, Datalog.Computed] = Map.empty
 
-  case class IntrinsicFunctor(name: String, argTypes: Seq[TypeName], returnType: TypeName)
-
-  val intrinsicFunctors: Map[String, IntrinsicFunctor] = Map(
-    "ord" -> IntrinsicFunctor("ord", Seq(SymbolType), UnsignedType),
-    "to_float" -> IntrinsicFunctor("to_float", Seq(SymbolType), FloatType),
-    "to_number" -> IntrinsicFunctor("to_number", Seq(SymbolType), NumberType),
-    "to_string" -> IntrinsicFunctor("to_string", Seq(NumberType), SymbolType),
-    "to_unsigned" -> IntrinsicFunctor("to_unsigned", Seq(SymbolType), UnsignedType),
-    "cat" -> IntrinsicFunctor("cat", Seq(SymbolType, SymbolType), SymbolType),
-    "strlen" -> IntrinsicFunctor("strlen", Seq(SymbolType), NumberType),
-    "substr" -> IntrinsicFunctor("substr", Seq(SymbolType, UnsignedType, UnsignedType), SymbolType),
-  )
-
   // <subtype> -> <direct supertypes>
   val subTypes: MutableMap[TypeName, Set[TypeName]] = MutableMap(
     UnsignedType -> Set(NumberType, AnyType),
@@ -172,10 +159,6 @@ class Compiler {
       pattern.params,
       pattern.bodies :+ body
     )
-
-//    val name = rule.head.name.toString
-//    val params = rule.head.args.map(compileArgument)
-//    Datalog.Pattern(None, name, params, bodies)
   }
 
   def compileArgument(argument: Argument): Datalog.Term = argument match {
@@ -192,60 +175,74 @@ class Compiler {
     case ArgumentDollarFunctor(name, args) => ???
     case ArgumentSingle(arg) => compileArgument(arg)
     case ArgumentAlias(arg, ty) => ???
-    case ArgumentFunctorCall(name, arguments) =>
-      intrinsicFunctors.get(name) match {
-        case Some(value) =>
-          assert(value.argTypes.length == arguments.length,
-            s"invalid number of arguments, ${value.argTypes.length} required.")
+    case ArgumentFunctorCall(name, arguments) => ???
+    case ArgumentIntrinsicFunc(func, arguments) =>
 
-          val scalaFunction = value.name match {
-            case "ord" =>
-              q"(x: String) => x.hashCode"
-            case "to_float" =>
-              q"(x: String) => x.toFloat"
-            case "to_number" =>
-              q"(x: String) => x.toInt"
-            case "to_unsigned" =>
-              q"(x: String) => x.toInt"
-            case "to_string" =>
-              q"(x: Int) => x.toString"
-            case "cat" =>
-              q"(x: String, y: String) => x + y"
-            case "strlen" =>
-              q"(x: String) => x.length"
-            case "substr" =>
-              q"(s: String, i: Int, n: Int) => s.substr(i, i + n)"
-          }
-
-          val returnType = value.returnType match {
-            case DeclaredType(name) => ???
-            case Syntax.AnyType => ???
-            case Syntax.NilType => ???
-            case primitiveType: PrimitiveType => primitiveType match {
-              case Syntax.SymbolType => Datalog.TScalaString
-              case Syntax.NumberType => Datalog.TScalaInt
-              case Syntax.UnsignedType => Datalog.TScalaInt
-              case Syntax.FloatType => Datalog.TScalaDouble
-            }
-          }
-
-          val bound = Datalog.Var(gensym.fresh("bound"))
-
-          boundFunctorCall +=
-            bound -> Datalog.Computed(
-              bound,
-              Datalog.Evaluation(
-                arguments.map(arg => (compileArgument(arg), compileType(arg.getType))),
-                returnType,
-                Scala[ScalaTerm.Function](scalaFunction)
-              )
-            )
-
-          // return bound variable
-          bound
-
-        case None => ??? // TODO: Check if User-Defined Functor
+      val requiredArgs = func match {
+        case Syntax.IntrinsicFunctorOrd => 1
+        case Syntax.IntrinsicFunctorToFloat => 1
+        case Syntax.IntrinsicFunctorToNumber => 1
+        case Syntax.IntrinsicFunctorToString => 1
+        case Syntax.IntrinsicFunctorToUnsigned => 1
+        case Syntax.IntrinsicFunctorCat => 2
+        case Syntax.IntrinsicFunctorStrLen => 1
+        case Syntax.IntrinsicFunctorSubStr => 3
+        case Syntax.IntrinsicFunctorAutoInc => ???
       }
+
+      assert(requiredArgs == arguments.length,
+        s"invalid number of arguments, ${requiredArgs} required.")
+
+      val scalaFunction = func match {
+        case Syntax.IntrinsicFunctorOrd => q"(x: String) => x.hashCode"
+        case Syntax.IntrinsicFunctorToFloat => q"(x: String) => x.toFloat"
+        case Syntax.IntrinsicFunctorToNumber => q"(x: String) => x.toInt"
+        case Syntax.IntrinsicFunctorToString => q"(x: Int) => x.toString"
+        case Syntax.IntrinsicFunctorToUnsigned => q"(x: String) => x.toInt"
+        case Syntax.IntrinsicFunctorCat => q"(x: String, y: String) => x + y"
+        case Syntax.IntrinsicFunctorStrLen => q"(x: String) => x.length"
+        case Syntax.IntrinsicFunctorSubStr => q"(s: String, i: Int, n: Int) => s.substr(i, i + n)"
+        case Syntax.IntrinsicFunctorAutoInc => ???
+      }
+
+      val retType = func match {
+        case Syntax.IntrinsicFunctorOrd => Syntax.UnsignedType
+        case Syntax.IntrinsicFunctorToFloat => Syntax.FloatType
+        case Syntax.IntrinsicFunctorToNumber => Syntax.NumberType
+        case Syntax.IntrinsicFunctorToString => Syntax.SymbolType
+        case Syntax.IntrinsicFunctorToUnsigned => Syntax.UnsignedType
+        case Syntax.IntrinsicFunctorCat => Syntax.SymbolType
+        case Syntax.IntrinsicFunctorStrLen => Syntax.NumberType
+        case Syntax.IntrinsicFunctorSubStr => Syntax.UnsignedType
+        case Syntax.IntrinsicFunctorAutoInc => ???
+      }
+
+      val returnType = retType match {
+//        case DeclaredType(name) => ???
+//        case Syntax.AnyType => ???
+//        case Syntax.NilType => ???
+        case primitiveType: PrimitiveType => primitiveType match {
+          case Syntax.SymbolType => Datalog.TScalaString
+          case Syntax.NumberType => Datalog.TScalaInt
+          case Syntax.UnsignedType => Datalog.TScalaInt
+          case Syntax.FloatType => Datalog.TScalaDouble
+        }
+      }
+
+      val bound = Datalog.Var(gensym.fresh("bound"))
+
+      boundFunctorCall +=
+        bound -> Datalog.Computed(
+          bound,
+          Datalog.Evaluation(
+            arguments.map(arg => (compileArgument(arg), compileType(arg.getType))),
+            returnType,
+            Scala[ScalaTerm.Function](scalaFunction)
+          )
+        )
+      // return bound variable
+      bound
+    case ArgumentUserDefinedFunc(func, args)=> ???
     case ArgumentAggregator(aggregator) => aggregator match {
       case AggregatorMin(argument, cond) => ???
       case AggregatorMax(argument, cond) => ???
