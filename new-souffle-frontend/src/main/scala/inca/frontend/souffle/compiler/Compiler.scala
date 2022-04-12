@@ -103,7 +103,19 @@ class Compiler {
         assert(arg.isInstanceOf[ArgumentConstant], "Arguments of facts have to be constant!")
         val argConstant = arg.asInstanceOf[ArgumentConstant]
 
-        Datalog.Eq(Datalog.Var(attr.name), compileConstant(argConstant.value))
+        val scalaType = compileType(attr.ty)
+
+        val scalaTerm = argConstant.value match {
+          case ConstantString(value) => meta.Lit.String(value)
+          case ConstantNumber(value) => meta.Lit.Int(value)
+          case ConstantUnsigned(value) => meta.Lit.Int(value)
+          case ConstantFloat(value) => meta.Lit.Float(value)
+        }
+
+        Datalog.Computed(
+          Datalog.Var(attr.name),
+          Datalog.Evaluation(Seq(), scalaType, Scala(q"() => $scalaTerm"))
+        )
     })
 
     // update pattern with new body
@@ -116,20 +128,20 @@ class Compiler {
     )
   }
 
-  def compileTypeName(ty: TypeName): Datalog.Type = ty match {
-    case DeclaredType(name) => Datalog.TData(name)
-    case AnyType => Datalog.TAny
-    case NilType => throw new Exception("Cannot compile nil type to datalog type!")
-    case primitiveType: PrimitiveType => primitiveType match {
-      case SymbolType => Datalog.TLiteral.String
-      case NumberType => Datalog.TLiteral.Int
-      case UnsignedType => Datalog.TLiteral.Int
-      case FloatType => Datalog.TLiteral.Double
-    }
-  }
+//  def compileTypeName(ty: TypeName): Datalog.Type = ty match {
+//    case DeclaredType(name) => Datalog.TData(name)
+//    case AnyType => Datalog.TAny
+//    case NilType => throw new Exception("Cannot compile nil type to datalog type!")
+//    case primitiveType: PrimitiveType => primitiveType match {
+//      case SymbolType => Datalog.TLiteral.String
+//      case NumberType => Datalog.TLiteral.Int
+//      case UnsignedType => Datalog.TLiteral.Int
+//      case FloatType => Datalog.TLiteral.Double
+//    }
+//  }
 
   def compileAttribute(attribute: Attribute): Datalog.Param =
-    Datalog.Param(attribute.name, compileTypeName(attribute.ty))
+    Datalog.Param(attribute.name, compileType(attribute.ty))
 
   def compileRelationDecl(decl: RelationDecl): Unit = {
     /*
@@ -251,7 +263,7 @@ class Compiler {
       case AggregatorRange(arg1, arg2, arg3) => ???
     }
     case ArgumentUnOp(op, argument) =>
-      val ty = compileTypeName(argument.getType)
+      val ty = compileType(argument.getType)
 
       def throwError =
         throw new Exception(s"Cannot compute unary operation '$op' of argument of type '${argument.getType}'!")
@@ -316,8 +328,8 @@ class Compiler {
       bound
 
     case ArgumentBinOp(op, l, r) =>
-      val lty = compileTypeName(l.getType)
-      val rty = compileTypeName(r.getType)
+      val lty = compileType(l.getType)
+      val rty = compileType(r.getType)
 
       def throwError =
         throw new Exception(s"Cannot compute binary operation '$op' on arguments of types '${l.getType}' and '${r.getType}'!")
@@ -445,7 +457,10 @@ class Compiler {
   }
 
   def compileType(ty: TypeName): Datalog.Type = ty match {
-    case DeclaredType(name) => Datalog.TData(name)
+    case DeclaredType(name) =>
+      // record => TData
+      // other =>
+      Datalog.TData(name)
     case AnyType => Datalog.TAny
     case NilType => ???
     case SymbolType => Datalog.TScalaString
@@ -517,7 +532,7 @@ class Compiler {
       val column: Int = 0
 
       Datalog.CustomAggregation(
-        compileTypeName(ty),
+        compileType(ty),
         None,
         Scala[meta.Term](agg),
         atom.name.toString,
@@ -891,9 +906,11 @@ class Compiler {
     }
 
     val module = Datalog.Module(name, Seq.empty, patterns.values.toSeq, scalaContent)
+    val transformed = PropagateUnbounded.transformModule(module)
+    println(transformed)
 
     CompiledSouffleModule(
-      module,
+      transformed,
       inputs.map(relationDecls.apply),
       outputs.map(_.toString),
       printSizes.map(relationDecls.apply),
