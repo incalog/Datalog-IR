@@ -1,5 +1,6 @@
 package inca.runtime
 
+import inca.runtime.db.DatabaseInput
 import inca.runtime.db.DatabaseInspector
 import org.eclipse.viatra.query.runtime.api.impl.BaseMatcher
 import org.eclipse.viatra.query.runtime.api.impl.BasePatternMatch
@@ -13,6 +14,16 @@ import truechange.EditScript
 
 object Query {
   trait ChangeFeed {
+    def processDatabaseInput(input: DatabaseInput): Unit = {
+      processEditScript(input.es)
+      input.insertions.foreach { case (rel, tuples) =>
+        tuples.foreach(insert(rel, _))
+      }
+      input.deletions.foreach { case (rel, tuples) =>
+        tuples.foreach(delete(rel, _))
+      }
+    }
+
     def processEditScript(edits: EditScript): Unit
     def insert(relName: String, tuple: Tuple): Unit
     def delete(relName: String, tuple: Tuple): Unit

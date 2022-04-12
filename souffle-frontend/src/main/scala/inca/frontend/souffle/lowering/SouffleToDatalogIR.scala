@@ -6,6 +6,7 @@ import inca.backend.ir.Datalog.{Name => _, _}
 import inca.backend.optimize.EliminateAliases
 import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.souffle.compiler.CompiledSouffleModule
+import inca.frontend.souffle.compiler.SouffleOptions
 import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.Syntax.{Type => _, _}
 import inca.frontend.souffle.Util.cleanSouffleName
@@ -19,7 +20,7 @@ import scala.meta.{Input => _, Name => _, Term => _, Type => _, _}
 import truechange.JavaLitType
 import truechange.LitType
 
-class SouffleToDatalogIR {
+class SouffleToDatalogIR(useEditScriptForInput: Boolean = false) {
 
   private val patterns: mutable.SeqMap[String, Pattern] = mutable.SeqMap()
 
@@ -32,6 +33,12 @@ class SouffleToDatalogIR {
   val componentDefinitions: mutable.Map[Name, ComponentDefinition] = mutable.Map()
 
   def compile(name: String, souffle: SouffleModule): CompiledSouffleModule = {
+    souffle.contents.foreach {
+      case in: Input =>
+        inputs(in.rule) = in
+      case _ => // do nothing
+    }
+
     souffle.contents.foreach(compile(_, ""))
 
     val module = Module(name, Seq(), patterns.values.toSeq, Seq())
@@ -42,7 +49,8 @@ class SouffleToDatalogIR {
       }
     }
 
-    val lang = new DataModel(Set(), MultiDict(), Map(), genLitLinks)
+    val lang =
+      new DataModel(Set(), MultiDict(), Map(), if (useEditScriptForInput) genLitLinks else Map())
 
     val moduleWithoutAliases = EliminateAliases.optimizer(lang).optimizeModule(moduleWithUnbounded)
 
@@ -52,7 +60,7 @@ class SouffleToDatalogIR {
       inputs.map { case (name, input) => name.name -> (decls(input.rule), input) }.toMap,
       printSizes.toSeq,
       lang,
-      ConstraintOptions()
+      SouffleOptions()
     )
   }
 
@@ -71,7 +79,10 @@ class SouffleToDatalogIR {
     case s @ RuleSignature(name, parameters, _) =>
       val patName = funPrefix + cleanSouffleName(name)
       val params = parameters.zipWithIndex.map { case (p, ix) =>
-        Param(cleanSouffleName(p.name), compile(p.typ))
+        val typ =
+          if (!useEditScriptForInput && inputs.contains(name)) compileToScalaType(p.typ)
+          else compile(p.typ)
+        Param(cleanSouffleName(p.name), typ)
       }
       val fun = Pattern(None, patName, params, Seq())
         .addHint(SourceConstruct.from(s))
@@ -81,7 +92,6 @@ class SouffleToDatalogIR {
       }
       patterns += (funPrefix + name) -> fun
       decls += name -> s
-
     case ruleDef @ RuleDefinition(heads, rulebody) =>
       for (head @ RuleHead(name, args) <- heads) {
         val pat = patterns.getOrElse(
@@ -118,24 +128,36 @@ class SouffleToDatalogIR {
     case TypeDeclaration(name, superType) => // do nothing
     case in @ Input(rel, filename, delimiter) =>
       val decl = decls(rel)
-      inputs(rel) = in
       // generate pattern that enumerates all node instances of AST node class
       val pat = patterns.getOrElse(
         rel.name,
         throw new IllegalArgumentException("Rule signature has to come before input declaration")
       )
-      val body = Body(
-        HasType(Var("node"), TNode(rel.name)) +:
-          pat.params.zip(decl.parameters).map { case (param, link) =>
-            Path(
-              Var("node"),
-              TNode(rel.name),
-              NamedLink(TNode(rel.name), cleanSouffleName(link.name)),
-              Var(param.name),
-              param.typ
+      val body =
+        if (useEditScriptForInput) {
+          Body(
+            HasType(Var("node"), TNode(rel.name)) +:
+              pat.params.zip(decl.parameters).map { case (param, link) =>
+                Path(
+                  Var("node"),
+                  TNode(rel.name),
+                  NamedLink(TNode(rel.name), cleanSouffleName(link.name)),
+                  Var(param.name),
+                  param.typ
+                )
+              }
+          ).addHint(SourceConstruct.from(in))
+        } else {
+          Body(
+            Seq(
+              ExtensionalCall(
+                SouffleToDatalogIR.ExtensionalCallPrefix + rel.name,
+                pat.params.map(p => Var(p.name)),
+                neg = false
+              )
             )
-          }
-      ).addHint(SourceConstruct.from(in))
+          ).addHint(SourceConstruct.from(in))
+        }
       patterns(rel.name) = Pattern(pat.vis, pat.name, pat.params, Seq(body)).withHints(pat)
 
     case Output(rule) => // do nothing
@@ -149,6 +171,14 @@ class SouffleToDatalogIR {
     case NumberType => TLiteral.Int
     case UnsignedType => TLiteral.Long
     case FloatType => TLiteral.Double
+  }
+
+  def compileToScalaType(typ: Syntax.Type): Type = typ match {
+    case DeclaredType(_) => TScalaString
+    case SymbolType => TScalaString
+    case NumberType => TScalaInt
+    case UnsignedType => TScalaLong
+    case FloatType => TScalaDouble
   }
 
   def getJavaClassForType(typ: Syntax.Type): Class[_] = typ match {
@@ -253,4 +283,8 @@ class SouffleToDatalogIR {
         link -> JavaLitType(getJavaClassForType(param.typ))
       }
     }.toMap
+}
+
+object SouffleToDatalogIR {
+  val ExtensionalCallPrefix: String = "ext_"
 }

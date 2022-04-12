@@ -86,6 +86,7 @@ trait TrackUnbounded {
   def transformAtom(atom: Atom, seen: Set[Term])(implicit pats: PatEnv): Set[Term] = atom match {
     case c: Compare => transformCompare(c, seen)
     case c: Call => transformCall(c, seen)
+    case c: ExtensionalCall => transformExtensionalCall(c, seen)
     case ht: HasType => transformHasType(ht, seen)
     case nht: NotHasType => transformNotHasType(nht, seen)
     case p: Path => transformPath(p, seen)
@@ -100,6 +101,7 @@ trait TrackUnbounded {
     seen ++ rhsUnbounded ++ lhsUnbounded
   }
   def transformCall(call: Call, seen: Set[Term])(implicit pats: PatEnv): Set[Term] = Set()
+  def transformExtensionalCall(c: ExtensionalCall, seen: Set[Term]): Set[Term] = Set()
   def transformHasType(hasType: HasType, seen: Set[Term])(implicit pats: PatEnv): Set[Term] = Set()
   def transformNotHasType(
       notHasType: NotHasType,

@@ -7,7 +7,7 @@ import inca.compiler.source.PaddedRegion
 import inca.compiler.source.SourceLocation
 import inca.compiler.source.SourceLocationList
 import inca.compiler.source.SourceObject
-import inca.debugger.table.Table
+import inca.debugger.table.ImmutableTable
 import inca.debugger.AfterList
 import inca.debugger.AtListElem
 import inca.debugger.AtomPoint
@@ -53,7 +53,7 @@ case class InRulePoint(
 class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
   super.initialize(compiled)
 
-  override def entry(name: Datalog.Name, bindings: Table[Value]): Unit = {
+  override def entry(name: Datalog.Name, bindings: ImmutableTable[Value]): Unit = {
     // super.updateExtensionalData(edits)
     super.entry(name, bindings)
     soufflePoint.getOrElse(stepInto())

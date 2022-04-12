@@ -286,11 +286,12 @@ class TableOps(
     var argsTable: ImmutableTable[Value] = ImmutableTable.unit()
 
     ext.args.foreach {
-      case Datalog.Var(name) =>
+      case Datalog.Var(name) if frame.bodyTable.isBound(name) =>
         val indexCovers =
           indexedTableFactory.constructIndexCovers(frame.bodyTable, Seq(name))
         val lhsTable = frame.bodyTable.project(Seq(name), indexCovers)
         argsTable = argsTable.join(lhsTable)
+      case Datalog.Var(_) => // do nothing
       case Datalog.Constant(l) =>
         val newCol = gensym.fresh("const")
         val indexCovers = indexedTableFactory.constructIndexCovers(argsTable, Seq(newCol))

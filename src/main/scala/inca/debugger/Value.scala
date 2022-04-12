@@ -33,6 +33,7 @@ object Value {
         Ordering.String.compare(xv, yv)
       case (URIValue(xuri), URIValue(yuri)) =>
         Ordering.Int.compare(xuri.hashCode(), yuri.hashCode())
+      case (null, null) => 0
       case _ => throw new IllegalArgumentException(s"Compare on $x, $y not supported yet")
     }
 

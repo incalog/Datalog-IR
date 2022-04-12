@@ -5,7 +5,6 @@ import inca.backend.ir.Datalog.Name
 import inca.compiler.source.SourceLocation
 import inca.compiler.source.SourceLocation.NoSourceLocation
 import inca.compiler.CompiledModule
-import inca.compiler.Options
 import inca.frontend.souffle.Syntax.Input
 import inca.frontend.souffle.Syntax.PrintSize
 import inca.frontend.souffle.Syntax.RuleSignature
@@ -19,7 +18,7 @@ case class CompiledSouffleModule(
     inputs: Map[String, (RuleSignature, Input)],
     printSizes: Seq[PrintSize],
     dataModel: DataModel,
-    options: Options)
+    options: SouffleOptions)
     extends CompiledModule {
   override def name: Name = ir.name
 

@@ -2,6 +2,7 @@ package inca.frontend.souffle.lowering
 
 import inca.compiler.source.SourceString
 import inca.compiler.Options
+import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.frontend.souffle.parser.Parser
 import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.Syntax.Name
@@ -10,7 +11,7 @@ import inca.runtime.context.QueryScope
 import inca.util.matchers.IncaGPMatchers
 import org.scalatest.flatspec.AnyFlatSpec
 
-class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaGPMatchers {
+class TestSouffleToIncaCompilerCat extends AnyFlatSpec with IncaGPMatchers {
 
   val catProgram: String =
     """
@@ -37,7 +38,7 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaGPMatchers {
       |  ?descriptor = cat(?returnType, cat("(", cat(?params, ")"))).
       |""".stripMargin
 
-  lazy val compiledModule = {
+  lazy val compiledModule: CompiledSouffleModule = {
     val ast = Parser.parse(SourceString(catProgram))
     val compiler = new SouffleToDatalogIR
     compiler.compile("catanalysis", ast)
@@ -47,7 +48,7 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaGPMatchers {
   val scope: QueryScope = new QueryScope(dataModel)
   val options: Options = compiledModule.options
 
-  val _MethodSig = Syntax.RuleSignature(
+  val _MethodSig: Syntax.RuleSignature = Syntax.RuleSignature(
     Name("_Method"),
     Seq(
       Syntax.RuleParameter(Name("?method"), Syntax.SymbolType),
@@ -58,16 +59,16 @@ class TestSoufleToIncaCompilerCat extends AnyFlatSpec with IncaGPMatchers {
       Syntax.RuleParameter(Name("?jvmDescriptor"), Syntax.SymbolType),
       Syntax.RuleParameter(Name("?arity"), Syntax.NumberType)
     ),
-    false
+    output = false
   )
 
   "compiled souffle" should "derive method descriptor correctly" in {
     val superclasses =
       "<sun.security.provider.MD4: int FF(int,int,int,int,int,int)>;FF;int,int,int,int,int,int;sun.security.provider.MD4;int;(IIIIII)I;6"
-    val factsCompiler = new SouffleInputToEditscript("EMPTY")
-    val edit = factsCompiler.compile(superclasses.split("\n").iterator, _MethodSig, ";")
+    val factsCompiler = new SouffleToNamedRelations("EMPTY")
+    val input = factsCompiler.compile(superclasses.split("\n").iterator, _MethodSig, ";")
 
-    assertMatch(compiledModule.ir, "Method_Descriptor", edit) { matcher =>
+    assertMatch(compiledModule.ir, "Method_Descriptor", input) { matcher =>
       println(matcher.getAllMatches)
       assert(matcher.getAllMatches.size == 1)
     }

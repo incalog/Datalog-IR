@@ -1,31 +1,21 @@
 package inca.frontend.souffle.debugger
 
-import inca.backend.executor.DatalogExecutor
 import inca.compiler.source.Source
 import inca.compiler.source.SourceFile
 import inca.compiler.source.SourceString
-import inca.compiler.Options
-import inca.debugger.table.Table
+import inca.debugger.table.ImmutableTable
 import inca.debugger.Value
 import inca.frontend.souffle.compiler.CompiledSouffleModule
+import inca.frontend.souffle.compiler.SouffleOptions
 import inca.frontend.souffle.executor.SouffleExecutor
-import inca.frontend.souffle.lowering.SouffleInputToEditscript
 import inca.frontend.souffle.lowering.SouffleToDatalogIR
 import inca.frontend.souffle.parser.Parser
 import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.Syntax.Name
-import inca.runtime.context.DataModel
-import inca.runtime.context.QueryScope
-import inca.runtime.db.Database
-import inca.runtime.EnginePool
 import java.nio.file.Path
-import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
-import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.Assertion
-import truechange.Edit
-import truechange.EditScript
 
 class SouffleDebuggerTest extends AnyFunSuite {
 
@@ -79,7 +69,7 @@ class SouffleDebuggerTest extends AnyFunSuite {
       inputs: Map[Syntax.RuleSignature, String]
     ): SouffleDebugger = {
     val runtime = SouffleExecutor.loadAnalysis(prog)
-    runtime.execute(main, inputs, delimiter = ";", null)
+    runtime.execute(main, inputs, delimiter = ";")
 
     val debugger = new SouffleDebugger(runtime.compiled)
     debugger.setDatabaseRuntime(runtime.engine, runtime.feed)
@@ -94,7 +84,7 @@ class SouffleDebuggerTest extends AnyFunSuite {
 
   def assertExpectedResult(
       rel: String,
-      args: Table[Value],
+      args: ImmutableTable[Value],
       debugger: SouffleDebugger
     ): Assertion = {
     val derived = debugger.relation(rel, args)
@@ -114,7 +104,7 @@ class SouffleDebuggerTest extends AnyFunSuite {
           Syntax.RuleParameter(Name("?class"), Syntax.DeclaredType(Name("ClassType"))),
           Syntax.RuleParameter(Name("?superclass"), Syntax.DeclaredType(Name("ClassType")))
         ),
-        false
+        output = false
       )
 
     val debugger = initDebugger(
@@ -122,12 +112,13 @@ class SouffleDebuggerTest extends AnyFunSuite {
       "Superclass",
       Map(directsuperclassSig -> superclasses)
     )
-    debugger.entry("Superclass", Table.unit)
+    debugger.entry("Superclass", ImmutableTable.unit[Value]())
+
     while (!debugger.isFinished) {
       println(debugger.currentDebuggerInfo)
       debugger.stepInto()
     }
-    assertExpectedResult("Superclass", Table.unit, debugger)
+    assertExpectedResult("Superclass", ImmutableTable.unit[Value](), debugger)
   }
 
   test("simple edge program") {
@@ -142,16 +133,16 @@ class SouffleDebuggerTest extends AnyFunSuite {
         Syntax.RuleParameter(Syntax.Name("x"), Syntax.NumberType),
         Syntax.RuleParameter(Syntax.Name("y"), Syntax.NumberType)
       ),
-      false
+      output = false
     )
 
     val debugger = initDebugger(SourceString(pathProg), "path", Map(edgeSig -> edges))
-    debugger.entry("path", Table.unit)
+    debugger.entry("path", ImmutableTable.unit[Value]())
     while (!debugger.isFinished) {
       println(debugger.currentDebuggerInfo)
       debugger.stepInto()
     }
-    assertExpectedResult("path", Table.unit, debugger)
+    assertExpectedResult("path", ImmutableTable.unit[Value](), debugger)
   }
 
   lazy val pointsToRuntime: SouffleExecutor.Loaded = {
@@ -160,9 +151,9 @@ class SouffleDebuggerTest extends AnyFunSuite {
     val factsDir = s"$benchmarkPath/minijavac"
     val loaded = SouffleExecutor.loadAnalysis(
       SourceFile(file),
-      Options(mode = DRedReteBackendFactory.INSTANCE)
+      SouffleOptions(mode = DRedReteBackendFactory.INSTANCE, useEditScriptsForInput = false)
     )
-    val matches = loaded.execute("VarPointsTo", factsDir, null)
+    val matches = loaded.execute("VarPointsTo", factsDir)
     println(matches.size)
     loaded
   }
@@ -171,7 +162,9 @@ class SouffleDebuggerTest extends AnyFunSuite {
 
   test("var points to analysis") {
     val debugger = pointsToDebugger
-    debugger.entry("VarPointsTo", Table.unit)
+    val args = ImmutableTable.unit[Value]()
+    // val args = ImmutableTable[Value](Seq("?var"), Seq(Seq(ScalaValue("x"))))
+    debugger.entry("VarPointsTo", args)
     while (!debugger.isFinished) {
       // println(debugger.currentDebuggerInfo)
       debugger.stepInto()

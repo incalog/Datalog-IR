@@ -2,9 +2,9 @@ package inca.util.matchers
 
 import inca.backend.ir.Datalog
 import inca.compiler
+import inca.runtime.db.DatabaseInput
 import inca.runtime.EnginePool
 import inca.runtime.Query
-import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.Assertion
 import truechange.EditScript
 import truediff.Diffable
@@ -41,11 +41,38 @@ trait IncaGPMatchers extends IncaMatchers {
       throw new IllegalArgumentException(s"Pattern $patName undefined in module ${module.name}.")
     )
 
-    val feed = EnginePool.loadDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    val feed = EnginePool.loadDatabase(scope, options.mode)
     val matcher =
-      EnginePool.loadQuery(querySpec(), scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+      EnginePool.loadQuery(querySpec(), scope, options.mode)
 
     feed.processEditScript(editScript)
+
+    try {
+      asserter(matcher)
+    } finally {
+      EnginePool.disposeAllEngines()
+    }
+  }
+
+  def assertMatch(
+      module: Datalog.Module,
+      patName: String,
+      dbInput: DatabaseInput
+    )(
+      asserter: Query.Matcher => Assertion
+    ): Assertion = {
+
+    val psystem = compiler.Compiler.compileGP(module, dataModel, options).psystemModule
+    val querySpec = psystem.patterns.getOrElse(
+      patName,
+      throw new IllegalArgumentException(s"Pattern $patName undefined in module ${module.name}.")
+    )
+
+    val feed = EnginePool.loadDatabase(scope, options.mode)
+    val matcher =
+      EnginePool.loadQuery(querySpec(), scope, options.mode)
+
+    feed.processDatabaseInput(dbInput)
 
     try {
       asserter(matcher)

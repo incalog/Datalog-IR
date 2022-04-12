@@ -4,6 +4,7 @@ import inca.backend.analyze.DependencyGraph
 import inca.compiler.source.SourceFile
 import inca.frontend.souffle.lowering.SouffleInputToEditscript
 import inca.frontend.souffle.lowering.SouffleToDatalogIR
+import inca.frontend.souffle.lowering.SouffleToNamedRelations
 import inca.frontend.souffle.parser.Parser
 import inca.runtime.context.QueryScope
 import inca.runtime.EnginePool
@@ -39,7 +40,7 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
     val benchmarkPath = "souffle-frontend/benchmark"
     val file = new File(s"$benchmarkPath/self-contained.dl")
     val analysis = Parser.parse(SourceFile(file.toPath))
-    val compiler = new SouffleToDatalogIR
+    val compiler = new SouffleToDatalogIR(false)
     val compiledModule = compiler.compile("selfcontained", analysis)
     println(compiledModule.ir.pats.size)
     println(compiledModule.ir.pats.map(_.bodies.size).sum)
@@ -48,16 +49,10 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
 
     val psModule = compiledModule.psystemModule
     val startLoadFactFiles = System.currentTimeMillis()
-    val edits = compiledModule.inputs.values.flatMap { case (sig, input) =>
-      val inputCompiler = new SouffleInputToEditscript(s"$benchmarkPath/minijavac")
-      val editScript = inputCompiler.compile(input, sig)
-      editScript.edits
-    }
+    val inputCompiler = new SouffleToNamedRelations(s"$benchmarkPath/minijavac")
+    val dbInput = inputCompiler.compile(compiledModule.inputs.values.map(x => x._2 -> x._1).toMap)
     val endLoadFactFiles = System.currentTimeMillis()
     println(s"Load fact files: ${endLoadFactFiles - startLoadFactFiles}ms")
-
-    val editScript = EditScript(edits.toSeq)
-    println(editScript.size)
 
     val RUNS = 1
 
@@ -74,7 +69,7 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
         EnginePool.loadQuery(
           querySpec(),
           queryScope,
-          TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL
+          DRedReteBackendFactory.INSTANCE
         )
       }
 
@@ -84,7 +79,7 @@ class TestSouffleVarPointsTo extends AnyFlatSpec {
       var loadingTime: Long = 0
       engine.delayUpdatePropagation { () =>
         val startLoadDB = System.currentTimeMillis()
-        database.processEditScript(editScript)
+        database.processDatabaseInput(dbInput)
         val endLoadDB = System.currentTimeMillis()
         loadingTime = endLoadDB - startLoadDB
       }
