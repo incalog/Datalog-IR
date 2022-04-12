@@ -25,7 +25,7 @@ object SouffleExecutor {
 
     def printMatches(name: String): Unit = {
       val matcher = engine.getMatcher(compiled.psystemModule.patterns(name)())
-      println(s"${matcher.getAllMatches.size()} matches of $name:   ${matcher.getAllMatches}")
+//      println(s"${matcher.getAllMatches.size()} matches of $name:   ${matcher.getAllMatches}")
     }
 
     def printAllMatches(): Unit = {
@@ -54,7 +54,8 @@ object SouffleExecutor {
 
       // TODO compiled.outputs
       // val outputDirectives: Seq[String] = Seq()
-      val outputDirectives: Seq[String] = compiled.outputs
+      val outputDirectives: Seq[String] =
+        compiled.outputs.keys.toSeq
 
       var outputs: Outputs = Map()
       var sizes: Map[String, Int] = Map()
@@ -66,21 +67,23 @@ object SouffleExecutor {
         } {
           feed.insert(rel, tuple)
         }
-
-        // get sizes of relations with .printsize directive
-        compiled.printSizes.foreach { decl =>
-          val size = sizeOfRelation(decl.name)
-          sizes = sizes + (decl.name -> size)
-        }
-
-        // get relation content of relations with .output directive
-        outputs = outputDirectives.map { rel =>
-          rel -> output(rel)
-        }.toMap
       }
+
+      // get sizes of relations with .printsize directive
+      compiled.printSizes.foreach { decl =>
+        val size = sizeOfRelation(decl.name)
+        sizes = sizes + (decl.name -> size)
+      }
+
+      // get relation content of relations with .output directive
+      outputs = outputDirectives.map { rel =>
+        rel -> output(rel)
+      }.toMap
+
       sizes.foreach { case (rel, size) =>
         println(s"size of ${rel} is $size")
       }
+
       outputs
     }
   }

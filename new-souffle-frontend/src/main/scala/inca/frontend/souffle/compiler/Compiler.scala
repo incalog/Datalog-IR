@@ -20,6 +20,8 @@ class Compiler {
 
   var inputs: Seq[QualifiedName] = Seq.empty
   var outputs: Seq[QualifiedName] = Seq.empty
+  var inputDirectives: Map[String, Directive] = Map.empty
+  var outputDirectives: Map[String, Directive] = Map.empty
   var printSizes: Seq[QualifiedName] = Seq.empty
   var limitSizes: Map[QualifiedName, Int] = Map.empty
 
@@ -603,7 +605,7 @@ class Compiler {
       val column: Int = 0
 
       Datalog.CustomAggregation(
-        compileTypeName(ty),
+        compileType(ty),
         None,
         Scala[meta.Term](agg),
         atom.name.toString,
@@ -674,7 +676,7 @@ class Compiler {
       val column: Int = 0
 
       Datalog.CustomAggregation(
-        compileTypeName(ty),
+        compileType(ty),
         None,
         Scala[meta.Term](agg),
         atom.name.toString,
@@ -997,8 +999,9 @@ class Compiler {
   def compileTerm(term: Syntax.Term): Datalog.Atom = term match {
     case TermAtom(atom, isNegated) =>
       if (inputs.contains(atom.name)) {
+        // edge => ext_edge
         // extensional call
-        Datalog.ExtensionalCall(atom.name.toString, atom.args.map(compileArgument), neg = isNegated)
+        Datalog.ExtensionalCall(Compiler.EXT_PREFIX + atom.name.toString, atom.args.map(compileArgument), neg = isNegated)
       }
       else {
         // intensional call
@@ -1082,11 +1085,7 @@ class Compiler {
         directive.params.isDefinedAt("filename"),
         "Input directive has to define parameter 'filename'!")
 
-      directive.params("filename") match {
-        case DirectiveValueString(value) =>
-          assert(value.endsWith(".csv"), "Input file has to be in csv format!")
-        case _ => throw new Exception("Invalid value for parameter 'filename'!")
-      }
+      // TODO: delimiter, filename, IO=file
 
       directive.params("IO") match {
         case DirectiveValueString(value) =>
@@ -1096,6 +1095,7 @@ class Compiler {
 
       // extend list of inputs
       inputs :+= directive.qualifiedNames.head
+      inputDirectives += directive.qualifiedNames.head.toString -> directive
 
     case Syntax.DirectiveQualifierPrintsize =>
       assert(directive.qualifiedNames.length == 1, "Printsize directive must have one relation argument!")
@@ -1110,6 +1110,7 @@ class Compiler {
 
       // extend list of outputs
       outputs :+= directive.qualifiedNames.head
+      outputDirectives += directive.qualifiedNames.head.toString -> directive
 
     case Syntax.DirectiveQualifierLimitsize =>
       assert(directive.qualifiedNames.length == 1, "Limitsize directive must have one relation argument!")
@@ -1153,15 +1154,18 @@ class Compiler {
 
     val module = Datalog.Module(name, Seq.empty, patterns.values.toSeq, scalaContent)
     val transformed = PropagateUnbounded.transformModule(module)
-    println(transformed)
 
     CompiledSouffleModule(
       transformed,
-      inputs.map(relationDecls.apply),
-      outputs.map(_.toString),
+      inputs.map(name => name.toString -> (relationDecls(name), inputDirectives(name.toString))).toMap,
+      outputs.map(name => name.toString -> (relationDecls(name), outputDirectives(name.toString))).toMap,
       printSizes.map(relationDecls.apply),
       new DataModel(),
       ConstraintOptions()
     )
   }
+}
+
+object Compiler {
+  val EXT_PREFIX: String = "ext_"
 }

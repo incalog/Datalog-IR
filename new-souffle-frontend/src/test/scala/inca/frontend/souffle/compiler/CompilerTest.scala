@@ -258,7 +258,6 @@ class CompilerTest extends AnyFunSuite {
     val loaded = SouffleExecutor.loadFunction(prog)
     val outputs = loaded.execute("")
 
-    println(loaded.compiled.psystemSource)
-//    println(outputs)
+    println(outputs)
   }
 }

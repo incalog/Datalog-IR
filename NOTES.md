@@ -154,8 +154,12 @@ Pattern(vis, name, params: Seq[Param], bodies: Seq[Body])
 - executing?
 - collecting inputs/outputs
 - field 'scalaContent' in Datalog.Module: define global variables there?
-- Aggregator: min x+y : { ... }
+- Aggregator: min x+y : { A(x), B(y) }
 - Argument: nil
+
+- do not compile autoinc
+- A(x as number)
+  asInstanceOf[Double]
 
 ## TODO: Compiler(Easy)
 
