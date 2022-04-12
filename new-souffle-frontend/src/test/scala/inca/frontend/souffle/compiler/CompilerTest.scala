@@ -188,11 +188,37 @@ class CompilerTest extends AnyFunSuite {
 
     c.compileRelationDecl(RelationDecl("A", Seq(Attribute("x", NumberType))))
     c.compileRelationDecl(RelationDecl("B", Seq(Attribute("x", NumberType))))
+    c.compileRelationDecl(RelationDecl("C", Seq(Attribute("x", NumberType))))
 
-    val compiled = c.compileConstraint(ConstraintCmp(
+    val compiledMax = c.compileConstraint(ConstraintCmp(
+      ConstraintCmpOp.Eq,
+      ArgumentVariable("y"),
+      ArgumentAggregator(AggregatorMax(
+        ArgumentVariable("x"),
+        AggregatorConditionDisjunction(TermDisjunction(Seq(TermConjunction(Seq(
+          TermAtom(Atom("A", Seq(ArgumentVariable("x")))),
+          TermAtom(Atom("B", Seq(ArgumentVariable("x")))),
+          TermAtom(Atom("C", Seq(ArgumentVariable("x")))),
+        )))))
+      )))
+    )
+
+    val compiledMin = c.compileConstraint(ConstraintCmp(
       ConstraintCmpOp.Eq,
       ArgumentVariable("y"),
       ArgumentAggregator(AggregatorMin(
+        ArgumentVariable("x"),
+        AggregatorConditionDisjunction(TermDisjunction(Seq(TermConjunction(Seq(
+          TermAtom(Atom("A", Seq(ArgumentVariable("x")))),
+          TermAtom(Atom("B", Seq(ArgumentVariable("x")))),
+        )))))
+      )))
+    )
+
+    val compiledSum = c.compileConstraint(ConstraintCmp(
+      ConstraintCmpOp.Eq,
+      ArgumentVariable("y"),
+      ArgumentAggregator(AggregatorSum(
         ArgumentVariable("x"),
         AggregatorConditionDisjunction(TermDisjunction(Seq(TermConjunction(Seq(
           TermAtom(Atom("A", Seq(ArgumentVariable("x")))),
@@ -207,8 +233,12 @@ class CompilerTest extends AnyFunSuite {
     c.relationDecls.values.foreach(PrettyPrinter.print)
     c.patterns.values.foreach(PrettyPrinter.print)
 
-    println(compiled)
-    PrettyPrinter.print(compiled)
+    println(compiledMax)
+    PrettyPrinter.print(compiledMax)
+    println(compiledMin)
+    PrettyPrinter.print(compiledMin)
+    println(compiledSum)
+    PrettyPrinter.print(compiledSum)
   }
 
   test("souffle executor example") {
