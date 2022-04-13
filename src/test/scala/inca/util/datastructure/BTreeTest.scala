@@ -189,4 +189,21 @@ class BTreeTest extends AnyFunSuite {
     assertResult(Seq())(singleNodeSingleValueTree.lexSearch(3, 10))
   }
 
+  test("bulkloading single node") {
+    val elements = Seq(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+    val tree = BTree.bulkLoad[Int](elements)
+    assertResult(elements)(tree.entries)
+  }
+
+  test("bulkloading two levels nodes") {
+    val elements = Seq(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    val tree = BTree.bulkLoad[Int](elements, 2)
+    assertResult(elements)(tree.entries)
+  }
+
+  test("bulkloading three levels nodes") {
+    val elements = Seq(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21)
+    val tree = BTree.bulkLoad[Int](elements, 2)
+    assertResult(elements)(tree.entries)
+  }
 }

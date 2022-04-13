@@ -97,6 +97,14 @@ class ImmutableBTreeTable[V: ClassTag](
     cover -> BTree.empty[Tuple](minDegree)
   }.toMap
 
+  private[ImmutableBTreeTable] def bulkLoad(entries: Seq[Tuple]): Unit = {
+    indices = indexCovers.map { cover =>
+      val indexOrder = cover.toIndexOrder(cols)
+      implicit val tupleOrdering: Ordering[Tuple] = indexOrder.tupleOrdering
+      cover -> BTree(entries.distinct.sorted)
+    }.toMap
+  }
+
   override def columns: Seq[String] = cols
   override def isBound(column: String): Boolean = cols.contains(column)
 
@@ -357,14 +365,7 @@ object ImmutableBTreeTable {
       if (indexCovers.isEmpty) Set(IndexCover(cols))
       else indexCovers
     val table = new ImmutableBTreeTable[V](cols, _indexCovers, minDegree)
-
-    table.indices.foreach { case (indexCover, tree) =>
-      val indexOrder = indexCover.toIndexOrder(cols)
-      // sorting the entries should make for most efficient insertion
-      implicit val tupleOrd: Ordering[Seq[V]] = indexOrder.tupleOrdering
-      val sortedEntries = entries.sorted
-      sortedEntries.foreach(tree.insert)
-    }
+    table.bulkLoad(entries)
     table
   }
 }

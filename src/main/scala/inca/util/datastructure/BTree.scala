@@ -59,10 +59,56 @@ object BTree {
       minDegree: Int = 256
     )(implicit ord: Ordering[T]
     ): BTree[T] = {
+    bulkLoad(entries.distinct.sorted, minDegree)
+  }
 
-    val tree = new BTree[T](null, minDegree)
-    entries.sorted.foreach(tree.insert)
+  // we assume sorted entries
+  def bulkLoad[T: ClassTag](
+      entries: Seq[T],
+      minDegree: Int = 256
+    )(implicit ord: Ordering[T]
+    ): BTree[T] = {
+    val tree = BTree.empty[T](minDegree)
+    if (entries.nonEmpty) {
+      val root = bulkSubtree(tree, entries, minDegree)
+      tree.root = root
+    }
     tree
+  }
+
+  private def bulkSubtree[T: ClassTag](
+      tree: BTree[T],
+      entries: Seq[T],
+      minDegree: Int = 256
+    )(implicit ord: Ordering[T]
+    ): BTreeNode[T] = {
+    val maxNumKeys = 2 * minDegree - 1
+
+    if (entries.size <= maxNumKeys) {
+      // construct leave
+      BTreeNode[T](tree, entries, Seq())
+    } else {
+      var numKeys = maxNumKeys
+      var step = (entries.size - numKeys) / (numKeys + 1)
+
+      while (numKeys > 1 && (step < maxNumKeys / 2)) {
+        numKeys -= 1
+        step = (entries.size - numKeys) / (numKeys + 1)
+      }
+
+      var currentIdx = 0
+      val keys = mutable.ListBuffer[T]()
+      val children = mutable.ListBuffer[BTreeNode[T]]()
+
+      for (_ <- 0 until numKeys) {
+        keys += entries(currentIdx + step)
+        val childrenEntries = entries.slice(currentIdx, currentIdx + step)
+        children += bulkSubtree(tree, childrenEntries, minDegree)
+        currentIdx += step + 1
+      }
+      children += bulkSubtree(tree, entries.slice(currentIdx, entries.size), minDegree)
+      BTreeNode[T](tree, keys.toSeq, children.toSeq)
+    }
   }
 
 }
