@@ -1,7 +1,7 @@
 package inca.runtime
 
 import inca.runtime.data.MockURI
-import inca.runtime.db.{DBValue, DatabaseInspector}
+import inca.runtime.db.{DBValue, DatabaseInput, DatabaseInspector}
 import org.eclipse.viatra.query.runtime.api.ViatraQueryEngine
 import org.eclipse.viatra.query.runtime.api.impl.{BaseMatcher, BasePatternMatch, BaseQuerySpecification}
 import org.eclipse.viatra.query.runtime.api.scope.QueryScope
@@ -14,9 +14,18 @@ import scala.jdk.CollectionConverters._
 
 object Query {
   trait ChangeFeed {
-    def processEditScript(edits: EditScript)
-    def insert(relName: String, tuple: Tuple)
-    def delete(relName: String, tuple: Tuple)
+    def processDatabaseInput(input: DatabaseInput): Unit = {
+      processEditScript(input.es)
+      input.insertions.foreach { case (rel, tuples) =>
+        tuples.foreach(insert(rel, _))
+      }
+      input.deletions.foreach { case (rel, tuples) =>
+        tuples.foreach(delete(rel, _))
+      }
+    }
+    def processEditScript(edits: EditScript): Unit
+    def insert(relName: String, tuple: Tuple): Unit
+    def delete(relName: String, tuple: Tuple): Unit
   }
 
   class Specification(query: PQuery) extends BaseQuerySpecification[Matcher](query) {

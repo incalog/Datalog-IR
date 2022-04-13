@@ -260,4 +260,21 @@ class CompilerTest extends AnyFunSuite {
 
     println(outputs)
   }
+
+  test("test input directive") {
+    val prog =
+      s""".decl edge(x: number, y: number)
+         |.input edge(IO=file, filename="edge.facts", delimiter=",")
+         |
+         |.decl path(x: number, y: number)
+         |.output path
+         |.printsize path
+         |path(x, y) :- edge(x, y).
+         |path(x, y) :- edge(x, z), path(z, y).
+         |""".stripMargin
+    val loaded = SouffleExecutor.loadFunction(prog)
+    val outputs = loaded.execute("new-souffle-frontend/testdata/path")
+
+    println(outputs)
+  }
 }

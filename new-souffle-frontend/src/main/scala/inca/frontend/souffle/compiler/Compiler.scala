@@ -1073,7 +1073,7 @@ class Compiler {
   def compileDirective(directive: Directive): Unit = directive.qualifier match {
     case Syntax.DirectiveQualifierInput =>
       assert(directive.qualifiedNames.length == 1, "Input directive must have one relation argument!")
-      assert(directive.params.isEmpty, "Input directives must not have any parameters!")
+      // assert(directive.params.isEmpty, "Input directives must not have any parameters!")
 
       // TODO: parse all input parameters
 
@@ -1088,7 +1088,7 @@ class Compiler {
       // TODO: delimiter, filename, IO=file
 
       directive.params("IO") match {
-        case DirectiveValueString(value) =>
+        case DirectiveValueIdent(value) =>
           assert(value == "file", "Input has to come from a file!")
         case _ => throw new Exception("Invalid value for parameter 'IO'!")
       }

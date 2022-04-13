@@ -4,9 +4,10 @@ import inca.compiler.Options
 import inca.frontend.souffle.{Parser, PrettyPrinter, Syntax}
 import inca.frontend.souffle.compiler.Compiler
 import inca.frontend.souffle.compiler.CompiledSouffleModule
+import inca.frontend.souffle.inputreader.InputToNamedRelationsReader
 import inca.runtime.{EnginePool, Query}
 import inca.runtime.context.QueryScope
-import inca.runtime.db.Database
+import inca.runtime.db.{Database, DatabaseInput}
 import inca.util.Scala.ScalaCompiler
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
@@ -48,11 +49,10 @@ object SouffleExecutor {
     type Outputs = Map[String, Results[AnyRef]]
 
     def execute(dir: String): Outputs = {
-      // TODO read inputs
-      // TODO compiled.inputs should store where all the information such as where it is stored and what delimiters are used
-      val inputRelations: Map[String, Seq[Tuple]] = Map()
+      val inputReader = new InputToNamedRelationsReader(dir)
+      val dbInput: DatabaseInput = inputReader.compile(compiled.inputs.values.toMap)
 
-      // TODO compiled.outputs
+      // TODO compiled.outputs, correctly storing outputs is your task
       // val outputDirectives: Seq[String] = Seq()
       val outputDirectives: Seq[String] =
         compiled.outputs.keys.toSeq
@@ -60,13 +60,7 @@ object SouffleExecutor {
       var outputs: Outputs = Map()
       var sizes: Map[String, Int] = Map()
       engine.delayUpdatePropagation { () =>
-        // insert tuples into named relations
-        for {
-          (rel, tuples) <- inputRelations
-          tuple <- tuples
-        } {
-          feed.insert(rel, tuple)
-        }
+        feed.processDatabaseInput(dbInput)
       }
 
       // get sizes of relations with .printsize directive
