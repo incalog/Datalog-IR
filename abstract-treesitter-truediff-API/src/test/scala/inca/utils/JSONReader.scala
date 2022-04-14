@@ -17,4 +17,11 @@ object JSONReader {
       Array[String]()
     }
   }
+
+  def getFieldChildren(nodeName: String, fieldName: String): Array[String] = {
+    val node = nodeTypeData.arr.filter { v => v("type").str == nodeName }
+    val nodeInfo = node(0).obj
+    val fieldChildren = nodeInfo("fields").obj(fieldName)("types").arr.toArray
+    fieldChildren.map { entry => entry.obj("type").str }
+  }
 }

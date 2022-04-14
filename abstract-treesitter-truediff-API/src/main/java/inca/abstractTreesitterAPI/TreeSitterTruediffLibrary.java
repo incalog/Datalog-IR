@@ -3,6 +3,7 @@ package inca.abstractTreesitterAPI;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.Pointer;
+import com.sun.jna.ptr.ShortByReference;
 import inca.abstractTreesitterAPI.editscriptMappings.EditScript;
 import inca.abstractTreesitterAPI.treesitterMappings.*;
 import inca.abstractTreesitterAPI.util.FILE;

@@ -40,6 +40,26 @@ public class SugaredEdit extends Structure {
         public DetachUnload detach_unload;
     }
 
+    public int getFieldLink() {
+        switch (edit_tag) {
+            case EditTag.ATTACH -> {
+                return this.sugar_edit.attach.is_field == 1 ? this.sugar_edit.attach.field_link.field_id : this.sugar_edit.attach.field_link.link;
+            }
+            case EditTag.DETACH -> {
+                return this.sugar_edit.detach.is_field == 1 ? this.sugar_edit.detach.field_link.field_id : this.sugar_edit.detach.field_link.link;
+            }
+            case EditTag.LOAD_ATTACH -> {
+                return this.sugar_edit.load_attach.is_field == 1 ? this.sugar_edit.load_attach.field_link.field_id : this.sugar_edit.load_attach.field_link.link;
+            }
+            case EditTag.DETACH_UNLOAD -> {
+                return this.sugar_edit.detach_unload.is_field == 1 ? this.sugar_edit.detach_unload.field_link.field_id : this.sugar_edit.detach_unload.field_link.link;
+            }
+            default -> {
+            }
+        }
+        return -1;
+    }
+
     public short getTag() {
         switch (edit_tag) {
             case EditTag.ATTACH -> {

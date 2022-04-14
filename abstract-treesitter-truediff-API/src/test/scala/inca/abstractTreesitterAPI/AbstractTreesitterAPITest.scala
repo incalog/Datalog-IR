@@ -1,21 +1,36 @@
 package inca.abstractTreesitterAPI
 
+import com.sun.jna.Pointer
 import inca.abstractTreesitterAPI.editscriptMappings.{ChildPrototype, EditScript, EditTag, SugaredEdit}
 import inca.abstractTreesitterAPI.treesitterMappings.{TSDiffResult, TSNode}
 import inca.abstractTreesitterAPI.util.{CLibrary, FILE}
 import inca.codeExamples.JavaCodeExamples._
-import inca.treesitterLanguage.JavaTreeSitter.{createDiffResult, freeResources, lang, litMap}
-import inca.utils.JSONReader.getFieldEntries
+import inca.treesitterLanguage.JavaTreeSitter.{createDiffResult, freeResources, lang, litMap, parser}
+import inca.utils.JSONReader.{getFieldChildren, getFieldEntries}
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.funsuite.AnyFunSuite
 
-class AbstractTreesitterAPITest extends AnyFunSuite {
+class AbstractTreesitterAPITest extends AnyFunSuite with BeforeAndAfterAll {
 
-  def correctChildrenFields(edit: SugaredEdit): Boolean = {
+  override protected def afterAll(): Unit = {
+    TreeSitterTruediffLibrary.lib.ts_parser_delete(parser)
+    TreeSitterTruediffLibrary.lib.ts_literal_map_destroy(litMap)
+  }
+
+  def checkChildSymbol(editArray: Seq[SugaredEdit], childId: Pointer): String = {
+    val childEdit: Option[SugaredEdit] = editArray.find { edit => edit.getId == childId.toString }
+    childEdit match {
+      case Some(value) => TreeSitterTruediffLibrary.lib.ts_language_symbol_name(lang, value.getTag)
+      case None => throw new NoSuchElementException(s"No such node id exists: ${childId.toString}.")
+    }
+  }
+
+  def correctChildrenFields(edit: SugaredEdit, editArray: Seq[SugaredEdit]): Boolean = {
     edit.edit_tag match {
       case EditTag.ATTACH => true
       case EditTag.DETACH => true
       case EditTag.UNLOAD =>
-        val nodeFields: Array[String] = getFieldEntries(TreeSitterTruediffLibrary.lib.ts_language_symbol_name(lang, edit.sugar_edit.unload.tag))
+        val nodeFields: Array[String] = getFieldEntries(TreeSitterTruediffLibrary.lib.ts_language_symbol_name(lang, edit.getTag))
         val unloadKids: Array[ChildPrototype] = {
           if (edit.sugar_edit.unload.kids.size == 0) {
             Array[ChildPrototype]()
@@ -24,6 +39,16 @@ class AbstractTreesitterAPITest extends AnyFunSuite {
             unloadChild.toArray(edit.sugar_edit.unload.kids.size).asInstanceOf[Array[ChildPrototype]]
           }
         }
+//        unloadKids.forall { child =>
+//          if (child.is_field == 1) {
+//            val tempEditArray: Seq[SugaredEdit] = editArray.filter { edits => edits.getId != edit.getId }
+//            val childSymbol: String = checkChildSymbol(tempEditArray, child.child_id)
+//            val fieldChildren: Array[String] = getFieldChildren(TreeSitterTruediffLibrary.lib.ts_language_symbol_name(lang, edit.getTag), TreeSitterTruediffLibrary.lib.ts_language_field_name_for_id(lang, child.child_name.field_id))
+//            fieldChildren.contains(childSymbol)
+//          } else {
+//            true
+//          }
+//        }
         unloadKids.forall { child =>
           if (child.is_field == 1) {
             nodeFields.contains(TreeSitterTruediffLibrary.lib.ts_language_field_name_for_id(lang, child.child_name.field_id))
@@ -35,9 +60,21 @@ class AbstractTreesitterAPITest extends AnyFunSuite {
         if (edit.sugar_edit.load.is_leaf == 1 || edit.sugar_edit.load.kids.size == 0) {
           true
         } else {
-          val nodeFields: Array[String] = getFieldEntries(TreeSitterTruediffLibrary.lib.ts_language_symbol_name(lang, edit.sugar_edit.load.tag))
+          val nodeFields: Array[String] = getFieldEntries(TreeSitterTruediffLibrary.lib.ts_language_symbol_name(lang, edit.getTag))
           val loadChild: ChildPrototype = new ChildPrototype(edit.sugar_edit.load.kids.content)
           val loadKids: Array[ChildPrototype] = loadChild.toArray(edit.sugar_edit.load.kids.size).asInstanceOf[Array[ChildPrototype]]
+//          if (loadKids.nonEmpty) {
+//            loadKids.forall { child =>
+//              if (child.is_field == 1) {
+//                val tempEditArray: Seq[SugaredEdit] = editArray.filter { edits => edits.getId != edit.getId }
+//                val childSymbol: String = checkChildSymbol(tempEditArray, child.child_id)
+//                val fieldChildren: Array[String] = getFieldChildren(TreeSitterTruediffLibrary.lib.ts_language_symbol_name(lang, edit.getTag), TreeSitterTruediffLibrary.lib.ts_language_field_name_for_id(lang, child.child_name.field_id))
+//                fieldChildren.contains(childSymbol)
+//              } else {
+//                true
+//              }
+//            }
+//          }
           loadKids.forall { child =>
             if (child.is_field == 1) {
               nodeFields.contains(TreeSitterTruediffLibrary.lib.ts_language_field_name_for_id(lang, child.child_name.field_id))
@@ -50,9 +87,19 @@ class AbstractTreesitterAPITest extends AnyFunSuite {
         if (edit.sugar_edit.load_attach.is_leaf == 1 || edit.sugar_edit.load_attach.kids.size == 0) {
           true
         } else {
-          val nodeFields: Array[String] = getFieldEntries(TreeSitterTruediffLibrary.lib.ts_language_symbol_name(lang, edit.sugar_edit.load_attach.tag))
+          val nodeFields: Array[String] = getFieldEntries(TreeSitterTruediffLibrary.lib.ts_language_symbol_name(lang, edit.getTag))
           val loadAttachChild: ChildPrototype = new ChildPrototype(edit.sugar_edit.load_attach.kids.content)
           val loadAttachKids: Array[ChildPrototype] = loadAttachChild.toArray(edit.sugar_edit.load_attach.kids.size).asInstanceOf[Array[ChildPrototype]]
+//          loadAttachKids.forall { child =>
+//            if (child.is_field == 1) {
+//              val tempEditArray: Seq[SugaredEdit] = editArray.filter { edits => edits.getId != edit.getId }
+//              val childSymbol: String = checkChildSymbol(tempEditArray, child.child_id)
+//              val fieldChildren: Array[String] = getFieldChildren(TreeSitterTruediffLibrary.lib.ts_language_symbol_name(lang, edit.getTag), TreeSitterTruediffLibrary.lib.ts_language_field_name_for_id(lang, child.child_name.field_id))
+//              fieldChildren.contains(childSymbol)
+//            } else {
+//              true
+//            }
+//          }
           loadAttachKids.forall { child =>
             if (child.is_field == 1) {
               nodeFields.contains(TreeSitterTruediffLibrary.lib.ts_language_field_name_for_id(lang, child.child_name.field_id))
@@ -62,7 +109,7 @@ class AbstractTreesitterAPITest extends AnyFunSuite {
           }
         }
       case EditTag.DETACH_UNLOAD =>
-        val nodeFields: Array[String] = getFieldEntries(TreeSitterTruediffLibrary.lib.ts_language_symbol_name(lang, edit.sugar_edit.detach_unload.tag))
+        val nodeFields: Array[String] = getFieldEntries(TreeSitterTruediffLibrary.lib.ts_language_symbol_name(lang, edit.getTag))
         val detachUnloadKids: Array[ChildPrototype] = {
           if (edit.sugar_edit.detach_unload.kids.size == 0) {
             Array[ChildPrototype]()
@@ -71,6 +118,16 @@ class AbstractTreesitterAPITest extends AnyFunSuite {
             detachUnloadChild.toArray(edit.sugar_edit.detach_unload.kids.size).asInstanceOf[Array[ChildPrototype]]
           }
         }
+//        detachUnloadKids.forall { child =>
+//          if (child.is_field == 1) {
+//            val tempEditArray: Seq[SugaredEdit] = editArray.filter { edits => edits.getId != edit.getId }
+//            val childSymbol: String = checkChildSymbol(tempEditArray, child.child_id)
+//            val fieldChildren: Array[String] = getFieldChildren(TreeSitterTruediffLibrary.lib.ts_language_symbol_name(lang, edit.getTag), TreeSitterTruediffLibrary.lib.ts_language_field_name_for_id(lang, child.child_name.field_id))
+//            fieldChildren.contains(childSymbol)
+//          } else {
+//            true
+//          }
+//        }
         detachUnloadKids.forall { child =>
           if (child.is_field == 1) {
             nodeFields.contains(TreeSitterTruediffLibrary.lib.ts_language_field_name_for_id(lang, child.child_name.field_id))
@@ -92,7 +149,7 @@ class AbstractTreesitterAPITest extends AnyFunSuite {
         editScript.edits.content.toArray(editScript.edits.size).asInstanceOf[Array[SugaredEdit]]
       }
     }
-    assert(editArray.forall { edit => correctChildrenFields(edit) })
+    assert(editArray.forall { edit => correctChildrenFields(edit, editArray) })
   }
 
   def testEditScript(srcCode: String, destCode: String): Unit = {
@@ -103,63 +160,195 @@ class AbstractTreesitterAPITest extends AnyFunSuite {
     CLibrary.lib.fclose(file)
     testFields(diffResult.edit_script)
     TreeSitterTruediffLibrary.lib.print_edit_script(lang, diffResult.edit_script)
-    freeResources(diffResult.constructed_tree, litMap, diffResult.edit_script)
+    freeResources(diffResult.constructed_tree, diffResult.edit_script)
   }
 
-  test("Correct links and fields in annotation") {
+  test("TODO: Fix attaching of node without loading it before") {
+    testEditScript(attachWithoutLoadSrcCode, attachWithoutLoadDestCode)
+  }
+
+  test("TODO: Fix link tracking when multiple Attach and Detach operations occur in EditScript") {
+    testEditScript(incorrectLinkTrackingWithMultipleAttachAndDetachOperationsSrcCode, incorrectLinkTrackingWithMultipleAttachAndDetachOperationsDestCode)
+  }
+
+  test("Correct fields in annotation") {
     testEditScript(annotationSrcCode, annotationDestCode)
   }
 
-  test("Correct links and fields in annotation_type_declaration") {
+  test("Correct fields in annotation_type_declaration") {
     testEditScript(annotationTypeDeclarationSrcCode, annotationTypeDeclarationDestCode)
   }
 
-  test("Correct links and fields in annotation_type_element_declaration") {
+  test("Correct fields in annotation_type_element_declaration") {
     testEditScript(annotationTypeElementDeclarationSrcCode, annotationTypeElementDeclarationDestCode)
   }
 
-  test("Correct links and fields in array_access") {
+  test("Correct fields in array_access") {
     testEditScript(arrayAccessSrcCode, arrayAccessDestCode)
   }
 
-  test("Correct links and fields in array_creation_expression") {
+  test("Correct fields in array_creation_expression") {
     testEditScript(arrayCreationExpressionSrcCode, arrayCreationExpressionDestCode)
   }
 
-  test("Correct links and fields in array_type") {
+  test("Correct fields in array_type") {
     testEditScript(arrayTypeSrcCode, arrayTypeDestCode)
   }
 
-  test("Correct links and fields in assignment_expression") {
+  test("Correct fields in assignment_expression") {
     testEditScript(assignmentExpressionSrcCode, assignmentExpressionDestCode)
   }
 
-  test("Correct links and fields in binary_expression") {
+  test("Correct fields in binary_expression") {
     testEditScript(binaryExpressionSrcCode, binaryExpressionDestCode)
   }
 
-  test("Correct links and fields in cast_expression") {
+  test("Correct fields in cast_expression") {
     testEditScript(castExpressionSrcCode, castExpressionDestCode)
   }
 
-  test("Correct links and fields in catch_clause") {
+  test("Correct fields in catch_clause") {
     testEditScript(catchClauseSrcCode, catchClauseDestCode)
   }
 
-  test("Correct links and fields in catch_formal_parameter") {
+  test("Correct fields in catch_formal_parameter") {
     testEditScript(catchFormalParameterSrcCode, catchFormalParameterDestCode)
   }
 
-  test("Correct links and fields in class_declaration") {
+  test("Correct fields in class_declaration") {
     testEditScript(classDeclarationSrcCode, classDeclarationDestCode)
   }
 
-  test("Correct links and fields in constant_declaration") {
+  test("Correct fields in constant_declaration") {
     testEditScript(constantDeclarationSrcCode, constantDeclarationDestCode)
   }
 
-  test("Correct links and fields in constructor_declaration") {
+  test("Correct fields in constructor_declaration") {
     testEditScript(constructorDeclarationSrcCode, constructorDeclarationDestCode)
+  }
+
+  test("Correct fields in do_statement") {
+    testEditScript(doStatementSrcCode, doStatementDestCode)
+  }
+
+  test("Correct fields in element_value_pair") {
+    testEditScript(elementValuePairSrcCode, elementValuePairDestCode)
+  }
+
+  test("Correct fields in enhanced_for_statement") {
+    testEditScript(enhancedForStatementSrcCode, enhancedForStatementDestCode)
+  }
+
+  test("Correct fields in enum_constant") {
+    testEditScript(enumConstantSrcCode, enumConstantDestCode)
+  }
+
+  test("Correct fields in enum_declaration") {
+    testEditScript(enumDeclarationSrcCode, enumDeclarationDestCode)
+  }
+
+  test("Correct fields in explicit_constructor_invocation") {
+    testEditScript(explicitConstructorInvocationSrcCode, explicitConstructorInvocationDestCode)
+  }
+
+  test("Correct fields in field_access") {
+    testEditScript(fieldAccessSrcCode, fieldAccessDestCode)
+  }
+
+  test("Correct fields in field_declaration") {
+    testEditScript(fieldDeclarationSrcCode, fieldDeclarationDestCode)
+  }
+
+  test("Correct fields in for_statement") {
+    testEditScript(forStatementSrcCode, forStatementDestCode)
+  }
+
+  test("Correct fields in formal_parameter") {
+    testEditScript(formalParameterSrcCode, formalParameterDestCode)
+  }
+
+  test("Correct fields in if_statement") {
+    testEditScript(ifStatementSrcCode, ifStatementDestCode)
+  }
+
+  test("Correct fields in instanceof_expression") {
+    testEditScript(instanceofExpressionSrcCode, instanceofExpressionDestCode)
+  }
+
+  test("Correct fields in interface_declaration") {
+    testEditScript(interfaceDeclarationSrcCode, interfaceDeclarationDestCode)
+  }
+
+  test("Correct fields in lambda_expression") {
+    testEditScript(lambdaExpressionSrcCode, lambdaExpressionDestCode)
+  }
+
+  test("Correct fields in local_variable_declaration") {
+    testEditScript(localVariableDeclarationSrcCode, localVariableDeclarationDestCode)
+  }
+
+  test("Correct fields in marker_annotation") {
+    testEditScript(markerAnnotationSrcCode, markerAnnotationDestCode)
+  }
+
+  test("Correct fields in method_declaration") {
+    testEditScript(methodDeclarationSrcCode, methodDeclarationDestCode)
+  }
+
+  test("Correct fields in method_invocation") {
+    testEditScript(methodInvocationSrcCode, methodInvocationDestCode)
+  }
+
+  test("Correct fields in module_declaration") {
+    testEditScript(moduleDeclarationSrcCode, moduleDeclarationDestCode)
+  }
+
+  test("Correct fields in object_creation_expression") {
+    testEditScript(objectCreationExpressionSrcCode, objectCreationExpressionDestCode)
+  }
+
+  test("Correct fields in record_declaration") {
+    testEditScript(recordDeclarationSrcCode, recordDeclarationDestCode)
+  }
+
+  test("Correct fields in resource") {
+    testEditScript(resourceSrcCode, resourceDestCode)
+  }
+
+  test("Correct fields in scoped_identifier") {
+    testEditScript(scopedIdentifierSrcCode, scopedIdentifierDestCode)
+  }
+
+  test("Correct fields in switch_expression") {
+    testEditScript(switchExpressionSrcCode, switchExpressionDestCode)
+  }
+
+  test("Correct fields in synchronized_statement") {
+    testEditScript(synchronizedStatementSrcCode, synchronizedStatementDestCode)
+  }
+
+  test("Correct fields in ternary_expression") {
+    testEditScript(ternaryExpressionSrcCode, ternaryExpressionDestCode)
+  }
+
+  test("Correct fields in try_statement") {
+    testEditScript(tryStatementSrcCode, tryStatementDestCode)
+  }
+
+  test("Correct fields in try_with_resources_statement") {
+    testEditScript(tryWithResourcesStatementSrcCode, tryWithResourcesStatementDestCode)
+  }
+
+  test("Correct fields in unary_expression") {
+    testEditScript(unaryExpressionSrcCode, unaryExpressionDestCode)
+  }
+
+  test("Correct fields in variable_declarator") {
+    testEditScript(variableDeclaratorSrcCode, variableDeclaratorDestCode)
+  }
+
+  test("Correct fields in while_statement") {
+    testEditScript(whileStatementSrcCode, whileStatementDestCode)
   }
 
   test("No Changes") {

@@ -56,7 +56,6 @@ object JavaTreeSitter {
   TreeSitterTruediffLibrary.lib.ts_literal_map_add_unnamed_token(litMap, 43)  	// <<
   TreeSitterTruediffLibrary.lib.ts_literal_map_add_unnamed_token(litMap, 44)  	// >>
   TreeSitterTruediffLibrary.lib.ts_literal_map_add_unnamed_token(litMap, 45)  	// >>>
-  TreeSitterTruediffLibrary.lib.ts_literal_map_add_unnamed_token(litMap, 49)  	// ?
   TreeSitterTruediffLibrary.lib.ts_literal_map_add_unnamed_token(litMap, 51)  	// !
   TreeSitterTruediffLibrary.lib.ts_literal_map_add_unnamed_token(litMap, 52)  	// ~
   TreeSitterTruediffLibrary.lib.ts_literal_map_add_unnamed_token(litMap, 53)  	// ++
@@ -166,19 +165,17 @@ object JavaTreeSitter {
   TreeSitterTruediffLibrary.lib.ts_literal_map_add_unnamed_token(litMap, 245) 	//
   TreeSitterTruediffLibrary.lib.ts_literal_map_add_unnamed_token(litMap, 279) 	//
 
-  def freeResources(constructedTree: TSTree, litMap: TSLiteralMap, editScript: EditScript): Unit = {
+  def freeResources(constructedTree: TSTree, editScript: EditScript): Unit = {
     TreeSitterTruediffLibrary.lib.ts_edit_script_delete(editScript)
     TreeSitterTruediffLibrary.lib.ts_diff_heap_delete(constructedTree)
     TreeSitterTruediffLibrary.lib.ts_tree_delete(constructedTree)
-    TreeSitterTruediffLibrary.lib.ts_literal_map_destroy(litMap)
   }
 
-  def cleanup(fstTree: TSTree, sndTree: TSTree, parser: TSParser): Unit = {
+  def cleanup(fstTree: TSTree, sndTree: TSTree): Unit = {
     TreeSitterTruediffLibrary.lib.ts_diff_heap_delete(fstTree)
     TreeSitterTruediffLibrary.lib.ts_diff_heap_delete(sndTree)
     TreeSitterTruediffLibrary.lib.ts_tree_delete(fstTree)
     TreeSitterTruediffLibrary.lib.ts_tree_delete(sndTree)
-    TreeSitterTruediffLibrary.lib.ts_parser_delete(parser)
   }
 
   def createDiffResult(srcCode: String, destCode: String): TSDiffResult = {
@@ -196,7 +193,7 @@ object JavaTreeSitter {
     val sndRoot: TSNode.ByValue = TreeSitterTruediffLibrary.lib.ts_tree_root_node(sndTree)
     val constructedRoot: TSNode.ByValue = TreeSitterTruediffLibrary.lib.ts_tree_root_node(diffResult.constructed_tree)
     assert(!TreeSitterTruediffLibrary.lib.ts_reconstruction_test(sndRoot, constructedRoot))
-    cleanup(fstTree, sndTree, parser)
+    cleanup(fstTree, sndTree)
 
     diffResult
   }
