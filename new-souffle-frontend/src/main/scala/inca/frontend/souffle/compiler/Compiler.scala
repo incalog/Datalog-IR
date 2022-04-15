@@ -26,9 +26,8 @@ class Compiler {
   var limitSizes: Map[QualifiedName, Int] = Map.empty
 
   // bound computed argument
-  var boundComputedArguments: Map[Datalog.Var, Datalog.Computed] = Map.empty
+  var boundArguments: Seq[Datalog.Computed] = Seq.empty
   var boundArgumentList: Map[Datalog.Var, Seq[Datalog.Term]] = Map.empty
-  var boundFunctorCall: Map[Datalog.Var, Datalog.Computed] = Map.empty
 
   case class IntrinsicFunctor(name: String, argTypes: Seq[TypeName], returnType: TypeName)
 
@@ -175,9 +174,12 @@ class Compiler {
         Datalog.Eq(Datalog.Var(attr.name), compileConstant(arg.value))
     }
 
-    val terms = rule.conjunction.terms.map(compileTerm)
+    val terms: Seq[Datalog.Atom] = rule.conjunction.terms.map(compileTerm)
 
-    val body = Datalog.Body(constantConstraints ++ terms)
+    val body = Datalog.Body(constantConstraints ++ terms ++ boundArguments)
+
+    // clear list of bound helper variables
+    boundArguments = Seq.empty
 
     // update pattern with new body
     val pattern = patterns(relationDecl.name)
@@ -207,6 +209,8 @@ class Compiler {
       assert(
         arguments.length == intrinsicFunctors(func).argTypes.length,
         s"Invalid number of arguments, ${intrinsicFunctors(func).argTypes.length} required.")
+
+      val argTypes = intrinsicFunctors(func).argTypes.map(compileType)
 
       val scalaFunction = func match {
         case Syntax.IntrinsicFunctorOrd => q"(x: String) => x.hashCode"
@@ -243,15 +247,15 @@ class Compiler {
 
       val bound = Datalog.Var(gensym.fresh("bound"))
 
-      boundFunctorCall +=
-        bound -> Datalog.Computed(
-          bound,
-          Datalog.Evaluation(
-            arguments.map(arg => (compileArgument(arg), compileType(arg.getType))),
-            scalaReturnType,
-            Scala[ScalaTerm.Function](scalaFunction)
-          )
+      boundArguments = boundArguments :+ Datalog.Computed(
+        bound,
+        Datalog.Evaluation(
+          arguments.map(arg => (compileArgument(arg))).zip(argTypes),
+          scalaReturnType,
+          Scala[ScalaTerm.Function](scalaFunction)
         )
+      )
+
       // return bound variable
       bound
     case ArgumentUserDefinedFunc(func, args) =>
@@ -262,7 +266,10 @@ class Compiler {
       case AggregatorMean(argument, cond) => ???
       case AggregatorSum(argument, cond) => ???
       case AggregatorCount(cond) => ???
+        // A(count : )
       case AggregatorRange(arg1, arg2, arg3) => ???
+        // A(range(0, 3, 1)) ==> A(0). A(1). A(2).
+        // A(x) :- B(range(0, 3)).
     }
     case ArgumentUnOp(op, argument) =>
       val ty = compileType(argument.getType)
@@ -317,7 +324,7 @@ class Compiler {
 
       val bound = Datalog.Var(gensym.fresh("bound"))
 
-      boundComputedArguments += bound -> Datalog.Computed(
+      boundArguments = boundArguments :+ Datalog.Computed(
         bound,
         Datalog.Evaluation(
           Seq((compileArgument(argument), ty)),
@@ -446,7 +453,7 @@ class Compiler {
 
       val bound = Datalog.Var(gensym.fresh("bound"))
 
-      boundComputedArguments += bound -> Datalog.Computed(
+      boundArguments = boundArguments :+ Datalog.Computed(
         bound,
         Datalog.Evaluation(
           Seq((compileArgument(l), lty), (compileArgument(r), rty)),
@@ -455,6 +462,7 @@ class Compiler {
         )
       )
 
+      // return bound argument
       bound
   }
 

@@ -154,16 +154,16 @@ class CompilerTest extends AnyFunSuite {
     c.compileArgument(Parser.parse(Parser.argumentAtom, "ord(\"some text\")"))
     c.compileArgument(Parser.parse(Parser.argumentAtom, "to_float(\"123\")"))
     c.compileArgument(Parser.parse(Parser.argumentAtom, "to_number(\"13\")"))
-    println(c.boundFunctorCall)
-    c.boundFunctorCall.values.map(PrettyPrinter.print)
+    println(c.boundArguments)
+    c.boundArguments.map(PrettyPrinter.print)
   }
 
   test("argument unary operation") {
     val c = new Compiler
 
     c.compileArgument(ArgumentUnOp(UnOpMinus, ArgumentConstant(ConstantNumber(42))))
-    println(c.boundComputedArguments)
-    c.boundComputedArguments.values.map(PrettyPrinter.print)
+    println(c.boundArguments)
+    c.boundArguments.map(PrettyPrinter.print)
   }
 
   test("argument binary operation") {
@@ -171,8 +171,8 @@ class CompilerTest extends AnyFunSuite {
 
     c.compileArgument(ArgumentBinOp(BinOpAdd, ArgumentConstant(ConstantNumber(42)), ArgumentConstant(ConstantNumber(21))))
 //    c.compileArgument(ArgumentBinOp(BinOpAdd, ArgumentVariable("x"), ArgumentVariable("y")))
-    println(c.boundComputedArguments)
-    c.boundComputedArguments.values.map(PrettyPrinter.print)
+    println(c.boundArguments)
+    c.boundArguments.map(PrettyPrinter.print)
   }
 
   test("argument list") {
@@ -275,6 +275,9 @@ class CompilerTest extends AnyFunSuite {
     val loaded = SouffleExecutor.loadFunction(prog)
     val outputs = loaded.execute("new-souffle-frontend/testdata/path")
 
-    println(outputs)
+    for ((k, v) <- outputs) {
+      println(s"Outputs for '$k':")
+      v.res.foreach(x => println(x.mkString(", ")))
+    }
   }
 }

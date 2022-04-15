@@ -19,7 +19,7 @@ object SouffleExecutor {
   case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledSouffleModule) {
     lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
 
-    val loadedPsystemModule: String = scalaCompiler.define {
+    lazy val loadedPsystemModule: String = scalaCompiler.define {
       import scala.meta._
       q"object O {..${compiled.psystemSource.stats}}".syntax
     }
