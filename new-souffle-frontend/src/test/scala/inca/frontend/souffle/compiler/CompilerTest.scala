@@ -335,10 +335,20 @@ class CompilerTest extends AnyFunSuite {
          | .decl B(y: unsigned)
          | B(sum x : A(x)).
          |
+         | .decl C(y: unsigned)
+         | C(count : A(_)).
+         |
+         | .decl D(y: unsigned)
+         | D(count : A(2)).
+         |
          | .output A
          | .output B
+         | .output C
+         | .output D
          | .printsize A
          | .printsize B
+         | .printsize C
+         | .printsize D
          |""".stripMargin
 
     implicit val loaded: Loaded = SouffleExecutor.loadFunction(program)
@@ -347,5 +357,7 @@ class CompilerTest extends AnyFunSuite {
     printOutputs
     assertOutput("A")(Set(1, 2, 3))
     assertOutput("B")(Set(6))
+    assertOutput("C")(Set(3))
+    assertOutput("D")(Set(1))
   }
 }

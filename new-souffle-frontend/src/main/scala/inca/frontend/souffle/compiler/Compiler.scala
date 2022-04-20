@@ -504,53 +504,33 @@ class Compiler {
   }
 
   def compileAggregation(bound: ArgumentVariable, aggregator: ArgumentAggregator): Datalog.Atom = {
-    def genAggregation(name: String, init: meta.Term, op: scala.meta.Term.Name, typ: meta.Type): meta.Term = {
-      val tyAggregation = inca.util.Scala.typeOf[Aggregation[_]]
-      val initAggregation = init"${meta.Type.Apply(tyAggregation, List(typ))}()"
+    def compileAggregatorAtom(argument: Argument, atom: Atom, name: String, op: meta.Term.Name, init: meta.Type => meta.Term): Datalog.CustomAggregation = {
+      assert(argument.isInstanceOf[ArgumentVariable], "Argument to aggregator has to be a variable!")
 
-      q"""new $initAggregation {
+      val argVar = argument.asInstanceOf[ArgumentVariable]
+      val column: Int = atom.args.indexWhere {
+        arg => arg.isInstanceOf[ArgumentVariable] && arg.asInstanceOf[ArgumentVariable].name == argVar.name
+      }
+
+      assert(column >= 0, s"Argument '${argVar.name}' has to appear in atom '$atom'!")
+
+      val ty: TypeName = relationDecls(atom.name).attributes(column).ty
+      val scalaType: meta.Type = ty.getScalaType
+
+      val tyAggregation = inca.util.Scala.typeOf[Aggregation[_]]
+      val initAggregation = init"${meta.Type.Apply(tyAggregation, List(scalaType))}()"
+
+      val agg = q"""new $initAggregation {
           override val name = $name
-          override def init: $typ = $init
-          override def join(v1: $typ, v2: $typ): $typ = v1 $op v2
+          override def init: $scalaType = ${init(scalaType)}
+          override def join(v1: $scalaType, v2: $scalaType): $scalaType = v1 $op v2
           override val isAssociative = true
           override val isCommutative = true
         }"""
-    }
-
-    def compileAggregatorMinAtom(argument: Argument, atom: Atom) = {
-      val ty: TypeName = {
-        if (argument.getType.isPrimitive) argument.getType
-        else {
-          // find attribute of relation that matches argument name
-          var attributeType: Option[TypeName] = None
-          relationDecls(atom.name).attributes.foreach {
-            case Attribute(name, ty) =>
-              if (name == argument.asInstanceOf[ArgumentVariable].name)
-                attributeType = Some(ty)
-          }
-
-          attributeType match {
-            case Some(value) => value
-            case None => throw new Exception(s"Aggregator argument '$argument' not present in relation '${atom.name}'!")
-          }
-        }
-      }
-
-      val scalaType: meta.Type = ty.getScalaType
-
-      val agg: meta.Term = genAggregation(
-        "min",
-        q"${scalaType.syntax}.MaxValue",
-        q"scala.math.min".name,
-        scalaType
-      )
-
-      // TODO ?
-      val column: Int = 0
 
       Datalog.CustomAggregation(
         compileType(ty),
-        Some("min"),
+        Some(name),
         Scala[meta.Term](agg),
         atom.name.toString,
         atom.args.map(compileArgument),
@@ -558,87 +538,14 @@ class Compiler {
       )
     }
 
-    def compileAggregatorMaxAtom(argument: Argument, atom: Atom) = {
-      val ty: TypeName = {
-        if (argument.getType.isPrimitive) argument.getType
-        else {
-          // find attribute of relation that matches argument name
-          var attributeType: Option[TypeName] = None
-          relationDecls(atom.name).attributes.foreach {
-            case Attribute(name, ty) =>
-              if (name == argument.asInstanceOf[ArgumentVariable].name)
-                attributeType = Some(ty)
-          }
+    def compileAggregatorMinAtom(argument: Argument, atom: Atom) =
+      compileAggregatorAtom(argument, atom, "min", q"scala.math.min".name, ty => q"${ty.syntax}.MaxValue")
 
-          attributeType match {
-            case Some(value) => value
-            case None => throw new Exception(s"Aggregator argument '$argument' not present in relation '${atom.name}'!")
-          }
-        }
-      }
+    def compileAggregatorMaxAtom(argument: Argument, atom: Atom) =
+      compileAggregatorAtom(argument, atom, "max", q"scala.math.max".name, ty => q"${ty.syntax}.MinValue")
 
-      val scalaType: meta.Type = ty.getScalaType
-
-      val agg: meta.Term = genAggregation(
-        "max",
-        q"${scalaType.syntax}.MinValue",
-        q"scala.math.max".name,
-        scalaType
-      )
-
-      // TODO ?
-      val column: Int = 0
-
-      Datalog.CustomAggregation(
-        compileType(ty),
-        Some("max"),
-        Scala[meta.Term](agg),
-        atom.name.toString,
-        atom.args.map(compileArgument),
-        column
-      )
-    }
-
-    def compileAggregatorSumAtom(argument: Argument, atom: Atom) = {
-      val ty: TypeName = {
-        if (argument.getType.isPrimitive) argument.getType
-        else {
-          // find attribute of relation that matches argument name
-          var attributeType: Option[TypeName] = None
-          relationDecls(atom.name).attributes.foreach {
-            case Attribute(name, ty) =>
-              if (name == argument.asInstanceOf[ArgumentVariable].name)
-                attributeType = Some(ty)
-          }
-
-          attributeType match {
-            case Some(value) => value
-            case None => throw new Exception(s"Aggregator argument '$argument' not present in relation '${atom.name}'!")
-          }
-        }
-      }
-
-      val scalaType: meta.Type = ty.getScalaType
-
-      val agg: meta.Term = genAggregation(
-        "sum",
-        q"0.asInstanceOf[$scalaType]",
-        meta.Term.Name("+"),
-        scalaType
-      )
-
-      // TODO ?
-      val column: Int = 0
-
-      Datalog.CustomAggregation(
-        compileType(ty),
-        None,
-        Scala[meta.Term](agg),
-        atom.name.toString,
-        atom.args.map(compileArgument),
-        column
-      )
-    }
+    def compileAggregatorSumAtom(argument: Argument, atom: Atom) =
+      compileAggregatorAtom(argument, atom, "sum", meta.Term.Name("+"), ty => q"0.asInstanceOf[$ty]")
 
     def collect[A](l: Seq[Option[A]]): Seq[A] =
       l.filter(_.isDefined).map(_.get)
@@ -741,6 +648,14 @@ class Compiler {
 
         case AggregatorSum(_argument, cond) => cond match {
           case AggregatorConditionAtom(atom) =>
+            assert(_argument.isInstanceOf[ArgumentVariable], "Argument to aggregator has to be a variable!")
+
+            val v = _argument.asInstanceOf[ArgumentVariable]
+            val column: Int = atom.args.indexWhere { arg =>
+              arg.isInstanceOf[ArgumentVariable] &&
+              arg.asInstanceOf[ArgumentVariable].name == v.name
+            }
+
             compileAggregatorSumAtom(_argument, atom)
 
           case AggregatorConditionDisjunction(disjunction) =>
