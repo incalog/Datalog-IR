@@ -3,6 +3,7 @@ package inca.frontend.souffle.compiler
 import inca.backend.ir.Datalog
 import inca.frontend.souffle.Syntax._
 import inca.frontend.souffle.executor.SouffleExecutor
+import inca.frontend.souffle.executor.SouffleExecutor.{Loaded, Outputs, Results}
 import inca.frontend.souffle.{Parser, PrettyPrinter, compiler}
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -14,6 +15,21 @@ class CompilerTest extends AnyFunSuite {
     catch {
       case _: AssertionError =>
       case _: Throwable => assert(0 == 1)
+    }
+  }
+
+  def assertOutput[A](relation: String, column: Int = 0)(toBe: Set[A])(implicit outputs: Outputs): Unit = {
+    assert(outputs(relation).res.map(_(column)).toSet == toBe)
+  }
+
+  def printOutputs(implicit outputs: Outputs, loaded: Loaded): Unit = {
+    for ((k, v) <- outputs) {
+      val args = loaded.compiled.ir.pats.find(_.name == k)
+        .get.params.map(PrettyPrinter.stringify).mkString(", ")
+
+      println(s"$k($args)")
+
+      v.res.foreach(x => println(x.mkString(", ")))
     }
   }
 
@@ -279,5 +295,57 @@ class CompilerTest extends AnyFunSuite {
       println(s"Outputs for '$k':")
       v.res.foreach(x => println(x.mkString(", ")))
     }
+  }
+
+  test("facts") {
+    val program =
+      s""" .decl A(x: float)
+         | A(3 + 4).
+         | A(42).
+         | A(-42).
+         |
+         | .decl B(x: float)
+         | B(range(-1, 4, 1.5)).
+         |
+         | .decl C(x: float)
+         | C(range(3, 0)).
+         |
+         | .output A
+         | .output B
+         | .output C
+         | .printsize A
+         | .printsize B
+         | .printsize C
+         |""".stripMargin
+
+    implicit val loaded: Loaded = SouffleExecutor.loadFunction(program)
+    implicit val outputs: Outputs = loaded.execute("new-souffle-frontend/testdata/path")
+
+    printOutputs
+    assertOutput("A")(Set(7, 42, -42))
+    assertOutput("B")(Set(-1, 0.5, 2, 3.5))
+    assertOutput("C")(Set(3, 2, 1))
+  }
+
+  test("aggregation") {
+    val program =
+      s""" .decl A(x: unsigned)
+         | A(1). A(2). A(3).
+         |
+         | .decl B(y: unsigned)
+         | B(sum x : A(x)).
+         |
+         | .output A
+         | .output B
+         | .printsize A
+         | .printsize B
+         |""".stripMargin
+
+    implicit val loaded: Loaded = SouffleExecutor.loadFunction(program)
+    implicit val outputs: Outputs = loaded.execute("")
+
+    printOutputs
+    assertOutput("A")(Set(1, 2, 3))
+    assertOutput("B")(Set(6))
   }
 }

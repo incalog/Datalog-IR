@@ -24,14 +24,6 @@ object PrettyPrinter {
   def stringify(e: Any): String = e match {
     case l: Iterable[Any] => l.map(stringify).mkString("\n")
 
-    case e: Expression => e match {
-      case Variable(name) => name
-      case StringValue(value) => "\"" + value + "\""
-      case NumberValue(value) => value.toString
-      case FloatValue(value) => value.toString
-      case Wildcard => "_"
-    }
-
     case e: TypeName => e match {
       case DeclaredType(name) => name
       case Syntax.AnyType => "Any"
@@ -285,7 +277,7 @@ object PrettyPrinter {
     }
 
     case e: Functor => e match {
-      case UserDefinedFunctor(name) => s"@${stringify(name)}"
+      case UserDefinedFunctor(name) => s"@$name"
       case e: IntrinsicFunctor => e match {
         case IntrinsicFunctorOrd => "ord"
         case IntrinsicFunctorToFloat => "to_float"

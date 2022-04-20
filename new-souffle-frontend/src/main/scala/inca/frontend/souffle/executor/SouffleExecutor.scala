@@ -16,6 +16,8 @@ import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 object SouffleExecutor {
+  type Outputs = Map[String, Results[AnyRef]]
+
   case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledSouffleModule) {
     lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
 
@@ -26,27 +28,31 @@ object SouffleExecutor {
 
     def printMatches(name: String): Unit = {
       val matcher = engine.getMatcher(compiled.psystemModule.patterns(name)())
-//      println(s"${matcher.getAllMatches.size()} matches of $name:   ${matcher.getAllMatches}")
+      println(s"${matcher.getAllMatches.size()} matches of $name:   ${matcher.getAllMatches}")
     }
 
     def printAllMatches(): Unit = {
       compiled.psystemModule.patterns.keys.foreach(printMatches)
     }
 
-    def output(pat: String): Results[AnyRef] = {
-      val mainSpec = compiled.psystemModule.patterns(pat)()
-      val mainMatcher = engine.getMatcher(mainSpec)
-      val outputMatches = mainMatcher.getAllMatches.asScala.map(_.toArray.toSeq).toSeq
-      new Results(outputMatches)
+    def output(pat: String): Option[Results[AnyRef]] = {
+      if (compiled.psystemModule.patterns.isDefinedAt(pat)) {
+        val mainSpec = compiled.psystemModule.patterns(pat)()
+        val mainMatcher = engine.getMatcher(mainSpec)
+        val outputMatches = mainMatcher.getAllMatches.asScala.map(_.toArray.toSeq).toSeq
+        Some(new Results(outputMatches))
+      }
+      else None
     }
 
     def sizeOfRelation(pat: String): Int = {
-      val mainSpec = compiled.psystemModule.patterns(pat)()
-      val mainMatcher = engine.getMatcher(mainSpec)
-      mainMatcher.getAllMatches.size()
+      if (compiled.psystemModule.patterns.isDefinedAt(pat)) {
+        val mainSpec = compiled.psystemModule.patterns(pat)()
+        val mainMatcher = engine.getMatcher(mainSpec)
+        mainMatcher.getAllMatches.size()
+      }
+      else -1
     }
-
-    type Outputs = Map[String, Results[AnyRef]]
 
     def execute(dir: String): Outputs = {
       val inputReader = new InputToNamedRelationsReader(dir)
@@ -70,12 +76,15 @@ object SouffleExecutor {
       }
 
       // get relation content of relations with .output directive
-      outputs = outputDirectives.map { rel =>
-        rel -> output(rel)
-      }.toMap
+      outputs =
+        outputDirectives
+          .map(ref => output(ref).map(ref -> _))
+          .filter(_.isDefined)
+          .map(_.get)
+          .toMap
 
       sizes.foreach { case (rel, size) =>
-        println(s"size of ${rel} is $size")
+        println(s"size of $rel is ${if (size >= 0) size else "undefined"}")
       }
 
       outputs

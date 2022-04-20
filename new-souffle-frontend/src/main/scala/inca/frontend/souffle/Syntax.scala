@@ -1,4 +1,5 @@
 package inca.frontend.souffle
+import scala.meta.Type
 
 object Syntax {
   // PROGRAM
@@ -17,32 +18,34 @@ object Syntax {
   sealed trait SouffleStatement
   type SouffleProgram = Seq[SouffleStatement]
 
-  // EXPRESSIONS
-
-  sealed trait Expression
-  case class Variable(name: String) extends Expression
-  case class StringValue(value: String) extends Expression
-  case class NumberValue(value: Int) extends Expression
-  case class FloatValue(value: Float) extends Expression
-  case object Wildcard extends Expression
-
   // TYPES
 
   sealed trait TypeName {
     def isPrimitive: Boolean = this.isInstanceOf[PrimitiveType]
+    def getScalaType: meta.Type = throw new Exception(s"Type '$this' does not have a corresponding scala type!")
   }
   case class DeclaredType(name: String) extends TypeName
-  case object AnyType extends TypeName
+  case object AnyType extends TypeName {
+    override def getScalaType: meta.Type = meta.Type.Name("Any")
+  }
   case object NilType extends TypeName
 
   sealed trait PrimitiveType extends TypeName
-  case object SymbolType extends PrimitiveType
-  case object NumberType extends PrimitiveType
-  case object UnsignedType extends PrimitiveType
-  case object FloatType extends PrimitiveType
+  case object SymbolType extends PrimitiveType {
+    override def getScalaType: meta.Type = meta.Type.Name("String")
+  }
+  case object NumberType extends PrimitiveType {
+    override def getScalaType: meta.Type = meta.Type.Name("Int")
+  }
+  case object UnsignedType extends PrimitiveType {
+    override def getScalaType: meta.Type = meta.Type.Name("Long")
+  }
+  case object FloatType extends PrimitiveType {
+    override def getScalaType: meta.Type = meta.Type.Name("Double")
+  }
 
   /*   "A type declaration binds a name with a new type.
-  *     The type is either a subtype, an equivalence/union type, a record type, of an ADT."
+  *     The type is either a subtype, an equivalence/union type, a record type, or an ADT."
   *
   * type_decl ::= TYPE IDENT ("<:" type_name | "=" ( type_name ( "|" type_name )* | record_list | adt_branch ( "|" adt_branch )* ))
   *
@@ -137,10 +140,6 @@ object Syntax {
 
   // disjunction ::= conjunction ( ';' conjunction )*
 
-  // A :- B, (C; D, E, (!F; !G))
-  // A :- B, C.
-  // A :- B, D.
-
   // conjunction ::=
   //    '!'* ( atom | constraint | '(' disjunction ')' )
   //        ( ',' '!'* ( atom | constraint | '(' disjunction ')' ) )*
@@ -216,13 +215,26 @@ object Syntax {
   }
 
   // constant ::= STRING | NUMBER | UNSIGNED | FLOAT
-  sealed trait Constant
-  case class ConstantString(value: String) extends Constant
-  case class ConstantNumber(value: Int) extends Constant
-  case class ConstantUnsigned(value: Int) extends Constant {
-    assert(value >= 0)
+  sealed trait Constant {
+    def getScalaType: meta.Type
+    def getScalaLit: meta.Lit
   }
-  case class ConstantFloat(value: Float) extends Constant
+  case class ConstantString(value: String) extends Constant {
+    override def getScalaType: meta.Type = meta.Type.Name("String")
+    override def getScalaLit: meta.Lit = meta.Lit.String(value)
+  }
+  case class ConstantNumber(value: Int) extends Constant{
+    override def getScalaType: meta.Type = meta.Type.Name("Int")
+    override def getScalaLit: meta.Lit = meta.Lit.Int(value)
+  }
+  case class ConstantUnsigned(value: Long) extends Constant {
+    override def getScalaType: meta.Type = meta.Type.Name("Long")
+    override def getScalaLit: meta.Lit = meta.Lit.Long(value)
+  }
+  case class ConstantFloat(value: Float) extends Constant {
+    override def getScalaType: meta.Type = meta.Type.Name("Float")
+    override def getScalaLit: meta.Lit = meta.Lit.Float(value)
+  }
 
   // argument ::=
   //      constant

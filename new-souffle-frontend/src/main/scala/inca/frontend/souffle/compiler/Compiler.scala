@@ -73,7 +73,7 @@ class Compiler {
   def compileConstant(c: Constant): Datalog.Constant = c match {
     case ConstantString(value) => Datalog.Constant(Datalog.StringLiteral(value))
     case ConstantNumber(value) => Datalog.Constant(Datalog.IntLiteral(value))
-    case ConstantUnsigned(value) => Datalog.Constant(Datalog.IntLiteral(value))
+    case ConstantUnsigned(value) => Datalog.Constant(Datalog.LongLiteral(value))
     case ConstantFloat(value) => Datalog.Constant(Datalog.DoubleLiteral(value.toDouble))
   }
 
@@ -82,9 +82,6 @@ class Compiler {
     * A(0, 1) => A(x, y) :- x = 0, y = 1
     * A(x, 1) => throw error
     * */
-
-    fact.atom.args.foreach(arg =>
-      assert(arg.isInstanceOf[ArgumentConstant], "All arguments of facts have to be constants!"))
 
     val relationDecl = relationDecls.getOrElse(
       fact.atom.name,
@@ -95,51 +92,100 @@ class Compiler {
       s"Invalid number of arguments in fact '${PrettyPrinter.stringify(fact.atom.name)}'!\n" +
         s"Expected ${relationDecl.attributes.length} argument(s), got ${fact.atom.args.length}!")
 
-    val body = Datalog.Body((relationDecl.attributes zip fact.atom.args).map {
-      case (attr, arg) =>
-        assert(
-          isSubtype(arg.getType, attr.ty),
-          s"Type '${PrettyPrinter.stringify(arg.getType)}' is not a subtype of type '${PrettyPrinter.stringify(attr.ty)}'!")
+    def throwError(arg: Argument) =
+      throw new Exception(s"Argument '$arg' is not valid in facts!")
 
-        assert(arg.isInstanceOf[ArgumentConstant], "Arguments of facts have to be constant!")
-        val argConstant = arg.asInstanceOf[ArgumentConstant]
+    val ruleTerms: Seq[Term] = (fact.atom.args zip relationDecl.attributes).map {
+      case (arg, attr) => arg match {
+        case ArgumentVariable(name) => throwError(arg)
+        case Syntax.ArgumentNil => throwError(arg)
+        case ArgumentAggregator(aggregator) if aggregator.isInstanceOf[AggregatorRange] =>
+          val range = aggregator.asInstanceOf[AggregatorRange]
 
-        val scalaType = compileType(attr.ty)
+          def throwError =
+            throw new Exception("In facts, arguments to the range aggregator have to be constant numerals.")
 
-        val scalaTerm = argConstant.value match {
-          case ConstantString(value) => meta.Lit.String(value)
-          case ConstantNumber(value) => meta.Lit.Int(value)
-          case ConstantUnsigned(value) => meta.Lit.Int(value)
-          case ConstantFloat(value) => meta.Lit.Float(value)
-        }
+          val bound1: Double = range.arg1 match {
+            case ArgumentConstant(constant) => constant match {
+              case ConstantString(_) => throwError
+              case ConstantNumber(value) => value.toDouble
+              case ConstantUnsigned(value) => value.toDouble
+              case ConstantFloat(value) => value.toDouble
+            }
+            case _ => throwError
+          }
 
-        Datalog.Computed(
-          Datalog.Var(attr.name),
-          Datalog.Evaluation(Seq(), scalaType, Scala(q"() => $scalaTerm"))
-        )
-    })
+          val bound2: Double = range.arg2 match {
+            case ArgumentConstant(constant) => constant match {
+              case ConstantString(_) => throwError
+              case ConstantNumber(value) => value.toDouble
+              case ConstantUnsigned(value) => value.toDouble
+              case ConstantFloat(value) => value.toDouble
+            }
+            case _ => throwError
+          }
 
-    // update pattern with new body
-    val pattern = patterns(relationDecl.name)
-    patterns += QualifiedName(pattern.name) -> Datalog.Pattern(
-      pattern.vis,
-      pattern.name,
-      pattern.params,
-      pattern.bodies :+ body
-    )
+          val step: Double = {
+            if (range.arg3.isDefined) {
+              range.arg3.get match {
+                case ArgumentConstant(constant) => constant match {
+                  case ConstantString(_) => throwError
+                  case ConstantNumber(value) => value.toDouble
+                  case ConstantUnsigned(value) => value.toDouble
+                  case ConstantFloat(value) => value.toDouble
+                }
+                case _ => throwError
+              }
+            }
+            else if (bound1 > bound2) 1
+            else -1
+          }
+
+          val upper = if (bound1 < bound2) bound2 else bound1 + math.abs(step)
+          val lower = if (bound1 < bound2) bound1 else bound2 + math.abs(step)
+
+          var i = lower
+
+          val terms: Seq[Term] = Iterator.continually {
+              val tmp = i
+              i += step
+              tmp
+            }
+            .takeWhile(_ < upper)
+            .toSeq
+            .map(value => TermConstraint(ConstraintCmp(
+              ConstraintCmpOp.Eq,
+              ArgumentVariable(attr.name),
+              ArgumentConstant(attr.ty match {
+                case DeclaredType(_) => throwError
+                case Syntax.AnyType => throwError
+                case Syntax.NilType => throwError
+                case primitiveType: PrimitiveType => primitiveType match {
+                  case Syntax.SymbolType => throwError
+                  case Syntax.NumberType => ConstantNumber(value.toInt)
+                  case Syntax.UnsignedType => ConstantUnsigned(value.toInt)
+                  case Syntax.FloatType => ConstantFloat(value.toFloat)
+                }
+              })
+            )))
+
+          TermDisjunction(terms)
+
+        case _ =>
+          TermConstraint(ConstraintCmp(
+            ConstraintCmpOp.Eq,
+            ArgumentVariable(attr.name),
+            arg
+          ))
+      }
+    }
+
+    // compile rule
+    compileRule(Rule(
+      Seq(Atom(relationDecl.name, relationDecl.attributes.map(attr => ArgumentVariable(attr.name)))),
+      TermDisjunction(ruleTerms)
+    ))
   }
-
-//  def compileTypeName(ty: TypeName): Datalog.Type = ty match {
-//    case DeclaredType(name) => Datalog.TData(name)
-//    case AnyType => Datalog.TAny
-//    case NilType => throw new Exception("Cannot compile nil type to datalog type!")
-//    case primitiveType: PrimitiveType => primitiveType match {
-//      case SymbolType => Datalog.TLiteral.String
-//      case NumberType => Datalog.TLiteral.Int
-//      case UnsignedType => Datalog.TLiteral.Int
-//      case FloatType => Datalog.TLiteral.Double
-//    }
-//  }
 
   def compileAttribute(attribute: Attribute): Datalog.Param =
     Datalog.Param(attribute.name, compileType(attribute.ty))
@@ -171,7 +217,7 @@ class Compiler {
 
     val constantConstraints: Seq[Datalog.Atom] = (relationDecl.attributes zip rule.head.args).collect {
       case (attr, arg: ArgumentConstant) =>
-        Datalog.Eq(Datalog.Var(attr.name), compileConstant(arg.value))
+        compileConstraint(ConstraintCmp(ConstraintCmpOp.Eq, ArgumentVariable(attr.name), ArgumentConstant(arg.value)))
     }
 
     val terms: Seq[Datalog.Atom] = rule.conjunction.terms.map(compileTerm)
@@ -352,38 +398,16 @@ class Compiler {
         case primitiveType: PrimitiveType => primitiveType match {
           case Syntax.SymbolType => throwError
           case Syntax.NumberType | Syntax.UnsignedType => op match {
-            case Syntax.BinOpAdd => Datalog.TScalaInt
-            case Syntax.BinOpMinus => Datalog.TScalaInt
-            case Syntax.BinOpMult => Datalog.TScalaInt
-            case Syntax.BinOpDiv => Datalog.TScalaInt
-            case Syntax.BinOpMod => Datalog.TScalaInt
-            case Syntax.BinOpPow => Datalog.TScalaInt
             case Syntax.BinOpLAnd => Datalog.TScalaBoolean
             case Syntax.BinOpLOr => Datalog.TScalaBoolean
             case Syntax.BinOpLXor => Datalog.TScalaBoolean
-            case Syntax.BinOpBAnd => Datalog.TScalaInt
-            case Syntax.BinOpBOr => Datalog.TScalaInt
-            case Syntax.BinOpBXor => Datalog.TScalaInt
-            case Syntax.BinOpBShl => Datalog.TScalaInt
-            case Syntax.BinOpBShr => Datalog.TScalaInt
-            case Syntax.BinOpBShrU => Datalog.TScalaInt
+            case _ => Datalog.TScalaInt
           }
           case Syntax.FloatType => op match {
-            case Syntax.BinOpAdd => Datalog.TScalaDouble
-            case Syntax.BinOpMinus => Datalog.TScalaDouble
-            case Syntax.BinOpMult => Datalog.TScalaDouble
-            case Syntax.BinOpDiv => Datalog.TScalaDouble
-            case Syntax.BinOpMod => Datalog.TScalaDouble
-            case Syntax.BinOpPow => Datalog.TScalaDouble
             case Syntax.BinOpLAnd => Datalog.TScalaBoolean
             case Syntax.BinOpLOr => Datalog.TScalaBoolean
             case Syntax.BinOpLXor => Datalog.TScalaBoolean
-            case Syntax.BinOpBAnd => Datalog.TScalaDouble
-            case Syntax.BinOpBOr => Datalog.TScalaDouble
-            case Syntax.BinOpBXor => Datalog.TScalaDouble
-            case Syntax.BinOpBShl => Datalog.TScalaDouble
-            case Syntax.BinOpBShr => Datalog.TScalaDouble
-            case Syntax.BinOpBShrU => Datalog.TScalaDouble
+            case _ => Datalog.TScalaDouble
           }
         }
       }
@@ -469,17 +493,30 @@ class Compiler {
   def compileType(ty: TypeName): Datalog.Type = ty match {
     case DeclaredType(name) =>
       // record => TData
-      // other =>
+      // other => ???
       Datalog.TData(name)
     case AnyType => Datalog.TAny
-    case NilType => ???
+    case NilType => throw new Exception("Cannot compile nil type!")
     case SymbolType => Datalog.TScalaString
     case NumberType => Datalog.TScalaInt
-    case UnsignedType => Datalog.TScalaInt
+    case UnsignedType => Datalog.TScalaLong
     case FloatType => Datalog.TScalaDouble
   }
 
   def compileAggregation(bound: ArgumentVariable, aggregator: ArgumentAggregator): Datalog.Atom = {
+    def genAggregation(name: String, init: meta.Term, op: scala.meta.Term.Name, typ: meta.Type): meta.Term = {
+      val tyAggregation = inca.util.Scala.typeOf[Aggregation[_]]
+      val initAggregation = init"${meta.Type.Apply(tyAggregation, List(typ))}()"
+
+      q"""new $initAggregation {
+          override val name = $name
+          override def init: $typ = $init
+          override def join(v1: $typ, v2: $typ): $typ = v1 $op v2
+          override val isAssociative = true
+          override val isCommutative = true
+        }"""
+    }
+
     def compileAggregatorMinAtom(argument: Argument, atom: Atom) = {
       val ty: TypeName = {
         if (argument.getType.isPrimitive) argument.getType
@@ -499,42 +536,12 @@ class Compiler {
         }
       }
 
-      val scalaType: meta.Type = ty match {
-        case DeclaredType(name) => ???
-        case Syntax.AnyType => ???
-        case Syntax.NilType => ???
-        case primitiveType: PrimitiveType => primitiveType match {
-          case Syntax.SymbolType => ???
-          case Syntax.NumberType => t"Int"
-          case Syntax.UnsignedType => t"Int"
-          case Syntax.FloatType => t"Float"
-        }
-      }
-
-      def genAggregation(name: String, init: meta.Term, op: meta.Term, typ: meta.Type): meta.Term = {
-        val tyAggregation = inca.util.Scala.typeOf[Aggregation[_]]
-        val initAggregation = init"${meta.Type.Apply(tyAggregation, List(typ))}()"
-
-        q"""
-                new $initAggregation {
-                  override val name = $name
-                  override def init: $typ = $init
-                  override def join(v1: $typ, v2: $typ): $typ = $op(v1, v2)
-                  override val isAssociative = true
-                  override val isCommutative = true
-                }"""
-      }
-
-      val init: meta.Term = scalaType match {
-        case meta.Type.Name("Int") => q"Int.MaxValue"
-        case meta.Type.Name("Float") => q"Float.MaxValue"
-        case _ => ???
-      }
+      val scalaType: meta.Type = ty.getScalaType
 
       val agg: meta.Term = genAggregation(
         "min",
-        init,
-        q"scala.math.min",
+        q"${scalaType.syntax}.MaxValue",
+        q"scala.math.min".name,
         scalaType
       )
 
@@ -543,7 +550,7 @@ class Compiler {
 
       Datalog.CustomAggregation(
         compileType(ty),
-        None,
+        Some("min"),
         Scala[meta.Term](agg),
         atom.name.toString,
         atom.args.map(compileArgument),
@@ -570,42 +577,12 @@ class Compiler {
         }
       }
 
-      val scalaType: meta.Type = ty match {
-        case DeclaredType(name) => ???
-        case Syntax.AnyType => ???
-        case Syntax.NilType => ???
-        case primitiveType: PrimitiveType => primitiveType match {
-          case Syntax.SymbolType => ???
-          case Syntax.NumberType => t"Int"
-          case Syntax.UnsignedType => t"Int"
-          case Syntax.FloatType => t"Float"
-        }
-      }
-
-      def genAggregation(name: String, init: meta.Term, op: meta.Term, typ: meta.Type): meta.Term = {
-        val tyAggregation = inca.util.Scala.typeOf[Aggregation[_]]
-        val initAggregation = init"${meta.Type.Apply(tyAggregation, List(typ))}()"
-
-        q"""
-                new $initAggregation {
-                  override val name = $name
-                  override def init: $typ = $init
-                  override def join(v1: $typ, v2: $typ): $typ = $op(v1, v2)
-                  override val isAssociative = true
-                  override val isCommutative = true
-                }"""
-      }
-
-      val init: meta.Term = scalaType match {
-        case meta.Type.Name("Int") => q"Int.MinValue"
-        case meta.Type.Name("Float") => q"Float.MinValue"
-        case _ => ???
-      }
+      val scalaType: meta.Type = ty.getScalaType
 
       val agg: meta.Term = genAggregation(
         "max",
-        init,
-        q"scala.math.max",
+        q"${scalaType.syntax}.MinValue",
+        q"scala.math.max".name,
         scalaType
       )
 
@@ -614,7 +591,7 @@ class Compiler {
 
       Datalog.CustomAggregation(
         compileType(ty),
-        None,
+        Some("max"),
         Scala[meta.Term](agg),
         atom.name.toString,
         atom.args.map(compileArgument),
@@ -641,41 +618,11 @@ class Compiler {
         }
       }
 
-      val scalaType: meta.Type = ty match {
-        case DeclaredType(name) => ???
-        case Syntax.AnyType => ???
-        case Syntax.NilType => ???
-        case primitiveType: PrimitiveType => primitiveType match {
-          case Syntax.SymbolType => ???
-          case Syntax.NumberType => t"Int"
-          case Syntax.UnsignedType => t"Int"
-          case Syntax.FloatType => t"Float"
-        }
-      }
-
-      def genAggregation(name: String, init: meta.Term, op: scala.meta.Term.Name, typ: meta.Type): meta.Term = {
-        val tyAggregation = inca.util.Scala.typeOf[Aggregation[_]]
-        val initAggregation = init"${meta.Type.Apply(tyAggregation, List(typ))}()"
-
-        q"""
-                new $initAggregation {
-                  override val name = $name
-                  override def init: $typ = $init
-                  override def join(v1: $typ, v2: $typ): $typ = v1 $op v2
-                  override val isAssociative = true
-                  override val isCommutative = true
-                }"""
-      }
-
-      val init: meta.Term = scalaType match {
-        case meta.Type.Name("Int") => q"0"
-        case meta.Type.Name("Float") => q"0f"
-        case _ => ???
-      }
+      val scalaType: meta.Type = ty.getScalaType
 
       val agg: meta.Term = genAggregation(
         "sum",
-        init,
+        q"0.asInstanceOf[$scalaType]",
         meta.Term.Name("+"),
         scalaType
       )
@@ -693,12 +640,38 @@ class Compiler {
       )
     }
 
+    def collect[A](l: Seq[Option[A]]): Seq[A] =
+      l.filter(_.isDefined).map(_.get)
+
+    def filterTerm(t: Term)(implicit argument: Argument): Option[Term] = t match {
+      case TermConjunction(terms, isNegated) =>
+        Some(TermConjunction(collect(terms.map(filterTerm)), isNegated))
+      case TermDisjunction(terms, isNegated) =>
+        Some(TermDisjunction(collect(terms.map(filterTerm)), isNegated))
+      case t@TermAtom(atom, _) =>
+        if (atom.args.contains(argument) || atom.args.exists(_.isInstanceOf[ArgumentConstant]))
+          Some(t)
+        else
+          None
+      case t@TermConstraint(constraint, _) =>
+        val keep = constraint match {
+          case ConstraintCmp(_, l, r) => l == argument || r == argument
+          case ConstraintMatch(_, arg) => argument == arg
+          case ConstraintContains(_, arg) => argument == arg
+          case Syntax.ConstraintTrue => true
+          case Syntax.ConstraintFalse => true
+        }
+
+        if (keep) Some(t)
+        else None
+    }
+
     Datalog.Computed(
       Datalog.Var(bound.name),
       aggregator.aggregator match {
-        case AggregatorMin(argument, cond) => cond match {
+        case AggregatorMin(_argument, cond) => cond match {
           case AggregatorConditionAtom(atom) =>
-            compileAggregatorMinAtom(argument, atom)
+            compileAggregatorMinAtom(_argument, atom)
 
           case AggregatorConditionDisjunction(disjunction) =>
             // 1) discard all atoms that do not contain the argument:
@@ -711,35 +684,7 @@ class Compiler {
             // rule(x) :- A(x), B(x).
             // min x : rule(x)
 
-            def collect[A](l: Seq[Option[A]]): Seq[A] =
-              l.filter(_.isDefined).map {
-                case Some(value) => value
-                case None => ???
-              }
-
-            def filterTerm(t: Term): Option[Term] = t match {
-              case TermConjunction(terms, isNegated) =>
-                Some(TermConjunction(collect(terms.map(filterTerm)), isNegated))
-              case TermDisjunction(terms, isNegated) =>
-                Some(TermDisjunction(collect(terms.map(filterTerm)), isNegated))
-              case t@TermAtom(atom, isNegated) =>
-                if (atom.args.contains(argument) || atom.args.exists(_.isInstanceOf[ArgumentConstant]))
-                  Some(t)
-                else
-                  None
-              case t@TermConstraint(constraint, isNegated) =>
-                val keep = constraint match {
-                  case ConstraintCmp(_, l, r) => l == argument || r == argument
-                  case ConstraintMatch(_, arg) => argument == arg
-                  case ConstraintContains(_, arg) => argument == arg
-                  case Syntax.ConstraintTrue => true
-                  case Syntax.ConstraintFalse => true
-                }
-
-                if (keep) Some(t)
-                else None
-            }
-
+            implicit val argument: Argument = _argument
             val filtered: Seq[Term] = collect(disjunction.terms.map(filterTerm))
 
             val ruleName: String = gensym.fresh("rule")
@@ -747,7 +692,7 @@ class Compiler {
             val ruleAtom = Atom(ruleName, freeVars.toSeq.map(ArgumentVariable.apply))
 
             // create new relation
-            // TODO: collect argument types for ne relation
+            // TODO: collect argument types for new relation
             // min x : { A(x), B(y) }
             // .decl rule(x: <type of x in relation A>)
 
@@ -766,39 +711,12 @@ class Compiler {
             compileAggregatorMinAtom(argument, ruleAtom)
         }
 
-        case AggregatorMax(argument, cond) => cond match {
+        case AggregatorMax(_argument, cond) => cond match {
           case AggregatorConditionAtom(atom) =>
-            compileAggregatorMaxAtom(argument, atom)
+            compileAggregatorMaxAtom(_argument, atom)
+
           case AggregatorConditionDisjunction(disjunction) =>
-            def collect[A](l: Seq[Option[A]]): Seq[A] =
-              l.filter(_.isDefined).map {
-                case Some(value) => value
-                case None => ???
-              }
-
-            def filterTerm(t: Term): Option[Term] = t match {
-              case TermConjunction(terms, isNegated) =>
-                Some(TermConjunction(collect(terms.map(filterTerm)), isNegated))
-              case TermDisjunction(terms, isNegated) =>
-                Some(TermDisjunction(collect(terms.map(filterTerm)), isNegated))
-              case t@TermAtom(atom, isNegated) =>
-                if (atom.args.contains(argument) || atom.args.exists(_.isInstanceOf[ArgumentConstant]))
-                  Some(t)
-                else
-                  None
-              case t@TermConstraint(constraint, isNegated) =>
-                val keep = constraint match {
-                  case ConstraintCmp(_, l, r) => l == argument || r == argument
-                  case ConstraintMatch(_, arg) => argument == arg
-                  case ConstraintContains(_, arg) => argument == arg
-                  case Syntax.ConstraintTrue => true
-                  case Syntax.ConstraintFalse => true
-                }
-
-                if (keep) Some(t)
-                else None
-            }
-
+            implicit val argument: Argument = _argument
             val filtered: Seq[Term] = collect(disjunction.terms.map(filterTerm))
 
             val ruleName: String = gensym.fresh("rule")
@@ -820,39 +738,13 @@ class Compiler {
         }
 
         case AggregatorMean(argument, cond) => ???
-        case AggregatorSum(argument, cond) => cond match {
+
+        case AggregatorSum(_argument, cond) => cond match {
           case AggregatorConditionAtom(atom) =>
-            compileAggregatorSumAtom(argument, atom)
+            compileAggregatorSumAtom(_argument, atom)
+
           case AggregatorConditionDisjunction(disjunction) =>
-            def collect[A](l: Seq[Option[A]]): Seq[A] =
-              l.filter(_.isDefined).map {
-                case Some(value) => value
-                case None => ???
-              }
-
-            def filterTerm(t: Term): Option[Term] = t match {
-              case TermConjunction(terms, isNegated) =>
-                Some(TermConjunction(collect(terms.map(filterTerm)), isNegated))
-              case TermDisjunction(terms, isNegated) =>
-                Some(TermDisjunction(collect(terms.map(filterTerm)), isNegated))
-              case t@TermAtom(atom, isNegated) =>
-                if (atom.args.contains(argument) || atom.args.exists(_.isInstanceOf[ArgumentConstant]))
-                  Some(t)
-                else
-                  None
-              case t@TermConstraint(constraint, isNegated) =>
-                val keep = constraint match {
-                  case ConstraintCmp(_, l, r) => l == argument || r == argument
-                  case ConstraintMatch(_, arg) => argument == arg
-                  case ConstraintContains(_, arg) => argument == arg
-                  case Syntax.ConstraintTrue => true
-                  case Syntax.ConstraintFalse => true
-                }
-
-                if (keep) Some(t)
-                else None
-            }
-
+            implicit val argument: Argument = _argument
             val filtered: Seq[Term] = collect(disjunction.terms.map(filterTerm))
 
             val ruleName: String = gensym.fresh("rule")
@@ -874,6 +766,7 @@ class Compiler {
         }
 
         case AggregatorRange(arg1, arg2, arg3) => ???
+
         case AggregatorCount(cond) => cond match {
           case AggregatorConditionDisjunction(disjunction) =>
             // A(a, b) :- x = count : { B(a, 0), C(b), D(b) }
@@ -915,23 +808,7 @@ class Compiler {
       val cl = compileArgument(l)
       val cr = compileArgument(r)
 
-      val scalaType = l.getType match {
-        case primitiveType: PrimitiveType => primitiveType match {
-          case SymbolType => "String"
-          case NumberType => "Int"
-          case UnsignedType => "Int"
-          case FloatType => "Double"
-        }
-        case _ => throw new Exception("Wie zur Hölle bist du hier hin gekommen??")
-      }
-
-      val f = ScalaTerm.Function(
-        List(
-          ScalaTerm.Param(List.empty, meta.Name("l"), Some(meta.Type.Name(scalaType)), None),
-          ScalaTerm.Param(List.empty, meta.Name("r"), Some(meta.Type.Name(scalaType)), None),
-        ),
-        q"l ${ScalaTerm.Name(op)} r"
-      )
+      val scalaType: meta.Type = l.getType.getScalaType
 
       // Souffle: A(x) :- x > 42.
       // Datalog: A(x) :- true = Computation(...).
@@ -940,7 +817,7 @@ class Compiler {
         Datalog.Evaluation(
           Seq((cl, compileType(l.getType)), (cr, compileType(r.getType))),
           Datalog.TScalaBoolean,
-          Scala[ScalaTerm.Function](f)
+          Scala(q"(l: $scalaType, r: $scalaType) => l ${ScalaTerm.Name(op)} r")
         )
       )
     }
@@ -968,9 +845,9 @@ class Compiler {
           Seq((cl, compileType(l.getType)), (cr, compileType(r.getType))),
           Datalog.TScalaBoolean,
           if (isNegated)
-            Scala[ScalaTerm.Function](q"(l: String, r: String) => !r.${ScalaTerm.Name(op)}(l)")
+            Scala(q"(l: String, r: String) => !r.${ScalaTerm.Name(op)}(l)")
           else
-            Scala[ScalaTerm.Function](q"(l: String, r: String) => r.${ScalaTerm.Name(op)}(l)")
+            Scala(q"(l: String, r: String) => r.${ScalaTerm.Name(op)}(l)")
         )
       )
     }
@@ -984,8 +861,20 @@ class Compiler {
         case ConstraintCmpOp.Neq => Datalog.Neq(compileArgument(l), compileArgument(r))
         case ConstraintCmpOp.Eq =>
           (l, r) match {
+            // x = count : ... or sum x : A(x) = y
             case (l: ArgumentAggregator, r: ArgumentVariable) => compileAggregation(r, l)
             case (l: ArgumentVariable, r: ArgumentAggregator) => compileAggregation(l, r)
+
+            // x = 42 or 42 = x
+            case (l: ArgumentVariable, r: ArgumentConstant) => Datalog.Computed(
+              Datalog.Var(l.name),
+              Datalog.Evaluation(Seq.empty, compileType(r.getType), Scala(q"() => ${r.value.getScalaLit}"))
+            )
+            case (l: ArgumentConstant, r: ArgumentVariable) => Datalog.Computed(
+              Datalog.Var(r.name),
+              Datalog.Evaluation(Seq.empty, compileType(l.getType), Scala(q"() => ${l.value.getScalaLit}"))
+            )
+
             case _ => Datalog.Eq(compileArgument(l), compileArgument(r))
           }
       }
@@ -1035,28 +924,30 @@ class Compiler {
     case TypeDeclSubtype(name, superType) =>
       val subtype = DeclaredType(name)
       assert(superType.isPrimitive, "Supertype has to be PrimitiveType")
-      if(subTypes.contains(subtype)) {
-        subTypes+=subtype->(subTypes(subtype)++Set(superType))
+      if (subTypes.contains(subtype)) {
+        subTypes += subtype -> (subTypes(subtype) ++ Set(superType))
       }
       else {
-        subTypes+=subtype->(Set(superType, AnyType))
+        subTypes += subtype -> Set(superType, AnyType)
       }
     case TypeDeclUnion(name, types) =>
       val ty = DeclaredType(name)
-      var primTy: TypeName = AnyType;
+      var primTy: TypeName = AnyType
+
       def checkUnionType(ty: TypeName): Boolean = {
-        if(ty.isPrimitive) {
-          if(primTy == AnyType) primTy = ty
-          else {
-            if(primTy != ty) return false
-          }
+        if (ty.isPrimitive) {
+          if (primTy == AnyType)
+            primTy = ty
+          else if (primTy != ty)
+            return false
           true
         }
-        else if(ty.isInstanceOf[DeclaredType]) {
+        else if (ty.isInstanceOf[DeclaredType]) {
           assert(unionTypes.contains(ty))
           val unionSet = unionTypes(ty)
-          for(id<-unionSet)
-            if(!checkUnionType(id)) return false
+          for (id <- unionSet)
+            if (!checkUnionType(id))
+              return false
           true
         }
         else false
@@ -1069,21 +960,21 @@ class Compiler {
 
     case TypeDeclADT(name, branches) =>
       assert(!algebraicDataTypes.contains(DeclaredType(name)))
-      for(adt<-algebraicDataTypes.values)
+
+      for (adt <- algebraicDataTypes.values)
         branches.foreach(x => adt.foreach(y => assert(y.branchId != x.branchId)))
-      algebraicDataTypes+=DeclaredType(name)->branches
-      for((br1, idx1)<-branches.zipWithIndex)
-        for((br2, idx2)<-branches.zipWithIndex){
-          if(idx1 != idx2) assert(br1.branchId != br2.branchId)
-        }
+
+      algebraicDataTypes += DeclaredType(name) -> branches
+
+      for ((br1, i1) <- branches.zipWithIndex)
+        for ((br2, i2) <- branches.zipWithIndex)
+          if (i1 != i2)
+            assert(br1.branchId != br2.branchId)
   }
 
   def compileDirective(directive: Directive): Unit = directive.qualifier match {
     case Syntax.DirectiveQualifierInput =>
       assert(directive.qualifiedNames.length == 1, "Input directive must have one relation argument!")
-      // assert(directive.params.isEmpty, "Input directives must not have any parameters!")
-
-      // TODO: parse all input parameters
 
       assert(
         directive.params.isDefinedAt("IO"),
@@ -1092,8 +983,6 @@ class Compiler {
       assert(
         directive.params.isDefinedAt("filename"),
         "Input directive has to define parameter 'filename'!")
-
-      // TODO: delimiter, filename, IO=file
 
       directive.params("IO") match {
         case DirectiveValueIdent(value) =>

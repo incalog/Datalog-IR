@@ -33,7 +33,7 @@ object Parser {
       }
 
     val string: P[String] = quotes *> P.until0(quotes) <* quotes
-    val unsigned: P[Int] = Numbers.nonNegativeIntString.map(_.toInt)
+    val unsigned: P[Long] = Numbers.nonNegativeIntString.map(_.toLong)
     val number: P[Int] = Numbers.signedIntString.map(_.toInt)
 
     val sign: P[String] = P.charIn("+-").map(_.toString)
@@ -126,13 +126,6 @@ object Parser {
     typeDeclADT.backtrack |
     typeDeclUnion
 
-  // EXPRESSIONS
-
-  val variable: P[Expression] =
-    Literals.string.map(StringValue.apply) |
-    Literals.number.map(NumberValue.apply) |
-    Literals.float.map(FloatValue.apply)
-
   // AGGREGATOR
 
   val aggregatorCondition: P[AggregatorCondition] =
@@ -161,7 +154,7 @@ object Parser {
       parens(
         (spaced(P.defer(argument)) <* Separators.comma) ~
         spaced(P.defer(argument)) ~
-        (Separators.comma *> spaced(P.defer(argument))).?
+        (spaced(Separators.comma) *> spaced(P.defer(argument))).?
       )
   }.map { case ((arg1, arg2), arg3) => AggregatorRange(arg1, arg2, arg3) }
 
@@ -256,10 +249,11 @@ object Parser {
 
   //UserDefinedFunctor
   lazy val userFunc: P[UserDefinedFunctor] =
-    P.string("@") *> spaced(Literals.identifier).map(UserDefinedFunctor.apply)
+    P.char('@') *> spaced(Literals.identifier).map(UserDefinedFunctor.apply)
 
   lazy val argumentAtom: P[Argument] = {
     P.string("nil").as(ArgumentNil) |
+    constant.map(ArgumentConstant.apply) |
     (keyword("bnot") *> spaced(P.defer(argument))).map(ArgumentUnOp(UnOpBNot, _)) |
     (keyword("lnot") *> spaced(P.defer(argument))).map(ArgumentUnOp(UnOpLNot, _)) |
     (spaced(P.string("-")) *> spaced(P.defer(argument))).map(ArgumentUnOp(UnOpMinus, _)) |
@@ -275,7 +269,6 @@ object Parser {
       .map { case (name, args) => ArgumentBranchConstructor(name, args.getOrElse(Seq.empty)) }
       .backtrack |
     spaced(P.char('$').as(ArgumentIntrinsicFunc(IntrinsicFunctorAutoInc, Seq()))) |
-    constant.map(ArgumentConstant.apply) |
     brackets(argumentList).map(l => ArgumentList(l.toList)) |
     parens(P.defer(argument)).map(ArgumentSingle.apply)
   }
