@@ -88,8 +88,8 @@ object PrettyPrinter {
 
     case SubsumptiveRule(atom1, atom2, disjunction, queryPlan) =>
       queryPlan match {
-        case Some(value) => s"${stringify(atom1)} <= ${stringify(atom2)} :- ${stringify(disjunction)} ${stringify(value)}"
-        case None => s"${stringify(atom1)} <= ${stringify(atom2)} :- ${stringify(disjunction)}"
+        case Some(value) => s"${stringify(atom1)} <= ${stringify(atom2)} :- ${stringify(disjunction)}. ${stringify(value)}"
+        case None => s"${stringify(atom1)} <= ${stringify(atom2)} :- ${stringify(disjunction)}."
       }
 
     case compiler.EliminateRuleDisjunction.Rule(atom, conjunction, queryPlan) =>
@@ -104,7 +104,7 @@ object PrettyPrinter {
     case Fact(atom) => stringify(atom) + "."
 
     case TermDisjunction(terms, isNegated) =>
-      { if (isNegated) "!" else "" } + "(" + terms.map(stringify).mkString("; ") + ")"
+      { if (isNegated) "!" else "" } +  terms.map(stringify).mkString("; ")
     case TermConjunction(terms, isNegated) =>
       val s = terms.map(stringify).mkString(", ")
       if (isNegated) s"!($s)"
@@ -127,8 +127,10 @@ object PrettyPrinter {
       case ArgumentConstant(value) => stringify(value)
       case ArgumentVariable(name) => stringify(name)
       case Syntax.ArgumentNil => "nil"
-      case ArgumentList(args) => s"${args.map(stringify).mkString(", ")}"
-      case ArgumentBranchConstructor(name, args) => s"$$ $name ( ${args.map(stringify).mkString(", ")} )"
+      case ArgumentList(args) => s"[${args.map(stringify).mkString(", ")}]"
+      case ArgumentBranchConstructor(name, args) =>
+        if (args.isEmpty) s"$$ $name "
+        else s"$$ $name ( ${args.map(stringify).mkString(", ")} )"
       case ArgumentSingle(arg) => s"( ${stringify(arg)} )"
       case ArgumentAlias(arg, ty) => s"as ( ${stringify(arg)}, ${stringify(ty)} )"
       case ArgumentUserDefinedFunc(name, args) => s"@$name ( ${args.map(stringify).mkString(", ")} )"
