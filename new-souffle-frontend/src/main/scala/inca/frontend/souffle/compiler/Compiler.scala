@@ -252,20 +252,24 @@ class Compiler {
     case ArgumentSingle(arg) => compileArgument(arg)
     // use asInstanceOf for type casting
     case ArgumentAlias(arg, ty) =>
-      val argTypes = compileType(arg.getType)
-      val scalaReturnType = compileType(ty)
-      val scalaFunction = q"(x: String) => x.asInstanceOf[${ty.toString}]"
+
+      val argType = arg.getType.getScalaType
+
+      val returnType = ty.getScalaType
+
+      val scalaFunction = q"(x: $argType) => x.asInstanceOf[$returnType]"
 
       val bound = Datalog.Var(gensym.fresh("bound"))
 
       boundArguments = boundArguments :+ Datalog.Computed(
         bound,
         Datalog.Evaluation(
-          Seq((compileArgument(arg),argTypes)),
-          scalaReturnType,
+          Seq((compileArgument(arg),compileType(arg.getType))),
+          compileType(ty),
           Scala[ScalaTerm.Function](scalaFunction)
         )
       )
+      bound
 
     case ArgumentIntrinsicFunc(func, arguments) =>
       assert(

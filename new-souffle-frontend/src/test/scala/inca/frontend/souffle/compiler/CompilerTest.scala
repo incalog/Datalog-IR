@@ -59,6 +59,15 @@ class CompilerTest extends AnyFunSuite {
     PrettyPrinter.print(c.patterns.values)
   }
 
+  test("alias") {
+    val c = new compiler.Compiler()
+
+    c.compileArgument(Parser.parse(Parser.argumentAtom, "as(x, number)"))
+
+    println(c.boundArguments)
+    c.boundArguments.map(PrettyPrinter.print)
+  }
+
   test("factFail") {
     val c = new compiler.Compiler
 
