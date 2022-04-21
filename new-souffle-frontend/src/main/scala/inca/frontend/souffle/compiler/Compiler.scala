@@ -250,7 +250,23 @@ class Compiler {
 
     case ArgumentBranchConstructor(name, args) => ???
     case ArgumentSingle(arg) => compileArgument(arg)
-    case ArgumentAlias(arg, ty) => ???
+    // use asInstanceOf for type casting
+    case ArgumentAlias(arg, ty) =>
+      val argTypes = compileType(arg.getType)
+      val scalaReturnType = compileType(ty)
+      val scalaFunction = q"(x: String) => x.asInstanceOf[${ty.toString}]"
+
+      val bound = Datalog.Var(gensym.fresh("bound"))
+
+      boundArguments = boundArguments :+ Datalog.Computed(
+        bound,
+        Datalog.Evaluation(
+          Seq((compileArgument(arg),argTypes)),
+          scalaReturnType,
+          Scala[ScalaTerm.Function](scalaFunction)
+        )
+      )
+
     case ArgumentIntrinsicFunc(func, arguments) =>
       assert(
         arguments.length == intrinsicFunctors(func).argTypes.length,
@@ -378,7 +394,6 @@ class Compiler {
           Scala[ScalaTerm.Function](q"(arg: $argType) => $scalaOp")
         )
       )
-
       // return bound variable
       bound
 

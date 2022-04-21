@@ -166,7 +166,7 @@ class CompilerTest extends AnyFunSuite {
   test("argument intrinsic functor") {
     val c = new Compiler
 
-//    c.compileArgument(Parser.parse(Parser.argumentAtom, "ord(a)"))
+    c.compileArgument(Parser.parse(Parser.argumentAtom, "ord(a)"))
     c.compileArgument(Parser.parse(Parser.argumentAtom, "ord(\"some text\")"))
     c.compileArgument(Parser.parse(Parser.argumentAtom, "to_float(\"123\")"))
     c.compileArgument(Parser.parse(Parser.argumentAtom, "to_number(\"13\")"))
@@ -258,7 +258,7 @@ class CompilerTest extends AnyFunSuite {
   }
 
   test("souffle executor example") {
-    val prog =
+    val prog2 =
       s""".decl edge(x: number, y: number)
          |edge(1, 2).
          |edge(2, 3).
@@ -271,7 +271,7 @@ class CompilerTest extends AnyFunSuite {
          |path(x, y) :- edge(x, y).
          |path(x, y) :- edge(x, z), path(z, y).
          |""".stripMargin
-    val loaded = SouffleExecutor.loadFunction(prog)
+    val loaded = SouffleExecutor.loadFunction(prog2)
     val outputs = loaded.execute("")
 
     println(outputs)

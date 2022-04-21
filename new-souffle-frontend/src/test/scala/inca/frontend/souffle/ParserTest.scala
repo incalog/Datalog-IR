@@ -96,7 +96,7 @@ class ParserTest extends AnyFunSuite {
         | B("hallo", 42).
         |""".stripMargin
     )
-
+    println(r)
     println(PrettyPrinter.stringify(r))
 
     assert(r == Seq(
