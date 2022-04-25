@@ -77,25 +77,11 @@ class Compiler {
     case ConstantFloat(value) => Datalog.Constant(Datalog.DoubleLiteral(value.toDouble))
   }
 
-  def compileFact(fact: Fact): Unit = {
-    /*
-    * A(0, 1) => A(x, y) :- x = 0, y = 1
-    * A(x, 1) => throw error
-    * */
-
-    val relationDecl = relationDecls.getOrElse(
-      fact.atom.name,
-      throw new Exception(s"Unknown relation '${fact.atom.name}' in fact!"))
-
-    assert(
-      relationDecl.attributes.length == fact.atom.args.length,
-      s"Invalid number of arguments in fact '${PrettyPrinter.stringify(fact.atom.name)}'!\n" +
-        s"Expected ${relationDecl.attributes.length} argument(s), got ${fact.atom.args.length}!")
-
+  def genTermFromArgumentAttributePair(pair: (Argument, Attribute)): Term = {
     def throwError(arg: Argument) =
       throw new Exception(s"Argument '$arg' is not valid in facts!")
 
-    val ruleTerms: Seq[Term] = (fact.atom.args zip relationDecl.attributes).map {
+    pair match {
       case (arg, attr) => arg match {
         case ArgumentVariable(name) => throwError(arg)
         case Syntax.ArgumentNil => throwError(arg)
@@ -147,10 +133,10 @@ class Compiler {
           var i = lower
 
           val terms: Seq[Term] = Iterator.continually {
-              val tmp = i
-              i += step
-              tmp
-            }
+            val tmp = i
+            i += step
+            tmp
+          }
             .takeWhile(_ < upper)
             .toSeq
             .map(value => TermConstraint(ConstraintCmp(
@@ -179,11 +165,29 @@ class Compiler {
           ))
       }
     }
+  }
+
+  def compileFact(fact: Fact): Unit = {
+    /*
+    * A(0, 1) => A(x, y) :- x = 0, y = 1
+    * A(x, 1) => throw error
+    * */
+
+    val relationDecl = relationDecls.getOrElse(
+      fact.atom.name,
+      throw new Exception(s"Unknown relation '${fact.atom.name}' in fact!"))
+
+    assert(
+      relationDecl.attributes.length == fact.atom.args.length,
+      s"Invalid number of arguments in fact '${PrettyPrinter.stringify(fact.atom.name)}'!\n" +
+        s"Expected ${relationDecl.attributes.length} argument(s), got ${fact.atom.args.length}!")
+
+    val ruleTerms: Seq[Term] = (fact.atom.args zip relationDecl.attributes).map(genTermFromArgumentAttributePair)
 
     // compile rule
     compileRule(Rule(
       Seq(Atom(relationDecl.name, relationDecl.attributes.map(attr => ArgumentVariable(attr.name)))),
-      TermDisjunction(ruleTerms)
+      TermDisjunction(Seq(TermConjunction(ruleTerms)))
     ))
   }
 
@@ -214,6 +218,12 @@ class Compiler {
       relationDecl.attributes.length == rule.head.args.length,
       s"Invalid number of arguments in fact '${PrettyPrinter.stringify(rule.head.name)}'!\n" +
         s"Expected ${relationDecl.attributes.length} argument(s), got ${rule.head.args.length}!")
+
+    (relationDecl.attributes zip rule.head.args).foreach {
+      case (a, b: ArgumentVariable) =>
+        assert(a.name == b.name, s"Variable arguments have to match declaration (got '${b.name}' instead of '${a.name}')!")
+      case _ =>
+    }
 
     val constantConstraints: Seq[Datalog.Atom] = (relationDecl.attributes zip rule.head.args).collect {
       case (attr, arg: ArgumentConstant) =>
@@ -402,8 +412,11 @@ class Compiler {
       bound
 
     case ArgumentBinOp(op, l, r) =>
-      val lty = compileType(l.getType)
-      val rty = compileType(r.getType)
+//      val lty = compileType(l.getType)
+//      val rty = compileType(r.getType)
+      // TODO:
+      val lty = Datalog.TScalaInt
+      val rty = Datalog.TScalaInt
 
       def throwError =
         throw new Exception(s"Cannot compute binary operation '$op' on arguments of types '${l.getType}' and '${r.getType}'!")
@@ -411,11 +424,11 @@ class Compiler {
       assert(l.getType == r.getType, s"Arguments $l and $r have to be of same type")
 
       val resultType = l.getType match {
-        case DeclaredType(_) => throwError
-        case Syntax.AnyType => throwError
-        case Syntax.NilType => throwError
+        case DeclaredType(_) => Datalog.TScalaInt  // TODO
+        case Syntax.AnyType => Datalog.TScalaInt  // TODO
+        case Syntax.NilType => Datalog.TScalaInt  // TODO
         case primitiveType: PrimitiveType => primitiveType match {
-          case Syntax.SymbolType => throwError
+          case Syntax.SymbolType => Datalog.TScalaInt  // TODO
           case Syntax.NumberType | Syntax.UnsignedType => op match {
             case Syntax.BinOpLAnd => Datalog.TScalaBoolean
             case Syntax.BinOpLOr => Datalog.TScalaBoolean
@@ -432,9 +445,9 @@ class Compiler {
       }
 
       val lType = l.getType match {
-        case DeclaredType(name) => ???
-        case Syntax.AnyType => ???
-        case Syntax.NilType => ???
+        case DeclaredType(name) => meta.Type.Name("Int")  // TODO
+        case Syntax.AnyType => meta.Type.Name("Int")  // TODO
+        case Syntax.NilType => meta.Type.Name("Int")  // TODO
         case primitiveType: PrimitiveType => primitiveType match {
           case Syntax.SymbolType => meta.Type.Name("String")
           case Syntax.NumberType => meta.Type.Name("Int")
@@ -443,9 +456,9 @@ class Compiler {
         }
       }
       val rType = r.getType match {
-        case DeclaredType(name) => ???
-        case Syntax.AnyType => ???
-        case Syntax.NilType => ???
+        case DeclaredType(name) =>  meta.Type.Name("Int")  // TODO
+        case Syntax.AnyType =>  meta.Type.Name("Int")  // TODO
+        case Syntax.NilType =>  meta.Type.Name("Int")  // TODO
         case primitiveType: PrimitiveType => primitiveType match {
           case Syntax.SymbolType => meta.Type.Name("String")
           case Syntax.NumberType => meta.Type.Name("Int")
@@ -971,6 +984,9 @@ class Compiler {
   }
 
   def compileProgram(program: SouffleProgram, name: String = "module"): CompiledSouffleModule = {
+    // TODO: init gensym
+    // BoundVars.boundVars(program).foreach(gensym.register)
+
     // compile program
     program.foreach(compileStatement)
 

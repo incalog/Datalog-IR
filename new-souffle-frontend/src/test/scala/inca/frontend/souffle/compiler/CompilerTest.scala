@@ -14,8 +14,13 @@ class CompilerTest extends AnyFunSuite {
     try f
     catch {
       case _: AssertionError =>
-      case _: Throwable => assert(0 == 1)
+      case e: Exception => println("Expected exception: " + e)
+      case e: Throwable => assert(0 == 1, e)
     }
+  }
+
+  def assertOutputTuples[A](relation: String)(toBe: Set[Seq[A]])(implicit outputs: Outputs): Unit = {
+    assert(outputs(relation).res.map(_.toSeq).toSet == toBe)
   }
 
   def assertOutput[A](relation: String, column: Int = 0)(toBe: Set[A])(implicit outputs: Outputs): Unit = {
@@ -44,19 +49,18 @@ class CompilerTest extends AnyFunSuite {
   }
 
   test("fact") {
-    val c = new compiler.Compiler()
+    val program =
+      """ .decl A(x: float)
+        | A(5.0). A(4.2).
+        |
+        | .output A
+        |""".stripMargin
 
-    val decl = RelationDecl("A", Seq(Attribute("x", FloatType)))
+    implicit val loaded: Loaded = SouffleExecutor.loadFunction(program)
+    implicit val outputs: Outputs = loaded.execute("")
 
-    c.relationDecls += QualifiedName("A") -> decl
-    c.patterns +=
-      QualifiedName("A") ->
-        Datalog.Pattern(None, "A", decl.attributes.map(c.compileAttribute), Seq())
-
-    c.compileFact(Parser.parse(Parser.fact, "A(5.0)."))
-
-    PrettyPrinter.print(c.relationDecls.values)
-    PrettyPrinter.print(c.patterns.values)
+    printOutputs
+    assertOutput("A")(Set(5.0f, 4.2f))
   }
 
   test("alias") {
@@ -71,32 +75,54 @@ class CompilerTest extends AnyFunSuite {
   test("factFail") {
     val c = new compiler.Compiler
 
+    c.compileRelationDecl(Parser.parse(Parser.relationDecl, ".decl A(x: number, y: number)"))
     assertFail(c.compileFact(Parser.parse(Parser.fact, "A(x, 0).")))
 
-    c.compileRelationDecl(Parser.parse(Parser.relationDecl, ".decl A(x: number)"))
-    assertFail(c.compileFact(Parser.parse(Parser.fact, "A(1, 2).")))
-  }
-
-  test("subtyping") {
-    val c = new compiler.Compiler
-
-    assert(c.isSubtype(UnsignedType, NumberType))
-    assert(c.isSubtype(NumberType, FloatType))
-    assert(c.isSubtype(UnsignedType, FloatType))
+    c.compileRelationDecl(Parser.parse(Parser.relationDecl, ".decl B(x: number)"))
+    assertFail(c.compileFact(Parser.parse(Parser.fact, "B(1, 2).")))
   }
 
   test("rule") {
-    val c = new compiler.Compiler
+    val program =
+      """ .decl A(x: number, y: number)
+        |
+        | A(x, y) :- x = 0, y = 1.
+        | A(x, y) :- x = 2, (y = 3; y = 4).
+        | A(5, y) :- y = 6.
+        |
+        | .output A
+        |""".stripMargin
 
-    c.compileRelationDecl(Parser.parse(Parser.relationDecl, ".decl A(x: number, y: number)"))
+    implicit val loaded: Loaded = SouffleExecutor.loadFunction(program)
+    implicit val outputs: Outputs = loaded.execute("")
 
-    c.compileRule(Parser.parse(Parser.rule, "A(x, y) :- x = 0, y = 1."))
-    c.compileRule(Parser.parse(Parser.rule, "A(x, y) :- x = 5, (y = 1; y = 7)."))
-    c.compileRule(Parser.parse(Parser.rule, "A(5, y) :- y = 1."))
+    printOutputs
+    assertOutputTuples("A")(Set(Seq(0, 1), Seq(2, 3), Seq(2, 4), Seq(5, 6)))
+  }
 
-    PrettyPrinter.print(c.patterns.values)
-    println(c.patterns)
-    println(c.patterns.values)
+  test("strings") {
+    val program =
+      """ .decl A(x: symbol, y: symbol)
+        | .decl B(z: symbol)
+        |
+        | A("Hello", "World").
+        | A("Boogie", "Woogie").
+        |
+        | B(z) :- A(x, y), z = cat(x, y).
+        |
+        | .decl C(z: symbol, l: number)
+        | C(z, l) :- B(z), l = strlen(z).
+        |
+        | .output B
+        | .output C
+        |""".stripMargin
+
+    implicit val loaded: Loaded = SouffleExecutor.loadFunction(program)
+    implicit val outputs: Outputs = loaded.execute("")
+
+    printOutputs
+    assertOutput("B")(Set("HelloWorld", "BoogieWoogie"))
+    assertOutput("C", 1)(Set(12, 10))
   }
 
   test("directives") {
@@ -134,7 +160,7 @@ class CompilerTest extends AnyFunSuite {
     println(c.unionTypes)
   }
 
-  test("TypeDeclRecordType"){
+  test("TypeDeclRecordType") {
     val c = new Compiler
 
     c.compileTypeDecl(TypeDeclRecord("Test", Seq(Attribute("test", FloatType), Attribute("test2", NumberType))))
@@ -143,7 +169,7 @@ class CompilerTest extends AnyFunSuite {
     println(c.recordTypes)
   }
 
-  test("TypeDeclADT"){
+  test("TypeDeclADT") {
     val c = new Compiler
 
     c.compileTypeDecl(TypeDeclADT("Test",
@@ -192,12 +218,26 @@ class CompilerTest extends AnyFunSuite {
   }
 
   test("argument binary operation") {
-    val c = new Compiler
+    val program =
+      """ .decl A(x: number, y: number)
+        | .decl B(z: number)
+        | .decl C(z: number)
+        |
+        | A(1, 2). A(5, 9).
+        |
+        | B(z) :- A(x, y), z = x + y.
+        | C(z) :- A(x, y), z = x * y.
+        |
+        | .output B
+        | .output C
+        |""".stripMargin
 
-    c.compileArgument(ArgumentBinOp(BinOpAdd, ArgumentConstant(ConstantNumber(42)), ArgumentConstant(ConstantNumber(21))))
-//    c.compileArgument(ArgumentBinOp(BinOpAdd, ArgumentVariable("x"), ArgumentVariable("y")))
-    println(c.boundArguments)
-    c.boundArguments.map(PrettyPrinter.print)
+    implicit val loaded: Loaded = SouffleExecutor.loadFunction(program)
+    implicit val outputs: Outputs = loaded.execute("")
+
+    printOutputs
+    assertOutput("B")(Set(3, 14))
+    assertOutput("C")(Set(2, 45))
   }
 
   test("argument list") {
@@ -306,7 +346,7 @@ class CompilerTest extends AnyFunSuite {
     }
   }
 
-  test("facts") {
+  test("advanced facts") {
     val program =
       s""" .decl A(x: float)
          | A(3 + 4).
@@ -338,26 +378,22 @@ class CompilerTest extends AnyFunSuite {
 
   test("aggregation") {
     val program =
-      s""" .decl A(x: unsigned)
+      s""" .decl A(x: number)
          | A(1). A(2). A(3).
          |
-         | .decl B(y: unsigned)
+         | .decl B(y: number)
          | B(sum x : A(x)).
          |
-         | .decl C(y: unsigned)
+         | .decl C(y: number)
          | C(count : A(_)).
          |
-         | .decl D(y: unsigned)
+         | .decl D(y: number)
          | D(count : A(2)).
          |
          | .output A
          | .output B
          | .output C
          | .output D
-         | .printsize A
-         | .printsize B
-         | .printsize C
-         | .printsize D
          |""".stripMargin
 
     implicit val loaded: Loaded = SouffleExecutor.loadFunction(program)

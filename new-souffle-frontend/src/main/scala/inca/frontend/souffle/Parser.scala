@@ -33,7 +33,7 @@ object Parser {
       }
 
     val string: P[String] = quotes *> P.until0(quotes) <* quotes
-    val unsigned: P[Long] = Numbers.nonNegativeIntString.map(_.toLong)
+//    val unsigned: P[Long] = Numbers.nonNegativeIntString.map(_.toLong)
     val number: P[Int] = Numbers.signedIntString.map(_.toInt)
 
     val sign: P[String] = P.charIn("+-").map(_.toString)
@@ -208,7 +208,7 @@ object Parser {
 
   val constant: P[Constant] =
     Literals.float.backtrack.map(ConstantFloat.apply) |
-    Literals.unsigned.backtrack.map(ConstantUnsigned.apply) |
+//    Literals.unsigned.backtrack.map(ConstantUnsigned.apply) |
     Literals.number.backtrack.map(ConstantNumber.apply) |
     Literals.string.map(ConstantString.apply)
 
