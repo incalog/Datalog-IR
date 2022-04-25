@@ -17,6 +17,8 @@ object Aggregations {
        |
        |@aggr(assoc, comm) def div(i1: Int, i2: Int): Int = i1 / i2
        |
+       |@aggr(assoc, comm) def incByTwo(x: Int, y: Int): Int = x + y + 1
+       |
        |@aggr(assoc, comm) def min(i1: Int, i2: Int): Int = if(i1 < i2) i1 else i2
        |
        |@aggr(assoc, comm) def pow(i1: Int, i2: Int): Int = if(i2 <= 0) 1 else if(i2 == 1) i1 else i1 * pow(i1, i2 - 1)

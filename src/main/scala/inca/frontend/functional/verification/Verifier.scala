@@ -32,6 +32,8 @@ case object SatisfiedResponse extends Response
 case object UnsatisfiedResponse extends Response
 case object UnknownResponse extends Response
 
+case class VerifierException(msg: String) extends Exception
+
 class Verifier {
 
   val varMem: mutable.Map[String, String] = mutable.Map()
@@ -57,7 +59,12 @@ class Verifier {
     val aggregations: Map[String, Seq[Property]] = collectAggregations(module)
     val verificationScripts: Seq[Script] = aggregations.toSeq.map(ag => generateScript(ag._1, ag._2))
     val verificationResults = verificationScripts.zip(aggregations).map(s => getInterpResult(s._1, s._2._2))
-    aggregations.keys.zip(verificationResults).toMap
+    combineVerificationResuls(aggregations, verificationResults)
+  }
+
+  def combineVerificationResuls(aggregations: Map[String, Seq[Property]], verificationResults: Seq[Map[Property, Response]]): Map[String, Map[Property, Response]] = {
+    val reverseAggrMap: Map[String, String] = for ((k, v) <- varMem.toMap.filter(x => aggregations.contains(x._2))) yield (v, k)
+    aggregations.keys.zip(verificationResults).map(res => (reverseAggrMap(res._1), res._2)).toMap
   }
 
   def fillDicts(module: Module)(implicit gensym: Gensym): Unit = module.content.foreach {
@@ -188,15 +195,19 @@ class Verifier {
   // Constructor(sym: SSymbol, fields: Seq[(SSymbol, Sort)])
 
   def transDataConstructor(c: DataConstructor)(implicit gensym: Gensym): Constructor = {
-    Constructor(SSymbol(getHygienicName(c.name.name)),
-      c.paramTypes.map(paramType => {
-        val fieldName = gensym.fresh(c.name.name)
-        val sort = transType(paramType)
-        (SSymbol(fieldName), sort)
-      }))
+    val params = c.paramTypes.zipWithIndex.map { case (paramType, idx) =>
+      val fieldName = gensym.fresh(s"${c.name.name}_Selector_$idx")
+      val sort = transType(paramType)
+      (SSymbol(fieldName), sort)
+    }
+    Constructor(SSymbol(getHygienicName(c.name.name)), params)
   }
 
   def generateInvariantsScript(invariantNames: Seq[String], dataName: String)(implicit gensym:Gensym): Script = {
+    invariantNames.foreach { name =>
+      if(!functionDict.contains(getHygienicName(name)))
+        throw VerifierException(s"Invariant Function $name called by data $dataName is not implemented")
+    }
     makeScript(invariantNames.map(name => {
       val hygienicName = getHygienicName(name)
       val invariantFuncScript = transFunctionDefs(Seq(hygienicName))
@@ -251,7 +262,7 @@ class Verifier {
       }
       case TData(name) => Sort(Identifier(SSymbol(getHygienicName(name.name))))
       // TODO andere Cases
-      case _ => throw new Exception("Type needs to be specified")
+      case _ => throw VerifierException("Type needs to be specified")
     }
   }
 
@@ -267,12 +278,12 @@ class Verifier {
             Seq(transExp(bound))
           } else {
             if (hygienicNames.length < 1) {
-              throw new Exception("Let ohne variablen")
+              throw VerifierException("Let ohne variablen")
             } else {
               bound match {
                 case SetExp(es) => es.map(transExp)
                 // TODO könnte es auch was anderes sein?
-                case _ => throw new Exception("Hier sollte ein Set von expressions stehen")
+                case _ => throw VerifierException("Hier sollte ein Set von expressions stehen")
               }
             }
           }
@@ -349,16 +360,16 @@ class Verifier {
               val exc = new Exception(s"Operator $op on types $leftType and $rightType has no equivalent in SMTlib")
               val typeMap = metaInfixOps.getOrElse((leftType, rightType), throw exc)
               typeMap.getOrElse(op.tree.value, throw exc)
-            case None => ???
+            case None => throw VerifierException(s"No type for rhs of $ex could be found")
           }
-          case None => ???
+          case None => throw VerifierException(s"No type for lhs of $ex could be found")
         }
         infixFun(transExp(left), transExp(right))
 
       case BaseLit(code) =>
         code.tree match {
           case l: meta.Lit => transMetaLit(l)
-          case _ => throw new Exception("BaseLit does not contain Term.Literal")
+          case _ => throw VerifierException(s"BaseLit $ex does not contain Term.Literal")
         }
 
       case BaseApply(fun, args) =>
@@ -482,7 +493,6 @@ class Verifier {
         FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("to_real"))), Seq(left)),
         right
       ))))
-
   val metaInfixIntRealOps: Map[String, (Term, Term) => Term] = transformInfixMapRightArgToReal(Map(
     "+" -> "+",
     "-" -> "-",

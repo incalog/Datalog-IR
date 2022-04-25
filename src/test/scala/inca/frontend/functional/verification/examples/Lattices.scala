@@ -304,7 +304,6 @@ object Lattices {
 
   val compiledIntervalLatticeInvariants = Compiler.compileFunctional(intervalLatticeInvariants, FunctionalOptions())
 
-  // funktioniert nicht, da Bool ein protected word ist in z3
   val boolLattice =
     """module BoolLattice
       |data Bool = True() | False() | TopBool()
@@ -325,4 +324,16 @@ object Lattices {
       |""".stripMargin
 
   val compiledBoolLattice = Compiler.compileFunctional(boolLattice, FunctionalOptions())
+
+  val intDivExample =
+    s"""module M
+       |@main def main(): Double = 1 / 2
+       |""".stripMargin
+  val intDivModule = {
+
+    val res = Compiler.compileFunctional(intDivExample, FunctionalOptions())
+    val typed = res.typed
+    res
+  }
+
 }
