@@ -118,6 +118,8 @@ class Verifier {
               case CommandsResponses.UnsatStatus => SatisfiedResponse
               case CommandsResponses.UnknownStatus => UnknownResponse
             })
+          case CommandsResponses.Error(msg) => throw VerifierException(s"z3 error interpreting command $cmd with error message \n ### \n $msg \n ### \n")
+          case CommandsResponses.Unsupported => throw VerifierException(s"command $cmd is not supported by z3")
           case _ =>
         }
     }
