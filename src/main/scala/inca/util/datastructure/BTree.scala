@@ -82,7 +82,7 @@ object BTree {
   private def bulkSubtree[T: ClassTag](
       tree: BTree[T],
       entries: Seq[T],
-      minDegree: Int = GlobalMinDegree
+      minDegree: Int
     )(implicit ord: Ordering[T]
     ): BTreeNode[T] = {
     val maxNumKeys = 2 * minDegree - 1

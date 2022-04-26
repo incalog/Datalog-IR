@@ -264,7 +264,6 @@ class ImmutableBTreeTable[V: ClassTag](
       if (sameCols.isEmpty) {
         // this is a cartesian product
         // we cannot apply an efficient join technique
-        val x = 1
         for {
           entry <- entries
           otherEntry <- other.entries

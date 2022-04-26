@@ -14,7 +14,6 @@ import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters._
-import truechange.EditScript
 import truechange.URI
 
 trait Debugger extends DebuggerAPI {
