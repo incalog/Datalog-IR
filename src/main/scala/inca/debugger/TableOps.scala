@@ -60,17 +60,20 @@ class TableOps(
       (p, v.asInstanceOf[Datalog.Constant])
     }
     val columnsSubst = varsBindingsCast.map { case (p, v) => (v.name, p) }.toMap
+
     val argsTable = frame.bodyTable.projectAndRename(columnsSubst)
-    val constBindingsTable =
-      if (constBindingsCast.isEmpty)
-        ImmutableTable.unit[Value]()
-      else {
-        indexedTableFactory(
-          constBindingsCast.map(_._1),
-          constBindingsCast.map(x => Seq(transLiteral(x._2.lit))),
-          argsTable)
-      }
-    argsTable.join(constBindingsTable, resultIndices)
+
+    if (constBindingsCast.isEmpty)
+      indexedTableFactory(argsTable.columns, argsTable.entries, resultIndices)
+    else {
+      // construct constants table
+      val constTable = indexedTableFactory(
+        constBindingsCast.map(_._1),
+        Seq(constBindingsCast.map(x => transLiteral(x._2.lit))),
+        argsTable)
+      // join with constants table
+      argsTable.join(constTable, resultIndices)
+    }
   }
 
   // methods to prepare frame tables for atoms that do not jump into another pattern (atom is not a call, or aggregation)
@@ -301,7 +304,7 @@ class TableOps(
     }
 
     val extCallRows = argsTable.entries.flatMap { row =>
-      val seed = Tuples.flatTupleOf(row.map(_.unwrap))
+      val seed = Tuples.flatTupleOf(row.map(_.unwrap): _*)
       database.enumerateTuples(key, mask, seed).asScala.map { tuple =>
         tuple.getElements.toSeq.map(Value.apply)
       }.toSeq
@@ -482,8 +485,10 @@ class TableOps(
     ): Frame.Tables = {
     // join bodyTable of caller with pattern table of callee
     val (_, args) = callerFrame.cp.atom.asCall.get
-    val callArgVars = args.collect { case Datalog.Var(name) => name }
-    val columnsSubst = params.zip(callArgVars).toMap
+    val columnsSubst = params.zip(args).flatMap {
+      case (param, Datalog.Var(argName)) => Some(param -> argName)
+      case _ => None
+    }.toMap
 
     val renamedColumnsOfPatternTable = patternTable.columns.flatMap(columnsSubst.get)
     val indexCovers =
@@ -503,20 +508,41 @@ class TableOps(
     transitionReturnNegCallTables(callerFrame, params, patternTable)
   }
 
+  def prepareTransitionReturnCallTable(
+      callerFrame: Frame,
+      params: Seq[String],
+      patternTable: ImmutableTable[Value]
+    ): ImmutableTable[Value] = {
+    val (_, args) = callerFrame.cp.atom.asCall.get
+    val columnsSubst = params.zip(args).flatMap {
+      case (param, Datalog.Var(lit)) => Some(param -> lit)
+      case _ => None
+    }.toMap
+    val (constantArgParams, constantArgLits) = params.zip(args).flatMap {
+      case (param, Datalog.Constant(lit)) => Some(param -> lit)
+      case _ => None
+    }.unzip
+    val constantsTable =
+      ImmutableTable[Value](constantArgParams, Seq(constantArgLits.map(transLiteral)))
+
+    // construct index such that joinin with frame.bodyTable is efficient
+    val indexCovers = indexedTableFactory.constructIndexCovers(
+      callerFrame.bodyTable,
+      // this is just params
+      patternTable.columns.flatMap(columnsSubst.get) ++ constantArgParams)
+
+    // first rename than join with constant arguments
+    patternTable.projectAndRename(columnsSubst).join(constantsTable, resultIndices = indexCovers)
+
+  }
   def transitionReturnNegCallTables(
       callerFrame: Frame,
       params: Seq[String],
       patternTable: ImmutableTable[Value]
     ): Frame.Tables = {
+    val preparedPatternTable = prepareTransitionReturnCallTable(callerFrame, params, patternTable)
     // remove rows of caller bodyTable of that contains tuples of pattern table of callee
-    val (_, args) = callerFrame.cp.atom.asCall.get
-    val callArgVars = args.collect { case Datalog.Var(name) => name }
-    val columnsSubst = params.zip(callArgVars).toMap
-    val indexCovers = indexedTableFactory.constructIndexCovers(
-      callerFrame.bodyTable,
-      patternTable.columns.map(columnsSubst))
-    val renamedPatternTable = patternTable.rename(columnsSubst, resultIndices = indexCovers)
-    val bodyTable = callerFrame.bodyTable.antiJoin(renamedPatternTable)
+    val bodyTable = callerFrame.bodyTable.antiJoin(preparedPatternTable)
     (callerFrame.argsTable, bodyTable)
   }
 

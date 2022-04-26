@@ -533,8 +533,8 @@ VarPointsTo0(?var, ?fld, ?baseheap) :-
     LoadInstanceField(?base, ?fld, ?var, ?inmethod),
     VarPointsTo(?baseheap, ?base).
 VarPointsTo(?heap, ?var) :-
-    AssignHeapAllocation(?heap, ?var, ?inMethod),
-    Reachable(?inMethod).
+    Reachable(?inMethod),
+    AssignHeapAllocation(?heap, ?var, ?inMethod).
 VarPointsTo(?heap, ?to) :-
     Assign(?from, ?to),
     VarPointsTo(?heap, ?from).

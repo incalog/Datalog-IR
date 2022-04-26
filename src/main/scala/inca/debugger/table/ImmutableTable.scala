@@ -8,6 +8,8 @@ trait ImmutableTable[V] extends NewTable[V] {
 
   def insert(t: Tuple, resultIndices: Set[IndexCover] = Set()): ImmutableTable[V]
 
+  def indexCovers: Set[IndexCover]
+
   // def union(other: Seq[Tuple], resultIndices: Set[IndexCover] = Set()): ImmutableTable[V]
   def union(other: ImmutableTable[V], resultIndices: Set[IndexCover] = Set()): ImmutableTable[V]
   def diff(other: ImmutableTable[V], resultIndices: Set[IndexCover] = Set()): ImmutableTable[V]
@@ -23,8 +25,8 @@ trait ImmutableTable[V] extends NewTable[V] {
       resultIndices: Set[IndexCover] = Set()
     ): ImmutableTable[V]
 
-  def bindingsToString(f: V => String): String = {
-    val rowStrings = entries.map { row =>
+  def bindingsToString(f: V => String, numOfRowsShown: Int): String = {
+    val rowStrings = entries.take(numOfRowsShown).map { row =>
       val sb = new StringBuilder
       sb += '['
       columns.foreach { col =>
@@ -55,7 +57,7 @@ object ImmutableTable {
   def empty[V: ClassTag](
       columns: Seq[String],
       indexCovers: Set[IndexCover] = Set(),
-      minDegree: Int = 256
+      minDegree: Int = BTree.GlobalMinDegree
     )(implicit valOrdering: Ordering[V],
       topAndBotFactory: () => (V, V)
     ): ImmutableBTreeTable[V] = {
@@ -64,7 +66,7 @@ object ImmutableTable {
 
   def unit[V: ClassTag](
       indexCovers: Set[IndexCover] = Set(),
-      minDegree: Int = 256
+      minDegree: Int = BTree.GlobalMinDegree
     )(implicit valOrdering: Ordering[V],
       topAndBotFactory: () => (V, V)
     ): ImmutableBTreeTable[V] = {
@@ -75,7 +77,7 @@ object ImmutableTable {
       columns: Seq[String],
       entries: Seq[Seq[V]],
       indexCovers: Set[IndexCover] = Set(),
-      minDegree: Int = 256
+      minDegree: Int = BTree.GlobalMinDegree
     )(implicit valOrdering: Ordering[V],
       topAndBotFactory: () => (V, V)
     ): ImmutableBTreeTable[V] = {
@@ -85,8 +87,8 @@ object ImmutableTable {
 
 class ImmutableBTreeTable[V: ClassTag](
     cols: Seq[String],
-    indexCovers: Set[IndexCover],
-    minDegree: Int = 256
+    override val indexCovers: Set[IndexCover],
+    minDegree: Int = BTree.GlobalMinDegree
   )(implicit val valOrdering: Ordering[V],
     implicit val topAndBotFactory: () => (V, V))
     extends ImmutableTable[V] {
@@ -259,15 +261,27 @@ class ImmutableBTreeTable[V: ClassTag](
     val otherNewColsIndices = otherNewCols.map(other.columns.indexOf)
     val sameCols = other.columns.filter(columns.contains)
     val newEntries =
-      for {
-        entry <- entries
-        namedEntry = columns.zip(entry)
-        otherNamedEntry = namedEntry.filter { case (k, _) => sameCols.contains(k) }
-        // use lexical search to efficiently query inner table
-        // this is only efficient as long as there is an appropriate index
-        otherEntry <- other.entries(otherNamedEntry)
-      } yield {
-        entry ++ otherNewColsIndices.map(otherEntry.apply)
+      if (sameCols.isEmpty) {
+        // this is a cartesian product
+        // we cannot apply an efficient join technique
+        val x = 1
+        for {
+          entry <- entries
+          otherEntry <- other.entries
+        } yield {
+          entry ++ otherEntry
+        }
+      } else {
+        for {
+          entry <- entries
+          namedEntry = columns.zip(entry)
+          otherNamedEntry = namedEntry.filter { case (k, _) => sameCols.contains(k) }
+          // use lexical search to efficiently query inner table
+          // this is only efficient as long as there is an appropriate index
+          otherEntry <- other.entries(otherNamedEntry)
+        } yield {
+          entry ++ otherNewColsIndices.map(otherEntry.apply)
+        }
       }
     val newIndexCovers = selectResultIndices(resultIndices)
     ImmutableBTreeTable[V](columns ++ otherNewCols, newEntries, newIndexCovers, minDegree)
@@ -357,7 +371,7 @@ object ImmutableBTreeTable {
       cols: Seq[String],
       entries: Seq[Seq[V]],
       indexCovers: Set[IndexCover] = Set(),
-      minDegree: Int = 256
+      minDegree: Int = BTree.GlobalMinDegree
     )(implicit valOrdering: Ordering[V],
       topAndBotFactory: () => (V, V)
     ): ImmutableBTreeTable[V] = {

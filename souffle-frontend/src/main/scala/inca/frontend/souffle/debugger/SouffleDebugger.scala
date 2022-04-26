@@ -137,10 +137,10 @@ class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
     }
   }
 
-  def currentDebuggerInfo: String = {
+  def currentDebuggerInfo(numOfRowsShown: Int = Int.MaxValue): String = {
     val sb = new StringBuilder
     sb ++= currentCallStack += '\n'
-    sb ++= currentBindings += '\n'
+    sb ++= currentBindings(numOfRowsShown) += '\n'
     currentCodeFunction.lines().map("  |  " + _).forEach(line => sb ++= line += '\n')
     sb.toString()
   }
@@ -152,8 +152,8 @@ class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
     getRelationSignature(fr.cp.point.pat).map(_.name)
   }
 
-  def currentBindings: String =
-    varsIR.bindingsToString(_.toString)
+  def currentBindings(numOfRowsShown: Int): String =
+    varsIR.bindingsToString(_.toString, numOfRowsShown)
 
   def currentCodeFunction: String = {
     val sp = soufflePoint.getOrElse(throw new IllegalStateException())

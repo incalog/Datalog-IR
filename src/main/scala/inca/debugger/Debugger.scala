@@ -8,6 +8,7 @@ import inca.compiler.CompiledModule
 import inca.debugger.table.ImmutableTable
 import inca.debugger.table.IndexedTableFactory
 import inca.runtime.db.Database
+import inca.runtime.db.DatabaseInput
 import inca.runtime.Query
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import scala.collection.mutable
@@ -114,9 +115,9 @@ trait Debugger extends DebuggerAPI {
     this.database = _database
   }
 
-  def updateExtensionalData(edits: EditScript): Unit =
+  def updateExtensionalData(dbInput: DatabaseInput): Unit =
     engine.delayUpdatePropagation { () =>
-      database.processEditScript(edits)
+      database.processDatabaseInput(dbInput)
     }
 
   // Debugger methods

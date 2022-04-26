@@ -3,13 +3,16 @@ package inca.debugger
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.ExpLangTestAnalyses
 import inca.backend.ir.Datalog
+import inca.backend.ir.Datalog.TScalaInt
 import inca.compiler.CompiledDatalogModule
 import inca.compiler.Options
 import inca.debugger.table.ImmutableTable
 import inca.runtime.context.DataModel
 import inca.runtime.context.QueryScope
+import inca.runtime.db.DatabaseInput
 import inca.runtime.EnginePool
 import inca.util.Scala
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.Assertion
@@ -1002,5 +1005,58 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     debugger.stepOut()
     assert(debugger.frame.cp.isPatternExit)
     assertExpectedTable(debugger, "query", args)
+  }
+
+  val extCallEdgePattern: Datalog.Pattern = Datalog.Pattern(
+    None,
+    "edge",
+    Seq(
+      Datalog.Param("x", TScalaInt),
+      Datalog.Param("y", TScalaInt)
+    ),
+    Seq(
+      Datalog.Body(
+        Seq(
+          Datalog.ExtensionalCall("extEdge", Seq(Datalog.Var("x"), Datalog.Var("y")))
+        ))
+    )
+  )
+  val extEdgeInput: DatabaseInput = DatabaseInput(
+    EditScript(Seq()),
+    Map(
+      "extEdge" -> Set(
+        Tuples.flatTupleOf(1, 2),
+        Tuples.flatTupleOf(2, 3),
+        Tuples.flatTupleOf(3, 4),
+        Tuples.flatTupleOf(4, 5),
+        Tuples.flatTupleOf(5, 2))),
+    Map()
+  )
+
+  test("ext call no arguments") {
+    val debugger = initDebugger(module(extCallEdgePattern), emptyDataModel)
+    debugger.updateExtensionalData(extEdgeInput)
+    val args = ImmutableTable.unit[Value]()
+    debugger.entry("edge", args)
+    stepTillFinish(debugger)
+    assertExpectedTable(debugger, "edge", args)
+  }
+
+  test("ext call with one argument bound") {
+    val debugger = initDebugger(module(extCallEdgePattern), emptyDataModel)
+    debugger.updateExtensionalData(extEdgeInput)
+    val args = ImmutableTable[Value](Seq("x"), Seq(Seq(ScalaValue(1)), Seq(ScalaValue(2))))
+    debugger.entry("edge", args)
+    stepTillFinish(debugger)
+    assertExpectedTable(debugger, "edge", args)
+  }
+
+  test("ext call with both arguments bound") {
+    val debugger = initDebugger(module(extCallEdgePattern), emptyDataModel)
+    debugger.updateExtensionalData(extEdgeInput)
+    val args = ImmutableTable[Value](Seq("y", "x"), Seq(Seq(ScalaValue(4), ScalaValue(3))))
+    debugger.entry("edge", args)
+    stepTillFinish(debugger)
+    assertExpectedTable(debugger, "edge", args)
   }
 }

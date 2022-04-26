@@ -28,6 +28,7 @@ import inca.frontend.functional.core.Tuple
 import inca.frontend.functional.core.Var
 import inca.runtime.data.MockURI
 import inca.runtime.data.WrappedURI
+import inca.runtime.db.DatabaseInput
 import inca.util.Derivative
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import scala.annotation.tailrec
@@ -149,7 +150,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
       val syntax = s"{import ${tableOps.getDefinitionObjSym}.${compiled.name}._; ${t.syntax}}"
       tableOps.compileAndLoadScala[Any](syntax) match {
         case diff: Diffable =>
-          updateExtensionalData(diff.loadEdits)
+          updateExtensionalData(DatabaseInput(diff.loadEdits, Map(), Map()))
           diff.foreachTree(t => uris += t.uri -> t)
           (diff.uri, URIValue(diff.uri))
         case v =>
@@ -394,10 +395,10 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
   def controlPointFrontend: FunctionalControlPoint =
     currentFunctionalPoint.get
 
-  def currentDebuggerInfo: String = {
+  def currentDebuggerInfo(numOfRowsShown: Int = Int.MaxValue): String = {
     val sb = new StringBuilder
     sb ++= currentCallStack += '\n'
-    sb ++= currentBindings += '\n'
+    sb ++= currentBindings(numOfRowsShown) += '\n'
     currentCodeFunction.lines().map("  |  " + _).forEach(line => sb ++= line += '\n')
     sb.toString()
   }
@@ -437,8 +438,8 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     case BotValue => "⊥"
   }
 
-  def currentBindings: String = {
+  def currentBindings(numOfRowsShown: Int): String = {
     val table = frontendTable(controlPointFrontend, varsIR)
-    table.bindingsToString(prettyPrint)
+    table.bindingsToString(prettyPrint, numOfRowsShown)
   }
 }

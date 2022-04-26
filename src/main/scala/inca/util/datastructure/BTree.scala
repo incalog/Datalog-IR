@@ -52,11 +52,14 @@ class BTree[T: ClassTag](
     else root.toString
 }
 object BTree {
-  def empty[T: ClassTag](minDegree: Int = 256)(implicit ord: Ordering[T]): BTree[T] =
+  // Must be set based on machines L2 Cache Size
+  def GlobalMinDegree: Int = 64
+
+  def empty[T: ClassTag](minDegree: Int = GlobalMinDegree)(implicit ord: Ordering[T]): BTree[T] =
     new BTree[T](null, minDegree)
   def apply[T: ClassTag](
       entries: Seq[T],
-      minDegree: Int = 256
+      minDegree: Int = GlobalMinDegree
     )(implicit ord: Ordering[T]
     ): BTree[T] = {
     bulkLoad(entries.distinct.sorted, minDegree)
@@ -65,7 +68,7 @@ object BTree {
   // we assume sorted entries
   def bulkLoad[T: ClassTag](
       entries: Seq[T],
-      minDegree: Int = 256
+      minDegree: Int = GlobalMinDegree
     )(implicit ord: Ordering[T]
     ): BTree[T] = {
     val tree = BTree.empty[T](minDegree)
@@ -79,7 +82,7 @@ object BTree {
   private def bulkSubtree[T: ClassTag](
       tree: BTree[T],
       entries: Seq[T],
-      minDegree: Int = 256
+      minDegree: Int = GlobalMinDegree
     )(implicit ord: Ordering[T]
     ): BTreeNode[T] = {
     val maxNumKeys = 2 * minDegree - 1
