@@ -15,19 +15,11 @@ import smtlib.Interpreter
 import smtlib.interpreters.Z3Interpreter
 
 class GenerateSMTLIBTest extends AnyFunSuite {
-/*  test("test map") {
-    val verifier = new Verifier()
-    verifier.metaInfixIntOps.foreach{
-      case a@(x, y) => if(x.value == "==") {
-        print(x.isInstanceOf[meta.Term.Name], x.value.isInstanceOf[String],
-          x.value, x.equals(meta.Term.Name("==")))
-      }
-    }
-  }*/
+
   test("why doesnt joinInterval work?") {
     implicit val gensym:Gensym = new Gensym(Seq())
     val verifier = new Verifier()
-    val module = compiledIntervalLatticeInvariants.typed
+    val module = compiledIntegerOperationsModule.typed
     verifier.fillDicts(module)
     val aggregations = verifier.collectAggregations(module)
     val verificationScripts = aggregations.toSeq.map(ag => verifier.generateScript(ag._1, ag._2))

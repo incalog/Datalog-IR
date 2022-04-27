@@ -32,7 +32,7 @@ case object SatisfiedResponse extends Response
 case object UnsatisfiedResponse extends Response
 case object UnknownResponse extends Response
 
-case class VerifierException(msg: String) extends Exception
+case class VerifierException(msg: String) extends Exception(msg)
 
 class Verifier {
 
@@ -129,7 +129,8 @@ class Verifier {
   // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
   def generateScript(funcName: String, props: Seq[Property])(implicit gensym: Gensym): Script = {
     val calledFunctions: Seq[String] = collectCalledFunctions(functionDict(funcName))
-    val functions = (calledFunctions :+ funcName).distinct
+    val inverseFunctionCalls: Seq[String] = getInverseFunctionCalls(funcName)
+    val functions = (calledFunctions ++ inverseFunctionCalls :+ funcName).distinct
     val dataDefs = functions.flatMap(fName => collectUsedDataDefs(functionDict(fName))).distinct
     val transDataDefs = dataDefs.map(transDataDef)
     val transFuncDefs = transFunctionDefs(functions)
@@ -159,6 +160,21 @@ class Verifier {
         funcNameCollector.transFun(functionDict(f))).map(getHygienicName).filter(functionDict.contains)).distinct
     }
     functions
+  }
+
+  // Diese Funktion gibt hygienische Namen zurück
+  def getInverseFunctionCalls(funcName: String)(implicit gensym: Gensym): Seq[String] = {
+    val func = functionDict(funcName)
+    func.annos.flatMap {
+      case AggregationAnno(props) => props.flatMap {
+        case Invertibility(invName) =>
+          val hygInvName = getHygienicName(invName)
+          val invFunc = functionDict(hygInvName)
+          collectCalledFunctions(invFunc) :+ hygInvName
+        case _ => Seq()
+      }
+    case _ => Seq()
+    }
   }
 
   // Die Funktion gibt hygienische Namen zurück
@@ -403,6 +419,8 @@ class Verifier {
     prop match {
       case Associativity => PropertyScripts.associativity(aggrName, paramTypeName)
       case Commutativity => PropertyScripts.commutativity(aggrName, paramTypeName)
+      // TODO FunDef der Inversen einfügen mit allen aufgerufenen Datentypen und Funktionen
+      case Invertibility(invName) => PropertyScripts.invertibility(aggrName, getHygienicName(invName), paramTypeName)
     }
   }
 

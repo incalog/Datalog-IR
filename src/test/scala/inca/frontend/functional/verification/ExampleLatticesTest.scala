@@ -1,6 +1,6 @@
 package inca.frontend.functional.verification
 
-import inca.frontend.functional.core.{Associativity, Commutativity}
+import inca.frontend.functional.core.{Associativity, Commutativity, Invertibility}
 import inca.frontend.functional.verification.examples.Aggregations.{compiledDoubleOperationsModule, compiledIntegerOperationsModule, compiledStringOperationsModule}
 import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.functional.verification.examples.Lattices.{compiledBoolLattice, compiledConstLattice, compiledIntervalLattice, compiledIntervalLatticeInvariants, compiledModifiedIntervalLattice, compiledSignLattice, compiledSignValLattice}
@@ -37,7 +37,7 @@ class ExampleLatticesTest extends AnyFunSuite {
     val module = compiledIntegerOperationsModule.typed
     val verifier = new Verifier()
     assertResult(Map(
-      "add" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
+      "add" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse, Invertibility("sub") -> SatisfiedResponse),
       "sub" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse),
       "mult" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
       "div" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse),

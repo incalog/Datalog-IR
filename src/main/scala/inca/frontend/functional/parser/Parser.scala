@@ -69,9 +69,11 @@ trait Parser {
   protected[frontend] def aggrAnno[_: P]: P[AggregationAnno] =
     (P("@aggr(") ~ aggregationProp.rep(min = 0, sep = ",") ~ P(")")).map(AggregationAnno.apply)
 
-  protected[frontend] def aggregationProp[_: P]: P[AggregationProperty] = assocProp | commProp
+  protected[frontend] def aggregationProp[_: P]: P[AggregationProperty] = assocProp | commProp | invertProp
   protected[frontend] def assocProp[_: P]: P[Associativity.type] = P("assoc").map(_ => Associativity)
   protected[frontend] def commProp[_: P]: P[Commutativity.type] = P("comm").map(_ => Commutativity)
+  protected[frontend] def invertProp[_: P]: P[Invertibility] =
+    (P("invert(") ~ identifier ~ P(")")).map(id => Invertibility.apply(id.toString))
 
 
 
