@@ -11,9 +11,9 @@ object Aggregations {
     s"""module IntegerOperations
        |@aggr(assoc, comm, invert(sub)) def add(i1: Int, i2: Int): Int = i1 + i2
        |
-       |@aggr(assoc, comm) def sub(i1: Int, i2: Int): Int = i1 - i2
+       |@aggr(assoc, comm, invert(add)) def sub(i1: Int, i2: Int): Int = i1 - i2
        |
-       |@aggr(assoc, comm) def mult(i1: Int, i2: Int): Int = i1 * i2
+       |@aggr(assoc, comm, invert(div)) def mult(i1: Int, i2: Int): Int = i1 * i2
        |
        |@aggr(assoc, comm) def div(i1: Int, i2: Int): Int = i1 / i2
        |

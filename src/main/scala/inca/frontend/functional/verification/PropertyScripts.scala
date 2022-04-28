@@ -40,7 +40,7 @@ object PropertyScripts {
           FunctionApplication("and", Seq(
             FunctionApplication("=", Seq(FunctionApplication(aggrName, Seq("x", "y")), "z")),
             FunctionApplication("not", Seq(FunctionApplication("and", Seq(
-              FunctionApplication("=", Seq(FunctionApplication(inverseName, Seq("z", "x")), "y")),
+              // FunctionApplication("=", Seq(FunctionApplication(inverseName, Seq("z", "x")), "y")),
               FunctionApplication("=", Seq(FunctionApplication(inverseName, Seq("z", "y")), "x"))
             )))
           ))))),

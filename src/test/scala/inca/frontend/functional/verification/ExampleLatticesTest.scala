@@ -38,8 +38,9 @@ class ExampleLatticesTest extends AnyFunSuite {
     val verifier = new Verifier()
     assertResult(Map(
       "add" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse, Invertibility("sub") -> SatisfiedResponse),
-      "sub" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse),
-      "mult" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
+      "sub" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse, Invertibility("add") -> SatisfiedResponse),
+      // TODO mult nicht invertierbar, weil Multiplikation mit 0 nicht umkehrbar
+      "mult" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse, Invertibility("div") -> SatisfiedResponse),
       "div" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse),
       "incByTwo" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
       "min" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
