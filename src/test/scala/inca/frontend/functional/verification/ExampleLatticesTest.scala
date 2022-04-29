@@ -39,9 +39,9 @@ class ExampleLatticesTest extends AnyFunSuite {
     assertResult(Map(
       "add" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse, Invertibility("sub") -> SatisfiedResponse),
       "sub" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse, Invertibility("add") -> SatisfiedResponse),
-      // TODO mult nicht invertierbar, weil Multiplikation mit 0 nicht umkehrbar
-      "mult" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse, Invertibility("div") -> SatisfiedResponse),
-      "div" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse),
+      // TODO mult, div nicht invertierbar, weil Mult mit 0 und Div durch 0 nicht umkehrbar
+      "mult" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse, Invertibility("div") -> UnsatisfiedResponse),
+      "div" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse, Invertibility("mult") -> UnsatisfiedResponse),
       "incByTwo" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
       "min" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
       "pow" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse),
@@ -52,10 +52,10 @@ class ExampleLatticesTest extends AnyFunSuite {
     val module = compiledDoubleOperationsModule.typed
     val verifier = new Verifier()
     assertResult(Map(
-      "add" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
-      "sub" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse),
-      "mult" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
-      "div" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse),
+      "add" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse, Invertibility("sub") -> SatisfiedResponse),
+      "sub" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse, Invertibility("add") -> SatisfiedResponse),
+      "mult" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse, Invertibility("div") -> UnsatisfiedResponse),
+      "div" -> Map(Associativity -> UnsatisfiedResponse, Commutativity -> UnsatisfiedResponse, Invertibility("mult") -> UnsatisfiedResponse),
       "min" -> Map(Associativity -> SatisfiedResponse, Commutativity -> SatisfiedResponse),
     ))(verifier.verify(module))
   }
