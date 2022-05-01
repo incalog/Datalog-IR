@@ -23,7 +23,7 @@ object StratificationAnalysis {
     val scc = graph.stronglyConnectedComponents(false)
 
     scc.filter{ comp =>
-      val edges = comp.flatMap{ n => graph.edges(n) }
+      val edges = comp.flatMap{ n => graph.edges.getOrElse(n, List()) }
       val edgesOfComp = edges.filter { e => comp.contains(e._1) }
       edgesOfComp.exists {
         case (name, NegativeCall) => true

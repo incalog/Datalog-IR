@@ -1,7 +1,7 @@
 package inca.backend.transform.magic.demand
 
 import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.{Body, Call, Module, Pattern}
+import inca.backend.ir.Datalog.{Body, Call, Module, Pattern, Var}
 import inca.backend.transform.{Transformation, Transformer}
 import inca.runtime.context.DataModel
 import inca.backend.hints.MagicSetHints.NegativeIndirectionRelation
@@ -19,8 +19,9 @@ object NegationIndirectionTransformation extends Transformation {
       val patterns = module.pats.map(p => p.name -> p).toMap
       val negIndirectPatterns = negativelyCalledPatterns.map { call =>
         val pat = patterns(call.name)
+        val args = pat.params.map(p => Var(p.name))
         Pattern(pat.vis, negativeIndirectionName(call.name), pat.params, Seq(Body(Seq(
-          call.copy().withHints(call) // negative call of $name
+          Call(call.name, args, call.transitive, neg = true)
         )))).addHint(NegativeIndirectionRelation)
       }
       val newpats = transformedPats ++ negIndirectPatterns
