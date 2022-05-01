@@ -2,7 +2,7 @@ package inca.frontend.functional.compiler
 
 import inca.backend.optimize.Optimization
 import inca.backend.transform.Transformation
-import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPatterns}
+import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPatterns, NegationIndirectionTransformation}
 import inca.compiler.Options
 import inca.compiler.Options.defaultOptimizations
 import inca.frontend.functional.compiler.FunctionalOptions.defaultTransformations
@@ -32,6 +32,8 @@ case class FunctionalOptions(optimizations: Seq[Optimization] = defaultOptimizat
 object FunctionalOptions {
   val defaultTransformations: Seq[Transformation] = Seq(
     //    RemoveBodyOfUnusedDataConstructor,
+    NegationIndirectionTransformation,
     DeriveDemandPatterns,
-    DemandTransformation)
+    DemandTransformation
+    )
 }
