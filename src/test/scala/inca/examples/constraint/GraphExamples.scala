@@ -1,5 +1,6 @@
 package inca.examples.constraint
 
+import inca.backend.analyze.DependencyGraph
 import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.constraint.executor.ConstraintExecutor
 import inca.frontend.functional.compiler.FunctionalOptions
@@ -38,7 +39,6 @@ class GraphExamples extends AnyFunSuite {
         |  }
         |}
         |
-        |
         |def edges2(from: String): String = {
         |  vals g <- $graphTag
         |  foreach e in g.edges2 {
@@ -48,41 +48,32 @@ class GraphExamples extends AnyFunSuite {
         |}
         |
         |
-        |def blacklist(node: String): Unit = {
-        |  assert node == "z"
-        |}
-        |
         |@main
-        |def paths(from: String): String = {
-        |  yield edges(from)
-        |} union {
-        |  val inbetween = edges(from)
-        |  // assert undef blacklist(inbetween)
-        |  yield paths(inbetween)
-        |}
-        |
-        |@main
-        |def paths_u(from: String, to: String): Unit = {
+        |def paths(from: String, to: String): Unit = {
         |  assert to == edges(from)
         |} union {
         |  val inbetween = edges(from)
-        |  assert def paths_u(inbetween, to)
+        |  assert def paths(inbetween, to)
         |}
         |@main
         |def paths2(from: String, to: String): Unit = {
-        |  assert undef paths_u(from, to)
+        |  assert undef paths(from, to)
         |  assert to == edges2(from)
         |} union {
         |  val inbetween = edges2(from)
-        |  assert undef paths_u(from, to)
+        |  assert undef paths(from, to)
         |  assert def paths2(inbetween, to)
         |}
+        |
+        |
         |""".stripMargin
 
     //val loaded = ConstraintExecutor.loadAnalysis(code, ConstraintOptions())
     val loaded = ConstraintExecutor.loadAnalysis(code, ConstraintOptions().withTransformations(FunctionalOptions.defaultTransformations))
-    // println(new DependencyGraph(loaded.compiled.transformed).toGraphViz)
-    println(loaded.compiled.psystemSource)
+    //println(new DependencyGraph(loaded.compiled.transformed).toGraphViz)
+    println(loaded.compiled.transformed)
+    //println()
+    //println(loaded.compiled.psystemSource)
 
 //    val tree = Graph(List(Node("a"), Node("b"), Node("c")), List(Edge("a", "b"), Edge("b", "c")), List())
 //    val res1 = loaded.execute(tree, "paths", Tuples.flatTupleOf("a", "c"))
@@ -97,7 +88,7 @@ class GraphExamples extends AnyFunSuite {
                       List(Edge("a", "b"), Edge("b", "c"), Edge("b", "d"), Edge("c", "a")),
                       List(Edge("d", "e"), Edge("e", "c"), Edge("c", "d"), Edge("e", "f")))
     val res3 = loaded.execute(tree3, "paths2")
-    loaded.output("paths_u").foreach(println)
+    loaded.output("paths").foreach(println)
     println("updated")
     res3.foreach(println)
   }
