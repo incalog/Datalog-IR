@@ -290,7 +290,10 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
       callStack.update(Frame(next, frame.argsTable, Table.empty))
     } else {
       super.doBodyEntry(frame, cp)
-      skipAheadTo.head.foreach(doSkipAheadTo)
+      skipAheadTo.head.foreach {
+        // needed? stepOverIR()
+        doSkipAheadTo
+      }
     }
   }
 
