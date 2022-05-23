@@ -9,13 +9,13 @@ object Aggregations {
 
   val integerOperations =
     s"""module IntegerOperations
-       |@aggr(assoc, comm, invert(sub)) def add(i1: Int, i2: Int): Int = i1 + i2
+       |@aggr(assoc, comm, unapply(sub)) def add(i1: Int, i2: Int): Int = i1 + i2
        |
-       |@aggr(assoc, comm, invert(add)) def sub(i1: Int, i2: Int): Int = i1 - i2
+       |@aggr(assoc, comm, unapply(add)) def sub(i1: Int, i2: Int): Int = i1 - i2
        |
-       |@aggr(assoc, comm, invert(div)) def mult(i1: Int, i2: Int): Int = i1 * i2
+       |@aggr(assoc, comm, unapply(div)) def mult(i1: Int, i2: Int): Int = i1 * i2
        |
-       |@aggr(assoc, comm, invert(mult)) def div(i1: Int, i2: Int): Int = i1 / i2
+       |@aggr(assoc, comm, unapply(mult)) def div(i1: Int, i2: Int): Int = i1 / i2
        |
        |@aggr(assoc, comm) def incByTwo(x: Int, y: Int): Int = x + y + 1
        |
@@ -28,13 +28,13 @@ object Aggregations {
 
   val doubleOperations =
     s"""module DoubleOperations
-       |@aggr(assoc, comm, invert(sub)) def add(d1: Double, d2: Double): Double = d1 + d2
+       |@aggr(assoc, comm, unapply(sub)) def add(d1: Double, d2: Double): Double = d1 + d2
        |
-       |@aggr(assoc, comm, invert(add)) def sub(d1: Double, d2: Double): Double = d1 - d2
+       |@aggr(assoc, comm, unapply(add)) def sub(d1: Double, d2: Double): Double = d1 - d2
        |
-       |@aggr(assoc, comm, invert(div)) def mult(d1: Double, d2: Double): Double = d1 * d2
+       |@aggr(assoc, comm, unapply(div)) def mult(d1: Double, d2: Double): Double = d1 * d2
        |
-       |@aggr(assoc, comm, invert(mult)) def div(d1: Double, d2: Double): Double = d1 / d2
+       |@aggr(assoc, comm, unapply(mult)) def div(d1: Double, d2: Double): Double = d1 / d2
        |
        |@aggr(assoc, comm) def min(d1: Double, d2: Double): Double = if(d1 < d2) d1 else d2
        |""".stripMargin

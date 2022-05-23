@@ -55,7 +55,7 @@ case object Commutativity extends AggregationProperty {
   override def name: String = "comm"
   override def inverseName: Option[String] = None
 }
-case class Invertibility(invName: String) extends AggregationProperty {
-  override def name: String = s"invert($invName)"
-  override def inverseName: Option[String] = Some(invName)
+case class HasUnapply(unapplyName: String) extends AggregationProperty {
+  override def name: String = s"unapply($unapplyName)"
+  override def inverseName: Option[String] = Some(unapplyName)
 }
