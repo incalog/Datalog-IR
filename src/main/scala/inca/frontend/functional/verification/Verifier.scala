@@ -330,8 +330,8 @@ class Verifier {
         }
 
       // TODO implement
-      case Tuple(exps) => ???
-      case BaseApply(fun, args) => ???
+      case Tuple(_) => ???
+      case BaseApply(_, _) => ???
     }
   }
 
@@ -342,7 +342,7 @@ class Verifier {
       case Associativity => PropertyScripts.associativity(aggrName, paramTypeName)
       case Commutativity => PropertyScripts.commutativity(aggrName, paramTypeName)
       // TODO FunDef der Inversen einfügen mit allen aufgerufenen Datentypen und Funktionen
-      case HasUnapply(invName) => PropertyScripts.invertibility(aggrName, getHygienicName(invName), paramTypeName)
+      case HasUnapply(invName) => PropertyScripts.hasUnapply(aggrName, getHygienicName(invName), paramTypeName)
     }
   }
 
@@ -397,7 +397,7 @@ class Verifier {
     "/" -> integerDivision
   )
 
-  val metaInfixRealOps: Map[String, (Term, Term) => Term] = transformInfixMap(Map(
+  val infixRealOpsMap = Map(
     "+" -> "+",
     "-" -> "-",
     "*" -> "*",
@@ -408,7 +408,9 @@ class Verifier {
     ">=" -> ">=",
     "==" -> "=",
     "!=" -> "distinct"
-  ))
+  )
+
+  val metaInfixRealOps: Map[String, (Term, Term) => Term] = transformInfixMap(infixRealOpsMap)
 
   def transformInfixMapRightArgToReal(inputMap: Map[String, String]): Map[String, (Term, Term) => Term] = inputMap.map(x =>
     (x._1, (left: Term, right: Term) =>
@@ -424,31 +426,9 @@ class Verifier {
         right
       ))))
 
-  val metaInfixIntRealOps: Map[String, (Term, Term) => Term] = transformInfixMapRightArgToReal(Map(
-    "+" -> "+",
-    "-" -> "-",
-    "*" -> "*",
-    "/" -> "/",
-    "<" -> "<",
-    ">" -> ">",
-    "<=" -> "<=",
-    ">=" -> ">=",
-    "==" -> "=",
-    "!=" -> "distinct"
-  ))
+  val metaInfixIntRealOps: Map[String, (Term, Term) => Term] = transformInfixMapRightArgToReal(infixRealOpsMap)
 
-  val metaInfixRealIntOps: Map[String, (Term, Term) => Term] = transformInfixMapLeftArgToReal(Map(
-    "+" -> "+",
-    "-" -> "-",
-    "*" -> "*",
-    "/" -> "/",
-    "<" -> "<",
-    ">" -> ">",
-    "<=" -> "<=",
-    ">=" -> ">=",
-    "==" -> "=",
-    "!=" -> "distinct"
-  ))
+  val metaInfixRealIntOps: Map[String, (Term, Term) => Term] = transformInfixMapLeftArgToReal(infixRealOpsMap)
 
   val metaInfixBoolOps: Map[String, (Term, Term) => Term] = transformInfixMap(Map(
     "&&" -> "and",

@@ -1,13 +1,11 @@
 package inca.frontend.functional.verification.examples
 
-import inca.frontend.functional.core._
-import inca.frontend.functional.parser.Parser
 import inca.compiler.Compiler
-import inca.frontend.functional.compiler.FunctionalOptions
+import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
 
 object Lattices {
 
-  val signLattice =
+  val signLattice: String =
     s"""module SignLattice
        |data Sign = Top() | Bot() | Pos() | Zero() | Neg()
        |
@@ -38,11 +36,9 @@ object Lattices {
        |}
        |""".stripMargin
 
-  //val signLatticeModule: Module = Parser.parse(signLattice)
+  val compiledSignLattice: CompiledFunctionalModule = Compiler.compileFunctional(signLattice, FunctionalOptions())
 
-  val compiledSignLattice = Compiler.compileFunctional(signLattice, FunctionalOptions())
-
-  val constLattice =
+  val constLattice: String =
     s"""module ConstantPropagationLattice
        |data Constant = Bot() | Num(Int) | Top()
        |
@@ -58,9 +54,9 @@ object Lattices {
        |""".stripMargin
 
 
-  val compiledConstLattice = Compiler.compileFunctional(constLattice, FunctionalOptions())
+  val compiledConstLattice: CompiledFunctionalModule = Compiler.compileFunctional(constLattice, FunctionalOptions())
 
-  val signValLattice =
+  val signValLattice: String =
     s"""module SignValLattice
        |data Val = Top() | Bot() | BoolVal(Bool) | SignVal(Sign)
        |data Bool = TopBool() | BotBool() | True() | False()
@@ -128,9 +124,9 @@ object Lattices {
        |}
        |""".stripMargin
 
-  val compiledSignValLattice = Compiler.compileFunctional(signValLattice, FunctionalOptions())
+  val compiledSignValLattice: CompiledFunctionalModule = Compiler.compileFunctional(signValLattice, FunctionalOptions())
 
-  val intervalLattice =
+  val intervalLattice: String =
     """module IntervalLattice
       |data Interval = IV(Int, Int) | TopInterval()
       |data Bool = True() | False() | TopBool()
@@ -185,9 +181,9 @@ object Lattices {
       |}""".stripMargin
 
 
-  val compiledIntervalLattice = Compiler.compileFunctional(intervalLattice, FunctionalOptions())
+  val compiledIntervalLattice: CompiledFunctionalModule = Compiler.compileFunctional(intervalLattice, FunctionalOptions())
 
-  val modifiedIntervalLattice =
+  val modifiedIntervalLattice: String =
     """module IntervalLattice
       |data Interval = IV(Int, Int) | TopInterval()
       |data Bool = True() | False() | TopBool()
@@ -241,9 +237,9 @@ object Lattices {
       |  case TopBool() => TopBool()
       |}""".stripMargin
 
-  val compiledModifiedIntervalLattice = Compiler.compileFunctional(modifiedIntervalLattice, FunctionalOptions())
+  val compiledModifiedIntervalLattice: CompiledFunctionalModule = Compiler.compileFunctional(modifiedIntervalLattice, FunctionalOptions())
 
-  val intervalLatticeInvariants =
+  val intervalLatticeInvariants: String =
     """module IntervalLattice
       |@uses(intervalBounds) data Interval = IV(Int, Int) | TopInterval()
       |data Bool = True() | False() | TopBool()
@@ -302,9 +298,9 @@ object Lattices {
       |  case TopBool() => TopBool()
       |}""".stripMargin
 
-  val compiledIntervalLatticeInvariants = Compiler.compileFunctional(intervalLatticeInvariants, FunctionalOptions())
+  val compiledIntervalLatticeInvariants: CompiledFunctionalModule = Compiler.compileFunctional(intervalLatticeInvariants, FunctionalOptions())
 
-  val boolLattice =
+  val boolLattice: String =
     """module BoolLattice
       |data Bool = True() | False() | TopBool()
       |
@@ -323,17 +319,5 @@ object Lattices {
       |}
       |""".stripMargin
 
-  val compiledBoolLattice = Compiler.compileFunctional(boolLattice, FunctionalOptions())
-
-  val intDivExample =
-    s"""module M
-       |@main def main(): Double = 1 / 2
-       |""".stripMargin
-  val intDivModule = {
-
-    val res = Compiler.compileFunctional(intDivExample, FunctionalOptions())
-    val typed = res.typed
-    res
-  }
-
+  val compiledBoolLattice: CompiledFunctionalModule = Compiler.compileFunctional(boolLattice, FunctionalOptions())
 }

@@ -31,7 +31,7 @@ object PropertyScripts {
     )
   }
 
-  def invertibility(aggrName: String, inverseName: String, paramTypeName: String): Script = {
+  def hasUnapply(aggrName: String, unapplyName: String, paramTypeName: String): Script = {
     val sort = Sort(paramTypeName)
     Script(
       List(
@@ -41,7 +41,7 @@ object PropertyScripts {
             FunctionApplication("=", Seq(FunctionApplication(aggrName, Seq("x", "y")), "z")),
             FunctionApplication("not", Seq(FunctionApplication("and", Seq(
               // FunctionApplication("=", Seq(FunctionApplication(inverseName, Seq("z", "x")), "y")),
-              FunctionApplication("=", Seq(FunctionApplication(inverseName, Seq("z", "y")), "x"))
+              FunctionApplication("=", Seq(FunctionApplication(unapplyName, Seq("z", "y")), "x"))
             )))
           ))))),
         CheckSat(),
