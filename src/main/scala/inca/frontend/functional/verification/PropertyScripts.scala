@@ -1,21 +1,26 @@
 package inca.frontend.functional.verification
 
+import smtlib.theories.Core
 import smtlib.trees.Commands._
 import smtlib.trees.Terms._
+
 import scala.language.implicitConversions
 
 object PropertyScripts {
 
-  def commutativity(aggrName: String, paramTypeName: String): Script = Script(
-    List(
-      Push(1),
-      Assert(Exists(SortedVar("x", Sort(paramTypeName)), Seq(SortedVar("y", Sort(paramTypeName))),
-        FunctionApplication("not", Seq(FunctionApplication("=", Seq(
-          FunctionApplication(aggrName, Seq("x", "y")),
-          FunctionApplication(aggrName, Seq("y", "x")))))))),
-      CheckSat(),
-      Pop(1))
-  )
+  def commutativity(aggrName: String, paramTypeName: String): Script = {
+    val sort = Sort(paramTypeName)
+    Script(
+      List(
+        Push(1),
+        Assert(Exists(SortedVar("x", sort), Seq(SortedVar("y", sort)),
+          FunctionApplication("not", Seq(FunctionApplication("=", Seq(
+            FunctionApplication(aggrName, Seq("x", "y")),
+            FunctionApplication(aggrName, Seq("y", "x")))))))),
+        CheckSat(),
+        Pop(1))
+    )
+  }
 
   def associativity(aggrName: String, paramTypeName: String): Script = {
     val sort = Sort(paramTypeName)
@@ -47,6 +52,47 @@ object PropertyScripts {
         CheckSat(),
         Pop(1)
       )
+    )
+  }
+
+  def reflexivity(relName: String, dataName: String): Script = {
+    val sort = Sort(dataName)
+    Script(
+      List(
+        Push(1),
+        Assert(Exists(SortedVar("x", sort), Seq(),
+          FunctionApplication("not", Seq(FunctionApplication("=", Seq(
+            FunctionApplication(relName, Seq("x", "x")),
+            Core.BoolConst(true))))))),
+        CheckSat(),
+        Pop(1))
+    )
+  }
+
+  //TODO testen, ob es auch ohne ==true geht
+  def transitivity(relName: String, dataName: String): Script = {
+    val sort = Sort(dataName)
+    Script(
+      List(
+        Push(1),
+        Assert(Exists(SortedVar("x", sort), Seq(SortedVar("y", sort), SortedVar("z", sort)),
+          FunctionApplication("and", Seq(
+            FunctionApplication("and", Seq(
+              FunctionApplication("=", Seq(
+                FunctionApplication(relName, Seq("x", "y")),
+                Core.BoolConst(true))),
+              FunctionApplication("=", Seq(
+                FunctionApplication(relName, Seq("y", "z")),
+                Core.BoolConst(true)))
+            )),
+            FunctionApplication("not", Seq(
+              FunctionApplication("=", Seq(
+                FunctionApplication(relName, Seq("x", "z")),
+                Core.BoolConst(true)))
+            ))
+          )))),
+        CheckSat(),
+        Pop(1))
     )
   }
 

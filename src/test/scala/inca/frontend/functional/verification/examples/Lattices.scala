@@ -38,6 +38,70 @@ object Lattices {
 
   val compiledSignLattice: CompiledFunctionalModule = Compiler.compileFunctional(signLattice, FunctionalOptions())
 
+  val signLatticeWithPartialOrder: String =
+    s"""module SignLattice
+       |data Sign = Top() | Bot() | Pos() | Zero() | Neg()
+       |
+       |def leq(s1: Sign, s2: Sign): Boolean = s1 match {
+       |  case Top() => s2 match {
+       |    case Top() => true
+       |    case Bot() => false
+       |    case Pos() => false
+       |    case Zero() => false
+       |    case Neg() => false
+       |  case Bot() => true
+       |  case Pos() => s2 match {
+       |    case Top() => true
+       |    case Bot() => false
+       |    case Pos() => true
+       |    case Zero() => false
+       |    case Neg() => false
+       |  }
+       |  case Zero() => s2 match {
+       |    case Top() => true
+       |    case Bot() => false
+       |    case Pos() => false
+       |    case Zero() => true
+       |    case Neg() => false
+       |  }
+       |  case Neg() => s2 match {
+       |    case Top() => true
+       |    case Bot() => false
+       |    case Pos() => false
+       |    case Zero() => false
+       |    case Neg() => true
+       |  }
+       |}
+       |
+       |@aggr(assoc, comm) def join(s1: Sign, s2: Sign): Sign = s1 match {
+       |  case Top() => Top()
+       |  case Bot() => s2
+       |  case Pos() => s2 match {
+       |    case Top() => Top()
+       |    case Bot() => s1
+       |    case Pos() => Pos()
+       |    case Zero() => Top()
+       |    case Neg() => Top()
+       |  }
+       |  case Zero() => s2 match {
+       |    case Top() => Top()
+       |    case Bot() => s1
+       |    case Pos() => Top()
+       |    case Zero() => Zero()
+       |    case Neg() => Top()
+       |  }
+       |  case Neg() => s2 match {
+       |    case Top() => Top()
+       |    case Bot() => s1
+       |    case Pos() => Top()
+       |    case Zero() => Top()
+       |    case Neg() => Neg()
+       |  }
+       |}
+       |""".stripMargin
+
+  // val compiledSignLatticeWithPartialOrder: CompiledFunctionalModule = Compiler.compileFunctional(signLatticeWithPartialOrder, FunctionalOptions())
+
   val constLattice: String =
     s"""module ConstantPropagationLattice
        |data Constant = Bot() | Num(Int) | Top()
