@@ -39,6 +39,42 @@ object Aggregations {
 
   val compiledDoubleOperationsModule: CompiledFunctionalModule = Compiler.compileFunctional(doubleOperations, FunctionalOptions())
 
+  val nonZeroDoubles: String =
+    s"""module nonZeroDoubles
+       |@uses(notZero) data nonZeroDouble = D(d: Double)
+       |
+       |@invariant def notZero(nzd: nonZeroDouble): Boolean = nzd match {
+       |  case D(d) => if(d != 0) true else false
+       |  case Zero() => false
+       |}
+       |
+       |@aggr(assoc, comm, unapply(sub)) def add(nzd1: nonZeroDouble, nzd2: nonZeroDouble): nonZeroDouble = nzd1 match {
+       |  case D(d1) => nzd2 match {
+       |    case D(d2) => d1 + d2
+       |  }
+       |}
+       |
+       |@aggr(assoc, comm, unapply(add)) def sub(nzd1: nonZeroDouble, nzd2: nonZeroDouble): nonZeroDouble = nzd1 match {
+       |  case D(d1) => nzd2 match {
+       |    case D(d2) => d1 - d2
+       |  }
+       |}
+       |
+       |@aggr(assoc, comm, unapply(div)) def mul(nzd1: nonZeroDouble, nzd2: nonZeroDouble): nonZeroDouble = nzd1 match {
+       |  case D(d1) => nzd2 match {
+       |    case D(d2) => d1 * d2
+       |  }
+       |}
+       |
+       |@aggr(assoc, comm, unapply(mul)) def div(nzd1: nonZeroDouble, nzd2: nonZeroDouble): nonZeroDouble = nzd1 match {
+       |  case D(d1) => nzd2 match {
+       |    case D(d2) => d1 / d2
+       |  }
+       |}
+       |""".stripMargin
+
+  val compiledNonZeroDoublesModule = 0 // Compiler.compileFunctional(nonZeroDoubles, FunctionalOptions())
+
   val stringOperations: String =
     """module StringOperations
       |@aggr(assoc, comm) def concat(s1: String, s2: String): String = s1 + s2

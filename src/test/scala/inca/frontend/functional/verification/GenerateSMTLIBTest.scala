@@ -8,7 +8,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import smtlib.trees.Commands.PropLiteral
 import smtlib.trees.Terms.SSymbol
 import inca.frontend.functional.verification.Verifier
-import inca.frontend.functional.verification.examples.Aggregations.compiledIntegerOperationsModule
+import inca.frontend.functional.verification.examples.Aggregations.{compiledDoubleOperationsModule, compiledIntegerOperationsModule, compiledNonZeroDoublesModule}
 import inca.frontend.functional.verification.examples.Lattices.{compiledConstLattice, compiledIntervalLattice, compiledIntervalLatticeInvariants, compiledSignLattice, compiledSignValLattice, intervalLattice, signValLattice}
 import inca.util.Gensym
 import smtlib.Interpreter
@@ -16,10 +16,10 @@ import smtlib.interpreters.Z3Interpreter
 
 class GenerateSMTLIBTest extends AnyFunSuite {
 
-  test("why doesnt joinInterval work?") {
+  test("why doesnt nonZeroDouble work?") {
     implicit val gensym:Gensym = new Gensym(Seq())
     val verifier = new Verifier()
-    val module = compiledIntegerOperationsModule.typed
+    val module = compiledDoubleOperationsModule.typed
     verifier.fillDicts(module)
     val aggregations = verifier.collectAggregations(module)
     val verificationScripts = aggregations.toSeq.map(ag => verifier.generateScript(ag._1, ag._2))

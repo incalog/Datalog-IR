@@ -1,7 +1,7 @@
 package inca.frontend.functional.verification
 
 import inca.frontend.functional.core.{Associativity, Commutativity, HasUnapply}
-import inca.frontend.functional.verification.examples.Aggregations.{compiledDoubleOperationsModule, compiledIntegerOperationsModule, compiledStringOperationsModule}
+import inca.frontend.functional.verification.examples.Aggregations.{compiledDoubleOperationsModule, compiledIntegerOperationsModule, compiledNonZeroDoublesModule, compiledStringOperationsModule}
 import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.functional.verification.examples.Lattices.{compiledBoolLattice, compiledConstLattice, compiledIntervalLattice, compiledIntervalLatticeInvariants, compiledModifiedIntervalLattice, compiledSignLattice, compiledSignValLattice}
 
@@ -59,6 +59,18 @@ class ExampleLatticesTest extends AnyFunSuite {
       "min" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
     ))(verifier.verify(module))
   }
+
+/*    test("test nonZeroDoubles module verification") {
+    val module = compiledNonZeroDoublesModule.typed
+    val verifier = new Verifier()
+    assertResult(Map(
+      "add" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse, HasUnapply("sub") -> VerifiedResponse),
+      "sub" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse, HasUnapply("add") -> VerifiedResponse),
+      "mult" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse, HasUnapply("div") -> VerifiedResponse),
+      "div" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse, HasUnapply("mult") -> VerifiedResponse),
+      "min" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
+    ))(verifier.verify(module))
+  }*/
 
   test("test stringOperations module verification") {
     val module = compiledStringOperationsModule.typed
