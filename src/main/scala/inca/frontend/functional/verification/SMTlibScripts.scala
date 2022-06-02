@@ -6,7 +6,7 @@ import smtlib.trees.Terms._
 
 import scala.language.implicitConversions
 
-object PropertyScripts {
+object SMTlibScripts {
 
   def commutativity(aggrName: String, paramTypeName: String): Script = {
     val sort = Sort(paramTypeName)
@@ -53,6 +53,19 @@ object PropertyScripts {
         Pop(1)
       )
     )
+  }
+
+  def invariant(dataName: String, relName: String, freshVarName: String): Script = {
+    val sort = Sort(dataName)
+    Script(List(
+      Assert(Forall(SortedVar(freshVarName, sort), Seq(),
+        FunctionApplication("=", Seq(
+          FunctionApplication(relName, Seq(
+            freshVarName
+          )),
+            Core.BoolConst(true)
+        )))
+      )))
   }
 
   def reflexivity(relName: String, dataName: String): Script = {

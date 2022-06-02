@@ -31,6 +31,7 @@ class Verifier {
   val varMem: mutable.Map[String, String] = mutable.Map()
   val functionDict: mutable.Map[String, FunctionDef] = mutable.Map()
   val dataDict: mutable.Map[String, DataDef] = mutable.Map()
+  val partialOrders: mutable.Map[(String, String), Boolean] = mutable.Map()
 
   // TODO theoretically we need to pass a list of protected words in SMTlib to Gensym,
   //  but Gensym renames everything anyway, so it makes no difference
@@ -40,7 +41,7 @@ class Verifier {
     fillDicts(module)
     val aggregations: Map[String, Seq[Property]] = collectAggregations(module)
     val verificationScripts: Seq[Script] = aggregations.toSeq.map(ag => generateScript(ag._1, ag._2))
-    val verificationResults = verificationScripts.zip(aggregations).map(s => getInterpResult(s._1, s._2._2))
+    val verificationResults = verificationScripts.zip(aggregations).map(s => getPropertyEval(s._1, s._2._2))
     combineVerificationResults(aggregations, verificationResults)
   }
 
@@ -88,7 +89,12 @@ class Verifier {
     aggrPropCollector.transFun(func)
   }
 
-  def getInterpResult(s: Script, props: Seq[Property]): Map[Property, Response] = {
+  def getPropertyEval(s: Script, props: Seq[Property]): Map[Property, Response] = {
+    val evalResults = evaluateScript(s)
+    props.zip(evalResults).toMap
+  }
+
+  def evaluateScript(s: Script): Seq[Response] = {
     val interp = Z3Interpreter.buildDefault
     val evalResults: mutable.ListBuffer[Response] = mutable.ListBuffer()
     s.commands.foreach {
@@ -105,7 +111,7 @@ class Verifier {
           case _ =>
         }
     }
-    props.zip(evalResults).toMap
+    evalResults.toSeq
   }
 
   // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
@@ -116,7 +122,7 @@ class Verifier {
     val dataDefs = functions.flatMap(fName => collectUsedDataDefs(functionDict(fName))).distinct
     val transDataDefs = dataDefs.map(transDataDef)
     val transFuncDefs = transFunctionDefs(functions)
-    val transProps = props.map(transProperty(_, funcName))
+    val transProps = props.map(transAggrProperty(_, funcName))
     makeScript(transDataDefs ++ Seq(transFuncDefs) ++ transProps)
   }
 
@@ -183,6 +189,7 @@ class Verifier {
     val data = dataDict(dataName)
     val invariantScripts = data.annos.flatMap{
       case UsesInvariantAnno(invariantNames) => Seq(generateInvariantsScript(invariantNames.map(_.name), dataName))
+      // case PartialOrderAnnotation(relName) => verifyPartialOrder(relName, dataName)
       case _ => Seq()
     }
     val transConstrs = data.constrs.map(transDataConstructor)
@@ -200,25 +207,34 @@ class Verifier {
   }
 
   def generateInvariantsScript(invariantNames: Seq[String], dataName: String)(implicit gensym:Gensym): Script = {
-    invariantNames.foreach { name =>
-      if(!functionDict.contains(getHygienicName(name)))
-        throw VerifierException(s"Invariant Function $name called by data $dataName is not implemented")
-    }
     makeScript(invariantNames.map(name => {
-      val hygienicName = getHygienicName(name)
-      val invariantFuncScript = transFunctionDefs(Seq(hygienicName))
-      val forallVariableName = gensym.fresh(dataName)
-      val invariantAssertion = Script(List(
-        Assert(smtForall(Seq(smtSortedVar(forallVariableName, dataName)),
-          smtCall("=", Seq(
-            smtCall(hygienicName, Seq(
-              smtVarCall(forallVariableName)
-            )),
-            smtTrue()
-          ))))
-      ))
-      makeScript(Seq(invariantFuncScript, invariantAssertion))
+      val hygienicInvariantName = getHygienicName(name)
+      if(!functionDict.contains(hygienicInvariantName))
+        throw VerifierException(s"Invariant Function $name called by data $dataName is not implemented")
+      val invariantFunScript = transFunctionDefs(Seq(hygienicInvariantName))
+      val freshVarName = gensym.fresh(dataName)
+      val invariantAssertion = SMTlibScripts.invariant(dataName, hygienicInvariantName, freshVarName)
+      makeScript(Seq(invariantFunScript, invariantAssertion))
     }))
+  }
+
+  def verifyPartialOrder(relName: String, dataName: String)(implicit gensym: Gensym): Unit = {
+    val hygienicRelName = getHygienicName(relName)
+    // TODO confirm coorect signature (data, data) -> Boolean
+    if(!functionDict.contains(hygienicRelName)) throw VerifierException(s"Relation Function $relName called by data $dataName is not implemented")
+    if(partialOrders.contains((hygienicRelName, dataName))) return
+    val funScript = transFunctionDefs(Seq(relName))
+    val partialOrderVerScript = makeScript(Seq(funScript,
+      SMTlibScripts.reflexivity(hygienicRelName, dataName),
+      SMTlibScripts.transitivity(hygienicRelName, dataName)))
+    val evalResults = evaluateScript(partialOrderVerScript)
+    if(evalResults.contains(FalsifiedResponse)){
+      throw VerifierException(
+        s"""Relation $relName was proven not to be a partial order for data $dataName. Evaluation results:
+           |reflexivity: ${evalResults.head}
+           |transitivity: ${evalResults(1)}
+           |""".stripMargin)
+    } else {partialOrders += (hygienicRelName, dataName) -> true}
   }
 
   // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
@@ -336,13 +352,13 @@ class Verifier {
   }
 
   // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
-  def transProperty(prop: Property, aggrName: String)(implicit gensym: Gensym): Script = {
+  def transAggrProperty(prop: Property, aggrName: String)(implicit gensym: Gensym): Script = {
     val paramTypeName = getParamTypeName(aggrName)
     prop match {
-      case Associativity => PropertyScripts.associativity(aggrName, paramTypeName)
-      case Commutativity => PropertyScripts.commutativity(aggrName, paramTypeName)
+      case Associativity => SMTlibScripts.associativity(aggrName, paramTypeName)
+      case Commutativity => SMTlibScripts.commutativity(aggrName, paramTypeName)
       // TODO FunDef der Inversen einfügen mit allen aufgerufenen Datentypen und Funktionen
-      case HasUnapply(invName) => PropertyScripts.hasUnapply(aggrName, getHygienicName(invName), paramTypeName)
+      case HasUnapply(invName) => SMTlibScripts.hasUnapply(aggrName, getHygienicName(invName), paramTypeName)
     }
   }
 
