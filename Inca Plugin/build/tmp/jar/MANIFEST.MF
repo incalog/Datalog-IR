@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Created-By: Gradle 7.1
+Build-JVM: 11.0.15 (Oracle Corporation 11.0.15+8-LTS-149)
+Version: 1.0-SNAPSHOT
+Build-Plugin: Gradle IntelliJ Plugin
+Build-Plugin-Version: 1.6.0
+Build-OS: Windows 10 10.0 amd64
+Build-SDK: IC-2021.2.3
+
