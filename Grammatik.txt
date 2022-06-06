@@ -1,0 +1,115 @@
+
+
+Module ::= 'module ' Id Import* ModuleContent*  
+
+Id ::= Char NumChar*
+
+Char ::= 'A' | ... | 'Z' | 'a' | ... | 'z' | '_'  
+
+Num ::= '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'  
+
+NumChar ::= Num | Char
+
+Import ::= 'import ' Id  
+
+ModuleContent ::= FunDef | DataDef  
+
+FunDef ::= Annotation* Visibility? ' def ' Id '(' ParamList '):' TypeAnnotation '=' Exp  
+
+ParamList ::= epsilon | Param (',' Param)*  
+
+Param ::= Id ':' TypeAnnotaion  
+
+Annotation ::= '@main' ------------------------------------------------ only one?   
+ 
+Visibility ::= 'private' ---------------------------------------------- only one?  
+
+DataDef ::=  Annotation* Visibility? ' data ' Id '=' DataConstructor  
+
+DataConstructor ::= ---------------------------------------------------  
+
+TypeAnnotation ::= FunType | AtomicType
+
+FunType ::= AtomicType '=>' TypeAnnotation  
+
+AtomicType ::= Tuple | 'Any' | 'Nothing' | 'Unit' | Option | Set | ScalaType | Data
+
+Tuple ::= '(' ')' | '(' TypeAnnotation (',' TypeAnnotation)* ')'  
+
+Option ::= 'Option' '[' TypeAnnotation ']'   
+
+Set ::= 'Set' '[' TypeAnnotation ']'   
+
+ScalaType ::= 'Int' | 'Long' | 'String' | 'Boolean' | 'Double' | '`'    
+
+Exp ::= IfExp | LetExp | MemberExp | InfixExp
+
+IfExp ::= 'if' '(' Exp ')' Exp 'else' Exp  
+
+LetExp ::= 'let ' Id (':' TypeAnnotation)? '=' InfixExp ' in ' Exp |
+	   '(' Id ',' Id (',' Id)* ')' (':' TypeAnnotation)? '=' InfixExp ' in ' Exp ----------------------------------------- kein 'let ' für multiple Let?  
+
+MemberExp ::=   
+
+InfixExp ::=  CastExp | BaseApplyMethodExp | BaseApplyInfixExp | MatchExp | SubinfixExp   
+
+CastExp ::= SubinfixExp '.as[' TData ']'  
+
+TData ::=  -----------------------------------------------------------------------
+
+BaseApplyMethodExp ::=   
+
+BaseApplyInfixExp ::=   
+
+MatchExp ::= 'match' '{' MatchCase* '}'     
+
+MatchCase ::= 'case' Pattern '=>' Exp   
+
+Pattern ::= OptionPattern | ConstructorPattern   
+
+OptionPattern ::= 'None' | 'Some'    
+
+ConstructorPattern ::= Id '(' Id (',' Id)* ')' | Id '(' ')'    
+
+SubinfixExp ::= CallExp | LambdaExp | AtomicExp   
+
+Call Exp ::=  AtomicExp '(' Exp (',' Exp)* ')' | AtomicExp '(' ')'   
+
+LambdaExp ::= LambdaVars '=>' Exp   
+
+LambdaVars ::= '(' Id ':' TypeAnnotation (',' TypeAnnotation)* ')'
+
+AtomicExp ::= ParensExp | OptionExp | ComprehensionExp | ConstSetExp | TupleExp | FoldExp | BaseApplyExp | BaseLitExp | Variable | BaseApplyUnaryExp  
+
+ParensExp ::= '(' Exp ')'   
+
+OptionExp ::= 'None' | 'Some' '(' ')' | Some '(' Exp (',' Exp)* ')'   
+
+CopmrehensionExp ::=   
+
+ConstSetExp ::=
+
+TupleExp ::= '(' Exp ',' Exp ')'
+
+FoldExp ::= 'fold' ('[' TypeAnnotation ']')? '(' Exp ',' Exp ',' Exp ')'  
+
+BaseApplyExp ::=   
+
+BaseLitExp ::=  
+
+Variable ::= Id  
+
+BaseApplyUnaryExp ::= 
+
+
+
+
+
+
+
+
+
+
+
+
+
