@@ -20,13 +20,13 @@ ParamList ::= epsilon | Param (',' Param)*
 
 Param ::= Id ':' TypeAnnotaion  
 
-Annotation ::= '@main' ------------------------------------------------ only one?   
+Annotation ::= '@main'   
  
-Visibility ::= 'private' ---------------------------------------------- only one?  
+Visibility ::= 'private'  
 
-DataDef ::=  Annotation* Visibility? ' data ' Id '=' DataConstructor  
+DataDef ::=  Annotation* Visibility? ' data ' Id '=' DataConstructor ('|' DataConstructor)* 
 
-DataConstructor ::= ---------------------------------------------------  
+DataConstructor ::= Id '(' TypeAnnotation (',' TypeAnnotation)* ')' | Id '(' ')' 
 
 TypeAnnotation ::= FunType | AtomicType
 
@@ -47,19 +47,21 @@ Exp ::= IfExp | LetExp | MemberExp | InfixExp
 IfExp ::= 'if' '(' Exp ')' Exp 'else' Exp  
 
 LetExp ::= 'let ' Id (':' TypeAnnotation)? '=' InfixExp ' in ' Exp |
-	   '(' Id ',' Id (',' Id)* ')' (':' TypeAnnotation)? '=' InfixExp ' in ' Exp ----------------------------------------- kein 'let ' für multiple Let?  
+	   'let ' '(' Id (':' TypeAnnotation)? (',' Id (':' TypeAnnotation)?)* ')' '=' InfixExp ' in ' Exp
+------------------------------ InfixExp? und wie kann ich gleiche anzahl von variablennamen und bounds garantieren? let (x, y) = (1) in 1 ist ja nicht valide  
 
-MemberExp ::=   
+MemberExp ::= AtomicExp ' not '? ' in ' InfixExp 
+----------- parser sagt "not".!.? , was bedeutet das Ausrufezeichen?  
 
 InfixExp ::=  CastExp | BaseApplyMethodExp | BaseApplyInfixExp | MatchExp | SubinfixExp   
 
-CastExp ::= SubinfixExp '.as[' TData ']'  
+CastExp ::= SubinfixExp '.as[' Data ']'  
 
-TData ::=  -----------------------------------------------------------------------
+Data ::= Id
 
-BaseApplyMethodExp ::=   
+BaseApplyMethodExp ::= SubinfixExp '.`' Id '`' ( '(' (InfixExp (',' InfixExp)*)? ')' )? 
 
-BaseApplyInfixExp ::=   
+BaseApplyInfixExp ::= ------------------------  
 
 MatchExp ::= 'match' '{' MatchCase* '}'     
 
@@ -85,21 +87,35 @@ ParensExp ::= '(' Exp ')'
 
 OptionExp ::= 'None' | 'Some' '(' ')' | Some '(' Exp (',' Exp)* ')'   
 
-CopmrehensionExp ::=   
+CopmrehensionExp ::= '{' Subinfix '|' Exp (',' Exp)* '}'  
 
-ConstSetExp ::=
+ConstSetExp ::= '{' Exp (',' Exp)* '}' | '{' '}'   
 
 TupleExp ::= '(' Exp ',' Exp ')'
 
 FoldExp ::= 'fold' ('[' TypeAnnotation ']')? '(' Exp ',' Exp ',' Exp ')'  
 
-BaseApplyExp ::=   
+BaseApplyExp ::= '`' ScalaTerm '`' '(' (Exp (',' Exp)*)? ')'  
 
-BaseLitExp ::=  
+BaseLitExp ::= '`' ScalaTerm '`' | NumericLit | StringLit | BooleanLit 
+
+ScalaTerm ::= -------------------------- die ganze scala grammatik?  
+
+NumericLit ::= Integer | Long | Double ----------------
+
+Integer ::=   
+
+Long ::=    
+
+Double ::=    
+
+StringLit ::= -----------------------   
+
+BooleanLit ::= 'true' | 'false'   
 
 Variable ::= Id  
 
-BaseApplyUnaryExp ::= 
+BaseApplyUnaryExp ::= -------------------------
 
 
 
