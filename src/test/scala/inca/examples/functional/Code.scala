@@ -182,4 +182,10 @@ object Code {
        |  fold(V(0), add, fromTo(start, end))
        |
        |""".stripMargin
+
+  val fixPointFun: String =
+    s"""module Fix
+       |
+       |@main def main(n: Int): Int = main(n)
+       |""".stripMargin
 }
