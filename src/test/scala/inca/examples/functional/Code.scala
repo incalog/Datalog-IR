@@ -186,7 +186,6 @@ object Code {
 
   val simpleFoldModule: String =
     s"""module Foo
-      |
       |data Num = V(Int)
       |
       |def add(n1: Num, n2: Num): Num = n1 match {
@@ -204,5 +203,11 @@ object Code {
       |@main def sum(start: Int, end: Int): Num =
       |  fold(V(0), add, fromTo(start, end))
       |
+      |""".stripMargin
+
+  val fixPointFun: String =
+    s"""module Fix
+      |
+      |@main def main(n: Int): Int = main(n)
       |""".stripMargin
 }

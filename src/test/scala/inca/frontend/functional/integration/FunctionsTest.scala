@@ -85,4 +85,11 @@ class FunctionsTest extends AnyFunSuite with BeforeAndAfterEach {
     assert(fun.execute("main5", Seq()) == fun.results(Seq(Seq(3), Seq(4))))
     assert(fun.execute("main6", Seq()) == fun.results(Seq(Seq(3), Seq(4), Seq(5))))
   }
+
+  test("fixpoint function") {
+    val fun = FunctionalExecutor.loadFunction(
+      Code.fixPointFun,
+      FunctionalOptions().withOptimizations(Seq()))
+    assert(fun.execute("main", Seq(q"1")).isEmpty)
+  }
 }

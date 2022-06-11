@@ -346,6 +346,8 @@ object FunctionalExecutor {
   }
 
   class Results[T](val res: Seq[Seq[T]]) {
+    def isEmpty: Boolean = res.isEmpty
+
     override def equals(obj: Any): Boolean = obj match {
       case expected: Results[T] =>
         res.size == expected.res.size &&
