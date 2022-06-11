@@ -1,0 +1,39 @@
+{
+  parserClass="language.parser.FuncIncaParser"
+
+  extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+
+  psiClassPrefix="Simple"
+  psiImplClassSuffix="Impl"
+  psiPackage="language.psi"
+  psiImplPackage="language.psi.impl"
+
+  elementTypeHolderClass="language.psi.FuncIncaTypes"
+  elementTypeClass="language.psi.FuncIncaElementType"
+  tokenTypeClass="intellij.sdk.language.psi.FuncIncaTokenType"
+
+  tokens = [
+    space = "regexp:\s+"                    // any possible whitespaces: [ \t\n\x0B\f\r]
+    valid_id = "regexp:[a-zA-Z]\w*"         // starts with any letter, continues with word characters [a-zA-Z_0-9]
+    string = "regexp:\".*\""                // any number of any characters between quotation marks
+    integer = "regexp:-?\d+"                // positive or negative numbers with digits \d = [0-9]
+    long = "regexp:-?\d+"
+    double = "regexp:-?\d+(\.\d+)?"
+    line_comment = "regexp://.*"            // any number of any characters after //
+    block_comment = "regexp:/\*(.|\n)*\*/"  // any number of any characters or line breaks after /* and before */
+    ]
+
+}
+id ::= valid_id !'if' !'let' !'in' !'match' !'fail' !'Option' !'None' !'Some' !'Set' !'fold'
+module ::= 'module ' id import* module_content*
+import ::= 'import ' id
+module_content ::= fun_def | data_def
+
+
+
+
+// literals
+numeric_lit ::= integer | long | double
+boolean_lit ::= 'true' | 'false'
+string_lit ::= string
+scala_term ::= string

@@ -2,7 +2,7 @@
 
 Module ::= 'module ' Id Import* ModuleContent*  
 
-Id ::= Char NumChar*
+Id ::= Char NumChar* !'if' !'let' !'in' !'match' !'fail' !'Option' !'None' !'Some' !'Set' !'fold'
 
 Char ::= 'A' | ... | 'Z' | 'a' | ... | 'z' | '_'  
 
@@ -46,12 +46,13 @@ Exp ::= IfExp | LetExp | MemberExp | InfixExp
 
 IfExp ::= 'if' '(' Exp ')' Exp 'else' Exp  
 
-LetExp ::= 'let ' Id (':' TypeAnnotation)? '=' InfixExp ' in ' Exp |
-	   'let ' '(' Id (':' TypeAnnotation)? (',' Id (':' TypeAnnotation)?)* ')' '=' InfixExp ' in ' Exp
------------------------------- InfixExp? und wie kann ich gleiche anzahl von variablennamen und bounds garantieren? let (x, y) = (1) in 1 ist ja nicht valide  
+LetExp ::= SingleLet | MultLet
 
-MemberExp ::= AtomicExp ' not '? ' in ' InfixExp 
------------ parser sagt "not".!.? , was bedeutet das Ausrufezeichen?  
+SingleLet ::= 'let ' Id (':' TypeAnnotation)? '=' InfixExp ' in ' Exp 
+
+MultLet ::= 'let ' '(' Id (':' TypeAnnotation)? (',' Id (':' TypeAnnotation)?)* ')' '=' InfixExp ' in ' Exp  
+
+MemberExp ::= AtomicExp ' not '? ' in ' InfixExp  
 
 InfixExp ::=  CastExp | BaseApplyMethodExp | BaseApplyInfixExp | MatchExp | SubinfixExp   
 
@@ -61,7 +62,7 @@ Data ::= Id
 
 BaseApplyMethodExp ::= SubinfixExp '.`' Id '`' ( '(' (InfixExp (',' InfixExp)*)? ')' )? 
 
-BaseApplyInfixExp ::= ------------------------  
+BaseApplyInfixExp ::= InfixExp '+' InfixExp | InfixExp '-' InfixExp | InfixExp '*' InfixExp | InfixExp '/' InfixExp | InfixExp '%' InfixExp | InfixExp '&&' InfixExp | InfixExp '||' InfixExp
 
 MatchExp ::= 'match' '{' MatchCase* '}'     
 
@@ -99,24 +100,27 @@ BaseApplyExp ::= '`' ScalaTerm '`' '(' (Exp (',' Exp)*)? ')'
 
 BaseLitExp ::= '`' ScalaTerm '`' | NumericLit | StringLit | BooleanLit 
 
-ScalaTerm ::= -------------------------- die ganze scala grammatik?  
+ScalaTerm ::= StringLit  
 
-NumericLit ::= Integer | Long | Double ----------------
+NumericLit ::= Integer | Long | Double 
 
-Integer ::=   
+Integer ::= -? Num+  
 
-Long ::=    
+Long ::= -? Num+   
 
-Double ::=    
+Double ::= -? Num+ (. Num+)?   
 
-StringLit ::= -----------------------   
+StringLit ::= '"' (NumChar | ' ' | '!' | '+' | '-' | '*' | '/' | '\' | '<' | '>' | '.' | ',' | ';' | ':' | '§' | '$' | '%' | '&' | '(' | ')' | '=' | '{' | '}' | '[' | ']' | '|' | '#' | '~')* '"'  -------------------- unvollständig?
 
 BooleanLit ::= 'true' | 'false'   
 
 Variable ::= Id  
 
-BaseApplyUnaryExp ::= -------------------------
+BaseApplyUnaryExp ::= '!' InfixExp
 
+LineComment ::= '//' StringLit
+
+BlockComment ::= '/*' StringLit '*/'
 
 
 
