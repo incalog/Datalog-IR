@@ -2,9 +2,9 @@ package inca.backend.optimize
 
 import inca.backend.hints.MagicSetHints.MainKey
 import inca.backend.hints.OptimizationHints.KeepPattern
+import inca.backend.ir.util.Substitute
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog._
-import inca.backend.ir.Substitute
 import inca.runtime.context.DataModel
 import inca.util.Gensym
 

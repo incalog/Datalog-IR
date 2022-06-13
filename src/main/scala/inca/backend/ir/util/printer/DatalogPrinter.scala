@@ -1,8 +1,9 @@
-package inca.backend.ir
+package inca.backend.ir.util.printer
 
 import inca.backend.hints.DebugHints
 import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.hints.Hints
+import inca.backend.ir.DatalogGeneric
 import inca.backend.optimize.EvalFusion
 import truechange.JavaLitType
 

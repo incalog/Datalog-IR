@@ -6,8 +6,8 @@ import inca.backend.hints.MagicSetHints
 import inca.backend.hints.MagicSetHints.FixedAdornment
 import inca.backend.hints.MagicSetHints.IgnoreCall
 import inca.backend.hints.MagicSetHints.NoInputRelation
+import inca.backend.ir.util.Substitute
 import inca.backend.ir.Datalog
-import inca.backend.ir.Substitute
 import inca.frontend.functional.core._
 import inca.runtime.data.MockURI
 import inca.util.Gensym
@@ -513,7 +513,8 @@ class GenerateDatalog(module: Module) {
       } yield {
         val (predBools, predCons) = ps.unzip
         val predTrue =
-          predBools.flatten.map(b => Datalog.Eq(b, Datalog.base.True).addHint(SourceConstruct.from(exp)))
+          predBools.flatten.map(b =>
+            Datalog.Eq(b, Datalog.base.True).addHint(SourceConstruct.from(exp)))
         (buildTerms, predCons.flatten ++ predTrue ++ buildCons)
       }
 
@@ -686,7 +687,8 @@ class GenerateDatalog(module: Module) {
     val outParam = Datalog.Param("out", GP_URI.addHint(DataHints.DataTypeName(data.name.name)))
 
     val constrScalaFun = Term.Function(
-      params.map(p => Term.Param(Nil, Term.Name(p.name), Some(Datalog.base.typeAsScala(p.typ)), None)).toList,
+      params.map(p =>
+        Term.Param(Nil, Term.Name(p.name), Some(Datalog.base.typeAsScala(p.typ)), None)).toList,
       q"""$oMockURI(${constr.name.name}, Seq(..${params.map(p => Term.Name(p.name)).toList}))"""
     )
     val outVar = Datalog.Var(outParam.name)

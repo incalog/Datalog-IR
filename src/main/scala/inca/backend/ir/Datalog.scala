@@ -1,10 +1,14 @@
 package inca.backend.ir
 
 import inca.backend.hints.Hints
+import inca.backend.ir.util.printer.DatalogPrinter
+import inca.backend.ir.util.CollectConstantEvaluation
+import inca.backend.ir.util.CollectLits
+import inca.backend.ir.util.CollectVarNames
+import inca.backend.ir.util.CollectVars
 import inca.util.Scala
 import truechange.JavaLitType
 import truechange.LitType
-import truechange.{JavaLitType, LitType}
 
 trait Base {
   type Literal
@@ -46,10 +50,11 @@ object ScalaBase extends Base {
   def typeAsScala(ty: Datalog.Type): meta.Type = ty match {
     case Datalog.TAny => t"Any"
     case Datalog.TData(name) => meta.Type.Name(name)
-    case Datalog.TLiteral(litType) => litType match {
-      case JavaLitType(cl) =>  Scala.mkQualTypename(cl.getCanonicalName)
-      case _ => throw new UnsupportedOperationException
-    }
+    case Datalog.TLiteral(litType) =>
+      litType match {
+        case JavaLitType(cl) => Scala.mkQualTypename(cl.getCanonicalName)
+        case _ => throw new UnsupportedOperationException
+      }
     case Datalog.TScala(ty) => ty.tree
     case _: Datalog.TLinked => t"truechange.URI"
   }
@@ -82,9 +87,10 @@ object Datalog extends DatalogGeneric {
   val collectLits: CollectLits[Datalog.type] = new CollectLits[Datalog.type] {
     override val datalog: Datalog.type = Datalog
   }
-  val collectConstantEvaluation: CollectConstantEvaluation[Datalog.type] = new CollectConstantEvaluation[Datalog.type] {
-    override val datalog: Datalog.type = Datalog
-  }
+  val collectConstantEvaluation: CollectConstantEvaluation[Datalog.type] =
+    new CollectConstantEvaluation[Datalog.type] {
+      override val datalog: Datalog.type = Datalog
+    }
 }
 
 trait DatalogGeneric {
@@ -106,7 +112,6 @@ trait DatalogGeneric {
     override def toString: Name = printer.prettyModule(Module(name, imports, pats, scalaContent))
     lazy val patternMap: Map[String, Pattern] = pats.map { pat => pat.name -> pat }.toMap
   }
-
   case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body])
       extends Hints {
     def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)

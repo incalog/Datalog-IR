@@ -53,18 +53,6 @@ case class Let(names: Seq[Name], anno: Option[Type], bound: Expression, body: Ex
     }
 }
 
-//case class BlockExp(stmts: Seq[Statement]) extends Expression {
-//  override def vars: Map[Name, Option[Type]] = stmts.flatMap(_.vars).toMap
-//
-//  override def prettyprint(implicit indent: String): String =
-//    if (stmts.isEmpty)
-//      s"{\n$indent}"
-//    else {
-//      val stmtsS = stmts.map(_.prettyprint(indent + "  ")).mkString("\n")
-//      s"{\n$stmtsS\n$indent}"
-//    }
-//}
-
 case class Var(name: Name) extends Expression with Resolvable[Var.Target] {
   override def vars: Map[Name, Option[Type]] = Map(name -> typ)
   override def freevars: Seq[Var] = this.target match {

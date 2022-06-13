@@ -4,7 +4,6 @@ import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
 import inca.backend.ir.Datalog
-import inca.backend.ir.DatalogPrinter
 import inca.compiler.Compiler
 import inca.frontend.constraint.compiler.ConstraintOptions
 import org.scalatest.funsuite.AnyFunSuite

@@ -1,7 +1,6 @@
 package inca.debugger
 
-import inca.backend.ir.Collect
-import inca.backend.ir.CollectEvaluations
+import inca.backend.ir.util.CollectEvaluations
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.base
 import inca.compiler.CompiledModule

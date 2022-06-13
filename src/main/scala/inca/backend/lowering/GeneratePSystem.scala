@@ -1,5 +1,6 @@
-package inca.backend.ir
+package inca.backend.lowering
 
+import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog._
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex

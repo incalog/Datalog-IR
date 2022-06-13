@@ -184,7 +184,6 @@ class GenerateScala {
     val tyAggregation = typeOf[Aggregation[_]]
     val initAggregation = init"${MetaType.Apply(tyAggregation, List(scalaTy))}()"
 
-    // TODO extract assoc and commu from annotation or verify it
     q"""
      new $initAggregation {
        override val name = $name

@@ -1,4 +1,6 @@
-package inca.backend.ir
+package inca.backend.ir.util
+
+import inca.backend.ir.DatalogGeneric
 
 trait CollectVarNames[D <: DatalogGeneric] extends Collect[D] {
   import datalog._

@@ -1,7 +1,7 @@
 package inca.backend.optimize
 
+import inca.backend.ir.util.Substitute
 import inca.backend.ir.Datalog._
-import inca.backend.ir.Substitute
 import inca.backend.optimize.Optimizer.BodyMustFail
 import inca.runtime.context.DataModel
 import scala.collection.immutable.MultiDict

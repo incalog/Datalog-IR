@@ -1,4 +1,4 @@
-package inca.backend.ir
+package inca.backend.ir.util
 
 import inca.backend.ir.Datalog._
 import inca.runtime.context.DataModel

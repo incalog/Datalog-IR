@@ -1,4 +1,4 @@
-package inca.backend.ir
+package inca.backend.lowering
 
 import inca.runtime.Query
 

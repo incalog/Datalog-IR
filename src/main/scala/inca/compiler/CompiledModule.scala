@@ -2,8 +2,8 @@ package inca.compiler
 
 import inca.backend.analyze.StratificationAnalysis
 import inca.backend.ir.Datalog
-import inca.backend.ir.GeneratePSystem
-import inca.backend.ir.PSystem
+import inca.backend.lowering.GeneratePSystem
+import inca.backend.lowering.PSystem
 import inca.compiler.source.SourceLocation
 import inca.runtime.context.DataModel
 import inca.util.Scala

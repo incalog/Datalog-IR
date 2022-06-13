@@ -6,18 +6,13 @@ import inca.util.Scala
 object TypeHelper {
 
   def decode(typStr: String): Either[String, Type] = {
-//    // in case the result type of an expression is a string literal scala.reflect actually places this literal in the type
-//    // this means "hello world" results in the type String("hello world")
-//    // to get around this we have to remove all such occurrences
+    // in case the result type of an expression is a string literal scala.reflect actually places this literal in the type
+    // this means "hello world" results in the type String("hello world")
+    // to get around this we have to remove all such occurrences
     val typStrCleaned = typStr.trim
       .replaceAll("""String\(".*"\)""", "String")
       .replaceAll("""Int\(.*\)""", "Int")
       .replaceAll("""Boolean\(.*\)""", "Boolean")
-//    val rawAnno = fastparse.parse(name, typeAnno(_)) match {
-//      case Parsed.Failure(_, _, _) => None
-//      case Parsed.Success(anno, _) => Some(anno)
-//    }
-//    rawAnno.map(refineType)
     import meta.parsers._
     val metaTyp = typStrCleaned.parse[meta.Type].get
     decode(metaTyp)
