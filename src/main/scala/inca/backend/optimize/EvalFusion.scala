@@ -1,6 +1,7 @@
 package inca.backend.optimize
 import inca.backend.ir.Datalog.{Evaluation, Term, Type, Var}
-import inca.backend.ir.{CollectVars, Datalog}
+import inca.backend.ir.Datalog
+import inca.backend.ir.util.CollectVars
 import inca.runtime.context.DataModel
 import inca.util.{Gensym, Scala}
 

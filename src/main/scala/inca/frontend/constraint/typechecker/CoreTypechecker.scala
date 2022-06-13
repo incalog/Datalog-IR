@@ -532,7 +532,6 @@ trait CoreTypechecker
   // type operations
 
   def subtype(ty1: Type, ty2: Type, dataModel: DataModel): Boolean = {
-//    val resolvedTy1 = resolvedType(ty1)
     val meetTy = meet(ty1, ty2, dataModel)
     meetTy == ty1
   }

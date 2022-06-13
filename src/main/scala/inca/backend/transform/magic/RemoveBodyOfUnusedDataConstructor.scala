@@ -1,7 +1,7 @@
 //package inca.backend.transform.magic
 //
 //import inca.backend.hints.DataHints
-//import inca.backend.ir.Collect
+//import inca.backend.ir.util.Collect
 //import inca.backend.ir.GP._
 //import inca.backend.transform.{Transformation, Transformer}
 //import inca.runtime.context.LanguageMetaInfo

@@ -2,7 +2,8 @@ package inca.frontend.functional.lowering
 
 import inca.backend.hints.MagicSetHints.{FixedAdornment, IgnoreCall, NoInputRelation}
 import inca.backend.hints.{DataHints, MagicSetHints}
-import inca.backend.ir.{Datalog, Substitute}
+import inca.backend.ir.Datalog
+import inca.backend.ir.util.Substitute
 import inca.frontend.functional.core._
 import inca.runtime.data.MockURI
 import inca.util.Scala.{symbolOf, typeOf}

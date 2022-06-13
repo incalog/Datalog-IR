@@ -1,7 +1,8 @@
 package inca.compiler
 
 import inca.backend.analyze.StratificationAnalysis
-import inca.backend.ir.{Datalog, GeneratePSystem, PSystem}
+import inca.backend.ir.Datalog
+import inca.backend.lowering.{GeneratePSystem, PSystem}
 import inca.runtime.context.DataModel
 import inca.util.Scala
 import inca.util.TupleOps.transClosure

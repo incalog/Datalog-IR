@@ -257,39 +257,6 @@ object FunctionalExecutor {
       new Results(outputMatches)
     }
 
-  //
-  //    def executeInput(main: String, input: Input, deleteInput: Boolean = false): Results[AnyRef] = {
-  //      val (es, tuple) = input
-  //      engine.delayUpdatePropagation { () =>
-  //        feed.processEditScript(es)
-  //        lastTuple.get(main) match {
-  //          case Some(oldTuple) =>
-  //            // check if last and current tuple are equal
-  //            if (oldTuple != tuple) {
-  //              feed.insert(demandPatternExtensionalPrefix + main, tuple)
-  //            } else {
-  //              // do nothing tuples are the same
-  //            }
-  //          case None =>
-  //            feed.insert(demandPatternExtensionalPrefix + main, tuple)
-  //        }
-  //        lastTuple = lastTuple + (main -> tuple)
-  //      }
-  //      val result = output(main, tuple)
-  //      if (deleteInput) {
-  //        feed.delete(demandPatternExtensionalPrefix + main, tuple)
-  //      }
-  //      result
-  //    }
-  //
-  //    def vals(ts: meta.Term*): Seq[AnyRef] = {
-  //      ts.map(a => {
-  //        val syntax = s"{import ${loadedPsystemModule}.${compiled.name}._; ${a.syntax}}"
-  //        scalaCompiler.compileAndLoadScala[AnyRef](syntax)
-  //      })
-  //    }
-
-
     def execute(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): Results[AnyRef] =
       executeInput(main, input(args), deleteInput)
 

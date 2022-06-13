@@ -1,5 +1,6 @@
-package inca.backend.ir
+package inca.backend.ir.util.printer
 
+import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.{Atom, Body, Call, Comparator, Compare, Computation, Computed, Constant, EqComparator, ExtensionalCall, HasType, Link, Module, NamedLink, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, Private, TAny, TAnyLinked, TData, TList, TLiteral, TNode, TScala, Term, Type, Undef, Var, Visibility}
 import inca.backend.optimize.EvalFusion
 import truechange.JavaLitType

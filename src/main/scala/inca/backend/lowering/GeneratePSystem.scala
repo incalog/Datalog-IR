@@ -1,21 +1,23 @@
-package inca.backend.ir
+package inca.backend.lowering
 
-
-import inca.backend.ir.Datalog._
+import inca.backend.ir.Datalog.{Atom, Body, BooleanLiteral, Call, Compare, Computation, Computed, Constant, CountAggregation, CustomAggregation, DoubleLiteral, EqComparator, Evaluation, ExtensionalCall, HasType, IntLiteral, Link, Literal, LongLiteral, Module, NeqComparator, NoPath, NotHasType, Param, Path, Pattern, StringLiteral, TAny, TAnyLinked, TData, TLinked, TList, TLiteral, TNode, TScala, Undef, Var}
+import inca.backend.ir.util.{CollectConstantEvaluation, CollectLits, CollectVars}
+import inca.backend.ir.Datalog
 import inca.runtime.Query
 import inca.runtime.aggregate.{AggregatorAssocComm, AggregatorAssocCommInv}
 import inca.runtime.context.DataModel
-import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
+import inca.runtime.index._
 import inca.util.Gensym
-import inca.util.Scala._
+import inca.util.Scala.{symbolOf, typeOf}
 import org.eclipse.viatra.query.runtime.matchers.psystem.aggregations.BoundAggregator
 import org.eclipse.viatra.query.runtime.matchers.psystem.basicdeferred.AggregatorConstraint
 import truechange.{AnyType, JavaLitType, ListType, SortType}
 
 import scala.collection.immutable.MultiDict
-import scala.meta._
+import scala.meta.{Init, Lit, Pat, Source, Stat, Term}
+import scala.meta.quasiquotes._
 
 object GeneratePSystem {
   val PARAMPREFIX = "param_"

@@ -425,10 +425,6 @@ object IncrementalFunctionalExecutor {
   def loadFunction(compiled: CompiledModule): Loaded = {
     val scope = new QueryScope(compiled.dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-//    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_PARALLEL)
-//    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FAITHFUL_SEQUENTIAL)
-//    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FAITHFUL_PARALLEL)
-//    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, DRedReteBackendFactory.INSTANCE)
     Loaded(engine, feed, compiled)
   }
 

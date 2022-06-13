@@ -109,7 +109,6 @@ class Defunctionalize(module: Module) {
     case TTuple(ts) => TTuple(ts.map(transformType))
     case TOption(ty) => TOption(transformType(ty))
     case TSet(ty) =>
-      // TData(Name(relData(transformType(ty))))
       TSet(transformType(ty))
     case _ => t
   }
@@ -223,7 +222,6 @@ class Defunctionalize(module: Module) {
         SetFold(anno, transformExp(init), Var(name), transformExp(set))
       case _ =>
         throw new UnsupportedOperationException("Only function references allowed as fold operation currently.")
-//        SetFold(anno, transformExp(init), transformExp(op), transformExp(set))
     }
   })
 
