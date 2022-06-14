@@ -1,0 +1,13 @@
+module FoldInt
+
+def add(n1: Int, n2: Int): Int = n1 + n2
+
+def fromTo(start: Int, end: Int): Set[Int] =
+  if (start > end)
+    {}
+  else
+    {start} ++ fromTo(start + 1, end)
+
+@main def sum(start: Int, end: Int): Int =
+  fold(0, add, fromTo(start, end))
+

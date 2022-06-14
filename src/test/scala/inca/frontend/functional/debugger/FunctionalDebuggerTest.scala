@@ -1,8 +1,6 @@
 package inca.frontend.functional.debugger
 
 import inca.compiler.Compiler
-import inca.examples.functional.ADT
-import inca.examples.functional.Code
 import inca.frontend.functional.compiler.CompiledFunctionalModule
 import inca.frontend.functional.compiler.FunctionalOptions
 import inca.frontend.functional.core
@@ -11,6 +9,7 @@ import inca.frontend.functional.core.Pattern
 import inca.runtime.context.DataModel
 import inca.runtime.context.QueryScope
 import inca.runtime.EnginePool
+import inca.util.FileUtil
 import meta.quasiquotes._
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
@@ -114,7 +113,8 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("nested let") {
-    assertControlTraceSize(Code.varExample, "main")(5)
+    val code = FileUtil.readFile("functional/unittests/Var.finca")
+    assertControlTraceSize(code, "main")(5)
   }
 
   val tupleLetProg: String =
@@ -139,19 +139,18 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("simple function call") {
-    assertControlTraceSize(Code.incModule, "main")(4)
+    val code = FileUtil.readFile("functional/unittests/Inc.finca")
+    assertControlTraceSize(code, "main")(4)
   }
 
   test("if example") {
-    assertControlTraceSize(Code.ifExample, "main")(4)
-  }
-
-  test("if example 3") {
-    assertControlTraceSize(Code.ifExample3, "main")(4)
+    val code = FileUtil.readFile("functional/unittests/If.finca")
+    assertControlTraceSize(code, "main")(4)
   }
 
   test("if example 2") {
-    assertControlTraceSize(Code.ifExample2, "main")(7)
+    val code = FileUtil.readFile("functional/unittests/If2.finca")
+    assertControlTraceSize(code, "main")(7)
   }
 
   def ifControlJump(b1: Boolean, b2: Boolean): String =
@@ -179,16 +178,8 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("fib example") {
-    assertControlTraceSize(Code.fibModule, "main", q"3")(64)
-  }
-
-  val constructorProg: String = Code.module(
-    ADT.Nat_code,
-    """@main def main(): Nat = Succ(Succ(Zero()))
-      |""".stripMargin
-  )
-  test("Constructor calls example") {
-    assertControlTraceSize(constructorProg, "main")(4)
+    val code = FileUtil.readFile("functional/unittests/Fib.finca")
+    assertControlTraceSize(code, "main", q"3")(64)
   }
 
   val matchProg: String =
@@ -304,8 +295,18 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("plus example extra") {
+    val code =
+      s"""
+        |def plus(m: Nat, n: Nat): Nat =
+        | let x = 1 + 2 in
+        | m match {
+        |  case Zero() => n
+        |  case Succ(pred) => Succ(plus(pred, n))
+        |}
+        |@main def main(x: Nat, y: Nat): Nat = plus(x, y)
+        |""".stripMargin
     assertControlTraceSize(
-      Code.plusRealModuleExtra,
+      code,
       "main",
       q"Succ(Succ(Zero()))",
       q"Succ(Zero())"
@@ -371,24 +372,23 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     assertControlTraceSize(code, "main")(6)
   }
 
-  val twoFunctionCallArgs: String = Code.module(
-    ADT.Nat_code,
-    s"""def plus(m: Nat, n: Nat): Nat = m match {
+  val twoFunctionCallArgs: String =
+    s"""module TwoFunctionCallArgs
+      |data Nat = Zero() | Succ(Nat)
+      |def plus(m: Nat, n: Nat): Nat = m match {
       |  case Zero() => n
       |  case Succ(pred) => Succ(plus(pred, n))
       |}
-      |""".stripMargin,
-    s"""@main def main(x: Nat, y: Nat): Nat =
-      |  plus(Succ(Zero()), plus(x, y))
+      |@main def main(x: Nat, y: Nat): Nat = plus(Succ(Zero()), plus(x, y))
       |""".stripMargin
-  )
   test("function with two call arguments") {
     assertControlTraceSize(twoFunctionCallArgs, "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(49)
   }
 
   // step over tests
   test("step over function call of non-recursive function") {
-    val compiledExample = compile(Code.incModule)
+    val code = FileUtil.readFile("functional/unittests/Inc.finca")
+    val compiledExample = compile(code)
     val debugger = initDebugger(compiledExample)
     debugger.entry("main")
     println(debugger.currentDebuggerInfo())
@@ -451,7 +451,8 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("step over recursive call of function") {
-    val compiledExample = compile(Code.plusRealModule)
+    val code = FileUtil.readFile("functional/unittests/PlusReal.finca")
+    val compiledExample = compile(code)
     val debugger = initDebugger(compiledExample)
     debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
     println(debugger.currentDebuggerInfo())
@@ -480,7 +481,8 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   //  // step out tests
   test("step out of function call (level 1)") {
-    val compiledExample = compile(Code.plusRealModule)
+    val code = FileUtil.readFile("functional/unittests/PlusReal.finca")
+    val compiledExample = compile(code)
     val debugger = initDebugger(compiledExample)
     debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
     println(debugger.currentDebuggerInfo())
@@ -494,7 +496,8 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("step out of function call (level 2)") {
-    val compiledExample = compile(Code.plusRealModule)
+    val code = FileUtil.readFile("functional/unittests/PlusReal.finca")
+    val compiledExample = compile(code)
     val debugger = initDebugger(compiledExample)
     debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
     println(debugger.currentDebuggerInfo())
@@ -519,8 +522,9 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   // Breakpoint tests
   test("test function exit breakpoint") {
+    val code = FileUtil.readFile("functional/unittests/Fib.finca")
     val resumes = countResumes(
-      Code.fibModule,
+      code,
       Seq(_ => FunctionalBreakpoint(FunctionExit("main"))),
       "main",
       q"3"
@@ -529,8 +533,9 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("test function exit breakpoint of recursive function") {
+    val code = FileUtil.readFile("functional/unittests/Fib.finca")
     val resumes = countResumes(
-      Code.fibModule,
+      code,
       Seq(_ => FunctionalBreakpoint(FunctionExit("fib"))),
       "main",
       q"3"
@@ -541,14 +546,16 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("test function call argument breakpoint ") {
     val expression = core.BaseApplyInfix(core.Var("n"), "-", core.BaseLit(q"1", core.TScalaInt))
     val bp = createBreakpointOfExpression("fib", expression)
-    val resumes = countResumes(Code.fibModule, Seq(bp), "main", q"3")
+    val code = FileUtil.readFile("functional/unittests/Fib.finca")
+    val resumes = countResumes(code, Seq(bp), "main", q"3")
     assertResult(6)(resumes)
   }
 
   test("test if condition breakpoint") {
     val expression = core.BaseApplyInfix(core.Var("n"), "==", core.BaseLit(q"0", core.TScalaInt))
     val bp = createBreakpointOfExpression("fib", expression)
-    val resumes = countResumes(Code.fibModule, Seq(bp), "main", q"3")
+    val code = FileUtil.readFile("functional/unittests/Fib.finca")
+    val resumes = countResumes(code, Seq(bp), "main", q"3")
     assertResult(16)(resumes)
   }
 
@@ -579,8 +586,8 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   test("test pattern breakpoint") {
     val pattern = core.ConstructorPattern(core.Name("Succ"), Seq(core.Name("pred")))
     val bp = createBreakpointOfPattern("plus", pattern)
-    val resumes =
-      countResumes(Code.plusRealModule, Seq(bp), "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    val code = FileUtil.readFile("functional/unittests/PlusReal.finca")
+    val resumes = countResumes(code, Seq(bp), "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
     assertResult(6)(resumes)
   }
 
@@ -616,8 +623,9 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   // test binding
   test("test binding breakpoint") {
+    val code = FileUtil.readFile("functional/unittests/Var.finca")
     val bp = createBreakpointOfBinding("main", "y")
-    val resumes = countResumes(Code.varExample, Seq(bp), "main")
+    val resumes = countResumes(code, Seq(bp), "main")
     assertResult(2)(resumes)
   }
 
@@ -626,14 +634,6 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     val bp2 = createBreakpointOfBinding("main", "x")
     val resumes = countResumes(tupleLetProg, Seq(bp1, bp2), "main")
     assertResult(3)(resumes)
-  }
-
-  // test constructor call breakpoint
-  test("constructor call breakpoint") {
-    val expression = core.Call(core.Var("Succ"), Seq(core.Call(core.Var("Zero"), Seq())))
-    val bp = createBreakpointOfExpression("main", expression)
-    val resumes = countResumes(constructorProg, Seq(bp), "main")
-    assertResult(2)(resumes)
   }
 
   test("breakpoint in tuple") {

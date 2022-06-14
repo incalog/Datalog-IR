@@ -1,4 +1,4 @@
-package inca.frontend.functional.integration
+package inca.frontend.functional.incremental
 
 import inca.examples.functional.ControlDataFlow
 import inca.frontend.functional.executor.IncrementalFunctionalExecutor._

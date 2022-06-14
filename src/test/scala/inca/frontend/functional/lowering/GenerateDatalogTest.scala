@@ -1,802 +1,107 @@
 package inca.frontend.functional.lowering
 
-import inca.backend.ir.Datalog
 import inca.compiler.Compiler
-import inca.examples.functional.AST
-import inca.examples.functional.Code
-import inca.examples.functional.ControlDataFlow
-import inca.examples.functional.HigherOrder
 import inca.frontend.functional.compiler.FunctionalOptions
-import inca.util.Scala
+import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
-import scala.meta.XtensionQuasiquoteTerm
 
 class GenerateDatalogTest extends AnyFunSuite {
 
-  def gpmodule(content: Datalog.Pattern*): Datalog.Module =
-    Datalog.Module("Main", Seq(), content, Seq())
+  val options: FunctionalOptions = FunctionalOptions()
 
-  val baseExampleGP: Datalog.Module = gpmodule(
-    Datalog.Pattern(
-      None,
-      "main",
-      Seq(Datalog.Param("out$0", Datalog.base.TScalaInt)),
-      Seq(
-        Datalog.Body(
-          Seq(
-            Datalog.Computed(
-              Datalog.Var("lit$0"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 7 + (12 * 3)"))
-            ),
-            Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("lit$0"))
-          )
-        )
-      )
-    )
-  )
-
-  val baseExampleGP2: Datalog.Module = gpmodule(
-    Datalog.Pattern(
-      None,
-      "main",
-      Seq(Datalog.Param("out$0", Datalog.base.TScalaInt)),
-      Seq(
-        Datalog.Body(
-          Seq(
-            Datalog.Computed(
-              Datalog.Var("lit$0"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 7"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("lit$1"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 12"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("lit$2"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 3"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$0"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("lit$1") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$2") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaInt,
-                Scala(q"(left: Int, right: Int) => left * right")
-              )
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$1"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("lit$0") -> Datalog.base.TScalaInt,
-                  Datalog.Var("eval$0") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaInt,
-                Scala(q"(left: Int, right: Int) => left + right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("eval$1"))
-          )
-        )
-      )
-    )
-  )
-
-  val varExampleGP: Datalog.Module = gpmodule(
-    Datalog.Pattern(
-      None,
-      "main",
-      Seq(Datalog.Param("out$0", Datalog.base.TScalaInt)),
-      Seq(
-        Datalog.Body(
-          Seq(
-            Datalog.Computed(
-              Datalog.Var("lit$0"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 7"))
-            ),
-            Datalog.Eq(Datalog.Var("x"), Datalog.Var("lit$0")),
-            Datalog.Computed(
-              Datalog.Var("lit$1"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 3"))
-            ),
-            Datalog.Eq(Datalog.Var("y"), Datalog.Var("lit$1")),
-            Datalog.Computed(
-              Datalog.Var("lit$2"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 12"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$0"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("lit$2") -> Datalog.base.TScalaInt,
-                  Datalog.Var("y") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaInt,
-                Scala(q"(left: Int, right: Int) => left * right")
-              )
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$1"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("x") -> Datalog.base.TScalaInt,
-                  Datalog.Var("eval$0") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaInt,
-                Scala(q"(left: Int, right: Int) => left + right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("eval$1"))
-          )
-        )
-      )
-    )
-  )
-
-  val ifExampleGP: Datalog.Module = gpmodule(
-    Datalog.Pattern(
-      None,
-      "main",
-      Seq(Datalog.Param("out$0", Datalog.base.TScalaInt)),
-      Seq(
-        Datalog.Body(
-          Seq(
-            Datalog.Computed(
-              Datalog.Var("lit$0"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 7"))
-            ),
-            Datalog.Eq(Datalog.Var("x"), Datalog.Var("lit$0")),
-            Datalog.Computed(
-              Datalog.Var("lit$1"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 0"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$0"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("x") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$1") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaBoolean,
-                Scala(q"(left: Int, right: Int) => left > right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("eval$0"), Datalog.base.True),
-            Datalog.Computed(
-              Datalog.Var("lit$2"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$1"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("x") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$2") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaInt,
-                Scala(q"(left: Int, right: Int) => left * right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("eval$1"))
-          )
-        ),
-        Datalog.Body(
-          Seq(
-            Datalog.Computed(
-              Datalog.Var("lit$0"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 7"))
-            ),
-            Datalog.Eq(Datalog.Var("x"), Datalog.Var("lit$0")),
-            Datalog.Computed(
-              Datalog.Var("lit$1"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 0"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$0"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("x") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$1") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaBoolean,
-                Scala(q"(left: Int, right: Int) => left > right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("eval$0"), Datalog.base.False),
-            Datalog.Computed(
-              Datalog.Var("lit$3"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => -1"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$2"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("x") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$3") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaInt,
-                Scala(q"(left: Int, right: Int) => left * right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("eval$2"))
-          )
-        )
-      )
-    )
-  )
-
-  val ifExample2GP: Datalog.Module = gpmodule(
-    Datalog.Pattern(
-      None,
-      "main",
-      Seq(Datalog.Param("out$0", Datalog.base.TScalaInt)),
-      Seq(
-        Datalog.Body(
-          Seq(
-            Datalog.Computed(
-              Datalog.Var("lit$0"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 7"))
-            ),
-            Datalog.Eq(Datalog.Var("x"), Datalog.Var("lit$0")),
-            Datalog.Computed(
-              Datalog.Var("lit$1"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => -3"))
-            ),
-            Datalog.Eq(Datalog.Var("y"), Datalog.Var("lit$1")),
-            Datalog.Computed(
-              Datalog.Var("lit$2"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 0"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$0"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("x") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$2") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaBoolean,
-                Scala(q"(left: Int, right: Int) => left > right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("eval$0"), Datalog.base.True),
-            Datalog.Computed(
-              Datalog.Var("lit$4"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 0"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$2"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("y") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$4") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaBoolean,
-                Scala(q"(left: Int, right: Int) => left > right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("eval$2"), Datalog.base.True),
-            Datalog.Computed(
-              Datalog.Var("eval$4"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("x") -> Datalog.base.TScalaInt,
-                  Datalog.Var("y") -> Datalog.base.TScalaInt),
-                Datalog.base.TScalaInt,
-                Scala(q"(left: Int, right: Int) => left + right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("eval$4"))
-          )
-        ),
-        Datalog.Body(
-          Seq(
-            Datalog.Computed(
-              Datalog.Var("lit$0"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 7"))
-            ),
-            Datalog.Eq(Datalog.Var("x"), Datalog.Var("lit$0")),
-            Datalog.Computed(
-              Datalog.Var("lit$1"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => -3"))
-            ),
-            Datalog.Eq(Datalog.Var("y"), Datalog.Var("lit$1")),
-            Datalog.Computed(
-              Datalog.Var("lit$2"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 0"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$0"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("x") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$2") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaBoolean,
-                Scala(q"(left: Int, right: Int) => left > right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("eval$0"), Datalog.base.True),
-            Datalog.Computed(
-              Datalog.Var("lit$4"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 0"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$2"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("y") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$4") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaBoolean,
-                Scala(q"(left: Int, right: Int) => left > right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("eval$2"), Datalog.base.False),
-            Datalog.Computed(
-              Datalog.Var("lit$5"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => -1"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$3"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("y") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$5") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaInt,
-                Scala(q"(left: Int, right: Int) => left * right")
-              )
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$4"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("x") -> Datalog.base.TScalaInt,
-                  Datalog.Var("eval$3") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaInt,
-                Scala(q"(left: Int, right: Int) => left + right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("eval$4"))
-          )
-        ),
-        Datalog.Body(
-          Seq(
-            Datalog.Computed(
-              Datalog.Var("lit$0"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 7"))
-            ),
-            Datalog.Eq(Datalog.Var("x"), Datalog.Var("lit$0")),
-            Datalog.Computed(
-              Datalog.Var("lit$1"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => -3"))
-            ),
-            Datalog.Eq(Datalog.Var("y"), Datalog.Var("lit$1")),
-            Datalog.Computed(
-              Datalog.Var("lit$2"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 0"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$0"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("x") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$2") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaBoolean,
-                Scala(q"(left: Int, right: Int) => left > right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("eval$0"), Datalog.base.False),
-            Datalog.Computed(
-              Datalog.Var("lit$3"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => -1"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$1"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("x") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$3") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaInt,
-                Scala(q"(left: Int, right: Int) => left * right")
-              )
-            ),
-            Datalog.Computed(
-              Datalog.Var("lit$4"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 0"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$2"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("y") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$4") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaBoolean,
-                Scala(q"(left: Int, right: Int) => left > right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("eval$2"), Datalog.base.True),
-            Datalog.Computed(
-              Datalog.Var("eval$4"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("eval$1") -> Datalog.base.TScalaInt,
-                  Datalog.Var("y") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaInt,
-                Scala(q"(left: Int, right: Int) => left + right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("eval$4"))
-          )
-        ),
-        Datalog.Body(
-          Seq(
-            Datalog.Computed(
-              Datalog.Var("lit$0"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 7"))
-            ),
-            Datalog.Eq(Datalog.Var("x"), Datalog.Var("lit$0")),
-            Datalog.Computed(
-              Datalog.Var("lit$1"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => -3"))
-            ),
-            Datalog.Eq(Datalog.Var("y"), Datalog.Var("lit$1")),
-            Datalog.Computed(
-              Datalog.Var("lit$2"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 0"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$0"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("x") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$2") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaBoolean,
-                Scala(q"(left: Int, right: Int) => left > right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("eval$0"), Datalog.base.False),
-            Datalog.Computed(
-              Datalog.Var("lit$3"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => -1"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$1"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("x") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$3") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaInt,
-                Scala(q"(left: Int, right: Int) => left * right")
-              )
-            ),
-            Datalog.Computed(
-              Datalog.Var("lit$4"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 0"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$2"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("y") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$4") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaBoolean,
-                Scala(q"(left: Int, right: Int) => left > right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("eval$2"), Datalog.base.False),
-            Datalog.Computed(
-              Datalog.Var("lit$5"),
-              Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => -1"))
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$3"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("y") -> Datalog.base.TScalaInt,
-                  Datalog.Var("lit$5") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaInt,
-                Scala(q"(left: Int, right: Int) => left * right")
-              )
-            ),
-            Datalog.Computed(
-              Datalog.Var("eval$4"),
-              Datalog.Evaluation(
-                Seq(
-                  Datalog.Var("eval$1") -> Datalog.base.TScalaInt,
-                  Datalog.Var("eval$3") -> Datalog.base.TScalaInt
-                ),
-                Datalog.base.TScalaInt,
-                Scala(q"(left: Int, right: Int) => left + right")
-              )
-            ),
-            Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("eval$4"))
-          )
-        )
-      )
-    )
-  )
-
-  val incFunGP = Datalog.Pattern(
-    None,
-    "inc",
-    Seq(Datalog.Param("n", Datalog.base.TScalaInt), Datalog.Param("out$0", Datalog.base.TScalaInt)),
-    Seq(
-      Datalog.Body(
-        Seq(
-          Datalog.Computed(
-            Datalog.Var("lit$0"),
-            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
-          ),
-          Datalog.Computed(
-            Datalog.Var("eval$0"),
-            Datalog.Evaluation(
-              Seq(
-                Datalog.Var("n") -> Datalog.base.TScalaInt,
-                Datalog.Var("lit$0") -> Datalog.base.TScalaInt),
-              Datalog.base.TScalaInt,
-              Scala(q"(left: Int, right: Int) => left + right")
-            )
-          ),
-          Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("eval$0"))
-        )
-      )
-    )
-  )
-  val incMainGP = Datalog.Pattern(
-    None,
-    "main",
-    Seq(Datalog.Param("out$0", Datalog.base.TScalaInt)),
-    Seq(
-      Datalog.Body(
-        Seq(
-          Datalog.Computed(
-            Datalog.Var("lit$0"),
-            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 0"))
-          ),
-          Datalog.Call(
-            "inc",
-            Seq(Datalog.Var("lit$0"), Datalog.Var("call$0")),
-            transitive = false,
-            neg = false
-          ),
-          Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("call$0"))
-        )
-      )
-    )
-  )
-  val incModuleGP = gpmodule(incFunGP, incMainGP)
-
-  val factFunGP = Datalog.Pattern(
-    None,
-    "fact",
-    Seq(Datalog.Param("n", Datalog.base.TScalaInt), Datalog.Param("out$0", Datalog.base.TScalaInt)),
-    Seq(
-      Datalog.Body(
-        Seq(
-          Datalog.Computed(
-            Datalog.Var("lit$0"),
-            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
-          ),
-          Datalog.Computed(
-            Datalog.Var("eval$0"),
-            Datalog.Evaluation(
-              Seq(
-                Datalog.Var("n") -> Datalog.base.TScalaInt,
-                Datalog.Var("lit$0") -> Datalog.base.TScalaInt),
-              Datalog.base.TScalaBoolean,
-              Scala(q"(left: Int, right: Int) => left == right")
-            )
-          ),
-          Datalog.Eq(Datalog.Var("eval$0"), Datalog.base.True),
-          Datalog.Computed(
-            Datalog.Var("lit$1"),
-            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
-          ),
-          Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("lit$1"))
-        )
-      ),
-      Datalog.Body(
-        Seq(
-          Datalog.Computed(
-            Datalog.Var("lit$0"),
-            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
-          ),
-          Datalog.Computed(
-            Datalog.Var("eval$0"),
-            Datalog.Evaluation(
-              Seq(
-                Datalog.Var("n") -> Datalog.base.TScalaInt,
-                Datalog.Var("lit$0") -> Datalog.base.TScalaInt),
-              Datalog.base.TScalaBoolean,
-              Scala(q"(left: Int, right: Int) => left == right")
-            )
-          ),
-          Datalog.Eq(Datalog.Var("eval$0"), Datalog.base.False),
-          Datalog.Computed(
-            Datalog.Var("lit$2"),
-            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
-          ),
-          Datalog.Computed(
-            Datalog.Var("eval$1"),
-            Datalog.Evaluation(
-              Seq(
-                Datalog.Var("n") -> Datalog.base.TScalaInt,
-                Datalog.Var("lit$2") -> Datalog.base.TScalaInt),
-              Datalog.base.TScalaInt,
-              Scala(q"(left: Int, right: Int) => left - right")
-            )
-          ),
-          Datalog.Call(
-            "fact",
-            Seq(Datalog.Var("eval$1"), Datalog.Var("call$0")),
-            transitive = false,
-            neg = false
-          ),
-          Datalog.Computed(
-            Datalog.Var("eval$2"),
-            Datalog.Evaluation(
-              Seq(
-                Datalog.Var("n") -> Datalog.base.TScalaInt,
-                Datalog.Var("call$0") -> Datalog.base.TScalaInt
-              ),
-              Datalog.base.TScalaInt,
-              Scala(q"(left: Int, right: Int) => left * right")
-            )
-          ),
-          Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("eval$2"))
-        )
-      )
-    )
-  )
-  val factMainGP = Datalog.Pattern(
-    None,
-    "main",
-    Seq(Datalog.Param("n", Datalog.base.TScalaInt), Datalog.Param("out$0", Datalog.base.TScalaInt)),
-    Seq(
-      Datalog.Body(
-        Seq(
-          Datalog.Call(
-            "fact",
-            Seq(Datalog.Var("n"), Datalog.Var("call$0")),
-            transitive = false,
-            neg = false
-          ),
-          Datalog.Eq(Datalog.Var("out$0"), Datalog.Var("call$0"))
-        )
-      )
-    )
-  )
-  val factModuleGP = gpmodule(factFunGP, factMainGP)
-
-  val options = FunctionalOptions()
-
-  test("base example") {
-    val result = Compiler.compileFunctional(AST.baseExample, options).ir
-    assert(result == baseExampleGP)
+  test("base example 1") {
+    val code = FileUtil.readFile("functional/unittests/Base1.finca")
+    val result = Compiler.compileFunctional(code, options).ir
+    println(result)
   }
 
   test("base example 2") {
-    val result = Compiler.compileFunctional(AST.baseExample2, options).ir
-    assert(result == baseExampleGP2)
+    val code = FileUtil.readFile("functional/unittests/Base2.finca")
+    val result = Compiler.compileFunctional(code, options).ir
+    println(result)
   }
 
   test("var example") {
-    val result = Compiler.compileFunctional(AST.varExample, options).ir
-    assert(result == varExampleGP)
+    val code = FileUtil.readFile("functional/unittests/Var.finca")
+    val result = Compiler.compileFunctional(code, options).ir
+    println(result)
   }
 
   test("if example") {
-    val result = Compiler.compileFunctional(AST.ifExample, options).ir
-    assert(result == ifExampleGP)
+    val code = FileUtil.readFile("functional/unittests/If.finca")
+    val result = Compiler.compileFunctional(code, options).ir
+    println(result)
   }
 
   test("if example 2") {
-    val compiled = Compiler.compileFunctional(AST.ifExample2, options)
-    println(compiled.fun)
-    println(compiled.ir)
-    println(compiled.transformed)
-    println(compiled.optimized)
-    assert(compiled.ir == ifExample2GP)
+    val code = FileUtil.readFile("functional/unittests/If2.finca")
+    val result = Compiler.compileFunctional(code, options).ir
+    println(result)
   }
 
   test("inc example") {
-    val result = Compiler.compileFunctional(AST.incModule, options).ir
-    assert(result == incModuleGP)
+    val code = FileUtil.readFile("functional/unittests/Inc.finca")
+    val result = Compiler.compileFunctional(code, options).ir
+    println(result)
   }
 
   test("fact example") {
-    val result = Compiler.compileFunctional(AST.factModule, options).ir
-    assert(result == factModuleGP)
+    val code = FileUtil.readFile("functional/unittests/Fact.finca")
+    val result = Compiler.compileFunctional(code, options).ir
+    println(result)
   }
 
   test("plus example") {
-    val compiled = Compiler.compileFunctional(AST.plusModule, options)
-    println(compiled.fun)
-    println(compiled.ir)
-    println(compiled.transformed)
-    println(compiled.optimized)
+    val code = FileUtil.readFile("functional/unittests/Plus.finca")
+    val result = Compiler.compileFunctional(code, options).ir
+    println(result)
   }
-//  test("running example for section 5") {
-//    val result = Compiler.compileFunctional(
-//      s"""module Test
-//         |data Node = BusStation(String) | TrainStation(String)
-//         |
-//         |def Edges(): Set[(Node, Node, Int)] = {
-//         |  (TrainStation("A"), BusStation("B"), 12),
-//         |  (TrainStation("A"), BusStation("C"), 5),
-//         |  (TrainStation("D"), BusStation("B"), 145),
-//         |  (BusStation("B"), BusStation("C"), 1)
-//         |}
-//         |
-//         |def isBusStation(n: Node): `Boolean` = n match {
-//         |  case BusStation(name) => true
-//         |  case TrainStation(name) => false
-//         |}
-//         |
-//         |def connectedBusStations(from: Node): Set[Node] =
-//         | {to | isBusStation(to), (from, to, d) in Edges()}
-//         |
-//         |@main def main(): Set[Node] = connectedBusStations(TrainStation("A"))
-//         |
-//         |
-//         |""".stripMargin, options).ir
-//    println(result)
-//  }
 
   test("plus real example") {
-    val result = Compiler.compileFunctional(AST.plusRealModule, options).ir
+    val code = FileUtil.readFile("functional/unittests/PlusReal.finca")
+    val result = Compiler.compileFunctional(code, options).ir
     println(result)
   }
 
   test("set constants") {
-    val result = Compiler.compileFunctional(Code.setConstModule, options).ir
+    val code = FileUtil.readFile("functional/unittests/SetConst.finca")
+    val result = Compiler.compileFunctional(code, options).ir
     println(result)
   }
 
   test("set operations") {
-    val result = Compiler.compileFunctional(Code.setOperationsModule, options).ir
+    val code = FileUtil.readFile("functional/unittests/SetOps.finca")
+    val result = Compiler.compileFunctional(code, options).ir
     println(result)
   }
 
   test("applyFun") {
-    val result = Compiler.compileFunctional(HigherOrder.applyFun, options).ir
+    val code = FileUtil.readFile("functional/higherorder/Apply.finca")
+    val result = Compiler.compileFunctional(code, options).ir
     println(result)
   }
 
   test("lambda") {
-    val result = Compiler.compileFunctional(HigherOrder.lambda, options).ir
+    val code = FileUtil.readFile("functional/higherorder/Lambda.finca")
+    val result = Compiler.compileFunctional(code, options).ir
     println(result)
   }
 
   test("lambdaHigherOrder") {
-    val result = Compiler.compileFunctional(HigherOrder.lambdaHigherOrder, options).ir
+    val code = FileUtil.readFile("functional/higherorder/LambdaHigherOrder.finca")
+    val result = Compiler.compileFunctional(code, options).ir
     println(result)
   }
 
   test("composeFun") {
-    val result = Compiler.compileFunctional(HigherOrder.composeFun, options).ir
+    val code = FileUtil.readFile("functional/higherorder/ComposeFun.finca")
+    val result = Compiler.compileFunctional(code, options).ir
     println(result)
   }
 
   test("composeLambdas") {
-    val result = Compiler.compileFunctional(HigherOrder.composeLambdas, options).ir
-    println(result)
-  }
-
-  test("cflow") {
-    val result = Compiler.compileFunctional(ControlDataFlow.cflowModule, options).ir
+    val code = FileUtil.readFile("functional/higherorder/ComposeLambda.finca")
+    val result = Compiler.compileFunctional(code, options).ir
     println(result)
   }
 }
