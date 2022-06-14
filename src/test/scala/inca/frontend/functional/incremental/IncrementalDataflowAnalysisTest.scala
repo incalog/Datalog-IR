@@ -1,14 +1,10 @@
-package inca.frontend.functional.integration
+package inca.frontend.functional.incremental
 
 import inca.examples.functional.ControlDataFlow
-import inca.frontend.functional.executor.IncrementalFunctionalExecutor
 import inca.frontend.functional.executor.IncrementalFunctionalExecutor._
-import inca.runtime.{EnginePool, Query}
-import org.eclipse.viatra.query.runtime.api.IMatchUpdateListener
+import inca.runtime.EnginePool
 import org.scalatest.Ignore
 import org.scalatest.funsuite.AnyFunSuite
-
-import scala.collection.mutable.ListBuffer
 
 @Ignore
 class IncrementalDataflowAnalysisTest extends AnyFunSuite {

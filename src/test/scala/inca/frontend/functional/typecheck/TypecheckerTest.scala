@@ -1,9 +1,9 @@
 package inca.frontend.functional.typecheck
 
-import inca.examples.functional.{AST, Code, ControlDataFlow, HigherOrder}
 import inca.frontend.functional.core.Module
 import inca.frontend.functional.parser.Parser
 import inca.frontend.functional.typechecker.Typechecker
+import inca.util.FileUtil
 import org.scalatest.funsuite.AnyFunSuite
 
 class TypecheckerTest extends AnyFunSuite {
@@ -30,96 +30,124 @@ class TypecheckerTest extends AnyFunSuite {
     assert(checker.getErrors.nonEmpty, s"Expected type errors, but none found")
   }
 
-  test("base example") {
-    checkModule(AST.baseExample)
+  test("base example 1") {
+    val code = FileUtil.readFile("functional/unittests/Base1.finca")
+    checkModule(code)
   }
 
   test("base example 2") {
-    checkModule(AST.baseExample2)
+    val code = FileUtil.readFile("functional/unittests/Base2.finca")
+    checkModule(code)
   }
 
   test("var example") {
-    checkModule(AST.varExample)
+    val code = FileUtil.readFile("functional/unittests/Var.finca")
+    checkModule(code)
   }
 
   test("if example") {
-    checkModule(AST.ifExample)
+    val code = FileUtil.readFile("functional/unittests/If.finca")
+    checkModule(code)
   }
 
   test("if example 2") {
-    checkModule(AST.ifExample2)
+    val code = FileUtil.readFile("functional/unittests/If2.finca")
+    checkModule(code)
   }
 
   test("inc example") {
-    checkModule(AST.incModule)
+    val code = FileUtil.readFile("functional/unittests/Inc.finca")
+    checkModule(code)
   }
 
   test("fact example") {
-    checkModule(AST.factModule)
+    val code = FileUtil.readFile("functional/unittests/Fact.finca")
+    checkModule(code)
   }
 
   test("plus example") {
-    checkModule(AST.plusModule)
+    val code = FileUtil.readFile("functional/unittests/Plus.finca")
+    checkModule(code)
   }
 
   test("plus real example") {
-    checkModule(AST.plusRealModule)
+    val code = FileUtil.readFile("functional/unittests/PlusReal.finca")
+    checkModule(code)
   }
 
   test("set constants") {
-    checkModule(Code.setConstModule)
+    val code = FileUtil.readFile("functional/unittests/SetConst.finca")
+    checkModule(code)
   }
 
   test("set operations") {
-    checkModule(Code.setOperationsModule)
+    val code = FileUtil.readFile("functional/unittests/SetOps.finca")
+    checkModule(code)
   }
 
-  test("simple fold") {
-    checkModule(Code.simpleFoldModule)
+  test("set intersection") {
+    val code = FileUtil.readFile("functional/unittests/SetIntersection.finca")
+    checkModule(code)
+  }
+
+  test("fold int") {
+    val code = FileUtil.readFile("functional/unittests/FoldInt.finca")
+    checkModule(code)
+  }
+  test("fold adt") {
+    val code = FileUtil.readFile("functional/unittests/FoldADT.finca")
+    checkModule(code)
   }
 
   test("applyFun") {
-    checkModule(HigherOrder.applyFun)
+    val code = FileUtil.readFile("functional/higherorder/Apply.finca")
+    checkModule(code)
   }
 
   test("lambda") {
-    checkModule(HigherOrder.lambda)
+    val code = FileUtil.readFile("functional/higherorder/Lambda.finca")
+    checkModule(code)
   }
 
   test("lambdaHigherOrder") {
-    checkModule(HigherOrder.lambdaHigherOrder)
+    val code = FileUtil.readFile("functional/higherorder/LambdaHigherOrder.finca")
+    checkModule(code)
   }
 
   test("composeFun") {
-    checkModule(HigherOrder.composeFun)
+    val code = FileUtil.readFile("functional/higherorder/ComposeFun.finca")
+    checkModule(code)
   }
 
   test("composeLambdas") {
-    checkModule(HigherOrder.composeLambdas)
+    val code = FileUtil.readFile("functional/higherorder/ComposeLambda.finca")
+    checkModule(code)
   }
 
   test("transitive") {
-    checkModule(HigherOrder.transitive)
+    val code = FileUtil.readFile("functional/higherorder/Transitive.finca")
+    checkModule(code)
   }
   
-  test("cflow") {
-    checkModule(ControlDataFlow.cflowModule)
-  }
 
   test("available expressions") {
-    checkModule(ControlDataFlow.AEModule)
+    val code = FileUtil.readFile("functional/controlflow/AvailableExpressions.finca")
+    checkModule(code)
   }
 
   test("reaching definitions") {
-    checkModule(ControlDataFlow.RDmodule)
+    val code = FileUtil.readFile("functional/controlflow/ReachingDefinition.finca")
+    checkModule(code)
   }
 
   test("intervals") {
-    checkModule(ControlDataFlow.IntervalModule)
+    val code = FileUtil.readFile("functional/controlflow/Interval.finca")
+    checkModule(code)
   }
 
   test("aeval") {
-    checkModule(ControlDataFlow.AEvalModule)
+    val code = FileUtil.readFile("functional/controlflow/AEval.finca")
+    checkModule(code)
   }
 
   test("parent call for adt") {
@@ -161,6 +189,7 @@ class TypecheckerTest extends AnyFunSuite {
          |""".stripMargin
     checkModule(code)
   }
+
   test("type cast for non adt") {
     val code =
       s"""module Test
@@ -171,94 +200,4 @@ class TypecheckerTest extends AnyFunSuite {
     checkModuleErrors(code)
   }
 
-//  test("emptiness check 1") {
-//    val module = Frontend.Core.parseModule(Code.module(
-//      s"""def foo(i: Int): Option[Int] = bar(i)
-//         |@main def bar(i: Int): Option[Int] = foo(i) match {
-//         |  case None => None
-//         |  case Some(j) => Some(i)
-//         |}
-//         |""".stripMargin
-//    )).get.value
-//    checkModule(module)
-//    import scala.meta._
-//    val fun = Executor.loadFunction(module.prettyprint(""))
-//    assert(fun.execute("bar_bf", Seq(q"12")) == fun.results(Seq()))
-//  }
-//
-//  test("emptiness check 2") {
-//    val module = Frontend.Core.parseModule(Code.module(
-//      s"""def foo(i: Int): Option[Int] = bar(i)
-//         |def bar(i: Int): Option[Int] = foo(i) match {
-//         |  case None => Some(0)
-//         |  case Some(j) => Some(i)
-//         |}
-//         |""".stripMargin
-//    )).get.value
-//    checkModuleErrors(module)
-//  }
-//
-//  test("emptiness check 2b") {
-//    val module = Frontend.Core.parseModule(Code.module(
-//      s"""def foo(i: Int): Option[Int] = Some(1)
-//         |def irr(i: Int): Option[Int] = bar(i)
-//         |@main def bar(i: Int): Option[Int] = let x = irr(i) in foo(i) match {
-//         |  case None => Some(0)
-//         |  case Some(j) => Some(i)
-//         |}
-//         |""".stripMargin
-//    )).get.value
-//    checkModuleErrors(module)
-////    import scala.meta._
-////    val fun = Executor.loadFunction(module.prettyprint(""))
-////    println(fun.compiled.optimized)
-////    assert(fun.execute("bar_bf", Seq(q"12")) == fun.results(Seq()))
-//  }
-//
-//  test("emptiness check 3") {
-//    val module = Frontend.Core.parseModule(Code.module(
-//      s"""def foo(i: Int): Option[Int] = bar(i)
-//         |def baz(i: Int): Option[Int] = foo(i)
-//         |def bar(i: Int): Option[Int] = baz(i) match {
-//         |  case None => Some(0)
-//         |  case Some(j) => Some(i)
-//         |}
-//         |""".stripMargin
-//    )).get.value
-//    checkModuleErrors(module)
-//  }
-//
-//  test("emptiness check 4") {
-//    val module = Frontend.Core.parseModule(Code.module(
-//      s"""def foo(i: Int): Option[Int] = Some(1)
-//         |def baz(i: Int): Option[Int] = Some(5)
-//         |@main def bar(i: Int): Option[Int] = baz(i) match {
-//         |  case None => Some(0)
-//         |  case Some(j) => let x = bar(i) in bar(i)
-//         |}
-//         |""".stripMargin
-//    )).get.value
-//    checkModule(module)
-//    import scala.meta._
-//    val fun = Executor.loadFunction(module.prettyprint(""))
-//    println(fun.compiled.optimized)
-//    assert(fun.execute("bar_bf", Seq(q"12")) == fun.results(Seq()))
-//  }
-//
-//  test("emptiness check 5") {
-//    val module = Frontend.Core.parseModule(Code.module(
-//      s"""@main def foo(i: Int): Option[Int] = let x = foo(i) in bar(i)
-//         |def baz(i: Int): Option[Int] = Some(5)
-//         |def bar(i: Int): Option[Int] = baz(i) match {
-//         |  case None => Some(0)
-//         |  case Some(j) => Some(i)
-//         |}
-//         |""".stripMargin
-//    )).get.value
-//    checkModuleErrors(module)
-////    import scala.meta._
-////    val fun = Executor.loadFunction(module.prettyprint(""))
-////    println(fun.compiled.optimized)
-////    assert(fun.execute("foo_bf", Seq(q"12")) == fun.results(Seq()))
-//  }
 }
