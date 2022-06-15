@@ -3,7 +3,7 @@
 
   extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
 
-  psiClassPrefix="Simple"
+  psiClassPrefix="FuncInca"
   psiImplClassSuffix="Impl"
   psiPackage="language.psi"
   psiImplPackage="language.psi.impl"
@@ -19,20 +19,82 @@
     integer = "regexp:-?\d+"                // positive or negative numbers with digits \d = [0-9]
     long = "regexp:-?\d+"
     double = "regexp:-?\d+(\.\d+)?"
-    line_comment = "regexp://.*"            // any number of any characters after //
+    line_comment = "regexp://.*"            // any number of any characters after // (. means any character)
     block_comment = "regexp:/\*(.|\n)*\*/"  // any number of any characters or line breaks after /* and before */
     ]
 
 }
-id ::= valid_id !'if' !'let' !'in' !'match' !'fail' !'Option' !'None' !'Some' !'Set' !'fold'
+
 module ::= 'module ' id import* module_content*
 import ::= 'import ' id
+id ::= valid_id !'if' !'let' !'in' !'match' !'fail' !'Option' !'None' !'Some' !'Set' !'fold' !'not'
 module_content ::= fun_def | data_def
 
+// definition of functions
+fun_def ::= annotation* visibility? 'def ' id '(' param_list ')' ':' type_annotation '=' exp
+param_list ::= (param (',' param)*)?
+param ::= id ':' type_annotation
+
+// definition of datatypes
+data_def ::= annotation* visibility? 'data ' id '=' data_constructor ('|' data_constructor)*
+data_constructor ::= id '(' (type_annotation (',' type_annotation)*)? ')'
+
+// expressions
+exp ::= if_exp | let_exp | member_exp | infix_exp
+if_exp ::= 'if' '(' exp ')' exp 'else' exp
+let_exp ::= single_let | multiple_let
+single_let ::= 'let ' id (':' type_annotation)? '=' infix_exp 'in' exp
+multiple_let ::= 'let ' '(' id (':' type_annotation)? (',' id (':' type_annotation)?)* ')' '=' infix_exp 'in' exp
+member_exp ::= atomic_exp ' not '? ' in ' infix_exp
+
+infix_exp ::= cast_exp | base_apply_method_exp | base_apply_infix_exp | match_exp | subinfix_exp
+cast_exp ::= subinfix_exp '.as[' data ']'
+base_apply_method_exp ::= subinfix_exp '.`' id '`' ( '(' (infix_exp (',' infix_exp)*)? ')' )?
+base_apply_infix_exp ::= subinfix_exp '+' infix_exp | subinfix_exp '-' infix_exp | subinfix_exp '*' infix_exp
+                    | subinfix_exp '/' infix_exp | subinfix_exp '%' infix_exp
+                    | subinfix_exp '&&' infix_exp | subinfix_exp '||' infix_exp
+                    | subinfix_exp '>' infix_exp | subinfix_exp '<' infix_exp | subinfix_exp '==' infix_exp
+match_exp ::=  subinfix_exp ' match ' '{' match_case* '}'
+match_case ::= 'case ' pattern '=>' exp
+pattern ::= option_pattern | constructor_pattern
+option_pattern ::= 'None' | 'Some'
+constructor_pattern ::= id '(' (id (',' id)*)? ')'
+
+subinfix_exp ::= call-exp | lambda_exp | atomic_exp
+call-exp ::= atomic_exp '(' (exp (',' exp)*)? ')'
+lambda_exp ::= lambda_vars '=>' exp
+lambda_vars ::= '(' id ':' type_annotation (',' type_annotation)* ')'
+
+atomic_exp ::= parens_exp | option_exp | comprehension_exp | const_set_exp | tuple_exp | fold_exp | base_apply_exp
+                | base_lit_exp | var | base_apply_unary_exp
+private parens_exp ::= '(' exp ')'
+private option_exp ::= 'None' | 'Some' '(' (exp (',' exp)*)? ')'
+private comprehension_exp ::= '{' subinfix_exp '|' exp (',' exp)* '}'
+private const_set_exp ::= '{' (exp (',' exp)*)? '}'
+private tuple_exp ::= '(' exp ',' exp ')'
+private fold_exp ::= 'fold' ('[' type_annotation ']')? '(' exp ',' exp ',' exp ')'
+private base_apply_exp ::= '`' scala_term '`' '(' (exp (',' exp)*)? ')'
+private var ::= id
+private base_apply_unary_exp ::= '!' infix_exp
+
+// type definitions
+type_annotation ::= fun_type | atomic_type
+fun_type ::= atomic_type '=>' type_annotation
+atomic_type ::= tuple | 'Any' | 'Nothing' | 'Unit' | option | set | scala_type | data
+tuple ::= '(' (type_annotation (',' type_annotation)*)? ')'
+option ::= 'Option' '[' type_annotation ']'
+set ::= 'Set' '[' type_annotation ']'
+scala_type ::= '`' scala_type_core '`'
+scala_type_core ::= 'Int' | 'Long' | 'String' | 'Boolean' | 'Double'
+data ::= id
+
+annotation ::= '@main '
+visibility ::= 'private '
 
 
 
 // literals
+base_lit_exp ::= numeric_lit | boolean_lit | string_lit | '`' scala_term '`'
 numeric_lit ::= integer | long | double
 boolean_lit ::= 'true' | 'false'
 string_lit ::= string
