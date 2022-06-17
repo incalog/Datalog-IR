@@ -7,7 +7,7 @@ import inca.util.Scala
 trait Expression extends Typeable[Type] with SourceLocation {
   def vars: Map[Name, Option[Type]]
   def freevars: Seq[Var]
-  def freeTvars: Seq[TData] = typ.toSeq.flatMap(_.freeTvars)
+  def freeTvars: Seq[TName] = typ.toSeq.flatMap(_.freeTvars)
   def calls: Set[Call]
 
   def prettyprint(infixParens: Boolean)(implicit indent: String): String
@@ -29,7 +29,7 @@ case class Let(names: Seq[Name], anno: Option[Type], bound: Expression, body: Ex
   })
 
   override def freevars: Seq[Var] = bound.freevars ++ body.freevars.filter(!_.target.contains(this))
-  override def freeTvars: Seq[TData] = super.freeTvars ++ bound.freeTvars ++ body.freeTvars ++ anno.toSeq.flatMap(_.freeTvars)
+  override def freeTvars: Seq[TName] = super.freeTvars ++ bound.freeTvars ++ body.freeTvars ++ anno.toSeq.flatMap(_.freeTvars)
 
   override def calls: Set[Call] = bound.calls ++ body.calls
 
@@ -56,7 +56,7 @@ case class Var(name: Name) extends Expression with Resolvable[Var.Target] {
     case _ => Seq(this)
   }
 
-  override def freeTvars: Seq[TData] = super.freeTvars
+  override def freeTvars: Seq[TName] = super.freeTvars
   override def calls: Set[Call] = Set()
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = name.name
 }
@@ -68,7 +68,7 @@ object Var {
 case class If(cnd: Expression, thn: Expression, els: Expression) extends Expression {
   override def vars: Map[Name, Option[Type]] = cnd.vars ++ thn.vars ++ els.vars
   override def freevars: Seq[Var] = cnd.freevars ++ thn.freevars ++ els.freevars
-  override def freeTvars: Seq[TData] = super.freeTvars ++ cnd.freeTvars ++ thn.freeTvars ++ els.freeTvars
+  override def freeTvars: Seq[TName] = super.freeTvars ++ cnd.freeTvars ++ thn.freeTvars ++ els.freeTvars
   override def calls: Set[Call] = cnd.calls ++ thn.calls ++ els.calls
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = infix(infixParens) {
     s"""if (${cnd.prettyprint})
@@ -81,7 +81,7 @@ case class If(cnd: Expression, thn: Expression, els: Expression) extends Express
 case class TypeCast(exp: Expression, ty: Type) extends Expression {
   override def vars: Map[Name, Option[Type]] = exp.vars
   override def freevars: Seq[Var] = exp.freevars
-  override def freeTvars: Seq[TData] = super.freeTvars ++ exp.freeTvars
+  override def freeTvars: Seq[TName] = super.freeTvars ++ exp.freeTvars
   override def calls: Set[Call] = exp.calls
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     s"${exp.prettyprint(infixParens)}.as[${ty.prettyprint}]"
@@ -89,10 +89,10 @@ case class TypeCast(exp: Expression, ty: Type) extends Expression {
 }
 
 
-case class Call(fun: Expression, args: Seq[Expression], transitive: Boolean = false) extends Expression {
+case class Call(fun: Expression, tyArgs: Seq[Type], args: Seq[Expression], transitive: Boolean = false) extends Expression {
   override def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
   override def freevars: Seq[Var] = fun.freevars ++ args.flatMap(_.freevars)
-  override def freeTvars: Seq[TData] = super.freeTvars ++ fun.freeTvars ++ args.flatMap(_.freeTvars)
+  override def freeTvars: Seq[TName] = super.freeTvars ++ fun.freeTvars ++ args.flatMap(_.freeTvars)
   override def calls: Set[Call] = Set(this)
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
@@ -104,7 +104,7 @@ case class Call(fun: Expression, args: Seq[Expression], transitive: Boolean = fa
 case class Lambda(vs: Seq[(Name, Type)], body: Expression) extends Expression with Var.Target {
   override def vars: Map[Name, Option[Type]] = body.vars ++ vs.map(kv => kv._1 -> Some(kv._2)).toMap
   override def freevars: Seq[Var] = body.freevars.filter(!_.target.contains(this))
-  override def freeTvars: Seq[TData] = super.freeTvars ++ body.freeTvars ++ vs.flatMap(_._2.freeTvars)
+  override def freeTvars: Seq[TName] = super.freeTvars ++ body.freeTvars ++ vs.flatMap(_._2.freeTvars)
   override def calls: Set[Call] = body.calls
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = infix(infixParens) {
     val vsS = vs.map(v => s"${v._1}: ${v._2.prettyprint}").mkString(", ")
@@ -115,7 +115,7 @@ case class Lambda(vs: Seq[(Name, Type)], body: Expression) extends Expression wi
 case class Tuple(exps: Seq[Expression]) extends Expression {
   override def vars: Map[Name, Option[Type]] = exps.flatMap(_.vars).toMap
   override def freevars: Seq[Var] = exps.flatMap(_.freevars)
-  override def freeTvars: Seq[TData] = super.freeTvars ++ exps.flatMap(_.freeTvars)
+  override def freeTvars: Seq[TName] = super.freeTvars ++ exps.flatMap(_.freeTvars)
   override def calls: Set[Call] = exps.flatMap(_.calls).toSet
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     exps.map(_.prettyprint).mkString("(", ", ", ")")
@@ -133,7 +133,7 @@ case class Match(matchee: Expression, cases: Seq[(Pattern, Expression)]) extends
   override def freevars: Seq[Var] = matchee.freevars ++ cases.flatMap {
     case (pat, cas) => cas.freevars.filter(!_.target.contains(pat))
   }
-  override def freeTvars: Seq[TData] = super.freeTvars ++ matchee.freeTvars ++ cases.flatMap(_._2.freeTvars)
+  override def freeTvars: Seq[TName] = super.freeTvars ++ matchee.freeTvars ++ cases.flatMap(_._2.freeTvars)
   override def calls: Set[Call] = matchee.calls ++ cases.flatMap(_._2.calls)
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = infix(infixParens) {
     val casesS = cases.map { case (pat, exp) =>
@@ -146,25 +146,29 @@ trait Pattern extends SourceLocation {
   def vars: Map[Name, Option[Type]]
   def prettyprint: String
 }
-case class ConstructorPattern(constr: Name, args: Seq[Name]) extends Pattern with Resolvable[DataConstructor.Target] with Var.Target {
-  override def vars: Map[Name, Option[Type]] = args.map(_ -> None).toMap
-  override def prettyprint: String = s"$constr(${args.mkString(", ")})"
+case class ConstructorPattern(constr: Name, args: Seq[PatternVariable]) extends Pattern with Resolvable[DataConstructor.Target] with Var.Target {
+  override def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
+  override def prettyprint: String = s"$constr(${args.map(_.prettyprint).mkString(", ")})"
 }
+case class PatternVariable(name: Name) extends Pattern with Resolvable[Type] {
+  override def vars: Map[Name, Option[Type]] = Map(name -> target)
 
+  override def prettyprint: String = name.name
+}
 case class NonePattern() extends Pattern {
   override def vars: Map[Name, Option[Type]] = Map()
   override def prettyprint: String = "None"
 }
-case class SomePattern(arg: Name) extends Pattern with Var.Target {
-  override def vars: Map[Name, Option[Type]] = Map(arg -> None)
-  override def prettyprint: String = s"Some($arg)"
+case class SomePattern(arg: PatternVariable) extends Pattern with Var.Target {
+  override def vars: Map[Name, Option[Type]] = arg.vars
+  override def prettyprint: String = s"Some(${arg.prettyprint})"
 }
 
 
 case class BaseLit(code: Scala[meta.Term]) extends Expression {
   override def vars: Map[Name, Option[Type]] = Map()
   override def freevars: Seq[Var] = Seq()
-  override def freeTvars: Seq[TData] = super.freeTvars
+  override def freeTvars: Seq[TName] = super.freeTvars
   override def calls: Set[Call] = Set()
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = code.tree match {
     case meta.Lit.Int(i) => i.toString
@@ -185,7 +189,7 @@ object BaseLit {
 case class BaseApply(fun: Scala[meta.Term], args: Seq[Expression]) extends Expression {
   override def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
   override def freevars: Seq[Var] = args.flatMap(_.freevars)
-  override def freeTvars: Seq[TData] = super.freeTvars ++ args.flatMap(_.freeTvars)
+  override def freeTvars: Seq[TName] = super.freeTvars ++ args.flatMap(_.freeTvars)
   override def calls: Set[Call] = args.flatMap(_.calls).toSet
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
@@ -200,7 +204,7 @@ object BaseApply {
 case class BaseApplyInfix(left: Expression, op: Scala[meta.Term.Name], right: Expression) extends Expression {
   override def vars: Map[Name, Option[Type]] = left.vars ++ right.vars
   override def freevars: Seq[Var] = left.freevars ++ right.freevars
-  override def freeTvars: Seq[TData] = super.freeTvars ++ left.freeTvars ++ right.freeTvars
+  override def freeTvars: Seq[TName] = super.freeTvars ++ left.freeTvars ++ right.freeTvars
   override def calls: Set[Call] = left.calls ++ right.calls
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = infix(infixParens) {
     s"${left.prettyprint(infixParens = true)} $op ${right.prettyprint(infixParens = true)}"
@@ -214,7 +218,7 @@ object BaseApplyInfix {
 case class BaseApplyMethod(recv: Expression, method: Name, args: Option[Seq[Expression]]) extends Expression {
   override def vars: Map[Name, Option[Type]] = args.getOrElse(Seq()).flatMap(_.vars).toMap ++ recv.vars
   override def freevars: Seq[Var] = args.getOrElse(Seq()).flatMap(_.freevars) ++ recv.freevars
-  override def freeTvars: Seq[TData] = super.freeTvars ++ args.getOrElse(Seq()).flatMap(_.freeTvars) ++ recv.freeTvars
+  override def freeTvars: Seq[TName] = super.freeTvars ++ args.getOrElse(Seq()).flatMap(_.freeTvars) ++ recv.freeTvars
   override def calls: Set[Call] = args.getOrElse(Seq()).flatMap(_.calls).toSet ++ recv.calls
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = if (args.isEmpty) "" else args.get.map(_.prettyprint).mkString(", ")
@@ -225,7 +229,7 @@ case class BaseApplyMethod(recv: Expression, method: Name, args: Option[Seq[Expr
 case class BaseApplyUnary(op: Scala[meta.Term.Name], exp: Expression) extends Expression {
   override def vars: Map[Name, Option[Type]] = exp.vars
   override def freevars: Seq[Var] = exp.freevars
-  override def freeTvars: Seq[TData] = super.freeTvars ++ exp.freeTvars
+  override def freeTvars: Seq[TName] = super.freeTvars ++ exp.freeTvars
   override def calls: Set[Call] = exp.calls
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     s"$indent${op.syntax}${exp.prettyprint(false)}"
@@ -239,14 +243,14 @@ object BaseApplyUnary {
 case class NoneExp() extends Expression {
   override def vars: Map[Name, Option[Type]] = Map()
   override def freevars: Seq[Var] = Seq()
-  override def freeTvars: Seq[TData] = super.freeTvars
+  override def freeTvars: Seq[TName] = super.freeTvars
   override def calls: Set[Call] = Set()
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = "None"
 }
 case class SomeExp(e: Expression) extends Expression {
   override def vars: Map[Name, Option[Type]] = e.vars
   override def freevars: Seq[Var] = e.freevars
-  override def freeTvars: Seq[TData] = super.freeTvars ++ e.freeTvars
+  override def freeTvars: Seq[TName] = super.freeTvars ++ e.freeTvars
   override def calls: Set[Call] = e.calls
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = s"Some(${e.prettyprint})"
 }
@@ -254,7 +258,7 @@ case class SomeExp(e: Expression) extends Expression {
 case class SetExp(es: Seq[Expression]) extends Expression {
   override def vars: Map[Name, Option[Type]] = es.flatMap(_.vars).toMap
   override def freevars: Seq[Var] = es.flatMap(_.freevars)
-  override def freeTvars: Seq[TData] = super.freeTvars ++ es.flatMap(_.freeTvars)
+  override def freeTvars: Seq[TName] = super.freeTvars ++ es.flatMap(_.freeTvars)
   override def calls: Set[Call] = es.flatMap(_.calls).toSet
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     s"{${es.map(_.prettyprint).mkString(", ")}}"
@@ -274,7 +278,7 @@ case class SetComprehension(build: Expression, predicates: Seq[Expression]) exte
     }
     free ++ (build.freevars diff bindings)
   }
-  override def freeTvars: Seq[TData] = super.freeTvars ++ build.freeTvars ++ predicates.flatMap(_.freeTvars)
+  override def freeTvars: Seq[TName] = super.freeTvars ++ build.freeTvars ++ predicates.flatMap(_.freeTvars)
 
   override def calls: Set[Call] = build.calls ++ predicates.flatMap(_.calls)
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
@@ -299,7 +303,7 @@ case class SetMember(tup: Expression, set: Expression, neg: Boolean) extends Exp
     }
     case _ => tup.freevars
   })
-  override def freeTvars: Seq[TData] = super.freeTvars ++ tup.freeTvars ++ set.freeTvars
+  override def freeTvars: Seq[TName] = super.freeTvars ++ tup.freeTvars ++ set.freeTvars
 
   def bindings: Seq[Var] = tup match {
     case v: Var if v.target.isEmpty => Seq(v)
@@ -319,7 +323,7 @@ case class SetMember(tup: Expression, set: Expression, neg: Boolean) extends Exp
 case class SetFold(anno: Option[Type], init: Expression, op: Expression, set: Expression) extends Expression {
   override def vars: Map[Name, Option[Type]] = init.vars ++ set.vars
   override def freevars: Seq[Var] = init.freevars ++ op.freevars ++ set.freevars
-  override def freeTvars: Seq[TData] = super.freeTvars ++ init.freeTvars ++ op.freeTvars ++ set.freeTvars
+  override def freeTvars: Seq[TName] = super.freeTvars ++ init.freeTvars ++ op.freeTvars ++ set.freeTvars
   override def calls: Set[Call] = init.calls ++ set.calls
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val annoS = anno match {

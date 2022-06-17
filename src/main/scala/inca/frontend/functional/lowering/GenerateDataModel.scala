@@ -12,14 +12,14 @@ class GenerateDataModel(module: Module) {
   def transModule(): DataModel = {
     val datas = module.content.collect { case data: DataDef => data }
 
-    val subtyps = for (DataDef(_, _, name, constrs) <- datas;
+    val subtyps = for (DataDef(_, _, name, _, constrs) <- datas;
                        DataConstructor(cname, _) <- constrs)
       yield SortType(cname.name) -> SortType(name.name)
-    val kidLinks = for (DataDef(_, _, _, constrs) <- datas;
+    val kidLinks = for (DataDef(_, _, _, _, constrs) <- datas;
                         DataConstructor(cname, paramTypes) <- constrs;
-                        (ty,ix) <- paramTypes.zipWithIndex if ty.isInstanceOf[TData])
-      yield (cname.name, "_" + ix) -> SortType(ty.asInstanceOf[TData].name.name)
-    val litLinks = for (DataDef(_, _, _, constrs) <- datas;
+                        (ty,ix) <- paramTypes.zipWithIndex if ty.isInstanceOf[TName])
+      yield (cname.name, "_" + ix) -> SortType(ty.asInstanceOf[TName].name.name)
+    val litLinks = for (DataDef(_, _, _, _, constrs) <- datas;
                         DataConstructor(cname, paramTypes) <- constrs;
                         (ty,ix) <- paramTypes.zipWithIndex;
                         litType <- transType(ty))
@@ -38,7 +38,7 @@ class GenerateDataModel(module: Module) {
     case TAny => Some(JavaLitType(classOf[Any]))
     case TNothing => Some(JavaLitType(classOf[Nothing]))
     case TTuple(ts) =>  None
-    case TData(name) => None
+    case TName(name) => None
     case TScalaBoolean => Some(Datalog.TLiteral.Bool.litType)
     case TScalaInt => Some(Datalog.TLiteral.Int.litType)
     case TScalaLong => Some(Datalog.TLiteral.Long.litType)

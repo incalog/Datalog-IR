@@ -64,11 +64,11 @@ class ParserTest extends AnyFunSuite {
   }
 
   test("Module test") {
-    val boolDef = DataDef(Seq(), None, Name("Bool"), Seq(DataConstructor(Name("True"), Seq()), DataConstructor(Name("False"), Seq())))
-    val funDef = FunctionDef(Seq(), None, Name("neg"), Seq(Param(Name("b"), TData(Name("Bool")))), TData(Name("Bool")),
+    val boolDef = DataDef(Seq(), None, Name("Bool"), Seq(), Seq(DataConstructor(Name("True"), Seq()), DataConstructor(Name("False"), Seq())))
+    val funDef = FunctionDef(Seq(), None, Name("neg"), Seq(), Seq(Param(Name("b"), TName(Name("Bool")))), TName(Name("Bool")),
       Match(Var("b"), Seq(
-        (ConstructorPattern(Name("True"), Seq()), Call(Var(Name("False")), Seq())),
-        (ConstructorPattern(Name("False"), Seq()), Call(Var(Name("True")), Seq())))))
+        (ConstructorPattern(Name("True"), Seq()), Call(Var(Name("False")), Seq(), Seq())),
+        (ConstructorPattern(Name("False"), Seq()), Call(Var(Name("True")), Seq(), Seq())))))
     val moduleDef = Module(Name("Main"), Seq(), Seq(boolDef, funDef))
     val moduleString =
       """module Main
@@ -84,10 +84,10 @@ class ParserTest extends AnyFunSuite {
   }
 
   test("FunctionDef test") {
-    val funDef = FunctionDef(Seq(), None, Name("foo"), Seq(Param(Name("x"), TScala("Int"))), TScala("Int"), If(Var("x"), BaseLit(Scala(q"1")), BaseLit(Scala(q"2"))))
+    val funDef = FunctionDef(Seq(), None, Name("foo"), Seq(), Seq(Param(Name("x"), TScala("Int"))), TScala("Int"), If(Var("x"), BaseLit(Scala(q"1")), BaseLit(Scala(q"2"))))
     testSuccess(parser.functionDef(_))("def foo(x: Int): Int = if (x) `1` else `2`", funDef)
 
-    val annoFunDef = FunctionDef(Seq(MainFunctionAnno), None, Name("foo"), Seq(Param(Name("x"), TScala("Int"))), TScala("Int"), If(Var("x"), BaseLit(Scala(q"1")), BaseLit(Scala(q"2"))))
+    val annoFunDef = FunctionDef(Seq(MainFunctionAnno), None, Name("foo"), Seq(), Seq(Param(Name("x"), TScala("Int"))), TScala("Int"), If(Var("x"), BaseLit(Scala(q"1")), BaseLit(Scala(q"2"))))
     val annoFunString = "@main def foo(x: Int): Int = if (x) `1` else `2`"
     parse(annoFunString, parser.functionDef(_)) match {
       case Success(value, _) =>
@@ -98,16 +98,16 @@ class ParserTest extends AnyFunSuite {
   }
 
   test("DataDef test") {
-    val peanoDef = DataDef(Seq(), None, Name("Nat"),
+    val peanoDef = DataDef(Seq(), None, Name("Nat"), Seq(),
       Seq(
         DataConstructor(Name("Zero"), Seq()),
-        DataConstructor(Name("Succ"), Seq(TData(Name("Nat"))))))
+        DataConstructor(Name("Succ"), Seq(TName(Name("Nat"))))))
     testSuccess(parser.dataDef(_))("data Nat = Zero() | Succ(Nat)", peanoDef)
 
-    val expDef = DataDef(Seq(), None, Name("Exp"),
+    val expDef = DataDef(Seq(), None, Name("Exp"), Seq(),
       Seq(
         DataConstructor(Name("Num"), Seq(TScala("Int"))),
-        DataConstructor(Name("Add"), Seq(TData(Name("Exp")), TData(Name("Exp"))))))
+        DataConstructor(Name("Add"), Seq(TName(Name("Exp")), TName(Name("Exp"))))))
     testSuccess(parser.dataDef(_))("data Exp = Num(Int) | Add(Exp, Exp)", expDef)
   }
 
@@ -124,8 +124,8 @@ class ParserTest extends AnyFunSuite {
     val letExp = Let(Seq(Name("x"), Name("y")), Some(TTuple(Seq(TAny, TNothing))), Var("tuple"), Tuple(Seq(Var("y"), Var("x"))))
     testSuccess(parser.exp(_))("let (x, y): (Any, Nothing) = tuple in (y, x)", letExp)
 
-    testSuccess(parser.exp(_))("foo(x)", Call(Var(Name("foo")), Seq(Var("x"))))
-    testSuccess(parser.exp(_))("foo(x, (y, z))", Call(Var(Name("foo")), Seq(Var("x"), Tuple(Seq(Var("y"), Var("z"))))))
+    testSuccess(parser.exp(_))("foo(x)", Call(Var(Name("foo")), Seq(), Seq(Var("x"))))
+    testSuccess(parser.exp(_))("foo(x, (y, z))", Call(Var(Name("foo")), Seq(), Seq(Var("x"), Tuple(Seq(Var("y"), Var("z"))))))
 
     testSuccess(parser.exp(_))("((x, y))", Tuple(Seq(Var("x"), Var("y"))))
 
@@ -142,8 +142,8 @@ class ParserTest extends AnyFunSuite {
         |}
         |""".stripMargin
     val matchExp = Match(Var("b"), Seq(
-      (ConstructorPattern(Name("True"), Seq()), Call(Var(Name("False")), Seq())),
-      (ConstructorPattern(Name("False"), Seq()), Call(Var(Name("True")), Seq()))))
+      (ConstructorPattern(Name("True"), Seq()), Call(Var(Name("False")), Seq(), Seq())),
+      (ConstructorPattern(Name("False"), Seq()), Call(Var(Name("True")), Seq(), Seq()))))
     testSuccess(parser.exp(_))(matchString, matchExp)
   }
 
@@ -209,6 +209,16 @@ class ParserTest extends AnyFunSuite {
 
   test("set intersection") {
     val code = FileUtil.readFile("functional/unittests/SetIntersection.finca")
+    testSuccessAny(parser.module(_))(code)
+  }
+
+  test("parametric datatype") {
+    val code = FileUtil.readFile("functional/unittests/ParametricDatatypes.finca")
+    testSuccessAny(parser.module(_))(code)
+  }
+
+  test("parametric function") {
+    val code = FileUtil.readFile("functional/unittests/ParametricFunction.finca")
     testSuccessAny(parser.module(_))(code)
   }
 

@@ -10,20 +10,20 @@ sealed trait Type extends SourceLocation {
   def prettyprint: String
   def asScala: meta.Type
   def flatten: Seq[Type]
-  def freeTvars: Seq[TData]
+  def freeTvars: Seq[TName]
   override def toString: String = prettyprint
 }
 case object TAny extends Type {
   override def prettyprint: String = "Any"
   override def asScala: meta.Type = t"Any"
   override def flatten: Seq[Type] = Seq(this)
-  override def freeTvars: Seq[TData] = Seq()
+  override def freeTvars: Seq[TName] = Seq()
 }
 case object TNothing extends Type {
   override def prettyprint: String = "Nothing"
   override def asScala: meta.Type = t"Nothing"
   override def flatten: Seq[Type] = Seq(this)
-  override def freeTvars: Seq[TData] = Seq()
+  override def freeTvars: Seq[TName] = Seq()
 }
 
 case class TFun(from: Seq[Type], to: Type) extends Type {
@@ -36,7 +36,7 @@ case class TFun(from: Seq[Type], to: Type) extends Type {
   override def asScala: meta.Type = meta.Type.Function(from.map(_.asScala).toList, to.asScala)
 
   override def flatten: Seq[Type] = Seq(this)
-  override def freeTvars: Seq[TData] = to.freeTvars ++ from.flatMap(_.freeTvars)
+  override def freeTvars: Seq[TName] = to.freeTvars ++ from.flatMap(_.freeTvars)
 }
 
 case class TTuple(ts: Seq[Type]) extends Type {
@@ -49,7 +49,7 @@ case class TTuple(ts: Seq[Type]) extends Type {
   }
   override def asScala: meta.Type = t"(..${ts.map(_.asScala).toList})"
   override def flatten: Seq[Type] = ts.flatMap(_.flatten)
-  override def freeTvars: Seq[TData] = ts.flatMap(_.freeTvars)
+  override def freeTvars: Seq[TName] = ts.flatMap(_.freeTvars)
 }
 object TTuple {
   def from(ts: Seq[Type]): Type = ts match {
@@ -58,22 +58,31 @@ object TTuple {
     case ts => TTuple(ts)
   }
 }
-
-case class TData(name: Name) extends Type with Resolvable[TData.Target] {
+case class TName(name: Name) extends Type with Resolvable[TName.Target] {
   override def prettyprint: String = name.name
   override def asScala: meta.Type = t"truechange.URI"
   override def flatten: Seq[Type] = Seq(this)
-  override def freeTvars: Seq[TData] = Seq(this)
+  override def freeTvars: Seq[TName] = Seq(this)
 }
-object TData {
+
+object TName {
   trait Target
+}
+
+case class TConstr(name: Name, tys: Seq[Type]) extends Type with Resolvable[TName.Target] {
+  override def prettyprint: String =
+    s"${name.name}" + (if(tys.isEmpty) "" else s"[${tys.map(_.prettyprint).mkString(", ")}]")
+  override def asScala: meta.Type = t"truechange.URI"
+  override def flatten: Seq[Type] = Seq(this)
+  // TODO fix?
+  override def freeTvars: Seq[TName] = tys.flatMap(_.freeTvars)
 }
 
 case class TScala(ty: Scala[meta.Type]) extends Type {
   override def prettyprint: String = s"`${ty.syntax}`"
   override def asScala: meta.Type = ty.tree
   override def flatten: Seq[Type] = Seq(this)
-  override def freeTvars: Seq[TData] = Seq()
+  override def freeTvars: Seq[TName] = Seq()
 }
 object TScala {
   def apply(typeString: String): TScala = {
@@ -93,12 +102,12 @@ case class TOption(ty: Type) extends Type {
   override def prettyprint: String = s"Option[${ty.prettyprint}]"
   override def asScala: meta.Type = ty.asScala
   override def flatten: Seq[Type] = ty.flatten
-  override def freeTvars: Seq[TData] = ty.freeTvars
+  override def freeTvars: Seq[TName] = ty.freeTvars
 }
 
 case class TSet(ty: Type) extends Type {
   override def prettyprint: String = s"Set[${ty.prettyprint}]"
   override def asScala: meta.Type = ty.asScala
   override def flatten: Seq[Type] = ty.flatten
-  override def freeTvars: Seq[TData] = ty.freeTvars
+  override def freeTvars: Seq[TName] = ty.freeTvars
 }

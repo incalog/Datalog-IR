@@ -2,6 +2,7 @@ package inca.frontend.functional.typechecker
 
 import inca.compiler.SourceLocation
 import inca.frontend.functional.core._
+import inca.frontend.functional.util.TypeUtil
 import inca.frontend.util.{Resolvable, Typeable}
 
 trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
@@ -46,6 +47,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   private var currentFunctionDef: Option[FunctionDef] = None
 
   def typecheck(fun: FunctionDef): Unit = scopedTypeContext {
+    fun.tyVars.foreach(tyVar => bindTyVar(tyVar.name, tyVar))
     fun.params.foreach { p =>
       typecheck(p.typ)
       if (p.typ.isInstanceOf[TSet])
@@ -58,27 +60,51 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       currentFunctionDef = Some(fun)
       val ty = typecheck(fun.body)
       if (!subtype(ty, fun.outType))
-      error(s"Found body of type $ty, but expected function result type ${fun.outType}", fun.body)
+        error(s"Found body of type $ty, but expected function result type ${fun.outType}", fun.body)
     } finally {
       currentFunctionDef = oldFunctionDef
     }
   }
 
-  def typecheck(data: DataDef): Unit =
-    data.constrs.foreach(_.paramTypes.foreach(typecheck))
+  def typecheck(data: DataDef): Unit = scopedTypeContext {
+    data.tyVars.foreach(tyVar => bindTyVar(tyVar.name, tyVar))
+    data.constrs.foreach { constr =>
+      constr.paramTypes.foreach(typecheck)
+      resolveTarget(constr)(data)
+    }
+  }
 
   def typecheck(typ: Type): Unit = typ match {
-    case typ@TData(name) => lookupData(name) match {
-      case Some(data) => resolveTarget[TData.Target](typ)(data)
-      case None => // nothing
-    }
     case TTuple(tys) => tys.foreach(typecheck)
     case TSet(ty) => typecheck(ty)
     case TOption(ty) => typecheck(ty)
     case TFun(from, to) =>
       from.foreach(typecheck)
       typecheck(to)
-    case _ =>
+    case typ@TName(name) =>
+      if (isData(name)) {
+        lookupData(name) match {
+          case Some(data) => resolveTarget[TName.Target](typ)(data)
+          case None => // nothing
+        }
+      } else if (isTypeVar(name)) {
+        lookupTyVar(name) match {
+          case Some(data) => resolveTarget[TName.Target](typ)(data)
+          case None => // nothing
+        }
+
+      } else {
+        throw new IllegalArgumentException(s"Currently does not support $typ")
+      }
+    case typ@TConstr(name, tys) =>
+      lookupData(name) match {
+        case Some(data) => resolveTarget[TName.Target](typ)(data)
+          tys.foreach(typecheck)
+        case None => // nothing
+      }
+    case TAny => // nothing
+    case TScalaInt | TScalaBoolean | TScalaAny | TScalaDouble | TScalaLong | TScala(_) => // nothing
+    case _  => throw new IllegalArgumentException(s"Currently does not support $typ")
   }
 
   /*
@@ -157,7 +183,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       TFun(vs.map(_._2), ty)
     }
 
-    case Call(fun, args, transitive) =>
+    case Call(fun, tyArgs, args, transitive) =>
       fun match {
         case Var(Name("parent")) =>
           if(args.size != 1)
@@ -166,7 +192,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           argTys.headOption match {
             case Some(argTy) =>
               argTy match {
-                case TData(name) =>
+                case TName(name) if lookupData(name).isDefined =>
                   // do nothing
                 case _ =>
                   error(s"Built-in function parent expected algebraic data type argument, but received argument of type $argTy", exp)
@@ -178,7 +204,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           val tfun = typecheck(fun)
           tfun match {
             case tfun: TFun =>
-              typecheckFunDefCall(fun, tfun, args, transitive, exp)
+              typecheckFunDefCall(fun, tfun, tyArgs, args, transitive, exp)
             case _ =>
               error(s"Expression has type $tfun, but required function type", fun)
               tfun
@@ -186,9 +212,16 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       }
 
     case Match(matchee, cases) =>
-      typecheck(matchee) match {
-        case td: TData if td.target.isDefined =>
-          typecheckTDataMatch(exp, cases, td)
+      val matcheeTy = typecheck(matchee)
+      matcheeTy match {
+        case td: TName if isData(td.name) && td.target.isDefined =>
+          typecheckTNameMatch(exp, cases, td)
+        case td: TName if isTypeVar(td.name) =>
+          error(s"Cannot match on parametric type $td", matchee)
+          val ctys = cases.map(c => typecheck(c._2))
+          join(ctys)
+        case td: TConstr if td.target.isDefined =>
+          typecheckTConstrMatch(exp, cases, td)
 
         case topt: TOption =>
           typecheckTOptionMatch(exp, matchee, cases, topt)
@@ -321,7 +354,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       case SetMember(_, Var(name), _) if isData(name) =>
         // this is a type member test
         mem.isTypeMember = true
-        TData(name).resolved(lookupData(name).get)
+        TName(name).resolved(lookupData(name).get)
 
       case SetMember(_, set, _) =>
         val tset = typecheck(set)
@@ -368,8 +401,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
   }
 
-  private def typecheckTDataMatch(exp: Expression, cases: Seq[(Pattern, Expression)], td: TData): Type = {
+  private def typecheckTNameMatch(exp: Expression, cases: Seq[(Pattern, Expression)], td: TName): Type = {
     val data = td.target.get.asInstanceOf[DataDef]
+
     var seenConstrs = Set[Name]()
 
     val ctys = cases.map {
@@ -387,15 +421,65 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             scopedTypeContext {
               vars.zipAll(paramTypes, null, null).foreach {
                 case (null, ty) => // nothing
-                case (v, null) => bindVar(v, pat, TAny)
-                case (v, ty) => bindVar(v, pat, ty)
+                case (v, null) => bindVar(v.name, pat, TAny)
+                // TODO fix do type substitution for actual type
+                case (v, ty) => bindVar(v.name, pat, ty)
               }
               typecheck(e)
             }
           case None =>
             error(s"Cannot match constructor $constr against matchee of type $td", constr)
             scopedTypeContext {
-              vars.foreach(v => bindVar(v, pat, TAny))
+              vars.foreach(v => bindVar(v.name, pat, TAny))
+              typecheck(e)
+            }
+        }
+      case (pat, e) =>
+        error(s"Cannot match pattern $pat against matchee of type $td", pat)
+        scopedTypeContext {
+          val dummy = ConstructorPattern(Name("?"), Seq())
+          pat.vars.foreach(v => bindVar(v._1, dummy, TAny))
+          typecheck(e)
+        }
+    }
+    val missingConstrs = data.constrs.map(_.name).toSet -- seenConstrs
+    if (missingConstrs.nonEmpty)
+      error(s"Pattern match must be complete but missed the following constructors: ${missingConstrs.mkString(", ")}", exp)
+    join(ctys)
+  }
+
+  private def typecheckTConstrMatch(exp: Expression, cases: Seq[(Pattern, Expression)], td: TConstr): Type = {
+    val data = td.target.get.asInstanceOf[DataDef]
+    var seenConstrs = Set[Name]()
+    val subst = data.tyVars.map(v => TName(v.name)).zip(td.tys).toMap
+    val substConstrs = data.constrs.map { constr =>
+      DataConstructor(constr.name, constr.paramTypes.map(TypeUtil.substitute(_, subst)))
+    }
+
+    val ctys = cases.map {
+      case (pat@ConstructorPattern(constr, vars), e) =>
+        if (seenConstrs.contains(constr))
+          error(s"Duplicate constructor pattern $constr", constr)
+        else
+          seenConstrs += constr
+
+        substConstrs.find(_.name == constr) match {
+          case Some(dcon@DataConstructor(_, paramTypes)) =>
+            resolveTarget(pat)(dcon)
+            if (paramTypes.size != vars.size)
+              error(s"Wrong number of constructor arguments, expected ${paramTypes.size} but got ${vars.size}", pat)
+            scopedTypeContext {
+              vars.zipAll(paramTypes, null, null).foreach {
+                case (null, ty) => // nothing
+                case (v, null) => bindVar(v.name, pat, TAny)
+                case (v, ty) => bindVar(v.name, pat, ty)
+              }
+              typecheck(e)
+            }
+          case None =>
+            error(s"Cannot match constructor $constr against matchee of type $td", constr)
+            scopedTypeContext {
+              vars.foreach(v => bindVar(v.name, pat, TAny))
               typecheck(e)
             }
         }
@@ -430,7 +514,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           seenConstrs += "Some"
 
         scopedTypeContext {
-          bindVar(v, pat, topt.ty)
+          bindVar(v.name, pat, topt.ty)
           typecheck(e)
         }
 
@@ -449,19 +533,32 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     join(ctys)
   }
 
-  def typecheckFunDefCall(fun: Expression, tfun: TFun, args: Seq[Expression], transitive: Boolean, exp: Expression): Type = {
+  def typecheckFunDefCall(fun: Expression, tfun: TFun, tyArgs: Seq[Type], args: Seq[Expression], transitive: Boolean, exp: Expression): Type = {
+    tyArgs.foreach(typecheck)
     if (tfun.from.size != args.size) {
       error(s"Function $fun expects ${tfun.from.size} arguments, but found ${args.size} arguments in call", exp)
     }
 
-    tfun.from.zipAll(args, null, null) foreach {
+    // we need to do type substitution
+    val substTFun =
+      if (tyArgs.nonEmpty) {
+        val tyParams = typeParamsOfFunDef(fun)
+        if (tyParams.size != tyArgs.size)
+          error(s"Function $fun expects ${tyParams.size} type arguments, but found ${tyArgs.size} type arguments in call", exp)
+        val subst = tyParams.map(param => TName(param.name)).zip(tyArgs).toMap
+        TypeUtil.substitute(tfun, subst).asInstanceOf[TFun]
+      } else tfun
+
+
+    substTFun.from.zipAll(args, null, null) foreach {
       case (null, arg) =>
         typecheck(arg)
       case (param, null) =>
       // nothing
       case (tparam, arg) =>
         val argTy = typecheck(arg)
-        if (meet(tparam, argTy) == TNothing) {
+        val meetTy = meet(tparam, argTy)
+        if (meetTy == TNothing) {
           error(s"Invalid argument of type $argTy for parameter of type $tparam", arg)
         }
     }
@@ -470,33 +567,20 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       // TODO
     }
 
-    tfun.to
+    substTFun.to
   }
 
-  def typecheckConstrCall(constr: DataConstructor, data: DataDef, args: Seq[Expression], transitive: Boolean, exp: Expression): Type = {
-    val name = constr.name
-
-    if (constr.paramTypes.size != args.size) {
-      error(s"Constructor $name expects ${constr.paramTypes.size} arguments, but found ${args.size} arguments in call", exp)
-    }
-
-    constr.paramTypes.zipAll(args, null, null) foreach {
-      case (null, arg) =>
-        typecheck(arg)
-      case (param, null) =>
-      // nothing
-      case (paramTy, arg) =>
-        val argTy = typecheck(arg)
-        if (meet(paramTy, argTy) == TNothing) {
-          warn(s"Cast of argument type $argTy to unrelated parameter type $paramTy will always fail", arg)
+  private def typeParamsOfFunDef(fun: Expression): Seq[ParametricType] = fun match {
+    case funName@Var(_) =>
+      funName.target.get match {
+        case FunctionDef(_, _, _, typeParams, _, _, _) => typeParams
+        case dc@DataConstructor(_, _) => dc.target.get match {
+          case DataDef(_, _, _, tyVars, _) => tyVars
+          case _ => Seq()
         }
-    }
-
-    if (transitive) {
-      // TODO
-    }
-
-    TData(data.name).resolved(data)
+        case _ => Seq()
+      }
+    case _ => Seq()
   }
 
   def typecheckDecodeScala(codeSource: String, loc: SourceLocation): Type = {
@@ -523,6 +607,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case (_, _) if ty1 == ty2 => ty1
     case (TAny, _) => ty2
     case (_, TAny) => ty1
+    case (TName(name1), TConstr(name2, Seq())) if name1 == name2 => ty1
+    case (TConstr(name1, Seq()), TName(name2)) if name1 == name2 => ty1
     case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size => TTuple(tys1.zip(tys2).map(tt => meet(tt._1, tt._2)))
     case (TScala(s1), TScala(s2)) =>
       if (subtypeScala(s1.tree, s2.tree))
@@ -585,14 +671,28 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         annotated
       case None =>
         val resolved = inferred match {
-          case td@TData(name) =>
-            lookupData(name) match {
-              case Some(data) =>
-                resolveTarget(td)(data)
-                inferred
-              case None =>
-                error(s"Could not find Data type $name", term)
-                TAny
+          case td@TName(name) =>
+            if (isData(name)) {
+              lookupData(name) match {
+                case Some(data) =>
+                  resolveTarget(td)(data)
+                  inferred
+                case None =>
+                  error(s"Could not find Data type $name", term)
+                  TAny
+              }
+            } else if (isTypeVar(name)) {
+              lookupTyVar(name) match {
+                case Some(tyParam) =>
+                  resolveTarget(td)(tyParam)
+                  inferred
+                case None =>
+                  error(s"Could not find Data type $name", term)
+                  TAny
+              }
+            } else {
+              error(s"Could not resolve type $name", term)
+              TAny
             }
           case _ => inferred
         }

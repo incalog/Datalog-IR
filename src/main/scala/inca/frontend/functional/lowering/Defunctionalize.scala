@@ -5,6 +5,10 @@ import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
 
+// We assume that the input program is already monomorphic
+// - functions have no type parameters
+// - algebraic datatypes have no type parameters
+// - calls have no type arguments
 object Defunctionalize {
   def transformModule(module: Module): Module =
     new Defunctionalize(module).transModule()
@@ -49,7 +53,7 @@ class Defunctionalize(module: Module) {
     "query" + getRelTypeDefun(tcontent)
 
   private var newVarTargets: Map[Name, (Var.Target, Type)] = Map()
-  private var newTDataTargets: Map[Name, TData.Target] = Map()
+  private var newTNameTargets: Map[Name, TName.Target] = Map()
 
   def transModule(): Module = {
     val Module(name, imports, contents) = module
@@ -60,22 +64,22 @@ class Defunctionalize(module: Module) {
 
     val defunFuns = anonymousFunctions.toList.groupBy(_.typ).flatMap {
       case (tfun@TFun(from, to), funs) =>
-        val data = DataDef(Seq(), None, Name(funData(tfun)),
+        val data = DataDef(Seq(), None, Name(funData(tfun)), Seq(),
           funs.map { case AnonFun(_, _, _, defunName, freevars) =>
             val constr = DataConstructor(Name(defunName), freevars.map(v => transformType(v.typ.getOrElse(TAny))))
             newVarTargets += Name(defunName) -> (constr, constr.constructorType(Name(funData(tfun))))
             constr
           }
         )
-        newTDataTargets += data.name -> data
-        val apply = FunctionDef(Seq(), None, Name(funApply(tfun)),
-          Seq(Param(Name("fun"), TData(data.name)), Param(Name("arg"), TTuple.from(from.map(transformType)))),
+        newTNameTargets += data.name -> data
+        val apply = FunctionDef(Seq(), None, Name(funApply(tfun)), Seq(),
+          Seq(Param(Name("fun"), TName(data.name)), Param(Name("arg"), TTuple.from(from.map(transformType)))),
           transformType(to),
           Match(Var(Name("fun")),
             funs.map { case AnonFun(_, vs, body, defunName, freevars) =>
               body.freevars.foreach{ v => v.target = None; v.typ = None }
               body.freeTvars.foreach(_.target = None)
-              ConstructorPattern(Name(defunName), freevars.map(_.name)) ->
+              ConstructorPattern(Name(defunName), freevars.map(v => PatternVariable(v.name))) ->
               Let(vs, Some(TTuple.from(tfun.from)), Var(Name("arg")), body)
             }
           )
@@ -89,13 +93,13 @@ class Defunctionalize(module: Module) {
   }
 
   def transformModuleContent(moduleContent: ModuleContent): ModuleContent = moduleContent match {
-    case DataDef(annos, vis, name, constrs) =>
-      DataDef(annos, vis, name, constrs.map {
+    case DataDef(annos, vis, name, tyVars, constrs) =>
+      DataDef(annos, vis, name, tyVars, constrs.map {
         case DataConstructor(name, paramTypes) =>
           DataConstructor(name, paramTypes.map(transformType))
       })
-    case FunctionDef(annos, vis, name, params, outType, body) =>
-      FunctionDef(annos, vis, name,
+    case FunctionDef(annos, vis, name, tyVars, params, outType, body) =>
+      FunctionDef(annos, vis, name, tyVars,
         params.map(p => Param(p.name, transformType(p.typ))),
         transformType(outType),
         transformExp(body))
@@ -105,7 +109,7 @@ class Defunctionalize(module: Module) {
     case TFun(from, to) =>
       val fromTrans = from.map(transformType)
       val toTrans = transformType(to)
-      TData(Name(funData(TFun(fromTrans, toTrans))))
+      TName(Name(funData(TFun(fromTrans, toTrans))))
     case TTuple(ts) => TTuple(ts.map(transformType))
     case TOption(ty) => TOption(transformType(ty))
     case TSet(ty) =>
@@ -128,10 +132,11 @@ class Defunctionalize(module: Module) {
             fun.params.map(_.name),
             Call(
               Var(fun.name),
+              Seq(),
               fun.params.map(p => Var(p.name))),
             constrSym, Seq())
           anonymousFunctions += afun
-          Call(Var(Name(constrSym)), Seq())
+          Call(Var(Name(constrSym)), Seq(), Seq())
         case Some(constr: DataConstructor) =>
           val constrSym = gensym.freshGlobal("Relref")
           val ty = TFun(constr.paramTypes, transformType(exp.typ.get))
@@ -140,10 +145,11 @@ class Defunctionalize(module: Module) {
             paramIndices.map(ix => Name(s"_$ix")),
             Call(
               Var(constr.name),
+              Seq(),
               paramIndices.map(ix => Var(Name(s"_$ix")))).mtyped(v.typ.map(transformType)),
             constrSym, Seq())
           anonymousFunctions += afun
-          Call(Var(Name(constrSym)), Seq())
+          Call(Var(Name(constrSym)), Seq(), Seq())
         case _ =>
           Var(name)
       }
@@ -159,17 +165,17 @@ class Defunctionalize(module: Module) {
         transformExp(cnd),
         transformExp(thn),
         transformExp(els))
-    case Call(fun, args, transitive) =>
+    case Call(fun, tyArgs, args, transitive) =>
       val argTrans = args.map(a => transformExp(a))
       fun match {
         case v@Var(name)
           if v.target.forall(_.isInstanceOf[FunctionDef]) || v.target.forall(_.isInstanceOf[DataConstructor]) =>
           // regular call to first-order function
-          Call(Var(name), argTrans, transitive)
+          Call(Var(name), Seq(), argTrans, transitive)
         case _ =>
           val tfun@TFun(_, _) = fun.typ.get
           // call defun apply
-          Call(Var(Name(funApply(tfun))), Seq(
+          Call(Var(Name(funApply(tfun))), Seq(), Seq(
             transformExp(fun),
             Tuple.from(argTrans)
           ))
@@ -185,6 +191,7 @@ class Defunctionalize(module: Module) {
         body, constrSym, free)
       Call(
         Var(Name(constrSym)),
+        Seq(),
         free.map(_.copy()))
     case Tuple(exps) =>
       Tuple(exps.map(e => transformExp(e)))

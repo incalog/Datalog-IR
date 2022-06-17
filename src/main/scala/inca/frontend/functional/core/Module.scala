@@ -40,7 +40,9 @@ trait ModuleContent extends SourceLocation with Annotations {
   def calls: Set[Call]
 }
 
-case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Expression)
+case class ParametricType(name: Name) extends TName.Target
+
+case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], params: Seq[Param], outType: Type, body: Expression)
   extends ModuleContent with Var.Target {
 
   lazy val boundNames: Seq[Name] = params.map(_.name)
@@ -50,7 +52,7 @@ case class FunctionDef(annos: Seq[Annotation], vis: Option[Visibility], name: Na
   lazy val vars: Map[Name, Option[Type]] = body.vars ++ params.flatMap(_.vars)
 
   def freevars: Seq[Var] = body.freevars.filter(v => !v.target.contains(this) && !boundNames.contains(v.name))
-  def freeTvars: Seq[TData] = body.freeTvars ++ params.flatMap(_.typ.freeTvars) ++ outType.freeTvars
+  def freeTvars: Seq[TName] = body.freeTvars ++ params.flatMap(_.typ.freeTvars) ++ outType.freeTvars
 
   lazy val calls: Set[Call] = body.calls
 
@@ -69,10 +71,10 @@ case class Param(name: Name, typ: Type) extends SourceLocation with Var.Target {
   def prettyprint: String = s"$name: ${typ.prettyprint}"
 }
 
-case class DataDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, constrs: Seq[DataConstructor])
-  extends ModuleContent with TData.Target {
+case class DataDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, tyVars: Seq[ParametricType], constrs: Seq[DataConstructor])
+  extends ModuleContent with TName.Target {
 
-  def freeTvars: Set[TData] = constrs.flatMap(_.freeTvars).toSet
+  def freeTvars: Set[TName] = constrs.flatMap(_.freeTvars).toSet
 
   def parentName: String = "parent$_" + name.name
 
@@ -91,16 +93,24 @@ case class DataDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, 
   }
 }
 
-case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends SourceLocation with DataConstructor.Target with Var.Target {
+case class DataConstructor(name: Name, paramTypes: Seq[Type]) extends SourceLocation with Resolvable[TName.Target] with DataConstructor.Target with Var.Target {
 
-  def constructorType(data: DataDef): TFun =
-    TFun(paramTypes, TData(data.name))
+  def constructorType(data: DataDef): TFun = {
+    if (data.tyVars.nonEmpty)
+      TFun(paramTypes, TConstr(data.name, data.tyVars.map(x => TName(x.name))))
+    else
+      TFun(paramTypes, TName(data.name))
+  }
+
   def constructorType(data: Name): TFun =
-    TFun(paramTypes, TData(data))
+    TFun(paramTypes, TName(data))
+  def constructorType: TConstr =
+    TConstr(name, paramTypes)
+
 
   def selectorName: String = "un$_" + name.name
 
-  def freeTvars: Set[TData] = paramTypes.flatMap(_.freeTvars).toSet
+  def freeTvars: Set[TName] = paramTypes.flatMap(_.freeTvars).toSet
 
   def prettyprint(implicit indent: String): String = {
     val paramTypesS = paramTypes.map(_.prettyprint).mkString(", ")

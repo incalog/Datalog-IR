@@ -150,6 +150,21 @@ class TypecheckerTest extends AnyFunSuite {
     checkModule(code)
   }
 
+  test("parametric datatype") {
+    val code = FileUtil.readFile("functional/unittests/ParametricDatatypes.finca")
+    checkModule(code)
+  }
+
+  test("parametric function") {
+    val code = FileUtil.readFile("functional/unittests/ParametricFunction.finca")
+    checkModule(code)
+  }
+
+  test("parametric eq") {
+    val code = FileUtil.readFile("functional/unittests/ParametricEq.finca")
+    checkModule(code)
+  }
+
   test("parent call for adt") {
     val code =
       s"""module Test

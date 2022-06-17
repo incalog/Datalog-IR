@@ -200,7 +200,7 @@ package inca.frontend.functional.executor
 
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
 import inca.compiler.{CompiledModule, Compiler}
-import inca.frontend.functional.compiler.FunctionalOptions
+import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
 import inca.runtime.context.QueryScope
 import inca.runtime.db.{DBValue, Database, DatabaseInspector}
 import inca.runtime.{EnginePool, Query}
@@ -214,7 +214,7 @@ import truediff.Diffable
 import scala.jdk.CollectionConverters._
 
 object FunctionalExecutor {
-  case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledModule) {
+  case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledFunctionalModule) {
     lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
 
     val loadedPsystemModule: String = scalaCompiler.define {
@@ -332,11 +332,11 @@ object FunctionalExecutor {
   }
 
 
-  def compileFunction(code: String, options: FunctionalOptions = FunctionalOptions()): CompiledModule = {
+  def compileFunction(code: String, options: FunctionalOptions = FunctionalOptions()): CompiledFunctionalModule = {
     Compiler.compileFunctional(code, options)
   }
 
-  def loadFunction(compiled: CompiledModule): Loaded = {
+  def loadFunction(compiled: CompiledFunctionalModule): Loaded = {
     val scope = new QueryScope(compiled.dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     Loaded(engine, feed, compiled)
