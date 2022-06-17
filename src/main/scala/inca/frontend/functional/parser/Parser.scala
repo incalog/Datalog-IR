@@ -49,10 +49,9 @@ class Parser(source: Source) {
 
   /** PatternFunction parser */
   protected[frontend] def functionDef[_: P]: P[ModuleContent] = {
-    P(
-      annotation.rep ~ visibility.? ~ "def" ~ identifier ~ defParams ~ ":" ~ typeAnno ~ "=" ~ exp
-    ).mapWithLoc { case (annos, vis, name, params, ty, exp) =>
-      FunctionDef(annos, vis, name, params, ty, exp)
+    P(annotation.rep ~ visibility.? ~ "def" ~ identifier ~ paramTys.? ~ defParams ~ ":" ~ typeAnno ~ "=" ~ exp).mapWithLoc {
+      case (annos, vis, name, tyVars, params, ty, exp) =>
+        FunctionDef(annos, vis, name, tyVars.getOrElse(Seq()), params, ty, exp)
     }
   }
 
@@ -104,13 +103,15 @@ class Parser(source: Source) {
     }
 
   protected[frontend] def typeCastExp[_: P]: P[TypeCast] =
-    P(subinfixExp ~~ ".as[" ~ tData ~ "]") mapWithLoc { case (e, ty) =>
+    P(subinfixExp ~~ ".as[" ~ tName ~ "]") mapWithLoc { case (e, ty) =>
       TypeCast(e, ty)
     }
 
   protected[frontend] def callExp[_: P]: P[Expression] =
-    P(atomicExp ~ ("(" ~ exp.rep(sep = ",") ~ ")").rep(1)).mapWithLoc { case (fun, argLists) =>
-      argLists.foldLeft(fun)((exp, args) => Call(exp, args))
+    P(
+      atomicExp ~ ("[" ~ typeAnno.rep(min = 1, sep = ",") ~ "]").? ~ ("(" ~ exp.rep(sep =
+        ",") ~ ")").rep(1)).mapWithLoc { case (fun, tyArgs, argLists) =>
+      argLists.foldLeft(fun)((exp, args) => Call(exp, tyArgs.getOrElse(Seq()), args))
     }
 
   protected[frontend] def foldExp[_: P]: P[SetFold] =
@@ -145,7 +146,7 @@ class Parser(source: Source) {
     P("None" ~~ nochar).mapWithLoc(_ => NoneExp()) |
       P("Some" ~ "(" ~ exp.rep(sep = ",") ~ ")").mapWithLoc {
         case Seq(arg) => SomeExp(arg)
-        case args => Call(Var(Name("Some")), args)
+        case args => Call(Var(Name("Some")), Seq(), args)
       }
   }
 
@@ -165,15 +166,15 @@ class Parser(source: Source) {
 
   protected[frontend] def constructorPattern[_: P]: P[ConstructorPattern] = {
     P(identifier ~ "(" ~ identifier.rep(sep = ",") ~ ")").mapWithLoc { case (name, args) =>
-      ConstructorPattern(name, args)
+      ConstructorPattern(name, args.map(PatternVariable.apply))
     }
   }
 
   protected[frontend] def optionPattern[_: P]: P[Pattern] =
     P("None" ~~ nochar).mapWithLoc(_ => NonePattern()) |
       P("Some" ~ "(" ~ identifier.rep(sep = ",") ~ ")").mapWithLoc {
-        case Seq(arg) => SomePattern(arg)
-        case args => ConstructorPattern(Name("Some"), args)
+        case Seq(arg) => SomePattern(PatternVariable(arg))
+        case args => ConstructorPattern(Name("Some"), args.map(PatternVariable.apply))
       }
 
   /** base parser */
@@ -281,10 +282,8 @@ class Parser(source: Source) {
     P(
       tTuple | simpleType("Any", TAny) | simpleType("Nothing", TNothing) | simpleType(
         "Unit",
-        TTuple(Seq())
-      ) |
-        tOption | tSet | scalaType | tData
-    )
+        TTuple(Seq())) |
+        tOption | tSet | scalaType | tConstr | tName)
 
   /** Helper for the Type like TAny. */
   protected[frontend] def simpleType[_: P, Ty <: Type](s: String, t: Ty): P[Ty] =
@@ -296,12 +295,17 @@ class Parser(source: Source) {
       case (from, to) => TFun(Seq(from), to)
     }
 
+  protected[frontend] def tConstr[_: P]: P[TConstr] =
+    P(identifier ~ "[" ~ typeAnno.rep(sep = ",", min = 1) ~ "]").mapWithLoc { case (name, args) =>
+      TConstr(name, args)
+    }
+
   /** TTuple parser without Unit */
   protected[frontend] def tTuple[_: P]: P[Type] =
     P("(" ~ typeAnno.rep(sep = ",") ~ ")").map(TTuple.from)
 
   // mapWithLoc is not typable
-  protected[frontend] def tData[_: P]: P[TData] = P(identifier.!).map(s => TData(Name(s)))
+  protected[frontend] def tName[_: P]: P[TName] = P(identifier.!).map(s => TName(Name(s)))
 
   protected[frontend] def scalaType[_: P]: P[Type] =
     P("`" ~~ scalaTypeCore ~~ "`") |
@@ -328,16 +332,18 @@ class Parser(source: Source) {
     }
 
   /** DataDef parser */
-  protected[frontend] def dataDef[_: P]: P[ModuleContent] = {
+  protected[frontend] def dataDef[_: P]: P[ModuleContent] =
     P(
-      annotation.rep ~ visibility.? ~ "data" ~ identifier ~ "=" ~ dataConstructor.rep(
+      annotation.rep ~ visibility.? ~ "data" ~ identifier ~ paramTys.? ~ "=" ~ dataConstructor.rep(
         min = 1,
-        sep = "|"
-      )
-    ).mapWithLoc { case (annos, vis, name, dataConstructors) =>
-      DataDef(annos, vis, name, dataConstructors)
+        sep = "|")).mapWithLoc { case (annos, vis, name, tyVars, dataConstructors) =>
+      DataDef(annos, vis, name, tyVars.getOrElse(Seq()), dataConstructors)
     }
-  }
+
+  protected[frontend] def paramTys[_: P]: P[Seq[ParametricType]] = P(
+    "[" ~ parametricType.rep(sep = ",", min = 1) ~ "]")
+  protected[frontend] def parametricType[_: P]: P[ParametricType] =
+    P(identifier).map(ParametricType.apply)
 
   protected[frontend] def dataConstructor[_: P]: P[DataConstructor] =
     P(identifier ~ "(" ~ typeAnno.rep(sep = ",") ~ ")").mapWithLoc { case (name, paramTypes) =>

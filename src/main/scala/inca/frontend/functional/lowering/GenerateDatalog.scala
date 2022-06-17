@@ -191,7 +191,7 @@ class GenerateDatalog(module: Module) {
         )
       thnRes ++ elsRes
 
-    case call @ Call(Var(name), args, transitive) =>
+    case call @ Call(Var(name), _, args, transitive) =>
       if (name.name == "parent") {
         return for ((Seq(argTerm), argCons) <- transExp(args.head)) yield {
           // val argTy = transType(args.head.typ.get)
@@ -199,7 +199,7 @@ class GenerateDatalog(module: Module) {
           // val parentLinkCons = Datalog.Path(argTerm, argTy, Datalog.ParentLink, parentTerm, Datalog.TAny)
           // figure out what the dataDef is of the argument type
           val dataDef = args.head.typ.get match {
-            case dty: TData => dty.target.get.asInstanceOf[DataDef]
+            case dty: TName => dty.target.get.asInstanceOf[DataDef]
             case _ => throw new IllegalStateException("Cannot happen")
           }
           val parentCall = Datalog.Call(dataDef.parentName, Seq(argTerm, parentTerm))
@@ -267,10 +267,9 @@ class GenerateDatalog(module: Module) {
                   s"Cannot compile unresolved constructor pattern $cpat"
                 )
             }
-            Datalog.Call(selector, matcheeTerm +: cpat.args.map(a => Datalog.Var(a.name)))
-
+            Datalog.Call(selector, matcheeTerm +: cpat.args.map(a => Datalog.Var(a.name.name)))
           case SomePattern(v) =>
-            Datalog.Eq(Datalog.Var(v.name), matcheeTerm)
+            Datalog.Eq(Datalog.Var(v.name.name), matcheeTerm)
 
           case NonePattern() =>
             Datalog.Undef(matcheeTerm)
@@ -520,7 +519,7 @@ class GenerateDatalog(module: Module) {
 
     case SetFold(_, init, op, set) =>
       val tdataTyp = set.typ match {
-        case Some(TSet(td: TData)) => Some(td)
+        case Some(TSet(td: TName)) => Some(td)
         case _ => None
       }
 
@@ -584,7 +583,7 @@ class GenerateDatalog(module: Module) {
 
   private def transData(data: DataDef): Seq[Datalog.Pattern] = {
     val vis = transVis(data.vis)
-    val typ = transType(TData(data.name).resolved(data))
+    val typ = transType(TName(data.name).resolved(data))
 
     val constrBodies = data.constrs.map { case DataConstructor(name, paramTypes) =>
       Datalog.Body(
@@ -723,6 +722,7 @@ class GenerateDatalog(module: Module) {
           val kidVar = kidVars(k)
           val kidCoalescedVar = kidCoalescedVars(k)
 
+//<<<<<<< HEAD
           // bind kidCoalescedVar to data.kid
           val scalaDataParam = Term.Name(dataVar.name)
           val constrScalaFun =
@@ -730,14 +730,14 @@ class GenerateDatalog(module: Module) {
           val extractKid = Datalog.Computed(
             kidCoalescedVar,
             Datalog.Evaluation(
-              Seq(dataVar -> transDataType(TData(constr.name))),
+              Seq(dataVar -> transDataType(TName(constr.name))),
               transDataType(paramTyp),
               Scala(constrScalaFun)
             )
           )
 
           val bindKid = paramTyp match {
-            case TData(name) =>
+            case TName(name) =>
               // uncoalesce kidCoalescedVar to kidVar
               Datalog.Call(name.name + UNCOALESCED_SUFFIX, Seq(kidCoalescedVar, kidVar))
                 .addHint(MagicSetHints.IgnoreCall)
@@ -748,6 +748,24 @@ class GenerateDatalog(module: Module) {
             case _ => throw new UnsupportedOperationException
           }
           Seq(extractKid, bindKid)
+//=======
+//        // bind kidCoalescedVar to data.kid
+//        val scalaDataParam = Term.Name(dataVar.name)
+//        val constrScalaFun = q"($scalaDataParam: ${Type.Name(constr.name.name)}) => ${Term.Select(scalaDataParam, Term.Name(kidVar.name))}"
+//        val extractKid = Datalog.Computed(kidCoalescedVar,
+//          Datalog.Evaluation(Seq(dataVar -> transDataType(TName(constr.name))), transDataType(paramTyp), Scala(constrScalaFun)))
+//
+//        val bindKid = paramTyp match {
+//          case TName(name) =>
+//            // uncoalesce kidCoalescedVar to kidVar
+//            Datalog.Call(name + UNCOALESCED_SUFFIX, Seq(kidCoalescedVar, kidVar))
+//              .addHint(MagicSetHints.IgnoreCall)
+//              .addHint(MagicSetHints.FixedAdornment(Seq(true, false)))
+//          case TAny | TNothing | _: TScala =>
+//            // set kidVar = kidCoalescedVar
+//            Datalog.Eq(kidVar, kidCoalescedVar)
+//          case _ => throw new UnsupportedOperationException
+//>>>>>>> 600ca3f4 (adding polymorphism and monomorphization)
         }
     val constrUncoalescedBody = Datalog.Body(
       queryUncoalesced +: queryUncoalescedKids.flatten
@@ -788,8 +806,8 @@ class GenerateDatalog(module: Module) {
     val queryKids =
       for (k <- constr.paramTypes.indices)
         yield constr.paramTypes(k) match {
-          case TData(name) =>
-            Datalog.Call(name.name + COALESCED_SUFFIX, Seq(kidVars(k), kidCoalescedVars(k)))
+          case TName(name) =>
+            Datalog.Call(name + COALESCED_SUFFIX, Seq(kidVars(k), kidCoalescedVars(k)))
           case TAny | TNothing | _: TScala =>
             Datalog.Eq(kidVars(k), kidCoalescedVars(k))
           case _ => throw new UnsupportedOperationException
@@ -852,12 +870,12 @@ class GenerateDatalog(module: Module) {
     val uncoalesceKids =
       for (k <- constr.paramTypes.indices)
         yield constr.paramTypes(k) match {
-          case td @ TData(name) =>
+          case td @ TName(name) =>
             val v = kidVars(k)
             val ty = transDataType(td)
             Seq(
               Datalog.Computed(v, consumeData(ty, t => Term.Select(t, Term.Name(v.name)))),
-              Datalog.Call(name.name + UNCOALESCED_SUFFIX, Seq(v, Datalog.Var("_")))
+              Datalog.Call(name + UNCOALESCED_SUFFIX, Seq(v, Datalog.Var("_")))
             )
           case TAny | TNothing | _: TScala =>
             Seq()
@@ -931,7 +949,7 @@ class GenerateDatalog(module: Module) {
   private def generateParent(data: DataDef): Datalog.Pattern = {
     val dataDefs = module.content.collect { case dd: DataDef => dd }
     // val dataDef = dataDefs.find { data => data.constrs.contains(constructor) }.getOrElse(throw new IllegalStateException(s"Could not find data definition of given constructor ${constructor.name}"))
-    val dataTy = TData(data.name)
+    val dataTy = TName(data.name)
 
     val wrappingConstructors = dataDefs.flatMap { data =>
       data.constrs.filter { cotr =>
@@ -965,7 +983,7 @@ class GenerateDatalog(module: Module) {
   @tailrec
   private def transType(typ: Type): Datalog.Type = typ match {
     case TAny => Datalog.TAny
-    case TData(name) => GP_URI.addHint(DataHints.DataTypeName(name.name))
+    case TName(name) => GP_URI.addHint(DataHints.DataTypeName(name.name))
     case TScala(ty) => Datalog.TScala(ty)
     case TOption(ty) => transType(ty)
     case TSet(ty) => transType(ty)
@@ -973,14 +991,14 @@ class GenerateDatalog(module: Module) {
   }
 
   private def transDataType(typ: Type): Datalog.Type = typ match {
-    case TData(name) => Datalog.TData(name.name)
+    case TName(name) => Datalog.TData(name.name)
     case TAny | TNothing | _: TScala => Datalog.TScala(Scala(typ.asScala))
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Scala type")
   }
 
   private def transRuntimeType(typ: Type): Datalog.Type = typ match {
     case TAny => Datalog.TAny
-    case TData(name) => Datalog.TNode(name.name)
+    case TName(name) => Datalog.TNode(name.name)
     case TScala(Scala(meta.Type.Name(ty))) =>
       ty match {
         case "String" => Datalog.TLiteral.String

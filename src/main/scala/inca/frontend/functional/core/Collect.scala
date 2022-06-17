@@ -27,7 +27,7 @@ trait Collect[R] {
       transExpression(cnd) ++ transExpression(thn) ++ transExpression(els)
     case TypeCast(exp, ty) =>
       transExpression(exp) ++ transType(ty)
-    case Call(fun, args, _) =>
+    case Call(fun, _, args, _) =>
       transExpression(fun) ++ args.flatMap(transExpression)
     case Lambda(vs, body) =>
       vs.flatMap(x => transType(x._2)) ++ transExpression(body)

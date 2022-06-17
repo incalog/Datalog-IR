@@ -584,7 +584,8 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   // test pattern
   test("test pattern breakpoint") {
-    val pattern = core.ConstructorPattern(core.Name("Succ"), Seq(core.Name("pred")))
+    val pattern =
+      core.ConstructorPattern(core.Name("Succ"), Seq(core.PatternVariable(core.Name("pred"))))
     val bp = createBreakpointOfPattern("plus", pattern)
     val code = FileUtil.readFile("functional/unittests/PlusReal.finca")
     val resumes = countResumes(code, Seq(bp), "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
@@ -592,7 +593,8 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("test pattern breakpoint occuring multiple times 1") {
-    val pattern = core.ConstructorPattern(core.Name("Var"), Seq(core.Name("x2")))
+    val pattern =
+      core.ConstructorPattern(core.Name("Var"), Seq(core.PatternVariable(core.Name("x2"))))
     val bp = createBreakpointOfPattern("main", pattern)
     val resumes1 =
       countResumes(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")
@@ -602,7 +604,8 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("test pattern breakpoint occuring multiple times 2") {
-    val pattern = core.ConstructorPattern(core.Name("Var"), Seq(core.Name("x2")))
+    val pattern =
+      core.ConstructorPattern(core.Name("Var"), Seq(core.PatternVariable(core.Name("x2"))))
     val bp = createBreakpointOfPattern("main", pattern, 1)
     val resumes1 =
       countResumes(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")
@@ -612,7 +615,8 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("test pattern breakpoint occuring multiple times 3") {
-    val pattern = core.ConstructorPattern(core.Name("Var"), Seq(core.Name("x2")))
+    val pattern =
+      core.ConstructorPattern(core.Name("Var"), Seq(core.PatternVariable(core.Name("x2"))))
     val bp = createBreakpointOfPattern("main", pattern, 2)
     val resumes1 = countResumes(nestedMatchProg, Seq(bp), "main", q"""Num(1)""", q"Num(1)")
     assertResult(1)(resumes1)

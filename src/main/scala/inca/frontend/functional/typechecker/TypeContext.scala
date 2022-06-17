@@ -5,16 +5,19 @@ import scala.collection.immutable.MultiDict
 
 trait TypeContext extends TypeIO {
   private var vars: Map[Name, (Var.Target, Type)] = Map()
+  private var tyVars: Map[Name, TName.Target] = Map()
   private var funs: MultiDict[Name, (Module, (Var.Target, TFun))] = MultiDict()
   private var dataDefs: Map[Name, DataDef] = Map()
   private var modules: Map[Name, Module] = Map()
 
   def scopedTypeContext[T](f: => T): T = {
     val varsSaved = vars
+    val tyVarsSaved = tyVars
     val funsSaved = funs
     val modulesSaved = modules
     val t = f
     vars = varsSaved
+    tyVars = tyVarsSaved
     funs = funsSaved
     modules = modulesSaved
     t
@@ -54,6 +57,26 @@ trait TypeContext extends TypeIO {
   def getBindings: Map[Name, Type] =
     vars.view.mapValues(_._2).toMap
 
+  def bindTyVar(name: Name, decl: TName.Target): Unit = {
+    tyVars.get(name) match {
+      case Some(prevDecl) =>
+        error(s"Type Variable $name shadows previously defined type variable $name at $prevDecl")
+      case None =>
+    }
+    tyVars += name -> decl
+  }
+
+  def lookupTyVar(name: Name): Option[TName.Target] = {
+    tyVars.get(name) match {
+      case Some(decl) => Some(decl)
+      case None =>
+        error(s"Unbound type variable $name", name)
+        None
+    }
+  }
+
+  def isTypeVar(name: Name): Boolean = tyVars.contains(name)
+
   def bindFun(fun: FunctionDef, module: Module): Unit = {
     funs += fun.name -> ((module, (fun, fun.funType)))
   }
@@ -90,6 +113,10 @@ trait TypeContext extends TypeIO {
 
   def isData(name: Name): Boolean =
     dataDefs.contains(name)
+
+  def isDataOrTypeVar(name: Name): Boolean = {
+    dataDefs.contains(name) || tyVars.contains(name)
+  }
 
   def lookupData(name: Name): Option[DataDef] =
     dataDefs.get(name) match {

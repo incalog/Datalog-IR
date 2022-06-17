@@ -199,9 +199,8 @@
 package inca.frontend.functional.executor
 
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
-import inca.compiler.CompiledModule
-import inca.compiler.Compiler
-import inca.frontend.functional.compiler.FunctionalOptions
+import inca.compiler.{CompiledModule, Compiler}
+import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
 import inca.runtime.context.QueryScope
 import inca.runtime.db.Database
 import inca.runtime.db.DatabaseInspector
@@ -216,7 +215,7 @@ import truechange.EditScript
 import truediff.Diffable
 
 object FunctionalExecutor {
-  case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledModule) {
+  case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledFunctionalModule) {
     lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
 
     val loadedPsystemModule: String = scalaCompiler.define {
@@ -331,14 +330,12 @@ object FunctionalExecutor {
     override def toString: String = s"Results(${res.mkString(", ")})"
   }
 
-  def compileFunction(
-      code: String,
-      options: FunctionalOptions = FunctionalOptions()
-    ): CompiledModule = {
+
+  def compileFunction(code: String, options: FunctionalOptions = FunctionalOptions()): CompiledFunctionalModule = {
     Compiler.compileFunctional(code, options)
   }
 
-  def loadFunction(compiled: CompiledModule): Loaded = {
+  def loadFunction(compiled: CompiledFunctionalModule): Loaded = {
     val scope = new QueryScope(compiled.dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, compiled.options.mode)
     Loaded(engine, feed, compiled)
