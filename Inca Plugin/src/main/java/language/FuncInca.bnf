@@ -13,8 +13,25 @@
   tokenTypeClass="intellij.sdk.language.psi.FuncIncaTokenType"
 
   tokens = [
+    keyword_if = "if"
+    keyword_else = "else"
+    keyword_let = "let"
+    keyword_in = "in"
+    keyword_match = "match"
+    keyword_case = "case"
+    keyword_fail = "fail"
+    keyword_Option = "Option"
+    keyword_None = "None"
+    keyword_Some = "Some"
+    keyword_Set = "Set"
+    keyword_fold = "fold"
+    keyword_module = "module"
+    keyword_import = "import"
+    keyword_not = "not"
+    keyword_data = "data"
+    keyword_def = "def"
     space = "regexp:\s+"                    // any possible whitespaces: [ \t\n\x0B\f\r]
-    valid_id = "regexp:[a-zA-Z]\w*"         // starts with any letter, continues with word characters [a-zA-Z_0-9]
+    valid_id = "regexp:[a-zA-Z_]\w*"         // starts with any letter, continues with word characters [a-zA-Z_0-9]
     string = "regexp:\".*\""                // any number of any characters between quotation marks
     scala_term = "regexp:`.*`"              // any Number of any characters between ticks ` and `
     number = "regexp:-?\d+"                 // positive or negative numbers with digits \d = [0-9], integer or long
@@ -32,42 +49,44 @@ id ::=  valid_id
 private module_content ::= fun_def | data_def
 
 // definition of functions
-fun_def ::= annotation* visibility? 'def' id '(' param_list ')' ':' type_annotation '=' exp {pin = 3}
+fun_def ::= annotation* visibility? keyword_def id param_types? '(' param_list ')' ':' type_annotation '=' exp {pin = 3}
 private param_list ::= (param (',' param)*)?
 param ::= id ':' type_annotation
 annotation ::= '@main'
 visibility ::= 'private'
 
 // definition of datatypes
-data_def ::= annotation* visibility? 'data' id '=' data_constructor ('|' data_constructor)* {pin = 3}
+data_def ::= annotation* visibility? keyword_data id param_types?'=' data_constructor ('|' data_constructor)* {pin = 3}
+param_types ::= '[' id (',' id)* ']'
 data_constructor ::= id '(' (type_annotation (',' type_annotation)*)? ')'
 
 // expressions
 exp ::= if_exp | let_exp | member_exp | infix_exp
-if_exp ::= 'if' '(' exp ')' exp 'else' exp {pin = 1}
-let_exp ::= 'let' (single_let | multiple_let) {pin = 1}
-single_let ::= id (':' type_annotation)? '=' infix_exp ' in ' exp
-multiple_let ::= '(' id (':' type_annotation)? (',' id (':' type_annotation)?)* ')' '=' infix_exp ' in ' exp
+if_exp ::= keyword_if '(' exp ')' exp keyword_else exp {pin = 1}
+let_exp ::= keyword_let (single_let | multiple_let) {pin = 1}
+single_let ::= id (':' type_annotation)? '=' infix_exp keyword_in exp
+multiple_let ::= '(' id (':' type_annotation)? (',' id (':' type_annotation)?)* ')' '=' infix_exp keyword_in exp
 member_exp ::= atomic_exp ' not '? ' in ' infix_exp
 
 private infix_exp ::= cast_exp | base_apply_method_exp | base_apply_infix_exp | match_exp | subinfix_exp
 cast_exp ::= subinfix_exp '.as[' data ']'
 base_apply_method_exp ::= subinfix_exp '.`' id '`' ( '(' (infix_exp (',' infix_exp)*)? ')' )?
-base_apply_infix_exp ::= subinfix_exp op infix_exp
+base_apply_infix_exp ::= subinfix_exp op infix_exp {pin = op}
 op ::= '+' | '-' | '*' | '/' | '%'
         | '&&' | '||' | '<' | '>' | '=='
         | '++'
-match_exp ::=  subinfix_exp ' match ' '{' match_case* '}' {pin = 2}
-match_case ::= 'case' pattern '=>' exp
+match_exp ::=  subinfix_exp keyword_match '{' match_case* '}' {pin = 2}
+match_case ::= keyword_case pattern '=>' exp {pin = 1}
 private pattern ::= option_pattern | constructor_pattern
 option_pattern ::= 'None' | 'Some'
-constructor_pattern ::= id '(' (id (',' id)*)? ')'
+constructor_pattern ::= id param_types? '(' (id (',' id)*)? ')'
 
-private subinfix_exp ::= call-exp | lambda_exp | atomic_exp
-call-exp ::= atomic_exp '(' (exp (',' exp)*)? ')'
+private subinfix_exp ::= call_exp | lambda_exp | atomic_exp
+call_exp ::= atomic_exp ('(' (exp (',' exp)*)? ')')+ // + to allow composition of functions
 lambda_exp ::= lambda_vars '=>' exp {pin = 2}
 lambda_vars ::= '(' (id ':' type_annotation (',' id ':' type_annotation)*)? ')'
 
+// atomic expressions (parenthesis, option, set comprehension, tuples, fold, apply scala, variables)
 private atomic_exp ::= parens_exp | option_exp | comprehension_exp | const_set_exp | tuple_exp | fold_exp
                | base_apply_exp | base_lit_exp | var | base_apply_unary_exp
 parens_exp ::= '(' exp ')'
@@ -75,7 +94,7 @@ option_exp ::= 'None' | 'Some' '(' (exp (',' exp)*)? ')'
 comprehension_exp ::= '{' subinfix_exp '|' exp (',' exp)* '}'
 const_set_exp ::= '{' (exp (',' exp)*)? '}'
 tuple_exp ::= '(' exp ',' exp ')'
-fold_exp ::= 'fold' ('[' type_annotation ']')? '(' exp ',' exp ',' exp ')'
+fold_exp ::= keyword_fold ('[' type_annotation ']')? '(' exp ',' exp ',' exp ')'
 base_apply_exp ::= scala_term '(' (exp (',' exp)*)? ')'
 var ::= id
 base_apply_unary_exp ::= '!' infix_exp
@@ -83,10 +102,11 @@ base_apply_unary_exp ::= '!' infix_exp
 // type definitions
 private type_annotation ::= fun_type | atomic_type
 fun_type ::= atomic_type '=>' type_annotation
-atomic_type ::= tuple | 'Any' | 'Nothing' | 'Unit' | option | set | scala_term | data
+atomic_type ::= tuple | 'Any' | 'Nothing' | 'Unit' | option | set | scala_term | constr | data
+constr ::= id '[' type_annotation (',' type_annotation)* ']'
 tuple ::= '(' (type_annotation (',' type_annotation)*)? ')'
-option ::= 'Option' '[' type_annotation ']'
-set ::= 'Set' '[' type_annotation ']'
+option ::= keyword_Option '[' type_annotation ']'
+set ::= keyword_Set '[' type_annotation ']'
 data ::= id
 
 // literals
