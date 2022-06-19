@@ -4,6 +4,7 @@ stages:
   - test
 
 before_script:
+  - apt-get update -qq && apt-get -y install z3
   - sbt sbtVersion
   - sbt update
 
