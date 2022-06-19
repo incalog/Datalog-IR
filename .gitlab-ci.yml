@@ -4,7 +4,10 @@ stages:
   - test
 
 before_script:
-  - apt-get update -qq && apt-get -y install z3=4.8.17
+  - apt-get update --quite
+  - apt-cache madison z3
+  - apt-cache policy z3
+  - apt-get -y install z3=4.8.17
   - sbt sbtVersion
   - sbt update
 
