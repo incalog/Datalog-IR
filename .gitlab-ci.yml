@@ -7,7 +7,7 @@ before_script:
   - apt-get update -qq
   - apt-cache madison z3
   - apt-cache policy z3
-  - apt-get -y install z3=4.8.17
+  - apt-get -y install z3=4.8.10-1
   - sbt sbtVersion
   - sbt update
 
