@@ -42,13 +42,14 @@ object Lattices {
     s"""module SignLattice
        |data Sign = Top() | Bot() | Pos() | Zero() | Neg()
        |
-       |def leq(s1: Sign, s2: Sign): Boolean = s1 match {
+       |@partialOrder def leq(s1: Sign, s2: Sign): Boolean = s1 match {
        |  case Top() => s2 match {
        |    case Top() => true
        |    case Bot() => false
        |    case Pos() => false
        |    case Zero() => false
        |    case Neg() => false
+       |  }
        |  case Bot() => true
        |  case Pos() => s2 match {
        |    case Top() => true

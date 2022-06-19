@@ -220,9 +220,11 @@ class Verifier {
 
   def verifyPartialOrder(relName: String, dataName: String)(implicit gensym: Gensym): Unit = {
     val hygienicRelName = getHygienicName(relName)
-    // TODO confirm coorect signature (data, data) -> Boolean
-    if(!functionDict.contains(hygienicRelName)) throw VerifierException(s"Relation Function $relName called by data $dataName is not implemented")
-    if(partialOrders.contains((hygienicRelName, dataName))) return
+    // TODO confirm correct signature (data, data) -> Boolean
+    if(!functionDict.contains(hygienicRelName))
+      throw VerifierException(s"Relation Function $relName called by data $dataName is not implemented")
+    if(partialOrders.contains((hygienicRelName, dataName)))
+      return
     val funScript = transFunctionDefs(Seq(relName))
     val partialOrderVerScript = makeScript(Seq(funScript,
       SMTlibScripts.reflexivity(hygienicRelName, dataName),

@@ -19,7 +19,7 @@ class GenerateSMTLIBTest extends AnyFunSuite {
   test("why doesnt nonZeroDouble work?") {
     implicit val gensym:Gensym = new Gensym(Seq())
     val verifier = new Verifier()
-    val module = compiledDoubleOperationsModule.typed
+    val module = compiledNonZeroDoublesModule.typed
     verifier.fillDicts(module)
     val aggregations = verifier.collectAggregations(module)
     val verificationScripts = aggregations.toSeq.map(ag => verifier.generateScript(ag._1, ag._2))

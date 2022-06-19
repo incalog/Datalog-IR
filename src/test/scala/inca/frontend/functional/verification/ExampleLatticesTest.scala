@@ -60,7 +60,7 @@ class ExampleLatticesTest extends AnyFunSuite {
     ))(verifier.verify(module))
   }
 
-/*    test("test nonZeroDoubles module verification") {
+    test("test nonZeroDoubles module verification") {
     val module = compiledNonZeroDoublesModule.typed
     val verifier = new Verifier()
     assertResult(Map(
@@ -70,7 +70,7 @@ class ExampleLatticesTest extends AnyFunSuite {
       "div" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse, HasUnapply("mult") -> VerifiedResponse),
       "min" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
     ))(verifier.verify(module))
-  }*/
+  }
 
   test("test stringOperations module verification") {
     val module = compiledStringOperationsModule.typed
