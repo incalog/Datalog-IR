@@ -188,7 +188,7 @@ class Verifier {
   def transDataDef(dataName: String)(implicit gensym: Gensym): Script = {
     val data = dataDict(dataName)
     val invariantScripts = data.annos.flatMap{
-      case UsesInvariantAnno(invariantNames) => Seq(generateInvariantsScript(invariantNames.map(_.name), dataName))
+      case InvariantAnno(invariantNames) => Seq(generateInvariantsScript(invariantNames.map(_.name), dataName))
       // case PartialOrderAnnotation(relName) => verifyPartialOrder(relName, dataName)
       case _ => Seq()
     }

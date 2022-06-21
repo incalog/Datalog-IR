@@ -41,9 +41,9 @@ object Aggregations {
 
   val nonZeroDoubles: String =
     s"""module NonZeroDoubles
-       |@uses(notZero) data NonZeroDouble = D(Double)
+       |@invariant(notZero) data NonZeroDouble = D(Double)
        |
-       |@invariant def notZero(nzd: NonZeroDouble): Boolean = nzd match {
+       |def notZero(nzd: NonZeroDouble): Boolean = nzd match {
        |  case D(d) => if(d != 0) true else false
        |}
        |

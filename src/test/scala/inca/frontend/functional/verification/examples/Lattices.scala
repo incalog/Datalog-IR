@@ -306,11 +306,11 @@ object Lattices {
 
   val intervalLatticeInvariants: String =
     """module IntervalLattice
-      |@uses(intervalBounds) data Interval = IV(Int, Int) | TopInterval()
+      |@invariant(intervalBounds) data Interval = IV(Int, Int) | TopInterval()
       |data Bool = True() | False() | TopBool()
       |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
       |
-      |@invariant def intervalBounds(iv: Interval): Boolean = iv match {
+      |def intervalBounds(iv: Interval): Boolean = iv match {
       |  case TopInterval() => true
       |  case IV(l, h) => if(l <= h) true else false
       |}
