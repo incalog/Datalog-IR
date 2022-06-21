@@ -1,9 +1,11 @@
-image: hseeberger/scala-sbt:11.0.6_1.3.10_2.13.1
+image: sbtscala/scala-sbt:17.0.2_1.6.2_3.1.2
 
 stages:
   - test
 
 before_script:
+  - apt-get update -qq
+  - apt-get -y install z3=4.8.10-1
   - sbt sbtVersion
   - sbt update
 
