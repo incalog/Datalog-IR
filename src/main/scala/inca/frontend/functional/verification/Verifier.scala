@@ -11,7 +11,6 @@ import smtlib.trees.Terms._
 import smtlib.trees.{CommandsResponses, Terms}
 
 import scala.collection.mutable
-import inca.frontend.functional.verification.CompileToSMTLIB._
 
 import scala.collection.mutable.ListBuffer
 
@@ -188,7 +187,7 @@ class Verifier {
   def transDataDef(dataName: String)(implicit gensym: Gensym): Script = {
     val data = dataDict(dataName)
     val invariantScripts = data.annos.flatMap{
-      case InvariantAnno(invariantNames) => Seq(generateInvariantsScript(invariantNames.map(_.name), dataName))
+      case InvariantAnno(invariantNames) => Seq(generateInvariantsScript(invariantNames, dataName))
       // case PartialOrderAnnotation(relName) => verifyPartialOrder(relName, dataName)
       case _ => Seq()
     }
@@ -359,7 +358,6 @@ class Verifier {
     prop match {
       case Associativity => SMTlibScripts.associativity(aggrName, paramTypeName)
       case Commutativity => SMTlibScripts.commutativity(aggrName, paramTypeName)
-      // TODO FunDef der Inversen einfügen mit allen aufgerufenen Datentypen und Funktionen
       case HasUnapply(invName) => SMTlibScripts.hasUnapply(aggrName, getHygienicName(invName), paramTypeName)
     }
   }

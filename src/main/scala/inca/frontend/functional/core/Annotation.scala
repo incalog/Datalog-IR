@@ -27,7 +27,13 @@ object MainFunctionAnno extends Annotation {
   override def toString: String = "@main"
 }
 
-case class InvariantAnno(invariantNames: Seq[Name]) extends Annotation {
+// @partialOrder
+case class PartialOrderAnno(dataName: String) extends Annotation {
+  override def key: Annotation.Key = "MAIN_FUNCTION"
+  override def toString: String = "@main"
+}
+
+case class InvariantAnno(invariantNames: Seq[String]) extends Annotation {
   override def key: Annotation.Key = "INVARIANT"
   override def toString: String = s"@invariant(${invariantNames.mkString(", ")})"
 }
@@ -42,6 +48,7 @@ trait AggregationProperty {
   def inverseName: Option[String]
   override def toString: Key = name
 }
+
 case object Associativity extends AggregationProperty {
   override def name: String = "assoc"
   override def inverseName: Option[String] = None
@@ -53,4 +60,17 @@ case object Commutativity extends AggregationProperty {
 case class HasUnapply(unapplyName: String) extends AggregationProperty {
   override def name: String = s"unapply($unapplyName)"
   override def inverseName: Option[String] = Some(unapplyName)
+  // TODO Ist inverseName eine sinnvolle Methode? Ich verwende es gar nicht
+}
+
+case class ApproxBy(approxName: String, beta1Name: String, beta2Name: String, poName: String) extends AggregationProperty {
+  override def name: String = s"approx($approxName, $beta1Name, $beta2Name, $poName)" //approx(join, intToSign, intToSign, leq)
+  override def inverseName: Option[String] = None
+}
+
+// TODO André fragen ob man das so machen kann
+case object ApproxBy {
+  def makeApprox(funNames: Seq[String]): ApproxBy =
+    if(funNames.length == 4) ApproxBy(funNames(0), funNames(1), funNames(2), funNames(3)) else
+      throw new Exception("Need four Arguments for ApproxBy Annotation")
 }

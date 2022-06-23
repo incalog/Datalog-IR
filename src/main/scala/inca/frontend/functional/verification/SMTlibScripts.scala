@@ -45,10 +45,9 @@ object SMTlibScripts {
           FunctionApplication("and", Seq(
             FunctionApplication("=", Seq(FunctionApplication(aggrName, Seq("x", "y")), "z")),
             FunctionApplication("not", Seq(FunctionApplication("and", Seq(
-              // FunctionApplication("=", Seq(FunctionApplication(inverseName, Seq("z", "x")), "y")),
               FunctionApplication("=", Seq(FunctionApplication(unapplyName, Seq("z", "y")), "x"))
             )))
-          ))))),
+            ))))),
         CheckSat(),
         Pop(1)
       )
@@ -63,7 +62,7 @@ object SMTlibScripts {
           FunctionApplication(relName, Seq(
             freshVarName
           )),
-            Core.BoolConst(true)
+          Core.BoolConst(true)
         )))
       )))
   }
@@ -109,12 +108,66 @@ object SMTlibScripts {
     )
   }
 
+  // für alle x, y: x rel y und y rel x => x = y
+  // Existiert x, y: sodass x rel y und y rel x und nicht x = y
+  def antisymmetry(relName: String, dataName: String): Script = {
+    val sort = Sort(dataName)
+    Script(
+      List(
+        Push(1),
+        Assert(Exists(SortedVar("x", sort), Seq(SortedVar("y", sort)),
+          FunctionApplication("and", Seq(
+            FunctionApplication("and", Seq(
+              FunctionApplication("=", Seq(
+                FunctionApplication(relName, Seq("x", "y")),
+                Core.BoolConst(true))),
+              FunctionApplication("=", Seq(
+                FunctionApplication(relName, Seq("y", "x")),
+                Core.BoolConst(true)))
+            )),
+            FunctionApplication("not", Seq(
+              FunctionApplication("=", Seq("x", "z"))
+            ))
+          )))),
+        CheckSat(),
+        Pop(1))
+    )
+  }
+
+  // für alle x: abstract(beta(x)) > beta(concrete(x))
+  // Existiert x: abstract(beta(x)) nicht > beta(concrete(x))
+  def soundnessBinary(abstractAggrName: String, concreteAggrName: String, paramTypeName: String,
+                paramBetaName: String, resultBetaName: String, poName: String): Script = {
+    val paramSort = Sort(paramTypeName)
+    Script(
+      List(
+        Push(1),
+        Assert(Exists(SortedVar("x", paramSort), Seq(SortedVar("y", paramSort)),
+          FunctionApplication("=", Seq(
+            FunctionApplication(poName, Seq(
+              FunctionApplication(resultBetaName, Seq(FunctionApplication(concreteAggrName, Seq("x", "y")))),
+              FunctionApplication(abstractAggrName, Seq(
+                FunctionApplication(paramBetaName, Seq("x")),
+                FunctionApplication(paramBetaName, Seq("y"))
+              ))
+            ))
+          ))
+        )),
+        CheckSat(),
+        Pop(1)
+      )
+    )
+  }
+
+
   implicit def StringToSSymbol(s: String): SSymbol = {
     SSymbol(s)
   }
+
   implicit def StringToIdentifier(s: String): Identifier = {
     Identifier(SSymbol(s))
   }
+
   implicit def StringToQualifiedIdentifier(s: String): QualifiedIdentifier = {
     QualifiedIdentifier(Identifier(SSymbol(s)))
   }

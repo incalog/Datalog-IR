@@ -74,6 +74,12 @@ object Lattices {
        |  }
        |}
        |
+       |def intToSign(i: Int): Sign =
+       |  if (i == 0) Zero() else
+       |    if (i > 0) Pos() else Neg()
+       |
+       |@aggr(approx(join, intToSign, intToSign, leq)) def chooseLeft(i1: Int, i2: Int) = i1
+       |
        |@aggr(assoc, comm) def join(s1: Sign, s2: Sign): Sign = s1 match {
        |  case Top() => Top()
        |  case Bot() => s2
@@ -101,7 +107,7 @@ object Lattices {
        |}
        |""".stripMargin
 
-  // val compiledSignLatticeWithPartialOrder: CompiledFunctionalModule = Compiler.compileFunctional(signLatticeWithPartialOrder, FunctionalOptions())
+  val compiledSignLatticeWithPartialOrder: CompiledFunctionalModule = Compiler.compileFunctional(signLatticeWithPartialOrder, FunctionalOptions())
 
   val constLattice: String =
     s"""module ConstantPropagationLattice
