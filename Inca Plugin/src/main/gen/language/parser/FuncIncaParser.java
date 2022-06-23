@@ -1,0 +1,1657 @@
+// This is a generated file. Not intended for manual editing.
+package language.parser;
+
+import com.intellij.lang.PsiBuilder;
+import com.intellij.lang.PsiBuilder.Marker;
+import static language.psi.FuncIncaTypes.*;
+import static com.intellij.lang.parser.GeneratedParserUtilBase.*;
+import com.intellij.psi.tree.IElementType;
+import com.intellij.lang.ASTNode;
+import com.intellij.psi.tree.TokenSet;
+import com.intellij.lang.PsiParser;
+import com.intellij.lang.LightPsiParser;
+
+@SuppressWarnings({"SimplifiableIfStatement", "UnusedAssignment"})
+public class FuncIncaParser implements PsiParser, LightPsiParser {
+
+  public ASTNode parse(IElementType t, PsiBuilder b) {
+    parseLight(t, b);
+    return b.getTreeBuilt();
+  }
+
+  public void parseLight(IElementType t, PsiBuilder b) {
+    boolean r;
+    b = adapt_builder_(t, b, this, null);
+    Marker m = enter_section_(b, 0, _COLLAPSE_, null);
+    r = parse_root_(t, b);
+    exit_section_(b, 0, m, t, r, true, TRUE_CONDITION);
+  }
+
+  protected boolean parse_root_(IElementType t, PsiBuilder b) {
+    return parse_root_(t, b, 0);
+  }
+
+  static boolean parse_root_(IElementType t, PsiBuilder b, int l) {
+    return module(b, l + 1);
+  }
+
+  /* ********************************************************** */
+  // '@main'
+  public static boolean annotation(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "annotation")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, ANNOTATION, "<annotation>");
+    r = consumeToken(b, "@main");
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // parens_exp | option_exp | comprehension_exp | const_set_exp | tuple_exp | fold_exp
+  //                | base_apply_exp | base_lit_exp | var | base_apply_unary_exp
+  static boolean atomic_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "atomic_exp")) return false;
+    boolean r;
+    r = parens_exp(b, l + 1);
+    if (!r) r = option_exp(b, l + 1);
+    if (!r) r = comprehension_exp(b, l + 1);
+    if (!r) r = const_set_exp(b, l + 1);
+    if (!r) r = tuple_exp(b, l + 1);
+    if (!r) r = fold_exp(b, l + 1);
+    if (!r) r = base_apply_exp(b, l + 1);
+    if (!r) r = base_lit_exp(b, l + 1);
+    if (!r) r = var(b, l + 1);
+    if (!r) r = base_apply_unary_exp(b, l + 1);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // tuple | 'Any' | 'Nothing' | 'Unit' | option | set | scala_term | constr | data
+  public static boolean atomic_type(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "atomic_type")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, ATOMIC_TYPE, "<atomic type>");
+    r = tuple(b, l + 1);
+    if (!r) r = consumeToken(b, "Any");
+    if (!r) r = consumeToken(b, "Nothing");
+    if (!r) r = consumeToken(b, "Unit");
+    if (!r) r = option(b, l + 1);
+    if (!r) r = set(b, l + 1);
+    if (!r) r = consumeToken(b, SCALA_TERM);
+    if (!r) r = constr(b, l + 1);
+    if (!r) r = data(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // scala_term '(' (exp (',' exp)*)? ')'
+  public static boolean base_apply_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "base_apply_exp")) return false;
+    if (!nextTokenIs(b, SCALA_TERM)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, SCALA_TERM);
+    r = r && consumeToken(b, "(");
+    r = r && base_apply_exp_2(b, l + 1);
+    r = r && consumeToken(b, ")");
+    exit_section_(b, m, BASE_APPLY_EXP, r);
+    return r;
+  }
+
+  // (exp (',' exp)*)?
+  private static boolean base_apply_exp_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "base_apply_exp_2")) return false;
+    base_apply_exp_2_0(b, l + 1);
+    return true;
+  }
+
+  // exp (',' exp)*
+  private static boolean base_apply_exp_2_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "base_apply_exp_2_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = exp(b, l + 1);
+    r = r && base_apply_exp_2_0_1(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (',' exp)*
+  private static boolean base_apply_exp_2_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "base_apply_exp_2_0_1")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!base_apply_exp_2_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "base_apply_exp_2_0_1", c)) break;
+    }
+    return true;
+  }
+
+  // ',' exp
+  private static boolean base_apply_exp_2_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "base_apply_exp_2_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ",");
+    r = r && exp(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // subinfix_exp op infix_exp
+  public static boolean base_apply_infix_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "base_apply_infix_exp")) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _COLLAPSE_, BASE_APPLY_INFIX_EXP, "<base apply infix exp>");
+    r = subinfix_exp(b, l + 1);
+    r = r && op(b, l + 1);
+    p = r; // pin = op
+    r = r && infix_exp(b, l + 1);
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  /* ********************************************************** */
+  // subinfix_exp '.`' id '`' ( '(' (infix_exp (',' infix_exp)*)? ')' )?
+  public static boolean base_apply_method_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "base_apply_method_exp")) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, BASE_APPLY_METHOD_EXP, "<base apply method exp>");
+    r = subinfix_exp(b, l + 1);
+    r = r && consumeToken(b, ".`");
+    r = r && id(b, l + 1);
+    r = r && consumeToken(b, "`");
+    p = r; // pin = 4
+    r = r && base_apply_method_exp_4(b, l + 1);
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  // ( '(' (infix_exp (',' infix_exp)*)? ')' )?
+  private static boolean base_apply_method_exp_4(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "base_apply_method_exp_4")) return false;
+    base_apply_method_exp_4_0(b, l + 1);
+    return true;
+  }
+
+  // '(' (infix_exp (',' infix_exp)*)? ')'
+  private static boolean base_apply_method_exp_4_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "base_apply_method_exp_4_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, "(");
+    r = r && base_apply_method_exp_4_0_1(b, l + 1);
+    r = r && consumeToken(b, ")");
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (infix_exp (',' infix_exp)*)?
+  private static boolean base_apply_method_exp_4_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "base_apply_method_exp_4_0_1")) return false;
+    base_apply_method_exp_4_0_1_0(b, l + 1);
+    return true;
+  }
+
+  // infix_exp (',' infix_exp)*
+  private static boolean base_apply_method_exp_4_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "base_apply_method_exp_4_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = infix_exp(b, l + 1);
+    r = r && base_apply_method_exp_4_0_1_0_1(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (',' infix_exp)*
+  private static boolean base_apply_method_exp_4_0_1_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "base_apply_method_exp_4_0_1_0_1")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!base_apply_method_exp_4_0_1_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "base_apply_method_exp_4_0_1_0_1", c)) break;
+    }
+    return true;
+  }
+
+  // ',' infix_exp
+  private static boolean base_apply_method_exp_4_0_1_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "base_apply_method_exp_4_0_1_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ",");
+    r = r && infix_exp(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // unary_op infix_exp
+  public static boolean base_apply_unary_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "base_apply_unary_exp")) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _COLLAPSE_, BASE_APPLY_UNARY_EXP, "<base apply unary exp>");
+    r = unary_op(b, l + 1);
+    p = r; // pin = 1
+    r = r && infix_exp(b, l + 1);
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  /* ********************************************************** */
+  // numeric_lit | boolean_lit | string_lit | scala_term
+  static boolean base_lit_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "base_lit_exp")) return false;
+    boolean r;
+    r = numeric_lit(b, l + 1);
+    if (!r) r = boolean_lit(b, l + 1);
+    if (!r) r = string_lit(b, l + 1);
+    if (!r) r = consumeToken(b, SCALA_TERM);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // 'true' | 'false'
+  public static boolean boolean_lit(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "boolean_lit")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, BOOLEAN_LIT, "<boolean lit>");
+    r = consumeToken(b, "true");
+    if (!r) r = consumeToken(b, "false");
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // atomic_exp param_types? ('(' (exp (',' exp)*)? ')')+
+  public static boolean call_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "call_exp")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, CALL_EXP, "<call exp>");
+    r = atomic_exp(b, l + 1);
+    r = r && call_exp_1(b, l + 1);
+    r = r && call_exp_2(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // param_types?
+  private static boolean call_exp_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "call_exp_1")) return false;
+    param_types(b, l + 1);
+    return true;
+  }
+
+  // ('(' (exp (',' exp)*)? ')')+
+  private static boolean call_exp_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "call_exp_2")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = call_exp_2_0(b, l + 1);
+    while (r) {
+      int c = current_position_(b);
+      if (!call_exp_2_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "call_exp_2", c)) break;
+    }
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // '(' (exp (',' exp)*)? ')'
+  private static boolean call_exp_2_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "call_exp_2_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, "(");
+    r = r && call_exp_2_0_1(b, l + 1);
+    r = r && consumeToken(b, ")");
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (exp (',' exp)*)?
+  private static boolean call_exp_2_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "call_exp_2_0_1")) return false;
+    call_exp_2_0_1_0(b, l + 1);
+    return true;
+  }
+
+  // exp (',' exp)*
+  private static boolean call_exp_2_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "call_exp_2_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = exp(b, l + 1);
+    r = r && call_exp_2_0_1_0_1(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (',' exp)*
+  private static boolean call_exp_2_0_1_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "call_exp_2_0_1_0_1")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!call_exp_2_0_1_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "call_exp_2_0_1_0_1", c)) break;
+    }
+    return true;
+  }
+
+  // ',' exp
+  private static boolean call_exp_2_0_1_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "call_exp_2_0_1_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ",");
+    r = r && exp(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // subinfix_exp '.as[' data ']'
+  public static boolean cast_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "cast_exp")) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, CAST_EXP, "<cast exp>");
+    r = subinfix_exp(b, l + 1);
+    r = r && consumeToken(b, ".as[");
+    p = r; // pin = 2
+    r = r && report_error_(b, data(b, l + 1));
+    r = p && consumeToken(b, "]") && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  /* ********************************************************** */
+  // '{' subinfix_exp '|' exp (',' exp)* '}'
+  public static boolean comprehension_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "comprehension_exp")) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, COMPREHENSION_EXP, "<comprehension exp>");
+    r = consumeToken(b, "{");
+    r = r && subinfix_exp(b, l + 1);
+    r = r && consumeToken(b, "|");
+    p = r; // pin = 3
+    r = r && report_error_(b, exp(b, l + 1));
+    r = p && report_error_(b, comprehension_exp_4(b, l + 1)) && r;
+    r = p && consumeToken(b, "}") && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  // (',' exp)*
+  private static boolean comprehension_exp_4(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "comprehension_exp_4")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!comprehension_exp_4_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "comprehension_exp_4", c)) break;
+    }
+    return true;
+  }
+
+  // ',' exp
+  private static boolean comprehension_exp_4_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "comprehension_exp_4_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ",");
+    r = r && exp(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // '{' (exp (',' exp)*)? '}'
+  public static boolean const_set_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "const_set_exp")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, CONST_SET_EXP, "<const set exp>");
+    r = consumeToken(b, "{");
+    r = r && const_set_exp_1(b, l + 1);
+    r = r && consumeToken(b, "}");
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // (exp (',' exp)*)?
+  private static boolean const_set_exp_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "const_set_exp_1")) return false;
+    const_set_exp_1_0(b, l + 1);
+    return true;
+  }
+
+  // exp (',' exp)*
+  private static boolean const_set_exp_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "const_set_exp_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = exp(b, l + 1);
+    r = r && const_set_exp_1_0_1(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (',' exp)*
+  private static boolean const_set_exp_1_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "const_set_exp_1_0_1")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!const_set_exp_1_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "const_set_exp_1_0_1", c)) break;
+    }
+    return true;
+  }
+
+  // ',' exp
+  private static boolean const_set_exp_1_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "const_set_exp_1_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ",");
+    r = r && exp(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // id '[' type_annotation (',' type_annotation)* ']'
+  public static boolean constr(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "constr")) return false;
+    if (!nextTokenIs(b, VALID_ID)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = id(b, l + 1);
+    r = r && consumeToken(b, "[");
+    r = r && type_annotation(b, l + 1);
+    r = r && constr_3(b, l + 1);
+    r = r && consumeToken(b, "]");
+    exit_section_(b, m, CONSTR, r);
+    return r;
+  }
+
+  // (',' type_annotation)*
+  private static boolean constr_3(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "constr_3")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!constr_3_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "constr_3", c)) break;
+    }
+    return true;
+  }
+
+  // ',' type_annotation
+  private static boolean constr_3_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "constr_3_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ",");
+    r = r && type_annotation(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // id param_types? '(' (id (',' id)*)? ')'
+  public static boolean constructor_pattern(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "constructor_pattern")) return false;
+    if (!nextTokenIs(b, VALID_ID)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = id(b, l + 1);
+    r = r && constructor_pattern_1(b, l + 1);
+    r = r && consumeToken(b, "(");
+    r = r && constructor_pattern_3(b, l + 1);
+    r = r && consumeToken(b, ")");
+    exit_section_(b, m, CONSTRUCTOR_PATTERN, r);
+    return r;
+  }
+
+  // param_types?
+  private static boolean constructor_pattern_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "constructor_pattern_1")) return false;
+    param_types(b, l + 1);
+    return true;
+  }
+
+  // (id (',' id)*)?
+  private static boolean constructor_pattern_3(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "constructor_pattern_3")) return false;
+    constructor_pattern_3_0(b, l + 1);
+    return true;
+  }
+
+  // id (',' id)*
+  private static boolean constructor_pattern_3_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "constructor_pattern_3_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = id(b, l + 1);
+    r = r && constructor_pattern_3_0_1(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (',' id)*
+  private static boolean constructor_pattern_3_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "constructor_pattern_3_0_1")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!constructor_pattern_3_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "constructor_pattern_3_0_1", c)) break;
+    }
+    return true;
+  }
+
+  // ',' id
+  private static boolean constructor_pattern_3_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "constructor_pattern_3_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ",");
+    r = r && id(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // id
+  public static boolean data(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data")) return false;
+    if (!nextTokenIs(b, VALID_ID)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = id(b, l + 1);
+    exit_section_(b, m, DATA, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // id '(' (type_annotation (',' type_annotation)*)? ')'
+  public static boolean data_constructor(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data_constructor")) return false;
+    if (!nextTokenIs(b, VALID_ID)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = id(b, l + 1);
+    r = r && consumeToken(b, "(");
+    r = r && data_constructor_2(b, l + 1);
+    r = r && consumeToken(b, ")");
+    exit_section_(b, m, DATA_CONSTRUCTOR, r);
+    return r;
+  }
+
+  // (type_annotation (',' type_annotation)*)?
+  private static boolean data_constructor_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data_constructor_2")) return false;
+    data_constructor_2_0(b, l + 1);
+    return true;
+  }
+
+  // type_annotation (',' type_annotation)*
+  private static boolean data_constructor_2_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data_constructor_2_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = type_annotation(b, l + 1);
+    r = r && data_constructor_2_0_1(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (',' type_annotation)*
+  private static boolean data_constructor_2_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data_constructor_2_0_1")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!data_constructor_2_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "data_constructor_2_0_1", c)) break;
+    }
+    return true;
+  }
+
+  // ',' type_annotation
+  private static boolean data_constructor_2_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data_constructor_2_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ",");
+    r = r && type_annotation(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // annotation* visibility? keyword_data id param_types? '=' data_constructor ('|' data_constructor)*
+  public static boolean data_def(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data_def")) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, DATA_DEF, "<data def>");
+    r = data_def_0(b, l + 1);
+    r = r && data_def_1(b, l + 1);
+    r = r && consumeToken(b, KEYWORD_DATA);
+    r = r && id(b, l + 1);
+    r = r && data_def_4(b, l + 1);
+    r = r && consumeToken(b, "=");
+    p = r; // pin = 6
+    r = r && report_error_(b, data_constructor(b, l + 1));
+    r = p && data_def_7(b, l + 1) && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  // annotation*
+  private static boolean data_def_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data_def_0")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!annotation(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "data_def_0", c)) break;
+    }
+    return true;
+  }
+
+  // visibility?
+  private static boolean data_def_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data_def_1")) return false;
+    visibility(b, l + 1);
+    return true;
+  }
+
+  // param_types?
+  private static boolean data_def_4(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data_def_4")) return false;
+    param_types(b, l + 1);
+    return true;
+  }
+
+  // ('|' data_constructor)*
+  private static boolean data_def_7(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data_def_7")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!data_def_7_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "data_def_7", c)) break;
+    }
+    return true;
+  }
+
+  // '|' data_constructor
+  private static boolean data_def_7_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "data_def_7_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, "|");
+    r = r && data_constructor(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // if_exp | let_exp | member_exp | infix_exp
+  public static boolean exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "exp")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, EXP, "<exp>");
+    r = if_exp(b, l + 1);
+    if (!r) r = let_exp(b, l + 1);
+    if (!r) r = member_exp(b, l + 1);
+    if (!r) r = infix_exp(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // keyword_fold ('[' type_annotation ']')? '(' exp ',' exp ',' exp ')'
+  public static boolean fold_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "fold_exp")) return false;
+    if (!nextTokenIs(b, KEYWORD_FOLD)) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, FOLD_EXP, null);
+    r = consumeToken(b, KEYWORD_FOLD);
+    p = r; // pin = 1
+    r = r && report_error_(b, fold_exp_1(b, l + 1));
+    r = p && report_error_(b, consumeToken(b, "(")) && r;
+    r = p && report_error_(b, exp(b, l + 1)) && r;
+    r = p && report_error_(b, consumeToken(b, ",")) && r;
+    r = p && report_error_(b, exp(b, l + 1)) && r;
+    r = p && report_error_(b, consumeToken(b, ",")) && r;
+    r = p && report_error_(b, exp(b, l + 1)) && r;
+    r = p && consumeToken(b, ")") && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  // ('[' type_annotation ']')?
+  private static boolean fold_exp_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "fold_exp_1")) return false;
+    fold_exp_1_0(b, l + 1);
+    return true;
+  }
+
+  // '[' type_annotation ']'
+  private static boolean fold_exp_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "fold_exp_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, "[");
+    r = r && type_annotation(b, l + 1);
+    r = r && consumeToken(b, "]");
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // annotation* visibility? keyword_def id param_types? ('(' param_list ')')? ':' type_annotation '=' exp
+  public static boolean fun_def(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "fun_def")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, FUN_DEF, "<fun def>");
+    r = fun_def_0(b, l + 1);
+    r = r && fun_def_1(b, l + 1);
+    r = r && consumeToken(b, KEYWORD_DEF);
+    r = r && id(b, l + 1);
+    r = r && fun_def_4(b, l + 1);
+    r = r && fun_def_5(b, l + 1);
+    r = r && consumeToken(b, ":");
+    r = r && type_annotation(b, l + 1);
+    r = r && consumeToken(b, "=");
+    r = r && exp(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // annotation*
+  private static boolean fun_def_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "fun_def_0")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!annotation(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "fun_def_0", c)) break;
+    }
+    return true;
+  }
+
+  // visibility?
+  private static boolean fun_def_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "fun_def_1")) return false;
+    visibility(b, l + 1);
+    return true;
+  }
+
+  // param_types?
+  private static boolean fun_def_4(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "fun_def_4")) return false;
+    param_types(b, l + 1);
+    return true;
+  }
+
+  // ('(' param_list ')')?
+  private static boolean fun_def_5(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "fun_def_5")) return false;
+    fun_def_5_0(b, l + 1);
+    return true;
+  }
+
+  // '(' param_list ')'
+  private static boolean fun_def_5_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "fun_def_5_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, "(");
+    r = r && param_list(b, l + 1);
+    r = r && consumeToken(b, ")");
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // atomic_type '=>' type_annotation
+  public static boolean fun_type(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "fun_type")) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, FUN_TYPE, "<fun type>");
+    r = atomic_type(b, l + 1);
+    r = r && consumeToken(b, "=>");
+    p = r; // pin = 2
+    r = r && type_annotation(b, l + 1);
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  /* ********************************************************** */
+  // valid_id
+  public static boolean id(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "id")) return false;
+    if (!nextTokenIs(b, VALID_ID)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, VALID_ID);
+    exit_section_(b, m, ID, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // keyword_if '(' exp ')' exp keyword_else exp
+  public static boolean if_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "if_exp")) return false;
+    if (!nextTokenIs(b, KEYWORD_IF)) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, IF_EXP, null);
+    r = consumeToken(b, KEYWORD_IF);
+    p = r; // pin = 1
+    r = r && report_error_(b, consumeToken(b, "("));
+    r = p && report_error_(b, exp(b, l + 1)) && r;
+    r = p && report_error_(b, consumeToken(b, ")")) && r;
+    r = p && report_error_(b, exp(b, l + 1)) && r;
+    r = p && report_error_(b, consumeToken(b, KEYWORD_ELSE)) && r;
+    r = p && exp(b, l + 1) && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  /* ********************************************************** */
+  // keyword_import id
+  public static boolean import_$(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "import_$")) return false;
+    if (!nextTokenIs(b, KEYWORD_IMPORT)) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, IMPORT, null);
+    r = consumeToken(b, KEYWORD_IMPORT);
+    p = r; // pin = 1
+    r = r && id(b, l + 1);
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  /* ********************************************************** */
+  // cast_exp | base_apply_method_exp | base_apply_infix_exp | match_exp | subinfix_exp
+  static boolean infix_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "infix_exp")) return false;
+    boolean r;
+    r = cast_exp(b, l + 1);
+    if (!r) r = base_apply_method_exp(b, l + 1);
+    if (!r) r = base_apply_infix_exp(b, l + 1);
+    if (!r) r = match_exp(b, l + 1);
+    if (!r) r = subinfix_exp(b, l + 1);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // lambda_vars '=>' exp
+  public static boolean lambda_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "lambda_exp")) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, LAMBDA_EXP, "<lambda exp>");
+    r = lambda_vars(b, l + 1);
+    r = r && consumeToken(b, "=>");
+    p = r; // pin = 2
+    r = r && exp(b, l + 1);
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  /* ********************************************************** */
+  // '(' (id ':' type_annotation (',' id ':' type_annotation)*)? ')'
+  public static boolean lambda_vars(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "lambda_vars")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, LAMBDA_VARS, "<lambda vars>");
+    r = consumeToken(b, "(");
+    r = r && lambda_vars_1(b, l + 1);
+    r = r && consumeToken(b, ")");
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // (id ':' type_annotation (',' id ':' type_annotation)*)?
+  private static boolean lambda_vars_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "lambda_vars_1")) return false;
+    lambda_vars_1_0(b, l + 1);
+    return true;
+  }
+
+  // id ':' type_annotation (',' id ':' type_annotation)*
+  private static boolean lambda_vars_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "lambda_vars_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = id(b, l + 1);
+    r = r && consumeToken(b, ":");
+    r = r && type_annotation(b, l + 1);
+    r = r && lambda_vars_1_0_3(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (',' id ':' type_annotation)*
+  private static boolean lambda_vars_1_0_3(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "lambda_vars_1_0_3")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!lambda_vars_1_0_3_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "lambda_vars_1_0_3", c)) break;
+    }
+    return true;
+  }
+
+  // ',' id ':' type_annotation
+  private static boolean lambda_vars_1_0_3_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "lambda_vars_1_0_3_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ",");
+    r = r && id(b, l + 1);
+    r = r && consumeToken(b, ":");
+    r = r && type_annotation(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // keyword_let (single_let | multiple_let)
+  public static boolean let_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "let_exp")) return false;
+    if (!nextTokenIs(b, KEYWORD_LET)) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, LET_EXP, null);
+    r = consumeToken(b, KEYWORD_LET);
+    p = r; // pin = 1
+    r = r && let_exp_1(b, l + 1);
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  // single_let | multiple_let
+  private static boolean let_exp_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "let_exp_1")) return false;
+    boolean r;
+    r = single_let(b, l + 1);
+    if (!r) r = multiple_let(b, l + 1);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // keyword_case pattern '=>' exp
+  public static boolean match_case(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "match_case")) return false;
+    if (!nextTokenIs(b, KEYWORD_CASE)) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, MATCH_CASE, null);
+    r = consumeToken(b, KEYWORD_CASE);
+    p = r; // pin = 1
+    r = r && report_error_(b, pattern(b, l + 1));
+    r = p && report_error_(b, consumeToken(b, "=>")) && r;
+    r = p && exp(b, l + 1) && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  /* ********************************************************** */
+  // subinfix_exp keyword_match '{' match_case* '}'
+  public static boolean match_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "match_exp")) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, MATCH_EXP, "<match exp>");
+    r = subinfix_exp(b, l + 1);
+    r = r && consumeToken(b, KEYWORD_MATCH);
+    p = r; // pin = 2
+    r = r && report_error_(b, consumeToken(b, "{"));
+    r = p && report_error_(b, match_exp_3(b, l + 1)) && r;
+    r = p && consumeToken(b, "}") && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  // match_case*
+  private static boolean match_exp_3(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "match_exp_3")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!match_case(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "match_exp_3", c)) break;
+    }
+    return true;
+  }
+
+  /* ********************************************************** */
+  // atomic_exp keyword_not? keyword_in infix_exp
+  public static boolean member_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "member_exp")) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, MEMBER_EXP, "<member exp>");
+    r = atomic_exp(b, l + 1);
+    r = r && member_exp_1(b, l + 1);
+    r = r && consumeToken(b, KEYWORD_IN);
+    p = r; // pin = 3
+    r = r && infix_exp(b, l + 1);
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  // keyword_not?
+  private static boolean member_exp_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "member_exp_1")) return false;
+    consumeToken(b, KEYWORD_NOT);
+    return true;
+  }
+
+  /* ********************************************************** */
+  // keyword_module id import* module_content*
+  static boolean module(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "module")) return false;
+    if (!nextTokenIs(b, KEYWORD_MODULE)) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_);
+    r = consumeToken(b, KEYWORD_MODULE);
+    p = r; // pin = 1
+    r = r && report_error_(b, id(b, l + 1));
+    r = p && report_error_(b, module_2(b, l + 1)) && r;
+    r = p && module_3(b, l + 1) && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  // import*
+  private static boolean module_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "module_2")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!import_$(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "module_2", c)) break;
+    }
+    return true;
+  }
+
+  // module_content*
+  private static boolean module_3(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "module_3")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!module_content(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "module_3", c)) break;
+    }
+    return true;
+  }
+
+  /* ********************************************************** */
+  // fun_def | data_def
+  static boolean module_content(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "module_content")) return false;
+    boolean r;
+    r = fun_def(b, l + 1);
+    if (!r) r = data_def(b, l + 1);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // '(' id (':' type_annotation)? (',' id (':' type_annotation)?)* ')' '=' infix_exp keyword_in exp
+  public static boolean multiple_let(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "multiple_let")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, MULTIPLE_LET, "<multiple let>");
+    r = consumeToken(b, "(");
+    r = r && id(b, l + 1);
+    r = r && multiple_let_2(b, l + 1);
+    r = r && multiple_let_3(b, l + 1);
+    r = r && consumeToken(b, ")");
+    r = r && consumeToken(b, "=");
+    r = r && infix_exp(b, l + 1);
+    r = r && consumeToken(b, KEYWORD_IN);
+    r = r && exp(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // (':' type_annotation)?
+  private static boolean multiple_let_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "multiple_let_2")) return false;
+    multiple_let_2_0(b, l + 1);
+    return true;
+  }
+
+  // ':' type_annotation
+  private static boolean multiple_let_2_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "multiple_let_2_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ":");
+    r = r && type_annotation(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (',' id (':' type_annotation)?)*
+  private static boolean multiple_let_3(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "multiple_let_3")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!multiple_let_3_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "multiple_let_3", c)) break;
+    }
+    return true;
+  }
+
+  // ',' id (':' type_annotation)?
+  private static boolean multiple_let_3_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "multiple_let_3_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ",");
+    r = r && id(b, l + 1);
+    r = r && multiple_let_3_0_2(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (':' type_annotation)?
+  private static boolean multiple_let_3_0_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "multiple_let_3_0_2")) return false;
+    multiple_let_3_0_2_0(b, l + 1);
+    return true;
+  }
+
+  // ':' type_annotation
+  private static boolean multiple_let_3_0_2_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "multiple_let_3_0_2_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ":");
+    r = r && type_annotation(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // number | double
+  public static boolean numeric_lit(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "numeric_lit")) return false;
+    if (!nextTokenIs(b, "<numeric lit>", DOUBLE, NUMBER)) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, NUMERIC_LIT, "<numeric lit>");
+    r = consumeToken(b, NUMBER);
+    if (!r) r = consumeToken(b, DOUBLE);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // '+' | '-' | '*' | '/' | '%' // arithmetic
+  //         | '&&' | '||' | '<' | '>' | '==' | '!=' | '<=' | '>=' // logic
+  //         | '++' | '&'
+  static boolean op(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "op")) return false;
+    boolean r;
+    r = consumeToken(b, "+");
+    if (!r) r = consumeToken(b, "-");
+    if (!r) r = consumeToken(b, "*");
+    if (!r) r = consumeToken(b, "/");
+    if (!r) r = consumeToken(b, "%");
+    if (!r) r = consumeToken(b, "&&");
+    if (!r) r = consumeToken(b, "||");
+    if (!r) r = consumeToken(b, "<");
+    if (!r) r = consumeToken(b, ">");
+    if (!r) r = consumeToken(b, "==");
+    if (!r) r = consumeToken(b, "!=");
+    if (!r) r = consumeToken(b, "<=");
+    if (!r) r = consumeToken(b, ">=");
+    if (!r) r = consumeToken(b, "++");
+    if (!r) r = consumeToken(b, "&");
+    return r;
+  }
+
+  /* ********************************************************** */
+  // keyword_Option '[' type_annotation ']'
+  public static boolean option(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "option")) return false;
+    if (!nextTokenIs(b, KEYWORD_OPTION)) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, OPTION, null);
+    r = consumeToken(b, KEYWORD_OPTION);
+    r = r && consumeToken(b, "[");
+    p = r; // pin = 2
+    r = r && report_error_(b, type_annotation(b, l + 1));
+    r = p && consumeToken(b, "]") && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  /* ********************************************************** */
+  // 'None' | 'Some' '(' (exp (',' exp)*)? ')'
+  public static boolean option_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "option_exp")) return false;
+    if (!nextTokenIs(b, "<option exp>", KEYWORD_NONE, KEYWORD_SOME)) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, OPTION_EXP, "<option exp>");
+    r = consumeToken(b, KEYWORD_NONE);
+    if (!r) r = option_exp_1(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // 'Some' '(' (exp (',' exp)*)? ')'
+  private static boolean option_exp_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "option_exp_1")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, KEYWORD_SOME);
+    r = r && consumeToken(b, "(");
+    r = r && option_exp_1_2(b, l + 1);
+    r = r && consumeToken(b, ")");
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (exp (',' exp)*)?
+  private static boolean option_exp_1_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "option_exp_1_2")) return false;
+    option_exp_1_2_0(b, l + 1);
+    return true;
+  }
+
+  // exp (',' exp)*
+  private static boolean option_exp_1_2_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "option_exp_1_2_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = exp(b, l + 1);
+    r = r && option_exp_1_2_0_1(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (',' exp)*
+  private static boolean option_exp_1_2_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "option_exp_1_2_0_1")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!option_exp_1_2_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "option_exp_1_2_0_1", c)) break;
+    }
+    return true;
+  }
+
+  // ',' exp
+  private static boolean option_exp_1_2_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "option_exp_1_2_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ",");
+    r = r && exp(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // 'None' | 'Some' '(' (id (',' id)*)? ')'
+  public static boolean option_pattern(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "option_pattern")) return false;
+    if (!nextTokenIs(b, "<option pattern>", KEYWORD_NONE, KEYWORD_SOME)) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, OPTION_PATTERN, "<option pattern>");
+    r = consumeToken(b, KEYWORD_NONE);
+    if (!r) r = option_pattern_1(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // 'Some' '(' (id (',' id)*)? ')'
+  private static boolean option_pattern_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "option_pattern_1")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, KEYWORD_SOME);
+    r = r && consumeToken(b, "(");
+    r = r && option_pattern_1_2(b, l + 1);
+    r = r && consumeToken(b, ")");
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (id (',' id)*)?
+  private static boolean option_pattern_1_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "option_pattern_1_2")) return false;
+    option_pattern_1_2_0(b, l + 1);
+    return true;
+  }
+
+  // id (',' id)*
+  private static boolean option_pattern_1_2_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "option_pattern_1_2_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = id(b, l + 1);
+    r = r && option_pattern_1_2_0_1(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (',' id)*
+  private static boolean option_pattern_1_2_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "option_pattern_1_2_0_1")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!option_pattern_1_2_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "option_pattern_1_2_0_1", c)) break;
+    }
+    return true;
+  }
+
+  // ',' id
+  private static boolean option_pattern_1_2_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "option_pattern_1_2_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ",");
+    r = r && id(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // id ':' type_annotation
+  public static boolean param(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "param")) return false;
+    if (!nextTokenIs(b, VALID_ID)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = id(b, l + 1);
+    r = r && consumeToken(b, ":");
+    r = r && type_annotation(b, l + 1);
+    exit_section_(b, m, PARAM, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // (param (',' param)*)?
+  static boolean param_list(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "param_list")) return false;
+    param_list_0(b, l + 1);
+    return true;
+  }
+
+  // param (',' param)*
+  private static boolean param_list_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "param_list_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = param(b, l + 1);
+    r = r && param_list_0_1(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (',' param)*
+  private static boolean param_list_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "param_list_0_1")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!param_list_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "param_list_0_1", c)) break;
+    }
+    return true;
+  }
+
+  // ',' param
+  private static boolean param_list_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "param_list_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ",");
+    r = r && param(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // '[' id (',' id)* ']'
+  public static boolean param_types(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "param_types")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, PARAM_TYPES, "<param types>");
+    r = consumeToken(b, "[");
+    r = r && id(b, l + 1);
+    r = r && param_types_2(b, l + 1);
+    r = r && consumeToken(b, "]");
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // (',' id)*
+  private static boolean param_types_2(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "param_types_2")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!param_types_2_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "param_types_2", c)) break;
+    }
+    return true;
+  }
+
+  // ',' id
+  private static boolean param_types_2_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "param_types_2_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ",");
+    r = r && id(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // '(' exp ')'
+  public static boolean parens_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "parens_exp")) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, PARENS_EXP, "<parens exp>");
+    r = consumeToken(b, "(");
+    p = r; // pin = 1
+    r = r && report_error_(b, exp(b, l + 1));
+    r = p && consumeToken(b, ")") && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  /* ********************************************************** */
+  // option_pattern | constructor_pattern
+  static boolean pattern(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "pattern")) return false;
+    boolean r;
+    r = option_pattern(b, l + 1);
+    if (!r) r = constructor_pattern(b, l + 1);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // keyword_Set '[' type_annotation ']'
+  public static boolean set(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "set")) return false;
+    if (!nextTokenIs(b, KEYWORD_SET)) return false;
+    boolean r, p;
+    Marker m = enter_section_(b, l, _NONE_, SET, null);
+    r = consumeToken(b, KEYWORD_SET);
+    r = r && consumeToken(b, "[");
+    p = r; // pin = 2
+    r = r && report_error_(b, type_annotation(b, l + 1));
+    r = p && consumeToken(b, "]") && r;
+    exit_section_(b, l, m, r, p, null);
+    return r || p;
+  }
+
+  /* ********************************************************** */
+  // id (':' type_annotation)? '=' infix_exp keyword_in exp
+  public static boolean single_let(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "single_let")) return false;
+    if (!nextTokenIs(b, VALID_ID)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = id(b, l + 1);
+    r = r && single_let_1(b, l + 1);
+    r = r && consumeToken(b, "=");
+    r = r && infix_exp(b, l + 1);
+    r = r && consumeToken(b, KEYWORD_IN);
+    r = r && exp(b, l + 1);
+    exit_section_(b, m, SINGLE_LET, r);
+    return r;
+  }
+
+  // (':' type_annotation)?
+  private static boolean single_let_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "single_let_1")) return false;
+    single_let_1_0(b, l + 1);
+    return true;
+  }
+
+  // ':' type_annotation
+  private static boolean single_let_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "single_let_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ":");
+    r = r && type_annotation(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // string
+  public static boolean string_lit(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "string_lit")) return false;
+    if (!nextTokenIs(b, STRING)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, STRING);
+    exit_section_(b, m, STRING_LIT, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // call_exp | lambda_exp | atomic_exp
+  static boolean subinfix_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "subinfix_exp")) return false;
+    boolean r;
+    r = call_exp(b, l + 1);
+    if (!r) r = lambda_exp(b, l + 1);
+    if (!r) r = atomic_exp(b, l + 1);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // '(' (type_annotation (',' type_annotation)*)? ')'
+  public static boolean tuple(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "tuple")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, TUPLE, "<tuple>");
+    r = consumeToken(b, "(");
+    r = r && tuple_1(b, l + 1);
+    r = r && consumeToken(b, ")");
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  // (type_annotation (',' type_annotation)*)?
+  private static boolean tuple_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "tuple_1")) return false;
+    tuple_1_0(b, l + 1);
+    return true;
+  }
+
+  // type_annotation (',' type_annotation)*
+  private static boolean tuple_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "tuple_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = type_annotation(b, l + 1);
+    r = r && tuple_1_0_1(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  // (',' type_annotation)*
+  private static boolean tuple_1_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "tuple_1_0_1")) return false;
+    while (true) {
+      int c = current_position_(b);
+      if (!tuple_1_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "tuple_1_0_1", c)) break;
+    }
+    return true;
+  }
+
+  // ',' type_annotation
+  private static boolean tuple_1_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "tuple_1_0_1_0")) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ",");
+    r = r && type_annotation(b, l + 1);
+    exit_section_(b, m, null, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // '(' exp ',' exp ')'
+  public static boolean tuple_exp(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "tuple_exp")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, TUPLE_EXP, "<tuple exp>");
+    r = consumeToken(b, "(");
+    r = r && exp(b, l + 1);
+    r = r && consumeToken(b, ",");
+    r = r && exp(b, l + 1);
+    r = r && consumeToken(b, ")");
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // fun_type | atomic_type
+  static boolean type_annotation(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "type_annotation")) return false;
+    boolean r;
+    r = fun_type(b, l + 1);
+    if (!r) r = atomic_type(b, l + 1);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // '-' | '!'
+  static boolean unary_op(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "unary_op")) return false;
+    boolean r;
+    r = consumeToken(b, "-");
+    if (!r) r = consumeToken(b, "!");
+    return r;
+  }
+
+  /* ********************************************************** */
+  // id
+  public static boolean var(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "var")) return false;
+    if (!nextTokenIs(b, VALID_ID)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = id(b, l + 1);
+    exit_section_(b, m, VAR, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // 'private'
+  public static boolean visibility(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "visibility")) return false;
+    boolean r;
+    Marker m = enter_section_(b, l, _NONE_, VISIBILITY, "<visibility>");
+    r = consumeToken(b, "private");
+    exit_section_(b, l, m, r, false, null);
+    return r;
+  }
+
+}
