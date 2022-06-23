@@ -9,8 +9,11 @@ final class IRDebugger(val compiled: CompiledModule) extends Debugger {
   override def stepOver(): Unit = stepOverIR()
   override def stepOut(): Unit = stepOutIR()
 
-  // TODO
-  override type Breakpoint = Any
-  override def addBreakpoint(bp: Breakpoint): Unit = {}
-  override def removeBreakpoint(bp: Breakpoint): Unit = {}
+  override type Breakpoint = BreakpointIR
+  override def addBreakpoint(bp: Breakpoint): Unit = {
+    addBreakpointIR(bp)
+  }
+  override def removeBreakpoint(bp: Breakpoint): Unit = {
+    removeBreakpointIR(bp)
+  }
 }

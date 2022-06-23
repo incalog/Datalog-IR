@@ -115,7 +115,7 @@ class SouffleDebuggerTest extends AnyFunSuite {
     debugger.entry("Superclass", ImmutableTable.unit[Value]())
 
     while (!debugger.isFinished) {
-      println(debugger.currentDebuggerInfo)
+      println(debugger.currentDebuggerInfo())
       debugger.stepInto()
     }
     assertExpectedResult("Superclass", ImmutableTable.unit[Value](), debugger)
@@ -139,7 +139,7 @@ class SouffleDebuggerTest extends AnyFunSuite {
     val debugger = initDebugger(SourceString(pathProg), "path", Map(edgeSig -> edges))
     debugger.entry("path", ImmutableTable.unit[Value]())
     while (!debugger.isFinished) {
-      println(debugger.currentDebuggerInfo)
+      println(debugger.currentDebuggerInfo())
       debugger.stepInto()
     }
     assertExpectedResult("path", ImmutableTable.unit[Value](), debugger)
@@ -160,15 +160,15 @@ class SouffleDebuggerTest extends AnyFunSuite {
 
   lazy val pointsToDebugger: SouffleDebugger = initDebugger(pointsToRuntime)
 
-  test("var points to analysis") {
-    val debugger = pointsToDebugger
-    val args = ImmutableTable.unit[Value]()
-    // val args = ImmutableTable[Value](Seq("?var"), Seq(Seq(ScalaValue("x"))))
-    debugger.entry("VarPointsTo", args)
-    while (!debugger.isFinished) {
-      // println(debugger.currentDebuggerInfo)
-      debugger.stepInto()
-    }
-    // println(debugger.currentDebuggerInfo)
-  }
+//  test("var points to analysis") {
+//    val debugger = pointsToDebugger
+//    val args = ImmutableTable.unit[Value]()
+//    // val args = ImmutableTable[Value](Seq("?var"), Seq(Seq(ScalaValue("x"))))
+//    debugger.entry("VarPointsTo", args)
+//    while (!debugger.isFinished) {
+//      // println(debugger.currentDebuggerInfo)
+//      debugger.stepInto()
+//    }
+//    // println(debugger.currentDebuggerInfo)
+//  }
 }

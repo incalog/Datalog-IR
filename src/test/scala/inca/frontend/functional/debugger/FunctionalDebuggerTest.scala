@@ -707,9 +707,4 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     debugger.stepOver()
     assert(debugger.isFinished)
   }
-
-  test("XXYZ") {
-    val v = Seq(1, 2, 3, 4).take(36)
-    println(v)
-  }
 }

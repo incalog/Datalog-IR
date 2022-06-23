@@ -5,6 +5,7 @@ trait DebuggerAPI {
   def stepOver(): Unit
   def stepOut(): Unit
   def resume(): Unit
+  def resumeWithStepInto(): Unit
 
   type Breakpoint
   def addBreakpoint(bp: Breakpoint): Unit

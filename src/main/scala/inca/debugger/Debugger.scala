@@ -84,7 +84,11 @@ trait Debugger extends DebuggerAPI {
   def controlTraceIR: Seq[ControlPoint] = _controlTrace.toSeq
 
   protected def traceCurrentControlPoint(): Unit = {
-    _controlTrace += currentPoint
+    if (_controlTrace.isEmpty) {
+      _controlTrace += currentPoint
+    } else if (currentPoint != _controlTrace.last) {
+      _controlTrace += currentPoint
+    }
   }
 
   def relation(name: String): ImmutableTable[Value] = fixpointState.relation(name)
@@ -98,10 +102,6 @@ trait Debugger extends DebuggerAPI {
     fixpointState = new FixpointState[Value](compiled.ir.patternMap)
     tableOps = new TableOps(database, compiled, fixpointState, indexedTableFactory)
   }
-
-//  val scope = new QueryScope(compiled.dataModel)
-//  val (_engine, _database) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
-//  setDatabaseRuntime(_database, _engine)
 
   type DatabaseRuntime = (AdvancedViatraQueryEngine, Database)
   def setDatabaseRuntime(rt: DatabaseRuntime): Unit = {
@@ -401,7 +401,7 @@ trait Debugger extends DebuggerAPI {
     }
   }
 
-  protected def resumeUntilPointInCurrentFrame(stopAt: ControlPoint): Unit = {
+  def resumeUntilPointInCurrentFrame(stopAt: ControlPoint): Unit = {
     val break = currentFrameBreakpoint(stopAt)
     addBreakpointIR(break)
     resume()
@@ -445,9 +445,14 @@ trait Debugger extends DebuggerAPI {
   }
 
   override def resume(): Unit = {
-    stepOverIR()
     while (!isFinished && !isAtBreakpoint) {
       stepOverIR()
+    }
+  }
+
+  override def resumeWithStepInto(): Unit = {
+    while (!isFinished && !isAtBreakpoint) {
+      stepIntoIR()
     }
   }
 }
