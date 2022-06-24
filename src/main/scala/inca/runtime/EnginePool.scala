@@ -58,6 +58,13 @@ object EnginePool {
     engine.getMatcher(specification, null)
   }
 
+  def disposeEngine(scope: QueryScope): Unit = {
+    val engineReference = EnginePool.engineMap.get(scope)
+    if (engineReference != null && engineReference.get != null) {
+      engineReference.get.dispose()
+    }
+  }
+
   def disposeAllEngines(): Unit = {
     for (ref <- EnginePool.engineMap.values.asScala) {
       val engine = ref.get

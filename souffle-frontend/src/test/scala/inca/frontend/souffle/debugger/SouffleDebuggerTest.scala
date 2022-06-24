@@ -1,9 +1,6 @@
 package inca.frontend.souffle.debugger
 
-import inca.compiler.source.Source
-import inca.compiler.source.SourceFile
-import inca.compiler.source.SourceString
-import inca.debugger.table.ImmutableTable
+import inca.compiler.source.{Source, SourceFile, SourceString}
 import inca.debugger.Value
 import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.frontend.souffle.compiler.SouffleOptions
