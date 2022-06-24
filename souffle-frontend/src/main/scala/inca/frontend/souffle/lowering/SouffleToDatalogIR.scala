@@ -92,6 +92,7 @@ class SouffleToDatalogIR(useEditScriptForInput: Boolean = false) {
       }
       patterns += (funPrefix + name) -> fun
       decls += name -> s
+
     case ruleDef @ RuleDefinition(heads, rulebody) =>
       for (head @ RuleHead(name, args) <- heads) {
         val pat = patterns.getOrElse(

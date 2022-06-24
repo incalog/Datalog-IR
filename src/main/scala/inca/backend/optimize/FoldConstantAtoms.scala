@@ -4,6 +4,7 @@ import inca.backend.ir.Datalog._
 import inca.backend.ir.TypeOps
 import inca.runtime.context.DataModel
 import inca.util.Scala
+
 import scala.collection.immutable.MultiSet
 
 object FoldConstantAtoms extends Optimization {
@@ -37,7 +38,7 @@ object FoldConstantAtoms extends Optimization {
       case Compare(EqComparator, Constant(c1), Constant(c2)) if c1 != c2 => throwBodyMustFail()
 
       case Compare(NeqComparator, t1, t2) if t1 == t2 => throwBodyMustFail()
-      case Compare(NeqComparator, Constant(c1), Constant(c2)) if c1 == c2 => Seq()
+      case Compare(NeqComparator, Constant(c1), Constant(c2)) if c1 != c2 => Seq()
 
       case HasType(t, typ) =>
         val termTyp = t match {
