@@ -261,4 +261,13 @@ object LambdaCalculus {
     interpFunction,
     envLookupFunction
   )
+
+  import scala.meta.quasiquotes._
+  def num(n: Int): meta.Term = q"TNum($n)"
+  def vari(n: String): meta.Term = q"TVar($n)"
+  def app(e1: meta.Term, e2: meta.Term): meta.Term = q"TApp($e1, $e2)"
+  def lam(x: String, ty: meta.Term, b: meta.Term): meta.Term = q"TLam($x, $ty, $b)"
+
+  def tint: meta.Term = q"TInt()"
+  def tfun(ty1: meta.Term, ty2: meta.Term): meta.Term = q"TFun($ty1, $ty2)"
 }

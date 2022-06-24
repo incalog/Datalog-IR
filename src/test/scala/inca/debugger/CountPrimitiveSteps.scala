@@ -1,6 +1,7 @@
 package inca.debugger
 
 import inca.backend.ir.Datalog
+import inca.backend.optimize.EliminateNonproductiveRelations
 import org.scalatest.funsuite.AnyFunSuite
 import inca.compiler.{CompiledModule, Compiler, Options}
 import inca.debugger.table.ImmutableTable
@@ -10,8 +11,13 @@ import inca.runtime.db.DatabaseInput
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truechange.EditScript
-import inca.debugger.Value.{valueOrdering, topAndBotFactory}
+import inca.debugger.Value.{topAndBotFactory, valueOrdering}
+import inca.examples.functional.LambdaCalculus
+import inca.examples.functional.LambdaCalculus.{app, lam, num, tint, vari}
+import inca.frontend.functional.compiler.FunctionalOptions
+import inca.frontend.functional.debugger.FunctionalDebugger
 
+import scala.meta.Term
 import scala.meta.quasiquotes._
 
 class CountPrimitiveSteps extends AnyFunSuite {
@@ -110,8 +116,15 @@ class CountPrimitiveSteps extends AnyFunSuite {
     debugger
   }
 
+  def chain(from: Int, to: Int): Seq[(Int, Int)] =
+    (from until to).map { i =>
+      (i, i + 1)
+    }
+
+
   test("print steps") {
-    val edges = Seq(1 -> 2, 2 -> 3, 3 -> 4, 4 -> 5, 3 -> 5, 5 -> 2)
+    // val edges = Seq(1 -> 2, 2 -> 3, 3 -> 4, 4 -> 5, 3 -> 5, 5 -> 2)
+    val edges = chain(1, 20) ++ Seq((10, 4), (8, 5), (7, 6))
     val stats = recordStats(initPathDebugger, edges)
     val recCallStats = stats.filter { case (i, (cp, _, _, _)) =>
       cp.isAtomPoint && (cp.atom match {
@@ -121,10 +134,112 @@ class CountPrimitiveSteps extends AnyFunSuite {
     }
 
     val moreSiSteps = stats.filter { case (i, (_, _, si, so)) => si > so }
-    moreSiSteps.foreach(println)
+
+    moreSiSteps.toSeq.sortBy(_._1).foreach { case (idx, (cp, _, si, so)) =>
+      println((idx, cp, si, so))
+    }
     val statsRatio: Iterable[Double] = stats.values.map { case (_, _, si, so) =>
       if (so == 0) 0.0
       else si.toDouble / so.toDouble
     }
   }
+
+  // functional debugging steps
+  val tcProg: String = LambdaCalculus.typeOfModule
+  val inputProg: Term = app(lam("x", tint, vari("x")), num(12))
+
+  def initTCDebugger: FunctionalDebugger = {
+    val compiled = Compiler.compileFunctional(tcProg, FunctionalOptions().withOptimizations(Seq(EliminateNonproductiveRelations)))
+    val debugger = new FunctionalDebugger(compiled)
+    setupDatabaseRuntime(debugger, compiled.dataModel)
+    debugger
+  }
+
+  def setupDatabaseRuntime(
+      debugger: FunctionalDebugger,
+      dataModel: DataModel,
+      es: EditScript = EditScript(Seq())): Unit = {
+    val scope = new QueryScope(dataModel)
+    val (_engine, _database) =
+      EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    _engine.delayUpdatePropagation(() => {
+      _database.processEditScript(es)
+    })
+    debugger.setDatabaseRuntime(_engine, _database)
+  }
+
+  // TODO FIX
+  test("functional debugger") {
+    val debugger = initTCDebugger
+    debugger.entry("main", inputProg)
+    println(inputProg)
+    while(!debugger.isFinished) {
+      println(debugger.currentDebuggerInfo())
+      debugger.stepInto()
+    }
+    val steps = debugger.controlTraceFrontend.size
+  }
+
+  val adaptedPathPattern: Datalog.Pattern =
+    Datalog.Pattern(
+      None,
+      "path",
+      Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+      Seq(
+        Datalog.Body(
+          Seq(
+            Datalog.ExtensionalCall("edge", Seq(Datalog.Var("from"), Datalog.Var("to")))
+          )
+        ),
+        Datalog.Body(
+          Seq(
+            Datalog.ExtensionalCall("edge", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
+            Datalog.Compare(Datalog.EqComparator, Datalog.Var("temp"), Datalog.Constant(Datalog.IntLiteral(2))),
+            Datalog.Call("path", Seq(Datalog.Var("temp"), Datalog.Var("to")))
+          )
+        ),
+        Datalog.Body(
+          Seq(
+            Datalog.ExtensionalCall("edge", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
+            Datalog.Compare(Datalog.EqComparator, Datalog.Var("temp"), Datalog.Constant(Datalog.IntLiteral(3))),
+            Datalog.Call("path", Seq(Datalog.Var("temp"), Datalog.Var("to")))
+          )
+        ),
+        Datalog.Body(
+          Seq(
+            Datalog.ExtensionalCall("edge", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
+            Datalog.Call("path", Seq(Datalog.Var("temp"), Datalog.Var("to")))
+          )
+        )
+      )
+    )
+
+  test("usecase path 1") {
+    val edges = Seq(1 -> 2, 2 -> 1, 1 -> 3)
+    val debugger = initPathDebugger(edges)
+    val entryTable = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("path", entryTable)
+    // stepNumOfTimes(debugger, 4)
+    println(debugger.currentPoint)
+    println(debugger.relation("path"))
+    debugger.stepInto()
+    // before first body
+    println(debugger.currentPoint)
+    println(debugger.relation("path"))
+    debugger.stepOver()
+    // after first body
+    println(debugger.currentPoint)
+    println(debugger.relation("path"))
+    debugger.stepInto()
+    // before second body
+    println(debugger.currentPoint)
+    println(debugger.relation("path"))
+    debugger.stepOver()
+    println(debugger.currentPoint)
+    println(debugger.relation("path"))
+    debugger.stepInto()
+    println(debugger.currentPoint)
+    println(debugger.relation("path"))
+  }
+
 }
