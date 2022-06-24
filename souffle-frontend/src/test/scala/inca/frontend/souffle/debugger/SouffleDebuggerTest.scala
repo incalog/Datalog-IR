@@ -1,6 +1,5 @@
 package inca.frontend.souffle.debugger
 
-import inca.backend.executor.DatalogExecutor
 import inca.compiler.Options
 import inca.compiler.source.{Source, SourceFile, SourceString}
 import inca.debugger.Value

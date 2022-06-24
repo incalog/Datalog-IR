@@ -14,9 +14,9 @@ import scala.jdk.CollectionConverters._
 
 object Query {
   trait ChangeFeed {
-    def processEditScript(edits: EditScript)
-    def insert(relName: String, tuple: Tuple)
-    def delete(relName: String, tuple: Tuple)
+    def processEditScript(edits: EditScript): Unit
+    def insert(relName: String, tuple: Tuple): Unit
+    def delete(relName: String, tuple: Tuple): Unit
   }
 
   class Specification(query: PQuery) extends BaseQuerySpecification[Matcher](query) {

@@ -14,6 +14,8 @@ object TupleOps {
     case _ => Tuples.staticArityFlatTupleOf(tuple.get(0), tuple.get(1))
   }
 
+  def cartesianProductList[T](lst: List[List[T]]): List[List[T]] = cartesianProduct(lst).asInstanceOf[List[List[T]]]
+
   /**
    * From: https://rosettacode.org/wiki/Cartesian_product_of_two_or_more_lists#Scala
    */
@@ -36,12 +38,12 @@ object TupleOps {
 
     val res = lst.toList match {
       case Nil => Nil
-      case x :: Nil => Seq(x)
+      case x :: Nil => List(x)
       case x :: _ =>
         x match {
           case Nil => Nil
           case _ =>
-            lst.foldRight(Seq(x))( (l, a) =>
+            lst.foldRight[Seq[Seq[T]]](List(x))( (l, a) =>
               l.flatMap(pel(_, a))
             ).map(_.dropRight(x.size))
         }
