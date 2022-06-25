@@ -1,7 +1,7 @@
 package inca.frontend.functional.verification
 
 import inca.frontend.functional.core.{Associativity, Commutativity, HasUnapply}
-import inca.frontend.functional.verification.examples.Aggregations.{compiledDoubleOperationsModule, compiledIntegerOperationsModule, compiledNonZeroDoublesModule, compiledStringOperationsModule}
+import inca.frontend.functional.verification.examples.Aggregations.{compiledDoubleOperationsModule, compiledIntegerOperationsModule, compiledStringOperationsModule}
 import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.functional.verification.examples.Lattices.{compiledBoolLattice, compiledConstLattice, compiledIntervalLattice, compiledIntervalLatticeInvariants, compiledModifiedIntervalLattice, compiledSignLattice, compiledSignValLattice}
 
@@ -60,6 +60,7 @@ class ExampleLatticesTest extends AnyFunSuite {
     ))(verifier.verify(module))
   }
 
+  /*
     test("test nonZeroDoubles module verification") {
     val module = compiledNonZeroDoublesModule.typed
     val verifier = new Verifier()
@@ -71,6 +72,7 @@ class ExampleLatticesTest extends AnyFunSuite {
       "min" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
     ))(verifier.verify(module))
   }
+  */
 
   test("test stringOperations module verification") {
     val module = compiledStringOperationsModule.typed

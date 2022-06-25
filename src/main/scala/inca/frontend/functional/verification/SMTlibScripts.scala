@@ -143,7 +143,7 @@ object SMTlibScripts {
       List(
         Push(1),
         Assert(Exists(SortedVar("x", paramSort), Seq(SortedVar("y", paramSort)),
-          FunctionApplication("=", Seq(
+          FunctionApplication("not", Seq(
             FunctionApplication(poName, Seq(
               FunctionApplication(resultBetaName, Seq(FunctionApplication(concreteAggrName, Seq("x", "y")))),
               FunctionApplication(abstractAggrName, Seq(

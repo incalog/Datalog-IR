@@ -27,15 +27,23 @@ object MainFunctionAnno extends Annotation {
   override def toString: String = "@main"
 }
 
-// @partialOrder
-case class PartialOrderAnno(dataName: String) extends Annotation {
-  override def key: Annotation.Key = "MAIN_FUNCTION"
-  override def toString: String = "@main"
+object PartialOrderAnno extends Annotation {
+  override def key: Annotation.Key = "PARTIAL_ORDER"
+  override def toString: String = "@partialOrder"
 }
 
 case class InvariantAnno(invariantNames: Seq[String]) extends Annotation {
   override def key: Annotation.Key = "INVARIANT"
   override def toString: String = s"@invariant(${invariantNames.mkString(", ")})"
+}
+/*
+The annotated function f_a: A1 x A1 => A2 is supposed to be an overapproximation of the
+concrete function f_c: C1 x C1 => C2 with approximation functions (betas) b1: C1 => A1
+and b2: C2 => A2 using the given partial order (po)
+ */
+case class SoundnessAnno(concreteName: String, paramBetaName: String, resBetaName: String, poName: String) extends Annotation {
+  override def key: Annotation.Key = "SOUNDNESS"
+  override def toString: String = s"sound($concreteName, $paramBetaName, $resBetaName, $poName)"
 }
 
 case class AggregationAnno(props: Seq[AggregationProperty]) extends Annotation {
@@ -45,32 +53,18 @@ case class AggregationAnno(props: Seq[AggregationProperty]) extends Annotation {
 
 trait AggregationProperty {
   def name: String
-  def inverseName: Option[String]
+
   override def toString: Key = name
 }
 
 case object Associativity extends AggregationProperty {
   override def name: String = "assoc"
-  override def inverseName: Option[String] = None
 }
 case object Commutativity extends AggregationProperty {
   override def name: String = "comm"
-  override def inverseName: Option[String] = None
 }
 case class HasUnapply(unapplyName: String) extends AggregationProperty {
   override def name: String = s"unapply($unapplyName)"
-  override def inverseName: Option[String] = Some(unapplyName)
-  // TODO Ist inverseName eine sinnvolle Methode? Ich verwende es gar nicht
 }
 
-case class ApproxBy(approxName: String, beta1Name: String, beta2Name: String, poName: String) extends AggregationProperty {
-  override def name: String = s"approx($approxName, $beta1Name, $beta2Name, $poName)" //approx(join, intToSign, intToSign, leq)
-  override def inverseName: Option[String] = None
-}
 
-// TODO André fragen ob man das so machen kann
-case object ApproxBy {
-  def makeApprox(funNames: Seq[String]): ApproxBy =
-    if(funNames.length == 4) ApproxBy(funNames(0), funNames(1), funNames(2), funNames(3)) else
-      throw new Exception("Need four Arguments for ApproxBy Annotation")
-}

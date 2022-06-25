@@ -39,6 +39,7 @@ object Aggregations {
 
   val compiledDoubleOperationsModule: CompiledFunctionalModule = Compiler.compileFunctional(doubleOperations, FunctionalOptions())
 
+  // TODO Wieso gibt es laut z3 keine Elemente von NonZeroDouble??
   val nonZeroDoubles: String =
     s"""module NonZeroDoubles
        |@invariant(notZero) data NonZeroDouble = D(Double)
@@ -72,7 +73,7 @@ object Aggregations {
        |}
        |""".stripMargin
 
-  val compiledNonZeroDoublesModule = Compiler.compileFunctional(nonZeroDoubles, FunctionalOptions())
+  // val compiledNonZeroDoublesModule = Compiler.compileFunctional(nonZeroDoubles, FunctionalOptions())
 
   val stringOperations: String =
     """module StringOperations

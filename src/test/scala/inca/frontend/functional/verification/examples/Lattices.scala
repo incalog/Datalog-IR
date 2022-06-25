@@ -78,9 +78,9 @@ object Lattices {
        |  if (i == 0) Zero() else
        |    if (i > 0) Pos() else Neg()
        |
-       |@aggr(approx(join, intToSign, intToSign, leq)) def chooseLeft(i1: Int, i2: Int) = i1
+       |def chooseLeft(i1: Int, i2: Int): Int = i1
        |
-       |@aggr(assoc, comm) def join(s1: Sign, s2: Sign): Sign = s1 match {
+       |@aggr(assoc, comm) @sound(chooseLeft, intToSign, intToSign, leq) def join(s1: Sign, s2: Sign): Sign = s1 match {
        |  case Top() => Top()
        |  case Bot() => s2
        |  case Pos() => s2 match {

@@ -60,21 +60,26 @@ trait Parser {
   protected[frontend] def defParams[_: P]: P[Seq[Param]] =
     P("(" ~ paramList ~ ")") | P("").map(_ => Seq())
 
-  protected[frontend] def annotation[_: P]: P[Annotation] = mainFuncAnno | aggrAnno | invariantAnno
+  protected[frontend] def annotation[_: P]: P[Annotation] = mainFuncAnno | aggrAnno | invariantAnno | soundAnno | partialOrderAnno
   protected[frontend] def mainFuncAnno[_: P]: P[MainFunctionAnno.type] = P("@main").map(_ => MainFunctionAnno)
+  protected[frontend] def partialOrderAnno[_: P]: P[PartialOrderAnno.type] = P("@partialOrder").map(_ => PartialOrderAnno)
   protected[frontend] def invariantAnno[_: P]: P[InvariantAnno] =
     (P("@invariant(") ~ identifier.rep(min = 1, sep = ",") ~ P(")")).map(id =>InvariantAnno.apply(id.map(_.name)))
+  protected[frontend] def soundAnno[_: P]: P[SoundnessAnno] =
+    (P("@sound(") ~ identifier.rep(exactly = 4, sep = ",") ~ P(")")).map {
+      case c::b1::b2::po::Nil => SoundnessAnno(c.name, b1.name, b2.name, po.name)
+      case _ => throw new Exception("This is not supposed to happen. Matching is supposed to be exhaustive, as we specified it to be exactly 4 identifiers")
+    }
 
   protected[frontend] def aggrAnno[_: P]: P[AggregationAnno] =
     (P("@aggr(") ~ aggregationProp.rep(min = 0, sep = ",") ~ P(")")).map(AggregationAnno.apply)
 
-  protected[frontend] def aggregationProp[_: P]: P[AggregationProperty] = assocProp | commProp | unapplyProp | approxProp
+  protected[frontend] def aggregationProp[_: P]: P[AggregationProperty] = assocProp | commProp | unapplyProp
   protected[frontend] def assocProp[_: P]: P[Associativity.type] = P("assoc").map(_ => Associativity)
   protected[frontend] def commProp[_: P]: P[Commutativity.type] = P("comm").map(_ => Commutativity)
   protected[frontend] def unapplyProp[_: P]: P[HasUnapply] =
     (P("unapply(") ~ identifier ~ P(")")).map(id => HasUnapply.apply(id.name))
-  protected[frontend] def approxProp[_: P]: P[ApproxBy] =
-    (P("approx(") ~ identifier.rep(exactly = 4, sep = ",") ~ P(")")).map(id => ApproxBy.makeApprox(id.map(_.name)))
+
 
 
 
