@@ -1,5 +1,7 @@
 package inca.embedded
 
+import inca.backend.hints.MagicSetHints.FixedAdornment
+import inca.backend.transform.magic.demand.DemandTransformation
 import inca.util.{Gensym, Scala, TupleOps}
 
 trait Functional {
@@ -9,7 +11,7 @@ trait Functional {
   type Typ
 
   def module(name: String, funs: List[Fun]): Mod
-  def function(name: String, params: List[(String, Typ)], outType: Typ, body: => Exp): Fun
+  def function(name: String, params: List[(String, Typ)], outType: Typ, body: Exp): Fun
 
   // types
   def tany: Typ
@@ -25,7 +27,7 @@ trait Functional {
   def string(s: String): Exp
   def va(name: String): Exp
   def let(names: List[String], bound: Exp, body: Exp): Exp
-  def ifTrue(cnd: Exp, thn: => Exp, els: => Exp): Exp
+  def ifTrue(cnd: Exp, thn: Exp, els: Exp): Exp
   def call(fun: String, args: List[Exp]): Exp
   def op(lhs: Exp, op: String, rhs: Exp): Exp
 }
@@ -46,70 +48,140 @@ trait FunctionalTypeAST extends Functional {
   override def tstring: Typ = TString
 }
 
-object FunctionalEval extends Functional with FunctionalTypeAST {
+trait FunctionalTyped extends Functional {
+
+  case class Context(functions: Map[String, (List[Typ], Typ)], env: Map[String, Typ])
+
+  override type Mod = Map[String, (List[Typ], Typ)]
+  override type Fun = ((String, (List[Typ], Typ)), Context => Typ)
+  override type Exp = Context => Typ
+
+  abstract override def module(name: String, funs: List[Fun]): Mod = {
+    val sigs = funs.map(_._1).toMap
+    val ctx = Context(sigs, Map())
+    val actualResults = funs.map(_._2(ctx))
+    sigs
+  }
+
+  override def function(name: String, params: List[(String, Typ)], outType: Typ, body: Exp): Fun = {
+    val sig = (name, (params.map(_._2), outType))
+    (sig, ctx => body(ctx.copy(env = ctx.env ++ params)))
+  }
+
+  override def bool(b: Boolean): Context => Typ = _ => tbool
+  override def int(v: Int): Context => Typ = _ => tint
+  override def double(v: Double): Context => Typ = _ => tdouble
+  override def string(s: String): Context => Typ = _ => tstring
+  override def va(name: String): Context => Typ = ctx => ctx.env.getOrElse(name, throw new IllegalArgumentException(s"Unbound variable $name"))
+
+  override def let(names: List[String], bound: Exp, body: Exp): Context => Typ = ctx => {
+    if (names.size != 1)
+      throw new UnsupportedOperationException(s"Cannot handle tuples yet")
+    val binding = names.head -> bound(ctx)
+    body(ctx.copy(env = ctx.env + binding))
+  }
+
+  override def ifTrue(cnd: Exp, thn: Exp, els: Exp): Context => Typ = ctx => {
+    val cndTy = cnd(ctx)
+    if (cndTy != tbool)
+      throw new IllegalArgumentException(s"Condition must be bool but was $cndTy")
+    val thnTy = thn(ctx)
+    val elsTy = els(ctx)
+    if (thnTy != elsTy)
+      throw new IllegalArgumentException(s"Branches must have same type, but was $thnTy and $elsTy")
+    thnTy
+  }
+
+  override def call(fun: String, args: List[Exp]): Context => Typ = ctx => ctx.functions.get(fun) match {
+    case Some((params, res)) =>
+      val argTys = args.map(_.apply(ctx))
+      if (params != argTys)
+        throw new IllegalArgumentException(s"Arguments of type $args do not match function parameters $params")
+      res
+    case None => throw new IllegalArgumentException(s"Unknown function $fun")
+  }
+  override def op(lhs: Exp, op: String, rhs: Exp): Context => Typ = ctx => {
+    val lhsTy = lhs(ctx)
+    val rhsTy = rhs(ctx)
+    if (lhsTy == tbool && rhsTy == tbool) op match {
+      case "==" | "!=" | "&&" | "||" => tbool
+      case _ => throw new IllegalArgumentException(s"Unknown operator $op")
+    } else if (lhsTy == tint && rhsTy == tint) op match {
+      case "==" | "!=" | "<" | "<=" | ">" | ">=" => tbool
+      case "+" | "-" | "*" | "/" => tint
+      case _ => throw new IllegalArgumentException(s"Unknown operator $op")
+    } else if (lhsTy == tdouble && rhsTy == tdouble) op match {
+      case "==" | "!=" | "<" | "<=" | ">" | ">=" => tbool
+      case "+" | "-" | "*" | "/" => tdouble
+      case _ => throw new IllegalArgumentException(s"Unknown operator $op")
+    } else if (lhsTy == tstring && rhsTy == tstring) op match {
+      case "==" | "!=" => tbool
+      case "+" => tstring
+      case _ => throw new IllegalArgumentException(s"Unknown operator $op")
+    } else {
+      throw new IllegalArgumentException(s"No operator $op for values of type $lhsTy and $rhsTy")
+    }
+  }
+}
+
+trait FunctionalEval extends Functional with FunctionalTypeAST {
   sealed trait Value
   case class VBoolean(b: Boolean) extends Value
   case class VInt(i: Int) extends Value
   case class VDouble(d: Double) extends Value
   case class VString(s: String) extends Value
 
+  case class Context(functions: Map[String, (Context, List[Value]) => Value], env: Map[String, Value])
+
   /** runs the main function */
   override type Mod = String => List[Value] => Value
   /** runs the function */
-  override type Fun = (String, List[Value] => Value)
+  override type Fun = (String, (Context, List[Value]) => Value)
   /** yields the value of the expression */
-  override type Exp = Value
+  override type Exp = Context => Value
 
   private val scalaCompiler = new Scala.ScalaCompiler
 
-  // runtime environment
-  private var functions: Map[String, List[Value] => Value] = Map()
-
-  private var env: Map[String, Value] = Map()
-  private def locally[A](newenv: Map[String, Value])(f: => A): A = {
-    val old = env
-    env = newenv
-    try f
-    finally env = old
-  }
-
   // evaluation
   override def module(name: String, funs: List[Fun]): Mod = name => mainArgs => {
-    functions = funs.toMap
-    functions(name)(mainArgs)
+    val functions = funs.toMap
+    val ctx = Context(functions, Map())
+    functions(name)(ctx, mainArgs)
   }
 
-  override def function(name: String, params: List[(String, FunctionalEval.Type)], outType: FunctionalEval.Typ, body: => Value): Fun = (name, args =>
-    locally(Map() ++ params.view.map(_._1).zip(args))(body))
+  override def function(name: String, params: List[(String, Typ)], outType: Typ, body: Exp): Fun = (name, (ctx, args) =>
+    body(ctx.copy(env = params.view.map(_._1).zip(args).toMap))
+  )
 
   // expressions
-  override def bool(b: Boolean): Exp = VBoolean(b)
-  override def int(v: Int): Exp = VInt(v)
-  override def double(v: Double): Exp = VDouble(v)
-  override def string(s: String): Exp = VString(s)
-  override def va(name: String): Value = env.getOrElse(name, throw new IllegalArgumentException(s"Unbound variable $name"))
-  override def let(names: List[String], bound: Value, body: Value): Value = {
+  override def bool(b: Boolean): Context => Value = _ => VBoolean(b)
+  override def int(v: Int): Context => Value = _ => VInt(v)
+  override def double(v: Double): Context => Value = _ => VDouble(v)
+  override def string(s: String): Context => Value = _ => VString(s)
+  override def va(name: String): Context => Value = ctx => ctx.env.getOrElse(name, throw new IllegalArgumentException(s"Unbound variable $name"))
+  override def let(names: List[String], bound: Exp, body: Exp): Context => Value = ctx => {
     if (names.size != 1)
       throw new UnsupportedOperationException(s"Cannot handle tuples yet")
-    locally(env + (names.head -> bound))(body)
+    val binding = names.head -> bound(ctx)
+    body(ctx.copy(env = ctx.env + binding))
   }
-  override def ifTrue(cnd: Value, thn: => Value, els: => Value): Value = cnd match {
-    case VBoolean(b) => if (b) thn else els
+  override def ifTrue(cnd: Exp, thn: Exp, els: Exp): Context => Value = ctx => cnd(ctx) match {
+    case VBoolean(b) => if (b) thn(ctx) else els(ctx)
     case _ => throw new IllegalArgumentException(s"Type error: Expected boolean, but got $cnd")
   }
 
-  override def call(fun: String, args: List[Value]): Value = functions.get(fun) match {
-    case Some(f) => f(args)
+  override def call(fun: String, args: List[Exp]): Context => Value = ctx => ctx.functions.get(fun) match {
+    case Some(f) => f(ctx, args.map(_.apply(ctx)))
     case None => throw new IllegalArgumentException(s"Unknown function $fun")
   }
 
-  override def op(lhs: Value, op: String, rhs: Value): Value = (lhs, rhs) match {
+  override def op(lhs: Exp, op: String, rhs: Exp): Context => Value = ctx => (lhs(ctx), rhs(ctx)) match {
     case (VBoolean(l), VBoolean(r)) => op match {
       case "==" => VBoolean(l == r)
       case "!=" => VBoolean(l != r)
       case "&&" => VBoolean(l && r)
       case "||" => VBoolean(l || r)
-      case _ => throw new IllegalArgumentException(s"Type error: Expected boolean, but got $lhs and $rhs")
+      case _ => throw new IllegalArgumentException(s"Unknown operator $op")
     }
     case (VInt(l), VInt(r)) => op match {
       case "==" => VBoolean(l == r)
@@ -143,27 +215,36 @@ object FunctionalEval extends Functional with FunctionalTypeAST {
       case "+" => VString(l + r)
       case _ => throw new IllegalArgumentException(s"Unknown operator $op")
     }
-    case _ => throw new IllegalArgumentException(s"Type error: Expected numeric or string, but got $lhs and $rhs")
+    case _ => throw new IllegalArgumentException(s"No operator $op for values $lhs and $rhs")
   }
 }
 
 trait FunctionalDatalog extends Functional {
-  val datalog: Datalog
+  val datalog: Datalog with DatalogOperatorType
 
   private val gensym = new Gensym(Set())
 
+  case class Context(funRes: Map[String, datalog.Typ], env: Map[String, datalog.Typ])
+
   type Mod = datalog.Mod
-  type Fun = datalog.Pat
+  type Fun = ((String, datalog.Typ), Context => datalog.Pat)
   type Tuple = List[datalog.Trm]
-  type Exp = List[(Tuple, List[datalog.Ato])]
+  type Exp = Context => (List[(Tuple, List[datalog.Ato])], datalog.Typ)
   type Typ = datalog.Typ
 
-  override def module(name: String, funs: List[Fun]): Mod = datalog.module(name, funs)
-  override def function(name: String, params: List[(String, Typ)], outType: Typ, body: => Exp): Fun = {
+  override def module(name: String, funs: List[Fun]): Mod = {
+    val ctx = Context(funs.map(_._1).toMap, Map())
+    datalog.module(name, funs.map(_._2(ctx)))
+  }
+
+  override def function(name: String, params: List[(String, Typ)], outType: Typ, body: Exp): Fun = {
     val outParams = Seq((gensym.fresh("out"), outType))
-    val bodies = for ((terms, cons) <- body)
-      yield datalog.body(cons ++ outParams.zip(terms).map(pt => datalog.eq(datalog.va(pt._1._1), pt._2)))
-    datalog.pattern(name, params ++ outParams, bodies)
+    ((name, outType), ctx => {
+      val bodies = for ((terms, cons) <- body(ctx.copy(env = params.toMap))._1)
+        yield datalog.body(cons ++ outParams.zip(terms).map(pt => datalog.eq(datalog.va(pt._1._1), pt._2)))
+      val adorn = FixedAdornment(params.map(_ => true) ++ outParams.map(_ => false))
+      datalog.pattern(name, params ++ outParams, bodies, Set(adorn))
+    })
   }
 
   // types
@@ -174,56 +255,72 @@ trait FunctionalDatalog extends Functional {
   override def tstring: datalog.Typ = datalog.tstring
 
   // expressions
-  override def bool(b: Boolean): List[(Tuple, List[datalog.Ato])] = List((List(datalog.bool(b)), List()))
-  override def int(v: Int): List[(Tuple, List[datalog.Ato])] = List((List(datalog.int(v)), List()))
-  override def double(v: Double): List[(Tuple, List[datalog.Ato])] = List((List(datalog.double(v)), List()))
-  override def string(s: String): List[(Tuple, List[datalog.Ato])] = List((List(datalog.string(s)), List()))
-  override def va(name: String): List[(Tuple, List[datalog.Ato])] = List((List(datalog.va(name)), List()))
+  private def const(trm: datalog.Trm, ty: datalog.Typ): Exp = _ => (List((List(trm), List())), ty)
+  override def bool(b: Boolean): Exp = const(datalog.bool(b), tbool)
+  override def int(v: Int): Exp = const(datalog.int(v), tint)
+  override def double(v: Double): Exp = const(datalog.double(v), tdouble)
+  override def string(s: String): Exp = const(datalog.string(s), tstring)
+  override def va(name: String): Exp = ctx => const(datalog.va(name), ctx.env(name))(ctx)
 
-  override def let(names: List[String], bound: List[(Tuple, List[datalog.Ato])], body: List[(Tuple, List[datalog.Ato])]): List[(Tuple, List[datalog.Ato])] = {
+  override def let(names: List[String], bound: Exp, body: Exp): Exp = ctx => {
     if (names.size != 1)
       throw new UnsupportedOperationException(s"Cannot handle tuples yet")
     val vars = names.map(datalog.va)
-    for ((boundTerms, boundCons) <- bound;
-         (bodyTerm, bodyCons) <- body)
-    yield {
+    val boundCompiled = bound(ctx)
+    val binding = names.head -> boundCompiled._2
+    val bodyCompiled = body(ctx.copy(env = ctx.env + binding))
+    val res = for ((boundTerms, boundCons) <- boundCompiled._1;
+         (bodyTerm, bodyCons) <- bodyCompiled._1) yield {
       val eqs = vars.zip(boundTerms).map(vt => datalog.eq(vt._1, vt._2))
       (bodyTerm, boundCons ++ eqs ++ bodyCons)
     }
+    (res, bodyCompiled._2)
   }
 
-  override def ifTrue(cnd: List[(Tuple, List[datalog.Ato])], thn: => List[(Tuple, List[datalog.Ato])], els: => List[(Tuple, List[datalog.Ato])]): List[(Tuple, List[datalog.Ato])] = {
+  override def ifTrue(cnd: Exp, thn: Exp, els: Exp): Exp = ctx => {
+    val cndCompiled = cnd(ctx)
+    val thnCompiled = thn(ctx)
+    val elsCompiled = els(ctx)
+
     val thnRes =
-      for ((Seq(cndTerm), cndCons) <- cnd;
-           (thnTerm, thnCons) <- thn)
+      for ((Seq(cndTerm), cndCons) <- cndCompiled._1;
+           (thnTerm, thnCons) <- thnCompiled._1)
       yield (thnTerm, cndCons ++ Seq(datalog.eq(cndTerm, datalog.bool(true))) ++ thnCons)
+    val e = els
     val elsRes =
-      for ((Seq(cndTerm), cndCons) <- cnd;
-           (elsTerm, elsCons) <- els)
+      for ((Seq(cndTerm), cndCons) <- cndCompiled._1;
+           (elsTerm, elsCons) <- elsCompiled._1)
       yield (elsTerm, cndCons ++ Seq(datalog.eq(cndTerm, datalog.bool(false))) ++ elsCons)
-    thnRes ++ elsRes
+    (thnRes ++ elsRes, thnCompiled._2)
   }
 
-  override def call(fun: String, args: List[List[(Tuple, List[datalog.Ato])]]): List[(Tuple, List[datalog.Ato])] = {
+  override def call(fun: String, args: List[Exp]): Exp = ctx => {
     val outvars = List(datalog.va(gensym.fresh("out")))
+    val outtype = ctx.funRes(fun)
 
     // create single call constraint when no arguments passed
-    if (args.isEmpty)
-      return List((outvars, List(datalog.query(fun, outvars))))
-
-    for (tups <- TupleOps.cartesianProductList(args)) yield {
-      val (argTerms, argCons) = tups.unzip
-      (outvars, argCons.flatten :+ datalog.query(fun, argTerms.flatten ++ outvars))
+    if (args.isEmpty) {
+      (List((outvars, List(datalog.query(fun, outvars)))), outtype)
+    } else {
+      val res = for (tups <- TupleOps.cartesianProductList(args.map(_.apply(ctx)._1))) yield {
+        val (argTerms, argCons) = tups.unzip
+        (outvars, argCons.flatten :+ datalog.query(fun, argTerms.flatten ++ outvars))
+      }
+      (res, outtype)
     }
   }
 
-  override def op(lhs: List[(Tuple, List[datalog.Ato])], op: String, rhs: List[(Tuple, List[datalog.Ato])]): List[(Tuple, List[datalog.Ato])] = {
+  override def op(lhs: Exp, op: String, rhs: Exp): Exp = ctx => {
     val opOut = datalog.va(gensym.fresh("op"))
-    for ((List(leftTerm), leftCons) <- lhs;
-         (List(rightTerm), rightCons) <- rhs) yield {
-      val opAtom = datalog.op(opOut, leftTerm, op, rightTerm)
+    val lhsCompiled = lhs(ctx)
+    val rhsCompiled = rhs(ctx)
+    val res = for ((List(leftTerm), leftCons) <- lhsCompiled._1;
+         (List(rightTerm), rightCons) <- rhsCompiled._1) yield {
+      val opAtom = datalog.op(opOut, leftTerm, lhsCompiled._2, op, rightTerm, rhsCompiled._2)
       (List(opOut), leftCons ++ rightCons :+ opAtom)
     }
+    val ty = datalog.operatorType(op, lhsCompiled._2, rhsCompiled._2)
+    (res, ty)
   }
 }
 
@@ -265,18 +362,32 @@ object FunctionalTest extends App {
     ))
   }
 
-  private val factEval = factorial(FunctionalEval)("fact")
-  private val fibEval = fibonacci(FunctionalEval)("fib")
-  println("fact(5) = " + factEval(List(FunctionalEval.VInt(5))))
-  println("fact(10) = " + factEval(List(FunctionalEval.VInt(10))))
-  println("fib(5) = " + fibEval(List(FunctionalEval.VInt(5))))
-  println("fib(10) = " + fibEval(List(FunctionalEval.VInt(10))))
+  val eval = new FunctionalEval {}
+  private val factEval = factorial(eval)("fact")
+  private val fibEval = fibonacci(eval)("fib")
+  println("fact(5) = " + factEval(List(eval.VInt(5))))
+  println("fact(10) = " + factEval(List(eval.VInt(10))))
+  println("fib(5) = " + fibEval(List(eval.VInt(5))))
+  println("fib(10) = " + fibEval(List(eval.VInt(10))))
 
+  // compile functional to Datalog
   val functionalDatalogAST = new FunctionalDatalog {
-    override val datalog: Datalog = DatalogModuleAST
+    override val datalog = new DatalogDemandTransformed with DatalogOperatorType {
+      override val target = new DatalogModuleAST with DatalogReplay {}
+    }
   }
-  private val factDatalog = factorial(functionalDatalogAST)
-  println(factDatalog)
+  val functionalDatalogEval = new FunctionalDatalog {
+    override val datalog = new DatalogDemandTransformed with DatalogOperatorType {
+      override val target = new DatalogEval with DatalogReplay {}
+    }
+  }
+  private val factDatalogAST = factorial(functionalDatalogAST)(Set("fact"))
+  println(factDatalogAST)
+
+  private val factDatalogEval = factorial(functionalDatalogEval)(Set("fact"))
+  val factIDB = factDatalogEval(Map(DemandTransformation.demandPatternExtensionalPrefix + "fact" -> Set(Seq(5))))
+  println(factIDB("fact"))
+
 //  factDatalog(Map("input$fact" -> Set(Seq(5))))
 
 }
