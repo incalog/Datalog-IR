@@ -141,7 +141,6 @@ trait DatalogPatternAST extends Datalog {
       ir.Call(rel, args)
   override def op(res: ir.Term, lhs: ir.Term, lty: ir.Type, op: String, rhs: ir.Term, rty: ir.Type): ir.Atom = {
     val args = Seq((lhs, lty), (rhs, rty))
-
     val code = q"(x: ${lty.asScala}, y: ${rty.asScala}) => x ${meta.Term.Name(op)} y"
     ir.Computed(res, ir.Evaluation(args, tany, Scala(code)))
   }
@@ -196,11 +195,11 @@ trait DatalogEvalIncremental extends Datalog with DatalogPatternAST {
 
   type Tuples = Set[Seq[Any]]
   type Modify = (String, Seq[Any], Boolean) => Unit
-  type Delete = (String, Seq[Any]) => Unit
   type Observe = (String, (Seq[Any], Boolean) => Unit) => Unit
-  override type Mod = (Modify, Observe)
+  case class IncDB(modify: Modify, addObserver: Observe)
+  override type Mod = IncDB
 
-  override def module(name: String, patterns: List[ir.Pattern]): (Modify, Observe) = {
+  override def module(name: String, patterns: List[ir.Pattern]): IncDB = {
     val module = ir.Module(name, Seq(), patterns, Seq())
     val dataModel = new DataModel()
     val options = ConstraintOptions()
@@ -228,7 +227,7 @@ trait DatalogEvalIncremental extends Datalog with DatalogPatternAST {
         false
       )
     }
-    (modify, listen)
+    IncDB(modify, listen)
   }
 }
 
@@ -316,13 +315,14 @@ object DatalogTest extends App {
 
   // incremental
   val incremental = new DatalogEvalIncremental {}
+  import incremental.IncDB
 
   def modifyEDB(edb: eval.EDB, modify: incremental.Modify, insert: Boolean): Unit = {
     for ((rel, tups) <- edb; tup <- tups)
       modify(rel, tup, insert)
   }
 
-  private val (pathModify, pathObserve) = path(incremental)
+  private val IncDB(pathModify, pathObserve) = path(incremental)
   pathObserve("path", (tup, inserted) => println((if (inserted) "insert " else "delete ") + tup))
 
   println(s"### insert EDB0 ###")

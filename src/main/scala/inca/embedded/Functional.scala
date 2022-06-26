@@ -381,13 +381,24 @@ object FunctionalTest extends App {
       override val target = new DatalogEval with DatalogReplay {}
     }
   }
+  val functionalDatalogIncremental = new FunctionalDatalog {
+    override val datalog = new DatalogDemandTransformed with DatalogOperatorType {
+      override val target = new DatalogEvalIncremental with DatalogReplay {}
+    }
+  }
   private val factDatalogAST = factorial(functionalDatalogAST)(Set("fact"))
   println(factDatalogAST)
 
   private val factDatalogEval = factorial(functionalDatalogEval)(Set("fact"))
   val factIDB = factDatalogEval(Map(DemandTransformation.demandPatternExtensionalPrefix + "fact" -> Set(Seq(5))))
-  println(factIDB("fact"))
+  println("fact IDB = " + factIDB("fact"))
 
-//  factDatalog(Map("input$fact" -> Set(Seq(5))))
-
+  private val factDatalogIncremental = factorial(functionalDatalogIncremental)(Set("fact"))
+  factDatalogIncremental.addObserver("fact", (tup, inserted) => println("fact " + (if (inserted) "insert " else "delete ") + tup))
+  println("insert fact(3, ?)")
+  factDatalogIncremental.modify(DemandTransformation.demandPatternExtensionalPrefix + "fact", Seq(3), true)
+  println("insert fact(5, ?)")
+  factDatalogIncremental.modify(DemandTransformation.demandPatternExtensionalPrefix + "fact", Seq(5), true)
+  println("insert fact(5, ?)")
+  factDatalogIncremental.modify(DemandTransformation.demandPatternExtensionalPrefix + "fact", Seq(5), true)
 }
