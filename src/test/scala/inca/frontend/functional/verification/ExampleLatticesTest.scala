@@ -1,9 +1,9 @@
 package inca.frontend.functional.verification
 
-import inca.frontend.functional.core.{Associativity, Commutativity, HasUnapply}
+import inca.frontend.functional.core.{Associativity, Commutativity, HasUnapply, SoundnessAnno}
 import inca.frontend.functional.verification.examples.Aggregations.{compiledDoubleOperationsModule, compiledIntegerOperationsModule, compiledStringOperationsModule}
 import org.scalatest.funsuite.AnyFunSuite
-import inca.frontend.functional.verification.examples.Lattices.{compiledBoolLattice, compiledConstLattice, compiledIntervalLattice, compiledIntervalLatticeInvariants, compiledModifiedIntervalLattice, compiledSignLattice, compiledSignValLattice}
+import inca.frontend.functional.verification.examples.Lattices.{compiledBoolLattice, compiledConstLattice, compiledIntervalLattice, compiledIntervalLatticeInvariants, compiledModifiedIntervalLattice, compiledSignLattice, compiledSignLatticeWithPartialOrder, compiledSignValLattice}
 
 
 class ExampleLatticesTest extends AnyFunSuite {
@@ -11,7 +11,16 @@ class ExampleLatticesTest extends AnyFunSuite {
     val module = compiledSignLattice.typed
     val verifier = new Verifier()
     assertResult(Map(
-      "join" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse)
+      "join" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse)
+    ))(verifier.verify(module))
+  }
+
+  test("test sign lattice with chooseLeft verification") {
+    val module = compiledSignLatticeWithPartialOrder.typed
+    val verifier = new Verifier()
+    assertResult(Map(
+      "join" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse,
+        Right(SoundnessAnno("chooseLeft", "intToSign", "intToSign", "leq")) -> VerifiedResponse)
     ))(verifier.verify(module))
   }
 
@@ -19,7 +28,7 @@ class ExampleLatticesTest extends AnyFunSuite {
     val module = compiledConstLattice.typed
     val verifier = new Verifier()
     assertResult(Map(
-      "join" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse)
+      "join" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse)
     ))(verifier.verify(module))
   }
 
@@ -27,9 +36,9 @@ class ExampleLatticesTest extends AnyFunSuite {
     val module = compiledSignValLattice.typed
     val verifier = new Verifier()
     assertResult(Map(
-      "join" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
-      "joinBool" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
-      "joinSign" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse)
+      "join" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse),
+      "joinBool" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse),
+      "joinSign" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse)
     ))(verifier.verify(module))
   }
 
@@ -37,14 +46,14 @@ class ExampleLatticesTest extends AnyFunSuite {
     val module = compiledIntegerOperationsModule.typed
     val verifier = new Verifier()
     assertResult(Map(
-      "add" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse, HasUnapply("sub") -> VerifiedResponse),
-      "sub" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse, HasUnapply("add") -> VerifiedResponse),
+      "add" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse, Left(HasUnapply("sub")) -> VerifiedResponse),
+      "sub" -> Map(Left(Associativity) -> FalsifiedResponse, Left(Commutativity) -> FalsifiedResponse, Left(HasUnapply("add")) -> VerifiedResponse),
       // mult, div nicht invertierbar, weil Mult mit 0 und Div durch 0 nicht umkehrbar
-      "mult" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse, HasUnapply("div") -> FalsifiedResponse),
-      "div" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse, HasUnapply("mult") -> FalsifiedResponse),
-      "incByTwo" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
-      "min" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
-      "pow" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse),
+      "mult" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse, Left(HasUnapply("div")) -> FalsifiedResponse),
+      "div" -> Map(Left(Associativity) -> FalsifiedResponse, Left(Commutativity) -> FalsifiedResponse, Left(HasUnapply("mult")) -> FalsifiedResponse),
+      "incByTwo" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse),
+      "min" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse),
+      "pow" -> Map(Left(Associativity) -> FalsifiedResponse, Left(Commutativity) -> FalsifiedResponse),
     ))(verifier.verify(module))
   }
 
@@ -52,11 +61,11 @@ class ExampleLatticesTest extends AnyFunSuite {
     val module = compiledDoubleOperationsModule.typed
     val verifier = new Verifier()
     assertResult(Map(
-      "add" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse, HasUnapply("sub") -> VerifiedResponse),
-      "sub" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse, HasUnapply("add") -> VerifiedResponse),
-      "mult" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse, HasUnapply("div") -> FalsifiedResponse),
-      "div" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse, HasUnapply("mult") -> FalsifiedResponse),
-      "min" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
+      "add" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse, Left(HasUnapply("sub")) -> VerifiedResponse),
+      "sub" -> Map(Left(Associativity) -> FalsifiedResponse, Left(Commutativity) -> FalsifiedResponse, Left(HasUnapply("add")) -> VerifiedResponse),
+      "mult" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse, Left(HasUnapply("div")) -> FalsifiedResponse),
+      "div" -> Map(Left(Associativity) -> FalsifiedResponse, Left(Commutativity) -> FalsifiedResponse, Left(HasUnapply("mult")) -> FalsifiedResponse),
+      "min" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse),
     ))(verifier.verify(module))
   }
 
@@ -65,11 +74,11 @@ class ExampleLatticesTest extends AnyFunSuite {
     val module = compiledNonZeroDoublesModule.typed
     val verifier = new Verifier()
     assertResult(Map(
-      "add" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse, HasUnapply("sub") -> VerifiedResponse),
-      "sub" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse, HasUnapply("add") -> VerifiedResponse),
-      "mult" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse, HasUnapply("div") -> VerifiedResponse),
-      "div" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse, HasUnapply("mult") -> VerifiedResponse),
-      "min" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
+      "add" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse, Left(HasUnapply("sub")) -> VerifiedResponse),
+      "sub" -> Map(Left(Associativity) -> FalsifiedResponse, Left(Commutativity) -> FalsifiedResponse, Left(HasUnapply("add")) -> VerifiedResponse),
+      "mult" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse, Left(HasUnapply("div")) -> VerifiedResponse),
+      "div" -> Map(Left(Associativity) -> FalsifiedResponse, Left(Commutativity) -> FalsifiedResponse, Left(HasUnapply("mult")) -> VerifiedResponse),
+      "min" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse),
     ))(verifier.verify(module))
   }
   */
@@ -78,7 +87,7 @@ class ExampleLatticesTest extends AnyFunSuite {
     val module = compiledStringOperationsModule.typed
     val verifier = new Verifier()
     assertResult(Map(
-      "concat" -> Map(Associativity -> VerifiedResponse, Commutativity -> FalsifiedResponse),
+      "concat" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> FalsifiedResponse),
     ))(verifier.verify(module))
   }
 
@@ -87,9 +96,9 @@ class ExampleLatticesTest extends AnyFunSuite {
     val module = compiledIntervalLattice.typed
     val verifier = new Verifier()
     assertResult(Map(
-      "joinVal" -> Map(Associativity -> FalsifiedResponse, Commutativity -> VerifiedResponse),
-      "joinBool" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
-      "joinInterval" -> Map(Associativity -> FalsifiedResponse, Commutativity -> VerifiedResponse)
+      "joinVal" -> Map(Left(Associativity) -> FalsifiedResponse, Left(Commutativity) -> VerifiedResponse),
+      "joinBool" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse),
+      "joinInterval" -> Map(Left(Associativity) -> FalsifiedResponse, Left(Commutativity) -> VerifiedResponse)
     ))(verifier.verify(module))
   }
 
@@ -97,9 +106,9 @@ class ExampleLatticesTest extends AnyFunSuite {
     val module = compiledModifiedIntervalLattice.typed
     val verifier = new Verifier()
     assertResult(Map(
-      "joinVal" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
-      "joinBool" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
-      "joinInterval" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse)
+      "joinVal" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse),
+      "joinBool" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse),
+      "joinInterval" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse)
     ))(verifier.verify(module))
   }
 
@@ -107,9 +116,9 @@ class ExampleLatticesTest extends AnyFunSuite {
     val module = compiledIntervalLatticeInvariants.typed
     val verifier = new Verifier()
     assertResult(Map(
-      "joinVal" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
-      "joinBool" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
-      "joinInterval" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse)
+      "joinVal" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse),
+      "joinBool" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse),
+      "joinInterval" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse)
     ))(verifier.verify(module))
   }
 
@@ -117,7 +126,7 @@ class ExampleLatticesTest extends AnyFunSuite {
     val module = compiledBoolLattice.typed
     val verifier = new Verifier()
     assertResult(Map(
-      "joinBool" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse)
+      "joinBool" -> Map(Left(Associativity) -> VerifiedResponse, Left(Commutativity) -> VerifiedResponse)
     ))(verifier.verify(module))
   }
 }

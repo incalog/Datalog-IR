@@ -126,7 +126,7 @@ object SMTlibScripts {
                 Core.BoolConst(true)))
             )),
             FunctionApplication("not", Seq(
-              FunctionApplication("=", Seq("x", "z"))
+              FunctionApplication("=", Seq("x", "y"))
             ))
           )))),
         CheckSat(),
@@ -136,13 +136,13 @@ object SMTlibScripts {
 
   // für alle x: abstract(beta(x)) > beta(concrete(x))
   // Existiert x: abstract(beta(x)) nicht > beta(concrete(x))
-  def soundnessBinary(abstractAggrName: String, concreteAggrName: String, paramTypeName: String,
+  def soundnessBinary(abstractAggrName: String, concreteAggrName: String, concreteParamTypeName: String,
                 paramBetaName: String, resultBetaName: String, poName: String): Script = {
-    val paramSort = Sort(paramTypeName)
+    val concreteParamSort = Sort(concreteParamTypeName)
     Script(
       List(
         Push(1),
-        Assert(Exists(SortedVar("x", paramSort), Seq(SortedVar("y", paramSort)),
+        Assert(Exists(SortedVar("x", concreteParamSort), Seq(SortedVar("y", concreteParamSort)),
           FunctionApplication("not", Seq(
             FunctionApplication(poName, Seq(
               FunctionApplication(resultBetaName, Seq(FunctionApplication(concreteAggrName, Seq("x", "y")))),

@@ -11,7 +11,7 @@ class GenerateSMTLIBTest extends AnyFunSuite {
     val verifier = new Verifier()
     val module = compiledModifiedIntervalLattice.typed
     verifier.fillDicts(module)
-    val aggregations = verifier.collectAggregations(module)
+    val aggregations = verifier.collectAnnotated(module)
     val verificationScripts = aggregations.toSeq.map(ag => verifier.generateScript(ag._1, ag._2))
     print(verificationScripts.map(_.commands.mkString("")).mkString("\n"))
   }

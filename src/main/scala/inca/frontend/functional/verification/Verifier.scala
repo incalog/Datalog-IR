@@ -11,8 +11,10 @@ import smtlib.trees.Terms._
 import smtlib.trees.{CommandsResponses, Terms}
 
 import scala.collection.mutable
-
 import scala.collection.mutable.ListBuffer
+
+// TODO Datentyp für die Ausgabe, dem Ich einen prettyPrint gebe, damit das Testergebnis lesbar wird?
+//  Lattices in .finca Dateien auslagern
 
 
 trait Response
@@ -21,32 +23,75 @@ case object VerifiedResponse extends Response
 case object FalsifiedResponse extends Response
 case object UnknownResponse extends Response
 
-case class VerifierException(msg: String) extends Exception(msg)
+case class VerifierException(err: VerifierError) extends Exception
+
+// TODO wieso wird mir der VerifierError nicht ausgegeben, wenn eine VerifierException geworfen wird??
+trait VerifierError
+case class FunctionNotFoundError(name: String) extends VerifierError
+case class DataNotFoundError(name: String) extends VerifierError
+case class Z3Error(msg: String) extends VerifierError
+case class UnexpectedBehaviorError(msg: String) extends VerifierError
+case class FalsifiedPartialOrderError(name: String, results: Seq[(String, Response)]) extends VerifierError
+case class UnsupportedError(msg: String) extends VerifierError
+case class SyntaxError(msg: String) extends VerifierError
 
 class Verifier {
 
-  type Property = AggregationProperty
+  type Property = Either[AggregationProperty, Annotation]
 
   val varMem: mutable.Map[String, String] = mutable.Map()
+  val reverseVarMem: mutable.Map[String, String] = mutable.Map()
   val functionDict: mutable.Map[String, FunctionDef] = mutable.Map()
   val dataDict: mutable.Map[String, DataDef] = mutable.Map()
-  val partialOrders: mutable.Map[(String, String), Boolean] = mutable.Map()
+  val partialOrders: mutable.Map[String, Boolean] = mutable.Map()
 
   // TODO theoretically we need to pass a list of protected words in SMTlib to Gensym,
   //  but Gensym renames everything anyway, so it makes no difference
 
+  /*
+  Zur Soundness und Monotonicity Verification:
+    Vielleicht Property zu einem Either machen? Vielleicht ein doppeltes Either?
+      => Either[AggregationProperty, Either[SoundnessAnno, MonotonicityAnno]]
+    Oder ist es besser, Either[AggregationProperty, Annotation] zu machen und
+      damit den Typ ungenauer zu machen, aber eh nur Soundness und Monotonicity
+      zu sammeln und nur die weiterzuverarbeiten?
+
+   */
+
   def verify(module: Module): Map[String, Map[Property, Response]] = {
     implicit val gensym: Gensym = new Gensym(Seq())
     fillDicts(module)
+    val annotatedFunctions: Map[String, Seq[Property]] = collectAnnotated(module)
+    val verificationScripts: Seq[Script] =
+      annotatedFunctions.toSeq.map(an => generateScript(an._1, an._2, getAdditionalFunctions(an._2)))
+    val verificationResults: Seq[Map[Property, Response]] =
+      annotatedFunctions.zip(verificationScripts).map(tuple => tuple._1._2.zip(evaluateScript(tuple._2)).toMap).toSeq
+    annotatedFunctions.keys.zip(verificationResults).map(res => (getOriginalName(res._1), res._2)).toMap
+    /*
     val aggregations: Map[String, Seq[Property]] = collectAggregations(module)
-    val verificationScripts: Seq[Script] = aggregations.toSeq.map(ag => generateScript(ag._1, ag._2))
-    val verificationResults = verificationScripts.zip(aggregations).map(s => getPropertyEval(s._1, s._2._2))
-    combineVerificationResults(aggregations, verificationResults)
+    val abstractions: Map[String, Seq[Property]] = collectAbstractions(module)
+    val aggrVerificationScripts: Seq[Script] =
+      aggregations.toSeq.map(ag => generateScript(ag._1, ag._2, getUnapplyName(ag._2)))
+    val aggrVerificationResults =
+      aggrVerificationScripts.zip(aggregations).map(s => getPropertyEval(s._1, s._2._2))
+    val abstrVerificationScripts: Seq[Script] =
+      abstractions.toSeq.map(ab => generateScript(ab._1, ab._2))
+    val abstrVerificationResults =
+      abstrVerificationScripts.zip(abstractions).map(s => getPropertyEval(s._1, s._2._2))
+    combineVerificationResults(aggregations ++ abstractions, aggrVerificationResults ++ abstrVerificationResults)
+    */
   }
 
-  def combineVerificationResults(aggregations: Map[String, Seq[Property]], verificationResults: Seq[Map[Property, Response]]): Map[String, Map[Property, Response]] = {
-    val reverseAggrMap: Map[String, String] = for ((k, v) <- varMem.toMap.filter(x => aggregations.contains(x._2))) yield (v, k)
-    aggregations.keys.zip(verificationResults).map(res => (reverseAggrMap(res._1), res._2)).toMap
+  /*
+  def combineVerificationResults(aggregations: Map[String, Seq[Property]],
+                                 verificationResults: Seq[Map[Property, Response]]): Map[String, Map[Property, Response]] = {
+    aggregations.keys.zip(verificationResults).map(res => (getOriginalName(res._1), res._2)).toMap
+  }
+  */
+
+  def getOriginalName(hygienicName: String): String = {
+    reverseVarMem.getOrElse(hygienicName: String, throw VerifierException(UnexpectedBehaviorError(s"Hygienic Name " +
+      s"$hygienicName is supposed to have matching original name in reverseVarMem")))
   }
 
   def fillDicts(module: Module)(implicit gensym: Gensym): Unit = module.content.foreach {
@@ -58,10 +103,12 @@ class Verifier {
     varMem.getOrElse(name, {
       val freshName = gensym.fresh(name)
       varMem += name -> freshName
+      reverseVarMem += freshName -> name
       freshName
     })
   }
 
+  /*
   def collectAggregations(module: Module)(implicit gensym: Gensym): Map[String, Seq[Property]] = {
     val aggrCollector = new Collect[(String, Seq[Property])] {
       override def transFun(func: FunctionDef): Seq[(String, Seq[Property])] = {
@@ -77,21 +124,98 @@ class Verifier {
     }
     aggrCollector(module).toMap
   }
+  */
 
+  /*
   def getAggrProps(func: FunctionDef): Seq[Property] = {
     val aggrPropCollector = new Collect[Property] {
       override def transAnno(anno: Annotation): Seq[Property] = anno match {
-        case AggregationAnno(props) => props
+        case AggregationAnno(props) => props.map(Left(_))
         case MainFunctionAnno => Seq()
       }
     }
     aggrPropCollector.transFun(func)
   }
+  */
 
+  def collectAnnotated(module: Module)(implicit gensym: Gensym): Map[String, Seq[Property]] = {
+    val propCollector = new Collect[Property] {
+      override def transAnno(anno: Annotation): Seq[Property] = anno match {
+        case a: SoundnessAnno => Seq(Right(a))
+        case AggregationAnno(props) => props.map(Left(_))
+        case _ => Seq()
+      }
+    }
+    val annoFuncCollector: Collect[(String, Seq[Property])] = new Collect[(String, Seq[Property])] {
+      override def transFun(func: FunctionDef): Seq[(String, Seq[Property])] = {
+        if (func.annos.exists {
+          case _: SoundnessAnno => true
+          case _: AggregationAnno => true
+          case _ => false
+        }) {
+          Seq((getHygienicName(func.name.name), propCollector.transFun(func)))
+        } else {
+          Seq()
+        }
+      }
+    }
+    annoFuncCollector(module).toMap
+  }
+
+  /*
+  def collectAbstractions(module: Module)(implicit gensym: Gensym): Map[String, Seq[Property]] = {
+    val abstrCollector: Collect[(String, Seq[Property])] = new Collect[(String, Seq[Property])] {
+      def getSoundnessAnno(anno: Annotation): Seq[Property] = {
+        anno match {
+          case a: SoundnessAnno => Seq(Right(a))
+          case _ => Seq()
+        }
+      }
+      override def transFun(func: FunctionDef): Seq[(String, Seq[Property])] = {
+        if (func.annos.exists {
+          case _: SoundnessAnno => true
+          case _ => false
+        }) {
+          Seq((getHygienicName(func.name.name), func.annos.flatMap(getSoundnessAnno)))
+        } else {
+          Seq()
+        }
+      }
+    }
+    abstrCollector(module).toMap
+  }
+  */
+
+  /*
+  def getUnapplyName(props: Seq[Property])(implicit gensym: Gensym): Seq[String] = {
+    props.flatMap {
+        case Left(HasUnapply(unapplyName)) => Seq(getHygienicName(unapplyName))
+        case _ => Seq()
+    }
+  }
+  */
+
+  def getAdditionalFunctions(props: Seq[Property])(implicit gensym: Gensym): Seq[String] = {
+    props.flatMap {
+      case Left(aggrProp) => aggrProp match {
+        case HasUnapply(unapplyName) => Seq(getHygienicName(unapplyName))
+        case _ => Seq()
+      }
+      case Right(anno) => anno match {
+        case SoundnessAnno(c, pB, rB, pN) =>
+          Seq(c, pB, rB, pN).distinct.map(getHygienicName)
+        case _ => Seq()
+      }
+      case _ => Seq()
+    }
+  }
+
+  /*
   def getPropertyEval(s: Script, props: Seq[Property]): Map[Property, Response] = {
     val evalResults = evaluateScript(s)
     props.zip(evalResults).toMap
   }
+  */
 
   def evaluateScript(s: Script): Seq[Response] = {
     val interp = Z3Interpreter.buildDefault
@@ -105,8 +229,8 @@ class Verifier {
               case CommandsResponses.UnsatStatus => VerifiedResponse
               case CommandsResponses.UnknownStatus => UnknownResponse
             })
-          case CommandsResponses.Error(msg) => throw VerifierException(s"z3 error interpreting command $cmd with error message \n ### \n $msg \n ### \n")
-          case CommandsResponses.Unsupported => throw VerifierException(s"command $cmd is not supported by z3")
+          case CommandsResponses.Error(msg) => throw VerifierException(Z3Error(s"z3 error interpreting command $cmd with error message \n ### \n $msg \n ### \n"))
+          case CommandsResponses.Unsupported => throw VerifierException(Z3Error(s"command $cmd is not supported by z3"))
           case _ =>
         }
     }
@@ -114,14 +238,13 @@ class Verifier {
   }
 
   // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
-  def generateScript(funcName: String, props: Seq[Property])(implicit gensym: Gensym): Script = {
-    val calledFunctions: Seq[String] = collectCalledFunctions(functionDict(funcName))
-    val inverseFunctionCalls: Seq[String] = getInverseFunctionCalls(funcName)
-    val functions = (calledFunctions ++ inverseFunctionCalls :+ funcName).distinct
-    val dataDefs = functions.flatMap(fName => collectUsedDataDefs(functionDict(fName))).distinct
+  def generateScript(funcName: String, props: Seq[Property], additionalFuncs: Seq[String] = Seq())(implicit gensym: Gensym): Script = {
+    val calledFunctions: Seq[String] = (Seq(funcName) ++ additionalFuncs).flatMap(fname => collectCalledFunctions(getFunctionDef(fname)))
+    val functions = (calledFunctions ++ additionalFuncs :+ funcName).distinct
+    val dataDefs = functions.flatMap(fName => collectUsedDataDefs(getFunctionDef(fName))).distinct
     val transDataDefs = dataDefs.map(transDataDef)
     val transFuncDefs = transFunctionDefs(functions)
-    val transProps = props.map(transAggrProperty(_, funcName))
+    val transProps = props.map(transProperty(_, funcName))
     makeScript(transDataDefs ++ Seq(transFuncDefs) ++ transProps)
   }
 
@@ -135,7 +258,7 @@ class Verifier {
     }
     /*
      Da auch Konstruktoraufrufe als Funktionsaufrufe gestaltet sind, wir aber nur "echte Funktionsaufrufe"
-     haben wollen, filtern wir nach den Funktionen im dictionary. TODO imports des Moduls
+     haben wollen, filtern wir nach den Funktionen im dictionary.
      */
     var functions: Seq[String] = Seq()
     val allFuncs = funcNameCollector.transFun(func)
@@ -144,25 +267,17 @@ class Verifier {
     while (functions != newFunctions) {
       functions = newFunctions
       newFunctions = (functions ++ functions.flatMap(f =>
-        funcNameCollector.transFun(functionDict(f))).map(getHygienicName).filter(functionDict.contains)).distinct
+        funcNameCollector.transFun(getFunctionDef(f))).map(getHygienicName).filter(functionDict.contains)).distinct
     }
     functions
   }
 
-  // Diese Funktion gibt hygienische Namen zurück
-  def getInverseFunctionCalls(funcName: String)(implicit gensym: Gensym): Seq[String] = {
-    val func = functionDict(funcName)
-    func.annos.flatMap {
-      case AggregationAnno(props) => props.flatMap {
-        case HasUnapply(invName) =>
-          val hygInvName = getHygienicName(invName)
-          val invFunc = functionDict(hygInvName)
-          collectCalledFunctions(invFunc) :+ hygInvName
-        case _ => Seq()
-      }
-    case _ => Seq()
-    }
-  }
+  // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
+  def getFunctionDef(hygienicName: String): FunctionDef = functionDict.getOrElse(hygienicName,
+    throw VerifierException(FunctionNotFoundError(getOriginalName(hygienicName))))
+
+  def getDataDef(hygienicName: String): DataDef = dataDict.getOrElse(hygienicName,
+    throw VerifierException(DataNotFoundError(getOriginalName(hygienicName))))
 
   // Die Funktion gibt hygienische Namen zurück
   def collectUsedDataDefs(func: FunctionDef)(implicit gensym: Gensym): Seq[String] = {
@@ -178,14 +293,14 @@ class Verifier {
     while (dataDefs != newDataDefs) {
       dataDefs = newDataDefs
       newDataDefs = (dataDefs ++ dataDefs.flatMap(d =>
-        dataNameCollector.transData(dataDict(d))).map(getHygienicName).filter(dataDict.contains)).distinct
+        dataNameCollector.transData(getDataDef(d))).map(getHygienicName).filter(dataDict.contains)).distinct
     }
     dataDefs
   }
 
   // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
   def transDataDef(dataName: String)(implicit gensym: Gensym): Script = {
-    val data = dataDict(dataName)
+    val data = getDataDef(dataName)
     val invariantScripts = data.annos.flatMap{
       case InvariantAnno(invariantNames) => Seq(generateInvariantsScript(invariantNames, dataName))
       // case PartialOrderAnnotation(relName) => verifyPartialOrder(relName, dataName)
@@ -209,7 +324,7 @@ class Verifier {
     makeScript(invariantNames.map(name => {
       val hygienicInvariantName = getHygienicName(name)
       if(!functionDict.contains(hygienicInvariantName))
-        throw VerifierException(s"Invariant Function $name called by data $dataName is not implemented")
+        throw VerifierException(FunctionNotFoundError(name))
       val invariantFunScript = transFunctionDefs(Seq(hygienicInvariantName))
       val freshVarName = gensym.fresh(dataName)
       val invariantAssertion = SMTlibScripts.invariant(dataName, hygienicInvariantName, freshVarName)
@@ -217,25 +332,28 @@ class Verifier {
     }))
   }
 
-  def verifyPartialOrder(relName: String, dataName: String)(implicit gensym: Gensym): Unit = {
-    val hygienicRelName = getHygienicName(relName)
+  // TODO Rückgabetyp ändern? evalResults hochreichen? Okay, wenn nicht?
+  // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
+  def verifyPartialOrder(relName: String)(implicit gensym: Gensym): Unit = {
     // TODO confirm correct signature (data, data) -> Boolean
-    if(!functionDict.contains(hygienicRelName))
-      throw VerifierException(s"Relation Function $relName called by data $dataName is not implemented")
-    if(partialOrders.contains((hygienicRelName, dataName)))
+    val dataName = getParamTypeName(relName)
+    if(partialOrders.contains(relName))
       return
-    val funScript = transFunctionDefs(Seq(relName))
-    val partialOrderVerScript = makeScript(Seq(funScript,
-      SMTlibScripts.reflexivity(hygienicRelName, dataName),
-      SMTlibScripts.transitivity(hygienicRelName, dataName)))
+    val functions = (collectCalledFunctions(getFunctionDef(relName)) :+ relName).distinct
+    val dataDefs = functions.flatMap(fName => collectUsedDataDefs(getFunctionDef(fName))).distinct
+    val transDataDefs = dataDefs.map(transDataDef)
+    val transFuncDefs = transFunctionDefs(functions)
+    // val transProps = props.map(transProperty(_, funcName))
+    // makeScript(transDataDefs ++ Seq(transFuncDefs) ++ transProps)
+    val partialOrderVerScript = makeScript(transDataDefs ++ Seq(transFuncDefs,
+      SMTlibScripts.reflexivity(relName, dataName),
+      SMTlibScripts.transitivity(relName, dataName),
+      SMTlibScripts.antisymmetry(relName, dataName)))
     val evalResults = evaluateScript(partialOrderVerScript)
     if(evalResults.contains(FalsifiedResponse)){
-      throw VerifierException(
-        s"""Relation $relName was proven not to be a partial order for data $dataName. Evaluation results:
-           |reflexivity: ${evalResults.head}
-           |transitivity: ${evalResults(1)}
-           |""".stripMargin)
-    } else {partialOrders += (hygienicRelName, dataName) -> true}
+      val results = Seq("Reflexivity", "Transitivity", "Antisymmetry").zip(evalResults)
+      throw VerifierException(FalsifiedPartialOrderError(relName, results))
+    } else {partialOrders += relName -> true}
   }
 
   // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
@@ -243,7 +361,7 @@ class Verifier {
     val funDecls: mutable.ListBuffer[FunDec] = ListBuffer()
     val funBodys: mutable.ListBuffer[Term]= ListBuffer()
     funcNames.foreach{ funcName =>
-      val func = functionDict(funcName)
+      val func = getFunctionDef(funcName)
       val transParams: Seq[SortedVar] =
         func.params.map(p => SortedVar(SSymbol(getHygienicName(p.name.name)), transType(p.typ)))
       val transOutType: Sort = transType(func.outType)
@@ -263,8 +381,7 @@ class Verifier {
         case Scala(meta.Type.Name("String")) => Sort(Identifier(SSymbol("String")))
       }
       case TData(name) => Sort(Identifier(SSymbol(getHygienicName(name.name))))
-      // TODO andere Cases
-      case _ => throw VerifierException("Type needs to be specified")
+      case _ => throw VerifierException(UnsupportedError(s"Type $typ is currently not supported as paramType"))
     }
   }
 
@@ -279,11 +396,12 @@ class Verifier {
             Seq(transExp(bound))
           } else {
             if (hygienicNames.length < 1) {
-              throw VerifierException(s"Let binding without variable bindings in this $ex")
+              throw VerifierException(UnexpectedBehaviorError(s"Let binding without variable bindings in this" +
+                s"$ex should not have been parsed"))
             } else {
               bound match {
                 case SetExp(es) => es.map(transExp)
-                case _ => throw VerifierException(s"Expected SetExp containing the bound expressions, but got this $bound")
+                case _ => throw VerifierException(SyntaxError(s"Expected SetExp containing the bound expressions, but got this $bound"))
               }
             }
           }
@@ -302,7 +420,11 @@ class Verifier {
               CaseClass(SSymbol(getHygienicName(constr.name)), args.map(arg => SSymbol(getHygienicName(arg.name))))
             }
             Case(transPattern, transExp(body))
-          case _ => throw VerifierException(s"Expected Constructor Pattern, but got this $ex (Pattern Matching over Some and None not supported, because constructs are not used)") // Some und None werden erstmal nicht gebraucht
+          case (SomePattern(_), _) => throw VerifierException(UnsupportedError("Pattern Matching over " +
+            "Some and None not supported, because constructs are not used"))
+          case (NonePattern(), _) => throw VerifierException(UnsupportedError("Pattern Matching over " +
+            "Some and None not supported, because constructs are not used"))
+          case _ => throw VerifierException(SyntaxError(s"Expected Constructor Pattern, but got this $ex"))
         }
         smtlib.extensions.tip.Terms.Match(scrut, transCases)
 
@@ -315,7 +437,8 @@ class Verifier {
           } else {
             FunctionApplication(q, transArgs)
           }
-          case _ => throw VerifierException(s"Expected qualified identifier in function call, but got this $fun")
+          case _ => throw VerifierException(SyntaxError(s"Expected qualified identifier in " +
+            s"function call, but got this $fun"))
         }
 
       case If(cnd, thn, els) =>
@@ -334,36 +457,63 @@ class Verifier {
               val exc = new Exception(s"Operator $op on types $leftType and $rightType has no equivalent in SMTlib")
               val typeMap = metaInfixOps.getOrElse((leftType, rightType), throw exc)
               typeMap.getOrElse(op.tree.value, throw exc)
-            case None => throw VerifierException(s"No type for rhs of $ex could be found")
+            case None => throw VerifierException(SyntaxError(s"No type for rhs of $ex could be found"))
           }
-          case None => throw VerifierException(s"No type for lhs of $ex could be found")
+          case None => throw VerifierException(SyntaxError(s"No type for lhs of $ex could be found"))
         }
         infixFun(transExp(left), transExp(right))
 
       case BaseLit(code) =>
         code.tree match {
           case l: meta.Lit => transMetaLit(l)
-          case _ => throw VerifierException(s"BaseLit $ex does not contain Term.Literal")
+          case _ => throw VerifierException(SyntaxError(s"BaseLit $ex does not contain Term.Literal"))
         }
 
-      // TODO implement
-      case Tuple(_) => ???
-      case BaseApply(_, _) => ???
+      case Tuple(_) => throw VerifierException(UnsupportedError("Tuple expression currently not supported"))
+      case BaseApply(_, _) => throw VerifierException(UnsupportedError("Tuple expression currently not supported"))
+      case _ => throw VerifierException(UnexpectedBehaviorError("Matching should be exhaustive"))
     }
   }
 
   // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
-  def transAggrProperty(prop: Property, aggrName: String)(implicit gensym: Gensym): Script = {
-    val paramTypeName = getParamTypeName(aggrName)
+  def transProperty(prop: Property, funName: String)(implicit gensym: Gensym): Script = {
     prop match {
-      case Associativity => SMTlibScripts.associativity(aggrName, paramTypeName)
-      case Commutativity => SMTlibScripts.commutativity(aggrName, paramTypeName)
-      case HasUnapply(invName) => SMTlibScripts.hasUnapply(aggrName, getHygienicName(invName), paramTypeName)
+      case Left(aggrProp) =>
+        val paramTypeName = getParamTypeName(funName)
+        aggrProp match {
+        case Associativity => SMTlibScripts.associativity(funName, paramTypeName)
+        case Commutativity => SMTlibScripts.commutativity(funName, paramTypeName)
+        case HasUnapply(invName) => SMTlibScripts.hasUnapply(funName, getHygienicName(invName), paramTypeName)
+      }
+      case Right(anno) => anno match {
+        case SoundnessAnno(concreteFunName, paramBetaName, resultBetaName, partialOrderName) => {
+          val hygienicNames = Seq(concreteFunName, paramBetaName, resultBetaName, partialOrderName).map(getHygienicName)
+          verifyPartialOrder(hygienicNames(3))
+          val paramTypeName = getParamTypeName(hygienicNames.head)
+          SMTlibScripts.soundnessBinary(funName, hygienicNames.head, paramTypeName,
+            hygienicNames(1), hygienicNames(2), hygienicNames(3))
+        }
+      }
     }
   }
 
+  /*
+  // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
+  def transAggrProperty(prop: Property, aggrName: String)(implicit gensym: Gensym): Script = {
+    val paramTypeName = getParamTypeName(aggrName)
+    prop match {
+      case Left(aggrProp) => aggrProp match {
+        case Associativity => SMTlibScripts.associativity(aggrName, paramTypeName)
+        case Commutativity => SMTlibScripts.commutativity(aggrName, paramTypeName)
+        case HasUnapply(invName) => SMTlibScripts.hasUnapply(aggrName, getHygienicName(invName), paramTypeName)
+      }
+      case Right(value) => ???
+    }
+  }
+  */
+
   def getParamTypeName(aggrName: String)(implicit gensym: Gensym): String = {
-    val func = functionDict(aggrName)
+    val func = getFunctionDef(aggrName)
     func.params.foreach(p => if (p.typ != func.params.head.typ) {
       throw new Exception("Aggregations should take two values of the same type")
     })
