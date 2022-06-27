@@ -32,23 +32,7 @@ trait Functional {
   def op(lhs: Exp, op: String, rhs: Exp): Exp
 }
 
-trait FunctionalTypeAST extends Functional {
-  sealed trait Type
-  case object TAny extends Type
-  case object TBool extends Type
-  case object TInt extends Type
-  case object TDouble extends Type
-  case object TString extends Type
-
-  override type Typ = Type
-  override def tany: Typ = TAny
-  override def tbool: Typ = TBool
-  override def tint: Typ = TInt
-  override def tdouble: Typ = TDouble
-  override def tstring: Typ = TString
-}
-
-trait FunctionalTyped extends Functional {
+trait FunctionalTypeChecked extends Functional {
 
   case class Context(functions: Map[String, (List[Typ], Typ)], env: Map[String, Typ])
 
@@ -124,12 +108,19 @@ trait FunctionalTyped extends Functional {
   }
 }
 
-trait FunctionalEval extends Functional with FunctionalTypeAST {
+trait FunctionalEval extends Functional {
   sealed trait Value
   case class VBoolean(b: Boolean) extends Value
   case class VInt(i: Int) extends Value
   case class VDouble(d: Double) extends Value
   case class VString(s: String) extends Value
+
+  override type Typ = Unit
+  override def tany: Typ = ()
+  override def tbool: Typ = ()
+  override def tint: Typ = ()
+  override def tdouble: Typ = ()
+  override def tstring: Typ = ()
 
   case class Context(functions: Map[String, (Context, List[Value]) => Value], env: Map[String, Value])
 
@@ -286,7 +277,6 @@ trait FunctionalDatalog extends Functional {
       for ((Seq(cndTerm), cndCons) <- cndCompiled._1;
            (thnTerm, thnCons) <- thnCompiled._1)
       yield (thnTerm, cndCons ++ Seq(datalog.eq(cndTerm, datalog.bool(true))) ++ thnCons)
-    val e = els
     val elsRes =
       for ((Seq(cndTerm), cndCons) <- cndCompiled._1;
            (elsTerm, elsCons) <- elsCompiled._1)

@@ -140,6 +140,7 @@ trait DatalogPatternAST extends Datalog {
     else
       ir.Call(rel, args)
   override def op(res: ir.Term, lhs: ir.Term, lty: ir.Type, op: String, rhs: ir.Term, rty: ir.Type): ir.Atom = {
+
     val args = Seq((lhs, lty), (rhs, rty))
     val code = q"(x: ${lty.asScala}, y: ${rty.asScala}) => x ${meta.Term.Name(op)} y"
     ir.Computed(res, ir.Evaluation(args, tany, Scala(code)))
