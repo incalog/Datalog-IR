@@ -1,14 +1,16 @@
 package inca.embedded
+import inca.backend.hints.{Hint, MagicSetHints}
+import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPatterns}
 import inca.compiler
 import inca.frontend.constraint.compiler.ConstraintOptions
-import inca.runtime.{EnginePool, Query}
 import inca.runtime.context.{DataModel, QueryScope}
+import inca.runtime.{EnginePool, Query}
 import inca.util.Scala
 import org.eclipse.viatra.query.runtime.api.IMatchUpdateListener
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
+import inca.backend.ir.{Datalog => ir}
 
-import scala.+:
 import scala.jdk.CollectionConverters._
 
 trait Datalog {
@@ -18,9 +20,10 @@ trait Datalog {
   type Ato
   type Trm
   type Typ
+  type Agg
 
   def module(name: String, patterns: List[Pat]): Mod
-  def pattern(name: String, params: List[(String, Typ)], bodies: List[Bod]): Pat
+  def pattern(name: String, params: List[(String, Typ)], bodies: List[Bod], hints: Set[Hint] = Set()): Pat
   def body(atoms: List[Ato]): Bod
 
   // types
@@ -34,7 +37,8 @@ trait Datalog {
   def eq(t1: Trm, t2: Trm): Ato
   def neq(t1: Trm, t2: Trm): Ato
   def query(rel: String, args: List[Trm], extensional: Boolean = false): Ato
-  def op(res: Trm, lhs: Trm, op: String, rhs: Trm): Ato
+  def aggregate(res: Trm, ty: Typ, agg: Agg, rel: String, args: List[Trm], aggColumn: Int): Ato
+  def op(res: Trm, lhs: Trm, lty: Typ, op: String, rhs: Trm, rty: Typ): Ato
 
   // terms
   def va(name: String): Trm
@@ -44,8 +48,72 @@ trait Datalog {
   def string(s: String): Trm
 }
 
+trait DatalogReplay extends Datalog {
+  import meta.quasiquotes._
+
+  override type Agg = meta.Term
+
+  def replay(m: ir.Module): Mod =
+    module(m.name, m.pats.map(replay).toList)
+  def replay(p: ir.Pattern): Pat =
+    pattern(p.name, p.params.map(p => p.name -> replay(p.typ)).toList, p.bodies.map(replay).toList, p.hints.values.toSet)
+  def replay(b: ir.Body): Bod =
+    body(b.atoms.map(replay).toList)
+  def replay(a: ir.Atom): Ato = a match {
+    case ir.Call(name, args, false, false) => query(name, args.map(replay).toList, extensional = false)
+    case ir.ExtensionalCall(name, args, false) => query(name, args.map(replay).toList, extensional = true)
+    case ir.Compare(ir.EqComparator, lhs, rhs) => eq(replay(lhs), replay(rhs))
+    case ir.Compare(ir.NeqComparator, lhs, rhs) => neq(replay(lhs), replay(rhs))
+    case ir.Computed(lhs, ir.Evaluation(Seq((l, tyl), (r, tyr)), _, Scala(q"(x: $_, y: $_) => x $oper y"))) if tyl == tyr =>
+      op(replay(lhs), replay(l), replay(tyl), oper.value, replay(r), replay(tyr))
+    case ir.Computed(lhs, ir.CustomAggregation(ty, _, Scala(agg), name, args, col)) =>
+      aggregate(replay(lhs), replay(ty), agg, name, args.map(replay).toList, col)
+    case _ => throw new UnsupportedOperationException(s"Cannot replay $a")
+  }
+  def replay(t: ir.Term): Trm = t match {
+    case ir.Var(name) => va(name)
+    case ir.Constant(lit) => lit match {
+      case ir.base.IntLiteral(v) => int(v)
+      case ir.base.LongLiteral(v) => int(v.toInt)
+      case ir.base.DoubleLiteral(v) => double(v)
+      case ir.base.StringLiteral(v) => string(v)
+      case ir.base.BooleanLiteral(v) => bool(v)
+    }
+  }
+  def replay(t: ir.Type): Typ = t match {
+    case ir.TAny => tany
+    case ir.base.TScalaBoolean => tbool
+    case ir.base.TScalaInt => tint
+    case ir.base.TScalaDouble => tdouble
+    case ir.base.TScalaString => tstring
+    case _ => throw new UnsupportedOperationException(s"Cannot replay $t")
+  }
+}
+
+trait DatalogOperatorType extends Datalog {
+  def operatorType(op: String, lhs: Typ, rhs: Typ): Typ = {
+    if (lhs == tbool && rhs == tbool) op match {
+      case "==" | "!=" | "&&" | "||" => tbool
+      case _ => throw new IllegalArgumentException(s"Unknown operator $op")
+    } else if (lhs == tint && rhs == tint) op match {
+      case "==" | "!=" | "<" | "<=" | ">" | ">=" => tbool
+      case "+" | "-" | "*" | "/" => tint
+      case _ => throw new IllegalArgumentException(s"Unknown operator $op")
+    } else if (lhs == tdouble && rhs == tdouble) op match {
+      case "==" | "!=" | "<" | "<=" | ">" | ">=" => tbool
+      case "+" | "-" | "*" | "/" => tdouble
+      case _ => throw new IllegalArgumentException(s"Unknown operator $op")
+    } else if (lhs == tstring && rhs == tstring) op match {
+      case "==" | "!=" => tbool
+      case "+" => tstring
+      case _ => throw new IllegalArgumentException(s"Unknown operator $op")
+    } else {
+      throw new IllegalArgumentException(s"Type error: Expected numeric or string, but got $lhs and $rhs")
+    }
+  }
+}
+
 trait DatalogPatternAST extends Datalog {
-  import inca.backend.ir.{Datalog => ir}
   import meta.quasiquotes._
 
   type Pat = ir.Pattern
@@ -53,17 +121,22 @@ trait DatalogPatternAST extends Datalog {
   type Ato = ir.Atom
   type Trm = ir.Term
   type Typ = ir.Type
+  type Agg = meta.Term
 
-  override def pattern(name: String, params: List[(String, ir.Type)], bodies: List[ir.Body]): ir.Pattern =
-    ir.Pattern(None, name, params.map { case (x, t) => ir.Param(x, t) }, bodies)
+  override def pattern(name: String, params: List[(String, ir.Type)], bodies: List[ir.Body], hints: Set[Hint]): ir.Pattern = {
+    val pat = ir.Pattern(None, name, params.map { case (x, t) => ir.Param(x, t) }, bodies)
+    pat.addHint(hints.toSeq:_*)
+    pat
+  }
+
   override def body(atoms: List[ir.Atom]): ir.Body =
     ir.Body(atoms)
 
   override def tany: ir.Type = ir.TAny
-  override def tbool: ir.Type = ir.TScalaBoolean
-  override def tint: ir.Type = ir.TScalaInt
-  override def tdouble: ir.Type = ir.TScalaDouble
-  override def tstring: ir.Type = ir.TScalaString
+  override def tbool: ir.Type = ir.base.TScalaBoolean
+  override def tint: ir.Type = ir.base.TScalaInt
+  override def tdouble: ir.Type = ir.base.TScalaDouble
+  override def tstring: ir.Type = ir.base.TScalaString
 
   override def eq(t1: ir.Term, t2: ir.Term): ir.Atom = ir.Compare(ir.EqComparator, t1, t2)
   override def neq(t1: ir.Term, t2: ir.Term): ir.Atom = ir.Compare(ir.NeqComparator, t1, t2)
@@ -72,29 +145,30 @@ trait DatalogPatternAST extends Datalog {
       ir.ExtensionalCall(rel, args)
     else
       ir.Call(rel, args)
-  def op(res: ir.Term, lhs: ir.Term, op: String, rhs: ir.Term): ir.Atom = {
-    val args = Seq((lhs, tany), (rhs, tany))
-    val code = q"(x: Any, y: Any) => x ${meta.Term.Name(op)} y"
+  override def aggregate(res: ir.Term, ty: ir.Type, agg: meta.Term, rel: String, args: List[ir.Term], aggColumn: Int): ir.Atom = {
+    ir.Computed(res, ir.CustomAggregation(ty, None, Scala(agg), rel, args, aggColumn))
+  }
+  override def op(res: ir.Term, lhs: ir.Term, lty: ir.Type, op: String, rhs: ir.Term, rty: ir.Type): ir.Atom = {
+    val args = Seq((lhs, lty), (rhs, rty))
+    val code = q"(x: ${ir.base.typeAsScala(lty)}, y: ${ir.base.typeAsScala(rty)}) => x ${meta.Term.Name(op)} y"
     ir.Computed(res, ir.Evaluation(args, tany, Scala(code)))
   }
 
   override def va(name: String): ir.Term = ir.Var(name)
-  override def bool(b: Boolean): ir.Term = ir.Constant(ir.BooleanLiteral(b))
-  override def int(i: Int): ir.Term = ir.Constant(ir.IntLiteral(i))
-  override def double(d: Double): ir.Term = ir.Constant(ir.DoubleLiteral(d))
-  override def string(s: String): ir.Term = ir.Constant(ir.StringLiteral(s))
+  override def bool(b: Boolean): ir.Term = ir.Constant(ir.base.BooleanLiteral(b))
+  override def int(i: Int): ir.Term = ir.Constant(ir.base.IntLiteral(i))
+  override def double(d: Double): ir.Term = ir.Constant(ir.base.DoubleLiteral(d))
+  override def string(s: String): ir.Term = ir.Constant(ir.base.StringLiteral(s))
 }
 
-object DatalogModuleAST extends DatalogPatternAST {
-  import inca.backend.ir.{Datalog => ir}
+trait DatalogModuleAST extends DatalogPatternAST {
 
   override type Mod = ir.Module
   override def module(name: String, patterns: List[Pat]): ir.Module =
     ir.Module(name, Seq(), patterns, Seq())
 }
 
-object DatalogEval extends Datalog with DatalogPatternAST {
-  import inca.backend.ir.{Datalog => ir}
+trait DatalogEval extends Datalog with DatalogPatternAST {
 
   type Tuples = Set[Seq[Any]]
   type EDB = Map[String, Tuples]
@@ -123,16 +197,15 @@ object DatalogEval extends Datalog with DatalogPatternAST {
   }
 }
 
-object DatalogEvalIncremental extends Datalog with DatalogPatternAST {
-  import inca.backend.ir.{Datalog => ir}
+trait DatalogEvalIncremental extends Datalog with DatalogPatternAST {
 
   type Tuples = Set[Seq[Any]]
   type Modify = (String, Seq[Any], Boolean) => Unit
-  type Delete = (String, Seq[Any]) => Unit
   type Observe = (String, (Seq[Any], Boolean) => Unit) => Unit
-  override type Mod = (Modify, Observe)
+  case class IncDB(modify: Modify, addObserver: Observe)
+  override type Mod = IncDB
 
-  override def module(name: String, patterns: List[ir.Pattern]): (Modify, Observe) = {
+  override def module(name: String, patterns: List[ir.Pattern]): IncDB = {
     val module = ir.Module(name, Seq(), patterns, Seq())
     val dataModel = new DataModel()
     val options = ConstraintOptions()
@@ -160,7 +233,31 @@ object DatalogEvalIncremental extends Datalog with DatalogPatternAST {
         false
       )
     }
-    (modify, listen)
+    IncDB(modify, listen)
+  }
+}
+
+trait DatalogDemandTransformed extends Datalog with DatalogPatternAST {
+
+  val target: Datalog with DatalogReplay
+
+  override type Mod = Set[String] => target.Mod
+
+  override def module(name: String, patterns: List[ir.Pattern]): Set[String] => target.Mod = mains => {
+    patterns.foreach { p =>
+      if (mains.contains(p.name)) {
+        if (p.hasHint(MagicSetHints.FixedAdornmentKey)) {
+          val h = p.getHint(MagicSetHints.FixedAdornmentKey).get.asInstanceOf[MagicSetHints.FixedAdornment]
+          p.addHint(MagicSetHints.Main(h.adorn))
+        } else {
+          throw new IllegalArgumentException(s"Cannot use ${p.name} as main function because its adornment is unknown")
+        }
+      }
+    }
+    val module = ir.Module(name, Seq(), patterns, Seq())
+    val adorned = DeriveDemandPatterns.transformer(null).transformModule(module)
+    val demanded = DemandTransformation.transformer(null).transformModule(adorned)
+    target.replay(demanded)
   }
 }
 
@@ -181,8 +278,10 @@ object DatalogTest extends App {
     ))
   }
 
-  val edb0: DatalogEval.EDB = Map()
-  val edb1: DatalogEval.EDB = Map(
+  val eval = new DatalogEval {}
+
+  val edb0: eval.EDB = Map()
+  val edb1: eval.EDB = Map(
     "edge" -> Set(
       Seq("a", "b"),
       Seq("b", "a"),
@@ -190,7 +289,7 @@ object DatalogTest extends App {
       Seq("c", "d")
     )
   )
-  val edb2: DatalogEval.EDB = Map(
+  val edb2: eval.EDB = Map(
     "edge" -> Set(
       Seq("a", "b"),
       Seq("b", "c"),
@@ -201,13 +300,13 @@ object DatalogTest extends App {
     )
   )
 
-  val edb3: DatalogEval.EDB = Map(
+  val edb3: eval.EDB = Map(
     "edge" -> {
       (for (i <- 1 to 100) yield Seq(s"n$i", s"n${i + 1}")) :+ Seq("n100", "n1")
     }.toSet
   )
 
-  private val pathEval = path(DatalogEval)
+  private val pathEval = path(eval)
 
   println("path edb0 = " + pathEval(edb0)("path"))
   println("path edb1 = " + pathEval(edb1)("path"))
@@ -220,13 +319,15 @@ object DatalogTest extends App {
 
 
   // incremental
+  val incremental = new DatalogEvalIncremental {}
+  import incremental.IncDB
 
-  def modifyEDB(edb: DatalogEval.EDB, modify: DatalogEvalIncremental.Modify, insert: Boolean): Unit = {
+  def modifyEDB(edb: eval.EDB, modify: incremental.Modify, insert: Boolean): Unit = {
     for ((rel, tups) <- edb; tup <- tups)
       modify(rel, tup, insert)
   }
 
-  private val (pathModify, pathObserve) = path(DatalogEvalIncremental)
+  private val IncDB(pathModify, pathObserve) = path(incremental)
   pathObserve("path", (tup, inserted) => println((if (inserted) "insert " else "delete ") + tup))
 
   println(s"### insert EDB0 ###")

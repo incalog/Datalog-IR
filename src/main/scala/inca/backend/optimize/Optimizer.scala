@@ -1,6 +1,12 @@
 package inca.backend.optimize
 
 import inca.backend.ir.Datalog._
+import inca.backend.optimize.Optimizer.BodyMustFail
+
+object Optimizer {
+  case object BodyMustFail extends Exception
+  def throwBodyMustFail(): Nothing = throw BodyMustFail
+}
 
 trait Optimizer {
 

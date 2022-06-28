@@ -2,13 +2,76 @@ package inca.backend.ir
 
 import inca.backend.hints.Hints
 import inca.util.Scala
-import scala.meta.quasiquotes._
 import truechange.JavaLitType
 import truechange.LitType
+import truechange.{JavaLitType, LitType}
+
+trait Base {
+  type Literal
+  type BaseType
+  type Definition
+  type Function
+  type Aggregator
+}
+
+object ScalaBase extends Base {
+  import scala.meta.quasiquotes._
+
+  sealed trait Literal {
+    def typ: Datalog.Type
+  }
+  case class IntLiteral(v: Int) extends Literal {
+    override def typ: Datalog.Type = TScalaInt
+  }
+  case class LongLiteral(v: Long) extends Literal {
+    override def typ: Datalog.Type = TScalaLong
+  }
+  case class DoubleLiteral(v: Double) extends Literal {
+    override def typ: Datalog.Type = TScalaDouble
+  }
+  case class StringLiteral(v: String) extends Literal {
+    override def typ: Datalog.Type = TScalaString
+  }
+  case class BooleanLiteral(v: Boolean) extends Literal {
+    override def typ: Datalog.Type = TScalaBoolean
+  }
+  def True: Datalog.Constant = Datalog.Constant(BooleanLiteral(true))
+  def False: Datalog.Constant = Datalog.Constant(BooleanLiteral(false))
+
+  type BaseType = Scala[meta.Type]
+  type Definition = Scala[meta.Stat]
+  type Function = Scala[meta.Term.Function]
+  type Aggregator = Scala[meta.Term]
+
+  def typeAsScala(ty: Datalog.Type): meta.Type = ty match {
+    case Datalog.TAny => t"Any"
+    case Datalog.TData(name) => meta.Type.Name(name)
+    case Datalog.TLiteral(litType) => litType match {
+      case JavaLitType(cl) =>  Scala.mkQualTypename(cl.getCanonicalName)
+      case _ => throw new UnsupportedOperationException
+    }
+    case Datalog.TScala(ty) => ty.tree
+    case _: Datalog.TLinked => t"truechange.URI"
+  }
+
+  object TScalaBoolean extends Datalog.TScala(Scala(t"Boolean"))
+  object TScalaInt extends Datalog.TScala(Scala(t"Int"))
+  object TScalaLong extends Datalog.TScala(Scala(t"Long"))
+  object TScalaDouble extends Datalog.TScala(Scala(t"Double"))
+  object TScalaString extends Datalog.TScala(Scala(t"String"))
+
+  def literalFromScalaMeta(t: meta.Lit): Option[Literal] = t match {
+    case meta.Lit.Int(i) => Some(IntLiteral(i))
+    case meta.Lit.Long(l) => Some(LongLiteral(l))
+    case d: meta.Lit.Double => Some(DoubleLiteral(d.value.asInstanceOf[Double]))
+    case meta.Lit.Boolean(b) => Some(BooleanLiteral(b))
+    case meta.Lit.String(s) => Some(StringLiteral(s))
+    case _ => None
+  }
+}
 
 object Datalog {
-  case object BodyMustFail extends Exception
-  def throwBodyMustFail(): Nothing = throw BodyMustFail
+  val base: ScalaBase.type = ScalaBase
 
   type Name = String
 
@@ -19,7 +82,7 @@ object Datalog {
       name: Name,
       imports: Seq[Name],
       pats: Seq[Pattern],
-      scalaContent: Seq[Scala[meta.Stat]])
+      scalaContent: Seq[base.Definition])
       extends Hints {
     override def toString: Name = GPPrinter.prettyModule(this)
     lazy val patternMap: Map[String, Datalog.Pattern] = pats.map { pat => pat.name -> pat }.toMap
@@ -36,24 +99,11 @@ object Datalog {
   }
   case class Param(name: Name, typ: Type)
 
-  sealed trait Type extends Hints {
-    def asScala: meta.Type
-  }
+  sealed trait Type extends Hints
+  case object TAny extends Type
+  case class TData(name: Name) extends Type
 
-  case object TAny extends Type {
-    override def asScala: meta.Type = t"Any"
-  }
-
-  case class TData(name: Name) extends Type {
-    override def asScala: meta.Type = meta.Type.Name(name)
-  }
-
-  case class TLiteral(litType: LitType) extends Type {
-    override def asScala: meta.Type = litType match {
-      case JavaLitType(cl) => Scala.mkQualTypename(cl.getCanonicalName)
-      case _ => throw new UnsupportedOperationException
-    }
-  }
+  case class TLiteral(litType: LitType) extends Type
   object TLiteral {
     val Bool: TLiteral = TLiteral(JavaLitType(classOf[java.lang.Boolean]))
     val Int: TLiteral = TLiteral(JavaLitType(classOf[java.lang.Integer]))
@@ -62,27 +112,9 @@ object Datalog {
     val String: TLiteral = TLiteral(JavaLitType(classOf[java.lang.String]))
   }
 
-  case class TScala(ty: Scala[meta.Type]) extends Type {
-    override def asScala: meta.Type = ty.tree
-  }
-  object TScala {
-    def apply(tyString: String): TScala = tyString match {
-      case "Boolean" => TScalaBoolean
-      case "Int" => TScalaInt
-      case "Long" => TScalaLong
-      case "Double" => TScalaDouble
-      case "String" => TScalaString
-    }
-  }
-  object TScalaBoolean extends TScala(Scala(t"Boolean"))
-  object TScalaInt extends TScala(Scala(t"Int"))
-  object TScalaLong extends TScala(Scala(t"Long"))
-  object TScalaDouble extends TScala(Scala(t"Double"))
-  object TScalaString extends TScala(Scala(t"String"))
+  case class TScala(ty: base.BaseType) extends Type
 
-  sealed trait TLinked extends Type {
-    override def asScala: meta.Type = t"truechange.URI"
-  }
+  sealed trait TLinked extends Type
   case object TAnyLinked extends TLinked
   case class TNode(name: String) extends TLinked
   case class TList(contained: TLinked) extends TLinked
@@ -133,38 +165,7 @@ object Datalog {
   case class Var(name: Name) extends Term {
     private[backend] var typ: Option[Type] = None
   }
-  case class Constant(lit: Literal) extends Term
-
-  sealed trait Literal {
-    def typ: Type
-  }
-  object Literal {
-    def fromScalaMeta(t: meta.Lit): Option[Literal] = t match {
-      case meta.Lit.Int(i) => Some(IntLiteral(i))
-      case meta.Lit.Long(l) => Some(LongLiteral(l))
-      case d: meta.Lit.Double => Some(DoubleLiteral(d.value.asInstanceOf[Double]))
-      case meta.Lit.Boolean(b) => Some(BooleanLiteral(b))
-      case meta.Lit.String(s) => Some(StringLiteral(s))
-      case _ => None
-    }
-  }
-  case class IntLiteral(v: Int) extends Literal {
-    override def typ: Type = TScalaInt
-  }
-  case class LongLiteral(v: Long) extends Literal {
-    override def typ: Type = TScalaLong
-  }
-  case class DoubleLiteral(v: Double) extends Literal {
-    override def typ: Type = TScalaDouble
-  }
-  case class StringLiteral(v: String) extends Literal {
-    override def typ: Type = TScalaString
-  }
-  case class BooleanLiteral(v: Boolean) extends Literal {
-    override def typ: Type = TScalaBoolean
-  }
-  def True: Constant = Constant(BooleanLiteral(true))
-  def False: Constant = Constant(BooleanLiteral(false))
+  case class Constant(lit: base.Literal) extends Term
 
   sealed trait Computation {
     val args: Seq[Term]
@@ -174,7 +175,7 @@ object Datalog {
   case class Evaluation(
       evalArgs: Seq[(Term, Type)],
       resultType: Type,
-      code: Scala[meta.Term.Function])
+      code: base.Function)
       extends Computation {
     val args: Seq[Term] = evalArgs.map(_._1)
   }
@@ -186,7 +187,7 @@ object Datalog {
   case class CustomAggregation(
       typ: Type,
       description: Option[String],
-      agg: Scala[meta.Term],
+      agg: base.Aggregator,
       patName: Name,
       args: Seq[Term],
       aggregatedColumn: Int)

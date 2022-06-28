@@ -39,8 +39,8 @@ trait TypeOps extends ScalaTyper {
         Some(ty2)
       else
         None
-    case (_, TScala(_)) => meet(TScala(Scala(ty1.asScala)), ty2, dataModel)
-    case (TScala(_), _) => meet(ty1, TScala(Scala(ty2.asScala)), dataModel)
+    case (_, TScala(_)) => meet(TScala(Scala(base.typeAsScala(ty1))), ty2, dataModel)
+    case (TScala(_), _) => meet(ty1, TScala(Scala(base.typeAsScala(ty2))), dataModel)
     case _ => None
   }
 

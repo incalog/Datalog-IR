@@ -176,7 +176,7 @@ class GenerateDatalog(module: Module) {
         } yield (
           thnTerm,
           cndCons ++ Seq(
-            Datalog.Eq(cndTerm, Datalog.True).addHint(SourceConstruct.from(exp, exp -> true))
+            Datalog.Eq(cndTerm, Datalog.base.True).addHint(SourceConstruct.from(exp, exp -> true))
           ) ++ thnCons
         )
       val elsRes: ExpRes =
@@ -186,7 +186,7 @@ class GenerateDatalog(module: Module) {
         } yield (
           elsTerm,
           cndCons ++ Seq(
-            Datalog.Eq(cndTerm, Datalog.False).addHint(SourceConstruct.from(exp, exp -> false))
+            Datalog.Eq(cndTerm, Datalog.base.False).addHint(SourceConstruct.from(exp, exp -> false))
           ) ++ elsCons
         )
       thnRes ++ elsRes
@@ -482,7 +482,7 @@ class GenerateDatalog(module: Module) {
             Datalog.Call(dataName.name, Seq(term), neg = neg)
               .addHint(IgnoreCall)
               .addHint(SourceConstruct.from(mem))
-          (Seq(Datalog.True), tupCons :+ typeTest)
+          (Seq(Datalog.base.True), tupCons :+ typeTest)
         }
 
     case SetMember(tup, set, neg) =>
@@ -493,7 +493,7 @@ class GenerateDatalog(module: Module) {
         for ((tupTerms, tupCons) <- transExp(tup)) yield {
           val negCall = Datalog.Call(pat.name, freeArgs ++ tupTerms, neg = true)
             .addHint(SourceConstruct.from(exp))
-          (Seq(Datalog.True), tupCons :+ negCall)
+          (Seq(Datalog.base.True), tupCons :+ negCall)
         }
       } else
         for {
@@ -502,7 +502,7 @@ class GenerateDatalog(module: Module) {
         } yield {
           val eqs = tupTerms.zip(setTerms).map(vt =>
             Datalog.Eq(vt._1, vt._2).addHint(SourceConstruct.from(exp)))
-          (Seq(Datalog.True), tupCons ++ setCons ++ eqs)
+          (Seq(Datalog.base.True), tupCons ++ setCons ++ eqs)
         }
 
     case SetComprehension(build, predicates) =>
@@ -513,7 +513,7 @@ class GenerateDatalog(module: Module) {
       } yield {
         val (predBools, predCons) = ps.unzip
         val predTrue =
-          predBools.flatten.map(b => Datalog.Eq(b, Datalog.True).addHint(SourceConstruct.from(exp)))
+          predBools.flatten.map(b => Datalog.Eq(b, Datalog.base.True).addHint(SourceConstruct.from(exp)))
         (buildTerms, predCons.flatten ++ predTrue ++ buildCons)
       }
 
@@ -686,7 +686,7 @@ class GenerateDatalog(module: Module) {
     val outParam = Datalog.Param("out", GP_URI.addHint(DataHints.DataTypeName(data.name.name)))
 
     val constrScalaFun = Term.Function(
-      params.map(p => Term.Param(Nil, Term.Name(p.name), Some(p.typ.asScala), None)).toList,
+      params.map(p => Term.Param(Nil, Term.Name(p.name), Some(Datalog.base.typeAsScala(p.typ)), None)).toList,
       q"""$oMockURI(${constr.name.name}, Seq(..${params.map(p => Term.Name(p.name)).toList}))"""
     )
     val outVar = Datalog.Var(outParam.name)
@@ -798,7 +798,7 @@ class GenerateDatalog(module: Module) {
         yield Term.Param(
           Nil,
           Term.Name(kidCoalescedVars(k).name),
-          Some(transDataType(constr.paramTypes(k)).asScala),
+          Some(Datalog.base.typeAsScala(transDataType(constr.paramTypes(k)))),
           None
         )
     val constrScalaFun = Term.Function(
@@ -839,7 +839,7 @@ class GenerateDatalog(module: Module) {
     def consumeData(ty: Datalog.Type, f: Term => Term): Datalog.Evaluation = {
       val scalaDataParam = Term.Name(dataParam.name)
       val t = f(scalaDataParam)
-      val constrScalaFun = q"($scalaDataParam: ${dataType.asScala}) => $t"
+      val constrScalaFun = q"($scalaDataParam: ${Datalog.base.typeAsScala(dataType)}) => $t"
       Datalog.Evaluation(Seq(dataVar -> dataType), ty, Scala(constrScalaFun))
     }
 

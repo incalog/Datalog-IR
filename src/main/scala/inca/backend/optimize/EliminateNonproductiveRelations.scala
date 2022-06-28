@@ -1,11 +1,11 @@
 package inca.backend.optimize
 
-import inca.backend.ir.Datalog.throwBodyMustFail
 import inca.backend.ir.Datalog.Atom
 import inca.backend.ir.Datalog.Call
 import inca.backend.ir.Datalog.Module
 import inca.backend.ir.Datalog.Name
 import inca.backend.ir.Datalog.Pattern
+import inca.backend.optimize.Optimizer.throwBodyMustFail
 import inca.runtime.context.DataModel
 
 /* Eliminates non-productive relations and their calls.

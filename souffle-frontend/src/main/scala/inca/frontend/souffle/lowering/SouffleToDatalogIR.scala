@@ -231,12 +231,12 @@ class SouffleToDatalogIR(useEditScriptForInput: Boolean = false) {
         case None => (Var(cleanSouffleName(name)), Seq())
       }
     case StringValue(value) =>
-      (Constant(StringLiteral(value.intern)), Seq())
+      (Constant(base.StringLiteral(value.intern)), Seq())
 //      val trgVar = Var(gensym.fresh("trg"))
 //      val funString = "\"" + value + "\".intern"
 //      val computed = Computed(trgVar, ConstantEvaluation(TUnbounded(TString), funString))
 //      (trgVar, Seq(computed))
-    case NumberValue(value) => (Constant(IntLiteral(value)), Seq())
+    case NumberValue(value) => (Constant(base.IntLiteral(value)), Seq())
     case Syntax.Wildcard =>
       val fresh = gensym.fresh("wildcard")
       (Var(fresh), Seq())
@@ -249,9 +249,8 @@ class SouffleToDatalogIR(useEditScriptForInput: Boolean = false) {
       val funString = q"(..$typedParams) => (${compileEval(exp)}).intern"
       val computed = Computed(
         trgVar,
-        Evaluation(params.map((_, TLiteral.String)), TScalaString, Scala(funString))
+        Evaluation(params.map((_, TLiteral.String)), base.TScalaString, Scala(funString))
       )
-        .addHint(SourceConstruct.from(exp))
       (trgVar, Seq(computed))
     case _ => throw new IllegalArgumentException(s"TODO $exp not supported")
   }

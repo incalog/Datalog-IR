@@ -2,6 +2,7 @@ package inca.backend.optimize
 
 import inca.backend.ir.Datalog._
 import inca.backend.ir.TypeOps
+import inca.backend.optimize.Optimizer.throwBodyMustFail
 import inca.runtime.context.DataModel
 import inca.util.Scala
 import scala.collection.immutable.MultiDict
@@ -82,7 +83,7 @@ object InferVarTypes extends Optimization {
           computation match {
             case CountAggregation(patName, args) =>
               addPatArgTypes(patName, args)
-              addType(lhs, TScalaInt)
+              addType(lhs, base.TScalaInt)
             case Evaluation(args, resultType, _) =>
               args.foreach(a => addType(a._1, a._2))
               addType(lhs, resultType)

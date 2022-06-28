@@ -253,7 +253,7 @@ object ExpLangTestAnalyses {
           Seq(
             Datalog.Call(
               "boundIdOfLet",
-              Seq(Datalog.Var("exp"), Datalog.Constant(Datalog.StringLiteral("x")))
+              Seq(Datalog.Var("exp"), Datalog.Constant(Datalog.base.StringLiteral("x")))
             )
           )
         )

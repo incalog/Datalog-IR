@@ -124,10 +124,10 @@ object DemandTransformation extends Transformation {
         val boundIndices = deriveBoundIndices(demandPat)
         val dummyParam =
           if (boundIndices.isEmpty)
-            Some(Param(gensym.fresh("dummy"), TScala("Boolean")))
+            Some(Param(gensym.fresh("dummy"), base.TScala("Boolean")))
           else
             None
-        val dummyBinding = dummyParam.map(p => Eq(Var(p.name), Constant(BooleanLiteral(true))))
+        val dummyBinding = dummyParam.map(p => Eq(Var(p.name), base.True))
 
         // for each body there can be multiple input bodies (due to multiple pattern calls)
         val inputPatterns = patterns.flatMap { p =>

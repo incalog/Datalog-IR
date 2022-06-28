@@ -2,6 +2,7 @@ package inca.frontend.constraint.lowering
 
 import inca.backend.hints.MagicSetHints
 import inca.backend.ir.Datalog
+import inca.backend.optimize.Optimizer.BodyMustFail
 import inca.frontend.constraint.core._
 import inca.util.Gensym
 import inca.util.Scala
@@ -103,7 +104,7 @@ class GenerateDatalog {
       }
       Some(Datalog.Body(constraints))
     } catch {
-      case Datalog.BodyMustFail => None
+      case BodyMustFail => None
     }
   }
 
@@ -131,7 +132,7 @@ class GenerateDatalog {
 
     case Assert(Constant(BooleanLiteral(v))) =>
       if (v) Seq()
-      else throw Datalog.BodyMustFail
+      else throw BodyMustFail
     case Assert(cond) =>
       transExp(cond.ensureCore) match {
         case (Nil, cons) =>
@@ -140,7 +141,7 @@ class GenerateDatalog {
           cons :+ Datalog.Compare(
             Datalog.EqComparator,
             Datalog.Var(v),
-            Datalog.Constant(Datalog.BooleanLiteral(true))
+            Datalog.base.True
           )
       }
 
@@ -149,7 +150,7 @@ class GenerateDatalog {
       constraints ++ genEqs(vars, outVars)
 
     case FailStatement =>
-      throw Datalog.BodyMustFail
+      throw BodyMustFail
   }
 
   def tryInlineVar(exp: Expression): Expression = exp match {
@@ -440,13 +441,13 @@ class GenerateDatalog {
     econstraints :+ path
   }
 
-  def transLiteral(lit: Literal): Option[Datalog.Literal] = lit match {
+  def transLiteral(lit: Literal): Option[Datalog.base.Literal] = lit match {
     case UnitLiteral => None
-    case IntLiteral(v) => Some(Datalog.IntLiteral(v))
-    case LongLiteral(v) => Some(Datalog.LongLiteral(v))
-    case DoubleLiteral(v) => Some(Datalog.DoubleLiteral(v))
-    case StringLiteral(v) => Some(Datalog.StringLiteral(v))
-    case BooleanLiteral(v) => Some(Datalog.BooleanLiteral(v))
+    case IntLiteral(v) => Some(Datalog.base.IntLiteral(v))
+    case LongLiteral(v) => Some(Datalog.base.LongLiteral(v))
+    case DoubleLiteral(v) => Some(Datalog.base.DoubleLiteral(v))
+    case StringLiteral(v) => Some(Datalog.base.StringLiteral(v))
+    case BooleanLiteral(v) => Some(Datalog.base.BooleanLiteral(v))
   }
 
   def getFqnNode(node: TNode): TNode =
