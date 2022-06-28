@@ -9,6 +9,7 @@ import inca.util.Scala
 import org.eclipse.viatra.query.runtime.api.IMatchUpdateListener
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
+import inca.backend.ir.{Datalog => ir}
 
 import scala.jdk.CollectionConverters._
 

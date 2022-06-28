@@ -1,6 +1,6 @@
 package inca.frontend.souffle.lowering
 
-import inca.backend.ir.DatalogScala._
+import inca.backend.ir.Datalog._
 import inca.util.Scala
 
 object PropagateUnbounded {
@@ -82,6 +82,7 @@ trait TrackUnbounded {
   def transformAtom(atom: Atom, seen: Set[Term])(implicit pats: PatEnv): Set[Term] = atom match {
     case c: Compare => transformCompare(c, seen)
     case c:Call => transformCall(c, seen)
+    case c:ExtensionalCall => transformCall(Call(c.name, c.args, transitive = false, neg = c.neg), seen)
     case ht: HasType => transformHasType(ht, seen)
     case nht: NotHasType => transformNotHasType(nht, seen)
     case p: Path => transformPath(p, seen)
