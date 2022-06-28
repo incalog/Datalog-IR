@@ -65,7 +65,7 @@ trait TrackUnbounded {
         // avoid nesting TUnbounded
         val ty = p.typ match {
           case TScala(_) => p.typ
-          case _ => TScala(Scala(p.typ.asScala))
+          case _ => TScala(Scala(base.typeAsScala(p.typ)))
         }
         Param(p.name, ty)
       } else p

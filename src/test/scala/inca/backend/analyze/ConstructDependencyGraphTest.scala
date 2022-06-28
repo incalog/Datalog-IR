@@ -7,21 +7,21 @@ import org.scalatest.flatspec.AnyFlatSpec
 class ConstructDependencyGraphTest extends AnyFlatSpec {
 
   "Graph" must "be built correctly" in {
-    val one = Constant(IntLiteral(1))
-    val two = Constant(IntLiteral(1))
+    val one = Constant(base.IntLiteral(1))
+    val two = Constant(base.IntLiteral(1))
 
     val module1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("c"), two),
-          HasType(one, TScalaInt),
+          HasType(one, base.TScalaInt),
           Call("TestTP", Seq(), true, false)
         ))
       )),
       Pattern(None, "TestTP", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("c"), two),
-          HasType(one, TScalaInt),
+          HasType(one, base.TScalaInt),
           Call("TestTP", Seq(), true, false)
         ))
       )),

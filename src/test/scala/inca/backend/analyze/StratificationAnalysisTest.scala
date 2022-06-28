@@ -8,21 +8,21 @@ class StratificationAnalysisTest extends AnyFlatSpec  {
 
 
   "Graph" must "be stratifiable" in {
-    val one = Constant(IntLiteral(1))
-    val two = Constant(IntLiteral(1))
+    val one = Constant(base.IntLiteral(1))
+    val two = Constant(base.IntLiteral(1))
 
     val module1 = Module("Test2", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("c"), two),
-          HasType(one, TScalaInt),
+          HasType(one, base.TScalaInt),
           Call("TestTP", Seq(), true, false)
         ))
       )),
       Pattern(None, "TestTP", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("c"), two),
-          HasType(one, TScalaInt),
+          HasType(one, base.TScalaInt),
           Call("TestTP", Seq(), true, false)
         ))
       )),

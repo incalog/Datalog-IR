@@ -1,7 +1,7 @@
 package inca.debugger
 
 import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.CustomAggregation
+import inca.backend.ir.Datalog.{CustomAggregation, base}
 import inca.compiler.CompiledModule
 import inca.debugger.table.Table
 import inca.runtime.db.Database
@@ -451,12 +451,12 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
     (callerFrame.argsTable, extBodyTable)
   }
 
-  def transLiteral(c: Datalog.Literal): Value = c match {
-    case Datalog.IntLiteral(v) => ScalaValue(v)
-    case Datalog.LongLiteral(v) => ScalaValue(v)
-    case Datalog.DoubleLiteral(v) => ScalaValue(v)
-    case Datalog.StringLiteral(v) => ScalaValue(v)
-    case Datalog.BooleanLiteral(v) => ScalaValue(v)
+  def transLiteral(c: Datalog.base.Literal): Value = c match {
+    case Datalog.base.IntLiteral(v) => ScalaValue(v)
+    case Datalog.base.LongLiteral(v) => ScalaValue(v)
+    case Datalog.base.DoubleLiteral(v) => ScalaValue(v)
+    case Datalog.base.StringLiteral(v) => ScalaValue(v)
+    case Datalog.base.BooleanLiteral(v) => ScalaValue(v)
   }
 
   def transitionEvalTables(frame: Frame, lhs: Datalog.Term, eval: Datalog.Evaluation): Table[Value] = {
@@ -493,13 +493,13 @@ class TableOps(var database: Database, val compiled: CompiledModule, val fixpoin
 
   def executeScala(table: Table[Value], row: Seq[Value], eval: Datalog.Evaluation): ScalaValue = {
     val argTerms = eval.evalArgs.map {
-      case (Datalog.Var(v), ty) => s"""$$env("$v").asInstanceOf[${ty.asScala.syntax}]"""
+      case (Datalog.Var(v), ty) => s"""$$env("$v").asInstanceOf[${base.typeAsScala(ty).syntax}]"""
       case (Datalog.Constant(lit), _) => lit match {
-        case Datalog.IntLiteral(v) => v.toString
-        case Datalog.LongLiteral(v) => v.toString
-        case Datalog.DoubleLiteral(v) => v.toString
-        case Datalog.StringLiteral(v) => v.toString
-        case Datalog.BooleanLiteral(v) => v.toString
+        case Datalog.base.IntLiteral(v) => v.toString
+        case Datalog.base.LongLiteral(v) => v.toString
+        case Datalog.base.DoubleLiteral(v) => v.toString
+        case Datalog.base.StringLiteral(v) => v.toString
+        case Datalog.base.BooleanLiteral(v) => v.toString
       }
     }
     val argsMap: Map[String, Any] = eval.evalArgs.flatMap {

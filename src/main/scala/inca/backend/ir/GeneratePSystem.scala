@@ -130,7 +130,7 @@ object GeneratePSystem {
     }
 
     val bodies = if (pat.bodies.nonEmpty) pat.bodies else
-      Seq(Body(Seq(Compare(EqComparator, Constant(IntLiteral(0)), Constant(IntLiteral(1))))))
+      Seq(Body(Seq(Compare(EqComparator, Constant(base.IntLiteral(0)), Constant(base.IntLiteral(1))))))
 
     q"""
       object ${Term.Name(pat.name)} {
@@ -204,7 +204,7 @@ object GeneratePSystem {
     case tlit@TLiteral(litType) =>
       litType match {
         case JavaLitType(cl) =>
-          val gentyp = q"$oPrimitiveType(classOf[${tlit.asScala}])"
+          val gentyp = q"$oPrimitiveType(classOf[${base.typeAsScala(tlit)}])"
           Some(q"$oPrimitiveKey($gentyp)", gentyp)
         case _ => throw new UnsupportedOperationException
       }
@@ -221,7 +221,7 @@ object GeneratePSystem {
   private def genTempVar(name: String): Stat =
     q"val ${Pat.Var(Term.Name(VARPREFIX + name))}: PVariable = body.getOrCreateVariableByName(${Lit.String(name)})"
 
-  private def genLiteralVar(lit: Literal)(implicit gensym: Gensym): Stat = {
+  private def genLiteralVar(lit: base.Literal)(implicit gensym: Gensym): Stat = {
     val varName = genLiteralVarName(lit)
     q"val ${Pat.Var(Term.Name(LITPREFIX + varName))}: PVariable = body.newConstantVariable(${genLiteral(lit)})"
   }
@@ -231,22 +231,22 @@ object GeneratePSystem {
     q"val ${Pat.Var(Term.Name(EVALPREFIX + varName))}: PVariable = body.newConstantVariable((${eval.code.tree})())"
   }
 
-  private def genLiteralVarName(lit: Literal): String = lit match {
-    case IntLiteral(v) => "int" + v.hashCode()
-    case LongLiteral(v) => "long" + v.hashCode()
-    case DoubleLiteral(v) => "double" + v.hashCode()
-    case StringLiteral(v) => "string" + v.hashCode
-    case BooleanLiteral(v) => "boolean" + v.hashCode()
+  private def genLiteralVarName(lit: base.Literal): String = lit match {
+    case base.IntLiteral(v) => "int" + v.hashCode()
+    case base.LongLiteral(v) => "long" + v.hashCode()
+    case base.DoubleLiteral(v) => "double" + v.hashCode()
+    case base.StringLiteral(v) => "string" + v.hashCode
+    case base.BooleanLiteral(v) => "boolean" + v.hashCode()
   }
 
   private def genConstantEvalVarName(eval: Evaluation): String = eval.code.hashCode().toString
 
-  def genLiteral(lit: Literal): Lit = lit match {
-    case IntLiteral(v) => Lit.Int(v)
-    case LongLiteral(v) => Lit.Long(v)
-    case DoubleLiteral(v) => Lit.Double(v)
-    case StringLiteral(v) => Lit.String(v)
-    case BooleanLiteral(v) => Lit.Boolean(v)
+  def genLiteral(lit: base.Literal): Lit = lit match {
+    case base.IntLiteral(v) => Lit.Int(v)
+    case base.LongLiteral(v) => Lit.Long(v)
+    case base.DoubleLiteral(v) => Lit.Double(v)
+    case base.StringLiteral(v) => Lit.String(v)
+    case base.BooleanLiteral(v) => Lit.Boolean(v)
   }
 
   private def compileAtom(atom: Atom)(implicit env: RuleEnvironment): Seq[Stat] = atom match {
@@ -357,7 +357,7 @@ object GeneratePSystem {
         case _ => None
       }
       val argTerms = args.toList.map {
-        case (v:Var, ty) => q"env.getValue(${Lit.String(v.name)}).asInstanceOf[${ty.asScala}]"
+        case (v:Var, ty) => q"env.getValue(${Lit.String(v.name)}).asInstanceOf[${base.typeAsScala(ty)}]"
         case (Constant(lit), ty) => genLiteral(lit)
       }
       Seq(
@@ -377,7 +377,7 @@ object GeneratePSystem {
       val argTuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
       val callQuery = q"${Term.Name(module)}.${Term.Name(patName)}.instance.getInternalQueryRepresentation"
 
-      val scalaTyp = typ.asScala
+      val scalaTyp = base.typeAsScala(typ)
       val boundAggOp = q"new $tBoundAggregator(${agg.tree}.aggregator, classOf[$scalaTyp], classOf[$scalaTyp])"
       Seq(q"new $tAggregatorConstraint($boundAggOp, body, $argTuple, $callQuery, $result, $aggregatedColumn)")
   }

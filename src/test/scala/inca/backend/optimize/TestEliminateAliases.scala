@@ -97,8 +97,8 @@ class TestEliminateAliases extends AnyFlatSpec with IncaGPMatchers {
 
 
   "eliminateAliases" must "find path aliases" in {
-    val one = Constant(IntLiteral(1))
-    val two = Constant(IntLiteral(1))
+    val one = Constant(base.IntLiteral(1))
+    val two = Constant(base.IntLiteral(1))
 
     val module1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(

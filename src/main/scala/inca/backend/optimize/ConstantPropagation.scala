@@ -25,7 +25,7 @@ object ConstantPropagation extends Optimization {
           subst += v2 -> c1
           None
         case a@Computed(v: Var, Evaluation(_, _, Scala(meta.Term.Function(Nil, lit: meta.Lit)))) if !unsubstitutable.contains(v.name) =>
-          Literal.fromScalaMeta(lit) match {
+          base.literalFromScalaMeta(lit) match {
             case Some(l) =>
               subst += v -> Constant(l)
               None

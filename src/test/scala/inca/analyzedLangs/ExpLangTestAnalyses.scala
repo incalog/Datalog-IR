@@ -169,7 +169,7 @@ object ExpLangTestAnalyses {
     Datalog.Pattern(None, "letBindingX", Seq(Datalog.Param("exp", Datalog.TNode(Exp.expTag))),
       Seq(
         Datalog.Body(Seq(
-          Datalog.Call("boundIdOfLet", Seq(Datalog.Var("exp"), Datalog.Constant(Datalog.StringLiteral("x"))))
+          Datalog.Call("boundIdOfLet", Seq(Datalog.Var("exp"), Datalog.Constant(Datalog.base.StringLiteral("x"))))
         ))
       ))
 

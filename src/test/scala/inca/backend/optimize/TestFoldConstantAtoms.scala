@@ -13,11 +13,11 @@ class TestFoldConstantAtoms extends AnyFlatSpec with IncaGPMatchers {
   val options = ConstraintOptions(optimizations = Seq(FoldConstantAtoms))
 
   "ConstantPropagation" must "propagate constants" in {
-    val one = Constant(IntLiteral(1))
-    val two = Constant(IntLiteral(2))
+    val one = Constant(base.IntLiteral(1))
+    val two = Constant(base.IntLiteral(2))
 
     val module1 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", TScala("Boolean"))), Seq(
+      Pattern(None, "foo", Seq(Param("p", base.TScalaBoolean)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
           Compare(EqComparator, one, one)
@@ -25,7 +25,7 @@ class TestFoldConstantAtoms extends AnyFlatSpec with IncaGPMatchers {
       ))
     ), Seq())
     val optimized1 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", TScala("Boolean"))), Seq(
+      Pattern(None, "foo", Seq(Param("p", base.TScalaBoolean)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one)
         ))
@@ -34,7 +34,7 @@ class TestFoldConstantAtoms extends AnyFlatSpec with IncaGPMatchers {
     assertOptimize(optimized1, module1)
 
     val module2 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", TScala("Boolean"))), Seq(
+      Pattern(None, "foo", Seq(Param("p", base.TScalaBoolean)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
           Compare(EqComparator, one, one),
@@ -43,7 +43,7 @@ class TestFoldConstantAtoms extends AnyFlatSpec with IncaGPMatchers {
       ))
     ), Seq())
     val optimized2 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", TScala("Boolean"))), Seq(
+      Pattern(None, "foo", Seq(Param("p", base.TScalaBoolean)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one)
         ))
@@ -52,7 +52,7 @@ class TestFoldConstantAtoms extends AnyFlatSpec with IncaGPMatchers {
     assertOptimize(optimized2, module2)
 
     val module3 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", TScala("Boolean"))), Seq(
+      Pattern(None, "foo", Seq(Param("p", base.TScalaBoolean)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("p"), one),
           Compare(EqComparator, one, one),
@@ -62,7 +62,7 @@ class TestFoldConstantAtoms extends AnyFlatSpec with IncaGPMatchers {
       ))
     ), Seq())
     val optimized3 = Module("Test", Seq(), Seq(
-      Pattern(None, "foo", Seq(Param("p", TScala("Boolean"))), Seq(
+      Pattern(None, "foo", Seq(Param("p", base.TScalaBoolean)), Seq(
       ))
     ), Seq())
     assertOptimize(optimized3, module3)

@@ -19,8 +19,8 @@ class TestConstantPropagation extends AnyFlatSpec with IncaGPMatchers {
     ConstantPropagation.optimizer(dataModel).optimizeModule(module)
 
   "ConstantPropagation" must "propagate constants" in {
-    val one = Constant(IntLiteral(1))
-    val two = Constant(IntLiteral(1))
+    val one = Constant(base.IntLiteral(1))
+    val two = Constant(base.IntLiteral(1))
 
     val module1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
@@ -80,20 +80,20 @@ class TestConstantPropagation extends AnyFlatSpec with IncaGPMatchers {
 
 
   "ConstantPropagation" must "propagate constants to Eval" in {
-    val one = Constant(IntLiteral(1))
+    val one = Constant(base.IntLiteral(1))
 
     val module1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
           Compare(EqComparator, Var("b"), one),
-          Computed(Var("c"), Evaluation(Seq(Var("b") -> TScalaInt), TScalaBoolean, Scala(q"(x: Int) => x > 1")))
+          Computed(Var("c"), Evaluation(Seq(Var("b") -> base.TScalaInt), base.TScalaBoolean, Scala(q"(x: Int) => x > 1")))
         ))
       ))
     ), Seq())
     val optimized1 = Module("Test", Seq(), Seq(
       Pattern(None, "foo", Seq(Param("p", TAny)), Seq(
         Body(Seq(
-          Computed(Var("c"), Evaluation(Seq(), TScalaBoolean, Scala(q"() => 1 > 1")))
+          Computed(Var("c"), Evaluation(Seq(), base.TScalaBoolean, Scala(q"() => 1 > 1")))
         ))
       ))
     ), Seq())

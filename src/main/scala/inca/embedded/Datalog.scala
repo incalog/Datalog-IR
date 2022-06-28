@@ -73,19 +73,19 @@ trait DatalogReplay extends Datalog {
   def replay(t: ir.Term): Trm = t match {
     case ir.Var(name) => va(name)
     case ir.Constant(lit) => lit match {
-      case ir.IntLiteral(v) => int(v)
-      case ir.LongLiteral(v) => int(v.toInt)
-      case ir.DoubleLiteral(v) => double(v)
-      case ir.StringLiteral(v) => string(v)
-      case ir.BooleanLiteral(v) => bool(v)
+      case ir.base.IntLiteral(v) => int(v)
+      case ir.base.LongLiteral(v) => int(v.toInt)
+      case ir.base.DoubleLiteral(v) => double(v)
+      case ir.base.StringLiteral(v) => string(v)
+      case ir.base.BooleanLiteral(v) => bool(v)
     }
   }
   def replay(t: ir.Type): Typ = t match {
     case ir.TAny => tany
-    case ir.TScalaBoolean => tbool
-    case ir.TScalaInt => tint
-    case ir.TScalaDouble => tdouble
-    case ir.TScalaString => tstring
+    case ir.base.TScalaBoolean => tbool
+    case ir.base.TScalaInt => tint
+    case ir.base.TScalaDouble => tdouble
+    case ir.base.TScalaString => tstring
     case _ => throw new UnsupportedOperationException(s"Cannot replay $t")
   }
 }
@@ -133,10 +133,10 @@ trait DatalogPatternAST extends Datalog {
     ir.Body(atoms)
 
   override def tany: ir.Type = ir.TAny
-  override def tbool: ir.Type = ir.TScalaBoolean
-  override def tint: ir.Type = ir.TScalaInt
-  override def tdouble: ir.Type = ir.TScalaDouble
-  override def tstring: ir.Type = ir.TScalaString
+  override def tbool: ir.Type = ir.base.TScalaBoolean
+  override def tint: ir.Type = ir.base.TScalaInt
+  override def tdouble: ir.Type = ir.base.TScalaDouble
+  override def tstring: ir.Type = ir.base.TScalaString
 
   override def eq(t1: ir.Term, t2: ir.Term): ir.Atom = ir.Compare(ir.EqComparator, t1, t2)
   override def neq(t1: ir.Term, t2: ir.Term): ir.Atom = ir.Compare(ir.NeqComparator, t1, t2)
@@ -150,15 +150,15 @@ trait DatalogPatternAST extends Datalog {
   }
   override def op(res: ir.Term, lhs: ir.Term, lty: ir.Type, op: String, rhs: ir.Term, rty: ir.Type): ir.Atom = {
     val args = Seq((lhs, lty), (rhs, rty))
-    val code = q"(x: ${lty.asScala}, y: ${rty.asScala}) => x ${meta.Term.Name(op)} y"
+    val code = q"(x: ${ir.base.typeAsScala(lty)}, y: ${ir.base.typeAsScala(rty)}) => x ${meta.Term.Name(op)} y"
     ir.Computed(res, ir.Evaluation(args, tany, Scala(code)))
   }
 
   override def va(name: String): ir.Term = ir.Var(name)
-  override def bool(b: Boolean): ir.Term = ir.Constant(ir.BooleanLiteral(b))
-  override def int(i: Int): ir.Term = ir.Constant(ir.IntLiteral(i))
-  override def double(d: Double): ir.Term = ir.Constant(ir.DoubleLiteral(d))
-  override def string(s: String): ir.Term = ir.Constant(ir.StringLiteral(s))
+  override def bool(b: Boolean): ir.Term = ir.Constant(ir.base.BooleanLiteral(b))
+  override def int(i: Int): ir.Term = ir.Constant(ir.base.IntLiteral(i))
+  override def double(d: Double): ir.Term = ir.Constant(ir.base.DoubleLiteral(d))
+  override def string(s: String): ir.Term = ir.Constant(ir.base.StringLiteral(s))
 }
 
 trait DatalogModuleAST extends DatalogPatternAST {

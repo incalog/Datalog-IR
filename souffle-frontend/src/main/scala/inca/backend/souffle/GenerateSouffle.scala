@@ -3,7 +3,7 @@ package inca.backend.souffle
 import inca.backend.hints.DataHints.{DataType, Selector, SelectorKey}
 import inca.backend.hints.{DataHints, MagicSetHints}
 import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.BodyMustFail
+import inca.backend.optimize.Optimizer.BodyMustFail
 import inca.backend.souffle.GenerateSouffle.{hasTypeRel, pathRel}
 import inca.frontend.functional
 import inca.frontend.functional.core.{DataConstructor, DataDef, TData}
@@ -236,12 +236,12 @@ class GenerateSouffle(dataModel: DataModel) {
   def compileTerm(term: Datalog.Term): Expression = term match {
     case Datalog.Var(name) => Variable(Name(name))
     case Datalog.Constant(lit) => lit match {
-      case Datalog.IntLiteral(v) => NumberValue(v)
-      case Datalog.LongLiteral(v) => NumberValue(v.toInt)
-      case Datalog.DoubleLiteral(v) => FloatValue(v.toFloat)
-      case Datalog.StringLiteral(v) => StringValue(v)
-      case Datalog.BooleanLiteral(true) => NumberValue(1)
-      case Datalog.BooleanLiteral(false) => NumberValue(0)
+      case Datalog.base.IntLiteral(v) => NumberValue(v)
+      case Datalog.base.LongLiteral(v) => NumberValue(v.toInt)
+      case Datalog.base.DoubleLiteral(v) => FloatValue(v.toFloat)
+      case Datalog.base.StringLiteral(v) => StringValue(v)
+      case Datalog.base.BooleanLiteral(true) => NumberValue(1)
+      case Datalog.base.BooleanLiteral(false) => NumberValue(0)
     }
   }
 
@@ -252,10 +252,10 @@ class GenerateSouffle(dataModel: DataModel) {
     case Datalog.TLiteral.Long => NumberType
     case Datalog.TLiteral.Double => FloatType
     case Datalog.TLiteral.String => SymbolType
-    case Datalog.TScalaBoolean => UnsignedType
-    case Datalog.TScalaInt => NumberType
-    case Datalog.TScalaDouble => FloatType
-    case Datalog.TScalaString => SymbolType
+    case Datalog.base.TScalaBoolean => UnsignedType
+    case Datalog.base.TScalaInt => NumberType
+    case Datalog.base.TScalaDouble => FloatType
+    case Datalog.base.TScalaString => SymbolType
     case ty if ty.hasHint(DataHints.DataTypeNameKey) =>
       DeclaredType(Name(ty.hints(DataHints.DataTypeNameKey).asInstanceOf[DataHints.DataTypeName].name))
     case _ => throw new IllegalArgumentException(ty.toString)

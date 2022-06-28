@@ -6,8 +6,8 @@ object CollectVars extends Collect[String] {
   override def transVar(v: Var): Seq[String] = Seq(v.name)
 }
 
-object CollectLits extends Collect[Literal] {
-  override def transLit(lit: Literal): Seq[Literal] = Seq(lit)
+object CollectLits extends Collect[base.Literal] {
+  override def transLit(lit: base.Literal): Seq[base.Literal] = Seq(lit)
 }
 
 object CollectConstantEvaluation extends Collect[Evaluation] {
@@ -51,12 +51,12 @@ trait Collect[R] {
 
   def transVar(v: Var): Seq[R] = Seq()
 
-  def transLit(lit: Literal): Seq[R] = lit match {
-    case IntLiteral(v) => Seq()
-    case LongLiteral(v) => Seq()
-    case DoubleLiteral(v) => Seq()
-    case StringLiteral(v) => Seq()
-    case BooleanLiteral(v) => Seq()
+  def transLit(lit: base.Literal): Seq[R] = lit match {
+    case base.IntLiteral(v) => Seq()
+    case base.LongLiteral(v) => Seq()
+    case base.DoubleLiteral(v) => Seq()
+    case base.StringLiteral(v) => Seq()
+    case base.BooleanLiteral(v) => Seq()
   }
 
   def transComputation(computation: Computation): Seq[R] = computation match {

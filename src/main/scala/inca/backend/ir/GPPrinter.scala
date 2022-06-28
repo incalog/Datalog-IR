@@ -93,11 +93,11 @@ object GPPrinter {
   def prettyTerm(value: Term): String = value match {
     case Var(name) => name
     case Constant(lit) => lit match {
-      case Datalog.IntLiteral(v) => v.toString
-      case Datalog.LongLiteral(v) => v.toString
-      case Datalog.DoubleLiteral(v) => v.toString
-      case Datalog.StringLiteral(v) => s""""$v""""
-      case Datalog.BooleanLiteral(v) => v.toString
+      case Datalog.base.IntLiteral(v) => v.toString
+      case Datalog.base.LongLiteral(v) => v.toString
+      case Datalog.base.DoubleLiteral(v) => v.toString
+      case Datalog.base.StringLiteral(v) => s""""$v""""
+      case Datalog.base.BooleanLiteral(v) => v.toString
     }
   }
 
