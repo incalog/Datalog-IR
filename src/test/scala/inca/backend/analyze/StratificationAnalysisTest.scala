@@ -5,6 +5,8 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 class StratificationAnalysisTest extends AnyFlatSpec {
 
+  import base._
+
   "Graph" must "be stratifiable" in {
     val one = Constant(IntLiteral(1))
     val two = Constant(IntLiteral(1))

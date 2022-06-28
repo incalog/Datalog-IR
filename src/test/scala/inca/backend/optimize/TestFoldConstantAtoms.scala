@@ -13,6 +13,8 @@ class TestFoldConstantAtoms extends AnyFlatSpec with IncaGPMatchers {
   val scope = new QueryScope(dataModel)
   val options = ConstraintOptions(optimizations = Seq(FoldConstantAtoms))
 
+  import base._
+
   "ConstantPropagation" must "propagate constants" in {
     val one = Constant(IntLiteral(1))
     val two = Constant(IntLiteral(2))
@@ -24,7 +26,7 @@ class TestFoldConstantAtoms extends AnyFlatSpec with IncaGPMatchers {
         Pattern(
           None,
           "foo",
-          Seq(Param("p", TScala("Boolean"))),
+          Seq(Param("p", TScalaBoolean)),
           Seq(
             Body(
               Seq(
@@ -44,7 +46,7 @@ class TestFoldConstantAtoms extends AnyFlatSpec with IncaGPMatchers {
         Pattern(
           None,
           "foo",
-          Seq(Param("p", TScala("Boolean"))),
+          Seq(Param("p", TScalaBoolean)),
           Seq(
             Body(
               Seq(
@@ -65,7 +67,7 @@ class TestFoldConstantAtoms extends AnyFlatSpec with IncaGPMatchers {
         Pattern(
           None,
           "foo",
-          Seq(Param("p", TScala("Boolean"))),
+          Seq(Param("p", TScalaBoolean)),
           Seq(
             Body(
               Seq(
@@ -86,7 +88,7 @@ class TestFoldConstantAtoms extends AnyFlatSpec with IncaGPMatchers {
         Pattern(
           None,
           "foo",
-          Seq(Param("p", TScala("Boolean"))),
+          Seq(Param("p", TScalaBoolean)),
           Seq(
             Body(
               Seq(
@@ -107,7 +109,7 @@ class TestFoldConstantAtoms extends AnyFlatSpec with IncaGPMatchers {
         Pattern(
           None,
           "foo",
-          Seq(Param("p", TScala("Boolean"))),
+          Seq(Param("p", TScalaBoolean)),
           Seq(
             Body(
               Seq(
@@ -129,7 +131,7 @@ class TestFoldConstantAtoms extends AnyFlatSpec with IncaGPMatchers {
         Pattern(
           None,
           "foo",
-          Seq(Param("p", TScala("Boolean"))),
+          Seq(Param("p", TScalaBoolean)),
           Seq(
           )
         )

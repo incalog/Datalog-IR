@@ -6,6 +6,8 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 class ConstructDependencyGraphTest extends AnyFlatSpec {
 
+  import base._
+
   "Graph" must "be built correctly" in {
     val one = Constant(IntLiteral(1))
     val two = Constant(IntLiteral(1))

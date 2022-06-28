@@ -18,6 +18,8 @@ class TestConstantPropagation extends AnyFlatSpec with IncaGPMatchers {
   def optimize(module: Module): Module =
     ConstantPropagation.optimizer(dataModel).optimizeModule(module)
 
+  import base._
+
   "ConstantPropagation" must "propagate constants" in {
     val one = Constant(IntLiteral(1))
     val two = Constant(IntLiteral(1))

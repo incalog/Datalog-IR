@@ -141,7 +141,7 @@ class GeneratePSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConst
           "intToString",
           Seq(
             Datalog.Param("exp", Datalog.TNode(Exp.intTag)),
-            Datalog.Param("str", Datalog.TScalaString)
+            Datalog.Param("str", Datalog.base.TScalaString)
           ),
           Seq(
             Datalog.Body(
@@ -157,7 +157,7 @@ class GeneratePSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConst
                   Datalog.Var("str"),
                   Datalog.Evaluation(
                     Seq((Datalog.Var("value"), Datalog.TLiteral.Int)),
-                    Datalog.TScalaString,
+                    Datalog.base.TScalaString,
                     Scala(q"(value: Int) => value.toString")
                   )
                 )
@@ -183,7 +183,7 @@ class GeneratePSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConst
           "intToString",
           Seq(
             Datalog.Param("exp", Datalog.TNode(Exp.intTag)),
-            Datalog.Param("str2", Datalog.TScalaString)
+            Datalog.Param("str2", Datalog.base.TScalaString)
           ),
           Seq(
             Datalog.Body(
@@ -199,15 +199,15 @@ class GeneratePSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConst
                   Datalog.Var("str"),
                   Datalog.Evaluation(
                     Seq((Datalog.Var("value"), Datalog.TLiteral.Int)),
-                    Datalog.TScalaString,
+                    Datalog.base.TScalaString,
                     Scala(q"(value: Int) => value.toString")
                   )
                 ),
                 Datalog.Computed(
                   Datalog.Var("str2"),
                   Datalog.Evaluation(
-                    Seq((Datalog.Var("str"), Datalog.TScalaString)),
-                    Datalog.TScalaString,
+                    Seq((Datalog.Var("str"), Datalog.base.TScalaString)),
+                    Datalog.base.TScalaString,
                     Scala(q"""(str: String) => str + "_appended" """)
                   )
                 )

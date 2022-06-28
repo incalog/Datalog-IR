@@ -50,7 +50,7 @@ class CountPrimitiveSteps extends AnyFunSuite {
     Datalog.Pattern(
       None,
       "path",
-      Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+      Seq(Datalog.Param("from", Datalog.base.TScalaInt), Datalog.Param("to", Datalog.base.TScalaInt)),
       Seq(
         Datalog.Body(
           Seq(
@@ -184,7 +184,7 @@ class CountPrimitiveSteps extends AnyFunSuite {
     Datalog.Pattern(
       None,
       "path",
-      Seq(Datalog.Param("from", Datalog.TScalaInt), Datalog.Param("to", Datalog.TScalaInt)),
+      Seq(Datalog.Param("from", Datalog.base.TScalaInt), Datalog.Param("to", Datalog.base.TScalaInt)),
       Seq(
         Datalog.Body(
           Seq(
@@ -194,14 +194,14 @@ class CountPrimitiveSteps extends AnyFunSuite {
         Datalog.Body(
           Seq(
             Datalog.ExtensionalCall("edge", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
-            Datalog.Compare(Datalog.EqComparator, Datalog.Var("temp"), Datalog.Constant(Datalog.IntLiteral(2))),
+            Datalog.Compare(Datalog.EqComparator, Datalog.Var("temp"), Datalog.Constant(Datalog.base.IntLiteral(2))),
             Datalog.Call("path", Seq(Datalog.Var("temp"), Datalog.Var("to")))
           )
         ),
         Datalog.Body(
           Seq(
             Datalog.ExtensionalCall("edge", Seq(Datalog.Var("from"), Datalog.Var("temp"))),
-            Datalog.Compare(Datalog.EqComparator, Datalog.Var("temp"), Datalog.Constant(Datalog.IntLiteral(3))),
+            Datalog.Compare(Datalog.EqComparator, Datalog.Var("temp"), Datalog.Constant(Datalog.base.IntLiteral(3))),
             Datalog.Call("path", Seq(Datalog.Var("temp"), Datalog.Var("to")))
           )
         ),

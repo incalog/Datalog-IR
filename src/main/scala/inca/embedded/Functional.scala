@@ -2,7 +2,7 @@ package inca.embedded
 
 import inca.backend.hints.MagicSetHints.FixedAdornment
 import inca.backend.transform.magic.demand.DemandTransformation
-import inca.util.{Gensym, Scala, TupleOps}
+import inca.util.{Gensym, TupleOps}
 
 trait Functional {
   type Mod
@@ -48,7 +48,7 @@ trait FunctionalTypeChecked extends Functional {
   abstract override def module(name: String, funs: List[Fun]): Mod = {
     val sigs = funs.map(_._1).toMap
     val ctx = Context(sigs, Map())
-    val actualResults = funs.map(_._2(ctx))
+    val _ = funs.map(_._2(ctx))
     sigs
   }
 
@@ -135,8 +135,6 @@ trait FunctionalEval extends Functional {
   override type Fun = (String, (Context, List[Value]) => Value)
   /** yields the value of the expression */
   override type Exp = Context => Value
-
-  private val scalaCompiler = new Scala.ScalaCompiler
 
   // evaluation
   override def module(name: String, funs: List[Fun]): Mod = name => mainArgs => {

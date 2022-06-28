@@ -13,19 +13,19 @@ object Examples {
   val incFunGP = Datalog.Pattern(
     None,
     "inc",
-    Seq(Datalog.Param("n", Datalog.TScalaInt), Datalog.Param("out", Datalog.TScalaInt)),
+    Seq(Datalog.Param("n", Datalog.base.TScalaInt), Datalog.Param("out", Datalog.base.TScalaInt)),
     Seq(
       Datalog.Body(
         Seq(
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Computed(
             Datalog.Var("eval"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-              Datalog.TScalaInt,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaInt,
               Scala(q"(left: Int, right: Int) => left + right")
             )
           ),
@@ -37,13 +37,13 @@ object Examples {
   val incMainGP = Datalog.Pattern(
     None,
     "main",
-    Seq(Datalog.Param("out", Datalog.TScalaInt)),
+    Seq(Datalog.Param("out", Datalog.base.TScalaInt)),
     Seq(
       Datalog.Body(
         Seq(
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 0"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 0"))
           ),
           Datalog.Call(
             "inc",
@@ -62,26 +62,26 @@ object Examples {
   val factFunGP = Datalog.Pattern(
     None,
     "fact",
-    Seq(Datalog.Param("n", Datalog.TScalaInt), Datalog.Param("out", Datalog.TScalaInt)),
+    Seq(Datalog.Param("n", Datalog.base.TScalaInt), Datalog.Param("out", Datalog.base.TScalaInt)),
     Seq(
       Datalog.Body(
         Seq(
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Computed(
             Datalog.Var("eval"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-              Datalog.TScalaBoolean,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaBoolean,
               Scala(q"(left: Int, right: Int) => left == right")
             )
           ),
-          Datalog.Eq(Datalog.Var("eval"), Datalog.True),
+          Datalog.Eq(Datalog.Var("eval"), Datalog.base.True),
           Datalog.Computed(
             Datalog.Var("lit_0"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Eq(Datalog.Var("out"), Datalog.Var("lit_0"))
         )
@@ -90,26 +90,26 @@ object Examples {
         Seq(
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Computed(
             Datalog.Var("eval"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-              Datalog.TScalaBoolean,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaBoolean,
               Scala(q"(left: Int, right: Int) => left == right")
             )
           ),
-          Datalog.Eq(Datalog.Var("eval"), Datalog.False),
+          Datalog.Eq(Datalog.Var("eval"), Datalog.base.False),
           Datalog.Computed(
             Datalog.Var("lit_1"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Computed(
             Datalog.Var("eval_0"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit_1") -> Datalog.TScalaInt),
-              Datalog.TScalaInt,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit_1") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaInt,
               Scala(q"(left: Int, right: Int) => left - right")
             )
           ),
@@ -122,8 +122,8 @@ object Examples {
           Datalog.Computed(
             Datalog.Var("eval_1"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("out_0") -> Datalog.TScalaInt),
-              Datalog.TScalaInt,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("out_0") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaInt,
               Scala(q"(left: Int, right: Int) => left * right")
             )
           ),
@@ -135,13 +135,13 @@ object Examples {
   val factMainGP = Datalog.Pattern(
     None,
     "main",
-    Seq(Datalog.Param("out", Datalog.TScalaInt)),
+    Seq(Datalog.Param("out", Datalog.base.TScalaInt)),
     Seq(
       Datalog.Body(
         Seq(
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 3"))
           ),
           Datalog.Call(
             "fact",
@@ -160,19 +160,19 @@ object Examples {
   val adornedIncFunGP = Datalog.Pattern(
     None,
     "inc_bf",
-    Seq(Datalog.Param("n", Datalog.TScalaInt), Datalog.Param("out", Datalog.TScalaInt)),
+    Seq(Datalog.Param("n", Datalog.base.TScalaInt), Datalog.Param("out", Datalog.base.TScalaInt)),
     Seq(
       Datalog.Body(
         Seq(
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Computed(
             Datalog.Var("eval"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-              Datalog.TScalaInt,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaInt,
               Scala(q"(left: Int, right: Int) => left + right")
             )
           ),
@@ -184,13 +184,13 @@ object Examples {
   val adornedIncMainGP = Datalog.Pattern(
     None,
     "main_f",
-    Seq(Datalog.Param("out", Datalog.TScalaInt)),
+    Seq(Datalog.Param("out", Datalog.base.TScalaInt)),
     Seq(
       Datalog.Body(
         Seq(
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 0"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 0"))
           ),
           Datalog.Call(
             "inc_bf",
@@ -208,20 +208,20 @@ object Examples {
   val magicIncFunGP = Datalog.Pattern(
     None,
     "inc_bf",
-    Seq(Datalog.Param("n", Datalog.TScalaInt), Datalog.Param("out", Datalog.TScalaInt)),
+    Seq(Datalog.Param("n", Datalog.base.TScalaInt), Datalog.Param("out", Datalog.base.TScalaInt)),
     Seq(
       Datalog.Body(
         Seq(
           Datalog.Call("input$inc_bf", Seq(Datalog.Var("n")), transitive = false, neg = false),
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Computed(
             Datalog.Var("eval"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-              Datalog.TScalaInt,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaInt,
               Scala(q"(left: Int, right: Int) => left + right")
             )
           ),
@@ -233,13 +233,13 @@ object Examples {
   val magicIncMainGP = Datalog.Pattern(
     None,
     "main_f",
-    Seq(Datalog.Param("out", Datalog.TScalaInt)),
+    Seq(Datalog.Param("out", Datalog.base.TScalaInt)),
     Seq(
       Datalog.Body(
         Seq(
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 0"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 0"))
           ),
           Datalog.Call(
             "inc_bf",
@@ -255,13 +255,13 @@ object Examples {
   val magicInputIncFunGP = Datalog.Pattern(
     None,
     "input$inc_bf",
-    Seq(Datalog.Param("n", Datalog.TScalaInt)),
+    Seq(Datalog.Param("n", Datalog.base.TScalaInt)),
     Seq(
       Datalog.Body(
         Seq(
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 0"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 0"))
           ),
           Datalog.Eq(Datalog.Var("lit"), Datalog.Var("n"))
         )
@@ -273,27 +273,27 @@ object Examples {
   val magicFactFunGP = Datalog.Pattern(
     None,
     "fact_bf",
-    Seq(Datalog.Param("n", Datalog.TScalaInt), Datalog.Param("out", Datalog.TScalaInt)),
+    Seq(Datalog.Param("n", Datalog.base.TScalaInt), Datalog.Param("out", Datalog.base.TScalaInt)),
     Seq(
       Datalog.Body(
         Seq(
           Datalog.Call("input$fact_bf", Seq(Datalog.Var("n")), transitive = false, neg = false),
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Computed(
             Datalog.Var("eval"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-              Datalog.TScalaBoolean,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaBoolean,
               Scala(q"(left: Int, right: Int) => left == right")
             )
           ),
-          Datalog.Eq(Datalog.Var("eval"), Datalog.True),
+          Datalog.Eq(Datalog.Var("eval"), Datalog.base.True),
           Datalog.Computed(
             Datalog.Var("lit_0"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Eq(Datalog.Var("out"), Datalog.Var("lit_0"))
         )
@@ -303,26 +303,26 @@ object Examples {
           Datalog.Call("input$fact_bf", Seq(Datalog.Var("n")), transitive = false, neg = false),
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Computed(
             Datalog.Var("eval"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-              Datalog.TScalaBoolean,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaBoolean,
               Scala(q"(left: Int, right: Int) => left == right")
             )
           ),
-          Datalog.Eq(Datalog.Var("eval"), Datalog.False),
+          Datalog.Eq(Datalog.Var("eval"), Datalog.base.False),
           Datalog.Computed(
             Datalog.Var("lit_1"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Computed(
             Datalog.Var("eval_0"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit_1") -> Datalog.TScalaInt),
-              Datalog.TScalaInt,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit_1") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaInt,
               Scala(q"(left: Int, right: Int) => left - right")
             )
           ),
@@ -335,8 +335,8 @@ object Examples {
           Datalog.Computed(
             Datalog.Var("eval_1"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("out_0") -> Datalog.TScalaInt),
-              Datalog.TScalaInt,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("out_0") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaInt,
               Scala(q"(left: Int, right: Int) => left * right")
             )
           ),
@@ -348,13 +348,13 @@ object Examples {
   val magicFactMainGP = Datalog.Pattern(
     None,
     "main_f",
-    Seq(Datalog.Param("out", Datalog.TScalaInt)),
+    Seq(Datalog.Param("out", Datalog.base.TScalaInt)),
     Seq(
       Datalog.Body(
         Seq(
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 3"))
           ),
           Datalog.Call(
             "fact_bf",
@@ -370,33 +370,33 @@ object Examples {
   val magicInputFactFunGP = Datalog.Pattern(
     None,
     "input$fact_bf",
-    Seq(Datalog.Param("n_0", Datalog.TScalaInt)),
+    Seq(Datalog.Param("n_0", Datalog.base.TScalaInt)),
     Seq(
       Datalog.Body(
         Seq(
           Datalog.Call("input$fact_bf", Seq(Datalog.Var("n")), transitive = false, neg = false),
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Computed(
             Datalog.Var("eval"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-              Datalog.TScalaBoolean,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaBoolean,
               Scala(q"(left: Int, right: Int) => left == right")
             )
           ),
-          Datalog.Eq(Datalog.Var("eval"), Datalog.False),
+          Datalog.Eq(Datalog.Var("eval"), Datalog.base.False),
           Datalog.Computed(
             Datalog.Var("lit_1"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Computed(
             Datalog.Var("eval_0"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit_1") -> Datalog.TScalaInt),
-              Datalog.TScalaInt,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit_1") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaInt,
               Scala(q"(left: Int, right: Int) => left - right")
             )
           ),
@@ -407,7 +407,7 @@ object Examples {
         Seq(
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 3"))
           ),
           Datalog.Eq(Datalog.Var("lit"), Datalog.Var("n_0"))
         )
@@ -419,26 +419,26 @@ object Examples {
   val adornedFactFunGP = Datalog.Pattern(
     None,
     "fact_bf",
-    Seq(Datalog.Param("n", Datalog.TScalaInt), Datalog.Param("out", Datalog.TScalaInt)),
+    Seq(Datalog.Param("n", Datalog.base.TScalaInt), Datalog.Param("out", Datalog.base.TScalaInt)),
     Seq(
       Datalog.Body(
         Seq(
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Computed(
             Datalog.Var("eval"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-              Datalog.TScalaBoolean,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaBoolean,
               Scala(q"(left: Int, right: Int) => left == right")
             )
           ),
-          Datalog.Eq(Datalog.Var("eval"), Datalog.True),
+          Datalog.Eq(Datalog.Var("eval"), Datalog.base.True),
           Datalog.Computed(
             Datalog.Var("lit_0"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Eq(Datalog.Var("out"), Datalog.Var("lit_0"))
         )
@@ -447,26 +447,26 @@ object Examples {
         Seq(
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Computed(
             Datalog.Var("eval"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit") -> Datalog.TScalaInt),
-              Datalog.TScalaBoolean,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaBoolean,
               Scala(q"(left: Int, right: Int) => left == right")
             )
           ),
-          Datalog.Eq(Datalog.Var("eval"), Datalog.False),
+          Datalog.Eq(Datalog.Var("eval"), Datalog.base.False),
           Datalog.Computed(
             Datalog.Var("lit_1"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 1"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 1"))
           ),
           Datalog.Computed(
             Datalog.Var("eval_0"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("lit_1") -> Datalog.TScalaInt),
-              Datalog.TScalaInt,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("lit_1") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaInt,
               Scala(q"(left: Int, right: Int) => left - right")
             )
           ),
@@ -479,8 +479,8 @@ object Examples {
           Datalog.Computed(
             Datalog.Var("eval_1"),
             Datalog.Evaluation(
-              Seq(Datalog.Var("n") -> Datalog.TScalaInt, Datalog.Var("out_0") -> Datalog.TScalaInt),
-              Datalog.TScalaInt,
+              Seq(Datalog.Var("n") -> Datalog.base.TScalaInt, Datalog.Var("out_0") -> Datalog.base.TScalaInt),
+              Datalog.base.TScalaInt,
               Scala(q"(left: Int, right: Int) => left * right")
             )
           ),
@@ -492,13 +492,13 @@ object Examples {
   val adornedFactMainGP = Datalog.Pattern(
     None,
     "main_f",
-    Seq(Datalog.Param("out", Datalog.TScalaInt)),
+    Seq(Datalog.Param("out", Datalog.base.TScalaInt)),
     Seq(
       Datalog.Body(
         Seq(
           Datalog.Computed(
             Datalog.Var("lit"),
-            Datalog.Evaluation(Seq(), Datalog.TScalaInt, Scala(q"() => 3"))
+            Datalog.Evaluation(Seq(), Datalog.base.TScalaInt, Scala(q"() => 3"))
           ),
           Datalog.Call(
             "fact_bf",
@@ -593,7 +593,7 @@ object Examples {
           Datalog.HasType(Datalog.Var("y"), tNode),
           Datalog.Eq(
             Datalog.Var("y"),
-            Datalog.Constant(Datalog.IntLiteral(0))
+            Datalog.Constant(Datalog.base.IntLiteral(0))
           ), // this is only temporary
           Datalog.Call(
             "unreachable",
@@ -706,7 +706,7 @@ object Examples {
               Datalog.HasType(Datalog.Var("y"), tNode),
               Datalog.Eq(
                 Datalog.Var("y"),
-                Datalog.Constant(Datalog.IntLiteral(0))
+                Datalog.Constant(Datalog.base.IntLiteral(0))
               ), // this is only temporary
               Datalog.Call(
                 "unreachable_fb",
@@ -840,7 +840,7 @@ object Examples {
               Datalog.HasType(Datalog.Var("y"), tNode),
               Datalog.Eq(
                 Datalog.Var("y"),
-                Datalog.Constant(Datalog.IntLiteral(0))
+                Datalog.Constant(Datalog.base.IntLiteral(0))
               ), // this is only temporary
               Datalog.Call(
                 "unreachable_fb",
@@ -862,7 +862,7 @@ object Examples {
               Datalog.HasType(Datalog.Var("y"), tNode),
               Datalog.Eq(
                 Datalog.Var("y"),
-                Datalog.Constant(Datalog.IntLiteral(0))
+                Datalog.Constant(Datalog.base.IntLiteral(0))
               ), // this is only temporary
               Datalog.Eq(Datalog.Var("y"), Datalog.Var("y_0"))
             )

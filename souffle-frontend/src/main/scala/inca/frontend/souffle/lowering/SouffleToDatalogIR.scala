@@ -175,11 +175,11 @@ class SouffleToDatalogIR(useEditScriptForInput: Boolean = false) {
   }
 
   def compileToScalaType(typ: Syntax.Type): Type = typ match {
-    case DeclaredType(_) => TScalaString
-    case SymbolType => TScalaString
-    case NumberType => TScalaInt
-    case UnsignedType => TScalaLong
-    case FloatType => TScalaDouble
+    case DeclaredType(_) => base.TScalaString
+    case SymbolType => base.TScalaString
+    case NumberType => base.TScalaInt
+    case UnsignedType => base.TScalaLong
+    case FloatType => base.TScalaDouble
   }
 
   def getJavaClassForType(typ: Syntax.Type): Class[_] = typ match {
