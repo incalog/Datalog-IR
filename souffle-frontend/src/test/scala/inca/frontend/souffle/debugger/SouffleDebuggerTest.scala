@@ -2,6 +2,7 @@ package inca.frontend.souffle.debugger
 
 import inca.compiler.source.{Source, SourceFile, SourceString}
 import inca.debugger.Value
+import inca.debugger.table.ImmutableTable
 import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.frontend.souffle.compiler.SouffleOptions
 import inca.frontend.souffle.executor.SouffleExecutor
@@ -9,6 +10,7 @@ import inca.frontend.souffle.lowering.SouffleToDatalogIR
 import inca.frontend.souffle.parser.Parser
 import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.Syntax.Name
+
 import java.nio.file.Path
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite

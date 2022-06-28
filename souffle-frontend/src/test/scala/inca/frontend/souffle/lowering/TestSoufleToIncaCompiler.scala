@@ -2,17 +2,11 @@ package inca.frontend.souffle.lowering
 
 import inca.compiler.source.SourceString
 import inca.compiler.Options
-<<<<<<< HEAD
 import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.frontend.souffle.parser.Parser
 import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.Syntax.Name
 import inca.runtime.context.DataModel
-=======
-import inca.frontend.souffle.parser.Parser
-import inca.frontend.souffle.Syntax
-import inca.frontend.souffle.Syntax.Name
->>>>>>> debugger
 import inca.runtime.context.QueryScope
 import inca.util.matchers.IncaGPMatchers
 import org.scalatest.flatspec.AnyFlatSpec
@@ -47,22 +41,14 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
       |.printsize Superclass
       |""".stripMargin
 
-<<<<<<< HEAD
   val directsuperclassSig: Syntax.RuleSignature =
-=======
-  val directsuperclassSig =
->>>>>>> debugger
     Syntax.RuleSignature(
       Name("DirectSuperclass"),
       Seq(
         Syntax.RuleParameter(Name("?class"), Syntax.DeclaredType(Name("ClassType"))),
         Syntax.RuleParameter(Name("?superclass"), Syntax.DeclaredType(Name("ClassType")))
       ),
-<<<<<<< HEAD
       output = false
-=======
-      false
->>>>>>> debugger
     )
 
   lazy val compiledModule: CompiledSouffleModule = {
@@ -79,13 +65,8 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
     val superclasses =
       """A B
         |E G""".stripMargin
-<<<<<<< HEAD
     val factsCompiler = new SouffleToNamedRelations("EMPTY")
     val inputs =
-=======
-    val factsCompiler = new SouffleInputToEditscript("EMPTY")
-    val directsuperclassEdits =
->>>>>>> debugger
       factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
 
     println(compiledModule.psystemModule.patterns.keys)
@@ -101,11 +82,7 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
     val superclasses =
       """A B
         |B C""".stripMargin
-<<<<<<< HEAD
     val factsCompiler = new SouffleToNamedRelations("EMPTY")
-=======
-    val factsCompiler = new SouffleInputToEditscript("EMPTY")
->>>>>>> debugger
     val directsuperclassEdits =
       factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
 
@@ -119,11 +96,7 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
       """A B
         |B C
         |C D""".stripMargin
-<<<<<<< HEAD
     val factsCompiler = new SouffleToNamedRelations("EMPTY")
-=======
-    val factsCompiler = new SouffleInputToEditscript("EMPTY")
->>>>>>> debugger
     val directsuperclassEdits =
       factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
 
@@ -138,11 +111,7 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
         |B C
         |C D
         |D E""".stripMargin
-<<<<<<< HEAD
     val factsCompiler = new SouffleToNamedRelations("EMPTY")
-=======
-    val factsCompiler = new SouffleInputToEditscript("EMPTY")
->>>>>>> debugger
     val directsuperclassEdits =
       factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
 
@@ -158,11 +127,7 @@ class TestSoufleToIncaCompiler extends AnyFlatSpec with IncaGPMatchers {
         |C D
         |D E
         |E F""".stripMargin
-<<<<<<< HEAD
     val factsCompiler = new SouffleToNamedRelations("EMPTY")
-=======
-    val factsCompiler = new SouffleInputToEditscript("EMPTY")
->>>>>>> debugger
     val directsuperclassEdits =
       factsCompiler.compile(superclasses.split("\n").iterator, directsuperclassSig, " ")
 
