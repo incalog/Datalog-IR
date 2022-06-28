@@ -1,6 +1,6 @@
 package inca.frontend.souffle.lowering
 
-import inca.backend.ir.Datalog._
+import inca.backend.ir.DatalogScala._
 import inca.util.Scala
 
 object PropagateUnbounded {

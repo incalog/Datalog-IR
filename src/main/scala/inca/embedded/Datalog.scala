@@ -19,6 +19,7 @@ trait Datalog {
   type Ato
   type Trm
   type Typ
+  type Agg
 
   def module(name: String, patterns: List[Pat]): Mod
   def pattern(name: String, params: List[(String, Typ)], bodies: List[Bod], hints: Set[Hint] = Set()): Pat
@@ -35,6 +36,7 @@ trait Datalog {
   def eq(t1: Trm, t2: Trm): Ato
   def neq(t1: Trm, t2: Trm): Ato
   def query(rel: String, args: List[Trm], extensional: Boolean = false): Ato
+  def aggregate(res: Trm, ty: Typ, agg: Agg, rel: String, args: List[Trm], aggColumn: Int): Ato
   def op(res: Trm, lhs: Trm, lty: Typ, op: String, rhs: Trm, rty: Typ): Ato
 
   // terms
@@ -46,9 +48,9 @@ trait Datalog {
 }
 
 trait DatalogReplay extends Datalog {
-  import inca.backend.ir.{Datalog => ir}
-
   import meta.quasiquotes._
+
+  override type Agg = meta.Term
 
   def replay(m: ir.Module): Mod =
     module(m.name, m.pats.map(replay).toList)
@@ -63,6 +65,8 @@ trait DatalogReplay extends Datalog {
     case ir.Compare(ir.NeqComparator, lhs, rhs) => neq(replay(lhs), replay(rhs))
     case ir.Computed(lhs, ir.Evaluation(Seq((l, tyl), (r, tyr)), _, Scala(q"(x: $_, y: $_) => x $oper y"))) if tyl == tyr =>
       op(replay(lhs), replay(l), replay(tyl), oper.value, replay(r), replay(tyr))
+    case ir.Computed(lhs, ir.CustomAggregation(ty, _, Scala(agg), name, args, col)) =>
+      aggregate(replay(lhs), replay(ty), agg, name, args.map(replay).toList, col)
     case _ => throw new UnsupportedOperationException(s"Cannot replay $a")
   }
   def replay(t: ir.Term): Trm = t match {
@@ -109,13 +113,14 @@ trait DatalogOperatorType extends Datalog {
 }
 
 trait DatalogPatternAST extends Datalog {
-  import inca.backend.ir.{Datalog => ir}
+  import meta.quasiquotes._
 
   type Pat = ir.Pattern
   type Bod = ir.Body
   type Ato = ir.Atom
   type Trm = ir.Term
   type Typ = ir.Type
+  type Agg = meta.Term
 
   override def pattern(name: String, params: List[(String, ir.Type)], bodies: List[ir.Body], hints: Set[Hint]): ir.Pattern = {
     val pat = ir.Pattern(None, name, params.map { case (x, t) => ir.Param(x, t) }, bodies)
@@ -139,8 +144,10 @@ trait DatalogPatternAST extends Datalog {
       ir.ExtensionalCall(rel, args)
     else
       ir.Call(rel, args)
+  override def aggregate(res: ir.Term, ty: ir.Type, agg: meta.Term, rel: String, args: List[ir.Term], aggColumn: Int): ir.Atom = {
+    ir.Computed(res, ir.CustomAggregation(ty, None, Scala(agg), rel, args, aggColumn))
+  }
   override def op(res: ir.Term, lhs: ir.Term, lty: ir.Type, op: String, rhs: ir.Term, rty: ir.Type): ir.Atom = {
-
     val args = Seq((lhs, lty), (rhs, rty))
     val code = q"(x: ${lty.asScala}, y: ${rty.asScala}) => x ${meta.Term.Name(op)} y"
     ir.Computed(res, ir.Evaluation(args, tany, Scala(code)))
@@ -154,7 +161,6 @@ trait DatalogPatternAST extends Datalog {
 }
 
 trait DatalogModuleAST extends DatalogPatternAST {
-  import inca.backend.ir.{Datalog => ir}
 
   override type Mod = ir.Module
   override def module(name: String, patterns: List[Pat]): ir.Module =
@@ -162,7 +168,6 @@ trait DatalogModuleAST extends DatalogPatternAST {
 }
 
 trait DatalogEval extends Datalog with DatalogPatternAST {
-  import inca.backend.ir.{Datalog => ir}
 
   type Tuples = Set[Seq[Any]]
   type EDB = Map[String, Tuples]
@@ -192,7 +197,6 @@ trait DatalogEval extends Datalog with DatalogPatternAST {
 }
 
 trait DatalogEvalIncremental extends Datalog with DatalogPatternAST {
-  import inca.backend.ir.{Datalog => ir}
 
   type Tuples = Set[Seq[Any]]
   type Modify = (String, Seq[Any], Boolean) => Unit
@@ -233,7 +237,6 @@ trait DatalogEvalIncremental extends Datalog with DatalogPatternAST {
 }
 
 trait DatalogDemandTransformed extends Datalog with DatalogPatternAST {
-  import inca.backend.ir.{Datalog => ir}
 
   val target: Datalog with DatalogReplay
 

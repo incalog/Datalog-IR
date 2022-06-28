@@ -13,6 +13,11 @@ trait Functional {
   def module(name: String, funs: List[Fun]): Mod
   def function(name: String, params: List[(String, Typ)], outType: Typ, body: Exp): Fun
 
+//  val datalog: Datalog
+//  def embedDatalog(p: datalog.Mod): Exp
+//  def mergeDatalog(p1: Exp, p2: Exp): Exp
+//  def solveDatalog(problem: Exp): Exp
+
   // types
   def tany: Typ
   def tbool: Typ
@@ -371,7 +376,7 @@ object FunctionalTest extends App {
       override val target = new DatalogEval with DatalogReplay {}
     }
   }
-  val functionalDatalogIncremental = new FunctionalDatalog {
+  lazy val functionalDatalogIncremental = new FunctionalDatalog {
     override val datalog = new DatalogDemandTransformed with DatalogOperatorType {
       override val target = new DatalogEvalIncremental with DatalogReplay {}
     }
