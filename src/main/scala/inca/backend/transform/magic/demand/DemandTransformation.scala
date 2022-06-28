@@ -3,7 +3,7 @@ package inca.backend.transform.magic.demand
 import inca.backend.hints.Hints
 import inca.backend.hints.MagicSetHints
 import inca.backend.hints.MagicSetHints.InputCall
-import inca.backend.ir.CollectVars
+import inca.backend.ir.{CollectVarNames, Datalog}
 import inca.backend.ir.Datalog._
 import inca.backend.transform.FilterBodyTransformer
 import inca.backend.transform.Transformation
@@ -25,7 +25,7 @@ object DemandTransformation extends Transformation {
 
     override def transformModule(mod: Module): Module = {
       val insertedInputCallPats = mod.pats.flatMap(transformPattern)
-      insertedInputCallPats.foreach(p => gensym.register(CollectVars.transPattern(p)))
+      insertedInputCallPats.foreach(p => gensym.register(Datalog.collectVarNames.transPattern(p)))
 
       val inputPatterns = mod.pats.flatMap { pat =>
         val demandPats = getDemandPatterns(pat)

@@ -1,11 +1,12 @@
 package inca.backend.transform.magic
 
 import inca.backend.hints.MagicSetHints
-import inca.backend.ir.Collect
+import inca.backend.ir.{Collect, Datalog}
 import inca.backend.ir.Datalog._
 import inca.backend.transform.Transformation
 import inca.backend.transform.Transformer
 import inca.runtime.context.DataModel
+
 import scala.collection.mutable.ListBuffer
 
 // This transformation consumes MagicSetHints.Main and MagicSetHints.FixedAdornment
@@ -82,10 +83,6 @@ object AdornProgram extends Transformation {
   private def collectMainPattern(module: Module): Seq[Pattern] =
     module.pats.filter { p => p.hints.contains(MagicSetHints.Main.key) }
 
-  object CollectVars extends Collect[Var] {
-    override def transVar(v: Var): Seq[Var] = Seq(v)
-  }
-
   def fixedAdornment(con: Atom): Option[Seq[Boolean]] =
     con.hints.get(MagicSetHints.FixedAdornment.key).flatMap {
       case MagicSetHints.FixedAdornment(adorn) =>
@@ -117,8 +114,8 @@ object AdornProgram extends Transformation {
   }
 
   def freeVars(prev: Seq[Atom], constraint: Atom): Set[Var] = {
-    val prevBound = prev.foldLeft(Set[Var]()) { case (res, c) => res ++ CollectVars.transAtom(c) }
-    val vars = CollectVars.transAtom(constraint).toSet
+    val prevBound = prev.foldLeft(Set[Var]()) { case (res, c) => res ++ Datalog.collectVars.transAtom(c) }
+    val vars = Datalog.collectVars.transAtom(constraint).toSet
     vars.diff(prevBound)
   }
 

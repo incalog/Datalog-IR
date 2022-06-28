@@ -1,5 +1,5 @@
 package inca.backend.optimize
-import inca.backend.ir.CollectVars
+import inca.backend.ir.CollectVarNames
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.Evaluation
 import inca.backend.ir.Datalog.Term
@@ -17,7 +17,7 @@ object EvalFusion extends Optimization {
     private val gensym: Gensym = new Gensym(Iterable.empty)
 
     override def optimizeBody(body: Datalog.Body, pat: Datalog.Pattern): Seq[Datalog.Body] = {
-      val varCount = MultiSet() ++ CollectVars.transBody(body) ++ pat.params.map(_.name)
+      val varCount = MultiSet() ++ Datalog.collectVarNames.transBody(body) ++ pat.params.map(_.name)
       evalTerms = body.atoms.flatMap {
         case Datalog.Computed(v: Var, eval: Evaluation) =>
           if (varCount.get(v.name) == 2) {

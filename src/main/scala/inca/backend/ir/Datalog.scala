@@ -70,8 +70,27 @@ object ScalaBase extends Base {
   }
 }
 
-object Datalog {
+object Datalog extends DatalogGeneric {
   val base: ScalaBase.type = ScalaBase
+
+  val collectVarNames: CollectVarNames[Datalog.type] = new CollectVarNames[Datalog.type] {
+    override val datalog: Datalog.type = Datalog
+  }
+  val collectVars: CollectVars[Datalog.type] = new CollectVars[Datalog.type] {
+    override val datalog: Datalog.type = Datalog
+  }
+  val collectLits: CollectLits[Datalog.type] = new CollectLits[Datalog.type] {
+    override val datalog: Datalog.type = Datalog
+  }
+  val collectConstantEvaluation: CollectConstantEvaluation[Datalog.type] = new CollectConstantEvaluation[Datalog.type] {
+    override val datalog: Datalog.type = Datalog
+  }
+}
+
+trait DatalogGeneric {
+  val base: ScalaBase.type
+
+  private val printer = new DatalogPrinter[this.type](this)
 
   type Name = String
 
@@ -84,18 +103,13 @@ object Datalog {
       pats: Seq[Pattern],
       scalaContent: Seq[base.Definition])
       extends Hints {
-    override def toString: Name = GPPrinter.prettyModule(this)
-    lazy val patternMap: Map[String, Datalog.Pattern] = pats.map { pat => pat.name -> pat }.toMap
+    override def toString: Name = printer.prettyModule(Module(name, imports, pats, scalaContent))
+    lazy val patternMap: Map[String, Pattern] = pats.map { pat => pat.name -> pat }.toMap
   }
+
   case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body])
       extends Hints {
     def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)
-
-    /**
-     * def R(x) = P(x) union Q(x) union x == 0
-     *
-     * R(0). R(x) :- P(x). R(y) :- Q(y).
-     */
   }
   case class Param(name: Name, typ: Type)
 

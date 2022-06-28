@@ -1,7 +1,6 @@
 package inca.backend.optimize
-import inca.backend.ir.CollectVars
+import inca.backend.ir.{CollectVarNames, Datalog, TypeOps}
 import inca.backend.ir.Datalog._
-import inca.backend.ir.TypeOps
 import inca.backend.optimize.Optimizer.throwBodyMustFail
 import inca.runtime.context.DataModel
 import inca.util.Scala
@@ -23,7 +22,7 @@ object FoldConstantAtoms extends Optimization {
     private var varCount: MultiSet[Name] = MultiSet()
 
     override def optimizeBody(body: Body, pat: Pattern): Seq[Body] = {
-      varCount = MultiSet() ++ CollectVars.transBody(body) ++ pat.params.map(_.name)
+      varCount = MultiSet() ++ Datalog.collectVarNames.transBody(body) ++ pat.params.map(_.name)
       super.optimizeBody(body, pat)
     }
 

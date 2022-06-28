@@ -2,7 +2,7 @@ package inca.backend.optimize
 
 import inca.backend.hints.MagicSetHints.MainKey
 import inca.backend.hints.OptimizationHints.KeepPattern
-import inca.backend.ir.CollectVars
+import inca.backend.ir.CollectVarNames
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog._
 import inca.backend.ir.Substitute
@@ -40,7 +40,7 @@ object InlineSimpleRelations extends Optimization {
             progress = false
           case Some(inline) =>
             gensym.scoped {
-              gensym.register(CollectVars.transPattern(inline))
+              gensym.register(Datalog.collectVarNames.transPattern(inline))
               pats = pats.map { pat =>
                 inlineRelation(pat, inline)
               }
@@ -56,7 +56,7 @@ object InlineSimpleRelations extends Optimization {
 
     def inlineRelation(pat: Pattern, inline: Pattern): Pattern = gensym.scoped {
       pat.params.foreach(p => gensym.register(p.name))
-      gensym.register(CollectVars.transPattern(pat))
+      gensym.register(Datalog.collectVarNames.transPattern(pat))
       val newbodies = pat.bodies.flatMap(inlineRelationBodies(_, inline))
       Pattern(pat.vis, pat.name, pat.params, newbodies).withHints(pat)
     }

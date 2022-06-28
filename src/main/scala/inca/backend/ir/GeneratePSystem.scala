@@ -154,11 +154,11 @@ object GeneratePSystem {
           }.toList}
                         body.setSymbolicParameters(exportedParams)
 
-                        ..${CollectVars.transBody(body).distinct.diff(paramNames).map(
+                        ..${Datalog.collectVarNames.transBody(body).distinct.diff(paramNames).map(
             genTempVar
           ).toList}
-                        ..${CollectLits.transBody(body).distinct.map(genLiteralVar).toList}
-                        ..${CollectConstantEvaluation.transBody(body).distinct.map(
+                        ..${Datalog.collectLits.transBody(body).distinct.map(genLiteralVar).toList}
+                        ..${Datalog.collectConstantEvaluation.transBody(body).distinct.map(
             genConstantEval
           ).toList}
                         ..${pat.params.flatMap(genParamConstraint).toList}

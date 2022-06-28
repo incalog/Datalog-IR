@@ -1,23 +1,35 @@
 package inca.backend.ir
 
-import inca.backend.ir.Datalog._
-
-object CollectVars extends Collect[String] {
+trait CollectVarNames[D <: DatalogGeneric] extends Collect[D] {
+  import datalog._
+  override type R = String
   override def transVar(v: Var): Seq[String] = Seq(v.name)
 }
-
-object CollectLits extends Collect[base.Literal] {
+trait CollectVars[D <: DatalogGeneric] extends Collect[D] {
+  import datalog._
+  override type R = Var
+  override def transVar(v: Var): Seq[Var] = Seq(v)
+}
+trait CollectLits[D <: DatalogGeneric] extends Collect[D] {
+  import datalog._
+  override type R = base.Literal
   override def transLit(lit: base.Literal): Seq[base.Literal] = Seq(lit)
 }
 
-object CollectConstantEvaluation extends Collect[Evaluation] {
+trait CollectConstantEvaluation[D <: DatalogGeneric] extends Collect[D] {
+  import datalog._
+  override type R = Evaluation
   override def transComputation(computation: Computation): Seq[Evaluation] = computation match {
     case eval: Evaluation if eval.args.isEmpty => Seq(eval)
     case _ => super.transComputation(computation)
   }
 }
 
-trait Collect[R] {
+trait Collect[D <: DatalogGeneric] {
+  type R
+
+  val datalog: D
+  import datalog._
 
   def apply(mod: Module): Seq[R] = {
     mod.pats.flatMap(transPattern)
