@@ -46,9 +46,6 @@ public interface FuncIncaSingleLet extends PsiElement {
   @Nullable
   FuncIncaFunType getFunType();
 
-  @NotNull
-  FuncIncaId getId();
-
   @Nullable
   FuncIncaLambdaExp getLambdaExp();
 
@@ -72,6 +69,9 @@ public interface FuncIncaSingleLet extends PsiElement {
 
   @Nullable
   FuncIncaVar getVar();
+
+  @NotNull
+  PsiElement getId();
 
   @Nullable
   PsiElement getScalaTerm();

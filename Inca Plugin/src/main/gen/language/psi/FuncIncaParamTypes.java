@@ -7,7 +7,4 @@ import com.intellij.psi.PsiElement;
 
 public interface FuncIncaParamTypes extends PsiElement {
 
-  @NotNull
-  List<FuncIncaId> getIdList();
-
 }

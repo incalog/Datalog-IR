@@ -106,12 +106,6 @@ public class FuncIncaMultipleLetImpl extends ASTWrapperPsiElement implements Fun
   }
 
   @Override
-  @NotNull
-  public List<FuncIncaId> getIdList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaId.class);
-  }
-
-  @Override
   @Nullable
   public FuncIncaLambdaExp getLambdaExp() {
     return findChildByClass(FuncIncaLambdaExp.class);

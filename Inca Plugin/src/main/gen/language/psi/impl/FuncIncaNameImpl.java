@@ -11,14 +11,14 @@ import static language.psi.FuncIncaTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaConstSetExpImpl extends ASTWrapperPsiElement implements FuncIncaConstSetExp {
+public class FuncIncaNameImpl extends ASTWrapperPsiElement implements FuncIncaName {
 
-  public FuncIncaConstSetExpImpl(@NotNull ASTNode node) {
+  public FuncIncaNameImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull FuncIncaVisitor visitor) {
-    visitor.visitConstSetExp(this);
+    visitor.visitName(this);
   }
 
   @Override
@@ -29,14 +29,8 @@ public class FuncIncaConstSetExpImpl extends ASTWrapperPsiElement implements Fun
 
   @Override
   @NotNull
-  public List<FuncIncaExp> getExpList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaTupleExp getTupleExp() {
-    return findChildByClass(FuncIncaTupleExp.class);
+  public PsiElement getId() {
+    return findNotNullChildByType(ID);
   }
 
 }

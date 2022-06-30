@@ -13,14 +13,11 @@ public interface FuncIncaFunDef extends PsiElement {
   @Nullable
   FuncIncaAtomicType getAtomicType();
 
-  @NotNull
+  @Nullable
   FuncIncaExp getExp();
 
   @Nullable
   FuncIncaFunType getFunType();
-
-  @NotNull
-  FuncIncaId getId();
 
   @NotNull
   List<FuncIncaParam> getParamList();
@@ -30,5 +27,8 @@ public interface FuncIncaFunDef extends PsiElement {
 
   @Nullable
   FuncIncaVisibility getVisibility();
+
+  @Nullable
+  PsiElement getId();
 
 }

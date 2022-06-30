@@ -39,10 +39,4 @@ public class FuncIncaLambdaVarsImpl extends ASTWrapperPsiElement implements Func
     return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaFunType.class);
   }
 
-  @Override
-  @NotNull
-  public List<FuncIncaId> getIdList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaId.class);
-  }
-
 }

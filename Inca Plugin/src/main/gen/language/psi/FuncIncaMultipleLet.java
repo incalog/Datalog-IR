@@ -46,9 +46,6 @@ public interface FuncIncaMultipleLet extends PsiElement {
   @NotNull
   List<FuncIncaFunType> getFunTypeList();
 
-  @NotNull
-  List<FuncIncaId> getIdList();
-
   @Nullable
   FuncIncaLambdaExp getLambdaExp();
 

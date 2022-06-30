@@ -7,7 +7,4 @@ import com.intellij.psi.PsiElement;
 
 public interface FuncIncaOptionPattern extends PsiElement {
 
-  @NotNull
-  List<FuncIncaId> getIdList();
-
 }

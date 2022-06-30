@@ -28,12 +28,6 @@ public class FuncIncaConstructorPatternImpl extends ASTWrapperPsiElement impleme
   }
 
   @Override
-  @NotNull
-  public List<FuncIncaId> getIdList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaId.class);
-  }
-
-  @Override
   @Nullable
   public FuncIncaParamTypes getParamTypes() {
     return findChildByClass(FuncIncaParamTypes.class);

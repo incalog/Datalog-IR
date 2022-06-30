@@ -30,12 +30,56 @@
     keyword_not = "not"
     keyword_data = "data"
     keyword_def = "def"
+
+    boolean_true = "true"
+    boolean_false = "false"
+    type_nothing = "Nothing"
+    type_any = "Any"
+    type_unit = "Unit"
+
+    parens_open = "("
+    parens_close = ")"
+    braces_open = "{"
+    braces_close ="}"
+    square_bracket_open = "["
+    square_bracket_close = "]"
+
+    plus = "+"
+    minus = "-"
+    star = "*"
+    slash = "/"
+    modulo = "%"
+    and = "&&"
+    or ="||"
+    lt = "<"
+    gt = ">"
+    equivalence = "=="
+    leq = "<="
+    geq = ">="
+    non_equivalence = "!="
+    set_union = "++"
+    set_intersection = "&"
+    negation = "!"
+
+    cast = "as"
+    back_tick = "`"
+    quotation_mark = "\""
+    dot = "."
+    comma = ","
+    colon = ":"
+    arrow = "=>"
+    equal_sign = "="
+    bar = "|"
+
+    annotation_main = "@main"
+    visibility_private = "private"
+
     space = "regexp:\s+"                    // any possible whitespaces: [ \t\n\x0B\f\r]
-    valid_id = "regexp:[a-zA-Z_]\w*"         // starts with any letter, continues with word characters [a-zA-Z_0-9]
+    id = "regexp:[a-zA-Z_]\w*"         // starts with any letter, continues with word characters [a-zA-Z_0-9]
     string = "regexp:\"([^\"\\]|\\.)*\""        // any number of any characters between quotation marks
     scala_term = "regexp:`.[^`]*`"              // any Number of any characters between ticks ` and `
-    number = "regexp:-?\d+"                 // positive or negative numbers with digits \d = [0-9], integer or long
-    double = "regexp:-?\d+(\.\d+)?"
+    number = "regexp:\d+"                 // positive or negative numbers with digits \d = [0-9], integer or long
+    double = "regexp:\d+(\.\d+)?"
     line_comment = "regexp://.*"            // any number of any characters after // (. means any character)
     block_comment = "regexp:/\*(.|\n)*\*/"  // any number of any characters or line breaks after /* and before */
     ]
@@ -44,10 +88,12 @@
 
 module ::= keyword_module id import* module_content* {pin = 1}
 import ::= keyword_import id {pin = 1}
-id ::=  valid_id
-// !('if' | 'let' | 'in' | 'match' | 'fail' | 'Option' | 'None' | 'Some' | 'Set' | 'fold' | 'not' | 'module')
 private module_content ::= fun_def | data_def
-private property_recover ::= !(':' | '=>' | '{' | '}' | '(' | ')')
+/*
+private parens_recover ::= !('{' | '}' | '(' | ')' | '[' | '[')
+private keywords_recover ::= !('module' | 'data' | 'def' | 'if' | 'else' | 'let' | 'in' | 'match' | 'case' | 'fail' |
+                                'Option' | 'None' | 'Some' | 'Set' | 'fold' | 'import' | 'not')
+*/
 
 // definition of functions
 fun_def ::= annotation* visibility? keyword_def id param_types? ('(' param_list ')')? ':' type_annotation '=' exp {pin = 3}
@@ -71,9 +117,10 @@ member_exp ::= atomic_exp keyword_not? keyword_in infix_exp {pin = 3}
 
 //infix expressions
 private infix_exp ::= cast_exp | base_apply_method_exp | base_apply_infix_exp | match_exp | subinfix_exp
-cast_exp ::= subinfix_exp '.as[' data ']' {pin = 2}
-base_apply_method_exp ::= subinfix_exp '.`' id '`' ( '(' (infix_exp (',' infix_exp)*)? ')' )? {pin = 2}
+cast_exp ::= subinfix_exp '.' 'as' '[' name ']' {pin = 3}
+base_apply_method_exp ::= subinfix_exp '.' scala_term ( '(' (infix_exp (',' infix_exp)*)? ')' )? {pin = 3} // scala_term = '`' id '`'
 base_apply_infix_exp ::= subinfix_exp op infix_exp {pin = op}
+// private recover_base_apply_infix_exp ::= ! op
 private op ::= '+' | '-' | '*' | '/' | '%' // arithmetic
         | '&&' | '||' | '<' | '>' | '==' | '!=' | '<=' | '>=' // logic
         | '++' | '&' // sets
@@ -85,17 +132,17 @@ constructor_pattern ::= id param_types? '(' (id (',' id)*)? ')'
 
 // subinfix expressions
 private subinfix_exp ::= call_exp | lambda_exp | atomic_exp
-call_exp ::= atomic_exp param_types? ('(' (exp (',' exp)*)? ')')+ {pin = 3}// + to allow composition of functions
+call_exp ::= atomic_exp param_types? ('(' (exp (',' exp)*)? ')')+ {pin = 3} // + to allow composition of functions
 lambda_exp ::= lambda_vars '=>' exp {pin = 2}
 lambda_vars ::= '(' (id ':' type_annotation (',' id ':' type_annotation)*)? ')'
 
 // atomic expressions (parenthesis, option, set comprehension, tuples, fold, apply scala, variables)
 private atomic_exp ::= parens_exp | option_exp | comprehension_exp | const_set_exp | tuple_exp | fold_exp
                | base_apply_exp | base_lit_exp | var | base_apply_unary_exp
-parens_exp ::= '(' exp ')' {pin = 1}
+parens_exp ::= '(' exp ')'
 option_exp ::= 'None' | 'Some' '(' (exp (',' exp)*)? ')'
 comprehension_exp ::= '{' subinfix_exp '|' exp (',' exp)* '}' {pin = 3}
-const_set_exp ::= '{' (exp (',' exp)*)? '}'
+const_set_exp ::= '{' (exp (',' exp)*)? '}' | '{' tuple_exp
 tuple_exp ::= '(' exp ',' exp ')'
 fold_exp ::= keyword_fold ('[' type_annotation ']')? '(' exp ',' exp ',' exp ')' {pin = 1}
 base_apply_exp ::= scala_term '(' (exp (',' exp)*)? ')'
@@ -106,12 +153,13 @@ private unary_op ::= '-' | '!'
 // type definitions
 private type_annotation ::= fun_type | atomic_type
 fun_type ::= atomic_type '=>' type_annotation {pin = 2}
-atomic_type ::= tuple | 'Any' | 'Nothing' | 'Unit' | option | set | scala_term | constr | data
+private recover_fun_type ::= ! atomic_type
+atomic_type ::= tuple | 'Any' | 'Nothing' | 'Unit' | option | set | scala_term | constr | name
 constr ::= id '[' type_annotation (',' type_annotation)* ']'
 tuple ::= '(' (type_annotation (',' type_annotation)*)? ')'
 option ::= keyword_Option '[' type_annotation ']' {pin = 1}
 set ::= keyword_Set '[' type_annotation ']' {pin = 1}
-data ::= id
+name ::= id
 
 // literals
 private base_lit_exp ::= numeric_lit | boolean_lit | string_lit | scala_term

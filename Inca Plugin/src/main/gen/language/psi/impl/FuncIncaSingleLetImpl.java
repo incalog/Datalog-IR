@@ -106,12 +106,6 @@ public class FuncIncaSingleLetImpl extends ASTWrapperPsiElement implements FuncI
   }
 
   @Override
-  @NotNull
-  public FuncIncaId getId() {
-    return findNotNullChildByClass(FuncIncaId.class);
-  }
-
-  @Override
   @Nullable
   public FuncIncaLambdaExp getLambdaExp() {
     return findChildByClass(FuncIncaLambdaExp.class);
@@ -157,6 +151,12 @@ public class FuncIncaSingleLetImpl extends ASTWrapperPsiElement implements FuncI
   @Nullable
   public FuncIncaVar getVar() {
     return findChildByClass(FuncIncaVar.class);
+  }
+
+  @Override
+  @NotNull
+  public PsiElement getId() {
+    return findNotNullChildByType(ID);
   }
 
   @Override

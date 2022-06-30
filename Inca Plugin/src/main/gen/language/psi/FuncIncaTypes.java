@@ -21,14 +21,12 @@ public interface FuncIncaTypes {
   IElementType CONSTR = new FuncIncaElementType("CONSTR");
   IElementType CONSTRUCTOR_PATTERN = new FuncIncaElementType("CONSTRUCTOR_PATTERN");
   IElementType CONST_SET_EXP = new FuncIncaElementType("CONST_SET_EXP");
-  IElementType DATA = new FuncIncaElementType("DATA");
   IElementType DATA_CONSTRUCTOR = new FuncIncaElementType("DATA_CONSTRUCTOR");
   IElementType DATA_DEF = new FuncIncaElementType("DATA_DEF");
   IElementType EXP = new FuncIncaElementType("EXP");
   IElementType FOLD_EXP = new FuncIncaElementType("FOLD_EXP");
   IElementType FUN_DEF = new FuncIncaElementType("FUN_DEF");
   IElementType FUN_TYPE = new FuncIncaElementType("FUN_TYPE");
-  IElementType ID = new FuncIncaElementType("ID");
   IElementType IF_EXP = new FuncIncaElementType("IF_EXP");
   IElementType IMPORT = new FuncIncaElementType("IMPORT");
   IElementType LAMBDA_EXP = new FuncIncaElementType("LAMBDA_EXP");
@@ -38,6 +36,7 @@ public interface FuncIncaTypes {
   IElementType MATCH_EXP = new FuncIncaElementType("MATCH_EXP");
   IElementType MEMBER_EXP = new FuncIncaElementType("MEMBER_EXP");
   IElementType MULTIPLE_LET = new FuncIncaElementType("MULTIPLE_LET");
+  IElementType NAME = new FuncIncaElementType("NAME");
   IElementType NUMERIC_LIT = new FuncIncaElementType("NUMERIC_LIT");
   IElementType OPTION = new FuncIncaElementType("OPTION");
   IElementType OPTION_EXP = new FuncIncaElementType("OPTION_EXP");
@@ -53,8 +52,26 @@ public interface FuncIncaTypes {
   IElementType VAR = new FuncIncaElementType("VAR");
   IElementType VISIBILITY = new FuncIncaElementType("VISIBILITY");
 
+  IElementType AND = new FuncIncaTokenType("&&");
+  IElementType ANNOTATION_MAIN = new FuncIncaTokenType("@main");
+  IElementType ARROW = new FuncIncaTokenType("=>");
+  IElementType BACK_TICK = new FuncIncaTokenType("`");
+  IElementType BAR = new FuncIncaTokenType("|");
   IElementType BLOCK_COMMENT = new FuncIncaTokenType("block_comment");
+  IElementType BOOLEAN_FALSE = new FuncIncaTokenType("false");
+  IElementType BOOLEAN_TRUE = new FuncIncaTokenType("true");
+  IElementType BRACES_CLOSE = new FuncIncaTokenType("}");
+  IElementType BRACES_OPEN = new FuncIncaTokenType("{");
+  IElementType CAST = new FuncIncaTokenType("as");
+  IElementType COLON = new FuncIncaTokenType(":");
+  IElementType COMMA = new FuncIncaTokenType(",");
+  IElementType DOT = new FuncIncaTokenType(".");
   IElementType DOUBLE = new FuncIncaTokenType("double");
+  IElementType EQUAL_SIGN = new FuncIncaTokenType("=");
+  IElementType EQUIVALENCE = new FuncIncaTokenType("==");
+  IElementType GEQ = new FuncIncaTokenType(">=");
+  IElementType GT = new FuncIncaTokenType(">");
+  IElementType ID = new FuncIncaTokenType("id");
   IElementType KEYWORD_CASE = new FuncIncaTokenType("case");
   IElementType KEYWORD_DATA = new FuncIncaTokenType("data");
   IElementType KEYWORD_DEF = new FuncIncaTokenType("def");
@@ -72,11 +89,31 @@ public interface FuncIncaTypes {
   IElementType KEYWORD_OPTION = new FuncIncaTokenType("Option");
   IElementType KEYWORD_SET = new FuncIncaTokenType("Set");
   IElementType KEYWORD_SOME = new FuncIncaTokenType("Some");
+  IElementType LEQ = new FuncIncaTokenType("<=");
   IElementType LINE_COMMENT = new FuncIncaTokenType("line_comment");
+  IElementType LT = new FuncIncaTokenType("<");
+  IElementType MINUS = new FuncIncaTokenType("-");
+  IElementType MODULO = new FuncIncaTokenType("%");
+  IElementType NEGATION = new FuncIncaTokenType("!");
+  IElementType NON_EQUIVALENCE = new FuncIncaTokenType("!=");
   IElementType NUMBER = new FuncIncaTokenType("number");
+  IElementType OR = new FuncIncaTokenType("||");
+  IElementType PARENS_CLOSE = new FuncIncaTokenType(")");
+  IElementType PARENS_OPEN = new FuncIncaTokenType("(");
+  IElementType PLUS = new FuncIncaTokenType("+");
+  IElementType QUOTATION_MARK = new FuncIncaTokenType("\"");
   IElementType SCALA_TERM = new FuncIncaTokenType("scala_term");
+  IElementType SET_INTERSECTION = new FuncIncaTokenType("&");
+  IElementType SET_UNION = new FuncIncaTokenType("++");
+  IElementType SLASH = new FuncIncaTokenType("/");
+  IElementType SQUARE_BRACKET_CLOSE = new FuncIncaTokenType("]");
+  IElementType SQUARE_BRACKET_OPEN = new FuncIncaTokenType("[");
+  IElementType STAR = new FuncIncaTokenType("*");
   IElementType STRING = new FuncIncaTokenType("string");
-  IElementType VALID_ID = new FuncIncaTokenType("valid_id");
+  IElementType TYPE_ANY = new FuncIncaTokenType("Any");
+  IElementType TYPE_NOTHING = new FuncIncaTokenType("Nothing");
+  IElementType TYPE_UNIT = new FuncIncaTokenType("Unit");
+  IElementType VISIBILITY_PRIVATE = new FuncIncaTokenType("private");
 
   class Factory {
     public static PsiElement createElement(ASTNode node) {
@@ -120,9 +157,6 @@ public interface FuncIncaTypes {
       else if (type == CONST_SET_EXP) {
         return new FuncIncaConstSetExpImpl(node);
       }
-      else if (type == DATA) {
-        return new FuncIncaDataImpl(node);
-      }
       else if (type == DATA_CONSTRUCTOR) {
         return new FuncIncaDataConstructorImpl(node);
       }
@@ -140,9 +174,6 @@ public interface FuncIncaTypes {
       }
       else if (type == FUN_TYPE) {
         return new FuncIncaFunTypeImpl(node);
-      }
-      else if (type == ID) {
-        return new FuncIncaIdImpl(node);
       }
       else if (type == IF_EXP) {
         return new FuncIncaIfExpImpl(node);
@@ -170,6 +201,9 @@ public interface FuncIncaTypes {
       }
       else if (type == MULTIPLE_LET) {
         return new FuncIncaMultipleLetImpl(node);
+      }
+      else if (type == NAME) {
+        return new FuncIncaNameImpl(node);
       }
       else if (type == NUMERIC_LIT) {
         return new FuncIncaNumericLitImpl(node);

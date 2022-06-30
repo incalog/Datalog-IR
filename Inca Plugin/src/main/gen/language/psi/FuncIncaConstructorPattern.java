@@ -7,9 +7,6 @@ import com.intellij.psi.PsiElement;
 
 public interface FuncIncaConstructorPattern extends PsiElement {
 
-  @NotNull
-  List<FuncIncaId> getIdList();
-
   @Nullable
   FuncIncaParamTypes getParamTypes();
 

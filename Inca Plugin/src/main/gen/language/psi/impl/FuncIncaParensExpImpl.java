@@ -28,9 +28,9 @@ public class FuncIncaParensExpImpl extends ASTWrapperPsiElement implements FuncI
   }
 
   @Override
-  @Nullable
+  @NotNull
   public FuncIncaExp getExp() {
-    return findChildByClass(FuncIncaExp.class);
+    return findNotNullChildByClass(FuncIncaExp.class);
   }
 
 }

@@ -14,6 +14,6 @@ public interface FuncIncaParam extends PsiElement {
   FuncIncaFunType getFunType();
 
   @NotNull
-  FuncIncaId getId();
+  PsiElement getId();
 
 }

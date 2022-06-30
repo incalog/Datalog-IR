@@ -40,21 +40,15 @@ public class FuncIncaFunDefImpl extends ASTWrapperPsiElement implements FuncInca
   }
 
   @Override
-  @NotNull
+  @Nullable
   public FuncIncaExp getExp() {
-    return findNotNullChildByClass(FuncIncaExp.class);
+    return findChildByClass(FuncIncaExp.class);
   }
 
   @Override
   @Nullable
   public FuncIncaFunType getFunType() {
     return findChildByClass(FuncIncaFunType.class);
-  }
-
-  @Override
-  @NotNull
-  public FuncIncaId getId() {
-    return findNotNullChildByClass(FuncIncaId.class);
   }
 
   @Override
@@ -73,6 +67,12 @@ public class FuncIncaFunDefImpl extends ASTWrapperPsiElement implements FuncInca
   @Nullable
   public FuncIncaVisibility getVisibility() {
     return findChildByClass(FuncIncaVisibility.class);
+  }
+
+  @Override
+  @Nullable
+  public PsiElement getId() {
+    return findChildByType(ID);
   }
 
 }

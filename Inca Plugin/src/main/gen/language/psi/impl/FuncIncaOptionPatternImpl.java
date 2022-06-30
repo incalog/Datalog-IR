@@ -27,10 +27,4 @@ public class FuncIncaOptionPatternImpl extends ASTWrapperPsiElement implements F
     else super.accept(visitor);
   }
 
-  @Override
-  @NotNull
-  public List<FuncIncaId> getIdList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaId.class);
-  }
-
 }

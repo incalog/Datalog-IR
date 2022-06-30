@@ -26,13 +26,13 @@ public interface FuncIncaCastExp extends PsiElement {
   FuncIncaConstSetExp getConstSetExp();
 
   @Nullable
-  FuncIncaData getData();
-
-  @Nullable
   FuncIncaFoldExp getFoldExp();
 
   @Nullable
   FuncIncaLambdaExp getLambdaExp();
+
+  @Nullable
+  FuncIncaName getName();
 
   @Nullable
   FuncIncaNumericLit getNumericLit();

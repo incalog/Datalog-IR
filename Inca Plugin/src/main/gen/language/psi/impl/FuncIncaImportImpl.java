@@ -29,8 +29,8 @@ public class FuncIncaImportImpl extends ASTWrapperPsiElement implements FuncInca
 
   @Override
   @Nullable
-  public FuncIncaId getId() {
-    return findChildByClass(FuncIncaId.class);
+  public PsiElement getId() {
+    return findChildByType(ID);
   }
 
 }

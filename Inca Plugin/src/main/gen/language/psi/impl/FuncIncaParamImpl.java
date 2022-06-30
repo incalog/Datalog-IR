@@ -41,8 +41,8 @@ public class FuncIncaParamImpl extends ASTWrapperPsiElement implements FuncIncaP
 
   @Override
   @NotNull
-  public FuncIncaId getId() {
-    return findNotNullChildByClass(FuncIncaId.class);
+  public PsiElement getId() {
+    return findNotNullChildByType(ID);
   }
 
 }

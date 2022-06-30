@@ -38,9 +38,6 @@ public interface FuncIncaBaseApplyMethodExp extends PsiElement {
   List<FuncIncaFoldExp> getFoldExpList();
 
   @NotNull
-  FuncIncaId getId();
-
-  @NotNull
   List<FuncIncaLambdaExp> getLambdaExpList();
 
   @NotNull

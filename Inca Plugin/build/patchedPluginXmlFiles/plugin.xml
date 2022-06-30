@@ -4,7 +4,7 @@
       &lt;em&gt;most HTML tags may be used&lt;/em&gt;</change-notes>
   <idea-version since-build="212.5457" until-build="212.*" />
   <id>org.example.Inca Plugin</id>
-  <name>Plugin display name here</name>
+  <name>Functional Inca</name>
   <vendor email="support@yourcompany.com" url="http://www.yourcompany.com">YourCompany</vendor>
   <description><![CDATA[Enter short description for your plugin here.<br>
     <em>most HTML tags may be used</em>]]></description>

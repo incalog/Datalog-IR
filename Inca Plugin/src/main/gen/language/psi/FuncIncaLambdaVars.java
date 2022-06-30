@@ -13,7 +13,4 @@ public interface FuncIncaLambdaVars extends PsiElement {
   @NotNull
   List<FuncIncaFunType> getFunTypeList();
 
-  @NotNull
-  List<FuncIncaId> getIdList();
-
 }

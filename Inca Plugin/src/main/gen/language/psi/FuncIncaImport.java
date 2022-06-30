@@ -8,6 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface FuncIncaImport extends PsiElement {
 
   @Nullable
-  FuncIncaId getId();
+  PsiElement getId();
 
 }

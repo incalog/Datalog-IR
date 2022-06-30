@@ -27,10 +27,4 @@ public class FuncIncaParamTypesImpl extends ASTWrapperPsiElement implements Func
     else super.accept(visitor);
   }
 
-  @Override
-  @NotNull
-  public List<FuncIncaId> getIdList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaId.class);
-  }
-
 }

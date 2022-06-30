@@ -89,12 +89,6 @@ public class FuncIncaBaseApplyMethodExpImpl extends ASTWrapperPsiElement impleme
 
   @Override
   @NotNull
-  public FuncIncaId getId() {
-    return findNotNullChildByClass(FuncIncaId.class);
-  }
-
-  @Override
-  @NotNull
   public List<FuncIncaLambdaExp> getLambdaExpList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaLambdaExp.class);
   }

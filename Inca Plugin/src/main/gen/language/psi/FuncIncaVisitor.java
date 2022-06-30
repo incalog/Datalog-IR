@@ -59,10 +59,6 @@ public class FuncIncaVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitData(@NotNull FuncIncaData o) {
-    visitPsiElement(o);
-  }
-
   public void visitDataConstructor(@NotNull FuncIncaDataConstructor o) {
     visitPsiElement(o);
   }
@@ -84,10 +80,6 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitFunType(@NotNull FuncIncaFunType o) {
-    visitPsiElement(o);
-  }
-
-  public void visitId(@NotNull FuncIncaId o) {
     visitPsiElement(o);
   }
 
@@ -124,6 +116,10 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitMultipleLet(@NotNull FuncIncaMultipleLet o) {
+    visitPsiElement(o);
+  }
+
+  public void visitName(@NotNull FuncIncaName o) {
     visitPsiElement(o);
   }
 

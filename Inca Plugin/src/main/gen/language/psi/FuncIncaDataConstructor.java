@@ -14,6 +14,6 @@ public interface FuncIncaDataConstructor extends PsiElement {
   List<FuncIncaFunType> getFunTypeList();
 
   @NotNull
-  FuncIncaId getId();
+  PsiElement getId();
 
 }

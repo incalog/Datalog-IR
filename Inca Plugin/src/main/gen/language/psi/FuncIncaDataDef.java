@@ -13,13 +13,13 @@ public interface FuncIncaDataDef extends PsiElement {
   @NotNull
   List<FuncIncaDataConstructor> getDataConstructorList();
 
-  @NotNull
-  FuncIncaId getId();
-
   @Nullable
   FuncIncaParamTypes getParamTypes();
 
   @Nullable
   FuncIncaVisibility getVisibility();
+
+  @Nullable
+  PsiElement getId();
 
 }

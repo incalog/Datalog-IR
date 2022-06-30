@@ -41,8 +41,8 @@ public class FuncIncaConstrImpl extends ASTWrapperPsiElement implements FuncInca
 
   @Override
   @NotNull
-  public FuncIncaId getId() {
-    return findNotNullChildByClass(FuncIncaId.class);
+  public PsiElement getId() {
+    return findNotNullChildByType(ID);
   }
 
 }

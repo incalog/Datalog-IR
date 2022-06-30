@@ -11,7 +11,7 @@ public interface FuncIncaAtomicType extends PsiElement {
   FuncIncaConstr getConstr();
 
   @Nullable
-  FuncIncaData getData();
+  FuncIncaName getName();
 
   @Nullable
   FuncIncaOption getOption();

@@ -7,7 +7,7 @@ import com.intellij.psi.PsiElement;
 
 public interface FuncIncaParensExp extends PsiElement {
 
-  @Nullable
+  @NotNull
   FuncIncaExp getExp();
 
 }
