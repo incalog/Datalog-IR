@@ -10,8 +10,7 @@ To execute the provided tests run `sbt test` from the root directory.
 
 ### Architecture
 The IncA project has the following architecture:
-
-![](pipeline.pdf)
+<div style="text-align: left"><img src="pipeline.pdf"  width="720"></div>
 
 The frontends, backend and runtime can be found in the respective packages:
 - `inca.frontend`
@@ -51,8 +50,10 @@ program based on an analysis written in the functional frontend.
 
 ## Publications
 IncA is a research project, and its various features have been documented in the following publications:
+* **Functional Programming with Datalog**, André Pacak andSebastian Erdweg
+  In *Proceedings of European Conference on Object-Oriented Programming (ECOOP)*. 2022. [[pdf]](https://www.pl.informatik.uni-mainz.de/files/2022/06/functional-datalog.pdf)
 
-* **Incremental Whole-Program Analysis in Datalog**, Tamás Szabó, Sebastian Erdweg, and Gábor Bergmann
+* **Incremental Whole-Program Analysis in Datalog**, Tamás Szabó, Sebastian Erdweg, and Gábor Bergmann.
   In *Proceedings of Conference on Programming Languages Design and Implementation (PLDI)*, 2021. [[pdf]](https://www.pl.informatik.uni-mainz.de/files/2021/06/inca-whole-program.pdf)
 
 * **Concise, Type-Safe, and Efficient Structural Diffing**, Sebastian Erdweg, Tamás Szabó, and André Pacak.
