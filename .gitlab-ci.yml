@@ -7,7 +7,15 @@ before_script:
   - sbt sbtVersion
   - sbt update
 
+# run tests separately due to memory restrictions (4GB for shared runner of gitlab)
+# insert new testOnly commands if new test-packages are inserted
 test:
   stage: test
   script:
-    - sbt clean test
+    - sbt compile
+    - sbt "testOnly inca.runtime.**"
+    - sbt "testOnly inca.backend.**"
+    - sbt "testOnly inca.frontend.functional.**"
+    - sbt "testOnly inca.frontend.constraint.**"
+    - sbt "testOnly inca.caseStudies.**"
+    - sbt "testOnly inca.debugger.**"
