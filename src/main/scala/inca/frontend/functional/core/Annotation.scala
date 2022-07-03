@@ -27,7 +27,7 @@ object MainFunctionAnno extends Annotation {
   override def toString: String = "@main"
 }
 
-object PartialOrderAnno extends Annotation {
+object PartialOrderAnno extends Annotation with VerifiableProperty {
   override def key: Annotation.Key = "PARTIAL_ORDER"
   override def toString: String = "@partialOrder"
 }
@@ -36,22 +36,24 @@ case class InvariantAnno(invariantNames: Seq[String]) extends Annotation {
   override def key: Annotation.Key = "INVARIANT"
   override def toString: String = s"@invariant(${invariantNames.mkString(", ")})"
 }
+trait VerifiableProperty
 /*
 The annotated function f_a: A1 x A1 => A2 is supposed to be an overapproximation of the
 concrete function f_c: C1 x C1 => C2 with approximation functions (betas) b1: C1 => A1
 and b2: C2 => A2 using the given partial order (po)
  */
-case class SoundnessAnno(concreteName: String, paramBetaName: String, resBetaName: String, poName: String) extends Annotation {
+case class SoundnessAnno(concreteName: String, paramBetaName: String, resBetaName: String, poName: String) extends Annotation with VerifiableProperty {
   override def key: Annotation.Key = "SOUNDNESS"
-  override def toString: String = s"sound($concreteName, $paramBetaName, $resBetaName, $poName)"
+  override def toString: String = s"@sound($concreteName, $paramBetaName, $resBetaName, $poName)"
 }
+
 
 case class AggregationAnno(props: Seq[AggregationProperty]) extends Annotation {
   override def key: Annotation.Key = "AGGREGATION"
   override def toString: String = s"@aggr(${props.mkString(", ")})"
 }
 
-trait AggregationProperty {
+trait AggregationProperty extends VerifiableProperty {
   def name: String
 
   override def toString: Key = name

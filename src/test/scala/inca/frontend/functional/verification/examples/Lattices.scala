@@ -80,7 +80,9 @@ object Lattices {
        |
        |def chooseLeft(i1: Int, i2: Int): Int = i1
        |
-       |@aggr(assoc, comm) @sound(chooseLeft, intToSign, intToSign, leq) def join(s1: Sign, s2: Sign): Sign = s1 match {
+       |@aggr(assoc, comm)
+       |@sound(chooseLeft, intToSign, intToSign, leq)
+       |def join(s1: Sign, s2: Sign): Sign = s1 match {
        |  case Top() => Top()
        |  case Bot() => s2
        |  case Pos() => s2 match {
@@ -391,4 +393,120 @@ object Lattices {
       |""".stripMargin
 
   val compiledBoolLattice: CompiledFunctionalModule = Compiler.compileFunctional(boolLattice, FunctionalOptions())
+
+  val intOpsSignLattice: String =
+    """module IntOpsSignLattice
+      |data Sign = Top() | Bot() | Pos() | Zero() | Neg()
+      |
+      |@aggr(assoc, comm, unapply(sub)) def add(i1: Int, i2: Int): Int = i1 + i2
+      |@aggr(assoc, comm, unapply(add)) def sub(i1: Int, i2: Int): Int = i1 - i2
+      |@aggr(assoc, comm, unapply(div)) def mult(i1: Int, i2: Int): Int = i1 * i2
+      |@aggr(assoc, comm, unapply(mult)) def div(i1: Int, i2: Int): Int = i1 / i2
+      |@aggr(assoc, comm) def incByTwo(x: Int, y: Int): Int = x + y + 1
+      |@aggr(assoc, comm) def min(i1: Int, i2: Int): Int = if(i1 < i2) i1 else i2
+      |@aggr(assoc, comm) def pow(i1: Int, i2: Int): Int = if(i2 <= 0) 1 else if(i2 == 1) i1 else i1 * pow(i1, i2 - 1)
+      |
+      |@sound(add, intToSign, intToSign, leqSign) def addSign(s1: Sign, s2: Sign): Sign = s1 match {
+      |  case Bot() => Bot()
+      |  case Top() => s2 match {
+      |    case Bot() => Bot()
+      |    case Top() => Top()
+      |    case Pos() => Top()
+      |    case Zero() => Top()
+      |    case Neg() => Top()
+      |  }
+      |  case Pos() => s2 match {
+      |    case Bot() => Bot()
+      |    case Top() => Top()
+      |    case Pos() => Pos()
+      |    case Zero() => Pos()
+      |    case Neg() => Top()
+      |  }
+      |  case Zero() => s2 match {
+      |    case Bot() => Bot()
+      |    case Top() => Top()
+      |    case Pos() => Pos()
+      |    case Zero() => Zero()
+      |    case Neg() => Neg()
+      |  }
+      |  case Neg() => s2 match {
+      |    case Bot() => Bot()
+      |    case Top() => Top()
+      |    case Pos() => Top()
+      |    case Zero() => Neg()
+      |    case Neg() => Neg()
+      |  }
+      |}
+      |
+      |@sound(sub, intToSign, intToSign, leqSign) def subSign(s1: Sign, s2: Sign): Sign = s1 match {
+      |  case Bot() => Bot()
+      |  case Top() => s2 match {
+      |    case Bot() => Bot()
+      |    case Top() => Top()
+      |    case Pos() => Top()
+      |    case Zero() => Top()
+      |    case Neg() => Top()
+      |  }
+      |  case Pos() => s2 match {
+      |    case Bot() => Bot()
+      |    case Top() => Top()
+      |    case Pos() => Top()
+      |    case Zero() => Pos()
+      |    case Neg() => Pos()
+      |  }
+      |  case Zero() => s2 match {
+      |    case Bot() => Bot()
+      |    case Top() => Top()
+      |    case Pos() => Neg()
+      |    case Zero() => Zero()
+      |    case Neg() => Pos()
+      |  }
+      |  case Neg() => s2 match {
+      |    case Bot() => Bot()
+      |    case Top() => Top()
+      |    case Pos() => Neg()
+      |    case Zero() => Neg()
+      |    case Neg() => Top()
+      |  }
+      |}
+      |
+      |@partialOrder def leqSign(s1: Sign, s2: Sign): Boolean = s1 match {
+      |  case Top() => s2 match {
+      |    case Top() => true
+      |    case Bot() => false
+      |    case Pos() => false
+      |    case Zero() => false
+      |    case Neg() => false
+      |  }
+      |  case Bot() => true
+      |  case Pos() => s2 match {
+      |    case Top() => true
+      |    case Bot() => false
+      |    case Pos() => true
+      |    case Zero() => false
+      |    case Neg() => false
+      |  }
+      |  case Zero() => s2 match {
+      |    case Top() => true
+      |    case Bot() => false
+      |    case Pos() => false
+      |    case Zero() => true
+      |    case Neg() => false
+      |  }
+      |  case Neg() => s2 match {
+      |    case Top() => true
+      |    case Bot() => false
+      |    case Pos() => false
+      |    case Zero() => false
+      |    case Neg() => true
+      |  }
+      |}
+      |
+      |def intToSign(i: Int): Sign =
+      |  if (i == 0) Zero() else
+      |    if (i > 0) Pos() else Neg()
+      |
+      |""".stripMargin
+
+  val compiledIntOpsSignLattice: CompiledFunctionalModule = Compiler.compileFunctional(intOpsSignLattice, FunctionalOptions())
 }
