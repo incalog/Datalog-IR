@@ -136,20 +136,20 @@ object SMTlibScripts {
 
   // für alle x: abstract(beta(x)) > beta(concrete(x))
   // Existiert x: abstract(beta(x)) nicht > beta(concrete(x))
-  def soundnessBinary(abstractAggrName: String, concreteAggrName: String, concreteParamTypeName: String,
-                paramBetaName: String, resultBetaName: String, poName: String): Script = {
+  def soundnessNAry(abstractAggrName: String, concreteAggrName: String, concreteParamTypeName: String,
+                    paramBetaName: String, resultBetaName: String, poName: String, numParams: Int): Script = {
     val concreteParamSort = Sort(concreteParamTypeName)
+    val vars = for (i <- 2 to numParams) yield SortedVar(s"x$i", concreteParamSort)
+    val varNames = for (i <- 1 to numParams) yield StringToQualifiedIdentifier(s"x$i")
+    val varFunImages = for (i <- 1 to numParams) yield FunctionApplication(paramBetaName, Seq(s"x$i"))
     Script(
       List(
         Push(1),
-        Assert(Exists(SortedVar("x", concreteParamSort), Seq(SortedVar("y", concreteParamSort)),
+        Assert(Exists(SortedVar("x1", concreteParamSort), vars,
           FunctionApplication("not", Seq(
             FunctionApplication(poName, Seq(
-              FunctionApplication(resultBetaName, Seq(FunctionApplication(concreteAggrName, Seq("x", "y")))),
-              FunctionApplication(abstractAggrName, Seq(
-                FunctionApplication(paramBetaName, Seq("x")),
-                FunctionApplication(paramBetaName, Seq("y"))
-              ))
+              FunctionApplication(resultBetaName, Seq(FunctionApplication(concreteAggrName, varNames))),
+              FunctionApplication(abstractAggrName, varFunImages)
             ))
           ))
         )),
@@ -159,6 +159,35 @@ object SMTlibScripts {
     )
   }
 
+  // für alle x, y: wenn x < y => f(x) < f(y)
+  // existiert x, y: x < y und nicht f(x) < f(y)
+  def monotonicityNAry(paramTypeName: String, funName: String, resultPoName: String,
+                       paramPoName: String, numParams: Int): Script = {
+    val sort = Sort(paramTypeName)
+    val xVars = for (i <- 2 to numParams) yield SortedVar(s"x$i", sort)
+    val yVars = for (i <- 1 to numParams) yield SortedVar(s"y$i", sort)
+    val xVarNames = for (i <- 1 to numParams) yield StringToQualifiedIdentifier(s"x$i")
+    val yVarNames = for (i <- 1 to numParams) yield StringToQualifiedIdentifier(s"y$i")
+    val paramComparisons = for (i <- 1 to numParams) yield FunctionApplication(paramPoName, Seq(s"x$i", s"y$i"))
+
+    Script(
+      List(
+        Push(1),
+        Assert(Exists(SortedVar("x1", sort), xVars ++ yVars,
+          FunctionApplication("and", paramComparisons ++ Seq(
+            FunctionApplication("not", Seq(
+              FunctionApplication(resultPoName, Seq(
+                FunctionApplication(funName, xVarNames),
+                FunctionApplication(funName, yVarNames)
+              ))
+            ))
+          ))
+        )),
+        CheckSat(),
+        Pop(1)
+      )
+    )
+  }
 
   implicit def StringToSSymbol(s: String): SSymbol = {
     SSymbol(s)

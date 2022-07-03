@@ -409,19 +409,24 @@ class Verifier {
           Script(List())
         } else {
           val paramTypeName = getParamTypeName(hygienicNames.head)
-          SMTlibScripts.soundnessBinary(funName, hygienicNames.head, paramTypeName,
-            hygienicNames(1), hygienicNames(2), hygienicNames(3))
+          SMTlibScripts.soundnessNAry(funName, hygienicNames.head, paramTypeName,
+            hygienicNames(1), hygienicNames(2), hygienicNames(3), getNumParams(funName))
         }
       case _ => throw UnexpectedBehaviorException("Matching supposed to be exhaustive")
     }
   }
 
-  def getParamTypeName(aggrName: String)(implicit gensym: Gensym): String = {
-    val func = getFunctionDef(aggrName)
+  def getParamTypeName(funName: String)(implicit gensym: Gensym): String = {
+    val func = getFunctionDef(funName)
     func.params.foreach(p => if (p.typ != func.params.head.typ) {
       throw new Exception("Aggregations should take two values of the same type")
     })
     transType(func.params.head.typ).id.symbol.name
+  }
+
+  def getNumParams(funName: String): Int = {
+    val func = getFunctionDef(funName)
+    func.params.size
   }
 
   def makeScript(scripts: Seq[Script]): Script = {
