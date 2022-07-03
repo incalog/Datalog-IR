@@ -397,14 +397,13 @@ object Lattices {
   val intOpsSignLattice: String =
     """module IntOpsSignLattice
       |data Sign = Top() | Bot() | Pos() | Zero() | Neg()
+      |data Bool = BotBool() | True() | False() | TopBool()
       |
       |@aggr(assoc, comm, unapply(sub)) def add(i1: Int, i2: Int): Int = i1 + i2
       |@aggr(assoc, comm, unapply(add)) def sub(i1: Int, i2: Int): Int = i1 - i2
-      |@aggr(assoc, comm, unapply(div)) def mult(i1: Int, i2: Int): Int = i1 * i2
-      |@aggr(assoc, comm, unapply(mult)) def div(i1: Int, i2: Int): Int = i1 / i2
-      |@aggr(assoc, comm) def incByTwo(x: Int, y: Int): Int = x + y + 1
-      |@aggr(assoc, comm) def min(i1: Int, i2: Int): Int = if(i1 < i2) i1 else i2
-      |@aggr(assoc, comm) def pow(i1: Int, i2: Int): Int = if(i2 <= 0) 1 else if(i2 == 1) i1 else i1 * pow(i1, i2 - 1)
+      |@aggr(assoc, comm) def mult(i1: Int, i2: Int): Int = i1 * i2
+      |def gt(i1: Int, i2: Int): Boolean = i1 > i2
+      |def equals(i1: Int, i2: Int): Boolean = i1 == i2
       |
       |@sound(add, intToSign, intToSign, leqSign) def addSign(s1: Sign, s2: Sign): Sign = s1 match {
       |  case Bot() => Bot()
@@ -470,6 +469,102 @@ object Lattices {
       |  }
       |}
       |
+      |@sound(mult, intToSign, intToSign, leqSign) def multSign(s1: Sign, s2: Sign): Sign = s1 match {
+      |  case Bot() => Bot()
+      |  case Zero() => s2 match {
+      |    case Bot() => Bot()
+      |    case Zero() => Zero()
+      |    case Top() => Zero()
+      |    case Pos() => Zero()
+      |    case Neg() => Zero()
+      |  }
+      |  case Top() => s2 match {
+      |    case Bot() => Bot()
+      |    case Zero() => Zero()
+      |    case Top() => Top()
+      |    case Pos() => Top()
+      |    case Neg() => Top()
+      |  }
+      |  case Pos() => s2 match {
+      |    case Bot() => Bot()
+      |    case Zero() => Zero()
+      |    case Top() => Top()
+      |    case Pos() => Pos()
+      |    case Neg() => Neg()
+      |  }
+      |  case Neg() => s2 match {
+      |    case Bot() => Bot()
+      |    case Zero() => Zero()
+      |    case Top() => Top()
+      |    case Pos() => Neg()
+      |    case Neg() => Pos()
+      |  }
+      |}
+      |
+      |@sound(gt, intToSign, booleanToBool, leqBool) def gtSign(s1: Sign, s2: Sign): Bool = s1 match {
+      |  case Bot() => BotBool()
+      |  case Zero() => s2 match {
+      |    case Bot() => BotBool()
+      |    case Zero() => False()
+      |    case Top() => TopBool()
+      |    case Pos() => False()
+      |    case Neg() => True()
+      |  }
+      |  case Top() => s2 match {
+      |    case Bot() => BotBool()
+      |    case Zero() => TopBool()
+      |    case Top() => TopBool()
+      |    case Pos() => TopBool()
+      |    case Neg() => TopBool()
+      |  }
+      |  case Pos() => s2 match {
+      |    case Bot() => BotBool()
+      |    case Zero() => True()
+      |    case Top() => TopBool()
+      |    case Pos() => TopBool()
+      |    case Neg() => True()
+      |  }
+      |  case Neg() => s2 match {
+      |    case Bot() => BotBool()
+      |    case Zero() => False()
+      |    case Top() => TopBool()
+      |    case Pos() => False()
+      |    case Neg() => TopBool()
+      |  }
+      |}
+      |
+      |@sound(equals, intToSign, booleanToBool, leqBool) def equalsSign(s1: Sign, s2: Sign): Bool = s1 match {
+      |  case Bot() => BotBool()
+      |  case Zero() => s2 match {
+      |    case Bot() => BotBool()
+      |    case Zero() => TopBool()
+      |    case Top() => TopBool()
+      |    case Pos() => False()
+      |    case Neg() => False()
+      |  }
+      |  case Top() => s2 match {
+      |    case Bot() => BotBool()
+      |    case Zero() => TopBool()
+      |    case Top() => TopBool()
+      |    case Pos() => TopBool()
+      |    case Neg() => TopBool()
+      |  }
+      |  case Pos() => s2 match {
+      |    case Bot() => BotBool()
+      |    case Zero() => False()
+      |    case Top() => TopBool()
+      |    case Pos() => TopBool()
+      |    case Neg() => False()
+      |  }
+      |  case Neg() => s2 match {
+      |    case Bot() => BotBool()
+      |    case Zero() => False()
+      |    case Top() => TopBool()
+      |    case Pos() => False()
+      |    case Neg() => TopBool()
+      |  }
+      |}
+      |
       |@partialOrder def leqSign(s1: Sign, s2: Sign): Boolean = s1 match {
       |  case Top() => s2 match {
       |    case Top() => true
@@ -502,11 +597,70 @@ object Lattices {
       |  }
       |}
       |
+      |@partialOrder def leqBool(b1: Bool, b2: Bool): Boolean = b1 match {
+      |  case TopBool() => b2 match {
+      |    case TopBool() => true
+      |    case True() => false
+      |    case False() => false
+      |    case BotBool() => false
+      |  }
+      |  case BotBool() => true
+      |  case True() => b2 match {
+      |    case TopBool() => true
+      |    case BotBool() => false
+      |    case True() => true
+      |    case False() => false
+      |  }
+      |  case False() => b2 match {
+      |    case TopBool() => true
+      |    case BotBool() => false
+      |    case True() => false
+      |    case False() => true
+      |  }
+      |}
+      |
       |def intToSign(i: Int): Sign =
       |  if (i == 0) Zero() else
       |    if (i > 0) Pos() else Neg()
       |
+      |def booleanToBool(b: Boolean): Bool =
+      |  if(b) True() else False()
+      |
       |""".stripMargin
 
   val compiledIntOpsSignLattice: CompiledFunctionalModule = Compiler.compileFunctional(intOpsSignLattice, FunctionalOptions())
+
+    /*|@aggr(assoc, comm, unapply(mult)) def div(i1: Int, i2: Int): Int = i1 / i2
+      |
+      |@sound(div, intToSign, intToSign, leqSign) def divSign(s1: Sign, s2: Sign): Sign = s1 match {
+      |  case Bot() => Bot()
+      |  case Top() => s2 match {
+      |    case Bot() => Bot()
+      |    case Zero() => Bot()
+      |    case Top() => Top()
+      |    case Pos() => Top()
+      |    case Neg() => Top()
+      |  }
+      |  case Zero() => s2 match {
+      |    case Bot() => Bot()
+      |    case Zero() => Bot()
+      |    case Top() => Top()
+      |    case Pos() => Zero()
+      |    case Neg() => Zero()
+      |  }
+      |  case Pos() => s2 match {
+      |    case Bot() => Bot()
+      |    case Zero() => Bot()
+      |    case Top() => Top()
+      |    case Pos() => Top()
+      |    case Neg() => Top()
+      |  }
+      |  case Neg() => s2 match {
+      |    case Bot() => Bot()
+      |    case Zero() => Bot()
+      |    case Top() => Top()
+      |    case Pos() => Top()
+      |    case Neg() => Top()
+      |  }
+      |}*/
 }

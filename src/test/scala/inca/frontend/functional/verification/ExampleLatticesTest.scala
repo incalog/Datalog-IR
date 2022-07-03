@@ -137,14 +137,14 @@ class ExampleLatticesTest extends AnyFunSuite {
     assertResult(Map(
       "add" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse, HasUnapply("sub") -> VerifiedResponse),
       "sub" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse, HasUnapply("add") -> VerifiedResponse),
-      "mult" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse, HasUnapply("div") -> FalsifiedResponse),
-      "div" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse, HasUnapply("mult") -> FalsifiedResponse),
-      "incByTwo" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
-      "min" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
-      "pow" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse),
+      "mult" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
       "addSign" -> Map(SoundnessAnno("add", "intToSign", "intToSign", "leqSign") -> VerifiedResponse),
       "subSign" -> Map(SoundnessAnno("sub", "intToSign", "intToSign", "leqSign") -> VerifiedResponse),
-      "leqSign" -> Map(PartialOrderAnno -> VerifiedResponse)
+      "multSign" -> Map(SoundnessAnno("mult", "intToSign", "intToSign", "leqSign") -> VerifiedResponse),
+      "gtSign" -> Map(SoundnessAnno("gt", "intToSign", "booleanToBool", "leqBool") -> VerifiedResponse),
+      "equalsSign" -> Map(SoundnessAnno("equals", "intToSign", "booleanToBool", "leqBool") -> VerifiedResponse),
+      "leqSign" -> Map(PartialOrderAnno -> VerifiedResponse),
+      "leqBool" -> Map(PartialOrderAnno -> VerifiedResponse)
     ))(verifier.verify(module))
   }
 }
