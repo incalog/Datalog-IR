@@ -119,10 +119,6 @@ public class FuncIncaVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
-  public void visitName(@NotNull FuncIncaName o) {
-    visitPsiElement(o);
-  }
-
   public void visitNumericLit(@NotNull FuncIncaNumericLit o) {
     visitPsiElement(o);
   }
@@ -168,6 +164,10 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitTupleExp(@NotNull FuncIncaTupleExp o) {
+    visitPsiElement(o);
+  }
+
+  public void visitTypeName(@NotNull FuncIncaTypeName o) {
     visitPsiElement(o);
   }
 

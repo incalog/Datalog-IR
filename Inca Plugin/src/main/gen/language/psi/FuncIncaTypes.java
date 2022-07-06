@@ -36,7 +36,6 @@ public interface FuncIncaTypes {
   IElementType MATCH_EXP = new FuncIncaElementType("MATCH_EXP");
   IElementType MEMBER_EXP = new FuncIncaElementType("MEMBER_EXP");
   IElementType MULTIPLE_LET = new FuncIncaElementType("MULTIPLE_LET");
-  IElementType NAME = new FuncIncaElementType("NAME");
   IElementType NUMERIC_LIT = new FuncIncaElementType("NUMERIC_LIT");
   IElementType OPTION = new FuncIncaElementType("OPTION");
   IElementType OPTION_EXP = new FuncIncaElementType("OPTION_EXP");
@@ -49,6 +48,7 @@ public interface FuncIncaTypes {
   IElementType STRING_LIT = new FuncIncaElementType("STRING_LIT");
   IElementType TUPLE = new FuncIncaElementType("TUPLE");
   IElementType TUPLE_EXP = new FuncIncaElementType("TUPLE_EXP");
+  IElementType TYPE_NAME = new FuncIncaElementType("TYPE_NAME");
   IElementType VAR = new FuncIncaElementType("VAR");
   IElementType VISIBILITY = new FuncIncaElementType("VISIBILITY");
 
@@ -201,9 +201,6 @@ public interface FuncIncaTypes {
       else if (type == MULTIPLE_LET) {
         return new FuncIncaMultipleLetImpl(node);
       }
-      else if (type == NAME) {
-        return new FuncIncaNameImpl(node);
-      }
       else if (type == NUMERIC_LIT) {
         return new FuncIncaNumericLitImpl(node);
       }
@@ -239,6 +236,9 @@ public interface FuncIncaTypes {
       }
       else if (type == TUPLE_EXP) {
         return new FuncIncaTupleExpImpl(node);
+      }
+      else if (type == TYPE_NAME) {
+        return new FuncIncaTypeNameImpl(node);
       }
       else if (type == VAR) {
         return new FuncIncaVarImpl(node);

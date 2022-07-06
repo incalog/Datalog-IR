@@ -11,14 +11,14 @@ import static language.psi.FuncIncaTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaNameImpl extends ASTWrapperPsiElement implements FuncIncaName {
+public class FuncIncaTypeNameImpl extends ASTWrapperPsiElement implements FuncIncaTypeName {
 
-  public FuncIncaNameImpl(@NotNull ASTNode node) {
+  public FuncIncaTypeNameImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull FuncIncaVisitor visitor) {
-    visitor.visitName(this);
+    visitor.visitTypeName(this);
   }
 
   @Override

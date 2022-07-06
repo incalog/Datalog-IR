@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FuncIncaName extends PsiElement {
+public interface FuncIncaTypeName extends PsiElement {
 
   @NotNull
   PsiElement getId();

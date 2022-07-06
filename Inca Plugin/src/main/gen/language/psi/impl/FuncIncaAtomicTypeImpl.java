@@ -35,12 +35,6 @@ public class FuncIncaAtomicTypeImpl extends ASTWrapperPsiElement implements Func
 
   @Override
   @Nullable
-  public FuncIncaName getName() {
-    return findChildByClass(FuncIncaName.class);
-  }
-
-  @Override
-  @Nullable
   public FuncIncaOption getOption() {
     return findChildByClass(FuncIncaOption.class);
   }
@@ -55,6 +49,12 @@ public class FuncIncaAtomicTypeImpl extends ASTWrapperPsiElement implements Func
   @Nullable
   public FuncIncaTuple getTuple() {
     return findChildByClass(FuncIncaTuple.class);
+  }
+
+  @Override
+  @Nullable
+  public FuncIncaTypeName getTypeName() {
+    return findChildByClass(FuncIncaTypeName.class);
   }
 
   @Override

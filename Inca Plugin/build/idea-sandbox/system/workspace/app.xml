@@ -443,7 +443,7 @@
         <plugin pluginId="org.jetbrains.android" pluginName="Android" bundled="true" />
       </entry>
       <entry key="*.finca">
-        <plugin pluginId="org.example.Inca Plugin" pluginName="Plugin display name here" />
+        <plugin pluginId="org.example.Inca Plugin" pluginName="Functional Inca" />
       </entry>
     </plugins>
   </component>

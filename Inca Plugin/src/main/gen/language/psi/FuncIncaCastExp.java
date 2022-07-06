@@ -32,9 +32,6 @@ public interface FuncIncaCastExp extends PsiElement {
   FuncIncaLambdaExp getLambdaExp();
 
   @Nullable
-  FuncIncaName getName();
-
-  @Nullable
   FuncIncaNumericLit getNumericLit();
 
   @Nullable
@@ -48,6 +45,9 @@ public interface FuncIncaCastExp extends PsiElement {
 
   @Nullable
   FuncIncaTupleExp getTupleExp();
+
+  @Nullable
+  FuncIncaTypeName getTypeName();
 
   @Nullable
   FuncIncaVar getVar();

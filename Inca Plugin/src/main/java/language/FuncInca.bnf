@@ -116,7 +116,7 @@ member_exp ::= atomic_exp keyword_not? keyword_in infix_exp {pin = 3}
 
 //infix expressions
 private infix_exp ::= cast_exp | base_apply_method_exp | base_apply_infix_exp | match_exp | subinfix_exp
-cast_exp ::= subinfix_exp '.' 'as' '[' name ']' {pin = 3}
+cast_exp ::= subinfix_exp '.' 'as' '[' type_name ']' {pin = 3}
 base_apply_method_exp ::= subinfix_exp '.' scala_term ( '(' (infix_exp (',' infix_exp)*)? ')' )? {pin = 3} // scala_term = '`' id '`'
 base_apply_infix_exp ::= subinfix_exp op infix_exp {pin = op}
 // private recover_base_apply_infix_exp ::= ! op
@@ -153,12 +153,12 @@ private unary_op ::= '-' | '!'
 private type_annotation ::= fun_type | atomic_type
 fun_type ::= atomic_type '=>' type_annotation {pin = 2}
 private recover_fun_type ::= ! atomic_type
-atomic_type ::= tuple | 'Any' | 'Nothing' | 'Unit' | option | set | scala_term | constr | name
+atomic_type ::= tuple | 'Any' | 'Nothing' | 'Unit' | option | set | scala_term | constr | type_name
 constr ::= id '[' type_annotation (',' type_annotation)* ']'
 tuple ::= '(' (type_annotation (',' type_annotation)*)? ')'
 option ::= keyword_Option '[' type_annotation ']' {pin = 1}
 set ::= keyword_Set '[' type_annotation ']' {pin = 1}
-name ::= id
+type_name ::= id
 
 // literals
 private base_lit_exp ::= numeric_lit | boolean_lit | string_lit | scala_term

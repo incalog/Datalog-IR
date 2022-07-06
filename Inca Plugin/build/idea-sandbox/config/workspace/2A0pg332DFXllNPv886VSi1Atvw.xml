@@ -1,17 +1,18 @@
 <project version="4">
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="-1">
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/src/test2.finca">
-          <provider selected="true" editor-type-id="text-editor" />
-        </entry>
-      </file>
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/test.finca">
           <provider selected="true" editor-type-id="text-editor" />
         </entry>
       </file>
     </leaf>
+  </component>
+  <component name="IdeDocumentHistory">
+    <changedPaths>
+      <option value="$PROJECT_DIR$/src/test2.finca" />
+      <option value="$PROJECT_DIR$/src/test.finca" />
+    </changedPaths>
   </component>
   <component name="IgnoredFileRootStore">
     <option name="generatedRoots">
@@ -23,6 +24,7 @@
   <component name="ProjectView">
     <navigator currentView="ProjectPane" proportions="" version="1" />
     <panes>
+      <pane id="PackagesPane" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -39,14 +41,13 @@
           <select />
         </subPane>
       </pane>
-      <pane id="PackagesPane" />
       <pane id="Scope" />
     </panes>
   </component>
   <component name="ToolWindowManager">
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.25" />
-      <window_info id="Structure" order="1" side_tool="true" />
+      <window_info content_ui="combo" id="Project" order="0" sideWeight="0.50073963" visible="true" weight="0.25" />
+      <window_info id="Structure" order="1" sideWeight="0.49926037" side_tool="true" visible="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info id="Commit" order="3" />
       <window_info id="Learn" order="4" />
@@ -63,9 +64,10 @@
       <window_info anchor="bottom" id="Terminal" order="8" />
       <window_info anchor="bottom" id="Services" order="9" show_stripe_button="false" />
       <window_info anchor="right" id="Space Automation" order="0" />
-      <window_info anchor="right" id="Layout Validation" order="7" />
+      <window_info anchor="right" id="Layout Validation" order="1" />
     </layout>
     <recentWindows>
+      <value>Structure</value>
       <value>Project</value>
     </recentWindows>
   </component>
@@ -79,10 +81,18 @@
       <screen x="0" y="0" width="1536" height="824" />
     </state>
     <state x="529" y="191" key="#com.intellij.fileTypes.FileTypeChooser/0.0.1536.824@0.0.1536.824" timestamp="1654156529833" />
+    <state x="349" y="144" key="IDE.errors.dialog" timestamp="1657132921332">
+      <screen x="0" y="0" width="1536" height="824" />
+    </state>
+    <state x="349" y="144" key="IDE.errors.dialog/0.0.1536.824@0.0.1536.824" timestamp="1657132921332" />
   </component>
   <component name="editorHistoryManager">
     <entry file="file://$PROJECT_DIR$/src/test2.finca">
-      <provider selected="true" editor-type-id="text-editor" />
+      <provider selected="true" editor-type-id="text-editor">
+        <state>
+          <caret column="4" lean-forward="true" selection-start-column="4" selection-end-column="4" />
+        </state>
+      </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/src/test.finca">
       <provider selected="true" editor-type-id="text-editor" />

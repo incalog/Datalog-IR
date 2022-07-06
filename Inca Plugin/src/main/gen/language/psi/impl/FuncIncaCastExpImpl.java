@@ -77,12 +77,6 @@ public class FuncIncaCastExpImpl extends ASTWrapperPsiElement implements FuncInc
 
   @Override
   @Nullable
-  public FuncIncaName getName() {
-    return findChildByClass(FuncIncaName.class);
-  }
-
-  @Override
-  @Nullable
   public FuncIncaNumericLit getNumericLit() {
     return findChildByClass(FuncIncaNumericLit.class);
   }
@@ -109,6 +103,12 @@ public class FuncIncaCastExpImpl extends ASTWrapperPsiElement implements FuncInc
   @Nullable
   public FuncIncaTupleExp getTupleExp() {
     return findChildByClass(FuncIncaTupleExp.class);
+  }
+
+  @Override
+  @Nullable
+  public FuncIncaTypeName getTypeName() {
+    return findChildByClass(FuncIncaTypeName.class);
   }
 
   @Override
