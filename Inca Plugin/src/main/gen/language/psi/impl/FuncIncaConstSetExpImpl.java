@@ -33,10 +33,4 @@ public class FuncIncaConstSetExpImpl extends ASTWrapperPsiElement implements Fun
     return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaExp.class);
   }
 
-  @Override
-  @Nullable
-  public FuncIncaTupleExp getTupleExp() {
-    return findChildByClass(FuncIncaTupleExp.class);
-  }
-
 }

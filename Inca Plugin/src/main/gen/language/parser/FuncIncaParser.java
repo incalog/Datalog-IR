@@ -408,77 +408,55 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // '{' (exp (',' exp)*)? '}' | '{' tuple_exp
+  // '{' (exp (',' exp)*)? '}'
   public static boolean const_set_exp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "const_set_exp")) return false;
     if (!nextTokenIs(b, BRACES_OPEN)) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = const_set_exp_0(b, l + 1);
-    if (!r) r = const_set_exp_1(b, l + 1);
+    r = consumeToken(b, BRACES_OPEN);
+    r = r && const_set_exp_1(b, l + 1);
+    r = r && consumeToken(b, BRACES_CLOSE);
     exit_section_(b, m, CONST_SET_EXP, r);
     return r;
   }
 
-  // '{' (exp (',' exp)*)? '}'
-  private static boolean const_set_exp_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "const_set_exp_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, BRACES_OPEN);
-    r = r && const_set_exp_0_1(b, l + 1);
-    r = r && consumeToken(b, BRACES_CLOSE);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
   // (exp (',' exp)*)?
-  private static boolean const_set_exp_0_1(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "const_set_exp_0_1")) return false;
-    const_set_exp_0_1_0(b, l + 1);
+  private static boolean const_set_exp_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "const_set_exp_1")) return false;
+    const_set_exp_1_0(b, l + 1);
     return true;
   }
 
   // exp (',' exp)*
-  private static boolean const_set_exp_0_1_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "const_set_exp_0_1_0")) return false;
+  private static boolean const_set_exp_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "const_set_exp_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = exp(b, l + 1);
-    r = r && const_set_exp_0_1_0_1(b, l + 1);
+    r = r && const_set_exp_1_0_1(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }
 
   // (',' exp)*
-  private static boolean const_set_exp_0_1_0_1(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "const_set_exp_0_1_0_1")) return false;
+  private static boolean const_set_exp_1_0_1(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "const_set_exp_1_0_1")) return false;
     while (true) {
       int c = current_position_(b);
-      if (!const_set_exp_0_1_0_1_0(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "const_set_exp_0_1_0_1", c)) break;
+      if (!const_set_exp_1_0_1_0(b, l + 1)) break;
+      if (!empty_element_parsed_guard_(b, "const_set_exp_1_0_1", c)) break;
     }
     return true;
   }
 
   // ',' exp
-  private static boolean const_set_exp_0_1_0_1_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "const_set_exp_0_1_0_1_0")) return false;
+  private static boolean const_set_exp_1_0_1_0(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "const_set_exp_1_0_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
     r = consumeToken(b, COMMA);
     r = r && exp(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // '{' tuple_exp
-  private static boolean const_set_exp_1(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "const_set_exp_1")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, BRACES_OPEN);
-    r = r && tuple_exp(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }

@@ -10,7 +10,4 @@ public interface FuncIncaConstSetExp extends PsiElement {
   @NotNull
   List<FuncIncaExp> getExpList();
 
-  @Nullable
-  FuncIncaTupleExp getTupleExp();
-
 }

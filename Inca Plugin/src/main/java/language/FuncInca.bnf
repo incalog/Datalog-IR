@@ -141,7 +141,7 @@ private atomic_exp ::= parens_exp | option_exp | comprehension_exp | const_set_e
 parens_exp ::= '(' exp ')'
 option_exp ::= 'None' | 'Some' '(' (exp (',' exp)*)? ')'
 comprehension_exp ::= '{' subinfix_exp '|' exp (',' exp)* '}' {pin = 3}
-const_set_exp ::= '{' (exp (',' exp)*)? '}' | '{' tuple_exp
+const_set_exp ::= '{' (exp (',' exp)*)? '}'
 tuple_exp ::= '(' exp ',' exp ')'
 fold_exp ::= keyword_fold ('[' type_annotation ']')? '(' exp ',' exp ',' exp ')' {pin = 1}
 base_apply_exp ::= scala_term '(' (exp (',' exp)*)? ')'
