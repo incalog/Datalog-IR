@@ -19,6 +19,9 @@
                 fieldName="INSTANCE"
                 language="Functional IncA"
                 extensions="finca"/>
+        <lang.parserDefinition
+                language="Functional IncA"
+                implementationClass="language.FuncIncaParserDefinition"/>
     </extensions>
 
     <actions>

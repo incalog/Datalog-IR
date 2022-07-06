@@ -75,13 +75,12 @@
     visibility_private = "private"
 
     space = "regexp:\s+"                    // any possible whitespaces: [ \t\n\x0B\f\r]
-    id = "regexp:[a-zA-Z_]\w*"         // starts with any letter, continues with word characters [a-zA-Z_0-9]
-    string = "regexp:\"([^\"\\]|\\.)*\""        // any number of any characters between quotation marks
-    scala_term = "regexp:`.[^`]*`"              // any Number of any characters between ticks ` and `
-    number = "regexp:\d+"                 // positive or negative numbers with digits \d = [0-9], integer or long
+    id = "regexp:[a-zA-Z_]\w*"              // starts with any letter, continues with word characters [a-zA-Z_0-9]
+    string = "regexp:\"([^\"\\]|\\.)*\""    // any number of any characters between quotation marks
+    scala_term = "regexp:`.[^`]*`"          // any Number of any characters between ticks ` and `
+    number = "regexp:\d+"                   // positive or negative numbers with digits \d = [0-9], integer or long
     double = "regexp:\d+(\.\d+)?"
-    line_comment = "regexp://.*"            // any number of any characters after // (. means any character)
-    block_comment = "regexp:/\*(.|\n)*\*/"  // any number of any characters or line breaks after /* and before */
+    comment = "regexp:(//.*)|(/\*(.|\n)*\*/)"
     ]
 
 }

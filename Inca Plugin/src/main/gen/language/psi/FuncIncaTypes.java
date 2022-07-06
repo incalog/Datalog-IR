@@ -57,7 +57,6 @@ public interface FuncIncaTypes {
   IElementType ARROW = new FuncIncaTokenType("=>");
   IElementType BACK_TICK = new FuncIncaTokenType("`");
   IElementType BAR = new FuncIncaTokenType("|");
-  IElementType BLOCK_COMMENT = new FuncIncaTokenType("block_comment");
   IElementType BOOLEAN_FALSE = new FuncIncaTokenType("false");
   IElementType BOOLEAN_TRUE = new FuncIncaTokenType("true");
   IElementType BRACES_CLOSE = new FuncIncaTokenType("}");
@@ -65,6 +64,7 @@ public interface FuncIncaTypes {
   IElementType CAST = new FuncIncaTokenType("as");
   IElementType COLON = new FuncIncaTokenType(":");
   IElementType COMMA = new FuncIncaTokenType(",");
+  IElementType COMMENT = new FuncIncaTokenType("comment");
   IElementType DOT = new FuncIncaTokenType(".");
   IElementType DOUBLE = new FuncIncaTokenType("double");
   IElementType EQUAL_SIGN = new FuncIncaTokenType("=");
@@ -90,7 +90,6 @@ public interface FuncIncaTypes {
   IElementType KEYWORD_SET = new FuncIncaTokenType("Set");
   IElementType KEYWORD_SOME = new FuncIncaTokenType("Some");
   IElementType LEQ = new FuncIncaTokenType("<=");
-  IElementType LINE_COMMENT = new FuncIncaTokenType("line_comment");
   IElementType LT = new FuncIncaTokenType("<");
   IElementType MINUS = new FuncIncaTokenType("-");
   IElementType MODULO = new FuncIncaTokenType("%");
