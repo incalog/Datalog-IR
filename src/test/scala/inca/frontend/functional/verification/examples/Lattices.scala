@@ -5,6 +5,8 @@ import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOp
 
 object Lattices {
 
+  // CanDo: Extract lattices to .finca files
+
   val signLattice: String =
     s"""module SignLattice
        |data Sign = Top() | Bot() | Pos() | Zero() | Neg()
@@ -37,79 +39,6 @@ object Lattices {
        |""".stripMargin
 
   val compiledSignLattice: CompiledFunctionalModule = Compiler.compileFunctional(signLattice, FunctionalOptions())
-
-  val signLatticeWithPartialOrder: String =
-    s"""module SignLattice
-       |data Sign = Top() | Bot() | Pos() | Zero() | Neg()
-       |
-       |@partialOrder def leq(s1: Sign, s2: Sign): Boolean = s1 match {
-       |  case Top() => s2 match {
-       |    case Top() => true
-       |    case Bot() => false
-       |    case Pos() => false
-       |    case Zero() => false
-       |    case Neg() => false
-       |  }
-       |  case Bot() => true
-       |  case Pos() => s2 match {
-       |    case Top() => true
-       |    case Bot() => false
-       |    case Pos() => true
-       |    case Zero() => false
-       |    case Neg() => false
-       |  }
-       |  case Zero() => s2 match {
-       |    case Top() => true
-       |    case Bot() => false
-       |    case Pos() => false
-       |    case Zero() => true
-       |    case Neg() => false
-       |  }
-       |  case Neg() => s2 match {
-       |    case Top() => true
-       |    case Bot() => false
-       |    case Pos() => false
-       |    case Zero() => false
-       |    case Neg() => true
-       |  }
-       |}
-       |
-       |def intToSign(i: Int): Sign =
-       |  if (i == 0) Zero() else
-       |    if (i > 0) Pos() else Neg()
-       |
-       |def chooseLeft(i1: Int, i2: Int): Int = i1
-       |
-       |@aggr(assoc, comm)
-       |@sound(chooseLeft, intToSign, intToSign, leq)
-       |def join(s1: Sign, s2: Sign): Sign = s1 match {
-       |  case Top() => Top()
-       |  case Bot() => s2
-       |  case Pos() => s2 match {
-       |    case Top() => Top()
-       |    case Bot() => s1
-       |    case Pos() => Pos()
-       |    case Zero() => Top()
-       |    case Neg() => Top()
-       |  }
-       |  case Zero() => s2 match {
-       |    case Top() => Top()
-       |    case Bot() => s1
-       |    case Pos() => Top()
-       |    case Zero() => Zero()
-       |    case Neg() => Top()
-       |  }
-       |  case Neg() => s2 match {
-       |    case Top() => Top()
-       |    case Bot() => s1
-       |    case Pos() => Top()
-       |    case Zero() => Top()
-       |    case Neg() => Neg()
-       |  }
-       |}
-       |""".stripMargin
-
-  val compiledSignLatticeWithPartialOrder: CompiledFunctionalModule = Compiler.compileFunctional(signLatticeWithPartialOrder, FunctionalOptions())
 
   val constLattice: String =
     s"""module ConstantPropagationLattice
@@ -402,10 +331,13 @@ object Lattices {
       |@aggr(assoc, comm, unapply(sub)) def add(i1: Int, i2: Int): Int = i1 + i2
       |@aggr(assoc, comm, unapply(add)) def sub(i1: Int, i2: Int): Int = i1 - i2
       |@aggr(assoc, comm) def mult(i1: Int, i2: Int): Int = i1 * i2
+      |@aggr(assoc, comm) def div(i1: Int, i2: Int): Int = i1 / i2
       |def gt(i1: Int, i2: Int): Boolean = i1 > i2
       |def equals(i1: Int, i2: Int): Boolean = i1 == i2
       |
-      |@sound(add, intToSign, intToSign, leqSign) def addSign(s1: Sign, s2: Sign): Sign = s1 match {
+      |@sound(add, intToSign, intToSign, leqSign)
+      |@monotone(leqSign, leqSign)
+      |def addSign(s1: Sign, s2: Sign): Sign = s1 match {
       |  case Bot() => Bot()
       |  case Top() => s2 match {
       |    case Bot() => Bot()
@@ -437,7 +369,9 @@ object Lattices {
       |  }
       |}
       |
-      |@sound(sub, intToSign, intToSign, leqSign) def subSign(s1: Sign, s2: Sign): Sign = s1 match {
+      |@sound(sub, intToSign, intToSign, leqSign)
+      |@monotone(leqSign, leqSign)
+      |def subSign(s1: Sign, s2: Sign): Sign = s1 match {
       |  case Bot() => Bot()
       |  case Top() => s2 match {
       |    case Bot() => Bot()
@@ -469,7 +403,9 @@ object Lattices {
       |  }
       |}
       |
-      |@sound(mult, intToSign, intToSign, leqSign) def multSign(s1: Sign, s2: Sign): Sign = s1 match {
+      |@sound(mult, intToSign, intToSign, leqSign)
+      |@monotone(leqSign, leqSign)
+      |def multSign(s1: Sign, s2: Sign): Sign = s1 match {
       |  case Bot() => Bot()
       |  case Zero() => s2 match {
       |    case Bot() => Bot()
@@ -501,7 +437,43 @@ object Lattices {
       |  }
       |}
       |
-      |@sound(gt, intToSign, booleanToBool, leqBool) def gtSign(s1: Sign, s2: Sign): Bool = s1 match {
+      |@sound(div, intToSign, intToSign, leqSign)
+      |@monotone(leqSign, leqSign)
+      |def divSign(s1: Sign, s2: Sign): Sign = s1 match {
+      |  case Bot() => Bot()
+      |  case Top() => s2 match {
+      |    case Bot() => Bot()
+      |    case Zero() => Bot()
+      |    case Top() => Top()
+      |    case Pos() => Top()
+      |    case Neg() => Top()
+      |  }
+      |  case Zero() => s2 match {
+      |    case Bot() => Bot()
+      |    case Zero() => Bot()
+      |    case Top() => Top()
+      |    case Pos() => Zero()
+      |    case Neg() => Zero()
+      |  }
+      |  case Pos() => s2 match {
+      |    case Bot() => Bot()
+      |    case Zero() => Bot()
+      |    case Top() => Top()
+      |    case Pos() => Top()
+      |    case Neg() => Top()
+      |  }
+      |  case Neg() => s2 match {
+      |    case Bot() => Bot()
+      |    case Zero() => Bot()
+      |    case Top() => Top()
+      |    case Pos() => Top()
+      |    case Neg() => Top()
+      |  }
+      |}
+      |
+      |@sound(gt, intToSign, booleanToBool, leqBool)
+      |@monotone(leqSign, leqBool)
+      |def gtSign(s1: Sign, s2: Sign): Bool = s1 match {
       |  case Bot() => BotBool()
       |  case Zero() => s2 match {
       |    case Bot() => BotBool()
@@ -533,7 +505,9 @@ object Lattices {
       |  }
       |}
       |
-      |@sound(equals, intToSign, booleanToBool, leqBool) def equalsSign(s1: Sign, s2: Sign): Bool = s1 match {
+      |@sound(equals, intToSign, booleanToBool, leqBool)
+      |@monotone(leqSign, leqBool)
+      |def equalsSign(s1: Sign, s2: Sign): Bool = s1 match {
       |  case Bot() => BotBool()
       |  case Zero() => s2 match {
       |    case Bot() => BotBool()
@@ -630,37 +604,4 @@ object Lattices {
 
   val compiledIntOpsSignLattice: CompiledFunctionalModule = Compiler.compileFunctional(intOpsSignLattice, FunctionalOptions())
 
-    /*|@aggr(assoc, comm, unapply(mult)) def div(i1: Int, i2: Int): Int = i1 / i2
-      |
-      |@sound(div, intToSign, intToSign, leqSign) def divSign(s1: Sign, s2: Sign): Sign = s1 match {
-      |  case Bot() => Bot()
-      |  case Top() => s2 match {
-      |    case Bot() => Bot()
-      |    case Zero() => Bot()
-      |    case Top() => Top()
-      |    case Pos() => Top()
-      |    case Neg() => Top()
-      |  }
-      |  case Zero() => s2 match {
-      |    case Bot() => Bot()
-      |    case Zero() => Bot()
-      |    case Top() => Top()
-      |    case Pos() => Zero()
-      |    case Neg() => Zero()
-      |  }
-      |  case Pos() => s2 match {
-      |    case Bot() => Bot()
-      |    case Zero() => Bot()
-      |    case Top() => Top()
-      |    case Pos() => Top()
-      |    case Neg() => Top()
-      |  }
-      |  case Neg() => s2 match {
-      |    case Bot() => Bot()
-      |    case Zero() => Bot()
-      |    case Top() => Top()
-      |    case Pos() => Top()
-      |    case Neg() => Top()
-      |  }
-      |}*/
 }

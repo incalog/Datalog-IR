@@ -8,6 +8,9 @@ import scala.language.implicitConversions
 
 object SMTlibScripts {
 
+  // It would have probably been nicer to implement the scripts using the Operation trait
+  // included in the scala-smtlib package
+
   def commutativity(aggrName: String, paramTypeName: String): Script = {
     val sort = Sort(paramTypeName)
     Script(
@@ -81,7 +84,6 @@ object SMTlibScripts {
     )
   }
 
-  //TODO testen, ob es auch ohne ==true geht
   def transitivity(relName: String, dataName: String): Script = {
     val sort = Sort(dataName)
     Script(
@@ -108,8 +110,6 @@ object SMTlibScripts {
     )
   }
 
-  // für alle x, y: x rel y und y rel x => x = y
-  // Existiert x, y: sodass x rel y und y rel x und nicht x = y
   def antisymmetry(relName: String, dataName: String): Script = {
     val sort = Sort(dataName)
     Script(
@@ -134,10 +134,8 @@ object SMTlibScripts {
     )
   }
 
-  // für alle x: abstract(beta(x)) > beta(concrete(x))
-  // Existiert x: abstract(beta(x)) nicht > beta(concrete(x))
-  def soundnessNAry(abstractAggrName: String, concreteAggrName: String, concreteParamTypeName: String,
-                    paramBetaName: String, resultBetaName: String, poName: String, numParams: Int): Script = {
+  def soundness(abstractAggrName: String, concreteAggrName: String, concreteParamTypeName: String,
+                paramBetaName: String, resultBetaName: String, poName: String, numParams: Int): Script = {
     val concreteParamSort = Sort(concreteParamTypeName)
     val vars = for (i <- 2 to numParams) yield SortedVar(s"x$i", concreteParamSort)
     val varNames = for (i <- 1 to numParams) yield StringToQualifiedIdentifier(s"x$i")
@@ -159,10 +157,9 @@ object SMTlibScripts {
     )
   }
 
-  // für alle x, y: wenn x < y => f(x) < f(y)
-  // existiert x, y: x < y und nicht f(x) < f(y)
-  def monotonicityNAry(paramTypeName: String, funName: String, resultPoName: String,
-                       paramPoName: String, numParams: Int): Script = {
+  // CanDo: Allow different param types
+  def monotonicity(paramTypeName: String, funName: String, paramPoName: String,
+                   resultPoName: String, numParams: Int): Script = {
     val sort = Sort(paramTypeName)
     val xVars = for (i <- 2 to numParams) yield SortedVar(s"x$i", sort)
     val yVars = for (i <- 1 to numParams) yield SortedVar(s"y$i", sort)

@@ -60,7 +60,7 @@ trait Parser {
   protected[frontend] def defParams[_: P]: P[Seq[Param]] =
     P("(" ~ paramList ~ ")") | P("").map(_ => Seq())
 
-  protected[frontend] def annotation[_: P]: P[Annotation] = mainFuncAnno | aggrAnno | invariantAnno | soundAnno | partialOrderAnno
+  protected[frontend] def annotation[_: P]: P[Annotation] = mainFuncAnno | aggrAnno | invariantAnno | soundAnno | monotoneAnno | partialOrderAnno
   protected[frontend] def mainFuncAnno[_: P]: P[MainFunctionAnno.type] = P("@main").map(_ => MainFunctionAnno)
   protected[frontend] def partialOrderAnno[_: P]: P[PartialOrderAnno.type] = P("@partialOrder").map(_ => PartialOrderAnno)
   protected[frontend] def invariantAnno[_: P]: P[InvariantAnno] =
@@ -68,6 +68,11 @@ trait Parser {
   protected[frontend] def soundAnno[_: P]: P[SoundnessAnno] =
     (P("@sound(") ~ identifier.rep(exactly = 4, sep = ",") ~ P(")")).map {
       case c::b1::b2::po::Nil => SoundnessAnno(c.name, b1.name, b2.name, po.name)
+      case _ => throw new Exception("This is not supposed to happen. Matching is supposed to be exhaustive, as we specified it to be exactly 4 identifiers")
+    }
+  protected[frontend] def monotoneAnno[_: P]: P[MonotonicityAnno] =
+    (P("@monotone(") ~ identifier.rep(exactly = 2, sep = ",") ~ P(")")).map {
+      case pPO::rPO::Nil => MonotonicityAnno(pPO.name, rPO.name)
       case _ => throw new Exception("This is not supposed to happen. Matching is supposed to be exhaustive, as we specified it to be exactly 4 identifiers")
     }
 

@@ -39,13 +39,14 @@ object Aggregations {
 
   val compiledDoubleOperationsModule: CompiledFunctionalModule = Compiler.compileFunctional(doubleOperations, FunctionalOptions())
 
-  // TODO Wieso gibt es laut z3 keine Elemente von NonZeroDouble??
+  // CanDo: find out why nonZeroDoubles does not work. z3 seems to think there is no instance of nzd
+  //   that satisfies the invariant
   val nonZeroDoubles: String =
     s"""module NonZeroDoubles
        |@invariant(notZero) data NonZeroDouble = D(Double)
        |
        |def notZero(nzd: NonZeroDouble): Boolean = nzd match {
-       |  case D(d) => if(d != 0) true else false
+       |  case D(d) => d != 0
        |}
        |
        |@aggr(assoc, comm, unapply(sub)) def add(nzd1: NonZeroDouble, nzd2: NonZeroDouble): NonZeroDouble = nzd1 match {

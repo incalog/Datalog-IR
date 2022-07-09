@@ -36,6 +36,7 @@ case class InvariantAnno(invariantNames: Seq[String]) extends Annotation {
   override def key: Annotation.Key = "INVARIANT"
   override def toString: String = s"@invariant(${invariantNames.mkString(", ")})"
 }
+
 trait VerifiableProperty
 /*
 The annotated function f_a: A1 x A1 => A2 is supposed to be an overapproximation of the
@@ -47,6 +48,10 @@ case class SoundnessAnno(concreteName: String, paramBetaName: String, resBetaNam
   override def toString: String = s"@sound($concreteName, $paramBetaName, $resBetaName, $poName)"
 }
 
+case class MonotonicityAnno(paramPoName: String, resPoName: String) extends Annotation with VerifiableProperty {
+  override def key: Annotation.Key = "MONOTONICITY"
+  override def toString: String = s"@monotone($paramPoName, $resPoName)"
+}
 
 case class AggregationAnno(props: Seq[AggregationProperty]) extends Annotation {
   override def key: Annotation.Key = "AGGREGATION"

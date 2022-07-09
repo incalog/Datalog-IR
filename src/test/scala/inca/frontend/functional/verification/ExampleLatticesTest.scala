@@ -1,9 +1,9 @@
 package inca.frontend.functional.verification
 
-import inca.frontend.functional.core.{Associativity, Commutativity, HasUnapply, PartialOrderAnno, SoundnessAnno}
+import inca.frontend.functional.core.{Associativity, Commutativity, HasUnapply, MonotonicityAnno, PartialOrderAnno, SoundnessAnno}
 import inca.frontend.functional.verification.examples.Aggregations.{compiledDoubleOperationsModule, compiledIntegerOperationsModule, compiledStringOperationsModule}
 import org.scalatest.funsuite.AnyFunSuite
-import inca.frontend.functional.verification.examples.Lattices.{compiledBoolLattice, compiledConstLattice, compiledIntOpsSignLattice, compiledIntervalLattice, compiledIntervalLatticeInvariants, compiledModifiedIntervalLattice, compiledSignLattice, compiledSignLatticeWithPartialOrder, compiledSignValLattice}
+import inca.frontend.functional.verification.examples.Lattices.{compiledBoolLattice, compiledConstLattice, compiledIntOpsSignLattice, compiledIntervalLattice, compiledIntervalLatticeInvariants, compiledModifiedIntervalLattice, compiledSignLattice, compiledSignValLattice}
 
 
 class ExampleLatticesTest extends AnyFunSuite {
@@ -12,16 +12,6 @@ class ExampleLatticesTest extends AnyFunSuite {
     val verifier = new Verifier()
     assertResult(Map(
       "join" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse)
-    ))(verifier.verify(module))
-  }
-
-  test("test sign lattice with chooseLeft verification") {
-    val module = compiledSignLatticeWithPartialOrder.typed
-    val verifier = new Verifier()
-    assertResult(Map(
-      "join" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse,
-        SoundnessAnno("chooseLeft", "intToSign", "intToSign", "leq") -> VerifiedResponse),
-      "leq" -> Map(PartialOrderAnno -> VerifiedResponse)
     ))(verifier.verify(module))
   }
 
@@ -138,11 +128,21 @@ class ExampleLatticesTest extends AnyFunSuite {
       "add" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse, HasUnapply("sub") -> VerifiedResponse),
       "sub" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse, HasUnapply("add") -> VerifiedResponse),
       "mult" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
-      "addSign" -> Map(SoundnessAnno("add", "intToSign", "intToSign", "leqSign") -> VerifiedResponse),
-      "subSign" -> Map(SoundnessAnno("sub", "intToSign", "intToSign", "leqSign") -> VerifiedResponse),
-      "multSign" -> Map(SoundnessAnno("mult", "intToSign", "intToSign", "leqSign") -> VerifiedResponse),
-      "gtSign" -> Map(SoundnessAnno("gt", "intToSign", "booleanToBool", "leqBool") -> VerifiedResponse),
-      "equalsSign" -> Map(SoundnessAnno("equals", "intToSign", "booleanToBool", "leqBool") -> VerifiedResponse),
+      "div" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse),
+      "addSign" -> Map(SoundnessAnno("add", "intToSign", "intToSign", "leqSign") -> VerifiedResponse,
+        MonotonicityAnno("leqSign", "leqSign") -> VerifiedResponse),
+      "subSign" -> Map(SoundnessAnno("sub", "intToSign", "intToSign", "leqSign") -> VerifiedResponse,
+        MonotonicityAnno("leqSign", "leqSign") -> VerifiedResponse),
+      "multSign" -> Map(SoundnessAnno("mult", "intToSign", "intToSign", "leqSign") -> VerifiedResponse,
+        MonotonicityAnno("leqSign", "leqSign") -> VerifiedResponse),
+      // divSign ist keine sound abstraction von div, da zB z3 0 / 1 zu 0 auswertet, aber wir in divSign
+      // Zero / Pos zu Bot auswerten
+      "divSign" -> Map(SoundnessAnno("div", "intToSign", "intToSign", "leqSign") -> FalsifiedResponse,
+        MonotonicityAnno("leqSign", "leqSign") -> VerifiedResponse),
+      "gtSign" -> Map(SoundnessAnno("gt", "intToSign", "booleanToBool", "leqBool") -> VerifiedResponse,
+        MonotonicityAnno("leqSign", "leqBool") -> VerifiedResponse),
+      "equalsSign" -> Map(SoundnessAnno("equals", "intToSign", "booleanToBool", "leqBool") -> VerifiedResponse,
+        MonotonicityAnno("leqSign", "leqBool") -> VerifiedResponse),
       "leqSign" -> Map(PartialOrderAnno -> VerifiedResponse),
       "leqBool" -> Map(PartialOrderAnno -> VerifiedResponse)
     ))(verifier.verify(module))

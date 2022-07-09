@@ -94,6 +94,7 @@ class Verifier {
     val propCollector = new Collect[VerifiableProperty] {
       override def transAnno(anno: Annotation): Seq[VerifiableProperty] = anno match {
         case a: SoundnessAnno => Seq(a)
+        case m: MonotonicityAnno => Seq(m)
         case AggregationAnno(props) => props
         case _ => Seq()
       }
@@ -102,6 +103,7 @@ class Verifier {
       override def transFun(func: FunctionDef): Seq[(String, Seq[VerifiableProperty])] = {
         if (func.annos.exists {
           case _: SoundnessAnno => true
+          case _: MonotonicityAnno => true
           case _: AggregationAnno => true
           case _ => false
         }) {
@@ -119,6 +121,8 @@ class Verifier {
       case HasUnapply(unapplyName) => Seq(getHygienicName(unapplyName))
       case SoundnessAnno(c, pB, rB, pN) =>
         Seq(c, pB, rB, pN).distinct.map(getHygienicName)
+      case MonotonicityAnno(pPO, rPO) =>
+        Seq(pPO, rPO).distinct.map(getHygienicName)
       case _ => Seq()
     }
   }
@@ -409,9 +413,22 @@ class Verifier {
           Script(List())
         } else {
           val paramTypeName = getParamTypeName(hygienicNames.head)
-          SMTlibScripts.soundnessNAry(funName, hygienicNames.head, paramTypeName,
-            hygienicNames(1), hygienicNames(2), hygienicNames(3), getNumParams(funName))
+          val numParams = getNumParams(funName)
+          SMTlibScripts.soundness(funName, hygienicNames.head, paramTypeName,
+            hygienicNames(1), hygienicNames(2), hygienicNames(3), numParams)
         }
+      case anno@MonotonicityAnno(paramPoName, resPoName) =>
+        val hygienicNames = Seq(paramPoName, resPoName).map(getHygienicName)
+        if (!verifyPartialOrder(hygienicNames.head) || !verifyPartialOrder(hygienicNames(1))) {
+          verificationResponses += getOriginalName(funName) -> Map(anno -> FalsifiedResponse)
+          Script(List())
+        } else {
+          val paramTypeName = getParamTypeName(funName)
+          val numParams = getNumParams(funName)
+          SMTlibScripts.monotonicity(paramTypeName, funName,
+            hygienicNames.head, hygienicNames(1), numParams)
+        }
+
       case _ => throw UnexpectedBehaviorException("Matching supposed to be exhaustive")
     }
   }
@@ -448,14 +465,16 @@ class Verifier {
     }
   }
 
+/*
   val integerDivision: (Term, Term) => Term = (left, right) => {
     FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("div"))), Seq(
       FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("to_real"))), Seq(left)),
       FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("to_real"))), Seq(right))
     ))
   }
+*/
 
-  val basicMetaInfixIntOps: Map[String, (Term, Term) => Term] = transformInfixMap(Map(
+  val metaInfixIntOps: Map[String, (Term, Term) => Term] = transformInfixMap(Map(
     "+" -> "+",
     "-" -> "-",
     "*" -> "*",
@@ -465,12 +484,15 @@ class Verifier {
     "<=" -> "<=",
     ">=" -> ">=",
     "==" -> "=",
-    "!=" -> "distinct"
+    "!=" -> "distinct",
+    "/" -> "div"
   ))
 
+/*
   val metaInfixIntOps: Map[String, (Term, Term) => Term] = basicMetaInfixIntOps ++ Map(
     "/" -> integerDivision
   )
+*/
 
   val infixRealOpsMap: Map[String, String] = Map(
     "+" -> "+",
