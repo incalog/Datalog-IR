@@ -12,6 +12,7 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import truechange.EditScript
 import inca.debugger.Value.{topAndBotFactory, valueOrdering}
+import inca.debugger.old.{ControlPoint, Debugger, IRDebugger}
 import inca.examples.functional.LambdaCalculus
 import inca.examples.functional.LambdaCalculus.{app, lam, num, tint, vari}
 import inca.frontend.functional.compiler.FunctionalOptions

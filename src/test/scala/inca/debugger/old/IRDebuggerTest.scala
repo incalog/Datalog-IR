@@ -6,6 +6,7 @@ import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.base.TScalaInt
 import inca.compiler.CompiledDatalogModule
 import inca.compiler.Options
+import inca.debugger.old.{Debugger, IRDebugger}
 import inca.debugger.table.ImmutableTable
 import inca.runtime.context.DataModel
 import inca.runtime.context.QueryScope
@@ -17,6 +18,7 @@ import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.Assertion
 import org.scalatest.BeforeAndAfterEach
+
 import scala.meta.XtensionQuasiquoteTerm
 import truechange.EditScript
 

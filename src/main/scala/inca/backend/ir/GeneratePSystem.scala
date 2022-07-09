@@ -4,6 +4,7 @@ import inca.backend.ir.Datalog._
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.NodeNotLinkedIndex
+import inca.runtime.index.virtual.NotInNamedRelationIndex
 import inca.runtime.index.virtual.NotNodeTypeIndex
 import inca.runtime.index.virtual.SizeIndex
 import inca.runtime.Query
@@ -23,6 +24,7 @@ object GeneratePSystem {
   val EVALPREFIX = "eval_"
 
   private val oNamedRelationKey = symbolOf(NamedRelationKey)
+  private val oNotInNamedRelationKey = symbolOf(NotInNamedRelationIndex.Key)
   private val oNodeTypeKey = symbolOf(NodeTypeKey)
   private val oNotNodeTypeKey = symbolOf(NotNodeTypeIndex.Key)
   private val oPrimitiveKey = symbolOf(PrimitiveTypeKey)
@@ -269,7 +271,8 @@ object GeneratePSystem {
       val tuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
       if (neg) {
         // use a type filter
-        throw new IllegalStateException("Currently do not support negation of extensional call")
+        val notKey = q"$oNotInNamedRelationKey($key)"
+        Seq(q"new TypeFilterConstraint(body, $tuple, $notKey)")
       } else {
         Seq(q"new TypeConstraint(body, $tuple, $key)")
       }

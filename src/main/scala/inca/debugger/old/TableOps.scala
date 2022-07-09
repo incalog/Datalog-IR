@@ -3,6 +3,7 @@ package inca.debugger
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.{CustomAggregation, base}
 import inca.compiler.CompiledModule
+import inca.debugger.old.Frame
 import inca.debugger.table.indexing.IndexCover
 import inca.debugger.table.ImmutableTable
 import inca.debugger.table.IndexedTableFactory
@@ -22,6 +23,7 @@ import inca.util.Scala
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
 import org.eclipse.viatra.query.runtime.matchers.tuple.TupleMask
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
+
 import scala.jdk.CollectionConverters._
 
 class TableOps(

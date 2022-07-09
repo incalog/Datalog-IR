@@ -33,7 +33,7 @@ class BagIndex(val key: IndexKey[_]) extends Index {
   }
 
   /** checks whether the provided tuple is contained in index */
-  final override def containsTuple(tuple: ITuple): Boolean = {
+  override def containsTuple(tuple: ITuple): Boolean = {
     if (tuple == null)
       return false
 
