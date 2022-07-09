@@ -1,4 +1,4 @@
-package inca.debugger
+package inca.debugger.old
 
 case class BreakpointIR(cp: ControlPoint, cond: () => Boolean)
 object BreakpointIR {

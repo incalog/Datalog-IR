@@ -158,6 +158,8 @@ class ImmutableBTreeTable[V: ClassTag](
     else resultIndices
 
   override def insert(t: Tuple, resultIndices: Set[IndexCover] = Set()): ImmutableTable[V] = {
+    if (columns.size != t.size)
+      throw new IllegalArgumentException("Not possible to insert")
     val newTable = new ImmutableBTreeTable[V](columns, indexCovers, minDegree)
 
     val newIndexCovers = selectResultIndices(resultIndices)
@@ -191,6 +193,8 @@ class ImmutableBTreeTable[V: ClassTag](
       other: ImmutableTable[V],
       resultIndices: Set[IndexCover] = Set()
     ): ImmutableBTreeTable[V] = {
+    if (columns.size != other.columns.size)
+      throw new IllegalArgumentException("Not possible to union")
     val newEntries = entries ++ other.entries
     val newIndexCovers = selectResultIndices(resultIndices)
     ImmutableBTreeTable[V](columns, newEntries, newIndexCovers, minDegree)
@@ -208,6 +212,8 @@ class ImmutableBTreeTable[V: ClassTag](
       other: ImmutableTable[V],
       resultIndices: Set[IndexCover] = Set()
     ): ImmutableBTreeTable[V] = {
+    if (columns.size != other.columns.size)
+      throw new IllegalArgumentException("Not possible to diff")
     val newIndexCovers = selectResultIndices(resultIndices)
     val newEntries = entries.diff(other.entries)
     ImmutableBTreeTable[V](columns, newEntries, newIndexCovers, minDegree)

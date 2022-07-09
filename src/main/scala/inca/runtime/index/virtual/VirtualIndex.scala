@@ -6,6 +6,7 @@ import inca.runtime.index.unary.UnaryIndex
 import inca.runtime.index.BagIndex
 import inca.runtime.index.Index
 import inca.runtime.index.IndexKey
+import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
 
 /** A virtual index stores no data of its own but uses other indices to answer queries */
 trait VirtualIndex extends Index {

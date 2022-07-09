@@ -1,5 +1,6 @@
-package inca.debugger
+package inca.debugger.old
 
+import inca.debugger.Value
 import inca.debugger.table.ImmutableTable
 import inca.util.Derivative
 

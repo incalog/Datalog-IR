@@ -11,6 +11,7 @@ import inca.compiler.source.ExcerptRelativeRegion
 import inca.compiler.source.SourceObject
 import inca.compiler.CompiledDatalogModule
 import inca.debugger._
+import inca.debugger.old.{AfterList, AtListElem, AtomPoint, BeforeList, BodyPoint, BreakpointIR, CallStack, ControlPoint, Debugger, Frame}
 import inca.debugger.table.ImmutableTable
 import inca.frontend.functional.compiler.CompiledFunctionalModule
 import inca.frontend.functional.core.BaseLit
@@ -31,6 +32,7 @@ import inca.runtime.data.WrappedURI
 import inca.runtime.db.DatabaseInput
 import inca.util.Derivative
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
+
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer

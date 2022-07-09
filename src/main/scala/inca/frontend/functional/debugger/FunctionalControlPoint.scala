@@ -1,7 +1,7 @@
 package inca.frontend.functional.debugger
 
 import inca.compiler.source.SourceObject
-import inca.debugger.ControlPoint
+import inca.debugger.old.ControlPoint
 import inca.frontend.functional.core
 import inca.frontend.functional.core.FunctionDef
 import inca.frontend.functional.core.If

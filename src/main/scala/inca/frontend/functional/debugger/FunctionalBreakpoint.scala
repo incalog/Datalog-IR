@@ -4,12 +4,7 @@ import inca.backend.hints.DebugHints
 import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.ir.Datalog
 import inca.compiler.source.SourceObject
-import inca.debugger.AtListElem
-import inca.debugger.AtomPoint
-import inca.debugger.BodyPoint
-import inca.debugger.BreakpointIR
-import inca.debugger.ControlPoint
-import inca.debugger.PatternPoint
+import inca.debugger.old.{AtListElem, AtomPoint, BodyPoint, BreakpointIR, ControlPoint, PatternPoint}
 import inca.frontend.functional.core.Collect
 import inca.frontend.functional.core.Expression
 import inca.frontend.functional.core.FunctionDef

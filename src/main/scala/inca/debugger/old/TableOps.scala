@@ -1,28 +1,18 @@
-package inca.debugger
+package inca.debugger.old
 
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.{CustomAggregation, base}
 import inca.compiler.CompiledModule
-import inca.debugger.old.Frame
+import inca.debugger.table.{ImmutableTable, IndexedTableFactory}
 import inca.debugger.table.indexing.IndexCover
-import inca.debugger.table.ImmutableTable
-import inca.debugger.table.IndexedTableFactory
+import inca.debugger.{IllegalDebugStateException, ScalaValue, Value}
 import inca.runtime.db.Database
+import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
-import inca.runtime.index.virtual.NodeNotLinkedIndex
-import inca.runtime.index.virtual.NotNodeTypeIndex
-import inca.runtime.index.virtual.SizeIndex
-import inca.runtime.index.IndexKey
-import inca.runtime.index.LinkListNextKey
-import inca.runtime.index.LinkNodeKey
-import inca.runtime.index.LinkPrimitiveKey
-import inca.runtime.index.NamedRelationKey
-import inca.runtime.index.NodeTypeKey
-import inca.util.Gensym
-import inca.util.Scala
+import inca.runtime.index.virtual.{NodeNotLinkedIndex, NotNodeTypeIndex, SizeIndex}
+import inca.util.{Gensym, Scala}
 import org.eclipse.viatra.query.runtime.matchers.context.IInputKey
-import org.eclipse.viatra.query.runtime.matchers.tuple.TupleMask
-import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
+import org.eclipse.viatra.query.runtime.matchers.tuple.{TupleMask, Tuples}
 
 import scala.jdk.CollectionConverters._
 

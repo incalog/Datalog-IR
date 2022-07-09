@@ -8,14 +8,8 @@ import inca.compiler.source.SourceLocation
 import inca.compiler.source.SourceLocationList
 import inca.compiler.source.SourceObject
 import inca.debugger.table.ImmutableTable
-import inca.debugger.AfterList
-import inca.debugger.AtListElem
-import inca.debugger.AtomPoint
-import inca.debugger.BeforeList
-import inca.debugger.CallStack
-import inca.debugger.ControlPoint
-import inca.debugger.Debugger
 import inca.debugger.Value
+import inca.debugger.old.{AfterList, AtListElem, AtomPoint, BeforeList, CallStack, ControlPoint, Debugger}
 import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.frontend.souffle.Syntax.Expression
 import inca.frontend.souffle.Syntax.Input

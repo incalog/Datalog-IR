@@ -1,4 +1,4 @@
-package inca.debugger
+package inca.debugger.old
 
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.ExpLangTestAnalyses
@@ -6,8 +6,10 @@ import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.base.TScalaInt
 import inca.compiler.CompiledDatalogModule
 import inca.compiler.Options
-import inca.debugger.old.{Debugger, IRDebugger}
 import inca.debugger.table.ImmutableTable
+import inca.debugger.ScalaValue
+import inca.debugger.URIValue
+import inca.debugger.Value
 import inca.runtime.context.DataModel
 import inca.runtime.context.QueryScope
 import inca.runtime.db.DatabaseInput
@@ -18,7 +20,6 @@ import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
 import org.scalatest.Assertion
 import org.scalatest.BeforeAndAfterEach
-
 import scala.meta.XtensionQuasiquoteTerm
 import truechange.EditScript
 
@@ -32,7 +33,9 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     Datalog.Pattern(
       None,
       "edge",
-      Seq(Datalog.Param("from", Datalog.base.TScalaInt), Datalog.Param("to", Datalog.base.TScalaInt)),
+      Seq(
+        Datalog.Param("from", Datalog.base.TScalaInt),
+        Datalog.Param("to", Datalog.base.TScalaInt)),
       edges.map { case (from, to) =>
         Datalog.Body(
           Seq(
@@ -59,7 +62,9 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     Datalog.Pattern(
       None,
       "edge",
-      Seq(Datalog.Param("from", Datalog.base.TScalaInt), Datalog.Param("to", Datalog.base.TScalaInt)),
+      Seq(
+        Datalog.Param("from", Datalog.base.TScalaInt),
+        Datalog.Param("to", Datalog.base.TScalaInt)),
       Seq(
         Datalog.Body(
           Seq(
@@ -94,7 +99,9 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       Datalog.Pattern(
         None,
         "one",
-        Seq(Datalog.Param("from", Datalog.base.TScalaInt), Datalog.Param("to", Datalog.base.TScalaInt)),
+        Seq(
+          Datalog.Param("from", Datalog.base.TScalaInt),
+          Datalog.Param("to", Datalog.base.TScalaInt)),
         Seq(
           Datalog.Body(Seq(Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("to")))))
         )
@@ -102,7 +109,9 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       Datalog.Pattern(
         None,
         "two",
-        Seq(Datalog.Param("from", Datalog.base.TScalaInt), Datalog.Param("to", Datalog.base.TScalaInt)),
+        Seq(
+          Datalog.Param("from", Datalog.base.TScalaInt),
+          Datalog.Param("to", Datalog.base.TScalaInt)),
         Seq(
           Datalog.Body(
             Seq(
@@ -135,7 +144,9 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       Datalog.Pattern(
         None,
         "one",
-        Seq(Datalog.Param("from", Datalog.base.TScalaInt), Datalog.Param("to", Datalog.base.TScalaInt)),
+        Seq(
+          Datalog.Param("from", Datalog.base.TScalaInt),
+          Datalog.Param("to", Datalog.base.TScalaInt)),
         Seq(
           Datalog.Body(Seq(Datalog.Call("edge", Seq(Datalog.Var("from"), Datalog.Var("to")))))
         )
@@ -143,7 +154,9 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       Datalog.Pattern(
         None,
         "two",
-        Seq(Datalog.Param("from", Datalog.base.TScalaInt), Datalog.Param("to", Datalog.base.TScalaInt)),
+        Seq(
+          Datalog.Param("from", Datalog.base.TScalaInt),
+          Datalog.Param("to", Datalog.base.TScalaInt)),
         Seq(
           Datalog.Body(
             Seq(
@@ -175,7 +188,9 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     Datalog.Pattern(
       None,
       "edge",
-      Seq(Datalog.Param("from", Datalog.base.TScalaInt), Datalog.Param("to", Datalog.base.TScalaInt)),
+      Seq(
+        Datalog.Param("from", Datalog.base.TScalaInt),
+        Datalog.Param("to", Datalog.base.TScalaInt)),
       Seq(
         Datalog.Body(
           Seq(
@@ -257,7 +272,9 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     Datalog.Pattern(
       None,
       "numberOfEdges",
-      Seq(Datalog.Param("from", Datalog.base.TScalaInt), Datalog.Param("res", Datalog.base.TScalaInt)),
+      Seq(
+        Datalog.Param("from", Datalog.base.TScalaInt),
+        Datalog.Param("res", Datalog.base.TScalaInt)),
       Seq(
         Datalog.Body(
           Seq(
@@ -291,7 +308,9 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     Datalog.Pattern(
       None,
       "path",
-      Seq(Datalog.Param("from", Datalog.base.TScalaInt), Datalog.Param("to", Datalog.base.TScalaInt)),
+      Seq(
+        Datalog.Param("from", Datalog.base.TScalaInt),
+        Datalog.Param("to", Datalog.base.TScalaInt)),
       Seq(
         Datalog.Body(
           Seq(
@@ -311,7 +330,9 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     Datalog.Pattern(
       None,
       "path",
-      Seq(Datalog.Param("from", Datalog.base.TScalaInt), Datalog.Param("to", Datalog.base.TScalaInt)),
+      Seq(
+        Datalog.Param("from", Datalog.base.TScalaInt),
+        Datalog.Param("to", Datalog.base.TScalaInt)),
       Seq(
         Datalog.Body(
           Seq(
@@ -331,7 +352,9 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     Datalog.Pattern(
       None,
       "path",
-      Seq(Datalog.Param("from", Datalog.base.TScalaInt), Datalog.Param("to", Datalog.base.TScalaInt)),
+      Seq(
+        Datalog.Param("from", Datalog.base.TScalaInt),
+        Datalog.Param("to", Datalog.base.TScalaInt)),
       Seq(
         Datalog.Body(
           Seq(
@@ -351,7 +374,9 @@ class IRDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     Datalog.Pattern(
       None,
       "notTargetOf",
-      Seq(Datalog.Param("from", Datalog.base.TScalaInt), Datalog.Param("n", Datalog.base.TScalaInt)),
+      Seq(
+        Datalog.Param("from", Datalog.base.TScalaInt),
+        Datalog.Param("n", Datalog.base.TScalaInt)),
       Seq(
         Datalog.Body(
           Seq(

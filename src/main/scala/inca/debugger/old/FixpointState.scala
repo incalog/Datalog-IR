@@ -1,7 +1,8 @@
-package inca.debugger
+package inca.debugger.old
 
 import inca.backend.ir.Datalog
 import inca.debugger.table.ImmutableTable
+
 import scala.collection.mutable
 import scala.reflect.ClassTag
 

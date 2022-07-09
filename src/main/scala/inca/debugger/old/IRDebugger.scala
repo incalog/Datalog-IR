@@ -1,4 +1,4 @@
-package inca.debugger
+package inca.debugger.old
 
 import inca.compiler.CompiledModule
 
