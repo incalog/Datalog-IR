@@ -4,22 +4,22 @@
       <i c="1" l="1657200416675" />
     </e>
     <e n="EditorBackSpace">
-      <i c="27" l="1657200466356" />
+      <i c="74" l="1657464185132" />
     </e>
     <e n="EditorDelete">
-      <i c="2" l="1657200415089" />
+      <i c="3" l="1657463976797" />
     </e>
     <e n="EditorDown">
-      <i c="2" l="1657200335843" />
+      <i c="3" l="1657464065911" />
     </e>
     <e n="EditorEnter">
-      <i c="7" l="1657200402468" />
+      <i c="15" l="1657464155467" />
     </e>
     <e n="EditorLeft">
-      <i c="3" l="1657200411633" />
+      <i c="17" l="1657464172036" />
     </e>
     <e n="EditorLineEnd">
-      <i c="2" l="1657200334805" />
+      <i c="5" l="1657464173158" />
     </e>
     <e n="EditorLineStart">
       <i c="1" l="1657200275061" />
@@ -31,13 +31,19 @@
       <i c="3" l="1657200393506" />
     </e>
     <e n="EditorTab">
-      <i c="1" l="1657200358374" />
+      <i c="2" l="1657464067889" />
+    </e>
+    <e n="EditorUp">
+      <i c="4" l="1657464066651" />
     </e>
     <e n="NewFile">
       <i c="1" l="1657200176957" />
     </e>
     <e n="ShowProjectStructureSettings">
       <i c="1" l="1657200093182" />
+    </e>
+    <e n="ShowSettings">
+      <i c="6" l="1657470158525" />
     </e>
     <e n="WelcomeScreen.CreateNewProject">
       <i c="1" l="1657200013327" />
@@ -48,8 +54,14 @@
     <e n="com.intellij.openapi.editor.impl.EditorMarkupModelImpl$StatusAction">
       <i c="1" l="1657200226979" />
     </e>
+    <e n="com.intellij.openapi.fileEditor.impl.tabActions.CloseTab">
+      <i c="1" l="1657463885799" />
+    </e>
     <e n="com.intellij.openapi.roots.ui.configuration.projectRoot.ModuleStructureConfigurable$AddModuleAction">
       <i c="2" l="1657200143213" />
+    </e>
+    <e n="com.intellij.openapi.wm.impl.ToolWindowHeader$HideAction">
+      <i c="1" l="1657463915996" />
     </e>
     <e n="com.intellij.ui.AnActionButton$AnActionButtonWrapper">
       <i c="2" l="1657200142024" />

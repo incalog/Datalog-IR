@@ -22,6 +22,11 @@
         <lang.parserDefinition
                 language="Functional IncA"
                 implementationClass="language.FuncIncaParserDefinition"/>
+        <lang.syntaxHighlighterFactory
+                language="Functional IncA"
+                implementationClass="language.FuncIncaSyntaxHighlighterFactory"/>
+        <colorSettingsPage
+                implementation="language.FuncIncaColorSettingsPage"/>
     </extensions>
 
     <actions>

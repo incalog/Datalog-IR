@@ -14,6 +14,8 @@
   <extensions defaultExtensionNs="com.intellij">
     <fileType name="Functional IncA File" implementationClass="language.FuncIncaFileType" fieldName="INSTANCE" language="Functional IncA" extensions="finca" />
     <lang.parserDefinition language="Functional IncA" implementationClass="language.FuncIncaParserDefinition" />
+    <lang.syntaxHighlighterFactory language="Functional IncA" implementationClass="language.FuncIncaSyntaxHighlighterFactory" />
+    <colorSettingsPage implementation="language.FuncIncaColorSettingsPage" />
   </extensions>
   <actions>
     <!-- Add your actions here -->

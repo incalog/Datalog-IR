@@ -52,6 +52,9 @@ public class FuncIncaSyntaxHighlighter extends SyntaxHighlighterBase {
     public static final TextAttributesKey OPSYM
             = TextAttributesKey.createTextAttributesKey("INCA_OPSYM", DefaultLanguageHighlighterColors.OPERATION_SIGN);
 
+    public static final TextAttributesKey SCALATERM
+            = TextAttributesKey.createTextAttributesKey("INCA_SCALATERM", DefaultLanguageHighlighterColors.FUNCTION_CALL);
+
     /**
      * Helper to point multiple token types to a single color.
      */
@@ -69,6 +72,8 @@ public class FuncIncaSyntaxHighlighter extends SyntaxHighlighterBase {
         keysPutEach(
                 Arrays.asList(
                         FuncIncaTypes.ANNOTATION_MAIN,
+                        FuncIncaTypes.BOOLEAN_FALSE,
+                        FuncIncaTypes.BOOLEAN_TRUE,
                         FuncIncaTypes.CAST,
                         FuncIncaTypes.KEYWORD_CASE,
                         FuncIncaTypes.KEYWORD_DATA,
@@ -86,6 +91,9 @@ public class FuncIncaSyntaxHighlighter extends SyntaxHighlighterBase {
                         FuncIncaTypes.KEYWORD_OPTION,
                         FuncIncaTypes.KEYWORD_SET,
                         FuncIncaTypes.KEYWORD_SOME,
+                        FuncIncaTypes.TYPE_ANY,
+                        FuncIncaTypes.TYPE_NOTHING,
+                        FuncIncaTypes.TYPE_UNIT,
                         FuncIncaTypes.VISIBILITY_PRIVATE
                 ),
                 RESERVED_ID
@@ -94,7 +102,6 @@ public class FuncIncaSyntaxHighlighter extends SyntaxHighlighterBase {
         keysPutEach(
                 Arrays.asList(
                         FuncIncaTypes.ARROW,
-                        FuncIncaTypes.BAR,
                         FuncIncaTypes.COLON,
                         FuncIncaTypes.DOT
                 ),
@@ -137,9 +144,10 @@ public class FuncIncaSyntaxHighlighter extends SyntaxHighlighterBase {
                         FuncIncaTypes.STAR
                 ),
                 OPSYM);
+
+        keysPutEach(Arrays.asList(FuncIncaTypes.BACK_TICK, FuncIncaTypes.SCALA_TERM), SCALATERM);
     }
 
-    //--------------------------------------------------------------
 
     @Override
     public @NotNull Lexer getHighlightingLexer() {
