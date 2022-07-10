@@ -1,9 +1,9 @@
 {
   "appInfo" : {
     "build" : "212.5457.46",
-    "buildDate" : "2021-10-12T13:22:05.092Z[UTC]",
+    "buildDate" : "2021-10-12T13:22:30.223Z[UTC]",
     "productCode" : "IC",
-    "generated" : "2022-06-02T13:14:43.3396272Z",
+    "generated" : "2022-07-07T13:20:55.1683473Z",
     "os" : "Windows 10 10.0",
     "runtime" : "JetBrains s.r.o. 11.0.12 11.0.12+7-b1504.40"
   },
@@ -15,23 +15,23 @@
     "maxSizeOfFileForContentLoading" : 20971520
   },
   "projectIndexingHistory" : {
-    "projectName" : "inca_filetype_test",
+    "projectName" : "untitled",
     "times" : {
       "indexingReason" : "Project roots have changed",
-      "totalUpdatingTime" : 2001792400,
+      "totalUpdatingTime" : 87831300,
       "indexingTime" : 0,
       "contentLoadingTime" : 0,
-      "scanFilesTime" : 1967118400,
+      "scanFilesTime" : 71643500,
       "pushPropertiesTime" : 0,
       "indexExtensionsTime" : 0,
-      "updatingStart" : "2022-06-02T13:14:41.289353Z",
-      "updatingEnd" : "2022-06-02T13:14:43.2967437Z",
+      "updatingStart" : "2022-07-07T13:20:55.0663418Z",
+      "updatingEnd" : "2022-07-07T13:20:55.1582863Z",
       "totalSuspendedTime" : 0,
       "wasInterrupted" : false
     },
     "fileCount" : {
-      "numberOfFileProviders" : 8,
-      "numberOfScannedFiles" : 42424,
+      "numberOfFileProviders" : 6,
+      "numberOfScannedFiles" : 222,
       "numberOfFilesIndexedByInfrastructureExtensionsDuringScan" : 0,
       "numberOfFilesScheduledForIndexingAfterScan" : 0,
       "numberOfFilesIndexedByInfrastructureExtensionsDuringIndexingStage" : 0,
@@ -40,34 +40,14 @@
     "totalStatsPerFileType" : [ ],
     "totalStatsPerIndexer" : [ ],
     "scanningStatistics" : [ {
-      "providerName" : "JDK 11",
-      "numberOfScannedFiles" : 42195,
-      "numberOfSkippedFiles" : 0,
-      "numberOfFilesForIndexing" : 0,
-      "numberOfFilesFullyIndexedByInfrastructureExtensions" : 0,
-      "scanningTime" : 1656612700,
-      "timeProcessingUpToDateFiles" : 0,
-      "timeUpdatingContentLessIndexes" : 61099800,
-      "timeIndexingWithoutContent" : 0
-    }, {
-      "providerName" : "Indexable set contributor 'com.intellij.javaee.ExternalResourcesRootsProvider@2f6c9597' (non-project)",
+      "providerName" : "Indexable set contributor 'com.intellij.javaee.ExternalResourcesRootsProvider@1864bb6a' (non-project)",
       "numberOfScannedFiles" : 222,
       "numberOfSkippedFiles" : 4,
       "numberOfFilesForIndexing" : 0,
       "numberOfFilesFullyIndexedByInfrastructureExtensions" : 0,
-      "scanningTime" : 163439700,
+      "scanningTime" : 63347600,
       "timeProcessingUpToDateFiles" : 0,
-      "timeUpdatingContentLessIndexes" : 627200,
-      "timeIndexingWithoutContent" : 0
-    }, {
-      "providerName" : "Module 'inca_filetype_test'",
-      "numberOfScannedFiles" : 7,
-      "numberOfSkippedFiles" : 0,
-      "numberOfFilesForIndexing" : 0,
-      "numberOfFilesFullyIndexedByInfrastructureExtensions" : 0,
-      "scanningTime" : 907200,
-      "timeProcessingUpToDateFiles" : 0,
-      "timeUpdatingContentLessIndexes" : 36700,
+      "timeUpdatingContentLessIndexes" : 1188000,
       "timeIndexingWithoutContent" : 0
     }, {
       "providerName" : "Indexable set contributor 'Scratches & Consoles' (project)",
@@ -80,7 +60,7 @@
       "timeUpdatingContentLessIndexes" : 0,
       "timeIndexingWithoutContent" : 0
     }, {
-      "providerName" : "Indexable set contributor 'com.intellij.javaee.ExternalResourcesRootsProvider@2f6c9597' (project)",
+      "providerName" : "Indexable set contributor 'Scratches & Consoles' (non-project)",
       "numberOfScannedFiles" : 0,
       "numberOfSkippedFiles" : 0,
       "numberOfFilesForIndexing" : 0,
@@ -90,7 +70,7 @@
       "timeUpdatingContentLessIndexes" : 0,
       "timeIndexingWithoutContent" : 0
     }, {
-      "providerName" : "Indexable set contributor 'Scratches & Consoles' (non-project)",
+      "providerName" : "Indexable set contributor 'com.intellij.javaee.ExternalResourcesRootsProvider@1864bb6a' (project)",
       "numberOfScannedFiles" : 0,
       "numberOfSkippedFiles" : 0,
       "numberOfFilesForIndexing" : 0,

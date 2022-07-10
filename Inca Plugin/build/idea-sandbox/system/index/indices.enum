@@ -32,11 +32,6 @@ LombokConfigIndex
 groovy.trait.fields
 groovy.trait.methods
 com.intellij.uiDesigner.FormClassIndex
-IdeaPluginRegistrationIndex
-PluginIdModuleIndex
-PluginIdDependenciesIndex
-devkit.ExtensionPointIndex
-devkit.ExtensionPointClassIndex
 org.jetbrains.kotlin.idea.versions.KotlinJvmMetadataVersionIndex
 org.jetbrains.kotlin.idea.versions.KotlinJsMetadataVersionIndex
 org.jetbrains.kotlin.idea.vfilefinder.KotlinClassFileIndex
@@ -49,6 +44,11 @@ org.jetbrains.kotlin.idea.vfilefinder.KotlinJvmModuleAnnotationsIndex
 org.jetbrains.kotlin.idea.vfilefinder.KotlinBuiltInsMetadataIndex
 org.jetbrains.kotlin.idea.vfilefinder.KotlinStdlibIndex
 org.jetbrains.kotlin.idea.vfilefinder.KlibMetaFileIndex
+IdeaPluginRegistrationIndex
+PluginIdModuleIndex
+PluginIdDependenciesIndex
+devkit.ExtensionPointIndex
+devkit.ExtensionPointClassIndex
 com.android.tools.idea.model.AndroidManifestIndex$Companion$NAME$1.NAME
 BindingXmlIndex
 MlModelFileIndex
@@ -136,11 +136,6 @@ shared.index.hashes.LombokConfigIndex
 shared.index.hashes.groovy.trait.fields
 shared.index.hashes.groovy.trait.methods
 shared.index.hashes.com.intellij.uiDesigner.FormClassIndex
-shared.index.hashes.IdeaPluginRegistrationIndex
-shared.index.hashes.PluginIdModuleIndex
-shared.index.hashes.PluginIdDependenciesIndex
-shared.index.hashes.devkit.ExtensionPointIndex
-shared.index.hashes.devkit.ExtensionPointClassIndex
 shared.index.hashes.org.jetbrains.kotlin.idea.versions.KotlinJvmMetadataVersionIndex
 shared.index.hashes.org.jetbrains.kotlin.idea.versions.KotlinJsMetadataVersionIndex
 shared.index.hashes.org.jetbrains.kotlin.idea.vfilefinder.KotlinClassFileIndex
@@ -153,6 +148,11 @@ shared.index.hashes.org.jetbrains.kotlin.idea.vfilefinder.KotlinJvmModuleAnnotat
 shared.index.hashes.org.jetbrains.kotlin.idea.vfilefinder.KotlinBuiltInsMetadataIndex
 shared.index.hashes.org.jetbrains.kotlin.idea.vfilefinder.KotlinStdlibIndex
 shared.index.hashes.org.jetbrains.kotlin.idea.vfilefinder.KlibMetaFileIndex
+shared.index.hashes.IdeaPluginRegistrationIndex
+shared.index.hashes.PluginIdModuleIndex
+shared.index.hashes.PluginIdDependenciesIndex
+shared.index.hashes.devkit.ExtensionPointIndex
+shared.index.hashes.devkit.ExtensionPointClassIndex
 shared.index.hashes.com.android.tools.idea.model.AndroidManifestIndex$Companion$NAME$1.NAME
 shared.index.hashes.BindingXmlIndex
 shared.index.hashes.NavXmlIndex

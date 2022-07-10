@@ -193,6 +193,9 @@
       <entry key="*.dic">
         <plugin pluginId="com.intellij" pluginName="IDEA CORE" bundled="true" />
       </entry>
+      <entry key="*.smali">
+        <plugin pluginId="com.android.tools.idea.smali" pluginName="Smali Support" bundled="true" />
+      </entry>
       <entry key="*.yml">
         <plugin pluginId="org.jetbrains.plugins.yaml" pluginName="YAML" bundled="true" />
       </entry>
@@ -207,6 +210,9 @@
       </entry>
       <entry key=".editorconfig">
         <plugin pluginId="org.editorconfig.editorconfigjetbrains" pluginName="EditorConfig" bundled="true" />
+      </entry>
+      <entry key="*.finca">
+        <plugin pluginId="org.example.Inca Plugin" pluginName="Functional Inca" />
       </entry>
       <entry key="*.psd">
         <plugin pluginId="org.jetbrains.android" pluginName="Android" bundled="true" />
@@ -343,21 +349,6 @@
       <entry key="maven.config">
         <plugin pluginId="org.jetbrains.idea.maven" pluginName="Maven" bundled="true" />
       </entry>
-      <entry key=".classpath">
-        <plugin pluginId="org.jetbrains.idea.eclipse" pluginName="Eclipse Interoperability" bundled="true" />
-      </entry>
-      <entry key=".project">
-        <plugin pluginId="org.jetbrains.idea.eclipse" pluginName="Eclipse Interoperability" bundled="true" />
-      </entry>
-      <entry key="*.sh">
-        <plugin pluginId="com.jetbrains.sh" pluginName="Shell Script" bundled="true" />
-      </entry>
-      <entry key="*.bash">
-        <plugin pluginId="com.jetbrains.sh" pluginName="Shell Script" bundled="true" />
-      </entry>
-      <entry key="*.zsh">
-        <plugin pluginId="com.jetbrains.sh" pluginName="Shell Script" bundled="true" />
-      </entry>
       <entry key="*.def">
         <plugin pluginId="org.jetbrains.kotlin" pluginName="Kotlin" bundled="true" />
       </entry>
@@ -381,9 +372,6 @@
       </entry>
       <entry key="*.kotlin_module">
         <plugin pluginId="org.jetbrains.kotlin" pluginName="Kotlin" bundled="true" />
-      </entry>
-      <entry key="*.smali">
-        <plugin pluginId="com.android.tools.idea.smali" pluginName="Smali Support" bundled="true" />
       </entry>
       <entry key="*.aidl">
         <plugin pluginId="org.jetbrains.android" pluginName="Android" bundled="true" />
@@ -442,8 +430,20 @@
       <entry key="*.li">
         <plugin pluginId="org.jetbrains.android" pluginName="Android" bundled="true" />
       </entry>
-      <entry key="*.finca">
-        <plugin pluginId="org.example.Inca Plugin" pluginName="Functional Inca" />
+      <entry key=".classpath">
+        <plugin pluginId="org.jetbrains.idea.eclipse" pluginName="Eclipse Interoperability" bundled="true" />
+      </entry>
+      <entry key=".project">
+        <plugin pluginId="org.jetbrains.idea.eclipse" pluginName="Eclipse Interoperability" bundled="true" />
+      </entry>
+      <entry key="*.sh">
+        <plugin pluginId="com.jetbrains.sh" pluginName="Shell Script" bundled="true" />
+      </entry>
+      <entry key="*.bash">
+        <plugin pluginId="com.jetbrains.sh" pluginName="Shell Script" bundled="true" />
+      </entry>
+      <entry key="*.zsh">
+        <plugin pluginId="com.jetbrains.sh" pluginName="Shell Script" bundled="true" />
       </entry>
     </plugins>
   </component>
@@ -548,7 +548,6 @@
             <plugins>
               <dataSet>
                 <plugin pluginId="idea.plugin.protoeditor" pluginName="Protocol Buffers" />
-                <plugin pluginId="com.github.bufbuild.intellij" pluginName="Buf for Protocol Buffers" />
               </dataSet>
             </plugins>
           </entry>
@@ -683,13 +682,6 @@
             <plugins>
               <dataSet>
                 <plugin pluginId="com.intellij.selenium" pluginName="Selenium UI Testing" />
-              </dataSet>
-            </plugins>
-          </entry>
-          <entry key="java:io.quarkus:quarkus-core">
-            <plugins>
-              <dataSet>
-                <plugin pluginId="dev.eltonsandre.intellij.quarkus-assistant" pluginName="Quarkus Assistant" />
               </dataSet>
             </plugins>
           </entry>
@@ -1070,6 +1062,27 @@
     <option name="extensions">
       <features>
         <featureMap>
+          <entry key="_cq_*.xml">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="co.nums.intellij.aem" pluginName="AEM IDE" />
+              </dataSet>
+            </plugins>
+          </entry>
+          <entry key="_jcr_*.xml">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="co.nums.intellij.aem" pluginName="AEM IDE" />
+              </dataSet>
+            </plugins>
+          </entry>
+          <entry key="_rep_*.xml">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="co.nums.intellij.aem" pluginName="AEM IDE" />
+              </dataSet>
+            </plugins>
+          </entry>
           <entry key="?*constants.txt">
             <plugins>
               <dataSet>
@@ -1088,6 +1101,13 @@
             <plugins>
               <dataSet>
                 <plugin pluginId="Dart" pluginName="Dart" />
+              </dataSet>
+            </plugins>
+          </entry>
+          <entry key=".angular-cli.json">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.github.iguissouma.nxconsole" pluginName="Nx Console Idea" />
               </dataSet>
             </plugins>
           </entry>
@@ -1148,6 +1168,13 @@
             <plugins>
               <dataSet>
                 <plugin pluginId="intellij.buck.plugin" pluginName="Buck for IDEA" />
+              </dataSet>
+            </plugins>
+          </entry>
+          <entry key=".content.xml">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="co.nums.intellij.aem" pluginName="AEM IDE" />
               </dataSet>
             </plugins>
           </entry>
@@ -2102,13 +2129,6 @@
               </dataSet>
             </plugins>
           </entry>
-          <entry key="*.awt">
-            <plugins>
-              <dataSet>
-                <plugin pluginId="FluentLanguage" pluginName="Fluent Language" />
-              </dataSet>
-            </plugins>
-          </entry>
           <entry key="*.back">
             <plugins>
               <dataSet>
@@ -2391,6 +2411,13 @@
             <plugins>
               <dataSet>
                 <plugin pluginId="com.illuminatedcloud2.intellij" pluginName="Illuminated Cloud 2" />
+              </dataSet>
+            </plugins>
+          </entry>
+          <entry key="*.breeze">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.weibo.open.plugin.breeze" pluginName="BreezeHelper" />
               </dataSet>
             </plugins>
           </entry>
@@ -3081,6 +3108,13 @@
             <plugins>
               <dataSet>
                 <plugin pluginId="ru.coding4fun.painless-transact-sql" pluginName="Painless Transact SQL" />
+              </dataSet>
+            </plugins>
+          </entry>
+          <entry key="*.conventionalcommit">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.github.lppedd.idea-conventional-commit" pluginName="Conventional Commit" />
               </dataSet>
             </plugins>
           </entry>
@@ -4136,6 +4170,13 @@
               </dataSet>
             </plugins>
           </entry>
+          <entry key="*.esql">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.github.chengpohi" pluginName="Elasticsearch Query - EDQL" />
+              </dataSet>
+            </plugins>
+          </entry>
           <entry key="*.esr">
             <plugins>
               <dataSet>
@@ -4464,6 +4505,13 @@
               </dataSet>
             </plugins>
           </entry>
+          <entry key="*.flowtest">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.illuminatedcloud2.intellij" pluginName="Illuminated Cloud 2" />
+              </dataSet>
+            </plugins>
+          </entry>
           <entry key="*.fluid">
             <plugins>
               <dataSet>
@@ -4775,6 +4823,34 @@
               <dataSet>
                 <plugin pluginId="Git4Idea_old" pluginName="Git" />
                 <plugin pluginId="Git4Idea" pluginName="Git" />
+              </dataSet>
+            </plugins>
+          </entry>
+          <entry key="*.gitlab-ci.yml">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.gitlabci.plugin" pluginName="GitLabCI" />
+              </dataSet>
+            </plugins>
+          </entry>
+          <entry key="*.gitlab-ci*">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.gitlabci.plugin" pluginName="GitLabCI" />
+              </dataSet>
+            </plugins>
+          </entry>
+          <entry key="*.gitlab-ci*.yaml">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.gitlabci.plugin" pluginName="GitLabCI" />
+              </dataSet>
+            </plugins>
+          </entry>
+          <entry key="*.gitlab-ci*.yml">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.gitlabci.plugin" pluginName="GitLabCI" />
               </dataSet>
             </plugins>
           </entry>
@@ -5209,6 +5285,13 @@
               </dataSet>
             </plugins>
           </entry>
+          <entry key="*.hoon">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.ashelkov.hoon.plugin" pluginName="Hoon Language" />
+              </dataSet>
+            </plugins>
+          </entry>
           <entry key="*.hphp">
             <plugins>
               <dataSet>
@@ -5246,6 +5329,7 @@
                 <plugin pluginId="Haskell" pluginName="Haskell" />
                 <plugin pluginId="com.haskforce" pluginName="HaskForce" />
                 <plugin pluginId="intellij.haskell" pluginName="IntelliJ-Haskell" />
+                <plugin pluginId="com.vampire.haskell.language" pluginName="Haskell Syntax Highlighting" />
               </dataSet>
             </plugins>
           </entry>
@@ -5480,6 +5564,13 @@
               </dataSet>
             </plugins>
           </entry>
+          <entry key="*.invaders">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.github.nizienko.SpaceInvaders" pluginName="Space Invaders" />
+              </dataSet>
+            </plugins>
+          </entry>
           <entry key="*.ion">
             <plugins>
               <dataSet>
@@ -5679,6 +5770,20 @@
             <plugins>
               <dataSet>
                 <plugin pluginId="JaggeryEditorSupport" pluginName="JaggeryEditor" />
+              </dataSet>
+            </plugins>
+          </entry>
+          <entry key="*.jakt">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="org.serenityos.jakt" pluginName="Jakt" />
+              </dataSet>
+            </plugins>
+          </entry>
+          <entry key="*.jasm">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.roscopeco.jasm.intellij" pluginName="Jasm" />
               </dataSet>
             </plugins>
           </entry>
@@ -6246,7 +6351,7 @@
           <entry key="*.kpcp">
             <plugins>
               <dataSet>
-                <plugin pluginId="org.intellij.sdk.KunpengCompilerPlugin" pluginName="Kunpeng Compiler" />
+                <plugin pluginId="org.intellij.sdk.KunpengCompilerPlugin" pluginName="Kunpeng Compiler and Debugger" />
               </dataSet>
             </plugins>
           </entry>
@@ -6281,7 +6386,7 @@
           <entry key="*.kps">
             <plugins>
               <dataSet>
-                <plugin pluginId="org.intellij.sdk.KunpengCompilerPlugin" pluginName="Kunpeng Compiler" />
+                <plugin pluginId="org.intellij.sdk.KunpengCompilerPlugin" pluginName="Kunpeng Compiler and Debugger" />
                 <plugin pluginId="Kunpeng Library" pluginName="Kunpeng Development Framework" />
                 <plugin pluginId="Kunpeng Porting Advisor" pluginName="Kunpeng Porting Advisor" />
               </dataSet>
@@ -6606,6 +6711,7 @@
                 <plugin pluginId="com.jetbrains.rider.android" pluginName="Rider Xamarin Android Support" />
                 <plugin pluginId="com.sw.FastLayoutInspector" pluginName="FastLayoutInspector" />
                 <plugin pluginId="com.jetbrains.appcode.android" pluginName="Android Tools for AppCode" />
+                <plugin pluginId="com.pingfangx.plugin.legacylayoutinspector" pluginName="Legacy Layout Inspector" />
               </dataSet>
             </plugins>
           </entry>
@@ -7527,6 +7633,13 @@
               </dataSet>
             </plugins>
           </entry>
+          <entry key="*.mua">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="intellij-plugin" pluginName="Mua" />
+              </dataSet>
+            </plugins>
+          </entry>
           <entry key="*.multimarkdown">
             <plugins>
               <dataSet>
@@ -7762,6 +7875,13 @@
               </dataSet>
             </plugins>
           </entry>
+          <entry key="*.note">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.github.beansoft.iscratch" pluginName="Notes" />
+              </dataSet>
+            </plugins>
+          </entry>
           <entry key="*.notifications">
             <plugins>
               <dataSet>
@@ -7906,6 +8026,13 @@
             <plugins>
               <dataSet>
                 <plugin pluginId="com.misset.OMT" pluginName="OMT / ODT Language" />
+              </dataSet>
+            </plugins>
+          </entry>
+          <entry key="*.onnx">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="cn.shanghai.oyb.onnx" pluginName="ONNX4IDEA" />
               </dataSet>
             </plugins>
           </entry>
@@ -8946,6 +9073,13 @@
               </dataSet>
             </plugins>
           </entry>
+          <entry key="*.qoi">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="io.github.xiaozhuai.jetbrains-qoi" pluginName="QOI Support" />
+              </dataSet>
+            </plugins>
+          </entry>
           <entry key="*.qrc">
             <plugins>
               <dataSet>
@@ -9173,6 +9307,7 @@
                 <plugin pluginId="org.xuxiake.ideaToolCollection" pluginName="idea tool collection" />
                 <plugin pluginId="com.hjf.redis.manager.redis-manager" pluginName="Redis Manager" />
                 <plugin pluginId="org.xuxiake.ideaToolCollection.castration" pluginName="idea tool limit collection" />
+                <plugin pluginId="dev.eltonsandre.redis-mananger" pluginName="Redis Client" />
               </dataSet>
             </plugins>
           </entry>
@@ -9687,6 +9822,13 @@
               </dataSet>
             </plugins>
           </entry>
+          <entry key="*.schedulingObjective">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.illuminatedcloud2.intellij" pluginName="Illuminated Cloud 2" />
+              </dataSet>
+            </plugins>
+          </entry>
           <entry key="*.schedulingRule">
             <plugins>
               <dataSet>
@@ -10013,6 +10155,13 @@
               <dataSet>
                 <plugin pluginId="org.jetbrains.plugins.slim" pluginName="Slim" bundled="true" />
                 <plugin pluginId="org.jetbrains.plugins.slim" pluginName="Slim" />
+              </dataSet>
+            </plugins>
+          </entry>
+          <entry key="*.sls">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="intellij-scheme" pluginName="Scheme" />
               </dataSet>
             </plugins>
           </entry>
@@ -11217,7 +11366,6 @@
             <plugins>
               <dataSet>
                 <plugin pluginId="JavaScript" pluginName="JavaScript Support" bundled="true" />
-                <plugin pluginId="com.jetbrains.typoscript" pluginName="TYPO3 TypoScript Support" />
                 <plugin pluginId="de.sgalinski.typoscript.plugin.id" pluginName="TypoScript - Old Version" />
                 <plugin pluginId="de.sgalinski.typoscript.enterprise.plugin.id" pluginName="TYPO3 TypoScript - Enterprise" />
               </dataSet>
@@ -11613,6 +11761,13 @@
             <plugins>
               <dataSet>
                 <plugin pluginId="se.ohol.driver" pluginName="Driver" />
+              </dataSet>
+            </plugins>
+          </entry>
+          <entry key="*.vk">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="Valkyrie" pluginName="Valkyrie Language" />
               </dataSet>
             </plugins>
           </entry>
@@ -12370,6 +12525,20 @@
               </dataSet>
             </plugins>
           </entry>
+          <entry key="angular-cli.json">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.github.iguissouma.nxconsole" pluginName="Nx Console Idea" />
+              </dataSet>
+            </plugins>
+          </entry>
+          <entry key="angular.json">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.github.iguissouma.nxconsole" pluginName="Nx Console Idea" />
+              </dataSet>
+            </plugins>
+          </entry>
           <entry key="antora.yml">
             <plugins>
               <dataSet>
@@ -12517,7 +12686,6 @@
           <entry key="constants.txt">
             <plugins>
               <dataSet>
-                <plugin pluginId="com.jetbrains.typoscript" pluginName="TYPO3 TypoScript Support" />
                 <plugin pluginId="de.sgalinski.typoscript.plugin.id" pluginName="TypoScript - Old Version" />
               </dataSet>
             </plugins>
@@ -12721,22 +12889,13 @@
           <entry key="ext_conf_template.txt">
             <plugins>
               <dataSet>
-                <plugin pluginId="com.jetbrains.typoscript" pluginName="TYPO3 TypoScript Support" />
                 <plugin pluginId="de.sgalinski.typoscript.plugin.id" pluginName="TypoScript - Old Version" />
-              </dataSet>
-            </plugins>
-          </entry>
-          <entry key="ext_typoscript_constants.txt">
-            <plugins>
-              <dataSet>
-                <plugin pluginId="com.jetbrains.typoscript" pluginName="TYPO3 TypoScript Support" />
               </dataSet>
             </plugins>
           </entry>
           <entry key="ext_typoscript_setup.txt">
             <plugins>
               <dataSet>
-                <plugin pluginId="com.jetbrains.typoscript" pluginName="TYPO3 TypoScript Support" />
                 <plugin pluginId="de.sgalinski.typoscript.plugin.id" pluginName="TypoScript - Old Version" />
               </dataSet>
             </plugins>
@@ -13074,13 +13233,6 @@
               </dataSet>
             </plugins>
           </entry>
-          <entry key="nx.json">
-            <plugins>
-              <dataSet>
-                <plugin pluginId="com.github.iguissouma.nxconsole" pluginName="Nx Console Idea" />
-              </dataSet>
-            </plugins>
-          </entry>
           <entry key="objc.dal">
             <plugins>
               <dataSet>
@@ -13291,7 +13443,6 @@
           <entry key="setup.txt">
             <plugins>
               <dataSet>
-                <plugin pluginId="com.jetbrains.typoscript" pluginName="TYPO3 TypoScript Support" />
                 <plugin pluginId="de.sgalinski.typoscript.plugin.id" pluginName="TypoScript - Old Version" />
               </dataSet>
             </plugins>
@@ -13435,6 +13586,13 @@
               </dataSet>
             </plugins>
           </entry>
+          <entry key="workspace.json">
+            <plugins>
+              <dataSet>
+                <plugin pluginId="com.github.iguissouma.nxconsole" pluginName="Nx Console Idea" />
+              </dataSet>
+            </plugins>
+          </entry>
         </featureMap>
       </features>
     </option>
@@ -13504,16 +13662,6 @@
                 <plugin pluginId="org.jetbrains.idea.maven" pluginName="Maven" bundled="true" />
               </featurePlugin>
             </entry>
-            <entry key="ShConfigurationType">
-              <featurePlugin displayName="Shell Script">
-                <plugin pluginId="com.jetbrains.sh" pluginName="Shell Script" bundled="true" />
-              </featurePlugin>
-            </entry>
-            <entry key="#org.jetbrains.idea.devkit.run.PluginConfigurationType">
-              <featurePlugin displayName="Plugin">
-                <plugin pluginId="DevKit" pluginName="Plugin DevKit" bundled="true" />
-              </featurePlugin>
-            </entry>
             <entry key="JetRunConfigurationType">
               <featurePlugin displayName="Kotlin">
                 <plugin pluginId="org.jetbrains.kotlin" pluginName="Kotlin" bundled="true" />
@@ -13529,6 +13677,11 @@
                 <plugin pluginId="com.jetbrains.space" pluginName="Space" bundled="true" />
               </featurePlugin>
             </entry>
+            <entry key="#org.jetbrains.idea.devkit.run.PluginConfigurationType">
+              <featurePlugin displayName="Plugin">
+                <plugin pluginId="DevKit" pluginName="Plugin DevKit" bundled="true" />
+              </featurePlugin>
+            </entry>
             <entry key="AndroidJUnit">
               <featurePlugin displayName="Android JUnit">
                 <plugin pluginId="org.jetbrains.android" pluginName="Android" bundled="true" />
@@ -13542,6 +13695,11 @@
             <entry key="AndroidTestRunConfigurationType">
               <featurePlugin displayName="Android Instrumented Tests">
                 <plugin pluginId="org.jetbrains.android" pluginName="Android" bundled="true" />
+              </featurePlugin>
+            </entry>
+            <entry key="ShConfigurationType">
+              <featurePlugin displayName="Shell Script">
+                <plugin pluginId="com.jetbrains.sh" pluginName="Shell Script" bundled="true" />
               </featurePlugin>
             </entry>
           </featureMap>
