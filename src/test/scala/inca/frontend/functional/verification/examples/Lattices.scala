@@ -41,7 +41,7 @@ object Lattices {
   val compiledSignLattice: CompiledFunctionalModule = Compiler.compileFunctional(signLattice, FunctionalOptions())
 
   val constLattice: String =
-    s"""module ConstantPropagationLattice
+    s"""module ConstantLattice
        |data Constant = Bot() | Num(Int) | Top()
        |
        |@aggr(assoc, comm) def join(c1: Constant, c2: Constant): Constant = c1 match {
@@ -604,4 +604,499 @@ object Lattices {
 
   val compiledIntOpsSignLattice: CompiledFunctionalModule = Compiler.compileFunctional(intOpsSignLattice, FunctionalOptions())
 
+  val doubleOpsConstantLattice: String =
+    """module DoubleOpsConstantPropagationLattice
+      |data Constant = Bot() | Num(Double) | Top()
+      |data Bool = BotBool() | True() | False() | TopBool()
+      |
+      |@aggr(assoc, comm, unapply(sub)) def add(d1: Double, d2: Double): Double = d1 + d2
+      |@aggr(assoc, comm, unapply(add)) def sub(d1: Double, d2: Double): Double = d1 - d2
+      |@aggr(assoc, comm) def mult(d1: Double, d2: Double): Double = d1 * d2
+      |@aggr(assoc, comm) def div(d1: Double, d2: Double): Double = d1 / d2
+      |def gt(d1: Double, d2: Double): Boolean = d1 > d2
+      |def equals(d1: Double, d2: Double): Boolean = d1 == d2
+      |
+      |@sound(add, doubleToConst, doubleToConst, leqConst)
+      |@monotone(leqConst, leqConst)
+      |def addConst(c1: Constant, c2: Constant): Constant = c1 match {
+      |  case Bot() => Bot()
+      |  case Top() => Top()
+      |  case Num(d1) => c2 match {
+      |    case Bot() => Bot()
+      |    case Top() => Top()
+      |    case Num(d2) => Num(d1 + d2)
+      |  }
+      |}
+      |
+      |@sound(sub, doubleToConst, doubleToConst, leqConst)
+      |@monotone(leqConst, leqConst)
+      |def subConst(c1: Constant, c2: Constant): Constant = c1 match {
+      |  case Bot() => Bot()
+      |  case Top() => Top()
+      |  case Num(d1) => c2 match {
+      |    case Bot() => Bot()
+      |    case Top() => Top()
+      |    case Num(d2) => Num(d1 - d2)
+      |  }
+      |}
+      |
+      |@sound(mult, doubleToConst, doubleToConst, leqConst)
+      |@monotone(leqConst, leqConst)
+      |def multConst(c1: Constant, c2: Constant): Constant = c1 match {
+      |  case Bot() => Bot()
+      |  case Top() => Top()
+      |  case Num(d1) => c2 match {
+      |    case Bot() => Bot()
+      |    case Top() => Top()
+      |    case Num(d2) => Num(d1 * d2)
+      |  }
+      |}
+      |
+      |@sound(div, doubleToConst, doubleToConst, leqConst)
+      |@monotone(leqConst, leqConst)
+      |def divConst(c1: Constant, c2: Constant): Constant = c1 match {
+      |  case Bot() => Bot()
+      |  case Top() => Top()
+      |  case Num(d1) => c2 match {
+      |    case Bot() => Bot()
+      |    case Top() => Top()
+      |    case Num(d2) => Num(d1 / d2)
+      |  }
+      |}
+      |
+      |@sound(gt, doubleToConst, booleanToBool, leqBool)
+      |@monotone(leqConst, leqBool)
+      |def gtConst(c1: Constant, c2: Constant): Bool = c1 match {
+      |  case Bot() => BotBool()
+      |  case Top() => TopBool()
+      |  case Num(d1) => c2 match {
+      |    case Bot() => BotBool()
+      |    case Top() => TopBool()
+      |    case Num(d2) => if(d1 > d2) True() else False()
+      |  }
+      |}
+      |
+      |@sound(equals, doubleToConst, booleanToBool, leqBool)
+      |@monotone(leqConst, leqBool)
+      |def equalsConst(c1: Constant, c2: Constant): Bool = c1 match {
+      |  case Bot() => BotBool()
+      |  case Top() => TopBool()
+      |  case Num(d1) => c2 match {
+      |    case Bot() => BotBool()
+      |    case Top() => TopBool()
+      |    case Num(d2) => if(d1 == d2) True() else False()
+      |  }
+      |}
+      |
+      |@partialOrder def leqConst(c1: Constant,c2: Constant): Boolean = c1 match {
+      |  case Top() => c2 match {
+      |    case Top() => true
+      |    case Bot() => false
+      |    case Num(d2) => false
+      |  }
+      |  case Bot() => true
+      |  case Num(d1) => c2 match {
+      |    case Top() => true
+      |    case Bot() => false
+      |    case Num(d2) => if (d1==d2) true else false
+      |  }
+      |}
+      |
+      |@partialOrder def leqBool(b1: Bool, b2: Bool): Boolean = b1 match {
+      |  case TopBool() => b2 match {
+      |    case TopBool() => true
+      |    case True() => false
+      |    case False() => false
+      |    case BotBool() => false
+      |  }
+      |  case BotBool() => true
+      |  case True() => b2 match {
+      |    case TopBool() => true
+      |    case BotBool() => false
+      |    case True() => true
+      |    case False() => false
+      |  }
+      |  case False() => b2 match {
+      |    case TopBool() => true
+      |    case BotBool() => false
+      |    case True() => false
+      |    case False() => true
+      |  }
+      |}
+      |
+      |def doubleToConst(d: Double): Constant = Num(d)
+      |
+      |def booleanToBool(b: Boolean): Bool =
+      |  if(b) True() else False()
+      |
+      |""".stripMargin
+
+  val compiledDoubleOpsConstantLattice: CompiledFunctionalModule = Compiler.compileFunctional(doubleOpsConstantLattice, FunctionalOptions())
+
+  val intervalLatticeOps: String =
+    """module IntervalLatticeOps
+      |@invariant(intervalBounds)
+      |data Interval = IV(Int, Int) | TopInterval()
+      |data Bool = True() | False() | TopBool()
+      |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
+      |
+      |def intervalBounds(iv: Interval): Boolean = iv match {
+      |  case TopInterval() => true
+      |  case IV(l, h) => if(l <= h) true else false
+      |}
+      |
+      |def add(i1: Int, i2: Int): Int = i1 + i2
+      |def sub(i1: Int, i2: Int): Int = i1 - i2
+      |def mul(i1: Int, i2: Int): Int = i1 * i2
+      |
+      |@aggr(assoc, comm)
+      |@sound(add, intToVal, intToVal, leqVal)
+      |@monotone(leqVal, leqVal)
+      |def addVal(v1: Val, v2: Val): Val = v1 match {
+      |  case BotVal() => BotVal()
+      |  case BoolVal(b1) => BotVal()
+      |  case TopVal() => IntervalVal(TopInterval())
+      |  case IntervalVal(iv1) => v2 match {
+      |    case BotVal() => BotVal()
+      |    case BoolVal(b2) => BotVal()
+      |    case TopVal() => IntervalVal(TopInterval())
+      |    case IntervalVal(iv2) => IntervalVal(addInterval(iv1, iv2))
+      |  }
+      |}
+      |
+      |@aggr(assoc, comm)
+      |@monotone(leqInterval, leqInterval)
+      |def addInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
+      |  case TopInterval() => TopInterval()
+      |  case IV(l1, h1) => iv2 match {
+      |    case TopInterval() => TopInterval()
+      |    case IV(l2, h2) => IV(l1 + l2, h1 + h2)
+      |  }
+      |}
+      |
+      |@aggr(assoc, comm)
+      |@sound(sub, intToVal, intToVal, leqVal)
+      |@monotone(leqVal, leqVal)
+      |def subVal(v1: Val, v2: Val): Val = v1 match {
+      |  case BotVal() => BotVal()
+      |  case BoolVal(b1) => BotVal()
+      |  case TopVal() => IntervalVal(TopInterval())
+      |  case IntervalVal(iv1) => v2 match {
+      |    case BotVal() => BotVal()
+      |    case BoolVal(b2) => BotVal()
+      |    case TopVal() => IntervalVal(TopInterval())
+      |    case IntervalVal(iv2) => IntervalVal(subInterval(iv1, iv2))
+      |  }
+      |}
+      |
+      |@aggr(assoc, comm)
+      |@monotone(leqInterval, leqInterval)
+      |def subInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
+      |  case TopInterval() => TopInterval()
+      |  case IV(l1, h1) => iv2 match {
+      |    case TopInterval() => TopInterval()
+      |    case IV(l2, h2) => IV(l1 - h2, h1 - l2)
+      |  }
+      |}
+      |
+      |@partialOrder def leqInterval(iv1: Interval, iv2: Interval): Boolean = iv1 match {
+      |  case TopInterval() => iv2 match {
+      |    case TopInterval() => true
+      |    case IV(l2, u2) => false
+      |  }
+      |  case IV(l1, u1) => iv2 match {
+      |    case TopInterval() => true
+      |    case IV(l2, u2) => if((l1 >= l2) && (u1 >= u2)) true else false
+      |  }
+      |}
+      |
+      |@partialOrder def leqBool(b1: Bool, b2: Bool): Boolean = b1 match {
+      |  case TopBool() => b2 match {
+      |    case TopBool() => true
+      |    case True() => false
+      |    case False() => false
+      |  }
+      |  case True() => b2 match {
+      |    case TopBool() => true
+      |    case True() => true
+      |    case False() => false
+      |  }
+      |  case False() => b2 match {
+      |    case TopBool() => true
+      |    case True() => false
+      |    case False() => true
+      |  }
+      |}
+      |
+      |@partialOrder def leqVal(v1: Val, v2: Val): Boolean = v1 match {
+      |  case BotVal() => true
+      |  case IntervalVal(iv1) => v2 match {
+      |    case BotVal() => false
+      |    case IntervalVal(iv2) => leqInterval(iv1, iv2)
+      |    case BoolVal(b2) => false
+      |    case TopVal() => true
+      |  }
+      |  case BoolVal(b1) => v2 match {
+      |    case BotVal() => false
+      |    case IntervalVal(iv2) => false
+      |    case BoolVal(b2) => leqBool(b1, b2)
+      |    case TopVal() => true
+      |  }
+      |  case TopVal() => v2 match {
+      |    case BotVal() => false
+      |    case IntervalVal(iv2) => false
+      |    case BoolVal(b2) => false
+      |    case TopVal() => true
+      |  }
+      |}
+      |
+      |def min(i1: Int, i2: Int): Int = if(i1 < i2) i1 else i2
+      |def max(i1: Int, i2: Int): Int = if(i1 < i2) i2 else i1
+      |def abs(i: Int): Int = if(i < 0) i * (-1) else i
+      |
+      |def intToVal(i: Int): Val = IntervalVal(IV(i, i))
+      |""".stripMargin
+
+  val compiledIntervalLatticeOps: CompiledFunctionalModule = Compiler.compileFunctional(intervalLatticeOps, FunctionalOptions())
+
+  val fullModule: String =
+    """module IntervalLatticeOps
+      |@invariant(intervalBounds)
+      |data Interval = IV(Int, Int) | TopInterval()
+      |data Bool = True() | False() | TopBool()
+      |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
+      |
+      |def intervalBounds(iv: Interval): Boolean = iv match {
+      |  case TopInterval() => true
+      |  case IV(l, h) => if(l <= h) true else false
+      |}
+      |
+      |def add(i1: Int, i2: Int): Int = i1 + i2
+      |def sub(i1: Int, i2: Int): Int = i1 - i2
+      |def mul(i1: Int, i2: Int): Int = i1 * i2
+      |def gt(i1: Int, i2: Int): Boolean = i1 > i2
+      |
+      |@aggr(assoc, comm)
+      |@monotone(leqVal, leqVal)
+      |def joinVal(v1: Val, v2: Val): Val = v1 match {
+      |  case BotVal() => v2
+      |  case IntervalVal(iv1) => v2 match {
+      |    case BotVal() => v1
+      |    case IntervalVal(iv2) => IntervalVal(joinInterval(iv1, iv2))
+      |    case BoolVal(b2) => TopVal()
+      |    case TopVal() => TopVal()
+      |  }
+      |  case BoolVal(b1) => v2 match {
+      |    case BotVal() => v1
+      |    case IntervalVal(iv2) => TopVal()
+      |    case BoolVal(b2) => BoolVal(joinBool(b1, b2))
+      |    case TopVal() => TopVal()
+      |  }
+      |  case TopVal() => TopVal()
+      |}
+      |
+      |@aggr(assoc, comm)
+      |@monotone(leqInterval, leqInterval)
+      |def joinInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
+      |  case TopInterval() => TopInterval()
+      |  case IV(l1, h1) => iv2 match {
+      |    case TopInterval() => TopInterval()
+      |    case IV(l2, h2) => widenInterval(IV(min(l1, l2), max(h1, h2)))
+      |  }
+      |}
+      |
+      |@monotone(leqInterval, leqInterval)
+      |def widenInterval(iv: Interval): Interval = iv match {
+      |  case TopInterval() => TopInterval()
+      |  case IV(l, h) =>
+      |    if (abs(h - l) <= 10)
+      |      iv
+      |    else
+      |      TopInterval()
+      |}
+      |
+      |@aggr(assoc, comm)
+      |@monotone(leqBool, leqBool)
+      |def joinBool(b1: Bool, b2: Bool): Bool = b1 match {
+      |  case True() => b2 match {
+      |    case True() => True()
+      |    case False() => TopBool()
+      |    case TopBool() => TopBool()
+      |  }
+      |  case False() => b2 match {
+      |    case True() => TopBool()
+      |    case False() => False()
+      |    case TopBool() => TopBool()
+      |  }
+      |  case TopBool() => TopBool()
+      |}
+      |
+      |@monotone(leqVal, leqVal)
+      |@sound(gt, intToVal, booleanToVal, leqVal)
+      |def greaterThan(v1: Val, v2: Val): Val = v1 match {
+      |  case BotVal() => BotVal()
+      |  case BoolVal(b1) => BotVal()
+      |  case TopVal() => BoolVal(TopBool())
+      |  case IntervalVal(iv1) => v2 match {
+      |    case BotVal() => BotVal()
+      |    case BoolVal(b2) => BotVal()
+      |    case TopVal() => BoolVal(TopBool())
+      |    case IntervalVal(iv2) => BoolVal(greaterThanInterval(iv1, iv2))
+      |  }
+      |}
+      |
+      |@monotone(leqInterval, leqBool)
+      |def greaterThanInterval(iv1: Interval, iv2: Interval): Bool = iv1 match {
+      |  case TopInterval() => TopBool()
+      |  case IV(l1, h1) => iv2 match {
+      |    case TopInterval() => TopBool()
+      |    case IV(l2, h2) =>
+      |      if (l1 > h2) True()
+      |      else if (l2 > h1) False()
+      |      else TopBool()
+      |  }
+      |}
+      |
+      |@aggr(assoc, comm)
+      |@sound(add, intToVal, intToVal, leqVal)
+      |@monotone(leqVal, leqVal)
+      |def addVal(v1: Val, v2: Val): Val = v1 match {
+      |  case BotVal() => BotVal()
+      |  case BoolVal(b1) => BotVal()
+      |  case TopVal() => IntervalVal(TopInterval())
+      |  case IntervalVal(iv1) => v2 match {
+      |    case BotVal() => BotVal()
+      |    case BoolVal(b2) => BotVal()
+      |    case TopVal() => IntervalVal(TopInterval())
+      |    case IntervalVal(iv2) => IntervalVal(addInterval(iv1, iv2))
+      |  }
+      |}
+      |
+      |@aggr(assoc, comm)
+      |@monotone(leqInterval, leqInterval)
+      |def addInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
+      |  case TopInterval() => TopInterval()
+      |  case IV(l1, h1) => iv2 match {
+      |    case TopInterval() => TopInterval()
+      |    case IV(l2, h2) => IV(l1 + l2, h1 + h2)
+      |  }
+      |}
+      |
+      |@aggr(assoc, comm)
+      |@sound(sub, intToVal, intToVal, leqVal)
+      |@monotone(leqVal, leqVal)
+      |def subVal(v1: Val, v2: Val): Val = v1 match {
+      |  case BotVal() => BotVal()
+      |  case BoolVal(b1) => BotVal()
+      |  case TopVal() => IntervalVal(TopInterval())
+      |  case IntervalVal(iv1) => v2 match {
+      |    case BotVal() => BotVal()
+      |    case BoolVal(b2) => BotVal()
+      |    case TopVal() => IntervalVal(TopInterval())
+      |    case IntervalVal(iv2) => IntervalVal(subInterval(iv1, iv2))
+      |  }
+      |}
+      |
+      |@aggr(assoc, comm)
+      |@monotone(leqInterval, leqInterval)
+      |def subInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
+      |  case TopInterval() => TopInterval()
+      |  case IV(l1, h1) => iv2 match {
+      |    case TopInterval() => TopInterval()
+      |    case IV(l2, h2) => IV(l1 - h2, h1 - l2)
+      |  }
+      |}
+      |
+      |@aggr(assoc, comm)
+      |@sound(mul, intToVal, intToVal, leqVal)
+      |@monotone(leqVal, leqVal)
+      |def mulVal(v1: Val, v2: Val): Val = v1 match {
+      |  case BotVal() => BotVal()
+      |  case BoolVal(b1) => BotVal()
+      |  case TopVal() => IntervalVal(TopInterval())
+      |  case IntervalVal(iv1) => v2 match {
+      |    case BotVal() => BotVal()
+      |    case BoolVal(b2) => BotVal()
+      |    case TopVal() => IntervalVal(TopInterval())
+      |    case IntervalVal(iv2) => IntervalVal(mulInterval(iv1, iv2))
+      |  }
+      |}
+      |
+      |@aggr(assoc, comm)
+      |@monotone(leqInterval, leqInterval)
+      |def mulInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
+      |  case TopInterval() => TopInterval()
+      |  case IV(l1, h1) => iv2 match {
+      |    case TopInterval() => TopInterval()
+      |    case IV(l2, h2) =>
+      |      let v1 = l1 * l2 in
+      |      let v2 = l1 * h2 in
+      |      let v3 = h1 * l2 in
+      |      let v4 = h1 * h2 in
+      |      let low = min(v1, min(v2, min(v3, v4))) in
+      |      let high = max(v1, max(v2, max(v3, v4))) in
+      |      IV(low, high)
+      |  }
+      |}
+      |
+      |def min(i1: Int, i2: Int): Int = if(i1 < i2) i1 else i2
+      |def max(i1: Int, i2: Int): Int = if(i1 < i2) i2 else i1
+      |def abs(i: Int): Int = if(i < 0) i * (-1) else i
+      |
+      |@partialOrder def leqBool(b1: Bool, b2: Bool): Boolean = b1 match {
+      |  case TopBool() => b2 match {
+      |    case TopBool() => true
+      |    case True() => false
+      |    case False() => false
+      |  }
+      |  case True() => b2 match {
+      |    case TopBool() => true
+      |    case True() => true
+      |    case False() => false
+      |  }
+      |  case False() => b2 match {
+      |    case TopBool() => true
+      |    case True() => false
+      |    case False() => true
+      |  }
+      |}
+      |
+      |@partialOrder def leqInterval(iv1: Interval, iv2: Interval): Boolean = iv1 match {
+      |  case TopInterval() => iv2 match {
+      |    case TopInterval() => true
+      |    case IV(l2, u2) => false
+      |  }
+      |  case IV(l1, u1) => iv2 match {
+      |    case TopInterval() => true
+      |    case IV(l2, u2) => if((l1 >= l2) && (u1 >= u2)) true else false
+      |  }
+      |}
+      |
+      |@partialOrder def leqVal(v1: Val, v2: Val): Boolean = v1 match {
+      |  case BotVal() => true
+      |  case IntervalVal(iv1) => v2 match {
+      |    case BotVal() => false
+      |    case IntervalVal(iv2) => leqInterval(iv1, iv2)
+      |    case BoolVal(b2) => false
+      |    case TopVal() => true
+      |  }
+      |  case BoolVal(b1) => v2 match {
+      |    case BotVal() => false
+      |    case IntervalVal(iv2) => false
+      |    case BoolVal(b2) => leqBool(b1, b2)
+      |    case TopVal() => true
+      |  }
+      |  case TopVal() => v2 match {
+      |    case BotVal() => false
+      |    case IntervalVal(iv2) => false
+      |    case BoolVal(b2) => false
+      |    case TopVal() => true
+      |  }
+      |}
+      |
+      |def intToVal(i: Int): Val = IntervalVal(IV(i, i))
+      |
+      |def booleanToVal(b: Boolean): Val =
+      |  if(b) BoolVal(True()) else BoolVal(False())
+      |""".stripMargin
 }

@@ -3,7 +3,7 @@ package inca.frontend.functional.verification
 import inca.frontend.functional.core.{Associativity, Commutativity, HasUnapply, MonotonicityAnno, PartialOrderAnno, SoundnessAnno}
 import inca.frontend.functional.verification.examples.Aggregations.{compiledDoubleOperationsModule, compiledIntegerOperationsModule, compiledStringOperationsModule}
 import org.scalatest.funsuite.AnyFunSuite
-import inca.frontend.functional.verification.examples.Lattices.{compiledBoolLattice, compiledConstLattice, compiledIntOpsSignLattice, compiledIntervalLattice, compiledIntervalLatticeInvariants, compiledModifiedIntervalLattice, compiledSignLattice, compiledSignValLattice}
+import inca.frontend.functional.verification.examples.Lattices.{compiledBoolLattice, compiledConstLattice, compiledDoubleOpsConstantLattice, compiledIntOpsSignLattice, compiledIntervalLattice, compiledIntervalLatticeInvariants, compiledIntervalLatticeOps, compiledModifiedIntervalLattice, compiledSignLattice, compiledSignValLattice}
 
 
 class ExampleLatticesTest extends AnyFunSuite {
@@ -144,6 +144,60 @@ class ExampleLatticesTest extends AnyFunSuite {
       "equalsSign" -> Map(SoundnessAnno("equals", "intToSign", "booleanToBool", "leqBool") -> VerifiedResponse,
         MonotonicityAnno("leqSign", "leqBool") -> VerifiedResponse),
       "leqSign" -> Map(PartialOrderAnno -> VerifiedResponse),
+      "leqBool" -> Map(PartialOrderAnno -> VerifiedResponse)
+    ))(verifier.verify(module))
+  }
+
+  test("test doubleOpsConstantLattice module verification") {
+    val module = compiledDoubleOpsConstantLattice.typed
+    val verifier = new Verifier()
+    assertResult(Map(
+      "add" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse, HasUnapply("sub") -> VerifiedResponse),
+      "sub" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse, HasUnapply("add") -> VerifiedResponse),
+      "mult" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
+      "div" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse),
+      "addConst" -> Map(SoundnessAnno("add", "doubleToConst", "doubleToConst", "leqConst") -> VerifiedResponse,
+        MonotonicityAnno("leqConst", "leqConst") -> VerifiedResponse),
+      "subConst" -> Map(SoundnessAnno("sub", "doubleToConst", "doubleToConst", "leqConst") -> VerifiedResponse,
+        MonotonicityAnno("leqConst", "leqConst") -> VerifiedResponse),
+      "multConst" -> Map(SoundnessAnno("mult", "doubleToConst", "doubleToConst", "leqConst") -> VerifiedResponse,
+        MonotonicityAnno("leqConst", "leqConst") -> VerifiedResponse),
+      // divConst ist keine sound abstraction von div, da zB z3 0 / 1 zu 0 auswertet, aber wir in divConst
+      // Zero / Pos zu Bot auswerten
+      "divConst" -> Map(SoundnessAnno("div", "doubleToConst", "doubleToConst", "leqConst") -> VerifiedResponse,
+        MonotonicityAnno("leqConst", "leqConst") -> VerifiedResponse),
+      "gtConst" -> Map(SoundnessAnno("gt", "doubleToConst", "booleanToBool", "leqBool") -> VerifiedResponse,
+        MonotonicityAnno("leqConst", "leqBool") -> VerifiedResponse),
+      "equalsConst" -> Map(SoundnessAnno("equals", "doubleToConst", "booleanToBool", "leqBool") -> VerifiedResponse,
+        MonotonicityAnno("leqConst", "leqBool") -> VerifiedResponse),
+      "leqConst" -> Map(PartialOrderAnno -> VerifiedResponse),
+      "leqBool" -> Map(PartialOrderAnno -> VerifiedResponse)
+    ))(verifier.verify(module))
+  }
+
+  test("test intervalLatticeOps module verification") {
+    val module = compiledIntervalLatticeOps.typed
+    val verifier = new Verifier()
+    assertResult(Map(
+      "add" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse, HasUnapply("sub") -> VerifiedResponse),
+      "sub" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse, HasUnapply("add") -> VerifiedResponse),
+      "mult" -> Map(Associativity -> VerifiedResponse, Commutativity -> VerifiedResponse),
+      "div" -> Map(Associativity -> FalsifiedResponse, Commutativity -> FalsifiedResponse),
+      "addConst" -> Map(SoundnessAnno("add", "doubleToConst", "doubleToConst", "leqConst") -> VerifiedResponse,
+        MonotonicityAnno("leqConst", "leqConst") -> VerifiedResponse),
+      "subConst" -> Map(SoundnessAnno("sub", "doubleToConst", "doubleToConst", "leqConst") -> VerifiedResponse,
+        MonotonicityAnno("leqConst", "leqConst") -> VerifiedResponse),
+      "multConst" -> Map(SoundnessAnno("mult", "doubleToConst", "doubleToConst", "leqConst") -> VerifiedResponse,
+        MonotonicityAnno("leqConst", "leqConst") -> VerifiedResponse),
+      // divConst ist keine sound abstraction von div, da zB z3 0 / 1 zu 0 auswertet, aber wir in divConst
+      // Zero / Pos zu Bot auswerten
+      "divConst" -> Map(SoundnessAnno("div", "doubleToConst", "doubleToConst", "leqConst") -> VerifiedResponse,
+        MonotonicityAnno("leqConst", "leqConst") -> VerifiedResponse),
+      "gtConst" -> Map(SoundnessAnno("gt", "doubleToConst", "booleanToBool", "leqBool") -> VerifiedResponse,
+        MonotonicityAnno("leqConst", "leqBool") -> VerifiedResponse),
+      "equalsConst" -> Map(SoundnessAnno("equals", "doubleToConst", "booleanToBool", "leqBool") -> VerifiedResponse,
+        MonotonicityAnno("leqConst", "leqBool") -> VerifiedResponse),
+      "leqConst" -> Map(PartialOrderAnno -> VerifiedResponse),
       "leqBool" -> Map(PartialOrderAnno -> VerifiedResponse)
     ))(verifier.verify(module))
   }
