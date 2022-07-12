@@ -38,7 +38,7 @@ class Verifier {
   val reverseVarMem: mutable.Map[String, String] = mutable.Map()
   val functionDict: mutable.Map[String, FunctionDef] = mutable.Map()
   val dataDict: mutable.Map[String, DataDef] = mutable.Map()
-  val dataInvariants: mutable.Map[String, mutable.Seq[String]] = mutable.Map()
+  val dataInvariants: mutable.Map[String, mutable.ListBuffer[String]] = mutable.Map()
   // verificationResponses verwendet die originalen Namen als keys
   val verificationResponses: mutable.Map[String, Map[VerifiableProperty, Response]] = mutable.Map()
 
@@ -242,10 +242,9 @@ class Verifier {
         throw FunctionNotFoundException(name)
       } else {
         if(!dataInvariants.contains(dataName)) {
-          dataInvariants += dataName -> mutable.Seq()
+          dataInvariants += dataName -> mutable.ListBuffer()
         }
-        dataInvariants.getOrElse(dataName,
-          UnexpectedBehaviorException(s"entry for $dataName should have been created")) += name
+        dataInvariants(dataName) += name
       }
       val invariantFunScript = transFunctionDefs(Seq(name))
       makeScript(Seq(invariantFunScript))
