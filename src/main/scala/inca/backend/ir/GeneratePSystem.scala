@@ -4,7 +4,6 @@ import inca.backend.ir.Datalog._
 import inca.runtime.index._
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.NodeNotLinkedIndex
-import inca.runtime.index.virtual.NotInNamedRelationIndex
 import inca.runtime.index.virtual.NotNodeTypeIndex
 import inca.runtime.index.virtual.SizeIndex
 import inca.runtime.Query
@@ -24,7 +23,6 @@ object GeneratePSystem {
   val EVALPREFIX = "eval_"
 
   private val oNamedRelationKey = symbolOf(NamedRelationKey)
-  private val oNotInNamedRelationKey = symbolOf(NotInNamedRelationIndex.Key)
   private val oNodeTypeKey = symbolOf(NodeTypeKey)
   private val oNotNodeTypeKey = symbolOf(NotNodeTypeIndex.Key)
   private val oPrimitiveKey = symbolOf(PrimitiveTypeKey)
@@ -132,7 +130,9 @@ object GeneratePSystem {
     val bodies =
       if (pat.bodies.nonEmpty) pat.bodies
       else
-        Seq(Body(Seq(Compare(EqComparator, Constant(base.IntLiteral(0)), Constant(base.IntLiteral(1))))))
+        Seq(
+          Body(
+            Seq(Compare(EqComparator, Constant(base.IntLiteral(0)), Constant(base.IntLiteral(1))))))
 
     q"""
       object ${Term.Name(pat.name)} {
@@ -270,9 +270,8 @@ object GeneratePSystem {
       val key = q"$oNamedRelationKey($name, ${args.size})"
       val tuple = q"Tuples.flatTupleOf(..${args.map(compileTerm).toList})"
       if (neg) {
-        // use a type filter
-        val notKey = q"$oNotInNamedRelationKey($key)"
-        Seq(q"new TypeFilterConstraint(body, $tuple, $notKey)")
+        throw new IllegalArgumentException(
+          "We currently don't support calling extensional named relations negatively")
       } else {
         Seq(q"new TypeConstraint(body, $tuple, $key)")
       }
@@ -373,7 +372,8 @@ object GeneratePSystem {
         case _ => None
       }
       val argTerms = args.toList.map {
-        case (v: Var, ty) => q"env.getValue(${Lit.String(v.name)}).asInstanceOf[${base.typeAsScala(ty)}]"
+        case (v: Var, ty) =>
+          q"env.getValue(${Lit.String(v.name)}).asInstanceOf[${base.typeAsScala(ty)}]"
         case (Constant(lit), _) => genLiteral(lit)
       }
       Seq(q"""

@@ -362,6 +362,13 @@ class ImmutableBTreeTable[V: ClassTag](
       |""".stripMargin
   }
 
+  // TODO is there a better way?
+  override def hashCode(): Int = {
+    val columnsHash = columns.hashCode()
+    val entriesHash = entries.hashCode()
+    columnsHash + entriesHash
+  }
+
   override def equals(obj: Any): Boolean = obj match {
     case other: ImmutableBTreeTable[V] =>
       // we can use a simple equality test because entries returns a sorted seq

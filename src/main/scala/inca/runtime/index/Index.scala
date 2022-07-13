@@ -47,5 +47,3 @@ trait Index {
 object Index {
   val allDynamicIndices = Seq(ParentIndex.Factory)
 }
-
-case class IndexDeletion(node: URI, tag: Tag, link: Link, parent: URI, ptag: Tag)
