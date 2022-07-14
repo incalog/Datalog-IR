@@ -1,6 +1,8 @@
 package inca.frontend.functional.verification
 
-import smtlib.theories.Core
+import inca.util.Gensym
+import smtlib.theories.Core.{Equals, Implies, Not, True}
+import smtlib.theories.Operations.OperationN
 import smtlib.trees.Commands._
 import smtlib.trees.Terms._
 
@@ -11,179 +13,125 @@ object SMTlibScripts {
   // It would have probably been nicer to implement the scripts using the Operation trait
   // included in the scala-smtlib package
 
-  def commutativity(aggrName: String, paramTypeName: String): Script = {
-    val sort = Sort(paramTypeName)
+  object And extends OperationN {
+    override val numRequired: Int = 2
+    override val name = "and"
+  }
+
+  def generateInvariantAssertions(invariantNames: Seq[String], variableNames: Seq[String]): Seq[Term] = {
+    variableNames.flatMap(vN => invariantNames.map(FunctionApplication(_, Seq(vN))))
+  }
+
+  def prove(sort: Sort, provable: Term, varNames: Seq[String], invariantNames: Seq[String]): Script = {
+    val sortedVars = varNames.map(SortedVar(_, sort))
+    val invariantAssertions = generateInvariantAssertions(invariantNames, varNames)
     Script(
       List(
         Push(1),
-        Assert(Exists(SortedVar("x", sort), Seq(SortedVar("y", sort)),
-          FunctionApplication("not", Seq(FunctionApplication("=", Seq(
-            FunctionApplication(aggrName, Seq("x", "y")),
-            FunctionApplication(aggrName, Seq("y", "x")))))))),
+        Assert(Exists(sortedVars.head, sortedVars.tail,
+          Not(if (invariantAssertions.isEmpty) {
+            provable
+          } else {
+            if (invariantAssertions.size == 1) {
+              Implies(invariantAssertions.head, provable)
+            } else {
+              Implies(And(invariantAssertions), provable)
+            }
+          }))),
         CheckSat(),
         Pop(1))
     )
   }
 
-  def associativity(aggrName: String, paramTypeName: String): Script = {
-    val sort = Sort(paramTypeName)
-    Script(
-      List(
-        Push(1),
-        Assert(Exists(SortedVar("x", sort), Seq(SortedVar("y", sort), SortedVar("z", sort)),
-          FunctionApplication("not", Seq(FunctionApplication("=", Seq(
-            FunctionApplication(aggrName, Seq("x", FunctionApplication(aggrName, Seq("y", "z")))),
-            FunctionApplication(aggrName, Seq(FunctionApplication(aggrName, Seq("x", "y")), "z")))))))),
-        CheckSat(),
-        Pop(1))
-    )
+  def commutativity(aggrName: String, paramTypeName: String, invariantNames: Seq[String])(implicit gensym: Gensym): Script = {
+    val varNames = for (_ <- 0 to 1) yield gensym.fresh("x")
+    val provable: Term = Equals(
+      FunctionApplication(aggrName, Seq(varNames.head, varNames(1))),
+      FunctionApplication(aggrName, Seq(varNames(1), varNames.head)))
+    prove(Sort(paramTypeName), provable, varNames, invariantNames)
   }
 
-  def hasUnapply(aggrName: String, unapplyName: String, paramTypeName: String): Script = {
-    val sort = Sort(paramTypeName)
-    Script(
-      List(
-        Push(1),
-        Assert(Exists(SortedVar("x", sort), Seq(SortedVar("y", sort), SortedVar("z", sort)),
-          FunctionApplication("and", Seq(
-            FunctionApplication("=", Seq(FunctionApplication(aggrName, Seq("x", "y")), "z")),
-            FunctionApplication("not", Seq(FunctionApplication("and", Seq(
-              FunctionApplication("=", Seq(FunctionApplication(unapplyName, Seq("z", "y")), "x"))
-            )))
-            ))))),
-        CheckSat(),
-        Pop(1)
-      )
-    )
+  def associativity(aggrName: String, paramTypeName: String, invariantNames: Seq[String])(implicit gensym: Gensym): Script = {
+    val varNames = for (_ <- 0 to 2) yield gensym.fresh("x")
+    val provable = Equals(
+      FunctionApplication(aggrName, Seq(varNames.head, FunctionApplication(aggrName, Seq(varNames(1), varNames(2))))),
+      FunctionApplication(aggrName, Seq(FunctionApplication(aggrName, Seq(varNames.head, varNames(1))), varNames(2))))
+    prove(Sort(paramTypeName), provable, varNames, invariantNames)
   }
 
-  def invariant(dataName: String, relName: String, freshVarName: String): Script = {
-    val sort = Sort(dataName)
-    Script(List(
-      Assert(Forall(SortedVar(freshVarName, sort), Seq(),
-        FunctionApplication("=", Seq(
-          FunctionApplication(relName, Seq(
-            freshVarName
-          )),
-          Core.BoolConst(true)
-        )))
-      )))
+  def hasUnapply(aggrName: String, unapplyName: String, paramTypeName: String, invariantNames: Seq[String])(implicit gensym: Gensym): Script = {
+    val varNames = for (_ <- 0 to 2) yield gensym.fresh("x")
+    val provable = Implies(
+      Equals(FunctionApplication(aggrName, Seq(varNames.head, varNames(1))), varNames(2)),
+      Equals(FunctionApplication(unapplyName, Seq(varNames(2), varNames(1))), varNames.head)
+    )
+    prove(Sort(paramTypeName), provable, varNames, invariantNames)
   }
 
-  def reflexivity(relName: String, dataName: String): Script = {
-    val sort = Sort(dataName)
-    Script(
-      List(
-        Push(1),
-        Assert(Exists(SortedVar("x", sort), Seq(),
-          FunctionApplication("not", Seq(FunctionApplication("=", Seq(
-            FunctionApplication(relName, Seq("x", "x")),
-            Core.BoolConst(true))))))),
-        CheckSat(),
-        Pop(1))
-    )
+  def reflexivity(relName: String, dataName: String, invariantNames: Seq[String])(implicit gensym: Gensym): Script = {
+    val varNames = Seq(gensym.fresh("x"))
+    val provable = FunctionApplication(relName, Seq(varNames.head, varNames.head))
+    prove(Sort(dataName), provable, varNames, invariantNames)
   }
 
-  def transitivity(relName: String, dataName: String): Script = {
-    val sort = Sort(dataName)
-    Script(
-      List(
-        Push(1),
-        Assert(Exists(SortedVar("x", sort), Seq(SortedVar("y", sort), SortedVar("z", sort)),
-          FunctionApplication("and", Seq(
-            FunctionApplication("and", Seq(
-              FunctionApplication("=", Seq(
-                FunctionApplication(relName, Seq("x", "y")),
-                Core.BoolConst(true))),
-              FunctionApplication("=", Seq(
-                FunctionApplication(relName, Seq("y", "z")),
-                Core.BoolConst(true)))
-            )),
-            FunctionApplication("not", Seq(
-              FunctionApplication("=", Seq(
-                FunctionApplication(relName, Seq("x", "z")),
-                Core.BoolConst(true)))
-            ))
-          )))),
-        CheckSat(),
-        Pop(1))
+  def transitivity(relName: String, dataName: String, invariantNames: Seq[String])(implicit gensym: Gensym): Script = {
+    val varNames = for (_ <- 0 to 2) yield gensym.fresh("x")
+    val provable = Implies(
+      And(Seq(
+        FunctionApplication(relName, Seq(varNames.head, varNames(1))),
+        FunctionApplication(relName, Seq(varNames(1), varNames(2))))),
+      FunctionApplication(relName, Seq(varNames.head, varNames(2)))
     )
+    prove(Sort(dataName), provable, varNames, invariantNames)
   }
 
-  def antisymmetry(relName: String, dataName: String): Script = {
-    val sort = Sort(dataName)
-    Script(
-      List(
-        Push(1),
-        Assert(Exists(SortedVar("x", sort), Seq(SortedVar("y", sort)),
-          FunctionApplication("and", Seq(
-            FunctionApplication("and", Seq(
-              FunctionApplication("=", Seq(
-                FunctionApplication(relName, Seq("x", "y")),
-                Core.BoolConst(true))),
-              FunctionApplication("=", Seq(
-                FunctionApplication(relName, Seq("y", "x")),
-                Core.BoolConst(true)))
-            )),
-            FunctionApplication("not", Seq(
-              FunctionApplication("=", Seq("x", "y"))
-            ))
-          )))),
-        CheckSat(),
-        Pop(1))
+  def antisymmetry(relName: String, dataName: String, invariantNames: Seq[String])(implicit gensym: Gensym): Script = {
+    val varNames = for (_ <- 0 to 1) yield gensym.fresh("x")
+    val provable = Implies(
+      And(Seq(
+        FunctionApplication(relName, Seq(varNames.head, varNames(1))),
+        FunctionApplication(relName, Seq(varNames(1), varNames.head))
+      )),
+      Equals(varNames.head, varNames(1))
     )
+    prove(Sort(dataName), provable, varNames, invariantNames)
   }
 
   def soundness(abstractAggrName: String, concreteAggrName: String, concreteParamTypeName: String,
-                paramBetaName: String, resultBetaName: String, poName: String, numParams: Int): Script = {
-    val concreteParamSort = Sort(concreteParamTypeName)
-    val vars = for (i <- 2 to numParams) yield SortedVar(s"x$i", concreteParamSort)
-    val varNames = for (i <- 1 to numParams) yield StringToQualifiedIdentifier(s"x$i")
-    val varFunImages = for (i <- 1 to numParams) yield FunctionApplication(paramBetaName, Seq(s"x$i"))
-    Script(
-      List(
-        Push(1),
-        Assert(Exists(SortedVar("x1", concreteParamSort), vars,
-          FunctionApplication("not", Seq(
-            FunctionApplication(poName, Seq(
-              FunctionApplication(resultBetaName, Seq(FunctionApplication(concreteAggrName, varNames))),
-              FunctionApplication(abstractAggrName, varFunImages)
-            ))
-          ))
-        )),
-        CheckSat(),
-        Pop(1)
-      )
-    )
+                paramBetaName: String, resultBetaName: String, poName: String, numParams: Int,
+                invariantNames: Seq[String])(implicit gensym: Gensym): Script = {
+    val varNames = for (_ <- 0 until numParams) yield gensym.fresh("x")
+    val varFunImages = for (i <- 0 until numParams) yield FunctionApplication(paramBetaName, Seq(varNames(i)))
+    val provable = FunctionApplication(poName, Seq(
+      FunctionApplication(resultBetaName, Seq(FunctionApplication(concreteAggrName, varNames.map(StringToQualifiedIdentifier)))),
+      FunctionApplication(abstractAggrName, varFunImages)
+    ))
+    prove(Sort(concreteParamTypeName), provable, varNames, invariantNames)
   }
 
   // CanDo: Allow different param types
   def monotonicity(paramTypeName: String, funName: String, paramPoName: String,
-                   resultPoName: String, numParams: Int): Script = {
-    val sort = Sort(paramTypeName)
-    val xVars = for (i <- 2 to numParams) yield SortedVar(s"x$i", sort)
-    val yVars = for (i <- 1 to numParams) yield SortedVar(s"y$i", sort)
-    val xVarNames = for (i <- 1 to numParams) yield StringToQualifiedIdentifier(s"x$i")
-    val yVarNames = for (i <- 1 to numParams) yield StringToQualifiedIdentifier(s"y$i")
-    val paramComparisons = for (i <- 1 to numParams) yield FunctionApplication(paramPoName, Seq(s"x$i", s"y$i"))
-
-    Script(
-      List(
-        Push(1),
-        Assert(Exists(SortedVar("x1", sort), xVars ++ yVars,
-          FunctionApplication("and", paramComparisons ++ Seq(
-            FunctionApplication("not", Seq(
-              FunctionApplication(resultPoName, Seq(
-                FunctionApplication(funName, xVarNames),
-                FunctionApplication(funName, yVarNames)
-              ))
-            ))
-          ))
-        )),
-        CheckSat(),
-        Pop(1)
-      )
+                   resultPoName: String, numParams: Int,
+                   invariantNames: Seq[String])(implicit gensym: Gensym): Script = {
+    val xVars = for (_ <- 0 until numParams) yield gensym.fresh("x")
+    val yVars = for (_ <- 0 until numParams) yield gensym.fresh("y")
+    val paramComparisons = for (i <- 0 until numParams) yield FunctionApplication(paramPoName, Seq(xVars(i), yVars(i)))
+    val provable = Implies(
+      if (paramComparisons.isEmpty) {
+        True()
+      } else {
+        if (paramComparisons.size == 1) {
+          paramComparisons.head
+        } else {
+          And(paramComparisons)
+        }
+      },
+      FunctionApplication(resultPoName, Seq(
+        FunctionApplication(funName, xVars.map(StringToQualifiedIdentifier)),
+        FunctionApplication(funName, yVars.map(StringToQualifiedIdentifier))
+      ))
     )
+    prove(Sort(paramTypeName), provable, xVars ++ yVars, invariantNames)
   }
 
   implicit def StringToSSymbol(s: String): SSymbol = {

@@ -74,7 +74,7 @@ object Aggregations {
        |}
        |""".stripMargin
 
-  // val compiledNonZeroDoublesModule = Compiler.compileFunctional(nonZeroDoubles, FunctionalOptions())
+  val compiledNonZeroDoublesModule: CompiledFunctionalModule = Compiler.compileFunctional(nonZeroDoubles, FunctionalOptions())
 
   val stringOperations: String =
     """module StringOperations

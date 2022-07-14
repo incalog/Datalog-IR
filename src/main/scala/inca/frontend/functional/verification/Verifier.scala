@@ -16,7 +16,6 @@ import scala.collection.mutable.ListBuffer
 // TODO Datentyp für die Ausgabe, dem Ich einen prettyPrint gebe, damit das Testergebnis lesbar wird?
 //  Lattices in .finca Dateien auslagern
 
-
 trait Response
 
 case object VerifiedResponse extends Response
@@ -51,7 +50,6 @@ class Verifier {
     val annotatedFunctions: Map[String, Seq[VerifiableProperty]] = collectAnnotated(module)
     val verificationScripts: Seq[Script] =
       annotatedFunctions.toSeq.map(an => generateScript(an._1, an._2, getAdditionalFunctions(an._2)))
-    print(verificationScripts.map(_.commands.mkString("")).mkString("\n"))
     val verificationResults: Seq[Map[VerifiableProperty, Response]] =
       annotatedFunctions.zip(verificationScripts).map(tuple => tuple._1._2.zip(evaluateScript(tuple._2)).toMap).toSeq
     val annotatedVerificationResponses = annotatedFunctions.keys.zip(verificationResults).map(res => (getOriginalName(res._1), res._2)).toMap
@@ -214,10 +212,9 @@ class Verifier {
   def transDataDef(dataName: String)(implicit gensym: Gensym): Script = {
     val data = getDataDef(dataName)
     val invariantScripts = data.annos.flatMap{
-      case InvariantAnno(invariantNames) => {
+      case InvariantAnno(invariantNames) =>
         val hygienicNames = invariantNames.map(getHygienicName)
         Seq(generateInvariantsScript(hygienicNames, dataName))
-      }
       // case PartialOrderAnnotation(relName) => verifyPartialOrder(relName, dataName)
       case _ => Seq()
     }
@@ -244,12 +241,15 @@ class Verifier {
         if(!dataInvariants.contains(dataName)) {
           dataInvariants += dataName -> mutable.ListBuffer()
         }
-        dataInvariants(dataName) += name
+        if(!dataInvariants(dataName).contains(name)) {
+          dataInvariants(dataName) += name
+        }
       }
       val invariantFunScript = transFunctionDefs(Seq(name))
       makeScript(Seq(invariantFunScript))
     }))
   }
+
 
   // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
   def verifyPartialOrder(relName: String)(implicit gensym: Gensym): Boolean = {
@@ -261,9 +261,9 @@ class Verifier {
         val transDataDefs = dataDefs.map(transDataDef)
         val transFuncDefs = transFunctionDefs(functions)
         val partialOrderVerScript = makeScript(transDataDefs ++ Seq(transFuncDefs,
-          SMTlibScriptsInvariants.reflexivity(relName, dataName, dataInvariants.getOrElse(dataName, Seq()).toSeq),
-          SMTlibScriptsInvariants.transitivity(relName, dataName, dataInvariants.getOrElse(dataName, Seq()).toSeq),
-          SMTlibScriptsInvariants.antisymmetry(relName, dataName, dataInvariants.getOrElse(dataName, Seq()).toSeq)))
+          gensym.scoped {SMTlibScripts.reflexivity(relName, dataName, dataInvariants.getOrElse(dataName, Seq()).toSeq)},
+          gensym.scoped {SMTlibScripts.transitivity(relName, dataName, dataInvariants.getOrElse(dataName, Seq()).toSeq)},
+          gensym.scoped {SMTlibScripts.antisymmetry(relName, dataName, dataInvariants.getOrElse(dataName, Seq()).toSeq)}))
         val evaluationResults = evaluateScript(partialOrderVerScript)
         val response: (VerifiableProperty, Response) = PartialOrderAnno -> (if(evaluationResults.forall{
           case VerifiedResponse => true
@@ -412,12 +412,18 @@ class Verifier {
       case aggrProp: AggregationProperty =>
         val paramTypeName = getParamTypeName(funName)
         aggrProp match {
-          case Associativity => SMTlibScriptsInvariants.associativity(funName, paramTypeName,
-            dataInvariants.getOrElse(paramTypeName, Seq()).toSeq)
-          case Commutativity => SMTlibScriptsInvariants.commutativity(funName, paramTypeName,
-            dataInvariants.getOrElse(paramTypeName, Seq()).toSeq)
-          case HasUnapply(invName) => SMTlibScriptsInvariants.hasUnapply(funName, getHygienicName(invName),
-            paramTypeName, dataInvariants.getOrElse(paramTypeName, Seq()).toSeq)
+          case Associativity => gensym.scoped {
+            SMTlibScripts.associativity(funName, paramTypeName,
+              dataInvariants.getOrElse(paramTypeName, Seq()).toSeq)
+          }
+          case Commutativity => gensym.scoped {
+            SMTlibScripts.commutativity(funName, paramTypeName,
+              dataInvariants.getOrElse(paramTypeName, Seq()).toSeq)
+          }
+          case HasUnapply(invName) => gensym.scoped {
+            SMTlibScripts.hasUnapply(funName, getHygienicName(invName),
+              paramTypeName, dataInvariants.getOrElse(paramTypeName, Seq()).toSeq)
+          }
         }
       case anno@SoundnessAnno(concreteFunName, paramBetaName, resultBetaName, partialOrderName) =>
         val hygienicNames = Seq(concreteFunName, paramBetaName, resultBetaName, partialOrderName).map(getHygienicName)
@@ -427,8 +433,10 @@ class Verifier {
         } else {
           val paramTypeName = getParamTypeName(hygienicNames.head)
           val numParams = getNumParams(funName)
-          SMTlibScriptsInvariants.soundness(funName, hygienicNames.head, paramTypeName,
-            hygienicNames(1), hygienicNames(2), hygienicNames(3), numParams, dataInvariants.getOrElse(paramTypeName, Seq()).toSeq)
+          gensym.scoped {
+            SMTlibScripts.soundness(funName, hygienicNames.head, paramTypeName,
+              hygienicNames(1), hygienicNames(2), hygienicNames(3), numParams, dataInvariants.getOrElse(paramTypeName, Seq()).toSeq)
+          }
         }
       case anno@MonotonicityAnno(paramPoName, resPoName) =>
         val hygienicNames = Seq(paramPoName, resPoName).map(getHygienicName)
@@ -438,8 +446,10 @@ class Verifier {
         } else {
           val paramTypeName = getParamTypeName(funName)
           val numParams = getNumParams(funName)
-          SMTlibScriptsInvariants.monotonicity(paramTypeName, funName,
-            hygienicNames.head, hygienicNames(1), numParams, dataInvariants.getOrElse(paramTypeName, Seq()).toSeq)
+          gensym.scoped {
+            SMTlibScripts.monotonicity(paramTypeName, funName,
+              hygienicNames.head, hygienicNames(1), numParams, dataInvariants.getOrElse(paramTypeName, Seq()).toSeq)
+          }
         }
 
       case _ => throw UnexpectedBehaviorException("Matching supposed to be exhaustive")
@@ -477,15 +487,6 @@ class Verifier {
       case _ => throw new Exception("Literal is not a literal")
     }
   }
-
-/*
-  val integerDivision: (Term, Term) => Term = (left, right) => {
-    FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("div"))), Seq(
-      FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("to_real"))), Seq(left)),
-      FunctionApplication(QualifiedIdentifier(Identifier(SSymbol("to_real"))), Seq(right))
-    ))
-  }
-*/
 
   val metaInfixIntOps: Map[String, (Term, Term) => Term] = transformInfixMap(Map(
     "+" -> "+",

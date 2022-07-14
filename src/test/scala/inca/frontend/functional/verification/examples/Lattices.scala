@@ -185,71 +185,24 @@ object Lattices {
 
   val compiledIntervalLattice: CompiledFunctionalModule = Compiler.compileFunctional(intervalLattice, FunctionalOptions())
 
-  val modifiedIntervalLattice: String =
-    """module IntervalLattice
-      |data Interval = IV(Int, Int) | TopInterval()
-      |data Bool = True() | False() | TopBool()
-      |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
-      |
-      |@aggr(assoc, comm) def joinVal(v1: Val, v2: Val): Val = v1 match {
-      |  case BotVal() => v2
-      |  case IntervalVal(iv1) => v2 match {
-      |    case BotVal() => v1
-      |    case IntervalVal(iv2) => IntervalVal(joinInterval(iv1, iv2))
-      |    case BoolVal(b2) => TopVal()
-      |    case TopVal() => TopVal()
-      |  }
-      |  case BoolVal(b1) => v2 match {
-      |    case BotVal() => v1
-      |    case IntervalVal(iv2) => TopVal()
-      |    case BoolVal(b2) => BoolVal(joinBool(b1, b2))
-      |    case TopVal() => TopVal()
-      |  }
-      |  case TopVal() => TopVal()
-      |}
-      |@aggr(assoc, comm) def joinInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
-      |  case TopInterval() => TopInterval()
-      |  case IV(l1, h1) => iv2 match {
-      |    case TopInterval() => TopInterval()
-      |    case IV(l2, h2) => if((l1 <= h1) && (l2 <= h2)) widenInterval(IV(min(l1, l2), max(h1, h2))) else TopInterval()
-      |  }
-      |}
-      |def widenInterval(iv: Interval): Interval = iv match {
-      |  case TopInterval() => TopInterval()
-      |  case IV(l, h) =>
-      |    if (abs(h - l) <= 10)
-      |      iv
-      |    else
-      |      TopInterval()
-      |}
-      |def min(i1: Int, i2: Int): Int = if(i1 < i2) i1 else i2
-      |def max(i1: Int, i2: Int): Int = if(i1 < i2) i2 else i1
-      |def abs(i: Int): Int = if(i < 0) i * (-1) else i
-      |@aggr(assoc, comm) def joinBool(b1: Bool, b2: Bool): Bool = b1 match {
-      |  case True() => b2 match {
-      |    case True() => True()
-      |    case False() => TopBool()
-      |    case TopBool() => TopBool()
-      |  }
-      |  case False() => b2 match {
-      |    case True() => TopBool()
-      |    case False() => False()
-      |    case TopBool() => TopBool()
-      |  }
-      |  case TopBool() => TopBool()
-      |}""".stripMargin
-
-  val compiledModifiedIntervalLattice: CompiledFunctionalModule = Compiler.compileFunctional(modifiedIntervalLattice, FunctionalOptions())
-
   val intervalLatticeInvariants: String =
     """module IntervalLattice
-      |@invariant(intervalBounds) data Interval = IV(Int, Int) | TopInterval()
+      |@invariant(intervalBounds)
+      |data Interval = IV(Int, Int) | TopInterval()
       |data Bool = True() | False() | TopBool()
+      |@invariant(intervalBoundsVal)
       |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
       |
       |def intervalBounds(iv: Interval): Boolean = iv match {
       |  case TopInterval() => true
       |  case IV(l, h) => if(l <= h) true else false
+      |}
+      |
+      |def intervalBoundsVal(v: Val): Boolean = v match {
+      |  case BotVal() => true
+      |  case IntervalVal(iv) => intervalBounds(iv)
+      |  case BoolVal(b) => true
+      |  case TopVal() => true
       |}
       |
       |@aggr(assoc, comm) def joinVal(v1: Val, v2: Val): Val = v1 match {
@@ -738,6 +691,7 @@ object Lattices {
       |@invariant(intervalBounds)
       |data Interval = IV(Int, Int) | TopInterval()
       |data Bool = True() | False() | TopBool()
+      |@invariant(intervalBoundsVal)
       |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
       |
       |def intervalBounds(iv: Interval): Boolean = iv match {
@@ -745,130 +699,11 @@ object Lattices {
       |  case IV(l, h) => if(l <= h) true else false
       |}
       |
-      |def add(i1: Int, i2: Int): Int = i1 + i2
-      |def sub(i1: Int, i2: Int): Int = i1 - i2
-      |def mul(i1: Int, i2: Int): Int = i1 * i2
-      |
-      |@aggr(assoc, comm)
-      |@sound(add, intToVal, intToVal, leqVal)
-      |@monotone(leqVal, leqVal)
-      |def addVal(v1: Val, v2: Val): Val = v1 match {
-      |  case BotVal() => BotVal()
-      |  case BoolVal(b1) => BotVal()
-      |  case TopVal() => IntervalVal(TopInterval())
-      |  case IntervalVal(iv1) => v2 match {
-      |    case BotVal() => BotVal()
-      |    case BoolVal(b2) => BotVal()
-      |    case TopVal() => IntervalVal(TopInterval())
-      |    case IntervalVal(iv2) => IntervalVal(addInterval(iv1, iv2))
-      |  }
-      |}
-      |
-      |@aggr(assoc, comm)
-      |@monotone(leqInterval, leqInterval)
-      |def addInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
-      |  case TopInterval() => TopInterval()
-      |  case IV(l1, h1) => iv2 match {
-      |    case TopInterval() => TopInterval()
-      |    case IV(l2, h2) => IV(l1 + l2, h1 + h2)
-      |  }
-      |}
-      |
-      |@aggr(assoc, comm)
-      |@sound(sub, intToVal, intToVal, leqVal)
-      |@monotone(leqVal, leqVal)
-      |def subVal(v1: Val, v2: Val): Val = v1 match {
-      |  case BotVal() => BotVal()
-      |  case BoolVal(b1) => BotVal()
-      |  case TopVal() => IntervalVal(TopInterval())
-      |  case IntervalVal(iv1) => v2 match {
-      |    case BotVal() => BotVal()
-      |    case BoolVal(b2) => BotVal()
-      |    case TopVal() => IntervalVal(TopInterval())
-      |    case IntervalVal(iv2) => IntervalVal(subInterval(iv1, iv2))
-      |  }
-      |}
-      |
-      |@aggr(assoc, comm)
-      |@monotone(leqInterval, leqInterval)
-      |def subInterval(iv1: Interval, iv2: Interval): Interval = iv1 match {
-      |  case TopInterval() => TopInterval()
-      |  case IV(l1, h1) => iv2 match {
-      |    case TopInterval() => TopInterval()
-      |    case IV(l2, h2) => IV(l1 - h2, h1 - l2)
-      |  }
-      |}
-      |
-      |@partialOrder def leqInterval(iv1: Interval, iv2: Interval): Boolean = iv1 match {
-      |  case TopInterval() => iv2 match {
-      |    case TopInterval() => true
-      |    case IV(l2, u2) => false
-      |  }
-      |  case IV(l1, u1) => iv2 match {
-      |    case TopInterval() => true
-      |    case IV(l2, u2) => if((l1 >= l2) && (u1 >= u2)) true else false
-      |  }
-      |}
-      |
-      |@partialOrder def leqBool(b1: Bool, b2: Bool): Boolean = b1 match {
-      |  case TopBool() => b2 match {
-      |    case TopBool() => true
-      |    case True() => false
-      |    case False() => false
-      |  }
-      |  case True() => b2 match {
-      |    case TopBool() => true
-      |    case True() => true
-      |    case False() => false
-      |  }
-      |  case False() => b2 match {
-      |    case TopBool() => true
-      |    case True() => false
-      |    case False() => true
-      |  }
-      |}
-      |
-      |@partialOrder def leqVal(v1: Val, v2: Val): Boolean = v1 match {
+      |def intervalBoundsVal(v: Val): Boolean = v match {
       |  case BotVal() => true
-      |  case IntervalVal(iv1) => v2 match {
-      |    case BotVal() => false
-      |    case IntervalVal(iv2) => leqInterval(iv1, iv2)
-      |    case BoolVal(b2) => false
-      |    case TopVal() => true
-      |  }
-      |  case BoolVal(b1) => v2 match {
-      |    case BotVal() => false
-      |    case IntervalVal(iv2) => false
-      |    case BoolVal(b2) => leqBool(b1, b2)
-      |    case TopVal() => true
-      |  }
-      |  case TopVal() => v2 match {
-      |    case BotVal() => false
-      |    case IntervalVal(iv2) => false
-      |    case BoolVal(b2) => false
-      |    case TopVal() => true
-      |  }
-      |}
-      |
-      |def min(i1: Int, i2: Int): Int = if(i1 < i2) i1 else i2
-      |def max(i1: Int, i2: Int): Int = if(i1 < i2) i2 else i1
-      |def abs(i: Int): Int = if(i < 0) i * (-1) else i
-      |
-      |def intToVal(i: Int): Val = IntervalVal(IV(i, i))
-      |""".stripMargin
-
-  val compiledIntervalLatticeOps: CompiledFunctionalModule = Compiler.compileFunctional(intervalLatticeOps, FunctionalOptions())
-
-  val fullModule: String =
-    """module IntervalLatticeOps
-      |@invariant(intervalBounds)
-      |data Interval = IV(Int, Int) | TopInterval()
-      |data Bool = True() | False() | TopBool()
-      |data Val = BotVal() | IntervalVal(Interval) | BoolVal(Bool) | TopVal()
-      |
-      |def intervalBounds(iv: Interval): Boolean = iv match {
-      |  case TopInterval() => true
-      |  case IV(l, h) => if(l <= h) true else false
+      |  case IntervalVal(iv) => intervalBounds(iv)
+      |  case BoolVal(b) => true
+      |  case TopVal() => true
       |}
       |
       |def add(i1: Int, i2: Int): Int = i1 + i2
@@ -963,7 +798,12 @@ object Lattices {
       |def addVal(v1: Val, v2: Val): Val = v1 match {
       |  case BotVal() => BotVal()
       |  case BoolVal(b1) => BotVal()
-      |  case TopVal() => IntervalVal(TopInterval())
+      |  case TopVal() => v2 match {
+      |    case BotVal() => BotVal()
+      |    case BoolVal(b2) => BotVal()
+      |    case TopVal() => IntervalVal(TopInterval())
+      |    case IntervalVal(iv2) => IntervalVal(TopInterval())
+      |  }
       |  case IntervalVal(iv1) => v2 match {
       |    case BotVal() => BotVal()
       |    case BoolVal(b2) => BotVal()
@@ -1013,7 +853,12 @@ object Lattices {
       |def mulVal(v1: Val, v2: Val): Val = v1 match {
       |  case BotVal() => BotVal()
       |  case BoolVal(b1) => BotVal()
-      |  case TopVal() => IntervalVal(TopInterval())
+      |  case TopVal() => v2 match {
+      |    case BotVal() => BotVal()
+      |    case BoolVal(b2) => BotVal()
+      |    case TopVal() => IntervalVal(TopInterval())
+      |    case IntervalVal(iv2) => IntervalVal(TopInterval())
+      |  }
       |  case IntervalVal(iv1) => v2 match {
       |    case BotVal() => BotVal()
       |    case BoolVal(b2) => BotVal()
@@ -1039,9 +884,16 @@ object Lattices {
       |  }
       |}
       |
-      |def min(i1: Int, i2: Int): Int = if(i1 < i2) i1 else i2
-      |def max(i1: Int, i2: Int): Int = if(i1 < i2) i2 else i1
-      |def abs(i: Int): Int = if(i < 0) i * (-1) else i
+      |@partialOrder def leqInterval(iv1: Interval, iv2: Interval): Boolean = iv1 match {
+      |  case TopInterval() => iv2 match {
+      |    case TopInterval() => true
+      |    case IV(l2, u2) => false
+      |  }
+      |  case IV(l1, u1) => iv2 match {
+      |    case TopInterval() => true
+      |    case IV(l2, u2) => if((l1 >= l2) && (u1 <= u2)) true else false
+      |  }
+      |}
       |
       |@partialOrder def leqBool(b1: Bool, b2: Bool): Boolean = b1 match {
       |  case TopBool() => b2 match {
@@ -1058,17 +910,6 @@ object Lattices {
       |    case TopBool() => true
       |    case True() => false
       |    case False() => true
-      |  }
-      |}
-      |
-      |@partialOrder def leqInterval(iv1: Interval, iv2: Interval): Boolean = iv1 match {
-      |  case TopInterval() => iv2 match {
-      |    case TopInterval() => true
-      |    case IV(l2, u2) => false
-      |  }
-      |  case IV(l1, u1) => iv2 match {
-      |    case TopInterval() => true
-      |    case IV(l2, u2) => if((l1 >= l2) && (u1 >= u2)) true else false
       |  }
       |}
       |
@@ -1094,9 +935,13 @@ object Lattices {
       |  }
       |}
       |
-      |def intToVal(i: Int): Val = IntervalVal(IV(i, i))
+      |def min(i1: Int, i2: Int): Int = if(i1 < i2) i1 else i2
+      |def max(i1: Int, i2: Int): Int = if(i1 < i2) i2 else i1
+      |def abs(i: Int): Int = if(i < 0) i * (-1) else i
       |
-      |def booleanToVal(b: Boolean): Val =
-      |  if(b) BoolVal(True()) else BoolVal(False())
+      |def intToVal(i: Int): Val = IntervalVal(IV(i, i))
+      |def booleanToVal(b: Boolean): Val = if(b) BoolVal(True()) else BoolVal(False())
       |""".stripMargin
+
+  val compiledIntervalLatticeOps: CompiledFunctionalModule = Compiler.compileFunctional(intervalLatticeOps, FunctionalOptions())
 }
