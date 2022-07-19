@@ -25,7 +25,8 @@ public class FuncIncaColorSettingsPage implements ColorSettingsPage{
             new AttributesDescriptor("Double", FuncIncaSyntaxHighlighter.DOUBLE),
             new AttributesDescriptor("String", FuncIncaSyntaxHighlighter.STRING),
             new AttributesDescriptor("Operation Symbols", FuncIncaSyntaxHighlighter.OPSYM),
-            new AttributesDescriptor("Scalaterm", FuncIncaSyntaxHighlighter.SCALATERM)
+            new AttributesDescriptor("Scalaterm", FuncIncaSyntaxHighlighter.SCALATERM),
+            new AttributesDescriptor("Main Annotation", FuncIncaSyntaxHighlighter.MAINANNOTATION)
     };
 
     @Override
@@ -52,8 +53,21 @@ public class FuncIncaColorSettingsPage implements ColorSettingsPage{
                 "@main def main(s: Set): Set = s match{\n" +
                 "\t case Nothing => {}\n" +
                 "\t case Any => s\n" +
+                "}\n" +
                 "\n" +
-                "def inc(x: Int): Int = x + 1\n";
+                "def intersect(s1: () => Set[Exp], s2: () => Set[Exp]): () => Set[Exp] =\n" +
+                "  () => {e | e in s1(), e in s2()}\n" +
+                "\n" +
+                "def entry_AE(stm: Stm, prog: Stm): Set[Exp] =\n" +
+                "  if (stm == init(prog))\n" +
+                "    {}\n" +
+                "  else\n" +
+                "    fold(\n" +
+                "      () => {e | e in Exp},\n" +
+                "      intersect,\n" +
+                "      {() => exit_AE(pred, prog) | (pred, stm) in flow(prog)}\n" +
+                "    )()\n" +
+                "\n";
     }
 
     @Override

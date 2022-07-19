@@ -55,6 +55,9 @@ public class FuncIncaSyntaxHighlighter extends SyntaxHighlighterBase {
     public static final TextAttributesKey SCALATERM
             = TextAttributesKey.createTextAttributesKey("INCA_SCALATERM", DefaultLanguageHighlighterColors.FUNCTION_CALL);
 
+    public static final TextAttributesKey MAINANNOTATION
+            = TextAttributesKey.createTextAttributesKey("INCA_MAIN_ANNOTATION", DefaultLanguageHighlighterColors.METADATA);
+
     /**
      * Helper to point multiple token types to a single color.
      */
@@ -146,6 +149,8 @@ public class FuncIncaSyntaxHighlighter extends SyntaxHighlighterBase {
                 OPSYM);
 
         keysPutEach(Arrays.asList(FuncIncaTypes.BACK_TICK, FuncIncaTypes.SCALA_TERM), SCALATERM);
+
+        keysPutEach(Arrays.asList(FuncIncaTypes.ANNOTATION_MAIN), MAINANNOTATION);
     }
 
 
