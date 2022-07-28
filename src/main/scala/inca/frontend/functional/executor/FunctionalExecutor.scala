@@ -200,7 +200,7 @@ package inca.frontend.functional.executor
 
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
 import inca.compiler.{CompiledModule, Compiler}
-import inca.frontend.functional.compiler.FunctionalOptions
+import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
 import inca.runtime.context.QueryScope
 import inca.runtime.db.{DBValue, Database, DatabaseInspector}
 import inca.runtime.{EnginePool, Query}
@@ -214,7 +214,7 @@ import truediff.Diffable
 import scala.jdk.CollectionConverters._
 
 object FunctionalExecutor {
-  case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledModule) {
+  case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledFunctionalModule) {
     lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
 
     val loadedPsystemModule: String = scalaCompiler.define {
@@ -256,39 +256,6 @@ object FunctionalExecutor {
       }.toSeq
       new Results(outputMatches)
     }
-
-  //
-  //    def executeInput(main: String, input: Input, deleteInput: Boolean = false): Results[AnyRef] = {
-  //      val (es, tuple) = input
-  //      engine.delayUpdatePropagation { () =>
-  //        feed.processEditScript(es)
-  //        lastTuple.get(main) match {
-  //          case Some(oldTuple) =>
-  //            // check if last and current tuple are equal
-  //            if (oldTuple != tuple) {
-  //              feed.insert(demandPatternExtensionalPrefix + main, tuple)
-  //            } else {
-  //              // do nothing tuples are the same
-  //            }
-  //          case None =>
-  //            feed.insert(demandPatternExtensionalPrefix + main, tuple)
-  //        }
-  //        lastTuple = lastTuple + (main -> tuple)
-  //      }
-  //      val result = output(main, tuple)
-  //      if (deleteInput) {
-  //        feed.delete(demandPatternExtensionalPrefix + main, tuple)
-  //      }
-  //      result
-  //    }
-  //
-  //    def vals(ts: meta.Term*): Seq[AnyRef] = {
-  //      ts.map(a => {
-  //        val syntax = s"{import ${loadedPsystemModule}.${compiled.name}._; ${a.syntax}}"
-  //        scalaCompiler.compileAndLoadScala[AnyRef](syntax)
-  //      })
-  //    }
-
 
     def execute(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): Results[AnyRef] =
       executeInput(main, input(args), deleteInput)
@@ -348,6 +315,8 @@ object FunctionalExecutor {
 
 
   class Results[T](val res: Seq[Seq[T]]) {
+    def isEmpty: Boolean = res.isEmpty
+
     override def equals(obj: Any): Boolean = obj match {
       case expected: Results[T] =>
         res.size == expected.res.size &&
@@ -363,11 +332,11 @@ object FunctionalExecutor {
   }
 
 
-  def compileFunction(code: String, options: FunctionalOptions = FunctionalOptions()): CompiledModule = {
+  def compileFunction(code: String, options: FunctionalOptions = FunctionalOptions()): CompiledFunctionalModule = {
     Compiler.compileFunctional(code, options)
   }
 
-  def loadFunction(compiled: CompiledModule): Loaded = {
+  def loadFunction(compiled: CompiledFunctionalModule): Loaded = {
     val scope = new QueryScope(compiled.dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     Loaded(engine, feed, compiled)

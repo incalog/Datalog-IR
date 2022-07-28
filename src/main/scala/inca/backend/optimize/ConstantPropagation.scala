@@ -1,7 +1,8 @@
 package inca.backend.optimize
 
 import inca.backend.ir.Datalog._
-import inca.backend.ir.{GeneratePSystem, Substitute}
+import inca.backend.ir.util.Substitute
+import inca.backend.lowering.GeneratePSystem
 import inca.runtime.context.DataModel
 import inca.util.Scala
 

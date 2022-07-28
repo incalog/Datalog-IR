@@ -67,7 +67,7 @@ class GenerateScala {
     case fun: FunctionDef =>
       genFunDef(fun)
     case _: DataConstructor =>
-      val data = typ.getOrElse(throw new IllegalArgumentException(s"Untyped call $loc")).asInstanceOf[TData]
+      val data = typ.getOrElse(throw new IllegalArgumentException(s"Untyped call $loc")).asInstanceOf[TName]
         .target.getOrElse(throw new IllegalArgumentException(s"Unresolved data type ${typ.get}")).asInstanceOf[DataDef]
       genDataDef(data)
     case trg =>
@@ -79,7 +79,7 @@ class GenerateScala {
     case TAny =>  t.asScala
     case TNothing =>  t.asScala
     case TTuple(ts) => t"(..${ts.toList.map(transType)})"
-    case d: TData => d.target match {
+    case d: TName => d.target match {
       case Some(data: DataDef) =>
         genDataDef(data)
         MetaType.Name(data.name.name)
@@ -104,7 +104,7 @@ class GenerateScala {
       q"{val (..$scalaNames): ${transType(bound.typ.get)} = ${transExp(bound)}; ${transExp(body)} }"
     case If(cnd, thn, els) =>
       q"if (${transExp(cnd)}) ${transExp(thn)} else ${transExp(els)}"
-    case call@Call(v@Var(name), args, transitive) if !transitive =>
+    case call@Call(v@Var(name), _, args, transitive) if !transitive =>
       genCalled(v.target.getOrElse(throw new IllegalArgumentException(s"Unresoved call $call")), call.typ, call)
       q"${Term.Name(name.name)}(..${args.map(a => transExp(a)).toList})"
     case Lambda(vs, body) =>
@@ -117,11 +117,11 @@ class GenerateScala {
     case Match(matchee, cases) =>
       val scalaCases = cases.toList.map {
         case (ConstructorPattern(constr, xs), e) =>
-          p"case ${Pat.Extract(Term.Name(constr.name), xs.toList.map(x => Pat.Var(Term.Name(x.name))))} => ${transExp(e)}"
+          p"case ${Pat.Extract(Term.Name(constr.name), xs.toList.map(x => Pat.Var(Term.Name(x.name.name))))} => ${transExp(e)}"
         case (NonePattern(), e) =>
           p"case scala.None => ${transExp(e)}"
         case (SomePattern(x), e) =>
-          p"case scala.Some(${Pat.Var(Term.Name(x.name))}) => ${transExp(e)}"
+          p"case scala.Some(${Pat.Var(Term.Name(x.name.name))}) => ${transExp(e)}"
       }
       q"${transExp(matchee)} match {..case $scalaCases}"
     case BaseLit(code) =>
@@ -169,7 +169,6 @@ class GenerateScala {
     val tyAggregation = typeOf[Aggregation[_]]
     val initAggregation = init"${MetaType.Apply(tyAggregation, List(scalaTy))}()"
 
-    // TODO extract assoc and commu from annotation or verify it
     q"""
      new $initAggregation {
        override val name = $name

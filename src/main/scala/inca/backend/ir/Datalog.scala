@@ -1,6 +1,7 @@
 package inca.backend.ir
 
 import inca.backend.hints.Hints
+import inca.backend.ir.util.printer.GPPrinter
 import inca.util.Scala
 import truechange.{JavaLitType, LitType}
 
@@ -20,14 +21,6 @@ object Datalog {
   }
   case class Pattern(vis: Option[Visibility], name: Name, params: Seq[Param], bodies: Seq[Body]) extends Hints {
     def isEmpty: Boolean = bodies.isEmpty || bodies.forall(_.atoms.isEmpty)
-
-    /**
-     * def R(x) = P(x) union Q(x) union x == 0
-     *
-     * R(0).
-     * R(x) :- P(x).
-     * R(y) :- Q(y).
-     */
   }
   case class Param(name: Name, typ: Type)
 

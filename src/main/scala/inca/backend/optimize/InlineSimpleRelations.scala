@@ -2,7 +2,8 @@ package inca.backend.optimize
 
 import inca.backend.hints.MagicSetHints.MainKey
 import inca.backend.ir.Datalog._
-import inca.backend.ir.{CollectVars, Datalog, Substitute}
+import inca.backend.ir.util.{CollectVars, Substitute}
+import inca.backend.ir.Datalog
 import inca.runtime.context.DataModel
 import inca.util.Gensym
 

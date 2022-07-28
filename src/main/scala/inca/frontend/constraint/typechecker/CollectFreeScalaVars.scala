@@ -43,7 +43,6 @@ object CollectFreeScalaVars {
    */
   def freeVars(term: Term, bound: Set[Name] = Set()): Set[Name] = {
     val extendedBound = mutable.Set[Name]() ++ bound
-//    extendedBound ++= (bound ++ predefinedNames.map(Name))
     val scope = new Scope(mutable.Set(), extendedBound)
     freeVars(term, scope)
     scope.free.toSet
@@ -167,7 +166,6 @@ object CollectFreeScalaVars {
       ctor.paramss.foreach { params =>
         params.foreach(p => newScope.newBound(makeName(p.name)))
       }
-//      params.foreach(p => newScope.newBound(makeName(p.name)))
       freeVars(tmpl, newScope)
     case Defn.Object(_, name, tmpl) =>
       scope.newBound(makeName(name))
@@ -253,7 +251,6 @@ object CollectFreeScalaVars {
       args.flatMap(freeVars(_, scope)).toSet
     case Pat.ExtractInfix(lhs, op, rhs) =>
       val bound = freeVars(lhs, scope)
-//      freeVars(op, scope)
       bound ++ rhs.flatMap(freeVars(_, scope))
     case Pat.Typed(p, _) => freeVars(p, scope)
     case Pat.Quasi(_, _) => throw new UnsupportedOperationException("Pat.Quasi is currently not supported")
