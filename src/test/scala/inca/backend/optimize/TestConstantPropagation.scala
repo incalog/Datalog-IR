@@ -1,6 +1,6 @@
 package inca.backend.optimize
 
-import inca.backend.ir.Datalog._
+import inca.backend.ir.DatalogScala._
 import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.runtime.context.DataModel
 import inca.runtime.context.QueryScope
@@ -18,7 +18,7 @@ class TestConstantPropagation extends AnyFlatSpec with IncaGPMatchers {
   def optimize(module: Module): Module =
     ConstantPropagation.optimizer(dataModel).optimizeModule(module)
 
-  import base._
+  import host._
 
   "ConstantPropagation" must "propagate constants" in {
     val one = Constant(IntLiteral(1))

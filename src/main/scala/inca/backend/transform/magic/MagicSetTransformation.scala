@@ -3,8 +3,8 @@ package inca.backend.transform.magic
 import inca.backend.hints.Hints
 import inca.backend.hints.MagicSetHints
 import inca.backend.hints.MagicSetHints.InputCall
-import inca.backend.ir.{CollectVarNames, Datalog}
-import inca.backend.ir.Datalog._
+import inca.backend.ir.{CollectVarNames, DatalogScala}
+import inca.backend.ir.DatalogScala._
 import inca.backend.transform.FilterBodyTransformer
 import inca.backend.transform.Transformation
 import inca.backend.transform.Transformer
@@ -23,7 +23,7 @@ object MagicSetTransformation extends Transformation {
 
     override def transformModule(mod: Module): Module = {
       val insertedInputCallPats = mod.pats.flatMap(transformPattern)
-      insertedInputCallPats.foreach(p => gensym.register(Datalog.collectVarNames.transPattern(p)))
+      insertedInputCallPats.foreach(p => gensym.register(DatalogScala.collectVarNames.transPattern(p)))
 
       val inputPatterns = mod.pats.flatMap(deriveInputPattern(_, insertedInputCallPats))
 

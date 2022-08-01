@@ -1,7 +1,7 @@
 package inca.frontend.constraint.compiler
 
-import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.Name
+import inca.backend.ir.DatalogScala
+import inca.backend.ir.DatalogScala.Name
 import inca.compiler.source.SourceLocation
 import inca.compiler.CompiledModule
 import inca.compiler.CompilerFlags
@@ -63,7 +63,7 @@ case class CompiledConstraintModule(module: core.Module, options: ConstraintOpti
     module
   }
 
-  lazy val ir: Datalog.Module = {
+  lazy val ir: DatalogScala.Module = {
     val module = new GenerateDatalog().transformModule(desugared)
     if (CompilerFlags.DEBUGMODE) {
       println(s"Intermediate Representation")

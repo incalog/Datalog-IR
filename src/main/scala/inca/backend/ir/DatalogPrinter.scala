@@ -6,7 +6,7 @@ import inca.backend.hints.Hints
 import inca.backend.optimize.EvalFusion
 import truechange.JavaLitType
 
-class DatalogPrinter[D <: DatalogGeneric](val datalog: D) {
+class DatalogPrinter[D <: Datalog](val datalog: D) {
   import datalog._
 
   val PRINT_SOURCE_CONSTRUCT = true
@@ -97,11 +97,11 @@ class DatalogPrinter[D <: DatalogGeneric](val datalog: D) {
   def prettyTerm(value: Term): String = value match {
     case Var(name) => name
     case Constant(lit) => lit match {
-      case datalog.base.IntLiteral(v) => v.toString
-      case datalog.base.LongLiteral(v) => v.toString
-      case datalog.base.DoubleLiteral(v) => v.toString
-      case datalog.base.StringLiteral(v) => s""""$v""""
-      case datalog.base.BooleanLiteral(v) => v.toString
+      case datalog.host.IntLiteral(v) => v.toString
+      case datalog.host.LongLiteral(v) => v.toString
+      case datalog.host.DoubleLiteral(v) => v.toString
+      case datalog.host.StringLiteral(v) => s""""$v""""
+      case datalog.host.BooleanLiteral(v) => v.toString
     }
   }
 

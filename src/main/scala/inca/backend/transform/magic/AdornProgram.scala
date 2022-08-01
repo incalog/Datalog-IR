@@ -1,8 +1,8 @@
 package inca.backend.transform.magic
 
 import inca.backend.hints.MagicSetHints
-import inca.backend.ir.{Collect, Datalog}
-import inca.backend.ir.Datalog._
+import inca.backend.ir.{Collect, DatalogScala}
+import inca.backend.ir.DatalogScala._
 import inca.backend.transform.Transformation
 import inca.backend.transform.Transformer
 import inca.runtime.context.DataModel
@@ -114,8 +114,8 @@ object AdornProgram extends Transformation {
   }
 
   def freeVars(prev: Seq[Atom], constraint: Atom): Set[Var] = {
-    val prevBound = prev.foldLeft(Set[Var]()) { case (res, c) => res ++ Datalog.collectVars.transAtom(c) }
-    val vars = Datalog.collectVars.transAtom(constraint).toSet
+    val prevBound = prev.foldLeft(Set[Var]()) { case (res, c) => res ++ DatalogScala.collectVars.transAtom(c) }
+    val vars = DatalogScala.collectVars.transAtom(constraint).toSet
     vars.diff(prevBound)
   }
 

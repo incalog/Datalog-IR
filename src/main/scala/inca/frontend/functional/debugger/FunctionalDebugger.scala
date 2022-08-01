@@ -4,7 +4,7 @@ import inca.backend.hints.DataHints
 import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.hints.MagicSetHints
 import inca.backend.hints.OptimizationHints.KeepPattern
-import inca.backend.ir.Datalog
+import inca.backend.ir.DatalogScala
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
 import inca.compiler.source.ExcerptAbsoluteRegion
 import inca.compiler.source.ExcerptRelativeRegion
@@ -71,7 +71,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     currentFunctionalPoint.foreach(_controlTraceFrontend += _)
   }
 
-  def getFunction(pat: Datalog.Pattern): Option[FunctionDef] =
+  def getFunction(pat: DatalogScala.Pattern): Option[FunctionDef] =
     pat.getHint(SourceConstruct.key) match {
       case Some(SourceConstruct(f: FunctionDef)) => Some(f)
       case _ => None
@@ -195,7 +195,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
           resumeUntilPointsInCurrentFrame(irBPs)
         } else {
           fp.irPoint.point.atom match {
-            case Some(Datalog.Call(f, _, _, _)) =>
+            case Some(DatalogScala.Call(f, _, _, _)) =>
               val pattern = compiled.ir.patternMap(f)
               if (!pattern.hasHint(DataHints.ConstructorKey)) {
                 val irCP = ControlPoint.patternExit(pattern)
@@ -296,7 +296,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
       }
   }
 
-  private def skipBody(body: Datalog.Body): Boolean = {
+  private def skipBody(body: DatalogScala.Body): Boolean = {
     val skipElse = skipElseBranches.head
     val skipMatches = skipAlternativePatterns.head
     if (skipElse.isEmpty && skipMatches.isEmpty)
@@ -341,8 +341,8 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     }
   }
 
-  override protected def stepIntoIRCall(frame: Frame, atom: Datalog.Atom): Unit = atom match {
-    case call: Datalog.Call =>
+  override protected def stepIntoIRCall(frame: Frame, atom: DatalogScala.Atom): Unit = atom match {
+    case call: DatalogScala.Call =>
       val pattern = compiled.ir.patternMap(call.name)
       if (pattern.hasHint(DataHints.ConstructorKey) || pattern.hasHint(DataHints.SelectorKey)) {
         // constructor or selector call

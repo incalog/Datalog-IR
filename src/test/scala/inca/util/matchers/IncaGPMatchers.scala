@@ -1,6 +1,6 @@
 package inca.util.matchers
 
-import inca.backend.ir.Datalog
+import inca.backend.ir.DatalogScala
 import inca.compiler
 import inca.runtime.db.DatabaseInput
 import inca.runtime.EnginePool
@@ -11,14 +11,14 @@ import truediff.Diffable
 
 trait IncaGPMatchers extends IncaMatchers {
 
-  def assertOptimize(optimized: Datalog.Module, original: Datalog.Module): Unit = {
+  def assertOptimize(optimized: DatalogScala.Module, original: DatalogScala.Module): Unit = {
     assertResult(optimized)(compiler.Compiler.compileGP(original, dataModel, options).optimized)
   }
 
   def assertMatch(
-      module: Datalog.Module,
-      fun: String,
-      subjectProg: Diffable
+                   module: DatalogScala.Module,
+                   fun: String,
+                   subjectProg: Diffable
     )(
       asserter: Query.Matcher => Assertion
     ): Assertion = {
@@ -28,9 +28,9 @@ trait IncaGPMatchers extends IncaMatchers {
   }
 
   def assertMatch(
-      module: Datalog.Module,
-      patName: String,
-      editScript: EditScript
+                   module: DatalogScala.Module,
+                   patName: String,
+                   editScript: EditScript
     )(
       asserter: Query.Matcher => Assertion
     ): Assertion = {
@@ -55,9 +55,9 @@ trait IncaGPMatchers extends IncaMatchers {
   }
 
   def assertMatch(
-      module: Datalog.Module,
-      patName: String,
-      dbInput: DatabaseInput
+                   module: DatalogScala.Module,
+                   patName: String,
+                   dbInput: DatabaseInput
     )(
       asserter: Query.Matcher => Assertion
     ): Assertion = {

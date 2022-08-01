@@ -2,7 +2,7 @@ package inca.frontend.functional.debugger
 
 import inca.backend.hints.DebugHints
 import inca.backend.hints.DebugHints.SourceConstruct
-import inca.backend.ir.Datalog
+import inca.backend.ir.DatalogScala
 import inca.compiler.source.SourceObject
 import inca.debugger.old.{AtListElem, AtomPoint, BodyPoint, BreakpointIR, ControlPoint, PatternPoint}
 import inca.frontend.functional.core.Collect
@@ -23,7 +23,7 @@ case class FunctionalBreakpoint(pos: BreakpointPos)
 object FunctionalBreakpoint {
   def convert(
       fbp: FunctionalBreakpoint
-    )(implicit patterns: Map[String, Datalog.Pattern]
+    )(implicit patterns: Map[String, DatalogScala.Pattern]
     ): Seq[BreakpointIR] = {
     val cps = fbp.pos match {
       case FunctionEntry(f) =>

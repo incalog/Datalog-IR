@@ -132,32 +132,32 @@ class GeneratePSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConst
 
   // TODO ignore because it does not work on git pipeline
   ignore("unbounded literal parameter determined by eval") {
-    val module = Datalog.Module(
+    val module = DatalogScala.Module(
       "test_eval",
       Seq(),
       Seq(
-        Datalog.Pattern(
+        DatalogScala.Pattern(
           None,
           "intToString",
           Seq(
-            Datalog.Param("exp", Datalog.TNode(Exp.intTag)),
-            Datalog.Param("str", Datalog.base.TScalaString)
+            DatalogScala.Param("exp", DatalogScala.TNode(Exp.intTag)),
+            DatalogScala.Param("str", DatalogScala.host.TScalaString)
           ),
           Seq(
-            Datalog.Body(
+            DatalogScala.Body(
               Seq(
-                Datalog.Path(
-                  Datalog.Var("exp"),
-                  Datalog.TNode(Exp.intTag),
-                  Datalog.NamedLink(Datalog.TNode(Exp.intTag), "value"),
-                  Datalog.Var("value"),
-                  Datalog.TLiteral.Int
+                DatalogScala.Path(
+                  DatalogScala.Var("exp"),
+                  DatalogScala.TNode(Exp.intTag),
+                  DatalogScala.NamedLink(DatalogScala.TNode(Exp.intTag), "value"),
+                  DatalogScala.Var("value"),
+                  DatalogScala.TLiteral.Int
                 ),
-                Datalog.Computed(
-                  Datalog.Var("str"),
-                  Datalog.Evaluation(
-                    Seq((Datalog.Var("value"), Datalog.TLiteral.Int)),
-                    Datalog.base.TScalaString,
+                DatalogScala.Computed(
+                  DatalogScala.Var("str"),
+                  DatalogScala.Evaluation(
+                    Seq((DatalogScala.Var("value"), DatalogScala.TLiteral.Int)),
+                    DatalogScala.host.TScalaString,
                     Scala(q"(value: Int) => value.toString")
                   )
                 )
@@ -174,40 +174,40 @@ class GeneratePSystemTest extends AnyFunSuite with IncaGPMatchers with IncaConst
   }
 
   test("unbounded argument of second eval") {
-    val module = Datalog.Module(
+    val module = DatalogScala.Module(
       "test_eval",
       Seq(),
       Seq(
-        Datalog.Pattern(
+        DatalogScala.Pattern(
           None,
           "intToString",
           Seq(
-            Datalog.Param("exp", Datalog.TNode(Exp.intTag)),
-            Datalog.Param("str2", Datalog.base.TScalaString)
+            DatalogScala.Param("exp", DatalogScala.TNode(Exp.intTag)),
+            DatalogScala.Param("str2", DatalogScala.host.TScalaString)
           ),
           Seq(
-            Datalog.Body(
+            DatalogScala.Body(
               Seq(
-                Datalog.Path(
-                  Datalog.Var("exp"),
-                  Datalog.TNode(Exp.intTag),
-                  Datalog.NamedLink(Datalog.TNode(Exp.intTag), "value"),
-                  Datalog.Var("value"),
-                  Datalog.TLiteral.Int
+                DatalogScala.Path(
+                  DatalogScala.Var("exp"),
+                  DatalogScala.TNode(Exp.intTag),
+                  DatalogScala.NamedLink(DatalogScala.TNode(Exp.intTag), "value"),
+                  DatalogScala.Var("value"),
+                  DatalogScala.TLiteral.Int
                 ),
-                Datalog.Computed(
-                  Datalog.Var("str"),
-                  Datalog.Evaluation(
-                    Seq((Datalog.Var("value"), Datalog.TLiteral.Int)),
-                    Datalog.base.TScalaString,
+                DatalogScala.Computed(
+                  DatalogScala.Var("str"),
+                  DatalogScala.Evaluation(
+                    Seq((DatalogScala.Var("value"), DatalogScala.TLiteral.Int)),
+                    DatalogScala.host.TScalaString,
                     Scala(q"(value: Int) => value.toString")
                   )
                 ),
-                Datalog.Computed(
-                  Datalog.Var("str2"),
-                  Datalog.Evaluation(
-                    Seq((Datalog.Var("str"), Datalog.base.TScalaString)),
-                    Datalog.base.TScalaString,
+                DatalogScala.Computed(
+                  DatalogScala.Var("str2"),
+                  DatalogScala.Evaluation(
+                    Seq((DatalogScala.Var("str"), DatalogScala.host.TScalaString)),
+                    DatalogScala.host.TScalaString,
                     Scala(q"""(str: String) => str + "_appended" """)
                   )
                 )

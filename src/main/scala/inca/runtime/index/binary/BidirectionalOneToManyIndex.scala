@@ -14,6 +14,8 @@ class BidirectionalOneToManyIndex[K, V](val key: IndexKey[_]) extends BinaryInde
   protected val index: MutableSetMultimap[K, V] = Multimaps.mutable.set.empty()
   protected val indexInverted: MutableMap[V, K] = Maps.mutable.empty()
 
+  this.getClass.getClassLoader
+
   override def entries: Iterable[(K, V)] =
     indexInverted.entrySet().asScala.map(e => (e.getValue, e.getKey))
   def entrySets: Iterable[(K, Iterable[V])] =

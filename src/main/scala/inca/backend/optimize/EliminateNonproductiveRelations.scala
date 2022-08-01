@@ -1,10 +1,10 @@
 package inca.backend.optimize
 
-import inca.backend.ir.Datalog.Atom
-import inca.backend.ir.Datalog.Call
-import inca.backend.ir.Datalog.Module
-import inca.backend.ir.Datalog.Name
-import inca.backend.ir.Datalog.Pattern
+import inca.backend.ir.DatalogScala.Atom
+import inca.backend.ir.DatalogScala.Call
+import inca.backend.ir.DatalogScala.Module
+import inca.backend.ir.DatalogScala.Name
+import inca.backend.ir.DatalogScala.Pattern
 import inca.backend.optimize.Optimizer.throwBodyMustFail
 import inca.runtime.context.DataModel
 

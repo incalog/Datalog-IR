@@ -3,8 +3,8 @@ package inca.backend.optimize
 import inca.backend.hints.MagicSetHints.MainKey
 import inca.backend.hints.OptimizationHints.KeepPattern
 import inca.backend.ir.CollectVarNames
-import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog._
+import inca.backend.ir.DatalogScala
+import inca.backend.ir.DatalogScala._
 import inca.backend.ir.Substitute
 import inca.runtime.context.DataModel
 import inca.util.Gensym
@@ -27,7 +27,7 @@ object InlineSimpleRelations extends Optimization {
       inline
     }
 
-    override def optimizeModule(module: Datalog.Module): Datalog.Module = {
+    override def optimizeModule(module: DatalogScala.Module): DatalogScala.Module = {
       var pats = module.pats
       var inlined: Set[Name] = Set()
       retainInlined = Set()
@@ -40,7 +40,7 @@ object InlineSimpleRelations extends Optimization {
             progress = false
           case Some(inline) =>
             gensym.scoped {
-              gensym.register(Datalog.collectVarNames.transPattern(inline))
+              gensym.register(DatalogScala.collectVarNames.transPattern(inline))
               pats = pats.map { pat =>
                 inlineRelation(pat, inline)
               }
@@ -56,7 +56,7 @@ object InlineSimpleRelations extends Optimization {
 
     def inlineRelation(pat: Pattern, inline: Pattern): Pattern = gensym.scoped {
       pat.params.foreach(p => gensym.register(p.name))
-      gensym.register(Datalog.collectVarNames.transPattern(pat))
+      gensym.register(DatalogScala.collectVarNames.transPattern(pat))
       val newbodies = pat.bodies.flatMap(inlineRelationBodies(_, inline))
       Pattern(pat.vis, pat.name, pat.params, newbodies).withHints(pat)
     }

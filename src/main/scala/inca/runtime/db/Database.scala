@@ -1,6 +1,5 @@
 package inca.runtime.db
 
-import inca.runtime.context.DataModel
 import inca.runtime.context.DataModel.Link
 import inca.runtime.db.updater.DatabaseUpdater
 import inca.runtime.db.updater.DirectDatabaseUpdater
@@ -48,16 +47,11 @@ class Database(
   /* indices */
 
   private[runtime] val nodeInstances: mutable.Map[Type, UnarySetIndex[URI]] = mutable.Map()
-  private[runtime] val primitiveInstances: mutable.Map[LitType, UnaryBagIndex[PrimitiveValue]] =
-    mutable.Map()
-  private[runtime] val linkNodeInstances: mutable.Map[Link, BidirectionalOneToOneIndex[URI, URI]] =
-    mutable.Map()
-  private[runtime] val linkPrimitiveInstances
-      : mutable.Map[Link, BidirectionalManyToOneIndex[URI, PrimitiveValue]] = mutable.Map()
-  private[runtime] val linkListFirstInstances: BidirectionalOneToOneIndex[URI, URI] =
-    new BidirectionalOneToOneIndex[URI, URI](LinkListFirstKey)
-  private[runtime] val linkListNextInstances: BidirectionalOneToOneIndex[URI, URI] =
-    new BidirectionalOneToOneIndex[URI, URI](LinkListNextKey)
+  private[runtime] val primitiveInstances: mutable.Map[LitType, UnaryBagIndex[PrimitiveValue]] = mutable.Map()
+  private[runtime] val linkNodeInstances: mutable.Map[Link, BidirectionalOneToOneIndex[URI, URI]] = mutable.Map()
+  private[runtime] val linkPrimitiveInstances: mutable.Map[Link, BidirectionalManyToOneIndex[URI, PrimitiveValue]] = mutable.Map()
+  private[runtime] val linkListFirstInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI, URI](LinkListFirstKey)
+  private[runtime] val linkListNextInstances: BidirectionalOneToOneIndex[URI, URI] = new BidirectionalOneToOneIndex[URI, URI](LinkListNextKey)
 
   private[runtime] val namedRelationInstances: mutable.Map[String, BagIndex] = mutable.Map()
 

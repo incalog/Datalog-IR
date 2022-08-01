@@ -1,6 +1,6 @@
 package inca.frontend.souffle.lowering
 
-import inca.backend.ir.Datalog._
+import inca.backend.ir.DatalogScala._
 import inca.util.Scala
 
 object PropagateUnbounded {
@@ -69,7 +69,7 @@ trait TrackUnbounded {
         // avoid nesting TUnbounded
         val ty = p.typ match {
           case TScala(_) => p.typ
-          case _ => TScala(Scala(base.typeAsScala(p.typ)))
+          case _ => TScala(Scala(host.typeAsScala(p.typ)))
         }
         Param(p.name, ty)
       } else p

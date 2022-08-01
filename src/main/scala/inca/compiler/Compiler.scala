@@ -1,6 +1,6 @@
 package inca.compiler
 
-import inca.backend.ir.Datalog
+import inca.backend.ir.DatalogScala
 import inca.compiler.source.SourceString
 import inca.frontend.constraint
 import inca.frontend.constraint.compiler.CompiledConstraintModule
@@ -44,9 +44,9 @@ object Compiler {
   }
 
   def compileGP(
-      module: Datalog.Module,
-      dataModel: DataModel,
-      compilerOptions: Options
+                 module: DatalogScala.Module,
+                 dataModel: DataModel,
+                 compilerOptions: Options
     ): CompiledDatalogModule = {
     CompiledDatalogModule(module, dataModel, compilerOptions)
   }

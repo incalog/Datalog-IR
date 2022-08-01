@@ -1,11 +1,11 @@
 package inca.backend.analyze
 
-import inca.backend.ir.Datalog._
+import inca.backend.ir.DatalogScala._
 import org.scalatest.flatspec.AnyFlatSpec
 
 class StratificationAnalysisTest extends AnyFlatSpec {
 
-  import base._
+  import host._
 
   "Graph" must "be stratifiable" in {
     val one = Constant(IntLiteral(1))

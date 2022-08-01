@@ -1,7 +1,7 @@
 package inca.frontend.souffle.debugger
 
 import inca.backend.hints.DebugHints.SourceConstruct
-import inca.backend.ir.Datalog
+import inca.backend.ir.DatalogScala
 import inca.compiler.source.ExcerptAbsoluteRegion
 import inca.compiler.source.PaddedRegion
 import inca.compiler.source.SourceLocation
@@ -47,7 +47,7 @@ case class InRulePoint(
 class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
   super.initialize(compiled)
 
-  override def entry(name: Datalog.Name, bindings: ImmutableTable[Value]): Unit = {
+  override def entry(name: DatalogScala.Name, bindings: ImmutableTable[Value]): Unit = {
     // super.updateExtensionalData(edits)
     super.entry(name, bindings)
     soufflePoint.getOrElse(stepInto())
@@ -178,13 +178,13 @@ class SouffleDebugger(compiled: CompiledSouffleModule) extends Debugger {
     sp.point.loc.sourceExcerpt(contextualRegion).linesColored
   }
 
-  def getRelationSignature(pat: Datalog.Pattern): Option[RuleSignature] =
+  def getRelationSignature(pat: DatalogScala.Pattern): Option[RuleSignature] =
     pat.getHint(SourceConstruct.key) match {
       case Some(SourceConstruct(r: RuleSignature)) => Some(r)
       case _ => None
     }
 
-  def getRuleDefinition(body: Datalog.Body): Option[(RuleHead, RuleDefinition)] =
+  def getRuleDefinition(body: DatalogScala.Body): Option[(RuleHead, RuleDefinition)] =
     body.getHint(SourceConstruct.key) match {
       case Some(SourceConstruct((rh: RuleHead, rd: RuleDefinition))) => Some(rh -> rd)
       case _ => None

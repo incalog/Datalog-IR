@@ -2,7 +2,7 @@ package inca.frontend.souffle.lowering
 
 import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.hints.MagicSetHints
-import inca.backend.ir.Datalog.{Name => _, _}
+import inca.backend.ir.DatalogScala.{Name => _, _}
 import inca.backend.optimize.EliminateAliases
 import inca.frontend.constraint.compiler.ConstraintOptions
 import inca.frontend.souffle.compiler.CompiledSouffleModule
@@ -175,11 +175,11 @@ class SouffleToDatalogIR(useEditScriptForInput: Boolean = false) {
   }
 
   def compileToScalaType(typ: Syntax.Type): Type = typ match {
-    case DeclaredType(_) => base.TScalaString
-    case SymbolType => base.TScalaString
-    case NumberType => base.TScalaInt
-    case UnsignedType => base.TScalaLong
-    case FloatType => base.TScalaDouble
+    case DeclaredType(_) => host.TScalaString
+    case SymbolType => host.TScalaString
+    case NumberType => host.TScalaInt
+    case UnsignedType => host.TScalaLong
+    case FloatType => host.TScalaDouble
   }
 
   def getJavaClassForType(typ: Syntax.Type): Class[_] = typ match {
@@ -231,12 +231,12 @@ class SouffleToDatalogIR(useEditScriptForInput: Boolean = false) {
         case None => (Var(cleanSouffleName(name)), Seq())
       }
     case StringValue(value) =>
-      (Constant(base.StringLiteral(value.intern)), Seq())
+      (Constant(host.StringLiteral(value.intern)), Seq())
 //      val trgVar = Var(gensym.fresh("trg"))
 //      val funString = "\"" + value + "\".intern"
 //      val computed = Computed(trgVar, ConstantEvaluation(TUnbounded(TString), funString))
 //      (trgVar, Seq(computed))
-    case NumberValue(value) => (Constant(base.IntLiteral(value)), Seq())
+    case NumberValue(value) => (Constant(host.IntLiteral(value)), Seq())
     case Syntax.Wildcard =>
       val fresh = gensym.fresh("wildcard")
       (Var(fresh), Seq())
@@ -249,7 +249,7 @@ class SouffleToDatalogIR(useEditScriptForInput: Boolean = false) {
       val funString = q"(..$typedParams) => (${compileEval(exp)}).intern"
       val computed = Computed(
         trgVar,
-        Evaluation(params.map((_, TLiteral.String)), base.TScalaString, Scala(funString))
+        Evaluation(params.map((_, TLiteral.String)), host.TScalaString, Scala(funString))
       )
       (trgVar, Seq(computed))
     case _ => throw new IllegalArgumentException(s"TODO $exp not supported")

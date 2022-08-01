@@ -1,6 +1,6 @@
 package inca.backend.transform
 
-import inca.backend.ir.Datalog._
+import inca.backend.ir.DatalogScala._
 import inca.backend.optimize.Optimizer.BodyMustFail
 
 trait Transformer {

@@ -3,7 +3,7 @@ package inca.frontend.constraint.core
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.Exp._
 import inca.analyzedLangs.ExpLangTestAnalyses._
-import inca.backend.ir.Datalog
+import inca.backend.ir.DatalogScala
 import inca.backend.ir.DatalogPrinter
 import inca.compiler.Compiler
 import inca.frontend.constraint.compiler.ConstraintOptions
@@ -11,7 +11,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class GenerateDatalogTest extends AnyFunSuite {
 
-  def compileToGP(module: Module): Datalog.Module =
+  def compileToGP(module: Module): DatalogScala.Module =
     Compiler.compileConstraint(module, ConstraintOptions()).ir
 
   test("simple function pattern with return constraint") {
