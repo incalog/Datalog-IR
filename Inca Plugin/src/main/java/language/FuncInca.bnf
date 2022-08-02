@@ -12,6 +12,8 @@
   elementTypeClass="language.psi.FuncIncaElementType"
   tokenTypeClass="language.psi.FuncIncaTokenType"
 
+  psiImplUtilClass="intellij.haskell.psi.impl.HaskellPsiImplUtil"
+
   tokens = [
     keyword_if = "if"
     keyword_else = "else"
@@ -82,6 +84,14 @@
     double = "regexp:\d+(\.\d+)?"
     comment = "regexp:(//.*)|(/\*(.|\n)*\*/)"
     ]
+
+  methods("id")=[getName setName getValue setValue getType getPresentation] // getPresentation später
+
+  methods("type_annotation|var|fun_type|atomic_type|tuple|constr|option|set|type_name|numeric_lit|boolean_lit|string_lit")=[getType]
+
+  methods("numeric_lit|boolean_lit|string_lit")=[getValue]
+
+  methods("import|fun_def|data_def")=[getModuleName]
 
 }
 
