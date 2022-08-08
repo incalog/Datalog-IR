@@ -2,6 +2,7 @@ package inca.compiler
 
 import inca.backend.analyze.StratificationAnalysis
 import inca.backend.ir.Datalog
+import inca.backend.ir.util.printer.DatalogPrinter
 import inca.backend.lowering.{GeneratePSystem, PSystem}
 import inca.runtime.context.DataModel
 import inca.util.Scala
@@ -79,6 +80,8 @@ trait CompiledModule {
         println(module)
       }
     }
+    println(module)
+    //println(DatalogPrinter.prettyModule(module)(true))
     module
   }
 

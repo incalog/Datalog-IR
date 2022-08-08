@@ -4,8 +4,11 @@ import inca.runtime.db.{Database, DatabaseInspector}
 
 class MockURI(val repr: String) extends truechange.URI {
   override def equals(obj: Any): Boolean = obj match {
-    case other: MockURI => this.repr == other.repr
-    case _ => false
+      case other: MockURI => this.repr == other.repr
+      case other: truediff.Diffable =>
+        // TODO: Implement some logic to compare these types
+        false
+      case _ => false
   }
 
   override def hashCode(): Int = repr.hashCode

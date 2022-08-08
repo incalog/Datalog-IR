@@ -25,6 +25,13 @@ class FunctionsTest extends AnyFunSuite {
     assert(fun.execute("main", Seq(q"20")) == fun.resultVal(6765))
   }
 
+  test("Modified Ackermann Example") {
+    val code = readFile("functional/unittests/Ackermann.finca")
+    val fun = FunctionalExecutor.loadFunction(code)
+    assert(fun.execute("main", Seq(q"1", q"10")) == fun.resultVal(20))
+    assert(fun.execute("main", Seq(q"2", q"10")) == fun.resultVal(1024))
+  }
+
   test("Unary Operator Example") {
     val code = readFile("functional/unittests/Unary.finca")
     val fun = FunctionalExecutor.loadFunction(code)

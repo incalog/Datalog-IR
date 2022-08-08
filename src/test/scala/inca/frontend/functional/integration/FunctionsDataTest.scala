@@ -7,7 +7,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.XtensionQuasiquoteTerm
 
-@Ignore
+//@Ignore
 class FunctionsDataTest extends AnyFunSuite {
 
   test("Plus Example") {
@@ -25,6 +25,12 @@ class FunctionsDataTest extends AnyFunSuite {
     assert(fun.execute("main", Seq()) == fun.result(q"""BusStation("B", 5)"""))
   }
 
+  test("Binary tree example") {
+    val code = FileUtil.readFile("functional/unittests/BinaryTree.finca")
+    val fun = loadFunction(code)
+    assert(fun.execute("main", Seq()) == fun.result(q"20"))
+  }
+
   test("Simple Fold Int Example") {
     val code = FileUtil.readFile("functional/unittests/FoldInt.finca")
     val fun = loadFunction(code)
@@ -32,6 +38,7 @@ class FunctionsDataTest extends AnyFunSuite {
   }
 
   test("Simple Fold Example") {
+    // TODO: This test will fail, because we compare a MockURI with a truediff tree
     val code = FileUtil.readFile("functional/unittests/FoldADT.finca")
     val fun = loadFunction(code)
     assert(fun.execute("sum", Seq(q"1", q"10")) == fun.result(q"V(55)"))

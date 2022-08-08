@@ -62,5 +62,6 @@ trait Collect[R] {
       collectType(anno.getOrElse(TAny)) ++ collectExpression(init) ++ collectExpression(op) ++ collectExpression(set)
     case SomeExp(e) => collectExpression(e)
     case NoneExp() => Seq()
+    case TypeCast(e, ty) => collectExpression(e)
   }
 }

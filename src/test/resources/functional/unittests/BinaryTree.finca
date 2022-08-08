@@ -1,0 +1,15 @@
+module BinaryTree
+data BinaryTree = Empty() | Branch(BinaryTree, Int, BinaryTree)
+
+def sum(tree: BinaryTree): Int = tree match {
+    case Empty() => 0
+    case Branch(left, value, right) => sum(left) + value + sum(right)
+}
+
+//      1
+//     / \
+//    7   3
+//       / \
+//      4   5
+
+@main def main(): Int = sum(Branch(Branch(Empty(), 7, Empty()), 1, Branch(Branch(Empty(), 4, Empty()), 3, Branch(Empty(), 5, Empty()))))

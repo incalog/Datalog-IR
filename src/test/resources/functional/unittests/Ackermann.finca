@@ -1,0 +1,10 @@
+module Ackermann
+def ackermann(k: Int, n: Int): Int =
+  if (k == 1)
+    2*n
+  else if (n == 1)
+    2
+  else
+    ackermann(k-1, ackermann(k, n-1))
+@main def main(k: Int, n: Int): Int =
+  ackermann(k, n)
