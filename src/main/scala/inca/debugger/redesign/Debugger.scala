@@ -81,7 +81,7 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
       if (state.isUnstable(p, argBindings)) { // E-Iterate
         val params = predicates(p).params.map(_.name)
         val rules = predicates(p).bodies
-        val next = BeforeRule(p, argBindings, ImmutableTable.empty(params), rules)
+        val next = BeforeRule(p, argBindings, predResult, rules)
         callStack.update(next)
       } else { // E-Stable
         val next = EvaluationResult(p, predResult)

@@ -76,8 +76,6 @@ class IRDebuggerTest extends AnyFunSuite {
 
   def stepTillFinish(debugger: Debugger): Unit = {
     while (!debugger.isFinished) {
-      println(debugger.callStack.top)
-      println("=======================================")
       debugger.stepInto()
     }
   }
@@ -208,6 +206,122 @@ class IRDebuggerTest extends AnyFunSuite {
     assertExpectedTable(debugger, "path", args)
 //    assertResult(debugger.state.readBottomUp("path", args))(
 //      debugger.state.readTopDown("path", args))
+  }
+
+  test("step into left recursive pattern") {
+    val debugger = initDebugger(module(sevenEdgePattern, pathPatternLeftRecursive), emptyDataModel)
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("path", args)
+    stepTillFinish(debugger)
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "path", args)
+  }
+
+  test("step into left recursive pattern with simple cyclic data") {
+    val debugger =
+      initDebugger(module(simpleCycleEdgePattern, pathPatternLeftRecursive), emptyDataModel)
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("path", args)
+    stepTillFinish(debugger)
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "path", args)
+  }
+
+  test("step into left recursive pattern with simple cyclic data 2") {
+    val debugger =
+      initDebugger(module(simpleCycleEdgePattern2, pathPatternLeftRecursive), emptyDataModel)
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("path", args)
+    stepTillFinish(debugger)
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "path", args)
+  }
+
+  test("step into left recursive pattern with cyclic data") {
+    val debugger = initDebugger(module(cycleEdgePattern, pathPatternLeftRecursive), emptyDataModel)
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("path", args)
+    stepTillFinish(debugger)
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "path", args)
+  }
+
+  test("step into recursive pattern 2") {
+    val debugger = initDebugger(module(sevenEdgePattern, pathPatternSwitchBodies), emptyDataModel)
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("path", args)
+    stepTillFinish(debugger)
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "path", args)
+  }
+
+  test("step into recursive pattern with simple cyclic data") {
+    val debugger = initDebugger(module(simpleCycleEdgePattern, pathPattern), emptyDataModel)
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("path", args)
+    stepTillFinish(debugger)
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "path", args)
+  }
+
+  test("step into recursive pattern with simple cyclic data 2") {
+    val debugger = initDebugger(module(simpleCycleEdgePattern2, pathPattern), emptyDataModel)
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("path", args)
+    stepTillFinish(debugger)
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "path", args)
+  }
+
+  test("step into recursive pattern with three hop cycle") {
+    val debugger = initDebugger(module(threeHopCyclePattern, pathPattern), emptyDataModel)
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("path", args)
+    stepTillFinish(debugger)
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "path", args)
+  }
+
+  test("step into recursive pattern with cyclic data") {
+    val debugger = initDebugger(module(cycleEdgePattern, pathPattern), emptyDataModel)
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("path", args)
+    stepTillFinish(debugger)
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "path", args)
+  }
+
+  test("test negative call of recursive pattern 1") {
+    val debugger = initDebugger(
+      module(sevenEdgePattern, nodePattern, pathPattern, notTargetOfPattern),
+      emptyDataModel
+    )
+    val args = ImmutableTable[Value](Seq("n"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("notTargetOf", args)
+    stepTillFinish(debugger)
+
+    assertExpectedTable(debugger, "notTargetOf", args)
+  }
+
+  test("test negative call of recursive pattern 2") {
+    val debugger = initDebugger(
+      module(sevenEdgePattern, nodePattern, pathPattern, notTargetOfPattern),
+      emptyDataModel
+    )
+    val args = ImmutableTable[Value](Seq("n"), Seq(Seq(ScalaValue(2))))
+    debugger.entry("notTargetOf", args)
+    stepTillFinish(debugger)
+
+    assertExpectedTable(debugger, "notTargetOf", args)
   }
 
   test("simple path step over recursive") {
