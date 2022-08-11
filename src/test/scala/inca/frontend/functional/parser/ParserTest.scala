@@ -235,8 +235,7 @@ class ParserTest extends AnyFunSuite {
   private def testSuccessAny[T](parser: P[_] => P[Any]): String => Assertion =
     (input: String) => {
       parse(input, parser) match {
-        case Success(value, index)        =>
-          assertResult(input.length)(index)
+        case Success(value, index)        => assertResult(input.length)(index)
         case Failure(label, index, extra) => fail(s"$label, $index, $extra")
       }
     }

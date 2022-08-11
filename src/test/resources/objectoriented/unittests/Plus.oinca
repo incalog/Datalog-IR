@@ -1,0 +1,41 @@
+module Plus
+
+class Nat {
+	def dummy(n: Nat, m) {
+	    someVar
+	    someCall(someVar, something.attr1, someCall()).attr2
+	    this.attr3.attr4.test(someOtherThing, someCall())
+	    test2(someParam.attr5.someStuff(), someParam.someCall(someThing.someCall()))
+	    someCall
+
+        //var myVar
+        //myVar = Zero()
+	    //var someVar = Succ(this)
+	}
+
+    def succ1() {
+
+    }
+
+    def succ() {
+        return new Succ(this)
+    }
+}
+
+class Zero(Nat) {
+	@override def add(n) {
+		return n
+	}
+}
+
+class Succ(Nat) {
+	var pred
+
+	/*init(pred: Succ) {
+	    this.pred = pred
+	}*/
+	
+	@override def add(n: Nat): Nat {
+		return new Succ(this.pred.add(n))
+	}
+}

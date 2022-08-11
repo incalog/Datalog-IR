@@ -29,6 +29,7 @@ lazy val inca = (project in file(".")).settings(
     "com.google.guava" % "guava" % "28.2-jre",
     "com.lihaoyi" %% "fastparse" % "2.1.3",
     "com.lihaoyi" %% "scalaparse" % "2.1.3",
+    "org.typelevel" %% "cats-parse" % "0.3.7",
 
     "org.scalatest" %% "scalatest" % "3.1.0" % "test",
   )

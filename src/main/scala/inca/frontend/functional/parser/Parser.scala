@@ -38,6 +38,9 @@ trait Parser {
       moduleContent.rep ~
       End
     ).mapWithLoc { case (name, imports, contents) =>
+      println("name: ", name)
+      println("imports: ", imports)
+      println("contents: ", contents)
       Module(name, imports, contents.flatten)
     }
 
