@@ -46,46 +46,44 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
   def stepInto(): Unit = {
     val top = callStack.top
     top match {
-      case BeforeRule(_, _, _, _ :: _) =>
-        intoPredicate(top)
-      case BeforeRule(_, _, _, Nil) =>
-        outofPredicate(top)
-      case InRule(_, _, _, RuleEvaluation(_, Nil), Nil) =>
-        lastRule(top)
-      case InRule(_, _, _, RuleEvaluation(_, Nil), _ :: _) =>
-        nextRule(top)
-      case InRule(_, _, _, RuleEvaluation(_, _ :: _), _) =>
-        nextAtom(top)
+      case BeforeRule(_, _, _, rules) =>
+        if (rules.nonEmpty) intoPredicate(top)
+        else outofPredicate(top)
+      case InRule(_, _, _, RuleEvaluation(_, atoms), rules) =>
+        if (atoms.nonEmpty) nextAtom(top)
+        else if (rules.nonEmpty) nextRule(top)
+        else lastRule(top)
       case EvaluationResult(_, _) =>
         evalResult(top)
     }
   }
 
   private def intoPredicate(evalPoint: EvaluationPoint): Unit = {
-    val BeforeRule(p, argBindings, predResult, rule :: remRules) = evalPoint
+    val BeforeRule(p, argBindings, predResult, rules) = evalPoint
+    val rulesHead = rules.head
+    val rulesTail = rules.tail
     if (isCyclic(p)) {
       state.storeExpectedFixpointSize(p, argBindings)
       state.insertBlacklist(p, argBindings)
     }
-    val next = InRule(p, argBindings, predResult, RuleEvaluation(argBindings, rule.atoms), remRules)
+    val next =
+      InRule(p, argBindings, predResult, RuleEvaluation(argBindings, rulesHead.atoms), rulesTail)
     callStack.update(next)
   }
 
   private def outofPredicate(evalPoint: EvaluationPoint): Unit = {
-    val BeforeRule(p, argBindings, predResult, Nil) = evalPoint
+    val BeforeRule(p, argBindings, predResult, _) = evalPoint
     if (isCyclic(p)) {
       state.insertTopDown(p, predResult)
       // we need to delete it it from the blacklist even if we iterate because next E-Predicate will insert it again
       // TODO is there a way to only insert and delete it once?
       state.deleteBlacklist(p, argBindings)
       if (state.isUnstable(p, argBindings)) { // E-Iterate
-        println("ITERATE")
         val params = predicates(p).params.map(_.name)
         val rules = predicates(p).bodies
         val next = BeforeRule(p, argBindings, ImmutableTable.empty(params), rules)
         callStack.update(next)
       } else { // E-Stable
-        println("STABLE")
         val next = EvaluationResult(p, predResult)
         callStack.update(next)
       }
@@ -96,35 +94,38 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
   }
 
   private def lastRule(evalPoint: EvaluationPoint): Unit = {
-    val InRule(p, argBindings, predResult, RuleEvaluation(ruleResult, Nil), Nil) = evalPoint
+    val InRule(p, argBindings, predResult, RuleEvaluation(ruleResult, Seq()), Seq()) = evalPoint
     val projectedRuleResult = ruleResult.project(predResult.columns)
     val nextPredResult = predResult.union(projectedRuleResult)
-    callStack.update(BeforeRule(p, argBindings, nextPredResult, Nil))
+    callStack.update(BeforeRule(p, argBindings, nextPredResult, Seq()))
   }
 
   private def nextRule(evalPoint: EvaluationPoint): Unit = {
-    val InRule(p, argBindings, predResult, RuleEvaluation(ruleResult, Nil), nextRule :: remRules) =
-      evalPoint
-    val nextPredResult = predResult.union(ruleResult)
-    val ruleEval = RuleEvaluation(argBindings, nextRule.atoms)
-    val next = InRule(p, argBindings, nextPredResult, ruleEval, remRules)
+    val InRule(p, argBindings, predResult, RuleEvaluation(ruleResult, _), rules) = evalPoint
+    val rulesHead = rules.head
+    val rulesTail = rules.tail
+    val projectedRuleResult = ruleResult.project(predResult.columns)
+    val nextPredResult = predResult.union(projectedRuleResult)
+    val ruleEval = RuleEvaluation(argBindings, rulesHead.atoms)
+    val next = InRule(p, argBindings, nextPredResult, ruleEval, rulesTail)
     callStack.update(next)
   }
 
   private def nextAtom(evalPoint: EvaluationPoint): Unit = {
-    val InRule(p, argBindings, predResult, RuleEvaluation(ruleResult, atom :: remAtoms), remRules) =
+    val InRule(p, argBindings, predResult, RuleEvaluation(ruleResult, atoms), rules) =
       evalPoint
-    atom match {
+    val atomsHead = atoms.head
+    val atomsTail = atoms.tail
+    atomsHead match {
       case Datalog.Call(callee, calleeArgs, _, neg) =>
         val calleeArgBindings = prepareArgBindings(ruleResult, callee, calleeArgs)
-        val unseenQueries = state.filterSeenQueries(p, calleeArgBindings)
+        val unseenQueries = state.filterSeenQueries(callee, calleeArgBindings)
         if (unseenQueries.isEmpty) { // E-StepInto-Old
-          println(s"SEEN $callee with $calleeArgBindings")
           val calleeResult =
-            if (isCyclic(p))
-              state.readTopDown(p, calleeArgBindings)
+            if (isCyclic(callee))
+              state.readTopDown(callee, calleeArgBindings)
             else
-              state.readBottomUp(p, calleeArgBindings)
+              state.readBottomUp(callee, calleeArgBindings)
           val params = predicates(callee).params.map(_.name)
           val nextBodyResult =
             if (!neg)
@@ -136,20 +137,21 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
                 params,
                 calleeResult,
                 (x, y) => x.antiJoin(y))
-          val nextRuleEval = RuleEvaluation(nextBodyResult, remAtoms)
-          val next = InRule(p, calleeArgBindings, predResult, nextRuleEval, remRules)
+          val nextRuleEval = RuleEvaluation(nextBodyResult, atomsTail)
+          val next = InRule(p, argBindings, predResult, nextRuleEval, rules)
           callStack.update(next)
         } else { // E-StepInto-New
           val calleeParams = predicates(callee).params.map(_.name)
-          val rules = predicates(callee).bodies
-          val next = BeforeRule(callee, unseenQueries, ImmutableTable.empty(calleeParams), rules)
+          val calleeRules = predicates(callee).bodies
+          val next =
+            BeforeRule(callee, unseenQueries, ImmutableTable.empty(calleeParams), calleeRules)
           callStack.push(next)
         }
 
       case _ =>
-        val nextRuleResult = atomOps.atom(ruleResult, atom)
-        val nextRuleEval = RuleEvaluation(nextRuleResult, remAtoms)
-        val next = InRule(p, argBindings, predResult, nextRuleEval, remRules)
+        val nextRuleResult = atomOps.atom(ruleResult, atomsHead)
+        val nextRuleEval = RuleEvaluation(nextRuleResult, atomsTail)
+        val next = InRule(p, argBindings, predResult, nextRuleEval, rules)
         callStack.update(next)
     }
   }
@@ -158,7 +160,6 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
     val EvaluationResult(p, predResult) = evalPoint
     callStack.pop()
     if (callStack.nonEmpty) {
-      println("RESULT")
       joinEvalResultAndCall(p, predResult)
     }
   }
@@ -167,10 +168,11 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
   // TODO step over body should run step over till end of body reached
   // TODO rewritte program instead of implementing blacklist transformation
   def stepOver(): Unit = callStack.top match {
-    case InRule(_, _, _, RuleEvaluation(ruleResult, atom :: _), _) =>
-      if (atom.asCall.nonEmpty) {
+    case InRule(_, _, _, RuleEvaluation(ruleResult, atoms), _) =>
+      val atomsHead = atoms.head
+      if (atomsHead.asCall.nonEmpty) {
         // do different things based on if predicate is cyclic
-        val (callee, calleeArgs) = atom.asCall.get
+        val (callee, calleeArgs) = atomsHead.asCall.get
         val calleeArgBindings = prepareArgBindings(ruleResult, callee, calleeArgs)
         val calleeResult = state.readBlacklistedBottomUp(callee, calleeArgBindings)
         joinEvalResultAndCall(callee, calleeResult)
@@ -237,26 +239,23 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
     ): Unit = {
     val top = callStack.top
     top match {
-      case InRule(
-            p,
-            argBindings,
-            predResult,
-            RuleEvaluation(bodyResult, atom :: remAtoms),
-            remRules) =>
+      case InRule(p, argBindings, predResult, RuleEvaluation(bodyResult, atoms), rules) =>
+        val atomsHead = atoms.head
+        val atomsTail = atoms.tail
         val params = predicates(callee).params.map(_.name)
-        val (calleeArgs, neg) = atom match {
+        val (calleeArgs, neg) = atomsHead match {
           case Datalog.Call(_, args, _, neg) => (args, neg)
           case _ =>
             throw IllegalDebugStateException(
-              s"Calling atom has to be indeed a call, but was $atom instead")
+              s"Calling atom has to be indeed a call, but was $atomsHead instead")
         }
         val nextBodyResult =
           if (!neg)
             opJoinBodyAndPred(bodyResult, calleeArgs, params, calleeTable, (x, y) => x.join(y))
           else
             opJoinBodyAndPred(bodyResult, calleeArgs, params, calleeTable, (x, y) => x.antiJoin(y))
-        val nextRuleEval = RuleEvaluation(nextBodyResult, remAtoms)
-        val next = InRule(p, argBindings, predResult, nextRuleEval, remRules)
+        val nextRuleEval = RuleEvaluation(nextBodyResult, atomsTail)
+        val next = InRule(p, argBindings, predResult, nextRuleEval, rules)
         callStack.update(next)
       case _ =>
         throw IllegalDebugStateException(
