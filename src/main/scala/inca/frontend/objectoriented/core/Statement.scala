@@ -69,3 +69,22 @@ case class VarAssignStmt(targetName: Name, value: Expression) extends Statement 
   override def dotString(): String =
     s"${super.dotString()}$nodeId -> ${value.nodeId};\n${value.dotString()}"
 }
+
+case class IfStmt(cnd: Expression, thn: Seq[Statement], els: Seq[Statement]) extends Statement {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    s"""if (${cnd.prettyprint})
+       |${indent}${thn.map(_.prettyprint(indent + "\t"))}
+       |${indent}else
+       |${indent}${els.map(_.prettyprint(indent + "\t"))}""".stripMargin
+  }
+
+  override def dotString(): String =
+    s"""${super.dotString()}""" +
+      s"""$nodeId -> ${cnd.nodeId} [label="cond"];\n${cnd.dotString()}""" +
+      thn.zipWithIndex.map {
+        case (t, i) => s"""$nodeId -> ${t.nodeId} [label="then[$i]"];\n${t.dotString()}"""
+      }.mkString("") +
+      els.zipWithIndex.map{
+        case (e, i) => s"""$nodeId -> ${e.nodeId} [label="else[$i]"];\n${e.dotString()}"""
+      }.mkString("")
+}

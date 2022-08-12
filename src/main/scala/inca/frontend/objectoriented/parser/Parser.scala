@@ -1,8 +1,8 @@
 package inca.frontend.objectoriented.parser
 
-import inca.frontend.objectoriented.core._
-import cats.parse.{Numbers, Parser => P, Parser0 => P0}
 import inca.compiler.SourceLocation
+import inca.frontend.objectoriented.core._
+import cats.parse.{Parser => P, Parser0 => P0}
 
 import scala.language.{existentials, implicitConversions}
 
@@ -35,15 +35,15 @@ trait Parser {
   object Keyword extends Enumeration {
     type Keyword = Value
 
-    val IF      = Value("if")
-    val ELSE    = Value("else")
-    val CLASS   = Value("class")
-    val DEF     = Value("def")
-    val PRIVATE = Value("private")
-    val VAR     = Value("var")
-    val NEW     = Value("new")
-    val RETURN  = Value("return")
-    val INIT    = Value("init")
+    val IF: Value      = Value("if")
+    val ELSE: Value    = Value("else")
+    val CLASS: Value   = Value("class")
+    val DEF: Value     = Value("def")
+    val PRIVATE: Value = Value("private")
+    val VAR: Value     = Value("var")
+    val NEW: Value     = Value("new")
+    val RETURN: Value  = Value("return")
+    val INIT: Value    = Value("init")
   }
 
   import Keyword._
@@ -69,23 +69,23 @@ trait Parser {
   val identifier: P[Name] =
     spaced(id)
 
-  protected[frontend] val privateVisibility: P[Visibility] =
+  val privateVisibility: P[Visibility] =
     keyword(PRIVATE).mapWithLoc(_ => Private)
 
-  protected[frontend] val visibility: P[Visibility] =
+  val visibility: P[Visibility] =
     spaced(privateVisibility)
 
-  protected[frontend] val overrideAnnotation: P[Annotation] =
+  val overrideAnnotation: P[Annotation] =
     spaced(P.string(OverrideFunctionAnno.toString)).map(_ => OverrideFunctionAnno)
 
-  protected[frontend] val typeAnno: P[Type] =
+  val typeHint: P[Type] =
     identifier.mapWithLoc(n => TClass(n))
 
-  protected[frontend] val nameWithType: P[(Name, Option[Type])] =
-    spaced(identifier ~ (op(':') *> typeAnno).?)
+  val nameWithType: P[(Name, Option[Type])] =
+    spaced(identifier ~ (op(':') *> typeHint).?)
 
   protected[frontend] lazy val assignStmt: P[Statement] =
-    (expr ~ (op('=') *> expr)).mapWithLoc {
+    (assignableExpr ~ (op('=') *> expr)).mapWithLoc {
       case (targetExpr, valueExpr) =>
         targetExpr match {
           case FieldReadExpr(_, previousExpr) => FieldAssignStmt(previousExpr, valueExpr)
@@ -93,10 +93,18 @@ trait Parser {
         }
     }
 
+  protected[frontend] lazy val ifElseStmt: P[IfStmt] = {
+    val ifBlock = keyword(IF) *> inParentheses(P.defer(expr)) ~ (inBraces(P.defer(stmt).rep0) | P.defer(stmt).map(Seq(_)))
+    val elseBlock = keyword(ELSE) *> (inBraces(P.defer(stmt).rep0) | P.defer(stmt).map(Seq(_)))
+    (ifBlock ~ elseBlock.?).mapWithLoc {
+      case ((compareExpr, thnStmt), elseStmts) => IfStmt(compareExpr, thnStmt, elseStmts.getOrElse(Seq()))
+    }
+  }
+
   protected[frontend] lazy val varDeclareStmt: P[VarDeclareStmt] = {
     (keyword(VAR) *> nameWithType ~ (op('=') *> expr).?).mapWithLoc {
-      case ((name, typeAnno), valueExpr) =>
-        VarDeclareStmt(name, typeAnno.getOrElse(TAny), valueExpr)
+      case ((name, typeHint), valueExpr) =>
+        VarDeclareStmt(name, typeHint.getOrElse(TAny), valueExpr)
     }
   }
 
@@ -107,13 +115,13 @@ trait Parser {
     expr.mapWithLoc(ExprStmt)
 
   protected[frontend] lazy val stmt: P[Statement] = {
-    assignStmt.backtrack | varDeclareStmt | exprStmt | returnStmt
+    assignStmt.backtrack | ifElseStmt | varDeclareStmt | exprStmt | returnStmt
   }
 
-  protected[frontend] val variable: P[Name] =
+  private val variable: P[Name] =
     identifier <* P.not(P.char('('))
 
-  protected[frontend] val call: P[(Name, Seq[Expression])] =
+  private val call: P[(Name, Seq[Expression])] =
     identifier ~ inParentheses(seq0(P.defer(expr)))
 
   protected[frontend] val variableReadExpr: P[VarReadExpr] =
@@ -122,12 +130,19 @@ trait Parser {
   protected[frontend] val constructorExpr: P[ConstructorExpr] =
     (keyword(NEW) *> call).mapWithLoc { case (name, argList) => ConstructorExpr(name, argList) }.backtrack
 
-  protected[frontend] lazy val atom: P[Expression] =
+  protected[frontend] val compareExpr: P[CompareExpr] = {
+    val compareOps = P.oneOf(CompareOp.values.toList.map(o => P.string(o.toString).string))
+    ((assignableExpr ~ spaced(compareOps)) ~ assignableExpr).mapWithLoc {
+      case ((left, operator), right) => CompareExpr(left, right, CompareOp.withName(operator))
+    }
+  }
+
+  private lazy val atom: P[Expression] =
     variableReadExpr | constructorExpr // |
     // Comment this in to allow function / method calls with implicit this.
     //call.mapWithLoc { case (name,  expressions) => MethodCallExpr(name, expressions) }.backtrack
 
-  protected[frontend] lazy val expr: P[Expression] = {
+  protected[frontend] lazy val assignableExpr: P[Expression] = {
     // atom.attr | atom.someMethod(...)
     (atom ~ (op('.') *> (variable.backtrack | call.backtrack)).rep0).mapWithLoc { case (startExpr, pathIdentifiers) =>
         pathIdentifiers.foldLeft(startExpr) { case (prev, current) =>
@@ -139,6 +154,10 @@ trait Parser {
     }
   }
 
+  protected[frontend] lazy val expr: P[Expression] = {
+    compareExpr.backtrack | assignableExpr
+  }
+
   protected[frontend] val defParams: P[Seq[Param]] =
     spaced(inParentheses(paramList))
 
@@ -147,24 +166,24 @@ trait Parser {
 
   protected[frontend] lazy val param: P[Param] =
     nameWithType.mapWithLoc {
-      case (name, typeAnno) => Param(name, typeAnno.getOrElse(TAny))
+      case (name, typeHint) => Param(name, typeHint.getOrElse(TAny))
     }
 
   protected[frontend] val methodDef: P[MethodDef] = {
     val functionHeader = ((((overrideAnnotation.? ~ visibility.?).with1
       <* keyword(DEF)) ~ identifier ~ defParams)
-      ~ (op(':') *> typeAnno).?
+      ~ (op(':') *> typeHint).?
       ~ inBraces(stmt.rep0))
-    functionHeader.mapWithLoc { case (((((overrideAnnotation, visibility), funcName), params), typeAnno), content) =>
+    functionHeader.mapWithLoc { case (((((overrideAnnotation, visibility), funcName), params), typeHint), content) =>
       val anno = if (overrideAnnotation.isEmpty) Seq() else Seq(overrideAnnotation.get)
-      MethodDef(anno, visibility, funcName, params, typeAnno.getOrElse(TAny), content)
+      MethodDef(anno, visibility, funcName, params, typeHint.getOrElse(TAny), content)
     }
   }
 
   protected[frontend] val fieldDef: P[FieldDef] = {
-    ((visibility.?.with1 <* keyword(VAR)) ~ nameWithType ~ (op('=') *> expr).?).mapWithLoc {
-      case ((visibility, (name, typeAnno)), valueExpr) =>
-        FieldDef(Seq(), visibility, name, typeAnno.getOrElse(TAny), valueExpr)
+    ((visibility.?.with1 <* keyword(VAR)) ~ nameWithType ~ (op('=') *> assignableExpr).?).mapWithLoc {
+      case ((visibility, (name, typeHint)), valueExpr) =>
+        FieldDef(Seq(), visibility, name, typeHint.getOrElse(TAny), valueExpr)
     }
   }
 

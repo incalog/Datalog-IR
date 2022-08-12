@@ -1,0 +1,73 @@
+module Plus
+
+class Nat {
+    var pred
+    var num = someNum
+
+	def dummy(n: Nat, m) {
+	    /*
+	    //Test attributes and method calls. Note: Implicit this / function calls are not allowed
+	    someVar
+	    someVar.attr1.attr2
+	    this.someCall(someVar, something.attr1, this.someCall()).attr2
+	    this.attr3.attr4.test(someOtherThing, this.someCall())
+	    this.test2(someParam.attr5.someStuff(), someParam.someCall(someThing.someCall()))
+
+        // var & constructor test
+        var myVar = test
+        myVar = new Zero()
+	    var someVar = this.callme(this.callme(), this.num.somestuff.whatever)
+	    myvar
+
+        // Operator test
+        a = a == b
+        a < b
+        a > b
+        this.call(a > b)
+        */
+        if (a < b)
+            test
+
+        if (a > b)
+            test1
+        else
+            test2
+
+        if (a < b) {
+            stuff
+        } else if (c < d) {
+            stuff
+            this.someCall()
+        } else {
+            this.someOtherCall()
+            b
+        }
+	}
+
+    // Empty body test
+    def succ1() {
+
+    }
+
+    def succ() {
+        return new Succ(this)
+    }
+}
+
+/*class Zero(Nat) {
+	@override def add(n) {
+		return n
+	}
+}
+
+class Succ(Nat) {
+	var pred
+
+	init(pred: Succ) {
+	    this.pred = pred
+	}
+	
+	@override def add(n: Nat): Nat {
+		return new Succ(this.pred.add(n))
+	}
+}*/

@@ -41,6 +41,27 @@ case class ConstructorExpr(className: Name, args: Seq[Expression]) extends Expre
     }.mkString("")
 }
 
+object CompareOp extends Enumeration {
+  type CompareOp = Value
+
+  val EQ: Value = Value("==")
+  val LT: Value = Value("<")
+  val GT: Value = Value(">")
+}
+
+import CompareOp._
+
+case class CompareExpr(left: Expression, right: Expression, op: CompareOp) extends Expression {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    s"$left $op $right"
+  }
+
+  override def dotString(): String =
+    s"${super.dotString()}" +
+      s"""$nodeId -> ${left.nodeId} [label="left"];\n${left.dotString()}""" +
+      s"""$nodeId -> ${right.nodeId} [label="right"];\n${right.dotString()}""".stripMargin
+}
+
 case class MethodCallExpr(fun: Name, args: Seq[Expression]) extends Expression {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
