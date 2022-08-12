@@ -19,7 +19,7 @@ class ParserTest extends AnyFunSuite {
     (input: String) => {
        parser.parse(input) match {
          case Right((str, module)) =>
-           println(module)
+           println(module.dotString())
            println()
            println("Remaining: ")
            println(str)

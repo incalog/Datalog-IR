@@ -88,17 +88,17 @@ trait Parser {
     (expr ~ (op('=') *> expr)).mapWithLoc {
       case (targetExpr, valueExpr) =>
         targetExpr match {
-          case FieldExpr(_, _) => FieldAssignStmt(targetExpr.asInstanceOf[FieldExpr], valueExpr)
-          case VarExpr(_)      => VarAssignStmt(targetExpr.asInstanceOf[VarExpr], valueExpr)
+          case FieldReadExpr(_, previousExpr) => FieldAssignStmt(previousExpr, valueExpr)
+          case VarReadExpr(name)              => VarAssignStmt(name, valueExpr)
         }
     }
 
-  /*protected[frontend] val variableDef: P[FieldDef] = {
+  protected[frontend] lazy val varDeclareStmt: P[VarDeclareStmt] = {
     (keyword(VAR) *> nameWithType ~ (op('=') *> expr).?).mapWithLoc {
       case ((name, typeAnno), valueExpr) =>
-        FieldDef(Seq(), name, typeAnno.getOrElse(TAny), valueExpr)
+        VarDeclareStmt(name, typeAnno.getOrElse(TAny), valueExpr)
     }
-  }*/
+  }
 
   protected[frontend] lazy val returnStmt: P[Statement] =
     (keyword(RETURN) *> expr.?).mapWithLoc(ReturnStmt)
@@ -107,7 +107,7 @@ trait Parser {
     expr.mapWithLoc(ExprStmt)
 
   protected[frontend] lazy val stmt: P[Statement] = {
-    assignStmt.backtrack | exprStmt | returnStmt
+    assignStmt.backtrack | varDeclareStmt | exprStmt | returnStmt
   }
 
   protected[frontend] val variable: P[Name] =
@@ -116,8 +116,8 @@ trait Parser {
   protected[frontend] val call: P[(Name, Seq[Expression])] =
     identifier ~ inParentheses(seq0(P.defer(expr)))
 
-  protected[frontend] val variableReadExpr: P[VarExpr] =
-    variable.mapWithLoc(VarExpr).backtrack
+  protected[frontend] val variableReadExpr: P[VarReadExpr] =
+    variable.mapWithLoc(VarReadExpr).backtrack
 
   protected[frontend] val constructorExpr: P[ConstructorExpr] =
     (keyword(NEW) *> call).mapWithLoc { case (name, argList) => ConstructorExpr(name, argList) }.backtrack
@@ -132,7 +132,7 @@ trait Parser {
     (atom ~ (op('.') *> (variable.backtrack | call.backtrack)).rep0).mapWithLoc { case (startExpr, pathIdentifiers) =>
         pathIdentifiers.foldLeft(startExpr) { case (prev, current) =>
           current match {
-            case name: Name => FieldExpr(name, prev)
+            case name: Name => FieldReadExpr(name, prev)
             case (name: Name, argList: Seq[Expression]) => MethodCallExpr(name, List(prev) ++ argList)
           }
         }

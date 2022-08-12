@@ -4,28 +4,28 @@ class Nat {
     var num = someNum
 
 	def dummy(n: Nat, m) {
-	    someVar
+	    /*someVar
 	    someVar.attr1.attr2
 	    this.someCall(someVar, something.attr1, this.someCall()).attr2
 	    this.attr3.attr4.test(someOtherThing, this.someCall())
 	    this.test2(someParam.attr5.someStuff(), someParam.someCall(someThing.someCall()))
-	    //someCall
 
-        var myVar
+        var myVar = test
         myVar = new Zero()
-	    var someVar = new Succ(this)
+	    var someVar = this.callme(this.callme(), this.num.somestuff.whatever)*/
+	    myvar
 	}
 
-    def succ1() {
+    /*def succ1() {
 
-    }
+    }*/
 
     def succ() {
         return new Succ(this)
     }
 }
 
-class Zero(Nat) {
+/*class Zero(Nat) {
 	@override def add(n) {
 		return n
 	}
@@ -41,4 +41,4 @@ class Succ(Nat) {
 	@override def add(n: Nat): Nat {
 		return new Succ(this.pred.add(n))
 	}
-}
+}*/
