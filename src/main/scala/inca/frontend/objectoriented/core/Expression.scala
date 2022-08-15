@@ -1,6 +1,7 @@
 package inca.frontend.objectoriented.core
 
 import inca.compiler.SourceLocation
+import inca.util.Scala
 
 import java.util.UUID
 
@@ -53,7 +54,7 @@ import CompareOp._
 
 case class CompareExpr(left: Expression, right: Expression, op: CompareOp) extends Expression {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    s"$left $op $right"
+    s"($left $op $right)"
   }
 
   override def dotString(): String =
@@ -72,4 +73,17 @@ case class MethodCallExpr(fun: Name, args: Seq[Expression]) extends Expression {
     s"${super.dotString()}" + args.zipWithIndex.map { case (arg, i) =>
       s"""$nodeId -> ${arg.nodeId} [label="arg[$i]"];\n${arg.dotString()}"""
     }.mkString("")
+}
+
+case class BaseLit(code: Scala[meta.Term]) extends Expression {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = s"Base(${code.tree match {
+    case meta.Lit.Int(i) => i.toString
+    case meta.Lit.Long(l) => l.toString
+    case meta.Lit.Float(f) => f
+    case meta.Lit.Double(d) => d
+    case meta.Lit.String(s) => s
+    case meta.Lit.Boolean(b) => b.toString
+    case meta.Lit.Char(c) => c.toString
+    case t => s"`${t.syntax}`"
+  }})"
 }

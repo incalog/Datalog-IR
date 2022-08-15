@@ -3,9 +3,9 @@ module Plus
 class Nat {
     var pred
     var num = someNum
+    private var num2 = something
 
-	def dummy(n: Nat, m) {
-	    /*
+	def dummy(n, m) {
 	    //Test attributes and method calls. Note: Implicit this / function calls are not allowed
 	    someVar
 	    someVar.attr1.attr2
@@ -17,16 +17,35 @@ class Nat {
         var myVar = test
         myVar = new Zero()
 	    var someVar = this.callme(this.callme(), this.num.somestuff.whatever)
-	    myvar
+	    myVar
+
+        // Assignment test
+        this.sometest.someotherfield.whatever = test2.foo
+
+        // BaseLiteral
+        7
+        7.0
+        30L
+        4l
+        3d
+        3.5
+        2.
+        "Some string"
+        "Some multiline
+        string"
+        `7 - (3 + 4)`
 
         // Operator test
-        a = a == b
+        a = (a == b)
         a < b
         a > b
         this.call(a > b)
-        */
-        if (a < b)
+        a > b == b < c
+
+        // if-else test
+        if (a)
             test
+        test2
 
         if (a > b)
             test1
@@ -42,6 +61,9 @@ class Nat {
             this.someOtherCall()
             b
         }
+
+        // This should fail
+        //this.sometest.someotherfield.someCall() = abc
 	}
 
     // Empty body test
@@ -54,7 +76,7 @@ class Nat {
     }
 }
 
-/*class Zero(Nat) {
+class Zero(Nat) {
 	@override def add(n) {
 		return n
 	}
@@ -63,11 +85,11 @@ class Nat {
 class Succ(Nat) {
 	var pred
 
-	init(pred: Succ) {
+	init(pred) {
 	    this.pred = pred
 	}
 	
-	@override def add(n: Nat): Nat {
+	@override def add(n) {
 		return new Succ(this.pred.add(n))
 	}
-}*/
+}

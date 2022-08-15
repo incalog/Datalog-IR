@@ -19,6 +19,7 @@ class ParserTest extends AnyFunSuite {
     (input: String) => {
        parser.parse(input) match {
          case Right((str, module)) =>
+           println(module)
            println(module.dotString())
            println()
            println("Remaining: ")
@@ -28,7 +29,7 @@ class ParserTest extends AnyFunSuite {
            val offset = e.failedAtOffset
            println(s"Parsed to $offset: ")
            println(input.substring(offset))
-           println(e.expected)//, e.offsets, e.failedAtOffset)
+           println(e)//, e.offsets, e.failedAtOffset)
            fail(e.toString)
       }
     }

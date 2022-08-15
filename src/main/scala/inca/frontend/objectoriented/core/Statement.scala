@@ -18,7 +18,7 @@ trait Statement extends SourceLocation {
 
 case class ExprStmt(expression: Expression) extends Statement {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
-    s"$expression"
+    s"$indent$expression"
 
   override def dotString(): String =
     s"${super.dotString()}$nodeId -> ${expression.nodeId};\n${expression.dotString()}"
@@ -27,7 +27,7 @@ case class ExprStmt(expression: Expression) extends Statement {
 case class ReturnStmt(value: Option[Expression]) extends Statement {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val expr = if (value.isEmpty) "" else value.get.toString
-    s"return $expr"
+    s"${indent}return $expr"
   }
 
   override def dotString(): String = {
@@ -38,9 +38,9 @@ case class ReturnStmt(value: Option[Expression]) extends Statement {
   }
 }
 
-case class FieldAssignStmt(target: Expression, value: Expression) extends Statement {
+case class FieldAssignStmt(name: Name, target: Expression, value: Expression) extends Statement {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    s"$target = $value"
+    s"$indent$target.$name = $value"
   }
 
   override def dotString(): String =
@@ -50,7 +50,7 @@ case class FieldAssignStmt(target: Expression, value: Expression) extends Statem
 case class VarDeclareStmt(name: Name, typ: Type, value: Option[Expression]) extends Statement {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val expr = if (value.isEmpty) "" else s" = ${value.get.toString}"
-    s"var ${name}: $typ$expr"
+    s"${indent}var ${name}: $typ$expr"
   }
 
   override def dotString(): String = {
@@ -63,7 +63,7 @@ case class VarDeclareStmt(name: Name, typ: Type, value: Option[Expression]) exte
 
 case class VarAssignStmt(targetName: Name, value: Expression) extends Statement {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    s"$targetName = $value"
+    s"$indent$targetName = $value"
   }
 
   override def dotString(): String =
@@ -72,10 +72,15 @@ case class VarAssignStmt(targetName: Name, value: Expression) extends Statement 
 
 case class IfStmt(cnd: Expression, thn: Seq[Statement], els: Seq[Statement]) extends Statement {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    s"""if (${cnd.prettyprint})
-       |${indent}${thn.map(_.prettyprint(indent + "\t"))}
-       |${indent}else
-       |${indent}${els.map(_.prettyprint(indent + "\t"))}""".stripMargin
+    val condS = s"if (${cnd.prettyprint})"
+    val ifS = thn.map(_.prettyprint(indent+"\t")).mkString("\n")
+    val elseS = els.map(_.prettyprint(indent+ "\t")).mkString("\n")
+
+    if (elseS.isEmpty) {
+      s"${indent}$condS {\n$ifS\n$indent}"
+    } else {
+      s"${indent}$condS {\n$ifS\n${indent} } else {\n$elseS\n$indent}"
+    }
   }
 
   override def dotString(): String =

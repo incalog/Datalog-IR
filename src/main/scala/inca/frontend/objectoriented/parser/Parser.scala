@@ -3,11 +3,15 @@ package inca.frontend.objectoriented.parser
 import inca.compiler.SourceLocation
 import inca.frontend.objectoriented.core._
 import cats.parse.{Parser => P, Parser0 => P0}
+import inca.util.Scala
 
 import scala.language.{existentials, implicitConversions}
+import scala.meta.parsers.Parsed
+import scala.meta.{Term, XtensionParseInputLike}
 
 trait Parser {
 
+  val scalaQuoteChar = '`'
   val lineComment: P[Unit] = P.string("//") *> P.charsWhile0(c => c != '\n' && c != '\r').void
   val blockComment: P[Unit] = P.string("/*") *> P.recursive[Unit](rec =>
     P.product01(P.charsWhile0(c => c != '*').void, P.string("*/") | P.char('*') ~ rec).void
@@ -59,6 +63,16 @@ trait Parser {
   def op(s: String): P[Unit] =
     spaced(P.string(s))
 
+  def pass[T](o: T): P0[T] =
+    P.pure(o)
+
+  def fail[T](s: String = ""): P[T] =
+    if (s.isEmpty) {
+      P.fail[T]
+    } else {
+      P.failWith[T](s)
+    }
+
   val id: P[Name] = {
     (letter ~ letterDigit.rep0)
       .string
@@ -85,11 +99,12 @@ trait Parser {
     spaced(identifier ~ (op(':') *> typeHint).?)
 
   protected[frontend] lazy val assignStmt: P[Statement] =
-    (assignableExpr ~ (op('=') *> expr)).mapWithLoc {
+    (assignableExpr ~ (op('=') *> expr)).backtrack.flatMapWithLoc {
       case (targetExpr, valueExpr) =>
         targetExpr match {
-          case FieldReadExpr(_, previousExpr) => FieldAssignStmt(previousExpr, valueExpr)
-          case VarReadExpr(name)              => VarAssignStmt(name, valueExpr)
+          case FieldReadExpr(name, previousExpr) => pass(FieldAssignStmt(name, previousExpr, valueExpr))
+          case VarReadExpr(name)                 => pass(VarAssignStmt(name, valueExpr))
+          case _                                 => fail(s"Can not assign a value to expression: $targetExpr")
         }
     }
 
@@ -101,12 +116,11 @@ trait Parser {
     }
   }
 
-  protected[frontend] lazy val varDeclareStmt: P[VarDeclareStmt] = {
+  protected[frontend] lazy val varDeclareStmt: P[VarDeclareStmt] =
     (keyword(VAR) *> nameWithType ~ (op('=') *> expr).?).mapWithLoc {
       case ((name, typeHint), valueExpr) =>
         VarDeclareStmt(name, typeHint.getOrElse(TAny), valueExpr)
     }
-  }
 
   protected[frontend] lazy val returnStmt: P[Statement] =
     (keyword(RETURN) *> expr.?).mapWithLoc(ReturnStmt)
@@ -114,37 +128,35 @@ trait Parser {
   protected[frontend] lazy val exprStmt: P[Statement] =
     expr.mapWithLoc(ExprStmt)
 
-  protected[frontend] lazy val stmt: P[Statement] = {
-    assignStmt.backtrack | ifElseStmt | varDeclareStmt | exprStmt | returnStmt
-  }
+  protected[frontend] lazy val stmt: P[Statement] =
+     assignStmt | ifElseStmt | varDeclareStmt | returnStmt | exprStmt
 
   private val variable: P[Name] =
-    identifier <* P.not(P.char('('))
+    (identifier <* P.not(P.char('('))).backtrack
 
   private val call: P[(Name, Seq[Expression])] =
-    identifier ~ inParentheses(seq0(P.defer(expr)))
+    (identifier ~ inParentheses(seq0(P.defer(expr)))).backtrack
 
   protected[frontend] val variableReadExpr: P[VarReadExpr] =
-    variable.mapWithLoc(VarReadExpr).backtrack
+    variable.mapWithLoc(VarReadExpr)
 
   protected[frontend] val constructorExpr: P[ConstructorExpr] =
-    (keyword(NEW) *> call).mapWithLoc { case (name, argList) => ConstructorExpr(name, argList) }.backtrack
+    (keyword(NEW) *> call).mapWithLoc { case (name, argList) => ConstructorExpr(name, argList) }
 
   protected[frontend] val compareExpr: P[CompareExpr] = {
     val compareOps = P.oneOf(CompareOp.values.toList.map(o => P.string(o.toString).string))
-    ((assignableExpr ~ spaced(compareOps)) ~ assignableExpr).mapWithLoc {
+    // TODO: This should be expr, not assignableExpr
+    ((assignableExpr ~ spaced(compareOps)) ~ P.defer(expr)).backtrack.mapWithLoc {
       case ((left, operator), right) => CompareExpr(left, right, CompareOp.withName(operator))
     }
   }
 
   private lazy val atom: P[Expression] =
-    variableReadExpr | constructorExpr // |
-    // Comment this in to allow function / method calls with implicit this.
-    //call.mapWithLoc { case (name,  expressions) => MethodCallExpr(name, expressions) }.backtrack
+    variableReadExpr | constructorExpr
 
   protected[frontend] lazy val assignableExpr: P[Expression] = {
     // atom.attr | atom.someMethod(...)
-    (atom ~ (op('.') *> (variable.backtrack | call.backtrack)).rep0).mapWithLoc { case (startExpr, pathIdentifiers) =>
+    (atom ~ (op('.') *> (variable | call)).rep0).mapWithLoc { case (startExpr, pathIdentifiers) =>
         pathIdentifiers.foldLeft(startExpr) { case (prev, current) =>
           current match {
             case name: Name => FieldReadExpr(name, prev)
@@ -154,9 +166,71 @@ trait Parser {
     }
   }
 
-  protected[frontend] lazy val expr: P[Expression] = {
-    compareExpr.backtrack | assignableExpr
+  protected[frontend] lazy val parensExpr: P[Expression] =
+    inParentheses(P.defer(expr))
+
+  protected[frontend] lazy val expr: P[Expression] =
+    compareExpr | assignableExpr | parensExpr | baseLitExp
+
+  /** base parser */
+  protected[frontend] val scalaTerm: P[Scala[meta.Term]] =
+    P.charsWhile(_ != scalaQuoteChar).flatMap { raw_code =>
+      raw_code.parse[Term] match {
+        case err: Parsed.Error => fail(err.message)
+        case Parsed.Success(code) => pass(Scala(code))
+      }
+    }
+
+  /** NumericLiteral parser */
+  protected[frontend] val numericLiteral: P[BaseLit] = {
+    (op('-').string.?.with1 ~ digit.rep.string ~
+      ((P.string("L") | P.string("l")).string.map(_ => "long") |
+        P.string("d").string.map(_ => "double") |
+        (P.string(".").string *> digit.rep0.string <* P.string("d").?)
+        ).?
+    ).flatMapWithLoc { case ((sign, whole), suffix) =>
+      val integral = sign.getOrElse("") + whole
+      suffix match {
+        case None => integral.toIntOption match {
+          case Some(i) => pass(BaseLit(Scala(meta.Lit.Int(i))))
+          case None => fail()
+        }
+        case Some("long") => integral.toLongOption match {
+          case Some(l) => pass(BaseLit(Scala(meta.Lit.Long(l))))
+          case None => fail()
+        }
+        case Some("double") => integral.toDoubleOption match {
+          case Some(d) => pass(BaseLit(Scala(meta.Lit.Double(d))))
+          case None => fail()
+        }
+        case Some(fraction) =>
+          s"$integral.$fraction".toDoubleOption match {
+            case Some(d) => pass(BaseLit(Scala(meta.Lit.Double(d))))
+            case None => fail()
+          }
+      }
+    }
   }
+
+  /** StringLiteral parser */
+  protected[frontend] val stringLiteral: P[BaseLit] =
+    (P.string("\"") *> P.charsWhile0(_ != '\"') <* P.string("\"")).mapWithLoc {
+      s => BaseLit(Scala(meta.Lit.String(s)))
+    }
+
+  /** BooleanLiteral parser */
+  protected[frontend] val booleanLiteral: P[BaseLit] =
+    (P.string("true") | P.string("false")).string.mapWithLoc  {
+      s => BaseLit(Scala(meta.Lit.Boolean(s.toBoolean)))
+    }
+
+  protected[frontend] val baseLitExp: P[BaseLit] =
+    spaced(
+      (op(scalaQuoteChar) *> scalaTerm <* op(scalaQuoteChar)).mapWithLoc(BaseLit) |
+      numericLiteral |
+      stringLiteral |
+      booleanLiteral
+    )
 
   protected[frontend] val defParams: P[Seq[Param]] =
     spaced(inParentheses(paramList))
@@ -171,7 +245,7 @@ trait Parser {
 
   protected[frontend] val methodDef: P[MethodDef] = {
     val functionHeader = ((((overrideAnnotation.? ~ visibility.?).with1
-      <* keyword(DEF)) ~ identifier ~ defParams)
+      <* keyword(DEF)).backtrack ~ identifier ~ defParams)
       ~ (op(':') *> typeHint).?
       ~ inBraces(stmt.rep0))
     functionHeader.mapWithLoc { case (((((overrideAnnotation, visibility), funcName), params), typeHint), content) =>
@@ -181,7 +255,7 @@ trait Parser {
   }
 
   protected[frontend] val fieldDef: P[FieldDef] = {
-    ((visibility.?.with1 <* keyword(VAR)) ~ nameWithType ~ (op('=') *> assignableExpr).?).mapWithLoc {
+    (((visibility.? <* keyword(VAR)).with1 ~ nameWithType).backtrack ~ (op('=') *> expr).?).mapWithLoc {
       case ((visibility, (name, typeHint)), valueExpr) =>
         FieldDef(Seq(), visibility, name, typeHint.getOrElse(TAny), valueExpr)
     }
@@ -189,7 +263,7 @@ trait Parser {
 
   protected[frontend] val constructorDef: P[ConstructorDef] = {
     val functionHeader = ((((overrideAnnotation.? ~ visibility.?).with1
-      <* keyword(INIT)) ~ defParams)
+      <* keyword(INIT)).backtrack ~ defParams)
       ~ inBraces(stmt.rep0))
     functionHeader.mapWithLoc { case (((overrideAnnotation, visibility), params), content) =>
       val anno = if (overrideAnnotation.isEmpty) Seq() else Seq(overrideAnnotation.get)
@@ -197,18 +271,14 @@ trait Parser {
     }
   }
 
-  protected[frontend] val className: P[Name] =
-    spaced(keyword(CLASS) *> identifier)
-
-  protected[frontend] val parentClassNames: P0[Seq[Name]] =
-    spaced(inParentheses(seq0(identifier)))
-
-  protected[frontend] val classContent: P[ClassContent] =
-    methodDef | fieldDef | constructorDef
+  protected[frontend] val classContentDef: P[ClassContentDef] =
+    constructorDef | methodDef | fieldDef
 
   protected[frontend] val classDef: P[ClassDef] = {
+    val className = spaced(keyword(CLASS) *> identifier)
+    val parentClassNames = spaced(inParentheses(seq0(identifier)))
     val header = visibility.?.with1 ~ className ~ parentClassNames.?
-    val content = spaced(inBraces(classContent.rep0))
+    val content = spaced(inBraces(classContentDef.rep0))
 
     (header ~ content).mapWithLoc { case (((visibility, name), parents), content)  =>
       ClassDef(Seq(), visibility, name, parents.getOrElse(Seq()), content)
@@ -228,7 +298,7 @@ trait Parser {
   }
 
   implicit class Ploc[T](p: => P[T]) {
-    def mapWithLoc[U <: SourceLocation](f: T => U): P[U] = {
+    def mapWithLoc[U <: SourceLocation](f: T => U): P[U] =
       ((P.index.with1 ~ p) ~ P.index).map {
         case ((start, t), end) =>
           val u = f(t)
@@ -236,7 +306,17 @@ trait Parser {
           u.endIndex = end
           u
       }
-    }
+
+    def flatMapWithLoc[U <: SourceLocation](f: T => P0[U]): P[U] =
+      ((P.index.with1 ~ p) ~ P.index).flatMap {
+        case ((start, t), end) =>
+          val up = f(t)
+          up.map { u =>
+            u.startIndex = start
+            u.endIndex = end
+            u
+          }
+      }
   }
 }
 

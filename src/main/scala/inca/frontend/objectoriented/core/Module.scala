@@ -35,7 +35,7 @@ object Import {
   trait Target
 }
 
-trait ClassContent extends SourceLocation with Annotations {
+trait ClassContentDef extends SourceLocation with Annotations {
   def vis: Option[Visibility]
   def prettyprint(implicit indent: String): String
   def dotString(): String
@@ -44,7 +44,7 @@ trait ClassContent extends SourceLocation with Annotations {
   lazy val nodeName: String = this.getClass.getSimpleName
 }
 
-case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, parentClassNames: Seq[Name], content: Seq[ClassContent])
+case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, parentClassNames: Seq[Name], content: Seq[ClassContentDef])
   extends SourceLocation with Annotations {
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
@@ -63,21 +63,24 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
 }
 
 case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, typ: Type, body: Option[Expression])
-  extends ClassContent {
-  def prettyprint(implicit indent: String): String =
-    s"${indent}var $name: ${typ.prettyprint}"
+  extends ClassContentDef {
+  def prettyprint(implicit indent: String): String = {
+    val visS = if (vis.contains(Private)) "private " else ""
+    val expr = if (body.isEmpty) "" else s" = ${body.get}"
+    s"${indent}${visS}var $name: ${typ.prettyprint}$expr"
+  }
 
   def dotString(): String =
     s"""$nodeId [label="$nodeName", shape=diamond];\n"""
 }
 
 case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Seq[Statement])
-  extends ClassContent {
+  extends ClassContentDef {
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")
-    val bodyS = body.map(stm => s"$indent\t${stm.prettyprint(indent + "\t")}").mkString("\n")
+    val bodyS = body.map(_.prettyprint(indent + "\t")).mkString("\n")
     val outS = outType.prettyprint
     s"""$annoPrefix$indent${visS}def $name($paramsS): $outS {
        |$bodyS
@@ -93,12 +96,12 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
 }
 
 case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], params: Seq[Param], body: Seq[Statement])
-  extends ClassContent {
+  extends ClassContentDef {
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")
-    val bodyS = body.map(stm => s"$indent\t${stm.prettyprint(indent + "\t")}").mkString("\n")
+    val bodyS = body.map(_.prettyprint(indent + "\t")).mkString("\n")
     s"""$annoPrefix$indent${visS}init($paramsS) {
        |$bodyS
        |$indent}""".stripMargin
