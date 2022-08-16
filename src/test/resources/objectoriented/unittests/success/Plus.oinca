@@ -21,8 +21,13 @@ class Nat {
 
         // Assignment test
         this.sometest.someotherfield.whatever = test2.foo
+        this.blub = `"base literal"`
+        whatever.someCall().test =  1
 
         // BaseLiteral
+        `7 - (3 + 4)`
+        `"Some string"`
+        -6
         7
         7.0
         30L
@@ -33,10 +38,24 @@ class Nat {
         "Some string"
         "Some multiline
         string"
-        `7 - (3 + 4)`
 
-        // Operator test
-        a = (a == b)
+        // Base Apply Unary
+        +3
+        b = @"SomeString"
+        c = +some.express.ion
+
+        // Base Apply expr
+        a = "Test"
+        `"SomeString".startsWith`(4, b)
+        `"Some scala stuff"`.`someAttr`.`moreScalaStuff`()
+        a.`someAttr`()
+        `"Some scala stuff"`.`someCall`()
+        `"Some scala stuff"`.someAttr
+        `"Some scala stuff"`.someAttr.`scalaStuff`.call()
+
+        // Base Apply Infix
+        a = (4 == b)
+        1 == "Test"
         a < b
         a > b
         this.call(a > b)

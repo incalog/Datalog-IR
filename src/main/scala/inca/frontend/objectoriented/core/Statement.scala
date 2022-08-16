@@ -38,9 +38,9 @@ case class ReturnStmt(value: Option[Expression]) extends Statement {
   }
 }
 
-case class FieldAssignStmt(name: Name, target: Expression, value: Expression) extends Statement {
+case class FieldAssignStmt(recv: Expression, name: Name, value: Expression) extends Statement {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    s"$indent$target.$name = $value"
+    s"$indent$recv.$name = $value"
   }
 
   override def dotString(): String =

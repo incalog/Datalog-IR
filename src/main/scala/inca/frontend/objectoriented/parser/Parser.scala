@@ -4,6 +4,8 @@ import inca.compiler.SourceLocation
 import inca.frontend.objectoriented.core._
 import cats.parse.{Parser => P, Parser0 => P0}
 import inca.util.Scala
+import scalaparse.syntax.Basic.isOpChar
+import scalaparse.syntax.Identifiers.OpCharNotSlash
 
 import scala.language.{existentials, implicitConversions}
 import scala.meta.parsers.Parsed
@@ -48,6 +50,8 @@ trait Parser {
     val NEW: Value     = Value("new")
     val RETURN: Value  = Value("return")
     val INIT: Value    = Value("init")
+    val TRUE: Value    = Value("true")
+    val FALSE: Value    = Value("false")
   }
 
   import Keyword._
@@ -63,6 +67,9 @@ trait Parser {
   def op(s: String): P[Unit] =
     spaced(P.string(s))
 
+  def encloseBetween[T](p: P[T], c: Char): P[T] =
+    spaced(P.char(c) *> p <* P.char(c))
+    
   def pass[T](o: T): P0[T] =
     P.pure(o)
 
@@ -99,10 +106,10 @@ trait Parser {
     spaced(identifier ~ (op(':') *> typeHint).?)
 
   protected[frontend] lazy val assignStmt: P[Statement] =
-    (assignableExpr ~ (op('=') *> expr)).backtrack.flatMapWithLoc {
+    (nestedAccessExpr ~ (op('=') *> expr)).backtrack.flatMapWithLoc {
       case (targetExpr, valueExpr) =>
         targetExpr match {
-          case FieldReadExpr(name, previousExpr) => pass(FieldAssignStmt(name, previousExpr, valueExpr))
+          case FieldReadExpr(previousExpr, name) => pass(FieldAssignStmt(previousExpr, name, valueExpr))
           case VarReadExpr(name)                 => pass(VarAssignStmt(name, valueExpr))
           case _                                 => fail(s"Can not assign a value to expression: $targetExpr")
         }
@@ -129,7 +136,7 @@ trait Parser {
     expr.mapWithLoc(ExprStmt)
 
   protected[frontend] lazy val stmt: P[Statement] =
-     assignStmt | ifElseStmt | varDeclareStmt | returnStmt | exprStmt
+     assignStmt | varDeclareStmt | ifElseStmt | returnStmt | exprStmt
 
   private val variable: P[Name] =
     (identifier <* P.not(P.char('('))).backtrack
@@ -137,52 +144,47 @@ trait Parser {
   private val call: P[(Name, Seq[Expression])] =
     (identifier ~ inParentheses(seq0(P.defer(expr)))).backtrack
 
+  private val baseApplyMethod: P[(Name, Option[Seq[Expression]])] =
+    (encloseBetween(identifier, scalaQuoteChar) ~ inParentheses(seq0(P.defer(expr))).?).backtrack
+
   protected[frontend] val variableReadExpr: P[VarReadExpr] =
     variable.mapWithLoc(VarReadExpr)
 
   protected[frontend] val constructorExpr: P[ConstructorExpr] =
     (keyword(NEW) *> call).mapWithLoc { case (name, argList) => ConstructorExpr(name, argList) }
 
-  protected[frontend] val compareExpr: P[CompareExpr] = {
-    val compareOps = P.oneOf(CompareOp.values.toList.map(o => P.string(o.toString).string))
-    // TODO: This should be expr, not assignableExpr
-    ((assignableExpr ~ spaced(compareOps)) ~ P.defer(expr)).backtrack.mapWithLoc {
-      case ((left, operator), right) => CompareExpr(left, right, CompareOp.withName(operator))
-    }
-  }
-
-  private lazy val atom: P[Expression] =
-    variableReadExpr | constructorExpr
-
-  protected[frontend] lazy val assignableExpr: P[Expression] = {
-    // atom.attr | atom.someMethod(...)
-    (atom ~ (op('.') *> (variable | call)).rep0).mapWithLoc { case (startExpr, pathIdentifiers) =>
+  protected[frontend] lazy val nestedAccessExpr: P[Expression] =
+    // (someVar | someConstructor | `someBaseLit` | `someBaseApply`(...)).(attr | `baseApplyMethod`)
+    // (someVar | someConstructor | `someBaseLit` | `someBaseApply`(...)).(someMethod(...) | baseApplyMethod`(...))
+    ((constructorExpr | variableReadExpr | baseLitExpr | baseApplyExpr)
+      ~ (op('.') *> (variable | call | baseApplyMethod)).rep0)
+      .mapWithLoc { case (startExpr, pathIdentifiers) =>
         pathIdentifiers.foldLeft(startExpr) { case (prev, current) =>
           current match {
-            case name: Name => FieldReadExpr(name, prev)
-            case (name: Name, argList: Seq[Expression]) => MethodCallExpr(name, List(prev) ++ argList)
+          case name: Name                                     => FieldReadExpr(prev, name)
+          case (name: Name, argList: Seq[Expression])         => MethodCallExpr(name, List(prev) ++ argList)
+          case (name: Name, argList: Option[Seq[Expression]]) => BaseApplyMethodExpr(prev, name, argList)
           }
         }
     }
-  }
 
   protected[frontend] lazy val parensExpr: P[Expression] =
     inParentheses(P.defer(expr))
 
   protected[frontend] lazy val expr: P[Expression] =
-    compareExpr | assignableExpr | parensExpr | baseLitExp
+    infixExpr
 
   /** base parser */
   protected[frontend] val scalaTerm: P[Scala[meta.Term]] =
     P.charsWhile(_ != scalaQuoteChar).flatMap { raw_code =>
       raw_code.parse[Term] match {
-        case err: Parsed.Error => fail(err.message)
+        case err: Parsed.Error    => fail(err.message)
         case Parsed.Success(code) => pass(Scala(code))
       }
     }
 
   /** NumericLiteral parser */
-  protected[frontend] val numericLiteral: P[BaseLit] = {
+  protected[frontend] val numericLiteral: P[BaseLitExpr] = {
     (op('-').string.?.with1 ~ digit.rep.string ~
       ((P.string("L") | P.string("l")).string.map(_ => "long") |
         P.string("d").string.map(_ => "double") |
@@ -192,20 +194,20 @@ trait Parser {
       val integral = sign.getOrElse("") + whole
       suffix match {
         case None => integral.toIntOption match {
-          case Some(i) => pass(BaseLit(Scala(meta.Lit.Int(i))))
+          case Some(i) => pass(BaseLitExpr(Scala(meta.Lit.Int(i))))
           case None => fail()
         }
         case Some("long") => integral.toLongOption match {
-          case Some(l) => pass(BaseLit(Scala(meta.Lit.Long(l))))
+          case Some(l) => pass(BaseLitExpr(Scala(meta.Lit.Long(l))))
           case None => fail()
         }
         case Some("double") => integral.toDoubleOption match {
-          case Some(d) => pass(BaseLit(Scala(meta.Lit.Double(d))))
+          case Some(d) => pass(BaseLitExpr(Scala(meta.Lit.Double(d))))
           case None => fail()
         }
         case Some(fraction) =>
           s"$integral.$fraction".toDoubleOption match {
-            case Some(d) => pass(BaseLit(Scala(meta.Lit.Double(d))))
+            case Some(d) => pass(BaseLitExpr(Scala(meta.Lit.Double(d))))
             case None => fail()
           }
       }
@@ -213,24 +215,47 @@ trait Parser {
   }
 
   /** StringLiteral parser */
-  protected[frontend] val stringLiteral: P[BaseLit] =
+  protected[frontend] val stringLiteral: P[BaseLitExpr] =
     (P.string("\"") *> P.charsWhile0(_ != '\"') <* P.string("\"")).mapWithLoc {
-      s => BaseLit(Scala(meta.Lit.String(s)))
+      s => BaseLitExpr(Scala(meta.Lit.String(s)))
     }
 
   /** BooleanLiteral parser */
-  protected[frontend] val booleanLiteral: P[BaseLit] =
+  protected[frontend] val booleanLiteral: P[BaseLitExpr] =
     (P.string("true") | P.string("false")).string.mapWithLoc  {
-      s => BaseLit(Scala(meta.Lit.Boolean(s.toBoolean)))
+      s => BaseLitExpr(Scala(meta.Lit.Boolean(s.toBoolean)))
     }
 
-  protected[frontend] val baseLitExp: P[BaseLit] =
-    spaced(
-      (op(scalaQuoteChar) *> scalaTerm <* op(scalaQuoteChar)).mapWithLoc(BaseLit) |
-      numericLiteral |
-      stringLiteral |
-      booleanLiteral
-    )
+  protected[frontend] val baseLitExpr: P[BaseLitExpr] =
+      (encloseBetween(scalaTerm, scalaQuoteChar) <* P.not(P.char('('))).backtrack.mapWithLoc(BaseLitExpr) |
+        spaced(numericLiteral) |
+        spaced(stringLiteral) |
+        spaced(booleanLiteral)
+
+  protected[frontend] lazy val baseApplyExpr: P[BaseApplyExpr] =
+    (encloseBetween(scalaTerm, scalaQuoteChar) ~ inParentheses(seq0(P.defer(expr)))).backtrack.mapWithLoc {
+      case (funTerm, args) => BaseApplyExpr(funTerm, args)
+    }
+
+  protected[frontend] val subinfixExpr: P[Expression] =
+    nestedAccessExpr | parensExpr | baseApplyUnaryExpr
+
+  protected[frontend] val infixExpr: P[Expression] =
+    baseApplyInfixExpr | subinfixExpr
+
+  protected[frontend] lazy val baseApplyInfixExpr: P[BaseApplyInfixExpr] =
+    (subinfixExpr ~ spaced(P.charsWhile(isOpChar)) ~ P.defer(infixExpr)).backtrack.flatMapWithLoc {
+      case ((_, "@"), _)    => fail("@ not allowed as infix opertor")
+      case ((_, "=>"), _)   => fail("=> not allowed as infix baseApplyInfixExpropertor")
+      case ((_, "|"), _)    => fail("| not allowed as infix opertor")
+      case ((lhs, op), rhs) => pass(BaseApplyInfixExpr(lhs, Scala(meta.Term.Name(op)), rhs))
+    }
+
+  protected[frontend] lazy val baseApplyUnaryExpr: P[BaseApplyUnaryExpr] =
+    (P.charsWhile(OpCharNotSlash) ~ P.defer(infixExpr)).flatMapWithLoc {
+      //      case ("@", _) => fail("@ not allowed as infix opertor")
+      case (op, rhs) => pass(BaseApplyUnaryExpr(Scala(Term.Name(op)), rhs))
+    }
 
   protected[frontend] val defParams: P[Seq[Param]] =
     spaced(inParentheses(paramList))
@@ -289,9 +314,7 @@ trait Parser {
     classDef
 
   val module: P[Module] = {
-    (op("module") *> identifier
-      ~ moduleContent.rep0(0))
-    .mapWithLoc { case (name, content) =>
+    (op("module") *> identifier ~ moduleContent.rep0(0)).mapWithLoc { case (name, content) =>
       // TODO: imports are empty for now
       Module(name, List(), content)
     }

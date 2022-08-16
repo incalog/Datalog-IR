@@ -15,14 +15,20 @@ trait Expression extends SourceLocation {
 
   def dotString(): String =
     s"""$nodeId [label="$nodeName", shape=circle];\n"""
+
+  def infix(infixParens: Boolean)(f: => String): String =
+    if (infixParens)
+      s"($f)"
+    else
+      f
 }
 
-case class FieldReadExpr(name: Name, value: Expression) extends Expression {
+case class FieldReadExpr(recv: Expression, name: Name) extends Expression {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
-    s"$value.$name"
+    s"$recv.$name"
 
   override def dotString(): String =
-    s"${super.dotString()}$nodeId -> ${value.nodeId};\n${value.dotString()}"
+    s"${super.dotString()}$nodeId -> ${recv.nodeId};\n${recv.dotString()}"
 }
 
 case class VarReadExpr(targetName: Name) extends Expression {
@@ -42,27 +48,6 @@ case class ConstructorExpr(className: Name, args: Seq[Expression]) extends Expre
     }.mkString("")
 }
 
-object CompareOp extends Enumeration {
-  type CompareOp = Value
-
-  val EQ: Value = Value("==")
-  val LT: Value = Value("<")
-  val GT: Value = Value(">")
-}
-
-import CompareOp._
-
-case class CompareExpr(left: Expression, right: Expression, op: CompareOp) extends Expression {
-  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    s"($left $op $right)"
-  }
-
-  override def dotString(): String =
-    s"${super.dotString()}" +
-      s"""$nodeId -> ${left.nodeId} [label="left"];\n${left.dotString()}""" +
-      s"""$nodeId -> ${right.nodeId} [label="right"];\n${right.dotString()}""".stripMargin
-}
-
 case class MethodCallExpr(fun: Name, args: Seq[Expression]) extends Expression {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
@@ -75,8 +60,8 @@ case class MethodCallExpr(fun: Name, args: Seq[Expression]) extends Expression {
     }.mkString("")
 }
 
-case class BaseLit(code: Scala[meta.Term]) extends Expression {
-  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = s"Base(${code.tree match {
+case class BaseLitExpr(code: Scala[meta.Term]) extends Expression {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = code.tree match {
     case meta.Lit.Int(i) => i.toString
     case meta.Lit.Long(l) => l.toString
     case meta.Lit.Float(f) => f
@@ -85,5 +70,53 @@ case class BaseLit(code: Scala[meta.Term]) extends Expression {
     case meta.Lit.Boolean(b) => b.toString
     case meta.Lit.Char(c) => c.toString
     case t => s"`${t.syntax}`"
-  }})"
+  }
+}
+
+case class BaseApplyExpr(fun: Scala[meta.Term], args: Seq[Expression]) extends Expression {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    val argsS = args.map(_.prettyprint).mkString(", ")
+    s"`$fun`($argsS)"
+  }
+
+  override def dotString(): String =
+    s"${super.dotString()}" + args.zipWithIndex.map { case (arg, i) =>
+      s"""$nodeId -> ${arg.nodeId} [label="arg[$i]"];\n${arg.dotString()}"""
+    }.mkString("")
+}
+
+case class BaseApplyInfixExpr(left: Expression, op: Scala[meta.Term.Name], right: Expression) extends Expression {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = infix(infixParens) {
+    s"${left.prettyprint(infixParens = true)} $op ${right.prettyprint(infixParens = true)}"
+  }
+
+  override def dotString(): String =
+    s"${super.dotString()}" +
+      s"""$nodeId -> ${left.nodeId} [label="left"];\n${left.dotString()}""" +
+      s"""$nodeId -> ${right.nodeId} [label="right"];\n${right.dotString()}""".stripMargin
+}
+
+case class BaseApplyMethodExpr(recv: Expression, method: Name, args: Option[Seq[Expression]]) extends Expression {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    val argsS = if (args.isEmpty) "" else args.get.map(_.prettyprint).mkString(", ")
+    s"${recv.prettyprint(infixParens)}.`$method`($argsS)"
+  }
+
+  override def dotString(): String = {
+    val recvS = s"""$nodeId -> ${recv.nodeId} [label="recv"];\n${recv.dotString()}"""
+    val argsS = if (args.isEmpty) "" else args.get.zipWithIndex.map { case (arg, i) =>
+      s"""$nodeId -> ${arg.nodeId} [label="arg[$i]"];\n${arg.dotString()}"""
+    }.mkString("")
+    s"${super.dotString()}$recvS$argsS"
+  }
+}
+
+case class BaseApplyUnaryExpr(op: Scala[meta.Term.Name], exp: Expression) extends Expression {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    s"$indent${op.syntax}${exp.prettyprint(false)}"
+  }
+
+  override def dotString(): String =
+    s"${super.dotString()}" +
+      s"""$nodeId -> ${exp.nodeId} [label="exp"];\n${exp.dotString()}"""
 }
