@@ -22,13 +22,13 @@ object Annotation {
   type Key = String
 }
 
-object MainFunctionAnno extends Annotation {
+object MainAnnotation extends Annotation {
   override def key: Annotation.Key = "MAIN_FUNCTION"
 
   override def toString: String = "@main"
 }
 
-object OverrideFunctionAnno extends Annotation {
+object OverrideAnnotation extends Annotation {
   override def key: Annotation.Key = "OVERRIDE_FUNCTION"
 
   override def toString: String = "@override"

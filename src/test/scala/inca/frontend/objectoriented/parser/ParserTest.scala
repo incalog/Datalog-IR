@@ -13,8 +13,13 @@ class ParserTest extends AnyFunSuite {
 
   val parser: Parser = new Parser {}
 
-  test("Simple class") {
-    val code = FileUtil.readFile("objectoriented/unittests/success/Plus.oinca")
+  test("Simple syntax test") {
+    val code = FileUtil.readFile("objectoriented/unittests/success/Playground.oinca")
+    testSuccessAny(parser.module)(code)
+  }
+
+  test("BinaryTree") {
+    val code = FileUtil.readFile("objectoriented/unittests/success/BinaryTree.oinca")
     testSuccessAny(parser.module)(code)
   }
 

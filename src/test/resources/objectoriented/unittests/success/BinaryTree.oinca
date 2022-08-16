@@ -1,0 +1,49 @@
+module BinaryTree
+
+class Node {
+	var left
+	var right
+	var data
+	
+	init(data) {
+      	this.data = data
+    }
+      	
+	def insert(data) {
+		if (!this.data) return
+		if (data < this.data) {
+            if (!self.left)
+                this.left = new Node(data)
+            else
+                this.left.insert(data)
+        } else if (data > this.data) {
+            if (!self.right)
+                this.right = new Node(data)
+            else
+                this.right.insert(data)
+		} else {
+		    this.data = data
+		}
+	}
+
+	def printTree() {
+      if (this.left)
+         this.left.printTree()
+
+      `print`(this.data)
+
+      if (this.right)
+         this.right.printTree()
+	}
+
+	@main
+	def main() {
+	    var root = new Node(12)
+        root.insert(6)
+        root.insert(14)
+        root.insert(3)
+        root.printTree()
+	}
+}
+
+

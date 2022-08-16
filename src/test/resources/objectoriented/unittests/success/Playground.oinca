@@ -1,4 +1,4 @@
-module Plus
+module Playground
 
 class Nat {
     var pred

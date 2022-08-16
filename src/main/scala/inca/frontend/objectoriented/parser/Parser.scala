@@ -97,7 +97,10 @@ trait Parser {
     spaced(privateVisibility)
 
   val overrideAnnotation: P[Annotation] =
-    spaced(P.string(OverrideFunctionAnno.toString)).map(_ => OverrideFunctionAnno)
+    spaced(P.string(OverrideAnnotation.toString)).map(_ => OverrideAnnotation)
+
+  val mainAnnotation: P[Annotation] =
+    spaced(P.string(MainAnnotation.toString)).map(_ => MainAnnotation)
 
   val typeHint: P[Type] =
     identifier.mapWithLoc(n => TClass(n))
@@ -269,7 +272,7 @@ trait Parser {
     }
 
   protected[frontend] val methodDef: P[MethodDef] = {
-    val functionHeader = ((((overrideAnnotation.? ~ visibility.?).with1
+    val functionHeader = (((((overrideAnnotation | mainAnnotation).? ~ visibility.?).with1
       <* keyword(DEF)).backtrack ~ identifier ~ defParams)
       ~ (op(':') *> typeHint).?
       ~ inBraces(stmt.rep0))

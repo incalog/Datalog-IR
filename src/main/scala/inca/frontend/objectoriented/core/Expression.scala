@@ -113,7 +113,7 @@ case class BaseApplyMethodExpr(recv: Expression, method: Name, args: Option[Seq[
 
 case class BaseApplyUnaryExpr(op: Scala[meta.Term.Name], exp: Expression) extends Expression {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    s"$indent${op.syntax}${exp.prettyprint(false)}"
+    s"${op.syntax}${exp.prettyprint(false)}"
   }
 
   override def dotString(): String =
