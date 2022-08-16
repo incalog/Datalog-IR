@@ -7,4 +7,12 @@ import com.intellij.psi.PsiElement;
 
 public interface FuncIncaBooleanLit extends PsiElement {
 
+  //WARNING: getType(...) is skipped
+  //matching getType(FuncIncaBooleanLit, ...)
+  //methods are not found in FuncIncaPsiImplUtil
+
+  //WARNING: getValue(...) is skipped
+  //matching getValue(FuncIncaBooleanLit, ...)
+  //methods are not found in FuncIncaPsiImplUtil
+
 }

@@ -10,4 +10,12 @@ public interface FuncIncaStringLit extends PsiElement {
   @NotNull
   PsiElement getString();
 
+  //WARNING: getType(...) is skipped
+  //matching getType(FuncIncaStringLit, ...)
+  //methods are not found in FuncIncaPsiImplUtil
+
+  //WARNING: getValue(...) is skipped
+  //matching getValue(FuncIncaStringLit, ...)
+  //methods are not found in FuncIncaPsiImplUtil
+
 }

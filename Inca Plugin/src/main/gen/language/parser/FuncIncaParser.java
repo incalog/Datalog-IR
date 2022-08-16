@@ -1136,13 +1136,13 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // number | double
+  // integer| long | double
   public static boolean numeric_lit(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "numeric_lit")) return false;
-    if (!nextTokenIs(b, "<numeric lit>", DOUBLE, NUMBER)) return false;
     boolean r;
     Marker m = enter_section_(b, l, _NONE_, NUMERIC_LIT, "<numeric lit>");
-    r = consumeToken(b, NUMBER);
+    r = consumeToken(b, INTEGER);
+    if (!r) r = consumeToken(b, LONG);
     if (!r) r = consumeToken(b, DOUBLE);
     exit_section_(b, l, m, r, false, null);
     return r;

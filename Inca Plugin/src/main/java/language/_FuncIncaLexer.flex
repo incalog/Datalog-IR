@@ -29,8 +29,9 @@ SPACE=[ \t\n\x0B\f\r]+
 ID=[a-zA-Z_][a-zA-Z_0-9]*
 STRING=\"([^\"\\]|\\.)*\"
 SCALA_TERM=`.[^`]*`
-NUMBER=[0-9]+
-DOUBLE=[0-9]+(\.[0-9]+)?
+INTEGER=[0-9]+
+LONG=[0-9]+(l|L)
+DOUBLE=([0-9]+\.[0-9]+(d|D)?)|[0-9]+(d|D)
 COMMENT=("//".*)|("/"\*(.|\n)*\*"/")
 
 %%
@@ -97,7 +98,8 @@ COMMENT=("//".*)|("/"\*(.|\n)*\*"/")
   {ID}               { return ID; }
   {STRING}           { return STRING; }
   {SCALA_TERM}       { return SCALA_TERM; }
-  {NUMBER}           { return NUMBER; }
+  {INTEGER}          { return INTEGER; }
+  {LONG}             { return LONG; }
   {DOUBLE}           { return DOUBLE; }
   {COMMENT}          { return COMMENT; }
 

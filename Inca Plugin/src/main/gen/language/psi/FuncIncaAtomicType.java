@@ -25,4 +25,8 @@ public interface FuncIncaAtomicType extends PsiElement {
   @Nullable
   PsiElement getScalaTerm();
 
+  //WARNING: getType(...) is skipped
+  //matching getType(FuncIncaAtomicType, ...)
+  //methods are not found in FuncIncaPsiImplUtil
+
 }

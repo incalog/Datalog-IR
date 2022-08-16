@@ -11,6 +11,17 @@ public interface FuncIncaNumericLit extends PsiElement {
   PsiElement getDouble();
 
   @Nullable
-  PsiElement getNumber();
+  PsiElement getInteger();
+
+  @Nullable
+  PsiElement getLong();
+
+  //WARNING: getType(...) is skipped
+  //matching getType(FuncIncaNumericLit, ...)
+  //methods are not found in FuncIncaPsiImplUtil
+
+  //WARNING: getValue(...) is skipped
+  //matching getValue(FuncIncaNumericLit, ...)
+  //methods are not found in FuncIncaPsiImplUtil
 
 }

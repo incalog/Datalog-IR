@@ -10,4 +10,8 @@ public interface FuncIncaImport extends PsiElement {
   @Nullable
   PsiElement getId();
 
+  //WARNING: getModuleName(...) is skipped
+  //matching getModuleName(FuncIncaImport, ...)
+  //methods are not found in FuncIncaPsiImplUtil
+
 }

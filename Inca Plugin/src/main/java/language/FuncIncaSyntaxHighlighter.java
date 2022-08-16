@@ -121,7 +121,7 @@ public class FuncIncaSyntaxHighlighter extends SyntaxHighlighterBase {
 
         keysPutEach(Arrays.asList(FuncIncaTypes.COMMENT), COMMENT);
 
-        keysPutEach(Arrays.asList(FuncIncaTypes.NUMBER), INTEGER);
+        keysPutEach(Arrays.asList(FuncIncaTypes.INTEGER, FuncIncaTypes.LONG), INTEGER);
 
         keysPutEach(Arrays.asList(FuncIncaTypes.DOUBLE), DOUBLE);
 

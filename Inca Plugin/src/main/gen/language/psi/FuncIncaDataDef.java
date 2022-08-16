@@ -22,4 +22,8 @@ public interface FuncIncaDataDef extends PsiElement {
   @Nullable
   PsiElement getId();
 
+  //WARNING: getModuleName(...) is skipped
+  //matching getModuleName(FuncIncaDataDef, ...)
+  //methods are not found in FuncIncaPsiImplUtil
+
 }

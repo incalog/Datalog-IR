@@ -35,8 +35,14 @@ public class FuncIncaNumericLitImpl extends ASTWrapperPsiElement implements Func
 
   @Override
   @Nullable
-  public PsiElement getNumber() {
-    return findChildByType(NUMBER);
+  public PsiElement getInteger() {
+    return findChildByType(INTEGER);
+  }
+
+  @Override
+  @Nullable
+  public PsiElement getLong() {
+    return findChildByType(LONG);
   }
 
 }

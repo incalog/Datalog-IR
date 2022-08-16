@@ -13,4 +13,8 @@ public interface FuncIncaTuple extends PsiElement {
   @NotNull
   List<FuncIncaFunType> getFunTypeList();
 
+  //WARNING: getType(...) is skipped
+  //matching getType(FuncIncaTuple, ...)
+  //methods are not found in FuncIncaPsiImplUtil
+
 }

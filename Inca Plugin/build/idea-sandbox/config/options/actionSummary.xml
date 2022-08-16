@@ -1,10 +1,13 @@
 <application>
   <component name="ActionsLocalSummary">
+    <e n="$Delete">
+      <i c="2" l="1660649943223" />
+    </e>
     <e n="$SelectAll">
       <i c="1" l="1657200416675" />
     </e>
     <e n="EditorBackSpace">
-      <i c="87" l="1657804285442" />
+      <i c="107" l="1660649911181" />
     </e>
     <e n="EditorDelete">
       <i c="3" l="1657463976797" />
@@ -13,7 +16,7 @@
       <i c="3" l="1657464065911" />
     </e>
     <e n="EditorEnter">
-      <i c="25" l="1657806250286" />
+      <i c="30" l="1660649865192" />
     </e>
     <e n="EditorLeft">
       <i c="19" l="1657470647853" />
@@ -40,7 +43,7 @@
       <i c="1" l="1657803908235" />
     </e>
     <e n="NewFile">
-      <i c="1" l="1657200176957" />
+      <i c="3" l="1660649851776" />
     </e>
     <e n="SaveAll">
       <i c="1" l="1657470616166" />
@@ -61,10 +64,13 @@
       <i c="2" l="1657470622691" />
     </e>
     <e n="com.intellij.openapi.fileEditor.impl.tabActions.CloseTab">
-      <i c="2" l="1657470661587" />
+      <i c="3" l="1660649937813" />
     </e>
     <e n="com.intellij.openapi.roots.ui.configuration.projectRoot.ModuleStructureConfigurable$AddModuleAction">
       <i c="2" l="1657200143213" />
+    </e>
+    <e n="com.intellij.openapi.ui.DialogWrapper$4">
+      <i c="3" l="1660649948264" />
     </e>
     <e n="com.intellij.openapi.wm.impl.ToolWindowHeader$HideAction">
       <i c="1" l="1657463915996" />

@@ -12,7 +12,7 @@
   elementTypeClass="language.psi.FuncIncaElementType"
   tokenTypeClass="language.psi.FuncIncaTokenType"
 
-  psiImplUtilClass="intellij.haskell.psi.impl.HaskellPsiImplUtil"
+  psiImplUtilClass="language.psi.impl.FuncIncaPsiImplUtil"
 
   tokens = [
     keyword_if = "if"
@@ -80,16 +80,19 @@
     id = "regexp:[a-zA-Z_]\w*"              // starts with any letter, continues with word characters [a-zA-Z_0-9]
     string = "regexp:\"([^\"\\]|\\.)*\""    // any number of any characters between quotation marks
     scala_term = "regexp:`.[^`]*`"          // any Number of any characters between ticks ` and `
-    number = "regexp:\d+"                   // positive or negative numbers with digits \d = [0-9], integer or long
-    double = "regexp:\d+(\.\d+)?"
+    integer = "regexp:\d+"                  // integers with digits \d = [0-9]
+    long = "regexp:\d+(l|L)"                // longs with digits \d = [0-9]
+    double = "regexp:(\d+\.\d+(d|D)?)|\d+(d|D)"
     comment = "regexp:(//.*)|(/\*(.|\n)*\*/)"
     ]
 
-  methods("id")=[getName setName getValue setValue getType getPresentation] // getPresentation später
+  methods("id")=[getName setName getType getPresentation] // getPresentation später
 
   methods("type_annotation|var|fun_type|atomic_type|tuple|constr|option|set|type_name|numeric_lit|boolean_lit|string_lit")=[getType]
 
   methods("numeric_lit|boolean_lit|string_lit")=[getValue]
+
+  methods("let_exp")=[getValue getName getBody]
 
   methods("import|fun_def|data_def")=[getModuleName]
 
@@ -172,6 +175,6 @@ type_name ::= id
 
 // literals
 private base_lit_exp ::= numeric_lit | boolean_lit | string_lit | scala_term
-numeric_lit ::= number | double
+numeric_lit ::= integer| long | double
 boolean_lit ::= 'true' | 'false'
 string_lit ::= string

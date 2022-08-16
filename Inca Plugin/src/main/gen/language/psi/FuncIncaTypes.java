@@ -72,6 +72,7 @@ public interface FuncIncaTypes {
   IElementType GEQ = new FuncIncaTokenType(">=");
   IElementType GT = new FuncIncaTokenType(">");
   IElementType ID = new FuncIncaTokenType("id");
+  IElementType INTEGER = new FuncIncaTokenType("integer");
   IElementType KEYWORD_CASE = new FuncIncaTokenType("case");
   IElementType KEYWORD_DATA = new FuncIncaTokenType("data");
   IElementType KEYWORD_DEF = new FuncIncaTokenType("def");
@@ -90,12 +91,12 @@ public interface FuncIncaTypes {
   IElementType KEYWORD_SET = new FuncIncaTokenType("Set");
   IElementType KEYWORD_SOME = new FuncIncaTokenType("Some");
   IElementType LEQ = new FuncIncaTokenType("<=");
+  IElementType LONG = new FuncIncaTokenType("long");
   IElementType LT = new FuncIncaTokenType("<");
   IElementType MINUS = new FuncIncaTokenType("-");
   IElementType MODULO = new FuncIncaTokenType("%");
   IElementType NEGATION = new FuncIncaTokenType("!");
   IElementType NON_EQUIVALENCE = new FuncIncaTokenType("!=");
-  IElementType NUMBER = new FuncIncaTokenType("number");
   IElementType OR = new FuncIncaTokenType("||");
   IElementType PARENS_CLOSE = new FuncIncaTokenType(")");
   IElementType PARENS_OPEN = new FuncIncaTokenType("(");

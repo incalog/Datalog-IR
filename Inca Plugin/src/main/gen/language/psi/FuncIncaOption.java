@@ -13,4 +13,8 @@ public interface FuncIncaOption extends PsiElement {
   @Nullable
   FuncIncaFunType getFunType();
 
+  //WARNING: getType(...) is skipped
+  //matching getType(FuncIncaOption, ...)
+  //methods are not found in FuncIncaPsiImplUtil
+
 }

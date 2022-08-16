@@ -16,4 +16,8 @@ public interface FuncIncaConstr extends PsiElement {
   @NotNull
   PsiElement getId();
 
+  //WARNING: getType(...) is skipped
+  //matching getType(FuncIncaConstr, ...)
+  //methods are not found in FuncIncaPsiImplUtil
+
 }

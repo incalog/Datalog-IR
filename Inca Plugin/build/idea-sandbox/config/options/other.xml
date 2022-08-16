@@ -29,7 +29,7 @@
     <property name="log.trace.categories" value="#com.jetbrains.rdserver.requests&#10;#com.jetbrains.rd.ide.document&#10;#com.jetbrains.rdserver.document&#10;#com.jetbrains.rdserver.editors&#10;#com.jetbrains.rdserver.actions&#10;#com.jetbrains.rdserver.permissions" />
     <property name="packagesearch.endpoint.url.fulltext" value="https://package-search.services.jetbrains.com/api/search/idea/fulltext" />
     <property name="packagesearch.endpoint.url.suggest" value="https://package-search.services.jetbrains.com/api/search/idea/suggest" />
-    <property name="packagesearch.status.updated.ts" value="1657805449837" />
+    <property name="packagesearch.status.updated.ts" value="1660649697807" />
     <property name="project.wizard.group" value="JAVA_MODULE" />
     <property name="project.wizard.template" value="Empty Project" />
     <property name="registry.to.advanced.settings.migration.build" value="IC-212.5457.46" />
