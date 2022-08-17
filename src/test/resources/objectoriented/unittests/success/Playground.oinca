@@ -6,6 +6,7 @@ class Nat {
     private var num2 = something
 
 	def dummy(n, m) {
+	    /*
 	    //Test attributes and method calls. Note: Implicit this / function calls are not allowed
 	    someVar
 	    someVar.attr1.attr2
@@ -40,12 +41,12 @@ class Nat {
         string"
 
         // Base Apply Unary
-        +3
+        var b = +3
         b = @"SomeString"
         c = +some.express.ion
+        */
 
         // Base Apply expr
-        a = "Test"
         `"SomeString".startsWith`(4, b)
         `"Some scala stuff"`.`someAttr`.`moreScalaStuff`()
         a.`someAttr`()
@@ -78,11 +79,12 @@ class Nat {
             this.someCall()
         } else {
             this.someOtherCall()
-            b
         }
 
         // This should fail
         //this.sometest.someotherfield.someCall() = abc
+        //1 @ 2
+        //`Invalid-"scala term`
 	}
 
     // Empty body test

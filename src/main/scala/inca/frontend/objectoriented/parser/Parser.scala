@@ -74,11 +74,7 @@ trait Parser {
     P.pure(o)
 
   def fail[T](s: String = ""): P[T] =
-    if (s.isEmpty) {
-      P.fail[T]
-    } else {
-      P.failWith[T](s)
-    }
+    if (s.isEmpty) P.fail[T] else P.failWith[T](s)
 
   val id: P[Name] = {
     (letter ~ letterDigit.rep0)
@@ -142,13 +138,13 @@ trait Parser {
      assignStmt | varDeclareStmt | ifElseStmt | returnStmt | exprStmt
 
   private val variable: P[Name] =
-    (identifier <* P.not(P.char('('))).backtrack
+    (identifier.soft <* P.not(P.char('(')))
 
   private val call: P[(Name, Seq[Expression])] =
-    (identifier ~ inParentheses(seq0(P.defer(expr)))).backtrack
+    (identifier.soft ~ inParentheses(seq0(P.defer(expr))))
 
   private val baseApplyMethod: P[(Name, Option[Seq[Expression]])] =
-    (encloseBetween(identifier, scalaQuoteChar) ~ inParentheses(seq0(P.defer(expr))).?).backtrack
+    (encloseBetween(identifier, scalaQuoteChar).soft ~ inParentheses(seq0(P.defer(expr))).?)
 
   protected[frontend] val variableReadExpr: P[VarReadExpr] =
     variable.mapWithLoc(VarReadExpr)
@@ -229,14 +225,15 @@ trait Parser {
       s => BaseLitExpr(Scala(meta.Lit.Boolean(s.toBoolean)))
     }
 
-  protected[frontend] val baseLitExpr: P[BaseLitExpr] =
-      (encloseBetween(scalaTerm, scalaQuoteChar) <* P.not(P.char('('))).backtrack.mapWithLoc(BaseLitExpr) |
-        spaced(numericLiteral) |
-        spaced(stringLiteral) |
-        spaced(booleanLiteral)
+  protected[frontend] val baseLitExpr: P[BaseLitExpr] = {
+    (encloseBetween(scalaTerm, scalaQuoteChar).soft <* P.not(P.char('('))).mapWithLoc(BaseLitExpr) |
+      spaced(numericLiteral) |
+      spaced(stringLiteral) |
+      spaced(booleanLiteral)
+  }
 
   protected[frontend] lazy val baseApplyExpr: P[BaseApplyExpr] =
-    (encloseBetween(scalaTerm, scalaQuoteChar) ~ inParentheses(seq0(P.defer(expr)))).backtrack.mapWithLoc {
+    (encloseBetween(scalaTerm, scalaQuoteChar).soft ~ inParentheses(seq0(P.defer(expr)))).mapWithLoc {
       case (funTerm, args) => BaseApplyExpr(funTerm, args)
     }
 
