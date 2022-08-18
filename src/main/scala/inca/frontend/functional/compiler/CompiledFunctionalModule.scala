@@ -20,13 +20,17 @@ case class CompiledFunctionalModule(fun: Module, options: FunctionalOptions)
 
   override def sourceLocation: SourceLocation = fun.name
 
-  lazy val typer = new Typechecker {}
+  lazy val typer: Typechecker = new Typechecker {}
 
   lazy val typed: Module = {
     typer.typecheck(fun)
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
     stopIfNeeded()
+//    if (CompilerFlags.DEBUGMODE) {
+//      println(s"\nTypechecked")
+//      println(typed)
+//    }
     fun
   }
 
@@ -36,9 +40,8 @@ case class CompiledFunctionalModule(fun: Module, options: FunctionalOptions)
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
     stopIfNeeded()
-    println(module)
-    if (CompilerFlags.DEBUGMODE) {
-      println(s"Monomorphic Module")
+    if (CompilerFlags.DEBUGMODE && typed != module) {
+      println(s"\nMonomorphic Module")
       println(module)
     }
     module
@@ -50,8 +53,8 @@ case class CompiledFunctionalModule(fun: Module, options: FunctionalOptions)
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
     stopIfNeeded()
-    if (CompilerFlags.DEBUGMODE) {
-      println(s"Core Module")
+    if (CompilerFlags.DEBUGMODE && monoModule != module) {
+      println(s"\nCore Module")
       println(module)
     }
     module
@@ -60,7 +63,7 @@ case class CompiledFunctionalModule(fun: Module, options: FunctionalOptions)
   lazy val ir: Datalog.Module = {
     val module = new GenerateDatalog(coreModule).transModule()
     if (CompilerFlags.DEBUGMODE) {
-      println(s"Intermediate Representation")
+      println(s"\nIntermediate Representation")
       println(module)
     }
     module
