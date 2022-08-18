@@ -20,12 +20,12 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
 
   lazy val completed: Module = {
     if (CompilerFlags.DEBUGMODE) {
-      println("Module")
+      println("\nModule")
       println(fun)
 
-      if (CompilerFlags.DebugConfig.AST) {
+      if (CompilerFlags.DebugConfig.AST_STEPS) {
         println()
-        println("Module - AST")
+        println("\nModule - AST")
         println(new AbstractSyntaxTree(fun).toGraphViz)
       }
     }
@@ -35,12 +35,12 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
 
   lazy val typed: Module = {
     if (CompilerFlags.DEBUGMODE) {
-      println("Typed Module")
+      println("\nTyped Module")
       println(completed)
 
-      if (CompilerFlags.DebugConfig.AST) {
+      if (CompilerFlags.DebugConfig.AST_STEPS) {
         println()
-        println("Typed Module - AST")
+        println("\nTyped Module - AST")
         println(new AbstractSyntaxTree(completed).toGraphViz)
       }
     }
@@ -57,12 +57,12 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
     val module = StaticSingleAssignment.transformModule(typed)
 
     if (CompilerFlags.DEBUGMODE) {
-      println(s"SSA Module")
+      println("\nSSA Module")
       println(module)
 
-      if (CompilerFlags.DebugConfig.AST) {
+      if (CompilerFlags.DebugConfig.AST_STEPS) {
         println()
-        println("SSA Module - AST")
+        println("\nSSA Module - AST")
         println(new AbstractSyntaxTree(module).toGraphViz)
       }
     }
@@ -80,12 +80,12 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
     val module = Defunctionalize.transformModule(ssaModule, dataModel.transModule())
 
     if (CompilerFlags.DEBUGMODE) {
-      println(s"Defun Module")
+      println("\nDefun Module")
       println(module)
 
-      if (CompilerFlags.DebugConfig.AST) {
+      if (CompilerFlags.DebugConfig.AST_STEPS) {
         println()
-        println("Defun Module - AST")
+        println("\nDefun Module - AST")
         println(new AbstractSyntaxTree(module).toGraphViz)
       }
     }
@@ -102,12 +102,12 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
     val module = SetLifting.transformModule(defunModule)
 
     if (CompilerFlags.DEBUGMODE) {
-      println(s"Core Module")
+      println("\nCore Module")
       println(module)
 
-      if (CompilerFlags.DebugConfig.AST) {
+      if (CompilerFlags.DebugConfig.AST_STEPS) {
         println()
-        println("Core Module - AST")
+        println("\nCore Module - AST")
         println(new AbstractSyntaxTree(module).toGraphViz)
       }
     }
@@ -123,11 +123,11 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
   lazy val ir: Datalog.Module = {
     val module = new GenerateDatalog(coreModule).transModule()
 
-    println(s"Intermediate Representation")
+    println("\nIntermediate Representation")
     println(module)
 
     if (CompilerFlags.DEBUGMODE) {
-      println(s"Intermediate Representation")
+      println("\nIntermediate Representation")
       println(module)
     }
     module
