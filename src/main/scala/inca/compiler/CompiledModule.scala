@@ -56,11 +56,16 @@ trait CompiledModule {
   lazy val transformed: Datalog.Module = {
     var module = ir
     for (trans <- options.transformations) {
+      val before = module
       module = trans.transformer(dataModel).transformModule(module)
-      if (CompilerFlags.DEBUGMODE) {
-        println(s"Transformation: ${trans.getClass.getName}")
+      if (CompilerFlags.DEBUGMODE_STEPS && before != module) {
+        println(s"\nTransformation: ${trans.getClass.getName}")
         println(module)
       }
+    }
+    if (CompilerFlags.DEBUGMODE && !CompilerFlags.DEBUGMODE_STEPS) {
+      println(s"\nTransformed")
+      println(module)
     }
     module
   }
@@ -73,11 +78,16 @@ trait CompiledModule {
   lazy val optimized: Datalog.Module = {
     var module = analyzed
     for (op <- options.optimizations) {
+      val before = module
       module = op.optimizer(dataModel).optimizeModule(module)
-      if (CompilerFlags.DEBUGMODE) {
-        println(s"Optimization: ${op.getClass.getName}")
+      if (CompilerFlags.DEBUGMODE_STEPS && before != module) {
+        println(s"\nOptimization: ${op.getClass.getName}")
         println(module)
       }
+    }
+    if (CompilerFlags.DEBUGMODE && !CompilerFlags.DEBUGMODE_STEPS) {
+      println(s"\nOptimized")
+      println(module)
     }
     module
   }
@@ -85,7 +95,7 @@ trait CompiledModule {
   lazy val psystemSource: meta.Source = {
     val source = GeneratePSystem.compileModule(optimized)(Map())
     if (CompilerFlags.DEBUGMODE) {
-      println(s"PSystem")
+      println(s"\nPSystem")
       println(source.syntax)
     }
     source

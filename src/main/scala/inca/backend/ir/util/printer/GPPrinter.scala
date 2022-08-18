@@ -7,11 +7,17 @@ import truechange.JavaLitType
 
 object GPPrinter {
 
+  private def inOwnLine(s: String): String =
+    if (s.isEmpty)
+      ""
+    else
+      s"$s\n"
+
   def prettyModule(module: Module): String =
     "module " +
       module.name + "\n" +
-      module.imports.mkString("\n") + "\n" +
-      module.scalaContent.map(t => "`" + t.syntax + "`").mkString("\n") + "\n" +
+      inOwnLine(module.imports.mkString("\n")) +
+      inOwnLine(module.scalaContent.map(t => "`" + t.syntax + "`").mkString("\n")) +
       module.pats.map(prettyPattern).mkString("\n")
 
   def prettyPattern(gp: Pattern): String = {
