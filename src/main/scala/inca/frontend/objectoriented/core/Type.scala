@@ -15,10 +15,12 @@ case object TAny extends Type {
   override def prettyprint: String = "Any"
   override def flatten: Seq[Type] = Seq(this)
 }
-case object TNothing extends Type {
+
+// TODO: We do not need this right now
+/*case object TNothing extends Type {
   override def prettyprint: String = "Nothing"
   override def flatten: Seq[Type] = Seq(this)
-}
+}*/
 
 case class TTuple(ts: Seq[Type]) extends Type {
   if (ts.size == 1)
@@ -54,6 +56,7 @@ object TScalaLong extends TScala(Scala(t"Long"))
 object TScalaDouble extends TScala(Scala(t"Double"))
 object TScalaString extends TScala(Scala(t"String"))
 object TScalaAny extends TScala(Scala(t"Any"))
+object TScalaNull extends TScala(Scala(t"Null"))
 
 case class TClass(name: Name) extends Type {
   override def prettyprint: String = name.name

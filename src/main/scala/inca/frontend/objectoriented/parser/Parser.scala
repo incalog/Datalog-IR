@@ -53,7 +53,8 @@ trait Parser {
     val RETURN: Value  = Value("return")
     val INIT: Value    = Value("init")
     val TRUE: Value    = Value("true")
-    val FALSE: Value    = Value("false")
+    val FALSE: Value   = Value("false")
+    val NULL: Value    = Value("null")
   }
 
   import Keyword._
@@ -117,7 +118,8 @@ trait Parser {
       (P.string("Long").string.soft <* noChar).mapWithLoc(_ => TScalaLong) |
       (P.string("String").string.soft <* noChar).mapWithLoc(_ => TScalaString) |
       (P.string("Boolean").string.soft <* noChar).mapWithLoc(_ => TScalaBoolean) |
-      (P.string("Double").string.soft <* noChar).mapWithLoc(_ => TScalaDouble)
+      (P.string("Double").string.soft <* noChar).mapWithLoc(_ => TScalaDouble) |
+      (P.string("Null").string.soft <* noChar).mapWithLoc(_ => TScalaNull)
 
   /** Helper for the Type like TAny. */
   protected[frontend] def simpleType[Ty <: Type] (s: String, t: Ty): P[Ty] =
@@ -129,7 +131,7 @@ trait Parser {
   protected[frontend] val typeAnno: P[Type] =
     spaced(
       simpleType("Any", TAny) |
-        simpleType("Nothing", TNothing) |
+        //simpleType("Nothing", TNothing) |
         simpleType("Unit", TTuple(Seq())) |
         scalaType |
         classType
@@ -205,7 +207,7 @@ trait Parser {
         pathIdentifiers.foldLeft(startExpr) { case (prev, current) =>
           current match {
           case name: Name                                     => FieldReadExpr(prev, name)
-          case (name: Name, argList: Seq[Expression])         => MethodCallExpr(prev, name, List(prev))
+          case (name: Name, argList: Seq[Expression])         => MethodCallExpr(prev, name, argList)
           case (name: Name, argList: Option[Seq[Expression]]) => BaseApplyMethodExpr(prev, name, argList)
           }
         }
@@ -266,15 +268,20 @@ trait Parser {
 
   /** BooleanLiteral parser */
   protected[frontend] val booleanLiteral: P[BaseLitExpr] =
-    (P.string("true") | P.string("false")).string.mapWithLoc  {
+    (P.string(TRUE.toString) | P.string(FALSE.toString)).string.mapWithLoc  {
       s => BaseLitExpr(Scala(meta.Lit.Boolean(s.toBoolean)))
     }
+
+  /** NullLiteral parser */
+  protected[frontend] val nullLiteral: P[BaseLitExpr] =
+    P.string(NULL.toString).mapWithLoc(_ => BaseLitExpr(Scala(meta.Lit.Null())))
 
   protected[frontend] val baseLitExpr: P[BaseLitExpr] = {
     (encloseBetween(scalaTerm, scalaQuoteChar).soft <* P.not(P.char('('))).mapWithLoc(BaseLitExpr) |
       spaced(numericLiteral) |
       spaced(stringLiteral) |
-      spaced(booleanLiteral)
+      spaced(booleanLiteral) |
+      spaced(nullLiteral)
   }
 
   protected[frontend] lazy val baseApplyExpr: P[BaseApplyExpr] =

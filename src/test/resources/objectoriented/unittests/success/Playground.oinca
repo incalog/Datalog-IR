@@ -44,6 +44,11 @@ class Nat {
         b = @"SomeString"
         c = +some.express.ion
 
+        // Null
+        a = `null`
+        b = null
+        val c: Null = null
+
         // Base Apply expr
         `"SomeString".startsWith`(4, b)
         `"Some scala stuff"`.`someAttr`.`moreScalaStuff`()
