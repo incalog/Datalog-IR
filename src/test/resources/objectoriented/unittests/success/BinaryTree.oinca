@@ -1,15 +1,15 @@
 module BinaryTree
 
 class Node {
-	var left
-	var right
-	var data
+	var left: Node
+	var right: Node
+	var data: Int
 	
-	init(data) {
+	init(data: Int) {
       	this.data = data
     }
       	
-	def insert(data) {
+	def insert(data: Int) {
 		if (!this.data) return
 		if (data < this.data) {
             if (!self.left)
@@ -38,7 +38,7 @@ class Node {
 
 	@main
 	def main() {
-	    var root = new Node(12)
+	    var root: Node = new Node(12)
         root.insert(6)
         root.insert(14)
         root.insert(3)

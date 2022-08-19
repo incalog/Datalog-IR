@@ -98,11 +98,38 @@ trait Parser {
   val mainAnnotation: P[Annotation] =
     spaced(P.string(MainAnnotation.toString)).map(_ => MainAnnotation)
 
-  val typeHint: P[Type] =
-    identifier.mapWithLoc(n => TClass(n))
+  protected[frontend] val scalaTypeCore: P[Type] =
+    P.charsWhile(_ != scalaQuoteChar).flatMap { raw_code =>
+      raw_code.parse[meta.Type] match {
+        case err: Parsed.Error  => fail(err.message)
+        case Parsed.Success(ty) => pass(TScala(Scala(ty)))
+      }
+    }
 
-  val nameWithType: P[(Name, Option[Type])] =
-    spaced(identifier ~ (op(':') *> typeHint).?)
+  val noChar: P0[Unit] =
+    P.not(P.charIn(('a' to 'z') ++ ('A' to 'Z') ++ ('0' to '9') ++ "_"))
+
+  protected[frontend] val scalaType: P[Type] =
+    encloseBetween(scalaTypeCore, scalaQuoteChar) |
+      (P.string("Int").string.soft <* noChar).mapWithLoc(_ => TScalaInt) |
+      (P.string("Long").string.soft <* noChar).mapWithLoc(_ => TScalaLong) |
+      (P.string("String").string.soft <* noChar).mapWithLoc(_ => TScalaString) |
+      (P.string("Boolean").string.soft <* noChar).mapWithLoc(_ => TScalaBoolean) |
+      (P.string("Double").string.soft <* noChar).mapWithLoc(_ => TScalaDouble)
+
+  /** Helper for the Type like TAny. */
+  protected[frontend] def simpleType[Ty <: Type] (s: String, t: Ty): P[Ty] =
+    (P.string(s).soft <* noChar).mapWithLoc(_ => t)
+
+  protected[frontend] def classType(): P[TClass] =
+    identifier.mapWithLoc(TClass)
+
+  protected[frontend] val typeAnno: P[Type] =
+    simpleType("Any", TAny) | simpleType("Nothing", TNothing) | simpleType("Unit", TTuple(Seq())) | scalaType |
+      classType
+
+  val nameWithType: P[(Name, Type)] =
+    spaced(identifier ~ (op(':') *> spaced(typeAnno)))
 
   protected[frontend] lazy val assignStmt: P[Statement] =
     (nestedAccessExpr ~ (op('=') *> expr)).backtrack.flatMapWithLoc {
@@ -123,9 +150,10 @@ trait Parser {
   }
 
   protected[frontend] lazy val varDeclareStmt: P[VarDeclareStmt] =
+    // TODO: Mabye a name without a type is sufficient here
     (keyword(VAR) *> nameWithType ~ (op('=') *> expr).?).mapWithLoc {
-      case ((name, typeHint), valueExpr) =>
-        VarDeclareStmt(name, typeHint.getOrElse(TAny), valueExpr)
+      case ((name, typeAnno), valueExpr) =>
+        VarDeclareStmt(name, typeAnno, valueExpr)
     }
 
   protected[frontend] lazy val returnStmt: P[Statement] =
@@ -266,24 +294,24 @@ trait Parser {
 
   protected[frontend] lazy val param: P[Param] =
     nameWithType.mapWithLoc {
-      case (name, typeHint) => Param(name, typeHint.getOrElse(TAny))
+      case (name, typeAnno) => Param(name, typeAnno)
     }
 
   protected[frontend] val methodDef: P[MethodDef] = {
     val functionHeader = (((((overrideAnnotation | mainAnnotation).? ~ visibility.?).with1
       <* keyword(DEF)).backtrack ~ identifier ~ defParams)
-      ~ (op(':') *> typeHint).?
+      ~ (op(':') *> typeAnno).?
       ~ inBraces(stmt.rep0))
-    functionHeader.mapWithLoc { case (((((overrideAnnotation, visibility), funcName), params), typeHint), content) =>
+    functionHeader.mapWithLoc { case (((((overrideAnnotation, visibility), funcName), params), typeAnno), content) =>
       val anno = if (overrideAnnotation.isEmpty) Seq() else Seq(overrideAnnotation.get)
-      MethodDef(anno, visibility, funcName, params, typeHint.getOrElse(TAny), content)
+      MethodDef(anno, visibility, funcName, params, typeAnno.getOrElse(TUnit), content)
     }
   }
 
   protected[frontend] val fieldDef: P[FieldDef] = {
     (((visibility.? <* keyword(VAR)).with1 ~ nameWithType).backtrack ~ (op('=') *> expr).?).mapWithLoc {
-      case ((visibility, (name, typeHint)), valueExpr) =>
-        FieldDef(Seq(), visibility, name, typeHint.getOrElse(TAny), valueExpr)
+      case ((visibility, (name, typeAnno)), valueExpr) =>
+        FieldDef(Seq(), visibility, name, typeAnno, valueExpr)
     }
   }
 

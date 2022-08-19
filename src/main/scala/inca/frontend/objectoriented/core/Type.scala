@@ -1,4 +1,3 @@
-// TODO: Remove all this and introduce some types that make sense
 package inca.frontend.objectoriented.core
 
 import inca.compiler.SourceLocation
