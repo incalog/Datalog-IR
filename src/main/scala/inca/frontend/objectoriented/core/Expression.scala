@@ -1,11 +1,12 @@
 package inca.frontend.objectoriented.core
 
 import inca.compiler.SourceLocation
+import inca.frontend.util.Typeable
 import inca.util.Scala
 
 import java.util.UUID
 
-trait Expression extends SourceLocation {
+trait Expression  extends Typeable[Type] with SourceLocation {
   def prettyprint(infixParens: Boolean)(implicit indent: String): String
   def prettyprint(implicit indent: String): String = prettyprint(infixParens = false)(indent)
   override def toString: String = prettyprint("")
@@ -60,9 +61,9 @@ case class MethodCallExpr(recv: Expression, fun: Name, args: Seq[Expression]) ex
     }.mkString("")
 }
 
-case class TypeCastExpr(recv: Expression, typ: Type) extends Expression {
+case class TypeCastExpr(recv: Expression, toTyp: Type) extends Expression {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
-    s"cast($recv, $typ)"
+    s"cast($recv, $toTyp)"
 
   override def dotString(): String =
     s"${super.dotString()}$nodeId -> ${recv.nodeId};\n${recv.dotString()}"

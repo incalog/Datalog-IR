@@ -122,7 +122,7 @@ trait Parser {
       (P.string("Null").string.soft <* noChar).mapWithLoc(_ => TScalaNull)
 
   /** Helper for the Type like TAny. */
-  protected[frontend] def simpleType[Ty <: Type] (s: String, t: Ty): P[Ty] =
+  protected[frontend] def simpleType[T <: Type](s: String, t: T): P[T] =
     (P.string(s).soft <* noChar).mapWithLoc(_ => t)
 
   protected[frontend] def classType(): P[TClass] =
