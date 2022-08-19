@@ -41,6 +41,7 @@ trait Parser {
   object Keyword extends Enumeration {
     type Keyword = Value
 
+    val CAST: Value    = Value("cast")
     val IF: Value      = Value("if")
     val ELSE: Value    = Value("else")
     val CLASS: Value   = Value("class")
@@ -126,11 +127,16 @@ trait Parser {
     identifier.mapWithLoc(TClass)
 
   protected[frontend] val typeAnno: P[Type] =
-    simpleType("Any", TAny) | simpleType("Nothing", TNothing) | simpleType("Unit", TTuple(Seq())) | scalaType |
-      classType
+    spaced(
+      simpleType("Any", TAny) |
+        simpleType("Nothing", TNothing) |
+        simpleType("Unit", TTuple(Seq())) |
+        scalaType |
+        classType
+    )
 
   val nameWithType: P[(Name, Type)] =
-    spaced(identifier ~ (op(':') *> spaced(typeAnno)))
+    spaced(identifier ~ (op(':') *> typeAnno))
 
   protected[frontend] lazy val assignStmt: P[Statement] =
     (nestedAccessExpr ~ (op('=') *> expr)).backtrack.flatMapWithLoc {
@@ -185,6 +191,11 @@ trait Parser {
   protected[frontend] val constructorExpr: P[ConstructorExpr] =
     (keyword(NEW) *> call).mapWithLoc { case (name, argList) => ConstructorExpr(name, argList) }
 
+  protected[frontend] lazy val typeCastExpr: P[TypeCastExpr] =
+    (keyword(CAST) *> inParentheses((P.defer(expr) <* op(",")) ~ typeAnno)).mapWithLoc {
+      case (recv, typeAnno) => TypeCastExpr(recv, typeAnno)
+    }
+
   protected[frontend] lazy val nestedAccessExpr: P[Expression] = {
     // (someVar | someConstructor | `someBaseLit` | `someBaseApply`(...)).(attr | `baseApplyMethod`)
     // (someVar | someConstructor | `someBaseLit` | `someBaseApply`(...)).(someMethod(...) | baseApplyMethod`(...))
@@ -194,7 +205,7 @@ trait Parser {
         pathIdentifiers.foldLeft(startExpr) { case (prev, current) =>
           current match {
           case name: Name                                     => FieldReadExpr(prev, name)
-          case (name: Name, argList: Seq[Expression])         => MethodCallExpr(name, List(prev) ++ argList)
+          case (name: Name, argList: Seq[Expression])         => MethodCallExpr(prev, name, List(prev))
           case (name: Name, argList: Option[Seq[Expression]]) => BaseApplyMethodExpr(prev, name, argList)
           }
         }
@@ -272,7 +283,7 @@ trait Parser {
     }
 
   protected[frontend] val subinfixExpr: P[Expression] =
-    nestedAccessExpr | parensExpr | baseApplyUnaryExpr
+    nestedAccessExpr | parensExpr | baseApplyUnaryExpr | typeCastExpr
 
   protected[frontend] val infixExpr: P[Expression] =
     baseApplyInfixExpr | subinfixExpr

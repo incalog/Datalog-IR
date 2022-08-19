@@ -7,6 +7,7 @@ class Node {
 	
 	init(data: Int) {
       	this.data = data
+      	cast(this.data, Double)
     }
       	
 	def insert(data: Int) {
