@@ -62,12 +62,14 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
     }.mkString("")
 }
 
-case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, typ: Type, body: Option[Expression])
+case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, typ: Type, body: Option[Expression],
+                    immutable: Boolean)
   extends ClassContent {
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val expr = if (body.isEmpty) "" else s" = ${body.get}"
-    s"${indent}${visS}var $name: ${typ.prettyprint}$expr"
+    val prefix = if (immutable) "val " else "var "
+    s"$indent$visS$prefix$name: ${typ.prettyprint}$expr"
   }
 
   def dotString(): String =

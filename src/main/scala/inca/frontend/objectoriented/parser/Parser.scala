@@ -47,6 +47,7 @@ trait Parser {
     val DEF: Value     = Value("def")
     val PRIVATE: Value = Value("private")
     val VAR: Value     = Value("var")
+    val VAL: Value     = Value("val")
     val NEW: Value     = Value("new")
     val RETURN: Value  = Value("return")
     val INIT: Value    = Value("init")
@@ -150,10 +151,15 @@ trait Parser {
   }
 
   protected[frontend] lazy val varDeclareStmt: P[VarDeclareStmt] =
-    // TODO: Mabye a name without a type is sufficient here
     (keyword(VAR) *> nameWithType ~ (op('=') *> expr).?).mapWithLoc {
       case ((name, typeAnno), valueExpr) =>
-        VarDeclareStmt(name, typeAnno, valueExpr)
+        VarDeclareStmt(name, typeAnno, valueExpr, immutable = false)
+    }
+
+  protected[frontend] lazy val valDeclareStmt: P[VarDeclareStmt] =
+    (keyword(VAL) *> nameWithType ~ (op('=') *> expr).?).mapWithLoc {
+      case ((name, typeAnno), valueExpr) =>
+        VarDeclareStmt(name, typeAnno, valueExpr, immutable = true)
     }
 
   protected[frontend] lazy val returnStmt: P[Statement] =
@@ -163,7 +169,7 @@ trait Parser {
     expr.mapWithLoc(ExprStmt)
 
   protected[frontend] lazy val stmt: P[Statement] =
-     assignStmt | varDeclareStmt | ifElseStmt | returnStmt | exprStmt
+     assignStmt | varDeclareStmt | valDeclareStmt | ifElseStmt | returnStmt | exprStmt
 
   private val variable: P[Name] =
     (identifier.soft <* P.not(P.char('(')))
@@ -308,12 +314,16 @@ trait Parser {
     }
   }
 
-  protected[frontend] val fieldDef: P[FieldDef] = {
-    (((visibility.? <* keyword(VAR)).with1 ~ nameWithType).backtrack ~ (op('=') *> expr).?).mapWithLoc {
+  private def fieldDef(immutable: Boolean): P[FieldDef] = {
+    val kw = if (immutable) Keyword.VAL else Keyword.VAR
+    (((visibility.? <* keyword(kw)).with1 ~ nameWithType).backtrack ~ (op('=') *> expr).?).mapWithLoc {
       case ((visibility, (name, typeAnno)), valueExpr) =>
-        FieldDef(Seq(), visibility, name, typeAnno, valueExpr)
+        FieldDef(Seq(), visibility, name, typeAnno, valueExpr, immutable)
     }
   }
+
+  protected[frontend] val fieldDef: P[FieldDef] =
+    fieldDef(false) | fieldDef(true)
 
   protected[frontend] val constructorDef: P[ConstructorDef] = {
     val functionHeader = ((((overrideAnnotation.? ~ visibility.?).with1

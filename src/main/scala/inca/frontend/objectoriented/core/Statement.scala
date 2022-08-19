@@ -43,10 +43,11 @@ case class FieldAssignStmt(recv: Expression, name: Name, value: Expression) exte
     s"${super.dotString()}$nodeId -> ${value.nodeId};\n${value.dotString()}"
 }
 
-case class VarDeclareStmt(name: Name, typ: Type, value: Option[Expression]) extends Statement {
+case class VarDeclareStmt(name: Name, typ: Type, value: Option[Expression], immutable: Boolean) extends Statement {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val expr = if (value.isEmpty) "" else s" = ${value.get.toString}"
-    s"${indent}var ${name}: $typ$expr"
+    val prefix = if (immutable) "val " else "var "
+    s"${indent}${prefix}${name}: $typ$expr"
   }
 
   override def dotString(): String = {
