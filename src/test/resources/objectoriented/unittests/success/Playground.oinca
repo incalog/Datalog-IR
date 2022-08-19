@@ -1,11 +1,11 @@
 module Playground
 
 class Nat {
-    var pred
-    var num = someNum
-    private var num2 = something
+    var pred: Nat
+    var num: Int = 1
+    private var num2: Double = 2.0
 
-	def dummy(n, m) {
+	def dummy(n: Nat, m: String) {
 	    //Test attributes and method calls. Note: Implicit this / function calls are not allowed
 	    someVar
 	    someVar.attr1.attr2
@@ -14,9 +14,9 @@ class Nat {
 	    this.test2(someParam.attr5.someStuff(), someParam.someCall(someThing.someCall()))
 
         // var & constructor test
-        var myVar = test
+        var myVar: Zero = test
         myVar = new Zero()
-	    var someVar = this.callme(this.callme(), this.num.somestuff.whatever)
+	    var someVar: Succ = this.callme(this.callme(), this.num.somestuff.whatever)
 	    myVar
 
         // Assignment test
@@ -40,7 +40,7 @@ class Nat {
         string"
 
         // Base Apply Unary
-        var b = +3
+        var b: Int = +3
         b = @"SomeString"
         c = +some.express.ion
 
@@ -79,6 +79,10 @@ class Nat {
             this.someOtherCall()
         }
 
+        // Test cast
+        cast(a, Double)
+        cast(b.stuff, Nat)
+
         // This should fail
         //this.sometest.someotherfield.someCall() = abc
         //1 @ 2
@@ -96,19 +100,19 @@ class Nat {
 }
 
 class Zero(Nat) {
-	@override def add(n) {
+	@override def add(n: Nat) {
 		return n
 	}
 }
 
 class Succ(Nat) {
-	var pred
+	var pred: Nat
 
-	init(pred) {
+	init(pred: Nat) {
 	    this.pred = pred
 	}
 	
-	@override def add(n) {
+	@override def add(n: Nat) {
 		return new Succ(this.pred.add(n))
 	}
 }
