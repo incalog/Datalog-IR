@@ -150,17 +150,16 @@ trait Parser {
     }
   }
 
-  protected[frontend] lazy val varDeclareStmt: P[VarDeclareStmt] =
-    (keyword(VAR) *> nameWithType ~ (op('=') *> expr).?).mapWithLoc {
+  private def varDeclareStmt(immutable: Boolean) = {
+    val kw = if (immutable) VAL else VAR
+    (keyword(kw) *> nameWithType ~ (op('=') *> expr).?).mapWithLoc {
       case ((name, typeAnno), valueExpr) =>
-        VarDeclareStmt(name, typeAnno, valueExpr, immutable = false)
+        VarDeclareStmt(name, typeAnno, valueExpr, immutable)
     }
+  }
 
-  protected[frontend] lazy val valDeclareStmt: P[VarDeclareStmt] =
-    (keyword(VAL) *> nameWithType ~ (op('=') *> expr).?).mapWithLoc {
-      case ((name, typeAnno), valueExpr) =>
-        VarDeclareStmt(name, typeAnno, valueExpr, immutable = true)
-    }
+  protected[frontend] lazy val varDeclareStmt: P[VarDeclareStmt] =
+    varDeclareStmt(immutable=false) | varDeclareStmt(immutable=true)
 
   protected[frontend] lazy val returnStmt: P[Statement] =
     (keyword(RETURN) *> expr.?).mapWithLoc(exp => ReturnStmt(exp.getOrElse(TupleExpr())))
@@ -169,7 +168,7 @@ trait Parser {
     expr.mapWithLoc(ExprStmt)
 
   protected[frontend] lazy val stmt: P[Statement] =
-     assignStmt | varDeclareStmt | valDeclareStmt | ifElseStmt | returnStmt | exprStmt
+     assignStmt | varDeclareStmt | ifElseStmt | returnStmt | exprStmt
 
   private val variable: P[Name] =
     (identifier.soft <* P.not(P.char('(')))
@@ -315,7 +314,7 @@ trait Parser {
   }
 
   private def fieldDef(immutable: Boolean): P[FieldDef] = {
-    val kw = if (immutable) Keyword.VAL else Keyword.VAR
+    val kw = if (immutable) VAL else VAR
     (((visibility.? <* keyword(kw)).with1 ~ nameWithType).backtrack ~ (op('=') *> expr).?).mapWithLoc {
       case ((visibility, (name, typeAnno)), valueExpr) =>
         FieldDef(Seq(), visibility, name, typeAnno, valueExpr, immutable)
