@@ -6,7 +6,6 @@ class Nat {
     private var num2 = something
 
 	def dummy(n, m) {
-	    /*
 	    //Test attributes and method calls. Note: Implicit this / function calls are not allowed
 	    someVar
 	    someVar.attr1.attr2
@@ -44,7 +43,6 @@ class Nat {
         var b = +3
         b = @"SomeString"
         c = +some.express.ion
-        */
 
         // Base Apply expr
         `"SomeString".startsWith`(4, b)

@@ -30,7 +30,7 @@ class Node {
       if (this.left)
          this.left.printTree()
 
-      `print`(this.data)
+      `println`(this.data)
 
       if (this.right)
          this.right.printTree()

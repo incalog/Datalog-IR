@@ -35,7 +35,7 @@ object Import {
   trait Target
 }
 
-trait ClassContentDef extends SourceLocation with Annotations {
+trait ClassContent extends SourceLocation with Annotations {
   def vis: Option[Visibility]
   def prettyprint(implicit indent: String): String
   def dotString(): String
@@ -44,7 +44,7 @@ trait ClassContentDef extends SourceLocation with Annotations {
   lazy val nodeName: String = this.getClass.getSimpleName
 }
 
-case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, parentClassNames: Seq[Name], content: Seq[ClassContentDef])
+case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, parentClassNames: Seq[Name], content: Seq[ClassContent])
   extends SourceLocation with Annotations {
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
@@ -63,7 +63,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
 }
 
 case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, typ: Type, body: Option[Expression])
-  extends ClassContentDef {
+  extends ClassContent {
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val expr = if (body.isEmpty) "" else s" = ${body.get}"
@@ -75,7 +75,7 @@ case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
 }
 
 case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Seq[Statement])
-  extends ClassContentDef {
+  extends ClassContent {
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
@@ -96,7 +96,7 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
 }
 
 case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], params: Seq[Param], body: Seq[Statement])
-  extends ClassContentDef {
+  extends ClassContent {
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""

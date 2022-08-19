@@ -23,9 +23,9 @@ trait Expression extends SourceLocation {
       f
 }
 
-case class FieldReadExpr(recv: Expression, name: Name) extends Expression {
+case class FieldReadExpr(recv: Expression, targetName: Name) extends Expression {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
-    s"$recv.$name"
+    s"$recv.$targetName"
 
   override def dotString(): String =
     s"${super.dotString()}$nodeId -> ${recv.nodeId};\n${recv.dotString()}"
@@ -58,6 +58,26 @@ case class MethodCallExpr(fun: Name, args: Seq[Expression]) extends Expression {
     s"${super.dotString()}" + args.zipWithIndex.map { case (arg, i) =>
       s"""$nodeId -> ${arg.nodeId} [label="arg[$i]"];\n${arg.dotString()}"""
     }.mkString("")
+}
+
+// TODO: Support syntax to create a tuple
+case class TupleExpr(exps: Seq[Expression]) extends Expression {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
+    exps.map(_.prettyprint).mkString("(", ", ", ")")
+
+  override def dotString(): String =
+    s"${super.dotString()}" + exps.zipWithIndex.map { case (exp, i) =>
+      s"""$nodeId -> ${exp.nodeId} [label="expr[$i]"];\n${exp.dotString()}"""
+    }.mkString("")
+}
+object TupleExpr {
+  def apply(): TupleExpr= TupleExpr(Seq())
+
+  def from(exps: Seq[Expression]): Expression = exps match {
+    case Nil => TupleExpr(Seq())
+    case e :: Nil => e
+    case es => TupleExpr(es)
+  }
 }
 
 case class BaseLitExpr(code: Scala[meta.Term]) extends Expression {
@@ -113,7 +133,7 @@ case class BaseApplyMethodExpr(recv: Expression, method: Name, args: Option[Seq[
 
 case class BaseApplyUnaryExpr(op: Scala[meta.Term.Name], exp: Expression) extends Expression {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    s"${op.syntax}${exp.prettyprint(false)}"
+    s"${op.syntax}${exp.prettyprint(infixParens = false)}"
   }
 
   override def dotString(): String =

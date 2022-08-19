@@ -129,7 +129,7 @@ trait Parser {
     }
 
   protected[frontend] lazy val returnStmt: P[Statement] =
-    (keyword(RETURN) *> expr.?).mapWithLoc(ReturnStmt)
+    (keyword(RETURN) *> expr.?).mapWithLoc(exp => ReturnStmt(exp.getOrElse(TupleExpr())))
 
   protected[frontend] lazy val exprStmt: P[Statement] =
     expr.mapWithLoc(ExprStmt)
@@ -152,7 +152,7 @@ trait Parser {
   protected[frontend] val constructorExpr: P[ConstructorExpr] =
     (keyword(NEW) *> call).mapWithLoc { case (name, argList) => ConstructorExpr(name, argList) }
 
-  protected[frontend] lazy val nestedAccessExpr: P[Expression] =
+  protected[frontend] lazy val nestedAccessExpr: P[Expression] = {
     // (someVar | someConstructor | `someBaseLit` | `someBaseApply`(...)).(attr | `baseApplyMethod`)
     // (someVar | someConstructor | `someBaseLit` | `someBaseApply`(...)).(someMethod(...) | baseApplyMethod`(...))
     ((constructorExpr | variableReadExpr | baseLitExpr | baseApplyExpr)
@@ -166,6 +166,7 @@ trait Parser {
           }
         }
     }
+  }
 
   protected[frontend] lazy val parensExpr: P[Expression] =
     inParentheses(P.defer(expr))
@@ -296,7 +297,7 @@ trait Parser {
     }
   }
 
-  protected[frontend] val classContentDef: P[ClassContentDef] =
+  protected[frontend] val classContentDef: P[ClassContent] =
     constructorDef | methodDef | fieldDef
 
   protected[frontend] val classDef: P[ClassDef] = {

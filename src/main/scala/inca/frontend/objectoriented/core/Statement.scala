@@ -24,17 +24,13 @@ case class ExprStmt(expression: Expression) extends Statement {
     s"${super.dotString()}$nodeId -> ${expression.nodeId};\n${expression.dotString()}"
 }
 
-case class ReturnStmt(value: Option[Expression]) extends Statement {
+case class ReturnStmt(value: Expression) extends Statement {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    val expr = if (value.isEmpty) "" else value.get.toString
-    s"${indent}return $expr"
+    s"${indent}return $value"
   }
 
   override def dotString(): String = {
-    if (value.isEmpty)
-      super.dotString()
-    else
-      s"${super.dotString()}$nodeId -> ${value.get.nodeId};\n${value.get.dotString()}"
+      s"${super.dotString()}$nodeId -> ${value.nodeId};\n${value.dotString()}"
   }
 }
 
@@ -79,7 +75,7 @@ case class IfStmt(cnd: Expression, thn: Seq[Statement], els: Seq[Statement]) ext
     if (elseS.isEmpty) {
       s"${indent}$condS {\n$ifS\n$indent}"
     } else {
-      s"${indent}$condS {\n$ifS\n${indent} } else {\n$elseS\n$indent}"
+      s"${indent}$condS {\n$ifS\n$indent} else {\n$elseS\n$indent}"
     }
   }
 
