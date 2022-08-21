@@ -86,9 +86,9 @@
     comment = "regexp:(//.*)|(/\*(.|\n)*\*/)"
     ]
 
-  methods("id")=[getName setName getType getPresentation] // getPresentation später
+  methods("id|var")=[getName setName getNameIdentifier]
 
-  methods("type_annotation|var|fun_type|atomic_type|tuple|constr|option|set|type_name|numeric_lit|boolean_lit|string_lit")=[getType]
+  methods("fun_def|data_def|data_constructor|single_let|multiple_let")=[getName setName getNameIdentifier]
 
   methods("numeric_lit|boolean_lit|string_lit")=[getValue]
 
