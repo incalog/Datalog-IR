@@ -3,6 +3,7 @@ package inca.frontend.objectoriented.core
 import inca.compiler.SourceLocation
 import inca.frontend.util.Resolvable
 
+import java.util.Objects.hash
 import java.util.UUID
 
 case class Module(name: Name, imports: Seq[Import], classes: Seq[ClassDef])
@@ -18,12 +19,9 @@ case class Module(name: Name, imports: Seq[Import], classes: Seq[ClassDef])
     s"${indent}module $name$importsS$contentS".stripMargin
   }
 
-  lazy val nodeId: Int = UUID.randomUUID().hashCode()
-  lazy val nodeName: String = this.getClass.getSimpleName
-
-  def dotString(): String =
-    s"""digraph G {\n$nodeId [label="$nodeName", shape=plaintext];\n""" + classes.map { c =>
-      s"$nodeId -> ${c.nodeId};\n${c.dotString()}"
+  override def dotString: String =
+    "digraph G {\n" + super.dotString + classes.map { c =>
+      s"$nodeId -> ${c.nodeId};\n${c.dotString}"
     }.mkString("") + "}"
 
   override def toString: String = prettyprint("")
@@ -39,10 +37,6 @@ object Import {
 trait ClassContent extends SourceLocation with Annotations {
   def vis: Option[Visibility]
   def prettyprint(implicit indent: String): String
-  def dotString(): String
-
-  lazy val nodeId: Int = UUID.randomUUID().hashCode()
-  lazy val nodeName: String = this.getClass.getSimpleName
 }
 
 case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, parentClassNames: Seq[ClassRef], content: Seq[ClassContent])
@@ -67,12 +61,11 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
     s"""$annoPrefix$indent${visS}class $name(${parentClassNames.mkString(", ")}) {$contentS\n$indent}""".stripMargin
   }
 
-  lazy val nodeId: Int = UUID.randomUUID().hashCode()
-  lazy val nodeName: String = this.getClass.getSimpleName
+  override def nodeShape: String = "box"
 
-  def dotString(): String =
-    s"""$nodeId [label="$nodeName", shape=box];\n""" + content.map { c =>
-      s"$nodeId -> ${c.nodeId};\n${c.dotString()}"
+  override def dotString: String =
+    super.dotString + content.map { c =>
+      s"$nodeId -> ${c.nodeId};\n${c.dotString}"
     }.mkString("")
 }
 
@@ -90,13 +83,13 @@ case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
     s"$indent$visS$prefix$name: ${typ.prettyprint}$expr"
   }
 
-  def dotString(): String = {
-    val out = s"""$nodeId [label="$nodeName", shape=diamond];\n"""
+  override def nodeShape: String = "diamond"
+
+  override def dotString: String = {
     if (body.isDefined) {
-      val exp = body.get
-      out + s"""$nodeId -> ${exp.nodeId} [label="body"];\n${exp.dotString()}"""
+      super.dotString + s"""$nodeId -> ${body.get.nodeId} [label="body"];\n${body.get.dotString}"""
     } else {
-      out
+      super.dotString
     }
   }
 }
@@ -114,11 +107,13 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
        |$indent}""".stripMargin
   }
 
-  def dotString(): String =
-    s"""$nodeId [label="$nodeName", shape=octagon];\n""" + body.zipWithIndex.map { case (stmt, i) =>
-      s"""$nodeId -> ${stmt.nodeId} [label="body[$i]"];\n${stmt.dotString()}"""
+  override def nodeShape: String = "octagon"
+
+  override def dotString: String =
+    super.dotString + body.zipWithIndex.map { case (stmt, i) =>
+      s"""$nodeId -> ${stmt.nodeId} [label="body[$i]"];\n${stmt.dotString}"""
     }.mkString("") + params.zipWithIndex.map { case (param, i) =>
-      s"""$nodeId -> ${param.nodeId} [label="param[$i]"];\n${param.dotString()}"""
+      s"""$nodeId -> ${param.nodeId} [label="param[$i]"];\n${param.dotString}"""
     }.mkString("")
 }
 
@@ -134,20 +129,18 @@ case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], param
        |$indent}""".stripMargin
   }
 
-  def dotString(): String =
-    s"""$nodeId [label="$nodeName", shape=octagon];\n""" + body.zipWithIndex.map { case (stmt, i) =>
-      s"""$nodeId -> ${stmt.nodeId} [label="body[$i]"];\n${stmt.dotString()}"""
+  override def nodeShape: String = "doubleoctagon"
+
+  override def dotString: String =
+    super.dotString + body.zipWithIndex.map { case (stmt, i) =>
+      s"""$nodeId -> ${stmt.nodeId} [label="body[$i]"];\n${stmt.dotString}"""
     }.mkString("") + params.zipWithIndex.map { case (param, i) =>
-      s"""$nodeId -> ${param.nodeId} [label="param[$i]"];\n${param.dotString()}"""
+      s"""$nodeId -> ${param.nodeId} [label="param[$i]"];\n${param.dotString}"""
     }.mkString("")
 }
 
 case class Param(name: Name, typ: Type) extends SourceLocation with VarReadExpr.Target {
   def prettyprint: String = s"$name: ${typ.prettyprint}"
 
-  lazy val nodeId: Int = UUID.randomUUID().hashCode()
-  lazy val nodeName: String = this.getClass.getSimpleName
-
-  def dotString(): String =
-    s"""$nodeId [label="$nodeName", shape=polygon];\n"""
+  override def nodeShape: String = "polygon"
 }

@@ -4,18 +4,14 @@ import inca.compiler.SourceLocation
 import inca.frontend.util.{Resolvable, Typeable}
 import inca.util.Scala
 
-import java.util.UUID
+import java.util.Objects.hash
 
 sealed trait Expression extends Typeable[Type] with SourceLocation {
   def prettyprint(infixParens: Boolean)(implicit indent: String): String
   def prettyprint(implicit indent: String): String = prettyprint(infixParens = false)(indent)
   override def toString: String = prettyprint("")
 
-  lazy val nodeId: Int = UUID.randomUUID().hashCode()
-  lazy val nodeName: String = this.getClass.getSimpleName
-
-  def dotString(): String =
-    s"""$nodeId [label="$nodeName", shape=circle];\n"""
+  override def nodeShape: String = "circle"
 
   def infix(infixParens: Boolean)(f: => String): String =
     if (infixParens)
@@ -28,8 +24,8 @@ case class FieldReadExpr(recv: Expression, targetName: Name) extends Expression 
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     s"$recv.$targetName"
 
-  override def dotString(): String =
-    s"${super.dotString()}$nodeId -> ${recv.nodeId};\n${recv.dotString()}"
+  override def dotString: String =
+    s"${super.dotString}$nodeId -> ${recv.nodeId};\n${recv.dotString}"
 }
 
 case class VarReadExpr(targetName: Name) extends Expression with Resolvable[VarReadExpr.Target] {
@@ -46,9 +42,9 @@ case class ConstructorExpr(classRef: ClassRef, args: Seq[Expression]) extends Ex
     s"new $classRef($argsS)"
   }
 
-  override def dotString(): String =
-    s"${super.dotString()}" + args.zipWithIndex.map { case (arg, i) =>
-      s"""$nodeId -> ${arg.nodeId} [label="arg[$i]"];\n${arg.dotString()}"""
+  override def dotString: String =
+    s"${super.dotString}" + args.zipWithIndex.map { case (arg, i) =>
+      s"""$nodeId -> ${arg.nodeId} [label="arg[$i]"];\n${arg.dotString}"""
     }.mkString("")
 }
 
@@ -58,9 +54,9 @@ case class SuperExpr(args: Seq[Expression]) extends Expression with Resolvable[C
     s"this($argsS)"
   }
 
-  override def dotString(): String =
-    s"${super.dotString()}" + args.zipWithIndex.map { case (arg, i) =>
-      s"""$nodeId -> ${arg.nodeId} [label="arg[$i]"];\n${arg.dotString()}"""
+  override def dotString: String =
+    s"${super.dotString}" + args.zipWithIndex.map { case (arg, i) =>
+      s"""$nodeId -> ${arg.nodeId} [label="arg[$i]"];\n${arg.dotString}"""
     }.mkString("")
 }
 
@@ -70,9 +66,9 @@ case class MethodCallExpr(recv: Expression, fun: Name, args: Seq[Expression]) ex
     s"$recv.$fun($argsS)"
   }
 
-  override def dotString(): String =
-    s"${super.dotString()}" + args.zipWithIndex.map { case (arg, i) =>
-      s"""$nodeId -> ${arg.nodeId} [label="arg[$i]"];\n${arg.dotString()}"""
+  override def dotString: String =
+    s"${super.dotString}" + args.zipWithIndex.map { case (arg, i) =>
+      s"""$nodeId -> ${arg.nodeId} [label="arg[$i]"];\n${arg.dotString}"""
     }.mkString("")
 }
 
@@ -80,8 +76,8 @@ case class TypeCastExpr(recv: Expression, toTyp: Type) extends Expression {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     s"cast($recv, $toTyp)"
 
-  override def dotString(): String =
-    s"${super.dotString()}$nodeId -> ${recv.nodeId};\n${recv.dotString()}"
+  override def dotString: String =
+    s"${super.dotString}$nodeId -> ${recv.nodeId};\n${recv.dotString}"
 }
 
 case class NullExpr() extends Expression {
@@ -94,9 +90,9 @@ case class TupleExpr(exps: Seq[Expression]) extends Expression {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     exps.map(_.prettyprint).mkString("(", ", ", ")")
 
-  override def dotString(): String =
-    s"${super.dotString()}" + exps.zipWithIndex.map { case (exp, i) =>
-      s"""$nodeId -> ${exp.nodeId} [label="expr[$i]"];\n${exp.dotString()}"""
+  override def dotString: String =
+    s"${super.dotString}" + exps.zipWithIndex.map { case (exp, i) =>
+      s"""$nodeId -> ${exp.nodeId} [label="expr[$i]"];\n${exp.dotString}"""
     }.mkString("")
 }
 object TupleExpr {
@@ -128,9 +124,9 @@ case class BaseApplyExpr(fun: Scala[meta.Term], args: Seq[Expression]) extends E
     s"`$fun`($argsS)"
   }
 
-  override def dotString(): String =
-    s"${super.dotString()}" + args.zipWithIndex.map { case (arg, i) =>
-      s"""$nodeId -> ${arg.nodeId} [label="arg[$i]"];\n${arg.dotString()}"""
+  override def dotString: String =
+    s"${super.dotString}" + args.zipWithIndex.map { case (arg, i) =>
+      s"""$nodeId -> ${arg.nodeId} [label="arg[$i]"];\n${arg.dotString}"""
     }.mkString("")
 }
 
@@ -139,10 +135,10 @@ case class BaseApplyInfixExpr(left: Expression, op: Scala[meta.Term.Name], right
     s"${left.prettyprint(infixParens = true)} $op ${right.prettyprint(infixParens = true)}"
   }
 
-  override def dotString(): String =
-    s"${super.dotString()}" +
-      s"""$nodeId -> ${left.nodeId} [label="left"];\n${left.dotString()}""" +
-      s"""$nodeId -> ${right.nodeId} [label="right"];\n${right.dotString()}""".stripMargin
+  override def dotString: String =
+    s"${super.dotString}" +
+      s"""$nodeId -> ${left.nodeId} [label="left"];\n${left.dotString}""" +
+      s"""$nodeId -> ${right.nodeId} [label="right"];\n${right.dotString}""".stripMargin
 }
 
 case class BaseApplyMethodExpr(recv: Expression, method: Name, args: Option[Seq[Expression]]) extends Expression {
@@ -151,12 +147,12 @@ case class BaseApplyMethodExpr(recv: Expression, method: Name, args: Option[Seq[
     s"${recv.prettyprint(infixParens)}.`$method`($argsS)"
   }
 
-  override def dotString(): String = {
-    val recvS = s"""$nodeId -> ${recv.nodeId} [label="recv"];\n${recv.dotString()}"""
+  override def dotString: String = {
+    val recvS = s"""$nodeId -> ${recv.nodeId} [label="recv"];\n${recv.dotString}"""
     val argsS = if (args.isEmpty) "" else args.get.zipWithIndex.map { case (arg, i) =>
-      s"""$nodeId -> ${arg.nodeId} [label="arg[$i]"];\n${arg.dotString()}"""
+      s"""$nodeId -> ${arg.nodeId} [label="arg[$i]"];\n${arg.dotString}"""
     }.mkString("")
-    s"${super.dotString()}$recvS$argsS"
+    s"${super.dotString}$recvS$argsS"
   }
 }
 
@@ -165,7 +161,7 @@ case class BaseApplyUnaryExpr(op: Scala[meta.Term.Name], exp: Expression) extend
     s"${op.syntax}${exp.prettyprint(infixParens = false)}"
   }
 
-  override def dotString(): String =
-    s"${super.dotString()}" +
-      s"""$nodeId -> ${exp.nodeId} [label="exp"];\n${exp.dotString()}"""
+  override def dotString: String =
+    s"${super.dotString}" +
+      s"""$nodeId -> ${exp.nodeId} [label="exp"];\n${exp.dotString}"""
 }

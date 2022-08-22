@@ -31,7 +31,7 @@ class ParserTest extends AnyFunSuite {
 
            // Copy the dot graph to the clipboard for debugging
            val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
-           val selection = new StringSelection(module.dotString())
+           val selection = new StringSelection(module.dotString)
            clipboard.setContents(selection, selection)
 
            println()

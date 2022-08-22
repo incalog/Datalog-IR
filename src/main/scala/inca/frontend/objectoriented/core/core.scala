@@ -16,5 +16,4 @@ package object core {
   case object Private extends Visibility {
     def prettyprint(implicit indent: String): String = "private"
   }
-
 }
