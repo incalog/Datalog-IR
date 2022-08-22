@@ -51,10 +51,10 @@ trait Parser {
     val VAL: Value     = Value("val")
     val NEW: Value     = Value("new")
     val RETURN: Value  = Value("return")
-    val INIT: Value    = Value("init")
     val TRUE: Value    = Value("true")
     val FALSE: Value   = Value("false")
     val NULL: Value    = Value("null")
+    val EXTENDS: Value = Value("extends")
   }
 
   import Keyword._
@@ -118,15 +118,17 @@ trait Parser {
       (P.string("Long").string.soft <* noChar).mapWithLoc(_ => TScalaLong) |
       (P.string("String").string.soft <* noChar).mapWithLoc(_ => TScalaString) |
       (P.string("Boolean").string.soft <* noChar).mapWithLoc(_ => TScalaBoolean) |
-      (P.string("Double").string.soft <* noChar).mapWithLoc(_ => TScalaDouble) |
-      (P.string("Null").string.soft <* noChar).mapWithLoc(_ => TScalaNull)
+      (P.string("Double").string.soft <* noChar).mapWithLoc(_ => TScalaDouble)
 
   /** Helper for the Type like TAny. */
   protected[frontend] def simpleType[T <: Type](s: String, t: T): P[T] =
     (P.string(s).soft <* noChar).mapWithLoc(_ => t)
 
-  protected[frontend] def classType(): P[TClass] =
-    identifier.mapWithLoc(TClass)
+  protected[frontend] val classRef: P[ClassRef] =
+    identifier.mapWithLoc(ClassRef)
+
+  protected[frontend] val classType: P[TClass] =
+    classRef.mapWithLoc(TClass)
 
   protected[frontend] val typeAnno: P[Type] =
     spaced(
@@ -188,10 +190,13 @@ trait Parser {
     (encloseBetween(identifier, scalaQuoteChar).soft ~ inParentheses(seq0(P.defer(expr))).?)
 
   protected[frontend] val variableReadExpr: P[VarReadExpr] =
-    variable.mapWithLoc(VarReadExpr)
+    variable.mapWithLoc(VarReadExpr.apply)
 
   protected[frontend] val constructorExpr: P[ConstructorExpr] =
-    (keyword(NEW) *> call).mapWithLoc { case (name, argList) => ConstructorExpr(name, argList) }
+    (keyword(NEW) *> call).mapWithLoc { case (name, argList) => ConstructorExpr(ClassRef(name), argList) }
+
+  protected[frontend] val superExpr: P[SuperExpr] =
+    (op("this") *> inParentheses(seq0(P.defer(expr)))).mapWithLoc(SuperExpr)
 
   protected[frontend] lazy val typeCastExpr: P[TypeCastExpr] =
     (keyword(CAST) *> inParentheses((P.defer(expr) <* op(",")) ~ typeAnno)).mapWithLoc {
@@ -213,6 +218,10 @@ trait Parser {
         }
     }
   }
+
+  /** NullLiteral parser */
+  protected[frontend] val nullExpr: P[NullExpr] =
+    keyword(NULL).mapWithLoc(_ => NullExpr())
 
   protected[frontend] lazy val parensExpr: P[Expression] =
     inParentheses(P.defer(expr))
@@ -272,16 +281,11 @@ trait Parser {
       s => BaseLitExpr(Scala(meta.Lit.Boolean(s.toBoolean)))
     }
 
-  /** NullLiteral parser */
-  protected[frontend] val nullLiteral: P[BaseLitExpr] =
-    P.string(NULL.toString).mapWithLoc(_ => BaseLitExpr(Scala(meta.Lit.Null())))
-
   protected[frontend] val baseLitExpr: P[BaseLitExpr] = {
     (encloseBetween(scalaTerm, scalaQuoteChar).soft <* P.not(P.char('('))).mapWithLoc(BaseLitExpr) |
       spaced(numericLiteral) |
       spaced(stringLiteral) |
-      spaced(booleanLiteral) |
-      spaced(nullLiteral)
+      spaced(booleanLiteral)
   }
 
   protected[frontend] lazy val baseApplyExpr: P[BaseApplyExpr] =
@@ -290,7 +294,7 @@ trait Parser {
     }
 
   protected[frontend] val subinfixExpr: P[Expression] =
-    nestedAccessExpr | parensExpr | baseApplyUnaryExpr | typeCastExpr
+    nestedAccessExpr | parensExpr | baseApplyUnaryExpr | typeCastExpr | nullExpr | superExpr
 
   protected[frontend] val infixExpr: P[Expression] =
     baseApplyInfixExpr | subinfixExpr
@@ -323,11 +327,11 @@ trait Parser {
   protected[frontend] val methodDef: P[MethodDef] = {
     val functionHeader = (((((overrideAnnotation | mainAnnotation).? ~ visibility.?).with1
       <* keyword(DEF)).backtrack ~ identifier ~ defParams)
-      ~ (op(':') *> typeAnno).?
-      ~ inBraces(stmt.rep0))
+      ~ (op(':') *> typeAnno)
+      ~ (op('=') *> inBraces(stmt.rep0)))
     functionHeader.mapWithLoc { case (((((overrideAnnotation, visibility), funcName), params), typeAnno), content) =>
       val anno = if (overrideAnnotation.isEmpty) Seq() else Seq(overrideAnnotation.get)
-      MethodDef(anno, visibility, funcName, params, typeAnno.getOrElse(TUnit), content)
+      MethodDef(anno, visibility, funcName, params, typeAnno, content)
     }
   }
 
@@ -344,9 +348,9 @@ trait Parser {
 
   protected[frontend] val constructorDef: P[ConstructorDef] = {
     val functionHeader = ((((overrideAnnotation.? ~ visibility.?).with1
-      <* keyword(INIT)).backtrack ~ defParams)
-      ~ inBraces(stmt.rep0))
-    functionHeader.mapWithLoc { case (((overrideAnnotation, visibility), params), content) =>
+      <* (keyword(DEF) ~ op("this"))).backtrack ~ defParams ~ (op(':') *> typeAnno))
+      ~ (op('=') *> inBraces(stmt.rep0)))
+    functionHeader.mapWithLoc { case ((((overrideAnnotation, visibility), params), _), content) =>
       val anno = if (overrideAnnotation.isEmpty) Seq() else Seq(overrideAnnotation.get)
       ConstructorDef(anno, visibility, params, content)
     }
@@ -357,8 +361,8 @@ trait Parser {
 
   protected[frontend] val classDef: P[ClassDef] = {
     val className = spaced(keyword(CLASS) *> identifier)
-    val parentClassNames = spaced(inParentheses(seq0(identifier)))
-    val header = visibility.?.with1 ~ className ~ parentClassNames.?
+    val parentClassName = keyword(EXTENDS) *> classRef
+    val header = visibility.?.with1 ~ className ~ parentClassName.map(Seq(_)).?
     val content = spaced(inBraces(classContentDef.rep0))
 
     (header ~ content).mapWithLoc { case (((visibility, name), parents), content)  =>

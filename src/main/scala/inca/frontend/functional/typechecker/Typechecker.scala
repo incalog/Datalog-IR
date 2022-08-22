@@ -24,7 +24,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       for (content <- importedModule.content if !content.vis.contains(Private)) {
         content match {
           case fun: FunctionDef => bindFun(fun, importedModule)
-          case data: DataDef => bindData(data, module)
+          case data: DataDef => bindData(data, importedModule)
         }
       }
     }

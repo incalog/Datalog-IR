@@ -4,10 +4,22 @@ import inca.backend.ir.Datalog
 import inca.frontend.constraint.compiler.{CompiledConstraintModule, ConstraintOptions}
 import inca.frontend.constraint.core
 import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
+import inca.frontend.objectoriented.compiler.{CompiledObjectModule, ObjectOptions}
 import inca.frontend.{constraint, functional, objectoriented}
 import inca.runtime.context.DataModel
 
 object Compiler {
+  def compileObject(module: String,
+                        compilerOptions: ObjectOptions): CompiledObjectModule = {
+    val parsed = objectoriented.parser.Parser.parse(module)
+    CompiledObjectModule(parsed, compilerOptions)
+  }
+
+  def compileObject(module: objectoriented.core.Module,
+                        compilerOptions: ObjectOptions): CompiledObjectModule = {
+    CompiledObjectModule(module, compilerOptions)
+  }
+
   def compileFunctional(module: String,
                  compilerOptions: FunctionalOptions): CompiledFunctionalModule = {
     val parsed = functional.parser.Parser.parse(module)

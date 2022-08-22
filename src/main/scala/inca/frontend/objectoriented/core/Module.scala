@@ -1,6 +1,7 @@
 package inca.frontend.objectoriented.core
 
 import inca.compiler.SourceLocation
+import inca.frontend.util.Resolvable
 
 import java.util.UUID
 
@@ -28,7 +29,7 @@ case class Module(name: Name, imports: Seq[Import], classes: Seq[ClassDef])
   override def toString: String = prettyprint("")
 }
 
-case class Import(name: Name) extends SourceLocation {
+case class Import(name: Name) extends SourceLocation with Resolvable[Import.Target] {
   def prettyprint(implicit indent: String): String = s"${indent}import $name"
 }
 object Import {
@@ -44,8 +45,21 @@ trait ClassContent extends SourceLocation with Annotations {
   lazy val nodeName: String = this.getClass.getSimpleName
 }
 
-case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, parentClassNames: Seq[Name], content: Seq[ClassContent])
-  extends SourceLocation with Annotations {
+case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, parentClassNames: Seq[ClassRef], content: Seq[ClassContent])
+  extends SourceLocation with Annotations with VarReadExpr.Target {
+
+  val contentMap: Map[Name, Seq[ClassContent]] = content.groupBy {
+    case field: FieldDef => field.name
+    case method: MethodDef => method.name
+    case constructor: ConstructorDef => name
+  }
+
+  def typ: TClass = {
+    val ref = ClassRef(name)
+    ref.target = Some(this)
+    TClass(ref)
+  }
+
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val contentS = if (content.isEmpty) "" else
@@ -60,6 +74,10 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
     s"""$nodeId [label="$nodeName", shape=box];\n""" + content.map { c =>
       s"$nodeId -> ${c.nodeId};\n${c.dotString()}"
     }.mkString("")
+}
+
+case class ClassRef(name: Name) extends SourceLocation with Resolvable[ClassDef] {
+  override def toString: String = name.toString
 }
 
 case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, typ: Type, body: Option[Expression],
@@ -117,7 +135,7 @@ case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], param
     }.mkString("")
 }
 
-case class Param(name: Name, typ: Type) extends SourceLocation {
+case class Param(name: Name, typ: Type) extends SourceLocation with VarReadExpr.Target {
   def prettyprint: String = s"$name: ${typ.prettyprint}"
 
   lazy val nodeId: Int = UUID.randomUUID().hashCode()

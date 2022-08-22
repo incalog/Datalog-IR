@@ -52,7 +52,7 @@ class SouffleToIncaFrontendCompiler {
         case p :: Nil => TSet(compile(p.typ))
         case ps => TSet(TTuple(ps.map(p => compile(p.typ))))
       }
-      val fun = FunctionDef(Seq(), None, Name(funPrefix + name), Seq(), ty, SetExp(Seq()))
+      val fun = FunctionDef(Seq(), None, Name(funPrefix + name), Seq(), Seq(), ty, SetExp(Seq()))
       // this is a top-level rule
       if (funPrefix == "") {
         topLevelRules += name
@@ -70,7 +70,7 @@ class SouffleToIncaFrontendCompiler {
         val predicates: Seq[Expression] = rulebody.map(s => compile(s, funPrefix))
         val alt = SetComprehension(Tuple.from(args.map(compile)), predicates)
         val newBody = BaseApplyInfix(fun.body, "++", alt)
-        val newFun = FunctionDef(fun.annos, fun.vis, fun.name, fun.params, fun.outType, newBody)
+        val newFun = FunctionDef(fun.annos, fun.vis, fun.name, Seq(), fun.params, fun.outType, newBody)
         patFuns += prefName -> newFun
       }
 
@@ -129,10 +129,10 @@ class SouffleToIncaFrontendCompiler {
       val terms = args.map(compile)
       component match {
         case Some(c) =>
-          Call(Var(Name(s"${c}_$rule")), terms)
+          Call(Var(Name(s"${c}_$rule")), Seq(), terms)
         case None =>
           val ruleName = if (topLevelRules.contains(rule)) rule else funPrefix + rule
-          Call(Var(Name(ruleName)), terms)
+          Call(Var(Name(ruleName)), Seq(), terms)
       }
   }
 

@@ -1,12 +1,12 @@
 package inca.frontend.objectoriented.core
 
 import inca.compiler.SourceLocation
-import inca.frontend.util.Typeable
+import inca.frontend.util.{Resolvable, Typeable}
 import inca.util.Scala
 
 import java.util.UUID
 
-trait Expression  extends Typeable[Type] with SourceLocation {
+sealed trait Expression extends Typeable[Type] with SourceLocation {
   def prettyprint(infixParens: Boolean)(implicit indent: String): String
   def prettyprint(implicit indent: String): String = prettyprint(infixParens = false)(indent)
   override def toString: String = prettyprint("")
@@ -24,7 +24,7 @@ trait Expression  extends Typeable[Type] with SourceLocation {
       f
 }
 
-case class FieldReadExpr(recv: Expression, targetName: Name) extends Expression {
+case class FieldReadExpr(recv: Expression, targetName: Name) extends Expression with Resolvable[FieldDef] {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     s"$recv.$targetName"
 
@@ -32,15 +32,18 @@ case class FieldReadExpr(recv: Expression, targetName: Name) extends Expression 
     s"${super.dotString()}$nodeId -> ${recv.nodeId};\n${recv.dotString()}"
 }
 
-case class VarReadExpr(targetName: Name) extends Expression {
+case class VarReadExpr(targetName: Name) extends Expression with Resolvable[VarReadExpr.Target] {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     s"$targetName"
 }
+object VarReadExpr {
+  trait Target extends SourceLocation
+}
 
-case class ConstructorExpr(className: Name, args: Seq[Expression]) extends Expression {
+case class ConstructorExpr(classRef: ClassRef, args: Seq[Expression]) extends Expression with Resolvable[ConstructorDef] {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
-    s"new $className($argsS)"
+    s"new $classRef($argsS)"
   }
 
   override def dotString(): String =
@@ -49,7 +52,19 @@ case class ConstructorExpr(className: Name, args: Seq[Expression]) extends Expre
     }.mkString("")
 }
 
-case class MethodCallExpr(recv: Expression, fun: Name, args: Seq[Expression]) extends Expression {
+case class SuperExpr(args: Seq[Expression]) extends Expression with Resolvable[ConstructorDef] {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    val argsS = args.map(_.prettyprint).mkString(", ")
+    s"this($argsS)"
+  }
+
+  override def dotString(): String =
+    s"${super.dotString()}" + args.zipWithIndex.map { case (arg, i) =>
+      s"""$nodeId -> ${arg.nodeId} [label="arg[$i]"];\n${arg.dotString()}"""
+    }.mkString("")
+}
+
+case class MethodCallExpr(recv: Expression, fun: Name, args: Seq[Expression]) extends Expression with Resolvable[MethodDef] {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
     s"$recv.$fun($argsS)"
@@ -67,6 +82,11 @@ case class TypeCastExpr(recv: Expression, toTyp: Type) extends Expression {
 
   override def dotString(): String =
     s"${super.dotString()}$nodeId -> ${recv.nodeId};\n${recv.dotString()}"
+}
+
+case class NullExpr() extends Expression {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
+    s"null"
 }
 
 // TODO: Support syntax to create a tuple

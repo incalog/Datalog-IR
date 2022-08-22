@@ -6,7 +6,7 @@ import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.BodyMustFail
 import inca.backend.souffle.GenerateSouffle.{hasTypeRel, pathRel}
 import inca.frontend.functional
-import inca.frontend.functional.core.{DataConstructor, DataDef, TData}
+import inca.frontend.functional.core.{DataConstructor, DataDef, TName}
 import inca.frontend.souffle.Syntax._
 import inca.runtime.context.DataModel
 import inca.util.TupleOps
@@ -100,7 +100,7 @@ class GenerateSouffle(dataModel: DataModel) {
        |""".stripMargin
   }
   def compileFunType(ty: functional.core.Type): String = ty match {
-    case TData(name) => name.name
+    case TName(name) => name.name
     case functional.core.TScalaBoolean => "unsigned"
     case functional.core.TScalaInt => "number"
     case functional.core.TScalaDouble => "float"

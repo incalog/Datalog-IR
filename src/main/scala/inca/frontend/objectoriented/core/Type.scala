@@ -9,11 +9,18 @@ import scala.meta.XtensionQuasiquoteType
 sealed trait Type extends SourceLocation {
   def prettyprint: String
   def flatten: Seq[Type]
+  def asScala: meta.Type
   override def toString: String = prettyprint
 }
 case object TAny extends Type {
   override def prettyprint: String = "Any"
   override def flatten: Seq[Type] = Seq(this)
+  override def asScala: meta.Type = t"Any"
+}
+case object TNull extends Type {
+  override def prettyprint: String = "Null"
+  override def flatten: Seq[Type] = Seq(this)
+  override def asScala: meta.Type = t"truechange.URI" //t"Null"
 }
 
 // TODO: We do not need this right now
@@ -31,6 +38,7 @@ case class TTuple(ts: Seq[Type]) extends Type {
     case _ => ts.map(_.prettyprint).mkString("(", ", ", ")")
   }
   override def flatten: Seq[Type] = ts.flatMap(_.flatten)
+  override def asScala: meta.Type = t"(..${ts.map(_.asScala).toList})"
 }
 object TTuple {
   def from(ts: Seq[Type]): Type = ts match {
@@ -43,6 +51,7 @@ object TTuple {
 case class TScala(ty: Scala[meta.Type]) extends Type {
   override def prettyprint: String = s"`${ty.syntax}`"
   override def flatten: Seq[Type] = Seq(this)
+  override def asScala: meta.Type = ty.tree
 }
 object TScala {
   def apply(typeString: String): TScala = {
@@ -58,7 +67,8 @@ object TScalaString extends TScala(Scala(t"String"))
 object TScalaAny extends TScala(Scala(t"Any"))
 object TScalaNull extends TScala(Scala(t"Null"))
 
-case class TClass(name: Name) extends Type {
-  override def prettyprint: String = name.name
+case class TClass(name: ClassRef) extends Type {
+  override def prettyprint: String = name.toString
   override def flatten: Seq[Type] = Seq(this)
+  override def asScala: meta.Type = t"truechange.URI"
 }

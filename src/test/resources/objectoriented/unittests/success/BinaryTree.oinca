@@ -1,44 +1,63 @@
 module BinaryTree
 
 class Node {
-	var left: Node
-	var right: Node
+    def this(): Node = { }
+
+    def isUndefined(): Boolean = {
+        return false
+    }
+    def insert(data: Int): Unit = { }
+    def printTree(): Unit = { }
+}
+
+class UndefinedNode extends Node {
+    def this(): UndefinedNode = { }
+
+    def isUndefined(): Boolean = {
+        return true
+    }
+}
+
+class DefinedNode extends Node {
+	var left: Node = null
+	var right: Node = null
 	var data: Int
 	
-	init(data: Int) {
+	def this(data: Int): DefinedNode = {
+	    this()
       	this.data = data
+      	this.left = new UndefinedNode()
+      	this.right = new UndefinedNode()
+      	return this
     }
-      	
-	def insert(data: Int) {
-		if (!this.data) return
+
+	def insert(data: Int): Unit = {
 		if (data < this.data) {
-            if (!self.left)
-                this.left = new Node(data)
+            if (this.left.isUndefined())
+                this.left = new DefinedNode(data)
             else
                 this.left.insert(data)
         } else if (data > this.data) {
-            if (!self.right)
-                this.right = new Node(data)
+            if (this.right.isUndefined())
+                this.right = new DefinedNode(data)
             else
                 this.right.insert(data)
-		} else {
-		    this.data = data
 		}
 	}
 
-	def printTree() {
-      if (this.left)
+	def printTree(): Unit = {
+      if (!this.left.isUndefined())
          this.left.printTree()
 
       `println`(this.data)
 
-      if (this.right)
+      if (!this.right.isUndefined())
          this.right.printTree()
 	}
 
 	@main
-	def main() {
-	    val root: Node = new Node(12)
+	def main(): Unit = {
+	    val root: Node = new DefinedNode(12)
         root.insert(6)
         root.insert(14)
         root.insert(3)

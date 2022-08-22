@@ -1,14 +1,16 @@
 package inca.frontend.objectoriented.core
 
 import inca.compiler.SourceLocation
+import inca.frontend.util.Resolvable
 
 import java.util.UUID
 
-trait Statement extends SourceLocation {
+sealed trait Statement extends SourceLocation {
   def prettyprint(infixParens: Boolean)(implicit indent: String): String
   def prettyprint(implicit indent: String): String = prettyprint(infixParens = false)(indent)
   override def toString: String = prettyprint("")
 
+  // TODO: Move to sourcelocation
   lazy val nodeId: Int = UUID.randomUUID().hashCode()
   lazy val nodeName: String = this.getClass.getSimpleName
 
@@ -24,47 +26,48 @@ case class ExprStmt(expression: Expression) extends Statement {
     s"${super.dotString()}$nodeId -> ${expression.nodeId};\n${expression.dotString()}"
 }
 
-case class ReturnStmt(value: Expression) extends Statement {
+case class ReturnStmt(expression: Expression) extends Statement {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    s"${indent}return $value"
+    s"${indent}return $expression"
   }
 
   override def dotString(): String = {
-      s"${super.dotString()}$nodeId -> ${value.nodeId};\n${value.dotString()}"
+      s"${super.dotString()}$nodeId -> ${expression.nodeId};\n${expression.dotString()}"
   }
 }
 
-case class FieldAssignStmt(recv: Expression, name: Name, value: Expression) extends Statement {
+case class FieldAssignStmt(recv: Expression, name: Name, expression: Expression) extends Statement with Resolvable[FieldDef] {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    s"$indent$recv.$name = $value"
+    s"$indent$recv.$name = $expression"
   }
 
   override def dotString(): String =
-    s"${super.dotString()}$nodeId -> ${value.nodeId};\n${value.dotString()}"
+    s"${super.dotString()}$nodeId -> ${expression.nodeId};\n${expression.dotString()}"
 }
 
-case class VarDeclareStmt(name: Name, typ: Type, value: Option[Expression], immutable: Boolean) extends Statement {
+case class VarDeclareStmt(name: Name, typ: Type, maybeExpression: Option[Expression], immutable: Boolean) extends Statement
+  with VarReadExpr.Target {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    val expr = if (value.isEmpty) "" else s" = ${value.get.toString}"
+    val expr = if (maybeExpression.isEmpty) "" else s" = ${maybeExpression.get.toString}"
     val prefix = if (immutable) "val " else "var "
     s"${indent}${prefix}${name}: $typ$expr"
   }
 
   override def dotString(): String = {
-    if (value.isEmpty)
+    if (maybeExpression.isEmpty)
       super.dotString()
     else
-      s"${super.dotString()}$nodeId -> ${value.get.nodeId};\n${value.get.dotString()}"
+      s"${super.dotString()}$nodeId -> ${maybeExpression.get.nodeId};\n${maybeExpression.get.dotString()}"
   }
 }
 
-case class VarAssignStmt(targetName: Name, value: Expression) extends Statement {
+case class VarAssignStmt(targetName: Name, expression: Expression) extends Statement with Resolvable[VarReadExpr.Target] {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    s"$indent$targetName = $value"
+    s"$indent$targetName = $expression"
   }
 
   override def dotString(): String =
-    s"${super.dotString()}$nodeId -> ${value.nodeId};\n${value.dotString()}"
+    s"${super.dotString()}$nodeId -> ${expression.nodeId};\n${expression.dotString()}"
 }
 
 case class IfStmt(cnd: Expression, thn: Seq[Statement], els: Seq[Statement]) extends Statement {
