@@ -88,7 +88,7 @@
 
   methods("id|var")=[getName setName getNameIdentifier]
 
-  methods("fun_def|data_def|data_constructor|single_let|multiple_let")=[getName setName getNameIdentifier]
+  methods("fun_def|param_types|data_def|data_constructor|single_let|multiple_let")=[getName setName getNameIdentifier]
 
   methods("numeric_lit|boolean_lit|string_lit")=[getValue]
 
