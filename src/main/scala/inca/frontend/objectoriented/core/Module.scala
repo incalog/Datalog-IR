@@ -90,8 +90,15 @@ case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
     s"$indent$visS$prefix$name: ${typ.prettyprint}$expr"
   }
 
-  def dotString(): String =
-    s"""$nodeId [label="$nodeName", shape=diamond];\n"""
+  def dotString(): String = {
+    val out = s"""$nodeId [label="$nodeName", shape=diamond];\n"""
+    if (body.isDefined) {
+      val exp = body.get
+      out + s"""$nodeId -> ${exp.nodeId} [label="body"];\n${exp.dotString()}"""
+    } else {
+      out
+    }
+  }
 }
 
 case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Seq[Statement])
