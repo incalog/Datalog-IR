@@ -39,7 +39,7 @@ trait ClassContent extends SourceLocation with Annotations {
   def prettyprint(implicit indent: String): String
 }
 
-case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, parentClassNames: Seq[ClassRef], content: Seq[ClassContent])
+case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, parentClassRefs: Seq[ClassRef], content: Seq[ClassContent])
   extends SourceLocation with Annotations with VarReadExpr.Target {
 
   val contentMap: Map[Name, Seq[ClassContent]] = content.groupBy {
@@ -58,7 +58,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
     val visS = if (vis.contains(Private)) "private " else ""
     val contentS = if (content.isEmpty) "" else
       "\n" + content.map(_.prettyprint(indent+"\t")).mkString("\n\n")
-    s"""$annoPrefix$indent${visS}class $name(${parentClassNames.mkString(", ")}) {$contentS\n$indent}""".stripMargin
+    s"""$annoPrefix$indent${visS}class $name(${parentClassRefs.mkString(", ")}) {$contentS\n$indent}""".stripMargin
   }
 
   override def nodeShape: String = "box"

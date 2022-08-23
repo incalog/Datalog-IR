@@ -3,7 +3,6 @@ package inca.frontend.objectoriented.typechecker;
 import inca.compiler.SourceLocation
 import inca.frontend.objectoriented.core._
 import inca.frontend.util.Resolvable
-import meta.quasiquotes._
 
 trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   def typecheck(program: Seq[Module]): Unit = scopedTypeContext {
@@ -34,7 +33,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
   def typecheck(classDef: ClassDef): Unit = {
     // check inheritance
-    classDef.parentClassNames.foreach(lookupClassRef)
+    classDef.parentClassRefs.foreach(lookupClassRef)
 
     classDef.contentMap.foreach { case (_, cs) =>
       if (cs.size > 1)
@@ -150,8 +149,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case (TNull, TClass(_)) => true
     case (TClass(name1), TClass(name2)) if name1 == name2 => true
     case (TClass(name1), TClass(_)) =>
-      val parents = name1.target.get.parentClassNames
-      parents.exists(parent => subtype(parent.target.get.typ, ty2))
+      // we assume the target is resolved if we call subtype
+      val parents = name1.target.get.parentClassRefs
+      parents.exists(parent => if (parent.target.isDefined) subtype(parent.target.get.typ, ty2) else false)
     case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
       tys1.zip(tys2).forall(tt => subtype(tt._1, tt._2))
     case (TScala(s1), TScala(s2)) =>
@@ -165,34 +165,36 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case superExpr@SuperExpr(args) =>
       lookupVar(Name("this")) match {
         case Some((_, TClass(ref), _)) =>
-          lookupClassRef(ref) match {
-            case Some(clazz) =>
-              val parentRef = clazz.parentClassNames.headOption
-              if (parentRef.isEmpty) {
-                error(s"Undefined super class for class ${clazz.name}", expression)
-                TAny
+          // this classRef will always be resolved at this point
+          val clazz = ref.target.get
+          val parentRef = clazz.parentClassRefs.headOption
+          if (parentRef.isEmpty) {
+            error(s"Missing super class for class ${clazz.name}", expression)
+            TAny
+          } else {
+            // classRef of parent will be resolved, but might still be invalid e.g. extend from a class that does not
+            // exist
+            val parentClassDef = parentRef.get.target
+            if (parentClassDef.isEmpty) {
+              error(s"Unknown super class for class ${clazz.name}", expression)
+              TAny
+            } else {
+              val constructorDef = lookupConstructor(parentClassDef.get, expression)
+              if (constructorDef.isEmpty) {
+                error(s"Can not lookup constructor ${parentClassDef.get.name}", expression)
+              } else if (constructorDef.get.params.size != args.size) {
+                error(s"Expected ${constructorDef.get.params.size} arguments but got ${args.size} arguments", expression)
               } else {
-                val parentClassDef = lookupClassRef(parentRef.get)
-                if (parentClassDef.isEmpty) {
-                  TAny
-                } else {
-                  val constructorDef = lookupConstructor(parentClassDef.get, expression)
-                  if (constructorDef.isEmpty) {
-                    error(s"Can not lookup constructor ${parentClassDef.get.name}", expression)
-                  } else if (constructorDef.get.params.size != args.size) {
-                    error(s"Expected ${constructorDef.get.params.size} arguments but got ${args.size} arguments", expression)
-                  } else {
-                    constructorDef.get.params.zip(args).foreach { case (param, arg) =>
-                      assertSubtype(typecheck(arg), param.typ, arg)
-                    }
-                  }
-                  resolveTarget(superExpr)(constructorDef.get)
-                  parentClassDef.get.typ
+                constructorDef.get.params.zip(args).foreach { case (param, arg) =>
+                  assertSubtype(typecheck(arg), param.typ, arg)
                 }
               }
-            case None => TAny
+              resolveTarget(superExpr)(constructorDef.get)
+              parentClassDef.get.typ
+            }
           }
-        case _ => TAny
+        case None =>
+          TAny
       }
     case varRead@VarReadExpr(targetName) =>
       lookupVar(targetName) match {

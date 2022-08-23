@@ -63,7 +63,6 @@ trait TypeContext extends TypeIO {
 
   def bindClass(clazz: ClassDef, module: Module): Unit = {
     classDefs += clazz.name -> (module, clazz)
-
   }
 
   def lookupClass(name: Name): Option[ClassDef] =
