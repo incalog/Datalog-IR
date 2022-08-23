@@ -102,30 +102,32 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case ReturnStmt(expression) =>
       val outTyp = typecheck(expression)
       assertSubtype(outTyp, rt, statement)
-    case FieldAssignStmt(recv, name, expression) =>
+    case fieldAssignStmt@FieldAssignStmt(recv, name, expression) =>
       val typ = typecheck(expression)
       typecheck(recv) match {
         case TClass(ref) => lookupField(ref.target.get, name) match {
           case Some(field) =>
+            resolveTarget(fieldAssignStmt)(field)
             assertSubtype(typ, field.typ, expression)
           case None => // Nothing
         }
         case typ => error(s"Can not lookup field $name for expression of type $typ", statement)
       }
-    case decl@VarDeclareStmt(name, typ, expression, immutable) =>
+    case varDeclareStmt@VarDeclareStmt(name, typ, expression, immutable) =>
       typecheck(typ)
-      bindVar(name, decl, typ, immutable)
+      bindVar(name, varDeclareStmt, typ, immutable)
       expression.foreach { exp =>
         val expTyp = typecheck(exp)
         assertSubtype(expTyp, typ, exp)
       }
-    case VarAssignStmt(targetName, expression) =>
+    case varAssignExpr@VarAssignStmt(targetName, expression) =>
       val expTyp = typecheck(expression)
       lookupVar(targetName) match {
-        case Some((_, typ, immutable)) =>
+        case Some((target, typ, immutable)) =>
           if (immutable) {
             error(s"Cannot assign to immutable variable $targetName", statement)
           } else {
+            resolveTarget(varAssignExpr)(target)
             assertSubtype(expTyp, typ, statement)
           }
         case None => // nothing
@@ -160,7 +162,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   def typecheck(expression: Expression): Type = expression match {
     case NullExpr() =>
       TNull
-    case SuperExpr(args) =>
+    case superExpr@SuperExpr(args) =>
       lookupVar(Name("this")) match {
         case Some((_, TClass(ref), _)) =>
           lookupClassRef(ref) match {
@@ -184,6 +186,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
                       assertSubtype(typecheck(arg), param.typ, arg)
                     }
                   }
+                  resolveTarget(superExpr)(constructorDef.get)
                   parentClassDef.get.typ
                 }
               }
@@ -198,17 +201,19 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           typ
         case None => TAny
       }
-    case FieldReadExpr(recv, targetName) =>
+    case fieldReadExpr@FieldReadExpr(recv, targetName) =>
       typecheck(recv) match {
         case TClass(ref) => lookupField(ref.target.get, targetName) match {
-          case Some(field) => field.typ
+          case Some(field) =>
+            resolveTarget(fieldReadExpr)(field)
+            field.typ
           case None => TAny
         }
         case typ =>
           error(s"Can not lookup field $targetName for expression of type $typ", expression)
           TAny
       }
-    case ConstructorExpr(className, args) =>
+    case construtorExpr@ConstructorExpr(className, args) =>
       lookupClassRef(className) match {
         case None => TAny
         case Some(classDef) =>
@@ -221,10 +226,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
               constructorDef.params.zip(args).foreach { case (param, arg) =>
                 assertSubtype(typecheck(arg), param.typ, arg)
               }
+              resolveTarget(construtorExpr)(constructorDef)
               classDef.typ
           }
       }
-    case MethodCallExpr(recv, fun, args) =>
+    case methodCallExpr@MethodCallExpr(recv, fun, args) =>
       typecheck(recv) match {
         case TClass(ref) => lookupMethod(ref.target.get, fun) match {
           case None => TAny
@@ -236,6 +242,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
               val argTyp = typecheck(arg)
               assertSubtype(argTyp, param.typ, arg)
             }
+            resolveTarget(methodCallExpr)(methodDef)
             methodDef.outType
         }
         case typ =>

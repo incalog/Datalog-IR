@@ -3,9 +3,6 @@ package inca.frontend.objectoriented.core
 import inca.compiler.SourceLocation
 import inca.frontend.util.Resolvable
 
-import java.util.Objects.hash
-import java.util.UUID
-
 sealed trait Statement extends SourceLocation {
   def prettyprint(infixParens: Boolean)(implicit indent: String): String
   def prettyprint(implicit indent: String): String = prettyprint(infixParens = false)(indent)
