@@ -1,7 +1,9 @@
 module BinaryTree
 
 class Node {
-    def this(): Node = { }
+    def this(): Node = {
+        return this
+    }
 
     def isUndefined(): Boolean = {
         return false
@@ -11,7 +13,9 @@ class Node {
 }
 
 class UndefinedNode extends Node {
-    def this(): UndefinedNode = { }
+    def this(): UndefinedNode = {
+        return this
+    }
 
     def isUndefined(): Boolean = {
         return true
@@ -19,8 +23,8 @@ class UndefinedNode extends Node {
 }
 
 class DefinedNode extends Node {
-	var left: Node = null
-	var right: Node = null
+	var left: Node
+	var right: Node
 	var data: Int
 	
 	def this(data: Int): DefinedNode = {

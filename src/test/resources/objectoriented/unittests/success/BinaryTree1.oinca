@@ -1,0 +1,51 @@
+module BinaryTree
+
+class Node {
+	var left: Node = null
+	var right: Node = null
+	var data: Int
+	
+	def this(data: Int): Node = {
+    this.data = data
+    return this
+  }
+
+  def isDefined(): Boolean = {
+    return instanceOf(this, Null)
+  }
+
+	def insert(data: Int): Unit = {
+    if (data < this.data) {
+      if (!this.left.isDefined())
+        this.left = new Node(data)
+      else
+        this.left.insert(data)
+    } else if (data > this.data) {
+      if (!this.right.isDefined())
+        this.right = new Node(data)
+      else
+        this.right.insert(data)
+		}
+	}
+
+	def printTree(): Unit = {
+    if (this.left.isDefined())
+      this.left.printTree()
+
+    `println`(this.data)
+
+    if (this.right.isDefined())
+      this.right.printTree()
+	}
+
+	@main
+	def main(): Unit = {
+    val root: Node = new Node(12)
+    root.insert(6)
+    root.insert(14)
+    root.insert(3)
+    root.printTree()
+	}
+}
+
+

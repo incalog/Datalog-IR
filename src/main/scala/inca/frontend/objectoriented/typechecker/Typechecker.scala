@@ -104,7 +104,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case fieldAssignStmt@FieldAssignStmt(recv, name, expression) =>
       val typ = typecheck(expression)
       typecheck(recv) match {
-        case TClass(ref) => lookupField(ref.target.get, name) match {
+        case TClass(ref) => lookupField(ref.target, name) match {
           case Some(field) =>
             resolveTarget(fieldAssignStmt)(field)
             assertSubtype(typ, field.typ, expression)
@@ -170,27 +170,25 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           val parentRef = clazz.parentClassRefs.headOption
           if (parentRef.isEmpty) {
             error(s"Missing super class for class ${clazz.name}", expression)
+            TAny
           } else {
             // classRef of parent will be resolved, but might still be invalid e.g. extend from a class that does not
             // exist
-            val parentClassDef = parentRef.get.target
-            if (parentClassDef.isEmpty) {
-              error(s"Unknown super class for class ${clazz.name}", expression)
-            } else {
-              val constructorDef = lookupConstructor(parentClassDef.get, expression)
-              if (constructorDef.isEmpty) {
-                error(s"Can not lookup constructor ${parentClassDef.get.name}", expression)
-              } else if (constructorDef.get.params.size != args.size) {
-                error(s"Expected ${constructorDef.get.params.size} arguments but got ${args.size} arguments", expression)
-              } else {
-                constructorDef.get.params.zip(args).foreach { case (param, arg) =>
-                  assertSubtype(typecheck(arg), param.typ, arg)
+            lookupConstructor(parentRef.get.target, expression) match {
+              case Some(constructorDef) =>
+                if (constructorDef.params.size != args.size) {
+                  error(s"Expected ${constructorDef.params.size} arguments but got ${args.size} arguments", expression)
+                } else {
+                  constructorDef.params.zip(args).foreach { case (param, arg) =>
+                    assertSubtype(typecheck(arg), param.typ, arg)
+                  }
                 }
-              }
-              resolveTarget(superExpr)(constructorDef.get)
+                resolveTarget(superExpr)(constructorDef)
+                TUnit
+              case None =>
+                TAny
             }
           }
-          TUnit
         case None =>
           TAny
       }
@@ -203,7 +201,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       }
     case fieldReadExpr@FieldReadExpr(recv, targetName) =>
       typecheck(recv) match {
-        case TClass(ref) => lookupField(ref.target.get, targetName) match {
+        case TClass(ref) => lookupField(ref.target, targetName) match {
           case Some(field) =>
             resolveTarget(fieldReadExpr)(field)
             field.typ
@@ -216,8 +214,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case construtorExpr@ConstructorExpr(className, args) =>
       lookupClassRef(className) match {
         case None => TAny
-        case Some(classDef) =>
-          lookupConstructor(classDef, expression) match {
+        case classDefOption@Some(classDef) =>
+          lookupConstructor(classDefOption, expression) match {
             case None => classDef.typ
             case Some(constructorDef) =>
               if (constructorDef.params.size != args.size) {
@@ -232,7 +230,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       }
     case methodCallExpr@MethodCallExpr(recv, fun, args) =>
       typecheck(recv) match {
-        case TClass(ref) => lookupMethod(ref.target.get, fun) match {
+        case TClass(ref) => lookupMethod(ref.target, fun) match {
           case None => TAny
           case Some(methodDef) =>
             if (methodDef.params.size != args.size) {

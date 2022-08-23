@@ -34,31 +34,46 @@ trait TypeContext extends TypeIO {
         None
     }
 
-  def lookupField(clazz: ClassDef, name: Name): Option[FieldDef] = {
-    val defs = clazz.contentMap.get(name)
-    val fields = defs.map(_.collect({ case fd: FieldDef => fd })).getOrElse(Seq())
-    if (fields.isEmpty) {
-      error(s"Undefined field ${clazz.name}.$name", name)
+  def lookupField(clazz: Option[ClassDef], name: Name): Option[FieldDef] = {
+    if (clazz.isEmpty) {
+      error(s"Undefined class in field lookup", name)
+      None
+    } else {
+      val defs = clazz.get.contentMap.get(name)
+      val fields = defs.map(_.collect({ case fd: FieldDef => fd })).getOrElse(Seq())
+      if (fields.isEmpty) {
+        error(s"Undefined field ${clazz.get.name}.$name", name)
+      }
+      fields.headOption
     }
-    fields.headOption
   }
 
-  def lookupMethod(clazz: ClassDef, name: Name): Option[MethodDef] = {
-    val defs = clazz.contentMap.get(name)
-    val methods = defs.map(_.collect({ case fd: MethodDef => fd })).getOrElse(Seq())
-    if (methods.isEmpty) {
-      error(s"Undefined method ${clazz.name}.$name", name)
+  def lookupMethod(clazz: Option[ClassDef], name: Name): Option[MethodDef] = {
+    if (clazz.isEmpty) {
+      error(s"Undefined class in method lookup", name)
+      None
+    } else {
+      val defs = clazz.get.contentMap.get(name)
+      val methods = defs.map(_.collect({ case fd: MethodDef => fd })).getOrElse(Seq())
+      if (methods.isEmpty) {
+        error(s"Undefined method ${clazz.get.name}.$name", name)
+      }
+      methods.headOption
     }
-    methods.headOption
   }
 
-  def lookupConstructor(clazz: ClassDef, location: SourceLocation): Option[ConstructorDef] = {
-    val defs = clazz.contentMap.get(clazz.name)
-    val constructors = defs.map(_.collect({ case fd: ConstructorDef => fd })).getOrElse(Seq())
-    if (constructors.isEmpty) {
-      error(s"Undefined constructor ${clazz.name}", location)
+  def lookupConstructor(clazz: Option[ClassDef], location: SourceLocation): Option[ConstructorDef] = {
+    if (clazz.isEmpty) {
+      error(s"Undefined class in constructor lookup", location)
+      None
+    } else {
+      val defs = clazz.get.contentMap.get(clazz.get.name)
+      val constructors = defs.map(_.collect({ case fd: ConstructorDef => fd })).getOrElse(Seq())
+      if (constructors.isEmpty) {
+        error(s"Undefined constructor ${clazz.get.name}", location)
+      }
+      constructors.headOption
     }
-    constructors.headOption
   }
 
   def bindClass(clazz: ClassDef, module: Module): Unit = {

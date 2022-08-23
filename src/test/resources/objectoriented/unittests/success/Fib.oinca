@@ -1,0 +1,22 @@
+module Fib
+
+class Fib {
+    def this(): Fib = {
+        return this
+    }
+
+    def fib(n: Int): Int = {
+      if (n == 0)
+        return 0
+      else if (n == 1)
+        return 1
+      else
+        return this.fib(n - 1) + this.fib(n - 2)
+    }
+
+    @main
+    def main(n: Int): Int = {
+        val f: Fib = new Fib()
+        return f.fib(n)
+    }
+}
