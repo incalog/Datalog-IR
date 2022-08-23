@@ -48,8 +48,14 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   }
 
   def typecheck(fieldDef: FieldDef): Unit = {
-    fieldDef.body.foreach(typecheck)
     typecheck(fieldDef.typ)
+
+    fieldDef.body match {
+      case Some(expr) =>
+        val expTyp = typecheck(expr)
+        assertSubtype(expTyp, fieldDef.typ, fieldDef)
+      case None => // nothing
+    }
   }
 
   def typecheck(methodDef: MethodDef, classDef: ClassDef): Unit = scopedTypeContext {
