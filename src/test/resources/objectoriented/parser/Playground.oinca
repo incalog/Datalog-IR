@@ -5,7 +5,7 @@ class Nat {
     var num: Int = 1
     private var num2: Double = 2.0
 
-	def dummy(n: Nat, m: String) {
+	def dummy(n: Nat, m: String): Unit = {
 	    //Test attributes and method calls. Note: Implicit this / function calls are not allowed
 	    someVar
 	    someVar.attr1.attr2
@@ -95,29 +95,29 @@ class Nat {
 	}
 
     // Empty body test
-    def succ1() {
+    def succ1(): Unit = {
 
     }
 
-    def succ() {
+    def succ(): Unit = {
         return new Succ(this)
     }
 }
 
-class Zero(Nat) {
-	@override def add(n: Nat) {
+class Zero extends Nat {
+	@override def add(n: Nat): Unit = {
 		return n
 	}
 }
 
-class Succ(Nat) {
+class Succ extends Nat {
 	var pred: Nat
 
-	init(pred: Nat) {
+	def this(pred: Nat): Succ = {
 	    this.pred = pred
 	}
 	
-	@override def add(n: Nat) {
+	@override def add(n: Nat): Unit = {
 		return new Succ(this.pred.add(n))
 	}
 }

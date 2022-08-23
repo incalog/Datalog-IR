@@ -34,37 +34,37 @@ class TypecheckerTest extends AnyFunSuite {
 
 
   test("Base 1") {
-    val code = FileUtil.readFile("objectoriented/unittests/success/Base1.oinca")
+    val code = FileUtil.readFile("objectoriented/unittests/Base1.oinca")
     checkModule(code)
   }
 
   test("Base 2") {
-    val code = FileUtil.readFile("objectoriented/unittests/success/Base2.oinca")
+    val code = FileUtil.readFile("objectoriented/unittests/Base2.oinca")
     checkModule(code)
   }
 
   test("Base 3") {
-    val code = FileUtil.readFile("objectoriented/unittests/success/Base3.oinca")
+    val code = FileUtil.readFile("objectoriented/unittests/Base3.oinca")
     checkModule(code)
   }
 
   test("Fact") {
-    val code = FileUtil.readFile("objectoriented/unittests/success/Fact.oinca")
+    val code = FileUtil.readFile("objectoriented/unittests/Fact.oinca")
     checkModule(code)
   }
 
   test("Fib") {
-    val code = FileUtil.readFile("objectoriented/unittests/success/Fib.oinca")
+    val code = FileUtil.readFile("objectoriented/unittests/Fib.oinca")
     checkModule(code)
   }
 
   test("BinaryTree with Null") {
-    val code = FileUtil.readFile("objectoriented/unittests/success/BinaryTree1.oinca")
+    val code = FileUtil.readFile("objectoriented/unittests/BinaryTree1.oinca")
     checkModule(code)
   }
 
   test("BinaryTree with Inheritance") {
-    val code = FileUtil.readFile("objectoriented/unittests/success/BinaryTree2.oinca")
+    val code = FileUtil.readFile("objectoriented/unittests/BinaryTree2.oinca")
     checkModule(code)
   }
 }
