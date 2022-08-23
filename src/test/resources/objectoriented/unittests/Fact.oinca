@@ -1,8 +1,6 @@
 module Fact
 
 class Fact {
-    //val num: Double = 1.0
-
     def this(): Fact = {
         return this
     }
