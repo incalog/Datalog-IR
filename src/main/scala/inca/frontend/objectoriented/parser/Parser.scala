@@ -275,7 +275,8 @@ trait Parser {
     }
   }
 
-  /** StringLiteral parser */
+  /** StringLiteral parser */    val num: Double = 1l
+
   protected[frontend] val stringLiteral: P[BaseLitExpr] =
     (P.string("\"") *> P.charsWhile0(_ != '\"') <* P.string("\"")).mapWithLoc {
       s => BaseLitExpr(Scala(meta.Lit.String(s)))
