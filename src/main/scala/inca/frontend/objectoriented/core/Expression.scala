@@ -80,6 +80,14 @@ case class TypeCastExpr(recv: Expression, toTyp: Type) extends Expression {
     s"${super.dotString}$nodeId -> ${recv.nodeId};\n${recv.dotString}"
 }
 
+case class InstanceOfExpr(recv: Expression, ofTyp: Type) extends Expression {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
+    s"instanceOf($recv, $ofTyp)"
+
+  override def dotString: String =
+    s"${super.dotString}$nodeId -> ${recv.nodeId};\n${recv.dotString}"
+}
+
 case class NullExpr() extends Expression {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     s"null"

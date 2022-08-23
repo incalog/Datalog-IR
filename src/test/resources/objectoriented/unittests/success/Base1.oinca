@@ -1,0 +1,8 @@
+module Base1
+
+class Base1 {
+    @main
+    def main(): Int = {
+        return `7 + (12 * 3)`
+    }
+}

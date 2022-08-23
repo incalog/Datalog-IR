@@ -33,8 +33,13 @@ class TypecheckerTest extends AnyFunSuite {
   }
 
 
-  test("Simple syntax test") {
-    val code = FileUtil.readFile("objectoriented/unittests/success/Playground.oinca")
+  test("Base 1") {
+    val code = FileUtil.readFile("objectoriented/unittests/success/Base1.oinca")
+    checkModule(code)
+  }
+
+  test("Base 2") {
+    val code = FileUtil.readFile("objectoriented/unittests/success/Base2.oinca")
     checkModule(code)
   }
 

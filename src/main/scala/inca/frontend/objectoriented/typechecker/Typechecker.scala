@@ -170,14 +170,12 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           val parentRef = clazz.parentClassRefs.headOption
           if (parentRef.isEmpty) {
             error(s"Missing super class for class ${clazz.name}", expression)
-            TAny
           } else {
             // classRef of parent will be resolved, but might still be invalid e.g. extend from a class that does not
             // exist
             val parentClassDef = parentRef.get.target
             if (parentClassDef.isEmpty) {
               error(s"Unknown super class for class ${clazz.name}", expression)
-              TAny
             } else {
               val constructorDef = lookupConstructor(parentClassDef.get, expression)
               if (constructorDef.isEmpty) {
@@ -190,9 +188,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
                 }
               }
               resolveTarget(superExpr)(constructorDef.get)
-              parentClassDef.get.typ
             }
           }
+          TUnit
         case None =>
           TAny
       }
@@ -255,6 +253,10 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       typecheck(recv)
       typecheck(toTyp)
       toTyp
+    case InstanceOfExpr(recv, ofTyp) =>
+      typecheck(recv)
+      typecheck(ofTyp)
+      TScalaBoolean
     case TupleExpr(exps) =>
       TTuple(exps.map(typecheck))
 

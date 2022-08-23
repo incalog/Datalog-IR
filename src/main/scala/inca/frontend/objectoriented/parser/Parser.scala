@@ -41,20 +41,21 @@ trait Parser {
   object Keyword extends Enumeration {
     type Keyword = Value
 
-    val CAST: Value    = Value("cast")
-    val IF: Value      = Value("if")
-    val ELSE: Value    = Value("else")
-    val CLASS: Value   = Value("class")
-    val DEF: Value     = Value("def")
-    val PRIVATE: Value = Value("private")
-    val VAR: Value     = Value("var")
-    val VAL: Value     = Value("val")
-    val NEW: Value     = Value("new")
-    val RETURN: Value  = Value("return")
-    val TRUE: Value    = Value("true")
-    val FALSE: Value   = Value("false")
-    val NULL: Value    = Value("null")
-    val EXTENDS: Value = Value("extends")
+    val CAST: Value       = Value("cast")
+    val IF: Value         = Value("if")
+    val ELSE: Value       = Value("else")
+    val CLASS: Value      = Value("class")
+    val DEF: Value        = Value("def")
+    val PRIVATE: Value    = Value("private")
+    val VAR: Value        = Value("var")
+    val VAL: Value        = Value("val")
+    val NEW: Value        = Value("new")
+    val RETURN: Value     = Value("return")
+    val TRUE: Value       = Value("true")
+    val FALSE: Value      = Value("false")
+    val NULL: Value       = Value("null")
+    val EXTENDS: Value    = Value("extends")
+    val INSTANCEOF: Value = Value("instanceOf")
   }
 
   import Keyword._
@@ -133,7 +134,7 @@ trait Parser {
   protected[frontend] val typeAnno: P[Type] =
     spaced(
       simpleType("Any", TAny) |
-        //simpleType("Nothing", TNothing) |
+        simpleType("Null", TNull) |
         simpleType("Unit", TTuple(Seq())) |
         scalaType |
         classType
@@ -201,6 +202,11 @@ trait Parser {
   protected[frontend] lazy val typeCastExpr: P[TypeCastExpr] =
     (keyword(CAST) *> inParentheses((P.defer(expr) <* op(",")) ~ typeAnno)).mapWithLoc {
       case (recv, typeAnno) => TypeCastExpr(recv, typeAnno)
+    }
+
+  protected[frontend] lazy val instanceOfExpr: P[InstanceOfExpr] =
+    (keyword(INSTANCEOF) *> inParentheses((P.defer(expr) <* op(",")) ~ typeAnno)).mapWithLoc {
+      case (recv, typeAnno) => InstanceOfExpr(recv, typeAnno)
     }
 
   protected[frontend] lazy val nestedAccessExpr: P[Expression] = {
@@ -294,7 +300,7 @@ trait Parser {
     }
 
   protected[frontend] val subinfixExpr: P[Expression] =
-    nestedAccessExpr | parensExpr | baseApplyUnaryExpr | typeCastExpr | nullExpr | superExpr
+    nestedAccessExpr | parensExpr | baseApplyUnaryExpr | typeCastExpr | nullExpr | superExpr | instanceOfExpr
 
   protected[frontend] val infixExpr: P[Expression] =
     baseApplyInfixExpr | subinfixExpr
