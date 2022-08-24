@@ -175,7 +175,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           val clazz = ref.target.get
           val parentRef = clazz.parentClassRefs.headOption
           if (parentRef.isEmpty) {
-            error(s"Missing super class for class ${clazz.name}", expression)
+            error(s"Missing parent class for class ${clazz.name}", expression)
             TAny
           } else {
             // classRef of parent will be resolved, but might still be invalid e.g. extend from a class that does not
