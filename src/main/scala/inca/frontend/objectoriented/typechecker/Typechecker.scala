@@ -125,14 +125,14 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         val expTyp = typecheck(exp)
         assertSubtype(expTyp, typ, exp)
       }
-    case varAssignExpr@VarAssignStmt(targetName, expression) =>
+    case varAssignStm@VarAssignStmt(targetName, expression) =>
       val expTyp = typecheck(expression)
       lookupVar(targetName) match {
         case Some((target, typ, immutable)) =>
           if (immutable) {
             error(s"Cannot assign to immutable variable $targetName", statement)
           } else {
-            resolveTarget(varAssignExpr)(target)
+            resolveTarget(varAssignStm)(target)
             assertSubtype(expTyp, typ, statement)
           }
         case None => // nothing
