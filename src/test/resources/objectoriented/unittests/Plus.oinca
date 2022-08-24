@@ -13,7 +13,6 @@ class Nat {
 
     @main
     def main(): Nat = {
-        val zero: Zero = new Zero()
         val first: Nat = (new Zero()).succ().succ().succ()
         val second: Nat = (new Zero()).succ().succ()
         return first.add(second)
