@@ -1,7 +1,7 @@
 module BinaryTree
 
 class Node {
-    def this(): Node = {
+    def this() = {
         return this
     }
 
@@ -13,7 +13,7 @@ class Node {
 }
 
 class UndefinedNode extends Node {
-    def this(): UndefinedNode = {
+    def this() = {
         return this
     }
 
@@ -27,7 +27,7 @@ class DefinedNode extends Node {
 	var right: Node
 	var data: Int
 	
-	def this(data: Int): DefinedNode = {
+	def this(data: Int) = {
 	    this()
       	this.data = data
       	this.left = new UndefinedNode()

@@ -1,7 +1,7 @@
 module Fib
 
 class Fib {
-    def this(): Fib = {
+    def this() = {
         return this
     }
 
