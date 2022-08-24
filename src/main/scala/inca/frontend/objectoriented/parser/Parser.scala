@@ -357,9 +357,9 @@ trait Parser {
 
   protected[frontend] val constructorDef: P[ConstructorDef] = {
     val functionHeader = ((((overrideAnnotation.? ~ visibility.?).with1
-      <* (keyword(DEF) ~ op("this"))).backtrack ~ defParams ~ (op(':') *> typeAnno))
+      <* (keyword(DEF) ~ op("this"))).backtrack ~ defParams)
       ~ (op('=') *> inBraces(stmt.rep0)))
-    functionHeader.mapWithLoc { case ((((overrideAnnotation, visibility), params), _), content) =>
+    functionHeader.mapWithLoc { case (((overrideAnnotation, visibility), params), content) =>
       val anno = if (overrideAnnotation.isEmpty) Seq() else Seq(overrideAnnotation.get)
       ConstructorDef(anno, visibility, params, content)
     }

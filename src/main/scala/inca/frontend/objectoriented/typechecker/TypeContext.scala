@@ -40,9 +40,15 @@ trait TypeContext extends TypeIO {
       None
     } else {
       val defs = clazz.get.contentMap.get(name)
-      val fields = defs.map(_.collect({ case fd: FieldDef => fd })).getOrElse(Seq())
+      var fields = defs.map(_.collect({ case fd: FieldDef => fd })).getOrElse(Seq())
       if (fields.isEmpty) {
-        error(s"Undefined field ${clazz.get.name}.$name", name)
+        // Check if the field is inherited from a parent class
+        fields = clazz.get.parentClassRefs.flatMap { ref =>
+          lookupField(ref.target, name)
+        }
+        if (fields.isEmpty) {
+          error(s"Undefined field ${clazz.get.name}.$name", name)
+        }
       }
       fields.headOption
     }
@@ -50,7 +56,6 @@ trait TypeContext extends TypeIO {
 
   def lookupMethod(clazz: Option[ClassDef], name: Name): Option[MethodDef] = {
     if (clazz.isEmpty) {
-      clazz.get
       error(s"Undefined class in method lookup", name)
       None
     } else {
@@ -58,6 +63,9 @@ trait TypeContext extends TypeIO {
       var methods = defs.map(_.collect({ case fd: MethodDef => fd })).getOrElse(Seq())
       if (methods.isEmpty) {
         // Check if the method is inherited from a parent class
+        // We must guarantee that all classRefs are resolved here. This should be the case, since we only have a single
+        // classDef instance per class stored in the module. Each classDef instance has a list of classRefs, that are
+        // resolved at the beginning of typechecking a module.
         methods = clazz.get.parentClassRefs.flatMap { ref =>
           lookupMethod(ref.target, name)
         }
@@ -75,9 +83,15 @@ trait TypeContext extends TypeIO {
       None
     } else {
       val defs = clazz.get.contentMap.get(clazz.get.name)
-      val constructors = defs.map(_.collect({ case fd: ConstructorDef => fd })).getOrElse(Seq())
+      var constructors = defs.map(_.collect({ case fd: ConstructorDef => fd })).getOrElse(Seq())
       if (constructors.isEmpty) {
-        error(s"Undefined constructor ${clazz.get.name}", location)
+        // Check if the parent class has a constructor
+        constructors = clazz.get.parentClassRefs.flatMap { ref =>
+          lookupConstructor(ref.target, location)
+        }
+        if (constructors.isEmpty) {
+          error(s"Undefined constructor ${clazz.get.name}", location)
+        }
       }
       constructors.headOption
     }

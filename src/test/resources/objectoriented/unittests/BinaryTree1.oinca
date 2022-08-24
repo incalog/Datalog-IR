@@ -5,7 +5,7 @@ class Node {
 	var right: Node = null
 	var data: Int
 	
-	def this(data: Int): Node = {
+	def this(data: Int) = {
         this.data = data
         return this
     }

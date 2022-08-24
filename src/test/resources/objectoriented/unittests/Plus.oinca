@@ -1,7 +1,7 @@
 module Plus
 
 class Nat {
-    def this(): Nat = {
+    def this() = {
         return this
     }
 
@@ -20,10 +20,6 @@ class Nat {
 }
 
 class Zero extends Nat {
-    def this(): Zero = {
-        return this
-    }
-
     @override
     def add(n: Nat): Nat = {
         return n
@@ -33,7 +29,7 @@ class Zero extends Nat {
 class Succ extends Nat {
     val pred: Nat
 
-    def this(pred: Nat): Succ = {
+    def this(pred: Nat) = {
         this.pred = pred
         return this
     }
