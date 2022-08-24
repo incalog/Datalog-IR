@@ -51,9 +51,10 @@ case class CompiledFunctionalModule(fun: Module, options: FunctionalOptions) ext
   }
 
   lazy val ir: Datalog.Module = {
+    println()
     val module = new GenerateDatalog(coreModule).transModule()
-    //println(s"Intermediate Representation")
-    //println(module)
+    println(s"Intermediate Representation")
+    println(module)
     if (CompilerFlags.DEBUGMODE) {
       println(s"Intermediate Representation")
       println(module)
@@ -63,6 +64,8 @@ case class CompiledFunctionalModule(fun: Module, options: FunctionalOptions) ext
 
   lazy val dataModel: DataModel = {
     val res = new GenerateDataModel(coreModule).transModule()
+    println(s"Data model")
+    println(res)
     res
   }
 }

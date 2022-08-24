@@ -18,8 +18,28 @@ class ParserTest extends AnyFunSuite {
     testSuccessAny(parser.module)(code)
   }
 
+  test("Base 1") {
+    val code = FileUtil.readFile("objectoriented/unittests/Base1.oinca")
+    testSuccessAny(parser.module)(code)
+  }
+
+  test("Base 2") {
+    val code = FileUtil.readFile("objectoriented/unittests/Base2.oinca")
+    testSuccessAny(parser.module)(code)
+  }
+
+  test("Base 3") {
+    val code = FileUtil.readFile("objectoriented/unittests/Base3.oinca")
+    testSuccessAny(parser.module)(code)
+  }
+
   test("BinaryTree") {
     val code = FileUtil.readFile("objectoriented/unittests/BinaryTree2.oinca")
+    testSuccessAny(parser.module)(code)
+  }
+
+  test("Plus") {
+    val code = FileUtil.readFile("objectoriented/unittests/Plus.oinca")
     testSuccessAny(parser.module)(code)
   }
 
@@ -30,9 +50,9 @@ class ParserTest extends AnyFunSuite {
            println(module)
 
            // Copy the dot graph to the clipboard for debugging
-           val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
+           /*val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
            val selection = new StringSelection(module.dotString)
-           clipboard.setContents(selection, selection)
+           clipboard.setContents(selection, selection)*/
 
            println()
            println("Remaining: ")

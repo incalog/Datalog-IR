@@ -1,0 +1,45 @@
+module Plus
+
+class Nat {
+    def this(): Nat = {
+        return this
+    }
+
+    def succ(): Nat = {
+        return new Succ(this)
+    }
+
+    def add(n: Nat): Nat = { }
+
+    @main
+    def main(): Nat = {
+        val first: Nat = (new Zero()).succ().succ().succ()
+        val second: Nat = (new Zero()).succ().succ()
+        return first.add(second)
+    }
+}
+
+class Zero extends Nat {
+    def this(): Zero = {
+        return this
+    }
+
+    @override
+    def add(n: Nat): Nat = {
+        return n
+    }
+}
+
+class Succ extends Nat {
+    val pred: Nat
+
+    def this(pred: Nat): Succ = {
+        this.pred = pred
+        return this
+    }
+
+    @override
+    def add(n: Nat): Nat = {
+        return new Succ(this.pred.add(n))
+    }
+}

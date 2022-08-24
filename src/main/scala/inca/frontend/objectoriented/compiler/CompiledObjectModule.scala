@@ -4,6 +4,7 @@ import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.Name
 import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
 import inca.frontend.objectoriented.core.Module
+import inca.frontend.objectoriented.lowering.{GenerateDataModel, GenerateDatalog}
 import inca.frontend.objectoriented.typechecker.Typechecker
 import inca.runtime.context.DataModel
 
@@ -36,8 +37,9 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
     module
   }*/
 
-  /*lazy val coreModule: Module = {
-    val module = new Defunctionalize(monoModule).transModule()
+  lazy val coreModule: Module = {
+    typed
+    /*val module = new Defunctionalize(monoModule).transModule()
     typer.typecheck(module)
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
@@ -46,12 +48,10 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
       println(s"Core Module")
       println(module)
     }
-    module
-  }*/
+    module*/
+  }
 
   lazy val ir: Datalog.Module = {
-    ???
-    /*
     val module = new GenerateDatalog(coreModule).transModule()
     //println(s"Intermediate Representation")
     //println(module)
@@ -59,12 +59,11 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
       println(s"Intermediate Representation")
       println(module)
     }
-    module*/
+    module
   }
 
   lazy val dataModel: DataModel = {
-    //val res = new GenerateDataModel(coreModule).transModule()
-    //res
-    ???
+    val res = new GenerateDataModel(coreModule).transModule()
+    res
   }
 }

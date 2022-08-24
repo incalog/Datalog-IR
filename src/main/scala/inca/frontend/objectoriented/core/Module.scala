@@ -3,8 +3,7 @@ package inca.frontend.objectoriented.core
 import inca.compiler.SourceLocation
 import inca.frontend.util.Resolvable
 
-import java.util.Objects.hash
-import java.util.UUID
+import scala.language.postfixOps
 
 case class Module(name: Name, imports: Seq[Import], classes: Seq[ClassDef])
   extends SourceLocation with Import.Target {

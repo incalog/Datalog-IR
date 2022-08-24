@@ -50,13 +50,20 @@ trait TypeContext extends TypeIO {
 
   def lookupMethod(clazz: Option[ClassDef], name: Name): Option[MethodDef] = {
     if (clazz.isEmpty) {
+      clazz.get
       error(s"Undefined class in method lookup", name)
       None
     } else {
       val defs = clazz.get.contentMap.get(name)
-      val methods = defs.map(_.collect({ case fd: MethodDef => fd })).getOrElse(Seq())
+      var methods = defs.map(_.collect({ case fd: MethodDef => fd })).getOrElse(Seq())
       if (methods.isEmpty) {
-        error(s"Undefined method ${clazz.get.name}.$name", name)
+        // Check if the method is inherited from a parent class
+        methods = clazz.get.parentClassRefs.flatMap { ref =>
+          lookupMethod(ref.target, name)
+        }
+        if (methods.isEmpty) {
+          error(s"Undefined method ${clazz.get.name}.$name", name)
+        }
       }
       methods.headOption
     }

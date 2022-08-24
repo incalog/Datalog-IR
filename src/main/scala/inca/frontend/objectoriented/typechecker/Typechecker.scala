@@ -25,6 +25,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     // bind symbols first
     module.classes.foreach(bindClass(_, module))
 
+    // resolve all parent class refs before typechecking any and thereby check the inheritance
+    module.classes.foreach(_.parentClassRefs.foreach(lookupClassRef))
+
     // type scala top-level definitions
     typecheckTopLevelObject()
 
@@ -32,9 +35,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   }
 
   def typecheck(classDef: ClassDef): Unit = {
-    // check inheritance
-    classDef.parentClassRefs.foreach(lookupClassRef)
-
     classDef.contentMap.foreach { case (_, cs) =>
       if (cs.size > 1)
         error(s"Ambiguous names in class ${classDef.name}", cs:_*)
@@ -155,9 +155,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case (TNull, TClass(_)) => true
     case (TClass(name1), TClass(name2)) if name1 == name2 => true
     case (TClass(name1), TClass(_)) =>
-      // we assume the target is resolved if we call subtype
+      // we don't know if all targets have been resolved, but we assume that at least ty1.classRef target is resolved
       val parents = name1.target.get.parentClassRefs
-      parents.exists(parent => if (parent.target.isDefined) subtype(parent.target.get.typ, ty2) else false)
+      parents.exists { parent => if (parent.target.isDefined) subtype(parent.target.get.typ, ty2) else false }
     case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
       tys1.zip(tys2).forall(tt => subtype(tt._1, tt._2))
     case (TScala(s1), TScala(s2)) =>
@@ -207,7 +207,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       }
     case fieldReadExpr@FieldReadExpr(recv, targetName) =>
       typecheck(recv) match {
-        case TClass(ref) => lookupField(ref.target, targetName) match {
+        case TClass(ref) => lookupField(lookupClassRef(ref), targetName) match {
           case Some(field) =>
             resolveTarget(fieldReadExpr)(field)
             field.typ
@@ -236,7 +236,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       }
     case methodCallExpr@MethodCallExpr(recv, fun, args) =>
       typecheck(recv) match {
-        case TClass(ref) => lookupMethod(ref.target, fun) match {
+        case TClass(ref) =>
+          // We can call methods on instances of classes we might no have yet resolved
+          lookupMethod(lookupClassRef(ref), fun) match {
           case None => TAny
           case Some(methodDef) =>
             if (methodDef.params.size != args.size) {

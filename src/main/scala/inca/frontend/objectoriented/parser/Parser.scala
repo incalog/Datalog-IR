@@ -212,7 +212,9 @@ trait Parser {
   protected[frontend] lazy val nestedAccessExpr: P[Expression] = {
     // (someVar | someConstructor | `someBaseLit` | `someBaseApply`(...)).(attr | `baseApplyMethod`)
     // (someVar | someConstructor | `someBaseLit` | `someBaseApply`(...)).(someMethod(...) | baseApplyMethod`(...))
-    ((constructorExpr | variableReadExpr | baseLitExpr | baseApplyExpr)
+    // TODO: Would be nice if we could set arbitrary parenthese such as ((a.b).c)
+    val startExpr = (constructorExpr | variableReadExpr | baseLitExpr | baseApplyExpr)
+    ((startExpr | inParentheses(startExpr).backtrack)
       ~ (op('.') *> (variable | call | baseApplyMethod)).rep0)
       .mapWithLoc { case (startExpr, pathIdentifiers) =>
         pathIdentifiers.foldLeft(startExpr) { case (prev, current) =>
