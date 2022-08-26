@@ -152,10 +152,10 @@ class Verifier {
     val calledFunctions: Seq[String] = (Seq(funcName) ++ additionalFuncs).flatMap(fname => collectCalledFunctions(getFunctionDef(fname)))
     val functions = (calledFunctions ++ additionalFuncs :+ funcName).distinct
     val dataDefs = functions.flatMap(fName => collectUsedDataDefs(getFunctionDef(fName))).distinct
-    val transDataDefs = dataDefs.map(transDataDef)
+    val transData = transDataDefs(dataDefs)
     val transFuncDefs = transFunctionDefs(functions)
     val transProps = props.map(transProperty(_, funcName))
-    makeScript(transDataDefs ++ Seq(transFuncDefs) ++ transProps)
+    makeScript(Seq(transData) ++ Seq(transFuncDefs) ++ transProps)
   }
 
   // Die Funktion gibt hygienische Namen zurück
@@ -209,18 +209,20 @@ class Verifier {
   }
 
   // Es wird angenommen, dass der Funktion der hygienische Name übergeben wird
-  def transDataDef(dataName: String)(implicit gensym: Gensym): Script = {
-    val data = getDataDef(dataName)
-    val invariantScripts = data.annos.flatMap{
-      case InvariantAnno(invariantNames) =>
-        val hygienicNames = invariantNames.map(getHygienicName)
-        Seq(generateInvariantsScript(hygienicNames, dataName))
-      // case PartialOrderAnnotation(relName) => verifyPartialOrder(relName, dataName)
-      case _ => Seq()
-    }
-    val transConstrs = data.constrs.map(transDataConstructor)
+  def transDataDefs(dataNames: Seq[String])(implicit gensym: Gensym): Script = {
+    val dataDecs = dataNames.map { dataName =>
+      val data = getDataDef(dataName)
+      val invariantScripts = data.annos.flatMap {
+        case InvariantAnno(invariantNames) =>
+          val hygienicNames = invariantNames.map(getHygienicName)
+          Seq(generateInvariantsScript(hygienicNames, dataName))
+        case _ => Seq()
+      }
+      val transConstrs = data.constrs.map(transDataConstructor)
+      ((SSymbol(dataName), transConstrs), invariantScripts)
+  }
     makeScript(Seq(
-      Script(List(DeclareDatatypes(Seq((SSymbol(dataName), transConstrs)))))) ++ invariantScripts)
+      Script(List(DeclareDatatypes(dataDecs.map(_._1))))) ++ dataDecs.flatMap(_._2))
   }
 
   def transDataConstructor(c: DataConstructor)(implicit gensym: Gensym): Constructor = {
@@ -258,9 +260,9 @@ class Verifier {
       verificationResponses.getOrElse(getOriginalName(relName), {
         val functions = (collectCalledFunctions(getFunctionDef(relName)) :+ relName).distinct
         val dataDefs = functions.flatMap(fName => collectUsedDataDefs(getFunctionDef(fName))).distinct
-        val transDataDefs = dataDefs.map(transDataDef)
+        val transData = transDataDefs(dataDefs)
         val transFuncDefs = transFunctionDefs(functions)
-        val partialOrderVerScript = makeScript(transDataDefs ++ Seq(transFuncDefs,
+        val partialOrderVerScript = makeScript(Seq(transData) ++ Seq(transFuncDefs,
           gensym.scoped {SMTlibScripts.reflexivity(relName, dataName, dataInvariants.getOrElse(dataName, Seq()).toSeq)},
           gensym.scoped {SMTlibScripts.transitivity(relName, dataName, dataInvariants.getOrElse(dataName, Seq()).toSeq)},
           gensym.scoped {SMTlibScripts.antisymmetry(relName, dataName, dataInvariants.getOrElse(dataName, Seq()).toSeq)}))
