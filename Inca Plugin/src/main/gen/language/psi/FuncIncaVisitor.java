@@ -139,6 +139,10 @@ public class FuncIncaVisitor extends PsiElementVisitor {
     visitPsiElement(o);
   }
 
+  public void visitParamType(@NotNull FuncIncaParamType o) {
+    visitPsiElement(o);
+  }
+
   public void visitParamTypes(@NotNull FuncIncaParamTypes o) {
     visitPsiElement(o);
   }
@@ -172,6 +176,10 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitVar(@NotNull FuncIncaVar o) {
+    visitPsiElement(o);
+  }
+
+  public void visitVarId(@NotNull FuncIncaVarId o) {
     visitPsiElement(o);
   }
 

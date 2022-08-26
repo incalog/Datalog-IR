@@ -13,16 +13,4 @@ public interface FuncIncaLetExp extends PsiElement {
   @Nullable
   FuncIncaSingleLet getSingleLet();
 
-  //WARNING: getValue(...) is skipped
-  //matching getValue(FuncIncaLetExp, ...)
-  //methods are not found in FuncIncaPsiImplUtil
-
-  //WARNING: getName(...) is skipped
-  //matching getName(FuncIncaLetExp, ...)
-  //methods are not found in FuncIncaPsiImplUtil
-
-  //WARNING: getBody(...) is skipped
-  //matching getBody(FuncIncaLetExp, ...)
-  //methods are not found in FuncIncaPsiImplUtil
-
 }

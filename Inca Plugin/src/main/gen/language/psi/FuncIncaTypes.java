@@ -41,6 +41,7 @@ public interface FuncIncaTypes {
   IElementType OPTION_EXP = new FuncIncaElementType("OPTION_EXP");
   IElementType OPTION_PATTERN = new FuncIncaElementType("OPTION_PATTERN");
   IElementType PARAM = new FuncIncaElementType("PARAM");
+  IElementType PARAM_TYPE = new FuncIncaElementType("PARAM_TYPE");
   IElementType PARAM_TYPES = new FuncIncaElementType("PARAM_TYPES");
   IElementType PARENS_EXP = new FuncIncaElementType("PARENS_EXP");
   IElementType SET = new FuncIncaElementType("SET");
@@ -50,6 +51,7 @@ public interface FuncIncaTypes {
   IElementType TUPLE_EXP = new FuncIncaElementType("TUPLE_EXP");
   IElementType TYPE_NAME = new FuncIncaElementType("TYPE_NAME");
   IElementType VAR = new FuncIncaElementType("VAR");
+  IElementType VAR_ID = new FuncIncaElementType("VAR_ID");
   IElementType VISIBILITY = new FuncIncaElementType("VISIBILITY");
 
   IElementType AND = new FuncIncaTokenType("&&");
@@ -91,6 +93,7 @@ public interface FuncIncaTypes {
   IElementType KEYWORD_SET = new FuncIncaTokenType("Set");
   IElementType KEYWORD_SOME = new FuncIncaTokenType("Some");
   IElementType LEQ = new FuncIncaTokenType("<=");
+  IElementType LET_ID = new FuncIncaTokenType("let_id");
   IElementType LONG = new FuncIncaTokenType("long");
   IElementType LT = new FuncIncaTokenType("<");
   IElementType MINUS = new FuncIncaTokenType("-");
@@ -217,6 +220,9 @@ public interface FuncIncaTypes {
       else if (type == PARAM) {
         return new FuncIncaParamImpl(node);
       }
+      else if (type == PARAM_TYPE) {
+        return new FuncIncaParamTypeImpl(node);
+      }
       else if (type == PARAM_TYPES) {
         return new FuncIncaParamTypesImpl(node);
       }
@@ -243,6 +249,9 @@ public interface FuncIncaTypes {
       }
       else if (type == VAR) {
         return new FuncIncaVarImpl(node);
+      }
+      else if (type == VAR_ID) {
+        return new FuncIncaVarIdImpl(node);
       }
       else if (type == VISIBILITY) {
         return new FuncIncaVisibilityImpl(node);

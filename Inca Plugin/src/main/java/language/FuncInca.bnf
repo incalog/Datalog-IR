@@ -86,15 +86,9 @@
     comment = "regexp:(//.*)|(/\*(.|\n)*\*/)"
     ]
 
-  methods("id|var")=[getName setName getNameIdentifier]
-
-  methods("fun_def|param_types|data_def|data_constructor|single_let|multiple_let")=[getName setName getNameIdentifier]
-
-  methods("numeric_lit|boolean_lit|string_lit")=[getValue]
-
-  methods("let_exp")=[getValue getName getBody]
-
-  methods("import|fun_def|data_def")=[getModuleName]
+  methods("param|import|fun_def|param_type|data_def|data_constructor|var_id")=[getName setName getNameIdentifier]
+  implements("param|import|fun_def|param_type|data_def|data_constructor|var_id")="language.psi.FuncIncaNamedElement"
+  mixin("param|import|fun_def|param_type|data_def|data_constructor|var_id")="language.psi.FuncIncaNamedElementImpl"
 
 }
 
@@ -109,7 +103,8 @@ private keywords_recover ::= !('module' | 'data' | 'def' | 'if' | 'else' | 'let'
 
 // definition of functions
 fun_def ::= annotation* visibility? keyword_def id param_types? ('(' param_list ')')? ':' type_annotation '=' exp {pin = 3}
-param_types ::= '[' id (',' id)* ']'
+param_types ::= '[' param_type (',' param_type)* ']'
+param_type ::= id
 private param_list ::= (param (',' param)*)?
 param ::= id ':' type_annotation
 annotation ::= '@main'
@@ -123,8 +118,9 @@ data_constructor ::= id '(' (type_annotation (',' type_annotation)*)? ')'
 exp ::= if_exp | let_exp | member_exp | infix_exp
 if_exp ::= keyword_if '(' exp ')' exp keyword_else exp {pin = 1}
 let_exp ::= keyword_let (single_let | multiple_let) {pin = 1}
-single_let ::= id (':' type_annotation)? '=' infix_exp keyword_in exp
-multiple_let ::= '(' id (':' type_annotation)? (',' id (':' type_annotation)?)* ')' '=' infix_exp keyword_in exp
+single_let ::= var_id (':' type_annotation)? '=' infix_exp keyword_in exp
+multiple_let ::= '(' var_id (':' type_annotation)? (',' let_id (':' type_annotation)?)* ')' '=' infix_exp keyword_in exp
+var_id ::= id
 member_exp ::= atomic_exp keyword_not? keyword_in infix_exp {pin = 3}
 
 //infix expressions

@@ -13,8 +13,4 @@ public interface FuncIncaSet extends PsiElement {
   @Nullable
   FuncIncaFunType getFunType();
 
-  //WARNING: getType(...) is skipped
-  //matching getType(FuncIncaSet, ...)
-  //methods are not found in FuncIncaPsiImplUtil
-
 }

@@ -45,4 +45,19 @@ public class FuncIncaDataConstructorImpl extends ASTWrapperPsiElement implements
     return findNotNullChildByType(ID);
   }
 
+  @Override
+  public String getName() {
+    return FuncIncaPsiImplUtil.getName(this);
+  }
+
+  @Override
+  public PsiElement setName(String newName) {
+    return FuncIncaPsiImplUtil.setName(this, newName);
+  }
+
+  @Override
+  public PsiElement getNameIdentifier() {
+    return FuncIncaPsiImplUtil.getNameIdentifier(this);
+  }
+
 }

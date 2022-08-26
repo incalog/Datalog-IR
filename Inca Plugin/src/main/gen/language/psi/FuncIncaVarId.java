@@ -5,27 +5,21 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FuncIncaParam extends PsiElement {
-
-  @Nullable
-  FuncIncaAtomicType getAtomicType();
-
-  @Nullable
-  FuncIncaFunType getFunType();
+public interface FuncIncaVarId extends PsiElement {
 
   @NotNull
   PsiElement getId();
 
   //WARNING: getName(...) is skipped
-  //matching getName(FuncIncaParam, ...)
+  //matching getName(FuncIncaVarId, ...)
   //methods are not found in FuncIncaPsiImplUtil
 
   //WARNING: setName(...) is skipped
-  //matching setName(FuncIncaParam, ...)
+  //matching setName(FuncIncaVarId, ...)
   //methods are not found in FuncIncaPsiImplUtil
 
   //WARNING: getNameIdentifier(...) is skipped
-  //matching getNameIdentifier(FuncIncaParam, ...)
+  //matching getNameIdentifier(FuncIncaVarId, ...)
   //methods are not found in FuncIncaPsiImplUtil
 
 }

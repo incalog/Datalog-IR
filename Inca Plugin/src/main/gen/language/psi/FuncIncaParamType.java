@@ -5,13 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FuncIncaDataConstructor extends PsiElement {
-
-  @NotNull
-  List<FuncIncaAtomicType> getAtomicTypeList();
-
-  @NotNull
-  List<FuncIncaFunType> getFunTypeList();
+public interface FuncIncaParamType extends PsiElement {
 
   @NotNull
   PsiElement getId();

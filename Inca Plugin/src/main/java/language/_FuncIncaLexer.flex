@@ -93,6 +93,7 @@ COMMENT=("//".*)|("/"\*(.|\n)*\*"/")
   "|"                { return BAR; }
   "@main"            { return ANNOTATION_MAIN; }
   "private"          { return VISIBILITY_PRIVATE; }
+  "let_id"           { return LET_ID; }
 
   {SPACE}            { return SPACE; }
   {ID}               { return ID; }

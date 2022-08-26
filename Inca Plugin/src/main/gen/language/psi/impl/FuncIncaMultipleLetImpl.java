@@ -154,6 +154,12 @@ public class FuncIncaMultipleLetImpl extends ASTWrapperPsiElement implements Fun
   }
 
   @Override
+  @NotNull
+  public FuncIncaVarId getVarId() {
+    return findNotNullChildByClass(FuncIncaVarId.class);
+  }
+
+  @Override
   @Nullable
   public PsiElement getScalaTerm() {
     return findChildByType(SCALA_TERM);

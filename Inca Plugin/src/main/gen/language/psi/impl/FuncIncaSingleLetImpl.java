@@ -155,8 +155,8 @@ public class FuncIncaSingleLetImpl extends ASTWrapperPsiElement implements FuncI
 
   @Override
   @NotNull
-  public PsiElement getId() {
-    return findNotNullChildByType(ID);
+  public FuncIncaVarId getVarId() {
+    return findNotNullChildByClass(FuncIncaVarId.class);
   }
 
   @Override

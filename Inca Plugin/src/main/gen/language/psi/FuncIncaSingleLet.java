@@ -71,7 +71,7 @@ public interface FuncIncaSingleLet extends PsiElement {
   FuncIncaVar getVar();
 
   @NotNull
-  PsiElement getId();
+  FuncIncaVarId getVarId();
 
   @Nullable
   PsiElement getScalaTerm();

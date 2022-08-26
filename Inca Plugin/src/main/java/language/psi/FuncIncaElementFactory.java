@@ -4,25 +4,22 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
 import language.FuncIncaFileType;
 
-import java.util.*;
-
 public class FuncIncaElementFactory {
     /*
     * Methods take a name and return a PSI node with that name or null
     * */
-    public static FuncIncaVar createVar(Project project, String name){
-        FuncIncaFile file = createFileFromText(project, name);
-        return (FuncIncaVar) file.getFirstChild();
+    public static FuncIncaImport createImport(Project project, String name){
+        return ((FuncIncaImport) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
     }
 
     public static FuncIncaFunDef createFunDef(Project project, String name){
         return ((FuncIncaFunDef) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
     }
-/*
-    public static FuncIncaParamTypes createParamTypes(Project project, List<String> name){
-        ???
+
+    public static FuncIncaParamType createParamType(Project project, String name){
+        return ((FuncIncaParamType) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
     }
-*/
+
     public static FuncIncaDataDef createDataDef(Project project, String name){
         return ((FuncIncaDataDef) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
     }
@@ -31,15 +28,11 @@ public class FuncIncaElementFactory {
         return ((FuncIncaDataConstructor) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
     }
 
-    public static FuncIncaSingleLet createSingleLet(Project project, String name){
-        return ((FuncIncaSingleLet) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
+    public static FuncIncaVarId createVarId(Project project, String name){
+        return ((FuncIncaVarId) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
     }
-/*
-    public static FuncIncaMultipleLet createMultipleLet(Project project, String name){
 
-    }
-*/
-    // ??????
+    // TODO zweck dieser methoden?
     public static PsiElement createExpressionFromText(Project project, String name) {
         FuncIncaFile fileFromText = createFileFromText(project, name);
         PsiElement rhs = fileFromText.getFirstChild().getFirstChild().getLastChild();

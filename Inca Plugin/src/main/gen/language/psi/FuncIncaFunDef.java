@@ -31,8 +31,10 @@ public interface FuncIncaFunDef extends PsiElement {
   @Nullable
   PsiElement getId();
 
-  //WARNING: getModuleName(...) is skipped
-  //matching getModuleName(FuncIncaFunDef, ...)
-  //methods are not found in FuncIncaPsiImplUtil
+  String getName();
+
+  PsiElement setName(String newName);
+
+  PsiElement getNameIdentifier();
 
 }

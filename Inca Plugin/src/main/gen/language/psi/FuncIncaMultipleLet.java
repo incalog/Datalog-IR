@@ -70,6 +70,9 @@ public interface FuncIncaMultipleLet extends PsiElement {
   @Nullable
   FuncIncaVar getVar();
 
+  @NotNull
+  FuncIncaVarId getVarId();
+
   @Nullable
   PsiElement getScalaTerm();
 
