@@ -5,21 +5,15 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FuncIncaVarId extends PsiElement {
+public interface FuncIncaVarId extends FuncIncaNamedElement {
 
   @NotNull
   PsiElement getId();
 
-  //WARNING: getName(...) is skipped
-  //matching getName(FuncIncaVarId, ...)
-  //methods are not found in FuncIncaPsiImplUtil
+  String getName();
 
-  //WARNING: setName(...) is skipped
-  //matching setName(FuncIncaVarId, ...)
-  //methods are not found in FuncIncaPsiImplUtil
+  PsiElement setName(String newName);
 
-  //WARNING: getNameIdentifier(...) is skipped
-  //matching getNameIdentifier(FuncIncaVarId, ...)
-  //methods are not found in FuncIncaPsiImplUtil
+  PsiElement getNameIdentifier();
 
 }

@@ -60,11 +60,11 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitDataConstructor(@NotNull FuncIncaDataConstructor o) {
-    visitPsiElement(o);
+    visitNamedElement(o);
   }
 
   public void visitDataDef(@NotNull FuncIncaDataDef o) {
-    visitPsiElement(o);
+    visitNamedElement(o);
   }
 
   public void visitExp(@NotNull FuncIncaExp o) {
@@ -76,7 +76,7 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitFunDef(@NotNull FuncIncaFunDef o) {
-    visitPsiElement(o);
+    visitNamedElement(o);
   }
 
   public void visitFunType(@NotNull FuncIncaFunType o) {
@@ -88,7 +88,7 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitImport(@NotNull FuncIncaImport o) {
-    visitPsiElement(o);
+    visitNamedElement(o);
   }
 
   public void visitLambdaExp(@NotNull FuncIncaLambdaExp o) {
@@ -136,11 +136,11 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitParam(@NotNull FuncIncaParam o) {
-    visitPsiElement(o);
+    visitNamedElement(o);
   }
 
   public void visitParamType(@NotNull FuncIncaParamType o) {
-    visitPsiElement(o);
+    visitNamedElement(o);
   }
 
   public void visitParamTypes(@NotNull FuncIncaParamTypes o) {
@@ -180,10 +180,14 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitVarId(@NotNull FuncIncaVarId o) {
-    visitPsiElement(o);
+    visitNamedElement(o);
   }
 
   public void visitVisibility(@NotNull FuncIncaVisibility o) {
+    visitPsiElement(o);
+  }
+
+  public void visitNamedElement(@NotNull FuncIncaNamedElement o) {
     visitPsiElement(o);
   }
 

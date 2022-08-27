@@ -119,7 +119,7 @@ exp ::= if_exp | let_exp | member_exp | infix_exp
 if_exp ::= keyword_if '(' exp ')' exp keyword_else exp {pin = 1}
 let_exp ::= keyword_let (single_let | multiple_let) {pin = 1}
 single_let ::= var_id (':' type_annotation)? '=' infix_exp keyword_in exp
-multiple_let ::= '(' var_id (':' type_annotation)? (',' let_id (':' type_annotation)?)* ')' '=' infix_exp keyword_in exp
+multiple_let ::= '(' var_id (':' type_annotation)? (',' var_id (':' type_annotation)?)* ')' '=' infix_exp keyword_in exp
 var_id ::= id
 member_exp ::= atomic_exp keyword_not? keyword_in infix_exp {pin = 3}
 

@@ -155,8 +155,8 @@ public class FuncIncaMultipleLetImpl extends ASTWrapperPsiElement implements Fun
 
   @Override
   @NotNull
-  public FuncIncaVarId getVarId() {
-    return findNotNullChildByClass(FuncIncaVarId.class);
+  public List<FuncIncaVarId> getVarIdList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaVarId.class);
   }
 
   @Override

@@ -93,7 +93,6 @@ public interface FuncIncaTypes {
   IElementType KEYWORD_SET = new FuncIncaTokenType("Set");
   IElementType KEYWORD_SOME = new FuncIncaTokenType("Some");
   IElementType LEQ = new FuncIncaTokenType("<=");
-  IElementType LET_ID = new FuncIncaTokenType("let_id");
   IElementType LONG = new FuncIncaTokenType("long");
   IElementType LT = new FuncIncaTokenType("<");
   IElementType MINUS = new FuncIncaTokenType("-");

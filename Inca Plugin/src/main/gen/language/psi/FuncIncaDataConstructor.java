@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FuncIncaDataConstructor extends PsiElement {
+public interface FuncIncaDataConstructor extends FuncIncaNamedElement {
 
   @NotNull
   List<FuncIncaAtomicType> getAtomicTypeList();

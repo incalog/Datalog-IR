@@ -8,12 +8,12 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
+import language.psi.FuncIncaNamedElementImpl;
 import language.psi.*;
 
-public class FuncIncaParamImpl extends ASTWrapperPsiElement implements FuncIncaParam {
+public class FuncIncaParamImpl extends FuncIncaNamedElementImpl implements FuncIncaParam {
 
-  public FuncIncaParamImpl(@NotNull ASTNode node) {
+  public FuncIncaParamImpl(ASTNode node) {
     super(node);
   }
 
