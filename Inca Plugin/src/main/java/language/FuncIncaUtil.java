@@ -1,13 +1,12 @@
 package language;
 
 import com.google.common.collect.Lists;
+import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.*;
+import com.intellij.psi.search.FileTypeIndex;
 import language.psi.*;
 import com.intellij.lang.ASTNode;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiElementResolveResult;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.PsiNamedElement;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.util.ArrayUtil;
@@ -23,13 +22,13 @@ import java.util.*;
 public class FuncIncaUtil {
 
     /**
-    * finds the definition of functions with name in a module
+    * finds the definition of Named Elements with name in a project
     */
-    public static List<FuncIncaFunDef> findFunDefs(@NotNull Project project, @Nullable String name){
-        List<FuncIncaFunDef> res = new ArrayList<>();
+    public static List<PsiNamedElement> findFunDefs(@NotNull Project project, @Nullable FuncIncaFile f, @Nullable String name){
+        List<PsiNamedElement> res = new ArrayList<>();
+        Collection<VirtualFile> virtualFiles = FileTypeIndex.getFiles(FuncIncaFileType.INSTANCE, GlobalSearchScope.projectScope(project));
         return res;
     }
-
 
 
 }

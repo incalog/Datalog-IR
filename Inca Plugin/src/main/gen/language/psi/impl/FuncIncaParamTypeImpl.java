@@ -8,12 +8,11 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
-import language.psi.FuncIncaNamedElementImpl;
 import language.psi.*;
 
 public class FuncIncaParamTypeImpl extends FuncIncaNamedElementImpl implements FuncIncaParamType {
 
-  public FuncIncaParamTypeImpl(ASTNode node) {
+  public FuncIncaParamTypeImpl(@NotNull ASTNode node) {
     super(node);
   }
 

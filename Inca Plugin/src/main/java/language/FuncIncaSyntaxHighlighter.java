@@ -46,8 +46,11 @@ public class FuncIncaSyntaxHighlighter extends SyntaxHighlighterBase {
     public static final TextAttributesKey DOUBLE
             = TextAttributesKey.createTextAttributesKey("INCA_DOUBLE", DefaultLanguageHighlighterColors.NUMBER);
 
+    public static final TextAttributesKey LONG
+            = TextAttributesKey.createTextAttributesKey("INCA_DOUBLE", DefaultLanguageHighlighterColors.NUMBER);
+
     public static final TextAttributesKey STRING
-            = TextAttributesKey.createTextAttributesKey("HS_STRING", DefaultLanguageHighlighterColors.STRING);
+            = TextAttributesKey.createTextAttributesKey("INCA_STRING", DefaultLanguageHighlighterColors.STRING);
 
     public static final TextAttributesKey OPSYM
             = TextAttributesKey.createTextAttributesKey("INCA_OPSYM", DefaultLanguageHighlighterColors.OPERATION_SIGN);
@@ -57,6 +60,12 @@ public class FuncIncaSyntaxHighlighter extends SyntaxHighlighterBase {
 
     public static final TextAttributesKey MAINANNOTATION
             = TextAttributesKey.createTextAttributesKey("INCA_MAIN_ANNOTATION", DefaultLanguageHighlighterColors.METADATA);
+
+    public static final TextAttributesKey PARAMETER
+            = TextAttributesKey.createTextAttributesKey("INCA_PARAMETER", DefaultLanguageHighlighterColors.PARAMETER);
+
+    public static final TextAttributesKey FUNCALL
+            = TextAttributesKey.createTextAttributesKey("INCA_FUNCTION_CALL", DefaultLanguageHighlighterColors.FUNCTION_CALL);
 
     /**
      * Helper to point multiple token types to a single color.
@@ -83,7 +92,6 @@ public class FuncIncaSyntaxHighlighter extends SyntaxHighlighterBase {
                         FuncIncaTypes.KEYWORD_DEF,
                         FuncIncaTypes.KEYWORD_ELSE,
                         FuncIncaTypes.KEYWORD_FAIL,
-                        FuncIncaTypes.KEYWORD_FOLD,
                         FuncIncaTypes.KEYWORD_IF,
                         FuncIncaTypes.KEYWORD_IMPORT,
                         FuncIncaTypes.KEYWORD_IN,
@@ -126,6 +134,8 @@ public class FuncIncaSyntaxHighlighter extends SyntaxHighlighterBase {
         keysPutEach(Arrays.asList(FuncIncaTypes.DOUBLE), DOUBLE);
 
         keysPutEach(Arrays.asList(FuncIncaTypes.QUOTATION_MARK, FuncIncaTypes.STRING), STRING);
+
+        keysPutEach(Arrays.asList(FuncIncaTypes.KEYWORD_FOLD), FUNCALL);
 
         keysPutEach(
                 Arrays.asList(

@@ -27,6 +27,8 @@
                 implementationClass="language.FuncIncaSyntaxHighlighterFactory"/>
         <colorSettingsPage
                 implementation="language.FuncIncaColorSettingsPage"/>
+        <annotator
+                implementationClass="language.FuncIncaAnnotator"/>
     </extensions>
 
     <actions>
