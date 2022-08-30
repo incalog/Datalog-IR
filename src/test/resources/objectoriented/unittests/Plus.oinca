@@ -9,17 +9,37 @@ class Nat {
         return new Succ(this)
     }
 
-    def add(n: Nat): Nat = { }
+    def add(n: Nat): Nat = {
+        return this
+    }
 
     @main
     def main(): Nat = {
-        val first: Nat = (new Zero()).succ().succ().succ()
-        val second: Nat = (new Zero()).succ().succ()
-        return first.add(second)
+        val a: Int = 1
+
+        val first: Succ = new Succ(new Succ(new Zero()))//.succ().succ().succ()
+        val second: Nat = (new Zero()).succ()//.succ()
+        // Fix this with a typecast
+        //val s: Succ = first.pred
+        //val x: Nat = s.pred
+
+        // Fix this with a typecast
+        //val x: Nat = first.pred.pred
+
+        val x: Nat = first.pred
+
+        /*if (a == 1) {
+            new Succ(x)
+        }*/
+        return x
     }
 }
 
 class Zero extends Nat {
+    def succ(): Nat = {
+        return new Succ(this)
+    }
+
     @override
     def add(n: Nat): Nat = {
         return n
@@ -36,6 +56,6 @@ class Succ extends Nat {
 
     @override
     def add(n: Nat): Nat = {
-        return new Succ(this.pred.add(n))
+        return new Succ(this.pred)
     }
 }

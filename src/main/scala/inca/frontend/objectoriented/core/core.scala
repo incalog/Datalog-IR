@@ -5,8 +5,8 @@ import inca.compiler.SourceLocation
 package object core {
   val TUnit: TTuple = TTuple(Seq.empty)
 
-  case class Name(name: String) extends SourceLocation {
-    override def toString: String = name
+  case class Name(raw: String) extends SourceLocation {
+    override def toString: String = raw
   }
 
   sealed trait Visibility extends SourceLocation {

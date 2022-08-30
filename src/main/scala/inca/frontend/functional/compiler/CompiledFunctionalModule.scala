@@ -2,6 +2,7 @@ package inca.frontend.functional.compiler
 
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.Name
+import inca.backend.ir.util.printer.DatalogPrinter
 import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
 import inca.frontend.functional.core.Module
 import inca.frontend.functional.lowering.{Defunctionalize, GenerateDataModel, GenerateDatalog, Monomorph}
@@ -53,7 +54,12 @@ case class CompiledFunctionalModule(fun: Module, options: FunctionalOptions) ext
   lazy val ir: Datalog.Module = {
     println()
     val module = new GenerateDatalog(coreModule).transModule()
-    println(s"Intermediate Representation")
+    //println(s"Intermediate Representation")
+    //println(module)
+    /*println()
+    println("DatalogPrinter")
+    println(DatalogPrinter.prettyModule(module)(verbose = true))
+    println()*/
     println(module)
     if (CompilerFlags.DEBUGMODE) {
       println(s"Intermediate Representation")
@@ -65,6 +71,7 @@ case class CompiledFunctionalModule(fun: Module, options: FunctionalOptions) ext
   lazy val dataModel: DataModel = {
     val res = new GenerateDataModel(coreModule).transModule()
     println(s"Data model")
+
     println(res)
     res
   }

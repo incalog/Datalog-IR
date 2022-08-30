@@ -1,0 +1,15 @@
+module Plus
+
+class Test {
+    val myVar: Test
+
+    def this() = {
+        return this
+    }
+}
+
+class Test2 {
+    def this(someArg: Test) = {
+
+    }
+}

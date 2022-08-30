@@ -10,6 +10,8 @@ case class Module(name: Name, imports: Seq[Import], classes: Seq[ClassDef])
 
   def usedModuleNames: Seq[Name] = name +: imports.map(_.name)
 
+  def usedDefNames: Seq[Name] = classes.map(_.name)
+
   def prettyprint(implicit indent: String): String = {
     val importsS = if (imports.isEmpty) "" else
       "\n" + imports.map(_.prettyprint).mkString("\n")
@@ -36,6 +38,7 @@ object Import {
 trait ClassContent extends SourceLocation with Annotations {
   def vis: Option[Visibility]
   def prettyprint(implicit indent: String): String
+  var classDef: Option[ClassDef] = None
 }
 
 case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, parentClassRefs: Seq[ClassRef], content: Seq[ClassContent])
@@ -46,6 +49,10 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
     case method: MethodDef => method.name
     case constructor: ConstructorDef => name
   }
+
+  def fields: Seq[FieldDef] = content.collect { case f: FieldDef => f }
+  def methods: Seq[MethodDef] = content.collect { case f: MethodDef => f }
+  def constructors: Seq[ConstructorDef] = content.collect { case f: ConstructorDef => f }
 
   def typ: TClass = {
     val ref = ClassRef(name)
@@ -95,6 +102,8 @@ case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
 
 case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Seq[Statement])
   extends ClassContent {
+
+  def returnsUnit: Boolean = outType == TUnit
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""

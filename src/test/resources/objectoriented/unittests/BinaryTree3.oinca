@@ -1,0 +1,33 @@
+module BinaryTree
+
+class Node {
+    def this() = {
+        return this
+    }
+
+    def isUndefined(): Boolean = {
+        return false
+    }
+}
+
+class UndefinedNode extends Node {
+
+}
+
+class DefinedNode extends Node {
+	var left: Node
+	var right: Node
+	var data: Int
+
+    def this(left: Node, right: Node, data: Int) = {
+        return this
+    }
+
+	@main
+	def main(): Unit = {
+	    val undef: Node = new UndefinedNode()
+	    val root: Node = new DefinedNode(undef, undef, 12)
+	}
+}
+
+

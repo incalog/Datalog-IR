@@ -16,29 +16,39 @@ class GenerateDataModel(module: Module) {
   }
 
   def transModule(): DataModel = {
-    val types = module.classes.map(c => SortType(c.name.name)).toSet
+    val types = module.classes.map(c => SortType(c.name.raw)).toSet
 
     val classMap = module.classes.map(c => c.name -> c).toMap
 
     val classHierachies = module.classes.flatMap { c =>
       getClassHierachy(classMap, ClassRef(c.name)).map { ref =>
-        SortType(c.name.name) -> SortType(ref.name.name)
+        SortType(c.name.raw) -> SortType(ref.name.raw)
       }
     }
 
-    // kidLinks
-    // Should this be: (cls, idx) => field.typ if field.typ.isInstanceOf[TClass]
+    // (cls, idx) => field.typ if field.typ.isInstanceOf[TClass]
+    val kidLinks = module.classes.flatMap { c =>
+      c.content.zipWithIndex.flatMap {
+        case (FieldDef(_, _, _, TClass(ref), _, _), idx) =>
+          Some((c.name.raw, "_" + idx) -> SortType(ref.name.raw))
+        case _ => None
+      }
+    }
 
-    // litLinks
-    // Should this be: (cls, idx) => transType(field.typ) if transType(field.typ) != None
-
-    // TODO: kidLinks, litLinks
+    // (cls, idx) => transType(field.typ) if transType(field.typ) != None
+    val litLinks = module.classes.flatMap { c =>
+      c.content.zipWithIndex.flatMap {
+        case (FieldDef(_, _, _, ty, _, _), idx) if transType(ty).isDefined =>
+          Some((c.name.raw, "_" + idx) -> transType(ty).get)
+        case _ => None
+      }
+    }
 
     new DataModel(
       types,
       MultiDict.from(classHierachies),
-      Map(),
-      Map()
+      Map.from(kidLinks),
+      Map.from(litLinks)
     )
   }
 

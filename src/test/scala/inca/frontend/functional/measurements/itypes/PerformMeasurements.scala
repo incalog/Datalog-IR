@@ -15,10 +15,10 @@ object PerformMeasurements extends scala.App {
   val code = FileUtil.readFile("functional/itypes/TypeChecker.finca")
 
   // generate measurement configs
-  val warmupMeasurments = 10
-  val numMeasurments = 40
+  val warmupMeasurments = 1
+  val numMeasurments = 3
   implicit val timing: Timing = Timing(warmupMeasurments, numMeasurments)
-  val configs = MeasurementConfig.generate(200, warmupMeasurments, numMeasurments)
+  val configs = MeasurementConfig.generate(100, warmupMeasurments, numMeasurments)
 
   // measure initialization times
   val starDependencyConfig = configs.find(_.gen.isInstanceOf[GenerateStarDependencyProg.type]).get
@@ -28,7 +28,9 @@ object PerformMeasurements extends scala.App {
     val prog = config.gen.generate(config.depth)
     val emptyCtx = q"Empty()"
 
+
     val initialTimes = (0 until config.warmupMeasurements + config.numMeasurements).map { _ =>
+
       // load analysis
       val analysis = FunctionalExecutor.loadFunction(code)
 

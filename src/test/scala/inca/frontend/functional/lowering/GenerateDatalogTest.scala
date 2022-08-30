@@ -22,6 +22,7 @@ class GenerateDatalogTest extends AnyFunSuite {
     println(result)
   }
 
+
   test("var example") {
     val code = FileUtil.readFile("functional/unittests/Var.finca")
     val result = Compiler.compileFunctional(code, options).ir

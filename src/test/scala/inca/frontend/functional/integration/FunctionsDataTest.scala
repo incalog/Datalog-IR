@@ -31,6 +31,15 @@ class FunctionsDataTest extends AnyFunSuite {
     assert(fun.execute("main", Seq()) == fun.result(q"20"))
   }
 
+  // TODO: Remove me
+  test("Datatypes") {
+    val code = FileUtil.readFile("functional/unittests/Datatypes2.finca")
+    val fun = loadFunction(code)
+    //fun.execute("main", Seq())
+    //fun.printAllMatches()
+    //assert(fun.execute("main", Seq()) == fun.result(q"20"))
+  }
+
   test("Simple Fold Int Example") {
     val code = FileUtil.readFile("functional/unittests/FoldInt.finca")
     val fun = loadFunction(code)

@@ -196,11 +196,11 @@
 //  def loadFunction(code: String): Loaded =
 //    loadFunction(compileFunction(code))
 //}
-package inca.frontend.functional.executor
+package inca.frontend.objectoriented.executor
 
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
-import inca.compiler.{CompiledModule, Compiler}
-import inca.frontend.functional.compiler.{CompiledFunctionalModule, FunctionalOptions}
+import inca.compiler.Compiler
+import inca.frontend.objectoriented.compiler.{CompiledObjectModule, ObjectOptions}
 import inca.runtime.context.QueryScope
 import inca.runtime.db.{DBValue, Database, DatabaseInspector}
 import inca.runtime.{EnginePool, Query}
@@ -213,8 +213,8 @@ import truediff.Diffable
 
 import scala.jdk.CollectionConverters._
 
-object FunctionalExecutor {
-  case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledFunctionalModule) {
+object ObjectExecutor {
+  case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledObjectModule) {
     lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
 
     val loadedPsystemModule: String = scalaCompiler.define {
@@ -289,7 +289,6 @@ object FunctionalExecutor {
       val endInsertQuery = System.nanoTime()
 
       println(s"Tuples in $main: ${mainMatcher.getAllMatches().size()}")
-
       (loadingTime, endInsertQuery - startInsertQuery, -1)
     }
 
@@ -333,16 +332,16 @@ object FunctionalExecutor {
   }
 
 
-  def compileFunction(code: String, options: FunctionalOptions = FunctionalOptions()): CompiledFunctionalModule = {
-    Compiler.compileFunctional(code, options)
+  def compileObject(code: String, options: ObjectOptions = ObjectOptions()): CompiledObjectModule = {
+    Compiler.compileObject(code, options)
   }
 
-  def loadFunction(compiled: CompiledFunctionalModule): Loaded = {
+  def loadFunction(compiled: CompiledObjectModule): Loaded = {
     val scope = new QueryScope(compiled.dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     Loaded(engine, feed, compiled)
   }
 
-  def loadFunction(code: String, options: FunctionalOptions = FunctionalOptions()): Loaded =
-    loadFunction(compileFunction(code, options))
+  def loadFunction(code: String, options: ObjectOptions = ObjectOptions()): Loaded =
+    loadFunction(compileObject(code, options))
 }

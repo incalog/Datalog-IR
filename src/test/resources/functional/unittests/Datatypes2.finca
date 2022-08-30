@@ -1,0 +1,6 @@
+module Datatypes2
+
+data Exp = Num(Int) | Add(Exp, Exp)
+
+@main def main(): Any =
+    Add(Num(5), Num(3))

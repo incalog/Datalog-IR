@@ -2,7 +2,7 @@ package inca.frontend.objectoriented.typechecker;
 
 import inca.compiler.SourceLocation
 import inca.frontend.objectoriented.core._
-import inca.frontend.util.Resolvable
+import inca.frontend.util.{Resolvable, Typeable}
 
 trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   def typecheck(program: Seq[Module]): Unit = scopedTypeContext {
@@ -110,7 +110,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case fieldAssignStmt@FieldAssignStmt(recv, name, expression) =>
       val typ = typecheck(expression)
       typecheck(recv) match {
-        case TClass(ref) => lookupField(ref.target, name) match {
+        case TClass(ref) => lookupField(lookupClassRef(ref), name) match {
           case Some(field) =>
             resolveTarget(fieldAssignStmt)(field)
             assertSubtype(typ, field.typ, expression)
@@ -153,10 +153,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   def subtype(ty1: Type, ty2: Type): Boolean = (ty1, ty2) match {
     case (_, TAny) => true
     case (TNull, TClass(_)) => true
-    case (TClass(name1), TClass(name2)) if name1 == name2 => true
-    case (TClass(name1), TClass(_)) =>
-      // we don't know if all targets have been resolved, but we assume that at least ty1.classRef target is resolved
-      val parents = name1.target.get.parentClassRefs
+    case (TClass(ref1), TClass(ref2)) if ref1 == ref2 => true
+    case (TClass(ref1), TClass(_)) =>
+      val parents = lookupClassRef(ref1).get.parentClassRefs
       parents.exists { parent => if (parent.target.isDefined) subtype(parent.target.get.typ, ty2) else false }
     case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
       tys1.zip(tys2).forall(tt => subtype(tt._1, tt._2))
@@ -165,13 +164,28 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case _ => false
   }
 
-  def typecheck(expression: Expression): Type = expression match {
+  def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type = {
+    val inferred = computeType
+    term.typ match {
+      case Some(annotated) =>
+        if (!subtype(inferred, annotated))
+          error(s"Inferred type $inferred, but expected annotated type $annotated", term)
+        annotated
+      case None =>
+        term.typed(inferred)
+        inferred
+    }
+  }
+
+  final def typecheck(exp: Expression): Type = assignType(exp)(typecheckInternal(exp))
+
+  def typecheckInternal(expression: Expression): Type = expression match {
     case NullExpr() =>
       TNull
     case superExpr@SuperExpr(args) =>
       lookupVar(Name("this")) match {
         case Some((_, TClass(ref), _)) =>
-          // this classRef will always be resolved at this point
+          // `this` classRef will always be resolved at this point
           val clazz = ref.target.get
           val parentRef = clazz.parentClassRefs.headOption
           if (parentRef.isEmpty) {
@@ -207,7 +221,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       }
     case fieldReadExpr@FieldReadExpr(recv, targetName) =>
       typecheck(recv) match {
-        case TClass(ref) => lookupField(ref.target, targetName) match {
+        case TClass(ref) => lookupField(lookupClassRef(ref), targetName) match {
           case Some(field) =>
             resolveTarget(fieldReadExpr)(field)
             field.typ
@@ -238,7 +252,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       typecheck(recv) match {
         case TClass(ref) =>
           // We can call methods on instances of classes we might no have yet resolved
-          lookupMethod(ref.target, fun) match {
+          lookupMethod(lookupClassRef(ref), fun) match {
           case None => TAny
           case Some(methodDef) =>
             if (methodDef.params.size != args.size) {

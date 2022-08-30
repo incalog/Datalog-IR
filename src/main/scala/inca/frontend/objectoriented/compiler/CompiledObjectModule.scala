@@ -2,6 +2,7 @@ package inca.frontend.objectoriented.compiler
 
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.Name
+import inca.backend.ir.util.printer.DatalogPrinter
 import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
 import inca.frontend.objectoriented.core.Module
 import inca.frontend.objectoriented.lowering.{GenerateDataModel, GenerateDatalog}
@@ -10,7 +11,7 @@ import inca.runtime.context.DataModel
 
 case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends CompiledModule {
 
-  override def name: Name = fun.name.name
+  override def name: Name = fun.name.raw
 
   override def sourceLocation: SourceLocation = fun.name
 
@@ -55,6 +56,10 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
     val module = new GenerateDatalog(coreModule).transModule()
     //println(s"Intermediate Representation")
     //println(module)
+    /*println()
+    println("DatalogPrinter")
+    println(DatalogPrinter.prettyModule(module)(verbose = true))
+    println()*/
     if (CompilerFlags.DEBUGMODE) {
       println(s"Intermediate Representation")
       println(module)
@@ -64,6 +69,7 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
 
   lazy val dataModel: DataModel = {
     val res = new GenerateDataModel(coreModule).transModule()
+    print(res)
     res
   }
 }

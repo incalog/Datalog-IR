@@ -67,8 +67,8 @@ object TScalaString extends TScala(Scala(t"String"))
 object TScalaAny extends TScala(Scala(t"Any"))
 object TScalaNull extends TScala(Scala(t"Null"))
 
-case class TClass(name: ClassRef) extends Type {
-  override def prettyprint: String = name.toString
+case class TClass(ref: ClassRef) extends Type {
+  override def prettyprint: String = ref.toString
   override def flatten: Seq[Type] = Seq(this)
   override def asScala: meta.Type = t"truechange.URI"
 }

@@ -375,7 +375,9 @@ trait Parser {
     val content = spaced(inBraces(classContentDef.rep0))
 
     (header ~ content).mapWithLoc { case (((visibility, name), parents), content)  =>
-      ClassDef(Seq(), visibility, name, parents.getOrElse(Seq()), content)
+      val classDef = ClassDef(Seq(), visibility, name, parents.getOrElse(Seq()), content)
+      content.foreach(c => c.classDef = Some(classDef))
+      classDef
     }
   }
 
