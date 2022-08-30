@@ -31,6 +31,8 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
   lazy val atomOps: AtomTableOps = new AtomTableOps(state.bottomUpRuntime, indexedTableFactory)
   val callStack: CallStack = new CallStack
 
+  val breakpointHandler: BreakpointHandler = new BreakpointHandler(dependencyGraph)
+
   def setBottomUpRuntime(rt: DatalogRuntime): Unit = {
     state = new DebuggerState(rt)
   }
@@ -49,13 +51,84 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
       case BeforeRule(_, _, _, rules) =>
         if (rules.nonEmpty) intoPredicate(top)
         else outofPredicate(top)
-      case InRule(_, _, _, RuleEvaluation(_, atoms), rules) =>
+      case InRule(_, _, _, RuleEvaluation(_, _, atoms), rules) =>
         if (atoms.nonEmpty) nextAtom(top)
         else if (rules.nonEmpty) nextRule(top)
         else lastRule(top)
       case EvaluationResult(_, _) =>
         evalResult(top)
     }
+  }
+
+  // Step over has the following interesting cases:
+  //   - stepping over call
+  //     - non-recursive (read DB)
+  //     - recursive (read DB with blacklist)
+  //   - stepping over predicate entrie
+  //     - non-recursive (read DB)
+  //     - recursive (read DB with blacklist)
+  //   - stepping over rule
+  //     - step over all atoms of the rules
+  // in all other cases we just do a step-into
+  // we also need to consider breakpoints: If breakpoint is reachable we need to resume till breakpoint
+  def stepOver(): Unit = {
+    val top = callStack.top
+    if (breakpointHandler.breakpointReachable(top)) {
+      resume()
+    } else {
+      if (isPredicateEntry(top)) {
+        val BeforeRule(p, argBindings, _, _) = top
+        val nextPredResult =
+          if (isCyclic(p)) state.readBlacklistedBottomUp(p, argBindings)
+          else state.readBottomUp(p, argBindings)
+        val next = BeforeRule(p, argBindings, nextPredResult, Seq())
+        callStack.update(next)
+      } else if (isRuleEntry(top)) {
+        val BeforeRule(p, argBindings, predResult, rules) = top
+        // TODO predResult is can not be determined without simulating it.
+        val ruleExitPoint = BeforeRule(p, argBindings, predResult, rules.tail)
+        val currentStackSize = callStack.size
+        val bp = new IRBreakpoint(ruleExitPoint, () => callStack.size == currentStackSize)
+        breakpointHandler.addBreakpoint(bp)
+        resume()
+        // TODO what if resume does not hit bp but another breakpoint?
+        breakpointHandler.removeBreakpoint(bp)
+        throw new IllegalStateException("CURRENTLY NOT SUPPORTED")
+      } else if (isPredicateCall(top)) {
+        val InRule(p, argBindings, _, RuleEvaluation(ruleResult, _, atoms), _) = top
+        val atomsHead = atoms.head
+        val (callee, calleeArgs) = atomsHead.asCall.get
+        val calleeArgBindings = prepareArgBindings(ruleResult, callee, calleeArgs)
+        val calleeResult = state.readBlacklistedBottomUp(callee, calleeArgBindings)
+        joinEvalResultAndCall(callee, calleeResult)
+      } else {
+        stepInto()
+      }
+    }
+  }
+
+  private def isPredicateEntry(evalPoint: EvaluationPoint): Boolean = evalPoint match {
+    case BeforeRule(p, argBindings, predResult, rules) =>
+      predicates(p).bodies.size == rules.size
+    case _ => false
+  }
+
+  private def isRuleEntry(top: EvaluationPoint): Boolean = false
+//    top match {
+//      case InRule(p, _, _, RuleEvaluation(_, ruleIdx, atoms), _) =>
+//        atoms.size == numberOfAtoms(p, ruleIdx)
+//      case _ => false
+//    }
+
+  private def numberOfAtoms(p: String, ruleIdx: Int): Int =
+    predicates(p).bodies(ruleIdx).atoms.size
+
+  private def isPredicateCall(top: EvaluationPoint): Boolean = top match {
+    case InRule(_, _, _, RuleEvaluation(ruleResult, _, atoms), _) =>
+      // TODO this will consider recursive aggregation as predicate calls as well
+      // Do we want this?
+      atoms.nonEmpty && atoms.head.asCall.nonEmpty
+    case _ => false
   }
 
   private def intoPredicate(evalPoint: EvaluationPoint): Unit = {
@@ -67,7 +140,7 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
       state.insertBlacklist(p, argBindings)
     }
     val next =
-      InRule(p, argBindings, predResult, RuleEvaluation(argBindings, rulesHead.atoms), rulesTail)
+      InRule(p, argBindings, predResult, RuleEvaluation(argBindings, 0, rulesHead.atoms), rulesTail)
     callStack.update(next)
   }
 
@@ -94,25 +167,26 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
   }
 
   private def lastRule(evalPoint: EvaluationPoint): Unit = {
-    val InRule(p, argBindings, predResult, RuleEvaluation(ruleResult, Seq()), Seq()) = evalPoint
+    val InRule(p, argBindings, predResult, RuleEvaluation(ruleResult, _, Seq()), Seq()) = evalPoint
     val projectedRuleResult = ruleResult.project(predResult.columns)
     val nextPredResult = predResult.union(projectedRuleResult)
     callStack.update(BeforeRule(p, argBindings, nextPredResult, Seq()))
   }
 
   private def nextRule(evalPoint: EvaluationPoint): Unit = {
-    val InRule(p, argBindings, predResult, RuleEvaluation(ruleResult, _), rules) = evalPoint
+    val InRule(p, argBindings, predResult, RuleEvaluation(ruleResult, ruleIdx, _), rules) =
+      evalPoint
     val rulesHead = rules.head
     val rulesTail = rules.tail
     val projectedRuleResult = ruleResult.project(predResult.columns)
     val nextPredResult = predResult.union(projectedRuleResult)
-    val ruleEval = RuleEvaluation(argBindings, rulesHead.atoms)
+    val ruleEval = RuleEvaluation(argBindings, ruleIdx + 1, rulesHead.atoms)
     val next = InRule(p, argBindings, nextPredResult, ruleEval, rulesTail)
     callStack.update(next)
   }
 
   private def nextAtom(evalPoint: EvaluationPoint): Unit = {
-    val InRule(p, argBindings, predResult, RuleEvaluation(ruleResult, atoms), rules) =
+    val InRule(p, argBindings, predResult, RuleEvaluation(ruleResult, ruleIdx, atoms), rules) =
       evalPoint
     val atomsHead = atoms.head
     val atomsTail = atoms.tail
@@ -137,7 +211,7 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
                 params,
                 calleeResult,
                 (x, y) => x.antiJoin(y))
-          val nextRuleEval = RuleEvaluation(nextBodyResult, atomsTail)
+          val nextRuleEval = RuleEvaluation(nextBodyResult, ruleIdx, atomsTail)
           val next = InRule(p, argBindings, predResult, nextRuleEval, rules)
           callStack.update(next)
         } else { // E-StepInto-New
@@ -150,7 +224,7 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
 
       case _ =>
         val nextRuleResult = atomOps.atom(ruleResult, atomsHead)
-        val nextRuleEval = RuleEvaluation(nextRuleResult, atomsTail)
+        val nextRuleEval = RuleEvaluation(nextRuleResult, ruleIdx, atomsTail)
         val next = InRule(p, argBindings, predResult, nextRuleEval, rules)
         callStack.update(next)
     }
@@ -162,22 +236,6 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
     if (callStack.nonEmpty) {
       joinEvalResultAndCall(p, predResult)
     }
-  }
-
-  // TODO predicate entry should also step over
-  // TODO step over body should run step over till end of body reached
-  // TODO rewritte program instead of implementing blacklist transformation
-  def stepOver(): Unit = callStack.top match {
-    case InRule(_, _, _, RuleEvaluation(ruleResult, atoms), _) =>
-      val atomsHead = atoms.head
-      if (atomsHead.asCall.nonEmpty) {
-        // do different things based on if predicate is cyclic
-        val (callee, calleeArgs) = atomsHead.asCall.get
-        val calleeArgBindings = prepareArgBindings(ruleResult, callee, calleeArgs)
-        val calleeResult = state.readBlacklistedBottomUp(callee, calleeArgBindings)
-        joinEvalResultAndCall(callee, calleeResult)
-      } else stepInto()
-    case _ => stepInto()
   }
 
   private def prepareArgBindings(
@@ -239,7 +297,7 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
     ): Unit = {
     val top = callStack.top
     top match {
-      case InRule(p, argBindings, predResult, RuleEvaluation(bodyResult, atoms), rules) =>
+      case InRule(p, argBindings, predResult, RuleEvaluation(bodyResult, ruleIdx, atoms), rules) =>
         val atomsHead = atoms.head
         val atomsTail = atoms.tail
         val params = predicates(callee).params.map(_.name)
@@ -254,7 +312,7 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
             opJoinBodyAndPred(bodyResult, calleeArgs, params, calleeTable, (x, y) => x.join(y))
           else
             opJoinBodyAndPred(bodyResult, calleeArgs, params, calleeTable, (x, y) => x.antiJoin(y))
-        val nextRuleEval = RuleEvaluation(nextBodyResult, atomsTail)
+        val nextRuleEval = RuleEvaluation(nextBodyResult, ruleIdx, atomsTail)
         val next = InRule(p, argBindings, predResult, nextRuleEval, rules)
         callStack.update(next)
       case _ =>
@@ -268,10 +326,18 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
 
   // TODO
   override def stepOut(): Unit = ???
-  override def resume(): Unit = ???
-  override def resumeWithStepInto(): Unit = ???
-  override type Breakpoint = String
-  override def addBreakpoint(bp: Breakpoint): Unit = ???
-  override def removeBreakpoint(bp: Breakpoint): Unit = ???
-  override def clearBreakpoints(): Unit = ???
+  override def resume(): Unit = {
+    while (!isFinished && !breakpointHandler.isAtBreakpoint(callStack.top)) {
+      stepOver()
+    }
+  }
+  override def resumeWithStepInto(): Unit = {
+    while (!isFinished && !breakpointHandler.isAtBreakpoint(callStack.top)) {
+      stepInto()
+    }
+  }
+  override type Breakpoint = IRBreakpoint
+  override def addBreakpoint(bp: Breakpoint): Unit = breakpointHandler.addBreakpoint(bp)
+  override def removeBreakpoint(bp: Breakpoint): Unit = breakpointHandler.removeBreakpoint(bp)
+  override def clearBreakpoints(): Unit = breakpointHandler.clearBreakpoints()
 }

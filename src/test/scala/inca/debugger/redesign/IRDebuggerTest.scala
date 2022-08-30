@@ -73,9 +73,17 @@ class IRDebuggerTest extends AnyFunSuite {
     val expected = debugger.state.readBottomUp(name, args)
     assertResult(expected)(derived)
   }
+  def assertCurrentBody(debugger: Debugger, expected: ImmutableTable[Value]): Assertion = {
+    assert(debugger.callStack.top.isInstanceOf[InRule])
+    val evalResult = debugger.callStack.top.asInstanceOf[InRule]
+    val derived = evalResult.current.ruleResult
+    assertResult(expected)(derived)
+  }
 
   def stepTillFinish(debugger: Debugger): Unit = {
     while (!debugger.isFinished) {
+//      println(debugger.callStack.top)
+//      println("=======================================")
       debugger.stepInto()
     }
   }
@@ -324,6 +332,51 @@ class IRDebuggerTest extends AnyFunSuite {
     assertExpectedTable(debugger, "notTargetOf", args)
   }
 
+  // step over tests
+
+  test("step over pattern") {
+    val debugger = initDebugger(twoHopsModule, emptyDataModel)
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("two", args)
+    debugger.stepOver()
+    debugger.stepOver()
+
+    assert(debugger.isFinished)
+
+    assertExpectedTable(debugger, "two", args)
+  }
+
+  test("step over non-rec call") {
+    val debugger = initDebugger(twoHopsModule, emptyDataModel)
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("two", args)
+    debugger.stepInto()
+    debugger.stepOver() // step over edge call
+    debugger.stepOver() // step over one call
+
+    debugger.stepOver() // needed to step to pattern exit
+    debugger.stepOver() // needed to exit pattern
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "two", args)
+  }
+
+  test("step over rec pattern (not part of scc)") {
+    val debugger =
+      initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
+    val args = ImmutableTable.unit[Value]()
+    debugger.entry("query", args)
+    debugger.stepInto() // step into pattern
+    debugger.stepOver() // step computed
+    debugger.stepOver() // step over negated path call
+
+    debugger.stepOver() // needed to step to pattern exit
+    debugger.stepOver() // needed to exit pattern
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "query", args)
+  }
+
   test("simple path step over recursive") {
     val input = constructInput(Seq(1 -> 2, 2 -> 3, 3 -> 1))
     val debugger =
@@ -336,5 +389,17 @@ class IRDebuggerTest extends AnyFunSuite {
     debugger.stepInto()
     debugger.stepInto()
     debugger.stepOver()
+    assertCurrentBody(
+      debugger,
+      ImmutableTable[Value](
+        Seq("from", "temp", "to"),
+        Seq(
+          Seq(ScalaValue(1), ScalaValue(2), ScalaValue(1)),
+          Seq(ScalaValue(1), ScalaValue(2), ScalaValue(3))
+        ))
+    )
+    stepTillFinish(debugger)
+    assertExpectedTable(debugger, "path", args)
   }
+
 }

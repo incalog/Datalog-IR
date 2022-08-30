@@ -23,6 +23,6 @@ case class InRule(
     remainingRules: Seq[Datalog.Body])
     extends EvaluationPoint
 
-case class RuleEvaluation(ruleResult: ImmutableTable[Value], atoms: Seq[Datalog.Atom])
+case class RuleEvaluation(ruleResult: ImmutableTable[Value], ruleIdx: Int, atoms: Seq[Datalog.Atom])
 
 case class EvaluationResult(pred: String, predResult: ImmutableTable[Value]) extends EvaluationPoint
