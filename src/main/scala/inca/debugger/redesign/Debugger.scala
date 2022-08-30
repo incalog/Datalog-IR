@@ -73,38 +73,47 @@ abstract class Debugger(module: Datalog.Module) extends DebuggerAPI {
   // we also need to consider breakpoints: If breakpoint is reachable we need to resume till breakpoint
   def stepOver(): Unit = {
     val top = callStack.top
-    if (breakpointHandler.breakpointReachable(top)) {
+    if (breakpointHandler.breakpointReachable(top))
       resume()
-    } else {
-      if (isPredicateEntry(top)) {
-        val BeforeRule(p, argBindings, _, _) = top
-        val nextPredResult =
-          if (isCyclic(p)) state.readBlacklistedBottomUp(p, argBindings)
-          else state.readBottomUp(p, argBindings)
-        val next = BeforeRule(p, argBindings, nextPredResult, Seq())
-        callStack.update(next)
-      } else if (isRuleEntry(top)) {
-        val BeforeRule(p, argBindings, predResult, rules) = top
-        // TODO predResult is can not be determined without simulating it.
-        val ruleExitPoint = BeforeRule(p, argBindings, predResult, rules.tail)
-        val currentStackSize = callStack.size
-        val bp = new IRBreakpoint(ruleExitPoint, () => callStack.size == currentStackSize)
-        breakpointHandler.addBreakpoint(bp)
-        resume()
-        // TODO what if resume does not hit bp but another breakpoint?
-        breakpointHandler.removeBreakpoint(bp)
-        throw new IllegalStateException("CURRENTLY NOT SUPPORTED")
-      } else if (isPredicateCall(top)) {
-        val InRule(p, argBindings, _, RuleEvaluation(ruleResult, _, atoms), _) = top
-        val atomsHead = atoms.head
-        val (callee, calleeArgs) = atomsHead.asCall.get
-        val calleeArgBindings = prepareArgBindings(ruleResult, callee, calleeArgs)
-        val calleeResult = state.readBlacklistedBottomUp(callee, calleeArgBindings)
-        joinEvalResultAndCall(callee, calleeResult)
-      } else {
-        stepInto()
-      }
-    }
+    else if (isPredicateEntry(top))
+      stepOverPredicate(top)
+    else if (isRuleEntry(top))
+      stepOverRule(top)
+    else if (isPredicateCall(top))
+      stepOverCall(top)
+    else
+      stepInto()
+  }
+
+  private def stepOverPredicate(evalPoint: EvaluationPoint): Unit = {
+    val BeforeRule(p, argBindings, _, _) = evalPoint
+    val nextPredResult =
+      if (isCyclic(p)) state.readBlacklistedBottomUp(p, argBindings)
+      else state.readBottomUp(p, argBindings)
+    val next = BeforeRule(p, argBindings, nextPredResult, Seq())
+    callStack.update(next)
+  }
+
+  private def stepOverRule(evalPoint: EvaluationPoint): Unit = {
+    val BeforeRule(p, argBindings, predResult, rules) = evalPoint
+    // predResult can not be determined without simulating it hence we normalize (use empty tables instead)
+    val ruleExitPoint = BeforeRule(p, argBindings, predResult, rules.tail)
+    val currentStackSize = callStack.size
+    val bp = new IRBreakpoint(ruleExitPoint, () => callStack.size == currentStackSize).normalize
+    breakpointHandler.addBreakpoint(bp)
+    resume()
+    // TODO what if resume does not hit bp but another breakpoint?
+    breakpointHandler.removeBreakpoint(bp)
+  }
+
+  private def stepOverCall(evalPoint: EvaluationPoint): Unit = {
+    val InRule(p, argBindings, _, RuleEvaluation(ruleResult, _, atoms), _) = evalPoint
+    val atomsHead = atoms.head
+    val (callee, calleeArgs) = atomsHead.asCall.get
+    val calleeArgBindings = prepareArgBindings(ruleResult, callee, calleeArgs)
+    val calleeResult = state.readBlacklistedBottomUp(callee, calleeArgBindings)
+    joinEvalResultAndCall(callee, calleeResult)
+
   }
 
   private def isPredicateEntry(evalPoint: EvaluationPoint): Boolean = evalPoint match {
