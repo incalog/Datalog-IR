@@ -7,6 +7,21 @@ import inca.debugger.Value
 trait EvaluationPoint {
   def pred: String
 }
+object EvaluationPoint {
+  def toTableless(ep: EvaluationPoint): EvaluationPoint = ep match {
+    case BeforeRule(pred, _, _, rules) =>
+      BeforeRule(pred, ImmutableTable.empty(Seq()), ImmutableTable.empty(Seq()), rules)
+    case EvaluationResult(pred, _) =>
+      EvaluationResult(pred, ImmutableTable.empty(Seq()))
+    case InRule(pred, _, _, RuleEvaluation(_, ruleIdx, atoms), remRules) =>
+      InRule(
+        pred,
+        ImmutableTable.empty(Seq()),
+        ImmutableTable.empty(Seq()),
+        RuleEvaluation(ImmutableTable.empty(Seq()), ruleIdx, atoms),
+        remRules)
+  }
+}
 
 case class BeforeRule(
     pred: String,

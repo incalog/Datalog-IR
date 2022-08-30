@@ -3,13 +3,15 @@ package inca.debugger.redesign
 import inca.backend.analyze.DependencyGraph
 import scala.collection.mutable
 
-// TODO this breakpoint design is not well-suited because it contains pred table and result table
-// we cannot predict these
-// we either need a different form of equality for eval points or we need to use something different
-case class IRBreakpoint(stopAt: EvaluationPoint, cond: () => Boolean)
+// We cannot predict what the predicate table will be for example at a specific breakpoint
+// Therefore, Breakpoints should not be interested in the predicate table or body table or argument table
+// The normalize function is to insert empty tables where possible
+case class IRBreakpoint(stopAt: EvaluationPoint, cond: () => Boolean) {
+  def normalize: IRBreakpoint = IRBreakpoint(EvaluationPoint.toTableless(stopAt), cond)
+}
 object IRBreakpoint {
   def apply(stopAt: EvaluationPoint): IRBreakpoint = {
-    IRBreakpoint(stopAt, () => true)
+    IRBreakpoint(EvaluationPoint.toTableless(stopAt), () => true)
   }
 }
 
@@ -20,15 +22,17 @@ class BreakpointHandler(dependencyGraph: DependencyGraph) {
   private val predsWithBreakpoint: mutable.MultiSet[String] = mutable.MultiSet()
 
   def addBreakpoint(bp: IRBreakpoint): Unit = {
-    breakpoints += bp
-    evalPointToBreakpoints += bp.stopAt -> bp
-    predsWithBreakpoint += bp.stopAt.pred
+    val normalized = bp.normalize
+    breakpoints += normalized
+    evalPointToBreakpoints += normalized.stopAt -> normalized
+    predsWithBreakpoint += normalized.stopAt.pred
   }
 
   def removeBreakpoint(bp: IRBreakpoint): Unit = {
-    breakpoints -= bp
-    evalPointToBreakpoints -= bp.stopAt -> bp
-    predsWithBreakpoint -= bp.stopAt.pred
+    val normalized = bp.normalize
+    breakpoints -= normalized
+    evalPointToBreakpoints -= normalized.stopAt -> normalized
+    predsWithBreakpoint -= normalized.stopAt.pred
   }
 
   def clearBreakpoints(): Unit = {

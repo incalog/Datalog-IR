@@ -377,7 +377,7 @@ class IRDebuggerTest extends AnyFunSuite {
     assertExpectedTable(debugger, "query", args)
   }
 
-  test("simple path step over recursive") {
+  test("simple path step over recursive (depth 1)") {
     val input = constructInput(Seq(1 -> 2, 2 -> 3, 3 -> 1))
     val debugger =
       initDebugger(module(pathPatternExt), new DataModel(), input)
@@ -397,6 +397,66 @@ class IRDebuggerTest extends AnyFunSuite {
           Seq(ScalaValue(1), ScalaValue(2), ScalaValue(1)),
           Seq(ScalaValue(1), ScalaValue(2), ScalaValue(3))
         ))
+    )
+    stepTillFinish(debugger)
+    assertExpectedTable(debugger, "path", args)
+  }
+
+  test("simple path step over recursive (depth 1) 2") {
+    val input = constructInput(Seq(1 -> 2, 2 -> 3, 3 -> 2, 3 -> 1))
+    val debugger =
+      initDebugger(module(pathPatternExt), new DataModel(), input)
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.state.insertBlacklist("path", args)
+    debugger.entry("path", args)
+    debugger.stepInto()
+    debugger.stepInto()
+    debugger.stepInto()
+    debugger.stepInto()
+    debugger.stepOver()
+    assertCurrentBody(
+      debugger,
+      ImmutableTable[Value](
+        Seq("from", "temp", "to"),
+        Seq(
+          Seq(ScalaValue(1), ScalaValue(2), ScalaValue(1)),
+          Seq(ScalaValue(1), ScalaValue(2), ScalaValue(3)),
+          Seq(ScalaValue(1), ScalaValue(2), ScalaValue(2))
+        )
+      )
+    )
+    stepTillFinish(debugger)
+    assertExpectedTable(debugger, "path", args)
+  }
+
+  test("simple path step over recursive (depth 2)") {
+    val input = constructInput(Seq(1 -> 2, 2 -> 3, 3 -> 2, 3 -> 1))
+    val debugger =
+      initDebugger(module(pathPatternExt), new DataModel(), input)
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.state.insertBlacklist("path", args)
+    debugger.entry("path", args)
+    debugger.stepInto()
+    debugger.stepInto()
+    debugger.stepInto()
+    debugger.stepInto()
+    debugger.stepInto() // path(2, ?) entry
+
+    debugger.stepInto()
+    debugger.stepInto()
+    debugger.stepInto()
+    debugger.stepInto()
+    debugger.stepOver() // path(3, ?) call
+
+    assertCurrentBody(
+      debugger,
+      ImmutableTable[Value](
+        Seq("from", "temp", "to"),
+        Seq(
+          Seq(ScalaValue(2), ScalaValue(3), ScalaValue(1)),
+          Seq(ScalaValue(2), ScalaValue(3), ScalaValue(2))
+        )
+      )
     )
     stepTillFinish(debugger)
     assertExpectedTable(debugger, "path", args)
