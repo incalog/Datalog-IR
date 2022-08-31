@@ -42,8 +42,8 @@ class BreakpointHandler(dependencyGraph: DependencyGraph) {
   }
 
   def isAtBreakpoint(evalPoint: EvaluationPoint): Boolean = {
-    val breakpoints = evalPointToBreakpoints.get(evalPoint)
-    breakpoints.exists(_.cond())
+    val bps = evalPointToBreakpoints.get(EvaluationPoint.toTableless(evalPoint))
+    bps.exists(_.cond())
   }
 
   def breakpointReachable(evalPoint: EvaluationPoint): Boolean = {

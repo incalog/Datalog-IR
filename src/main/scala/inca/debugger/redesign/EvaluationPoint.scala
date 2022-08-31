@@ -9,6 +9,8 @@ trait EvaluationPoint {
 }
 object EvaluationPoint {
   def toTableless(ep: EvaluationPoint): EvaluationPoint = ep match {
+    case PredicateEntry(pred, _, _) =>
+      PredicateEntry(pred, ImmutableTable.empty(Seq()), ImmutableTable.empty(Seq()))
     case BeforeRule(pred, _, _, rules) =>
       BeforeRule(pred, ImmutableTable.empty(Seq()), ImmutableTable.empty(Seq()), rules)
     case EvaluationResult(pred, _) =>
@@ -22,6 +24,12 @@ object EvaluationPoint {
         remRules)
   }
 }
+
+case class PredicateEntry(
+    pred: String,
+    argBindings: ImmutableTable[Value],
+    predResult: ImmutableTable[Value])
+    extends EvaluationPoint
 
 case class BeforeRule(
     pred: String,

@@ -409,4 +409,19 @@ object ExamplePrograms {
         )
       )
     )
+
+  val extCallEdgePattern: Datalog.Pattern = Datalog.Pattern(
+    None,
+    "edge",
+    Seq(
+      Datalog.Param("x", Datalog.base.TScalaInt),
+      Datalog.Param("y", Datalog.base.TScalaInt)
+    ),
+    Seq(
+      Datalog.Body(
+        Seq(
+          Datalog.ExtensionalCall("extEdge", Seq(Datalog.Var("x"), Datalog.Var("y")))
+        ))
+    )
+  )
 }

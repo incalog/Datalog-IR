@@ -40,7 +40,7 @@ class IRDebuggerTest extends AnyFunSuite {
     val transformedModule = BlacklistTransformation.transformer(dm).transformModule(_module)
     val compiledTransformed = Compiler.compileGP(transformedModule, dm, Options())
     val runtime = initDatabaseRuntime(compiledTransformed, dbInput)
-    val debugger = new Debugger(compiled.ir) {}
+    val debugger = new IRDebugger(compiled.ir)
     debugger.setBottomUpRuntime(runtime)
     debugger
   }
@@ -332,6 +332,42 @@ class IRDebuggerTest extends AnyFunSuite {
     assertExpectedTable(debugger, "notTargetOf", args)
   }
 
+  val extEdgeInput: DatabaseInput = DatabaseInput(
+    EditScript(Seq()),
+    Map(
+      "extEdge" -> Set(
+        Tuples.flatTupleOf(1, 2),
+        Tuples.flatTupleOf(2, 3),
+        Tuples.flatTupleOf(3, 4),
+        Tuples.flatTupleOf(4, 5),
+        Tuples.flatTupleOf(5, 2))),
+    Map()
+  )
+
+  test("ext call no arguments") {
+    val debugger = initDebugger(module(extCallEdgePattern), emptyDataModel, extEdgeInput)
+    val args = ImmutableTable.unit[Value]()
+    debugger.entry("edge", args)
+    stepTillFinish(debugger)
+    assertExpectedTable(debugger, "edge", args)
+  }
+
+  test("ext call with one argument bound") {
+    val debugger = initDebugger(module(extCallEdgePattern), emptyDataModel, extEdgeInput)
+    val args = ImmutableTable[Value](Seq("x"), Seq(Seq(ScalaValue(1)), Seq(ScalaValue(2))))
+    debugger.entry("edge", args)
+    stepTillFinish(debugger)
+    assertExpectedTable(debugger, "edge", args)
+  }
+
+  test("ext call with both arguments bound") {
+    val debugger = initDebugger(module(extCallEdgePattern), emptyDataModel, extEdgeInput)
+    val args = ImmutableTable[Value](Seq("y", "x"), Seq(Seq(ScalaValue(4), ScalaValue(3))))
+    debugger.entry("edge", args)
+    stepTillFinish(debugger)
+    assertExpectedTable(debugger, "edge", args)
+  }
+
   // step over tests
 
   test("step over pattern") {
@@ -351,6 +387,7 @@ class IRDebuggerTest extends AnyFunSuite {
     val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.entry("two", args)
     debugger.stepInto()
+    debugger.stepInto()
     debugger.stepOver() // step over edge call
     debugger.stepOver() // step over one call
 
@@ -367,6 +404,7 @@ class IRDebuggerTest extends AnyFunSuite {
     val args = ImmutableTable.unit[Value]()
     debugger.entry("query", args)
     debugger.stepInto() // step into pattern
+    debugger.stepInto() // step into rule
     debugger.stepOver() // step computed
     debugger.stepOver() // step over negated path call
 
@@ -384,6 +422,7 @@ class IRDebuggerTest extends AnyFunSuite {
     val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.state.insertBlacklist("path", args)
     debugger.entry("path", args)
+    debugger.stepInto()
     debugger.stepInto()
     debugger.stepInto()
     debugger.stepInto()
@@ -409,6 +448,7 @@ class IRDebuggerTest extends AnyFunSuite {
     val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.state.insertBlacklist("path", args)
     debugger.entry("path", args)
+    debugger.stepInto()
     debugger.stepInto()
     debugger.stepInto()
     debugger.stepInto()
@@ -440,8 +480,10 @@ class IRDebuggerTest extends AnyFunSuite {
     debugger.stepInto()
     debugger.stepInto()
     debugger.stepInto()
+    debugger.stepInto()
     debugger.stepInto() // path(2, ?) entry
 
+    debugger.stepInto()
     debugger.stepInto()
     debugger.stepInto()
     debugger.stepInto()
@@ -462,4 +504,56 @@ class IRDebuggerTest extends AnyFunSuite {
     assertExpectedTable(debugger, "path", args)
   }
 
+  test("step over body") {
+    val debugger = initDebugger(module(sevenEdgePattern), emptyDataModel)
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("edge", args)
+    debugger.stepInto()
+    debugger.stepOver() // step over body
+
+    assertCurrentBody(
+      debugger,
+      ImmutableTable[Value](
+        Seq("from", "to"),
+        Seq(
+          Seq(ScalaValue(1), ScalaValue(2))
+        )
+      )
+    )
+  test("step over rec pattern (part of scc)") {
+    val debugger =
+      initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
+    val args = ImmutableTable.unit[Value]()
+    debugger.entry("query", args)
+    debugger.stepInto() // step into pattern
+    debugger.stepInto() // step into body
+    debugger.stepOver() // step over computed
+    debugger.stepInto() // step into path call
+    debugger.stepInto() // step into pattern
+    debugger.stepOver() // step over first body
+    debugger.stepInto() // step to edge call
+    debugger.stepOver() // step over edge call
+    debugger.stepOver() // step over recursive path call
+
+    val expected = ImmutableTable[Value](
+      Seq("from", "temp", "to"),
+      Seq(
+        Seq(ScalaValue(1), ScalaValue(2), ScalaValue(3)),
+        Seq(ScalaValue(1), ScalaValue(2), ScalaValue(6)),
+        Seq(ScalaValue(1), ScalaValue(2), ScalaValue(7)),
+        Seq(ScalaValue(1), ScalaValue(4), ScalaValue(6)),
+        Seq(ScalaValue(1), ScalaValue(4), ScalaValue(7))
+      )
+    )
+    assertCurrentBody(debugger, expected)
+
+    debugger.stepOver() // needed to step to pattern exit (of path call)
+    debugger.stepOver() // needed to step to body exit
+    debugger.stepOver() // needed to step to pattern exit (of notTargetof)
+    debugger.stepOver() // pop pattern exit (of notTargetof)
+    debugger.stepOver()
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "query", args)
+  }
+  }
 }
