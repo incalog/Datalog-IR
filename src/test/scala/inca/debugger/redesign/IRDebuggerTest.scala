@@ -520,6 +520,12 @@ class IRDebuggerTest extends AnyFunSuite {
         )
       )
     )
+    stepTillFinish(debugger)
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "edge", args)
+  }
+
   test("step over rec pattern (part of scc)") {
     val debugger =
       initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
@@ -555,5 +561,88 @@ class IRDebuggerTest extends AnyFunSuite {
     assert(debugger.isFinished)
     assertExpectedTable(debugger, "query", args)
   }
+
+  test("step over rec pattern 2 levels deep (part of scc)") {
+    val debugger =
+      initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
+    val args = ImmutableTable.unit[Value]()
+    debugger.entry("query", args)
+    debugger.stepInto() // step into pattern
+    debugger.stepInto() // step into body
+    debugger.stepOver() // step over computed
+    debugger.stepInto() // step into path call
+    debugger.stepInto() // step into pattern
+    debugger.stepOver() // step over first body
+    debugger.stepInto() // step to edge call
+    debugger.stepOver() // step over edge call
+    debugger.stepInto() // step into recursive path call
+    debugger.stepInto() // step into pattern
+    debugger.stepOver() // step over first body
+    debugger.stepInto() // step to edge call
+    debugger.stepOver() // step over edge call
+    debugger.stepOver() // step over recursive path call
+
+    val expected = ImmutableTable[Value](
+      Seq("from", "temp", "to"),
+      Seq(
+        Seq(ScalaValue(2), ScalaValue(6), ScalaValue(7)),
+        Seq(ScalaValue(4), ScalaValue(6), ScalaValue(7))
+      )
+    )
+    assertCurrentBody(debugger, expected)
+
+    debugger.stepOver() // needed to step to pattern exit (of path call)
+    debugger.stepOver() // needed to step to pattern exit (of path call)
+    debugger.stepOver() // needed to step to pattern exit (of path call)
+    debugger.stepOver() // needed to step to body exit
+    debugger.stepOver() // needed to step to pattern exit (of notTargetof)
+    debugger.stepOver() // pop pattern exit (of notTargetof)
+    debugger.stepOver()
+    debugger.stepOver()
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "query", args)
   }
+
+  test("step over rec pattern 2 levels deep (part of scc) with cyclic data") {
+    val debugger =
+      initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
+    val args = ImmutableTable.unit[Value]()
+    debugger.entry("query", args)
+    debugger.stepInto() // step into pattern
+    debugger.stepInto() // step into body
+    debugger.stepOver() // step over computed
+    debugger.stepInto() // step into negated path call
+    debugger.stepInto() // step into pattern
+    debugger.stepOver() // step over first body
+    debugger.stepInto() // step to edge call
+    debugger.stepOver() // step over edge call
+    debugger.stepInto() // step into recursive path call
+    debugger.stepInto() // step into pattern
+    debugger.stepOver() // step over first body
+    debugger.stepInto() // step to edge call
+    debugger.stepOver() // step over edge call
+    debugger.stepOver() // step over recursive path call
+
+    val expected = ImmutableTable[Value](
+      Seq("from", "temp", "to"),
+      Seq(
+        Seq(ScalaValue(2), ScalaValue(3), ScalaValue(1)),
+        Seq(ScalaValue(2), ScalaValue(6), ScalaValue(7)),
+        Seq(ScalaValue(4), ScalaValue(6), ScalaValue(7))
+      )
+    )
+    assertCurrentBody(debugger, expected)
+
+    debugger.stepOver() // needed to step to pattern exit (of path call)
+    debugger.stepOver() // needed to step to pattern exit (of path call)
+    debugger.stepOver() // needed to step to pattern exit (of path call)
+    debugger.stepOver() // needed to step to body exit
+    debugger.stepOver() // needed to step to pattern exit (of notTargetof)
+    debugger.stepOver() // pop pattern exit (of notTargetof)
+    debugger.stepOver()
+    debugger.stepOver()
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "query", args)
+  }
+
 }
