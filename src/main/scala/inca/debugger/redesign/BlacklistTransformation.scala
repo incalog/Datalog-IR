@@ -60,7 +60,7 @@ object BlacklistTransformation extends Transformation {
           }
           Datalog.Call(pattern.name, args, neg = true)
         }
-        Seq(Datalog.Body(negatedCalls ++ body.atoms))
+        Seq(Datalog.Body(body.atoms ++ negatedCalls))
       } else {
         Seq(body)
       }
