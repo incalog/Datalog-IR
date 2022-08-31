@@ -213,7 +213,7 @@ trait Parser {
     // (someVar | someConstructor | `someBaseLit` | `someBaseApply`(...)).(attr | `baseApplyMethod`)
     // (someVar | someConstructor | `someBaseLit` | `someBaseApply`(...)).(someMethod(...) | baseApplyMethod`(...))
     // TODO: Would be nice if we could set arbitrary parenthese such as ((a.b).c)
-    val startExpr = (constructorExpr | variableReadExpr | baseLitExpr | baseApplyExpr)
+    val startExpr = (typeCastExpr | constructorExpr | variableReadExpr | baseLitExpr | baseApplyExpr)
     ((startExpr | inParentheses(startExpr).backtrack)
       ~ (op('.') *> (variable | call | baseApplyMethod)).rep0)
       .mapWithLoc { case (startExpr, pathIdentifiers) =>

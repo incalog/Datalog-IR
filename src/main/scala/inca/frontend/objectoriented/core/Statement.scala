@@ -4,6 +4,8 @@ import inca.compiler.SourceLocation
 import inca.frontend.util.Resolvable
 
 sealed trait Statement extends SourceLocation {
+  def vars: Map[Name, Option[Type]] = Map()
+
   def prettyprint(infixParens: Boolean)(implicit indent: String): String
   def prettyprint(implicit indent: String): String = prettyprint(infixParens = false)(indent)
   override def toString: String = prettyprint("")
@@ -40,6 +42,9 @@ case class FieldAssignStmt(recv: Expression, name: Name, expression: Expression)
 
 case class VarDeclareStmt(name: Name, typ: Type, maybeExpression: Option[Expression], immutable: Boolean) extends Statement
   with VarReadExpr.Target {
+
+  override def vars: Map[Name, Option[Type]] = Map(name -> Some(typ))
+
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val expr = if (maybeExpression.isEmpty) "" else s" = ${maybeExpression.get.toString}"
     val prefix = if (immutable) "val " else "var "
@@ -64,6 +69,8 @@ case class VarAssignStmt(targetName: Name, expression: Expression) extends State
 }
 
 case class IfStmt(cnd: Expression, thn: Seq[Statement], els: Seq[Statement]) extends Statement {
+  override def vars: Map[Name, Option[Type]] = (thn.flatMap(_.vars) ++ els.flatMap(_.vars)).toMap
+
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val condS = s"if (${cnd.prettyprint})"
     val ifS = thn.map(_.prettyprint(indent+"\t")).mkString("\n")

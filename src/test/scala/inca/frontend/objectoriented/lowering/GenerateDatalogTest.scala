@@ -18,11 +18,11 @@ class GenerateDatalogTest extends AnyFunSuite {
   test("Plus") {
     val code = FileUtil.readFile("objectoriented/unittests/Plus.oinca")
     val result = Compiler.compileObject(code, options)
-    val spec = result.psystemModule.patterns("Nat.main")()
+    val spec = result.psystemModule.patterns("Nat$main")() // "Succ" for all Succ instances
     val scope = new QueryScope(result.dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     val mainMatcher = engine.getMatcher(spec)
-    feed.insert(DemandTransformation.demandPatternExtensionalPrefix + "Nat.main", Tuples.flatTupleOf())
+    feed.insert(DemandTransformation.demandPatternExtensionalPrefix + "Nat$main", Tuples.flatTupleOf())
     mainMatcher.getAllMatches.toArray.foreach(println)
   }
 

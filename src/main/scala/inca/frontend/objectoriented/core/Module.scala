@@ -10,7 +10,7 @@ case class Module(name: Name, imports: Seq[Import], classes: Seq[ClassDef])
 
   def usedModuleNames: Seq[Name] = name +: imports.map(_.name)
 
-  def usedDefNames: Seq[Name] = classes.map(_.name)
+  def usedClassNames: Seq[Name] = classes.map(_.name)
 
   def prettyprint(implicit indent: String): String = {
     val importsS = if (imports.isEmpty) "" else
@@ -47,7 +47,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   val contentMap: Map[Name, Seq[ClassContent]] = content.groupBy {
     case field: FieldDef => field.name
     case method: MethodDef => method.name
-    case constructor: ConstructorDef => name
+    case _: ConstructorDef => name
   }
 
   def fields: Seq[FieldDef] = content.collect { case f: FieldDef => f }
@@ -103,6 +103,8 @@ case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
 case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Seq[Statement])
   extends ClassContent {
 
+  lazy val vars: Map[Name, Option[Type]] = (body.flatMap(_.vars) ++ params.flatMap(_.vars)).toMap
+
   def returnsUnit: Boolean = outType == TUnit
 
   def prettyprint(implicit indent: String): String = {
@@ -128,6 +130,8 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
 case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], params: Seq[Param], body: Seq[Statement])
   extends ClassContent {
 
+  lazy val vars: Map[Name, Option[Type]] = (body.flatMap(_.vars) ++ params.flatMap(_.vars)).toMap
+
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")
@@ -148,6 +152,8 @@ case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], param
 }
 
 case class Param(name: Name, typ: Type) extends SourceLocation with VarReadExpr.Target {
+  def vars: Map[Name, Option[Type]] = Map(name -> Some(typ))
+
   def prettyprint: String = s"$name: ${typ.prettyprint}"
 
   override def nodeShape: String = "polygon"

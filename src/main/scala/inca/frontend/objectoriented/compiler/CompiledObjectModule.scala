@@ -56,10 +56,11 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
     val module = new GenerateDatalog(coreModule).transModule()
     //println(s"Intermediate Representation")
     //println(module)
-    /*println()
+    println()
     println("DatalogPrinter")
     println(DatalogPrinter.prettyModule(module)(verbose = true))
-    println()*/
+    println()
+
     if (CompilerFlags.DEBUGMODE) {
       println(s"Intermediate Representation")
       println(module)

@@ -2,7 +2,7 @@ module Plus
 
 class Nat {
     def this() = {
-        return this
+        //return this
     }
 
     def succ(): Nat = {
@@ -14,24 +14,19 @@ class Nat {
     }
 
     @main
-    def main(): Nat = {
+    def main(): Boolean = {
         val a: Int = 1
 
         val first: Succ = new Succ(new Succ(new Zero()))//.succ().succ().succ()
         val second: Nat = (new Zero()).succ()//.succ()
-        // Fix this with a typecast
-        //val s: Succ = first.pred
-        //val x: Nat = s.pred
 
-        // Fix this with a typecast
-        //val x: Nat = first.pred.pred
-
-        val x: Nat = first.pred
+        //val y: Nat = first.pred
+        val x: Nat = cast(second, Succ).pred
 
         /*if (a == 1) {
             new Succ(x)
         }*/
-        return x
+        return instanceOf(second, Succ)
     }
 }
 
