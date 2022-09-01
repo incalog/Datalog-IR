@@ -6,7 +6,7 @@ class Nat {
     }
 
     def succ(): Nat = {
-        return new Succ(this, 2)
+        return new Succ(this, 2, 2)
     }
 
     def add(n: Nat): Nat = {
@@ -17,7 +17,7 @@ class Nat {
     def main(): Nat = {
         //val a: Int = 1
 
-        //val first: Succ = new Succ(new Succ(new Zero(), 3), 4)//.succ().succ().succ()
+        //val first: Succ = new Succ(new Succ(new Zero(), 3, 3), 4, 4)//.succ().succ().succ()
         /*val second: Nat = (new Zero()).succ()//.succ()
         val zero: Zero = new Zero()
         val zero2: Zero = new Zero()*/
@@ -33,13 +33,13 @@ class Nat {
         }*/
         //return instanceOf(zero, Nat)
         //return instanceOf(zero, Zero)
-        return new Succ(new Zero(), 3).pred
+        return new Succ(new Zero(), 3, 3).pred
     }
 }
 
 class Zero extends Nat {
     def succ(): Nat = {
-        return new Succ(this, 5)
+        return new Succ(this, 5, 5)
     }
 
     @override
@@ -51,14 +51,15 @@ class Zero extends Nat {
 class Succ extends Nat {
     val pred: Nat
     val data: Int
+    val data2: Int
 
-    def this(pred: Nat, data: Int) = {
+    def this(pred: Nat, data: Int data2: Int) = {
         this.pred = pred
         return this
     }
 
     @override
     def add(n: Nat): Nat = {
-        return new Succ(this.pred, 1)
+        return new Succ(this.pred, 1, 1)
     }
 }

@@ -252,8 +252,6 @@ class GenerateDatalog(module: Module) {
           if (f.name == targetName)
             fieldReadVar
           else {
-            // TODO: Why is _ a problem ?
-            //Datalog.Var(gensym.fresh("_"))
             Datalog.Var("_")
           }
         )
