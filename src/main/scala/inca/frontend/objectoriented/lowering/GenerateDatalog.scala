@@ -87,8 +87,8 @@ class GenerateDatalog(module: Module) {
     val thisVar = Datalog.Var("this")
     val fieldVars = classDef.fields.map(_ => Datalog.Var("_"))
     val readObject = Datalog.Call(classDef.name.raw, thisVar +: fieldVars)
-        .addHint(MagicSetHints.IgnoreCall)
-        .addHint(MagicSetHints.FixedAdornment(false +: fieldVars.map(_ => true)))
+      .addHint(MagicSetHints.IgnoreCall)
+      .addHint(MagicSetHints.FixedAdornment(false +: fieldVars.map(_ => true)))
     Datalog.Body(Seq(readObject))
   }
 
@@ -251,8 +251,11 @@ class GenerateDatalog(module: Module) {
         val fieldVars = classDef.fields.map(f =>
           if (f.name == targetName)
             fieldReadVar
-          else
+          else {
+            // TODO: Why is _ a problem ?
+            //Datalog.Var(gensym.fresh("_"))
             Datalog.Var("_")
+          }
         )
         val fieldReadCall = Datalog.Call(classType.ref.name.raw, term +: fieldVars)
           .addHint(MagicSetHints.IgnoreCall)

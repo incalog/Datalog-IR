@@ -14,7 +14,7 @@ object InlineSimpleRelations extends Optimization {
 
     def shouldInline(pat: Pattern): Boolean = {
       val isMain = pat.hasHint(MainKey)
-      lazy val containedCalls= pat.bodies.head.atoms.collect { case call: Call => call }
+      lazy val containedCalls = pat.bodies.head.atoms.collect { case call: Call => call }
       lazy val directlyRecursive = containedCalls.exists(_.name == pat.name)
       lazy val hasEvaluation = pat.bodies.head.atoms.exists { case Computed(_, _) => true; case _ => false }
       val inline = pat.bodies.size <= 1 && !isMain && containedCalls.size <= 100 && !directlyRecursive && !hasEvaluation
@@ -29,6 +29,7 @@ object InlineSimpleRelations extends Optimization {
 
       while (progress) {
         val candidate = pats.find(p => !inlined.contains(p.name) && shouldInline(p))
+
         candidate match {
           case None =>
             progress = false

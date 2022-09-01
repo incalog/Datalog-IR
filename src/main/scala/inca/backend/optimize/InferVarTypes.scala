@@ -39,14 +39,16 @@ object InferVarTypes extends Optimization {
           vars += v -> ty
         case Constant(lit) =>
           val meetType = meet(lit.typ, ty, dataModel)
-          if (meetType.isEmpty)
+          if (meetType.isEmpty) {
             throwBodyMustFail()
+          }
       }
 
       def addPatArgTypes(name: Name, args: Seq[Term]): Unit = {
         val params = funs.getOrElse(name, throw new IllegalArgumentException(s"Unbound pattern function $name"))
-        if (params.size != args.size)
+        if (params.size != args.size) {
           throw new IllegalArgumentException(s"Pattern call of $name has wrong number of arguments $args")
+        }
         params.zip(args).foreach { case (param, arg) =>
           addType(arg, param.typ)
         }

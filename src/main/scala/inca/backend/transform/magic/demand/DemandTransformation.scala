@@ -118,12 +118,12 @@ object DemandTransformation extends Transformation {
       }
 
       val boundIndices = deriveBoundIndices(pat, demandPat)
-      val dummyParam =
+      /*val dummyParam =
         if (boundIndices.isEmpty)
           Some(Param(gensym.fresh("dummy"), TScala("Boolean")))
         else
           None
-      val dummyBinding = dummyParam.map(p => Eq(Var(p.name), Constant(BooleanLiteral(true))))
+      val dummyBinding = dummyParam.map(p => Eq(Var(p.name), Constant(BooleanLiteral(true))))*/
 
       // for each body there can be multiple input bodies (due to multiple pattern calls)
       val inputPatterns = patterns.flatMap { p =>
@@ -135,7 +135,8 @@ object DemandTransformation extends Transformation {
                   val bindings = boundIndices.map { i =>
                     Eq(args(i), Var(params(i).name))
                   }
-                  Seq(Body(body.atoms.take(atomix) ++ bindings ++ dummyBinding).withHints(body))
+                  //Seq(Body(body.atoms.take(atomix) ++ bindings ++ dummyBinding).withHints(body))
+                  Seq(Body(body.atoms.take(atomix) ++ bindings).withHints(body))
                 }
                 else
                   Seq()
@@ -149,12 +150,14 @@ object DemandTransformation extends Transformation {
 
       val extensionalBody = if (pat.hasHint(MagicSetHints.MainKey)) {
         val extCall = ExtensionalCall(extensionalInputPatternName(pat.name), boundParams.map(p => Var(p.name)))
-        Some(Body(Seq(extCall) ++ dummyBinding))
+        //Some(Body(Seq(extCall) ++ dummyBinding))
+        Some(Body(Seq(extCall)))
       } else {
         None
       }
 
-      val inputPat = Pattern(None, inputPatternName(pat.name), boundParams ++ dummyParam, inputPatterns ++ extensionalBody).addHint(MagicSetHints.InputRelation)
+      //val inputPat = Pattern(None, inputPatternName(pat.name), boundParams ++ dummyParam, inputPatterns ++ extensionalBody).addHint(MagicSetHints.InputRelation)
+      val inputPat = Pattern(None, inputPatternName(pat.name), boundParams, inputPatterns ++ extensionalBody).addHint(MagicSetHints.InputRelation)
       if (inputPat.bodies.nonEmpty)
         Seq(inputPat)
       else

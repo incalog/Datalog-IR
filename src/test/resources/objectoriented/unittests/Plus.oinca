@@ -6,7 +6,7 @@ class Nat {
     }
 
     def succ(): Nat = {
-        return new Succ(this)
+        return new Succ(this, 2)
     }
 
     def add(n: Nat): Nat = {
@@ -14,25 +14,32 @@ class Nat {
     }
 
     @main
-    def main(): Boolean = {
-        val a: Int = 1
+    def main(): Nat = {
+        //val a: Int = 1
 
-        val first: Succ = new Succ(new Succ(new Zero()))//.succ().succ().succ()
-        val second: Nat = (new Zero()).succ()//.succ()
+        //val first: Succ = new Succ(new Succ(new Zero(), 3), 4)//.succ().succ().succ()
+        /*val second: Nat = (new Zero()).succ()//.succ()
+        val zero: Zero = new Zero()
+        val zero2: Zero = new Zero()*/
 
         //val y: Nat = first.pred
-        val x: Nat = cast(second, Succ).pred
+        //val n: Nat = new Nat()
+        //val x: Nat = cast(zero, Succ).pred
+        //first.data
+        //first.pred
 
         /*if (a == 1) {
             new Succ(x)
         }*/
-        return instanceOf(second, Succ)
+        //return instanceOf(zero, Nat)
+        //return instanceOf(zero, Zero)
+        return new Succ(new Zero(), 3).pred
     }
 }
 
 class Zero extends Nat {
     def succ(): Nat = {
-        return new Succ(this)
+        return new Succ(this, 5)
     }
 
     @override
@@ -43,14 +50,15 @@ class Zero extends Nat {
 
 class Succ extends Nat {
     val pred: Nat
+    val data: Int
 
-    def this(pred: Nat) = {
+    def this(pred: Nat, data: Int) = {
         this.pred = pred
         return this
     }
 
     @override
     def add(n: Nat): Nat = {
-        return new Succ(this.pred)
+        return new Succ(this.pred, 1)
     }
 }
