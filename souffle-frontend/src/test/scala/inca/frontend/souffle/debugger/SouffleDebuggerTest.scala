@@ -1,7 +1,7 @@
 package inca.frontend.souffle.debugger
 
 import inca.compiler.source.{Source, SourceFile, SourceString}
-import inca.debugger.Value
+import inca.debugger.{ScalaValue, Value}
 import inca.debugger.table.ImmutableTable
 import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.frontend.souffle.compiler.SouffleOptions
@@ -95,6 +95,97 @@ class SouffleDebuggerTest extends AnyFunSuite {
     val superclasses =
       """A;B
         |B;C""".stripMargin
+
+    val directsuperclassSig: Syntax.RuleSignature =
+      Syntax.RuleSignature(
+        Name("DirectSuperclass"),
+        Seq(
+          Syntax.RuleParameter(Name("?class"), Syntax.DeclaredType(Name("ClassType"))),
+          Syntax.RuleParameter(Name("?superclass"), Syntax.DeclaredType(Name("ClassType")))
+        ),
+        output = false
+      )
+
+    val debugger = initDebugger(
+      SourceString(subclassTransitiveClosure),
+      "Superclass",
+      Map(directsuperclassSig -> superclasses)
+    )
+    debugger.entry("Superclass", ImmutableTable.unit[Value]())
+
+    while (!debugger.isFinished) {
+      println(debugger.currentDebuggerInfo())
+      debugger.stepInto()
+    }
+    assertExpectedResult("Superclass", ImmutableTable.unit[Value](), debugger)
+  }
+
+  test("one step transitive closure from A") {
+    val superclasses =
+      """A;B
+        |B;C""".stripMargin
+
+    val directsuperclassSig: Syntax.RuleSignature =
+      Syntax.RuleSignature(
+        Name("DirectSuperclass"),
+        Seq(
+          Syntax.RuleParameter(Name("?class"), Syntax.DeclaredType(Name("ClassType"))),
+          Syntax.RuleParameter(Name("?superclass"), Syntax.DeclaredType(Name("ClassType")))
+        ),
+        output = false
+      )
+
+    val debugger = initDebugger(
+      SourceString(subclassTransitiveClosure),
+      "Superclass",
+      Map(directsuperclassSig -> superclasses)
+    )
+    val debuggerInput = ImmutableTable[Value](Seq("a"), Seq(Seq(ScalaValue("A"))))
+    debugger.entry("Superclass", debuggerInput)
+
+    while (!debugger.isFinished) {
+      println(debugger.currentDebuggerInfo())
+      debugger.stepInto()
+    }
+    assertExpectedResult("Superclass", debuggerInput, debugger)
+  }
+
+  test("two step transitive closure") {
+    val superclasses =
+      """A;B
+        |B;C
+        |C;D""".stripMargin
+
+    val directsuperclassSig: Syntax.RuleSignature =
+      Syntax.RuleSignature(
+        Name("DirectSuperclass"),
+        Seq(
+          Syntax.RuleParameter(Name("?class"), Syntax.DeclaredType(Name("ClassType"))),
+          Syntax.RuleParameter(Name("?superclass"), Syntax.DeclaredType(Name("ClassType")))
+        ),
+        output = false
+      )
+
+    val debugger = initDebugger(
+      SourceString(subclassTransitiveClosure),
+      "Superclass",
+      Map(directsuperclassSig -> superclasses)
+    )
+    val debuggerInput = ImmutableTable[Value](Seq("a"), Seq(Seq(ScalaValue("A"))))
+    debugger.entry("Superclass", debuggerInput)
+
+    while (!debugger.isFinished) {
+      println(debugger.currentDebuggerInfo())
+      debugger.stepInto()
+    }
+    assertExpectedResult("Superclass", debuggerInput, debugger)
+  }
+
+  test("two step transitive closure from A") {
+    val superclasses =
+      """A;B
+        |B;C
+        |C;D""".stripMargin
 
     val directsuperclassSig: Syntax.RuleSignature =
       Syntax.RuleSignature(
