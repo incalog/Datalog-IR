@@ -54,13 +54,12 @@ case class CompiledFunctionalModule(fun: Module, options: FunctionalOptions) ext
   lazy val ir: Datalog.Module = {
     println()
     val module = new GenerateDatalog(coreModule).transModule()
-    //println(s"Intermediate Representation")
-    //println(module)
+    println(s"Intermediate Representation")
+    println(module)
     /*println()
     println("DatalogPrinter")
     println(DatalogPrinter.prettyModule(module)(verbose = true))
-    println()*/
-    println(module)
+    println(*/
     if (CompilerFlags.DEBUGMODE) {
       println(s"Intermediate Representation")
       println(module)

@@ -59,13 +59,13 @@ object TScala {
     new TScala(Scala(typeString.parse[meta.Type].get))
   }
 }
+
 object TScalaBoolean extends TScala(Scala(t"Boolean"))
 object TScalaInt extends TScala(Scala(t"Int"))
 object TScalaLong extends TScala(Scala(t"Long"))
 object TScalaDouble extends TScala(Scala(t"Double"))
 object TScalaString extends TScala(Scala(t"String"))
 object TScalaAny extends TScala(Scala(t"Any"))
-object TScalaNull extends TScala(Scala(t"Null"))
 
 case class TClass(ref: ClassRef) extends Type {
   override def prettyprint: String = ref.toString

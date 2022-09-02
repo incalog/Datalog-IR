@@ -47,9 +47,10 @@ class GenerateDatalog(module: Module) {
 
     val fieldParams = classDef.fields.map(f => Datalog.Param(f.name.raw, transType(f.typ)))
     val thisParam = Datalog.Param("this", transType(classDef.typ))
+    val childUriParam = Datalog.Param("childURI", GP_URI)
     val bodies = Seq(transDefaultConstructor(classDef))
 
-    val objectPat = Datalog.Pattern(transVis(classDef.vis), className, thisParam +: fieldParams, bodies)
+    val objectPat = Datalog.Pattern(transVis(classDef.vis), className, thisParam +: childUriParam +: fieldParams, bodies)
     val methodPats = classDef.methods.map(m => transMethod(classDef, m))
     val castPat = Datalog.Pattern(None, "cast$_" + className, Seq(thisParam), Seq(transCast(classDef)))
       .addHint(MagicSetHints.NoInputRelation)
@@ -69,13 +70,13 @@ class GenerateDatalog(module: Module) {
     val thisVar = Datalog.Var("this")
     val outVar = Datalog.Var("hasType")
 
-    val fieldVars = classDef.fields.map(_ => Datalog.Var("_"))
-    val extObject = Datalog.Call(classDef.name.raw, thisVar +: fieldVars)
+    val fieldVars = classDef.fields.map(_ => Datalog.Var(gensym.fresh("_")))
+    val extObject = Datalog.Call(classDef.name.raw, thisVar +: Datalog.Var("_") +: fieldVars)
       .addHint(MagicSetHints.IgnoreCall)
-      .addHint(MagicSetHints.FixedAdornment(false +: fieldVars.map(_ => true)))
-    val notExtObject = Datalog.Call(classDef.name.raw, thisVar +: fieldVars, neg = true)
+      .addHint(MagicSetHints.FixedAdornment(false +: true +:fieldVars.map(_ => true)))
+    val notExtObject = Datalog.Call(classDef.name.raw, thisVar +: Datalog.Var("_") +: fieldVars, neg = true)
       .addHint(MagicSetHints.IgnoreCall)
-      .addHint(MagicSetHints.FixedAdornment(false +: fieldVars.map(_ => true)))
+      .addHint(MagicSetHints.FixedAdornment(false +: true +: fieldVars.map(_ => true)))
 
     Seq(
       Datalog.Body(Seq(extObject, Datalog.Eq(outVar, Datalog.True))),
@@ -85,18 +86,20 @@ class GenerateDatalog(module: Module) {
 
   private def transCast(classDef: ClassDef): Datalog.Body = gensym.scoped {
     val thisVar = Datalog.Var("this")
-    val fieldVars = classDef.fields.map(_ => Datalog.Var("_"))
-    val readObject = Datalog.Call(classDef.name.raw, thisVar +: fieldVars)
+    val fieldVars = classDef.fields.map(_ => Datalog.Var(gensym.fresh("_")))
+    val readObject = Datalog.Call(classDef.name.raw, thisVar +: Datalog.Var("_") +: fieldVars)
       .addHint(MagicSetHints.IgnoreCall)
-      .addHint(MagicSetHints.FixedAdornment(false +: fieldVars.map(_ => true)))
+      .addHint(MagicSetHints.FixedAdornment(false +: true +: fieldVars.map(_ => true)))
     Datalog.Body(Seq(readObject))
   }
 
   private def transDefaultConstructor(classDef: ClassDef): Datalog.Body = gensym.scoped {
     val params = classDef.fields.map(f => Datalog.Param(f.name.raw, transType(f.typ)))
+    val uri = q"""if (${Term.Name("childURI")}.toString == "()") $oMockURI(${classDef.name.raw}, ${Term.Name("childURI")}, ..${params.map(p => Term.Name(p.name)).toList}) else ${Term.Name("childURI")}"""
     val constrScalaFun = Term.Function(
-      classDef.fields.map(p => Term.Param(Nil, Term.Name(p.name.raw), Some(p.typ.asScala), None)).toList,
-      q"""$oMockURI(${classDef.name.raw}, ..${params.map(p => Term.Name(p.name)).toList})"""
+      Term.Param(Nil, Term.Name("childURI"), Some(GP_URI.asScala), None)
+        +: classDef.fields.map(p => Term.Param(Nil, Term.Name(p.name.raw), Some(p.typ.asScala), None)).toList,
+      uri
     )
     val thisVar = Datalog.Var("this")
 
@@ -104,19 +107,20 @@ class GenerateDatalog(module: Module) {
       Datalog.Computed(
         thisVar,
         Datalog.Evaluation(
-          classDef.fields.map(p => Datalog.Var(p.name.raw) -> transType(p.typ)),
+          (Datalog.Var("childURI") -> GP_URI)
+            +: classDef.fields.map(p => Datalog.Var(p.name.raw) -> transType(p.typ)),
           transType(classDef.typ),
           Scala(constrScalaFun)))
 
     // TODO: pass uid to super constructor... how ?
-    /*val superCons = classDef.parentClassRefs.map { ref =>
+    val superCons = classDef.parentClassRefs.map { ref =>
       val superClassDef = ref.target.get
-      val args = superClassDef.fields.map(_ => Datalog.Var("_"))
-      Datalog.Call(superClassDef.name.raw, thisVar +: args)
-    }*/
+      val args = superClassDef.fields.map(_ => Datalog.Var(gensym.fresh("_")))
+      Datalog.Call(superClassDef.name.raw, Datalog.Var("_") +: thisVar +: args)
+    }
 
-    //Datalog.Body(thisCons +: superCons)
-    Datalog.Body(Seq(thisCons))
+    Datalog.Body(thisCons +: superCons)
+    //Datalog.Body(Seq(thisCons))
   }
 
   // TODO: Implement this function when mutability is available + Move all fields to their own tables ?
@@ -207,12 +211,15 @@ class GenerateDatalog(module: Module) {
     case ExprStmt(expression) =>
       for ((_, cons) <- transExpression(expression))
         yield (None, cons)
+
     case ReturnStmt(expression) =>
       for ((tup, cons) <- transExpression(expression))
         yield (Some(tup), cons)
-    case VarDeclareStmt(name, typ, Some(expression), true) =>
+
+    case VarDeclareStmt(name, _, Some(expression), true) =>
       for ((Seq(term), cons) <- transExpression(expression))
         yield (None, cons :+ Datalog.Eq(Datalog.Var(name.raw), term))
+
     case IfStmt(cnd, thn, els) =>
       val cndTrans = transExpression(cnd)
       val thnTrans = transStatements(thn)
@@ -252,26 +259,29 @@ class GenerateDatalog(module: Module) {
           if (f.name == targetName)
             fieldReadVar
           else {
-            Datalog.Var("_")
+            // Using _ more than once is considered the same variable! Use gensym fresh
+            Datalog.Var(gensym.fresh("_"))
           }
         )
-        val fieldReadCall = Datalog.Call(classType.ref.name.raw, term +: fieldVars)
+        val fieldReadCall = Datalog.Call(classType.ref.name.raw, term +: Datalog.Var("X") +: fieldVars)
           .addHint(MagicSetHints.IgnoreCall)
-          .addHint(MagicSetHints.FixedAdornment(false +: fieldVars.map(_ => true)))
+          .addHint(MagicSetHints.FixedAdornment(false +: true +: fieldVars.map(_ => true)))
         (Seq(fieldReadVar), cons :+ fieldReadCall)
       }
 
     case ConstructorExpr(classRef, args) =>
       val constructedVar = Datalog.Var(gensym.fresh("new"))
+      val childVar = Datalog.Var(gensym.fresh("childURI"))
+      val childUriEval = Datalog.Computed(childVar, Datalog.Evaluation(Seq(), GP_URI, Scala(q"""() => $oMockURI("")""")))
       val argRes = args.map(e => transExpression(e))
 
       // create single call constraint when no arguments passed
       if (argRes.isEmpty)
-        return Seq((Seq(constructedVar), Seq(Datalog.Call(classRef.name.raw, Seq(constructedVar)))))
+        return Seq((Seq(constructedVar), Seq(childUriEval, Datalog.Call(classRef.name.raw, Seq(constructedVar, childVar)))))
 
       for (tups <- TupleOps.cartesianProduct(argRes)) yield {
         val (argTerms, argCons) = tups.unzip
-        (Seq(constructedVar), argCons.flatten ++ Seq(Datalog.Call(classRef.name.raw, constructedVar +: argTerms.flatten)))
+        (Seq(constructedVar), argCons.flatten ++ Seq(childUriEval, Datalog.Call(classRef.name.raw, constructedVar +: childVar +: argTerms.flatten)))
       }
 
     case methodCallExp@MethodCallExpr(recv, fun, args) =>
@@ -295,8 +305,8 @@ class GenerateDatalog(module: Module) {
 
     case TypeCastExpr(recv, toTyp) =>
       for ((Seq(eTerm), eCons) <- transExpression(recv)) yield {
-        val instanceCall = Datalog.Call("cast$_" + toTyp.toString, Seq(eTerm))
-        (Seq(eTerm), eCons :+ instanceCall)
+        val castCall = Datalog.Call("cast$_" + toTyp.toString, Seq(eTerm))
+        (Seq(eTerm), eCons :+ castCall)
       }
 
     case InstanceOfExpr(recv, ofTyp) =>

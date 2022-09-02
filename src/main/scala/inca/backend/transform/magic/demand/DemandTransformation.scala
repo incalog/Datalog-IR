@@ -91,7 +91,7 @@ object DemandTransformation extends Transformation {
     private def deriveInputCall(pat: Pattern, demandPat: Seq[Boolean]): Option[Call] = {
       val boundParams = deriveBoundParams(pat, demandPat)
       if (boundParams.isEmpty) {
-        Some(Call(inputPatternName(pat.name), List(Var(gensym.fresh("_")))).addHint(InputCall(pat.name)))
+        Some(Call(inputPatternName(pat.name), List(Var("_$"))).addHint(InputCall(pat.name)))
       } else {
         val args = boundParams.map(p => Var(p.name))
         Some(Call(inputPatternName(pat.name), args).addHint(InputCall(pat.name)))
