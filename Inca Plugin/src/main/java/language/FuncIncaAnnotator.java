@@ -27,7 +27,7 @@ public class FuncIncaAnnotator implements Annotator {
             @Override
             public void visitParam(@NotNull FuncIncaParam o) {
                 super.visitParam(o);
-                setHighlighting(o, holder, FuncIncaSyntaxHighlighter.PARAMETER);
+                setHighlighting(o.getFirstChild(), holder, FuncIncaSyntaxHighlighter.PARAMETER);
             }
 
             @Override

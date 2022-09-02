@@ -8,6 +8,10 @@ public class FuncIncaElementFactory {
     /*
     * Methods take a name and return a PSI node with that name or null
     * */
+    public static FuncIncaParam createParam(Project project, String name){
+        return ((FuncIncaParam) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
+    }
+
     public static FuncIncaImport createImport(Project project, String name){
         return ((FuncIncaImport) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
     }

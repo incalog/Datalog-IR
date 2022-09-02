@@ -26,6 +26,27 @@ public class FuncIncaPsiImplUtil {
         }
     }
 
+    // ------------------------------- param -----------------------------------
+    public static String getName(FuncIncaParam element){
+        ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
+        return getName(idNode);
+    }
+
+    public static PsiElement setName(FuncIncaParam element, String newName){
+        ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
+        if(idNode != null){
+            FuncIncaParam paramId = FuncIncaElementFactory.createParam(element.getProject(), newName);
+            ASTNode newNode = paramId.getFirstChild().getNode();
+            element.getNode().replaceChild(idNode, newNode);
+        }
+        return element;
+    }
+
+    public static PsiElement getNameIdentifier(FuncIncaParam element){
+        ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
+        return getNameIdentifier(idNode);
+    }
+
     // ------------------------------- import ----------------------------------
     public static String getName(FuncIncaImport element){
         ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
@@ -35,7 +56,7 @@ public class FuncIncaPsiImplUtil {
     public static PsiElement setName(FuncIncaImport element, String newName){
         ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
         if(idNode != null){
-            FuncIncaImport imp = FuncIncaElementFactory.createImport(element.getProject(), newName); // element factory is not yet implemented
+            FuncIncaImport imp = FuncIncaElementFactory.createImport(element.getProject(), newName);
             ASTNode newNode = imp.getFirstChild().getNextSibling().getNode(); // first child is keyword import, second child is id
             element.getNode().replaceChild(idNode, newNode);
         }

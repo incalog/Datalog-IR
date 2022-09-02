@@ -16,13 +16,9 @@ public interface FuncIncaParam extends FuncIncaNamedElement {
   @NotNull
   PsiElement getId();
 
-  //WARNING: getName(...) is skipped
-  //matching getName(FuncIncaParam, ...)
-  //methods are not found in FuncIncaPsiImplUtil
+  String getName();
 
-  //WARNING: setName(...) is skipped
-  //matching setName(FuncIncaParam, ...)
-  //methods are not found in FuncIncaPsiImplUtil
+  PsiElement setName(String newName);
 
   //WARNING: getNameIdentifier(...) is skipped
   //matching getNameIdentifier(FuncIncaParam, ...)
