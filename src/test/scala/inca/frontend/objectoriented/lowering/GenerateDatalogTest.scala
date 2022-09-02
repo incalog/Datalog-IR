@@ -15,6 +15,24 @@ class GenerateDatalogTest extends AnyFunSuite {
 
   val options: ObjectOptions = ObjectOptions()
 
+  test("Base 1") {
+    val code = FileUtil.readFile("objectoriented/unittests/Base1.oinca")
+    val result = Compiler.compileObject(code, options).ir
+    print(result)
+  }
+
+  test("Base 2") {
+    val code = FileUtil.readFile("objectoriented/unittests/Base2.oinca")
+    val result = Compiler.compileObject(code, options).ir
+    print(result)
+  }
+
+  test("Base 3") {
+    val code = FileUtil.readFile("objectoriented/unittests/Base3.oinca")
+    val result = Compiler.compileObject(code, options).ir
+    print(result)
+  }
+
   test("Plus") {
     val code = FileUtil.readFile("objectoriented/unittests/Plus.oinca")
     val result = Compiler.compileObject(code, options)
@@ -24,23 +42,5 @@ class GenerateDatalogTest extends AnyFunSuite {
     val mainMatcher = engine.getMatcher(spec)
     feed.insert(DemandTransformation.demandPatternExtensionalPrefix + "Nat$main", Tuples.flatTupleOf())
     mainMatcher.getAllMatches.toArray.foreach(println)
-  }
-
-  test("Example") {
-    val code = FileUtil.readFile("objectoriented/unittests/Example.oinca")
-    val result = Compiler.compileObject(code, options).ir
-    println(result)
-  }
-
-  test("Binary Tree 3") {
-    val code = FileUtil.readFile("objectoriented/unittests/BinaryTree3.oinca")
-    val result = Compiler.compileObject(code, options).ir
-    println(result)
-  }
-
-  test("BinaryTree 2") {
-    val code = FileUtil.readFile("objectoriented/unittests/BinaryTree2.oinca")
-    val result = Compiler.compileObject(code, options).ir
-    println(result)
   }
 }

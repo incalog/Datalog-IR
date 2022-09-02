@@ -263,7 +263,7 @@ class GenerateDatalog(module: Module) {
             Datalog.Var(gensym.fresh("_"))
           }
         )
-        val fieldReadCall = Datalog.Call(classType.ref.name.raw, term +: Datalog.Var("X") +: fieldVars)
+        val fieldReadCall = Datalog.Call(classType.ref.name.raw, term +: Datalog.Var("_") +: fieldVars)
           .addHint(MagicSetHints.IgnoreCall)
           .addHint(MagicSetHints.FixedAdornment(false +: true +: fieldVars.map(_ => true)))
         (Seq(fieldReadVar), cons :+ fieldReadCall)
@@ -323,7 +323,7 @@ class GenerateDatalog(module: Module) {
     case BaseLitExpr(code) =>
       import scala.meta._
       val evalOut = Datalog.Var(gensym.fresh("lit"))
-      val resType = expression.typ.getOrElse(throw new IllegalStateException("cannot compile untyped Eval"))
+      val resType = expression.typ.getOrElse(throw new IllegalStateException("Cannot compile untyped Eval"))
       val funCode = q"() => ${code.tree}"
       val evalConstraint = Datalog.Computed(evalOut, Datalog.Evaluation(Seq(), transType(resType), Scala(funCode)))
       Seq((Seq(evalOut), Seq(evalConstraint)))
@@ -337,7 +337,7 @@ class GenerateDatalog(module: Module) {
 
       val unary = meta.Term.ApplyUnary(op.tree, meta.Term.Name("exp"))
       val funCode = q"($expParam) => $unary"
-      val resType = exp.typ.getOrElse(throw new IllegalStateException("cannot compile untyped base infix application"))
+      val resType = exp.typ.getOrElse(throw new IllegalStateException("Cannot compile untyped base infix application"))
 
       val expRes = transExpression(exp)
       val evalOut = Datalog.Var(gensym.fresh("eval"))
@@ -363,7 +363,7 @@ class GenerateDatalog(module: Module) {
           q"(..$paramsTyped) => ${scalaArgs.head}.${methodName}"
         else
           q"(..$paramsTyped) => ${scalaArgs.head}.${methodName}(..${scalaArgs.tail})"
-      val resType = expression.typ.getOrElse(throw new IllegalStateException("cannot compile untyped Eval"))
+      val resType = expression.typ.getOrElse(throw new IllegalStateException("Cannot compile untyped Eval"))
 
       val recvRes = transExpression(recv)
       val argRes = args.getOrElse(Seq()).map(e => transExpression(e))
@@ -387,7 +387,7 @@ class GenerateDatalog(module: Module) {
       }.toList
       val scalaArgs: List[meta.Term] = paramsTyped.map(p => Term.Name(p.name.value))
       val funCode = q"(..$paramsTyped) => ${fun.tree}(..$scalaArgs)"
-      val resType = expression.typ.getOrElse(throw new IllegalStateException("cannot compile untyped Eval"))
+      val resType = expression.typ.getOrElse(throw new IllegalStateException("Cannot compile untyped Eval"))
 
       val argRes = args.map(e => transExpression(e))
       val evalOut = Datalog.Var(gensym.fresh("eval"))
@@ -439,7 +439,7 @@ class GenerateDatalog(module: Module) {
         param"right: ${typ.asScala}"
       }
       val funCode = q"($leftParam, $rightParam) => left ${op.tree} right"
-      val resType = expression.typ.getOrElse(throw new IllegalStateException("cannot compile untyped base infix application"))
+      val resType = expression.typ.getOrElse(throw new IllegalStateException("Cannot compile untyped base infix application"))
 
       val leftRes = transExpression(left)
       val rightRes = transExpression(right)

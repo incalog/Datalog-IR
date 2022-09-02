@@ -1,65 +1,41 @@
 module Plus
 
 class Nat {
-    def this() = {
-        //return this
-    }
+    def this() = { }
 
-    def succ(): Nat = {
-        return new Succ(this, 2, 2d)
+    def succ(): Succ = {
+        return new Succ(this)
     }
 
     def add(n: Nat): Nat = {
-        return this
+        return n
     }
 
     @main
-    def main(): Boolean = {
-        //val a: Int = 1
-
-        //val first: Succ = new Succ(new Succ(new Zero(), 3, 3d), 4, 4d)//.succ().succ().succ()
-        val second: Nat = (new Zero()).succ()//.succ()
+    def main(): Nat = {
         val zero: Zero = new Zero()
-        val zero2: Zero = new Zero()
+        val first: Succ = zero.succ()
+        val second: Succ = zero.succ().succ()
 
-        //val y: Nat = first.pred
-        //val n: Nat = new Nat()
-        //val x: Nat = cast(zero, Succ).pred
-        //first.data
-        //first.pred
-
-        /*if (a == 1) {
-            new Succ(x)
-        }*/
-        //return instanceOf(zero, Nat)
-        return instanceOf(zero, Succ)
-        //return new Succ(new Zero(), 3, 3d).pred
+        return first.add(second)
     }
 }
 
 class Zero extends Nat {
-    def succ(): Nat = {
-        return new Succ(this, 5, 5d)
-    }
 
-    @override
-    def add(n: Nat): Nat = {
-        return n
-    }
 }
 
 class Succ extends Nat {
     val pred: Nat
-    val data: Int
-    val data2: Double
 
-    def this(pred: Nat, data: Int data2: Double) = {
+    def this(pred: Nat) = {
         this.pred = pred
-        return this
     }
 
     @override
     def add(n: Nat): Nat = {
-        return new Succ(this.pred, 1, 1d)
+        // TODO: Not working since this.pred is always Nat. Therefore the dispatch always occurs to nat
+        // TODO: Solution: Add a dynamic dispatch to datalog
+        return new Succ(this.pred.add(n))
     }
 }

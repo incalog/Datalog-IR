@@ -89,6 +89,7 @@ trait TypeContext extends TypeIO {
         constructors = clazz.get.parentClassRefs.flatMap { ref =>
           lookupConstructor(ref.target, location)
         }
+        // We will just use the default construct with all fields, that will be generated automatically
         if (constructors.isEmpty) {
           error(s"Undefined constructor ${clazz.get.name}", location)
         }

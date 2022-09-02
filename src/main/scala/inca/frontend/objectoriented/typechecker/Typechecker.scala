@@ -177,7 +177,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
   }
 
-  final def typecheck(exp: Expression): Type = assignType(exp)(typecheckInternal(exp))
+  final def typecheck(expression: Expression): Type = assignType(expression)(typecheckInternal(expression))
 
   def typecheckInternal(expression: Expression): Type = expression match {
     case NullExpr() =>
@@ -273,10 +273,12 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       typecheck(recv)
       typecheck(toTyp)
       toTyp
+
     case InstanceOfExpr(recv, ofTyp) =>
       typecheck(recv)
       typecheck(ofTyp)
       TScalaBoolean
+
     case TupleExpr(exps) =>
       TTuple(exps.map(typecheck))
 
