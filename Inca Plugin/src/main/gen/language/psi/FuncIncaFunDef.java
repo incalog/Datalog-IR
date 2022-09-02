@@ -19,8 +19,8 @@ public interface FuncIncaFunDef extends FuncIncaNamedElement {
   @Nullable
   FuncIncaFunType getFunType();
 
-  @NotNull
-  List<FuncIncaParam> getParamList();
+  @Nullable
+  FuncIncaParamList getParamList();
 
   @Nullable
   FuncIncaParamTypes getParamTypes();

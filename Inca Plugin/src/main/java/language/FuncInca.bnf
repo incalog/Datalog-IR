@@ -105,7 +105,7 @@ private keywords_recover ::= !('module' | 'data' | 'def' | 'if' | 'else' | 'let'
 fun_def ::= annotation* visibility? keyword_def id param_types? ('(' param_list ')')? ':' type_annotation '=' exp {pin = 3}
 param_types ::= '[' param_type (',' param_type)* ']'
 param_type ::= id
-private param_list ::= (param (',' param)*)?
+param_list ::= (param (',' param)*)?
 param ::= id ':' type_annotation
 annotation ::= '@main'
 visibility ::= 'private'

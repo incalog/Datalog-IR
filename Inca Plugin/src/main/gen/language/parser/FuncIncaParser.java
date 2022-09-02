@@ -1334,9 +1334,11 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // (param (',' param)*)?
-  static boolean param_list(PsiBuilder b, int l) {
+  public static boolean param_list(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "param_list")) return false;
+    Marker m = enter_section_(b, l, _NONE_, PARAM_LIST, "<param list>");
     param_list_0(b, l + 1);
+    exit_section_(b, l, m, true, false, null);
     return true;
   }
 

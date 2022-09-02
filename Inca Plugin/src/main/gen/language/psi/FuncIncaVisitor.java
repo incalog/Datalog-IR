@@ -139,6 +139,10 @@ public class FuncIncaVisitor extends PsiElementVisitor {
     visitNamedElement(o);
   }
 
+  public void visitParamList(@NotNull FuncIncaParamList o) {
+    visitPsiElement(o);
+  }
+
   public void visitParamType(@NotNull FuncIncaParamType o) {
     visitNamedElement(o);
   }

@@ -51,9 +51,9 @@ public class FuncIncaFunDefImpl extends FuncIncaNamedElementImpl implements Func
   }
 
   @Override
-  @NotNull
-  public List<FuncIncaParam> getParamList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaParam.class);
+  @Nullable
+  public FuncIncaParamList getParamList() {
+    return findChildByClass(FuncIncaParamList.class);
   }
 
   @Override

@@ -1,0 +1,24 @@
+<idea-plugin>
+  <version>1.0-SNAPSHOT</version>
+  <change-notes>Add change notes here.&lt;br&gt;
+      &lt;em&gt;most HTML tags may be used&lt;/em&gt;</change-notes>
+  <idea-version since-build="212.5457" until-build="212.*" />
+  <id>org.example.Inca Plugin</id>
+  <name>Functional Inca</name>
+  <vendor email="support@yourcompany.com" url="http://www.yourcompany.com">YourCompany</vendor>
+  <description><![CDATA[Enter short description for your plugin here.<br>
+    <em>most HTML tags may be used</em>]]></description>
+  <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
+         on how to target different products -->
+  <depends>com.intellij.modules.platform</depends>
+  <extensions defaultExtensionNs="com.intellij">
+    <fileType name="Functional IncA File" implementationClass="language.FuncIncaFileType" fieldName="INSTANCE" language="Functional IncA" extensions="finca" />
+    <lang.parserDefinition language="Functional IncA" implementationClass="language.FuncIncaParserDefinition" />
+    <lang.syntaxHighlighterFactory language="Functional IncA" implementationClass="language.FuncIncaSyntaxHighlighterFactory" />
+    <colorSettingsPage implementation="language.FuncIncaColorSettingsPage" />
+    <annotator implementationClass="language.FuncIncaAnnotator" />
+  </extensions>
+  <actions>
+    <!-- Add your actions here -->
+  </actions>
+</idea-plugin>

@@ -54,4 +54,9 @@ public class FuncIncaParamImpl extends FuncIncaNamedElementImpl implements FuncI
     return FuncIncaPsiImplUtil.setName(this, newName);
   }
 
+  @Override
+  public PsiElement getNameIdentifier() {
+    return FuncIncaPsiImplUtil.getNameIdentifier(this);
+  }
+
 }

@@ -41,6 +41,7 @@ public interface FuncIncaTypes {
   IElementType OPTION_EXP = new FuncIncaElementType("OPTION_EXP");
   IElementType OPTION_PATTERN = new FuncIncaElementType("OPTION_PATTERN");
   IElementType PARAM = new FuncIncaElementType("PARAM");
+  IElementType PARAM_LIST = new FuncIncaElementType("PARAM_LIST");
   IElementType PARAM_TYPE = new FuncIncaElementType("PARAM_TYPE");
   IElementType PARAM_TYPES = new FuncIncaElementType("PARAM_TYPES");
   IElementType PARENS_EXP = new FuncIncaElementType("PARENS_EXP");
@@ -218,6 +219,9 @@ public interface FuncIncaTypes {
       }
       else if (type == PARAM) {
         return new FuncIncaParamImpl(node);
+      }
+      else if (type == PARAM_LIST) {
+        return new FuncIncaParamListImpl(node);
       }
       else if (type == PARAM_TYPE) {
         return new FuncIncaParamTypeImpl(node);
