@@ -9,6 +9,12 @@
     <e n="OpenFile">
       <i c="1" l="1662132043700" />
     </e>
+    <e n="PsiViewer">
+      <i c="1" l="1662371037868" />
+    </e>
+    <e n="PsiViewerForContext">
+      <i c="1" l="1662371071576" />
+    </e>
     <e n="WelcomeScreen.CreateNewProject">
       <i c="1" l="1662131904886" />
     </e>
@@ -16,7 +22,10 @@
       <i c="2" l="1662131941024" />
     </e>
     <e n="com.intellij.openapi.fileEditor.impl.tabActions.CloseTab">
-      <i c="1" l="1662132064733" />
+      <i c="2" l="1662371022374" />
+    </e>
+    <e n="com.intellij.openapi.ui.DialogWrapper$4">
+      <i c="1" l="1662371664851" />
     </e>
   </component>
 </application>

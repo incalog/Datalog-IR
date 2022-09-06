@@ -21,9 +21,6 @@ import java.util.*;
  */
 public class FuncIncaUtil {
 
-    /**
-    * finds the definition of Named Elements with name in a project
-    */
     public static List<PsiNamedElement> findFunDefs(@NotNull Project project, @Nullable FuncIncaFile f, @Nullable String name){
         List<PsiNamedElement> res = new ArrayList<>();
         Collection<VirtualFile> virtualFiles = FileTypeIndex.getFiles(FuncIncaFileType.INSTANCE, GlobalSearchScope.projectScope(project));
