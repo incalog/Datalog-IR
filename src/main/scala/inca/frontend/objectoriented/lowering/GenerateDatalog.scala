@@ -1,15 +1,17 @@
 package inca.frontend.objectoriented.lowering
 
-import inca.backend.hints.{DataHints, MagicSetHints}
+import inca.backend.hints.{DataHints, MagicSetHints, OptimizationHints}
 import inca.backend.hints.MagicSetHints.{FixedAdornment, IgnoreCall, NoInputRelation}
 import inca.backend.ir.Datalog
 import inca.frontend.objectoriented.core._
+import inca.frontend.objectoriented.util.ClassHierarchy
 import inca.runtime.data.MockURI
 import inca.util.Scala.{symbolOf, typeOf}
 import inca.util.{Gensym, Scala, TupleOps}
 
 import scala.:+
 import scala.annotation.tailrec
+import scala.collection.immutable.MultiDict
 import scala.collection.mutable.ListBuffer
 import scala.meta.Term
 import scala.meta.quasiquotes._
@@ -23,6 +25,10 @@ object GenerateDatalog {
 }
 
 class GenerateDatalog(module: Module) {
+  case class ClassDefWrapper(classDef: ClassDef, childs: Seq[ClassDef]) {
+
+  }
+
   private val gensym: Gensym = new Gensym(Iterable.empty)
 
   private val generatedPatterns = ListBuffer[Datalog.Pattern]()
@@ -32,7 +38,10 @@ class GenerateDatalog(module: Module) {
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(module.usedClassNames.map(_.raw))
 
-    classes.foreach(c => generatedPatterns ++= transClass(c))
+    val clsHierarchy  = ClassHierarchy(classes)
+    clsHierarchy.foreach {
+      case (parentCls, cls, childCls) => generatedPatterns ++= transClass(parentCls, cls, childCls)
+    }
 
     Datalog.Module(
       name.raw,
@@ -42,94 +51,145 @@ class GenerateDatalog(module: Module) {
     )
   }
 
-  private def transClass(classDef: ClassDef): Seq[Datalog.Pattern] = {
+  /**
+   * Guard that ensures that an object of the class with the id specified in the var `this` exists.
+   * @param classDef the class to check for
+   * @param neg negate the guard, that means no object with the id exists
+   * @return Datalog.Call to check the existence
+   */
+  private def guard(classDef: ClassDef, neg: Boolean = false): Datalog.Call = {
+    val thisVar = Datalog.Var("this")
+    val fieldVars = classDef.fields.map(_ => Datalog.Var(gensym.fresh("_")))
+    Datalog.Call(classDef.name.raw, thisVar +: fieldVars, neg = neg)
+      .addHint(MagicSetHints.IgnoreCall)
+      .addHint(MagicSetHints.FixedAdornment(false +: fieldVars.map(_ => true)))
+  }
+
+  /*private def transDynamicDispatch(classDef: ClassDef, methodDef: MethodDef, children: Seq[ClassDef]): Datalog.Pattern = {
+
+    val (parentClassDef, methodDef) = key
+    val childClasses = parentAndMethodToChildMap.get(key)
+    val args = methodDef.params.map(p => Datalog.Var(p.name.raw)) :+ Datalog.Var("return")
+
+    // Construct body :- Child(...), Child$method(...)
+    val childMethodCallBodies = childClasses.map { classDef =>
+      Datalog.Body(Seq(guard(classDef), Datalog.Call(classDef.name + "$" + methodDef.name.raw, args)))
+    }.toSeq
+
+    // Construct body :- !Child_1(...), ..., Child_n(...), Parent(...), Parent$method(...)
+    val parentMethodCallBody = Datalog.Body(
+      childClasses.map { classDef => guard(classDef, neg = true) }.toSeq
+        // TODO: Use dispatch instead of call is overridden
+        :+ Datalog.Call(parentClassDef.name.raw + "$" + methodDef.name.raw, args)
+    )
+
+    val qualifiedName = "dispatch$_" + parentClassDef.name.raw + "$" + methodDef.name.raw
+    val thisParam = Datalog.Param("this", transType(parentClassDef.typ))
+    val argParams = methodDef.params.map { case Param(name, typ) => Datalog.Param(name.raw, transType(typ)) }
+    val returnParams = if (methodDef.returnsUnit) Seq() else Seq(Datalog.Param("return", transType(methodDef.outType)))
+    Datalog.Pattern(None, qualifiedName, thisParam +: (argParams ++ returnParams), childMethodCallBodies :+ parentMethodCallBody)
+  }*/
+
+  /*private def transDynamicDispatch(classes: Seq[ClassDef]): Seq[Datalog.Pattern] = {
+    val classMap = classes.map(c => c.name -> c).toMap
+
+    val parentAndMethodToChildMap = MultiDict.from(classes.flatMap { classDef =>
+      classDef.methods.flatMap { methodDef =>
+        val parent = classDef.parentClassRefs.headOption
+        if (methodDef.isMain || !methodDef.isOverridden || parent.isEmpty) {
+          None // Ignore the main method and not overwritten methods
+        } else {
+          Some((classMap(parent.get.name), methodDef) -> classDef)
+        }
+      }
+    })
+
+    parentAndMethodToChildMap.foreach{ case ((p, m), c) => println(p.name, m.name + " -> " + c.name)}
+
+    parentAndMethodToChildMap.keySet.map { key =>
+      val (parentClassDef, methodDef) = key
+      val childClasses = parentAndMethodToChildMap.get(key)
+      val args = methodDef.params.map(p => Datalog.Var(p.name.raw)) :+ Datalog.Var("return")
+
+      // Construct body :- Child(...), Child$method(...)
+      val childMethodCallBodies = childClasses.map { classDef =>
+        Datalog.Body(Seq(guard(classDef), Datalog.Call(classDef.name + "$" + methodDef.name.raw, args)))
+      }.toSeq
+
+      // Construct body :- !Child_1(...), ..., Child_n(...), Parent(...), Parent$method(...)
+      val parentMethodCallBody = Datalog.Body(
+        childClasses.map { classDef => guard(classDef, neg = true) }.toSeq
+          // TODO: Use dispatch instead of call is overridden
+          :+ Datalog.Call(parentClassDef.name.raw + "$" + methodDef.name.raw, args)
+      )
+
+      val qualifiedName = "dispatch$_" + parentClassDef.name.raw + "$" + methodDef.name.raw
+      val thisParam = Datalog.Param("this", transType(parentClassDef.typ))
+      val argParams = methodDef.params.map { case Param(name, typ) => Datalog.Param(name.raw, transType(typ)) }
+      val returnParams = if (methodDef.returnsUnit) Seq() else  Seq(Datalog.Param("return", transType(methodDef.outType)))
+      Datalog.Pattern(None, qualifiedName, thisParam +: (argParams ++ returnParams), childMethodCallBodies :+ parentMethodCallBody)
+    }
+  }.toSeq*/
+
+  private def transClass(parents: Seq[ClassDef], classDef: ClassDef, childs: Seq[ClassDef]): Seq[Datalog.Pattern] = {
     val className = classDef.name.raw
 
     val fieldParams = classDef.fields.map(f => Datalog.Param(f.name.raw, transType(f.typ)))
     val thisParam = Datalog.Param("this", transType(classDef.typ))
-    val childUriParam = Datalog.Param("childURI", GP_URI)
     val bodies = Seq(transDefaultConstructor(classDef))
 
-    val objectPat = Datalog.Pattern(transVis(classDef.vis), className, thisParam +: childUriParam +: fieldParams, bodies)
+    val objectPat = Datalog.Pattern(transVis(classDef.vis), className, thisParam +: fieldParams, bodies)
     val methodPats = classDef.methods.map(m => transMethod(classDef, m))
+
     val castPat = Datalog.Pattern(None, "cast$_" + className, Seq(thisParam), Seq(transCast(classDef)))
       .addHint(MagicSetHints.NoInputRelation)
 
-    val hasTypeOutParam = Datalog.Param("hasType", Datalog.TScalaBoolean)
-    val instanceOfBodies = transInstanceOf(classDef)
-    val instanceOfParams = Seq(thisParam, hasTypeOutParam)
-    val instanceOfPat = Datalog.Pattern(None, "instanceOf$_" + className, instanceOfParams, instanceOfBodies)
+    val instanceOfPat = transInstanceOf(classDef)
+    val enumeratePat = transEnumerate(classDef, childs)
 
-    objectPat +: methodPats :+ castPat :+ instanceOfPat
+    objectPat +: methodPats :+ castPat :+ instanceOfPat :+ enumeratePat
   }
 
   val oMockURI: meta.Term = symbolOf(MockURI)
   val tyMockURI: meta.Type = typeOf[MockURI]
 
-  private def transInstanceOf(classDef: ClassDef): Seq[Datalog.Body] = gensym.scoped {
-    val thisVar = Datalog.Var("this")
+  def transEnumerate(classDef: ClassDef, childs: Seq[ClassDef]): Datalog.Pattern = gensym.scoped {
+      val constructedBody = Datalog.Body(Seq(guard(classDef)))
+      val childBodies = childs.map { child =>
+        Datalog.Body(Seq(
+          Datalog.Call("enumerated$_" + child.name.raw, Seq(Datalog.Var("this")))
+        ))
+      }
+      val thisParam = Datalog.Param("this", transType(classDef.typ))
+      Datalog.Pattern(None, "enumerated$_" + classDef.name.raw, Seq(thisParam), constructedBody +: childBodies)
+        .addHint(OptimizationHints.NoInline) // TODO: Fix the root cause inside the InlineSimpleRelation
+  }
+
+  private def transInstanceOf(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
+    val thisParam = Datalog.Param("this", transType(classDef.typ))
+    val hasTypeOutParam = Datalog.Param("hasType", Datalog.TScalaBoolean)
+    val instanceOfParams = Seq(thisParam, hasTypeOutParam)
+
     val outVar = Datalog.Var("hasType")
-
-    val fieldVars = classDef.fields.map(_ => Datalog.Var(gensym.fresh("_")))
-    val extObject = Datalog.Call(classDef.name.raw, thisVar +: Datalog.Var("_") +: fieldVars)
-      .addHint(MagicSetHints.IgnoreCall)
-      .addHint(MagicSetHints.FixedAdornment(false +: true +:fieldVars.map(_ => true)))
-    val notExtObject = Datalog.Call(classDef.name.raw, thisVar +: Datalog.Var("_") +: fieldVars, neg = true)
-      .addHint(MagicSetHints.IgnoreCall)
-      .addHint(MagicSetHints.FixedAdornment(false +: true +: fieldVars.map(_ => true)))
-
-    Seq(
-      Datalog.Body(Seq(extObject, Datalog.Eq(outVar, Datalog.True))),
-      Datalog.Body(Seq(notExtObject, Datalog.Eq(outVar, Datalog.False)))
-    )
+    val thisVar = Datalog.Var("this")
+    Datalog.Pattern(None, "instanceOf$_" + classDef.name.raw, instanceOfParams, Seq(
+      Datalog.Body(Seq(
+        Datalog.Call("enumerated$_" + classDef.name.raw, Seq(thisVar)), Datalog.Eq(outVar, Datalog.True))
+      ),
+      Datalog.Body(Seq(
+        Datalog.Call("enumerated$_" + classDef.name.raw, Seq(thisVar), neg = true), Datalog.Eq(outVar, Datalog.False))
+      )
+    ))
   }
 
   private def transCast(classDef: ClassDef): Datalog.Body = gensym.scoped {
-    val thisVar = Datalog.Var("this")
-    val fieldVars = classDef.fields.map(_ => Datalog.Var(gensym.fresh("_")))
-    val readObject = Datalog.Call(classDef.name.raw, thisVar +: Datalog.Var("_") +: fieldVars)
-      .addHint(MagicSetHints.IgnoreCall)
-      .addHint(MagicSetHints.FixedAdornment(false +: true +: fieldVars.map(_ => true)))
-    Datalog.Body(Seq(readObject))
+    Datalog.Body(Seq(guard(classDef)))
   }
 
   private def transDefaultConstructor(classDef: ClassDef): Datalog.Body = gensym.scoped {
     val params = classDef.fields.map(f => Datalog.Param(f.name.raw, transType(f.typ)))
-    val uri = q"""if (${Term.Name("childURI")}.toString == "()") $oMockURI(${classDef.name.raw}, ${Term.Name("childURI")}, ..${params.map(p => Term.Name(p.name)).toList}) else ${Term.Name("childURI")}"""
     val constrScalaFun = Term.Function(
-      Term.Param(Nil, Term.Name("childURI"), Some(GP_URI.asScala), None)
-        +: classDef.fields.map(p => Term.Param(Nil, Term.Name(p.name.raw), Some(p.typ.asScala), None)).toList,
-      uri
-    )
-    val thisVar = Datalog.Var("this")
-
-    val thisCons =
-      Datalog.Computed(
-        thisVar,
-        Datalog.Evaluation(
-          (Datalog.Var("childURI") -> GP_URI)
-            +: classDef.fields.map(p => Datalog.Var(p.name.raw) -> transType(p.typ)),
-          transType(classDef.typ),
-          Scala(constrScalaFun)))
-
-    // TODO: pass uid to super constructor... how ?
-    val superCons = classDef.parentClassRefs.map { ref =>
-      val superClassDef = ref.target.get
-      val args = superClassDef.fields.map(_ => Datalog.Var(gensym.fresh("_")))
-      Datalog.Call(superClassDef.name.raw, Datalog.Var("_") +: thisVar +: args)
-    }
-
-    Datalog.Body(thisCons +: superCons)
-    //Datalog.Body(Seq(thisCons))
-  }
-
-  // TODO: Implement this function when mutability is available + Move all fields to their own tables ?
-  /*private def transConstructor(classDef: ClassDef, constructorDef: MethodDef): Datalog.Pattern = gensym.scoped {
-    gensym.register(constructorDef.vars.keys.map(_.raw) + "this")
-
-    val params = constructorDef.params.map(f => Datalog.Param(f.name.raw, transType(f.typ)))
-    val constrScalaFun = Term.Function(
-      constructorDef.params.map(p => Term.Param(Nil, Term.Name(p.name.raw), Some(p.typ.asScala), None)).toList,
+      classDef.fields.map(p => Term.Param(Nil, Term.Name(p.name.raw), Some(p.typ.asScala), None)).toList,
       q"""$oMockURI(${classDef.name.raw}, ..${params.map(p => Term.Name(p.name)).toList})"""
     )
     val thisVar = Datalog.Var("this")
@@ -138,28 +198,17 @@ class GenerateDatalog(module: Module) {
       Datalog.Computed(
         thisVar,
         Datalog.Evaluation(
-          constructorDef.params.map(p => Datalog.Var(p.name.raw) -> transType(p.typ)),
+          classDef.fields.map(p => Datalog.Var(p.name.raw) -> transType(p.typ)),
           transType(classDef.typ),
           Scala(constrScalaFun)))
 
-    val bodyRes = transStatements(constructorDef.body)
-    val bodies = for ((optReturn, cons) <- bodyRes) yield {
-      if (optReturn.isDefined)
-        throw new IllegalStateException(s"Constructor of class ${classDef.name} may not call return")
-          Datalog.Body(thisCons +: cons)
-    }
-
-    val argParams = constructorDef.params.map { case Param(name, typ) =>
-      Datalog.Param(name.raw, transType(typ))
-    }
-    Datalog.Pattern(None, classDef.name.raw, argParams, bodies)
-  }*/
+    Datalog.Body(Seq(thisCons))
+  }
 
   private def transMethod(classDef: ClassDef, methodDef: MethodDef): Datalog.Pattern = gensym.scoped {
     gensym.register(methodDef.vars.keys.map(_.raw) + "this")
 
     val qualifiedName = classDef.name + "$" + methodDef.name.raw
-    val isMain = methodDef.annos.contains(MainAnnotation)
 
     val thisParam = Datalog.Param("this", transType(classDef.typ))
     val argParams = methodDef.params.map { case Param(name, typ) =>
@@ -181,7 +230,7 @@ class GenerateDatalog(module: Module) {
       Datalog.Body(cons ++ returnCons)
     }
 
-    if (isMain)
+    if (methodDef.isMain)
       Datalog.Pattern(transVis(methodDef.vis), qualifiedName, argParams ++ returnParams, bodies)
         .addHint(MagicSetHints.Main(argParams.map(_ => true) ++ returnParams.map(_ => false)))
     else
@@ -263,35 +312,37 @@ class GenerateDatalog(module: Module) {
             Datalog.Var(gensym.fresh("_"))
           }
         )
-        val fieldReadCall = Datalog.Call(classType.ref.name.raw, term +: Datalog.Var("_") +: fieldVars)
+        val fieldReadCall = Datalog.Call(classType.ref.name.raw, term +: fieldVars)
           .addHint(MagicSetHints.IgnoreCall)
-          .addHint(MagicSetHints.FixedAdornment(false +: true +: fieldVars.map(_ => true)))
+          .addHint(MagicSetHints.FixedAdornment(false +: fieldVars.map(_ => true)))
         (Seq(fieldReadVar), cons :+ fieldReadCall)
       }
 
     case ConstructorExpr(classRef, args) =>
       val constructedVar = Datalog.Var(gensym.fresh("new"))
-      val childVar = Datalog.Var(gensym.fresh("childURI"))
-      val childUriEval = Datalog.Computed(childVar, Datalog.Evaluation(Seq(), GP_URI, Scala(q"""() => $oMockURI("")""")))
       val argRes = args.map(e => transExpression(e))
 
       // create single call constraint when no arguments passed
       if (argRes.isEmpty)
-        return Seq((Seq(constructedVar), Seq(childUriEval, Datalog.Call(classRef.name.raw, Seq(constructedVar, childVar)))))
+        return Seq((Seq(constructedVar), Seq(Datalog.Call(classRef.name.raw, Seq(constructedVar)))))
 
       for (tups <- TupleOps.cartesianProduct(argRes)) yield {
         val (argTerms, argCons) = tups.unzip
-        (Seq(constructedVar), argCons.flatten ++ Seq(childUriEval, Datalog.Call(classRef.name.raw, constructedVar +: childVar +: argTerms.flatten)))
+        (Seq(constructedVar), argCons.flatten ++ Seq(Datalog.Call(classRef.name.raw, constructedVar +: argTerms.flatten)))
       }
 
     case methodCallExp@MethodCallExpr(recv, fun, args) =>
       val outVar = Datalog.Var(gensym.fresh("methodCall"))
       val argRes = args.map(e => transExpression(e))
 
-      // method might be implemented inside the parent, that means use the classDef of the resolved methodDef
+      // find the method target and dispatch the method if it is an overriden method
       val methodDef = methodCallExp.target.getOrElse(throw new IllegalArgumentException(s"Unresolved method $methodCallExp"))
-      val classDef = methodDef.classDef.getOrElse(throw new IllegalArgumentException(s"Unresolved classDef for method $methodDef"))
-      val qualifiedName = classDef.name.raw + "$" + fun
+      val targetClassDef = methodDef.classDef.getOrElse(throw new IllegalArgumentException(s"Unresolved classDef for method $methodDef"))
+      val qualifiedName =
+        /*if (methodDef.isOverridden)
+          "dispatch$_" + targetClassDef.parentClassRefs.head.name + "$" + fun
+        else*/
+          targetClassDef.name.raw + "$" + fun
 
       val transRecv = for ((Seq(term), cons) <- transExpression(recv)) yield {
         if (argRes.isEmpty)
@@ -304,6 +355,7 @@ class GenerateDatalog(module: Module) {
       transRecv.flatten
 
     case TypeCastExpr(recv, toTyp) =>
+      // TODO: Is this correct ?
       for ((Seq(eTerm), eCons) <- transExpression(recv)) yield {
         val castCall = Datalog.Call("cast$_" + toTyp.toString, Seq(eTerm))
         (Seq(eTerm), eCons :+ castCall)
@@ -486,7 +538,7 @@ class GenerateDatalog(module: Module) {
   //@tailrec
   private def transType(typ: Type): Datalog.Type = typ match {
     case TAny => Datalog.TAny
-    case TClass(ref) => GP_URI
+    case TClass(_) => GP_URI
     case TScala(ty) => Datalog.TScala(ty)
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
   }

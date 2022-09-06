@@ -1,6 +1,7 @@
 package inca.backend.optimize
 
 import inca.backend.hints.MagicSetHints.MainKey
+import inca.backend.hints.OptimizationHints
 import inca.backend.ir.Datalog._
 import inca.backend.ir.util.{CollectVars, Substitute}
 import inca.backend.ir.Datalog
@@ -17,7 +18,8 @@ object InlineSimpleRelations extends Optimization {
       lazy val containedCalls = pat.bodies.head.atoms.collect { case call: Call => call }
       lazy val directlyRecursive = containedCalls.exists(_.name == pat.name)
       lazy val hasEvaluation = pat.bodies.head.atoms.exists { case Computed(_, _) => true; case _ => false }
-      val inline = pat.bodies.size <= 1 && !isMain && containedCalls.size <= 100 && !directlyRecursive && !hasEvaluation
+      lazy val noInline = pat.hasHint(OptimizationHints.NoInlineKey)
+      val inline = pat.bodies.size <= 1 && !isMain && containedCalls.size <= 100 && !directlyRecursive && !hasEvaluation  && !noInline
       inline
     }
 

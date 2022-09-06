@@ -50,6 +50,8 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
     case _: ConstructorDef => name
   }
 
+  val isRootClass: Boolean = parentClassRefs.isEmpty
+
   def fields: Seq[FieldDef] = content.collect { case f: FieldDef => f }
   def methods: Seq[MethodDef] = content.collect { case f: MethodDef => f }
   def constructors: Seq[ConstructorDef] = content.collect { case f: ConstructorDef => f }
@@ -107,6 +109,9 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
 
   def returnsUnit: Boolean = outType == TUnit
 
+  def isOverridden: Boolean = annos.contains(OverrideAnnotation)
+  def isMain: Boolean = annos.contains(MainAnnotation)
+
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")
@@ -125,6 +130,11 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
     }.mkString("") + params.zipWithIndex.map { case (param, i) =>
       s"""$nodeId -> ${param.nodeId} [label="param[$i]"];\n${param.dotString}"""
     }.mkString("")
+
+  override def equals(obj: Any): Boolean = obj match {
+    case MethodDef(_, _, name, params, outType, _) => name == this.name && params == this.params && outType == this.outType
+    case _ => false
+  }
 }
 
 case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], params: Seq[Param], body: Seq[Statement])
@@ -157,4 +167,9 @@ case class Param(name: Name, typ: Type) extends SourceLocation with VarReadExpr.
   def prettyprint: String = s"$name: ${typ.prettyprint}"
 
   override def nodeShape: String = "polygon"
+
+  override def equals(obj: Any): Boolean = obj match {
+    case Param(name, typ) => name == this.name && typ == this.typ
+    case _ => false
+  }
 }

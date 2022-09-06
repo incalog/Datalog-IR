@@ -1,28 +1,39 @@
 module Plus
 
-class Nat {
+class A {
+    def add(n: Nat): Nat = {
+        return n
+    }
+}
+
+class Nat extends A {
     def this() = { }
 
     def succ(): Succ = {
         return new Succ(this)
     }
 
+    @override
     def add(n: Nat): Nat = {
         return n
     }
 
     @main
-    def main(): Nat = {
+    def main(): Boolean = {
         val zero: Zero = new Zero()
         val first: Succ = zero.succ()
         val second: Succ = zero.succ().succ()
 
-        return first.add(second)
+        //return first.add(second)
+        return instanceOf(first, A)
     }
 }
 
 class Zero extends Nat {
-
+    @override
+    def add(n: Nat): Nat = {
+        return n
+    }
 }
 
 class Succ extends Nat {
