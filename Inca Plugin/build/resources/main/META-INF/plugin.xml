@@ -10,7 +10,7 @@
     <em>most HTML tags may be used</em>]]></description>
   <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
          on how to target different products -->
-  <depends>com.intellij.modules.platform</depends>
+  <depends>com.intellij.modules.java</depends>
   <extensions defaultExtensionNs="com.intellij">
     <fileType name="Functional IncA File" implementationClass="language.FuncIncaFileType" fieldName="INSTANCE" language="Functional IncA" extensions="finca" />
     <lang.parserDefinition language="Functional IncA" implementationClass="language.FuncIncaParserDefinition" />
