@@ -8,12 +8,9 @@ import com.intellij.psi.PsiElement;
 public interface FuncIncaMatchCase extends PsiElement {
 
   @Nullable
-  FuncIncaConstructorPattern getConstructorPattern();
-
-  @Nullable
   FuncIncaExp getExp();
 
   @Nullable
-  FuncIncaOptionPattern getOptionPattern();
+  FuncIncaPattern getPattern();
 
 }

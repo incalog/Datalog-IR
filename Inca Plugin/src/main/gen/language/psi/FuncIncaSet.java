@@ -8,9 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface FuncIncaSet extends PsiElement {
 
   @Nullable
-  FuncIncaAtomicType getAtomicType();
-
-  @Nullable
-  FuncIncaFunType getFunType();
+  FuncIncaTypeAnnotation getTypeAnnotation();
 
 }

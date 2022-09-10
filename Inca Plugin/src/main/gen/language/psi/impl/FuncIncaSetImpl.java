@@ -29,14 +29,8 @@ public class FuncIncaSetImpl extends ASTWrapperPsiElement implements FuncIncaSet
 
   @Override
   @Nullable
-  public FuncIncaAtomicType getAtomicType() {
-    return findChildByClass(FuncIncaAtomicType.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaFunType getFunType() {
-    return findChildByClass(FuncIncaFunType.class);
+  public FuncIncaTypeAnnotation getTypeAnnotation() {
+    return findChildByClass(FuncIncaTypeAnnotation.class);
   }
 
 }

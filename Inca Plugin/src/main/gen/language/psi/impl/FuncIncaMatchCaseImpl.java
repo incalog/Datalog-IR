@@ -29,20 +29,14 @@ public class FuncIncaMatchCaseImpl extends ASTWrapperPsiElement implements FuncI
 
   @Override
   @Nullable
-  public FuncIncaConstructorPattern getConstructorPattern() {
-    return findChildByClass(FuncIncaConstructorPattern.class);
-  }
-
-  @Override
-  @Nullable
   public FuncIncaExp getExp() {
     return findChildByClass(FuncIncaExp.class);
   }
 
   @Override
   @Nullable
-  public FuncIncaOptionPattern getOptionPattern() {
-    return findChildByClass(FuncIncaOptionPattern.class);
+  public FuncIncaPattern getPattern() {
+    return findChildByClass(FuncIncaPattern.class);
   }
 
 }

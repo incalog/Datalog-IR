@@ -7,13 +7,10 @@ import com.intellij.psi.PsiElement;
 
 public interface FuncIncaFoldExp extends PsiElement {
 
-  @Nullable
-  FuncIncaAtomicType getAtomicType();
-
   @NotNull
   List<FuncIncaExp> getExpList();
 
   @Nullable
-  FuncIncaFunType getFunType();
+  FuncIncaTypeAnnotation getTypeAnnotation();
 
 }

@@ -8,6 +8,10 @@ public class FuncIncaElementFactory {
     /*
     * Methods take a name and return a PSI node with that name or null
     * */
+    public static FuncIncaVar createVar(Project project, String name){
+        return ((FuncIncaVar) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
+    }
+
     public static FuncIncaParam createParam(Project project, String name){
         return ((FuncIncaParam) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
     }
@@ -30,6 +34,14 @@ public class FuncIncaElementFactory {
 
     public static FuncIncaDataConstructor createDataConstructor(Project project, String name){
         return ((FuncIncaDataConstructor) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
+    }
+
+    public static FuncIncaConsPatternId createConsPatternId(Project project, String name){
+        return ((FuncIncaConsPatternId) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
+    }
+
+    public static FuncIncaConstructorPattern createConstructorPattern(Project project, String name){
+        return ((FuncIncaConstructorPattern) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
     }
 
     public static FuncIncaVarId createVarId(Project project, String name){

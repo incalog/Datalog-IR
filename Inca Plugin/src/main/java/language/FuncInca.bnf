@@ -86,9 +86,9 @@
     comment = "regexp:(//.*)|(/\*(.|\n)*\*/)"
     ]
 
-  methods("param|import|fun_def|param_type|data_def|data_constructor|var_id")=[getName setName getNameIdentifier]
-  implements("param|import|fun_def|param_type|data_def|data_constructor|var_id")="language.psi.FuncIncaNamedElement"
-  mixin("param|import|fun_def|param_type|data_def|data_constructor|var_id")="language.psi.impl.FuncIncaNamedElementImpl"
+  methods("var|param|import|fun_def|param_type|data_def|data_constructor|constructor_pattern|cons_pattern_id|var_id")=[getName setName getNameIdentifier]
+  implements("var|param|import|fun_def|param_type|data_def|data_constructor|constructor_pattern|cons_pattern_id|var_id")="language.psi.FuncIncaNamedElement"
+  mixin("var|param|import|fun_def|param_type|data_def|data_constructor|constructor_pattern|cons_pattern_id|var_id")="language.psi.impl.FuncIncaNamedElementImpl"
 
 }
 
@@ -124,28 +124,27 @@ var_id ::= id
 member_exp ::= atomic_exp keyword_not? keyword_in infix_exp {pin = 3}
 
 //infix expressions
-private infix_exp ::= cast_exp | base_apply_method_exp | base_apply_infix_exp | match_exp | subinfix_exp
+infix_exp ::= cast_exp | base_apply_method_exp | base_apply_infix_exp | match_exp | subinfix_exp
 cast_exp ::= subinfix_exp '.' 'as' '[' type_name ']' {pin = 3}
 base_apply_method_exp ::= subinfix_exp '.' scala_term ( '(' (infix_exp (',' infix_exp)*)? ')' )? {pin = 3} // scala_term = '`' id '`'
 base_apply_infix_exp ::= subinfix_exp op infix_exp {pin = op}
-// private recover_base_apply_infix_exp ::= ! op
-private op ::= '+' | '-' | '*' | '/' | '%' // arithmetic
+op ::= '+' | '-' | '*' | '/' | '%' // arithmetic
         | '&&' | '||' | '<' | '>' | '==' | '!=' | '<=' | '>=' // logic
         | '++' | '&' // sets
 match_exp ::=  subinfix_exp keyword_match '{' match_case* '}' {pin = 2}
 match_case ::= keyword_case pattern '=>' exp {pin = 1}
-private pattern ::= option_pattern | constructor_pattern
+pattern ::= option_pattern | constructor_pattern
 option_pattern ::= 'None' | 'Some' '(' (id (',' id)*)? ')'
-constructor_pattern ::= id param_types? '(' (id (',' id)*)? ')'
+constructor_pattern ::= id param_types? '(' (cons_pattern_id (',' cons_pattern_id)*)? ')'
+cons_pattern_id ::= id
 
 // subinfix expressions
-private subinfix_exp ::= call_exp | lambda_exp | atomic_exp
+subinfix_exp ::= call_exp | lambda_exp | atomic_exp
 call_exp ::= atomic_exp param_types? ('(' (exp (',' exp)*)? ')')+ {pin = 3} // + to allow composition of functions
-lambda_exp ::= lambda_vars '=>' exp {pin = 2}
-lambda_vars ::= '(' (id ':' type_annotation (',' id ':' type_annotation)*)? ')'
+lambda_exp ::= '(' param_list ')' '=>' exp {pin = 4}
 
 // atomic expressions (parenthesis, option, set comprehension, tuples, fold, apply scala, variables)
-private atomic_exp ::= parens_exp | option_exp | comprehension_exp | const_set_exp | tuple_exp | fold_exp
+atomic_exp ::= parens_exp | option_exp | comprehension_exp | const_set_exp | tuple_exp | fold_exp
                | base_apply_exp | base_lit_exp | var | base_apply_unary_exp
 parens_exp ::= '(' exp ')'
 option_exp ::= 'None' | 'Some' '(' (exp (',' exp)*)? ')'
@@ -156,12 +155,11 @@ fold_exp ::= keyword_fold ('[' type_annotation ']')? '(' exp ',' exp ',' exp ')'
 base_apply_exp ::= scala_term '(' (exp (',' exp)*)? ')'
 var ::= id
 base_apply_unary_exp ::= unary_op infix_exp {pin = 1}
-private unary_op ::= '-' | '!'
+unary_op ::= '-' | '!'
 
 // type definitions
-private type_annotation ::= fun_type | atomic_type
+type_annotation ::= fun_type | atomic_type
 fun_type ::= atomic_type '=>' type_annotation {pin = 2}
-private recover_fun_type ::= ! atomic_type
 atomic_type ::= tuple | 'Any' | 'Nothing' | 'Unit' | option | set | scala_term | constr | type_name
 constr ::= id '[' type_annotation (',' type_annotation)* ']'
 tuple ::= '(' (type_annotation (',' type_annotation)*)? ')'
@@ -170,7 +168,7 @@ set ::= keyword_Set '[' type_annotation ']' {pin = 1}
 type_name ::= id
 
 // literals
-private base_lit_exp ::= numeric_lit | boolean_lit | string_lit | scala_term
+base_lit_exp ::= numeric_lit | boolean_lit | string_lit | scala_term
 numeric_lit ::= integer| long | double
 boolean_lit ::= 'true' | 'false'
 string_lit ::= string

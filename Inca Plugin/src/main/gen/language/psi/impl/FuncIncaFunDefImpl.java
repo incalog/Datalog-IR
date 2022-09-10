@@ -34,20 +34,8 @@ public class FuncIncaFunDefImpl extends FuncIncaNamedElementImpl implements Func
 
   @Override
   @Nullable
-  public FuncIncaAtomicType getAtomicType() {
-    return findChildByClass(FuncIncaAtomicType.class);
-  }
-
-  @Override
-  @Nullable
   public FuncIncaExp getExp() {
     return findChildByClass(FuncIncaExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaFunType getFunType() {
-    return findChildByClass(FuncIncaFunType.class);
   }
 
   @Override
@@ -60,6 +48,12 @@ public class FuncIncaFunDefImpl extends FuncIncaNamedElementImpl implements Func
   @Nullable
   public FuncIncaParamTypes getParamTypes() {
     return findChildByClass(FuncIncaParamTypes.class);
+  }
+
+  @Override
+  @Nullable
+  public FuncIncaTypeAnnotation getTypeAnnotation() {
+    return findChildByClass(FuncIncaTypeAnnotation.class);
   }
 
   @Override

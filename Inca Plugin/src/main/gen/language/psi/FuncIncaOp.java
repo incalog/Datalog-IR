@@ -5,12 +5,6 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FuncIncaLambdaVars extends PsiElement {
-
-  @NotNull
-  List<FuncIncaAtomicType> getAtomicTypeList();
-
-  @NotNull
-  List<FuncIncaFunType> getFunTypeList();
+public interface FuncIncaOp extends PsiElement {
 
 }

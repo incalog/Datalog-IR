@@ -7,58 +7,13 @@ import com.intellij.psi.PsiElement;
 
 public interface FuncIncaBaseApplyInfixExp extends PsiElement {
 
-  @NotNull
-  List<FuncIncaBaseApplyExp> getBaseApplyExpList();
-
   @Nullable
-  FuncIncaBaseApplyInfixExp getBaseApplyInfixExp();
-
-  @Nullable
-  FuncIncaBaseApplyMethodExp getBaseApplyMethodExp();
+  FuncIncaInfixExp getInfixExp();
 
   @NotNull
-  List<FuncIncaBaseApplyUnaryExp> getBaseApplyUnaryExpList();
+  FuncIncaOp getOp();
 
   @NotNull
-  List<FuncIncaBooleanLit> getBooleanLitList();
-
-  @NotNull
-  List<FuncIncaCallExp> getCallExpList();
-
-  @Nullable
-  FuncIncaCastExp getCastExp();
-
-  @NotNull
-  List<FuncIncaComprehensionExp> getComprehensionExpList();
-
-  @NotNull
-  List<FuncIncaConstSetExp> getConstSetExpList();
-
-  @NotNull
-  List<FuncIncaFoldExp> getFoldExpList();
-
-  @NotNull
-  List<FuncIncaLambdaExp> getLambdaExpList();
-
-  @Nullable
-  FuncIncaMatchExp getMatchExp();
-
-  @NotNull
-  List<FuncIncaNumericLit> getNumericLitList();
-
-  @NotNull
-  List<FuncIncaOptionExp> getOptionExpList();
-
-  @NotNull
-  List<FuncIncaParensExp> getParensExpList();
-
-  @NotNull
-  List<FuncIncaStringLit> getStringLitList();
-
-  @NotNull
-  List<FuncIncaTupleExp> getTupleExpList();
-
-  @NotNull
-  List<FuncIncaVar> getVarList();
+  FuncIncaSubinfixExp getSubinfixExp();
 
 }

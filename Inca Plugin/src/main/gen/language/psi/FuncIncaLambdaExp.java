@@ -11,6 +11,6 @@ public interface FuncIncaLambdaExp extends PsiElement {
   FuncIncaExp getExp();
 
   @NotNull
-  FuncIncaLambdaVars getLambdaVars();
+  FuncIncaParamList getParamList();
 
 }

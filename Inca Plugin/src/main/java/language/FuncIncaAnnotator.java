@@ -37,12 +37,6 @@ public class FuncIncaAnnotator implements Annotator {
             }
 
             @Override
-            public void visitLambdaVars(@NotNull FuncIncaLambdaVars o) {
-                super.visitLambdaVars(o);
-                setHighlighting(o, holder, FuncIncaSyntaxHighlighter.PARAMETER);
-            }
-
-            @Override
             public void visitCallExp(@NotNull FuncIncaCallExp o) {
                 super.visitCallExp(o);
                 if(o.getFirstChild().getNode().getElementType() == FuncIncaTypes.VAR)

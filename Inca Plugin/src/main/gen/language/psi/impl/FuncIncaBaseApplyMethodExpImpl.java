@@ -29,110 +29,20 @@ public class FuncIncaBaseApplyMethodExpImpl extends ASTWrapperPsiElement impleme
 
   @Override
   @NotNull
-  public List<FuncIncaBaseApplyExp> getBaseApplyExpList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaBaseApplyExp.class);
+  public List<FuncIncaInfixExp> getInfixExpList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaInfixExp.class);
   }
 
   @Override
   @NotNull
-  public List<FuncIncaBaseApplyInfixExp> getBaseApplyInfixExpList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaBaseApplyInfixExp.class);
+  public FuncIncaSubinfixExp getSubinfixExp() {
+    return findNotNullChildByClass(FuncIncaSubinfixExp.class);
   }
 
   @Override
   @NotNull
-  public List<FuncIncaBaseApplyMethodExp> getBaseApplyMethodExpList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaBaseApplyMethodExp.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaBaseApplyUnaryExp> getBaseApplyUnaryExpList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaBaseApplyUnaryExp.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaBooleanLit> getBooleanLitList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaBooleanLit.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaCallExp> getCallExpList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaCallExp.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaCastExp> getCastExpList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaCastExp.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaComprehensionExp> getComprehensionExpList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaComprehensionExp.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaConstSetExp> getConstSetExpList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaConstSetExp.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaFoldExp> getFoldExpList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaFoldExp.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaLambdaExp> getLambdaExpList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaLambdaExp.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaMatchExp> getMatchExpList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaMatchExp.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaNumericLit> getNumericLitList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaNumericLit.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaOptionExp> getOptionExpList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaOptionExp.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaParensExp> getParensExpList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaParensExp.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaStringLit> getStringLitList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaStringLit.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaTupleExp> getTupleExpList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaTupleExp.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaVar> getVarList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaVar.class);
+  public PsiElement getScalaTerm() {
+    return findNotNullChildByType(SCALA_TERM);
   }
 
 }

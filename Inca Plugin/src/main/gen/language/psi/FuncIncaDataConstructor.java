@@ -8,10 +8,7 @@ import com.intellij.psi.PsiElement;
 public interface FuncIncaDataConstructor extends FuncIncaNamedElement {
 
   @NotNull
-  List<FuncIncaAtomicType> getAtomicTypeList();
-
-  @NotNull
-  List<FuncIncaFunType> getFunTypeList();
+  List<FuncIncaTypeAnnotation> getTypeAnnotationList();
 
   @NotNull
   PsiElement getId();

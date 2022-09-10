@@ -29,14 +29,14 @@ public class FuncIncaFunTypeImpl extends ASTWrapperPsiElement implements FuncInc
 
   @Override
   @NotNull
-  public List<FuncIncaAtomicType> getAtomicTypeList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaAtomicType.class);
+  public FuncIncaAtomicType getAtomicType() {
+    return findNotNullChildByClass(FuncIncaAtomicType.class);
   }
 
   @Override
   @Nullable
-  public FuncIncaFunType getFunType() {
-    return findChildByClass(FuncIncaFunType.class);
+  public FuncIncaTypeAnnotation getTypeAnnotation() {
+    return findChildByClass(FuncIncaTypeAnnotation.class);
   }
 
 }

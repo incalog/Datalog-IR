@@ -8,57 +8,12 @@ import com.intellij.psi.PsiElement;
 public interface FuncIncaBaseApplyMethodExp extends PsiElement {
 
   @NotNull
-  List<FuncIncaBaseApplyExp> getBaseApplyExpList();
+  List<FuncIncaInfixExp> getInfixExpList();
 
   @NotNull
-  List<FuncIncaBaseApplyInfixExp> getBaseApplyInfixExpList();
+  FuncIncaSubinfixExp getSubinfixExp();
 
   @NotNull
-  List<FuncIncaBaseApplyMethodExp> getBaseApplyMethodExpList();
-
-  @NotNull
-  List<FuncIncaBaseApplyUnaryExp> getBaseApplyUnaryExpList();
-
-  @NotNull
-  List<FuncIncaBooleanLit> getBooleanLitList();
-
-  @NotNull
-  List<FuncIncaCallExp> getCallExpList();
-
-  @NotNull
-  List<FuncIncaCastExp> getCastExpList();
-
-  @NotNull
-  List<FuncIncaComprehensionExp> getComprehensionExpList();
-
-  @NotNull
-  List<FuncIncaConstSetExp> getConstSetExpList();
-
-  @NotNull
-  List<FuncIncaFoldExp> getFoldExpList();
-
-  @NotNull
-  List<FuncIncaLambdaExp> getLambdaExpList();
-
-  @NotNull
-  List<FuncIncaMatchExp> getMatchExpList();
-
-  @NotNull
-  List<FuncIncaNumericLit> getNumericLitList();
-
-  @NotNull
-  List<FuncIncaOptionExp> getOptionExpList();
-
-  @NotNull
-  List<FuncIncaParensExp> getParensExpList();
-
-  @NotNull
-  List<FuncIncaStringLit> getStringLitList();
-
-  @NotNull
-  List<FuncIncaTupleExp> getTupleExpList();
-
-  @NotNull
-  List<FuncIncaVar> getVarList();
+  PsiElement getScalaTerm();
 
 }

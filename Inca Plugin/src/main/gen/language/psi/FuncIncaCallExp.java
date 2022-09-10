@@ -7,49 +7,13 @@ import com.intellij.psi.PsiElement;
 
 public interface FuncIncaCallExp extends PsiElement {
 
-  @Nullable
-  FuncIncaBaseApplyExp getBaseApplyExp();
-
-  @Nullable
-  FuncIncaBaseApplyUnaryExp getBaseApplyUnaryExp();
-
-  @Nullable
-  FuncIncaBooleanLit getBooleanLit();
-
-  @Nullable
-  FuncIncaComprehensionExp getComprehensionExp();
-
-  @Nullable
-  FuncIncaConstSetExp getConstSetExp();
+  @NotNull
+  FuncIncaAtomicExp getAtomicExp();
 
   @NotNull
   List<FuncIncaExp> getExpList();
 
   @Nullable
-  FuncIncaFoldExp getFoldExp();
-
-  @Nullable
-  FuncIncaNumericLit getNumericLit();
-
-  @Nullable
-  FuncIncaOptionExp getOptionExp();
-
-  @Nullable
   FuncIncaParamTypes getParamTypes();
-
-  @Nullable
-  FuncIncaParensExp getParensExp();
-
-  @Nullable
-  FuncIncaStringLit getStringLit();
-
-  @Nullable
-  FuncIncaTupleExp getTupleExp();
-
-  @Nullable
-  FuncIncaVar getVar();
-
-  @Nullable
-  PsiElement getScalaTerm();
 
 }

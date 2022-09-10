@@ -28,12 +28,6 @@ public class FuncIncaFoldExpImpl extends ASTWrapperPsiElement implements FuncInc
   }
 
   @Override
-  @Nullable
-  public FuncIncaAtomicType getAtomicType() {
-    return findChildByClass(FuncIncaAtomicType.class);
-  }
-
-  @Override
   @NotNull
   public List<FuncIncaExp> getExpList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaExp.class);
@@ -41,8 +35,8 @@ public class FuncIncaFoldExpImpl extends ASTWrapperPsiElement implements FuncInc
 
   @Override
   @Nullable
-  public FuncIncaFunType getFunType() {
-    return findChildByClass(FuncIncaFunType.class);
+  public FuncIncaTypeAnnotation getTypeAnnotation() {
+    return findChildByClass(FuncIncaTypeAnnotation.class);
   }
 
 }

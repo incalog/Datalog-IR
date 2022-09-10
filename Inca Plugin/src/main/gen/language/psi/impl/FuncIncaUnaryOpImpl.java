@@ -11,32 +11,20 @@ import static language.psi.FuncIncaTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaLambdaVarsImpl extends ASTWrapperPsiElement implements FuncIncaLambdaVars {
+public class FuncIncaUnaryOpImpl extends ASTWrapperPsiElement implements FuncIncaUnaryOp {
 
-  public FuncIncaLambdaVarsImpl(@NotNull ASTNode node) {
+  public FuncIncaUnaryOpImpl(@NotNull ASTNode node) {
     super(node);
   }
 
   public void accept(@NotNull FuncIncaVisitor visitor) {
-    visitor.visitLambdaVars(this);
+    visitor.visitUnaryOp(this);
   }
 
   @Override
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof FuncIncaVisitor) accept((FuncIncaVisitor)visitor);
     else super.accept(visitor);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaAtomicType> getAtomicTypeList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaAtomicType.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaFunType> getFunTypeList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaFunType.class);
   }
 
 }

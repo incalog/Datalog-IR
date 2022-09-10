@@ -7,11 +7,8 @@ import com.intellij.psi.PsiElement;
 
 public interface FuncIncaParam extends FuncIncaNamedElement {
 
-  @Nullable
-  FuncIncaAtomicType getAtomicType();
-
-  @Nullable
-  FuncIncaFunType getFunType();
+  @NotNull
+  FuncIncaTypeAnnotation getTypeAnnotation();
 
   @NotNull
   PsiElement getId();

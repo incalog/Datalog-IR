@@ -28,141 +28,27 @@ public class FuncIncaSingleLetImpl extends ASTWrapperPsiElement implements FuncI
   }
 
   @Override
-  @Nullable
-  public FuncIncaAtomicType getAtomicType() {
-    return findChildByClass(FuncIncaAtomicType.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaBaseApplyExp getBaseApplyExp() {
-    return findChildByClass(FuncIncaBaseApplyExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaBaseApplyInfixExp getBaseApplyInfixExp() {
-    return findChildByClass(FuncIncaBaseApplyInfixExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaBaseApplyMethodExp getBaseApplyMethodExp() {
-    return findChildByClass(FuncIncaBaseApplyMethodExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaBaseApplyUnaryExp getBaseApplyUnaryExp() {
-    return findChildByClass(FuncIncaBaseApplyUnaryExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaBooleanLit getBooleanLit() {
-    return findChildByClass(FuncIncaBooleanLit.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaCallExp getCallExp() {
-    return findChildByClass(FuncIncaCallExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaCastExp getCastExp() {
-    return findChildByClass(FuncIncaCastExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaComprehensionExp getComprehensionExp() {
-    return findChildByClass(FuncIncaComprehensionExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaConstSetExp getConstSetExp() {
-    return findChildByClass(FuncIncaConstSetExp.class);
-  }
-
-  @Override
   @NotNull
   public FuncIncaExp getExp() {
     return findNotNullChildByClass(FuncIncaExp.class);
   }
 
   @Override
-  @Nullable
-  public FuncIncaFoldExp getFoldExp() {
-    return findChildByClass(FuncIncaFoldExp.class);
+  @NotNull
+  public FuncIncaInfixExp getInfixExp() {
+    return findNotNullChildByClass(FuncIncaInfixExp.class);
   }
 
   @Override
   @Nullable
-  public FuncIncaFunType getFunType() {
-    return findChildByClass(FuncIncaFunType.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaLambdaExp getLambdaExp() {
-    return findChildByClass(FuncIncaLambdaExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaMatchExp getMatchExp() {
-    return findChildByClass(FuncIncaMatchExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaNumericLit getNumericLit() {
-    return findChildByClass(FuncIncaNumericLit.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaOptionExp getOptionExp() {
-    return findChildByClass(FuncIncaOptionExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaParensExp getParensExp() {
-    return findChildByClass(FuncIncaParensExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaStringLit getStringLit() {
-    return findChildByClass(FuncIncaStringLit.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaTupleExp getTupleExp() {
-    return findChildByClass(FuncIncaTupleExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaVar getVar() {
-    return findChildByClass(FuncIncaVar.class);
+  public FuncIncaTypeAnnotation getTypeAnnotation() {
+    return findChildByClass(FuncIncaTypeAnnotation.class);
   }
 
   @Override
   @NotNull
   public FuncIncaVarId getVarId() {
     return findNotNullChildByClass(FuncIncaVarId.class);
-  }
-
-  @Override
-  @Nullable
-  public PsiElement getScalaTerm() {
-    return findChildByType(SCALA_TERM);
   }
 
 }

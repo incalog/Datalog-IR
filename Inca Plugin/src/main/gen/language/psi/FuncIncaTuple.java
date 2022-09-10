@@ -8,9 +8,6 @@ import com.intellij.psi.PsiElement;
 public interface FuncIncaTuple extends PsiElement {
 
   @NotNull
-  List<FuncIncaAtomicType> getAtomicTypeList();
-
-  @NotNull
-  List<FuncIncaFunType> getFunTypeList();
+  List<FuncIncaTypeAnnotation> getTypeAnnotationList();
 
 }

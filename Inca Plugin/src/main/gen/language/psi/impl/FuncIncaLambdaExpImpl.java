@@ -35,8 +35,8 @@ public class FuncIncaLambdaExpImpl extends ASTWrapperPsiElement implements FuncI
 
   @Override
   @NotNull
-  public FuncIncaLambdaVars getLambdaVars() {
-    return findNotNullChildByClass(FuncIncaLambdaVars.class);
+  public FuncIncaParamList getParamList() {
+    return findNotNullChildByClass(FuncIncaParamList.class);
   }
 
 }

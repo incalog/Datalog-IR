@@ -8,10 +8,9 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaVarImpl extends ASTWrapperPsiElement implements FuncIncaVar {
+public class FuncIncaVarImpl extends FuncIncaNamedElementImpl implements FuncIncaVar {
 
   public FuncIncaVarImpl(@NotNull ASTNode node) {
     super(node);
@@ -31,6 +30,21 @@ public class FuncIncaVarImpl extends ASTWrapperPsiElement implements FuncIncaVar
   @NotNull
   public PsiElement getId() {
     return findNotNullChildByType(ID);
+  }
+
+  @Override
+  public String getName() {
+    return FuncIncaPsiImplUtil.getName(this);
+  }
+
+  @Override
+  public PsiElement setName(String newName) {
+    return FuncIncaPsiImplUtil.setName(this, newName);
+  }
+
+  @Override
+  public PsiElement getNameIdentifier() {
+    return FuncIncaPsiImplUtil.getNameIdentifier(this);
   }
 
 }

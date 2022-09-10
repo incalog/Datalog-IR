@@ -28,14 +28,8 @@ public class FuncIncaDataConstructorImpl extends FuncIncaNamedElementImpl implem
 
   @Override
   @NotNull
-  public List<FuncIncaAtomicType> getAtomicTypeList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaAtomicType.class);
-  }
-
-  @Override
-  @NotNull
-  public List<FuncIncaFunType> getFunTypeList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaFunType.class);
+  public List<FuncIncaTypeAnnotation> getTypeAnnotationList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaTypeAnnotation.class);
   }
 
   @Override

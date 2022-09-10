@@ -9,11 +9,13 @@ import language.psi.impl.*;
 public interface FuncIncaTypes {
 
   IElementType ANNOTATION = new FuncIncaElementType("ANNOTATION");
+  IElementType ATOMIC_EXP = new FuncIncaElementType("ATOMIC_EXP");
   IElementType ATOMIC_TYPE = new FuncIncaElementType("ATOMIC_TYPE");
   IElementType BASE_APPLY_EXP = new FuncIncaElementType("BASE_APPLY_EXP");
   IElementType BASE_APPLY_INFIX_EXP = new FuncIncaElementType("BASE_APPLY_INFIX_EXP");
   IElementType BASE_APPLY_METHOD_EXP = new FuncIncaElementType("BASE_APPLY_METHOD_EXP");
   IElementType BASE_APPLY_UNARY_EXP = new FuncIncaElementType("BASE_APPLY_UNARY_EXP");
+  IElementType BASE_LIT_EXP = new FuncIncaElementType("BASE_LIT_EXP");
   IElementType BOOLEAN_LIT = new FuncIncaElementType("BOOLEAN_LIT");
   IElementType CALL_EXP = new FuncIncaElementType("CALL_EXP");
   IElementType CAST_EXP = new FuncIncaElementType("CAST_EXP");
@@ -21,6 +23,7 @@ public interface FuncIncaTypes {
   IElementType CONSTR = new FuncIncaElementType("CONSTR");
   IElementType CONSTRUCTOR_PATTERN = new FuncIncaElementType("CONSTRUCTOR_PATTERN");
   IElementType CONST_SET_EXP = new FuncIncaElementType("CONST_SET_EXP");
+  IElementType CONS_PATTERN_ID = new FuncIncaElementType("CONS_PATTERN_ID");
   IElementType DATA_CONSTRUCTOR = new FuncIncaElementType("DATA_CONSTRUCTOR");
   IElementType DATA_DEF = new FuncIncaElementType("DATA_DEF");
   IElementType EXP = new FuncIncaElementType("EXP");
@@ -29,14 +32,15 @@ public interface FuncIncaTypes {
   IElementType FUN_TYPE = new FuncIncaElementType("FUN_TYPE");
   IElementType IF_EXP = new FuncIncaElementType("IF_EXP");
   IElementType IMPORT = new FuncIncaElementType("IMPORT");
+  IElementType INFIX_EXP = new FuncIncaElementType("INFIX_EXP");
   IElementType LAMBDA_EXP = new FuncIncaElementType("LAMBDA_EXP");
-  IElementType LAMBDA_VARS = new FuncIncaElementType("LAMBDA_VARS");
   IElementType LET_EXP = new FuncIncaElementType("LET_EXP");
   IElementType MATCH_CASE = new FuncIncaElementType("MATCH_CASE");
   IElementType MATCH_EXP = new FuncIncaElementType("MATCH_EXP");
   IElementType MEMBER_EXP = new FuncIncaElementType("MEMBER_EXP");
   IElementType MULTIPLE_LET = new FuncIncaElementType("MULTIPLE_LET");
   IElementType NUMERIC_LIT = new FuncIncaElementType("NUMERIC_LIT");
+  IElementType OP = new FuncIncaElementType("OP");
   IElementType OPTION = new FuncIncaElementType("OPTION");
   IElementType OPTION_EXP = new FuncIncaElementType("OPTION_EXP");
   IElementType OPTION_PATTERN = new FuncIncaElementType("OPTION_PATTERN");
@@ -45,12 +49,16 @@ public interface FuncIncaTypes {
   IElementType PARAM_TYPE = new FuncIncaElementType("PARAM_TYPE");
   IElementType PARAM_TYPES = new FuncIncaElementType("PARAM_TYPES");
   IElementType PARENS_EXP = new FuncIncaElementType("PARENS_EXP");
+  IElementType PATTERN = new FuncIncaElementType("PATTERN");
   IElementType SET = new FuncIncaElementType("SET");
   IElementType SINGLE_LET = new FuncIncaElementType("SINGLE_LET");
   IElementType STRING_LIT = new FuncIncaElementType("STRING_LIT");
+  IElementType SUBINFIX_EXP = new FuncIncaElementType("SUBINFIX_EXP");
   IElementType TUPLE = new FuncIncaElementType("TUPLE");
   IElementType TUPLE_EXP = new FuncIncaElementType("TUPLE_EXP");
+  IElementType TYPE_ANNOTATION = new FuncIncaElementType("TYPE_ANNOTATION");
   IElementType TYPE_NAME = new FuncIncaElementType("TYPE_NAME");
+  IElementType UNARY_OP = new FuncIncaElementType("UNARY_OP");
   IElementType VAR = new FuncIncaElementType("VAR");
   IElementType VAR_ID = new FuncIncaElementType("VAR_ID");
   IElementType VISIBILITY = new FuncIncaElementType("VISIBILITY");
@@ -124,6 +132,9 @@ public interface FuncIncaTypes {
       if (type == ANNOTATION) {
         return new FuncIncaAnnotationImpl(node);
       }
+      else if (type == ATOMIC_EXP) {
+        return new FuncIncaAtomicExpImpl(node);
+      }
       else if (type == ATOMIC_TYPE) {
         return new FuncIncaAtomicTypeImpl(node);
       }
@@ -138,6 +149,9 @@ public interface FuncIncaTypes {
       }
       else if (type == BASE_APPLY_UNARY_EXP) {
         return new FuncIncaBaseApplyUnaryExpImpl(node);
+      }
+      else if (type == BASE_LIT_EXP) {
+        return new FuncIncaBaseLitExpImpl(node);
       }
       else if (type == BOOLEAN_LIT) {
         return new FuncIncaBooleanLitImpl(node);
@@ -159,6 +173,9 @@ public interface FuncIncaTypes {
       }
       else if (type == CONST_SET_EXP) {
         return new FuncIncaConstSetExpImpl(node);
+      }
+      else if (type == CONS_PATTERN_ID) {
+        return new FuncIncaConsPatternIdImpl(node);
       }
       else if (type == DATA_CONSTRUCTOR) {
         return new FuncIncaDataConstructorImpl(node);
@@ -184,11 +201,11 @@ public interface FuncIncaTypes {
       else if (type == IMPORT) {
         return new FuncIncaImportImpl(node);
       }
+      else if (type == INFIX_EXP) {
+        return new FuncIncaInfixExpImpl(node);
+      }
       else if (type == LAMBDA_EXP) {
         return new FuncIncaLambdaExpImpl(node);
-      }
-      else if (type == LAMBDA_VARS) {
-        return new FuncIncaLambdaVarsImpl(node);
       }
       else if (type == LET_EXP) {
         return new FuncIncaLetExpImpl(node);
@@ -207,6 +224,9 @@ public interface FuncIncaTypes {
       }
       else if (type == NUMERIC_LIT) {
         return new FuncIncaNumericLitImpl(node);
+      }
+      else if (type == OP) {
+        return new FuncIncaOpImpl(node);
       }
       else if (type == OPTION) {
         return new FuncIncaOptionImpl(node);
@@ -232,6 +252,9 @@ public interface FuncIncaTypes {
       else if (type == PARENS_EXP) {
         return new FuncIncaParensExpImpl(node);
       }
+      else if (type == PATTERN) {
+        return new FuncIncaPatternImpl(node);
+      }
       else if (type == SET) {
         return new FuncIncaSetImpl(node);
       }
@@ -241,14 +264,23 @@ public interface FuncIncaTypes {
       else if (type == STRING_LIT) {
         return new FuncIncaStringLitImpl(node);
       }
+      else if (type == SUBINFIX_EXP) {
+        return new FuncIncaSubinfixExpImpl(node);
+      }
       else if (type == TUPLE) {
         return new FuncIncaTupleImpl(node);
       }
       else if (type == TUPLE_EXP) {
         return new FuncIncaTupleExpImpl(node);
       }
+      else if (type == TYPE_ANNOTATION) {
+        return new FuncIncaTypeAnnotationImpl(node);
+      }
       else if (type == TYPE_NAME) {
         return new FuncIncaTypeNameImpl(node);
+      }
+      else if (type == UNARY_OP) {
+        return new FuncIncaUnaryOpImpl(node);
       }
       else if (type == VAR) {
         return new FuncIncaVarImpl(node);

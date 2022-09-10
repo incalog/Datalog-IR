@@ -50,9 +50,10 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   /* ********************************************************** */
   // parens_exp | option_exp | comprehension_exp | const_set_exp | tuple_exp | fold_exp
   //                | base_apply_exp | base_lit_exp | var | base_apply_unary_exp
-  static boolean atomic_exp(PsiBuilder b, int l) {
+  public static boolean atomic_exp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "atomic_exp")) return false;
     boolean r;
+    Marker m = enter_section_(b, l, _NONE_, ATOMIC_EXP, "<atomic exp>");
     r = parens_exp(b, l + 1);
     if (!r) r = option_exp(b, l + 1);
     if (!r) r = comprehension_exp(b, l + 1);
@@ -63,6 +64,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     if (!r) r = base_lit_exp(b, l + 1);
     if (!r) r = var(b, l + 1);
     if (!r) r = base_apply_unary_exp(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
     return r;
   }
 
@@ -144,7 +146,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   public static boolean base_apply_infix_exp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "base_apply_infix_exp")) return false;
     boolean r, p;
-    Marker m = enter_section_(b, l, _COLLAPSE_, BASE_APPLY_INFIX_EXP, "<base apply infix exp>");
+    Marker m = enter_section_(b, l, _NONE_, BASE_APPLY_INFIX_EXP, "<base apply infix exp>");
     r = subinfix_exp(b, l + 1);
     r = r && op(b, l + 1);
     p = r; // pin = op
@@ -232,7 +234,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     if (!recursion_guard_(b, l, "base_apply_unary_exp")) return false;
     if (!nextTokenIs(b, "<base apply unary exp>", MINUS, NEGATION)) return false;
     boolean r, p;
-    Marker m = enter_section_(b, l, _COLLAPSE_, BASE_APPLY_UNARY_EXP, "<base apply unary exp>");
+    Marker m = enter_section_(b, l, _NONE_, BASE_APPLY_UNARY_EXP, "<base apply unary exp>");
     r = unary_op(b, l + 1);
     p = r; // pin = 1
     r = r && infix_exp(b, l + 1);
@@ -242,13 +244,15 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // numeric_lit | boolean_lit | string_lit | scala_term
-  static boolean base_lit_exp(PsiBuilder b, int l) {
+  public static boolean base_lit_exp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "base_lit_exp")) return false;
     boolean r;
+    Marker m = enter_section_(b, l, _NONE_, BASE_LIT_EXP, "<base lit exp>");
     r = numeric_lit(b, l + 1);
     if (!r) r = boolean_lit(b, l + 1);
     if (!r) r = string_lit(b, l + 1);
     if (!r) r = consumeToken(b, SCALA_TERM);
+    exit_section_(b, l, m, r, false, null);
     return r;
   }
 
@@ -408,6 +412,18 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
+  // id
+  public static boolean cons_pattern_id(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "cons_pattern_id")) return false;
+    if (!nextTokenIs(b, ID)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ID);
+    exit_section_(b, m, CONS_PATTERN_ID, r);
+    return r;
+  }
+
+  /* ********************************************************** */
   // '{' (exp (',' exp)*)? '}'
   public static boolean const_set_exp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "const_set_exp")) return false;
@@ -499,7 +515,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // id param_types? '(' (id (',' id)*)? ')'
+  // id param_types? '(' (cons_pattern_id (',' cons_pattern_id)*)? ')'
   public static boolean constructor_pattern(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "constructor_pattern")) return false;
     if (!nextTokenIs(b, ID)) return false;
@@ -521,25 +537,25 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // (id (',' id)*)?
+  // (cons_pattern_id (',' cons_pattern_id)*)?
   private static boolean constructor_pattern_3(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "constructor_pattern_3")) return false;
     constructor_pattern_3_0(b, l + 1);
     return true;
   }
 
-  // id (',' id)*
+  // cons_pattern_id (',' cons_pattern_id)*
   private static boolean constructor_pattern_3_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "constructor_pattern_3_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, ID);
+    r = cons_pattern_id(b, l + 1);
     r = r && constructor_pattern_3_0_1(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }
 
-  // (',' id)*
+  // (',' cons_pattern_id)*
   private static boolean constructor_pattern_3_0_1(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "constructor_pattern_3_0_1")) return false;
     while (true) {
@@ -550,12 +566,13 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     return true;
   }
 
-  // ',' id
+  // ',' cons_pattern_id
   private static boolean constructor_pattern_3_0_1_0(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "constructor_pattern_3_0_1_0")) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, COMMA, ID);
+    r = consumeToken(b, COMMA);
+    r = r && cons_pattern_id(b, l + 1);
     exit_section_(b, m, null, r);
     return r;
   }
@@ -844,85 +861,33 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // cast_exp | base_apply_method_exp | base_apply_infix_exp | match_exp | subinfix_exp
-  static boolean infix_exp(PsiBuilder b, int l) {
+  public static boolean infix_exp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "infix_exp")) return false;
     boolean r;
+    Marker m = enter_section_(b, l, _NONE_, INFIX_EXP, "<infix exp>");
     r = cast_exp(b, l + 1);
     if (!r) r = base_apply_method_exp(b, l + 1);
     if (!r) r = base_apply_infix_exp(b, l + 1);
     if (!r) r = match_exp(b, l + 1);
     if (!r) r = subinfix_exp(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
     return r;
   }
 
   /* ********************************************************** */
-  // lambda_vars '=>' exp
+  // '(' param_list ')' '=>' exp
   public static boolean lambda_exp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "lambda_exp")) return false;
     if (!nextTokenIs(b, PARENS_OPEN)) return false;
     boolean r, p;
     Marker m = enter_section_(b, l, _NONE_, LAMBDA_EXP, null);
-    r = lambda_vars(b, l + 1);
-    r = r && consumeToken(b, ARROW);
-    p = r; // pin = 2
+    r = consumeToken(b, PARENS_OPEN);
+    r = r && param_list(b, l + 1);
+    r = r && consumeTokens(b, 2, PARENS_CLOSE, ARROW);
+    p = r; // pin = 4
     r = r && exp(b, l + 1);
     exit_section_(b, l, m, r, p, null);
     return r || p;
-  }
-
-  /* ********************************************************** */
-  // '(' (id ':' type_annotation (',' id ':' type_annotation)*)? ')'
-  public static boolean lambda_vars(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "lambda_vars")) return false;
-    if (!nextTokenIs(b, PARENS_OPEN)) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeToken(b, PARENS_OPEN);
-    r = r && lambda_vars_1(b, l + 1);
-    r = r && consumeToken(b, PARENS_CLOSE);
-    exit_section_(b, m, LAMBDA_VARS, r);
-    return r;
-  }
-
-  // (id ':' type_annotation (',' id ':' type_annotation)*)?
-  private static boolean lambda_vars_1(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "lambda_vars_1")) return false;
-    lambda_vars_1_0(b, l + 1);
-    return true;
-  }
-
-  // id ':' type_annotation (',' id ':' type_annotation)*
-  private static boolean lambda_vars_1_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "lambda_vars_1_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, ID, COLON);
-    r = r && type_annotation(b, l + 1);
-    r = r && lambda_vars_1_0_3(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
-  }
-
-  // (',' id ':' type_annotation)*
-  private static boolean lambda_vars_1_0_3(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "lambda_vars_1_0_3")) return false;
-    while (true) {
-      int c = current_position_(b);
-      if (!lambda_vars_1_0_3_0(b, l + 1)) break;
-      if (!empty_element_parsed_guard_(b, "lambda_vars_1_0_3", c)) break;
-    }
-    return true;
-  }
-
-  // ',' id ':' type_annotation
-  private static boolean lambda_vars_1_0_3_0(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "lambda_vars_1_0_3_0")) return false;
-    boolean r;
-    Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, COMMA, ID, COLON);
-    r = r && type_annotation(b, l + 1);
-    exit_section_(b, m, null, r);
-    return r;
   }
 
   /* ********************************************************** */
@@ -1154,9 +1119,10 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   // '+' | '-' | '*' | '/' | '%' // arithmetic
   //         | '&&' | '||' | '<' | '>' | '==' | '!=' | '<=' | '>=' // logic
   //         | '++' | '&'
-  static boolean op(PsiBuilder b, int l) {
+  public static boolean op(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "op")) return false;
     boolean r;
+    Marker m = enter_section_(b, l, _NONE_, OP, "<op>");
     r = consumeToken(b, PLUS);
     if (!r) r = consumeToken(b, MINUS);
     if (!r) r = consumeToken(b, STAR);
@@ -1172,6 +1138,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
     if (!r) r = consumeToken(b, GEQ);
     if (!r) r = consumeToken(b, SET_UNION);
     if (!r) r = consumeToken(b, SET_INTERSECTION);
+    exit_section_(b, l, m, r, false, null);
     return r;
   }
 
@@ -1440,21 +1407,12 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // option_pattern | constructor_pattern
-  static boolean pattern(PsiBuilder b, int l) {
+  public static boolean pattern(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "pattern")) return false;
     boolean r;
+    Marker m = enter_section_(b, l, _NONE_, PATTERN, "<pattern>");
     r = option_pattern(b, l + 1);
     if (!r) r = constructor_pattern(b, l + 1);
-    return r;
-  }
-
-  /* ********************************************************** */
-  // ! atomic_type
-  static boolean recover_fun_type(PsiBuilder b, int l) {
-    if (!recursion_guard_(b, l, "recover_fun_type")) return false;
-    boolean r;
-    Marker m = enter_section_(b, l, _NOT_);
-    r = !atomic_type(b, l + 1);
     exit_section_(b, l, m, r, false, null);
     return r;
   }
@@ -1523,12 +1481,14 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // call_exp | lambda_exp | atomic_exp
-  static boolean subinfix_exp(PsiBuilder b, int l) {
+  public static boolean subinfix_exp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "subinfix_exp")) return false;
     boolean r;
+    Marker m = enter_section_(b, l, _NONE_, SUBINFIX_EXP, "<subinfix exp>");
     r = call_exp(b, l + 1);
     if (!r) r = lambda_exp(b, l + 1);
     if (!r) r = atomic_exp(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
     return r;
   }
 
@@ -1604,11 +1564,13 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // fun_type | atomic_type
-  static boolean type_annotation(PsiBuilder b, int l) {
+  public static boolean type_annotation(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "type_annotation")) return false;
     boolean r;
+    Marker m = enter_section_(b, l, _NONE_, TYPE_ANNOTATION, "<type annotation>");
     r = fun_type(b, l + 1);
     if (!r) r = atomic_type(b, l + 1);
+    exit_section_(b, l, m, r, false, null);
     return r;
   }
 
@@ -1626,12 +1588,14 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // '-' | '!'
-  static boolean unary_op(PsiBuilder b, int l) {
+  public static boolean unary_op(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "unary_op")) return false;
-    if (!nextTokenIs(b, "", MINUS, NEGATION)) return false;
+    if (!nextTokenIs(b, "<unary op>", MINUS, NEGATION)) return false;
     boolean r;
+    Marker m = enter_section_(b, l, _NONE_, UNARY_OP, "<unary op>");
     r = consumeToken(b, MINUS);
     if (!r) r = consumeToken(b, NEGATION);
+    exit_section_(b, l, m, r, false, null);
     return r;
   }
 

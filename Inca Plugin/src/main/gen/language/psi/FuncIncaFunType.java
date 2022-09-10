@@ -8,9 +8,9 @@ import com.intellij.psi.PsiElement;
 public interface FuncIncaFunType extends PsiElement {
 
   @NotNull
-  List<FuncIncaAtomicType> getAtomicTypeList();
+  FuncIncaAtomicType getAtomicType();
 
   @Nullable
-  FuncIncaFunType getFunType();
+  FuncIncaTypeAnnotation getTypeAnnotation();
 
 }

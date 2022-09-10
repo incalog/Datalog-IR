@@ -26,6 +26,27 @@ public class FuncIncaPsiImplUtil {
         }
     }
 
+    // -------------------------------- var ------------------------------------
+    public static String getName(FuncIncaVar element){
+        ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
+        return getName(idNode);
+    }
+
+    public static PsiElement setName(FuncIncaVar element, String newName){
+        ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
+        if(idNode != null){
+            FuncIncaVar var = FuncIncaElementFactory.createVar(element.getProject(), newName);
+            ASTNode newNode = var.getFirstChild().getNode();
+            element.getNode().replaceChild(idNode, newNode);
+        }
+        return element;
+    }
+
+    public static PsiElement getNameIdentifier(FuncIncaVar element) {
+        ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
+        return getNameIdentifier(idNode);
+    }
+
     // ------------------------------- param -----------------------------------
     public static String getName(FuncIncaParam element){
         ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
@@ -149,6 +170,48 @@ public class FuncIncaPsiImplUtil {
     }
 
     public static PsiElement getNameIdentifier(FuncIncaDataConstructor element){
+        ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
+        return getNameIdentifier(idNode);
+    }
+
+    // ----------------------------- cons_pattern_id ---------------------------------
+    public static String getName(FuncIncaConsPatternId element){
+        ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
+        return getName(idNode);
+    }
+
+    public static PsiElement setName(FuncIncaConsPatternId element, String newName){
+        ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
+        if(idNode != null){
+            FuncIncaConsPatternId cpi = FuncIncaElementFactory.createConsPatternId(element.getProject(), newName);
+            ASTNode newNode = cpi.getFirstChild().getNode();
+            element.getNode().replaceChild(idNode, newNode);
+        }
+        return element;
+    }
+
+    public static PsiElement getNameIdentifier(FuncIncaConsPatternId element){
+        ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
+        return getNameIdentifier(idNode);
+    }
+
+    // ----------------------------- constructor_pattern -----------------------------
+    public static String getName(FuncIncaConstructorPattern element){
+        ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
+        return getName(idNode);
+    }
+
+    public static PsiElement setName(FuncIncaConstructorPattern element, String newName){
+        ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
+        if(idNode != null){
+            FuncIncaConstructorPattern consPattern = FuncIncaElementFactory.createConstructorPattern(element.getProject(), newName);
+            ASTNode newNode = consPattern.getFirstChild().getNode(); // first node is the name of the called constructor
+            element.getNode().replaceChild(idNode, newNode);
+        }
+        return element;
+    }
+
+    public static PsiElement getNameIdentifier(FuncIncaConstructorPattern element){
         ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
         return getNameIdentifier(idNode);
     }

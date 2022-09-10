@@ -11,19 +11,16 @@ public interface FuncIncaFunDef extends FuncIncaNamedElement {
   List<FuncIncaAnnotation> getAnnotationList();
 
   @Nullable
-  FuncIncaAtomicType getAtomicType();
-
-  @Nullable
   FuncIncaExp getExp();
-
-  @Nullable
-  FuncIncaFunType getFunType();
 
   @Nullable
   FuncIncaParamList getParamList();
 
   @Nullable
   FuncIncaParamTypes getParamTypes();
+
+  @Nullable
+  FuncIncaTypeAnnotation getTypeAnnotation();
 
   @Nullable
   FuncIncaVisibility getVisibility();
