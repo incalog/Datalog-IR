@@ -3,17 +3,26 @@
     <e n="EditorBackSpace">
       <i c="2" l="1662632786929" />
     </e>
+    <e n="EditorCopy">
+      <i c="2" l="1662985815192" />
+    </e>
     <e n="EditorEnter">
-      <i c="5" l="1662632729327" />
+      <i c="7" l="1662985844434" />
     </e>
     <e n="EditorPaste">
-      <i c="1" l="1662632787478" />
+      <i c="2" l="1662985816969" />
+    </e>
+    <e n="EditorTextStart">
+      <i c="1" l="1662985843181" />
+    </e>
+    <e n="EditorUp">
+      <i c="2" l="1662985844891" />
     </e>
     <e n="OpenFile">
       <i c="1" l="1662132043700" />
     </e>
     <e n="PsiViewer">
-      <i c="1" l="1662371037868" />
+      <i c="2" l="1662985778618" />
     </e>
     <e n="PsiViewerForContext">
       <i c="1" l="1662371071576" />

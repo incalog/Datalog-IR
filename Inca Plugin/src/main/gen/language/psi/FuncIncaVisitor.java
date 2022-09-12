@@ -204,7 +204,7 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitTypeName(@NotNull FuncIncaTypeName o) {
-    visitPsiElement(o);
+    visitNamedElement(o);
   }
 
   public void visitUnaryOp(@NotNull FuncIncaUnaryOp o) {

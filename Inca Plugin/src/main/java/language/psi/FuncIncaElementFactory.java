@@ -48,6 +48,10 @@ public class FuncIncaElementFactory {
         return ((FuncIncaVarId) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
     }
 
+    public static FuncIncaTypeName createTypeName(Project project, String name){
+        return ((FuncIncaTypeName) (createExpressionFromText(project, name + "uniq = " + name)).getFirstChild());
+    }
+
     // TODO zweck dieser methoden?
     public static PsiElement createExpressionFromText(Project project, String name) {
         FuncIncaFile fileFromText = createFileFromText(project, name);

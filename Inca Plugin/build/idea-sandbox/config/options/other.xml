@@ -41,6 +41,7 @@
   </component>
   <component name="PsiViewerSettings">
     <option name="type" value="Functional IncA File file" />
+    <option name="text" value="module mod&#10;&#10;@main def final_AE(prog: Stm): Set[Exp] =&#10;  {rd | s in final(prog), rd in exit_AE(s, prog)}&#10;@main def allEntries_AE(prog: Stm): Set[(Stm, Exp)] =&#10;  {(s, e) | s in Stm, e in entry_AE(s, prog)}&#10;@main def allExits_AE(prog: Stm): Set[(Stm, Exp)] =&#10;  {(s, e) | s in Stm, e in exit_AE(s, prog)}" />
   </component>
   <component name="ToolbarSettingsService">
     <option name="NEW_TOOLBAR_SETTINGS" value="OLD_NAVBAR" />

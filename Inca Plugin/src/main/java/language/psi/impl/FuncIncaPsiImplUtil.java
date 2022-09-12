@@ -237,6 +237,27 @@ public class FuncIncaPsiImplUtil {
         return getNameIdentifier(idNode);
     }
 
+    //--------------------------------- type_name -------------------------------------
+
+    public static String getName(FuncIncaTypeName element){
+        ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
+        return getName(idNode);
+    }
+
+    public static PsiElement setName(FuncIncaTypeName element, String newName){
+        ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
+        if(idNode != null){
+            FuncIncaTypeName typeName = FuncIncaElementFactory.createTypeName(element.getProject(), newName);
+            ASTNode newNode = typeName.getFirstChild().getNode();
+            element.getNode().replaceChild(idNode, newNode);
+        }
+        return element;
+    }
+
+    public static PsiElement getNameIdentifier(FuncIncaTypeName element){
+        ASTNode idNode = element.getNode().findChildByType(FuncIncaTypes.ID);
+        return getNameIdentifier(idNode);
+    }
 
 
 }

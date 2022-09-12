@@ -86,9 +86,9 @@
     comment = "regexp:(//.*)|(/\*(.|\n)*\*/)"
     ]
 
-  methods("var|param|import|fun_def|param_type|data_def|data_constructor|constructor_pattern|cons_pattern_id|var_id")=[getName setName getNameIdentifier]
-  implements("var|param|import|fun_def|param_type|data_def|data_constructor|constructor_pattern|cons_pattern_id|var_id")="language.psi.FuncIncaNamedElement"
-  mixin("var|param|import|fun_def|param_type|data_def|data_constructor|constructor_pattern|cons_pattern_id|var_id")="language.psi.impl.FuncIncaNamedElementImpl"
+  methods("var|param|import|fun_def|param_type|data_def|data_constructor|constructor_pattern|cons_pattern_id|var_id|type_name")=[getName setName getNameIdentifier]
+  implements("var|param|import|fun_def|param_type|data_def|data_constructor|constructor_pattern|cons_pattern_id|var_id|type_name")="language.psi.FuncIncaNamedElement"
+  mixin("var|param|import|fun_def|param_type|data_def|data_constructor|constructor_pattern|cons_pattern_id|var_id|type_name")="language.psi.impl.FuncIncaNamedElementImpl"
 
 }
 
