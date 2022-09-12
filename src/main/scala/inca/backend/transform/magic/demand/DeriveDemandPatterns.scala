@@ -44,7 +44,7 @@ object DeriveDemandPatterns extends Transformation {
           val pat = module.pats.find(_.name == current).getOrElse(sys.error(s"Pattern $current not found during adornment"))
           unvisitedPatterns -= pat
           val adornedBody = pat.bodies.map { body =>
-            var previous = ListBuffer[Atom]()
+            val previous = ListBuffer[Atom]()
             val adornedAtoms = body.atoms.map { atom =>
               val res = atom.asCall match {
                 case Some((name, args)) =>
@@ -91,7 +91,7 @@ object DeriveDemandPatterns extends Transformation {
     override def transVar(v: Var): Seq[Var] = Seq(v)
   }
 
-  def fixedAdornment(con: Atom): Option[Seq[Boolean]] =
+  def fixedAdornment(con: Atom): Option[Adornment] =
     con.hints.get(MagicSetHints.FixedAdornmentKey).flatMap { case MagicSetHints.FixedAdornment(adorn) =>
       Some(adorn)
     }

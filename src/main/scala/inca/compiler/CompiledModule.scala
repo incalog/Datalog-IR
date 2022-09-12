@@ -80,7 +80,7 @@ trait CompiledModule {
         println(module)
       }
     }
-    println(module)
+    //println(module)
     //println(DatalogPrinter.prettyModule(module)(true))
     module
   }

@@ -29,7 +29,7 @@ case class URIValue(id: String) extends Value {
   override def deepPrettyPrint(db: DatabaseInspector): String = db.prettyPrint(this)
 }
 
-object MockURI {
+object  MockURI {
   val DEBUG_PRINT = true
 
   def apply(constr: String, args: Any*): MockURI = {

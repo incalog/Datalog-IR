@@ -42,7 +42,11 @@ object DatalogPrinter {
 
   def prettyBody(alt: Body)(implicit verbose: Boolean): String = {
     val atoms = alt.atoms.map(prettyAtom)
-    atoms.head + (if(atoms.size > 1) ",\n" else "") + atoms.tail.map("\t"+_).mkString(",\n")
+    if (atoms.nonEmpty) {
+      atoms.head + (if(atoms.size > 1) ",\n" else "") + atoms.tail.map("\t"+_).mkString(",\n")
+    } else {
+      ""
+    }
   }
 
   def prettyAtom(atom: Atom)(implicit verbose: Boolean): String = atom match {
