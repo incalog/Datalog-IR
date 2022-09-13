@@ -104,7 +104,7 @@ object AllocTransformation extends Transformation {
       Pattern(allocRoot.vis, allocRoot.name, allocRoot.params, bodies).withHints(allocRoot)
     }
 
-    private def transformCallSidePattern(pattern: Pattern, affectedPattern: Set[Pattern]): Pattern = gensym.scoped {
+    private def transformAffectedPattern(pattern: Pattern, affectedPattern: Set[Pattern]): Pattern = gensym.scoped {
       gensym.register(CollectVars.transPattern(pattern))
 
       val allocInVar = Var(gensym.fresh("alloc_in"))
@@ -160,7 +160,7 @@ object AllocTransformation extends Transformation {
 
       val transAllocRootPats = allocRootPats.map(transformAllocationRootPattern(_, allAffectedPattern))
       val transAllocPats = allocPats.map(transformAllocationPattern)
-      val transAffectedPats = affectedPattern.map(transformCallSidePattern(_, allAffectedPattern))
+      val transAffectedPats = affectedPattern.map(transformAffectedPattern(_, allAffectedPattern))
 
       transAllocRootPats.toSeq ++ transAllocPats ++ transAffectedPats ++ unchangedPattern
     }

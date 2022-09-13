@@ -34,7 +34,7 @@ class GenerateDatalog(module: Module) {
 
   def constructorName(className: Name): String = "const$_" + className.raw
 
-  def test(): Unit = {
+  /*def test(): Unit = {
     val constrScalaFun = Term.Function(Nil, q"""$oOID("Zero")""")
     val xVar = Datalog.Var("x")
     val tmpCons = Datalog.Computed(xVar, Datalog.Evaluation(Seq(), GP_URI, Scala(constrScalaFun)))
@@ -69,12 +69,6 @@ class GenerateDatalog(module: Module) {
         ))
         )),
 
-      /*Datalog.Pattern(None, "bar", Seq(Datalog.Param("x", GP_URI)), Seq(
-        Datalog.Body(Seq(
-          tmpCons
-        ))
-      )).addHint(ObjectHints.Allocation)*/
-
       Datalog.Pattern(None, "unrelated", Seq(Datalog.Param("x", Datalog.TScalaInt)), Seq(
         Datalog.Body(Seq(
           Datalog.Eq(Datalog.Var("x"), Datalog.Constant(Datalog.IntLiteral(0)))
@@ -105,14 +99,14 @@ class GenerateDatalog(module: Module) {
       generatedPatterns.toList,
       Seq()
     )
-  }
+  }*/
 
-  /*def transModule(): Datalog.Module = {
+  def transModule(): Datalog.Module = {
     val Module(name, imports, classes) = module
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(module.usedClassNames.map(_.raw))
 
-    generatedPatterns += transID(classes)
+    //generatedPatterns += transID(classes)
 
     val clsHierarchy  = ClassHierarchy(classes)
     clsHierarchy.foreach {
@@ -125,7 +119,7 @@ class GenerateDatalog(module: Module) {
       generatedPatterns.toList,
       Seq()
     )
-  }*/
+  }
 
   /**
    * Guard that ensures that an object of the class with the id specified in the var `this` exists.
@@ -210,8 +204,6 @@ class GenerateDatalog(module: Module) {
   private def transClass(parents: Seq[ClassDef], classDef: ClassDef, childs: Seq[ClassDef]): Seq[Datalog.Pattern] = {
     val thisParam = Datalog.Param("this", transType(classDef.typ))
 
-    val objectPat = Datalog.Pattern(None, classDef.name.raw, Seq(thisParam), Seq(Datalog.Body(Seq())))
-      .addHint(OptimizationHints.NoInline)
     val constPat = transDefaultConstructor(classDef)
     val methodPats = classDef.methods.map(m => transMethod(classDef, m))
 
@@ -221,25 +213,14 @@ class GenerateDatalog(module: Module) {
     //val instanceOfPat = transInstanceOf(classDef)
     //val enumeratePat = transEnumerate(classDef, childs)
 
-    objectPat +: constPat +: methodPats //:+ castPat :+ instanceOfPat :+ enumeratePat
+    constPat +: methodPats //:+ castPat :+ instanceOfPat :+ enumeratePat
   }
 
   val oOID: meta.Term = symbolOf(ObjectID)
   val tyOID: meta.Type = typeOf[ObjectID]
 
-  def transEnumerate(classDef: ClassDef, childs: Seq[ClassDef]): Datalog.Pattern = gensym.scoped {
-    val constructedBody = Datalog.Body(Seq(guard(classDef)))
-    val childBodies = childs.map { child =>
-      Datalog.Body(Seq(
-        Datalog.Call("enumerated$_" + child.name.raw, Seq(Datalog.Var("this")))
-      ))
-    }
-    val thisParam = Datalog.Param("this", transType(classDef.typ))
-    Datalog.Pattern(None, "enumerated$_" + classDef.name.raw, Seq(thisParam), constructedBody +: childBodies)
-      .addHint(OptimizationHints.NoInline) // TODO: Fix the root cause inside the InlineSimpleRelation
-  }
-
   private def transInstanceOf(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
+    // TODO: Rework this
     val thisParam = Datalog.Param("this", transType(classDef.typ))
     val hasTypeOutParam = Datalog.Param("hasType", Datalog.TScalaBoolean)
     val instanceOfParams = Seq(thisParam, hasTypeOutParam)
@@ -257,52 +238,22 @@ class GenerateDatalog(module: Module) {
   }
 
   private def transCast(classDef: ClassDef): Datalog.Body = gensym.scoped {
-    // TODO: This must be enumerated. Otherwise a cast to a parent class ís not possible
+    // TODO: Rework this
     Datalog.Body(Seq(guard(classDef)))
   }
 
-  private def transID(classes: Seq[ClassDef]): Datalog.Pattern = gensym.scoped {
-    Datalog.Pattern(None, "ids$", Seq(Datalog.Param("this", GP_URI)),
-      classes.filter(_.isRootClass).map(c => Datalog.Body(Seq(
-        Datalog.Call(c.name.raw, Seq(Datalog.Var("this")))
-          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(true)))
-      )))
-    ).addHint(MagicSetHints.NoInputRelation)
-  }
-
   private def transDefaultConstructor(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
-    val constrScalaFun = Term.Function(
-      List(Term.Param(Nil, Term.Name("id"), Some(TScalaInt.asScala), None)),
-      q"""$oOID(${classDef.name.raw}, ${Term.Name("id")})"""
-    )
     val thisVar = Datalog.Var("this")
-    val idVar = Datalog.Var("id")
-
-    val tmpCons =
-      Datalog.Computed(
-        thisVar,
-        Datalog.Evaluation(
-          Seq(idVar -> transType(TScalaInt)),
-          transType(classDef.typ),
-          Scala(constrScalaFun)))
-
-    val idCons = /*Datalog.Eq(idVar,
-      Datalog.Constant(Datalog.IntLiteral(1))
-    )*/
-      Datalog.Computed(
-        idVar,
-        Datalog.CountAggregation("ids$", Seq(Datalog.Var("_")))
-      )//.addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(true)), MagicSetHints.NoInputRelation)
+    val constrScalaFun = Term.Function(Nil, q"""$oOID(${classDef.name.raw})""")
+    val tmpCons = Datalog.Computed(thisVar, Datalog.Evaluation(Seq(), transType(classDef.typ), Scala(constrScalaFun)))
 
     val thisParam = Datalog.Param("this", transType(classDef.typ))
     val params = classDef.fields.map(f => Datalog.Param(f.name.raw, transType(f.typ)))
 
-    val parentObjs = classDef.parentClassRefs.map(ref => Datalog.Call(ref.name.raw, Seq(thisVar)))
-    val obj = Datalog.Call(classDef.name.raw, Seq(thisVar))
-
     Datalog.Pattern(transVis(classDef.vis), constructorName(classDef.name), thisParam +: params, Seq(
-      Datalog.Body(idCons +: tmpCons +: parentObjs :+ obj) // TODO: At relations to init fields
+      Datalog.Body(Seq(tmpCons))
     )).addHint(OptimizationHints.NoInline)
+      .addHint(ObjectHints.Allocation)
   }
 
   private def transMethod(classDef: ClassDef, methodDef: MethodDef): Datalog.Pattern = gensym.scoped {
@@ -333,6 +284,7 @@ class GenerateDatalog(module: Module) {
     if (methodDef.isMain)
       Datalog.Pattern(transVis(methodDef.vis), qualifiedName, argParams ++ returnParams, bodies)
         .addHint(MagicSetHints.Main(argParams.map(_ => true) ++ returnParams.map(_ => false)))
+        .addHint(ObjectHints.AllocationRoot)
     else
       Datalog.Pattern(transVis(methodDef.vis), qualifiedName, thisParam +: (argParams ++ returnParams), bodies)
   }
