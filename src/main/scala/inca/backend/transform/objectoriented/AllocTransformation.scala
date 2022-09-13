@@ -1,10 +1,5 @@
 package inca.backend.transform.objectoriented
 
-// TODO: What happens on recursive call ? Consider multiple constructor. Each constructor needs to influence the
-// TODO: passed parameters, that means we can not just skip everything
-// Idea: it might be the easiest solution to just pass parameters per constructor. This does still not solve the
-// recursion problem
-
 import inca.backend.hints.{Hints, MagicSetHints}
 import inca.backend.hints.MagicSetHints.FixedAdornment
 import inca.backend.hints.ObjectHints.{AllocationKey, AllocationRootKey}
@@ -37,7 +32,7 @@ object AllocTransformation extends Transformation {
       hints
     }
 
-    private def findCallSide(callName: Name, pattern: Set[Pattern]): Set[Pattern] = {
+    private def findCallSides(callName: Name, pattern: Set[Pattern]): Set[Pattern] = {
       pattern.filter { pat =>
         pat.bodies.exists { body =>
           body.atoms.exists {
@@ -82,94 +77,103 @@ object AllocTransformation extends Transformation {
     }
 
     private def transformAllocationRootPattern(allocRoot: Pattern, affectedPattern: Set[Pattern]): Pattern = gensym.scoped {
-      // TODO: It is probably enough to do this per body
       gensym.register(CollectVars.transPattern(allocRoot))
-
-      def newAllocVar() = Var(gensym.fresh("alloc"))
-      def newDummyVar() = Var(gensym.fresh("_"))
 
       // name of all calls that end up calling a constructor
       val affectedCallNames = affectedPattern.map(_.name)
 
       val bodies = allocRoot.bodies.map { body =>
-        var allocVar = newAllocVar()
-        val allocInit = Eq(allocVar, Constant(IntLiteral(0)))
+        gensym.scoped {
+          var allocVar = Var(gensym.fresh("alloc"))
+          val allocInit = Eq(allocVar, Constant(IntLiteral(0)))
 
-        Body(allocInit +: body.atoms.map {
-          case call@Call(name, args, trans, neg)  if affectedCallNames.contains(name) =>
-            val hint = hintWithAdjustedFixedAdornment(call, allocIn = true, allocOut = false)
-            if (call.hasHint(MagicSetHints.IgnoreCallKey)) {
-              Call(name, args :+ newDummyVar() :+ newDummyVar(), trans, neg).withHints(hint)
-            } else {
-              val allocInVar = allocVar
-              allocVar = newAllocVar()
-              Call(name, args :+ allocInVar :+ allocVar, trans, neg).withHints(hint)
-            }
-          case a => a
-        })
+          Body(allocInit +: body.atoms.map {
+            case call@Call(name, args, trans, neg) if affectedCallNames.contains(name) =>
+              val hint = hintWithAdjustedFixedAdornment(call, allocIn = true, allocOut = false)
+              if (call.hasHint(MagicSetHints.IgnoreCallKey)) {
+                Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg).withHints(hint)
+              } else {
+                val allocInVar = allocVar
+                allocVar = Var(gensym.fresh("alloc"))
+                Call(name, args :+ allocInVar :+ allocVar, trans, neg).withHints(hint)
+              }
+            case a => a
+          })
+        }
       }
       Pattern(allocRoot.vis, allocRoot.name, allocRoot.params, bodies).withHints(allocRoot)
     }
 
     private def transformCallSidePattern(pattern: Pattern, affectedPattern: Set[Pattern]): Pattern = gensym.scoped {
-      // TODO: It is probably enough to do this per body
       gensym.register(CollectVars.transPattern(pattern))
 
       val allocInVar = Var(gensym.fresh("alloc_in"))
-      var allocOutVar = allocInVar
+      var allocOutVar = Var(gensym.fresh("alloc_out"))
 
-      def newAllocOutVar() = Var(gensym.fresh("alloc_out"))
-      def newDummyVar() = Var(gensym.fresh("_"))
+      val allocInParam = Param(allocInVar.name, TScalaInt)
+      val allocOutParam = Param(allocOutVar.name, TScalaInt)
 
       // name of all calls that end up calling a constructor
       val affectedCallNames = affectedPattern.map(_.name)
-      println("Affected calls: ", affectedCallNames)
 
       val bodies = pattern.bodies.map { body =>
-        // reset the allocOutVar for each body
-        allocOutVar = allocInVar
+        gensym.scoped {
+          // reset the allocOutVar for each body
+          allocOutVar = allocInVar
 
-        Body(body.atoms.map {
-          case call@Call(name, args, trans, neg) if affectedCallNames.contains(name) =>
-            val hint = hintWithAdjustedFixedAdornment(call, allocIn = true, allocOut = false)
-            if (call.hasHint(MagicSetHints.IgnoreCallKey)) {
-              Call(name, args :+ newDummyVar() :+ newDummyVar(), trans, neg).withHints(hint)
-            } else {
-              val allocInVar = allocOutVar
-              allocOutVar = newAllocOutVar()
-              Call(name, args :+ allocInVar :+ allocOutVar, trans, neg).withHints(hint)
-            }
-          case a => a
-        })
+          Body(body.atoms.map {
+            case call@Call(name, args, trans, neg) if affectedCallNames.contains(name) =>
+              val hint = hintWithAdjustedFixedAdornment(call, allocIn = true, allocOut = false)
+              if (call.hasHint(MagicSetHints.IgnoreCallKey)) {
+                Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg).withHints(hint)
+              } else {
+                val allocInVar = allocOutVar
+                allocOutVar = Var(gensym.fresh("alloc_out"))
+                Call(name, args :+ allocInVar :+ allocOutVar, trans, neg).withHints(hint)
+              }
+            case a => a
+          } :+ Eq(Var(allocOutParam.name), allocOutVar))
+        }
       }
-      val params = pattern.params :+ Param(allocInVar.name, TScalaInt) :+ Param(allocOutVar.name, TScalaInt)
+      val params = pattern.params :+ allocInParam :+ allocOutParam
       Pattern(pattern.vis, pattern.name, params, bodies).withHints(pattern)
     }
 
-    private def insertAllocationCount(pattern: Seq[Pattern]): Set[Pattern] = {
+    private def insertAllocationCount(pattern: Seq[Pattern]): Seq[Pattern] = {
       // Start from the allocation and move up the tree to the allocation root
-      val allocationPattern = pattern.filter(_.hasHint(AllocationKey)).toSet
-      if (allocationPattern.isEmpty)
-        pattern.toSet
-      else
-        recInsertAllocationCount(allocationPattern, pattern.toSet, Set())
+      val allocPats = pattern.filter(_.hasHint(AllocationKey)).toSet
+      val allocRootPats = pattern.filter(_.hasHint(AllocationRootKey)).toSet
+
+      if (allocPats.nonEmpty && allocRootPats.isEmpty)
+        throw new IllegalArgumentException("Missing allocation root!")
+      else if (allocRootPats.size > 1)
+        throw new IllegalArgumentException("Ambiguous allocation root!")
+
+      if (allocPats.isEmpty)
+        return pattern
+
+      // exclude Allocation and AllocationRoot pattern
+      val searchPattern = pattern.toSet.diff(allocPats).diff(allocRootPats)
+      val affectedPattern = allocPats.flatMap(findAffectedPattern(_, searchPattern))
+      val allAffectedPattern = affectedPattern.union(allocPats).union(allocRootPats)
+      val unchangedPattern = searchPattern.diff(affectedPattern)
+
+      val transAllocRootPats = allocRootPats.map(transformAllocationRootPattern(_, allAffectedPattern))
+      val transAllocPats = allocPats.map(transformAllocationPattern)
+      val transAffectedPats = affectedPattern.map(transformCallSidePattern(_, allAffectedPattern))
+
+      transAllocRootPats.toSeq ++ transAllocPats ++ transAffectedPats ++ unchangedPattern
     }
 
-    private def recInsertAllocationCount(pattern: Set[Pattern], remainingPattern: Set[Pattern], callSides: Set[Pattern]): Set[Pattern] = {
-      pattern.flatMap {
-        case pat: Pattern if pat.hasHint(AllocationKey) =>
-          val newCallSides = findCallSide(pat.name, remainingPattern)
-          val affectedPattern = newCallSides + pat
-          val transPattern = transformAllocationPattern(pat)
-          recInsertAllocationCount(newCallSides, remainingPattern.diff(affectedPattern), affectedPattern) + transPattern
-        case pat: Pattern if pat.hasHint(AllocationRootKey) =>
-          remainingPattern + transformAllocationRootPattern(pat, callSides)
-        case pat: Pattern =>
-          val transPattern = transformCallSidePattern(pat, callSides)
-          val newCallSides = findCallSide(pat.name, remainingPattern)
-          val affectedPattern = newCallSides + pat
-          recInsertAllocationCount(newCallSides, remainingPattern.diff(affectedPattern), affectedPattern) + transPattern
-      }
+    /**
+     * Recursively find the pattern that either call `pat` directly or indirectly.
+     * @param pat The pattern to find all callers for.
+     * @param remainingPattern The search space.
+     * @return Set with all pattern that directy or indirectly call `pat`.
+     */
+    private def findAffectedPattern(pat: Pattern, remainingPattern: Set[Pattern]): Set[Pattern] = {
+        val callSides = findCallSides(pat.name, remainingPattern)
+        callSides.union(callSides.flatMap(p => findAffectedPattern(p, remainingPattern.diff(callSides))))
     }
   }
 }

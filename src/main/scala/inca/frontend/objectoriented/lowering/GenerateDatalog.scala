@@ -42,8 +42,8 @@ class GenerateDatalog(module: Module) {
     generatedPatterns ++= Seq(
       Datalog.Pattern(None, "main", Seq(Datalog.Param("_$2", GP_URI)), Seq(
         Datalog.Body(Seq(
-          Datalog.Call("foo", Seq(Datalog.Var("_$0"))),
-          Datalog.Call("foo", Seq(Datalog.Var("_$1"))),
+          Datalog.Call("constr", Seq(Datalog.Var("_$0"))),
+          Datalog.Call("constr", Seq(Datalog.Var("_$1"))),
           //Datalog.Call("constr", Seq(Datalog.Var("_$2"))),
           Datalog.Call("constr", Seq(Datalog.Var("_$2")))
             .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(false)))
@@ -52,12 +52,42 @@ class GenerateDatalog(module: Module) {
 
       Datalog.Pattern(None, "foo", Seq(Datalog.Param("_$0", GP_URI)), Seq(
         Datalog.Body(Seq(
-          Datalog.Call("constr", Seq(Datalog.Var("_$0"))),
+          Datalog.Call("foo2", Seq(Datalog.Var("_$0"))),
           //Datalog.Call("constr", Seq(Datalog.Var("_$1"))),
-        ),
-        ))),
+        )))
+      ),
+
+      Datalog.Pattern(None, "foo2", Seq(Datalog.Param("_$0", GP_URI)), Seq(
+        Datalog.Body(Seq(
+          Datalog.Call("constr", Seq(Datalog.Var("_$0"))),
+          Datalog.Call("constr2", Seq(Datalog.Var("_$0"))),
+          //Datalog.Call("constr", Seq(Datalog.Var("_$1"))),
+        )),
+        Datalog.Body(Seq(
+          Datalog.Call("foo", Seq(Datalog.Var("_$0"))),
+          //Datalog.Call("constr", Seq(Datalog.Var("_$1"))),
+        ))
+        )),
+
+      /*Datalog.Pattern(None, "bar", Seq(Datalog.Param("x", GP_URI)), Seq(
+        Datalog.Body(Seq(
+          tmpCons
+        ))
+      )).addHint(ObjectHints.Allocation)*/
+
+      Datalog.Pattern(None, "unrelated", Seq(Datalog.Param("x", Datalog.TScalaInt)), Seq(
+        Datalog.Body(Seq(
+          Datalog.Eq(Datalog.Var("x"), Datalog.Constant(Datalog.IntLiteral(0)))
+        ))
+      )),
 
       Datalog.Pattern(None, "constr", Seq(Datalog.Param("x", GP_URI)), Seq(
+        Datalog.Body(Seq(
+          tmpCons
+        ))
+      )).addHint(ObjectHints.Allocation),
+
+      Datalog.Pattern(None, "constr2", Seq(Datalog.Param("x", GP_URI)), Seq(
         Datalog.Body(Seq(
           tmpCons
         ))
