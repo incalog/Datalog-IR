@@ -90,6 +90,8 @@
   implements("var|param|import|fun_def|param_type|data_def|data_constructor|constructor_pattern|cons_pattern_id|var_id|type_name")="language.psi.FuncIncaNamedElement"
   mixin("var|param|import|fun_def|param_type|data_def|data_constructor|constructor_pattern|cons_pattern_id|var_id|type_name")="language.psi.impl.FuncIncaNamedElementImpl"
 
+  implements("param|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")="language.psi.FuncIncaDecl"
+  mixin("param|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")="language.psi.impl.FuncIncaDeclImpl"
 }
 
 module ::= keyword_module id import* module_content* {pin = 1}

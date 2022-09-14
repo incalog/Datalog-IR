@@ -46,7 +46,7 @@ public class FuncIncaUtil {
         else if(e instanceof FuncIncaConstructorPattern || e instanceof FuncIncaDataConstructor)
             elementClass = FuncIncaDataConstructor.class;
         else
-            elementClass = PsiNamedElement.class;
+            elementClass = FuncIncaDecl.class;
 
         Collection<PsiNamedElement> namedElements = PsiTreeUtil.findChildrenOfType(file, elementClass);
         for(PsiNamedElement namedElement: namedElements){

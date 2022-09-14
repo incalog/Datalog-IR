@@ -16,6 +16,7 @@ public class FuncIncaReference extends PsiReferenceBase<PsiNamedElement> impleme
     }
 
     @Override
+    // for example for overloading a method
     public ResolveResult @NotNull [] multiResolve(boolean incompleteCode) {
         return new ResolveResult[0];
     }
