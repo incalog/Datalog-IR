@@ -153,6 +153,10 @@ object Datalog {
   }
   def True: Constant = Constant(BooleanLiteral(true))
   def False: Constant = Constant(BooleanLiteral(false))
+  def StringConstant(v: String): Constant = Constant(StringLiteral(v))
+  def IntConstant(v: Int): Constant = Constant(IntLiteral(v))
+  def LongConstant(v: Long): Constant = Constant(LongLiteral(v))
+  def DoubleConstant(v: Double): Constant = Constant(DoubleLiteral(v))
 
   sealed trait Computation {
     val args: Seq[Term]

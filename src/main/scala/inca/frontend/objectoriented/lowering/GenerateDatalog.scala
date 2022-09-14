@@ -32,48 +32,50 @@ class GenerateDatalog(module: Module) {
   private val generatedPatterns = ListBuffer[Datalog.Pattern]()
 
 
-  def constructorName(className: Name): String = "const$_" + className.raw
+  def constructorName(className: Name): String = className.raw
 
-  /*def test(): Unit = {
+  def test(): Unit = {
     val constrScalaFun = Term.Function(Nil, q"""$oOID("Zero")""")
     val xVar = Datalog.Var("x")
     val tmpCons = Datalog.Computed(xVar, Datalog.Evaluation(Seq(), GP_URI, Scala(constrScalaFun)))
 
     generatedPatterns ++= Seq(
-      Datalog.Pattern(None, "main", Seq(Datalog.Param("_$2", GP_URI)), Seq(
+      Datalog.Pattern(None, "main", Seq(Datalog.Param("_$1", GP_URI), Datalog.Param("_$2", GP_URI)), Seq(
         Datalog.Body(Seq(
-          Datalog.Call("constr", Seq(Datalog.Var("_$0"))),
+          Datalog.Call("foo", Seq(Datalog.Var("_$1"))),//.addHint(MagicSetHints.FixedAdornment(Seq(false)))
+          Datalog.Call("foo", Seq(Datalog.Var("_$2"))),
+          /*Datalog.Call("constr", Seq(Datalog.Var("_$0"))),
           Datalog.Call("constr", Seq(Datalog.Var("_$1"))),
           //Datalog.Call("constr", Seq(Datalog.Var("_$2"))),
           Datalog.Call("constr", Seq(Datalog.Var("_$2")))
-            .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(false)))
+            .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(false)))*/
         ),
-      ))).addHint(ObjectHints.AllocationRoot, MagicSetHints.Main(Seq(false))),
+      ))).addHint(MagicSetHints.Main(Seq(false))).addHint(ObjectHints.AllocationRoot),
+
+//      Datalog.Pattern(None, "foo2", Seq(Datalog.Param("_$0", GP_URI)), Seq(
+//        Datalog.Body(Seq(
+//          Datalog.Call("foo", Seq(Datalog.Var("_$0"))),
+//          //Datalog.Call("constr", Seq(Datalog.Var("_$1"))),
+//        )))
+//      ),
 
       Datalog.Pattern(None, "foo", Seq(Datalog.Param("_$0", GP_URI)), Seq(
         Datalog.Body(Seq(
-          Datalog.Call("foo2", Seq(Datalog.Var("_$0"))),
-          //Datalog.Call("constr", Seq(Datalog.Var("_$1"))),
-        )))
-      ),
-
-      Datalog.Pattern(None, "foo2", Seq(Datalog.Param("_$0", GP_URI)), Seq(
-        Datalog.Body(Seq(
           Datalog.Call("constr", Seq(Datalog.Var("_$0"))),
-          Datalog.Call("constr2", Seq(Datalog.Var("_$0"))),
+          //Datalog.Call("constr2", Seq(Datalog.Var("_$0"))),
           //Datalog.Call("constr", Seq(Datalog.Var("_$1"))),
         )),
-        Datalog.Body(Seq(
-          Datalog.Call("foo", Seq(Datalog.Var("_$0"))),
-          //Datalog.Call("constr", Seq(Datalog.Var("_$1"))),
-        ))
+//        Datalog.Body(Seq(
+//          Datalog.Call("foo", Seq(Datalog.Var("_$0"))),
+//          //Datalog.Call("constr", Seq(Datalog.Var("_$1"))),
+//        ))
         )),
 
-      Datalog.Pattern(None, "unrelated", Seq(Datalog.Param("x", Datalog.TScalaInt)), Seq(
-        Datalog.Body(Seq(
-          Datalog.Eq(Datalog.Var("x"), Datalog.Constant(Datalog.IntLiteral(0)))
-        ))
-      )),
+//      Datalog.Pattern(None, "unrelated", Seq(Datalog.Param("x", Datalog.TScalaInt)), Seq(
+//        Datalog.Body(Seq(
+//          Datalog.Eq(Datalog.Var("x"), Datalog.Constant(Datalog.IntLiteral(0)))
+//        ))
+//      )),
 
       Datalog.Pattern(None, "constr", Seq(Datalog.Param("x", GP_URI)), Seq(
         Datalog.Body(Seq(
@@ -81,15 +83,15 @@ class GenerateDatalog(module: Module) {
         ))
       )).addHint(ObjectHints.Allocation),
 
-      Datalog.Pattern(None, "constr2", Seq(Datalog.Param("x", GP_URI)), Seq(
-        Datalog.Body(Seq(
-          tmpCons
-        ))
-      )).addHint(ObjectHints.Allocation)
+//      Datalog.Pattern(None, "constr2", Seq(Datalog.Param("x", GP_URI)), Seq(
+//        Datalog.Body(Seq(
+//          tmpCons
+//        ))
+//      )).addHint(ObjectHints.Allocation)
     )
   }
 
-  def transModule(): Datalog.Module = {
+  /*def transModule(): Datalog.Module = {
 
     test()
 
@@ -106,7 +108,8 @@ class GenerateDatalog(module: Module) {
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(module.usedClassNames.map(_.raw))
 
-    //generatedPatterns += transID(classes)
+    generatedPatterns += transSubtype()
+    generatedPatterns += transInstanceOf()
 
     val clsHierarchy  = ClassHierarchy(classes)
     clsHierarchy.foreach {
@@ -135,72 +138,6 @@ class GenerateDatalog(module: Module) {
       .addHint(MagicSetHints.FixedAdornment(false +: fieldVars.map(_ => true)))
   }
 
-  /*private def transDynamicDispatch(classDef: ClassDef, methodDef: MethodDef, children: Seq[ClassDef]): Datalog.Pattern = {
-
-    val (parentClassDef, methodDef) = key
-    val childClasses = parentAndMethodToChildMap.get(key)
-    val args = methodDef.params.map(p => Datalog.Var(p.name.raw)) :+ Datalog.Var("return")
-
-    // Construct body :- Child(...), Child$method(...)
-    val childMethodCallBodies = childClasses.map { classDef =>
-      Datalog.Body(Seq(guard(classDef), Datalog.Call(classDef.name + "$" + methodDef.name.raw, args)))
-    }.toSeq
-
-    // Construct body :- !Child_1(...), ..., Child_n(...), Parent(...), Parent$method(...)
-    val parentMethodCallBody = Datalog.Body(
-      childClasses.map { classDef => guard(classDef, neg = true) }.toSeq
-        // TODO: Use dispatch instead of call is overridden
-        :+ Datalog.Call(parentClassDef.name.raw + "$" + methodDef.name.raw, args)
-    )
-
-    val qualifiedName = "dispatch$_" + parentClassDef.name.raw + "$" + methodDef.name.raw
-    val thisParam = Datalog.Param("this", transType(parentClassDef.typ))
-    val argParams = methodDef.params.map { case Param(name, typ) => Datalog.Param(name.raw, transType(typ)) }
-    val returnParams = if (methodDef.returnsUnit) Seq() else Seq(Datalog.Param("return", transType(methodDef.outType)))
-    Datalog.Pattern(None, qualifiedName, thisParam +: (argParams ++ returnParams), childMethodCallBodies :+ parentMethodCallBody)
-  }*/
-
-  /*private def transDynamicDispatch(classes: Seq[ClassDef]): Seq[Datalog.Pattern] = {
-    val classMap = classes.map(c => c.name -> c).toMap
-
-    val parentAndMethodToChildMap = MultiDict.from(classes.flatMap { classDef =>
-      classDef.methods.flatMap { methodDef =>
-        val parent = classDef.parentClassRefs.headOption
-        if (methodDef.isMain || !methodDef.isOverridden || parent.isEmpty) {
-          None // Ignore the main method and not overwritten methods
-        } else {
-          Some((classMap(parent.get.name), methodDef) -> classDef)
-        }
-      }
-    })
-
-    parentAndMethodToChildMap.foreach{ case ((p, m), c) => println(p.name, m.name + " -> " + c.name)}
-
-    parentAndMethodToChildMap.keySet.map { key =>
-      val (parentClassDef, methodDef) = key
-      val childClasses = parentAndMethodToChildMap.get(key)
-      val args = methodDef.params.map(p => Datalog.Var(p.name.raw)) :+ Datalog.Var("return")
-
-      // Construct body :- Child(...), Child$method(...)
-      val childMethodCallBodies = childClasses.map { classDef =>
-        Datalog.Body(Seq(guard(classDef), Datalog.Call(classDef.name + "$" + methodDef.name.raw, args)))
-      }.toSeq
-
-      // Construct body :- !Child_1(...), ..., Child_n(...), Parent(...), Parent$method(...)
-      val parentMethodCallBody = Datalog.Body(
-        childClasses.map { classDef => guard(classDef, neg = true) }.toSeq
-          // TODO: Use dispatch instead of call is overridden
-          :+ Datalog.Call(parentClassDef.name.raw + "$" + methodDef.name.raw, args)
-      )
-
-      val qualifiedName = "dispatch$_" + parentClassDef.name.raw + "$" + methodDef.name.raw
-      val thisParam = Datalog.Param("this", transType(parentClassDef.typ))
-      val argParams = methodDef.params.map { case Param(name, typ) => Datalog.Param(name.raw, transType(typ)) }
-      val returnParams = if (methodDef.returnsUnit) Seq() else  Seq(Datalog.Param("return", transType(methodDef.outType)))
-      Datalog.Pattern(None, qualifiedName, thisParam +: (argParams ++ returnParams), childMethodCallBodies :+ parentMethodCallBody)
-    }
-  }.toSeq*/
-
   private def transClass(parents: Seq[ClassDef], classDef: ClassDef, childs: Seq[ClassDef]): Seq[Datalog.Pattern] = {
     val thisParam = Datalog.Param("this", transType(classDef.typ))
 
@@ -219,27 +156,56 @@ class GenerateDatalog(module: Module) {
   val oOID: meta.Term = symbolOf(ObjectID)
   val tyOID: meta.Type = typeOf[ObjectID]
 
-  private def transInstanceOf(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
-    // TODO: Rework this
-    val thisParam = Datalog.Param("this", transType(classDef.typ))
-    val hasTypeOutParam = Datalog.Param("hasType", Datalog.TScalaBoolean)
-    val instanceOfParams = Seq(thisParam, hasTypeOutParam)
+  private def transSubtype(): Datalog.Pattern = gensym.scoped {
+    // Do not inline this. Inlining is problematic if the expression is used non-negated and negated at the same time
+    Datalog.Pattern(None, "subtype$", Seq(
+      Datalog.Param("child", Datalog.TScalaString), Datalog.Param("parent", Datalog.TScalaString)
+    ), Seq(
+      Datalog.Body(Seq(
+        Datalog.ExtensionalCall("subtype", Seq(Datalog.Var("child"), Datalog.Var("parent")))
+      ))
+    )).addHint(OptimizationHints.NoInline)
+  }
 
-    val outVar = Datalog.Var("hasType")
-    val thisVar = Datalog.Var("this")
-    Datalog.Pattern(None, "instanceOf$_" + classDef.name.raw, instanceOfParams, Seq(
-      Datalog.Body(Seq(
-        Datalog.Call("enumerated$_" + classDef.name.raw, Seq(thisVar)), Datalog.Eq(outVar, Datalog.True))
-      ),
-      Datalog.Body(Seq(
-        Datalog.Call("enumerated$_" + classDef.name.raw, Seq(thisVar), neg = true), Datalog.Eq(outVar, Datalog.False))
+  private def transInstanceOf(): Datalog.Pattern = gensym.scoped {
+    val params = Seq(
+      Datalog.Param("this", GP_URI),
+      Datalog.Param("t", Datalog.TScalaString),
+      Datalog.Param("out", Datalog.TScalaBoolean)
+    )
+
+    val tyVar = Datalog.Var("ty")
+
+    val tyCompArg = Term.Name("obj")
+    val tyCompParam = Term.Param(Nil, tyCompArg, Some(GP_URI.asScala), None)
+
+    val tyComp = Datalog.Computed(
+      tyVar, Datalog.Evaluation(
+        Seq(Datalog.Var("this") -> GP_URI),
+        Datalog.TScalaString,
+        Scala(q"($tyCompParam) => $tyCompArg.typ") // .asInstanceOf[$tyOID]
       )
-    ))
+    )
+
+    val outVar = Datalog.Var("out")
+    val tyParamVar = Datalog.Var("t")
+    val outTrue =  Datalog.Eq(outVar, Datalog.True)
+    val outFalse =  Datalog.Eq(outVar, Datalog.False)
+
+    def isSubtype(neg: Boolean) = Datalog.Call("subtype$", Seq(tyVar, tyParamVar), neg=neg).addHint(OptimizationHints.NoInline)
+
+    val bodies = Seq(
+      Datalog.Body(Seq(tyComp, Datalog.Eq(tyVar, tyParamVar), outTrue)),
+      Datalog.Body(Seq(tyComp, Datalog.Neq(tyVar, tyParamVar), isSubtype(false), outTrue)),
+      Datalog.Body(Seq(tyComp, Datalog.Neq(tyVar, tyParamVar), isSubtype(true), outFalse)),
+    )
+    Datalog.Pattern(None, "instanceOf$", params, bodies)
   }
 
   private def transCast(classDef: ClassDef): Datalog.Body = gensym.scoped {
     // TODO: Rework this
-    Datalog.Body(Seq(guard(classDef)))
+    //Datalog.Body(Seq(guard(classDef)))
+    ???
   }
 
   private def transDefaultConstructor(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
@@ -282,7 +248,7 @@ class GenerateDatalog(module: Module) {
     }
 
     if (methodDef.isMain)
-      Datalog.Pattern(transVis(methodDef.vis), qualifiedName, argParams ++ returnParams, bodies)
+      Datalog.Pattern(transVis(methodDef.vis), qualifiedName, argParams ++ returnParams,  bodies)
         .addHint(MagicSetHints.Main(argParams.map(_ => true) ++ returnParams.map(_ => false)))
         .addHint(ObjectHints.AllocationRoot)
     else
@@ -416,8 +382,8 @@ class GenerateDatalog(module: Module) {
 
     case InstanceOfExpr(recv, ofTyp) =>
       for ((Seq(eTerm), eCons) <- transExpression(recv)) yield {
-        val outVar = Datalog.Var(gensym.fresh("instanceOf"))
-        val instanceOfCall = Datalog.Call("instanceOf$_" + ofTyp.toString, Seq(eTerm, outVar))
+        val outVar = Datalog.Var(gensym.fresh("isInstance"))
+        val instanceOfCall = Datalog.Call("instanceOf$", Seq(eTerm, Datalog.StringConstant(ofTyp.toString), outVar))
         (Seq(outVar), eCons :+ instanceOfCall)
       }
 
@@ -583,7 +549,7 @@ class GenerateDatalog(module: Module) {
       Seq(Datalog.Var(x.raw) -> transType(ty))
   }
 
-  def GP_URI: Datalog.TScala = Datalog.TScala(Scala(typeOf[truechange.URI]))
+  def GP_URI: Datalog.TScala = Datalog.TScala(Scala(typeOf[ObjectID]))
 
   private def transVis(vis: Option[Visibility]): Option[Datalog.Visibility] =
     vis.map { case Private => Datalog.Private }

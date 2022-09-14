@@ -18,7 +18,7 @@ object GPPrinter {
   def prettyPattern(gp: Pattern): String = {
     val header = prettyVis(gp.vis) + gp.name + gp.params.map(prettyParam).mkString("(", ", ", ")")
     val bodies = gp.bodies.map(prettyBody).mkString(" {\n", "\n} or {\n", "\n}")
-    header + bodies + " " + gp.hints.get(MagicSetHints.DemandPatternsKey).map(h => h.asInstanceOf[MagicSetHints.DemandPatterns].adorn).getOrElse("")
+    header + bodies// + " " + gp.hints.get(MagicSetHints.DemandPatternsKey).map(h => h.asInstanceOf[MagicSetHints.DemandPatterns].adorn).getOrElse("")
   }
 
   def prettyVis(vis: Option[Visibility]): String = vis match {
@@ -100,6 +100,7 @@ object GPPrinter {
         val params = code.tree.params.map(_.name.value)
         val scalaArgs = args.map(a => meta.Term.Name(a._1.asInstanceOf[Var].name))
         val codeS = EvalFusion.scalaSubst(code.tree.body, Map() ++ params.zip(scalaArgs)).syntax.replace("\n", "\n\t\t")
+        //s"${prettyTerm(lhs)} == `(${code.tree}: ${returnType.asScala})(${args.map(_._1.asInstanceOf[Var].name).mkString(", ")})`"
         s"${prettyTerm(lhs)} == `$codeS`"
       } else {
         val codeS = code.syntax.replace("\n", "\n\t\t")

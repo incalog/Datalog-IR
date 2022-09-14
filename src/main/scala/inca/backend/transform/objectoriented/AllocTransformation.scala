@@ -7,6 +7,8 @@ import inca.backend.ir.Datalog._
 import inca.backend.ir.util.CollectVars
 import inca.backend.transform.{Transformation, Transformer}
 import inca.runtime.context.DataModel
+import inca.runtime.data.ObjectID
+import inca.util.Scala.symbolOf
 import inca.util.{Gensym, Scala}
 
 import scala.+:
@@ -50,19 +52,21 @@ object AllocTransformation extends Transformation {
       val allocOutName = gensym.fresh("alloc_out")
 
       // wrap a Computed(Var, Evaluation) inside a lambda, that uses the dummy variable from the input call
-      def wrapComputedEvaluation(lhs: Term, eval: Evaluation): Computed = {
+      def transComputedEvaluation(lhs: Term, eval: Evaluation): Computed = {
         val orgFun = eval.code.tree
-        val fun = scala.meta.Term.Function(
-          orgFun.params :+ scala.meta.Term.Param(Nil, scala.meta.Term.Name(allocInName), Some(TScalaInt.asScala), None),
-          q"""${orgFun}(..${orgFun.params.map(p => scala.meta.Term.Name(p.name.toString))})"""
-        )
+        val q"(..$params) => $f(..$args)" = orgFun
+        val allocInArg = scala.meta.Term.Name(allocInName)
+        val allocInParam = scala.meta.Term.Param(Nil, allocInArg, Some(TScalaInt.asScala), None)
+        val newParams = params :+ allocInParam
+        val newArgs = args :+ allocInArg
+        val fun = q"(..$newParams) => $f(..$newArgs)"
         Computed(lhs, Evaluation(eval.evalArgs :+ Var(allocInName) -> TScalaInt, eval.resultType, Scala(fun)))
       }
 
       val bodies = alloc.bodies.map { body =>
         Body(body.atoms.map {
           case Computed(lhs, eval : Evaluation) =>
-            wrapComputedEvaluation(lhs, eval)
+            transComputedEvaluation(lhs, eval)
           case a => a
         } :+ Computed(
           Var(allocOutName), Evaluation(
@@ -140,7 +144,6 @@ object AllocTransformation extends Transformation {
     }
 
     private def insertAllocationCount(pattern: Seq[Pattern]): Seq[Pattern] = {
-      // Start from the allocation and move up the tree to the allocation root
       val allocPats = pattern.filter(_.hasHint(AllocationKey)).toSet
       val allocRootPats = pattern.filter(_.hasHint(AllocationRootKey)).toSet
 
@@ -152,7 +155,7 @@ object AllocTransformation extends Transformation {
       if (allocPats.isEmpty)
         return pattern
 
-      // exclude Allocation and AllocationRoot pattern
+      // exclude Allocation and AllocationRoot pattern from affected pattern
       val searchPattern = pattern.toSet.diff(allocPats).diff(allocRootPats)
       val affectedPattern = allocPats.flatMap(findAffectedPattern(_, searchPattern))
       val allAffectedPattern = affectedPattern.union(allocPats).union(allocRootPats)

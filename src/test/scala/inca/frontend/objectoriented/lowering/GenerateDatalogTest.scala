@@ -1,6 +1,7 @@
 package inca.frontend.objectoriented.lowering
 
 import inca.backend.analyze.DependencyGraph
+import inca.backend.hints.OptimizationHints
 import inca.backend.ir.util.printer.DatalogPrinter
 import inca.backend.transform.magic.demand.DemandTransformation
 import inca.backend.transform.objectoriented.AllocTransformation
@@ -37,7 +38,7 @@ class GenerateDatalogTest extends AnyFunSuite {
   }
 
   test("Test") {
-    val result = Compiler.compileObject("module Test", ObjectOptions())
+    val result = Compiler.compileObject("module Test", ObjectOptions(Seq()))
 
     val graph = new DependencyGraph(result.transformed)
     println("Dependency graph")
@@ -57,9 +58,23 @@ class GenerateDatalogTest extends AnyFunSuite {
     matcher.zip(patterns).foreach(m => println(m._2 +": " + m._1.getAllMatches.toArray.mkString(", ")))
   }
 
+  test("Plus - all tuples") {
+    val code = FileUtil.readFile("objectoriented/unittests/Plus.oinca")
+    val result = Compiler.compileObject(code, ObjectOptions(Seq()))
+    val patterns = result.transformed.pats.map(_.name)
+    val specs = patterns.map(result.psystemModule.patterns(_)()) // Nat$main // "Succ" for all Succ instances
+    val scope = new QueryScope(result.dataModel)
+    val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    val matcher = specs.map(engine.getMatcher(_))
+    feed.insert(DemandTransformation.demandPatternExtensionalPrefix + "Nat$main", Tuples.flatTupleOf())
+    matcher.zip(patterns).foreach(m => println(m._2 + ": " + m._1.getAllMatches.toArray.mkString(", ")))
+  }
+
   test("Plus") {
     val code = FileUtil.readFile("objectoriented/unittests/Plus.oinca")
     val result = Compiler.compileObject(code, options)
+    println("DatalogPrinter")
+    println(DatalogPrinter.prettyModule(result.transformed)(true))
     val spec = result.psystemModule.patterns("Nat$main")() // Nat$main // "Succ" for all Succ instances
     val scope = new QueryScope(result.dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)

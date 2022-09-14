@@ -201,7 +201,7 @@ package inca.frontend.objectoriented.executor
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
 import inca.compiler.Compiler
 import inca.frontend.objectoriented.compiler.{CompiledObjectModule, ObjectOptions}
-import inca.runtime.context.QueryScope
+import inca.runtime.context.{DataModel, QueryScope}
 import inca.runtime.db.{DBValue, Database, DatabaseInspector}
 import inca.runtime.{EnginePool, Query}
 import inca.util.Scala.ScalaCompiler
@@ -336,9 +336,16 @@ object ObjectExecutor {
     Compiler.compileObject(code, options)
   }
 
+  def loadInheritanceEDB(dataModel: DataModel, feed: Database): Unit =
+    dataModel.directNodeSupertypes.foreach { case (child, parent) =>
+      feed.insert("subtype", Tuples.flatTupleOf(child.name, parent.name))
+    }
+
   def loadFunction(compiled: CompiledObjectModule): Loaded = {
-    val scope = new QueryScope(compiled.dataModel)
+    val dataModel = compiled.dataModel
+    val scope = new QueryScope(dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
+    loadInheritanceEDB(dataModel, feed)
     Loaded(engine, feed, compiled)
   }
 

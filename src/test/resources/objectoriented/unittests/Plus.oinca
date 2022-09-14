@@ -1,12 +1,12 @@
 module Plus
 
-/*class A {
+class A {
     def add(n: Nat): Nat = {
         return n
     }
-}*/
+}
 
-class Nat {//extends A {
+class Nat extends A {
     def this() = { }
 
     def succ(): Succ = {
@@ -19,14 +19,32 @@ class Nat {//extends A {
     }
 
     @main
-    def main(): Nat = {
-        val zero: Zero = new Zero()
+    def main(): Boolean = {
+        //val zero: Zero = new Zero()
         /*val first: Succ = zero.succ()
-        val second: Succ = zero.succ().succ()*/
+        //val second: Succ = zero.succ().succ()*/
         val nat: Nat = new Nat()
         //val succ: Succ = new Succ(zero)
+        //val succ2: Succ = new Succ(succ)
+        //val nat2: Nat = new Nat()
 
-        return zero
+        //return nat2
+        /*instanceOf(zero, A)
+        instanceOf(zero, Nat)
+        instanceOf(zero, Zero)
+        instanceOf(zero, Succ)
+
+        instanceOf(nat, A)
+        instanceOf(nat, Nat)
+        instanceOf(nat, Zero)
+        instanceOf(nat, Succ)
+
+        instanceOf(succ, A)
+        instanceOf(succ, Nat)
+        instanceOf(succ, Zero)
+        instanceOf(succ, Succ)*/
+
+        return instanceOf(nat, Nat) && instanceOf(nat, A)
         //return nat.add(succ)
     }
 }
