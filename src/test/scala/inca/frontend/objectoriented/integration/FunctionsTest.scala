@@ -45,6 +45,10 @@ class FunctionsTest extends AnyFunSuite {
     performSingleOutputValueTest("InstanceOf", "A$main", Seq(), true)
   }
 
+  test("TypeCast Example") {
+    performSingleOutputValueTest("TypeCast", "A$main", Seq(), true)
+  }
+
   test("Plus Example") {
     val code = readFile("objectoriented/unittests/Plus.oinca")
     val fun = ObjectExecutor.loadFunction(code, options)

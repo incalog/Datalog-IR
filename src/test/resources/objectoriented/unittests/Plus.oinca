@@ -29,20 +29,9 @@ class Nat extends A {
         //val nat2: Nat = new Nat()
 
         //return nat2
-        /*instanceOf(zero, A)
-        instanceOf(zero, Nat)
-        instanceOf(zero, Zero)
-        instanceOf(zero, Succ)
 
-        instanceOf(nat, A)
-        instanceOf(nat, Nat)
-        instanceOf(nat, Zero)
-        instanceOf(nat, Succ)
-
-        instanceOf(succ, A)
-        instanceOf(succ, Nat)
-        instanceOf(succ, Zero)
-        instanceOf(succ, Succ)*/
+        //cast(nat, A)
+        cast(nat, Nat)
 
 
         return instanceOf(nat, Succ) && instanceOf(nat, Nat)

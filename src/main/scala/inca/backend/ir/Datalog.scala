@@ -1,14 +1,14 @@
 package inca.backend.ir
 
-import inca.backend.hints.Hints
+import inca.backend.hints.{Hints, OptimizationHints}
 import inca.backend.ir.util.printer.GPPrinter
 import inca.util.Scala
 import truechange.{JavaLitType, LitType}
 
-import scala.meta.quasiquotes._
+import scala.meta.XtensionQuasiquoteType
 
 object Datalog {
-  case object BodyMustFail extends Exception
+  case object BodyMustFail extends java.lang.Exception
   def throwBodyMustFail(): Nothing = throw BodyMustFail
 
   type Name = String

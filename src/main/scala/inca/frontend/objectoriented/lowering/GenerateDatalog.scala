@@ -1,7 +1,6 @@
 package inca.frontend.objectoriented.lowering
 
-import inca.backend.hints.{DataHints, MagicSetHints, ObjectHints, OptimizationHints}
-import inca.backend.hints.MagicSetHints.{FixedAdornment, IgnoreCall, NoInputRelation}
+import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog
 import inca.frontend.objectoriented.core._
 import inca.frontend.objectoriented.util.ClassHierarchy
@@ -15,7 +14,6 @@ import scala.collection.immutable.MultiDict
 import scala.collection.mutable.ListBuffer
 import scala.meta.Term
 import scala.meta.quasiquotes._
-import scala.util.Random
 
 object GenerateDatalog {
   def transformModule(module: Module): Datalog.Module =
@@ -23,6 +21,12 @@ object GenerateDatalog {
 
   def transformModules(modules: Seq[Module]): Seq[Datalog.Module] =
     modules.map(transformModule)
+}
+
+class TypeCastException(msg: String) extends RuntimeException(msg)
+
+object TypeCastException {
+  def apply(msg: String): TypeCastException = new TypeCastException(msg)
 }
 
 class GenerateDatalog(module: Module) {
@@ -34,81 +38,13 @@ class GenerateDatalog(module: Module) {
 
   def constructorName(className: Name): String = className.raw
 
-  def test(): Unit = {
-    val constrScalaFun = Term.Function(Nil, q"""$oOID("Zero")""")
-    val xVar = Datalog.Var("x")
-    val tmpCons = Datalog.Computed(xVar, Datalog.Evaluation(Seq(), GP_URI, Scala(constrScalaFun)))
-
-    generatedPatterns ++= Seq(
-      Datalog.Pattern(None, "main", Seq(Datalog.Param("_$1", GP_URI), Datalog.Param("_$2", GP_URI)), Seq(
-        Datalog.Body(Seq(
-          Datalog.Call("foo", Seq(Datalog.Var("_$1"))),//.addHint(MagicSetHints.FixedAdornment(Seq(false)))
-          Datalog.Call("foo", Seq(Datalog.Var("_$2"))),
-          /*Datalog.Call("constr", Seq(Datalog.Var("_$0"))),
-          Datalog.Call("constr", Seq(Datalog.Var("_$1"))),
-          //Datalog.Call("constr", Seq(Datalog.Var("_$2"))),
-          Datalog.Call("constr", Seq(Datalog.Var("_$2")))
-            .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(false)))*/
-        ),
-      ))).addHint(MagicSetHints.Main(Seq(false))).addHint(ObjectHints.AllocationRoot),
-
-//      Datalog.Pattern(None, "foo2", Seq(Datalog.Param("_$0", GP_URI)), Seq(
-//        Datalog.Body(Seq(
-//          Datalog.Call("foo", Seq(Datalog.Var("_$0"))),
-//          //Datalog.Call("constr", Seq(Datalog.Var("_$1"))),
-//        )))
-//      ),
-
-      Datalog.Pattern(None, "foo", Seq(Datalog.Param("_$0", GP_URI)), Seq(
-        Datalog.Body(Seq(
-          Datalog.Call("constr", Seq(Datalog.Var("_$0"))),
-          //Datalog.Call("constr2", Seq(Datalog.Var("_$0"))),
-          //Datalog.Call("constr", Seq(Datalog.Var("_$1"))),
-        )),
-//        Datalog.Body(Seq(
-//          Datalog.Call("foo", Seq(Datalog.Var("_$0"))),
-//          //Datalog.Call("constr", Seq(Datalog.Var("_$1"))),
-//        ))
-        )),
-
-//      Datalog.Pattern(None, "unrelated", Seq(Datalog.Param("x", Datalog.TScalaInt)), Seq(
-//        Datalog.Body(Seq(
-//          Datalog.Eq(Datalog.Var("x"), Datalog.Constant(Datalog.IntLiteral(0)))
-//        ))
-//      )),
-
-      Datalog.Pattern(None, "constr", Seq(Datalog.Param("x", GP_URI)), Seq(
-        Datalog.Body(Seq(
-          tmpCons
-        ))
-      )).addHint(ObjectHints.Allocation),
-
-//      Datalog.Pattern(None, "constr2", Seq(Datalog.Param("x", GP_URI)), Seq(
-//        Datalog.Body(Seq(
-//          tmpCons
-//        ))
-//      )).addHint(ObjectHints.Allocation)
-    )
-  }
-
-  /*def transModule(): Datalog.Module = {
-
-    test()
-
-    Datalog.Module(
-      module.name.raw,
-      Seq(),
-      generatedPatterns.toList,
-      Seq()
-    )
-  }*/
-
   def transModule(): Datalog.Module = {
     val Module(name, imports, classes) = module
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(module.usedClassNames.map(_.raw))
 
     generatedPatterns += transInstanceOf()
+    generatedPatterns += transCast()
 
     val clsHierarchy  = ClassHierarchy(classes)
     clsHierarchy.foreach {
@@ -143,13 +79,12 @@ class GenerateDatalog(module: Module) {
     val constPat = transDefaultConstructor(classDef)
     val methodPats = classDef.methods.map(m => transMethod(classDef, m))
 
-    //val castPat = Datalog.Pattern(None, "cast$_" + classDef.name.raw, Seq(thisParam), Seq(transCast(classDef)))
     //  .addHint(MagicSetHints.NoInputRelation)
 
     //val instanceOfPat = transInstanceOf(classDef)
     //val enumeratePat = transEnumerate(classDef, childs)
 
-    constPat +: methodPats //:+ castPat :+ instanceOfPat :+ enumeratePat
+    constPat +: methodPats// :+ instanceOfPat :+ enumeratePat
   }
 
   val oOID: meta.Term = symbolOf(ObjectID)
@@ -192,10 +127,45 @@ class GenerateDatalog(module: Module) {
     Datalog.Pattern(None, "instanceOf$", params, bodies)
   }
 
-  private def transCast(classDef: ClassDef): Datalog.Body = gensym.scoped {
-    // TODO: Rework this
-    //Datalog.Body(Seq(guard(classDef)))
-    ???
+  private def transCast(): Datalog.Pattern = gensym.scoped {
+    // TODO: Figure out how to throw an exception
+    val params = Seq(
+      Datalog.Param("this", GP_URI),
+      Datalog.Param("toTyp", Datalog.TScalaString)
+    )
+
+    /*
+    // This does not work, since the lambda is evaluated at the wrong time
+    val excepSymbol = symbolOf(TypeCastException)
+    val errorMsg = s"Can not cast to type: ${classDef.typ.ref.name.raw}"
+
+    val thisArg = scala.meta.Term.Name("obj")
+    val thisParam = List(scala.meta.Term.Param(Nil, thisArg, Some(GP_URI.asScala), None))
+
+    val bodies = Seq(
+      Datalog.Body(Seq(guard(classDef))),
+      Datalog.Body(Seq(
+        guard(classDef, neg = true),
+        Computed(
+          Datalog.Var(gensym.fresh("_")),
+          Evaluation(
+            Seq(Datalog.Var("this") -> GP_URI),
+            Datalog.TAny,
+            Scala(q"""(..$thisParam) => throw $excepSymbol($errorMsg)""")
+          )
+        ).addHint(OptimizationHints.IsException)
+      ))
+    )*/
+    val outVar = Datalog.Var("out")
+    val bodies = Seq(
+      // cast to superclasses are always allowed
+      Datalog.Body(Seq(
+        Datalog.Call("instanceOf$", Seq(Datalog.Var("this"), Datalog.Var("toType"), outVar)),
+        Datalog.Eq(outVar, Datalog.True)
+      )),
+    )
+
+    Datalog.Pattern(None, "cast$", params, bodies)
   }
 
   private def transDefaultConstructor(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
@@ -364,9 +334,8 @@ class GenerateDatalog(module: Module) {
       transRecv.flatten
 
     case TypeCastExpr(recv, toTyp) =>
-      // TODO: Is this correct ?
       for ((Seq(eTerm), eCons) <- transExpression(recv)) yield {
-        val castCall = Datalog.Call("cast$_" + toTyp.toString, Seq(eTerm))
+        val castCall = Datalog.Call("cast$", Seq(eTerm, Datalog.StringConstant(toTyp.toString)))
         (Seq(eTerm), eCons :+ castCall)
       }
 

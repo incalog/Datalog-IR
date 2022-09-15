@@ -1,0 +1,34 @@
+module TypeCast
+
+class A {
+    def this() = {}
+
+    @main
+    def main(): Boolean = {
+        val a: A = new A()
+        val b: B = new B()
+        val c1: C1 = new C1()
+        val c2: C2 = new C2()
+
+        // cast to supertype should always work
+        cast(a, A)
+        cast(b, A)
+        cast(b, B)
+        cast(c1, A)
+        cast(c1, B)
+        cast(c1, C1)
+        cast(c2, A)
+        cast(c2, B)
+        cast(c2, C2)
+
+        // some more test
+        val aFromC2: A = cast(c2, A)
+        val c2FromA: C2 = cast(aFromC2, C2)
+        val bFromA: B = cast(aFromC2, B)
+
+        return true
+    }
+}
+class B extends A {}
+class C1 extends B {}
+class C2 extends B {}
