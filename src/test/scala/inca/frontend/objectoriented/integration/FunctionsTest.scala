@@ -12,7 +12,7 @@ import scala.meta.{Term, XtensionQuasiquoteTerm}
 
 class FunctionsTest extends AnyFunSuite {
 
-  val options: ObjectOptions = ObjectOptions()
+  val options: ObjectOptions = ObjectOptions(Seq())
 
   private def performSingleOutputValueTest[O](file: String, main: String, input: Seq[Term], expectedResult: O): Assertion = {
     val code = readFile(s"objectoriented/unittests/$file.oinca")

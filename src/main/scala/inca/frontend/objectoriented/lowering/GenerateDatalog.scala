@@ -59,20 +59,6 @@ class GenerateDatalog(module: Module) {
     )
   }
 
-  /**
-   * Guard that ensures that an object of the class with the id specified in the var `this` exists.
-   * @param classDef the class to check for
-   * @param neg negate the guard, that means no object with the id exists
-   * @return Datalog.Call to check the existence
-   */
-  private def guard(classDef: ClassDef, neg: Boolean = false): Datalog.Call = {
-    val thisVar = Datalog.Var("this")
-    val fieldVars = classDef.fields.map(_ => Datalog.Var(gensym.fresh("_")))
-    Datalog.Call(classDef.name.raw, thisVar +: fieldVars, neg = neg)
-      .addHint(MagicSetHints.IgnoreCall)
-      .addHint(MagicSetHints.FixedAdornment(false +: fieldVars.map(_ => true)))
-  }
-
   private def transClass(parents: Seq[ClassDef], classDef: ClassDef, childs: Seq[ClassDef]): Seq[Datalog.Pattern] = {
     val thisParam = Datalog.Param("this", transType(classDef.typ))
 
@@ -98,10 +84,8 @@ class GenerateDatalog(module: Module) {
     )
 
     val tyVar = Datalog.Var("ty")
-
     val tyCompArg = Term.Name("obj")
     val tyCompParam = Term.Param(Nil, tyCompArg, Some(GP_URI.asScala), None)
-
     val tyComp = Datalog.Computed(
       tyVar, Datalog.Evaluation(
         Seq(Datalog.Var("this") -> GP_URI),
@@ -131,7 +115,7 @@ class GenerateDatalog(module: Module) {
     // TODO: Figure out how to throw an exception
     val params = Seq(
       Datalog.Param("this", GP_URI),
-      Datalog.Param("toTyp", Datalog.TScalaString)
+      Datalog.Param("t", Datalog.TScalaString)
     )
 
     /*
@@ -156,15 +140,22 @@ class GenerateDatalog(module: Module) {
         ).addHint(OptimizationHints.IsException)
       ))
     )*/
-    val outVar = Datalog.Var("out")
-    val bodies = Seq(
-      // cast to superclasses are always allowed
-      Datalog.Body(Seq(
-        Datalog.Call("instanceOf$", Seq(Datalog.Var("this"), Datalog.Var("toType"), outVar)),
-        Datalog.Eq(outVar, Datalog.True)
-      )),
+    val tyVar = Datalog.Var("ty")
+    val tyCompArg = Term.Name("obj")
+    val tyCompParam = Term.Param(Nil, tyCompArg, Some(GP_URI.asScala), None)
+    val tyComp = Datalog.Computed(
+      tyVar, Datalog.Evaluation(
+        Seq(Datalog.Var("this") -> GP_URI),
+        Datalog.TScalaString,
+        Scala(q"($tyCompParam) => $tyCompArg.typ")
+      )
     )
-
+    val tyParamVar = Datalog.Var("t")
+    val isSubtype = Datalog.ExtensionalCall("subtype", Seq(tyVar, tyParamVar))
+    val bodies = Seq(
+        Datalog.Body(Seq(tyComp, Datalog.Eq(tyVar, tyParamVar))),
+        Datalog.Body(Seq(tyComp, Datalog.Neq(tyVar, tyParamVar), isSubtype)),
+    )
     Datalog.Pattern(None, "cast$", params, bodies)
   }
 

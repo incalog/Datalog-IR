@@ -26,6 +26,7 @@ class A {
         val c2FromA: C2 = cast(aFromC2, C2)
         val bFromA: B = cast(aFromC2, B)
 
+        // if any of the cast fails we will never reach this part
         return true
     }
 }
