@@ -108,7 +108,6 @@ class GenerateDatalog(module: Module) {
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(module.usedClassNames.map(_.raw))
 
-    generatedPatterns += transSubtype()
     generatedPatterns += transInstanceOf()
 
     val clsHierarchy  = ClassHierarchy(classes)
@@ -156,17 +155,6 @@ class GenerateDatalog(module: Module) {
   val oOID: meta.Term = symbolOf(ObjectID)
   val tyOID: meta.Type = typeOf[ObjectID]
 
-  private def transSubtype(): Datalog.Pattern = gensym.scoped {
-    // Do not inline this. Inlining is problematic if the expression is used non-negated and negated at the same time
-    Datalog.Pattern(None, "subtype$", Seq(
-      Datalog.Param("child", Datalog.TScalaString), Datalog.Param("parent", Datalog.TScalaString)
-    ), Seq(
-      Datalog.Body(Seq(
-        Datalog.ExtensionalCall("subtype", Seq(Datalog.Var("child"), Datalog.Var("parent")))
-      ))
-    )).addHint(OptimizationHints.NoInline)
-  }
-
   private def transInstanceOf(): Datalog.Pattern = gensym.scoped {
     val params = Seq(
       Datalog.Param("this", GP_URI),
@@ -192,12 +180,14 @@ class GenerateDatalog(module: Module) {
     val outTrue =  Datalog.Eq(outVar, Datalog.True)
     val outFalse =  Datalog.Eq(outVar, Datalog.False)
 
-    def isSubtype(neg: Boolean) = Datalog.Call("subtype$", Seq(tyVar, tyParamVar), neg=neg).addHint(OptimizationHints.NoInline)
+    val isSubtype = Datalog.ExtensionalCall("subtype", Seq(tyVar, tyParamVar))
+    // TODO: If negation of ExtensionalCall is implemented this can be changed to !isSubtype
+    val notIsSubtype = Datalog.ExtensionalCall("not#subtype", Seq(tyVar, tyParamVar))
 
     val bodies = Seq(
       Datalog.Body(Seq(tyComp, Datalog.Eq(tyVar, tyParamVar), outTrue)),
-      Datalog.Body(Seq(tyComp, Datalog.Neq(tyVar, tyParamVar), isSubtype(false), outTrue)),
-      Datalog.Body(Seq(tyComp, Datalog.Neq(tyVar, tyParamVar), isSubtype(true), outFalse)),
+      Datalog.Body(Seq(tyComp, Datalog.Neq(tyVar, tyParamVar), isSubtype, outTrue)),
+      Datalog.Body(Seq(tyComp, Datalog.Neq(tyVar, tyParamVar), notIsSubtype, outFalse)),
     )
     Datalog.Pattern(None, "instanceOf$", params, bodies)
   }

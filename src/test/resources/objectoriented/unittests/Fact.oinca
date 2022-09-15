@@ -1,20 +1,18 @@
 module Fact
 
-class Fact {
-    def this() = {
-        return this
-    }
+class Factorial {
+    def this() = {}
 
-    def fact(n: Int): Int = {
+    def calc(n: Int): Int = {
       if (n == 1)
         return 1
       else
-        return n * this.fact(n - 1)
+        return n * this.calc(n - 1)
     }
 
     @main
     def main(n: Int): Int = {
-        val f: Fact = new Fact()
-        return f.fact(n)
+        val f: Factorial = new Factorial()
+        return f.calc(n)
     }
 }

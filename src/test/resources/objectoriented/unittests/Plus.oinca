@@ -20,11 +20,11 @@ class Nat extends A {
 
     @main
     def main(): Boolean = {
-        //val zero: Zero = new Zero()
+        val zero: Zero = new Zero()
         /*val first: Succ = zero.succ()
         //val second: Succ = zero.succ().succ()*/
         val nat: Nat = new Nat()
-        //val succ: Succ = new Succ(zero)
+        val succ: Succ = new Succ(zero)
         //val succ2: Succ = new Succ(succ)
         //val nat2: Nat = new Nat()
 
@@ -44,7 +44,8 @@ class Nat extends A {
         instanceOf(succ, Zero)
         instanceOf(succ, Succ)*/
 
-        return instanceOf(nat, Nat) && instanceOf(nat, A)
+
+        return instanceOf(nat, Succ) && instanceOf(nat, Nat)
         //return nat.add(succ)
     }
 }

@@ -33,9 +33,7 @@ object EliminateNonproductiveRelations extends Optimization {
     @inline
     def isProductive(pat: Pattern): Boolean =
       pat.bodies.exists(b => b.atoms.forall {
-        case Call(name, _, _, _) =>
-        println(pat.name, name, productivePats.contains(name), productivePats)
-          productivePats.contains(name)
+        case Call(name, _, _, _) => productivePats.contains(name)
         case _ => true
       })
 
@@ -46,7 +44,6 @@ object EliminateNonproductiveRelations extends Optimization {
 
     override def optimizeAtom(atom: Atom): Seq[Atom] = atom match {
       case Call(name, _, _, false) if !productivePats.contains(name) =>
-        println("Check: ", name, productivePats)
         throwBodyMustFail()
       case _ => Seq(atom)
     }

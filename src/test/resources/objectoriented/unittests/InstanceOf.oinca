@@ -1,0 +1,23 @@
+module InstanceOf
+
+class A {
+    def this() = {}
+
+    @main
+    def main(): Boolean = {
+        val a: A = new A()
+        val b: B = new B()
+        val c1: C1 = new C1()
+        val c2: C2 = new C2()
+
+        val instanceOfA: Boolean = instanceOf(a, A) && !instanceOf(a, B) && !instanceOf(a, C1) && !instanceOf(a, C2)
+        val instanceOfB: Boolean = instanceOf(b, A) && instanceOf(b, B) && !instanceOf(b, C1) && !instanceOf(b, C2)
+        val instanceOfC1: Boolean = instanceOf(c1, A) && instanceOf(c1, B) && instanceOf(c1, C1) && !instanceOf(c1, C2)
+        val instanceOfC2: Boolean = instanceOf(c2, A) && instanceOf(c2, B) && !instanceOf(c2, C1) && instanceOf(c2, C2)
+
+        return instanceOfA && instanceOfB && instanceOfC1 && instanceOfC2
+    }
+}
+class B extends A {}
+class C1 extends B {}
+class C2 extends B {}
