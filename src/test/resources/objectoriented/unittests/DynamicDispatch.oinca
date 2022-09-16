@@ -1,0 +1,34 @@
+module DynamicDispatch
+
+class C {
+    def this() = {}
+
+    def get(): String = {
+        return "C"
+    }
+}
+
+class A {
+    def this() = {}
+
+    def get(): String = {
+        return "A"
+    }
+
+    @main
+    def main(): String = {
+        val b: B = new B()
+        val a: A = cast(b, A)
+
+        // unrelated type c with same method signature
+        val c: C = new C()
+
+        return a.get() + b.get() + c.get()
+    }
+}
+
+class B extends A {
+    def get(): String = {
+        return "B"
+    }
+}

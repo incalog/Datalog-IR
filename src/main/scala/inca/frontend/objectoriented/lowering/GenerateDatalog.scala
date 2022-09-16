@@ -2,9 +2,7 @@ package inca.frontend.objectoriented.lowering
 
 import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog
-import inca.frontend.functional.core.DataDef
 import inca.frontend.objectoriented.core._
-import inca.frontend.objectoriented.util.ClassHierarchy
 import inca.runtime.data.ObjectID
 import inca.util.Scala.{symbolOf, typeOf}
 import inca.util.{Gensym, Scala, TupleOps}
@@ -46,11 +44,8 @@ class GenerateDatalog(module: Module) {
 
     generatedPatterns += transInstanceOf()
     generatedPatterns += transCast()
-
-    val clsHierarchy  = ClassHierarchy(classes)
-    clsHierarchy.foreach {
-      case (parentCls, cls, childCls) => generatedPatterns ++= transClass(parentCls, cls, childCls)
-    }
+    generatedPatterns ++= transDynamicDispatch(classes)
+    generatedPatterns ++= classes.flatMap(transClass)
 
     Datalog.Module(
       name.raw,
@@ -60,14 +55,60 @@ class GenerateDatalog(module: Module) {
     )
   }
 
-  private def transClass(parents: Seq[ClassDef], classDef: ClassDef, childs: Seq[ClassDef]): Seq[Datalog.Pattern] = {
-    val constPat = transDefaultConstructor(classDef)
-    val methodPats = classDef.methods.map(m => transMethod(classDef, m))
-    constPat +: methodPats
+  /**
+   * Guard that ensures that an object of the class with the id specified in the var `this` exists.
+   * @param classDef the class to check for
+   * @param neg      negate the guard, that means no object with the id exists
+   * @return         Datalog.Call to check the existence
+   */
+  private def guard(classDef: ClassDef, neg: Boolean = false): Datalog.Call = {
+    val thisVar = Datalog.Var("this")
+    val fieldVars = classDef.fields.map(_ => Datalog.Var(gensym.fresh("_")))
+    Datalog.Call(classDef.name.raw, thisVar +: fieldVars, neg = neg)
+      .addHint(MagicSetHints.IgnoreCall)
+      .addHint(MagicSetHints.FixedAdornment(false +: fieldVars.map(_ => true)))
   }
 
-  val oOID: meta.Term = symbolOf(ObjectID)
-  val tyOID: meta.Type = typeOf[ObjectID]
+  private def transDynamicDispatch(classes: Seq[ClassDef]): Seq[Datalog.Pattern] = {
+    /*
+     * Collect all methods implemented by a class. This function traverses all parent classes and stores
+     * a mapping func.name${hash} -> (classDef, methodDef) where classDef is the class itself or the parent class
+     * where the method is last overwritten.
+     */
+    def collectMethods(classDef: ClassDef): Map[String, (ClassDef, MethodDef)] = {
+      val methods = classDef.content.flatMap {
+        case m :MethodDef if !m.annos.contains(MainAnnotation) => Seq(m.name +"$" + m.paramSignature -> (classDef, m))
+        case _ => None
+      }.toMap
+
+      val parentMethods = classDef.parentClassRefs.flatMap { ref =>
+        val parentClassDef = ref.target.getOrElse(throw new RuntimeException(s"Unresolved class ${ref.name.raw}"))
+        collectMethods(parentClassDef)
+      }.toMap
+      parentMethods ++ methods
+    }
+
+    val params = classes.flatMap(collectMethods).map {
+      case (sig, (c, m)) =>
+        sig ->
+          (Datalog.Param("this", transType(c.typ))
+            +: m.params.map(p => Datalog.Param(p.name.raw, transType(p.typ)))
+            :+ Datalog.Param("out", transType(m.outType)))
+    }.toMap
+
+    val bodies = MultiDict.from(classes.flatMap { cls =>
+      collectMethods(cls).map {
+        case (sig, (c, m)) =>
+          val methodParams = params(sig).map(p => Datalog.Var(p.name))
+          val methodCall = Datalog.Call(c.name.raw + "$" + m.name, methodParams)
+          sig -> Datalog.Body(Seq(guard(cls), methodCall))
+      }.toSeq
+    })
+
+    params.map { case (sig, params) =>
+      Datalog.Pattern(None, s"dispatch_$sig", params, bodies.get(sig).toSeq)
+    }.toSeq
+  }
 
   private def transInstanceOf(): Datalog.Pattern = gensym.scoped {
     val params = Seq(
@@ -89,8 +130,8 @@ class GenerateDatalog(module: Module) {
 
     val outVar = Datalog.Var("out")
     val tyParamVar = Datalog.Var("t")
-    val outTrue =  Datalog.Eq(outVar, Datalog.True)
-    val outFalse =  Datalog.Eq(outVar, Datalog.False)
+    val outTrue = Datalog.Eq(outVar, Datalog.True)
+    val outFalse = Datalog.Eq(outVar, Datalog.False)
 
     val isSubtype = Datalog.ExtensionalCall("subtype", Seq(tyVar, tyParamVar))
     // TODO: If negation of ExtensionalCall is implemented this can be changed to !isSubtype
@@ -141,12 +182,21 @@ class GenerateDatalog(module: Module) {
     val isSubtype = Datalog.ExtensionalCall("subtype", Seq(tyVar, tyParamVar))
 
     val bodies = Seq(
-        Datalog.Body(Seq(tyComp, Datalog.Eq(tyVar, tyParamVar))),
-        Datalog.Body(Seq(tyComp, Datalog.Neq(tyVar, tyParamVar), isSubtype)),
+      Datalog.Body(Seq(tyComp, Datalog.Eq(tyVar, tyParamVar))),
+      Datalog.Body(Seq(tyComp, Datalog.Neq(tyVar, tyParamVar), isSubtype)),
     )
     Datalog.Pattern(None, "cast$", params, bodies)
       .addHint(OptimizationHints.NoInline, OptimizationHints.NoInlineInput)
   }
+
+  private def transClass(classDef: ClassDef): Seq[Datalog.Pattern] = {
+    val constPat = transDefaultConstructor(classDef)
+    val methodPats = classDef.methods.map(m => transMethod(classDef, m))
+    constPat +: methodPats
+  }
+
+  val oOID: meta.Term = symbolOf(ObjectID)
+  val tyOID: meta.Type = typeOf[ObjectID]
 
   private def transDefaultConstructor(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
     val thisVar = Datalog.Var("this")
@@ -294,13 +344,8 @@ class GenerateDatalog(module: Module) {
       val outVar = Datalog.Var(gensym.fresh("methodCall"))
       val argRes = args.map(e => transExpression(e))
 
-      // find the method target and dispatch the method if it is an overriden method
-      val (methodDef, targetClassDef) = methodCallExp.target.getOrElse(throw new IllegalArgumentException(s"Unresolved method $methodCallExp"))
-      val qualifiedName =
-      /*if (methodDef.isOverridden)
-        "dispatch$_" + targetClassDef.parentClassRefs.head.name + "$" + fun
-      else*/
-        targetClassDef.name.raw + "$" + fun
+      val methodDef = methodCallExp.target.getOrElse(throw new IllegalArgumentException(s"Unresolved method $methodCallExp"))
+      val qualifiedName = "dispatch_" + methodDef.name + "$" + methodDef.paramSignature
 
       val transRecv = for ((Seq(term), cons) <- transExpression(recv)) yield {
         if (argRes.isEmpty)

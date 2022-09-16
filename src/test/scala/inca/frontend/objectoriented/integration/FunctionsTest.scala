@@ -65,6 +65,14 @@ class FunctionsTest extends AnyFunSuite {
     assert(caught.obj.typ == "A")
   }
 
+  test("DynamicDispatch Example") {
+    performSingleOutputValueTest("DynamicDispatch", "A$main", Seq(), "BBC")
+  }
+
+  test("MethodInheritance Example") {
+    performSingleOutputValueTest("MethodInheritance", "A$main", Seq(), 3)
+  }
+
   test("Plus Example") {
     val code = readFile("objectoriented/unittests/Plus.oinca")
     val fun = ObjectExecutor.loadFunction(code, options)

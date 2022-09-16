@@ -1,0 +1,29 @@
+module MethodInheritance
+
+class A {
+    def this() = {}
+
+    def add(n: Int): Int = {
+        return this.get() + n
+    }
+
+    def get(): Int = {
+        return 1
+    }
+
+    @main
+    def main(): Int = {
+        val c: C = new C()
+
+        // should call: + A.add(B.get() +1) => 3
+        return c.add(1)
+    }
+}
+
+class B extends A {
+    def get(): Int = {
+        return 2
+    }
+}
+
+class C extends B {}

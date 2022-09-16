@@ -108,7 +108,7 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
   def isOverridden: Boolean = annos.contains(OverrideAnnotation)
   def isMain: Boolean = annos.contains(MainAnnotation)
 
-  def typeSignature: Int = (outType +: params.map(_.typ)).hashCode()
+  def paramSignature: Int = params.map(_.typ).hashCode()
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""

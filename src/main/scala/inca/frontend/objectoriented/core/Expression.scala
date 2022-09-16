@@ -60,7 +60,7 @@ case class SuperExpr(args: Seq[Expression]) extends Expression with Resolvable[C
     }.mkString("")
 }
 
-case class MethodCallExpr(recv: Expression, fun: Name, args: Seq[Expression]) extends Expression with Resolvable[(MethodDef, ClassDef)] {
+case class MethodCallExpr(recv: Expression, fun: Name, args: Seq[Expression]) extends Expression with Resolvable[MethodDef] {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
     s"$recv.$fun($argsS)"

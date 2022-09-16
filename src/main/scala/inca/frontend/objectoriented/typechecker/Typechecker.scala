@@ -252,8 +252,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       typecheck(recv) match {
         case TClass(ref) =>
           // We can call methods on instances of classes we might no have yet resolved
-          val classDefOption = lookupClassRef(ref)
-          lookupMethod(classDefOption, fun) match {
+          lookupMethod(lookupClassRef(ref), fun) match {
           case None => TAny
           case Some(methodDef) =>
             if (methodDef.params.size != args.size) {
@@ -263,7 +262,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
               val argTyp = typecheck(arg)
               assertSubtype(argTyp, param.typ, arg)
             }
-            resolveTarget(methodCallExpr)((methodDef, classDefOption.get))
+            resolveTarget(methodCallExpr)(methodDef)
             methodDef.outType
         }
         case typ =>

@@ -41,9 +41,18 @@ object AllocTransformation extends Transformation {
       pattern.filter { pat =>
         pat.bodies.exists { body =>
           body.atoms.exists {
-            case call@Call(name, _, _, _) if name == callName && !isReadonlyCall(call) => true
+            case call@Call(name, _, _, _) if name == callName => true
             case _ => false
           }
+        }
+      }
+    }
+
+    private def containsOnlyReadCalls(callName: Name, pattern: Pattern): Boolean = {
+      !pattern.bodies.exists { body =>
+        body.atoms.exists {
+          case call@Call(name, _, _, _) if name == callName && !isReadonlyCall(call) => true
+          case _ => false
         }
       }
     }
@@ -183,7 +192,14 @@ object AllocTransformation extends Transformation {
      */
     private def findAffectedPattern(pat: Pattern, remainingPattern: Set[Pattern]): Set[Pattern] = {
         val callSides = findCallSides(pat.name, remainingPattern)
-        callSides.union(callSides.flatMap(p => findAffectedPattern(p, remainingPattern.diff(callSides))))
+        callSides.union(callSides.flatMap { p =>
+          // TODO: In theory this should work, in practise this breaks the demand transformation for recursive functions
+          // reading a constructor does not required propagating alloc_in / alloc_out
+          /*if (containsOnlyReadCalls(pat.name, p))
+            None
+          else*/
+            findAffectedPattern(p, remainingPattern.diff(callSides))
+        })
     }
   }
 }
