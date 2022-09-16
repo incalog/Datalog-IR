@@ -2,6 +2,7 @@ package inca.frontend.objectoriented.lowering
 
 import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog
+import inca.frontend.functional.core.DataDef
 import inca.frontend.objectoriented.core._
 import inca.frontend.objectoriented.util.ClassHierarchy
 import inca.runtime.data.ObjectID
@@ -23,11 +24,11 @@ object GenerateDatalog {
     modules.map(transformModule)
 }
 
-class TypeCastException(msg: String) extends RuntimeException(msg)
+/*class TypeCastException(msg: String) extends RuntimeException(msg)
 
 object TypeCastException {
   def apply(msg: String): TypeCastException = new TypeCastException(msg)
-}
+}*/
 
 class GenerateDatalog(module: Module) {
 
@@ -60,17 +61,9 @@ class GenerateDatalog(module: Module) {
   }
 
   private def transClass(parents: Seq[ClassDef], classDef: ClassDef, childs: Seq[ClassDef]): Seq[Datalog.Pattern] = {
-    val thisParam = Datalog.Param("this", transType(classDef.typ))
-
     val constPat = transDefaultConstructor(classDef)
     val methodPats = classDef.methods.map(m => transMethod(classDef, m))
-
-    //  .addHint(MagicSetHints.NoInputRelation)
-
-    //val instanceOfPat = transInstanceOf(classDef)
-    //val enumeratePat = transEnumerate(classDef, childs)
-
-    constPat +: methodPats// :+ instanceOfPat :+ enumeratePat
+    constPat +: methodPats
   }
 
   val oOID: meta.Term = symbolOf(ObjectID)
@@ -112,34 +105,27 @@ class GenerateDatalog(module: Module) {
   }
 
   private def transCast(): Datalog.Pattern = gensym.scoped {
-    // TODO: Figure out how to throw an exception
     val params = Seq(
       Datalog.Param("this", GP_URI),
       Datalog.Param("t", Datalog.TScalaString)
     )
 
-    /*
     // This does not work, since the lambda is evaluated at the wrong time
-    val excepSymbol = symbolOf(TypeCastException)
-    val errorMsg = s"Can not cast to type: ${classDef.typ.ref.name.raw}"
+    /*val excepSymbol = symbolOf(TypeCastException)
+    val errorMsg = s"Can not cast to type: "
 
     val thisArg = scala.meta.Term.Name("obj")
     val thisParam = List(scala.meta.Term.Param(Nil, thisArg, Some(GP_URI.asScala), None))
 
-    val bodies = Seq(
-      Datalog.Body(Seq(guard(classDef))),
-      Datalog.Body(Seq(
-        guard(classDef, neg = true),
-        Computed(
-          Datalog.Var(gensym.fresh("_")),
-          Evaluation(
-            Seq(Datalog.Var("this") -> GP_URI),
-            Datalog.TAny,
-            Scala(q"""(..$thisParam) => throw $excepSymbol($errorMsg)""")
-          )
-        ).addHint(OptimizationHints.IsException)
-      ))
-    )*/
+    val tyCastException = Datalog.Computed(
+      Datalog.Var(gensym.fresh("_")),
+      Datalog.Evaluation(
+        Seq(Datalog.Var("this") -> GP_URI),
+        Datalog.TAny,
+        Scala(q"""(..$thisParam) => throw $excepSymbol($errorMsg)""")
+      )
+    ).addHint(OptimizationHints.IsException)*/
+
     val tyVar = Datalog.Var("ty")
     val tyCompArg = Term.Name("obj")
     val tyCompParam = Term.Param(Nil, tyCompArg, Some(GP_URI.asScala), None)
@@ -150,13 +136,16 @@ class GenerateDatalog(module: Module) {
         Scala(q"($tyCompParam) => $tyCompArg.typ")
       )
     )
+
     val tyParamVar = Datalog.Var("t")
     val isSubtype = Datalog.ExtensionalCall("subtype", Seq(tyVar, tyParamVar))
+
     val bodies = Seq(
         Datalog.Body(Seq(tyComp, Datalog.Eq(tyVar, tyParamVar))),
         Datalog.Body(Seq(tyComp, Datalog.Neq(tyVar, tyParamVar), isSubtype)),
     )
     Datalog.Pattern(None, "cast$", params, bodies)
+      .addHint(OptimizationHints.NoInline, OptimizationHints.NoInlineInput)
   }
 
   private def transDefaultConstructor(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
@@ -306,8 +295,7 @@ class GenerateDatalog(module: Module) {
       val argRes = args.map(e => transExpression(e))
 
       // find the method target and dispatch the method if it is an overriden method
-      val methodDef = methodCallExp.target.getOrElse(throw new IllegalArgumentException(s"Unresolved method $methodCallExp"))
-      val targetClassDef = methodDef.classDef.getOrElse(throw new IllegalArgumentException(s"Unresolved classDef for method $methodDef"))
+      val (methodDef, targetClassDef) = methodCallExp.target.getOrElse(throw new IllegalArgumentException(s"Unresolved method $methodCallExp"))
       val qualifiedName =
       /*if (methodDef.isOverridden)
         "dispatch$_" + targetClassDef.parentClassRefs.head.name + "$" + fun

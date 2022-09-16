@@ -30,7 +30,7 @@ object FoldConstantAtoms extends Optimization {
 
       case Compare(_, v: Var, _) if varCount.get(v.name) == 1 => Seq()
       case Compare(_, _, v: Var) if varCount.get(v.name) == 1 => Seq()
-      case c@Computed(v: Var, _) if varCount.get(v.name) == 1 => Seq() // && !c.hasHint(OptimizationHints.IsExceptionKey) => Seq()
+      case c@Computed(v: Var, _) if varCount.get(v.name) == 1 => Seq() //&& !c.hasHint(OptimizationHints.IsExceptionKey) => Seq()
       case Path(v: Var, _, _, _, _) if varCount.get(v.name) == 1 => Seq()
       case Path(_, _, _, v: Var, _) if varCount.get(v.name) == 1 => Seq()
 

@@ -1,0 +1,13 @@
+module TypeCastFail
+
+class B {}
+
+class A {
+    def this() = {}
+
+    @main
+    def main(): Unit = {
+        val a: A = new A()
+        cast(a, B)
+    }
+}

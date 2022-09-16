@@ -1,0 +1,23 @@
+module FieldAccess
+
+class B {
+    val num: Int
+
+    def this(num: Int) = {
+        this.num = num
+    }
+}
+
+class A {
+    val b: B
+
+    def this(b: B) = {
+        this.b = b
+    }
+
+    @main
+    def main(): Int = {
+        val a: A = new A(new B(3))
+        return a.b.num
+    }
+}

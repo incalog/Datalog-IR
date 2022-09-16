@@ -34,11 +34,14 @@ object AllocTransformation extends Transformation {
       hints
     }
 
+    private def isReadonlyCall(call: Call): Boolean =
+      call.hasHint(MagicSetHints.IgnoreCallKey)
+
     private def findCallSides(callName: Name, pattern: Set[Pattern]): Set[Pattern] = {
       pattern.filter { pat =>
         pat.bodies.exists { body =>
           body.atoms.exists {
-            case Call(name, _, _, _) if name == callName => true
+            case call@Call(name, _, _, _) if name == callName && !isReadonlyCall(call) => true
             case _ => false
           }
         }
@@ -94,12 +97,14 @@ object AllocTransformation extends Transformation {
           Body(allocInit +: body.atoms.map {
             case call@Call(name, args, trans, neg) if affectedCallNames.contains(name) =>
               val hint = hintWithAdjustedFixedAdornment(call, allocIn = true, allocOut = false)
-              if (call.hasHint(MagicSetHints.IgnoreCallKey)) {
-                Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg).withHints(hint)
+              if (isReadonlyCall(call)) {
+                Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg)
+                  .withHints(hint)
               } else {
                 val allocInVar = allocVar
                 allocVar = Var(gensym.fresh("alloc"))
-                Call(name, args :+ allocInVar :+ allocVar, trans, neg).withHints(hint)
+                Call(name, args :+ allocInVar :+ allocVar, trans, neg)
+                  .withHints(hint)
               }
             case a => a
           })
@@ -128,12 +133,14 @@ object AllocTransformation extends Transformation {
           Body(body.atoms.map {
             case call@Call(name, args, trans, neg) if affectedCallNames.contains(name) =>
               val hint = hintWithAdjustedFixedAdornment(call, allocIn = true, allocOut = false)
-              if (call.hasHint(MagicSetHints.IgnoreCallKey)) {
-                Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg).withHints(hint)
+              if (isReadonlyCall(call)) {
+                Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg)
+                  .withHints(hint)
               } else {
                 val allocInVar = allocOutVar
                 allocOutVar = Var(gensym.fresh("alloc_out"))
-                Call(name, args :+ allocInVar :+ allocOutVar, trans, neg).withHints(hint)
+                Call(name, args :+ allocInVar :+ allocOutVar, trans, neg)
+                  .withHints(hint)
               }
             case a => a
           } :+ Eq(Var(allocOutParam.name), allocOutVar))

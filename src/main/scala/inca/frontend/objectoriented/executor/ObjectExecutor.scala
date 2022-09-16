@@ -1,9 +1,10 @@
 package inca.frontend.objectoriented.executor
 
-import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
+import inca.backend.transform.magic.demand.DemandTransformation.{demandPatternExtensionalPrefix, demandPatternPrefix}
 import inca.compiler.Compiler
 import inca.frontend.objectoriented.compiler.{CompiledObjectModule, ObjectOptions}
 import inca.runtime.context.{DataModel, QueryScope}
+import inca.runtime.data.ObjectID
 import inca.runtime.db.{DBValue, Database, DatabaseInspector}
 import inca.runtime.{EnginePool, Query}
 import inca.util.Scala.ScalaCompiler
@@ -16,6 +17,8 @@ import truediff.Diffable
 import scala.jdk.CollectionConverters._
 
 object ObjectExecutor {
+  case class TypeCastException(obj: ObjectID, typ: String) extends RuntimeException(s"Could not cast $obj to type $typ!")
+
   case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledObjectModule) {
     lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
 
@@ -67,9 +70,32 @@ object ObjectExecutor {
       feed.processEditScript(es)
       feed.insert(demandPatternExtensionalPrefix + main, tuple)
       val results = output(main, tuple)
+      throwTypeCastExceptionIfRequired()
       if (deleteInput)
         feed.delete(demandPatternExtensionalPrefix + main, tuple)
       results
+    }
+
+    def throwTypeCastExceptionIfRequired(): Unit = {
+      // if no cast is used the relation is eliminated
+      val castRelation = "cast$"
+      val hasPerformedCast = compiled.psystemModule.patterns.keys.exists(_ == castRelation)
+      if (!hasPerformedCast)
+        return
+
+      val casts = output(castRelation, Tuples.flatTupleOf())
+      val castInputs = output(demandPatternPrefix + castRelation, Tuples.flatTupleOf())
+
+      // find a cast$ match for each input$cast
+      val castObjects = casts.res.toSet
+      val castInputObjects = castInputs.res.toSet
+      val diff = castInputObjects.diff(castObjects)
+      if (diff.nonEmpty) {
+        val firstFailure = diff.head
+        val failureObj = firstFailure(0).asInstanceOf[ObjectID]
+        val failureType = firstFailure(1).asInstanceOf[String]
+        throw TypeCastException(failureObj, failureType)
+      }
     }
 
     def measure(main: String, args: Seq[meta.Term]): (Long, Long, Long) = {
@@ -142,7 +168,7 @@ object ObjectExecutor {
     dataModel.nodeSupertypes.foreach { case (child, parent) =>
       feed.insert("subtype", Tuples.flatTupleOf(child.name, parent.name))
     }
-    // FIXME: This is only required as long as we don't have negation for ExtCalls
+    // FIXME: This is only required as long as we don't have negation for ExtensionalCall
     val allTypes = dataModel.types
     allTypes.foreach { ty =>
       val tySupertypes = dataModel.nodeSupertypes.get(ty)

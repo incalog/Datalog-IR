@@ -1,23 +1,23 @@
 package inca.frontend.objectoriented.integration
 
-import inca.backend.analyze.DependencyGraph
-import inca.backend.ir.util.printer.DatalogPrinter
 import inca.frontend.objectoriented.executor.ObjectExecutor
 import inca.util.FileUtil.readFile
 import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.objectoriented.compiler.ObjectOptions
+import inca.frontend.objectoriented.executor.ObjectExecutor.TypeCastException
 import org.scalatest.Assertion
 
 import scala.meta.{Term, XtensionQuasiquoteTerm}
 
 class FunctionsTest extends AnyFunSuite {
 
-  val options: ObjectOptions = ObjectOptions(Seq())
+  val options: ObjectOptions = ObjectOptions()
 
   private def performSingleOutputValueTest[O](file: String, main: String, input: Seq[Term], expectedResult: O): Assertion = {
     val code = readFile(s"objectoriented/unittests/$file.oinca")
     val fun = ObjectExecutor.loadFunction(code, options)
     val result = fun.execute(main, input)
+    fun.printAllMatches()
     assertResult(expectedResult)(result.res.head.head)
   }
 
@@ -41,12 +41,28 @@ class FunctionsTest extends AnyFunSuite {
     performSingleOutputValueTest("Fib", "Fibonacci$main", Seq(q"11"), 89)
   }
 
+  test("FieldAccess Example") {
+    performSingleOutputValueTest("FieldAccess", "Fraction$main", Seq(q"16", q"8"), 2)
+  }
+
+  test("FieldAccessNested Example") {
+    performSingleOutputValueTest("FieldAccessNested", "A$main", Seq(), 3)
+  }
+
   test("InstanceOf Example") {
     performSingleOutputValueTest("InstanceOf", "A$main", Seq(), true)
   }
 
   test("TypeCast Example") {
     performSingleOutputValueTest("TypeCast", "A$main", Seq(), true)
+  }
+
+  test("TypeCastFail Example") {
+    val caught = intercept[TypeCastException] {
+      performSingleOutputValueTest("TypeCastFail", "A$main", Seq(), Seq())
+    }
+    assert(caught.typ == "B")
+    assert(caught.obj.typ == "A")
   }
 
   test("Plus Example") {

@@ -1,7 +1,7 @@
 package inca.backend.transform.magic.demand
 
 import inca.backend.hints.MagicSetHints.{InputCall, InputCallKey}
-import inca.backend.hints.{Hints, MagicSetHints}
+import inca.backend.hints.{Hints, MagicSetHints, OptimizationHints}
 import inca.backend.ir.Datalog._
 import inca.backend.ir.util.CollectVars
 import inca.backend.transform.{FilterBodyTransformer, Transformation, Transformer}
@@ -88,10 +88,10 @@ object DemandTransformation extends Transformation {
       Pattern(pat.vis, pat.name, pat.params, bodies).withHints(pat)
     }
 
-    private def deriveInputCall(pat: Pattern, demandPat: Seq[Boolean]): Option[Call] = gensym.scoped {
+    private def deriveInputCall(pat: Pattern, demandPat: Seq[Boolean]): Option[Call] = {
       val boundParams = deriveBoundParams(pat, demandPat)
       if (boundParams.isEmpty) {
-        Some(Call(inputPatternName(pat.name), List(Var(gensym.fresh("_")))).addHint(InputCall(pat.name)))
+        Some(Call(inputPatternName(pat.name), List(Var("_$"))).addHint(InputCall(pat.name)))
       } else {
         val args = boundParams.map(p => Var(p.name))
         Some(Call(inputPatternName(pat.name), args).addHint(InputCall(pat.name)))
@@ -155,6 +155,9 @@ object DemandTransformation extends Transformation {
       }
 
       val inputPat = Pattern(None, inputPatternName(pat.name), boundParams ++ dummyParam, inputPatterns ++ extensionalBody).addHint(MagicSetHints.InputRelation)
+      if (pat.hasHint(OptimizationHints.NoInlineInputKey)) {
+        inputPat.addHint(OptimizationHints.NoInline)
+      }
       if (inputPat.bodies.nonEmpty)
         Seq(inputPat)
       else
