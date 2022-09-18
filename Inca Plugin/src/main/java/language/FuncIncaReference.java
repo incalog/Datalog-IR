@@ -1,9 +1,12 @@
 package language;
 
+import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.*;
 
 public class FuncIncaReference extends PsiReferenceBase<PsiNamedElement> implements PsiPolyVariantReference {
 
@@ -18,6 +21,12 @@ public class FuncIncaReference extends PsiReferenceBase<PsiNamedElement> impleme
     @Override
     // for example for overloading a method
     public ResolveResult @NotNull [] multiResolve(boolean incompleteCode) {
+        Project project = myElement.getProject();
+        final List<PsiNamedElement> namedElements = FuncIncaUtil.findDefinitionNode(project, name, myElement);
+        List<ResolveResult> res = new ArrayList<>();
+        for(PsiNamedElement element: namedElements){
+            res.add(new PsiElementResolveResult(element));
+        }
         return new ResolveResult[0];
     }
 

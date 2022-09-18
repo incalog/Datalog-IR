@@ -1,0 +1,3 @@
+module paramtypes
+
+@main def foo[A](x: A): A = x

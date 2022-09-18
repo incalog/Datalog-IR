@@ -1,0 +1,5 @@
+module boo
+
+data boo = True() | False()
+
+@main def foo(): boo = True()

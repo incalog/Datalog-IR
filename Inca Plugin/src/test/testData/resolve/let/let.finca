@@ -1,0 +1,3 @@
+module letBinding
+
+@main def foo(): Int = let x = 1 in x + 1

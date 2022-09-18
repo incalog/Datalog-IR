@@ -1,0 +1,5 @@
+module method1
+
+def bar(): Bool = false
+
+@main def foo: Bool = true && bar()
