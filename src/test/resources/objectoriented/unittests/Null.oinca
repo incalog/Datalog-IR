@@ -1,0 +1,21 @@
+module NullTest
+
+class A {
+    def this() = {}
+}
+
+class B {
+    def this() = {}
+}
+
+class NullTest {
+    @main
+    def main(): Boolean = {
+        val a: A = null
+
+        // Null is subtype of everything, so this should be true, since a is null
+        val isNullInstance: Boolean = instanceOf(a, B)
+
+        return isNullInstance
+    }
+}

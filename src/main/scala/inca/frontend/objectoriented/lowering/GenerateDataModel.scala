@@ -16,7 +16,7 @@ class GenerateDataModel(module: Module) {
   }*/
 
   def transModule(): DataModel = {
-    val types = module.classes.map(c => SortType(c.name.raw)).toSet
+    val types = module.classes.map(c => SortType(c.name.raw)).toSet + SortType("Null")
 
     /*val classMap = module.classes.map(c => c.name -> c).toMap
 
@@ -28,7 +28,7 @@ class GenerateDataModel(module: Module) {
     val classHierachies = module.classes.flatMap { c =>
       c.parentClassRefs.map { p =>
         SortType(c.name.raw) -> SortType(p.name.raw)
-      }
+      } :+ SortType("Null") -> SortType(c.name.raw)
     }
 
     // (cls, idx) => field.typ if field.typ.isInstanceOf[TClass]

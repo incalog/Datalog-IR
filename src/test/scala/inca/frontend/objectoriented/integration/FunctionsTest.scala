@@ -49,6 +49,10 @@ class FunctionsTest extends AnyFunSuite {
     performSingleOutputValueTest("FieldAccessNested", "A$main", Seq(), 3)
   }
 
+  test("Null") {
+    performSingleOutputValueTest("Null", "NullTest$main", Seq(), true)
+  }
+
   test("InstanceOf Example") {
     performSingleOutputValueTest("InstanceOf", "A$main", Seq(), true)
   }

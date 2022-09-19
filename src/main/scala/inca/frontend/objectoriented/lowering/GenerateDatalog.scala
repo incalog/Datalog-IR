@@ -3,7 +3,7 @@ package inca.frontend.objectoriented.lowering
 import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
-import inca.frontend.objectoriented.core._
+import inca.frontend.objectoriented.core.{TNull, _}
 import inca.runtime.data.ObjectID
 import inca.util.Scala.{symbolOf, typeOf}
 import inca.util.{Gensym, Scala, TupleOps}
@@ -43,6 +43,7 @@ class GenerateDatalog(module: Module) {
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(module.usedClassNames.map(_.raw))
 
+    generatedPatterns += transNull()
     generatedPatterns += transInstanceOf()
     generatedPatterns += transCast()
     generatedPatterns ++= transDynamicDispatch(classes)
@@ -109,6 +110,17 @@ class GenerateDatalog(module: Module) {
     params.map { case (sig, params) =>
       Datalog.Pattern(None, s"dispatch_$sig", params, bodies.get(sig).toSeq)
     }.toSeq
+  }
+
+  private def transNull(): Datalog.Pattern = gensym.scoped {
+    val outParam = Datalog.Param("this", transType(TNull))
+    val thisVar = Datalog.Var("this")
+    val constrScalaFun = Term.Function(Nil, q"""$oOID("Null", -1)""")
+    val tmpCons = Datalog.Computed(thisVar, Datalog.Evaluation(Seq(), transType(TNull), Scala(constrScalaFun)))
+
+    Datalog.Pattern(None, "Null", Seq(outParam), Seq(
+      Datalog.Body(Seq(tmpCons))
+    ))
   }
 
   private def transInstanceOf(): Datalog.Pattern = gensym.scoped {
@@ -352,10 +364,13 @@ class GenerateDatalog(module: Module) {
         val instanceOfCall = Datalog.Call("instanceOf$", Seq(eTerm, Datalog.StringConstant(ofTyp.toString), outVar))
         (Seq(outVar), eCons :+ instanceOfCall)
       }
+    case NullExpr() =>
+      val nullVar = Datalog.Var(gensym.fresh("null"))
+      val nullConstrCall = Datalog.Call("Null", Seq(nullVar))
+      Seq((Seq(nullVar), Seq(nullConstrCall)))
 
     /*
     case SuperExpr(args) => ???
-    case NullExpr() => ???
     case TupleExpr(exps) => ???*/
     case BaseLitExpr(code) =>
       import scala.meta._
@@ -523,6 +538,7 @@ class GenerateDatalog(module: Module) {
   //@tailrec
   private def transType(typ: Type): Datalog.Type = typ match {
     case TAny => Datalog.TAny
+    case TNull => GP_URI
     case TClass(_) => GP_URI
     case TScala(ty) => Datalog.TScala(ty)
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
