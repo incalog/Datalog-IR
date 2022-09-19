@@ -1,48 +1,39 @@
 module Plus
 
-class A {
-    def add(n: Nat): Nat = {
-        return n
-    }
-}
-
-class Nat extends A {
+class Nat {
     def this() = { }
 
     def succ(): Succ = {
         return new Succ(this)
     }
 
-    @override
     def add(n: Nat): Nat = {
         return n
     }
 
+    def intValue(): Int = {
+        return -1
+    }
+
     @main
-    def main(): Boolean = {
+    def main(): Int = {
         val zero: Zero = new Zero()
-        /*val first: Succ = zero.succ()
-        //val second: Succ = zero.succ().succ()*/
-        val nat: Nat = new Nat()
-        val succ: Succ = new Succ(zero)
-        //val succ2: Succ = new Succ(succ)
-        //val nat2: Nat = new Nat()
+        val first: Nat = zero.succ().succ()
+        val second: Nat = zero.succ().succ().succ()
+        val result: Nat = first.add(second)
 
-        //return nat2
+        /*val succ1: Nat = cast(result, Succ).pred
+        val succ2: Nat = cast(succ1, Succ).pred
+        return cast(succ2, Succ).pred*/
 
-        //cast(nat, A)
-        cast(nat, Nat)
-
-
-        return instanceOf(nat, Succ) && instanceOf(nat, Nat)
-        //return nat.add(succ)
+        return result.intValue()
     }
 }
 
 class Zero extends Nat {
     @override
-    def add(n: Nat): Nat = {
-        return n
+    def intValue(): Int = {
+        return 0
     }
 }
 
@@ -54,9 +45,12 @@ class Succ extends Nat {
     }
 
     @override
+    def intValue(): Int = {
+        return 1 + this.pred.intValue()
+    }
+
+    @override
     def add(n: Nat): Nat = {
-        // TODO: Not working since this.pred is always Nat. Therefore the dispatch always occurs to nat
-        // TODO: Solution: Add a dynamic dispatch to datalog
         return new Succ(this.pred.add(n))
     }
 }

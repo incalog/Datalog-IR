@@ -73,11 +73,11 @@ class FunctionsTest extends AnyFunSuite {
     performSingleOutputValueTest("MethodInheritance", "A$main", Seq(), 3)
   }
 
+  test("BinaryTree Sum") {
+    performSingleOutputValueTest("BinaryTree3", "DefinedNode$main", Seq(), 20)
+  }
+
   test("Plus Example") {
-    val code = readFile("objectoriented/unittests/Plus.oinca")
-    val fun = ObjectExecutor.loadFunction(code, options)
-    val result = fun.execute("Nat$main", Seq())
-    fun.printAllMatches()
-    println(result)
+    performSingleOutputValueTest("Plus", "Nat$main", Seq(), 5)
   }
 }

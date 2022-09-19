@@ -123,7 +123,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       bindVar(name, varDeclareStmt, typ, immutable)
       expression.foreach { exp =>
         val expTyp = typecheck(exp)
-        assertSubtype(expTyp, typ, exp)
+        assertSubtype(expTyp, typ, varDeclareStmt)
       }
     case varAssignStm@VarAssignStmt(targetName, expression) =>
       val expTyp = typecheck(expression)
@@ -228,7 +228,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           case None => TAny
         }
         case typ =>
-          error(s"Can not lookup field $targetName for expression of type $typ", expression)
+          error(s"Can not lookup field $targetName for expression of type $typ", recv)
           TAny
       }
     case construtorExpr@ConstructorExpr(className, args) =>
