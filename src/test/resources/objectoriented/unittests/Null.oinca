@@ -11,11 +11,16 @@ class B {
 class NullTest {
     @main
     def main(): Boolean = {
+        // Create a null object
         val a: A = null
+        val b: B = new B()
 
-        // Null is subtype of everything, so this should be true, since a is null
+        // Todo: We might actually catch this case and prevent instanceOf for null objects
+        // Null is subtype of everything, so this should be true, since a is null, although the static type is A
         val isNullInstance: Boolean = instanceOf(a, B)
+        val isInstanceOfNull: Boolean = instanceOf(a, Null)
+        val isNotInstanceOfNull: Boolean = !instanceOf(b, Null)
 
-        return isNullInstance
+        return isNullInstance && isNotInstanceOfNull && isInstanceOfNull
     }
 }
