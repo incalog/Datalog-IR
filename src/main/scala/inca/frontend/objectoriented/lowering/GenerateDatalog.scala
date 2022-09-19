@@ -2,6 +2,7 @@ package inca.frontend.objectoriented.lowering
 
 import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog
+import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
 import inca.frontend.objectoriented.core._
 import inca.runtime.data.ObjectID
 import inca.util.Scala.{symbolOf, typeOf}
@@ -138,9 +139,8 @@ class GenerateDatalog(module: Module) {
     val notIsSubtype = Datalog.ExtensionalCall("not#subtype", Seq(tyVar, tyParamVar))
 
     val bodies = Seq(
-      Datalog.Body(Seq(tyComp, Datalog.Eq(tyVar, tyParamVar), outTrue)),
-      Datalog.Body(Seq(tyComp, Datalog.Neq(tyVar, tyParamVar), isSubtype, outTrue)),
-      Datalog.Body(Seq(tyComp, Datalog.Neq(tyVar, tyParamVar), notIsSubtype, outFalse)),
+      Datalog.Body(Seq(tyComp, isSubtype, outTrue)),
+      Datalog.Body(Seq(tyComp, notIsSubtype, outFalse)),
     )
     Datalog.Pattern(None, "instanceOf$", params, bodies)
   }
@@ -150,22 +150,6 @@ class GenerateDatalog(module: Module) {
       Datalog.Param("this", GP_URI),
       Datalog.Param("t", Datalog.TScalaString)
     )
-
-    // This does not work, since the lambda is evaluated at the wrong time
-    /*val excepSymbol = symbolOf(TypeCastException)
-    val errorMsg = s"Can not cast to type: "
-
-    val thisArg = scala.meta.Term.Name("obj")
-    val thisParam = List(scala.meta.Term.Param(Nil, thisArg, Some(GP_URI.asScala), None))
-
-    val tyCastException = Datalog.Computed(
-      Datalog.Var(gensym.fresh("_")),
-      Datalog.Evaluation(
-        Seq(Datalog.Var("this") -> GP_URI),
-        Datalog.TAny,
-        Scala(q"""(..$thisParam) => throw $excepSymbol($errorMsg)""")
-      )
-    ).addHint(OptimizationHints.IsException)*/
 
     val tyVar = Datalog.Var("ty")
     val tyCompArg = Term.Name("obj")
@@ -182,8 +166,7 @@ class GenerateDatalog(module: Module) {
     val isSubtype = Datalog.ExtensionalCall("subtype", Seq(tyVar, tyParamVar))
 
     val bodies = Seq(
-      Datalog.Body(Seq(tyComp, Datalog.Eq(tyVar, tyParamVar))),
-      Datalog.Body(Seq(tyComp, Datalog.Neq(tyVar, tyParamVar), isSubtype)),
+      Datalog.Body(Seq(tyComp, isSubtype)),
     )
     Datalog.Pattern(None, "cast$", params, bodies)
       .addHint(OptimizationHints.NoInline, OptimizationHints.NoInlineInput)

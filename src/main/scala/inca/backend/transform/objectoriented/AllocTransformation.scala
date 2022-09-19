@@ -194,6 +194,7 @@ object AllocTransformation extends Transformation {
         val callSides = findCallSides(pat.name, remainingPattern)
         callSides.union(callSides.flatMap { p =>
           // TODO: In theory this should work, in practise this breaks the demand transformation for recursive functions
+          //  There must be some logical error in this if statement. The idea to filter these patterns out is correct-
           // reading a constructor does not required propagating alloc_in / alloc_out
           /*if (containsOnlyReadCalls(pat.name, p))
             None

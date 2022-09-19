@@ -8,8 +8,6 @@ object OptimizationHints {
 
   val NoInlineInputKey = "OPTIMIZE_NO_INLINE_INPUT"
 
-  //val IsExceptionKey = "OPTIMIZE_IS_EXCEPTION"
-
   /*
    * do not inline a pattern
    */
@@ -23,11 +21,4 @@ object OptimizationHints {
   case object NoInlineInput extends Hint {
     override def key: Key = NoInlineInputKey
   }
-
-  /*
-   * mark an atom or pattern as used
-   */
-  /*case object IsException extends Hint {
-    override def key: Key = IsExceptionKey
-  }*/
 }
