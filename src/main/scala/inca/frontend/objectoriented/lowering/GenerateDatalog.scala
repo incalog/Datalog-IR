@@ -4,6 +4,7 @@ import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
 import inca.frontend.objectoriented.core.{TNull, _}
+import inca.frontend.objectoriented.lowering.GenerateDatalog._
 import inca.runtime.data.ObjectID
 import inca.util.Scala.{symbolOf, typeOf}
 import inca.util.{Gensym, Scala, TupleOps}
@@ -16,6 +17,16 @@ import scala.meta.Term
 import scala.meta.quasiquotes._
 
 object GenerateDatalog {
+  private val sep: String = "$"
+  private val internalPrefix: String = "_" + sep
+
+  val castPatName: String       = internalPrefix + "cast"
+  val equalsPatName: String     = internalPrefix + "equals"
+  val instanceOfPatName: String = internalPrefix + "instanceOf"
+
+  def dispatchPatName(methodNameWithSignature: String): String = s"${internalPrefix}dispatch_${methodNameWithSignature}"
+  def constructorPatName(className: String): String = className
+
   def transformModule(module: Module): Datalog.Module =
     new GenerateDatalog(module).transModule()
 
@@ -34,9 +45,6 @@ class GenerateDatalog(module: Module) {
   private val gensym: Gensym = new Gensym(Iterable.empty)
 
   private val generatedPatterns = ListBuffer[Datalog.Pattern]()
-
-
-  def constructorName(className: Name): String = className.raw
 
   def transModule(): Datalog.Module = {
     val Module(name, imports, classes) = module
@@ -80,7 +88,7 @@ class GenerateDatalog(module: Module) {
      */
     def collectMethods(classDef: ClassDef): Map[String, (ClassDef, MethodDef)] = {
       val methods = classDef.content.flatMap {
-        case m :MethodDef if !m.annos.contains(MainAnnotation) => Seq(m.name +"$" + m.paramSignature -> (classDef, m))
+        case m :MethodDef if !m.annos.contains(MainAnnotation) => Seq(m.name + sep + m.paramSignature -> (classDef, m))
         case _ => None
       }.toMap
 
@@ -103,13 +111,13 @@ class GenerateDatalog(module: Module) {
       collectMethods(cls).map {
         case (sig, (c, m)) =>
           val methodParams = params(sig).map(p => Datalog.Var(p.name))
-          val methodCall = Datalog.Call(c.name.raw + "$" + m.name, methodParams)
+          val methodCall = Datalog.Call(c.name.raw + sep + m.name, methodParams)
           sig -> Datalog.Body(Seq(guard(cls), methodCall))
       }.toSeq
     })
 
     params.map { case (sig, params) =>
-      Datalog.Pattern(None, s"dispatch_$sig", params, bodies.get(sig).toSeq)
+      Datalog.Pattern(None, dispatchPatName(sig), params, bodies.get(sig).toSeq)
     }.toSeq
   }
 
@@ -184,7 +192,7 @@ class GenerateDatalog(module: Module) {
       ))
     )
 
-    Datalog.Pattern(None, "equals$", params, bodies)
+    Datalog.Pattern(None, equalsPatName, params, bodies)
   }
 
   private def transInstanceOf(): Datalog.Pattern = gensym.scoped {
@@ -210,7 +218,7 @@ class GenerateDatalog(module: Module) {
       Datalog.Body(Seq(tyComp, isSubtype, outTrue)),
       Datalog.Body(Seq(tyComp, notIsSubtype, outFalse)),
     )
-    Datalog.Pattern(None, "instanceOf$", params, bodies)
+    Datalog.Pattern(None, instanceOfPatName, params, bodies)
   }
 
   private def transCast(): Datalog.Pattern = gensym.scoped {
@@ -228,7 +236,7 @@ class GenerateDatalog(module: Module) {
     val bodies = Seq(
       Datalog.Body(Seq(tyComp, isSubtype)),
     )
-    Datalog.Pattern(None, "cast$", params, bodies)
+    Datalog.Pattern(None, castPatName, params, bodies)
       .addHint(OptimizationHints.NoInline, OptimizationHints.NoInlineInput)
   }
 
@@ -249,7 +257,7 @@ class GenerateDatalog(module: Module) {
     val thisParam = Datalog.Param("this", transType(classDef.typ))
     val params = classDef.fields.map(f => Datalog.Param(f.name.raw, transType(f.typ)))
 
-    Datalog.Pattern(transVis(classDef.vis), constructorName(classDef.name), thisParam +: params, Seq(
+    Datalog.Pattern(transVis(classDef.vis), constructorPatName(classDef.name.raw), thisParam +: params, Seq(
       Datalog.Body(Seq(tmpCons))
     )).addHint(OptimizationHints.NoInline)
       .addHint(ObjectHints.Allocation)
@@ -258,7 +266,7 @@ class GenerateDatalog(module: Module) {
   private def transMethod(classDef: ClassDef, methodDef: MethodDef): Datalog.Pattern = gensym.scoped {
     gensym.register(methodDef.vars.keys.map(_.raw) + "this")
 
-    val qualifiedName = classDef.name + "$" + methodDef.name.raw
+    val qualifiedName = classDef.name + sep + methodDef.name.raw
 
     val thisParam = Datalog.Param("this", transType(classDef.typ))
     val argParams = methodDef.params.map { case Param(name, typ) =>
@@ -372,7 +380,7 @@ class GenerateDatalog(module: Module) {
     case ConstructorExpr(classRef, args) =>
       val constructedVar = Datalog.Var(gensym.fresh("new"))
       val argRes = args.map(e => transExpression(e))
-      val constName = constructorName(classRef.name)
+      val constName = constructorPatName(classRef.name.raw)
 
       // create single call constraint when no arguments passed
       if (argRes.isEmpty)
@@ -388,7 +396,7 @@ class GenerateDatalog(module: Module) {
       val argRes = args.map(e => transExpression(e))
 
       val methodDef = methodCallExp.target.getOrElse(throw new IllegalArgumentException(s"Unresolved method $methodCallExp"))
-      val qualifiedName = "dispatch_" + methodDef.name + "$" + methodDef.paramSignature
+      val qualifiedName = dispatchPatName(methodDef.name + sep + methodDef.paramSignature)
 
       val transRecv = for ((Seq(term), cons) <- transExpression(recv)) yield {
         if (argRes.isEmpty)
@@ -402,14 +410,14 @@ class GenerateDatalog(module: Module) {
 
     case TypeCastExpr(recv, toTyp) =>
       for ((Seq(eTerm), eCons) <- transExpression(recv)) yield {
-        val castCall = Datalog.Call("cast$", Seq(eTerm, Datalog.StringConstant(toTyp.toString)))
+        val castCall = Datalog.Call(castPatName, Seq(eTerm, Datalog.StringConstant(toTyp.toString)))
         (Seq(eTerm), eCons :+ castCall)
       }
 
     case InstanceOfExpr(recv, ofTyp) =>
       for ((Seq(eTerm), eCons) <- transExpression(recv)) yield {
         val outVar = Datalog.Var(gensym.fresh("isInstance"))
-        val instanceOfCall = Datalog.Call("instanceOf$", Seq(eTerm, Datalog.StringConstant(ofTyp.toString), outVar))
+        val instanceOfCall = Datalog.Call(instanceOfPatName, Seq(eTerm, Datalog.StringConstant(ofTyp.toString), outVar))
         (Seq(outVar), eCons :+ instanceOfCall)
       }
 
@@ -418,7 +426,7 @@ class GenerateDatalog(module: Module) {
       for (tups <- TupleOps.cartesianProduct(transExps)) yield {
         val (eTerms, eCons) = tups.unzip
         val outVar = Datalog.Var(gensym.fresh("isEqual"))
-        val equalsCall = Datalog.Call("equals$", eTerms.flatten :+ outVar)
+        val equalsCall = Datalog.Call(equalsPatName, eTerms.flatten :+ outVar)
         (Seq(outVar), eCons.flatten ++ Seq(equalsCall))
       }
 

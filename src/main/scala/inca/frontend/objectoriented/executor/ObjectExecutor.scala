@@ -3,6 +3,7 @@ package inca.frontend.objectoriented.executor
 import inca.backend.transform.magic.demand.DemandTransformation.{demandPatternExtensionalPrefix, demandPatternPrefix}
 import inca.compiler.Compiler
 import inca.frontend.objectoriented.compiler.{CompiledObjectModule, ObjectOptions}
+import inca.frontend.objectoriented.lowering.GenerateDatalog.castPatName
 import inca.runtime.context.{DataModel, QueryScope}
 import inca.runtime.data.ObjectID
 import inca.runtime.db.{DBValue, Database, DatabaseInspector}
@@ -78,15 +79,14 @@ object ObjectExecutor {
 
     def throwTypeCastExceptionIfRequired(): Unit = {
       // if no cast is used the relation is eliminated
-      val castRelation = "cast$"
-      val hasPerformedCast = compiled.psystemModule.patterns.keys.exists(_ == castRelation)
+      val hasPerformedCast = compiled.psystemModule.patterns.keys.exists(_ == castPatName)
       if (!hasPerformedCast)
         return
 
-      val casts = output(castRelation, Tuples.flatTupleOf())
-      val castInputs = output(demandPatternPrefix + castRelation, Tuples.flatTupleOf())
+      val casts = output(castPatName, Tuples.flatTupleOf())
+      val castInputs = output(demandPatternPrefix + castPatName, Tuples.flatTupleOf())
 
-      // find a cast$ match for each input$cast
+      // find a $cast match for each input$cast
       val castObjects = casts.res.toSet
       val castInputObjects = castInputs.res.toSet
       val diff = castInputObjects.diff(castObjects)

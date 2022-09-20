@@ -105,7 +105,6 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
   lazy val vars: Map[Name, Option[Type]] = (body.flatMap(_.vars) ++ params.flatMap(_.vars)).toMap
 
   def returnsUnit: Boolean = outType == TUnit
-  def isOverridden: Boolean = annos.contains(OverrideAnnotation)
   def isMain: Boolean = annos.contains(MainAnnotation)
 
   def paramSignature: Int = params.map(_.typ).hashCode()
