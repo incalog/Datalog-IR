@@ -53,6 +53,10 @@ class FunctionsTest extends AnyFunSuite {
     performSingleOutputValueTest("Null", "NullTest$main", Seq(), true)
   }
 
+  test("Equals") {
+    performSingleOutputValueTest("Equals", "EqualsTest$main", Seq(), true)
+  }
+
   test("InstanceOf Example") {
     performSingleOutputValueTest("InstanceOf", "A$main", Seq(), true)
   }

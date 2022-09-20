@@ -88,6 +88,17 @@ case class InstanceOfExpr(recv: Expression, ofTyp: Type) extends Expression {
     s"${super.dotString}$nodeId -> ${recv.nodeId};\n${recv.dotString}"
 }
 
+case class EqualsExpr(obj1: Expression, obj2: Expression) extends Expression {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
+    s"eqauls($obj1, $obj2)"
+
+  override def dotString: String = {
+    val obj1S = s"""$nodeId -> ${obj1.nodeId} [label="obj1"];\n${obj1.dotString};\n"""
+    val obj2S = s"""$nodeId -> ${obj2.nodeId} [label="obj2"];\n${obj2.dotString};"""
+    s"${super.dotString}$obj1S$obj2S"
+  }
+}
+
 case class NullExpr() extends Expression {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     s"null"

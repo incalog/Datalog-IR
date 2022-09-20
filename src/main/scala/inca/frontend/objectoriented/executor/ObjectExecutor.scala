@@ -166,11 +166,9 @@ object ObjectExecutor {
 
   def loadInheritanceEDB(dataModel: DataModel, feed: Database): Unit = {
     dataModel.types.foreach { typ =>
-      print("Insert", typ.name, typ.name)
       feed.insert("subtype", Tuples.flatTupleOf(typ.name, typ.name))
     }
     dataModel.nodeSupertypes.foreach { case (child, parent) =>
-      print("Insert", child.name, parent.name)
       feed.insert("subtype", Tuples.flatTupleOf(child.name, parent.name))
     }
 

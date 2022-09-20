@@ -56,6 +56,7 @@ trait Parser {
     val NULL: Value       = Value("null")
     val EXTENDS: Value    = Value("extends")
     val INSTANCEOF: Value = Value("instanceOf")
+    val EQUALS: Value     = Value("equals")
   }
 
   import Keyword._
@@ -73,7 +74,7 @@ trait Parser {
 
   def encloseBetween[T](p: P[T], c: Char): P[T] =
     spaced(P.char(c) *> p <* P.char(c))
-    
+
   def pass[T](o: T): P0[T] =
     P.pure(o)
 
@@ -209,6 +210,11 @@ trait Parser {
       case (recv, typeAnno) => InstanceOfExpr(recv, typeAnno)
     }
 
+  protected[frontend] lazy val equalsExpr: P[EqualsExpr] =
+    (keyword(EQUALS) *> inParentheses((P.defer(expr) <* op(",")) ~ P.defer(expr))).mapWithLoc {
+      case (obj1, obj2) => EqualsExpr(obj1, obj2)
+    }
+
   protected[frontend] lazy val nestedAccessExpr: P[Expression] = {
     // (someVar | someConstructor | `someBaseLit` | `someBaseApply`(...)).(attr | `baseApplyMethod`)
     // (someVar | someConstructor | `someBaseLit` | `someBaseApply`(...)).(someMethod(...) | baseApplyMethod`(...))
@@ -303,7 +309,14 @@ trait Parser {
     }
 
   protected[frontend] val subinfixExpr: P[Expression] =
-    nestedAccessExpr | parensExpr | baseApplyUnaryExpr | typeCastExpr | nullExpr | superExpr | instanceOfExpr
+    nestedAccessExpr |
+      parensExpr |
+      baseApplyUnaryExpr |
+      typeCastExpr |
+      nullExpr |
+      superExpr |
+      instanceOfExpr |
+      equalsExpr
 
   protected[frontend] val infixExpr: P[Expression] =
     baseApplyInfixExpr | subinfixExpr

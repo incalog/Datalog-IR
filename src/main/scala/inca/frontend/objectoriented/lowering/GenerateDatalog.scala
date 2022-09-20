@@ -46,6 +46,7 @@ class GenerateDatalog(module: Module) {
     generatedPatterns += transNull()
     generatedPatterns += transInstanceOf()
     generatedPatterns += transCast()
+    generatedPatterns += transEquals()
     generatedPatterns ++= transDynamicDispatch(classes)
     generatedPatterns ++= classes.flatMap(transClass)
 
@@ -123,6 +124,69 @@ class GenerateDatalog(module: Module) {
     ))
   }
 
+  private def getObjectAttribute(obj: Datalog.Var, attribute: String, outVar: Datalog.Var, outType: Datalog.Type): Datalog.Computed = {
+    val compAttr = Term.Name(attribute)
+    val compArg = Term.Name("obj")
+    val compParam = Term.Param(Nil, compArg, Some(GP_URI.asScala), None)
+    Datalog.Computed(
+      outVar, Datalog.Evaluation(Seq(obj -> GP_URI), outType, Scala(q"($compParam) => $compArg.$compAttr")
+      )
+    )
+  }
+
+  private def getObjectTyp(obj: Datalog.Var, outVar: Datalog.Var): Datalog.Computed = {
+    getObjectAttribute(obj, "typ", outVar, Datalog.TScalaString)
+  }
+
+  private def getObjectId(obj: Datalog.Var, outVar: Datalog.Var): Datalog.Computed = {
+    getObjectAttribute(obj, "allocId", outVar, Datalog.TScalaInt)
+  }
+
+  private def transEquals(): Datalog.Pattern = gensym.scoped {
+    val params = Seq(
+      Datalog.Param("obj1", GP_URI),
+      Datalog.Param("obj2", GP_URI),
+      Datalog.Param("out", Datalog.TScalaBoolean)
+    )
+
+    val obj1Var = Datalog.Var("obj1")
+    val obj1Typ = Datalog.Var("ty1")
+    val obj1Id = Datalog.Var("id1")
+    val obj1TypComp = getObjectTyp(obj1Var, obj1Typ)
+    val obj1IdComp = getObjectId(obj1Var, obj1Id)
+
+    val obj2Var = Datalog.Var("obj2")
+    val obj2Typ = Datalog.Var("ty2")
+    val obj2Id = Datalog.Var("id2")
+    val obj2TypComp = getObjectTyp(obj2Var, obj2Typ)
+    val obj2IdComp = getObjectId(obj2Var, obj2Id)
+
+    val outVar = Datalog.Var("out")
+    val outTrue = Datalog.Eq(outVar, Datalog.True)
+    val outFalse = Datalog.Eq(outVar, Datalog.False)
+
+    val bodies = Seq(
+      Datalog.Body(Seq(
+        obj1TypComp, obj2TypComp, Datalog.Eq(obj1Typ, obj2Typ),
+        obj1IdComp, obj2IdComp, Datalog.Eq(obj1Id, obj2Id), outTrue
+      )),
+      Datalog.Body(Seq(
+        obj1TypComp, obj2TypComp, Datalog.Neq(obj1Typ, obj2Typ),
+        obj1IdComp, obj2IdComp, Datalog.Eq(obj1Id, obj2Id), outFalse
+      )),
+      Datalog.Body(Seq(
+        obj1TypComp, obj2TypComp, Datalog.Eq(obj1Typ, obj2Typ),
+        obj1IdComp, obj2IdComp, Datalog.Neq(obj1Id, obj2Id), outFalse
+      )),
+      Datalog.Body(Seq(
+        obj1TypComp, obj2TypComp, Datalog.Neq(obj1Typ, obj2Typ),
+        obj1IdComp, obj2IdComp, Datalog.Neq(obj1Id, obj2Id), outFalse
+      ))
+    )
+
+    Datalog.Pattern(None, "equals$", params, bodies)
+  }
+
   private def transInstanceOf(): Datalog.Pattern = gensym.scoped {
     val params = Seq(
       Datalog.Param("this", GP_URI),
@@ -131,15 +195,7 @@ class GenerateDatalog(module: Module) {
     )
 
     val tyVar = Datalog.Var("ty")
-    val tyCompArg = Term.Name("obj")
-    val tyCompParam = Term.Param(Nil, tyCompArg, Some(GP_URI.asScala), None)
-    val tyComp = Datalog.Computed(
-      tyVar, Datalog.Evaluation(
-        Seq(Datalog.Var("this") -> GP_URI),
-        Datalog.TScalaString,
-        Scala(q"($tyCompParam) => $tyCompArg.typ") // .asInstanceOf[$tyOID]
-      )
-    )
+    val tyComp = getObjectTyp(Datalog.Var("this"), tyVar)
 
     val outVar = Datalog.Var("out")
     val tyParamVar = Datalog.Var("t")
@@ -164,15 +220,7 @@ class GenerateDatalog(module: Module) {
     )
 
     val tyVar = Datalog.Var("ty")
-    val tyCompArg = Term.Name("obj")
-    val tyCompParam = Term.Param(Nil, tyCompArg, Some(GP_URI.asScala), None)
-    val tyComp = Datalog.Computed(
-      tyVar, Datalog.Evaluation(
-        Seq(Datalog.Var("this") -> GP_URI),
-        Datalog.TScalaString,
-        Scala(q"($tyCompParam) => $tyCompArg.typ")
-      )
-    )
+    val tyComp = getObjectTyp(Datalog.Var("this"), tyVar)
 
     val tyParamVar = Datalog.Var("t")
     val isSubtype = Datalog.ExtensionalCall("subtype", Seq(tyVar, tyParamVar))
@@ -364,6 +412,16 @@ class GenerateDatalog(module: Module) {
         val instanceOfCall = Datalog.Call("instanceOf$", Seq(eTerm, Datalog.StringConstant(ofTyp.toString), outVar))
         (Seq(outVar), eCons :+ instanceOfCall)
       }
+
+    case EqualsExpr(obj1, obj2) =>
+      val transExps = Seq(transExpression(obj1), transExpression(obj2))
+      for (tups <- TupleOps.cartesianProduct(transExps)) yield {
+        val (eTerms, eCons) = tups.unzip
+        val outVar = Datalog.Var(gensym.fresh("isEqual"))
+        val equalsCall = Datalog.Call("equals$", eTerms.flatten :+ outVar)
+        (Seq(outVar), eCons.flatten ++ Seq(equalsCall))
+      }
+
     case NullExpr() =>
       val nullVar = Datalog.Var(gensym.fresh("null"))
       val nullConstrCall = Datalog.Call("Null", Seq(nullVar))

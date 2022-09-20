@@ -1,0 +1,36 @@
+module EqualsTest
+
+class A {
+    val c: C
+
+    def this(c : C) = {
+        this.c = c
+    }
+}
+
+class B {
+    def this() = {}
+}
+
+class C {
+    def this() = {}
+}
+
+class EqualsTest {
+    @main
+    def main(): Boolean = {
+        val a: A = new A(new C())
+        val b: B = new B()
+        val c: C = null
+
+        return equals(a, a)
+            && equals(b, b)
+            && !equals(a, b)
+            && equals(a.c, a.c)
+            && !equals(a, a.c)
+            && equals(null, null)
+            && equals(c, null)
+            && !equals(a, null)
+            && !equals(a.c, null)
+    }
+}

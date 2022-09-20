@@ -279,6 +279,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       typecheck(ofTyp)
       TScalaBoolean
 
+    case EqualsExpr(obj1, obj2) =>
+      typecheck(obj1)
+      typecheck(obj2)
+      TScalaBoolean
+
     case TupleExpr(exps) =>
       TTuple(exps.map(typecheck))
 
