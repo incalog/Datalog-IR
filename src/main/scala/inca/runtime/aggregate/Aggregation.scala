@@ -22,9 +22,9 @@ trait Aggregation[V] {
   def unjoin(v1: V, v2: V): V = throw new UnsupportedOperationException
 
   def aggregator: IMultisetAggregationOperator[V, _, V] =
-    if (isAssociative && isCommutative && hasUnjoin)
+    if (isAssociative && isCommutative && hasUnjoin) {
       new AggregatorAssocCommInv[V](this)
-    else if (isAssociative && isCommutative)
+    } else if (isAssociative && isCommutative)
       new AggregatorAssocComm[V](this)
     else
       throw new UnsupportedOperationException(s"Cannot create aggregator for associative=$isAssociative, commutative=$isCommutative, hasUnjoin=$hasUnjoin")

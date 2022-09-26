@@ -3,8 +3,10 @@ package inca.frontend.objectoriented.lowering
 import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
+import inca.frontend.functional.core.DataDef
 import inca.frontend.objectoriented.core.{TNull, _}
 import inca.frontend.objectoriented.lowering.GenerateDatalog._
+import inca.runtime.aggregate.Aggregation
 import inca.runtime.data.ObjectID
 import inca.util.Scala.{symbolOf, typeOf}
 import inca.util.{Gensym, Scala, TupleOps}
@@ -34,11 +36,59 @@ object GenerateDatalog {
     modules.map(transformModule)
 }
 
-/*class TypeCastException(msg: String) extends RuntimeException(msg)
+// testTimestampsAndAggregation
+case class MaxAgg(upperBound: Int) extends Aggregation[Int] {
+  override val name: String = "max"
+  override def init: Int = Int.MinValue
+  override def join(v1: Int, v2: Int): Int = if (v1.max(v2) <= upperBound) v1.max(v2) else 0
+  //override def unjoin(v1: Int, v2: Int): Int = v1 - v2
+  override val isAssociative: Boolean = true
+  override val isCommutative: Boolean = true
+  override val hasUnjoin: Boolean = false
+}
 
-object TypeCastException {
-  def apply(msg: String): TypeCastException = new TypeCastException(msg)
-}*/
+// testTimestampsAndAggregationWithEqual override
+
+case class MaxAggWithTimestamp() extends Aggregation[Timestamp] {
+  override val name: String = "max"
+  override def init: Timestamp = Timestamp(Int.MinValue, isQuery = false)
+  override def join(v1: Timestamp, v2: Timestamp): Timestamp = if (v1.value > v2.value) v1 else v2
+  //override def unjoin(v1: Int, v2: Int): Int = v1 - v2
+  override val isAssociative: Boolean = true
+  override val isCommutative: Boolean = true
+  override val hasUnjoin: Boolean = false
+}
+
+case class Timestamp(val value: Int, isQuery: Boolean) {
+  /*override def equals(obj: Any): Boolean = {
+    val isTimestamp = obj.isInstanceOf[Timestamp]
+    if (isTimestamp) {
+      println("Compare with ts: ", this, obj)
+      val that = obj.asInstanceOf[Timestamp]
+      if (this.isQuery) {
+        that.value <= value
+      } else if (that.isQuery) {
+        value <= that.value
+      } else {
+        value == that.value
+      }
+    } else {
+      false
+    }
+  }*/
+
+  override def hashCode: Int = {
+    println("hashcode: ", this, value)
+    value
+  }
+}
+
+object Timestamp {
+  def apply(value: Int, isQuery: Boolean): Timestamp = {
+    new Timestamp(value, isQuery)
+  }
+}
+
 
 class GenerateDatalog(module: Module) {
 
@@ -46,17 +96,583 @@ class GenerateDatalog(module: Module) {
 
   private val generatedPatterns = ListBuffer[Datalog.Pattern]()
 
+  def testRaw(): Unit = {
+    val mainPat = Datalog.Pattern(None, "main", Seq(
+      Datalog.Param("obj", GP_URI)
+    ), Seq(
+      Datalog.Body(Seq(
+        Datalog.Call("A$constr$0", Seq(Datalog.Var("_$0"), Datalog.IntConstant(5))),
+        Datalog.Call("A$constr$0", Seq(Datalog.Var("_$1"), Datalog.IntConstant(5))),
+        Datalog.Call("A$constr$1", Seq(Datalog.Var("_$2"))),
+        Datalog.Call("A", Seq(Datalog.Var("obj")))
+          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(false)))
+      ))
+    )).addHint(ObjectHints.AllocationRoot)
+      .addHint(MagicSetHints.Main(Seq(false)))
+
+    val thisVar = Datalog.Var("this")
+    val constrScalaFun = Term.Function(Nil, q"""$oOID("A")""")
+    val tmpCons = Datalog.Computed(thisVar, Datalog.Evaluation(Seq(), GP_URI, Scala(constrScalaFun)))
+
+    val objPat = Datalog.Pattern(None, "A", Seq(Datalog.Param("this", GP_URI)), Seq(
+      Datalog.Body(Seq(
+        tmpCons
+      ))
+    )).addHint(ObjectHints.Allocation)
+      .addHint(OptimizationHints.NoInline)
+
+    val objAttrPat = Datalog.Pattern(None, "A$$x", Seq(
+      Datalog.Param("this", GP_URI),
+      Datalog.Param("x", Datalog.TScalaInt)
+    ), Seq(
+      Datalog.Body(Seq())
+    )).addHint(OptimizationHints.NoInline)
+
+    val objConstrPat = Datalog.Pattern(None, "A$constr$0", Seq(
+      Datalog.Param("this", GP_URI),
+      Datalog.Param("x", Datalog.TScalaInt)
+    ), Seq(
+      Datalog.Body(Seq(
+        Datalog.Call("A", Seq(thisVar)), Datalog.Call("A$$x", Seq(thisVar, Datalog.Var("x")))
+      ))
+    ))
+
+    val objConstrPat2 = Datalog.Pattern(None, "A$constr$1", Seq(
+      Datalog.Param("this", GP_URI),
+    ), Seq(
+      Datalog.Body(Seq(
+        Datalog.Call("A", Seq(thisVar)), Datalog.Call("A$$x", Seq(thisVar, Datalog.IntConstant(1)))
+      ))
+    ))
+
+    generatedPatterns ++= Seq(mainPat, objPat, objConstrPat, objConstrPat2, objAttrPat)
+  }
+
+  def testAttributeManagedByScala(): Unit = {
+    val thisVar = Datalog.Var("this")
+    val xVar = Datalog.Var("x")
+
+    def newTsCount(count: Int) = Datalog.Var("tsCount$" + count.toString)
+    def newXVar(count: Int) = Datalog.Var("x$" + count.toString)
+
+    def getAttrXForTsComp(objVar: Datalog.Var, ts: Datalog.Var, outVar: Datalog.Var): Datalog.Computed = {
+      val objTerm = Term.Name("obj")
+      val tsTerm = Term.Name("ts")
+      val tsParam = Term.Param(Nil, tsTerm, Some(TScalaInt.asScala), None)
+      val objParam = Term.Param(Nil, objTerm, Some(GP_URI.asScala), None)
+
+      Datalog.Computed(
+        outVar,
+        Datalog.Evaluation(
+          Seq(
+            objVar -> GP_URI,
+            ts -> Datalog.TScalaInt
+          ),
+          Datalog.TScalaInt, // We should make this dynamic for arbitrary attributs
+          Scala(q"""($objParam, $tsParam) => $objTerm.getAttr("x", $tsTerm)""")
+        )
+      )
+    }
+
+    def setAttrXForTsComp(objVar: Datalog.Var, value: Datalog.Var, ts: Datalog.Var, outVar: Datalog.Var): Datalog.Computed = {
+      val tsTerm = Term.Name("ts")
+      val tsParam = Term.Param(Nil, tsTerm, Some(TScalaInt.asScala), None)
+      val valueTerm = Term.Name("value")
+      val valueParam = Term.Param(Nil, valueTerm, Some(TScalaInt.asScala), None)
+      val objTerm = Term.Name("obj")
+      val objParam = Term.Param(Nil, objTerm, Some(GP_URI.asScala), None)
+
+      Datalog.Computed(
+        outVar,
+        Datalog.Evaluation(
+          Seq(
+            objVar -> GP_URI,
+            value -> Datalog.TScalaInt,
+            ts -> Datalog.TScalaInt // make this variable
+          ),
+          Datalog.TScalaInt, // We should make this dynamic for arbitrary attributs
+          Scala(q"""($objParam, $valueParam, $tsParam) => $objTerm.setAttr("x", $valueTerm, $tsTerm)""")
+        )
+      )
+    }
+
+    val mainPat = Datalog.Pattern(None, "main", Seq(
+      //Datalog.Param("obj", GP_URI),
+      Datalog.Param("a3_xInit", Datalog.TScalaInt),
+      Datalog.Param("a3_xMod", Datalog.TScalaInt),
+      Datalog.Param("a1_xInit", Datalog.TScalaInt),
+      Datalog.Param("a1_xMod", Datalog.TScalaInt),
+    ), Seq(
+      Datalog.Body(Seq(
+        // Init the tsCount
+        Datalog.Eq(newTsCount(0), Datalog.IntConstant(0)),
+
+        Datalog.Call("A$constr$0", Seq(Datalog.Var("a1"), Datalog.IntConstant(5), newTsCount(0), newTsCount(1))),
+        //Datalog.Call("A$constr$0", Seq(Datalog.Var("a2"), Datalog.IntConstant(3))),
+        Datalog.Call("A$constr$1", Seq(Datalog.Var("a3"), newTsCount(1), newTsCount(2))),
+
+        // Read value of attr x
+        getAttrXForTsComp(Datalog.Var("a3"), newTsCount(2), Datalog.Var("a3_xInit")),
+
+        getAttrXForTsComp(Datalog.Var("a1"), newTsCount(2), Datalog.Var("a1_xInit")),
+
+        // Change attribute
+        Datalog.Eq(newXVar(0), Datalog.IntConstant(9)),
+        setAttrXForTsComp(Datalog.Var("a3"), newXVar(0), newTsCount(2), newTsCount(3)),
+
+        Datalog.Eq(newXVar(1), Datalog.IntConstant(12)),
+        setAttrXForTsComp(Datalog.Var("a1"), newXVar(1), newTsCount(3), newTsCount(4)),
+
+        // Read attribute again
+        getAttrXForTsComp(Datalog.Var("a3"), newTsCount(4), Datalog.Var("a3_xMod")),
+
+        getAttrXForTsComp(Datalog.Var("a1"), newTsCount(4), Datalog.Var("a1_xMod")),
+      ))
+    )).addHint(ObjectHints.AllocationRoot)
+      .addHint(MagicSetHints.Main(Seq(false, false)))
+
+    val constrScalaFun = Term.Function(Nil, q"""$oOID("A")""")
+    val tmpCons = Datalog.Computed(thisVar, Datalog.Evaluation(Seq(), GP_URI, Scala(constrScalaFun)))
+
+    val objPat = Datalog.Pattern(None, "A", Seq(Datalog.Param("this", GP_URI)), Seq(
+      Datalog.Body(Seq(
+        tmpCons
+      ))
+    )).addHint(ObjectHints.Allocation)
+      .addHint(OptimizationHints.NoInline)
+
+    val objConstrPat = Datalog.Pattern(None, "A$constr$0", Seq(
+      Datalog.Param("this", GP_URI),
+      Datalog.Param("x", Datalog.TScalaInt),
+      Datalog.Param("tsIn", Datalog.TScalaInt),
+      Datalog.Param("tsOut", Datalog.TScalaInt)
+    ), Seq(
+      Datalog.Body(Seq(
+        Datalog.Call("A", Seq(thisVar)),
+        setAttrXForTsComp(thisVar, xVar, Datalog.Var("tsIn"), Datalog.Var("tsOut")),
+      ))
+    ))
+
+    val objConstrPat2 = Datalog.Pattern(None, "A$constr$1", Seq(
+      Datalog.Param("this", GP_URI),
+      Datalog.Param("tsIn", Datalog.TScalaInt),
+      Datalog.Param("tsOut", Datalog.TScalaInt)
+    ), Seq(
+      Datalog.Body(Seq(
+        Datalog.Call("A", Seq(thisVar)),
+        Datalog.Eq(xVar, Datalog.IntConstant(1)),
+        setAttrXForTsComp(thisVar, xVar, Datalog.Var("tsIn"), Datalog.Var("tsOut")),
+      ))
+    ))
+
+    generatedPatterns ++= Seq(mainPat, objPat, objConstrPat, objConstrPat2) // objGetAttrPat, objSetAttrPat)
+  }
+
+  def testCounterManagedByScala(): Unit = {
+    val thisVar = Datalog.Var("this")
+    val xVar = Datalog.Var("x")
+    val tsVar = Datalog.Var("ts")
+    val tsCount = Datalog.Var("tsCount")
+
+    def newTsCount(count: Int) = Datalog.Var("tsCount$" + count.toString)
+
+    def getTsForAttrXComp(objVar: Datalog.Var, tsCount: Datalog.Var, outVar: Datalog.Var) = {
+      val objTerm = Term.Name("obj")
+      val tsCountTerm = Term.Name("tsCount")
+      val tsCountParam = Term.Param(Nil, tsCountTerm, Some(TScalaInt.asScala), None)
+      val objParam = Term.Param(Nil, objTerm, Some(GP_URI.asScala), None)
+
+      Datalog.Computed(
+        outVar,
+        Datalog.Evaluation(
+          Seq(
+            objVar -> GP_URI,
+            tsCount -> Datalog.TScalaInt
+          ),
+          Datalog.TScalaInt,
+          Scala(q"""($objParam, $tsCountParam) => $objTerm.getTs("x", $tsCountTerm)""")
+        )
+      )
+    }
+
+    def inc(inVar: Datalog.Var, outVar: Datalog.Var) = {
+      val inTerm = Term.Name("inV")
+      val inParam = Term.Param(Nil, inTerm, Some(TScalaInt.asScala), None)
+      Datalog.Computed(
+        outVar,
+        Datalog.Evaluation(
+          Seq(
+            inVar -> Datalog.TScalaInt
+          ),
+          Datalog.TScalaInt,
+          Scala(q"""($inParam) => $inTerm + 1""")
+        )
+      )
+    }
+
+    val mainPat = Datalog.Pattern(None, "main", Seq(
+      //Datalog.Param("obj", GP_URI),
+      Datalog.Param("xInit", Datalog.TScalaInt),
+      //Datalog.Param("xMod", Datalog.TScalaInt),
+    ), Seq(
+      Datalog.Body(Seq(
+        // Init the tsCount
+        Datalog.Eq(tsCount, Datalog.IntConstant(0)),
+
+        //Datalog.Call("A$constr$0", Seq(Datalog.Var("a1"), Datalog.IntConstant(5))),
+        //Datalog.Call("A$constr$0", Seq(Datalog.Var("a2"), Datalog.IntConstant(3))),
+        Datalog.Call("A$constr$1", Seq(Datalog.Var("a3"), tsCount, newTsCount(0))),
+
+        // Read value of attr x
+        getTsForAttrXComp(Datalog.Var("a3"), tsCount, tsVar),
+        Datalog.Call("A$$x", Seq(Datalog.Var("a3"), Datalog.Var("xInit"), tsVar))
+          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(true, true, true))),
+
+        // Change value of attr x
+        // get a new timestamp for the increased counter
+        getTsForAttrXComp(Datalog.Var("a3"), newTsCount(0), tsVar),
+        /*Datalog.Call("A$$x", Seq(Datalog.Var("a3"), Datalog.IntConstant(10), tsVar)),*/
+
+        // Read value of attr x
+        /*getTsForAttrXComp(Datalog.Var("a3"), tsVar),
+        Datalog.Call("A$$x", Seq(Datalog.Var("a3"), Datalog.Var("xMod"), tsVar))
+          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(true, true, true))),*/
+
+        /*Datalog.Call("A", Seq(Datalog.Var("obj")))
+          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(false)))*/
+      ))
+    )).addHint(ObjectHints.AllocationRoot)
+      .addHint(MagicSetHints.Main(Seq(false, false)))
+
+    val constrScalaFun = Term.Function(Nil, q"""$oOID("A")""")
+    val tmpCons = Datalog.Computed(thisVar, Datalog.Evaluation(Seq(), GP_URI, Scala(constrScalaFun)))
+
+    val objPat = Datalog.Pattern(None, "A", Seq(Datalog.Param("this", GP_URI)), Seq(
+      Datalog.Body(Seq(
+        tmpCons
+      ))
+    )).addHint(ObjectHints.Allocation)
+      .addHint(OptimizationHints.NoInline)
+
+    val objAttrPat = Datalog.Pattern(None, "A$$x", Seq(
+      Datalog.Param("this", GP_URI),
+      Datalog.Param("x", Datalog.TScalaInt),
+      Datalog.Param("ts", Datalog.TScalaInt)
+    ), Seq(
+      Datalog.Body(Seq())
+    )).addHint(OptimizationHints.NoInline)
+
+    /*val objSetAttrPat = Datalog.Pattern(None, "A$set_x", Seq(
+      Datalog.Param("this", GP_URI),
+      Datalog.Param("x", Datalog.TScalaInt),
+      //Datalog.Param("ts", Datalog.TScalaInt),
+    ), Seq(
+      Datalog.Body(Seq())
+    )).addHint(MagicSetHints.NoInputRelation)*/
+
+    val objConstrPat = Datalog.Pattern(None, "A$constr$0", Seq(
+      Datalog.Param("this", GP_URI),
+      Datalog.Param("x", Datalog.TScalaInt),
+      Datalog.Param("tsIn", Datalog.TScalaInt),
+      Datalog.Param("tsOut", Datalog.TScalaInt)
+    ), Seq(
+      Datalog.Body(Seq(
+        Datalog.Call("A", Seq(thisVar)),
+        getTsForAttrXComp(thisVar, Datalog.Var("tsIn"), tsVar),
+        inc(Datalog.Var("tsIn"), Datalog.Var("tsOut")),
+        Datalog.Call("A$$x", Seq(thisVar, Datalog.Var("x"), tsVar))
+      ))
+    ))
+
+    val objConstrPat2 = Datalog.Pattern(None, "A$constr$1", Seq(
+      Datalog.Param("this", GP_URI),
+      Datalog.Param("tsIn", Datalog.TScalaInt),
+      Datalog.Param("tsOut", Datalog.TScalaInt)
+    ), Seq(
+      Datalog.Body(Seq(
+        Datalog.Call("A", Seq(thisVar)),
+        Datalog.Eq(xVar, Datalog.IntConstant(1)),
+        getTsForAttrXComp(thisVar, Datalog.Var("tsIn"), tsVar),
+        inc(Datalog.Var("tsIn"), Datalog.Var("tsOut")),
+        Datalog.Call("A$$x", Seq(thisVar, Datalog.Var("x"), tsVar)),
+      ))
+    ))
+
+    generatedPatterns ++= Seq(mainPat, objPat, objConstrPat, objConstrPat2, objAttrPat) // , objGetAttrPat, objSetAttrPat)
+  }
+
+  def testTimestampsAndAggregation(): Unit = gensym.scoped {
+    val thisVar = Datalog.Var("this")
+
+    def max(patName: String, objVar: Datalog.Var, outVar: Datalog.Var, maxTs: Datalog.Var): Datalog.Computed = {
+      Datalog.Computed(
+        outVar,
+        Datalog.CustomAggregation(
+          Datalog.TScalaInt,
+          Some("Maximum aggregation"),
+          Scala(q"""new inca.frontend.objectoriented.lowering.MaxAgg(1000)"""),
+          patName,
+          Seq(objVar, Datalog.Var(gensym.fresh("_")), Datalog.Var(gensym.fresh("_"))),
+          2
+        )
+      )
+    }
+
+    def inc(inVar: Datalog.Var, outVar: Datalog.Var) = {
+      val inArg = Term.Name("inArg")
+      val inParam = Term.Param(Nil, inArg, Some(Datalog.TScalaInt.asScala), None)
+      Datalog.Computed(
+        outVar,
+        Datalog.Evaluation(
+          Seq(inVar -> Datalog.TScalaInt),
+          Datalog.TScalaInt,
+          Scala(q"($inParam) => $inArg + 1")
+        )
+      )
+    }
+
+    // Idee: ts einfach immer erhöhen wie alloc count. Nur beim Lesen das max ermitteln !
+
+    val mainPat = Datalog.Pattern(None, "main", Seq(
+      //Datalog.Param("obj", GP_URI)
+      Datalog.Param("ts1", Datalog.TScalaInt),
+      Datalog.Param("x1", Datalog.TScalaInt),
+      Datalog.Param("ts2", Datalog.TScalaInt),
+      Datalog.Param("x2", Datalog.TScalaInt)
+    ), Seq(
+      Datalog.Body(Seq(
+        Datalog.Call("A$constr$0", Seq(Datalog.Var("a1"), Datalog.IntConstant(3))),
+        //Datalog.Call("A$constr$0", Seq(Datalog.Var("a2"), Datalog.IntConstant(5))),
+        //Datalog.Call("A$constr$1", Seq(Datalog.Var("a2"))),
+
+        // Set
+        /*max("A$$x", Datalog.Var("a1"), Datalog.Var("ts1"))
+          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(true, true, true))),*/
+        Datalog.Eq(Datalog.Var("argTs1"), Datalog.IntConstant(1)),
+        Datalog.Call("A$$x", Seq(Datalog.Var("a1"), Datalog.IntConstant(7), Datalog.Var("argTs1"))),
+        //Datalog.Call("A$$x", Seq(Datalog.Var("a2"), Datalog.IntConstant(3), Datalog.IntConstant(1))),
+        //Datalog.Call("A$$x", Seq(Datalog.Var("a1"), Datalog.IntConstant(8), Datalog.IntConstant(2))),
+
+        // Get
+        max("A$$x", Datalog.Var("a1"), Datalog.Var("ts1"), Datalog.Var("argTs1"))
+          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(true, true, true))),
+        Datalog.Call("A$$x", Seq(Datalog.Var("a1"), Datalog.Var("x1"), Datalog.Var("ts1")))
+          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(true, true, true))),
+
+        // Set 2
+        //Datalog.Eq(Datalog.Var("argTs2"), Datalog.IntConstant(4)),
+        inc(Datalog.Var("argTs1"), Datalog.Var("argTs2")),
+        Datalog.Call("A$$x", Seq(Datalog.Var("a1"), Datalog.IntConstant(11), Datalog.Var("argTs2"))),
+
+        // Get 2
+        max("A$$x", Datalog.Var("a1"), Datalog.Var("ts2"), Datalog.Var("argTs2"))
+          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(true, true, true))),
+        Datalog.Call("A$$x", Seq(Datalog.Var("a1"), Datalog.Var("x2"), Datalog.Var("ts2")))
+          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(true, true, true)))
+
+        /*Datalog.Call("A", Seq(Datalog.Var("obj")))
+          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(false)))*/
+      ))
+    )).addHint(ObjectHints.AllocationRoot)
+      .addHint(MagicSetHints.Main(Seq(false)))
+
+    val objPat = Datalog.Pattern(None, "A", Seq(Datalog.Param("this", GP_URI)), Seq(
+      Datalog.Body(Seq(
+        Datalog.Computed(thisVar, Datalog.Evaluation(Seq(), GP_URI, Scala(Term.Function(Nil, q"""$oOID("A")"""))))
+      ))
+    )).addHint(ObjectHints.Allocation)
+      .addHint(OptimizationHints.NoInline)
+
+    val objAttrPat = Datalog.Pattern(None, "A$$x", Seq(
+      Datalog.Param("this", GP_URI),
+      Datalog.Param("x", Datalog.TScalaInt),
+      Datalog.Param("ts", Datalog.TScalaInt)
+    ), Seq(
+      Datalog.Body(Seq())
+    )).addHint(OptimizationHints.NoInline)
+
+    val objConstrPat = Datalog.Pattern(None, "A$constr$0", Seq(
+      Datalog.Param("this", GP_URI),
+      Datalog.Param("x", Datalog.TScalaInt)
+    ), Seq(
+      Datalog.Body(Seq(
+        Datalog.Call("A", Seq(thisVar)), Datalog.Call("A$$x", Seq(thisVar, Datalog.Var("x"), Datalog.IntConstant(0)))
+      ))
+    ))
+
+    val objConstrPat2 = Datalog.Pattern(None, "A$constr$1", Seq(
+      Datalog.Param("this", GP_URI),
+    ), Seq(
+      Datalog.Body(Seq(
+        Datalog.Call("A", Seq(thisVar)), Datalog.Call("A$$x", Seq(thisVar, Datalog.IntConstant(1), Datalog.IntConstant(0)))
+      ))
+    ))
+
+    generatedPatterns ++= Seq(mainPat, objPat, objConstrPat, objConstrPat2, objAttrPat)
+  }
+
+  def test(): Unit = gensym.scoped {
+    val thisVar = Datalog.Var("this")
+
+    def max(patName: String, objVar: Datalog.Var, outVar: Datalog.Var, queryTs: Datalog.Var): Datalog.Computed = {
+      Datalog.Computed(
+        outVar,
+        Datalog.CustomAggregation(
+          GP_TS,
+          Some("Maximum aggregation"),
+          Scala(q"""new inca.frontend.objectoriented.lowering.MaxAggWithTimestamp()"""),
+          patName,
+          Seq(objVar, Datalog.Var(gensym.fresh("_")), queryTs),
+          2
+        )
+      )
+    }
+
+    def inc(inVar: Datalog.Var, outVar: Datalog.Var) = {
+      val inArg = Term.Name("inArg")
+      val inParam = Term.Param(Nil, inArg, Some(Datalog.TScalaInt.asScala), None)
+      Datalog.Computed(
+        outVar,
+        Datalog.Evaluation(
+          Seq(inVar -> Datalog.TScalaInt),
+          Datalog.TScalaInt,
+          Scala(q"($inParam) => $inArg + 1")
+        )
+      )
+    }
+
+    def GP_TS: Datalog.TScala = Datalog.TScala(Scala(typeOf[Timestamp]))
+
+    val oTimestamp = symbolOf(Timestamp)
+
+    def createTs(inVar: Datalog.Var, outVar: Datalog.Var): Datalog.Computed = {
+      val inArg = Term.Name("tsArg")
+      val inParam = Term.Param(Nil, inArg, Some(Datalog.TScalaInt.asScala), None)
+      Datalog.Computed(
+        outVar,
+        Datalog.Evaluation(
+          Seq(inVar -> Datalog.TScalaInt),
+          GP_TS,
+          Scala(q"($inParam) => $oTimestamp($inArg, false)")
+        )
+      )
+    }
+
+    def createQueryTs(inVar: Datalog.Var, outVar: Datalog.Var): Datalog.Computed = {
+      val inArg = Term.Name("tsArg")
+      val inParam = Term.Param(Nil, inArg, Some(Datalog.TScalaInt.asScala), None)
+      Datalog.Computed(
+        outVar,
+        Datalog.Evaluation(
+          Seq(inVar -> Datalog.TScalaInt),
+          GP_TS,
+          Scala(q"($inParam) => $oTimestamp($inArg, true)")
+        )
+      )
+    }
+
+    // Idee: ts einfach immer erhöhen wie alloc count. Nur beim Lesen das max ermitteln !
+
+    val mainPat = Datalog.Pattern(None, "main", Seq(
+      //Datalog.Param("obj", GP_URI)
+      Datalog.Param("_mTs1", GP_TS),
+      Datalog.Param("x1", Datalog.TScalaInt),
+      Datalog.Param("_mTs2", GP_TS),
+      Datalog.Param("x2", Datalog.TScalaInt)
+    ), Seq(
+      Datalog.Body(Seq(
+        Datalog.Call("A$constr$0", Seq(Datalog.Var("a1"), Datalog.IntConstant(3))),
+        Datalog.Call("A$constr$0", Seq(Datalog.Var("a2"), Datalog.IntConstant(5))),
+        //Datalog.Call("A$constr$1", Seq(Datalog.Var("a2"))),
+
+        // Set
+        /*max("A$$x", Datalog.Var("a1"), Datalog.Var("ts1"))
+          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(true, true, true))),*/
+        Datalog.Eq(Datalog.Var("argTs1"), Datalog.IntConstant(1)),
+        createTs(Datalog.Var("argTs1"), Datalog.Var("_ts1")),
+        Datalog.Call("A$$x", Seq(Datalog.Var("a1"), Datalog.IntConstant(7), Datalog.Var("_ts1"))),
+        //Datalog.Call("A$$x", Seq(Datalog.Var("a2"), Datalog.IntConstant(3), Datalog.IntConstant(1))),
+        //Datalog.Call("A$$x", Seq(Datalog.Var("a1"), Datalog.IntConstant(8), Datalog.IntConstant(2))),
+
+        // Get
+        inc(Datalog.Var("argTs1"), Datalog.Var("argTs1_inc")),
+        createQueryTs(Datalog.Var("argTs1_inc"), Datalog.Var("_qTs1")),
+        max("A$$x", Datalog.Var("a1"), Datalog.Var("_mTs1"),  Datalog.Var("_qTs1"))
+          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(true, true, true))),
+        Datalog.Call("A$$x", Seq(Datalog.Var("a1"), Datalog.Var("x1"), Datalog.Var("_mTs1")))
+          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(true, true, true))),
+
+        // Set 2
+        //Datalog.Eq(Datalog.Var("argTs2"), Datalog.IntConstant(4)),
+        inc(Datalog.Var("argTs1"), Datalog.Var("argTs2")),
+        createTs(Datalog.Var("argTs2"), Datalog.Var("_ts2")),
+        Datalog.Call("A$$x", Seq(Datalog.Var("a1"), Datalog.IntConstant(11), Datalog.Var("_ts2"))),
+
+        // Get 2
+        createQueryTs(Datalog.Var("argTs2"), Datalog.Var("_qTs2")),
+        max("A$$x", Datalog.Var("a1"), Datalog.Var("_mTs2"), Datalog.Var("_qTs2"))
+          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(true, true, true))),
+        Datalog.Call("A$$x", Seq(Datalog.Var("a1"), Datalog.Var("x2"), Datalog.Var("_mTs2")))
+          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(true, true, true)))
+
+        /*Datalog.Call("A", Seq(Datalog.Var("obj")))
+          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(false)))*/
+      ))
+    )).addHint(ObjectHints.AllocationRoot)
+      .addHint(MagicSetHints.Main(Seq(false)))
+
+    val objPat = Datalog.Pattern(None, "A", Seq(Datalog.Param("this", GP_URI)), Seq(
+      Datalog.Body(Seq(
+        Datalog.Computed(thisVar, Datalog.Evaluation(Seq(), GP_URI, Scala(Term.Function(Nil, q"""$oOID("A")"""))))
+      ))
+    )).addHint(ObjectHints.Allocation)
+      .addHint(OptimizationHints.NoInline)
+
+    val objAttrPat = Datalog.Pattern(None, "A$$x", Seq(
+      Datalog.Param("this", GP_URI),
+      Datalog.Param("x", Datalog.TScalaInt),
+      Datalog.Param("ts", GP_TS)
+    ), Seq(
+      Datalog.Body(Seq())
+    )).addHint(OptimizationHints.NoInline)
+
+    val objConstrPat = Datalog.Pattern(None, "A$constr$0", Seq(
+      Datalog.Param("this", GP_URI),
+      Datalog.Param("x", Datalog.TScalaInt)
+    ), Seq(
+      Datalog.Body(Seq(
+        Datalog.Eq(Datalog.Var("ts"), Datalog.IntConstant(0)),
+        createTs(Datalog.Var("ts"), Datalog.Var("_ts")),
+        Datalog.Call("A", Seq(thisVar)), Datalog.Call("A$$x", Seq(thisVar, Datalog.Var("x"), Datalog.Var("_ts")))
+      ))
+    ))
+
+    val objConstrPat2 = Datalog.Pattern(None, "A$constr$1", Seq(
+      Datalog.Param("this", GP_URI),
+    ), Seq(
+      Datalog.Body(Seq(
+        Datalog.Eq(Datalog.Var("ts"), Datalog.IntConstant(0)),
+        createTs(Datalog.Var("ts"), Datalog.Var("_ts")),
+        Datalog.Call("A", Seq(thisVar)), Datalog.Call("A$$x", Seq(thisVar, Datalog.IntConstant(1), Datalog.Var("_ts")))
+      ))
+    ))
+
+    generatedPatterns ++= Seq(mainPat, objPat, objConstrPat, objConstrPat2, objAttrPat)
+  }
+
   def transModule(): Datalog.Module = {
     val Module(name, imports, classes) = module
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(module.usedClassNames.map(_.raw))
 
-    generatedPatterns += transNull()
+    testAttributeManagedByScala()
+
+    /*generatedPatterns += transNull()
     generatedPatterns += transInstanceOf()
     generatedPatterns += transCast()
     generatedPatterns += transEquals()
     generatedPatterns ++= transDynamicDispatch(classes)
-    generatedPatterns ++= classes.flatMap(transClass)
+    generatedPatterns ++= classes.flatMap(transClass)*/
 
     Datalog.Module(
       name.raw,
@@ -151,6 +767,7 @@ class GenerateDatalog(module: Module) {
   }
 
   private def transEquals(): Datalog.Pattern = gensym.scoped {
+    // TODO: Change this to scala quality of obj, aka. out = `obj1 == obj2`
     val params = Seq(
       Datalog.Param("obj1", GP_URI),
       Datalog.Param("obj2", GP_URI),

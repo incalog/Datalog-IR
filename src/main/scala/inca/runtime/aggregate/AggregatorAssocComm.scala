@@ -38,7 +38,8 @@ class AggregatorAssocComm[V](val agg: Aggregation[V]) extends IMultisetAggregati
       val rightAgg = getAggregate(right)
       if (rightAgg == null)
         left
-      else agg.join(left, rightAgg)
+      else
+        agg.join(left, rightAgg)
     }
   }
 
