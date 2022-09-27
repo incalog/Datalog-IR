@@ -60,8 +60,8 @@ object AllocTransformation extends Transformation {
     private def transformAllocationPattern(alloc: Pattern): Pattern = gensym.scoped  {
       gensym.register(CollectVars.transPattern(alloc))
 
-      val allocInName = gensym.fresh("alloc_in")
-      val allocOutName = gensym.fresh("alloc_out")
+      val allocInName = gensym.fresh("allocIn")
+      val allocOutName = gensym.fresh("allocOut")
 
       // wrap a Computed(Var, Evaluation) inside a lambda, that uses the dummy variable from the input call
       def transComputedEvaluation(lhs: Term, eval: Evaluation): Computed = {
@@ -125,8 +125,8 @@ object AllocTransformation extends Transformation {
     private def transformAffectedPattern(pattern: Pattern, affectedPattern: Set[Pattern]): Pattern = gensym.scoped {
       gensym.register(CollectVars.transPattern(pattern))
 
-      val allocInVar = Var(gensym.fresh("alloc_in"))
-      var allocOutVar = Var(gensym.fresh("alloc_out"))
+      val allocInVar = Var(gensym.fresh("allocIn"))
+      var allocOutVar = Var(gensym.fresh("allocOut"))
 
       val allocInParam = Param(allocInVar.name, TScalaInt)
       val allocOutParam = Param(allocOutVar.name, TScalaInt)
@@ -147,7 +147,7 @@ object AllocTransformation extends Transformation {
                   .withHints(hint)
               } else {
                 val allocInVar = allocOutVar
-                allocOutVar = Var(gensym.fresh("alloc_out"))
+                allocOutVar = Var(gensym.fresh("allocOut"))
                 Call(name, args :+ allocInVar :+ allocOutVar, trans, neg)
                   .withHints(hint)
               }

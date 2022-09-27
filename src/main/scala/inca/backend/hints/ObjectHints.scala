@@ -7,8 +7,10 @@ object ObjectHints {
   val AllocationKey = "OBJECT_ALLOCATION"
   val AllocationRootKey = "OBJECT_ALLOCATION_ROOT"
 
-  val TimestampKey = "OBJECT_TIMESTAMP"
-  val TimestampRootKey = "OBJECT_TIMESTAMP_ROOT"
+  val FieldKey = "OBJECT_FIELD"
+  val FieldGetKey = "OBJECT_FIELD_GET"
+  val FieldSetKey = "OBJECT_FIELD_SET"
+  val FieldRootKey = "OBJECT_FIELD_ROOT"
 
   /**
    * The annotated pattern represents an object constructor
@@ -25,16 +27,30 @@ object ObjectHints {
   }
 
   /**
-   * The root pattern for all timestamp propagations. It initializes the timestamp.
+   * The root for all field pattern . It initializes the timestamp.
    */
-  object TimestampRoot extends Hint {
-    override def key: Key = TimestampRootKey
+  object FieldRoot extends Hint {
+    override def key: Key = FieldRootKey
   }
 
   /**
-   * Pattern requires a timestamp to be functional.
+   * Pattern stores the values of a field.
    */
-  object RequiresTimestamp extends Hint {
-    override def key: Key = TimestampKey
+  object Field extends Hint {
+    override def key: Key = FieldKey
+  }
+
+  /**
+   * Call reads the value of a field.
+   */
+  object FieldGet extends Hint {
+    override def key: Key = FieldGetKey
+  }
+
+  /**
+   * Call sets the value of a field.
+   */
+  object FieldSet extends Hint {
+    override def key: Key = FieldSetKey
   }
 }

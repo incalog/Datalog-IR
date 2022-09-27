@@ -100,7 +100,7 @@ class FunctionsTest extends AnyFunSuite {
     import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
     import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
     import inca.backend.transform.magic.demand._
-    import inca.backend.transform.objectoriented.AllocTransformation
+    import inca.backend.transform.objectoriented._
 
     /*import org.eclipse.viatra.query.runtime.util.ViatraQueryLoggingUtil
     ViatraQueryLoggingUtil.setupConsoleAppenderForDefaultLogger()
@@ -117,7 +117,7 @@ class FunctionsTest extends AnyFunSuite {
       EliminateNonproductiveRelations*/
     ), Seq(
       AllocTransformation,
-      //TimestampTransformation,
+      FieldTransformation,
       DeriveDemandPatterns,
       DemandTransformation
     )))
