@@ -1,9 +1,7 @@
 module Fib
 
 class Fibonacci {
-    def this() = {
-        return this
-    }
+    def this() = {}
 
     def calc(n: Int): Int = {
       if (n == 0)

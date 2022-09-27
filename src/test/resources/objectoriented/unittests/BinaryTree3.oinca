@@ -18,7 +18,7 @@ class DefinedNode extends Node {
 	var data: Int
 
     def this(left: Node, right: Node, data: Int) = {
-        this()
+        //this()
         this.left = left
         this.right = right
         this.data = data

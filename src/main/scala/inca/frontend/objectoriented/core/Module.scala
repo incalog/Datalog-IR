@@ -107,7 +107,7 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
   def returnsUnit: Boolean = outType == TUnit
   def isMain: Boolean = annos.contains(MainAnnotation)
 
-  def paramSignature: Int = params.map(_.typ).hashCode()
+  def paramSignature: Int = (params.map(_.typ) :+ outType).hashCode()
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
@@ -133,6 +133,8 @@ case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], param
   extends ClassContent {
 
   lazy val vars: Map[Name, Option[Type]] = (body.flatMap(_.vars) ++ params.flatMap(_.vars)).toMap
+
+  def paramSignature: Int = params.map(_.typ).hashCode()
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""

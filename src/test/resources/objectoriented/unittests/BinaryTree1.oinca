@@ -7,7 +7,6 @@ class Node {
 	
 	def this(data: Int) = {
         this.data = data
-        return this
     }
 
     def isDefined(): Boolean = {

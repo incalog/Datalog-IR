@@ -36,16 +36,16 @@ object FieldTransformation extends Transformation {
     }
 
     // FIXME: Is there a nicer way to solve this ?
-    private def hintWithAdjustedFixedAdornment(hints: Hints, inArg: Boolean, outArg: Boolean): Hints = {
+    private def hintWithAdjustedFixedAdornment(hints: Hints, additionalArgs: Seq[Boolean]): Hints = {
       val fixedAdornment = hints.hints.remove(MagicSetHints.FixedAdornmentKey)
       if (fixedAdornment.isDefined) {
         val adorn = fixedAdornment.get.asInstanceOf[MagicSetHints.FixedAdornment].adorn
-        hints.addHint(MagicSetHints.FixedAdornment(adorn :+ inArg :+ outArg))
+        hints.addHint(MagicSetHints.FixedAdornment(adorn ++ additionalArgs))
       }
       hints
     }
 
-    private def isReadonlyCall(call: Call): Boolean =
+    private def isIgnoreCall(call: Call): Boolean =
       call.hasHint(MagicSetHints.IgnoreCallKey)
 
     private def isFieldGetCall(call: Call): Boolean =
@@ -108,11 +108,11 @@ object FieldTransformation extends Transformation {
       gensym.register(CollectVars.transPattern(fieldPat))
 
       if (fieldPat.params.size != 2) {
-        throw new IllegalArgumentException("Field pattern require exactly two parameters!")
+        throw new IllegalArgumentException(s"Field pattern ${fieldPat.name} requires exactly two parameters!")
       }
 
-      if (fieldPat.bodies.size != 1 || fieldPat.bodies.head.atoms.nonEmpty) {
-        throw new IllegalArgumentException("Field pattern require exactly one empty body!")
+      if (fieldPat.bodies.nonEmpty) {
+        throw new IllegalArgumentException(s"Field pattern ${fieldPat.name} must not have a body!")
       }
 
       val tsParam = Param(gensym.fresh(rootParamName), TScalaInt)
@@ -138,8 +138,8 @@ object FieldTransformation extends Transformation {
     private def transformCall(atom: Atom, tsInVar: Var, affectedCallNames: Set[String]): (Var, Seq[Atom]) = {
       atom match {
         case call@Call(name, args, trans, neg) if affectedCallNames.contains(name) =>
-          val hint = hintWithAdjustedFixedAdornment(call, inArg = true, outArg = false)
           if (isFieldGetCall(call)) {
+            val hint = hintWithAdjustedFixedAdornment(call, Seq(true))
             val tsMaxVar = Var(gensym.fresh(rootParamName + "Max"))
             (tsInVar, Seq(
               maxAgg(name, args.head, tsMaxVar, tsInVar),
@@ -148,20 +148,23 @@ object FieldTransformation extends Transformation {
                 .addHint(MagicSetHints.IgnoreCall)
             ))
           } else if (isFieldSetCall(call)) {
+            val hint = hintWithAdjustedFixedAdornment(call, Seq(true))
             val tsOutVar = Var(gensym.fresh(outParamName))
             val (tsInArg, tsInParam) = createScalaTermAndParam(inParamName, TScalaInt)
             (tsOutVar, Seq(
-              Call(name, args :+ tsInVar, trans, neg),
+              Call(name, args :+ tsInVar, trans, neg).withHints(hint),
               Computed(
                 tsOutVar, Evaluation(Seq(tsInVar -> TScalaInt), TScalaInt, Scala(q"($tsInParam) => $tsInArg + 1"))
               )
             ))
-          } else if (isReadonlyCall(call)) {
+          } else if (isIgnoreCall(call)) {
+            val hint = hintWithAdjustedFixedAdornment(call, Seq(true, true))
             (tsInVar, Seq(
               Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg)
                 .withHints(hint)
             ))
           } else {
+            val hint = hintWithAdjustedFixedAdornment(call, Seq(true, false))
             val tsOutVar = Var(gensym.fresh(outParamName))
             (tsOutVar, Seq(
               Call(name, args :+ tsInVar :+ tsOutVar, trans, neg).withHints(hint)
@@ -202,10 +205,11 @@ object FieldTransformation extends Transformation {
 
       // name of all calls that end up calling a constructor
       val affectedCallNames = affectedPattern.map(_.name)
-      var tsVar = Var(tsParams.head.name)
 
       val bodies = pattern.bodies.map { body =>
         gensym.scoped {
+          var tsVar = Var(tsParams.head.name)
+
           Body(body.atoms.flatMap { a =>
             val (tsOutVar, transAtom) = transformCall(a, tsVar, affectedCallNames)
             tsVar = tsOutVar
@@ -224,9 +228,9 @@ object FieldTransformation extends Transformation {
       val fieldRootPats = pattern.filter(_.hasHint(FieldRootKey)).toSet
 
       if (fieldPats.nonEmpty && fieldRootPats.isEmpty)
-        throw new IllegalArgumentException("Missing field root!")
+        throw new IllegalArgumentException(s"${this.getClass.getSimpleName}: Missing root annotation!")
       else if (fieldRootPats.size > 1)
-        throw new IllegalArgumentException("Ambiguous field root!")
+        throw new IllegalArgumentException(s"${this.getClass.getSimpleName}: Ambiguous root!")
 
       if (fieldPats.isEmpty)
         return pattern
