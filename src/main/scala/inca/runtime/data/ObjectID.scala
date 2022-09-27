@@ -5,8 +5,6 @@ import scala.collection.mutable
 case class ObjectID(typ: String, allocId: Int) extends truechange.URI {
   //override def toString: String = s"${super.toString}($typ, $allocId)"
 
-  // -----------------------------------------------------------------------------------
-  // testAttributeManagedByScala
   val attributes: mutable.Map[String, mutable.Map[Int, Any]] = mutable.Map()
 
   // ts is important to guarantee, that the input relations behave correctly when the copy the scala code
@@ -45,30 +43,6 @@ case class ObjectID(typ: String, allocId: Int) extends truechange.URI {
         .getOrElse(nullObj)
       println("Get done:", this, res)
       res
-    }
-  }
-
-  // -----------------------------------------------------------------------------------
-  // testCounterManagedByScala
-  val timestamps: mutable.Map[String, mutable.Map[Int, Int]] = mutable.Map()
-
-  def getTs(attr: String, tsCount: Int): Int = {
-    println("Get ts...")
-    var tsForAttr = timestamps.get(attr)
-    if (tsForAttr.isEmpty) {
-      tsForAttr = Some(mutable.Map[Int, Int]())
-      timestamps.put(attr, tsForAttr.get)
-    }
-    val ts = tsForAttr.get.get(tsCount)
-    if (ts.isEmpty) {
-      val values = tsForAttr.get.valuesIterator
-      val max = if (values.isEmpty) -1 else values.max
-      tsForAttr.get.put(tsCount, max + 1)
-      println("Get ts (inc): ", attr, tsCount, max + 1)
-      max + 1
-    } else {
-      println("Get ts: ", attr, tsCount, ts.get)
-      ts.get
     }
   }
 }

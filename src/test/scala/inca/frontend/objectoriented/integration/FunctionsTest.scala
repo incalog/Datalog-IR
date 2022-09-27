@@ -117,6 +117,7 @@ class FunctionsTest extends AnyFunSuite {
       EliminateNonproductiveRelations*/
     ), Seq(
       AllocTransformation,
+      //TimestampTransformation,
       DeriveDemandPatterns,
       DemandTransformation
     )))
@@ -125,10 +126,10 @@ class FunctionsTest extends AnyFunSuite {
     println("Dependency graph")
     println(graph.toGraphViz)
 
-    println()
+    /*println()
     println("DatalogPrinter")
     println(DatalogPrinter.prettyModule(result.transformed)(verbose = true))
-    println()
+    println()*/
 
     val patterns = result.optimized.pats.map(_.name)
     val specs = patterns.map(result.psystemModule.patterns(_)()) // Nat$main // "Succ" for all Succ instances
