@@ -54,58 +54,6 @@ class GenerateDatalog(module: Module) {
 
   private val generatedPatterns = ListBuffer[Datalog.Pattern]()
 
-  def testRaw(): Unit = {
-    val mainPat = Datalog.Pattern(None, "main", Seq(
-      Datalog.Param("obj", GP_URI)
-    ), Seq(
-      Datalog.Body(Seq(
-        Datalog.Call("A$constr$0", Seq(Datalog.Var("_$0"), Datalog.IntConstant(5))),
-        Datalog.Call("A$constr$0", Seq(Datalog.Var("_$1"), Datalog.IntConstant(5))),
-        Datalog.Call("A$constr$1", Seq(Datalog.Var("_$2"))),
-        Datalog.Call("A", Seq(Datalog.Var("obj")))
-          .addHint(MagicSetHints.IgnoreCall, MagicSetHints.FixedAdornment(Seq(false)))
-      ))
-    )).addHint(ObjectHints.AllocationRoot)
-      .addHint(MagicSetHints.Main(Seq(false)))
-
-    val thisVar = Datalog.Var("this")
-    val constrScalaFun = Term.Function(Nil, q"""$oOID("A")""")
-    val tmpCons = Datalog.Computed(thisVar, Datalog.Evaluation(Seq(), GP_URI, Scala(constrScalaFun)))
-
-    val objPat = Datalog.Pattern(None, "A", Seq(Datalog.Param("this", GP_URI)), Seq(
-      Datalog.Body(Seq(
-        tmpCons
-      ))
-    )).addHint(ObjectHints.Allocation)
-      .addHint(OptimizationHints.NoInline)
-
-    val objAttrPat = Datalog.Pattern(None, "A$$x", Seq(
-      Datalog.Param("this", GP_URI),
-      Datalog.Param("x", Datalog.TScalaInt)
-    ), Seq(
-      Datalog.Body(Seq())
-    )).addHint(OptimizationHints.NoInline)
-
-    val objConstrPat = Datalog.Pattern(None, "A$constr$0", Seq(
-      Datalog.Param("this", GP_URI),
-      Datalog.Param("x", Datalog.TScalaInt)
-    ), Seq(
-      Datalog.Body(Seq(
-        Datalog.Call("A", Seq(thisVar)), Datalog.Call("A$$x", Seq(thisVar, Datalog.Var("x")))
-      ))
-    ))
-
-    val objConstrPat2 = Datalog.Pattern(None, "A$constr$1", Seq(
-      Datalog.Param("this", GP_URI),
-    ), Seq(
-      Datalog.Body(Seq(
-        Datalog.Call("A", Seq(thisVar)), Datalog.Call("A$$x", Seq(thisVar, Datalog.IntConstant(1)))
-      ))
-    ))
-
-    generatedPatterns ++= Seq(mainPat, objPat, objConstrPat, objConstrPat2, objAttrPat)
-  }
-
   def testTimestampsAndAggregation(): Unit = gensym.scoped {
     val thisVar = Datalog.Var("this")
 
@@ -183,14 +131,14 @@ class GenerateDatalog(module: Module) {
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(module.usedClassNames.map(_.raw))
 
-    testTimestampsAndAggregation()
+    //testTimestampsAndAggregation()
 
-    /*generatedPatterns += transNull()
+    generatedPatterns += transNull()
     generatedPatterns += transInstanceOf()
     generatedPatterns += transCast()
     generatedPatterns += transEquals()
     generatedPatterns ++= transDynamicDispatch(classes)
-    generatedPatterns ++= classes.flatMap(transClass)*/
+    generatedPatterns ++= classes.flatMap(transClass)
 
     Datalog.Module(
       name.raw,
@@ -285,49 +233,29 @@ class GenerateDatalog(module: Module) {
   }
 
   private def transEquals(): Datalog.Pattern = gensym.scoped {
-    // TODO: Change this to scala quality of obj, aka. out = `obj1 == obj2`
     val params = Seq(
       Datalog.Param("obj1", GP_URI),
       Datalog.Param("obj2", GP_URI),
       Datalog.Param("out", Datalog.TScalaBoolean)
     )
 
-    val obj1Var = Datalog.Var("obj1")
-    val obj1Typ = Datalog.Var("ty1")
-    val obj1Id = Datalog.Var("id1")
-    val obj1TypComp = getObjectTyp(obj1Var, obj1Typ)
-    val obj1IdComp = getObjectId(obj1Var, obj1Id)
+    val compArg1 = Term.Name("obj1")
+    val compParam1 = Term.Param(Nil, compArg1, Some(GP_URI.asScala), None)
+    val compArg2 = Term.Name("obj2")
+    val compParam2 = Term.Param(Nil, compArg2, Some(GP_URI.asScala), None)
 
-    val obj2Var = Datalog.Var("obj2")
-    val obj2Typ = Datalog.Var("ty2")
-    val obj2Id = Datalog.Var("id2")
-    val obj2TypComp = getObjectTyp(obj2Var, obj2Typ)
-    val obj2IdComp = getObjectId(obj2Var, obj2Id)
+    val body = Datalog.Body(Seq(
+      Datalog.Computed(
+        Datalog.Var("out"),
+        Datalog.Evaluation(
+          Seq(Datalog.Var("obj1") -> GP_URI, Datalog.Var("obj2") -> GP_URI),
+          Datalog.TScalaBoolean,
+          Scala(q"($compParam1, $compParam2) => $compArg1 == $compArg2")
+        )
+      )
+    ))
 
-    val outVar = Datalog.Var("out")
-    val outTrue = Datalog.Eq(outVar, Datalog.True)
-    val outFalse = Datalog.Eq(outVar, Datalog.False)
-
-    val bodies = Seq(
-      Datalog.Body(Seq(
-        obj1TypComp, obj2TypComp, Datalog.Eq(obj1Typ, obj2Typ),
-        obj1IdComp, obj2IdComp, Datalog.Eq(obj1Id, obj2Id), outTrue
-      )),
-      Datalog.Body(Seq(
-        obj1TypComp, obj2TypComp, Datalog.Neq(obj1Typ, obj2Typ),
-        obj1IdComp, obj2IdComp, Datalog.Eq(obj1Id, obj2Id), outFalse
-      )),
-      Datalog.Body(Seq(
-        obj1TypComp, obj2TypComp, Datalog.Eq(obj1Typ, obj2Typ),
-        obj1IdComp, obj2IdComp, Datalog.Neq(obj1Id, obj2Id), outFalse
-      )),
-      Datalog.Body(Seq(
-        obj1TypComp, obj2TypComp, Datalog.Neq(obj1Typ, obj2Typ),
-        obj1IdComp, obj2IdComp, Datalog.Neq(obj1Id, obj2Id), outFalse
-      ))
-    )
-
-    Datalog.Pattern(None, equalsPatName, params, bodies)
+    Datalog.Pattern(None, equalsPatName, params, Seq(body))
   }
 
   private def transInstanceOf(): Datalog.Pattern = gensym.scoped {

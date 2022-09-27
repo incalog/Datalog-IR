@@ -3,7 +3,7 @@ package inca.frontend.objectoriented.compiler
 import inca.backend.optimize.Optimization
 import inca.backend.transform.Transformation
 import inca.backend.transform.magic.demand.{DemandTransformation, DeriveDemandPatterns}
-import inca.backend.transform.objectoriented.AllocTransformation
+import inca.backend.transform.objectoriented.{AllocTransformation, FieldTransformation}
 import inca.compiler.Options
 import inca.compiler.Options.defaultOptimizations
 import inca.frontend.objectoriented.compiler.ObjectOptions.defaultTransformations
@@ -34,6 +34,7 @@ object ObjectOptions {
   val defaultTransformations: Seq[Transformation] = Seq(
     //    RemoveBodyOfUnusedDataConstructor,
     AllocTransformation,
+    FieldTransformation,
     DeriveDemandPatterns,
     DemandTransformation)
 }
