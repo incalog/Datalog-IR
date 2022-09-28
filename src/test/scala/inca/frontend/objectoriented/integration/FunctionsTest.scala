@@ -90,6 +90,14 @@ class FunctionsTest extends AnyFunSuite {
     performSingleOutputValueTest("Plus", "Nat$main", Seq(), 5)
   }
 
+  test("Mutability Example") {
+    performSingleOutputValueTest("Mutability", "A$main", Seq(), true)
+  }
+
+  test("VarAssignment Example") {
+    performSingleOutputValueTest("VarAssignment", "A$main", Seq(), true)
+  }
+
   /*test("Generate example") {
     import inca.backend.optimize._
     import inca.compiler.Compiler

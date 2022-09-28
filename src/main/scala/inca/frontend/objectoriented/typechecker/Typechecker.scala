@@ -87,7 +87,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
     bindVar(Name("this"), classDef, classDef.typ, immutable = true)
 
-    typecheck(constructorDef.body, classDef.typ)
+    typecheck(constructorDef.body, classDef.typ, allowImmutableFieldAssignment = true)
   }
 
   def typecheck(typ: Type): Unit = typ match {
@@ -99,10 +99,10 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case _ => throw new IllegalArgumentException(s"Currently does not support $typ")
   }
 
-  def typecheck(statements: Seq[Statement], rt: Type): Unit =
-    statements.foreach(typecheck(_, rt))
+  def typecheck(statements: Seq[Statement], rt: Type, allowImmutableFieldAssignment: Boolean = false): Unit =
+    statements.foreach(typecheck(_, rt, allowImmutableFieldAssignment))
 
-  def typecheck(statement: Statement, rt: Type): Unit = statement match {
+  def typecheck(statement: Statement, rt: Type, allowImmutableFieldAssignment: Boolean): Unit = statement match {
     case ExprStmt(expression) => typecheck(expression)
     case ReturnStmt(expression) =>
       val outTyp = typecheck(expression)
@@ -112,6 +112,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       typecheck(recv) match {
         case TClass(ref) => lookupField(lookupClassRef(ref), name) match {
           case Some(field) =>
+            if (!allowImmutableFieldAssignment && field.immutable)
+              error(s"Can not assign to immutable field ${field.name}", statement)
             resolveTarget(fieldAssignStmt)(field)
             assertSubtype(typ, field.typ, expression)
           case None => // Nothing

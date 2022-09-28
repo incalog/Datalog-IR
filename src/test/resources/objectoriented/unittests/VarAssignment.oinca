@@ -1,0 +1,13 @@
+module VarAssignment
+
+class A {
+    @main
+    def main(): Boolean = {
+        var a: Int = 10
+        var b: Int = a
+
+        a = 5
+
+        return (a == 5) && (b == 10)
+    }
+}
