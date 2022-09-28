@@ -1,13 +1,12 @@
 package inca.backend.transform.objectoriented
 
-import inca.backend.hints.{Hints, MagicSetHints, ObjectHints, OptimizationHints}
-import inca.backend.hints.ObjectHints.{FieldKey, FieldRootKey}
+import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog._
 import inca.backend.ir.util.CollectVars
 import inca.backend.transform.{Transformation, Transformer}
 import inca.runtime.aggregate.Aggregation
 import inca.runtime.context.DataModel
-import inca.util.{Gensym, Scala}
+import inca.util.Scala
 
 import scala.meta.XtensionQuasiquoteTerm
 
@@ -134,6 +133,8 @@ object FieldTransformation extends Transformation {
     override def transformCall(call: Call, tsInVar: Var): (Var, Seq[Atom]) = {
       val Call(name, args, trans , neg) = call
 
+      // If the call targets a field we want to either insert an aggregation in case of a Get or tsIn to the call in
+      // case of a set.
       if (isFieldGetCall(call)) {
         val hint = hintWithAdjustedFixedAdornment(call, Seq(true))
         val tsMaxVar = Var(gensym.fresh(rootParamName + "Max"))
@@ -145,26 +146,13 @@ object FieldTransformation extends Transformation {
         ))
       } else if (isFieldSetCall(call)) {
         val hint = hintWithAdjustedFixedAdornment(call, Seq(true))
-        val tsOutVar = Var(gensym.fresh(outParamName))
-        val (tsInArg, tsInParam) = createScalaTermAndParam(inParamName, TScalaInt)
+        val (tsOutVar, incComp) = incCounter(tsInVar)
         (tsOutVar, Seq(
           Call(name, args :+ tsInVar, trans, neg).withHints(hint),
-          Computed(
-            tsOutVar, Evaluation(Seq(tsInVar -> TScalaInt), TScalaInt, Scala(q"($tsInParam) => $tsInArg + 1"))
-          )
-        ))
-      } else if (isIgnoreCall(call)) {
-        val hint = hintWithAdjustedFixedAdornment(call, Seq(true, true))
-        (tsInVar, Seq(
-          Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg)
-            .withHints(hint)
+          incComp
         ))
       } else {
-        val hint = hintWithAdjustedFixedAdornment(call, Seq(true, false))
-        val tsOutVar = Var(gensym.fresh(outParamName))
-        (tsOutVar, Seq(
-          Call(name, args :+ tsInVar :+ tsOutVar, trans, neg).withHints(hint)
-        ))
+        super.transformCall(call, tsInVar)
       }
     }
   }

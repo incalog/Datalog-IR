@@ -29,7 +29,6 @@ object AllocTransformation extends Transformation {
 
       val Pattern(vis, name, params, bodies) = leafPat
       val allocInName = gensym.fresh(inParamName)
-      val allocOutName = gensym.fresh(outParamName)
 
       // wrap a Computed(Var, Evaluation) inside a lambda, that uses the dummy variable from the input call
       def transComputedEvaluation(lhs: Term, eval: Evaluation): Computed = {
@@ -43,36 +42,17 @@ object AllocTransformation extends Transformation {
         Computed(lhs, Evaluation(eval.evalArgs :+ Var(allocInName) -> TScalaInt, eval.resultType, Scala(fun)))
       }
 
+      val (allocOut, incComp) = incCounter(Var(allocInName))
+
       val newBodies = bodies.map { body =>
         Body(body.atoms.map {
           case Computed(lhs, eval : Evaluation) =>
             transComputedEvaluation(lhs, eval)
           case a => a
-        } :+ Computed(
-          Var(allocOutName), Evaluation(
-            Seq(Var(allocInName) -> TScalaInt),
-            TScalaInt,
-            Scala(q"""(${scala.meta.Term.Name(allocInName)}: ${TScalaInt.asScala}) => ${scala.meta.Term.Name(allocInName)} + 1""")
-          )
-        ))
+        } :+ incComp)
       }
-      val newParams = params :+ Param(allocInName, TScalaInt) :+ Param(allocOutName, TScalaInt)
+      val newParams = params :+ Param(allocInName, TScalaInt) :+ Param(allocOut.name, TScalaInt)
       Pattern(vis, name, newParams, newBodies).withHints(leafPat)
-    }
-
-    override def transformCall(call: Call, counterInVar: Var): (Var, Seq[Atom]) = {
-      val Call(name, args, trans, neg) = call
-      val hint = hintWithAdjustedFixedAdornment(call, Seq(true, false))
-      if (isIgnoreCall(call)) {
-        (counterInVar, Seq(
-          Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg).withHints(hint)
-        ))
-      } else {
-        val counterOutVar = Var(gensym.fresh(outParamName))
-        (counterOutVar, Seq(
-          Call(name, args :+ counterInVar :+ counterOutVar, trans, neg).withHints(hint)
-        ))
-      }
     }
   }
 }

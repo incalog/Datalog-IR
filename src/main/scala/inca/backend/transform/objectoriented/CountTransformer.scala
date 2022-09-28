@@ -3,10 +3,25 @@ package inca.backend.transform.objectoriented
 import inca.backend.hints.{Hint, Hints, MagicSetHints}
 import inca.backend.ir.Datalog._
 import inca.backend.ir.util.CollectVars
-import inca.backend.transform.{Transformer}
-import inca.util.{Gensym}
+import inca.backend.transform.Transformer
+import inca.util.{Gensym, Scala}
 
+import scala.meta.XtensionQuasiquoteTerm
 
+/**
+ * A CountTransformer initialized a counter with the value 0 and name `rootParamName` in all bodies of a root pattern.
+ * The root pattern is defined by the `rootPatternHint` [transformRootPattern].
+ *
+ * All pattern that directly or indirectly call a leaf pattern (defined by the `leafPatternHint`) are calculated up to
+ * the root pattern. These pattern are called affected pattern. Affected pattern are modified to take two additional
+ * parameter: an input counter and an output counter [transformAffectedPattern].
+ *
+ * All calls that target an affected pattern, a leaf pattern or a root pattern are modified to propagate the input and
+ * output counter [transformCall].
+ *
+ * The leaf pattern is modified based on behaviour defined by a concrete implementation of this class
+ * [transformChildPattern].
+ */
 abstract class CountTransformer(val rootPatternHint: Hint,
                                 val leafPatternHint: Hint,
                                 val rootParamName: String,
@@ -22,15 +37,6 @@ abstract class CountTransformer(val rootPatternHint: Hint,
     def transformLeafPattern(leafPat: Pattern): Pattern
 
   /**
-   * Transform a call to respect the count arguments. A subclass must override this methods. It is possible to return
-   * a sequence of atoms to replace the single call with this sequence.
-   * @param call The call atom to transform.
-   * @param counterInVar The input counter variable.
-   * @return The output count variable used as the next input and a sequence of atoms to replace the call with.
-   */
-    def transformCall(call: Call, counterInVar: Var): (Var, Seq[Atom])
-
-  /**
    * Override this method in a subclass. Generate any additional pattern that are required in this method.
    * @param leafPattern Sequence with all leaf pattern.
    * @param rootPattern Sequence with all root pattern.
@@ -42,6 +48,29 @@ abstract class CountTransformer(val rootPatternHint: Hint,
                                   rootPattern: Set[Pattern],
                                   affectedPattern: Set[Pattern],
                                   unchangedPattern: Set[Pattern]): Seq[Pattern] = Seq()
+
+  /**
+   * Transform a call to respect the count arguments. A subclass can override this methods. It is possible to return
+   * a sequence of atoms to replace the single call with this sequence. The default implementation will append two
+   * additional arguments, one for the input counter and one for the output counter to the call.
+   * @param call         The call atom to transform.
+   * @param counterInVar The input counter variable.
+   * @return The output count variable used as the next input and a sequence of atoms to replace the call with.
+   */
+    def transformCall(call: Call, counterInVar: Var): (Var, Seq[Atom]) = {
+      val Call(name, args, trans, neg) = call
+      val hint = hintWithAdjustedFixedAdornment(call, Seq(true, false))
+      if (isIgnoreCall(call)) {
+        (counterInVar, Seq(
+          Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg).withHints(hint)
+        ))
+      } else {
+        val counterOutVar = Var(gensym.fresh(outParamName))
+        (counterOutVar, Seq(
+          Call(name, args :+ counterInVar :+ counterOutVar, trans, neg).withHints(hint)
+        ))
+      }
+    }
 
     override def transformModule(mod: Module): Module = {
       val transformedPattern = insertCounter(mod.pats)
@@ -71,6 +100,19 @@ abstract class CountTransformer(val rootPatternHint: Hint,
       val term = scala.meta.Term.Name(name)
       val param = scala.meta.Term.Param(Nil, term, Some(typ.asScala), None)
       (term, param)
+    }
+
+  /**
+   * Helper method to increase the counter.
+   * @param counterIn The counter to increase.
+   * @return Tuple with the output variable and the corresponding Computed to increase the counter.
+   */
+    private[objectoriented] def incCounter(counterIn: Var): (Var, Computed) = {
+      val counterOutVar = Var(gensym.fresh(outParamName))
+      val (counterInArg, counterInParam) = createScalaTermAndParam(inParamName, TScalaInt)
+      (counterOutVar, Computed(
+          counterOutVar, Evaluation(Seq(counterIn -> TScalaInt), TScalaInt, Scala(q"($counterInParam) => $counterInArg + 1"))
+      ))
     }
 
   /**
@@ -195,7 +237,7 @@ abstract class CountTransformer(val rootPatternHint: Hint,
      * @param remainingPattern The search space.
      * @return Set with all pattern that directly or indirectly call `pat`.
      */
-    private def findAffectedPattern(pat: Pattern, remainingPattern: Set[Pattern]): Set[Pattern] = {
+    private[objectoriented] def findAffectedPattern(pat: Pattern, remainingPattern: Set[Pattern]): Set[Pattern] = {
       val callSides = findCallSides(pat.name, remainingPattern)
       callSides.union(callSides.flatMap { p =>
         findAffectedPattern(p, remainingPattern.diff(callSides))
