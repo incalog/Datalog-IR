@@ -76,6 +76,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   }
 
   def typecheck(constructorDef: ConstructorDef, classDef: ClassDef): Unit = scopedTypeContext {
+    if (constructorDef.annos.contains(MainAnnotation))
+      error(s"Constructor ${classDef.name} can not be a main method.", constructorDef)
+
     constructorDef.params.foreach { p =>
       typecheck(p.typ)
       bindVar(p.name, p, p.typ, immutable = true)

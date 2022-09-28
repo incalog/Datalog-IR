@@ -1,13 +1,25 @@
 module VarAssignment
 
 class A {
+    var v: Int
+
+    def this(v: Int) = {
+        this.v = v
+    }
+
     @main
-    def main(): Boolean = {
-        var a: Int = 10
-        var b: Int = a
+    def main(p: Int): Boolean = {
+        val a: A = new A(3)
+        var b: A = a
+        a.v = 4
+        val c: A = b
 
-        a = 5
+        var x: Int = 10
+        val y: Int = x
+        val z: Int = p
 
-        return (a == 5) && (b == 10)
+        x = 5
+
+        return (x == 5) && (y == 10) && (z == p) && (a.v == b.v) && (b.v == c.v) && (a.v == 4)
     }
 }

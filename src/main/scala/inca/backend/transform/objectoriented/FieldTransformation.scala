@@ -21,32 +21,31 @@ case class MaxAgg() extends Aggregation[Int] {
   override val hasUnjoin: Boolean = false
 }
 
+/**
+ * This transformation performs several tasks:
+ * 1. Introduce a timestamp counter in the FieldRoot with the name `ts` and initialize it with 0.
+ * 2. Modify all affected methods that are neither a Field (leaf), nor a root to take an `tsIn` and `tsOut` param.
+ * 3. Modify all Fields (leafs) to take an additional timestamp argument (`ts`).
+ * 3. Introduce a filter pattern for each Field (leaf) that has the same parameters as the corresponding field with one
+ *    additional parameter `tsMax`. This pattern allows filtering based the timestamp.
+ * 3. Modify all calls according to the following scheme based on their target:
+ *    - target: Field (Get) =>
+ *        - Insert a max aggregation over the filtered field pattern (only timestamp smaller than `tsIn`)
+ *        - Insert the timestamp received as aggregation result as the last parameter of the original call
+ *    - target: Field (Set) =>
+ *        - Insert the `tsIn` argument as last argument of the call
+ *        - Increase `tsIn` by 1 and return the result as `tsOut`
+ *    - target: Call (Ignore) =>
+ *        - Insert two dummy arguments (one for `tsIn` and one for `tsOut`)
+ *    - target: Call (Ignore) =>
+ *        - Insert two arguments, one for `tsIn` and one for `tsOut`
+ */
 object FieldTransformation extends Transformation {
-  override def transformer(dataModel: DataModel): Transformer = new Transformer {
-
-    val gensym = new Gensym(Seq())
-
-    val rootParamName: String = "ts"
-    val inParamName: String = "tsIn"
-    val outParamName: String = "tsOut"
-
-    override def transformModule(mod: Module): Module = {
-      val transformedPattern = insertTimestampCount(mod.pats)
-      Module(mod.name, mod.imports, transformedPattern, mod.scalaContent)
-    }
-
-    // FIXME: Is there a nicer way to solve this ?
-    private def hintWithAdjustedFixedAdornment(hints: Hints, additionalArgs: Seq[Boolean]): Hints = {
-      val fixedAdornment = hints.hints.remove(MagicSetHints.FixedAdornmentKey)
-      if (fixedAdornment.isDefined) {
-        val adorn = fixedAdornment.get.asInstanceOf[MagicSetHints.FixedAdornment].adorn
-        hints.addHint(MagicSetHints.FixedAdornment(adorn ++ additionalArgs))
-      }
-      hints
-    }
-
-    private def isIgnoreCall(call: Call): Boolean =
-      call.hasHint(MagicSetHints.IgnoreCallKey)
+  override def transformer(dataModel: DataModel): Transformer = new CountTransformer(
+    ObjectHints.FieldRoot,
+    ObjectHints.Field,
+    "ts", "tsIn", "tsOut"
+  ) {
 
     private def isFieldGetCall(call: Call): Boolean =
       call.hasHint(ObjectHints.FieldGetKey)
@@ -54,25 +53,32 @@ object FieldTransformation extends Transformation {
     private def isFieldSetCall(call: Call): Boolean =
       call.hasHint(ObjectHints.FieldSetKey)
 
-    private def findCallSides(callName: Name, pattern: Set[Pattern]): Set[Pattern] = {
-      pattern.filter { pat =>
-        pat.bodies.exists { body =>
-          body.atoms.exists {
-            case Call(name, _, _, _) if name == callName => true
-            case _ => false
-          }
-        }
-      }
-    }
-
-    def createScalaTermAndParam(name: String, typ: Type): (scala.meta.Term.Name, scala.meta.Term.Param) = {
-      val term = scala.meta.Term.Name(name)
-      val param = scala.meta.Term.Param(Nil, term, Some(typ.asScala), None)
-      (term, param)
-    }
-
-    def filterPatternName(fieldPatName: String): String = {
+    private def filterPatternName(fieldPatName: String): String = {
       fieldPatName + "$" + "Filter"
+    }
+
+    /**
+     * Find the biggest timestamp in the field pattern, that is smaller than maxTs. In a first step, the filtered field
+     * pattern is used to eliminate all entries with a timestamp bigger than maxTs. The maximum aggregation is then
+     * performed on the filtered pattern on column 2 (timestamp column) with the specified object.
+     * @param fieldPatName The name of the field pattern to find the timestamp for.
+     * @param obj The object to get the field for.
+     * @param outVar The output timestamp calculated by the aggregation.
+     * @param maxTs The upperbound for the timestamps to consider.
+     * @return The Computed atom.
+     */
+    private def maxAgg(fieldPatName: String, obj: Term, outVar: Var, maxTs: Var): Computed = {
+      Computed(
+        outVar,
+        CustomAggregation(
+          TScalaInt,
+          Some("Maximum aggregation"),
+          Scala(q"""new inca.backend.transform.objectoriented.MaxAgg()"""),
+          filterPatternName(fieldPatName),
+          Seq(obj, Var(gensym.fresh("_")), Var(gensym.fresh("_")), maxTs),
+          2
+        )
+      )
     }
 
     private def generateFilterPattern(fieldPat: Pattern): Pattern = gensym.scoped {
@@ -104,163 +110,62 @@ object FieldTransformation extends Transformation {
       Pattern(fieldPat.vis, filterPatternName(fieldPat.name), fieldPat.params ++ tsParams, Seq(body))
     }
 
-    private def transformFieldPattern(fieldPat: Pattern): Pattern = gensym.scoped {
-      gensym.register(CollectVars.transPattern(fieldPat))
+    override def generateAdditionalPattern(leafPattern: Seq[Pattern], rootPattern: Set[Pattern], affectedPattern: Set[Pattern], unchangedPattern: Set[Pattern]): Seq[Pattern] = {
+      leafPattern.map(generateFilterPattern)
+    }
 
-      if (fieldPat.params.size != 2) {
-        throw new IllegalArgumentException(s"Field pattern ${fieldPat.name} requires exactly two parameters!")
+    override def transformLeafPattern(leafPat: Pattern): Pattern = gensym.scoped {
+      gensym.register(CollectVars.transPattern(leafPat))
+
+      if (leafPat.params.size != 2) {
+        throw new IllegalArgumentException(s"Field pattern ${leafPat.name} requires exactly two parameters!")
       }
 
-      if (fieldPat.bodies.nonEmpty) {
-        throw new IllegalArgumentException(s"Field pattern ${fieldPat.name} must not have a body!")
+      if (leafPat.bodies.nonEmpty) {
+        throw new IllegalArgumentException(s"Field pattern ${leafPat.name} must not have a body!")
       }
 
       val tsParam = Param(gensym.fresh(rootParamName), TScalaInt)
-      Pattern(fieldPat.vis, fieldPat.name, fieldPat.params :+ tsParam, Seq())
-        .withHints(fieldPat)
+      Pattern(leafPat.vis, leafPat.name, leafPat.params :+ tsParam, Seq())
+        .withHints(leafPat)
         .addHint(OptimizationHints.NoInline)
     }
 
-    def maxAgg(fieldPatName: String, obj: Term, outVar: Var, maxTs: Var): Computed = {
-      Computed(
-        outVar,
-        CustomAggregation(
-          TScalaInt,
-          Some("Maximum aggregation"),
-          Scala(q"""new inca.backend.transform.objectoriented.MaxAgg()"""),
-          filterPatternName(fieldPatName),
-          Seq(obj, Var(gensym.fresh("_")), Var(gensym.fresh("_")), maxTs),
-          2
-        )
-      )
-    }
+    override def transformCall(call: Call, tsInVar: Var): (Var, Seq[Atom]) = {
+      val Call(name, args, trans , neg) = call
 
-    private def transformCall(atom: Atom, tsInVar: Var, affectedCallNames: Set[String]): (Var, Seq[Atom]) = {
-      atom match {
-        case call@Call(name, args, trans, neg) if affectedCallNames.contains(name) =>
-          if (isFieldGetCall(call)) {
-            val hint = hintWithAdjustedFixedAdornment(call, Seq(true))
-            val tsMaxVar = Var(gensym.fresh(rootParamName + "Max"))
-            (tsInVar, Seq(
-              maxAgg(name, args.head, tsMaxVar, tsInVar),
-              Call(name, args :+ tsMaxVar, trans, neg)
-                .withHints(hint)
-                .addHint(MagicSetHints.IgnoreCall)
-            ))
-          } else if (isFieldSetCall(call)) {
-            val hint = hintWithAdjustedFixedAdornment(call, Seq(true))
-            val tsOutVar = Var(gensym.fresh(outParamName))
-            val (tsInArg, tsInParam) = createScalaTermAndParam(inParamName, TScalaInt)
-            (tsOutVar, Seq(
-              Call(name, args :+ tsInVar, trans, neg).withHints(hint),
-              Computed(
-                tsOutVar, Evaluation(Seq(tsInVar -> TScalaInt), TScalaInt, Scala(q"($tsInParam) => $tsInArg + 1"))
-              )
-            ))
-          } else if (isIgnoreCall(call)) {
-            val hint = hintWithAdjustedFixedAdornment(call, Seq(true, true))
-            (tsInVar, Seq(
-              Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg)
-                .withHints(hint)
-            ))
-          } else {
-            val hint = hintWithAdjustedFixedAdornment(call, Seq(true, false))
-            val tsOutVar = Var(gensym.fresh(outParamName))
-            (tsOutVar, Seq(
-              Call(name, args :+ tsInVar :+ tsOutVar, trans, neg).withHints(hint)
-            ))
-          }
-        case a => (tsInVar, Seq(a))
+      if (isFieldGetCall(call)) {
+        val hint = hintWithAdjustedFixedAdornment(call, Seq(true))
+        val tsMaxVar = Var(gensym.fresh(rootParamName + "Max"))
+        (tsInVar, Seq(
+          maxAgg(name, args.head, tsMaxVar, tsInVar),
+          Call(name, args :+ tsMaxVar, trans, neg)
+            .withHints(hint)
+            .addHint(MagicSetHints.IgnoreCall)
+        ))
+      } else if (isFieldSetCall(call)) {
+        val hint = hintWithAdjustedFixedAdornment(call, Seq(true))
+        val tsOutVar = Var(gensym.fresh(outParamName))
+        val (tsInArg, tsInParam) = createScalaTermAndParam(inParamName, TScalaInt)
+        (tsOutVar, Seq(
+          Call(name, args :+ tsInVar, trans, neg).withHints(hint),
+          Computed(
+            tsOutVar, Evaluation(Seq(tsInVar -> TScalaInt), TScalaInt, Scala(q"($tsInParam) => $tsInArg + 1"))
+          )
+        ))
+      } else if (isIgnoreCall(call)) {
+        val hint = hintWithAdjustedFixedAdornment(call, Seq(true, true))
+        (tsInVar, Seq(
+          Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg)
+            .withHints(hint)
+        ))
+      } else {
+        val hint = hintWithAdjustedFixedAdornment(call, Seq(true, false))
+        val tsOutVar = Var(gensym.fresh(outParamName))
+        (tsOutVar, Seq(
+          Call(name, args :+ tsInVar :+ tsOutVar, trans, neg).withHints(hint)
+        ))
       }
-    }
-
-    private def transformFieldRootPattern(fieldRoot: Pattern, affectedPattern: Set[Pattern]): Pattern = gensym.scoped {
-      gensym.register(CollectVars.transPattern(fieldRoot))
-
-      // name of all calls that end up calling a constructor
-      val affectedCallNames = affectedPattern.map(_.name)
-
-      val bodies = fieldRoot.bodies.map { body =>
-        gensym.scoped {
-          var tsVar = Var(gensym.fresh(rootParamName))
-          val tsInit = Eq(tsVar, Constant(IntLiteral(0)))
-
-          Body(tsInit +: body.atoms.flatMap { a =>
-            val (tsOutVar, transAtom) = transformCall(a, tsVar, affectedCallNames)
-            tsVar = tsOutVar
-            transAtom
-          })
-        }
-      }
-      Pattern(fieldRoot.vis, fieldRoot.name, fieldRoot.params, bodies).withHints(fieldRoot)
-    }
-
-    private def transformAffectedPattern(pattern: Pattern, affectedPattern: Set[Pattern]): Pattern = gensym.scoped {
-      gensym.register(CollectVars.transPattern(pattern))
-
-      val tsParams = Seq(
-        Param(gensym.fresh(inParamName), TScalaInt),
-        Param(gensym.fresh(outParamName), TScalaInt),
-      )
-
-      // name of all calls that end up calling a constructor
-      val affectedCallNames = affectedPattern.map(_.name)
-
-      val bodies = pattern.bodies.map { body =>
-        gensym.scoped {
-          var tsVar = Var(tsParams.head.name)
-
-          Body(body.atoms.flatMap { a =>
-            val (tsOutVar, transAtom) = transformCall(a, tsVar, affectedCallNames)
-            tsVar = tsOutVar
-            transAtom
-          } :+ Eq(
-            Var(tsParams.last.name), tsVar
-          ))
-        }
-      }
-      Pattern(pattern.vis, pattern.name, pattern.params ++ tsParams, bodies)
-        .withHints(pattern)
-    }
-
-    private def insertTimestampCount(pattern: Seq[Pattern]): Seq[Pattern] = {
-      val fieldPats = pattern.filter(_.hasHint(FieldKey)).toSet
-      val fieldRootPats = pattern.filter(_.hasHint(FieldRootKey)).toSet
-
-      if (fieldPats.nonEmpty && fieldRootPats.isEmpty)
-        throw new IllegalArgumentException(s"${this.getClass.getSimpleName}: Missing root annotation!")
-      else if (fieldRootPats.size > 1)
-        throw new IllegalArgumentException(s"${this.getClass.getSimpleName}: Ambiguous root!")
-
-      if (fieldPats.isEmpty)
-        return pattern
-
-      // exclude Field and FieldRoot pattern from affected pattern
-      val searchPattern = pattern.toSet.diff(fieldPats).diff(fieldRootPats)
-      val affectedPattern = fieldPats.flatMap(findAffectedPattern(_, searchPattern))
-      val allAffectedPattern = affectedPattern.union(fieldPats).union(fieldRootPats)
-      val unchangedPattern = searchPattern.diff(affectedPattern)
-
-      val filterPats = fieldPats.map(generateFilterPattern)
-      val transRootPats = fieldRootPats.map(transformFieldRootPattern(_, allAffectedPattern))
-      val transFieldPats = fieldPats.map(transformFieldPattern)
-      val transAffectedPats = affectedPattern.map(transformAffectedPattern(_, allAffectedPattern))
-
-      transRootPats.toSeq ++ transFieldPats ++ transAffectedPats ++ filterPats ++ unchangedPattern
-    }
-
-    /**
-     * Recursively find the pattern that either call `pat` directly or indirectly.
-     *
-     * @param pat              The pattern to find all callers for.
-     * @param remainingPattern The search space.
-     * @return Set with all pattern that directly or indirectly call `pat`.
-     */
-    private def findAffectedPattern(pat: Pattern, remainingPattern: Set[Pattern]): Set[Pattern] = {
-      val callSides = findCallSides(pat.name, remainingPattern)
-      callSides.union(callSides.flatMap { p =>
-        findAffectedPattern(p, remainingPattern.diff(callSides))
-      })
     }
   }
 }

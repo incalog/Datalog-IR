@@ -2,7 +2,7 @@ package inca.util
 
 class Gensym(init: Iterable[String]) {
   /** map of used symbols, each of which must end with '$' */
-  private var used: Map[String, Int] = Map()
+   var used: Map[String, Int] = Map()
   private var globals: Seq[String] = Seq()
 
   init.foreach(register)
@@ -19,6 +19,16 @@ class Gensym(init: Iterable[String]) {
         used += s_ -> used.getOrElse(s_, 0)
       case (s_, Some(num)) =>
         used += s_ -> (num + 1).max(used.getOrElse(s_, 0))
+    }
+  }
+
+  def last(base: String): Option[String] = {
+    val base_ = decompileName(base)._1
+    used.get(base_) match {
+      case Some(count) =>
+        Some(base_ + (count - 1))
+      case None =>
+        None
     }
   }
 

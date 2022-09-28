@@ -45,6 +45,8 @@ case class VarDeclareStmt(name: Name, typ: Type, maybeExpression: Option[Express
 
   override def vars: Map[Name, Option[Type]] = Map(name -> Some(typ))
 
+  override def isImmutable: Boolean = immutable
+
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val expr = if (maybeExpression.isEmpty) "" else s" = ${maybeExpression.get.toString}"
     val prefix = if (immutable) "val " else "var "

@@ -1,5 +1,6 @@
 package inca.frontend.objectoriented.integration
 
+import inca.backend.ir.util.printer.DatalogPrinter
 import inca.frontend.objectoriented.executor.ObjectExecutor
 import inca.util.FileUtil.readFile
 import org.scalatest.funsuite.AnyFunSuite
@@ -95,7 +96,7 @@ class FunctionsTest extends AnyFunSuite {
   }
 
   test("VarAssignment Example") {
-    performSingleOutputValueTest("VarAssignment", "A$main", Seq(), true)
+    performSingleOutputValueTest("VarAssignment", "A$main", Seq(q"3"), true)
   }
 
   /*test("Generate example") {

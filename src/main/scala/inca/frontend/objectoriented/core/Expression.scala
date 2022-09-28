@@ -4,8 +4,6 @@ import inca.compiler.SourceLocation
 import inca.frontend.util.{Resolvable, Typeable}
 import inca.util.Scala
 
-import java.util.Objects.hash
-
 sealed trait Expression extends Typeable[Type] with SourceLocation {
   def prettyprint(infixParens: Boolean)(implicit indent: String): String
   def prettyprint(implicit indent: String): String = prettyprint(infixParens = false)(indent)
@@ -33,7 +31,10 @@ case class VarReadExpr(targetName: Name) extends Expression with Resolvable[VarR
     s"$targetName"
 }
 object VarReadExpr {
-  trait Target extends SourceLocation
+  trait Target extends SourceLocation {
+    def signature: Int = this.hashCode()
+    def isImmutable: Boolean = true
+  }
 }
 
 case class ConstructorExpr(classRef: ClassRef, args: Seq[Expression]) extends Expression with Resolvable[ConstructorDef] {

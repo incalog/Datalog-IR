@@ -24,6 +24,7 @@ object GenerateDatalog {
   val equalsPatName: String     = internalPrefix + "equals"
   val instanceOfPatName: String = internalPrefix + "instanceOf"
 
+  def variableName(name: String, signature: Int): String = name + "_" + signature
   def dispatchPatName(methodNameWithSignature: String): String = s"${internalPrefix}dispatch_${methodNameWithSignature}"
   def constructorPatName(className: String): String = className
   def fieldPatName(className: String, fieldName: String): String = className + sep + sep + fieldName
@@ -342,10 +343,6 @@ class GenerateDatalog(module: Module) {
       for ((tup, cons) <- transExpression(expression))
         yield (Some(tup), cons)
 
-    case VarDeclareStmt(name, _, Some(expression), true) =>
-      for ((Seq(term), cons) <- transExpression(expression))
-        yield (None, cons :+ Datalog.Eq(Datalog.Var(name.raw), term))
-
     case IfStmt(cnd, thn, els) =>
       val cndTrans = transExpression(cnd)
       val thnTrans = transStatements(thn)
@@ -359,6 +356,7 @@ class GenerateDatalog(module: Module) {
              (elsTerm, elsCons) <- elsTrans)
         yield (elsTerm, cndCons ++ Seq(Datalog.Eq(cndTerm, Datalog.False)) ++ elsCons)
       thnRes ++ elsRes
+
     case FieldAssignStmt(recv, name, expression) =>
       // TODO: We might use the fieldDef target here instead to allow inheritance of attributes
       val classType = recv.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression")) match {
@@ -376,22 +374,48 @@ class GenerateDatalog(module: Module) {
       }
       transRecv.flatten
 
+    case varDecl@VarDeclareStmt(name, _, Some(expression), immutable) =>
+      val varName =
+        if (varDecl.isImmutable)
+          name.raw
+        else
+          gensym.fresh(variableName(name.raw, varDecl.signature))
+      for ((Seq(term), cons) <- transExpression(expression))
+        yield (None, cons :+ Datalog.Eq(Datalog.Var(varName), term))
+
+    case varAssign@VarAssignStmt(targetName, expression) =>
+      val target = varAssign.target.getOrElse(throw new IllegalArgumentException(s"Unresolved variable $varAssign"))
+      target match {
+        case VarDeclareStmt(name, _, _, false) =>
+          val varName = gensym.fresh(variableName(name.raw, target.signature))
+          for ((Seq(term), cons) <- transExpression(expression))
+            yield (None, cons :+ Datalog.Eq(Datalog.Var(varName), term))
+        case _ => throw new RuntimeException(s"Unsupported assignment: $target")
+      }
+
       /*for (tups <- TupleOps.cartesianProduct(exprRes)) yield {
         val (argTerms, argCons) = tups.unzip
         (None, argCons.flatten :+
           Datalog.Call(fieldPatName(classDef.name.raw, name.raw), argTerms.flatten)
         )
       }*/
-
-    //case VarAssignStmt(targetName, expression) => ???
     case s =>
-      throw new RuntimeException(s"Statement $s is not yet supported!")
+      throw new RuntimeException(s"Statement ${s.getClass} is not yet supported!")
   }
 
   private def transExpression(expression: Expression): ExpRes = expression match {
-    case VarReadExpr(name) =>
+    case varRead@VarReadExpr(name) =>
       val expTyp = expression.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression"))
-      Seq((flattenVars(name, expTyp).map(_._1), Seq()))
+      val target = varRead.target.getOrElse(throw new IllegalArgumentException(s"Unresolved expression $expression"))
+
+      if (target.isImmutable) {
+        Seq((flattenVars(name.raw, expTyp).map(_._1), Seq()))
+      } else {
+        val varName = variableName(name.raw, target.signature)
+        val currentVarName = gensym.last(varName)
+          .getOrElse(throw new IllegalArgumentException(s"Variable with name $varName not found!"))
+        Seq((flattenVars(currentVarName, expTyp).map(_._1), Seq()))
+      }
 
     case FieldReadExpr(recv, targetName) =>
       // TODO: We might use the fieldDef target here instead to allow inheritance of attributes
@@ -622,7 +646,7 @@ class GenerateDatalog(module: Module) {
       Seq(Datalog.Param(v, transType(typ)))
   }
 
-  private def flattenVars(x: Name, ty: Type): Seq[(Datalog.Var, Datalog.Type)] = ty match {
+  private def flattenVars(x: String, ty: Type): Seq[(Datalog.Var, Datalog.Type)] = ty match {
     /*case TTuple(ts) =>
       ts.zipWithIndex.map { case (ty, ix) => Datalog.Var(x.name + "$_" + ix) -> transType(ty) }
       tupleParams.get(x.name) match {
@@ -632,7 +656,7 @@ class GenerateDatalog(module: Module) {
           ts.zipWithIndex.map { case (ty, ix) => Datalog.Var(x.name + "$_" + ix) -> transType(ty) }
       }*/
     case ty =>
-      Seq(Datalog.Var(x.raw) -> transType(ty))
+      Seq(Datalog.Var(x) -> transType(ty))
   }
 
   def GP_URI: Datalog.TScala = Datalog.TScala(Scala(typeOf[ObjectID]))

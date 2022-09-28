@@ -1,67 +1,35 @@
 package inca.backend.transform.objectoriented
 
-import inca.backend.hints.{Hints, MagicSetHints}
-import inca.backend.hints.MagicSetHints.FixedAdornment
-import inca.backend.hints.ObjectHints.{AllocationKey, AllocationRootKey}
+import inca.backend.hints.ObjectHints
 import inca.backend.ir.Datalog._
 import inca.backend.ir.util.CollectVars
 import inca.backend.transform.{Transformation, Transformer}
 import inca.runtime.context.DataModel
-import inca.runtime.data.ObjectID
-import inca.util.Scala.symbolOf
-import inca.util.{Gensym, Scala}
+import inca.util.Scala
 
-import scala.+:
 import scala.meta.XtensionQuasiquoteTerm
 
+/**
+ * This transformation does the following things:
+ * 1. Introduce an allocation counter in the AllocationRoot with the name `alloc` and initialize it with 0.
+ * 2. Modify all affected methods that are neither an Allocation (leaf), nor a root to take an `allocIn` and `allcOut`
+ *    parameter.
+ * 3. Modify the embedded computation inside the Allocation (leafs) to use the `allocIn` argument as second parameter
+ *    for the ObjectID creation. Increase the `allocIn` argument by one and assign the result to `allocOut` .
+ */
 object AllocTransformation extends Transformation {
-  override def transformer(dataModel: DataModel): Transformer = new Transformer {
+  override def transformer(dataModel: DataModel): Transformer = new CountTransformer(
+    ObjectHints.AllocationRoot,
+    ObjectHints.Allocation,
+    "alloc", "allocIn", "allocOut"
+  ) {
 
-    val gensym = new Gensym(Seq())
+    override def transformLeafPattern(leafPat: Pattern): Pattern = gensym.scoped  {
+      gensym.register(CollectVars.transPattern(leafPat))
 
-    override def transformModule(mod: Module): Module = {
-      val transformedPattern = insertAllocationCount(mod.pats)
-      Module(mod.name, mod.imports, transformedPattern.toSeq, mod.scalaContent)
-    }
-
-    // FIXME: Is there a nicer way to solve this ?
-    private def hintWithAdjustedFixedAdornment(hints: Hints, allocIn: Boolean = true, allocOut: Boolean = false): Hints = {
-      val fixedAdornment = hints.hints.remove(MagicSetHints.FixedAdornmentKey)
-      if (fixedAdornment.isDefined) {
-        val adorn = fixedAdornment.get.asInstanceOf[FixedAdornment].adorn
-        hints.addHint(MagicSetHints.FixedAdornment(adorn :+ allocIn :+ allocOut))
-      }
-      hints
-    }
-
-    private def isReadonlyCall(call: Call): Boolean =
-      call.hasHint(MagicSetHints.IgnoreCallKey)
-
-    private def findCallSides(callName: Name, pattern: Set[Pattern]): Set[Pattern] = {
-      pattern.filter { pat =>
-        pat.bodies.exists { body =>
-          body.atoms.exists {
-            case call@Call(name, _, _, _) if name == callName => true
-            case _ => false
-          }
-        }
-      }
-    }
-
-    private def containsOnlyReadCalls(callName: Name, pattern: Pattern): Boolean = {
-      !pattern.bodies.exists { body =>
-        body.atoms.exists {
-          case call@Call(name, _, _, _) if name == callName && !isReadonlyCall(call) => true
-          case _ => false
-        }
-      }
-    }
-
-    private def transformAllocationPattern(alloc: Pattern): Pattern = gensym.scoped  {
-      gensym.register(CollectVars.transPattern(alloc))
-
-      val allocInName = gensym.fresh("allocIn")
-      val allocOutName = gensym.fresh("allocOut")
+      val Pattern(vis, name, params, bodies) = leafPat
+      val allocInName = gensym.fresh(inParamName)
+      val allocOutName = gensym.fresh(outParamName)
 
       // wrap a Computed(Var, Evaluation) inside a lambda, that uses the dummy variable from the input call
       def transComputedEvaluation(lhs: Term, eval: Evaluation): Computed = {
@@ -75,7 +43,7 @@ object AllocTransformation extends Transformation {
         Computed(lhs, Evaluation(eval.evalArgs :+ Var(allocInName) -> TScalaInt, eval.resultType, Scala(fun)))
       }
 
-      val bodies = alloc.bodies.map { body =>
+      val newBodies = bodies.map { body =>
         Body(body.atoms.map {
           case Computed(lhs, eval : Evaluation) =>
             transComputedEvaluation(lhs, eval)
@@ -88,119 +56,23 @@ object AllocTransformation extends Transformation {
           )
         ))
       }
-      val params = alloc.params :+ Param(allocInName, TScalaInt) :+ Param(allocOutName, TScalaInt)
-      Pattern(alloc.vis, alloc.name, params, bodies).withHints(alloc)
+      val newParams = params :+ Param(allocInName, TScalaInt) :+ Param(allocOutName, TScalaInt)
+      Pattern(vis, name, newParams, newBodies).withHints(leafPat)
     }
 
-    private def transformAllocationRootPattern(allocRoot: Pattern, affectedPattern: Set[Pattern]): Pattern = gensym.scoped {
-      gensym.register(CollectVars.transPattern(allocRoot))
-
-      // name of all calls that end up calling a constructor
-      val affectedCallNames = affectedPattern.map(_.name)
-
-      val bodies = allocRoot.bodies.map { body =>
-        gensym.scoped {
-          var allocVar = Var(gensym.fresh("alloc"))
-          val allocInit = Eq(allocVar, Constant(IntLiteral(0)))
-
-          Body(allocInit +: body.atoms.map {
-            case call@Call(name, args, trans, neg) if affectedCallNames.contains(name) =>
-              val hint = hintWithAdjustedFixedAdornment(call, allocIn = true, allocOut = false)
-              if (isReadonlyCall(call)) {
-                Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg)
-                  .withHints(hint)
-              } else {
-                val allocInVar = allocVar
-                allocVar = Var(gensym.fresh("alloc"))
-                Call(name, args :+ allocInVar :+ allocVar, trans, neg)
-                  .withHints(hint)
-              }
-            case a => a
-          })
-        }
+    override def transformCall(call: Call, counterInVar: Var): (Var, Seq[Atom]) = {
+      val Call(name, args, trans, neg) = call
+      val hint = hintWithAdjustedFixedAdornment(call, Seq(true, false))
+      if (isIgnoreCall(call)) {
+        (counterInVar, Seq(
+          Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg).withHints(hint)
+        ))
+      } else {
+        val counterOutVar = Var(gensym.fresh(outParamName))
+        (counterOutVar, Seq(
+          Call(name, args :+ counterInVar :+ counterOutVar, trans, neg).withHints(hint)
+        ))
       }
-      Pattern(allocRoot.vis, allocRoot.name, allocRoot.params, bodies).withHints(allocRoot)
-    }
-
-    private def transformAffectedPattern(pattern: Pattern, affectedPattern: Set[Pattern]): Pattern = gensym.scoped {
-      gensym.register(CollectVars.transPattern(pattern))
-
-      val allocInVar = Var(gensym.fresh("allocIn"))
-      var allocOutVar = Var(gensym.fresh("allocOut"))
-
-      val allocInParam = Param(allocInVar.name, TScalaInt)
-      val allocOutParam = Param(allocOutVar.name, TScalaInt)
-
-      // name of all calls that end up calling a constructor
-      val affectedCallNames = affectedPattern.map(_.name)
-
-      val bodies = pattern.bodies.map { body =>
-        gensym.scoped {
-          // reset the allocOutVar for each body
-          allocOutVar = allocInVar
-
-          Body(body.atoms.map {
-            case call@Call(name, args, trans, neg) if affectedCallNames.contains(name) =>
-              val hint = hintWithAdjustedFixedAdornment(call, allocIn = true, allocOut = false)
-              if (isReadonlyCall(call)) {
-                Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg)
-                  .withHints(hint)
-              } else {
-                val allocInVar = allocOutVar
-                allocOutVar = Var(gensym.fresh("allocOut"))
-                Call(name, args :+ allocInVar :+ allocOutVar, trans, neg)
-                  .withHints(hint)
-              }
-            case a => a
-          } :+ Eq(Var(allocOutParam.name), allocOutVar))
-        }
-      }
-      val params = pattern.params :+ allocInParam :+ allocOutParam
-      Pattern(pattern.vis, pattern.name, params, bodies).withHints(pattern)
-    }
-
-    private def insertAllocationCount(pattern: Seq[Pattern]): Seq[Pattern] = {
-      val allocPats = pattern.filter(_.hasHint(AllocationKey)).toSet
-      val allocRootPats = pattern.filter(_.hasHint(AllocationRootKey)).toSet
-
-      if (allocPats.nonEmpty && allocRootPats.isEmpty)
-        throw new IllegalArgumentException("Missing allocation root!")
-      else if (allocRootPats.size > 1)
-        throw new IllegalArgumentException("Ambiguous allocation root!")
-
-      if (allocPats.isEmpty)
-        return pattern
-
-      // exclude Allocation and AllocationRoot pattern from affected pattern
-      val searchPattern = pattern.toSet.diff(allocPats).diff(allocRootPats)
-      val affectedPattern = allocPats.flatMap(findAffectedPattern(_, searchPattern))
-      val allAffectedPattern = affectedPattern.union(allocPats).union(allocRootPats)
-      val unchangedPattern = searchPattern.diff(affectedPattern)
-
-      val transAllocRootPats = allocRootPats.map(transformAllocationRootPattern(_, allAffectedPattern))
-      val transAllocPats = allocPats.map(transformAllocationPattern)
-      val transAffectedPats = affectedPattern.map(transformAffectedPattern(_, allAffectedPattern))
-
-      transAllocRootPats.toSeq ++ transAllocPats ++ transAffectedPats ++ unchangedPattern
-    }
-
-    /**
-     * Recursively find the pattern that either call `pat` directly or indirectly.
-     * @param pat The pattern to find all callers for.
-     * @param remainingPattern The search space.
-     * @return Set with all pattern that directy or indirectly call `pat`.
-     */
-    private def findAffectedPattern(pat: Pattern, remainingPattern: Set[Pattern]): Set[Pattern] = {
-        val callSides = findCallSides(pat.name, remainingPattern)
-        callSides.union(callSides.flatMap { p =>
-          // TODO: In theory this should work, in practise this breaks the demand transformation for recursive functions
-          //  There must be some logical error in this if statement. The idea to filter these patterns out is correct-
-          // reading a constructor does not required propagating alloc_in / alloc_out
-          /*if (containsOnlyReadCalls(pat.name, p))
-            None
-          else*/
-            findAffectedPattern(p, remainingPattern.diff(callSides))
-        })
     }
   }
 }
