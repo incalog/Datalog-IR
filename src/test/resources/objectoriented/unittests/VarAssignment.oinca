@@ -17,9 +17,10 @@ class A {
         var x: Int = 10
         val y: Int = x
         val z: Int = p
+        val xIs10: Boolean = (x == 10)
 
         x = 5
 
-        return (x == 5) && (y == 10) && (z == p) && (a.v == b.v) && (b.v == c.v) && (a.v == 4)
+        return xIs10 && (x == 5) && (y == 10) && (z == p) && (a.v == b.v) && (b.v == c.v) && (a.v == 4)
     }
 }

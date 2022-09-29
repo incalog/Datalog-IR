@@ -67,6 +67,14 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       if (cs.size > 1)
         error(s"Ambiguous parameter names in method ${methodDef.name}", cs: _*)
     }
+    methodDef.body.foreach {
+      case ExprStmt(expression) => expression match {
+        case SuperExpr(_) =>
+          error(s"Method ${methodDef.name} must not contain a super constructor call.", expression)
+        case _ => // nothing
+      }
+      case _ => // nothing
+    }
 
     bindVar(Name("this"), classDef, classDef.typ, immutable = true)
 
@@ -86,6 +94,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     constructorDef.params.groupBy(_.name).foreach { case (_, cs) =>
       if (cs.size > 1)
         error(s"Ambiguous parameter names in constructor ${classDef.name}", cs: _*)
+    }
+    constructorDef.body.foreach {
+      case ReturnStmt(expression) =>
+        error(s"Constructor ${classDef.name} must not contain a return statement.", expression)
+      case _ => // nothing
     }
 
     bindVar(Name("this"), classDef, classDef.typ, immutable = true)
