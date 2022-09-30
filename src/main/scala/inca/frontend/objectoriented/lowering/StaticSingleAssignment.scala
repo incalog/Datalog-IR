@@ -15,9 +15,15 @@ object StaticSingleAssignment {
     modules.map(transformModule)
 }
 
-// Note:
-// Make sure to create a new instance for each resolvable object in order to clear the targets ! This class rewrites
-// part of the AST, which will invalidate the targets!
+/**
+ * This class performs a static single assignment transformation on the AST. Each VarAssignStmt and mutable
+ * VarDeclareStmt is replaced by an immutable VarDeclareStmt. Each declaration has it's own unique name postfixed
+ * by a $ and a number. After all IfStmts, for each contained variable in the then- and else-body a new VarPhiAssignStmt
+ * is inserted, that stores the last variable name of the then-block and the else-block.
+ *
+ * All currently resolved targets from the previous typechecking are cleared by travesing the AST
+ * and creating new instances of all resolvable objects.
+ */
 class StaticSingleAssignment(module: Module) {
 
   private val gensym: GensymTyped = new GensymTyped(Iterable.empty)

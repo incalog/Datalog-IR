@@ -384,7 +384,7 @@ class GenerateDatalog(module: Module) {
       }
       transRecv.flatten
 
-    case varDecl@VarDeclareStmt(name, _, Some(expression), true) =>
+    case VarDeclareStmt(name, _, Some(expression), true) =>
       for ((Seq(term), cons) <- transExpression(expression))
         yield (None, cons :+ Datalog.Eq(Datalog.Var(name.raw), term), path)
 
@@ -398,7 +398,7 @@ class GenerateDatalog(module: Module) {
       )
 
     case s =>
-      throw new RuntimeException(s"Statement ${s.getClass} is not yet supported!")
+      throw new RuntimeException(s"Statement ${s.getClass} declared by $s is not supported!")
   }
 
   private def transExpression(expression: Expression): ExpRes = expression match {
