@@ -3,11 +3,14 @@ package inca.frontend.objectoriented.util
 import inca.frontend.objectoriented.core.Type
 import inca.util.Gensym
 
-class GensymTyped(init: Iterable[String]) extends Gensym(init) {
+/**
+ * Gensym subclass that allows storing optional type information for each variable.
+ */
+class GensymTyped(init: Iterable[(String, Option[Type])]) extends Gensym(Iterable.empty) {
   /** map of used symbols, each of which must end with '$' */
   private[inca] var types: Map[String, Type] = Map()
 
-  init.foreach(register)
+  init.foreach { case(name, typOption) => registerWithType(name, typOption) }
 
   def registerWithTypes(it: Iterable[(String, Option[Type])]): Unit =
     it.foreach { case (name, typ) => registerWithType(name, typ) }
@@ -75,26 +78,20 @@ class GensymTyped(init: Iterable[String]) extends Gensym(init) {
       val v1 = this.used.get(k)
       val v2 = that.used.get(k)
       if (v1.isDefined && v2.isDefined) {
-        if (v1.get > v2.get) {
-          k -> (v1.get, this.types.get(k))
-        } else {
-          k -> (v2.get, that.types.get(k))
-        }
+        k -> (v1.get.max(v2.get), this.types.get(k))
       } else if (v1.isDefined) {
         k -> (v1.get, this.types.get(k))
       } else {
         k -> (v2.get, that.types.get(k))
       }
     }.toMap
-    union.types = valuesWithType.flatMap {
-      case (k, (_ , typ)) => if (typ.isDefined) Seq(k -> typ.get) else None
-    }
+    union.types = valuesWithType.flatMap { case (k, (_ , typ)) => if (typ.isDefined) Seq(k -> typ.get) else None }
     union.used = valuesWithType.map { case (k, (n , _)) => k -> n }
     union.globals = this.globals.toSet.union(that.globals.toSet).toSeq
     union
   }
 
   def symbols: Set[String] = {
-    this.used.keySet.map(_.dropRight(1))
+    this.used.keySet.map(_.dropRight(1)) // drop the $ symbol
   }
 }
