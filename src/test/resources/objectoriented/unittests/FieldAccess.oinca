@@ -1,17 +1,17 @@
 module FieldAccess1
 
 class Fraction {
-    val nominator: Int
+    val numerator: Int
     val denominator: Int
 
-    def this(nominator: Int, denominator: Int) = {
-        this.nominator = nominator
+    def this(numerator: Int, denominator: Int) = {
+        this.numerator = numerator
         this.denominator = denominator
     }
 
     @main
-    def main(nom: Int, denom: Int): Int = {
-        val frac: Fraction = new Fraction(nom, denom)
-        return frac.nominator / frac.denominator
+    def main(num: Int, denom: Int): Int = {
+        val frac: Fraction = new Fraction(num, denom)
+        return frac.numerator / frac.denominator
     }
 }

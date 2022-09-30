@@ -30,6 +30,12 @@ class A {
         return true
     }
 }
-class B extends A {}
-class C1 extends B {}
-class C2 extends B {}
+class B extends A {
+    def this() = {}
+}
+class C1 extends B {
+   def this() = {}
+}
+class C2 extends B {
+    def this() = {}
+}

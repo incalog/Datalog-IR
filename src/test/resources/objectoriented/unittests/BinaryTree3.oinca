@@ -9,7 +9,7 @@ class Node {
 }
 
 class UndefinedNode extends Node {
-
+    def this() = {}
 }
 
 class DefinedNode extends Node {

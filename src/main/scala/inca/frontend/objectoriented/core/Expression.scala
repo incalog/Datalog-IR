@@ -31,10 +31,7 @@ case class VarReadExpr(targetName: Name) extends Expression with Resolvable[VarR
     s"$targetName"
 }
 object VarReadExpr {
-  trait Target extends SourceLocation {
-    def signature: Int = this.hashCode()
-    def isImmutable: Boolean = true
-  }
+  trait Target extends SourceLocation
 }
 
 case class ConstructorExpr(classRef: ClassRef, args: Seq[Expression]) extends Expression with Resolvable[ConstructorDef] {

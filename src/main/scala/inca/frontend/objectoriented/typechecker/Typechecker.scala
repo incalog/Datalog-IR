@@ -35,8 +35,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   }
 
   def typecheck(classDef: ClassDef): Unit = {
-    classDef.contentMap.foreach { case (_, cs) =>
-      if (cs.size > 1)
+    classDef.contentMap.foreach {
+      case (_, cs: Seq[ConstructorDef]) => // nothing
+      case (_, cs) if cs.size > 1 =>
         error(s"Ambiguous names in class ${classDef.name}", cs:_*)
     }
 
@@ -161,6 +162,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       typecheck(els, rt)
 
       assertSubtype(cndTyp, TScalaBoolean, cnd)
+    case phiStmt@VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>
+      bindVar(name, phiStmt, typ, immutable = true)
   }
 
   def assertSubtype(ty1: Type, ty2: Type, loc: SourceLocation): Unit = {
@@ -170,6 +173,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
   def subtype(ty1: Type, ty2: Type): Boolean = (ty1, ty2) match {
     case (_, TAny) => true
+    case (TNull, TNull) => true
     case (TNull, TClass(_)) => true
     case (TClass(ref1), TClass(ref2)) if ref1 == ref2 => true
     case (TClass(ref1), TClass(_)) =>
@@ -212,7 +216,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           } else {
             // classRef of parent will be resolved, but might still be invalid e.g. extend from a class that does not
             // exist
-            lookupConstructor(parentRef.get.target, expression) match {
+            lookupConstructor(parentRef.get.target, args.size, expression) match {
               case Some(constructorDef) =>
                 if (constructorDef.params.size != args.size) {
                   error(s"Expected ${constructorDef.params.size} arguments but got ${args.size} arguments", expression)
@@ -253,7 +257,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       lookupClassRef(className) match {
         case None => TAny
         case classDefOption@Some(classDef) =>
-          lookupConstructor(classDefOption, expression) match {
+          lookupConstructor(classDefOption, args.size, expression) match {
             case None => classDef.typ
             case Some(constructorDef) =>
               if (constructorDef.params.size != args.size) {
@@ -395,8 +399,10 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     val newTarget = computeTarget
     term.target match {
       case Some(oldTarget) =>
-        if (oldTarget != newTarget)
+        if (oldTarget != newTarget) {
+          throw new RuntimeException("Fuck this shit I'm out !")
           error(s"Resolved $term to new target $newTarget, which differs from previously computed target $oldTarget", term)
+        }
         oldTarget
       case None =>
         term.resolved(newTarget)

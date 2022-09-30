@@ -1,0 +1,27 @@
+module FieldDeclare
+
+class A {
+    val value: Int = 1
+    var value2: Int = 4
+
+    def this() = {
+        // This is valid since value is already defined... Is this a bug or a feature ?
+        this.value2 = this.value + 2
+        // This is allowed since we are still in the constructor
+        this.value = 6
+    }
+
+    @main
+    def main(): Int = {
+        val a: A = new A()
+        return a.value2
+    }
+}
+
+class B {
+    val value: Int = 5
+
+    def this() = {
+
+    }
+}

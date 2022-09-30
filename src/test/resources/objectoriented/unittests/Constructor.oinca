@@ -1,0 +1,23 @@
+module Constructor
+
+class Fraction {
+    val numerator: Int
+    val denominator: Int
+
+    def this(numerator: Int, denominator: Int) = {
+        this.numerator = numerator
+        this.denominator = denominator
+    }
+
+    def this(numerator: Int) = {
+        this.numerator = numerator
+        this.denominator = 1
+    }
+
+    @main
+    def main(num: Int, denom: Int, integer: Int): Int = {
+        val frac: Fraction = new Fraction(num, denom)
+        val frac2: Fraction = new Fraction(integer)
+        return (frac.numerator / frac.denominator) + frac2.numerator
+    }
+}

@@ -1,6 +1,6 @@
 package inca.backend.transform.objectoriented
 
-import inca.backend.hints.ObjectHints
+import inca.backend.hints.{ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog._
 import inca.backend.ir.util.CollectVars
 import inca.backend.transform.{Transformation, Transformer}
@@ -14,8 +14,9 @@ import scala.meta.XtensionQuasiquoteTerm
  * 1. Introduce an allocation counter in the AllocationRoot with the name `alloc` and initialize it with 0.
  * 2. Modify all affected methods that are neither an Allocation (leaf), nor a root to take an `allocIn` and `allcOut`
  *    parameter.
- * 3. Modify the embedded computation inside the Allocation (leafs) to use the `allocIn` argument as second parameter
- *    for the ObjectID creation. Increase the `allocIn` argument by one and assign the result to `allocOut` .
+ * 3. Modify the embedded Computed with the hint `AllocationInit` inside the Allocation (leafs) to use the `allocIn`
+ *    argument as second parameter for the ObjectID creation. Increase the `allocIn` argument by one and assign the
+ *    result to `allocOut` .
  */
 object AllocTransformation extends Transformation {
   override def transformer(dataModel: DataModel): Transformer = new CountTransformer(
@@ -23,6 +24,9 @@ object AllocTransformation extends Transformation {
     ObjectHints.Allocation,
     "alloc", "allocIn", "allocOut"
   ) {
+
+    private def isAllocInitComputed(computed: Computed): Boolean =
+      computed.hasHint(ObjectHints.AllocationInitKey)
 
     override def transformLeafPattern(leafPat: Pattern): Pattern = gensym.scoped  {
       gensym.register(CollectVars.transPattern(leafPat))
@@ -46,13 +50,16 @@ object AllocTransformation extends Transformation {
 
       val newBodies = bodies.map { body =>
         Body(body.atoms.map {
-          case Computed(lhs, eval : Evaluation) =>
+          case comp@Computed(lhs, eval : Evaluation) if isAllocInitComputed(comp) =>
             transComputedEvaluation(lhs, eval)
-          case a => a
+          case a =>
+            a
         } :+ incComp)
       }
       val newParams = params :+ Param(allocInName, TScalaInt) :+ Param(allocOut.name, TScalaInt)
-      Pattern(vis, name, newParams, newBodies).withHints(leafPat)
+      Pattern(vis, name, newParams, newBodies)
+        .withHints(leafPat)
+        .addHint(OptimizationHints.NoInline)
     }
   }
 }

@@ -51,6 +51,14 @@ class FunctionsTest extends AnyFunSuite {
     performSingleOutputValueTest("FieldAccessNested", "A$main", Seq(), 3)
   }
 
+  test("FieldDeclare Example") {
+    performSingleOutputValueTest("FieldDeclare", "A$main", Seq(), 3)
+  }
+
+  test("Constructor Example") {
+    performSingleOutputValueTest("Constructor", "Fraction$main", Seq(q"16", q"8", q"1"), 3)
+  }
+
   test("Null") {
     performSingleOutputValueTest("Null", "NullTest$main", Seq(), true)
   }
@@ -97,6 +105,12 @@ class FunctionsTest extends AnyFunSuite {
 
   test("VarAssignment Example") {
     performSingleOutputValueTest("VarAssignment", "A$main", Seq(q"3"), true)
+  }
+
+  test("If Example") {
+    performSingleOutputValueTest("If", "IfTest$main", Seq(q"true", q"true"), 11)
+    performSingleOutputValueTest("If", "IfTest$main", Seq(q"true", q"false"), 7)
+    performSingleOutputValueTest("If", "IfTest$main", Seq(q"false", q"false"), 6)
   }
 
   /*test("Generate example") {

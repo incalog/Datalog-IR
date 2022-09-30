@@ -2,8 +2,8 @@ package inca.util
 
 class Gensym(init: Iterable[String]) {
   /** map of used symbols, each of which must end with '$' */
-   var used: Map[String, Int] = Map()
-  private var globals: Seq[String] = Seq()
+  private[inca] var used: Map[String, Int] = Map()
+  private[inca] var globals: Seq[String] = Seq()
 
   init.foreach(register)
 
@@ -19,16 +19,6 @@ class Gensym(init: Iterable[String]) {
         used += s_ -> used.getOrElse(s_, 0)
       case (s_, Some(num)) =>
         used += s_ -> (num + 1).max(used.getOrElse(s_, 0))
-    }
-  }
-
-  def last(base: String): Option[String] = {
-    val base_ = decompileName(base)._1
-    used.get(base_) match {
-      case Some(count) =>
-        Some(base_ + (count - 1))
-      case None =>
-        None
     }
   }
 
@@ -51,7 +41,7 @@ class Gensym(init: Iterable[String]) {
     v
   }
 
-  private def decompileName(s: String): (String, Option[Int]) = {
+  private[inca] def decompileName(s: String): (String, Option[Int]) = {
     val ix = s.lastIndexOf('$')
     if (ix <= 0) {
       (ensureDollar(s), None)

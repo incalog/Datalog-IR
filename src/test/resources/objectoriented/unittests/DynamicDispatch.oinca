@@ -28,6 +28,8 @@ class A {
 }
 
 class B extends A {
+    def this() = {}
+
     def get(): String = {
         return "B"
     }

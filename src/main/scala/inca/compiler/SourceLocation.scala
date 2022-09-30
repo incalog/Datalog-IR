@@ -16,6 +16,8 @@ trait SourceLocation extends DotPrintable {
   var endIndex: Int = SourceLocation.NoIndex
   def location: (Int, Int) = (this.startIndex, this.endIndex)
 
+  def sourceObject: SourceObject = new SourceObject(this)
+
   lazy val nodeName: String = this.getClass.getSimpleName
   lazy val nodeId: Int = hash(this.location, this.nodeName)
 }

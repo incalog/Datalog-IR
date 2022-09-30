@@ -1,7 +1,7 @@
 module Plus
 
 class Nat {
-    def this() = { }
+    def this() = {}
 
     def succ(): Succ = {
         return new Succ(this)
@@ -31,6 +31,8 @@ class Nat {
 }
 
 class Zero extends Nat {
+    def this() = {}
+
     @override
     def intValue(): Int = {
         return 0

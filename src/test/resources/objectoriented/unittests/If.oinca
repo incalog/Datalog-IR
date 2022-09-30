@@ -1,0 +1,23 @@
+module IfTest
+
+class IfTest {
+    @main
+    def main(cond1: Boolean, cond2: Boolean): Int = {
+        var a: Int = 0
+        var b: Int = 0
+        var c: Int = 0
+        if (cond1) {
+            a = 4
+            b = 2
+            if (cond2) {
+                c = 5
+            } else {
+                b = 3
+            }
+        } else {
+            a = 5
+            b = 1
+        }
+        return a + b + c
+    }
+}

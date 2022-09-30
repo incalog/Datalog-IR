@@ -21,9 +21,13 @@ class A {
 }
 
 class B extends A {
+    def this() = {}
+
     def get(): Int = {
         return 2
     }
 }
 
-class C extends B {}
+class C extends B {
+    def this() = {}
+}

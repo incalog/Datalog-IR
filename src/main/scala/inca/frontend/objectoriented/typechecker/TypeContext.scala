@@ -34,24 +34,31 @@ trait TypeContext extends TypeIO {
         None
     }
 
+  private def collectFields(clazz: Option[ClassDef], name: Name): Seq[(ClassDef, FieldDef)] = {
+    if (clazz.isEmpty) {
+      error(s"Undefined class in field lookup", name)
+      Seq()
+    } else {
+      val fields = clazz.get.fields.filter(_.name == name).map((clazz.get, _))
+      val parentFields = clazz.get.parentClassRefs.flatMap(ref => collectFields(ref.target, name))
+      parentFields ++ fields
+    }
+  }
+
   def lookupField(clazz: Option[ClassDef], name: Name): Option[FieldDef] = {
     if (clazz.isEmpty) {
       error(s"Undefined class in field lookup", name)
-      None
-    } else {
-      val defs = clazz.get.contentMap.get(name)
-      var fields = defs.map(_.collect({ case fd: FieldDef => fd })).getOrElse(Seq())
-      if (fields.isEmpty) {
-        // Check if the field is inherited from a parent class
-        fields = clazz.get.parentClassRefs.flatMap { ref =>
-          lookupField(ref.target, name)
-        }
-        if (fields.isEmpty) {
-          error(s"Undefined field ${clazz.get.name}.$name", name)
-        }
-      }
-      fields.headOption
+      return None
     }
+
+    val allFields = collectFields(clazz, name)
+    if (allFields.isEmpty) {
+      error(s"Undefined field ${clazz.get.name}.$name", name)
+    } else if (allFields.size > 1) {
+      val previousDecl = allFields.head
+      error(s"Field $name shadows previously defined field in class ${previousDecl._1.name}", name)
+    }
+    Some(allFields.head._2)
   }
 
   def lookupMethod(clazz: Option[ClassDef], name: Name): Option[MethodDef] = {
@@ -59,8 +66,7 @@ trait TypeContext extends TypeIO {
       error(s"Undefined class in method lookup", name)
       None
     } else {
-      val defs = clazz.get.contentMap.get(name)
-      var methods = defs.map(_.collect({ case fd: MethodDef => fd })).getOrElse(Seq())
+      var methods = clazz.get.methods.filter(_.name == name)
       if (methods.isEmpty) {
         // Check if the method is inherited from a parent class
         // We must guarantee that all classRefs are resolved here. This should be the case, since we only have a single
@@ -77,22 +83,26 @@ trait TypeContext extends TypeIO {
     }
   }
 
-  def lookupConstructor(clazz: Option[ClassDef], location: SourceLocation): Option[ConstructorDef] = {
+  def lookupConstructor(clazz: Option[ClassDef], numArgs: Int, location: SourceLocation): Option[ConstructorDef] = {
     if (clazz.isEmpty) {
       error(s"Undefined class in constructor lookup", location)
       None
     } else {
-      val defs = clazz.get.contentMap.get(clazz.get.name)
-      var constructors = defs.map(_.collect({ case fd: ConstructorDef => fd })).getOrElse(Seq())
+      var constructors = clazz.get.constructors
+        .filter(_.params.size == numArgs)
       if (constructors.isEmpty) {
         // Check if the parent class has a constructor
         constructors = clazz.get.parentClassRefs.flatMap { ref =>
-          lookupConstructor(ref.target, location)
+          lookupConstructor(ref.target, numArgs, location)
         }
         // We will just use the default construct with all fields, that will be generated automatically
         if (constructors.isEmpty) {
           error(s"Undefined constructor ${clazz.get.name}", location)
         }
+      }
+
+      if (constructors.size > 1) {
+        error(s"Ambiguous constructor ${clazz.get.name}", location)
       }
       constructors.headOption
     }

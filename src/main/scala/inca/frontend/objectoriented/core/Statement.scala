@@ -1,6 +1,6 @@
 package inca.frontend.objectoriented.core
 
-import inca.compiler.SourceLocation
+import inca.compiler.{SourceLocation, SourceObject}
 import inca.frontend.util.Resolvable
 
 sealed trait Statement extends SourceLocation {
@@ -45,8 +45,6 @@ case class VarDeclareStmt(name: Name, typ: Type, maybeExpression: Option[Express
 
   override def vars: Map[Name, Option[Type]] = Map(name -> Some(typ))
 
-  override def isImmutable: Boolean = immutable
-
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val expr = if (maybeExpression.isEmpty) "" else s" = ${maybeExpression.get.toString}"
     val prefix = if (immutable) "val " else "var "
@@ -68,6 +66,17 @@ case class VarAssignStmt(targetName: Name, expression: Expression) extends State
 
   override def dotString: String =
     s"${super.dotString}$nodeId -> ${expression.nodeId};\n${expression.dotString}"
+}
+
+case class VarPhiAssignStmt(name: Name, typ: Type, ifStmt: IfStmt, thnName: Name, elsName: Name) extends Statement with VarReadExpr.Target {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    s"${indent}val $name: $typ := phi(${ifStmt.cnd})($thnName, $elsName)"
+  }
+
+  lazy val source: SourceObject = ifStmt.sourceObject
+
+  override def dotString: String =
+    s"${super.dotString}"
 }
 
 case class IfStmt(cnd: Expression, thn: Seq[Statement], els: Seq[Statement]) extends Statement {

@@ -10,7 +10,6 @@ sealed trait Type extends SourceLocation {
   def prettyprint: String
   def flatten: Seq[Type]
   def asScala: meta.Type
-  def isClassType: Boolean = false
   override def toString: String = prettyprint
 }
 case object TAny extends Type {
@@ -22,7 +21,6 @@ case object TNull extends Type {
   override def prettyprint: String = "Null"
   override def flatten: Seq[Type] = Seq(this)
   override def asScala: meta.Type = t"truechange.URI"
-  override def isClassType: Boolean = true
 }
 
 // TODO: We do not need this right now
@@ -73,5 +71,4 @@ case class TClass(ref: ClassRef) extends Type {
   override def prettyprint: String = ref.toString
   override def flatten: Seq[Type] = Seq(this)
   override def asScala: meta.Type = t"truechange.URI"
-  override def isClassType: Boolean = true
 }

@@ -10,8 +10,6 @@ case class Module(name: Name, imports: Seq[Import], classes: Seq[ClassDef])
 
   def usedModuleNames: Seq[Name] = name +: imports.map(_.name)
 
-  def usedClassNames: Seq[Name] = classes.map(_.name)
-
   def prettyprint(implicit indent: String): String = {
     val importsS = if (imports.isEmpty) "" else
       "\n" + imports.map(_.prettyprint).mkString("\n")
