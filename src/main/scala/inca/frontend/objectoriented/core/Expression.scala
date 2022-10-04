@@ -18,7 +18,7 @@ sealed trait Expression extends Typeable[Type] with SourceLocation {
       f
 }
 
-case class FieldReadExpr(recv: Expression, targetName: Name) extends Expression with Resolvable[FieldDef] {
+case class FieldReadExpr(recv: Expression, targetName: Name) extends Expression with Resolvable[(ClassDef, FieldDef)] {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     s"$recv.$targetName"
 

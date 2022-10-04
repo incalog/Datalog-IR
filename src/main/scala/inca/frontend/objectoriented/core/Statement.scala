@@ -31,7 +31,7 @@ case class ReturnStmt(expression: Expression) extends Statement {
   }
 }
 
-case class FieldAssignStmt(recv: Expression, name: Name, expression: Expression) extends Statement with Resolvable[FieldDef] {
+case class FieldAssignStmt(recv: Expression, name: Name, expression: Expression) extends Statement with Resolvable[(ClassDef, FieldDef)] {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     s"$indent$recv.$name = $expression"
   }

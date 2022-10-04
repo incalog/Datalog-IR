@@ -128,10 +128,10 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       val typ = typecheck(expression)
       typecheck(recv) match {
         case TClass(ref) => lookupField(lookupClassRef(ref), name) match {
-          case Some(field) =>
+          case Some((clazz, field)) =>
             if (!allowImmutableFieldAssignment && field.immutable)
               error(s"Can not assign to immutable field ${field.name}", statement)
-            resolveTarget(fieldAssignStmt)(field)
+            resolveTarget(fieldAssignStmt)((clazz, field))
             assertSubtype(typ, field.typ, expression)
           case None => // Nothing
         }
@@ -244,8 +244,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case fieldReadExpr@FieldReadExpr(recv, targetName) =>
       typecheck(recv) match {
         case TClass(ref) => lookupField(lookupClassRef(ref), targetName) match {
-          case Some(field) =>
-            resolveTarget(fieldReadExpr)(field)
+          case Some((clazz, field)) =>
+            resolveTarget(fieldReadExpr)((clazz, field))
             field.typ
           case None => TAny
         }

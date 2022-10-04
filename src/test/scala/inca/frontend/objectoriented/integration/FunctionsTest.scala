@@ -55,6 +55,10 @@ class FunctionsTest extends AnyFunSuite {
     performSingleOutputValueTest("FieldDeclare", "A$main", Seq(), 3)
   }
 
+  test("FieldInheritance Example") {
+    performSingleOutputValueTest("FieldInheritance", "A$main", Seq(), 10)
+  }
+
   test("Constructor Example") {
     performSingleOutputValueTest("Constructor", "Fraction$main", Seq(q"16", q"8", q"1"), 3)
   }
@@ -111,6 +115,11 @@ class FunctionsTest extends AnyFunSuite {
     performSingleOutputValueTest("If", "IfTest$main", Seq(q"true", q"true"), 11)
     performSingleOutputValueTest("If", "IfTest$main", Seq(q"true", q"false"), 7)
     performSingleOutputValueTest("If", "IfTest$main", Seq(q"false", q"false"), 6)
+  }
+
+  test("Return Example") {
+    performSingleOutputValueTest("Return", "ReturnTest$main", Seq(q"true"), 1)
+    performSingleOutputValueTest("Return", "ReturnTest$main", Seq(q"false"), 2)
   }
 
   /*test("Generate example") {

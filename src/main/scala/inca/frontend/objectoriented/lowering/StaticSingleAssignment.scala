@@ -21,8 +21,8 @@ object StaticSingleAssignment {
  * by a $ and a number. After all IfStmts, for each contained variable in the then- and else-body a new VarPhiAssignStmt
  * is inserted, that stores the last variable name of the then-block and the else-block.
  *
- * All currently resolved targets from the previous typechecking are cleared by travesing the AST
- * and creating new instances of all resolvable objects.
+ * All currently resolved targets from the previous typechecking are cleared by traversing the AST and creating new
+ * instances of all resolvable objects.
  */
 class StaticSingleAssignment(module: Module) {
 

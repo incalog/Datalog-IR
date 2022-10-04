@@ -5,7 +5,6 @@ import inca.backend.ir.Datalog
 import inca.compiler.SourceObject
 import inca.frontend.objectoriented.core.{TNull, _}
 import inca.frontend.objectoriented.lowering.GenerateDatalog._
-import inca.runtime.aggregate.Aggregation
 import inca.runtime.data.ObjectID
 import inca.util.Scala.{symbolOf, typeOf}
 import inca.util.{Gensym, Scala, TupleOps}
@@ -93,7 +92,7 @@ class GenerateDatalog(module: Module) {
       }.toMap
 
       val parentMethods = classDef.parentClassRefs.flatMap { ref =>
-        val parentClassDef = ref.target.getOrElse(throw new RuntimeException(s"Unresolved class ${ref.name.raw}"))
+        val parentClassDef = ref.target.getOrElse(throw new IllegalArgumentException(s"Unresolved class ${ref.name.raw}"))
         collectMethods(parentClassDef)
       }.toMap
       parentMethods ++ methods
@@ -258,6 +257,17 @@ class GenerateDatalog(module: Module) {
   }
 
   private def transDefaultConstructor(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
+    /**
+     * Collect all fields from classDef and all inherited fields from all parents
+     */
+    def collectFields(classDef: ClassDef): Seq[(ClassDef, FieldDef)] = {
+      val fields = classDef.fields.map((classDef, _))
+      val parentFields = classDef.parentClassRefs.flatMap(ref =>
+        collectFields(ref.target.getOrElse(throw new IllegalArgumentException(s"Unresolved class $ref")))
+      )
+      parentFields ++ fields
+    }
+
     val thisVar = Datalog.Var("this")
     val constrScalaFun = Term.Function(Nil, q"""$oOID(${classDef.name.raw})""")
     val constrComp = Datalog.Computed(thisVar, Datalog.Evaluation(
@@ -266,11 +276,10 @@ class GenerateDatalog(module: Module) {
 
     val thisParam = Datalog.Param("this", transType(classDef.typ))
 
-    // TODO: Collect all fields from all parents as well
-    // TODO: Load initial values for all fields
-    // set all the default values for each field
-    val fieldSetter = classDef.fields.filter(_.body.isDefined).map { fieldDef =>
-      val fieldName = fieldPatName(classDef.name.raw, fieldDef.name.raw)
+    // set the default value for each field
+    val fields = collectFields(classDef)
+    val fieldSetter = fields.filter(_._2.body.isDefined).map { case (fieldClassDef, fieldDef) =>
+      val fieldName = fieldPatName(fieldClassDef.name.raw, fieldDef.name.raw)
 
       // alternative bodies for each field
       for ((Seq(term), cons) <- transExpression(fieldDef.body.get)) yield
@@ -367,13 +376,17 @@ class GenerateDatalog(module: Module) {
         yield (elsTerm, cndCons ++ Seq(Datalog.Eq(cndTerm, Datalog.False)) ++ elsCons, Some(stmt.sourceObject -> false))
       thnRes ++ elsRes
 
-    case FieldAssignStmt(recv, name, expression) =>
-      // TODO: We might use the fieldDef target here instead to allow inheritance of attributes
+    case fieldAssign@FieldAssignStmt(recv, name, expression) =>
+      /*
       val classType = recv.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression")) match {
         case t: TClass => t
         case _ => throw new IllegalArgumentException(s"Illegal field lookup on expression $expression")
       }
       val classDef = classType.ref.target.getOrElse(throw new IllegalArgumentException(s"Unresolved class $classType"))
+      */
+
+      // to allow inheritance of attributes we use the classDef target of the field lookup
+      val (classDef, _) = fieldAssign.target.getOrElse(throw new IllegalArgumentException(s"Unresolved field $name"))
       val qualifiedName = fieldPatName(classDef.name.raw, name.raw)
 
       val transRecv = for ((Seq(term), cons) <- transExpression(recv)) yield {
@@ -398,7 +411,7 @@ class GenerateDatalog(module: Module) {
       )
 
     case s =>
-      throw new RuntimeException(s"Statement ${s.getClass} declared by $s is not supported!")
+      throw new IllegalArgumentException(s"Statement ${s.getClass} declared by $s is not supported!")
   }
 
   private def transExpression(expression: Expression): ExpRes = expression match {
@@ -406,13 +419,15 @@ class GenerateDatalog(module: Module) {
       val expTyp = expression.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression"))
       Seq((flattenVars(name.raw, expTyp).map(_._1), Seq()))
 
-    case FieldReadExpr(recv, targetName) =>
-      // TODO: We might use the fieldDef target here instead to allow inheritance of attributes
-      val classType = recv.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression")) match {
+    case fieldRead@FieldReadExpr(recv, targetName) =>
+      /*val classType = recv.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression")) match {
         case t: TClass => t
         case _ => throw new IllegalArgumentException(s"Illegal field lookup on expression $expression")
       }
       val classDef = classType.ref.target.getOrElse(throw new IllegalArgumentException(s"Unresolved class $classType"))
+      */
+      // to allow inheritance of attributes we use the classDef target of the field lookup
+      val (classDef, _) = fieldRead.target.getOrElse(throw new IllegalArgumentException(s"Unresolved field $targetName"))
 
       for ((Seq(term), cons) <- transExpression(recv)) yield {
         val fieldReadVar = Datalog.Var(gensym.fresh(targetName.raw))
@@ -428,13 +443,7 @@ class GenerateDatalog(module: Module) {
       val argRes = args.map(e => transExpression(e))
       val constructorDef = constrExpr.target.getOrElse(throw new IllegalArgumentException(s"Unresolved constructor $constrExpr"))
 
-      val constrName =
-        //if (constructorDef.params.nonEmpty)
-          constructorPatName(classRef.name.raw) + sep + constructorDef.paramSignature
-        //else {
-          // TODO: We might need to call the name above if the default constructor is overridden
-        //  constructorPatName(classRef.name.raw)
-        //}
+      val constrName = constructorPatName(classRef.name.raw) + sep + constructorDef.paramSignature
 
       // create single call constraint when no arguments are passed
       if (argRes.isEmpty)
@@ -627,7 +636,7 @@ class GenerateDatalog(module: Module) {
       }
 
     case stmt =>
-      throw new RuntimeException(s"Statement not supported $stmt")
+      throw new IllegalArgumentException(s"Statement not supported $stmt")
   }
 
   private def flattenParam(name: String, typ: Type, genFresh: Boolean): Seq[Datalog.Param] = typ match {

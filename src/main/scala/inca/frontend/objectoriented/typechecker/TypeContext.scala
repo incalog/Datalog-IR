@@ -45,7 +45,7 @@ trait TypeContext extends TypeIO {
     }
   }
 
-  def lookupField(clazz: Option[ClassDef], name: Name): Option[FieldDef] = {
+  def lookupField(clazz: Option[ClassDef], name: Name): Option[(ClassDef, FieldDef)] = {
     if (clazz.isEmpty) {
       error(s"Undefined class in field lookup", name)
       return None
@@ -55,10 +55,10 @@ trait TypeContext extends TypeIO {
     if (allFields.isEmpty) {
       error(s"Undefined field ${clazz.get.name}.$name", name)
     } else if (allFields.size > 1) {
-      val previousDecl = allFields.head
-      error(s"Field $name shadows previously defined field in class ${previousDecl._1.name}", name)
+      val (parentClass, _) = allFields.head
+      error(s"Field $name shadows previously defined field in class ${parentClass.name}", name)
     }
-    Some(allFields.head._2)
+    Some(allFields.head)
   }
 
   def lookupMethod(clazz: Option[ClassDef], name: Name): Option[MethodDef] = {

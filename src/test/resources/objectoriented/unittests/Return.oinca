@@ -1,0 +1,10 @@
+module ReturnTest
+
+class ReturnTest {
+    @main
+    def main(cond: Boolean): Int = {
+        if (cond)
+            return 1
+        return 2
+    }
+}
