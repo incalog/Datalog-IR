@@ -14,8 +14,8 @@ case class Module(name: Name, imports: Seq[Import], classes: Seq[ClassDef])
     val importsS = if (imports.isEmpty) "" else
       "\n" + imports.map(_.prettyprint).mkString("\n")
     val contentS = if (classes.isEmpty) "" else
-      "\n" + classes.map(_.prettyprint("\t")).mkString("\n")
-    s"${indent}module $name$importsS$contentS".stripMargin
+      "\n" + classes.map(_.prettyprint("")).mkString("\n")
+    s"${indent}module $name\n$importsS$contentS".stripMargin
   }
 
   override def dotString: String =
@@ -138,7 +138,7 @@ case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], param
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")
     val bodyS = body.map(_.prettyprint(indent + "\t")).mkString("\n")
-    s"""$annoPrefix$indent${visS}init($paramsS) {
+    s"""$annoPrefix$indent${visS}this($paramsS) {
        |$bodyS
        |$indent}""".stripMargin
   }

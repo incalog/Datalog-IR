@@ -1,7 +1,6 @@
 package inca.frontend.objectoriented.lowering
 
 import inca.frontend.objectoriented.core._
-import inca.frontend.objectoriented.util.GensymTyped
 import inca.util.Gensym
 
 import scala.collection.mutable.ListBuffer
@@ -26,7 +25,7 @@ object StaticSingleAssignment {
  */
 class StaticSingleAssignment(module: Module) {
 
-  private val gensym: GensymTyped = new GensymTyped(Iterable.empty)
+  private val gensym: Gensym = new Gensym(Iterable.empty)
 
   def transModule(): Module = {
     val Module(name, imports, classes) = module
@@ -38,7 +37,7 @@ class StaticSingleAssignment(module: Module) {
   }
 
   private def transClass(classDef: ClassDef): ClassDef = {
-    gensym.registerWithType(classDef.name.raw, Some(TClass(ClassRef(classDef.name))))
+    gensym.register(classDef.name.raw)
 
     val ClassDef(annos, vis, name, parents, content) = classDef
     val transContent = content.map {
@@ -50,20 +49,25 @@ class StaticSingleAssignment(module: Module) {
   }
 
   private def transMethod(methodDef: MethodDef, classDef: ClassDef): MethodDef = gensym.scoped {
-    gensym.registerWithTypes(methodDef.params.map(p => p.name.raw -> Some(p.typ)))
-    gensym.registerWithType("this", Some(classDef.typ))
+    gensym.register(methodDef.params.map(_.name.raw))
+    gensym.register("this")
+    env = Map()
     val MethodDef(annos, vis, name, params, outType, body) = methodDef
     val newBody = transStatements(body)
     MethodDef(annos, vis, name, params, outType, newBody)
   }
 
   private def transConstructor(constructorDef: ConstructorDef, classDef: ClassDef): ConstructorDef = gensym.scoped {
-    gensym.registerWithTypes(constructorDef.params.map(p => p.name.raw -> Some(p.typ)))
-    gensym.registerWithType("this", Some(classDef.typ))
+    gensym.register(constructorDef.params.map(_.name.raw))
+    gensym.register("this")
+    env = Map()
     val ConstructorDef(annos, vis, params, body) = constructorDef
     val newBody = transStatements(body)
     ConstructorDef(annos, vis, params, newBody)
   }
+
+  type Env = Map[String, (String, Type)]
+  var env: Env = Map()
 
   private def transStatements(stmts: Seq[Statement]): Seq[Statement] = {
     stmts.flatMap(transStatement)
@@ -72,8 +76,9 @@ class StaticSingleAssignment(module: Module) {
   private def transStatement(stmt: Statement): Seq[Statement] = {
     stmt match {
       case VarDeclareStmt(name, typ, maybeExpression, immutable) =>
-        gensym.registerWithType(name.raw, Some(typ))
+        gensym.register(name.raw)
         val expr = if (maybeExpression.isDefined) Some(transExpression(maybeExpression.get)) else None
+        env = env + (name.raw -> (name.raw, typ))
         Seq(
           VarDeclareStmt(name, transType(typ), expr, immutable = true)
         )
@@ -82,44 +87,45 @@ class StaticSingleAssignment(module: Module) {
           .getOrElse(throw new RuntimeException(s"Unresolved variable $targetName in assignment $varAssign"))
         targetVar match {
           case VarDeclareStmt(_, typ, _, _) =>
+            val transExp = transExpression(expression)
+            val newName = gensym.fresh(targetName.raw)
+            env = env + (targetName.raw -> (newName, typ))
             Seq(
-              VarDeclareStmt(Name(gensym.fresh(targetName.raw)), transType(typ), Some(transExpression(expression)), immutable = true)
+              VarDeclareStmt(Name(newName), transType(typ), Some(transExp), immutable = true)
             )
           case _ =>
             throw new RuntimeException(s"Illegal assignment to variable target $targetVar")
         }
       case ReturnStmt(expr) =>
-        gensym.registerWithTypes(stmt.vars.map { case (k, v) => k.raw -> v })
+        gensym.register(stmt.vars.map(_._1.raw))
         Seq(ReturnStmt(transExpression(expr)))
       case ExprStmt(expr) =>
-        gensym.registerWithTypes(stmt.vars.map { case (k, v) => k.raw -> v })
+        gensym.register(stmt.vars.map(_._1.raw))
         Seq(ExprStmt(transExpression(expr)))
       case FieldAssignStmt(recv, name, expression) =>
-        gensym.registerWithTypes(stmt.vars.map { case (k, v) => k.raw -> v })
+        gensym.register(stmt.vars.map(_._1.raw))
         Seq(FieldAssignStmt(transExpression(recv), name, transExpression(expression)))
       case IfStmt(cnd, thn, els) =>
-        val beforeGenSym = gensym.snapshot
-
+        val oldEnv = env
         val thnStmts = transStatements(thn)
-        val thnGenSym = gensym.diff(beforeGenSym)
-
+        val thnEnv = env.filter(kv => oldEnv.contains(kv._1) && !oldEnv.get(kv._1).contains(kv._2))
+        env = oldEnv
         val elsStmts = transStatements(els)
-        val elsGenSym = gensym.diff(thnGenSym.union(beforeGenSym))
+        val elsEnv = env.filter(kv => oldEnv.contains(kv._1) && !oldEnv.get(kv._1).contains(kv._2))
+        env = oldEnv
 
-        // base name of all new symbols either used in the thn or the else block
-        val usedSymbols = thnGenSym.union(elsGenSym).symbols
+        // base name of all new symbols either used in the then or the else block
+        val usedSymbols = thnEnv.keySet.union(elsEnv.keySet)
         val ifStmt = IfStmt(transExpression(cnd), thnStmts, elsStmts)
 
         ifStmt +: usedSymbols.map { name =>
           val newName = Name(gensym.fresh(name))
-          val (thnName, thnType) = thnGenSym.get(name).getOrElse(beforeGenSym.get(name).get)
-          val (elsName, elsType) = elsGenSym.get(name).getOrElse(beforeGenSym.get(name).get)
-          if (thnType.isEmpty || elsType.isEmpty)
-            throw new RuntimeException(s"Type for variable $newName is not defined!")
+          val (thnName, thnType) = thnEnv.getOrElse(name, oldEnv(name))
+          val (elsName, elsType) = elsEnv.getOrElse(name, oldEnv(name))
           if (thnType != elsType)
             throw new RuntimeException(s"Type mismatch for variable $newName: ${thnType} != ${elsType}")
-
-          VarPhiAssignStmt(newName, thnType.get, ifStmt, Name(thnName), Name(elsName))
+          env = env + (name -> ((newName.raw, thnType)))
+          VarPhiAssignStmt(newName, thnType, ifStmt, Name(thnName), Name(elsName))
         }.toSeq
       case s =>
         throw new RuntimeException(s"Can not transform statement: $s")
@@ -132,8 +138,7 @@ class StaticSingleAssignment(module: Module) {
         FieldReadExpr(transExpression(recv), targetName)
       case VarReadExpr(targetName) =>
         // Rewrite all VarReadExpr to use the latest generated name for the variable
-        val (newName, _) = gensym.get(targetName.raw)
-          .getOrElse(throw new RuntimeException(s"Unregistered variable $targetName encountered!"))
+        val (newName, _) = env.getOrElse(targetName.raw, (targetName.raw, TAny))//throw new RuntimeException(s"Unregistered variable $targetName encountered!"))
         VarReadExpr(Name(newName))
       case ConstructorExpr(ClassRef(name), args) =>
         ConstructorExpr(ClassRef(name), args.map(transExpression))

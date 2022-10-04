@@ -1,0 +1,24 @@
+module IfDuplicateTest
+
+class IfTest {
+    @main
+    def main(cond1: Boolean, cond2: Boolean): Int = {
+        var a: Int = 2
+        var b: Int = 0
+        if (cond1) {
+            a = a * 2
+            b = 2
+        } else {
+            a = a + 1
+            b = 1
+        }
+        if (cond1) {
+            a = a * 2
+            b = 2
+        } else {
+            a = a + 1
+            b = 1
+        }
+        return a + b
+    }
+}

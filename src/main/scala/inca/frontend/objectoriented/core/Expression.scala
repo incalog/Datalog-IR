@@ -46,7 +46,7 @@ case class ConstructorExpr(classRef: ClassRef, args: Seq[Expression]) extends Ex
     }.mkString("")
 }
 
-case class SuperExpr(args: Seq[Expression]) extends Expression with Resolvable[ConstructorDef] {
+case class SuperExpr(args: Seq[Expression]) extends Expression with Resolvable[(ClassDef, ConstructorDef)] {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
     s"this($argsS)"

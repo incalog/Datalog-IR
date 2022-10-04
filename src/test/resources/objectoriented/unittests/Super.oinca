@@ -1,0 +1,21 @@
+module SuperTest
+
+class A {
+    val value: Int
+
+    def this(value: Int) = {
+        this.value = value
+    }
+
+    @main
+    def main(): Int = {
+        val b: B = new B()
+        return b.value
+    }
+}
+
+class B extends A {
+    def this() = {
+        this(10)
+    }
+}

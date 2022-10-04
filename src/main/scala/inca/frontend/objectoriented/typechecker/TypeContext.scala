@@ -83,26 +83,29 @@ trait TypeContext extends TypeIO {
     }
   }
 
-  def lookupConstructor(clazz: Option[ClassDef], numArgs: Int, location: SourceLocation): Option[ConstructorDef] = {
-    if (clazz.isEmpty) {
+  def lookupConstructor(clazzOption: Option[ClassDef], numArgs: Int, location: SourceLocation): Option[(ClassDef, ConstructorDef)] = {
+    if (clazzOption.isEmpty) {
       error(s"Undefined class in constructor lookup", location)
       None
     } else {
-      var constructors = clazz.get.constructors
+      val clazz = clazzOption.get
+      var constructors = clazz.constructors
         .filter(_.params.size == numArgs)
+        .map(clazz -> _)
+
       if (constructors.isEmpty) {
-        // Check if the parent class has a constructor
-        constructors = clazz.get.parentClassRefs.flatMap { ref =>
+        // check if the parent class has a constructor
+        constructors = clazz.parentClassRefs.flatMap { ref =>
           lookupConstructor(ref.target, numArgs, location)
         }
-        // We will just use the default construct with all fields, that will be generated automatically
+
         if (constructors.isEmpty) {
-          error(s"Undefined constructor ${clazz.get.name}", location)
+          error(s"Undefined constructor ${clazz.name}", location)
         }
       }
 
       if (constructors.size > 1) {
-        error(s"Ambiguous constructor ${clazz.get.name}", location)
+        error(s"Ambiguous constructor ${clazz.name}", location)
       }
       constructors.headOption
     }

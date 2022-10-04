@@ -24,9 +24,9 @@ object GenerateDatalog {
   val equalsPatName: String     = internalPrefix + "equals"
   val instanceOfPatName: String = internalPrefix + "instanceOf"
 
-  def variableName(name: String, signature: Int): String = name + "_" + signature
   def dispatchPatName(methodNameWithSignature: String): String = s"${internalPrefix}dispatch_${methodNameWithSignature}"
   def constructorPatName(className: String): String = className
+  def constructorSuperPatName(className: String): String = className + "_super"
   def fieldPatName(className: String, fieldName: String): String = className + sep + sep + fieldName
 
   def transformModule(module: Module): Datalog.Module =
@@ -221,29 +221,42 @@ class GenerateDatalog(module: Module) {
   }
 
   private def transClass(classDef: ClassDef): Seq[Datalog.Pattern] = {
-    classDef.content.map {
-      case field: FieldDef => transField(classDef, field)
-      case method: MethodDef => transMethod(classDef, method)
-      case constructor: ConstructorDef => transConstructor(classDef, constructor)
+    classDef.content.flatMap {
+      case field: FieldDef => Seq(transField(classDef, field))
+      case method: MethodDef => Seq(transMethod(classDef, method))
+      case constructor: ConstructorDef =>
+        Seq(
+          transConstructor(classDef, constructor),
+          transSuper(classDef, constructor)
+        )
     } :+ transDefaultConstructor(classDef)
   }
 
   private def transConstructor(classDef: ClassDef, constructorDef: ConstructorDef): Datalog.Pattern = {
     val qualifiedName = constructorPatName(classDef.name.raw) + sep + constructorDef.paramSignature
-
     val thisParam = Datalog.Param("this", transType(classDef.typ))
     val params = constructorDef.params.map(p => Datalog.Param(p.name.raw, transType(p.typ)))
-
-    val bodyRes = transStatements(constructorDef.body, None)
-    val bodies = for ((optReturn, cons, path) <- bodyRes) yield {
-      if (optReturn.nonEmpty)
-        throw new IllegalStateException(s"Constructor ${classDef.name} must not call return")
+    val bodies = transConstructorBody(classDef, constructorDef).map { b =>
       Datalog.Body(
-        Datalog.Call(constructorPatName(classDef.name.raw), Seq(Datalog.Var("this"))) +: cons
+        Datalog.Call(constructorPatName(classDef.name.raw), Seq(Datalog.Var("this"))) +: b.atoms,
       )
     }
-
     Datalog.Pattern(None, qualifiedName, thisParam +: params, bodies)
+  }
+
+  private def transSuper(classDef: ClassDef, constructorDef: ConstructorDef): Datalog.Pattern = {
+    val qualifiedName = constructorSuperPatName(classDef.name.raw) + sep + constructorDef.paramSignature
+    val thisParam = Datalog.Param("this", transType(classDef.typ))
+    val params = constructorDef.params.map(p => Datalog.Param(p.name.raw, transType(p.typ)))
+    Datalog.Pattern(None, qualifiedName, thisParam +: params, transConstructorBody(classDef, constructorDef))
+  }
+
+  private def transConstructorBody(classDef: ClassDef, constructorDef: ConstructorDef): Seq[Datalog.Body] = {
+    for ((optReturn, cons, _) <- transStatements(constructorDef.body, None)) yield {
+      if (optReturn.nonEmpty)
+        throw new IllegalStateException(s"Constructor ${classDef.name} must not call return")
+      Datalog.Body(cons)
+    }
   }
 
   private def transField(classDef: ClassDef, fieldDef: FieldDef): Datalog.Pattern = {
@@ -280,7 +293,6 @@ class GenerateDatalog(module: Module) {
     val fields = collectFields(classDef)
     val fieldSetter = fields.filter(_._2.body.isDefined).map { case (fieldClassDef, fieldDef) =>
       val fieldName = fieldPatName(fieldClassDef.name.raw, fieldDef.name.raw)
-
       // alternative bodies for each field
       for ((Seq(term), cons) <- transExpression(fieldDef.body.get)) yield
         cons :+ Datalog.Call(fieldName, Seq(thisVar, term)).addHint(ObjectHints.FieldSet)
@@ -415,7 +427,7 @@ class GenerateDatalog(module: Module) {
   }
 
   private def transExpression(expression: Expression): ExpRes = expression match {
-    case varRead@VarReadExpr(name) =>
+    case VarReadExpr(name) =>
       val expTyp = expression.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression"))
       Seq((flattenVars(name.raw, expTyp).map(_._1), Seq()))
 
@@ -438,7 +450,7 @@ class GenerateDatalog(module: Module) {
       }
 
     case constrExpr@ConstructorExpr(classRef, args) =>
-      // TODO: Figure out inheritance for constructors
+      // constructors are never implicitly inherited !
       val constructedVar = Datalog.Var(gensym.fresh("new"))
       val argRes = args.map(e => transExpression(e))
       val constructorDef = constrExpr.target.getOrElse(throw new IllegalArgumentException(s"Unresolved constructor $constrExpr"))
@@ -452,6 +464,16 @@ class GenerateDatalog(module: Module) {
       for (tups <- TupleOps.cartesianProduct(argRes)) yield {
         val (argTerms, argCons) = tups.unzip
         (Seq(constructedVar), argCons.flatten ++ Seq(Datalog.Call(constrName, constructedVar +: argTerms.flatten)))
+      }
+
+    case superExpr@SuperExpr(args) =>
+      val argRes = args.map(e => transExpression(e))
+      val (classDef, constructorDef) = superExpr.target.getOrElse(throw new IllegalArgumentException(s"Unresolved constructor $superExpr"))
+      val constrName = constructorSuperPatName(classDef.name.raw) + sep + constructorDef.paramSignature
+
+      for (tups <- TupleOps.cartesianProduct(argRes)) yield {
+        val (argTerms, argCons) = tups.unzip
+        (Seq(), argCons.flatten ++ Seq(Datalog.Call(constrName, Datalog.Var("this") +: argTerms.flatten)))
       }
 
     case methodCallExp@MethodCallExpr(recv, fun, args) =>
@@ -499,7 +521,6 @@ class GenerateDatalog(module: Module) {
       Seq((Seq(nullVar), Seq(nullConstrCall)))
 
     /*
-    case SuperExpr(args) => ???
     case TupleExpr(exps) => ???
     */
 

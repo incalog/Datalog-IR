@@ -102,6 +102,17 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       case _ => // nothing
     }
 
+    val superCalls = constructorDef.body.filter {
+      case ExprStmt(expression) => expression match {
+        case SuperExpr(_) => true
+        case _ => false
+      }
+      case _ => false
+    }
+    if (superCalls.size > 1) {
+      error(s"Constructor ${classDef.name} must not contain more than one supercall.", superCalls:_*)
+    }
+
     bindVar(Name("this"), classDef, classDef.typ, immutable = true)
 
     typecheck(constructorDef.body, classDef.typ, allowImmutableFieldAssignment = true)
@@ -217,7 +228,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             // classRef of parent will be resolved, but might still be invalid e.g. extend from a class that does not
             // exist
             lookupConstructor(parentRef.get.target, args.size, expression) match {
-              case Some(constructorDef) =>
+              case Some((classDef, constructorDef)) =>
                 if (constructorDef.params.size != args.size) {
                   error(s"Expected ${constructorDef.params.size} arguments but got ${args.size} arguments", expression)
                 } else {
@@ -225,7 +236,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
                     assertSubtype(typecheck(arg), param.typ, arg)
                   }
                 }
-                resolveTarget(superExpr)(constructorDef)
+                resolveTarget(superExpr)((classDef, constructorDef))
                 TUnit
               case None =>
                 TAny
@@ -259,7 +270,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         case classDefOption@Some(classDef) =>
           lookupConstructor(classDefOption, args.size, expression) match {
             case None => classDef.typ
-            case Some(constructorDef) =>
+            case Some((_, constructorDef)) =>
               if (constructorDef.params.size != args.size) {
                 error(s"Expected ${constructorDef.params.size} arguments but got ${args.size} arguments", expression)
               }

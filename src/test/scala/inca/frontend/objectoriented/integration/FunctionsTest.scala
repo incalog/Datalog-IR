@@ -117,9 +117,17 @@ class FunctionsTest extends AnyFunSuite {
     performSingleOutputValueTest("If", "IfTest$main", Seq(q"false", q"false"), 6)
   }
 
+  test("If Duplicate Example") {
+    performSingleOutputValueTest("IfDuplicate", "IfTest$main", Seq(q"true", q"true"), 10)
+  }
+
   test("Return Example") {
     performSingleOutputValueTest("Return", "ReturnTest$main", Seq(q"true"), 1)
     performSingleOutputValueTest("Return", "ReturnTest$main", Seq(q"false"), 2)
+  }
+
+  test("Super Example") {
+    performSingleOutputValueTest("Super", "A$main", Seq(), 10)
   }
 
   /*test("Generate example") {
