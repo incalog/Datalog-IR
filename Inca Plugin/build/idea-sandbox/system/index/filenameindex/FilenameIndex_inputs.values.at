@@ -19,4 +19,5 @@ test.fincatest2.finca.ideamisc.xml
 test.fincaworkspace.xml  brokenPlugins.json.etagbrokenPlugins.jsonpluginsXMLIds.jsonpluginsXMLIds.json.etag     test2.fincabrokenPlugins.json.etagpluginsXMLIds.jsonbrokenPlugins.jsonpluginsXMLIds.json.etag    brokenPlugins.jsonpluginsXMLIds.json.etagbrokenPlugins.json.etagpluginsXMLIds.jsontest
 referenceslet	let.finca	datatypes
 bool.finca	parameterparam.finca
-methodsmethod.fincaparamtypes.finca     
+methodsmethod.fincaparamtypes.finca     	let.fincamethod.finca
+bool.fincaparam.fincaparamtypes.finca

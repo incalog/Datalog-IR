@@ -1,5 +1,5 @@
 module boo
 
-data boo = True() | False()
+data <resolved>boo = True() | False()
 
-@main def foo(): boo = True()
+@main def foo(): <ref>boo = True()

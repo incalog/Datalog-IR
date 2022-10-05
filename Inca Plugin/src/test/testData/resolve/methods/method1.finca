@@ -1,5 +1,5 @@
 module method1
 
-def bar(): Bool = false
+def <resolved>bar(): Bool = false
 
-@main def foo: Bool = true && bar()
+@main def foo: Bool = true && <ref>bar()

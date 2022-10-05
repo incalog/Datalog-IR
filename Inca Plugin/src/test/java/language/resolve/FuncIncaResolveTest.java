@@ -1,20 +1,10 @@
 package language.resolve;
 
-public class FuncIncaResolveTest extends FuncIncaResolveTestCase {
+import org.junit.Test;
 
-    public void datatypes(){
-        doTest();
-    }
-
-    public void let(){
-        doTest();
-    }
-
-    public void methods(){
-        doTest();
-    }
-
-    public void parameter(){
-        doTest();
-    }
+public class FuncIncaResolveTest extends FuncIncaResolveTestCase{
+    public void testDatatypes(){doTest();}
+    public void testLet(){doTest();}
+    public void testMethods(){doTest();}
+    public void testParameter(){doTest();}
 }

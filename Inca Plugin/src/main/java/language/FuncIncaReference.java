@@ -1,8 +1,12 @@
 package language;
 
+import com.intellij.codeInsight.lookup.LookupElement;
+import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
+import com.intellij.psi.util.PsiTreeUtil;
+import language.psi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,5 +41,25 @@ public class FuncIncaReference extends PsiReferenceBase<PsiNamedElement> impleme
             return resolveResults[0].getElement();
         else
             return null;
+    }
+
+    public Object[] getVariants(){
+        // If we are not in an expression, don't provide reference completion.
+        if (PsiTreeUtil.getParentOfType(myElement, FuncIncaExp.class) == null) {
+            return new Object[]{};
+        }
+        final PsiFile file = myElement.getContainingFile();
+        List<PsiNamedElement> namedElements = FuncIncaUtil.findDefinitionNode((FuncIncaFile)file, null, null);
+        List<LookupElement> variants = new ArrayList<>();
+        for(final PsiNamedElement namedElement : namedElements){
+            final String name = namedElement.getName();
+            if (name == null) { continue; }
+            final PsiFile psiFile = namedElement.getContainingFile();
+            final String type;
+            // TODO type
+            type = "";
+            variants.add(LookupElementBuilder.create(name).withIcon(FuncIncaIcons.FILE).withTypeText(type));
+        }
+        return variants.toArray();
     }
 }
