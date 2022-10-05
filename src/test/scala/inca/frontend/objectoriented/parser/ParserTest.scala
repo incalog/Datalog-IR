@@ -13,6 +13,11 @@ class ParserTest extends AnyFunSuite {
 
   val parser: Parser = new Parser {}
 
+  test("Tuple") {
+    val code = FileUtil.readFile("objectoriented/unittests/Tuple.oinca")
+    testSuccessAny(parser.module)(code)
+  }
+
   test("Simple syntax test") {
     val code = FileUtil.readFile("objectoriented/parser/Playground.oinca")
     testSuccessAny(parser.module)(code)
@@ -38,6 +43,11 @@ class ParserTest extends AnyFunSuite {
     testSuccessAny(parser.module)(code)
   }
 
+  test("If") {
+    val code = FileUtil.readFile("objectoriented/unittests/If.oinca")
+    testSuccessAny(parser.module)(code)
+  }
+
   test("Plus") {
     val code = FileUtil.readFile("objectoriented/unittests/Plus.oinca")
     testSuccessAny(parser.module)(code)
@@ -50,9 +60,9 @@ class ParserTest extends AnyFunSuite {
            println(module)
 
            // Copy the dot graph to the clipboard for debugging
-           /*val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
+           val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
            val selection = new StringSelection(module.dotString)
-           clipboard.setContents(selection, selection)*/
+           clipboard.setContents(selection, selection)
 
            println()
            println("Remaining: ")

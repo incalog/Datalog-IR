@@ -9,6 +9,10 @@ package object core {
     override def toString: String = raw
   }
 
+  case class Index(raw: Int) extends SourceLocation {
+    override def toString: String = raw.toString
+  }
+
   sealed trait Visibility extends SourceLocation {
     def prettyprint(implicit indent: String): String
   }

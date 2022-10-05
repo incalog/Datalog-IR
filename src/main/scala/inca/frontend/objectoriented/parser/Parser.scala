@@ -1,3 +1,4 @@
+
 package inca.frontend.objectoriented.parser
 
 import inca.compiler.SourceLocation
@@ -7,6 +8,7 @@ import inca.util.Scala
 import scalaparse.syntax.Basic.isOpChar
 import scalaparse.syntax.Identifiers.OpCharNotSlash
 
+import java.util.Objects.hash
 import scala.language.{existentials, implicitConversions}
 import scala.meta.parsers.Parsed
 import scala.meta.{Term, XtensionParseInputLike}
@@ -35,8 +37,8 @@ trait Parser {
   def spaced[A](p: P[A]): P[A] =
     p <* whitespaces0
 
-  def seq0[A](p: P[A], sep: Char = ','): P0[Seq[A]] =
-    (p <* P.char(sep).? <* whitespaces0).rep0
+  def seq0[A](p: P[A], sep: Char = ',', min: Int = 0): P0[Seq[A]] =
+    (p <* P.char(sep).? <* whitespaces0).rep0(min)
 
   object Keyword extends Enumeration {
     type Keyword = Value
@@ -74,6 +76,9 @@ trait Parser {
 
   def encloseBetween[T](p: P[T], c: Char): P[T] =
     spaced(P.char(c) *> p <* P.char(c))
+
+  def indexed[T](p: P[T]): P[((Int, T), Int)] =
+    P.index.with1 ~ p ~ P.index
 
   def pass[T](o: T): P0[T] =
     P.pure(o)
@@ -126,6 +131,9 @@ trait Parser {
   protected[frontend] def simpleType[T <: Type](s: String, t: T): P[T] =
     (P.string(s).soft <* noChar).mapWithLoc(_ => t)
 
+  protected[frontend] def tupleType: P[TTuple] =
+    inParentheses(seq0(P.defer(typeAnno), min = 2)).mapWithLoc(TTuple(_))
+
   protected[frontend] val classRef: P[ClassRef] =
     identifier.mapWithLoc(ClassRef)
 
@@ -138,7 +146,8 @@ trait Parser {
         simpleType("Null", TNull) |
         simpleType("Unit", TTuple(Seq())) |
         scalaType |
-        classType
+        classType |
+        tupleType
     )
 
   val nameWithType: P[(Name, Type)] =
@@ -188,6 +197,10 @@ trait Parser {
   private val call: P[(Name, Seq[Expression])] =
     (identifier.soft ~ inParentheses(seq0(P.defer(expr))))
 
+  // FIXME: This only works as long as we disallow _ in variable names
+  private val tupleIndex: P[Index] =
+    spaced(P.string("_") *> digit.rep0(min = 1).string).mapWithLoc(s => Index(s.toInt))
+
   private val baseApplyMethod: P[(Name, Option[Seq[Expression]])] =
     (encloseBetween(identifier, scalaQuoteChar).soft ~ inParentheses(seq0(P.defer(expr))).?)
 
@@ -215,21 +228,40 @@ trait Parser {
       case (obj1, obj2) => EqualsExpr(obj1, obj2)
     }
 
+  protected[frontend] lazy val tupleExpr: P[TupleExpr] =
+    inParentheses(seq0(P.defer(expr), min = 2)).mapWithLoc(TupleExpr(_))
+
+  private[frontend] lazy val nestedAccessStartExpr: P[Expression] =
+    typeCastExpr | constructorExpr | variableReadExpr | baseLitExpr | baseApplyExpr
+
+  /**
+   *  This parser parses any nested expression that is separated by a dot. E.g
+   *  (tuple).(_idx)
+   *  (someVar | someConstructor | `someBaseLit` | `someBaseApply`(...)).(attr | `baseApplyMethod` | _idx)
+   *  (someVar | someConstructor | `someBaseLit` | `someBaseApply`(...)).(someMethod(...) | baseApplyMethod`(...))
+   */
   protected[frontend] lazy val nestedAccessExpr: P[Expression] = {
-    // (someVar | someConstructor | `someBaseLit` | `someBaseApply`(...)).(attr | `baseApplyMethod`)
-    // (someVar | someConstructor | `someBaseLit` | `someBaseApply`(...)).(someMethod(...) | baseApplyMethod`(...))
-    // TODO: Would be nice if we could set arbitrary parenthese such as ((a.b).c)
-    val startExpr = (typeCastExpr | constructorExpr | variableReadExpr | baseLitExpr | baseApplyExpr)
-    ((startExpr | inParentheses(startExpr).backtrack)
-      ~ (op('.') *> (variable | call | baseApplyMethod)).rep0)
-      .mapWithLoc { case (startExpr, pathIdentifiers) =>
-        pathIdentifiers.foldLeft(startExpr) { case (prev, current) =>
-          current match {
-          case name: Name                                     => FieldReadExpr(prev, name)
-          case (name: Name, argList: Seq[Expression])         => MethodCallExpr(prev, name, argList)
+    val tupStart = tupleExpr.backtrack ~ indexed(op('.') *> tupleIndex).rep0(0, 1)
+    // TODO: Would be nice if we could set arbitrary parentheses such as ((a.b).c)
+    val nestedPath = indexed(op('.') *> (variable | call | tupleIndex | baseApplyMethod)).rep0
+    val nestedStart = ((nestedAccessStartExpr | inParentheses(nestedAccessStartExpr).backtrack) ~ nestedPath)
+
+    // separating the first path identifier allows us to disallow method calls or field access on tuples, but at the
+    // same time we allow tuple reads by index on nested structures which might contain tuples
+    ((tupStart | nestedStart) ~ nestedPath).mapWithLoc { case ((startExpr, firstIdentifier), pathIdentifiers) =>
+      (firstIdentifier ++ pathIdentifiers).foldLeft(startExpr) { case (prev, indexedCurrent) =>
+        // we need to track the start and end index manually
+        val ((startIndex, current), endIndex) = indexedCurrent
+        val nextExpr = current match {
+          case index: Index => TupleReadExpr(prev, index)
+          case name: Name => FieldReadExpr(prev, name)
+          case (name: Name, argList: Seq[Expression]) => MethodCallExpr(prev, name, argList)
           case (name: Name, argList: Option[Seq[Expression]]) => BaseApplyMethodExpr(prev, name, argList)
-          }
         }
+        nextExpr.startIndex = startIndex
+        nextExpr.endIndex = endIndex
+        nextExpr
+      }
     }
   }
 
@@ -404,7 +436,7 @@ trait Parser {
 
   implicit class Ploc[T](p: => P[T]) {
     def mapWithLoc[U <: SourceLocation](f: T => U): P[U] =
-      ((P.index.with1 ~ p) ~ P.index).map {
+      indexed(p).map {
         case ((start, t), end) =>
           val u = f(t)
           u.startIndex = start
@@ -413,7 +445,7 @@ trait Parser {
       }
 
     def flatMapWithLoc[U <: SourceLocation](f: T => P0[U]): P[U] =
-      ((P.index.with1 ~ p) ~ P.index).flatMap {
+      indexed(p).flatMap {
         case ((start, t), end) =>
           val up = f(t)
           up.map { u =>

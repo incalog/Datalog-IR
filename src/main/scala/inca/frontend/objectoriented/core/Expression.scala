@@ -102,7 +102,14 @@ case class NullExpr() extends Expression {
     s"null"
 }
 
-// TODO: Support syntax to create a tuple
+case class TupleReadExpr(recv: Expression, index: Index) extends Expression {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
+    s"$recv._$index"
+
+  override def dotString: String =
+    s"${super.dotString}$nodeId -> ${recv.nodeId};\n${recv.dotString}"
+}
+
 case class TupleExpr(exps: Seq[Expression]) extends Expression {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     exps.map(_.prettyprint).mkString("(", ", ", ")")

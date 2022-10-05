@@ -136,7 +136,7 @@ class FunctionsTest extends AnyFunSuite {
     performSingleOutputValueTest("Super", "A$main", Seq(), 10)
   }
 
-  test("Generate example") {
+  /*test("Generate example") {
     import inca.backend.optimize._
     import inca.compiler.Compiler
     import inca.backend.analyze.DependencyGraph
@@ -185,5 +185,5 @@ class FunctionsTest extends AnyFunSuite {
     feed.insert(DemandTransformation.demandPatternExtensionalPrefix + "main", Tuples.flatTupleOf())
     matcher.zip(patterns).foreach(m => println(m._2 + ": " + m._1.getAllMatches.toArray.mkString(", ")))
 
-  }
+  }*/
 }
