@@ -58,6 +58,20 @@ class GenerateDatalog(module: Module) {
     generatedPatterns ++= transDynamicDispatch(classes)
     generatedPatterns ++= classes.flatMap(transClass)
 
+    /*generatedPatterns ++= Seq(
+      Datalog.Pattern(None, "main", Seq(), Seq(
+        Datalog.Body(Seq())
+      )).addHint(MagicSetHints.Main(Seq())),
+      Datalog.Pattern(None, "test", Seq(Datalog.Param("a", Datalog.TScalaBoolean)), Seq(
+        Datalog.Body(Seq())
+      )),
+      Datalog.Pattern(None, "test2", Seq(Datalog.Param("a", Datalog.TScalaBoolean)), Seq(
+        Datalog.Body(Seq(
+          Datalog.Call("test", Seq(Datalog.True))
+        ))
+      ))
+    )*/
+
     Datalog.Module(
       name.raw,
       imports.map(_.name.raw),
@@ -378,14 +392,24 @@ class GenerateDatalog(module: Module) {
       val cndTrans = transExpression(cnd)
       val thnTrans = transStatements(thn, path)
       val elsTrans = transStatements(els, path)
+      val condVar = Datalog.Var(gensym.fresh("cond"))
+
+      // Assigning the condition to a variable prevents the ConstantPropagation from removing the condition if it is a
+      // constant e.g. If (true) or If (false).
       val thnRes: StmRes =
         for ((Seq(cndTerm), cndCons) <- cndTrans;
-             (thnTerm, thnCons, thnPath) <- thnTrans)
-        yield (thnTerm, cndCons ++ Seq(Datalog.Eq(cndTerm, Datalog.True)) ++ thnCons, Some(stmt.sourceObject -> true))
+             (thnTerm, thnCons, _) <- thnTrans)
+        yield (thnTerm, cndCons ++ Seq(
+          Datalog.Eq(condVar, cndTerm),
+          Datalog.Eq(condVar, Datalog.True)
+        ) ++ thnCons, Some(stmt.sourceObject -> true))
       val elsRes: StmRes =
         for ((Seq(cndTerm), cndCons) <- cndTrans;
-             (elsTerm, elsCons, elsPath) <- elsTrans)
-        yield (elsTerm, cndCons ++ Seq(Datalog.Eq(cndTerm, Datalog.False)) ++ elsCons, Some(stmt.sourceObject -> false))
+             (elsTerm, elsCons, _) <- elsTrans)
+        yield (elsTerm, cndCons ++ Seq(
+          Datalog.Eq(condVar, cndTerm),
+          Datalog.Eq(condVar, Datalog.False)
+        ) ++ elsCons, Some(stmt.sourceObject -> false))
       thnRes ++ elsRes
 
     case fieldAssign@FieldAssignStmt(recv, name, expression) =>

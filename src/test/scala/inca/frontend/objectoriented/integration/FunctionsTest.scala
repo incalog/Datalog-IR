@@ -20,6 +20,8 @@ class FunctionsTest extends AnyFunSuite {
     val fun = ObjectExecutor.loadFunction(code, options)
     val result = fun.execute(main, input)
     fun.printAllMatches()
+    if (result.res.size > 1)
+      assert(false, s"Expected one result, but got ${result.res.size}.")
     assertResult(expectedResult)(result.res.head.head)
   }
 
@@ -112,12 +114,16 @@ class FunctionsTest extends AnyFunSuite {
   }
 
   test("If Example") {
+    // If Constant
+    performSingleOutputValueTest("IfTrue", "IfTest$main", Seq(), true)
+    performSingleOutputValueTest("IfFalse", "IfTest$main", Seq(), true)
+
+    // If nested
     performSingleOutputValueTest("If", "IfTest$main", Seq(q"true", q"true"), 11)
     performSingleOutputValueTest("If", "IfTest$main", Seq(q"true", q"false"), 7)
     performSingleOutputValueTest("If", "IfTest$main", Seq(q"false", q"false"), 6)
-  }
 
-  test("If Duplicate Example") {
+    // Duplicate
     performSingleOutputValueTest("IfDuplicate", "IfTest$main", Seq(q"true", q"true"), 10)
   }
 
@@ -130,7 +136,7 @@ class FunctionsTest extends AnyFunSuite {
     performSingleOutputValueTest("Super", "A$main", Seq(), 10)
   }
 
-  /*test("Generate example") {
+  test("Generate example") {
     import inca.backend.optimize._
     import inca.compiler.Compiler
     import inca.backend.analyze.DependencyGraph
@@ -156,15 +162,15 @@ class FunctionsTest extends AnyFunSuite {
       FoldConstantAtoms,
       EliminateNonproductiveRelations*/
     ), Seq(
-      AllocTransformation,
-      FieldTransformation,
+      //AllocTransformation,
+      //FieldTransformation,
       DeriveDemandPatterns,
       DemandTransformation
     )))
 
-    val graph = new DependencyGraph(result.transformed)
+    /*val graph = new DependencyGraph(result.transformed)
     println("Dependency graph")
-    println(graph.toGraphViz)
+    println(graph.toGraphViz)*/
 
     /*println()
     println("DatalogPrinter")
@@ -179,5 +185,5 @@ class FunctionsTest extends AnyFunSuite {
     feed.insert(DemandTransformation.demandPatternExtensionalPrefix + "main", Tuples.flatTupleOf())
     matcher.zip(patterns).foreach(m => println(m._2 + ": " + m._1.getAllMatches.toArray.mkString(", ")))
 
-  }*/
+  }
 }

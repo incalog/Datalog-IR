@@ -156,7 +156,7 @@ abstract class CountTransformer(val rootPatternHint: Hint,
               countVar = tsOutVar
               transAtom
             case a => Seq(a)
-          })
+          }).withHints(body)
         }
       }
       Pattern(rootPat.vis, rootPat.name, rootPat.params, bodies).withHints(rootPat)
@@ -192,7 +192,7 @@ abstract class CountTransformer(val rootPatternHint: Hint,
             case a => Seq(a)
           } :+ Eq(
             Var(countParams.last.name), countVar
-          ))
+          )).withHints(body)
         }
       }
       Pattern(pattern.vis, pattern.name, pattern.params ++ countParams, bodies)

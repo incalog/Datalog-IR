@@ -1,0 +1,12 @@
+module IfTrueTest
+
+class IfTest {
+    @main
+    def main(): Boolean = {
+        if (true) {
+            return true
+        } else {
+            return false
+        }
+    }
+}

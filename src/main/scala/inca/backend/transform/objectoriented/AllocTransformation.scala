@@ -51,10 +51,10 @@ object AllocTransformation extends Transformation {
       val newBodies = bodies.map { body =>
         Body(body.atoms.map {
           case comp@Computed(lhs, eval : Evaluation) if isAllocInitComputed(comp) =>
-            transComputedEvaluation(lhs, eval)
+            transComputedEvaluation(lhs, eval).withHints(comp)
           case a =>
             a
-        } :+ incComp)
+        } :+ incComp).withHints(body)
       }
       val newParams = params :+ Param(allocInName, TScalaInt) :+ Param(allocOut.name, TScalaInt)
       Pattern(vis, name, newParams, newBodies)
