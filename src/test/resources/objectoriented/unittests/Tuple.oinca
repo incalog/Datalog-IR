@@ -1,17 +1,17 @@
 module TupleTest
 
 class TupleTest {
-    //val tup: (Int, TupleTest) = (1, new TupleTest())
+    val tup: (Int, TupleTest) = (1, new TupleTest())
 
 	def this() = {}
 
-	@main def main(): (Int, Double) = {
+	@main def main(): ((Int, Int), Double) = {
 	    //(1, 2).test()
 		val a: (Int, Int) = (1, 2)
 		val b: Int = a._1
 		val c: Int = a._2
 		val d: Int = ("A", a)._2._1
-		this.tup._20.tup._10
+		this.tup._2.tup._1
 		return (a, 3.0)
 	}
 }

@@ -320,6 +320,19 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case TupleExpr(exps) =>
       TTuple(exps.map(typecheck))
 
+    case TupleReadExpr(recv, index) =>
+      typecheck(recv) match {
+        case TTuple(ts) if index.raw <= 0 || index.raw > ts.size =>
+          error(s"Index out of bounds: $index for Tuple size: ${ts.size}", recv)
+          TAny
+        case TTuple(ts) =>
+          ts(index.raw-1)
+        case ty =>
+          error(s"Expected Tuple, but got $ty", recv)
+          TAny
+      }
+
+
     case BaseLitExpr(code) =>
       typecheckDecodeScala(code.syntax, expression)
 

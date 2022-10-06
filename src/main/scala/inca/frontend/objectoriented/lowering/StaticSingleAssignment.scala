@@ -154,6 +154,8 @@ class StaticSingleAssignment(module: Module) {
         EqualsExpr(transExpression(obj1), transExpression(obj2))
       case TupleExpr(exps) =>
         TupleExpr(exps.map(transExpression))
+      case TupleReadExpr(recv, index) =>
+        TupleReadExpr(transExpression(recv), index)
       case BaseApplyExpr(fun, args) =>
         BaseApplyExpr(fun, args.map(transExpression))
       case BaseApplyInfixExpr(left, op, right) =>

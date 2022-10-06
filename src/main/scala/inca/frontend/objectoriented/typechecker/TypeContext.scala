@@ -54,11 +54,14 @@ trait TypeContext extends TypeIO {
     val allFields = collectFields(clazz, name)
     if (allFields.isEmpty) {
       error(s"Undefined field ${clazz.get.name}.$name", name)
+      None
     } else if (allFields.size > 1) {
       val (parentClass, _) = allFields.head
       error(s"Field $name shadows previously defined field in class ${parentClass.name}", name)
+      None
+    } else {
+      Some(allFields.head)
     }
-    Some(allFields.head)
   }
 
   def lookupMethod(clazz: Option[ClassDef], name: Name): Option[MethodDef] = {

@@ -136,6 +136,10 @@ class FunctionsTest extends AnyFunSuite {
     performSingleOutputValueTest("Super", "A$main", Seq(), 10)
   }
 
+  test("Tuple Example") {
+    performSingleOutputValueTest("Tuple", "TupleTest$main", Seq(), 10)
+  }
+
   /*test("Generate example") {
     import inca.backend.optimize._
     import inca.compiler.Compiler

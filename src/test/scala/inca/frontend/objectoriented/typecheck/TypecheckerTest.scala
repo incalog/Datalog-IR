@@ -63,6 +63,11 @@ class TypecheckerTest extends AnyFunSuite {
     checkModule(code)
   }
 
+  test("Tuple") {
+    val code = FileUtil.readFile("objectoriented/unittests/Tuple.oinca")
+    checkModule(code)
+  }
+
   test("BinaryTree with Null") {
     val code = FileUtil.readFile("objectoriented/unittests/BinaryTree1.oinca")
     checkModule(code)
