@@ -16,19 +16,23 @@ object ConstantPropagation extends Optimization {
       Seq(Pattern(pat.vis, pat.name, pat.params, newbodies).withHints(pat))
     }
 
-    private def propagateConstants(body: Body, unsubstitutable: Set[Name]): Body = {
+    private def propagateConstants(body: Body, extUnsubstitutable: Set[Name]): Body = {
       var subst: Map[Var, Constant] = Map()
+      var unsubstitutable = extUnsubstitutable
       val atoms = body.atoms.flatMap {
         case Compare(EqComparator, v1: Var, c2: Constant) if !unsubstitutable.contains(v1.name) =>
           subst += v1 -> c2
+          unsubstitutable += v1.name
           None
         case Compare(EqComparator, c1: Constant, v2: Var) if !unsubstitutable.contains(v2.name) =>
           subst += v2 -> c1
+          unsubstitutable += v2.name
           None
         case a@Computed(v: Var, Evaluation(_, _, Scala(meta.Term.Function(Nil, lit: meta.Lit)))) if !unsubstitutable.contains(v.name) =>
           Literal.fromScalaMeta(lit) match {
             case Some(l) =>
               subst += v -> Constant(l)
+              unsubstitutable += v.name
               None
             case None =>
               Some(a)

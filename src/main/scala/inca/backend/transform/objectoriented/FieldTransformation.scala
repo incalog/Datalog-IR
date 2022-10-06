@@ -66,7 +66,7 @@ object FieldTransformation extends Transformation {
      * @param maxTs The upperbound for the timestamps to consider.
      * @return The Computed atom.
      */
-    private def maxAgg(fieldPatName: String, obj: Term, outVar: Var, maxTs: Var): Computed = {
+    private def maxAgg(fieldPatName: String, args: Seq[Term], outVar: Var, maxTs: Var): Computed =
       Computed(
         outVar,
         CustomAggregation(
@@ -74,11 +74,10 @@ object FieldTransformation extends Transformation {
           Some("Maximum aggregation"),
           Scala(q"""new inca.backend.transform.objectoriented.MaxAgg()"""),
           filterPatternName(fieldPatName),
-          Seq(obj, Var(gensym.fresh("_")), Var(gensym.fresh("_")), maxTs),
-          2
+          args :+ Var(gensym.fresh("_")) :+ maxTs, // args + ts + maxTs
+          args.size // aggregate over ts, not maxTs
         )
       )
-    }
 
     private def generateFilterPattern(fieldPat: Pattern): Pattern = gensym.scoped {
       val tsParams = Seq(
@@ -116,9 +115,9 @@ object FieldTransformation extends Transformation {
     override def transformLeafPattern(leafPat: Pattern): Pattern = gensym.scoped {
       gensym.register(CollectVars.transPattern(leafPat))
 
-      if (leafPat.params.size != 2) {
+      /*if (leafPat.params.size != 2) {
         throw new IllegalArgumentException(s"Field pattern ${leafPat.name} requires exactly two parameters!")
-      }
+      }*/
 
       if (leafPat.bodies.nonEmpty) {
         throw new IllegalArgumentException(s"Field pattern ${leafPat.name} must not have a body!")
@@ -139,7 +138,7 @@ object FieldTransformation extends Transformation {
         val hint = hintWithAdjustedFixedAdornment(call, Seq(true))
         val tsMaxVar = Var(gensym.fresh(rootParamName + "Max"))
         (tsInVar, Seq(
-          maxAgg(name, args.head, tsMaxVar, tsInVar),
+          maxAgg(name, args.head +: args.tail.map(_ => Var(gensym.fresh("_"))), tsMaxVar, tsInVar),
           Call(name, args :+ tsMaxVar, trans, neg)
             .withHints(hint)
             .addHint(MagicSetHints.IgnoreCall)

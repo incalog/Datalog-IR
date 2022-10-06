@@ -27,6 +27,7 @@ object GenerateDatalog {
   def dispatchPatName(methodNameWithSignature: String): String = s"${internalPrefix}dispatch_${methodNameWithSignature}"
   def constructorPatName(className: String): String = className
   def constructorSuperPatName(className: String): String = className + "_super"
+  def fieldInitPatName(className: String): String = className + "_fieldInit"
   def fieldPatName(className: String, fieldName: String): String = className + sep + sep + fieldName
 
   def transformModule(module: Module): Datalog.Module =
@@ -116,8 +117,8 @@ class GenerateDatalog(module: Module) {
       case (sig, (c, m)) =>
         sig ->
           (Datalog.Param("this", transType(c.typ))
-            +: m.params.map(p => Datalog.Param(p.name.raw, transType(p.typ)))
-            :+ Datalog.Param("out", transType(m.outType)))
+            +: (m.params.flatMap(p => flattenParam(p.name.raw, p.typ, genFresh = false))
+            ++ flattenParam("out", m.outType, genFresh = false)))
     }.toMap
 
     val bodies = MultiDict.from(classes.flatMap { cls =>
@@ -240,21 +241,61 @@ class GenerateDatalog(module: Module) {
       case method: MethodDef => Seq(transMethod(classDef, method))
       case constructor: ConstructorDef =>
         Seq(
+          transFieldInitialization(classDef),
           transConstructor(classDef, constructor),
           transSuper(classDef, constructor)
         )
     } :+ transDefaultConstructor(classDef)
   }
 
+  // Note: Do not move this in transDefaultConstructor. We might get unresolvable cycles if we declare with a
+  // constructor call.
+  private def transFieldInitialization(classDef: ClassDef): Datalog.Pattern = {
+    /**
+     * Collect all fields from classDef and all inherited fields from all parents
+     */
+    def collectFields(classDef: ClassDef): Seq[(ClassDef, FieldDef)] = {
+      val fields = classDef.fields.map((classDef, _))
+      val parentFields = classDef.parentClassRefs.flatMap(ref =>
+        collectFields(ref.target.getOrElse(throw new IllegalArgumentException(s"Unresolved class $ref")))
+      )
+      parentFields ++ fields
+    }
+
+    // set the default value for each field
+    val thisParam = Datalog.Param("this", transType(classDef.typ))
+    val thisVar = Datalog.Var("this")
+    val fields = collectFields(classDef)
+    val fieldSetter = fields.filter(_._2.body.isDefined).map { case (fieldClassDef, fieldDef) =>
+      val fieldName = fieldPatName(fieldClassDef.name.raw, fieldDef.name.raw)
+      // alternative bodies for each field
+      for ((terms, cons) <- transExpression(fieldDef.body.get)) yield
+        cons :+ Datalog.Call(fieldName, thisVar +: terms).addHint(ObjectHints.FieldSet)
+    }
+
+    val bodies =
+      if (fieldSetter.isEmpty)
+        Seq(Datalog.Body(Seq()))
+      else
+        for (cons <- TupleOps.cartesianProduct(fieldSetter)) yield {
+          Datalog.Body(cons.flatten)
+        }
+
+    Datalog.Pattern(None, fieldInitPatName(classDef.name.raw), Seq(thisParam), bodies)
+
+  }
+
   private def transConstructor(classDef: ClassDef, constructorDef: ConstructorDef): Datalog.Pattern = {
     val qualifiedName = constructorPatName(classDef.name.raw) + sep + constructorDef.paramSignature
     val thisParam = Datalog.Param("this", transType(classDef.typ))
-    val params = constructorDef.params.map(p => Datalog.Param(p.name.raw, transType(p.typ)))
+    val params = constructorDef.params.flatMap(p => flattenParam(p.name.raw, p.typ, genFresh = false))
     val bodies = transConstructorBody(classDef, constructorDef).map { b =>
       Datalog.Body(
-        Datalog.Call(constructorPatName(classDef.name.raw), Seq(Datalog.Var("this"))) +: b.atoms,
+        Datalog.Call(constructorPatName(classDef.name.raw), Seq(Datalog.Var("this"))) +:
+          Datalog.Call(fieldInitPatName(classDef.name.raw), Seq(Datalog.Var("this"))) +: b.atoms,
       )
     }
+
     Datalog.Pattern(None, qualifiedName, thisParam +: params, bodies)
   }
 
@@ -275,26 +316,14 @@ class GenerateDatalog(module: Module) {
 
   private def transField(classDef: ClassDef, fieldDef: FieldDef): Datalog.Pattern = {
     val qualifiedName = fieldPatName(classDef.name.raw, fieldDef.name.raw)
-    val params = Seq(
-      Datalog.Param("this", transType(classDef.typ)),
-      Datalog.Param(fieldDef.name.raw, transType(fieldDef.typ))
-    )
+    val params = Datalog.Param("this", transType(classDef.typ)) +:
+      flattenParam(fieldDef.name.raw, fieldDef.typ, genFresh = false)
+
     Datalog.Pattern(None, qualifiedName, params, Seq())
       .addHint(ObjectHints.Field)
   }
 
   private def transDefaultConstructor(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
-    /**
-     * Collect all fields from classDef and all inherited fields from all parents
-     */
-    def collectFields(classDef: ClassDef): Seq[(ClassDef, FieldDef)] = {
-      val fields = classDef.fields.map((classDef, _))
-      val parentFields = classDef.parentClassRefs.flatMap(ref =>
-        collectFields(ref.target.getOrElse(throw new IllegalArgumentException(s"Unresolved class $ref")))
-      )
-      parentFields ++ fields
-    }
-
     val thisVar = Datalog.Var("this")
     val constrScalaFun = Term.Function(Nil, q"""$oOID(${classDef.name.raw})""")
     val constrComp = Datalog.Computed(thisVar, Datalog.Evaluation(
@@ -303,24 +332,7 @@ class GenerateDatalog(module: Module) {
 
     val thisParam = Datalog.Param("this", transType(classDef.typ))
 
-    // set the default value for each field
-    val fields = collectFields(classDef)
-    val fieldSetter = fields.filter(_._2.body.isDefined).map { case (fieldClassDef, fieldDef) =>
-      val fieldName = fieldPatName(fieldClassDef.name.raw, fieldDef.name.raw)
-      // alternative bodies for each field
-      for ((Seq(term), cons) <- transExpression(fieldDef.body.get)) yield
-        cons :+ Datalog.Call(fieldName, Seq(thisVar, term)).addHint(ObjectHints.FieldSet)
-    }
-
-    val bodies =
-      if (fieldSetter.isEmpty)
-        Seq(Datalog.Body(Seq(constrComp)))
-      else
-        for (cons <- TupleOps.cartesianProduct(fieldSetter)) yield {
-          Datalog.Body(constrComp +: cons.flatten)
-        }
-
-    Datalog.Pattern(transVis(classDef.vis), constructorPatName(classDef.name.raw), Seq(thisParam), bodies)
+    Datalog.Pattern(transVis(classDef.vis), constructorPatName(classDef.name.raw), Seq(thisParam), Seq(Datalog.Body(Seq(constrComp))))
       .addHint(ObjectHints.Allocation)
   }
 
@@ -330,17 +342,17 @@ class GenerateDatalog(module: Module) {
     val qualifiedName = classDef.name + sep + methodDef.name.raw
 
     val thisParam = Datalog.Param("this", transType(classDef.typ))
-    val argParams = methodDef.params.map { case Param(name, typ) =>
-      Datalog.Param(name.raw, transType(typ))
+    val argParams = methodDef.params.flatMap { case Param(name, typ) =>
+      flattenParam(name.raw, typ, genFresh = false)
     }
     val returnParams =
       if (methodDef.returnsUnit)
         Seq()
       else
-        Seq(Datalog.Param(gensym.fresh("return"), transType(methodDef.outType)))
+        flattenParam("return", methodDef.outType, genFresh = true)
 
     val bodyRes = transStatements(methodDef.body, None)
-    val bodies = for ((optReturn, cons, path) <- bodyRes) yield {
+    val bodies = for ((optReturn, cons, _) <- bodyRes) yield {
       if (!methodDef.returnsUnit && optReturn.isEmpty)
         throw new IllegalStateException(s"Method ${classDef.name}.${methodDef.name} must call return")
       val returnCons = returnParams.zip(optReturn.getOrElse(Seq())).map { case (p, t) =>
@@ -371,9 +383,9 @@ class GenerateDatalog(module: Module) {
       Seq((None, Seq(), path))
     case s::rest =>
       val alternatives = for ((sReturn, sConstraints, sPath) <- transStatement(s, path)) yield {
-        if (sReturn.isDefined)
+        if (sReturn.isDefined) {
           Seq((sReturn, sConstraints, sPath))
-        else
+        } else
           transStatements(rest, sPath).map(res => (res._1, sConstraints ++ res._2, res._3))
       }
       alternatives.flatten
@@ -392,24 +404,15 @@ class GenerateDatalog(module: Module) {
       val cndTrans = transExpression(cnd)
       val thnTrans = transStatements(thn, path)
       val elsTrans = transStatements(els, path)
-      val condVar = Datalog.Var(gensym.fresh("cond"))
 
-      // Assigning the condition to a variable prevents the ConstantPropagation from removing the condition if it is a
-      // constant e.g. If (true) or If (false).
       val thnRes: StmRes =
         for ((Seq(cndTerm), cndCons) <- cndTrans;
              (thnTerm, thnCons, _) <- thnTrans)
-        yield (thnTerm, cndCons ++ Seq(
-          Datalog.Eq(condVar, cndTerm),
-          Datalog.Eq(condVar, Datalog.True)
-        ) ++ thnCons, Some(stmt.sourceObject -> true))
+        yield (thnTerm, cndCons ++ Seq(Datalog.Eq(cndTerm, Datalog.True)) ++ thnCons, Some(stmt.sourceObject -> true))
       val elsRes: StmRes =
         for ((Seq(cndTerm), cndCons) <- cndTrans;
              (elsTerm, elsCons, _) <- elsTrans)
-        yield (elsTerm, cndCons ++ Seq(
-          Datalog.Eq(condVar, cndTerm),
-          Datalog.Eq(condVar, Datalog.False)
-        ) ++ elsCons, Some(stmt.sourceObject -> false))
+        yield (elsTerm, cndCons ++ Seq(Datalog.Eq(cndTerm, Datalog.False)) ++ elsCons, Some(stmt.sourceObject -> false))
       thnRes ++ elsRes
 
     case fieldAssign@FieldAssignStmt(recv, name, expression) =>
@@ -425,22 +428,24 @@ class GenerateDatalog(module: Module) {
       val (classDef, _) = fieldAssign.target.getOrElse(throw new IllegalArgumentException(s"Unresolved field $name"))
       val qualifiedName = fieldPatName(classDef.name.raw, name.raw)
 
-      val transRecv = for ((Seq(term), cons) <- transExpression(recv)) yield {
+      val transRecv = for ((terms, cons) <- transExpression(recv)) yield {
         for (tups <- transExpression(expression)) yield {
           val (argTerms, argCons) = tups
-          (None, cons ++ argCons :+ Datalog.Call(qualifiedName, term +: argTerms).addHint(ObjectHints.FieldSet), path)
+          (None, cons ++ argCons :+ Datalog.Call(qualifiedName, terms ++ argTerms).addHint(ObjectHints.FieldSet), path)
         }
       }
       transRecv.flatten
 
-    case VarDeclareStmt(name, _, Some(expression), true) =>
-      for ((Seq(term), cons) <- transExpression(expression))
-        yield (None, cons :+ Datalog.Eq(Datalog.Var(name.raw), term), path)
+    case VarDeclareStmt(name, typ, Some(expression), true) =>
+      val vars = flattenVars(name.raw, typ).map(_._1)
+      for ((terms, cons) <- transExpression(expression))
+        yield (None, cons ++ vars.zip(terms).map { case (v, t) => Datalog.Eq(v, t) }, path)
 
     case VarPhiAssignStmt(name, _, ifStmt, thnName, elsName) =>
       val (sSource, sCond) = path.get
       // FIXME: For now this is always the case. We could remove the source object.
       assert(sSource == ifStmt.sourceObject)
+      // This is just a renaming. We do not need to care about tuples here.
       val conditionVarName = if (sCond) thnName else elsName
       Seq(
           (None, Seq(Datalog.Eq(Datalog.Var(name.raw), Datalog.Var(conditionVarName.raw))), path)
@@ -463,14 +468,14 @@ class GenerateDatalog(module: Module) {
       val classDef = classType.ref.target.getOrElse(throw new IllegalArgumentException(s"Unresolved class $classType"))
       */
       // to allow inheritance of attributes we use the classDef target of the field lookup
-      val (classDef, _) = fieldRead.target.getOrElse(throw new IllegalArgumentException(s"Unresolved field $targetName"))
+      val (classDef, fieldDef) = fieldRead.target.getOrElse(throw new IllegalArgumentException(s"Unresolved field $targetName"))
 
-      for ((Seq(term), cons) <- transExpression(recv)) yield {
-        val fieldReadVar = Datalog.Var(gensym.fresh(targetName.raw))
-        val fieldReadCall = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), Seq(term, fieldReadVar))
-          .addHint(MagicSetHints.FixedAdornment(Seq(true, true)))
+      for ((terms, cons) <- transExpression(recv)) yield {
+        val fieldReadVars = flattenVars(gensym.fresh(targetName.raw), fieldDef.typ).map(_._1) //Datalog.Var(gensym.fresh(targetName.raw))
+        val fieldReadCall = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), terms ++ fieldReadVars)
+          .addHint(MagicSetHints.FixedAdornment(terms.map(_ => true) ++ fieldReadVars.map(_ => true)))
           .addHint(ObjectHints.FieldGet)
-        (Seq(fieldReadVar), cons :+ fieldReadCall)
+        (fieldReadVars, cons :+ fieldReadCall)
       }
 
     case constrExpr@ConstructorExpr(classRef, args) =>
@@ -501,42 +506,42 @@ class GenerateDatalog(module: Module) {
       }
 
     case methodCallExp@MethodCallExpr(recv, fun, args) =>
-      val outVar = Datalog.Var(gensym.fresh("methodCall"))
       val argRes = args.map(e => transExpression(e))
 
       val methodDef = methodCallExp.target.getOrElse(throw new IllegalArgumentException(s"Unresolved method $methodCallExp"))
+      val outVars = flattenVars(gensym.fresh("methodCall"), methodDef.outType).map(_._1)
       val qualifiedName = dispatchPatName(methodDef.name + sep + methodDef.paramSignature)
 
-      val transRecv = for ((Seq(term), cons) <- transExpression(recv)) yield {
+      val transRecv = for ((terms, cons) <- transExpression(recv)) yield {
         if (argRes.isEmpty)
-          return Seq((Seq(outVar), cons :+ Datalog.Call(qualifiedName, term +: Seq(outVar))))
+          return Seq((outVars, cons :+ Datalog.Call(qualifiedName, terms ++ outVars)))
         for (tups <- TupleOps.cartesianProduct(argRes)) yield {
           val (argTerms, argCons) = tups.unzip
-          (Seq(outVar), cons ++ argCons.flatten ++ Seq(Datalog.Call(qualifiedName, term +: argTerms.flatten :+ outVar)))
+          (outVars, cons ++ argCons.flatten ++ Seq(Datalog.Call(qualifiedName, terms ++ argTerms.flatten ++ outVars)))
         }
       }
       transRecv.flatten
 
     case TypeCastExpr(recv, toTyp) =>
-      for ((Seq(eTerm), eCons) <- transExpression(recv)) yield {
-        val castCall = Datalog.Call(castPatName, Seq(eTerm, Datalog.StringConstant(toTyp.toString)))
-        (Seq(eTerm), eCons :+ castCall)
+      for ((Seq(term), cons) <- transExpression(recv)) yield {
+        val castCall = Datalog.Call(castPatName, Seq(term, Datalog.StringConstant(toTyp.toString)))
+        (Seq(term), cons :+ castCall)
       }
 
     case InstanceOfExpr(recv, ofTyp) =>
-      for ((Seq(eTerm), eCons) <- transExpression(recv)) yield {
+      for ((Seq(term), cons) <- transExpression(recv)) yield {
         val outVar = Datalog.Var(gensym.fresh("isInstance"))
-        val instanceOfCall = Datalog.Call(instanceOfPatName, Seq(eTerm, Datalog.StringConstant(ofTyp.toString), outVar))
-        (Seq(outVar), eCons :+ instanceOfCall)
+        val instanceOfCall = Datalog.Call(instanceOfPatName, Seq(term, Datalog.StringConstant(ofTyp.toString), outVar))
+        (Seq(outVar), cons :+ instanceOfCall)
       }
 
     case EqualsExpr(obj1, obj2) =>
       val transExps = Seq(transExpression(obj1), transExpression(obj2))
       for (tups <- TupleOps.cartesianProduct(transExps)) yield {
-        val (eTerms, eCons) = tups.unzip
+        val (terms, cons) = tups.unzip
         val outVar = Datalog.Var(gensym.fresh("isEqual"))
-        val equalsCall = Datalog.Call(equalsPatName, eTerms.flatten :+ outVar)
-        (Seq(outVar), eCons.flatten ++ Seq(equalsCall))
+        val equalsCall = Datalog.Call(equalsPatName, terms.flatten :+ outVar)
+        (Seq(outVar), cons.flatten ++ Seq(equalsCall))
       }
 
     case NullExpr() =>
@@ -544,9 +549,31 @@ class GenerateDatalog(module: Module) {
       val nullConstrCall = Datalog.Call("Null", Seq(nullVar))
       Seq((Seq(nullVar), Seq(nullConstrCall)))
 
-    /*
-    case TupleExpr(exps) => ???
-    */
+    case TupleExpr(exps) =>
+      (for (tups <- TupleOps.cartesianProduct(exps.map(transExpression))) yield {
+        tups.unzip
+      }).map { case (tups, cons) =>
+        (tups.flatten, cons.flatten)
+      }
+
+    case TupleReadExpr(recv, index) =>
+      def numberOfElements(ty: Type): Int = {
+        ty match {
+          case TTuple(ts) => ts.map(numberOfElements).sum
+          case _ => 1
+        }
+      }
+
+      val startIdx = index.raw -1
+      recv.typ match {
+        case Some(TTuple(ts)) =>
+          val elementsToRead = numberOfElements(ts(startIdx))
+          for ((terms, cons) <- transExpression(recv)) yield {
+            (terms slice(startIdx, startIdx + elementsToRead), cons)
+          }
+        case _ => throw new IllegalArgumentException(s"Can not perform tuple read on expression of type ${recv.typ}")
+      }
+
 
     case BaseLitExpr(code) =>
       import scala.meta._
@@ -686,7 +713,7 @@ class GenerateDatalog(module: Module) {
 
   private def flattenParam(name: String, typ: Type, genFresh: Boolean): Seq[Datalog.Param] = typ match {
     case TTuple(tys) => tys.zipWithIndex.flatMap { case (ty, ix) =>
-      flattenParam(name + "_" + ix, ty, genFresh = true)
+      flattenParam(name + "_" + (ix + 1), ty, genFresh = genFresh)
     }
     case _ =>
       val v = if (genFresh) gensym.fresh(name) else name
@@ -694,14 +721,10 @@ class GenerateDatalog(module: Module) {
   }
 
   private def flattenVars(x: String, ty: Type): Seq[(Datalog.Var, Datalog.Type)] = ty match {
-    /*case TTuple(ts) =>
-      ts.zipWithIndex.map { case (ty, ix) => Datalog.Var(x.name + "$_" + ix) -> transType(ty) }
-      tupleParams.get(x.name) match {
-        case Some(vars) =>
-          ts.zip(vars).map { case (ty, v) => Datalog.Var(v) -> transType(ty) }
-        case None =>
-          ts.zipWithIndex.map { case (ty, ix) => Datalog.Var(x.name + "$_" + ix) -> transType(ty) }
-      }*/
+    case TTuple(ts) =>
+      ts.zipWithIndex.flatMap { case (ty, ix) =>
+        flattenVars(x + "_" + (ix + 1), ty)
+      }
     case ty =>
       Seq(Datalog.Var(x) -> transType(ty))
   }

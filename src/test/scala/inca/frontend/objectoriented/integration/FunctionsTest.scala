@@ -16,13 +16,26 @@ class FunctionsTest extends AnyFunSuite {
   val options: ObjectOptions = ObjectOptions()
 
   private def performSingleOutputValueTest[O](file: String, main: String, input: Seq[Term], expectedResult: O): Assertion = {
+    performMultipleOutputValueTest(file, main, input, Seq(expectedResult)).head
+  }
+
+  private def performMultipleOutputValueTest[O](file: String, main: String, input: Seq[Term], expectedResult: Seq[O]): Seq[Assertion] = {
     val code = readFile(s"objectoriented/unittests/$file.oinca")
     val fun = ObjectExecutor.loadFunction(code, options)
     val result = fun.execute(main, input)
     fun.printAllMatches()
-    if (result.res.size > 1)
-      assert(false, s"Expected one result, but got ${result.res.size}.")
-    assertResult(expectedResult)(result.res.head.head)
+
+    if (result.res.isEmpty)
+      Seq(assert(false, s"Expected 1 result, but got 0."))
+    else if (result.res.size > 1)
+      Seq(assert(false, s"Expected single result, but got set with size ${result.res.size}."))
+    else if (result.res.head.size != expectedResult.size)
+      Seq(assert(false, s"Expected ${expectedResult.size} result(s), but got ${result.res.head.size}."))
+    else
+      result.res.head.zip(expectedResult).zipWithIndex.map { case ((actual, expectedValue), i) =>
+        val comparison = expectedValue.equals(actual)
+        assert(comparison, s"Expected $expectedValue, but got $actual at index $i")
+      }
   }
 
   test("Base 1 Example") {
@@ -137,7 +150,7 @@ class FunctionsTest extends AnyFunSuite {
   }
 
   test("Tuple Example") {
-    performSingleOutputValueTest("Tuple", "TupleTest$main", Seq(), 10)
+    performMultipleOutputValueTest("Tuple", "A$main", Seq(), Seq(true, true, true))
   }
 
   /*test("Generate example") {

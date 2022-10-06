@@ -30,7 +30,7 @@ object FoldConstantAtoms extends Optimization {
 
       case Compare(_, v: Var, _) if varCount.get(v.name) == 1 => Seq()
       case Compare(_, _, v: Var) if varCount.get(v.name) == 1 => Seq()
-      case c@Computed(v: Var, _) if varCount.get(v.name) == 1 => Seq() //&& !c.hasHint(OptimizationHints.IsExceptionKey) => Seq()
+      case Computed(v: Var, _) if varCount.get(v.name) == 1 => Seq()
       case Path(v: Var, _, _, _, _) if varCount.get(v.name) == 1 => Seq()
       case Path(_, _, _, v: Var, _) if varCount.get(v.name) == 1 => Seq()
 
@@ -38,7 +38,7 @@ object FoldConstantAtoms extends Optimization {
       case Compare(EqComparator, Constant(c1), Constant(c2)) if c1 != c2 => throwBodyMustFail()
 
       case Compare(NeqComparator, t1, t2) if t1 == t2 => throwBodyMustFail()
-      case Compare(NeqComparator, Constant(c1), Constant(c2)) if c1 == c2 => Seq()
+      case Compare(NeqComparator, Constant(c1), Constant(c2)) if c1 != c2 => Seq()
 
       case HasType(t, typ) =>
         val termTyp = t match {
@@ -50,7 +50,7 @@ object FoldConstantAtoms extends Optimization {
           case c:Constant => c.lit.typ
         }
         if (termTyp == typ) {
-          // this constraint was responsible for the inferrence of termTyp, must keep it
+          // this constraint was responsible for the inference of termTyp, must keep it
           Seq(atom)
         } else {
           val meetType = meet(termTyp, typ, dataModel)
