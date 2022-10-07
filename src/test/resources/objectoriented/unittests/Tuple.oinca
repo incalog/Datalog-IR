@@ -13,20 +13,27 @@ class A {
 	def this() = { }
 
 	@main def main(): (Boolean, Boolean, Boolean) = {
-
-		val x: (Int, Int) = (1, 2)
-		val y: Int = x._1
-		val z: Int = x._2
-		val w: (String, (Int, Int)) = ("Some string", x)
-		val q: Int = w._2._1
-
-        // try to assign and access tuple field variables
-		val a: A = new A()
-		a.tup = (3, new B())
-		val res: (Int, Int, (Int, Int)) = a.someMethod((2, 3))
-
+        // access elements of a tuple expression directly
         val test: Int = (1, (2, (3, 4, 5)))._2._2._3
 
+        // assign a variable to a tuple
+		val x: (Int, Int) = (1, 2)
+		// access tuple elements
+		val y: Int = x._1
+		val z: Int = x._2
+		// create a nested tuple
+		val w: (String, (Int, Int)) = ("Some string", x)
+		// access a nested tuple
+		val q: Int = w._2._1
+
+        // assign and access tuple field variables
+		val a: A = new A()
+		a.tup = (3, new B())
+
+		// store a tuple return value in a variable
+		val res: (Int, Int, (Int, Int)) = a.someMethod((2, 3))
+
+        // check if the access is working
 		val eval1: Boolean = ((y == 1) && (z == 2))
 		val eval2: Boolean = ((a.tup._2.values._1 + a.tup._1) == 12)
 		val eval3: Boolean = ((res._1 * 2) == res._3._1) && ((res._2 * 2) == res._3._2)

@@ -709,23 +709,16 @@ class GenerateDatalog(module: Module) {
       throw new IllegalArgumentException(s"Statement not supported $stmt")
   }
 
-  private def flattenParam(name: String, typ: Type, genFresh: Boolean): Seq[Datalog.Param] = typ match {
-    case TTuple(tys) => tys.zipWithIndex.flatMap { case (ty, ix) =>
-      flattenParam(name + "_" + (ix + 1), ty, genFresh = genFresh)
-    }
-    case _ =>
-      val v = if (genFresh) gensym.fresh(name) else name
-      Seq(Datalog.Param(v, transType(typ)))
-  }
+  private def flattenParam(name: String, typ: Type, genFresh: Boolean): Seq[Datalog.Param] =
+    flattenVars(name, typ, genFresh).map { case (v, ty) => Datalog.Param(v.name, ty) }
 
-  private def flattenVars(x: String, ty: Type): Seq[(Datalog.Var, Datalog.Type)] = ty match {
-    case TTuple(ts) =>
-      ts.zipWithIndex.flatMap { case (ty, ix) =>
-        flattenVars(x + "_" + (ix + 1), ty)
-      }
-    case ty =>
-      Seq(Datalog.Var(x) -> transType(ty))
-  }
+  private def flattenVars(name: String, ty: Type, genFresh: Boolean = false): Seq[(Datalog.Var, Datalog.Type)] =
+    ty match {
+      case TTuple(ts) =>
+        ts.zipWithIndex.flatMap { case (ty, ix) => flattenVars(name + "_" + (ix + 1), ty) }
+      case ty =>
+        Seq(Datalog.Var(if (genFresh) gensym.fresh(name) else name) -> transType(ty))
+    }
 
   def GP_URI: Datalog.TScala = Datalog.TScala(Scala(typeOf[ObjectID]))
 
