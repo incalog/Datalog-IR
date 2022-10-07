@@ -27,7 +27,6 @@ object GenerateDatalog {
   def dispatchPatName(methodNameWithSignature: String): String = s"${internalPrefix}dispatch_${methodNameWithSignature}"
   def constructorPatName(className: String): String = className
   def constructorSuperPatName(className: String): String = className + "_super"
-  def fieldInitPatName(className: String): String = className + "_fieldInit"
   def fieldPatName(className: String, fieldName: String): String = className + sep + sep + fieldName
 
   def transformModule(module: Module): Datalog.Module =
@@ -241,16 +240,13 @@ class GenerateDatalog(module: Module) {
       case method: MethodDef => Seq(transMethod(classDef, method))
       case constructor: ConstructorDef =>
         Seq(
-          transFieldInitialization(classDef),
           transConstructor(classDef, constructor),
           transSuper(classDef, constructor)
         )
     } :+ transDefaultConstructor(classDef)
   }
 
-  // Note: Do not move this in transDefaultConstructor. We might get unresolvable cycles if we declare with a
-  // constructor call.
-  private def transFieldInitialization(classDef: ClassDef): Datalog.Pattern = {
+  private def transFieldInitBody(classDef: ClassDef): Seq[Datalog.Body] = {
     /**
      * Collect all fields from classDef and all inherited fields from all parents
      */
@@ -273,29 +269,31 @@ class GenerateDatalog(module: Module) {
         cons :+ Datalog.Call(fieldName, thisVar +: terms).addHint(ObjectHints.FieldSet)
     }
 
-    val bodies =
-      if (fieldSetter.isEmpty)
-        Seq(Datalog.Body(Seq()))
-      else
-        for (cons <- TupleOps.cartesianProduct(fieldSetter)) yield {
-          Datalog.Body(cons.flatten)
-        }
-
-    Datalog.Pattern(None, fieldInitPatName(classDef.name.raw), Seq(thisParam), bodies)
-
+    if (fieldSetter.isEmpty)
+      Seq(Datalog.Body(Seq()))
+    else
+      for (cons <- TupleOps.cartesianProduct(fieldSetter)) yield {
+        Datalog.Body(cons.flatten)
+      }
   }
 
   private def transConstructor(classDef: ClassDef, constructorDef: ConstructorDef): Datalog.Pattern = {
     val qualifiedName = constructorPatName(classDef.name.raw) + sep + constructorDef.paramSignature
     val thisParam = Datalog.Param("this", transType(classDef.typ))
     val params = constructorDef.params.flatMap(p => flattenParam(p.name.raw, p.typ, genFresh = false))
-    val bodies = transConstructorBody(classDef, constructorDef).map { b =>
-      Datalog.Body(
-        Datalog.Call(constructorPatName(classDef.name.raw), Seq(Datalog.Var("this"))) +:
-          Datalog.Call(fieldInitPatName(classDef.name.raw), Seq(Datalog.Var("this"))) +: b.atoms,
-      )
-    }
+    val constrBodies = transConstructorBody(classDef, constructorDef)
 
+    // Note:
+    // Don't move this in transDefaultConstructor.
+    // We get unresolvable cycles if we declare a field with a constructor call to the class itself.
+    val fieldInitBodies = transFieldInitBody(classDef)
+    val bodies = constrBodies.flatMap { cB =>
+      fieldInitBodies.map { fB =>
+        Datalog.Body(
+          Datalog.Call(constructorPatName(classDef.name.raw), Seq(Datalog.Var("this"))) +: (fB.atoms ++ cB.atoms)
+        )
+      }
+    }
     Datalog.Pattern(None, qualifiedName, thisParam +: params, bodies)
   }
 
@@ -559,11 +557,11 @@ class GenerateDatalog(module: Module) {
     case TupleReadExpr(recv, index) =>
       def numberOfElements(ty: Type): Int = {
         ty match {
-          case TTuple(ts) => ts.map(numberOfElements).sum
+          case TTuple(ts) => ts.foldLeft(0)(_ + numberOfElements(_)) //ts.map(numberOfElements).sum
           case _ => 1
         }
       }
-
+      // If the accessed element is a tuple we need to return more than one element
       val startIdx = index.raw -1
       recv.typ match {
         case Some(TTuple(ts)) =>
