@@ -59,9 +59,13 @@ class ParserTest extends AnyFunSuite {
          case Right((str, module)) =>
            println(module)
 
-           // Copy the dot graph to the clipboard for debugging
+           import inca.frontend.objectoriented.analyze.AbstractSyntaxTree
+           val ast = new AbstractSyntaxTree(module)
+
+           import java.awt.Toolkit
+           import java.awt.datatransfer.{Clipboard, StringSelection}
            val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
-           val selection = new StringSelection(module.dotString)
+           val selection = new StringSelection(ast.toGraphViz)
            clipboard.setContents(selection, selection)
 
            println()

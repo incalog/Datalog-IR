@@ -18,11 +18,6 @@ case class Module(name: Name, imports: Seq[Import], classes: Seq[ClassDef])
     s"${indent}module $name\n$importsS$contentS".stripMargin
   }
 
-  override def dotString: String =
-    "digraph G {\n" + super.dotString + classes.map { c =>
-      s"$nodeId -> ${c.nodeId};\n${c.dotString}"
-    }.mkString("") + "}"
-
   override def toString: String = prettyprint("")
 }
 
@@ -63,13 +58,6 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
       "\n" + content.map(_.prettyprint(indent+"\t")).mkString("\n\n")
     s"""$annoPrefix$indent${visS}class $name(${parentClassRefs.mkString(", ")}) {$contentS\n$indent}""".stripMargin
   }
-
-  override def nodeShape: String = "box"
-
-  override def dotString: String =
-    super.dotString + content.map { c =>
-      s"$nodeId -> ${c.nodeId};\n${c.dotString}"
-    }.mkString("")
 }
 
 case class ClassRef(name: Name) extends SourceLocation with Resolvable[ClassDef] {
@@ -84,16 +72,6 @@ case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
     val expr = if (body.isEmpty) "" else s" = ${body.get}"
     val prefix = if (immutable) "val " else "var "
     s"$indent$visS$prefix$name: ${typ.prettyprint}$expr"
-  }
-
-  override def nodeShape: String = "diamond"
-
-  override def dotString: String = {
-    if (body.isDefined) {
-      super.dotString + s"""$nodeId -> ${body.get.nodeId} [label="body"];\n${body.get.dotString}"""
-    } else {
-      super.dotString
-    }
   }
 }
 
@@ -116,15 +94,6 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
        |$bodyS
        |$indent}""".stripMargin
   }
-
-  override def nodeShape: String = "octagon"
-
-  override def dotString: String =
-    super.dotString + body.zipWithIndex.map { case (stmt, i) =>
-      s"""$nodeId -> ${stmt.nodeId} [label="body[$i]"];\n${stmt.dotString}"""
-    }.mkString("") + params.zipWithIndex.map { case (param, i) =>
-      s"""$nodeId -> ${param.nodeId} [label="param[$i]"];\n${param.dotString}"""
-    }.mkString("")
 }
 
 case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], params: Seq[Param], body: Seq[Statement])
@@ -142,21 +111,10 @@ case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], param
        |$bodyS
        |$indent}""".stripMargin
   }
-
-  override def nodeShape: String = "doubleoctagon"
-
-  override def dotString: String =
-    super.dotString + body.zipWithIndex.map { case (stmt, i) =>
-      s"""$nodeId -> ${stmt.nodeId} [label="body[$i]"];\n${stmt.dotString}"""
-    }.mkString("") + params.zipWithIndex.map { case (param, i) =>
-      s"""$nodeId -> ${param.nodeId} [label="param[$i]"];\n${param.dotString}"""
-    }.mkString("")
 }
 
 case class Param(name: Name, typ: Type) extends SourceLocation with VarReadExpr.Target {
   def vars: Map[Name, Option[Type]] = Map(name -> Some(typ))
 
   def prettyprint: String = s"$name: ${typ.prettyprint}"
-
-  override def nodeShape: String = "polygon"
 }

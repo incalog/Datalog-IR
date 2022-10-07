@@ -9,35 +9,21 @@ sealed trait Statement extends SourceLocation {
   def prettyprint(infixParens: Boolean)(implicit indent: String): String
   def prettyprint(implicit indent: String): String = prettyprint(infixParens = false)(indent)
   override def toString: String = prettyprint("")
-
-  override def nodeShape: String = "Mcircle"
 }
 
 case class ExprStmt(expression: Expression) extends Statement {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     s"$indent$expression"
-
-  override def dotString: String =
-    s"${super.dotString}$nodeId -> ${expression.nodeId};\n${expression.dotString}"
 }
 
 case class ReturnStmt(expression: Expression) extends Statement {
-  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     s"${indent}return $expression"
-  }
-
-  override def dotString: String = {
-      s"${super.dotString}$nodeId -> ${expression.nodeId};\n${expression.dotString}"
-  }
 }
 
 case class FieldAssignStmt(recv: Expression, name: Name, expression: Expression) extends Statement with Resolvable[(ClassDef, FieldDef)] {
-  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     s"$indent$recv.$name = $expression"
-  }
-
-  override def dotString: String =
-    s"${super.dotString}$nodeId -> ${expression.nodeId};\n${expression.dotString}"
 }
 
 case class VarDeclareStmt(name: Name, typ: Type, maybeExpression: Option[Expression], immutable: Boolean) extends Statement
@@ -50,33 +36,18 @@ case class VarDeclareStmt(name: Name, typ: Type, maybeExpression: Option[Express
     val prefix = if (immutable) "val " else "var "
     s"${indent}${prefix}${name}: $typ$expr"
   }
-
-  override def dotString: String = {
-    if (maybeExpression.isEmpty)
-      super.dotString
-    else
-      s"${super.dotString}$nodeId -> ${maybeExpression.get.nodeId};\n${maybeExpression.get.dotString}"
-  }
 }
 
 case class VarAssignStmt(targetName: Name, expression: Expression) extends Statement with Resolvable[VarReadExpr.Target] {
-  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     s"$indent$targetName = $expression"
-  }
-
-  override def dotString: String =
-    s"${super.dotString}$nodeId -> ${expression.nodeId};\n${expression.dotString}"
 }
 
 case class VarPhiAssignStmt(name: Name, typ: Type, ifStmt: IfStmt, thnName: Name, elsName: Name) extends Statement with VarReadExpr.Target {
-  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     s"${indent}val $name: $typ := phi(${ifStmt.cnd})($thnName, $elsName)"
-  }
 
   lazy val source: SourceObject = ifStmt.sourceObject
-
-  override def dotString: String =
-    s"${super.dotString}"
 }
 
 case class IfStmt(cnd: Expression, thn: Seq[Statement], els: Seq[Statement]) extends Statement {
@@ -93,14 +64,4 @@ case class IfStmt(cnd: Expression, thn: Seq[Statement], els: Seq[Statement]) ext
       s"${indent}$condS {\n$ifS\n$indent} else {\n$elseS\n$indent}"
     }
   }
-
-  override def dotString: String =
-    s"""${super.dotString}""" +
-      s"""$nodeId -> ${cnd.nodeId} [label="cond"];\n${cnd.dotString}""" +
-      thn.zipWithIndex.map {
-        case (t, i) => s"""$nodeId -> ${t.nodeId} [label="then[$i]"];\n${t.dotString}"""
-      }.mkString("") +
-      els.zipWithIndex.map{
-        case (e, i) => s"""$nodeId -> ${e.nodeId} [label="else[$i]"];\n${e.dotString}"""
-      }.mkString("")
 }
