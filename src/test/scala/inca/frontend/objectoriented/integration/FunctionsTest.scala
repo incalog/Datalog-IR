@@ -11,146 +11,179 @@ import org.scalatest.Assertion
 
 import scala.meta.{Term, XtensionQuasiquoteTerm}
 
+case class ResultError(msg: String)
+
 class FunctionsTest extends AnyFunSuite {
 
   val options: ObjectOptions = ObjectOptions()
 
-  private def performSingleOutputValueTest[O](file: String, main: String, input: Seq[Term], expectedResult: O): Assertion = {
-    performMultipleOutputValueTest(file, main, input, Seq(expectedResult)).head
-  }
-
-  private def performMultipleOutputValueTest[O](file: String, main: String, input: Seq[Term], expectedResult: Seq[O]): Seq[Assertion] = {
+  // TODO: Introduce result types such as SingleResult, TupleResult and SetResult. Convert the result type to the
+  //  correct result subclass.
+  private def performTest[O](file: String, main: String, input: Seq[Term], expectedResult: O): Seq[Assertion] = {
     val code = readFile(s"objectoriented/unittests/$file.oinca")
     val fun = ObjectExecutor.loadFunction(code, options)
     val result = fun.execute(main, input)
     fun.printAllMatches()
 
     if (result.res.isEmpty)
-      Seq(assert(false, s"Expected 1 result, but got 0."))
-    else if (result.res.size > 1)
-      Seq(assert(false, s"Expected single result, but got set with size ${result.res.size}."))
-    else if (result.res.head.size != expectedResult.size)
-      Seq(assert(false, s"Expected ${expectedResult.size} result(s), but got ${result.res.head.size}."))
-    else
-      result.res.head.zip(expectedResult).zipWithIndex.map { case ((actual, expectedValue), i) =>
-        val comparison = expectedValue.equals(actual)
-        assert(comparison, s"Expected $expectedValue, but got $actual at index $i")
-      }
+      Seq(assert(false, s"Expected a result, but got none."))
+    else {
+      checkResult(expectedResult, result.res).map(err => assert(false, err.msg))
+    }
+  }
+
+
+  def checkResult[O](expectedResult: O, result: Seq[Seq[AnyRef]]): Seq[ResultError] = {
+    expectedResult match {
+      // match datalog sets
+      case resultSet: Set[_] =>
+        if (result.size > resultSet.size)
+          Seq(ResultError(s"Expected set with size $resultSet.size, but got ${result.size}."))
+        else {
+          result.flatMap { actual =>
+            val anyErrorFree = resultSet.filter(checkResult(_, Seq(actual)).isEmpty)
+            if (anyErrorFree.isEmpty)
+              Seq(ResultError(s"Can not find $actual in result $resultSet"))
+            else
+              Seq()
+          }
+        }
+
+      // match datalog tuples
+      // TODO: Support nested tuples
+      case resultTuple: Seq[_] =>
+        if (result.size > 1)
+          Seq(ResultError(s"Expected single result, but got result set with size ${result.size}."))
+        else if (result.head.size != resultTuple.size)
+          Seq(ResultError(s"Expected ${resultTuple.size} result(s), but got ${result.head.size}."))
+        else if (!result.head.zip(resultTuple).forall { case (actual, expectedValue) => expectedValue.equals(actual) })
+          Seq(ResultError(s"""Expectd ${resultTuple.mkString("(", ", ", ")")}, but got ${result.head.mkString("(", ", ", ")")}"""))
+        else
+          Seq()
+
+      case value =>
+        // Perform a tuple check with one element
+        checkResult(Seq(value), result)
+    }
   }
 
   test("Base 1 Example") {
-    performSingleOutputValueTest("Base1", "Base1$main", Seq(), 43)
+    performTest("Base1", "Base1$main", Seq(), 43)
   }
 
   test("Base 2 Example") {
-    performSingleOutputValueTest("Base2", "Base2$main", Seq(), 43)
+    performTest("Base2", "Base2$main", Seq(), 43)
   }
 
   test("Base 3 Example") {
-    performSingleOutputValueTest("Base3", "Base3$main", Seq(), 43)
+    performTest("Base3", "Base3$main", Seq(), 43)
   }
 
   test("Factorial Example") {
-    performSingleOutputValueTest("Fact", "Factorial$main", Seq(q"5"), 120)
+    performTest("Fact", "Factorial$main", Seq(q"5"), 120)
   }
 
   test("Fibonacci Example") {
-    performSingleOutputValueTest("Fib", "Fibonacci$main", Seq(q"11"), 89)
+    performTest("Fib", "Fibonacci$main", Seq(q"11"), 89)
   }
 
   test("FieldAccess Example") {
-    performSingleOutputValueTest("FieldAccess", "Fraction$main", Seq(q"16", q"8"), 2)
+    performTest("FieldAccess", "Fraction$main", Seq(q"16", q"8"), 2)
   }
 
   test("FieldAccessNested Example") {
-    performSingleOutputValueTest("FieldAccessNested", "A$main", Seq(), 3)
+    performTest("FieldAccessNested", "A$main", Seq(), 3)
   }
 
   test("FieldDeclare Example") {
-    performSingleOutputValueTest("FieldDeclare", "A$main", Seq(), 3)
+    performTest("FieldDeclare", "A$main", Seq(), 3)
   }
 
   test("FieldInheritance Example") {
-    performSingleOutputValueTest("FieldInheritance", "A$main", Seq(), 10)
+    performTest("FieldInheritance", "A$main", Seq(), 10)
   }
 
   test("Constructor Example") {
-    performSingleOutputValueTest("Constructor", "Fraction$main", Seq(q"16", q"8", q"1"), 3)
+    performTest("Constructor", "Fraction$main", Seq(q"16", q"8", q"1"), 3)
   }
 
   test("Null") {
-    performSingleOutputValueTest("Null", "NullTest$main", Seq(), true)
+    performTest("Null", "NullTest$main", Seq(), true)
   }
 
   test("Equals") {
-    performSingleOutputValueTest("Equals", "EqualsTest$main", Seq(), true)
+    performTest("Equals", "EqualsTest$main", Seq(), true)
   }
 
   test("InstanceOf Example") {
-    performSingleOutputValueTest("InstanceOf", "A$main", Seq(), true)
+    performTest("InstanceOf", "A$main", Seq(), true)
   }
 
   test("TypeCast Example") {
-    performSingleOutputValueTest("TypeCast", "A$main", Seq(), true)
+    performTest("TypeCast", "A$main", Seq(), true)
   }
 
   test("TypeCastFail Example") {
     val caught = intercept[TypeCastException] {
-      performSingleOutputValueTest("TypeCastFail", "A$main", Seq(), Seq())
+      performTest("TypeCastFail", "A$main", Seq(), Seq())
     }
     assert(caught.typ == "B")
     assert(caught.obj.typ == "A")
   }
 
   test("DynamicDispatch Example") {
-    performSingleOutputValueTest("DynamicDispatch", "A$main", Seq(), "BBC")
+    performTest("DynamicDispatch", "A$main", Seq(), "BBC")
   }
 
   test("MethodInheritance Example") {
-    performSingleOutputValueTest("MethodInheritance", "A$main", Seq(), 3)
+    performTest("MethodInheritance", "A$main", Seq(), 3)
   }
 
   test("BinaryTree Sum") {
-    performSingleOutputValueTest("BinaryTree3", "DefinedNode$main", Seq(), 20)
+    performTest("BinaryTree3", "DefinedNode$main", Seq(), 20)
   }
 
   test("Plus Example") {
-    performSingleOutputValueTest("Plus", "Nat$main", Seq(), 5)
+    performTest("Plus", "Nat$main", Seq(), 5)
   }
 
   test("Mutability Example") {
-    performSingleOutputValueTest("Mutability", "A$main", Seq(), true)
+    performTest("Mutability", "A$main", Seq(), true)
   }
 
   test("VarAssignment Example") {
-    performSingleOutputValueTest("VarAssignment", "A$main", Seq(q"3"), true)
+    performTest("VarAssignment", "A$main", Seq(q"3"), true)
   }
 
   test("If Example") {
     // If Constant
-    performSingleOutputValueTest("IfTrue", "IfTest$main", Seq(), true)
-    performSingleOutputValueTest("IfFalse", "IfTest$main", Seq(), true)
+    performTest("IfTrue", "IfTest$main", Seq(), true)
+    performTest("IfFalse", "IfTest$main", Seq(), true)
 
     // If nested
-    performSingleOutputValueTest("If", "IfTest$main", Seq(q"true", q"true"), 11)
-    performSingleOutputValueTest("If", "IfTest$main", Seq(q"true", q"false"), 7)
-    performSingleOutputValueTest("If", "IfTest$main", Seq(q"false", q"false"), 6)
+    performTest("If", "IfTest$main", Seq(q"true", q"true"), 11)
+    performTest("If", "IfTest$main", Seq(q"true", q"false"), 7)
+    performTest("If", "IfTest$main", Seq(q"false", q"false"), 6)
 
     // Duplicate
-    performSingleOutputValueTest("IfDuplicate", "IfTest$main", Seq(q"true", q"true"), 10)
+    performTest("IfDuplicate", "IfTest$main", Seq(q"true", q"true"), 10)
   }
 
   test("Return Example") {
-    performSingleOutputValueTest("Return", "ReturnTest$main", Seq(q"true"), 1)
-    performSingleOutputValueTest("Return", "ReturnTest$main", Seq(q"false"), 2)
+    performTest("Return", "ReturnTest$main", Seq(q"true"), 1)
+    performTest("Return", "ReturnTest$main", Seq(q"false"), 2)
   }
 
   test("Super Example") {
-    performSingleOutputValueTest("Super", "A$main", Seq(), 10)
+    performTest("Super", "A$main", Seq(), 10)
   }
 
   test("Tuple Example") {
-    performMultipleOutputValueTest("Tuple", "A$main", Seq(), Seq(true, true, true))
+    performTest("Tuple", "A$main", Seq(), Seq(true, true, true))
+  }
+
+  test("Set Example") {
+    performTest("Set", "A$main", Seq(), Set(1, 2, 3))
   }
 
   /*test("Generate example") {

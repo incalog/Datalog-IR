@@ -572,6 +572,8 @@ class GenerateDatalog(module: Module) {
         case _ => throw new IllegalArgumentException(s"Can not perform tuple read on expression of type ${recv.typ}")
       }
 
+    case SetExpr(exps) =>
+      exps.flatMap(transExpression)
 
     case BaseLitExpr(code) =>
       import scala.meta._
@@ -705,8 +707,8 @@ class GenerateDatalog(module: Module) {
         (Seq(evalOut), leftCons ++ rightCons ++ Seq(evalConstraint))
       }
 
-    case stmt =>
-      throw new IllegalArgumentException(s"Statement not supported $stmt")
+    case exps =>
+      throw new IllegalArgumentException(s"Expression not supported $exps")
   }
 
   private def flattenParam(name: String, typ: Type, genFresh: Boolean): Seq[Datalog.Param] =
@@ -725,12 +727,13 @@ class GenerateDatalog(module: Module) {
   private def transVis(vis: Option[Visibility]): Option[Datalog.Visibility] =
     vis.map { case Private => Datalog.Private }
 
-  //@tailrec
+  @tailrec
   private def transType(typ: Type): Datalog.Type = typ match {
     case TAny => Datalog.TAny
     case TNull => GP_URI
     case TClass(_) => GP_URI
     case TScala(ty) => Datalog.TScala(ty)
+    case TSet(ty) => transType(ty)
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
   }
 }

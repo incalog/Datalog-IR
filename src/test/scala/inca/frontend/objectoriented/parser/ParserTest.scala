@@ -48,6 +48,11 @@ class ParserTest extends AnyFunSuite {
     testSuccessAny(parser.module)(code)
   }
 
+  test("Set") {
+    val code = FileUtil.readFile("objectoriented/unittests/Set.oinca")
+    testSuccessAny(parser.module)(code)
+  }
+
   test("Plus") {
     val code = FileUtil.readFile("objectoriented/unittests/Plus.oinca")
     testSuccessAny(parser.module)(code)

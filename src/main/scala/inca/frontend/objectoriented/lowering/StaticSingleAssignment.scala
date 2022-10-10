@@ -156,6 +156,8 @@ class StaticSingleAssignment(module: Module) {
         TupleExpr(exps.map(transExpression))
       case TupleReadExpr(recv, index) =>
         TupleReadExpr(transExpression(recv), index)
+      case SetExpr(exps) =>
+        SetExpr(exps.map(transExpression))
       case BaseApplyExpr(fun, args) =>
         BaseApplyExpr(fun, args.map(transExpression))
       case BaseApplyInfixExpr(left, op, right) =>
@@ -178,6 +180,7 @@ class StaticSingleAssignment(module: Module) {
       case TAny => TAny
       case TNull => TNull
       case TTuple(ts) => TTuple(ts.map(transType))
+      case TSet(ty) => TSet(transType(ty))
       case TScala(ty) => TScala(ty)
       // create a new ClassRef to invalidate the current target
       case TClass(ClassRef(name)) => TClass(ClassRef(name))

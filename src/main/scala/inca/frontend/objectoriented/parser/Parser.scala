@@ -34,6 +34,9 @@ trait Parser {
   def inBraces[A](p: P0[A]): P[A] =
     op('{') *> p <* op('}')
 
+  def inBrackets[A](p: P0[A]): P[A] =
+    op('[') *> p <* op(']')
+
   def spaced[A](p: P[A]): P[A] =
     p <* whitespaces0
 
@@ -59,6 +62,7 @@ trait Parser {
     val EXTENDS: Value    = Value("extends")
     val INSTANCEOF: Value = Value("instanceOf")
     val EQUALS: Value     = Value("equals")
+    val SET: Value        = Value("Set")
   }
 
   import Keyword._
@@ -132,7 +136,10 @@ trait Parser {
     (P.string(s).soft <* noChar).mapWithLoc(_ => t)
 
   protected[frontend] def tupleType: P[TTuple] =
-    inParentheses(seq0(P.defer(typeAnno), min = 2)).mapWithLoc(TTuple(_))
+    inParentheses(seq0(P.defer(atomicTypeAnno), min = 2)).mapWithLoc(TTuple(_))
+
+  protected[frontend] def setType: P[Type] =
+    (keyword(SET) *> inBrackets(atomicTypeAnno)).mapWithLoc(TSet)
 
   protected[frontend] val classRef: P[ClassRef] =
     identifier.mapWithLoc(ClassRef)
@@ -140,15 +147,18 @@ trait Parser {
   protected[frontend] val classType: P[TClass] =
     classRef.mapWithLoc(TClass)
 
-  protected[frontend] val typeAnno: P[Type] =
+  protected[frontend] val atomicTypeAnno: P[Type] =
     spaced(
       simpleType("Any", TAny) |
-        simpleType("Null", TNull) |
-        simpleType("Unit", TTuple(Seq())) |
-        scalaType |
-        classType |
-        tupleType
+      simpleType("Null", TNull) |
+      simpleType("Unit", TTuple(Seq())) |
+      scalaType |
+      classType |
+      tupleType
     )
+
+  protected[frontend] val typeAnno: P[Type] =
+    spaced(setType) | atomicTypeAnno
 
   val nameWithType: P[(Name, Type)] =
     spaced(identifier ~ (op(':') *> typeAnno))
@@ -230,6 +240,9 @@ trait Parser {
 
   protected[frontend] lazy val tupleExpr: P[TupleExpr] =
     inParentheses(seq0(P.defer(expr), min = 2)).mapWithLoc(TupleExpr(_))
+
+  protected[frontend] lazy val setExpr: P[SetExpr] =
+    inBrackets(seq0(P.defer(expr), min = 2)).mapWithLoc(SetExpr)
 
   private[frontend] lazy val nestedAccessStartExpr: P[Expression] =
     typeCastExpr | constructorExpr | variableReadExpr | baseLitExpr | baseApplyExpr
@@ -348,7 +361,8 @@ trait Parser {
       nullExpr |
       superExpr |
       instanceOfExpr |
-      equalsExpr
+      equalsExpr |
+      setExpr
 
   protected[frontend] val infixExpr: P[Expression] =
     baseApplyInfixExpr | subinfixExpr

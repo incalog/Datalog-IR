@@ -30,7 +30,7 @@ object AbstractSyntaxTree {
   sealed trait NodeType {
     val shape: String = "plaintext"
     val fillColor: String = "white"
-    val fontcolor: String = "black"
+    val fontColor: String = "black"
   }
   case object ModuleNode extends NodeType
   case object ClassNode extends NodeType {
@@ -54,12 +54,13 @@ object AbstractSyntaxTree {
   }
   case object ExpressionNode extends NodeType {
     override val shape: String = "circle"
-    override val fontcolor: String = "white"
+    override val fontColor: String = "white"
     override val fillColor: String = "black"
   }
 }
 
 case class AstNode(name: String, source: SourceLocation, typ: NodeType) {
+  // make sure each node is unique no matter the name
   override def hashCode(): Int = hash(source.location)
 }
 
@@ -86,9 +87,9 @@ class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] 
     }
   }
 
-  def analyzeParam(parent: AstNode, param: Param, label: String): Unit = {
+  def analyzeParam(parent: AstNode, param: Param, edgeLabel: String): Unit = {
     val paramNode = this.addAstNode(param.name.raw, param, ParamNode)
-    this.addEdge(parent, paramNode, ParamEdge(label))
+    this.addEdge(parent, paramNode, ParamEdge(edgeLabel))
   }
 
   def analyzeParams(parent: AstNode, params: Seq[Param]): Unit = {
@@ -120,9 +121,9 @@ class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] 
     stmts.zipWithIndex.foreach(s => analyzeStatement(parent, s._1, Some(s"body[${s._2}]")))
   }
 
-  def analyzeStatement(parent: AstNode, stmt: Statement, label: Option[String] = None): Unit = {
+  def analyzeStatement(parent: AstNode, stmt: Statement, edgeLabel: Option[String] = None): Unit = {
     val stmtNode = this.addAstNode(stmt.getClass.getSimpleName, stmt, StatementNode)
-    this.addEdge(parent, stmtNode, StatementEdge(label))
+    this.addEdge(parent, stmtNode, StatementEdge(edgeLabel))
     stmt match {
       case ExprStmt(expression) =>
         analyzeExpression(stmtNode, expression)
@@ -149,9 +150,9 @@ class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] 
     exprs.zipWithIndex.foreach(e => analyzeExpression(parent, e._1, Some(s"arg[${e._2}]")))
   }
 
-  def analyzeExpression(parent: AstNode, expr: Expression, label: Option[String] = None): Unit = {
+  def analyzeExpression(parent: AstNode, expr: Expression, edgeLabel: Option[String] = None): Unit = {
     val exprNode = this.addAstNode(expr.getClass.getSimpleName, expr, ExpressionNode)
-    this.addEdge(parent, exprNode, ExpressionEdge(label))
+    this.addEdge(parent, exprNode, ExpressionEdge(edgeLabel))
     expr match {
       case FieldReadExpr(recv, targetName) =>
         analyzeExpression(exprNode, recv, Some("recv"))
@@ -176,6 +177,8 @@ class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] 
         analyzeExpression(exprNode, recv, Some("recv"))
       case TupleExpr(exps) =>
         analyzeExpressions(exprNode, exps)
+      case SetExpr(exps) =>
+        analyzeExpressions(exprNode, exps)
       case BaseLitExpr(code) =>
         // nothing
       case BaseApplyExpr(fun, args) =>
@@ -195,14 +198,14 @@ class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] 
   override protected def nodeToGraphViz(n: AstNode): String = n.hashCode().toString
 
   override protected def nodeGraphVizAttributes(n: AstNode): String = Map(
-    "shape" -> n.typ.shape,
-    "label" -> n.name,
-    "fontcolor" -> n.typ.fontcolor,
-    "fillcolor" -> n.typ.fillColor,
-    "style" -> "filled"
-  ).map { case (k, v) =>
-    s"$k=$v"
-  }.mkString(", ")
+      "shape" -> n.typ.shape,
+      "label" -> n.name,
+      "fontcolor" -> n.typ.fontColor,
+      "fillcolor" -> n.typ.fillColor,
+      "style" -> "filled"
+    ).map { case (k, v) =>
+      s"$k=$v"
+    }.mkString(", ")
 
   override protected def edgeGraphVizAttributes(from: AstNode, to: AstNode, kind: DependencyEdge): String = Map(
       "color" -> kind.color,

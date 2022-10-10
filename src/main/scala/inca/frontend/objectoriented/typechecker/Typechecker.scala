@@ -119,7 +119,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   }
 
   def typecheck(typ: Type): Unit = typ match {
-    case TTuple(tys) => tys.foreach((t: Type) => typecheck(t))
+    case TTuple(tys) => tys.foreach(typecheck)
+    case TSet(ty) => typecheck(ty)
     case TClass(ref) => lookupClassRef(ref)
     case TAny => // nothing
     case TNull => // nothing
@@ -192,6 +193,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       parents.exists { parent => if (parent.target.isDefined) subtype(parent.target.get.typ, ty2) else false }
     case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
       tys1.zip(tys2).forall(tt => subtype(tt._1, tt._2))
+    case (TSet(ty1), TSet(ty2)) => subtype(ty1, ty2)
     case (TScala(s1), TScala(s2)) =>
       subtypeScala(s1.tree, s2.tree)
     case _ => false
@@ -332,6 +334,16 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           TAny
       }
 
+    case SetExpr(exps) =>
+      // find the upper type bound of the set
+      val types: Seq[Type] = exps.map(typecheck)
+      val typ: Type = types.reduce[Type] { case (ty1, ty2) =>
+        if (subtype(ty1, ty2)) ty2 else ty1
+      }
+      types.zip(exps).foreach { case (ty, exp) =>
+        assertSubtype(ty, typ, exp)
+      }
+      TSet(typ)
 
     case BaseLitExpr(code) =>
       typecheckDecodeScala(code.syntax, expression)

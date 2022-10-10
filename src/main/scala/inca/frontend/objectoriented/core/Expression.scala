@@ -89,6 +89,11 @@ object TupleExpr {
   }
 }
 
+case class SetExpr(exps: Seq[Expression]) extends Expression {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
+    exps.map(_.prettyprint).mkString("[", ", ", "]")
+}
+
 case class BaseLitExpr(code: Scala[meta.Term]) extends Expression {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = code.tree match {
     case meta.Lit.Int(i) => i.toString
