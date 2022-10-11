@@ -69,7 +69,7 @@ class GenerateDataModel(module: Module) {
     case TScalaString => Some(Datalog.TLiteral.String.litType)
     case TScalaAny => Some(JavaLitType(classOf[Any]))
     case TScala(_) => None
-    //case TSet(ty) => None
+    case TSet(ty) => None
   }
 
 }

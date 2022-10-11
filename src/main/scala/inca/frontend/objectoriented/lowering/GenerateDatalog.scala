@@ -2,6 +2,7 @@ package inca.frontend.objectoriented.lowering
 
 import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog
+import inca.backend.ir.util.printer.GPPrinter
 import inca.compiler.SourceObject
 import inca.frontend.objectoriented.core.{TNull, _}
 import inca.frontend.objectoriented.lowering.GenerateDatalog._
@@ -259,22 +260,21 @@ class GenerateDatalog(module: Module) {
     }
 
     // set the default value for each field
-    val thisParam = Datalog.Param("this", transType(classDef.typ))
     val thisVar = Datalog.Var("this")
     val fields = collectFields(classDef)
     val fieldSetter = fields.filter(_._2.body.isDefined).map { case (fieldClassDef, fieldDef) =>
       val fieldName = fieldPatName(fieldClassDef.name.raw, fieldDef.name.raw)
-      // alternative bodies for each field
+      // alternative bodies for this field
       for ((terms, cons) <- transExpression(fieldDef.body.get)) yield
         cons :+ Datalog.Call(fieldName, thisVar +: terms).addHint(ObjectHints.FieldSet)
     }
 
     if (fieldSetter.isEmpty)
       Seq(Datalog.Body(Seq()))
+    else if (fieldSetter.size == 1)
+      fieldSetter.flatMap(_.map(Datalog.Body))
     else
-      for (cons <- TupleOps.cartesianProduct(fieldSetter)) yield {
-        Datalog.Body(cons.flatten)
-      }
+      TupleOps.cartesianProduct(fieldSetter).map(atoms => Datalog.Body(atoms.flatten))
   }
 
   private def transConstructor(classDef: ClassDef, constructorDef: ConstructorDef): Datalog.Pattern = {

@@ -1,15 +1,15 @@
 package inca.frontend.objectoriented.integration
 
-import inca.backend.ir.util.printer.DatalogPrinter
 import inca.frontend.objectoriented.executor.ObjectExecutor
 import inca.util.FileUtil.readFile
 import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.executor.ObjectExecutor.TypeCastException
-import org.apache.log4j.Level
 import org.scalatest.Assertion
 
+import scala.collection.immutable.{AbstractSeq, LinearSeq}
 import scala.meta.{Term, XtensionQuasiquoteTerm}
+import scala.xml.NodeSeq
 
 case class ResultError(msg: String)
 
@@ -17,14 +17,11 @@ class FunctionsTest extends AnyFunSuite {
 
   val options: ObjectOptions = ObjectOptions()
 
-  // TODO: Introduce result types such as SingleResult, TupleResult and SetResult. Convert the result type to the
-  //  correct result subclass.
   private def performTest[O](file: String, main: String, input: Seq[Term], expectedResult: O): Seq[Assertion] = {
     val code = readFile(s"objectoriented/unittests/$file.oinca")
     val fun = ObjectExecutor.loadFunction(code, options)
     val result = fun.execute(main, input)
     fun.printAllMatches()
-
     if (result.res.isEmpty)
       Seq(assert(false, s"Expected a result, but got none."))
     else {
@@ -32,32 +29,30 @@ class FunctionsTest extends AnyFunSuite {
     }
   }
 
-
   def checkResult[O](expectedResult: O, result: Seq[Seq[AnyRef]]): Seq[ResultError] = {
     expectedResult match {
       // match datalog sets
-      case resultSet: Set[_] =>
-        if (result.size > resultSet.size)
-          Seq(ResultError(s"Expected set with size $resultSet.size, but got ${result.size}."))
+      case expectedSet: Set[_] =>
+        if (result.size > expectedSet.size)
+          Seq(ResultError(s"Expected set with size $expectedSet.size, but got ${result.size}."))
         else {
           result.flatMap { actual =>
-            val anyErrorFree = resultSet.filter(checkResult(_, Seq(actual)).isEmpty)
-            if (anyErrorFree.isEmpty)
-              Seq(ResultError(s"Can not find $actual in result $resultSet"))
+            val anyErrorFree = expectedSet.exists(checkResult(_, Seq(actual)).isEmpty)
+            if (!anyErrorFree)
+              Seq(ResultError(s"Can not find $actual in result $expectedSet"))
             else
               Seq()
           }
         }
 
       // match datalog tuples
-      // TODO: Support nested tuples
-      case resultTuple: Seq[_] =>
+      case expectedTuple: Seq[_] =>
         if (result.size > 1)
           Seq(ResultError(s"Expected single result, but got result set with size ${result.size}."))
-        else if (result.head.size != resultTuple.size)
-          Seq(ResultError(s"Expected ${resultTuple.size} result(s), but got ${result.head.size}."))
-        else if (!result.head.zip(resultTuple).forall { case (actual, expectedValue) => expectedValue.equals(actual) })
-          Seq(ResultError(s"""Expectd ${resultTuple.mkString("(", ", ", ")")}, but got ${result.head.mkString("(", ", ", ")")}"""))
+        else if (result.head.size != expectedTuple.size)
+          Seq(ResultError(s"Expected ${expectedTuple.size} result(s), but got ${result.head.size}."))
+        else if (!result.head.zip(expectedTuple).forall { case (actual, expectedValue) => expectedValue.equals(actual) })
+          Seq(ResultError(s"""Expectd ${expectedTuple.mkString("(", ", ", ")")}, but got ${result.head.mkString("(", ", ", ")")}"""))
         else
           Seq()
 
@@ -184,6 +179,14 @@ class FunctionsTest extends AnyFunSuite {
 
   test("Set Example") {
     performTest("Set", "A$main", Seq(), Set(1, 2, 3))
+  }
+
+  test("Set (Field Declaration) Example") {
+    performTest("Set2", "A$main", Seq(), Set(1, 2, 3))
+  }
+
+  test("Set (Field Set) Example") {
+    performTest("Set3", "A$main", Seq(), Set(1, 2, 3))
   }
 
   /*test("Generate example") {

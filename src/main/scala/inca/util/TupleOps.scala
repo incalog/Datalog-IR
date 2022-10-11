@@ -20,7 +20,7 @@ object TupleOps {
   def cartesianProduct[T](lst: Seq[Seq[T]]): Seq[Seq[T]] = {
     /**
      * Prepend single element to all lists of list
-     * @param e single elemetn
+     * @param e single element
      * @param ll list of list
      * @param a accumulator for tail recursive implementation
      * @return list of lists with prepended element e

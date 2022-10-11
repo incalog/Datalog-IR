@@ -12,7 +12,7 @@ class A {
 
 	def this() = { }
 
-	@main def main(): (Boolean, Boolean, Boolean) = {
+	@main def main(): (Boolean, (Boolean, Boolean)) = {
         // access elements of a tuple expression directly
         val test: Int = (1, (2, (3, 4, 5)))._2._2._3
 
@@ -38,7 +38,7 @@ class A {
 		val eval2: Boolean = ((a.tup._2.values._1 + a.tup._1) == 12)
 		val eval3: Boolean = ((res._1 * 2) == res._3._1) && ((res._2 * 2) == res._3._2)
 
-		return (eval1, eval2, eval3)
+		return (eval1, (eval2, eval3))
 	}
 
     def someMethod(arg: (Int, Int)): (Int, Int, (Int, Int)) = {
