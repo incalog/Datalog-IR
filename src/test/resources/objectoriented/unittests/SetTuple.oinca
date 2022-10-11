@@ -1,0 +1,9 @@
+module SetTest
+
+class A {
+  def this() = {}
+
+  @main def main(): Set[(Int, String)] = {
+    return[(1, "A"), (2, "B"), (3, "C")]
+  }
+}

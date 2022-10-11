@@ -17,6 +17,23 @@ class FunctionsTest extends AnyFunSuite {
 
   val options: ObjectOptions = ObjectOptions()
 
+  // type alias for tuple and set results
+  // TODO: Replace this with actual classes ?
+  type TupleResult[T] = Seq[T]
+  object TupleResult {
+    def apply(values: Any *): Seq[Any] = values
+  }
+
+  type SetResult[T] = Set[T]
+  object SetResult {
+    def apply(values: Any*): Set[Any] = values.toSet
+  }
+
+  private def flatten(seq: Seq[Any]): Seq[Any] = seq.flatMap {
+    case s: Seq[_] => flatten(s)
+    case e => Seq(e)
+  }
+
   private def performTest[O](file: String, main: String, input: Seq[Term], expectedResult: O): Seq[Assertion] = {
     val code = readFile(s"objectoriented/unittests/$file.oinca")
     val fun = ObjectExecutor.loadFunction(code, options)
@@ -32,9 +49,9 @@ class FunctionsTest extends AnyFunSuite {
   def checkResult[O](expectedResult: O, result: Seq[Seq[AnyRef]]): Seq[ResultError] = {
     expectedResult match {
       // match datalog sets
-      case expectedSet: Set[_] =>
+      case expectedSet: SetResult[_] =>
         if (result.size > expectedSet.size)
-          Seq(ResultError(s"Expected set with size $expectedSet.size, but got ${result.size}."))
+          Seq(ResultError(s"Expected set with size ${expectedSet.size}, but got ${result.size}."))
         else {
           result.flatMap { actual =>
             val anyErrorFree = expectedSet.exists(checkResult(_, Seq(actual)).isEmpty)
@@ -46,19 +63,20 @@ class FunctionsTest extends AnyFunSuite {
         }
 
       // match datalog tuples
-      case expectedTuple: Seq[_] =>
+      case expectedTuple: TupleResult[_] =>
+        // datalog flattens the output tuple => flatten the expected result as well
+        val flattenTuple = flatten(expectedTuple)
         if (result.size > 1)
           Seq(ResultError(s"Expected single result, but got result set with size ${result.size}."))
-        else if (result.head.size != expectedTuple.size)
-          Seq(ResultError(s"Expected ${expectedTuple.size} result(s), but got ${result.head.size}."))
-        else if (!result.head.zip(expectedTuple).forall { case (actual, expectedValue) => expectedValue.equals(actual) })
-          Seq(ResultError(s"""Expectd ${expectedTuple.mkString("(", ", ", ")")}, but got ${result.head.mkString("(", ", ", ")")}"""))
+        else if (result.head.size != flattenTuple.size)
+          Seq(ResultError(s"Expected ${flattenTuple.size} result(s), but got ${result.head.size}."))
+        else if (!result.head.zip(flattenTuple).forall { case (actual, expectedValue) => expectedValue.equals(actual) })
+          Seq(ResultError(s"""Expectd ${flattenTuple.mkString("(", ", ", ")")}, but got ${result.head.mkString("(", ", ", ")")}"""))
         else
           Seq()
 
       case value =>
-        // Perform a tuple check with one element
-        checkResult(Seq(value), result)
+        checkResult(TupleResult(value), result)
     }
   }
 
@@ -174,19 +192,14 @@ class FunctionsTest extends AnyFunSuite {
   }
 
   test("Tuple Example") {
-    performTest("Tuple", "A$main", Seq(), Seq(true, true, true))
+    performTest("Tuple", "A$main", Seq(), TupleResult(true, TupleResult(true, true)))
   }
 
   test("Set Example") {
-    performTest("Set", "A$main", Seq(), Set(1, 2, 3))
-  }
-
-  test("Set (Field Declaration) Example") {
-    performTest("Set2", "A$main", Seq(), Set(1, 2, 3))
-  }
-
-  test("Set (Field Set) Example") {
-    performTest("Set3", "A$main", Seq(), Set(1, 2, 3))
+    performTest("Set", "A$main", Seq(), SetResult(1, 2, 3))
+    performTest("SetFieldDeclare", "A$main", Seq(), SetResult(1, 2, 3))
+    performTest("SetFieldSet", "A$main", Seq(), SetResult(1, 2, 3))
+    performTest("SetTuple", "A$main", Seq(), SetResult(TupleResult(1, "A"), TupleResult(2, "B"), TupleResult(3, "C")))
   }
 
   /*test("Generate example") {

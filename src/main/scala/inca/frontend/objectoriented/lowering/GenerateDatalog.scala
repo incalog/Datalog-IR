@@ -716,6 +716,8 @@ class GenerateDatalog(module: Module) {
 
   private def flattenVars(name: String, ty: Type, genFresh: Boolean = false): Seq[(Datalog.Var, Datalog.Type)] =
     ty match {
+      case TSet(ty) =>
+        flattenVars(name, ty, genFresh)
       case TTuple(ts) =>
         ts.zipWithIndex.flatMap { case (ty, ix) => flattenVars(name + "_" + (ix + 1), ty) }
       case ty =>
