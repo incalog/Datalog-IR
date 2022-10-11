@@ -61,8 +61,13 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
   def typecheck(methodDef: MethodDef, classDef: ClassDef): Unit = scopedTypeContext {
     methodDef.params.foreach { p =>
-      typecheck(p.typ)
-      bindVar(p.name, p, p.typ, immutable = true)
+      p.typ match {
+        case ty@TSet(_) =>
+          error(s"Type $ty not allowed for parameter ${p.name}")
+        case ty =>
+          typecheck(p.typ)
+          bindVar(p.name, p, ty, immutable = true)
+      }
     }
     methodDef.params.groupBy(_.name).foreach { case (_, cs) =>
       if (cs.size > 1)
@@ -89,9 +94,15 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       error(s"Constructor ${classDef.name} can not be a main method.", constructorDef)
 
     constructorDef.params.foreach { p =>
-      typecheck(p.typ)
-      bindVar(p.name, p, p.typ, immutable = true)
+      p.typ match {
+        case ty@TSet(_) =>
+          error(s"Type $ty not allowed for parameter ${p.name}")
+        case ty =>
+          typecheck(p.typ)
+          bindVar(p.name, p, ty, immutable = true)
+      }
     }
+
     constructorDef.params.groupBy(_.name).foreach { case (_, cs) =>
       if (cs.size > 1)
         error(s"Ambiguous parameter names in constructor ${classDef.name}", cs: _*)
