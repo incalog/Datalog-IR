@@ -6,6 +6,7 @@ import inca.frontend.objectoriented.analyze.AbstractSyntaxTree._
 import inca.frontend.objectoriented.core._
 
 import java.util.Objects.hash
+import java.util.UUID
 
 object AbstractSyntaxTree {
   sealed trait DependencyEdge {
@@ -61,7 +62,10 @@ object AbstractSyntaxTree {
 
 case class AstNode(name: String, source: SourceLocation, typ: NodeType) {
   // make sure each node is unique no matter the name
-  override def hashCode(): Int = hash(source.location)
+  override def hashCode(): Int = {
+    println("AstNode: ", name, typ, source.startIndex, source.endIndex, source.location, source)
+    hash(this.getClass.getSimpleName + source.location)
+  }
 }
 
 class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] {

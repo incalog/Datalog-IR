@@ -1,5 +1,6 @@
 package inca.frontend.objectoriented.integration
 
+import inca.frontend.objectoriented.analyze.AbstractSyntaxTree
 import inca.frontend.objectoriented.executor.ObjectExecutor
 import inca.util.FileUtil.readFile
 import org.scalatest.funsuite.AnyFunSuite
@@ -7,6 +8,7 @@ import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.executor.ObjectExecutor.TypeCastException
 import org.scalatest.Assertion
 
+import scala.collection.{IterableFactory, IterableOps, immutable, mutable}
 import scala.collection.immutable.{AbstractSeq, LinearSeq}
 import scala.meta.{Term, XtensionQuasiquoteTerm}
 import scala.xml.NodeSeq
@@ -29,14 +31,18 @@ class FunctionsTest extends AnyFunSuite {
     def apply(values: Any*): Set[Any] = values.toSet
   }
 
-  private def flatten(seq: Seq[Any]): Seq[Any] = seq.flatMap {
-    case s: Seq[_] => flatten(s)
-    case e => Seq(e)
+  private def flatten(tup: TupleResult[Any]): TupleResult[Any] = tup.flatMap {
+    case s: TupleResult[_] => flatten(s)
+    case e => TupleResult(e)
   }
 
   private def performTest[O](file: String, main: String, input: Seq[Term], expectedResult: O): Seq[Assertion] = {
     val code = readFile(s"objectoriented/unittests/$file.oinca")
     val fun = ObjectExecutor.loadFunction(code, options)
+
+    val ast = new AbstractSyntaxTree(fun.compiled.coreModule)
+    println(ast.toGraphViz)
+
     val result = fun.execute(main, input)
     fun.printAllMatches()
     if (result.res.isEmpty)

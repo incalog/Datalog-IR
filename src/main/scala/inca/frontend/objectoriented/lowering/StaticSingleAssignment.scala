@@ -1,5 +1,6 @@
 package inca.frontend.objectoriented.lowering
 
+import inca.compiler.SourceLocation
 import inca.frontend.objectoriented.core._
 import inca.util.Gensym
 
@@ -27,44 +28,67 @@ class StaticSingleAssignment(module: Module) {
 
   private val gensym: Gensym = new Gensym(Iterable.empty)
 
+  def preserveSourceLocation[T <: SourceLocation](sourceLocation: T, f: => T): T = {
+    val transLoc = f
+    transLoc.startIndex = sourceLocation.startIndex
+    transLoc.endIndex = sourceLocation.endIndex
+    transLoc
+  }
+
+  def preserveSourceLocations[T <: SourceLocation](sourceLocation: T, f: => Seq[T]): Seq[T] = {
+    f.map { transLoc =>
+      transLoc.startIndex = sourceLocation.startIndex
+      transLoc.endIndex = sourceLocation.endIndex
+      transLoc
+    }
+  }
+
   def transModule(): Module = {
     val Module(name, imports, classes) = module
     gensym.register(module.usedModuleNames.map(_.raw))
 
     val transClasses = classes.map(transClass)
 
-    Module(name, imports, transClasses)
+    val newModule = Module(name, imports, transClasses)
+    newModule.startIndex = module.startIndex
+    newModule.endIndex = module.endIndex
+    newModule
   }
 
-  private def transClass(classDef: ClassDef): ClassDef = {
+  private def transClass(classDef: ClassDef): ClassDef = preserveSourceLocation(classDef, {
     gensym.register(classDef.name.raw)
 
     val ClassDef(annos, vis, name, parents, content) = classDef
     val transContent = content.map {
       case constructor: ConstructorDef => transConstructor(constructor, classDef)
       case method: MethodDef => transMethod(method, classDef)
-      case c => c
+      case fieldDef: FieldDef => transField(fieldDef, classDef)
     }
     ClassDef(annos, vis, name, parents.map(c => ClassRef(c.name)), transContent)
-  }
+  })
 
-  private def transMethod(methodDef: MethodDef, classDef: ClassDef): MethodDef = gensym.scoped {
+  private def transField(fieldDef: FieldDef, classDef: ClassDef): FieldDef = preserveSourceLocation(fieldDef, gensym.scoped {
+    val FieldDef(annos, vis, name, typ, body, immutable) = fieldDef
+    FieldDef(annos, vis, name, typ, body, immutable)
+  })
+
+  private def transMethod(methodDef: MethodDef, classDef: ClassDef): MethodDef = preserveSourceLocation(methodDef, gensym.scoped {
     gensym.register(methodDef.params.map(_.name.raw))
     gensym.register("this")
     env = Map()
     val MethodDef(annos, vis, name, params, outType, body) = methodDef
     val newBody = transStatements(body)
     MethodDef(annos, vis, name, params, outType, newBody)
-  }
+  })
 
-  private def transConstructor(constructorDef: ConstructorDef, classDef: ClassDef): ConstructorDef = gensym.scoped {
+  private def transConstructor(constructorDef: ConstructorDef, classDef: ClassDef): ConstructorDef = preserveSourceLocation(constructorDef, gensym.scoped {
     gensym.register(constructorDef.params.map(_.name.raw))
     gensym.register("this")
     env = Map()
     val ConstructorDef(annos, vis, params, body) = constructorDef
     val newBody = transStatements(body)
     ConstructorDef(annos, vis, params, newBody)
-  }
+  })
 
   type Env = Map[String, (String, Type)]
   var env: Env = Map()
@@ -73,7 +97,7 @@ class StaticSingleAssignment(module: Module) {
     stmts.flatMap(transStatement)
   }
 
-  private def transStatement(stmt: Statement): Seq[Statement] = {
+  private def transStatement(stmt: Statement): Seq[Statement] = preserveSourceLocations(stmt, {
     stmt match {
       case VarDeclareStmt(name, typ, maybeExpression, immutable) =>
         gensym.register(name.raw)
@@ -130,9 +154,9 @@ class StaticSingleAssignment(module: Module) {
       case s =>
         throw new RuntimeException(s"Can not transform statement: $s")
     }
-  }
+  })
 
-  private def transExpression(expression: Expression): Expression = {
+  private def transExpression(expression: Expression): Expression = preserveSourceLocation(expression, {
     expression match {
       case FieldReadExpr(recv, targetName) =>
         FieldReadExpr(transExpression(recv), targetName)
@@ -173,7 +197,7 @@ class StaticSingleAssignment(module: Module) {
       case expr =>
         throw new RuntimeException(s"Can not transform expression: $expr")
     }
-  }
+  })
 
   def transType(typ: Type): Type = {
     typ match {

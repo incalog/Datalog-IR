@@ -23,7 +23,16 @@ class EqualsTest {
         val b: B = new B()
         val c: C = null
 
-        return equals(a, a)
+        return (a == a)
+            && (b == b)
+            && (!(a == b))
+            && (a.c == a.c)
+            && (a != a.c)
+            && (null == null)
+            && (c == null)
+            && (a != null)
+            && (a.c != null)
+        /*return equals(a, a)
             && equals(b, b)
             && !equals(a, b)
             && equals(a.c, a.c)
@@ -31,6 +40,6 @@ class EqualsTest {
             && equals(null, null)
             && equals(c, null)
             && !equals(a, null)
-            && !equals(a.c, null)
+            && !equals(a.c, null)*/
     }
 }

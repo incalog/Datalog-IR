@@ -4,7 +4,10 @@ import scala.collection.mutable
 
 case class ObjectID(typ: String, allocId: Int) extends truechange.URI {
   //override def toString: String = s"${super.toString}($typ, $allocId)"
-  //override def equals(obj: Any): Boolean = super.equals(obj)
+  override def equals(obj: Any): Boolean = {
+    println(s"Compare: $this, ${this.getClass.getSimpleName} == $obj, ${obj.getClass.getSimpleName}")
+    super.equals(obj)
+  }
 }
 
 object ObjectID {

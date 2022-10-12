@@ -418,6 +418,14 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           TSet(join(tyl, tyr))
         case (TSet(tyl), "&", TSet(tyr)) =>
           TSet(join(tyl, tyr))
+        /*case (TClass(_), "==", TClass(_)) => TScalaBoolean
+        case (TClass(_), "==", TNull) => TScalaBoolean
+        case (TNull, "==", TClass(_)) => TScalaBoolean
+        case (TNull, "==", TNull) => TScalaBoolean
+        case (TClass(_), "!=", TClass(_)) => TScalaBoolean
+        case (TClass(_), "!=", TNull) => TScalaBoolean
+        case (TNull, "!=", TClass(_)) => TScalaBoolean
+        case (TNull, "!=", TNull) => TScalaBoolean*/
         case _ =>
           val paramString = Seq(
             q"val ${Pat.Var(leftName)}: ${leftTy.asScala} = Predef.???".syntax,

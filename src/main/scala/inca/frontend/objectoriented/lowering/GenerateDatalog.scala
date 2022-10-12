@@ -5,7 +5,7 @@ import inca.backend.ir.Datalog
 import inca.backend.ir.util.Substitute
 import inca.backend.ir.util.printer.GPPrinter
 import inca.compiler.SourceObject
-import inca.frontend.objectoriented.core.{TNull, _}
+import inca.frontend.objectoriented.core._
 import inca.frontend.objectoriented.lowering.GenerateDatalog._
 import inca.runtime.data.ObjectID
 import inca.util.Scala.{symbolOf, typeOf}
@@ -654,6 +654,34 @@ class GenerateDatalog(module: Module) {
         val evalConstraint = Datalog.Computed(evalOut, Datalog.Evaluation(flatArgTerms, transType(resType), Scala(funCode)))
         (Seq(evalOut), argCons.flatten :+ evalConstraint)
       }
+
+    // object equality check
+    /*case BaseApplyInfixExpr(left, op, right)
+      if (op.tree.value == "==" || op.tree.value == "!=") &&
+        left.typ.exists(ty => ty.isInstanceOf[TClass] || ty.isInstanceOf[TNull.type]) &&
+        right.typ.exists(ty => ty.isInstanceOf[TClass] || ty.isInstanceOf[TNull.type]) =>
+          println(s"Compare: $left ${op.tree.value} $right")
+          val transExps = Seq(transExpression(left), transExpression(right))
+
+          val compArg1 = Term.Name("obj1")
+          val compParam1 = Term.Param(Nil, compArg1, Some(GP_URI.asScala), None)
+          val compArg2 = Term.Name("obj2")
+          val compParam2 = Term.Param(Nil, compArg2, Some(GP_URI.asScala), None)
+
+          for (tups <- TupleOps.cartesianProduct(transExps)) yield {
+            val (terms, cons) = tups.unzip
+            val outVar = Datalog.Var(gensym.fresh("isEqual"))
+            val Seq(obj1, obj2) = terms.flatten
+            val equalityCheck = Datalog.Computed(
+              outVar,
+              Datalog.Evaluation(
+                Seq(obj1 -> GP_URI, obj2 -> GP_URI),
+                Datalog.TScalaBoolean,
+                Scala(q"($compParam1, $compParam2) => $compArg1 ${Term.Name(op.tree.value)} $compArg2")
+              )
+            )
+            (Seq(outVar), cons.flatten :+ equalityCheck)
+          }*/
 
     case BaseApplyInfixExpr(left, op, right)
       if op.tree.value == "++" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
