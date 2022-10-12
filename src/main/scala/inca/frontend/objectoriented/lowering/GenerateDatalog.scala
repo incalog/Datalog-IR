@@ -2,6 +2,7 @@ package inca.frontend.objectoriented.lowering
 
 import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog
+import inca.backend.ir.util.Substitute
 import inca.backend.ir.util.printer.GPPrinter
 import inca.compiler.SourceObject
 import inca.frontend.objectoriented.core.{TNull, _}
@@ -459,17 +460,11 @@ class GenerateDatalog(module: Module) {
       Seq((flattenVars(name.raw, expTyp).map(_._1), Seq()))
 
     case fieldRead@FieldReadExpr(recv, targetName) =>
-      /*val classType = recv.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression")) match {
-        case t: TClass => t
-        case _ => throw new IllegalArgumentException(s"Illegal field lookup on expression $expression")
-      }
-      val classDef = classType.ref.target.getOrElse(throw new IllegalArgumentException(s"Unresolved class $classType"))
-      */
       // to allow inheritance of attributes we use the classDef target of the field lookup
       val (classDef, fieldDef) = fieldRead.target.getOrElse(throw new IllegalArgumentException(s"Unresolved field $targetName"))
 
       for ((terms, cons) <- transExpression(recv)) yield {
-        val fieldReadVars = flattenVars(gensym.fresh(targetName.raw), fieldDef.typ).map(_._1) //Datalog.Var(gensym.fresh(targetName.raw))
+        val fieldReadVars = flattenVars(gensym.fresh(targetName.raw), fieldDef.typ).map(_._1)
         val fieldReadCall = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), terms ++ fieldReadVars)
           .addHint(MagicSetHints.FixedAdornment(terms.map(_ => true) ++ fieldReadVars.map(_ => true)))
           .addHint(ObjectHints.FieldGet)
@@ -548,10 +543,13 @@ class GenerateDatalog(module: Module) {
       Seq((Seq(nullVar), Seq(nullConstrCall)))
 
     case TupleExpr(exps) =>
-      (for (tups <- TupleOps.cartesianProduct(exps.map(transExpression))) yield {
-        tups.unzip
-      }).map { case (tups, cons) =>
-        (tups.flatten, cons.flatten)
+      if (exps.isEmpty)
+        return Seq((Seq(), Seq()))
+
+      val expRes = exps.map(e => transExpression(e))
+      for (tups <- TupleOps.cartesianProduct(expRes)) yield {
+        val (terms, cons) = tups.unzip
+        (terms.flatten, cons.flatten)
       }
 
     case TupleReadExpr(recv, index) =>
@@ -561,7 +559,7 @@ class GenerateDatalog(module: Module) {
           case _ => 1
         }
       }
-      // If the accessed element is a tuple we need to return more than one element
+      // if the accessed element is a tuple we need to return more than one element
       val startIdx = index.raw -1
       recv.typ match {
         case Some(TTuple(ts)) =>
@@ -657,31 +655,23 @@ class GenerateDatalog(module: Module) {
         (Seq(evalOut), argCons.flatten :+ evalConstraint)
       }
 
-    /*case BaseApplyInfixExpr(left, op, right)
+    case BaseApplyInfixExpr(left, op, right)
       if op.tree.value == "++" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
-      transExpression(left) ++ transExpression(right)*/
+        transExpression(left) ++ transExpression(right)
 
-    /*case BaseApplyInfixExpr(left, op, right)
+    case BaseApplyInfixExpr(left, op, right)
       if op.tree.value == "&" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
       val transLeft = transExpression(left)
       val transRight = transExpression(right)
 
-      // create substitution: replace every bound variable in right with freshly generated variable to avoid unwanted nameclashes after merging constraints from left and right
-      val boundNamesInRight = right.vars.keys.map(_.name).toSet -- right.freevars.map(_.name.name)
-      val freshVarsInRight = boundNamesInRight.map { n => Datalog.Var(gensym.fresh(n)) }
-      val boundVarsInRight = boundNamesInRight.map(Datalog.Var)
-      val subst = Substitute.fromMap(boundVarsInRight.zip(freshVarsInRight).toMap)
-
+      // FIXME: I don't think we need a rename here right now. There is only one way we get a name clash. This can only
+      //  happen if both left and right perform a variable read with the same name. A variable read with the same name
+      //  always references the same variable.
       for ((leftTerms, leftCons) <- transLeft;
            (rightTerms, rightCons) <- transRight) yield {
-        // apply substitution created above
-        val renamedRightTerms = rightTerms.map(subst.substTerm)
-        val renamedRightCons = rightCons.map(subst.substAtom)
-
-        // generate equality constraints to force that constraints of left and right have to hold (X intersect Y implemented as X AND Y)
-        val eqTerms = leftTerms.zip(renamedRightTerms).map { case (l, r) => Datalog.Eq(l, r) }
-        (leftTerms, leftCons ++ renamedRightCons ++ eqTerms)
-      }*/
+        val eqTerms = leftTerms.zip(rightTerms).map { case (l, r) => Datalog.Eq(l, r) }
+        (leftTerms, leftCons ++ rightCons ++ eqTerms)
+      }
 
     case BaseApplyInfixExpr(left, op, right) =>
       import scala.meta.quasiquotes._

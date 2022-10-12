@@ -200,6 +200,8 @@ class FunctionsTest extends AnyFunSuite {
     performTest("SetFieldDeclare", "A$main", Seq(), SetResult(1, 2, 3))
     performTest("SetFieldSet", "A$main", Seq(), SetResult(1, 2, 3))
     performTest("SetTuple", "A$main", Seq(), SetResult(TupleResult(1, "A"), TupleResult(2, "B"), TupleResult(3, "C")))
+    performTest("SetIntersection", "A$main", Seq(), SetResult(1, 3))
+    performTest("SetUnion", "A$main", Seq(), SetResult(1, 2, 3, 4))
   }
 
   /*test("Generate example") {

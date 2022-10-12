@@ -1,0 +1,10 @@
+module SetTest
+
+class A {
+  def this() = {}
+
+  @main def main(): Set[Int] = {
+    val a: Int = 3
+    return [2, 1, a] ++ [4, a]
+  }
+}

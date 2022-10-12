@@ -210,6 +210,24 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case _ => false
   }
 
+  def join(ty1: Type, ty2: Type): Type = (ty1, ty2) match {
+    case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
+      TTuple(tys1.zip(tys2).map(tt => join(tt._1, tt._2)))
+    case (TSet(ty1), TSet(ty2)) =>
+      join(ty1, ty2)
+    case (_, _) =>
+      if (subtype(ty1, ty2))
+        ty2
+      else if (subtype(ty2, ty1))
+        ty1
+      else
+        TAny
+  }
+
+  def upperTypeBound(types: Seq[Type]): Type = types.reduce[Type] {
+    case (ty1, ty2) => join(ty1, ty2)
+  }
+
   def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type = {
     val inferred = computeType
     term.typ match {
@@ -346,15 +364,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       }
 
     case SetExpr(exps) =>
-      // find the upper type bound of the set
-      val types: Seq[Type] = exps.map(typecheck)
-      val typ: Type = types.reduce[Type] { case (ty1, ty2) =>
-        if (subtype(ty1, ty2)) ty2 else ty1
-      }
-      types.zip(exps).foreach { case (ty, exp) =>
-        assertSubtype(ty, typ, exp)
-      }
-      TSet(typ)
+      TSet(upperTypeBound(exps.map(typecheck)))
 
     case BaseLitExpr(code) =>
       typecheckDecodeScala(code.syntax, expression)
@@ -404,10 +414,10 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       val (rightName, rightTy) = (Term.Name("param$_right"), typecheck(right))
 
       (leftTy, op.tree.value, rightTy) match {
-        /*case (TSet(tyl), "++", TSet(tyr)) =>
+        case (TSet(tyl), "++", TSet(tyr)) =>
           TSet(join(tyl, tyr))
         case (TSet(tyl), "&", TSet(tyr)) =>
-          TSet(join(tyl, tyr))*/
+          TSet(join(tyl, tyr))
         case _ =>
           val paramString = Seq(
             q"val ${Pat.Var(leftName)}: ${leftTy.asScala} = Predef.???".syntax,
