@@ -4,8 +4,6 @@ import inca.compiler.SourceLocation
 import inca.frontend.objectoriented.core._
 import inca.util.Gensym
 
-import scala.collection.mutable.ListBuffer
-
 
 object StaticSingleAssignment {
   def transformModule(module: Module): Module =
@@ -28,78 +26,85 @@ class StaticSingleAssignment(module: Module) {
 
   private val gensym: Gensym = new Gensym(Iterable.empty)
 
-  def preserveSourceLocation[T <: SourceLocation](sourceLocation: T, f: => T): T = {
-    val transLoc = f
-    transLoc.startIndex = sourceLocation.startIndex
-    transLoc.endIndex = sourceLocation.endIndex
+  private def preserveLoc[U <: SourceLocation](loc: U)(f: U => U): U = {
+    val transLoc = f(loc)
+    transLoc.startIndex = loc.startIndex
+    transLoc.endIndex = loc.endIndex
     transLoc
   }
 
-  def preserveSourceLocations[T <: SourceLocation](sourceLocation: T, f: => Seq[T]): Seq[T] = {
-    f.map { transLoc =>
-      transLoc.startIndex = sourceLocation.startIndex
-      transLoc.endIndex = sourceLocation.endIndex
+  private def preserveLocs[U <: SourceLocation](loc: U)(f: U => Seq[U]): Seq[U] = {
+    f(loc).map { transLoc =>
+      transLoc.startIndex = loc.startIndex
+      transLoc.endIndex = loc.endIndex
       transLoc
     }
   }
 
-  def transModule(): Module = {
+  protected[frontend] def transModule(): Module = preserveLoc(module)(transModuleInternal)
+
+  private def transModuleInternal(module: Module): Module = {
     val Module(name, imports, classes) = module
     gensym.register(module.usedModuleNames.map(_.raw))
 
     val transClasses = classes.map(transClass)
 
-    val newModule = Module(name, imports, transClasses)
-    newModule.startIndex = module.startIndex
-    newModule.endIndex = module.endIndex
-    newModule
+    Module(name, imports, transClasses)
   }
 
-  private def transClass(classDef: ClassDef): ClassDef = preserveSourceLocation(classDef, {
+  protected[frontend] def transClass(classDef: ClassDef): ClassDef = preserveLoc(classDef)(transClassInternal)
+
+  private def transClassInternal(classDef: ClassDef): ClassDef = {
     gensym.register(classDef.name.raw)
-
     val ClassDef(annos, vis, name, parents, content) = classDef
-    val transContent = content.map {
-      case constructor: ConstructorDef => transConstructor(constructor, classDef)
-      case method: MethodDef => transMethod(method, classDef)
-      case fieldDef: FieldDef => transField(fieldDef, classDef)
+    val newContent = content.map(c => transContent(c, classDef))
+    ClassDef(annos, vis, name, parents.map(c => ClassRef(c.name)), newContent)
+  }
+
+  protected[frontend] def transContent(content: ClassContent, classDef: ClassDef): ClassContent = content match {
+    case constructor: ConstructorDef => preserveLoc(constructor)(c => transConstructorInternal(c, classDef))
+    case method: MethodDef => preserveLoc(method)(m => transMethodInternal(m, classDef))
+    case field: FieldDef => preserveLoc(field)(f => transFieldInternal(f, classDef))
+  }
+
+  private def transFieldInternal(fieldDef: FieldDef, classDef: ClassDef): FieldDef =
+    gensym.scoped {
+      val FieldDef(annos, vis, name, typ, body, immutable) = fieldDef
+      FieldDef(annos, vis, name, typ, body, immutable)
     }
-    ClassDef(annos, vis, name, parents.map(c => ClassRef(c.name)), transContent)
-  })
 
-  private def transField(fieldDef: FieldDef, classDef: ClassDef): FieldDef = preserveSourceLocation(fieldDef, gensym.scoped {
-    val FieldDef(annos, vis, name, typ, body, immutable) = fieldDef
-    FieldDef(annos, vis, name, typ, body, immutable)
-  })
+  private def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef =
+    gensym.scoped {
+      gensym.register(methodDef.params.map(_.name.raw))
+      gensym.register("this")
+      env = Map()
+      val MethodDef(annos, vis, name, params, outType, body) = methodDef
+      val newBody = transStatements(body)
+      MethodDef(annos, vis, name, params, outType, newBody)
+    }
 
-  private def transMethod(methodDef: MethodDef, classDef: ClassDef): MethodDef = preserveSourceLocation(methodDef, gensym.scoped {
-    gensym.register(methodDef.params.map(_.name.raw))
-    gensym.register("this")
-    env = Map()
-    val MethodDef(annos, vis, name, params, outType, body) = methodDef
-    val newBody = transStatements(body)
-    MethodDef(annos, vis, name, params, outType, newBody)
-  })
-
-  private def transConstructor(constructorDef: ConstructorDef, classDef: ClassDef): ConstructorDef = preserveSourceLocation(constructorDef, gensym.scoped {
-    gensym.register(constructorDef.params.map(_.name.raw))
-    gensym.register("this")
-    env = Map()
-    val ConstructorDef(annos, vis, params, body) = constructorDef
-    val newBody = transStatements(body)
-    ConstructorDef(annos, vis, params, newBody)
-  })
+  private def transConstructorInternal(constructorDef: ConstructorDef, classDef: ClassDef): ConstructorDef =
+    gensym.scoped {
+      gensym.register(constructorDef.params.map(_.name.raw))
+      gensym.register("this")
+      env = Map()
+      val ConstructorDef(annos, vis, params, body) = constructorDef
+      val newBody = transStatements(body)
+      ConstructorDef(annos, vis, params, newBody)
+    }
 
   type Env = Map[String, (String, Type)]
   var env: Env = Map()
 
-  private def transStatements(stmts: Seq[Statement]): Seq[Statement] = {
+  protected[frontend] def transStatements(stmts: Seq[Statement]): Seq[Statement] =
     stmts.flatMap(transStatement)
-  }
 
-  private def transStatement(stmt: Statement): Seq[Statement] = preserveSourceLocations(stmt, {
+  protected[frontend] def transStatement(stmt: Statement): Seq[Statement] =
+    preserveLocs(stmt)(transStatementInternal)
+
+  private def transStatementInternal(stmt: Statement): Seq[Statement] =
     stmt match {
-      case VarDeclareStmt(name, typ, maybeExpression, immutable) =>
+      case VarDeclareStmt(name, typ, maybeExpression, _) =>
         gensym.register(name.raw)
         val expr = if (maybeExpression.isDefined) Some(transExpression(maybeExpression.get)) else None
         env = env + (name.raw -> (name.raw, typ))
@@ -142,21 +147,24 @@ class StaticSingleAssignment(module: Module) {
         val usedSymbols = thnEnv.keySet.union(elsEnv.keySet)
         val ifStmt = IfStmt(transExpression(cnd), thnStmts, elsStmts)
 
-        ifStmt +: usedSymbols.map { name =>
+        ifStmt +: usedSymbols.zipWithIndex.map { case (name, idx) =>
           val newName = Name(gensym.fresh(name))
           val (thnName, thnType) = thnEnv.getOrElse(name, oldEnv(name))
           val (elsName, elsType) = elsEnv.getOrElse(name, oldEnv(name))
           if (thnType != elsType)
             throw new RuntimeException(s"Type mismatch for variable $newName: ${thnType} != ${elsType}")
           env = env + (name -> ((newName.raw, thnType)))
+          // set a unique source location for this assignment. It doesn't matter which
           VarPhiAssignStmt(newName, thnType, ifStmt, Name(thnName), Name(elsName))
         }.toSeq
       case s =>
         throw new RuntimeException(s"Can not transform statement: $s")
     }
-  })
 
-  private def transExpression(expression: Expression): Expression = preserveSourceLocation(expression, {
+  protected[frontend] def transExpression(expression: Expression): Expression =
+    preserveLoc(expression)(transExpressionInternal)
+
+  private def transExpressionInternal(expression: Expression): Expression =
     expression match {
       case FieldReadExpr(recv, targetName) =>
         FieldReadExpr(transExpression(recv), targetName)
@@ -197,9 +205,11 @@ class StaticSingleAssignment(module: Module) {
       case expr =>
         throw new RuntimeException(s"Can not transform expression: $expr")
     }
-  })
 
-  def transType(typ: Type): Type = {
+
+  protected[frontend] def transType(typ: Type): Type = preserveLoc(typ)(transTypeInternal)
+
+  private def transTypeInternal(typ: Type): Type = {
     typ match {
       case TAny => TAny
       case TNull => TNull

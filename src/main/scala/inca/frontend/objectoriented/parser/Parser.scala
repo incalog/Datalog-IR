@@ -61,7 +61,7 @@ trait Parser {
     val NULL: Value       = Value("null")
     val EXTENDS: Value    = Value("extends")
     val INSTANCEOF: Value = Value("instanceOf")
-    val EQUALS: Value     = Value("equals")
+    //val EQUALS: Value     = Value("equals")
     val SET: Value        = Value("Set")
   }
 
@@ -233,10 +233,10 @@ trait Parser {
       case (recv, typeAnno) => InstanceOfExpr(recv, typeAnno)
     }
 
-  protected[frontend] lazy val equalsExpr: P[EqualsExpr] =
+  /*protected[frontend] lazy val equalsExpr: P[EqualsExpr] =
     (keyword(EQUALS) *> inParentheses((P.defer(expr) <* op(",")) ~ P.defer(expr))).mapWithLoc {
       case (obj1, obj2) => EqualsExpr(obj1, obj2)
-    }
+    }*/
 
   protected[frontend] lazy val tupleExpr: P[TupleExpr] =
     inParentheses(seq0(P.defer(expr), min = 2)).mapWithLoc(TupleExpr(_))
@@ -361,7 +361,7 @@ trait Parser {
       nullExpr |
       superExpr |
       instanceOfExpr |
-      equalsExpr |
+      //equalsExpr |
       setExpr
 
   protected[frontend] val infixExpr: P[Expression] =

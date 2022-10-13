@@ -32,6 +32,7 @@ class EqualsTest {
             && (c == null)
             && (a != null)
             && (a.c != null)
+
         /*return equals(a, a)
             && equals(b, b)
             && !equals(a, b)

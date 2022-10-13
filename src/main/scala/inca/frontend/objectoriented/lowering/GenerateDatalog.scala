@@ -23,7 +23,7 @@ object GenerateDatalog {
   private val internalPrefix: String = "_" + sep
 
   val castPatName: String       = internalPrefix + "cast"
-  val equalsPatName: String     = internalPrefix + "equals"
+  //val equalsPatName: String     = internalPrefix + "equals"
   val instanceOfPatName: String = internalPrefix + "instanceOf"
 
   def dispatchPatName(methodNameWithSignature: String): String = s"${internalPrefix}dispatch_${methodNameWithSignature}"
@@ -56,23 +56,9 @@ class GenerateDatalog(module: Module) {
     generatedPatterns += transNull()
     generatedPatterns += transInstanceOf()
     generatedPatterns += transCast()
-    generatedPatterns += transEquals()
+    //generatedPatterns += transEquals()
     generatedPatterns ++= transDynamicDispatch(classes)
     generatedPatterns ++= classes.flatMap(transClass)
-
-    /*generatedPatterns ++= Seq(
-      Datalog.Pattern(None, "main", Seq(), Seq(
-        Datalog.Body(Seq())
-      )).addHint(MagicSetHints.Main(Seq())),
-      Datalog.Pattern(None, "test", Seq(Datalog.Param("a", Datalog.TScalaBoolean)), Seq(
-        Datalog.Body(Seq())
-      )),
-      Datalog.Pattern(None, "test2", Seq(Datalog.Param("a", Datalog.TScalaBoolean)), Seq(
-        Datalog.Body(Seq(
-          Datalog.Call("test", Seq(Datalog.True))
-        ))
-      ))
-    )*/
 
     Datalog.Module(
       name.raw,
@@ -165,7 +151,7 @@ class GenerateDatalog(module: Module) {
     getObjectAttribute(obj, "allocId", outVar, Datalog.TScalaInt)
   }*/
 
-  private def transEquals(): Datalog.Pattern = gensym.scoped {
+  /*private def transEquals(): Datalog.Pattern = gensym.scoped {
     val params = Seq(
       Datalog.Param("obj1", GP_URI),
       Datalog.Param("obj2", GP_URI),
@@ -189,7 +175,7 @@ class GenerateDatalog(module: Module) {
     ))
 
     Datalog.Pattern(None, equalsPatName, params, Seq(body))
-  }
+  }*/
 
   private def transInstanceOf(): Datalog.Pattern = gensym.scoped {
     val params = Seq(
@@ -528,14 +514,14 @@ class GenerateDatalog(module: Module) {
         (Seq(outVar), cons :+ instanceOfCall)
       }
 
-    case EqualsExpr(obj1, obj2) =>
+    /*case EqualsExpr(obj1, obj2) =>
       val transExps = Seq(transExpression(obj1), transExpression(obj2))
       for (tups <- TupleOps.cartesianProduct(transExps)) yield {
         val (terms, cons) = tups.unzip
         val outVar = Datalog.Var(gensym.fresh("isEqual"))
         val equalsCall = Datalog.Call(equalsPatName, terms.flatten :+ outVar)
         (Seq(outVar), cons.flatten ++ Seq(equalsCall))
-      }
+      }*/
 
     case NullExpr() =>
       val nullVar = Datalog.Var(gensym.fresh("null"))

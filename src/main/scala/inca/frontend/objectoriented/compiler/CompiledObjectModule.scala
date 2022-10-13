@@ -4,6 +4,7 @@ import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.Name
 import inca.backend.ir.util.printer.DatalogPrinter
 import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
+import inca.frontend.objectoriented.analyze.AbstractSyntaxTree
 import inca.frontend.objectoriented.core.Module
 import inca.frontend.objectoriented.lowering.{GenerateDataModel, GenerateDatalog, StaticSingleAssignment}
 import inca.frontend.objectoriented.typechecker.Typechecker
@@ -24,8 +25,11 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
     stopIfNeeded()
 
     if (CompilerFlags.DEBUGMODE) {
-      println(s"Typed Module")
+      println("Typed Module")
       println(fun)
+      println()
+      println("Typed Module - AST")
+      println(new AbstractSyntaxTree(fun).toGraphViz)
     }
     fun
   }
@@ -41,6 +45,9 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
     if (CompilerFlags.DEBUGMODE) {
       println(s"SSA Module")
       println(module)
+      println()
+      println("SSA Module - AST")
+      println(new AbstractSyntaxTree(module).toGraphViz)
     }
     module
   }

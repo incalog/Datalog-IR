@@ -1,6 +1,5 @@
 package inca.frontend.objectoriented.integration
 
-import inca.frontend.objectoriented.analyze.AbstractSyntaxTree
 import inca.frontend.objectoriented.executor.ObjectExecutor
 import inca.util.FileUtil.readFile
 import org.scalatest.funsuite.AnyFunSuite
@@ -39,9 +38,6 @@ class FunctionsTest extends AnyFunSuite {
   private def performTest[O](file: String, main: String, input: Seq[Term], expectedResult: O): Seq[Assertion] = {
     val code = readFile(s"objectoriented/unittests/$file.oinca")
     val fun = ObjectExecutor.loadFunction(code, options)
-
-    val ast = new AbstractSyntaxTree(fun.compiled.coreModule)
-    println(ast.toGraphViz)
 
     val result = fun.execute(main, input)
     fun.printAllMatches()

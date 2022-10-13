@@ -343,10 +343,10 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       typecheck(ofTyp)
       TScalaBoolean
 
-    case EqualsExpr(obj1, obj2) =>
+    /*case EqualsExpr(obj1, obj2) =>
       typecheck(obj1)
       typecheck(obj2)
-      TScalaBoolean
+      TScalaBoolean*/
 
     case TupleExpr(exps) =>
       TTuple(exps.map(typecheck))
@@ -418,14 +418,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           TSet(join(tyl, tyr))
         case (TSet(tyl), "&", TSet(tyr)) =>
           TSet(join(tyl, tyr))
-        /*case (TClass(_), "==", TClass(_)) => TScalaBoolean
-        case (TClass(_), "==", TNull) => TScalaBoolean
-        case (TNull, "==", TClass(_)) => TScalaBoolean
-        case (TNull, "==", TNull) => TScalaBoolean
-        case (TClass(_), "!=", TClass(_)) => TScalaBoolean
-        case (TClass(_), "!=", TNull) => TScalaBoolean
-        case (TNull, "!=", TClass(_)) => TScalaBoolean
-        case (TNull, "!=", TNull) => TScalaBoolean*/
         case _ =>
           val paramString = Seq(
             q"val ${Pat.Var(leftName)}: ${leftTy.asScala} = Predef.???".syntax,

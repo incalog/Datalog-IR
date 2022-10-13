@@ -1,7 +1,5 @@
 package inca.compiler
 
-import java.util.Objects.hash
-
 trait SourceLocation {
   var startIndex: Int = SourceLocation.NoIndex
   var endIndex: Int = SourceLocation.NoIndex

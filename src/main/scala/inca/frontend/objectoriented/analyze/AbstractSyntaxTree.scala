@@ -62,9 +62,10 @@ object AbstractSyntaxTree {
 
 case class AstNode(name: String, source: SourceLocation, typ: NodeType) {
   // make sure each node is unique no matter the name
-  override def hashCode(): Int = {
-    println("AstNode: ", name, typ, source.startIndex, source.endIndex, source.location, source)
-    hash(this.getClass.getSimpleName + source.location)
+  override def hashCode(): Int = source match {
+    // VarPhiAssignStmt might share a source location, since they are not parsed
+    case VarPhiAssignStmt(name, _, _, _, _) => hash(name.raw + source.location)
+    case s => hash(s.location)
   }
 }
 
