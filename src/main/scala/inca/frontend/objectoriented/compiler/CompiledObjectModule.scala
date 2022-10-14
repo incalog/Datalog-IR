@@ -6,7 +6,7 @@ import inca.backend.ir.util.printer.DatalogPrinter
 import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
 import inca.frontend.objectoriented.analyze.AbstractSyntaxTree
 import inca.frontend.objectoriented.core.Module
-import inca.frontend.objectoriented.lowering.{GenerateDataModel, GenerateDatalog, StaticSingleAssignment}
+import inca.frontend.objectoriented.lowering.{AddMissingDefinitions, GenerateDataModel, GenerateDatalog, StaticSingleAssignment}
 import inca.frontend.objectoriented.typechecker.Typechecker
 import inca.runtime.context.DataModel
 
@@ -18,23 +18,27 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
 
   lazy val typer: Typechecker = new Typechecker {}
 
+  lazy val completed: Module = {
+    new AddMissingDefinitions(fun).transModule()
+  }
+
   lazy val typed: Module = {
-    typer.typecheck(fun)
+    typer.typecheck(completed)
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
     stopIfNeeded()
 
     if (CompilerFlags.DEBUGMODE) {
       println("Typed Module")
-      println(fun)
+      println(completed)
 
       if (CompilerFlags.DebugConfig.AST) {
         println()
         println("Typed Module - AST")
-        println(new AbstractSyntaxTree(fun).toGraphViz)
+        println(new AbstractSyntaxTree(completed).toGraphViz)
       }
     }
-    fun
+    completed
   }
 
   lazy val ssaModule: Module = {

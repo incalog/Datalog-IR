@@ -1,12 +1,11 @@
 package inca.frontend.objectoriented.analyze
 
 import inca.backend.analyze.Graph
-import inca.compiler.SourceLocation
 import inca.frontend.objectoriented.analyze.AbstractSyntaxTree._
 import inca.frontend.objectoriented.core._
 
-import java.util.Objects.hash
 import java.util.UUID
+import scala.util.hashing.MurmurHash3
 
 object AbstractSyntaxTree {
   sealed trait DependencyEdge {
@@ -60,29 +59,25 @@ object AbstractSyntaxTree {
   }
 }
 
-case class AstNode(name: String, source: SourceLocation, typ: NodeType) {
-  // make sure each node is unique no matter the name
-  override def hashCode(): Int = source match {
-    // VarPhiAssignStmt might share a source location, since they are not parsed
-    case VarPhiAssignStmt(name, _, _, _, _) => hash(name.raw + source.location)
-    case s => hash(s.location)
-  }
+case class AstNode(name: String, uuid: UUID, typ: NodeType) {
+  // make sure each node is unique no matter the name or source location
+  // the source location might be (-1, -1) for generated statements
+  override def hashCode(): Int = MurmurHash3.stringHash(uuid.toString)
 }
 
 class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] {
 
-  def addAstNode(name: String, location: SourceLocation, typ: NodeType): AstNode = {
-    val node = AstNode(name, location, typ)
+  def addAstNode(name: String, typ: NodeType): AstNode = {
+    val node = AstNode(name, UUID.randomUUID(), typ)
     this.addNode(node)
     node
   }
 
-  val mNode: AstNode = this.addAstNode(module.name.raw, module, ModuleNode)
+  val mNode: AstNode = this.addAstNode(module.name.raw, ModuleNode)
   module.classes.foreach(analyzeClass(mNode, _))
 
   def analyzeClass(parent: AstNode, classDef: ClassDef): Unit = {
-    // module -> class
-    val clsNode = this.addAstNode(classDef.name.raw, classDef, ClassNode)
+    val clsNode = this.addAstNode(classDef.name.raw, ClassNode)
     this.addEdge(parent, clsNode, ClassEdge)
 
     classDef.content.foreach {
@@ -93,7 +88,7 @@ class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] 
   }
 
   def analyzeParam(parent: AstNode, param: Param, edgeLabel: String): Unit = {
-    val paramNode = this.addAstNode(param.name.raw, param, ParamNode)
+    val paramNode = this.addAstNode(param.name.raw, ParamNode)
     this.addEdge(parent, paramNode, ParamEdge(edgeLabel))
   }
 
@@ -102,32 +97,33 @@ class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] 
   }
 
   def analyzeConstructor(parent: AstNode, constructorDef: ConstructorDef): Unit = {
-    val constrNode = this.addAstNode("this", constructorDef, ConstructorNode)
+    val constrNode = this.addAstNode("this", ConstructorNode)
     this.addEdge(parent, constrNode, ConstructorEdge)
     analyzeStatements(constrNode, constructorDef.body)
     analyzeParams(constrNode, constructorDef.params)
   }
 
   def analyzeMethod(parent: AstNode, methodDef: MethodDef): Unit = {
-    val methodNode = this.addAstNode(methodDef.name.raw, methodDef, MethodNode)
+    val methodNode = this.addAstNode(methodDef.name.raw, MethodNode)
     this.addEdge(parent, methodNode, MethodEdge)
     analyzeStatements(methodNode, methodDef.body)
     analyzeParams(methodNode, methodDef.params)
   }
 
   def analyzeField(parent: AstNode, fieldDef: FieldDef): Unit = {
-    val fieldNode = this.addAstNode(fieldDef.name.raw, fieldDef, FieldNode)
+    val fieldNode = this.addAstNode(fieldDef.name.raw, FieldNode)
     this.addEdge(parent, fieldNode, FieldEdge)
     if (fieldDef.body.isDefined)
       analyzeExpression(fieldNode, fieldDef.body.get)
   }
 
-  def analyzeStatements(parent: AstNode, stmts: Seq[Statement]): Unit = {
-    stmts.zipWithIndex.foreach(s => analyzeStatement(parent, s._1, Some(s"body[${s._2}]")))
+  def analyzeStatements(parent: AstNode, stmts: Seq[Statement], edgeLabel: Option[String] = None): Unit = {
+    val label = edgeLabel.getOrElse("body")
+    stmts.zipWithIndex.foreach(s => analyzeStatement(parent, s._1, Some(s"$label[${s._2}]")))
   }
 
   def analyzeStatement(parent: AstNode, stmt: Statement, edgeLabel: Option[String] = None): Unit = {
-    val stmtNode = this.addAstNode(stmt.getClass.getSimpleName, stmt, StatementNode)
+    val stmtNode = this.addAstNode(stmt.getClass.getSimpleName, StatementNode)
     this.addEdge(parent, stmtNode, StatementEdge(edgeLabel))
     stmt match {
       case ExprStmt(expression) =>
@@ -136,18 +132,18 @@ class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] 
         analyzeExpression(stmtNode, expression)
       case FieldAssignStmt(recv, name, expression) =>
         analyzeExpression(stmtNode, recv)
-        analyzeExpression(stmtNode, expression)
-      case VarDeclareStmt(name, typ, maybeExpression, immutable) =>
+        analyzeExpression(stmtNode, expression, Some(name.raw))
+      case VarDeclareStmt(name, _, maybeExpression, _) =>
         if (maybeExpression.isDefined)
-          analyzeExpression(stmtNode, maybeExpression.get)
+          analyzeExpression(stmtNode, maybeExpression.get, Some(name.raw))
       case VarAssignStmt(targetName, expression) =>
-        analyzeExpression(stmtNode, expression)
-      case VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>
+        analyzeExpression(stmtNode, expression, Some(targetName.raw))
+      case VarPhiAssignStmt(_, _, _, _, _) =>
         // nothing
       case IfStmt(cnd, thn, els) =>
-        analyzeExpression(stmtNode, cnd)
-        analyzeStatements(stmtNode, thn)
-        analyzeStatements(stmtNode, els)
+        analyzeExpression(stmtNode, cnd, Some("cnd"))
+        analyzeStatements(stmtNode, thn, Some("thn"))
+        analyzeStatements(stmtNode, els, Some("els"))
     }
   }
 
@@ -156,7 +152,7 @@ class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] 
   }
 
   def analyzeExpression(parent: AstNode, expr: Expression, edgeLabel: Option[String] = None): Unit = {
-    val exprNode = this.addAstNode(expr.getClass.getSimpleName, expr, ExpressionNode)
+    val exprNode = this.addAstNode(expr.getClass.getSimpleName, ExpressionNode)
     this.addEdge(parent, exprNode, ExpressionEdge(edgeLabel))
     expr match {
       case FieldReadExpr(recv, targetName) =>
@@ -184,25 +180,25 @@ class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] 
         analyzeExpressions(exprNode, exps)
       case SetExpr(exps) =>
         analyzeExpressions(exprNode, exps)
-      case SetMemberExpr(name, recv, predicate) =>
+      case SetMemberExpr(_, recv, predicate) =>
         analyzeExpression(exprNode, recv, Some("recv"))
         if (predicate.isDefined)
           analyzeExpression(exprNode, predicate.get, Some("pred"))
       case SetComprehension(member, body) =>
         analyzeExpressions(exprNode, member)
         analyzeExpression(exprNode, body, Some("yield"))
-      case BaseLitExpr(code) =>
+      case BaseLitExpr(_) =>
         // nothing
-      case BaseApplyExpr(fun, args) =>
+      case BaseApplyExpr(_, args) =>
         analyzeExpressions(exprNode, args)
-      case BaseApplyInfixExpr(left, op, right) =>
+      case BaseApplyInfixExpr(left, _, right) =>
         analyzeExpression(exprNode, left, Some("left"))
         analyzeExpression(exprNode, right, Some("right"))
-      case BaseApplyMethodExpr(recv, method, args) =>
+      case BaseApplyMethodExpr(recv, _, args) =>
         analyzeExpression(exprNode, recv)
         if (args.isDefined)
           analyzeExpressions(exprNode, args.get)
-      case BaseApplyUnaryExpr(op, exp) =>
+      case BaseApplyUnaryExpr(_, exp) =>
         analyzeExpression(exprNode, exp)
     }
   }

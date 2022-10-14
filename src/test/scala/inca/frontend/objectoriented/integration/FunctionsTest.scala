@@ -7,10 +7,7 @@ import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.executor.ObjectExecutor.TypeCastException
 import org.scalatest.Assertion
 
-import scala.collection.{IterableFactory, IterableOps, immutable, mutable}
-import scala.collection.immutable.{AbstractSeq, LinearSeq}
 import scala.meta.{Term, XtensionQuasiquoteTerm}
-import scala.xml.NodeSeq
 
 case class ResultError(msg: String)
 

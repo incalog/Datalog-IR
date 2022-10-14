@@ -5,9 +5,9 @@ object CompilerFlags {
 
   object DebugConfig {
     // true to include the AST
-    val AST: Boolean = false
+    val AST: Boolean = true
     // true to include all optimizations
-    val OPTIMIZATIONS: Boolean = true
+    val OPTIMIZATIONS: Boolean = false
     // true to include all transformations
     val TRANSFORMATIONS: Boolean = false
   }
