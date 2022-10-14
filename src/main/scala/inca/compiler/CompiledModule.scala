@@ -58,10 +58,14 @@ trait CompiledModule {
     var module = ir
     for (trans <- options.transformations) {
       module = trans.transformer(dataModel).transformModule(module)
-      if (CompilerFlags.DEBUGMODE) {
+      if (CompilerFlags.DEBUGMODE && CompilerFlags.DebugConfig.TRANSFORMATIONS) {
         println(s"Transformation: ${trans.getClass.getName}")
         println(module)
       }
+    }
+    if (CompilerFlags.DEBUGMODE && !CompilerFlags.DebugConfig.TRANSFORMATIONS) {
+      println(s"Transformed")
+      println(module)
     }
     module
   }
@@ -75,13 +79,15 @@ trait CompiledModule {
     var module = analyzed
     for (op <- options.optimizations) {
       module = op.optimizer(dataModel).optimizeModule(module)
-      if (CompilerFlags.DEBUGMODE) {
+      if (CompilerFlags.DEBUGMODE && CompilerFlags.DebugConfig.OPTIMIZATIONS) {
         println(s"Optimization: ${op.getClass.getName}")
         println(module)
       }
     }
-    //println(module)
-    //println(DatalogPrinter.prettyModule(module)(true))
+    if (CompilerFlags.DEBUGMODE && !CompilerFlags.DebugConfig.OPTIMIZATIONS) {
+      println(s"Optimized")
+      println(module)
+    }
     module
   }
 

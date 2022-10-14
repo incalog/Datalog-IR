@@ -41,7 +41,7 @@ trait Parser {
     p <* whitespaces0
 
   def seq0[A](p: P[A], sep: Char = ',', min: Int = 0): P0[Seq[A]] =
-    (p <* P.char(sep).? <* whitespaces0).rep0(min)
+      p.repSep0(min, P.char(sep) <* whitespaces0)
 
   object Keyword extends Enumeration {
     type Keyword = Value
@@ -61,8 +61,9 @@ trait Parser {
     val NULL: Value       = Value("null")
     val EXTENDS: Value    = Value("extends")
     val INSTANCEOF: Value = Value("instanceOf")
-    //val EQUALS: Value     = Value("equals")
     val SET: Value        = Value("Set")
+    val FOR: Value        = Value("for")
+    val YIELD: Value      = Value("yield")
   }
 
   import Keyword._
@@ -233,16 +234,11 @@ trait Parser {
       case (recv, typeAnno) => InstanceOfExpr(recv, typeAnno)
     }
 
-  /*protected[frontend] lazy val equalsExpr: P[EqualsExpr] =
-    (keyword(EQUALS) *> inParentheses((P.defer(expr) <* op(",")) ~ P.defer(expr))).mapWithLoc {
-      case (obj1, obj2) => EqualsExpr(obj1, obj2)
-    }*/
-
   protected[frontend] lazy val tupleExpr: P[TupleExpr] =
     inParentheses(seq0(P.defer(expr), min = 2)).mapWithLoc(TupleExpr(_))
 
   protected[frontend] lazy val setExpr: P[SetExpr] =
-    inBrackets(seq0(P.defer(expr), min = 2)).mapWithLoc(SetExpr)
+    inBrackets(seq0(P.defer(expr), min = 1)).mapWithLoc(SetExpr)
 
   private[frontend] lazy val nestedAccessStartExpr: P[Expression] =
     typeCastExpr | constructorExpr | variableReadExpr | baseLitExpr | baseApplyExpr
@@ -277,6 +273,18 @@ trait Parser {
       }
     }
   }
+
+  private lazy val setMemberExpr: P[SetMemberExpr] =
+    (((identifier <* op("<-")) ~ P.defer(expr)) ~ (keyword(IF) *> P.defer(expr)).?).mapWithLoc {
+      case ((name, expr), pred) => SetMemberExpr(name, expr, pred)
+    }
+
+  protected[frontend] lazy val setComprehensionExpr: P[SetComprehension] =
+    ((keyword(FOR)
+      *> inParentheses(seq0(setMemberExpr, sep=';', min = 1))
+      <* keyword(YIELD))
+      ~ P.defer(expr)
+      ).mapWithLoc { case (memberExpr, expr) => SetComprehension(memberExpr, expr) }
 
   /** NullLiteral parser */
   protected[frontend] val nullExpr: P[NullExpr] =
@@ -361,8 +369,8 @@ trait Parser {
       nullExpr |
       superExpr |
       instanceOfExpr |
-      //equalsExpr |
-      setExpr
+      setExpr |
+      setComprehensionExpr
 
   protected[frontend] val infixExpr: P[Expression] =
     baseApplyInfixExpr | subinfixExpr

@@ -343,11 +343,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       typecheck(ofTyp)
       TScalaBoolean
 
-    /*case EqualsExpr(obj1, obj2) =>
-      typecheck(obj1)
-      typecheck(obj2)
-      TScalaBoolean*/
-
     case TupleExpr(exps) =>
       TTuple(exps.map(typecheck))
 
@@ -365,6 +360,43 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
     case SetExpr(exps) =>
       TSet(upperTypeBound(exps.map(typecheck)))
+
+    case setMember@SetMemberExpr(name, target, predicate) =>
+      val TSet(typ) = typecheck(target)
+      bindVar(name, setMember, typ, immutable = true)
+      if (predicate.isDefined) {
+        assertSubtype(typecheck(predicate.get), TScalaBoolean, target)
+      }
+      typ
+
+    case SetComprehension(member, body) =>
+      member.foreach(typecheck)
+      TSet(typecheck(body))
+      /*
+      // typecheck the body to resolve all types
+      body.foreach(typecheck(_, TAny, false))
+      // sanity check the body
+      body.foreach {
+        case stmt@ReturnStmt(_) =>
+          error("Set comprehension must not contain return.", stmt)
+        case _ => // nothing
+      }
+      // get the return type of the last expression in the body
+      // TODO: What do we do about an if in here
+      val setTyp = body.last match {
+        case ExprStmt(expression) =>
+          expression match {
+            case SuperExpr(args) =>
+              error("Set comprehension must not contain super call.", expression)
+              TUnit
+            case _ => expression.typ
+              .getOrElse(throw new IllegalArgumentException(s"Unresolved typ for expression $expression"))
+            //case SetExpr(exps) => ???
+            //case SetComprehension(exps, body) => ???
+          }
+        case _ => TUnit
+      }
+      TSet(setTyp)*/
 
     case BaseLitExpr(code) =>
       typecheckDecodeScala(code.syntax, expression)

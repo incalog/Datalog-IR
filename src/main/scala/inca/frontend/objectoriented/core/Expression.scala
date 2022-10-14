@@ -108,6 +108,19 @@ case class SetExpr(exps: Seq[Expression]) extends Expression {
     exps.map(_.prettyprint).mkString("[", ", ", "]")
 }
 
+case class SetMemberExpr(name: Name, recv: Expression, predicate: Option[Expression]) extends Expression with VarReadExpr.Target {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
+    s"$name <- ${recv.prettyprint}" + (if (predicate.isDefined) s" if ${predicate.get.prettyprint}" else "")
+}
+
+case class SetComprehension(member: Seq[Expression], body: Expression) extends Expression {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    // TODO: Fix indent
+    val predS = member.map(_.prettyprint).mkString("; ")
+    s"for ($predS) yield ${body.prettyprint}"
+  }
+}
+
 case class BaseLitExpr(code: Scala[meta.Term]) extends Expression {
   //def vars: Map[Name, Option[Type]] = Map()
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = code.tree match {

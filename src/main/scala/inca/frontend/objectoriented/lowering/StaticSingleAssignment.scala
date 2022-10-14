@@ -190,6 +190,11 @@ class StaticSingleAssignment(module: Module) {
         TupleReadExpr(transExpression(recv), index)
       case SetExpr(exps) =>
         SetExpr(exps.map(transExpression))
+      case SetMemberExpr(name, recv, predicate) =>
+        val pred = if (predicate.isDefined) Some(transExpression(predicate.get)) else None
+        SetMemberExpr(name, transExpression(recv), pred)
+      case SetComprehension(exps, body) =>
+        SetComprehension(exps.map(transExpression), transExpression(body))
       case BaseApplyExpr(fun, args) =>
         BaseApplyExpr(fun, args.map(transExpression))
       case BaseApplyInfixExpr(left, op, right) =>

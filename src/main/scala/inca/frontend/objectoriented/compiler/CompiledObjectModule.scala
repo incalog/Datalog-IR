@@ -27,9 +27,12 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
     if (CompilerFlags.DEBUGMODE) {
       println("Typed Module")
       println(fun)
-      println()
-      println("Typed Module - AST")
-      println(new AbstractSyntaxTree(fun).toGraphViz)
+
+      if (CompilerFlags.DebugConfig.AST) {
+        println()
+        println("Typed Module - AST")
+        println(new AbstractSyntaxTree(fun).toGraphViz)
+      }
     }
     fun
   }
@@ -45,9 +48,12 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
     if (CompilerFlags.DEBUGMODE) {
       println(s"SSA Module")
       println(module)
-      println()
-      println("SSA Module - AST")
-      println(new AbstractSyntaxTree(module).toGraphViz)
+
+      if (CompilerFlags.DebugConfig.AST) {
+        println()
+        println("SSA Module - AST")
+        println(new AbstractSyntaxTree(module).toGraphViz)
+      }
     }
     module
   }

@@ -23,7 +23,6 @@ object GenerateDatalog {
   private val internalPrefix: String = "_" + sep
 
   val castPatName: String       = internalPrefix + "cast"
-  //val equalsPatName: String     = internalPrefix + "equals"
   val instanceOfPatName: String = internalPrefix + "instanceOf"
 
   def dispatchPatName(methodNameWithSignature: String): String = s"${internalPrefix}dispatch_${methodNameWithSignature}"
@@ -56,7 +55,6 @@ class GenerateDatalog(module: Module) {
     generatedPatterns += transNull()
     generatedPatterns += transInstanceOf()
     generatedPatterns += transCast()
-    //generatedPatterns += transEquals()
     generatedPatterns ++= transDynamicDispatch(classes)
     generatedPatterns ++= classes.flatMap(transClass)
 
@@ -146,36 +144,6 @@ class GenerateDatalog(module: Module) {
   private def getObjectTyp(obj: Datalog.Var, outVar: Datalog.Var): Datalog.Computed = {
     getObjectAttribute(obj, "typ", outVar, Datalog.TScalaString)
   }
-
-  /*private def getObjectId(obj: Datalog.Var, outVar: Datalog.Var): Datalog.Computed = {
-    getObjectAttribute(obj, "allocId", outVar, Datalog.TScalaInt)
-  }*/
-
-  /*private def transEquals(): Datalog.Pattern = gensym.scoped {
-    val params = Seq(
-      Datalog.Param("obj1", GP_URI),
-      Datalog.Param("obj2", GP_URI),
-      Datalog.Param("out", Datalog.TScalaBoolean)
-    )
-
-    val compArg1 = Term.Name("obj1")
-    val compParam1 = Term.Param(Nil, compArg1, Some(GP_URI.asScala), None)
-    val compArg2 = Term.Name("obj2")
-    val compParam2 = Term.Param(Nil, compArg2, Some(GP_URI.asScala), None)
-
-    val body = Datalog.Body(Seq(
-      Datalog.Computed(
-        Datalog.Var("out"),
-        Datalog.Evaluation(
-          Seq(Datalog.Var("obj1") -> GP_URI, Datalog.Var("obj2") -> GP_URI),
-          Datalog.TScalaBoolean,
-          Scala(q"($compParam1, $compParam2) => $compArg1 == $compArg2")
-        )
-      )
-    ))
-
-    Datalog.Pattern(None, equalsPatName, params, Seq(body))
-  }*/
 
   private def transInstanceOf(): Datalog.Pattern = gensym.scoped {
     val params = Seq(
@@ -401,14 +369,6 @@ class GenerateDatalog(module: Module) {
       thnRes ++ elsRes
 
     case fieldAssign@FieldAssignStmt(recv, name, expression) =>
-      /*
-      val classType = recv.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression")) match {
-        case t: TClass => t
-        case _ => throw new IllegalArgumentException(s"Illegal field lookup on expression $expression")
-      }
-      val classDef = classType.ref.target.getOrElse(throw new IllegalArgumentException(s"Unresolved class $classType"))
-      */
-
       // to allow inheritance of attributes we use the classDef target of the field lookup
       val (classDef, _) = fieldAssign.target.getOrElse(throw new IllegalArgumentException(s"Unresolved field $name"))
       val qualifiedName = fieldPatName(classDef.name.raw, name.raw)
@@ -514,15 +474,6 @@ class GenerateDatalog(module: Module) {
         (Seq(outVar), cons :+ instanceOfCall)
       }
 
-    /*case EqualsExpr(obj1, obj2) =>
-      val transExps = Seq(transExpression(obj1), transExpression(obj2))
-      for (tups <- TupleOps.cartesianProduct(transExps)) yield {
-        val (terms, cons) = tups.unzip
-        val outVar = Datalog.Var(gensym.fresh("isEqual"))
-        val equalsCall = Datalog.Call(equalsPatName, terms.flatten :+ outVar)
-        (Seq(outVar), cons.flatten ++ Seq(equalsCall))
-      }*/
-
     case NullExpr() =>
       val nullVar = Datalog.Var(gensym.fresh("null"))
       val nullConstrCall = Datalog.Call("Null", Seq(nullVar))
@@ -558,6 +509,29 @@ class GenerateDatalog(module: Module) {
 
     case SetExpr(exps) =>
       exps.flatMap(transExpression)
+
+    case setMember@SetMemberExpr(name, recv, predicate) =>
+      val typ = setMember.typ.getOrElse(throw new IllegalArgumentException(s"Missing type for expression $setMember"))
+      val vars = flattenVars(name.raw, typ).map(_._1)
+      val transRecv = transExpression(recv)
+      val transPred = if (predicate.isDefined) transExpression(predicate.get) else Seq()
+      for ((recvTerms, recvCons) <- transRecv) yield {
+        val eqs = vars.zip(recvTerms).map(vt => Datalog.Eq(vt._1, vt._2))
+        val predicates = transPred.flatMap { case (predTerms, predCons) =>
+          predCons ++ predTerms.map(pt => Datalog.Eq(pt, Datalog.True))
+        }
+        (vars, recvCons ++ eqs ++ predicates)
+      }
+
+    case SetComprehension(exps, body) =>
+      val transSetMember = exps.map(transExpression)
+      val transBody = transExpression(body)
+
+      for (ms <- TupleOps.cartesianProduct(transSetMember);
+           (bTerms, bCons) <- transBody) yield {
+        val (_, mCons) = ms.unzip
+        (bTerms, mCons.flatten ++ bCons)
+      }
 
     case BaseLitExpr(code) =>
       import scala.meta._
@@ -640,34 +614,6 @@ class GenerateDatalog(module: Module) {
         val evalConstraint = Datalog.Computed(evalOut, Datalog.Evaluation(flatArgTerms, transType(resType), Scala(funCode)))
         (Seq(evalOut), argCons.flatten :+ evalConstraint)
       }
-
-    // object equality check
-    /*case BaseApplyInfixExpr(left, op, right)
-      if (op.tree.value == "==" || op.tree.value == "!=") &&
-        left.typ.exists(ty => ty.isInstanceOf[TClass] || ty.isInstanceOf[TNull.type]) &&
-        right.typ.exists(ty => ty.isInstanceOf[TClass] || ty.isInstanceOf[TNull.type]) =>
-          println(s"Compare: $left ${op.tree.value} $right")
-          val transExps = Seq(transExpression(left), transExpression(right))
-
-          val compArg1 = Term.Name("obj1")
-          val compParam1 = Term.Param(Nil, compArg1, Some(GP_URI.asScala), None)
-          val compArg2 = Term.Name("obj2")
-          val compParam2 = Term.Param(Nil, compArg2, Some(GP_URI.asScala), None)
-
-          for (tups <- TupleOps.cartesianProduct(transExps)) yield {
-            val (terms, cons) = tups.unzip
-            val outVar = Datalog.Var(gensym.fresh("isEqual"))
-            val Seq(obj1, obj2) = terms.flatten
-            val equalityCheck = Datalog.Computed(
-              outVar,
-              Datalog.Evaluation(
-                Seq(obj1 -> GP_URI, obj2 -> GP_URI),
-                Datalog.TScalaBoolean,
-                Scala(q"($compParam1, $compParam2) => $compArg1 ${Term.Name(op.tree.value)} $compArg2")
-              )
-            )
-            (Seq(outVar), cons.flatten :+ equalityCheck)
-          }*/
 
     case BaseApplyInfixExpr(left, op, right)
       if op.tree.value == "++" && left.typ.exists(_.isInstanceOf[TSet]) && right.typ.exists(_.isInstanceOf[TSet]) =>
