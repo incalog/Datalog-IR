@@ -122,7 +122,7 @@ class StaticSingleAssignment(val module: Module) extends ModuleLowering {
   override def transExpressionInternal(expression: Expression): Expression = expression match {
     case VarReadExpr(targetName) =>
       // Rewrite all VarReadExpr to use the latest generated name for the variable
-      val (newName, _) = env.getOrElse(targetName.raw, (targetName.raw, TAny))//throw new RuntimeException(s"Unregistered variable $targetName encountered!"))
+      val (newName, _) = env.getOrElse(targetName.raw, (targetName.raw, TAny))
       VarReadExpr(Name(newName))
     case _ => super.transExpressionInternal(expression)
   }

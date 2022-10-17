@@ -9,5 +9,6 @@ class A {
     def main(): Unit = {
         val a: A = new A()
         cast(a, B)
+        return
     }
 }

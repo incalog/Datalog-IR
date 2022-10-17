@@ -1,0 +1,8 @@
+module ReturnTest
+
+class ReturnTest {
+    @main
+    def main(): Int = {
+        1
+    }
+}

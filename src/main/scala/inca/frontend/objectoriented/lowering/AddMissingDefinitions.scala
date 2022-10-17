@@ -21,8 +21,8 @@ class AddMissingDefinitions(val module: Module) extends ModuleLowering {
 
   override def transClassInternal(classDef: ClassDef): ClassDef = {
     val ClassDef(annos, vis, name, parents, content) = classDef
-    val addedContent = generateMissingConstructor(classDef)
-    super.transClassInternal(ClassDef(annos, vis, name, parents, content ++ addedContent))
+    val missingConstructor = generateMissingConstructor(classDef)
+    super.transClassInternal(ClassDef(annos, vis, name, parents, content ++ missingConstructor))
   }
 
   private def generateMissingConstructor(classDef: ClassDef): Option[ConstructorDef] = {
@@ -30,5 +30,31 @@ class AddMissingDefinitions(val module: Module) extends ModuleLowering {
       Some(ConstructorDef(Seq(), None, Seq(), Seq()))
     else
       None
+  }
+
+  override def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
+    val MethodDef(annos, vis, name, params, outType, content) = methodDef
+    val missingReturn = generateReturnStatement(content)
+    super.transMethodInternal(MethodDef(annos, vis, name, params, outType, content.dropRight(1) ++ missingReturn), classDef)
+  }
+
+  private def generateReturnStatement(content: Seq[Statement]): Option[Statement] = {
+    val unitStmt = ReturnStmt(TupleExpr())
+    val lastStmt = content.lastOption.getOrElse(unitStmt)
+    val result = lastStmt match {
+      case ReturnStmt(_) =>
+        lastStmt
+      case ExprStmt(expression) =>
+        ReturnStmt(expression)
+      case IfStmt(cnd, thn, els) =>
+        val returnThn = generateReturnStatement(thn)
+        val returnEls = generateReturnStatement(els)
+        IfStmt(cnd, thn.dropRight(1) ++ returnThn, els.dropRight(1) ++ returnEls)
+      case _ =>
+        unitStmt
+      case VarPhiAssignStmt(_, _, _, _, _) =>
+        throw new IllegalArgumentException("Can not implicitly return a VarPhiAssignment!")
+    }
+    Some(result)
   }
 }

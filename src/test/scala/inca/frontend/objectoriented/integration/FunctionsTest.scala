@@ -22,6 +22,10 @@ class FunctionsTest extends AnyFunSuite {
     def apply(values: Any *): Seq[Any] = values
   }
 
+  object UnitResult {
+    def apply(): TupleResult[Any] = TupleResult()
+  }
+
   type SetResult[T] = Set[T]
   object SetResult {
     def apply(values: Any*): Set[Any] = values.toSet
@@ -184,6 +188,11 @@ class FunctionsTest extends AnyFunSuite {
   test("Return Example") {
     performTest("Return", "ReturnTest$main", Seq(q"true"), 1)
     performTest("Return", "ReturnTest$main", Seq(q"false"), 2)
+    performTest("ReturnTwice", "ReturnTest$main", Seq(), 1)
+    performTest("ReturnImplicit", "ReturnTest$main", Seq(), 1)
+    performTest("ReturnImplicitIf", "ReturnTest$main", Seq(q"true"), 1)
+    performTest("ReturnImplicitUnit", "ReturnTest$main", Seq(q"true"), UnitResult())
+    performTest("Unit", "A$main", Seq(), UnitResult())
   }
 
   test("Super Example") {

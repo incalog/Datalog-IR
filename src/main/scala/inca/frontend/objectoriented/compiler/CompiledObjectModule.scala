@@ -19,6 +19,17 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
   lazy val typer: Typechecker = new Typechecker {}
 
   lazy val completed: Module = {
+    if (CompilerFlags.DEBUGMODE) {
+      println("Module")
+      println(fun)
+
+      if (CompilerFlags.DebugConfig.AST) {
+        println()
+        println("Module - AST")
+        println(new AbstractSyntaxTree(fun).toGraphViz)
+      }
+    }
+
     new AddMissingDefinitions(fun).transModule()
   }
 

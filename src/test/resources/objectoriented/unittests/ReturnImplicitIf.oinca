@@ -1,0 +1,18 @@
+module ReturnTest
+
+class ReturnTest {
+    @main
+    def main(cond: Boolean): Int = {
+        // TODO: Is this a good idea ? It would probably be nicer to make if an expr, so that a variable can be assigned
+        //  to it
+        // This generates a VarPhiAssignment as last statement, that we want to ignore
+        var a: Int = 0
+        if (!cond) {
+            a = 4
+            2
+        } else {
+            a = 5
+            1
+        }
+    }
+}

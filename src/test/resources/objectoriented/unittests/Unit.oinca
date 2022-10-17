@@ -1,0 +1,7 @@
+module TestUnit
+
+class A {
+  @main def main(): Unit = {
+    return
+  }
+}
