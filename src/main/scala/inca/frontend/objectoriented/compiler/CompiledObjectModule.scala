@@ -6,7 +6,7 @@ import inca.backend.ir.util.printer.DatalogPrinter
 import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
 import inca.frontend.objectoriented.analyze.AbstractSyntaxTree
 import inca.frontend.objectoriented.core.Module
-import inca.frontend.objectoriented.lowering.{AddMissingDefinitions, GenerateDataModel, GenerateDatalog, StaticSingleAssignment}
+import inca.frontend.objectoriented.lowering.{AddMissingDefinitions, Defunctionalize, GenerateDataModel, GenerateDatalog, StaticSingleAssignment}
 import inca.frontend.objectoriented.typechecker.Typechecker
 import inca.runtime.context.DataModel
 
@@ -34,11 +34,6 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
   }
 
   lazy val typed: Module = {
-    typer.typecheck(completed)
-    messages ++= typer.getErrors
-    messages ++= typer.getWarnings
-    stopIfNeeded()
-
     if (CompilerFlags.DEBUGMODE) {
       println("Typed Module")
       println(completed)
@@ -49,16 +44,17 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
         println(new AbstractSyntaxTree(completed).toGraphViz)
       }
     }
+
+    typer.typecheck(completed)
+    messages ++= typer.getErrors
+    messages ++= typer.getWarnings
+    stopIfNeeded()
+
     completed
   }
 
   lazy val ssaModule: Module = {
     val module = new StaticSingleAssignment(typed).transModule()
-
-    typer.typecheck(module)
-    messages ++= typer.getErrors
-    messages ++= typer.getWarnings
-    stopIfNeeded()
 
     if (CompilerFlags.DEBUGMODE) {
       println(s"SSA Module")
@@ -70,25 +66,42 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
         println(new AbstractSyntaxTree(module).toGraphViz)
       }
     }
-    module
-  }
 
-  lazy val coreModule: Module = {
-    ssaModule
-    /*val module = new Defunctionalize(monoModule).transModule()
     typer.typecheck(module)
     messages ++= typer.getErrors
     messages ++= typer.getWarnings
     stopIfNeeded()
+
+    module
+  }
+
+  lazy val coreModule: Module = {
+    val module = new Defunctionalize(ssaModule).transModule()
+
     if (CompilerFlags.DEBUGMODE) {
       println(s"Core Module")
       println(module)
+
+      if (CompilerFlags.DebugConfig.AST) {
+        println()
+        println("Defun Module - AST")
+        println(new AbstractSyntaxTree(module).toGraphViz)
+      }
     }
-    module*/
+
+    typer.typecheck(module)
+    messages ++= typer.getErrors
+    messages ++= typer.getWarnings
+    stopIfNeeded()
+
+    module
   }
 
   lazy val ir: Datalog.Module = {
     val module = new GenerateDatalog(coreModule).transModule()
+
+    println(s"Intermediate Representation")
+    println(module)
 
     if (CompilerFlags.DEBUGMODE) {
       println(s"Intermediate Representation")

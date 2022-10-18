@@ -61,13 +61,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
   def typecheck(methodDef: MethodDef, classDef: ClassDef): Unit = scopedTypeContext {
     methodDef.params.foreach { p =>
-      p.typ match {
-        case ty@TSet(_) =>
-          error(s"Type $ty not allowed for parameter ${p.name}")
-        case ty =>
-          typecheck(p.typ)
-          bindVar(p.name, p, ty, immutable = true)
-      }
+      typecheck(p.typ)
+      bindVar(p.name, p, p.typ, immutable = true)
     }
     methodDef.params.groupBy(_.name).foreach { case (_, cs) =>
       if (cs.size > 1)
@@ -362,7 +357,13 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       TSet(upperTypeBound(exps.map(typecheck)))
 
     case setMember@SetMemberExpr(name, target, predicate) =>
-      val TSet(typ) = typecheck(target)
+      val typ = typecheck(target) match {
+        case TSet(ty) => ty
+        case ty => ty.setType match {
+          case Some(TSet(t)) => t
+          case _ => ty
+        }
+      }
       bindVar(name, setMember, typ, immutable = true)
       if (predicate.isDefined) {
         assertSubtype(typecheck(predicate.get), TScalaBoolean, target)
@@ -372,31 +373,35 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case SetComprehension(member, body) =>
       member.foreach(typecheck)
       TSet(typecheck(body))
-      /*
-      // typecheck the body to resolve all types
-      body.foreach(typecheck(_, TAny, false))
-      // sanity check the body
-      body.foreach {
-        case stmt@ReturnStmt(_) =>
-          error("Set comprehension must not contain return.", stmt)
-        case _ => // nothing
-      }
-      // get the return type of the last expression in the body
-      // TODO: What do we do about an if in here
-      val setTyp = body.last match {
-        case ExprStmt(expression) =>
-          expression match {
-            case SuperExpr(args) =>
-              error("Set comprehension must not contain super call.", expression)
-              TUnit
-            case _ => expression.typ
-              .getOrElse(throw new IllegalArgumentException(s"Unresolved typ for expression $expression"))
-            //case SetExpr(exps) => ???
-            //case SetComprehension(exps, body) => ???
-          }
-        case _ => TUnit
-      }
-      TSet(setTyp)*/
+    /*case setReduce@SetReduce(recv, op) =>
+      typecheck(recv) match {
+        case TSet(TClass(ref)) =>
+          val classDef = lookupClass(ref.name)
+          val methodDef = lookupMethod(classDef, op)
+          if (methodDef.isDefined) {
+            if (methodDef.get.params.size > 1)
+              error(s"Reduce method $op must have exactly one parameter!", expression)
+
+            methodDef.get.params.head.typ match {
+              case TClass(cRef) if cRef.name != ref.name =>
+                error(s"Reduce method $op must accept parameter of type ${cRef.name.raw}!", expression)
+              case _ => // nothing
+            }
+
+            methodDef.get.outType match {
+              case TClass(cRef) if cRef.name != ref.name =>
+                error(s"Reduce method $op must return an instance of ${cRef.name.raw}!", expression)
+              case _ => // nothing
+            }
+
+            resolveTarget(setReduce)(methodDef.get)
+          } else
+            error(s"Reduce method $op not found!", expression)
+          TClass(ref)
+        case ty =>
+          error("Reduce can only be performed on sets of objects!", expression)
+          ty
+      }*/
 
     case BaseLitExpr(code) =>
       typecheckDecodeScala(code.syntax, expression)

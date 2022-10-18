@@ -170,9 +170,6 @@ class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] 
         analyzeExpression(exprNode, recv, Some("recv"))
       case InstanceOfExpr(recv, ofTyp) =>
         analyzeExpression(exprNode, recv, Some("recv"))
-      case EqualsExpr(obj1, obj2) =>
-        analyzeExpression(exprNode, obj1, Some("obj1"))
-        analyzeExpression(exprNode, obj2, Some("obj2"))
       case NullExpr() => // nothing
       case TupleReadExpr(recv, index) =>
         analyzeExpression(exprNode, recv, Some("recv"))
@@ -187,6 +184,8 @@ class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] 
       case SetComprehension(member, body) =>
         analyzeExpressions(exprNode, member)
         analyzeExpression(exprNode, body, Some("yield"))
+      //case SetReduce(recv, _) =>
+      //  analyzeExpression(exprNode, recv, Some("recv"))
       case BaseLitExpr(_) =>
         // nothing
       case BaseApplyExpr(_, args) =>

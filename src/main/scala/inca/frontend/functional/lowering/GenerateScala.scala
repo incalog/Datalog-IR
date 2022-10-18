@@ -129,6 +129,11 @@ class GenerateScala {
     case BaseApply(fun, args) =>
       q"${fun.tree}(..${args.toList.map(e => transExp(e))})"
     case BaseApplyInfix(left, op, right) =>
+      q"${transExp(left)} ${op.tree} ${transExp(right)}"    case BaseLit(code) =>
+      code.tree
+    case BaseApply(fun, args) =>
+      q"${fun.tree}(..${args.toList.map(e => transExp(e))})"
+    case BaseApplyInfix(left, op, right) =>
       q"${transExp(left)} ${op.tree} ${transExp(right)}"
     case NoneExp() =>
       q"scala.None"

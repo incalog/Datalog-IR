@@ -56,7 +56,12 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
     val visS = if (vis.contains(Private)) "private " else ""
     val contentS = if (content.isEmpty) "" else
       "\n" + content.map(_.prettyprint(indent+"\t")).mkString("\n\n")
-    s"""$annoPrefix$indent${visS}class $name(${parentClassRefs.mkString(", ")}) {$contentS\n$indent}""".stripMargin
+    val parentClassesS = if (parentClassRefs.nonEmpty) {
+      val tailS = if (parentClassRefs.tail.nonEmpty) "with " + parentClassRefs.tail.mkString("with ") else ""
+      s"""extends ${parentClassRefs.head} $tailS"""
+    } else
+      s""
+    s"""$annoPrefix$indent${visS}class $name $parentClassesS {$contentS\n$indent}""".stripMargin
   }
 }
 

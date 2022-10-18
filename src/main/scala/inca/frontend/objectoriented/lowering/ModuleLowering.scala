@@ -3,6 +3,8 @@ package inca.frontend.objectoriented.lowering
 import inca.compiler.SourceLocation
 import inca.frontend.objectoriented.core._
 
+// TODO: Trans visibility and annos as well
+
 // Traverse the AST and recreate each node to clear all resolved targets and types.
 trait ModuleLowering {
 
@@ -28,6 +30,8 @@ trait ModuleLowering {
   protected[frontend] def transStatement(stmt: Statement): Statement = preserveLoc(stmt)(transStatementInternal)
   protected[frontend] def transExpressions(exprs: Seq[Expression]): Seq[Expression] = exprs.map(transExpression)
   protected[frontend] def transExpression(expression: Expression): Expression = preserveLoc(expression)(transExpressionInternal)
+  protected[frontend] def transParams(params: Seq[Param]): Seq[Param] = params.map(transParam)
+  protected[frontend] def transParam(param: Param): Param = preserveLoc(param)(transParamInternal)
   protected[frontend] def transType(typ: Type): Type = preserveLoc(typ)(transTypeInternal)
 
 
@@ -45,6 +49,9 @@ trait ModuleLowering {
     ClassDef(annos, vis, name, parents.map(c => ClassRef(c.name)), newContent)
   }
 
+  private[lowering] def transParamInternal(param: Param): Param =
+    Param(param.name, param.typ)
+
   private[lowering] def transFieldInternal(fieldDef: FieldDef, classDef: ClassDef): FieldDef = {
     val FieldDef(annos, vis, name, typ, body, immutable) = fieldDef
     val newBody = if (body.isDefined) Some(transExpression(body.get)) else None
@@ -54,13 +61,13 @@ trait ModuleLowering {
   private[lowering] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
     val MethodDef(annos, vis, name, params, outType, body) = methodDef
     val newBody = transStatements(body)
-    MethodDef(annos, vis, name, params, outType, newBody)
+    MethodDef(annos, vis, name, transParams(params), transType(outType), newBody)
   }
 
   private[lowering] def transConstructorInternal(constructorDef: ConstructorDef, classDef: ClassDef): ConstructorDef = {
     val ConstructorDef(annos, vis, params, body) = constructorDef
     val newBody = transStatements(body)
-    ConstructorDef(annos, vis, params, newBody)
+    ConstructorDef(annos, vis, transParams(params), newBody)
   }
 
   private[lowering] def transStatementInternal(stmt: Statement): Statement = stmt match {
@@ -97,8 +104,6 @@ trait ModuleLowering {
       TypeCastExpr(transExpression(recv), transType(toTyp))
     case InstanceOfExpr(recv, ofTyp) =>
       InstanceOfExpr(transExpression(recv), transType(ofTyp))
-    case EqualsExpr(obj1, obj2) =>
-      EqualsExpr(transExpression(obj1), transExpression(obj2))
     case TupleExpr(exps) =>
       TupleExpr(transExpressions(exps))
     case TupleReadExpr(recv, index) =>
@@ -108,6 +113,8 @@ trait ModuleLowering {
     case SetMemberExpr(name, recv, predicate) =>
       val pred = if (predicate.isDefined) Some(transExpression(predicate.get)) else None
       SetMemberExpr(name, transExpression(recv), pred)
+    //case SetReduce(recv, op) =>
+    //  SetReduce(transExpression(recv), op)
     case SetComprehension(exps, body) =>
       SetComprehension(transExpressions(exps), transExpression(body))
     case BaseApplyExpr(fun, args) =>

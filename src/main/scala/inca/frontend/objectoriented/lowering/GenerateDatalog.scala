@@ -2,9 +2,11 @@ package inca.frontend.objectoriented.lowering
 
 import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog
+import inca.backend.ir.Datalog.CustomAggregation
 import inca.backend.ir.util.Substitute
 import inca.backend.ir.util.printer.GPPrinter
 import inca.compiler.SourceObject
+import inca.frontend.objectoriented.lowering.GenerateScala
 import inca.frontend.objectoriented.core._
 import inca.frontend.objectoriented.lowering.GenerateDatalog._
 import inca.runtime.data.ObjectID
@@ -41,6 +43,7 @@ object GenerateDatalog {
 class GenerateDatalog(module: Module) {
 
   private val gensym: Gensym = new Gensym(Iterable.empty)
+  private val genScala = new GenerateScala
 
   private val generatedPatterns = ListBuffer[Datalog.Pattern]()
 
@@ -51,6 +54,10 @@ class GenerateDatalog(module: Module) {
     val Module(name, imports, classes) = module
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(module.classes.map(_.name.raw))
+
+    genScala.genModule(module)
+    println("Generate scala")
+    println(genScala.generated)
 
     generatedPatterns += transNull()
     generatedPatterns += transInstanceOf()
@@ -533,6 +540,26 @@ class GenerateDatalog(module: Module) {
         (bTerms, mCons.flatten ++ bCons)
       }
 
+    /*case setReduce@SetReduce(recv, op) =>
+      val typ = recv.typ match {
+        case Some(TSet(ty)) => ty
+        case _ => throw new IllegalArgumentException("Type of reduce receiver must be a set!")
+      }
+
+      println(s"Generate the pattern for: $setReduce")
+      val aggregandPat = generatePattern(recv, "ReduceAggregation")
+      generatedPatterns += aggregandPat
+
+      val methodDef = setReduce.target.getOrElse(throw new IllegalArgumentException(s"Unresolved method with name $op"))
+      val aggFun = genScala.genAggregation(methodDef)
+      val freeArgs = recv.vars.toSeq.flatMap { case (v, ty) => flattenVars(v.raw, ty.get) }.map(_._1)
+      val outVar = Datalog.Var(gensym.fresh("out"))
+      val aggregation = CustomAggregation(transType(typ), Some("Reduce aggregation."), Scala(aggFun), aggregandPat.name, freeArgs :+ outVar, freeArgs.size)
+      val reduceVar = Datalog.Var(gensym.fresh("reduce"))
+      val compCon = Datalog.Computed(reduceVar, aggregation)
+
+      Seq((Seq(reduceVar), Seq(compCon)))*/
+
     case BaseLitExpr(code) =>
       import scala.meta._
       val evalOut = Datalog.Var(gensym.fresh("lit"))
@@ -660,6 +687,19 @@ class GenerateDatalog(module: Module) {
     case exps =>
       throw new IllegalArgumentException(s"Expression not supported $exps")
   }
+
+  /*private def generatePattern(exp: Expression, basename: String): Datalog.Pattern = {
+    val name = gensym.freshGlobal(basename)
+    val vars = exp.vars.toSeq.flatMap { case (v, ty) => flattenVars(v.raw, ty.get) }
+    val params = vars.map { case (v, ty) => Datalog.Param(v.name, ty) }
+    val expTys = exp.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped expression $exp")).flatten
+    val outParams = expTys.map(ty => Datalog.Param(gensym.fresh("out"), transType(ty)))
+
+    val bodies = for ((terms, cons) <- transExpression(exp))
+      yield Datalog.Body(cons ++ outParams.zip(terms).map(pt => Datalog.Eq(Datalog.Var(pt._1.name), pt._2)))
+
+    Datalog.Pattern(None, name, params ++ outParams, bodies)
+  }*/
 
   private def flattenParam(name: String, typ: Type, genFresh: Boolean): Seq[Datalog.Param] =
     flattenVars(name, typ, genFresh).map { case (v, ty) => Datalog.Param(v.name, ty) }

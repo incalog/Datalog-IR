@@ -64,6 +64,7 @@ trait Parser {
     val SET: Value        = Value("Set")
     val FOR: Value        = Value("for")
     val YIELD: Value      = Value("yield")
+    val REDUCE: Value     = Value("reduce")
   }
 
   import Keyword._
@@ -229,6 +230,11 @@ trait Parser {
       case (recv, typeAnno) => TypeCastExpr(recv, typeAnno)
     }
 
+  /*protected[frontend] lazy val reduceExpr: P[SetReduce] =
+    (keyword(REDUCE) *> inParentheses((P.defer(expr) <* op(",")) ~ identifier)).mapWithLoc {
+      case (recv, methodName) => SetReduce(recv, methodName)
+    }*/
+
   protected[frontend] lazy val instanceOfExpr: P[InstanceOfExpr] =
     (keyword(INSTANCEOF) *> inParentheses((P.defer(expr) <* op(",")) ~ typeAnno)).mapWithLoc {
       case (recv, typeAnno) => InstanceOfExpr(recv, typeAnno)
@@ -241,7 +247,12 @@ trait Parser {
     inBrackets(seq0(P.defer(expr), min = 1)).mapWithLoc(SetExpr)
 
   private[frontend] lazy val nestedAccessStartExpr: P[Expression] =
-    typeCastExpr | constructorExpr | variableReadExpr | baseLitExpr | baseApplyExpr
+    typeCastExpr |
+      //reduceExpr |
+      constructorExpr |
+      variableReadExpr |
+      baseLitExpr |
+      baseApplyExpr
 
   /**
    *  This parser parses any nested expression that is separated by a dot. E.g
@@ -285,6 +296,7 @@ trait Parser {
       <* keyword(YIELD))
       ~ P.defer(expr)
       ).mapWithLoc { case (memberExpr, expr) => SetComprehension(memberExpr, expr) }
+
 
   /** NullLiteral parser */
   protected[frontend] val nullExpr: P[NullExpr] =
@@ -366,6 +378,7 @@ trait Parser {
       parensExpr |
       baseApplyUnaryExpr |
       typeCastExpr |
+      //reduceExpr |
       nullExpr |
       superExpr |
       instanceOfExpr |
