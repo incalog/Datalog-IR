@@ -33,7 +33,8 @@ trait ClassContent extends SourceLocation with Annotations {
   def prettyprint(implicit indent: String): String
 }
 
-case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, parentClassRefs: Seq[ClassRef], content: Seq[ClassContent])
+// Note: The innerType is used for defunctionalized sets, to reflect the inner type of the set
+case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, parentClassRefs: Seq[ClassRef], content: Seq[ClassContent], innerType: Option[Type] = None)
   extends SourceLocation with Annotations with VarReadExpr.Target {
 
   val contentMap: Map[Name, Seq[ClassContent]] = content.groupBy {
@@ -49,7 +50,9 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   def typ: TClass = {
     val ref = ClassRef(name)
     ref.target = Some(this)
-    TClass(ref)
+    val ty = TClass(ref)
+    ty.innerType = innerType
+    ty
   }
 
   def prettyprint(implicit indent: String): String = {
@@ -88,7 +91,7 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
   def returnsUnit: Boolean = outType == TUnit
   def isMain: Boolean = annos.contains(MainAnnotation)
 
-  def paramSignature: Int = (params.map(_.typ) :+ outType).hashCode()
+  def paramSignature: Int = (params.map(_.typ) :+ outType).hashCode() // params.size.hashCode()
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""

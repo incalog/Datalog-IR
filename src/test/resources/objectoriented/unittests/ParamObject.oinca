@@ -1,0 +1,32 @@
+module ParamObject
+
+class B {
+    def this() = {}
+
+    def apply(): Int = {
+        return 0
+    }
+}
+
+class C extends B {
+    def this() = {}
+
+    def apply(): Int = {
+        return 1
+    }
+}
+
+class A {
+    def this() = {}
+
+    def get(b: B): Int = {
+        return b.apply()
+    }
+
+    @main
+    def main(): Int = {
+        val a: A = new A()
+        val c: C = new C()
+        return a.get(c)
+    }
+}

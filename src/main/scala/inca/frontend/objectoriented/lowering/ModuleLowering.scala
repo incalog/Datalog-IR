@@ -44,13 +44,13 @@ trait ModuleLowering {
   }
 
   private[lowering] def transClassInternal(classDef: ClassDef): ClassDef = {
-    val ClassDef(annos, vis, name, parents, content) = classDef
+    val ClassDef(annos, vis, name, parents, content, innerType) = classDef
     val newContent = content.map(c => transContent(c, classDef))
-    ClassDef(annos, vis, name, parents.map(c => ClassRef(c.name)), newContent)
+    ClassDef(annos, vis, name, parents.map(c => ClassRef(c.name)), newContent, innerType)
   }
 
   private[lowering] def transParamInternal(param: Param): Param =
-    Param(param.name, param.typ)
+    Param(param.name, transType(param.typ))
 
   private[lowering] def transFieldInternal(fieldDef: FieldDef, classDef: ClassDef): FieldDef = {
     val FieldDef(annos, vis, name, typ, body, immutable) = fieldDef
@@ -60,14 +60,16 @@ trait ModuleLowering {
 
   private[lowering] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
     val MethodDef(annos, vis, name, params, outType, body) = methodDef
+    val newParams = transParams(params)
     val newBody = transStatements(body)
-    MethodDef(annos, vis, name, transParams(params), transType(outType), newBody)
+    MethodDef(annos, vis, name, newParams, transType(outType), newBody)
   }
 
   private[lowering] def transConstructorInternal(constructorDef: ConstructorDef, classDef: ClassDef): ConstructorDef = {
     val ConstructorDef(annos, vis, params, body) = constructorDef
+    val newParams = transParams(params)
     val newBody = transStatements(body)
-    ConstructorDef(annos, vis, transParams(params), newBody)
+    ConstructorDef(annos, vis, newParams, newBody)
   }
 
   private[lowering] def transStatementInternal(stmt: Statement): Statement = stmt match {
@@ -84,6 +86,9 @@ trait ModuleLowering {
       FieldAssignStmt(transExpression(recv), name, transExpression(expression))
     case IfStmt(cnd, thn, els) =>
       IfStmt(transExpression(cnd), transStatements(thn), transStatements(els))
+    case VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>
+      // TODO: Actually we need to keep track of the current if stmt and pass a reference to it here
+      VarPhiAssignStmt(name, transType(typ), transStatement(ifStmt).asInstanceOf[IfStmt], thnName, elsName)
     case s =>
       throw new RuntimeException(s"Can not transform statement: $s")
   }

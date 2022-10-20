@@ -1,0 +1,15 @@
+module SetTest
+
+class A {
+  def this() = {}
+
+  def square(as: Set[Int]): Set[Int] = {
+    return for (a <- as) yield a * a
+  }
+
+  @main def main(): Set[Int] = {
+    val a: A = new A()
+    val values: Set[Int] = [1, 2, 3]
+    return a.square(values)
+  }
+}

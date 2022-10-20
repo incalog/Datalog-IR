@@ -151,6 +151,10 @@ class FunctionsTest extends AnyFunSuite {
     performTest("DynamicDispatch", "A$main", Seq(), "BBC")
   }
 
+  test("Object as param Example") {
+    performTest("ParamObject", "A$main", Seq(), 1)
+  }
+
   test("MethodInheritance Example") {
     performTest("MethodInheritance", "A$main", Seq(), 3)
   }
@@ -204,19 +208,23 @@ class FunctionsTest extends AnyFunSuite {
   }
 
   test("Set Example") {
-    //performTest("SetConst", "A$main", Seq(), SetResult(1, 2, 3))
-    performTest("SetParam", "A$main", Seq(), SetResult(1, 4, 6))
-    /*performTest("Set", "A$main", Seq(), SetResult(1, 2, 3))
+    /*performTest("SetConst", "A$main", Seq(), SetResult(1, 2, 3))
+    performTest("SetConstVar", "A$main", Seq(), SetResult(1, 2, 3))
+    performTest("SetParam", "A$main", Seq(), SetResult(1, 2, 3))
+    performTest("SetParamSquare", "A$main", Seq(), SetResult(1, 4, 9))
+    performTest("Set", "A$main", Seq(), SetResult(1, 2, 3))
     performTest("SetFieldDeclare", "A$main", Seq(), SetResult(1, 2, 3))
-    performTest("SetFieldSet", "A$main", Seq(), SetResult(1, 2, 3))*/
-    /*performTest("SetTuple", "A$main", Seq(), SetResult(TupleResult(1, "A"), TupleResult(2, "B"), TupleResult(3, "C")))
+    performTest("SetFieldSet", "A$main", Seq(), SetResult(1, 2, 3))
+    performTest("SetTuple", "A$main", Seq(), SetResult(TupleResult(1, "A"), TupleResult(2, "B"), TupleResult(3, "C")))
     performTest("SetIntersection", "A$main", Seq(), SetResult(1, 3))
-    performTest("SetUnion", "A$main", Seq(), SetResult(1, 2, 3, 4))*/
+    performTest("SetUnion", "A$main", Seq(), SetResult(1, 2, 3, 4))
+    performTest("SetUnionMixed", "A$main", Seq(), SetResult(1, 2, 3, 4))*/
+    performTest("SetUnionIntersection", "A$main", Seq(), SetResult(1, 2, 3, 4))
   }
 
   test("Set Comprehension") {
     performTest("SetComprehension", "A$main", Seq(), SetResult(TupleResult(1, 3, 5), TupleResult(1, 4, 5)))
-    //performTest("SetComprehensionTuple", "A$main", Seq(), SetResult(TupleResult("A", 2), TupleResult("C", 2)))
+    performTest("SetComprehensionTuple", "A$main", Seq(), SetResult(TupleResult("A", 2), TupleResult("C", 2)))
   }
 
   /*test("Set Reduce") {

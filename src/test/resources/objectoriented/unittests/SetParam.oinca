@@ -3,12 +3,14 @@ module SetTest
 class A {
   def this() = {}
 
-  def square(as: Set[Int]): Set[Int] = {
-    return for (a <- as) yield a * a
+  def identity(as: Set[Int]): Set[Int] = {
+    return as
   }
 
   @main def main(): Set[Int] = {
     val a: A = new A()
-    return a.square([1, 2, 3])
+    val b: Int = 3
+    val values: Set[Int] = [1, 2, b]
+    return a.identity(values)
   }
 }

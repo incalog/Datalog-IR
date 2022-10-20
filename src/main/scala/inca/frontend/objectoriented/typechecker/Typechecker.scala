@@ -77,6 +77,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       case _ => // nothing
     }
 
+    /*if (!methodDef.returnsUnit && optReturn.isEmpty)
+      throw new IllegalStateException(s"Method ${classDef.name}.${methodDef.name} must call return")*/
+
     bindVar(Name("this"), classDef, classDef.typ, immutable = true)
 
     typecheck(methodDef.outType)
@@ -308,21 +311,22 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           }
       }
     case methodCallExpr@MethodCallExpr(recv, fun, args) =>
-      typecheck(recv) match {
+      val typ = typecheck(recv)
+      typ match {
         case TClass(ref) =>
           // We can call methods on instances of classes we might no have yet resolved
           lookupMethod(lookupClassRef(ref), fun) match {
-          case None => TAny
-          case Some(methodDef) =>
-            if (methodDef.params.size != args.size) {
-              error(s"Expected ${methodDef.params.size} arguments but got ${args.size} arguments", expression)
-            }
-            methodDef.params.zip(args).foreach { case (param, arg) =>
-              val argTyp = typecheck(arg)
-              assertSubtype(argTyp, param.typ, arg)
-            }
-            resolveTarget(methodCallExpr)(methodDef)
-            methodDef.outType
+            case None => TAny
+            case Some(methodDef) =>
+              if (methodDef.params.size != args.size) {
+                error(s"Expected ${methodDef.params.size} arguments but got ${args.size} arguments", expression)
+              }
+              methodDef.params.zip(args).foreach { case (param, arg) =>
+                val argTyp = typecheck(arg)
+                assertSubtype(argTyp, param.typ, arg)
+              }
+              resolveTarget(methodCallExpr)(methodDef)
+              methodDef.outType
         }
         case typ =>
           error(s"Can not lookup method $fun for expression of type $typ", expression)
@@ -357,13 +361,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       TSet(upperTypeBound(exps.map(typecheck)))
 
     case setMember@SetMemberExpr(name, target, predicate) =>
-      val typ = typecheck(target) match {
-        case TSet(ty) => ty
-        case ty => ty.setType match {
-          case Some(TSet(t)) => t
-          case _ => ty
-        }
-      }
+      val typ = typecheck(target).innerType
+        .getOrElse(throw new IllegalArgumentException(s"Inner type of expression $setMember could not be inferred!"))
       bindVar(name, setMember, typ, immutable = true)
       if (predicate.isDefined) {
         assertSubtype(typecheck(predicate.get), TScalaBoolean, target)
@@ -373,6 +372,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case SetComprehension(member, body) =>
       member.foreach(typecheck)
       TSet(typecheck(body))
+
     /*case setReduce@SetReduce(recv, op) =>
       typecheck(recv) match {
         case TSet(TClass(ref)) =>
@@ -494,7 +494,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     term.target match {
       case Some(oldTarget) =>
         if (oldTarget != newTarget) {
-          throw new RuntimeException("Fuck this shit I'm out !")
           error(s"Resolved $term to new target $newTarget, which differs from previously computed target $oldTarget", term)
         }
         oldTarget

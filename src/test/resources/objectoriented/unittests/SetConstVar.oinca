@@ -4,6 +4,7 @@ class A {
   def this() = {}
 
   @main def main(): Set[Int] = {
-    return [1, 2, 3]
+    val b: Int = 3
+    return [1, 2, b]
   }
 }

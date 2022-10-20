@@ -55,9 +55,9 @@ class GenerateDatalog(module: Module) {
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(module.classes.map(_.name.raw))
 
-    genScala.genModule(module)
+    /*genScala.genModule(module)
     println("Generate scala")
-    println(genScala.generated)
+    println(genScala.generated)*/
 
     generatedPatterns += transNull()
     generatedPatterns += transInstanceOf()
@@ -313,8 +313,6 @@ class GenerateDatalog(module: Module) {
 
     val bodyRes = transStatements(methodDef.body, None)
     val bodies = for ((optReturn, cons, _) <- bodyRes) yield {
-      if (!methodDef.returnsUnit && optReturn.isEmpty)
-        throw new IllegalStateException(s"Method ${classDef.name}.${methodDef.name} must call return")
       val returnCons = returnParams.zip(optReturn.getOrElse(Seq())).map { case (p, t) =>
         Datalog.Eq(Datalog.Var(p.name), t)
       }
