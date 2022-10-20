@@ -3,16 +3,30 @@ package inca.frontend.objectoriented.lowering
 import inca.frontend.objectoriented.core._
 import inca.util.Gensym
 
+/**
+ * Replace all variable reads to field reads. The field name is the same as the variable name.
+ * @param module The parent module.
+ * @param vars The variables to transform.
+ */
+class VarToField(val module: Module, val vars: Set[Name]) extends ModuleLowering {
+  override def transExpressionInternal(expression: Expression): Expression = expression match {
+    case VarReadExpr(targetName) if !vars.contains(targetName) =>
+      throw new IllegalArgumentException(s"Found unresolved var $targetName!")
+    case VarReadExpr(targetName) if vars.contains(targetName) =>
+      FieldReadExpr(VarReadExpr(Name("this")), targetName)
+    case _ => super.transExpressionInternal(expression)
+  }
+}
+
 object Defunctionalize {
   def transformModule(module: Module): Module =
-    new StaticSingleAssignment(module).transModule()
+    new Defunctionalize(module).transModule()
 
   def transformModules(modules: Seq[Module]): Seq[Module] =
     modules.map(transformModule)
 }
 
 // TODO: val a: Set[Any] = [1, 2, 3] will fail to translate correctly
-
 class Defunctionalize(val module: Module) extends ModuleLowering {
   private val gensym: Gensym = new Gensym(Iterable.empty)
 
@@ -30,46 +44,6 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
     clazz
   }
 
-  private def transVarReadToFieldRead(expression: Expression, vars: Set[Name]): Expression = expression match {
-    case VarReadExpr(targetName) if !vars.contains(targetName) =>
-      throw new IllegalArgumentException(s"Found unresolved var $targetName!")
-    case VarReadExpr(targetName) if vars.contains(targetName) =>
-      FieldReadExpr(VarReadExpr(Name("this")), targetName)
-    case FieldReadExpr(recv, targetName) =>
-      FieldReadExpr(transVarReadToFieldRead(recv, vars), targetName)
-    case ConstructorExpr(ClassRef(name), args) =>
-      ConstructorExpr(ClassRef(name), args.map(transVarReadToFieldRead(_, vars)))
-    case SuperExpr(args) =>
-      SuperExpr(args.map(transVarReadToFieldRead(_, vars)))
-    case MethodCallExpr(recv, fun, args) =>
-      MethodCallExpr(transVarReadToFieldRead(recv, vars), fun, args.map(transVarReadToFieldRead(_, vars)))
-    case TypeCastExpr(recv, toTyp) =>
-      TypeCastExpr(transVarReadToFieldRead(recv, vars), clearType(toTyp))
-    case InstanceOfExpr(recv, ofTyp) =>
-      InstanceOfExpr(transVarReadToFieldRead(recv, vars), clearType(ofTyp))
-    case TupleReadExpr(recv, index) =>
-      TupleReadExpr(transVarReadToFieldRead(recv, vars), index)
-    case TupleExpr(exps) =>
-      TupleExpr(exps.map(transVarReadToFieldRead(_, vars)))
-    case SetExpr(exps) =>
-      SetExpr(exps.map(transVarReadToFieldRead(_, vars)))
-    case SetMemberExpr(name, recv, predicate) =>
-      val pred = if (predicate.isDefined) Some(transVarReadToFieldRead(predicate.get, vars)) else None
-      SetMemberExpr(name, transVarReadToFieldRead(recv, vars), pred)
-    case SetComprehension(member, body) =>
-      SetComprehension(member.map(transVarReadToFieldRead(_, vars)), transVarReadToFieldRead(body, vars))
-    case BaseApplyExpr(fun, args) =>
-      BaseApplyExpr(fun, args.map(transVarReadToFieldRead(_, vars)))
-    case BaseApplyInfixExpr(left, op, right) =>
-      BaseApplyInfixExpr(transVarReadToFieldRead(left, vars), op, transVarReadToFieldRead(right, vars))
-    case BaseApplyMethodExpr(recv, method, args) =>
-      val newArgs = if (args.isDefined) Some(args.get.map(transVarReadToFieldRead(_, vars))) else None
-      BaseApplyMethodExpr(transVarReadToFieldRead(recv, vars), method, newArgs)
-    case BaseApplyUnaryExpr(op, exp) =>
-      BaseApplyUnaryExpr(op, transVarReadToFieldRead(exp, vars))
-    case _ => clearExpression(expression)
-  }
-
   private def genAuxDef(fieldParams: Map[Name, Type], innerSetType: Type, parent: ClassRef, expr: Expression): ClassDef = {
     // transform local variables to fields
     val fields = fieldParams.map {
@@ -77,7 +51,7 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
     }.toSeq
 
     // all reads to local variables should now access the correct field instead
-    val ret = ReturnStmt(transVarReadToFieldRead(expr, fieldParams.keySet))
+    val ret = ReturnStmt(new VarToField(module, fieldParams.keySet).transExpression(expr))
     val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), TSet(clearType(innerSetType)), Seq(ret))
     // create a default constructor
     val constrParams = fields.map(f => Param(f.name, f.typ))
@@ -134,30 +108,24 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
   override private[lowering] def transStatementInternal(stmt: Statement): Statement = stmt match {
     case ExprStmt(expression) =>
       ExprStmt(sanitize(expression))
-
     case FieldAssignStmt(recv, name, expression) =>
       FieldAssignStmt(sanitize(recv), name, sanitize(expression))
-
     // Transform: set variables to object set variables
     case VarDeclareStmt(name, TSet(ty), maybeExpression, immutable) =>
-      usedVars += (name -> ty)
+      val newTyp = genDefunClassDef(ty).typ
+      newTyp.innerType = Some(ty)
+      usedVars += (name -> newTyp)
       val expr = if (maybeExpression.isDefined) Some(sanitize(maybeExpression.get)) else None
-      VarDeclareStmt(name, genDefunClassDef(ty).typ, expr, immutable)
-
-    case VarDeclareStmt(name, typ, maybeExpression, immutable) =>
+      VarDeclareStmt(name, newTyp, expr, immutable)
+    case VarDeclareStmt(name, typ, _, _) =>
       usedVars += (name -> typ)
       super.transStatementInternal(stmt)
-
     case VarAssignStmt(_, _) =>
       throw new IllegalArgumentException("Static single assignment failed! Encountered unexpected var assignment.")
-
     case VarPhiAssignStmt(_, _, _, _, _) =>
       super.transStatementInternal(stmt)
-
     case IfStmt(cnd, thn, els) =>
       super.transStatementInternal(IfStmt(sanitize(cnd), thn, els))
-
-    // Return: Keep the set without applying any transformation to the expression
     case ReturnStmt(expr) =>
       ReturnStmt(sanitize(expr, requiresTrueSet = expr.typ.exists(_.isInstanceOf[TSet])))
   }
@@ -189,10 +157,11 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
       clearExpression(expression)
     else {
       //val typ = expression.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression"))
-      val TSet(ty) = typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression"))
+      val ty = typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression"))
+      val innerTyp = ty.innerType.getOrElse(throw new IllegalArgumentException(s"Inner type is missing $expression"))
       val exprVarNames = expression.vars.keySet
       val vars = usedVars.filter { case (k, _) => exprVarNames.contains(k) }
-      val auxClass = genAuxDef(vars, clearType(ty), genDefunClassDef(ty).typ.ref, expression)
+      val auxClass = genAuxDef(vars, clearType(innerTyp), genDefunClassDef(innerTyp).typ.ref, expression)
       val args = vars.map { case (k, _) => VarReadExpr(k) }.toSeq
       ConstructorExpr(auxClass.typ.ref, args)
     }
@@ -220,7 +189,6 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
       FieldReadExpr(sanitize(recv), targetName)
     case VarReadExpr(targetName) if requiresTrueSet =>
       apply(VarReadExpr(targetName), expression.typ)
-
     case ConstructorExpr(ClassRef(name), args) =>
       ConstructorExpr(ClassRef(name), args.map(sanitize(_)))
     case SuperExpr(args) =>
@@ -242,10 +210,7 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
       BaseApplyExpr(fun, args.map(sanitize(_)))
     case BaseApplyInfixExpr(left, op, right) =>
       val infixOp = BaseApplyInfixExpr(sanitize(left, requiresTrueSet = true), op, sanitize(right, requiresTrueSet = true))
-      if (expression.typ.exists(_.isInstanceOf[TSet]))
-        unapply(infixOp, requiresTrueSet, expression.typ)
-      else
-        infixOp
+      unapply(infixOp, requiresTrueSet, expression.typ)
     case BaseApplyMethodExpr(recv, method, args) =>
       val newArgs = if (args.isDefined) Some(args.get.map(sanitize(_))) else None
       BaseApplyMethodExpr(sanitize(recv), method, newArgs)

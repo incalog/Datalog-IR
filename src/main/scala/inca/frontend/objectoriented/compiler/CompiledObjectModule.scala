@@ -30,7 +30,7 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
       }
     }
 
-    new AddMissingDefinitions(fun).transModule()
+    AddMissingDefinitions.transformModule(fun)
   }
 
   lazy val typed: Module = {
@@ -54,7 +54,7 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
   }
 
   lazy val ssaModule: Module = {
-    val module = new StaticSingleAssignment(typed).transModule()
+    val module = StaticSingleAssignment.transformModule(typed)
 
     if (CompilerFlags.DEBUGMODE) {
       println(s"SSA Module")
@@ -76,7 +76,7 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
   }
 
   lazy val coreModule: Module = {
-    val module = new Defunctionalize(ssaModule).transModule()
+    val module = Defunctionalize.transformModule(ssaModule)
 
     if (CompilerFlags.DEBUGMODE) {
       println(s"Core Module")

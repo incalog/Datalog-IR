@@ -5,7 +5,10 @@ import inca.frontend.objectoriented.core._
 
 // TODO: Trans visibility and annos as well
 
-// Traverse the AST and recreate each node to clear all resolved targets and types.
+/**
+ * Traverse the AST and recreate each node to clear all resolved targets and types.
+ * Subclasses can implement this trait and hook into arbitrary internal functions to modify part of the transformations.
+ */
 trait ModuleLowering {
 
   private[lowering] def preserveLoc[U <: SourceLocation](loc: U)(f: U => U): U = {
