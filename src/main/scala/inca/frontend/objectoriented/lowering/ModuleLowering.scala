@@ -55,7 +55,7 @@ trait ModuleLowering {
   private[lowering] def transFieldInternal(fieldDef: FieldDef, classDef: ClassDef): FieldDef = {
     val FieldDef(annos, vis, name, typ, body, immutable) = fieldDef
     val newBody = if (body.isDefined) Some(transExpression(body.get)) else None
-    FieldDef(annos, vis, name, typ, newBody, immutable)
+    FieldDef(annos, vis, name, transType(typ), newBody, immutable)
   }
 
   private[lowering] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {

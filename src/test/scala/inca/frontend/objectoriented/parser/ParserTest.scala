@@ -24,17 +24,17 @@ class ParserTest extends AnyFunSuite {
   }
 
   test("Base 1") {
-    val code = FileUtil.readFile("objectoriented/unittests/Base1.oinca")
+    val code = FileUtil.readFile("objectoriented/unittests/base/Base1.oinca")
     testSuccessAny(parser.module)(code)
   }
 
   test("Base 2") {
-    val code = FileUtil.readFile("objectoriented/unittests/Base2.oinca")
+    val code = FileUtil.readFile("objectoriented/unittests/base/Base2.oinca")
     testSuccessAny(parser.module)(code)
   }
 
   test("Base 3") {
-    val code = FileUtil.readFile("objectoriented/unittests/Base3.oinca")
+    val code = FileUtil.readFile("objectoriented/unittests/base/Base3.oinca")
     testSuccessAny(parser.module)(code)
   }
 
@@ -44,12 +44,12 @@ class ParserTest extends AnyFunSuite {
   }
 
   test("If") {
-    val code = FileUtil.readFile("objectoriented/unittests/If.oinca")
+    val code = FileUtil.readFile("objectoriented/unittests/if/If.oinca")
     testSuccessAny(parser.module)(code)
   }
 
   test("Set") {
-    val code = FileUtil.readFile("objectoriented/unittests/Set.oinca")
+    val code = FileUtil.readFile("objectoriented/unittests/set/Set.oinca")
     testSuccessAny(parser.module)(code)
   }
 

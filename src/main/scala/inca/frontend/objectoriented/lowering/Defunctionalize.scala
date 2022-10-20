@@ -20,12 +20,13 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
   var defnClassDefs: Map[Type, ClassDef] = Map()
 
   private def genDefunClassDef(ty: Type): ClassDef = {
-    if (defnClassDefs.contains(ty))
-      return defnClassDefs(ty)
-    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), TSet(ty), Seq())
+    val typ = clearType(ty)
+    if (defnClassDefs.contains(typ))
+      return defnClassDefs(typ)
+    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), TSet(typ), Seq())
     val constr = ConstructorDef(Seq(), None, Seq(), Seq())
-    val clazz = ClassDef(Seq(), Some(Private), Name(gensym.fresh("Defun")), Seq(), Seq(constr, apply), Some(ty))
-    defnClassDefs += ty -> clazz
+    val clazz = ClassDef(Seq(), Some(Private), Name(gensym.fresh("Defun")), Seq(), Seq(constr, apply), Some(typ))
+    defnClassDefs += typ -> clazz
     clazz
   }
 
@@ -36,16 +37,16 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
       FieldReadExpr(VarReadExpr(Name("this")), targetName)
     case FieldReadExpr(recv, targetName) =>
       FieldReadExpr(transVarReadToFieldRead(recv, vars), targetName)
-    case ConstructorExpr(classRef, args) =>
-      ConstructorExpr(classRef, args.map(transVarReadToFieldRead(_, vars)))
+    case ConstructorExpr(ClassRef(name), args) =>
+      ConstructorExpr(ClassRef(name), args.map(transVarReadToFieldRead(_, vars)))
     case SuperExpr(args) =>
       SuperExpr(args.map(transVarReadToFieldRead(_, vars)))
     case MethodCallExpr(recv, fun, args) =>
       MethodCallExpr(transVarReadToFieldRead(recv, vars), fun, args.map(transVarReadToFieldRead(_, vars)))
     case TypeCastExpr(recv, toTyp) =>
-      TypeCastExpr(transVarReadToFieldRead(recv, vars), toTyp)
+      TypeCastExpr(transVarReadToFieldRead(recv, vars), clearType(toTyp))
     case InstanceOfExpr(recv, ofTyp) =>
-      InstanceOfExpr(transVarReadToFieldRead(recv, vars), ofTyp)
+      InstanceOfExpr(transVarReadToFieldRead(recv, vars), clearType(ofTyp))
     case TupleReadExpr(recv, index) =>
       TupleReadExpr(transVarReadToFieldRead(recv, vars), index)
     case TupleExpr(exps) =>
@@ -71,11 +72,13 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
 
   private def genAuxDef(fieldParams: Map[Name, Type], innerSetType: Type, parent: ClassRef, expr: Expression): ClassDef = {
     // transform local variables to fields
-    val fields = fieldParams.map { case (name, typ) => FieldDef(Seq(), None, name, typ, None, immutable = false) }.toSeq
+    val fields = fieldParams.map {
+      case (name, typ) => FieldDef(Seq(), None, name, clearType(typ), None, immutable = false)
+    }.toSeq
 
     // all reads to local variables should now access the correct field instead
     val ret = ReturnStmt(transVarReadToFieldRead(expr, fieldParams.keySet))
-    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), TSet(innerSetType), Seq(ret))
+    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), TSet(clearType(innerSetType)), Seq(ret))
     // create a default constructor
     val constrParams = fields.map(f => Param(f.name, f.typ))
     val constrBody = fields.map { f =>
@@ -189,7 +192,7 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
       val TSet(ty) = typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression"))
       val exprVarNames = expression.vars.keySet
       val vars = usedVars.filter { case (k, _) => exprVarNames.contains(k) }
-      val auxClass = genAuxDef(vars, ty, genDefunClassDef(ty).typ.ref, expression)
+      val auxClass = genAuxDef(vars, clearType(ty), genDefunClassDef(ty).typ.ref, expression)
       val args = vars.map { case (k, _) => VarReadExpr(k) }.toSeq
       ConstructorExpr(auxClass.typ.ref, args)
     }
@@ -201,6 +204,7 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
    * @return The cleared expression.
    */
   private def clearExpression(expression: Expression): Expression = super.transExpression(expression)
+  private def clearType(typ: Type): Type = super.transType(typ)
 
   /**
    * Traverse the expression hierarchy to sanitize all set to objects if required.
@@ -217,16 +221,16 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
     case VarReadExpr(targetName) if requiresTrueSet =>
       apply(VarReadExpr(targetName), expression.typ)
 
-    case ConstructorExpr(classRef, args) =>
-      ConstructorExpr(classRef, args.map(sanitize(_)))
+    case ConstructorExpr(ClassRef(name), args) =>
+      ConstructorExpr(ClassRef(name), args.map(sanitize(_)))
     case SuperExpr(args) =>
       SuperExpr(args.map(sanitize(_)))
     case MethodCallExpr(recv, fun, args) =>
       unapply(MethodCallExpr(sanitize(recv), fun, args.map(sanitize(_))), requiresTrueSet, expression.typ)
     case TypeCastExpr(recv, toTyp) =>
-      TypeCastExpr(sanitize(recv), toTyp)
+      TypeCastExpr(sanitize(recv), clearType(toTyp))
     case InstanceOfExpr(recv, ofTyp) =>
-      InstanceOfExpr(sanitize(recv), ofTyp)
+      InstanceOfExpr(sanitize(recv), clearType(ofTyp))
     case SetExpr(exps) =>
       unapply(SetExpr(exps.map(sanitize(_))), requiresTrueSet, expression.typ)
     case SetMemberExpr(name, recv, predicate) =>

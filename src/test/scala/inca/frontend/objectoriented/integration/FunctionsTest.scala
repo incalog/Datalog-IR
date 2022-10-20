@@ -83,16 +83,11 @@ class FunctionsTest extends AnyFunSuite {
     }
   }
 
-  test("Base 1 Example") {
-    performTest("Base1", "Base1$main", Seq(), 43)
-  }
-
-  test("Base 2 Example") {
-    performTest("Base2", "Base2$main", Seq(), 43)
-  }
-
-  test("Base 3 Example") {
-    performTest("Base3", "Base3$main", Seq(), 43)
+  test("Base Examples") {
+    val dir: String = "base/"
+    performTest(dir+"Base1", "Base1$main", Seq(), 43)
+    performTest(dir+"Base2", "Base2$main", Seq(), 43)
+    performTest(dir+"Base3", "Base3$main", Seq(), 43)
   }
 
   test("Factorial Example") {
@@ -103,20 +98,12 @@ class FunctionsTest extends AnyFunSuite {
     performTest("Fib", "Fibonacci$main", Seq(q"11"), 89)
   }
 
-  test("FieldAccess Example") {
-    performTest("FieldAccess", "Fraction$main", Seq(q"16", q"8"), 2)
-  }
-
-  test("FieldAccessNested Example") {
-    performTest("FieldAccessNested", "A$main", Seq(), 3)
-  }
-
-  test("FieldDeclare Example") {
-    performTest("FieldDeclare", "A$main", Seq(), 3)
-  }
-
-  test("FieldInheritance Example") {
-    performTest("FieldInheritance", "A$main", Seq(), 10)
+  test("Field Example") {
+    val dir: String = "field/"
+    performTest(dir+"FieldAccess", "Fraction$main", Seq(q"16", q"8"), 2)
+    performTest(dir+"FieldAccessNested", "A$main", Seq(), 3)
+    performTest(dir+"FieldDeclare", "A$main", Seq(), 3)
+    performTest(dir+"FieldInheritance", "A$main", Seq(), 10)
   }
 
   test("Constructor Example") {
@@ -160,7 +147,7 @@ class FunctionsTest extends AnyFunSuite {
   }
 
   test("BinaryTree Sum") {
-    performTest("BinaryTree3", "DefinedNode$main", Seq(), 20)
+    performTest("BinaryTree", "DefinedNode$main", Seq(), 20)
   }
 
   test("Plus Example") {
@@ -176,27 +163,27 @@ class FunctionsTest extends AnyFunSuite {
   }
 
   test("If Example") {
+    val dir: String = "if/"
     // If Constant
-    performTest("IfTrue", "IfTest$main", Seq(), true)
-    performTest("IfFalse", "IfTest$main", Seq(), true)
-
+    performTest(dir+"IfTrue", "IfTest$main", Seq(), true)
+    performTest(dir+"IfFalse", "IfTest$main", Seq(), true)
     // If nested
-    performTest("If", "IfTest$main", Seq(q"true", q"true"), 11)
-    performTest("If", "IfTest$main", Seq(q"true", q"false"), 7)
-    performTest("If", "IfTest$main", Seq(q"false", q"false"), 6)
-
+    performTest(dir+"If", "IfTest$main", Seq(q"true", q"true"), 11)
+    performTest(dir+"If", "IfTest$main", Seq(q"true", q"false"), 7)
+    performTest(dir+"If", "IfTest$main", Seq(q"false", q"false"), 6)
     // Duplicate
-    performTest("IfDuplicate", "IfTest$main", Seq(q"true", q"true"), 10)
+    performTest(dir+"IfDuplicate", "IfTest$main", Seq(q"true", q"true"), 10)
   }
 
   test("Return Example") {
-    performTest("Return", "ReturnTest$main", Seq(q"true"), 1)
-    performTest("Return", "ReturnTest$main", Seq(q"false"), 2)
-    performTest("ReturnTwice", "ReturnTest$main", Seq(), 1)
-    performTest("ReturnImplicit", "ReturnTest$main", Seq(), 1)
-    performTest("ReturnImplicitIf", "ReturnTest$main", Seq(q"true"), 1)
-    performTest("ReturnImplicitUnit", "ReturnTest$main", Seq(q"true"), UnitResult())
-    performTest("Unit", "A$main", Seq(), UnitResult())
+    val dir: String = "return/"
+    performTest(dir+"Return", "ReturnTest$main", Seq(q"true"), 1)
+    performTest(dir+"Return", "ReturnTest$main", Seq(q"false"), 2)
+    performTest(dir+"ReturnTwice", "ReturnTest$main", Seq(), 1)
+    performTest(dir+"ReturnImplicit", "ReturnTest$main", Seq(), 1)
+    performTest(dir+"ReturnImplicitIf", "ReturnTest$main", Seq(q"true"), 1)
+    performTest(dir+"ReturnImplicitUnit", "ReturnTest$main", Seq(q"true"), UnitResult())
+    performTest(dir+"Unit", "A$main", Seq(), UnitResult())
   }
 
   test("Super Example") {
@@ -208,23 +195,24 @@ class FunctionsTest extends AnyFunSuite {
   }
 
   test("Set Example") {
-    /*performTest("SetConst", "A$main", Seq(), SetResult(1, 2, 3))
-    performTest("SetConstVar", "A$main", Seq(), SetResult(1, 2, 3))
-    performTest("SetParam", "A$main", Seq(), SetResult(1, 2, 3))
-    performTest("SetParamSquare", "A$main", Seq(), SetResult(1, 4, 9))
-    performTest("Set", "A$main", Seq(), SetResult(1, 2, 3))
-    performTest("SetFieldDeclare", "A$main", Seq(), SetResult(1, 2, 3))
-    performTest("SetFieldSet", "A$main", Seq(), SetResult(1, 2, 3))
-    performTest("SetTuple", "A$main", Seq(), SetResult(TupleResult(1, "A"), TupleResult(2, "B"), TupleResult(3, "C")))
-    performTest("SetIntersection", "A$main", Seq(), SetResult(1, 3))
-    performTest("SetUnion", "A$main", Seq(), SetResult(1, 2, 3, 4))
-    performTest("SetUnionMixed", "A$main", Seq(), SetResult(1, 2, 3, 4))*/
-    performTest("SetUnionIntersection", "A$main", Seq(), SetResult(1, 2, 3, 4))
-  }
-
-  test("Set Comprehension") {
-    performTest("SetComprehension", "A$main", Seq(), SetResult(TupleResult(1, 3, 5), TupleResult(1, 4, 5)))
-    performTest("SetComprehensionTuple", "A$main", Seq(), SetResult(TupleResult("A", 2), TupleResult("C", 2)))
+    val dir: String = "set/"
+    performTest(dir+"SetConst", "A$main", Seq(), SetResult(1, 2, 3))
+    performTest(dir+"SetConstVar", "A$main", Seq(), SetResult(1, 2, 3))
+    performTest(dir+"SetMultiVar", "A$main", Seq(), SetResult(1, 2, 3))
+    performTest(dir+"SetParam", "A$main", Seq(), SetResult(1, 2, 3))
+    performTest(dir+"SetParamSquare", "A$main", Seq(), SetResult(1, 4, 9))
+    performTest(dir+"Set", "A$main", Seq(), SetResult(1, 2, 3))
+    performTest(dir+"SetFieldDeclare", "A$main", Seq(), SetResult(1, 2, 3))
+    performTest(dir+"SetFieldSet", "A$main", Seq(), SetResult(1, 2, 3))
+    performTest(dir+"SetTuple", "A$main", Seq(), SetResult(TupleResult(1, "A"), TupleResult(2, "B"), TupleResult(3, "C")))
+    performTest(dir+"SetIntersection", "A$main", Seq(), SetResult(1, 3))
+    performTest(dir+"SetUnion", "A$main", Seq(), SetResult(1, 2, 3, 4))
+    performTest(dir+"SetUnionMixed", "A$main", Seq(), SetResult(1, 2, 3, 4))
+    performTest(dir+"SetUnionIntersection", "A$main", Seq(), SetResult(1, 2, 3, 4))
+    performTest(dir+"SetMethodNested", "A$main", Seq(), SetResult(1, 2, 3, 4))
+    // Set Comprehension
+    performTest(dir+"SetComprehension", "A$main", Seq(), SetResult(TupleResult(1, 3, 5), TupleResult(1, 4, 5)))
+    performTest(dir+"SetComprehensionTuple", "A$main", Seq(), SetResult(TupleResult("A", 2), TupleResult("C", 2)))
   }
 
   /*test("Set Reduce") {
