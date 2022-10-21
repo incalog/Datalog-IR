@@ -4,6 +4,9 @@ import inca.compiler.SourceLocation
 import inca.frontend.objectoriented.core._
 import inca.frontend.util.{Resolvable, Typeable}
 
+import java.util.UUID
+import scala.util.hashing.MurmurHash3
+
 trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   def typecheck(program: Seq[Module]): Unit = scopedTypeContext {
     program.foreach(bindModule)
@@ -24,10 +27,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
     // bind symbols first
     module.classes.foreach(bindClass(_, module))
-
     // resolve all parent class refs before typechecking any and thereby check the inheritance
     module.classes.foreach(_.parentClassRefs.foreach(lookupClassRef))
-
     // type scala top-level definitions
     typecheckTopLevelObject()
 
@@ -36,7 +37,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
   def typecheck(classDef: ClassDef): Unit = {
     classDef.contentMap.foreach {
-      case (_, cs: Seq[ConstructorDef]) => // nothing
+      case (_, _: Seq[ConstructorDef]) => // nothing
       case (_, cs) if cs.size > 1 =>
         error(s"Ambiguous names in class ${classDef.name}", cs:_*)
     }
@@ -60,6 +61,10 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   }
 
   def typecheck(methodDef: MethodDef, classDef: ClassDef): Unit = scopedTypeContext {
+    // get all overriden methods and assign them the same signature
+    val overrideMethods = lookupMethodCandidates(Some(classDef), methodDef.params.map(_.typ), methodDef.name)
+    resolveSignatures(overrideMethods.map(_._2))
+
     methodDef.params.foreach { p =>
       typecheck(p.typ)
       bindVar(p.name, p, p.typ, immutable = true)
@@ -90,6 +95,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   def typecheck(constructorDef: ConstructorDef, classDef: ClassDef): Unit = scopedTypeContext {
     if (constructorDef.annos.contains(MainAnnotation))
       error(s"Constructor ${classDef.name} can not be a main method.", constructorDef)
+
+    val overrideConstructors = lookupConstructorCandidates(Some(classDef), constructorDef.params.map(_.typ))
+    resolveSignatures(overrideConstructors.map(_._2))
 
     constructorDef.params.foreach { p =>
       p.typ match {
@@ -192,40 +200,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       error(s"Expected $ty2, but got $ty1", loc)
   }
 
-  def subtype(ty1: Type, ty2: Type): Boolean = (ty1, ty2) match {
-    case (_, TAny) => true
-    case (TNull, TNull) => true
-    case (TNull, TClass(_)) => true
-    case (TClass(ref1), TClass(ref2)) if ref1 == ref2 => true
-    case (TClass(ref1), TClass(_)) =>
-      val parents = lookupClassRef(ref1).get.parentClassRefs
-      parents.exists { parent => if (parent.target.isDefined) subtype(parent.target.get.typ, ty2) else false }
-    case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
-      tys1.zip(tys2).forall(tt => subtype(tt._1, tt._2))
-    case (TSet(ty1), TSet(ty2)) => subtype(ty1, ty2)
-    case (TScala(s1), TScala(s2)) =>
-      subtypeScala(s1.tree, s2.tree)
-    case _ => false
-  }
-
-  def join(ty1: Type, ty2: Type): Type = (ty1, ty2) match {
-    case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
-      TTuple(tys1.zip(tys2).map(tt => join(tt._1, tt._2)))
-    case (TSet(ty1), TSet(ty2)) =>
-      join(ty1, ty2)
-    case (_, _) =>
-      if (subtype(ty1, ty2))
-        ty2
-      else if (subtype(ty2, ty1))
-        ty1
-      else
-        TAny
-  }
-
-  def upperTypeBound(types: Seq[Type]): Type = types.reduce[Type] {
-    case (ty1, ty2) => join(ty1, ty2)
-  }
-
   def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type = {
     val inferred = computeType
     term.typ match {
@@ -256,15 +230,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           } else {
             // classRef of parent will be resolved, but might still be invalid e.g. extend from a class that does not
             // exist
-            lookupConstructor(parentRef.get.target, args.size, expression) match {
+            lookupConstructor(parentRef.get.target, args.map(typecheck), expression) match {
               case Some((classDef, constructorDef)) =>
-                if (constructorDef.params.size != args.size) {
-                  error(s"Expected ${constructorDef.params.size} arguments but got ${args.size} arguments", expression)
-                } else {
-                  constructorDef.params.zip(args).foreach { case (param, arg) =>
-                    assertSubtype(typecheck(arg), param.typ, arg)
-                  }
-                }
                 resolveTarget(superExpr)((classDef, constructorDef))
                 TUnit
               case None =>
@@ -297,34 +264,27 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       lookupClassRef(className) match {
         case None => TAny
         case classDefOption@Some(classDef) =>
-          lookupConstructor(classDefOption, args.size, expression) match {
-            case None => classDef.typ
-            case Some((_, constructorDef)) =>
-              if (constructorDef.params.size != args.size) {
-                error(s"Expected ${constructorDef.params.size} arguments but got ${args.size} arguments", expression)
-              }
-              constructorDef.params.zip(args).foreach { case (param, arg) =>
-                assertSubtype(typecheck(arg), param.typ, arg)
-              }
+          val argTypes = args.map(typecheck)
+          lookupConstructor(classDefOption, argTypes, expression) match {
+            case Some((cls, constructorDef)) if cls == classDef =>
               resolveTarget(construtorExpr)(constructorDef)
+              classDef.typ
+            // we do not allow inheritance of constructors
+            case Some(_) =>
+              error(s"No matching constructor found for class ${classDefOption.get.name}: this(${argTypes.mkString(",")})", expression)
+              classDef.typ
+            case None =>
               classDef.typ
           }
       }
     case methodCallExpr@MethodCallExpr(recv, fun, args) =>
-      val typ = typecheck(recv)
-      typ match {
+      typecheck(recv) match {
         case TClass(ref) =>
           // We can call methods on instances of classes we might no have yet resolved
-          lookupMethod(lookupClassRef(ref), fun) match {
-            case None => TAny
+          lookupMethod(lookupClassRef(ref), args.map(typecheck), fun) match {
+            case None =>
+              TAny
             case Some(methodDef) =>
-              if (methodDef.params.size != args.size) {
-                error(s"Expected ${methodDef.params.size} arguments but got ${args.size} arguments", expression)
-              }
-              methodDef.params.zip(args).foreach { case (param, arg) =>
-                val argTyp = typecheck(arg)
-                assertSubtype(argTyp, param.typ, arg)
-              }
               resolveTarget(methodCallExpr)(methodDef)
               methodDef.outType
         }
@@ -361,6 +321,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       TSet(upperTypeBound(exps.map(typecheck)))
 
     case setMember@SetMemberExpr(name, target, predicate) =>
+      println("Check: ", setMember, target, typecheck(target))
+      // here should always be a true set !
       val typ = typecheck(target).innerType
         .getOrElse(throw new IllegalArgumentException(s"Inner type of expression $setMember could not be inferred!"))
       bindVar(name, setMember, typ, immutable = true)
@@ -502,5 +464,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         term.resolved(newTarget)
         newTarget
     }
+  }
+
+  def resolveSignatures[T <: Resolvable[Int]](callables: Seq[T]): Unit = {
+    // Get the signature of the top most implementation
+    val signature = if (callables.nonEmpty) callables.head.hashCode() else 0
+    callables.foreach(_.target = Some(signature))
   }
 }

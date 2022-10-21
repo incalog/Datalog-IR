@@ -76,7 +76,8 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
   }
 
   lazy val coreModule: Module = {
-    val module = Defunctionalize.transformModule(ssaModule)
+    val dataModel = new GenerateDataModel(ssaModule)
+    val module = Defunctionalize.transformModule(ssaModule, dataModel.transModule())
 
     if (CompilerFlags.DEBUGMODE) {
       println(s"Core Module")

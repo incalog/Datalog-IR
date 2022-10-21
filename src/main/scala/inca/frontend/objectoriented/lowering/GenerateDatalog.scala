@@ -94,7 +94,7 @@ class GenerateDatalog(module: Module) {
      */
     def collectMethods(classDef: ClassDef): Map[String, (ClassDef, MethodDef)] = {
       val methods = classDef.content.flatMap {
-        case m :MethodDef if !m.annos.contains(MainAnnotation) => Seq(m.name + sep + m.paramSignature -> (classDef, m))
+        case m :MethodDef if !m.annos.contains(MainAnnotation) => Seq(m.name + sep + m.signature -> (classDef, m))
         case _ => None
       }.toMap
 
@@ -240,7 +240,7 @@ class GenerateDatalog(module: Module) {
   }
 
   private def transConstructor(classDef: ClassDef, constructorDef: ConstructorDef): Datalog.Pattern = {
-    val qualifiedName = constructorPatName(classDef.name.raw) + sep + constructorDef.paramSignature
+    val qualifiedName = constructorPatName(classDef.name.raw) + sep + constructorDef.signature
     val thisParam = Datalog.Param("this", transType(classDef.typ))
     val params = constructorDef.params.flatMap(p => flattenParam(p.name.raw, p.typ, genFresh = false))
     val constrBodies = transConstructorBody(classDef, constructorDef)
@@ -260,7 +260,7 @@ class GenerateDatalog(module: Module) {
   }
 
   private def transSuper(classDef: ClassDef, constructorDef: ConstructorDef): Datalog.Pattern = {
-    val qualifiedName = constructorSuperPatName(classDef.name.raw) + sep + constructorDef.paramSignature
+    val qualifiedName = constructorSuperPatName(classDef.name.raw) + sep + constructorDef.signature
     val thisParam = Datalog.Param("this", transType(classDef.typ))
     val params = constructorDef.params.map(p => Datalog.Param(p.name.raw, transType(p.typ)))
     Datalog.Pattern(None, qualifiedName, thisParam +: params, transConstructorBody(classDef, constructorDef))
@@ -428,7 +428,7 @@ class GenerateDatalog(module: Module) {
       val argRes = args.map(e => transExpression(e))
       val constructorDef = constrExpr.target.getOrElse(throw new IllegalArgumentException(s"Unresolved constructor $constrExpr"))
 
-      val constrName = constructorPatName(classRef.name.raw) + sep + constructorDef.paramSignature
+      val constrName = constructorPatName(classRef.name.raw) + sep + constructorDef.signature
 
       // create single call constraint when no arguments are passed
       if (argRes.isEmpty)
@@ -442,7 +442,7 @@ class GenerateDatalog(module: Module) {
     case superExpr@SuperExpr(args) =>
       val argRes = args.map(e => transExpression(e))
       val (classDef, constructorDef) = superExpr.target.getOrElse(throw new IllegalArgumentException(s"Unresolved constructor $superExpr"))
-      val constrName = constructorSuperPatName(classDef.name.raw) + sep + constructorDef.paramSignature
+      val constrName = constructorSuperPatName(classDef.name.raw) + sep + constructorDef.signature
 
       for (tups <- TupleOps.cartesianProduct(argRes)) yield {
         val (argTerms, argCons) = tups.unzip
@@ -454,7 +454,7 @@ class GenerateDatalog(module: Module) {
 
       val methodDef = methodCallExp.target.getOrElse(throw new IllegalArgumentException(s"Unresolved method $methodCallExp"))
       val outVars = flattenVars(gensym.fresh("methodCall"), methodDef.outType).map(_._1)
-      val qualifiedName = dispatchPatName(methodDef.name + sep + methodDef.paramSignature)
+      val qualifiedName = dispatchPatName(methodDef.name + sep + methodDef.signature)
 
       val transRecv = for ((terms, cons) <- transExpression(recv)) yield {
         if (argRes.isEmpty)

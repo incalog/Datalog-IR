@@ -1,7 +1,9 @@
 package inca.frontend.objectoriented.lowering
 
 import inca.frontend.objectoriented.core._
+import inca.runtime.context.DataModel
 import inca.util.Gensym
+import truechange.SortType
 
 /**
  * Replace all variable reads to field reads. The field name is the same as the variable name.
@@ -19,27 +21,50 @@ class VarToField(val module: Module, val vars: Set[Name]) extends ModuleLowering
 }
 
 object Defunctionalize {
-  def transformModule(module: Module): Module =
-    new Defunctionalize(module).transModule()
+  def transformModule(module: Module, model: DataModel): Module =
+    new Defunctionalize(module, model).transModule()
 
-  def transformModules(modules: Seq[Module]): Seq[Module] =
-    modules.map(transformModule)
+  def transformModules(modules: Seq[(Module, DataModel)]): Seq[Module] =
+    modules.map(mm => transformModule(mm._1, mm._2))
 }
 
 // TODO: val a: Set[Any] = [1, 2, 3] will fail to translate correctly
-class Defunctionalize(val module: Module) extends ModuleLowering {
+class Defunctionalize(val module: Module, val dataModel: DataModel) extends ModuleLowering {
   private val gensym: Gensym = new Gensym(Iterable.empty)
 
-  var callClassDefs: Set[ClassDef] = Set()
+  var auxClassDefs: Set[ClassDef] = Set()
   var defnClassDefs: Map[Type, ClassDef] = Map()
 
   private def genDefunClassDef(ty: Type): ClassDef = {
     val typ = clearType(ty)
     if (defnClassDefs.contains(typ))
       return defnClassDefs(typ)
+
+    // create the inheritance hierarchy for the defun class
+    val parentClassDefs = ty match {
+      case TTuple(ts) =>
+        ts.map(genDefunClassDef)
+        Seq()
+      case TClass(ref) =>
+        val sortTy = SortType(ref.name.raw)
+        // create a defun class for each supertype
+        val superTypes = dataModel.nodeSupertypes.get(sortTy)
+          .map(s => (s.name, genDefunClassDef(TClass(ClassRef(Name(s.name))))))
+          .toMap
+        // return a seq with all direct parent class refs
+        val directSuperTypes = dataModel.directNodeSupertypes.get(sortTy).map(_.name).toSet
+        superTypes.flatMap {
+          case (clsName, defunClassDef) if directSuperTypes.contains(clsName) => Some(defunClassDef)
+          case _ => None
+        }
+      case TSet(_) => throw new IllegalArgumentException("Defun classes must have a simple type, not TSet!")
+      case _ => Seq()
+    }
+
+    val parentRefs = parentClassDefs.map(_.typ.ref).toSeq
     val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), TSet(typ), Seq())
     val constr = ConstructorDef(Seq(), None, Seq(), Seq())
-    val clazz = ClassDef(Seq(), Some(Private), Name(gensym.fresh("Defun")), Seq(), Seq(constr, apply), Some(typ))
+    val clazz = ClassDef(Seq(), Some(Private), Name(gensym.fresh("Defun")), parentRefs, Seq(constr, apply), None)
     defnClassDefs += typ -> clazz
     clazz
   }
@@ -63,7 +88,7 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
     val constr = ConstructorDef(Seq(), None, constrParams, constrBody)
     val clsName = Name(gensym.fresh("Aux"))
     val clazz = ClassDef(Seq(), Some(Private), clsName, Seq(parent), fields :+ constr :+ apply)
-    callClassDefs += clazz
+    auxClassDefs += clazz
     clazz
   }
 
@@ -75,7 +100,7 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(classes.map(_.name.raw))
     val transClasses = classes.map(transClass)
-    Module(name, imports, transClasses ++ callClassDefs ++ defnClassDefs.values)
+    Module(name, imports, transClasses ++ auxClassDefs ++ defnClassDefs.values)
   }
 
   override private[lowering] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
@@ -113,7 +138,7 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
     // Transform: set variables to object set variables
     case VarDeclareStmt(name, TSet(ty), maybeExpression, immutable) =>
       val newTyp = genDefunClassDef(ty).typ
-      newTyp.innerType = Some(ty)
+      //newTyp.innerType = Some(ty)
       usedVars += (name -> newTyp)
       val expr = if (maybeExpression.isDefined) Some(sanitize(maybeExpression.get)) else None
       VarDeclareStmt(name, newTyp, expr, immutable)
@@ -156,11 +181,11 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
     if (allowsTrueSet | !isSet)
       clearExpression(expression)
     else {
-      //val typ = expression.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression"))
       val ty = typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression"))
       val innerTyp = ty.innerType.getOrElse(throw new IllegalArgumentException(s"Inner type is missing $expression"))
       val exprVarNames = expression.vars.keySet
       val vars = usedVars.filter { case (k, _) => exprVarNames.contains(k) }
+      println("Gen aux: ", expression, ty, innerTyp)
       val auxClass = genAuxDef(vars, clearType(innerTyp), genDefunClassDef(innerTyp).typ.ref, expression)
       val args = vars.map { case (k, _) => VarReadExpr(k) }.toSeq
       ConstructorExpr(auxClass.typ.ref, args)
@@ -169,10 +194,16 @@ class Defunctionalize(val module: Module) extends ModuleLowering {
 
   /**
    * Clear the target and type information of an expression.
-   * @param expression The expression to objectify.
+   * @param expression The expression to clear.
    * @return The cleared expression.
    */
   private def clearExpression(expression: Expression): Expression = super.transExpression(expression)
+
+  /**
+   * Clear the target information of a type.
+   * @param type The type to clear.
+   * @return The cleared type.
+   */
   private def clearType(typ: Type): Type = super.transType(typ)
 
   /**

@@ -1,0 +1,34 @@
+module SetTest
+
+class Num {
+    var value: Any
+
+    def this(value: Any) = {
+        this.value = value
+    }
+}
+
+class Integer extends Num {
+    def this(value: `Int`) = {
+        this(value)
+    }
+}
+
+class Float extends Num {
+    def this(value: `Double`) = {
+        this(value)
+    }
+}
+
+class A {
+  def this() = {}
+
+  def filter(as: Set[Num]): Set[Integer] = {
+    return for (a <- as if instanceOf(a, Integer)) yield cast(a, Integer)
+  }
+
+  @main def main(): Set[Any] = {
+    val a: A = new A()
+    return for (v <- a.filter([new Float(1.0), new Integer(10), new Float(3.0)])) yield v.value
+  }
+}

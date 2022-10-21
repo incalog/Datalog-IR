@@ -84,38 +84,40 @@ case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
 }
 
 case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Seq[Statement])
-  extends ClassContent {
+  extends ClassContent with Resolvable[Int] {
 
   lazy val vars: Map[Name, Option[Type]] = (body.flatMap(_.vars) ++ params.flatMap(_.vars)).toMap
 
   def returnsUnit: Boolean = outType == TUnit
   def isMain: Boolean = annos.contains(MainAnnotation)
 
-  def paramSignature: Int = (params.map(_.typ) :+ outType).hashCode() // params.size.hashCode()
+  // The signature is resolved by the TypeContext. Type information about the methods and there superclasses is required
+  // to correctly identify matching methods from the parent class.
+  def signature: Int = target.getOrElse(0)
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")
     val bodyS = body.map(_.prettyprint(indent + "\t")).mkString("\n")
     val outS = outType.prettyprint
-    s"""$annoPrefix$indent${visS}def $name($paramsS): $outS {
+    s"""$annoPrefix$indent${visS}def $name($paramsS): $outS = {
        |$bodyS
        |$indent}""".stripMargin
   }
 }
 
 case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], params: Seq[Param], body: Seq[Statement])
-  extends ClassContent {
+  extends ClassContent with Resolvable[Int] {
 
   lazy val vars: Map[Name, Option[Type]] = (body.flatMap(_.vars) ++ params.flatMap(_.vars)).toMap
 
-  def paramSignature: Int = params.map(_.typ).hashCode()
+  def signature: Int = target.getOrElse(0)
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val paramsS = params.map(_.prettyprint).mkString(", ")
     val bodyS = body.map(_.prettyprint(indent + "\t")).mkString("\n")
-    s"""$annoPrefix$indent${visS}this($paramsS) {
+    s"""$annoPrefix$indent${visS}this($paramsS) = {
        |$bodyS
        |$indent}""".stripMargin
   }
