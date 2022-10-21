@@ -323,13 +323,12 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case setMember@SetMemberExpr(name, target, predicate) =>
       println("Check: ", setMember, target, typecheck(target))
       // here should always be a true set !
-      val typ = typecheck(target).innerType
-        .getOrElse(throw new IllegalArgumentException(s"Inner type of expression $setMember could not be inferred!"))
-      bindVar(name, setMember, typ, immutable = true)
+      val TSet(ty) = typecheck(target)
+      bindVar(name, setMember, ty, immutable = true)
       if (predicate.isDefined) {
         assertSubtype(typecheck(predicate.get), TScalaBoolean, target)
       }
-      typ
+      ty
 
     case SetComprehension(member, body) =>
       member.foreach(typecheck)

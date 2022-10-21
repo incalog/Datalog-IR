@@ -34,7 +34,7 @@ trait ClassContent extends SourceLocation with Annotations {
 }
 
 // Note: The innerType is used for defunctionalized sets, to reflect the inner type of the set
-case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, parentClassRefs: Seq[ClassRef], content: Seq[ClassContent], innerType: Option[Type] = None)
+case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, parentClassRefs: Seq[ClassRef], content: Seq[ClassContent])
   extends SourceLocation with Annotations with VarReadExpr.Target {
 
   val contentMap: Map[Name, Seq[ClassContent]] = content.groupBy {
@@ -50,9 +50,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   def typ: TClass = {
     val ref = ClassRef(name)
     ref.target = Some(this)
-    val ty = TClass(ref)
-    ty.innerType = innerType
-    ty
+    TClass(ref)
   }
 
   def prettyprint(implicit indent: String): String = {

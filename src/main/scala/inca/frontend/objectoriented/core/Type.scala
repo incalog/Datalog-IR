@@ -11,7 +11,6 @@ sealed trait Type extends SourceLocation {
   def flatten: Seq[Type]
   def asScala: meta.Type
   override def toString: String = prettyprint
-  var innerType: Option[Type] = None
 }
 case object TAny extends Type {
   override def prettyprint: String = "Any"
@@ -40,8 +39,6 @@ case class TTuple(ts: Seq[Type]) extends Type {
   }
   override def flatten: Seq[Type] = ts.flatMap(_.flatten)
   override def asScala: meta.Type = t"(..${ts.map(_.asScala).toList})"
-
-  innerType = Some(TAny)
 }
 object TTuple {
   def from(ts: Seq[Type]): Type = ts match {
@@ -80,6 +77,4 @@ case class TSet(ty: Type) extends Type {
   override def prettyprint: String = s"Set[${ty.prettyprint}]"
   override def asScala: meta.Type = ty.asScala
   override def flatten: Seq[Type] = ty.flatten
-
-  innerType = Some(ty)
 }

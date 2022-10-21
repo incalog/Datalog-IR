@@ -64,7 +64,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     val parentRefs = parentClassDefs.map(_.typ.ref).toSeq
     val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), TSet(typ), Seq())
     val constr = ConstructorDef(Seq(), None, Seq(), Seq())
-    val clazz = ClassDef(Seq(), Some(Private), Name(gensym.fresh("Defun")), parentRefs, Seq(constr, apply), None)
+    val clazz = ClassDef(Seq(), Some(Private), Name(gensym.fresh("Defun")), parentRefs, Seq(constr, apply))
     defnClassDefs += typ -> clazz
     clazz
   }
@@ -138,7 +138,6 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     // Transform: set variables to object set variables
     case VarDeclareStmt(name, TSet(ty), maybeExpression, immutable) =>
       val newTyp = genDefunClassDef(ty).typ
-      //newTyp.innerType = Some(ty)
       usedVars += (name -> newTyp)
       val expr = if (maybeExpression.isDefined) Some(sanitize(maybeExpression.get)) else None
       VarDeclareStmt(name, newTyp, expr, immutable)
@@ -181,12 +180,10 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     if (allowsTrueSet | !isSet)
       clearExpression(expression)
     else {
-      val ty = typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression"))
-      val innerTyp = ty.innerType.getOrElse(throw new IllegalArgumentException(s"Inner type is missing $expression"))
+      val TSet(ty) = typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression"))
       val exprVarNames = expression.vars.keySet
       val vars = usedVars.filter { case (k, _) => exprVarNames.contains(k) }
-      println("Gen aux: ", expression, ty, innerTyp)
-      val auxClass = genAuxDef(vars, clearType(innerTyp), genDefunClassDef(innerTyp).typ.ref, expression)
+      val auxClass = genAuxDef(vars, clearType(ty), genDefunClassDef(ty).typ.ref, expression)
       val args = vars.map { case (k, _) => VarReadExpr(k) }.toSeq
       ConstructorExpr(auxClass.typ.ref, args)
     }
