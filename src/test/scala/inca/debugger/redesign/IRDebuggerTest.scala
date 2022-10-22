@@ -639,4 +639,16 @@ class IRDebuggerTest extends AnyFunSuite {
     assertExpectedTable(debugger, "query", args)
   }
 
+  test("example paper") {
+    val debugger = initDebugger(
+      module(pathPattern, edgePattern(1 -> 2, 2 -> 3, 3 -> 4, 3 -> 1)),
+      emptyDataModel,
+      emptyInput)
+    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("path", args)
+    stepTillFinish(debugger)
+
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "path", args)
+  }
 }
