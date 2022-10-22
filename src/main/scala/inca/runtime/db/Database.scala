@@ -46,7 +46,6 @@ class Database(
   override def getMetaContext: IQueryMetaContext = _metaContext
 
   /* indices */
-
   private[runtime] val nodeInstances: mutable.Map[Type, UnarySetIndex[URI]] = mutable.Map()
   private[runtime] val primitiveInstances: mutable.Map[LitType, UnaryBagIndex[PrimitiveValue]] =
     mutable.Map()

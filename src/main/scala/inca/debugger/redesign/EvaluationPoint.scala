@@ -15,8 +15,6 @@ object EvaluationPoint {
       PredicateEntry(pred, ImmutableTable.empty(Seq()), ImmutableTable.empty(Seq()))
     case BeforeRule(pred, _, _, rules) =>
       BeforeRule(pred, ImmutableTable.empty(Seq()), ImmutableTable.empty(Seq()), rules)
-    case EvaluationResult(pred, _) =>
-      EvaluationResult(pred, ImmutableTable.empty(Seq()))
     case InRule(pred, _, _, RuleEvaluation(_, ruleIdx, atoms), remRules) =>
       InRule(
         pred,
@@ -24,6 +22,8 @@ object EvaluationPoint {
         ImmutableTable.empty(Seq()),
         RuleEvaluation(ImmutableTable.empty(Seq()), ruleIdx, atoms),
         remRules)
+    case EvaluationResult(pred, _) =>
+      EvaluationResult(pred, ImmutableTable.empty(Seq()))
   }
 }
 
