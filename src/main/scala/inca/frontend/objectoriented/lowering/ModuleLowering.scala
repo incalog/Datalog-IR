@@ -18,6 +18,14 @@ trait ModuleLowering {
     transLoc
   }
 
+  private[lowering] def preserveLocs[U <: SourceLocation](loc: U)(f: U => Seq[U]): Seq[U] = {
+    f(loc).map { transLoc =>
+      transLoc.startIndex = loc.startIndex
+      transLoc.endIndex = loc.endIndex
+      transLoc
+    }
+  }
+
   def module: Module
 
   // These methods wrap the internal methods to preserve the source location start and end index information.
@@ -29,10 +37,10 @@ trait ModuleLowering {
     case method: MethodDef => preserveLoc(method)(m => transMethodInternal(m, classDef))
     case field: FieldDef => preserveLoc(field)(f => transFieldInternal(f, classDef))
   }
-  protected[frontend] def transStatements(stmts: Seq[Statement]): Seq[Statement] = stmts.map(transStatement)
-  protected[frontend] def transStatement(stmt: Statement): Statement = preserveLoc(stmt)(transStatementInternal)
-  protected[frontend] def transExpressions(exprs: Seq[Expression]): Seq[Expression] = exprs.map(transExpression)
-  protected[frontend] def transExpression(expression: Expression): Expression = preserveLoc(expression)(transExpressionInternal)
+  protected[frontend] def transStatements(stmts: Seq[Statement]): Seq[Statement] = stmts.flatMap(transStatement)
+  protected[frontend] def transStatement(stmt: Statement): Seq[Statement] = preserveLocs(stmt)(transStatementInternal)
+  protected[frontend] def transExpressions(exprs: Seq[Expression]): Seq[Expression] = exprs.flatMap(transExpression)
+  protected[frontend] def transExpression(expression: Expression): Seq[Expression] = preserveLocs(expression)(transExpressionInternal)
   protected[frontend] def transParams(params: Seq[Param]): Seq[Param] = params.map(transParam)
   protected[frontend] def transParam(param: Param): Param = preserveLoc(param)(transParamInternal)
   protected[frontend] def transType(typ: Type): Type = preserveLoc(typ)(transTypeInternal)
@@ -57,7 +65,7 @@ trait ModuleLowering {
 
   private[lowering] def transFieldInternal(fieldDef: FieldDef, classDef: ClassDef): FieldDef = {
     val FieldDef(annos, vis, name, typ, body, immutable) = fieldDef
-    val newBody = if (body.isDefined) Some(transExpression(body.get)) else None
+    val newBody = if (body.isDefined) Some(transExpression(body.get).head) else None
     FieldDef(annos, vis, name, transType(typ), newBody, immutable)
   }
 
@@ -75,30 +83,30 @@ trait ModuleLowering {
     ConstructorDef(annos, vis, newParams, newBody)
   }
 
-  private[lowering] def transStatementInternal(stmt: Statement): Statement = stmt match {
+  private[lowering] def transStatementInternal(stmt: Statement): Seq[Statement] = Seq(stmt match {
     case VarDeclareStmt(name, typ, maybeExpression, immutable) =>
-      val exprOption = if (maybeExpression.isDefined) Some(transExpression(maybeExpression.get)) else None
+      val exprOption = if (maybeExpression.isDefined) Some(transExpression(maybeExpression.get).head) else None
       VarDeclareStmt(name, transType(typ), exprOption, immutable)
     case VarAssignStmt(targetName, expression) =>
       VarAssignStmt(targetName, expression)
     case ReturnStmt(expr) =>
-      ReturnStmt(transExpression(expr))
+      ReturnStmt(transExpression(expr).head)
     case ExprStmt(expr) =>
-      ExprStmt(transExpression(expr))
+      ExprStmt(transExpression(expr).head)
     case FieldAssignStmt(recv, name, expression) =>
-      FieldAssignStmt(transExpression(recv), name, transExpression(expression))
+      FieldAssignStmt(transExpression(recv).head, name, transExpression(expression).head)
     case IfStmt(cnd, thn, els) =>
-      IfStmt(transExpression(cnd), transStatements(thn), transStatements(els))
+      IfStmt(transExpression(cnd).head, transStatements(thn), transStatements(els))
     case VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>
       // TODO: Actually we need to keep track of the current if stmt and pass a reference to it here
-      VarPhiAssignStmt(name, transType(typ), transStatement(ifStmt).asInstanceOf[IfStmt], thnName, elsName)
+      VarPhiAssignStmt(name, transType(typ), transStatement(ifStmt).head.asInstanceOf[IfStmt], thnName, elsName)
     case s =>
       throw new RuntimeException(s"Can not transform statement: $s")
-  }
+  })
 
-  private[lowering] def transExpressionInternal(expression: Expression): Expression = expression match {
+  private[lowering] def transExpressionInternal(expression: Expression): Seq[Expression] = Seq(expression match {
     case FieldReadExpr(recv, targetName) =>
-      FieldReadExpr(transExpression(recv), targetName)
+      FieldReadExpr(transExpression(recv).head, targetName)
     case VarReadExpr(targetName) =>
       // Rewrite all VarReadExpr to use the latest generated name for the variable
       VarReadExpr(Name(targetName.raw))
@@ -107,39 +115,39 @@ trait ModuleLowering {
     case SuperExpr(args) =>
       SuperExpr(transExpressions(args))
     case MethodCallExpr(recv, fun, args) =>
-      MethodCallExpr(transExpression(recv), fun, transExpressions(args))
+      MethodCallExpr(transExpression(recv).head, fun, transExpressions(args))
     case TypeCastExpr(recv, toTyp) =>
-      TypeCastExpr(transExpression(recv), transType(toTyp))
+      TypeCastExpr(transExpression(recv).head, transType(toTyp))
     case InstanceOfExpr(recv, ofTyp) =>
-      InstanceOfExpr(transExpression(recv), transType(ofTyp))
+      InstanceOfExpr(transExpression(recv).head, transType(ofTyp))
     case TupleExpr(exps) =>
       TupleExpr(transExpressions(exps))
     case TupleReadExpr(recv, index) =>
-      TupleReadExpr(transExpression(recv), index)
+      TupleReadExpr(transExpression(recv).head, index)
     case SetExpr(exps) =>
       SetExpr(transExpressions(exps))
     case SetMemberExpr(name, recv, predicate) =>
-      val pred = if (predicate.isDefined) Some(transExpression(predicate.get)) else None
-      SetMemberExpr(name, transExpression(recv), pred)
+      val pred = if (predicate.isDefined) Some(transExpression(predicate.get).head) else None
+      SetMemberExpr(name, transExpression(recv).head, pred)
     //case SetReduce(recv, op) =>
     //  SetReduce(transExpression(recv), op)
     case SetComprehension(exps, body) =>
-      SetComprehension(transExpressions(exps), transExpression(body))
+      SetComprehension(transExpressions(exps), transExpression(body).head)
     case BaseApplyExpr(fun, args) =>
       BaseApplyExpr(fun, transExpressions(args))
     case BaseApplyInfixExpr(left, op, right) =>
-      BaseApplyInfixExpr(transExpression(left), op, transExpression(right))
+      BaseApplyInfixExpr(transExpression(left).head, op, transExpression(right).head)
     case BaseApplyMethodExpr(recv, method, args) =>
-      BaseApplyMethodExpr(transExpression(recv), method, Some(transExpressions(args.getOrElse(Seq()))))
+      BaseApplyMethodExpr(transExpression(recv).head, method, Some(transExpressions(args.getOrElse(Seq()))))
     case BaseApplyUnaryExpr(op, exp) =>
-      BaseApplyUnaryExpr(op, transExpression(exp))
+      BaseApplyUnaryExpr(op, transExpression(exp).head)
     case NullExpr() =>
       NullExpr()
     case BaseLitExpr(code) =>
       BaseLitExpr(code)
     case expr =>
       throw new RuntimeException(s"Can not transform expression: $expr")
-  }
+  })
 
   private[lowering] def transTypeInternal(typ: Type): Type = {
     typ match {

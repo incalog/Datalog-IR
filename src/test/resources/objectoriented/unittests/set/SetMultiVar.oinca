@@ -3,7 +3,7 @@ module SetTest
 class A {
   def this() = {}
 
-  def someSet(): Int = {
+  def someValue(): Int = {
      return 3
   }
 
@@ -14,6 +14,6 @@ class A {
   @main def main(): Set[Int] = {
     val c: Int = 2
     val a: A = new A()
-    return a.identity([1, c, a.someSet()])
+    return a.identity([1, c, a.someValue()])
   }
 }

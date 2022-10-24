@@ -194,6 +194,11 @@ class FunctionsTest extends AnyFunSuite {
     performTest("Tuple", "A$main", Seq(), TupleResult(true, TupleResult(true, true)))
   }
 
+  test("Set Example 2") {
+    performTest("set/SetMultiVar", "A$main", Seq(), SetResult(1, 2, 3))
+    //performTest("set/SetClass2", "A$main", Seq(), SetResult(3, 10))
+  }
+
   test("Set Example") {
     val dir: String = "set/"
     performTest(dir+"SetConst", "A$main", Seq(), SetResult(1, 2, 3))
@@ -210,8 +215,11 @@ class FunctionsTest extends AnyFunSuite {
     performTest(dir+"SetUnionMixed", "A$main", Seq(), SetResult(1, 2, 3, 4))
     performTest(dir+"SetUnionIntersection", "A$main", Seq(), SetResult(1, 2, 3, 4))
     performTest(dir+"SetMethodNested", "A$main", Seq(), SetResult(1, 2, 3, 4))
-    performTest(dir+"SetClass", "A$main", Seq(), SetResult(10))
-    //performTest(dir+"SetClass2", "A$main", Seq(), SetResult(5))
+    performTest(dir+"SetClassSimple", "A$main", Seq(), SetResult(1, 2))
+    performTest(dir+"SetClass", "A$main", Seq(), SetResult(10, 3))
+    performTest(dir+"SetClass2", "A$main", Seq(), SetResult(5, 10))
+    performTest(dir+"SetIf", "A$main", Seq(q"true"), SetResult(1, 2))
+    performTest(dir+"SetIf", "A$main", Seq(q"false"), SetResult(1, 3, 4))
     // Set Comprehension
     performTest(dir+"SetComprehension", "A$main", Seq(), SetResult(TupleResult(1, 3, 5), TupleResult(1, 4, 5)))
     performTest(dir+"SetComprehensionTuple", "A$main", Seq(), SetResult(TupleResult("A", 2), TupleResult("C", 2)))

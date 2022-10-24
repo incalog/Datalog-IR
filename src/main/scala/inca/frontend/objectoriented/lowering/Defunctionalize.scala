@@ -11,24 +11,25 @@ import truechange.SortType
  * @param vars The variables to transform.
  */
 class VarToField(val module: Module, val vars: Set[Name]) extends ModuleLowering {
-  override def transExpressionInternal(expression: Expression): Expression = expression match {
-    case VarReadExpr(targetName) if !vars.contains(targetName) =>
-      throw new IllegalArgumentException(s"Found unresolved var $targetName!")
+  override def transExpressionInternal(expression: Expression): Seq[Expression] = expression match {
+    //case VarReadExpr(targetName) if !vars.contains(targetName) =>
+    //  throw new IllegalArgumentException(s"Found unresolved var $targetName!")
     case VarReadExpr(targetName) if vars.contains(targetName) =>
-      FieldReadExpr(VarReadExpr(Name("this")), targetName)
+      Seq(FieldReadExpr(VarReadExpr(Name("this")), targetName))
     case _ => super.transExpressionInternal(expression)
   }
 }
 
 object Defunctionalize {
-  def transformModule(module: Module, model: DataModel): Module =
+  def transformModule(module: Module, model: DataModel): Module = {
     new Defunctionalize(module, model).transModule()
+  }
 
   def transformModules(modules: Seq[(Module, DataModel)]): Seq[Module] =
     modules.map(mm => transformModule(mm._1, mm._2))
 }
 
-// TODO: val a: Set[Any] = [1, 2, 3] will fail to translate correctly
+// TODO: Support tuples
 class Defunctionalize(val module: Module, val dataModel: DataModel) extends ModuleLowering {
   private val gensym: Gensym = new Gensym(Iterable.empty)
 
@@ -76,7 +77,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     }.toSeq
 
     // all reads to local variables should now access the correct field instead
-    val ret = ReturnStmt(new VarToField(module, fieldParams.keySet).transExpression(expr))
+    val ret = ReturnStmt(new VarToField(module, fieldParams.keySet).transExpression(expr).head)
     val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), TSet(clearType(innerSetType)), Seq(ret))
     // create a default constructor
     val constrParams = fields.map(f => Param(f.name, f.typ))
@@ -130,28 +131,28 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     case p => p
   }
 
-  override private[lowering] def transStatementInternal(stmt: Statement): Statement = stmt match {
+  override private[lowering] def transStatementInternal(stmt: Statement): Seq[Statement] = stmt match {
     case ExprStmt(expression) =>
-      ExprStmt(sanitize(expression))
+      Seq(ExprStmt(sanitize(expression)))
     case FieldAssignStmt(recv, name, expression) =>
-      FieldAssignStmt(sanitize(recv), name, sanitize(expression))
+      Seq(FieldAssignStmt(sanitize(recv), name, sanitize(expression)))
     // Transform: set variables to object set variables
     case VarDeclareStmt(name, TSet(ty), maybeExpression, immutable) =>
       val newTyp = genDefunClassDef(ty).typ
       usedVars += (name -> newTyp)
       val expr = if (maybeExpression.isDefined) Some(sanitize(maybeExpression.get)) else None
-      VarDeclareStmt(name, newTyp, expr, immutable)
+      Seq(VarDeclareStmt(name, newTyp, expr, immutable))
     case VarDeclareStmt(name, typ, _, _) =>
       usedVars += (name -> typ)
       super.transStatementInternal(stmt)
     case VarAssignStmt(_, _) =>
-      throw new IllegalArgumentException("Static single assignment failed! Encountered unexpected var assignment.")
+      throw new IllegalArgumentException("Defunctionalization failed! Encountered unexpected var assignment.")
     case VarPhiAssignStmt(_, _, _, _, _) =>
       super.transStatementInternal(stmt)
     case IfStmt(cnd, thn, els) =>
       super.transStatementInternal(IfStmt(sanitize(cnd), thn, els))
     case ReturnStmt(expr) =>
-      ReturnStmt(sanitize(expr, requiresTrueSet = expr.typ.exists(_.isInstanceOf[TSet])))
+      Seq(ReturnStmt(sanitize(expr, requiresTrueSet = expr.typ.exists(_.isInstanceOf[TSet]))))
   }
 
   /**
@@ -194,7 +195,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
    * @param expression The expression to clear.
    * @return The cleared expression.
    */
-  private def clearExpression(expression: Expression): Expression = super.transExpression(expression)
+  private def clearExpression(expression: Expression): Expression = super.transExpression(expression).head
 
   /**
    * Clear the target information of a type.

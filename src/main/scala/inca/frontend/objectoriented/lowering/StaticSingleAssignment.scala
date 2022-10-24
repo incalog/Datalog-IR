@@ -53,27 +53,13 @@ class StaticSingleAssignment(val module: Module) extends ModuleLowering {
   type Env = Map[String, (String, Type)]
   var env: Env = Map()
 
-  private[lowering] def preserveLocs[U <: SourceLocation](loc: U)(f: U => Seq[U]): Seq[U] = {
-    f(loc).map { transLoc =>
-      transLoc.startIndex = loc.startIndex
-      transLoc.endIndex = loc.endIndex
-      transLoc
-    }
-  }
-
-  override def transStatements(stmts: Seq[Statement]): Seq[Statement] =
-    stmts.flatMap(s => preserveLocs(s)(_transStatementInternal))
-
-  override def transStatement(stmt: Statement): Statement =
-    throw new NotImplementedError("Transforming a single statement is not implemented. Use transStatements!")
-
   /**
    * Transform a single statement to a sequence of new statements.
    */
-  private def _transStatementInternal(stmt: Statement): Seq[Statement] = stmt match {
+  override def transStatementInternal(stmt: Statement): Seq[Statement] = stmt match {
     case VarDeclareStmt(name, typ, maybeExpression, _) =>
       gensym.register(name.raw)
-      val expr = if (maybeExpression.isDefined) Some(transExpression(maybeExpression.get)) else None
+      val expr = if (maybeExpression.isDefined) Some(transExpression(maybeExpression.get).head) else None
       env = env + (name.raw -> (name.raw, typ))
       Seq(
         VarDeclareStmt(name, transType(typ), expr, immutable = true)
@@ -83,7 +69,7 @@ class StaticSingleAssignment(val module: Module) extends ModuleLowering {
         .getOrElse(throw new RuntimeException(s"Unresolved variable $targetName in assignment $varAssign"))
       targetVar match {
         case VarDeclareStmt(_, typ, _, _) =>
-          val transExp = transExpression(expression)
+          val transExp = transExpression(expression).head
           val newName = gensym.fresh(targetName.raw)
           env = env + (targetName.raw -> (newName, typ))
           Seq(
@@ -103,7 +89,7 @@ class StaticSingleAssignment(val module: Module) extends ModuleLowering {
 
       // base name of all new symbols either used in the then or the else block
       val usedSymbols = thnEnv.keySet.union(elsEnv.keySet)
-      val ifStmt = IfStmt(transExpression(cnd), thnStmts, elsStmts)
+      val ifStmt = IfStmt(transExpression(cnd).head, thnStmts, elsStmts)
 
       ifStmt +: usedSymbols.zipWithIndex.map { case (name, idx) =>
         val newName = Name(gensym.fresh(name))
@@ -116,14 +102,14 @@ class StaticSingleAssignment(val module: Module) extends ModuleLowering {
       }.toSeq
     case stmt =>
       gensym.register(stmt.vars.map(_._1.raw))
-      Seq(super.transStatementInternal(stmt))
+      super.transStatementInternal(stmt)
   }
 
-  override def transExpressionInternal(expression: Expression): Expression = expression match {
+  override def transExpressionInternal(expression: Expression): Seq[Expression] = expression match {
     case VarReadExpr(targetName) =>
       // Rewrite all VarReadExpr to use the latest generated name for the variable
       val (newName, _) = env.getOrElse(targetName.raw, (targetName.raw, TAny))
-      VarReadExpr(Name(newName))
+      Seq(VarReadExpr(Name(newName)))
     case _ => super.transExpressionInternal(expression)
   }
 }

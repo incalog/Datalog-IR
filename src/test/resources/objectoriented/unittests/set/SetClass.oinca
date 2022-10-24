@@ -29,6 +29,6 @@ class A {
 
   @main def main(): Set[Any] = {
     val a: A = new A()
-    return for (v <- a.filter([new Float(1.0), new Integer(10), new Float(3.0)])) yield v.value
+    return for (v <- a.filter([new Float(1.0), new Integer(10), new Integer(3)])) yield v.value
   }
 }

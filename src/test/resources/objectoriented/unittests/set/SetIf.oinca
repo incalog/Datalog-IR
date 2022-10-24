@@ -1,0 +1,22 @@
+module SetTest
+
+class Num {
+    var value: Int
+
+    def this(value: Int) = {
+        this.value = value
+    }
+}
+
+class A {
+  def this() = {}
+
+  @main def main(cond: Boolean): Set[Int] = {
+    val nums: Set[Int] = for (i <- [1,2]) yield i*i
+    if (cond) {
+        return [new Num(1).value, new Num(2).value]
+    } else {
+        return nums ++ [new Num(3).value, new Num(4).value]
+    }
+  }
+}

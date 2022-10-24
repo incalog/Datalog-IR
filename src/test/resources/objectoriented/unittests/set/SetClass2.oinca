@@ -18,11 +18,11 @@ class A {
   def this() = {}
 
   def bounded(as: Set[Num]): Set[Integer] = {
-    return for (a <- as if a.value < 6) yield cast(a, Integer)
+    return for (a <- as if a.value < 11) yield cast(a, Integer)
   }
 
   @main def main(): Set[Any] = {
     val a: A = new A()
-    return for (v <- a.bounded([new Integer(10), new Integer(5)])) yield v.value
+    return for (v <- a.bounded([new Integer(10), new Integer(5), new Integer(11)])) yield v.value
   }
 }

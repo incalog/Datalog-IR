@@ -1,0 +1,25 @@
+module SetTest
+
+class Num {
+    var value: Int = 0
+
+    def this(value: Int) = {
+        this.value = value
+    }
+}
+
+class A {
+  def this() = {}
+
+  def getValue(nums: Set[Num]): Set[Int] = {
+    return for (n <- nums if n.value < 3) yield n.value
+  }
+
+  def getNum(n: Int): Num = {
+    return new Num(n)
+  }
+
+  @main def main(): Set[Int] = {
+    return new A().getValue([new Num(1), new Num(2), new Num(3)])
+  }
+}

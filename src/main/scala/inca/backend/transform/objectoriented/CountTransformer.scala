@@ -59,7 +59,7 @@ abstract class CountTransformer(val rootPatternHint: Hint,
    */
     def transformCall(call: Call, counterInVar: Var): (Var, Seq[Atom]) = {
       val Call(name, args, trans, neg) = call
-      val hint = hintWithAdjustedFixedAdornment(call, Seq(true, false))
+      val hint = hintWithAdjustedFixedAdornment(call, args.size, Seq(true, false))
       if (isIgnoreCall(call)) {
         (counterInVar, Seq(
           Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg).withHints(hint)
@@ -84,11 +84,11 @@ abstract class CountTransformer(val rootPatternHint: Hint,
    * @param additionalAdornment The additional adornment information.
    * @return The modified hint.
    */
-    private[objectoriented] def hintWithAdjustedFixedAdornment(hints: Hints, additionalAdornment: Seq[Boolean]): Hints = {
+    private[objectoriented] def hintWithAdjustedFixedAdornment(hints: Hints, numArgs: Int, additionalAdornment: Seq[Boolean]): Hints = {
       val fixedAdornment = hints.hints.remove(MagicSetHints.FixedAdornmentKey)
       if (fixedAdornment.isDefined) {
         val adorn = fixedAdornment.get.asInstanceOf[MagicSetHints.FixedAdornment].adorn
-        hints.addHint(MagicSetHints.FixedAdornment(adorn ++ additionalAdornment))
+        hints.addHint(MagicSetHints.FixedAdornment(adorn.slice(0, numArgs) ++ additionalAdornment))
       }
       hints
     }

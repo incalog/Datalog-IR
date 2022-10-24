@@ -1,5 +1,6 @@
 package inca.backend.transform.objectoriented
 
+import inca.backend.hints.MagicSetHints.{FixedAdornment, FixedAdornmentKey}
 import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog._
 import inca.backend.ir.util.CollectVars
@@ -135,7 +136,7 @@ object FieldTransformation extends Transformation {
       // If the call targets a field we want to either insert an aggregation in case of a Get or tsIn to the call in
       // case of a set.
       if (isFieldGetCall(call)) {
-        val hint = hintWithAdjustedFixedAdornment(call, Seq(true))
+        val hint = hintWithAdjustedFixedAdornment(call, args.size, Seq(true))
         val tsMaxVar = Var(gensym.fresh(rootParamName + "Max"))
         (tsInVar, Seq(
           maxAgg(name, args.head +: args.tail.map(_ => Var(gensym.fresh("_"))), tsMaxVar, tsInVar),
@@ -144,7 +145,7 @@ object FieldTransformation extends Transformation {
             .addHint(MagicSetHints.IgnoreCall)
         ))
       } else if (isFieldSetCall(call)) {
-        val hint = hintWithAdjustedFixedAdornment(call, Seq(true))
+        val hint = hintWithAdjustedFixedAdornment(call, args.size, Seq(true))
         val (tsOutVar, incComp) = incCounter(tsInVar)
         (tsOutVar, Seq(
           Call(name, args :+ tsInVar, trans, neg).withHints(hint),

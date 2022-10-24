@@ -6,7 +6,7 @@ import inca.backend.ir.util.printer.DatalogPrinter
 import inca.compiler.{CompiledModule, CompilerFlags, SourceLocation}
 import inca.frontend.objectoriented.analyze.AbstractSyntaxTree
 import inca.frontend.objectoriented.core.Module
-import inca.frontend.objectoriented.lowering.{AddMissingDefinitions, Defunctionalize, GenerateDataModel, GenerateDatalog, StaticSingleAssignment}
+import inca.frontend.objectoriented.lowering.{AddMissingDefinitions, Defunctionalize, GenerateDataModel, GenerateDatalog, SetLifting, StaticSingleAssignment}
 import inca.frontend.objectoriented.typechecker.Typechecker
 import inca.runtime.context.DataModel
 
@@ -75,9 +75,31 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
     module
   }
 
-  lazy val coreModule: Module = {
+  lazy val defunModule: Module = {
     val dataModel = new GenerateDataModel(ssaModule)
     val module = Defunctionalize.transformModule(ssaModule, dataModel.transModule())
+
+    if (CompilerFlags.DEBUGMODE) {
+      println(s"Defun Module")
+      println(module)
+
+      if (CompilerFlags.DebugConfig.AST) {
+        println()
+        println("Defun Module - AST")
+        println(new AbstractSyntaxTree(module).toGraphViz)
+      }
+    }
+
+    typer.typecheck(module)
+    messages ++= typer.getErrors
+    messages ++= typer.getWarnings
+    stopIfNeeded()
+
+    module
+  }
+
+  lazy val coreModule: Module = {
+    val module = SetLifting.transformModule(defunModule)
 
     if (CompilerFlags.DEBUGMODE) {
       println(s"Core Module")
@@ -85,7 +107,7 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
 
       if (CompilerFlags.DebugConfig.AST) {
         println()
-        println("Defun Module - AST")
+        println("Core Module - AST")
         println(new AbstractSyntaxTree(module).toGraphViz)
       }
     }
