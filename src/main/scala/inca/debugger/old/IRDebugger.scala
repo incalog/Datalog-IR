@@ -5,9 +5,9 @@ import inca.compiler.CompiledModule
 final class IRDebugger(val compiled: CompiledModule) extends Debugger {
   super.initialize(compiled)
 
-  override def stepInto(): Unit = stepIntoIR()
-  override def stepOver(): Unit = stepOverIR()
-  override def stepOut(): Unit = stepOutIR()
+  override def stepInto(): Boolean = stepIntoIR()
+  override def stepOver(): Boolean = stepOverIR()
+  override def stepOut(): Boolean = stepOutIR()
 
   override type Breakpoint = BreakpointIR
   override def addBreakpoint(bp: Breakpoint): Unit = {

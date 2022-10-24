@@ -136,6 +136,7 @@ trait Debugger extends DebuggerAPI {
     }
     if (callStack.nonEmpty)
       traceCurrentControlPoint()
+    true
   }
 
   protected def abortIfBodyFailed(): Unit =
@@ -432,7 +433,7 @@ trait Debugger extends DebuggerAPI {
 
   override def clearBreakpoints(): Unit = _breakpoints.clear()
 
-  protected def isAtBreakpoint: Boolean =
+  def isAtBreakpoint: Boolean =
     _breakpointPoints.get(frame.cp) match {
       case None => false
       case Some(bp) => bp.cond()
@@ -441,17 +442,5 @@ trait Debugger extends DebuggerAPI {
   protected def canReachBreakpoint(patName: Datalog.Name): Boolean = {
     val reachable = dependencyGraph.transitvelyReachable(patName)
     _patternsWithBreakpoint.exists(reachable.contains)
-  }
-
-  override def resume(): Unit = {
-    while (!isFinished && !isAtBreakpoint) {
-      stepOverIR()
-    }
-  }
-
-  override def resumeWithStepInto(): Unit = {
-    while (!isFinished && !isAtBreakpoint) {
-      stepIntoIR()
-    }
   }
 }

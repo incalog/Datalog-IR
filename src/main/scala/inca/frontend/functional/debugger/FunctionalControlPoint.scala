@@ -1,7 +1,7 @@
 package inca.frontend.functional.debugger
 
 import inca.compiler.source.SourceObject
-import inca.debugger.old.ControlPoint
+import inca.debugger.redesign.{EvaluationPoint, InRule}
 import inca.frontend.functional.core
 import inca.frontend.functional.core.FunctionDef
 import inca.frontend.functional.core.If
@@ -11,7 +11,7 @@ import inca.frontend.functional.core.Pattern
 sealed trait FunctionalControlPoint {
   val fun: FunctionDef
   val point: SourceObject
-  val irPoint: ControlPoint
+  val irPoint: EvaluationPoint
 
   def vars: Iterable[core.Name] = fun.params.map(_.name) ++ fun.body.vars.keys
 
@@ -22,7 +22,7 @@ sealed trait FunctionalControlPoint {
   }
 }
 
-case class FunctionPoint(fun: FunctionDef, point: SourceObject, irPoint: ControlPoint)
+case class FunctionPoint(fun: FunctionDef, point: SourceObject, irPoint: EvaluationPoint)
     extends FunctionalControlPoint {
   override def toString: String =
     if (isFunctionEntry)
@@ -33,13 +33,13 @@ case class FunctionPoint(fun: FunctionDef, point: SourceObject, irPoint: Control
       s"FunctionPoint(${fun.name}, $point)"
 }
 
-case class ConditionPoint(fun: FunctionDef, cond: If, thenBranch: Boolean, irPoint: ControlPoint)
+case class ConditionPoint(fun: FunctionDef, cond: If, thenBranch: Boolean, irPoint: InRule)
     extends FunctionalControlPoint {
   override val point: SourceObject = cond.sourceObject
   override def toString: String =
     s"ConditionPoint(${fun.name}, ${cond.cnd.sourceObject}, $thenBranch)"
 }
-case class MatchPoint(fun: FunctionDef, ma: Match, pat: Pattern, irPoint: ControlPoint)
+case class MatchPoint(fun: FunctionDef, ma: Match, pat: Pattern, irPoint: InRule)
     extends FunctionalControlPoint {
   override val point: SourceObject = pat.sourceObject
   override def toString: String =

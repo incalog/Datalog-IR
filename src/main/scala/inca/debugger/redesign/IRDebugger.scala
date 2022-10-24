@@ -1,15 +1,19 @@
 package inca.debugger.redesign
 
 import inca.backend.ir.Datalog
+import inca.compiler.CompiledDatalogModule
+import inca.runtime.db.DatabaseInput
 
-final class IRDebugger(val module: Datalog.Module) extends Debugger(module) {
+final class IRDebugger(module: CompiledDatalogModule, input: DatabaseInput) extends Debugger {
 
-  override def stepInto(): Unit = stepIntoIR()
-  override def stepOver(): Unit = stepOverIR()
-  override def stepOut(): Unit = ???
+  this.initialize(module)
+  this.initializeDatabaseRuntime(input)
+
+  override def doStepInto(): Boolean = stepIntoIR()
+  override def doStepOver(): Boolean = stepOverIR()
+  override def doStepOut(): Boolean = stepOutIR()
 
   override type Breakpoint = IRBreakpoint
   override def addBreakpoint(bp: Breakpoint): Unit = breakpointHandler.addBreakpoint(bp)
   override def removeBreakpoint(bp: Breakpoint): Unit = breakpointHandler.removeBreakpoint(bp)
-  override def clearBreakpoints(): Unit = breakpointHandler.clearBreakpoints()
 }

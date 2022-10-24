@@ -11,7 +11,7 @@ import inca.compiler.source.ExcerptRelativeRegion
 import inca.compiler.source.SourceObject
 import inca.compiler.CompiledDatalogModule
 import inca.debugger._
-import inca.debugger.old.{AfterList, AtListElem, AtomPoint, BeforeList, BodyPoint, BreakpointIR, CallStack, ControlPoint, Debugger, Frame}
+import inca.debugger.redesign.{BeforeRule, CallStack, Debugger, EvaluationPoint, EvaluationResult, InRule, PredicateEntry, RuleEvaluation}
 import inca.debugger.table.ImmutableTable
 import inca.frontend.functional.compiler.CompiledFunctionalModule
 import inca.frontend.functional.core.BaseLit
@@ -40,19 +40,25 @@ import truechange.JVMURI
 import truechange.URI
 import truediff.Diffable
 
-final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends Debugger {
-  {
-    val pats = compiled.ir.pats.map { pat =>
+object FunctionalDebugger {
+  def prepareModule(module: CompiledFunctionalModule): CompiledDatalogModule = {
+    val pats = module.ir.pats.map { pat =>
       val p = pat.copy().withHints(pat)
       // constructors and selectors may not be inlined, so that we can read values from the database
       if (p.hasHint(DataHints.ConstructorKey) || p.hasHint(DataHints.SelectorKey))
         p.addHint(KeepPattern)
       p
     }
-    val m = compiled.ir.copy(pats = pats)
-    val modified = CompiledDatalogModule(m, compiled.dataModel, compiled.options)
-    super.initialize(modified)
+    val m = module.ir.copy(pats = pats)
+    CompiledDatalogModule(m, module.dataModel, module.options)
   }
+
+}
+
+final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends Debugger {
+
+  super.initialize(FunctionalDebugger.prepareModule(funmodule))
+  super.initializeDatabaseRuntime(DatabaseInput.empty)
 
   // skip bodies representing else-branches when corresponding then-branch was chosen
   private var skipElseBranches: List[mutable.Set[SourceObject]] = List()
@@ -65,12 +71,10 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
 
   private val _controlTraceFrontend: ListBuffer[FunctionalControlPoint] = ListBuffer.empty
   def controlTraceFrontend: Seq[FunctionalControlPoint] = _controlTraceFrontend.toSeq
+  override def stepped(): Unit = currentFunctionalPoint.foreach(_controlTraceFrontend += _)
 
-  override def traceCurrentControlPoint(): Unit = {
-    super.traceCurrentControlPoint()
-    currentFunctionalPoint.foreach(_controlTraceFrontend += _)
-  }
-
+  def getFunction(pat: String): Option[FunctionDef] =
+    predicates.get(pat).flatMap(getFunction)
   def getFunction(pat: Datalog.Pattern): Option[FunctionDef] =
     pat.getHint(SourceConstruct.key) match {
       case Some(SourceConstruct(f: FunctionDef)) => Some(f)
@@ -82,38 +86,31 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
       if (stack.isEmpty)
         None
       else {
-        val cp = stack.top.cp
-        val patPoint = cp.point
-        getFunction(patPoint.pat) match {
-          case Some(fun) =>
-            patPoint.bodies match {
-              case BeforeList =>
-                // start of function
-                Some(FunctionPoint(fun, fun.name.sourceObject, cp))
-              case AtListElem(_, _, BodyPoint(_, atoms)) =>
-                atoms match {
-                  case BeforeList => None
-                  case AtListElem(_, _, AtomPoint(atom)) =>
-                    atom.getHint(SourceConstruct.key) match {
-                      case Some(SourceConstruct(constr: Expression)) =>
-                        expressionPoint(constr).map(FunctionPoint(fun, _, cp))
-                      case Some(SourceConstruct((let: Let, v: String))) =>
-                        let.names.find(_.name == v).map(p => FunctionPoint(fun, p.sourceObject, cp))
-                      case Some(SourceConstruct((m: Match, constr: Pattern))) =>
-                        Some(MatchPoint(fun, m, constr, cp))
-                      case Some(SourceConstruct((cond: If, thenBranch: Boolean))) =>
-                        Some(ConditionPoint(fun, cond, thenBranch, cp))
-                      case _ =>
-                        None
-                    }
-                  case AfterList => None
-                }
-              case AfterList =>
-                // end of function
-                Some(FunctionPoint(fun, fun.sourceObject, cp))
+        val cp = stack.top
+        val fp = getFunction(cp.pred) match {
+          case Some(fun) => cp match {
+            case PredicateEntry(pred, argBindings, predResult) => Some(FunctionPoint(fun, fun.name.sourceObject, cp))
+            case BeforeRule(pred, argBindings, predResult, rules) => None
+            case cp@InRule(pred, argBindings, predResult, current, remainingRules) => current.atoms match {
+              case Nil => None
+              case atom::_ => atom.getHint(SourceConstruct.key) match {
+                case Some(SourceConstruct(constr: Expression)) =>
+                  expressionPoint(constr).map(FunctionPoint(fun, _, cp))
+                case Some(SourceConstruct((let: Let, v: String))) =>
+                  let.names.find(_.name == v).map(p => FunctionPoint(fun, p.sourceObject, cp))
+                case Some(SourceConstruct((m: Match, constr: Pattern))) =>
+                  Some(MatchPoint(fun, m, constr, cp))
+                case Some(SourceConstruct((cond: If, thenBranch: Boolean))) =>
+                  Some(ConditionPoint(fun, cond, thenBranch, cp))
+                case _ =>
+                  None
+              }
             }
+            case EvaluationResult(pred, predResult) => Some(FunctionPoint(fun, fun.sourceObject, cp))
+          }
           case None => None
         }
+        fp
       }
     }
 
@@ -131,7 +128,7 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     ): ImmutableTable[Value] = {
     var vars = fp.vars.map(_.name).toList.sorted.distinct
     if (fp.isFunctionExit)
-      vars :+= fp.irPoint.point.pat.params.last.name
+      vars :+= predicates(fp.irPoint.pred).params.last.name
     val rows = for (row <- bound.entries) yield {
       vars.map { v =>
         val ix = bound.columnIndex(v)
@@ -149,118 +146,60 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
 
   def entry(mainFun: String, args: meta.Term*): Unit = {
     val (vals, debugVals) = args.map { t =>
-      val syntax = s"{import ${tableOps.getDefinitionObjSym}.${compiled.name}._; ${t.syntax}}"
-      tableOps.compileAndLoadScala[Any](syntax) match {
+      val syntax = s"{import ${atomOps.getDefinitionObjSym}.${module.name}._; ${t.syntax}}"
+      atomOps.compileAndLoadScala[Any](syntax) match {
         case diff: Diffable =>
-          updateExtensionalData(DatabaseInput(diff.loadEdits, Map(), Map()))
+          atomOps.runtime.engine.delayUpdatePropagation { () =>
+            atomOps.runtime.db.processDatabaseInput(DatabaseInput(diff.loadEdits, Map(), Map()))
+          }
           diff.foreachTree(t => uris += t.uri -> t)
           (diff.uri, URIValue(diff.uri))
         case v =>
           (v, ScalaValue(v))
       }
     }.unzip
-    database.insert(demandPatternExtensionalPrefix + mainFun, Tuples.flatTupleOf(vals: _*))
+    atomOps.runtime.db.insert(demandPatternExtensionalPrefix + mainFun, Tuples.flatTupleOf(vals: _*))
 
-    val pattern = compiled.ir.patternMap(mainFun)
+    val pattern = predicates(mainFun)
     val adorn = pattern.hints(MagicSetHints.Main.key).asInstanceOf[MagicSetHints.Main].adorn
     val inputParams = pattern.params.zip(adorn).filter(_._2).map(_._1.name)
     val inputTable = ImmutableTable[Value](inputParams, Seq(debugVals))
     super.entry(mainFun, inputTable)
   }
 
-  def getFunctionalCallStack: List[Name] = callStack.frames.flatMap { fr =>
-    getFunction(fr.cp.point.pat).map(_.name)
+  def getFunctionalCallStack: List[Name] = callStack.frames.flatMap { ep =>
+    getFunction(ep.pred).map(_.name)
   }
 
-  def stepInto(): Unit = {
-    var fp: Option[FunctionalControlPoint] = None
-    // we cannot reach breakpoint that has no functional control point
-    while (fp.isEmpty) {
-      stepIntoIR()
-      if (callStack.isEmpty)
-        return
+  protected def stepToFunctionalPoint(step: () => Boolean): Boolean = {
+    var b = step()
+    var fp: Option[FunctionalControlPoint] = currentFunctionalPoint
+    while (b && fp.isEmpty && !isFinished) {
+      b = step()
       fp = currentFunctionalPoint
     }
-    stepOverConditionPoint(fp.get)
+    if (b)
+      stepOverConditionPoint(fp.get)
+    b
   }
 
-  override def stepOver(): Unit = {
-    currentFunctionalPoint match {
-      case Some(fp) =>
-        if (fp.isFunctionExit) {
-          stepInto()
-        } else if (fp.isFunctionEntry) {
-          val fbp = FunctionalBreakpoint(FunctionExit(fp.fun.name.name))
-          val irBPs = FunctionalBreakpoint.convert(fbp)(compiled.ir.patternMap).map(_.cp)
-          resumeUntilPointsInCurrentFrame(irBPs)
-        } else {
-          fp.irPoint.point.atom match {
-            case Some(Datalog.Call(f, _, _, _)) =>
-              val pattern = compiled.ir.patternMap(f)
-              if (!pattern.hasHint(DataHints.ConstructorKey)) {
-                val irCP = ControlPoint.patternExit(pattern)
-                // we want to step to the pattern exit of the called pattern
-                val stackHeight = callStack.size + 1
-                val break = BreakpointIR(irCP, () => callStack.size == stackHeight)
-                addBreakpointIR(break)
-                resume()
-                removeBreakpointIR(break)
-              }
-              // return from function or read constructor value
-              stepInto()
-            case _ =>
-              stepInto()
-          }
-        }
-      case None =>
-        throw IllegalDebugStateException(
-          "Functional debugger cannot be at non-functional control point"
-        )
-    }
-  }
+  override protected def doStepInto(): Boolean =
+    stepToFunctionalPoint(() => stepIntoIR())
 
-  private def resumeUntilPointsInCurrentFrame(spotAt: Seq[ControlPoint]): Unit = {
-    val cps = spotAt.map(currentFrameBreakpoint)
-    cps.foreach(addBreakpointIR)
-    resume()
-    cps.foreach(removeBreakpointIR)
-  }
+  override protected def doStepOver(): Boolean =
+    stepToFunctionalPoint(() => stepOverIR())
 
-  override def stepOut(): Unit = {
-    currentFunctionalPoint match {
-      case Some(fp) =>
-        if (fp.isFunctionExit) {
-          stepInto()
-        } else {
-          val fbp = FunctionalBreakpoint(FunctionExit(fp.fun.name.name))
-          // function exit translates to only one break point
-          val irBP = FunctionalBreakpoint.convert(fbp)(compiled.ir.patternMap).head
-          resumeUntilPointInCurrentFrame(irBP.cp)
-          // we need to stepInto until we reach a valid functional control point
-          stepInto()
-        }
-      case None =>
-        throw IllegalDebugStateException(
-          "Functional debugger cannot be at non-functional control point"
-        )
-    }
-  }
-
-  override def resume(): Unit = {
-    stepInto()
-    while (!isFinished && !isAtBreakpoint) {
-      stepInto()
-    }
-  }
+  override protected  def doStepOut(): Boolean =
+    stepToFunctionalPoint(() => stepOutIR())
 
   override type Breakpoint = FunctionalBreakpoint
   override def addBreakpoint(bp: Breakpoint): Unit = {
-    val irBPs = FunctionalBreakpoint.convert(bp)(compiled.ir.patternMap)
-    irBPs.foreach(addBreakpointIR)
+    val irBPs = FunctionalBreakpoint.convert(bp)(predicates)
+    irBPs.foreach(breakpointHandler.addBreakpoint)
   }
   override def removeBreakpoint(bp: Breakpoint): Unit = {
-    val irBPs = FunctionalBreakpoint.convert(bp)(compiled.ir.patternMap)
-    irBPs.foreach(removeBreakpointIR)
+    val irBPs = FunctionalBreakpoint.convert(bp)(predicates)
+    irBPs.foreach(breakpointHandler.removeBreakpoint)
   }
 
   @tailrec
@@ -268,31 +207,32 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     case _: FunctionPoint | _: MatchPoint => // nothing
     case condp: ConditionPoint =>
       _controlTraceFrontend.remove(_controlTraceFrontend.size - 1)
-      val currentPat = condp.irPoint.point.pat.name
-      val currentBody = condp.irPoint.point.bodyIndex
+      val conditionedPattern = condp.irPoint.pred
+      val conditionedBody = condp.irPoint.current.ruleIdx
       stepIntoIR()
 
       if (!condp.thenBranch) {
         // we're at the else branch, continue
-      } else if (
-        currentPattern.name == currentPat && frame.cp.point.bodyIndex == currentBody && !frame.bodyTable.isEmpty
-      ) {
-        // we're in the same body and didn't fail => condition succeeded
-        if (!condp.fun.isRelation)
-          skipElseBranches.head += condp.cond.sourceObject
       } else {
-        // condition failed and we were at the then branch => step to else branch
-        if (!condp.fun.isRelation) {
-          val skipToElse: SourceConstruct[_] => Boolean = {
-            case SourceConstruct((cond: If, false)) => cond.sourceObject == condp.point
-            case _ => false
-          }
-          skipAheadTo = Some(skipToElse) :: skipAheadTo.tail
+        callStack.top match {
+          case InRule(`conditionedPattern`, _, _, RuleEvaluation(res, `conditionedBody`, _), _) if !res.isEmpty =>
+            // we're in the same body and didn't fail => condition succeeded
+            if (!condp.fun.isRelation)
+              skipElseBranches.head += condp.cond.sourceObject
+          case _ =>
+            // condition failed and we were at the then branch => step to else branch
+            if (!condp.fun.isRelation) {
+              val skipToElse: SourceConstruct[_] => Boolean = {
+                case SourceConstruct((cond: If, false)) => cond.sourceObject == condp.point
+                case _ => false
+              }
+              skipAheadTo = Some(skipToElse) :: skipAheadTo.tail
+            }
         }
       }
       currentFunctionalPoint match {
         case Some(fp2) => stepOverConditionPoint(fp2)
-        case None => stepInto()
+        case None => doStepInto()
       }
   }
 
@@ -312,26 +252,14 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     }
   }
 
-  override def doBodyEntry(frame: Frame, cp: ControlPoint): Unit = {
-    val skip = skipBody(cp.point.body.get)
-    if (skip) {
-      val next = cp.stepOver.get
-      callStack.update(Frame(next, frame.argsTable, ImmutableTable.empty(Seq())))
-    } else {
-      super.doBodyEntry(frame, cp)
-      skipAheadTo.head.foreach {
-        // needed? stepOverIR()
-        doSkipAheadTo
-      }
-    }
-  }
-
   @tailrec
   private def doSkipAheadTo(stopCond: SourceConstruct[_] => Boolean): Unit = {
-    val stop = frame.cp.point.atom.forall(
-      _.getHint(SourceConstruct.key).exists(h => stopCond(h.asInstanceOf[SourceConstruct[_]]))
-    )
-    if (!stop) {
+    val stop = callStack.top match {
+      case InRule(_, _, _, RuleEvaluation(_, _, atom::_), _) =>
+        atom.getHint(SourceConstruct.key).exists(h => stopCond(h.asInstanceOf[SourceConstruct[_]]))
+      case _ => false
+    }
+    if (!stop && !isFinished) {
       stepOverIR()
       // hide last point
       currentFunctionalPoint.foreach { _ =>
@@ -341,67 +269,134 @@ final class FunctionalDebugger(val compiled: CompiledFunctionalModule) extends D
     }
   }
 
-  override protected def stepIntoIRCall(frame: Frame, atom: Datalog.Atom): Unit = atom match {
-    case call: Datalog.Call =>
-      val pattern = compiled.ir.patternMap(call.name)
-      if (pattern.hasHint(DataHints.ConstructorKey) || pattern.hasHint(DataHints.SelectorKey)) {
-        // constructor or selector call
-        val argsTable = tableOps.prepareArgTableOfCall(frame, pattern, call.args)
-        val data = readDatabase(call.name, argsTable)
-        val nextTables =
-          tableOps.transitionReturnCallTables(frame, pattern.params.map(_.name), data)
-        val next = frame.cp.stepOver.get
-
-        controlPointFrontend match {
-          case MatchPoint(fun, ma, pat, _) if !fun.isRelation =>
-            val patObj = pat.sourceObject
-            val nextPats = ma.cases.dropWhile(_._1.sourceObject != patObj).tail
-            if (nextTables._2.isEmpty) {
-              // pattern failed => go to next pattern
-              nextPats.headOption.foreach { next =>
-                val skipToNextPat: SourceConstruct[_] => Boolean = {
-                  case SourceConstruct((m: Match, p: Pattern)) =>
-                    m.sourceObject == ma.sourceObject && p.sourceObject == next._1.sourceObject
-                  case _ => false
-                }
-                skipAheadTo = Some(skipToNextPat) :: skipAheadTo.tail
-              }
-            } else {
-              // pattern succeeded => skip other patterns
-              if (nextPats.nonEmpty)
-                skipAlternativePatterns.head += ma.sourceObject -> nextPats.map(
-                  _._1.sourceObject
-                ).toSet
-            }
-          case _ => // nothing
-        }
-
-        callStack.update(Frame(next, nextTables))
-      } else
-        super.stepIntoIRCall(frame, atom)
-    case _ => super.stepIntoIRCall(frame, atom)
+  override def stepIntoIR(): Boolean = {
+    val top = callStack.top
+    top match {
+      case PredicateEntry(_, _, _) =>
+        fpIntoPredicate(top)
+      case br@BeforeRule(_, _, _, rules) =>
+        if (rules.nonEmpty) fpIntoFirstRule(br)
+        else outofPredicate(top)
+      case ir@InRule(_, _, _, RuleEvaluation(_, _, atoms), rules) =>
+        if (atoms.nonEmpty) fpNextAtom(top)
+        else if (rules.nonEmpty) fpNextRule(ir)
+        else lastRule(top)
+      case EvaluationResult(_, _) =>
+        fpEvalResult(top)
+    }
+    stepped()
+    true
   }
 
-  override def doPatternEntry(cp: ControlPoint): Unit = {
+  private def fpIntoFirstRule(ep: BeforeRule): Unit = {
+    val BeforeRule(p, argBindings, predResult, rule::rules) = ep
+    val skip = skipBody(rule)
+    if (skip) {
+      val next = InRule(p, argBindings, predResult, RuleEvaluation(argBindings, 0, rule.atoms), rules)
+      callStack.update(next)
+      stepIntoIR()
+      if (rules.isEmpty)
+        lastRule(next)
+      else
+        nextRule(next)
+    } else {
+      super.intoFirstRule(ep)
+      skipAheadTo.head.foreach {
+        // needed? stepOverIR()
+        doSkipAheadTo
+      }
+    }
+  }
+
+  @tailrec
+  private def fpNextRule(ep: InRule): Unit = {
+    val InRule(_, _, _, _, rule::rules) = ep
+    val skip = skipBody(rule)
+    if (skip) {
+      val next = ep.copy(remainingRules = rules)
+      if (rules.isEmpty)
+        lastRule(next)
+      else
+        fpNextRule(next)
+    } else {
+      super.nextRule(ep)
+      breakpointHandler.withBreakpoints(Seq.empty) {
+        skipAheadTo.head.foreach {
+          // needed? stepOverIR()
+          doSkipAheadTo
+        }
+      }
+    }
+  }
+
+  private def fpNextAtom(cp: EvaluationPoint): Unit = {
+    val InRule(p, argBindings, predResult, RuleEvaluation(ruleResult, ruleIdx, atoms), rules) = cp
+    val atomsHead = atoms.head
+    val atomsTail = atoms.tail
+    atomsHead match {
+      case call: Datalog.Call =>
+        val pattern = predicates(call.name)
+        if (pattern.hasHint(DataHints.ConstructorKey) || pattern.hasHint(DataHints.SelectorKey)) {
+          // constructor or selector call
+          val argsTable = prepareArgBindings(ruleResult, call.name, call.args)
+          val calleeResult = state.readBottomUp(call.name, argsTable)
+          val params = predicates(call.name).params.map(_.name)
+          val nextTable = opJoinBodyAndPred(ruleResult, call.args, params, calleeResult, (x, y) => x.join(y))
+
+          controlPointFrontend match {
+            case MatchPoint(fun, ma, pat, _) if !fun.isRelation =>
+              val patObj = pat.sourceObject
+              val nextPats = ma.cases.dropWhile(_._1.sourceObject != patObj).tail
+              if (nextTable.isEmpty) {
+                // pattern failed => go to next pattern
+                nextPats.headOption.foreach { next =>
+                  val skipToNextPat: SourceConstruct[_] => Boolean = {
+                    case SourceConstruct((m: Match, p: Pattern)) =>
+                      m.sourceObject == ma.sourceObject && p.sourceObject == next._1.sourceObject
+                    case _ => false
+                  }
+                  skipAheadTo = Some(skipToNextPat) :: skipAheadTo.tail
+                }
+              } else {
+                // pattern succeeded => skip other patterns
+                if (nextPats.nonEmpty)
+                  skipAlternativePatterns.head += ma.sourceObject -> nextPats.map(
+                    _._1.sourceObject
+                  ).toSet
+              }
+            case _ => // nothing
+          }
+          val nextRuleEval = RuleEvaluation(nextTable, ruleIdx, atomsTail)
+          val next = InRule(p, argBindings, predResult, nextRuleEval, rules)
+          callStack.update(next)
+        } else {
+          super.nextAtom(cp)
+        }
+      case _ =>
+        super.nextAtom(cp)
+    }
+  }
+
+  private def fpIntoPredicate(cp: EvaluationPoint): Unit = {
     skipElseBranches = mutable.Set[SourceObject]() :: skipElseBranches
     skipAheadTo = None :: skipAheadTo
     skipAlternativePatterns =
       mutable.Map[SourceObject, Set[SourceObject]]() :: skipAlternativePatterns
-    super.doPatternEntry(cp)
+    super.intoPredicate(cp)
   }
 
-  override def doPatternExit(frame: Frame): Unit = {
+  private def fpEvalResult(cp: EvaluationPoint): Unit = {
     skipElseBranches = skipElseBranches.tail
     skipAheadTo = skipAheadTo.tail
     skipAlternativePatterns = skipAlternativePatterns.tail
-    super.doPatternExit(frame)
+    super.evalResult(cp)
   }
 
   def controlPointFrontend: FunctionalControlPoint =
     currentFunctionalPoint.get
 
   def currentDebuggerInfo(numOfRowsShown: Int = Int.MaxValue): String = {
-    val sb = new StringBuilder
+    val sb = new mutable.StringBuilder
     sb ++= currentCallStack += '\n'
     sb ++= currentBindings(numOfRowsShown) += '\n'
     currentCodeFunction.lines().map("  |  " + _).forEach(line => sb ++= line += '\n')

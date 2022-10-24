@@ -28,7 +28,7 @@ import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
-class AtomTableOps(runtime: DatalogRuntime, indexedTableFactory: IndexedTableFactory[Value]) {
+class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTableFactory[Value]) {
 
   // Needed to execute scala code via reflection
   private lazy val scalaCompiler = new Scala.ScalaCompiler()
@@ -37,8 +37,8 @@ class AtomTableOps(runtime: DatalogRuntime, indexedTableFactory: IndexedTableFac
     q"object O {..${runtime.compiled.psystemSource.stats}}".syntax
   }
 
-  private def getDefinitionObjSym: String = definitionObjSym
-  private def compileAndLoadScala[A](source: String): A = scalaCompiler.compileAndLoadScala(source)
+  def getDefinitionObjSym: String = definitionObjSym
+  def compileAndLoadScala[A](source: String): A = scalaCompiler.compileAndLoadScala(source)
 
   def atom(t: ImmutableTable[Value], atom: Datalog.Atom): ImmutableTable[Value] = atom match {
     case c @ Datalog.Compare(Datalog.EqComparator, _, _) => eq(t, c)

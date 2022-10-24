@@ -6,6 +6,7 @@ import inca.debugger.Value
 
 trait EvaluationPoint {
   def pred: String
+  def isEmpty: Boolean = false
 }
 object EvaluationPoint {
   def toTableless(ep: EvaluationPoint): EvaluationPoint = ep match {
@@ -44,8 +45,12 @@ case class InRule(
     predResult: ImmutableTable[Value],
     current: RuleEvaluation,
     remainingRules: Seq[Datalog.Body])
-    extends EvaluationPoint
+    extends EvaluationPoint {
+  override def isEmpty: Boolean = current.ruleResult.isEmpty
+}
 
 case class RuleEvaluation(ruleResult: ImmutableTable[Value], ruleIdx: Int, atoms: Seq[Datalog.Atom])
 
-case class EvaluationResult(pred: String, predResult: ImmutableTable[Value]) extends EvaluationPoint
+case class EvaluationResult(pred: String, predResult: ImmutableTable[Value]) extends EvaluationPoint {
+  override def isEmpty: Boolean = predResult.isEmpty
+}

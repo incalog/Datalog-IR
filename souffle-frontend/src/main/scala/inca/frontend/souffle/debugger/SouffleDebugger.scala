@@ -9,7 +9,7 @@ import inca.compiler.source.SourceLocationList
 import inca.compiler.source.SourceObject
 import inca.debugger.table.ImmutableTable
 import inca.debugger.Value
-import inca.debugger.old.{AfterList, AtListElem, AtomPoint, BeforeList, CallStack, ControlPoint, Debugger}
+import inca.debugger.redesign.Debugger
 import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.frontend.souffle.Syntax.Expression
 import inca.frontend.souffle.Syntax.Input

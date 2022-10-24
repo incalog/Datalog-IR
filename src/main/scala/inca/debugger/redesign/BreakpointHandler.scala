@@ -41,13 +41,65 @@ class BreakpointHandler(dependencyGraph: DependencyGraph) {
     predsWithBreakpoint.clear()
   }
 
+  def withBreakpoints[A](bps: Seq[IRBreakpoint])(f: => A): A = {
+    val snapBreakpoints = breakpoints
+    clearBreakpoints()
+    bps.foreach(addBreakpoint)
+    try f finally {
+      clearBreakpoints()
+      snapBreakpoints.foreach(addBreakpoint)
+    }
+  }
+
   def isAtBreakpoint(evalPoint: EvaluationPoint): Boolean = {
     val bps = evalPointToBreakpoints.get(EvaluationPoint.toTableless(evalPoint))
     bps.exists(_.cond())
   }
 
-  def breakpointReachable(evalPoint: EvaluationPoint): Boolean = {
-    val reachable = dependencyGraph.transitvelyReachable(evalPoint.pred)
-    predsWithBreakpoint.exists(reachable.contains)
+  def breakpointReachableFromCallee(callee: String): Boolean = {
+    val transitivelyReachable = dependencyGraph.transitvelyReachable(callee)
+    predsWithBreakpoint.exists(transitivelyReachable.contains)
+  }
+
+  def breakpointReachableInPredicate(evalPoint: EvaluationPoint, considerCyclic: Boolean): Boolean = {
+    var transitivelyReachable = dependencyGraph.transitvelyReachable(evalPoint.pred)
+    if (considerCyclic)
+      transitivelyReachable += evalPoint.pred
+    else
+      transitivelyReachable -= evalPoint.pred
+    if (predsWithBreakpoint.exists(transitivelyReachable.contains))
+      return true
+
+    val samePredBreakpoints = breakpoints.filter(_.stopAt.pred == evalPoint.pred)
+    samePredBreakpoints.foreach {
+      case IRBreakpoint(EvaluationResult(_, _), _) =>
+        // evaluation result breakpoint is always reachable
+        return true
+      case _ => // nothing
+    }
+
+    if (samePredBreakpoints.nonEmpty) {
+      evalPoint match {
+        case _: PredicateEntry =>
+          // any breakpoint of this predicate is reachable from predicate entry
+          return true
+        case _: BeforeRule =>
+          // any breakpoint of this predicate is reachable from predicate entry
+          return true
+        case InRule(_, _, _, current, remainingRules) =>
+          samePredBreakpoints.foreach {
+            case IRBreakpoint(InRule(_, _, _, currentBreak, remainingRulesBreak), _) =>
+              if (remainingRulesBreak.size < remainingRules.size)
+                return true
+              if (remainingRulesBreak.size == remainingRules.size && currentBreak.atoms.size < current.atoms.size)
+                return true
+            case _ => // nothing
+          }
+        case _: EvaluationResult =>
+          // nothing
+      }
+    }
+
+    false
   }
 }

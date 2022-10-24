@@ -44,7 +44,6 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     _engine.delayUpdatePropagation(() => {
       _database.processEditScript(es)
     })
-    debugger.setDatabaseRuntime(_engine, _database)
   }
 
   def assertControlTraceSize(
@@ -61,6 +60,8 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       println(debugger.currentDebuggerInfo())
       debugger.stepInto()
     }
+    if (expected != debugger.controlTraceFrontend.size)
+      debugger.controlTraceFrontend.foreach(println)
     assertResult(expected)(debugger.controlTraceFrontend.size)
   }
 
@@ -69,7 +70,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       exp: Expression,
       occurrence: Int = 0
     ): FunctionalDebugger => FunctionalBreakpoint = debugger => {
-    FunctionalBreakpoint.forExpression(debugger.compiled.fun, f, exp, occurrence)
+    FunctionalBreakpoint.forExpression(debugger.funmodule.fun, f, exp, occurrence)
   }
 
   def createBreakpointOfPattern(
@@ -77,7 +78,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       p: Pattern,
       occurrence: Int = 0
     ): FunctionalDebugger => FunctionalBreakpoint = debugger => {
-    FunctionalBreakpoint.forPattern(debugger.compiled.fun, f, p, occurrence)
+    FunctionalBreakpoint.forPattern(debugger.funmodule.fun, f, p, occurrence)
   }
 
   def createBreakpointOfBinding(
@@ -85,7 +86,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       name: String,
       occurrence: Int = 0
     ): FunctionalDebugger => FunctionalBreakpoint = debugger => {
-    FunctionalBreakpoint.forBinding(debugger.compiled.fun, f, name, occurrence)
+    FunctionalBreakpoint.forBinding(debugger.funmodule.fun, f, name, occurrence)
   }
 
   def assertBreakpoints(
@@ -103,11 +104,13 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       debugger.addBreakpoint(bp(debugger))
     }
     assert(!debugger.isFinished)
+    println(debugger.currentDebuggerInfo())
     (0 until expected).foreach { _ =>
       debugger.resume()
       println(debugger.currentDebuggerInfo())
       assert(!debugger.isFinished)
     }
+
     debugger.resume()
     assert(debugger.isFinished)
   }

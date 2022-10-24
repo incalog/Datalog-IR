@@ -4,7 +4,7 @@ import inca.backend.hints.DebugHints
 import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.ir.Datalog
 import inca.compiler.source.SourceObject
-import inca.debugger.old.{AtListElem, AtomPoint, BodyPoint, BreakpointIR, ControlPoint, PatternPoint}
+import inca.debugger.redesign.{EvaluationPoint, EvaluationResult, IRBreakpoint, InRule, PredicateEntry, RuleEvaluation}
 import inca.frontend.functional.core.Collect
 import inca.frontend.functional.core.Expression
 import inca.frontend.functional.core.FunctionDef
@@ -24,14 +24,12 @@ object FunctionalBreakpoint {
   def convert(
       fbp: FunctionalBreakpoint
     )(implicit patterns: Map[String, Datalog.Pattern]
-    ): Seq[BreakpointIR] = {
-    val cps = fbp.pos match {
+    ): Seq[IRBreakpoint] = {
+    val cps: Seq[EvaluationPoint] = fbp.pos match {
       case FunctionEntry(f) =>
-        val pattern = patterns(f)
-        Seq(ControlPoint.patternEntry(pattern))
+        Seq(PredicateEntry(f, null, null))
       case FunctionExit(f) =>
-        val pattern = patterns(f)
-        Seq(ControlPoint.patternExit(pattern))
+        Seq(EvaluationResult(f, null))
       case InFunction(so) =>
         // collects atoms to stop at
         val options = patterns.values.flatMap { pat =>
@@ -61,12 +59,11 @@ object FunctionalBreakpoint {
         options.map { case (pat, body, atom) =>
           val bodyIdx = pat.bodies.indexOf(body)
           val atomIdx = body.atoms.indexOf(atom)
-          val atomPoint = AtomPoint(atom)
-          val bodyPoint = BodyPoint(body, AtListElem(body.atoms.toIndexedSeq, atomIdx, atomPoint))
-          ControlPoint(PatternPoint(pat, AtListElem(pat.bodies.toIndexedSeq, bodyIdx, bodyPoint)))
+          val re = RuleEvaluation(null, bodyIdx, body.atoms.drop(atomIdx))
+          InRule(pat.name, null, null, re, pat.bodies.drop(bodyIdx + 1))
         }
     }
-    cps.map(BreakpointIR.apply)
+    cps.map(IRBreakpoint.apply)
   }
 
   def forExpression(
