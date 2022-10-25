@@ -26,7 +26,7 @@ trait Debugger extends DebuggerAPI {
 
   // ****** global static information ******//
   var module: CompiledDatalogModule = _
-  def initialize(module: CompiledDatalogModule): Unit = {
+  def initialize(module: CompiledModule): Unit = {
     this.module = CompiledDatalogModule(
       module.ir,
       module.dataModel,

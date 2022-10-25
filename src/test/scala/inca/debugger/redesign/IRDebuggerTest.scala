@@ -64,15 +64,13 @@ class IRDebuggerTest extends AnyFunSuite {
       name: String,
       args: ImmutableTable[Value]
     ): Assertion = {
-    val evalResult = debugger.callStack.top.asInstanceOf[EvaluationResult]
-    val derived = evalResult.predResult
+    val derived = debugger.callStack.top.predResult
     val expected = debugger.state.readBottomUp(name, args)
     assertResult(expected)(derived)
   }
   def assertCurrentBody(debugger: Debugger, expected: ImmutableTable[Value]): Assertion = {
     assert(debugger.callStack.top.isInstanceOf[InRule])
-    val evalResult = debugger.callStack.top.asInstanceOf[InRule]
-    val derived = evalResult.current.ruleResult
+    val derived = debugger.callStack.top.predResult
     assertResult(expected)(derived)
   }
 

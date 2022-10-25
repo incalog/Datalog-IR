@@ -7,6 +7,7 @@ import inca.debugger.Value
 trait EvaluationPoint {
   def pred: String
   def isEmpty: Boolean = false
+  def predResult: ImmutableTable[Value]
 }
 object EvaluationPoint {
   def toTableless(ep: EvaluationPoint): EvaluationPoint = ep match {

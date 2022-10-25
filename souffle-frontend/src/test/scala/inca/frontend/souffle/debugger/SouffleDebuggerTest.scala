@@ -10,6 +10,7 @@ import inca.frontend.souffle.lowering.SouffleToDatalogIR
 import inca.frontend.souffle.parser.Parser
 import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.Syntax.Name
+import inca.frontend.souffle.executor.SouffleExecutor.loadInputs
 
 import java.nio.file.Path
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
@@ -64,20 +65,12 @@ class SouffleDebuggerTest extends AnyFunSuite {
 
   def initDebugger(
       prog: Source,
-      main: String,
-      inputs: Map[Syntax.RuleSignature, String]
+      inputs: Map[Syntax.RuleSignature, String],
+      options: SouffleOptions = SouffleOptions()
     ): SouffleDebugger = {
-    val runtime = SouffleExecutor.loadAnalysis(prog)
-    runtime.execute(main, inputs, delimiter = ";")
-
-    val debugger = new SouffleDebugger(runtime.compiled)
-    debugger.setDatabaseRuntime(runtime.engine, runtime.feed)
-    debugger
-  }
-
-  def initDebugger(loaded: SouffleExecutor.Loaded): SouffleDebugger = {
-    val debugger = new SouffleDebugger(loaded.compiled)
-    debugger.setDatabaseRuntime(loaded.engine, loaded.feed)
+    val module = SouffleExecutor.compileSouffle(prog, options)
+    val input = SouffleExecutor.loadInputs(inputs, module, ";")
+    val debugger = new SouffleDebugger(module, input)
     debugger
   }
 
@@ -86,8 +79,8 @@ class SouffleDebuggerTest extends AnyFunSuite {
       args: ImmutableTable[Value],
       debugger: SouffleDebugger
     ): Assertion = {
-    val derived = debugger.relation(rel, args)
-    val bottomUp = debugger.readDatabase(rel, args)
+    val derived = debugger.callStack.top.predResult
+    val bottomUp = debugger.state.readBottomUp(rel, args)
     assertResult(bottomUp)(derived)
   }
 
@@ -108,7 +101,6 @@ class SouffleDebuggerTest extends AnyFunSuite {
 
     val debugger = initDebugger(
       SourceString(subclassTransitiveClosure),
-      "Superclass",
       Map(directsuperclassSig -> superclasses)
     )
     debugger.entry("Superclass", ImmutableTable.unit[Value]())
@@ -137,7 +129,6 @@ class SouffleDebuggerTest extends AnyFunSuite {
 
     val debugger = initDebugger(
       SourceString(subclassTransitiveClosure),
-      "Superclass",
       Map(directsuperclassSig -> superclasses)
     )
     val debuggerInput = ImmutableTable[Value](Seq("a"), Seq(Seq(ScalaValue("A"))))
@@ -168,7 +159,6 @@ class SouffleDebuggerTest extends AnyFunSuite {
 
     val debugger = initDebugger(
       SourceString(subclassTransitiveClosure),
-      "Superclass",
       Map(directsuperclassSig -> superclasses)
     )
     val debuggerInput = ImmutableTable[Value](Seq("a"), Seq(Seq(ScalaValue("A"))))
@@ -199,7 +189,6 @@ class SouffleDebuggerTest extends AnyFunSuite {
 
     val debugger = initDebugger(
       SourceString(subclassTransitiveClosure),
-      "Superclass",
       Map(directsuperclassSig -> superclasses)
     )
     debugger.entry("Superclass", ImmutableTable.unit[Value]())
@@ -226,7 +215,7 @@ class SouffleDebuggerTest extends AnyFunSuite {
       output = false
     )
 
-    val debugger = initDebugger(SourceString(pathProg), "path", Map(edgeSig -> edges))
+    val debugger = initDebugger(SourceString(pathProg), Map(edgeSig -> edges))
     debugger.entry("path", ImmutableTable.unit[Value]())
     while (!debugger.isFinished) {
       println(debugger.currentDebuggerInfo())
@@ -235,30 +224,24 @@ class SouffleDebuggerTest extends AnyFunSuite {
     assertExpectedResult("path", ImmutableTable.unit[Value](), debugger)
   }
 
-  lazy val pointsToRuntime: SouffleExecutor.Loaded = {
+  def pointsToDebugger: SouffleDebugger = {
     val benchmarkPath = "souffle-frontend/benchmark"
     val file = Path.of(s"$benchmarkPath/self-contained.dl")
     val factsDir = s"$benchmarkPath/minijavac"
-    val loaded = SouffleExecutor.loadAnalysis(
-      SourceFile(file),
-      SouffleOptions(mode = DRedReteBackendFactory.INSTANCE, useEditScriptsForInput = false)
-    )
-    val matches = loaded.execute("VarPointsTo", factsDir)
-    println(matches.size)
-    loaded
+    val module = SouffleExecutor.compileSouffle(SourceFile(file), SouffleOptions(mode = DRedReteBackendFactory.INSTANCE))
+    val input = SouffleExecutor.loadInputs(factsDir, module)
+    val debugger = new SouffleDebugger(module, input)
+    debugger
   }
 
-  lazy val pointsToDebugger: SouffleDebugger = initDebugger(pointsToRuntime)
 
-//  test("var points to analysis") {
-//    val debugger = pointsToDebugger
-//    val args = ImmutableTable.unit[Value]()
-//    // val args = ImmutableTable[Value](Seq("?var"), Seq(Seq(ScalaValue("x"))))
-//    debugger.entry("VarPointsTo", args)
-//    while (!debugger.isFinished) {
-//      // println(debugger.currentDebuggerInfo)
-//      debugger.stepInto()
-//    }
-//    // println(debugger.currentDebuggerInfo)
-//  }
+  test("var points to analysis") {
+    val debugger = pointsToDebugger
+    val args = ImmutableTable.unit[Value]()
+    // val args = ImmutableTable[Value](Seq("?var"), Seq(Seq(ScalaValue("x"))))
+    debugger.entry("VarPointsTo", args)
+    debugger.resume()
+    assert(debugger.isFinished)
+    // println(debugger.currentDebuggerInfo)
+  }
 }

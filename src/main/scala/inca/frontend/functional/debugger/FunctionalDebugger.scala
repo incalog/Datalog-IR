@@ -9,7 +9,7 @@ import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExt
 import inca.compiler.source.ExcerptAbsoluteRegion
 import inca.compiler.source.ExcerptRelativeRegion
 import inca.compiler.source.SourceObject
-import inca.compiler.CompiledDatalogModule
+import inca.compiler.{CompiledDatalogModule, CompiledModule}
 import inca.debugger._
 import inca.debugger.redesign.{BeforeRule, CallStack, Debugger, EvaluationPoint, EvaluationResult, InRule, PredicateEntry, RuleEvaluation}
 import inca.debugger.table.ImmutableTable
@@ -41,7 +41,7 @@ import truechange.URI
 import truediff.Diffable
 
 object FunctionalDebugger {
-  def prepareModule(module: CompiledFunctionalModule): CompiledDatalogModule = {
+  def prepareModule(module: CompiledFunctionalModule): CompiledModule = {
     val pats = module.ir.pats.map { pat =>
       val p = pat.copy().withHints(pat)
       // constructors and selectors may not be inlined, so that we can read values from the database
@@ -173,13 +173,13 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
 
   protected def stepToFunctionalPoint(step: () => Boolean): Boolean = {
     var b = step()
-    var fp: Option[FunctionalControlPoint] = currentFunctionalPoint
-    while (b && fp.isEmpty && !isFinished) {
+    while (b && !isFinished && !isAtBreakpoint) {
+      if (currentFunctionalPoint.isDefined) {
+        stepOverConditionPoint(currentFunctionalPoint.get)
+        return b
+      }
       b = step()
-      fp = currentFunctionalPoint
     }
-    if (b)
-      stepOverConditionPoint(fp.get)
     b
   }
 
