@@ -4,7 +4,7 @@ class A {
   def this() = {}
 
   def someSet(): Set[Int] = {
-    return [1, 2, 3]
+    return Set(1, 2, 3)
   }
 
   def doSomething(as: Set[Int]): Set[Int] = {

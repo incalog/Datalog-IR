@@ -244,7 +244,7 @@ trait Parser {
     inParentheses(seq0(P.defer(expr), min = 2)).mapWithLoc(TupleExpr(_))
 
   protected[frontend] lazy val setExpr: P[SetExpr] =
-    inBrackets(seq0(P.defer(expr), min = 1)).mapWithLoc(SetExpr)
+    keyword(SET) *> inParentheses(seq0(P.defer(expr), min = 1)).mapWithLoc(SetExpr)
 
   private[frontend] lazy val nestedAccessStartExpr: P[Expression] =
     typeCastExpr |

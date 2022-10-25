@@ -16,7 +16,7 @@ class Num {
   }
 
   @main def main(): Int = {
-    val s: Set[Num] = [new Num(1), new Num(3), new Num(4), new Num(2), new Num(-1)]
+    val s: Set[Num] = Set(new Num(1), new Num(3), new Num(4), new Num(2), new Num(-1))
     return reduce(n.getSet(), max).value
   }
 }

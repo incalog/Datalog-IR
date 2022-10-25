@@ -5,10 +5,10 @@ class A {
 
   @main def main(): Set[Int] = {
     val a: Int = 3
-    val b: Set[Int] = [4, 3]
-    val c: Set[Int] = [1, 3]
+    val b: Set[Int] = Set(4, 3)
+    val c: Set[Int] = Set(1, 3)
     val d: Set[Int] = b & c
     val e: Set[Int] = c & b & d
-    return (b & c) ++ ([2, 1, a] ++ b) ++ d ++ e
+    return (b & c) ++ (Set(2, 1, a) ++ b) ++ d ++ e
   }
 }

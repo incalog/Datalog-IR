@@ -23,6 +23,6 @@ class A {
 
   @main def main(): Set[Any] = {
     val a: A = new A()
-    return for (v <- a.bounded([new Integer(10), new Integer(5), new Integer(11)])) yield v.value
+    return for (v <- a.bounded(Set(new Integer(10), new Integer(5), new Integer(11)))) yield v.value
   }
 }

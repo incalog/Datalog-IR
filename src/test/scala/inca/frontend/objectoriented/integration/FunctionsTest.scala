@@ -201,12 +201,12 @@ class FunctionsTest extends AnyFunSuite {
 
   test("Set Example") {
     val dir: String = "set/"
+    performTest(dir+"Set", "A$main", Seq(), SetResult(1, 2, 3))
     performTest(dir+"SetConst", "A$main", Seq(), SetResult(1, 2, 3))
     performTest(dir+"SetConstVar", "A$main", Seq(), SetResult(1, 2, 3))
     performTest(dir+"SetMultiVar", "A$main", Seq(), SetResult(1, 2, 3))
     performTest(dir+"SetParam", "A$main", Seq(), SetResult(1, 2, 3))
     performTest(dir+"SetParamSquare", "A$main", Seq(), SetResult(1, 4, 9))
-    performTest(dir+"Set", "A$main", Seq(), SetResult(1, 2, 3))
     performTest(dir+"SetFieldDeclare", "A$main", Seq(), SetResult(1, 2, 3))
     performTest(dir+"SetFieldSet", "A$main", Seq(), SetResult(1, 2, 3))
     performTest(dir+"SetTuple", "A$main", Seq(), SetResult(TupleResult(1, "A"), TupleResult(2, "B"), TupleResult(3, "C")))

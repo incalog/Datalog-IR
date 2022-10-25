@@ -99,7 +99,7 @@ object TupleExpr {
 case class SetExpr(exps: Seq[Expression]) extends Expression {
   def vars: Map[Name, Option[Type]] = exps.flatMap(_.vars).toMap
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
-    exps.map(_.prettyprint).mkString("[", ", ", "]")
+    exps.map(_.prettyprint).mkString("Set(", ", ", ")")
 }
 
 case class SetMemberExpr(name: Name, recv: Expression, predicate: Option[Expression]) extends Expression with VarReadExpr.Target {

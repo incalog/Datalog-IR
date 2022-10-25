@@ -9,7 +9,7 @@ class A {
 
   @main def main(): Set[Int] = {
     val a: A = new A()
-    val values: Set[Int] = [1, 2, 3]
+    val values: Set[Int] = Set(1, 2, 3)
     return a.square(values)
   }
 }

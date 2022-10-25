@@ -20,6 +20,6 @@ class A {
   }
 
   @main def main(): Set[Int] = {
-    return new A().getValue([new Num(1), new Num(2), new Num(3)])
+    return new A().getValue(Set(new Num(1), new Num(2), new Num(3)))
   }
 }

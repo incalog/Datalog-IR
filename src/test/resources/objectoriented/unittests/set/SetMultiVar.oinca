@@ -14,6 +14,6 @@ class A {
   @main def main(): Set[Int] = {
     val c: Int = 2
     val a: A = new A()
-    return a.identity([1, c, a.someValue()])
+    return a.identity(Set(1, c, a.someValue()))
   }
 }

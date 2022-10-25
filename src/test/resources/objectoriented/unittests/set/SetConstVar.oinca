@@ -7,6 +7,6 @@ class A {
     val b: Int = 3
     val c: Int = 2
     val a: Int = 1
-    return [a, c, b]
+    return Set(a, c, b)
   }
 }

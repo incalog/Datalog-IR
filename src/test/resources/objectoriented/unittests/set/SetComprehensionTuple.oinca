@@ -4,8 +4,8 @@ class A {
   def this() = {}
 
   @main def main(): Set[(String, Int)] = {
-    val as: Set[(String, String)] = [("A", "B"), ("C", "D")]
-    val bs: Set[(Int, Int)] = [(1, 2), (3, 4)]
+    val as: Set[(String, String)] = Set(("A", "B"), ("C", "D"))
+    val bs: Set[(Int, Int)] = Set((1, 2), (3, 4))
     val c: Int = 5
     return for (a <- as; b <- bs if b._1 < 2)
       yield (a._1, b._2)

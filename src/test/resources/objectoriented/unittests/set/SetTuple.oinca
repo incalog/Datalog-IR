@@ -4,6 +4,6 @@ class A {
   def this() = {}
 
   @main def main(): Set[(Int, String)] = {
-    return [(1, "A"), (2, "B"), (3, "C")]
+    return Set((1, "A"), (2, "B"), (3, "C"))
   }
 }

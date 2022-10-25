@@ -5,7 +5,7 @@ class A {
 
   @main def main(): Set[Int] = {
     val a: Int = 3
-    val b: Set[Int] = [4, 3]
-    return [2, 1, a] ++ b
+    val b: Set[Int] = Set(4, 3)
+    return Set(2, 1, a) ++ b
   }
 }
