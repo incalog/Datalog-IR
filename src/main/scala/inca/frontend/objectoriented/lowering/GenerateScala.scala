@@ -7,23 +7,34 @@ import inca.runtime.data.WrappedURI
 import inca.util.Scala.{symbolOf, typeOf}
 import truediff.GenericDiffable
 
-import scala.meta.{Type => MetaType, _}
+import scala.meta.{Name => MetaName, Type => MetaType, _}
 
 class GenerateScala {
-  val tGenericDiffable = typeOf[GenericDiffable]
-  val tWrappedURI = typeOf[WrappedURI]
+  class ScalaModule(val classes: Seq[Defn.Class], val objects: Seq[Defn.Object]) {
+    lazy val objectMap: Map[String, Defn.Object] = objects.map(o => o.name.value -> o).toMap
+    lazy val classMap: Map[String, Defn.Class] = classes.map(o => o.name.value -> o).toMap
 
+    lazy val source: Source = {
+      val stats: Seq[Stat] = classes ++ objects
+      Source(stats.toList)
+    }
 
-  private var visited: Map[Any, meta.Stat] = Map()
-  private def createIfNeeded(a: Any)(f: => meta.Stat): Unit = visited.get(a) match {
-    case None =>
-      //this.visited += a -> Seq()
-      //val stats = f
-      this.visited += a -> f
-    case Some(_) => // nothing
+    def main(mainObj: String, mainMethod: String): (Defn.Object, Defn.Def) = {
+      val obj = objectMap.getOrElse(mainObj,
+        throw new IllegalArgumentException(s"Could not find object with name ${mainObj}.")
+      )
+      val method = obj.templ.stats.find {
+        case d: Defn.Def if d.name.value == mainMethod => true
+        case _ => false
+      }.getOrElse(
+        throw new IllegalArgumentException(s"Could not find main method with name ${mainMethod}.")
+      ).asInstanceOf[Defn.Def]
+      (obj, method)
+    }
   }
 
-  def generated: List[meta.Stat] = visited.values.toList
+  val tGenericDiffable = typeOf[GenericDiffable]
+  val tWrappedURI = typeOf[WrappedURI]
 
   def transType(t: Type): MetaType = t match {
     case TClass(ref) => MetaType.Name(ref.name.raw)
@@ -33,19 +44,39 @@ class GenerateScala {
     case TSet(ty) => t"scala.Set[${transType(ty)}]"
   }
 
-  def genModule(module: Module): Unit = {
-    module.classes.foreach(genClass)
+  def genModule(module: Module): ScalaModule = {
+    val (cls, objs) = module.classes.map(genClass).unzip
+    new ScalaModule(cls, objs.flatten)
   }
 
-  def genClass(classDef: ClassDef): Unit = createIfNeeded(classDef) {
+  def genClass(classDef: ClassDef): (Defn.Class, Option[Defn.Object]) = {
     val cls = MetaType.Name(classDef.name.raw)
     val fields = classDef.fields.flatMap(transField).toList
-    //val constructor = classDef.constructors.map(transConstructor).toList
-    val methods = classDef.methods.flatMap(transMethod).toList
-    // TODO: extend with possible superclass
-    q"""class $cls(..$fields) extends {} with $tGenericDiffable() { this =>
+    val constructors = classDef.constructors.map(transConstructor).toList
+    val methods = classDef.methods.filter(!_.isMain).flatMap(transMethod).toList
+    val mainMethods = classDef.methods.filter(_.isMain).flatMap(transMethod).toList
+    // TODO: Support multiple inheritance in the future
+    val parentRefOption = classDef.parentClassRefs.headOption
+    val parentTypeRef = if (parentRefOption.isDefined)
+      Init(MetaType.Name(parentRefOption.get.name.raw) ,Term.Name(parentRefOption.get.name.raw), List())
+    else
+      Init(MetaType.Name("Object") ,Term.Name("Object"), List())
+    // TODO: Import this in the future
+    /*else
+      Init(tGenericDiffable ,Term.Name(tGenericDiffable.toString()), List())*/
+    val clsDef = q"""class $cls(..$fields) extends $parentTypeRef { this =>
+      ..${constructors.flatten}
       ..$methods
     }"""
+
+    val obj = Term.Name(classDef.name.raw)
+    val objDefOption = {
+      if (mainMethods.nonEmpty) {
+        Some(q"""object $obj { ..$mainMethods }""")
+      } else
+        None
+    }
+    (clsDef, objDefOption)
   }
 
   def transField(fieldDef: FieldDef): Option[Term.Param] = {
@@ -54,11 +85,13 @@ class GenerateScala {
         Some(transExpression(fieldDef.body.get))
       else
         None
-      // all fields are readonly for now !
-      val mods = List(Mod.ValParam())
+      // all fields are read / write now
+      val mods = List(Mod.VarParam())
       Some(Term.Param(mods, Term.Name(fieldDef.name.raw), Some(fieldDef.typ.asScala), default))
     } catch {
-      case _: Throwable => None
+      case e: Throwable =>
+        println("Error: ", e)
+        None
     }
   }
 
@@ -66,13 +99,22 @@ class GenerateScala {
     Term.Param(Nil, Term.Name(param.name.raw), Some(transType(param.typ)), None)
   }
 
-  /*def transConstructor(constructorDef: ConstructorDef): Ctor.Secondary = {
+  lazy val emptySuperCall: Init =
+    Init(MetaType.Singleton(Term.This(MetaName.Anonymous())), MetaName.Anonymous(), List(Nil))
+
+  def transConstructor(constructorDef: ConstructorDef): Option[Ctor.Secondary] = {
     val params = constructorDef.params.map(transParam).toList
-    val body = Term.Block(constructorDef.body.map(transStatement).toList)
-    q"""def this(..$params) = {
-      $body
-    }"""
-  }*/
+    val bodyStmts = constructorDef.body.map(transStatement).toList
+    val init = bodyStmts.find(_.isInstanceOf[Init]).getOrElse(emptySuperCall).asInstanceOf[Init]
+    val body = bodyStmts.filter(!_.isInstanceOf[Init])
+    if (body.nonEmpty)
+      Some(q"""def this(..$params) = {
+        $init
+        ..$body
+      }""")
+    else
+      None
+  }
 
   def transMethod(methodDef: MethodDef): Option[Defn.Def] = {
     val methodName = Term.Name(methodDef.name.raw)
@@ -86,7 +128,9 @@ class GenerateScala {
         }"""
       )
     } catch {
-      case _: Throwable => None
+      case e: Throwable =>
+        println("Error: ", e)
+        None
     }
 
   }
@@ -113,6 +157,7 @@ class GenerateScala {
       Term.Assign(Term.Name(targetName.raw), transExpression(expression))
     case VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>
       // TODO: this won't work. Instead: Accumulate all vars in a map in the if stmt and access them here
+      //  or enforce that we translate a none optimized module
       val cond = transExpression(ifStmt.cnd)
       val vName = List(Pat.Var(Term.Name(name.raw)))
       val ifTerm = Term.If(cond, Term.Name(thnName.raw), Term.Name(elsName.raw))
@@ -124,6 +169,18 @@ class GenerateScala {
       Term.If(cond, thnStmts, elsStmts)
   }
 
+
+  def transSetMemberExpression(expr: Expression): Seq[Enumerator] = expr match {
+    case SetMemberExpr(name, recv, predicate) =>
+      val rhs = transExpression(recv)
+      val patVar = Pat.Var(Term.Name(name.raw))
+      var res: Seq[Enumerator] = Seq(Enumerator.Generator(patVar, rhs))
+      if (predicate.isDefined)
+        res = res :+ Enumerator.Guard(transExpression(predicate.get))
+      res
+    case _ =>
+      throw new IllegalArgumentException(s"Expression $expr is not a SetMemberExpression!")
+  }
 
   def transExpression(expr: Expression): meta.Term = expr match {
     case VarReadExpr(targetName) => Term.Name(targetName.raw)
@@ -146,40 +203,38 @@ class GenerateScala {
       q"${fun.tree}(..${args.toList.map(e => transExpression(e))})"
     case BaseApplyInfixExpr(left, op, right) =>
       q"${transExpression(left)} ${op.tree} ${transExpression(right)}"
-
-    //case BaseApplyMethodExpr(recv, method, args) => ???
-    //case BaseApplyUnaryExpr(op, exp) => ???
-    // case NullExpr() =>
-    //case TypeCastExpr(recv, toTyp) => ???
-    //case InstanceOfExpr(recv, ofTyp) => ???
-
-    /*case ConstructorExpr(classRef, args) =>
+    case ConstructorExpr(classRef, args) =>
       val cArgs = args.map(transExpression).toList
-      q"new ${classRef.name.raw}(..$cArgs)"
+      Term.New(Init(MetaType.Name(classRef.name.raw), MetaName.Anonymous(), List(cArgs)))
+    case TypeCastExpr(recv, toTyp) =>
+      // TODO: support tuples and sets
+      val TClass(ClassRef(tyName)) = toTyp
+      val term = Term.Select(transExpression(recv), Term.Name("asInstanceOf"))
+      Term.ApplyType(term, List(MetaType.Name(tyName.raw)))
+    case InstanceOfExpr(recv, ofTyp) =>
+      // TODO: support tuples and sets
+      val TClass(ClassRef(tyName)) = ofTyp
+      val term = Term.Select(transExpression(recv), Term.Name("isInstanceOf"))
+      Term.ApplyType(term, List(MetaType.Name(tyName.raw)))
+    case BaseApplyMethodExpr(recv, method, args) =>
+      val term = Term.Select(transExpression(recv), Term.Name(method.raw))
+      val tArgs = args.getOrElse(Seq()).map(transExpression).toList
+      Term.Apply(term, tArgs)
+    case BaseApplyUnaryExpr(op, exp) =>
+      Term.ApplyUnary(op.tree, transExpression(exp))
+    case NullExpr() =>
+      Lit.Null()
+    case SetExpr(exps) =>
+      val args = exps.map(transExpression).toList
+      Term.Apply(Term.Name("Set"), args)
+    case SetMemberExpr(name, recv, predicate) =>
+      throw new IllegalArgumentException("Encountered unexpected SetMemberExpr!")
+    case SetComprehension(member, body) =>
+      Term.ForYield(member.flatMap(transSetMemberExpression).toList, transExpression(body))
 
-    case SetExpr(exps) => ???
-    case SetMemberExpr(name, recv, predicate) => ???
-    case SetComprehension(member, body) => ???
-    case SetReduce(recv, op) => ???*/
+    /*case SetReduce(recv, op) => ???*/
 
     case _ =>
-      throw new IllegalArgumentException(s"Expression '$expr' can not be translatet to scala.")
-  }
-
-
-  def genAggregation(op: MethodDef): meta.Term = {
-    val typ = op.outType
-    val name = op.name.raw
-
-    val scalaTy = transType(typ)
-
-    q"""meta.Term
-     new inca.runtime.aggregate.Aggregation {
-       override val name = $name
-       override def init: $scalaTy = null
-       override def join(v1: $scalaTy, v2: $scalaTy): $scalaTy = if (v1 != null) v1.${Term.Name(op.name.raw)}(v2) else v2
-       override val isAssociative = true
-       override val isCommutative = true
-     }"""
+      throw new IllegalArgumentException(s"Expression '$expr' can not be translated to scala.")
   }
 }

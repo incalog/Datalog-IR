@@ -1,6 +1,6 @@
 package inca.frontend.objectoriented.integration
 
-import inca.frontend.objectoriented.executor.ObjectExecutor
+import inca.frontend.objectoriented.executor.{ObjectExecutor, ScalaObjectExecutor}
 import inca.util.FileUtil.readFile
 import org.scalatest.funsuite.AnyFunSuite
 import inca.frontend.objectoriented.compiler.ObjectOptions
@@ -81,6 +81,13 @@ class FunctionsTest extends AnyFunSuite {
       case value =>
         checkResult(TupleResult(value), result)
     }
+  }
+
+  test("Base Examples Scala") {
+    val code = readFile(s"objectoriented/unittests/Fact.oinca")
+    val loaded = ScalaObjectExecutor.loadFunction(code, options)
+    print(loaded.execute("Factorial$main", Seq(q"5")))
+    //performTest(dir + "Base1", "Base1$main", Seq(), 43)
   }
 
   test("Base Examples") {

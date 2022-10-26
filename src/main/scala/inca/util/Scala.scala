@@ -2,7 +2,7 @@ package inca.util
 
 import scala.collection.mutable
 import scala.meta.Name.Indeterminate
-import scala.meta.{Import, Importee, Importer, Term, Type}
+import scala.meta.{Import, Importee, Importer, Source, Term, Type}
 import scala.reflect.ClassTag
 
 class Scala[+T <: meta.Tree](val tree: T) {
@@ -107,6 +107,11 @@ object Scala {
       compilerCache += source -> result
       result
     }
+
+    /*def execute(source: Source) = {
+      toolbox.compile()
+      val result =
+    }*/
 
     def define(source: String): String = {
       val tree = toolbox.parse(source)

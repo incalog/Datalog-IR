@@ -45,7 +45,7 @@ object GenerateDatalog {
 class GenerateDatalog(module: Module) {
 
   private val gensym: Gensym = new Gensym(Iterable.empty)
-  private val genScala = new GenerateScala
+  //private val genScala = new GenerateScala
 
   private val generatedPatterns = ListBuffer[Datalog.Pattern]()
 
