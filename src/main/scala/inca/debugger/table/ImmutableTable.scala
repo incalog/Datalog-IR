@@ -111,6 +111,7 @@ class ImmutableBTreeTable[V: ClassTag](
   override def isBound(column: String): Boolean = cols.contains(column)
 
   override def isEmpty: Boolean = indices(indexCovers.head).size == 0
+  override def isUnit: Boolean = columns.isEmpty && entries.size == 1 && entries.head == Seq()
   override def size: Int = indices(indexCovers.head).size
 
   override def columnIndex(column: String): Int = columns.indexOf(column)

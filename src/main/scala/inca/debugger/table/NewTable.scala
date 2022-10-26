@@ -7,6 +7,7 @@ trait NewTable[V] {
   type NamedTuple = Seq[(String, V)]
   def columns: Seq[String]
   def isEmpty: Boolean
+  def isUnit: Boolean
   def nonEmpty: Boolean = !isEmpty
   def size: Int
   def isBound(column: String): Boolean
