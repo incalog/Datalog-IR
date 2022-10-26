@@ -2,6 +2,7 @@ package inca.debugger.redesign
 
 import inca.backend.analyze.DependencyGraph
 import inca.backend.ir.Datalog
+import inca.backend.optimize.InlineSimpleRelations
 import inca.compiler.{CompiledDatalogModule, CompiledModule}
 import inca.debugger.table.indexing.IndexCover
 import inca.debugger.table.ImmutableTable
@@ -27,6 +28,8 @@ trait Debugger extends DebuggerAPI {
   // ****** global static information ******//
   var module: CompiledDatalogModule = _
   def initialize(module: CompiledModule): Unit = {
+    if (module.options.optimizations.contains(InlineSimpleRelations))
+      throw new IllegalArgumentException(s"Inlining must be deactivated for debugging.")
     this.module = CompiledDatalogModule(
       module.ir,
       module.dataModel,

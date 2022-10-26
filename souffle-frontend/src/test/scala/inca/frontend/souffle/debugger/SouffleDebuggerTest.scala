@@ -1,5 +1,6 @@
 package inca.frontend.souffle.debugger
 
+import inca.backend.optimize.InlineSimpleRelations
 import inca.compiler.source.{Source, SourceFile, SourceString}
 import inca.debugger.{ScalaValue, Value}
 import inca.debugger.table.ImmutableTable
@@ -68,7 +69,8 @@ class SouffleDebuggerTest extends AnyFunSuite {
       inputs: Map[Syntax.RuleSignature, String],
       options: SouffleOptions = SouffleOptions()
     ): SouffleDebugger = {
-    val module = SouffleExecutor.compileSouffle(prog, options)
+    val noInlineOptions = options.withOptimizations(options.optimizations.filter(_ != InlineSimpleRelations))
+    val module = SouffleExecutor.compileSouffle(prog, noInlineOptions)
     val input = SouffleExecutor.loadInputs(inputs, module, ";")
     val debugger = new SouffleDebugger(module, input)
     debugger
@@ -228,7 +230,9 @@ class SouffleDebuggerTest extends AnyFunSuite {
     val benchmarkPath = "souffle-frontend/benchmark"
     val file = Path.of(s"$benchmarkPath/self-contained.dl")
     val factsDir = s"$benchmarkPath/minijavac"
-    val module = SouffleExecutor.compileSouffle(SourceFile(file), SouffleOptions(mode = DRedReteBackendFactory.INSTANCE))
+    val options = SouffleOptions(mode = DRedReteBackendFactory.INSTANCE)
+    val noInlineOptions = options.withOptimizations(options.optimizations.filter(_ != InlineSimpleRelations))
+    val module = SouffleExecutor.compileSouffle(SourceFile(file), noInlineOptions)
     val input = SouffleExecutor.loadInputs(factsDir, module)
     val debugger = new SouffleDebugger(module, input)
     debugger

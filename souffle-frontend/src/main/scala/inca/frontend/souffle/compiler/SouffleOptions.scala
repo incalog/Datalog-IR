@@ -15,9 +15,9 @@ case class SouffleOptions(
     useEditScriptsForInput: Boolean = false)
     extends Options {
 
-  override def withOptimizations(opts: Seq[Optimization]): Options =
+  override def withOptimizations(opts: Seq[Optimization]): SouffleOptions =
     SouffleOptions(stopOnError, stopOnWarning, opts, transformations, mode, useEditScriptsForInput)
 
-  override def withTransformations(trans: Seq[Transformation]): Options =
+  override def withTransformations(trans: Seq[Transformation]): SouffleOptions =
     SouffleOptions(stopOnError, stopOnWarning, optimizations, trans, mode, useEditScriptsForInput)
 }

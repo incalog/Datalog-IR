@@ -95,7 +95,7 @@ object SouffleExecutor {
   def compileSouffle(code: Source, options: SouffleOptions = SouffleOptions()): CompiledSouffleModule = {
     val ast = Parser.parse(code)
     val compiler = new SouffleToDatalogIR(options.useEditScriptsForInput)
-    compiler.compile("soufflemod", ast)
+    compiler.compile("soufflemod", ast, options)
   }
 
   def loadAnalysis(code: Source, options: SouffleOptions = SouffleOptions()): Loaded = {

@@ -32,7 +32,7 @@ class SouffleToDatalogIR(useEditScriptForInput: Boolean = false) {
 
   val componentDefinitions: mutable.Map[Name, ComponentDefinition] = mutable.Map()
 
-  def compile(name: String, souffle: SouffleModule): CompiledSouffleModule = {
+  def compile(name: String, souffle: SouffleModule, options: SouffleOptions = SouffleOptions()): CompiledSouffleModule = {
     souffle.contents.foreach {
       case in: Input =>
         inputs(in.rule) = in
@@ -60,7 +60,7 @@ class SouffleToDatalogIR(useEditScriptForInput: Boolean = false) {
       inputs.map { case (name, input) => name.name -> (decls(input.rule), input) }.toMap,
       printSizes.toSeq,
       lang,
-      SouffleOptions()
+      options
     )
   }
 
