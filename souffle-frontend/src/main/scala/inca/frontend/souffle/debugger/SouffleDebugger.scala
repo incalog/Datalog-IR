@@ -123,7 +123,7 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
             }
           case _ => None
         }
-      case EvaluationResult(_, _) =>
+      case BeforeRule(_, _, _, Nil) =>
         compiled.inputs.get(rel.name.name) match {
           case Some(_) => None
           case None =>
