@@ -23,8 +23,8 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
   val blacklist: mutable.Map[(Predicate, Adornment), Bag] = mutable.Map.empty
   val topDownResults: mutable.Map[Predicate, ImmutableTable[Value]] = mutable.Map.empty
   val seenQueries: mutable.Map[(Predicate, Adornment), ImmutableTable[Value]] = mutable.Map.empty
-  val fixpointSize: mutable.Map[(Predicate, ImmutableTable[Value]), Int] =
-    mutable.Map.empty
+//  val fixpointSize: mutable.Map[(Predicate, ImmutableTable[Value]), Int] =
+//    mutable.Map.empty
 
   def readBottomUp(p: Predicate, args: ImmutableTable[Value]): ImmutableTable[Value] = {
     val mainSpec = bottomUpRuntime.compiled.psystemModule.patterns.get(p) match {
@@ -96,9 +96,9 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     res
   }
 
-  def storeExpectedFixpointSize(p: Predicate, args: ImmutableTable[Value]): Unit = {
-    fixpointSize += (p, args) -> accessBlacklistedBottomUp(p, args, countBottomUp)
-  }
+//  def storeExpectedFixpointSize(p: Predicate, args: ImmutableTable[Value]): Unit = {
+//    fixpointSize += (p, args) -> accessBlacklistedBottomUp(p, args, countBottomUp)
+//  }
 
   def insertBlacklist(p: Predicate, args: ImmutableTable[Value]): Unit = {
     val adornment = adorn(p, args)
@@ -186,6 +186,7 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
   def isUnstable(p: Predicate, args: ImmutableTable[Value]): Boolean = {
     val topDown = readTopDown(p, args)
     val topDownSize = topDown.size
-    topDownSize < fixpointSize(p -> args)
+    val bottomUpSize = accessBlacklistedBottomUp(p, args, countBottomUp)
+    topDownSize < bottomUpSize
   }
 }

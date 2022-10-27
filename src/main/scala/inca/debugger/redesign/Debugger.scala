@@ -220,7 +220,7 @@ trait Debugger extends DebuggerAPI {
     val PredicateEntry(p, argBindings, predResult) = evalPoint
     val rules = predicates(p).bodies
     if (isCyclic(p)) {
-      state.storeExpectedFixpointSize(p, argBindings)
+//      state.storeExpectedFixpointSize(p, argBindings)
       state.insertBlacklist(p, argBindings)
     }
 //    val next =
