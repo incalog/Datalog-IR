@@ -156,18 +156,10 @@ trait Debugger extends DebuggerAPI {
   }
 
   protected def stepOverRule(evalPoint: EvaluationPoint): Unit = {
-    stepIntoIR()
     evalPoint match {
-      case BeforeRule(pred, argBindings, predResult, rules) =>
-        val next = InRule(pred, argBindings, predResult, RuleEvaluation(argBindings, 0, rules.head.atoms), rules.tail)
-        callStack.update(next)
-      case InRule(pred, argBindings, predResult, RuleEvaluation(ruleResult, ruleIdx, _), rules) =>
-        val projectedRuleResult = ruleResult.project(predResult.columns)
-        val nextPredResult = predResult.union(projectedRuleResult)
-        val ruleEval = RuleEvaluation(argBindings, ruleIdx + 1, rules.head.atoms)
-        val next = InRule(pred, argBindings, nextPredResult, ruleEval, rules.tail)
-        callStack.update(next)
-      case _ => // nothing
+      case ep: BeforeRule => intoFirstRule(ep)
+      case ep: InRule => nextRule(ep)
+      case _ => throw new IllegalStateException()
     }
     var progress = true
     while (progress && callStack.top.asInstanceOf[InRule].current.atoms.nonEmpty) {
