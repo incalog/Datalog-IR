@@ -10,13 +10,13 @@ class Num {
 
 class Integer extends Num {
     def this(value: `Int`) = {
-        this(value)
+        super(value)
     }
 }
 
 class Float extends Num {
     def this(value: `Double`) = {
-        this(value)
+        super(value)
     }
 }
 

@@ -17,10 +17,10 @@ import truediff.Diffable
 
 import scala.jdk.CollectionConverters._
 
-object ObjectExecutor {
+object ObjectExecutor extends Executor {
   case class TypeCastException(obj: ObjectID, typ: String) extends RuntimeException(s"Could not cast $obj to type $typ!")
 
-  case class Loaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledObjectModule) {
+  case class ObjectLoaded(engine: AdvancedViatraQueryEngine, feed: Database, compiled: CompiledObjectModule) extends Loaded {
     lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
 
     val loadedPsystemModule: String = scalaCompiler.define {
@@ -33,7 +33,7 @@ object ObjectExecutor {
       println(s"${matcher.getAllMatches.size()} matches of $name:   ${matcher.getAllMatches}")
     }
 
-    def printAllMatches(): Unit = {
+    override def printAllMatches(): Unit = {
       compiled.psystemModule.patterns.keys.foreach(printMatches)
     }
 
@@ -127,9 +127,6 @@ object ObjectExecutor {
       })
     }
 
-    def results[T](res: Seq[Seq[T]]): Results[T] = new Results(res)
-    def resultVals[T](res: T*): Results[T] = results(Seq(res))
-    def resultVal[T](res: T): Results[T] = results(Seq(Seq(res)))
     def result(res: meta.Term*): Results[AnyRef] = results(Seq(vals(res:_*)))
 
     def printResult(res: Results[AnyRef]): Unit = {
@@ -139,24 +136,6 @@ object ObjectExecutor {
         println(tupleStrings.mkString(", "))
       }
     }
-  }
-
-
-  class Results[T](val res: Seq[Seq[T]]) {
-    def isEmpty: Boolean = res.isEmpty
-
-    override def equals(obj: Any): Boolean = obj match {
-      case expected: Results[T] =>
-        res.size == expected.res.size &&
-          res.forall(ac => expected.res.exists(ex => sameVals(ac, ex))) &&
-          expected.res.forall(ex => res.exists(ac => sameVals(ac, ex)))
-      case _ => false
-    }
-
-    private def sameVals(actual: Seq[T], expected: Seq[T]): Boolean = actual.size == expected.size &&
-      actual.zip(expected).forall{ case (x,y) => x == y }
-
-    override def toString: String = s"Results(${res.mkString(", ")})"
   }
 
 
@@ -187,7 +166,7 @@ object ObjectExecutor {
     val scope = new QueryScope(dataModel)
     val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
     loadInheritanceEDB(dataModel, feed)
-    Loaded(engine, feed, compiled)
+    ObjectLoaded(engine, feed, compiled)
   }
 
   def loadFunction(code: String, options: ObjectOptions = ObjectOptions()): Loaded =

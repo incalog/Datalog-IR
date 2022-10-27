@@ -42,19 +42,23 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         error(s"Ambiguous names in class ${classDef.name}", cs:_*)
     }
 
+    /*if (classDef.constructors.size > 1) {
+      error(s"Class ${classDef.name.raw} must only define a single constructor", classDef.constructors:_*)
+    }*/
+
     classDef.content.foreach {
-      case field: FieldDef => typecheck(field)
+      case field: FieldDef => typecheck(field, classDef)
       case method: MethodDef => typecheck(method, classDef)
       case constructor: ConstructorDef => typecheck(constructor, classDef)
     }
   }
 
-  def typecheck(fieldDef: FieldDef): Unit = {
+  def typecheck(fieldDef: FieldDef, classDef: ClassDef): Unit = {
     typecheck(fieldDef.typ)
 
     fieldDef.body match {
       case Some(expr) =>
-        val expTyp = typecheck(expr)
+        val expTyp = typecheck(expr)(classDef)
         assertSubtype(expTyp, fieldDef.typ, fieldDef)
       case None => // nothing
     }
@@ -89,7 +93,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
     typecheck(methodDef.outType)
 
-    typecheck(methodDef.body, methodDef.outType)
+    typecheck(methodDef.body, methodDef.outType)(classDef)
   }
 
   def typecheck(constructorDef: ConstructorDef, classDef: ClassDef): Unit = scopedTypeContext {
@@ -119,20 +123,26 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       case _ => // nothing
     }
 
-    val superCalls = constructorDef.body.filter {
-      case ExprStmt(expression) => expression match {
-        case SuperExpr(_) => true
-        case _ => false
-      }
-      case _ => false
-    }
+    // Super call handling
+    val (superCalls, indices) = constructorDef.body.zipWithIndex.flatMap {
+      case (ExprStmt(e@SuperExpr(_)), idx) => Some((e, idx))
+      case _ => None
+    }.unzip
+
+    val superCallIndex = indices.headOption.getOrElse(-1)
     if (superCalls.size > 1) {
-      error(s"Constructor ${classDef.name} must not contain more than one supercall.", superCalls:_*)
+      error(s"Constructor ${classDef.name} must not contain more than one supercall", superCalls:_*)
+    } else if (superCallIndex > 0) {
+      error(s"Super must be called first in constructor ${classDef.name}", superCalls:_*)
     }
 
-    bindVar(Name("this"), classDef, classDef.typ, immutable = true)
+    val beforeSuperBody = constructorDef.body.slice(0, superCallIndex+1)
+    val afterSuperBody = constructorDef.body.slice(superCallIndex+1, constructorDef.body.size)
 
-    typecheck(constructorDef.body, classDef.typ, allowImmutableFieldAssignment = true)
+    typecheck(beforeSuperBody, classDef.typ)(classDef)
+    // bind this after the super call !
+    bindVar(Name("this"), classDef, classDef.typ, immutable = true)
+    typecheck(afterSuperBody, classDef.typ, allowImmutableFieldAssignment = true)(classDef)
   }
 
   def typecheck(typ: Type): Unit = typ match {
@@ -145,10 +155,10 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case _ => throw new IllegalArgumentException(s"Currently does not support $typ")
   }
 
-  def typecheck(statements: Seq[Statement], rt: Type, allowImmutableFieldAssignment: Boolean = false): Unit =
+  def typecheck(statements: Seq[Statement], rt: Type, allowImmutableFieldAssignment: Boolean = false)(implicit classDef: ClassDef): Unit =
     statements.foreach(typecheck(_, rt, allowImmutableFieldAssignment))
 
-  def typecheck(statement: Statement, rt: Type, allowImmutableFieldAssignment: Boolean): Unit = statement match {
+  def typecheck(statement: Statement, rt: Type, allowImmutableFieldAssignment: Boolean)(implicit classDef: ClassDef): Unit = statement match {
     case ExprStmt(expression) => typecheck(expression)
     case ReturnStmt(expression) =>
       val outTyp = typecheck(expression)
@@ -213,14 +223,14 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
   }
 
-  final def typecheck(expression: Expression): Type = assignType(expression)(typecheckInternal(expression))
+  final def typecheck(expression: Expression)(implicit classDef: ClassDef): Type = assignType(expression)(typecheckInternal(expression))
 
-  def typecheckInternal(expression: Expression): Type = expression match {
+  def typecheckInternal(expression: Expression)(implicit classDef: ClassDef): Type = expression match {
     case NullExpr() =>
       TNull
     case superExpr@SuperExpr(args) =>
-      lookupVar(Name("this")) match {
-        case Some((_, TClass(ref), _)) =>
+      classDef.typ match {
+        case TClass(ref) =>
           // `this` classRef will always be resolved at this point
           val clazz = ref.target.get
           val parentRef = clazz.parentClassRefs.headOption
@@ -238,8 +248,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
                 TAny
             }
           }
-        case None =>
-          TAny
       }
     case varRead@VarReadExpr(targetName) =>
       lookupVar(targetName) match {
@@ -263,18 +271,18 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case construtorExpr@ConstructorExpr(className, args) =>
       lookupClassRef(className) match {
         case None => TAny
-        case classDefOption@Some(classDef) =>
+        case classDefOption@Some(clazz) =>
           val argTypes = args.map(typecheck)
           lookupConstructor(classDefOption, argTypes, expression) match {
-            case Some((cls, constructorDef)) if cls == classDef =>
+            case Some((cls, constructorDef)) if cls == clazz =>
               resolveTarget(construtorExpr)(constructorDef)
-              classDef.typ
+              clazz.typ
             // we do not allow inheritance of constructors
             case Some(_) =>
               error(s"No matching constructor found for class ${classDefOption.get.name}: this(${argTypes.mkString(",")})", expression)
-              classDef.typ
+              clazz.typ
             case None =>
-              classDef.typ
+              clazz.typ
           }
       }
     case methodCallExpr@MethodCallExpr(recv, fun, args) =>

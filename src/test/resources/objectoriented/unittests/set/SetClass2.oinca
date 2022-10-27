@@ -10,7 +10,7 @@ class Num {
 
 class Integer extends Num {
     def this(value: `Int`) = {
-        this(value)
+        super(value)
     }
 }
 

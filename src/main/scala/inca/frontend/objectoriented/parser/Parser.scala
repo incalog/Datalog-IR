@@ -64,6 +64,7 @@ trait Parser {
     val SET: Value        = Value("Set")
     val FOR: Value        = Value("for")
     val YIELD: Value      = Value("yield")
+    val SUPER: Value      = Value("super")
     val REDUCE: Value     = Value("reduce")
   }
 
@@ -223,7 +224,7 @@ trait Parser {
     (keyword(NEW) *> call).mapWithLoc { case (name, argList) => ConstructorExpr(ClassRef(name), argList) }
 
   protected[frontend] val superExpr: P[SuperExpr] =
-    (op("this") *> inParentheses(seq0(P.defer(expr)))).mapWithLoc(SuperExpr)
+    (keyword(SUPER) *> inParentheses(seq0(P.defer(expr)))).mapWithLoc(SuperExpr)
 
   protected[frontend] lazy val typeCastExpr: P[TypeCastExpr] =
     (keyword(CAST) *> inParentheses((P.defer(expr) <* op(",")) ~ typeAnno)).mapWithLoc {

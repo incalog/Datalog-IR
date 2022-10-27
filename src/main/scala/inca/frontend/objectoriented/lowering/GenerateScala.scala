@@ -1,22 +1,26 @@
 package inca.frontend.objectoriented.lowering
 
-import inca.compiler.SourceLocation
-import inca.runtime.aggregate.{Aggregation, AggregatorAssocComm}
 import inca.frontend.objectoriented.core._
 import inca.runtime.data.WrappedURI
-import inca.util.Scala.{symbolOf, typeOf}
+import inca.util.Scala.typeOf
 import truediff.GenericDiffable
 
-import scala.meta.{Name => MetaName, Type => MetaType, _}
+import scala.meta.{Ctor, Import => MetaImport, Name => MetaName, Type => MetaType, _}
+import scala.meta.prettyprinters.{Show, Syntax}
 
 class GenerateScala {
-  class ScalaModule(val classes: Seq[Defn.Class], val objects: Seq[Defn.Object]) {
+    class ScalaModule(val classes: Seq[Defn.Class], val objects: Seq[Defn.Object]) {
     lazy val objectMap: Map[String, Defn.Object] = objects.map(o => o.name.value -> o).toMap
     lazy val classMap: Map[String, Defn.Class] = classes.map(o => o.name.value -> o).toMap
 
     lazy val source: Source = {
       val stats: Seq[Stat] = classes ++ objects
       Source(stats.toList)
+    }
+
+    def syntax: String = {
+
+      source.syntax
     }
 
     def main(mainObj: String, mainMethod: String): (Defn.Object, Defn.Def) = {
@@ -33,6 +37,7 @@ class GenerateScala {
     }
   }
 
+  val tGenericURI = typeOf[truechange.URI]
   val tGenericDiffable = typeOf[GenericDiffable]
   val tWrappedURI = typeOf[WrappedURI]
 
@@ -41,77 +46,78 @@ class GenerateScala {
     case TAny =>  t.asScala
     case TTuple(ts) => t"(..${ts.toList.map(transType)})"
     case TScala(t) => t.tree
-    case TSet(ty) => t"scala.Set[${transType(ty)}]"
+    case TSet(ty) => t"scala.collection.immutable.Set[${transType(ty)}]"
   }
 
   def genModule(module: Module): ScalaModule = {
-    val (cls, objs) = module.classes.map(genClass).unzip
+    val (cls, objs) = module.classes.map(transClass).unzip
     new ScalaModule(cls, objs.flatten)
   }
 
-  def genClass(classDef: ClassDef): (Defn.Class, Option[Defn.Object]) = {
+  def transClass(classDef: ClassDef): (Defn.Class, Option[Defn.Object]) = {
+    val clsNameTerm = Term.Name(classDef.name.raw)
+
     val cls = MetaType.Name(classDef.name.raw)
-    val fields = classDef.fields.flatMap(transField).toList
-    val constructors = classDef.constructors.map(transConstructor).toList
+    val fields = classDef.fields.map(transField).toList
+    val emptyDefaultConstructor = classDef.constructors.filter(_.params.isEmpty).map(transEmptyDefaultConstructor).toList
+    val constructors = classDef.constructors.filter(_.params.nonEmpty).flatMap(transConstructor).toList
     val methods = classDef.methods.filter(!_.isMain).flatMap(transMethod).toList
     val mainMethods = classDef.methods.filter(_.isMain).flatMap(transMethod).toList
-    // TODO: Support multiple inheritance in the future
+
     val parentRefOption = classDef.parentClassRefs.headOption
     val parentTypeRef = if (parentRefOption.isDefined)
       Init(MetaType.Name(parentRefOption.get.name.raw) ,Term.Name(parentRefOption.get.name.raw), List())
     else
-      Init(MetaType.Name("Object") ,Term.Name("Object"), List())
-    // TODO: Import this in the future
-    /*else
-      Init(tGenericDiffable ,Term.Name(tGenericDiffable.toString()), List())*/
-    val clsDef = q"""class $cls(..$fields) extends $parentTypeRef { this =>
-      ..${constructors.flatten}
+      Init(tGenericURI ,Term.Name(tGenericURI.toString()), List())
+    //  Init(MetaType.Name("Object") ,Term.Name("Object"), List())
+    // TODO: Use tGenericDiffable in the future ?
+    // Init(tGenericDiffable ,Term.Name(tGenericDiffable.toString()), List())
+
+    val clsDef = q"""class $cls() extends $parentTypeRef { this =>
+      ..$fields
+      ..$emptyDefaultConstructor
+      ..$constructors
       ..$methods
     }"""
 
     val obj = Term.Name(classDef.name.raw)
     val objDefOption = {
       if (mainMethods.nonEmpty) {
-        Some(q"""object $obj { ..$mainMethods }""")
+        Some(
+          q"""object $obj {
+             ..$mainMethods
+          }""")
       } else
         None
     }
     (clsDef, objDefOption)
   }
 
-  def transField(fieldDef: FieldDef): Option[Term.Param] = {
-    try {
-      val default = if (fieldDef.body.isDefined)
-        Some(transExpression(fieldDef.body.get))
-      else
-        None
-      // all fields are read / write now
-      val mods = List(Mod.VarParam())
-      Some(Term.Param(mods, Term.Name(fieldDef.name.raw), Some(fieldDef.typ.asScala), default))
-    } catch {
-      case e: Throwable =>
-        println("Error: ", e)
-        None
-    }
+  def transField(fieldDef: FieldDef): Defn.Var = {
+    val default = if (fieldDef.body.isDefined)
+      Some(transExpression(fieldDef.body.get))
+    else
+      None
+    // all fields are read / write now
+    val vName = List(Pat.Var(Term.Name(fieldDef.name.raw)))
+    Defn.Var(Nil, vName, Some(transType(fieldDef.typ)), default)
   }
 
   def transParam(param: Param): Term.Param = {
     Term.Param(Nil, Term.Name(param.name.raw), Some(transType(param.typ)), None)
   }
 
-  lazy val emptySuperCall: Init =
-    Init(MetaType.Singleton(Term.This(MetaName.Anonymous())), MetaName.Anonymous(), List(Nil))
+  def transEmptyDefaultConstructor(constructorDef: ConstructorDef): meta.Term = {
+    val body = constructorDef.body.map(transStatement).toList
+    q"(() => ${Term.Block(body)})()"
+  }
 
   def transConstructor(constructorDef: ConstructorDef): Option[Ctor.Secondary] = {
     val params = constructorDef.params.map(transParam).toList
-    val bodyStmts = constructorDef.body.map(transStatement).toList
-    val init = bodyStmts.find(_.isInstanceOf[Init]).getOrElse(emptySuperCall).asInstanceOf[Init]
-    val body = bodyStmts.filter(!_.isInstanceOf[Init])
+    val body = constructorDef.body.map(transStatement).toList
+    val init = Init(MetaType.Singleton(Term.This(MetaName.Anonymous())), MetaName.Anonymous(), List(Nil))
     if (body.nonEmpty)
-      Some(q"""def this(..$params) = {
-        $init
-        ..$body
-      }""")
+      Some(Ctor.Secondary(Nil, MetaName.Anonymous(), List(params), init, body))
     else
       None
   }
@@ -120,19 +126,12 @@ class GenerateScala {
     val methodName = Term.Name(methodDef.name.raw)
     val params = methodDef.params.map(transParam).toList
     val outTyp = transType(methodDef.outType)
-    try {
-      val body = Term.Block(methodDef.body.map(transStatement).toList)
-      Some(
-        q"""def $methodName(..$params): $outTyp = {
-          $body
-        }"""
-      )
-    } catch {
-      case e: Throwable =>
-        println("Error: ", e)
-        None
-    }
-
+    val body = Term.Block(methodDef.body.map(transStatement).toList)
+    Some(
+      q"""def $methodName(..$params): $outTyp = {
+        $body
+      }"""
+    )
   }
 
   def transStatement(stmt: Statement): meta.Stat = stmt match {
@@ -147,12 +146,12 @@ class GenerateScala {
       Term.Assign(field, rhs)
     case VarDeclareStmt(name, typ, maybeExpression, immutable) =>
       val vTyp = Some(transType(typ))
-      val value = if (maybeExpression.isDefined) transExpression(maybeExpression.get) else Lit.Null()
+      val value = if (maybeExpression.isDefined) Some(transExpression(maybeExpression.get)) else None
       val vName = List(Pat.Var(Term.Name(name.raw)))
       if (immutable)
-        Defn.Val(Nil, vName, vTyp, value)
+        Defn.Val(Nil, vName, vTyp, value.getOrElse(Lit.Null()))
       else
-        Defn.Var(Nil, vName, vTyp, Some(value))
+        Defn.Var(Nil, vName, vTyp, value)
     case VarAssignStmt(targetName, expression) =>
       Term.Assign(Term.Name(targetName.raw), transExpression(expression))
     case VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>
@@ -194,7 +193,7 @@ class GenerateScala {
     case TupleReadExpr(recv, index) =>
       val tRecv = transExpression(recv)
       Term.Select(tRecv, Term.Name("_"+index))
-    case TupleExpr(exps) => ???
+    case TupleExpr(exps) =>
       val tExps = exps.map(transExpression).toList
       Term.Tuple(tExps)
     case BaseLitExpr(code) =>
@@ -231,6 +230,14 @@ class GenerateScala {
       throw new IllegalArgumentException("Encountered unexpected SetMemberExpr!")
     case SetComprehension(member, body) =>
       Term.ForYield(member.flatMap(transSetMemberExpression).toList, transExpression(body))
+    case superExpr@SuperExpr(args) =>
+      val (_, superConstrDef) = superExpr.target.get
+      val inParams = superConstrDef.params.map { p =>
+        Term.Param(Nil, Term.Name(p.name.raw), Some(transType(p.typ)), None)
+      }.toList
+      val inTerms = args.map(transExpression).toList
+      val superBody = superConstrDef.body.map(transStatement).toList
+      q"((..$inParams) => (${Term.Block(superBody)}))(..$inTerms)"
 
     /*case SetReduce(recv, op) => ???*/
 

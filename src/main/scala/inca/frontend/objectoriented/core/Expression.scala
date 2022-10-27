@@ -45,7 +45,7 @@ case class SuperExpr(args: Seq[Expression]) extends Expression with Resolvable[(
   def vars: Map[Name, Option[Type]] = args.flatMap(_.vars).toMap
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
-    s"this($argsS)"
+    s"super($argsS)"
   }
 }
 

@@ -83,10 +83,16 @@ class FunctionsTest extends AnyFunSuite {
     }
   }
 
-  test("Base Examples Scala") {
-    val code = readFile(s"objectoriented/unittests/Fact.oinca")
+  test("Examples Scala") {
+    val code = readFile(s"objectoriented/unittests/Tuple.oinca")
     val loaded = ScalaObjectExecutor.loadFunction(code, options)
-    print(loaded.execute("Factorial$main", Seq(q"5")))
+    val result = loaded.execute("A$main", Seq())
+
+    val loaded2 = ObjectExecutor.loadFunction(code, options)
+    val result2 = loaded2.execute("A$main", Seq())
+
+    println(result.res, result.res.size, result.res.head, result.res.head.size, result.res.head.head)
+    println(result2.res, result2.res.size, result2.res.head, result2.res.head.size, result2.res.head.head)
     //performTest(dir + "Base1", "Base1$main", Seq(), 43)
   }
 
@@ -199,11 +205,6 @@ class FunctionsTest extends AnyFunSuite {
 
   test("Tuple Example") {
     performTest("Tuple", "A$main", Seq(), TupleResult(true, TupleResult(true, true)))
-  }
-
-  test("Set Example 2") {
-    performTest("set/SetMultiVar", "A$main", Seq(), SetResult(1, 2, 3))
-    //performTest("set/SetClass2", "A$main", Seq(), SetResult(3, 10))
   }
 
   test("Set Example") {
