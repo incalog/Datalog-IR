@@ -30,6 +30,7 @@ class A {
 class B extends A {
     def this() = {}
 
+    @override
     def get(): String = {
         return "B"
     }

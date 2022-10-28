@@ -11,6 +11,7 @@ class B {
 class C extends B {
     def this() = {}
 
+    @override
     def apply(): Int = {
         return 1
     }

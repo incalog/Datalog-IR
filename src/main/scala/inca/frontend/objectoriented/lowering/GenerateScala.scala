@@ -44,7 +44,11 @@ class GenerateScala {
   def transType(t: Type): MetaType = t match {
     case TClass(ref) => MetaType.Name(ref.name.raw)
     case TAny =>  t.asScala
-    case TTuple(ts) => t"(..${ts.toList.map(transType)})"
+    case TTuple(ts) =>
+      if (ts.nonEmpty)
+        t"(..${ts.toList.map(transType)})"
+      else
+        MetaType.Name("Unit")
     case TScala(t) => t.tree
     case TSet(ty) => t"scala.collection.immutable.Set[${transType(ty)}]"
   }
@@ -55,8 +59,6 @@ class GenerateScala {
   }
 
   def transClass(classDef: ClassDef): (Defn.Class, Option[Defn.Object]) = {
-    val clsNameTerm = Term.Name(classDef.name.raw)
-
     val cls = MetaType.Name(classDef.name.raw)
     val fields = classDef.fields.map(transField).toList
     val emptyDefaultConstructor = classDef.constructors.filter(_.params.isEmpty).map(transEmptyDefaultConstructor).toList
@@ -126,10 +128,16 @@ class GenerateScala {
     val methodName = Term.Name(methodDef.name.raw)
     val params = methodDef.params.map(transParam).toList
     val outTyp = transType(methodDef.outType)
-    val body = Term.Block(methodDef.body.map(transStatement).toList)
+    val body = methodDef.body.map(transStatement).toList
+    val mods =
+      if (methodDef.annos.contains(OverrideAnnotation))
+        List(Mod.Override())
+      else
+        List()
+
     Some(
-      q"""def $methodName(..$params): $outTyp = {
-        $body
+      q"""..${mods}def $methodName(..$params): $outTyp = {
+        ..$body
       }"""
     )
   }
@@ -155,17 +163,38 @@ class GenerateScala {
     case VarAssignStmt(targetName, expression) =>
       Term.Assign(Term.Name(targetName.raw), transExpression(expression))
     case VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>
-      // TODO: this won't work. Instead: Accumulate all vars in a map in the if stmt and access them here
-      //  or enforce that we translate a none optimized module
-      val cond = transExpression(ifStmt.cnd)
-      val vName = List(Pat.Var(Term.Name(name.raw)))
-      val ifTerm = Term.If(cond, Term.Name(thnName.raw), Term.Name(elsName.raw))
-      Defn.Val(Nil, vName, Some(transType(typ)), ifTerm)
+      throw new RuntimeException("VarPhiAssignStmt is not supported!")
+      /*val cond = transExpression(ifStmt.cnd)
+      q"""
+       val ${Pat.Var(Term.Name(name.raw))} = (if ($cond)
+          vars(${thnName.raw})
+       else
+          vars(${elsName.raw})).asInstanceOf[${transType(typ)}]
+       """*/
     case IfStmt(cnd, thn, els) =>
       val cond = transExpression(cnd)
       val thnStmts = Term.Block(thn.map(transStatement).toList)
       val elsStmts = Term.Block(els.map(transStatement).toList)
       Term.If(cond, thnStmts, elsStmts)
+      /*val thnVars = thn.flatMap(_.vars).map(_._1.raw)
+      val thnAssign = thnVars.map { v =>
+        q"""vars = vars + (${Lit.String(v)} -> ${Term.Name(v)})"""
+      }.toList
+      val elsVars = els.flatMap(_.vars).map(_._1.raw)
+      val elsAssign = elsVars.map { v =>
+        q"""vars = vars + (${Lit.String(v)} -> ${Term.Name(v)})"""
+      }.toList
+      // TODO: Unpack the Block we return here
+      q"""
+       var vars: Map[String, Any] = Map()
+       if ($cond) {
+        ..${thn.map(transStatement).toList}
+        ..$thnAssign
+       } else {
+         ..${els.map(transStatement).toList}
+         ..$elsAssign
+       }
+       """*/
   }
 
 
@@ -194,8 +223,10 @@ class GenerateScala {
       val tRecv = transExpression(recv)
       Term.Select(tRecv, Term.Name("_"+index))
     case TupleExpr(exps) =>
-      val tExps = exps.map(transExpression).toList
-      Term.Tuple(tExps)
+      if (exps.nonEmpty)
+        Term.Tuple(exps.map(transExpression).toList)
+      else
+        Lit.Unit()
     case BaseLitExpr(code) =>
       code.tree
     case BaseApplyExpr(fun, args) =>
@@ -212,9 +243,18 @@ class GenerateScala {
       Term.ApplyType(term, List(MetaType.Name(tyName.raw)))
     case InstanceOfExpr(recv, ofTyp) =>
       // TODO: support tuples and sets
-      val TClass(ClassRef(tyName)) = ofTyp
-      val term = Term.Select(transExpression(recv), Term.Name("isInstanceOf"))
-      Term.ApplyType(term, List(MetaType.Name(tyName.raw)))
+      ofTyp match {
+        case TAny => ???
+        case TNull => ???
+          ///q"${transExpression(recv)} == null"
+        case TTuple(ts) => ???
+        case TScala(ty) => ???
+        case TClass(ClassRef(name)) =>
+          val term = Term.Select(transExpression(recv), Term.Name("isInstanceOf"))
+          Term.ApplyType(term, List(MetaType.Name(name.raw)))
+        case TSet(ty) => ???
+      }
+
     case BaseApplyMethodExpr(recv, method, args) =>
       val term = Term.Select(transExpression(recv), Term.Name(method.raw))
       val tArgs = args.getOrElse(Seq()).map(transExpression).toList

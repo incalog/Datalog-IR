@@ -31,9 +31,14 @@ object ScalaObjectExecutor extends Executor {
       println(code)
 
       // convert the result to the expected format that a datalog query produces
-      scalaCompiler.compileAndLoadScala[AnyRef](code) match {
-        case s: Set[_] => ??? // TODO:
+      scalaCompiler.compileAndLoadScala[Any](code) match {
+        case s: Set[_] =>
+          results(s.map {
+            case p: Product =>  ArraySeq.from(shapeless(p))
+            case e => Seq(e)
+          }.toSeq)
         case p: Product => results(Seq(ArraySeq.from(shapeless(p))))
+        case _: Unit =>  results(Seq(Seq()))
         case e => resultVal(e)
       }
     }

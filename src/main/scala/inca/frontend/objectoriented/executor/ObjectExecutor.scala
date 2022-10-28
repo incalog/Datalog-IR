@@ -51,7 +51,7 @@ object ObjectExecutor extends Executor {
     }
 
 
-    def output(pat: String, tuple: Tuple): Results[AnyRef] = {
+    def output(pat: String, tuple: Tuple): Results[Any] = {
       val mainSpec = compiled.psystemModule.patterns(pat)()
       val mainMatcher = engine.getMatcher(mainSpec)
       val arity = mainMatcher.getParameterNames.size()
@@ -63,10 +63,10 @@ object ObjectExecutor extends Executor {
       new Results(outputMatches)
     }
 
-    def execute(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): Results[AnyRef] =
+    def execute(main: String, args: Seq[meta.Term], deleteInput: Boolean = false): Results[Any] =
       executeInput(main, input(args), deleteInput)
 
-    def executeInput(main: String, input: Input, deleteInput: Boolean = false): Results[AnyRef] = {
+    def executeInput(main: String, input: Input, deleteInput: Boolean = false): Results[Any] = {
       val (es, tuple) = input
       feed.processEditScript(es)
       feed.insert(demandPatternExtensionalPrefix + main, tuple)

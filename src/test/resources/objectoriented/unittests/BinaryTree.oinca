@@ -23,6 +23,7 @@ class DefinedNode extends Node {
         this.data = data
     }
 
+    @override
     def sum(): Int = {
         return this.data + this.right.sum() + this.left.sum()
     }
