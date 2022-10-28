@@ -30,6 +30,11 @@ class CallStack {
     hd
   }
 
+  def clear(): Unit = {
+    _stack = List()
+    _observers = List()
+  }
+
   def update(cp: EvaluationPoint): Unit = {
     _stack = cp :: _stack.tail
     notifyStackChanged()

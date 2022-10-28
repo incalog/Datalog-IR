@@ -17,6 +17,7 @@ trait Options {
 
   def withOptimizations(opts: Seq[Optimization]): Options
   def withTransformations(trans: Seq[Transformation]): Options
+  def withEngine(reteBackendFactory: ReteBackendFactory): Options
 }
 
 object Options {
@@ -51,6 +52,8 @@ object Options {
         Options(stopOnError, stopOnWarning, mode, opts, trans)
       override def withTransformations(trans: Seq[Transformation]): Options =
         Options(stopOnError, stopOnWarning, mode, opts, trans)
+      override def withEngine(engine: ReteBackendFactory): Options =
+        Options(stopOnError, stopOnWarning, engine, opts, trans)
     }
   }
 

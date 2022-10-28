@@ -9,6 +9,7 @@ import inca.debugger.Value
 import inca.runtime.db.DatabaseInput
 import inca.runtime.DatalogRuntime
 import inca.runtime.Query
+import inca.util.TimeTracker
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.CollectionHasAsScala
@@ -25,6 +26,13 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
   val seenQueries: mutable.Map[(Predicate, Adornment), ImmutableTable[Value]] = mutable.Map.empty
 //  val fixpointSize: mutable.Map[(Predicate, ImmutableTable[Value]), Int] =
 //    mutable.Map.empty
+
+  def clear(): Unit = {
+    blacklist.clear()
+    topDownResults.clear()
+    seenQueries.clear()
+    fixpointSize.clear()
+  }
 
   def readBottomUp(p: Predicate, args: ImmutableTable[Value]): ImmutableTable[Value] = {
     val mainSpec = bottomUpRuntime.compiled.psystemModule.patterns.get(p) match {
@@ -52,7 +60,9 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
       case Some(spec) => spec()
       case None => return 0
     }
+    TimeTracker.begin()
     val mainMatcher = bottomUpRuntime.engine.getMatcher(mainSpec)
+    TimeTracker.stop()
     val unboundCols = predicates(p).map(_.name).diff(args.columns)
     args.entries.map { row =>
       val inputMap = args.columns.zip(row.map(_.unwrap)).toMap ++ unboundCols.map(_ -> null)

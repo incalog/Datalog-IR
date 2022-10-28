@@ -35,6 +35,15 @@ case class FunctionalOptions(
       stopOnWarning,
       mode
     )
+
+  override def withEngine(_mode: ReteBackendFactory): Options =
+    FunctionalOptions(
+      optimizations,
+      transformations,
+      stopOnError,
+      stopOnWarning,
+      _mode
+    )
 }
 
 object FunctionalOptions {

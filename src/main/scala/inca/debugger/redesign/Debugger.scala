@@ -3,16 +3,18 @@ package inca.debugger.redesign
 import inca.backend.analyze.DependencyGraph
 import inca.backend.ir.Datalog
 import inca.backend.optimize.InlineSimpleRelations
-import inca.compiler.{CompiledDatalogModule, CompiledModule}
+import inca.compiler.CompiledDatalogModule
+import inca.compiler.CompiledModule
 import inca.debugger.table.indexing.IndexCover
 import inca.debugger.table.ImmutableTable
 import inca.debugger.table.IndexedTableFactory
 import inca.debugger.DebuggerAPI
 import inca.debugger.IllegalDebugStateException
 import inca.debugger.Value
-import inca.runtime.{DatalogRuntime, EnginePool}
 import inca.runtime.context.QueryScope
 import inca.runtime.db.DatabaseInput
+import inca.runtime.DatalogRuntime
+import inca.runtime.EnginePool
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 
 trait Debugger extends DebuggerAPI {
@@ -49,7 +51,8 @@ trait Debugger extends DebuggerAPI {
   val callStack: CallStack = new CallStack
 
   lazy val breakpointHandler: BreakpointHandler = new BreakpointHandler(dependencyGraph)
-  override def isAtBreakpoint: Boolean = !callStack.top.isEmpty && breakpointHandler.isAtBreakpoint(callStack.top)
+  override def isAtBreakpoint: Boolean =
+    !callStack.top.isEmpty && breakpointHandler.isAtBreakpoint(callStack.top)
   override def clearBreakpoints(): Unit = breakpointHandler.clearBreakpoints()
 
   def initializeDatabaseRuntime(input: DatabaseInput): Unit = {
@@ -61,6 +64,8 @@ trait Debugger extends DebuggerAPI {
     })
     val rt = DatalogRuntime(_engine, _database, module)
     state = new DebuggerState(rt)
+    // TODO we do this to initialize db before starting debugging session
+    val size = state.countBottomUp("path", ImmutableTable.unit())
   }
 
   def entry(p: Predicate, argBindings: ImmutableTable[Value]): Unit = {
@@ -76,10 +81,10 @@ trait Debugger extends DebuggerAPI {
     top match {
       case PredicateEntry(_, _, _) =>
         intoPredicate(top)
-      case br@BeforeRule(_, _, _, rules) =>
+      case br @ BeforeRule(_, _, _, rules) =>
         if (rules.nonEmpty) intoFirstRule(br)
         else outofPredicate(top)
-      case ir@InRule(_, _, _, RuleEvaluation(_, _, atoms), rules) =>
+      case ir @ InRule(_, _, _, RuleEvaluation(_, _, atoms), rules) =>
         if (atoms.nonEmpty) nextAtom(top)
         else if (rules.nonEmpty) nextRule(ir)
         else lastRule(top)
@@ -120,7 +125,7 @@ trait Debugger extends DebuggerAPI {
     else if (isRuleEntry(top))
       stepOverRule(top)
     else if (isPredicateCall(top)) {
-      val InRule(_, _, _, RuleEvaluation(_, _, call::_), _) = top
+      val InRule(_, _, _, RuleEvaluation(_, _, call :: _), _) = top
       if (breakpointHandler.breakpointReachableFromCallee(call.asCall.get._1)) {
         // cannot step over
         return false
@@ -208,7 +213,7 @@ trait Debugger extends DebuggerAPI {
     case _ => false
   }
 
-  protected final def intoPredicate(evalPoint: EvaluationPoint): Unit = {
+  final protected def intoPredicate(evalPoint: EvaluationPoint): Unit = {
     val PredicateEntry(p, argBindings, predResult) = evalPoint
     val rules = predicates(p).bodies
     if (isCyclic(p)) {
@@ -261,7 +266,7 @@ trait Debugger extends DebuggerAPI {
     callStack.update(next)
   }
 
-  protected final def nextAtom(evalPoint: EvaluationPoint): Unit = {
+  final protected def nextAtom(evalPoint: EvaluationPoint): Unit = {
     val InRule(p, argBindings, predResult, RuleEvaluation(ruleResult, ruleIdx, atoms), rules) =
       evalPoint
     val atomsHead = atoms.head
@@ -307,7 +312,7 @@ trait Debugger extends DebuggerAPI {
     }
   }
 
-  protected final def evalResult(evalPoint: EvaluationPoint): Unit = {
+  final protected def evalResult(evalPoint: EvaluationPoint): Unit = {
     val EvaluationResult(p, predResult) = evalPoint
     callStack.pop()
     if (callStack.nonEmpty) {

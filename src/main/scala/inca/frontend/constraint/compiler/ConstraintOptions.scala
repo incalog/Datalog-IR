@@ -38,6 +38,17 @@ case class ConstraintOptions(
       stopOnWarning,
       mode
     )
+
+  override def withEngine(_mode: ReteBackendFactory): Options =
+    ConstraintOptions(
+      optimizations,
+      transformations,
+      desugarables,
+      stopOnError,
+      stopOnWarning,
+      _mode
+    )
+
 }
 
 object ConstraintOptions {
