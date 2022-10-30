@@ -65,7 +65,7 @@ trait Debugger extends DebuggerAPI {
     val rt = DatalogRuntime(_engine, _database, module)
     state = new DebuggerState(rt)
     // TODO we do this to initialize db before starting debugging session
-    val size = state.countBottomUp("path", ImmutableTable.unit())
+    state.countBottomUp("path", ImmutableTable.unit())
   }
 
   def entry(p: Predicate, argBindings: ImmutableTable[Value]): Unit = {
@@ -297,7 +297,7 @@ trait Debugger extends DebuggerAPI {
           callStack.update(next)
         } else { // E-StepInto-New
           val calleeParams = predicates(callee).params.map(_.name)
-          val calleeRules = predicates(callee).bodies
+//          val calleeRules = predicates(callee).bodies
           val next = PredicateEntry(callee, unseenQueries, ImmutableTable.empty(calleeParams))
 //          val next =
 //            BeforeRule(callee, unseenQueries, ImmutableTable.empty(calleeParams), calleeRules)

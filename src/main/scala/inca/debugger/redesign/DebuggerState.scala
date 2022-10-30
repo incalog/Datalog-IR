@@ -31,7 +31,7 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     blacklist.clear()
     topDownResults.clear()
     seenQueries.clear()
-    fixpointSize.clear()
+//    fixpointSize.clear()
   }
 
   def readBottomUp(p: Predicate, args: ImmutableTable[Value]): ImmutableTable[Value] = {

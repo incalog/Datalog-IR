@@ -3,8 +3,7 @@ package inca.frontend.souffle.compiler
 import inca.backend.optimize.Optimization
 import inca.backend.transform.Transformation
 import inca.compiler.Options
-import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
-import org.eclipse.viatra.query.runtime.rete.matcher.ReteBackendFactory
+import org.eclipse.viatra.query.runtime.rete.matcher.{DRedReteBackendFactory, ReteBackendFactory, TimelyReteBackendFactory}
 
 case class SouffleOptions(
     override val stopOnError: Boolean = true,
@@ -16,8 +15,11 @@ case class SouffleOptions(
     extends Options {
 
   override def withOptimizations(opts: Seq[Optimization]): SouffleOptions =
-    SouffleOptions(stopOnError, stopOnWarning, opts, transformations, mode, useEditScriptsForInput)
+    this.copy(optimizations = opts)
 
   override def withTransformations(trans: Seq[Transformation]): SouffleOptions =
-    SouffleOptions(stopOnError, stopOnWarning, optimizations, trans, mode, useEditScriptsForInput)
+    this.copy(transformations = trans)
+
+  override def withEngine(reteBackendFactory: ReteBackendFactory): Options =
+    this.copy(mode = reteBackendFactory)
 }

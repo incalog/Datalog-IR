@@ -239,7 +239,7 @@ class SouffleDebuggerTest extends AnyFunSuite {
   }
 
 
-  test("var points to analysis") {
+  ignore("var points to analysis") {
     val debugger = pointsToDebugger
     val args = ImmutableTable.unit[Value]()
     // val args = ImmutableTable[Value](Seq("?var"), Seq(Seq(ScalaValue("x"))))

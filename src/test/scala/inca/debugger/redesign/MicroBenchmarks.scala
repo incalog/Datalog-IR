@@ -48,7 +48,7 @@ object MicroBenchmarks {
 //    edge(9, 6)
   def edge(from: Int, to: Int): Seq[Edge] = Seq((from, to))
   // to - from edges
-  def cycle(from: Int, to: Int): Seq[Edge] = line(from, to) :+ (to, from)
+  def cycle(from: Int, to: Int): Seq[Edge] = line(from, to) :+ ((to, from))
   // to - from - 1 edges
   def line(from: Int, to: Int): Seq[Edge] = (from until to).map { i =>
     (i, i + 1)
