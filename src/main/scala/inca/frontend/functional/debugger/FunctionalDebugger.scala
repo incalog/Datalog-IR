@@ -69,9 +69,9 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
 
   private var uris: Map[URI, Diffable] = Map()
 
-  private val _controlTraceFrontend: ListBuffer[FunctionalControlPoint] = ListBuffer.empty
-  def controlTraceFrontend: Seq[FunctionalControlPoint] = _controlTraceFrontend.toSeq
-  override def stepped(): Unit = currentFunctionalPoint.foreach(_controlTraceFrontend += _)
+  private val _functionalControlTrace: ListBuffer[FunctionalControlPoint] = ListBuffer.empty
+  def functionalControlTrace: Seq[FunctionalControlPoint] = _functionalControlTrace.toSeq
+  def stepped(): Unit = _functionalControlTrace += currentFunctionalPoint.get
 
   def getFunction(pat: String): Option[FunctionDef] =
     predicates.get(pat).flatMap(getFunction)
@@ -91,7 +91,10 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
           case Some(fun) => cp match {
             case PredicateEntry(pred, argBindings, predResult) => Some(FunctionPoint(fun, fun.name.sourceObject, cp))
             case BeforeRule(pred, argBindings, predResult, rules) => None
-            case cp@InRule(pred, argBindings, predResult, current, remainingRules) => current.atoms match {
+            case cp@InRule(pred, argBindings, predResult, current, remainingRules)
+              if current.ruleResult.isEmpty => None
+            case cp@InRule(pred, argBindings, predResult, current, remainingRules) =>
+              current.atoms match {
               case Nil => None
               case atom::_ => atom.getHint(SourceConstruct.key) match {
                 case Some(SourceConstruct(constr: Expression)) =>
@@ -206,7 +209,6 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
   def stepOverConditionPoint(fp: FunctionalControlPoint): Unit = fp match {
     case _: FunctionPoint | _: MatchPoint => // nothing
     case condp: ConditionPoint =>
-      _controlTraceFrontend.remove(_controlTraceFrontend.size - 1)
       val conditionedPattern = condp.irPoint.pred
       val conditionedBody = condp.irPoint.current.ruleIdx
       stepIntoIR()
@@ -261,10 +263,6 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
     }
     if (!stop && !isFinished) {
       stepOverIR()
-      // hide last point
-      currentFunctionalPoint.foreach { _ =>
-        _controlTraceFrontend.remove(_controlTraceFrontend.size - 1)
-      }
       doSkipAheadTo(stopCond)
     }
   }
@@ -284,7 +282,6 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
       case EvaluationResult(_, _) =>
         fpEvalResult(top)
     }
-    stepped()
     true
   }
 

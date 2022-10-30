@@ -1,11 +1,21 @@
 package inca.debugger
 
 trait DebuggerAPI {
-  def stepInto(): Unit =
+  def stepped(): Unit
+
+  def stepInto(): Unit = {
     if (!doStepInto())
       throw new IllegalStateException()
-  def stepOver(): Unit = doStepOver() || resume()
-  def stepOut(): Boolean = doStepOut() || resume()
+    stepped()
+  }
+  def stepOver(): Unit = {
+    doStepOver() || resume()
+    stepped()
+  }
+  def stepOut(): Unit = {
+    doStepOut() || resume()
+    stepped()
+  }
 
   /** internal step into */
   protected def doStepInto(): Boolean

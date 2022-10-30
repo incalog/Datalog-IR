@@ -60,9 +60,9 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       println(debugger.currentDebuggerInfo())
       debugger.stepInto()
     }
-    if (expected != debugger.controlTraceFrontend.size)
-      debugger.controlTraceFrontend.foreach(println)
-    assertResult(expected)(debugger.controlTraceFrontend.size)
+    if (expected != debugger.functionalControlTrace.size)
+      debugger.functionalControlTrace.foreach(println)
+    assertResult(expected)(debugger.functionalControlTrace.size)
   }
 
   def createBreakpointOfExpression(

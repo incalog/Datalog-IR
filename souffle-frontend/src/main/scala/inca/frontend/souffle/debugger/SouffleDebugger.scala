@@ -12,6 +12,7 @@ import inca.runtime.db.DatabaseInput
 import inca.util.Derivative
 
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 
 
 class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) extends Debugger {
@@ -33,6 +34,10 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
     }
     b
   }
+
+  private val _souffleControlTrace: ListBuffer[SouffleControlPoint] = ListBuffer.empty
+  def souffleControlTrace: Seq[SouffleControlPoint] = _souffleControlTrace.toSeq
+  def stepped(): Unit = soufflePoint.foreach(_souffleControlTrace += _)
 
   override def doStepInto(): Boolean = stepToSoufflePoint(() => stepIntoIR())
   override def doStepOver(): Boolean = stepToSoufflePoint(() => stepOverIR())

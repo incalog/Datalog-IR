@@ -11,11 +11,14 @@ import inca.debugger.table.IndexedTableFactory
 import inca.debugger.DebuggerAPI
 import inca.debugger.IllegalDebugStateException
 import inca.debugger.Value
+import inca.frontend.functional.debugger.FunctionalControlPoint
 import inca.runtime.context.QueryScope
 import inca.runtime.db.DatabaseInput
 import inca.runtime.DatalogRuntime
 import inca.runtime.EnginePool
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
+
+import scala.collection.mutable.ListBuffer
 
 trait Debugger extends DebuggerAPI {
 
@@ -42,8 +45,6 @@ trait Debugger extends DebuggerAPI {
   lazy val predicates: Map[Predicate, Datalog.Pattern] = module.ir.patternMap
 
   def isFinished: Boolean = callStack.size == 1 && callStack.top.isInstanceOf[EvaluationResult]
-
-  def stepped(): Unit = {}
 
   // TODO make private when finished
   var state: DebuggerState = _
@@ -91,7 +92,6 @@ trait Debugger extends DebuggerAPI {
       case EvaluationResult(_, _) =>
         evalResult(top)
     }
-    stepped()
     true
   }
 
@@ -133,7 +133,6 @@ trait Debugger extends DebuggerAPI {
         stepOverCall(top)
     } else
       stepIntoIR()
-    stepped()
     true
   }
 
@@ -146,7 +145,6 @@ trait Debugger extends DebuggerAPI {
     else {
       callStack.pop()
       stepOverCall(callStack.top)
-      stepped()
       true
     }
   }
