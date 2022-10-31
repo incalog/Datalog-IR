@@ -8,15 +8,15 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaBaseApplyUnaryExpImpl extends ASTWrapperPsiElement implements FuncIncaBaseApplyUnaryExp {
+public class FuncIncaBaseApplyUnaryExpImpl extends FuncIncaExpImpl implements FuncIncaBaseApplyUnaryExp {
 
   public FuncIncaBaseApplyUnaryExpImpl(@NotNull ASTNode node) {
     super(node);
   }
 
+  @Override
   public void accept(@NotNull FuncIncaVisitor visitor) {
     visitor.visitBaseApplyUnaryExp(this);
   }
@@ -29,8 +29,8 @@ public class FuncIncaBaseApplyUnaryExpImpl extends ASTWrapperPsiElement implemen
 
   @Override
   @Nullable
-  public FuncIncaInfixExp getInfixExp() {
-    return findChildByClass(FuncIncaInfixExp.class);
+  public FuncIncaExp getExp() {
+    return findChildByClass(FuncIncaExp.class);
   }
 
   @Override

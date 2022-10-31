@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FuncIncaLetExp extends PsiElement {
+public interface FuncIncaLetExp extends FuncIncaExp {
 
   @Nullable
   FuncIncaMultipleLet getMultipleLet();

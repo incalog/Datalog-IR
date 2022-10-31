@@ -8,15 +8,15 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaTupleExpImpl extends ASTWrapperPsiElement implements FuncIncaTupleExp {
+public class FuncIncaTupleExpImpl extends FuncIncaExpImpl implements FuncIncaTupleExp {
 
   public FuncIncaTupleExpImpl(@NotNull ASTNode node) {
     super(node);
   }
 
+  @Override
   public void accept(@NotNull FuncIncaVisitor visitor) {
     visitor.visitTupleExp(this);
   }

@@ -8,15 +8,15 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaConstSetExpImpl extends ASTWrapperPsiElement implements FuncIncaConstSetExp {
+public class FuncIncaConstSetExpImpl extends FuncIncaExpImpl implements FuncIncaConstSetExp {
 
   public FuncIncaConstSetExpImpl(@NotNull ASTNode node) {
     super(node);
   }
 
+  @Override
   public void accept(@NotNull FuncIncaVisitor visitor) {
     visitor.visitConstSetExp(this);
   }

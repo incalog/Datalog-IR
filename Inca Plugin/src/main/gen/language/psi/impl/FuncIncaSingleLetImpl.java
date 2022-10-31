@@ -29,14 +29,8 @@ public class FuncIncaSingleLetImpl extends ASTWrapperPsiElement implements FuncI
 
   @Override
   @NotNull
-  public FuncIncaExp getExp() {
-    return findNotNullChildByClass(FuncIncaExp.class);
-  }
-
-  @Override
-  @NotNull
-  public FuncIncaInfixExp getInfixExp() {
-    return findNotNullChildByClass(FuncIncaInfixExp.class);
+  public List<FuncIncaExp> getExpList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaExp.class);
   }
 
   @Override

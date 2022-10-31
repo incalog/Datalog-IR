@@ -5,10 +5,10 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FuncIncaCastExp extends PsiElement {
+public interface FuncIncaCastExp extends FuncIncaExp {
 
   @NotNull
-  FuncIncaSubinfixExp getSubinfixExp();
+  FuncIncaExp getExp();
 
   @Nullable
   FuncIncaTypeName getTypeName();

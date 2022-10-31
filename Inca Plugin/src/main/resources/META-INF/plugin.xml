@@ -31,6 +31,8 @@
                 implementation="language.FuncIncaColorSettingsPage"/>
         <annotator
                 implementationClass="language.FuncIncaAnnotator"/>
+        <psi.referenceContributor
+                implementation="language.FuncIncaReferenceContributor"/>
     </extensions>
 
     <actions>

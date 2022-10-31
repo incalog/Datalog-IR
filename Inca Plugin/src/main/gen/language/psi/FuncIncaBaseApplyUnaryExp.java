@@ -5,10 +5,10 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FuncIncaBaseApplyUnaryExp extends PsiElement {
+public interface FuncIncaBaseApplyUnaryExp extends FuncIncaExp {
 
   @Nullable
-  FuncIncaInfixExp getInfixExp();
+  FuncIncaExp getExp();
 
   @NotNull
   FuncIncaUnaryOp getUnaryOp();

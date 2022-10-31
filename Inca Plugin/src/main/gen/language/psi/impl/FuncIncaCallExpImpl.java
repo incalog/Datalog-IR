@@ -8,15 +8,15 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaCallExpImpl extends ASTWrapperPsiElement implements FuncIncaCallExp {
+public class FuncIncaCallExpImpl extends FuncIncaExpImpl implements FuncIncaCallExp {
 
   public FuncIncaCallExpImpl(@NotNull ASTNode node) {
     super(node);
   }
 
+  @Override
   public void accept(@NotNull FuncIncaVisitor visitor) {
     visitor.visitCallExp(this);
   }
@@ -25,12 +25,6 @@ public class FuncIncaCallExpImpl extends ASTWrapperPsiElement implements FuncInc
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof FuncIncaVisitor) accept((FuncIncaVisitor)visitor);
     else super.accept(visitor);
-  }
-
-  @Override
-  @NotNull
-  public FuncIncaAtomicExp getAtomicExp() {
-    return findNotNullChildByClass(FuncIncaAtomicExp.class);
   }
 
   @Override

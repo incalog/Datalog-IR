@@ -8,10 +8,7 @@ import com.intellij.psi.PsiElement;
 public interface FuncIncaSingleLet extends PsiElement {
 
   @NotNull
-  FuncIncaExp getExp();
-
-  @NotNull
-  FuncIncaInfixExp getInfixExp();
+  List<FuncIncaExp> getExpList();
 
   @Nullable
   FuncIncaTypeAnnotation getTypeAnnotation();

@@ -8,15 +8,15 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaLambdaExpImpl extends ASTWrapperPsiElement implements FuncIncaLambdaExp {
+public class FuncIncaLambdaExpImpl extends FuncIncaExpImpl implements FuncIncaLambdaExp {
 
   public FuncIncaLambdaExpImpl(@NotNull ASTNode node) {
     super(node);
   }
 
+  @Override
   public void accept(@NotNull FuncIncaVisitor visitor) {
     visitor.visitLambdaExp(this);
   }

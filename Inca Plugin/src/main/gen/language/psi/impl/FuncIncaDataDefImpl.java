@@ -9,6 +9,7 @@ import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
 import language.psi.*;
+import com.intellij.psi.PsiReference;
 
 public class FuncIncaDataDefImpl extends FuncIncaNamedElementImpl implements FuncIncaDataDef {
 
@@ -69,6 +70,11 @@ public class FuncIncaDataDefImpl extends FuncIncaNamedElementImpl implements Fun
   @Override
   public PsiElement getNameIdentifier() {
     return FuncIncaPsiImplUtil.getNameIdentifier(this);
+  }
+
+  @Override
+  public PsiReference getReference() {
+    return FuncIncaPsiImplUtil.getReference(this);
   }
 
 }

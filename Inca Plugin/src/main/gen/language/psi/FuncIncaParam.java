@@ -4,8 +4,9 @@ package language.psi;
 import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
+import com.intellij.psi.PsiReference;
 
-public interface FuncIncaParam extends FuncIncaNamedElement {
+public interface FuncIncaParam extends FuncIncaNamedElement, FuncIncaDecl {
 
   @NotNull
   FuncIncaTypeAnnotation getTypeAnnotation();
@@ -18,5 +19,7 @@ public interface FuncIncaParam extends FuncIncaNamedElement {
   PsiElement setName(String newName);
 
   PsiElement getNameIdentifier();
+
+  PsiReference getReference();
 
 }

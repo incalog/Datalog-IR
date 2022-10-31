@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FuncIncaLambdaExp extends PsiElement {
+public interface FuncIncaLambdaExp extends FuncIncaExp {
 
   @Nullable
   FuncIncaExp getExp();

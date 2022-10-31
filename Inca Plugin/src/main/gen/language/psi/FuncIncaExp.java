@@ -7,16 +7,4 @@ import com.intellij.psi.PsiElement;
 
 public interface FuncIncaExp extends PsiElement {
 
-  @Nullable
-  FuncIncaIfExp getIfExp();
-
-  @Nullable
-  FuncIncaInfixExp getInfixExp();
-
-  @Nullable
-  FuncIncaLetExp getLetExp();
-
-  @Nullable
-  FuncIncaMemberExp getMemberExp();
-
 }

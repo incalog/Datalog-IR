@@ -1,10 +1,13 @@
 <application>
   <component name="ActionsLocalSummary">
     <e n="EditorBackSpace">
-      <i c="75" l="1663172881748" />
+      <i c="77" l="1665654758908" />
     </e>
     <e n="EditorCopy">
       <i c="2" l="1662985815192" />
+    </e>
+    <e n="EditorDelete">
+      <i c="2" l="1665654759009" />
     </e>
     <e n="EditorEnter">
       <i c="26" l="1663172899146" />
@@ -16,7 +19,7 @@
       <i c="1" l="1663172885972" />
     </e>
     <e n="EditorPaste">
-      <i c="2" l="1662985816969" />
+      <i c="3" l="1665654751410" />
     </e>
     <e n="EditorTextStart">
       <i c="1" l="1662985843181" />
@@ -34,10 +37,10 @@
       <i c="1" l="1662132043700" />
     </e>
     <e n="PsiViewer">
-      <i c="2" l="1662985778618" />
+      <i c="5" l="1666806076783" />
     </e>
     <e n="PsiViewerForContext">
-      <i c="1" l="1662371071576" />
+      <i c="5" l="1666806120236" />
     </e>
     <e n="WelcomeScreen.CreateNewProject">
       <i c="1" l="1662131904886" />

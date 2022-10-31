@@ -11,7 +11,7 @@ import static language.psi.FuncIncaTypes.*;
 import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaExpImpl extends ASTWrapperPsiElement implements FuncIncaExp {
+public abstract class FuncIncaExpImpl extends ASTWrapperPsiElement implements FuncIncaExp {
 
   public FuncIncaExpImpl(@NotNull ASTNode node) {
     super(node);
@@ -25,30 +25,6 @@ public class FuncIncaExpImpl extends ASTWrapperPsiElement implements FuncIncaExp
   public void accept(@NotNull PsiElementVisitor visitor) {
     if (visitor instanceof FuncIncaVisitor) accept((FuncIncaVisitor)visitor);
     else super.accept(visitor);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaIfExp getIfExp() {
-    return findChildByClass(FuncIncaIfExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaInfixExp getInfixExp() {
-    return findChildByClass(FuncIncaInfixExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaLetExp getLetExp() {
-    return findChildByClass(FuncIncaLetExp.class);
-  }
-
-  @Override
-  @Nullable
-  public FuncIncaMemberExp getMemberExp() {
-    return findChildByClass(FuncIncaMemberExp.class);
   }
 
 }

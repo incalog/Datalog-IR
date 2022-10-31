@@ -5,15 +5,6 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FuncIncaSubinfixExp extends PsiElement {
-
-  @Nullable
-  FuncIncaAtomicExp getAtomicExp();
-
-  @Nullable
-  FuncIncaCallExp getCallExp();
-
-  @Nullable
-  FuncIncaLambdaExp getLambdaExp();
+public interface FuncIncaSubinfixExp extends FuncIncaExp {
 
 }

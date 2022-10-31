@@ -17,6 +17,7 @@
     <lang.syntaxHighlighterFactory language="Functional IncA" implementationClass="language.FuncIncaSyntaxHighlighterFactory" />
     <colorSettingsPage implementation="language.FuncIncaColorSettingsPage" />
     <annotator implementationClass="language.FuncIncaAnnotator" />
+    <psi.referenceContributor implementation="language.FuncIncaReferenceContributor" />
   </extensions>
   <actions>
     <!-- Add your actions here -->

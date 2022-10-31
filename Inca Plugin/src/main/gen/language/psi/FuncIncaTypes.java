@@ -183,9 +183,6 @@ public interface FuncIncaTypes {
       else if (type == DATA_DEF) {
         return new FuncIncaDataDefImpl(node);
       }
-      else if (type == EXP) {
-        return new FuncIncaExpImpl(node);
-      }
       else if (type == FOLD_EXP) {
         return new FuncIncaFoldExpImpl(node);
       }
@@ -200,9 +197,6 @@ public interface FuncIncaTypes {
       }
       else if (type == IMPORT) {
         return new FuncIncaImportImpl(node);
-      }
-      else if (type == INFIX_EXP) {
-        return new FuncIncaInfixExpImpl(node);
       }
       else if (type == LAMBDA_EXP) {
         return new FuncIncaLambdaExpImpl(node);
@@ -263,9 +257,6 @@ public interface FuncIncaTypes {
       }
       else if (type == STRING_LIT) {
         return new FuncIncaStringLitImpl(node);
-      }
-      else if (type == SUBINFIX_EXP) {
-        return new FuncIncaSubinfixExpImpl(node);
       }
       else if (type == TUPLE) {
         return new FuncIncaTupleImpl(node);

@@ -8,15 +8,15 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaMatchExpImpl extends ASTWrapperPsiElement implements FuncIncaMatchExp {
+public class FuncIncaMatchExpImpl extends FuncIncaExpImpl implements FuncIncaMatchExp {
 
   public FuncIncaMatchExpImpl(@NotNull ASTNode node) {
     super(node);
   }
 
+  @Override
   public void accept(@NotNull FuncIncaVisitor visitor) {
     visitor.visitMatchExp(this);
   }
@@ -29,14 +29,14 @@ public class FuncIncaMatchExpImpl extends ASTWrapperPsiElement implements FuncIn
 
   @Override
   @NotNull
-  public List<FuncIncaMatchCase> getMatchCaseList() {
-    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaMatchCase.class);
+  public FuncIncaExp getExp() {
+    return findNotNullChildByClass(FuncIncaExp.class);
   }
 
   @Override
   @NotNull
-  public FuncIncaSubinfixExp getSubinfixExp() {
-    return findNotNullChildByClass(FuncIncaSubinfixExp.class);
+  public List<FuncIncaMatchCase> getMatchCaseList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaMatchCase.class);
   }
 
 }

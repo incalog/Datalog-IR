@@ -8,15 +8,15 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaComprehensionExpImpl extends ASTWrapperPsiElement implements FuncIncaComprehensionExp {
+public class FuncIncaComprehensionExpImpl extends FuncIncaExpImpl implements FuncIncaComprehensionExp {
 
   public FuncIncaComprehensionExpImpl(@NotNull ASTNode node) {
     super(node);
   }
 
+  @Override
   public void accept(@NotNull FuncIncaVisitor visitor) {
     visitor.visitComprehensionExp(this);
   }
@@ -31,12 +31,6 @@ public class FuncIncaComprehensionExpImpl extends ASTWrapperPsiElement implement
   @NotNull
   public List<FuncIncaExp> getExpList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaExp.class);
-  }
-
-  @Override
-  @NotNull
-  public FuncIncaSubinfixExp getSubinfixExp() {
-    return findNotNullChildByClass(FuncIncaSubinfixExp.class);
   }
 
 }

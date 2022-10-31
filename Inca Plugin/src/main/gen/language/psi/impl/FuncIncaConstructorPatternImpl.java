@@ -9,6 +9,7 @@ import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
 import language.psi.*;
+import com.intellij.psi.PsiReference;
 
 public class FuncIncaConstructorPatternImpl extends FuncIncaNamedElementImpl implements FuncIncaConstructorPattern {
 
@@ -57,6 +58,11 @@ public class FuncIncaConstructorPatternImpl extends FuncIncaNamedElementImpl imp
   @Override
   public PsiElement getNameIdentifier() {
     return FuncIncaPsiImplUtil.getNameIdentifier(this);
+  }
+
+  @Override
+  public PsiReference getReference() {
+    return FuncIncaPsiImplUtil.getReference(this);
   }
 
 }

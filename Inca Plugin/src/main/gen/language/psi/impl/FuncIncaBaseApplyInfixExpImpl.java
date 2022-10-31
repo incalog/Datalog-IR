@@ -8,15 +8,15 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
-import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 
-public class FuncIncaBaseApplyInfixExpImpl extends ASTWrapperPsiElement implements FuncIncaBaseApplyInfixExp {
+public class FuncIncaBaseApplyInfixExpImpl extends FuncIncaExpImpl implements FuncIncaBaseApplyInfixExp {
 
   public FuncIncaBaseApplyInfixExpImpl(@NotNull ASTNode node) {
     super(node);
   }
 
+  @Override
   public void accept(@NotNull FuncIncaVisitor visitor) {
     visitor.visitBaseApplyInfixExp(this);
   }
@@ -28,21 +28,15 @@ public class FuncIncaBaseApplyInfixExpImpl extends ASTWrapperPsiElement implemen
   }
 
   @Override
-  @Nullable
-  public FuncIncaInfixExp getInfixExp() {
-    return findChildByClass(FuncIncaInfixExp.class);
+  @NotNull
+  public List<FuncIncaExp> getExpList() {
+    return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaExp.class);
   }
 
   @Override
   @NotNull
   public FuncIncaOp getOp() {
     return findNotNullChildByClass(FuncIncaOp.class);
-  }
-
-  @Override
-  @NotNull
-  public FuncIncaSubinfixExp getSubinfixExp() {
-    return findNotNullChildByClass(FuncIncaSubinfixExp.class);
   }
 
 }

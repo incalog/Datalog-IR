@@ -32,7 +32,7 @@ public class FuncIncaCodeInsightTest extends LightJavaCodeInsightFixtureTestCase
     /*
     * location of test data*/
     protected static String getDirPath() {
-        return "test/testData";
+        return "src/test/testData";
     }
 
     @Override

@@ -5,12 +5,12 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FuncIncaMatchExp extends PsiElement {
+public interface FuncIncaMatchExp extends FuncIncaExp {
+
+  @NotNull
+  FuncIncaExp getExp();
 
   @NotNull
   List<FuncIncaMatchCase> getMatchCaseList();
-
-  @NotNull
-  FuncIncaSubinfixExp getSubinfixExp();
 
 }

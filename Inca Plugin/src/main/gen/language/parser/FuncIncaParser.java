@@ -21,7 +21,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
 
   public void parseLight(IElementType t, PsiBuilder b) {
     boolean r;
-    b = adapt_builder_(t, b, this, null);
+    b = adapt_builder_(t, b, this, EXTENDS_SETS_);
     Marker m = enter_section_(b, 0, _COLLAPSE_, null);
     r = parse_root_(t, b);
     exit_section_(b, 0, m, t, r, true, TRUE_CONDITION);
@@ -34,6 +34,15 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   static boolean parse_root_(IElementType t, PsiBuilder b, int l) {
     return module(b, l + 1);
   }
+
+  public static final TokenSet[] EXTENDS_SETS_ = new TokenSet[] {
+    create_token_set_(ATOMIC_EXP, BASE_APPLY_EXP, BASE_APPLY_INFIX_EXP, BASE_APPLY_METHOD_EXP,
+      BASE_APPLY_UNARY_EXP, BASE_LIT_EXP, CALL_EXP, CAST_EXP,
+      COMPREHENSION_EXP, CONST_SET_EXP, EXP, FOLD_EXP,
+      IF_EXP, INFIX_EXP, LAMBDA_EXP, LET_EXP,
+      MATCH_EXP, MEMBER_EXP, OPTION_EXP, PARENS_EXP,
+      SUBINFIX_EXP, TUPLE_EXP),
+  };
 
   /* ********************************************************** */
   // '@main'
@@ -53,7 +62,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   public static boolean atomic_exp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "atomic_exp")) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, ATOMIC_EXP, "<atomic exp>");
+    Marker m = enter_section_(b, l, _COLLAPSE_, ATOMIC_EXP, "<atomic exp>");
     r = parens_exp(b, l + 1);
     if (!r) r = option_exp(b, l + 1);
     if (!r) r = comprehension_exp(b, l + 1);
@@ -701,7 +710,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   public static boolean exp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "exp")) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, EXP, "<exp>");
+    Marker m = enter_section_(b, l, _COLLAPSE_, EXP, "<exp>");
     r = if_exp(b, l + 1);
     if (!r) r = let_exp(b, l + 1);
     if (!r) r = member_exp(b, l + 1);
@@ -864,7 +873,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   public static boolean infix_exp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "infix_exp")) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, INFIX_EXP, "<infix exp>");
+    Marker m = enter_section_(b, l, _COLLAPSE_, INFIX_EXP, "<infix exp>");
     r = cast_exp(b, l + 1);
     if (!r) r = base_apply_method_exp(b, l + 1);
     if (!r) r = base_apply_infix_exp(b, l + 1);
@@ -1484,7 +1493,7 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   public static boolean subinfix_exp(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "subinfix_exp")) return false;
     boolean r;
-    Marker m = enter_section_(b, l, _NONE_, SUBINFIX_EXP, "<subinfix exp>");
+    Marker m = enter_section_(b, l, _COLLAPSE_, SUBINFIX_EXP, "<subinfix exp>");
     r = call_exp(b, l + 1);
     if (!r) r = lambda_exp(b, l + 1);
     if (!r) r = atomic_exp(b, l + 1);
