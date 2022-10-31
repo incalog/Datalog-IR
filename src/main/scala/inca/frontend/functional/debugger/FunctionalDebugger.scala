@@ -63,9 +63,26 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
   // skip bodies representing else-branches when corresponding then-branch was chosen
   private var skipElseBranches: List[mutable.Set[SourceObject]] = List()
   // skip everything until the atoms corresponding to the body of the else-branch/case when the else-branch/case was chosen
-  private var skipAheadTo: List[Option[SourceConstruct[_] => Boolean]] = List()
+  private var skipAheadTo: List[Option[SkipAhead]] = List()
   // skip the bodies that handle the other patterns of a pattern match if we found a matching pattern
   private var skipAlternativePatterns: List[mutable.Map[SourceObject, Set[SourceObject]]] = List()
+
+  sealed trait SkipAhead {
+    def stop(s: SourceConstruct[_]): Boolean
+  }
+  case class SkipToElse(ifSource: SourceObject) extends SkipAhead {
+    override def stop(s: SourceConstruct[_]): Boolean = s match {
+      case SourceConstruct((cond: If, false)) => cond.sourceObject == ifSource
+      case _ => false
+    }
+  }
+  case class SkipToPat(matchSource: SourceObject, patSource: SourceObject) extends SkipAhead {
+    override def stop(s: SourceConstruct[_]): Boolean = s match {
+      case SourceConstruct((m: Match, p: Pattern)) =>
+        m.sourceObject == matchSource && p.sourceObject == patSource
+      case _ => false
+    }
+  }
 
   private var uris: Map[URI, Diffable] = Map()
 
@@ -223,13 +240,8 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
               skipElseBranches.head += condp.cond.sourceObject
           case _ =>
             // condition failed and we were at the then branch => step to else branch
-            if (!condp.fun.isRelation) {
-              val skipToElse: SourceConstruct[_] => Boolean = {
-                case SourceConstruct((cond: If, false)) => cond.sourceObject == condp.point
-                case _ => false
-              }
-              skipAheadTo = Some(skipToElse) :: skipAheadTo.tail
-            }
+            if (!condp.fun.isRelation)
+              skipAheadTo = Some(SkipToElse(condp.point)) :: skipAheadTo.tail
         }
       }
       currentFunctionalPoint match {
@@ -255,15 +267,16 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
   }
 
   @tailrec
-  private def doSkipAheadTo(stopCond: SourceConstruct[_] => Boolean): Unit = {
-    val stop = callStack.top match {
-      case InRule(_, _, _, RuleEvaluation(_, _, atom::_), _) =>
-        atom.getHint(SourceConstruct.key).exists(h => stopCond(h.asInstanceOf[SourceConstruct[_]]))
-      case _ => false
+  private def doSkipAheadTo(skip: SkipAhead): Unit = {
+    val top = callStack.top
+    val atom = top match {
+      case InRule(_, _, _, RuleEvaluation(_, _, atom::_), _) => Some(atom)
+      case _ => None
     }
-    if (!stop && !isFinished) {
+    val stop = atom.exists(_.getHint(SourceConstruct.key).exists(h => skip.stop(h.asInstanceOf[SourceConstruct[_]])))
+    if (!stop && !isFinished && atom.isDefined) {
       stepOverIR()
-      doSkipAheadTo(stopCond)
+      doSkipAheadTo(skip)
     }
   }
 
@@ -319,7 +332,6 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
       super.nextRule(ep)
       breakpointHandler.withBreakpoints(Seq.empty) {
         skipAheadTo.head.foreach {
-          // needed? stepOverIR()
           doSkipAheadTo
         }
       }
@@ -340,19 +352,14 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
           val params = predicates(call.name).params.map(_.name)
           val nextTable = opJoinBodyAndPred(ruleResult, call.args, params, calleeResult, (x, y) => x.join(y))
 
-          controlPointFrontend match {
-            case MatchPoint(fun, ma, pat, _) if !fun.isRelation =>
+          currentFunctionalPoint match {
+            case Some(MatchPoint(fun, ma, pat, _)) if !fun.isRelation =>
               val patObj = pat.sourceObject
               val nextPats = ma.cases.dropWhile(_._1.sourceObject != patObj).tail
               if (nextTable.isEmpty) {
                 // pattern failed => go to next pattern
                 nextPats.headOption.foreach { next =>
-                  val skipToNextPat: SourceConstruct[_] => Boolean = {
-                    case SourceConstruct((m: Match, p: Pattern)) =>
-                      m.sourceObject == ma.sourceObject && p.sourceObject == next._1.sourceObject
-                    case _ => false
-                  }
-                  skipAheadTo = Some(skipToNextPat) :: skipAheadTo.tail
+                  skipAheadTo = Some(SkipToPat(ma.sourceObject, next._1.sourceObject)) :: skipAheadTo.tail
                 }
               } else {
                 // pattern succeeded => skip other patterns
