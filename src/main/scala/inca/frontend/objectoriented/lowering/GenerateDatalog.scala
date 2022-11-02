@@ -514,33 +514,10 @@ class GenerateDatalog(module: Module) {
         case _ => throw new IllegalArgumentException(s"Can not perform tuple read on expression of type ${recv.typ}")
       }
 
-    case SetExpr(exps) =>
-      exps.flatMap(transExpression)
+    case SetExpr(exps, tty) =>
+        exps.flatMap(transExpression)
 
     case setMember@SetMemberExpr(name, recv, predicate) =>
-      /*def generatePredicatePattern(params: Seq[Datalog.Param], pred: Option[Expression]): Datalog.Pattern = {
-        val transPred = if (pred.isDefined) transExpression(pred.get) else Seq()
-        val comps = transPred.map { case (predTerms, predCons) => (predCons, predTerms.map(pt => Datalog.Eq(pt, Datalog.True))) }
-        val cons = comps.map(_._1)
-        val terms = comps.flatMap(_._2)
-        // TODO: Make this params and check if this works
-        val cond = terms.reduce[Datalog.Term] { case (t1, t2) => Datalog.Eq(t1, t2)}
-        Datalog.Pattern(None, gensym.freshGlobal("predicate"), params, Seq(Datalog.Body(cons ++ terms ++ )))
-      }
-
-      val typ = setMember.typ.getOrElse(throw new IllegalArgumentException(s"Missing type for expression $setMember"))
-      val vars = flattenVars(name.raw, typ)
-      val varNames = vars.map(_._1)
-
-      val transRecv = transExpression(recv)
-      val predPat = generatePredicatePattern(vars.map(v => Datalog.Param(v._1.name, v._2)), predicate)
-      generatedPatterns += predPat
-
-      for ((recvTerms, recvCons) <- transRecv) yield {
-        val eqs = varNames.zip(recvTerms).map(vt => Datalog.Eq(vt._1, vt._2))
-        val call = Datalog.Call(predPat.name, varNames)
-        (Seq(), recvCons ++ eqs :+ call)
-      }*/
       val typ = setMember.typ.getOrElse(throw new IllegalArgumentException(s"Missing type for expression $setMember"))
       val vars = flattenVars(name.raw, typ).map(_._1)
       val transRecv = transExpression(recv)

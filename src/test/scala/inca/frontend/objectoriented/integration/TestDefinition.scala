@@ -3,7 +3,7 @@ package inca.frontend.objectoriented.integration
 import scala.meta.XtensionQuasiquoteTerm
 
 case class TestDefinition[O](fileName: String, mainClass: String, mainMethod: String, input: Seq[meta.Term], expectedResult: O)(implicit subdir: Option[String] = None) {
-  private val testDir: String = "objectoriented/unittests/"
+  private val testDir: String = "objectoriented/"
   private val fileExtension: String = "oinca"
 
   val filePath: String = {
@@ -41,7 +41,7 @@ object TestDefinition {
   }
 
   def baseTests: Seq[TestDefinition[Int]] = {
-    implicit val subdir: Option[String] = Some("base")
+    implicit val subdir: Option[String] = Some("unittests/base")
     Seq(
       TestDefinition("Base1", "Base1", "main", Seq(), 43),
       TestDefinition("Base2", "Base2", "main", Seq(), 43),
@@ -50,15 +50,17 @@ object TestDefinition {
   }
 
   def factorialTest: TestDefinition[Int] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("Fact", "Factorial", "main", Seq(q"5"), 120)
   }
 
   def fibonacciTest: TestDefinition[Int] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("Fib", "Fibonacci", "main", Seq(q"11"), 89)
   }
 
   def fieldTests: Seq[TestDefinition[Int]] = {
-    implicit val subdir: Option[String] = Some("field")
+    implicit val subdir: Option[String] = Some("unittests/field")
     Seq(
       TestDefinition("FieldAccess", "Fraction", "main", Seq(q"16", q"8"), 2),
       TestDefinition("FieldAccessNested", "A", "main", Seq(), 3),
@@ -68,34 +70,42 @@ object TestDefinition {
   }
 
   def constructorTest: TestDefinition[Int] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("Constructor", "Fraction", "main", Seq(q"16", q"8", q"1"), 3)
   }
 
   def nullTest: TestDefinition[Boolean] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("Null", "NullTest", "main", Seq(), true)
   }
 
   def equalsTest: TestDefinition[Boolean] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("Equals", "EqualsTest", "main", Seq(), true)
   }
 
   def instanceOfTest: TestDefinition[Boolean] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("InstanceOf", "A", "main", Seq(), true)
   }
 
   def typeCastTest: TestDefinition[Boolean] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("TypeCast", "A", "main", Seq(), true)
   }
 
   def typeCastFailureTest: TestDefinition[Seq[Unit]] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("TypeCastFail", "A", "main", Seq(), Seq())
   }
 
   def dynamicDispatchTest: TestDefinition[String] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("DynamicDispatch", "A", "main", Seq(), "BBC")
   }
 
   def objectAsParamTest: TestDefinition[Int] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("ParamObject", "A", "main", Seq(), 1)
   }
 
@@ -104,23 +114,27 @@ object TestDefinition {
   }
 
   def binaryTreeSumTest: TestDefinition[Int] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("BinaryTree", "DefinedNode", "main", Seq(), 20)
   }
 
   def plusTest: TestDefinition[Int] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("Plus", "Nat", "main", Seq(), 5)
   }
 
   def mutabilityTest: TestDefinition[Boolean] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("Mutability", "A", "main", Seq(), true)
   }
 
   def varAssignmentTest: TestDefinition[Boolean] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("VarAssignment", "A", "main", Seq(q"3"), true)
   }
 
   def ifConstantTests: Seq[TestDefinition[Boolean]] = {
-    implicit val subdir: Option[String] = Some("if")
+    implicit val subdir: Option[String] = Some("unittests/if")
     Seq(
       TestDefinition("IfTrue", "IfTest", "main", Seq(), true),
       TestDefinition("IfFalse", "IfTest", "main", Seq(), true)
@@ -128,7 +142,7 @@ object TestDefinition {
   }
 
   def ifNestedTests: Seq[TestDefinition[Int]] = {
-    implicit val subdir: Option[String] = Some("if")
+    implicit val subdir: Option[String] = Some("unittests/if")
     Seq(
       TestDefinition("If", "IfTest", "main", Seq(q"true", q"true"), 11),
       TestDefinition("If", "IfTest", "main", Seq(q"true", q"false"), 7),
@@ -137,12 +151,12 @@ object TestDefinition {
   }
 
   def ifDuplicateTest: TestDefinition[Int] = {
-    implicit val subdir: Option[String] = Some("if")
+    implicit val subdir: Option[String] = Some("unittests/if")
     TestDefinition("IfDuplicate", "IfTest", "main", Seq(q"true", q"true"), 10)
   }
 
   def returnTests: Seq[TestDefinition[Int]] = {
-    implicit val subdir: Option[String] = Some("return")
+    implicit val subdir: Option[String] = Some("unittests/return")
     Seq(
       TestDefinition("Return", "ReturnTest", "main", Seq(q"true"), 1),
       TestDefinition("Return", "ReturnTest", "main", Seq(q"false"), 2),
@@ -151,7 +165,7 @@ object TestDefinition {
   }
 
   def returnImplicitTests: Seq[TestDefinition[Int]] = {
-    implicit val subdir: Option[String] = Some("return")
+    implicit val subdir: Option[String] = Some("unittests/return")
     Seq(
       TestDefinition("ReturnImplicit", "ReturnTest", "main", Seq(), 1),
       TestDefinition("ReturnImplicitIf", "ReturnTest", "main", Seq(q"true"), 1)
@@ -159,7 +173,7 @@ object TestDefinition {
   }
 
   def returnUnitTests: Seq[TestDefinition[TupleResult[Any]]] = {
-    implicit val subdir: Option[String] = Some("return")
+    implicit val subdir: Option[String] = Some("unittests/return")
     Seq(
       TestDefinition("ReturnImplicitUnit", "ReturnTest", "main", Seq(), UnitResult()),
       TestDefinition("Unit", "A", "main", Seq(), UnitResult())
@@ -167,15 +181,17 @@ object TestDefinition {
   }
 
   def superTest: TestDefinition[Int] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("Super", "A", "main", Seq(), 10)
   }
 
   def tupleTest: TestDefinition[TupleResult[Any]] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("Tuple", "A", "main", Seq(), TupleResult(true, TupleResult(true, true)))
   }
 
   def simpleSetTests: Seq[TestDefinition[SetResult[Any]]] = {
-    implicit val subdir: Option[String] = Some("set")
+    implicit val subdir: Option[String] = Some("unittests/set")
     Seq(
       TestDefinition("Set", "A", "main", Seq(), SetResult(1, 2, 3)),
       TestDefinition("SetConst", "A", "main", Seq(), SetResult(1, 2, 3)),
@@ -189,12 +205,12 @@ object TestDefinition {
   }
 
   def tupleSetTest: TestDefinition[SetResult[Any]] = {
-    implicit val subdir: Option[String] = Some("set")
+    implicit val subdir: Option[String] = Some("unittests/set")
     TestDefinition("SetTuple", "A", "main", Seq(), SetResult(TupleResult(1, "A"), TupleResult(2, "B"), TupleResult(3, "C")))
   }
 
   def unionIntersectionSetTest: Seq[TestDefinition[SetResult[Any]]] = {
-    implicit val subdir: Option[String] = Some("set")
+    implicit val subdir: Option[String] = Some("unittests/set")
     Seq(
       TestDefinition("SetIntersection", "A", "main", Seq(), SetResult(1, 3)),
       TestDefinition("SetUnion", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
@@ -204,7 +220,7 @@ object TestDefinition {
   }
 
   def advancedSetTest: Seq[TestDefinition[SetResult[Any]]] = {
-    implicit val subdir: Option[String] = Some("set")
+    implicit val subdir: Option[String] = Some("unittests/set")
     Seq(
       TestDefinition("SetMethodNested", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
       TestDefinition("SetClassSimple", "A", "main", Seq(), SetResult(1, 2)),
@@ -216,10 +232,22 @@ object TestDefinition {
   }
 
   def comprehensionSetTest: Seq[TestDefinition[SetResult[Any]]] = {
-    implicit val subdir: Option[String] = Some("set")
+    implicit val subdir: Option[String] = Some("unittests/set")
     Seq(
       TestDefinition("SetComprehension", "A", "main", Seq(), SetResult(TupleResult(1, 3, 5), TupleResult(1, 4, 5))),
       TestDefinition("SetComprehensionTuple", "A", "main", Seq(), SetResult(TupleResult("A", 2), TupleResult("C", 2)))
+    )
+  }
+
+  def recursiveSetTest: TestDefinition[SetResult[Any]] = {
+    implicit val subdir: Option[String] = Some("unittests/set")
+    TestDefinition("SetRecursive", "Graph", "main", Seq(), SetResult("W", "Y", "Z"))
+  }
+
+  def caseStudyTest: Seq[TestDefinition[SetResult[Any]]] = {
+    implicit val subdir: Option[String] = Some("casestudy")
+    Seq(
+      TestDefinition("Graph", "Graph", "main", Seq(), SetResult()),
     )
   }
 }

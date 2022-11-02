@@ -325,8 +325,13 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           TAny
       }
 
-    case SetExpr(exps) =>
-      TSet(upperTypeBound(exps.map(typecheck)))
+    case SetExpr(exps, tty) =>
+      val typs = exps.map(typecheck)
+      if (typs.isEmpty && tty.isEmpty) {
+        error("Empty set requires an explicit type.", expression)
+        TSet(TAny)
+      } else
+        TSet(tty.getOrElse(upperTypeBound(typs)))
 
     case setMember@SetMemberExpr(name, target, predicate) =>
       val TSet(ty) = typecheck(target)

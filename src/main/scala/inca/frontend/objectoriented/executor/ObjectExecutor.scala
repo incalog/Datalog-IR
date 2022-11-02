@@ -37,7 +37,6 @@ object ObjectExecutor extends Executor {
       compiled.psystemModule.patterns.keys.foreach(printMatches)
     }
 
-
     type Input = (EditScript, Tuple)
 
     def input(arg: meta.Term): Input = input(Seq(arg))

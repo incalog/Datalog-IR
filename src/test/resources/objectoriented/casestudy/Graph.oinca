@@ -1,0 +1,70 @@
+module GraphTest
+
+/*class Edge {
+    val start: Node
+    val end: Node
+
+    def this(start: Node, end: Node) = {
+        this.start = start
+        this.end = end
+    }
+}
+
+class Node {
+    val label: String
+
+    def this(label: String) = {
+        this.label = label
+    }
+}
+
+class Graph {
+    var nodes: Set[Node]
+    var edges: Set[Edge]
+
+    def this(root: Node) = {
+        this.nodes = Set(root)
+        this.edges = Set[Edge]()
+    }
+
+    def add(from: Node, to: Node): Unit = {
+        this.nodes = this.nodes ++ Set(from, to)
+        //this.edges = this.edges ++ Set(new Edge(from, to))
+    }
+
+    @main
+    def main(): Set[Any] = {
+        val root: Node = new Node("Root")
+        val g: Graph = new Graph(root)
+
+        val child: Node = new Node("Child 1")
+        g.add(root, child)
+
+        return g.edges
+    }
+}*/
+
+class Graph {
+    /*val edges: Set[(String, String)] = Set(
+        ("X", "Y"),
+        ("Y", "Z"),
+        ("Z", "W"),
+        ("A", "X")
+    )*/
+
+    var edges: Set[(String, String)]
+
+    @main
+    def main(): Set[String] = {
+        //return Set[Int]()
+        val g: Graph = new Graph()
+        g.edges = Set(("X", "Y"), ("Y", "Z"), ("Z", "W"), ("A", "X"))
+        return g.path("X")
+    }
+
+    def path(x: String): Set[String] = {
+        val direct: Set[String] = for (d <- this.edges if d._1 == x) yield d._2
+        val indirect: Set[String] = for (i <- this.edges if i._1 == x; y <- this.path(i._2)) yield y
+        return direct ++ indirect
+    }
+}

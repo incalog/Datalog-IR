@@ -131,4 +131,12 @@ class DatalogTest extends GenericTest {
   test("Set Comprehension Example") {
     performTests(comprehensionSetTest)
   }
+
+  test("Set Recursive Example") {
+    performTest(recursiveSetTest)
+  }
+
+  test("Casestudy Example") {
+    performTests(caseStudyTest)
+  }
 }

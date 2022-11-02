@@ -175,7 +175,7 @@ class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] 
         analyzeExpression(exprNode, recv, Some("recv"))
       case TupleExpr(exps) =>
         analyzeExpressions(exprNode, exps)
-      case SetExpr(exps) =>
+      case SetExpr(exps, tty) =>
         analyzeExpressions(exprNode, exps)
       case SetMemberExpr(_, recv, predicate) =>
         analyzeExpression(exprNode, recv, Some("recv"))

@@ -8,14 +8,14 @@ import truechange.SortType
 /**
  * Replace all variable reads to field reads. The field name is the same as the variable name.
  * @param module The parent module.
- * @param vars The variables to transform.
+ * @param sub Substitution map between variable to field names.
  */
-class VarToField(val module: Module, val vars: Set[Name]) extends ModuleLowering {
+class VarToField(val module: Module, val sub: Map[Name, Name]) extends ModuleLowering {
   override def transExpressionInternal(expression: Expression): Seq[Expression] = expression match {
     //case VarReadExpr(targetName) if !vars.contains(targetName) =>
     //  throw new IllegalArgumentException(s"Found unresolved var $targetName!")
-    case VarReadExpr(targetName) if vars.contains(targetName) =>
-      Seq(FieldReadExpr(VarReadExpr(Name("this")), targetName))
+    case VarReadExpr(targetName) if sub.contains(targetName) =>
+      Seq(FieldReadExpr(VarReadExpr(Name("this")), sub(targetName)))
     case _ => super.transExpressionInternal(expression)
   }
 }
@@ -72,12 +72,16 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
 
   private def genAuxDef(fieldParams: Map[Name, Type], innerSetType: Type, parent: ClassRef, expr: Expression): ClassDef = {
     // transform local variables to fields
+    val subst = fieldParams.map {
+      case (name@Name("this"), _) => name -> Name(gensym.fresh("obj"))
+      case (name, _) => name -> name
+    }
     val fields = fieldParams.map {
-      case (name, typ) => FieldDef(Seq(), None, name, clearType(typ), None, immutable = false)
+      case (name, typ) => FieldDef(Seq(), None, subst(name), clearType(typ), None, immutable = false)
     }.toSeq
 
     // all reads to local variables should now access the correct field instead
-    val ret = ReturnStmt(new VarToField(module, fieldParams.keySet).transExpression(expr).head)
+    val ret = ReturnStmt(new VarToField(module, subst).transExpression(expr).head)
     val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), TSet(clearType(innerSetType)), Seq(ret))
     // create a default constructor
     val constrParams = fields.map(f => Param(f.name, f.typ))
@@ -105,12 +109,12 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
   }
 
   override private[lowering] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
-    usedVars = Map()
+    usedVars = (methodDef.params.map(p => p.name -> p.typ) :+ (Name("this") -> classDef.typ)).toMap
     super.transMethodInternal(methodDef, classDef)
   }
 
   override private[lowering] def transConstructorInternal(constructorDef: ConstructorDef, classDef: ClassDef): ConstructorDef = {
-    usedVars = Map()
+    usedVars = (constructorDef.params.map(p => p.name -> p.typ) :+ (Name("this") -> classDef.typ)).toMap
     super.transConstructorInternal(constructorDef, classDef)
   }
 
@@ -228,8 +232,8 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       TypeCastExpr(sanitize(recv), clearType(toTyp))
     case InstanceOfExpr(recv, ofTyp) =>
       InstanceOfExpr(sanitize(recv), clearType(ofTyp))
-    case SetExpr(exps) =>
-      unapply(SetExpr(exps.map(sanitize(_))), requiresTrueSet, expression.typ)
+    case SetExpr(exps, tty) =>
+      unapply(SetExpr(exps.map(sanitize(_)), if (tty.isDefined) Some(clearType(tty.get)) else tty), requiresTrueSet, expression.typ)
     case SetMemberExpr(name, recv, predicate) =>
       val pred = if (predicate.isDefined) Some(sanitize(predicate.get)) else None
       SetMemberExpr(name, sanitize(recv, requiresTrueSet = true), pred)

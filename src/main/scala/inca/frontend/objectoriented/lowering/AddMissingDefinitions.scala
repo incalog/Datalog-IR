@@ -38,23 +38,22 @@ class AddMissingDefinitions(val module: Module) extends ModuleLowering {
     super.transMethodInternal(MethodDef(annos, vis, name, params, outType, content.dropRight(1) ++ missingReturn), classDef)
   }
 
-  private def generateReturnStatement(content: Seq[Statement]): Option[Statement] = {
+  private def generateReturnStatement(content: Seq[Statement]): Seq[Statement] = {
     val unitStmt = ReturnStmt(TupleExpr())
     val lastStmt = content.lastOption.getOrElse(unitStmt)
-    val result = lastStmt match {
+    lastStmt match {
       case ReturnStmt(_) =>
-        lastStmt
+        Seq(lastStmt)
       case ExprStmt(expression) =>
-        ReturnStmt(expression)
+        Seq(ReturnStmt(expression))
       case IfStmt(cnd, thn, els) =>
         val returnThn = generateReturnStatement(thn)
         val returnEls = generateReturnStatement(els)
-        IfStmt(cnd, thn.dropRight(1) ++ returnThn, els.dropRight(1) ++ returnEls)
+        Seq(IfStmt(cnd, thn.dropRight(1) ++ returnThn, els.dropRight(1) ++ returnEls))
       case _ =>
-        unitStmt
+        Seq(lastStmt, unitStmt)
       case VarPhiAssignStmt(_, _, _, _, _) =>
         throw new IllegalArgumentException("Can not implicitly return a VarPhiAssignment!")
     }
-    Some(result)
   }
 }

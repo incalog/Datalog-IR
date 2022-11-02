@@ -245,7 +245,9 @@ trait Parser {
     inParentheses(seq0(P.defer(expr), min = 2)).mapWithLoc(TupleExpr(_))
 
   protected[frontend] lazy val setExpr: P[SetExpr] =
-    keyword(SET) *> inParentheses(seq0(P.defer(expr), min = 1)).mapWithLoc(SetExpr)
+    (keyword(SET) *> inBrackets(atomicTypeAnno).? ~ inParentheses(seq0(P.defer(expr), min = 0))).mapWithLoc {
+      case (tty, exps) => SetExpr(exps, tty)
+    }
 
   private[frontend] lazy val nestedAccessStartExpr: P[Expression] =
     typeCastExpr |
@@ -427,14 +429,14 @@ trait Parser {
 
   private def fieldDef(immutable: Boolean): P[FieldDef] = {
     val kw = if (immutable) VAL else VAR
-    (((visibility.? <* keyword(kw)).with1 ~ nameWithType).backtrack ~ (op('=') *> expr).?).mapWithLoc {
+    (((visibility.? <* keyword(kw)).with1 ~ nameWithType) ~ (op('=') *> subinfixExpr).?).mapWithLoc {
       case ((visibility, (name, typeAnno)), valueExpr) =>
         FieldDef(Seq(), visibility, name, typeAnno, valueExpr, immutable)
     }
   }
 
   protected[frontend] val fieldDef: P[FieldDef] =
-    fieldDef(false) | fieldDef(true)
+    fieldDef(false).backtrack | fieldDef(true).backtrack
 
   protected[frontend] val constructorDef: P[ConstructorDef] = {
     val functionHeader = ((((overrideAnnotation.? ~ visibility.?).with1

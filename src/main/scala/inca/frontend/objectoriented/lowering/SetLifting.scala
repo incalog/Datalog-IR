@@ -76,7 +76,7 @@ class SetLifting(val module: Module) extends ModuleLowering {
 
   private def liftSetExpression(set: SetExpr): (Expression, Seq[Statement]) = {
     val innerExps = set.exps.map(e => gensym.fresh("tmp") -> e)
-    val setExpr = SetExpr(innerExps.map(tup => VarReadExpr(Name(tup._1))))
+    val setExpr = SetExpr(innerExps.map(tup => VarReadExpr(Name(tup._1))), set.tty)
     val liftedExps = innerExps.map {
       case (n, e) => VarDeclareStmt(Name(n), e.typ.get, Some(transExpression(e).head), immutable = true)
     }
@@ -84,7 +84,7 @@ class SetLifting(val module: Module) extends ModuleLowering {
   }
 
   override def transExpressionInternal(expression: Expression): Seq[Expression] = expression match {
-    case setExpr@SetExpr(_) =>
+    case setExpr@SetExpr(_, _) =>
       val (newExpr, stmts) = liftSetExpression(setExpr)
       genStmt.add(stmts)
       Seq(newExpr)

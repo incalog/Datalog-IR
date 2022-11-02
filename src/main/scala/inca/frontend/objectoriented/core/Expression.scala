@@ -96,7 +96,7 @@ object TupleExpr {
   }
 }
 
-case class SetExpr(exps: Seq[Expression]) extends Expression {
+case class SetExpr(exps: Seq[Expression], tty: Option[Type] = None) extends Expression {
   def vars: Map[Name, Option[Type]] = exps.flatMap(_.vars).toMap
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
     exps.map(_.prettyprint).mkString("Set(", ", ", ")")
