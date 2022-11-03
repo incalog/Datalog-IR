@@ -406,7 +406,7 @@ trait Debugger extends DebuggerAPI {
 
   def varsIR: ImmutableTable[Value] = callStack.top match {
     case PredicateEntry(pred, argBindings, predResult) => argBindings
-    case BeforeRule(pred, argBindings, predResult, rules) => predResult
+    case BeforeRule(pred, argBindings, predResult, rules) => argBindings
     case InRule(pred, argBindings, predResult, current, remainingRules) => current.ruleResult
     case EvaluationResult(pred, predResult) => predResult
   }

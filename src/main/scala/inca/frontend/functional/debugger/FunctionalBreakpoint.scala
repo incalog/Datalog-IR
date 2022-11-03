@@ -4,7 +4,7 @@ import inca.backend.hints.DebugHints
 import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.ir.Datalog
 import inca.compiler.source.SourceObject
-import inca.debugger.redesign.{EvaluationPoint, EvaluationResult, IRBreakpoint, InRule, PredicateEntry, RuleEvaluation}
+import inca.debugger.redesign.{BeforeRule, EvaluationPoint, EvaluationResult, IRBreakpoint, InRule, PredicateEntry, RuleEvaluation}
 import inca.frontend.functional.core.Collect
 import inca.frontend.functional.core.Expression
 import inca.frontend.functional.core.FunctionDef
@@ -27,7 +27,8 @@ object FunctionalBreakpoint {
     ): Seq[IRBreakpoint] = {
     val cps: Seq[EvaluationPoint] = fbp.pos match {
       case FunctionEntry(f) =>
-        Seq(PredicateEntry(f, null, null))
+        val pat = patterns(f)
+        Seq(BeforeRule(f, null, null, pat.bodies))
       case FunctionExit(f) =>
         Seq(EvaluationResult(f, null))
       case InFunction(so) =>

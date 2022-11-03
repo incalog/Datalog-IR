@@ -88,7 +88,7 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
 
   private val _functionalControlTrace: ListBuffer[FunctionalControlPoint] = ListBuffer.empty
   def functionalControlTrace: Seq[FunctionalControlPoint] = _functionalControlTrace.toSeq
-  def stepped(): Unit = _functionalControlTrace += currentFunctionalPoint.get
+  def stepped(): Unit = currentFunctionalPoint.foreach(_functionalControlTrace += _)
 
   def getFunction(pat: String): Option[FunctionDef] =
     predicates.get(pat).flatMap(getFunction)
@@ -106,8 +106,12 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
         val cp = stack.top
         val fp = getFunction(cp.pred) match {
           case Some(fun) => cp match {
-            case PredicateEntry(pred, argBindings, predResult) => Some(FunctionPoint(fun, fun.name.sourceObject, cp))
-            case BeforeRule(pred, argBindings, predResult, rules) => None
+            case PredicateEntry(pred, argBindings, predResult) => None
+            case BeforeRule(pred, argBindings, predResult, rules) =>
+              if (predicates(cp.pred).bodies.size == rules.size)
+                Some(FunctionPoint(fun, fun.name.sourceObject, cp))
+              else
+                None
             case cp@InRule(pred, argBindings, predResult, current, remainingRules)
               if current.ruleResult.isEmpty => None
             case cp@InRule(pred, argBindings, predResult, current, remainingRules) =>
@@ -185,6 +189,8 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
     val inputParams = pattern.params.zip(adorn).filter(_._2).map(_._1.name)
     val inputTable = ImmutableTable[Value](inputParams, Seq(debugVals))
     super.entry(mainFun, inputTable)
+    if (currentFunctionalPoint.isEmpty)
+      stepInto() // step to BeforeRule
   }
 
   def getFunctionalCallStack: List[Name] = callStack.frames.flatMap { ep =>
