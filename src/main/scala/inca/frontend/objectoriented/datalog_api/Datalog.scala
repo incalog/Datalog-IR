@@ -77,7 +77,7 @@ case class Relation3[A1 <: AnyRef, A2 <: AnyRef, A3 <: AnyRef](name: RelationNam
   def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(entry._1, entry._2, entry._3)
 }
 
-trait Operation
+/*trait Operation
 case class Insertion(name: String, tuple: Tuple) extends Operation
 case class Deletion(name: String, tuple: Tuple) extends Operation
 
@@ -101,7 +101,7 @@ case class EDBInput(insertions: Seq[Relation], deletions: Seq[Relation], edits: 
     deletions.flatMap { rel =>
       rel.entries.map(tuple => Insertion(rel.name, Tuples.flatTupleOf(rel.flattenEntry(tuple))))
     }
-}
+}*/
 
 // Constraint:
 // def execute[T <: Diffable](tree: T, pat: String, input: Tuple = null)
