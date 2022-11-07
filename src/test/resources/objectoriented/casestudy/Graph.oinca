@@ -45,26 +45,8 @@ class Graph {
 }*/
 
 class Graph {
-    /*val edges: Set[(String, String)] = Set(
-        ("X", "Y"),
-        ("Y", "Z"),
-        ("Z", "W"),
-        ("A", "X")
-    )*/
-
-    var edges: Set[(String, String)]
-
     @main
     def main(): Set[String] = {
-        //return Set[Int]()
-        val g: Graph = new Graph()
-        g.edges = Set(("X", "Y"), ("Y", "Z"), ("Z", "W"), ("A", "X"))
-        return g.path("X")
-    }
-
-    def path(x: String): Set[String] = {
-        val direct: Set[String] = for (d <- this.edges if d._1 == x) yield d._2
-        val indirect: Set[String] = for (i <- this.edges if i._1 == x; y <- this.path(i._2)) yield y
-        return direct ++ indirect
+        return Set[Int]()
     }
 }

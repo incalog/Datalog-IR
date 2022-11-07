@@ -138,9 +138,8 @@ object ObjectExecutor extends Executor {
   }
 
 
-  def compileObject(code: String, options: ObjectOptions = ObjectOptions()): CompiledObjectModule = {
+  def compileObject(code: String, options: ObjectOptions = ObjectOptions()): CompiledObjectModule =
     Compiler.compileObject(code, options)
-  }
 
   def loadInheritanceEDB(dataModel: DataModel, feed: Database): Unit = {
     dataModel.types.foreach { typ =>

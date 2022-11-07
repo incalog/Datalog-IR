@@ -45,7 +45,6 @@ object GenerateDatalog {
 class GenerateDatalog(module: Module) {
 
   private val gensym: Gensym = new Gensym(Iterable.empty)
-  //private val genScala = new GenerateScala
 
   private val generatedPatterns = ListBuffer[Datalog.Pattern]()
 
@@ -56,10 +55,6 @@ class GenerateDatalog(module: Module) {
     val Module(name, imports, classes) = module
     gensym.register(module.usedModuleNames.map(_.raw))
     gensym.register(module.classes.map(_.name.raw))
-
-    /*genScala.genModule(module)
-    println("Generate scala")
-    println(genScala.generated)*/
 
     generatedPatterns += transNull()
     generatedPatterns += transInstanceOf()
@@ -488,12 +483,13 @@ class GenerateDatalog(module: Module) {
 
     case TupleExpr(exps) =>
       if (exps.isEmpty)
-        return Seq((Seq(), Seq()))
-
-      val expRes = exps.map(e => transExpression(e))
-      for (tups <- TupleOps.cartesianProduct(expRes)) yield {
-        val (terms, cons) = tups.unzip
-        (terms.flatten, cons.flatten)
+        Seq((Seq(), Seq()))
+      else {
+        val expRes = exps.map(e => transExpression(e))
+        for (tups <- TupleOps.cartesianProduct(expRes)) yield {
+          val (terms, cons) = tups.unzip
+          (terms.flatten, cons.flatten)
+        }
       }
 
     case TupleReadExpr(recv, index) =>
@@ -515,6 +511,10 @@ class GenerateDatalog(module: Module) {
       }
 
     case SetExpr(exps, tty) =>
+      if (exps.isEmpty)
+        // TODO: How do we encode empty sets?
+        throw new RuntimeException("Empty sets are currently not supported!")
+      else
         exps.flatMap(transExpression)
 
     case setMember@SetMemberExpr(name, recv, predicate) =>

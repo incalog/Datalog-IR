@@ -28,7 +28,7 @@ object ScalaObjectExecutor extends Executor {
         ${obj.name}.${method.name}(${args.mkString(",")})
       }"""//.stripMargin
 
-      //println(code)
+      println(code)
 
       // convert the result to the expected format that a datalog query produces
       scalaCompiler.compileAndLoadScala[Any](code) match {

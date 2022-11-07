@@ -131,4 +131,9 @@ class ScalaTest extends GenericTest {
   test("Set Comprehension Example") {
     performTests(comprehensionSetTest)
   }
+
+  // Does not terminate because of cyclic data
+  /*test("Set Recursive Example") {
+    performTest(recursiveSetTest)
+  }*/
 }

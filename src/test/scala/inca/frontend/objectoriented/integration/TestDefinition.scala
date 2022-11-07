@@ -239,9 +239,14 @@ object TestDefinition {
     )
   }
 
+  def emptySetTest: TestDefinition[SetResult[Any]] = {
+    implicit val subdir: Option[String] = Some("unittests/set")
+    TestDefinition("SetEmpty", "A", "main", Seq(), SetResult())
+  }
+
   def recursiveSetTest: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("unittests/set")
-    TestDefinition("SetRecursive", "Graph", "main", Seq(), SetResult("W", "Y", "Z"))
+    TestDefinition("SetRecursive", "Graph", "main", Seq(), SetResult("W", "Y", "Z", "X"))
   }
 
   def caseStudyTest: Seq[TestDefinition[SetResult[Any]]] = {
