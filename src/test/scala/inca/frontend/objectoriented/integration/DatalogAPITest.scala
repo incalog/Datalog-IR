@@ -6,7 +6,7 @@ import inca.backend.optimize.Optimization
 import inca.backend.transform.Transformation
 import inca.compiler.{CompiledModule, Compiler, Options, SourceLocation}
 import inca.frontend.objectoriented.compiler.ObjectOptions
-import inca.frontend.objectoriented.datalog_api.Datalog
+import inca.frontend.objectoriented.datalog_api.DatalogInstance
 import inca.frontend.objectoriented.executor.{Executor, ObjectExecutor}
 import inca.frontend.objectoriented.integration.core.GenericTest
 import inca.runtime.EnginePool
@@ -14,7 +14,7 @@ import inca.runtime.context.{DataModel, QueryScope}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 
 
-class ConcreteDatalog(override val compiled: CompiledModule) extends Datalog {
+class ConcreteDatalog(override val compiled: CompiledModule) extends DatalogInstance {
   val scope = new QueryScope(compiled.dataModel)
   val (engine, feed) = EnginePool.loadEngineAndDatabase(scope, TimelyReteBackendFactory.FIRST_ONLY_SEQUENTIAL)
 }
