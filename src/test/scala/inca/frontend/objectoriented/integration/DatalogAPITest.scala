@@ -9,7 +9,7 @@ import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.executor.{Executor, ObjectExecutor}
 import inca.frontend.objectoriented.integration.core.GenericTest
 import inca.frontend.runner
-import inca.frontend.runner.{IRInput, IRRunnerFactory, Relation1}
+import inca.frontend.runner.{IRInput, IRRunnerFactory, Relation, Relation1}
 import inca.runtime.{EnginePool, Query}
 import inca.runtime.context.{DataModel, QueryScope}
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
@@ -63,7 +63,9 @@ class DatalogAPITest extends GenericTest {
 
     val irFactory = new IRRunnerFactory(module)
     val runner = irFactory.runner("ret")
-    val res = runner.run(IRInput(???))
+    val res = runner.run(
+      IRInput(Relation1("ret", "ret$0", Seq(Seq(true))))
+    )
     println("Result: ", res)
   }
 }

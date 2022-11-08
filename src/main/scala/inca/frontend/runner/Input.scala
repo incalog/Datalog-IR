@@ -17,14 +17,14 @@ trait Input {
   def args: Relation
 }
 
-case class StdDatalogInput(arguments: Relation, insertions: RelationChange, deletions: RelationChange) extends Input {
+/*case class StdDatalogInput(override val args: Relation, insertions: RelationChange, deletions: RelationChange) extends Input {
   override def change: EDBChange = EDBChange(EditScript(Seq()), insertions, deletions)
-  override def args: Relation = arguments
-}
-case class IRInput(override val args: Relation, override val change: EDBChange) extends Input
+}*/
+
+case class IRInput(override val args: Relation, override val change: EDBChange = EDBChange.empty) extends Input
 
 case class FunctionalInput(arguments: Seq[meta.Term]) extends Input {
-  // TODO we need to compiled abstract syntax trees in scala format, how do we get this?
+  // TODO we need to compile abstract syntax trees in scala format, how do we get this?
   def args: Relation = ???
   def change: EDBChange = ???
 }

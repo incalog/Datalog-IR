@@ -6,17 +6,17 @@ object Relation {
   def from(parameterNames: Seq[String], relName: RelationName, matches: Iterable[Seq[Any]]): Relation =
     parameterNames.size match {
       case 0 => UnitRelation(relName)
-      case 1 => Relation1(relName, parameterNames.head, matches)
+      case 1 => Relation1(relName, parameterNames.head, matches.map(_.asInstanceOf[Seq[AnyRef]]))
       case 2 => Relation2(relName, parameterNames, matches)
       case 3 => Relation3(relName, parameterNames, matches)
     }
 
-  def from(parameterNames: Seq[String], relName: RelationName, matches: Iterable[Query.Match]): Relation =
+  def fromQueryMatches(parameterNames: Seq[String], relName: RelationName, matches: Iterable[Query.Match]): Relation =
     parameterNames.size match {
       case 0 => UnitRelation(relName)
-      case 1 => Relation1(relName, parameterNames.head, matches)
-      case 2 => Relation2(relName, parameterNames, matches)
-      case 3 => Relation3(relName, parameterNames, matches)
+      case 1 => Relation1(relName, parameterNames.head, matches.map(_.toArray.toSeq))
+      case 2 => Relation2(relName, parameterNames, matches.map(_.toArray.toSeq))
+      case 3 => Relation3(relName, parameterNames, matches.map(_.toArray.toSeq))
     }
 
 }
@@ -24,14 +24,15 @@ object Relation {
 trait Relation {
   type Tuple
   def name: RelationName
+  def arity: Int
   def size: Int
   def parameterNames: Seq[String]
   def entries: Iterable[Tuple]
   def toSet: Set[Tuple] = entries.toSet
   def flattenEntry(entry: Tuple): Seq[AnyRef]
 
-  if (parameterNames.size != size)
-    throw new IllegalArgumentException(s"Expected $size parameter names but got ${parameterNames.size}.")
+  //if (parameterNames.size != size)
+  //  throw new IllegalArgumentException(s"Expected $size parameter names but got ${parameterNames.size}.")
 
   override def toString: RelationName = {
     val namedEntries = entries.map {
@@ -50,6 +51,7 @@ trait Relation {
 
 case class UnitRelation(name: RelationName) extends Relation {
   type Tuple = Unit
+  lazy val arity: Int = 0
   lazy val size: Int = 0
   lazy val parameterNames: Seq[String] = Seq.empty
   lazy val entries: Iterable[Tuple] = Iterable.empty
@@ -58,11 +60,10 @@ case class UnitRelation(name: RelationName) extends Relation {
 
 case class Relation1[A <: AnyRef](name: RelationName,
                                   parameterName: String,
-                                  tuples: Iterable[Seq[Any]]) {
-  def this(name: RelationName, parameterName: String, matches: Iterable[Query.Match]) {
-    this(name, parameterName, matches.map(_.toArray.toSeq))
-  }
+                                  tuples: Iterable[Seq[Any]]) extends Relation {
   type Tuple = A
+
+  lazy val arity: Int = 1
   lazy val size: Int = tuples.size
   lazy val parameterNames: Seq[String] = Seq(parameterName)
   lazy val entries: Iterable[Tuple] = tuples.map(_.head.asInstanceOf[A])
@@ -71,11 +72,12 @@ case class Relation1[A <: AnyRef](name: RelationName,
 
 case class Relation2[A1 <: AnyRef, A2 <: AnyRef](name: RelationName,
                                                  parameterNames: Seq[String],
-                                                 matches: Iterable[Query.Match]) extends Relation {
+                                                 matches: Iterable[Seq[Any]]) extends Relation {
   type Tuple = (A1, A2)
+
+  lazy val arity: Int = 2
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { m =>
-    val entry = m.toArray
+  lazy val entries: Iterable[Tuple] = matches.map { entry =>
     (entry(0).asInstanceOf[A1], entry(1).asInstanceOf[A2])
   }
   def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(entry._1, entry._2)
@@ -83,11 +85,12 @@ case class Relation2[A1 <: AnyRef, A2 <: AnyRef](name: RelationName,
 
 case class Relation3[A1 <: AnyRef, A2 <: AnyRef, A3 <: AnyRef](name: RelationName,
                                                                parameterNames: Seq[String],
-                                                               matches: Iterable[Query.Match]) extends Relation {
+                                                               matches: Iterable[Seq[Any]]) extends Relation {
   type Tuple = (A1, A2, A3)
+
+  lazy val arity: Int = 3
   lazy val size: Int = matches.size
-  lazy val entries: Iterable[Tuple] = matches.map { m =>
-    val entry = m.toArray
+  lazy val entries: Iterable[Tuple] = matches.map { entry =>
     (entry(0).asInstanceOf[A1], entry(1).asInstanceOf[A2], entry(2).asInstanceOf[A3])
   }
   def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(entry._1, entry._2, entry._3)
