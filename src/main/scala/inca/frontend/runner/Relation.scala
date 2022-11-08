@@ -45,7 +45,7 @@ trait Relation {
         case (name, value) => s"$name: $value"
       }.mkString("(", ", ", ")")
     }.toSet
-    s"${getClass.getSimpleName}(name: $name, size: $size, entries: ${entriesS}}"
+    s"${getClass.getSimpleName}(name: $name, size: $size, entries: ${entriesS}"
   }
 }
 

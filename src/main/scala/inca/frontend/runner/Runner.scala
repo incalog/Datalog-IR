@@ -15,27 +15,28 @@ protected[frontend] trait Runner[I <: Input] {
   def engine: AdvancedViatraQueryEngine
   def database: Database
 
+  val specification: Specification = compiled.psystemModule.patterns(relName)()
+  val matcher: Query.Matcher = specification.getMatcher(engine)
+  val parameterNames: Seq[RelationName] = matcher.getParameterNames.asScala.toSeq
+
   def update(input: I): Unit = {
     val edbChange = input.change
     database.processEditScript(edbChange.es)
 
     edbChange.insertions.foreach { case (name, relation) =>
       relation.entries.foreach { tuple =>
-        database.insert(name, Tuples.flatTupleOf(relation.flattenEntry(tuple)))
+        database.insert(name, Tuples.flatTupleOf(relation.flattenEntry(tuple):_*))
       }
     }
     
     edbChange.deletions.foreach { case (name, relation) =>
       relation.entries.foreach { tuple =>
-        database.delete(name, Tuples.flatTupleOf(relation.flattenEntry(tuple)))
+        database.delete(name, Tuples.flatTupleOf(relation.flattenEntry(tuple):_*))
       }
     }
   }
 
   protected[frontend] def runWithInputRelation(input: Relation): Relation = {
-    val specification = compiled.psystemModule.patterns(relName)()
-    val matcher = specification.getMatcher(engine)
-    val parameterNames = matcher.getParameterNames.asScala.toSeq
     val output =
       if (input.entries.nonEmpty)
         input.entries.flatMap { t =>
