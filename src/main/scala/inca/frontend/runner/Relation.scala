@@ -3,12 +3,22 @@ package inca.frontend.runner
 import inca.runtime.Query
 
 object Relation {
+  def from(parameterNames: Seq[String], relName: RelationName, matches: Iterable[Seq[Any]]): Relation =
+    parameterNames.size match {
+      case 0 => UnitRelation(relName)
+      case 1 => Relation1(relName, parameterNames.head, matches)
+      case 2 => Relation2(relName, parameterNames, matches)
+      case 3 => Relation3(relName, parameterNames, matches)
+    }
+
   def from(parameterNames: Seq[String], relName: RelationName, matches: Iterable[Query.Match]): Relation =
     parameterNames.size match {
       case 0 => UnitRelation(relName)
       case 1 => Relation1(relName, parameterNames.head, matches)
       case 2 => Relation2(relName, parameterNames, matches)
+      case 3 => Relation3(relName, parameterNames, matches)
     }
+
 }
 
 trait Relation {
@@ -48,11 +58,14 @@ case class UnitRelation(name: RelationName) extends Relation {
 
 case class Relation1[A <: AnyRef](name: RelationName,
                                   parameterName: String,
-                                  matches: Iterable[Query.Match]) extends Relation {
+                                  tuples: Iterable[Seq[Any]]) {
+  def this(name: RelationName, parameterName: String, matches: Iterable[Query.Match]) {
+    this(name, parameterName, matches.map(_.toArray.toSeq))
+  }
   type Tuple = A
-  lazy val size: Int = matches.size
+  lazy val size: Int = tuples.size
   lazy val parameterNames: Seq[String] = Seq(parameterName)
-  lazy val entries: Iterable[Tuple] = matches.map(_.toArray.head.asInstanceOf[A])
+  lazy val entries: Iterable[Tuple] = tuples.map(_.head.asInstanceOf[A])
   def flattenEntry(entry: Tuple): Seq[AnyRef] = Seq(entry)
 }
 

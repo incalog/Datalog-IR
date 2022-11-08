@@ -16,7 +16,7 @@ protected[frontend] trait Runner[I <: Input] {
   def database: Database
 
   def update(input: I): Unit = {
-    val edbChange = input.translate
+    val edbChange = input.change
     database.processEditScript(edbChange.es)
 
     edbChange.insertions.foreach { case (name, relation) =>
@@ -50,6 +50,13 @@ protected[frontend] trait Runner[I <: Input] {
   private def toQueryMatch(values: Seq[AnyRef], spec: Specification): Query.Match =
     Query.Match(spec, values.toArray, isMutable = false)
 }
+// OVER(X, Y, Z)
+// OVER(X -> 1, Z -> 2)
+// PATH(X, Y)
+// path(Y -> 3)
+// Seq(3)
+// Seq(1, 2)
+// Seq(1, null, 2)
 
 protected[frontend] class IRRunner(override val relName: RelationName,
                override val compiled: CompiledModule,
