@@ -2,6 +2,7 @@ package inca.frontend.runner
 
 import inca.compiler.CompiledModule
 import inca.frontend.Constants.RelationName
+import inca.frontend.runner
 import inca.runtime.Query
 import inca.runtime.Query.Specification
 import inca.runtime.db.Database
@@ -17,9 +18,6 @@ protected[frontend] trait Runner[I <: Input] {
   def engine: AdvancedViatraQueryEngine
   def database: Database
 
-  val specification: Specification = compiled.psystemModule.patterns(relName)()
-  val matcher: Query.Matcher = specification.getMatcher(engine)
-  val parameterNames: Seq[RelationName] = matcher.getParameterNames.asScala.toSeq
 
   def update(change: EDBChange): Unit = {
     database.processEditScript(change.es)
@@ -37,9 +35,12 @@ protected[frontend] trait Runner[I <: Input] {
     }
   }
 
-  protected[frontend] def runWithInputRelation(input: Relation): Relation = {
+  def read(input: Relation): Relation = {
+    val specification: Specification = compiled.psystemModule.patterns(input.name)()
+    val matcher: Query.Matcher = specification.getMatcher(engine)
+    val parameterNames: Seq[RelationName] = matcher.getParameterNames.asScala.toSeq
     val output =
-      if (input.entries.nonEmpty)
+      if (input.size > 0)
         input.entries.flatMap { t =>
           val inputMatch = toQueryMatch(input.parameterNames, parameterNames.size, input.flattenEntry(t), specification)
           matcher.getAllMatches(inputMatch).asScala
@@ -54,6 +55,8 @@ protected[frontend] trait Runner[I <: Input] {
     val arr = Seq.range(0, arity).map(params.getOrElse(_, null))
     Query.Match(spec, arr.toArray, isMutable = false)
   }
+
+  def run(f: (CompiledModule, RelationName) => I): Relation
 }
 
 protected[frontend] class IRRunner(override val relName: RelationName,
@@ -62,8 +65,9 @@ protected[frontend] class IRRunner(override val relName: RelationName,
                override val database: Database)
   extends Runner[IRInput]
 {
-  def run(input: IRInput = IRInput.empty()): Relation = {
+  override def run(f: (CompiledModule, RelationName) => IRInput = IRInput.empty()): Relation = {
+    val input = f(compiled, relName)
     update(input.change)
-    runWithInputRelation(input.args)
+    read(input.args)
   }
 }

@@ -88,13 +88,13 @@ class IRTest extends AnyFunSuite {
     val irFactory = new IRRunnerFactory(pathModule)
     val runner = irFactory.runner("path")
     runner.update(
-      IRInput.change(EDBChange.insertions(
+      EDBChange.insertions(
         Seq(
           Relation2("node", Seq("start", "end"), Seq(
             Seq("X", "Y"), Seq("Y", "Z"), Seq("Z", "W"), Seq("W", "Y")
           ))
         )
-      ))
+      )
     )
     runner
   }

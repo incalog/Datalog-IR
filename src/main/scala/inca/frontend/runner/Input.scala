@@ -1,5 +1,7 @@
 package inca.frontend.runner
 
+import inca.compiler.CompiledModule
+import inca.frontend.Constants.RelationName
 import truechange.EditScript
 
 case class EDBChange(es: EditScript, insertions: Seq[Relation], deletions: Seq[Relation])
@@ -10,7 +12,7 @@ object EDBChange {
   def structural(es: EditScript): EDBChange = EDBChange(es, Seq(), Seq())
 }
 
-trait Input {
+protected[frontend] trait Input {
   def change: EDBChange
   def args: Relation
 }
@@ -19,27 +21,24 @@ trait Input {
   override def change: EDBChange = EDBChange(EditScript(Seq()), insertions, deletions)
 }*/
 
-case class IRInput(override val args: Relation, override val change: EDBChange) extends Input
+final case class IRInput private (override val args: Relation, override val change: EDBChange) extends Input
 object IRInput {
-  def apply(parameterNames: Seq[String], values: Seq[Any]*): IRInput = {
-    values.foreach { v =>
-      if (v.size != parameterNames.size)
-        throw new IllegalArgumentException(s"Expected ${parameterNames.size} values, but got ${v.size}.")
+  def apply(parameterNames: Seq[String], values: Seq[Any]*): (CompiledModule, RelationName) => IRInput =
+    (_, relName) => {
+      values.foreach { v =>
+        if (v.size != parameterNames.size)
+          throw new IllegalArgumentException(s"Expected ${parameterNames.size} values, but got ${v.size}.")
+      }
+      // if we use the relation as an input argument for run, we do not need a name, since the runner knows the name
+      IRInput(Relation.from(relName, parameterNames, values), EDBChange.empty)
     }
-    // if we use the relation as an input argument for run, we do not need a name, since the runner knows the name
-    new IRInput(Relation.from("", parameterNames, values), EDBChange.empty)
+
+  def args(args: Relation): (CompiledModule, RelationName) => IRInput = (_, relName) => {
+    IRInput(args, EDBChange.empty)
   }
 
-  def empty(): IRInput = {
-    new IRInput(UnitRelation(""), EDBChange.empty)
-  }
-
-  def args(args: Relation): IRInput = {
-    new IRInput(args, EDBChange.empty)
-  }
-
-  def change(change: EDBChange): IRInput = {
-    new IRInput(UnitRelation(""), change)
+  def empty(): (CompiledModule, RelationName) => IRInput = (_, relName) => {
+    IRInput(UnitRelation(relName), EDBChange.empty)
   }
 }
 

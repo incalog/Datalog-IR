@@ -1,6 +1,8 @@
 package inca.frontend.objectoriented.runner
 
+import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
 import inca.compiler.CompiledModule
+import inca.frontend.Constants.RelationName
 import inca.frontend.runner.{EDBChange, Input, Relation}
 import inca.runtime.Query.Specification
 import inca.util.Scala.ScalaCompiler
@@ -10,10 +12,7 @@ import truediff.Diffable
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-
-case class ObjectOrientedInput(terms: meta.Term*)
-  extends Input {
-
+final case class ObjectOrientedInput private (terms: Seq[meta.Term], compiled: CompiledModule, relName: RelationName) extends Input {
   lazy val (change, args) = input(terms)
 
   private lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
@@ -21,17 +20,20 @@ case class ObjectOrientedInput(terms: meta.Term*)
     import scala.meta._
     q"object O {..${compiled.psystemSource.stats}}".syntax
   }
-  private lazy val specification: Specification = compiled.psystemModule.patterns(patName)()
+  private lazy val specification: Specification = compiled.psystemModule.patterns(relName)()
 
   private def input(args: Seq[meta.Term]): (EDBChange, Relation) = {
     val (ess, cargs, _) = vals(args: _*).map {
       case arg: Diffable => (arg.loadEdits, arg.uri, arg)
       case lit => (EditScript(Seq()), lit, lit)
     }.unzip3
-    val es = EditScript(ess.flatMap(_.edits))
-    val change = EDBChange.structural(es)
     val paramNames = specification.getParameterNames.asScala.toSeq
-    val rel = Relation.from("", paramNames, Seq(cargs))
+    val inputParamNames = paramNames.slice(0, cargs.size)
+    val rel = Relation.from(relName, inputParamNames, Seq(cargs))
+
+    val es = EditScript(ess.flatMap(_.edits))
+    val insert = Relation.from(demandPatternExtensionalPrefix + relName, inputParamNames, Seq(cargs))
+    val change = EDBChange(es, Seq(insert), Seq())
     (change, rel)
   }
 
@@ -41,4 +43,8 @@ case class ObjectOrientedInput(terms: meta.Term*)
       scalaCompiler.compileAndLoadScala[AnyRef](syntax)
     })
   }
+}
+object ObjectOrientedInput {
+  def apply(terms: meta.Term*): (CompiledModule, RelationName) => ObjectOrientedInput =
+    (compiled, name) => ObjectOrientedInput(terms, compiled, name)
 }

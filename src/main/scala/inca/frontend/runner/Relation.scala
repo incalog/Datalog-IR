@@ -34,18 +34,25 @@ trait Relation {
   if (parameterNames.size != arity)
     throw new IllegalArgumentException(s"Expected $arity parameter names but got ${parameterNames.size}.")
 
+  private def rawEntries: Iterable[Seq[Any]] = entries.map {
+    case p: Product => p.productIterator.toSeq
+    case e if parameterNames.nonEmpty => Seq(e)
+    case _ => Seq()
+  }
+
+  def slice(from: Int, until: Int): Relation = {
+    val outputParamNames = parameterNames.slice(from, until)
+    val outputValues = rawEntries.map(_.slice(from, until).toSeq)
+    Relation.from(name, outputParamNames, outputValues)
+  }
+
   override def toString: RelationName = {
-    val namedEntries = entries.map {
-      case p: Product => parameterNames.zip(p.productIterator)
-      case v if parameterNames.nonEmpty => Seq(parameterNames.head -> v)
-      case _ => Seq()
-    }
-    val entriesS = namedEntries.map { e =>
-      e.map {
-        case (name, value) => s"$name: $value"
+    val entriesS = rawEntries.map { e =>
+      parameterNames.zip(e).map { case (name, value) =>
+        s"$name: $value"
       }.mkString("(", ", ", ")")
-    }.toSet
-    s"${getClass.getSimpleName}(name: $name, size: $size, entries: ${entriesS}"
+    }.mkString("{", ", ", "}")
+    s"${getClass.getSimpleName}(name: $name, size: $size, entries: ${entriesS})"
   }
 }
 
