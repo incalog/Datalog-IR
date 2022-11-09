@@ -17,12 +17,9 @@ protected[frontend] trait Runner[I <: Input] {
   def engine: AdvancedViatraQueryEngine
   def database: Database
 
-  val specification: Specification = compiled.psystemModule.patterns(relName)()
-  val matcher: Query.Matcher = specification.getMatcher(engine)
-  val parameterNames: Seq[RelationName] = matcher.getParameterNames.asScala.toSeq
 
-  def update(input: I): Unit = {
-    val edbChange = input.change
+  def update(change: EDBChange): Unit = {
+    val edbChange = change
     database.processEditScript(edbChange.es)
 
     edbChange.insertions.foreach { relation =>
@@ -38,7 +35,10 @@ protected[frontend] trait Runner[I <: Input] {
     }
   }
 
-  protected[frontend] def runWithInputRelation(input: Relation): Relation = {
+  def read(input: Relation): Relation = {
+    val specification: Specification = compiled.psystemModule.patterns(input.name)()
+    val matcher: Query.Matcher = specification.getMatcher(engine)
+    val parameterNames: Seq[RelationName] = matcher.getParameterNames.asScala.toSeq
     val output =
       if (input.entries.nonEmpty)
         input.entries.flatMap { t =>
@@ -64,7 +64,7 @@ protected[frontend] class IRRunner(override val relName: RelationName,
   extends Runner[IRInput]
 {
   def run(input: IRInput = IRInput.empty()): Relation = {
-    update(input)
-    runWithInputRelation(input.args)
+    update(input.change)
+    read(input.args)
   }
 }
