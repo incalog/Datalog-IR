@@ -23,15 +23,15 @@ protected[frontend] trait Runner[I <: Input] {
     val edbChange = input.change
     database.processEditScript(edbChange.es)
 
-    edbChange.insertions.foreach { case (name, relation) =>
+    edbChange.insertions.foreach { relation =>
       relation.entries.foreach { tuple =>
-        database.insert(name, Tuples.flatTupleOf(relation.flattenEntry(tuple):_*))
+        database.insert(relation.name, Tuples.flatTupleOf(relation.flattenEntry(tuple):_*))
       }
     }
     
-    edbChange.deletions.foreach { case (name, relation) =>
+    edbChange.deletions.foreach { relation =>
       relation.entries.foreach { tuple =>
-        database.delete(name, Tuples.flatTupleOf(relation.flattenEntry(tuple):_*))
+        database.delete(relation.name, Tuples.flatTupleOf(relation.flattenEntry(tuple):_*))
       }
     }
   }
@@ -45,7 +45,7 @@ protected[frontend] trait Runner[I <: Input] {
         }
       else
         matcher.getAllMatches().asScala
-    Relation.fromQueryMatches(parameterNames, relName, output)
+    Relation.fromQueryMatches(relName, parameterNames, output)
   }
 
   private def toQueryMatch(parameterNames: Seq[String], arity: Int, values: Seq[AnyRef], spec: Specification): Query.Match = {
@@ -54,13 +54,6 @@ protected[frontend] trait Runner[I <: Input] {
     Query.Match(spec, arr.toArray, isMutable = false)
   }
 }
-// OVER(X, Y, Z)
-// OVER(X -> 1, Z -> 2)
-// PATH(X, Y)
-// path(Y -> 3)
-// Seq(3)
-// Seq(1, 2)
-// Seq(1, null, 2)
 
 protected[frontend] class IRRunner(override val relName: RelationName,
                override val compiled: CompiledModule,
