@@ -21,17 +21,16 @@ protected[frontend] trait Runner[I <: Input] {
   val matcher: Query.Matcher = specification.getMatcher(engine)
   val parameterNames: Seq[RelationName] = matcher.getParameterNames.asScala.toSeq
 
-  def update(input: I): Unit = {
-    val edbChange = input.change
-    database.processEditScript(edbChange.es)
+  def update(change: EDBChange): Unit = {
+    database.processEditScript(change.es)
 
-    edbChange.insertions.foreach { relation =>
+    change.insertions.foreach { relation =>
       relation.entries.foreach { tuple =>
         database.insert(relation.name, Tuples.flatTupleOf(relation.flattenEntry(tuple):_*))
       }
     }
-    
-    edbChange.deletions.foreach { relation =>
+
+    change.deletions.foreach { relation =>
       relation.entries.foreach { tuple =>
         database.delete(relation.name, Tuples.flatTupleOf(relation.flattenEntry(tuple):_*))
       }
@@ -64,7 +63,7 @@ protected[frontend] class IRRunner(override val relName: RelationName,
   extends Runner[IRInput]
 {
   def run(input: IRInput = IRInput.empty()): Relation = {
-    update(input)
+    update(input.change)
     runWithInputRelation(input.args)
   }
 }
