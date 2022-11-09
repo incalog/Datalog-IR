@@ -8,9 +8,10 @@ import inca.compiler.{CompiledModule, Options, SourceLocation}
 import inca.frontend.objectoriented.executor.{Executor, ObjectExecutor}
 import inca.frontend.objectoriented.integration.core.GenericTest
 import inca.runtime.context.DataModel
+import org.scalatest.funsuite.AnyFunSuite
 
 
-class IRTest extends GenericTest {
+class IRTest extends AnyFunSuite {
   val executor: Executor = ObjectExecutor
 
   lazy val dummyModule: CompiledModule = new CompiledModule {
@@ -87,7 +88,7 @@ class IRTest extends GenericTest {
     val irFactory = new IRRunnerFactory(pathModule)
     val runner = irFactory.runner("path")
     runner.update(
-      IRInput(EDBChange.insertions(
+      IRInput.change(EDBChange.insertions(
         Seq(
           Relation2("node", Seq("start", "end"), Seq(
             Seq("X", "Y"), Seq("Y", "Z"), Seq("Z", "W"), Seq("W", "Y")

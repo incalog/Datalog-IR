@@ -61,7 +61,7 @@ protected[frontend] class IRRunner(override val relName: RelationName,
                override val database: Database)
   extends Runner[IRInput]
 {
-  def run(input: IRInput = IRInput(UnitRelation(relName))): Relation = {
+  def run(input: IRInput = IRInput.empty()): Relation = {
     update(input)
     runWithInputRelation(input.args)
   }

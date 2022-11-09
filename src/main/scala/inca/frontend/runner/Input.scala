@@ -30,17 +30,21 @@ object IRInput {
     new IRInput(Relation.from("", parameterNames, values), EDBChange.empty)
   }
 
-  def apply(args: Relation): IRInput = {
+  def empty(): IRInput = {
+    new IRInput(UnitRelation(""), EDBChange.empty)
+  }
+
+  def args(args: Relation): IRInput = {
     new IRInput(args, EDBChange.empty)
   }
 
-  def apply(change: EDBChange): IRInput = {
+  def change(change: EDBChange): IRInput = {
     new IRInput(UnitRelation(""), change)
   }
 }
 
-case class FunctionalInput(arguments: Seq[meta.Term]) extends Input {
+/*case class FunctionalInput(arguments: Seq[meta.Term]) extends Input {
   // TODO we need to compile abstract syntax trees in scala format, how do we get this?
   def args: Relation = ???
   def change: EDBChange = ???
-}
+}*/
