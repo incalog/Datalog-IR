@@ -1,5 +1,5 @@
 package inca.frontend
 
-package object runner {
+package object Constants {
   type RelationName = String
 }

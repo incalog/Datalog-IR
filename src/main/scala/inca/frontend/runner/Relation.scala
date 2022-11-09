@@ -1,5 +1,6 @@
 package inca.frontend.runner
 
+import inca.frontend.Constants.RelationName
 import inca.runtime.Query
 
 object Relation {

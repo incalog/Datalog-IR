@@ -1,11 +1,13 @@
 package inca.frontend.runner
 
 import inca.compiler.CompiledModule
+import inca.frontend.Constants.RelationName
 import inca.runtime.Query
 import inca.runtime.Query.Specification
 import inca.runtime.db.Database
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
+
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 

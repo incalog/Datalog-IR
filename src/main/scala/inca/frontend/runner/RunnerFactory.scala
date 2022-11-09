@@ -1,6 +1,7 @@
 package inca.frontend.runner
 
 import inca.compiler.CompiledModule
+import inca.frontend.Constants.RelationName
 import inca.runtime.EnginePool
 import inca.runtime.context.QueryScope
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory

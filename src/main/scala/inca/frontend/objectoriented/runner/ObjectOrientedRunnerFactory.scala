@@ -1,8 +1,9 @@
 package inca.frontend.objectoriented.runner
 
 import inca.compiler.CompiledModule
+import inca.frontend.Constants.RelationName
 import inca.frontend.objectoriented.compiler.CompiledObjectModule
-import inca.frontend.runner.{RelationName, RunnerFactory}
+import inca.frontend.runner.RunnerFactory
 import inca.runtime.EnginePool
 import inca.runtime.context.QueryScope
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory

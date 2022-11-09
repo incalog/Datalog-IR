@@ -1,7 +1,7 @@
 package inca.frontend.objectoriented.runner
 
 import inca.compiler.CompiledModule
-import inca.frontend.runner.{EDBChange, Input, Relation, RelationName}
+import inca.frontend.runner.{EDBChange, Input, Relation}
 import inca.runtime.Query.Specification
 import inca.util.Scala.ScalaCompiler
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
@@ -11,7 +11,7 @@ import truediff.Diffable
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 
-case class ObjectOrientedInput(terms: meta.Term*)(implicit val compiled: CompiledModule)
+case class ObjectOrientedInput(terms: meta.Term*)
   extends Input {
 
   lazy val (change, args) = input(terms)
