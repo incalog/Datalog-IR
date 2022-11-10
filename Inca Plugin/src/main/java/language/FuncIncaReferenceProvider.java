@@ -13,8 +13,8 @@ public class FuncIncaReferenceProvider extends PsiReferenceProvider {
         if (!element.getLanguage().is(FuncIncaLanguage.INSTANCE)) {
             return PsiReference.EMPTY_ARRAY;
         }
-        if (element instanceof PsiNamedElement) {
-            PsiNamedElement se = (PsiNamedElement) element;
+        if (element instanceof PsiElement) {
+            PsiElement se = (PsiElement) element;
             return new PsiReference[]{new FuncIncaReference(se, se.getTextRange())};
         }
         return PsiReference.EMPTY_ARRAY;

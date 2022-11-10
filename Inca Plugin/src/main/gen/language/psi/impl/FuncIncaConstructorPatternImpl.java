@@ -8,10 +8,10 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
+import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
-import com.intellij.psi.PsiReference;
 
-public class FuncIncaConstructorPatternImpl extends FuncIncaNamedElementImpl implements FuncIncaConstructorPattern {
+public class FuncIncaConstructorPatternImpl extends ASTWrapperPsiElement implements FuncIncaConstructorPattern {
 
   public FuncIncaConstructorPatternImpl(@NotNull ASTNode node) {
     super(node);
@@ -29,6 +29,12 @@ public class FuncIncaConstructorPatternImpl extends FuncIncaNamedElementImpl imp
 
   @Override
   @NotNull
+  public FuncIncaConsId getConsId() {
+    return findNotNullChildByClass(FuncIncaConsId.class);
+  }
+
+  @Override
+  @NotNull
   public List<FuncIncaConsPatternId> getConsPatternIdList() {
     return PsiTreeUtil.getChildrenOfTypeAsList(this, FuncIncaConsPatternId.class);
   }
@@ -37,32 +43,6 @@ public class FuncIncaConstructorPatternImpl extends FuncIncaNamedElementImpl imp
   @Nullable
   public FuncIncaParamTypes getParamTypes() {
     return findChildByClass(FuncIncaParamTypes.class);
-  }
-
-  @Override
-  @NotNull
-  public PsiElement getId() {
-    return findNotNullChildByType(ID);
-  }
-
-  @Override
-  public String getName() {
-    return FuncIncaPsiImplUtil.getName(this);
-  }
-
-  @Override
-  public PsiElement setName(String newName) {
-    return FuncIncaPsiImplUtil.setName(this, newName);
-  }
-
-  @Override
-  public PsiElement getNameIdentifier() {
-    return FuncIncaPsiImplUtil.getNameIdentifier(this);
-  }
-
-  @Override
-  public PsiReference getReference() {
-    return FuncIncaPsiImplUtil.getReference(this);
   }
 
 }

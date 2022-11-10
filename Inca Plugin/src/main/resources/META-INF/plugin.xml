@@ -32,6 +32,7 @@
         <annotator
                 implementationClass="language.FuncIncaAnnotator"/>
         <psi.referenceContributor
+                language="JAVA"
                 implementation="language.FuncIncaReferenceContributor"/>
     </extensions>
 

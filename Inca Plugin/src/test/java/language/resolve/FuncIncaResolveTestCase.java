@@ -16,7 +16,7 @@ import java.util.Collection;
 import java.util.List;
 
 public class FuncIncaResolveTestCase extends FuncIncaCodeInsightTest {
-    protected PsiReference referencedElement;
+    protected PsiReference refElement;
     protected PsiElement resolvedElement;
 
     public FuncIncaResolveTestCase(String srcName) {
@@ -40,24 +40,25 @@ public class FuncIncaResolveTestCase extends FuncIncaCodeInsightTest {
             if(referencedOffset < resolvedOffset){
                 text = text.replace("<resolved>", "");
                 text = text.replace("<ref>", "");
-                resolvedOffset -= 5; // removal of <ref> shifts the offset of <resolved> by 5
+                if(referencedOffset != -1)
+                    resolvedOffset -= 5; // removal of <ref> shifts the offset of <resolved> by 5
             }else{
                 text = text.replace("<ref>", "");
                 text = text.replace("<resolved>", "");
-                referencedOffset -= 10; // removal of <resolved> shifts offset of <ref> by 10
+                if(resolvedOffset != -1)
+                    referencedOffset -= 10; // removal of <resolved> shifts offset of <ref> by 10
             }
             String fileName = file.getName();
             VirtualFile vFile = myFixture.getTempDirFixture().createFile(fileName, text);
             PsiFile psiFile = myFixture.configureFromTempProjectFile(fileName);
             if (referencedOffset != -1) {
-                referencedElement = psiFile.findReferenceAt(referencedOffset);
-                if (referencedElement == null) fail("Reference was null in " + file.getName());
+                refElement = psiFile.findReferenceAt(referencedOffset);
+                if (refElement == null) fail("Reference was null in " + file.getName());
             }
             if (resolvedOffset != -1) {
-                final PsiReference ref = psiFile.findReferenceAt(resolvedOffset);
-                if (ref == null) { fail("Reference was null in " + file.getName()); }
-                resolvedElement = ref.getElement();
-                if (resolvedElement == null) { fail("Reference returned null element in " + file.getName()); }
+                resolvedElement = psiFile.findElementAt(resolvedOffset); // returns FuncIncaId
+                resolvedElement = resolvedElement.getParent(); // parent of the Id Node is a FuncIncaVarId Node
+                if (resolvedElement == null) { fail("Resolved element returned null in " + file.getName()); }
             }
         }
     }
@@ -85,10 +86,10 @@ public class FuncIncaResolveTestCase extends FuncIncaCodeInsightTest {
     }
 
     protected void doTest(boolean succeed) {
-        if (succeed && referencedElement == null) { fail("Could not find reference at caret."); }
+        if (succeed && refElement == null) { fail("Could not find reference at caret."); }
         if (succeed && resolvedElement == null) { fail("Could not find resolved element."); }
         if (succeed) {
-            PsiElement resolvedActual = referencedElement.resolve();
+            PsiElement resolvedActual = refElement.resolve();
             assertEquals(
                     "Could not resolve expected reference.\n" +
                             "Expected: " + resolvedElement + " (" + resolvedElement.getText() + ")\n" +
@@ -97,7 +98,7 @@ public class FuncIncaResolveTestCase extends FuncIncaCodeInsightTest {
                     resolvedActual
             );
         } else {
-            assertFalse("Resolved unexpected reference.", resolvedElement.equals(referencedElement.resolve()));
+            assertFalse("Resolved unexpected reference.", resolvedElement.equals(refElement.resolve()));
         }
     }
 

@@ -5,6 +5,7 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.impl.source.resolve.reference.ReferenceProvidersRegistry;
 import com.intellij.util.ArrayUtil;
+import language.FuncIncaReference;
 import language.psi.*;
 import org.jetbrains.annotations.NotNull;
 
@@ -30,9 +31,10 @@ public class FuncIncaPsiImplUtil {
     }
 
     public static PsiReference getReference(PsiElement element){
-        PsiReference[] references = ReferenceProvidersRegistry.getReferencesFromProviders(element);
-        PsiReference first = ArrayUtil.getFirstElement(references);
-        return first;
+        //PsiReference[] references = ReferenceProvidersRegistry.getReferencesFromProviders(element);
+        //PsiReference first = ArrayUtil.getFirstElement(references);
+        //return first;
+        return new FuncIncaReference(element, element.getTextRange());
     }
 
     // -------------------------------- var ------------------------------------

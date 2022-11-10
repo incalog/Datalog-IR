@@ -23,6 +23,7 @@ public interface FuncIncaTypes {
   IElementType CONSTR = new FuncIncaElementType("CONSTR");
   IElementType CONSTRUCTOR_PATTERN = new FuncIncaElementType("CONSTRUCTOR_PATTERN");
   IElementType CONST_SET_EXP = new FuncIncaElementType("CONST_SET_EXP");
+  IElementType CONS_ID = new FuncIncaElementType("CONS_ID");
   IElementType CONS_PATTERN_ID = new FuncIncaElementType("CONS_PATTERN_ID");
   IElementType DATA_CONSTRUCTOR = new FuncIncaElementType("DATA_CONSTRUCTOR");
   IElementType DATA_DEF = new FuncIncaElementType("DATA_DEF");
@@ -173,6 +174,9 @@ public interface FuncIncaTypes {
       }
       else if (type == CONST_SET_EXP) {
         return new FuncIncaConstSetExpImpl(node);
+      }
+      else if (type == CONS_ID) {
+        return new FuncIncaConsIdImpl(node);
       }
       else if (type == CONS_PATTERN_ID) {
         return new FuncIncaConsPatternIdImpl(node);

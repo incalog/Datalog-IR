@@ -1,3 +1,0 @@
-module method2
-
-@main def baz: Bool = <ref>bar()

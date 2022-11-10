@@ -12,26 +12,28 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public class FuncIncaReference extends PsiReferenceBase<PsiNamedElement> implements PsiPolyVariantReference {
+public class FuncIncaReference extends PsiReferenceBase<PsiElement> implements PsiPolyVariantReference {
 
     private String name;
     public static final ResolveResult[] EMPTY_RESOLVE_RESULT = new ResolveResult[0];
 
-    public FuncIncaReference(@NotNull PsiNamedElement element, TextRange textRange) {
-        super(element, textRange);
-        name = element.getName();
+    public FuncIncaReference(@NotNull PsiElement element, TextRange textRange) {
+        super(element, new TextRange(0, textRange.getLength()));
+        name = element.getText().substring(0, textRange.getLength());
     }
 
     @Override
     // for example for overloading a method
     public ResolveResult @NotNull [] multiResolve(boolean incompleteCode) {
+        if(!(myElement instanceof FuncIncaTypeName || myElement instanceof FuncIncaVar || myElement instanceof FuncIncaConsId))
+            return EMPTY_RESOLVE_RESULT;
         Project project = myElement.getProject();
         final List<PsiNamedElement> namedElements = FuncIncaUtil.findDefinitionNode(project, name, myElement);
-        List<ResolveResult> res = new ArrayList<>();
+        List<ResolveResult> res = new ArrayList<ResolveResult>();
         for(PsiNamedElement element: namedElements){
             res.add(new PsiElementResolveResult(element));
         }
-        return new ResolveResult[0];
+        return res.toArray(new ResolveResult[res.size()]);
     }
 
     @Override

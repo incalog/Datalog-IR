@@ -1,0 +1,3 @@
+module paramtypesReturnType
+
+@main def foo[<resolved>A](x: A): <ref>A = x

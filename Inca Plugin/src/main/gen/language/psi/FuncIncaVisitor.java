@@ -55,9 +55,12 @@ public class FuncIncaVisitor extends PsiElementVisitor {
     visitExp(o);
   }
 
+  public void visitConsId(@NotNull FuncIncaConsId o) {
+    visitPsiElement(o);
+  }
+
   public void visitConsPatternId(@NotNull FuncIncaConsPatternId o) {
     visitNamedElement(o);
-    // visitDecl(o);
   }
 
   public void visitConstSetExp(@NotNull FuncIncaConstSetExp o) {
@@ -69,17 +72,15 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitConstructorPattern(@NotNull FuncIncaConstructorPattern o) {
-    visitNamedElement(o);
+    visitPsiElement(o);
   }
 
   public void visitDataConstructor(@NotNull FuncIncaDataConstructor o) {
     visitNamedElement(o);
-    // visitDecl(o);
   }
 
   public void visitDataDef(@NotNull FuncIncaDataDef o) {
     visitNamedElement(o);
-    // visitDecl(o);
   }
 
   public void visitExp(@NotNull FuncIncaExp o) {
@@ -92,7 +93,6 @@ public class FuncIncaVisitor extends PsiElementVisitor {
 
   public void visitFunDef(@NotNull FuncIncaFunDef o) {
     visitNamedElement(o);
-    // visitDecl(o);
   }
 
   public void visitFunType(@NotNull FuncIncaFunType o) {
@@ -157,7 +157,6 @@ public class FuncIncaVisitor extends PsiElementVisitor {
 
   public void visitParam(@NotNull FuncIncaParam o) {
     visitNamedElement(o);
-    // visitDecl(o);
   }
 
   public void visitParamList(@NotNull FuncIncaParamList o) {
@@ -166,7 +165,6 @@ public class FuncIncaVisitor extends PsiElementVisitor {
 
   public void visitParamType(@NotNull FuncIncaParamType o) {
     visitNamedElement(o);
-    // visitDecl(o);
   }
 
   public void visitParamTypes(@NotNull FuncIncaParamTypes o) {
@@ -210,7 +208,7 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitTypeName(@NotNull FuncIncaTypeName o) {
-    visitNamedElement(o);
+    visitPsiElement(o);
   }
 
   public void visitUnaryOp(@NotNull FuncIncaUnaryOp o) {
@@ -218,12 +216,11 @@ public class FuncIncaVisitor extends PsiElementVisitor {
   }
 
   public void visitVar(@NotNull FuncIncaVar o) {
-    visitNamedElement(o);
+    visitPsiElement(o);
   }
 
   public void visitVarId(@NotNull FuncIncaVarId o) {
     visitNamedElement(o);
-    // visitDecl(o);
   }
 
   public void visitVisibility(@NotNull FuncIncaVisibility o) {

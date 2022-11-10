@@ -422,6 +422,18 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
 
   /* ********************************************************** */
   // id
+  public static boolean cons_id(PsiBuilder b, int l) {
+    if (!recursion_guard_(b, l, "cons_id")) return false;
+    if (!nextTokenIs(b, ID)) return false;
+    boolean r;
+    Marker m = enter_section_(b);
+    r = consumeToken(b, ID);
+    exit_section_(b, m, CONS_ID, r);
+    return r;
+  }
+
+  /* ********************************************************** */
+  // id
   public static boolean cons_pattern_id(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "cons_pattern_id")) return false;
     if (!nextTokenIs(b, ID)) return false;
@@ -524,13 +536,13 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // id param_types? '(' (cons_pattern_id (',' cons_pattern_id)*)? ')'
+  // cons_id param_types? '(' (cons_pattern_id (',' cons_pattern_id)*)? ')'
   public static boolean constructor_pattern(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "constructor_pattern")) return false;
     if (!nextTokenIs(b, ID)) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeToken(b, ID);
+    r = cons_id(b, l + 1);
     r = r && constructor_pattern_1(b, l + 1);
     r = r && consumeToken(b, PARENS_OPEN);
     r = r && constructor_pattern_3(b, l + 1);

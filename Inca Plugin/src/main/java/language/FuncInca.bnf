@@ -86,12 +86,23 @@
     comment = "regexp:(//.*)|(/\*(.|\n)*\*/)"
     ]
 
-  methods("var|param|import|fun_def|param_type|data_def|data_constructor|constructor_pattern|cons_pattern_id|var_id|type_name")=[getName setName getNameIdentifier getReference]
-  implements("var|param|import|fun_def|param_type|data_def|data_constructor|constructor_pattern|cons_pattern_id|var_id|type_name")="language.psi.FuncIncaNamedElement"
-  mixin("var|param|import|fun_def|param_type|data_def|data_constructor|constructor_pattern|cons_pattern_id|var_id|type_name")="language.psi.impl.FuncIncaNamedElementImpl"
+  methods("param|import|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")=[getName setName getNameIdentifier]
+  implements("param|import|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")="language.psi.FuncIncaNamedElement"
+  mixin("param|import|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")="language.psi.impl.FuncIncaNamedElementImpl"
 
+  methods("var|type_name|cons_id")=[getReference]
+  /*
+  data_constructor : name of constructors
+  data_def : name of new data type
+  cons_pattern_id : name of variables introduced during pattern matching with constructors
+  cons_id : name of constructor in constructor pattern
+  var_id : name of new variable introduced with let construct
+   */
+
+  /*
   implements("param|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")="language.psi.FuncIncaDecl"
   mixin("param|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")="language.psi.impl.FuncIncaDeclImpl"
+  */
 
   extends(".*exp") = exp
 }
@@ -139,7 +150,8 @@ match_exp ::=  subinfix_exp keyword_match '{' match_case* '}' {pin = 2}
 match_case ::= keyword_case pattern '=>' exp {pin = 1}
 pattern ::= option_pattern | constructor_pattern
 option_pattern ::= 'None' | 'Some' '(' (id (',' id)*)? ')'
-constructor_pattern ::= id param_types? '(' (cons_pattern_id (',' cons_pattern_id)*)? ')'
+constructor_pattern ::= cons_id param_types? '(' (cons_pattern_id (',' cons_pattern_id)*)? ')'
+cons_id ::= id
 cons_pattern_id ::= id
 
 // subinfix expressions

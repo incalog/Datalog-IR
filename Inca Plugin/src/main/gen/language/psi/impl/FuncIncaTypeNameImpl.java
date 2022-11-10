@@ -8,10 +8,11 @@ import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementVisitor;
 import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
+import com.intellij.extapi.psi.ASTWrapperPsiElement;
 import language.psi.*;
 import com.intellij.psi.PsiReference;
 
-public class FuncIncaTypeNameImpl extends FuncIncaNamedElementImpl implements FuncIncaTypeName {
+public class FuncIncaTypeNameImpl extends ASTWrapperPsiElement implements FuncIncaTypeName {
 
   public FuncIncaTypeNameImpl(@NotNull ASTNode node) {
     super(node);
@@ -31,21 +32,6 @@ public class FuncIncaTypeNameImpl extends FuncIncaNamedElementImpl implements Fu
   @NotNull
   public PsiElement getId() {
     return findNotNullChildByType(ID);
-  }
-
-  @Override
-  public String getName() {
-    return FuncIncaPsiImplUtil.getName(this);
-  }
-
-  @Override
-  public PsiElement setName(String newName) {
-    return FuncIncaPsiImplUtil.setName(this, newName);
-  }
-
-  @Override
-  public PsiElement getNameIdentifier() {
-    return FuncIncaPsiImplUtil.getNameIdentifier(this);
   }
 
   @Override

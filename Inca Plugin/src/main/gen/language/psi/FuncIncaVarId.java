@@ -4,9 +4,8 @@ package language.psi;
 import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiReference;
 
-public interface FuncIncaVarId extends FuncIncaNamedElement, FuncIncaDecl {
+public interface FuncIncaVarId extends FuncIncaNamedElement {
 
   @NotNull
   PsiElement getId();
@@ -16,7 +15,5 @@ public interface FuncIncaVarId extends FuncIncaNamedElement, FuncIncaDecl {
   PsiElement setName(String newName);
 
   PsiElement getNameIdentifier();
-
-  PsiReference getReference();
 
 }

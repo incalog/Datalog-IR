@@ -1,0 +1,3 @@
+module paramtypesArguments
+
+@main def foo[<resolved>A](x: <ref>A): A = x

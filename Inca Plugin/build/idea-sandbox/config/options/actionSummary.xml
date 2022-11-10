@@ -1,5 +1,8 @@
 <application>
   <component name="ActionsLocalSummary">
+    <e n="DisablePCE">
+      <i c="1" l="1667240593988" />
+    </e>
     <e n="EditorBackSpace">
       <i c="77" l="1665654758908" />
     </e>
@@ -40,7 +43,7 @@
       <i c="5" l="1666806076783" />
     </e>
     <e n="PsiViewerForContext">
-      <i c="5" l="1666806120236" />
+      <i c="15" l="1668013007560" />
     </e>
     <e n="WelcomeScreen.CreateNewProject">
       <i c="1" l="1662131904886" />
@@ -52,7 +55,10 @@
       <i c="9" l="1663172917698" />
     </e>
     <e n="com.intellij.openapi.ui.DialogWrapper$4">
-      <i c="5" l="1663499709723" />
+      <i c="13" l="1668013021069" />
+    </e>
+    <e n="com.intellij.openapi.wm.impl.ToolWindowHeader$HideAction">
+      <i c="1" l="1667240614716" />
     </e>
   </component>
 </application>
