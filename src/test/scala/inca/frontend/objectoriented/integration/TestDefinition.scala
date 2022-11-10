@@ -1,5 +1,7 @@
 package inca.frontend.objectoriented.integration
 
+import inca.frontend.runner.Relation
+
 import scala.meta.XtensionQuasiquoteTerm
 
 case class TestDefinition[O](fileName: String, mainClass: String, mainMethod: String, input: Seq[meta.Term], expectedResult: O)(implicit subdir: Option[String] = None) {
@@ -16,6 +18,24 @@ case class TestDefinition[O](fileName: String, mainClass: String, mainMethod: St
     s"$testDir$dir$fileName.$fileExtension"
   }
 
+  def expectedRelation: Relation = {
+    val entries = expectedResult match {
+      case s: Set[Any] => s.map {
+          case e: Seq[_] => e
+          case e => Seq(e)
+        }.toSeq
+      case s: Seq[Any] if s.nonEmpty => Seq(s)
+      case s: Seq[Any] if s.isEmpty => Seq()
+      case e => Set(Seq(e))
+    }
+    val paramNames =
+      if (entries.isEmpty)
+        Seq()
+      else
+        Range(0, entries.head.size).map(i => "return$" + i)
+    Relation.from(main, paramNames, entries)
+  }
+
   val testName: String = s"$fileName Test"
   val main: String = mainClass + "$" + mainMethod
 }
@@ -23,7 +43,7 @@ case class TestDefinition[O](fileName: String, mainClass: String, mainMethod: St
 object TestDefinition {
 
   // type alias for tuple and set results
-  // TODO: Replace this with actual classes ?
+  // TODO: Remove this after the ScalaExecutor is replaced
   type TupleResult[T] = Seq[T]
 
   object TupleResult {
@@ -110,6 +130,7 @@ object TestDefinition {
   }
 
   def methodInheritanceTest: TestDefinition[Int] = {
+    implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("MethodInheritance", "A", "main", Seq(), 3)
   }
 
@@ -187,7 +208,7 @@ object TestDefinition {
 
   def tupleTest: TestDefinition[TupleResult[Any]] = {
     implicit val subdir: Option[String] = Some("unittests")
-    TestDefinition("Tuple", "A", "main", Seq(), TupleResult(true, TupleResult(true, true)))
+    TestDefinition("Tuple", "A", "main", Seq(), TupleResult(true, true, true))
   }
 
   def simpleSetTests: Seq[TestDefinition[SetResult[Any]]] = {
@@ -222,7 +243,7 @@ object TestDefinition {
   def advancedSetTest: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/set")
     Seq(
-      TestDefinition("SetMethodNested", "A", "main", Seq(), SetResult(1, 2, 3, 4)),
+      TestDefinition("SetMethodNested", "A", "main", Seq(), SetResult(1, 2)),
       TestDefinition("SetClassSimple", "A", "main", Seq(), SetResult(1, 2)),
       TestDefinition("SetClass", "A", "main", Seq(), SetResult(10, 3)),
       TestDefinition("SetClass2", "A", "main", Seq(), SetResult(5, 10)),
@@ -234,7 +255,8 @@ object TestDefinition {
   def comprehensionSetTest: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/set")
     Seq(
-      TestDefinition("SetComprehension", "A", "main", Seq(), SetResult(TupleResult(1, 3, 5), TupleResult(1, 4, 5))),
+      TestDefinition("SetComprehension", "A", "main", Seq(), SetResult(TupleResult(1, 3), TupleResult(1, 4), TupleResult(2, 3), TupleResult(2, 4))),
+      TestDefinition("SetComprehension2", "A", "main", Seq(), SetResult(TupleResult(1, 3, 5), TupleResult(1, 4, 5))),
       TestDefinition("SetComprehensionTuple", "A", "main", Seq(), SetResult(TupleResult("A", 2), TupleResult("C", 2)))
     )
   }

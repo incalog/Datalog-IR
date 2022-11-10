@@ -263,7 +263,7 @@ class GenerateScala {
       Term.ApplyUnary(op.tree, transExpression(exp))
     case NullExpr() =>
       Lit.Null()
-    case SetExpr(exps) =>
+    case SetExpr(exps, _) =>
       val args = exps.map(transExpression).toList
       Term.Apply(Term.Name("Set"), args)
     case SetMemberExpr(name, recv, predicate) =>

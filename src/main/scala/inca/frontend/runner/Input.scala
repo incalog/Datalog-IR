@@ -4,6 +4,8 @@ import inca.compiler.CompiledModule
 import inca.frontend.Constants.RelationName
 import truechange.EditScript
 
+import scala.meta.Self
+
 case class EDBChange(es: EditScript, insertions: Seq[Relation], deletions: Seq[Relation])
 object EDBChange {
   def empty: EDBChange = EDBChange(EditScript(Seq()), Seq(), Seq())
@@ -17,14 +19,17 @@ protected[frontend] trait Input {
   def args: Relation
 }
 
+protected[frontend] trait InputObject[I <: Input] {
+  type InputClosure = (CompiledModule, RelationName) => I
+}
+
 /*case class StdDatalogInput(override val args: Relation, insertions: RelationChange, deletions: RelationChange) extends Input {
   override def change: EDBChange = EDBChange(EditScript(Seq()), insertions, deletions)
 }*/
 
 final case class IRInput private (override val args: Relation, override val change: EDBChange) extends Input
-object IRInput {
-  def apply(parameterNames: Seq[String], values: Seq[Any]*): (CompiledModule, RelationName) => IRInput =
-    (_, relName) => {
+object IRInput extends InputObject[IRInput] {
+  def apply(parameterNames: Seq[String], values: Seq[Any]*): InputClosure = (_, relName) => {
       values.foreach { v =>
         if (v.size != parameterNames.size)
           throw new IllegalArgumentException(s"Expected ${parameterNames.size} values, but got ${v.size}.")
@@ -33,11 +38,11 @@ object IRInput {
       IRInput(Relation.from(relName, parameterNames, values), EDBChange.empty)
     }
 
-  def args(args: Relation): (CompiledModule, RelationName) => IRInput = (_, relName) => {
+  def args(args: Relation): InputClosure = (_, _) => {
     IRInput(args, EDBChange.empty)
   }
 
-  def empty(): (CompiledModule, RelationName) => IRInput = (_, relName) => {
+  def empty(): InputClosure = (_, relName) => {
     IRInput(UnitRelation(relName), EDBChange.empty)
   }
 }

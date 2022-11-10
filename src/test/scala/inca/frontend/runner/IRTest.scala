@@ -6,7 +6,6 @@ import inca.backend.optimize.Optimization
 import inca.backend.transform.Transformation
 import inca.compiler.{CompiledModule, Options, SourceLocation}
 import inca.frontend.objectoriented.executor.{Executor, ObjectExecutor}
-import inca.frontend.objectoriented.integration.core.GenericTest
 import inca.runtime.context.DataModel
 import org.scalatest.funsuite.AnyFunSuite
 

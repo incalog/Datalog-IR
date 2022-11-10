@@ -1,146 +1,163 @@
 package inca.frontend.objectoriented.integration
 
-import inca.frontend.objectoriented.executor.ObjectExecutor.TypeCastException
-import inca.frontend.objectoriented.executor.{Executor, ObjectExecutor}
-import inca.frontend.objectoriented.integration.core.GenericTest
+import inca.backend.optimize.EliminateNonproductiveRelations
+import inca.compiler.Compiler
+import inca.frontend.objectoriented.compiler.ObjectOptions
+import inca.frontend.objectoriented.runner.{ObjectOrientedRunnerFactory, TypeCastException}
 import inca.frontend.objectoriented.integration.TestDefinition._
+import inca.util.FileUtil.readFile
+import org.scalatest.Assertion
+import org.scalatest.funsuite.AnyFunSuite
 
-class DatalogTest extends GenericTest {
-  val executor: Executor = ObjectExecutor
+class DatalogTest extends AnyFunSuite {
+  def options: ObjectOptions = ObjectOptions(Seq(EliminateNonproductiveRelations))
+
+  def performTests(tests: TestDefinition[_]*): Seq[Assertion] = {
+    tests.map { test =>
+      val code = readFile(test.filePath)
+      val module = Compiler.compileObject(code, options)
+      val runnerFactory = new ObjectOrientedRunnerFactory(module)
+      val runner = runnerFactory.runner(test.mainClass, test.mainMethod)
+      val rel = runner.run(test.input:_*)
+      println("Expected: ", test.expectedRelation)
+      println("Actual: ", rel)
+      assert(rel == test.expectedRelation)
+    }
+  }
 
   test("Base Examples") {
-    performTests(baseTests)
+    performTests(baseTests: _*)
   }
 
   test("Factorial Example") {
-    performTest(factorialTest)
+    performTests(factorialTest)
   }
 
   test("Fibonacci Example") {
-    performTest(fibonacciTest)
+    performTests(fibonacciTest)
   }
 
   test("Field Examples") {
-    performTests(fieldTests)
+    performTests(fieldTests: _*)
   }
 
   test("Constructor ") {
-    performTest(constructorTest)
+    performTests(constructorTest)
   }
 
   test("Null Example") {
-    performTest(nullTest)
+    performTests(nullTest)
   }
 
   test("Equals Example") {
-    performTest(equalsTest)
+    performTests(equalsTest)
   }
 
   test("InstanceOf Example") {
-    performTest(instanceOfTest)
+    performTests(instanceOfTest)
   }
 
   test("TypeCast Example") {
-    performTest(typeCastTest)
+    performTests(typeCastTest)
   }
 
   test("TypeCast Failure Example") {
     val caught = intercept[TypeCastException] {
-      performTest(typeCastFailureTest)
+      performTests(typeCastFailureTest)
     }
     assert(caught.typ == "B")
     assert(caught.obj.typ == "A")
   }
 
   test("DynamicDispatch Example") {
-    performTest(dynamicDispatchTest)
+    performTests(dynamicDispatchTest)
   }
 
   test("Object as Parameter Example") {
-    performTest(objectAsParamTest)
+    performTests(objectAsParamTest)
   }
 
   test("Method Inheritance Example") {
-    performTest(methodInheritanceTest)
+    performTests(methodInheritanceTest)
   }
 
   test("Binary Tree Example") {
-    performTest(binaryTreeSumTest)
+    performTests(binaryTreeSumTest)
   }
 
   test("Plus Example") {
-    performTest(plusTest)
+    performTests(plusTest)
   }
 
   test("Mutability Example") {
-    performTest(mutabilityTest)
+    performTests(mutabilityTest)
   }
 
   test("Var Assignment Example") {
-    performTest(varAssignmentTest)
+    performTests(varAssignmentTest)
   }
 
   test("If Constant Example") {
-    performTests(ifConstantTests)
+    performTests(ifConstantTests: _*)
   }
 
   test("If Nested Example") {
-    performTests(ifNestedTests)
+    performTests(ifNestedTests: _*)
   }
 
   test("If Duplicate Example") {
-    performTest(ifDuplicateTest)
+    performTests(ifDuplicateTest)
   }
 
   test("Return Example") {
-    performTests(returnTests)
+    performTests(returnTests: _*)
   }
 
   test("Return Implicit Example") {
-    performTests(returnImplicitTests)
+    performTests(returnImplicitTests: _*)
   }
 
   test("Return Unit Example") {
-    performTests(returnUnitTests)
+    performTests(returnUnitTests: _*)
   }
 
   test("Super Example") {
-    performTest(superTest)
+    performTests(superTest)
   }
 
   test("Tuple Example") {
-    performTest(tupleTest)
+    performTests(tupleTest)
   }
 
   test("Set Simple Example") {
-    performTests(simpleSetTests)
+    performTests(simpleSetTests: _*)
   }
 
   test("Set Tuple Example") {
-    performTest(tupleSetTest)
+    performTests(tupleSetTest)
   }
 
   test("Set Union Intersection Example") {
-    performTests(unionIntersectionSetTest)
+    performTests(unionIntersectionSetTest: _*)
   }
 
   test("Set Advanced Example") {
-    performTests(advancedSetTest)
+    performTests(advancedSetTest: _*)
   }
 
   test("Set Comprehension Example") {
-    performTests(comprehensionSetTest)
+    performTests(comprehensionSetTest: _*)
   }
 
   test("Set Empty Example") {
-    performTest(emptySetTest)
+    performTests(emptySetTest)
   }
 
   test("Set Recursive Example") {
-    performTest(recursiveSetTest)
+    performTests(recursiveSetTest)
   }
 
   test("Casestudy Example") {
-    performTests(caseStudyTest)
+    performTests(caseStudyTest: _*)
   }
 }

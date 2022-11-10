@@ -3,11 +3,7 @@ module SetTest
 class A {
   def this() = {}
 
-  @main def main(): Set[(Int, Int, Int)] = {
-    val as: Set[Int] = Set(-1, 1, 2)
-    val bs: Set[Int] = Set(3, 4)
-    val c: Int = 5
-    return for (a <- as if (a < 2) && (a > 0); b <- bs)
-      yield (a, b, c)
+  @main def main(): Set[(Int, Int)] = {
+    return for (a <- Set(1,2); b <- Set(3,4)) yield (a, b)
   }
 }

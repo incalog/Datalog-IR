@@ -3,8 +3,9 @@ package inca.frontend.objectoriented.runner
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
 import inca.compiler.CompiledModule
 import inca.frontend.Constants.RelationName
-import inca.frontend.runner.{EDBChange, Input, Relation}
+import inca.frontend.runner.{EDBChange, Input, InputObject, Relation}
 import inca.runtime.Query.Specification
+import inca.runtime.context.DataModel
 import inca.util.Scala.ScalaCompiler
 import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
 import truechange.EditScript
@@ -33,8 +34,27 @@ final case class ObjectOrientedInput private (terms: Seq[meta.Term], compiled: C
 
     val es = EditScript(ess.flatMap(_.edits))
     val insert = Relation.from(demandPatternExtensionalPrefix + relName, inputParamNames, Seq(cargs))
-    val change = EDBChange(es, Seq(insert), Seq())
+    val change = EDBChange(es, Seq(insert) ++ inheritanceEDB, Seq())
     (change, rel)
+  }
+
+  private def inheritanceEDB: Seq[Relation] = {
+    val dataModel = compiled.dataModel
+    val allTypes = dataModel.types
+    val identitySubtypes = allTypes.map(typ => Seq(typ.name, typ.name))
+    val realSubtypes = dataModel.nodeSupertypes.map { case (child, parent) => Seq(child.name, parent.name) }
+
+    // FIXME: This is only required as long as we don't have negation for ExtensionalCall
+    val notSubtypes = allTypes.flatMap { ty =>
+      val tySupertypes = dataModel.nodeSupertypes.get(ty)
+      (allTypes - ty).diff(tySupertypes).map { notSubtype =>
+        Seq(ty.name, notSubtype.name)
+      }
+    }
+
+    val subTypeRel = Relation.from("subtype", Seq("child", "parent"), identitySubtypes ++ realSubtypes)
+    val notSubTypeRel = Relation.from("not#subtype", Seq("child", "parent"), notSubtypes)
+    Seq(subTypeRel, notSubTypeRel)
   }
 
   private def vals(ts: meta.Term*): Seq[AnyRef] = {
@@ -44,7 +64,6 @@ final case class ObjectOrientedInput private (terms: Seq[meta.Term], compiled: C
     })
   }
 }
-object ObjectOrientedInput {
-  def apply(terms: meta.Term*): (CompiledModule, RelationName) => ObjectOrientedInput =
-    (compiled, name) => ObjectOrientedInput(terms, compiled, name)
+object ObjectOrientedInput extends InputObject[ObjectOrientedInput] {
+  def apply(terms: meta.Term*): InputClosure = (compiled, name) => ObjectOrientedInput(terms, compiled, name)
 }

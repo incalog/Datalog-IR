@@ -530,15 +530,21 @@ class GenerateDatalog(module: Module) {
         (vars, recvCons ++ eqs ++ predicates)
       }
 
-
     case SetComprehension(exps, body) =>
-      val transSetMember = exps.map(transExpression)
-      val transBody = transExpression(body)
-
-      for (ms <- TupleOps.cartesianProduct(transSetMember);
-           (bTerms, bCons) <- transBody) yield {
-        val (_, mCons) = ms.unzip
-        (bTerms, mCons.flatten ++ bCons)
+      // TODO: There must be a better way to handle this
+      if (exps.size == 1) {
+        val transSetMember = exps.flatMap(transExpression)
+        val transBody = transExpression(body)
+        for (ms <- transSetMember; (bTerms, bCons) <- transBody) yield
+          (bTerms, ms._2 ++ bCons)
+      } else {
+        val transSetMember = exps.map(transExpression)
+        val transBody = transExpression(body)
+        for (ms <- TupleOps.cartesianProduct(transSetMember);
+             (bTerms, bCons) <- transBody) yield {
+          val (_, mCons) = ms.unzip
+          (bTerms, mCons.flatten ++ bCons)
+        }
       }
 
     /*case setReduce@SetReduce(recv, op) =>

@@ -47,6 +47,6 @@ class Graph {
 class Graph {
     @main
     def main(): Set[String] = {
-        return Set[Int]()
+        return Set[String]()
     }
 }
