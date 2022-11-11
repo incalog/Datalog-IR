@@ -36,7 +36,7 @@ object TupleOps {
 
     val res = lst.toList match {
       case Nil => Nil
-      case x :: Nil => Seq(x)
+      case x :: Nil => x.map(Seq(_))
       case x :: _ =>
         x match {
           case Nil => Nil
