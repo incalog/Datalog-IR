@@ -18,11 +18,6 @@ class ParserTest extends AnyFunSuite {
     testSuccessAny(parser.module)(code)
   }
 
-  test("Simple syntax test") {
-    val code = FileUtil.readFile("objectoriented/parser/Playground.oinca")
-    testSuccessAny(parser.module)(code)
-  }
-
   test("Base 1") {
     val code = FileUtil.readFile("objectoriented/unittests/base/Base1.oinca")
     testSuccessAny(parser.module)(code)
@@ -39,7 +34,7 @@ class ParserTest extends AnyFunSuite {
   }
 
   test("BinaryTree") {
-    val code = FileUtil.readFile("objectoriented/unittests/BinaryTree2.oinca")
+    val code = FileUtil.readFile("objectoriented/unittests/BinaryTree.oinca")
     testSuccessAny(parser.module)(code)
   }
 

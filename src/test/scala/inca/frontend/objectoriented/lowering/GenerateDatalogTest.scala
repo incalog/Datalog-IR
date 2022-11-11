@@ -17,15 +17,15 @@ class GenerateDatalogTest extends AnyFunSuite {
   }
 
   test("Base 1") {
-    printIr("Base1")
+    printIr("base/Base1")
   }
 
   test("Base 2") {
-    printIr("Base2")
+    printIr("base/Base2")
   }
 
   test("Base 3") {
-    printIr("Base3")
+    printIr("base/Base3")
   }
 
   test("Plus") {

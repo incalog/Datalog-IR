@@ -255,8 +255,9 @@ object TestDefinition {
   def comprehensionSetTest: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/set")
     Seq(
-      TestDefinition("SetComprehension", "A", "main", Seq(), SetResult(TupleResult(1, 3), TupleResult(1, 4), TupleResult(2, 3), TupleResult(2, 4))),
+      TestDefinition("SetComprehension", "A", "main", Seq(), SetResult(TupleResult(1, 1), TupleResult(2, 1))),
       TestDefinition("SetComprehension2", "A", "main", Seq(), SetResult(TupleResult(1, 3, 5), TupleResult(1, 4, 5))),
+      TestDefinition("SetComprehension3", "A", "main", Seq(), SetResult(TupleResult(1, 3), TupleResult(1, 4), TupleResult(2, 3), TupleResult(2, 4))),
       TestDefinition("SetComprehensionTuple", "A", "main", Seq(), SetResult(TupleResult("A", 2), TupleResult("C", 2)))
     )
   }

@@ -1,21 +1,15 @@
 package inca.frontend.objectoriented.lowering
 
-import inca.backend.hints.MagicSetHints.{FixedAdornment, FixedAdornmentKey}
 import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
-import inca.backend.ir
 import inca.backend.ir.Datalog
-import inca.backend.ir.Datalog.CustomAggregation
-import inca.backend.ir.util.Substitute
-import inca.backend.ir.util.printer.GPPrinter
 import inca.compiler.SourceObject
-import inca.frontend.objectoriented.lowering.GenerateScala
 import inca.frontend.objectoriented.core._
 import inca.frontend.objectoriented.lowering.GenerateDatalog._
+import inca.util.TupleOps
 import inca.runtime.data.ObjectID
 import inca.util.Scala.{symbolOf, typeOf}
-import inca.util.{Gensym, Scala, TupleOps}
+import inca.util.{Gensym, Scala}
 
-import scala.{+:, :+}
 import scala.annotation.tailrec
 import scala.collection.immutable.MultiDict
 import scala.collection.mutable.ListBuffer
@@ -230,8 +224,6 @@ class GenerateDatalog(module: Module) {
 
     if (fieldSetter.isEmpty)
       Seq(Datalog.Body(Seq()))
-    else if (fieldSetter.size == 1)
-      fieldSetter.flatMap(_.map(Datalog.Body))
     else
       TupleOps.cartesianProduct(fieldSetter).map(atoms => Datalog.Body(atoms.flatten))
   }
@@ -531,21 +523,13 @@ class GenerateDatalog(module: Module) {
       }
 
     case SetComprehension(exps, body) =>
-      // TODO: There must be a better way to handle this
-      if (exps.size == 1) {
-        val transSetMember = exps.flatMap(transExpression)
-        val transBody = transExpression(body)
-        for (ms <- transSetMember; (bTerms, bCons) <- transBody) yield
-          (bTerms, ms._2 ++ bCons)
-      } else {
-        val transSetMember = exps.map(transExpression)
+        val transSetMember = exps.map(transExpression) ++ Seq(Seq((Seq(), Seq())))
         val transBody = transExpression(body)
         for (ms <- TupleOps.cartesianProduct(transSetMember);
              (bTerms, bCons) <- transBody) yield {
-          val (_, mCons) = ms.unzip
-          (bTerms, mCons.flatten ++ bCons)
+            val (_, mCons) = ms.unzip
+            (bTerms, mCons.flatten ++ bCons)
         }
-      }
 
     /*case setReduce@SetReduce(recv, op) =>
       val typ = recv.typ match {
