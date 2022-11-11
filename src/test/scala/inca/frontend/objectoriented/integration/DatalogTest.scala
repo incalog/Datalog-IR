@@ -5,7 +5,7 @@ import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.runner.{ObjectOrientedRunnerFactory, TypeCastException}
 import inca.frontend.objectoriented.integration.TestDefinition._
 import inca.util.FileUtil.readFile
-import org.scalatest.Assertion
+import org.scalatest.{Assertion, Ignore}
 import org.scalatest.funsuite.AnyFunSuite
 
 class DatalogTest extends AnyFunSuite {
@@ -148,15 +148,15 @@ class DatalogTest extends AnyFunSuite {
     performTests(comprehensionSetTest: _*)
   }
 
-  test("Set Empty Example") {
-    performTests(emptySetTest)
-  }
-
   test("Set Recursive Example") {
     performTests(recursiveSetTest)
   }
 
+  /*test("Set Empty Example") {
+    performTests(emptySetTest)
+  }
+
   test("Casestudy Example") {
     performTests(caseStudyTest: _*)
-  }
+  }*/
 }
