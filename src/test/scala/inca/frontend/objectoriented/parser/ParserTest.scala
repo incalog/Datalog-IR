@@ -6,9 +6,6 @@ import org.scalatest.funsuite.AnyFunSuite
 import cats.parse.{Parser => P}
 import org.scalatest.Assertion
 
-import java.awt.Toolkit
-import java.awt.datatransfer.{Clipboard, StringSelection}
-
 class ParserTest extends AnyFunSuite {
 
   val parser: Parser = new Parser {}
@@ -57,20 +54,6 @@ class ParserTest extends AnyFunSuite {
     (input: String) => {
        parser.parse(input) match {
          case Right((str, module)) =>
-           println(module)
-
-           import inca.frontend.objectoriented.analyze.AbstractSyntaxTree
-           val ast = new AbstractSyntaxTree(module)
-
-           import java.awt.Toolkit
-           import java.awt.datatransfer.{Clipboard, StringSelection}
-           val clipboard = Toolkit.getDefaultToolkit.getSystemClipboard
-           val selection = new StringSelection(ast.toGraphViz)
-           clipboard.setContents(selection, selection)
-
-           println()
-           println("Remaining: ")
-           println(str)
            assertResult(0)(str.length)
          case Left(e) =>
            val offset = e.failedAtOffset
