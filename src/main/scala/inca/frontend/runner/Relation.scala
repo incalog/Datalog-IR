@@ -58,6 +58,16 @@ trait Relation {
     }.mkString("{", ", ", "}")
     s"${getClass.getSimpleName}(name: $name, size: $size, entries: ${entriesS})"
   }
+
+  def diff(other: Relation): Option[Relation] = {
+    if (this.arity != other.arity)
+      throw new IllegalArgumentException("Can only diff relations with same arity.")
+    val change = this.matches.map(_.toSet).toSet.diff(other.matches.map(_.toSet).toSet)
+    if (change.isEmpty)
+      None
+    else
+      Some(Relation.from(this.name, this.parameterNames, change.map(_.toSeq)))
+  }
 }
 
 case class UnitRelation(name: RelationName) extends Relation {

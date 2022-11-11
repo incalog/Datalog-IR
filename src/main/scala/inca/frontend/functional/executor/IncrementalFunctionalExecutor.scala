@@ -247,7 +247,6 @@ object IncrementalFunctionalExecutor {
           val (ess, cargs, updatedArgs) = vals(args:_*).zip(last).map {
             case (newArg: Diffable, oldArg: Diffable) =>
               val (edits, updatedArg) = oldArg.compareTo(newArg)
-              println(updatedArg.toStringWithURI)
               (edits, updatedArg.uri, updatedArg)
             case (litnew, _) => (EditScript(Seq()), litnew, litnew)
           }.unzip3

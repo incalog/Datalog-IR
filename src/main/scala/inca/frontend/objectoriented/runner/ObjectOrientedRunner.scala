@@ -4,10 +4,11 @@ import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPre
 import inca.compiler.CompiledModule
 import inca.frontend.Constants.RelationName
 import inca.frontend.objectoriented.lowering.GenerateDatalog.castPatName
-import inca.frontend.runner.{Relation, Runner, UnitRelation}
+import inca.frontend.runner.{EDBChange, Relation, Runner, UnitRelation}
 import inca.runtime.data.ObjectID
 import inca.runtime.db.Database
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
+import truechange.EditScript
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
@@ -19,6 +20,8 @@ final class ObjectOrientedRunner(override val relName: RelationName,
                override val database: Database)
   extends Runner[ObjectOrientedInput]
 {
+  private var lastSeenInput: Option[ObjectOrientedInput] = None
+
   def run(terms: meta.Term*): Relation = {
     run(ObjectOrientedInput(terms:_*))
   }
@@ -27,8 +30,10 @@ final class ObjectOrientedRunner(override val relName: RelationName,
     val input = f(compiled, relName)
 
     // TODO: Calculate delta etc. that means lastExtInput = input.change.insertions.head ... and so on
+    val change = determineChanges(lastSeenInput, input)
+    lastSeenInput = Some(input)
+    update(change)
 
-    update(input.change)
     val rel = read(input.args)
     throwTypeCastExceptionIfRequired()
 
@@ -36,6 +41,36 @@ final class ObjectOrientedRunner(override val relName: RelationName,
     val numInputArgs = input.args.arity
     val numArgs = rel.parameterNames.size
     rel.slice(numInputArgs, numArgs)
+  }
+
+  def diffRelations(newRelations: Seq[Relation], lastRelations: Seq[Relation]): Seq[Relation] = {
+    val lastRels = lastRelations.map(r => r.name -> r).toMap
+    val newRels = newRelations.map(r => r.name -> r).toMap
+    newRels.flatMap { case (name, rel) =>
+      val lastRel = lastRels.get(name)
+      if (lastRel.isDefined) rel.diff(lastRel.get) else Some(rel)
+    }.toSeq
+  }
+
+  private def determineChanges(lastInputOption: Option[ObjectOrientedInput], newInput: ObjectOrientedInput): EDBChange = {
+    val lastInput = lastInputOption.getOrElse(return newInput.change)
+
+    val lastChange = lastInput.change
+    val newChange = newInput.change
+
+    var insertDiff = diffRelations(newChange.insertions, lastChange.insertions).toSet
+    var deleteDiff = diffRelations(newChange.deletions, lastChange.deletions).toSet
+
+    // Remove the old demand relation and add a new one if required or keep the old one
+    val lastDemandInputArg = lastChange.insertions.head
+    val newDemandInputArg = newChange.insertions.head
+    if (lastDemandInputArg != newDemandInputArg)
+      deleteDiff = deleteDiff + lastDemandInputArg
+    else
+      insertDiff = insertDiff - lastDemandInputArg
+
+    // TODO: Since we not allow URI objects for now, it should be enough to return an empty edit script
+    EDBChange(EditScript(Seq()), insertDiff.toSeq, deleteDiff.toSeq)
   }
 
   private def throwTypeCastExceptionIfRequired(): Unit = {

@@ -24,7 +24,13 @@ class ObjectOrientedTest extends AnyFunSuite {
 
   test("Add Example") {
     val resRel = addRunner.run(ObjectOrientedInput(q"1", q"2"))
+    val resRel2 = addRunner.run(ObjectOrientedInput(q"1", q"3"))
+
+    println(resRel)
+    println(resRel2)
+
     // val resRel = addRunner.run(q"1", q"2")
     assert(resRel.toSet.head == 3)
+    assert(resRel2.toSet.head == 4)
   }
 }

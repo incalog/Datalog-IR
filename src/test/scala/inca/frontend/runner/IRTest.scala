@@ -5,14 +5,11 @@ import inca.backend.ir.Datalog.Name
 import inca.backend.optimize.Optimization
 import inca.backend.transform.Transformation
 import inca.compiler.{CompiledModule, Options, SourceLocation}
-import inca.frontend.objectoriented.executor.{Executor, ObjectExecutor}
 import inca.runtime.context.DataModel
 import org.scalatest.funsuite.AnyFunSuite
 
 
 class IRTest extends AnyFunSuite {
-  val executor: Executor = ObjectExecutor
-
   lazy val dummyModule: CompiledModule = new CompiledModule {
     override val options: Options = new Options {
       override def optimizations: Seq[Optimization] = Seq()
