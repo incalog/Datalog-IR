@@ -1,11 +1,11 @@
 package inca.embedded2
 
-class Operations {
+object Operations {
   def solve[FL <: Language[Nothing], L <: Language[FL]](
       prog: L#Program,
       entry: L#EntryPoint,
       input: L#Input
-    )(implicit compiler: Compiler[L, PSystem[FL]],
+    )(implicit compiler: Compiler[FL, L, FL, PSystem[FL]],
       interpreter: Interpreter[FL]
     ): L#Value = {
     val psystem = compiler.compile(prog)
