@@ -34,17 +34,13 @@ object IRInput extends InputObject[IRInput] {
         if (v.size != parameterNames.size)
           throw new IllegalArgumentException(s"Expected ${parameterNames.size} values, but got ${v.size}.")
       }
-      // if we use the relation as an input argument for run, we do not need a name, since the runner knows the name
+
       IRInput(Relation.from(relName, parameterNames, values), EDBChange.empty)
     }
 
-  def args(args: Relation): InputClosure = (_, _) => {
-    IRInput(args, EDBChange.empty)
-  }
+  def args(args: Relation): InputClosure = (_, _) => IRInput(args, EDBChange.empty)
 
-  def empty(): InputClosure = (_, relName) => {
-    IRInput(UnitRelation(relName), EDBChange.empty)
-  }
+  def empty(): InputClosure = (_, relName) => IRInput(UnitRelation(relName), EDBChange.empty)
 }
 
 /*case class FunctionalInput(arguments: Seq[meta.Term]) extends Input {

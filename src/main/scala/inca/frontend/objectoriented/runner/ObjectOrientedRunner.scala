@@ -9,6 +9,7 @@ import inca.runtime.data.ObjectID
 import inca.runtime.db.Database
 import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import truechange.EditScript
+import truediff.Diffable
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
@@ -20,7 +21,9 @@ final class ObjectOrientedRunner(override val relName: RelationName,
                override val database: Database)
   extends Runner[ObjectOrientedInput]
 {
-  private var lastSeenInput: Option[ObjectOrientedInput] = None
+  type DiffableChange = (EDBChange, Seq[AnyRef])
+
+  private var lastSeenChange: Option[DiffableChange] = None
 
   def run(terms: meta.Term*): Relation = {
     run(ObjectOrientedInput(terms:_*))
@@ -29,9 +32,16 @@ final class ObjectOrientedRunner(override val relName: RelationName,
   def run(f: InputClosure): Relation = {
     val input = f(compiled, relName)
 
-    // TODO: Calculate delta etc. that means lastExtInput = input.change.insertions.head ... and so on
-    val change = determineChanges(lastSeenInput, input)
-    lastSeenInput = Some(input)
+    val (change, diffables) =
+      if (lastSeenChange.isDefined) {
+        determineChanges(lastSeenChange.get, (input.change, input.diffables))
+      } else {
+        // only load the inheritance idb if we have no previous input
+        val newEDB = EDBChange(input.change.es, input.change.insertions ++ input.inheritanceEDB, input.change.deletions)
+        (newEDB, input.diffables)
+      }
+
+    lastSeenChange = Some((change, diffables))
     update(change)
 
     val rel = read(input.args)
@@ -43,34 +53,26 @@ final class ObjectOrientedRunner(override val relName: RelationName,
     rel.slice(numInputArgs, numArgs)
   }
 
-  def diffRelations(newRelations: Seq[Relation], lastRelations: Seq[Relation]): Seq[Relation] = {
-    val lastRels = lastRelations.map(r => r.name -> r).toMap
-    val newRels = newRelations.map(r => r.name -> r).toMap
-    newRels.flatMap { case (name, rel) =>
-      val lastRel = lastRels.get(name)
-      if (lastRel.isDefined) rel.diff(lastRel.get) else Some(rel)
-    }.toSeq
-  }
+  private def determineChanges(lastChange: DiffableChange, newChange: DiffableChange): DiffableChange = {
+    val (lastEDBChange, lastDiffables) = lastChange
+    val (newEDBChange, newDiffables) = newChange
 
-  private def determineChanges(lastInputOption: Option[ObjectOrientedInput], newInput: ObjectOrientedInput): EDBChange = {
-    val lastInput = lastInputOption.getOrElse(return newInput.change)
+    val (ess, cargs, updatedArgs) = newDiffables.zip(lastDiffables).map {
+      case (newArg: Diffable, oldArg: Diffable) =>
+        val (edits, updatedArg) = oldArg.compareTo(newArg)
+        (edits, updatedArg.uri, updatedArg)
+      case (litnew, _) => (EditScript(Seq()), litnew, litnew)
+    }.unzip3
 
-    val lastChange = lastInput.change
-    val newChange = newInput.change
+    // Remove the old demand relation and add a new one
+    val lastDemandInputArg = lastEDBChange.insertions.head
+    val newDemandInputArg = newEDBChange.insertions.head
+    val demandInputArg = Relation.from(newDemandInputArg.name, newDemandInputArg.parameterNames, Seq(cargs))
 
-    var insertDiff = diffRelations(newChange.insertions, lastChange.insertions).toSet
-    var deleteDiff = diffRelations(newChange.deletions, lastChange.deletions).toSet
+    val deleteDiff = lastDemandInputArg +: newEDBChange.deletions
+    val insertDiff = demandInputArg +: newEDBChange.insertions.tail
 
-    // Remove the old demand relation and add a new one if required or keep the old one
-    val lastDemandInputArg = lastChange.insertions.head
-    val newDemandInputArg = newChange.insertions.head
-    if (lastDemandInputArg != newDemandInputArg)
-      deleteDiff = deleteDiff + lastDemandInputArg
-    else
-      insertDiff = insertDiff - lastDemandInputArg
-
-    // TODO: Since we not allow URI objects for now, it should be enough to return an empty edit script
-    EDBChange(EditScript(Seq()), insertDiff.toSeq, deleteDiff.toSeq)
+    (EDBChange(EditScript(ess.flatMap(_.edits)), insertDiff, deleteDiff), updatedArgs)
   }
 
   private def throwTypeCastExceptionIfRequired(): Unit = {

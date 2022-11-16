@@ -29,7 +29,6 @@ class ObjectOrientedTest extends AnyFunSuite {
     println(resRel)
     println(resRel2)
 
-    // val resRel = addRunner.run(q"1", q"2")
     assert(resRel.toSet.head == 3)
     assert(resRel2.toSet.head == 4)
   }

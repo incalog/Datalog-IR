@@ -14,7 +14,7 @@ import truediff.Diffable
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 final case class ObjectOrientedInput private (terms: Seq[meta.Term], compiled: CompiledModule, relName: RelationName) extends Input {
-  lazy val (change, args) = input(terms)
+  lazy val (change, args, diffables) = input(terms)
 
   private lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
   private lazy val loadedPsystemModule: String = scalaCompiler.define {
@@ -23,8 +23,8 @@ final case class ObjectOrientedInput private (terms: Seq[meta.Term], compiled: C
   }
   private lazy val specification: Specification = compiled.psystemModule.patterns(relName)()
 
-  private def input(args: Seq[meta.Term]): (EDBChange, Relation) = {
-    val (ess, cargs, _) = vals(args: _*).map {
+  private def input(args: Seq[meta.Term]): (EDBChange, Relation, Seq[AnyRef]) = {
+    val (ess, cargs, diffables) = vals(args: _*).map {
       case arg: Diffable => (arg.loadEdits, arg.uri, arg)
       case lit => (EditScript(Seq()), lit, lit)
     }.unzip3
@@ -34,11 +34,11 @@ final case class ObjectOrientedInput private (terms: Seq[meta.Term], compiled: C
 
     val es = EditScript(ess.flatMap(_.edits))
     val insert = Relation.from(demandPatternExtensionalPrefix + relName, inputParamNames, Seq(cargs))
-    val change = EDBChange(es, Seq(insert) ++ inheritanceEDB, Seq())
-    (change, rel)
+    val change = EDBChange(es, Seq(insert), Seq())
+    (change, rel, diffables)
   }
 
-  private def inheritanceEDB: Seq[Relation] = {
+  lazy val inheritanceEDB: Seq[Relation] = {
     val dataModel = compiled.dataModel
     val allTypes = dataModel.types
     val identitySubtypes = allTypes.map(typ => Seq(typ.name, typ.name))
@@ -66,4 +66,6 @@ final case class ObjectOrientedInput private (terms: Seq[meta.Term], compiled: C
 }
 object ObjectOrientedInput extends InputObject[ObjectOrientedInput] {
   def apply(terms: meta.Term*): InputClosure = (compiled, name) => ObjectOrientedInput(terms, compiled, name)
+
+  def empty(): InputClosure = (compiled, name) => ObjectOrientedInput(Seq(), compiled, name)
 }
