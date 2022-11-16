@@ -5,9 +5,7 @@ import inca.compiler.CompiledModule
 import inca.frontend.Constants.RelationName
 import inca.frontend.runner.{EDBChange, Input, InputObject, Relation}
 import inca.runtime.Query.Specification
-import inca.runtime.context.DataModel
 import inca.util.Scala.ScalaCompiler
-import org.eclipse.viatra.query.runtime.matchers.tuple.{Tuple, Tuples}
 import truechange.EditScript
 import truediff.Diffable
 

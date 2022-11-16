@@ -1,5 +1,6 @@
 package inca.frontend.objectoriented.integration
 
+import inca.backend.analyze.DependencyGraph
 import inca.compiler.Compiler
 import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.runner.{ObjectOrientedRunnerFactory, TypeCastException}
@@ -15,11 +16,16 @@ class DatalogTest extends AnyFunSuite {
     tests.map { test =>
       val code = readFile(test.filePath)
       val module = Compiler.compileObject(code, options)
+
+      /*val dependencyGraph = new DependencyGraph(module.optimized)
+      println()
+      println(dependencyGraph.toGraphViz)
+      println()*/
+
       val runnerFactory = new ObjectOrientedRunnerFactory(module)
       val runner = runnerFactory.runner(test.mainClass, test.mainMethod)
       val rel = runner.run(test.input:_*)
-      println("Expected: ", test.expectedRelation)
-      println("Actual: ", rel)
+      runner.printAllRelations()
       assert(rel == test.expectedRelation)
     }
   }
@@ -154,9 +160,9 @@ class DatalogTest extends AnyFunSuite {
 
   /*test("Set Empty Example") {
     performTests(emptySetTest)
-  }
+  }*/
 
   test("Casestudy Example") {
     performTests(caseStudyTest: _*)
-  }*/
+  }
 }

@@ -1,52 +1,31 @@
-module GraphTest
+module CaseStudy
 
-/*class Edge {
-    val start: Node
-    val end: Node
+class Edge {
+  var start: String = ""
+  var end: String = ""
 
-    def this(start: Node, end: Node) = {
-        this.start = start
-        this.end = end
-    }
-}
-
-class Node {
-    val label: String
-
-    def this(label: String) = {
-        this.label = label
-    }
+  def this(s: String, e: String) = {
+    this.start = s
+    this.end = e
+  }
 }
 
 class Graph {
-    var nodes: Set[Node]
-    var edges: Set[Edge]
-
-    def this(root: Node) = {
-        this.nodes = Set(root)
-        this.edges = Set[Edge]()
-    }
-
-    def add(from: Node, to: Node): Unit = {
-        this.nodes = this.nodes ++ Set(from, to)
-        //this.edges = this.edges ++ Set(new Edge(from, to))
-    }
+    val edges: Set[Edge] = Set(
+      new Edge("X", "Y"),
+      new Edge("Y", "Z")
+      // introduce a cycle
+      //new Edge("Z", "X") // macht alles kaputt... warum ?
+    )
 
     @main
-    def main(): Set[Any] = {
-        val root: Node = new Node("Root")
-        val g: Graph = new Graph(root)
-
-        val child: Node = new Node("Child 1")
-        g.add(root, child)
-
-        return g.edges
+    def main(): Set[Edge] = {
+      new Graph().path("X")
     }
-}*/
 
-class Graph {
-    @main
-    def main(): Set[String] = {
-        return Set[String]()
+    def path(x: String): Set[Edge] = {
+        (for (d <- this.edges if d.start == x) yield d)
+        ++
+        (for (i <- this.edges if i.start == x; y <- this.path(i.end)) yield y)
     }
 }

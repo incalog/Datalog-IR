@@ -43,6 +43,15 @@ protected[frontend] trait Runner[I <: Input] {
     }
   }
 
+  def printAllRelations(): Unit = {
+    val pattern = compiled.psystemModule.patterns.keys
+    pattern.foreach { relName =>
+      val rel = read(UnitRelation(relName))
+      println()
+      println(rel.asTable)
+    }
+  }
+
   def read(input: Relation): Relation = {
     val pattern = compiled.psystemModule.patterns.getOrElse(input.name, return UnitRelation(input.name))
     val specification: Specification = pattern()
@@ -59,7 +68,7 @@ protected[frontend] trait Runner[I <: Input] {
         val queryMatch = toQueryMatch(parameterNames, parameterNames.size, Seq(), specification)
         matcher.getAllMatches(queryMatch).asScala
       }
-    Relation.fromQueryMatches(relName, parameterNames, output)
+    Relation.fromQueryMatches(input.name, parameterNames, output)
   }
 
   private def toQueryMatch(parameterNames: Seq[String], arity: Int, values: Seq[AnyRef], spec: Specification): Query.Match = {
