@@ -1,8 +1,8 @@
 module CaseStudy
 
-class Edge {
-  var start: String = ""
-  var end: String = ""
+/*class Edge {
+  var start: String
+  var end: String
 
   def this(s: String, e: String) = {
     this.start = s
@@ -16,6 +16,7 @@ class Graph {
       new Edge("Y", "Z")
       // introduce a cycle
       //new Edge("Z", "X") // macht alles kaputt... warum ?
+      // IDEA: Do we need to use Aux$0.id instead of allocIn ?? If so why ?
     )
 
     @main
@@ -27,5 +28,32 @@ class Graph {
         (for (d <- this.edges if d.start == x) yield d)
         ++
         (for (i <- this.edges if i.start == x; y <- this.path(i.end)) yield y)
+    }
+}*/
+
+class A {
+
+}
+
+class B {
+
+}
+
+class Graph {
+    @main
+    def main(): Set[A] = {
+        val g: Graph = new Graph()
+        val a: Set[A] = Set(new A(), new A())
+        return g.doSomething(a, 2)
+    }
+
+    def doSomething(as: Set[A], i: Int): Set[A] = {
+        val dummy: B = new B()
+        if (i > 0) {
+            val s: Set[A] = for (a <- as) yield a
+            return this.doSomething(s, i-1)
+        } else {
+            return as
+        }
     }
 }

@@ -71,6 +71,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
   }
 
   private def genAuxDef(fieldParams: Map[Name, Type], innerSetType: Type, parent: ClassRef, expr: Expression): ClassDef = {
+    println("Generate: ", fieldParams, innerSetType, expr)
     // transform local variables to fields
     val subst = fieldParams.map {
       case (name@Name("this"), _) => name -> Name(gensym.fresh("obj"))
@@ -109,12 +110,12 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
   }
 
   override private[lowering] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
-    usedVars = (methodDef.params.map(p => p.name -> p.typ) :+ (Name("this") -> classDef.typ)).toMap
+    usedVars = Map(Name("this") -> classDef.typ)
     super.transMethodInternal(methodDef, classDef)
   }
 
   override private[lowering] def transConstructorInternal(constructorDef: ConstructorDef, classDef: ClassDef): ConstructorDef = {
-    usedVars = (constructorDef.params.map(p => p.name -> p.typ) :+ (Name("this") -> classDef.typ)).toMap
+    usedVars = Map(Name("this") -> classDef.typ)
     super.transConstructorInternal(constructorDef, classDef)
   }
 
@@ -130,9 +131,12 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
   override private[lowering] def transParamInternal(param: Param): Param = param match {
     // Transform: set params to object set params
     case Param(name, TSet(ty)) =>
+      val newTyp = genDefunClassDef(ty).typ
+      usedVars += (name -> newTyp)
+      Param(name, newTyp)
+    case Param(name, ty) =>
       usedVars += (name -> ty)
-      Param(name, genDefunClassDef(ty).typ)
-    case p => p
+      Param(name, ty)
   }
 
   override private[lowering] def transStatementInternal(stmt: Statement): Seq[Statement] = stmt match {
