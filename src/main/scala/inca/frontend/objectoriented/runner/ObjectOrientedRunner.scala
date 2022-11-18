@@ -36,7 +36,7 @@ final class ObjectOrientedRunner(override val relName: RelationName,
       if (lastSeenChange.isDefined) {
         determineChanges(lastSeenChange.get, (input.change, input.diffables))
       } else {
-        // only load the inheritance idb if we have no previous input
+        // only load the inheritance edb if we have no previous input
         val newEDB = EDBChange(input.change.es, input.change.insertions ++ input.inheritanceEDB, input.change.deletions)
         (newEDB, input.diffables)
       }

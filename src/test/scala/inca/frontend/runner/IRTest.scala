@@ -44,7 +44,7 @@ class IRTest extends AnyFunSuite {
   }
 
   lazy val dummyRunner: IRRunner = {
-    val irFactory = new IRRunnerFactory(dummyModule)
+    val irFactory = new IRDatalog(dummyModule)
     irFactory.runner("dummy")
   }
 
@@ -81,7 +81,7 @@ class IRTest extends AnyFunSuite {
   }
 
   lazy val pathRunner: IRRunner = {
-    val irFactory = new IRRunnerFactory(pathModule)
+    val irFactory = new IRDatalog(pathModule)
     val runner = irFactory.runner("path")
     runner.update(
       EDBChange.insertions(

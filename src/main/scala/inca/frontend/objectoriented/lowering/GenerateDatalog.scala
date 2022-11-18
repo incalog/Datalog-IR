@@ -300,6 +300,7 @@ class GenerateDatalog(module: Module) {
       else
         flattenParam("return", methodDef.outType, genFresh = true)
 
+    // FIXME: Is the body empty
     val bodyRes = transStatements(methodDef.body, None)
     val bodies = for ((optReturn, cons, _) <- bodyRes) yield {
       val returnCons = returnParams.zip(optReturn.getOrElse(Seq())).map { case (p, t) =>

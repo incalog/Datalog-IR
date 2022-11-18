@@ -19,8 +19,7 @@ protected[frontend] trait Runner[I <: Input] {
   def compiled: CompiledModule
   def engine: AdvancedViatraQueryEngine
   def database: Database
-
-
+  
   def update(change: EDBChange): Unit = {
     database.processEditScript(change.es)
 
@@ -43,13 +42,9 @@ protected[frontend] trait Runner[I <: Input] {
     }
   }
 
-  def printAllRelations(): Unit = {
+  def readAll: Seq[Relation] = {
     val pattern = compiled.psystemModule.patterns.keys
-    pattern.foreach { relName =>
-      val rel = read(UnitRelation(relName))
-      println()
-      println(rel.asTable)
-    }
+    pattern.map(n => read(UnitRelation(n))).toSeq
   }
 
   def read(input: Relation): Relation = {

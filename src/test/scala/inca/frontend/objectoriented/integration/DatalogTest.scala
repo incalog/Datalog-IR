@@ -3,7 +3,7 @@ package inca.frontend.objectoriented.integration
 import inca.backend.analyze.DependencyGraph
 import inca.compiler.Compiler
 import inca.frontend.objectoriented.compiler.ObjectOptions
-import inca.frontend.objectoriented.runner.{ObjectOrientedRunnerFactory, TypeCastException}
+import inca.frontend.objectoriented.runner.{ObjectOrientedDatalog, TypeCastException}
 import inca.frontend.objectoriented.integration.TestDefinition._
 import inca.util.FileUtil.readFile
 import org.scalatest.{Assertion, Ignore}
@@ -22,10 +22,13 @@ class DatalogTest extends AnyFunSuite {
       println(dependencyGraph.toGraphViz)
       println()*/
 
-      val runnerFactory = new ObjectOrientedRunnerFactory(module)
+      val runnerFactory = new ObjectOrientedDatalog(module)
       val runner = runnerFactory.runner(test.mainClass, test.mainMethod)
       val rel = runner.run(test.input:_*)
-      runner.printAllRelations()
+      runner.readAll.foreach { rel =>
+        println()
+        println(rel.asTable)
+      }
       assert(rel == test.expectedRelation)
     }
   }

@@ -4,8 +4,6 @@ import inca.compiler.CompiledModule
 import inca.frontend.Constants.RelationName
 import truechange.EditScript
 
-import scala.meta.Self
-
 case class EDBChange(es: EditScript, insertions: Seq[Relation], deletions: Seq[Relation])
 object EDBChange {
   def empty: EDBChange = EDBChange(EditScript(Seq()), Seq(), Seq())

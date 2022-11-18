@@ -5,21 +5,6 @@ import inca.runtime.context.DataModel
 import inca.util.Gensym
 import truechange.SortType
 
-/**
- * Replace all variable reads to field reads. The field name is the same as the variable name.
- * @param module The parent module.
- * @param sub Substitution map between variable to field names.
- */
-class VarToField(val module: Module, val sub: Map[Name, Name]) extends ModuleLowering {
-  override def transExpressionInternal(expression: Expression): Seq[Expression] = expression match {
-    //case VarReadExpr(targetName) if !vars.contains(targetName) =>
-    //  throw new IllegalArgumentException(s"Found unresolved var $targetName!")
-    case VarReadExpr(targetName) if sub.contains(targetName) =>
-      Seq(FieldReadExpr(VarReadExpr(Name("this")), sub(targetName)))
-    case _ => super.transExpressionInternal(expression)
-  }
-}
-
 object Defunctionalize {
   def transformModule(module: Module, model: DataModel): Module = {
     new Defunctionalize(module, model).transModule()
@@ -30,6 +15,11 @@ object Defunctionalize {
 }
 
 // TODO: Support tuples
+//  E.g which is not correctly defunctionalized:
+//  class A {}
+//  class B extends A {}
+//  val a: Set[(A, B)] = Set(new B(), new B())
+
 class Defunctionalize(val module: Module, val dataModel: DataModel) extends ModuleLowering {
   private val gensym: Gensym = new Gensym(Iterable.empty)
 
@@ -70,25 +60,23 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     clazz
   }
 
-  private def genAuxDef(fieldParams: Map[Name, Type], innerSetType: Type, parent: ClassRef, expr: Expression): ClassDef = {
-    println("Generate: ", fieldParams, innerSetType, expr)
-    // transform local variables to fields
-    val subst = fieldParams.map {
+  private def genAuxDef(constrVars: Map[Name, Type], innerSetType: Type, parent: ClassRef, expr: Expression): ClassDef = {
+    // rename all "this" to obj$i, since this is reserved
+    val subst = constrVars.map {
       case (name@Name("this"), _) => name -> Name(gensym.fresh("obj"))
       case (name, _) => name -> name
     }
-    val fields = fieldParams.map {
-      case (name, typ) => FieldDef(Seq(), None, subst(name), clearType(typ), None, immutable = false)
-    }.toSeq
+    val contentType = TSet(clearType(innerSetType))
+    val fields = Seq(FieldDef(Seq(), None, Name("content"), contentType, None, immutable = true))
 
-    // all reads to local variables should now access the correct field instead
-    val ret = ReturnStmt(new VarToField(module, subst).transExpression(expr).head)
-    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), TSet(clearType(innerSetType)), Seq(ret))
+    // return the precomputed set
+    val ret = ReturnStmt(FieldReadExpr(VarReadExpr(Name("this")), Name("content")))
+    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), contentType, Seq(ret))
     // create a default constructor
-    val constrParams = fields.map(f => Param(f.name, f.typ))
+    val constrParams = constrVars.map { case (subst(name), typ) => Param(name, clearType(typ)) }.toSeq
     val constrBody = fields.map { f =>
       FieldAssignStmt(
-        VarReadExpr(Name("this")), f.name, VarReadExpr(f.name)
+        VarReadExpr(Name("this")), f.name, clearExpression(expr)
       )
     }
     val constr = ConstructorDef(Seq(), None, constrParams, constrBody)

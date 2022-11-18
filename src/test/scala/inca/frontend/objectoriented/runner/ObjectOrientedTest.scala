@@ -19,7 +19,7 @@ class ObjectOrientedTest extends AnyFunSuite {
     """, ObjectOptions())
 
   lazy val addRunner: ObjectOrientedRunner = {
-    new ObjectOrientedRunnerFactory(addModule).runner("A", "add")
+    new ObjectOrientedDatalog(addModule).runner("A", "add")
   }
 
   test("Add Example") {
@@ -27,7 +27,19 @@ class ObjectOrientedTest extends AnyFunSuite {
     val resRel2 = addRunner.run(ObjectOrientedInput(q"1", q"3"))
 
     println(resRel)
+    addRunner.readAll.foreach { rel =>
+      println()
+      println(rel.asTable)
+    }
+
+    println()
+    println()
+    println()
     println(resRel2)
+    addRunner.readAll.foreach { rel =>
+      println()
+      println(rel.asTable)
+    }
 
     assert(resRel.toSet.head == 3)
     assert(resRel2.toSet.head == 4)
