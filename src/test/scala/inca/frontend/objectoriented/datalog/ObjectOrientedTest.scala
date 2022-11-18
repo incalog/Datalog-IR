@@ -1,4 +1,4 @@
-package inca.frontend.objectoriented.runner
+package inca.frontend.objectoriented.datalog
 
 import inca.compiler.{CompiledModule, Compiler}
 import inca.frontend.objectoriented.compiler.{CompiledObjectModule, ObjectOptions}
@@ -18,25 +18,22 @@ class ObjectOrientedTest extends AnyFunSuite {
     }
     """, ObjectOptions())
 
-  lazy val addRunner: ObjectOrientedRunner = {
-    new ObjectOrientedDatalog(addModule).runner("A", "add")
-  }
-
   test("Add Example") {
-    val resRel = addRunner.run(ObjectOrientedInput(q"1", q"2"))
-    val resRel2 = addRunner.run(ObjectOrientedInput(q"1", q"3"))
+    val datalog = new ObjectOrientedDatalog(addModule)
+    val resRel = datalog.run("A", "add", q"1", q"2")
 
     println(resRel)
-    addRunner.readAll.foreach { rel =>
+    datalog.readAll.foreach { rel =>
       println()
       println(rel.asTable)
     }
 
     println()
     println()
-    println()
+
+    val resRel2 = datalog.run("A", "add", q"1", q"3")
     println(resRel2)
-    addRunner.readAll.foreach { rel =>
+    datalog.readAll.foreach { rel =>
       println()
       println(rel.asTable)
     }

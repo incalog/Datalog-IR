@@ -1,6 +1,6 @@
 package inca.frontend.objectoriented.integration
 
-import inca.frontend.runner.Relation
+import inca.frontend.datalog.Relation
 
 import scala.meta.XtensionQuasiquoteTerm
 

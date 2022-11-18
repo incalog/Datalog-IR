@@ -1,40 +1,29 @@
-package inca.frontend.objectoriented.runner
+package inca.frontend.objectoriented.datalog
 
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternPrefix
-import inca.compiler.CompiledModule
-import inca.frontend.Constants.RelationName
+import inca.frontend.objectoriented.compiler.CompiledObjectModule
+import inca.frontend.datalog.{Datalog, EDBChange, Relation, UnitRelation}
 import inca.frontend.objectoriented.lowering.GenerateDatalog.castPatName
-import inca.frontend.runner.{EDBChange, Relation, Runner, UnitRelation}
 import inca.runtime.data.ObjectID
-import inca.runtime.db.Database
-import org.eclipse.viatra.query.runtime.api.AdvancedViatraQueryEngine
 import truechange.EditScript
 import truediff.Diffable
 
-import scala.jdk.CollectionConverters.CollectionHasAsScala
-
 final case class TypeCastException(obj: ObjectID, typ: String) extends RuntimeException(s"Could not cast $obj to type $typ!")
 
-final class ObjectOrientedRunner(override val relName: RelationName,
-               override val compiled: CompiledModule,
-               override val engine: AdvancedViatraQueryEngine,
-               override val database: Database)
-  extends Runner[ObjectOrientedInput]
-{
+final class ObjectOrientedDatalog(compiled: CompiledObjectModule) extends Datalog(compiled) {
   type DiffableChange = (EDBChange, Seq[AnyRef])
 
   private var lastSeenChange: Option[DiffableChange] = None
 
-  def run(terms: meta.Term*): Relation = {
-    run(ObjectOrientedInput(terms:_*))
+  def run(clazz: String, mainMethod: String, terms: meta.Term*): Relation = {
+    run(ObjectOrientedInput(terms, compiled, clazz + "$" + mainMethod))
   }
 
-  def run(f: InputClosure): Relation = {
-    val input = f(compiled, relName)
-
+  private def run(input: ObjectOrientedInput): Relation = {
     val (change, diffables) =
       if (lastSeenChange.isDefined) {
-        determineChanges(lastSeenChange.get, (input.change, input.diffables))
+        val newChange = (input.change, input.diffables)
+        determineChanges(lastSeenChange.get, newChange)
       } else {
         // only load the inheritance edb if we have no previous input
         val newEDB = EDBChange(input.change.es, input.change.insertions ++ input.inheritanceEDB, input.change.deletions)

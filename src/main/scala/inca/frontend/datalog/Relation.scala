@@ -1,4 +1,4 @@
-package inca.frontend.runner
+package inca.frontend.datalog
 
 import inca.frontend.Constants.RelationName
 import inca.frontend.util.Tabulator

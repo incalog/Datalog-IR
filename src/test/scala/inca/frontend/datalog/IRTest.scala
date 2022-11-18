@@ -1,5 +1,6 @@
-package inca.frontend.runner
+package inca.frontend.datalog
 
+import inca.frontend.datalog.{ Datalog => DatalogAPI }
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.Name
 import inca.backend.optimize.Optimization
@@ -43,11 +44,6 @@ class IRTest extends AnyFunSuite {
     }
   }
 
-  lazy val dummyRunner: IRRunner = {
-    val irFactory = new IRDatalog(dummyModule)
-    irFactory.runner("dummy")
-  }
-
   lazy val pathModule: CompiledModule = new CompiledModule {
     override val options: Options = new Options {
       override def optimizations: Seq[Optimization] = Seq()
@@ -80,38 +76,38 @@ class IRTest extends AnyFunSuite {
     }
   }
 
-  lazy val pathRunner: IRRunner = {
-    val irFactory = new IRDatalog(pathModule)
-    val runner = irFactory.runner("path")
-    runner.update(
-      EDBChange.insertions(
-        Seq(
-          Relation2("node", Seq("start", "end"), Seq(
-            Seq("X", "Y"), Seq("Y", "Z"), Seq("Z", "W"), Seq("W", "Y")
-          ))
-        )
-      )
-    )
-    runner
-  }
-
   test("Dummy Example 1") {
-    val resRel = dummyRunner.run()
+    val dummyDatalog: DatalogAPI = new DatalogAPI(dummyModule)
+    val resRel = dummyDatalog.read(UnitRelation("dummy"))
     assert(resRel.toSet == Set((true, false), (false, true)))
   }
 
   test("Dummy Example 2") {
-    val resRel = dummyRunner.run(IRInput(Seq("ret$0"), Seq(true)))
+    val dummyDatalog: DatalogAPI = new DatalogAPI(dummyModule)
+    val resRel = dummyDatalog.read(Relation1("dummy", Seq("ret$0"), Seq(Seq(true))))
     assert(resRel.toSet == Set((true, false)))
   }
 
+
+  val pathEDB: EDBChange = EDBChange.insertions(
+    Seq(
+      Relation2("node", Seq("start", "end"), Seq(
+        Seq("X", "Y"), Seq("Y", "Z"), Seq("Z", "W"), Seq("W", "Y")
+      ))
+    )
+  )
+
   test("Path Example 1") {
-    val resRel = pathRunner.run(IRInput(Seq("end"), Seq("W")))
+    val pathDatalog: DatalogAPI = new DatalogAPI(pathModule)
+    pathDatalog.update(pathEDB)
+    val resRel = pathDatalog.read(Relation1("path", Seq("end"), Seq(Seq("W"))))
     assert(resRel.toSet == Set(("X", "W"), ("Y", "W"), ("Z", "W"), ("W", "W")))
   }
 
   test("Path Example 2") {
-    val resRel = pathRunner.run(IRInput(Seq("start", "end"), Seq("X", "W")))
+    val pathDatalog: DatalogAPI = new DatalogAPI(pathModule)
+    pathDatalog.update(pathEDB)
+    val resRel = pathDatalog.read(Relation2("path", Seq("start", "end"), Seq(Seq("X", "W"))))
     assert(resRel.toSet == Set(("X", "W")))
   }
 }

@@ -466,7 +466,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     term.target match {
       case Some(oldTarget) =>
         if (oldTarget != newTarget) {
-          throw new RuntimeException("Stop here !!!" + term +" " + oldTarget + " " + newTarget)
           error(s"Resolved $term to new target $newTarget, which differs from previously computed target $oldTarget", term)
         }
         oldTarget

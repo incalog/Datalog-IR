@@ -1,9 +1,9 @@
-package inca.frontend.objectoriented.runner
+package inca.frontend.objectoriented.datalog
 
 import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExtensionalPrefix
 import inca.compiler.CompiledModule
 import inca.frontend.Constants.RelationName
-import inca.frontend.runner.{EDBChange, Input, InputObject, Relation}
+import inca.frontend.datalog.{EDBChange, Relation}
 import inca.runtime.Query.Specification
 import inca.util.Scala.ScalaCompiler
 import truechange.EditScript
@@ -11,7 +11,7 @@ import truediff.Diffable
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
-final case class ObjectOrientedInput private (terms: Seq[meta.Term], compiled: CompiledModule, relName: RelationName) extends Input {
+protected[datalog] final case class ObjectOrientedInput(terms: Seq[meta.Term], compiled: CompiledModule, relName: RelationName) {
   lazy val (change, args, diffables) = input(terms)
 
   private lazy val scalaCompiler: ScalaCompiler = new ScalaCompiler
@@ -61,9 +61,4 @@ final case class ObjectOrientedInput private (terms: Seq[meta.Term], compiled: C
       scalaCompiler.compileAndLoadScala[AnyRef](syntax)
     })
   }
-}
-object ObjectOrientedInput extends InputObject[ObjectOrientedInput] {
-  def apply(terms: meta.Term*): InputClosure = (compiled, name) => ObjectOrientedInput(terms, compiled, name)
-
-  def empty(): InputClosure = (compiled, name) => ObjectOrientedInput(Seq(), compiled, name)
 }
