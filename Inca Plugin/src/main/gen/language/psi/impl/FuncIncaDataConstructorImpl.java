@@ -10,7 +10,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
 import language.psi.*;
 
-public class FuncIncaDataConstructorImpl extends FuncIncaNamedElementImpl implements FuncIncaDataConstructor {
+public class FuncIncaDataConstructorImpl extends FuncIncaDeclImpl implements FuncIncaDataConstructor {
 
   public FuncIncaDataConstructorImpl(@NotNull ASTNode node) {
     super(node);

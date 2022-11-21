@@ -10,7 +10,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
 import language.psi.*;
 
-public class FuncIncaConsPatternIdImpl extends FuncIncaNamedElementImpl implements FuncIncaConsPatternId {
+public class FuncIncaConsPatternIdImpl extends FuncIncaDeclImpl implements FuncIncaConsPatternId {
 
   public FuncIncaConsPatternIdImpl(@NotNull ASTNode node) {
     super(node);

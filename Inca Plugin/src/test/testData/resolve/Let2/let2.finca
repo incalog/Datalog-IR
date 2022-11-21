@@ -1,0 +1,5 @@
+module let2
+
+@main def simpleAddition(): Int =
+    let x = <ref>y + 2 in
+        let <resolved>y = 3 in x + y

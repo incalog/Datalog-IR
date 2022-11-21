@@ -10,7 +10,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
 import language.psi.*;
 
-public class FuncIncaVarIdImpl extends FuncIncaNamedElementImpl implements FuncIncaVarId {
+public class FuncIncaVarIdImpl extends FuncIncaDeclImpl implements FuncIncaVarId {
 
   public FuncIncaVarIdImpl(@NotNull ASTNode node) {
     super(node);

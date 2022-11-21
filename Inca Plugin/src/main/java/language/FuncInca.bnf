@@ -87,22 +87,19 @@
     ]
 
   methods("param|import|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")=[getName setName getNameIdentifier]
-  implements("param|import|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")="language.psi.FuncIncaNamedElement"
-  mixin("param|import|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")="language.psi.impl.FuncIncaNamedElementImpl"
-
-  methods("var|type_name|cons_id")=[getReference]
-  /*
+  implements("param|import|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")="language.psi.FuncIncaDecl"
+  mixin("param|import|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")="language.psi.impl.FuncIncaDeclImpl"
+/*
   data_constructor : name of constructors
   data_def : name of new data type
   cons_pattern_id : name of variables introduced during pattern matching with constructors
   cons_id : name of constructor in constructor pattern
   var_id : name of new variable introduced with let construct
    */
-
-  /*
-  implements("param|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")="language.psi.FuncIncaDecl"
-  mixin("param|fun_def|param_type|data_def|data_constructor|cons_pattern_id|var_id")="language.psi.impl.FuncIncaDeclImpl"
-  */
+  implements("var")="language.psi.FuncIncaNamedVariable"
+  mixin("var")="language.psi.impl.FuncIncaNamedVariableImpl"
+  methods("var")=[getName setName getNameIdentifier]
+  methods("var|type_name|cons_id")=[getReference]
 
   extends(".*exp") = exp
 }

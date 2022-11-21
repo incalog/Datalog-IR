@@ -78,16 +78,5 @@ public class FuncIncaCodeInsightTest extends LightJavaCodeInsightFixtureTestCase
             }
         });
     }
-
-    /*
-    public void testReferenceLet() {
-        String[] f = new String[]{"ref_let.finca"};
-        myFixture.configureByFiles(f);
-        PsiReference referenceAtCaret = myFixture.getReferenceAtCaretPositionWithAssertion(f);
-        PsiElement target = referenceAtCaret.resolve();
-        assertNotNull(target);
-        final FuncIncaLetExp resolvedLet = assertInstanceOf(referenceAtCaret.resolve(), FuncIncaLetExp.class);
-        assertEquals("x", resolvedLet.getText());
-    }
-    */
+    
 }

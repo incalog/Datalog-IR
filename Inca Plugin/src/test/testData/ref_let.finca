@@ -1,3 +1,0 @@
-module letBinding
-
-@main def foo(x: Int): Int = x<caret>

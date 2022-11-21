@@ -5,7 +5,7 @@ import java.util.List;
 import org.jetbrains.annotations.*;
 import com.intellij.psi.PsiElement;
 
-public interface FuncIncaParam extends FuncIncaNamedElement {
+public interface FuncIncaParam extends FuncIncaDecl {
 
   @NotNull
   FuncIncaTypeAnnotation getTypeAnnotation();

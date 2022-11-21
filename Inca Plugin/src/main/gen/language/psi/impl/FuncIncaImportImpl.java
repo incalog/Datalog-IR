@@ -10,7 +10,7 @@ import com.intellij.psi.util.PsiTreeUtil;
 import static language.psi.FuncIncaTypes.*;
 import language.psi.*;
 
-public class FuncIncaImportImpl extends FuncIncaNamedElementImpl implements FuncIncaImport {
+public class FuncIncaImportImpl extends FuncIncaDeclImpl implements FuncIncaImport {
 
   public FuncIncaImportImpl(@NotNull ASTNode node) {
     super(node);

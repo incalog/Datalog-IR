@@ -1,0 +1,23 @@
+module setcompr
+
+def mySet(): Set[(Int, Int)] = {(1,2), (2,3), (1,3)}
+
+@main def shadowing(): Set[Int] =
+    let x = 5 in
+        { x | (x,y) in X()} // dieses x shadows x = 5
+
+def shadowing2()= Set[Int] =
+    let y = 1 in
+        { x | (x,y) in X(), y = 2} // dieses y shadows y = 1
+
+def decl1()= Set[Int] =
+        { x | (x,y) in X(), x % 2 == 0} // dieses x resolved zu (x,_) oder x%_ ?
+
+def decl2(): Set[Int] =
+        { x |  x % 2 == 0, (x,y) in X() }
+
+def decl3(): Set[Int] =
+        {x | y == x+1, (x,y) in X()} // was davon ist deklaration?
+
+def decl4(): Set[Int] =
+    { x | (x,y) in X(), y == 3}
