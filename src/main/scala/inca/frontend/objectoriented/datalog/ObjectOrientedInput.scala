@@ -36,6 +36,13 @@ protected[datalog] final case class ObjectOrientedInput(terms: Seq[meta.Term], c
     (change, rel, diffables)
   }
 
+  private def vals(ts: meta.Term*): Seq[AnyRef] = {
+    ts.map(a => {
+      val syntax = s"{import ${loadedPsystemModule}.${compiled.name}._; ${a.syntax}}"
+      scalaCompiler.compileAndLoadScala[AnyRef](syntax)
+    })
+  }
+
   lazy val inheritanceEDB: Seq[Relation] = {
     val dataModel = compiled.dataModel
     val allTypes = dataModel.types
@@ -53,12 +60,5 @@ protected[datalog] final case class ObjectOrientedInput(terms: Seq[meta.Term], c
     val subTypeRel = Relation.from("subtype", Seq("child", "parent"), identitySubtypes ++ realSubtypes)
     val notSubTypeRel = Relation.from("not#subtype", Seq("child", "parent"), notSubtypes)
     Seq(subTypeRel, notSubTypeRel)
-  }
-
-  private def vals(ts: meta.Term*): Seq[AnyRef] = {
-    ts.map(a => {
-      val syntax = s"{import ${loadedPsystemModule}.${compiled.name}._; ${a.syntax}}"
-      scalaCompiler.compileAndLoadScala[AnyRef](syntax)
-    })
   }
 }

@@ -1,0 +1,60 @@
+module CaseStudy
+
+class Node {
+  var value: Int
+  var childs: Set[Node]
+
+  def this(v: Int, cs: Set[Node]) = {
+      this.value = v
+      this.childs = cs
+  }
+}
+
+class Leaf extends Node {
+  def this(v: Int) = {
+    this.value = v
+  }
+}
+
+class Tree {
+    var root: Node
+
+    def this(root: Node) = {
+        this.root = root
+    }
+
+    @main
+    def main(): Set[Int] = {
+      val nodes: Set[Node] = Set(
+        new Node(1, Set(
+            new Leaf(2),
+            new Node(3, Set(
+                new Node(4, Set(
+                    new Leaf(5),
+                    new Leaf(6)
+                ))
+             ))
+        )),
+        new Node(7, Set(new Leaf(8), new Node(9, Set(new Node(10, Set(new Leaf(11), new Leaf(12))))))),
+        new Node(13, Set(new Leaf(14), new Node(15, Set(new Node(16, Set(new Leaf(17), new Leaf(18)))))))
+      )
+      val root: Node = new Node(0, nodes)
+      val tree: Tree = new Tree(root)
+      return for (n <- tree.getLeafs()) yield n.value
+    }
+
+    def getLeafs(): Set[Node] = {
+        return this.findLeafs(this.root)
+    }
+
+    def findLeafs(node: Node): Set[Node] = {
+        if (instanceOf(node, Leaf)) {
+            return Set(node)
+        } else {
+            return
+            (for (n1 <- node.childs if instanceOf(n1, Leaf)) yield n1)
+            ++
+            (for (n2 <- node.childs; c <- this.findLeafs(n2) if instanceOf(c, Leaf)) yield c)
+        }
+    }
+}

@@ -105,8 +105,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
     constructorDef.params.foreach { p =>
       p.typ match {
-        case ty@TSet(_) =>
-          error(s"Type $ty not allowed for parameter ${p.name}")
         case ty =>
           typecheck(p.typ)
           bindVar(p.name, p, ty, immutable = true)

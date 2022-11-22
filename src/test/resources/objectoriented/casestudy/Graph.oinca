@@ -11,6 +11,8 @@ class Edge {
 }
 
 class Graph {
+    var counter: Int = 0
+
     val edges: Set[Edge] = Set(
       new Edge("X", "Y"),
       new Edge("Y", "Z"),
@@ -24,6 +26,7 @@ class Graph {
     }
 
     def path(x: String): Set[Edge] = {
+        this.counter = 1
         (for (d <- this.edges if d.start == x) yield d)
         ++
         (for (i <- this.edges if i.start == x; y <- this.path(i.end)) yield y)

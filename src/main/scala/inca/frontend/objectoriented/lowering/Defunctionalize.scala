@@ -124,7 +124,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       Param(name, newTyp)
     case Param(name, ty) =>
       usedVars += (name -> ty)
-      Param(name, ty)
+      Param(name, clearType(ty))
   }
 
   override private[lowering] def transStatementInternal(stmt: Statement): Seq[Statement] = stmt match {

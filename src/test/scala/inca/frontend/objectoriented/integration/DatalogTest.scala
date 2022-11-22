@@ -5,7 +5,7 @@ import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.datalog.{ObjectOrientedDatalog, TypeCastException}
 import inca.frontend.objectoriented.integration.TestDefinition._
 import inca.util.FileUtil.readFile
-import org.scalatest.{Assertion, Ignore}
+import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
 class DatalogTest extends AnyFunSuite {
@@ -156,9 +156,13 @@ class DatalogTest extends AnyFunSuite {
 
   /*test("Set Empty Example") {
     performTests(emptySetTest)
-  }
+  }*/
 
   test("Casestudy Example") {
     performTests(caseStudyTest: _*)
-  }*/
+  }
+
+  test("Casestudy Tree Example") {
+    performTests(caseStudyTreeTest: _*)
+  }
 }
