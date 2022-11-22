@@ -158,9 +158,9 @@ class DatalogTest extends AnyFunSuite {
     performTests(emptySetTest)
   }*/
 
-  test("Casestudy Example") {
+  /*test("Casestudy Example") {
     performTests(caseStudyTest: _*)
-  }
+  }*/
 
   test("Casestudy Tree Example") {
     performTests(caseStudyTreeTest: _*)

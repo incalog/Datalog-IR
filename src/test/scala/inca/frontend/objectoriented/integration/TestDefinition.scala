@@ -282,7 +282,7 @@ object TestDefinition {
   def caseStudyTreeTest: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("casestudy")
     Seq(
-      TestDefinition("Tree", "Tree", "main", Seq(), SetResult()),
+      TestDefinition("Tree", "Tree", "main", Seq(), SetResult(1.to(20):_*)),
     )
   }
 }

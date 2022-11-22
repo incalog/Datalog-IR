@@ -26,17 +26,52 @@ class Tree {
     @main
     def main(): Set[Int] = {
       val nodes: Set[Node] = Set(
-        new Node(1, Set(
-            new Leaf(2),
-            new Node(3, Set(
-                new Node(4, Set(
-                    new Leaf(5),
-                    new Leaf(6)
+        new Node(-1, Set(
+            new Leaf(1),
+            new Node(-2, Set(
+                new Node(-3, Set(
+                    new Leaf(2),
+                    new Leaf(3),
+                    new Node(-4, Set (
+                        new Leaf(4),
+                        new Leaf(5),
+                        new Leaf(6)
+                    ))
                 ))
-             ))
+            ))
         )),
-        new Node(7, Set(new Leaf(8), new Node(9, Set(new Node(10, Set(new Leaf(11), new Leaf(12))))))),
-        new Node(13, Set(new Leaf(14), new Node(15, Set(new Node(16, Set(new Leaf(17), new Leaf(18)))))))
+        new Node(-5, Set(
+            new Leaf(7),
+            new Node(-6, Set(
+                new Node(-7, Set(
+                    new Leaf(8),
+                    new Leaf(9),
+                    new Node(-8, Set (
+                        new Leaf(10),
+                        new Leaf(11),
+                        new Leaf(12)
+                    ))
+                ))
+            ))
+        )),
+        new Node(-9, Set(
+            new Leaf(13),
+            new Node(-10, Set(
+                new Node(-11, Set(
+                    new Leaf(14),
+                    new Leaf(15),
+                    new Node(-12, Set (
+                        new Leaf(16),
+                        new Leaf(17),
+                        new Node(-13, Set (
+                            new Leaf(18),
+                            new Leaf(19),
+                            new Leaf(20)
+                        ))
+                    ))
+                ))
+            ))
+        ))
       )
       val root: Node = new Node(0, nodes)
       val tree: Tree = new Tree(root)
