@@ -506,8 +506,8 @@ class GenerateDatalog(module: Module) {
     case SetExpr(exps, tty) =>
       if (exps.isEmpty) {
         // TODO: How do we encode empty sets?
-        //throw new RuntimeException("Empty sets are currently not supported!")
-        val arity = expression.typ match {
+        throw new RuntimeException("Empty sets are currently not supported!")
+        /*val arity = expression.typ match {
           case Some(TSet(TTuple(ts))) => ts.size
           case Some(TSet(_)) => 1
           case None => throw new IllegalArgumentException(s"Untyped expression: $expression")
@@ -515,7 +515,7 @@ class GenerateDatalog(module: Module) {
         val extName = "ext_empty_set_arity" + arity
         val retVar = Datalog.Var(gensym.fresh("empty"))
         val extEmptySet = Datalog.ExtensionalCall(extName, Seq(retVar))
-        Seq((Seq(retVar), Seq(extEmptySet)))
+        Seq((Seq(retVar), Seq(extEmptySet)))*/
       } else
         exps.flatMap(transExpression)
 

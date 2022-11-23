@@ -153,9 +153,9 @@ class DatalogTest extends AnyFunSuite {
     performTests(recursiveSetTest)
   }
 
-  test("Set Empty Example") {
+  /*test("Set Empty Example") {
     performTests(emptySetTest)
-  }
+  }*/
 
   /*test("Casestudy Example") {
     performTests(caseStudyTest: _*)
