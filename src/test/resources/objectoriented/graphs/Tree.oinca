@@ -1,4 +1,4 @@
-module CaseStudy
+module Tree
 
 class Node {
   var value: Int
@@ -75,18 +75,17 @@ class Tree {
       )
       val root: Node = new Node(0, nodes)
       val tree: Tree = new Tree(root)
-      return for (n <- tree.getLeafs()) yield n.value
+      for (n <- tree.getLeafs()) yield n.value
     }
 
     def getLeafs(): Set[Node] = {
-        return this.findLeafs(this.root)
+        this.findLeafs(this.root)
     }
 
     def findLeafs(node: Node): Set[Node] = {
         if (instanceOf(node, Leaf)) {
-            return Set(node)
+            Set(node)
         } else {
-            return
             (for (n1 <- node.childs if instanceOf(n1, Leaf)) yield n1)
             ++
             (for (n2 <- node.childs; c <- this.findLeafs(n2) if instanceOf(c, Leaf)) yield c)

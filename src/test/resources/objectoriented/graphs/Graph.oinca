@@ -1,4 +1,4 @@
-module CaseStudy
+module Graph
 
 class Edge {
   var start: String

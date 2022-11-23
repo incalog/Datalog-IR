@@ -82,10 +82,6 @@ class DatalogTest extends AnyFunSuite {
     performTests(methodInheritanceTest)
   }
 
-  test("Binary Tree Example") {
-    performTests(binaryTreeSumTest)
-  }
-
   test("Plus Example") {
     performTests(plusTest)
   }
@@ -162,7 +158,15 @@ class DatalogTest extends AnyFunSuite {
     performTests(caseStudyTest: _*)
   }*/
 
-  test("Casestudy Tree Example") {
-    performTests(caseStudyTreeTest: _*)
+  test("Binary Tree Example") {
+    performTests(binaryTreeTest)
+  }
+
+  test("Tree Example") {
+    performTests(treeTest)
+  }
+
+  test("DoubleLinkedList Example") {
+    performTests(doubleLinkedTest)
   }
 }

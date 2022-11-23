@@ -65,7 +65,7 @@ class ScalaTest extends GenericTest {
   }
 
   test("Binary Tree Example") {
-    performTest(binaryTreeSumTest)
+    performTest(binaryTreeTest)
   }
 
   test("Plus Example") {

@@ -89,7 +89,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     /*if (!methodDef.returnsUnit && optReturn.isEmpty)
       throw new IllegalStateException(s"Method ${classDef.name}.${methodDef.name} must call return")*/
 
-    bindVar(Name("this"), classDef, classDef.typ, immutable = true)
+    // main method must not use this, since it is static
+    if (!methodDef.annos.contains(MainAnnotation))
+      bindVar(Name("this"), classDef, classDef.typ, immutable = true)
 
     typecheck(methodDef.outType)
 

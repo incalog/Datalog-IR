@@ -134,11 +134,6 @@ object TestDefinition {
     TestDefinition("MethodInheritance", "A", "main", Seq(), 3)
   }
 
-  def binaryTreeSumTest: TestDefinition[Int] = {
-    implicit val subdir: Option[String] = Some("unittests")
-    TestDefinition("BinaryTree", "DefinedNode", "main", Seq(), 20)
-  }
-
   def plusTest: TestDefinition[Int] = {
     implicit val subdir: Option[String] = Some("unittests")
     TestDefinition("Plus", "Nat", "main", Seq(), 5)
@@ -272,17 +267,25 @@ object TestDefinition {
     TestDefinition("SetRecursive", "Graph", "main", Seq(), SetResult("W", "Y", "Z", "X"))
   }
 
-  def caseStudyTest: Seq[TestDefinition[SetResult[Any]]] = {
-    implicit val subdir: Option[String] = Some("casestudy")
+  def graphTest: Seq[TestDefinition[SetResult[Any]]] = {
+    implicit val subdir: Option[String] = Some("graphs")
     Seq(
       TestDefinition("Graph", "Graph", "main", Seq(), SetResult()),
     )
   }
 
-  def caseStudyTreeTest: Seq[TestDefinition[SetResult[Any]]] = {
-    implicit val subdir: Option[String] = Some("casestudy")
-    Seq(
-      TestDefinition("Tree", "Tree", "main", Seq(), SetResult(1.to(20):_*)),
-    )
+  def treeTest: TestDefinition[SetResult[Any]] = {
+    implicit val subdir: Option[String] = Some("graphs")
+    TestDefinition("Tree", "Tree", "main", Seq(), SetResult(1.to(20):_*)),
+  }
+
+  def binaryTreeTest: TestDefinition[Int] = {
+    implicit val subdir: Option[String] = Some("graphs")
+    TestDefinition("BinaryTree", "DefinedNode", "main", Seq(), 20)
+  }
+
+  def doubleLinkedTest: TestDefinition[TupleResult[Any]] = {
+    implicit val subdir: Option[String] = Some("graphs")
+    TestDefinition("DoubleLinkedList", "DoubleLinkedList", "main", Seq(q"5"), TupleResult(31, 36, 4))
   }
 }
