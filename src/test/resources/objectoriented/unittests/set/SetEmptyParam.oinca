@@ -1,0 +1,33 @@
+module SetTest
+
+// Idea:
+// make sure empty sets can only appear on return => fix allocOut and tsOut assignment before return
+// change defunctionaliation to Aux$i:
+// def this(arg1, arg2, arg3) = {
+//     this.arg1 = arg1
+//        ...
+// }
+//
+// def apply() = {
+//    return Set(this.arg1, this.arg2, this.arg3)
+// }
+//
+
+class A {
+    var value: Int = 0
+
+    @main
+    def main(): Set[Int] = {
+        val a: A = new A()
+        val res: Set[Int] = a.someMethod(Set[Int]())
+        a.value = a.value + 1
+        return res ++ Set(a.value)
+    }
+
+    def someMethod(is: Set[Int]): Set[Int] = {
+        //val res: Set[Int] = for (i <- is) yield i*i
+        this.value = 1
+        //return is
+        return Set[Int]()
+    }
+}

@@ -78,7 +78,7 @@ trait Relation {
   }
 
   override def equals(obj: Any): Boolean = obj match {
-    case relation: Relation => this.toSet == relation.toSet
+    case relation: Relation if (this.name == relation.name) && (this.toSet == relation.toSet) => true
     case _ => false
   }
 

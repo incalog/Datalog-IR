@@ -1,5 +1,6 @@
 package inca.frontend.objectoriented.integration
 
+import inca.backend.optimize.EliminateNonproductiveRelations
 import inca.compiler.Compiler
 import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.datalog.{ObjectOrientedDatalog, TypeCastException}
@@ -22,6 +23,7 @@ class DatalogTest extends AnyFunSuite {
         println()
         println(rel.asTable)
       }
+      //println(rel)
       assert(rel == test.expectedRelation)
     }
   }
@@ -51,6 +53,7 @@ class DatalogTest extends AnyFunSuite {
   }
 
   test("Equals Example") {
+    performTests(equalsTest)
     performTests(equalsTest)
   }
 
@@ -150,9 +153,9 @@ class DatalogTest extends AnyFunSuite {
     performTests(recursiveSetTest)
   }
 
-  /*test("Set Empty Example") {
+  test("Set Empty Example") {
     performTests(emptySetTest)
-  }*/
+  }
 
   /*test("Casestudy Example") {
     performTests(caseStudyTest: _*)

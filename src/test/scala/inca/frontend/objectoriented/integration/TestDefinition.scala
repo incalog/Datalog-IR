@@ -238,12 +238,12 @@ object TestDefinition {
   def advancedSetTest: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/set")
     Seq(
-      TestDefinition("SetMethodNested", "A", "main", Seq(), SetResult(1, 2)),
+      //TestDefinition("SetMethodNested", "A", "main", Seq(), SetResult(1, 2)),
       TestDefinition("SetClassSimple", "A", "main", Seq(), SetResult(1, 2)),
-      TestDefinition("SetClass", "A", "main", Seq(), SetResult(10, 3)),
+      /*TestDefinition("SetClass", "A", "main", Seq(), SetResult(10, 3)),
       TestDefinition("SetClass2", "A", "main", Seq(), SetResult(5, 10)),
       TestDefinition("SetIf", "A", "main", Seq(q"true"), SetResult(1, 2)),
-      TestDefinition("SetIf", "A", "main", Seq(q"false"), SetResult(1, 3, 4))
+      TestDefinition("SetIf", "A", "main", Seq(q"false"), SetResult(1, 3, 4))*/
     )
   }
 
@@ -259,7 +259,10 @@ object TestDefinition {
 
   def emptySetTest: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("unittests/set")
-    TestDefinition("SetEmpty", "A", "main", Seq(), SetResult())
+    TestDefinition("SetEmpty", "A", "main", Seq(), SetResult(TupleResult(1)))
+    TestDefinition("SetEmptyVar", "A", "main", Seq(), SetResult(TupleResult(1)))
+    TestDefinition("SetEmptyConst", "A", "main", Seq(), SetResult())
+    TestDefinition("SetEmptyParam", "A", "main", Seq(), SetResult(TupleResult(2)))
   }
 
   def recursiveSetTest: TestDefinition[SetResult[Any]] = {

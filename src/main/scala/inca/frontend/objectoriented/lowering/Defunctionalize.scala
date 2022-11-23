@@ -60,6 +60,18 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     clazz
   }
 
+  private def genAuxDefEmpty(constrVars: Map[Name, Type], innerSetType: Type, parent: ClassRef): ClassDef = {
+    val contentType = TSet(clearType(innerSetType))
+    val ret = ReturnStmt(SetExpr(Seq(), Some(contentType)))
+    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), contentType, Seq(ret))
+
+    val constr = ConstructorDef(Seq(), None, Seq(), Seq())
+    val clsName = Name(gensym.fresh("Aux"))
+    val clazz = ClassDef(Seq(), Some(Private), clsName, Seq(parent), Seq(constr, apply))
+    auxClassDefs += clazz
+    clazz
+  }
+
   private def genAuxDef(constrVars: Map[Name, Type], innerSetType: Type, parent: ClassRef, expr: Expression): ClassDef = {
     // rename all "this" to obj$i, since this is reserved
     val subst = constrVars.map {
@@ -180,7 +192,10 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       val TSet(ty) = typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression"))
       val exprVarNames = expression.vars.keySet
       val vars = usedVars.filter { case (k, _) => exprVarNames.contains(k) }
-      val auxClass = genAuxDef(vars, clearType(ty), genDefunClassDef(ty).typ.ref, expression)
+      val auxClass = expression match {
+        case SetExpr(Seq(), _) => genAuxDefEmpty(vars, clearType(ty), genDefunClassDef(ty).typ.ref)
+        case _ => genAuxDef(vars, clearType(ty), genDefunClassDef(ty).typ.ref, expression)
+      }
       val args = vars.map { case (k, _) => VarReadExpr(k) }.toSeq
       ConstructorExpr(auxClass.typ.ref, args)
     }
