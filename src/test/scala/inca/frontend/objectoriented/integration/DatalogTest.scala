@@ -23,7 +23,6 @@ class DatalogTest extends AnyFunSuite {
         println()
         println(rel.asTable)
       }
-      //println(rel)
       assert(rel == test.expectedRelation)
     }
   }
@@ -53,7 +52,6 @@ class DatalogTest extends AnyFunSuite {
   }
 
   test("Equals Example") {
-    performTests(equalsTest)
     performTests(equalsTest)
   }
 
@@ -157,9 +155,9 @@ class DatalogTest extends AnyFunSuite {
     performTests(emptySetTest)
   }*/
 
-  /*test("Casestudy Example") {
-    performTests(caseStudyTest: _*)
-  }*/
+  test("Set fold") {
+    performTests(foldSetTests: _*)
+  }
 
   test("Binary Tree Example") {
     performTests(binaryTreeTest)

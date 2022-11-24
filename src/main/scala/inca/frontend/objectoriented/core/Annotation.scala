@@ -33,3 +33,9 @@ object OverrideAnnotation extends Annotation {
 
   override def toString: String = "@override"
 }
+
+object StaticAnnotation extends Annotation {
+  override def key: Annotation.Key = "STATIC_FUNCTION"
+
+  override def toString: String = "@static"
+}

@@ -1,0 +1,26 @@
+module SetFold
+
+class Num {
+  var value: Int
+
+  def this(value: Int) = {
+    this.value = value
+  }
+
+  @static
+  def max(n1: Int, n2: Int): Int = {
+    if (n1 > n2)
+      return n1
+    else
+      return n2
+  }
+
+  @main def main(): Int = {
+    val s: Set[Int] = Set(1, 2, 3, 4, -1)
+    val n: Int = fold(s, Num.max, -100)
+
+    val s2: Set[Int] = Set(12, 2, 3, 4, -1)
+    val n2: Int = fold(s2, Num.max, -100)
+    return n + n2
+  }
+}

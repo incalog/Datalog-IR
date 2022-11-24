@@ -1,4 +1,4 @@
-module IfTest
+module IfNestedTest
 
 class IfTest {
     @main

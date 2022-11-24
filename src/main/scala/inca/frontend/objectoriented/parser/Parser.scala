@@ -65,7 +65,7 @@ trait Parser {
     val FOR: Value        = Value("for")
     val YIELD: Value      = Value("yield")
     val SUPER: Value      = Value("super")
-    val REDUCE: Value     = Value("reduce")
+    val FOLD: Value       = Value("fold")
   }
 
   import Keyword._
@@ -111,6 +111,9 @@ trait Parser {
 
   val overrideAnnotation: P[Annotation] =
     spaced(P.string(OverrideAnnotation.toString)).map(_ => OverrideAnnotation)
+
+  val staticAnnotation: P[Annotation] =
+    spaced(P.string(StaticAnnotation.toString)).map(_ => StaticAnnotation)
 
   val mainAnnotation: P[Annotation] =
     spaced(P.string(MainAnnotation.toString)).map(_ => MainAnnotation)
@@ -184,7 +187,7 @@ trait Parser {
     }
   }
 
-  private def varDeclareStmt(immutable: Boolean) = {
+  private def varDeclareStmt(immutable: Boolean): P[VarDeclareStmt] = {
     val kw = if (immutable) VAL else VAR
     (keyword(kw) *> nameWithType ~ (op('=') *> expr).?).mapWithLoc {
       case ((name, typeAnno), valueExpr) =>
@@ -231,10 +234,10 @@ trait Parser {
       case (recv, typeAnno) => TypeCastExpr(recv, typeAnno)
     }
 
-  /*protected[frontend] lazy val reduceExpr: P[SetReduce] =
-    (keyword(REDUCE) *> inParentheses((P.defer(expr) <* op(",")) ~ identifier)).mapWithLoc {
-      case (recv, methodName) => SetReduce(recv, methodName)
-    }*/
+  protected[frontend] lazy val foldExpr: P[SetFold] =
+    (keyword(FOLD) *> inParentheses(P.defer(expr) ~ (op(",") *> (classRef) ~ (op(".") *> identifier)) ~ (op(",") *> P.defer(expr)))).mapWithLoc {
+      case ((recv, (classRef, methodName)), neutral) => SetFold(recv, classRef, methodName, neutral)
+    }
 
   protected[frontend] lazy val instanceOfExpr: P[InstanceOfExpr] =
     (keyword(INSTANCEOF) *> inParentheses((P.defer(expr) <* op(",")) ~ typeAnno)).mapWithLoc {
@@ -251,7 +254,7 @@ trait Parser {
 
   private[frontend] lazy val nestedAccessStartExpr: P[Expression] =
     typeCastExpr |
-      //reduceExpr |
+      foldExpr |
       constructorExpr |
       variableReadExpr |
       baseLitExpr |
@@ -381,7 +384,7 @@ trait Parser {
       parensExpr |
       baseApplyUnaryExpr |
       typeCastExpr |
-      //reduceExpr |
+      foldExpr |
       nullExpr |
       superExpr |
       instanceOfExpr |
@@ -417,7 +420,7 @@ trait Parser {
     }
 
   protected[frontend] val methodDef: P[MethodDef] = {
-    val functionHeader = (((((overrideAnnotation | mainAnnotation).? ~ visibility.?).with1
+    val functionHeader = (((((overrideAnnotation | mainAnnotation | staticAnnotation).? ~ visibility.?).with1
       <* keyword(DEF)).backtrack ~ identifier ~ defParams)
       ~ (op(':') *> typeAnno)
       ~ (op('=') *> inBraces(stmt.rep0)))

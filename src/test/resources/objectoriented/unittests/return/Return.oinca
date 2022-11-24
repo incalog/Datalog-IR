@@ -1,4 +1,4 @@
-module ReturnTest
+module ReturnCondTest
 
 class ReturnTest {
     @main

@@ -13,7 +13,7 @@ import inca.util.{Gensym, Scala}
 import scala.annotation.tailrec
 import scala.collection.immutable.MultiDict
 import scala.collection.mutable.ListBuffer
-import scala.meta.Term
+import scala.meta.{Stat, Term}
 import scala.meta.quasiquotes._
 
 object GenerateDatalog {
@@ -24,31 +24,33 @@ object GenerateDatalog {
   val instanceOfPatName: String = internalPrefix + "instanceOf"
 
   def dispatchPatName(methodNameWithSignature: String): String = s"${internalPrefix}dispatch_${methodNameWithSignature}"
-  def constructorPatName(className: String): String = className
+  def constructorPatName(className: String): String = className + sep
   def constructorSuperPatName(className: String): String = className + "_super"
   def fieldPatName(className: String, fieldName: String): String = className + sep + sep + fieldName
 
-  def transformModule(module: Module): Datalog.Module =
-    new GenerateDatalog(module).transModule()
+  def transformModule(typedModule: Module, coreModule: Module): Datalog.Module =
+    new GenerateDatalog(typedModule, coreModule).transModule()
 
-  def transformModules(modules: Seq[Module]): Seq[Datalog.Module] =
-    modules.map(transformModule)
+  def transformModules(modules: Seq[(Module, Module)]): Seq[Datalog.Module] =
+    modules.map { case (typed, core) => transformModule(typed, core) }
 }
 
 
-class GenerateDatalog(module: Module) {
+class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
   private val gensym: Gensym = new Gensym(Iterable.empty)
+  private val genScala: GenerateScala = new GenerateScala
 
   private val generatedPatterns = ListBuffer[Datalog.Pattern]()
+  private val generatedScala = ListBuffer[Scala[Stat]]()
 
   val oOID: meta.Term = symbolOf(ObjectID)
   val tyOID: meta.Type = typeOf[ObjectID]
 
   def transModule(): Datalog.Module = {
-    val Module(name, imports, classes) = module
-    gensym.register(module.usedModuleNames.map(_.raw))
-    gensym.register(module.classes.map(_.name.raw))
+    val Module(name, imports, classes) = coreModule
+    gensym.register(coreModule.usedModuleNames.map(_.raw))
+    gensym.register(coreModule.classes.map(_.name.raw))
 
     generatedPatterns += transNull()
     generatedPatterns += transInstanceOf()
@@ -56,11 +58,15 @@ class GenerateDatalog(module: Module) {
     generatedPatterns ++= transDynamicDispatch(classes)
     generatedPatterns ++= classes.flatMap(transClass)
 
+    val scalaModule = genScala.genModule(typedModule)
+    generatedScala ++= scalaModule.classes.map(c => Scala(c))
+    generatedScala ++= scalaModule.objects.map(c => Scala(c))
+
     Datalog.Module(
       name.raw,
       imports.map(_.name.raw),
       generatedPatterns.toList,
-      Seq()
+      generatedScala.toList
     )
   }
 
@@ -124,7 +130,7 @@ class GenerateDatalog(module: Module) {
     val constrScalaFun = Term.Function(Nil, q"""$oOID("Null")""")
     val tmpCons = Datalog.Computed(thisVar, Datalog.Evaluation(Seq(), transType(TNull), Scala(constrScalaFun)))
 
-    Datalog.Pattern(None, "Null", Seq(outParam), Seq(
+    Datalog.Pattern(None, constructorPatName("Null"), Seq(outParam), Seq(
       Datalog.Body(Seq(tmpCons))
     ))
   }
@@ -309,12 +315,14 @@ class GenerateDatalog(module: Module) {
       Datalog.Body(cons ++ returnCons)
     }
 
-    if (methodDef.isMain)
-      Datalog.Pattern(transVis(methodDef.vis), qualifiedName, argParams ++ returnParams,  bodies)
-        .addHint(MagicSetHints.Main(argParams.map(_ => true) ++ returnParams.map(_ => false)))
-        .addHint(ObjectHints.AllocationRoot)
-        .addHint(ObjectHints.FieldRoot)
-    else
+    if (methodDef.isStatic) {
+      val pat = Datalog.Pattern(transVis(methodDef.vis), qualifiedName, argParams ++ returnParams,  bodies)
+      if (methodDef.isMain)
+        pat.addHint(MagicSetHints.Main(argParams.map(_ => true) ++ returnParams.map(_ => false)))
+          .addHint(ObjectHints.AllocationRoot)
+          .addHint(ObjectHints.FieldRoot)
+      pat
+    } else
       Datalog.Pattern(transVis(methodDef.vis), qualifiedName, thisParam +: (argParams ++ returnParams), bodies)
   }
 
@@ -471,7 +479,7 @@ class GenerateDatalog(module: Module) {
 
     case NullExpr() =>
       val nullVar = Datalog.Var(gensym.fresh("null"))
-      val nullConstrCall = Datalog.Call("Null", Seq(nullVar))
+      val nullConstrCall = Datalog.Call(constructorPatName("Null"), Seq(nullVar))
       Seq((Seq(nullVar), Seq(nullConstrCall)))
 
     case TupleExpr(exps) =>
@@ -541,25 +549,27 @@ class GenerateDatalog(module: Module) {
             (bTerms, mCons.flatten ++ bCons)
         }
 
-    /*case setReduce@SetReduce(recv, op) =>
+    case setFold@SetFold(recv, opClass, opMethod, neutral) =>
       val typ = recv.typ match {
         case Some(TSet(ty)) => ty
-        case _ => throw new IllegalArgumentException("Type of reduce receiver must be a set!")
+        case _ => throw new IllegalArgumentException("Type of fold receiver must be a set!")
       }
 
-      println(s"Generate the pattern for: $setReduce")
-      val aggregandPat = generatePattern(recv, "ReduceAggregation")
+      val aggregandPat = generatePattern(recv, "AggregateCollection")
       generatedPatterns += aggregandPat
 
-      val methodDef = setReduce.target.getOrElse(throw new IllegalArgumentException(s"Unresolved method with name $op"))
-      val aggFun = genScala.genAggregation(methodDef)
+      //val aggregandPat = generatePattern(recv, "ReduceAggregation")
+      //generatedPatterns += aggregandPat
+
+      val methodDef = setFold.target.getOrElse(throw new IllegalArgumentException(s"Unresolved fold method $opMethod"))
+      val aggFun = genScala.genAggregation(opMethod + "Agg", neutral, opClass.name.raw, opMethod.raw, typ)
       val freeArgs = recv.vars.toSeq.flatMap { case (v, ty) => flattenVars(v.raw, ty.get) }.map(_._1)
       val outVar = Datalog.Var(gensym.fresh("out"))
-      val aggregation = CustomAggregation(transType(typ), Some("Reduce aggregation."), Scala(aggFun), aggregandPat.name, freeArgs :+ outVar, freeArgs.size)
+      val aggregation = Datalog.CustomAggregation(transType(typ), Some("Fold aggregation."), Scala(aggFun), aggregandPat.name, freeArgs :+ outVar, freeArgs.size)
       val reduceVar = Datalog.Var(gensym.fresh("reduce"))
       val compCon = Datalog.Computed(reduceVar, aggregation)
 
-      Seq((Seq(reduceVar), Seq(compCon)))*/
+      Seq((Seq(reduceVar), Seq(compCon)))
 
     case BaseLitExpr(code) =>
       import scala.meta._
@@ -689,7 +699,7 @@ class GenerateDatalog(module: Module) {
       throw new IllegalArgumentException(s"Expression not supported $exps")
   }
 
-  /*private def generatePattern(exp: Expression, basename: String): Datalog.Pattern = {
+  private def generatePattern(exp: Expression, basename: String): Datalog.Pattern = {
     val name = gensym.freshGlobal(basename)
     val vars = exp.vars.toSeq.flatMap { case (v, ty) => flattenVars(v.raw, ty.get) }
     val params = vars.map { case (v, ty) => Datalog.Param(v.name, ty) }
@@ -700,7 +710,7 @@ class GenerateDatalog(module: Module) {
       yield Datalog.Body(cons ++ outParams.zip(terms).map(pt => Datalog.Eq(Datalog.Var(pt._1.name), pt._2)))
 
     Datalog.Pattern(None, name, params ++ outParams, bodies)
-  }*/
+  }
 
   private def flattenParam(name: String, typ: Type, genFresh: Boolean): Seq[Datalog.Param] =
     flattenVars(name, typ, genFresh).map { case (v, ty) => Datalog.Param(v.name, ty) }

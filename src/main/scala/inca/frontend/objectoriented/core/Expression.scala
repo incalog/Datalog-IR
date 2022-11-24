@@ -117,11 +117,11 @@ case class SetComprehension(member: Seq[Expression], body: Expression) extends E
   }
 }
 
-/*case class SetReduce(recv: Expression, op: Name) extends Expression with Resolvable[MethodDef] {
+case class SetFold(recv: Expression, opClass: ClassRef, opMethod: Name, neutral: Expression) extends Expression with Resolvable[MethodDef] {
   def vars: Map[Name, Option[Type]] = recv.vars
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
-    s"reduce($recv, $op)"
-}*/
+    s"fold($recv, ${opClass.name}.$opMethod, $neutral))"
+}
 
 case class BaseLitExpr(code: Scala[meta.Term]) extends Expression {
   def vars: Map[Name, Option[Type]] = Map()

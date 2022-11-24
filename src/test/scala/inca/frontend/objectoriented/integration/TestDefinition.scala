@@ -63,9 +63,9 @@ object TestDefinition {
   def baseTests: Seq[TestDefinition[Int]] = {
     implicit val subdir: Option[String] = Some("unittests/base")
     Seq(
-      TestDefinition("Base1", "Base1", "main", Seq(), 43),
-      TestDefinition("Base2", "Base2", "main", Seq(), 43),
-      TestDefinition("Base3", "Base3", "main", Seq(), 43)
+      TestDefinition("Base1", "Base", "main", Seq(), 43),
+      TestDefinition("Base2", "Base", "main", Seq(), 43),
+      TestDefinition("Base3", "Base", "main", Seq(), 43)
     )
   }
 
@@ -96,12 +96,12 @@ object TestDefinition {
 
   def nullTest: TestDefinition[Boolean] = {
     implicit val subdir: Option[String] = Some("unittests")
-    TestDefinition("Null", "NullTest", "main", Seq(), true)
+    TestDefinition("Null", "C", "main", Seq(), true)
   }
 
   def equalsTest: TestDefinition[Boolean] = {
     implicit val subdir: Option[String] = Some("unittests")
-    TestDefinition("Equals", "EqualsTest", "main", Seq(), true)
+    TestDefinition("Equals", "D", "main", Seq(), true)
   }
 
   def instanceOfTest: TestDefinition[Boolean] = {
@@ -268,6 +268,14 @@ object TestDefinition {
   def recursiveSetTest: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("unittests/set")
     TestDefinition("SetRecursive", "Graph", "main", Seq(), SetResult("W", "Y", "Z", "X"))
+  }
+
+  def foldSetTests: Seq[TestDefinition[SetResult[Any]]] = {
+    implicit val subdir: Option[String] = Some("unittests/setfold")
+    Seq(
+      TestDefinition("SetFoldMax", "Num", "main", Seq(), SetResult(16)),
+      TestDefinition("SetFoldSum", "Num", "main", Seq(), SetResult(23))
+    )
   }
 
   def graphTest: Seq[TestDefinition[SetResult[Any]]] = {

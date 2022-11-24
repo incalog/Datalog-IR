@@ -1,7 +1,7 @@
 package inca.backend.transform.objectoriented
 
 import inca.backend.hints.{Hint, Hints, MagicSetHints}
-import inca.backend.ir.Datalog._
+import inca.backend.ir.Datalog.{CustomAggregation, _}
 import inca.backend.ir.util.CollectVars
 import inca.backend.transform.Transformer
 import inca.util.{Gensym, Scala}
@@ -70,6 +70,22 @@ abstract class CountTransformer(val rootPatternHint: Hint,
           Call(name, args :+ counterInVar :+ counterOutVar, trans, neg).withHints(hint)
         ))
       }
+    }
+
+  /**
+   * Fix all custom aggregations by inserting do not care values for the newly created count parameters.
+   */
+    private def transformAgg(aggregation: CustomAggregation, counterInVar: Var): CustomAggregation = {
+      val CustomAggregation(typ, description, agg, patName, args, aggregatedColumn) = aggregation
+      val doNotCare = Var(gensym.fresh("_"))
+      // FIXME: We put in the inVar as argument. This might be a problem in the future. For now this okay, since
+      //  we only use aggregations for fold and for calculating the timestamp.
+      //  The timestamp calculation is not affected by this method, since we add the timestamp agg, after this
+      //  transformation. If the aggregation is generated for a fold, than the aggregate pattern will always contain a
+      //  dispatch call to a defunctionalized set (e.g Aux$0.apply => this.content). In this case, the
+      //  the allocInVar is not needed and the tsInVar is used to filter smaller timestamps. In both cases is it
+      //  therefore correct to pass in the current inVar.
+      CustomAggregation(typ, description, agg, patName, args :+ counterInVar :+ doNotCare, aggregatedColumn)
     }
 
     override def transformModule(mod: Module): Module = {
@@ -155,6 +171,8 @@ abstract class CountTransformer(val rootPatternHint: Hint,
               val (tsOutVar, transAtom) = transformCall(c, countVar)
               countVar = tsOutVar
               transAtom
+            case Computed(lhs, c: CustomAggregation) if affectedPatternNames.contains(c.patName) =>
+              Seq(Computed(lhs, transformAgg(c, countVar)))
             case a => Seq(a)
           }).withHints(body)
         }
@@ -189,6 +207,8 @@ abstract class CountTransformer(val rootPatternHint: Hint,
               val (tsOutVar, transAtom) = transformCall(c, countVar)
               countVar = tsOutVar
               transAtom
+            case Computed(lhs, c: CustomAggregation) if affectedPatternNames.contains(c.patName) =>
+              Seq(Computed(lhs, transformAgg(c, countVar)))
             case a => Seq(a)
           } :+ Eq(
             Var(countParams.last.name), countVar

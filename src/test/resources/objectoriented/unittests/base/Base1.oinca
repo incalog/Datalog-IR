@@ -1,6 +1,6 @@
 module Base1
 
-class Base1 {
+class Base {
     @main
     def main(): Int = {
         return `7 + (12 * 3)`

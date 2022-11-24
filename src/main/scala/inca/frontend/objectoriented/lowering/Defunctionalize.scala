@@ -138,9 +138,10 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       usedVars += (name -> newTyp)
       val expr = if (maybeExpression.isDefined) Some(sanitize(maybeExpression.get)) else None
       Seq(VarDeclareStmt(name, newTyp, expr, immutable))
-    case VarDeclareStmt(name, typ, _, _) =>
+    case VarDeclareStmt(name, typ, maybeExpression, immutable) =>
       usedVars += (name -> typ)
-      super.transStatementInternal(stmt)
+      val expr = if (maybeExpression.isDefined) Some(sanitize(maybeExpression.get)) else None
+      Seq(VarDeclareStmt(name, clearType(typ), expr, immutable))
     case VarAssignStmt(_, _) =>
       throw new IllegalArgumentException("Defunctionalization failed! Encountered unexpected var assignment.")
     case VarPhiAssignStmt(_, _, _, _, _) =>
@@ -177,12 +178,16 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     if (allowsTrueSet | !isSet)
       clearExpression(expression)
     else {
-      val TSet(ty) = typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression"))
-      val exprVarNames = expression.vars.keySet
-      val vars = usedVars.filter { case (k, _) => exprVarNames.contains(k) }
-      val auxClass = genAuxDef(vars, clearType(ty), genDefunClassDef(ty).typ.ref, expression)
-      val args = vars.map { case (k, _) => VarReadExpr(k) }.toSeq
-      ConstructorExpr(auxClass.typ.ref, args)
+      typ match {
+        case Some(TSet(ty)) =>
+          val exprVarNames = expression.vars.keySet
+          val vars = usedVars.filter { case (k, _) => exprVarNames.contains(k) }
+          val auxClass = genAuxDef(vars, clearType(ty), genDefunClassDef(ty).typ.ref, expression)
+          val args = vars.map { case (k, _) => VarReadExpr(k) }.toSeq
+          ConstructorExpr(auxClass.typ.ref, args)
+        case _ =>
+          throw new IllegalArgumentException(s"Untyped expression $expression")
+      }
     }
   }
 
@@ -207,7 +212,8 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
    *                        SetComprehension). Set this flag to true, to not transform these expressions.
    * @return Expression that is replaced by an object if required (that means it is a set and allowsTrueSet is false).
    */
-  private def sanitize(expression: Expression, requiresTrueSet: Boolean = false): Expression = expression match {
+  private def sanitize(expression: Expression, requiresTrueSet: Boolean = false): Expression = {
+    expression match {
     case FieldReadExpr(recv, targetName) if requiresTrueSet =>
       apply(FieldReadExpr(sanitize(recv), targetName), expression.typ)
     case FieldReadExpr(recv, targetName) =>
@@ -226,6 +232,8 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       InstanceOfExpr(sanitize(recv), clearType(ofTyp))
     case SetExpr(exps, tty) =>
       unapply(SetExpr(exps.map(sanitize(_)), if (tty.isDefined) Some(clearType(tty.get)) else tty), requiresTrueSet, expression.typ)
+    case SetFold(recv, ClassRef(name), opMethod, neutral) =>
+      SetFold(sanitize(recv, requiresTrueSet = true), ClassRef(name), opMethod, sanitize(neutral))
     case SetMemberExpr(name, recv, predicate) =>
       val pred = if (predicate.isDefined) Some(sanitize(predicate.get)) else None
       SetMemberExpr(name, sanitize(recv, requiresTrueSet = true), pred)
@@ -246,5 +254,6 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     case TupleExpr(exps) =>
       TupleExpr(exps.map(sanitize(_)))
     case _ => clearExpression(expression)
+  }
   }
 }

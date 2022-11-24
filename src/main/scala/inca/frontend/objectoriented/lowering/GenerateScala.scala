@@ -4,12 +4,12 @@ import inca.frontend.objectoriented.core._
 import inca.runtime.data.WrappedURI
 import inca.util.Scala.typeOf
 import truediff.GenericDiffable
+import inca.runtime.aggregate.{Aggregation, AggregatorAssocComm}
 
-import scala.meta.{Ctor, Import => MetaImport, Name => MetaName, Type => MetaType, _}
-import scala.meta.prettyprinters.{Show, Syntax}
+import scala.meta.{Ctor, Name => MetaName, Type => MetaType, _}
 
 class GenerateScala {
-    class ScalaModule(val classes: Seq[Defn.Class], val objects: Seq[Defn.Object]) {
+  class ScalaModule(val classes: Seq[Defn.Class], val objects: Seq[Defn.Object]) {
     lazy val objectMap: Map[String, Defn.Object] = objects.map(o => o.name.value -> o).toMap
     lazy val classMap: Map[String, Defn.Class] = classes.map(o => o.name.value -> o).toMap
 
@@ -19,7 +19,6 @@ class GenerateScala {
     }
 
     def syntax: String = {
-
       source.syntax
     }
 
@@ -61,10 +60,14 @@ class GenerateScala {
   def transClass(classDef: ClassDef): (Defn.Class, Option[Defn.Object]) = {
     val cls = MetaType.Name(classDef.name.raw)
     val fields = classDef.fields.map(transField).toList
-    val emptyDefaultConstructor = classDef.constructors.filter(_.params.isEmpty).map(transEmptyDefaultConstructor).toList
-    val constructors = classDef.constructors.filter(_.params.nonEmpty).flatMap(transConstructor).toList
-    val methods = classDef.methods.filter(!_.isMain).flatMap(transMethod).toList
-    val mainMethods = classDef.methods.filter(_.isMain).flatMap(transMethod).toList
+
+    val (defaultConstructorDef, constructorDef) = classDef.constructors.partition(_.params.isEmpty)
+    val emptyDefaultConstructor = defaultConstructorDef.map(transEmptyDefaultConstructor).toList
+    val constructors = constructorDef.flatMap(transConstructor).toList
+
+    val (staticMethodDefs, methodDefs) = classDef.methods.partition(_.isStatic)
+    val staticMethods = staticMethodDefs.flatMap(transMethod).toList
+    val methods = methodDefs.flatMap(transMethod).toList
 
     val parentRefOption = classDef.parentClassRefs.headOption
     val parentTypeRef = if (parentRefOption.isDefined)
@@ -84,10 +87,10 @@ class GenerateScala {
 
     val obj = Term.Name(classDef.name.raw)
     val objDefOption = {
-      if (mainMethods.nonEmpty) {
+      if (staticMethods.nonEmpty) {
         Some(
           q"""object $obj {
-             ..$mainMethods
+             ..$staticMethods
           }""")
       } else
         None
@@ -214,7 +217,7 @@ class GenerateScala {
     case VarReadExpr(targetName) => Term.Name(targetName.raw)
     case FieldReadExpr(recv, targetName) =>
       Term.Select(transExpression(recv), Term.Name(targetName.raw))
-    case MethodCallExpr(recv, fun, args) =>
+    case methodCallExpr@MethodCallExpr(recv, fun, args) =>
       val tArgs = args.map(transExpression).toList
       val tRecv = transExpression(recv)
       val tFun = Term.Select(tRecv, Term.Name(fun.raw))
@@ -245,8 +248,8 @@ class GenerateScala {
       // TODO: support tuples and sets
       ofTyp match {
         case TAny => ???
-        case TNull => ???
-          ///q"${transExpression(recv)} == null"
+        case TNull =>
+          q"${transExpression(recv)} == null"
         case TTuple(ts) => ???
         case TScala(ty) => ???
         case TClass(ClassRef(name)) =>
@@ -279,9 +282,31 @@ class GenerateScala {
       val superBody = superConstrDef.body.map(transStatement).toList
       q"((..$inParams) => (${Term.Block(superBody)}))(..$inTerms)"
 
-    /*case SetReduce(recv, op) => ???*/
+    case SetFold(recv, opClass, opMethod, neutral) =>
+      val foldTerm = Term.Select(transExpression(recv), Term.Name("fold"))
+      val applyInner = Term.Apply(foldTerm, List(transExpression(neutral)))
+      val methodRef = Term.Select(Term.Name(opClass.name.raw), Term.Name(opMethod.raw))
+      Term.Apply(applyInner, List(methodRef))
 
     case _ =>
       throw new IllegalArgumentException(s"Expression '$expr' can not be translated to scala.")
+  }
+
+  def genAggregation(name: String, init: Expression, opClass: String, opMethod: String, typ: Type): meta.Term = {
+    val scalaInit = transExpression(init)
+    val scalaOp = q"${Term.Name(opClass)}.${Term.Name(opMethod)}"
+    val scalaTy = transType(typ)
+
+    val tyAggregation = typeOf[Aggregation[_]]
+    val initAggregation = init"${MetaType.Apply(tyAggregation, List(scalaTy))}()"
+
+    q"""
+     new $initAggregation {
+       override val name = $name
+       override def init: $scalaTy = $scalaInit
+       override def join(v1: $scalaTy, v2: $scalaTy): $scalaTy = $scalaOp(v1, v2)
+       override val isAssociative = true
+       override val isCommutative = true
+     }"""
   }
 }

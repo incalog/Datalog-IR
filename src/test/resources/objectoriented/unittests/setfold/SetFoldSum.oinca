@@ -1,0 +1,22 @@
+module SetFold
+
+class Num {
+  var value: Int
+
+  def this(value: Int) = {
+    this.value = value
+  }
+
+  @static
+  def sum(n1: Int, n2: Int): Int = {
+    n1 + n2
+  }
+
+  @main def main(): Int = {
+    val s: Set[Int] = Set(1, 2, 3, 4, -1)
+    val n: Int = fold(s, Num.sum, -100)
+
+    val n2: Int = fold(s ++ Set(5), Num.sum, 0)
+    return n + n2
+  }
+}

@@ -16,7 +16,7 @@ class C {
     def this() = {}
 }
 
-class EqualsTest {
+class D {
     @main
     def main(): Boolean = {
         val a: A = new A(new C())
@@ -32,15 +32,5 @@ class EqualsTest {
             && (c == null)
             && (a != null)
             && (a.c != null)
-
-        /*return equals(a, a)
-            && equals(b, b)
-            && !equals(a, b)
-            && equals(a.c, a.c)
-            && !equals(a, a.c)
-            && equals(null, null)
-            && equals(c, null)
-            && !equals(a, null)
-            && !equals(a.c, null)*/
     }
 }

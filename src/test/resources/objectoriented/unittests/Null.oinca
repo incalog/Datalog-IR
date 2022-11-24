@@ -8,7 +8,7 @@ class B {
     def this() = {}
 }
 
-class NullTest {
+class C {
     @main
     def main(): Boolean = {
         // Create a null object

@@ -88,7 +88,7 @@ trait ModuleLowering {
       val exprOption = if (maybeExpression.isDefined) Some(transExpression(maybeExpression.get).head) else None
       VarDeclareStmt(name, transType(typ), exprOption, immutable)
     case VarAssignStmt(targetName, expression) =>
-      VarAssignStmt(targetName, expression)
+      VarAssignStmt(targetName, transExpression(expression).head)
     case ReturnStmt(expr) =>
       ReturnStmt(transExpression(expr).head)
     case ExprStmt(expr) =>
@@ -108,8 +108,7 @@ trait ModuleLowering {
     case FieldReadExpr(recv, targetName) =>
       FieldReadExpr(transExpression(recv).head, targetName)
     case VarReadExpr(targetName) =>
-      // Rewrite all VarReadExpr to use the latest generated name for the variable
-      VarReadExpr(Name(targetName.raw))
+      VarReadExpr(targetName)
     case ConstructorExpr(ClassRef(name), args) =>
       ConstructorExpr(ClassRef(name), transExpressions(args))
     case SuperExpr(args) =>
@@ -129,8 +128,8 @@ trait ModuleLowering {
     case SetMemberExpr(name, recv, predicate) =>
       val pred = if (predicate.isDefined) Some(transExpression(predicate.get).head) else None
       SetMemberExpr(name, transExpression(recv).head, pred)
-    //case SetReduce(recv, op) =>
-    //  SetReduce(transExpression(recv), op)
+    case SetFold(recv, ClassRef(name), method, neutral) =>
+      SetFold(transExpression(recv).head, ClassRef(name), method, transExpression(neutral).head)
     case SetComprehension(exps, body) =>
       SetComprehension(transExpressions(exps), transExpression(body).head)
     case BaseApplyExpr(fun, args) =>

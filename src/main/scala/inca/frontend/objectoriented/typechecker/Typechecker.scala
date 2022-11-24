@@ -18,6 +18,12 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
    */
 
   def typecheck(module: Module): Unit = scopedTypeContext {
+    val moduleNames = module.name +: module.imports.map(_.name)
+    val classNames = module.classes.map(_.name)
+
+    for (name <- moduleNames.toSet.intersect(classNames.toSet))
+      error(s"Module $name is shadowed by class $name.", name)
+
     for (imp <- module.imports; importedModule <- lookupModule(imp.name)) {
       resolveTarget(imp)(importedModule)
 
@@ -90,7 +96,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       throw new IllegalStateException(s"Method ${classDef.name}.${methodDef.name} must call return")*/
 
     // main method must not use this, since it is static
-    if (!methodDef.annos.contains(MainAnnotation))
+    if (!methodDef.isStatic)
       bindVar(Name("this"), classDef, classDef.typ, immutable = true)
 
     typecheck(methodDef.outType)
@@ -99,8 +105,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   }
 
   def typecheck(constructorDef: ConstructorDef, classDef: ClassDef): Unit = scopedTypeContext {
-    if (constructorDef.annos.contains(MainAnnotation))
-      error(s"Constructor ${classDef.name} can not be a main method.", constructorDef)
+    if (constructorDef.isStatic)
+      error(s"Constructor ${classDef.name} can not be a static method.", constructorDef)
 
     val overrideConstructors = lookupConstructorCandidates(Some(classDef), constructorDef.params.map(_.typ))
     resolveSignatures(overrideConstructors.map(_._2))
@@ -287,17 +293,20 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       }
     case methodCallExpr@MethodCallExpr(recv, fun, args) =>
       typecheck(recv) match {
-        case TClass(ref) =>
+        case clazzTyp@TClass(ref) =>
           // We can call methods on instances of classes we might no have yet resolved
           lookupMethod(lookupClassRef(ref), args.map(typecheck), fun) match {
             case None =>
               TAny
             case Some(methodDef) =>
+              // TODO: We might allow calling static methods in the future
+              if (methodDef.isStatic)
+                error(s"Can not call static method '${methodDef.name}' on instance of type $clazzTyp", expression)
               resolveTarget(methodCallExpr)(methodDef)
               methodDef.outType
         }
         case typ =>
-          error(s"Can not lookup method $fun for expression of type $typ", expression)
+          error(s"Can not lookup method '$fun' for expression of type $typ", expression)
           TAny
       }
     case TypeCastExpr(recv, toTyp) =>
@@ -345,35 +354,22 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       member.foreach(typecheck)
       TSet(typecheck(body))
 
-    /*case setReduce@SetReduce(recv, op) =>
+    case setFold@SetFold(recv, classRef, methodName, neutral) =>
       typecheck(recv) match {
-        case TSet(TClass(ref)) =>
-          val classDef = lookupClass(ref.name)
-          val methodDef = lookupMethod(classDef, op)
+        case TSet(ty) =>
+          assertSubtype(typecheck(neutral), ty, neutral)
+
+          val methodDef = lookupMethod(lookupClass(classRef.name), Seq(ty, ty), methodName)
           if (methodDef.isDefined) {
-            if (methodDef.get.params.size > 1)
-              error(s"Reduce method $op must have exactly one parameter!", expression)
-
-            methodDef.get.params.head.typ match {
-              case TClass(cRef) if cRef.name != ref.name =>
-                error(s"Reduce method $op must accept parameter of type ${cRef.name.raw}!", expression)
-              case _ => // nothing
-            }
-
-            methodDef.get.outType match {
-              case TClass(cRef) if cRef.name != ref.name =>
-                error(s"Reduce method $op must return an instance of ${cRef.name.raw}!", expression)
-              case _ => // nothing
-            }
-
-            resolveTarget(setReduce)(methodDef.get)
+            assertSubtype(methodDef.get.outType, ty, methodDef.get)
+            resolveTarget(setFold)(methodDef.get)
           } else
-            error(s"Reduce method $op not found!", expression)
-          TClass(ref)
-        case ty =>
-          error("Reduce can only be performed on sets of objects!", expression)
+            error(s"Fold method ${classRef.name}.${methodName} not found!", expression)
           ty
-      }*/
+        case ty =>
+          error("Fold can only be performed on sets!", expression)
+          ty
+      }
 
     case BaseLitExpr(code) =>
       typecheckDecodeScala(code.syntax, expression)

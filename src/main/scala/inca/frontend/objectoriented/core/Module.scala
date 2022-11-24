@@ -88,6 +88,7 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
 
   def returnsUnit: Boolean = outType == TUnit
   def isMain: Boolean = annos.contains(MainAnnotation)
+  def isStatic: Boolean = isMain || annos.contains(StaticAnnotation)
 
   // The signature is resolved by the TypeContext. Type information about the methods and there superclasses is required
   // to correctly identify matching methods from the parent class.
@@ -109,6 +110,8 @@ case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], param
 
   lazy val vars: Map[Name, Option[Type]] = (body.flatMap(_.vars) ++ params.flatMap(_.vars)).toMap
 
+  def isMain: Boolean = annos.contains(MainAnnotation)
+  def isStatic: Boolean = isMain || annos.contains(StaticAnnotation)
   def signature: Int = target.getOrElse(0)
 
   def prettyprint(implicit indent: String): String = {
