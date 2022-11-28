@@ -1,12 +1,6 @@
 module SetFold
 
 class Num {
-  var value: Int
-
-  def this(value: Int) = {
-    this.value = value
-  }
-
   @static
   def max(n1: Int, n2: Int): Int = {
     if (n1 > n2)

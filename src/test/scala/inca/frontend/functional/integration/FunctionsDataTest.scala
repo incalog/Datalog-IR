@@ -7,7 +7,7 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.XtensionQuasiquoteTerm
 
-@Ignore
+//@Ignore
 class FunctionsDataTest extends AnyFunSuite {
 
   test("Plus Example") {

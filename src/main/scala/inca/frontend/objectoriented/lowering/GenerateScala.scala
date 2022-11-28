@@ -66,7 +66,7 @@ class GenerateScala {
     val constructors = constructorDef.flatMap(transConstructor).toList
 
     val (staticMethodDefs, methodDefs) = classDef.methods.partition(_.isStatic)
-    val staticMethods = staticMethodDefs.flatMap(transMethod).toList
+    var staticMethods = staticMethodDefs.flatMap(transMethod).toList
     val methods = methodDefs.flatMap(transMethod).toList
 
     val parentRefOption = classDef.parentClassRefs.headOption
@@ -85,11 +85,26 @@ class GenerateScala {
       ..$methods
     }"""
 
+    val params = classDef.fields.map { f =>
+      Term.Param(Nil, Term.Name(f.name.raw), Some(transType(f.typ)), None)
+    }.toList
+    val assignments = classDef.fields.map { f=>
+      val fieldTerm = Term.Name(f.name.raw)
+      q"obj.$fieldTerm = $fieldTerm"
+    }.toList
+    val newObj = Term.New(Init(cls, MetaName.Anonymous(), List(List())))
+
     val obj = Term.Name(classDef.name.raw)
     val objDefOption = {
       if (staticMethods.nonEmpty) {
         Some(
           q"""object $obj {
+              def apply(..$params) = {
+                val obj = $newObj
+                ..$assignments
+                obj
+              }
+
              ..$staticMethods
           }""")
       } else
@@ -103,7 +118,7 @@ class GenerateScala {
       Some(transExpression(fieldDef.body.get))
     else
       None
-    // all fields are read / write now
+    // all fields are read / write
     val vName = List(Pat.Var(Term.Name(fieldDef.name.raw)))
     Defn.Var(Nil, vName, Some(transType(fieldDef.typ)), default)
   }
@@ -167,37 +182,11 @@ class GenerateScala {
       Term.Assign(Term.Name(targetName.raw), transExpression(expression))
     case VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>
       throw new RuntimeException("VarPhiAssignStmt is not supported!")
-      /*val cond = transExpression(ifStmt.cnd)
-      q"""
-       val ${Pat.Var(Term.Name(name.raw))} = (if ($cond)
-          vars(${thnName.raw})
-       else
-          vars(${elsName.raw})).asInstanceOf[${transType(typ)}]
-       """*/
     case IfStmt(cnd, thn, els) =>
       val cond = transExpression(cnd)
       val thnStmts = Term.Block(thn.map(transStatement).toList)
       val elsStmts = Term.Block(els.map(transStatement).toList)
       Term.If(cond, thnStmts, elsStmts)
-      /*val thnVars = thn.flatMap(_.vars).map(_._1.raw)
-      val thnAssign = thnVars.map { v =>
-        q"""vars = vars + (${Lit.String(v)} -> ${Term.Name(v)})"""
-      }.toList
-      val elsVars = els.flatMap(_.vars).map(_._1.raw)
-      val elsAssign = elsVars.map { v =>
-        q"""vars = vars + (${Lit.String(v)} -> ${Term.Name(v)})"""
-      }.toList
-      // TODO: Unpack the Block we return here
-      q"""
-       var vars: Map[String, Any] = Map()
-       if ($cond) {
-        ..${thn.map(transStatement).toList}
-        ..$thnAssign
-       } else {
-         ..${els.map(transStatement).toList}
-         ..$elsAssign
-       }
-       """*/
   }
 
 

@@ -20,14 +20,8 @@ case object TAny extends Type {
 case object TNull extends Type {
   override def prettyprint: String = "Null"
   override def flatten: Seq[Type] = Seq(this)
-  override def asScala: meta.Type = t"truechange.URI"
+  override def asScala: meta.Type = t"truechange.URI" // t"Null"
 }
-
-// TODO: We do not need this right now
-/*case object TNothing extends Type {
-  override def prettyprint: String = "Nothing"
-  override def flatten: Seq[Type] = Seq(this)
-}*/
 
 case class TTuple(ts: Seq[Type]) extends Type {
   if (ts.size == 1)

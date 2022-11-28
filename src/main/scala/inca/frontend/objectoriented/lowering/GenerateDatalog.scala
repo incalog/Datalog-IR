@@ -1,8 +1,9 @@
 package inca.frontend.objectoriented.lowering
 
-import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
+import inca.backend.hints.{DataHints, MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog
 import inca.compiler.SourceObject
+import inca.frontend.objectoriented.core
 import inca.frontend.objectoriented.core._
 import inca.frontend.objectoriented.lowering.GenerateDatalog._
 import inca.util.TupleOps
@@ -13,7 +14,7 @@ import inca.util.{Gensym, Scala}
 import scala.annotation.tailrec
 import scala.collection.immutable.MultiDict
 import scala.collection.mutable.ListBuffer
-import scala.meta.{Stat, Term}
+import scala.meta.{Stat, Term, Name => MetaName, Type => MetaType}
 import scala.meta.quasiquotes._
 
 object GenerateDatalog {
@@ -24,9 +25,12 @@ object GenerateDatalog {
   val instanceOfPatName: String = internalPrefix + "instanceOf"
 
   def dispatchPatName(methodNameWithSignature: String): String = s"${internalPrefix}dispatch_${methodNameWithSignature}"
+  def aggregatePatName(className: String, methodName: String): String = s"${internalPrefix}aggregate_$className${sep}$methodName"
+  def coalescedPatName(className: String): String = s"${internalPrefix}coalesced_$className"
+  def uncoalescedPatName(className: String): String = s"${internalPrefix}uncoalesced_$className"
   def constructorPatName(className: String): String = className + sep
-  def constructorSuperPatName(className: String): String = className + "_super"
-  def fieldPatName(className: String, fieldName: String): String = className + sep + sep + fieldName
+  def constructorSuperPatName(className: String): String = s"${internalPrefix}super_$className"
+  def fieldPatName(className: String, fieldName: String): String = s"$className$sep$sep$fieldName"
 
   def transformModule(typedModule: Module, coreModule: Module): Datalog.Module =
     new GenerateDatalog(typedModule, coreModule).transModule()
@@ -59,6 +63,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     generatedPatterns ++= classes.flatMap(transClass)
 
     val scalaModule = genScala.genModule(typedModule)
+    // TODO: Optimize: We only need to generate this if we use an aggregation. We keep it in for now, to spot errors
+    //  in the scala code generation.
     generatedScala ++= scalaModule.classes.map(c => Scala(c))
     generatedScala ++= scalaModule.objects.map(c => Scala(c))
 
@@ -203,7 +209,124 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           transConstructor(classDef, constructor),
           transSuper(classDef, constructor)
         )
-    } :+ transDefaultConstructor(classDef)
+    } :+ transDefaultConstructor(classDef) :+ generateConstructorCoalesced(classDef) :+ generateConstructorUncoalesced(classDef)
+  }
+
+  private def generateConstructorCoalesced(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
+    import scala.meta._
+
+    val className = classDef.name.raw
+    val uriParam = Datalog.Param("uri", transType(classDef.typ))
+    val uriVar = Datalog.Var(uriParam.name)
+    val objType = transDataType(classDef.typ)
+    val objParam = Datalog.Param("obj", objType)
+    val objVar = Datalog.Var(objParam.name)
+
+    val (readFields, fieldVars) = classDef.fields.map { f =>
+      val varName = gensym.fresh(f.name.raw)
+      val fieldReadVars = flattenVars(varName, f.typ).map(_._1)
+      val fieldPat = fieldPatName(className, f.name.raw)
+      val fieldReadCall = Datalog.Call(fieldPat, uriVar +: fieldReadVars)
+        .addHint(MagicSetHints.FixedAdornment(true +: fieldReadVars.map(_ => true)))
+        .addHint(ObjectHints.FieldGet)
+
+      // coalesced fields
+      val (coalescedChildCalls, vars) = fieldReadVars.zip(f.typ.flatten).map { case (v, t) =>
+        t match {
+          case TClass(ClassRef(name)) =>
+            val coalescedChildVar = Datalog.Var(gensym.fresh(v.name))
+            val coalescedChildCall = Seq(Datalog.Call(coalescedPatName(name.raw), Seq(v, coalescedChildVar)))
+            (coalescedChildCall, coalescedChildVar)
+          case _ =>
+            (Seq(), v)
+        }
+      }.unzip
+      (fieldReadCall +: coalescedChildCalls.flatten, vars)
+    }.unzip
+
+    // TODO: How do we handle tuples ??
+    val fieldTypes = classDef.fields.map(_.typ.flatten)
+    val constrArgs = fieldVars.flatten.map { v => Term.Name(v.name) }.toList
+    val constrParams = constrArgs.zip(fieldTypes.flatten).map {
+      case (vt, t) => Term.Param(Nil, vt, Some(genScala.transType(t)), None)
+    }
+
+    val constrScalaFun = Term.Function(
+      constrParams,
+      Term.New(Init(MetaType.Name(className), MetaName.Anonymous(), List(constrArgs)))
+    )
+    val evalParams = fieldVars.flatten.zip(fieldTypes.flatten).map { case (v, t) => v -> transDataType(t) }
+    val genOutObj = Datalog.Computed(objVar, Datalog.Evaluation(evalParams, objType, Scala(constrScalaFun)))
+    val body = Datalog.Body(
+      readFields.flatten :+ genOutObj
+    )
+
+    val constrCoalescedPat = Datalog.Pattern(None, coalescedPatName(className), Seq(uriParam, objParam), Seq(body))
+    constrCoalescedPat
+      //.addHint(MagicSetHints.NoInputRelation)
+  }
+
+  private def generateConstructorUncoalesced(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
+    import scala.meta.Term
+
+    val className = classDef.name.raw
+    val uriParam = Datalog.Param("uri", transType(classDef.typ))
+    val uriVar = Datalog.Var(uriParam.name)
+    val objType = transDataType(classDef.typ)
+    val objParam = Datalog.Param("obj", objType)
+    val objVar = Datalog.Var(objParam.name)
+
+    def readFieldComp(f: FieldDef, ty: Type): (Datalog.Var, Datalog.Computed) = {
+      val fieldReadVar = Datalog.Var(gensym.fresh(f.name.raw))
+      val comp = Datalog.Computed(
+        fieldReadVar,
+        Datalog.Evaluation(
+          Seq(objVar -> objType),
+          transType(ty),
+          Scala(Term.Function(
+            List(Term.Param(Nil, Term.Name("obj"), Some(MetaType.Name(className)), None)),
+            Term.Select(Term.Name("obj"), Term.Name(f.name.raw))
+          ))
+        )
+      )
+      (fieldReadVar, comp)
+    }
+
+    val setter = classDef.fields.map { f =>
+      val (vars, comps) = f.typ.flatten.map {
+        case ty@TClass(ClassRef(name)) =>
+          val (fieldReadVar, fieldReadComp) = readFieldComp(f, ty)
+          val childUri = Datalog.Var(gensym.fresh(f.name.raw))
+          val call = Datalog.Call(uncoalescedPatName(name.raw), Seq(fieldReadVar, childUri))
+          (childUri, Seq(fieldReadComp, call))
+        case ty =>
+          val (fieldReadVar, fieldReadComp) = readFieldComp(f, ty)
+          (fieldReadVar, Seq(fieldReadComp))
+      }.unzip
+
+      val patName = fieldPatName(className, f.name.raw)
+      val setterCall = Datalog.Call(patName, uriVar +: vars)
+        .addHint(ObjectHints.FieldSet)
+
+      comps.flatten :+ setterCall
+    }
+
+    val genURI = Datalog.Computed(
+      uriVar,
+      Datalog.Evaluation(
+        Seq(),
+        transType(classDef.typ),
+        Scala(Term.Function(Nil, q"""$oOID(${className})"""))
+      )
+    ).addHint(ObjectHints.AllocationInit)
+    val body = Datalog.Body(
+      genURI +: setter.flatten
+    )
+
+    val constrUncoalescedPat = Datalog.Pattern(None, uncoalescedPatName(className), Seq(objParam, uriParam), Seq(body))
+    constrUncoalescedPat
+      .addHint(ObjectHints.Allocation)
+      //.addHint(MagicSetHints.NoInputRelation)
   }
 
   private def transFieldInitBody(classDef: ClassDef): Seq[Datalog.Body] = {
@@ -550,26 +673,47 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         }
 
     case setFold@SetFold(recv, opClass, opMethod, neutral) =>
-      val typ = recv.typ match {
-        case Some(TSet(ty)) => ty
-        case _ => throw new IllegalArgumentException("Type of fold receiver must be a set!")
+      val tClassTyp = recv.typ match {
+        case Some(TSet(ty: TClass)) => Some(ty)
+        case Some(TSet(TTuple(_))) => throw new IllegalArgumentException("Aggregation over tuples is unsupported!")
+        case _ => None
       }
 
-      val aggregandPat = generatePattern(recv, "AggregateCollection")
+      val aggregandPat = tClassTyp match {
+        case Some(td) =>
+          val pat = generatePattern(recv, aggregatePatName(opClass.name.raw, opMethod.raw))
+
+          val inParams = pat.params.slice(0, pat.params.size - 1)
+          val oldOutName = pat.params.last.name
+          val newOutName = gensym.fresh("out")
+          val newOutParam = Datalog.Param(newOutName, transDataType(td))
+          val coalesceCon = Datalog.Call(coalescedPatName(td.ref.name.raw), Seq(Datalog.Var(oldOutName), Datalog.Var(newOutName)))
+          pat.copy(params = inParams :+ newOutParam, bodies = pat.bodies.map(b => Datalog.Body(b.atoms :+ coalesceCon)))
+        case None =>
+          generatePattern(recv, aggregatePatName(opClass.name.raw, opMethod.raw))
+      }
+
       generatedPatterns += aggregandPat
 
-      //val aggregandPat = generatePattern(recv, "ReduceAggregation")
-      //generatedPatterns += aggregandPat
-
-      val methodDef = setFold.target.getOrElse(throw new IllegalArgumentException(s"Unresolved fold method $opMethod"))
-      val aggFun = genScala.genAggregation(opMethod + "Agg", neutral, opClass.name.raw, opMethod.raw, typ)
+      val expTyp = setFold.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped fold $setFold"))
+      //val methodDef = setFold.target.getOrElse(throw new IllegalArgumentException(s"Unresolved fold method $opMethod"))
+      val aggFun = genScala.genAggregation(opMethod + "Agg", neutral, opClass.name.raw, opMethod.raw, expTyp)
       val freeArgs = recv.vars.toSeq.flatMap { case (v, ty) => flattenVars(v.raw, ty.get) }.map(_._1)
       val outVar = Datalog.Var(gensym.fresh("out"))
-      val aggregation = Datalog.CustomAggregation(transType(typ), Some("Fold aggregation."), Scala(aggFun), aggregandPat.name, freeArgs :+ outVar, freeArgs.size)
-      val reduceVar = Datalog.Var(gensym.fresh("reduce"))
-      val compCon = Datalog.Computed(reduceVar, aggregation)
+      val aggregation = Datalog.CustomAggregation(transDataType(expTyp), Some("Fold aggregation."), Scala(aggFun), aggregandPat.name, freeArgs :+ outVar, freeArgs.size)
+      val foldVar = Datalog.Var(gensym.fresh("reduce"))
+      val compCon = Datalog.Computed(foldVar, aggregation)
 
-      Seq((Seq(reduceVar), Seq(compCon)))
+      tClassTyp match {
+        case Some(td) =>
+          val foldVarUncoalesced = Datalog.Var(gensym.fresh("fold"))
+          val uncoalesce = Datalog.Call(uncoalescedPatName(td.ref.name.raw), Seq(foldVar, foldVarUncoalesced))
+            //.addHint(MagicSetHints.IgnoreCall)
+            //.addHint(MagicSetHints.FixedAdornment(Seq(true, false)))
+          Seq((Seq(foldVarUncoalesced), Seq(compCon, uncoalesce)))
+        case None =>
+          Seq((Seq(foldVar), Seq(compCon)))
+      }
 
     case BaseLitExpr(code) =>
       import scala.meta._
@@ -730,11 +874,16 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   private def transVis(vis: Option[Visibility]): Option[Datalog.Visibility] =
     vis.map { case Private => Datalog.Private }
 
+  private def transDataType(typ: Type): Datalog.Type = typ match {
+    case TClass(ClassRef(name)) => Datalog.TData(name.raw)
+    case TAny | TNull | TScala(_) => Datalog.TScala(Scala(typ.asScala))
+    case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Scala type")
+  }
+
   @tailrec
   private def transType(typ: Type): Datalog.Type = typ match {
     case TAny => Datalog.TAny
-    case TNull => GP_URI
-    case TClass(_) => GP_URI
+    case TNull | TClass(_) => GP_URI
     case TScala(ty) => Datalog.TScala(ty)
     case TSet(ty) => transType(ty)
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
