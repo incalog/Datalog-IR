@@ -37,7 +37,7 @@ class Datalog(compiled: CompiledModule) {
   }
 
   def readAll: Seq[Relation] = {
-    val pattern = compiled.psystemModule.patterns.keys.toSeq
+    val pattern = compiled.psystemModule.patterns.keys.toSeq.sorted
     pattern.map(n => read(UnitRelation(n)))
   }
 

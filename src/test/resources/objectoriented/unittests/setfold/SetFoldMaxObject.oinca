@@ -4,7 +4,6 @@ class A {
 
 }
 
-// TODO: use allocCount and restore correct objects
 class Num {
   var value: Int
   var a: A

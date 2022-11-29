@@ -244,7 +244,9 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       (fieldReadCall +: coalescedChildCalls.flatten, vars)
     }.unzip
 
-    // TODO: How do we handle tuples ??
+    // TODO: 1. Support tuples
+    // TODO: 2. use allocCount and restore correct objects
+    // TODO: 3. Disallow sets
     val fieldTypes = classDef.fields.map(_.typ.flatten)
     val constrArgs = fieldVars.flatten.map { v => Term.Name(v.name) }.toList
     val constrParams = constrArgs.zip(fieldTypes.flatten).map {
@@ -282,7 +284,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         fieldReadVar,
         Datalog.Evaluation(
           Seq(objVar -> objType),
-          transType(ty),
+          transDataType(ty),
           Scala(Term.Function(
             List(Term.Param(Nil, Term.Name("obj"), Some(MetaType.Name(className)), None)),
             Term.Select(Term.Name("obj"), Term.Name(f.name.raw))
