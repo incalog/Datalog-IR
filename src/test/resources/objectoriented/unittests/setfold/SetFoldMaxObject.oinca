@@ -4,12 +4,14 @@ class A {
 
 }
 
+// TODO: use allocCount and restore correct objects
 class Num {
   var value: Int
-  //var a: A
+  var a: A
 
   def this(value: Int) = {
     this.value = value
+    this.a = new A()
   }
 
   @static

@@ -273,8 +273,8 @@ object TestDefinition {
   def foldSetTests: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/setfold")
     Seq(
-      TestDefinition("SetFoldMax", "Num", "main", Seq(), SetResult(16)),
-      TestDefinition("SetFoldSum", "Num", "main", Seq(), SetResult(23)),
+      //TestDefinition("SetFoldMax", "Num", "main", Seq(), SetResult(16)),
+      //TestDefinition("SetFoldSum", "Num", "main", Seq(), SetResult(23)),
       TestDefinition("SetFoldMaxObject", "Num", "main", Seq(), SetResult(5)),
     )
   }

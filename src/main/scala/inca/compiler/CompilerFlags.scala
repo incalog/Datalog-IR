@@ -7,7 +7,7 @@ object CompilerFlags {
     // true to include the AST
     val AST_STEPS: Boolean = false
     // true to include all optimizations
-    val OPTIMIZATION_STEPS: Boolean = false
+    val OPTIMIZATION_STEPS: Boolean = true
     // true to include all transformations
     val TRANSFORMATION_STEPS: Boolean = false
   }

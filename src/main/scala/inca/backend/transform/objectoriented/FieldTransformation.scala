@@ -113,7 +113,7 @@ object FieldTransformation extends Transformation {
       leafPattern.map(generateFilterPattern)
     }
 
-    override def transformLeafPattern(leafPat: Pattern): Pattern = gensym.scoped {
+    override def transformLeafPattern(leafPat: Pattern, affectedPattern: Set[Pattern]): Pattern = gensym.scoped {
       gensym.register(CollectVars.transPattern(leafPat))
 
       /*if (leafPat.params.size != 2) {

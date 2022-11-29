@@ -250,11 +250,11 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val constrParams = constrArgs.zip(fieldTypes.flatten).map {
       case (vt, t) => Term.Param(Nil, vt, Some(genScala.transType(t)), None)
     }
-
     val constrScalaFun = Term.Function(
       constrParams,
-      Term.New(Init(MetaType.Name(className), MetaName.Anonymous(), List(constrArgs)))
+      Term.Apply(Term.Select(Term.Name(className), Term.Name("apply")), constrArgs)
     )
+
     val evalParams = fieldVars.flatten.zip(fieldTypes.flatten).map { case (v, t) => v -> transDataType(t) }
     val genOutObj = Datalog.Computed(objVar, Datalog.Evaluation(evalParams, objType, Scala(constrScalaFun)))
     val body = Datalog.Body(

@@ -4,7 +4,7 @@ import inca.frontend.objectoriented.core._
 import inca.runtime.data.WrappedURI
 import inca.util.Scala.typeOf
 import truediff.GenericDiffable
-import inca.runtime.aggregate.{Aggregation, AggregatorAssocComm}
+import inca.runtime.aggregate.Aggregation
 
 import scala.meta.{Ctor, Name => MetaName, Type => MetaType, _}
 
@@ -54,10 +54,10 @@ class GenerateScala {
 
   def genModule(module: Module): ScalaModule = {
     val (cls, objs) = module.classes.map(transClass).unzip
-    new ScalaModule(cls, objs.flatten)
+    new ScalaModule(cls, objs)
   }
 
-  def transClass(classDef: ClassDef): (Defn.Class, Option[Defn.Object]) = {
+  def transClass(classDef: ClassDef): (Defn.Class, Defn.Object) = {
     val cls = MetaType.Name(classDef.name.raw)
     val fields = classDef.fields.map(transField).toList
 
@@ -66,7 +66,7 @@ class GenerateScala {
     val constructors = constructorDef.flatMap(transConstructor).toList
 
     val (staticMethodDefs, methodDefs) = classDef.methods.partition(_.isStatic)
-    var staticMethods = staticMethodDefs.flatMap(transMethod).toList
+    val staticMethods = staticMethodDefs.flatMap(transMethod).toList
     val methods = methodDefs.flatMap(transMethod).toList
 
     val parentRefOption = classDef.parentClassRefs.headOption
@@ -75,16 +75,19 @@ class GenerateScala {
     else
       Init(tGenericURI ,Term.Name(tGenericURI.toString()), List())
     //  Init(MetaType.Name("Object") ,Term.Name("Object"), List())
-    // TODO: Use tGenericDiffable in the future ?
+    // TODO: Use tGenericDiffable in the future
     // Init(tGenericDiffable ,Term.Name(tGenericDiffable.toString()), List())
 
-    val clsDef = q"""class $cls() extends $parentTypeRef { this =>
-      ..$fields
-      ..$emptyDefaultConstructor
-      ..$constructors
-      ..$methods
+    val clsDef =
+      q"""class $cls() extends $parentTypeRef { this =>
+        ..$fields
+        ..$emptyDefaultConstructor
+        ..$constructors
+        ..$methods
     }"""
 
+
+    // TODO: flatten field types and create tuples inside apply
     val params = classDef.fields.map { f =>
       Term.Param(Nil, Term.Name(f.name.raw), Some(transType(f.typ)), None)
     }.toList
@@ -95,22 +98,16 @@ class GenerateScala {
     val newObj = Term.New(Init(cls, MetaName.Anonymous(), List(List())))
 
     val obj = Term.Name(classDef.name.raw)
-    val objDefOption = {
-      if (staticMethods.nonEmpty) {
-        Some(
-          q"""object $obj {
-              def apply(..$params) = {
-                val obj = $newObj
-                ..$assignments
-                obj
-              }
-
-             ..$staticMethods
-          }""")
-      } else
-        None
-    }
-    (clsDef, objDefOption)
+    val objDef =
+      q"""object $obj {
+          def apply(..$params) = {
+            val obj = $newObj
+            ..$assignments
+            obj
+          }
+          ..$staticMethods
+      }"""
+    (clsDef, objDef)
   }
 
   def transField(fieldDef: FieldDef): Defn.Var = {

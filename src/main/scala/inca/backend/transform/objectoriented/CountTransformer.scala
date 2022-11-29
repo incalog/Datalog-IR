@@ -32,9 +32,10 @@ abstract class CountTransformer(val rootPatternHint: Hint,
   /**
    * Transform a leaf pattern to respect the count arguments. A subclass must override this method.
    * @param leafPat The leaf pattern to change.
+   * @param affectedPattern Sequence with all affected pattern.
    * @return The modified leaf pattern.
    */
-    def transformLeafPattern(leafPat: Pattern): Pattern
+    def transformLeafPattern(leafPat: Pattern, affectedPattern: Set[Pattern]): Pattern
 
   /**
    * Override this method in a subclass. Generate any additional pattern that are required in this method.
@@ -75,7 +76,7 @@ abstract class CountTransformer(val rootPatternHint: Hint,
   /**
    * Fix all custom aggregations by inserting do not care values for the newly created count parameters.
    */
-    private def transformAgg(aggregation: CustomAggregation, counterInVar: Var): CustomAggregation = {
+    def transformAgg(aggregation: CustomAggregation, counterInVar: Var): CustomAggregation = {
       val CustomAggregation(typ, description, agg, patName, args, aggregatedColumn) = aggregation
       val doNotCare = Var(gensym.fresh("_"))
       // FIXME: We put in the inVar as argument. This might be a problem in the future. For now this okay, since
@@ -168,8 +169,8 @@ abstract class CountTransformer(val rootPatternHint: Hint,
 
           Body(countInit +: body.atoms.flatMap {
             case c: Call if affectedPatternNames.contains(c.name) =>
-              val (tsOutVar, transAtom) = transformCall(c, countVar)
-              countVar = tsOutVar
+              val (countOutVar, transAtom) = transformCall(c, countVar)
+              countVar = countOutVar
               transAtom
             case Computed(lhs, c: CustomAggregation) if affectedPatternNames.contains(c.patName) =>
               Seq(Computed(lhs, transformAgg(c, countVar)))
@@ -197,15 +198,14 @@ abstract class CountTransformer(val rootPatternHint: Hint,
 
       // name of all calls that end up calling a leaf pattern
       val affectedPatternNames = affectedPattern.map(_.name)
-
       val bodies = pattern.bodies.map { body =>
         gensym.scoped {
           var countVar = Var(countParams.head.name)
 
           Body(body.atoms.flatMap {
             case c: Call if affectedPatternNames.contains(c.name) =>
-              val (tsOutVar, transAtom) = transformCall(c, countVar)
-              countVar = tsOutVar
+              val (countOutVar, transAtom) = transformCall(c, countVar)
+              countVar = countOutVar
               transAtom
             case Computed(lhs, c: CustomAggregation) if affectedPatternNames.contains(c.patName) =>
               Seq(Computed(lhs, transformAgg(c, countVar)))
@@ -245,7 +245,7 @@ abstract class CountTransformer(val rootPatternHint: Hint,
 
       val additionalPattern = generateAdditionalPattern(leafPats.toSeq, rootPats, affectedPattern, unchangedPattern)
       val transRootPats = rootPats.map(transformRootPattern(_, allAffectedPattern))
-      val transFieldPats = leafPats.map(transformLeafPattern)
+      val transFieldPats = leafPats.map(transformLeafPattern(_, allAffectedPattern))
       val transAffectedPats = affectedPattern.map(transformAffectedPattern(_, allAffectedPattern))
 
       transRootPats.toSeq ++ transFieldPats ++ transAffectedPats ++ additionalPattern ++ unchangedPattern
