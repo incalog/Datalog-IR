@@ -50,6 +50,18 @@ class FunctionsTest extends AnyFunSuite with BeforeAndAfterEach {
     assert(fun.execute("main2", Seq(q"10", q""""x"""")) == fun.results(Seq(Seq(10, "x"))))
   }
 
+  test("shadowing set comprehension") {
+    val code =
+      s"""module TupleInput
+        |def foo(): Set[(Int, Int)] = {(1, 2)}
+        |@main def main(): Int = 
+        |  let x = 12 in
+        |    { (x + 1) | (x, y) in foo(), y == y}
+        |""".stripMargin
+    val fun = FunctionalExecutor.loadFunction(code)
+    assert(fun.execute("main", Seq()) == fun.resultVal("x"))
+  }
+
   test("Simple Set Intersection") {
     val code =
       s"""module SetIntersection

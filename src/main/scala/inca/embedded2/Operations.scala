@@ -8,10 +8,10 @@ object Operations {
     )(implicit compiler: Compiler[FL, L, FL, PSystem[FL]],
       interpreter: Interpreter[FL]
     ): L#Value = {
-    val psystem = compiler.compile(prog)
+    val loweredProg = compiler.compile(prog)
     val loweredEntry = compiler.lowerEntry(entry)
     val loweredInput = compiler.lower(input)
-    val psystemValue = solvePSystem(psystem, loweredEntry, loweredInput)(interpreter)
+    val psystemValue = solvePSystem(loweredProg, loweredEntry, loweredInput)
     compiler.lift(psystemValue)
   }
 

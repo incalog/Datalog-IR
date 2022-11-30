@@ -17,7 +17,8 @@ trait IR[FL <: Language[_]] extends Language[FL] {
       imports: Seq[String],
       patterns: Seq[Pattern],
       flTopLevel: Seq[fl.TopLevelDefinition])
-  case class Pattern(name: String, params: Seq[Type], bodies: Seq[Body])
+  case class Parameter(name: String, ty: Type)
+  case class Pattern(name: String, params: Seq[Parameter], bodies: Seq[Body])
 
   trait Type
   case class FLType(ty: fl.Type) extends Type
@@ -49,6 +50,7 @@ trait IR[FL <: Language[_]] extends Language[FL] {
 
   trait Term
   case class FLConst(c: fl.Constant) extends Term
+  case class Var(name: String) extends Term
 }
 
 trait ASTIR[FL <: Language[_]] extends IR[FL] {

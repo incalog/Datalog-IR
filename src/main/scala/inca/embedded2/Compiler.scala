@@ -26,23 +26,35 @@ object CompilerCombinationImplicit {
 //  }
   implicit def inner[
       FL <: Language[Nothing],
-      IL1 <: Language[FL],
-      OL1 <: Language[IL1],
-      IL2 <: Language[FL],
-      OL2 <: Language[IL2]
-    ](implicit innerCompiler: Compiler[FL, IL1, FL, IL2]
-    ): Compiler[IL1, OL1, IL2, OL2] = new Compiler[IL1, OL1, IL2, OL2] {
-    override def compile(sl: OL1#Program): OL2#Program = ???
-    override def lower(input: OL1#Input): OL2#Input = ???
-    override def lowerEntry(input: OL1#EntryPoint): OL2#EntryPoint = ???
-    override def lift(value: OL2#Value): OL1#Value = ???
+      IL <: Language[FL],
+      OL <: Language[IL],
+      TL <: Language[FL]
+    ](implicit compiler: Compiler[FL, IL, Nothing, FL],
+      evidence: OL =:= IL
+    ): Compiler[IL, OL, FL, TL] = new Compiler[IL, OL, FL, TL] {
+    override def compile(sl: OL#Program): TL#Program = ???
+    override def lower(input: OL#Input): TL#Input = ???
+    override def lowerEntry(input: OL#EntryPoint): TL#EntryPoint = ???
+    override def lift(value: TL#Value): OL#Value = ???
   }
+//  implicit def inner[
+//      FL <: Language[Nothing],
+//      IL1 <: Language[FL],
+//      OL1 <: Language[IL1],
+//      IL2 <: Language[FL],
+//      OL2 <: Language[IL2]
+//    ](implicit innerCompiler: Compiler[FL, IL1, FL, IL2]
+//    ): Compiler[IL1, OL1, IL2, OL2] = new Compiler[IL1, OL1, IL2, OL2] {
+//    override def compile(sl: OL1#Program): OL2#Program = ???
+//    override def lower(input: OL1#Input): OL2#Input = ???
+//    override def lowerEntry(input: OL1#EntryPoint): OL2#EntryPoint = ???
+//    override def lift(value: OL2#Value): OL1#Value = ???
+//  }
 
   implicit def compose[
       FL <: Language[Nothing],
       SL <: Language[FL],
       IL <: Language[FL],
-      TFL <: Language[Nothing],
       TL <: Language[FL]
     ](implicit firstCompiler: Compiler[FL, SL, FL, IL],
       secondCompiler: Compiler[FL, IL, FL, TL]
