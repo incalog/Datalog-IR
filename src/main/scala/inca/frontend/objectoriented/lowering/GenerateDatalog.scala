@@ -151,6 +151,10 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     )
   }
 
+  private def getObjectId(obj: Datalog.Var, outVar: Datalog.Var): Datalog.Computed = {
+    getObjectAttribute(obj, "allocId", outVar, Datalog.TScalaString)
+  }
+
   private def getObjectTyp(obj: Datalog.Var, outVar: Datalog.Var): Datalog.Computed = {
     getObjectAttribute(obj, "typ", outVar, Datalog.TScalaString)
   }
@@ -215,6 +219,13 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   private def generateConstructorCoalesced(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
     import scala.meta._
 
+    val fields = classDef.fields.flatMap {
+      case FieldDef(_, _, Name(name), TSet(_), _, _) =>
+        println(s"Warning: Can not coalesced field ${classDef.name.raw}.$name with set type!")
+        None
+      case f => Some(f)
+    }
+
     val className = classDef.name.raw
     val uriParam = Datalog.Param("uri", transType(classDef.typ))
     val uriVar = Datalog.Var(uriParam.name)
@@ -222,7 +233,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val objParam = Datalog.Param("obj", objType)
     val objVar = Datalog.Var(objParam.name)
 
-    val (readFields, fieldVars) = classDef.fields.map { f =>
+    val (readFields, fieldVars) = fields.map { f =>
       val varName = gensym.fresh(f.name.raw)
       val fieldReadVars = flattenVars(varName, f.typ).map(_._1)
       val fieldPat = fieldPatName(className, f.name.raw)
@@ -244,23 +255,26 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       (fieldReadCall +: coalescedChildCalls.flatten, vars)
     }.unzip
 
-    // TODO: 1. Support tuples
-    // TODO: 2. use allocCount and restore correct objects
-    // TODO: 3. Disallow sets
-    val fieldTypes = classDef.fields.map(_.typ.flatten)
-    val constrArgs = fieldVars.flatten.map { v => Term.Name(v.name) }.toList
-    val constrParams = constrArgs.zip(fieldTypes.flatten).map {
+    // read and pass the allocation id and all fields to the scala function
+    val allocId = Datalog.Var(gensym.fresh("allocId"))
+    val readFieldsFlat = getObjectId(uriVar, allocId) +: readFields.flatten
+    val fieldVarsFlat = allocId +: fieldVars.flatten
+    val fieldTypes = TScalaInt +: fields.flatMap(_.typ.flatten)
+
+    val constrArgs = fieldVarsFlat.map { v => Term.Name(v.name) }.toList
+    val constrParams = constrArgs.zip(fieldTypes).map {
       case (vt, t) => Term.Param(Nil, vt, Some(genScala.transType(t)), None)
     }
+
     val constrScalaFun = Term.Function(
       constrParams,
       Term.Apply(Term.Select(Term.Name(className), Term.Name("apply")), constrArgs)
     )
 
-    val evalParams = fieldVars.flatten.zip(fieldTypes.flatten).map { case (v, t) => v -> transDataType(t) }
+    val evalParams = fieldVarsFlat.zip(fieldTypes).map { case (v, t) => v -> transDataType(t) }
     val genOutObj = Datalog.Computed(objVar, Datalog.Evaluation(evalParams, objType, Scala(constrScalaFun)))
     val body = Datalog.Body(
-      readFields.flatten :+ genOutObj
+      readFieldsFlat :+ genOutObj
     )
 
     val constrCoalescedPat = Datalog.Pattern(None, coalescedPatName(className), Seq(uriParam, objParam), Seq(body))
@@ -271,6 +285,13 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   private def generateConstructorUncoalesced(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
     import scala.meta.Term
 
+    val fields = classDef.fields.flatMap {
+      case FieldDef(_, _, Name(name), TSet(_), _, _) =>
+        println(s"Warning: Can not uncoalesced field ${classDef.name.raw}.$name with set type!")
+        None
+      case f => Some(f)
+    }
+
     val className = classDef.name.raw
     val uriParam = Datalog.Param("uri", transType(classDef.typ))
     val uriVar = Datalog.Var(uriParam.name)
@@ -278,8 +299,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val objParam = Datalog.Param("obj", objType)
     val objVar = Datalog.Var(objParam.name)
 
-    def readFieldComp(f: FieldDef, ty: Type): (Datalog.Var, Datalog.Computed) = {
-      val fieldReadVar = Datalog.Var(gensym.fresh(f.name.raw))
+    def readFieldComp(fieldName: String, ty: Type, tupleIndex: Option[Int]): (Datalog.Var, Datalog.Computed) = {
+      val fieldReadVar = Datalog.Var(gensym.fresh(fieldName))
       val comp = Datalog.Computed(
         fieldReadVar,
         Datalog.Evaluation(
@@ -287,22 +308,28 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           transDataType(ty),
           Scala(Term.Function(
             List(Term.Param(Nil, Term.Name("obj"), Some(MetaType.Name(className)), None)),
-            Term.Select(Term.Name("obj"), Term.Name(f.name.raw))
+            if (tupleIndex.isDefined)
+              q"""shapeless(${Term.Name("obj")}.${Term.Name(fieldName)})(${tupleIndex.get})"""
+            else
+              q"""${Term.Name("obj")}.${Term.Name(fieldName)}"""
           ))
         )
       )
       (fieldReadVar, comp)
     }
 
-    val setter = classDef.fields.map { f =>
-      val (vars, comps) = f.typ.flatten.map {
-        case ty@TClass(ClassRef(name)) =>
-          val (fieldReadVar, fieldReadComp) = readFieldComp(f, ty)
+    val setter = fields.map { f =>
+      // FIXME: This is tuple check will fail if we allow coalescing sets, since tuples can then be contained inside a
+      //  set. For now a Tuple can only be the outermost type at this source position.
+      val isTuple = f.typ.isInstanceOf[TTuple]
+      val (vars, comps) = f.typ.flatten.zipWithIndex.map {
+        case (ty@TClass(ClassRef(name)), i) =>
+          val (fieldReadVar, fieldReadComp) = readFieldComp(f.name.raw, ty, if (isTuple) Some(i) else None)
           val childUri = Datalog.Var(gensym.fresh(f.name.raw))
           val call = Datalog.Call(uncoalescedPatName(name.raw), Seq(fieldReadVar, childUri))
           (childUri, Seq(fieldReadComp, call))
-        case ty =>
-          val (fieldReadVar, fieldReadComp) = readFieldComp(f, ty)
+        case (ty, i) =>
+          val (fieldReadVar, fieldReadComp) = readFieldComp(f.name.raw, ty, if (isTuple) Some(i) else None)
           (fieldReadVar, Seq(fieldReadComp))
       }.unzip
 
@@ -313,22 +340,22 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       comps.flatten :+ setterCall
     }
 
+    val (allocVar, allocComp) = readFieldComp("allocId", TScalaInt, None)
     val genURI = Datalog.Computed(
       uriVar,
       Datalog.Evaluation(
-        Seq(),
+        Seq(allocVar -> Datalog.TScalaInt),
         transType(classDef.typ),
-        Scala(Term.Function(Nil, q"""$oOID(${className})"""))
+        Scala(q"""(allocId: Int) => $oOID(${className}, allocId)""")
       )
-    ).addHint(ObjectHints.AllocationInit)
+    )//.addHint(ObjectHints.AllocationInit)
     val body = Datalog.Body(
-      genURI +: setter.flatten
+      allocComp +: genURI +: setter.flatten
     )
 
     val constrUncoalescedPat = Datalog.Pattern(None, uncoalescedPatName(className), Seq(objParam, uriParam), Seq(body))
     constrUncoalescedPat
       .addHint(ObjectHints.Allocation)
-      //.addHint(MagicSetHints.NoInputRelation)
   }
 
   private def transFieldInitBody(classDef: ClassDef): Seq[Datalog.Body] = {
@@ -710,8 +737,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         case Some(td) =>
           val foldVarUncoalesced = Datalog.Var(gensym.fresh("fold"))
           val uncoalesce = Datalog.Call(uncoalescedPatName(td.ref.name.raw), Seq(foldVar, foldVarUncoalesced))
-            //.addHint(MagicSetHints.IgnoreCall)
-            //.addHint(MagicSetHints.FixedAdornment(Seq(true, false)))
           Seq((Seq(foldVarUncoalesced), Seq(compCon, uncoalesce)))
         case None =>
           Seq((Seq(foldVar), Seq(compCon)))

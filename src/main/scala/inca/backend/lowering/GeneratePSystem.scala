@@ -94,7 +94,11 @@ object GeneratePSystem {
       import org.eclipse.viatra.query.runtime.matchers.psystem.basicenumerables._
 
       object $name extends ${Init(tyPSystemModule, Term.Name(tyPSystemModule.toString), List())} {
-
+        // Helper method used in objectoriented frontend to flatten a nested tuple while uncoalesing
+        private def shapeless(tup: Product): Seq[Any] = tup.productIterator.flatMap {
+          case s: Product => shapeless(s)
+          case e => Seq(e)
+        }.toSeq
 
         override val patterns: $tMap[String, () => $tyQuerySpecification] = $oMap(..${
           module.pats.filter(!_.isEmpty).map(p => q"${p.name} -> (() => ${Term.Name(p.name)}.instance)").toList

@@ -273,9 +273,10 @@ object TestDefinition {
   def foldSetTests: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/setfold")
     Seq(
-      //TestDefinition("SetFoldMax", "Num", "main", Seq(), SetResult(16)),
-      //TestDefinition("SetFoldSum", "Num", "main", Seq(), SetResult(23)),
+      TestDefinition("SetFoldMax", "Num", "main", Seq(), SetResult(16)),
+      TestDefinition("SetFoldSum", "Num", "main", Seq(), SetResult(23)),
       TestDefinition("SetFoldMaxObject", "Num", "main", Seq(), SetResult(5)),
+      TestDefinition("SetFoldTuple", "Num", "main", Seq(), SetResult(5))
     )
   }
 
@@ -288,7 +289,7 @@ object TestDefinition {
 
   def treeTest: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("graphs")
-    TestDefinition("Tree", "Tree", "main", Seq(), SetResult(1.to(20):_*)),
+    TestDefinition("Tree", "Tree", "main", Seq(), SetResult(1.to(20):_*))
   }
 
   def binaryTreeTest: TestDefinition[Int] = {

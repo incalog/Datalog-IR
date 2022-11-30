@@ -80,20 +80,38 @@ class GenerateScala {
 
     val clsDef =
       q"""class $cls() extends $parentTypeRef { this =>
+        var allocId: Int = 0
         ..$fields
         ..$emptyDefaultConstructor
         ..$constructors
         ..$methods
     }"""
 
-
-    // TODO: flatten field types and create tuples inside apply
-    val params = classDef.fields.map { f =>
-      Term.Param(Nil, Term.Name(f.name.raw), Some(transType(f.typ)), None)
+    val allocIdTerm = Term.Name("allocId")
+    val allocIdParam = Term.Param(Nil, allocIdTerm, Some(transType(TScalaInt)), None)
+    val params = allocIdParam +: classDef.fields.flatMap { f =>
+      f.typ.flatten.zipWithIndex.map { case (ty, i) =>
+        Term.Param(Nil, Term.Name(f.name.raw + "$" + i), Some(transType(ty)), None)
+      }
     }.toList
-    val assignments = classDef.fields.map { f=>
-      val fieldTerm = Term.Name(f.name.raw)
-      q"obj.$fieldTerm = $fieldTerm"
+
+    def fieldToTuple(name: String, ty: Type, index: Int = 0): (Int, Term) = ty match {
+      case TTuple(ts) =>
+        var newIndex = index
+        val terms = ts.map { ty =>
+          val (idx, t) = fieldToTuple(name, ty, newIndex)
+          newIndex = idx
+          t
+        }.toList
+        (newIndex, q"(..$terms)")
+      case _ =>
+        (index + 1, q"${Term.Name(name + "$" + index)}")
+    }
+
+    val assignments = classDef.fields.map { f =>
+      val (newIndex, paramTerm) = fieldToTuple(f.name.raw, f.typ)
+      val fieldTerm =  Term.Name(f.name.raw)
+      q"obj.$fieldTerm = $paramTerm"
     }.toList
     val newObj = Term.New(Init(cls, MetaName.Anonymous(), List(List())))
 
@@ -102,6 +120,7 @@ class GenerateScala {
       q"""object $obj {
           def apply(..$params) = {
             val obj = $newObj
+            obj.allocId = $allocIdTerm
             ..$assignments
             obj
           }
