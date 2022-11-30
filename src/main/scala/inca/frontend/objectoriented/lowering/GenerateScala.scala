@@ -64,10 +64,7 @@ class GenerateScala {
     val (defaultConstructorDef, constructorDef) = classDef.constructors.partition(_.params.isEmpty)
     val emptyDefaultConstructor = defaultConstructorDef.map(transEmptyDefaultConstructor).toList
     val constructors = constructorDef.flatMap(transConstructor).toList
-
-    val (staticMethodDefs, methodDefs) = classDef.methods.partition(_.isStatic)
-    val staticMethods = staticMethodDefs.flatMap(transMethod).toList
-    val methods = methodDefs.flatMap(transMethod).toList
+    val methods = classDef.methods.filter(!_.isStatic).flatMap(transMethod).toList
 
     val parentRefOption = classDef.parentClassRefs.headOption
     val parentTypeRef = if (parentRefOption.isDefined)
@@ -78,18 +75,31 @@ class GenerateScala {
     // TODO: Use tGenericDiffable in the future
     // Init(tGenericDiffable ,Term.Name(tGenericDiffable.toString()), List())
 
+    val clsBody = fields ++ emptyDefaultConstructor ++ constructors ++ methods
     val clsDef =
-      q"""class $cls() extends $parentTypeRef { this =>
-        var allocId: Int = 0
-        ..$fields
-        ..$emptyDefaultConstructor
-        ..$constructors
-        ..$methods
-    }"""
+      if (parentRefOption.isDefined)
+        q"""class $cls() extends $parentTypeRef {
+          ..$clsBody
+        }"""
+      else
+        q"""class $cls() extends $parentTypeRef {
+          var allocId: Option[Int] = None
+          ..$clsBody
+        }"""
+
+    val objDef = transCompanionObject(classDef)
+    (clsDef, objDef)
+  }
+
+  private def transCompanionObject(classDef: ClassDef): Defn.Object = {
+    val cls = MetaType.Name(classDef.name.raw)
+    // FIXME: We ignore set fields for now
+    val fields = classDef.fields.filter(!_.typ.isInstanceOf[TSet])
+    val staticMethods = classDef.methods.filter(_.isStatic).flatMap(transMethod).toList
 
     val allocIdTerm = Term.Name("allocId")
     val allocIdParam = Term.Param(Nil, allocIdTerm, Some(transType(TScalaInt)), None)
-    val params = allocIdParam +: classDef.fields.flatMap { f =>
+    val params = allocIdParam +: fields.flatMap { f =>
       f.typ.flatten.zipWithIndex.map { case (ty, i) =>
         Term.Param(Nil, Term.Name(f.name.raw + "$" + i), Some(transType(ty)), None)
       }
@@ -108,25 +118,25 @@ class GenerateScala {
         (index + 1, q"${Term.Name(name + "$" + index)}")
     }
 
-    val assignments = classDef.fields.map { f =>
+    val assignments = fields.map { f =>
       val (newIndex, paramTerm) = fieldToTuple(f.name.raw, f.typ)
-      val fieldTerm =  Term.Name(f.name.raw)
+      val fieldTerm = Term.Name(f.name.raw)
       q"obj.$fieldTerm = $paramTerm"
     }.toList
     val newObj = Term.New(Init(cls, MetaName.Anonymous(), List(List())))
 
     val obj = Term.Name(classDef.name.raw)
-    val objDef =
-      q"""object $obj {
-          def apply(..$params) = {
-            val obj = $newObj
-            obj.allocId = $allocIdTerm
-            ..$assignments
-            obj
-          }
-          ..$staticMethods
-      }"""
-    (clsDef, objDef)
+
+    // the apply method is used for coalesing and uncoalesing
+    q"""object $obj {
+        def apply(..$params) = {
+          val obj = $newObj
+          obj.allocId = Some($allocIdTerm)
+          ..$assignments
+          obj
+        }
+        ..$staticMethods
+    }"""
   }
 
   def transField(fieldDef: FieldDef): Defn.Var = {

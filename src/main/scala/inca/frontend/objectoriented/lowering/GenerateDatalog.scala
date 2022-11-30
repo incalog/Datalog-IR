@@ -1,9 +1,8 @@
 package inca.frontend.objectoriented.lowering
 
-import inca.backend.hints.{DataHints, MagicSetHints, ObjectHints, OptimizationHints}
+import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog
 import inca.compiler.SourceObject
-import inca.frontend.objectoriented.core
 import inca.frontend.objectoriented.core._
 import inca.frontend.objectoriented.lowering.GenerateDatalog._
 import inca.util.TupleOps
@@ -14,7 +13,7 @@ import inca.util.{Gensym, Scala}
 import scala.annotation.tailrec
 import scala.collection.immutable.MultiDict
 import scala.collection.mutable.ListBuffer
-import scala.meta.{Stat, Term, Name => MetaName, Type => MetaType}
+import scala.meta.{Stat, Term, Type => MetaType}
 import scala.meta.quasiquotes._
 
 object GenerateDatalog {
@@ -340,22 +339,44 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       comps.flatten :+ setterCall
     }
 
-    val (allocVar, allocComp) = readFieldComp("allocId", TScalaInt, None)
-    val genURI = Datalog.Computed(
-      uriVar,
+    val intOptionType = TScala(Scala(t"Option[Int]"))
+    val (allocVar, allocComp) = readFieldComp("allocId", intOptionType, None)
+
+    def allocIdIsDefinedComp(isDefined: Boolean) = Datalog.Computed(
+      if (isDefined) Datalog.True else Datalog.False,
       Datalog.Evaluation(
-        Seq(allocVar -> Datalog.TScalaInt),
-        transType(classDef.typ),
-        Scala(q"""(allocId: Int) => $oOID(${className}, allocId)""")
+        Seq(allocVar -> transType(intOptionType)),
+        Datalog.TScalaBoolean,
+        Scala(q"""(allocIdOption: Option[Int]) => allocIdOption.isDefined""")
       )
-    )//.addHint(ObjectHints.AllocationInit)
-    val body = Datalog.Body(
-      allocComp +: genURI +: setter.flatten
     )
 
-    val constrUncoalescedPat = Datalog.Pattern(None, uncoalescedPatName(className), Seq(objParam, uriParam), Seq(body))
-    constrUncoalescedPat
-      .addHint(ObjectHints.Allocation)
+    val genURIWithId = Datalog.Computed(
+      uriVar,
+      Datalog.Evaluation(
+        Seq(allocVar -> transType(intOptionType)),
+        transType(classDef.typ),
+        Scala(q"""(allocId: Option[Int]) => $oOID(${className}, allocId.get)""")
+      )
+    )
+    // existing object was returned
+    val bodyWithId = Datalog.Body(
+      allocComp +: allocIdIsDefinedComp(true) +: genURIWithId +: setter.flatten
+    )
+
+    // new object was created in scala
+    val genURIWithoutId = Datalog.Computed(
+      uriVar, Datalog.Evaluation(Seq(), transType(classDef.typ), Scala(q"""() => $oOID(${className})"""))
+    ).addHint(ObjectHints.AllocationInit)
+
+    val bodyWithoutId = Datalog.Body(
+      allocComp +: allocIdIsDefinedComp(false) +: genURIWithoutId +: setter.flatten
+    )
+
+    val params = Seq(objParam, uriParam)
+    val bodies = Seq(bodyWithId, bodyWithoutId)
+    val constrUncoalescedPat = Datalog.Pattern(None, uncoalescedPatName(className), params, bodies)
+    constrUncoalescedPat.addHint(ObjectHints.Allocation)
   }
 
   private def transFieldInitBody(classDef: ClassDef): Seq[Datalog.Body] = {
