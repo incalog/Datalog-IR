@@ -1,0 +1,27 @@
+module SetFold
+
+class Num {
+  var value: Int
+
+  def this(value: Int) = {
+    this.value = value
+  }
+
+  @static
+  def max(n1: Num, n2: Num): Num = {
+    if (n1 == null)
+        return n2
+    if (n2 == null)
+        return n1
+    if (n1.value > n2.value)
+      return n1
+    else
+      return n2
+  }
+
+  @main def main(): Int = {
+    val s: Set[Num] = Set(new Num(1), null, new Num(3), new Num(5), new Num(7))
+    val n: Num = fold(s, Num.max, null)
+    return n.value
+  }
+}

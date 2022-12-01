@@ -276,7 +276,8 @@ object TestDefinition {
       TestDefinition("SetFoldMax", "Num", "main", Seq(), SetResult(16)),
       TestDefinition("SetFoldSum", "Num", "main", Seq(), SetResult(23)),
       TestDefinition("SetFoldMaxObject", "Num", "main", Seq(), SetResult(5)),
-      TestDefinition("SetFoldTuple", "Num", "main", Seq(), SetResult(5))
+      TestDefinition("SetFoldTuple", "Num", "main", Seq(), SetResult(5)),
+      TestDefinition("SetFoldNull", "Num", "main", Seq(), SetResult(7))
     )
   }
 

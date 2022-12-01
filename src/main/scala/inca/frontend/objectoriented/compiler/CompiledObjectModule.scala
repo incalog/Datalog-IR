@@ -121,7 +121,8 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
   }
 
   lazy val ir: Datalog.Module = {
-    val module = new GenerateDatalog(typed, coreModule).transModule()
+    val genDatalog = new GenerateDatalog(typed, coreModule)
+    val module = genDatalog.transModule()
 
     println("\nIntermediate Representation")
     println(module)
@@ -130,6 +131,7 @@ case class CompiledObjectModule(fun: Module, options: ObjectOptions) extends Com
       println("\nIntermediate Representation")
       println(module)
     }
+
     module
   }
 

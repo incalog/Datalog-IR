@@ -20,7 +20,7 @@ object GenerateDatalog {
   private val sep: String = "$"
   private val internalPrefix: String = "_" + sep
 
-  val castPatName: String       = internalPrefix + "cast"
+  val castPatName: String = internalPrefix + "cast"
   val instanceOfPatName: String = internalPrefix + "instanceOf"
 
   def dispatchPatName(methodNameWithSignature: String): String = s"${internalPrefix}dispatch_${methodNameWithSignature}"
@@ -49,6 +49,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
   val oOID: meta.Term = symbolOf(ObjectID)
   val tyOID: meta.Type = typeOf[ObjectID]
+
+  def GP_URI: Datalog.TScala = Datalog.TScala(Scala(tyOID))
 
   def transModule(): Datalog.Module = {
     val Module(name, imports, classes) = coreModule
@@ -140,22 +142,26 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     ))
   }
 
-  private def getObjectAttribute(obj: Datalog.Var, attribute: String, outVar: Datalog.Var, outType: Datalog.Type): Datalog.Computed = {
+  private def getURIAttribute(uri: Datalog.Var, attribute: String, out: Datalog.Term, outType: Datalog.Type): Datalog.Computed = {
     val compAttr = Term.Name(attribute)
-    val compArg = Term.Name("obj")
+    val compArg = Term.Name("uri")
     val compParam = Term.Param(Nil, compArg, Some(GP_URI.asScala), None)
     Datalog.Computed(
-      outVar, Datalog.Evaluation(Seq(obj -> GP_URI), outType, Scala(q"($compParam) => $compArg.$compAttr")
+      out, Datalog.Evaluation(Seq(uri -> GP_URI), outType, Scala(q"($compParam) => $compArg.$compAttr")
       )
     )
   }
 
-  private def getObjectId(obj: Datalog.Var, outVar: Datalog.Var): Datalog.Computed = {
-    getObjectAttribute(obj, "allocId", outVar, Datalog.TScalaString)
+  private def getURIIsNull(uri: Datalog.Var, out: Datalog.Term): Datalog.Computed = {
+    getURIAttribute(uri, "isNull", out, Datalog.TScalaBoolean)
   }
 
-  private def getObjectTyp(obj: Datalog.Var, outVar: Datalog.Var): Datalog.Computed = {
-    getObjectAttribute(obj, "typ", outVar, Datalog.TScalaString)
+  private def getURIAllocId(uri: Datalog.Var, out: Datalog.Term): Datalog.Computed = {
+    getURIAttribute(uri, "allocId", out, Datalog.TScalaInt)
+  }
+
+  private def geURITyp(uri: Datalog.Var, out: Datalog.Term): Datalog.Computed = {
+    getURIAttribute(uri, "typ", out, Datalog.TScalaString)
   }
 
   private def transInstanceOf(): Datalog.Pattern = gensym.scoped {
@@ -166,7 +172,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     )
 
     val tyVar = Datalog.Var("ty")
-    val tyComp = getObjectTyp(Datalog.Var("this"), tyVar)
+    val tyComp = geURITyp(Datalog.Var("this"), tyVar)
 
     val outVar = Datalog.Var("out")
     val tyParamVar = Datalog.Var("t")
@@ -191,7 +197,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     )
 
     val tyVar = Datalog.Var("ty")
-    val tyComp = getObjectTyp(Datalog.Var("this"), tyVar)
+    val tyComp = geURITyp(Datalog.Var("this"), tyVar)
 
     val tyParamVar = Datalog.Var("t")
     val isSubtype = Datalog.ExtensionalCall("subtype", Seq(tyVar, tyParamVar))
@@ -219,8 +225,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     import scala.meta._
 
     val fields = classDef.fields.flatMap {
-      case FieldDef(_, _, Name(name), TSet(_), _, _) =>
-        println(s"Warning: Can not coalesced field ${classDef.name.raw}.$name with set type!")
+      case f@FieldDef(_, _, Name(name), TSet(_), _, _) =>
+        println(s"Can not coalesced field ${classDef.name.raw}.$name with set type!", f)
         None
       case f => Some(f)
     }
@@ -256,7 +262,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     // read and pass the allocation id and all fields to the scala function
     val allocId = Datalog.Var(gensym.fresh("allocId"))
-    val readFieldsFlat = getObjectId(uriVar, allocId) +: readFields.flatten
+    val readFieldsFlat = getURIAllocId(uriVar, allocId) +: readFields.flatten
     val fieldVarsFlat = allocId +: fieldVars.flatten
     val fieldTypes = TScalaInt +: fields.flatMap(_.typ.flatten)
 
@@ -272,11 +278,17 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     val evalParams = fieldVarsFlat.zip(fieldTypes).map { case (v, t) => v -> transDataType(t) }
     val genOutObj = Datalog.Computed(objVar, Datalog.Evaluation(evalParams, objType, Scala(constrScalaFun)))
-    val body = Datalog.Body(
-      readFieldsFlat :+ genOutObj
+    val bodyWithObject = Datalog.Body(
+      getURIIsNull(uriVar, Datalog.False) +: readFieldsFlat :+ genOutObj
     )
 
-    val constrCoalescedPat = Datalog.Pattern(None, coalescedPatName(className), Seq(uriParam, objParam), Seq(body))
+    val genNullObj = Datalog.Computed(objVar, Datalog.Evaluation(Seq(), objType, Scala(q"() => null")))
+    val bodyWithNull = Datalog.Body(
+      Seq(getURIIsNull(uriVar, Datalog.True), genNullObj)
+    )
+    val bodies = Seq(bodyWithObject, bodyWithNull)
+    val params = Seq(uriParam, objParam)
+    val constrCoalescedPat = Datalog.Pattern(None, coalescedPatName(className), params, bodies)
     constrCoalescedPat
       //.addHint(MagicSetHints.NoInputRelation)
   }
@@ -285,8 +297,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     import scala.meta.Term
 
     val fields = classDef.fields.flatMap {
-      case FieldDef(_, _, Name(name), TSet(_), _, _) =>
-        println(s"Warning: Can not uncoalesced field ${classDef.name.raw}.$name with set type!")
+      case f@FieldDef(_, _, Name(name), TSet(_), _, _) =>
+        println(s"Can not coalesced field ${classDef.name.raw}.$name with set type!", f)
         None
       case f => Some(f)
     }
@@ -342,6 +354,15 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val intOptionType = TScala(Scala(t"Option[Int]"))
     val (allocVar, allocComp) = readFieldComp("allocId", intOptionType, None)
 
+    def objIsNull(isNull: Boolean) = Datalog.Computed(
+      if (isNull) Datalog.True else Datalog.False,
+      Datalog.Evaluation(
+        Seq(objVar -> objType),
+        Datalog.TScalaBoolean,
+        Scala(q"""(objOrNull: ${genScala.transType(classDef.typ)}) => objOrNull == null""")
+      )
+    )
+
     def allocIdIsDefinedComp(isDefined: Boolean) = Datalog.Computed(
       if (isDefined) Datalog.True else Datalog.False,
       Datalog.Evaluation(
@@ -361,7 +382,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     )
     // existing object was returned
     val bodyWithId = Datalog.Body(
-      allocComp +: allocIdIsDefinedComp(true) +: genURIWithId +: setter.flatten
+      objIsNull(false) +: allocComp +: allocIdIsDefinedComp(true) +: genURIWithId +: setter.flatten
     )
 
     // new object was created in scala
@@ -370,11 +391,20 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     ).addHint(ObjectHints.AllocationInit)
 
     val bodyWithoutId = Datalog.Body(
-      allocComp +: allocIdIsDefinedComp(false) +: genURIWithoutId +: setter.flatten
+      objIsNull(false) +: allocComp +: allocIdIsDefinedComp(false) +: genURIWithoutId +: setter.flatten
+    )
+
+    // object is null object
+    val genNullURI = Datalog.Computed(
+      uriVar, Datalog.Evaluation(Seq(), transType(classDef.typ), Scala(q"""() => $oOID("Null")"""))
+    )
+
+    val bodyWithNull = Datalog.Body(
+      Seq(objIsNull(true) , genNullURI)
     )
 
     val params = Seq(objParam, uriParam)
-    val bodies = Seq(bodyWithId, bodyWithoutId)
+    val bodies = Seq(bodyWithNull, bodyWithId, bodyWithoutId)
     val constrUncoalescedPat = Datalog.Pattern(None, uncoalescedPatName(className), params, bodies)
     constrUncoalescedPat.addHint(ObjectHints.Allocation)
   }
@@ -916,8 +946,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       case ty =>
         Seq(Datalog.Var(if (genFresh) gensym.fresh(name) else name) -> transType(ty))
     }
-
-  def GP_URI: Datalog.TScala = Datalog.TScala(Scala(typeOf[ObjectID]))
 
   private def transVis(vis: Option[Visibility]): Option[Datalog.Visibility] =
     vis.map { case Private => Datalog.Private }

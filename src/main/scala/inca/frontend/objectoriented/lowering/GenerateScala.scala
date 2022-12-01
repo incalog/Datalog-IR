@@ -129,7 +129,7 @@ class GenerateScala {
 
     // the apply method is used for coalesing and uncoalesing
     q"""object $obj {
-        def apply(..$params) = {
+        def apply(..$params): $cls = {
           val obj = $newObj
           obj.allocId = Some($allocIdTerm)
           ..$assignments

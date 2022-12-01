@@ -1,18 +1,26 @@
 module SetFold
 
 class A {
+    var b: B
+
+    def this() = {
+        this.b = new B()
+    }
+}
+
+class B {
 
 }
 
 class Num {
   var value: Int
-  var a: ((Int, Int), Int)
-  var b: (Int, (A, Int))
+  var tup1: ((Int, Int), Int)
+  var tup2: (Int, (A, Int))
 
   def this(value: Int) = {
     this.value = value
-    this.a = ((4, 5), 3)
-    this.b = (4, (new A(), 3))
+    this.tup1 = ((4, 5), 3)
+    this.tup2 = (4, (new A(), 3))
   }
 
   @static

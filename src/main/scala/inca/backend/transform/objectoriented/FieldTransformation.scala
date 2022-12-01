@@ -22,6 +22,8 @@ case class MaxAgg() extends Aggregation[Int] {
 }
 
 /**
+ * Should be applied after alloc transformation.
+ *
  * This transformation performs several tasks:
  * 1. Introduce a timestamp counter in the FieldRoot with the name `ts` and initialize it with 0.
  * 2. Modify all affected methods that are neither a Field (leaf), nor a root to take an `tsIn` and `tsOut` param.

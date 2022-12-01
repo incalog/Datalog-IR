@@ -9,6 +9,8 @@ import inca.util.{Gensym, Scala}
 import scala.meta.XtensionQuasiquoteTerm
 
 /**
+ * Should be applied after demand transformation.
+ *
  * A CountTransformer initialized a counter with the value 0 and name `rootParamName` in all bodies of a root pattern.
  * The root pattern is defined by the `rootPatternHint` [transformRootPattern].
  *
