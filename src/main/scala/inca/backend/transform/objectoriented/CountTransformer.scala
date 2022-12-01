@@ -31,6 +31,8 @@ abstract class CountTransformer(val rootPatternHint: Hint,
                                 val outParamName: String) extends Transformer {
     val gensym = new Gensym(Seq())
 
+  type CallSide = (Pattern, Call)
+
   /**
    * Transform a leaf pattern to respect the count arguments. A subclass must override this method.
    * @param leafPat The leaf pattern to change.
@@ -52,6 +54,18 @@ abstract class CountTransformer(val rootPatternHint: Hint,
                                   affectedPattern: Set[Pattern],
                                   unchangedPattern: Set[Pattern]): Seq[Pattern] = Seq()
 
+  private def transformIgnoredCall(call: Call): Call = {
+    val Call(name, args, trans, neg) = call
+    val hint = hintWithAdjustedFixedAdornment(call, args.size, Seq(true, false))
+    Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg).withHints(hint)
+  }
+
+  private def transformNonIgnoredCall(call: Call, counterInVar: Var, counterOutVar: Var): Call = {
+    val Call(name, args, trans, neg) = call
+    val hint = hintWithAdjustedFixedAdornment(call, args.size, Seq(true, false))
+    Call(name, args :+ counterInVar :+ counterOutVar, trans, neg).withHints(hint)
+  }
+
   /**
    * Transform a call to respect the count arguments. A subclass can override this methods. It is possible to return
    * a sequence of atoms to replace the single call with this sequence. The default implementation will append two
@@ -61,17 +75,11 @@ abstract class CountTransformer(val rootPatternHint: Hint,
    * @return The output count variable used as the next input and a sequence of atoms to replace the call with.
    */
     def transformCall(call: Call, counterInVar: Var): (Var, Seq[Atom]) = {
-      val Call(name, args, trans, neg) = call
-      val hint = hintWithAdjustedFixedAdornment(call, args.size, Seq(true, false))
       if (isIgnoreCall(call)) {
-        (counterInVar, Seq(
-          Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg).withHints(hint)
-        ))
+        (counterInVar, Seq(transformIgnoredCall(call)))
       } else {
         val counterOutVar = Var(gensym.fresh(outParamName))
-        (counterOutVar, Seq(
-          Call(name, args :+ counterInVar :+ counterOutVar, trans, neg).withHints(hint)
-        ))
+        (counterOutVar, Seq(transformNonIgnoredCall(call, counterInVar, counterOutVar)))
       }
     }
 
@@ -138,14 +146,14 @@ abstract class CountTransformer(val rootPatternHint: Hint,
    * Find all pattern that call a pattern with the name `callName`
    * @param callName The name of the called pattern to find.
    * @param pattern A set with all pattern to search.
-   * @return A set with all pattern that call the pattern with name `callName`.
+   * @return A set with tuples of (pattern, call) for each pattern that calls the pattern with name `callName`.
    */
-    private[objectoriented] def findCallSides(callName: Name, pattern: Set[Pattern]): Set[Pattern] = {
-      pattern.filter { pat =>
-        pat.bodies.exists { body =>
-          body.atoms.exists {
-            case Call(name, _, _, _) =>  name == callName
-            case _ => false
+    private[objectoriented] def findCallSides(callName: Name, pattern: Set[Pattern]): Set[CallSide] = {
+      pattern.flatMap { pat =>
+        pat.bodies.flatMap { body =>
+          body.atoms.flatMap {
+            case call: Call if call.name == callName => Some((pat, call))
+            case _ => None
           }
         }
       }
@@ -222,6 +230,33 @@ abstract class CountTransformer(val rootPatternHint: Hint,
     }
 
   /**
+   * Transform an unaffected pattern by transforming all calls to insert dummys for the counter variable.
+   *
+   * @param pattern         The unaffected pattern to modify.
+   * @param affectedPattern All pattern that require the counter.
+   * @return The modified affected pattern.
+   */
+  private[objectoriented] def transformUnaffectedPattern(pattern: Pattern, affectedPattern: Set[Pattern]): Pattern = gensym.scoped {
+    gensym.register(CollectVars.transPattern(pattern))
+
+    // name of all calls that end up calling a leaf pattern
+    val affectedPatternNames = affectedPattern.map(_.name)
+    val bodies = pattern.bodies.map { body =>
+      gensym.scoped {
+        Body(body.atoms.map {
+          case c: Call if affectedPatternNames.contains(c.name) => transformIgnoredCall(c)
+          //case Computed(lhs, c: CustomAggregation) if affectedPatternNames.contains(c.patName) =>
+          //  Computed(lhs, transformAgg(c, Var("")))
+          case a => a
+        }
+        ).withHints(body)
+      }
+    }
+    Pattern(pattern.vis, pattern.name, pattern.params, bodies)
+      .withHints(pattern)
+  }
+
+  /**
    * Insert the counter variable into the program by modifying all root and leaf pattern and all patterns that are
    * affected by the change.
    * @param pattern A list with all pattern.
@@ -249,8 +284,9 @@ abstract class CountTransformer(val rootPatternHint: Hint,
       val transRootPats = rootPats.map(transformRootPattern(_, allAffectedPattern))
       val transFieldPats = leafPats.map(transformLeafPattern(_, allAffectedPattern))
       val transAffectedPats = affectedPattern.map(transformAffectedPattern(_, allAffectedPattern))
+      val transUnaffectedPats = unchangedPattern.map(transformUnaffectedPattern(_, allAffectedPattern))
 
-      transRootPats.toSeq ++ transFieldPats ++ transAffectedPats ++ additionalPattern ++ unchangedPattern
+      transRootPats.toSeq ++ transFieldPats ++ transAffectedPats ++ additionalPattern ++ transUnaffectedPats
     }
 
     /**
@@ -261,8 +297,11 @@ abstract class CountTransformer(val rootPatternHint: Hint,
      */
     private[objectoriented] def findAffectedPattern(pat: Pattern, remainingPattern: Set[Pattern]): Set[Pattern] = {
       val callSides = findCallSides(pat.name, remainingPattern)
-      callSides.union(callSides.flatMap { p =>
-        findAffectedPattern(p, remainingPattern.diff(callSides))
+      val affectedPattern = callSides.flatMap { case (p, call) =>
+        if (isIgnoreCall(call)) None else Some(p)
+      }
+      affectedPattern.union(affectedPattern.flatMap { p =>
+        findAffectedPattern(p, remainingPattern.diff(affectedPattern))
       })
     }
 }
