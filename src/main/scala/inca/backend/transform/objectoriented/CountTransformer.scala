@@ -21,6 +21,8 @@ import scala.meta.XtensionQuasiquoteTerm
  * All calls that target an affected pattern, a leaf pattern or a root pattern are modified to propagate the input and
  * output counter [transformCall].
  *
+ * All unaffected pattern are transformed to insert "don't care" variables when calling an affected pattern.
+ *
  * The leaf pattern is modified based on behaviour defined by a concrete implementation of this class
  * [transformChildPattern].
  */
@@ -31,7 +33,7 @@ abstract class CountTransformer(val rootPatternHint: Hint,
                                 val outParamName: String) extends Transformer {
     val gensym = new Gensym(Seq())
 
-  type CallSide = (Pattern, Call)
+  type CallSide = (Pattern, Atom)
 
   /**
    * Transform a leaf pattern to respect the count arguments. A subclass must override this method.
@@ -54,10 +56,15 @@ abstract class CountTransformer(val rootPatternHint: Hint,
                                   affectedPattern: Set[Pattern],
                                   unchangedPattern: Set[Pattern]): Seq[Pattern] = Seq()
 
-  private def transformIgnoredCall(call: Call): Call = {
-    val Call(name, args, trans, neg) = call
-    val hint = hintWithAdjustedFixedAdornment(call, args.size, Seq(true, false))
-    Call(name, args :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")), trans, neg).withHints(hint)
+  private def transformIgnoredAtom(atom: Atom): Atom = {
+    atom.asCall match {
+      case Some((name, terms)) =>
+        val hint = hintWithAdjustedFixedAdornment(atom, terms.size, Seq(true, false))
+        val replacement = atom.replaceCall(name, terms :+ Var(gensym.fresh("_")) :+ Var(gensym.fresh("_")))
+        replacement.withHints(hint)
+      case _ =>
+        atom
+    }
   }
 
   private def transformNonIgnoredCall(call: Call, counterInVar: Var, counterOutVar: Var): Call = {
@@ -75,8 +82,8 @@ abstract class CountTransformer(val rootPatternHint: Hint,
    * @return The output count variable used as the next input and a sequence of atoms to replace the call with.
    */
     def transformCall(call: Call, counterInVar: Var): (Var, Seq[Atom]) = {
-      if (isIgnoreCall(call)) {
-        (counterInVar, Seq(transformIgnoredCall(call)))
+      if (isIgnored(call)) {
+        (counterInVar, Seq(transformIgnoredAtom(call)))
       } else {
         val counterOutVar = Var(gensym.fresh(outParamName))
         (counterOutVar, Seq(transformNonIgnoredCall(call, counterInVar, counterOutVar)))
@@ -108,6 +115,7 @@ abstract class CountTransformer(val rootPatternHint: Hint,
    * FIXME: Is there a nicer way to solve this ?
    * Append additional adornment information to an existing FixedAdornment hint if it exists.
    * @param hints The existing hint.
+   * @param numArgs The original number of arguments
    * @param additionalAdornment The additional adornment information.
    * @return The modified hint.
    */
@@ -120,8 +128,8 @@ abstract class CountTransformer(val rootPatternHint: Hint,
       hints
     }
 
-    private[objectoriented] def isIgnoreCall(call: Call): Boolean =
-      call.hasHint(MagicSetHints.IgnoreCallKey)
+    private[objectoriented] def isIgnored(atom: Atom): Boolean =
+      atom.hasHint(MagicSetHints.IgnoreCallKey)
 
     private[objectoriented] def createScalaTermAndParam(name: String, typ: Type): (scala.meta.Term.Name, scala.meta.Term.Param) = {
       val term = scala.meta.Term.Name(name)
@@ -151,9 +159,11 @@ abstract class CountTransformer(val rootPatternHint: Hint,
     private[objectoriented] def findCallSides(callName: Name, pattern: Set[Pattern]): Set[CallSide] = {
       pattern.flatMap { pat =>
         pat.bodies.flatMap { body =>
-          body.atoms.flatMap {
-            case call: Call if call.name == callName => Some((pat, call))
-            case _ => None
+          body.atoms.flatMap { a =>
+            a.asCall match {
+              case Some((name, _)) if callName == name => Some((pat, a))
+              case _ => None
+            }
           }
         }
       }
@@ -243,13 +253,12 @@ abstract class CountTransformer(val rootPatternHint: Hint,
     val affectedPatternNames = affectedPattern.map(_.name)
     val bodies = pattern.bodies.map { body =>
       gensym.scoped {
-        Body(body.atoms.map {
-          case c: Call if affectedPatternNames.contains(c.name) => transformIgnoredCall(c)
-          //case Computed(lhs, c: CustomAggregation) if affectedPatternNames.contains(c.patName) =>
-          //  Computed(lhs, transformAgg(c, Var("")))
-          case a => a
-        }
-        ).withHints(body)
+        Body(body.atoms.map { atom =>
+          atom.asCall match {
+            case Some((name, _)) if affectedPatternNames.contains(name) => transformIgnoredAtom(atom)
+            case _ => atom
+          }
+        }).withHints(body)
       }
     }
     Pattern(pattern.vis, pattern.name, pattern.params, bodies)
@@ -298,7 +307,7 @@ abstract class CountTransformer(val rootPatternHint: Hint,
     private[objectoriented] def findAffectedPattern(pat: Pattern, remainingPattern: Set[Pattern]): Set[Pattern] = {
       val callSides = findCallSides(pat.name, remainingPattern)
       val affectedPattern = callSides.flatMap { case (p, call) =>
-        if (isIgnoreCall(call)) None else Some(p)
+        if (isIgnored(call)) None else Some(p)
       }
       affectedPattern.union(affectedPattern.flatMap { p =>
         findAffectedPattern(p, remainingPattern.diff(affectedPattern))

@@ -159,6 +159,10 @@ class DatalogTest extends AnyFunSuite {
     performTests(foldSetTests: _*)
   }
 
+  test("Aggregate variable") {
+    performTests(aggVariableTest)
+  }
+
   test("Binary Tree Example") {
     performTests(binaryTreeTest)
   }
@@ -169,5 +173,9 @@ class DatalogTest extends AnyFunSuite {
 
   test("DoubleLinkedList Example") {
     performTests(doubleLinkedTest)
+  }
+
+  test("Transitive closure") {
+    performTests(transitiveClosureTest)
   }
 }

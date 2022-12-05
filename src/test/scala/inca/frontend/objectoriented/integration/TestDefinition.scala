@@ -281,11 +281,9 @@ object TestDefinition {
     )
   }
 
-  def graphTest: Seq[TestDefinition[SetResult[Any]]] = {
+  def transitiveClosureTest: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("graphs")
-    Seq(
-      TestDefinition("Graph", "Graph", "main", Seq(), SetResult()),
-    )
+    TestDefinition("TransitiveClosure", "Graph", "main", Seq(), SetResult("X", "Z", "Y"))
   }
 
   def treeTest: TestDefinition[SetResult[Any]] = {
@@ -301,5 +299,10 @@ object TestDefinition {
   def doubleLinkedTest: TestDefinition[TupleResult[Any]] = {
     implicit val subdir: Option[String] = Some("graphs")
     TestDefinition("DoubleLinkedList", "DoubleLinkedList", "main", Seq(q"5"), TupleResult(31, 36, 4))
+  }
+
+  def aggVariableTest: TestDefinition[SetResult[Any]] = {
+    implicit val subdir: Option[String] = Some("unittests/aggvar")
+    TestDefinition("Reachability", "Graph", "main", Seq(), SetResult("X", "Z", "Y"))
   }
 }

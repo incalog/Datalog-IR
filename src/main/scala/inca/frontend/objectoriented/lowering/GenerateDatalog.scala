@@ -160,7 +160,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     getURIAttribute(uri, "allocId", out, Datalog.TScalaInt)
   }
 
-  private def geURITyp(uri: Datalog.Var, out: Datalog.Term): Datalog.Computed = {
+  private def getURITyp(uri: Datalog.Var, out: Datalog.Term): Datalog.Computed = {
     getURIAttribute(uri, "typ", out, Datalog.TScalaString)
   }
 
@@ -172,7 +172,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     )
 
     val tyVar = Datalog.Var("ty")
-    val tyComp = geURITyp(Datalog.Var("this"), tyVar)
+    val tyComp = getURITyp(Datalog.Var("this"), tyVar)
 
     val outVar = Datalog.Var("out")
     val tyParamVar = Datalog.Var("t")
@@ -197,7 +197,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     )
 
     val tyVar = Datalog.Var("ty")
-    val tyComp = geURITyp(Datalog.Var("this"), tyVar)
+    val tyComp = getURITyp(Datalog.Var("this"), tyVar)
 
     val tyParamVar = Datalog.Var("t")
     val isSubtype = Datalog.ExtensionalCall("subtype", Seq(tyVar, tyParamVar))

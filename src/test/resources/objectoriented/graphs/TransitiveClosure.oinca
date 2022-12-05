@@ -1,4 +1,4 @@
-module Graph
+module GraphTest
 
 class Edge {
   var start: String
@@ -11,8 +11,6 @@ class Edge {
 }
 
 class Graph {
-    var counter: Int = 0
-
     val edges: Set[Edge] = Set(
       new Edge("X", "Y"),
       new Edge("Y", "Z"),
@@ -21,12 +19,11 @@ class Graph {
     )
 
     @main
-    def main(): Set[Edge] = {
-      new Graph().path("X")
+    def main(): Set[String] = {
+      for (e <- new Graph().path("X")) yield e.end
     }
 
     def path(x: String): Set[Edge] = {
-        this.counter = 1
         (for (d <- this.edges if d.start == x) yield d)
         ++
         (for (i <- this.edges if i.start == x; y <- this.path(i.end)) yield y)
