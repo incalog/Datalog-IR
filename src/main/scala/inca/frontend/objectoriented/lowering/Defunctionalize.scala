@@ -54,7 +54,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
         else
           sTys
       })
-      // we might generate the input tuple again, if the tuple only contains scala types
+      // we might generate the input tuple again, if all child tuples do not contain a parent type
       ttys.map(TTuple(_)).filter(_ != typ)
     case TScala(_) =>
       // TODO: Support supertypes for scala types

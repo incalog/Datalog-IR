@@ -22,7 +22,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     val classNames = module.classes.map(_.name)
 
     for (name <- moduleNames.toSet.intersect(classNames.toSet))
-      error(s"Module $name is shadowed by class $name.", name)
+      error(s"Module $name is shadowed by class $name", name)
 
     for (imp <- module.imports; importedModule <- lookupModule(imp.name)) {
       resolveTarget(imp)(importedModule)
@@ -41,21 +41,29 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     module.classes.foreach(typecheck)
   }
 
+  var uninitializedFields: Map[Name, FieldDef] = Map()
+
   def typecheck(classDef: ClassDef): Unit = {
     classDef.contentMap.foreach {
       case (_, _: Seq[ConstructorDef]) => // nothing
       case (_, cs) if cs.size > 1 =>
-        error(s"Ambiguous names in class ${classDef.name}", cs:_*)
+        error(s"Ambiguous names in class `${classDef.name}`", cs:_*)
     }
 
-    /*if (classDef.constructors.size > 1) {
-      error(s"Class ${classDef.name.raw} must only define a single constructor", classDef.constructors:_*)
-    }*/
+    // make sure all fields are initialized after a constructor is executed
+    uninitializedFields = Map()
 
     classDef.content.foreach {
       case field: FieldDef => typecheck(field, classDef)
       case method: MethodDef => typecheck(method, classDef)
-      case constructor: ConstructorDef => typecheck(constructor, classDef)
+      case constructor: ConstructorDef =>
+        // every path trough a constructor must initialize all fields
+        val storeUninitializedFields = uninitializedFields
+        typecheck(constructor, classDef)
+        uninitializedFields.foreach { case (fieldName, fieldDef) =>
+          error(s"Field `$fieldName` is not initialized", fieldDef)
+        }
+        uninitializedFields = storeUninitializedFields
     }
   }
 
@@ -66,7 +74,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       case Some(expr) =>
         val expTyp = typecheck(expr)(classDef)
         assertSubtype(expTyp, fieldDef.typ, fieldDef)
-      case None => // nothing
+      case None =>
+        uninitializedFields += (fieldDef.name -> fieldDef)
     }
 
     fieldDef.aggregateMethod match {
@@ -91,12 +100,12 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     }
     methodDef.params.groupBy(_.name).foreach { case (_, cs) =>
       if (cs.size > 1)
-        error(s"Ambiguous parameter names in method ${methodDef.name}", cs: _*)
+        error(s"Ambiguous parameter names in method `${methodDef.name}`", cs: _*)
     }
     methodDef.body.foreach {
       case ExprStmt(expression) => expression match {
         case SuperExpr(_) =>
-          error(s"Method ${methodDef.name} must not contain a super constructor call.", expression)
+          error(s"Method `${methodDef.name}` must not contain a super constructor call", expression)
         case _ => // nothing
       }
       case _ => // nothing
@@ -116,7 +125,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
   def typecheck(constructorDef: ConstructorDef, classDef: ClassDef): Unit = scopedTypeContext {
     if (constructorDef.isStatic)
-      error(s"Constructor ${classDef.name} can not be a static method.", constructorDef)
+      error(s"Constructor `${classDef.name}` can not be a static method", constructorDef)
 
     val overrideConstructors = lookupConstructorCandidates(Some(classDef), constructorDef.params.map(_.typ))
     resolveSignatures(overrideConstructors.map(_._2))
@@ -131,11 +140,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
     constructorDef.params.groupBy(_.name).foreach { case (_, cs) =>
       if (cs.size > 1)
-        error(s"Ambiguous parameter names in constructor ${classDef.name}", cs: _*)
+        error(s"Ambiguous parameter names in constructor `${classDef.name}`", cs: _*)
     }
     constructorDef.body.foreach {
       case ReturnStmt(expression) =>
-        error(s"Constructor ${classDef.name} must not contain a return statement.", expression)
+        error(s"Constructor `${classDef.name}` must not contain a return statement", expression)
       case _ => // nothing
     }
 
@@ -147,9 +156,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
     val superCallIndex = indices.headOption.getOrElse(-1)
     if (superCalls.size > 1) {
-      error(s"Constructor ${classDef.name} must not contain more than one supercall", superCalls:_*)
+      error(s"Constructor `${classDef.name}` must not contain more than one supercall", superCalls:_*)
     } else if (superCallIndex > 0) {
-      error(s"Super must be called first in constructor ${classDef.name}", superCalls:_*)
+      error(s"Super must be called first in constructor `${classDef.name}`", superCalls:_*)
     }
 
     val beforeSuperBody = constructorDef.body.slice(0, superCallIndex+1)
@@ -168,7 +177,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case TAny => // nothing
     case TNull => // nothing
     case TScalaInt | TScalaBoolean | TScalaAny | TScalaDouble | TScalaLong | TScala(_) => // nothing
-    case _ => throw new IllegalArgumentException(s"Currently does not support $typ")
+    case _ => throw new IllegalArgumentException(s"Currently does not support `$typ`")
   }
 
   def typecheck(statements: Seq[Statement], rt: Type, allowImmutableFieldAssignment: Boolean = false)(implicit classDef: ClassDef): Unit =
@@ -185,12 +194,13 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         case TClass(ref) => lookupField(lookupClassRef(ref), name) match {
           case Some((clazz, field)) =>
             if (!allowImmutableFieldAssignment && field.immutable)
-              error(s"Can not assign to immutable field ${field.name}", statement)
+              error(s"Can not assign to immutable field `${field.name}`", statement)
             resolveTarget(fieldAssignStmt)((clazz, field))
             assertSubtype(typ, field.typ, expression)
+            uninitializedFields -= field.name
           case None => // Nothing
         }
-        case typ => error(s"Can not lookup field $name for expression of type $typ", statement)
+        case typ => error(s"Can not lookup field `$name` for expression of type `$typ`", statement)
       }
     case varDeclareStmt@VarDeclareStmt(name, typ, expression, immutable) =>
       typecheck(typ)
@@ -204,7 +214,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       lookupVar(targetName) match {
         case Some((target, typ, immutable)) =>
           if (immutable) {
-            error(s"Cannot assign to immutable variable $targetName", statement)
+            error(s"Cannot assign to immutable variable `$targetName`", statement)
           } else {
             resolveTarget(varAssignStm)(target)
             assertSubtype(expTyp, typ, statement)
@@ -223,7 +233,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
   def assertSubtype(ty1: Type, ty2: Type, loc: SourceLocation): Unit = {
     if (!subtype(ty1, ty2))
-      error(s"Expected $ty2, but got $ty1", loc)
+      error(s"Expected `$ty2`, but got `$ty1`", loc)
   }
 
   def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type = {
@@ -231,7 +241,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     term.typ match {
       case Some(annotated) =>
         if (!subtype(inferred, annotated))
-          error(s"Inferred type $inferred, but expected annotated type $annotated", term)
+          error(s"Inferred type `$inferred`, but expected annotated type `$annotated`", term)
         annotated
       case None =>
         term.typed(inferred)
@@ -251,7 +261,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           val clazz = ref.target.get
           val parentRef = clazz.parentClassRefs.headOption
           if (parentRef.isEmpty) {
-            error(s"Missing parent class for class ${clazz.name}", expression)
+            error(s"Missing parent class for class `${clazz.name}`", expression)
             TAny
           } else {
             // classRef of parent will be resolved, but might still be invalid e.g. extend from a class that does not
@@ -281,7 +291,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           case None => TAny
         }
         case typ =>
-          error(s"Can not lookup field $targetName for expression of type $typ", recv)
+          error(s"Can not lookup field `$targetName` for expression of type `$typ`", recv)
           TAny
       }
     case construtorExpr@ConstructorExpr(className, args) =>
@@ -295,7 +305,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
               clazz.typ
             // we do not allow inheritance of constructors
             case Some(_) =>
-              error(s"No matching constructor found for class ${classDefOption.get.name}: this(${argTypes.mkString(",")})", expression)
+              error(s"No matching constructor found for class `${classDefOption.get.name}`: this(${argTypes.mkString(",")})", expression)
               clazz.typ
             case None =>
               clazz.typ
@@ -311,12 +321,12 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             case Some(methodDef) =>
               // TODO: We might allow calling static methods in the future
               if (methodDef.isStatic)
-                error(s"Can not call static method '${methodDef.name}' on instance of type $clazzTyp", expression)
+                error(s"Can not call static method `${methodDef.name}` on instance of type `$clazzTyp`", expression)
               resolveTarget(methodCallExpr)(methodDef)
               methodDef.outType
         }
         case typ =>
-          error(s"Can not lookup method '$fun' for expression of type $typ", expression)
+          error(s"Can not lookup method `$fun` for expression of type `$typ`", expression)
           TAny
       }
     case TypeCastExpr(recv, toTyp) =>
@@ -340,14 +350,14 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         case TTuple(ts) =>
           ts(index.raw-1)
         case ty =>
-          error(s"Expected Tuple, but got $ty", recv)
+          error(s"Expected Tuple, but got `$ty`", recv)
           TAny
       }
 
     case SetExpr(exps, tty) =>
       val typs = exps.map(typecheck)
       if (typs.isEmpty && tty.isEmpty) {
-        error("Empty set requires an explicit type.", expression)
+        error("Empty set requires an explicit type", expression)
         TSet(TAny)
       } else
         TSet(tty.getOrElse(upperTypeBound(typs)))
@@ -374,7 +384,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             assertSubtype(methodDef.get.outType, ty, methodDef.get)
             resolveTarget(setFold)(methodDef.get)
           } else
-            error(s"Fold method ${classRef.name}.${methodName} not found!", expression)
+            error(s"Fold method `${classRef.name}.${methodName}` not found!", expression)
           ty
         case ty =>
           error("Fold can only be performed on sets!", expression)
@@ -472,7 +482,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     term.target match {
       case Some(oldTarget) =>
         if (oldTarget != newTarget) {
-          error(s"Resolved $term to new target $newTarget, which differs from previously computed target $oldTarget", term)
+          error(s"Resolved `$term` to new target `$newTarget`, which differs from previously computed target `$oldTarget`", term)
         }
         oldTarget
       case None =>

@@ -31,6 +31,7 @@ object Import {
 trait ClassContent extends SourceLocation with Annotations {
   def vis: Option[Visibility]
   def prettyprint(implicit indent: String): String
+  override def toString: String = prettyprint("")
 }
 
 // Note: The innerType is used for defunctionalized sets, to reflect the inner type of the set
@@ -64,6 +65,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
       s""
     s"""$annoPrefix$indent${visS}class $name $parentClassesS {$contentS\n$indent}""".stripMargin
   }
+  override def toString: String = prettyprint("")
 }
 
 case class ClassRef(name: Name) extends SourceLocation with Resolvable[ClassDef] {
@@ -136,5 +138,6 @@ case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], param
 case class Param(name: Name, typ: Type) extends SourceLocation with VarReadExpr.Target {
   def vars: Map[Name, Option[Type]] = Map(name -> Some(typ))
 
+  override def toString: String = prettyprint
   def prettyprint: String = s"$name: ${typ.prettyprint}"
 }
