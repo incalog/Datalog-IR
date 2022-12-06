@@ -2,7 +2,7 @@ package inca.frontend.objectoriented.lowering
 
 import inca.frontend.objectoriented.core._
 import inca.runtime.context.DataModel
-import inca.util.Gensym
+import inca.util.{Gensym, TupleOps}
 import truechange.SortType
 
 object Defunctionalize {
@@ -14,10 +14,13 @@ object Defunctionalize {
     modules.map(mm => transformModule(mm._1, mm._2))
 }
 
-// TODO: Support tuples
+// TODO: Support tuples with parent scala types
+// TODO: Do nested tuples work ?
 //  E.g which is not correctly defunctionalized:
+//  -- Scala classes A and B --
 //  class A {}
 //  class B extends A {}
+//  -- Datalog Program --
 //  val a: Set[(A, B)] = Set(new B(), new B())
 
 class Defunctionalize(val module: Module, val dataModel: DataModel) extends ModuleLowering {
@@ -26,36 +29,58 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
   var auxClassDefs: Set[ClassDef] = Set()
   var defnClassDefs: Map[Type, ClassDef] = Map()
 
+  private def typeSuffix(typ: Type): String = {
+    typ match {
+      case TAny => "Any"
+      case TNull => "Null"
+      case TTuple(ts) => "t_" + ts.map(typeSuffix).mkString("_")
+      case TScala(ty) => ty.syntax
+      case TClass(ClassRef(Name(raw))) => raw
+      case TSet(ty) => "s_" + typeSuffix(ty)
+    }
+  }
+
+  private def supertypes(typ: Type): Seq[Type] = typ match {
+    case TAny =>
+      Seq()
+    case TNull =>
+      dataModel.directNodeSupertypes.get(SortType("Null"))
+        .map(s => TClass(ClassRef(Name(s.name)))).toSeq
+    case TTuple(ts) =>
+      val ttys = TupleOps.cartesianProduct(ts.map { ty =>
+        val sTys = supertypes(ty)
+        if (sTys.isEmpty)
+          Seq(ty)
+        else
+          sTys
+      })
+      // we might generate the input tuple again, if the tuple only contains scala types
+      ttys.map(TTuple(_)).filter(_ != typ)
+    case TScala(_) =>
+      // TODO: Support supertypes for scala types
+      Seq()
+    case TClass(ClassRef(Name(raw))) =>
+      dataModel.directNodeSupertypes.get(SortType(raw))
+        .map(s => TClass(ClassRef(Name(s.name)))).toSeq
+    case TSet(_) =>
+      throw new RuntimeException("Defun classes must not have set type!")
+  }
+
+
   private def genDefunClassDef(ty: Type): ClassDef = {
     val typ = clearType(ty)
+
     if (defnClassDefs.contains(typ))
       return defnClassDefs(typ)
 
     // create the inheritance hierarchy for the defun class
-    val parentClassDefs = ty match {
-      case TTuple(ts) =>
-        ts.map(genDefunClassDef)
-        Seq()
-      case TClass(ref) =>
-        val sortTy = SortType(ref.name.raw)
-        // create a defun class for each supertype
-        val superTypes = dataModel.nodeSupertypes.get(sortTy)
-          .map(s => (s.name, genDefunClassDef(TClass(ClassRef(Name(s.name))))))
-          .toMap
-        // return a seq with all direct parent class refs
-        val directSuperTypes = dataModel.directNodeSupertypes.get(sortTy).map(_.name).toSet
-        superTypes.flatMap {
-          case (clsName, defunClassDef) if directSuperTypes.contains(clsName) => Some(defunClassDef)
-          case _ => None
-        }
-      case TSet(_) => throw new IllegalArgumentException("Defun classes must have a simple type, not TSet!")
-      case _ => Seq()
-    }
+    val parentClassDefs = supertypes(ty).map(genDefunClassDef)
 
-    val parentRefs = parentClassDefs.map(_.typ.ref).toSeq
+    val parentRefs = parentClassDefs.map(_.typ.ref)
     val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), TSet(typ), Seq())
     val constr = ConstructorDef(Seq(), None, Seq(), Seq())
-    val clazz = ClassDef(Seq(), Some(Private), Name(gensym.fresh("Defun")), parentRefs, Seq(constr, apply))
+    val clsName = Name(gensym.fresh("Defun$" + typeSuffix(typ)))
+    val clazz = ClassDef(Seq(), Some(Private), clsName, parentRefs, Seq(constr, apply))
     defnClassDefs += typ -> clazz
     clazz
   }
@@ -78,7 +103,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       FieldAssignStmt(VarReadExpr(Name("this")), f.name, clearExpression(expr), aggregation = false)
     }
     val constr = ConstructorDef(Seq(), None, constrParams, constrBody)
-    val clsName = Name(gensym.fresh("Aux"))
+    val clsName = Name(gensym.fresh("Aux$" + typeSuffix(innerSetType)))
     val clazz = ClassDef(Seq(), Some(Private), clsName, Seq(parent), fields :+ constr :+ apply)
     auxClassDefs += clazz
     clazz

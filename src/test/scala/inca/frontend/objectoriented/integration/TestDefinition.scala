@@ -242,6 +242,7 @@ object TestDefinition {
       TestDefinition("SetClassSimple", "A", "main", Seq(), SetResult(1, 2)),
       TestDefinition("SetClass", "A", "main", Seq(), SetResult(10, 3)),
       TestDefinition("SetClass2", "A", "main", Seq(), SetResult(5, 10)),
+      TestDefinition("SetClassTuple", "A", "main", Seq(), SetResult(TupleResult(1, "A"), TupleResult(2, "B"), TupleResult(3, "C"))),
       TestDefinition("SetIf", "A", "main", Seq(q"true"), SetResult(1, 2)),
       TestDefinition("SetIf", "A", "main", Seq(q"false"), SetResult(1, 3, 4))
     )
@@ -301,9 +302,11 @@ object TestDefinition {
     TestDefinition("DoubleLinkedList", "DoubleLinkedList", "main", Seq(q"5"), TupleResult(31, 36, 4))
   }
 
-  def aggVariableTest: TestDefinition[SetResult[Any]] = {
+  def aggVariableTest: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/aggvar")
-    TestDefinition("AggVar", "A", "main", Seq(), SetResult(2))
-    //TestDefinition("Reachability", "Graph", "main", Seq(), SetResult("X", "Z", "Y"))
+    Seq(
+      //TestDefinition("AggVar", "A", "main", Seq(), SetResult(2)),
+      //TestDefinition("Reachability", "Graph", "main", Seq(), SetResult("X", "Z", "Y"))
+    )
   }
 }

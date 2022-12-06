@@ -227,10 +227,10 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     val fields = classDef.fields.flatMap {
       case f@FieldDef(_, _, Name(name), TSet(_), _, _, _) =>
-        println(s"Can not coalesced field ${classDef.name.raw}.$name with set type!", f)
+        println(s"Can not coalesced field ${classDef.name.raw}.$name with set type!")
         None
       case f@FieldDef(_, _, Name(name), TSet(_), _, _, Some(_)) =>
-        println(s"Can not coalesced aggregate field ${classDef.name.raw}.$name!", f)
+        println(s"Can not coalesced aggregate field ${classDef.name.raw}.$name!")
         None
       case f => Some(f)
     }
@@ -302,10 +302,10 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     val fields = classDef.fields.flatMap {
       case f@FieldDef(_, _, Name(name), TSet(_), _, _, _) =>
-        println(s"Can not uncoalesced field ${classDef.name.raw}.$name with set type!", f)
+        println(s"Can not uncoalesced field ${classDef.name.raw}.$name with set type!")
         None
       case f@FieldDef(_, _, Name(name), TSet(_), _, _, Some(_)) =>
-        println(s"Can not uncoalesced aggregate field ${classDef.name.raw}.$name!", f)
+        println(s"Can not uncoalesced aggregate field ${classDef.name.raw}.$name!")
         None
       case f => Some(f)
     }

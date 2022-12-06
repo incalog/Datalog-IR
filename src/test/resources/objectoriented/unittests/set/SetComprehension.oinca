@@ -4,7 +4,6 @@ class A {
   def this() = {}
 
   @main def main(): Set[(Int, Int)] = {
-    // Body size: 2: return 1; return 2
     return for (a <- Set(1,2)) yield (a, 1)
   }
 }

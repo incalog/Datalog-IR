@@ -1,0 +1,31 @@
+module SetTest
+
+class Num {
+    var value: `Int`
+
+    def this(value: `Int`) = {
+        this.value = value
+    }
+}
+
+class Integer extends Num {
+    def this(value: `Int`) = {
+        super(value)
+    }
+}
+
+class A {
+  def this() = {}
+
+  @main def main(): Set[(Int, String)] = {
+    val a: A = new A()
+
+    val s: Set[(Num, String)] = Set(
+        (new Integer(1), "A"),
+        (new Integer(2), "B"),
+        (new Integer(3), "C")
+    )
+
+    return for (v <- s) yield (v._1.value, v._2)
+  }
+}
