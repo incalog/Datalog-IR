@@ -1,17 +1,35 @@
 package inca.frontend.objectoriented.typechecker;
 
+import inca.backend.analyze.Graph
 import inca.compiler.SourceLocation
 import inca.frontend.objectoriented.core._
 import inca.frontend.util.{Resolvable, Typeable}
 
 import java.util.UUID
+import scala.collection.immutable.MultiDict
 import scala.util.hashing.MurmurHash3
+
+private case class InheritanceGraph(classes: Seq[ClassDef]) extends Graph[ClassDef, Option[String]] {
+  private val clsMap: Map[Name, ClassDef] = classes.map(c => c.name -> c).toMap
+
+  classes.foreach { cls =>
+    addNode(cls)
+    cls.parentClassRefs.map { p =>
+      addEdge(cls, clsMap(p.name), None)
+    }
+  }
+
+  override protected def nodeToGraphViz(n: ClassDef): String = n.name.raw
+  override protected def edgeGraphVizAttributes(from: ClassDef, to: ClassDef, info: Option[String]): String = ""
+  override protected def nodeGraphVizAttributes(from: ClassDef): String = ""
+}
 
 trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   def typecheck(program: Seq[Module]): Unit = scopedTypeContext {
     program.foreach(bindModule)
     program.foreach(typecheck)
   }
+
 
   /*
    * Module
@@ -30,6 +48,15 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       for (clazz <- importedModule.classes if !clazz.vis.contains(Private))
         bindClass(clazz, importedModule)
     }
+
+    // detect inheritance cycles
+    val inheritanceGraph = InheritanceGraph(module.classes)
+    inheritanceGraph.cycles.foreach { c =>
+      error(s"Cycle in inheritance hierarchy: ${c.map(_.name.raw).mkString(" <- ")}", c: _*)
+    }
+    // the rest of the typechecker is not working with cyclic ClassRefs
+    if (inheritanceGraph.cycles.nonEmpty)
+      return
 
     // bind symbols first
     module.classes.foreach(bindClass(_, module))
