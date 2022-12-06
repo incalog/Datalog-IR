@@ -303,6 +303,7 @@ object TestDefinition {
 
   def aggVariableTest: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("unittests/aggvar")
-    TestDefinition("Reachability", "Graph", "main", Seq(), SetResult("X", "Z", "Y"))
+    TestDefinition("AggVar", "A", "main", Seq(), SetResult(2))
+    //TestDefinition("Reachability", "Graph", "main", Seq(), SetResult("X", "Z", "Y"))
   }
 }

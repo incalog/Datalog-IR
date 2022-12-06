@@ -12,17 +12,19 @@ class Graph {
     )
 
     @static
-    def sum(n1: Int, n2: Int) = {
+    def sum(n1: Int, n2: Int): Int = {
         n1 + n2
     }
 
     @main
-    def main(): Set[String] = {
-      new Graph().path("A")
+    def main(): Int = {
+        val g: Graph = new Graph()
+        g.path("A")
+        g.maxDis
     }
 
     def path(x: String): Set[String] = {
-        this.maxDis |= 1
+        this.maxDis #= 1
 
         (for (d <- this.edges if d._1 == x) yield d._2)
         ++

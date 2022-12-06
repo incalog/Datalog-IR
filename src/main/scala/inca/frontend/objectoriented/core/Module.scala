@@ -71,18 +71,27 @@ case class ClassRef(name: Name) extends SourceLocation with Resolvable[ClassDef]
 }
 
 case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, typ: Type, body: Option[Expression],
-                    immutable: Boolean)
-  extends ClassContent {
+                    immutable: Boolean, aggregateMethod: Option[(ClassRef, Name)])
+  extends ClassContent with Resolvable[MethodDef] {
+
+  lazy val isAggregation: Boolean = aggregateMethod.isDefined
+
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val expr = if (body.isEmpty) "" else s" = ${body.get}"
     val prefix = if (immutable) "val " else "var "
-    s"$indent$visS$prefix$name: ${typ.prettyprint}$expr"
+    val descr = s"$indent$visS$prefix$name: ${typ.prettyprint}$expr"
+    aggregateMethod match {
+      case Some((ClassRef(refName), methodName)) =>
+        s"$descr with $refName.$methodName"
+      case None =>
+        descr
+    }
   }
 }
 
 case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, params: Seq[Param], outType: Type, body: Seq[Statement])
-  extends ClassContent with Resolvable[Int] {
+  extends ClassContent with Resolvable[Signature] {
 
   lazy val vars: Map[Name, Option[Type]] = (body.flatMap(_.vars) ++ params.flatMap(_.vars)).toMap
 
@@ -92,7 +101,7 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
 
   // The signature is resolved by the TypeContext. Type information about the methods and there superclasses is required
   // to correctly identify matching methods from the parent class.
-  def signature: Int = target.getOrElse(0)
+  def signature: Signature = target.getOrElse(0)
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
@@ -106,13 +115,13 @@ case class MethodDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name
 }
 
 case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], params: Seq[Param], body: Seq[Statement])
-  extends ClassContent with Resolvable[Int] {
+  extends ClassContent with Resolvable[Signature] {
 
   lazy val vars: Map[Name, Option[Type]] = (body.flatMap(_.vars) ++ params.flatMap(_.vars)).toMap
 
   def isMain: Boolean = annos.contains(MainAnnotation)
   def isStatic: Boolean = isMain || annos.contains(StaticAnnotation)
-  def signature: Int = target.getOrElse(0)
+  def signature: Signature = target.getOrElse(0)
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""

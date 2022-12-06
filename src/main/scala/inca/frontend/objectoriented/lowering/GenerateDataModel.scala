@@ -34,7 +34,7 @@ class GenerateDataModel(module: Module) {
     // (cls, idx) => field.typ if field.typ.isInstanceOf[TClass]
     val kidLinks = module.classes.flatMap { c =>
       c.content.zipWithIndex.flatMap {
-        case (FieldDef(_, _, _, TClass(ref), _, _), idx) =>
+        case (FieldDef(_, _, _, TClass(ref), _, _, _), idx) =>
           Some((c.name.raw, "_" + idx) -> SortType(ref.name.raw))
         case _ => None
       }
@@ -43,7 +43,7 @@ class GenerateDataModel(module: Module) {
     // (cls, idx) => transType(field.typ) if transType(field.typ) != None
     val litLinks = module.classes.flatMap { c =>
       c.content.zipWithIndex.flatMap {
-        case (FieldDef(_, _, _, ty, _, _), idx) if transType(ty).isDefined =>
+        case (FieldDef(_, _, _, ty, _, _, _), idx) if transType(ty).isDefined =>
           Some((c.name.raw, "_" + idx) -> transType(ty).get)
         case _ => None
       }

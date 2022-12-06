@@ -98,9 +98,9 @@ abstract class CountTransformer(val rootPatternHint: Hint,
       val doNotCare = Var(gensym.fresh("_"))
       // FIXME: We put in the inVar as argument. This might be a problem in the future. For now this okay, since
       //  we only use aggregations for fold and for calculating the timestamp.
-      //  The timestamp calculation is not affected by this method, since we add the timestamp agg, after this
+      //  The timestamp calculation is not affected by this method, since we add the timestamp agg, after the alloc
       //  transformation. If the aggregation is generated for a fold, than the aggregate pattern will always contain a
-      //  dispatch call to a defunctionalized set (e.g Aux$0.apply => this.content). In this case, the
+      //  dispatch call to a defunctionalized set (e.g Aux$0.apply = this.content). In this case, the
       //  the allocInVar is not needed and the tsInVar is used to filter smaller timestamps. In both cases is it
       //  therefore correct to pass in the current inVar.
       CustomAggregation(typ, description, agg, patName, args :+ counterInVar :+ doNotCare, aggregatedColumn)

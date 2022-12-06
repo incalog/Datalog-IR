@@ -54,6 +54,8 @@ trait Parser {
     val PRIVATE: Value    = Value("private")
     val VAR: Value        = Value("var")
     val VAL: Value        = Value("val")
+    val VAG: Value        = Value("vag")
+    val WITH: Value       = Value("with")
     val NEW: Value        = Value("new")
     val RETURN: Value     = Value("return")
     val TRUE: Value       = Value("true")
@@ -75,11 +77,11 @@ trait Parser {
   def keyword(keyword: Keyword): P[Unit] =
     spaced(P.string(keyword.toString) *> P.not(letterDigit))
 
-  def op(c: Char): P[Unit] =
-    spaced(P.char(c))
+  def op(c: Char): P[String] =
+    spaced(P.char(c).string)
 
-  def op(s: String): P[Unit] =
-    spaced(P.string(s))
+  def op(s: String): P[String] =
+    spaced(P.string(s).string)
 
   def encloseBetween[T](p: P[T], c: Char): P[T] =
     spaced(P.char(c) *> p <* P.char(c))
@@ -170,10 +172,11 @@ trait Parser {
     spaced(identifier ~ (op(':') *> typeAnno))
 
   protected[frontend] lazy val assignStmt: P[Statement] =
-    (nestedAccessExpr ~ (op('=') *> expr)).backtrack.flatMapWithLoc {
-      case (targetExpr, valueExpr) =>
+    (nestedAccessExpr ~ ((op('=') | op("#=")) ~ expr)).backtrack.flatMapWithLoc {
+      case (targetExpr, (assignOp, valueExpr)) =>
+        val isAggregation = (assignOp == "#=")
         targetExpr match {
-          case FieldReadExpr(previousExpr, name) => pass(FieldAssignStmt(previousExpr, name, valueExpr))
+          case FieldReadExpr(previousExpr, name) => pass(FieldAssignStmt(previousExpr, name, valueExpr, isAggregation))
           case VarReadExpr(name)                 => pass(VarAssignStmt(name, valueExpr))
           case _                                 => fail(s"Can not assign a value to expression: $targetExpr")
         }
@@ -235,7 +238,7 @@ trait Parser {
     }
 
   protected[frontend] lazy val foldExpr: P[SetFold] =
-    (keyword(FOLD) *> inParentheses(P.defer(expr) ~ (op(",") *> (classRef) ~ (op(".") *> identifier)) ~ (op(",") *> P.defer(expr)))).mapWithLoc {
+    (keyword(FOLD) *> inParentheses(P.defer(expr) ~ (op(",") *> classRef ~ (op(".") *> identifier)) ~ (op(",") *> P.defer(expr)))).mapWithLoc {
       case ((recv, (classRef, methodName)), neutral) => SetFold(recv, classRef, methodName, neutral)
     }
 
@@ -430,16 +433,27 @@ trait Parser {
     }
   }
 
-  private def fieldDef(immutable: Boolean): P[FieldDef] = {
+  private def fieldDefSimple(immutable: Boolean): P[FieldDef] = {
     val kw = if (immutable) VAL else VAR
     (((visibility.? <* keyword(kw)).with1 ~ nameWithType) ~ (op('=') *> subinfixExpr).?).mapWithLoc {
       case ((visibility, (name, typeAnno)), valueExpr) =>
-        FieldDef(Seq(), visibility, name, typeAnno, valueExpr, immutable)
+        FieldDef(Seq(), visibility, name, typeAnno, valueExpr, immutable, None)
+    }
+  }
+
+  private lazy val fieldDefAggregation: P[FieldDef] = {
+    ((visibility.? <* keyword(VAG)).with1 ~ nameWithType
+      ~ (op('=') *> subinfixExpr)
+      ~ (keyword(WITH) *> (classRef) ~ (op(".") *> identifier))).mapWithLoc {
+      case (((visibility, (name, typeAnno)), valueExpr), (ref, methodName)) =>
+        FieldDef(Seq(), visibility, name, typeAnno, Some(valueExpr), immutable = false, Some((ref, methodName)))
     }
   }
 
   protected[frontend] val fieldDef: P[FieldDef] =
-    fieldDef(false).backtrack | fieldDef(true).backtrack
+    fieldDefSimple(false).backtrack |
+      fieldDefSimple(true).backtrack |
+      fieldDefAggregation.backtrack
 
   protected[frontend] val constructorDef: P[ConstructorDef] = {
     val functionHeader = ((((overrideAnnotation.? ~ visibility.?).with1
@@ -507,6 +521,10 @@ object Parser {
   def parse(code: String): Module =
     parser.module.parse(code) match {
       case Right((_, module)) => module
-      case Left(e: cats.parse.Parser.Error) =>  throw ParseException(e.toString, null)
+      case Left(e: cats.parse.Parser.Error) =>
+        val parsedTo = code.substring(0, e.failedAtOffset).split('\n').lastOption.getOrElse("").strip()
+        val expected = e.expected.toList.mkString(", ")
+        val msg = s"'$parsedTo' Expected: $expected"
+        throw ParseException(msg, null)
     }
 }

@@ -1,5 +1,6 @@
 package inca.frontend.objectoriented.lowering
 
+import inca.backend.hints
 import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog
 import inca.compiler.SourceObject
@@ -225,8 +226,11 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     import scala.meta._
 
     val fields = classDef.fields.flatMap {
-      case f@FieldDef(_, _, Name(name), TSet(_), _, _) =>
+      case f@FieldDef(_, _, Name(name), TSet(_), _, _, _) =>
         println(s"Can not coalesced field ${classDef.name.raw}.$name with set type!", f)
+        None
+      case f@FieldDef(_, _, Name(name), TSet(_), _, _, Some(_)) =>
+        println(s"Can not coalesced aggregate field ${classDef.name.raw}.$name!", f)
         None
       case f => Some(f)
     }
@@ -297,8 +301,11 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     import scala.meta.Term
 
     val fields = classDef.fields.flatMap {
-      case f@FieldDef(_, _, Name(name), TSet(_), _, _) =>
-        println(s"Can not coalesced field ${classDef.name.raw}.$name with set type!", f)
+      case f@FieldDef(_, _, Name(name), TSet(_), _, _, _) =>
+        println(s"Can not uncoalesced field ${classDef.name.raw}.$name with set type!", f)
+        None
+      case f@FieldDef(_, _, Name(name), TSet(_), _, _, Some(_)) =>
+        println(s"Can not uncoalesced aggregate field ${classDef.name.raw}.$name!", f)
         None
       case f => Some(f)
     }
@@ -423,12 +430,14 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     // set the default value for each field
     val thisVar = Datalog.Var("this")
-    val fields = collectFields(classDef)
+    val fields = collectFields(classDef).filter(!_._2.isAggregation)
     val fieldSetter = fields.filter(_._2.body.isDefined).map { case (fieldClassDef, fieldDef) =>
       val fieldName = fieldPatName(fieldClassDef.name.raw, fieldDef.name.raw)
       // alternative bodies for this field
-      for ((terms, cons) <- transExpression(fieldDef.body.get)) yield
-        cons :+ Datalog.Call(fieldName, thisVar +: terms).addHint(ObjectHints.FieldSet)
+      for ((terms, cons) <- transExpression(fieldDef.body.get)) yield {
+        val fieldInit = Datalog.Call(fieldName, thisVar +: terms).addHint(ObjectHints.FieldSet)
+        cons :+ fieldInit
+      }
     }
 
     if (fieldSetter.isEmpty)
@@ -476,9 +485,10 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val qualifiedName = fieldPatName(classDef.name.raw, fieldDef.name.raw)
     val params = Datalog.Param("this", transType(classDef.typ)) +:
       flattenParam(fieldDef.name.raw, fieldDef.typ, genFresh = false)
+    val pat = Datalog.Pattern(None, qualifiedName, params, Seq())
 
-    Datalog.Pattern(None, qualifiedName, params, Seq())
-      .addHint(ObjectHints.Field)
+    // aggregation fields do not require a timestamp
+    if (fieldDef.isAggregation) pat else pat.addHint(ObjectHints.Field)
   }
 
   private def transDefaultConstructor(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
@@ -574,15 +584,17 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         yield (elsTerm, cndCons ++ Seq(Datalog.Eq(cndTerm, Datalog.False)) ++ elsCons, Some(stmt.sourceObject -> false))
       thnRes ++ elsRes
 
-    case fieldAssign@FieldAssignStmt(recv, name, expression) =>
+    case fieldAssign@FieldAssignStmt(recv, name, expression, aggregation) =>
       // to allow inheritance of attributes we use the classDef target of the field lookup
-      val (classDef, _) = fieldAssign.target.getOrElse(throw new IllegalArgumentException(s"Unresolved field $name"))
+      val (classDef, fieldDef) = fieldAssign.target.getOrElse(throw new IllegalArgumentException(s"Unresolved field $name"))
       val qualifiedName = fieldPatName(classDef.name.raw, name.raw)
 
       val transRecv = for ((terms, cons) <- transExpression(recv)) yield {
         for (tups <- transExpression(expression)) yield {
           val (argTerms, argCons) = tups
-          (None, cons ++ argCons :+ Datalog.Call(qualifiedName, terms ++ argTerms).addHint(ObjectHints.FieldSet), path)
+          val call = Datalog.Call(qualifiedName, terms ++ argTerms)
+          val fieldSet = if (fieldDef.isAggregation) call else call.addHint(ObjectHints.FieldSet)
+          (None, cons ++ argCons :+ fieldSet, path)
         }
       }
       transRecv.flatten
@@ -616,11 +628,60 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       val (classDef, fieldDef) = fieldRead.target.getOrElse(throw new IllegalArgumentException(s"Unresolved field $targetName"))
 
       for ((terms, cons) <- transExpression(recv)) yield {
-        val fieldReadVars = flattenVars(gensym.fresh(targetName.raw), fieldDef.typ).map(_._1)
-        val fieldReadCall = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), terms ++ fieldReadVars)
-          .addHint(MagicSetHints.FixedAdornment(terms.map(_ => true) ++ fieldReadVars.map(_ => true)))
-          .addHint(ObjectHints.FieldGet)
-        (fieldReadVars, cons :+ fieldReadCall)
+        val FieldDef(annos, vis, name, typ, body, immutable, aggregateMethod) = fieldDef
+
+        val (fieldReadVars, fieldReadCon) =
+          if (fieldDef.isAggregation) {
+            val Some((opClass, opMethod)) = fieldDef.aggregateMethod
+
+            /*val flatVars = flattenVars(gensym.fresh(targetName.raw), typ)
+            val vars = flatVars.map(_._1)
+            val fieldReadCall = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), terms ++ vars)
+              .addHint(MagicSetHints.FixedAdornment(terms.map(_ => true) ++ vars.map(_ => true)))
+              .addHint(MagicSetHints.IgnoreCall)
+
+            val bodies = Seq(Datalog.Body(
+              Seq(fieldReadCall)
+              //Datalog.Eq(Datalog.Var(gensym.fresh("tmp")), )
+            ))
+            val params = flatVars.map { case (n, t) => Datalog.Param(n.name, t) }
+            val aggregandPatName = aggregatePatName(opClass.name.raw, opMethod.raw)
+            val aggregandPat = Datalog.Pattern(None, gensym.freshGlobal(aggregandPatName), params, bodies)
+
+            generatedPatterns += aggregandPat*/
+
+            val neutral = body.getOrElse(
+              throw new IllegalArgumentException(s"Aggregation variable ${name.raw} needs a initial value!")
+            )
+            val aggFun = genScala.genAggregation(opMethod + "Agg", neutral, opClass.name.raw, opMethod.raw, typ)
+            val outVar = Datalog.Var(gensym.fresh("out"))
+            val aggregation = Datalog.CustomAggregation(
+              transDataType(typ),
+              Some(s"${opClass.name.raw}.${opMethod.raw}"),
+              Scala(aggFun),
+              fieldPatName(opClass.name.raw, fieldDef.name.raw),
+              terms :+ outVar,
+              terms.size
+              //aggregandPat.name,
+              //Seq(outVar),
+              //0
+            )
+            val readVar = Datalog.Var(gensym.fresh(fieldDef.name.raw))
+            val compCon = Datalog.Computed(readVar, aggregation)
+              .addHint(MagicSetHints.FixedAdornment(Seq(true, true)))
+              .addHint(MagicSetHints.IgnoreCall)
+
+            (Seq(readVar), compCon)
+          } else {
+            val vars = flattenVars(gensym.fresh(targetName.raw), typ).map(_._1)
+            val fieldReadCall = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), terms ++ vars)
+              .addHint(MagicSetHints.FixedAdornment(terms.map(_ => true) ++ vars.map(_ => true)))
+              //.addHint(MagicSetHints.IgnoreCall)
+              .addHint(ObjectHints.FieldGet)
+            (vars, fieldReadCall)
+          }
+
+        (fieldReadVars, cons :+ fieldReadCon)
       }
 
     case constrExpr@ConstructorExpr(classRef, args) =>
@@ -781,7 +842,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       val freeArgs = recv.vars.toSeq.flatMap { case (v, ty) => flattenVars(v.raw, ty.get) }.map(_._1)
       val outVar = Datalog.Var(gensym.fresh("out"))
       val aggregation = Datalog.CustomAggregation(transDataType(expTyp), Some("Fold aggregation."), Scala(aggFun), aggregandPat.name, freeArgs :+ outVar, freeArgs.size)
-      val foldVar = Datalog.Var(gensym.fresh("reduce"))
+      val foldVar = Datalog.Var(gensym.fresh("fold"))
       val compCon = Datalog.Computed(foldVar, aggregation)
 
       tClassTyp match {

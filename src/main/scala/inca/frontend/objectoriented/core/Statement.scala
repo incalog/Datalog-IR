@@ -21,9 +21,12 @@ case class ReturnStmt(expression: Expression) extends Statement {
     s"${indent}return $expression"
 }
 
-case class FieldAssignStmt(recv: Expression, name: Name, expression: Expression) extends Statement with Resolvable[(ClassDef, FieldDef)] {
-  override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
-    s"$indent$recv.$name = $expression"
+case class FieldAssignStmt(recv: Expression, name: Name, expression: Expression, aggregation: Boolean) extends Statement
+  with Resolvable[(ClassDef, FieldDef)] {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    val assignmentOp = if (aggregation) "#=" else "="
+    s"$indent$recv.$name $assignmentOp $expression"
+  }
 }
 
 case class VarDeclareStmt(name: Name, typ: Type, maybeExpression: Option[Expression], immutable: Boolean) extends Statement

@@ -68,6 +68,16 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         assertSubtype(expTyp, fieldDef.typ, fieldDef)
       case None => // nothing
     }
+
+    fieldDef.aggregateMethod match {
+      case Some((ref, methodName)) =>
+        val clazz = lookupClassRef(ref)
+        val ty = fieldDef.typ
+        val method = lookupMethod(clazz, Seq(ty, ty), methodName)
+        if (method.isDefined)
+          resolveTarget(fieldDef)(method.get)
+      case None => // nothing
+    }
   }
 
   def typecheck(methodDef: MethodDef, classDef: ClassDef): Unit = scopedTypeContext {
@@ -169,7 +179,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case ReturnStmt(expression) =>
       val outTyp = typecheck(expression)
       assertSubtype(outTyp, rt, statement)
-    case fieldAssignStmt@FieldAssignStmt(recv, name, expression) =>
+    case fieldAssignStmt@FieldAssignStmt(recv, name, expression, _) =>
       val typ = typecheck(expression)
       typecheck(recv) match {
         case TClass(ref) => lookupField(lookupClassRef(ref), name) match {

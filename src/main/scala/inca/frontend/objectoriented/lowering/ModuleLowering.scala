@@ -64,9 +64,13 @@ trait ModuleLowering {
     Param(param.name, transType(param.typ))
 
   private[lowering] def transFieldInternal(fieldDef: FieldDef, classDef: ClassDef): FieldDef = {
-    val FieldDef(annos, vis, name, typ, body, immutable) = fieldDef
+    val FieldDef(annos, vis, name, typ, body, immutable, aggregateMethod) = fieldDef
+    val newAgg = aggregateMethod match {
+      case Some((ClassRef(refName), methodName)) => Some((ClassRef(refName), methodName))
+      case None => None
+    }
     val newBody = if (body.isDefined) Some(transExpression(body.get).head) else None
-    FieldDef(annos, vis, name, transType(typ), newBody, immutable)
+    FieldDef(annos, vis, name, transType(typ), newBody, immutable, newAgg)
   }
 
   private[lowering] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
@@ -93,8 +97,8 @@ trait ModuleLowering {
       ReturnStmt(transExpression(expr).head)
     case ExprStmt(expr) =>
       ExprStmt(transExpression(expr).head)
-    case FieldAssignStmt(recv, name, expression) =>
-      FieldAssignStmt(transExpression(recv).head, name, transExpression(expression).head)
+    case FieldAssignStmt(recv, name, expression, aggregation) =>
+      FieldAssignStmt(transExpression(recv).head, name, transExpression(expression).head, aggregation)
     case IfStmt(cnd, thn, els) =>
       IfStmt(transExpression(cnd).head, transStatements(thn), transStatements(els))
     case VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>

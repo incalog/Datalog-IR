@@ -67,7 +67,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       case (name, _) => name -> name
     }
     val contentType = TSet(clearType(innerSetType))
-    val fields = Seq(FieldDef(Seq(), None, Name("content"), contentType, None, immutable = true))
+    val fields = Seq(FieldDef(Seq(), None, Name("content"), contentType, None, immutable = true, None))
 
     // return the precomputed set
     val ret = ReturnStmt(FieldReadExpr(VarReadExpr(Name("this")), Name("content")))
@@ -75,9 +75,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     // create a default constructor
     val constrParams = constrVars.map { case (subst(name), typ) => Param(name, clearType(typ)) }.toSeq
     val constrBody = fields.map { f =>
-      FieldAssignStmt(
-        VarReadExpr(Name("this")), f.name, clearExpression(expr)
-      )
+      FieldAssignStmt(VarReadExpr(Name("this")), f.name, clearExpression(expr), aggregation = false)
     }
     val constr = ConstructorDef(Seq(), None, constrParams, constrBody)
     val clsName = Name(gensym.fresh("Aux"))
@@ -109,9 +107,14 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
 
   override private[lowering] def transFieldInternal(fieldDef: FieldDef, classDef: ClassDef): FieldDef = fieldDef match {
     // Transform: set fields to object set fields
-    case FieldDef(annos, vis, name, TSet(ty), body, immutable) =>
+    case FieldDef(annos, vis, name, TSet(ty), body, immutable, aggregateMethod) =>
       val newBody = if (body.isDefined) Some(sanitize(body.get)) else body
-      super.transFieldInternal(FieldDef(annos, vis, name, genDefunClassDef(ty).typ, newBody, immutable), classDef)
+      val newAgg = aggregateMethod match {
+        case Some((ClassRef(refName), methodName)) => Some((ClassRef(refName), methodName))
+        case None => None
+      }
+      val replacement = FieldDef(annos, vis, name, genDefunClassDef(ty).typ, newBody, immutable, newAgg)
+      super.transFieldInternal(replacement, classDef)
     case f =>
       super.transFieldInternal(f, classDef)
   }
@@ -130,8 +133,8 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
   override private[lowering] def transStatementInternal(stmt: Statement): Seq[Statement] = stmt match {
     case ExprStmt(expression) =>
       Seq(ExprStmt(sanitize(expression)))
-    case FieldAssignStmt(recv, name, expression) =>
-      Seq(FieldAssignStmt(sanitize(recv), name, sanitize(expression)))
+    case FieldAssignStmt(recv, name, expression, aggregation) =>
+      Seq(FieldAssignStmt(sanitize(recv), name, sanitize(expression), aggregation))
     // Transform: set variables to object set variables
     case VarDeclareStmt(name, TSet(ty), maybeExpression, immutable) =>
       val newTyp = genDefunClassDef(ty).typ
