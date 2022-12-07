@@ -1,0 +1,105 @@
+module ReachabilityTest
+
+class Exp {
+    def accept(v: Visitor): Unit = {
+    }
+}
+
+class Var extends Exp {
+    val name: String
+    def this(name: String) = {
+        this.name = name
+    }
+
+    @override
+    def accept(v: Visitor): Unit = {
+        v.visitVar(this)
+    }
+}
+
+class Num extends Exp {
+    val num: Int
+    def this(num: Int) = {
+        this.num = num
+    }
+
+    @override
+    def accept(v: Visitor): Unit = {
+        v.visitNum(this)
+    }
+}
+
+class Add extends Exp {
+    val left: Exp
+    val right: Exp
+    def this(left: Exp, right: Exp) = {
+        this.left = left
+        this.right = right
+    }
+
+    @override
+    def accept(v: Visitor): Unit = {
+        this.left.accept(v)
+        this.right.accept(v)
+        v.visitAdd(this)
+    }
+}
+
+class Visitor {
+    def visitVar(e: Var): Unit = {
+    }
+    def visitNum(e: Num): Unit = {
+    }
+    def visitAdd(e: Add): Unit = {
+    }
+}
+
+class VarCountVisitor extends Visitor {
+    vag count: Int = 0 with VarCountVisitor.sum
+
+    @static
+    def sum(n1: Int, n2: Int): Int = {
+        n1 + n2
+    }
+
+    @override
+    def visitVar(e: Var): Unit = {
+        this.count #= 1
+    }
+}
+
+class SumNumVisitor extends Visitor {
+    vag sum: Int = 0 with SumNumVisitor.sum
+
+    @static
+    def sum(n1: Int, n2: Int): Int = {
+        n1 + n2
+    }
+
+    @override
+    def visitNum(e: Num): Unit = {
+        this.sum #= e.num
+    }
+}
+
+class Main {
+//    @main
+//    def countVar(): Int = {
+        //        val tree1: Exp = new Add(new Var("x"), new Var("y"))
+        //        val tree1Count: VarCountVisitor = new VarCountVisitor()
+        //        tree1.accept(tree1Count)
+        //        tree1Count.count
+//        1
+//    }
+
+    @main
+    def sumNum(): Int = {
+        val treeSum: SumNumVisitor = new SumNumVisitor()
+        val tree1: Exp = new Add(new Var("x"), new Num(7))
+        val tree2: Exp = new Add(new Num(1), new Add(new Num(2), new Num(3)))
+        tree1.accept(treeSum)
+        tree2.accept(treeSum)
+        treeSum.sum
+    }
+
+}

@@ -309,4 +309,12 @@ object TestDefinition {
       //TestDefinition("Reachability", "Graph", "main", Seq(), SetResult("X", "Z", "Y"))
     )
   }
+
+  def aggTreeTest: Seq[TestDefinition[SetResult[Any]]] = {
+    implicit val subdir: Option[String] = Some("unittests/aggvar")
+    Seq(
+      TestDefinition("AggTree", "Main", "sumNum", Seq(), SetResult(13)),
+      //TestDefinition("Reachability", "Graph", "main", Seq(), SetResult("X", "Z", "Y"))
+    )
+  }
 }

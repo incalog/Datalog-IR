@@ -163,6 +163,10 @@ class DatalogTest extends AnyFunSuite {
     performTests(aggVariableTest: _*)
   }
 
+  test("Aggregate tree") {
+    performTests(aggTreeTest: _*)
+  }
+
   test("Binary Tree Example") {
     performTests(binaryTreeTest)
   }
