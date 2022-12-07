@@ -1,8 +1,6 @@
 package inca.frontend.objectoriented.lowering
 
-import inca.compiler.SourceLocation
 import inca.frontend.objectoriented.core._
-import inca.util.Gensym
 
 
 object AddMissingDefinitions {
@@ -14,8 +12,8 @@ object AddMissingDefinitions {
 }
 
 /**
- * This class adds missing definitions, such as an empty constructor definition to the module. This should be executed
- * before we attempt to typecheck a module.
+ * This class adds missing definitions, such as an empty constructor definition or an implicit return statement to the
+ * module. This should be executed before we attempt to typecheck a module.
  */
 class AddMissingDefinitions(val module: Module) extends ModuleLowering {
 

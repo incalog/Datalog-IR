@@ -15,7 +15,8 @@ class A {
         a.sum #= 3
 
         val b: Int = a.sum
-        a.sum #= 2
-        a.sum - b
+        a.sum #= a.sum + 1
+        //a.sum
+        b
     }
 }

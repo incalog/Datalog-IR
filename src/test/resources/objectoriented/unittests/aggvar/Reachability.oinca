@@ -19,15 +19,15 @@ class Graph {
     @main
     def main(): Int = {
         val g: Graph = new Graph()
-        g.path("A")
+        g.path("A", 1)
         g.maxDis
     }
 
-    def path(x: String): Set[String] = {
+    def path(x: String, idx: Int): Set[String] = {
         this.maxDis #= 1
 
         (for (d <- this.edges if d._1 == x) yield d._2)
         ++
-        (for (i <- this.edges if i._1 == x; y <- this.path(i._2)) yield y)
+        (for (i <- this.edges if i._1 == x; y <- this.path(i._2, idx)) yield y)
     }
 }

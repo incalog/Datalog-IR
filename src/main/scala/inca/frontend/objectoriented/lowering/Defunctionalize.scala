@@ -2,7 +2,7 @@ package inca.frontend.objectoriented.lowering
 
 import inca.frontend.objectoriented.core._
 import inca.runtime.context.DataModel
-import inca.util.{Gensym, TupleOps}
+import inca.util.{Gensym, Scala, TupleOps}
 import truechange.SortType
 
 object Defunctionalize {
@@ -15,7 +15,7 @@ object Defunctionalize {
 }
 
 // TODO: Support tuples with parent scala types
-// TODO: Do nested tuples work ?
+// TODO: Do nested tuples work ? ... They should
 //  E.g which is not correctly defunctionalized:
 //  -- Scala classes A and B --
 //  class A {}
@@ -56,8 +56,9 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       })
       // we might generate the input tuple again, if all child tuples do not contain a parent type
       ttys.map(TTuple(_)).filter(_ != typ)
-    case TScala(_) =>
+    case TScala(Scala(metaTy)) =>
       // TODO: Support supertypes for scala types
+      println("MetaType: ", metaTy)
       Seq()
     case TClass(ClassRef(Name(raw))) =>
       dataModel.directNodeSupertypes.get(SortType(raw))
