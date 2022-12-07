@@ -20,7 +20,7 @@ class TestAggregate extends AnyFlatSpec with IncaConstraintMatchers {
 
   implicit def name(s: String): Name = Name(s)
 
-  val limit = 4
+  val limit = 10
 
   "aggregate" should "support non-invertible joins" in {
     val module = Module("Test_Cast", Seq(DirectDataModel(Exp.model)), Seq(), Seq(), Seq(

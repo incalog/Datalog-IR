@@ -12,6 +12,7 @@ object Nat {
     def toInt: Int
     def add(that: Nat): Nat
     def sub(that: Nat): Nat
+    override def toString: String = toInt.toString
   }
   case object Zero extends Nat {
     override def toInt: Int = 0
@@ -39,7 +40,7 @@ object Nat {
     override def init: Nat = Zero
     override def join(v1: Nat, v2: Nat): Nat = {
       val s = v1.add(v2)
-      println(s"Adding ${v1.toInt} + ${v2.toInt} = ${s.toInt}")
+//      println(s"Adding ${v1.toInt} + ${v2.toInt} = ${s.toInt}")
       s
     }
     override val isAssociative: Boolean = true
