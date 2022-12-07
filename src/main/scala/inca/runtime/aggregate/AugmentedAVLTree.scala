@@ -18,6 +18,7 @@ class AugmentedAVLTree[T](op: (T, T) => T)(implicit ord: Ordering[T]) {
         node.lhs = newLhs
       } else if (res == 0) {
         node.count += 1
+        node.recompute()
         // no rotations needed
         return node
       } else {
@@ -84,6 +85,7 @@ class AugmentedAVLTree[T](op: (T, T) => T)(implicit ord: Ordering[T]) {
       } else {
         if (!removeAll && currentNode.count > 1) {
           currentNode.count -= 1
+          node.recompute()
           return currentNode
         } else {
           if (currentNode.lhs == null || currentNode.rhs == null) {
@@ -240,6 +242,8 @@ class AugmentedAVLNode[T](var value: T, op: (T, T) => T)(implicit ord: Ordering[
   def recompute(lhs: AugmentedAVLNode[T], rhs: AugmentedAVLNode[T]): Unit = {
     val oldVal = computedValue
     var newVal = value
+    for (_ <- 1 until this.count)
+      newVal = op(newVal, value)
     if (lhs != null) {
       val left = lhs.computedValue
       newVal = op(newVal, left)
