@@ -30,6 +30,14 @@ object Relation {
       case 20 => Relation20(relName, parameterNames, matches)
     }
 
+  def fromMatcher(matcher: Query.Matcher): Relation = {
+    import scala.jdk.CollectionConverters._
+    Relation.fromQueryMatches(
+      matcher.getPatternName,
+      matcher.getParameterNames.asScala.toList,
+      matcher.getAllMatches.asScala)
+  }
+
   protected[frontend] def fromQueryMatches(relName: RelationName, parameterNames: Seq[RelationName], matches: Iterable[Query.Match]): Relation =
     parameterNames.size match {
       case 0 => UnitRelation(relName)

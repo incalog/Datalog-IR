@@ -171,7 +171,9 @@ object Datalog {
     override def replaceCall(newPatName: Name, newArgs: Seq[Term]): CountAggregation =
       CountAggregation(newPatName, newArgs)
   }
-  case class CustomAggregation(typ: Type, description: Option[String], agg: Scala[meta.Term], patName: Name, args: Seq[Term], aggregatedColumn: Int) extends Computation {
+
+  case class CustomAggregation(typ: Type, description: Option[String], agg: Scala[meta.Term], patName: Name,
+                               args: Seq[Term], aggregatedColumn: Int) extends Computation {
     override def asCall: Option[(Name, Seq[Term])] = Some(patName -> args)
     override def replaceCall(newPatName: Name, newArgs: Seq[Term]): CustomAggregation =
       CustomAggregation(typ, description, agg, newPatName, newArgs, aggregatedColumn)

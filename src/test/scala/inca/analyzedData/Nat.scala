@@ -37,7 +37,11 @@ object Nat {
   val sumAgg = new Aggregation[Nat] {
     override val name: String = "sum"
     override def init: Nat = Zero
-    override def join(v1: Nat, v2: Nat): Nat = v1.add(v2)
+    override def join(v1: Nat, v2: Nat): Nat = {
+      val s = v1.add(v2)
+      println(s"Adding ${v1.toInt} + ${v2.toInt} = ${s.toInt}")
+      s
+    }
     override val isAssociative: Boolean = true
     override val isCommutative: Boolean = true
   }

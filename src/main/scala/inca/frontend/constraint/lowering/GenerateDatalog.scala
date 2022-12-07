@@ -284,7 +284,7 @@ class GenerateDatalog {
 
       val funname = gensym.freshGlobal("AggregateCollection")
 
-      val inVars = bodies.flatMap(_.freeVars).toMap
+      val inVars = bodies.flatMap(_.allVars).toMap
       val params = inVars.map(kv => Param(kv._1, kv._2.getOrElse(throw new IllegalArgumentException(s"untyped var ${kv._1} in $exp")))).toSeq
       val allvars = params.map(p => Datalog.Var(p.name.name)) :+ Datalog.Var(gensym.fresh("aggregand"))
 
