@@ -499,13 +499,14 @@ public class FuncIncaParser implements PsiParser, LightPsiParser {
   }
 
   /* ********************************************************** */
-  // id '[' type_annotation (',' type_annotation)* ']'
+  // cons_id '[' type_annotation (',' type_annotation)* ']'
   public static boolean constr(PsiBuilder b, int l) {
     if (!recursion_guard_(b, l, "constr")) return false;
     if (!nextTokenIs(b, ID)) return false;
     boolean r;
     Marker m = enter_section_(b);
-    r = consumeTokens(b, 0, ID, SQUARE_BRACKET_OPEN);
+    r = cons_id(b, l + 1);
+    r = r && consumeToken(b, SQUARE_BRACKET_OPEN);
     r = r && type_annotation(b, l + 1);
     r = r && constr_3(b, l + 1);
     r = r && consumeToken(b, SQUARE_BRACKET_CLOSE);

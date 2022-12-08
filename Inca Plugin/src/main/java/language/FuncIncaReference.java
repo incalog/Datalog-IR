@@ -46,7 +46,6 @@ public class FuncIncaReference extends PsiReferenceBase<PsiElement> implements P
     }
 
     public Object[] getVariants(){
-        // If we are not in an expression, don't provide reference completion.
         if (PsiTreeUtil.getParentOfType(myElement, FuncIncaExp.class) == null) {
             return new Object[]{};
         }

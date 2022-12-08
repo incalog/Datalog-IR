@@ -17,14 +17,14 @@ import java.util.*;
  */
 public class FuncIncaUtil {
     /*
-    * finds all Psi Definition nodes named "name" in the whole project. For name = null find all definitions.*/
-    public static List<PsiNamedElement> findDefinitionNode(@NotNull Project project, @Nullable String name, @NotNull PsiElement e){
+     * finds all Psi Definition nodes named "name" in the whole project. For name = null find all definitions.*/
+    public static List<PsiNamedElement> findDefinitionNode(@NotNull Project project, @Nullable String name, @NotNull PsiElement e) {
         List<PsiNamedElement> res = new ArrayList<>();
         final PsiFile psiFile = e.getContainingFile().getOriginalFile();
         // this would be the place for getting the imported modules
         // following for loop gets definition from every file in the directory, expand for supported import
         Collection<VirtualFile> virtualFiles = FileTypeIndex.getFiles(FuncIncaFileType.INSTANCE, GlobalSearchScope.projectScope(project));
-        for (VirtualFile virtualFile : virtualFiles){
+        for (VirtualFile virtualFile : virtualFiles) {
             FuncIncaFile f = (FuncIncaFile) PsiManager.getInstance(project).findFile(virtualFile);
             res.addAll(findDefinitionNode(f, name, e));
         }
@@ -32,50 +32,47 @@ public class FuncIncaUtil {
     }
 
     /*
-    * finds all Psi Definition nodes named "name" in one file*/
-    public static List<PsiNamedElement> findDefinitionNode(@Nullable FuncIncaFile file, @Nullable String name, @Nullable PsiElement e){
+     * finds all Psi Definition nodes named "name" in one file*/
+    public static List<PsiNamedElement> findDefinitionNode(@Nullable FuncIncaFile file, @Nullable String name, @Nullable PsiElement e) {
         List<PsiNamedElement> res = new ArrayList<>();
-        if(file == null)
-            return res;
+        if (file == null)
+            return new ArrayList<PsiNamedElement>();
         final FuncIncaComprehensionExp setParent = PsiTreeUtil.getParentOfType(e, FuncIncaComprehensionExp.class);
-        final Boolean setComprehension = setParent != null;
+        final boolean isSetComprehension = setParent != null;
         // We only want to look for classes that match the element e we are resolving
         final Class<? extends PsiNamedElement> elementClass;
-        if(e instanceof FuncIncaConsId)
+        if (e instanceof FuncIncaConsId)
             elementClass = FuncIncaDataConstructor.class;
-        else if(setComprehension)
+        else if (isSetComprehension)
             elementClass = FuncIncaNamedElement.class;
         else
             elementClass = FuncIncaDecl.class;
 
         Collection<PsiNamedElement> namedElements = PsiTreeUtil.findChildrenOfType(file, elementClass);
 
-        if(setComprehension && name != null){
+        if (isSetComprehension && name != null) {
             // finding candidates for resolving references
             List<PsiNamedElement> resCandidates = new ArrayList<>();
             for (PsiNamedElement namedElement : namedElements) {
-                if(name.equals(namedElement.getName()) && namedElement != e){ // excludes e from resolved candidates
-                    if(namedElement instanceof FuncIncaVar){
-                        if(PsiTreeUtil.getParentOfType(namedElement, FuncIncaComprehensionExp.class) == setParent &&
+                if (name.equals(namedElement.getName()) && namedElement != e) { // excludes e from resolved candidates
+                    if (namedElement instanceof FuncIncaVar) {
+                        if (PsiTreeUtil.getParentOfType(namedElement, FuncIncaComprehensionExp.class) == setParent &&
                                 PsiTreeUtil.getParentOfType(namedElement, FuncIncaMemberExp.class) != null) {
                             resCandidates.add(namedElement); // declarations with FuncIncaVar in rhs can only be member-expressions
                         }
                     }
-                    if(namedElement instanceof FuncIncaDecl){ // possible let-expressions in rhs are excluded
-                        if(e.getTextRange().getStartOffset() > namedElement.getTextRange().getStartOffset())
+                    if (namedElement instanceof FuncIncaDecl) { // possible let-expressions in rhs are excluded
+                        if (e.getTextRange().getStartOffset() > namedElement.getTextRange().getStartOffset())
                             resCandidates.add(namedElement);
                     }
                 }
             }
 
-            if(resCandidates.size() == 1) { // there is only one declaration of e, return the declaration
-                  // TODO check typing
-                  res.add(resCandidates.get(0));
-            }
-            else { // there are two or more declarations of e. The ones outside the set comprehension shadow declarations in set
-                for(PsiNamedElement node : resCandidates){
-                    if(node instanceof FuncIncaDecl){
-                        //TODO check typing
+            if (resCandidates.size() == 1) { // there is only one declaration of e, return the declaration
+                res.add(resCandidates.get(0));
+            } else { // there are two or more declarations of e. The ones outside the set comprehension shadow declarations in set
+                for (PsiNamedElement node : resCandidates) {
+                    if (node instanceof FuncIncaDecl) {
                         res.add(node);
                         continue;
                     } // we dont need to add the declarations via member-expression.
@@ -90,47 +87,39 @@ public class FuncIncaUtil {
             PsiNamedElement funDefParentOfNamedElement;
             PsiNamedElement funDefParentOfE = PsiTreeUtil.getParentOfType(e, FuncIncaFunDef.class);
 
-            for(PsiNamedElement namedElement: namedElements){
-                if(name == null){
+            for (PsiNamedElement namedElement : namedElements) {
+                if (name == null) {
                     res.add(namedElement);
                     continue;
                 }
                 funDefParentOfNamedElement =
                         PsiTreeUtil.getParentOfType(namedElement, FuncIncaFunDef.class);
-                if(name.equals(namedElement.getName())){
+                if (name.equals(namedElement.getName())) {
                     if (namedElement instanceof FuncIncaVarId) {// Decl in Let-exp
-                        if (namedElement.getTextRange().getStartOffset() < e.getTextRange().getStartOffset() &&
+                        if (PsiTreeUtil.isAncestor(namedElement.getParent(), e, true) &&
                                 funDefParentOfNamedElement == funDefParentOfE) {
                             res.add(namedElement);
-                            // TODO type checking
                         }
-                    } else if (namedElement instanceof FuncIncaConsPatternId){
+                    } else if (namedElement instanceof FuncIncaConsPatternId) {
                         if (PsiTreeUtil.getParentOfType(namedElement, FuncIncaMatchCase.class) ==
-                                PsiTreeUtil.getParentOfType(e, FuncIncaMatchCase.class)){
-                            // TODO type checking
+                                PsiTreeUtil.getParentOfType(e, FuncIncaMatchCase.class)) {
                             res.add(namedElement);
                         }
-                    } else if (namedElement instanceof FuncIncaParam){
-                        if (funDefParentOfNamedElement == funDefParentOfE){
+                    } else if (namedElement instanceof FuncIncaParam) {
+                        if (funDefParentOfNamedElement == funDefParentOfE) {
                             res.add(namedElement);
-                            // TODO type checking
                         }
-                    } else if (namedElement instanceof FuncIncaParamType){
-                        if (funDefParentOfNamedElement == funDefParentOfE){
+                    } else if (namedElement instanceof FuncIncaParamType) {
+                        if (funDefParentOfNamedElement == funDefParentOfE) {
                             res.add(namedElement);
-                            // TODO type checking
                         }
-                    } else {
-                    // TODO type checking
-                    res.add(namedElement);
+                    } else { // adding data or function definitions
+                        res.add(namedElement);
                     }
                 }
             }
         }
-        // TODO check typing
         return res;
-
     }
-
 
 }

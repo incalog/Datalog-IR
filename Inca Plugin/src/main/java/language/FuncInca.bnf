@@ -174,7 +174,7 @@ unary_op ::= '-' | '!'
 type_annotation ::= fun_type | atomic_type
 fun_type ::= atomic_type '=>' type_annotation {pin = 2}
 atomic_type ::= tuple | 'Any' | 'Nothing' | 'Unit' | option | set | scala_term | constr | type_name
-constr ::= id '[' type_annotation (',' type_annotation)* ']'
+constr ::= var '[' type_annotation (',' type_annotation)* ']'
 tuple ::= '(' (type_annotation (',' type_annotation)*)? ')'
 option ::= keyword_Option '[' type_annotation ']' {pin = 1}
 set ::= keyword_Set '[' type_annotation ']' {pin = 1}

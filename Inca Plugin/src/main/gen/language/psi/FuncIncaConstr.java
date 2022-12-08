@@ -8,9 +8,9 @@ import com.intellij.psi.PsiElement;
 public interface FuncIncaConstr extends PsiElement {
 
   @NotNull
-  List<FuncIncaTypeAnnotation> getTypeAnnotationList();
+  FuncIncaConsId getConsId();
 
   @NotNull
-  PsiElement getId();
+  List<FuncIncaTypeAnnotation> getTypeAnnotationList();
 
 }
