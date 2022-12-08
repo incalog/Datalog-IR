@@ -74,4 +74,12 @@ class FunctionsTest extends AnyFunSuite {
     val fun = FunctionalExecutor.loadFunction(code, FunctionalOptions().withOptimizations(Seq()))
     assert(fun.execute("main", Seq(q"1")).isEmpty)
   }
+
+  test("set ops") {
+    val code = readFile("functional/unittests/SetOps2.finca")
+    val fun = FunctionalExecutor.loadFunction(code, FunctionalOptions().withOptimizations(Seq()))
+    println(fun.execute("main", Seq()))
+    println(fun.execute("main2", Seq()))
+    println(fun.execute("main3", Seq()))
+  }
 }

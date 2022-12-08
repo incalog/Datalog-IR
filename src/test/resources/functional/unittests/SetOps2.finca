@@ -1,0 +1,17 @@
+module SetOps2
+def add(n1: Int, n2: Int): Int = n1 + n2
+
+def fromTo(start: Int, end: Int): Set[(Int, Int)] =
+  if (start > end)
+    {}
+  else
+    {(0,start), (1,start)} ++ fromTo(start + 1, end)
+
+@main
+def main: Set[Int] = {n | (_,n) in fromTo(1, 10) }
+
+@main
+def main2: Int = fold(0, add, main())
+
+@main
+def main3: Int = fold(0, add, {n | (_,n) in fromTo(1, 10) })

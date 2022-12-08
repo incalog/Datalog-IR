@@ -1,0 +1,24 @@
+module SetFold
+
+class Num {
+  @static
+  def sum(n1: Int, n2: Int): Int = {
+    n1 + n2
+  }
+
+  @main def main(): Int = {
+    // 0.
+    //val s: Set[(Int, Int)] = Set((0, 1), (1,1), (0, 3))
+    //fold( s | (0, #), Num.sum, 0)
+
+    // 1.
+    //fold( Set((0, 1), (1,1), (0, 3)) | (0, #), Num.sum, 0)
+
+    // 2.
+    //val x: Int = 0
+    //fold( Set((x, 0, 1), (0, 1,1), (1, 1, 1), (2, 1, 1)) | (x, _, #), Num.sum, 0)
+
+    // 3.
+    fold( for (s <- Set((0, 1), (1,1))) yield s._2 , Num.sum, 0)
+  }
+}

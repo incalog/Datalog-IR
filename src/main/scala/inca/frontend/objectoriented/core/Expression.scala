@@ -51,6 +51,7 @@ case class SuperExpr(args: Seq[Expression]) extends Expression with Resolvable[(
 
 case class MethodCallExpr(recv: Expression, fun: Name, args: Seq[Expression]) extends Expression with Resolvable[MethodDef] {
   def vars: Map[Name, Option[Type]] = recv.vars ++ args.flatMap(_.vars).toMap
+
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
     val argsS = args.map(_.prettyprint).mkString(", ")
     s"$recv.$fun($argsS)"
@@ -117,10 +118,16 @@ case class SetComprehension(member: Seq[Expression], body: Expression) extends E
   }
 }
 
-case class SetFold(recv: Expression, opClass: ClassRef, opMethod: Name, neutral: Expression) extends Expression with Resolvable[MethodDef] {
+case class SetFold(recv: Expression, projection: Seq[Expression], opClass: ClassRef, opMethod: Name, neutral: Expression) extends Expression with Resolvable[MethodDef] {
   def vars: Map[Name, Option[Type]] = recv.vars
+
+  lazy val aggIndex: Int = projection.indexWhere {
+    case VarReadExpr(Name("#")) => true
+    case _ => false
+  }
+
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
-    s"fold($recv, ${opClass.name}.$opMethod, $neutral))"
+    s"fold($recv | ${projection.mkString("(", ", ", ")")}, ${opClass.name}.$opMethod, $neutral))"
 }
 
 case class BaseLitExpr(code: Scala[meta.Term]) extends Expression {

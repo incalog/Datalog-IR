@@ -7,6 +7,8 @@ import org.scalatest.funsuite.AnyFunSuite
 
 class AugmentedAVLTreeTest extends AnyFunSuite {
   def newTree(): AugmentedAVLTree[Int] = new AugmentedAVLTree[Int]((x, y) =>  Math.max(x,y))
+  def newSumTree(): AugmentedAVLTree[Int] = new AugmentedAVLTree[Int]((x, y) =>  x + y)
+
   val a = 1
   val b = 2
   val c = 3
@@ -19,6 +21,16 @@ class AugmentedAVLTreeTest extends AnyFunSuite {
   val j = 10
   val k = 11
   val l = 12
+
+  test("sum elements") {
+    val tree = newSumTree()
+    tree.insert(a)
+    tree.insert(a)
+    tree.insert(b)
+    tree.insert(c)
+
+    assert(tree.root.computedValue == 7)
+  }
 
   // test cases from https://stackoverflow.com/questions/3955680/how-to-check-if-my-avl-tree-implementation-is-correct
   test("insert three elements balanced") {

@@ -619,6 +619,9 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   }
 
   private def transExpression(expression: Expression): ExpRes = expression match {
+    case VarReadExpr(name) if name.raw == "_" | name.raw == "#" =>
+      Seq((Seq(), Seq()))
+
     case VarReadExpr(name) =>
       val expTyp = expression.typ.getOrElse(throw new IllegalArgumentException(s"Untyped expression $expression"))
       Seq((flattenVars(name.raw, expTyp).map(_._1), Seq()))
@@ -630,58 +633,68 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       for ((terms, cons) <- transExpression(recv)) yield {
         val FieldDef(annos, vis, name, typ, body, immutable, aggregateMethod) = fieldDef
 
-        val (fieldReadVars, fieldReadCon) =
+        val (fieldReadVars, fieldReadCons) =
           if (fieldDef.isAggregation) {
             val Some((opClass, opMethod)) = fieldDef.aggregateMethod
 
-            /*val flatVars = flattenVars(gensym.fresh(targetName.raw), typ)
+            val objVar = Datalog.Var("obj")
+            val objParam = Datalog.Param(objVar.name, transType(classDef.typ))
+
+            // TODO: This should only contain a single element. We do not allow tuples as return value
+            //  terms should also be a single element for the same reason
+            val flatVars = flattenVars(gensym.fresh(targetName.raw), typ)
             val vars = flatVars.map(_._1)
-            val fieldReadCall = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), terms ++ vars)
-              .addHint(MagicSetHints.FixedAdornment(terms.map(_ => true) ++ vars.map(_ => true)))
+            val fieldReadCall = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), objVar +: vars)
+              .addHint(MagicSetHints.FixedAdornment(true +: vars.map(_ => true)))
               .addHint(MagicSetHints.IgnoreCall)
 
             val bodies = Seq(Datalog.Body(
               Seq(fieldReadCall)
-              //Datalog.Eq(Datalog.Var(gensym.fresh("tmp")), )
             ))
-            val params = flatVars.map { case (n, t) => Datalog.Param(n.name, t) }
+
+            val flatParams = flatVars.map { case (n, t) => Datalog.Param(n.name, t) }
+            val params = objParam +: flatParams
             val aggregandPatName = aggregatePatName(opClass.name.raw, opMethod.raw)
             val aggregandPat = Datalog.Pattern(None, gensym.freshGlobal(aggregandPatName), params, bodies)
+              .addHint(MagicSetHints.NoInputRelation)
 
-            generatedPatterns += aggregandPat*/
+            generatedPatterns += aggregandPat
 
             val neutral = body.getOrElse(
               throw new IllegalArgumentException(s"Aggregation variable ${name.raw} needs a initial value!")
             )
+
+            //val Seq((neutralTerms, neutralCons)) = transExpression(neutral)
+
             val aggFun = genScala.genAggregation(opMethod + "Agg", neutral, opClass.name.raw, opMethod.raw, typ)
             val outVar = Datalog.Var(gensym.fresh("out"))
             val aggregation = Datalog.CustomAggregation(
               transDataType(typ),
               Some(s"${opClass.name.raw}.${opMethod.raw}"),
               Scala(aggFun),
-              fieldPatName(opClass.name.raw, fieldDef.name.raw),
+              //fieldPatName(opClass.name.raw, fieldDef.name.raw),
+              //terms :+ outVar,
+              //terms.size
+              aggregandPat.name,
               terms :+ outVar,
               terms.size
-              //aggregandPat.name,
-              //Seq(outVar),
-              //0
             )
             val readVar = Datalog.Var(gensym.fresh(fieldDef.name.raw))
             val compCon = Datalog.Computed(readVar, aggregation)
-              .addHint(MagicSetHints.FixedAdornment(Seq(true, true)))
-              .addHint(MagicSetHints.IgnoreCall)
+            //.addHint(MagicSetHints.FixedAdornment(Seq(true, true)))
+            //.addHint(MagicSetHints.IgnoreCall)
 
-            (Seq(readVar), compCon)
+            (Seq(readVar), Seq(compCon))
           } else {
             val vars = flattenVars(gensym.fresh(targetName.raw), typ).map(_._1)
             val fieldReadCall = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), terms ++ vars)
               .addHint(MagicSetHints.FixedAdornment(terms.map(_ => true) ++ vars.map(_ => true)))
               //.addHint(MagicSetHints.IgnoreCall)
               .addHint(ObjectHints.FieldGet)
-            (vars, fieldReadCall)
+            (vars, Seq(fieldReadCall))
           }
 
-        (fieldReadVars, cons :+ fieldReadCon)
+        (fieldReadVars, cons ++ fieldReadCons)
       }
 
     case constrExpr@ConstructorExpr(classRef, args) =>
@@ -764,8 +777,9 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           case _ => 1
         }
       }
+
       // if the accessed element is a tuple we need to return more than one element
-      val startIdx = index.raw -1
+      val startIdx = index.raw - 1
       recv.typ match {
         case Some(TTuple(ts)) =>
           val elementsToRead = numberOfElements(ts(startIdx))
@@ -805,23 +819,24 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       }
 
     case SetComprehension(exps, body) =>
-        val transSetMember = exps.map(transExpression) ++ Seq(Seq((Seq(), Seq())))
-        val transBody = transExpression(body)
-        for (ms <- TupleOps.cartesianProduct(transSetMember);
-             (bTerms, bCons) <- transBody) yield {
-            val (_, mCons) = ms.unzip
-            (bTerms, mCons.flatten ++ bCons)
-        }
-
-    case setFold@SetFold(recv, opClass, opMethod, neutral) =>
-      val tClassTyp = recv.typ match {
-        case Some(TSet(ty: TClass)) => Some(ty)
-        case Some(TSet(TTuple(_))) => throw new IllegalArgumentException("Aggregation over tuples is unsupported!")
-        case _ => None
+      val transSetMember = exps.map(transExpression) ++ Seq(Seq((Seq(), Seq())))
+      val transBody = transExpression(body)
+      for (ms <- TupleOps.cartesianProduct(transSetMember);
+           (bTerms, bCons) <- transBody) yield {
+        val (_, mCons) = ms.unzip
+        (bTerms, mCons.flatten ++ bCons)
       }
 
-      val aggregandPat = tClassTyp match {
-        case Some(td) =>
+    case setFold@SetFold(recv, projection, opClass, opMethod, neutral) =>
+      val aggType = recv.typ match {
+        case Some(TSet(ty)) => ty
+        //case Some(TSet(TTuple(_))) => throw new IllegalArgumentException("Aggregation over tuples is unsupported!")
+        case _ => throw new RuntimeException("Could not get type of set !")
+      }
+
+      // TODO: Support tuples which might contain multiple classes... something with flatten and map maybe
+      val aggregandPat = aggType match {
+        case td: TClass =>
           val pat = generatePattern(recv, aggregatePatName(opClass.name.raw, opMethod.raw))
 
           val inParams = pat.params.slice(0, pat.params.size - 1)
@@ -830,28 +845,48 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           val newOutParam = Datalog.Param(newOutName, transDataType(td))
           val coalesceCon = Datalog.Call(coalescedPatName(td.ref.name.raw), Seq(Datalog.Var(oldOutName), Datalog.Var(newOutName)))
           pat.copy(params = inParams :+ newOutParam, bodies = pat.bodies.map(b => Datalog.Body(b.atoms :+ coalesceCon)))
-        case None =>
+        case _ =>
           generatePattern(recv, aggregatePatName(opClass.name.raw, opMethod.raw))
       }
 
       generatedPatterns += aggregandPat
 
-      val expTyp = setFold.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped fold $setFold"))
-      //val methodDef = setFold.target.getOrElse(throw new IllegalArgumentException(s"Unresolved fold method $opMethod"))
-      val aggFun = genScala.genAggregation(opMethod + "Agg", neutral, opClass.name.raw, opMethod.raw, expTyp)
-      val freeArgs = recv.vars.toSeq.flatMap { case (v, ty) => flattenVars(v.raw, ty.get) }.map(_._1)
-      val outVar = Datalog.Var(gensym.fresh("out"))
-      val aggregation = Datalog.CustomAggregation(transDataType(expTyp), Some("Fold aggregation."), Scala(aggFun), aggregandPat.name, freeArgs :+ outVar, freeArgs.size)
-      val foldVar = Datalog.Var(gensym.fresh("fold"))
-      val compCon = Datalog.Computed(foldVar, aggregation)
+      val projRes = projection.map(transExpression)
+      for (tups <- TupleOps.cartesianProduct(projRes)) yield {
+        val (projTerms, projCons) = tups.unzip
 
-      tClassTyp match {
-        case Some(td) =>
-          val foldVarUncoalesced = Datalog.Var(gensym.fresh("fold"))
-          val uncoalesce = Datalog.Call(uncoalescedPatName(td.ref.name.raw), Seq(foldVar, foldVarUncoalesced))
-          Seq((Seq(foldVarUncoalesced), Seq(compCon, uncoalesce)))
-        case None =>
-          Seq((Seq(foldVar), Seq(compCon)))
+        val aggIndex = setFold.aggIndex
+        val expTyp = setFold.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped fold $setFold"))
+        val aggFun = genScala.genAggregation(opMethod + "Agg", neutral, opClass.name.raw, opMethod.raw, expTyp)
+
+        // TODO: Only consider the input vars here, ignore the output vars
+        /*
+        val freeArgs = recv.vars.toSeq.flatMap {
+          case (v, ty) => flattenVars(v.raw, ty.get).zip(projTerms).map { case ((v, _), p) =>
+            if (p.isEmpty) v else p.head
+          }
+        }
+        val outVars = aggType.flatten.map(_ => Datalog.Var(gensym.fresh("out")))
+        */
+        val freeArgs = recv.vars.toSeq.flatMap { case (v, ty) => flattenVars(v.raw, ty.get).map(_._1) }
+        val outVars = projTerms.map { p =>
+           if (p.isEmpty)
+             Datalog.Var(gensym.fresh("out"))
+           else
+             p.head
+        }
+        val aggregation = Datalog.CustomAggregation(transDataType(expTyp), Some("Fold aggregation."), Scala(aggFun), aggregandPat.name, freeArgs ++ outVars, freeArgs.size + aggIndex)
+        val foldVar = Datalog.Var(gensym.fresh("fold"))
+        val compCon = Datalog.Computed(foldVar, aggregation)
+
+        aggType match {
+          case td: TClass =>
+            val foldVarUncoalesced = Datalog.Var(gensym.fresh("fold"))
+            val uncoalesce = Datalog.Call(uncoalescedPatName(td.ref.name.raw), Seq(foldVar, foldVarUncoalesced))
+            (Seq(foldVarUncoalesced), projCons.flatten :+ compCon :+ uncoalesce)
+          case _ =>
+            (Seq(foldVar), projCons.flatten :+ compCon)
+        }
       }
 
     case BaseLitExpr(code) =>
@@ -994,6 +1029,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     Datalog.Pattern(None, name, params ++ outParams, bodies)
   }
+
 
   private def flattenParam(name: String, typ: Type, genFresh: Boolean): Seq[Datalog.Param] =
     flattenVars(name, typ, genFresh).map { case (v, ty) => Datalog.Param(v.name, ty) }

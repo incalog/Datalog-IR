@@ -237,10 +237,19 @@ trait Parser {
       case (recv, typeAnno) => TypeCastExpr(recv, typeAnno)
     }
 
-  protected[frontend] lazy val foldExpr: P[SetFold] =
-    (keyword(FOLD) *> inParentheses(P.defer(expr) ~ (op(",") *> classRef ~ (op(".") *> identifier)) ~ (op(",") *> P.defer(expr)))).mapWithLoc {
-      case ((recv, (classRef, methodName)), neutral) => SetFold(recv, classRef, methodName, neutral)
+  protected[frontend] lazy val foldExpr: P[SetFold] = {
+    val doNotCare = op('_').mapWithLoc(_ => VarReadExpr(Name("_")))
+    val agg = op('#').mapWithLoc(_ => VarReadExpr(Name("#")))
+    (keyword(FOLD) *> inParentheses(
+      (P.defer(expr) ~ (op('|') *> inParentheses(seq0(doNotCare | agg | P.defer(expr)))).?)
+        ~ (op(',') *> classRef ~ (op('.') *> identifier))
+        ~ (op(',') *> P.defer(expr)))
+      ).mapWithLoc {
+      case (((recv, projection), (classRef, methodName)), neutral) =>
+        val aggRead: Expression = VarReadExpr(Name("#"))
+        SetFold(recv, projection.getOrElse(Seq(aggRead)), classRef, methodName, neutral)
     }
+  }
 
   protected[frontend] lazy val instanceOfExpr: P[InstanceOfExpr] =
     (keyword(INSTANCEOF) *> inParentheses((P.defer(expr) <* op(",")) ~ typeAnno)).mapWithLoc {

@@ -302,6 +302,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             }
           }
       }
+
     case varRead@VarReadExpr(targetName) =>
       lookupVar(targetName) match {
         case Some((target, typ, _)) =>
@@ -401,10 +402,23 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       member.foreach(typecheck)
       TSet(typecheck(body))
 
-    case setFold@SetFold(recv, classRef, methodName, neutral) =>
+    case setFold@SetFold(recv, projection, classRef, methodName, neutral) =>
       typecheck(recv) match {
-        case TSet(ty) =>
+        case TSet(tty) =>
+          val ty = tty.flatten(setFold.aggIndex)
           assertSubtype(typecheck(neutral), ty, neutral)
+
+          val hasOneAgg = projection.count {
+            case VarReadExpr(Name("#")) => true
+            case _ => false
+          }
+          if (hasOneAgg != 1)
+            error("A fold projection requires exactly one aggregation '#'", projection: _*)
+
+          projection.zip(tty.flatten).foreach {
+            case (VarReadExpr(Name("#") | Name("_")), expTy) => expTy
+            case (expr, expTy) => assertSubtype(typecheck(expr), expTy, expr)
+          }
 
           val methodDef = lookupMethod(lookupClass(classRef.name), Seq(ty, ty), methodName)
           if (methodDef.isDefined) {

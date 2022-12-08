@@ -4,7 +4,7 @@ import inca.frontend.objectoriented.core._
 import inca.util.Gensym
 
 /**
- * If a constructor is used inside a SetExpr, then the same object with different values is created, since each
+ * 1. If a constructor is used inside a SetExpr, then the same object with different values is created, since each
  * body of the SetExpr uses the same allocation counter. This behaviour is wrong, since multiple objects should be
  * created for each element in the set. To prevent this error, all expressions inside a SetExpr are lifted outside the
  * SetExpr as VarDeclare statements.
@@ -14,10 +14,22 @@ import inca.util.Gensym
  *  return [new Num(1), new Num(2), new Num(3)]
  *
  * After:
- *  val tmp$0 = new Num(1)
- *  val tmp$1 = new Num(2)
- *  val tmp$2 = new Num(3)
+ *  val tmp$0: Num = new Num(1)
+ *  val tmp$1: Num = new Num(2)
+ *  val tmp$2: Num = new Num(3)
  *  return [tmp$0, tmp$1, tmp$2]
+ *
+ *
+ * 2. If a fold operation is performed over a set comprehension we get the wrong result. To prevent this behaviour
+ * the comprehension is lifted outside the fold.
+ *
+ * Example:
+ * Before:
+ * fold( for (s <- Set((0, 1), (1,1))) yield s._2 , Num.sum, 0)
+ *
+ * After:
+ * val tmp$0: Set[Int] = for (s <- Set((0, 1), (1,1))) yield s._2
+ * fold(tmp$0, Num.sum, 0)
  *
  */
 class SetLifting(val module: Module) extends ModuleLowering {
@@ -83,11 +95,27 @@ class SetLifting(val module: Module) extends ModuleLowering {
     (setExpr, liftedExps)
   }
 
+  private def liftSetFoldExpression(setFold: SetFold): (Expression, Seq[Statement]) = setFold match {
+    case SetFold(recv: SetComprehension, projection, ClassRef(className), opMethod, neutral) =>
+      val varName = Name(gensym.fresh("tmp"))
+      val varAssign = VarDeclareStmt(varName, recv.typ.get, Some(transExpression(recv).head), immutable = true)
+      val varReadExpr =  VarReadExpr(varName)
+      (SetFold(varReadExpr, transExpressions(projection), ClassRef(className), opMethod, transExpression(neutral).head) , Seq(varAssign))
+    case _ =>
+      (setFold, Seq())
+  }
+
   override def transExpressionInternal(expression: Expression): Seq[Expression] = expression match {
-    case setExpr@SetExpr(_, _) =>
+    case setExpr : SetExpr =>
       val (newExpr, stmts) = liftSetExpression(setExpr)
       genStmt.add(stmts)
       Seq(newExpr)
+
+    case setFold : SetFold =>
+      val (newExpr, stmts) = liftSetFoldExpression(setFold)
+      genStmt.add(stmts)
+      Seq(newExpr)
+
     case _ => super.transExpressionInternal(expression)
   }
 }

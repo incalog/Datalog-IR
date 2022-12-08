@@ -184,7 +184,8 @@ class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] 
       case SetComprehension(member, body) =>
         analyzeExpressions(exprNode, member)
         analyzeExpression(exprNode, body, Some("yield"))
-      case SetFold(recv, opClass, opMethod, neutral) =>
+      case SetFold(recv, projection, _, _, neutral) =>
+        analyzeExpressions(exprNode, projection)
         analyzeExpression(exprNode, recv, Some("recv"))
         analyzeExpression(exprNode, neutral, Some("neutral"))
       case BaseLitExpr(_) =>

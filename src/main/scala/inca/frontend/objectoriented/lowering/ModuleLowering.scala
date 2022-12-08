@@ -132,8 +132,8 @@ trait ModuleLowering {
     case SetMemberExpr(name, recv, predicate) =>
       val pred = if (predicate.isDefined) Some(transExpression(predicate.get).head) else None
       SetMemberExpr(name, transExpression(recv).head, pred)
-    case SetFold(recv, ClassRef(name), method, neutral) =>
-      SetFold(transExpression(recv).head, ClassRef(name), method, transExpression(neutral).head)
+    case SetFold(recv, projection, ClassRef(name), method, neutral) =>
+      SetFold(transExpression(recv).head, transExpressions(projection), ClassRef(name), method, transExpression(neutral).head)
     case SetComprehension(exps, body) =>
       SetComprehension(transExpressions(exps), transExpression(body).head)
     case BaseApplyExpr(fun, args) =>

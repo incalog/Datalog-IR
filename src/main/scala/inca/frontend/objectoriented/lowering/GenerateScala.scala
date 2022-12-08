@@ -304,11 +304,19 @@ class GenerateScala {
       val superBody = superConstrDef.body.map(transStatement).toList
       q"((..$inParams) => (${Term.Block(superBody)}))(..$inTerms)"
 
-    case SetFold(recv, opClass, opMethod, neutral) =>
-      val foldTerm = Term.Select(transExpression(recv), Term.Name("fold"))
-      val applyInner = Term.Apply(foldTerm, List(transExpression(neutral)))
+    case setFold@SetFold(recv, filter, opClass, opMethod, neutral) =>
+      // TODO: How to use the filter correctly
+      q"0"
+      /*val aggIndex = setFold.aggIndex
+      val aggType = setFold.typ.get.flatten(aggIndex).asScala
+      val recvTerm = transExpression(recv)
+      val neutralTerm = transExpression(neutral)
       val methodRef = Term.Select(Term.Name(opClass.name.raw), Term.Name(opMethod.raw))
-      Term.Apply(applyInner, List(methodRef))
+      q"""$recvTerm.toList.asInstanceOf[Seq[Any]].map {
+          case p: Product => p.$aggIndex
+          case e => e
+      }.asInstanceOf[Seq[$aggType]].fold($neutralTerm)($methodRef)
+      """*/
 
     case _ =>
       throw new IllegalArgumentException(s"Expression '$expr' can not be translated to scala.")

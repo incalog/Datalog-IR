@@ -1,7 +1,14 @@
 module ReachabilityTest
 
 class A {
-    vag sum: Int = 0 with A.sum
+    vag sum: Set[(Int, Int)]/(_, #= 0) with A.sum
+    
+    lvar methods: Set(Class, Method, Int)
+    lvar sum: Int with A.sum
+    
+    val avgs = for (cl <- classes) yield (cl, fold(A.avg, methods(cl, _,#)))
+    
+    def size(cl: Class) = fold(A.avg, methods(cl, _,#))
 
     @static
     def sum(n1: Int, n2: Int): Int = {
@@ -15,7 +22,8 @@ class A {
         a.sum #= 3
 
         val b: Int = a.sum
-        a.sum #= 1
+        b1 = b + 1
+        a.sum #= b1
         //a.sum
         b
     }

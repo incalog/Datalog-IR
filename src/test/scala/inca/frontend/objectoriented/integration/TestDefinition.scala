@@ -274,11 +274,12 @@ object TestDefinition {
   def foldSetTests: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/setfold")
     Seq(
-      TestDefinition("SetFoldMax", "Num", "main", Seq(), SetResult(16)),
-      TestDefinition("SetFoldSum", "Num", "main", Seq(), SetResult(23)),
-      TestDefinition("SetFoldMaxObject", "Num", "main", Seq(), SetResult(5)),
+      /*TestDefinition("SetFoldMax", "Num", "main", Seq(), SetResult(16)),
+      TestDefinition("SetFoldSum", "Num", "main", Seq(), SetResult(23)),*/
+      TestDefinition("SetFoldSum2", "Num", "main", Seq(), SetResult(2)),
+      /*TestDefinition("SetFoldMaxObject", "Num", "main", Seq(), SetResult(5)),
       TestDefinition("SetFoldTuple", "Num", "main", Seq(), SetResult(5)),
-      TestDefinition("SetFoldNull", "Num", "main", Seq(), SetResult(7))
+      TestDefinition("SetFoldNull", "Num", "main", Seq(), SetResult(7))*/
     )
   }
 
@@ -310,11 +311,8 @@ object TestDefinition {
     )
   }
 
-  def aggTreeTest: Seq[TestDefinition[SetResult[Any]]] = {
+  def aggTreeTest: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("unittests/aggvar")
-    Seq(
-      TestDefinition("AggTree", "Main", "sumNum", Seq(), SetResult(13)),
-      //TestDefinition("Reachability", "Graph", "main", Seq(), SetResult("X", "Z", "Y"))
-    )
+    TestDefinition("AggTree", "Main", "sumNum", Seq(), SetResult(13))
   }
 }

@@ -261,8 +261,8 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       InstanceOfExpr(sanitize(recv), clearType(ofTyp))
     case SetExpr(exps, tty) =>
       unapply(SetExpr(exps.map(sanitize(_)), if (tty.isDefined) Some(clearType(tty.get)) else tty), requiresTrueSet, expression.typ)
-    case SetFold(recv, ClassRef(name), opMethod, neutral) =>
-      SetFold(sanitize(recv, requiresTrueSet = true), ClassRef(name), opMethod, sanitize(neutral))
+    case SetFold(recv, projection, ClassRef(name), opMethod, neutral) =>
+      SetFold(sanitize(recv, requiresTrueSet = true), projection.map(sanitize(_)), ClassRef(name), opMethod, sanitize(neutral))
     case SetMemberExpr(name, recv, predicate) =>
       val pred = if (predicate.isDefined) Some(sanitize(predicate.get)) else None
       SetMemberExpr(name, sanitize(recv, requiresTrueSet = true), pred)
