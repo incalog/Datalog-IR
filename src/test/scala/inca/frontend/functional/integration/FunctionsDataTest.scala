@@ -7,10 +7,9 @@ import org.scalatest.funsuite.AnyFunSuite
 
 import scala.meta.XtensionQuasiquoteTerm
 
-@Ignore
 class FunctionsDataTest extends AnyFunSuite {
 
-  test("Plus Example") {
+  ignore("Plus Example") {
     val code = FileUtil.readFile("functional/unittests/PlusReal.finca")
     val fun = loadFunction(code)
     assert(fun.execute("main", Seq(q"Succ(Succ(Zero()))", q"Succ(Zero())"))
@@ -19,7 +18,7 @@ class FunctionsDataTest extends AnyFunSuite {
       == fun.result(q"Succ(Succ(Succ(Succ(Succ(Succ(Zero()))))))"))
   }
 
-  test("graph example with functions as predicates") {
+  ignore("graph example with functions as predicates") {
     val code = FileUtil.readFile("functional/unittests/BusStation.finca")
     val fun = loadFunction(code)
     assert(fun.execute("main", Seq()) == fun.result(q"""BusStation("B", 5)"""))
@@ -46,14 +45,20 @@ class FunctionsDataTest extends AnyFunSuite {
     assert(fun.execute("sum", Seq(q"1", q"10")) == fun.result(q"55"))
   }
 
-  test("Simple Fold Example") {
+  test("Simple Fold Int Projected Example") {
+    val code = FileUtil.readFile("functional/unittests/FoldIntProjected.finca")
+    val fun = loadFunction(code)
+    assert(fun.execute("sum", Seq(q"1", q"10")) == fun.result(q"110"))
+  }
+
+  ignore("Simple Fold Example") {
     // TODO: This test will fail, because we compare a MockURI with a truediff tree
     val code = FileUtil.readFile("functional/unittests/FoldADT.finca")
     val fun = loadFunction(code)
     assert(fun.execute("sum", Seq(q"1", q"10")) == fun.result(q"V(55)"))
   }
 
-  test("Type Checker Example") {
+  ignore("Type Checker Example") {
     val code = FileUtil.readFile("functional/lambdacalculus/LambdaCalculus.finca")
     val fun = loadFunction(code)
     assert(fun.execute("mainTypeOf", Seq(q"TNum(1)"))
@@ -68,7 +73,7 @@ class FunctionsDataTest extends AnyFunSuite {
       == fun.result(q"NoType()"))
   }
 
-  test("Type Erasure Example") {
+  ignore("Type Erasure Example") {
     val code = FileUtil.readFile("functional/lambdacalculus/LambdaCalculus.finca")
     val fun = loadFunction(code)
     assert(fun.execute("erase", Seq(q"TNum(1)"), deleteInput = true)
@@ -83,7 +88,7 @@ class FunctionsDataTest extends AnyFunSuite {
       == fun.result(q"App(Num(12), Num(11))"))
   }
 
-  test("Interpreter Example") {
+  ignore("Interpreter Example") {
     val code = FileUtil.readFile("functional/lambdacalculus/LambdaCalculus.finca")
     val fun = loadFunction(code)
     assert(fun.execute("mainInterp", Seq(q"Num(1)"), deleteInput = true)
