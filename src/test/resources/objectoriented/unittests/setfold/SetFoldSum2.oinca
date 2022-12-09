@@ -29,7 +29,7 @@ class Num {
     val n: Num = new Num(0)
 
     // 0.
-    /*val s: Set[(Int, Int)] = n.createSet(1, 10)
+    val s: Set[(Int, Int)] = n.createSet(1, 10)
     val a: Int = fold( s | (0, #), Num.sumInt, 0)
     val b: Int = fold( s | (_, #), Num.sumInt, 0)
 
@@ -41,12 +41,11 @@ class Num {
     val d: Int = fold( Set((x, 0, 1), (0, 1,1), (1, 1, 1), (2, 1, 1)) | (x, _, #), Num.sumInt, 0)
 
     // 3.
-    val e: Int = fold( for (s2 <- Set((0, 1), (1,1))) yield s2._2 , Num.sumInt, 0)*/
+    val e: Int = fold( for (s2 <- Set((0, 1), (1,1))) yield s2._2 , Num.sumInt, 0)
 
     // 4.
     val f: Num = fold( Set((0, new Num(1)), (1, new Num(1)), (0, new Num(3))) | (0, #), Num.sumNum, new Num(0))
 
-    //(a, b, c, d, e, f.value)
-    (0,0,0,0,0, f.value)
+    (a, b, c, d, e, f.value)
   }
 }

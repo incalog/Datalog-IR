@@ -75,15 +75,55 @@ class GenerateScala {
     // TODO: Use tGenericDiffable in the future
     // Init(tGenericDiffable ,Term.Name(tGenericDiffable.toString()), List())
 
+    // We need to override equals and hash. Uncoalesing and coalesing are both input relations. That means they might
+    // generate different scala objects when determining the input. Nevertheless these objects must be considered equal
+    // if their attributes match. We can not use a case class, since we might inherit from a class, which is not
+    // possible when using a case class. See: SetFoldSumObject for a test where these overrrides are required.
+    var fieldComps = classDef.fields.map { f =>
+      val fieldTerm = Term.Name(f.name.raw)
+      q"""${Term.Name("other")}.$fieldTerm == ${Term.Name("this")}.$fieldTerm"""
+    } :+ q"other.allocId == this.allocId"
+    fieldComps =
+      if (parentRefOption.isDefined)
+        q"super.equals(${Term.Name("other")}) == true" +: fieldComps
+      else
+        fieldComps
+
+    val equalImpl =
+      if (fieldComps.nonEmpty)
+        fieldComps.reduce[Term.ApplyInfix] { case (c1, c2) => q"$c1 && $c2" }
+      else
+        q"true"
+
+    var hashComps = q"${Term.Name("this")}.getClass.getSimpleName.##" +: classDef.fields.map { f =>
+      val fieldTerm = Term.Name(f.name.raw)
+      q"""${Term.Name("this")}.$fieldTerm.##"""
+    } :+ q"this.allocId.##"
+    hashComps = if (parentRefOption.isDefined) q"super.hashCode" +: hashComps else hashComps
+    val hashCodeImpl = hashComps.reduce[Term] { case (c1, c2) => q"31 * ($c1) + $c2" }
+
     val clsBody = fields ++ emptyDefaultConstructor ++ constructors ++ methods
     val clsDef =
       if (parentRefOption.isDefined)
         q"""class $cls() extends $parentTypeRef {
+          override def equals(that: Any): Boolean = that match {
+            case other: $cls => $equalImpl
+            case _ => false
+          }
+          override def hashCode(): Int = $hashCodeImpl
+
           ..$clsBody
         }"""
       else
         q"""class $cls() extends $parentTypeRef {
           var allocId: Option[Int] = None
+
+          override def equals(that: Any): Boolean = that match {
+            case other: $cls => $equalImpl
+            case _ => false
+          }
+          override def hashCode(): Int = $hashCodeImpl
+
           ..$clsBody
         }"""
 
@@ -93,7 +133,7 @@ class GenerateScala {
 
   private def transCompanionObject(classDef: ClassDef): Defn.Object = {
     val cls = MetaType.Name(classDef.name.raw)
-    // FIXME: We ignore set fields for now
+    // TODO: We ignore set fields for now
     val fields = classDef.fields.filter(!_.typ.isInstanceOf[TSet])
     val staticMethods = classDef.methods.filter(_.isStatic).flatMap(transMethod).toList
 

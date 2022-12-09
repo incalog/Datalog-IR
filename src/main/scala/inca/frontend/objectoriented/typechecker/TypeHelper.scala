@@ -22,7 +22,9 @@ object TypeHelper {
 
   def decode(typ: meta.Type): Either[String, Type] = typ match {
     case meta.Type.Function(_, _) => Left("Inca does not support higher-order functions")
-    case meta.Type.Name("Unit") => Right(TUnit)
+    // FIXME: Is this really a good idea to transform Unit to TUnit ? This will break any apply function, since
+    //  transType is called with TUnit. I think its better to leave this as Scala Unit type
+    //case meta.Type.Name("Unit") => Right(TUnit)
     case meta.Type.Tuple(ts) =>
       val types = ts.map(decode).foldRight[Either[String, Seq[Type]]](Right(Seq())) {
         case (Right(ty), Right(seq)) => Right(ty +: seq)

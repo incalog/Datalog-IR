@@ -407,7 +407,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val params = Seq(objParam, uriParam)
     val bodies = Seq(bodyWithNull, bodyWithId, bodyWithoutId)
     val constrUncoalescedPat = Datalog.Pattern(None, uncoalescedPatName(className), params, bodies)
-    constrUncoalescedPat.addHint(ObjectHints.Allocation)
+    constrUncoalescedPat.addHint(ObjectHints.Allocation) // TODO: Could be optimized by only using this key per body
   }
 
   private def transFieldInitBody(classDef: ClassDef): Seq[Datalog.Body] = {
