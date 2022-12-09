@@ -3,6 +3,7 @@ package inca.frontend.datalog
 import inca.frontend.Constants.RelationName
 import inca.frontend.util.Tabulator
 import inca.runtime.Query
+import scala.collection.immutable.Set
 
 object Relation {
   def from(relName: RelationName, parameterNames: Seq[RelationName], matches: Iterable[Seq[Any]]): Relation =
@@ -86,7 +87,7 @@ trait Relation {
   }
 
   override def equals(obj: Any): Boolean = obj match {
-    case relation: Relation if (this.name == relation.name) && (this.toSet == relation.toSet) => true
+    case relation: Relation if (name == relation.name) && (arity == relation.arity) && (toSet == relation.toSet) => true
     case _ => false
   }
 

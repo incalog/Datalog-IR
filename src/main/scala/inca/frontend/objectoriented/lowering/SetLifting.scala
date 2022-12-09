@@ -88,21 +88,20 @@ class SetLifting(val module: Module) extends ModuleLowering {
 
   private def liftSetExpression(set: SetExpr): (Expression, Seq[Statement]) = {
     val innerExps = set.exps.map(e => gensym.fresh("tmp") -> e)
-    val setExpr = SetExpr(innerExps.map(tup => VarReadExpr(Name(tup._1))), set.tty)
+    val setTy = if (set.tty.isDefined) Some(transType(set.tty.get)) else None
+    val setExpr = SetExpr(innerExps.map(tup => VarReadExpr(Name(tup._1))), setTy)
     val liftedExps = innerExps.map {
-      case (n, e) => VarDeclareStmt(Name(n), e.typ.get, Some(transExpression(e).head), immutable = true)
+      case (n, e) => VarDeclareStmt(Name(n), transType(e.typ.get), Some(transExpression(e).head), immutable = true)
     }
     (setExpr, liftedExps)
   }
 
-  private def liftSetFoldExpression(setFold: SetFold): (Expression, Seq[Statement]) = setFold match {
-    case SetFold(recv: SetComprehension, projection, ClassRef(className), opMethod, neutral) =>
-      val varName = Name(gensym.fresh("tmp"))
-      val varAssign = VarDeclareStmt(varName, recv.typ.get, Some(transExpression(recv).head), immutable = true)
-      val varReadExpr =  VarReadExpr(varName)
-      (SetFold(varReadExpr, transExpressions(projection), ClassRef(className), opMethod, transExpression(neutral).head) , Seq(varAssign))
-    case _ =>
-      (setFold, Seq())
+  private def liftSetFoldExpression(setFold: SetFold): (Expression, Seq[Statement]) = {
+    val SetFold(recv: SetComprehension, projection, ClassRef(className), opMethod, neutral) = setFold
+    val varName = Name(gensym.fresh("tmp"))
+    val varDecl = VarDeclareStmt(varName, transType(recv.typ.get), Some(transExpression(recv).head), immutable = true)
+    val varReadExpr =  VarReadExpr(varName)
+    (SetFold(varReadExpr, transExpressions(projection), ClassRef(className), opMethod, transExpression(neutral).head) , Seq(varDecl))
   }
 
   override def transExpressionInternal(expression: Expression): Seq[Expression] = expression match {
@@ -111,7 +110,7 @@ class SetLifting(val module: Module) extends ModuleLowering {
       genStmt.add(stmts)
       Seq(newExpr)
 
-    case setFold : SetFold =>
+    case setFold: SetFold if setFold.recv.isInstanceOf[SetComprehension] =>
       val (newExpr, stmts) = liftSetFoldExpression(setFold)
       genStmt.add(stmts)
       Seq(newExpr)

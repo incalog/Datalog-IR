@@ -1,24 +1,52 @@
 module SetFold
 
 class Num {
+  val value: Int = 0
+
+  def this(value: Int) = {
+    this.value = value
+  }
+
   @static
-  def sum(n1: Int, n2: Int): Int = {
+  def sumInt(n1: Int, n2: Int): Int = {
     n1 + n2
   }
 
-  @main def main(): Int = {
+  @static
+  def sumNum(n1: Num, n2: Num): Num = {
+    new Num(n1.value + n2.value)
+  }
+
+  def createSet(from: Int, to: Int): Set[(Int, Int)] = {
+    if (from == to) {
+      Set((0, to), (1, to))
+    } else {
+      Set((0, from), (1, from)) ++ this.createSet(from+1, to)
+    }
+  }
+
+  @main def main(): (Int, Int, Int, Int, Int, Int) = {
+    val n: Num = new Num(0)
+
     // 0.
-    //val s: Set[(Int, Int)] = Set((0, 1), (1,1), (0, 3))
-    //fold( s | (0, #), Num.sum, 0)
+    /*val s: Set[(Int, Int)] = n.createSet(1, 10)
+    val a: Int = fold( s | (0, #), Num.sumInt, 0)
+    val b: Int = fold( s | (_, #), Num.sumInt, 0)
 
     // 1.
-    //fold( Set((0, 1), (1,1), (0, 3)) | (0, #), Num.sum, 0)
+    val c: Int = fold( Set((0, 1), (1,1), (0, 3)) | (0, #), Num.sumInt, 0)
 
     // 2.
-    //val x: Int = 0
-    //fold( Set((x, 0, 1), (0, 1,1), (1, 1, 1), (2, 1, 1)) | (x, _, #), Num.sum, 0)
+    val x: Int = 0
+    val d: Int = fold( Set((x, 0, 1), (0, 1,1), (1, 1, 1), (2, 1, 1)) | (x, _, #), Num.sumInt, 0)
 
     // 3.
-    fold( for (s <- Set((0, 1), (1,1))) yield s._2 , Num.sum, 0)
+    val e: Int = fold( for (s2 <- Set((0, 1), (1,1))) yield s2._2 , Num.sumInt, 0)*/
+
+    // 4.
+    val f: Num = fold( Set((0, new Num(1)), (1, new Num(1)), (0, new Num(3))) | (0, #), Num.sumNum, new Num(0))
+
+    //(a, b, c, d, e, f.value)
+    (0,0,0,0,0, f.value)
   }
 }

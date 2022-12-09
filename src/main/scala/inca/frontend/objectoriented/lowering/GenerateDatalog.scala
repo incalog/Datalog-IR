@@ -393,19 +393,13 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     )
 
     // new object was created in scala
-    val genURIWithoutId = Datalog.Computed(
-      uriVar, Datalog.Evaluation(Seq(), transType(classDef.typ), Scala(q"""() => $oOID(${className})"""))
-    ).addHint(ObjectHints.AllocationInit)
-
+    val genURIWithoutId = Datalog.Call(constructorPatName(className), Seq(uriVar))
     val bodyWithoutId = Datalog.Body(
       objIsNull(false) +: allocComp +: allocIdIsDefinedComp(false) +: genURIWithoutId +: setter.flatten
     )
 
     // object is null object
-    val genNullURI = Datalog.Computed(
-      uriVar, Datalog.Evaluation(Seq(), transType(classDef.typ), Scala(q"""() => $oOID("Null")"""))
-    )
-
+    val genNullURI = Datalog.Call(constructorPatName("Null"), Seq(uriVar))
     val bodyWithNull = Datalog.Body(
       Seq(objIsNull(true) , genNullURI)
     )
@@ -828,6 +822,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       }
 
     case setFold@SetFold(recv, projection, opClass, opMethod, neutral) =>
+      val aggIndex = setFold.aggIndex
       val aggType = recv.typ match {
         case Some(TSet(ty)) => ty
         //case Some(TSet(TTuple(_))) => throw new IllegalArgumentException("Aggregation over tuples is unsupported!")
@@ -835,8 +830,19 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       }
 
       // TODO: Support tuples which might contain multiple classes... something with flatten and map maybe
-      val aggregandPat = aggType match {
+      val aggregandPat = aggType.flatten(aggIndex) match {
         case td: TClass =>
+          val pat = generatePattern(recv, aggregatePatName(opClass.name.raw, opMethod.raw))
+
+          val outParamSize = aggType.flatten.size
+          val leftParams = pat.params.slice(0, pat.params.size - outParamSize + aggIndex)
+          val rightParams = pat.params.slice(leftParams.size + 1, pat.params.size)
+          val oldOutName = pat.params(leftParams.size).name
+          val newOutName = gensym.fresh("out")
+          val newOutParam = Datalog.Param(newOutName, transDataType(td))
+          val coalesceCon = Datalog.Call(coalescedPatName(td.ref.name.raw), Seq(Datalog.Var(oldOutName), Datalog.Var(newOutName)))
+          pat.copy(params = leftParams ++ (newOutParam +: rightParams), bodies = pat.bodies.map(b => Datalog.Body(b.atoms :+ coalesceCon)))
+        /*case td: TClass =>
           val pat = generatePattern(recv, aggregatePatName(opClass.name.raw, opMethod.raw))
 
           val inParams = pat.params.slice(0, pat.params.size - 1)
@@ -844,7 +850,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           val newOutName = gensym.fresh("out")
           val newOutParam = Datalog.Param(newOutName, transDataType(td))
           val coalesceCon = Datalog.Call(coalescedPatName(td.ref.name.raw), Seq(Datalog.Var(oldOutName), Datalog.Var(newOutName)))
-          pat.copy(params = inParams :+ newOutParam, bodies = pat.bodies.map(b => Datalog.Body(b.atoms :+ coalesceCon)))
+          pat.copy(params = inParams :+ newOutParam, bodies = pat.bodies.map(b => Datalog.Body(b.atoms :+ coalesceCon)))*/
         case _ =>
           generatePattern(recv, aggregatePatName(opClass.name.raw, opMethod.raw))
       }
@@ -855,19 +861,9 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       for (tups <- TupleOps.cartesianProduct(projRes)) yield {
         val (projTerms, projCons) = tups.unzip
 
-        val aggIndex = setFold.aggIndex
         val expTyp = setFold.typ.getOrElse(throw new IllegalArgumentException(s"Cannot compile untyped fold $setFold"))
         val aggFun = genScala.genAggregation(opMethod + "Agg", neutral, opClass.name.raw, opMethod.raw, expTyp)
 
-        // TODO: Only consider the input vars here, ignore the output vars
-        /*
-        val freeArgs = recv.vars.toSeq.flatMap {
-          case (v, ty) => flattenVars(v.raw, ty.get).zip(projTerms).map { case ((v, _), p) =>
-            if (p.isEmpty) v else p.head
-          }
-        }
-        val outVars = aggType.flatten.map(_ => Datalog.Var(gensym.fresh("out")))
-        */
         val freeArgs = recv.vars.toSeq.flatMap { case (v, ty) => flattenVars(v.raw, ty.get).map(_._1) }
         val outVars = projTerms.map { p =>
            if (p.isEmpty)
@@ -879,7 +875,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         val foldVar = Datalog.Var(gensym.fresh("fold"))
         val compCon = Datalog.Computed(foldVar, aggregation)
 
-        aggType match {
+        aggType.flatten(aggIndex) match {
           case td: TClass =>
             val foldVarUncoalesced = Datalog.Var(gensym.fresh("fold"))
             val uncoalesce = Datalog.Call(uncoalescedPatName(td.ref.name.raw), Seq(foldVar, foldVarUncoalesced))

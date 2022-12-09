@@ -306,7 +306,7 @@ class GenerateScala {
 
     case setFold@SetFold(recv, filter, opClass, opMethod, neutral) =>
       // TODO: How to use the filter correctly
-      q"0"
+      q"???"
       /*val aggIndex = setFold.aggIndex
       val aggType = setFold.typ.get.flatten(aggIndex).asScala
       val recvTerm = transExpression(recv)

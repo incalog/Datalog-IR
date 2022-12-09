@@ -405,6 +405,14 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case setFold@SetFold(recv, projection, classRef, methodName, neutral) =>
       typecheck(recv) match {
         case TSet(tty) =>
+          val isNestedTuple = tty match {
+            case TTuple(ts) if ts.exists(_.isInstanceOf[TTuple]) => true
+            case _ => false
+          }
+
+          if (isNestedTuple)
+            error("Fold does not support nested tuples.", recv)
+
           val ty = tty.flatten(setFold.aggIndex)
           assertSubtype(typecheck(neutral), ty, neutral)
 
@@ -522,9 +530,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     val newTarget = computeTarget
     term.target match {
       case Some(oldTarget) =>
-        if (oldTarget != newTarget) {
+        if (oldTarget != newTarget)
           error(s"Resolved `$term` to new target `$newTarget`, which differs from previously computed target `$oldTarget`", term)
-        }
         oldTarget
       case None =>
         term.resolved(newTarget)

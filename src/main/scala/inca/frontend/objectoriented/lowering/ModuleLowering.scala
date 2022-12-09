@@ -128,7 +128,7 @@ trait ModuleLowering {
     case TupleReadExpr(recv, index) =>
       TupleReadExpr(transExpression(recv).head, index)
     case SetExpr(exps, tty) =>
-      SetExpr(transExpressions(exps), if (tty.isDefined) Some(transType(tty.get)) else tty)
+      SetExpr(transExpressions(exps), if (tty.isDefined) Some(transType(tty.get)) else None)
     case SetMemberExpr(name, recv, predicate) =>
       val pred = if (predicate.isDefined) Some(transExpression(predicate.get).head) else None
       SetMemberExpr(name, transExpression(recv).head, pred)
