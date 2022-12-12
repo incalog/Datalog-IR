@@ -64,6 +64,7 @@ trait Parser {
     val EXTENDS: Value    = Value("extends")
     val INSTANCEOF: Value = Value("instanceOf")
     val SET: Value        = Value("Set")
+    val MAP: Value        = Value("Map")
     val FOR: Value        = Value("for")
     val YIELD: Value      = Value("yield")
     val SUPER: Value      = Value("super")
@@ -149,6 +150,12 @@ trait Parser {
   protected[frontend] def setType: P[Type] =
     (keyword(SET) *> inBrackets(atomicTypeAnno)).mapWithLoc(TSet)
 
+  // TODO make MapType
+  protected[frontend] def mapType: P[Type] =
+    (keyword(MAP) *> inBrackets((atomicTypeAnno <* op(",")) ~ P.defer(typeAnno))).mapWithLoc {
+      case (tk, tv) => TSet(TTuple.from(Seq(tk, tv)))
+    }
+
   protected[frontend] val classRef: P[ClassRef] =
     identifier.mapWithLoc(ClassRef)
 
@@ -166,18 +173,20 @@ trait Parser {
     )
 
   protected[frontend] val typeAnno: P[Type] =
-    spaced(setType) | atomicTypeAnno
+    setType | mapType | atomicTypeAnno
 
   val nameWithType: P[(Name, Type)] =
     spaced(identifier ~ (op(':') *> typeAnno))
 
   protected[frontend] lazy val assignStmt: P[Statement] =
-    (nestedAccessExpr ~ ((op('=') | op("#=")) ~ expr)).backtrack.flatMapWithLoc {
+    (nestedAccessExpr ~ ((op('=') | op("#=") | op("##=")) ~ expr)).backtrack.flatMapWithLoc {
       case (targetExpr, (assignOp, valueExpr)) =>
-        val isAggregation = (assignOp == "#=")
+        val isAggregation = (assignOp == "#=") || (assignOp == "##=")
         targetExpr match {
           case FieldReadExpr(previousExpr, name) => pass(FieldAssignStmt(previousExpr, name, valueExpr, isAggregation))
           case VarReadExpr(name)                 => pass(VarAssignStmt(name, valueExpr))
+          // TODO make MapAssignExpr
+          case MethodCallExpr(recv, fun, args) => pass(FieldAssignStmt(recv, fun, valueExpr, isAggregation))
           case _                                 => fail(s"Can not assign a value to expression: $targetExpr")
         }
     }
@@ -262,6 +271,12 @@ trait Parser {
   protected[frontend] lazy val setExpr: P[SetExpr] =
     (keyword(SET) *> inBrackets(atomicTypeAnno).? ~ inParentheses(seq0(P.defer(expr), min = 0))).mapWithLoc {
       case (tty, exps) => SetExpr(exps, tty)
+    }
+
+  // TODO make MapExpr
+  protected[frontend] lazy val mapExpr: P[SetExpr] =
+    (keyword(MAP) *> inBrackets((atomicTypeAnno <* op(",")) ~ atomicTypeAnno).? ~ inParentheses(seq0(P.defer(expr), min = 0))).mapWithLoc {
+      case (tty, exps) => SetExpr(exps, tty.map(tt => TTuple.from(Seq(tt._1, tt._2))))
     }
 
   private[frontend] lazy val nestedAccessStartExpr: P[Expression] =
@@ -401,6 +416,7 @@ trait Parser {
       superExpr |
       instanceOfExpr |
       setExpr |
+      mapExpr |
       setComprehensionExpr
 
   protected[frontend] val infixExpr: P[Expression] =

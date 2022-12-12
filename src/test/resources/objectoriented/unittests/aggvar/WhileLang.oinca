@@ -1,0 +1,493 @@
+module WhileLang
+
+class Exp {
+    // abstract
+    def accept(v: Visitor): Unit = { }
+
+    def aevalConst(m: Map[String, MConstant]): MConstant = {
+        new NoConstant()
+    }
+}
+
+class Var extends Exp {
+    val name: String
+    def this(name: String) = {
+        this.name = name
+    }
+
+    @override
+    def accept(v: Visitor): Unit = {
+        v.visitVar(this)
+    }
+
+    def aevalConst(m: Map[String, MConstant]): MConstant = {
+        m.getOrElse(this.name, new NoConstant())
+    }
+}
+
+class Num extends Exp {
+    val num: Int
+    def this(num: Int) = {
+        this.num = num
+    }
+
+    @override
+    def accept(v: Visitor): Unit = {
+        v.visitNum(this)
+    }
+
+    def aevalConst(m: Map[String, MConstant]): MConstant = {
+        new SomeConstant(this.num)
+    }
+}
+
+class BinOp extends Exp {
+    val left: Exp
+    val right: Exp
+    def this(left: Exp, right: Exp) = {
+        this.left = left
+        this.right = right
+    }
+
+    @override
+    def accept(v: Visitor): Unit = {
+        this.left.accept(v)
+        this.right.accept(v)
+        this.binOpAccept(v)
+    }
+    // abstract
+    def binOpAccept(v: Visitor): Unit = { }
+
+    def aevalConst(m: Map[String, MConstant]): MConstant = {
+        this.binOpConst(this.left.aevalConst(m), this.right.aevalConst(m))
+    }
+    // abstract
+    def binOpConst(c1: MConstant, c2: MConstant): MConstant = {
+        c1
+    }
+}
+class Add extends BinOp {
+    def this(left: Exp, right: Exp) = {
+        super(left, right)
+    }
+    @override
+    def binOpAccept(v: Visitor): Unit = {
+        v.visitAdd(this)
+    }
+    @override
+    def binOpConst(c1: MConstant, c2: MConstant): MConstant = {
+        c1.add(c2)
+    }
+}
+class Sub extends BinOp {
+    def this(left: Exp, right: Exp) = {
+        super(left, right)
+    }
+    @override
+    def binOpAccept(v: Visitor): Unit = {
+        v.visitSub(this)
+    }
+    @override
+    def binOpConst(c1: MConstant, c2: MConstant): MConstant = {
+        c1.sub(c2)
+    }
+}
+class Mul extends BinOp {
+    def this(left: Exp, right: Exp) = {
+        super(left, right)
+    }
+    @override
+    def binOpAccept(v: Visitor): Unit = {
+        v.visitMul(this)
+    }
+    @override
+    def binOpConst(c1: MConstant, c2: MConstant): MConstant = {
+        c1.mul(c2)
+    }
+}
+class GT extends BinOp {
+    def this(left: Exp, right: Exp) = {
+        super(left, right)
+    }
+    @override
+    def binOpAccept(v: Visitor): Unit = {
+        v.visitGT(this)
+    }
+    @override
+    def binOpConst(c1: MConstant, c2: MConstant): MConstant = {
+        c1.gt(c2)
+    }
+}
+
+class Stm {
+    // abstract
+    def accept(v: Visitor): Unit = {
+    }
+    def first(): Stm = {
+        this
+    }
+    def last(): Stm = {
+        this
+    }
+}
+class Assign extends Stm {
+    val lhs: String
+    val rhs: Exp
+    def this(lhs: String, rhs: Exp) = {
+        this.lhs = lhs
+        this.rhs = rhs
+    }
+    @override
+    def accept(v: Visitor): Unit = {
+        this.rhs.accept(v)
+        v.visitAssign(this)
+    }
+}
+class Skip extends Stm {
+    def this() = {
+    }
+    @override
+    def accept(v: Visitor): Unit = {
+        v.visitSkip(this)
+    }
+}
+class Sequence extends Stm {
+    val s1: Stm
+    val s2: Stm
+    def this(s1: Stm, s2: Stm) = {
+        this.s1 = s1
+        this.s2 = s2
+    }
+    @override
+    def accept(v: Visitor): Unit = {
+        this.s1.accept(v)
+        this.s2.accept(v)
+        v.visitSequence(this)
+    }
+    @override
+    def first(): Stm = {
+        this.s1.first()
+    }
+    @override
+    def last(): Stm = {
+        this.s2.last()
+    }
+}
+class If extends Stm {
+    val cnd: Exp
+    val thn: Stm
+    val els: Stm
+    def this(cnd: Exp, thn: Stm, els: Stm) = {
+        this.cnd = cnd
+        this.thn = thn
+        this.els = els
+    }
+    @override
+    def accept(v: Visitor): Unit = {
+        this.cnd.accept(v)
+        this.thn.accept(v)
+        this.els.accept(v)
+        v.visitIf(this)
+    }
+}
+class While extends Stm {
+    val cnd: Exp
+    val body: Stm
+    def this(cnd: Exp, body: Stm) = {
+        this.cnd = cnd
+        this.body = body
+    }
+    @override
+    def accept(v: Visitor): Unit = {
+        this.cnd.accept(v)
+        this.body.accept(v)
+        v.visitWhile(this)
+    }
+}
+class ValDef extends Stm {
+    val name: String
+    val rhs: Exp
+    def this(name: String, rhs: Exp) = {
+        this.name = name
+        this.rhs = rhs
+    }
+    @override
+    def accept(v: Visitor): Unit = {
+        this.rhs.accept(v)
+        v.visitValDef(this)
+    }
+}
+class VarDef extends Stm {
+    val name: String
+    val rhs: Exp
+    def this(name: String, rhs: Exp) = {
+        this.name = name
+        this.rhs = rhs
+    }
+    @override
+    def accept(v: Visitor): Unit = {
+        this.rhs.accept(v)
+        v.visitVarDef(this)
+    }
+}
+
+
+class Visitor {
+    // Exp
+    def visitVar(e: Var): Unit = { }
+    def visitNum(e: Num): Unit = { }
+    def visitAdd(e: Add): Unit = { }
+    def visitSub(e: Sub): Unit = { }
+    def visitMul(e: Mul): Unit = {}
+    def visitGT(e: GT): Unit = {}
+
+    // Stm
+    def visitAssign(s: Assign): Unit = { }
+    def visitSkip(s: Skip): Unit = { }
+    def visitSequence(s: Sequence): Unit = { }
+    def visitIf(s: If): Unit = { }
+    def visitWhile(s: While): Unit = { }
+    def visitValDef(s: ValDef): Unit = { }
+    def visitVarDef(s: VarDef): Unit = { }
+}
+
+class VarCountVisitor extends Visitor {
+    val count: Int = 0
+//    vag count: Map[Var,Int] = 0 with VarCountVisitor.sum
+//
+//    @static
+//    def sum(n1: Int, n2: Int): Int = {
+//        n1 + n2
+//    }
+//
+//    @override
+//    def visitVar(e: Var): Unit = {
+//        this.count #= 1
+//    }
+}
+
+class SumNumVisitor extends Visitor {
+    val sum: Int = 0
+//    vag sum: Set[(Num,Int)] = 0 with SumNumVisitor.sum
+//
+//    @static
+//    def sum(n1: Int, n2: Int): Int = {
+//        n1 + n2
+//    }
+//
+//    @override
+//    def visitNum(e: Num): Unit = {
+//        this.sum #= e.num
+//    }
+}
+
+/** Shows a set aggregation that collects a growing number of tuples.
+ *  The programmer is responsible for making sure the set is bounded.
+ */
+class CfgVisitor extends Visitor {
+    // TODO empty set not currently allowed here
+    vag cfg: Set[(Stm, Stm)] = Set((new Skip(), new Skip())) with CfgVisitor.union
+
+    @static
+    def union(s1: Set[(Stm,Stm)], s2: Set[(Stm,Stm)]): Set[(Stm,Stm)] = {
+        s1 ++ s2
+    }
+
+    def visitSequence(s: Sequence): Unit = {
+        val from: Stm = s.s1.last()
+        val to: Stm = s.s2.first()
+        // TODO adds one element to the set
+        this.cfg #= (from,to)
+    }
+
+    def visitIf(s: If): Unit = {
+        // TODO adds a set to the set
+        this.cfg ##= Set((s,s.thn.first()), (s,s.els.first()))
+    }
+
+    def visitWhile(s: While): Unit = {
+        // TODO adds a set to the set
+        this.cfg ##= Set((s,s.body.first()), (s.body.last(),s))
+    }
+}
+
+class MConstant {
+    @static
+    def join(c1: MConstant, c2: MConstant): MConstant = {
+        c1.join(c2)
+    }
+    def join(that: MConstant): MConstant = {
+        this
+    }
+
+    def num(n: Int): MConstant = {
+        new SomeConstant(n)
+    }
+    def add(that: MConstant): MConstant = {
+        this
+    }
+    def sub(that: MConstant): MConstant = {
+        this
+    }
+    def mul(that: MConstant): MConstant = {
+        this
+    }
+    def gt(that: MConstant): MConstant = {
+        this
+    }
+}
+class NoConstant extends MConstant {
+}
+class SomeConstant extends MConstant {
+    val num: Int
+    def this(num: Int) = {
+        this.num = num
+    }
+    @override
+    def join(that: MConstant): MConstant = {
+        if (instanceOf(that, SomeConstant) && cast(that, SomeConstant).num == this.num) {
+            this
+        } else {
+            new NoConstant()
+        }
+    }
+
+    def add(that: MConstant): MConstant = {
+        if (instanceOf(that, SomeConstant)) {
+            new SomeConstant(this.num + cast(that, SomeConstant).num)
+        } else {
+            new NoConstant()
+        }
+    }
+
+    def sub(that: MConstant): MConstant = {
+        if (instanceOf(that, SomeConstant)) {
+            new SomeConstant(this.num - cast(that, SomeConstant).num)
+        } else {
+            new NoConstant()
+        }
+    }
+
+    def mul(that: MConstant): MConstant = {
+        if (instanceOf(that, SomeConstant)) {
+            new SomeConstant(this.num * cast(that, SomeConstant).num)
+        } else {
+            new NoConstant()
+        }
+    }
+
+    def gt(that: MConstant): MConstant = {
+        if (instanceOf(that, SomeConstant)) {
+            if(this.num > cast(that, SomeConstant).num)
+                new SomeConstant(1)
+            else
+                new SomeConstant(0)
+        } else {
+            new NoConstant()
+        }
+    }
+}
+
+/** Shows a groupped aggregation */
+class FIConstantPropagationVisitor extends Visitor {
+    /** The Map type separates keys from aggregated values */
+    vag vars: Map[String, MConstant] = Map(("$$", new NoConstant()))
+        with MConstant.join
+
+    def visitValDef(s: ValDef): Unit = {
+        this.vars #= (s.name, s.rhs.aevalConst(this.vars))
+    }
+
+    def visitVarDef(s: VarDef): Unit = {
+        this.vars #= (s.name, s.rhs.aevalConst(this.vars))
+    }
+
+    def visitAssign(s: Assign): Unit = {
+        this.vars #= (s.lhs, s.rhs.aevalConst(this.vars))
+    }
+}
+
+/** Shows a nested groupped aggregation */
+class FSConstantPropagationVisitor extends Visitor {
+    // TODO empty set not currently allowed here
+
+    /** The Map types separate key1 from key2 and the aggregated values.
+     *  This could have been written Map[(Stm, String), MConstant], but the
+     *  nested type provides easier access per statement.
+     */
+    vag varsAfter: Map[Stm, Map[String, MConstant]] = Map((new Skip(), Map(("$$", new NoConstant()))))
+        with MConstant.join
+    vag varsBefore: Map[Stm, Map[String, MConstant]] = Map((new Skip(), Map(("$$", new NoConstant()))))
+        with MConstant.join
+
+    def visitValDef(s: ValDef): Unit = {
+        this.varsAfter(s) #= (s.name, s.rhs.aevalConst(this.varsBefore(s)))
+        this.varsAfter(s) ##= for (bf <- this.varsBefore(s) if bf._1 != s.name) yield bf
+    }
+
+    def visitVarDef(s: VarDef): Unit = {
+        this.varsAfter(s) #= (s.name, s.rhs.aevalConst(this.varsBefore(s)))
+        this.varsAfter(s) ##= for (bf <- this.varsBefore(s) if bf._1 != s.name) yield bf
+    }
+
+    def visitAssign(s: Assign): Unit = {
+        this.varsAfter(s) #= (s.lhs, s.rhs.aevalConst(this.varsBefore(s)))
+        this.varsAfter(s) ##= for (bf <- this.varsBefore(s) if bf._1 != s.lhs) yield bf
+    }
+
+    def visitSkip(s: Skip): Unit = {
+        this.varsAfter(s) ##= this.varsBefore(s)
+    }
+
+    def visitSequence(s: Sequence): Unit = {
+        // data flow s.s2.first() <- s.s1.last()
+        this.varsBefore(s.s2.first()) ##= this.varsAfter(s.s1.last())
+    }
+
+    def visitIf(s: If): Unit = {
+        // data flow s.thn.first() <- s
+        // data flow s.els.first() <- s
+        this.varsBefore(s.thn.first()) ##= this.varsBefore(s)
+        this.varsBefore(s.els.first()) ##= this.varsBefore(s)
+    }
+
+    def visitWhile(s: While): Unit = {
+        // data flow s.body.first() <- s
+        // data flow s <- s.body.last()
+        this.varsAfter(s) ##= this.varsBefore(s)
+        this.varsBefore(s.body.first()) ##= this.varsAfter(s)
+        this.varsBefore(s) ##= this.varsAfter(s.body.last())
+    }
+
+}
+
+
+
+class Examples {
+    val factorial: Stm =
+        new Sequence(new VarDef("n", new Num(5)),
+            new Sequence(new VarDef("acc", new Num(1)),
+                new While(
+                    new GT(new Var("n"), new Num(1)),
+                    new Sequence(
+                        new Assign("acc", new Mul(new Var("acc"), new Var("n"))),
+                        new Assign("n", new Sub(new Var("n"), new Num(1)))
+                    )
+                )
+            )
+        )
+}
+
+class FactorialSumNum {
+    @main
+    def sumNum(): Int = {
+        val treeSum: SumNumVisitor = new SumNumVisitor()
+        val examples: Examples = new Examples()
+        examples.factorial.accept(treeSum)
+        treeSum.sum
+    }
+}
+
+
+
+
