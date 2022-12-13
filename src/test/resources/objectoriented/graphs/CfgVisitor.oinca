@@ -1,0 +1,403 @@
+module WhileLang
+
+class Exp {
+  def accept(v: Visitor): Unit = { }
+
+  def getString(): String = {
+    "Exp"
+  }
+}
+
+class Var extends Exp {
+  val name: String
+  def this(name: String) = {
+    this.name = name
+  }
+
+  @override
+  def accept(v: Visitor): Unit = {
+    v.visitVar(this)
+  }
+
+  @override
+  def getString(): String = {
+    "Var"
+  }
+}
+
+class Num extends Exp {
+  val num: Int
+  def this(num: Int) = {
+    this.num = num
+  }
+
+  @override
+  def accept(v: Visitor): Unit = {
+    v.visitNum(this)
+  }
+
+  @override
+  def getString(): String = {
+    "Num"
+  }
+}
+
+class BinOp extends Exp {
+  val left: Exp
+  val right: Exp
+  def this(left: Exp, right: Exp) = {
+    this.left = left
+    this.right = right
+  }
+
+  @override
+  def accept(v: Visitor): Unit = {
+    this.left.accept(v)
+    this.right.accept(v)
+    this.binOpAccept(v)
+  }
+
+  def binOpAccept(v: Visitor): Unit = { }
+
+  @override
+  def getString(): String = {
+    "BinOp"
+  }
+}
+class Add extends BinOp {
+  def this(left: Exp, right: Exp) = {
+    super(left, right)
+  }
+
+  @override
+  def binOpAccept(v: Visitor): Unit = {
+    v.visitAdd(this)
+  }
+
+  @override
+  def getString(): String = {
+    "Add"
+  }
+}
+class Sub extends BinOp {
+  def this(left: Exp, right: Exp) = {
+    super(left, right)
+  }
+
+  @override
+  def binOpAccept(v: Visitor): Unit = {
+    v.visitSub(this)
+  }
+
+  @override
+  def getString(): String = {
+    "Sub"
+  }
+}
+class Mul extends BinOp {
+  def this(left: Exp, right: Exp) = {
+    super(left, right)
+  }
+
+  @override
+  def binOpAccept(v: Visitor): Unit = {
+    v.visitMul(this)
+  }
+
+  @override
+  def getString(): String = {
+    "Mul"
+  }
+}
+class GT extends BinOp {
+  def this(left: Exp, right: Exp) = {
+    super(left, right)
+  }
+
+  @override
+  def binOpAccept(v: Visitor): Unit = {
+    v.visitGT(this)
+  }
+
+  @override
+  def getString(): String = {
+    "GT"
+  }
+}
+
+class Stm {
+  // abstract
+  def accept(v: Visitor): Unit = {
+  }
+
+  def first(): Stm = {
+    this
+  }
+  def last(): Stm = {
+    this
+  }
+
+  def getString(): String = {
+    "Stm"
+  }
+}
+class Assign extends Stm {
+  val lhs: String
+  val rhs: Exp
+  def this(lhs: String, rhs: Exp) = {
+    this.lhs = lhs
+    this.rhs = rhs
+  }
+
+  @override
+  def accept(v: Visitor): Unit = {
+    this.rhs.accept(v)
+    v.visitAssign(this)
+  }
+
+  @override
+  def getString(): String = {
+    "Assign"
+  }
+}
+class Skip extends Stm {
+  def this() = { }
+
+  @override
+  def accept(v: Visitor): Unit = {
+    v.visitSkip(this)
+  }
+
+  @override
+  def getString(): String = {
+    "Skip"
+  }
+}
+class Sequence extends Stm {
+  val s1: Stm
+  val s2: Stm
+  def this(s1: Stm, s2: Stm) = {
+    this.s1 = s1
+    this.s2 = s2
+  }
+
+  @override
+  def accept(v: Visitor): Unit = {
+    this.s1.accept(v)
+    this.s2.accept(v)
+    v.visitSequence(this)
+  }
+
+  @override
+  def first(): Stm = {
+    this.s1.first()
+  }
+
+  @override
+  def last(): Stm = {
+    this.s2.last()
+  }
+
+  @override
+  def getString(): String = {
+    "Sequence"
+  }
+}
+class If extends Stm {
+  val cnd: Exp
+  val thn: Stm
+  val els: Stm
+  def this(cnd: Exp, thn: Stm, els: Stm) = {
+    this.cnd = cnd
+    this.thn = thn
+    this.els = els
+  }
+
+  @override
+  def accept(v: Visitor): Unit = {
+    this.cnd.accept(v)
+    this.thn.accept(v)
+    this.els.accept(v)
+    v.visitIf(this)
+  }
+
+  @override
+  def getString(): String = {
+    "If"
+  }
+}
+class While extends Stm {
+  val cnd: Exp
+  val body: Stm
+  def this(cnd: Exp, body: Stm) = {
+    this.cnd = cnd
+    this.body = body
+  }
+
+  @override
+  def accept(v: Visitor): Unit = {
+    this.cnd.accept(v)
+    this.body.accept(v)
+    v.visitWhile(this)
+  }
+
+  @override
+  def getString(): String = {
+    "While"
+  }
+}
+class ValDef extends Stm {
+  val name: String
+  val rhs: Exp
+  def this(name: String, rhs: Exp) = {
+    this.name = name
+    this.rhs = rhs
+  }
+
+  @override
+  def accept(v: Visitor): Unit = {
+    this.rhs.accept(v)
+    v.visitValDef(this)
+  }
+
+  @override
+  def getString(): String = {
+    "ValDef"
+  }
+}
+
+class VarDef extends Stm {
+  val name: String
+  val rhs: Exp
+  def this(name: String, rhs: Exp) = {
+    this.name = name
+    this.rhs = rhs
+  }
+
+  @override
+  def accept(v: Visitor): Unit = {
+    this.rhs.accept(v)
+    v.visitVarDef(this)
+  }
+
+  @override
+  def getString(): String = {
+    "VarDef"
+  }
+}
+
+
+class Visitor {
+  // Exp
+  def visitVar(e: Var): Unit = { }
+  def visitNum(e: Num): Unit = { }
+  def visitAdd(e: Add): Unit = { }
+  def visitSub(e: Sub): Unit = { }
+  def visitMul(e: Mul): Unit = {}
+  def visitGT(e: GT): Unit = {}
+
+  // Stm
+  def visitAssign(s: Assign): Unit = { }
+  def visitSkip(s: Skip): Unit = { }
+  def visitSequence(s: Sequence): Unit = { }
+  def visitIf(s: If): Unit = { }
+  def visitWhile(s: While): Unit = { }
+  def visitValDef(s: ValDef): Unit = { }
+  def visitVarDef(s: VarDef): Unit = { }
+}
+
+class CfgVisitor extends Visitor {
+  // TODO empty set not currently allowed here
+  var cfg: Set[(Stm, Stm)] = Set((new Skip(), new Skip()))
+
+  @override
+  def visitSequence(s: Sequence): Unit = {
+    val from: Stm = s.s1.last()
+    val to: Stm = s.s2.first()
+
+    this.cfg = this.cfg ++ Set((from,to))
+  }
+
+  @override
+  def visitIf(s: If): Unit = {
+    this.cfg = this.cfg ++ Set((s,s.thn.first()), (s,s.els.first()))
+  }
+
+  @override
+  def visitWhile(s: While): Unit = {
+    this.cfg = this.cfg ++ Set((s, s.body.first()), (s.body.last(), s))
+  }
+}
+
+/*class IntervalVisitor extends Visitor {
+  // TODO empty set not currently allowed here
+  var intervals: Set[(String, Int)] = Set(("", 0))
+
+  @static
+  def max(n1: Int, n2: Int): Int = {
+    n1.`max`(n2)
+  }
+
+  @static
+  def min(n1: Int, n2: Int): Int = {
+    n1.`min`(n2)
+  }
+
+  @override
+  def visitVarDef(s: VarDef): Unit = {
+    if (instanceOf(s.rhs, Num))
+      this.intervals = this.intervals ++ Set((s.name, cast(s.rhs, Num).num))
+  }
+
+  @override
+  def visitValDef(s: ValDef): Unit = {
+    if (instanceOf(s.rhs, Num))
+      this.intervals = this.intervals ++ Set((s.name, cast(s.rhs, Num).num))
+  }
+
+  @override
+  def visitAssign(s: Assign): Unit = {
+    if (instanceOf(s.rhs, Var)) {
+      val rhs: Var = cast(s.rhs, Var)
+      this.intervals = this.intervals ++ for (i <- this.intervals if i._1 == rhs.name) yield rhs.
+    } else {
+      this.intervals = this.intervals ++ Set((s.lhs, s.rhs.evalNum()))
+    }
+  }
+
+  def getUpperBound(varName: String): Int = {
+    this.intervals.fold(`Int.MinValue`, IntervalVisitor.max, (varName, #))
+  }
+
+  def getLowerBound(varName: String): Int = {
+    this.intervals.fold(`Int.MaxValue`, IntervalVisitor.min, (varName, #))
+  }
+}*/
+
+class Examples {
+  val factorial: Stm =
+    new Sequence(new VarDef("n", new Num(5)),
+      new Sequence(new VarDef("acc", new Num(1)),
+        new While(
+          new GT(new Var("n"), new Num(1)),
+          new Sequence(
+            new Assign("acc", new Mul(new Var("acc"), new Var("n"))),
+            new Assign("n", new Sub(new Var("n"), new Num(1)))
+          )
+        )
+      )
+    )
+
+  @main
+  def main(): Set[(String, String)] = {
+    /*val visitor: IntervalVisitor = new IntervalVisitor()
+    val examples: Examples = new Examples()
+    examples.factorial.accept(visitor)
+    (visitor.getUpperBound("acc"), visitor.getLowerBound("acc"))*/
+
+    val visitor: CfgVisitor = new CfgVisitor()
+    val examples: Examples = new Examples()
+    examples.factorial.accept(visitor)
+    for (c <- visitor.cfg) yield (c._1.getString(), c._2.getString())
+  }
+}

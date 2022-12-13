@@ -23,6 +23,15 @@ object Defunctionalize {
 //  -- Datalog Program --
 //  val a: Set[(A, B)] = Set(new B(), new B())
 
+// Rename all VarReadExpr according to a substitution map.
+class VarRename(val module: Module, substitutions: Map[Name, Name]) extends ModuleLowering {
+  override def transExpressionInternal(expression: Expression): Seq[Expression] = expression match {
+    case VarReadExpr(targetName) => Seq(VarReadExpr(substitutions.getOrElse(targetName, targetName)))
+    case _ => super.transExpressionInternal(expression)
+  }
+
+}
+
 class Defunctionalize(val module: Module, val dataModel: DataModel) extends ModuleLowering {
   private val gensym: Gensym = new Gensym(Iterable.empty)
 
@@ -86,7 +95,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
   }
 
   private def genAuxDef(constrVars: Map[Name, Type], innerSetType: Type, parent: ClassRef, expr: Expression): ClassDef = {
-    // rename all "this" to obj$i, since this is reserved
+    // rename all "this" to obj$i, since "this" is reserved
     val subst = constrVars.map {
       case (name@Name("this"), _) => name -> Name(gensym.fresh("obj"))
       case (name, _) => name -> name
@@ -99,8 +108,10 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), contentType, Seq(ret))
     // create a default constructor
     val constrParams = constrVars.map { case (subst(name), typ) => Param(name, clearType(typ)) }.toSeq
+
+    val varRenamer = new VarRename(module, subst)
     val constrBody = fields.map { f =>
-      FieldAssignStmt(VarReadExpr(Name("this")), f.name, clearExpression(expr), aggregation = false)
+      FieldAssignStmt(VarReadExpr(Name("this")), f.name, varRenamer.transExpression(expr).head, aggregation = false)
     }
     val constr = ConstructorDef(Seq(), None, constrParams, constrBody)
     val clsName = Name(gensym.fresh("Aux$" + typeSuffix(innerSetType)))

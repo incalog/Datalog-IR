@@ -158,6 +158,7 @@ trait ModuleLowering {
       case TNull => TNull
       case TTuple(ts) => TTuple(ts.map(transType))
       case TSet(ty) => TSet(transType(ty))
+      case TMap(tk, tv) => TMap(transType(tk), transType(tv))
       case TScala(ty) => TScala(ty)
       // create a new ClassRef to invalidate the current target
       case TClass(ClassRef(name)) => TClass(ClassRef(name))

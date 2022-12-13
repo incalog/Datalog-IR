@@ -167,6 +167,10 @@ class DatalogTest extends AnyFunSuite {
     performTests(aggTreeTest)
   }
 
+  test("CGFVisitor") {
+    performTests(cfgVisitorTest)
+  }
+
   test("While lang case study") {
     performTests(whileLangTest)
   }

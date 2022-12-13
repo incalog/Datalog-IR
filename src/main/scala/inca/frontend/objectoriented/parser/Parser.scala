@@ -43,6 +43,13 @@ trait Parser {
   def seq0[A](p: P[A], sep: Char = ',', min: Int = 0): P0[Seq[A]] =
       p.repSep0(min, P.char(sep) <* whitespaces0)
 
+  object ReservedMethods extends Enumeration {
+    type Keyword = Value
+
+    val FOLD: Value = Value("fold")
+    val GETORELSE: Value = Value("getOrElse")
+  }
+
   object Keyword extends Enumeration {
     type Keyword = Value
 
@@ -73,7 +80,8 @@ trait Parser {
 
   import Keyword._
 
-  val keywords: Set[String] = Keyword.values.map(k => k.toString)
+  val keywords: Set[String] = Keyword.values.map(_.toString)
+  val reservedMethods: Set[String] = ReservedMethods.values.map(_.toString)
 
   def keyword(keyword: Keyword): P[Unit] =
     spaced(P.string(keyword.toString) *> P.not(letterDigit))
@@ -147,13 +155,12 @@ trait Parser {
   protected[frontend] def tupleType: P[TTuple] =
     inParentheses(seq0(P.defer(atomicTypeAnno), min = 2)).mapWithLoc(TTuple(_))
 
-  protected[frontend] def setType: P[Type] =
+  protected[frontend] def setType: P[TSet] =
     (keyword(SET) *> inBrackets(atomicTypeAnno)).mapWithLoc(TSet)
 
-  // TODO make MapType
-  protected[frontend] def mapType: P[Type] =
+  protected[frontend] def mapType: P[TMap] =
     (keyword(MAP) *> inBrackets((atomicTypeAnno <* op(",")) ~ P.defer(typeAnno))).mapWithLoc {
-      case (tk, tv) => TSet(TTuple.from(Seq(tk, tv)))
+      case (tk, tv) => TMap(tk, tv)
     }
 
   protected[frontend] val classRef: P[ClassRef] =
@@ -279,7 +286,7 @@ trait Parser {
 
   // TODO make MapExpr
   protected[frontend] lazy val mapExpr: P[SetExpr] =
-    (keyword(MAP) *> inBrackets((atomicTypeAnno <* op(",")) ~ atomicTypeAnno).? ~ inParentheses(seq0(P.defer(expr), min = 0))).mapWithLoc {
+    (keyword(MAP) *> inBrackets((atomicTypeAnno <* op(",")) ~ P.defer(typeAnno)).? ~ inParentheses(seq0(P.defer(expr), min = 0))).mapWithLoc {
       case (tty, exps) => SetExpr(exps, tty.map(tt => TTuple.from(Seq(tt._1, tt._2))))
     }
 
@@ -467,7 +474,7 @@ trait Parser {
     functionHeader.flatMapWithLoc { case (((((overrideAnnotation, visibility), funcName), params), typeAnno), content) =>
       val anno = if (overrideAnnotation.isEmpty) Seq() else Seq(overrideAnnotation.get)
       funcName match {
-        case Name("fold") => fail("Illegal method name: 'fold'!")
+        case Name(raw) if reservedMethods.contains(raw) => fail(s"Illegal method name: '$raw'")
         case _ => pass(MethodDef(anno, visibility, funcName, params, typeAnno, content))
       }
     }

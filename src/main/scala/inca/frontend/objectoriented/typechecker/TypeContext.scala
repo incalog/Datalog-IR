@@ -26,11 +26,14 @@ trait TypeContext extends TypeIO {
     case (TNull, TClass(_)) => true
     case (TClass(ref1), TClass(ref2)) if ref1 == ref2 => true
     case (TClass(ref1), TClass(_)) =>
-      val parents = ref1.target.getOrElse(throw new IllegalArgumentException(s"unresolved $ty1")).parentClassRefs //lookupClassRef(ref1).get.parentClassRefs
+      // TODO: Why can it happen, that the target is not resolved here ?
+      val parents = classDefs.get(ref1.name).flatMap { case (_, c) => c.parentClassRefs }
+      //val parents = ref1.target.getOrElse(throw new IllegalArgumentException(s"unresolved $ty1")).parentClassRefs //lookupClassRef(ref1).get.parentClassRefs
       parents.exists { parent => if (parent.target.isDefined) subtype(parent.target.get.typ, ty2) else false }
     case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
       tys1.zip(tys2).forall(tt => subtype(tt._1, tt._2))
     case (TSet(ty1), TSet(ty2)) => subtype(ty1, ty2)
+    case (TMap(tk1, tv1), TMap(tk2, tv2)) => subtype(tk1, tk2) && subtype(tv1, tv2)
     case _ => false
   }
 
@@ -114,10 +117,11 @@ trait TypeContext extends TypeIO {
     vars += (name -> (decl, ty, immutable))
   }
 
-  def lookupVar(name: Name): Option[(VarReadExpr.Target, Type, Boolean)] = vars.get(name) match {
+  def lookupVar(name: Name, suppressError: Boolean = false): Option[(VarReadExpr.Target, Type, Boolean)] = vars.get(name) match {
     case Some(entry) => Some(entry)
     case None =>
-      error(s"Unbound variable $name", name)
+      if (!suppressError)
+        error(s"Unbound variable $name", name)
       None
   }
 
@@ -136,15 +140,17 @@ trait TypeContext extends TypeIO {
     }
   }
 
-  def lookupField(clazz: Option[ClassDef], name: Name): Option[(ClassDef, FieldDef)] = {
+  def lookupField(clazz: Option[ClassDef], name: Name, suppressError: Boolean = false): Option[(ClassDef, FieldDef)] = {
     val clsName = if (clazz.isDefined) clazz.get.name.raw else ""
     val allFields = collect[FieldDef](clazz, f => f.name == name)
     if (allFields.isEmpty) {
-      error(s"Undefined field $clsName.$name", name)
+      if (!suppressError)
+        error(s"Undefined field $clsName.$name", name)
       None
     } else if (allFields.size > 1) {
       val (parentClass, _) = allFields.head
-      error(s"Field $name shadows previously defined field in class ${parentClass.name}", name)
+      if (!suppressError)
+        error(s"Field $name shadows previously defined field in class ${parentClass.name}", name)
       None
     } else {
       Some(allFields.head)

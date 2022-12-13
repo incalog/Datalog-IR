@@ -304,6 +304,16 @@ object TestDefinition {
     TestDefinition("DoubleLinkedList", "DoubleLinkedList", "main", Seq(q"5"), TupleResult(31, 36, 4))
   }
 
+  def cfgVisitorTest: TestDefinition[SetResult[Any]] = {
+    val expectedRes = SetResult(
+      TupleResult("VarDef", "While"), TupleResult("Assign", "While"), TupleResult("While", "Assign"),
+      TupleResult("VarDef", "VarDef"), TupleResult("Skip", "Skip"), TupleResult("Assign", "Assign")
+    )
+
+    implicit val subdir: Option[String] = Some("graphs")
+    TestDefinition("CfgVisitor", "Examples", "main", Seq(), expectedRes)
+  }
+
   def aggVariableTest: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/aggvar")
     Seq(
