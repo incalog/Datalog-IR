@@ -829,7 +829,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         case _ => throw new RuntimeException("Could not get type of set !")
       }
 
-      // TODO: Support tuples which might contain multiple classes... something with flatten and map maybe
       val aggregandPat = aggType.flatten(aggIndex) match {
         case td: TClass =>
           val pat = generatePattern(recv, aggregatePatName(opClass.name.raw, opMethod.raw))
@@ -842,15 +841,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           val newOutParam = Datalog.Param(newOutName, transDataType(td))
           val coalesceCon = Datalog.Call(coalescedPatName(td.ref.name.raw), Seq(Datalog.Var(oldOutName), Datalog.Var(newOutName)))
           pat.copy(params = leftParams ++ (newOutParam +: rightParams), bodies = pat.bodies.map(b => Datalog.Body(b.atoms :+ coalesceCon)))
-        /*case td: TClass =>
-          val pat = generatePattern(recv, aggregatePatName(opClass.name.raw, opMethod.raw))
-
-          val inParams = pat.params.slice(0, pat.params.size - 1)
-          val oldOutName = pat.params.last.name
-          val newOutName = gensym.fresh("out")
-          val newOutParam = Datalog.Param(newOutName, transDataType(td))
-          val coalesceCon = Datalog.Call(coalescedPatName(td.ref.name.raw), Seq(Datalog.Var(oldOutName), Datalog.Var(newOutName)))
-          pat.copy(params = inParams :+ newOutParam, bodies = pat.bodies.map(b => Datalog.Body(b.atoms :+ coalesceCon)))*/
         case _ =>
           generatePattern(recv, aggregatePatName(opClass.name.raw, opMethod.raw))
       }

@@ -38,7 +38,7 @@ class Num {
 
     // 2.
     val x: Int = 0
-    val d: Int = fold( Set((x, 0, 1), (0, 1,1), (1, 1, 1), (2, 1, 1)) | (x, _, #), Num.sumInt, 0)
+    val d: Int = fold( Set((x, 0, 1), (0, 1, 1), (1, 1, 1), (2, 1, 1)) | (x, _, #), Num.sumInt, 0)
 
     // 3.
     val e: Int = fold( for (s2 <- Set((0, 1), (1,1))) yield s2._2 , Num.sumInt, 0)
