@@ -64,10 +64,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     generatedPatterns ++= transDynamicDispatch(classes)
     generatedPatterns ++= classes.flatMap(transClass)
 
-    case class Num(num: Int)
-    val nums: Set[Num] = Set()
-    val sum: Int = nums.foldLeft(0)((s, n) => s + n.num)
-
     val scalaModule = genScala.genModule(typedModule)
     // TODO: Optimize: We only need to generate this if we use an aggregation. We keep it in for now, to spot errors
     //  in the scala code generation.
