@@ -391,12 +391,18 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         TSet(tty.getOrElse(upperTypeBound(typs)))
 
     case setMember@SetMemberExpr(name, target, predicate) =>
-      val TSet(ty) = typecheck(target)
-      bindVar(name, setMember, ty, immutable = true)
-      if (predicate.isDefined) {
-        assertSubtype(typecheck(predicate.get), TScalaBoolean, target)
+      typecheck(target) match {
+        case TSet(ty) =>
+          bindVar(name, setMember, ty, immutable = true)
+          if (predicate.isDefined) {
+            assertSubtype(typecheck(predicate.get), TScalaBoolean, target)
+          }
+          ty
+        case _ =>
+          error("Expects set type for member test", expression)
+          bindVar(name, setMember, TAny, immutable = true)
+          TAny
       }
-      ty
 
     case SetComprehension(member, body) =>
       member.foreach(typecheck)

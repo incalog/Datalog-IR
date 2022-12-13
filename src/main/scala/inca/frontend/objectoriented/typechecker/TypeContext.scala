@@ -26,7 +26,7 @@ trait TypeContext extends TypeIO {
     case (TNull, TClass(_)) => true
     case (TClass(ref1), TClass(ref2)) if ref1 == ref2 => true
     case (TClass(ref1), TClass(_)) =>
-      val parents = ref1.target.get.parentClassRefs //lookupClassRef(ref1).get.parentClassRefs
+      val parents = ref1.target.getOrElse(throw new IllegalArgumentException(s"unresolved $ty1")).parentClassRefs //lookupClassRef(ref1).get.parentClassRefs
       parents.exists { parent => if (parent.target.isDefined) subtype(parent.target.get.typ, ty2) else false }
     case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
       tys1.zip(tys2).forall(tt => subtype(tt._1, tt._2))

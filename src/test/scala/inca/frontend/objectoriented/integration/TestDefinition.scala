@@ -316,4 +316,9 @@ object TestDefinition {
     implicit val subdir: Option[String] = Some("unittests/aggvar")
     TestDefinition("AggTree", "Main", "sumNum", Seq(), SetResult(13))
   }
+
+  def whileLangTest: TestDefinition[SetResult[Any]] = {
+    implicit val subdir: Option[String] = Some("unittests/aggvar")
+    TestDefinition("WhileLang", "FactorialSumNum", "sumNum", Seq(), SetResult(9))
+  }
 }

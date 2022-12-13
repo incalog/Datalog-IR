@@ -167,6 +167,10 @@ class DatalogTest extends AnyFunSuite {
     performTests(aggTreeTest)
   }
 
+  test("While lang case study") {
+    performTests(whileLangTest)
+  }
+
   test("Binary Tree Example") {
     performTests(binaryTreeTest)
   }
