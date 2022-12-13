@@ -276,10 +276,10 @@ object TestDefinition {
     Seq(
       TestDefinition("SetFoldMax", "Num", "main", Seq(), SetResult(16)),
       TestDefinition("SetFoldSum", "Num", "main", Seq(), SetResult(23)),
-      TestDefinition("SetFoldSum2", "Num", "main", Seq(), SetResult(TupleResult(55, 110, 4, 2, 1, 4))),
+      TestDefinition("SetFoldSumProjection", "Num", "main", Seq(), SetResult(TupleResult(55, 110, 4, 2, 1, 4))),
       TestDefinition("SetFoldMaxObject", "Num", "main", Seq(), SetResult(5)),
       TestDefinition("SetFoldSumObject", "Num", "main", Seq(), SetResult(15)),
-      TestDefinition("SetFoldTuple", "Num", "main", Seq(), SetResult(5)),
+      TestDefinition("SetFoldTupleField", "Num", "main", Seq(), SetResult(5)),
       TestDefinition("SetFoldNull", "Num", "main", Seq(), SetResult(7))
     )
   }

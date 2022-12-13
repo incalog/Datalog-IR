@@ -127,7 +127,7 @@ case class SetFold(recv: Expression, projection: Seq[Expression], opClass: Class
   }
 
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
-    s"fold($recv | ${projection.mkString("(", ", ", ")")}, ${opClass.name}.$opMethod, $neutral))"
+    s"$recv.fold($neutral, ${opClass.name}.$opMethod, ${projection.mkString("(", ", ", ")")}))"
 }
 
 case class BaseLitExpr(code: Scala[meta.Term]) extends Expression {

@@ -419,6 +419,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           if (isNestedTuple)
             error("Fold does not support nested tuples.", recv)
 
+          if (tty.flatten.size != projection.size)
+            error("Projection does not match shape of set tuples.", setFold)
+
           val ty = tty.flatten(setFold.aggIndex)
           assertSubtype(typecheck(neutral), ty, neutral)
 
@@ -427,7 +430,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             case _ => false
           }
           if (hasOneAgg != 1)
-            error("A fold projection requires exactly one aggregation '#'", projection: _*)
+            error("A fold projection requires exactly one aggregation value marked with '#'", projection: _*)
 
           projection.zip(tty.flatten).foreach {
             case (VarReadExpr(Name("#") | Name("_")), expTy) => expTy

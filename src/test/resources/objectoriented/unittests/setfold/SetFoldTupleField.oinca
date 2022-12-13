@@ -33,7 +33,7 @@ class Num {
 
   @main def main(): Int = {
     val s: Set[Num] = Set(new Num(1), new Num(2), new Num(3), new Num(5), new Num(4))
-    val n: Num = fold(s, Num.max, new Num(0))
+    val n: Num = s.fold(new Num(0), Num.max)
     return n.value
   }
 }

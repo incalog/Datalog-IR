@@ -21,7 +21,7 @@ class Num {
 
   @main def main(): Int = {
     val s: Set[Num] = Set(new Num(1), null, new Num(3), new Num(5), new Num(7))
-    val n: Num = fold(s, Num.max, null)
+    val n: Num = s.fold(null, Num.max)
     return n.value
   }
 }

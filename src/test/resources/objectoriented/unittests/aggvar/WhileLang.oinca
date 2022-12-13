@@ -20,6 +20,7 @@ class Var extends Exp {
         v.visitVar(this)
     }
 
+    @override
     def aevalConst(m: Map[String, MConstant]): MConstant = {
         m.getOrElse(this.name, new NoConstant())
     }
@@ -36,6 +37,7 @@ class Num extends Exp {
         v.visitNum(this)
     }
 
+    @override
     def aevalConst(m: Map[String, MConstant]): MConstant = {
         new SomeConstant(this.num)
     }
@@ -58,6 +60,7 @@ class BinOp extends Exp {
     // abstract
     def binOpAccept(v: Visitor): Unit = { }
 
+    @override
     def aevalConst(m: Map[String, MConstant]): MConstant = {
         this.binOpConst(this.left.aevalConst(m), this.right.aevalConst(m))
     }

@@ -8,9 +8,10 @@ class Num {
 
   @main def main(): Int = {
     val s: Set[Int] = Set(1, 2, 3, 4, -1)
-    val n: Int = fold(s, Num.sum, -100)
+    val n: Int = s.fold(-100, Num.sum)
 
-    val n2: Int = fold(s ++ Set(5), Num.sum, 0)
+    val s2: Set[Int] = s ++ Set(5)
+    val n2: Int = s2.fold(0, Num.sum)
     return n + n2
   }
 }

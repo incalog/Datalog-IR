@@ -30,21 +30,21 @@ class Num {
 
     // 0.
     val s: Set[(Int, Int)] = n.createSet(1, 10)
-    val a: Int = fold( s | (0, #), Num.sumInt, 0)
-    val b: Int = fold( s | (_, #), Num.sumInt, 0)
+    val a: Int = s.fold(0, Num.sumInt, (0, #))
+    val b: Int = s.fold(0, Num.sumInt, (_, #))
 
     // 1.
-    val c: Int = fold( Set((0, 1), (1,1), (0, 3)) | (0, #), Num.sumInt, 0)
+    val c: Int = Set((0, 1), (1,1), (0, 3)).fold(0, Num.sumInt, (0, #))
 
     // 2.
     val x: Int = 0
-    val d: Int = fold( Set((x, 0, 1), (0, 1, 1), (1, 1, 1), (2, 1, 1)) | (x, _, #), Num.sumInt, 0)
+    val d: Int = Set((x, 0, 1), (0, 1, 1), (1, 1, 1), (2, 1, 1)).fold(0, Num.sumInt, (x, _, #))
 
     // 3.
-    val e: Int = fold( for (s2 <- Set((0, 1), (1,1))) yield s2._2 , Num.sumInt, 0)
+    val e: Int = (for (s2 <- Set((0, 1), (1,1))) yield s2._2).fold(0, Num.sumInt)
 
     // 4.
-    val f: Num = fold( Set((0, new Num(1)), (1, new Num(1)), (0, new Num(3))) | (0, #), Num.sumNum, new Num(0))
+    val f: Num = Set((0, new Num(1)), (1, new Num(1)), (0, new Num(3))).fold(new Num(0), Num.sumNum, (0, #))
 
     (a, b, c, d, e, f.value)
   }

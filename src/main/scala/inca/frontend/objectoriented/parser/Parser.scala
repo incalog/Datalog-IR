@@ -68,7 +68,7 @@ trait Parser {
     val FOR: Value        = Value("for")
     val YIELD: Value      = Value("yield")
     val SUPER: Value      = Value("super")
-    val FOLD: Value       = Value("fold")
+    //val FOLD: Value       = Value("fold")
   }
 
   import Keyword._
@@ -246,7 +246,7 @@ trait Parser {
       case (recv, typeAnno) => TypeCastExpr(recv, typeAnno)
     }
 
-  protected[frontend] lazy val foldExpr: P[SetFold] = {
+  /*protected[frontend] lazy val foldExpr: P[SetFold] = {
     val doNotCare = op('_').mapWithLoc(_ => VarReadExpr(Name("_")))
     val agg = op('#').mapWithLoc(_ => VarReadExpr(Name("#")))
     (keyword(FOLD) *> inParentheses(
@@ -258,15 +258,19 @@ trait Parser {
         val aggRead: Expression = VarReadExpr(Name("#"))
         SetFold(recv, projection.getOrElse(Seq(aggRead)), classRef, methodName, neutral)
     }
-  }
+  }*/
 
   protected[frontend] lazy val instanceOfExpr: P[InstanceOfExpr] =
     (keyword(INSTANCEOF) *> inParentheses((P.defer(expr) <* op(",")) ~ typeAnno)).mapWithLoc {
       case (recv, typeAnno) => InstanceOfExpr(recv, typeAnno)
     }
 
-  protected[frontend] lazy val tupleExpr: P[TupleExpr] =
-    inParentheses(seq0(P.defer(expr), min = 2)).mapWithLoc(TupleExpr(_))
+  protected[frontend] lazy val tupleExpr: P[TupleExpr] = {
+    // allow _ and # symbol to parse projection parameters
+    val doNotCare = op('_').mapWithLoc(_ => VarReadExpr(Name("_")))
+    val agg = op('#').mapWithLoc(_ => VarReadExpr(Name("#")))
+    inParentheses(seq0(P.defer(expr).backtrack | doNotCare | agg , min = 2)).mapWithLoc(TupleExpr(_))
+  }
 
   protected[frontend] lazy val setExpr: P[SetExpr] =
     (keyword(SET) *> inBrackets(atomicTypeAnno).? ~ inParentheses(seq0(P.defer(expr), min = 0))).mapWithLoc {
@@ -281,7 +285,9 @@ trait Parser {
 
   private[frontend] lazy val nestedAccessStartExpr: P[Expression] =
     typeCastExpr |
-      foldExpr |
+      setExpr |
+      setComprehensionExpr |
+      //foldExpr |
       constructorExpr |
       variableReadExpr |
       baseLitExpr |
@@ -308,6 +314,12 @@ trait Parser {
         val nextExpr = current match {
           case index: Index => TupleReadExpr(prev, index)
           case name: Name => FieldReadExpr(prev, name)
+          case (Name("fold"), (neutral: Expression) :: FieldReadExpr(VarReadExpr(aggClass), aggMethod) :: args) =>
+            val projection = args.headOption match {
+              case Some(TupleExpr(proj: Seq[Expression])) => proj
+              case None => Seq(VarReadExpr(Name("#")))
+            }
+            SetFold(prev, projection, ClassRef(aggClass), aggMethod, neutral)
           case (name: Name, argList: Seq[Expression]) => MethodCallExpr(prev, name, argList)
           case (name: Name, argList: Option[Seq[Expression]]) => BaseApplyMethodExpr(prev, name, argList)
         }
@@ -411,7 +423,7 @@ trait Parser {
       parensExpr |
       baseApplyUnaryExpr |
       typeCastExpr |
-      foldExpr |
+      //foldExpr |
       nullExpr |
       superExpr |
       instanceOfExpr |
@@ -452,9 +464,12 @@ trait Parser {
       <* keyword(DEF)).backtrack ~ identifier ~ defParams)
       ~ (op(':') *> typeAnno)
       ~ (op('=') *> inBraces(stmt.rep0)))
-    functionHeader.mapWithLoc { case (((((overrideAnnotation, visibility), funcName), params), typeAnno), content) =>
+    functionHeader.flatMapWithLoc { case (((((overrideAnnotation, visibility), funcName), params), typeAnno), content) =>
       val anno = if (overrideAnnotation.isEmpty) Seq() else Seq(overrideAnnotation.get)
-      MethodDef(anno, visibility, funcName, params, typeAnno, content)
+      funcName match {
+        case Name("fold") => fail("Illegal method name: 'fold'!")
+        case _ => pass(MethodDef(anno, visibility, funcName, params, typeAnno, content))
+      }
     }
   }
 

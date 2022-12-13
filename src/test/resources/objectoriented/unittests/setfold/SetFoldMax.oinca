@@ -11,10 +11,10 @@ class Num {
 
   @main def main(): Int = {
     val s: Set[Int] = Set(1, 2, 3, 4, -1)
-    val n: Int = fold(s, Num.max, -100)
+    val n: Int = s.fold(-100, Num.max)
 
     val s2: Set[Int] = Set(12, 2, 3, 4, -1)
-    val n2: Int = fold(s2, Num.max, -100)
+    val n2: Int = s2.fold(-100, Num.max)
     return n + n2
   }
 }

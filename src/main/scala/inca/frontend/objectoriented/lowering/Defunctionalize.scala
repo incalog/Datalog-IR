@@ -58,7 +58,6 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       ttys.map(TTuple(_)).filter(_ != typ)
     case TScala(Scala(metaTy)) =>
       // TODO: Support supertypes for scala types
-      println("MetaType: ", metaTy)
       Seq()
     case TClass(ClassRef(Name(raw))) =>
       dataModel.directNodeSupertypes.get(SortType(raw))
