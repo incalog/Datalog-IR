@@ -61,13 +61,13 @@ case class MethodCallExpr(recv: Expression, fun: Name, args: Seq[Expression]) ex
 case class TypeCastExpr(recv: Expression, toTyp: Type) extends Expression {
   def vars: Map[Name, Option[Type]] = recv.vars
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
-    s"cast($recv, $toTyp)"
+    s"$recv.asInstanceOf[$toTyp]"
 }
 
 case class InstanceOfExpr(recv: Expression, ofTyp: Type) extends Expression {
   def vars: Map[Name, Option[Type]] = recv.vars
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =
-    s"instanceOf($recv, $ofTyp)"
+    s"$recv.isInstanceOf[$ofTyp]"
 }
 
 case class NullExpr() extends Expression {
