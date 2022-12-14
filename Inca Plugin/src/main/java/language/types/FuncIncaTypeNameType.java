@@ -1,11 +1,11 @@
 package language.types;
 
-public class FuncIncaParameterizedType {
+public class FuncIncaTypeNameType {
     private String name;
 
-    FuncIncaParameterizedType (){}
+    FuncIncaTypeNameType(){}
 
-    FuncIncaParameterizedType(String newName){
+    FuncIncaTypeNameType(String newName){
         name = newName;
     }
 
