@@ -83,12 +83,12 @@ class Tree {
     }
 
     def findLeafs(node: Node): Set[Node] = {
-        if (instanceOf(node, Leaf)) {
+        if (node.isInstanceOf[Leaf]) {
             Set(node)
         } else {
-            (for (n1 <- node.childs if instanceOf(n1, Leaf)) yield n1)
+            (for (n1 <- node.childs if n1.isInstanceOf[Leaf]) yield n1)
             ++
-            (for (n2 <- node.childs; c <- this.findLeafs(n2) if instanceOf(c, Leaf)) yield c)
+            (for (n2 <- node.childs; c <- this.findLeafs(n2) if c.isInstanceOf[Leaf]) yield c)
         }
     }
 }

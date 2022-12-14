@@ -18,7 +18,7 @@ class A {
     @main
     def main(): String = {
         val b: B = new B()
-        val a: A = cast(b, A)
+        val a: A = b.asInstanceOf[A]
 
         // unrelated type c with same method signature
         val c: C = new C()

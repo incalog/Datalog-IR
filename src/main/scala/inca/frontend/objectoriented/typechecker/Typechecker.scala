@@ -392,11 +392,19 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case TypeCastExpr(recv, toTyp) =>
       typecheck(recv)
       typecheck(toTyp)
+      toTyp match {
+        case TClass(_) => // nothing
+        case _ => error("Can only type cast to class type", expression)
+      }
       toTyp
 
     case InstanceOfExpr(recv, ofTyp) =>
       typecheck(recv)
       typecheck(ofTyp)
+      ofTyp match {
+        case TClass(_) => // nothing
+        case _ => error("Can only check type against class types", expression)
+      }
       TScalaBoolean
 
     case TupleExpr(exps) =>

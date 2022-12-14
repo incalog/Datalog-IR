@@ -348,7 +348,7 @@ class SomeConstant extends MConstant {
     }
     @override
     def join(that: MConstant): MConstant = {
-        if (instanceOf(that, SomeConstant) && cast(that, SomeConstant).num == this.num) {
+        if (that.asInstanceOf[SomeConstant] && that.asInstanceOf[SomeConstant].num == this.num) {
             this
         } else {
             new NoConstant()
@@ -356,32 +356,32 @@ class SomeConstant extends MConstant {
     }
 
     def add(that: MConstant): MConstant = {
-        if (instanceOf(that, SomeConstant)) {
-            new SomeConstant(this.num + cast(that, SomeConstant).num)
+        if (that.isInstanceOf[SomeConstant]) {
+            new SomeConstant(this.num + that.asInstanceOf[SomeConstant].num)
         } else {
             new NoConstant()
         }
     }
 
     def sub(that: MConstant): MConstant = {
-        if (instanceOf(that, SomeConstant)) {
-            new SomeConstant(this.num - cast(that, SomeConstant).num)
+        if (that.isInstanceOf[SomeConstant]) {
+            new SomeConstant(this.num - that.asInstanceOf[SomeConstant].num)
         } else {
             new NoConstant()
         }
     }
 
     def mul(that: MConstant): MConstant = {
-        if (instanceOf(that, SomeConstant)) {
-            new SomeConstant(this.num * cast(that, SomeConstant).num)
+        if (that.isInstanceOf[SomeConstant]) {
+            new SomeConstant(this.num * that.asInstanceOf[SomeConstant].num)
         } else {
             new NoConstant()
         }
     }
 
     def gt(that: MConstant): MConstant = {
-        if (instanceOf(that, SomeConstant)) {
-            if(this.num > cast(that, SomeConstant).num)
+        if (that.isInstanceOf[SomeConstant]) {
+            if(this.num > that.asInstanceOf[SomeConstant].num)
                 new SomeConstant(1)
             else
                 new SomeConstant(0)

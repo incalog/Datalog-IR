@@ -103,6 +103,10 @@ case class SetExpr(exps: Seq[Expression], tty: Option[Type] = None) extends Expr
     exps.map(_.prettyprint).mkString("Set(", ", ", ")")
 }
 
+/*case class MapAssignExpr(key: Expression, value: Seq[Expression]) {
+
+}*/
+
 case class SetMemberExpr(name: Name, recv: Expression, predicate: Option[Expression]) extends Expression with VarReadExpr.Target {
   def vars: Map[Name, Option[Type]] = recv.vars ++ (if (predicate.isDefined) predicate.get.vars else Map())
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String =

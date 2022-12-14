@@ -11,20 +11,20 @@ class A {
         val c2: C2 = new C2()
 
         // cast to supertype should always work
-        cast(a, A)
-        cast(b, A)
-        cast(b, B)
-        cast(c1, A)
-        cast(c1, B)
-        cast(c1, C1)
-        cast(c2, A)
-        cast(c2, B)
-        cast(c2, C2)
+        a.asInstanceOf[A]
+        b.asInstanceOf[A]
+        b.asInstanceOf[B]
+        c1.asInstanceOf[A]
+        c1.asInstanceOf[B]
+        c1.asInstanceOf[C1]
+        c2.asInstanceOf[A]
+        c2.asInstanceOf[B]
+        c2.asInstanceOf[C2]
 
         // some more test
-        val aFromC2: A = cast(c2, A)
-        val c2FromA: C2 = cast(aFromC2, C2)
-        val bFromA: B = cast(aFromC2, B)
+        val aFromC2: A = c2.asInstanceOf[A]
+        val c2FromA: C2 = aFromC2.asInstanceOf[C2]
+        val bFromA: B = aFromC2.asInstanceOf[B]
 
         // if any of the cast fails we will never reach this part
         return true

@@ -24,7 +24,7 @@ class A {
   def this() = {}
 
   def filter(as: Set[Num]): Set[Integer] = {
-    return for (a <- as if instanceOf(a, Integer)) yield cast(a, Integer)
+    return for (a <- as if a.isInstanceOf[Integer]) yield a.asInstanceOf[Integer]
   }
 
   @main def main(): Set[Any] = {

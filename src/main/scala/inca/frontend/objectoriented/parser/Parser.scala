@@ -53,7 +53,7 @@ trait Parser {
   object Keyword extends Enumeration {
     type Keyword = Value
 
-    val CAST: Value       = Value("cast")
+    //val CAST: Value       = Value("cast")
     val IF: Value         = Value("if")
     val ELSE: Value       = Value("else")
     val CLASS: Value      = Value("class")
@@ -69,7 +69,7 @@ trait Parser {
     val FALSE: Value      = Value("false")
     val NULL: Value       = Value("null")
     val EXTENDS: Value    = Value("extends")
-    val INSTANCEOF: Value = Value("instanceOf")
+    //val INSTANCEOF: Value = Value("instanceOf")
     val SET: Value        = Value("Set")
     val MAP: Value        = Value("Map")
     val FOR: Value        = Value("for")
@@ -232,6 +232,12 @@ trait Parser {
   private val call: P[(Name, Seq[Expression])] =
     (identifier.soft ~ inParentheses(seq0(P.defer(expr))))
 
+  private val asInstanceOfCall: P[(Name, Type)] =
+    P.string("asInstanceOf").string.mapWithLoc(Name).soft ~ inBrackets(P.defer(typeAnno))
+
+  private val isInstanceOfCall: P[(Name, Type)] =
+    P.string("isInstanceOf").string.mapWithLoc(Name).soft ~ inBrackets(P.defer(typeAnno))
+
   // FIXME: This only works as long as we disallow _ in variable names
   private val tupleIndex: P[Index] =
     spaced(P.string("_") *> digit.rep0(min = 1).string).mapWithLoc(s => Index(s.toInt))
@@ -248,10 +254,10 @@ trait Parser {
   protected[frontend] val superExpr: P[SuperExpr] =
     (keyword(SUPER) *> inParentheses(seq0(P.defer(expr)))).mapWithLoc(SuperExpr)
 
-  protected[frontend] lazy val typeCastExpr: P[TypeCastExpr] =
+  /*protected[frontend] lazy val typeCastExpr: P[TypeCastExpr] =
     (keyword(CAST) *> inParentheses((P.defer(expr) <* op(",")) ~ typeAnno)).mapWithLoc {
       case (recv, typeAnno) => TypeCastExpr(recv, typeAnno)
-    }
+    }*/
 
   /*protected[frontend] lazy val foldExpr: P[SetFold] = {
     val doNotCare = op('_').mapWithLoc(_ => VarReadExpr(Name("_")))
@@ -267,10 +273,10 @@ trait Parser {
     }
   }*/
 
-  protected[frontend] lazy val instanceOfExpr: P[InstanceOfExpr] =
+  /*protected[frontend] lazy val instanceOfExpr: P[InstanceOfExpr] =
     (keyword(INSTANCEOF) *> inParentheses((P.defer(expr) <* op(",")) ~ typeAnno)).mapWithLoc {
       case (recv, typeAnno) => InstanceOfExpr(recv, typeAnno)
-    }
+    }*/
 
   protected[frontend] lazy val tupleExpr: P[TupleExpr] = {
     // allow _ and # symbol to parse projection parameters
@@ -291,7 +297,7 @@ trait Parser {
     }
 
   private[frontend] lazy val nestedAccessStartExpr: P[Expression] =
-    typeCastExpr |
+    //typeCastExpr |
       setExpr |
       setComprehensionExpr |
       //foldExpr |
@@ -309,7 +315,7 @@ trait Parser {
   protected[frontend] lazy val nestedAccessExpr: P[Expression] = {
     val tupStart = tupleExpr.backtrack ~ indexed(op('.') *> tupleIndex).rep0(0, 1)
     // TODO: Would be nice if we could set arbitrary parentheses such as ((a.b).c)
-    val nestedPath = indexed(op('.') *> (variable | call | tupleIndex | baseApplyMethod)).rep0
+    val nestedPath = indexed(op('.') *> (asInstanceOfCall | isInstanceOfCall | variable | call | tupleIndex | baseApplyMethod)).rep0
     val nestedStart = ((nestedAccessStartExpr | inParentheses(nestedAccessStartExpr).backtrack) ~ nestedPath)
 
     // separating the first path identifier allows us to disallow method calls or field access on tuples, but at the
@@ -320,6 +326,8 @@ trait Parser {
         val ((startIndex, current), endIndex) = indexedCurrent
         val nextExpr = current match {
           case index: Index => TupleReadExpr(prev, index)
+          case (Name("asInstanceOf"), ty: Type) => TypeCastExpr(prev, ty)
+          case (Name("isInstanceOf"), ty: Type) => InstanceOfExpr(prev, ty)
           case name: Name => FieldReadExpr(prev, name)
           case (Name("fold"), (neutral: Expression) :: FieldReadExpr(VarReadExpr(aggClass), aggMethod) :: args) =>
             val projection = args.headOption match {
@@ -429,11 +437,11 @@ trait Parser {
     nestedAccessExpr |
       parensExpr |
       baseApplyUnaryExpr |
-      typeCastExpr |
+      //typeCastExpr |
       //foldExpr |
       nullExpr |
       superExpr |
-      instanceOfExpr |
+      //instanceOfExpr |
       setExpr |
       mapExpr |
       setComprehensionExpr

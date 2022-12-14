@@ -8,7 +8,7 @@ class A {
     @main
     def main(): Unit = {
         val a: A = new A()
-        cast(a, B)
+        a.asInstanceOf[B]
         return
     }
 }

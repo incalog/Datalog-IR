@@ -329,51 +329,6 @@ class CfgVisitor extends Visitor {
   }
 }
 
-/*class IntervalVisitor extends Visitor {
-  // TODO empty set not currently allowed here
-  var intervals: Set[(String, Int)] = Set(("", 0))
-
-  @static
-  def max(n1: Int, n2: Int): Int = {
-    n1.`max`(n2)
-  }
-
-  @static
-  def min(n1: Int, n2: Int): Int = {
-    n1.`min`(n2)
-  }
-
-  @override
-  def visitVarDef(s: VarDef): Unit = {
-    if (instanceOf(s.rhs, Num))
-      this.intervals = this.intervals ++ Set((s.name, cast(s.rhs, Num).num))
-  }
-
-  @override
-  def visitValDef(s: ValDef): Unit = {
-    if (instanceOf(s.rhs, Num))
-      this.intervals = this.intervals ++ Set((s.name, cast(s.rhs, Num).num))
-  }
-
-  @override
-  def visitAssign(s: Assign): Unit = {
-    if (instanceOf(s.rhs, Var)) {
-      val rhs: Var = cast(s.rhs, Var)
-      this.intervals = this.intervals ++ for (i <- this.intervals if i._1 == rhs.name) yield rhs.
-    } else {
-      this.intervals = this.intervals ++ Set((s.lhs, s.rhs.evalNum()))
-    }
-  }
-
-  def getUpperBound(varName: String): Int = {
-    this.intervals.fold(`Int.MinValue`, IntervalVisitor.max, (varName, #))
-  }
-
-  def getLowerBound(varName: String): Int = {
-    this.intervals.fold(`Int.MaxValue`, IntervalVisitor.min, (varName, #))
-  }
-}*/
-
 class Examples {
   val factorial: Stm =
     new Sequence(new VarDef("n", new Num(5)),
@@ -390,11 +345,6 @@ class Examples {
 
   @main
   def main(): Set[(String, String)] = {
-    /*val visitor: IntervalVisitor = new IntervalVisitor()
-    val examples: Examples = new Examples()
-    examples.factorial.accept(visitor)
-    (visitor.getUpperBound("acc"), visitor.getLowerBound("acc"))*/
-
     val visitor: CfgVisitor = new CfgVisitor()
     val examples: Examples = new Examples()
     examples.factorial.accept(visitor)
