@@ -1,4 +1,4 @@
-package inca.debugger.redesign
+package inca.debugger.redesign_new
 
 import inca.backend.analyze.DependencyGraph
 import inca.backend.ir.Datalog

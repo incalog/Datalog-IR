@@ -9,9 +9,17 @@ import inca.backend.transform.magic.demand.DemandTransformation.demandPatternExt
 import inca.compiler.source.ExcerptAbsoluteRegion
 import inca.compiler.source.ExcerptRelativeRegion
 import inca.compiler.source.SourceObject
-import inca.compiler.{CompiledDatalogModule, CompiledModule}
+import inca.compiler.CompiledDatalogModule
+import inca.compiler.CompiledModule
 import inca.debugger._
-import inca.debugger.redesign.{BeforeRule, CallStack, Debugger, EvaluationPoint, EvaluationResult, InRule, PredicateEntry, RuleEvaluation}
+import inca.debugger.redesign_old.BeforeRule
+import inca.debugger.redesign_old.CallStack
+import inca.debugger.redesign_old.Debugger
+import inca.debugger.redesign_old.EvaluationPoint
+import inca.debugger.redesign_old.EvaluationResult
+import inca.debugger.redesign_old.InRule
+import inca.debugger.redesign_old.PredicateEntry
+import inca.debugger.redesign_old.RuleEvaluation
 import inca.debugger.table.ImmutableTable
 import inca.frontend.functional.compiler.CompiledFunctionalModule
 import inca.frontend.functional.core.BaseLit
@@ -32,7 +40,6 @@ import inca.runtime.data.WrappedURI
 import inca.runtime.db.DatabaseInput
 import inca.util.Derivative
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuples
-
 import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -105,33 +112,37 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
       else {
         val cp = stack.top
         val fp = getFunction(cp.pred) match {
-          case Some(fun) => cp match {
-            case PredicateEntry(pred, argBindings, predResult) => None
-            case BeforeRule(pred, argBindings, predResult, rules) =>
-              if (predicates(cp.pred).bodies.size == rules.size)
-                Some(FunctionPoint(fun, fun.name.sourceObject, cp))
-              else
-                None
-            case cp@InRule(pred, argBindings, predResult, current, remainingRules)
-              if current.ruleResult.isEmpty => None
-            case cp@InRule(pred, argBindings, predResult, current, remainingRules) =>
-              current.atoms match {
-              case Nil => None
-              case atom::_ => atom.getHint(SourceConstruct.key) match {
-                case Some(SourceConstruct(constr: Expression)) =>
-                  expressionPoint(constr).map(FunctionPoint(fun, _, cp))
-                case Some(SourceConstruct((let: Let, v: String))) =>
-                  let.names.find(_.name == v).map(p => FunctionPoint(fun, p.sourceObject, cp))
-                case Some(SourceConstruct((m: Match, constr: Pattern))) =>
-                  Some(MatchPoint(fun, m, constr, cp))
-                case Some(SourceConstruct((cond: If, thenBranch: Boolean))) =>
-                  Some(ConditionPoint(fun, cond, thenBranch, cp))
-                case _ =>
+          case Some(fun) =>
+            cp match {
+              case PredicateEntry(pred, argBindings, predResult) => None
+              case BeforeRule(pred, argBindings, predResult, rules) =>
+                if (predicates(cp.pred).bodies.size == rules.size)
+                  Some(FunctionPoint(fun, fun.name.sourceObject, cp))
+                else
                   None
-              }
+              case cp @ InRule(pred, argBindings, predResult, current, remainingRules)
+                  if current.ruleResult.isEmpty =>
+                None
+              case cp @ InRule(pred, argBindings, predResult, current, remainingRules) =>
+                current.atoms match {
+                  case Nil => None
+                  case atom :: _ =>
+                    atom.getHint(SourceConstruct.key) match {
+                      case Some(SourceConstruct(constr: Expression)) =>
+                        expressionPoint(constr).map(FunctionPoint(fun, _, cp))
+                      case Some(SourceConstruct((let: Let, v: String))) =>
+                        let.names.find(_.name == v).map(p => FunctionPoint(fun, p.sourceObject, cp))
+                      case Some(SourceConstruct((m: Match, constr: Pattern))) =>
+                        Some(MatchPoint(fun, m, constr, cp))
+                      case Some(SourceConstruct((cond: If, thenBranch: Boolean))) =>
+                        Some(ConditionPoint(fun, cond, thenBranch, cp))
+                      case _ =>
+                        None
+                    }
+                }
+              case EvaluationResult(pred, predResult) =>
+                Some(FunctionPoint(fun, fun.sourceObject, cp))
             }
-            case EvaluationResult(pred, predResult) => Some(FunctionPoint(fun, fun.sourceObject, cp))
-          }
           case None => None
         }
         fp
@@ -182,7 +193,9 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
           (v, ScalaValue(v))
       }
     }.unzip
-    atomOps.runtime.db.insert(demandPatternExtensionalPrefix + mainFun, Tuples.flatTupleOf(vals: _*))
+    atomOps.runtime.db.insert(
+      demandPatternExtensionalPrefix + mainFun,
+      Tuples.flatTupleOf(vals: _*))
 
     val pattern = predicates(mainFun)
     val adorn = pattern.hints(MagicSetHints.Main.key).asInstanceOf[MagicSetHints.Main].adorn
@@ -215,7 +228,7 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
   override protected def doStepOver(): Boolean =
     stepToFunctionalPoint(() => stepOverIR())
 
-  override protected  def doStepOut(): Boolean =
+  override protected def doStepOut(): Boolean =
     stepToFunctionalPoint(() => stepOutIR())
 
   override type Breakpoint = FunctionalBreakpoint
@@ -240,7 +253,8 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
         // we're at the else branch, continue
       } else {
         callStack.top match {
-          case InRule(`conditionedPattern`, _, _, RuleEvaluation(res, `conditionedBody`, _), _) if !res.isEmpty =>
+          case InRule(`conditionedPattern`, _, _, RuleEvaluation(res, `conditionedBody`, _), _)
+              if !res.isEmpty =>
             // we're in the same body and didn't fail => condition succeeded
             if (!condp.fun.isRelation)
               skipElseBranches.head += condp.cond.sourceObject
@@ -276,10 +290,11 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
   private def doSkipAheadTo(skip: SkipAhead): Unit = {
     val top = callStack.top
     val atom = top match {
-      case InRule(_, _, _, RuleEvaluation(_, _, atom::_), _) => Some(atom)
+      case InRule(_, _, _, RuleEvaluation(_, _, atom :: _), _) => Some(atom)
       case _ => None
     }
-    val stop = atom.exists(_.getHint(SourceConstruct.key).exists(h => skip.stop(h.asInstanceOf[SourceConstruct[_]])))
+    val stop = atom.exists(
+      _.getHint(SourceConstruct.key).exists(h => skip.stop(h.asInstanceOf[SourceConstruct[_]])))
     if (!stop && !isFinished && atom.isDefined) {
       stepOverIR()
       doSkipAheadTo(skip)
@@ -291,10 +306,10 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
     top match {
       case PredicateEntry(_, _, _) =>
         fpIntoPredicate(top)
-      case br@BeforeRule(_, _, _, rules) =>
+      case br @ BeforeRule(_, _, _, rules) =>
         if (rules.nonEmpty) fpIntoFirstRule(br)
         else outofPredicate(top)
-      case ir@InRule(_, _, _, RuleEvaluation(_, _, atoms), rules) =>
+      case ir @ InRule(_, _, _, RuleEvaluation(_, _, atoms), rules) =>
         if (atoms.nonEmpty) fpNextAtom(top)
         else if (rules.nonEmpty) fpNextRule(ir)
         else lastRule(top)
@@ -305,10 +320,11 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
   }
 
   private def fpIntoFirstRule(ep: BeforeRule): Unit = {
-    val BeforeRule(p, argBindings, predResult, rule::rules) = ep
+    val BeforeRule(p, argBindings, predResult, rule :: rules) = ep
     val skip = skipBody(rule)
     if (skip) {
-      val next = InRule(p, argBindings, predResult, RuleEvaluation(argBindings, 0, rule.atoms), rules)
+      val next =
+        InRule(p, argBindings, predResult, RuleEvaluation(argBindings, 0, rule.atoms), rules)
       callStack.update(next)
       stepIntoIR()
       if (rules.isEmpty)
@@ -326,7 +342,7 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
 
   @tailrec
   private def fpNextRule(ep: InRule): Unit = {
-    val InRule(_, _, _, _, rule::rules) = ep
+    val InRule(_, _, _, _, rule :: rules) = ep
     val skip = skipBody(rule)
     if (skip) {
       val next = ep.copy(remainingRules = rules)
@@ -356,7 +372,8 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
           val argsTable = prepareArgBindings(ruleResult, call.name, call.args)
           val calleeResult = state.readBottomUp(call.name, argsTable)
           val params = predicates(call.name).params.map(_.name)
-          val nextTable = opJoinBodyAndPred(ruleResult, call.args, params, calleeResult, (x, y) => x.join(y))
+          val nextTable =
+            opJoinBodyAndPred(ruleResult, call.args, params, calleeResult, (x, y) => x.join(y))
 
           currentFunctionalPoint match {
             case Some(MatchPoint(fun, ma, pat, _)) if !fun.isRelation =>
@@ -365,7 +382,8 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
               if (nextTable.isEmpty) {
                 // pattern failed => go to next pattern
                 nextPats.headOption.foreach { next =>
-                  skipAheadTo = Some(SkipToPat(ma.sourceObject, next._1.sourceObject)) :: skipAheadTo.tail
+                  skipAheadTo =
+                    Some(SkipToPat(ma.sourceObject, next._1.sourceObject)) :: skipAheadTo.tail
                 }
               } else {
                 // pattern succeeded => skip other patterns

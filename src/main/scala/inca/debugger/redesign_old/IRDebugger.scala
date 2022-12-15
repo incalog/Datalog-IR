@@ -1,11 +1,10 @@
-package inca.debugger.redesign
+package inca.debugger.redesign_old
 
 import inca.backend.ir.Datalog
 import inca.compiler.CompiledDatalogModule
-import inca.debugger.Value
 import inca.debugger.table.ImmutableTable
+import inca.debugger.Value
 import inca.runtime.db.DatabaseInput
-
 import scala.collection.mutable.ListBuffer
 
 final class IRDebugger(module: CompiledDatalogModule, input: DatabaseInput) extends Debugger {

@@ -4,7 +4,13 @@ import inca.backend.hints.DebugHints
 import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.ir.Datalog
 import inca.compiler.source.SourceObject
-import inca.debugger.redesign.{BeforeRule, EvaluationPoint, EvaluationResult, IRBreakpoint, InRule, PredicateEntry, RuleEvaluation}
+import inca.debugger.redesign_old.BeforeRule
+import inca.debugger.redesign_old.EvaluationPoint
+import inca.debugger.redesign_old.EvaluationResult
+import inca.debugger.redesign_old.IRBreakpoint
+import inca.debugger.redesign_old.InRule
+import inca.debugger.redesign_old.PredicateEntry
+import inca.debugger.redesign_old.RuleEvaluation
 import inca.frontend.functional.core.Collect
 import inca.frontend.functional.core.Expression
 import inca.frontend.functional.core.FunctionDef

@@ -1,9 +1,9 @@
-package inca.debugger.redesign
+package inca.debugger.redesign_old
 
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.base
-import inca.debugger.redesign.AtomTableOps.transLiteral
-import inca.debugger.redesign.AtomTableOps.transType
+import inca.debugger.redesign_old.AtomTableOps.transLiteral
+import inca.debugger.redesign_old.AtomTableOps.transType
 import inca.debugger.table.ImmutableTable
 import inca.debugger.table.IndexedTableFactory
 import inca.debugger.IllegalDebugStateException

@@ -2,18 +2,19 @@ package inca.frontend.souffle.debugger
 
 import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.ir.Datalog
-import inca.compiler.source.{ExcerptAbsoluteRegion, PaddedRegion, SourceLocation, SourceLocationList}
-import inca.debugger.Value
-import inca.debugger.redesign._
+import inca.compiler.source.ExcerptAbsoluteRegion
+import inca.compiler.source.PaddedRegion
+import inca.compiler.source.SourceLocation
+import inca.compiler.source.SourceLocationList
+import inca.debugger.redesign_old._
 import inca.debugger.table.ImmutableTable
-import inca.frontend.souffle.Syntax._
+import inca.debugger.Value
 import inca.frontend.souffle.compiler.CompiledSouffleModule
+import inca.frontend.souffle.Syntax._
 import inca.runtime.db.DatabaseInput
 import inca.util.Derivative
-
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-
 
 class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) extends Debugger {
   super.initialize(compiled)
@@ -62,18 +63,21 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
       if (stm.isEmpty) {
         IRBreakpoint(InRule(pred, null, null, RuleEvaluation(null, ruleIdx, rule.atoms), rules))
       } else {
-        val atoms = rule.atoms.dropWhile(at => at.getHint(SourceConstruct.key) match {
-          case Some(SourceConstruct(constr: Statement)) =>
-            val found = constr.sourceObject == stm.get.sourceObject
-            !found
-          case _ => true
-        })
+        val atoms = rule.atoms.dropWhile(at =>
+          at.getHint(SourceConstruct.key) match {
+            case Some(SourceConstruct(constr: Statement)) =>
+              val found = constr.sourceObject == stm.get.sourceObject
+              !found
+            case _ => true
+          })
         IRBreakpoint(InRule(pred, null, null, RuleEvaluation(null, ruleIdx, atoms), rules))
       }
   }
 
-  override def addBreakpoint(bp: Breakpoint): Unit = breakpointHandler.addBreakpoint(convertBreakpoint(bp))
-  override def removeBreakpoint(bp: Breakpoint): Unit = breakpointHandler.removeBreakpoint(convertBreakpoint(bp))
+  override def addBreakpoint(bp: Breakpoint): Unit =
+    breakpointHandler.addBreakpoint(convertBreakpoint(bp))
+  override def removeBreakpoint(bp: Breakpoint): Unit =
+    breakpointHandler.removeBreakpoint(convertBreakpoint(bp))
 
   private val soufflePointDeriv: Derivative[CallStack, Option[SouffleControlPoint]] =
     callStack.addDerivative[Option[SouffleControlPoint]](_ => None) { stack =>
@@ -99,7 +103,7 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
           case Some(SourceConstruct((_: RuleHead, rule: RuleDefinition))) =>
             // we're in a rule body
             atoms match {
-              case atom::_ =>
+              case atom :: _ =>
                 atom.getHint(SourceConstruct.key) match {
                   case Some(SourceConstruct(constr: Statement)) =>
                     Some(InRulePoint(rel, rule, constr.sourceObject, cp))

@@ -1,4 +1,4 @@
-package inca.debugger.redesign
+package inca.debugger.redesign_old
 
 import inca.backend.analyze.DependencyGraph
 import scala.collection.mutable
@@ -45,7 +45,8 @@ class BreakpointHandler(dependencyGraph: DependencyGraph) {
     val snapBreakpoints = breakpoints
     clearBreakpoints()
     bps.foreach(addBreakpoint)
-    try f finally {
+    try f
+    finally {
       clearBreakpoints()
       snapBreakpoints.foreach(addBreakpoint)
     }
@@ -61,7 +62,10 @@ class BreakpointHandler(dependencyGraph: DependencyGraph) {
     predsWithBreakpoint.exists(transitivelyReachable.contains)
   }
 
-  def breakpointReachableInPredicate(evalPoint: EvaluationPoint, considerCyclic: Boolean): Boolean = {
+  def breakpointReachableInPredicate(
+      evalPoint: EvaluationPoint,
+      considerCyclic: Boolean
+    ): Boolean = {
     var transitivelyReachable = dependencyGraph.transitvelyReachable(evalPoint.pred)
     if (considerCyclic)
       transitivelyReachable += evalPoint.pred
@@ -91,12 +95,14 @@ class BreakpointHandler(dependencyGraph: DependencyGraph) {
             case IRBreakpoint(InRule(_, _, _, currentBreak, remainingRulesBreak), _) =>
               if (remainingRulesBreak.size < remainingRules.size)
                 return true
-              if (remainingRulesBreak.size == remainingRules.size && currentBreak.atoms.size < current.atoms.size)
+              if (
+                remainingRulesBreak.size == remainingRules.size && currentBreak.atoms.size < current.atoms.size
+              )
                 return true
             case _ => // nothing
           }
         case _: EvaluationResult =>
-          // nothing
+        // nothing
       }
     }
 

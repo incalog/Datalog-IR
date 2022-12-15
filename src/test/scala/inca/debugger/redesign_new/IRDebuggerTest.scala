@@ -1,4 +1,4 @@
-package inca.debugger.redesign
+package inca.debugger.redesign_new
 
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.ExpLangTestAnalyses
@@ -64,20 +64,20 @@ class IRDebuggerTest extends AnyFunSuite {
       name: String,
       args: ImmutableTable[Value]
     ): Assertion = {
-    val derived = debugger.callStack.top.predResult
+    val derived = debugger.queryStack.top.asInstanceOf[QueryResult].t
     val expected = debugger.state.readBottomUp(name, args)
     assertResult(expected)(derived)
   }
   def assertCurrentBody(debugger: Debugger, expected: ImmutableTable[Value]): Assertion = {
-    assert(debugger.callStack.top.isInstanceOf[InRule])
-    val derived = debugger.callStack.top.asInstanceOf[InRule].current.ruleResult
-    assertResult(expected)(derived)
+    assert(debugger.queryStack.top.isInstanceOf[Subquery])
+    val sup = debugger.queryStack.top.asInstanceOf[Subquery].supplementary
+    assertResult(expected)(sup)
   }
 
   def stepTillFinish(debugger: Debugger): Unit = {
     while (!debugger.isFinished) {
-//      println(debugger.callStack.top)
-//      println("=======================================")
+      println(debugger.queryStack.top)
+      println("=======================================")
       debugger.stepInto()
     }
   }
@@ -198,6 +198,7 @@ class IRDebuggerTest extends AnyFunSuite {
     assertExpectedTable(debugger, "nodesNotTwoHop", args)
   }
 
+  // TODO fix
   test("simple path step into") {
     val input = constructInput(Seq(1 -> 2, 2 -> 3, 3 -> 1))
     val debugger =
@@ -262,6 +263,7 @@ class IRDebuggerTest extends AnyFunSuite {
     assertExpectedTable(debugger, "path", args)
   }
 
+  // TODO fix
   test("step into recursive pattern with simple cyclic data") {
     val debugger = initDebugger(module(simpleCycleEdgePattern, pathPattern), emptyDataModel)
     val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))

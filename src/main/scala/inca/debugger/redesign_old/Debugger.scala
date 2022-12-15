@@ -1,4 +1,4 @@
-package inca.debugger.redesign
+package inca.debugger.redesign_old
 
 import inca.backend.analyze.DependencyGraph
 import inca.backend.ir.Datalog
@@ -17,7 +17,6 @@ import inca.runtime.db.DatabaseInput
 import inca.runtime.DatalogRuntime
 import inca.runtime.EnginePool
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
-
 import scala.collection.mutable.ListBuffer
 
 trait Debugger extends DebuggerAPI {

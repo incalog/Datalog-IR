@@ -1,4 +1,4 @@
-package inca.debugger.redesign
+package inca.debugger.redesign_old
 
 import inca.backend.ir.Datalog
 import inca.debugger.table.ImmutableTable
@@ -52,6 +52,7 @@ case class InRule(
 
 case class RuleEvaluation(ruleResult: ImmutableTable[Value], ruleIdx: Int, atoms: Seq[Datalog.Atom])
 
-case class EvaluationResult(pred: String, predResult: ImmutableTable[Value]) extends EvaluationPoint {
+case class EvaluationResult(pred: String, predResult: ImmutableTable[Value])
+    extends EvaluationPoint {
   override def isEmpty: Boolean = predResult.isEmpty
 }

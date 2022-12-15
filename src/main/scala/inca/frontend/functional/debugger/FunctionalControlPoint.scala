@@ -1,7 +1,8 @@
 package inca.frontend.functional.debugger
 
 import inca.compiler.source.SourceObject
-import inca.debugger.redesign.{EvaluationPoint, InRule}
+import inca.debugger.redesign_old.EvaluationPoint
+import inca.debugger.redesign_old.InRule
 import inca.frontend.functional.core
 import inca.frontend.functional.core.FunctionDef
 import inca.frontend.functional.core.If
