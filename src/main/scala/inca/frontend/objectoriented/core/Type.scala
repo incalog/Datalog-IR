@@ -10,6 +10,7 @@ sealed trait Type extends SourceLocation {
   def prettyprint: String
   def flatten: Seq[Type]
   def asScala: meta.Type
+  def asSet: Option[TSet] = None
   override def toString: String = prettyprint
 }
 case object TAny extends Type {
@@ -71,10 +72,12 @@ case class TSet(ty: Type) extends Type {
   override def prettyprint: String = s"Set[${ty.prettyprint}]"
   override def asScala: meta.Type = ty.asScala
   override def flatten: Seq[Type] = ty.flatten
+  override def asSet: Option[TSet] = Some(this)
 }
 
 case class TMap(tk: Type, tv: Type) extends Type {
   override def prettyprint: String = s"Map[${tk.prettyprint}, ${tv.prettyprint}]"
   override def asScala: meta.Type = t"(${tk.asScala}, ${tv.asScala})"
   override def flatten: Seq[Type] = tk.flatten ++ tv.flatten
+  override def asSet: Option[TSet] = Some(TSet(TTuple(tk +: tv.flatten)))
 }

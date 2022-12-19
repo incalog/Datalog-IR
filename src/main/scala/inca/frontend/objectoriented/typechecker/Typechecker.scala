@@ -108,8 +108,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     fieldDef.aggregateMethod match {
       case Some((ref, methodName)) =>
         val clazz = lookupClassRef(ref)
-        val ty = fieldDef.typ
-        val method = lookupMethod(clazz, Seq(ty, ty), methodName)
+        val aggTy = fieldDef.typ match {
+          case TMap(_, tv) => tv.flatten.last // always aggregate over the last type of a nested map
+          case tty => tty
+        }
+        val method = lookupMethod(clazz, Seq(aggTy, aggTy), methodName)
         if (method.isDefined)
           resolveTarget(fieldDef)(method.get)
       case None => // nothing
@@ -218,7 +221,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case ReturnStmt(expression) =>
       val outTyp = typecheck(expression)
       assertSubtype(outTyp, rt, statement)
-    case fieldAssignStmt@FieldAssignStmt(recv, name, expression, _) =>
+    case fieldAssignStmt@FieldAssignStmt(recv, name, expression, assignmentOp) =>
       val typ = typecheck(expression)
       typecheck(recv) match {
         case TClass(ref) => lookupField(lookupClassRef(ref), name) match {
@@ -226,11 +229,35 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             if (!allowImmutableFieldAssignment && field.immutable)
               error(s"Can not assign to immutable field '${field.name}'", statement)
             resolveTarget(fieldAssignStmt)((clazz, field))
-            assertSubtype(typ, field.typ, expression)
+            if (assignmentOp == AssignmentOp.AGG_ELEMENT)
+              field.typ.asSet match {
+                case Some(TSet(ty)) => assertSubtype(typ, ty, expression)
+                case _ => assertSubtype(typ, field.typ, expression)
+              }
+            else if (assignmentOp == AssignmentOp.AGG)
+              field.typ.asSet match {
+                case Some(ty) => assertSubtype(typ.asSet.getOrElse(typ), ty, expression)
+                case _ => assertSubtype(typ, field.typ, expression)
+              }
+            else
+              assertSubtype(typ, field.typ, expression)
             uninitializedFields -= field.name
           case None => // Nothing
         }
         case typ => error(s"Can not lookup field '$name' for expression of type '$typ'", statement)
+      }
+    case MapAssignStmt(recv, key, value, assignmentOp) =>
+      val tk = typecheck(key)
+      val tv = typecheck(value)
+      typecheck(recv).asSet match {
+        case Some(TSet(TTuple(ttk :: tvs))) =>
+          assertSubtype(tk, ttk, statement)
+          val addTy = if (tvs.size == 1) tvs.head else TTuple(tvs)
+          if (assignmentOp == AssignmentOp.AGG_ELEMENT)
+            assertSubtype(tv, addTy, statement)
+          else
+            assertSubtype(tv.asSet.getOrElse(tv), TSet(addTy), statement)
+        case _ => error(s"$recv is not a map variable", statement)
       }
     case varDeclareStmt@VarDeclareStmt(name, typ, expression, immutable) =>
       typecheck(typ)
@@ -430,9 +457,23 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       } else
         TSet(tty.getOrElse(upperTypeBound(typs)))
 
+    case MapExpr(keyValuesExps, tty) =>
+      val typs = keyValuesExps.map(typecheck)
+      if (typs.isEmpty && tty.isEmpty) {
+        error("Empty map requires an explicit type", expression)
+        TMap(TAny, TAny)
+      } else
+        tty.getOrElse(upperTypeBound(typs)) match {
+          case TTuple(Seq(keyTs, valueTs)) =>
+            TMap(keyTs, valueTs)
+          case _ =>
+            error("Map expression must be initialized with (key, value) tuples", expression)
+            TMap(TAny, TAny)
+        }
+
     case setMember@SetMemberExpr(name, target, predicate) =>
-      typecheck(target) match {
-        case TSet(ty) =>
+      typecheck(target).asSet match {
+        case Some(TSet(ty)) =>
           bindVar(name, setMember, ty, immutable = true)
           if (predicate.isDefined) {
             assertSubtype(typecheck(predicate.get), TScalaBoolean, target)
@@ -457,7 +498,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           }
 
           if (isNestedTuple)
-            error("Fold does not support nested tuples.", recv)
+            error("Fold does not support nested tuples", recv)
 
           if (tty.flatten.size != projection.size)
             error("Projection does not match shape of set tuples.", setFold)
@@ -482,10 +523,10 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             assertSubtype(methodDef.get.outType, ty, methodDef.get)
             resolveTarget(setFold)(methodDef.get)
           } else
-            error(s"Fold method '${classRef.name}.${methodName}' not found!", expression)
+            error(s"Fold method '${classRef.name}.${methodName}' not found", expression)
           ty
         case ty =>
-          error("Fold can only be performed on sets!", expression)
+          error("Fold can only be performed on sets", expression)
           ty
       }
 

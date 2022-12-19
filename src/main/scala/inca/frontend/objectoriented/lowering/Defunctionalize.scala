@@ -111,7 +111,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
 
     val varRenamer = new VarRename(module, subst)
     val constrBody = fields.map { f =>
-      FieldAssignStmt(VarReadExpr(Name("this")), f.name, varRenamer.transExpression(expr).head, aggregation = false)
+      FieldAssignStmt(VarReadExpr(Name("this")), f.name, varRenamer.transExpression(expr).head, AssignmentOp.EQUAL)
     }
     val constr = ConstructorDef(Seq(), None, constrParams, constrBody)
     val clsName = Name(gensym.fresh("Aux$" + typeSuffix(innerSetType)))
@@ -169,8 +169,8 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
   override private[lowering] def transStatementInternal(stmt: Statement): Seq[Statement] = stmt match {
     case ExprStmt(expression) =>
       Seq(ExprStmt(sanitize(expression)))
-    case FieldAssignStmt(recv, name, expression, aggregation) =>
-      Seq(FieldAssignStmt(sanitize(recv), name, sanitize(expression), aggregation))
+    case FieldAssignStmt(recv, name, expression, op) =>
+      Seq(FieldAssignStmt(sanitize(recv), name, sanitize(expression), op))
     // Transform: set variables to object set variables
     case VarDeclareStmt(name, TSet(ty), maybeExpression, immutable) =>
       val newTyp = genDefunClassDef(ty).typ

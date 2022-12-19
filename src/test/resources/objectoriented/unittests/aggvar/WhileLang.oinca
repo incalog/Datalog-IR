@@ -348,7 +348,7 @@ class SomeConstant extends MConstant {
     }
     @override
     def join(that: MConstant): MConstant = {
-        if (that.asInstanceOf[SomeConstant] && that.asInstanceOf[SomeConstant].num == this.num) {
+        if (that.isInstanceOf[SomeConstant] && that.asInstanceOf[SomeConstant].num == this.num) {
             this
         } else {
             new NoConstant()
@@ -399,6 +399,8 @@ class FIConstantPropagationVisitor extends Visitor {
 
     def visitValDef(s: ValDef): Unit = {
         this.vars #= (s.name, s.rhs.aevalConst(this.vars))
+        // Typechecker test
+        //this.vars ##= Set((s.name, s.rhs.aevalConst(this.vars)))
     }
 
     def visitVarDef(s: VarDef): Unit = {

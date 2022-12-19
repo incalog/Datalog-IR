@@ -578,7 +578,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         yield (elsTerm, cndCons ++ Seq(Datalog.Eq(cndTerm, Datalog.False)) ++ elsCons, Some(stmt.sourceObject -> false))
       thnRes ++ elsRes
 
-    case fieldAssign@FieldAssignStmt(recv, name, expression, aggregation) =>
+    case fieldAssign@FieldAssignStmt(recv, name, expression, _) =>
       // to allow inheritance of attributes we use the classDef target of the field lookup
       val (classDef, fieldDef) = fieldAssign.target.getOrElse(throw new IllegalArgumentException(s"Unresolved field $name"))
       val qualifiedName = fieldPatName(classDef.name.raw, name.raw)

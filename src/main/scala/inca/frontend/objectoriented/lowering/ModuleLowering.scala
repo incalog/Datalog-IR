@@ -99,6 +99,8 @@ trait ModuleLowering {
       ExprStmt(transExpression(expr).head)
     case FieldAssignStmt(recv, name, expression, aggregation) =>
       FieldAssignStmt(transExpression(recv).head, name, transExpression(expression).head, aggregation)
+    case MapAssignStmt(recv, key, value, aggregation) =>
+      MapAssignStmt(transExpression(recv).head, transExpression(key).head, transExpression(value).head, aggregation)
     case IfStmt(cnd, thn, els) =>
       IfStmt(transExpression(cnd).head, transStatements(thn), transStatements(els))
     case VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>
@@ -129,6 +131,8 @@ trait ModuleLowering {
       TupleReadExpr(transExpression(recv).head, index)
     case SetExpr(exps, tty) =>
       SetExpr(transExpressions(exps), if (tty.isDefined) Some(transType(tty.get)) else None)
+    case MapExpr(keyValuesExps, tty) =>
+      MapExpr(transExpressions(keyValuesExps), if (tty.isDefined) Some(transType(tty.get)) else None)
     case SetMemberExpr(name, recv, predicate) =>
       val pred = if (predicate.isDefined) Some(transExpression(predicate.get).head) else None
       SetMemberExpr(name, transExpression(recv).head, pred)

@@ -53,7 +53,6 @@ trait Parser {
   object Keyword extends Enumeration {
     type Keyword = Value
 
-    //val CAST: Value       = Value("cast")
     val IF: Value         = Value("if")
     val ELSE: Value       = Value("else")
     val CLASS: Value      = Value("class")
@@ -69,13 +68,11 @@ trait Parser {
     val FALSE: Value      = Value("false")
     val NULL: Value       = Value("null")
     val EXTENDS: Value    = Value("extends")
-    //val INSTANCEOF: Value = Value("instanceOf")
     val SET: Value        = Value("Set")
     val MAP: Value        = Value("Map")
     val FOR: Value        = Value("for")
     val YIELD: Value      = Value("yield")
     val SUPER: Value      = Value("super")
-    //val FOLD: Value       = Value("fold")
   }
 
   import Keyword._
@@ -185,18 +182,18 @@ trait Parser {
   val nameWithType: P[(Name, Type)] =
     spaced(identifier ~ (op(':') *> typeAnno))
 
-  protected[frontend] lazy val assignStmt: P[Statement] =
-    (nestedAccessExpr ~ ((op('=') | op("#=") | op("##=")) ~ expr)).backtrack.flatMapWithLoc {
-      case (targetExpr, (assignOp, valueExpr)) =>
-        val isAggregation = (assignOp == "#=") || (assignOp == "##=")
+  protected[frontend] lazy val assignStmt: P[Statement] = {
+    val assignmentOp = (op('=') | op("#=") | op("##=")).mapWithLoc(AssignmentOp(_))
+    (nestedAccessExpr ~ (assignmentOp ~ expr)).backtrack.flatMapWithLoc {
+      case (targetExpr, (op, valueExpr)) =>
         targetExpr match {
-          case FieldReadExpr(previousExpr, name) => pass(FieldAssignStmt(previousExpr, name, valueExpr, isAggregation))
+          case FieldReadExpr(previousExpr, name) => pass(FieldAssignStmt(previousExpr, name, valueExpr, op))
           case VarReadExpr(name)                 => pass(VarAssignStmt(name, valueExpr))
-          // TODO make MapAssignExpr
-          case MethodCallExpr(recv, fun, args) => pass(FieldAssignStmt(recv, fun, valueExpr, isAggregation))
+          case MethodCallExpr(recv, fun, args) => pass(MapAssignStmt(FieldReadExpr(recv, fun), args.head, valueExpr, op))
           case _                                 => fail(s"Can not assign a value to expression: $targetExpr")
         }
     }
+  }
 
   protected[frontend] lazy val ifElseStmt: P[IfStmt] = {
     val ifBlock = keyword(IF) *> inParentheses(P.defer(expr)) ~ (inBraces(P.defer(stmt).rep0) | P.defer(stmt).map(Seq(_)))
@@ -254,30 +251,6 @@ trait Parser {
   protected[frontend] val superExpr: P[SuperExpr] =
     (keyword(SUPER) *> inParentheses(seq0(P.defer(expr)))).mapWithLoc(SuperExpr)
 
-  /*protected[frontend] lazy val typeCastExpr: P[TypeCastExpr] =
-    (keyword(CAST) *> inParentheses((P.defer(expr) <* op(",")) ~ typeAnno)).mapWithLoc {
-      case (recv, typeAnno) => TypeCastExpr(recv, typeAnno)
-    }*/
-
-  /*protected[frontend] lazy val foldExpr: P[SetFold] = {
-    val doNotCare = op('_').mapWithLoc(_ => VarReadExpr(Name("_")))
-    val agg = op('#').mapWithLoc(_ => VarReadExpr(Name("#")))
-    (keyword(FOLD) *> inParentheses(
-      (P.defer(expr) ~ (op('|') *> inParentheses(seq0(doNotCare | agg | P.defer(expr)))).?)
-        ~ (op(',') *> classRef ~ (op('.') *> identifier))
-        ~ (op(',') *> P.defer(expr)))
-      ).mapWithLoc {
-      case (((recv, projection), (classRef, methodName)), neutral) =>
-        val aggRead: Expression = VarReadExpr(Name("#"))
-        SetFold(recv, projection.getOrElse(Seq(aggRead)), classRef, methodName, neutral)
-    }
-  }*/
-
-  /*protected[frontend] lazy val instanceOfExpr: P[InstanceOfExpr] =
-    (keyword(INSTANCEOF) *> inParentheses((P.defer(expr) <* op(",")) ~ typeAnno)).mapWithLoc {
-      case (recv, typeAnno) => InstanceOfExpr(recv, typeAnno)
-    }*/
-
   protected[frontend] lazy val tupleExpr: P[TupleExpr] = {
     // allow _ and # symbol to parse projection parameters
     val doNotCare = op('_').mapWithLoc(_ => VarReadExpr(Name("_")))
@@ -290,17 +263,15 @@ trait Parser {
       case (tty, exps) => SetExpr(exps, tty)
     }
 
-  // TODO make MapExpr
-  protected[frontend] lazy val mapExpr: P[SetExpr] =
+  protected[frontend] lazy val mapExpr: P[MapExpr] =
     (keyword(MAP) *> inBrackets((atomicTypeAnno <* op(",")) ~ P.defer(typeAnno)).? ~ inParentheses(seq0(P.defer(expr), min = 0))).mapWithLoc {
-      case (tty, exps) => SetExpr(exps, tty.map(tt => TTuple.from(Seq(tt._1, tt._2))))
+      case (Some((tk, tv)), exps) => MapExpr(exps, Some(TMap(tk, tv)))
+      case (None, exps) => MapExpr(exps, None)
     }
 
   private[frontend] lazy val nestedAccessStartExpr: P[Expression] =
-    //typeCastExpr |
       setExpr |
       setComprehensionExpr |
-      //foldExpr |
       constructorExpr |
       variableReadExpr |
       baseLitExpr |
@@ -326,9 +297,9 @@ trait Parser {
         val ((startIndex, current), endIndex) = indexedCurrent
         val nextExpr = current match {
           case index: Index => TupleReadExpr(prev, index)
+          case name: Name => FieldReadExpr(prev, name)
           case (Name("asInstanceOf"), ty: Type) => TypeCastExpr(prev, ty)
           case (Name("isInstanceOf"), ty: Type) => InstanceOfExpr(prev, ty)
-          case name: Name => FieldReadExpr(prev, name)
           case (Name("fold"), (neutral: Expression) :: FieldReadExpr(VarReadExpr(aggClass), aggMethod) :: args) =>
             val projection = args.headOption match {
               case Some(TupleExpr(proj: Seq[Expression])) => proj
@@ -437,11 +408,8 @@ trait Parser {
     nestedAccessExpr |
       parensExpr |
       baseApplyUnaryExpr |
-      //typeCastExpr |
-      //foldExpr |
       nullExpr |
       superExpr |
-      //instanceOfExpr |
       setExpr |
       mapExpr |
       setComprehensionExpr

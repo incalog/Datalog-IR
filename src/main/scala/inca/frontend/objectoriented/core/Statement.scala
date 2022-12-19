@@ -3,6 +3,18 @@ package inca.frontend.objectoriented.core
 import inca.compiler.{SourceLocation, SourceObject}
 import inca.frontend.util.Resolvable
 
+
+case class AssignmentOp(raw: String) extends SourceLocation {
+  lazy val isAggregation: Boolean = raw.startsWith("#")
+  override def toString: String = raw
+}
+
+object AssignmentOp {
+  val EQUAL: AssignmentOp =        AssignmentOp("=")
+  val AGG: AssignmentOp =          AssignmentOp("##=")
+  val AGG_ELEMENT: AssignmentOp =  AssignmentOp("#=")
+}
+
 sealed trait Statement extends SourceLocation {
   def vars: Map[Name, Option[Type]] = Map()
 
@@ -21,11 +33,17 @@ case class ReturnStmt(expression: Expression) extends Statement {
     s"${indent}return $expression"
 }
 
-case class FieldAssignStmt(recv: Expression, name: Name, expression: Expression, aggregation: Boolean) extends Statement
+case class FieldAssignStmt(recv: Expression, name: Name, expression: Expression, assignmentOp: AssignmentOp) extends Statement
   with Resolvable[(ClassDef, FieldDef)] {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    val assignmentOp = if (aggregation) "#=" else "="
     s"$indent$recv.$name $assignmentOp $expression"
+  }
+}
+
+case class MapAssignStmt(recv: Expression, key: Expression, value: Expression, assignmentOp: AssignmentOp) extends Statement
+  with Resolvable[(ClassDef, FieldDef)] {
+  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
+    s"$indent$recv($key) $assignmentOp $value"
   }
 }
 
