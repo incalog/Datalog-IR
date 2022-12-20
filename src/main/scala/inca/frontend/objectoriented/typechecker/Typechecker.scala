@@ -255,8 +255,10 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           val addTy = if (tvs.size == 1) tvs.head else TTuple(tvs)
           if (assignmentOp == AssignmentOp.AGG_ELEMENT)
             assertSubtype(tv, addTy, statement)
-          else
+          else if (assignmentOp == AssignmentOp.AGG)
             assertSubtype(tv.asSet.getOrElse(tv), TSet(addTy), statement)
+          else
+            throw new RuntimeException(s"Unexpected assignment $assignmentOp for MapAssignStmt $statement")
         case _ => error(s"$recv is not a map variable", statement)
       }
     case varDeclareStmt@VarDeclareStmt(name, typ, expression, immutable) =>

@@ -81,13 +81,13 @@ case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val expr = if (body.isEmpty) "" else s" = ${body.get}"
-    val prefix = if (immutable) "val " else "var "
-    val descr = s"$indent$visS$prefix$name: ${typ.prettyprint}$expr"
     aggregateMethod match {
       case Some((ClassRef(refName), methodName)) =>
+        val descr = s"$indent${visS}vag $name: ${typ.prettyprint}$expr"
         s"$descr with $refName.$methodName"
       case None =>
-        descr
+        val prefix = if (immutable) "val " else "var "
+        s"$indent$visS$prefix$name: ${typ.prettyprint}$expr"
     }
   }
 }

@@ -237,7 +237,8 @@ class GenerateScala {
       val rhs = if (assignmentOp == AssignmentOp.EQUAL)
         transExpression(expression)
       else {
-        Term.Block(Nil)
+        // TODO: perfrom aggreagtion here
+        transExpression(expression)
         /*val Some((_, fieldDef)) = assignStmt.target
         val Some((ClassRef(aggClassName), aggMethodName)) = fieldDef.aggregateMethod
         val aggMethod = Term.Select(Term.Name(aggClassName.raw), Term.Name(aggMethodName.raw))

@@ -29,7 +29,6 @@ class VarRename(val module: Module, substitutions: Map[Name, Name]) extends Modu
     case VarReadExpr(targetName) => Seq(VarReadExpr(substitutions.getOrElse(targetName, targetName)))
     case _ => super.transExpressionInternal(expression)
   }
-
 }
 
 class Defunctionalize(val module: Module, val dataModel: DataModel) extends ModuleLowering {
@@ -38,15 +37,14 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
   var auxClassDefs: Set[ClassDef] = Set()
   var defnClassDefs: Map[Type, ClassDef] = Map()
 
-  private def typeSuffix(typ: Type): String = {
-    typ match {
-      case TAny => "Any"
-      case TNull => "Null"
-      case TTuple(ts) => "t_" + ts.map(typeSuffix).mkString("_")
-      case TScala(ty) => ty.syntax
-      case TClass(ClassRef(Name(raw))) => raw
-      case TSet(ty) => "s_" + typeSuffix(ty)
-    }
+  private def typeSuffix(typ: Type): String = typ match {
+    case TAny => "Any"
+    case TNull => "Null"
+    case TTuple(ts) => "Tuple$" + ts.map(typeSuffix).mkString("_")
+    case TScala(ty) => ty.syntax
+    case TClass(ClassRef(Name(raw))) => raw
+    case TSet(ty) => "Set$" + typeSuffix(ty)
+    case TMap(tk, tv) => "Map$" + typeSuffix(tk) + "_" + typeSuffix(tv)
   }
 
   private def supertypes(typ: Type): Seq[Type] = typ match {
@@ -71,36 +69,44 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     case TClass(ClassRef(Name(raw))) =>
       dataModel.directNodeSupertypes.get(SortType(raw))
         .map(s => TClass(ClassRef(Name(s.name)))).toSeq
-    case TSet(_) =>
-      throw new RuntimeException("Defun classes must not have set type!")
+    case TSet(ty) =>
+      supertypes(ty).map(TSet)
+    case TMap(tk, tv) =>
+      val superTvs = supertypes(tv)
+      supertypes(tk).flatMap { sTk =>
+        superTvs.map { sTv =>
+          TMap(sTk, sTv)
+        }
+      }
+    case _ =>
+      throw new RuntimeException(s"Can not get supertypes for typ '$typ'!")
   }
 
+  private def genDefunClassDef(typ: Type): ClassDef = {
+    val ty = clearType(typ)
 
-  private def genDefunClassDef(ty: Type): ClassDef = {
-    val typ = clearType(ty)
-
-    if (defnClassDefs.contains(typ))
-      return defnClassDefs(typ)
+    if (defnClassDefs.contains(ty))
+      return defnClassDefs(ty)
 
     // create the inheritance hierarchy for the defun class
     val parentClassDefs = supertypes(ty).map(genDefunClassDef)
 
     val parentRefs = parentClassDefs.map(_.typ.ref)
-    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), TSet(typ), Seq())
+    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), ty, Seq())
     val constr = ConstructorDef(Seq(), None, Seq(), Seq())
-    val clsName = Name(gensym.fresh("Defun$" + typeSuffix(typ)))
+    val clsName = Name(gensym.fresh("Defun" + typeSuffix(ty)))
     val clazz = ClassDef(Seq(), Some(Private), clsName, parentRefs, Seq(constr, apply))
-    defnClassDefs += typ -> clazz
+    defnClassDefs += ty -> clazz
     clazz
   }
 
-  private def genAuxDef(constrVars: Map[Name, Type], innerSetType: Type, parent: ClassRef, expr: Expression): ClassDef = {
+  private def genAuxDef(constrVars: Map[Name, Type], typ: Type, parent: ClassRef, expr: Expression): ClassDef = {
     // rename all "this" to obj$i, since "this" is reserved
     val subst = constrVars.map {
       case (name@Name("this"), _) => name -> Name(gensym.fresh("obj"))
       case (name, _) => name -> name
     }
-    val contentType = TSet(clearType(innerSetType))
+    val contentType = clearType(typ)
     val fields = Seq(FieldDef(Seq(), None, Name("content"), contentType, None, immutable = true, None))
 
     // return the precomputed set
@@ -114,7 +120,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       FieldAssignStmt(VarReadExpr(Name("this")), f.name, varRenamer.transExpression(expr).head, AssignmentOp.EQUAL)
     }
     val constr = ConstructorDef(Seq(), None, constrParams, constrBody)
-    val clsName = Name(gensym.fresh("Aux$" + typeSuffix(innerSetType)))
+    val clsName = Name(gensym.fresh("Aux" + typeSuffix(typ)))
     val clazz = ClassDef(Seq(), Some(Private), clsName, Seq(parent), fields :+ constr :+ apply)
     auxClassDefs += clazz
     clazz
@@ -142,14 +148,15 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
   }
 
   override private[lowering] def transFieldInternal(fieldDef: FieldDef, classDef: ClassDef): FieldDef = fieldDef match {
+    // TODO: We might need to transform maps as well
     // Transform: set fields to object set fields
-    case FieldDef(annos, vis, name, TSet(ty), body, immutable, aggregateMethod) =>
+    case FieldDef(annos, vis, name, tySet@TSet(ty), body, immutable, aggregateMethod) =>
       val newBody = if (body.isDefined) Some(sanitize(body.get)) else body
       val newAgg = aggregateMethod match {
         case Some((ClassRef(refName), methodName)) => Some((ClassRef(refName), methodName))
         case None => None
       }
-      val replacement = FieldDef(annos, vis, name, genDefunClassDef(ty).typ, newBody, immutable, newAgg)
+      val replacement = FieldDef(annos, vis, name, genDefunClassDef(tySet).typ, newBody, immutable, newAgg)
       super.transFieldInternal(replacement, classDef)
     case f =>
       super.transFieldInternal(f, classDef)
@@ -157,8 +164,8 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
 
   override private[lowering] def transParamInternal(param: Param): Param = param match {
     // Transform: set params to object set params
-    case Param(name, TSet(ty)) =>
-      val newTyp = genDefunClassDef(ty).typ
+    case Param(name, typ) if typ.asSet.isDefined =>
+      val newTyp = genDefunClassDef(typ).typ
       usedVars += (name -> newTyp)
       Param(name, newTyp)
     case Param(name, ty) =>
@@ -171,8 +178,11 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       Seq(ExprStmt(sanitize(expression)))
     case FieldAssignStmt(recv, name, expression, op) =>
       Seq(FieldAssignStmt(sanitize(recv), name, sanitize(expression), op))
-    // Transform: set variables to object set variables
-    case VarDeclareStmt(name, TSet(ty), maybeExpression, immutable) =>
+    case MapAssignStmt(recv, key, value, op) =>
+      Seq(MapAssignStmt(sanitize(recv), sanitize(key), sanitize(value), op))
+    // TODO: We might need to gen defun classes for map vars as well
+    // Transform: set variables to Aux objects that encapsulate set variables
+    case VarDeclareStmt(name, ty: TSet, maybeExpression, immutable) =>
       val newTyp = genDefunClassDef(ty).typ
       usedVars += (name -> newTyp)
       val expr = if (maybeExpression.isDefined) Some(sanitize(maybeExpression.get)) else None
@@ -188,7 +198,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     case IfStmt(cnd, thn, els) =>
       super.transStatementInternal(IfStmt(sanitize(cnd), thn, els))
     case ReturnStmt(expr) =>
-      Seq(ReturnStmt(sanitize(expr, requiresTrueSet = expr.typ.exists(_.isInstanceOf[TSet]))))
+      Seq(ReturnStmt(sanitize(expr, requiresTrueSet = expr.typ.exists(_.asSet.isDefined))))
   }
 
   /**
@@ -198,7 +208,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
    * @return The expression transformed to a real set.
    */
   def apply(expression: Expression, typ: Option[Type]): Expression = {
-    val isSet = typ.exists(_.isInstanceOf[TSet])
+    val isSet = typ.exists(_.asSet.isDefined)
     if (isSet)
       MethodCallExpr(clearExpression(expression), Name("apply"), Seq())
     else
@@ -213,21 +223,22 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
    * @return Expression that is replaced by an object if required (that means it is a set and allowsTrueSet is false).
    */
   def unapply(expression: Expression, allowsTrueSet: Boolean, typ: Option[Type]): Expression = {
-    val isSet = typ.exists(_.isInstanceOf[TSet])
+    val isSet = typ.exists(_.asSet.isDefined)
     if (allowsTrueSet | !isSet)
       clearExpression(expression)
-    else {
-      typ match {
-        case Some(TSet(ty)) =>
+    else if (typ.isDefined)
+      typ.get.asSet match {
+        case Some(_) =>
           val exprVarNames = expression.vars.keySet
           val vars = usedVars.filter { case (k, _) => exprVarNames.contains(k) }
-          val auxClass = genAuxDef(vars, clearType(ty), genDefunClassDef(ty).typ.ref, expression)
+          val auxClass = genAuxDef(vars, clearType(typ.get), genDefunClassDef(typ.get).typ.ref, expression)
           val args = vars.map { case (k, _) => VarReadExpr(k) }.toSeq
           ConstructorExpr(auxClass.typ.ref, args)
         case _ =>
-          throw new IllegalArgumentException(s"Untyped expression $expression")
+          throw new IllegalArgumentException(s"Unexpected expression $expression")
       }
-    }
+    else
+      throw new IllegalArgumentException(s"Untyped expression $expression")
   }
 
   /**
@@ -253,10 +264,16 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
    */
   private def sanitize(expression: Expression, requiresTrueSet: Boolean = false): Expression = {
     expression match {
+      // TODO: Do we allow MapExpr outside of agg vars ? If so, defunctionalize them
+
     case FieldReadExpr(recv, targetName) if requiresTrueSet =>
       apply(FieldReadExpr(sanitize(recv), targetName), expression.typ)
-    case FieldReadExpr(recv, targetName) =>
-      FieldReadExpr(sanitize(recv), targetName)
+    case fieldRead@FieldReadExpr(recv, targetName) =>
+      val readExpr = FieldReadExpr(sanitize(recv), targetName)
+      fieldRead.target match {
+        case Some((_, FieldDef(_, _, _, typ, _, _, Some(_)))) => unapply(readExpr, requiresTrueSet, Some(typ))
+        case _ => readExpr
+      }
     case VarReadExpr(targetName) if requiresTrueSet =>
       apply(VarReadExpr(targetName), expression.typ)
     case ConstructorExpr(ClassRef(name), args) =>
