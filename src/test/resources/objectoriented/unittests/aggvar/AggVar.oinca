@@ -1,7 +1,7 @@
 module ReachabilityTest
 
 class A {
-    vag sum: Set[(Int, Int)] with A.sum
+    vag sum: Int = 0 with A.sum
 
     @static
     def sum(n1: Int, n2: Int): Int = {
@@ -13,11 +13,7 @@ class A {
         val a: A = new A()
         a.sum #= 1
         a.sum #= 3
-
-        val b: Int = a.sum
-        b1 = b + 1
-        a.sum #= b1
-        //a.sum
-        b
+        a.sum #= 1
+        a.sum
     }
 }

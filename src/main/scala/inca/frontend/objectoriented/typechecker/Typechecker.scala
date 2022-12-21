@@ -35,6 +35,22 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
    * Module
    */
 
+  /**
+   * Expressions that reference any variable are not allowed as an init element of a fold expression.
+   * @param expression init expression to check
+   * @return true if the init expression is sane, false otherwise
+   */
+  private def allowedAsFoldInit(expression: Expression): Boolean =  {
+    val hasElement = expression match {
+      case MapExpr(keyValuesExps, _) => keyValuesExps.nonEmpty
+      case TupleExpr(exps) => exps.nonEmpty
+      case SetExpr(exps, _) => exps.nonEmpty
+      case _ => true
+    }
+    val referencesVar = expression.vars.nonEmpty
+    hasElement && !referencesVar
+  }
+
   def typecheck(module: Module): Unit = scopedTypeContext {
     val moduleNames = module.name +: module.imports.map(_.name)
     val classNames = module.classes.map(_.name)
@@ -112,6 +128,12 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           case TMap(_, tv) => tv.flatten.last // always aggregate over the last type of a nested map
           case tty => tty
         }
+
+        if (fieldDef.body.isEmpty)
+          error("Aggregation variable requires a init element", fieldDef)
+        else if (!allowedAsFoldInit(fieldDef.body.get))
+          error("Init element of aggregation variable must not reference variables", fieldDef.body.get)
+
         val method = lookupMethod(clazz, Seq(aggTy, aggTy), methodName)
         if (method.isDefined)
           resolveTarget(fieldDef)(method.get)
@@ -387,7 +409,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           assertSubtype(typecheck(args.head), tk, args.head)
           tv
         // special functions on a map
-        case TMap(tk, tv) =>
+        /*case TMap(tk, tv) =>
           fun match {
             case Name(raw) if raw == "getOrElse" => args match {
               case Seq(key, default) =>
@@ -401,7 +423,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             case _ =>
               error(s"Can not lookup method '$fun' for map", methodCallExpr)
               TAny
-          }
+          }*/
         case clazzTyp@TClass(ref) =>
           // We can call methods on instances of classes we might no have yet resolved
           lookupMethod(lookupClassRef(ref), args.map(typecheck), fun) match {
@@ -506,6 +528,8 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             error("Projection does not match shape of set tuples.", setFold)
 
           val ty = tty.flatten(setFold.aggIndex)
+          if (!allowedAsFoldInit(neutral))
+            error("Init element of fold must not reference variables", neutral)
           assertSubtype(typecheck(neutral), ty, neutral)
 
           val hasOneAgg = projection.count {

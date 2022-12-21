@@ -50,6 +50,7 @@ class GenerateScala {
         MetaType.Name("Unit")
     case TScala(t) => t.tree
     case TSet(ty) => t"scala.collection.immutable.Set[${transType(ty)}]"
+    case TMap(tk, tv) => t"scala.collection.immutable.Map[${transType(tk)}, ${transType(tv)}]"
   }
 
   def genModule(module: Module): ScalaModule = {
@@ -134,7 +135,7 @@ class GenerateScala {
   private def transCompanionObject(classDef: ClassDef): Defn.Object = {
     val cls = MetaType.Name(classDef.name.raw)
     // TODO: We ignore set fields for now
-    val fields = classDef.fields.filter(!_.typ.isInstanceOf[TSet])
+    val fields = classDef.fields.filter(_.typ.asSet.isEmpty)
     val staticMethods = classDef.methods.filter(_.isStatic).flatMap(transMethod).toList
 
     val allocIdTerm = Term.Name("allocId")
@@ -234,17 +235,20 @@ class GenerateScala {
     case assignStmt@FieldAssignStmt(recv, name, expression, assignmentOp) =>
       val lhs = transExpression(recv)
       val field = Term.Select(lhs, Term.Name(name.raw))
-      val rhs = if (assignmentOp == AssignmentOp.EQUAL)
-        transExpression(expression)
+      if (assignmentOp == AssignmentOp.EQUAL) {
+        val rhs = transExpression(expression)
+        Term.Assign(field, rhs)
+      }
       else {
         // TODO: perfrom aggreagtion here
-        transExpression(expression)
+        q"{}"
+        //transExpression(expression)
         /*val Some((_, fieldDef)) = assignStmt.target
         val Some((ClassRef(aggClassName), aggMethodName)) = fieldDef.aggregateMethod
         val aggMethod = Term.Select(Term.Name(aggClassName.raw), Term.Name(aggMethodName.raw))
         Term.Apply(aggMethod, List(field, transExpression(expression)))*/
       }
-      Term.Assign(field, rhs)
+
     case VarDeclareStmt(name, typ, maybeExpression, immutable) =>
       val vTyp = Some(transType(typ))
       val value = if (maybeExpression.isDefined) Some(transExpression(maybeExpression.get)) else None
@@ -346,6 +350,15 @@ class GenerateScala {
       val superBody = superConstrDef.body.map(transStatement).toList
       q"((..$inParams) => (${Term.Block(superBody)}))(..$inTerms)"
 
+    case MapExpr(keyValuesExps, tty) =>
+      // TODO: We actually need to aggregate the values to keep consistent with datalog
+      val tups = keyValuesExps.map(transExpression).toList
+      if (tty.isDefined) {
+        val ty = transType(tty.get)
+        q"Map[$ty](..$tups)"
+      } else {
+        q"Map(..$tups)"
+      }
     case setFold@SetFold(recv, filter, opClass, opMethod, neutral) =>
       // TODO: How to use the filter correctly
       q"???"

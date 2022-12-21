@@ -317,18 +317,17 @@ object TestDefinition {
   def aggVariableTest: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/aggvar")
     Seq(
-      //TestDefinition("AggVar", "A", "main", Seq(), SetResult(5)),
-      //TestDefinition("Reachability", "Graph", "main", Seq(), SetResult("X", "Z", "Y"))
+      TestDefinition("AggVar", "A", "main", Seq(), SetResult(4)),
+      TestDefinition("AggTree", "Main", "sumNum", Seq(), SetResult(
+        TupleResult("Add", 0),
+        TupleResult("Var", 0),
+        TupleResult("Num", 10)
+      ))
     )
-  }
-
-  def aggTreeTest: TestDefinition[SetResult[Any]] = {
-    implicit val subdir: Option[String] = Some("unittests/aggvar")
-    TestDefinition("AggTree", "Main", "sumNum", Seq(), SetResult(13))
   }
 
   def whileLangTest: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("unittests/aggvar")
-    TestDefinition("WhileLang", "FactorialSumNum", "sumNum", Seq(), SetResult(9))
+    TestDefinition("WhileLang", "ConstantPropagation", "main", Seq(), SetResult())
   }
 }

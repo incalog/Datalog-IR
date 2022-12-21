@@ -1,6 +1,5 @@
 package inca.frontend.objectoriented.lowering
 
-import inca.backend.hints
 import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog
 import inca.compiler.SourceObject
@@ -26,6 +25,7 @@ object GenerateDatalog {
 
   def dispatchPatName(methodNameWithSignature: String): String = s"${internalPrefix}dispatch_${methodNameWithSignature}"
   def aggregatePatName(className: String, methodName: String): String = s"${internalPrefix}aggregate_$className${sep}$methodName"
+  def mapPatName(className: String, methodName: String): String = s"${internalPrefix}map_$className${sep}$methodName"
   def coalescedPatName(className: String): String = s"${internalPrefix}coalesced_$className"
   def uncoalescedPatName(className: String): String = s"${internalPrefix}uncoalesced_$className"
   def constructorPatName(className: String): String = className + sep
@@ -226,10 +226,10 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     import scala.meta._
 
     val fields = classDef.fields.flatMap {
-      case f@FieldDef(_, _, Name(name), TSet(_), _, _, _) =>
+      case f@FieldDef(_, _, Name(name), ty, _, _, _) if ty.asSet.isDefined =>
         println(s"Can not coalesced field ${classDef.name.raw}.$name with set type!")
         None
-      case f@FieldDef(_, _, Name(name), TSet(_), _, _, Some(_)) =>
+      case f@FieldDef(_, _, Name(name), _, _, _, Some(_)) =>
         println(s"Can not coalesced aggregate field ${classDef.name.raw}.$name!")
         None
       case f => Some(f)
@@ -301,10 +301,10 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     import scala.meta.Term
 
     val fields = classDef.fields.flatMap {
-      case f@FieldDef(_, _, Name(name), TSet(_), _, _, _) =>
+      case f@FieldDef(_, _, Name(name), ty, _, _, _) if ty.asSet.isDefined =>
         println(s"Can not uncoalesced field ${classDef.name.raw}.$name with set type!")
         None
-      case f@FieldDef(_, _, Name(name), TSet(_), _, _, Some(_)) =>
+      case f@FieldDef(_, _, Name(name), _, _, _, Some(_)) =>
         println(s"Can not uncoalesced aggregate field ${classDef.name.raw}.$name!")
         None
       case f => Some(f)
@@ -634,56 +634,65 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
             val objVar = Datalog.Var("obj")
             val objParam = Datalog.Param(objVar.name, transType(classDef.typ))
 
-            // TODO: This should only contain a single element. We do not allow tuples as return value
-            //  terms should also be a single element for the same reason
             val flatVars = flattenVars(gensym.fresh(targetName.raw), typ)
-            val vars = flatVars.map(_._1)
-            val fieldReadCall = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), objVar +: vars)
-              .addHint(MagicSetHints.FixedAdornment(true +: vars.map(_ => true)))
+            val vars = flatVars.map(_._1).dropRight(1)
+            val aggValueVar = Datalog.Var(gensym.fresh("aggValue"))
+            val fieldReadCall = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), objVar +: vars :+ aggValueVar)
+              .addHint(MagicSetHints.FixedAdornment(true +: vars.map(_ => true) :+ true))
               .addHint(MagicSetHints.IgnoreCall)
 
+            // TODO: Finish here if we have a set aggregation
+
+            val neutral = body.getOrElse(
+              throw new IllegalArgumentException(s"Aggregation variable ${name.raw} needs a initial value!")
+            ) match {
+              // TODO: This does not work in general we might need a different design to get the neutral value
+              //  1. ConstructorExpr, 2. SetExpr, 3. MapExpr, 4. BaseLitExpr (check nested structures as well)
+              case expr: ConstructorExpr => expr
+              case expr: BaseLitExpr => expr
+              case MapExpr(keyValuesExps, _) => keyValuesExps.headOption match {
+                case Some(TupleExpr(tups)) => tups.last
+                case _ => throw new RuntimeException(s"Expected tuple expression, but got $keyValuesExps")
+              }
+            }
+
+            // We always aggregate over the last column, since this is always the value
+            val valueTyp = typ.flatten.last
+
+            val aggFun = genScala.genAggregation(opMethod + "Agg", neutral, opClass.name.raw, opMethod.raw, valueTyp)
+            val outVar = Datalog.Var(gensym.fresh("out"))
+            val aggregation = Datalog.CustomAggregation(
+              transDataType(valueTyp),
+              Some(s"${opClass.name.raw}.${opMethod.raw}"),
+              Scala(aggFun),
+              fieldPatName(opClass.name.raw, fieldDef.name.raw),
+              objVar +: vars :+ outVar,
+              1 + vars.size
+            )
+            val compCon = Datalog.Computed(flatVars.last._1, aggregation)
+              .addHint(MagicSetHints.IgnoreCall)
+              .addHint(MagicSetHints.FixedAdornment(true +: vars.map(_ => true) :+ true))
             val bodies = Seq(Datalog.Body(
-              Seq(fieldReadCall)
+              Seq(fieldReadCall, compCon)
             ))
 
             val flatParams = flatVars.map { case (n, t) => Datalog.Param(n.name, t) }
             val params = objParam +: flatParams
-            val aggregandPatName = aggregatePatName(opClass.name.raw, opMethod.raw)
-            val aggregandPat = Datalog.Pattern(None, gensym.freshGlobal(aggregandPatName), params, bodies)
+            val mapPatternName = gensym.freshGlobal(mapPatName(opClass.name.raw, opMethod.raw))
+            val mapPat = Datalog.Pattern(None, mapPatternName, params, bodies)
               .addHint(MagicSetHints.NoInputRelation)
 
-            generatedPatterns += aggregandPat
+            generatedPatterns += mapPat
 
-            val neutral = body.getOrElse(
-              throw new IllegalArgumentException(s"Aggregation variable ${name.raw} needs a initial value!")
-            )
-
-            //val Seq((neutralTerms, neutralCons)) = transExpression(neutral)
-
-            val aggFun = genScala.genAggregation(opMethod + "Agg", neutral, opClass.name.raw, opMethod.raw, typ)
-            val outVar = Datalog.Var(gensym.fresh("out"))
-            val aggregation = Datalog.CustomAggregation(
-              transDataType(typ),
-              Some(s"${opClass.name.raw}.${opMethod.raw}"),
-              Scala(aggFun),
-              //fieldPatName(opClass.name.raw, fieldDef.name.raw),
-              //terms :+ outVar,
-              //terms.size
-              aggregandPat.name,
-              terms :+ outVar,
-              terms.size
-            )
-            val readVar = Datalog.Var(gensym.fresh(fieldDef.name.raw))
-            val compCon = Datalog.Computed(readVar, aggregation)
-            //.addHint(MagicSetHints.FixedAdornment(Seq(true, true)))
-            //.addHint(MagicSetHints.IgnoreCall)
-
-            (Seq(readVar), Seq(compCon))
+            val readVars = flatVars.map(_._1)
+            val readMap = Datalog.Call(mapPatternName, terms ++ readVars)
+              .addHint(MagicSetHints.IgnoreCall)
+              .addHint(MagicSetHints.FixedAdornment((terms ++ readVars).map(_ => true)))
+            (readVars, Seq(readMap))
           } else {
             val vars = flattenVars(gensym.fresh(targetName.raw), typ).map(_._1)
             val fieldReadCall = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), terms ++ vars)
               .addHint(MagicSetHints.FixedAdornment(terms.map(_ => true) ++ vars.map(_ => true)))
-              //.addHint(MagicSetHints.IgnoreCall)
               .addHint(ObjectHints.FieldGet)
             (vars, Seq(fieldReadCall))
           }
@@ -1024,6 +1033,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     ty match {
       case TSet(ty) =>
         flattenVars(name, ty, genFresh)
+      case TMap(tk, tv) =>
+        flattenVars(name + "_key", tk, genFresh) ++ flattenVars(name + "_value", tv, genFresh)
       case TTuple(ts) =>
         ts.zipWithIndex.flatMap { case (ty, ix) => flattenVars(name + "_" + (ix + 1), ty) }
       case ty =>

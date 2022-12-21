@@ -3,6 +3,10 @@ module ReachabilityTest
 class Exp {
     def accept(v: Visitor): Unit = {
     }
+
+    def repr(): String = {
+        return "Exp"
+    }
 }
 
 class Var extends Exp {
@@ -15,6 +19,11 @@ class Var extends Exp {
     def accept(v: Visitor): Unit = {
         v.visitVar(this)
     }
+
+    @override
+    def repr(): String = {
+        return "Var"
+    }
 }
 
 class Num extends Exp {
@@ -26,6 +35,11 @@ class Num extends Exp {
     @override
     def accept(v: Visitor): Unit = {
         v.visitNum(this)
+    }
+
+    @override
+    def repr(): String = {
+        return "Num"
     }
 }
 
@@ -43,6 +57,11 @@ class Add extends Exp {
         this.right.accept(v)
         v.visitAdd(this)
     }
+
+    @override
+    def repr(): String = {
+        return "Add"
+    }
 }
 
 class Visitor {
@@ -54,22 +73,9 @@ class Visitor {
     }
 }
 
-class VarCountVisitor extends Visitor {
-    vag count: Int = 0 with VarCountVisitor.sum
-
-    @static
-    def sum(n1: Int, n2: Int): Int = {
-        n1 + n2
-    }
-
-    @override
-    def visitVar(e: Var): Unit = {
-        this.count #= 1
-    }
-}
-
-class SumNumVisitor extends Visitor {
-    vag sum: Int = 0 with SumNumVisitor.sum
+class NodeVisitor extends Visitor {
+    // sum unique values of each num node
+    vag nodes: Map[String, Int] = Map(("", 0)) with NodeVisitor.sum
 
     @static
     def sum(n1: Int, n2: Int): Int = {
@@ -78,28 +84,28 @@ class SumNumVisitor extends Visitor {
 
     @override
     def visitNum(e: Num): Unit = {
-        this.sum #= e.num
+        this.nodes #= (e.repr(), e.num)
+    }
+
+    @override
+    def visitVar(e: Var): Unit = {
+        this.nodes #= (e.repr(), 0)
+    }
+
+    @override
+    def visitAdd(e: Add): Unit = {
+        this.nodes #= (e.repr(), 0)
     }
 }
 
 class Main {
-//    @main
-//    def countVar(): Int = {
-        //        val tree1: Exp = new Add(new Var("x"), new Var("y"))
-        //        val tree1Count: VarCountVisitor = new VarCountVisitor()
-        //        tree1.accept(tree1Count)
-        //        tree1Count.count
-//        1
-//    }
-
     @main
-    def sumNum(): Int = {
-        val treeSum: SumNumVisitor = new SumNumVisitor()
+    def sumNum(): Map[String, Int] = {
+        val nodeVisitor: NodeVisitor = new NodeVisitor()
         val tree1: Exp = new Add(new Var("x"), new Num(7))
-        val tree2: Exp = new Add(new Num(1), new Add(new Num(2), new Num(3)))
-        tree1.accept(treeSum)
-        tree2.accept(treeSum)
-        treeSum.sum
+        val tree2: Exp = new Add(new Num(1), new Add(new Num(2), new Num(1)))
+        tree1.accept(nodeVisitor)
+        tree2.accept(nodeVisitor)
+        nodeVisitor.nodes
     }
-
 }

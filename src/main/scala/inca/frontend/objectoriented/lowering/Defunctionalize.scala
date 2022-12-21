@@ -92,10 +92,21 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     val parentClassDefs = supertypes(ty).map(genDefunClassDef)
 
     val parentRefs = parentClassDefs.map(_.typ.ref)
-    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), ty, Seq())
     val constr = ConstructorDef(Seq(), None, Seq(), Seq())
+    val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), ty, Seq())
+    val methods = Seq(constr, apply) /*++ (ty match {
+      case TMap(tk, tv) =>
+        val params = Seq(Param(Name("key"), tk), Param(Name("default"), tv))
+        val getOrElse = MethodDef(Seq(), Some(Private), Name("getOrElse"), params, tv, Seq())
+        // TODO: Do something useful with getOrElse e.g. delegate the message ?
+        //    Might need to implement this in Aux class
+        Some(getOrElse)
+      case _ =>
+        None
+    })*/
+
     val clsName = Name(gensym.fresh("Defun" + typeSuffix(ty)))
-    val clazz = ClassDef(Seq(), Some(Private), clsName, parentRefs, Seq(constr, apply))
+    val clazz = ClassDef(Seq(), Some(Private), clsName, parentRefs, methods)
     defnClassDefs += ty -> clazz
     clazz
   }
@@ -266,13 +277,18 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     expression match {
       // TODO: Do we allow MapExpr outside of agg vars ? If so, defunctionalize them
 
-    case FieldReadExpr(recv, targetName) if requiresTrueSet =>
-      apply(FieldReadExpr(sanitize(recv), targetName), expression.typ)
+    //case FieldReadExpr(recv, targetName) if requiresTrueSet =>
+    //  apply(FieldReadExpr(sanitize(recv), targetName), expression.typ)
     case fieldRead@FieldReadExpr(recv, targetName) =>
       val readExpr = FieldReadExpr(sanitize(recv), targetName)
       fieldRead.target match {
-        case Some((_, FieldDef(_, _, _, typ, _, _, Some(_)))) => unapply(readExpr, requiresTrueSet, Some(typ))
-        case _ => readExpr
+        case Some((_, FieldDef(_, _, _, typ, _, _, Some(_)))) => // aggregation var
+          unapply(readExpr, requiresTrueSet, Some(typ))
+        case _ => // normal var (which is always an object if the field has type Set)
+          if (requiresTrueSet)
+            apply(readExpr, expression.typ)
+          else
+            readExpr
       }
     case VarReadExpr(targetName) if requiresTrueSet =>
       apply(VarReadExpr(targetName), expression.typ)

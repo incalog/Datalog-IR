@@ -10,7 +10,7 @@ import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
 class DatalogTest extends AnyFunSuite {
-  def options: ObjectOptions = ObjectOptions()
+  def options: ObjectOptions = ObjectOptions(Seq(EliminateNonproductiveRelations))
 
   def performTests(tests: TestDefinition[_]*): Seq[Assertion] = {
     tests.map { test =>
@@ -161,10 +161,6 @@ class DatalogTest extends AnyFunSuite {
 
   test("Aggregate variable") {
     performTests(aggVariableTest: _*)
-  }
-
-  test("Aggregate tree") {
-    performTests(aggTreeTest)
   }
 
   test("CGFVisitor") {

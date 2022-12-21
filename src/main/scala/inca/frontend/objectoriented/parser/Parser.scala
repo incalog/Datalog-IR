@@ -47,7 +47,7 @@ trait Parser {
     type Keyword = Value
 
     val FOLD: Value = Value("fold")
-    val GETORELSE: Value = Value("getOrElse")
+    //val GETORELSE: Value = Value("getOrElse")
   }
 
   object Keyword extends Enumeration {
