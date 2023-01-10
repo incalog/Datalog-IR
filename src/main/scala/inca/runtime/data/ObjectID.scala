@@ -17,7 +17,7 @@ case class ObjectID(typ: String, allocId: Int) extends truechange.URI {
 }
 
 object ObjectID {
-  val nullAllocId = -1
+  val nullAllocId: Int = -1
 
   def apply(typ: String): ObjectID = {
     new ObjectID(typ, nullAllocId)

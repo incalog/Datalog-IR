@@ -47,6 +47,7 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   def fields: Seq[FieldDef] = content.collect { case f: FieldDef => f }
   def methods: Seq[MethodDef] = content.collect { case f: MethodDef => f }
   def constructors: Seq[ConstructorDef] = content.collect { case f: ConstructorDef => f }
+  def isCaseClass: Boolean = annos.contains(CaseAnnotation)
 
   def typ: TClass = {
     val ref = ClassRef(name)
@@ -122,6 +123,7 @@ case class ConstructorDef(annos: Seq[Annotation], vis: Option[Visibility], param
   lazy val vars: Map[Name, Option[Type]] = (body.flatMap(_.vars) ++ params.flatMap(_.vars)).toMap
 
   def isMain: Boolean = annos.contains(MainAnnotation)
+  def isPrimary: Boolean = annos.contains(PrimaryAnnotation)
   def isStatic: Boolean = isMain || annos.contains(StaticAnnotation)
   def signature: Signature = target.getOrElse(0)
 

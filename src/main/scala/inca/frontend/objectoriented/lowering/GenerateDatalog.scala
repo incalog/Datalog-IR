@@ -336,7 +336,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       (fieldReadVar, comp)
     }
 
-    val setter = fields.map { f =>
+    val fieldVarsAndComps = fields.map { f =>
       // FIXME: This is tuple check will fail if we allow coalescing sets, since tuples can then be contained inside a
       //  set. For now a Tuple can only be the outermost type at this source position.
       val isTuple = f.typ.isInstanceOf[TTuple]
@@ -350,12 +350,16 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           val (fieldReadVar, fieldReadComp) = readFieldComp(f.name.raw, ty, if (isTuple) Some(i) else None)
           (fieldReadVar, Seq(fieldReadComp))
       }.unzip
+      (f, vars, comps)
+    }
 
-      val patName = fieldPatName(className, f.name.raw)
-      val setterCall = Datalog.Call(patName, uriVar +: vars)
-        .addHint(ObjectHints.FieldSet)
+    def setterCall(fieldDef: FieldDef, args: Seq[Datalog.Var]) = {
+      val patName = fieldPatName(className, fieldDef.name.raw)
+      Datalog.Call(patName, uriVar +: args).addHint(ObjectHints.FieldSet)
+    }
 
-      comps.flatten :+ setterCall
+    val allSetterCalls = fieldVarsAndComps.flatMap { case (f, vars, comps) =>
+      comps.flatten :+ setterCall(f, vars)
     }
 
     val intOptionType = TScala(Scala(t"Option[Int]"))
@@ -389,14 +393,34 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     )
     // existing object was returned
     val bodyWithId = Datalog.Body(
-      objIsNull(false) +: allocComp +: allocIdIsDefinedComp(true) +: genURIWithId +: setter.flatten
+      objIsNull(false) +: allocComp +: allocIdIsDefinedComp(true) +: genURIWithId +: allSetterCalls
     )
 
     // new object was created in scala
-    val genURIWithoutId = Datalog.Call(constructorPatName(className), Seq(uriVar))
-    val bodyWithoutId = Datalog.Body(
-      objIsNull(false) +: allocComp +: allocIdIsDefinedComp(false) +: genURIWithoutId +: setter.flatten
-    )
+    val bodyWithoutId = if (classDef.isCaseClass) {
+      val primaryConstr = classDef.constructors.find(_.isPrimary).getOrElse(
+        throw new RuntimeException(s"Case class ${classDef.name} does not contain a primary constructor")
+      )
+      val primaryParamNames = primaryConstr.params.map(_.name.raw)
+      val (primaryFields, secondaryFields) = fieldVarsAndComps.partition { case (f, _, _) =>
+        primaryParamNames.contains(f.name.raw)
+      }
+      val qualifiedName = constructorPatName(classDef.name.raw) + sep + primaryConstr.signature
+      val genURIWithoutId = Datalog.Call(qualifiedName, uriVar +: primaryFields.flatMap(_._2))
+      val readFieldCalls = primaryFields.flatMap(_._3.flatten)
+      val secondarySetterCalls = secondaryFields.flatMap { case (f, vars, comps) =>
+        comps.flatten :+ setterCall(f, vars)
+      }
+      Datalog.Body(
+        objIsNull(false) +: allocComp +: allocIdIsDefinedComp(false) +: (readFieldCalls ++ (genURIWithoutId +: secondarySetterCalls))
+      )
+    } else {
+      val genURIWithoutId = Datalog.Call(constructorPatName(className), Seq(uriVar))
+      Datalog.Body(
+        objIsNull(false) +: allocComp +: allocIdIsDefinedComp(false) +: genURIWithoutId +: allSetterCalls
+      )
+    }
+
 
     // object is null object
     val genNullURI = Datalog.Call(constructorPatName("Null"), Seq(uriVar))
@@ -407,10 +431,15 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val params = Seq(objParam, uriParam)
     val bodies = Seq(bodyWithNull, bodyWithId, bodyWithoutId)
     val constrUncoalescedPat = Datalog.Pattern(None, uncoalescedPatName(className), params, bodies)
-    constrUncoalescedPat.addHint(ObjectHints.Allocation) // TODO: Could be optimized by only using this key per body
+
+    // TODO: Could be optimized by only using this key per body
+    if (classDef.isCaseClass)
+      constrUncoalescedPat
+    else
+      constrUncoalescedPat.addHint(ObjectHints.Allocation)
   }
 
-  private def transFieldInitBody(classDef: ClassDef): Seq[Datalog.Body] = {
+  private def transFieldInitBody(classDef: ClassDef): Seq[(Seq[Datalog.Term], Datalog.Body)] = {
     /**
      * Collect all fields from classDef and all inherited fields from all parents
      */
@@ -425,19 +454,23 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     // set the default value for each field
     val thisVar = Datalog.Var("this")
     val fields = collectFields(classDef).filter(!_._2.isAggregation)
-    val fieldSetter = fields.filter(_._2.body.isDefined).map { case (fieldClassDef, fieldDef) =>
+    val fieldTermsAndCons = fields.filter(_._2.body.isDefined).map { case (fieldClassDef, fieldDef) =>
       val fieldName = fieldPatName(fieldClassDef.name.raw, fieldDef.name.raw)
       // alternative bodies for this field
       for ((terms, cons) <- transExpression(fieldDef.body.get)) yield {
         val fieldInit = Datalog.Call(fieldName, thisVar +: terms).addHint(ObjectHints.FieldSet)
-        cons :+ fieldInit
+        (terms, cons :+ fieldInit)
       }
     }
 
-    if (fieldSetter.isEmpty)
-      Seq(Datalog.Body(Seq()))
-    else
-      TupleOps.cartesianProduct(fieldSetter).map(atoms => Datalog.Body(atoms.flatten))
+    if (fieldTermsAndCons.isEmpty)
+      Seq((Seq(), Datalog.Body(Seq())))
+    else {
+      val alternatives = TupleOps.cartesianProduct(fieldTermsAndCons)
+      alternatives.map(atomsAndTerms =>
+        (atomsAndTerms.flatMap(_._1), Datalog.Body(atomsAndTerms.flatMap(_._2)))
+      )
+    }
   }
 
   private def transConstructor(classDef: ClassDef, constructorDef: ConstructorDef): Datalog.Pattern = {
@@ -445,19 +478,47 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val thisParam = Datalog.Param("this", transType(classDef.typ))
     val params = constructorDef.params.flatMap(p => flattenParam(p.name.raw, p.typ, genFresh = false))
     val constrBodies = transConstructorBody(classDef, constructorDef)
+    val (_, fieldInitBodies) = transFieldInitBody(classDef).unzip
 
-    // Note:
-    // Don't move this in transDefaultConstructor.
-    // We get unresolvable cycles if we declare a field with a constructor call to the class itself.
-    val fieldInitBodies = transFieldInitBody(classDef)
-    val bodies = constrBodies.flatMap { cB =>
-      fieldInitBodies.map { fB =>
-        Datalog.Body(
-          Datalog.Call(constructorPatName(classDef.name.raw), Seq(Datalog.Var("this"))) +: (fB.atoms ++ cB.atoms)
+    // we ignore the constructor body for a primary constructor
+
+    if (classDef.isCaseClass && constructorDef.isPrimary) {
+      import scala.meta._
+      // we ignore the default arguments for now
+      // use the constructor parameters to calculate a allocId
+      val hashVar = Datalog.Var(gensym.fresh("allocIdHash"))
+      val hashParams = constructorDef.params.map { p =>
+        Term.Param(Nil, Term.Name(p.name.raw), Some(genScala.transType(p.typ)), None)
+      }.toList
+      val hashScalaFun = Term.Function(
+        hashParams,
+        constructorDef.params
+          .map { p => q"""${Term.Name(p.name.raw)}.##""" }
+          .reduce[Term] { case (c1, c2) => q"31 * ($c1) + $c2" }
+      )
+      val hashComp = Datalog.Computed(hashVar, Datalog.Evaluation(
+        params.map(p => Datalog.Var(p.name) -> p.typ),
+        Datalog.TScalaInt,
+        Scala(hashScalaFun)
+      ))
+
+      val bodies = constrBodies.map { cB =>
+        Datalog.Body(Seq(
+          hashComp,
+          Datalog.Call(constructorPatName(classDef.name.raw), Seq(Datalog.Var("this"), hashVar))) ++ cB.atoms
         )
       }
+      Datalog.Pattern(None, qualifiedName, thisParam +: params, bodies)
+    } else {
+      val bodies = constrBodies.flatMap { cB =>
+        fieldInitBodies.map { fB =>
+          Datalog.Body(
+            Datalog.Call(constructorPatName(classDef.name.raw), Seq(Datalog.Var("this"))) +: (fB.atoms ++ cB.atoms)
+          )
+        }
+      }
+      Datalog.Pattern(None, qualifiedName, thisParam +: params, bodies)
     }
-    Datalog.Pattern(None, qualifiedName, thisParam +: params, bodies)
   }
 
   private def transSuper(classDef: ClassDef, constructorDef: ConstructorDef): Datalog.Pattern = {
@@ -487,15 +548,30 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
   private def transDefaultConstructor(classDef: ClassDef): Datalog.Pattern = gensym.scoped {
     val thisVar = Datalog.Var("this")
-    val constrScalaFun = Term.Function(Nil, q"""$oOID(${classDef.name.raw})""")
-    val constrComp = Datalog.Computed(thisVar, Datalog.Evaluation(
-      Seq(), transType(classDef.typ), Scala(constrScalaFun))
-    ).addHint(ObjectHints.AllocationInit)
-
     val thisParam = Datalog.Param("this", transType(classDef.typ))
-
-    Datalog.Pattern(transVis(classDef.vis), constructorPatName(classDef.name.raw), Seq(thisParam), Seq(Datalog.Body(Seq(constrComp))))
-      .addHint(ObjectHints.Allocation)
+    if (classDef.isCaseClass) {
+      val hashVarName = "hash"
+      val constrScalaFun = Term.Function(
+        List(Term.Param(Nil, Term.Name(hashVarName), Some(TScalaInt.asScala), None)),
+        q"""$oOID(${classDef.name.raw}, ${Term.Name(hashVarName)})"""
+      )
+      val constrComp = Datalog.Computed(thisVar, Datalog.Evaluation(
+        Seq(Datalog.Var(hashVarName) -> Datalog.TScalaInt), transType(classDef.typ), Scala(constrScalaFun))
+      )
+      println(constrScalaFun)
+      val body = Datalog.Body(Seq(constrComp))
+      val params = Seq(thisParam, Datalog.Param("hash", Datalog.TScalaInt))
+      Datalog.Pattern(transVis(classDef.vis), constructorPatName(classDef.name.raw), params, Seq(body))
+    } else {
+      val constrScalaFun = Term.Function(Nil, q"""$oOID(${classDef.name.raw})""")
+      val constrComp = Datalog.Computed(thisVar, Datalog.Evaluation(
+        Seq(), transType(classDef.typ), Scala(constrScalaFun))
+      )
+      val body = Datalog.Body(Seq(constrComp.addHint(ObjectHints.AllocationInit)))
+      val params = Seq(thisParam)
+      Datalog.Pattern(transVis(classDef.vis), constructorPatName(classDef.name.raw), params, Seq(body))
+        .addHint(ObjectHints.Allocation)
+    }
   }
 
   private def transMethod(classDef: ClassDef, methodDef: MethodDef): Datalog.Pattern = gensym.scoped {

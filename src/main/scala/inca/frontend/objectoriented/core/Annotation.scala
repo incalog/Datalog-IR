@@ -39,3 +39,15 @@ object StaticAnnotation extends Annotation {
 
   override def toString: String = "@static"
 }
+
+object CaseAnnotation extends Annotation {
+  override def key: Annotation.Key = "CASE_CLASS"
+
+  override def toString: String = "@case"
+}
+
+object PrimaryAnnotation extends Annotation {
+  override def key: Annotation.Key = "PRIMARY_CONSTR"
+
+  override def toString: String = "@primary"
+}

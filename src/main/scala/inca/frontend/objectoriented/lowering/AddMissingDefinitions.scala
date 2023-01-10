@@ -25,7 +25,7 @@ class AddMissingDefinitions(val module: Module) extends ModuleLowering {
 
   private def generateMissingConstructor(classDef: ClassDef): Option[ConstructorDef] = {
     if (classDef.constructors.isEmpty)
-      Some(ConstructorDef(Seq(), None, Seq(), Seq()))
+      Some(ConstructorDef(Seq(PrimaryAnnotation), None, Seq(), Seq()))
     else
       None
   }

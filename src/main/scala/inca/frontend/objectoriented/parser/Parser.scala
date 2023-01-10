@@ -1,6 +1,7 @@
 
 package inca.frontend.objectoriented.parser
 
+import cats.parse.Parser.string
 import inca.compiler.SourceLocation
 import inca.frontend.objectoriented.core._
 import cats.parse.{Parser => P, Parser0 => P0}
@@ -73,6 +74,7 @@ trait Parser {
     val FOR: Value        = Value("for")
     val YIELD: Value      = Value("yield")
     val SUPER: Value      = Value("super")
+    val CASE: Value       = Value("case")
   }
 
   import Keyword._
@@ -491,14 +493,28 @@ trait Parser {
   protected[frontend] val classContentDef: P[ClassContent] =
     constructorDef | methodDef | fieldDef
 
+  protected[frontend] val caseAnnotation: P[Annotation] =
+    keyword(CASE).map(_  => CaseAnnotation)
+
   protected[frontend] val classDef: P[ClassDef] = {
-    val className = spaced(keyword(CLASS) *> identifier)
+    val className = keyword(CLASS) *> identifier
     val parentClassName = keyword(EXTENDS) *> classRef
-    val header = visibility.?.with1 ~ className ~ parentClassName.map(Seq(_)).?
+    val primaryConstructor = inParentheses(seq0(fieldDef))
+    val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ primaryConstructor.?) ~ parentClassName.map(Seq(_)).?
     val content = spaced(inBraces(classContentDef.rep0))
 
-    (header ~ content).mapWithLoc { case (((visibility, name), parents), content)  =>
-      ClassDef(Seq(), visibility, name, parents.getOrElse(Seq()), content)
+    (header ~ content).mapWithLoc { case ((((visibility, caseAnno), (name, fieldConstr)), parents), content) =>
+      val clsContent = if (fieldConstr.isEmpty)
+        content
+      else {
+        val primaryFields = fieldConstr.getOrElse(Seq())
+        val primaryParams = primaryFields.map(f => Param(f.name, f.typ))
+        val primaryConstr = ConstructorDef(Seq(PrimaryAnnotation), None, primaryParams, primaryParams.map(p =>
+          FieldAssignStmt(VarReadExpr(Name("this")), p.name, VarReadExpr(p.name), AssignmentOp.EQUAL)
+        ))
+        (primaryFields :+ primaryConstr) ++ content
+      }
+      ClassDef(caseAnno.toSeq, visibility, name, parents.getOrElse(Seq()), clsContent)
     }
   }
 

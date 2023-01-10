@@ -93,6 +93,10 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         error(s"Ambiguous names in class '${classDef.name}'", cs:_*)
     }
 
+    if (classDef.isCaseClass && !classDef.constructors.forall(_.isPrimary)) {
+      error(s"Case Class ${classDef.name} must only contain a primary constructor", classDef)
+    }
+
     // make sure all fields are initialized after a constructor is executed
     uninitializedFields = Map()
 
@@ -177,7 +181,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
 
   def typecheck(constructorDef: ConstructorDef, classDef: ClassDef): Unit = scopedTypeContext {
     if (constructorDef.isStatic)
-      error(s"Constructor '${classDef.name}' can not be a static method", constructorDef)
+      error(s"Constructor '${classDef.name}' can not be static", constructorDef)
 
     val overrideConstructors = lookupConstructorCandidates(Some(classDef), constructorDef.params.map(_.typ))
     resolveSignatures(overrideConstructors.map(_._2))

@@ -155,6 +155,10 @@ class DatalogTest extends AnyFunSuite {
     performTests(emptySetTest)
   }*/
 
+  test("Case Class") {
+    performTests(caseClassTest: _*)
+  }
+
   test("Set fold") {
     performTests(foldSetTests: _*)
   }

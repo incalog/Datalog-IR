@@ -271,6 +271,13 @@ object TestDefinition {
     TestDefinition("SetRecursive", "Graph", "main", Seq(), SetResult("W", "Y", "Z", "X"))
   }
 
+  def caseClassTest: Seq[TestDefinition[SetResult[Any]]] = {
+    implicit val subdir: Option[String] = Some("unittests/caseclass")
+    Seq(
+      TestDefinition("CaseClass", "A", "main", Seq(), SetResult(true)),
+    )
+  }
+
   def foldSetTests: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/setfold")
     Seq(
