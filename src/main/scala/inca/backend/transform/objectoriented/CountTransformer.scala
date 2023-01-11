@@ -185,7 +185,7 @@ abstract class CountTransformer(val rootPatternHint: Hint,
       val bodies = rootPat.bodies.map { body =>
         gensym.scoped {
           var countVar = Var(gensym.fresh(rootParamName))
-          val countInit = Eq(countVar, Constant(IntLiteral(0)))
+          val countInit = Eq(countVar, Constant(IntLiteral(1)))
 
           Body(countInit +: body.atoms.flatMap {
             case c: Call if affectedPatternNames.contains(c.name) =>

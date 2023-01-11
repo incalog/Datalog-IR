@@ -1,0 +1,26 @@
+module GraphTest
+
+case class Edge(val start: String, val end: String) {
+}
+
+class Graph {
+    val edges: Set[Edge] = Set(
+      new Edge("X", "Y"),
+      new Edge("Y", "Z"),
+      // introduce a cycle
+      new Edge("Z", "X")
+    )
+
+    @main
+    def main(): Set[String] = {
+      for (e <- new Graph().path("X")) yield e.end
+    }
+
+    def path(x: String): Set[Edge] = {
+        // this function does not terminate if an alloc count or a changing timestamp is introduced
+        // a case class should introduce neither of them
+        (for (d <- this.edges if d.start == x) yield new Edge(d.start, d.end))
+        ++
+        (for (i <- this.edges if i.start == x; y <- this.path(i.end)) yield new Edge(y.start, y.end))
+    }
+}

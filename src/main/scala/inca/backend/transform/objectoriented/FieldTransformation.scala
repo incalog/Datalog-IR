@@ -1,6 +1,5 @@
 package inca.backend.transform.objectoriented
 
-import inca.backend.hints.MagicSetHints.{FixedAdornment, FixedAdornmentKey}
 import inca.backend.hints.{MagicSetHints, ObjectHints, OptimizationHints}
 import inca.backend.ir.Datalog._
 import inca.backend.ir.util.CollectVars
@@ -148,11 +147,22 @@ object FieldTransformation extends Transformation {
         ))
       } else if (isFieldSetCall(call)) {
         val hint = hintWithAdjustedFixedAdornment(call, args.size, Seq(true))
-        val (tsOutVar, incComp) = incCounter(tsInVar)
-        (tsOutVar, Seq(
-          Call(name, args :+ tsInVar, trans, neg).withHints(hint),
-          incComp
-        ))
+        val fieldSetHint = call.hints(ObjectHints.FieldSetKey).asInstanceOf[ObjectHints.FieldSet]
+
+        if (fieldSetHint.fixedTimestamp.isEmpty) {
+          val (tsOutVar, incComp) = incCounter(tsInVar)
+          (tsOutVar, Seq(
+            Call(name, args :+ tsInVar, trans, neg).withHints(hint),
+            incComp
+          ))
+        } else {
+          val ts = fieldSetHint.fixedTimestamp.get
+          val tsVar = Var(gensym.fresh(outParamName))
+          val tsComp = Computed(tsVar, Evaluation(Seq(), TScalaInt, Scala(q"() => $ts")))
+          (tsInVar, tsComp +: Seq(
+            Call(name, args :+ tsVar, trans, neg).withHints(hint)
+          ))
+        }
       } else {
         super.transformCall(call, tsInVar)
       }

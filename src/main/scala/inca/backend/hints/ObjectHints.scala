@@ -58,7 +58,7 @@ object ObjectHints {
   /**
    * Call sets the value of a field.
    */
-  object FieldSet extends Hint {
+  case class FieldSet(fixedTimestamp: Option[Int] = None) extends Hint {
     override def key: Key = FieldSetKey
   }
 }

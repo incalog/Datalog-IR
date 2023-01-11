@@ -355,11 +355,11 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     def setterCall(fieldDef: FieldDef, args: Seq[Datalog.Var]) = {
       val patName = fieldPatName(className, fieldDef.name.raw)
-      Datalog.Call(patName, uriVar +: args).addHint(ObjectHints.FieldSet)
+      Datalog.Call(patName, uriVar +: args)
     }
 
     val allSetterCalls = fieldVarsAndComps.flatMap { case (f, vars, comps) =>
-      comps.flatten :+ setterCall(f, vars)
+      comps.flatten :+ setterCall(f, vars).addHint(ObjectHints.FieldSet())
     }
 
     val intOptionType = TScala(Scala(t"Option[Int]"))
@@ -408,11 +408,9 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       val qualifiedName = constructorPatName(classDef.name.raw) + sep + primaryConstr.signature
       val genURIWithoutId = Datalog.Call(qualifiedName, uriVar +: primaryFields.flatMap(_._2))
       val readFieldCalls = primaryFields.flatMap(_._3.flatten)
-      val secondarySetterCalls = secondaryFields.flatMap { case (f, vars, comps) =>
-        comps.flatten :+ setterCall(f, vars)
-      }
+
       Datalog.Body(
-        objIsNull(false) +: allocComp +: allocIdIsDefinedComp(false) +: (readFieldCalls ++ (genURIWithoutId +: secondarySetterCalls))
+        objIsNull(false) +: allocComp +: allocIdIsDefinedComp(false) +: readFieldCalls :+ genURIWithoutId
       )
     } else {
       val genURIWithoutId = Datalog.Call(constructorPatName(className), Seq(uriVar))
@@ -458,7 +456,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       val fieldName = fieldPatName(fieldClassDef.name.raw, fieldDef.name.raw)
       // alternative bodies for this field
       for ((terms, cons) <- transExpression(fieldDef.body.get)) yield {
-        val fieldInit = Datalog.Call(fieldName, thisVar +: terms).addHint(ObjectHints.FieldSet)
+        val fieldInit = Datalog.Call(fieldName, thisVar +: terms).addHint(ObjectHints.FieldSet(fixedTimestamp = Some(0)))
         (terms, cons :+ fieldInit)
       }
     }
@@ -478,35 +476,55 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     val thisParam = Datalog.Param("this", transType(classDef.typ))
     val params = constructorDef.params.flatMap(p => flattenParam(p.name.raw, p.typ, genFresh = false))
     val constrBodies = transConstructorBody(classDef, constructorDef)
-    val (_, fieldInitBodies) = transFieldInitBody(classDef).unzip
+    val (fieldInitTerms, fieldInitBodies) = transFieldInitBody(classDef).unzip
 
     // we ignore the constructor body for a primary constructor
-
     if (classDef.isCaseClass && constructorDef.isPrimary) {
       import scala.meta._
-      // we ignore the default arguments for now
-      // use the constructor parameters to calculate a allocId
+
+      // all fields that are defined, but not used in the primary constructor
+      // Note: this works, since the primary constructor always uses the field name as parameter name
+      val primaryParamNames = constructorDef.params.map(_.name.raw)
+      val fieldParams = classDef.fields
+        .filter(f => !primaryParamNames.contains(f.name.raw))
+        .zip(fieldInitTerms).flatMap { case (f, terms) =>
+          terms.map {
+            // we erase the type here, since we don't know it... this is not nice, but it works
+            case Datalog.Var(name) => Datalog.Param(name, Datalog.TAny)
+            case t => throw new RuntimeException(s"Unexpected term for field initialization $t")
+          }
+      }
+      // use all fields to calculate an allocId from them
+      val constructorParams = params ++ fieldParams
       val hashVar = Datalog.Var(gensym.fresh("allocIdHash"))
-      val hashParams = constructorDef.params.map { p =>
-        Term.Param(Nil, Term.Name(p.name.raw), Some(genScala.transType(p.typ)), None)
+      val hashParams = constructorParams.map { p =>
+        Term.Param(Nil, Term.Name(p.name), Some(p.typ.asScala), None)
       }.toList
       val hashScalaFun = Term.Function(
         hashParams,
-        constructorDef.params
-          .map { p => q"""${Term.Name(p.name.raw)}.##""" }
-          .reduce[Term] { case (c1, c2) => q"31 * ($c1) + $c2" }
+        q"java.util.Objects.hash(..${constructorParams.map(p => Term.Name(p.name)).toList})"
+        /*constructorParams
+          .map { p => q"""${Term.Name(p.name)}.##""" }
+          .reduce[Term] { case (c1, c2) => q"31 * ($c1) + $c2" }*/
       )
       val hashComp = Datalog.Computed(hashVar, Datalog.Evaluation(
-        params.map(p => Datalog.Var(p.name) -> p.typ),
+        constructorParams.map(p => Datalog.Var(p.name) -> p.typ),
         Datalog.TScalaInt,
         Scala(hashScalaFun)
       ))
 
-      val bodies = constrBodies.map { cB =>
-        Datalog.Body(Seq(
-          hashComp,
-          Datalog.Call(constructorPatName(classDef.name.raw), Seq(Datalog.Var("this"), hashVar))) ++ cB.atoms
-        )
+      // 1. define all literal for field declarations
+      // 2. calculate the allocId based on the literals and params
+      // 3. create the object
+      // 4. assign the value to all fields
+      val bodies = constrBodies.flatMap { cB =>
+        fieldInitBodies.map { fB =>
+          val (varSets, varDecls) = fB.atoms.partition(a => a.hasHint(ObjectHints.FieldSetKey))
+          Datalog.Body(
+            (varDecls :+ hashComp) ++
+              (Datalog.Call(constructorPatName(classDef.name.raw), Seq(Datalog.Var("this"), hashVar)) +: (cB.atoms ++ varSets))
+          )
+        }
       }
       Datalog.Pattern(None, qualifiedName, thisParam +: params, bodies)
     } else {
@@ -529,7 +547,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   }
 
   private def transConstructorBody(classDef: ClassDef, constructorDef: ConstructorDef): Seq[Datalog.Body] = {
-    for ((optReturn, cons, _) <- transStatements(constructorDef.body, None)) yield {
+    for ((optReturn, cons, _) <- transStatements(constructorDef.body, None, constructorDef)) yield {
       if (optReturn.nonEmpty)
         throw new IllegalStateException(s"Constructor ${classDef.name} must not call return")
       Datalog.Body(cons)
@@ -589,8 +607,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       else
         flattenParam("return", methodDef.outType, genFresh = true)
 
-    // FIXME: Is the body empty
-    val bodyRes = transStatements(methodDef.body, None)
+    val bodyRes = transStatements(methodDef.body, None, methodDef)
     val bodies = for ((optReturn, cons, _) <- bodyRes) yield {
       val returnCons = returnParams.zip(optReturn.getOrElse(Seq())).map { case (p, t) =>
         Datalog.Eq(Datalog.Var(p.name), t)
@@ -617,20 +634,20 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   type ExpRes = Alternatives[(Tuple, Constraints)]
   type StmRes = Alternatives[(Option[Tuple], Constraints, Path)]
 
-  private def transStatements(stmts: Seq[Statement], path: Path): StmRes = stmts match {
+  private def transStatements(stmts: Seq[Statement], path: Path, enclosingContent: ClassContent): StmRes = stmts match {
     case Nil =>
       Seq((None, Seq(), path))
     case s::rest =>
-      val alternatives = for ((sReturn, sConstraints, sPath) <- transStatement(s, path)) yield {
+      val alternatives = for ((sReturn, sConstraints, sPath) <- transStatement(s, path, enclosingContent)) yield {
         if (sReturn.isDefined) {
           Seq((sReturn, sConstraints, sPath))
         } else
-          transStatements(rest, sPath).map(res => (res._1, sConstraints ++ res._2, res._3))
+          transStatements(rest, sPath, enclosingContent).map(res => (res._1, sConstraints ++ res._2, res._3))
       }
       alternatives.flatten
   }
 
-  private def transStatement(stmt: Statement, path: Path): StmRes = stmt match {
+  private def transStatement(stmt: Statement, path: Path, enclosingContent: ClassContent): StmRes = stmt match {
     case ExprStmt(expression) =>
       for ((_, cons) <- transExpression(expression))
         yield (None, cons, path)
@@ -641,8 +658,8 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     case IfStmt(cnd, thn, els) =>
       val cndTrans = transExpression(cnd)
-      val thnTrans = transStatements(thn, path)
-      val elsTrans = transStatements(els, path)
+      val thnTrans = transStatements(thn, path, enclosingContent)
+      val elsTrans = transStatements(els, path, enclosingContent)
 
       val thnRes: StmRes =
         for ((Seq(cndTerm), cndCons) <- cndTrans;
@@ -663,7 +680,12 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
         for (tups <- transExpression(expression)) yield {
           val (argTerms, argCons) = tups
           val call = Datalog.Call(qualifiedName, terms ++ argTerms)
-          val fieldSet = if (fieldDef.isAggregation) call else call.addHint(ObjectHints.FieldSet)
+          var ts = enclosingContent match {
+            case c: ConstructorDef if c.isPrimary => Some(0)
+            case _ => None
+          }
+
+          val fieldSet = if (fieldDef.isAggregation) call else call.addHint(ObjectHints.FieldSet(fixedTimestamp = ts))
           (None, cons ++ argCons :+ fieldSet, path)
         }
       }

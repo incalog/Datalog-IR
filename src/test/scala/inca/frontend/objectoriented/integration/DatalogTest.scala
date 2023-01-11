@@ -1,6 +1,5 @@
 package inca.frontend.objectoriented.integration
 
-import inca.backend.optimize.EliminateNonproductiveRelations
 import inca.compiler.Compiler
 import inca.frontend.objectoriented.compiler.ObjectOptions
 import inca.frontend.objectoriented.datalog.{ObjectOrientedDatalog, TypeCastException}
@@ -10,7 +9,7 @@ import org.scalatest.Assertion
 import org.scalatest.funsuite.AnyFunSuite
 
 class DatalogTest extends AnyFunSuite {
-  def options: ObjectOptions = ObjectOptions(Seq(EliminateNonproductiveRelations))
+  def options: ObjectOptions = ObjectOptions()
 
   def performTests(tests: TestDefinition[_]*): Seq[Assertion] = {
     tests.map { test =>

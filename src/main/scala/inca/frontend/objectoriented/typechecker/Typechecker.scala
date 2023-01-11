@@ -93,24 +93,29 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         error(s"Ambiguous names in class '${classDef.name}'", cs:_*)
     }
 
-    if (classDef.isCaseClass && !classDef.constructors.forall(_.isPrimary)) {
-      error(s"Case Class ${classDef.name} must only contain a primary constructor", classDef)
+    if (classDef.isCaseClass) {
+      classDef.constructors.filter(!_.isPrimary).foreach { constr =>
+        error(s"Case Class ${classDef.name} must only contain a primary constructor", constr)
+      }
+
+      classDef.fields.filter(!_.immutable).foreach { f =>
+        error(s"Case Class ${classDef.name} must not contain mutable field ${f.name.raw}", f)
+      }
     }
 
     // make sure all fields are initialized after a constructor is executed
     uninitializedFields = Map()
 
-    classDef.content.foreach {
-      case field: FieldDef => typecheck(field, classDef)
-      case method: MethodDef => typecheck(method, classDef)
-      case constructor: ConstructorDef =>
-        // every path trough a constructor must initialize all fields
-        val storeUninitializedFields = uninitializedFields
-        typecheck(constructor, classDef)
-        uninitializedFields.foreach { case (fieldName, fieldDef) =>
-          error(s"Field '$fieldName' is not initialized", fieldDef)
-        }
-        uninitializedFields = storeUninitializedFields
+    classDef.fields.foreach(f => typecheck(f, classDef))
+    classDef.methods.foreach(m => typecheck(m, classDef))
+    classDef.constructors.foreach{ constructor =>
+      // every path trough a constructor must initialize all fields
+      val storeUninitializedFields = uninitializedFields
+      typecheck(constructor, classDef)
+      uninitializedFields.foreach { case (fieldName, fieldDef) =>
+        error(s"Field '$fieldName' is not initialized", fieldDef)
+      }
+      uninitializedFields = storeUninitializedFields
     }
   }
 
