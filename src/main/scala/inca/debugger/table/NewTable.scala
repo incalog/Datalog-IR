@@ -19,4 +19,6 @@ trait NewTable[V] {
 
   def contains(t: Tuple, indexCover: IndexCover): Boolean
   def contains(t: NamedTuple): Boolean
+
+  def subset(other: NewTable[V]): Boolean
 }

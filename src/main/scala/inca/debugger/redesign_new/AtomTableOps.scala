@@ -4,7 +4,6 @@ import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.base
 import inca.debugger.redesign_old.AtomTableOps.transLiteral
 import inca.debugger.redesign_old.AtomTableOps.transType
-import inca.debugger.table.ImmutableTable
 import inca.debugger.table.IndexedTableFactory
 import inca.debugger.IllegalDebugStateException
 import inca.debugger.ScalaValue
@@ -40,7 +39,7 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
   def getDefinitionObjSym: String = definitionObjSym
   def compileAndLoadScala[A](source: String): A = scalaCompiler.compileAndLoadScala(source)
 
-  def atom(t: ImmutableTable[Value], atom: Datalog.Atom): ImmutableTable[Value] = atom match {
+  def atom(t: ValueTable, atom: Datalog.Atom): ValueTable = atom match {
     case c @ Datalog.Compare(Datalog.EqComparator, _, _) => eq(t, c)
     case c @ Datalog.Compare(Datalog.NeqComparator, _, _) => neq(t, c)
     case ht: Datalog.HasType => hasType(t, ht)
@@ -54,7 +53,7 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
       throw IllegalDebugStateException(s"We dont process calls with AtomTableOps, but got $c")
   }
 
-  private def eq(t: ImmutableTable[Value], atom: Datalog.Compare): ImmutableTable[Value] =
+  private def eq(t: ValueTable, atom: Datalog.Compare): ValueTable =
     (atom.lhs, atom.rhs) match {
       case (Datalog.Var(name1), Datalog.Var(name2)) =>
         if (t.isBound(name1) && t.isBound(name2)) eqBothBound(t, name1, name2)
@@ -74,49 +73,33 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
         val v1 = transLiteral(l1)
         val v2 = transLiteral(l2)
         if (v1 == v2) t
-        else ImmutableTable.empty(t.columns)
+        else ValueTable.empty(t.columns)
     }
 
-  private def eqBothBound(
-      t: ImmutableTable[Value],
-      col1: String,
-      col2: String
-    ): ImmutableTable[Value] = {
+  private def eqBothBound(t: ValueTable, col1: String, col2: String): ValueTable = {
     val col1Index = t.columnIndex(col1)
     val col2Index = t.columnIndex(col2)
     t.select(row => row(col1Index) == row(col2Index))
   }
 
-  private def eqOneBound(
-      t: ImmutableTable[Value],
-      boundCol: String,
-      unboundCol: String
-    ): ImmutableTable[Value] = {
+  private def eqOneBound(t: ValueTable, boundCol: String, unboundCol: String): ValueTable = {
     val colIndex = t.columnIndex(boundCol)
     val extendedEntries = t.entries.map(tuple => tuple :+ tuple(colIndex))
-    ImmutableTable(t.columns :+ unboundCol, extendedEntries)
+    ValueTable(t.columns :+ unboundCol, extendedEntries)
   }
 
-  private def eqConstBound(
-      t: ImmutableTable[Value],
-      col: String,
-      v: Value
-    ): ImmutableTable[Value] = {
+  private def eqConstBound(t: ValueTable, col: String, v: Value): ValueTable = {
     val colIdx = t.columnIndex(col)
     t.select(row => row(colIdx) == v)
   }
 
-  private def eqConstUnbound(
-      t: ImmutableTable[Value],
-      col: String,
-      v: Value
-    ): ImmutableTable[Value] = {
+  private def eqConstUnbound(t: ValueTable, col: String, v: Value): ValueTable = {
     val indexCovers = indexedTableFactory.constructIndexCovers(t, Seq(col))
-    val singleValueTable = ImmutableTable(Seq(col), Seq(Seq(v)), indexCovers = indexCovers)
+    val singleValueTable = ValueTable(Seq(col), Seq(Seq(v)), indexCovers = indexCovers)
     t.join(singleValueTable)
   }
 
-  private def neq(t: ImmutableTable[Value], atom: Datalog.Compare): ImmutableTable[Value] =
+  private def neq(t: ValueTable, atom: Datalog.Compare): ValueTable =
     (atom.lhs, atom.rhs) match {
       case (Datalog.Var(name1), Datalog.Var(name2)) =>
         if (t.isBound(name1) && t.isBound(name2))
@@ -143,29 +126,21 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
         val v1 = transLiteral(l1)
         val v2 = transLiteral(l2)
         if (v1 == v2) t
-        else ImmutableTable.empty(t.columns)
+        else ValueTable.empty(t.columns)
     }
 
-  private def neqBothBound(
-      t: ImmutableTable[Value],
-      col1: String,
-      col2: String
-    ): ImmutableTable[Value] = {
+  private def neqBothBound(t: ValueTable, col1: String, col2: String): ValueTable = {
     val col1Idx = t.columnIndex(col1)
     val col2Idx = t.columnIndex(col2)
     t.select(row => row(col1Idx) != row(col2Idx))
   }
 
-  private def neqOneConst(
-      t: ImmutableTable[Value],
-      col: String,
-      v: Value
-    ): ImmutableTable[Value] = {
+  private def neqOneConst(t: ValueTable, col: String, v: Value): ValueTable = {
     val colIdx = t.columnIndex(col)
     t.select(row => row(colIdx) != v)
   }
 
-  private def path(t: ImmutableTable[Value], atom: Datalog.Path): ImmutableTable[Value] = {
+  private def path(t: ValueTable, atom: Datalog.Path): ValueTable = {
     val (src, trg) = (atom.src, atom.trg) match {
       case (Datalog.Var(srcName), Datalog.Var(trgName)) => (srcName, trgName)
       case _ => throw IllegalDebugStateException(s"Path is not defined on constants $atom")
@@ -182,11 +157,11 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
   }
 
   private def binaryBothBound(
-      t: ImmutableTable[Value],
+      t: ValueTable,
       key: IInputKey,
       src: String,
       trg: String
-    ): ImmutableTable[Value] = {
+    ): ValueTable = {
     val idxL = t.columnIndex(src)
     val idxR = t.columnIndex(trg)
     t.select { row =>
@@ -197,12 +172,12 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
   }
 
   private def binaryOneBound(
-      t: ImmutableTable[Value],
+      t: ValueTable,
       key: IInputKey,
       bound: String,
       unbound: String,
       isSourceBound: Boolean
-    ): ImmutableTable[Value] = {
+    ): ValueTable = {
     val selectIdx = if (isSourceBound) 0 else 1
     val mask = TupleMask.selectSingle(selectIdx, 2)
     val boundIdx = t.columnIndex(bound)
@@ -215,15 +190,15 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
       ).iterator().next()
       tuple :+ Value(unboundURI)
     }
-    ImmutableTable(t.columns :+ unbound, extendedEntries)
+    ValueTable(t.columns :+ unbound, extendedEntries)
   }
 
   private def binaryNoneBound(
-      t: ImmutableTable[Value],
+      t: ValueTable,
       key: IndexKey[_],
       src: String,
       trg: String
-    ): ImmutableTable[Value] = {
+    ): ValueTable = {
     val rows = runtime.db.enumerateTuples(
       key,
       TupleMask.empty(2),
@@ -250,7 +225,7 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
         LinkPrimitiveKey(link)
   }
 
-  private def noPath(t: ImmutableTable[Value], atom: Datalog.NoPath): ImmutableTable[Value] = {
+  private def noPath(t: ValueTable, atom: Datalog.NoPath): ValueTable = {
     val nodeKey = NodeTypeKey(transType(atom.ty))
     val linkKey = generateLinkKey(atom.link)
     val key = NodeNotLinkedIndex.Key(nodeKey, linkKey, atom.termIsSource)
@@ -269,11 +244,7 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
     }
   }
 
-  private def unary(
-      t: ImmutableTable[Value],
-      col: String,
-      key: IInputKey
-    ): ImmutableTable[Value] = {
+  private def unary(t: ValueTable, col: String, key: IInputKey): ValueTable = {
     if (t.isBound(col)) {
       val colIdx = t.columnIndex(col)
       t.select { row =>
@@ -288,7 +259,7 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
     }
   }
 
-  private def hasType(t: ImmutableTable[Value], atom: Datalog.HasType): ImmutableTable[Value] =
+  private def hasType(t: ValueTable, atom: Datalog.HasType): ValueTable =
     atom.t match {
       case Datalog.Var(name) =>
         val key = NodeTypeKey(transType(atom.typ))
@@ -297,10 +268,7 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
         throw new IllegalArgumentException(s"HasType is not defined on constants $atom")
     }
 
-  private def notHasType(
-      t: ImmutableTable[Value],
-      atom: Datalog.NotHasType
-    ): ImmutableTable[Value] =
+  private def notHasType(t: ValueTable, atom: Datalog.NotHasType): ValueTable =
     atom.t match {
       case Datalog.Var(name) =>
         val key = NotNodeTypeIndex.Key(transType(atom.typ))
@@ -309,20 +277,16 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
         throw new IllegalArgumentException(s"HasType is not defined on constants $atom")
     }
 
-  private def undef(t: ImmutableTable[Value], atom: Datalog.Undef): ImmutableTable[Value] =
+  private def undef(t: ValueTable, atom: Datalog.Undef): ValueTable =
     atom.t match {
       case Datalog.Var(name) =>
-        if (t.isBound(name)) ImmutableTable.empty[Value](t.columns)
+        if (t.isBound(name)) ValueTable.empty(t.columns)
         else t
       case Datalog.Constant(_) =>
-        ImmutableTable.empty[Value](t.columns)
+        ValueTable.empty(t.columns)
     }
 
-  private def extensionalCall(
-      t: ImmutableTable[Value],
-      atom: Datalog.ExtensionalCall
-    ): ImmutableTable[Value] = {
-
+  private def extensionalCall(t: ValueTable, atom: Datalog.ExtensionalCall): ValueTable = {
     val key = NamedRelationKey(atom.name, atom.args.size)
 
     val gensym = new Gensym(Set())
@@ -335,7 +299,7 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
     }
     val mask = TupleMask.fromSelectedIndices(atom.args.size, selectedIndices.toArray)
 
-    var argsTable: ImmutableTable[Value] = ImmutableTable.unit()
+    var argsTable: ValueTable = ValueTable.unit()
 
     atom.args.foreach {
       case Datalog.Var(name) if t.isBound(name) =>
@@ -348,7 +312,7 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
         val newCol = gensym.fresh("const")
         val indexCovers = indexedTableFactory.constructIndexCovers(argsTable, Seq(newCol))
         val constantTable =
-          ImmutableTable(Seq(newCol), Seq(Seq(transLiteral(l))), indexCovers = indexCovers)
+          ValueTable(Seq(newCol), Seq(Seq(transLiteral(l))), indexCovers = indexCovers)
         argsTable.join(constantTable)
     }
 
@@ -363,7 +327,7 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
       case Datalog.Constant(_) => gensym.fresh("const")
     }
     // TODO maybe we need to construct a good index for this already to have good projection performance
-    val extCallTable = ImmutableTable(extCallColumns, extCallRows)
+    val extCallTable = ValueTable(extCallColumns, extCallRows)
 
     val extVarArgs = atom.args.collect { case Datalog.Var(name) => name }
     val indexCovers = indexedTableFactory.constructIndexCovers(extCallTable, extVarArgs)
@@ -371,18 +335,14 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
     t.join(projectedExtCallTable)
   }
 
-  private def computed(t: ImmutableTable[Value], atom: Datalog.Computed): ImmutableTable[Value] =
+  private def computed(t: ValueTable, atom: Datalog.Computed): ValueTable =
     atom.computation match {
       case e: Datalog.Evaluation => eval(t, e, atom.lhs)
       case c: Datalog.CountAggregation => count(t, c, atom.lhs)
       case c: Datalog.CustomAggregation => custom(t, c, atom.lhs)
     }
 
-  private def eval(
-      t: ImmutableTable[Value],
-      comp: Datalog.Evaluation,
-      lhs: Datalog.Term
-    ): ImmutableTable[Value] = {
+  private def eval(t: ValueTable, comp: Datalog.Evaluation, lhs: Datalog.Term): ValueTable = {
     val lhsValue: Seq[Value] => Value = lhs match {
       case Datalog.Var(name) =>
         if (t.isBound(name)) {
@@ -401,7 +361,7 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
         val extendedEntries = t.entries.map { tuple =>
           tuple :+ executeScala(t, tuple, comp)
         }
-        ImmutableTable[Value](t.columns :+ name, extendedEntries)
+        ValueTable(t.columns :+ name, extendedEntries)
       case _ =>
         t.select { tuple =>
           val scalaValue = executeScala(t, tuple, comp)
@@ -411,11 +371,7 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
     }
   }
 
-  private def executeScala(
-      t: ImmutableTable[Value],
-      row: Seq[Value],
-      eval: Datalog.Evaluation
-    ): ScalaValue = {
+  private def executeScala(t: ValueTable, row: Seq[Value], eval: Datalog.Evaluation): ScalaValue = {
     val argTerms = eval.evalArgs.map {
       case (Datalog.Var(v), ty) => s"""$$env("$v").asInstanceOf[${base.typeAsScala(ty).syntax}]"""
       case (Datalog.Constant(lit), _) =>
@@ -451,18 +407,14 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
     ScalaValue(scalaCompiler.compileAndLoadScala[Any](code))
   }
 
-  private def count(
-      t: ImmutableTable[Value],
-      comp: Datalog.CountAggregation,
-      lhs: Datalog.Term
-    ): ImmutableTable[Value] =
+  private def count(t: ValueTable, comp: Datalog.CountAggregation, lhs: Datalog.Term): ValueTable =
     throw IllegalDebugStateException("Not supported yet")
 
   private def custom(
-      t: ImmutableTable[Value],
+      t: ValueTable,
       comp: Datalog.CustomAggregation,
       lhs: Datalog.Term
-    ): ImmutableTable[Value] =
+    ): ValueTable =
     throw IllegalDebugStateException("Not supported yet")
 
 }
@@ -482,5 +434,4 @@ object AtomTableOps {
     case Datalog.TList(ty) => truechange.ListType(transType(ty))
     case _ => throw new IllegalArgumentException("NOT SUPPORTED YET")
   }
-
 }

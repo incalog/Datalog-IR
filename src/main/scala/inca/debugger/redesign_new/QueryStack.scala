@@ -40,6 +40,12 @@ class QueryStack {
     notifyStackChanged()
   }
 
+  def update(q: Query, idx: Int): Unit = {
+    // _stack = q :: _stack.tail
+    _stack = _stack.updated(size - idx, q)
+    notifyStackChanged()
+  }
+
   def addDerivative[T](init: QueryStack => T)(f: QueryStack => T): Derivative[QueryStack, T] = {
     val deriv = new Derivative[QueryStack, T](init(this), f)
     addObserver(deriv)

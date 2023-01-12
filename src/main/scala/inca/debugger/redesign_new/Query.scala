@@ -2,27 +2,15 @@ package inca.debugger.redesign_new
 
 import inca.backend.ir.Datalog
 import inca.debugger.table.ImmutableTable
-import inca.debugger.Value
 
 sealed trait QueryState
 object QueryState {
-  case object QueryEntry extends QueryState
-  case object RuleEntry extends QueryState
-  case object AtAtom extends QueryState
-  case object RuleEnd extends QueryState
+  case object RuleResult extends QueryState
+  case object RuleMerge extends QueryState
+  case object NextAtom extends QueryState
+  case object QueryUnion extends QueryState
   case object QueryEnd extends QueryState
   case object QueryResult extends QueryState
-
-//  case Subquery(_, _, _, _, Rule(_, _, Nil) :: _) =>
-//  ruleResult(top)
-//  case Subquery(_, _, _, _, Rule(_, _, AtomResult(_, _) :: _) :: _) =>
-//  ruleMerge(top)
-//  case Subquery(_, _, _, _, Rule(_, _, Atom(_) :: _) :: _) =>
-//  nextAtom(top)
-//  case Subquery(_, _, _, _, RuleResult(_, _) :: _) =>
-//  queryUnion(top)
-//  case Subquery(_, _, _, _, Nil) =>
-//  queryEnd(top)
 }
 
 sealed trait TableSign
@@ -34,7 +22,6 @@ sealed trait Query {
   def state: QueryState
 }
 object Query {
-
   def toTableless(q: Query): Query = q match {
     case Subquery(p, _, _, _, bodies) =>
       val tablelessBodies = bodies.map {
@@ -47,41 +34,43 @@ object Query {
         ImmutableTable.empty(Seq()),
         ImmutableTable.empty(Seq()),
         tablelessBodies)
-    case QueryResult(p, _, s) => QueryResult(p, ImmutableTable.empty(Seq()), s)
+    case QueryResult(p, _) => QueryResult(p, ImmutableTable.empty(Seq()))
   }
 }
 case class Subquery(
     predicate: Datalog.Name,
-    args: ImmutableTable[Value],
-    result: ImmutableTable[Value],
-    supplementary: ImmutableTable[Value],
+    args: ValueTable,
+    result: ValueTable,
+    supplementary: ValueTable,
     bodies: Seq[RuleEval])
     extends Query {
   override def state: QueryState =
-    if (bodies.isEmpty) QueryState.QueryEnd
-    else bodies.head.queryState
+    if (bodies.isEmpty)
+      QueryState.QueryEnd
+    else
+      bodies.head match {
+        case Rule(_, _, atoms) =>
+          if (atoms.isEmpty)
+            QueryState.RuleResult
+          else
+            atoms.head match {
+              case Atom(_) => QueryState.NextAtom
+              // val Subquery(p, args, result, sup, Rule(_, params, atoms) :: rulesTail) = q
+              case AtomResult(_, _) => QueryState.RuleMerge
+            }
+        case RuleResult(_, _) => QueryState.QueryUnion
+      }
 }
 
-case class QueryResult(
-    predicate: Datalog.Name,
-    t: ImmutableTable[Value],
-    sign: TableSign = PositiveTable)
-    extends Query {
+case class QueryResult(predicate: Datalog.Name, t: ValueTable) extends Query {
   override val state: QueryState = QueryState.QueryResult
 }
 
-sealed trait RuleEval {
-  def queryState: QueryState
-}
+sealed trait RuleEval
 case class Rule(predicate: Datalog.Name, params: Seq[Datalog.Param], atoms: Seq[AtomEval])
-    extends RuleEval {
-  override def queryState: QueryState =
-    if (atoms.isEmpty) QueryState.RuleEnd
-    else QueryState.AtAtom
-}
-case class RuleResult(t: ImmutableTable[Value], sign: TableSign = PositiveTable) extends RuleEval {
-  override val queryState: QueryState = QueryState.RuleEnd
-}
+    extends RuleEval
+case class RuleResult(t: ValueTable, sign: TableSign = PositiveTable) extends RuleEval
+
 sealed trait AtomEval
 case class Atom(a: Datalog.Atom) extends AtomEval
-case class AtomResult(t: ImmutableTable[Value], sign: TableSign = PositiveTable) extends AtomEval
+case class AtomResult(t: ValueTable, sign: TableSign = PositiveTable) extends AtomEval

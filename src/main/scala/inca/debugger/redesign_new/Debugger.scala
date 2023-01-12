@@ -6,10 +6,8 @@ import inca.backend.optimize.InlineSimpleRelations
 import inca.compiler.CompiledDatalogModule
 import inca.compiler.CompiledModule
 import inca.debugger.table.indexing.IndexCover
-import inca.debugger.table.ImmutableTable
 import inca.debugger.table.IndexedTableFactory
 import inca.debugger.DebuggerAPI
-import inca.debugger.IllegalDebugStateException
 import inca.debugger.Value
 import inca.runtime.context.QueryScope
 import inca.runtime.db.DatabaseInput
@@ -66,155 +64,150 @@ trait Debugger extends DebuggerAPI {
     // state.countBottomUp("path", ImmutableTable.unit())
   }
 
-  def entry(p: Predicate, args: ImmutableTable[Value]): Unit = {
+  def entry(p: Predicate, args: ValueTable): Unit = {
     val params = predicates(p).params
     val rules = predicates(p).bodies
-    val ruleEvals = rules.map { body =>
-      Rule(p, params, body.atoms.map(Atom).toList)
-    }.toList
-    val next = Subquery(p, args, ImmutableTable.empty(params.map(_.name)), args, ruleEvals)
-    state.addSeenQuery(p, args)
+    val ruleEvals = rules.map { body => Rule(p, params, body.atoms.map(Atom)) }
+    val next = Subquery(p, args, ValueTable.empty(params.map(_.name)), args, ruleEvals)
+    state.addNewQuery(p, args)
     queryStack.push(next)
     stepped()
   }
 
-  final protected def doStepIntoIR(): Boolean = {
-    val top = queryStack.top
-    top match {
-      case Subquery(_, _, _, _, Rule(_, _, Nil) :: _) =>
-        ruleResult(top)
-      case Subquery(_, _, _, _, Rule(_, _, AtomResult(_, _) :: _) :: _) =>
-        ruleMerge(top)
-      case Subquery(_, _, _, _, Rule(_, _, Atom(_) :: _) :: _) =>
-        nextAtom(top)
-      case Subquery(_, _, _, _, RuleResult(_, _) :: _) =>
-        queryUnion(top)
-      case Subquery(_, _, _, _, Nil) =>
-        queryEnd(top)
-    }
-    // rule merge
-    // rule result
-    // a rules
-    // q stable/iterate
-    // q union?
-//    top match {
-//      case Subquery(p, args, res, sup, current :: rules) => // currently executing a rule
-//        current match {
-//          case Rule(predicate, params, atoms) =>
-//            if (atoms.isEmpty) {
-//              // body has no atoms left -> R-result
-//            } else {
-//              // body has atoms left R-Step which will execute A-Step (executing other rules)
-//              nextAtom(top)
-//            }
-//          case RuleResult(t, s) =>
-//            // TODO should we have ruleresult?
-//            throw new IllegalStateException(
-//              "Rule Result should not occur"
-//            )
-//        }
-//      case Subquery(_, _, _, _, Seq()) =>
-//        // Q-Stable? Q-Iterate?
-//        queryEnd(top)
-//    }
-//    top.state match {
-//      case QueryState.QueryEntry => ???
-//      // rule step
-//      case QueryState.AtAtom => ???
-//
-//      // can be A-Into or A-Over or other simple
-//      case QueryState.RuleEnd =>
-//      // union
-//      // next rule?
-//      case QueryState.QueryEnd =>
-//        queryEnd(top)
-//      case QueryState.QueryResult =>
-//        queryResult(top)
-//    }
-    true
+  /*
+   * Reduction functions
+   */
+  private def ruleReduction(
+      sup: ValueTable,
+      rule: RuleEval,
+      stepOver: Boolean
+    ): (RuleEval, ValueTable) = rule match {
+    case Rule(p, params, atoms @ (Atom(_) :: _)) => // R-Step
+      val nextAtom = atomReduction(sup, atoms.head, stepOver)
+      (Rule(p, params, nextAtom +: atoms.tail), sup)
+
+    case Rule(p, params, atoms @ (AtomResult(_, _) :: _)) => // R-Merge
+      val AtomResult(v, s) = atoms.head
+      val nextSup = tableMerge(s, sup, v)
+      (Rule(p, params, atoms.tail), nextSup)
+
+    case Rule(_, params, Nil) => // R-Result
+      val projected = sup.project(params.map(_.name))
+      (RuleResult(projected), sup)
   }
 
-  final protected def ruleMerge(q: Query): Unit = {
-    val Subquery(p, args, result, sup, Rule(_, params, atoms) :: rulesTail) = q
-    val AtomResult(v, s) = atoms.head
-    val atomsTail = atoms.tail
-    val nextSup = merge(s, sup, v)
-    val next = Subquery(p, args, result, nextSup, Rule(p, params, atomsTail) :: rulesTail)
-    queryStack.update(next)
-  }
-
-  final protected def ruleResult(q: Query): Unit = {
-    val Subquery(p, args, result, sup, Rule(_, params, Nil) :: ruleEvals) = q
-    val projected = sup.project(params.map(_.name))
-    val next = Subquery(p, args, result, sup, RuleResult(projected) :: ruleEvals)
-    queryStack.update(next)
-  }
-
-  final def merge(
-      sign: TableSign,
-      t1: ImmutableTable[Value],
-      t2: ImmutableTable[Value]
-    ): ImmutableTable[Value] = sign match {
-    case PositiveTable => t1.join(t2)
-    case NegativeTable => t1.antiJoin(t2)
-  }
-
-  // either A-Into, A-Skip or atom rules that process non-call atoms
-  final protected def nextAtom(q: Query): Unit = {
-    val Subquery(p, args, result, sup, Rule(_, params, atoms) :: rulesTail) = q
-    val Atom(atom) = atoms.head
-    val atomsTail = atoms.tail
+  private def atomReduction(sup: ValueTable, atomEval: AtomEval, stepOver: Boolean): AtomEval = {
+    val Atom(atom) = atomEval
     atom match {
-      case Datalog.Call(callee, calleeArgs, _, neg) =>
-        val calleeArgBindings = prepareArgBindings(sup, callee, calleeArgs)
-        val unseenQueries = state.filterSeenQueries(callee, calleeArgBindings)
-        if (unseenQueries.isEmpty) { // A-Skip
-          val calleeResult =
-            if (isCyclic(callee))
-              state.readTopDown(callee, calleeArgBindings)
-            else
-              state.readBottomUp(callee, calleeArgBindings)
-          val calleeParams = predicates(callee).params
-          val nextSup =
-            if (!neg)
-              opJoinBodyAndPred(sup, calleeArgs, calleeParams, calleeResult, (x, y) => x.join(y))
-            else
-              opJoinBodyAndPred(
-                sup,
-                calleeArgs,
-                calleeParams,
-                calleeResult,
-                (x, y) => x.antiJoin(y))
-
-          val next = Subquery(p, args, result, nextSup, Rule(p, params, atomsTail) :: rulesTail)
-          queryStack.update(next)
-        } else { // A-Into
-          val calleeParams = predicates(callee).params
-          val calleeRules = predicates(callee).bodies.map { body =>
-            Rule(callee, calleeParams, body.atoms.map(Atom).toList)
-          }.toList
-          val next = Subquery(
-            callee,
-            unseenQueries,
-            ImmutableTable.empty(calleeParams.map(_.name)),
-            unseenQueries,
-            calleeRules)
-          queryStack.push(next)
+      case call @ Datalog.Call(callee, calleeArgTerms, _, _) =>
+        val calleeArgs = prepareArgTable(sup, callee, calleeArgTerms)
+        if (stepOver) {
+          throw new IllegalArgumentException("")
+        } else {
+          // A-Into or A-Skip
+          val unseenQueries = state.addNewQuery(callee, calleeArgs)
+          if (unseenQueries.nonEmpty) { // A-Into
+            atomInto(callee, unseenQueries)
+            atomEval
+          } else { // A-Skip
+            atomSkip(sup, calleeArgs, call)
+          }
         }
-
       case _ =>
+        if (stepOver) {
+          throw new IllegalArgumentException("Cannot step-over a non-call atom")
+        }
+        // this design is following the formal semantics but is inefficient
+        // TODO we want to avoid unnecessary joins and directly process and change the supplementary
         val nextSup = atomOps.atom(sup, atom)
-        val next = Subquery(p, args, result, nextSup, Rule(p, params, atomsTail) :: rulesTail)
-        queryStack.update(next)
+        AtomResult(nextSup, PositiveTable)
     }
   }
 
-  protected def prepareArgBindings(
-      t: ImmutableTable[Value],
+  // has a side-effect as it pushes a new subquery onto the query stack
+  private def atomInto(pred: Datalog.Name, args: ValueTable): Unit = {
+    val params = predicates(pred).params
+    val bodies = predicates(pred).bodies
+    val ruleEvals = bodies.map { body => Rule(pred, params, body.atoms.map(Atom)) }
+    // TODO do we need to blacklist for every call or only non-rec ones?
+    state.insertBlacklist(pred, args)
+    val emptyResult = ValueTable.empty(params.map(_.name))
+    val newSubquery = Subquery(pred, args, emptyResult, args, ruleEvals)
+    queryStack.push(newSubquery)
+  }
+
+  private def atomSkip(sup: ValueTable, args: ValueTable, call: Datalog.Call): AtomEval = {
+    val calleeResult =
+      if (isCyclic(call.name)) state.readTopDown(call.name, args)
+      else state.readBottomUp(call.name, args)
+    val result = fitToSupplementary(call.name, call.args, calleeResult, sup)
+    val sign = if (call.neg) NegativeTable else PositiveTable
+    AtomResult(result, sign)
+  }
+
+  private def queryReduction(query: Query, stepOver: Boolean): Query = query match {
+    case Subquery(pred, args, result, sup, rules @ Rule(_, _, _) +: _) => // Q-Step
+      val (nextRule, nextSup) = ruleReduction(sup, rules.head, stepOver)
+      Subquery(pred, args, result, nextSup, nextRule +: rules.tail)
+
+    case Subquery(pred, args, result, _, rules @ RuleResult(ruleResult, _) +: _) => // Q-Union
+      Subquery(pred, args, result.union(ruleResult), args, rules.tail)
+
+    case Subquery(pred, args, result, _, Nil) =>
+      if (isCyclic(pred)) {
+        if (isStable(query)) { // Q-Stable
+          queryStable(query)
+        } else { // Q-Iterate
+          val params = predicates(pred).params
+          val rules = predicates(pred).bodies
+          val ruleEvals = rules.map { body => Rule(pred, params, body.atoms.map(Atom)) }
+          // Q-Iterate will only be called for non-cyclic predicates
+          // hence we only store top-down derived tuples for cyclic predicates
+          state.insertTopDown(pred, result)
+          Subquery(pred, args, result, args, ruleEvals)
+        }
+      } else {
+        // non-cyclic predicates are always stable after a single iteration => Q-Stable
+        // this optimization is not present in the formal semantics
+        queryStable(query)
+      }
+    case QueryResult(_, result) =>
+      // This rule is not present in the formal semantics
+      // It is required because we use a querystack instead of nested subqueries
+      queryStack.pop()
+      replaceCallWithAtomResult(queryStack.top, result)
+  }
+
+  private def isStable(query: Query): Boolean = query match {
+    case Subquery(p, args, result, _, rules) =>
+      if (rules.isEmpty)
+        !state.isUnstable(p, args, result)
+      else false
+    case QueryResult(_, _) => false
+  }
+
+  private def queryStable(q: Query): Query = {
+    val Subquery(callee, calleeArgs, calleeResult, _, Seq()) = q
+    state.deleteBlacklist(callee, calleeArgs)
+    QueryResult(callee, calleeResult)
+  }
+
+  /*
+   * Helper Functions
+   */
+  private def tableMerge(sign: TableSign, t1: ValueTable, t2: ValueTable): ValueTable =
+    sign match {
+      case PositiveTable => t1.join(t2)
+      case NegativeTable => t1.antiJoin(t2)
+    }
+
+  // TODO reimplement to mimic formal semantics?
+  private def prepareArgTable(
+      t: ValueTable,
       p: Predicate,
       args: Seq[Datalog.Term],
       resultIndices: Set[IndexCover] = Set()
-    ): ImmutableTable[Value] = {
+    ): ValueTable = {
     val params = predicates(p).params.map(_.name)
 
     // prepare argsTable
@@ -241,95 +234,90 @@ trait Debugger extends DebuggerAPI {
     }
   }
 
-  private def queryUnion(top: Query): Unit = {
-    val Subquery(p, args, result, _, RuleResult(ruleResult, _) :: ruleEvals) = top
-    val next = Subquery(p, args, result.union(ruleResult), args, ruleEvals)
-    queryStack.update(next)
+  private def replaceCallWithAtomResult(query: Query, calleeResult: ValueTable): Query = {
+    val Subquery(pred, args, result, sup, rules) = query
+    val Rule(_, params, atoms) = rules.head
+    val Atom(Datalog.Call(callee, calleeTerms, _, neg)) = atoms.head
+    val atomTable = fitToSupplementary(callee, calleeTerms, calleeResult, sup)
+    val tableSign = if (neg) NegativeTable else PositiveTable
+    val rule = Rule(pred, params, AtomResult(atomTable, tableSign) +: atoms.tail)
+    Subquery(pred, args, result, sup, rule +: rules.tail)
   }
 
-  private def queryEnd(q: Query): Unit = {
-    val Subquery(p, args, result, _, Seq()) = q
-    if (isCyclic(p)) {
-      state.insertTopDown(p, result)
-      state.deleteBlacklist(p, args)
-      if (isStable(q)) { // Q-Stable
-        queryStable(q)
-      } else { // Q-Iterate
-        queryIterate(q)
-      }
-    } else { // non-cyclic predicates are always stable after a single iteration => Q-Stable
-      queryStable(q)
-    }
-  }
-
-  private def isStable(q: Query): Boolean = {
-    q match {
-      case Subquery(p, args, _, _, ruleEvals) =>
-        if (ruleEvals.isEmpty)
-          !state.isUnstable(p, args)
-        else false
-      case QueryResult(_, _, _) => false
-    }
-  }
-
-  final protected def queryIterate(q: Query): Unit = {
-    val Subquery(p, args, result, _, Seq()) = q
-    val params = predicates(p).params
-    val rules = predicates(p).bodies
-    val ruleEvals = rules.map { body =>
-      Rule(p, params, body.atoms.map(Atom))
-    }
-    val next = Subquery(p, args, result, args, ruleEvals)
-    state.insertTopDown(p, result)
-    queryStack.update(next)
-  }
-
-  final protected def queryStable(q: Query): Unit = {
-    // pop from stack and replace first atom with atomtable
-    val Subquery(callee, _, calleeResult, _, Seq()) = q
-
-    queryStack.pop()
-    if (queryStack.isEmpty) {
-      queryStack.push(QueryResult(callee, calleeResult))
-      return
-    }
-
-    val Subquery(caller, callerArgs, callerResult, callerSup, callerRuleEvals) = queryStack.top
-    val Rule(_, params, Atom(Datalog.Call(_, calleeTerms, _, neg)) :: atomEvals) =
-      callerRuleEvals.head
-    val calleeParams = predicates(callee).params
-    val columnsSubst = calleeParams.zip(calleeTerms).flatMap {
+  private def fitToSupplementary(
+      pred: Predicate,
+      terms: Seq[Datalog.Term],
+      result: ValueTable,
+      sup: ValueTable
+    ): ValueTable = {
+    val params = predicates(pred).params
+    val columnsSubst = params.zip(terms).flatMap {
       case (param, Datalog.Var(argName)) => Some(param.name -> argName)
       case _ => None
     }.toMap
-
-    val renamedColumnsOfPatternTable = calleeResult.columns.flatMap(columnsSubst.get)
-    val indexCovers =
-      indexedTableFactory.constructIndexCovers(callerSup, renamedColumnsOfPatternTable)
-
-    val v = calleeResult.projectAndRename(columnsSubst, indexCovers)
-    val tableSign = if (neg) NegativeTable else PositiveTable
-    val nextRuleEval = Rule(caller, params, AtomResult(v, tableSign) :: atomEvals)
-    val next =
-      Subquery(caller, callerArgs, callerResult, callerSup, nextRuleEval +: callerRuleEvals.tail)
-    queryStack.update(next)
+    val renamedColumns = result.columns.flatMap(columnsSubst.get)
+    val indexCovers = indexedTableFactory.constructIndexCovers(sup, renamedColumns)
+    result.projectAndRename(columnsSubst, indexCovers)
   }
 
-  final protected def doStepOverIR(): Boolean = {
-    val top = queryStack.top
-    val predCyclic = isCyclic(top.predicate)
-    if (breakpointHandler.breakpointReachableInPredicate(top, predCyclic)) {
-      return false
-    }
-    top.state match {
-      case QueryState.QueryEntry => ???
-      case QueryState.RuleEntry => ???
-      case QueryState.AtAtom => ???
-      case QueryState.RuleEnd => ???
-      case QueryState.QueryEnd => ???
-    }
-  }
+//  final protected def doStepOverIR(): Boolean = {
+//    val top = queryStack.top
+//    val predCyclic = isCyclic(top.predicate)
+//    if (breakpointHandler.breakpointReachableInPredicate(top, predCyclic)) {
+//      return false
+//    }
+//    currentCallAtom(top) match {
+//      case Some((callee, args)) =>
+//        if (breakpointHandler.breakpointReachableFromCallee(callee)) {
+//          // cannot step over
+//          return false
+//        }
+//        stepOverCall(top)
+//      case None => doStepIntoIR()
+//    }
+//    true
+//  }
+//
+//  private def currentCallAtom(q: Query): Option[(Datalog.Name, Seq[Datalog.Term])] = q.state match {
+//    case QueryState.NextAtom =>
+//      val Subquery(_, _, _, _, rules) = q
+//      val Rule(_, _, atoms) = rules.head
+//      val Atom(atom) = atoms.head
+//      atom.asCall
+//    case _ => None
+//  }
+//
+//  private def stepOverCall(q: Query): Unit = {
+//    val Subquery(_, _, _, sup, rules) = q
+//    val Rule(_, _, atoms) = rules.head
+//    val Atom(atom) = atoms.head
+//    val (callee, calleeArgTerms) = atom.asCall.get
+//    val calleeArgs = prepareArgBindings(sup, callee, calleeArgTerms)
+//    val bottomUpCalleeResult = state.readBlacklistedBottomUp(callee, calleeArgs)
+//    val calleeResult = bottomUpCalleeResult.union(state.readTopDown(callee, calleeArgs))
+//    replaceCallWithAtomResult(queryStack.top, calleeResult)
+//    // TODO this is not correct we want to replace the call with an atom result table
+//    // joinEvalResultAndCall(callee, calleeResult.join(state.readTopDown(callee, calleeArgs)))
+//  }
 
+  private def reduce(stepOver: Boolean): Boolean = {
+    val query = queryStack.top
+    val stackHeight = queryStack.size
+    val newQuery = queryReduction(query, stepOver)
+
+    if (stackHeight > queryStack.size) {
+      // queryReduction popped from stack (queryresult rule)
+      queryStack.update(newQuery)
+    } else {
+      // this is needed because A-Into pushes to the stack
+      // hence we would overwrite the new subquery and not the original one
+      queryStack.update(newQuery, stackHeight)
+    }
+    true
+
+  }
+  final protected def doStepIntoIR(): Boolean = reduce(stepOver = false)
+  final protected def doStepOverIR(): Boolean = reduce(stepOver = true)
   final protected def doStepOutIR(): Boolean = ???
 
   override def isFinished: Boolean =
@@ -342,51 +330,4 @@ trait Debugger extends DebuggerAPI {
     dependencyGraph.cycles.exists(_.contains(predicate))
   }
 
-  private def joinEvalResultAndCall(
-      callee: Predicate,
-      calleeTable: ImmutableTable[Value]
-    ): Unit = {
-    val top = queryStack.top
-    top match {
-      case Subquery(p, args, result, sup, ruleEvals) =>
-        val Rule(_, params, atoms) :: remRules = ruleEvals
-        val atomsHead :: atomsTail = atoms
-        val (calleeArgs, neg) = atomsHead match {
-          case Atom(Datalog.Call(_, args, _, neg)) => (args, neg)
-          case _ =>
-            throw IllegalDebugStateException(
-              s"Calling atom has to be indeed a call, but was $atomsHead instead")
-        }
-        val nextSup =
-          if (!neg)
-            opJoinBodyAndPred(sup, calleeArgs, params, calleeTable, (x, y) => x.join(y))
-          else
-            opJoinBodyAndPred(sup, calleeArgs, params, calleeTable, (x, y) => x.antiJoin(y))
-        val next = Subquery(p, args, result, nextSup, Rule(p, params, atomsTail) :: remRules)
-        queryStack.update(next)
-      case _ =>
-        throw IllegalDebugStateException("Evaluation result has to be on top of Subquery")
-    }
-  }
-
-  protected def opJoinBodyAndPred(
-      bodyResult: ImmutableTable[Value],
-      args: Seq[Datalog.Term],
-      params: Seq[Datalog.Param],
-      predResult: ImmutableTable[Value],
-      op: (ImmutableTable[Value], ImmutableTable[Value]) => ImmutableTable[Value]
-    ): ImmutableTable[Value] = {
-    // join bodyTable of caller with pattern table of callee
-    val columnsSubst = params.zip(args).flatMap {
-      case (param, Datalog.Var(argName)) => Some(param.name -> argName)
-      case _ => None
-    }.toMap
-
-    val renamedColumnsOfPatternTable = predResult.columns.flatMap(columnsSubst.get)
-    val indexCovers =
-      indexedTableFactory.constructIndexCovers(bodyResult, renamedColumnsOfPatternTable)
-
-    val renamedPatternTable = predResult.projectAndRename(columnsSubst, indexCovers)
-    op(bodyResult, renamedPatternTable)
-  }
 }
