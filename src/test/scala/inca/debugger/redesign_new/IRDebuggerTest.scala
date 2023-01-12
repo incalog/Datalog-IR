@@ -87,8 +87,6 @@ class IRDebuggerTest extends AnyFunSuite {
 
   def stepTillFinish(debugger: Debugger): Unit = {
     while (!debugger.isFinished) {
-      println(debugger.queryStack.top)
-      println("=======================================")
       debugger.stepInto()
     }
   }
@@ -387,14 +385,10 @@ class IRDebuggerTest extends AnyFunSuite {
       debugger,
       edgeTable(Seq("temp", "to"), 2 -> 3, 2 -> 6, 4 -> 6)
     )
-    debugger.stepOver() // rule merge
-    debugger.stepOver() // rule result
-    debugger.stepOver() // query union
-    debugger.stepOver() // query end
 
-    // TODO current implement requires an additional iteration even though the final result has been reached
-    // assert(debugger.isFinished)
-    // assertExpectedTable(debugger, "two", args)
+    stepTillFinish(debugger)
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "two", args)
   }
 
   test("step over rec pattern (not part of scc)") {
@@ -402,21 +396,16 @@ class IRDebuggerTest extends AnyFunSuite {
       initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
     val args = ValueTable.unit()
     debugger.entry("query", args)
-    debugger.stepOver() // step over computed
+    debugger.stepInto() // step over computed
+    debugger.stepInto() // rule merge
     debugger.stepOver() // step over path
     assertAtomResult(
       debugger,
       edgeTable(Seq("from", "to"), 1 -> 2, 1 -> 3, 1 -> 4, 1 -> 5, 1 -> 6, 1 -> 7)
     )
-
-    debugger.stepOver() // rule merge
-    debugger.stepOver() // rule result
-    debugger.stepOver() // query union
-    debugger.stepOver() // query end
-
-    // TODO current implement requires an additional iteration even though the final result has been reached
-    // assert(debugger.isFinished)
-    // assertExpectedTable(debugger, "query", args)
+    stepTillFinish(debugger)
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "query", args)
   }
 
   test("simple path step over recursive (depth 1)") {
@@ -425,85 +414,70 @@ class IRDebuggerTest extends AnyFunSuite {
     val args = ValueTable(Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.state.insertBlacklist("path", args)
     debugger.entry("path", args)
-    debugger.stepInto()
-    debugger.stepInto()
-    debugger.stepInto()
-    debugger.stepInto()
-    debugger.stepInto()
-    debugger.stepOver()
-    assertCurrentBody(
+    debugger.stepInto() // ext call
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // rule result
+    debugger.stepInto() // query union
+    debugger.stepInto() // ext call
+    debugger.stepInto() // rule merge
+    debugger.stepOver() // path call
+    assertAtomResult(
       debugger,
-      ValueTable(
-        Seq("from", "temp", "to"),
-        Seq(
-          Seq(ScalaValue(1), ScalaValue(2), ScalaValue(1)),
-          Seq(ScalaValue(1), ScalaValue(2), ScalaValue(3))
-        ))
+      edgeTable(Seq("temp", "to"), 2 -> 1, 2 -> 3)
     )
     stepTillFinish(debugger)
+    assert(debugger.isFinished)
     assertExpectedTable(debugger, "path", args)
   }
 
   test("simple path step over recursive (depth 1) 2") {
     val input = constructInput(Seq(1 -> 2, 2 -> 3, 3 -> 2, 3 -> 1))
-    val debugger =
-      initDebugger(module(pathPatternExt), new DataModel(), input)
+    val debugger = initDebugger(module(pathPatternExt), new DataModel(), input)
     val args = ValueTable(Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.state.insertBlacklist("path", args)
     debugger.entry("path", args)
-    debugger.stepInto()
-    debugger.stepInto()
-    debugger.stepInto()
-    debugger.stepInto()
-    debugger.stepInto()
-    debugger.stepOver()
-    assertCurrentBody(
+    debugger.stepInto() // ext call
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // rule result
+    debugger.stepInto() // query union
+    debugger.stepInto() // ext call
+    debugger.stepInto() // rule merge
+    debugger.stepOver() // path call
+    assertAtomResult(
       debugger,
-      ValueTable(
-        Seq("from", "temp", "to"),
-        Seq(
-          Seq(ScalaValue(1), ScalaValue(2), ScalaValue(1)),
-          Seq(ScalaValue(1), ScalaValue(2), ScalaValue(3)),
-          Seq(ScalaValue(1), ScalaValue(2), ScalaValue(2))
-        )
-      )
+      edgeTable(Seq("temp", "to"), 2 -> 1, 2 -> 3, 2 -> 2)
     )
     stepTillFinish(debugger)
+    assert(debugger.isFinished)
     assertExpectedTable(debugger, "path", args)
   }
 
   test("simple path step over recursive (depth 2)") {
-    val input = constructInput(Seq(1 -> 2, 2 -> 3, 3 -> 2, 3 -> 1))
-    val debugger =
-      initDebugger(module(pathPatternExt), new DataModel(), input)
+    val input = constructInput(Seq(1 -> 2, 2 -> 3, 3 -> 1))
+    val debugger = initDebugger(module(pathPatternExt), new DataModel(), input)
     val args = ValueTable(Seq("from"), Seq(Seq(ScalaValue(1))))
     debugger.state.insertBlacklist("path", args)
     debugger.entry("path", args)
-    debugger.stepInto()
-    debugger.stepInto()
-    debugger.stepInto()
-    debugger.stepInto()
-    debugger.stepInto()
-    debugger.stepInto() // path(2, ?) entry
-
-    debugger.stepInto()
-    debugger.stepInto()
-    debugger.stepInto()
-    debugger.stepInto()
-    debugger.stepInto()
-    debugger.stepOver() // path(3, ?) call
-
-    assertCurrentBody(
+    debugger.stepInto() // ext call
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // rule result
+    debugger.stepInto() // query union
+    debugger.stepInto() // ext call
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // path call
+    debugger.stepInto() // ext call
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // rule result
+    debugger.stepInto() // query union
+    debugger.stepInto() // ext call
+    debugger.stepInto() // rule merge
+    debugger.stepOver() // path call
+    assertAtomResult(
       debugger,
-      ValueTable(
-        Seq("from", "temp", "to"),
-        Seq(
-          Seq(ScalaValue(2), ScalaValue(3), ScalaValue(1)),
-          Seq(ScalaValue(2), ScalaValue(3), ScalaValue(2))
-        )
-      )
+      edgeTable(Seq("temp", "to"), 3 -> 1)
     )
     stepTillFinish(debugger)
+    assert(debugger.isFinished)
     assertExpectedTable(debugger, "path", args)
   }
 
@@ -512,33 +486,18 @@ class IRDebuggerTest extends AnyFunSuite {
       initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
     val args = ValueTable.unit()
     debugger.entry("query", args)
-    debugger.stepInto() // step into pattern
-    debugger.stepInto() // step into body
-    debugger.stepOver() // step over computed
-    debugger.stepInto() // step into path call
-    debugger.stepInto() // step into pattern
-    debugger.stepOver() // step over first body
-    debugger.stepInto() // step to edge call
-    debugger.stepOver() // step over edge call
-    debugger.stepOver() // step over recursive path call
-
-    val expected = ValueTable(
-      Seq("from", "temp", "to"),
-      Seq(
-        Seq(ScalaValue(1), ScalaValue(2), ScalaValue(3)),
-        Seq(ScalaValue(1), ScalaValue(2), ScalaValue(6)),
-        Seq(ScalaValue(1), ScalaValue(2), ScalaValue(7)),
-        Seq(ScalaValue(1), ScalaValue(4), ScalaValue(6)),
-        Seq(ScalaValue(1), ScalaValue(4), ScalaValue(7))
-      )
-    )
-    assertCurrentBody(debugger, expected)
-
-    debugger.stepOver() // needed to step to pattern exit (of path call)
-    debugger.stepOver() // needed to step to body exit
-    debugger.stepOver() // needed to step to pattern exit (of notTargetof)
-    debugger.stepOver() // pop pattern exit (of notTargetof)
-    debugger.stepOver()
+    debugger.stepInto() // computed
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // path call
+    debugger.stepOver() // over edge call
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // rule result
+    debugger.stepInto() // query union
+    debugger.stepOver() // over edge call
+    debugger.stepInto() // rule merge
+    debugger.stepOver() // path call
+    assertAtomResult(debugger, edgeTable(Seq("temp", "to"), 2 -> 3, 2 -> 6, 2 -> 7, 4 -> 6, 4 -> 7))
+    stepTillFinish(debugger)
     assert(debugger.isFinished)
     assertExpectedTable(debugger, "query", args)
   }
@@ -548,38 +507,25 @@ class IRDebuggerTest extends AnyFunSuite {
       initDebugger(module(query, nodePattern, pathPattern, sevenEdgePattern), emptyDataModel)
     val args = ValueTable.unit()
     debugger.entry("query", args)
-    debugger.stepInto() // step into pattern
-    debugger.stepInto() // step into body
-    debugger.stepOver() // step over computed
-    debugger.stepInto() // step into path call
-    debugger.stepInto() // step into pattern
-    debugger.stepOver() // step over first body
-    debugger.stepInto() // step to edge call
-    debugger.stepOver() // step over edge call
-    debugger.stepInto() // step into recursive path call
-    debugger.stepInto() // step into pattern
-    debugger.stepOver() // step over first body
-    debugger.stepInto() // step to edge call
-    debugger.stepOver() // step over edge call
-    debugger.stepOver() // step over recursive path call
-
-    val expected = ValueTable(
-      Seq("from", "temp", "to"),
-      Seq(
-        Seq(ScalaValue(2), ScalaValue(6), ScalaValue(7)),
-        Seq(ScalaValue(4), ScalaValue(6), ScalaValue(7))
-      )
-    )
-    assertCurrentBody(debugger, expected)
-
-    debugger.stepOver() // needed to step to pattern exit (of path call)
-    debugger.stepOver() // needed to step to pattern exit (of path call)
-    debugger.stepOver() // needed to step to pattern exit (of path call)
-    debugger.stepOver() // needed to step to body exit
-    debugger.stepOver() // needed to step to pattern exit (of notTargetof)
-    debugger.stepOver() // pop pattern exit (of notTargetof)
-    debugger.stepOver()
-    debugger.stepOver()
+    debugger.stepInto() // computed
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // path call
+    debugger.stepOver() // over edge call
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // rule result
+    debugger.stepInto() // query union
+    debugger.stepOver() // over edge call
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // path call
+    debugger.stepOver() // over edge call
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // rule result
+    debugger.stepInto() // query union
+    debugger.stepOver() // over edge call
+    debugger.stepInto() // rule merge
+    debugger.stepOver() // path call
+    assertAtomResult(debugger, edgeTable(Seq("temp", "to"), 6 -> 7))
+    stepTillFinish(debugger)
     assert(debugger.isFinished)
     assertExpectedTable(debugger, "query", args)
   }
@@ -589,39 +535,25 @@ class IRDebuggerTest extends AnyFunSuite {
       initDebugger(module(query, nodePattern, pathPattern, cycleEdgePattern), emptyDataModel)
     val args = ValueTable.unit()
     debugger.entry("query", args)
-    debugger.stepInto() // step into pattern
-    debugger.stepInto() // step into body
-    debugger.stepOver() // step over computed
-    debugger.stepInto() // step into negated path call
-    debugger.stepInto() // step into pattern
-    debugger.stepOver() // step over first body
-    debugger.stepInto() // step to edge call
-    debugger.stepOver() // step over edge call
-    debugger.stepInto() // step into recursive path call
-    debugger.stepInto() // step into pattern
-    debugger.stepOver() // step over first body
-    debugger.stepInto() // step to edge call
-    debugger.stepOver() // step over edge call
-    debugger.stepOver() // step over recursive path call
-
-    val expected = ValueTable(
-      Seq("from", "temp", "to"),
-      Seq(
-        Seq(ScalaValue(2), ScalaValue(3), ScalaValue(1)),
-        Seq(ScalaValue(2), ScalaValue(6), ScalaValue(7)),
-        Seq(ScalaValue(4), ScalaValue(6), ScalaValue(7))
-      )
-    )
-    assertCurrentBody(debugger, expected)
-
-    debugger.stepOver() // needed to step to pattern exit (of path call)
-    debugger.stepOver() // needed to step to pattern exit (of path call)
-    debugger.stepOver() // needed to step to pattern exit (of path call)
-    debugger.stepOver() // needed to step to body exit
-    debugger.stepOver() // needed to step to pattern exit (of notTargetof)
-    debugger.stepOver() // pop pattern exit (of notTargetof)
-    debugger.stepOver()
-    debugger.stepOver()
+    debugger.stepInto() // computed
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // path call
+    debugger.stepOver() // over edge call
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // rule result
+    debugger.stepInto() // query union
+    debugger.stepOver() // over edge call
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // path call
+    debugger.stepOver() // over edge call
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // rule result
+    debugger.stepInto() // query union
+    debugger.stepOver() // over edge call
+    debugger.stepInto() // rule merge
+    debugger.stepOver() // path call
+    assertAtomResult(debugger, edgeTable(Seq("temp", "to"), 6 -> 7, 3 -> 1))
+    stepTillFinish(debugger)
     assert(debugger.isFinished)
     assertExpectedTable(debugger, "query", args)
   }

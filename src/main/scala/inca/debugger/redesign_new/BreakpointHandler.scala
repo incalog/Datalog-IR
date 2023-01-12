@@ -19,20 +19,20 @@ class BreakpointHandler(dependencyGraph: DependencyGraph) {
   private val breakpoints: mutable.Set[IRBreakpoint] = mutable.Set()
   private val evalPointToBreakpoints: mutable.MultiDict[Query, IRBreakpoint] =
     mutable.MultiDict()
-  private val predsWithBreakpoint: mutable.MultiSet[String] = mutable.MultiSet()
+  private val predsWithBreakpoint: mutable.MultiSet[Predicate] = mutable.MultiSet()
 
   def addBreakpoint(bp: IRBreakpoint): Unit = {
     val normalized = bp.normalize
     breakpoints += normalized
     evalPointToBreakpoints += normalized.stopAt -> normalized
-    predsWithBreakpoint += normalized.stopAt.predicate
+    predsWithBreakpoint += normalized.stopAt.pred
   }
 
   def removeBreakpoint(bp: IRBreakpoint): Unit = {
     val normalized = bp.normalize
     breakpoints -= normalized
     evalPointToBreakpoints -= normalized.stopAt -> normalized
-    predsWithBreakpoint -= normalized.stopAt.predicate
+    predsWithBreakpoint -= normalized.stopAt.pred
   }
 
   def clearBreakpoints(): Unit = {
@@ -57,7 +57,7 @@ class BreakpointHandler(dependencyGraph: DependencyGraph) {
     bps.exists(_.cond())
   }
 
-  def breakpointReachableFromCallee(callee: String): Boolean = {
+  def breakpointReachableFromCallee(callee: Predicate): Boolean = {
     val transitivelyReachable = dependencyGraph.transitvelyReachable(callee)
     predsWithBreakpoint.exists(transitivelyReachable.contains)
   }
@@ -66,11 +66,11 @@ class BreakpointHandler(dependencyGraph: DependencyGraph) {
       query: Query,
       considerCyclic: Boolean
     ): Boolean = {
-    var transitivelyReachable = dependencyGraph.transitvelyReachable(query.predicate)
+    var transitivelyReachable = dependencyGraph.transitvelyReachable(query.pred)
     if (considerCyclic)
-      transitivelyReachable += query.predicate
+      transitivelyReachable += query.pred
     else
-      transitivelyReachable -= query.predicate
+      transitivelyReachable -= query.pred
     if (predsWithBreakpoint.exists(transitivelyReachable.contains))
       return true
 

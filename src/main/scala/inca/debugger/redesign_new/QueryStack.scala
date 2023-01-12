@@ -57,5 +57,5 @@ class QueryStack {
     _observers.foreach(_(this))
 
   override def toString: String =
-    _stack.map(_.predicate).mkString("[", ", ", "]")
+    _stack.map(_.pred).mkString("[", ", ", "]")
 }

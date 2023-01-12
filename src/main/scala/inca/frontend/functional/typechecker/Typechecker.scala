@@ -15,7 +15,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   /*
    * Module
    */
-
   def typecheck(module: Module): Unit = scopedTypeContext {
     for {
       imp <- module.imports
@@ -638,6 +637,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case _ => TAny
   }
 
+  // def foo(x: Int): Int = x + 1 // call-by-value
+  // foo(5 + 2) -> foo(7) -> 7 + 1 -> 8
+  // def foo(x: => Int): Int = x + 1 // call-by-name
+  // foo(5 + 2) -> (5 + 2) + 1 -> 7 + 1 -> 8
+
   def assignType(term: Typeable[Type] with SourceLocation)(computeType: => Type): Type = {
     val inferred = computeType
     term.typ match {
@@ -678,5 +682,4 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         newTarget
     }
   }
-
 }

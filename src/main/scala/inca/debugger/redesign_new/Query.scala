@@ -18,7 +18,7 @@ case object PositiveTable extends TableSign
 case object NegativeTable extends TableSign
 
 sealed trait Query {
-  def predicate: Datalog.Name
+  def pred: Predicate
   def state: QueryState
 }
 object Query {
@@ -38,7 +38,7 @@ object Query {
   }
 }
 case class Subquery(
-    predicate: Datalog.Name,
+    pred: Predicate,
     args: ValueTable,
     result: ValueTable,
     supplementary: ValueTable,
@@ -55,20 +55,18 @@ case class Subquery(
           else
             atoms.head match {
               case Atom(_) => QueryState.NextAtom
-              // val Subquery(p, args, result, sup, Rule(_, params, atoms) :: rulesTail) = q
               case AtomResult(_, _) => QueryState.RuleMerge
             }
         case RuleResult(_, _) => QueryState.QueryUnion
       }
 }
 
-case class QueryResult(predicate: Datalog.Name, t: ValueTable) extends Query {
+case class QueryResult(pred: Predicate, t: ValueTable) extends Query {
   override val state: QueryState = QueryState.QueryResult
 }
 
 sealed trait RuleEval
-case class Rule(predicate: Datalog.Name, params: Seq[Datalog.Param], atoms: Seq[AtomEval])
-    extends RuleEval
+case class Rule(pred: Predicate, params: Seq[Datalog.Param], atoms: Seq[AtomEval]) extends RuleEval
 case class RuleResult(t: ValueTable, sign: TableSign = PositiveTable) extends RuleEval
 
 sealed trait AtomEval

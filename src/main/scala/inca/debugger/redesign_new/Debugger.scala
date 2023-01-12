@@ -99,10 +99,16 @@ trait Debugger extends DebuggerAPI {
   private def atomReduction(sup: ValueTable, atomEval: AtomEval, stepOver: Boolean): AtomEval = {
     val Atom(atom) = atomEval
     atom match {
-      case call @ Datalog.Call(callee, calleeArgTerms, _, _) =>
-        val calleeArgs = prepareArgTable(sup, callee, calleeArgTerms)
-        if (stepOver) {
-          throw new IllegalArgumentException("")
+      case call @ Datalog.Call(callee, calleeTerms, _, neg) =>
+        val calleeArgs = prepareArgTable(sup, callee, calleeTerms)
+        if (stepOver) { // A-Over and A-OverRecursive
+          val bottomUpTable = state.readBlacklistedBottomUp(callee, calleeArgs)
+          val result =
+            if (isCyclic(callee)) bottomUpTable.union(state.readTopDown(callee, calleeArgs))
+            else bottomUpTable
+          val table = fitToSupplementary(callee, calleeTerms, result, sup)
+          val sign = if (neg) NegativeTable else PositiveTable
+          AtomResult(table, sign)
         } else {
           // A-Into or A-Skip
           val unseenQueries = state.addNewQuery(callee, calleeArgs)
@@ -125,7 +131,7 @@ trait Debugger extends DebuggerAPI {
   }
 
   // has a side-effect as it pushes a new subquery onto the query stack
-  private def atomInto(pred: Datalog.Name, args: ValueTable): Unit = {
+  private def atomInto(pred: Predicate, args: ValueTable): Unit = {
     val params = predicates(pred).params
     val bodies = predicates(pred).bodies
     val ruleEvals = bodies.map { body => Rule(pred, params, body.atoms.map(Atom)) }
@@ -178,14 +184,6 @@ trait Debugger extends DebuggerAPI {
       replaceCallWithAtomResult(queryStack.top, result)
   }
 
-  private def isStable(query: Query): Boolean = query match {
-    case Subquery(p, args, result, _, rules) =>
-      if (rules.isEmpty)
-        !state.isUnstable(p, args, result)
-      else false
-    case QueryResult(_, _) => false
-  }
-
   private def queryStable(q: Query): Query = {
     val Subquery(callee, calleeArgs, calleeResult, _, Seq()) = q
     state.deleteBlacklist(callee, calleeArgs)
@@ -201,37 +199,34 @@ trait Debugger extends DebuggerAPI {
       case NegativeTable => t1.antiJoin(t2)
     }
 
-  // TODO reimplement to mimic formal semantics?
+  private def isStable(query: Query): Boolean = query match {
+    case Subquery(p, args, result, _, rules) =>
+      if (rules.isEmpty)
+        !state.isUnstable(p, args, result)
+      else false
+    case QueryResult(_, _) => false
+  }
+
+  private def isCyclic(pred: Predicate): Boolean = dependencyGraph.cycles.exists(_.contains(pred))
+
   private def prepareArgTable(
       t: ValueTable,
-      p: Predicate,
+      pred: Predicate,
       args: Seq[Datalog.Term],
       resultIndices: Set[IndexCover] = Set()
     ): ValueTable = {
-    val params = predicates(p).params.map(_.name)
-
-    // prepare argsTable
-    val paramSubst = params.zip(args)
-    val (varsBindings, constBindings) = paramSubst.partition(_._2.isInstanceOf[Datalog.Var])
-    val varsBindingsCast = varsBindings.map { case (p, v) => (p, v.asInstanceOf[Datalog.Var]) }
-    val constBindingsCast = constBindings.map { case (p, v) =>
-      (p, v.asInstanceOf[Datalog.Constant])
+    val params = predicates(pred).params.map(_.name)
+    val (varSubst, constSubst) = params.zip(args).partitionMap {
+      case (n, v: Datalog.Var) => Left(n -> v)
+      case (n, c: Datalog.Constant) => Right(n -> c)
     }
-    val columnsSubst = varsBindingsCast.map { case (p, v) => (v.name, p) }.toMap
+    val columnsSubst = varSubst.map { case (p, v) => (v.name, p) }.toMap
+    val varTable = t.projectAndRename(columnsSubst)
 
-    val argBindings = t.projectAndRename(columnsSubst)
+    val constEntry = Seq(constSubst.map(x => AtomTableOps.transLiteral(x._2.lit)))
+    val constTable = indexedTableFactory(constSubst.map(_._1), constEntry, varTable)
 
-    if (constBindingsCast.isEmpty)
-      indexedTableFactory(argBindings.columns, argBindings.entries, resultIndices)
-    else {
-      // construct constants table
-      val constTable = indexedTableFactory(
-        constBindingsCast.map(_._1),
-        Seq(constBindingsCast.map(x => AtomTableOps.transLiteral(x._2.lit))),
-        argBindings)
-      // join with constants table
-      argBindings.join(constTable, resultIndices)
-    }
+    varTable.join(constTable, resultIndices)
   }
 
   private def replaceCallWithAtomResult(query: Query, calleeResult: ValueTable): Query = {
@@ -260,46 +255,6 @@ trait Debugger extends DebuggerAPI {
     result.projectAndRename(columnsSubst, indexCovers)
   }
 
-//  final protected def doStepOverIR(): Boolean = {
-//    val top = queryStack.top
-//    val predCyclic = isCyclic(top.predicate)
-//    if (breakpointHandler.breakpointReachableInPredicate(top, predCyclic)) {
-//      return false
-//    }
-//    currentCallAtom(top) match {
-//      case Some((callee, args)) =>
-//        if (breakpointHandler.breakpointReachableFromCallee(callee)) {
-//          // cannot step over
-//          return false
-//        }
-//        stepOverCall(top)
-//      case None => doStepIntoIR()
-//    }
-//    true
-//  }
-//
-//  private def currentCallAtom(q: Query): Option[(Datalog.Name, Seq[Datalog.Term])] = q.state match {
-//    case QueryState.NextAtom =>
-//      val Subquery(_, _, _, _, rules) = q
-//      val Rule(_, _, atoms) = rules.head
-//      val Atom(atom) = atoms.head
-//      atom.asCall
-//    case _ => None
-//  }
-//
-//  private def stepOverCall(q: Query): Unit = {
-//    val Subquery(_, _, _, sup, rules) = q
-//    val Rule(_, _, atoms) = rules.head
-//    val Atom(atom) = atoms.head
-//    val (callee, calleeArgTerms) = atom.asCall.get
-//    val calleeArgs = prepareArgBindings(sup, callee, calleeArgTerms)
-//    val bottomUpCalleeResult = state.readBlacklistedBottomUp(callee, calleeArgs)
-//    val calleeResult = bottomUpCalleeResult.union(state.readTopDown(callee, calleeArgs))
-//    replaceCallWithAtomResult(queryStack.top, calleeResult)
-//    // TODO this is not correct we want to replace the call with an atom result table
-//    // joinEvalResultAndCall(callee, calleeResult.join(state.readTopDown(callee, calleeArgs)))
-//  }
-
   private def reduce(stepOver: Boolean): Boolean = {
     val query = queryStack.top
     val stackHeight = queryStack.size
@@ -314,8 +269,8 @@ trait Debugger extends DebuggerAPI {
       queryStack.update(newQuery, stackHeight)
     }
     true
-
   }
+
   final protected def doStepIntoIR(): Boolean = reduce(stepOver = false)
   final protected def doStepOverIR(): Boolean = reduce(stepOver = true)
   final protected def doStepOutIR(): Boolean = ???
@@ -325,9 +280,5 @@ trait Debugger extends DebuggerAPI {
   override def isAtBreakpoint: Boolean =
     // !queryStack.top.isEmpty && breakpointHandler.isAtBreakpoint(queryStack.top)
     breakpointHandler.isAtBreakpoint(queryStack.top)
-
-  private def isCyclic(predicate: String): Boolean = {
-    dependencyGraph.cycles.exists(_.contains(predicate))
-  }
 
 }
