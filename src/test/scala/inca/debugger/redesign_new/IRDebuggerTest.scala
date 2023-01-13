@@ -62,6 +62,7 @@ class IRDebuggerTest extends AnyFunSuite {
     val expected = debugger.state.readBottomUp(name, args)
     assertResult(expected)(derived)
   }
+
   def assertCurrentBody(debugger: Debugger, expected: ValueTable): Assertion = {
     assert(debugger.queryStack.top.isInstanceOf[Subquery])
     val sup = debugger.queryStack.top.asInstanceOf[Subquery].supplementary
@@ -78,6 +79,15 @@ class IRDebuggerTest extends AnyFunSuite {
     assert(atoms.head.isInstanceOf[AtomResult])
     val atomResult = atoms.head.asInstanceOf[AtomResult].t
     assertResult(expected)(atomResult)
+  }
+
+  def assertQueryResult(
+      debugger: Debugger,
+      name: String,
+      expected: ValueTable
+    ): Assertion = {
+    val derived = debugger.queryStack.top.asInstanceOf[QueryResult].t
+    assertResult(expected)(derived)
   }
 
   def edgeTable(columns: Seq[String], edges: (Int, Int)*): ValueTable = {
@@ -571,37 +581,43 @@ class IRDebuggerTest extends AnyFunSuite {
     assertExpectedTable(debugger, "path", args)
   }
 
-  // the following cases do not longer apply
-  //  test("step over pattern") {
-  //    val debugger = initDebugger(twoHopsModule, emptyDataModel)
-  //    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
-  //    debugger.entry("two", args)
-  //    debugger.stepOver()
-  //    debugger.stepOver()
-  //
-  //    assert(debugger.isFinished)
-  //
-  //    assertExpectedTable(debugger, "two", args)
-  //  }
-  //  test("step over body") {
-  //    val debugger = initDebugger(module(sevenEdgePattern), emptyDataModel)
-  //    val args = ImmutableTable[Value](Seq("from"), Seq(Seq(ScalaValue(1))))
-  //    debugger.entry("edge", args)
-  //    debugger.stepInto()
-  //    debugger.stepOver() // step over body
-  //
-  //    assertCurrentBody(
-  //      debugger,
-  //      ImmutableTable[Value](
-  //        Seq("from", "to"),
-  //        Seq(
-  //          Seq(ScalaValue(1), ScalaValue(2))
-  //        )
-  //      )
-  //    )
-  //    stepTillFinish(debugger)
-  //
-  //    assert(debugger.isFinished)
-  //    assertExpectedTable(debugger, "edge", args)
-  //  }
+  test("step out rec pattern (depth 1)") {
+    val input = constructInput(Seq(1 -> 2, 2 -> 3, 3 -> 1))
+    val debugger = initDebugger(module(pathPatternExt), new DataModel(), input)
+    val args = ValueTable(Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.state.insertBlacklist("path", args)
+    debugger.entry("path", args)
+    debugger.stepOut()
+    assertQueryResult(
+      debugger,
+      "path",
+      edgeTable(Seq("from", "to"), 1 -> 1, 1 -> 2, 1 -> 3)
+    )
+    stepTillFinish(debugger)
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "path", args)
+  }
+
+  test("step out rec pattern (depth 2)") {
+    val debugger =
+      initDebugger(module(pathPattern, cycleEdgePattern), emptyDataModel)
+    val args = ValueTable(Seq("from"), Seq(Seq(ScalaValue(1))))
+    debugger.entry("path", args)
+    debugger.stepOver() // over edge call
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // rule result
+    debugger.stepInto() // query union
+    debugger.stepOver() // over edge call
+    debugger.stepInto() // rule merge
+    debugger.stepInto() // path call
+    debugger.stepOut()
+    assertQueryResult(
+      debugger,
+      "path",
+      edgeTable(Seq("from", "to"), 2 -> 1, 2 -> 3, 2 -> 6, 4 -> 6, 2 -> 7, 4 -> 7)
+    )
+    stepTillFinish(debugger)
+    assert(debugger.isFinished)
+    assertExpectedTable(debugger, "path", args)
+  }
 }

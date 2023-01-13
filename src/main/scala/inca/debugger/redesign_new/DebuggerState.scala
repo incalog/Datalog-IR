@@ -1,7 +1,6 @@
 package inca.debugger.redesign_new
 
 import inca.backend.ir.Datalog
-import inca.debugger.table.ImmutableTable
 import inca.debugger.IllegalDebugStateException
 import inca.debugger.ScalaValue
 import inca.debugger.URIValue
@@ -24,20 +23,19 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
   val blacklist: mutable.Map[(Predicate, Adornment), Bag] = mutable.Map.empty
   val topDownResults: mutable.Map[Predicate, ValueTable] = mutable.Map.empty
   val seenQueries: mutable.Map[(Predicate, Adornment), ValueTable] = mutable.Map.empty
-//  val fixpointSize: mutable.Map[(Predicate, ImmutableTable[Value]), Int] =
-//    mutable.Map.empty
+  val fixpointSize: mutable.Map[(Predicate, ValueTable), Int] = mutable.Map.empty
 
   def clear(): Unit = {
     blacklist.clear()
     topDownResults.clear()
     seenQueries.clear()
-//    fixpointSize.clear()
+    fixpointSize.clear()
   }
 
   def readBottomUp(pred: Predicate, args: ValueTable): ValueTable = {
     val mainSpec = bottomUpRuntime.compiled.psystemModule.patterns.get(pred) match {
       case Some(spec) => spec()
-      case None => return ImmutableTable.empty[Value](Seq())
+      case None => return ValueTable.empty(Seq())
     }
     val mainMatcher = bottomUpRuntime.engine.getMatcher(mainSpec)
     val unboundCols = predicates(pred).map(_.name).diff(args.columns)
@@ -52,7 +50,7 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
         }.toSeq
       }
     }
-    ImmutableTable(mainMatcher.getParameterNames.asScala.toSeq, rows)
+    ValueTable(mainMatcher.getParameterNames.asScala.toSeq, rows)
   }
 
   def countBottomUp(pred: Predicate, args: ValueTable): Int = {
@@ -103,9 +101,9 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     res
   }
 
-//  def storeExpectedFixpointSize(p: Predicate, args: ImmutableTable[Value]): Unit = {
-//    fixpointSize += (p, args) -> accessBlacklistedBottomUp(p, args, countBottomUp)
-//  }
+  def storeExpectedFixpointSize(pred: Predicate, args: ValueTable): Unit = {
+    fixpointSize += (pred, args) -> accessBlacklistedBottomUp(pred, args, countBottomUp)
+  }
 
   def insertBlacklist(pred: Predicate, args: ValueTable): Unit = {
     val adornment = adorn(pred, args)
@@ -165,7 +163,7 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
       case Some(t) =>
         t.join(args)
       case None =>
-        ImmutableTable.empty(predicates(pred).map(_.name))
+        ValueTable.empty(predicates(pred).map(_.name))
     }
   }
 
@@ -184,9 +182,17 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     }
   }
 
+  // TODO how to detect that fixpoint has been reached?
+//  def isUnstable(pred: Predicate, args: ValueTable, result: ValueTable): Boolean = {
+//    val topDown = readTopDown(pred, args)
+//    val current = topDown.union(result)
+//    val currentSize = current.size
+//    val bottomUpSize = fixpointSize(pred, args)
+//    currentSize < bottomUpSize
+//  }
+
   def isUnstable(pred: Predicate, args: ValueTable, result: ValueTable): Boolean = {
     val topDown = readTopDown(pred, args)
-    val topDownSize = topDown.size
-    topDownSize < result.size
+    topDown.size < result.size
   }
 }

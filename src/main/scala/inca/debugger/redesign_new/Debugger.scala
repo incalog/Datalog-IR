@@ -18,37 +18,37 @@ import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
 /**
  */
 trait Debugger extends DebuggerAPI {
-
-  implicit private lazy val indexedTableFactory: IndexedTableFactory[Value] = {
+  /*
+   * Global static information
+   */
+  private var module: CompiledDatalogModule = _
+  private lazy val dependencyGraph = new DependencyGraph(module.ir)
+  private lazy val preds: Map[Predicate, Datalog.Pattern] = module.ir.patternMap
+  private lazy val predParams = preds.map { case (name, pat) => name -> pat.params.map(_.name) }
+  private lazy val atomOps: AtomTableOps = new AtomTableOps(state.bottomUpRuntime, tableFactory)
+  implicit private lazy val tableFactory: IndexedTableFactory[Value] = {
     implicit val valueOrdering: Ordering[Value] = Value.valueOrdering
-    val parametersOfRelations = predicates.map { case (name, pat) =>
-      name -> pat.params.map(_.name)
-    }
-    new IndexedTableFactory[Value](parametersOfRelations)
+    new IndexedTableFactory[Value](predParams)
   }
 
-  // ****** global static information ******//
-  private var module: CompiledDatalogModule = _
-  private lazy val predicates: Map[Predicate, Datalog.Pattern] = module.ir.patternMap
-
-  private[redesign_new] var state: DebuggerState = _
-  private lazy val atomOps: AtomTableOps =
-    new AtomTableOps(state.bottomUpRuntime, indexedTableFactory)
+  /*
+   * Debugger state
+   */
+  protected[redesign_new] var state: DebuggerState = _
   protected[redesign_new] val queryStack: QueryStack = new QueryStack
+  protected[redesign_new] lazy val breakpointHandler: BreakpointHandler = new BreakpointHandler(
+    dependencyGraph)
 
-  private lazy val dependencyGraph = new DependencyGraph(module.ir)
-  protected lazy val breakpointHandler: BreakpointHandler =
-    new BreakpointHandler(dependencyGraph)
-
-  // This method initializes the debugger
-  // It is required to call this method before using the debugger instance
+  /*
+   * This method initializes the debugger. It is required to call this method before using the debugger
+   */
   def initialize(module: CompiledModule): Unit = {
     if (module.options.optimizations.contains(InlineSimpleRelations))
       throw new IllegalArgumentException(s"Inlining must be deactivated for debugging.")
-    this.module = CompiledDatalogModule(
-      module.ir,
-      module.dataModel,
-      module.options.withTransformations(module.options.transformations :+ BlacklistTransformation))
+
+    val trans = module.options.transformations :+ BlacklistTransformation
+    val options = module.options.withTransformations(trans)
+    this.module = CompiledDatalogModule(module.ir, module.dataModel, options)
   }
 
   def initializeDatabaseRuntime(input: DatabaseInput): Unit = {
@@ -64,18 +64,36 @@ trait Debugger extends DebuggerAPI {
     // state.countBottomUp("path", ImmutableTable.unit())
   }
 
-  def entry(p: Predicate, args: ValueTable): Unit = {
-    val params = predicates(p).params
-    val rules = predicates(p).bodies
-    val ruleEvals = rules.map { body => Rule(p, params, body.atoms.map(Atom)) }
-    val next = Subquery(p, args, ValueTable.empty(params.map(_.name)), args, ruleEvals)
-    state.addNewQuery(p, args)
-    queryStack.push(next)
+  /*
+   * Functions reading the debugging state
+   */
+  override def isFinished: Boolean =
+    queryStack.size == 1 && queryStack.top.isInstanceOf[QueryResult]
+  override def isAtBreakpoint: Boolean =
+    // !queryStack.top.isEmpty && breakpointHandler.isAtBreakpoint(queryStack.top)
+    breakpointHandler.isAtBreakpoint(queryStack.top)
+
+  /*
+   * This method sets the entry point when using the debugger.
+   * @pred Marks the predicate
+   * @args States the argument table for the entry predicate
+   */
+  def entry(pred: Predicate, args: ValueTable): Unit = {
+    // clear state and querystack
+    state.clear()
+    queryStack.clear()
+
+    val params = preds(pred).params
+    val rules = preds(pred).bodies.map { body => Rule(pred, params, body.atoms.map(Atom)) }
+    val result = ValueTable.empty(params.map(_.name))
+    val query = Subquery(pred, args, result, args, rules)
+    state.insertBlacklist(pred, args)
+    queryStack.push(query)
     stepped()
   }
 
   /*
-   * Reduction functions
+   * Reduction functions by the formal semantics
    */
   private def ruleReduction(
       sup: ValueTable,
@@ -132,11 +150,15 @@ trait Debugger extends DebuggerAPI {
 
   // has a side-effect as it pushes a new subquery onto the query stack
   private def atomInto(pred: Predicate, args: ValueTable): Unit = {
-    val params = predicates(pred).params
-    val bodies = predicates(pred).bodies
+    val params = preds(pred).params
+    val bodies = preds(pred).bodies
     val ruleEvals = bodies.map { body => Rule(pred, params, body.atoms.map(Atom)) }
     // TODO do we need to blacklist for every call or only non-rec ones?
-    state.insertBlacklist(pred, args)
+    if (isCyclic(pred)) {
+      // we store the size of the fixpoint before extending blacklist to enable easy determination if a fixpoint has been reached
+      state.storeExpectedFixpointSize(pred, args)
+      state.insertBlacklist(pred, args)
+    }
     val emptyResult = ValueTable.empty(params.map(_.name))
     val newSubquery = Subquery(pred, args, emptyResult, args, ruleEvals)
     queryStack.push(newSubquery)
@@ -164,8 +186,8 @@ trait Debugger extends DebuggerAPI {
         if (isStable(query)) { // Q-Stable
           queryStable(query)
         } else { // Q-Iterate
-          val params = predicates(pred).params
-          val rules = predicates(pred).bodies
+          val params = preds(pred).params
+          val rules = preds(pred).bodies
           val ruleEvals = rules.map { body => Rule(pred, params, body.atoms.map(Atom)) }
           // Q-Iterate will only be called for non-cyclic predicates
           // hence we only store top-down derived tuples for cyclic predicates
@@ -185,9 +207,9 @@ trait Debugger extends DebuggerAPI {
   }
 
   private def queryStable(q: Query): Query = {
-    val Subquery(callee, calleeArgs, calleeResult, _, Seq()) = q
-    state.deleteBlacklist(callee, calleeArgs)
-    QueryResult(callee, calleeResult)
+    val Subquery(pred, args, result, _, Seq()) = q
+    state.deleteBlacklist(pred, args)
+    QueryResult(pred, result)
   }
 
   /*
@@ -209,13 +231,14 @@ trait Debugger extends DebuggerAPI {
 
   private def isCyclic(pred: Predicate): Boolean = dependencyGraph.cycles.exists(_.contains(pred))
 
+  // similar to the helper function eval in the paper
   private def prepareArgTable(
       t: ValueTable,
       pred: Predicate,
       args: Seq[Datalog.Term],
       resultIndices: Set[IndexCover] = Set()
     ): ValueTable = {
-    val params = predicates(pred).params.map(_.name)
+    val params = preds(pred).params.map(_.name)
     val (varSubst, constSubst) = params.zip(args).partitionMap {
       case (n, v: Datalog.Var) => Left(n -> v)
       case (n, c: Datalog.Constant) => Right(n -> c)
@@ -224,7 +247,7 @@ trait Debugger extends DebuggerAPI {
     val varTable = t.projectAndRename(columnsSubst)
 
     val constEntry = Seq(constSubst.map(x => AtomTableOps.transLiteral(x._2.lit)))
-    val constTable = indexedTableFactory(constSubst.map(_._1), constEntry, varTable)
+    val constTable = tableFactory(constSubst.map(_._1), constEntry, varTable)
 
     varTable.join(constTable, resultIndices)
   }
@@ -245,13 +268,13 @@ trait Debugger extends DebuggerAPI {
       result: ValueTable,
       sup: ValueTable
     ): ValueTable = {
-    val params = predicates(pred).params
+    val params = preds(pred).params
     val columnsSubst = params.zip(terms).flatMap {
       case (param, Datalog.Var(argName)) => Some(param.name -> argName)
       case _ => None
     }.toMap
     val renamedColumns = result.columns.flatMap(columnsSubst.get)
-    val indexCovers = indexedTableFactory.constructIndexCovers(sup, renamedColumns)
+    val indexCovers = tableFactory.constructIndexCovers(sup, renamedColumns)
     result.projectAndRename(columnsSubst, indexCovers)
   }
 
@@ -273,12 +296,16 @@ trait Debugger extends DebuggerAPI {
 
   final protected def doStepIntoIR(): Boolean = reduce(stepOver = false)
   final protected def doStepOverIR(): Boolean = reduce(stepOver = true)
-  final protected def doStepOutIR(): Boolean = ???
-
-  override def isFinished: Boolean =
-    queryStack.size == 1 && queryStack.top.isInstanceOf[QueryResult]
-  override def isAtBreakpoint: Boolean =
-    // !queryStack.top.isEmpty && breakpointHandler.isAtBreakpoint(queryStack.top)
-    breakpointHandler.isAtBreakpoint(queryStack.top)
+  final protected def doStepOutIR(): Boolean = {
+    queryStack.top match {
+      case Subquery(pred, args, _, _, _) =>
+        state.deleteBlacklist(pred, args)
+        val bottomUpResult = state.readBlacklistedBottomUp(pred, args)
+        queryStack.update(QueryResult(pred, bottomUpResult))
+      case QueryResult(_, _) =>
+      // do nothing
+    }
+    true
+  }
 
 }
