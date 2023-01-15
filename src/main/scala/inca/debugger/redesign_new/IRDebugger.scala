@@ -9,8 +9,8 @@ final class IRDebugger(module: CompiledDatalogModule, input: DatabaseInput) exte
   this.initialize(module)
   this.initializeDatabaseRuntime(input)
 
-  override def doStepInto(): Boolean = doStepIntoIR()
-  override def doStepOver(): Boolean = doStepOverIR()
+  override def doStepInto(): Boolean = doStepIntoIR(false)
+  override def doStepOver(): Boolean = doStepOverIR(false)
   override def doStepOut(): Boolean = doStepOutIR()
 
   override type Breakpoint = IRBreakpoint

@@ -101,8 +101,9 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     res
   }
 
-  def storeExpectedFixpointSize(pred: Predicate, args: ValueTable): Unit = {
-    fixpointSize += (pred, args) -> accessBlacklistedBottomUp(pred, args, countBottomUp)
+  def storeCurrentFixpointSize(pred: Predicate, args: ValueTable): Unit = {
+    val currentTopDown = readTopDown(pred, args)
+    fixpointSize += (pred, args) -> currentTopDown.size
   }
 
   def insertBlacklist(pred: Predicate, args: ValueTable): Unit = {
@@ -182,17 +183,11 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     }
   }
 
-  // TODO how to detect that fixpoint has been reached?
-//  def isUnstable(pred: Predicate, args: ValueTable, result: ValueTable): Boolean = {
-//    val topDown = readTopDown(pred, args)
-//    val current = topDown.union(result)
-//    val currentSize = current.size
-//    val bottomUpSize = fixpointSize(pred, args)
-//    currentSize < bottomUpSize
-//  }
-
-  def isUnstable(pred: Predicate, args: ValueTable, result: ValueTable): Boolean = {
+  def isStable(pred: Predicate, args: ValueTable, result: ValueTable): Boolean = {
     val topDown = readTopDown(pred, args)
-    topDown.size < result.size
+    val current = topDown.union(result)
+    val currentSize = current.size
+    val lastFixpointSize = fixpointSize.getOrElse(pred -> args, 0)
+    currentSize == lastFixpointSize
   }
 }

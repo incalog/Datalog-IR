@@ -25,7 +25,7 @@ object Query {
   def toTableless(q: Query): Query = q match {
     case Subquery(p, _, _, _, bodies) =>
       val tablelessBodies = bodies.map {
-        case RuleResult(_, s) => RuleResult(ImmutableTable.empty(Seq()), s)
+        case RuleResult(_) => RuleResult(ImmutableTable.empty(Seq()))
         case b => b
       }
       Subquery(
@@ -57,7 +57,7 @@ case class Subquery(
               case Atom(_) => QueryState.NextAtom
               case AtomResult(_, _) => QueryState.RuleMerge
             }
-        case RuleResult(_, _) => QueryState.QueryUnion
+        case RuleResult(_) => QueryState.QueryUnion
       }
 }
 
@@ -66,8 +66,8 @@ case class QueryResult(pred: Predicate, t: ValueTable) extends Query {
 }
 
 sealed trait RuleEval
-case class Rule(pred: Predicate, params: Seq[Datalog.Param], atoms: Seq[AtomEval]) extends RuleEval
-case class RuleResult(t: ValueTable, sign: TableSign = PositiveTable) extends RuleEval
+case class Rule(pred: Predicate, params: Seq[Datalog.Name], atoms: Seq[AtomEval]) extends RuleEval
+case class RuleResult(t: ValueTable) extends RuleEval
 
 sealed trait AtomEval
 case class Atom(a: Datalog.Atom) extends AtomEval
