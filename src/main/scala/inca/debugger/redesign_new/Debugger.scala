@@ -87,6 +87,7 @@ trait Debugger extends DebuggerAPI {
     val rules = preds(pred).bodies.map { body => Rule(pred, params, body.atoms.map(Atom)) }
     val result = ValueTable.empty(params)
     val query = Subquery(pred, args, result, args, rules)
+    state.storeExpectedFixpointSize(pred, args, queryStack.size + 1)
     state.insertBlacklist(pred, args)
     queryStack.push(query)
     stepped()
@@ -153,6 +154,7 @@ trait Debugger extends DebuggerAPI {
     val rules = preds(pred).bodies
     val ruleEvals = rules.map { body => Rule(pred, params, body.atoms.map(Atom)) }
     if (isCyclic(pred)) {
+      state.storeExpectedFixpointSize(pred, args, queryStack.size + 1)
       state.insertBlacklist(pred, args)
     }
     val emptyResult = ValueTable.empty(params)
@@ -188,7 +190,6 @@ trait Debugger extends DebuggerAPI {
           // Q-Iterate will only be called for non-cyclic predicates
           // hence we only store top-down derived tuples for cyclic predicates
           state.insertTopDown(pred, result)
-          state.storeCurrentFixpointSize(pred, args)
           Subquery(pred, args, result, args, ruleEvals)
         }
       } else {
@@ -223,7 +224,7 @@ trait Debugger extends DebuggerAPI {
     }
 
   private def isStable(query: Query): Boolean = query match {
-    case Subquery(p, args, result, _, Nil) => state.isStable(p, args, result)
+    case Subquery(p, args, result, _, Nil) => state.isStable(p, args, result, queryStack.size)
     case _ => false
   }
 

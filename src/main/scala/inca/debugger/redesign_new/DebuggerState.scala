@@ -23,7 +23,7 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
   val blacklist: mutable.Map[(Predicate, Adornment), Bag] = mutable.Map.empty
   val topDownResults: mutable.Map[Predicate, ValueTable] = mutable.Map.empty
   val seenQueries: mutable.Map[(Predicate, Adornment), ValueTable] = mutable.Map.empty
-  val fixpointSize: mutable.Map[(Predicate, ValueTable), Int] = mutable.Map.empty
+  val fixpointSize: mutable.Map[(Predicate, ValueTable, Int), Int] = mutable.Map.empty
 
   def clear(): Unit = {
     blacklist.clear()
@@ -101,9 +101,9 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     res
   }
 
-  def storeCurrentFixpointSize(pred: Predicate, args: ValueTable): Unit = {
-    val currentTopDown = readTopDown(pred, args)
-    fixpointSize += (pred, args) -> currentTopDown.size
+  def storeExpectedFixpointSize(pred: Predicate, args: ValueTable, stackHeight: Int): Unit = {
+    val bottomUpSize = readBlacklistedBottomUp(pred, args).size
+    fixpointSize += (pred, args, stackHeight) -> bottomUpSize
   }
 
   def insertBlacklist(pred: Predicate, args: ValueTable): Unit = {
@@ -183,11 +183,11 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     }
   }
 
-  def isStable(pred: Predicate, args: ValueTable, result: ValueTable): Boolean = {
+  def isStable(pred: Predicate, args: ValueTable, result: ValueTable, stackHeight: Int): Boolean = {
     val topDown = readTopDown(pred, args)
     val current = topDown.union(result)
     val currentSize = current.size
-    val lastFixpointSize = fixpointSize.getOrElse(pred -> args, 0)
-    currentSize == lastFixpointSize
+    val expectedSize = fixpointSize((pred, args, stackHeight))
+    currentSize >= expectedSize
   }
 }
