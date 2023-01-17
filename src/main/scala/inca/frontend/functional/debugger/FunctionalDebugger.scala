@@ -222,13 +222,13 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
     b
   }
 
-  override protected def doStepInto(): Boolean =
+  override protected def doStepInto(shortCircuit: Boolean): Boolean =
     stepToFunctionalPoint(() => stepIntoIR())
 
-  override protected def doStepOver(): Boolean =
+  override protected def doStepOver(shortCircuit: Boolean): Boolean =
     stepToFunctionalPoint(() => stepOverIR())
 
-  override protected def doStepOut(): Boolean =
+  override protected def doStepOut(shortCircuit: Boolean): Boolean =
     stepToFunctionalPoint(() => stepOutIR())
 
   override type Breakpoint = FunctionalBreakpoint
@@ -266,7 +266,7 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
       }
       currentFunctionalPoint match {
         case Some(fp2) => stepOverConditionPoint(fp2)
-        case None => doStepInto()
+        case None => doStepInto(false)
       }
   }
 
