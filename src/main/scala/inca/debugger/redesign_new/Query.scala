@@ -24,7 +24,7 @@ sealed trait Query {
 object Query {
   def toTableless(q: Query): Query = q match {
     case Subquery(p, _, _, _, bodies) =>
-      val tablelessBodies = bodies.map {
+      val tablelessRules = bodies.map {
         case RuleResult(_) => RuleResult(ImmutableTable.empty(Seq()))
         case b => b
       }
@@ -33,7 +33,7 @@ object Query {
         ImmutableTable.empty(Seq()),
         ImmutableTable.empty(Seq()),
         ImmutableTable.empty(Seq()),
-        tablelessBodies)
+        tablelessRules)
     case QueryResult(p, _) => QueryResult(p, ImmutableTable.empty(Seq()))
   }
 }

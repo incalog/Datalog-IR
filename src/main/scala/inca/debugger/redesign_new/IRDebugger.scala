@@ -6,12 +6,13 @@ import scala.collection.mutable.ListBuffer
 
 final class IRDebugger(module: CompiledDatalogModule, input: DatabaseInput) extends Debugger {
 
+
   this.initialize(module)
   this.initializeDatabaseRuntime(input)
 
-  override def doStepInto(): Boolean = doStepIntoIR(false)
-  override def doStepOver(): Boolean = doStepOverIR(false)
-  override def doStepOut(): Boolean = doStepOutIR()
+  override def doStepInto(shortCircuit: Boolean): Boolean = doStepIntoIR(shortCircuit)
+  override def doStepOver(shortCircuit: Boolean): Boolean = doStepOverIR(shortCircuit)
+  override def doStepOut(shortCircuit: Boolean): Boolean = doStepOutIR(shortCircuit)
 
   override type Breakpoint = IRBreakpoint
   override def addBreakpoint(bp: Breakpoint): Unit = breakpointHandler.addBreakpoint(bp)

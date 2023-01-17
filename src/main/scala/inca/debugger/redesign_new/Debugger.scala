@@ -14,6 +14,7 @@ import inca.runtime.db.DatabaseInput
 import inca.runtime.DatalogRuntime
 import inca.runtime.EnginePool
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
+import scala.collection.mutable
 
 /**
  */
@@ -23,7 +24,7 @@ trait Debugger extends DebuggerAPI {
    */
   private var module: CompiledDatalogModule = _
   private lazy val dependencyGraph = new DependencyGraph(module.ir)
-  private lazy val preds: Map[Predicate, Datalog.Pattern] = module.ir.patternMap
+  protected lazy val preds: Map[Predicate, Datalog.Pattern] = module.ir.patternMap
   private lazy val predParams = preds.map { case (name, pat) => name -> pat.params.map(_.name) }
   private lazy val atomOps: AtomTableOps = new AtomTableOps(state.bottomUpRuntime, tableFactory)
   implicit private lazy val tableFactory: IndexedTableFactory[Value] = {
@@ -69,6 +70,7 @@ trait Debugger extends DebuggerAPI {
    */
   override def isFinished: Boolean =
     queryStack.size == 1 && queryStack.top.isInstanceOf[QueryResult]
+
   override def isAtBreakpoint: Boolean =
     // !queryStack.top.isEmpty && breakpointHandler.isAtBreakpoint(queryStack.top)
     breakpointHandler.isAtBreakpoint(queryStack.top)
@@ -280,6 +282,9 @@ trait Debugger extends DebuggerAPI {
   private def reduce(stepOver: Boolean, shortCircuit: Boolean): Boolean = {
     val query = queryStack.top
     val stackHeight = queryStack.size
+    // we check if breakpoint is reachable when using step over, hence we want to resume instead
+    if (stepOver && breakpointHandler.stepOverReachesBreakpoint(query))
+      return false
     val newQuery = queryReduction(query, stepOver)
     val shortCircuitedQuery =
       if (shortCircuit) shortCircuitIfPossible(newQuery)
@@ -305,9 +310,15 @@ trait Debugger extends DebuggerAPI {
 
   final protected def doStepIntoIR(shortCircuit: Boolean): Boolean =
     reduce(stepOver = false, shortCircuit)
+
   final protected def doStepOverIR(shortCircuit: Boolean): Boolean =
     reduce(stepOver = true, shortCircuit)
-  final protected def doStepOutIR(): Boolean = {
+
+  final protected def doStepOutIR(shortCircuit: Boolean): Boolean = {
+    val query = queryStack.top
+    val isPredCyclic = isCyclic(query.pred)
+    if (breakpointHandler.stepOutReachesBreakpoint(query, isPredCyclic))
+      return false
     queryStack.top match {
       case Subquery(pred, args, _, _, _) =>
         state.deleteBlacklist(pred, args)

@@ -1,48 +1,51 @@
 package inca.debugger
 
 trait DebuggerAPI {
+  def isFinished: Boolean
+  def isAtBreakpoint: Boolean
+
   def stepped(): Unit
 
-  def stepInto(): Unit = {
-    if (!doStepInto())
+  def stepInto(shortCircuit: Boolean = false): Unit = {
+    if (!doStepInto(shortCircuit))
       throw new IllegalStateException()
     stepped()
   }
-  def stepOver(): Unit = {
-    doStepOver() || resume()
+  def stepOver(shortCircuit: Boolean = false): Unit = {
+    doStepOver(shortCircuit) || resume(shortCircuit)
     stepped()
   }
-  def stepOut(): Unit = {
-    doStepOut() || resume()
+  def stepOut(shortCircuit: Boolean = false): Unit = {
+    doStepOut(shortCircuit) || resume(shortCircuit)
     stepped()
   }
 
-  /** internal step into */
-  protected def doStepInto(): Boolean
-  /** internal step over */
-  protected def doStepOver(): Boolean
-  /** internal step out */
-  protected def doStepOut(): Boolean
-
-  final def resume(): Boolean = {
-    var b = doStepOut() || doStepOver() || doStepInto()
+  final def resume(shortCircuit: Boolean = false): Boolean = {
+    var b = doStepOut(shortCircuit) || doStepOver(shortCircuit) || doStepInto(shortCircuit)
     while (b && !isFinished && !isAtBreakpoint)
-      b = doStepOut() || doStepOver() || doStepInto()
+      b = doStepOut(shortCircuit) || doStepOver(shortCircuit) || doStepInto(shortCircuit)
     b
   }
 
-  final def resumeWithStepInto(): Boolean = {
-    var b = doStepInto()
+  final def resumeWithStepInto(shortCircuit: Boolean): Boolean = {
+    var b = doStepInto(shortCircuit)
     while (b && !isFinished && !isAtBreakpoint)
-      b = doStepInto()
+      b = doStepInto(shortCircuit)
     b
   }
-
-  def isFinished: Boolean
-  def isAtBreakpoint: Boolean
 
   type Breakpoint
   def addBreakpoint(bp: Breakpoint): Unit
   def removeBreakpoint(bp: Breakpoint): Unit
   def clearBreakpoints(): Unit
+
+  /** internal step into */
+  protected def doStepInto(shortCircuit: Boolean): Boolean
+
+  /** internal step over */
+  protected def doStepOver(shortCircuit: Boolean): Boolean
+
+  /** internal step out */
+  protected def doStepOut(shortCircuit: Boolean): Boolean
+
 }

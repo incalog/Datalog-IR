@@ -3,9 +3,9 @@ package inca.debugger.redesign_new
 import inca.backend.analyze.DependencyGraph
 import scala.collection.mutable
 
-// We cannot predict what the predicate table will be for example at a specific breakpoint
-// Therefore, Breakpoints should not be interested in the predicate table or body table or argument table
-// The normalize function is to insert empty tables where possible
+// We cannot predict the value tables of a query at a specific breakpoint
+// Therefore, Breakpoints should not be interested in the value table.
+// The normalize function inserts empty value table where possible
 case class IRBreakpoint(stopAt: Query, cond: () => Boolean) {
   def normalize: IRBreakpoint = IRBreakpoint(Query.toTableless(stopAt), cond)
 }
@@ -17,28 +17,27 @@ object IRBreakpoint {
 
 class BreakpointHandler(dependencyGraph: DependencyGraph) {
   private val breakpoints: mutable.Set[IRBreakpoint] = mutable.Set()
-  private val evalPointToBreakpoints: mutable.MultiDict[Query, IRBreakpoint] =
-    mutable.MultiDict()
-  private val predsWithBreakpoint: mutable.MultiSet[Predicate] = mutable.MultiSet()
+  private val queryToBreakpoint: mutable.MultiDict[Query, IRBreakpoint] = mutable.MultiDict()
+  private val breakpointedPreds: mutable.MultiSet[Predicate] = mutable.MultiSet()
 
   def addBreakpoint(bp: IRBreakpoint): Unit = {
     val normalized = bp.normalize
     breakpoints += normalized
-    evalPointToBreakpoints += normalized.stopAt -> normalized
-    predsWithBreakpoint += normalized.stopAt.pred
+    queryToBreakpoint += normalized.stopAt -> normalized
+    breakpointedPreds += normalized.stopAt.pred
   }
 
   def removeBreakpoint(bp: IRBreakpoint): Unit = {
     val normalized = bp.normalize
     breakpoints -= normalized
-    evalPointToBreakpoints -= normalized.stopAt -> normalized
-    predsWithBreakpoint -= normalized.stopAt.pred
+    queryToBreakpoint -= normalized.stopAt -> normalized
+    breakpointedPreds -= normalized.stopAt.pred
   }
 
   def clearBreakpoints(): Unit = {
     breakpoints.clear()
-    evalPointToBreakpoints.clear()
-    predsWithBreakpoint.clear()
+    queryToBreakpoint.clear()
+    breakpointedPreds.clear()
   }
 
   def withBreakpoints[A](bps: Seq[IRBreakpoint])(f: => A): A = {
@@ -52,62 +51,53 @@ class BreakpointHandler(dependencyGraph: DependencyGraph) {
     }
   }
 
-  def isAtBreakpoint(q: Query): Boolean = {
-    val bps = evalPointToBreakpoints.get(Query.toTableless(q))
+  def isAtBreakpoint(query: Query): Boolean = {
+    val bps = queryToBreakpoint.get(Query.toTableless(query))
     bps.exists(_.cond())
   }
 
-  def breakpointReachableFromCallee(callee: Predicate): Boolean = {
-    val transitivelyReachable = dependencyGraph.transitvelyReachable(callee)
-    predsWithBreakpoint.exists(transitivelyReachable.contains)
+  def stepOverReachesBreakpoint(query: Query): Boolean = query match {
+    case Subquery(_, _, _, _, Rule(_, _, Atom(atom) +: _) +: _) =>
+      atom.asCall match {
+        case Some((callee, _)) =>
+          val transitivelyReachable = dependencyGraph.transitvelyReachable(callee)
+          breakpointedPreds.exists(transitivelyReachable.contains)
+        case None => false
+      }
+    case _ => false
   }
 
-  def breakpointReachableInPredicate(
-      query: Query,
-      considerCyclic: Boolean
-    ): Boolean = {
-    var transitivelyReachable = dependencyGraph.transitvelyReachable(query.pred)
-    if (considerCyclic)
-      transitivelyReachable += query.pred
-    else
-      transitivelyReachable -= query.pred
-    if (predsWithBreakpoint.exists(transitivelyReachable.contains))
-      return true
+  // need to consider the breakpoints in the current remaing rule and in the following potential iteration
+  def stepOutReachesBreakpoint(query: Query, consideredCyclic: Boolean): Boolean = query match {
+    case Subquery(pred, _, _, _, rules @ Rule(_, _, atoms @ Atom(atom) +: _) +: _) =>
+      val reachablePreds = mutable.Set() ++ dependencyGraph.transitvelyReachable(pred)
+      if (consideredCyclic) { // need to consider that predicate will be executed again
+        reachablePreds += pred
+      } else {
+        // only need to consider the following subqueries produces by the remaining atoms in the rule and the remaining rules
+        reachablePreds -= pred
+      }
+      if (breakpointedPreds.exists(reachablePreds.contains))
+        return true
 
-    // TODO
-//    val samePredBreakpoints = breakpoints.filter(_.stopAt.predicate == query.pred)
-//    samePredBreakpoints.foreach {
-//      case IRBreakpoint(QueryResult(_, _), _) =>
-//        // query result breakpoint is always reachable
-//        return true
-//      case _ => // nothing
-//    }
-//
-//    if (samePredBreakpoints.nonEmpty) {
-//      query.state match {
-//        case QueryState.QueryEntry =>
-//          // any breakpoint of this predicate is reachable from predicate entry
-//          return true
-//        case QueryState.RuleEntry =>
-//          // any breakpoint of this predicate is reachable from body entry
-//          return true
-//        case QueryState.AtAtom =>
-//          InRule(_, _, _, current, remainingRules) =>
-//          samePredBreakpoints.foreach {
-//            case IRBreakpoint(InRule(_, _, _, currentBreak, remainingRulesBreak), _) =>
-//              if (remainingRulesBreak.size < remainingRules.size)
-//                return true
-//              if (
-//                remainingRulesBreak.size == remainingRules.size && currentBreak.atoms.size < current.atoms.size
-//              )
-//                return true
-//            case _ => // nothing
-//          }
-//        case QueryState.QueryEnd =>
-//        // nothing
-//      }
-//    }
+      val samePredBreakpoints = breakpoints.filter(_.stopAt.pred == pred)
+      samePredBreakpoints.foreach {
+        case IRBreakpoint(Subquery(_, _, _, _, currentBreak +: remainingBreak), _) =>
+          if (remainingBreak.size < rules.tail.size) {
+            // means breakpoint is in a rule that has not been processed
+            return true
+          }
 
-    false
+          val currentBreakAtomsSize = currentBreak match {
+            case Rule(_, _, atoms) => atoms.size
+            case RuleResult(_) => 0
+          }
+          if (remainingBreak.size == rules.tail.size && currentBreakAtomsSize < atoms.size) {
+            // means that breakpoint is in atom of current rule that has not been processed
+            return true
+          }
+      }
+      false
+    case _ => false
   }
 }
