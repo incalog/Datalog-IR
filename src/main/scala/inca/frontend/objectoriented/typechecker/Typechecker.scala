@@ -42,7 +42,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
    */
   private def allowedAsFoldInit(expression: Expression): Boolean =  {
     val hasElement = expression match {
-      case MapExpr(keyValuesExps, _) => keyValuesExps.nonEmpty
       case TupleExpr(exps) => exps.nonEmpty
       case SetExpr(exps, _) => exps.nonEmpty
       case _ => true
@@ -128,25 +127,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         assertSubtype(expTyp, fieldDef.typ, fieldDef)
       case None =>
         uninitializedFields += (fieldDef.name -> fieldDef)
-    }
-
-    fieldDef.aggregateMethod match {
-      case Some((ref, methodName)) =>
-        val clazz = lookupClassRef(ref)
-        val aggTy = fieldDef.typ match {
-          case TMap(_, tv) => tv.flatten.last // always aggregate over the last type of a nested map
-          case tty => tty
-        }
-
-        if (fieldDef.body.isEmpty)
-          error("Aggregation variable requires a init element", fieldDef)
-        else if (!allowedAsFoldInit(fieldDef.body.get))
-          error("Init element of aggregation variable must not reference variables", fieldDef.body.get)
-
-        val method = lookupMethod(clazz, Seq(aggTy, aggTy), methodName)
-        if (method.isDefined)
-          resolveTarget(fieldDef)(method.get)
-      case None => // nothing
     }
   }
 
@@ -234,9 +214,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
   def typecheck(typ: Type): Unit = typ match {
     case TTuple(tys) => tys.foreach(typecheck)
     case TSet(ty) => typecheck(ty)
-    case TMap(tk, tv) =>
-      typecheck(tk)
-      typecheck(tv)
     case TClass(ref) => lookupClassRef(ref)
     case TAny => // nothing
     case TNull => // nothing
@@ -276,21 +253,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           case None => // Nothing
         }
         case typ => error(s"Can not lookup field '$name' for expression of type '$typ'", statement)
-      }
-    case MapAssignStmt(recv, key, value, assignmentOp) =>
-      val tk = typecheck(key)
-      val tv = typecheck(value)
-      typecheck(recv).asSet match {
-        case Some(TSet(TTuple(ttk :: tvs))) =>
-          assertSubtype(tk, ttk, statement)
-          val addTy = if (tvs.size == 1) tvs.head else TTuple(tvs)
-          if (assignmentOp == AssignmentOp.AGG_ELEMENT)
-            assertSubtype(tv, addTy, statement)
-          else if (assignmentOp == AssignmentOp.AGG)
-            assertSubtype(tv.asSet.getOrElse(tv), TSet(addTy), statement)
-          else
-            throw new RuntimeException(s"Unexpected assignment $assignmentOp for MapAssignStmt $statement")
-        case _ => error(s"$recv is not a map variable", statement)
       }
     case varDeclareStmt@VarDeclareStmt(name, typ, expression, immutable) =>
       typecheck(typ)
@@ -404,35 +366,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
       }
     case methodCallExpr@MethodCallExpr(recv, fun, args) =>
       typecheck(recv) match {
-        /*case _ if lookupVar(fun, suppressError = true).exists(_._2.isInstanceOf[TMap]) =>
-          if (args.size != 1)
-            error("Map read requires a single argument", methodCallExpr)
-          val TMap(tk, tv) = lookupVar(fun).get._2
-          assertSubtype(typecheck(args.head), tk, args.head)
-          tv*/
-        // access an element of a map
-        case TClass(ref) if lookupField(lookupClassRef(ref), fun, suppressError = true).exists(_._2.typ.isInstanceOf[TMap]) =>
-          if (args.size != 1)
-            error("Map read requires a single argument", methodCallExpr)
-          val TMap(tk, tv) = lookupField(lookupClassRef(ref), fun).get._2.typ
-          assertSubtype(typecheck(args.head), tk, args.head)
-          tv
-        // special functions on a map
-        /*case TMap(tk, tv) =>
-          fun match {
-            case Name(raw) if raw == "getOrElse" => args match {
-              case Seq(key, default) =>
-                assertSubtype(typecheck(key), tk, key)
-                assertSubtype(typecheck(default), tv, default)
-                tv
-              case _ =>
-                error(s"Expected (key, default) arguments for method $raw, but got: '$args'", methodCallExpr)
-                tv
-            }
-            case _ =>
-              error(s"Can not lookup method '$fun' for map", methodCallExpr)
-              TAny
-          }*/
         case clazzTyp@TClass(ref) =>
           // We can call methods on instances of classes we might no have yet resolved
           lookupMethod(lookupClassRef(ref), args.map(typecheck), fun) match {
@@ -489,20 +422,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
         TSet(TAny)
       } else
         TSet(tty.getOrElse(upperTypeBound(typs)))
-
-    case MapExpr(keyValuesExps, tty) =>
-      val typs = keyValuesExps.map(typecheck)
-      if (typs.isEmpty && tty.isEmpty) {
-        error("Empty map requires an explicit type", expression)
-        TMap(TAny, TAny)
-      } else
-        tty.getOrElse(upperTypeBound(typs)) match {
-          case TTuple(Seq(keyTs, valueTs)) =>
-            TMap(keyTs, valueTs)
-          case _ =>
-            error("Map expression must be initialized with (key, value) tuples", expression)
-            TMap(TAny, TAny)
-        }
 
     case setMember@SetMemberExpr(name, target, predicate) =>
       typecheck(target).asSet match {

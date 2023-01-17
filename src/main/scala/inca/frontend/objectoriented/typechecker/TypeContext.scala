@@ -26,14 +26,12 @@ trait TypeContext extends TypeIO {
     case (TNull, TClass(_)) => true
     case (TClass(ref1), TClass(ref2)) if ref1 == ref2 => true
     case (TClass(ref1), TClass(_)) =>
-      // TODO: Why can it happen, that the target is not resolved here ?
       val parents = classDefs.get(ref1.name).flatMap { case (_, c) => c.parentClassRefs }
       //val parents = ref1.target.getOrElse(throw new IllegalArgumentException(s"unresolved $ty1")).parentClassRefs //lookupClassRef(ref1).get.parentClassRefs
       parents.exists { parent => if (parent.target.isDefined) subtype(parent.target.get.typ, ty2) else false }
     case (TTuple(tys1), TTuple(tys2)) if tys1.size == tys2.size =>
       tys1.zip(tys2).forall(tt => subtype(tt._1, tt._2))
     case (TSet(ty1), TSet(ty2)) => subtype(ty1, ty2)
-    case (TMap(tk1, tv1), TMap(tk2, tv2)) => subtype(tk1, tk2) && subtype(tv1, tv2)
     case _ => false
   }
 

@@ -74,22 +74,14 @@ case class ClassRef(name: Name) extends SourceLocation with Resolvable[ClassDef]
 }
 
 case class FieldDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name, typ: Type, body: Option[Expression],
-                    immutable: Boolean, aggregateMethod: Option[(ClassRef, Name)])
+                    immutable: Boolean)
   extends ClassContent with Resolvable[MethodDef] {
-
-  lazy val isAggregation: Boolean = aggregateMethod.isDefined
 
   def prettyprint(implicit indent: String): String = {
     val visS = if (vis.contains(Private)) "private " else ""
     val expr = if (body.isEmpty) "" else s" = ${body.get}"
-    aggregateMethod match {
-      case Some((ClassRef(refName), methodName)) =>
-        val descr = s"$indent${visS}vag $name: ${typ.prettyprint}$expr"
-        s"$descr with $refName.$methodName"
-      case None =>
-        val prefix = if (immutable) "val " else "var "
-        s"$indent$visS$prefix$name: ${typ.prettyprint}$expr"
-    }
+    val prefix = if (immutable) "val " else "var "
+    s"$indent$visS$prefix$name: ${typ.prettyprint}$expr"
   }
 }
 

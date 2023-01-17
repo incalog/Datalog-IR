@@ -50,7 +50,6 @@ class GenerateScala {
         MetaType.Name("Unit")
     case TScala(t) => t.tree
     case TSet(ty) => t"scala.collection.immutable.Set[${transType(ty)}]"
-    case TMap(tk, tv) => t"scala.collection.immutable.Map[${transType(tk)}, ${transType(tv)}]"
   }
 
   def genModule(module: Module): ScalaModule = {
@@ -349,16 +348,6 @@ class GenerateScala {
       val inTerms = args.map(transExpression).toList
       val superBody = superConstrDef.body.map(transStatement).toList
       q"((..$inParams) => (${Term.Block(superBody)}))(..$inTerms)"
-
-    case MapExpr(keyValuesExps, tty) =>
-      // TODO: We actually need to aggregate the values to keep consistent with datalog
-      val tups = keyValuesExps.map(transExpression).toList
-      if (tty.isDefined) {
-        val ty = transType(tty.get)
-        q"Map[$ty](..$tups)"
-      } else {
-        q"Map(..$tups)"
-      }
     case setFold@SetFold(recv, filter, opClass, opMethod, neutral) =>
       // TODO: How to use the filter correctly
       q"???"

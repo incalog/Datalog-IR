@@ -40,13 +40,6 @@ case class FieldAssignStmt(recv: Expression, name: Name, expression: Expression,
   }
 }
 
-case class MapAssignStmt(recv: Expression, key: Expression, value: Expression, assignmentOp: AssignmentOp) extends Statement
-  with Resolvable[(ClassDef, FieldDef)] {
-  override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    s"$indent$recv($key) $assignmentOp $value"
-  }
-}
-
 case class VarDeclareStmt(name: Name, typ: Type, maybeExpression: Option[Expression], immutable: Boolean) extends Statement
   with VarReadExpr.Target {
 

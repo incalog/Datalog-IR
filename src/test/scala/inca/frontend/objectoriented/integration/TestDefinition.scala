@@ -322,18 +322,6 @@ object TestDefinition {
     TestDefinition("CfgVisitor", "Examples", "main", Seq(), expectedRes)
   }
 
-  def aggVariableTest: Seq[TestDefinition[SetResult[Any]]] = {
-    implicit val subdir: Option[String] = Some("unittests/aggvar")
-    Seq(
-      TestDefinition("AggVar", "A", "main", Seq(), SetResult(4)),
-      TestDefinition("AggTree", "Main", "sumNum", Seq(), SetResult(
-        TupleResult("Add", 0),
-        TupleResult("Var", 0),
-        TupleResult("Num", 10)
-      ))
-    )
-  }
-
   def whileLangTest: TestDefinition[SetResult[Any]] = {
     implicit val subdir: Option[String] = Some("unittests/aggvar")
     TestDefinition("WhileLang", "ConstantPropagation", "main", Seq(), SetResult())

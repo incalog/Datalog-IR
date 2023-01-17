@@ -74,10 +74,3 @@ case class TSet(ty: Type) extends Type {
   override def flatten: Seq[Type] = ty.flatten
   override def asSet: Option[TSet] = Some(this)
 }
-
-case class TMap(tk: Type, tv: Type) extends Type {
-  override def prettyprint: String = s"Map[${tk.prettyprint}, ${tv.prettyprint}]"
-  override def asScala: meta.Type = t"(${tk.asScala}, ${tv.asScala})"
-  override def flatten: Seq[Type] = tk.flatten ++ tv.flatten
-  override def asSet: Option[TSet] = Some(TSet(TTuple(tk +: tv.flatten)))
-}

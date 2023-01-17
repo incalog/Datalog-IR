@@ -162,10 +162,6 @@ class DatalogTest extends AnyFunSuite {
     performTests(foldSetTests: _*)
   }
 
-  test("Aggregate variable") {
-    performTests(aggVariableTest: _*)
-  }
-
   test("CGFVisitor") {
     performTests(cfgVisitorTest)
   }

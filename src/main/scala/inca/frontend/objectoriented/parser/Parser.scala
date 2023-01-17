@@ -157,11 +157,6 @@ trait Parser {
   protected[frontend] def setType: P[TSet] =
     (keyword(SET) *> inBrackets(atomicTypeAnno)).mapWithLoc(TSet)
 
-  protected[frontend] def mapType: P[TMap] =
-    (keyword(MAP) *> inBrackets((atomicTypeAnno <* op(",")) ~ P.defer(typeAnno))).mapWithLoc {
-      case (tk, tv) => TMap(tk, tv)
-    }
-
   protected[frontend] val classRef: P[ClassRef] =
     identifier.mapWithLoc(ClassRef)
 
@@ -179,7 +174,7 @@ trait Parser {
     )
 
   protected[frontend] val typeAnno: P[Type] =
-    setType | mapType | atomicTypeAnno
+    setType | atomicTypeAnno
 
   val nameWithType: P[(Name, Type)] =
     spaced(identifier ~ (op(':') *> typeAnno))
@@ -191,7 +186,6 @@ trait Parser {
         targetExpr match {
           case FieldReadExpr(previousExpr, name) => pass(FieldAssignStmt(previousExpr, name, valueExpr, op))
           case VarReadExpr(name)                 => pass(VarAssignStmt(name, valueExpr))
-          case MethodCallExpr(recv, fun, args) => pass(MapAssignStmt(FieldReadExpr(recv, fun), args.head, valueExpr, op))
           case _                                 => fail(s"Can not assign a value to expression: $targetExpr")
         }
     }
@@ -263,12 +257,6 @@ trait Parser {
   protected[frontend] lazy val setExpr: P[SetExpr] =
     (keyword(SET) *> inBrackets(atomicTypeAnno).? ~ inParentheses(seq0(P.defer(expr), min = 0))).mapWithLoc {
       case (tty, exps) => SetExpr(exps, tty)
-    }
-
-  protected[frontend] lazy val mapExpr: P[MapExpr] =
-    (keyword(MAP) *> inBrackets((atomicTypeAnno <* op(",")) ~ P.defer(typeAnno)).? ~ inParentheses(seq0(P.defer(expr), min = 0))).mapWithLoc {
-      case (Some((tk, tv)), exps) => MapExpr(exps, Some(TMap(tk, tv)))
-      case (None, exps) => MapExpr(exps, None)
     }
 
   private[frontend] lazy val nestedAccessStartExpr: P[Expression] =
@@ -413,7 +401,6 @@ trait Parser {
       nullExpr |
       superExpr |
       setExpr |
-      mapExpr |
       setComprehensionExpr
 
   protected[frontend] val infixExpr: P[Expression] =
@@ -462,7 +449,7 @@ trait Parser {
     val kw = if (immutable) VAL else VAR
     (((visibility.? <* keyword(kw)).with1 ~ nameWithType) ~ (op('=') *> subinfixExpr).?).mapWithLoc {
       case ((visibility, (name, typeAnno)), valueExpr) =>
-        FieldDef(Seq(), visibility, name, typeAnno, valueExpr, immutable, None)
+        FieldDef(Seq(), visibility, name, typeAnno, valueExpr, immutable)
     }
   }
 
@@ -471,7 +458,7 @@ trait Parser {
       ~ (op('=') *> subinfixExpr)
       ~ (keyword(WITH) *> (classRef) ~ (op(".") *> identifier))).mapWithLoc {
       case (((visibility, (name, typeAnno)), valueExpr), (ref, methodName)) =>
-        FieldDef(Seq(), visibility, name, typeAnno, Some(valueExpr), immutable = false, Some((ref, methodName)))
+        FieldDef(Seq(), visibility, name, typeAnno, Some(valueExpr), immutable = false)
     }
   }
 

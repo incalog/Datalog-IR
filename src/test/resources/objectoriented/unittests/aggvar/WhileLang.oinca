@@ -289,7 +289,7 @@ class SumNumVisitor extends Visitor {
  */
 class CfgVisitor extends Visitor {
     // TODO empty set not currently allowed here
-    vag cfg: Set[(Stm, Stm)] = Set((new Skip(), new Skip())) with CfgVisitor.union
+    vag cfg: mono.Set[(Stm, Stm)] = Set((new Skip(), new Skip())) with CfgVisitor.union
 
     @static
     def union(s1: Set[(Stm,Stm)], s2: Set[(Stm,Stm)]): Set[(Stm,Stm)] = {
@@ -391,6 +391,74 @@ class SomeConstant extends MConstant {
     }
 }
 
+/*
+
+1. generics
+2. mono.Datentypen kompilieren: linear, balanced, invertible
+3. case studies
+*/
+
+class ConstantDomain extends BalancedMonotone[(String, MConstant), `Map`[String, MConstant]] {
+  def init() = Map[String, MConstant]()
+  def +=(kv: (String, MConstant)) = {
+    Map(kv)
+  }
+//  def +=Linear(kv: (String, MConstant)) = {
+//    this.join(this.state, lift(kv))
+//  }
+  protected def join(s1: `St`, s2: `St`): `St` = `{
+    var m = s1
+    for (kv <- s2)
+      s1.get(kv._1) match {
+        case None => m + kv
+        case Some(v) => m + (k -> v.join(kv._2))
+      }
+    m
+  }`
+}
+
+class mono.Map[K, S, M <: Monotone[T, S]](val m: M) extends BalancedMonotone[(K, T), Map[K, S]] {
+  def init() = Map[K, S]()
+  def +=(kv: (K, T)) = {
+    Map(kv._1 -> m.lift(kv._2))
+  }
+//  def +=Linear(kv: (String, MConstant)) = {
+//    this.join(this.state, lift(kv))
+//  }
+  protected def join(s1: Map[K,S], s2: Map[K,S]): Map[K,S] = {
+    var m = s1
+    for (kv <- s2)
+      s1.get(kv._1) match {
+        case None => m += kv
+        case Some(v) => m += (k -> m.join(v, kv._2))
+      }
+    m
+  }
+  def get(k: K): Option[S] = this.result.get(k)
+}
+
+
+class FIConstantPropagationVisitor extends Visitor {
+    /** The Map type separates keys from aggregated values */
+    val vars: mono.ConstantDomain = new mono.ConstantDomain() 
+
+    def visitValDef(s: ValDef): Unit = {
+        this.vars += s.name -> s.rhs.aevalConst(this.vars)
+        // Typechecker test
+        //this.vars ##= Set((s.name, s.rhs.aevalConst(this.vars)))
+    }
+
+    def visitVarDef(s: VarDef): Unit = {
+        this.vars += s.name -> s.rhs.aevalConst(this.vars)
+    }
+
+    def visitAssign(s: Assign): Unit = {
+        this.vars += s.lhs -> s.rhs.aevalConst(this.vars)
+    }
+}
+
+
+
 /** Shows a groupped aggregation */
 class FIConstantPropagationVisitor extends Visitor {
     /** The Map type separates keys from aggregated values */
@@ -420,14 +488,16 @@ class FSConstantPropagationVisitor extends Visitor {
      *  This could have been written Map[(Stm, String), MConstant], but the
      *  nested type provides easier access per statement.
      */
+     val varsAfter: mono.Map[Stm, mono.Map[String, MConstant]] = new mono.Map[Stm, mono.Map[String, MConstant]]()
+
     vag varsAfter: Map[Stm, Map[String, MConstant]] = Map((new Skip(), Map(("$$", new NoConstant()))))
         with MConstant.join
-    vag varsBefore: Map[Stm, Map[String, MConstant]] = Map((new Skip(), Map(("$$", new NoConstant()))))
-        with MConstant.join
+    vag varsBefore: mono.Map[Stm, mono.Map[String, MConstant]] = new mono.Map(new mono.Map())
 
     def visitValDef(s: ValDef): Unit = {
-        this.varsAfter(s) #= (s.name, s.rhs.aevalConst(this.varsBefore(s)))
-        this.varsAfter(s) ##= for (bf <- this.varsBefore(s) if bf._1 != s.name) yield bf
+        this.varsAfter += (s, (s.name, s.rhs.aevalConst(this.varsBefore(s))))
+        val beforeMap = this.varsBefore.result
+        this.varsAfter ++= for (bf <- beforeMap.`get`(s) if bf._1 != s.name) yield (s, bf)
     }
 
     def visitVarDef(s: VarDef): Unit = {
@@ -452,8 +522,10 @@ class FSConstantPropagationVisitor extends Visitor {
     def visitIf(s: If): Unit = {
         // data flow s.thn.first() <- s
         // data flow s.els.first() <- s
-        this.varsBefore(s.thn.first()) ##= this.varsBefore(s)
-        this.varsBefore(s.els.first()) ##= this.varsBefore(s)
+        this.varsBefore ++= for (kv <- this.varsBefore.get(s)) yield (s.thn.first(), kv)
+        this.varsBefore ++= for (kv <- this.varsBefore.get(s)) yield (s.els.first(), kv)
+        this.varsAfter ++= this.varsBefore.get(s.thn.last())
+        this.varsAfter ++= this.varsBefore.get(s.els.last())
     }
 
     def visitWhile(s: While): Unit = {

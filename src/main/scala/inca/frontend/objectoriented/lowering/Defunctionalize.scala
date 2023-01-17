@@ -44,7 +44,6 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     case TScala(ty) => ty.syntax
     case TClass(ClassRef(Name(raw))) => raw
     case TSet(ty) => "Set$" + typeSuffix(ty)
-    case TMap(tk, tv) => "Map$" + typeSuffix(tk) + "_" + typeSuffix(tv)
   }
 
   private def supertypes(typ: Type): Seq[Type] = typ match {
@@ -71,13 +70,6 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
         .map(s => TClass(ClassRef(Name(s.name)))).toSeq
     case TSet(ty) =>
       supertypes(ty).map(TSet)
-    case TMap(tk, tv) =>
-      val superTvs = supertypes(tv)
-      supertypes(tk).flatMap { sTk =>
-        superTvs.map { sTv =>
-          TMap(sTk, sTv)
-        }
-      }
     case _ =>
       throw new RuntimeException(s"Can not get supertypes for typ '$typ'!")
   }
@@ -94,16 +86,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
     val parentRefs = parentClassDefs.map(_.typ.ref)
     val constr = ConstructorDef(Seq(), None, Seq(), Seq())
     val apply = MethodDef(Seq(), Some(Private), Name("apply"), Seq(), ty, Seq())
-    val methods = Seq(constr, apply) /*++ (ty match {
-      case TMap(tk, tv) =>
-        val params = Seq(Param(Name("key"), tk), Param(Name("default"), tv))
-        val getOrElse = MethodDef(Seq(), Some(Private), Name("getOrElse"), params, tv, Seq())
-        // TODO: Do something useful with getOrElse e.g. delegate the message ?
-        //    Might need to implement this in Aux class
-        Some(getOrElse)
-      case _ =>
-        None
-    })*/
+    val methods = Seq(constr, apply)
 
     val clsName = Name(gensym.fresh("Defun" + typeSuffix(ty)))
     val clazz = ClassDef(Seq(), Some(Private), clsName, parentRefs, methods)
@@ -118,7 +101,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       case (name, _) => name -> name
     }
     val contentType = clearType(typ)
-    val fields = Seq(FieldDef(Seq(), None, Name("content"), contentType, None, immutable = true, None))
+    val fields = Seq(FieldDef(Seq(), None, Name("content"), contentType, None, immutable = true))
 
     // return the precomputed set
     val ret = ReturnStmt(FieldReadExpr(VarReadExpr(Name("this")), Name("content")))
@@ -161,13 +144,9 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
   override private[lowering] def transFieldInternal(fieldDef: FieldDef, classDef: ClassDef): FieldDef = fieldDef match {
     // TODO: We might need to transform maps as well
     // Transform: set fields to object set fields
-    case FieldDef(annos, vis, name, tySet@TSet(ty), body, immutable, aggregateMethod) =>
+    case FieldDef(annos, vis, name, tySet@TSet(ty), body, immutable) =>
       val newBody = if (body.isDefined) Some(sanitize(body.get)) else body
-      val newAgg = aggregateMethod match {
-        case Some((ClassRef(refName), methodName)) => Some((ClassRef(refName), methodName))
-        case None => None
-      }
-      val replacement = FieldDef(annos, vis, name, genDefunClassDef(tySet).typ, newBody, immutable, newAgg)
+      val replacement = FieldDef(annos, vis, name, genDefunClassDef(tySet).typ, newBody, immutable)
       super.transFieldInternal(replacement, classDef)
     case f =>
       super.transFieldInternal(f, classDef)
@@ -189,8 +168,6 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
       Seq(ExprStmt(sanitize(expression)))
     case FieldAssignStmt(recv, name, expression, op) =>
       Seq(FieldAssignStmt(sanitize(recv), name, sanitize(expression), op))
-    case MapAssignStmt(recv, key, value, op) =>
-      Seq(MapAssignStmt(sanitize(recv), sanitize(key), sanitize(value), op))
     // TODO: We might need to gen defun classes for map vars as well
     // Transform: set variables to Aux objects that encapsulate set variables
     case VarDeclareStmt(name, ty: TSet, maybeExpression, immutable) =>
@@ -275,21 +252,10 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
    */
   private def sanitize(expression: Expression, requiresTrueSet: Boolean = false): Expression = {
     expression match {
-      // TODO: Do we allow MapExpr outside of agg vars ? If so, defunctionalize them
-
-    //case FieldReadExpr(recv, targetName) if requiresTrueSet =>
-    //  apply(FieldReadExpr(sanitize(recv), targetName), expression.typ)
-    case fieldRead@FieldReadExpr(recv, targetName) =>
-      val readExpr = FieldReadExpr(sanitize(recv), targetName)
-      fieldRead.target match {
-        case Some((_, FieldDef(_, _, _, typ, _, _, Some(_)))) => // aggregation var
-          unapply(readExpr, requiresTrueSet, Some(typ))
-        case _ => // normal var (which is always an object if the field has type Set)
-          if (requiresTrueSet)
-            apply(readExpr, expression.typ)
-          else
-            readExpr
-      }
+    case FieldReadExpr(recv, targetName) if requiresTrueSet =>
+      apply(FieldReadExpr(sanitize(recv), targetName), expression.typ)
+    case FieldReadExpr(recv, targetName) =>
+      FieldReadExpr(sanitize(recv), targetName)
     case VarReadExpr(targetName) if requiresTrueSet =>
       apply(VarReadExpr(targetName), expression.typ)
     case ConstructorExpr(ClassRef(name), args) =>

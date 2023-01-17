@@ -64,13 +64,9 @@ trait ModuleLowering {
     Param(param.name, transType(param.typ))
 
   private[lowering] def transFieldInternal(fieldDef: FieldDef, classDef: ClassDef): FieldDef = {
-    val FieldDef(annos, vis, name, typ, body, immutable, aggregateMethod) = fieldDef
-    val newAgg = aggregateMethod match {
-      case Some((ClassRef(refName), methodName)) => Some((ClassRef(refName), methodName))
-      case None => None
-    }
+    val FieldDef(annos, vis, name, typ, body, immutable) = fieldDef
     val newBody = if (body.isDefined) Some(transExpression(body.get).head) else None
-    FieldDef(annos, vis, name, transType(typ), newBody, immutable, newAgg)
+    FieldDef(annos, vis, name, transType(typ), newBody, immutable)
   }
 
   private[lowering] def transMethodInternal(methodDef: MethodDef, classDef: ClassDef): MethodDef = {
@@ -99,8 +95,6 @@ trait ModuleLowering {
       ExprStmt(transExpression(expr).head)
     case FieldAssignStmt(recv, name, expression, aggregation) =>
       FieldAssignStmt(transExpression(recv).head, name, transExpression(expression).head, aggregation)
-    case MapAssignStmt(recv, key, value, aggregation) =>
-      MapAssignStmt(transExpression(recv).head, transExpression(key).head, transExpression(value).head, aggregation)
     case IfStmt(cnd, thn, els) =>
       IfStmt(transExpression(cnd).head, transStatements(thn), transStatements(els))
     case VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>
@@ -131,8 +125,6 @@ trait ModuleLowering {
       TupleReadExpr(transExpression(recv).head, index)
     case SetExpr(exps, tty) =>
       SetExpr(transExpressions(exps), if (tty.isDefined) Some(transType(tty.get)) else None)
-    case MapExpr(keyValuesExps, tty) =>
-      MapExpr(transExpressions(keyValuesExps), if (tty.isDefined) Some(transType(tty.get)) else None)
     case SetMemberExpr(name, recv, predicate) =>
       val pred = if (predicate.isDefined) Some(transExpression(predicate.get).head) else None
       SetMemberExpr(name, transExpression(recv).head, pred)
@@ -162,7 +154,6 @@ trait ModuleLowering {
       case TNull => TNull
       case TTuple(ts) => TTuple(ts.map(transType))
       case TSet(ty) => TSet(transType(ty))
-      case TMap(tk, tv) => TMap(transType(tk), transType(tv))
       case TScala(ty) => TScala(ty)
       // create a new ClassRef to invalidate the current target
       case TClass(ClassRef(name)) => TClass(ClassRef(name))
