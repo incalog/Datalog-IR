@@ -9,22 +9,9 @@ import scala.collection.immutable.MultiDict
 
 class GenerateDataModel(module: Module) {
 
-  // TODO: This can be optimized by caching
-  /*def getClassHierachy(classMap: Map[Name, ClassDef], classRef: ClassRef): Seq[ClassRef] = {
-    val parentClassRefs = classMap(classRef.name).parentClassRefs
-    parentClassRefs ++ parentClassRefs.flatMap(getClassHierachy(classMap, _))
-  }*/
-
   def transModule(): DataModel = {
     val types = module.classes.map(c => SortType(c.name.raw)).toSet + SortType("Null")
 
-    /*val classMap = module.classes.map(c => c.name -> c).toMap
-
-    val classHierachies = module.classes.flatMap { c =>
-      getClassHierachy(classMap, ClassRef(c.name)).map { ref =>
-        SortType(c.name.raw) -> SortType(ref.name.raw)
-      }
-    }*/
     val classHierachies = module.classes.flatMap { c =>
       c.parentClassRefs.map { p =>
         SortType(c.name.raw) -> SortType(p.name.raw)
