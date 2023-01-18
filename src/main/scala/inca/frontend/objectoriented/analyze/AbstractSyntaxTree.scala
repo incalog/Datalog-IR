@@ -130,7 +130,7 @@ class AbstractSyntaxTree(module: Module) extends Graph[AstNode, DependencyEdge] 
         analyzeExpression(stmtNode, expression)
       case ReturnStmt(expression) =>
         analyzeExpression(stmtNode, expression)
-      case FieldAssignStmt(recv, name, expression, _) =>
+      case FieldAssignStmt(recv, name, expression) =>
         analyzeExpression(stmtNode, recv)
         analyzeExpression(stmtNode, expression, Some(name.raw))
       case VarDeclareStmt(name, _, maybeExpression, _) =>

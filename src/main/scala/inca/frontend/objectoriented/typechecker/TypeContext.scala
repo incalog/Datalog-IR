@@ -133,22 +133,28 @@ trait TypeContext extends TypeIO {
         case c: C if f(c) => Some((clazz.get, c))
         case _ => None
       }
-      val parentFields = clazz.get.parentClassRefs.flatMap(ref => collect(ref.target, f))
-      parentFields ++ content
+      val parentContent = clazz.get.parentClassRefs.flatMap(ref => collect(ref.target, f))
+      parentContent ++ content
     }
   }
 
-  def lookupField(clazz: Option[ClassDef], name: Name, suppressError: Boolean = false): Option[(ClassDef, FieldDef)] = {
+  def lookupField(clazz: Option[ClassDef], name: Name): Option[(ClassDef, FieldDef)] = {
     val clsName = if (clazz.isDefined) clazz.get.name.raw else ""
-    val allFields = collect[FieldDef](clazz, f => f.name == name)
+    var allFields = collect[FieldDef](clazz, f => f.name == name)
+
+    // Special case for monotone classes to satisfy the typechecker
+    if (clazz.isDefined && clazz.get.isMontoneClass) {
+      val Some((_, resType)) = clazz.get.montoneTypes
+      val resultField = FieldDef(Seq(), None, Name("result"), resType, None, immutable = true)
+      allFields :+= (clazz.get -> resultField)
+    }
+
     if (allFields.isEmpty) {
-      if (!suppressError)
-        error(s"Undefined field $clsName.$name", name)
+      error(s"Undefined field $clsName.$name", name)
       None
     } else if (allFields.size > 1) {
       val (parentClass, _) = allFields.head
-      if (!suppressError)
-        error(s"Field $name shadows previously defined field in class ${parentClass.name}", name)
+      error(s"Field $name shadows previously defined field in class ${parentClass.name}", name)
       None
     } else {
       Some(allFields.head)
@@ -156,14 +162,26 @@ trait TypeContext extends TypeIO {
   }
 
   def lookupMethodCandidates(clazz: Option[ClassDef], args: Seq[Type], name: Name): Seq[(ClassDef, MethodDef)] = {
+    val assignmentOpOption = AssignmentOp.from(name.raw)
+    val isAggMethod = assignmentOpOption.isDefined && assignmentOpOption.get.isAggregation
+
+    val addMethod = if (isAggMethod && clazz.isDefined && clazz.get.isMontoneClass) {
+      val Some((valueType, _)) = clazz.get.montoneTypes
+      val method = MethodDef(Seq(), None, Name("+="), Seq(Param(Name("value"), valueType)), TUnit, Seq())
+      Some(clazz.get -> method)
+    } else {
+      None
+    }
+
     collect[MethodDef](clazz, m => {
       m.name == name && m.params.size == args.size && args.zip(m.params).forall { case (t1, p) => subtype(t1, p.typ) }
-    })
+    }) ++ addMethod
   }
 
   def lookupMethod(clazz: Option[ClassDef], args: Seq[Type], name: Name): Option[MethodDef] = {
     val clsName = if (clazz.isDefined) clazz.get.name.raw else ""
-    val allMethods = lookupMethodCandidates(clazz, args, name)
+    var allMethods = lookupMethodCandidates(clazz, args, name)
+
     if (allMethods.isEmpty) {
       error(s"Undefined method $clsName.$name(${args.mkString(",")})", name)
       None

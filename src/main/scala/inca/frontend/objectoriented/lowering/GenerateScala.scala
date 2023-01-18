@@ -231,22 +231,11 @@ class GenerateScala {
       transExpression(expression)
     case ReturnStmt(expression) =>
       Term.Return(transExpression(expression))
-    case assignStmt@FieldAssignStmt(recv, name, expression, assignmentOp) =>
+    case assignStmt@FieldAssignStmt(recv, name, expression) =>
       val lhs = transExpression(recv)
       val field = Term.Select(lhs, Term.Name(name.raw))
-      if (assignmentOp == AssignmentOp.EQUAL) {
-        val rhs = transExpression(expression)
-        Term.Assign(field, rhs)
-      }
-      else {
-        // TODO: perfrom aggreagtion here
-        q"{}"
-        //transExpression(expression)
-        /*val Some((_, fieldDef)) = assignStmt.target
-        val Some((ClassRef(aggClassName), aggMethodName)) = fieldDef.aggregateMethod
-        val aggMethod = Term.Select(Term.Name(aggClassName.raw), Term.Name(aggMethodName.raw))
-        Term.Apply(aggMethod, List(field, transExpression(expression)))*/
-      }
+      val rhs = transExpression(expression)
+      Term.Assign(field, rhs)
 
     case VarDeclareStmt(name, typ, maybeExpression, immutable) =>
       val vTyp = Some(transType(typ))

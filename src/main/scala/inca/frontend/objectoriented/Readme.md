@@ -2,8 +2,7 @@
 
 ##### Datalog
 
-- [ ] **Feature (Optional):** while / for - loop
-- [ ] **Feature (Optional):** Rename static modifier to aggregate and disallow mutation of fields inside these methods
+- [ ] **Feature (Optional):** while / for - loop (prepprocessing to rewrite as recursion)
 - [ ] **Feature (Optional):** Support calling static methods
 - [ ] **Feature:** Support empty sets
 - [ ] **Feature:** Allow calling case class constructor without ‘new’

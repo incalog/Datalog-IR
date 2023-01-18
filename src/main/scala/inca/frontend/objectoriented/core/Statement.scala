@@ -5,14 +5,22 @@ import inca.frontend.util.Resolvable
 
 
 case class AssignmentOp(raw: String) extends SourceLocation {
-  lazy val isAggregation: Boolean = raw.startsWith("#")
+  lazy val isAggregation: Boolean = raw.startsWith("+")
   override def toString: String = raw
 }
 
 object AssignmentOp {
-  val EQUAL: AssignmentOp =        AssignmentOp("=")
-  val AGG: AssignmentOp =          AssignmentOp("##=")
-  val AGG_ELEMENT: AssignmentOp =  AssignmentOp("#=")
+  val EQUAL: AssignmentOp       = AssignmentOp("=")
+  val AGG: AssignmentOp         = AssignmentOp("++=")
+  val AGG_ELEMENT: AssignmentOp = AssignmentOp("+=")
+
+  lazy val values: Seq[AssignmentOp] = Seq(EQUAL, AGG, AGG_ELEMENT)
+  def from(raw: String): Option[AssignmentOp] = raw match {
+    case EQUAL.raw => Some(EQUAL)
+    case AGG.raw => Some(AGG)
+    case AGG_ELEMENT.raw => Some(AGG_ELEMENT)
+    case _ => None
+  }
 }
 
 sealed trait Statement extends SourceLocation {
@@ -33,10 +41,10 @@ case class ReturnStmt(expression: Expression) extends Statement {
     s"${indent}return $expression"
 }
 
-case class FieldAssignStmt(recv: Expression, name: Name, expression: Expression, assignmentOp: AssignmentOp) extends Statement
+case class FieldAssignStmt(recv: Expression, name: Name, expression: Expression) extends Statement
   with Resolvable[(ClassDef, FieldDef)] {
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {
-    s"$indent$recv.$name $assignmentOp $expression"
+    s"$indent$recv.$name = $expression"
   }
 }
 

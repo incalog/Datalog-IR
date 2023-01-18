@@ -41,8 +41,12 @@ trait Parser {
   def spaced[A](p: P[A]): P[A] =
     p <* whitespaces0
 
-  def seq0[A](p: P[A], sep: Char = ',', min: Int = 0): P0[Seq[A]] =
+  def seq0[A](p: P[A], sep: Char = ',', min: Int = 0, max: Int = -1): P0[Seq[A]] = {
+    if (max < 0)
       p.repSep0(min, P.char(sep) <* whitespaces0)
+    else
+      p.repSep0(min, max, P.char(sep) <* whitespaces0)
+  }
 
   object ReservedMethods extends Enumeration {
     type Keyword = Value
@@ -70,7 +74,6 @@ trait Parser {
     val NULL: Value       = Value("null")
     val EXTENDS: Value    = Value("extends")
     val SET: Value        = Value("Set")
-    val MAP: Value        = Value("Map")
     val FOR: Value        = Value("for")
     val YIELD: Value      = Value("yield")
     val SUPER: Value      = Value("super")
@@ -179,13 +182,25 @@ trait Parser {
   val nameWithType: P[(Name, Type)] =
     spaced(identifier ~ (op(':') *> typeAnno))
 
+  private lazy val assignmentOp: P[AssignmentOp] = (
+      op(AssignmentOp.EQUAL.raw) | op(AssignmentOp.AGG_ELEMENT.raw) //| op(AssignmentOp.AGG.raw)
+    ).mapWithLoc(AssignmentOp(_))
+
   protected[frontend] lazy val assignStmt: P[Statement] = {
-    val assignmentOp = (op('=') | op("#=") | op("##=")).mapWithLoc(AssignmentOp(_))
     (nestedAccessExpr ~ (assignmentOp ~ expr)).backtrack.flatMapWithLoc {
       case (targetExpr, (op, valueExpr)) =>
+        val isEqualAssign = op == AssignmentOp.EQUAL
+        val isAggAssign = op.isAggregation
         targetExpr match {
-          case FieldReadExpr(previousExpr, name) => pass(FieldAssignStmt(previousExpr, name, valueExpr, op))
-          case VarReadExpr(name)                 => pass(VarAssignStmt(name, valueExpr))
+          case FieldReadExpr(previousExpr, name) if isEqualAssign =>
+            pass(FieldAssignStmt(previousExpr, name, valueExpr))
+          case fieldRead@FieldReadExpr(previousExpr, _) if isAggAssign =>
+            pass(ExprStmt(MethodCallExpr(fieldRead, Name(op.raw), Seq(valueExpr))))
+
+          case VarReadExpr(name) if isEqualAssign
+            => pass(VarAssignStmt(name, valueExpr))
+          case varRead@VarReadExpr(name) if isAggAssign =>
+            pass(ExprStmt(MethodCallExpr(varRead, Name(op.raw), Seq(valueExpr))))
           case _                                 => fail(s"Can not assign a value to expression: $targetExpr")
         }
     }
@@ -486,22 +501,33 @@ trait Parser {
   protected[frontend] val classDef: P[ClassDef] = {
     val className = keyword(CLASS) *> identifier
     val parentClassName = keyword(EXTENDS) *> classRef
+    val monotonicParentClass = keyword(EXTENDS) *> op("BalancedMonotone").mapWithLoc(Name) ~ inBrackets(seq0(typeAnno, ',', 2, 2))
     val primaryConstructor = inParentheses(seq0(fieldDef))
-    val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ primaryConstructor.?) ~ parentClassName.map(Seq(_)).?
+    val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ primaryConstructor.?) ~ (monotonicParentClass.backtrack | parentClassName).map(Seq(_)).?
     val content = spaced(inBraces(classContentDef.rep0))
 
     (header ~ content).mapWithLoc { case ((((visibility, caseAnno), (name, fieldConstr)), parents), content) =>
+      // Generate a primary constructor if required
       val clsContent = if (fieldConstr.isEmpty)
         content
       else {
         val primaryFields = fieldConstr.getOrElse(Seq())
         val primaryParams = primaryFields.map(f => Param(f.name, f.typ))
         val primaryConstr = ConstructorDef(Seq(PrimaryAnnotation), None, primaryParams, primaryParams.map(p =>
-          FieldAssignStmt(VarReadExpr(Name("this")), p.name, VarReadExpr(p.name), AssignmentOp.EQUAL)
+          FieldAssignStmt(VarReadExpr(Name("this")), p.name, VarReadExpr(p.name))
         ))
         (primaryFields :+ primaryConstr) ++ content
       }
-      ClassDef(caseAnno.toSeq, visibility, name, parents.getOrElse(Seq()), clsContent)
+
+      // Add a monotone annotation if the class inherits from a monotone
+      val (monotoneAnnos, parentClassRefs) = parents.getOrElse(Seq()).map {
+          case (monotonicName: Name, types: Seq[Type]) =>
+            (Some(MonotoneAnnotation(monotonicName, types)), None)
+          case c: ClassRef =>
+            (None, Some(c))
+      }.unzip
+
+      ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, parentClassRefs.flatten, clsContent)
     }
   }
 

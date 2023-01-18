@@ -271,11 +271,18 @@ object TestDefinition {
     TestDefinition("SetRecursive", "Graph", "main", Seq(), SetResult("W", "Y", "Z", "X"))
   }
 
-  def caseClassTest: Seq[TestDefinition[SetResult[Any]]] = {
+  def caseClassTests: Seq[TestDefinition[SetResult[Any]]] = {
     implicit val subdir: Option[String] = Some("unittests/caseclass")
     Seq(
       TestDefinition("CaseClass", "A", "main", Seq(), SetResult(true)),
       TestDefinition("TransitiveClosure", "Graph", "main", Seq(), SetResult("X", "Z", "Y")),
+    )
+  }
+
+  def monotonicTests: Seq[TestDefinition[SetResult[Any]]] = {
+    implicit val subdir: Option[String] = Some("unittests/monotonic")
+    Seq(
+      TestDefinition("Avg", "Example", "main", Seq(), SetResult(3.5)),
     )
   }
 

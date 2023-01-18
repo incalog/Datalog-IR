@@ -93,8 +93,8 @@ trait ModuleLowering {
       ReturnStmt(transExpression(expr).head)
     case ExprStmt(expr) =>
       ExprStmt(transExpression(expr).head)
-    case FieldAssignStmt(recv, name, expression, aggregation) =>
-      FieldAssignStmt(transExpression(recv).head, name, transExpression(expression).head, aggregation)
+    case FieldAssignStmt(recv, name, expression) =>
+      FieldAssignStmt(transExpression(recv).head, name, transExpression(expression).head)
     case IfStmt(cnd, thn, els) =>
       IfStmt(transExpression(cnd).head, transStatements(thn), transStatements(els))
     case VarPhiAssignStmt(name, typ, ifStmt, thnName, elsName) =>

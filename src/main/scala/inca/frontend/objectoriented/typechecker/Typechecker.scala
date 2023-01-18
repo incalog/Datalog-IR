@@ -30,7 +30,6 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     program.foreach(typecheck)
   }
 
-
   /*
    * Module
    */
@@ -69,6 +68,9 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     inheritanceGraph.cycles.foreach { c =>
       error(s"Cycle in inheritance hierarchy: ${c.map(_.name.raw).mkString(" <- ")}", c: _*)
     }
+
+    // TODO: Treat monotone subclasses as final !
+
     // the rest of the typechecker is not working with cyclic ClassRefs
     if (inheritanceGraph.cycles.nonEmpty)
       return
@@ -229,26 +231,15 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case ReturnStmt(expression) =>
       val outTyp = typecheck(expression)
       assertSubtype(outTyp, rt, statement)
-    case fieldAssignStmt@FieldAssignStmt(recv, name, expression, assignmentOp) =>
+    case fieldAssignStmt@FieldAssignStmt(recv, name, expression) =>
       val typ = typecheck(expression)
       typecheck(recv) match {
         case TClass(ref) => lookupField(lookupClassRef(ref), name) match {
           case Some((clazz, field)) =>
             if (!allowImmutableFieldAssignment && field.immutable)
-              error(s"Can not assign to immutable field '${field.name}'", statement)
+              error(s"Cannot assign to immutable field '${field.name}'", statement)
             resolveTarget(fieldAssignStmt)((clazz, field))
-            if (assignmentOp == AssignmentOp.AGG_ELEMENT)
-              field.typ.asSet match {
-                case Some(TSet(ty)) => assertSubtype(typ, ty, expression)
-                case _ => assertSubtype(typ, field.typ, expression)
-              }
-            else if (assignmentOp == AssignmentOp.AGG)
-              field.typ.asSet match {
-                case Some(ty) => assertSubtype(typ.asSet.getOrElse(typ), ty, expression)
-                case _ => assertSubtype(typ, field.typ, expression)
-              }
-            else
-              assertSubtype(typ, field.typ, expression)
+            assertSubtype(typ, field.typ, expression)
             uninitializedFields -= field.name
           case None => // Nothing
         }
@@ -338,11 +329,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
     case fieldReadExpr@FieldReadExpr(recv, targetName) =>
       typecheck(recv) match {
         case TClass(ref) => lookupField(lookupClassRef(ref), targetName) match {
-          case Some((clazz, field)) =>
-            resolveTarget(fieldReadExpr)((clazz, field))
-            field.typ
-          case None => TAny
-        }
+            case Some((clazz, field)) =>
+              resolveTarget(fieldReadExpr)((clazz, field))
+              field.typ
+            case None => TAny
+          }
         case typ =>
           error(s"Can not lookup field '$targetName' for expression of type '$typ'", recv)
           TAny
@@ -365,7 +356,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           }
       }
     case methodCallExpr@MethodCallExpr(recv, fun, args) =>
-      typecheck(recv) match {
+      val ty = typecheck(recv) match {
         case clazzTyp@TClass(ref) =>
           // We can call methods on instances of classes we might no have yet resolved
           lookupMethod(lookupClassRef(ref), args.map(typecheck), fun) match {
@@ -382,6 +373,7 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           error(s"Can not lookup method '$fun' for expression of type '$typ'", expression)
           TAny
       }
+      ty
     case TypeCastExpr(recv, toTyp) =>
       typecheck(recv)
       typecheck(toTyp)

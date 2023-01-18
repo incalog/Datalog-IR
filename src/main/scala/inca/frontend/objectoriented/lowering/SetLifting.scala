@@ -76,7 +76,7 @@ class SetLifting(val module: Module) extends ModuleLowering {
       case VarDeclareStmt(name, _, _, _) =>
         gensym.register(name.raw)
         super.transStatementInternal(stmt)
-      case VarAssignStmt(_, _) =>
+      case VarAssignStmt(_, _, _) =>
         throw new IllegalArgumentException("Set lifting failed! Encountered unexpected var assignment.")
       case VarPhiAssignStmt(name, _, _, _, _) =>
         gensym.register(name.raw)

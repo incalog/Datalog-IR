@@ -111,7 +111,7 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
 
     val varRenamer = new VarRename(module, subst)
     val constrBody = fields.map { f =>
-      FieldAssignStmt(VarReadExpr(Name("this")), f.name, varRenamer.transExpression(expr).head, AssignmentOp.EQUAL)
+      FieldAssignStmt(VarReadExpr(Name("this")), f.name, varRenamer.transExpression(expr).head)
     }
     val constr = ConstructorDef(Seq(), None, constrParams, constrBody)
     val clsName = Name(gensym.fresh("Aux" + typeSuffix(typ)))
@@ -166,8 +166,8 @@ class Defunctionalize(val module: Module, val dataModel: DataModel) extends Modu
   override private[lowering] def transStatementInternal(stmt: Statement): Seq[Statement] = stmt match {
     case ExprStmt(expression) =>
       Seq(ExprStmt(sanitize(expression)))
-    case FieldAssignStmt(recv, name, expression, op) =>
-      Seq(FieldAssignStmt(sanitize(recv), name, sanitize(expression), op))
+    case FieldAssignStmt(recv, name, expression) =>
+      Seq(FieldAssignStmt(sanitize(recv), name, sanitize(expression)))
     // TODO: We might need to gen defun classes for map vars as well
     // Transform: set variables to Aux objects that encapsulate set variables
     case VarDeclareStmt(name, ty: TSet, maybeExpression, immutable) =>

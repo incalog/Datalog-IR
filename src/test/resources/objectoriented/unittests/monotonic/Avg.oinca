@@ -1,0 +1,33 @@
+module AvgTest
+
+class Avg extends BalancedMonotone[Int, (Int, Int)] {
+    def init(): (Int, Int) = {
+        (0, 0)
+    }
+
+    def join(v1: (Int, Int), v2: (Int, Int)): (Int, Int) = {
+        (v1._1 + v2._1, v1._2 + v2._2)
+    }
+
+    def lift(value: Int): (Int, Int) = {
+        (value, 1)
+    }
+
+    def get(): Double = {
+        this.result._1 / this.result._2
+    }
+}
+
+class Example {
+    @main
+    def main(): Double = {
+        var avg: Avg = new Avg()
+        avg += 1
+        avg += 2
+        avg += 3
+        avg += 4
+        avg += 5
+        avg += 6
+        avg.get()
+    }
+}

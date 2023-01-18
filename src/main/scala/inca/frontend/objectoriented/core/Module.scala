@@ -48,6 +48,11 @@ case class ClassDef(annos: Seq[Annotation], vis: Option[Visibility], name: Name,
   def methods: Seq[MethodDef] = content.collect { case f: MethodDef => f }
   def constructors: Seq[ConstructorDef] = content.collect { case f: ConstructorDef => f }
   def isCaseClass: Boolean = annos.contains(CaseAnnotation)
+  def isMontoneClass: Boolean = annos.exists(a => a.isInstanceOf[MonotoneAnnotation])
+  def montoneTypes: Option[(Type, Type)] = annos.flatMap {
+    case MonotoneAnnotation(_, types) => Some((types.head, types.last))
+    case _ => None
+  }.headOption
 
   def typ: TClass = {
     val ref = ClassRef(name)
