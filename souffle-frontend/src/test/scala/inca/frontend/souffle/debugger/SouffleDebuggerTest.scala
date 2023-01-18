@@ -1,18 +1,22 @@
 package inca.frontend.souffle.debugger
 
 import inca.backend.optimize.InlineSimpleRelations
-import inca.compiler.source.{Source, SourceFile, SourceString}
-import inca.debugger.{ScalaValue, Value}
+import inca.compiler.source.Source
+import inca.compiler.source.SourceFile
+import inca.compiler.source.SourceString
+import inca.debugger.redesign_new.QueryResult
+import inca.debugger.redesign_new.ValueTable
 import inca.debugger.table.ImmutableTable
+import inca.debugger.ScalaValue
+import inca.debugger.Value
 import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.frontend.souffle.compiler.SouffleOptions
 import inca.frontend.souffle.executor.SouffleExecutor
+import inca.frontend.souffle.executor.SouffleExecutor.loadInputs
 import inca.frontend.souffle.lowering.SouffleToDatalogIR
 import inca.frontend.souffle.parser.Parser
 import inca.frontend.souffle.Syntax
 import inca.frontend.souffle.Syntax.Name
-import inca.frontend.souffle.executor.SouffleExecutor.loadInputs
-
 import java.nio.file.Path
 import org.eclipse.viatra.query.runtime.rete.matcher.DRedReteBackendFactory
 import org.scalatest.funsuite.AnyFunSuite
@@ -69,21 +73,18 @@ class SouffleDebuggerTest extends AnyFunSuite {
       inputs: Map[Syntax.RuleSignature, String],
       options: SouffleOptions = SouffleOptions()
     ): SouffleDebugger = {
-    val noInlineOptions = options.withOptimizations(options.optimizations.filter(_ != InlineSimpleRelations))
+    val noInlineOptions =
+      options.withOptimizations(options.optimizations.filter(_ != InlineSimpleRelations))
     val module = SouffleExecutor.compileSouffle(prog, noInlineOptions)
     val input = SouffleExecutor.loadInputs(inputs, module, ";")
     val debugger = new SouffleDebugger(module, input)
     debugger
   }
 
-  def assertExpectedResult(
-      rel: String,
-      args: ImmutableTable[Value],
-      debugger: SouffleDebugger
-    ): Assertion = {
-    val derived = debugger.callStack.top.predResult
-    val bottomUp = debugger.state.readBottomUp(rel, args)
-    assertResult(bottomUp)(derived)
+  def assertExpectedTable(debugger: SouffleDebugger, name: String, args: ValueTable): Assertion = {
+    val derived = debugger.queryStack.top.asInstanceOf[QueryResult].t
+    val expected = debugger.state.readBottomUp(name, args)
+    assertResult(expected)(derived)
   }
 
   test("one step transitive closure") {
@@ -111,7 +112,7 @@ class SouffleDebuggerTest extends AnyFunSuite {
       println(debugger.currentDebuggerInfo())
       debugger.stepInto()
     }
-    assertExpectedResult("Superclass", ImmutableTable.unit[Value](), debugger)
+    assertExpectedTable(debugger, "Superclass", ImmutableTable.unit[Value]())
   }
 
   test("one step transitive closure from A") {
@@ -140,7 +141,7 @@ class SouffleDebuggerTest extends AnyFunSuite {
       println(debugger.currentDebuggerInfo())
       debugger.stepInto()
     }
-    assertExpectedResult("Superclass", debuggerInput, debugger)
+    assertExpectedTable(debugger, "Superclass", debuggerInput)
   }
 
   test("two step transitive closure") {
@@ -168,9 +169,10 @@ class SouffleDebuggerTest extends AnyFunSuite {
 
     while (!debugger.isFinished) {
       println(debugger.currentDebuggerInfo())
+      println("OK")
       debugger.stepInto()
     }
-    assertExpectedResult("Superclass", debuggerInput, debugger)
+    assertExpectedTable(debugger, "Superclass", debuggerInput)
   }
 
   test("two step transitive closure from A") {
@@ -199,7 +201,7 @@ class SouffleDebuggerTest extends AnyFunSuite {
       println(debugger.currentDebuggerInfo())
       debugger.stepInto()
     }
-    assertExpectedResult("Superclass", ImmutableTable.unit[Value](), debugger)
+    assertExpectedTable(debugger, "Superclass", ImmutableTable.unit[Value]())
   }
 
   test("simple edge program") {
@@ -223,7 +225,7 @@ class SouffleDebuggerTest extends AnyFunSuite {
       println(debugger.currentDebuggerInfo())
       debugger.stepInto()
     }
-    assertExpectedResult("path", ImmutableTable.unit[Value](), debugger)
+    assertExpectedTable(debugger, "path", ImmutableTable.unit[Value]())
   }
 
   def pointsToDebugger: SouffleDebugger = {
@@ -231,13 +233,13 @@ class SouffleDebuggerTest extends AnyFunSuite {
     val file = Path.of(s"$benchmarkPath/self-contained.dl")
     val factsDir = s"$benchmarkPath/minijavac"
     val options = SouffleOptions(mode = DRedReteBackendFactory.INSTANCE)
-    val noInlineOptions = options.withOptimizations(options.optimizations.filter(_ != InlineSimpleRelations))
+    val noInlineOptions =
+      options.withOptimizations(options.optimizations.filter(_ != InlineSimpleRelations))
     val module = SouffleExecutor.compileSouffle(SourceFile(file), noInlineOptions)
     val input = SouffleExecutor.loadInputs(factsDir, module)
     val debugger = new SouffleDebugger(module, input)
     debugger
   }
-
 
   ignore("var points to analysis") {
     val debugger = pointsToDebugger

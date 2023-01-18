@@ -2,7 +2,7 @@ package inca.frontend.souffle.debugger
 
 import inca.compiler.source.SourceLocation
 import inca.compiler.source.SourceObject
-import inca.debugger.redesign_old.EvaluationPoint
+import inca.debugger.redesign_new.Query
 import inca.frontend.souffle.Syntax.Input
 import inca.frontend.souffle.Syntax.RuleDefinition
 import inca.frontend.souffle.Syntax.RuleSignature
@@ -12,11 +12,11 @@ sealed trait SouffleControlPoint {
   val point: SourceObject
   def region: SourceLocation
 }
-case class PatternEndPoint(rel: RuleSignature, point: SourceObject, irPoint: EvaluationPoint)
+case class PatternEndPoint(rel: RuleSignature, point: SourceObject, irQuery: Query)
     extends SouffleControlPoint {
   override def region: SourceLocation = point.loc
 }
-case class InputPoint(rel: RuleSignature, in: Input, point: SourceObject, irPoint: EvaluationPoint)
+case class InputPoint(rel: RuleSignature, in: Input, point: SourceObject, irQuery: Query)
     extends SouffleControlPoint {
   override def region: SourceLocation = in
 }
@@ -24,7 +24,7 @@ case class InRulePoint(
     rel: RuleSignature,
     rule: RuleDefinition,
     point: SourceObject,
-    irPoint: EvaluationPoint)
+    irQuery: Query)
     extends SouffleControlPoint {
   override def region: SourceLocation = rule
 }

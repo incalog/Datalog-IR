@@ -1,6 +1,5 @@
 package inca.frontend.souffle.debugger
 
-import inca.debugger.redesign_old.IRBreakpoint
 import inca.frontend.souffle.Syntax.Statement
 
 sealed trait SouffleBreakPoint

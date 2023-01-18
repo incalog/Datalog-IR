@@ -25,7 +25,7 @@ trait Debugger extends DebuggerAPI {
   private var module: CompiledDatalogModule = _
   private lazy val dependencyGraph = new DependencyGraph(module.ir)
   protected lazy val preds: Map[Predicate, Datalog.Pattern] = module.ir.patternMap
-  private lazy val predParams = preds.map { case (name, pat) => name -> pat.params.map(_.name) }
+  protected lazy val predParams = preds.map { case (name, pat) => name -> pat.params.map(_.name) }
   private lazy val atomOps: AtomTableOps = new AtomTableOps(state.bottomUpRuntime, tableFactory)
   implicit private lazy val tableFactory: IndexedTableFactory[Value] = {
     implicit val valueOrdering: Ordering[Value] = Value.valueOrdering
@@ -35,8 +35,8 @@ trait Debugger extends DebuggerAPI {
   /*
    * Debugger state
    */
-  protected[redesign_new] var state: DebuggerState = _
-  protected[redesign_new] val queryStack: QueryStack = new QueryStack
+  var state: DebuggerState = _
+  val queryStack: QueryStack = new QueryStack
   protected[redesign_new] lazy val breakpointHandler: BreakpointHandler = new BreakpointHandler(
     dependencyGraph)
 
@@ -75,15 +75,18 @@ trait Debugger extends DebuggerAPI {
     // !queryStack.top.isEmpty && breakpointHandler.isAtBreakpoint(queryStack.top)
     breakpointHandler.isAtBreakpoint(queryStack.top)
 
+  def varsIR: ValueTable = queryStack.top match {
+    case Subquery(_, _, _, _, RuleResult(res) +: _) => res
+    case Subquery(_, _, _, sup, _) => sup
+    case QueryResult(_, result) => result
+  }
+
   /*
    * This method sets the entry point when using the debugger.
    * @pred Marks the predicate
    * @args States the argument table for the entry predicate
    */
   def entry(pred: Predicate, args: ValueTable): Unit = {
-    // clear state and querystack
-    state.clear()
-    queryStack.clear()
 
     val params = predParams(pred)
     val rules = preds(pred).bodies.map { body => Rule(pred, params, body.atoms.map(Atom)) }
@@ -289,14 +292,12 @@ trait Debugger extends DebuggerAPI {
     val shortCircuitedQuery =
       if (shortCircuit) shortCircuitIfPossible(newQuery)
       else newQuery
-    if (stackHeight > queryStack.size) {
-      // queryReduction popped from stack (queryresult rule)
+    if (stackHeight >= queryStack.size) {
+      // queryReduction popped from stack (queryresult rule) or nothing changed everything but A-Into
       queryStack.update(shortCircuitedQuery)
-    } else {
-      // this is needed because A-Into pushes to the stack
-      // hence we would overwrite the new subquery and not the original one
-      queryStack.update(shortCircuitedQuery, stackHeight)
     }
+    // Else: queryReduction pushed a new subquery onto stack (A-Into)
+    // hence, the old query did not change, hence do nothing
     true
   }
 

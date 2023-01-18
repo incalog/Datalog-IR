@@ -6,9 +6,7 @@ import inca.compiler.source.ExcerptAbsoluteRegion
 import inca.compiler.source.PaddedRegion
 import inca.compiler.source.SourceLocation
 import inca.compiler.source.SourceLocationList
-import inca.debugger.redesign_old._
-import inca.debugger.table.ImmutableTable
-import inca.debugger.Value
+import inca.debugger.redesign_new._
 import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.frontend.souffle.Syntax._
 import inca.runtime.db.DatabaseInput
@@ -20,9 +18,9 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
   super.initialize(compiled)
   super.initializeDatabaseRuntime(input)
 
-  override def entry(name: Datalog.Name, bindings: ImmutableTable[Value]): Unit = {
+  override def entry(pred: Predicate, args: ValueTable): Unit = {
     // super.updateExtensionalData(edits)
-    super.entry(name, bindings)
+    super.entry(pred, args)
     soufflePoint.getOrElse(stepInto())
   }
 
@@ -40,28 +38,37 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
   def souffleControlTrace: Seq[SouffleControlPoint] = _souffleControlTrace.toSeq
   def stepped(): Unit = soufflePoint.foreach(_souffleControlTrace += _)
 
-  override def doStepInto(): Boolean = stepToSoufflePoint(() => stepIntoIR())
-  override def doStepOver(): Boolean = stepToSoufflePoint(() => stepOverIR())
-  override def doStepOut(): Boolean = stepToSoufflePoint(() => stepOutIR())
+  override def doStepInto(shortCircuit: Boolean = false): Boolean =
+    stepToSoufflePoint(() => doStepIntoIR(shortCircuit))
+  override def doStepOver(shortCircuit: Boolean = false): Boolean =
+    stepToSoufflePoint(() => doStepOverIR(shortCircuit))
+  override def doStepOut(shortCircuit: Boolean = false): Boolean =
+    stepToSoufflePoint(() => doStepOutIR(shortCircuit))
 
   override type Breakpoint = SouffleBreakPoint
 
-  protected def convertBreakpoint(bp: SouffleBreakPoint): IRBreakpoint = bp match {
-    case PatternEndBreakPoint(pred) => IRBreakpoint(EvaluationResult(pred, null))
+  protected def lowerBreakpoint(bp: SouffleBreakPoint): IRBreakpoint = bp match {
+    case PatternEndBreakPoint(pred) => IRBreakpoint(QueryResult(pred, null))
     case InputBreakPoint(pred, before) =>
-      val pattern = predicates(pred)
+      val pattern = preds(pred)
       val rule = pattern.bodies.head
+      val params = predParams(pred)
       if (before) {
-        IRBreakpoint(InRule(pred, null, null, RuleEvaluation(null, 0, rule.atoms), Nil))
+        IRBreakpoint(
+          Subquery(pred, null, null, null, Seq(Rule(pred, params, rule.atoms.map(Atom)))))
       } else {
-        IRBreakpoint(InRule(pred, null, null, RuleEvaluation(null, 0, Nil), Nil))
+        IRBreakpoint(Subquery(pred, null, null, null, Seq(Rule(pred, params, Nil))))
       }
     case InRuleBreakPoint(pred, ruleIdx, stm) =>
-      val pattern = predicates(pred)
+      val pattern = preds(pred)
       val rule = pattern.bodies(ruleIdx)
-      val rules = pattern.bodies.drop(ruleIdx + 1)
+      val params = predParams(pred)
+      val ruleEvals = pattern.bodies.drop(ruleIdx + 1).map { r =>
+        Rule(pred, params, r.atoms.map(Atom))
+      }
       if (stm.isEmpty) {
-        IRBreakpoint(InRule(pred, null, null, RuleEvaluation(null, ruleIdx, rule.atoms), rules))
+        IRBreakpoint(
+          Subquery(pred, null, null, null, Rule(pred, params, rule.atoms.map(Atom)) +: ruleEvals))
       } else {
         val atoms = rule.atoms.dropWhile(at =>
           at.getHint(SourceConstruct.key) match {
@@ -70,43 +77,45 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
               !found
             case _ => true
           })
-        IRBreakpoint(InRule(pred, null, null, RuleEvaluation(null, ruleIdx, atoms), rules))
+        IRBreakpoint(
+          Subquery(pred, null, null, null, Rule(pred, params, rule.atoms.map(Atom)) +: ruleEvals))
       }
   }
 
   override def addBreakpoint(bp: Breakpoint): Unit =
-    breakpointHandler.addBreakpoint(convertBreakpoint(bp))
+    breakpointHandler.addBreakpoint(lowerBreakpoint(bp))
   override def removeBreakpoint(bp: Breakpoint): Unit =
-    breakpointHandler.removeBreakpoint(convertBreakpoint(bp))
+    breakpointHandler.removeBreakpoint(lowerBreakpoint(bp))
+  override def clearBreakpoints(): Unit = breakpointHandler.clearBreakpoints()
 
-  private val soufflePointDeriv: Derivative[CallStack, Option[SouffleControlPoint]] =
-    callStack.addDerivative[Option[SouffleControlPoint]](_ => None) { stack =>
+  private val soufflePointDeriv: Derivative[QueryStack, Option[SouffleControlPoint]] =
+    queryStack.addDerivative[Option[SouffleControlPoint]](_ => None) { stack =>
       if (stack.isEmpty)
         None
       else
-        computeSoufflePoint(stack.top)
+        lift(stack.top)
     }
 
   def soufflePoint: Option[SouffleControlPoint] = soufflePointDeriv.value
 
-  private def computeSoufflePoint(cp: EvaluationPoint): Option[SouffleControlPoint] = {
-    val pattern = predicates(cp.pred)
+  private def lift(query: Query): Option[SouffleControlPoint] = {
+    val pattern = preds(query.pred)
     val rel = getRelationSignature(pattern).getOrElse(
       throw new IllegalArgumentException(
-        s"Could not find signature for pattern ${cp.pred}"
+        s"Could not find signature for pattern ${query.pred}"
       )
     )
-    cp match {
-      case InRule(_, _, _, RuleEvaluation(res, ruleIdx, atoms), _) if !res.isEmpty =>
-        val body = pattern.bodies(ruleIdx)
+    query match {
+      case Subquery(_, _, _, sup, Rule(_, _, atoms) +: rules) if !sup.isEmpty =>
+        val body = pattern.bodies(pattern.bodies.size - rules.size - 1)
         body.getHint(SourceConstruct.key) match {
           case Some(SourceConstruct((_: RuleHead, rule: RuleDefinition))) =>
             // we're in a rule body
             atoms match {
-              case atom :: _ =>
+              case Atom(atom) +: _ =>
                 atom.getHint(SourceConstruct.key) match {
                   case Some(SourceConstruct(constr: Statement)) =>
-                    Some(InRulePoint(rel, rule, constr.sourceObject, cp))
+                    Some(InRulePoint(rel, rule, constr.sourceObject, query))
                   case Some(SourceConstruct((_: RuleHead, _: Expression))) =>
                     None // param=argument equality constraint
                   case Some(SourceConstruct(_: Expression)) =>
@@ -114,31 +123,40 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
                   case constr =>
                     throw new IllegalArgumentException(s"Unexpected source construct $constr")
                 }
-              case Nil =>
-                // rule end point
-                Some(InRulePoint(rel, rule, SourceLocationList(rule.body.ss).sourceObject, cp))
+              case _ => None
             }
           case Some(SourceConstruct(in: Input)) =>
             if (atoms.size == body.atoms.size) {
-              val inKeyword = new SourceLocation {}
-              inKeyword.sourceLocFrom(in)
-              inKeyword.endIndex = inKeyword.startIndex + ".input".length
-//              val padRight = in.sourceCode.substring(".input".length)
-              Some(InputPoint(rel, in, inKeyword.sourceObject, cp))
+              atoms.head match {
+                case Atom(Datalog.ExtensionalCall(_, _, _)) =>
+                  val inKeyword = new SourceLocation {}
+                  inKeyword.sourceLocFrom(in)
+                  inKeyword.endIndex = inKeyword.startIndex + ".input".length
+                  //              val padRight = in.sourceCode.substring(".input".length)
+                  Some(InputPoint(rel, in, inKeyword.sourceObject, query))
+                case AtomResult(_, _) => None
+              }
             } else if (atoms.isEmpty) {
-              Some(InputPoint(rel, in, in.sourceObject, cp))
+              Some(InputPoint(rel, in, in.sourceObject, query))
             } else {
               None
             }
           case _ => None
         }
-      case BeforeRule(_, _, _, Nil) =>
+      case Subquery(_, _, _, sup, RuleResult(_) +: rules) =>
+        val body = pattern.bodies(pattern.bodies.size - rules.size - 1)
+        getRuleDefinition(body) match {
+          case Some((_, rule)) =>
+            Some(InRulePoint(rel, rule, SourceLocationList(Seq(rule)).sourceObject, query))
+          case None => None
+        }
+      case Subquery(_, _, _, _, Nil) =>
         compiled.inputs.get(rel.name.name) match {
           case Some(_) => None
           case None =>
             val rules = compiled.souffle.rules(rel.name.name)
             val sobj = SourceLocationList(rules.map(_._2)).sourceObject
-            Some(PatternEndPoint(rel, sobj, cp))
+            Some(PatternEndPoint(rel, sobj, query))
         }
       case _ => None
     }
@@ -155,8 +173,8 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
   def currentCallStack: String =
     getSouffleCallStack.mkString("[", ", ", "]")
 
-  def getSouffleCallStack: List[Name] = callStack.frames.flatMap { fr =>
-    predicates.get(fr.pred).flatMap(getRelationSignature).map(_.name)
+  def getSouffleCallStack: List[Name] = queryStack.frames.flatMap { fr =>
+    preds.get(fr.pred).flatMap(getRelationSignature).map(_.name)
   }
 
   def currentBindings(numOfRowsShown: Int): String =
