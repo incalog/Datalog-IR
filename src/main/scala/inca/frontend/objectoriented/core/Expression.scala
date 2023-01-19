@@ -49,7 +49,7 @@ case class SuperExpr(args: Seq[Expression]) extends Expression with Resolvable[(
   }
 }
 
-case class MethodCallExpr(recv: Expression, fun: Name, args: Seq[Expression]) extends Expression with Resolvable[MethodDef] {
+case class MethodCallExpr(recv: Expression, fun: Name, args: Seq[Expression]) extends Expression with Resolvable[(ClassDef, MethodDef)] {
   def vars: Map[Name, Option[Type]] = recv.vars ++ args.flatMap(_.vars).toMap
 
   override def prettyprint(infixParens: Boolean)(implicit indent: String): String = {

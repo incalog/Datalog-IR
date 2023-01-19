@@ -184,7 +184,7 @@ trait Parser {
 
   private lazy val assignmentOp: P[AssignmentOp] = (
       op(AssignmentOp.EQUAL.raw) | op(AssignmentOp.AGG_ELEMENT.raw) //| op(AssignmentOp.AGG.raw)
-    ).mapWithLoc(AssignmentOp(_))
+    ).mapWithLoc(AssignmentOp.from(_).get)
 
   protected[frontend] lazy val assignStmt: P[Statement] = {
     (nestedAccessExpr ~ (assignmentOp ~ expr)).backtrack.flatMapWithLoc {
@@ -195,12 +195,12 @@ trait Parser {
           case FieldReadExpr(previousExpr, name) if isEqualAssign =>
             pass(FieldAssignStmt(previousExpr, name, valueExpr))
           case fieldRead@FieldReadExpr(previousExpr, _) if isAggAssign =>
-            pass(ExprStmt(MethodCallExpr(fieldRead, Name(op.raw), Seq(valueExpr))))
+            pass(ExprStmt(MethodCallExpr(fieldRead, op.name, Seq(valueExpr))))
 
           case VarReadExpr(name) if isEqualAssign
             => pass(VarAssignStmt(name, valueExpr))
           case varRead@VarReadExpr(name) if isAggAssign =>
-            pass(ExprStmt(MethodCallExpr(varRead, Name(op.raw), Seq(valueExpr))))
+            pass(ExprStmt(MethodCallExpr(varRead, op.name, Seq(valueExpr))))
           case _                                 => fail(s"Can not assign a value to expression: $targetExpr")
         }
     }
@@ -501,9 +501,9 @@ trait Parser {
   protected[frontend] val classDef: P[ClassDef] = {
     val className = keyword(CLASS) *> identifier
     val parentClassName = keyword(EXTENDS) *> classRef
-    val monotonicParentClass = keyword(EXTENDS) *> op("BalancedMonotone").mapWithLoc(Name) ~ inBrackets(seq0(typeAnno, ',', 2, 2))
+    val monotoneParentClass = keyword(EXTENDS) *> op("BalancedMonotone").mapWithLoc(Name) ~ inBrackets(seq0(typeAnno, ',', 2, 2))
     val primaryConstructor = inParentheses(seq0(fieldDef))
-    val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ primaryConstructor.?) ~ (monotonicParentClass.backtrack | parentClassName).map(Seq(_)).?
+    val header = (visibility.? ~ caseAnnotation.?).with1 ~ (className ~ primaryConstructor.?) ~ (monotoneParentClass.backtrack | parentClassName).map(Seq(_)).?
     val content = spaced(inBraces(classContentDef.rep0))
 
     (header ~ content).mapWithLoc { case ((((visibility, caseAnno), (name, fieldConstr)), parents), content) =>
@@ -520,14 +520,20 @@ trait Parser {
       }
 
       // Add a monotone annotation if the class inherits from a monotone
-      val (monotoneAnnos, parentClassRefs) = parents.getOrElse(Seq()).map {
-          case (monotonicName: Name, types: Seq[Type]) =>
-            (Some(MonotoneAnnotation(monotonicName, types)), None)
+      val (monotoneAnnos, parentClassRefs, additionalMethods) = parents.getOrElse(Seq()).map {
+          case (monotoneName: Name, types: Seq[Type]) =>
+            (Some(MonotoneAnnotation(monotoneName, types)), None, Some(
+              MethodDef(Seq(), None, AssignmentOp.AGG_ELEMENT.name, Seq(Param(Name("value"), types.head)), types.last, Seq(
+                ReturnStmt(
+                  MethodCallExpr(VarReadExpr(Name("this")), Name("lift"), Seq(VarReadExpr(Name("value"))))
+                )
+              ))
+            ))
           case c: ClassRef =>
-            (None, Some(c))
-      }.unzip
+            (None, Some(c), None)
+      }.unzip3
 
-      ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, parentClassRefs.flatten, clsContent)
+      ClassDef((monotoneAnnos :+ caseAnno).flatten, visibility, name, parentClassRefs.flatten, clsContent ++ additionalMethods.flatten)
     }
   }
 

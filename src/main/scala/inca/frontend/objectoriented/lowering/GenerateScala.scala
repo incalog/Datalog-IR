@@ -9,6 +9,8 @@ import inca.runtime.aggregate.Aggregation
 import scala.meta.{Ctor, Name => MetaName, Type => MetaType, _}
 
 class GenerateScala {
+  final case class BodyMustFailException(private val message: String = "") extends Exception(message, null)
+
   class ScalaModule(val classes: Seq[Defn.Class], val objects: Seq[Defn.Object]) {
     lazy val objectMap: Map[String, Defn.Object] = objects.map(o => o.name.value -> o).toMap
     lazy val classMap: Map[String, Defn.Class] = classes.map(o => o.name.value -> o).toMap
@@ -102,7 +104,29 @@ class GenerateScala {
     hashComps = if (parentRefOption.isDefined) q"super.hashCode" +: hashComps else hashComps
     val hashCodeImpl = hashComps.reduce[Term] { case (c1, c2) => q"31 * ($c1) + $c2" }
 
-    val clsBody = fields ++ emptyDefaultConstructor ++ constructors ++ methods
+    val aggregationVal = if (classDef.isMontoneClass) {
+      val Some((_, resType)) = classDef.montoneTypes
+      val scalaTy = transType(resType)
+      val tyAggregation = typeOf[Aggregation[_]]
+      val initAggregation = init"${MetaType.Apply(tyAggregation, List(scalaTy))}()"
+      Some(
+        q"""
+         lazy val __aggregation__ = {
+           val obj = this
+           new $initAggregation {
+             override val name = ${classDef.name.raw}
+             override def init: $scalaTy = obj.init()
+             override def join(v1: $scalaTy, v2: $scalaTy): $scalaTy = obj.join(v1, v2)
+             override val isAssociative = true
+             override val isCommutative = true
+           }
+         }"""
+      )
+    } else {
+      None
+    }
+
+    val clsBody = fields ++ aggregationVal ++ emptyDefaultConstructor ++ constructors ++ methods
     val clsDef =
       if (parentRefOption.isDefined)
         q"""class $cls() extends $parentTypeRef {
@@ -135,7 +159,7 @@ class GenerateScala {
     val cls = MetaType.Name(classDef.name.raw)
     // TODO: We ignore set fields for now
     val fields = classDef.fields.filter(_.typ.asSet.isEmpty)
-    val staticMethods = classDef.methods.filter(_.isStatic).flatMap(transMethod).toList
+    val staticMethods = classDef.methods.filter(m => m.isStatic && !m.isMain).flatMap(transMethod).toList
 
     val allocIdTerm = Term.Name("allocId")
     val allocIdParam = Term.Param(Nil, allocIdTerm, Some(transType(TScalaInt)), None)
@@ -212,7 +236,14 @@ class GenerateScala {
     val methodName = Term.Name(methodDef.name.raw)
     val params = methodDef.params.map(transParam).toList
     val outTyp = transType(methodDef.outType)
-    val body = methodDef.body.map(transStatement).toList
+    val body = try {
+      methodDef.body.map(transStatement).toList
+    } catch {
+      case BodyMustFailException(message) =>
+        val runtimeException = q"""throw new RuntimeException($message)"""
+        List(runtimeException)
+    }
+
     val mods =
       if (methodDef.annos.contains(OverrideAnnotation))
         List(Mod.Override())
@@ -231,12 +262,11 @@ class GenerateScala {
       transExpression(expression)
     case ReturnStmt(expression) =>
       Term.Return(transExpression(expression))
-    case assignStmt@FieldAssignStmt(recv, name, expression) =>
+    case FieldAssignStmt(recv, name, expression) =>
       val lhs = transExpression(recv)
       val field = Term.Select(lhs, Term.Name(name.raw))
       val rhs = transExpression(expression)
       Term.Assign(field, rhs)
-
     case VarDeclareStmt(name, typ, maybeExpression, immutable) =>
       val vTyp = Some(transType(typ))
       val value = if (maybeExpression.isDefined) Some(transExpression(maybeExpression.get)) else None
@@ -272,8 +302,21 @@ class GenerateScala {
   def transExpression(expr: Expression): meta.Term = expr match {
     case VarReadExpr(targetName) => Term.Name(targetName.raw)
     case FieldReadExpr(recv, targetName) =>
-      Term.Select(transExpression(recv), Term.Name(targetName.raw))
-    case methodCallExpr@MethodCallExpr(recv, fun, args) =>
+      val transRecv = transExpression(recv)
+      val fieldTerm = Term.Name(targetName.raw)
+      val default = Term.Select(transRecv, fieldTerm)
+      recv.typ match {
+        case Some(TClass(ref)) =>
+          ref.target match {
+            case Some(classDef) if classDef.isMontoneClass && targetName.raw == "result" =>
+              throw BodyMustFailException("Illegal usage of result field!")
+            case None | Some(_) => default
+          }
+        case Some(_) => default
+        case None => throw new IllegalArgumentException(s"Untyped expression $expr!")
+      }
+
+    case MethodCallExpr(recv, fun, args) =>
       val tArgs = args.map(transExpression).toList
       val tRecv = transExpression(recv)
       val tFun = Term.Select(tRecv, Term.Name(fun.raw))

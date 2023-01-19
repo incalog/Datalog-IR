@@ -157,37 +157,26 @@ trait TypeContext extends TypeIO {
       error(s"Field $name shadows previously defined field in class ${parentClass.name}", name)
       None
     } else {
-      Some(allFields.head)
+      allFields.headOption
     }
   }
 
   def lookupMethodCandidates(clazz: Option[ClassDef], args: Seq[Type], name: Name): Seq[(ClassDef, MethodDef)] = {
-    val assignmentOpOption = AssignmentOp.from(name.raw)
-    val isAggMethod = assignmentOpOption.isDefined && assignmentOpOption.get.isAggregation
-
-    val addMethod = if (isAggMethod && clazz.isDefined && clazz.get.isMontoneClass) {
-      val Some((valueType, _)) = clazz.get.montoneTypes
-      val method = MethodDef(Seq(), None, Name("+="), Seq(Param(Name("value"), valueType)), TUnit, Seq())
-      Some(clazz.get -> method)
-    } else {
-      None
-    }
-
     collect[MethodDef](clazz, m => {
       m.name == name && m.params.size == args.size && args.zip(m.params).forall { case (t1, p) => subtype(t1, p.typ) }
-    }) ++ addMethod
+    })
   }
 
-  def lookupMethod(clazz: Option[ClassDef], args: Seq[Type], name: Name): Option[MethodDef] = {
+  def lookupMethod(clazz: Option[ClassDef], args: Seq[Type], name: Name): Option[(ClassDef, MethodDef)] = {
     val clsName = if (clazz.isDefined) clazz.get.name.raw else ""
-    var allMethods = lookupMethodCandidates(clazz, args, name)
+    val allMethods = lookupMethodCandidates(clazz, args, name)
 
     if (allMethods.isEmpty) {
       error(s"Undefined method $clsName.$name(${args.mkString(",")})", name)
       None
     } else {
       // always choose the method lowest in the class hierarchy
-      Some(allMethods.last._2)
+      allMethods.lastOption
     }
   }
 

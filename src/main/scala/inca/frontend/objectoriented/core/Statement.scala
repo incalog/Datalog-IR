@@ -4,15 +4,15 @@ import inca.compiler.{SourceLocation, SourceObject}
 import inca.frontend.util.Resolvable
 
 
-case class AssignmentOp(raw: String) extends SourceLocation {
+case class AssignmentOp(raw: String, name: Name) extends SourceLocation {
   lazy val isAggregation: Boolean = raw.startsWith("+")
   override def toString: String = raw
 }
 
 object AssignmentOp {
-  val EQUAL: AssignmentOp       = AssignmentOp("=")
-  val AGG: AssignmentOp         = AssignmentOp("++=")
-  val AGG_ELEMENT: AssignmentOp = AssignmentOp("+=")
+  val EQUAL: AssignmentOp       = AssignmentOp("=", Name("__equal__"))
+  val AGG: AssignmentOp         = AssignmentOp("++=", Name("__plusplus__"))
+  val AGG_ELEMENT: AssignmentOp = AssignmentOp("+=", Name("__plus__"))
 
   lazy val values: Seq[AssignmentOp] = Seq(EQUAL, AGG, AGG_ELEMENT)
   def from(raw: String): Option[AssignmentOp] = raw match {

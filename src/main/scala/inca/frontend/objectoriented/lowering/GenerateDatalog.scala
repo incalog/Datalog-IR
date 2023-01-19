@@ -10,7 +10,6 @@ import inca.runtime.data.ObjectID
 import inca.util.Scala.{symbolOf, typeOf}
 import inca.util.{Gensym, Scala}
 
-import scala.annotation.tailrec
 import scala.collection.immutable.MultiDict
 import scala.collection.mutable.ListBuffer
 import scala.meta.{Stat, Term, Type => MetaType}
@@ -25,12 +24,12 @@ object GenerateDatalog {
 
   def dispatchPatName(methodNameWithSignature: String): String = s"${internalPrefix}dispatch_${methodNameWithSignature}"
   def aggregatePatName(className: String, methodName: String): String = s"${internalPrefix}aggregate_$className${sep}$methodName"
-  def mapPatName(className: String, methodName: String): String = s"${internalPrefix}map_$className${sep}$methodName"
   def coalescedPatName(className: String): String = s"${internalPrefix}coalesced_$className"
   def uncoalescedPatName(className: String): String = s"${internalPrefix}uncoalesced_$className"
   def constructorPatName(className: String): String = className + sep
   def constructorSuperPatName(className: String): String = s"${internalPrefix}super_$className"
   def fieldPatName(className: String, fieldName: String): String = s"$className$sep$sep$fieldName"
+  def methodPatName(className: String, methodName: String): String = s"$className$sep$methodName"
 
   def transformModule(typedModule: Module, coreModule: Module): Datalog.Module =
     new GenerateDatalog(typedModule, coreModule).transModule()
@@ -112,17 +111,22 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
     val params = classes.flatMap(collectMethods).map {
       case (sig, (c, m)) =>
+        val isMonotoneAddMethod = c.isMontoneClass && m.name.raw == AssignmentOp.AGG_ELEMENT.name.raw
+        val outParms = if (isMonotoneAddMethod && m.outType.isInstanceOf[TTuple]) {
+          Seq(Datalog.Param(gensym.fresh("out"), transType(m.outType, transformTuples = true)))
+        } else {
+          flattenParam("out", m.outType, genFresh = false)
+        }
         sig ->
           (Datalog.Param("this", transType(c.typ))
-            +: (m.params.flatMap(p => flattenParam(p.name.raw, p.typ, genFresh = false))
-            ++ flattenParam("out", m.outType, genFresh = false)))
+            +: (m.params.flatMap(p => flattenParam(p.name.raw, p.typ, genFresh = false)) ++ outParms))
     }.toMap
 
     val bodies = MultiDict.from(classes.flatMap { cls =>
       collectMethods(cls).map {
         case (sig, (c, m)) =>
           val methodParams = params(sig).map(p => Datalog.Var(p.name))
-          val methodCall = Datalog.Call(c.name.raw + sep + m.name, methodParams)
+          val methodCall = Datalog.Call(methodPatName(c.name.raw, m.name.raw), methodParams)
           sig -> Datalog.Body(Seq(guard(cls), methodCall))
       }.toSeq
     })
@@ -399,7 +403,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       val (primaryFields, secondaryFields) = fieldVarsAndComps.partition { case (f, _, _) =>
         primaryParamNames.contains(f.name.raw)
       }
-      val qualifiedName = constructorPatName(classDef.name.raw) + sep + primaryConstr.signature
+      val qualifiedName = constructorPatName(classDef.name.raw) + primaryConstr.signature
       val genURIWithoutId = Datalog.Call(qualifiedName, uriVar +: primaryFields.flatMap(_._2))
       val readFieldCalls = primaryFields.flatMap(_._3.flatten)
 
@@ -465,7 +469,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   }
 
   private def transConstructor(classDef: ClassDef, constructorDef: ConstructorDef): Datalog.Pattern = {
-    val qualifiedName = constructorPatName(classDef.name.raw) + sep + constructorDef.signature
+    val qualifiedName = constructorPatName(classDef.name.raw) + constructorDef.signature
     val thisParam = Datalog.Param("this", transType(classDef.typ))
     val params = constructorDef.params.flatMap(p => flattenParam(p.name.raw, p.typ, genFresh = false))
     val constrBodies = transConstructorBody(classDef, constructorDef)
@@ -567,7 +571,6 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       val constrComp = Datalog.Computed(thisVar, Datalog.Evaluation(
         Seq(Datalog.Var(hashVarName) -> Datalog.TScalaInt), transType(classDef.typ), Scala(constrScalaFun))
       )
-      println(constrScalaFun)
       val body = Datalog.Body(Seq(constrComp))
       val params = Seq(thisParam, Datalog.Param("hash", Datalog.TScalaInt))
       Datalog.Pattern(transVis(classDef.vis), constructorPatName(classDef.name.raw), params, Seq(body))
@@ -586,24 +589,61 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   private def transMethod(classDef: ClassDef, methodDef: MethodDef): Datalog.Pattern = gensym.scoped {
     gensym.register(methodDef.vars.keys.map(_.raw) + "this")
 
-    val qualifiedName = classDef.name + sep + methodDef.name.raw
+    val qualifiedName = methodPatName(classDef.name.raw, methodDef.name.raw)
 
     val thisParam = Datalog.Param("this", transType(classDef.typ))
     val argParams = methodDef.params.flatMap { case Param(name, typ) =>
       flattenParam(name.raw, typ, genFresh = false)
     }
+
+    // Special aggregate functions in a monotone class are only translated to scala
+    val isMonotoneAddMethod = classDef.isMontoneClass && methodDef.name.raw == AssignmentOp.AGG_ELEMENT.name.raw
+    val isMonotoneAggregateMethod = classDef.isMontoneClass && (methodDef.name match {
+      case Name("init") | Name("join") => true
+      case _ => false
+    })
+    // Do not flatten tuples for monotone types
     val returnParams =
-      if (methodDef.returnsUnit)
+      if (isMonotoneAddMethod)
+        Seq(Datalog.Param(gensym.fresh("return"), transType(methodDef.outType, transformTuples = true)))
+      else if (methodDef.returnsUnit)
         Seq()
       else
         flattenParam("return", methodDef.outType, genFresh = true)
 
-    val bodyRes = transStatements(methodDef.body, None, methodDef)
+    val bodyRes = if (isMonotoneAggregateMethod)
+      Seq((None, Seq(), None))
+    else
+      transStatements(methodDef.body, None, methodDef)
+
     val bodies = for ((optReturn, cons, _) <- bodyRes) yield {
-      val returnCons = returnParams.zip(optReturn.getOrElse(Seq())).map { case (p, t) =>
-        Datalog.Eq(Datalog.Var(p.name), t)
+      val returnTerms = optReturn.getOrElse(Seq())
+
+      // return a real scala tuple, not a flattened one
+      if (isMonotoneAddMethod && methodDef.outType.isInstanceOf[TTuple]) {
+        import scala.meta._
+
+        val orgReturnParams = flattenVars("return", methodDef.outType, genFresh = true).toList
+        val metaTerms = orgReturnParams.map(p => Term.Name(p._1.name))
+        val metaParams = orgReturnParams.map(p => Term.Param(Nil, Term.Name(p._1.name), Some(p._2.asScala), None))
+        val transformReturnCond = Datalog.Computed(
+          Datalog.Var(returnParams.head.name),
+          Datalog.Evaluation(
+            orgReturnParams,
+            returnParams.head.typ,
+            Scala(q"(..$metaParams) => (..$metaTerms)")
+          )
+        )
+        val returnCons = orgReturnParams.zip(returnTerms).map { case ((v, _), t) =>
+          Datalog.Eq(v, t)
+        }
+        Datalog.Body(cons ++ returnCons :+ transformReturnCond)
+      } else {
+        val returnCons = returnParams.zip(returnTerms).map { case (p, t) =>
+          Datalog.Eq(Datalog.Var(p.name), t)
+        }
+        Datalog.Body(cons ++ returnCons)
       }
-      Datalog.Body(cons ++ returnCons)
     }
 
     if (methodDef.isStatic) {
@@ -630,10 +670,11 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       Seq((None, Seq(), path))
     case s::rest =>
       val alternatives = for ((sReturn, sConstraints, sPath) <- transStatement(s, path, enclosingContent)) yield {
-        if (sReturn.isDefined) {
+        if (sReturn.isDefined)
           Seq((sReturn, sConstraints, sPath))
-        } else
+        else {
           transStatements(rest, sPath, enclosingContent).map(res => (res._1, sConstraints ++ res._2, res._3))
+        }
       }
       alternatives.flatten
   }
@@ -715,11 +756,47 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
 
       for ((terms, cons) <- transExpression(recv)) yield {
         val FieldDef(annos, vis, name, typ, body, immutable) = fieldDef
-        val fieldReadVars = flattenVars(gensym.fresh(targetName.raw), typ).map(_._1)
-        val fieldRead = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), terms ++ fieldReadVars)
-          .addHint(MagicSetHints.FixedAdornment(terms.map(_ => true) ++ fieldReadVars.map(_ => true)))
-          .addHint(ObjectHints.FieldGet)
-        (fieldReadVars, cons :+ fieldRead)
+        // reading the result value should perform an aggregation instead
+        if (classDef.isMontoneClass && targetName.raw == "result") {
+          // TODO: Is there a way to pass this to the aggregation ? Otherwise we can not support constructor args
+          //val montoneScalaObject = Datalog.Call(coalescedPatName(classDef.name.raw), terms)
+          val Some((valType, resType)) = classDef.montoneTypes
+          val aggVarType = transType(resType, transformTuples = true)
+
+          val args = terms ++ valType.flatten.map(_ => Datalog.Var(gensym.fresh("_")))
+          val readAgg = Datalog.CustomAggregation(
+            aggVarType,
+            None,
+            // TODO: This uses a fixed allocId for now
+            Scala(q"${Term.Name(classDef.name.raw)}(0).__aggregation__"),
+            methodPatName(classDef.name.raw, AssignmentOp.AGG_ELEMENT.name.raw),
+            args :+ Datalog.Var(gensym.fresh("_")),
+            args.size
+          )
+          val aggVar = Datalog.Var(gensym.fresh("agg"))
+          val resultComp = Datalog.Computed(aggVar, readAgg)
+            .addHint(MagicSetHints.IgnoreCall)
+            .addHint(MagicSetHints.FixedAdornment(args.map(_ => true) :+ false))
+
+          // TODO: Coalesing / Uncoalesing
+
+          val resultVars = flattenVars("result", resType, genFresh = true)
+          val tupleUnpackCons = resultVars.zipWithIndex.map { case ((v, ty), idx) =>
+            Datalog.Computed(v, Datalog.Evaluation(
+              Seq(aggVar -> aggVarType),
+              ty,
+              Scala(q"(aggVar: ${aggVarType.asScala}) => aggVar.${Term.Name("_"+(idx + 1))}")
+            ))
+          }
+
+          (resultVars.map(_._1), (cons :+ resultComp) ++ tupleUnpackCons)
+        } else {
+          val fieldReadVars = flattenVars(gensym.fresh(targetName.raw), typ).map(_._1)
+          val fieldRead = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), terms ++ fieldReadVars)
+            .addHint(MagicSetHints.FixedAdornment(terms.map(_ => true) ++ fieldReadVars.map(_ => true)))
+            .addHint(ObjectHints.FieldGet)
+          (fieldReadVars, cons :+ fieldRead)
+        }
       }
 
     case constrExpr@ConstructorExpr(classRef, args) =>
@@ -728,7 +805,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       val argRes = args.map(e => transExpression(e))
       val constructorDef = constrExpr.target.getOrElse(throw new IllegalArgumentException(s"Unresolved constructor $constrExpr"))
 
-      val constrName = constructorPatName(classRef.name.raw) + sep + constructorDef.signature
+      val constrName = constructorPatName(classRef.name.raw) + constructorDef.signature
 
       // create single call constraint when no arguments are passed
       if (argRes.isEmpty)
@@ -752,8 +829,13 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     case methodCallExp@MethodCallExpr(recv, fun, args) =>
       val argRes = args.map(e => transExpression(e))
 
-      val methodDef = methodCallExp.target.getOrElse(throw new IllegalArgumentException(s"Unresolved method $methodCallExp"))
-      val outVars = flattenVars(gensym.fresh("methodCall"), methodDef.outType).map(_._1)
+      val (classDef, methodDef) = methodCallExp.target.getOrElse(throw new IllegalArgumentException(s"Unresolved method $methodCallExp"))
+
+      val outVars = if (classDef.isMontoneClass && fun.raw == AssignmentOp.AGG_ELEMENT.name.raw)
+        Seq(Datalog.Var(gensym.fresh("methodCall")))
+      else
+        flattenVars(gensym.fresh("methodCall"), methodDef.outType).map(_._1)
+
       val qualifiedName = dispatchPatName(methodDef.name + sep + methodDef.signature)
 
       val transRecv = for ((terms, cons) <- transExpression(recv)) yield {
@@ -1025,8 +1107,12 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       for ((Seq(leftTerm), leftCons) <- leftRes;
            (Seq(rightTerm), rightCons) <- rightRes) yield {
         val evalConstraint = Datalog.Computed(evalOut,
-          Datalog.Evaluation(Seq(leftTerm -> transType(left.typ.get), rightTerm -> transType(right.typ.get)),
-            transType(resType), Scala(funCode)))
+          Datalog.Evaluation(
+            Seq(leftTerm -> transType(left.typ.get), rightTerm -> transType(right.typ.get)),
+            transType(resType),
+            Scala(funCode)
+          )
+        )
         (Seq(evalOut), leftCons ++ rightCons ++ Seq(evalConstraint))
       }
 
@@ -1056,7 +1142,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       case TSet(ty) =>
         flattenVars(name, ty, genFresh)
       case TTuple(ts) =>
-        ts.zipWithIndex.flatMap { case (ty, ix) => flattenVars(name + "_" + (ix + 1), ty) }
+        ts.zipWithIndex.flatMap { case (ty, ix) => flattenVars(name + "_" + (ix + 1), ty, genFresh) }
       case ty =>
         Seq(Datalog.Var(if (genFresh) gensym.fresh(name) else name) -> transType(ty))
     }
@@ -1067,15 +1153,18 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
   private def transDataType(typ: Type): Datalog.Type = typ match {
     case TClass(ClassRef(name)) => Datalog.TData(name.raw)
     case TAny | TNull | TScala(_) => Datalog.TScala(Scala(typ.asScala))
+    case TTuple(ts) => Datalog.TScala(Scala(t"(..${ts.map(genScala.transType).toList})"))
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Scala type")
   }
 
-  @tailrec
-  private def transType(typ: Type): Datalog.Type = typ match {
+  private def transType(typ: Type, transformTuples: Boolean = false): Datalog.Type = typ match {
     case TAny => Datalog.TAny
     case TNull | TClass(_) => GP_URI
     case TScala(ty) => Datalog.TScala(ty)
     case TSet(ty) => transType(ty)
+    // Note: Most of the times you want to flatten the tuple
+    case TTuple(ts) if transformTuples =>
+      Datalog.TScala(Scala(t"(..${ts.map(t => transType(t, transformTuples).asScala).toList})"))
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
   }
 }

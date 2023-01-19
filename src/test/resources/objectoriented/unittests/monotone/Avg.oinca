@@ -1,20 +1,21 @@
 module AvgTest
 
-class Avg extends BalancedMonotone[Int, (Int, Int)] {
-    def init(): (Int, Int) = {
-        (0, 0)
+class Avg extends BalancedMonotone[Int, (Int, Double)] {
+    def init(): (Int, Double) = {
+        (0, 0.0)
     }
 
-    def join(v1: (Int, Int), v2: (Int, Int)): (Int, Int) = {
+    def join(v1: (Int, Double), v2: (Int, Double)): (Int, Double) = {
         (v1._1 + v2._1, v1._2 + v2._2)
     }
 
-    def lift(value: Int): (Int, Int) = {
-        (value, 1)
+    def lift(value: Int): (Int, Double) = {
+        (value, 1.0)
     }
 
     def get(): Double = {
-        this.result._1 / this.result._2
+        val res: (Int, Double) = this.result
+        res._1 / res._2
     }
 }
 

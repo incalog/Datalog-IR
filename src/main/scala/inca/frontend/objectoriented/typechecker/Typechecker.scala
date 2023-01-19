@@ -362,11 +362,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
           lookupMethod(lookupClassRef(ref), args.map(typecheck), fun) match {
             case None =>
               TAny
-            case Some(methodDef) =>
+            case Some((clsDef, methodDef)) =>
               // TODO: We might allow calling static methods in the future
               if (methodDef.isStatic)
                 error(s"Can not call static method '${methodDef.name}' on instance of type '$clazzTyp'", expression)
-              resolveTarget(methodCallExpr)(methodDef)
+              resolveTarget(methodCallExpr)((clsDef, methodDef))
               methodDef.outType
           }
         case typ =>
@@ -464,10 +464,11 @@ trait Typechecker extends TypeContext with TypeIO with ScalaTypeContext {
             case (expr, expTy) => assertSubtype(typecheck(expr), expTy, expr)
           }
 
-          val methodDef = lookupMethod(lookupClass(classRef.name), Seq(ty, ty), methodName)
-          if (methodDef.isDefined) {
-            assertSubtype(methodDef.get.outType, ty, methodDef.get)
-            resolveTarget(setFold)(methodDef.get)
+          val classAndMethodDef = lookupMethod(lookupClass(classRef.name), Seq(ty, ty), methodName)
+          if (classAndMethodDef.isDefined) {
+            val methodDef = classAndMethodDef.get._2
+            assertSubtype(methodDef.outType, ty, methodDef)
+            resolveTarget(setFold)(methodDef)
           } else
             error(s"Fold method '${classRef.name}.${methodName}' not found", expression)
           ty
