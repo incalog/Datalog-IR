@@ -113,7 +113,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       case (sig, (c, m)) =>
         val isMonotoneAddMethod = c.isMontoneClass && m.name.raw == AssignmentOp.AGG_ELEMENT.name.raw
         val outParms = if (isMonotoneAddMethod && m.outType.isInstanceOf[TTuple]) {
-          Seq(Datalog.Param(gensym.fresh("out"), transType(m.outType, transformTuples = true)))
+          Seq(Datalog.Param(gensym.fresh("out"), transType(m.outType)))
         } else {
           flattenParam("out", m.outType, genFresh = false)
         }
@@ -605,7 +605,7 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     // Do not flatten tuples for monotone types
     val returnParams =
       if (isMonotoneAddMethod)
-        Seq(Datalog.Param(gensym.fresh("return"), transType(methodDef.outType, transformTuples = true)))
+        Seq(Datalog.Param(gensym.fresh("return"), transType(methodDef.outType)))
       else if (methodDef.returnsUnit)
         Seq()
       else
@@ -755,18 +755,17 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       val (classDef, fieldDef) = fieldRead.target.getOrElse(throw new IllegalArgumentException(s"Unresolved field $targetName"))
 
       for ((terms, cons) <- transExpression(recv)) yield {
-        val FieldDef(annos, vis, name, typ, body, immutable) = fieldDef
         // reading the result value should perform an aggregation instead
         if (classDef.isMontoneClass && targetName.raw == "result") {
-          // TODO: Is there a way to pass this to the aggregation ? Otherwise we can not support constructor args
           //val montoneScalaObject = Datalog.Call(coalescedPatName(classDef.name.raw), terms)
           val Some((valType, resType)) = classDef.montoneTypes
-          val aggVarType = transType(resType, transformTuples = true)
+          val aggVarType = transType(resType)
 
           val args = terms ++ valType.flatten.map(_ => Datalog.Var(gensym.fresh("_")))
           val readAgg = Datalog.CustomAggregation(
             aggVarType,
             None,
+            // TODO: Is there a way to pass this to the aggregation ? Otherwise we can not support constructor args
             // TODO: This uses a fixed allocId for now
             Scala(q"${Term.Name(classDef.name.raw)}(0).__aggregation__"),
             methodPatName(classDef.name.raw, AssignmentOp.AGG_ELEMENT.name.raw),
@@ -781,17 +780,25 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
           // TODO: Coalesing / Uncoalesing
 
           val resultVars = flattenVars("result", resType, genFresh = true)
-          val tupleUnpackCons = resultVars.zipWithIndex.map { case ((v, ty), idx) =>
-            Datalog.Computed(v, Datalog.Evaluation(
-              Seq(aggVar -> aggVarType),
-              ty,
-              Scala(q"(aggVar: ${aggVarType.asScala}) => aggVar.${Term.Name("_"+(idx + 1))}")
-            ))
+          val unpackCons = {
+            if (resultVars.size > 1) {
+              // we got a scala tuple back from the aggregation, unpack it
+              resultVars.zipWithIndex.map { case ((v, ty), idx) =>
+                Datalog.Computed(v, Datalog.Evaluation(
+                  Seq(aggVar -> aggVarType),
+                  ty,
+                  Scala(q"(aggVar: ${aggVarType.asScala}) => aggVar.${Term.Name("_" + (idx + 1))}")
+                ))
+              }
+            } else {
+              // we got a single value back from the aggregation
+              Seq(Datalog.Eq(resultVars.head._1, aggVar))
+            }
           }
 
-          (resultVars.map(_._1), (cons :+ resultComp) ++ tupleUnpackCons)
+          (resultVars.map(_._1), (cons :+ resultComp) ++ unpackCons)
         } else {
-          val fieldReadVars = flattenVars(gensym.fresh(targetName.raw), typ).map(_._1)
+          val fieldReadVars = flattenVars(gensym.fresh(targetName.raw), fieldDef.typ).map(_._1)
           val fieldRead = Datalog.Call(fieldPatName(classDef.name.raw, targetName.raw), terms ++ fieldReadVars)
             .addHint(MagicSetHints.FixedAdornment(terms.map(_ => true) ++ fieldReadVars.map(_ => true)))
             .addHint(ObjectHints.FieldGet)
@@ -1104,6 +1111,9 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
       val leftRes = transExpression(left)
       val rightRes = transExpression(right)
       val evalOut = Datalog.Var(gensym.fresh("eval"))
+
+      println("BaseInfix:", left, op, right)
+
       for ((Seq(leftTerm), leftCons) <- leftRes;
            (Seq(rightTerm), rightCons) <- rightRes) yield {
         val evalConstraint = Datalog.Computed(evalOut,
@@ -1157,14 +1167,13 @@ class GenerateDatalog(typedModule: Module, coreModule: Module) {
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Scala type")
   }
 
-  private def transType(typ: Type, transformTuples: Boolean = false): Datalog.Type = typ match {
+  private def transType(typ: Type): Datalog.Type = typ match {
     case TAny => Datalog.TAny
     case TNull | TClass(_) => GP_URI
     case TScala(ty) => Datalog.TScala(ty)
     case TSet(ty) => transType(ty)
-    // Note: Most of the times you want to flatten the tuple
-    case TTuple(ts) if transformTuples =>
-      Datalog.TScala(Scala(t"(..${ts.map(t => transType(t, transformTuples).asScala).toList})"))
+    // Note: Most of the times we want to flatten the tuple, but for monotones we expect this to work
+    case TTuple(ts) => Datalog.TScala(Scala(t"(..${ts.map(t => transType(t).asScala).toList})"))
     case _ => throw new IllegalArgumentException(s"Cannot translate $typ to Datalog")
   }
 }

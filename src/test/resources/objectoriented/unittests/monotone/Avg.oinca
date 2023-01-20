@@ -29,6 +29,9 @@ class Example {
         avg += 4
         avg += 5
         avg += 6
-        avg.get()
+        val res: Double = avg.get()
+        // Why do we get multiple / all results if we add this line ?
+        //avg += 2
+        res
     }
 }

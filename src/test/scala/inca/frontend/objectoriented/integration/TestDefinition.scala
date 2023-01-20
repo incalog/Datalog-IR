@@ -283,6 +283,7 @@ object TestDefinition {
     implicit val subdir: Option[String] = Some("unittests/monotone")
     Seq(
       TestDefinition("Avg", "Example", "main", Seq(), SetResult(3.5)),
+      TestDefinition("Map", "Example", "main", Seq(), SetResult(Map("Zero" -> 0, "One" -> 1, "Two" -> 2))),
     )
   }
 
