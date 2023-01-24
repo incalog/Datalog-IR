@@ -35,7 +35,17 @@ object Code {
     s"""@main def main(): Int =
       |  let x = 7 in
       |    if (x > 0)
-      |      x
+      |      x * 1
+      |    else
+      |      x * -1
+      |""".stripMargin
+  )
+
+  val ifExample3: String = module(
+    s"""@main def main(): Int =
+      |  let x = -1 in
+      |    if (x > 0)
+      |      x * 1
       |    else
       |      x * -1
       |""".stripMargin

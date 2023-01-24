@@ -21,7 +21,7 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
   override def entry(pred: Predicate, args: ValueTable): Unit = {
     // super.updateExtensionalData(edits)
     super.entry(pred, args)
-    soufflePoint.getOrElse(stepInto())
+    // soufflePoint.getOrElse(stepInto())
   }
 
   protected def stepToSoufflePoint(step: () => Boolean): Boolean = {

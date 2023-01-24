@@ -6,7 +6,6 @@ import scala.collection.mutable.ListBuffer
 
 final class IRDebugger(module: CompiledDatalogModule, input: DatabaseInput) extends Debugger {
 
-
   this.initialize(module)
   this.initializeDatabaseRuntime(input)
 
@@ -22,4 +21,5 @@ final class IRDebugger(module: CompiledDatalogModule, input: DatabaseInput) exte
   private val _irControlTrace: ListBuffer[Query] = ListBuffer.empty
   def irControlTrace: Seq[Query] = _irControlTrace.toSeq
   def stepped(): Unit = _irControlTrace += queryStack.top
+
 }

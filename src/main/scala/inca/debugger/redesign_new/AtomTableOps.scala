@@ -399,14 +399,6 @@ class AtomTableOps(val runtime: DatalogRuntime, indexedTableFactory: IndexedTabl
     ScalaValue(fun(argsMap))
   }
 
-  private def executeScala(term: Scala[meta.Term]): ScalaValue =
-    executeScala(term.syntax)
-
-  private def executeScala(term: String): ScalaValue = {
-    val code = s"import ${definitionObjSym}.${runtime.compiled.name}._\n$term"
-    ScalaValue(scalaCompiler.compileAndLoadScala[Any](code))
-  }
-
   private def count(t: ValueTable, comp: Datalog.CountAggregation, lhs: Datalog.Term): ValueTable =
     throw IllegalDebugStateException("Not supported yet")
 

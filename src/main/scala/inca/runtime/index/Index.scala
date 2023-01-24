@@ -5,9 +5,6 @@ import org.eclipse.viatra.query.runtime.matchers.context.IQueryRuntimeContextLis
 import org.eclipse.viatra.query.runtime.matchers.tuple.ITuple
 import org.eclipse.viatra.query.runtime.matchers.tuple.Tuple
 import org.eclipse.viatra.query.runtime.matchers.tuple.TupleMask
-import truechange.Link
-import truechange.Tag
-import truechange.URI
 
 /**
  * Generic trait to capture functionality to support virtual indices. An implementation needs an

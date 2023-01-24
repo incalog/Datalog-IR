@@ -1,5 +1,4 @@
 package inca.backend.optimize
-import inca.backend.ir.CollectVarNames
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.Evaluation
 import inca.backend.ir.Datalog.Term

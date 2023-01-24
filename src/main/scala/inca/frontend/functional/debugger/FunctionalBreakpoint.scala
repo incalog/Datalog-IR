@@ -4,13 +4,12 @@ import inca.backend.hints.DebugHints
 import inca.backend.hints.DebugHints.SourceConstruct
 import inca.backend.ir.Datalog
 import inca.compiler.source.SourceObject
-import inca.debugger.redesign_old.BeforeRule
-import inca.debugger.redesign_old.EvaluationPoint
-import inca.debugger.redesign_old.EvaluationResult
-import inca.debugger.redesign_old.IRBreakpoint
-import inca.debugger.redesign_old.InRule
-import inca.debugger.redesign_old.PredicateEntry
-import inca.debugger.redesign_old.RuleEvaluation
+import inca.debugger.redesign_new.Atom
+import inca.debugger.redesign_new.IRBreakpoint
+import inca.debugger.redesign_new.Query
+import inca.debugger.redesign_new.QueryResult
+import inca.debugger.redesign_new.Rule
+import inca.debugger.redesign_new.Subquery
 import inca.frontend.functional.core.Collect
 import inca.frontend.functional.core.Expression
 import inca.frontend.functional.core.FunctionDef
@@ -27,16 +26,20 @@ case class FunctionExit(f: String) extends BreakpointPos
 case class FunctionalBreakpoint(pos: BreakpointPos)
 
 object FunctionalBreakpoint {
-  def convert(
+  def lower(
       fbp: FunctionalBreakpoint
     )(implicit patterns: Map[String, Datalog.Pattern]
     ): Seq[IRBreakpoint] = {
-    val cps: Seq[EvaluationPoint] = fbp.pos match {
+    val queries: Seq[Query] = fbp.pos match {
       case FunctionEntry(f) =>
         val pat = patterns(f)
-        Seq(BeforeRule(f, null, null, pat.bodies))
+        val params = pat.params.map(_.name)
+        val ruleEvals = pat.bodies.map { r =>
+          Rule(f, params, r.atoms.map(Atom))
+        }
+        Seq(Subquery(f, null, null, null, ruleEvals))
       case FunctionExit(f) =>
-        Seq(EvaluationResult(f, null))
+        Seq(QueryResult(f, null))
       case InFunction(so) =>
         // collects atoms to stop at
         val options = patterns.values.flatMap { pat =>
@@ -66,11 +69,16 @@ object FunctionalBreakpoint {
         options.map { case (pat, body, atom) =>
           val bodyIdx = pat.bodies.indexOf(body)
           val atomIdx = body.atoms.indexOf(atom)
-          val re = RuleEvaluation(null, bodyIdx, body.atoms.drop(atomIdx))
-          InRule(pat.name, null, null, re, pat.bodies.drop(bodyIdx + 1))
+          val f = pat.name
+          val params = pat.params.map(_.name)
+          val rule = Rule(f, params, pat.bodies(bodyIdx).atoms.drop(atomIdx).map(Atom))
+          val remRules = pat.bodies.drop(bodyIdx + 1).map { r =>
+            Rule(f, params, r.atoms.map(Atom))
+          }
+          Subquery(pat.name, null, null, null, rule +: remRules)
         }
     }
-    cps.map(IRBreakpoint.apply)
+    queries.map(IRBreakpoint.apply)
   }
 
   def forExpression(

@@ -14,7 +14,6 @@ import inca.runtime.db.DatabaseInput
 import inca.runtime.DatalogRuntime
 import inca.runtime.EnginePool
 import org.eclipse.viatra.query.runtime.rete.matcher.TimelyReteBackendFactory
-import scala.collection.mutable
 
 /**
  */
@@ -22,11 +21,13 @@ trait Debugger extends DebuggerAPI {
   /*
    * Global static information
    */
-  private var module: CompiledDatalogModule = _
+  protected var module: CompiledDatalogModule = _
   private lazy val dependencyGraph = new DependencyGraph(module.ir)
   protected lazy val preds: Map[Predicate, Datalog.Pattern] = module.ir.patternMap
-  protected lazy val predParams = preds.map { case (name, pat) => name -> pat.params.map(_.name) }
-  private lazy val atomOps: AtomTableOps = new AtomTableOps(state.bottomUpRuntime, tableFactory)
+  protected lazy val predParams: Map[Predicate, Seq[Datalog.Name]] = preds.map { case (name, pat) =>
+    name -> pat.params.map(_.name)
+  }
+  protected lazy val atomOps: AtomTableOps = new AtomTableOps(state.bottomUpRuntime, tableFactory)
   implicit private lazy val tableFactory: IndexedTableFactory[Value] = {
     implicit val valueOrdering: Ordering[Value] = Value.valueOrdering
     new IndexedTableFactory[Value](predParams)
@@ -87,16 +88,19 @@ trait Debugger extends DebuggerAPI {
    * @args States the argument table for the entry predicate
    */
   def entry(pred: Predicate, args: ValueTable): Unit = {
-
     val params = predParams(pred)
     val rules = preds(pred).bodies.map { body => Rule(pred, params, body.atoms.map(Atom)) }
     val result = ValueTable.empty(params)
     val query = Subquery(pred, args, result, args, rules)
     state.storeExpectedFixpointSize(pred, args, queryStack.size + 1)
     state.insertBlacklist(pred, args)
+    pushSubqueryHook(pred, args)
     queryStack.push(query)
     stepped()
   }
+
+  protected def pushSubqueryHook(pred: Predicate, args: ValueTable): Unit = {}
+  protected def popSubqueryHook(pred: Predicate, result: ValueTable): Unit = {}
 
   /*
    * Reduction functions by the formal semantics
@@ -136,8 +140,7 @@ trait Debugger extends DebuggerAPI {
           // A-Into or A-Skip
           val unseenQueries = state.addNewQuery(callee, calleeArgs)
           if (unseenQueries.nonEmpty) { // A-Into
-            atomInto(callee, unseenQueries)
-            atomEval
+            atomInto(atom, unseenQueries)
           } else { // A-Skip
             atomSkip(sup, calleeArgs, call)
           }
@@ -154,7 +157,8 @@ trait Debugger extends DebuggerAPI {
   }
 
   // has a side-effect as it pushes a new subquery onto the query stack
-  private def atomInto(pred: Predicate, args: ValueTable): Unit = {
+  protected def atomInto(atom: Datalog.Atom, args: ValueTable): AtomEval = {
+    val Datalog.Call(pred, _, _, _) = atom
     val params = predParams(pred)
     val rules = preds(pred).bodies
     val ruleEvals = rules.map { body => Rule(pred, params, body.atoms.map(Atom)) }
@@ -164,7 +168,9 @@ trait Debugger extends DebuggerAPI {
     }
     val emptyResult = ValueTable.empty(params)
     val newSubquery = Subquery(pred, args, emptyResult, args, ruleEvals)
+    pushSubqueryHook(pred, args)
     queryStack.push(newSubquery)
+    Atom(atom)
   }
 
   private def atomSkip(sup: ValueTable, args: ValueTable, call: Datalog.Call): AtomEval = {
@@ -202,9 +208,10 @@ trait Debugger extends DebuggerAPI {
         // this optimization is not present in the formal semantics
         queryStable(query)
       }
-    case QueryResult(_, result) =>
+    case QueryResult(pred, result) =>
       // This rule is not present in the formal semantics
       // It is required because we use a querystack instead of nested subqueries
+      popSubqueryHook(pred, result)
       queryStack.pop()
       replaceCallWithAtomResult(queryStack.top, result)
   }
@@ -236,7 +243,7 @@ trait Debugger extends DebuggerAPI {
   private def isCyclic(pred: Predicate): Boolean = dependencyGraph.cycles.exists(_.contains(pred))
 
   // similar to the helper function eval in the paper
-  private def prepareArgTable(
+  protected def prepareArgTable(
       t: ValueTable,
       pred: Predicate,
       args: Seq[Datalog.Term],
@@ -256,7 +263,7 @@ trait Debugger extends DebuggerAPI {
     varTable.join(constTable, resultIndices)
   }
 
-  private def replaceCallWithAtomResult(query: Query, calleeResult: ValueTable): Query = {
+  protected def replaceCallWithAtomResult(query: Query, calleeResult: ValueTable): Query = {
     val Subquery(pred, args, result, sup, rules) = query
     val Rule(_, params, atoms) = rules.head
     val Atom(Datalog.Call(callee, calleeTerms, _, neg)) = atoms.head
@@ -266,7 +273,7 @@ trait Debugger extends DebuggerAPI {
     Subquery(pred, args, result, sup, rule +: rules.tail)
   }
 
-  private def fitToSupplementary(
+  protected def fitToSupplementary(
       pred: Predicate,
       terms: Seq[Datalog.Term],
       result: ValueTable,

@@ -1,10 +1,10 @@
 package inca.backend.optimize
-import inca.backend.ir.{CollectVarNames, Datalog, TypeOps}
+import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog._
+import inca.backend.ir.TypeOps
 import inca.backend.optimize.Optimizer.throwBodyMustFail
 import inca.runtime.context.DataModel
 import inca.util.Scala
-
 import scala.collection.immutable.MultiSet
 
 object FoldConstantAtoms extends Optimization {

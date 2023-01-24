@@ -1,12 +1,11 @@
 package inca.backend.transform.magic.demand
 
 import inca.backend.hints.MagicSetHints
-import inca.backend.ir.{Collect, Datalog}
+import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog._
 import inca.backend.transform.Transformation
 import inca.backend.transform.Transformer
 import inca.runtime.context.DataModel
-
 import scala.collection.mutable.ListBuffer
 
 // This transformation consumes MagicSetHints.Main and MagicSetHints.FixedAdornment
@@ -111,7 +110,9 @@ object DeriveDemandPatterns extends Transformation {
   }
 
   def freeVars(prev: Seq[Atom], constraint: Atom): Set[Var] = {
-    val prevBound = prev.foldLeft(Set[Var]()) { case (res, c) => res ++ Datalog.collectVars.transAtom(c) }
+    val prevBound = prev.foldLeft(Set[Var]()) { case (res, c) =>
+      res ++ Datalog.collectVars.transAtom(c)
+    }
     val vars = Datalog.collectVars.transAtom(constraint).toSet
     vars.diff(prevBound)
   }

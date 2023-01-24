@@ -116,7 +116,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   test("nested let") {
-    assertControlTraceSize(Code.varExample, "main")(6)
+    assertControlTraceSize(Code.varExample, "main")(4)
   }
 
   val tupleLetProg: String =
@@ -126,7 +126,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       |    x + y
       |""".stripMargin
   test("multiple names let") {
-    assertControlTraceSize(tupleLetProg, "main")(7)
+    assertControlTraceSize(tupleLetProg, "main")(5)
   }
 
   test("nested let 2") {
@@ -137,20 +137,34 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
         |    let y = 2 + 3 in
         |      x + y
         |""".stripMargin
-    assertControlTraceSize(code, "main")(7)
+    assertControlTraceSize(code, "main")(5)
   }
 
   test("simple function call") {
-    assertControlTraceSize(Code.incModule, "main")(6)
+    assertControlTraceSize(Code.incModule, "main")(2)
   }
 
   test("if example") {
-    assertControlTraceSize(Code.ifExample, "main")(4)
+    assertControlTraceSize(Code.ifExample, "main")(3)
+  }
+
+  test("if example 3") {
+    assertControlTraceSize(Code.ifExample3, "main")(3)
   }
 
   test("if example 2") {
-    assertControlTraceSize(Code.ifExample2, "main")(8)
+    assertControlTraceSize(Code.ifExample2, "main")(6)
   }
+
+  // TODO fix
+//  test("if in set") {
+//    val code =
+//      s"""module Test
+//        |@main def main(): Set[Int] = let x = 1 in
+//        |  { if (x > 0) x * 1 else x * -1, if (x > 0) x + 1 else x - 1 }
+//        |""".stripMargin
+//    assertControlTraceSize(code, "main")(5)
+//  }
 
   def ifControlJump(b1: Boolean, b2: Boolean): String =
     s"""module M
@@ -172,12 +186,13 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       b1 <- Seq(true, false)
       b2 <- Seq(true, false)
     } {
-      assertControlTraceSize(ifControlJump(b1, b2), "main")(5)
+      assertControlTraceSize(ifControlJump(b1, b2), "main")(3)
     }
   }
 
+  // TODO should we highlight call exit aswell?
   test("fib example") {
-    assertControlTraceSize(Code.fibModule, "main", q"3")(28)
+    assertControlTraceSize(Code.fibModule, "main", q"3")(18)
   }
 
   val constructorProg: String = Code.module(
@@ -186,17 +201,17 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       |""".stripMargin
   )
   test("Constructor calls example") {
-    assertControlTraceSize(constructorProg, "main")(5)
+    assertControlTraceSize(constructorProg, "main")(3)
   }
 
   val matchProg: String =
     s"""module M
       |data Exp = Var(String) | Num(Int) | Add(Exp, Exp) | Let(String, Exp, Exp)
       |@main def main(exp: Exp): Int = exp match {
-      |  case Var(x) => 1
-      |  case Num(i) => 2
-      |  case Add(l, r) => 3
-      |  case Let(n, bound, body) => 4
+      |  case Var(x) => 1 + 1
+      |  case Num(i) => 2 + 2
+      |  case Add(l, r) => 3 + 3
+      |  case Let(n, bound, body) => 4 + 4
       |}
       |""".stripMargin
 
@@ -315,7 +330,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       |@main def main(): (Int, Boolean) = (1 + 1, true && false)
       |""".stripMargin
   test("tuple example") {
-    assertControlTraceSize(tupleProg, "main")(4)
+    assertControlTraceSize(tupleProg, "main")(2)
   }
 
   val setProg: String =
@@ -323,7 +338,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       |@main def main(): Set[Int] = {1 + 1, 2 + 1, 3 + 1}
       |""".stripMargin
   test("set example") {
-    assertControlTraceSize(setProg, "main")(5)
+    assertControlTraceSize(setProg, "main")(3)
   }
 
   val setCompProg: String =
@@ -340,7 +355,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       |@main def main(): Int = (1 + 4) + (3 + 4)
       |""".stripMargin
   test("nested binary") {
-    assertControlTraceSize(nestedBinaryProg, "main")(5)
+    assertControlTraceSize(nestedBinaryProg, "main")(3)
   }
 
   val deeperNestedBinaryProg: String =
@@ -348,7 +363,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       |@main def main(): Int = ((1 + 5) + 4) + (3 + 4)
       |""".stripMargin
   test("deeper nested binary") {
-    assertControlTraceSize(deeperNestedBinaryProg, "main")(6)
+    assertControlTraceSize(deeperNestedBinaryProg, "main")(4)
   }
 
   // TODO fix we currently do not consider the set to fold over
