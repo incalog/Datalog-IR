@@ -111,7 +111,7 @@ object Code {
   val plusRealModuleExtra: String = module(
     Nat_code,
     s"""def plus(m: Nat, n: Nat): Nat =
-      | let x = `1 + 2` in
+      | let x = 1 + 2 in
       | m match {
       |  case Zero() => n
       |  case Succ(pred) => Succ(plus(pred, n))

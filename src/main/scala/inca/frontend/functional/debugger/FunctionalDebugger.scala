@@ -22,7 +22,6 @@ import inca.debugger.redesign_new.Query
 import inca.debugger.redesign_new.QueryResult
 import inca.debugger.redesign_new.QueryStack
 import inca.debugger.redesign_new.Rule
-import inca.debugger.redesign_new.RuleResult
 import inca.debugger.redesign_new.Subquery
 import inca.debugger.redesign_new.ValueTable
 import inca.debugger.table.ImmutableTable
@@ -73,9 +72,6 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
   super.initializeDatabaseRuntime(DatabaseInput.empty)
 
   private var lastConditionOrMatch: List[Option[Either[ConditionPoint, MatchPoint]]] = List()
-  private var isFirstRule: List[Boolean] = List()
-  private var oneRuleFired: List[Boolean] = List()
-  private var showCurrentRule: List[Boolean] = List()
   private var determinesSet: List[Boolean] = List()
 
   // skip bodies representing else-branches when corresponding then-branch was chosen
@@ -90,8 +86,10 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
   }
   case class SkipToElse(ifSource: SourceObject) extends SkipAhead {
     override def stop(s: SourceConstruct[_]): Boolean = s match {
-      case SourceConstruct((cond: If, false)) => cond.sourceObject == ifSource
-      case _ => false
+      case SourceConstruct((cond: If, false)) =>
+        cond.sourceObject == ifSource
+      case _ =>
+        false
     }
   }
   case class SkipToPat(matchSource: SourceObject, patSource: SourceObject) extends SkipAhead {
@@ -127,89 +125,105 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
     }
 
   private def lift(query: Query): Option[FunctionalControlPoint] = {
-    val lastShowCurrentRule = showCurrentRule.head
-    showNextRule(query)
-    if (!lastShowCurrentRule) {
+    if (skipRule(query)) {
       return None
     }
-    getFunction(query.pred) match {
-      case Some(fun) =>
-        query match {
-          case Subquery(pred, _, _, sup, rules @ Rule(_, _, atoms) +: _) =>
-            if (sup.isEmpty)
-              None
-            else
-              atoms match {
-                case Nil => None
-                case Atom(atom) :: _ =>
-                  // need to determine if we should skip
-                  if (shouldSkipPrefixAtoms()) {
-                    skipAheadTo.head match {
-                      case Some(skip) =>
-                        // TODO should stop be false for the inner if?
-                        val stop = atom.getHint(SourceConstruct.key).exists(h =>
-                          skip.stop(h.asInstanceOf[SourceConstruct[_]]))
-                        if (!stop)
-                          return None
-                        else {
-                          skipAheadTo = None :: skipAheadTo.tail
-                        }
-                      case None => // do nothing
-                    }
-                  }
-                  liftAtAtom(query)
-                case AtomResult(table, _) :: _ =>
-                  lastConditionOrMatch.head match {
-                    case Some(Left(condition)) =>
-                      if (determinesSet.head)
-                        showCurrentRule = table.nonEmpty :: showCurrentRule.tail
-                      else
-                        showCurrentRule =
-                          (!oneRuleFired.head && table.nonEmpty) :: showCurrentRule.tail
-                      if (table.isEmpty && condition.thenBranch && !determinesSet.head) {
-                        // Is this correct?
-                        skipAheadTo =
-                          Some(SkipToElse(condition.cond.sourceObject)) :: skipAheadTo.tail
-                      }
-                    case Some(Right(mtch)) =>
-                    // TODO
-                    case None => // do nothing
-                  }
-                  None
+    if (getFunction(query.pred).nonEmpty) {
+      query match {
+        case Subquery(_, _, _, sup, Rule(_, _, atoms) +: _) if sup.nonEmpty =>
+          atoms match {
+            case Nil => None
+            case Atom(atom) :: _ =>
+              if (skipAtom(atom)) {
+                return None
+              } else {
+                // we skipped all already shown points hence, we can reset
+                skipAheadTo = None :: skipAheadTo.tail
               }
-          case QueryResult(_, _) =>
-            None
-          // Some(FunctionPoint(fun, fun.sourceObject, query))
-          case _ => None
-        }
-      case None => None
+              liftAtAtom(query)
+            case AtomResult(table, _) :: _ =>
+              determineSkips(table)
+              None
+          }
+        case _ => None
+      }
+    } else {
+      None
     }
   }
 
-  private def shouldSkipPrefixAtoms(): Boolean = lastConditionOrMatch.head match {
-    case Some(Left(condition)) => !isFirstRule.head
-    case Some(Right(mtch)) =>
-      // TODO
-      !isFirstRule.head
-    case None => false
+  private def skipRule(query: Query): Boolean = query match {
+    case Subquery(_, _, _, _, Rule(_, _, atoms) +: _) =>
+      val skipElses = skipElseBranches.head
+      val skipMatches = skipAlternativePatterns.head
+      if (skipElses.isEmpty && skipMatches.isEmpty)
+        return false
+      atoms.exists {
+        case Atom(a) =>
+          a.getHint(SourceConstruct.key) match {
+            case Some(SourceConstruct((cond: If, false))) =>
+              val res = skipElses.contains(cond.sourceObject)
+              if (res)
+                return true
+              else
+                false
+            case Some(SourceConstruct((ma: Match, pat: Pattern))) =>
+              val skipPats = skipMatches.getOrElse(ma.sourceObject, Set())
+              val res = skipPats.contains(pat.sourceObject)
+              if (res)
+                return true
+              else
+                false
+            case _ => false
+          }
+        case _ => false
+      }
+    case _ => false
   }
 
-  private def showNextRule(query: Query): Unit = query match {
-    case Subquery(_, _, _, _, RuleResult(t) +: _) =>
-      if (isFirstRule.head)
-        isFirstRule = false :: isFirstRule.tail
+  private def skipAtom(atom: Datalog.Atom): Boolean = {
+    skipAheadTo.head match {
+      case Some(skip) =>
+        val stop = atom.getHint(SourceConstruct.key).exists(h =>
+          skip.stop(h.asInstanceOf[SourceConstruct[_]]))
+        if (!stop) {
+          return true
+        }
+      case None => // do nothing
+    }
+    false
+  }
 
-      oneRuleFired = (oneRuleFired.head || t.nonEmpty) :: oneRuleFired.tail
-      lastConditionOrMatch.head match {
-        case None =>
-          showCurrentRule = true :: showCurrentRule.tail
-        case _ =>
-          if (determinesSet.head)
-            showCurrentRule = true :: showCurrentRule.tail
-          else
-            showCurrentRule = (!oneRuleFired.head && t.isEmpty) :: showCurrentRule.tail
+  private def determineSkips(table: ValueTable): Unit = lastConditionOrMatch.head match {
+    case Some(Left(condition)) if !determinesSet.head =>
+      if (condition.thenBranch && table.nonEmpty) {
+        // condition succeeded in then branch
+        skipElseBranches.head += condition.cond.sourceObject
       }
-    case _ => // do nothing
+      if (condition.thenBranch && table.isEmpty) {
+        // condition failed in then branch
+        skipAheadTo = Some(SkipToElse(condition.point)) :: skipAheadTo.tail
+      }
+      // if (!condition.thenBranch && table.isEmpty) {}
+      lastConditionOrMatch = None :: lastConditionOrMatch.tail
+    case Some(Right(mtch)) if !determinesSet.head =>
+      val patObj = mtch.pat.sourceObject
+      val nextPats = mtch.ma.cases.dropWhile(_._1.sourceObject != patObj).tail
+      if (table.isEmpty) {
+        // pattern failed
+        nextPats.headOption.foreach { next =>
+          val skip = SkipToPat(mtch.ma.sourceObject, next._1.sourceObject)
+          skipAheadTo = Some(skip) :: skipAheadTo.tail
+        }
+      } else {
+        // pattern succeded
+        if (nextPats.nonEmpty) {
+          val patsToSkip = nextPats.map(_._1.sourceObject).toSet
+          skipAlternativePatterns.head += mtch.ma.sourceObject -> patsToSkip
+        }
+      }
+      lastConditionOrMatch = None :: lastConditionOrMatch.tail
+    case None => // do nothing
   }
 
   private def liftAtAtom(query: Query): Option[FunctionalControlPoint] = {
@@ -286,7 +300,6 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
     val inputParams = predParams(mainFun).zip(adorn).filter(_._2).map(_._1)
     val inputTable = ImmutableTable[Value](inputParams, Seq(debugVals))
     super.entry(mainFun, inputTable)
-    // addNewSkipInfo()
 
     // TODO could be that it is not needed
     if (currentFunctionalPoint.isEmpty)
@@ -345,194 +358,6 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
   override def clearBreakpoints(): Unit = {
     breakpointHandler.clearBreakpoints()
   }
-  // what has the lifting to consider
-  // 1. skipping over rules that mark the non taken branch (then or else branch, patterns that were not triggered)j
-  // 2. not showing already executed atoms again in the other branch rule (when the condition failed)
-  // we need to store atoms already executed in the previous rule.
-  // we need to mark that we want to skip the following rules.
-
-  // when we decide a condition point is true, we skip the remaining rules
-  // when we decided a condition point is false, we skip the remainder of the current rule, skip the prefix atoms and condition atoms of the else branch rule
-  // when we decide a matchpoint is true we skip the following patterns rules
-  // when we decide a matchpoint is false we skip the prefix atoms of the following pattern rules
-
-//  @tailrec
-//  def stepOverConditionPoint(fp: FunctionalControlPoint): Unit = fp match {
-//    case _: FunctionPoint | _: MatchPoint => // nothing
-//    case condp: ConditionPoint =>
-//      val conditionedPattern = condp.irQuery.pred
-//      val conditionedBody = condp.irQuery match {
-//        case Subquery(_, _, _, _, rules @ Rule(_, _, _) :+ _) =>
-//          // preds(conditionedPattern).bodies.size - rules.size - 1
-//          rules.size
-//        case _ => throw new IllegalStateException("Has to be a rule that is currently executed")
-//      }
-//      // TODO probably not required
-//      doStepIntoIR()
-//
-//      if (!condp.thenBranch) {
-//        // we're at the else branch, continue
-//      } else {
-//        queryStack.top match {
-//          case Subquery(`conditionedPattern`, _, _, sup, rules @ Rule(_, _, _) +: _)
-//              if !sup.isEmpty && rules.size == conditionedBody =>
-//            // we're in the same body and didn't fail => condition succeeded
-//            if (!condp.fun.isRelation)
-//              skipElseBranches.head += condp.cond.sourceObject
-//          case _ =>
-//            // condition failed and we were at the then branch => step to else branch
-//            if (!condp.fun.isRelation)
-//              skipAheadTo = Some(SkipToElse(condp.point)) :: skipAheadTo.tail
-//        }
-//      }
-//      currentFunctionalPoint match {
-//        case Some(fp2) => stepOverConditionPoint(fp2)
-//        case None => doStepInto(false)
-//      }
-//  }
-//
-//  private def skipRule(rule: Rule): Boolean = {
-//    val skipElse = skipElseBranches.head
-//    val skipMatches = skipAlternativePatterns.head
-//    if (skipElse.isEmpty && skipMatches.isEmpty)
-//      return false
-//    rule.atoms.exists {
-//      case Atom(a) => a.getHint(SourceConstruct.key) match {
-//        case Some(SourceConstruct((cond: If, false))) => skipElse.contains(cond.sourceObject)
-//        case Some(SourceConstruct((ma: Match, pat: Pattern))) =>
-//          val skipPats = skipMatches.getOrElse(ma.sourceObject, Set())
-//          skipPats.contains(pat.sourceObject)
-//        case _ => false
-//      }
-//      case _ => false
-//    }
-//  }
-//
-//  @tailrec
-//  private def doSkipAheadTo(skip: SkipAhead): Unit = {
-//    val top = queryStack.top
-//    val atom = top match {
-//      case Subquery(_, _, _, _, Rule(_, _, Atom(atom) +: _) +: _) => Some(atom)
-//      case _ => None
-//    }
-//    val stop = atom.exists(
-//      _.getHint(SourceConstruct.key).exists(h => skip.stop(h.asInstanceOf[SourceConstruct[_]])))
-//    if (!stop && !isFinished && atom.isDefined) {
-//      doStepOverIR(false)
-//      doSkipAheadTo(skip)
-//    }
-//  }
-//
-//  override def doStepIntoIR(): Boolean = {
-//    val top = queryStack.top
-//    top match {
-//      // Query End
-//      case br @ Subquery(_, _, _, _, Nil) =>
-//        outofPredicate(top)
-//        // Q-Step Q-Rule A-Something
-//      case ir @ Subquery(_, _, _, _, Rule(_, _, Atom(atom) +: _) +: _) =>
-//        fpNextAtom(top)
-//      case ir @ Subquery(_, _, _, _, Rule(_, _, Atom(atom) +: _) +: _) =>
-//      // case ir @ Subquery(_, _, _, _, Rule(_, _, Atom(atom) +: _) +: _) =>
-//        if (atoms.nonEmpty)
-//        else if (rules.nonEmpty) fpNextRule(ir)
-//        else lastRule(top)
-//      case QueryResult(_, result) =>
-//        skipElseBranches = skipElseBranches.tail
-//        skipAheadTo = skipAheadTo.tail
-//        skipAlternativePatterns = skipAlternativePatterns.tail
-//        queryStack.pop()
-//        replaceCallWithAtomResult(queryStack.top, result)
-//    }
-//    true
-//  }
-//
-//  // TODO into rule does not exist anymore
-//  private def fpIntoFirstRule(query: Query): Unit = {
-//    val Subquery(_, _, _, _, rule +: rules) = query
-//    val skip = skipRule(rule)
-//    if (skip) {
-//      val next =
-//        InRule(p, argBindings, predResult, RuleEvaluation(argBindings, 0, rule.atoms), rules)
-//      callStack.update(next)
-//      stepIntoIR()
-//      if (rules.isEmpty)
-//        lastRule(next)
-//      else
-//        nextRule(next)
-//    } else {
-//      super.intoFirstRule(ep)
-//      skipAheadTo.head.foreach {
-//        // needed? stepOverIR()
-//        doSkipAheadTo
-//      }
-//    }
-//  }
-//
-//  @tailrec
-//  private def fpNextRule(query: Query): Unit = {
-//    val Subquery(pred, args, result, sup, rule +: rules) = query
-//    val skip = skipRule(rule)
-//    if (skip) {
-//      val next = Subquery(pred, args, result, sup, rules)
-//      if (rules.isEmpty) lastRule(next)
-//      else fpNextRule(next)
-//    } else {
-//      super.nextRule(ep)
-//      breakpointHandler.withBreakpoints(Seq.empty) {
-//        skipAheadTo.head.foreach {
-//          doSkipAheadTo
-//        }
-//      }
-//    }
-//  }
-//
-//  private def fpAtomReduction(query: Query): Query = {
-////  private def fpNextAtom(query: Query): Unit = {
-//    val Subquery(pred, args, result, sup, Rule(_, _, atoms) +: rules) = query
-//    val atomsHead = atoms.head
-//    val atomsTail = atoms.tail
-//    atomsHead match {
-//      case Atom(call: Datalog.Call) =>
-//        val pattern = preds(call.name)
-//        if (pattern.hasHint(DataHints.ConstructorKey) || pattern.hasHint(DataHints.SelectorKey)) {
-//          // constructor or selector call
-//          val argsTable = prepareArgTable(sup, call.name, call.args)
-//          val calleeResult = state.readBottomUp(call.name, argsTable)
-//          val params = predParams(call.name)
-//          // this should be done somewhere eslse
-////          currentFunctionalPoint match {
-////            case Some(MatchPoint(fun, ma, pat, _)) if !fun.isRelation =>
-////              val patObj = pat.sourceObject
-////              val nextPats = ma.cases.dropWhile(_._1.sourceObject != patObj).tail
-////              if (nextTable.isEmpty) {
-////                // pattern failed => go to next pattern
-////                nextPats.headOption.foreach { next =>
-////                  skipAheadTo =
-////                    Some(SkipToPat(ma.sourceObject, next._1.sourceObject)) :: skipAheadTo.tail
-////                }
-////              } else {
-////                // pattern succeeded => skip other patterns
-////                if (nextPats.nonEmpty)
-////                  skipAlternativePatterns.head += ma.sourceObject -> nextPats.map(
-////                    _._1.sourceObject
-////                  ).toSet
-////              }
-////            case _ => // nothing
-////          }
-//          val nextRuleEval = RuleEvaluation(nextTable, ruleIdx, atomsTail)
-//          val next = InRule(p, argBindings, predResult, nextRuleEval, rules)
-//          callStack.update(next)
-//        } else {
-//          super.nextAtom(cp)
-//        }
-//      case _ =>
-//        super.nextAtom(cp)
-//    }
-//  }
-//
-//  private def addNewSkipInfo(): Unit = {
-//  }
 
   override def pushSubqueryHook(pred: Predicate, args: ValueTable): Unit = {
     skipElseBranches = mutable.Set[SourceObject]() :: skipElseBranches
@@ -540,9 +365,6 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
     skipAlternativePatterns =
       mutable.Map[SourceObject, Set[SourceObject]]() :: skipAlternativePatterns
     lastConditionOrMatch = None :: lastConditionOrMatch
-    oneRuleFired = false :: oneRuleFired
-    isFirstRule = true :: isFirstRule
-    showCurrentRule = true :: showCurrentRule
     determinesSet = getFunction(pred).get.isRelation :: determinesSet
   }
 
@@ -551,15 +373,8 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
     skipAheadTo = skipAheadTo.tail
     skipAlternativePatterns = skipAlternativePatterns.tail
     lastConditionOrMatch = lastConditionOrMatch.tail
-    oneRuleFired = oneRuleFired.tail
-    isFirstRule = isFirstRule.tail
-    showCurrentRule = showCurrentRule.tail
     determinesSet = determinesSet.tail
   }
-//  // TODO Into Predicate does not exist anymore, instead do this when we produce new subquery
-//  private def fpIntoPredicate(query: Query): Unit = {
-//    super.intoPredicate(query)
-//  }
 
   def controlPointFrontend: FunctionalControlPoint =
     currentFunctionalPoint.get

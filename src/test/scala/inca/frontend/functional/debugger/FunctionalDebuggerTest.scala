@@ -216,10 +216,10 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       |""".stripMargin
 
   test("pattern matching multiple constructors") {
-    assertControlTraceSize(matchProg, "main", q"""Var("x")""")(3)
-    assertControlTraceSize(matchProg, "main", q"""Num(1)""")(4)
-    assertControlTraceSize(matchProg, "main", q"""Add(Var("y"), Num(2))""")(5)
-    assertControlTraceSize(matchProg, "main", q"""Let("x", Num(3), Add(Var("x"), Num(2)))""")(6)
+    assertControlTraceSize(matchProg, "main", q"""Var("x")""")(2)
+    assertControlTraceSize(matchProg, "main", q"""Num(1)""")(3)
+    assertControlTraceSize(matchProg, "main", q"""Add(Var("y"), Num(2))""")(4)
+    assertControlTraceSize(matchProg, "main", q"""Let("x", Num(3), Add(Var("x"), Num(2)))""")(5)
   }
 
   val nestedMatchProg: String =
@@ -257,22 +257,22 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     val (v, n, a, l) =
       (q"""Var("x")""", q"Num(1)", q"Add(Num(1), Num(2))", q"""Let("x", Num(1), Num(2))""")
 
-    assertControlTraceSize(nestedMatchProg, "main", v, v)(4)
-    assertControlTraceSize(nestedMatchProg, "main", v, n)(5)
-    assertControlTraceSize(nestedMatchProg, "main", v, a)(6)
-    assertControlTraceSize(nestedMatchProg, "main", v, l)(7)
-    assertControlTraceSize(nestedMatchProg, "main", n, v)(5)
-    assertControlTraceSize(nestedMatchProg, "main", n, n)(6)
-    assertControlTraceSize(nestedMatchProg, "main", n, a)(7)
-    assertControlTraceSize(nestedMatchProg, "main", n, l)(8)
-    assertControlTraceSize(nestedMatchProg, "main", a, v)(6)
-    assertControlTraceSize(nestedMatchProg, "main", a, n)(7)
-    assertControlTraceSize(nestedMatchProg, "main", a, a)(8)
-    assertControlTraceSize(nestedMatchProg, "main", a, l)(9)
-    assertControlTraceSize(nestedMatchProg, "main", l, v)(7)
-    assertControlTraceSize(nestedMatchProg, "main", l, n)(8)
-    assertControlTraceSize(nestedMatchProg, "main", l, a)(9)
-    assertControlTraceSize(nestedMatchProg, "main", l, l)(10)
+    assertControlTraceSize(nestedMatchProg, "main", v, v)(2)
+    assertControlTraceSize(nestedMatchProg, "main", v, n)(3)
+    assertControlTraceSize(nestedMatchProg, "main", v, a)(4)
+    assertControlTraceSize(nestedMatchProg, "main", v, l)(5)
+    assertControlTraceSize(nestedMatchProg, "main", n, v)(3)
+    assertControlTraceSize(nestedMatchProg, "main", n, n)(4)
+    assertControlTraceSize(nestedMatchProg, "main", n, a)(5)
+    assertControlTraceSize(nestedMatchProg, "main", n, l)(6)
+    assertControlTraceSize(nestedMatchProg, "main", a, v)(4)
+    assertControlTraceSize(nestedMatchProg, "main", a, n)(5)
+    assertControlTraceSize(nestedMatchProg, "main", a, a)(6)
+    assertControlTraceSize(nestedMatchProg, "main", a, l)(7)
+    assertControlTraceSize(nestedMatchProg, "main", l, v)(5)
+    assertControlTraceSize(nestedMatchProg, "main", l, n)(6)
+    assertControlTraceSize(nestedMatchProg, "main", l, a)(7)
+    assertControlTraceSize(nestedMatchProg, "main", l, l)(8)
   }
 
   val matchInIfProg: String =
@@ -294,26 +294,26 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       |  }
       |""".stripMargin
   test("pattern match in if expression") {
-    assertControlTraceSize(matchInIfProg, "main", q"true", q"""Var("x")""")(4)
-    assertControlTraceSize(matchInIfProg, "main", q"true", q"Num(1)")(5)
-    assertControlTraceSize(matchInIfProg, "main", q"false", q"Num(1)")(5)
-    assertControlTraceSize(matchInIfProg, "main", q"false", q"""Var("x")""")(4)
+    assertControlTraceSize(matchInIfProg, "main", q"true", q"""Var("x")""")(2)
+    assertControlTraceSize(matchInIfProg, "main", q"true", q"Num(1)")(3)
+    assertControlTraceSize(matchInIfProg, "main", q"false", q"Num(1)")(3)
+    assertControlTraceSize(matchInIfProg, "main", q"false", q"""Var("x")""")(2)
   }
 
   val ifInMatchProg: String =
     s"""module Mod
       |data Exp = Var(String) | Num(Int) | Add(Exp, Exp)
-      |@main def main(flag: Boolean, exp: Exp): Boolean = exp match {
-      |  case Var(x) => if (flag == true) true else false
-      |  case Num(x) => if (flag == true) false else true
+      |@main def main(flag: Boolean, exp: Exp): Int = exp match {
+      |  case Var(x) => if (flag == true) 1+1 else 2+2
+      |  case Num(x) => if (flag == true) 3+3 else 3+3
       |  case Add(x, y) => true
       |}
       |""".stripMargin
   test("if expression in pattern match") {
-    assertControlTraceSize(ifInMatchProg, "main", q"true", q"""Var("x")""")(4)
-    assertControlTraceSize(ifInMatchProg, "main", q"true", q"Num(1)")(5)
-    assertControlTraceSize(ifInMatchProg, "main", q"false", q"Num(1)")(5)
-    assertControlTraceSize(ifInMatchProg, "main", q"false", q"""Var("x")""")(4)
+    assertControlTraceSize(ifInMatchProg, "main", q"true", q"""Var("x")""")(3)
+    assertControlTraceSize(ifInMatchProg, "main", q"false", q"""Var("x")""")(3)
+    assertControlTraceSize(ifInMatchProg, "main", q"true", q"Num(1)")(4)
+    assertControlTraceSize(ifInMatchProg, "main", q"false", q"Num(1)")(4)
   }
 
   test("plus example extra") {
@@ -322,7 +322,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       "main",
       q"Succ(Succ(Zero()))",
       q"Succ(Zero())"
-    )(21)
+    )(16)
   }
 
   val tupleProg: String =
@@ -347,7 +347,7 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       |def intSet(): Set[Int] = {1, 2, 3, 4}
       |""".stripMargin
   test("set comprehension") {
-    assertControlTraceSize(setCompProg, "main")(8)
+    assertControlTraceSize(setCompProg, "main")(4)
   }
 
   val nestedBinaryProg: String =
@@ -397,11 +397,10 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       |""".stripMargin
   )
   test("function with two call arguments") {
-    assertControlTraceSize(twoFunctionCallArgs, "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(30)
+    assertControlTraceSize(twoFunctionCallArgs, "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(18)
   }
 
   // Breakpoint tests
-
   test("test main function entry breakpoint") {
     assertBreakpoints(
       Code.fibModule,
