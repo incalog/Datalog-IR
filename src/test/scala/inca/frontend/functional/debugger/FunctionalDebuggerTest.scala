@@ -480,6 +480,47 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     assert(debugger.isFinished)
   }
 
+  //  // step out tests
+  test("step out of function call (level 1)") {
+    val compiledExample = compile(Code.plusRealModule)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOut()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    assert(debugger.isFinished)
+  }
+
+  test("step out of function call (level 2)") {
+    val compiledExample = compile(Code.plusRealModule)
+    val debugger = initDebugger(compiledExample)
+    debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOut()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOut()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepInto()
+    println(debugger.currentDebuggerInfo())
+    debugger.stepOut()
+    println(debugger.currentDebuggerInfo())
+    assert(debugger.isFinished)
+  }
+
 //
 //  // Breakpoint tests
 //  test("test main function entry breakpoint") {
@@ -634,38 +675,6 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 //    )
 //    val bp = createBreakpointOfExpression("main", expression)
 //    assertBreakpoints(nestedBinaryProg, Seq(bp), "main")(1)
-//  }
-//
-//  // step out tests
-//  test("step out of function call") {
-//    val compiledExample = compile(Code.plusRealModule)
-//    val debugger = initDebugger(compiledExample)
-//    debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
-//    debugger.stepInto()
-//    debugger.stepInto()
-//    debugger.stepInto()
-//    debugger.stepOut()
-//    assert(!debugger.isFinished)
-//    debugger.stepOut()
-//    assert(debugger.isFinished)
-//  }
-//
-//  test("step out of recursive function call") {
-//    val compiledExample = compile(Code.plusRealModule)
-//    val debugger = initDebugger(compiledExample)
-//    debugger.entry("main", q"Succ(Succ(Zero()))", q"Succ(Zero())")
-//    debugger.stepInto()
-//    debugger.stepInto()
-//    debugger.stepInto()
-//    debugger.stepInto()
-//    debugger.stepInto()
-//    debugger.stepInto()
-//    debugger.stepOut()
-//    assert(!debugger.isFinished)
-//    debugger.stepOut()
-//    assert(!debugger.isFinished)
-//    debugger.stepOut()
-//    assert(debugger.isFinished)
 //  }
 //
 }
