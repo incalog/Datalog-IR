@@ -71,7 +71,9 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
   super.initialize(FunctionalDebugger.prepareModule(funmodule))
   super.initializeDatabaseRuntime(DatabaseInput.empty)
 
+  // stores the last condition of match point
   private var lastConditionOrMatch: List[Option[Either[ConditionPoint, MatchPoint]]] = List()
+  // stores if the current function determines a set or not
   private var determinesSet: List[Boolean] = List()
 
   // skip bodies representing else-branches when corresponding then-branch was chosen
@@ -128,27 +130,29 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
     if (skipRule(query)) {
       return None
     }
-    if (getFunction(query.pred).nonEmpty) {
-      query match {
-        case Subquery(_, _, _, sup, Rule(_, _, atoms) +: _) if sup.nonEmpty =>
-          atoms match {
-            case Nil => None
-            case Atom(atom) :: _ =>
-              if (skipAtom(atom)) {
-                return None
-              } else {
-                // we skipped all already shown points hence, we can reset
-                skipAheadTo = None :: skipAheadTo.tail
-              }
-              liftAtAtom(query)
-            case AtomResult(table, _) :: _ =>
-              determineSkips(table)
-              None
-          }
-        case _ => None
-      }
-    } else {
-      None
+    getFunction(query.pred) match {
+      case Some(fun) =>
+        query match {
+          case Subquery(_, _, _, sup, Rule(_, _, atoms) +: _) if sup.nonEmpty =>
+            atoms match {
+              case Nil => None
+              case Atom(atom) :: _ =>
+                if (skipAtom(atom)) {
+                  return None
+                } else {
+                  // we skipped all already shown points hence, we can reset
+                  skipAheadTo = None :: skipAheadTo.tail
+                }
+                liftAtAtom(query)
+              case AtomResult(table, _) :: _ =>
+                determineSkips(table)
+                None
+            }
+          case QueryResult(_, _) =>
+            Some(FunctionPoint(fun, fun.sourceObject, query))
+          case _ => None
+        }
+      case None => None
     }
   }
 
@@ -223,7 +227,7 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
         }
       }
       lastConditionOrMatch = None :: lastConditionOrMatch.tail
-    case None => // do nothing
+    case _ => // do nothing
   }
 
   private def liftAtAtom(query: Query): Option[FunctionalControlPoint] = {
@@ -301,7 +305,6 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
     val inputTable = ImmutableTable[Value](inputParams, Seq(debugVals))
     super.entry(mainFun, inputTable)
 
-    // TODO could be that it is not needed
     if (currentFunctionalPoint.isEmpty)
       stepInto()
   }
@@ -320,8 +323,21 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
     } else super.atomInto(atom, args)
   }
 
-  def getFunctionalCallStack: List[Name] = queryStack.frames.flatMap { query =>
-    getFunction(query.pred).map(_.name)
+  override def pushSubqueryHook(pred: Predicate, args: ValueTable): Unit = {
+    skipElseBranches = mutable.Set[SourceObject]() :: skipElseBranches
+    skipAheadTo = None :: skipAheadTo
+    skipAlternativePatterns =
+      mutable.Map[SourceObject, Set[SourceObject]]() :: skipAlternativePatterns
+    lastConditionOrMatch = None :: lastConditionOrMatch
+    determinesSet = getFunction(pred).get.isRelation :: determinesSet
+  }
+
+  override def popSubqueryHook(pred: Predicate, result: ValueTable): Unit = {
+    skipElseBranches = skipElseBranches.tail
+    skipAheadTo = skipAheadTo.tail
+    skipAlternativePatterns = skipAlternativePatterns.tail
+    lastConditionOrMatch = lastConditionOrMatch.tail
+    determinesSet = determinesSet.tail
   }
 
   protected def stepToFunctionalPoint(step: () => Boolean): Boolean = {
@@ -354,26 +370,8 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
     val irBPs = FunctionalBreakpoint.lower(bp)(preds)
     irBPs.foreach(breakpointHandler.removeBreakpoint)
   }
-
   override def clearBreakpoints(): Unit = {
     breakpointHandler.clearBreakpoints()
-  }
-
-  override def pushSubqueryHook(pred: Predicate, args: ValueTable): Unit = {
-    skipElseBranches = mutable.Set[SourceObject]() :: skipElseBranches
-    skipAheadTo = None :: skipAheadTo
-    skipAlternativePatterns =
-      mutable.Map[SourceObject, Set[SourceObject]]() :: skipAlternativePatterns
-    lastConditionOrMatch = None :: lastConditionOrMatch
-    determinesSet = getFunction(pred).get.isRelation :: determinesSet
-  }
-
-  override def popSubqueryHook(pred: Predicate, result: ValueTable): Unit = {
-    skipElseBranches = skipElseBranches.tail
-    skipAheadTo = skipAheadTo.tail
-    skipAlternativePatterns = skipAlternativePatterns.tail
-    lastConditionOrMatch = lastConditionOrMatch.tail
-    determinesSet = determinesSet.tail
   }
 
   def controlPointFrontend: FunctionalControlPoint =
@@ -402,6 +400,10 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
 
   def currentCallStack: String =
     getFunctionalCallStack.mkString("[", ", ", "]")
+
+  def getFunctionalCallStack: List[Name] = queryStack.frames.flatMap { query =>
+    getFunction(query.pred).map(_.name)
+  }
 
   def prettyPrint(uri: URI): String = uri match {
     case i: JVMURI => uris(i).toString
