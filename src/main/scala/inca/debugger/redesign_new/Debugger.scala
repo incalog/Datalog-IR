@@ -146,9 +146,6 @@ trait Debugger extends DebuggerAPI {
           }
         }
       case _ =>
-        if (stepOver) {
-          throw new IllegalArgumentException("Cannot step-over a non-call atom")
-        }
         // this design is following the formal semantics but is inefficient
         // TODO we want to avoid unnecessary joins and directly process and change the supplementary
         val nextSup = atomOps.atom(sup, atom)
