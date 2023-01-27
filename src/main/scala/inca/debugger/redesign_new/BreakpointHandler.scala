@@ -77,8 +77,9 @@ class BreakpointHandler(dependencyGraph: DependencyGraph) {
         // only need to consider the following subqueries produces by the remaining atoms in the rule and the remaining rules
         reachablePreds -= pred
       }
-      if (breakpointedPreds.exists(reachablePreds.contains))
+      if (breakpointedPreds.exists(reachablePreds.contains)) {
         return true
+      }
 
       val samePredBreakpoints = breakpoints.filter(_.stopAt.pred == pred)
       samePredBreakpoints.foreach {
@@ -96,6 +97,7 @@ class BreakpointHandler(dependencyGraph: DependencyGraph) {
             // means that breakpoint is in atom of current rule that has not been processed
             return true
           }
+        case _ => false
       }
       false
     case _ => false

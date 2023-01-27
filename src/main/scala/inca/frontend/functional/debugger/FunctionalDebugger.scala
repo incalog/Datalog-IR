@@ -342,9 +342,8 @@ final class FunctionalDebugger(val funmodule: CompiledFunctionalModule) extends 
 
   protected def stepToFunctionalPoint(step: () => Boolean): Boolean = {
     var b = step()
-    while (b && !isFinished && !isAtBreakpoint) {
+    while (b && !isFinished) {
       if (currentFunctionalPoint.isDefined) {
-        // stepOverConditionPoint(currentFunctionalPoint.get)
         return b
       }
       b = step()

@@ -19,7 +19,6 @@ import inca.frontend.functional.core.Module
 import inca.frontend.functional.core.Pattern
 
 sealed trait BreakpointPos
-case class FunctionEntry(f: String) extends BreakpointPos
 case class InFunction(sourceObject: SourceObject) extends BreakpointPos
 case class FunctionExit(f: String) extends BreakpointPos
 
@@ -31,13 +30,6 @@ object FunctionalBreakpoint {
     )(implicit patterns: Map[String, Datalog.Pattern]
     ): Seq[IRBreakpoint] = {
     val queries: Seq[Query] = fbp.pos match {
-      case FunctionEntry(f) =>
-        val pat = patterns(f)
-        val params = pat.params.map(_.name)
-        val ruleEvals = pat.bodies.map { r =>
-          Rule(f, params, r.atoms.map(Atom))
-        }
-        Seq(Subquery(f, null, null, null, ruleEvals))
       case FunctionExit(f) =>
         Seq(QueryResult(f, null))
       case InFunction(so) =>

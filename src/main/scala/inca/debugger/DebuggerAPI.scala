@@ -20,14 +20,14 @@ trait DebuggerAPI {
     stepped()
   }
 
-  final def resume(shortCircuit: Boolean = false): Boolean = {
+  def resume(shortCircuit: Boolean = false): Boolean = {
     var b = doStepOut(shortCircuit) || doStepOver(shortCircuit) || doStepInto(shortCircuit)
     while (b && !isFinished && !isAtBreakpoint)
       b = doStepOut(shortCircuit) || doStepOver(shortCircuit) || doStepInto(shortCircuit)
     b
   }
 
-  final def resumeWithStepInto(shortCircuit: Boolean): Boolean = {
+  def resumeWithStepInto(shortCircuit: Boolean): Boolean = {
     var b = doStepInto(shortCircuit)
     while (b && !isFinished && !isAtBreakpoint)
       b = doStepInto(shortCircuit)

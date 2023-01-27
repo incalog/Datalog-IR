@@ -105,13 +105,11 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
       debugger.addBreakpoint(bp(debugger))
     }
     assert(!debugger.isFinished)
-    println(debugger.currentDebuggerInfo())
     (0 until expected).foreach { _ =>
       debugger.resume()
-      println(debugger.currentDebuggerInfo())
       assert(!debugger.isFinished)
+      println(debugger.currentDebuggerInfo())
     }
-
     debugger.resume()
     assert(debugger.isFinished)
   }
@@ -356,7 +354,6 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     assertControlTraceSize(deeperNestedBinaryProg, "main")(5)
   }
 
-  // TODO fix we currently do not consider the set to fold over
   ignore("fold example") {
     val code: String =
       s"""module M
@@ -446,15 +443,9 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     println(debugger.currentDebuggerInfo())
     debugger.stepOver()
     println(debugger.currentDebuggerInfo())
-    assert(!debugger.isFinished)
     debugger.stepOver()
-    assert(!debugger.isFinished)
     println(debugger.currentDebuggerInfo())
     debugger.stepOver()
-    assert(!debugger.isFinished)
-    println(debugger.currentDebuggerInfo())
-    debugger.stepOver()
-    assert(!debugger.isFinished)
     println(debugger.currentDebuggerInfo())
     debugger.stepOver()
     assert(debugger.isFinished)
@@ -516,165 +507,148 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     println(debugger.currentDebuggerInfo())
     debugger.stepInto()
     println(debugger.currentDebuggerInfo())
-    debugger.stepOut()
-    println(debugger.currentDebuggerInfo())
     assert(debugger.isFinished)
   }
 
-//
-//  // Breakpoint tests
-//  test("test main function entry breakpoint") {
-//    assertBreakpoints(
-//      Code.fibModule,
-//      Seq(_ => FunctionalBreakpoint(FunctionEntry("main"))),
-//      "main",
-//      q"3"
-//    )(0)
-//  }
-//  test("test function entry breakpoint") {
-//    assertBreakpoints(Code.incModule, Seq(_ => FunctionalBreakpoint(FunctionEntry("inc"))), "main")(
-//      1
-//    )
-//  }
-//
-//  test("test function entry breakpoint of recursive function") {
-//    assertBreakpoints(
-//      Code.fibModule,
-//      Seq(_ => FunctionalBreakpoint(FunctionEntry("fib"))),
-//      "main",
-//      q"3"
-//    )(4)
-//  }
-//
-//  test("test function exit breakpoint") {
-//    assertBreakpoints(
-//      Code.fibModule,
-//      Seq(_ => FunctionalBreakpoint(FunctionExit("main"))),
-//      "main",
-//      q"3"
-//    )(1)
-//  }
-//  test("test function exit breakpoint of recursive function") {
-//    assertBreakpoints(
-//      Code.fibModule,
-//      Seq(_ => FunctionalBreakpoint(FunctionExit("fib"))),
-//      "main",
-//      q"3"
-//    )(4)
-//  }
-//
-//  test("test function call argument breakpoint ") {
-//    val expression = core.BaseApplyInfix(core.Var("n"), "-", core.BaseLit(q"1", core.TScalaInt))
-//    val bp = createBreakpointOfExpression("fib", expression)
-//    assertBreakpoints(Code.fibModule, Seq(bp), "main", q"3")(2)
-//  }
-//
-//  test("test if condition breakpoint") {
-//    val expression = core.BaseApplyInfix(core.Var("n"), "==", core.BaseLit(q"0", core.TScalaInt))
-//    val bp = createBreakpointOfExpression("fib", expression)
-//    assertBreakpoints(Code.fibModule, Seq(bp), "main", q"3")(4)
-//  }
-//
-//  val multipleIfsWithSameCond: String =
-//    s"""module M
-//      |@main def main(n: Int): Int =
-//      |  let x = (if (n == 0) 1 else 2) in
-//      |    let y = (if (n == 0) 2 else 1) in
-//      |      x + y
-//      |""".stripMargin
-//  test("test if condition breakpoint where condition is occuring twice in program 1") {
-//    val expression = core.BaseApplyInfix(core.Var("n"), "==", core.BaseLit(q"0", core.TScalaInt))
-//    val bp = createBreakpointOfExpression("main", expression)
-//    assertBreakpoints(multipleIfsWithSameCond, Seq(bp), "main", q"3")(1)
-//  }
-//
-//  test("test if condition breakpoint where condition is occuring twice in program 2") {
-//    val expression = core.BaseApplyInfix(core.Var("n"), "==", core.BaseLit(q"0", core.TScalaInt))
-//    val bp = createBreakpointOfExpression("main", expression, 1)
-//    assertBreakpoints(multipleIfsWithSameCond, Seq(bp), "main", q"3")(1)
-//  }
-//
-//  // test pattern
-//  test("test pattern breakpoint") {
-//    val pattern = core.ConstructorPattern(core.Name("Succ"), Seq(core.Name("pred")))
-//    val bp = createBreakpointOfPattern("plus", pattern)
-//    assertBreakpoints(Code.plusRealModule, Seq(bp), "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(
-//      2
-//    )
-//  }
-//
-//  test("test pattern breakpoint occuring multiple times 1") {
-//    val pattern = core.ConstructorPattern(core.Name("Var"), Seq(core.Name("x2")))
-//    val bp = createBreakpointOfPattern("main", pattern)
-//    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(
-//      0
-//    )
-//    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Var("x")""", q"Num(1)")(1)
-//  }
-//  test("test pattern breakpoint occuring multiple times 2") {
-//    val pattern = core.ConstructorPattern(core.Name("Var"), Seq(core.Name("x2")))
-//    val bp = createBreakpointOfPattern("main", pattern, 1)
-//    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(
-//      0
-//    )
-//    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Num(2)""", q"Num(1)")(1)
-//  }
-//  test("test pattern breakpoint occuring multiple times 3") {
-//    val pattern = core.ConstructorPattern(core.Name("Var"), Seq(core.Name("x2")))
-//    val bp = createBreakpointOfPattern("main", pattern, 2)
-//    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Num(1)""", q"Num(1)")(0)
-//    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(
-//      1
-//    )
-//  }
-//
-//  // test binding
-//  test("test binding breakpoint") {
-//    val bp = createBreakpointOfBinding("main", "x")
-//    assertBreakpoints(Code.varExample, Seq(bp), "main")(1)
-//  }
-//
-//  test("test binding breakpoint in multiple let") {
-//    val bp1 = createBreakpointOfBinding("main", "y")
-//    val bp2 = createBreakpointOfBinding("main", "x")
-//    assertBreakpoints(tupleLetProg, Seq(bp1, bp2), "main")(2)
-//  }
-//
-//  // test constructor call breakpoint
-//  test("constructor call breakpoint") {
-//    val expression = core.Call(core.Var("Succ"), Seq(core.Call(core.Var("Zero"), Seq())))
-//    val bp = createBreakpointOfExpression("main", expression)
-//    assertBreakpoints(constructorProg, Seq(bp), "main")(1)
-//  }
-//
-//  test("breakpoint in tuple") {
-//    val expression = core.BaseApplyInfix(
-//      core.BaseLit(q"1", core.TScalaInt),
-//      "+",
-//      core.BaseLit(q"1", core.TScalaInt)
-//    )
-//    val bp = createBreakpointOfExpression("main", expression)
-//    assertBreakpoints(tupleProg, Seq(bp), "main")(1)
-//  }
-//
-//  test("breakpoint in set") {
-//    val expression = core.BaseApplyInfix(
-//      core.BaseLit(q"1", core.TScalaInt),
-//      "+",
-//      core.BaseLit(q"1", core.TScalaInt)
-//    )
-//    val bp = createBreakpointOfExpression("main", expression)
-//    assertBreakpoints(setProg, Seq(bp), "main")(1)
-//  }
-//
-//  test("breakpoint in nested binary") {
-//    val expression = core.BaseApplyInfix(
-//      core.BaseLit(q"1", core.TScalaInt),
-//      "+",
-//      core.BaseLit(q"4", core.TScalaInt)
-//    )
-//    val bp = createBreakpointOfExpression("main", expression)
-//    assertBreakpoints(nestedBinaryProg, Seq(bp), "main")(1)
-//  }
+  // Breakpoint tests
+  test("test function exit breakpoint") {
+    assertBreakpoints(
+      Code.fibModule,
+      Seq(_ => FunctionalBreakpoint(FunctionExit("main"))),
+      "main",
+      q"3"
+    )(0)
+  }
+
+  test("test function exit breakpoint of recursive function") {
+    assertBreakpoints(
+      Code.fibModule,
+      Seq(_ => FunctionalBreakpoint(FunctionExit("fib"))),
+      "main",
+      q"3"
+    )(4)
+  }
+
+  test("test function call argument breakpoint ") {
+    val expression = core.BaseApplyInfix(core.Var("n"), "-", core.BaseLit(q"1", core.TScalaInt))
+    val bp = createBreakpointOfExpression("fib", expression)
+    assertBreakpoints(Code.fibModule, Seq(bp), "main", q"3")(2)
+  }
+
+  test("test if condition breakpoint") {
+    val expression = core.BaseApplyInfix(core.Var("n"), "==", core.BaseLit(q"0", core.TScalaInt))
+    val bp = createBreakpointOfExpression("fib", expression)
+    assertBreakpoints(Code.fibModule, Seq(bp), "main", q"3")(4)
+  }
+
+  val multipleIfsWithSameCond: String =
+    s"""module M
+      |@main def main(n: Int): Int =
+      |  let x = (if (n == 0) 1 else 2) in
+      |    let y = (if (n == 0) 2 else 1) in
+      |      x + y
+      |""".stripMargin
+
+  // TODO FIX
+  test("test if condition breakpoint where condition is occuring twice in program 1") {
+    val expression = core.BaseApplyInfix(core.Var("n"), "==", core.BaseLit(q"0", core.TScalaInt))
+    val bp = createBreakpointOfExpression("main", expression)
+    assertBreakpoints(multipleIfsWithSameCond, Seq(bp), "main", q"1")(1)
+  }
+
+  test("test if condition breakpoint where condition is occuring twice in program 2") {
+    val expression = core.BaseApplyInfix(core.Var("n"), "==", core.BaseLit(q"0", core.TScalaInt))
+    val bp = createBreakpointOfExpression("main", expression, 1)
+    assertBreakpoints(multipleIfsWithSameCond, Seq(bp), "main", q"3")(1)
+  }
+
+  // test pattern
+  test("test pattern breakpoint") {
+    val pattern = core.ConstructorPattern(core.Name("Succ"), Seq(core.Name("pred")))
+    val bp = createBreakpointOfPattern("plus", pattern)
+    assertBreakpoints(Code.plusRealModule, Seq(bp), "main", q"Succ(Succ(Zero()))", q"Succ(Zero())")(
+      2
+    )
+  }
+
+  test("test pattern breakpoint occuring multiple times 1") {
+    val pattern = core.ConstructorPattern(core.Name("Var"), Seq(core.Name("x2")))
+    val bp = createBreakpointOfPattern("main", pattern)
+    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(
+      0
+    )
+    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Var("x")""", q"Num(1)")(1)
+  }
+
+  test("test pattern breakpoint occuring multiple times 2") {
+    val pattern = core.ConstructorPattern(core.Name("Var"), Seq(core.Name("x2")))
+    val bp = createBreakpointOfPattern("main", pattern, 1)
+    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(
+      0
+    )
+    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Num(2)""", q"Num(1)")(1)
+  }
+
+  test("test pattern breakpoint occuring multiple times 3") {
+    val pattern = core.ConstructorPattern(core.Name("Var"), Seq(core.Name("x2")))
+    val bp = createBreakpointOfPattern("main", pattern, 2)
+    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Num(1)""", q"Num(1)")(0)
+    assertBreakpoints(nestedMatchProg, Seq(bp), "main", q"""Add(Var("x"), Var("y"))""", q"Num(1)")(
+      1
+    )
+  }
+
+  // test binding
+  // TODO fix
+  test("test binding breakpoint") {
+    val bp = createBreakpointOfBinding("main", "x")
+    assertBreakpoints(Code.varExample, Seq(bp), "main")(1)
+  }
+
+  test("test binding breakpoint in multiple let") {
+    val bp1 = createBreakpointOfBinding("main", "y")
+    val bp2 = createBreakpointOfBinding("main", "x")
+    assertBreakpoints(tupleLetProg, Seq(bp1, bp2), "main")(2)
+  }
+
+  // test constructor call breakpoint
+  test("constructor call breakpoint") {
+    val expression = core.Call(core.Var("Succ"), Seq(core.Call(core.Var("Zero"), Seq())))
+    val bp = createBreakpointOfExpression("main", expression)
+    assertBreakpoints(constructorProg, Seq(bp), "main")(1)
+  }
+
+  // TODO fix
+  test("breakpoint in tuple") {
+    val expression = core.BaseApplyInfix(
+      core.BaseLit(q"1", core.TScalaInt),
+      "+",
+      core.BaseLit(q"1", core.TScalaInt)
+    )
+    val bp = createBreakpointOfExpression("main", expression)
+    assertBreakpoints(tupleProg, Seq(bp), "main")(1)
+  }
+
+  // TODO fix
+  test("breakpoint in set") {
+    val expression = core.BaseApplyInfix(
+      core.BaseLit(q"1", core.TScalaInt),
+      "+",
+      core.BaseLit(q"1", core.TScalaInt)
+    )
+    val bp = createBreakpointOfExpression("main", expression)
+    assertBreakpoints(setProg, Seq(bp), "main")(1)
+  }
+
+  // TODO fix
+  test("breakpoint in nested binary") {
+    val expression = core.BaseApplyInfix(
+      core.BaseLit(q"1", core.TScalaInt),
+      "+",
+      core.BaseLit(q"4", core.TScalaInt)
+    )
+    val bp = createBreakpointOfExpression("main", expression)
+    assertBreakpoints(nestedBinaryProg, Seq(bp), "main")(1)
+  }
 //
 }

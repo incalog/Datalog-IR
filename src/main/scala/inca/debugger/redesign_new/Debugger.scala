@@ -290,8 +290,9 @@ trait Debugger extends DebuggerAPI {
     val query = queryStack.top
     val stackHeight = queryStack.size
     // we check if breakpoint is reachable when using step over, hence we want to resume instead
-    if (stepOver && breakpointHandler.stepOverReachesBreakpoint(query))
+    if (stepOver && breakpointHandler.stepOverReachesBreakpoint(query)) {
       return false
+    }
     val newQuery = queryReduction(query, stepOver)
     val shortCircuitedQuery =
       if (shortCircuit) shortCircuitIfPossible(newQuery)
@@ -322,16 +323,18 @@ trait Debugger extends DebuggerAPI {
   final protected def doStepOutIR(shortCircuit: Boolean): Boolean = {
     val query = queryStack.top
     val isPredCyclic = isCyclic(query.pred)
-    if (breakpointHandler.stepOutReachesBreakpoint(query, isPredCyclic))
+    if (breakpointHandler.stepOutReachesBreakpoint(query, isPredCyclic)) {
       return false
+    }
     queryStack.top match {
       case Subquery(pred, args, _, _, _) =>
         state.deleteBlacklist(pred, args)
         val bottomUpResult = state.readBlacklistedBottomUp(pred, args)
         queryStack.update(QueryResult(pred, bottomUpResult))
+        true
       case QueryResult(_, _) =>
-      // do nothing
+        // do nothing
+        false
     }
-    true
   }
 }
