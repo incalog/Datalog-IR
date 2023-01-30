@@ -1,7 +1,6 @@
-package inca.debugger.redesign_old
+package inca.debugger
 
 import inca.backend.ir.Datalog
-import inca.debugger.table.ImmutableTable
 import inca.debugger.IllegalDebugStateException
 import inca.debugger.ScalaValue
 import inca.debugger.URIValue
@@ -22,25 +21,24 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
   // we dont use a table but a bag instead
   type Bag = Map[Seq[Value], Int]
   val blacklist: mutable.Map[(Predicate, Adornment), Bag] = mutable.Map.empty
-  val topDownResults: mutable.Map[Predicate, ImmutableTable[Value]] = mutable.Map.empty
-  val seenQueries: mutable.Map[(Predicate, Adornment), ImmutableTable[Value]] = mutable.Map.empty
-//  val fixpointSize: mutable.Map[(Predicate, ImmutableTable[Value]), Int] =
-//    mutable.Map.empty
+  val topDownResults: mutable.Map[Predicate, ValueTable] = mutable.Map.empty
+  val seenQueries: mutable.Map[(Predicate, Adornment), ValueTable] = mutable.Map.empty
+  val fixpointSize: mutable.Map[(Predicate, ValueTable, Int), Int] = mutable.Map.empty
 
   def clear(): Unit = {
     blacklist.clear()
     topDownResults.clear()
     seenQueries.clear()
-//    fixpointSize.clear()
+    fixpointSize.clear()
   }
 
-  def readBottomUp(p: Predicate, args: ImmutableTable[Value]): ImmutableTable[Value] = {
-    val mainSpec = bottomUpRuntime.compiled.psystemModule.patterns.get(p) match {
+  def readBottomUp(pred: Predicate, args: ValueTable): ValueTable = {
+    val mainSpec = bottomUpRuntime.compiled.psystemModule.patterns.get(pred) match {
       case Some(spec) => spec()
-      case None => return ImmutableTable.empty[Value](Seq())
+      case None => return ValueTable.empty(Seq())
     }
     val mainMatcher = bottomUpRuntime.engine.getMatcher(mainSpec)
-    val unboundCols = predicates(p).map(_.name).diff(args.columns)
+    val unboundCols = predicates(pred).map(_.name).diff(args.columns)
     val rows = args.entries.flatMap { row =>
       val inputMap = args.columns.zip(row.map(_.unwrap)).toMap ++ unboundCols.map(_ -> null)
       val input = Query.Match(mainSpec, inputMap, isMutable = false)
@@ -52,18 +50,18 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
         }.toSeq
       }
     }
-    ImmutableTable(mainMatcher.getParameterNames.asScala.toSeq, rows)
+    ValueTable(mainMatcher.getParameterNames.asScala.toSeq, rows)
   }
 
-  def countBottomUp(p: Predicate, args: ImmutableTable[Value]): Int = {
-    val mainSpec = bottomUpRuntime.compiled.psystemModule.patterns.get(p) match {
+  def countBottomUp(pred: Predicate, args: ValueTable): Int = {
+    val mainSpec = bottomUpRuntime.compiled.psystemModule.patterns.get(pred) match {
       case Some(spec) => spec()
       case None => return 0
     }
     TimeTracker.begin()
     val mainMatcher = bottomUpRuntime.engine.getMatcher(mainSpec)
     TimeTracker.stop()
-    val unboundCols = predicates(p).map(_.name).diff(args.columns)
+    val unboundCols = predicates(pred).map(_.name).diff(args.columns)
     args.entries.map { row =>
       val inputMap = args.columns.zip(row.map(_.unwrap)).toMap ++ unboundCols.map(_ -> null)
       val input = Query.Match(mainSpec, inputMap, isMutable = false)
@@ -71,17 +69,14 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     }.sum
   }
 
-  def readBlacklistedBottomUp[A](
-      p: Predicate,
-      args: ImmutableTable[Value]
-    ): ImmutableTable[Value] = {
-    accessBlacklistedBottomUp(p, args, readBottomUp)
+  def readBlacklistedBottomUp[A](pred: Predicate, args: ValueTable): ValueTable = {
+    accessBlacklistedBottomUp(pred, args, readBottomUp)
   }
 
   private def accessBlacklistedBottomUp[A](
-      p: Predicate,
-      args: ImmutableTable[Value],
-      f: (Predicate, ImmutableTable[Value]) => A
+      pred: Predicate,
+      args: ValueTable,
+      f: (Predicate, ValueTable) => A
     ): A = {
 
     val blacklistMap = blacklist.map { case ((pred, adornment), bag) =>
@@ -98,7 +93,7 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     bottomUpRuntime.engine.delayUpdatePropagation { () =>
       bottomUpRuntime.db.processDatabaseInput(insertBlacklist)
     }
-    val res = f(p, args)
+    val res = f(pred, args)
     // remove blacklist from runtime
     bottomUpRuntime.engine.delayUpdatePropagation { () =>
       bottomUpRuntime.db.processDatabaseInput(deleteBlacklist)
@@ -106,97 +101,93 @@ class DebuggerState(val bottomUpRuntime: DatalogRuntime) {
     res
   }
 
-//  def storeExpectedFixpointSize(p: Predicate, args: ImmutableTable[Value]): Unit = {
-//    fixpointSize += (p, args) -> accessBlacklistedBottomUp(p, args, countBottomUp)
-//  }
+  def storeExpectedFixpointSize(pred: Predicate, args: ValueTable, stackHeight: Int): Unit = {
+    val bottomUpSize = readBlacklistedBottomUp(pred, args).size
+    fixpointSize += (pred, args, stackHeight) -> bottomUpSize
+  }
 
-  def insertBlacklist(p: Predicate, args: ImmutableTable[Value]): Unit = {
-    val adornment = adorn(p, args)
-    blacklist.get(p -> adornment) match {
+  def insertBlacklist(pred: Predicate, args: ValueTable): Unit = {
+    val adornment = adorn(pred, args)
+    blacklist.get(pred -> adornment) match {
       case Some(old) =>
         var newBag = old
         args.entries.foreach { row =>
           val oldValue = old.getOrElse(row, 0)
           newBag = newBag + (row -> (oldValue + 1))
         }
-        blacklist += (p -> adornment) -> newBag
+        blacklist += (pred -> adornment) -> newBag
       case None =>
-        blacklist += (p -> adornment) -> args.entries.map(_ -> 1).toMap
+        blacklist += (pred -> adornment) -> args.entries.map(_ -> 1).toMap
     }
   }
 
-  def deleteBlacklist(p: Predicate, args: ImmutableTable[Value]): Unit = {
-    val adornment = adorn(p, args)
-    blacklist.get(p -> adornment) match {
+  def deleteBlacklist(pred: Predicate, args: ValueTable): Unit = {
+    val adornment = adorn(pred, args)
+    blacklist.get(pred -> adornment) match {
       case Some(old) =>
         var newBag = old
         args.entries.foreach { row =>
           val oldValue = if (old.getOrElse(row, 0) == 0) 1 else old(row)
           newBag = newBag + (row -> (oldValue - 1))
         }
-        blacklist += (p -> adornment) -> newBag
+        blacklist += (pred -> adornment) -> newBag
       case None =>
-        blacklist += (p -> adornment) -> args.entries.map(_ -> 0).toMap
+        blacklist += (pred -> adornment) -> args.entries.map(_ -> 0).toMap
     }
   }
 
-  private def adorn(p: Predicate, args: ImmutableTable[Value]): Adornment =
-    predicates.get(p) match {
+  private def adorn(pred: Predicate, args: ValueTable): Adornment =
+    predicates.get(pred) match {
       case Some(params) =>
         params.map { param =>
           args.isBound(param.name)
         }
-      case None => throw IllegalDebugStateException(s"Predicate $p is not defined")
+      case None => throw IllegalDebugStateException(s"Predicate $pred is not defined")
     }
 
   private val predicates: Map[Predicate, Seq[Datalog.Param]] =
-    bottomUpRuntime.compiled.ir.patternMap.map { case (p, pat) =>
-      p -> pat.params
+    bottomUpRuntime.compiled.ir.patternMap.map { case (pred, pat) =>
+      pred -> pat.params
     }
 
-  def insertTopDown(p: Predicate, table: ImmutableTable[Value]): Unit = {
-    topDownResults.get(p) match {
+  def insertTopDown(pred: Predicate, table: ValueTable): Unit = {
+    topDownResults.get(pred) match {
       case Some(old) =>
-        topDownResults += p -> old.union(table)
+        topDownResults += pred -> old.union(table)
       case None =>
-        topDownResults += p -> table
+        topDownResults += pred -> table
     }
   }
 
-  def readTopDown(p: Predicate, args: ImmutableTable[Value]): ImmutableTable[Value] = {
-    topDownResults.get(p) match {
+  def readTopDown(pred: Predicate, args: ValueTable): ValueTable = {
+    topDownResults.get(pred) match {
       case Some(t) =>
         t.join(args)
       case None =>
-        ImmutableTable.empty(predicates(p).map(_.name))
+        ValueTable.empty(predicates(pred).map(_.name))
     }
   }
 
-  def filterSeenQueries(p: Predicate, args: ImmutableTable[Value]): ImmutableTable[Value] = {
-    val adornment = adorn(p, args)
+  def addNewQuery(pred: Predicate, args: ValueTable): ValueTable = {
+    val adornment = adorn(pred, args)
     // We don't need to reset this at any point
     // If we have already seen this all of this query already and see it again, we will already have derived the fixpoint
-    seenQueries.get(p -> adornment) match {
+    seenQueries.get(pred -> adornment) match {
       case Some(seen) =>
         val remaining = args.diff(seen)
-        seenQueries += (p -> adornment) -> seen.union(remaining)
+        seenQueries += (pred -> adornment) -> seen.union(remaining)
         remaining
       case None =>
-        seenQueries += (p -> adornment) -> args
+        seenQueries += (pred -> adornment) -> args
         args
     }
   }
 
-  def addSeenQuery(p: Predicate, args: ImmutableTable[Value]): Unit = {
-    val adornment = adorn(p, args)
-    val old = seenQueries.getOrElse(p -> adornment, ImmutableTable.empty[Value](args.columns))
-    seenQueries += (p -> adornment) -> old.union(args)
-  }
-
-  def isUnstable(p: Predicate, args: ImmutableTable[Value]): Boolean = {
-    val topDown = readTopDown(p, args)
-    val topDownSize = topDown.size
-    val bottomUpSize = accessBlacklistedBottomUp(p, args, countBottomUp)
-    topDownSize < bottomUpSize
+  def isStable(pred: Predicate, args: ValueTable, result: ValueTable, stackHeight: Int): Boolean = {
+    val topDown = readTopDown(pred, args)
+    val current = topDown.union(result)
+    val currentSize = current.size
+    val expectedSize = fixpointSize((pred, args, stackHeight))
+    currentSize >= expectedSize
   }
 }

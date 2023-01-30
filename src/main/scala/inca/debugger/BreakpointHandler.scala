@@ -1,4 +1,4 @@
-package inca.debugger.redesign_new
+package inca.debugger
 
 import inca.backend.analyze.DependencyGraph
 import scala.collection.mutable

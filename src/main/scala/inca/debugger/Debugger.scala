@@ -1,4 +1,4 @@
-package inca.debugger.redesign_new
+package inca.debugger
 
 import inca.backend.analyze.DependencyGraph
 import inca.backend.ir.Datalog
@@ -38,7 +38,7 @@ trait Debugger extends DebuggerAPI {
    */
   var state: DebuggerState = _
   val queryStack: QueryStack = new QueryStack
-  protected[redesign_new] lazy val breakpointHandler: BreakpointHandler = new BreakpointHandler(
+  protected[debugger] lazy val breakpointHandler: BreakpointHandler = new BreakpointHandler(
     dependencyGraph)
 
   /*

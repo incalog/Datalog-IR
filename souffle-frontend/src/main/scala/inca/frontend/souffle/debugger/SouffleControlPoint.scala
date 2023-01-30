@@ -2,7 +2,7 @@ package inca.frontend.souffle.debugger
 
 import inca.compiler.source.SourceLocation
 import inca.compiler.source.SourceObject
-import inca.debugger.redesign_new.Query
+import inca.debugger.Query
 import inca.frontend.souffle.Syntax.Input
 import inca.frontend.souffle.Syntax.RuleDefinition
 import inca.frontend.souffle.Syntax.RuleSignature

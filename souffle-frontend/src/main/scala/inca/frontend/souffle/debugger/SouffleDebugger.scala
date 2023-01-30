@@ -6,7 +6,18 @@ import inca.compiler.source.ExcerptAbsoluteRegion
 import inca.compiler.source.PaddedRegion
 import inca.compiler.source.SourceLocation
 import inca.compiler.source.SourceLocationList
+import inca.debugger
 import inca.debugger.redesign_new._
+import inca.debugger.Atom
+import inca.debugger.AtomResult
+import inca.debugger.Debugger
+import inca.debugger.IRBreakpoint
+import inca.debugger.Query
+import inca.debugger.QueryResult
+import inca.debugger.QueryStack
+import inca.debugger.Rule
+import inca.debugger.RuleResult
+import inca.debugger.Subquery
 import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.frontend.souffle.Syntax._
 import inca.runtime.db.DatabaseInput
@@ -57,18 +68,24 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
         IRBreakpoint(
           Subquery(pred, null, null, null, Seq(Rule(pred, params, rule.atoms.map(Atom)))))
       } else {
-        IRBreakpoint(Subquery(pred, null, null, null, Seq(Rule(pred, params, Nil))))
+        IRBreakpoint(
+          debugger.Subquery(pred, null, null, null, Seq(debugger.Rule(pred, params, Nil))))
       }
     case InRuleBreakPoint(pred, ruleIdx, stm) =>
       val pattern = preds(pred)
       val rule = pattern.bodies(ruleIdx)
       val params = predParams(pred)
       val ruleEvals = pattern.bodies.drop(ruleIdx + 1).map { r =>
-        Rule(pred, params, r.atoms.map(Atom))
+        debugger.Rule(pred, params, r.atoms.map(Atom))
       }
       if (stm.isEmpty) {
         IRBreakpoint(
-          Subquery(pred, null, null, null, Rule(pred, params, rule.atoms.map(Atom)) +: ruleEvals))
+          debugger.Subquery(
+            pred,
+            null,
+            null,
+            null,
+            debugger.Rule(pred, params, rule.atoms.map(Atom)) +: ruleEvals))
       } else {
         val atoms = rule.atoms.dropWhile(at =>
           at.getHint(SourceConstruct.key) match {
@@ -78,7 +95,12 @@ class SouffleDebugger(compiled: CompiledSouffleModule, input: DatabaseInput) ext
             case _ => true
           })
         IRBreakpoint(
-          Subquery(pred, null, null, null, Rule(pred, params, rule.atoms.map(Atom)) +: ruleEvals))
+          debugger.Subquery(
+            pred,
+            null,
+            null,
+            null,
+            debugger.Rule(pred, params, rule.atoms.map(Atom)) +: ruleEvals))
       }
   }
 

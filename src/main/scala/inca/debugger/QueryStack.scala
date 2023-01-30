@@ -1,4 +1,4 @@
-package inca.debugger.redesign_new
+package inca.debugger
 
 import inca.util.Derivative
 
@@ -39,7 +39,6 @@ class QueryStack {
     _stack = q :: _stack.tail
     notifyStackChanged()
   }
-
 
   def addDerivative[T](init: QueryStack => T)(f: QueryStack => T): Derivative[QueryStack, T] = {
     val deriv = new Derivative[QueryStack, T](init(this), f)

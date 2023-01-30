@@ -1,4 +1,4 @@
-package inca.debugger.redesign_new
+package inca.debugger
 
 import inca.compiler.CompiledDatalogModule
 import inca.runtime.db.DatabaseInput

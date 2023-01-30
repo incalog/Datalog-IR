@@ -1,13 +1,10 @@
-package inca.debugger.redesign_new
+package inca.debugger
 
 import inca.backend.ir.Datalog
 import inca.backend.ir.Datalog.base
-import inca.debugger.redesign_old.AtomTableOps.transLiteral
-import inca.debugger.redesign_old.AtomTableOps.transType
 import inca.debugger.table.IndexedTableFactory
-import inca.debugger.IllegalDebugStateException
-import inca.debugger.ScalaValue
-import inca.debugger.Value
+import inca.debugger.AtomTableOps.transLiteral
+import inca.debugger.AtomTableOps.transType
 import inca.runtime.index.dynamic.ParentIndex
 import inca.runtime.index.virtual.NodeNotLinkedIndex
 import inca.runtime.index.virtual.NotNodeTypeIndex

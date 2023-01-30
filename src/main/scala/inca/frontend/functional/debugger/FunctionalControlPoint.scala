@@ -1,7 +1,7 @@
 package inca.frontend.functional.debugger
 
 import inca.compiler.source.SourceObject
-import inca.debugger.redesign_new.Query
+import inca.debugger.Query
 import inca.frontend.functional.core
 import inca.frontend.functional.core.FunctionDef
 import inca.frontend.functional.core.If

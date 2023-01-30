@@ -1,4 +1,4 @@
-package inca.debugger.redesign_new
+package inca.debugger
 
 import inca.analyzedLangs.Exp
 import inca.analyzedLangs.ExpLangTestAnalyses

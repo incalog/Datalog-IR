@@ -1,4 +1,4 @@
-package inca.debugger.redesign_new
+package inca.debugger
 
 import inca.backend.ir.Datalog
 import inca.debugger.table.ImmutableTable

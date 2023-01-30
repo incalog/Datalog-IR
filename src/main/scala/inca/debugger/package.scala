@@ -1,9 +1,9 @@
-package inca.debugger
+package inca
 
 import inca.debugger.table.indexing.IndexCover
 import inca.debugger.table.ImmutableTable
 
-package object redesign_new {
+package object debugger {
   type Predicate = String
   type Adornment = Seq[Boolean]
   type ValueTable = ImmutableTable[Value]
