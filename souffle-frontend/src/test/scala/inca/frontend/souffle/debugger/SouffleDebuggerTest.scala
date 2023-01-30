@@ -4,15 +4,14 @@ import inca.backend.optimize.InlineSimpleRelations
 import inca.compiler.source.Source
 import inca.compiler.source.SourceFile
 import inca.compiler.source.SourceString
-import inca.debugger.redesign_new.QueryResult
-import inca.debugger.redesign_new.ValueTable
 import inca.debugger.table.ImmutableTable
+import inca.debugger.QueryResult
 import inca.debugger.ScalaValue
 import inca.debugger.Value
+import inca.debugger.ValueTable
 import inca.frontend.souffle.compiler.CompiledSouffleModule
 import inca.frontend.souffle.compiler.SouffleOptions
 import inca.frontend.souffle.executor.SouffleExecutor
-import inca.frontend.souffle.executor.SouffleExecutor.loadInputs
 import inca.frontend.souffle.lowering.SouffleToDatalogIR
 import inca.frontend.souffle.parser.Parser
 import inca.frontend.souffle.Syntax
