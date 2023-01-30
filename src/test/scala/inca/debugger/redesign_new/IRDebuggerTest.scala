@@ -422,7 +422,6 @@ class IRDebuggerTest extends AnyFunSuite {
     val input = constructInput(Seq(1 -> 2, 2 -> 3, 3 -> 1))
     val debugger = initDebugger(module(pathPatternExt), new DataModel(), input)
     val args = ValueTable(Seq("from"), Seq(Seq(ScalaValue(1))))
-    debugger.state.insertBlacklist("path", args)
     debugger.entry("path", args)
     debugger.stepInto() // ext call
     debugger.stepInto() // rule merge
@@ -444,7 +443,6 @@ class IRDebuggerTest extends AnyFunSuite {
     val input = constructInput(Seq(1 -> 2, 2 -> 3, 3 -> 2, 3 -> 1))
     val debugger = initDebugger(module(pathPatternExt), new DataModel(), input)
     val args = ValueTable(Seq("from"), Seq(Seq(ScalaValue(1))))
-    debugger.state.insertBlacklist("path", args)
     debugger.entry("path", args)
     debugger.stepInto() // ext call
     debugger.stepInto() // rule merge
@@ -466,7 +464,6 @@ class IRDebuggerTest extends AnyFunSuite {
     val input = constructInput(Seq(1 -> 2, 2 -> 3, 3 -> 1))
     val debugger = initDebugger(module(pathPatternExt), new DataModel(), input)
     val args = ValueTable(Seq("from"), Seq(Seq(ScalaValue(1))))
-    debugger.state.insertBlacklist("path", args)
     debugger.entry("path", args)
     debugger.stepInto() // ext call
     debugger.stepInto() // rule merge
@@ -585,7 +582,6 @@ class IRDebuggerTest extends AnyFunSuite {
     val input = constructInput(Seq(1 -> 2, 2 -> 3, 3 -> 1))
     val debugger = initDebugger(module(pathPatternExt), new DataModel(), input)
     val args = ValueTable(Seq("from"), Seq(Seq(ScalaValue(1))))
-    debugger.state.insertBlacklist("path", args)
     debugger.entry("path", args)
     debugger.stepOut()
     assertQueryResult(
