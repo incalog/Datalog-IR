@@ -543,13 +543,13 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
 
   val multipleIfsWithSameCond: String =
     s"""module M
-      |@main def main(n: Int): Int =
-      |  let x = (if (n == 0) 1 else 2) in
-      |    let y = (if (n == 0) 2 else 1) in
-      |      x + y
+      |@main def main(n: Int): Int = 
+      |  let x = 1 in 
+      |    let y = (if (n == 0) 1 else 2) in
+      |      let z = (if (n == 0) 2 else 1) in
+      |      x + z
       |""".stripMargin
 
-  // TODO FIX
   test("test if condition breakpoint where condition is occuring twice in program 1") {
     val expression = core.BaseApplyInfix(core.Var("n"), "==", core.BaseLit(q"0", core.TScalaInt))
     val bp = createBreakpointOfExpression("main", expression)
@@ -599,9 +599,8 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
   }
 
   // test binding
-  // TODO fix
   test("test binding breakpoint") {
-    val bp = createBreakpointOfBinding("main", "x")
+    val bp = createBreakpointOfBinding("main", "y")
     assertBreakpoints(Code.varExample, Seq(bp), "main")(1)
   }
 
@@ -618,21 +617,19 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     assertBreakpoints(constructorProg, Seq(bp), "main")(1)
   }
 
-  // TODO fix
   test("breakpoint in tuple") {
     val expression = core.BaseApplyInfix(
-      core.BaseLit(q"1", core.TScalaInt),
-      "+",
-      core.BaseLit(q"1", core.TScalaInt)
+      core.BaseLit(q"true", core.TScalaBoolean),
+      "&&",
+      core.BaseLit(q"false", core.TScalaBoolean)
     )
     val bp = createBreakpointOfExpression("main", expression)
     assertBreakpoints(tupleProg, Seq(bp), "main")(1)
   }
 
-  // TODO fix
   test("breakpoint in set") {
     val expression = core.BaseApplyInfix(
-      core.BaseLit(q"1", core.TScalaInt),
+      core.BaseLit(q"2", core.TScalaInt),
       "+",
       core.BaseLit(q"1", core.TScalaInt)
     )
@@ -640,10 +637,9 @@ class FunctionalDebuggerTest extends AnyFunSuite with BeforeAndAfterEach {
     assertBreakpoints(setProg, Seq(bp), "main")(1)
   }
 
-  // TODO fix
   test("breakpoint in nested binary") {
     val expression = core.BaseApplyInfix(
-      core.BaseLit(q"1", core.TScalaInt),
+      core.BaseLit(q"3", core.TScalaInt),
       "+",
       core.BaseLit(q"4", core.TScalaInt)
     )
